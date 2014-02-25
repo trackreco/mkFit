@@ -8,19 +8,13 @@
 
 int main() {
 
-  SMatrixSym66 projMatrix = ROOT::Math::SMatrixIdentity();
-  projMatrix(3,3)=0.;
-  projMatrix(4,4)=0.;
-  projMatrix(5,5)=0.;
-  SMatrixSym66 projMatrixT = ROOT::Math::Transpose(projMatrix);//this is actually useless in this case
-
   SMatrix36 projMatrix36;
   projMatrix36(0,0)=1.;
   projMatrix36(1,1)=1.;
   projMatrix36(2,2)=1.;
   //std::cout << "projMatrix36" << std::endl;
   //dumpMatrix(projMatrix36);
-  SMatrix63 projMatrix36T = ROOT::Math::Transpose(projMatrix36);//this is actually useless in this case
+  SMatrix63 projMatrix36T = ROOT::Math::Transpose(projMatrix36);
   //std::cout << "projMatrix36T" << std::endl;
   //dumpMatrix(projMatrix36T);
 

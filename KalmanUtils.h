@@ -10,47 +10,31 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
   bool print = false;
 
   SMatrix66 propErr = propagatedState.errors;
+  SMatrix33 propErr33 = projMatrix*propagatedState.errors*projMatrixT;
+  SVector3 residual = measurementState.parameters-projMatrix*propagatedState.parameters;
+  SMatrix33 resErr = measurementState.errors+propErr33;
+  SMatrix33 resErrInv = resErr;
+  resErrInv.Invert();
+  SMatrix63 kalmanGain = propagatedState.errors*projMatrixT*(resErrInv);
+  SVector6 updatedParams = propagatedState.parameters + kalmanGain*residual;
+  SMatrix66 identity = ROOT::Math::SMatrixIdentity();
+  SMatrix66 updatedErrs = (identity - kalmanGain*projMatrix)*propagatedState.errors;
+
   if (print) {
     std::cout << "propErr" << std::endl;
     dumpMatrix(propErr);
-  }
-  SMatrix33 propErr33 = projMatrix*propagatedState.errors*projMatrixT;
-  if (print) {
     std::cout << "propErr33" << std::endl;
     dumpMatrix(propErr33);
-  }  
-
-  SVector3 residual = measurementState.parameters-projMatrix*propagatedState.parameters;
-  if (print) {
-  std::cout << "residual: " << residual[0] << " " << residual[1] << " " << residual[2] << " "
-	    << residual[3] << " " << residual[4] << " " << residual[5] << " " << std::endl;
-  }
-  SMatrix33 resErr = measurementState.errors+propErr33;
-  if (print) {
+    std::cout << "residual: " << residual[0] << " " << residual[1] << " " << residual[2] << " "
+	      << residual[3] << " " << residual[4] << " " << residual[5] << " " << std::endl;
     std::cout << "resErr" << std::endl;
     dumpMatrix(resErr);
-  }
-
-  SMatrix33 resErrInv = resErr;
-  resErrInv.Invert();
-  if (print) {
     std::cout << "resErrInv" << std::endl;
     dumpMatrix(resErrInv);
-  }
-
-  SMatrix63 kalmanGain = propagatedState.errors*projMatrixT*(resErrInv);
-  if (print) {
     std::cout << "kalmanGain" << std::endl;
     dumpMatrix(kalmanGain);
-  }
-  SVector6 updatedParams = propagatedState.parameters + kalmanGain*residual;
-  if (print) {
-  std::cout << "updatedParams: " << updatedParams[0] << " " << updatedParams[1] << " " << updatedParams[2] << " "
-	    << updatedParams[3] << " " << updatedParams[4] << " " << updatedParams[5] << " " << std::endl;
-  }
-  SMatrixSym66 identity = ROOT::Math::SMatrixIdentity();
-  SMatrix66 updatedErrs = (identity - kalmanGain*projMatrix)*propagatedState.errors;
-  if (print) {
+    std::cout << "updatedParams: " << updatedParams[0] << " " << updatedParams[1] << " " << updatedParams[2] << " "
+	      << updatedParams[3] << " " << updatedParams[4] << " " << updatedParams[5] << " " << std::endl;
     std::cout << "updatedErrs" << std::endl;
     dumpMatrix(updatedErrs);
   }
