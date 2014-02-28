@@ -1,4 +1,4 @@
-//g++ -o main main.cc Track.cc Hit.cc `root-config --libs --cflags`
+//g++ -o main main.cc Track.cc Hit.cc Matrix.cc `root-config --libs --cflags`
 
 #include <iostream>
 #include "Track.h"
@@ -22,7 +22,7 @@ int main() {
   Vector mom;
   SMatrixSym66 covtrk;
   std::vector<Hit> hits;
-  setupTrackByHand(pos,mom,covtrk,hits,0);
+  setupTrackByHand(pos,mom,covtrk,hits,1);
   int q = 1;
   Track trk(q,pos,mom,covtrk);
   trk.setHitsVector(hits);
@@ -41,13 +41,21 @@ int main() {
     std::cout << std::endl;
     std::cout << "processing hit #" << hit-hits.begin() << std::endl;
 
-    TrackState propState = propagateLineToR(tmpInitState,hit->position().Rho());
+    TrackState propStateHelix = propagateHelixToR(tmpInitState,hit->position().Rho());
+    std::cout << "propStateHelix.parameters (helix propagation)" << std::endl;
+    std::cout << "x: " << propStateHelix.parameters[0] << " " << propStateHelix.parameters[1] << " " << propStateHelix.parameters[2] << std::endl;
+    std::cout << "p: " << propStateHelix.parameters[3] << " " << propStateHelix.parameters[4] << " " << propStateHelix.parameters[5] << std::endl;
+    std::cout << "propStateHelix.errors" << std::endl;
+    dumpMatrix(propStateHelix.errors);
 
-    std::cout << "propState.parameters" << std::endl;
-    std::cout << "x: " << propState.parameters[0] << " " << propState.parameters[1] << " " << propState.parameters[2] << std::endl;
-    std::cout << "p: " << propState.parameters[3] << " " << propState.parameters[4] << " " << propState.parameters[5] << std::endl;
-    std::cout << "propState.errors" << std::endl;
-    dumpMatrix(propState.errors);
+    TrackState propStateLine = propagateLineToR(tmpInitState,hit->position().Rho());
+    std::cout << "propStateLine.parameters (line propagation)" << std::endl;
+    std::cout << "x: " << propStateLine.parameters[0] << " " << propStateLine.parameters[1] << " " << propStateLine.parameters[2] << std::endl;
+    std::cout << "p: " << propStateLine.parameters[3] << " " << propStateLine.parameters[4] << " " << propStateLine.parameters[5] << std::endl;
+    std::cout << "propStateLine.errors" << std::endl;
+    dumpMatrix(propStateLine.errors);
+
+    TrackState propState = propStateHelix;
     
     MeasurementState measState = hit->measurementState();
     std::cout << "measState.parameters" << std::endl;

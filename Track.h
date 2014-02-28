@@ -2,13 +2,11 @@
 #define _track_
 
 #include "Math/Vector3D.h"
-#include "Hit.cc"
+#include "Hit.h"
+#include "Matrix.h"
 #include <vector>
 
-typedef ROOT::Math::SMatrix<float,6,6,ROOT::Math::MatRepSym<float,6> >    SMatrixSym66;
 typedef ROOT::Math::DisplacementVector3D<ROOT::Math::Cartesian3D<float> > Vector;
-typedef ROOT::Math::SMatrix<float,6> SMatrix66;
-typedef ROOT::Math::SVector<float,6> SVector6;
 
 struct TrackState {
 public:
@@ -58,7 +56,6 @@ private:
 
   SMatrix66 errors_;
   SVector6  parameters_;
-  //SMatrix55 errors_;
 
   std::vector<Hit> hits_;
 

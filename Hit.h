@@ -2,12 +2,9 @@
 #define _hit_
 
 #include "Math/Point3D.h"
-#include "Math/SMatrix.h"
+#include "Matrix.h"
 
 typedef ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<float> > Point;
-typedef ROOT::Math::SMatrix<float,3> SMatrix33;
-typedef ROOT::Math::SMatrix<float,3,3,ROOT::Math::MatRepSym<float,3> >    SMatrixSym33;
-typedef ROOT::Math::SVector<float,3> SVector3;
 
 struct MeasurementState {
 public:
