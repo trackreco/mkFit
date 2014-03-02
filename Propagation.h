@@ -19,7 +19,7 @@ TrackState propagateLineToR(TrackState& inputState, float r) {
 
   TrackState result;
 
-  SMatrixSym66 propMatrix = ROOT::Math::SMatrixIdentity();
+  SMatrix66 propMatrix = ROOT::Math::SMatrixIdentity();
   propMatrix(0,3)=path;
   propMatrix(1,4)=path;
   propMatrix(2,5)=path;
@@ -31,20 +31,11 @@ TrackState propagateLineToR(TrackState& inputState, float r) {
     std::cout << "arrived at R=" << sqrt(result.parameters[0]*result.parameters[0]+result.parameters[1]*result.parameters[1]) << std::endl;
   }
 
-  SMatrixSym66 errorProp = ROOT::Math::SMatrixIdentity();
-  errorProp(0,3)=path*path;
-  errorProp(1,4)=path*path;
-  errorProp(2,5)=path*path;
-  result.errors=err*errorProp;
-
+  result.errors=propMatrix*err*ROOT::Math::Transpose(propMatrix);  
   return result;
 }
 
-#include "Math/Vector2D.h"
-#include "Math/Point2D.h"
-typedef ROOT::Math::DisplacementVector2D<ROOT::Math::Cartesian2D<float> > Vector2D;
-typedef ROOT::Math::PositionVector2D<ROOT::Math::Cartesian2D<float> > Point2D;
-
+//fixme what about charge????
 TrackState propagateHelixToR(TrackState& inputState, float r) {
 
   bool dump = false;
@@ -57,6 +48,7 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
 
   float pt2 = pxin*pxin+pyin*pyin;
   float pt = sqrt(pt2);
+  float pt3 = pt*pt2;
   //p=0.3Br => r=p/(0.3*B)
   float k=100./(0.3*3.8);//fixme 0.3 more precise
   float curvature = pt*k;//in cm
@@ -88,7 +80,6 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
     float pz = par.At(5);
 
     float r0 = sqrt(x*x+y*y);
-    float r0inv = 1./r0;
     if (dump) std::cout << "r0=" << r0 << " pt=" << pt << std::endl;
     
     float distance = r-r0;//fixme compute real distance between two points
@@ -99,15 +90,19 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
     float cosAP=cos(angPath);
     float sinAP=sin(angPath);
 
+    //http://www.phys.ufl.edu/~avery/fitting/fitting4.pdf
     par.At(0) = x + k*(px*sinAP-py*(1-cosAP));
     par.At(1) = y + k*(py*sinAP+px*(1-cosAP));
     par.At(2) = z + distance*ctgTheta;
 
     par.At(3) = px*cosAP-py*sinAP;
-    par.At(4) = py*cosAP-px*sinAP;
+    par.At(4) = py*cosAP+px*sinAP;
     par.At(5) = pz;
     
     if (i+1!=Niter) {
+      //fixme in case r0=0????
+      float r0inv = 1./r0;
+      if (dump) std::cout << "r0=" << r0 << " r0inv=" << r0inv << " pt=" << pt << std::endl;
       //update derivative on D
       float dAPdx = -x/(r0*curvature);
       float dAPdy = -y/(r0*curvature);
@@ -121,8 +116,8 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
 
       float dxdpx = k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx);
       float dxdpy = k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy);
-      float dydpx = k*(py*cosAP*dAPdpy - 1. + cosAP - px*sinAP*dAPdpx);
-      float dydpy = k*(sinAP + py*cosAP*dAPdpy - px*sinAP*dAPdpy);
+      float dydpx = k*(py*cosAP*dAPdpx + 1. - cosAP + px*sinAP*dAPdpx);
+      float dydpy = k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy);
 
       dTDdx -= r0inv*(x*dxdx + y*dydx);
       dTDdy -= r0inv*(x*dxdy + y*dydy);
@@ -140,6 +135,8 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
   float TD=totalDistance;
   float TP=totalAngPath;
   float C=curvature;
+
+  if (dump) std::cout << "TD=" << TD << " TP=" << TP << " arrived at r=" << sqrt(par.At(0)*par.At(0)+par.At(1)*par.At(1)) << std::endl;
 
   float dCdpx = k*pxin/pt;
   float dCdpy = k*pyin/pt;
@@ -163,61 +160,70 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
 
   float dxdpx = k*(sinTP + pxin*cosTP*dTPdpx - pyin*sinTP*dTPdpx);
   float dxdpy = k*(pxin*cosTP*dTPdpy - 1. + cosTP - pyin*sinTP*dTPdpy);
-  float dydpx = k*(pyin*cosTP*dTPdpy - 1. + cosTP - pxin*sinTP*dTPdpx);
-  float dydpy = k*(sinTP + pyin*cosTP*dTPdpy - pxin*sinTP*dTPdpy);
+  float dydpx = k*(pyin*cosTP*dTPdpx + 1. - cosTP + pxin*sinTP*dTPdpx);
+  float dydpy = k*(sinTP + pyin*cosTP*dTPdpy + pxin*sinTP*dTPdpy);
 
   float dzdx = dTDdx*ctgTheta;
   float dzdy = dTDdy*ctgTheta;
 
-  float dzdpx = dTDdpx*ctgTheta + TD*pzin*pxin/pt;
-  float dzdpy = dTDdpy*ctgTheta + TD*pzin*pyin/pt;
-  float dzdpz = TD/pt;
+  float dzdpx = dTDdpx*ctgTheta - TD*pzin*pxin/pt3;
+  float dzdpy = dTDdpy*ctgTheta - TD*pzin*pyin/pt3;
+  float dzdpz = TD/pt;//fixme if I set this term to 0 then it works...
 
   //par.At(3) = pxin*cosTP-pyin*sinTP;
-  //par.At(4) = pyin*cosTP-pxin*sinTP;
+  //par.At(4) = pyin*cosTP+pxin*sinTP;
   //par.At(5) = pzin;
 
-  float dpxdx = -dTPdx*(pxin*sinTP - pyin*cosTP);
-  float dpxdy = -dTPdy*(pxin*sinTP - pyin*cosTP);
+  float dpxdx = -dTPdx*(pxin*sinTP + pyin*cosTP);
+  float dpxdy = -dTPdy*(pxin*sinTP + pyin*cosTP);
   float dpydx = -dTPdx*(pyin*sinTP - pxin*cosTP);
   float dpydy = -dTPdy*(pyin*sinTP - pxin*cosTP);
   
   float dpxdpx = cosTP - dTPdpx*(pxin*sinTP + pyin*cosTP);
   float dpxdpy = -sinTP - dTPdpy*(pxin*sinTP + pyin*cosTP);
-  float dpydpx = -sinTP - dTPdpx*(pyin*sinTP + pxin*cosTP);
-  float dpydpy = cosTP - dTPdpy*(pyin*sinTP + pxin*cosTP);
+  float dpydpx = +sinTP - dTPdpx*(pyin*sinTP - pxin*cosTP);
+  float dpydpy = cosTP - dTPdpy*(pyin*sinTP - pxin*cosTP);
 
-  SMatrixSym66 errorProp = ROOT::Math::SMatrixIdentity();
-  errorProp(0,0)=dxdx*dxdx;
-  errorProp(0,1)=dxdy*dxdy;
-  errorProp(0,3)=dxdpx*dxdpx;
-  errorProp(0,4)=dxdpy*dxdpy;
+  //jacobian
+  SMatrix66 errorProp = ROOT::Math::SMatrixIdentity();
+  errorProp(0,0)=dxdx;
+  errorProp(0,1)=dxdy;
+  errorProp(0,3)=dxdpx;
+  errorProp(0,4)=dxdpy;
 
-  errorProp(1,0)=dydx*dydx;
-  errorProp(1,1)=dydy*dydy;
-  errorProp(1,3)=dydpx*dydpx;
-  errorProp(1,4)=dydpy*dydpy;
+  errorProp(1,0)=dydx;
+  errorProp(1,1)=dydy;
+  errorProp(1,3)=dydpx;
+  errorProp(1,4)=dydpy;
 
-  errorProp(2,0)=dzdx*dzdx;
-  errorProp(2,1)=dzdy*dzdy;
-  errorProp(2,3)=dzdpx*dzdpx;
-  errorProp(2,4)=dzdpy*dzdpy;
-  errorProp(2,5)=dzdpz*dzdpz;
+  errorProp(2,0)=dzdx;
+  errorProp(2,1)=dzdy;
+  errorProp(2,3)=dzdpx;
+  errorProp(2,4)=dzdpy;
+  errorProp(2,5)=dzdpz;
 
-  errorProp(3,0)=dpxdx*dpxdx;
-  errorProp(3,1)=dpxdy*dpxdy;
-  errorProp(3,3)=dpxdpx*dpxdpx;
-  errorProp(3,4)=dpxdpy*dpxdpy;
+  errorProp(3,0)=dpxdx;
+  errorProp(3,1)=dpxdy;
+  errorProp(3,3)=dpxdpx;
+  errorProp(3,4)=dpxdpy;
 
-  errorProp(4,0)=dpydx*dpydx;
-  errorProp(4,1)=dpydy*dpydy;
-  errorProp(4,3)=dpydpx*dpydpx;
-  errorProp(4,4)=dpydpy*dpydpy;
+  errorProp(4,0)=dpydx;
+  errorProp(4,1)=dpydy;
+  errorProp(4,3)=dpydpx;
+  errorProp(4,4)=dpydpy;
+
+  if (dump) {
+    std::cout << "errorProp" << std::endl;
+    dumpMatrix(errorProp);
+  }
 
   TrackState result;
   result.parameters=par;
-  result.errors=err*errorProp;
-  if (dump) dumpMatrix(result.errors);
+  result.errors=errorProp*err*ROOT::Math::Transpose(errorProp);
+  if (dump) {
+    std::cout << "result.errors" << std::endl;
+    dumpMatrix(result.errors);
+  }
   return result;
 }
 
