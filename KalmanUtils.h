@@ -11,10 +11,10 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
 
   //test adding noise (mutiple scattering) on position
   SMatrix66 noise;
-  /* float noiseVal = 0.01; */
-  /* noise(0,0)=noiseVal; */
-  /* noise(1,1)=noiseVal; */
-  /* noise(2,2)=noiseVal; */
+  float noiseVal = 0.000001;
+  noise(0,0)=noiseVal;
+  noise(1,1)=noiseVal;
+  noise(2,2)=noiseVal;
   SMatrix66 propErr = propagatedState.errors + noise;
   SMatrix33 propErr33 = projMatrix*propErr*projMatrixT;
   SVector3 residual = measurementState.parameters-projMatrix*propagatedState.parameters;
@@ -26,7 +26,7 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
   SVector6 kGr = kalmanGain*residual;
   SVector6 updatedParams = propagatedState.parameters + kGr;
   SMatrix66 identity = ROOT::Math::SMatrixIdentity();
-  SMatrix66 updatedErrs = (identity - kalmanGain*projMatrix)*propErr;
+  SMatrix66 updatedErrs = (identity - kalmanGain*projMatrix)*propErr;//fixme: somehow it does not produce a symmetric matrix 
 
   if (print) {
     std::cout << "\n updateParameters \n" << std::endl;
@@ -61,27 +61,34 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
 }
 
 #include "TRandom.h"
-void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::vector<Hit>& hits, int pt) {
+void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::vector<Hit>& hits, int& charge, float pt) {
 
-  unsigned int nTotHit = 3;
+  unsigned int nTotHit = 10;
 
-  float mypt=float(pt);
-  float px = mypt*gRandom->Rndm();//0.70
-  float py = sqrt(mypt*mypt-px*px);
-  pos=SVector3(0.1,0.1,0.1);
-  mom=SVector3(px,py,0.1);
+  //assume beam spot width 1mm in xy and 1cm in z
+  pos=SVector3(gRandom->Gaus(0,0.1),gRandom->Gaus(0,0.1),gRandom->Gaus(0,1.0));
+
+  if (charge==0) {
+    if (gRandom->Rndm()>0.5) charge = -1;
+    else charge = 1;
+  }
+
+  float px = pt*gRandom->Rndm();
+  float py = sqrt(pt*pt-px*px);
+  float pz = pt*(4.0*(gRandom->Rndm()-0.5));//pz flat between -2*pt and +2*pt
+  mom=SVector3(px,py,pz);
   covtrk=ROOT::Math::SMatrixIdentity();
   for (unsigned int r=0;r<6;++r)
     for (unsigned int c=0;c<6;++c)
       covtrk(r,c)=0.01;
 
   float hitposerr = 0.01;//100mum
-  float k=100./(0.3*3.8);//fixme 0.3 more precise
-  float curvature = mypt*k;//in cm
+  float k=charge*100./(-0.299792458*3.8);
+  float curvature = pt*k;
   float ctgTheta=mom.At(2)/pt;
 
   for (unsigned int nhit=1;nhit<=nTotHit;++nhit) {
-    float distance = 4.*float(nhit);//~4 cm distance
+    float distance = 4.*float(nhit);//~4 cm distance along curvature
     float angPath = distance/curvature;
     float cosAP=cos(angPath);
     float sinAP=sin(angPath);
@@ -103,23 +110,24 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
 }
 
 //temporary...
-void setupTrackByHand(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::vector<Hit>& hits, int pt) {
+void setupTrackByHand(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::vector<Hit>& hits, int& charge, int pt) {
   if (pt==1) {
+    charge=-1;
     pos=SVector3(-4.44741,-1.34288,-0.716961);
     mom=SVector3(-0.9199,-0.373767,-0.154805);
     covtrk = ROOT::Math::SMatrixIdentity();
-    covtrk(0,0)=10.*0.00653892 ;
-    covtrk(0,1)=10.*-0.0104617 ;
-    covtrk(0,2)=10.*-0.0135972 ;
-    covtrk(0,3)=10.*0.000270623;
-    covtrk(0,4)=10.*0.00428196 ;
-    covtrk(0,5)=10.*0.00374236 ;
-    covtrk(1,1)=10.*0.0284513  ;
-    covtrk(1,2)=10.*-0.00652737;
-    covtrk(1,3)=10.*-0.00205512;
-    covtrk(1,4)=10.*-0.0111767 ;
-    covtrk(1,5)=10.*0.000726528;
-    covtrk(2,2)=10.*0.096559   ;
+    covtrk(0,0)=0.00653892 ;
+    covtrk(0,1)=-0.0104617 ;
+    covtrk(0,2)=-0.0135972 ;
+    covtrk(0,3)=0.000270623;
+    covtrk(0,4)=0.00428196 ;
+    covtrk(0,5)=0.00374236 ;
+    covtrk(1,1)=0.0284513  ;
+    covtrk(1,2)=-0.00652737;
+    covtrk(1,3)=-0.00205512;
+    covtrk(1,4)=-0.0111767 ;
+    covtrk(1,5)=0.000726528;
+    covtrk(2,2)=0.096559   ;
     covtrk(2,3)=0.00335384 ;
     covtrk(2,4)=0.00154082 ;
     covtrk(2,5)=-0.0239924 ;
@@ -129,30 +137,6 @@ void setupTrackByHand(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::v
     covtrk(4,4)=0.106961   ;
     covtrk(4,5)=0.0252197  ;
     covtrk(5,5)=0.0590578  ; 
-    //new version from first fit (not refit)
-    /*
-    covtrk(0,0)=0.0552791   ;
-    covtrk(0,1)=-0.100533   ;
-    covtrk(0,2)=-0.0850389  ;
-    covtrk(0,3)=0.00426475  ;
-    covtrk(0,4)=0.0406644   ;
-    covtrk(0,5)=0.0245987   ;
-    covtrk(1,1)=0.262487    ;
-    covtrk(1,2)=-0.0370617  ;
-    covtrk(1,3)=-0.0193552  ;
-    covtrk(1,4)=-0.103526   ;
-    covtrk(1,5)=0.000690588 ;
-    covtrk(2,2)=0.592272    ;
-    covtrk(2,3)=0.0213577   ;
-    covtrk(2,4)=0.00862158  ;
-    covtrk(2,5)=-0.147181   ;
-    covtrk(3,3)=0.398555    ;
-    covtrk(3,4)=0.160117    ;
-    covtrk(3,5)=0.0555702   ;
-    covtrk(4,4)=0.144408    ;
-    covtrk(4,5)=0.0269196   ;
-    covtrk(5,5)=0.0900988   ; 
-    */
     SVector3 x1(-4.44738,-1.34304,-0.717461);
     SMatrixSym33 covx1 = ROOT::Math::SMatrixIdentity();
     covx1(0,0)=9.8227e-08; 
@@ -180,20 +164,67 @@ void setupTrackByHand(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::v
     covx3(1,2)=-3.41337e-11;
     covx3(2,2)=1.16777e-05;
     Hit hit3(x3,covx3);
-    SVector3 x4(-21.1287,-10.3726,-3.67952);
-    SMatrixSym33 covx4 = ROOT::Math::SMatrixIdentity();
-    covx4(0,0)=4.94833e+28;   
-    covx4(0,1)=1.6376e+28;
-    covx4(0,2)=-4.10345e+33;
-    covx4(1,1)=5.41945e+27;
-    covx4(1,2)=-1.35799e+33;
-    covx4(2,2)=3.40282e+38;
-    Hit hit4(x4,covx4);
     hits.push_back(hit1);
     hits.push_back(hit2);
     hits.push_back(hit3);
-    hits.push_back(hit4);
+  } else if (pt==10) {
+    charge = 1;
+    pos=SVector3(2.94053,3.5543,3.05683);
+    mom=SVector3(6.49551,7.58125,-11.6539);
+    covtrk = ROOT::Math::SMatrixIdentity();
+    covtrk(0,0)=0.00829206  ;
+    covtrk(0,1)=-0.000988223;
+    covtrk(0,2)=0.00397884  ;
+    covtrk(0,3)=-0.174796   ;
+    covtrk(0,4)=-0.184843   ;
+    covtrk(0,5)=0.277992    ;
+    covtrk(1,1)=0.0077582   ;
+    covtrk(1,2)=0.00449615  ;
+    covtrk(1,3)=0.141826    ;
+    covtrk(1,4)=0.148706    ;
+    covtrk(1,5)=-0.261275   ;
+    covtrk(2,2)=0.00514256  ;
+    covtrk(2,3)=-0.00516294 ;
+    covtrk(2,4)=-0.00628755 ;
+    covtrk(2,5)=-0.0150243  ;
+    covtrk(3,3)=77.1274     ;
+    covtrk(3,4)=88.3183     ;
+    covtrk(3,5)=-136.784    ;
+    covtrk(4,4)=101.395     ;
+    covtrk(4,5)=-156.858    ;
+    covtrk(5,5)=243.153     ;
+    SVector3 x1(2.94069,3.55417,3.05572);
+    SMatrixSym33 covx1 = ROOT::Math::SMatrixIdentity();
+    covx1(0,0)=5.78482e-07 ; 
+    covx1(0,1)=-4.85419e-07;
+    covx1(0,2)=-2.09565e-11;
+    covx1(1,1)=4.07328e-07 ;
+    covx1(1,2)=-3.08018e-11;
+    covx1(2,2)=4.39754e-06 ;
+    Hit hit1(x1,covx1);
+    SVector3 x2(4.53878,5.41477,0.193781);
+    SMatrixSym33 covx2 = ROOT::Math::SMatrixIdentity();
+    covx2(0,0)=5.50755e-07 ; 
+    covx2(0,1)=-4.00035e-07;
+    covx2(0,2)=-1.61696e-11;
+    covx2(1,1)=2.90562e-07 ;
+    covx2(1,2)=3.45213e-13 ;
+    covx2(2,2)=2.74192e-06 ;
+    Hit hit2(x2,covx2);
+    SVector3 x3(6.41319,7.58286,-3.1512);
+    SMatrixSym33 covx3 = ROOT::Math::SMatrixIdentity();
+    covx3(0,0)=4.57591e-07 ; 
+    covx3(0,1)=-4.24647e-07;
+    covx3(0,2)=-2.75564e-11;
+    covx3(1,1)=3.94076e-07 ;
+    covx3(1,2)=-2.13072e-11;
+    covx3(2,2)=4.39821e-06 ;
+    Hit hit3(x3,covx3);
+    hits.push_back(hit1);
+    hits.push_back(hit2);
+    hits.push_back(hit3); 
   } else if (pt==100) {
+    charge=-1;
     pos=SVector3(0.556433,-4.13765,1.17947);
     mom=SVector3(6.93565,-99.8987,106.122);
     covtrk = ROOT::Math::SMatrixIdentity();
@@ -236,9 +267,30 @@ void setupTrackByHand(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::v
     covx2(1,2)=-4.24538e-11;
     covx2(2,2)=2.7723e-06;
     Hit hit2(x2,covx2);
+    SVector3 x3(0.790956,-7.52219,4.77523);
+    SMatrixSym33 covx3 = ROOT::Math::SMatrixIdentity();
+    covx3(0,0)=5.06206e-06; 
+    covx3(0,1)=1.07417e-06;
+    covx3(0,2)=-8.4071e-11;
+    covx3(1,1)=2.27938e-07;
+    covx3(1,2)=1.37342e-10;
+    covx3(2,2)=1.521e-05  ;
+    Hit hit3(x3,covx3);
+    SVector3 x4(0.990696,-10.3606,7.79052);
+    SMatrixSym33 covx4 = ROOT::Math::SMatrixIdentity();
+    covx4(0,0)=1.32161e-06 ; 
+    covx4(0,1)=1.98982e-07 ;
+    covx4(0,2)=-1.69703e-12;
+    covx4(1,1)=2.99588e-08 ;
+    covx4(1,2)=-1.4976e-11 ;
+    covx4(2,2)=3.81449e-06 ;
+    Hit hit4(x4,covx4);
     hits.push_back(hit1);
     hits.push_back(hit2);
+    hits.push_back(hit3);
+    hits.push_back(hit4);
   } else {
+    charge = 1;
     pos=SVector3(-3.97545,-1.39023,-3.20927);
     mom=SVector3(-822.213,-348.139,-765.718);
     covtrk = ROOT::Math::SMatrixIdentity();
@@ -299,30 +351,10 @@ void setupTrackByHand(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::v
     covx4(1,2)=-1.02983e-10;
     covx4(2,2)=1.88032e-05 ;
     Hit hit4(x4,covx4);
-    SVector3 x5(-21.9214,-8.98664,-24.2565);
-    SMatrixSym33 covx5 = ROOT::Math::SMatrixIdentity();
-    covx5(0,0)=2.1603e+28 ;
-    covx5(0,1)=4.64935e+26;
-    covx5(0,2)=2.71129e+33;
-    covx5(1,1)=1.00062e+25;
-    covx5(1,2)=5.83519e+31;
-    covx5(2,2)=3.40282e+38;
-    Hit hit5(x5,covx5);
-    SVector3 x6(-22.3404,-8.71725,-24.2776);
-    SMatrixSym33 covx6 = ROOT::Math::SMatrixIdentity();
-    covx6(0,0)=8.35807e+35;
-    covx6(0,1)=-1.4616e+36;
-    covx6(0,2)=1.67802e+37;
-    covx6(1,1)=2.55593e+36;
-    covx6(1,2)=-2.9344e+37;
-    covx6(2,2)=3.36891e+38;
-    Hit hit6(x6,covx6);
     hits.push_back(hit1);
     hits.push_back(hit2);
     hits.push_back(hit3);
     hits.push_back(hit4);
-    hits.push_back(hit5);
-    hits.push_back(hit6);
   }  
 }
 
