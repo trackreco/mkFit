@@ -8,6 +8,7 @@
 
 int main() {
 
+  //these matrices are dummy and can be optimized without multriplying by zero all the world...
   SMatrix36 projMatrix36;
   projMatrix36(0,0)=1.;
   projMatrix36(1,1)=1.;
@@ -18,6 +19,7 @@ int main() {
 
   for (unsigned int itrack=0;itrack<Ntracks;++itrack) {
 
+    //create the track
     SVector3 pos;
     SVector3 mom;
     SMatrixSym66 covtrk;
@@ -37,13 +39,13 @@ int main() {
     dumpMatrix(covtrk);
     
     TrackState initState = trk.state();
-    
     TrackState updatedState = initState;
     
     bool dump = false;
     
     for (std::vector<Hit>::iterator hit=hits.begin();hit!=hits.end();++hit) {
       
+      //for each hit, propagate to hit radius and update track state with hit measurement
       TrackState propStateHelix = propagateHelixToR(updatedState,trk.charge(),hit->r());
       TrackState propState = propStateHelix;    
       MeasurementState measState = hit->measurementState();

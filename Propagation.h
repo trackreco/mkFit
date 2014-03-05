@@ -4,6 +4,8 @@
 #include "Track.h"
 #include "Matrix.h"
 
+// line propagation from state radius to hit radius
+// assuming radial direction (i.e. origin at (0,0))
 TrackState propagateLineToR(TrackState& inputState, float r) {
 
   bool dump = false;
@@ -35,7 +37,11 @@ TrackState propagateLineToR(TrackState& inputState, float r) {
   return result;
 }
 
-//fixme what about charge????
+
+// helix propagation in steps along helix trajectory. 
+// each step travels for a path lenght equal to delta r between the current position and the target radius. 
+// for track with pT>=1 GeV this converges to the correct path lenght in <5 iterations
+// derivatives need to be updated at each iteration
 TrackState propagateHelixToR(TrackState& inputState, int& charge, float r) {
 
   bool dump = false;
@@ -45,6 +51,7 @@ TrackState propagateHelixToR(TrackState& inputState, int& charge, float r) {
   float pxin = inputState.parameters.At(3);
   float pyin = inputState.parameters.At(4);
   float pzin = inputState.parameters.At(5);
+  float r0in = sqrt(xin*xin+yin*yin);
 
   float pt2 = pxin*pxin+pyin*pyin;
   float pt = sqrt(pt2);
@@ -55,8 +62,9 @@ TrackState propagateHelixToR(TrackState& inputState, int& charge, float r) {
   if (dump) std::cout << "curvature=" << curvature << std::endl;
   float ctgTheta=pzin/pt;
 
+  //variables to be updated at each iterations
+  //derivatives initialized to value for first iteration, i.e. distance = r-r0in
   float totalDistance = 0;
-  float r0in = sqrt(xin*xin+yin*yin);
   float dTDdx = r0in>0. ? -xin/r0in : 0;
   float dTDdy = r0in>0. ? -yin/r0in : 0;
   float dTDdpx = 0.;
@@ -89,7 +97,7 @@ TrackState propagateHelixToR(TrackState& inputState, int& charge, float r) {
       } 
     }
 
-    float distance = r-r0;//fixme compute real distance between two points
+    float distance = r-r0;
     totalDistance+=distance;
     if (dump) std::cout << "distance=" << distance << std::endl;  
     float angPath = distance/curvature;
@@ -97,16 +105,19 @@ TrackState propagateHelixToR(TrackState& inputState, int& charge, float r) {
     float cosAP=cos(angPath);
     float sinAP=sin(angPath);
 
+    //helix propagation formulas
     //http://www.phys.ufl.edu/~avery/fitting/fitting4.pdf
     par.At(0) = x + k*(px*sinAP-py*(1-cosAP));
     par.At(1) = y + k*(py*sinAP+px*(1-cosAP));
     par.At(2) = z + distance*ctgTheta;
-
     par.At(3) = px*cosAP-py*sinAP;
     par.At(4) = py*cosAP+px*sinAP;
     par.At(5) = pz;
     
     if (i+1!=Niter && r0>0.) {
+
+      //update derivatives on total distance for next step, where totalDistance+=r-r0
+      //now r0 depends on px and py
       float r0inv = 1./r0;
       if (dump) std::cout << "r0=" << r0 << " r0inv=" << r0inv << " pt=" << pt << std::endl;
       //update derivative on D
@@ -233,6 +244,10 @@ TrackState propagateHelixToR(TrackState& inputState, int& charge, float r) {
   return result;
 }
 
+//test towards a helix propagation without iterative approach
+//version below solves the equation for the angular path at which x^2+y^2=r^2
+//problems: 1. need first order approximation of sin and cos, 
+//2. there are 2 numerical solutions, 3. need to propagate uncertainties throgh the 2nd order equation
 TrackState propagateHelixToR_test(TrackState& inputState, int charge, float r) {
 
   bool dump = false;
@@ -275,6 +290,7 @@ TrackState propagateHelixToR_test(TrackState& inputState, int charge, float r) {
   //if (dump) std::cout << "B=" << B <<  " testx=" << testx <<  " testy=" << testy << " 2*asinB=" << 2*asin(B) << std::endl;
   //test//
   //try to compute intersection between circles (approximate for small angles)
+  //solve 2nd order equation, obtained setting x^2+y^2=r^2 and solve for the angular path
   float ceq = r0in*r0in - r*r;
   float beq = 2*k*(xin*pxin+yin*pyin);
   float aeq = k*k*(pt2+(pxin*yin-pyin*xin)/k);

@@ -4,12 +4,13 @@
 #include "Track.h"
 #include "Matrix.h"
 
+//see e.g. http://inspirehep.net/record/259509?ln=en
 TrackState updateParameters(TrackState& propagatedState, MeasurementState& measurementState, 
 			    SMatrix36& projMatrix,SMatrix63& projMatrixT) {
 
   bool print = false;
 
-  //test adding noise (mutiple scattering) on position
+  //test adding noise (mutiple scattering) on position (needs to be done more properly...)
   SMatrix66 noise;
   float noiseVal = 0.000001;
   noise(0,0)=noiseVal;
@@ -20,13 +21,14 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
   SVector3 residual = measurementState.parameters-projMatrix*propagatedState.parameters;
   SMatrix33 resErr = measurementState.errors+propErr33;
   SMatrix33 resErrInv = resErr;
-  resErrInv.Invert();
+  resErrInv.InvertFast();//fixme: somehow it does not produce a symmetric matrix 
   SMatrix63 pMTrEI = projMatrixT*resErrInv;
   SMatrix63 kalmanGain = propErr*pMTrEI;
   SVector6 kGr = kalmanGain*residual;
   SVector6 updatedParams = propagatedState.parameters + kGr;
   SMatrix66 identity = ROOT::Math::SMatrixIdentity();
-  SMatrix66 updatedErrs = (identity - kalmanGain*projMatrix)*propErr;//fixme: somehow it does not produce a symmetric matrix 
+  SMatrix66 kGpM = kalmanGain*projMatrix;
+  SMatrix66 updatedErrs = (identity - kGpM)*propErr;//fixme: somehow it does not produce a symmetric matrix 
 
   if (print) {
     std::cout << "\n updateParameters \n" << std::endl;
@@ -49,6 +51,8 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
 	      << kGr[3] << " " << kGr[4] << " " << kGr[5] << " " << std::endl;
     std::cout << "updatedParams: " << updatedParams[0] << " " << updatedParams[1] << " " << updatedParams[2] << " "
 	      << updatedParams[3] << " " << updatedParams[4] << " " << updatedParams[5] << " " << std::endl;
+    std::cout << "kGpM" << std::endl;
+    dumpMatrix(kGpM);
     std::cout << "updatedErrs" << std::endl;
     dumpMatrix(updatedErrs);
     std::cout << std::endl;
@@ -82,13 +86,13 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     for (unsigned int c=0;c<6;++c)
       covtrk(r,c)=0.01;
 
-  float hitposerr = 0.01;//100mum
+  float hitposerr = 0.01;//assume 100mum uncertainty in each coordinate
   float k=charge*100./(-0.299792458*3.8);
   float curvature = pt*k;
   float ctgTheta=mom.At(2)/pt;
 
   for (unsigned int nhit=1;nhit<=nTotHit;++nhit) {
-    float distance = 4.*float(nhit);//~4 cm distance along curvature
+    float distance = 4.*float(nhit);//~4 cm distance along curvature between each hit
     float angPath = distance/curvature;
     float cosAP=cos(angPath);
     float sinAP=sin(angPath);
@@ -109,7 +113,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
 
 }
 
-//temporary...
+//temporary... from a dump of cmssw events
 void setupTrackByHand(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::vector<Hit>& hits, int& charge, int pt) {
   if (pt==1) {
     charge=-1;

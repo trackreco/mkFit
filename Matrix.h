@@ -18,6 +18,7 @@ void dumpMatrix(SMatrix33& m);
 void dumpMatrix(SMatrix36& m);
 void dumpMatrix(SMatrix63& m);
 void dumpMatrix(SMatrix66& m);
+void dumpMatrix(SMatrixSym33& m);
 void dumpMatrix(SMatrixSym66& m);
 
 #endif
