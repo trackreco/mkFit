@@ -30,7 +30,7 @@ int main() {
   projMatrix36(2,2)=1.;
   SMatrix63 projMatrix36T = ROOT::Math::Transpose(projMatrix36);
 
-  unsigned int Ntracks = 1000;
+  unsigned int Ntracks = 10000;
 
   for (unsigned int itrack=0;itrack<Ntracks;++itrack) {
 
@@ -41,7 +41,7 @@ int main() {
     std::vector<Hit> hits;
     int q=0;//set it in setup function
     //setupTrackByHand(pos,mom,covtrk,hits,q,10);
-    setupTrackByToyMC(pos,mom,covtrk,hits,q,100.*gRandom->Rndm());
+    setupTrackByToyMC(pos,mom,covtrk,hits,q,10.*gRandom->Rndm());
     Track trk(q,pos,mom,covtrk);
     trk.setHitsVector(hits);
 

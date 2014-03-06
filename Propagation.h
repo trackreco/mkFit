@@ -166,9 +166,9 @@ TrackState propagateHelixToR(TrackState& inputState, int& charge, float r) {
   float cosTP = cos(TP);
   float sinTP = sin(TP);
 
-  //par.At(0) = xin + k*(pxin*sinTP-pyin*(1-cosTP));
-  //par.At(1) = yin + k*(pyin*sinTP+pxin*(1-cosTP));
-  //par.At(2) = zin + TD*ctgTheta;
+  //x = xin + k*(pxin*sinTP-pyin*(1-cosTP));
+  //y = yin + k*(pyin*sinTP+pxin*(1-cosTP));
+  //z = zin + TD*ctgTheta;
 
   float dxdx = 1 + k*dTPdx*(pxin*sinTP + pyin*cosTP);
   float dxdy = k*dTPdy*(pxin*sinTP + pyin*cosTP);
@@ -185,11 +185,11 @@ TrackState propagateHelixToR(TrackState& inputState, int& charge, float r) {
 
   float dzdpx = dTDdpx*ctgTheta - TD*pzin*pxin/pt3;
   float dzdpy = dTDdpy*ctgTheta - TD*pzin*pyin/pt3;
-  float dzdpz = TD/pt;//fixme if I set this term to 0 then it works...
+  float dzdpz = TD/pt;
 
-  //par.At(3) = pxin*cosTP-pyin*sinTP;
-  //par.At(4) = pyin*cosTP+pxin*sinTP;
-  //par.At(5) = pzin;
+  //px = pxin*cosTP-pyin*sinTP;
+  //py = pyin*cosTP+pxin*sinTP;
+  //pz = pzin;
 
   float dpxdx = -dTPdx*(pxin*sinTP + pyin*cosTP);
   float dpxdy = -dTPdy*(pxin*sinTP + pyin*cosTP);
