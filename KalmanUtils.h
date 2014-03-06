@@ -12,10 +12,10 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
 
   //test adding noise (mutiple scattering) on position (needs to be done more properly...)
   SMatrix66 noise;
-  float noiseVal = 0.000001;
-  noise(0,0)=noiseVal;
-  noise(1,1)=noiseVal;
-  noise(2,2)=noiseVal;
+  //float noiseVal = 0.000001;
+  //noise(0,0)=noiseVal;
+  //noise(1,1)=noiseVal;
+  //noise(2,2)=noiseVal;
   SMatrix66 propErr = propagatedState.errors + noise;
   SMatrix33 propErr33 = projMatrix*propErr*projMatrixT;
   SVector3 residual = measurementState.parameters-projMatrix*propagatedState.parameters;
@@ -82,9 +82,12 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
   float pz = pt*(4.0*(gRandom->Rndm()-0.5));//pz flat between -2*pt and +2*pt
   mom=SVector3(px,py,pz);
   covtrk=ROOT::Math::SMatrixIdentity();
+  //initial covariance can be tricky
   for (unsigned int r=0;r<6;++r)
-    for (unsigned int c=0;c<6;++c)
-      covtrk(r,c)=0.01;
+    for (unsigned int c=0;c<6;++c) {
+      if (r==c) covtrk(r,c)=1;
+      else covtrk(r,c)=0.5;
+    }
 
   float hitposerr = 0.01;//assume 100mum uncertainty in each coordinate
   float k=charge*100./(-0.299792458*3.8);

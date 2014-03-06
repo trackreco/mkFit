@@ -5,8 +5,23 @@
 #include "Matrix.h"
 #include "KalmanUtils.h"
 #include "Propagation.h"
+#include "TFile.h"
+#include "TTree.h"
+
+bool saveTree = true;
 
 int main() {
+
+  float pt_mc=0.,pt_fit=0.,pt_err=0.; 
+  TFile* f=0;
+  TTree *tree=0;
+  if (saveTree) {
+    f=TFile::Open("validationtree.root", "recreate");
+    tree = new TTree("tree","tree");
+    tree->Branch("pt_mc",&pt_mc,"pt_mc");
+    tree->Branch("pt_fit",&pt_fit,"pt_fit");
+    tree->Branch("pt_err",&pt_err,"pt_err");
+  }
 
   //these matrices are dummy and can be optimized without multriplying by zero all the world...
   SMatrix36 projMatrix36;
@@ -15,7 +30,7 @@ int main() {
   projMatrix36(2,2)=1.;
   SMatrix63 projMatrix36T = ROOT::Math::Transpose(projMatrix36);
 
-  unsigned int Ntracks = 10;
+  unsigned int Ntracks = 1000;
 
   for (unsigned int itrack=0;itrack<Ntracks;++itrack) {
 
@@ -96,9 +111,21 @@ int main() {
     std::cout << "p: " << updatedState.parameters[3] << " " << updatedState.parameters[4] << " " << updatedState.parameters[5] << std::endl;
     std::cout << "updatedState.errors" << std::endl;
     dumpMatrix(updatedState.errors);
-    
+
+    if (saveTree) {
+      pt_mc = sqrt(initState.parameters[3]*initState.parameters[3]+initState.parameters[4]*initState.parameters[4]);
+      pt_fit = sqrt(updatedState.parameters[3]*updatedState.parameters[3]+updatedState.parameters[4]*updatedState.parameters[4]);
+      pt_err = sqrt( updatedState.errors[3][3]*updatedState.parameters[3]*updatedState.parameters[3] +
+		     updatedState.errors[4][4]*updatedState.parameters[4]*updatedState.parameters[4] + 
+		     2*updatedState.errors[3][4]*updatedState.parameters[3]*updatedState.parameters[4] )/pt_fit;
+      tree->Fill();
+    }
   }
 
+  if (saveTree) {
+    f->Write();
+    f->Close();
+  }
   return 0;
 
 }
