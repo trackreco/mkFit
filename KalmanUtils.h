@@ -79,6 +79,8 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
 
   float px = pt*gRandom->Rndm();
   float py = sqrt(pt*pt-px*px);
+  if (gRandom->Rndm()>0.5) px*=-1.;
+  if (gRandom->Rndm()>0.5) py*=-1.;
   float pz = pt*(4.0*(gRandom->Rndm()-0.5));//pz flat between -2*pt and +2*pt
   mom=SVector3(px,py,pz);
   covtrk=ROOT::Math::SMatrixIdentity();
