@@ -12,6 +12,7 @@
 #define ROOT_Math_MnConfig
 #include "Math/SMatrix.h"
 
+#include <cstdio>
 #include <iostream>
 #include <stdlib.h>
 #include <sys/time.h>
@@ -23,7 +24,16 @@ const idx_t N = 16;
 const idx_t N = 8;
 #endif
 
-typedef ROOT::Math::SMatrix<float,6> SMatrix66;
+#ifdef MDIM
+const idx_t M = MDIM;
+#else
+const idx_t M = 6;
+#endif
+
+const int NN_MULT = 1000000;
+const int NN_INV  = 1;//000000;
+
+typedef ROOT::Math::SMatrix<float, M> SMatrixMM;
 
 double dtime()
 {
@@ -37,27 +47,26 @@ double dtime()
 int main()
 {
   srand(23545);
-  SMatrix66 res[N];
-  SMatrix66 mul[N];
-  SMatrix66 muz[N];
-  for (int i=0; i<N; ++i)
-    for (int j=0; j<6; ++j)
-      for (int k=0; k<6; ++k)
+  SMatrixMM res[N];
+  SMatrixMM mul[N];
+  SMatrixMM muz[N];
+  for (int i = 0; i < N; ++i)
+    for (int j = 0; j < M; ++j)
+      for (int k = 0; k < M; ++k)
       {
-        res[i](j,k) = (float)rand() / RAND_MAX;
         mul[i](j,k) = (float)rand() / RAND_MAX;
         muz[i](j,k) = (float)rand() / RAND_MAX;
       }
 
-  // ----------------------------------------------------------------
+  // ================================================================
 
   double t0;
   t0 = dtime();
 
-  for (int i = 0; i < 1000000; ++i)
+  for (int i = 0; i < NN_MULT; ++i)
   {
     //#pragma omp simd collapse(8)
-    #pragma ivdep
+#pragma ivdep
     for (int m = 0; m < N; ++m)
     {
       res[m] = mul[m] * muz[m];
@@ -65,11 +74,11 @@ int main()
   }
 
   double tsm = dtime() - t0;
-  std::cout << "SMatrix run time = " << tsm << " s\n";
+  std::cout << "SMatrix multiply time = " << tsm << " s\n";
 
   // ----------------------------------------------------------------
 
-  Matriplex<float, 6, 6, N> mpl, mpz, mpres;
+  Matriplex<float, M, M, N> mpl, mpz, mpres;
 
   for (int i = 0; i < N; ++i)
   {
@@ -79,15 +88,104 @@ int main()
 
   t0 = dtime();
 
-  for (int i = 0; i < 1000000; ++i)
+  for (int i = 0; i < NN_MULT; ++i)
   {
     Multiply(mpl, mpz, mpres);
   }
 
   double tmp = dtime() - t0;
-  std::cout << "Matriplex run time = " << tmp << " s\n";
+  std::cout << "Matriplex multiply time = " << tmp << " s\n";
 
-  std::cout << "SMatrix / Matriplex = " << tsm/tmp << "\n";
+  std::cout << "SMatrix / Matriplex = " << tsm/tmp << "\n\n";
+
+  for (int i = 0; i < N; ++i)
+    for (int j = 0; j < M; ++j)
+      for (int k = 0; k < M; ++k)
+      {
+        if (res[i](j,k) != mpres.At(j, k, i))
+          std::cout << i <<" "<< j <<" "<< k <<" "<< res[i](j,k) <<" "<< mpres.At(j, k, i) << "\n";
+      }
+
+  // ================================================================
+
+  t0 = dtime();
+
+  for (int i = 0; i < NN_INV; ++i)
+  {
+    //#pragma omp simd collapse(8)
+#pragma ivdep
+    for (int m = 0; m < N; ++m)
+    {
+      mul[m].InvertFast();
+      muz[m].InvertFast();
+    }
+  }
+  tsm = dtime() - t0;
+  std::cout << "SMatrix invert time = " << tsm << " s\n";
+
+  // ----------------------------------------------------------------
+
+  t0 = dtime();
+
+  for (int i = 0; i < NN_INV; ++i)
+  {
+    InvertCramer(mpl);
+    InvertCramer(mpz);
+  }
+
+  tmp = dtime() - t0;
+  std::cout << "Matriplex invert time = " << tmp << " s\n";
+  std::cout << "SMatrix / Matriplex = " << tsm/tmp << "\n\n";
+
+  // ================================================================
+  for (int i = 0; i < M; ++i) { for (int j = 0; j < M; ++j)
+      printf("%8f ", mul[0](i,j)); printf("\n");
+  } printf("\n");
+
+  for (int i = 0; i < M; ++i) { for (int j = 0; j < M; ++j)
+      printf("%8f ", mpl.At(i,j,0)); printf("\n");
+  } printf("\n");
 
   return 0;
 }
+
+
+
+#ifdef ZMAJLA_ZAJLA
+
+  std::cout << "LLLLL\n";
+
+  for (int i = 0; i < M; ++i) { for (int j = 0; j < M; ++j)
+      printf("%8f ", mul[0](i,j)); printf("\n");
+  } printf("\n");
+  for (int i = 0; i < M; ++i) { for (int j = 0; j < M; ++j)
+      printf("%8f ", mpl.At(i,j,0)); printf("\n");
+  } printf("\n");
+  for (int i = 0; i < M; ++i) { for (int j = 0; j < M; ++j)
+      printf("%8f ", muz[0](i,j)); printf("\n");
+  } printf("\n");
+  for (int i = 0; i < M; ++i) { for (int j = 0; j < M; ++j)
+      printf("%8f ", mpz.At(i,j,0)); printf("\n");
+  } printf("\n");
+
+  for (int i = 0; i < N; ++i)
+    for (int j = 0; j < M; ++j)
+      for (int k = 0; k < M; ++k)
+      {
+        if (mul[i](j,k) != mpl.At(j, k, i))
+          std::cout << i <<" "<< j <<" "<< k <<" "<< mul[i](j,k) <<" "<< mpl.At(j, k, i) << "\n";
+      }
+
+  std::cout << "ZZZZZ\n";
+
+  for (int i = 0; i < N; ++i)
+    for (int j = 0; j < M; ++j)
+      for (int k = 0; k < M; ++k)
+      {
+        if (muz[i](j,k) != mpz.At(j, k, i))
+          std::cout << i <<" "<< j <<" "<< k <<" "<< muz[i](j,k) <<" "<< mpz.At(j, k, i) << "\n";
+      }
+
+  std::cout << "RESRES\n";
+
+#endif
