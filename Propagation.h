@@ -65,8 +65,8 @@ TrackState propagateHelixToR(TrackState& inputState, int& charge, float r) {
   //variables to be updated at each iterations
   //derivatives initialized to value for first iteration, i.e. distance = r-r0in
   float totalDistance = 0;
-  float dTDdx = r0in>0. ? -xin/r0in : 0;
-  float dTDdy = r0in>0. ? -yin/r0in : 0;
+  float dTDdx = r0in>0. ? -xin/r0in : 0.;
+  float dTDdy = r0in>0. ? -yin/r0in : 0.;
   float dTDdpx = 0.;
   float dTDdpy = 0.;
 

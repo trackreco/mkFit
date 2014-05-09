@@ -4,6 +4,27 @@
 #include "Track.h"
 #include "Matrix.h"
 
+float computeChi2(TrackState& propagatedState, MeasurementState& measurementState, 
+		  SMatrix36& projMatrix,SMatrix63& projMatrixT) {
+
+  bool print = false;
+
+  //test adding noise (mutiple scattering) on position (needs to be done more properly...)
+  SMatrix66 noise;
+  //float noiseVal = 0.000001;
+  //noise(0,0)=noiseVal;
+  //noise(1,1)=noiseVal;
+  //noise(2,2)=noiseVal;
+  SMatrix66 propErr = propagatedState.errors + noise;
+  SMatrix33 propErr33 = projMatrix*propErr*projMatrixT;
+  SVector3 residual = measurementState.parameters-projMatrix*propagatedState.parameters;
+  SMatrix33 resErr = measurementState.errors+propErr33;
+  SMatrix33 resErrInv = resErr;
+  resErrInv.InvertFast();//fixme: somehow it does not produce a symmetric matrix 
+  float chi2 = ROOT::Math::Similarity(residual,resErrInv);
+
+}
+
 //see e.g. http://inspirehep.net/record/259509?ln=en
 TrackState updateParameters(TrackState& propagatedState, MeasurementState& measurementState, 
 			    SMatrix36& projMatrix,SMatrix63& projMatrixT) {
@@ -65,6 +86,7 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
 }
 
 #include "TRandom.h"
+#include "Propagation.h"
 void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::vector<Hit>& hits, int& charge, float pt) {
 
   unsigned int nTotHit = 10;
@@ -91,11 +113,36 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
       else covtrk(r,c)=0.5;
     }
 
+  //std::cout << "track with p=" << px << " " << py << " " << pz << " pt=" << sqrt(px*px+py*py) << " p=" << sqrt(px*px+py*py+pz*pz) << std::endl;
+
   float hitposerr = 0.01;//assume 100mum uncertainty in each coordinate
   float k=charge*100./(-0.299792458*3.8);
   float curvature = pt*k;
   float ctgTheta=mom.At(2)/pt;
 
+  //do 4 cm in radius using propagation.h
+  Track trk(charge,pos,mom,covtrk);
+  TrackState initState = trk.state();
+  for (unsigned int nhit=1;nhit<=nTotHit;++nhit) {
+    TrackState propState = propagateHelixToR(initState,trk.charge(),4.*float(nhit));//radius of 4*nhit
+    float hitx = gRandom->Gaus(0,hitposerr)+propState.parameters.At(0);
+    float hity = gRandom->Gaus(0,hitposerr)+propState.parameters.At(1);
+    //float hity = sqrt((pos.At(0) + k*(px*sinAP-py*(1-cosAP)))*(pos.At(0) + k*(px*sinAP-py*(1-cosAP)))+
+    //          	(pos.At(1) + k*(py*sinAP+px*(1-cosAP)))*(pos.At(1) + k*(py*sinAP+px*(1-cosAP)))-
+    //	   	        hitx*hitx);//try to get the fixed radius
+    float hitz = gRandom->Gaus(0,hitposerr)+propState.parameters.At(2);
+    //std::cout << "hit#" << nhit << " " << hitx << " " << hity << " " << hitz << std::endl;
+    SVector3 x1(hitx,hity,hitz);
+    SMatrixSym33 covx1 = ROOT::Math::SMatrixIdentity();
+    covx1(0,0)=hitposerr*hitposerr; 
+    covx1(1,1)=hitposerr*hitposerr;
+    covx1(2,2)=hitposerr*hitposerr;
+    Hit hit1(x1,covx1);    
+    hits.push_back(hit1);  
+  }
+
+  /*
+  //do 4 cm along path
   for (unsigned int nhit=1;nhit<=nTotHit;++nhit) {
     float distance = 4.*float(nhit);//~4 cm distance along curvature between each hit
     float angPath = distance/curvature;
@@ -107,6 +154,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     //          	(pos.At(1) + k*(py*sinAP+px*(1-cosAP)))*(pos.At(1) + k*(py*sinAP+px*(1-cosAP)))-
     //	   	        hitx*hitx);//try to get the fixed radius
     float hitz = gRandom->Gaus(0,hitposerr)+(pos.At(2) + distance*ctgTheta);    
+    //std::cout << "hit#" << nhit << " " << hitx << " " << hity << " " << hitz << std::endl;
     SVector3 x1(hitx,hity,hitz);
     SMatrixSym33 covx1 = ROOT::Math::SMatrixIdentity();
     covx1(0,0)=hitposerr*hitposerr; 
@@ -115,6 +163,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     Hit hit1(x1,covx1);    
     hits.push_back(hit1);
   }
+  */
 
 }
 

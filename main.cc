@@ -1,4 +1,4 @@
-//g++ -o main main.cc Track.cc Hit.cc Matrix.cc `root-config --libs --cflags`
+//g++ -o main main.cc Track.cc Hit.cc Matrix.cc -I. `root-config --libs --cflags`
 
 #include <iostream>
 #include "Track.h"
@@ -10,7 +10,130 @@
 
 bool saveTree = true;
 
+void runBuildingTest(unsigned int nevts);
+void runBuildingTest();
+void runFittingTest();
+
 int main() {
+
+  //runFittingTest();
+  runBuildingTest(10);
+  return 0;
+
+}
+
+bool sortByPhi(Hit hit1,Hit hit2) {
+  return std::atan2(hit1.position()[1],hit1.position()[0])<std::atan2(hit2.position()[1],hit2.position()[0]);
+}
+
+void runBuildingTest(unsigned int nevts) {
+  for (unsigned int evt=0;evt<nevts;++evt) runBuildingTest();
+}
+
+void runBuildingTest() {
+
+  //these matrices are dummy and can be optimized without multriplying by zero all the world...
+  SMatrix36 projMatrix36;
+  projMatrix36(0,0)=1.;
+  projMatrix36(1,1)=1.;
+  projMatrix36(2,2)=1.;
+  SMatrix63 projMatrix36T = ROOT::Math::Transpose(projMatrix36);
+
+  unsigned int Ntracks = 500;
+
+  std::vector<std::vector<Hit> > evt_hits(10);//hits per layer
+  std::vector<Track> evt_track_candidates;//no seeding for now
+  for (unsigned int itrack=0;itrack<Ntracks;++itrack) {
+
+    //create the track
+    SVector3 pos;
+    SVector3 mom;
+    SMatrixSym66 covtrk;
+    std::vector<Hit> hits;
+    int q=0;//set it in setup function
+    //setupTrackByHand(pos,mom,covtrk,hits,q,10);
+    setupTrackByToyMC(pos,mom,covtrk,hits,q,10.*gRandom->Rndm());
+    Track trk(q,pos,mom,covtrk);
+
+    if (sqrt(mom[0]*mom[0]+mom[1]*mom[1])<0.5) continue;//skip tracks with very low pT, they do not have hits in 10 different layers (fixme)
+
+    //fill vector of hits in each layer (assuming there is one hit per layer in hits vector)
+    for (unsigned int ilay=0;ilay<hits.size();++ilay) {
+      evt_hits[ilay].push_back(hits[ilay]);
+    }
+
+    //right now seeds are initial parameters straight from simulated tracks
+    evt_track_candidates.push_back(trk);
+
+  }//end of track simulation loop
+
+  //sort in phi and dump hits per layer
+  for (unsigned int ilay=0;ilay<evt_hits.size();++ilay) {
+    std::cout << "Hits in layer=" << ilay << std::endl;
+    std::sort(evt_hits[ilay].begin(),evt_hits[ilay].end(),sortByPhi);
+    for (unsigned int ihit=0;ihit<evt_hits[ilay].size();++ihit) {
+      float hitx = evt_hits[ilay][ihit].position()[0];
+      float hity = evt_hits[ilay][ihit].position()[1];
+      float hitz = evt_hits[ilay][ihit].position()[2];
+      std::cout << "hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
+		<< std::atan2(hity,hitx) << " " << hitz << std::endl;
+    }
+  }
+
+  //process seeds
+  for (unsigned int iseed=0;iseed<evt_track_candidates.size();++iseed) {
+    Track seed = evt_track_candidates[iseed];
+    std::cout << std::endl;
+    std::cout << "processing seed=" << seed.parameters() << std::endl;
+
+    TrackState initState = seed.state();
+    TrackState updatedState = initState;
+    for (unsigned int nlay=0;nlay<evt_hits.size();++nlay) {
+      TrackState propState = propagateHelixToR(updatedState,seed.charge(),4.*float(nlay+1));//radius of 4*nlay
+      float hitx = propState.parameters.At(0);
+      float hity = propState.parameters.At(1);
+      float hitz = propState.parameters.At(2);
+      //std::cout << "hit#" << nlay << " " << hitx << " " << hity << " " << hitz << std::endl;
+      std::cout << "hit#" << nlay << " r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
+		<< std::atan2(hity,hitx) << " " << hitz << std::endl;
+
+      //consider hits on layer
+      float minChi2 = std::numeric_limits<float>::max();
+      unsigned int minChi2Hit = evt_hits[nlay].size();
+      for (unsigned int ihit=0;ihit<evt_hits[nlay].size();++ihit) {
+	float hitx = evt_hits[nlay][ihit].position()[0];
+	float hity = evt_hits[nlay][ihit].position()[1];
+	float hitz = evt_hits[nlay][ihit].position()[2];
+	MeasurementState hitMeas = evt_hits[nlay][ihit].measurementState();
+	float chi2 = computeChi2(propState,hitMeas,projMatrix36,projMatrix36T);
+	std::cout << "consider hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
+		  << std::atan2(hity,hitx) << " " << hitz << " chi2=" << chi2 << std::endl;
+
+	if (chi2<minChi2) {//fixme 
+	  minChi2Hit = ihit;
+	  minChi2 = chi2;
+	}
+
+      }//end of consider hits on layer loop
+
+      //take only best hit for now
+      if (minChi2<30. && minChi2Hit!=evt_hits[nlay].size()) {
+	MeasurementState hitMeas = evt_hits[nlay][minChi2Hit].measurementState();
+	TrackState tmpUpdatedState = updateParameters(propState, hitMeas,projMatrix36,projMatrix36T);
+	updatedState = tmpUpdatedState;
+      } else {
+	std::cout << "not a good hit found, stopping at lay#" << nlay << std::endl;
+	break;
+      }
+
+    }
+
+  }//end of process seeds
+
+
+}
+
+void runFittingTest() {
 
   float pt_mc=0.,pt_fit=0.,pt_err=0.; 
   TFile* f=0;
@@ -126,6 +249,5 @@ int main() {
     f->Write();
     f->Close();
   }
-  return 0;
 
 }
