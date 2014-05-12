@@ -20,6 +20,7 @@ TrackState propagateLineToR(TrackState& inputState, float r) {
   float path = dr/pt;//this works only if direction is along radius, i.e. origin is at (0,0)
 
   TrackState result;
+  result.charge = inputState.charge;
 
   SMatrix66 propMatrix = ROOT::Math::SMatrixIdentity();
   propMatrix(0,3)=path;
@@ -42,9 +43,11 @@ TrackState propagateLineToR(TrackState& inputState, float r) {
 // each step travels for a path lenght equal to delta r between the current position and the target radius. 
 // for track with pT>=1 GeV this converges to the correct path lenght in <5 iterations
 // derivatives need to be updated at each iteration
-TrackState propagateHelixToR(TrackState& inputState, int& charge, float r) {
+TrackState propagateHelixToR(TrackState& inputState, float r) {
 
   bool dump = false;
+
+  int charge = inputState.charge;
 
   float xin = inputState.parameters.At(0);
   float yin = inputState.parameters.At(1);
@@ -237,6 +240,7 @@ TrackState propagateHelixToR(TrackState& inputState, int& charge, float r) {
   TrackState result;
   result.parameters=par;
   result.errors=errorProp*err*ROOT::Math::Transpose(errorProp);
+  result.charge = charge;
   if (dump) {
     std::cout << "result.errors" << std::endl;
     dumpMatrix(result.errors);
@@ -248,9 +252,11 @@ TrackState propagateHelixToR(TrackState& inputState, int& charge, float r) {
 //version below solves the equation for the angular path at which x^2+y^2=r^2
 //problems: 1. need first order approximation of sin and cos, 
 //2. there are 2 numerical solutions, 3. need to propagate uncertainties throgh the 2nd order equation
-TrackState propagateHelixToR_test(TrackState& inputState, int charge, float r) {
+TrackState propagateHelixToR_test(TrackState& inputState, float r) {
 
   bool dump = false;
+
+  int charge = inputState.charge;
 
   float xin = inputState.parameters.At(0);
   float yin = inputState.parameters.At(1);
@@ -404,6 +410,7 @@ TrackState propagateHelixToR_test(TrackState& inputState, int charge, float r) {
   TrackState result;
   result.parameters=par;
   result.errors=errorProp*err*ROOT::Math::Transpose(errorProp);
+  result.charge = charge;
   if (dump) {
     std::cout << "result.errors" << std::endl;
     dumpMatrix(result.errors);

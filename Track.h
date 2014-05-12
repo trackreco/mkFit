@@ -9,52 +9,50 @@ struct TrackState {
 public:
   SVector6 parameters;
   SMatrix66 errors;
+  int charge;
 };
 
 class Track {
 
 public:
-  Track(int charge,SVector3 vertex, SVector3 momentum, SMatrix66 errors) {
-    charge_=charge;
-    vertex_=vertex;
-    momentum_=momentum;
-    errors_=errors;
-    parameters_ = SVector6(vertex.At(0),vertex.At(1),vertex.At(2),momentum.At(0),momentum.At(1),momentum.At(2));
+  Track(TrackState state,std::vector<Hit> hits, float chi2) {
+    state_=state;
+    hits_=hits;
+    chi2_=chi2;
   }
-  Track(int& charge,SVector6& parameters, SMatrix66& errors) {
-    charge_=charge;
-    vertex_=SVector3(parameters.At(0),parameters.At(1),parameters.At(2));
-    momentum_=SVector3(parameters.At(3),parameters.At(4),parameters.At(5));
-    errors_=errors;
-    parameters_ = parameters;
+  Track(int charge,SVector3 position, SVector3 momentum, SMatrix66 errors,std::vector<Hit> hits, float chi2) {
+    state_.charge=charge;
+    state_.errors=errors;
+    state_.parameters = SVector6(position.At(0),position.At(1),position.At(2),momentum.At(0),momentum.At(1),momentum.At(2));
+    hits_=hits;
+    chi2_=chi2;
+  }
+  Track(int& charge,SVector6& parameters, SMatrix66& errors,std::vector<Hit> hits, float chi2) {
+    state_.charge=charge;
+    state_.errors=errors;
+    state_.parameters = parameters;
+    hits_=hits;
+    chi2_=chi2;
   }
 
   ~Track(){}
 
-  void setHitsVector(std::vector<Hit>& hits) {hits_=hits;}
-
-  int& charge() {return charge_;}
-  SVector3& vertex() {return vertex_;}
-  SVector3& momentum() {return momentum_;}
-  SVector6& parameters() {return parameters_;}
-  SMatrix66& errors() {return errors_;}
-  TrackState state() {
-    TrackState result;
-    result.parameters=parameters_;
-    result.errors=errors_;
-    return result;
-  }
+  int& charge() {return state_.charge;}
+  SVector3 position() {return SVector3(state_.parameters[0],state_.parameters[1],state_.parameters[2]);}
+  SVector3 momentum() {return SVector3(state_.parameters[3],state_.parameters[4],state_.parameters[5]);}
+  SVector6& parameters() {return state_.parameters;}
+  SMatrix66& errors() {return state_.errors;}
+  TrackState state() {return state_;}
   std::vector<Hit>& hitsVector() {return hits_;}
+  float& chi2() {return chi2_;}
+  void resetHits() {hits_.clear();}
+  void addHit(Hit hit,float chi2) {hits_.push_back(hit);chi2_+=chi2;}
+  unsigned int nHits() {hits_.size();}
 
 private:
-  int charge_;
-  SVector3 vertex_;
-  SVector3 momentum_;
-
-  SMatrix66 errors_;
-  SVector6  parameters_;
-
+  TrackState state_;
   std::vector<Hit> hits_;
+  float chi2_;
 
 };
 

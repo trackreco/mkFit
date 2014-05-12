@@ -82,6 +82,7 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
   TrackState result;
   result.parameters=updatedParams;
   result.errors=updatedErrs;
+  result.charge = propagatedState.charge;
   return result;
 }
 
@@ -120,11 +121,14 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
   float curvature = pt*k;
   float ctgTheta=mom.At(2)/pt;
 
+  TrackState initState;
+  initState.parameters=SVector6(pos[0],pos[1],pos[2],mom[0],mom[1],mom[2]);
+  initState.errors=covtrk;
+  initState.charge=charge;
+
   //do 4 cm in radius using propagation.h
-  Track trk(charge,pos,mom,covtrk);
-  TrackState initState = trk.state();
   for (unsigned int nhit=1;nhit<=nTotHit;++nhit) {
-    TrackState propState = propagateHelixToR(initState,trk.charge(),4.*float(nhit));//radius of 4*nhit
+    TrackState propState = propagateHelixToR(initState,4.*float(nhit));//radius of 4*nhit
     float hitx = gRandom->Gaus(0,hitposerr)+propState.parameters.At(0);
     float hity = gRandom->Gaus(0,hitposerr)+propState.parameters.At(1);
     //float hity = sqrt((pos.At(0) + k*(px*sinAP-py*(1-cosAP)))*(pos.At(0) + k*(px*sinAP-py*(1-cosAP)))+
@@ -140,7 +144,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     Hit hit1(x1,covx1);    
     hits.push_back(hit1);  
   }
-
+  
   /*
   //do 4 cm along path
   for (unsigned int nhit=1;nhit<=nTotHit;++nhit) {
