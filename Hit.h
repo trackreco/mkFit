@@ -15,27 +15,27 @@ class Hit {
 
 public:
 
+  Hit(MeasurementState state) {
+    state_=state;
+  }
+
   Hit(SVector3 position, SMatrixSym33 error) {
-    position_=position;
-    error_=error;
+    state_.parameters=position;
+    state_.errors=error;
   }
 
   ~Hit(){}
 
-  SVector3&  position() {return position_;}
-  SMatrixSym33& error() {return error_;}
-  SVector3& parameters() {return position_;}
-  float r() {return sqrt(position_.At(0)*position_.At(0)+position_.At(1)*position_.At(1));}
+  SVector3&  position() {return state_.parameters;}
+  SMatrixSym33& error() {return state_.errors;}
+  SVector3& parameters() {return state_.parameters;}
+  float r() {return sqrt(state_.parameters.At(0)*state_.parameters.At(0)+state_.parameters.At(1)*state_.parameters.At(1));}
   MeasurementState measurementState() {
-    MeasurementState result;
-    result.parameters=position_;
-    result.errors=error_;
-    return result;
+    return state_;
   }
 
 private:
-  SVector3 position_;
-  SMatrixSym33 error_;
+  MeasurementState state_;
 
 };
 
