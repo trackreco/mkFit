@@ -198,7 +198,7 @@ void runFittingTest() {
     tree->Branch("pt_err",&pt_err,"pt_err");
   }
 
-  //these matrices are dummy and can be optimized without multriplying by zero all the world...
+  //these matrices are dummy and maybe we can be avoid multriplying by zero all the world...
   SMatrix36 projMatrix36;
   projMatrix36(0,0)=1.;
   projMatrix36(1,1)=1.;
