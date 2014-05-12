@@ -3,8 +3,6 @@
 
 #include "Matrix.h"
 
-//fixme store MeasurementState as private member
-
 struct MeasurementState {
 public:
   SVector3 parameters;
