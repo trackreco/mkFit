@@ -32,24 +32,27 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
   bool print = false;
 
   //test adding noise (mutiple scattering) on position (needs to be done more properly...)
-  SMatrix66 noise;
+  SMatrixSym66 noise;
   //float noiseVal = 0.000001;
   //noise(0,0)=noiseVal;
   //noise(1,1)=noiseVal;
   //noise(2,2)=noiseVal;
-  SMatrix66 propErr = propagatedState.errors + noise;
-  SMatrix33 propErr33 = projMatrix*propErr*projMatrixT;
+  SMatrixSym66 propErr = propagatedState.errors + noise;
+  SMatrixSym33 propErr33 = ROOT::Math::Similarity(projMatrix,propErr);
   SVector3 residual = measurementState.parameters-projMatrix*propagatedState.parameters;
-  SMatrix33 resErr = measurementState.errors+propErr33;
-  SMatrix33 resErrInv = resErr;
-  resErrInv.InvertFast();//fixme: somehow it does not produce a symmetric matrix 
+  SMatrixSym33 resErr = measurementState.errors+propErr33;
+  SMatrixSym33 resErrInv = resErr;
+  bool invResult =
+    //resErrInv.Invert();//fixme
+    resErrInv.InvertFast();//fixme
+    //resErrInv.InvertChol();//fixme
+  if (invResult==false) std::cout << "FAILED INVERSION" << std::endl;
   SMatrix63 pMTrEI = projMatrixT*resErrInv;
   SMatrix63 kalmanGain = propErr*pMTrEI;
   SVector6 kGr = kalmanGain*residual;
   SVector6 updatedParams = propagatedState.parameters + kGr;
-  SMatrix66 identity = ROOT::Math::SMatrixIdentity();
-  SMatrix66 kGpM = kalmanGain*projMatrix;
-  SMatrix66 updatedErrs = (identity - kGpM)*propErr;//fixme: somehow it does not produce a symmetric matrix 
+  SMatrixSym66 simil = ROOT::Math::SimilarityT(projMatrix,resErrInv);//fixme check T
+  SMatrixSym66 updatedErrs = propErr - ROOT::Math::SimilarityT(propErr,simil);
 
   if (print) {
     std::cout << "\n updateParameters \n" << std::endl;
@@ -72,8 +75,8 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
 	      << kGr[3] << " " << kGr[4] << " " << kGr[5] << " " << std::endl;
     std::cout << "updatedParams: " << updatedParams[0] << " " << updatedParams[1] << " " << updatedParams[2] << " "
 	      << updatedParams[3] << " " << updatedParams[4] << " " << updatedParams[5] << " " << std::endl;
-    std::cout << "kGpM" << std::endl;
-    dumpMatrix(kGpM);
+    //std::cout << "kGpM" << std::endl;
+    //dumpMatrix(kGpM);
     std::cout << "updatedErrs" << std::endl;
     dumpMatrix(updatedErrs);
     std::cout << std::endl;

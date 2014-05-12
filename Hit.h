@@ -3,17 +3,19 @@
 
 #include "Matrix.h"
 
+//fixme store MeasurementState as private member
+
 struct MeasurementState {
 public:
   SVector3 parameters;
-  SMatrix33 errors;
+  SMatrixSym33 errors;
 };
 
 class Hit {
 
 public:
 
-  Hit(SVector3 position, SMatrix33 error) {
+  Hit(SVector3 position, SMatrixSym33 error) {
     position_=position;
     error_=error;
   }
@@ -21,7 +23,7 @@ public:
   ~Hit(){}
 
   SVector3&  position() {return position_;}
-  SMatrix33& error() {return error_;}
+  SMatrixSym33& error() {return error_;}
   SVector3& parameters() {return position_;}
   float r() {return sqrt(position_.At(0)*position_.At(0)+position_.At(1)*position_.At(1));}
   MeasurementState measurementState() {
@@ -33,7 +35,7 @@ public:
 
 private:
   SVector3 position_;
-  SMatrix33 error_;
+  SMatrixSym33 error_;
 
 };
 

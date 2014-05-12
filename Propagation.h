@@ -11,7 +11,7 @@ TrackState propagateLineToR(TrackState& inputState, float r) {
   bool dump = false;
 
   SVector6& par = inputState.parameters;
-  SMatrix66& err = inputState.errors;
+  SMatrixSym66& err = inputState.errors;
 
   //straight line for now
   float r0 = sqrt(par.At(0)*par.At(0)+par.At(1)*par.At(1));
@@ -34,7 +34,7 @@ TrackState propagateLineToR(TrackState& inputState, float r) {
     std::cout << "arrived at R=" << sqrt(result.parameters[0]*result.parameters[0]+result.parameters[1]*result.parameters[1]) << std::endl;
   }
 
-  result.errors=propMatrix*err*ROOT::Math::Transpose(propMatrix);  
+  result.errors=ROOT::Math::Similarity(propMatrix,err);
   return result;
 }
 
@@ -75,7 +75,7 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
 
   //make a copy for now...
   SVector6 par = inputState.parameters;
-  SMatrix66 err = inputState.errors;
+  SMatrixSym66 err = inputState.errors;
 
   //5 iterations is a good starting point
   unsigned int Niter = 5;
@@ -239,7 +239,7 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
 
   TrackState result;
   result.parameters=par;
-  result.errors=errorProp*err*ROOT::Math::Transpose(errorProp);
+  result.errors=ROOT::Math::Similarity(errorProp,err);
   result.charge = charge;
   if (dump) {
     std::cout << "result.errors" << std::endl;
@@ -278,7 +278,7 @@ TrackState propagateHelixToR_test(TrackState& inputState, float r) {
 
   //make a copy for now...
   SVector6 par = inputState.parameters;
-  SMatrix66 err = inputState.errors;
+  SMatrixSym66 err = inputState.errors;
 
   //test//
   //try to get track circle center position
@@ -409,7 +409,7 @@ TrackState propagateHelixToR_test(TrackState& inputState, float r) {
 
   TrackState result;
   result.parameters=par;
-  result.errors=errorProp*err*ROOT::Math::Transpose(errorProp);
+  result.errors=ROOT::Math::Similarity(errorProp,err);
   result.charge = charge;
   if (dump) {
     std::cout << "result.errors" << std::endl;

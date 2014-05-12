@@ -17,8 +17,8 @@ void runFittingTest();
 
 int main() {
 
-  //runFittingTest();
-  runBuildingTest(10);
+  runFittingTest();
+  //runBuildingTest(10);
   return 0;
 
 }
@@ -205,7 +205,7 @@ void runFittingTest() {
   projMatrix36(2,2)=1.;
   SMatrix63 projMatrix36T = ROOT::Math::Transpose(projMatrix36);
 
-  unsigned int Ntracks = 10000;
+  unsigned int Ntracks = 1000;
 
   for (unsigned int itrack=0;itrack<Ntracks;++itrack) {
 
