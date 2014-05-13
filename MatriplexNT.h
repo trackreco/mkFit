@@ -6,7 +6,7 @@
 
 typedef int idx_t;
 
-template<typename T, idx_t D1, idx_t D2, idx_t N>
+template<typename T, idx_t D1, idx_t D2>
 class Matriplex
 {
 public:
@@ -19,13 +19,23 @@ public:
       kCols = D2,
       /// return no of elements: rows*columns
       kSize = D1 * D2,
-      /// size of the whole matriplex
-      kTotSize = N * kSize
    };
 
-   T fArray[kTotSize];
+   T           *fArray;
+   const idx_t  N;
+   const idx_t  kTotSize;
 
-   Matriplex() {}
+   Matriplex(idx_t nn) : N(nn), kTotSize(N*kSize)
+   {
+      fArray = (T*) _mm_malloc(sizeof(T) * kTotSize, 64);
+   }
+
+   ~Matriplex()
+   {
+      _mm_free(fArray);
+   }
+
+   /*
    Matriplex(T v) { SetVal(v); }
 
    void SetVal(T v)
@@ -35,6 +45,7 @@ public:
          fArray[i] = v;
       }
    }
+   */
 
    T& At(idx_t i, idx_t j, idx_t n) { return fArray[(i * D2 + j) * N + n]; }
 
@@ -42,6 +53,7 @@ public:
 
    void Assign(idx_t n, T *arr)
    {
+#pragma simd
       for (idx_t i = n; i < kTotSize; i += N)
       {
          fArray[i] = *(arr++);
@@ -50,23 +62,25 @@ public:
 };
 
 
-template<typename T, idx_t D1, idx_t D2, idx_t D3, idx_t N>
-void Multiply(const Matriplex<T, D1, D2, N>& A,
-              const Matriplex<T, D2, D3, N>& B,
-                    Matriplex<T, D1, D3, N>& C)
+template<typename T, idx_t D1, idx_t D2, idx_t D3>
+void Multiply(const Matriplex<T, D1, D2>& A,
+              const Matriplex<T, D2, D3>& B,
+                    Matriplex<T, D1, D3>& C)
 {
+   const idx_t N = A.N;
+
    for (idx_t i = 0; i < D1; ++i)
    {
       for (idx_t j = 0; j < D3; ++j)
       {
          const idx_t ijo = N * (i * D3 + j);
 
+#pragma simd
          for (idx_t n = 0; n < N; ++n)
          {
             C.fArray[ijo + n] = 0;
          }
 
-         //#pragma omp simd collapse(2)
          for (idx_t k = 0; k < D2; ++k)
          {
             const idx_t iko = N * (i * D2 + k);
@@ -75,8 +89,49 @@ void Multiply(const Matriplex<T, D1, D2, N>& A,
 #pragma simd
             for (idx_t n = 0; n < N; ++n)
             {
-               // C.fArray[i, j, n] += A.fArray[i, k, n] * B.fArray[k, j, n];
+            // C.fArray[i, j, n] += A.fArray[i, k, n] * B.fArray[k, j, n];
                C.fArray[ijo + n] += A.fArray[iko + n] * B.fArray[kjo + n];
+            }
+         }
+      }
+   }
+}
+
+template<typename T, idx_t D1, idx_t D2, idx_t D3>
+void Multiply2(const Matriplex<T, D1, D2>& A,
+              const Matriplex<T, D2, D3>& B,
+                    Matriplex<T, D1, D3>& C)
+{
+   const idx_t N = A.N;
+
+   for (idx_t i = 0; i < D1; ++i)
+   {
+      for (idx_t j = 0; j < D3; ++j)
+      {
+         const idx_t ijo = N * (i * D3 + j);
+
+         const idx_t SS = 16;
+
+         for (idx_t nn = 0; nn < N; nn += SS)
+         {
+            const idx_t nM = nn + SS;
+#pragma simd
+            for (idx_t n = nn; n < nM; ++n)
+            {
+               C.fArray[ijo + n] = 0;
+            }
+
+            for (idx_t k = 0; k < D2; ++k)
+            {
+               const idx_t iko = N * (i * D2 + k);
+               const idx_t kjo = N * (k * D3 + j);
+
+#pragma simd
+               for (idx_t n = nn; n < nM; ++n)
+               {
+                  // C.fArray[i, j, n] += A.fArray[i, k, n] * B.fArray[k, j, n];
+                  C.fArray[ijo + n] += A.fArray[iko + n] * B.fArray[kjo + n];
+               }
             }
          }
       }
@@ -88,12 +143,14 @@ void Multiply(const Matriplex<T, D1, D2, N>& A,
 // Cramer inversion
 //==============================================================================
 
-template<typename T, idx_t D, idx_t N>
+template<typename T, idx_t D>
 struct CramerInverter
 {
-   void operator()(Matriplex<T, D, D, N>& C, double *determ=0)
+   void operator()(Matriplex<T, D, D>& C, double *determ=0)
    {
       // We don't do general Inverts.
+
+      const idx_t N = C.N;
 
       if (determ)
       {
@@ -106,12 +163,14 @@ struct CramerInverter
 };
 
 
-template<typename T, idx_t N>
-struct CramerInverter<T, 2, N>
+template<typename T>
+struct CramerInverter<T, 2>
 {
-   void operator()(Matriplex<T, 2, 2, N>& C, double *determ=0)
+   void operator()(Matriplex<T, 2, 2>& C, double *determ=0)
    {
       typedef T TT;
+
+      const idx_t N = C.N;
 
 #pragma simd
       for (idx_t n = 0; n < N; ++n)
@@ -136,12 +195,14 @@ struct CramerInverter<T, 2, N>
    }
 };
 
-template<typename T, idx_t N>
-struct CramerInverter<T, 3, N>
+template<typename T>
+struct CramerInverter<T, 3>
 {
-   void operator()(Matriplex<T, 3, 3, N>& C, double *determ=0)
+   void operator()(Matriplex<T, 3, 3>& C, double *determ=0)
    {
       typedef T TT;
+
+      const idx_t N = C.N;
 
 #pragma simd
       for (idx_t n = 0; n < N; ++n)
@@ -178,12 +239,12 @@ struct CramerInverter<T, 3, N>
    }
 };
 
-template<typename T, idx_t D, idx_t N>
-void InvertCramer(Matriplex<T, D, D, N>& C, double *determ=0)
+template<typename T, idx_t D>
+void InvertCramer(Matriplex<T, D, D>& C, double *determ=0)
 {
    // We don't do general Inverts.
 
-   CramerInverter<T, D, N> ci;
+   CramerInverter<T, D> ci;
    ci(C, determ);
 }
 
@@ -192,12 +253,19 @@ void InvertCramer(Matriplex<T, D, D, N>& C, double *determ=0)
 // Cholesky inversion
 //==============================================================================
 
-template<typename T, idx_t D, idx_t N>
+template<typename T, idx_t D>
 struct CholInverter
 {
-   void operator()(Matriplex<T, D, D, N>& C, double *determ=0)
+   CholInverter()
+   {
+      exit(0);
+   }
+
+   void operator()(Matriplex<T, D, D>& C, double *determ=0)
    {
       // We don't do general Inverts.
+
+      const idx_t N = C.N;
 
       if (determ)
       {
@@ -209,41 +277,10 @@ struct CholInverter
    }
 };
 
-template<typename T, idx_t D, idx_t N>
-struct CholInverterBase
+
+template<typename T>
+struct CholInverter<T, 3>
 {
-   T fL[N * D * (D + 1) / 2];
-
-   template<typename G, idx_t N>
-   struct PackedArrayAdapter
-   {
-      G* fArr; ///< pointer to first array element
-
-      /// constructor
-      PackedArrayAdapter(G* arr) : fArr(arr) {}
-
-      /// read access to elements (make sure that j <= i)
-      const G operator()(unsigned i, unsigned j) const
-      { return fArr[N * (((i * (i + 1)) / 2) + j)]; }
-      /// write access to elements (make sure that j <= i)
-      G& operator()(unsigned i, unsigned j)
-      { return fArr[N * (((i * (i + 1)) / 2) + j)]; }
-   };
-
-};
-
-template<typename T, idx_t N>
-struct CholInverter<T, 3, N>
-{
-   enum
-   {
-      kSize    = 3 * (3 + 1) / 2,
-      kTotSize = N * kSize
-   };
-
-   //T  fL[kTotSize];
-
-   //T& l(idx_t i, idx_t n) { return fL[i * kSize + n]; }
 
    /*
      // The "slow" version that does >=0 checks.
@@ -287,8 +324,10 @@ struct CholInverter<T, 3, N>
      // This gives: host  x 5.8 (instead of 4.7x)
      //             mic   x17.7 (instead of 8.5x))
    */
-   CholInverter(Matriplex<T, 3, 3, N>& m)
+   CholInverter(Matriplex<T, 3, 3>& m)
    {
+      const idx_t N = m.N;
+
 #pragma simd
       for (idx_t n = 0; n < N; ++n)
       {
@@ -320,12 +359,12 @@ struct CholInverter<T, 3, N>
    }
 };
 
-template<typename T, idx_t D, idx_t N>
-void InvertChol(Matriplex<T, D, D, N>& C, double *determ=0)
+template<typename T, idx_t D>
+void InvertChol(Matriplex<T, D, D>& C, double *determ=0)
 {
    // We don't do general Inverts.
 
-   CholInverter<T, D, N> ci(C);
+   CholInverter<T, D> ci(C);
    //ci(C, determ);
 }
 

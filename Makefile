@@ -1,8 +1,17 @@
-mult66: mult66.cc Matriplex.h Makefile
-	icc -O3 -mavx -openmp -I. -o mult66 mult66.cc
-	icc -O3 -mmic -openmp -I. -o mult66-mic mult66.cc
-	scp mult66-mic root@mic0:
+# Requires some latest gcc, e.g.:
+# . /opt/rh/devtoolset-2/enable
 
-mult66_test:
-	./mult66
-	ssh root@mic0 ./mult66-mic
+MPLEXDEFS := -DMDIM=3 -I.
+MPLEXOPTS := -std=gnu++0x -O3 -openmp #-vec-report=2 -vec-threshold=0
+
+%: %.cxx mplex-common.h Matriplex.h MatriplexVector.h MatriplexNT.h Makefile
+	icc ${MPLEXDEFS} ${MPLEXOPTS} -mavx -o $@ $<
+
+%-mic: %.cxx mplex-common.h Matriplex.h MatriplexVector.h MatriplexNT.h Makefile
+	icc ${MPLEXDEFS} ${MPLEXOPTS} -mmic -o $@ $<
+	scp $@ root@mic0:
+
+
+%-test: % %-mic
+	./$*
+	ssh root@mic0 ./$*-mic
