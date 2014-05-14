@@ -1,3 +1,4 @@
+#include "fittest.h"
 #include <iostream>
 #include "TMath.h"
 #include "Track.h"
@@ -6,9 +7,9 @@
 #include "Propagation.h"
 #include "TFile.h"
 #include "TTree.h"
+#include "Simulation.h"
 
-
-void runFittingTest()
+void runFittingTest(bool saveTree)
 {
   float pt_mc=0.,pt_fit=0.,pt_err=0.; 
   TFile* f=0;
@@ -21,7 +22,7 @@ void runFittingTest()
     tree->Branch("pt_err",&pt_err,"pt_err");
   }
 
-  //these matrices are dummy and maybe we can be avoid multriplying by zero all the world...
+  //these matrices are dummy and can be optimized without multriplying by zero all the world...
   SMatrix36 projMatrix36;
   projMatrix36(0,0)=1.;
   projMatrix36(1,1)=1.;
@@ -30,27 +31,36 @@ void runFittingTest()
 
   unsigned int Ntracks = 1000;
 
+  std::vector<Track> simtracks;
   for (unsigned int itrack=0;itrack<Ntracks;++itrack) {
-
     //create the track
     SVector3 pos;
     SVector3 mom;
     SMatrixSym66 covtrk;
     std::vector<Hit> hits;
     int q=0;//set it in setup function
-    //setupTrackByHand(pos,mom,covtrk,hits,q,10);
     setupTrackByToyMC(pos,mom,covtrk,hits,q,10.*gRandom->Rndm());
-    Track trk(q,pos,mom,covtrk,hits,0.);
+    Track simtrk(q,pos,mom,covtrk,hits,0.);
+    simtracks.push_back(simtrk);
+  }
+
+
+  for (unsigned int itrack=0;itrack<simtracks.size();++itrack) {
+
+    Track& trk = simtracks[itrack];
 
     std::cout << std::endl;
     std::cout << "processing track #" << itrack << std::endl;
     
-    std::cout << "init x: " << pos.At(0) << " " << pos.At(1) << " " << pos.At(2) << std::endl;
-    std::cout << "init p: " << trk.momentum().At(0) << " " << trk.momentum().At(1) << " " << trk.momentum().At(2) << std::endl;
+    std::cout << "init x: " << trk.parameters()[0] << " " << trk.parameters()[1] << " " << trk.parameters()[2] << std::endl;
+    std::cout << "init p: " << trk.parameters()[3] << " " << trk.parameters()[4] << " " << trk.parameters()[5] << std::endl;
     std::cout << "init e: " << std::endl;
-    dumpMatrix(covtrk);
-    
+    dumpMatrix(trk.errors());
+
+    std::vector<Hit>& hits = trk.hitsVector();
+
     TrackState initState = trk.state();
+    //make a copy since initState is used at the end to fill the tree
     TrackState updatedState = initState;
     
     bool dump = false;
@@ -67,11 +77,11 @@ void runFittingTest()
 	std::cout << std::endl;
 	std::cout << "processing hit #" << hit-hits.begin() << std::endl;
 	
-	// std::cout << "propStateHelix.parameters (helix propagation)" << std::endl;
-	// std::cout << "x: " << propStateHelix.parameters[0] << " " << propStateHelix.parameters[1] << " " << propStateHelix.parameters[2] << std::endl;
-	// std::cout << "p: " << propStateHelix.parameters[3] << " " << propStateHelix.parameters[4] << " " << propStateHelix.parameters[5] << std::endl;
-	// std::cout << "propStateHelix.errors" << std::endl;
-	// dumpMatrix(propStateHelix.errors);
+	std::cout << "propState.parameters (helix propagation)" << std::endl;
+	std::cout << "x: " << propState.parameters[0] << " " << propState.parameters[1] << " " << propState.parameters[2] << std::endl;
+	std::cout << "p: " << propState.parameters[3] << " " << propState.parameters[4] << " " << propState.parameters[5] << std::endl;
+	std::cout << "propState.errors" << std::endl;
+	dumpMatrix(propState.errors);
 	
 	//TrackState propStateHelix_test = propagateHelixToR_test(updatedState,hit->r());
 	//std::cout << "propStateHelix_test.parameters (helix propagation)" << std::endl;
