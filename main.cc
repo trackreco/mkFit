@@ -12,13 +12,13 @@
 bool saveTree = true;
 
 void runBuildingTest(unsigned int nevts);
-void runBuildingTest();
+void runBuildingTest(TTree *tree, unsigned int& tk_nhits, float& chi2);
 void runFittingTest();
 
 int main() {
 
-  runFittingTest();
-  //runBuildingTest(10);
+  //runFittingTest();
+  runBuildingTest(10);
   return 0;
 
 }
@@ -38,13 +38,31 @@ unsigned int getPhiPartition(float phi) {
 }
 
 void runBuildingTest(unsigned int nevts) {
+
+  TFile* f=0;
+  TTree *tree=0;
+  unsigned int tk_nhits = 0;
+  float tk_chi2 = 0.;
+  if (saveTree) {
+    f=TFile::Open("build_validationtree.root", "recreate");
+    tree = new TTree("tree","tree");
+    tree->Branch("nhits",&tk_nhits,"nhits/i");
+    tree->Branch("chi2",&tk_chi2,"chi2/F");
+  }
+
   for (unsigned int evt=0;evt<nevts;++evt) {
     std::cout << std::endl << "EVENT #"<< evt << std::endl << std::endl;
-    runBuildingTest();
+    runBuildingTest(tree,tk_nhits,tk_chi2);
   }
+
+  if (saveTree) {
+    f->Write();
+    f->Close();
+  }
+
 }
 
-void runBuildingTest() {
+void runBuildingTest(TTree *tree,unsigned int& tk_nhits, float& tk_chi2) {
 
   bool debug = false;
 
@@ -66,6 +84,8 @@ void runBuildingTest() {
   std::vector<std::vector<BinInfo> > evt_lay_phi_hit_idx(10);//phi partitioning map
 
   for (unsigned int itrack=0;itrack<Ntracks;++itrack) {
+
+    tk_nhits=0;//just to be sure...
 
     //create the simulated track
     SVector3 pos;
@@ -181,6 +201,13 @@ void runBuildingTest() {
   for (unsigned int itkcand=0;itkcand<evt_track_candidates.size();++itkcand) {
     Track tkcand = evt_track_candidates[itkcand];
     std::cout << "found track candidate with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << std::endl;
+
+    if (saveTree) {
+      tk_nhits = tkcand.nHits();
+      tk_chi2 = tkcand.chi2();
+      tree->Fill();
+    }
+
   }
 
 }
