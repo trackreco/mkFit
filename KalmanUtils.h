@@ -25,6 +25,66 @@ float computeChi2(TrackState& propagatedState, MeasurementState& measurementStat
 
 }
 
+void zeroBlocksOutOf33(SMatrixSym66& matrix) {
+  for (int r=0;r<6;r++) {
+    for (int c=0;c<6;c++) {
+      if (r>2 || c>2) matrix[r][c]=0;
+    }
+  }  
+}
+
+void copy33Into66(SMatrixSym33& in,SMatrixSym66& out) {
+  for (int r=0;r<3;r++) {
+    for (int c=0;c<3;c++) {
+      out[r][c]=in[r][c];
+    }
+  }  
+}
+
+void copy66Into33(SMatrixSym66& in,SMatrixSym33& out) {
+  for (int r=0;r<3;r++) {
+    for (int c=0;c<3;c++) {
+      out[r][c]=in[r][c];
+    }
+  }  
+}
+
+TrackState updateParameters66(TrackState& propagatedState, MeasurementState& measurementState, TrackState& result) {
+
+  //test adding noise (mutiple scattering) on position (needs to be done more properly...)
+  SMatrixSym66 noise;
+  //float noiseVal = 0.000001;
+  //noise(0,0)=noiseVal;
+  //noise(1,1)=noiseVal;
+  //noise(2,2)=noiseVal;
+  SMatrixSym66 propErr = propagatedState.errors + noise;
+  SMatrixSym66 measErr;
+  copy33Into66(measurementState.errors,measErr);
+
+  SMatrixSym66 resErr = measErr+propErr;
+  zeroBlocksOutOf33(resErr);
+
+  SMatrixSym33 resErrInv33;
+  copy66Into33(resErr,resErrInv33);
+  bool invResult =
+    //resErrInv33.Invert();//fixme
+    resErrInv33.InvertFast();//fixme
+    //resErrInv33.InvertChol();//fixme
+  if (invResult==false) std::cout << "FAILED INVERSION" << std::endl;
+  SMatrixSym66 resErrInv;
+  copy33Into66(resErrInv33,resErrInv);
+
+  SVector6 residual = SVector6(measurementState.parameters[0]-propagatedState.parameters[0],
+			       measurementState.parameters[1]-propagatedState.parameters[1],
+			       measurementState.parameters[2]-propagatedState.parameters[2],0,0,0);
+
+  SMatrix66 kalmanGain = propErr*resErrInv;
+
+  result.parameters = propagatedState.parameters + kalmanGain*residual;
+  result.errors     = propErr - ROOT::Math::SimilarityT(propErr,resErrInv);
+
+}
+
 //see e.g. http://inspirehep.net/record/259509?ln=en
 TrackState updateParameters(TrackState& propagatedState, MeasurementState& measurementState, 
 			    SMatrix36& projMatrix,SMatrix63& projMatrixT) {

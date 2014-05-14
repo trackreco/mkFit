@@ -17,8 +17,8 @@ void runFittingTest();
 
 int main() {
 
-  //runFittingTest();
-  runBuildingTest(10);
+  runFittingTest();
+  //runBuildingTest(10);
   return 0;
 
 }
@@ -265,8 +265,8 @@ void runFittingTest() {
       TrackState propStateHelix = propagateHelixToR(updatedState,hit->r());
       TrackState propState = propStateHelix;    
       MeasurementState measState = hit->measurementState();
-      TrackState tmpUpdatedState = updateParameters(propState, measState,projMatrix36,projMatrix36T);
-      updatedState = tmpUpdatedState;
+      updatedState = updateParameters(propState, measState,projMatrix36,projMatrix36T);
+      //updateParameters66(propState, measState, updatedState);//updated state is now modified
       
       if (dump) {
 	std::cout << std::endl;
@@ -299,10 +299,10 @@ void runFittingTest() {
 	dumpMatrix(measState.errors);
 	
 	std::cout << "updatedState" << std::endl;
-	std::cout << "x: " << tmpUpdatedState.parameters[0] << " " << tmpUpdatedState.parameters[1] << " " << tmpUpdatedState.parameters[2] << std::endl;
-	std::cout << "p: " << tmpUpdatedState.parameters[3] << " " << tmpUpdatedState.parameters[4] << " " << tmpUpdatedState.parameters[5] << std::endl;
+	std::cout << "x: " << updatedState.parameters[0] << " " << updatedState.parameters[1] << " " << updatedState.parameters[2] << std::endl;
+	std::cout << "p: " << updatedState.parameters[3] << " " << updatedState.parameters[4] << " " << updatedState.parameters[5] << std::endl;
 	std::cout << "updatedState.errors" << std::endl;
-	dumpMatrix(tmpUpdatedState.errors);	
+	dumpMatrix(updatedState.errors);	
       }
       
     }
