@@ -1,1 +1,6 @@
 *~
+*.png
+*.log
+log*
+main
+*.root
