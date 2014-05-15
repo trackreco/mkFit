@@ -9,8 +9,8 @@ int main() {
 
   bool saveTree = true;
 
-  runFittingTest(saveTree);
-  //runBuildingTest(saveTree,10);
+  //runFittingTest(saveTree);
+  runBuildingTest(saveTree,10);
   return 0;
 
 }

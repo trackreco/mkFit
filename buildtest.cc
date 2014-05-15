@@ -5,7 +5,16 @@
 #include "Propagation.h"
 #include "Simulation.h"
 
-void runBuildingTest(bool saveTree, TTree *tree, unsigned int& tk_nhits, float& chi2);
+void runBuildingTest(bool saveTree, TTree *tree, unsigned int& tk_nhits, float& chi2, std::map<std::string,TH1F*>& validation_hists);
+
+
+void setupValidationHists(std::map<std::string,TH1F*>& validation_hists);
+TH1F* makeValidationHist(const std::string& name, const std::string& title, const int nbins, const double min, const double max, 
+						 const std::string& xlabel, const std::string& ylabel);
+void fillValidationHists(std::map<std::string,TH1F*>& validation_hists, std::vector<Track> evt_seeds);
+void saveValidationHists(TFile *f, std::map<std::string,TH1F*>& validation_hists);
+void deleteValidationHists(std::map<std::string,TH1F*>& validation_hists);
+
 
 bool sortByPhi(Hit hit1,Hit hit2) {
   return std::atan2(hit1.position()[1],hit1.position()[0])<std::atan2(hit2.position()[1],hit2.position()[0]);
@@ -27,6 +36,10 @@ void runBuildingTest(bool saveTree, unsigned int nevts) {
   TTree *tree=0;
   unsigned int tk_nhits = 0;
   float tk_chi2 = 0.;
+  std::map<std::string,TH1F*> validation_hists;
+  setupValidationHists(validation_hists);
+
+
   if (saveTree) {
     f=TFile::Open("build_validationtree.root", "recreate");
     tree = new TTree("tree","tree");
@@ -36,17 +49,19 @@ void runBuildingTest(bool saveTree, unsigned int nevts) {
 
   for (unsigned int evt=0;evt<nevts;++evt) {
     std::cout << std::endl << "EVENT #"<< evt << std::endl << std::endl;
-    runBuildingTest(saveTree,tree,tk_nhits,tk_chi2);
+    runBuildingTest(saveTree,tree,tk_nhits,tk_chi2, validation_hists);
   }
 
   if (saveTree) {
+	saveValidationHists(f,validation_hists);
     f->Write();
     f->Close();
   }
+  deleteValidationHists(validation_hists);
 
 }
 
-void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& tk_chi2) {
+void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& tk_chi2, std::map<std::string,TH1F*>& validation_hists) {
 
   bool debug = false;
 
@@ -92,6 +107,9 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
     evt_seeds.push_back(sim_track);
 
   }//end of track simulation loop
+
+  fillValidationHists(validation_hists, evt_seeds);
+
 
   //sort in phi and dump hits per layer, fill phi partitioning
   for (unsigned int ilay=0;ilay<evt_lay_hits.size();++ilay) {
@@ -194,4 +212,68 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
 
   }
 
+}
+
+
+
+
+
+
+
+void setupValidationHists(std::map<std::string,TH1F*>& validation_hists){
+  validation_hists["gen_trk_Pt"] = makeValidationHist("h_gen_trk_Pt", "P_{T} of generated tracks", 40, 0, 10, "P_{T} [GeV]", "Events");
+  validation_hists["gen_trk_Px"] = makeValidationHist("h_gen_trk_Px", "P_{x} of generated tracks", 40, -10, 10, "P_{x} [GeV]", "Events");
+  validation_hists["gen_trk_Py"] = makeValidationHist("h_gen_trk_Py", "P_{y} of generated tracks", 40, -10, 10, "P_{y} [GeV]", "Events");
+  validation_hists["gen_trk_Pz"] = makeValidationHist("h_gen_trk_Pz", "P_{z} of generated tracks", 40, -20, 20, "P_{z} [GeV]", "Events");
+  validation_hists["gen_trk_phi"] = makeValidationHist("h_gen_trk_phi", "phi of generated tracks", 40, -4, 4, "phi", "Events");
+  validation_hists["gen_trk_eta"] = makeValidationHist("h_gen_trk_eta", "eta of generated tracks", 40, -4, 4, "eta", "Events");
+}
+
+
+TH1F* makeValidationHist(const std::string& name, const std::string& title, const int nbins, const double min, const double max, const std::string& xlabel, const std::string& ylabel){
+  TH1F* tmp = new TH1F(name.c_str(), title.c_str(), nbins, min, max);
+  tmp->SetDirectory(NULL); //user is now responsible for deleting hists
+  tmp->GetXaxis()->SetTitle(xlabel.c_str());
+  tmp->GetYaxis()->SetTitle(ylabel.c_str());
+  return tmp;
+}
+
+void fillValidationHists(std::map<std::string,TH1F*>& validation_hists, std::vector<Track> evt_seeds){
+  for( unsigned int iseed = 0; iseed < evt_seeds.size(); ++iseed){
+	float gen_trk_Pt = sqrt( (evt_seeds[iseed].momentum()[0]) * (evt_seeds[iseed].momentum()[0]) +
+							 (evt_seeds[iseed].momentum()[1]) * (evt_seeds[iseed].momentum()[1]) );
+	float gen_trk_theta = atan2( gen_trk_Pt, evt_seeds[iseed].momentum()[2] );
+	float gen_trk_eta = -1. * log( tan(gen_trk_theta / 2.) );
+	validation_hists["gen_trk_Pt"]->Fill( gen_trk_Pt );
+	validation_hists["gen_trk_Px"]->Fill( evt_seeds[iseed].momentum()[0] );
+	validation_hists["gen_trk_Py"]->Fill( evt_seeds[iseed].momentum()[1] ); 
+  validation_hists["gen_trk_Pz"]->Fill( evt_seeds[iseed].momentum()[2] ); 
+	validation_hists["gen_trk_phi"]->Fill( std::atan2(evt_seeds[iseed].momentum()[1], evt_seeds[iseed].momentum()[0]) ); //phi=arctan(y/x), atan2 returns -pi,pi
+	validation_hists["gen_trk_eta"]->Fill( gen_trk_eta ); 
+  }
+  
+}
+
+void saveValidationHists(TFile *f, std::map<std::string,TH1F*>& validation_hists){
+  f->cd();
+  std::map<std::string, TH1F*>::iterator mapitr;
+  std::map<std::string, TH1F*>::iterator mapitrend = validation_hists.end();
+  	
+  for( mapitr = validation_hists.begin();
+	   mapitr != mapitrend;
+	   mapitr++){
+	(mapitr->second)->Write();
+  }
+}
+
+void deleteValidationHists(std::map<std::string,TH1F*>& validation_hists){
+  std::map<std::string, TH1F*>::iterator mapitr;
+  std::map<std::string, TH1F*>::iterator mapitrend = validation_hists.end();
+ 
+  for( mapitr = validation_hists.begin();
+	   mapitr != mapitrend;
+	   mapitr++){
+	delete (mapitr->second);
+  }
+  validation_hists.clear();
 }
