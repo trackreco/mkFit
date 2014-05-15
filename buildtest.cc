@@ -220,12 +220,12 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
 
 
 void setupValidationHists(std::map<std::string,TH1F*>& validation_hists){
-  validation_hists["gen_trk_Pt"] = makeValidationHist("h_gen_trk_Pt", "P_{T} of generated tracks", 40, 0, 10, "P_{T} [GeV]", "Events");
-  validation_hists["gen_trk_Px"] = makeValidationHist("h_gen_trk_Px", "P_{x} of generated tracks", 40, -10, 10, "P_{x} [GeV]", "Events");
-  validation_hists["gen_trk_Py"] = makeValidationHist("h_gen_trk_Py", "P_{y} of generated tracks", 40, -10, 10, "P_{y} [GeV]", "Events");
-  validation_hists["gen_trk_Pz"] = makeValidationHist("h_gen_trk_Pz", "P_{z} of generated tracks", 40, -20, 20, "P_{z} [GeV]", "Events");
-  validation_hists["gen_trk_phi"] = makeValidationHist("h_gen_trk_phi", "phi of generated tracks", 40, -4, 4, "phi", "Events");
-  validation_hists["gen_trk_eta"] = makeValidationHist("h_gen_trk_eta", "eta of generated tracks", 40, -4, 4, "eta", "Events");
+  validation_hists["gen_trk_Pt"] = makeValidationHist("h_gen_trk_Pt", "P_{T} of generated tracks", 20, 0, 10, "P_{T} [GeV]", "Events");
+  validation_hists["gen_trk_Px"] = makeValidationHist("h_gen_trk_Px", "P_{x} of generated tracks", 20, -10, 10, "P_{x} [GeV]", "Events");
+  validation_hists["gen_trk_Py"] = makeValidationHist("h_gen_trk_Py", "P_{y} of generated tracks", 20, -10, 10, "P_{y} [GeV]", "Events");
+  validation_hists["gen_trk_Pz"] = makeValidationHist("h_gen_trk_Pz", "P_{z} of generated tracks", 20, -15, 15, "P_{z} [GeV]", "Events");
+  validation_hists["gen_trk_phi"] = makeValidationHist("h_gen_trk_phi", "phi of generated tracks", 20, -4, 4, "#phi", "Events");
+  validation_hists["gen_trk_eta"] = makeValidationHist("h_gen_trk_eta", "eta of generated tracks", 20, -1, 1, "#eta", "Events");
 }
 
 
@@ -246,7 +246,7 @@ void fillValidationHists(std::map<std::string,TH1F*>& validation_hists, std::vec
 	validation_hists["gen_trk_Pt"]->Fill( gen_trk_Pt );
 	validation_hists["gen_trk_Px"]->Fill( evt_seeds[iseed].momentum()[0] );
 	validation_hists["gen_trk_Py"]->Fill( evt_seeds[iseed].momentum()[1] ); 
-  validation_hists["gen_trk_Pz"]->Fill( evt_seeds[iseed].momentum()[2] ); 
+	validation_hists["gen_trk_Pz"]->Fill( evt_seeds[iseed].momentum()[2] ); 
 	validation_hists["gen_trk_phi"]->Fill( std::atan2(evt_seeds[iseed].momentum()[1], evt_seeds[iseed].momentum()[0]) ); //phi=arctan(y/x), atan2 returns -pi,pi
 	validation_hists["gen_trk_eta"]->Fill( gen_trk_eta ); 
   }

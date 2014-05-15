@@ -1,3 +1,7 @@
+#include <cmath>
+
+#include "TMath.h"
+
 #include "Simulation.h"
 
 void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::vector<Hit>& hits, int& charge, float pt) {
@@ -12,11 +16,14 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     else charge = 1;
   }
 
-  float px = pt*gRandom->Rndm();
-  float py = sqrt(pt*pt-px*px);
+  float phi = 0.5*TMath::Pi()*gRandom->Rndm(); // make an angle between 0 and pi/2
+  float px = pt * cos(phi);
+  float py = pt * sin(phi);
+  // float px = pt*gRandom->Rndm();
+  // float py = sqrt(pt*pt-px*px);
   if (gRandom->Rndm()>0.5) px*=-1.;
   if (gRandom->Rndm()>0.5) py*=-1.;
-  float pz = pt*(4.0*(gRandom->Rndm()-0.5));//pz flat between -2*pt and +2*pt
+  float pz = pt*(2.3*(gRandom->Rndm()-0.5));//pz flat between -2*pt and +2*pt
   mom=SVector3(px,py,pz);
   covtrk=ROOT::Math::SMatrixIdentity();
   //initial covariance can be tricky
