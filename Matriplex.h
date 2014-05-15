@@ -1,10 +1,7 @@
 #ifndef Matriplex_H
 #define Matriplex_H
 
-#include <cmath>
-#include <cstdio>
-
-typedef int idx_t;
+#include "MatriplexCommon.h"
 
 template<typename T, idx_t D1, idx_t D2, idx_t N>
 class Matriplex

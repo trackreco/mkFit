@@ -22,7 +22,7 @@ const idx_t M = MDIM;
 const idx_t M = 6;
 #endif
 
-const int N = 256 * 1;
+const int N = 256 * 10;
 
 const int Nm = N / S;
 const int Ns = N;
@@ -31,6 +31,8 @@ const int NN_MULT = 10000;
 const int NN_INV  = 10000;
 
 const int ALIGN   = 4096;
+
+const int COMPARE_INVERSES = 0;
 
 #define SYMM 1
 
@@ -82,6 +84,24 @@ void init_mulmuz(SMatrixMM *mul,  SMatrixMM *muz,
           muls[i](j,k) = mul[i](j,k);
           muzs[i](j,k) = muz[i](j,k);
         }
+      }
+    }
+  }
+}
+
+void init_mulmuz(SMatrixSS *muls, SMatrixSS *muzs)
+{
+  std::default_random_engine gen(0xbeef0133);
+  std::normal_distribution<float> dis(5.0, 0.05);
+
+  for (int i = 0; i < N; ++i)
+  {
+    for (int j = 0; j < M; ++j)
+    {
+      for (int k = j; k < M; ++k)
+      {
+        muls[i](j,k) = dis(gen);
+        muzs[i](j,k) = dis(gen);
       }
     }
   }

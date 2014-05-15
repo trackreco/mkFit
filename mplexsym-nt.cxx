@@ -7,34 +7,27 @@
 // scp mult66-mic root@mic0:
 // ssh root@mic0 ./mult66-mic
 
-#include "MatriplexNT.h"
+#include "MatriplexSymNT.h"
 
 #include "mplex-common.h"
 
 
 typedef Matriplex<float, M, M> MPlexMM;
+typedef MatriplexSym<float, M> MPlexSS;
 
 
 int main(int arg, char *argv[])
 {
+  SMatrixSS *mul  = new_sth<SMatrixSS>(Ns);
+  SMatrixSS *muz  = new_sth<SMatrixSS>(Ns);
   SMatrixMM *res  = new_sth<SMatrixMM>(Ns);
-  SMatrixMM *mul  = new_sth<SMatrixMM>(Ns);
-  SMatrixMM *muz  = new_sth<SMatrixMM>(Ns);
 
-#ifdef SYMM
-  SMatrixSS *muls = new_sth<SMatrixSS>(Ns);
-  SMatrixSS *muzs = new_sth<SMatrixSS>(Ns);
-#else
-  SMatrixSS *muls = 0;
-  SMatrixSS *muzs = 0;
-#endif
-
-  MPlexMM mpl(N);
-  MPlexMM mpz(N);
+  MPlexSS mpl(N);
+  MPlexSS mpz(N);
   MPlexMM mpres(N);
   
 
-  init_mulmuz(mul, muz, muls, muzs);
+  init_mulmuz(mul, muz);
 
   // Multiplex arrays
 
@@ -76,8 +69,17 @@ int main(int arg, char *argv[])
 
     tmp = dtime() - t0;
     std::cout << "Matriplex multiply time = " << tmp << " s\n";
-
-    std::cout << "SMatrix / Matriplex = " << tsm/tmp << "\n\n";
+    std::cout << "SMatrix / Matriplex = " << tsm/tmp << "";
+    {
+      double x = 0, y = 0;
+      for (int j = 0; j < N; ++j)
+      {
+        x += res[j](1,2);
+        y += mpres(1,2,j);
+      }
+      std::cout << "\t\t\tx = " << x << ", y = " << y << "\n";
+    }
+    std::cout << "\n";
 
     /*
       for (int i = 0; i < N; ++i)
@@ -102,15 +104,11 @@ int main(int arg, char *argv[])
 #pragma ivdep
       for (int m = 0; m < N; ++m)
       {
-        //mul[m].InvertFast();
-        //muz[m].InvertFast();
-#ifdef SYMM
-        bool bl = muls[m].InvertChol();
-        bool bz = muzs[m].InvertChol();
-#else
-        bool bl = mul[m].InvertChol();
-        bool bz = muz[m].InvertChol();
-#endif
+        mul[m].InvertFast();
+        muz[m].InvertFast();
+        //bool bl = mul[m].InvertChol();
+        //bool bz = muz[m].InvertChol();
+
         //if ( ! bl || ! bz)   printf("Grr %d %d %d\n", m, bl, bz);
       }
     }
@@ -123,22 +121,32 @@ int main(int arg, char *argv[])
 
     for (int i = 0; i < NN_INV; ++i)
     {
-      // InvertCramer(mpl);
-      // InvertCramer(mpz);
-      InvertChol(mpl);
-      InvertChol(mpz);
+      SymInvertCramer(mpl);
+      SymInvertCramer(mpz);
+      // SymInvertChol(mpl);
+      // SymInvertChol(mpz);
     }
 
     tmp = dtime() - t0;
     std::cout << "Matriplex invert time = " << tmp << " s\n";
-    std::cout << "SMatrix / Matriplex = " << tsm/tmp << "\n\n";
+    std::cout << "SMatrix / Matriplex = " << tsm/tmp << "";
+    {
+      double x = 0, y = 0;
+      for (int j = 0; j < N; ++j)
+      {
+        x += mul[j](1,2) + muz[j](1,2);
+        y += mpl(1,2,j)  + mpl(1,2,j);
+      }
+      std::cout << "\t\t\tx = " << x << ", y = " << y << "\n";
+    }
+    std::cout << "\n";
 
     // ================================================================
 
     if (COMPARE_INVERSES)
     {
       for (int i = 0; i < M; ++i) { for (int j = 0; j < M; ++j)
-          printf("%8f ", muls[0](i,j)); printf("\n");
+          printf("%8f ", mul[0](i,j)); printf("\n");
       } printf("\n");
 
       for (int i = 0; i < M; ++i) { for (int j = 0; j < M; ++j)

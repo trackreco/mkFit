@@ -92,11 +92,10 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
     SMatrixSym66 covtrk;
     std::vector<Hit> hits;
     int q=0;//set it in setup function
-    setupTrackByToyMC(pos,mom,covtrk,hits,q,10.*gRandom->Rndm());
+    float pt = 0.5+gRandom->Rndm()*9.5;//this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
+    setupTrackByToyMC(pos,mom,covtrk,hits,q,pt);
     Track sim_track(q,pos,mom,covtrk,hits,0);
     sim_track.resetHits();
-
-    if (sqrt(mom[0]*mom[0]+mom[1]*mom[1])<0.5) continue;//skip tracks with very low pT, they do not have hits in 10 different layers (fixme)
 
     //fill vector of hits in each layer (assuming there is one hit per layer in hits vector)
     for (unsigned int ilay=0;ilay<hits.size();++ilay) {

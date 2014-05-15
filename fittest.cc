@@ -39,11 +39,11 @@ void runFittingTest(bool saveTree)
     SMatrixSym66 covtrk;
     std::vector<Hit> hits;
     int q=0;//set it in setup function
-    setupTrackByToyMC(pos,mom,covtrk,hits,q,10.*gRandom->Rndm());
+    float pt = 0.5+gRandom->Rndm()*9.5;//this input, 0.5<pt<10 GeV  (below ~0.5 GeV does not make 10 layers)
+    setupTrackByToyMC(pos,mom,covtrk,hits,q,pt);
     Track simtrk(q,pos,mom,covtrk,hits,0.);
     simtracks.push_back(simtrk);
   }
-
 
   for (unsigned int itrack=0;itrack<simtracks.size();++itrack) {
 
