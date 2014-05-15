@@ -44,7 +44,6 @@ void runFittingTest(bool saveTree)
     simtracks.push_back(simtrk);
   }
 
-
   for (unsigned int itrack=0;itrack<simtracks.size();++itrack) {
 
     Track& trk = simtracks[itrack];
