@@ -78,13 +78,13 @@ int main()
   std::cout << "SMatrix / Matriplex = " << tsm/tmp << "\n\n";
 
   /*
-  for (int i = 0; i < N; ++i)
+    for (int i = 0; i < N; ++i)
     for (int j = 0; j < M; ++j)
-      for (int k = 0; k < M; ++k)
-      {
+    for (int k = 0; k < M; ++k)
+    {
     if (res[i](j,k) != mpres.At(j, k, i))
-      std::cout << i <<" "<< j <<" "<< k <<" "<< res[i](j,k) <<" "<< mpres.At(j, k, i) << "\n";
-  }
+    std::cout << i <<" "<< j <<" "<< k <<" "<< res[i](j,k) <<" "<< mpres.At(j, k, i) << "\n";
+    }
   */
 
   // ================================================================
@@ -97,16 +97,16 @@ int main()
 #pragma ivdep
     for (int m = 0; m < N; ++m)
     {
-    //mul[m].InvertFast();
-    //muz[m].InvertFast();
+      //mul[m].InvertFast();
+      //muz[m].InvertFast();
 #ifdef SYMM
-    bool bl = muls[m].InvertChol();
-    bool bz = muzs[m].InvertChol();
+      bool bl = muls[m].InvertChol();
+      bool bz = muzs[m].InvertChol();
 #else
-    bool bl = mul[m].InvertChol();
-    bool bz = muz[m].InvertChol();
+      bool bl = mul[m].InvertChol();
+      bool bz = muz[m].InvertChol();
 #endif
-    //if ( ! bl || ! bz)   printf("Grr %d %d %d\n", m, bl, bz);
+      //if ( ! bl || ! bz)   printf("Grr %d %d %d\n", m, bl, bz);
     }
   }
   tsm = dtime() - t0;
@@ -129,54 +129,17 @@ int main()
   std::cout << "SMatrix / Matriplex = " << tsm/tmp << "\n\n";
 
   // ================================================================
-  for (int i = 0; i < M; ++i) { for (int j = 0; j < M; ++j)
-      printf("%8f ", muls[0](i,j)); printf("\n");
-  } printf("\n");
 
-  for (int i = 0; i < M; ++i) { for (int j = 0; j < M; ++j)
-      printf("%8f ", mpl.At(i,j,0)); printf("\n");
-  } printf("\n");
+  if (COMPARE_INVERSES)
+  {
+    for (int i = 0; i < M; ++i) { for (int j = 0; j < M; ++j)
+        printf("%8f ", muls[0](i,j)); printf("\n");
+    } printf("\n");
 
-  return 0;
+    for (int i = 0; i < M; ++i) { for (int j = 0; j < M; ++j)
+        printf("%8f ", mpl.At(i,j,0)); printf("\n");
+    } printf("\n");
   }
 
-
-
-#ifdef ZMAJLA_ZAJLA
-
-  std::cout << "LLLLL\n";
-
-  for (int i = 0; i < M; ++i) { for (int j = 0; j < M; ++j)
-      printf("%8f ", mul[0](i,j)); printf("\n");
-  } printf("\n");
-  for (int i = 0; i < M; ++i) { for (int j = 0; j < M; ++j)
-      printf("%8f ", mpl.At(i,j,0)); printf("\n");
-  } printf("\n");
-  for (int i = 0; i < M; ++i) { for (int j = 0; j < M; ++j)
-      printf("%8f ", muz[0](i,j)); printf("\n");
-  } printf("\n");
-  for (int i = 0; i < M; ++i) { for (int j = 0; j < M; ++j)
-      printf("%8f ", mpz.At(i,j,0)); printf("\n");
-  } printf("\n");
-
-  for (int i = 0; i < N; ++i)
-    for (int j = 0; j < M; ++j)
-      for (int k = 0; k < M; ++k)
-      {
-        if (mul[i](j,k) != mpl.At(j, k, i))
-          std::cout << i <<" "<< j <<" "<< k <<" "<< mul[i](j,k) <<" "<< mpl.At(j, k, i) << "\n";
-      }
-
-  std::cout << "ZZZZZ\n";
-
-  for (int i = 0; i < N; ++i)
-    for (int j = 0; j < M; ++j)
-      for (int k = 0; k < M; ++k)
-      {
-        if (muz[i](j,k) != mpz.At(j, k, i))
-          std::cout << i <<" "<< j <<" "<< k <<" "<< muz[i](j,k) <<" "<< mpz.At(j, k, i) << "\n";
-      }
-
-  std::cout << "RESRES\n";
-
-#endif
+  return 0;
+}

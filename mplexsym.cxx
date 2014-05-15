@@ -7,41 +7,34 @@
 // scp mult66-mic root@mic0:
 // ssh root@mic0 ./mult66-mic
 
-#include "MatriplexNT.h"
+#include "MatriplexSym.h"
 
 #include "mplex-common.h"
 
 
-typedef Matriplex<float, M, M> MPlexMM;
+typedef Matriplex<float, M, M, S> MPlexMM;
+typedef MatriplexSym<float, M, S> MPlexSS;
 
 
-int main(int arg, char *argv[])
+int main()
 {
+  SMatrixSS *mul  = new_sth<SMatrixSS>(Ns);
+  SMatrixSS *muz  = new_sth<SMatrixSS>(Ns);
   SMatrixMM *res  = new_sth<SMatrixMM>(Ns);
-  SMatrixMM *mul  = new_sth<SMatrixMM>(Ns);
-  SMatrixMM *muz  = new_sth<SMatrixMM>(Ns);
 
-#ifdef SYMM
-  SMatrixSS *muls = new_sth<SMatrixSS>(Ns);
-  SMatrixSS *muzs = new_sth<SMatrixSS>(Ns);
-#else
-  SMatrixSS *muls = 0;
-  SMatrixSS *muzs = 0;
-#endif
+  MPlexSS *mpl   = new_sth<MPlexSS>(Nm);
+  MPlexSS *mpz   = new_sth<MPlexSS>(Nm);
+  MPlexMM *mpres = new_sth<MPlexMM>(Nm);
 
-  MPlexMM mpl(N);
-  MPlexMM mpz(N);
-  MPlexMM mpres(N);
-  
 
-  init_mulmuz(mul, muz, muls, muzs);
+  init_mulmuz(mul, muz);
 
   // Multiplex arrays
 
   for (int i = 0; i < N; ++i)
   {
-    mpl.Assign(i, mul[i].Array());
-    mpz.Assign(i, muz[i].Array());
+    mpl[i/S].Assign(i%S, mul[i].Array());
+    mpz[i/S].Assign(i%S, muz[i].Array());
   }
 
   double t0, tmp, tsm;
@@ -70,15 +63,30 @@ int main(int arg, char *argv[])
 
     for (int i = 0; i < NN_MULT; ++i)
     {
-      Multiply(mpl, mpz, mpres);
+      for (int j = 0; j < Nm; ++j)
+      {
+        Multiply(mpl[j], mpz[j], mpres[j]);
+      }
     }
 
 
     tmp = dtime() - t0;
     std::cout << "Matriplex multiply time = " << tmp << " s\n";
 
-    std::cout << "SMatrix / Matriplex = " << tsm/tmp << "\n\n";
+    std::cout << "SMatrix / Matriplex = " << tsm/tmp << "";
 
+    double x = 0, y = 0;
+    for (int j = 0; j < Nm; ++j)
+    {
+      for (int k = 0; k < S; ++k)
+      {
+        x += res[j*S + k](1,2);
+        y += mpres[j](1,2,k);
+      }
+    }
+    std::cout << "\t\t\tx = " << x << ", y = " << y << "\n";
+
+    std::cout << "\n";
     /*
       for (int i = 0; i < N; ++i)
       for (int j = 0; j < M; ++j)
@@ -104,13 +112,9 @@ int main(int arg, char *argv[])
       {
         //mul[m].InvertFast();
         //muz[m].InvertFast();
-#ifdef SYMM
-        bool bl = muls[m].InvertChol();
-        bool bz = muzs[m].InvertChol();
-#else
         bool bl = mul[m].InvertChol();
         bool bz = muz[m].InvertChol();
-#endif
+
         //if ( ! bl || ! bz)   printf("Grr %d %d %d\n", m, bl, bz);
       }
     }
@@ -125,8 +129,11 @@ int main(int arg, char *argv[])
     {
       // InvertCramer(mpl);
       // InvertCramer(mpz);
-      InvertChol(mpl);
-      InvertChol(mpz);
+      for (int j = 0; j < Nm; ++j)
+      {
+        SymInvertChol(mpl[j]);
+        SymInvertChol(mpz[j]);
+      }
     }
 
     tmp = dtime() - t0;
@@ -138,11 +145,11 @@ int main(int arg, char *argv[])
     if (COMPARE_INVERSES)
     {
       for (int i = 0; i < M; ++i) { for (int j = 0; j < M; ++j)
-          printf("%8f ", muls[0](i,j)); printf("\n");
+          printf("%8f ", mul[0](i,j)); printf("\n");
       } printf("\n");
 
       for (int i = 0; i < M; ++i) { for (int j = 0; j < M; ++j)
-          printf("%8f ", mpl.At(i,j,0)); printf("\n");
+          printf("%8f ", mpl[0].At(i,j,0)); printf("\n");
       } printf("\n");
     }
   }
