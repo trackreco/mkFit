@@ -1,10 +1,11 @@
 #include "buildtest.h"
-#include <iostream>
-#include <cmath>
-#include "TMath.h"
+
 #include "KalmanUtils.h"
 #include "Propagation.h"
 #include "Simulation.h"
+
+#include <cmath>
+#include <iostream>
 
 void runBuildingTest(bool saveTree, TTree *tree, unsigned int& tk_nhits, float& chi2, std::map<std::string,TH1F*>& validation_hists);
 
@@ -100,7 +101,7 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
     SMatrixSym66 covtrk;
     std::vector<Hit> hits;
     int q=0;//set it in setup function
-    float pt = 0.5+gRandom->Rndm()*9.5;//this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
+    float pt = 0.5+g_unif(g_gen)*9.5;//this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
     setupTrackByToyMC(pos,mom,covtrk,hits,q,pt);
     Track sim_track(q,pos,mom,covtrk,hits,0);
     sim_track.resetHits();

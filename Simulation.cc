@@ -1,7 +1,5 @@
 #include <cmath>
 
-#include "TMath.h"
-
 #include "Simulation.h"
 
 void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::vector<Hit>& hits, int& charge, float pt) {
@@ -9,21 +7,21 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
   unsigned int nTotHit = 10;
 
   //assume beam spot width 1mm in xy and 1cm in z
-  pos=SVector3(gRandom->Gaus(0,0.1),gRandom->Gaus(0,0.1),gRandom->Gaus(0,1.0));
+  pos=SVector3(0.1*g_gaus(g_gen), 0.1*g_gaus(g_gen), 1.0*g_gaus(g_gen));
 
   if (charge==0) {
-    if (gRandom->Rndm()>0.5) charge = -1;
+    if (g_unif(g_gen) > 0.5) charge = -1;
     else charge = 1;
   }
 
-  float phi = 0.5*TMath::Pi()*gRandom->Rndm(); // make an angle between 0 and pi/2
+  float phi = 0.5*TMath::Pi()*g_unif(g_gen); // make an angle between 0 and pi/2
   float px = pt * cos(phi);
   float py = pt * sin(phi);
   // float px = pt*gRandom->Rndm();
   // float py = sqrt(pt*pt-px*px);
-  if (gRandom->Rndm()>0.5) px*=-1.;
-  if (gRandom->Rndm()>0.5) py*=-1.;
-  float pz = pt*(2.3*(gRandom->Rndm()-0.5));//pz flat between -2*pt and +2*pt
+  if (g_unif(g_gen)>0.5) px*=-1.;
+  if (g_unif(g_gen)>0.5) py*=-1.;
+  float pz = pt*(2.3*(g_unif(g_gen)-0.5));//pz flat between -2*pt and +2*pt
   mom=SVector3(px,py,pz);
   covtrk=ROOT::Math::SMatrixIdentity();
   //initial covariance can be tricky
@@ -50,12 +48,12 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
   //do 4 cm in radius using propagation.h
   for (unsigned int nhit=1;nhit<=nTotHit;++nhit) {
     TrackState propState = propagateHelixToR(tmpState,4.*float(nhit));//radius of 4*nhit
-    float hitx = gRandom->Gaus(0,hitposerr)+propState.parameters.At(0);
-    float hity = gRandom->Gaus(0,hitposerr)+propState.parameters.At(1);
+    float hitx = hitposerr*g_gaus(g_gen)+propState.parameters.At(0);
+    float hity = hitposerr*g_gaus(g_gen)+propState.parameters.At(1);
     //float hity = sqrt((pos.At(0) + k*(px*sinAP-py*(1-cosAP)))*(pos.At(0) + k*(px*sinAP-py*(1-cosAP)))+
     //          	(pos.At(1) + k*(py*sinAP+px*(1-cosAP)))*(pos.At(1) + k*(py*sinAP+px*(1-cosAP)))-
     //	   	        hitx*hitx);//try to get the fixed radius
-    float hitz = gRandom->Gaus(0,hitposerr)+propState.parameters.At(2);
+    float hitz = hitposerr*g_gaus(g_gen)+propState.parameters.At(2);
     //std::cout << "hit#" << nhit << " " << hitx << " " << hity << " " << hitz << std::endl;
     SVector3 x1(hitx,hity,hitz);
     SMatrixSym33 covx1 = ROOT::Math::SMatrixIdentity();

@@ -1,8 +1,8 @@
 # Requires some latest gcc, e.g.:
 # . /opt/rh/devtoolset-2/enable
 
-MPLEXDEFS := -I. -DMDIM=3
-MPLEXOPTS := -std=gnu++0x -O3 -openmp # -vec-report=1 # -vec-threshold=0
+MPLEXDEFS := -I. -DMDIM=6
+MPLEXOPTS := -std=gnu++0x -O3 -openmp -vec-report=1 # -vec-threshold=0
 
 all:	mplex mplex-vec mplex-nt mplex-mic mplex-vec-mic mplex-nt-mic mplexsym mplexsym-mic mplexsym-nt mplexsym-nt-mic
 

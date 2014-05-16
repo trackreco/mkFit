@@ -10,8 +10,11 @@ $BR   = " ";
 $JOIN = "$BR";
 $POST = " ";
 
-$D   = 3;
+$D   = 6;
 @Off = @{$Offs[$D]};
+
+# $E = $D;
+$E = 3; # for Kalman gain multiply
 
 $SYMMETRIC = 1;
 
@@ -21,21 +24,27 @@ if ($SYMMETRIC)
   for (my $i = 0; $i < $D; ++$i)
   {
     for (my $j = 0; $j < $D; ++$j)
+    # for (my $j = 0; $j <= $i; ++$j)
     {
-      # my $x = $Off[$i * $D + $j];
-      my $x = $i * $D + $j;
-      print "${PREF}C.fArray[$x * N + n] =${POST}";
+      my $x = $Off[$i * $D + $j];
+      # my $x = $i * $D + $j;
+      print "${PREF}C.fArray[$x * N + n] = A.fArray[$x * N + n] -${POST}";
 
       my @sum;
 
-      for (my $k = 0; $k < $D; ++$k)
+      for (my $k = 0; $k < $E; ++$k)
       {
         my $iko = $Off[$i * $D + $k];
+        # my $iko = $i * $D + $k;
         my $kjo = $Off[$k * $D + $j];
+        # my $kjo = $k * $D + $j;
 
         push @sum, "A.fArray[$iko * N + n] * B.fArray[$kjo * N + n]";
+
+        # For FinalKalmanErr
+        #push @sum, "B.fArray[$iko * N + n] * A.fArray[$kjo * N + n]";
       }
-      print join(" +$JOIN", @sum), ";${POST}";
+      print join(" -$JOIN", @sum), ";${POST}";
       print "\n";
     }
   }

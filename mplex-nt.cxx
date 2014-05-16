@@ -77,7 +77,17 @@ int main(int arg, char *argv[])
     tmp = dtime() - t0;
     std::cout << "Matriplex multiply time = " << tmp << " s\n";
 
-    std::cout << "SMatrix / Matriplex = " << tsm/tmp << "\n\n";
+    std::cout << "SMatrix / Matriplex = " << tsm/tmp << "";
+    {
+      double x = 0, y = 0;
+      for (int j = 0; j < N; ++j)
+      {
+        x += res[j](1,2);
+        y += mpres(1,2,j);
+      }
+      std::cout << "\t\t\tx = " << x << ", y = " << y << "\n";
+    }
+    std::cout << "\n";
 
     /*
       for (int i = 0; i < N; ++i)
