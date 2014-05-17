@@ -23,6 +23,7 @@ void dumpMatrix(SMatrixSym66& m);
 
 //==============================================================================
 
+#ifndef __APPLE__
 #include "MatriplexSymNT.h"
 
 const idx_t M = 6;
@@ -30,6 +31,7 @@ const idx_t M = 6;
 typedef Matriplex<float, M, M>   MPlexMM;
 typedef Matriplex<float, M, 1>   MPlexMV;
 typedef MatriplexSym<float, M>   MPlexSS;
+#endif
 
 //==============================================================================
 

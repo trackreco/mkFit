@@ -87,7 +87,7 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
 
   unsigned int Ntracks = 500;//50
 
-  const int maxCand = 100;
+  const int maxCand = 10;
 
   std::vector<std::vector<Hit> > evt_lay_hits(10);//hits per layer
   std::vector<Track> evt_sim_tracks;

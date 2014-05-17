@@ -17,8 +17,10 @@ void updateParameters66(TrackState& propagatedState, MeasurementState& measureme
 TrackState updateParameters(TrackState& propagatedState, MeasurementState& measurementState, 
 			    SMatrix36& projMatrix,SMatrix63& projMatrixT);
 
+#ifndef __APPLE__
 void updateParametersMPlex(const MPlexSS &psErr,  const MPlexMV& psPar,
                            const MPlexSS &msErr,  const MPlexMV& msPar,
                                  MPlexSS &outErr,       MPlexMV& outPar);
+#endif
 
 #endif

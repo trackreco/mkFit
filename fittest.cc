@@ -141,7 +141,7 @@ void runFittingTest(bool saveTree, unsigned int Ntracks)
 #endif
 }
 
-
+#ifndef __APPLE__
 void runFittingTestPlex(bool saveTree)
 {
   float pt_mc=0.,pt_fit=0.,pt_err=0.; 
@@ -313,3 +313,5 @@ void runFittingTestPlex(bool saveTree)
   }
 #endif
 }
+
+#endif
