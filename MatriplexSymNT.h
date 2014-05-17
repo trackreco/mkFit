@@ -39,7 +39,7 @@ public:
       _mm_free(fArray);
    }
 
-   MatriplexSym(T v) { SetVal(v); }
+   MatriplexSym(idx_t nn, T v) : N(nn),  kTotSize(N*kSize) { SetVal(v); }
 
    void SetVal(T v)
    {
@@ -94,7 +94,7 @@ public:
       _mm_free(fArray);
    }
 
-   MatriplexSym(T v) { SetVal(v); }
+   MatriplexSym(idx_t nn, T v) : N(nn),  kTotSize(N*kSize) { SetVal(v); }
 
    void SetVal(T v)
    {
@@ -148,7 +148,7 @@ public:
       _mm_free(fArray);
    }
 
-   MatriplexSym(T v) { SetVal(v); }
+   MatriplexSym(idx_t nn, T v) : N(nn),  kTotSize(N*kSize) { SetVal(v); }
 
    void SetVal(T v)
    {
@@ -160,6 +160,7 @@ public:
    }
 
    T& At(idx_t i, idx_t j, idx_t n) { return fArray[fOff6x6[i * 6 + j] * N + n]; }
+   T  At(idx_t i, idx_t j, idx_t n) const { return fArray[fOff6x6[i * 6 + j] * N + n]; }
 
    T& operator()(idx_t i, idx_t j, idx_t n) { return At(i, j, n); }
 
@@ -171,7 +172,102 @@ public:
          fArray[i] = *(arr++);
       }
    }
+
+   void SetArray(idx_t n, T *arr)
+   {
+#pragma simd
+      for (idx_t i = n; i < kTotSize; i += N)
+      {
+         *(arr++) = fArray[i];
+      }
+   }
+
+   void Assign(const MatriplexSym& A)
+   {
+      assert(N == A.N);
+
+      memcpy(fArray, A.fArray, sizeof(T)*kTotSize);
+   }
+
+   void operator=(const MatriplexSym& A) { Assign(A); }
+
+   //------------------------------------------------------------------------------
+
+   void AddNoise(T noise)
+   {
+      // XXX icc bitch says: loop was not vectorized: cannot vectorize empty simd loop
+#pragma omp simd
+      for (idx_t n = 0; n < N; ++n)
+      {
+         T *p = & fArray[n];
+
+         p[0*N] += noise;
+         p[2*N] += noise;
+         p[5*N] += noise;
+      }
+   }
+
+   void AddIntoUpperLeft3x3ZeroTheRest(const MatriplexSym& A, const MatriplexSym& B)
+   {
+      // XXXX Actually not zeroing out -- manual unroll to get it to vectorize
+#pragma omp simd collapse(2)
+      for (idx_t n = 0; n < N; ++n)
+      {
+         T *p = & fArray[n], *a = & A.fArray[n], *b = & B.fArray[n];
+
+         p[0*N] = a[0*N] + b[0*N];
+         p[1*N] = a[1*N] + b[1*N];
+         p[2*N] = a[2*N] + b[2*N];
+         p[3*N] = a[3*N] + b[3*N];
+         p[4*N] = a[4*N] + b[4*N];
+         p[5*N] = a[5*N] + b[5*N];
+
+         // XXX icc bitch says: loop was not vectorized: dereference too complex
+         //#pragma unroll(6)
+         //for (int i = 0; i < 6;     ++i) p[i*N] = a[i*N] + b[i*N];
+         //#pragma unroll(1000)
+         //for (int i = 6; i < kSize; ++i) p[i*N] = 0;
+      }
+   }
+
+   void InvertUpperLeft3x3()
+   {
+#pragma simd
+      for (idx_t n = 0; n < N; ++n)
+      {
+         T *p = & fArray[n];
+
+         T l0 = std::sqrt(T(1) / p[0*N]);
+         T l1 = p[1*N] * l0;
+         T l2 = p[2*N] - l1 * l1;
+         l2 = std::sqrt(T(1) / l2);
+         T l3 = p[3*N] * l0;
+         T l4 = (p[4*N] - l1 * l3) * l2;
+         T l5 = p[5*N] - (l3 * l3 + l4 * l4);
+         l5 = std::sqrt(T(1) / l5);
+
+         // decomposition done
+
+         l3 = (l1 * l4 * l2 - l3) * l0 * l5;
+         l1 = -l1 * l0 * l2;
+         l4 = -l4 * l2 * l5;
+
+         p[0*N] = l3*l3 + l1*l1 + l0*l0;
+         p[1*N] = l3*l4 + l1*l2;
+         p[2*N] = l4*l4 + l2*l2;
+         p[3*N] = l3*l5;
+         p[4*N] = l4*l5;
+         p[5*N] = l5*l5;
+
+         // m(2,x) are all zero if anything went wrong at l5.
+         // all zero, if anything went wrong already for l0 or l2.
+      }
+   }
+
 };
+
+
+//==============================================================================
 
 
 template<typename T, idx_t D>
@@ -191,12 +287,11 @@ void Multiply<float, 3>(const MatriplexSym<float, 3>& A,
 
    //#pragma vector nontemporal
    //#pragma parallel for simd
-  //#pragma simd
   __assume_aligned(A.fArray, 64);
   __assume_aligned(B.fArray, 64);
   __assume_aligned(C.fArray, 64);
   __assume(N%16==0);
-#pragma ivdep
+#pragma simd
    for (idx_t n = 0; n < N; ++n)
    {
       C.fArray[0 * N + n] = A.fArray[0 * N + n] * B.fArray[0 * N + n] + A.fArray[1 * N + n] * B.fArray[1 * N + n] + A.fArray[3 * N + n] * B.fArray[3 * N + n];

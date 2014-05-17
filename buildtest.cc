@@ -1,9 +1,11 @@
 #include "buildtest.h"
-#include <iostream>
-#include "TMath.h"
+
 #include "KalmanUtils.h"
 #include "Propagation.h"
 #include "Simulation.h"
+
+#include <cmath>
+#include <iostream>
 
 void runBuildingTest(bool saveTree, TTree *tree, unsigned int& tk_nhits, float& chi2, std::map<std::string,TH1F*>& validation_hists);
 
@@ -14,6 +16,13 @@ TH1F* makeValidationHist(const std::string& name, const std::string& title, cons
 void fillValidationHists(std::map<std::string,TH1F*>& validation_hists, std::vector<Track> evt_seeds);
 void saveValidationHists(TFile *f, std::map<std::string,TH1F*>& validation_hists);
 void deleteValidationHists(std::map<std::string,TH1F*>& validation_hists);
+float getPt(float px, float py);
+float getPhi(float px, float py);
+float getEta(float px, float py, float pz);
+float deltaPhi(float phi1, float phi2);
+float deltaEta(float eta1, float eta2);
+float deltaR(float phi1, float eta1, float phi2, float eta2);
+
 
 
 bool sortByHitsChi2(std::pair<Track, TrackState> cand1,std::pair<Track, TrackState> cand2) {
@@ -99,7 +108,7 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
     SMatrixSym66 covtrk;
     std::vector<Hit> hits;
     int q=0;//set it in setup function
-    float pt = 0.5+gRandom->Rndm()*9.5;//this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
+    float pt = 0.5+g_unif(g_gen)*9.5;//this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
     setupTrackByToyMC(pos,mom,covtrk,hits,q,pt);
     Track sim_track(q,pos,mom,covtrk,hits,0);
     //sim_track.resetHits();
@@ -286,6 +295,10 @@ void setupValidationHists(std::map<std::string,TH1F*>& validation_hists){
   validation_hists["gen_trk_Pz"] = makeValidationHist("h_gen_trk_Pz", "P_{z} of generated tracks", 20, -15, 15, "P_{z} [GeV]", "Events");
   validation_hists["gen_trk_phi"] = makeValidationHist("h_gen_trk_phi", "phi of generated tracks", 20, -4, 4, "#phi", "Events");
   validation_hists["gen_trk_eta"] = makeValidationHist("h_gen_trk_eta", "eta of generated tracks", 20, -1, 1, "#eta", "Events");
+  validation_hists["gen_trk_dPhi"] = makeValidationHist("h_gen_trk_dPhi", "#Delta#phi between tracks", 20, 0, 4, "#Delta#phi", "Events");
+  validation_hists["gen_trk_mindPhi"] = makeValidationHist("h_gen_trk_mindPhi", "smallest #Delta#phi between tracks", 40, 0, 0.1, "#Delta#phi", "Events");
+  validation_hists["gen_trk_dR"] = makeValidationHist("h_gen_trk_dR", "#DeltaR between tracks", 20, 0, 4, "#Delta R", "Events");
+  validation_hists["gen_trk_mindR"] = makeValidationHist("h_gen_trk_mindR", "smallest #DeltaR between tracks", 40, 0, 0.5, "#Delta R", "Events");
 }
 
 
@@ -299,16 +312,42 @@ TH1F* makeValidationHist(const std::string& name, const std::string& title, cons
 
 void fillValidationHists(std::map<std::string,TH1F*>& validation_hists, std::vector<Track> evt_seeds){
   for( unsigned int iseed = 0; iseed < evt_seeds.size(); ++iseed){
-	float gen_trk_Pt = sqrt( (evt_seeds[iseed].momentum()[0]) * (evt_seeds[iseed].momentum()[0]) +
-							 (evt_seeds[iseed].momentum()[1]) * (evt_seeds[iseed].momentum()[1]) );
-	float gen_trk_theta = atan2( gen_trk_Pt, evt_seeds[iseed].momentum()[2] );
-	float gen_trk_eta = -1. * log( tan(gen_trk_theta / 2.) );
-	validation_hists["gen_trk_Pt"]->Fill( gen_trk_Pt );
+	// float gen_trk_Pt = sqrt( (evt_seeds[iseed].momentum()[0]) * (evt_seeds[iseed].momentum()[0]) +
+	// 						 (evt_seeds[iseed].momentum()[1]) * (evt_seeds[iseed].momentum()[1]) );
+	// float gen_trk_theta = atan2( gen_trk_Pt, evt_seeds[iseed].momentum()[2] );
+	// float gen_trk_eta = -1. * log( tan(gen_trk_theta / 2.) );
+	// validation_hists["gen_trk_Pt"]->Fill( gen_trk_Pt );
+	// validation_hists["gen_trk_Px"]->Fill( evt_seeds[iseed].momentum()[0] );
+	// validation_hists["gen_trk_Py"]->Fill( evt_seeds[iseed].momentum()[1] ); 
+	// validation_hists["gen_trk_Pz"]->Fill( evt_seeds[iseed].momentum()[2] ); 
+	// validation_hists["gen_trk_phi"]->Fill( std::atan2(evt_seeds[iseed].momentum()[1], evt_seeds[iseed].momentum()[0]) ); //phi=arctan(y/x), atan2 returns -pi,pi
+	// validation_hists["gen_trk_eta"]->Fill( gen_trk_eta );
+	
+	validation_hists["gen_trk_Pt"]->Fill( getPt(evt_seeds[iseed].momentum()[0], evt_seeds[iseed].momentum()[1]) );
 	validation_hists["gen_trk_Px"]->Fill( evt_seeds[iseed].momentum()[0] );
 	validation_hists["gen_trk_Py"]->Fill( evt_seeds[iseed].momentum()[1] ); 
 	validation_hists["gen_trk_Pz"]->Fill( evt_seeds[iseed].momentum()[2] ); 
-	validation_hists["gen_trk_phi"]->Fill( std::atan2(evt_seeds[iseed].momentum()[1], evt_seeds[iseed].momentum()[0]) ); //phi=arctan(y/x), atan2 returns -pi,pi
-	validation_hists["gen_trk_eta"]->Fill( gen_trk_eta ); 
+	validation_hists["gen_trk_phi"]->Fill( getPhi(evt_seeds[iseed].momentum()[0], evt_seeds[iseed].momentum()[1]) );
+	validation_hists["gen_trk_eta"]->Fill( getEta(evt_seeds[iseed].momentum()[0], evt_seeds[iseed].momentum()[1], evt_seeds[iseed].momentum()[2]) );
+	float mindR = 999999;
+	float mindPhi = 999999;
+	for( unsigned int jseed = 0; jseed < evt_seeds.size(); ++jseed ){
+	  if(jseed != iseed){
+		float phii=getPhi(evt_seeds[iseed].momentum()[0], evt_seeds[iseed].momentum()[1]);
+		float etai=getEta(evt_seeds[iseed].momentum()[0], evt_seeds[iseed].momentum()[1], evt_seeds[iseed].momentum()[2]);
+		float phij=getPhi(evt_seeds[jseed].momentum()[0], evt_seeds[jseed].momentum()[1]);
+		float etaj=getEta(evt_seeds[jseed].momentum()[0], evt_seeds[jseed].momentum()[1], evt_seeds[jseed].momentum()[2]);
+
+		mindR=std::min(mindR, deltaR(phii, etai, phij, etaj));
+		mindPhi=std::min(mindPhi, deltaPhi(phii, phij));
+		if(jseed > iseed){
+		  validation_hists["gen_trk_dR"]->Fill( deltaR(phii, etai, phij, etaj) );
+		  validation_hists["gen_trk_dPhi"]->Fill( deltaPhi(phii, phij) );
+		}
+	  }
+	} 
+	validation_hists["gen_trk_mindR"]->Fill( mindR );
+	validation_hists["gen_trk_mindPhi"]->Fill( mindPhi );
   }
   
 }
@@ -335,4 +374,23 @@ void deleteValidationHists(std::map<std::string,TH1F*>& validation_hists){
 	delete (mapitr->second);
   }
   validation_hists.clear();
+}
+
+
+
+float getPt(float px, float py){ return sqrt( px*px + py*py ); }
+float getPhi(float px, float py){ return std::atan2(py, px); }
+float getEta(float px, float py, float pz){
+  float theta = atan2( getPt(px,py), pz );
+  return -1. * log( tan(theta/2.) );
+}
+float deltaPhi(float phi1, float phi2){
+  float dphi = std::abs(phi1 - phi2);
+  if (dphi > TMath::Pi()){ dphi = (2.*TMath::Pi()) - dphi; }
+  return dphi;
+}
+float deltaEta(float eta1, float eta2){ return (eta1 - eta2); }
+float deltaR(float phi1, float eta1, float phi2, float eta2){ 
+  return sqrt( deltaPhi(phi1,phi2) * deltaPhi(phi1,phi2) +
+			   deltaEta(eta1,eta2) * deltaEta(eta1,eta2) );
 }

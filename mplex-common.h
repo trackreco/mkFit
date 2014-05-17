@@ -28,7 +28,7 @@ const int Nm = N / S;
 const int Ns = N;
 
 const int NN_MULT = 10000;
-const int NN_INV  = 10000;
+const int NN_INV  = 0;
 
 const int ALIGN   = 4096;
 
