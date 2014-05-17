@@ -9,7 +9,7 @@
 #include "TTree.h"
 #include "Simulation.h"
 
-void runFittingTest(bool saveTree)
+void runFittingTest(bool saveTree, unsigned int Ntracks)
 {
   float pt_mc=0.,pt_fit=0.,pt_err=0.; 
   TFile* f=0;
@@ -28,8 +28,6 @@ void runFittingTest(bool saveTree)
   projMatrix36(1,1)=1.;
   projMatrix36(2,2)=1.;
   SMatrix63 projMatrix36T = ROOT::Math::Transpose(projMatrix36);
-
-  unsigned int Ntracks = 1000;
 
   std::vector<Track> simtracks;
   for (unsigned int itrack=0;itrack<Ntracks;++itrack) {

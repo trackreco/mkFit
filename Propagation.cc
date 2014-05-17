@@ -242,7 +242,8 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
     dumpMatrix(result.errors);
   }
   //if (fabs(sqrt(par[0]*par[0]+par[1]*par[1])-r)>0.0001) {
-  //std::cout << "DID NOT GET TO R, dR=" << fabs(sqrt(par[0]*par[0]+par[1]*par[1])-r) << " r=" << r << " r0in=" << r0in << " rout=" << sqrt(par[0]*par[0]+par[1]*par[1]) << std::endl;
+  //std::cout << "DID NOT GET TO R, dR=" << fabs(sqrt(par[0]*par[0]+par[1]*par[1])-r) 
+  //	      << " r=" << r << " r0in=" << r0in << " rout=" << sqrt(par[0]*par[0]+par[1]*par[1]) << std::endl;
   //std::cout << "pt=" << pt << " pz=" << inputState.parameters.At(2) << std::endl;
   //}
   return result;

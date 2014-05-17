@@ -23,15 +23,16 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
   // float py = sqrt(pt*pt-px*px);
   if (gRandom->Rndm()>0.5) px*=-1.;
   if (gRandom->Rndm()>0.5) py*=-1.;
-  float pz = pt*(2.3*(gRandom->Rndm()-0.5));//pz flat between -2*pt and +2*pt
+  float pz = pt*(2.3*(gRandom->Rndm()-0.5));//so that we have -1<eta<1
   mom=SVector3(px,py,pz);
   covtrk=ROOT::Math::SMatrixIdentity();
   //initial covariance can be tricky
-  for (unsigned int r=0;r<6;++r)
+  for (unsigned int r=0;r<6;++r) {
     for (unsigned int c=0;c<6;++c) {
       if (r==c) covtrk(r,c)=1;
       else covtrk(r,c)=0.5;
     }
+  }
 
   //std::cout << "track with p=" << px << " " << py << " " << pz << " pt=" << sqrt(px*px+py*py) << " p=" << sqrt(px*px+py*py+pz*pz) << std::endl;
 
