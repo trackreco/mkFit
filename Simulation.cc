@@ -23,7 +23,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
   // float py = sqrt(pt*pt-px*px);
   if (gRandom->Rndm()>0.5) px*=-1.;
   if (gRandom->Rndm()>0.5) py*=-1.;
-  float pz = pt*(2.3*(gRandom->Rndm()-0.5));//pz flat between -2*pt and +2*pt
+  float pz = pt*(2.3*(gRandom->Rndm()-0.5));//pz set to between |eta| < 1.
   mom=SVector3(px,py,pz);
   covtrk=ROOT::Math::SMatrixIdentity();
   //initial covariance can be tricky
@@ -35,7 +35,8 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
 
   //std::cout << "track with p=" << px << " " << py << " " << pz << " pt=" << sqrt(px*px+py*py) << " p=" << sqrt(px*px+py*py+pz*pz) << std::endl;
 
-  float hitposerr = 0.01;//assume 100mum uncertainty in each coordinate
+  float hitposerrXY = 0.01;//assume 100mum uncertainty in xy coordinate
+  float hitposerrZ = 0.1;//assume 1mm uncertainty in z coordinate
   float k=charge*100./(-0.299792458*3.8);
   float curvature = pt*k;
   float ctgTheta=mom.At(2)/pt;
@@ -50,18 +51,18 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
   //do 4 cm in radius using propagation.h
   for (unsigned int nhit=1;nhit<=nTotHit;++nhit) {
     TrackState propState = propagateHelixToR(tmpState,4.*float(nhit));//radius of 4*nhit
-    float hitx = gRandom->Gaus(0,hitposerr)+propState.parameters.At(0);
-    float hity = gRandom->Gaus(0,hitposerr)+propState.parameters.At(1);
+    float hitx = gRandom->Gaus(0,hitposerrXY)+propState.parameters.At(0);
+    float hity = gRandom->Gaus(0,hitposerrXY)+propState.parameters.At(1);
     //float hity = sqrt((pos.At(0) + k*(px*sinAP-py*(1-cosAP)))*(pos.At(0) + k*(px*sinAP-py*(1-cosAP)))+
     //          	(pos.At(1) + k*(py*sinAP+px*(1-cosAP)))*(pos.At(1) + k*(py*sinAP+px*(1-cosAP)))-
     //	   	        hitx*hitx);//try to get the fixed radius
-    float hitz = gRandom->Gaus(0,hitposerr)+propState.parameters.At(2);
+    float hitz = gRandom->Gaus(0,hitposerrZ)+propState.parameters.At(2);
     //std::cout << "hit#" << nhit << " " << hitx << " " << hity << " " << hitz << std::endl;
     SVector3 x1(hitx,hity,hitz);
     SMatrixSym33 covx1 = ROOT::Math::SMatrixIdentity();
-    covx1(0,0)=hitposerr*hitposerr; 
-    covx1(1,1)=hitposerr*hitposerr;
-    covx1(2,2)=hitposerr*hitposerr;
+    covx1(0,0)=hitposerrXY*hitposerrXY; 
+    covx1(1,1)=hitposerrXY*hitposerrXY;
+    covx1(2,2)=hitposerrZ*hitposerrZ;
     Hit hit1(x1,covx1);    
     hits.push_back(hit1);  
     tmpState = propState;
