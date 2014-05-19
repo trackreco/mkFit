@@ -32,7 +32,7 @@ public:
       _mm_free(fArray);
    }
 
-   Matriplex(T v) { SetVal(v); }
+   Matriplex(idx_t nn, T v) : N(nn), kTotSize(N*kSize) { SetVal(v); }
 
    void SetVal(T v)
    {
@@ -53,6 +53,15 @@ public:
       for (idx_t i = n; i < kTotSize; i += N)
       {
          fArray[i] = *(arr++);
+      }
+   }
+
+   void SetArray(idx_t n, T *arr)
+   {
+#pragma simd
+      for (idx_t i = n; i < kTotSize; i += N)
+      {
+         *(arr++) = fArray[i];
       }
    }
 
@@ -103,6 +112,11 @@ void Multiply<float, 3, 3, 3>(const Matriplex<float, 3, 3>& A,
 {
    const idx_t N = A.N;
 
+  __assume_aligned(A.fArray, 64);
+  __assume_aligned(B.fArray, 64);
+  __assume_aligned(C.fArray, 64);
+  __assume(N%16==0);
+
 #pragma simd
    for (idx_t n = 0; n < N; ++n)
    {
@@ -119,13 +133,15 @@ void Multiply<float, 3, 3, 3>(const Matriplex<float, 3, 3>& A,
 }
 
 /* This is same speed on host, 30% slower on mic */
-/*
 template<>
 void Multiply<float, 6, 6, 6>(const Matriplex<float, 6, 6>& A,
                               const Matriplex<float, 6, 6>& B,
                                     Matriplex<float, 6, 6>& C)
 {
    const idx_t N = A.N;
+
+  __assume_aligned(C.fArray, 64);
+  __assume(N%16==0);
 
 #pragma simd
    for (idx_t n = 0; n < N; ++n)
@@ -168,8 +184,6 @@ void Multiply<float, 6, 6, 6>(const Matriplex<float, 6, 6>& A,
       C.fArray[35 * N + n] = A.fArray[15 * N + n] * B.fArray[15 * N + n] + A.fArray[16 * N + n] * B.fArray[16 * N + n] + A.fArray[17 * N + n] * B.fArray[17 * N + n] + A.fArray[18 * N + n] * B.fArray[18 * N + n] + A.fArray[19 * N + n] * B.fArray[19 * N + n] + A.fArray[20 * N + n] * B.fArray[20 * N + n];
    }
 }
-*/
-
 
 
 //==============================================================================
@@ -328,7 +342,7 @@ struct CholInverter<T, 3>
    }
 };
 
-template<class X, typename T, idx_t D>
+template<typename T, idx_t D>
 void InvertChol(Matriplex<T, D, D>& m)
 {
    CholInverter<T, D> ci(m);

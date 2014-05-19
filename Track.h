@@ -48,6 +48,7 @@ public:
   void resetHits() {hits_.clear();}
   void addHit(Hit hit,float chi2) {hits_.push_back(hit);chi2_+=chi2;}
   unsigned int nHits() {hits_.size();}
+  Track clone() {return Track(state_,hits_,chi2_);}
 
 private:
   TrackState state_;

@@ -11,9 +11,16 @@ void zeroBlocksOutOf33(SMatrixSym66& matrix);
 void copy33Into66(SMatrixSym33& in,SMatrixSym66& out);
 void copy66Into33(SMatrixSym66& in,SMatrixSym33& out);
 //see e.g. http://inspirehep.net/record/259509?ln=en
-TrackState updateParameters66(TrackState& propagatedState, MeasurementState& measurementState, TrackState& result);
+void updateParameters66(TrackState& propagatedState, MeasurementState& measurementState, TrackState& result);
 
 //see e.g. http://inspirehep.net/record/259509?ln=en
 TrackState updateParameters(TrackState& propagatedState, MeasurementState& measurementState, 
 			    SMatrix36& projMatrix,SMatrix63& projMatrixT);
+
+#ifndef __APPLE__
+void updateParametersMPlex(const MPlexSS &psErr,  const MPlexMV& psPar,
+                           const MPlexSS &msErr,  const MPlexMV& msPar,
+                                 MPlexSS &outErr,       MPlexMV& outPar);
+#endif
+
 #endif
