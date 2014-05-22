@@ -5,6 +5,7 @@
 #include "Matrix.h"
 #include <vector>
 
+
 struct TrackState {
 public:
   SVector6 parameters;
@@ -46,8 +47,8 @@ public:
   std::vector<Hit>& hitsVector() {return hits_;}
   float& chi2() {return chi2_;}
   void resetHits() {hits_.clear();}
-  void addHit(Hit hit,float chi2) {hits_.push_back(hit);chi2_+=chi2;}
-  unsigned int nHits() {hits_.size();}
+  void addHit(Hit hit,float chi2) { hits_.push_back(hit);chi2_+=chi2;}
+  unsigned int nHits() {return hits_.size();}
   Track clone() {return Track(state_,hits_,chi2_);}
 
 private:
