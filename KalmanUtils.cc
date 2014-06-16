@@ -18,7 +18,7 @@ float computeChi2(TrackState& propagatedState, MeasurementState& measurementStat
   SMatrix33 resErrInv = resErr;
   resErrInv.InvertFast();//fixme: somehow it does not produce a symmetric matrix 
   float chi2 = ROOT::Math::Similarity(residual,resErrInv);
-
+  return chi2;
 }
 
 void zeroBlocksOutOf33(SMatrixSym66& matrix) {
