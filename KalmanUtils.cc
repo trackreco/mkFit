@@ -1,10 +1,10 @@
 #include "KalmanUtils.h"
 
 float computeChi2(TrackState& propagatedState, MeasurementState& measurementState, 
-		  SMatrix36& projMatrix,SMatrix63& projMatrixT) {
+				  SMatrix36& projMatrix,SMatrix63& projMatrixT) {
 
   bool print = false;
-
+  
   //test adding noise (mutiple scattering) on position (needs to be done more properly...)
   SMatrix66 noise;
   //float noiseVal = 0.000001;

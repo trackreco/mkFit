@@ -85,7 +85,7 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
   projMatrix36(2,2)=1.;
   SMatrix63 projMatrix36T = ROOT::Math::Transpose(projMatrix36);
 
-  unsigned int Ntracks = 500;//50
+  unsigned int Ntracks = 500;//50 
 
   const unsigned int maxCand = 10;
 
@@ -247,21 +247,21 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
 	  if (debug) std::cout << "not a good hit found, stopping at lay#" << ilay << std::endl;
 	  break;
 	}
-	*/
-	
-      }//end of running candidates loop
+	*/		
 
+      }//end of running candidates loop
+	  
       if (tmp_candidates.size()>maxCand) {
-	if (debug) std::cout << "huge size=" << tmp_candidates.size() << " keeping best "<< maxCand << " only" << std::endl;
-	std::sort(tmp_candidates.begin(),tmp_candidates.end(),sortByHitsChi2);
-	tmp_candidates.erase(tmp_candidates.begin()+maxCand,tmp_candidates.end());
+		if (debug) std::cout << "huge size=" << tmp_candidates.size() << " keeping best "<< maxCand << " only" << std::endl;
+		std::sort(tmp_candidates.begin(),tmp_candidates.end(),sortByHitsChi2);
+		tmp_candidates.erase(tmp_candidates.begin()+maxCand,tmp_candidates.end());
       }
       if (debug) std::cout << "swapping with size=" << tmp_candidates.size() << std::endl;
       track_candidates.swap(tmp_candidates);
       tmp_candidates.clear();
       
     }//end of layer loop
-
+	
     if (track_candidates.size()>0) {
       std::sort(track_candidates.begin(),track_candidates.end(),sortByHitsChi2);
       evt_track_candidates.push_back(track_candidates[0].first);
@@ -272,7 +272,7 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
   for (unsigned int itkcand=0;itkcand<evt_track_candidates.size();++itkcand) {
     Track tkcand = evt_track_candidates[itkcand];
     std::cout << "found track candidate with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << std::endl;
-
+	validation_hists["rec_trk_nHits"]->Fill(tkcand.nHits());
     if (saveTree) {
       tk_nhits = tkcand.nHits();
       tk_chi2 = tkcand.chi2();
@@ -300,6 +300,8 @@ void setupValidationHists(std::map<std::string,TH1F*>& validation_hists){
   validation_hists["gen_trk_mindPhi"] = makeValidationHist("h_gen_trk_mindPhi", "smallest #Delta#phi between tracks", 40, 0, 0.1, "#Delta#phi", "Events");
   validation_hists["gen_trk_dR"] = makeValidationHist("h_gen_trk_dR", "#DeltaR between tracks", 20, 0, 4, "#Delta R", "Events");
   validation_hists["gen_trk_mindR"] = makeValidationHist("h_gen_trk_mindR", "smallest #DeltaR between tracks", 40, 0, 0.5, "#Delta R", "Events");
+
+  validation_hists["rec_trk_nHits"] = makeValidationHist("h_rec_trk_nHits", "number of hits identified in track", 11, -0.5,10.5, "# Hits", "Events");
 }
 
 
