@@ -36,9 +36,6 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
 
   float hitposerrXY = 0.01;//assume 100mum uncertainty in xy coordinate
   float hitposerrZ = 0.1;//assume 1mm uncertainty in z coordinate
-  float k=charge*100./(-0.299792458*3.8);
-  float curvature = pt*k;
-  float ctgTheta=mom.At(2)/pt;
 
   TrackState initState;
   initState.parameters=SVector6(pos[0],pos[1],pos[2],mom[0],mom[1],mom[2]);
