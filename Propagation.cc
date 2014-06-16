@@ -43,14 +43,14 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
 
   bool dump = false;
 
-  int charge = inputState.charge;
+  int& charge = inputState.charge;
 
-  float xin = inputState.parameters.At(0);
-  float yin = inputState.parameters.At(1);
-  float pxin = inputState.parameters.At(3);
-  float pyin = inputState.parameters.At(4);
-  float pzin = inputState.parameters.At(5);
-  float r0in = sqrt(xin*xin+yin*yin);
+  float& xin = inputState.parameters.At(0);
+  float& yin = inputState.parameters.At(1);
+  float& pxin = inputState.parameters.At(3);
+  float& pyin = inputState.parameters.At(4);
+  float& pzin = inputState.parameters.At(5);
+  float  r0in = sqrt(xin*xin+yin*yin);
 
   float pt2 = pxin*pxin+pyin*pyin;
   float pt = sqrt(pt2);
@@ -69,9 +69,14 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
   float dTDdpx = 0.;
   float dTDdpy = 0.;
 
-  //make a copy for now...
-  SVector6 par = inputState.parameters;
-  SMatrixSym66 err = inputState.errors;
+  //make a copy so that can be modified and returned
+  TrackState result;
+  result.parameters = inputState.parameters;
+  result.errors = inputState.errors;
+  result.charge = charge;
+  //rename so that it is short
+  SVector6& par = result.parameters;
+  SMatrixSym66& err = result.errors;
 
   //5 iterations is a good starting point
   unsigned int Niter = 5;
@@ -148,9 +153,9 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
 
   float totalAngPath=totalDistance/curvature;
 
-  float TD=totalDistance;
-  float TP=totalAngPath;
-  float C=curvature;
+  float& TD=totalDistance;
+  float& TP=totalAngPath;
+  float& C=curvature;
 
   if (dump) std::cout << "TD=" << TD << " TP=" << TP << " arrived at r=" << sqrt(par.At(0)*par.At(0)+par.At(1)*par.At(1)) << std::endl;
 
@@ -165,79 +170,47 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
   float cosTP = cos(TP);
   float sinTP = sin(TP);
 
+  //derive these to compute jacobian
   //x = xin + k*(pxin*sinTP-pyin*(1-cosTP));
   //y = yin + k*(pyin*sinTP+pxin*(1-cosTP));
   //z = zin + TD*ctgTheta;
-
-  float dxdx = 1 + k*dTPdx*(pxin*sinTP + pyin*cosTP);
-  float dxdy = k*dTPdy*(pxin*sinTP + pyin*cosTP);
-  float dydx = k*dTPdx*(pyin*sinTP - pxin*cosTP);
-  float dydy = 1 + k*dTPdy*(pyin*sinTP - pxin*cosTP);
-
-  float dxdpx = k*(sinTP + pxin*cosTP*dTPdpx - pyin*sinTP*dTPdpx);
-  float dxdpy = k*(pxin*cosTP*dTPdpy - 1. + cosTP - pyin*sinTP*dTPdpy);
-  float dydpx = k*(pyin*cosTP*dTPdpx + 1. - cosTP + pxin*sinTP*dTPdpx);
-  float dydpy = k*(sinTP + pyin*cosTP*dTPdpy + pxin*sinTP*dTPdpy);
-
-  float dzdx = dTDdx*ctgTheta;
-  float dzdy = dTDdy*ctgTheta;
-
-  float dzdpx = dTDdpx*ctgTheta - TD*pzin*pxin/pt3;
-  float dzdpy = dTDdpy*ctgTheta - TD*pzin*pyin/pt3;
-  float dzdpz = TD/pt;
-
   //px = pxin*cosTP-pyin*sinTP;
   //py = pyin*cosTP+pxin*sinTP;
   //pz = pzin;
 
-  float dpxdx = -dTPdx*(pxin*sinTP + pyin*cosTP);
-  float dpxdy = -dTPdy*(pxin*sinTP + pyin*cosTP);
-  float dpydx = -dTPdx*(pyin*sinTP - pxin*cosTP);
-  float dpydy = -dTPdy*(pyin*sinTP - pxin*cosTP);
-  
-  float dpxdpx = cosTP - dTPdpx*(pxin*sinTP + pyin*cosTP);
-  float dpxdpy = -sinTP - dTPdpy*(pxin*sinTP + pyin*cosTP);
-  float dpydpx = +sinTP - dTPdpx*(pyin*sinTP - pxin*cosTP);
-  float dpydpy = cosTP - dTPdpy*(pyin*sinTP - pxin*cosTP);
-
   //jacobian
-  SMatrix66 errorProp = ROOT::Math::SMatrixIdentity();
-  errorProp(0,0)=dxdx;
-  errorProp(0,1)=dxdy;
-  errorProp(0,3)=dxdpx;
-  errorProp(0,4)=dxdpy;
+  SMatrix66 errorProp = ROOT::Math::SMatrixIdentity();//what is not explicitly set below is 1 (0) on (off) diagonal
+  errorProp(0,0) = 1 + k*dTPdx*(pxin*sinTP + pyin*cosTP);	          //dxdx;
+  errorProp(0,1) = k*dTPdy*(pxin*sinTP + pyin*cosTP);		          //dxdy;
+  errorProp(0,3) = k*(sinTP + pxin*cosTP*dTPdpx - pyin*sinTP*dTPdpx);     //dxdpx;
+  errorProp(0,4) = k*(pxin*cosTP*dTPdpy - 1. + cosTP - pyin*sinTP*dTPdpy);//dxdpy;
 
-  errorProp(1,0)=dydx;
-  errorProp(1,1)=dydy;
-  errorProp(1,3)=dydpx;
-  errorProp(1,4)=dydpy;
+  errorProp(1,0) = k*dTPdx*(pyin*sinTP - pxin*cosTP);		          //dydx;
+  errorProp(1,1) = 1 + k*dTPdy*(pyin*sinTP - pxin*cosTP);	          //dydy;
+  errorProp(1,3) = k*(pyin*cosTP*dTPdpx + 1. - cosTP + pxin*sinTP*dTPdpx);//dydpx;
+  errorProp(1,4) = k*(sinTP + pyin*cosTP*dTPdpy + pxin*sinTP*dTPdpy);     //dydpy;
 
-  errorProp(2,0)=dzdx;
-  errorProp(2,1)=dzdy;
-  errorProp(2,3)=dzdpx;
-  errorProp(2,4)=dzdpy;
-  errorProp(2,5)=dzdpz;
+  errorProp(2,0) = dTDdx*ctgTheta;		      //dzdx;
+  errorProp(2,1) = dTDdy*ctgTheta;		      //dzdy;
+  errorProp(2,3) = dTDdpx*ctgTheta - TD*pzin*pxin/pt3;//dzdpx;
+  errorProp(2,4) = dTDdpy*ctgTheta - TD*pzin*pyin/pt3;//dzdpy;
+  errorProp(2,5) = TD/pt;                             //dzdpz;
 
-  errorProp(3,0)=dpxdx;
-  errorProp(3,1)=dpxdy;
-  errorProp(3,3)=dpxdpx;
-  errorProp(3,4)=dpxdpy;
+  errorProp(3,0) = -dTPdx*(pxin*sinTP + pyin*cosTP);	     //dpxdx;
+  errorProp(3,1) = -dTPdy*(pxin*sinTP + pyin*cosTP);	     //dpxdy;
+  errorProp(3,3) = cosTP - dTPdpx*(pxin*sinTP + pyin*cosTP); //dpxdpx;
+  errorProp(3,4) = -sinTP - dTPdpy*(pxin*sinTP + pyin*cosTP);//dpxdpy;
 
-  errorProp(4,0)=dpydx;
-  errorProp(4,1)=dpydy;
-  errorProp(4,3)=dpydpx;
-  errorProp(4,4)=dpydpy;
+  errorProp(4,0) = -dTPdx*(pyin*sinTP - pxin*cosTP);         //dpydx;
+  errorProp(4,1) = -dTPdy*(pyin*sinTP - pxin*cosTP);	     //dpydy;
+  errorProp(4,3) = +sinTP - dTPdpx*(pyin*sinTP - pxin*cosTP);//dpydpx;
+  errorProp(4,4) = +cosTP - dTPdpy*(pyin*sinTP - pxin*cosTP);//dpydpy;
+
+  result.errors=ROOT::Math::Similarity(errorProp,err);
 
   if (dump) {
     std::cout << "errorProp" << std::endl;
     dumpMatrix(errorProp);
-  }
-
-  TrackState result;
-  result.parameters=par;
-  result.errors=ROOT::Math::Similarity(errorProp,err);
-  result.charge = charge;
-  if (dump) {
     std::cout << "result.errors" << std::endl;
     dumpMatrix(result.errors);
   }
@@ -277,7 +250,7 @@ TrackState propagateHelixToR_test(TrackState& inputState, float r) {
 
   float r0in = sqrt(xin*xin+yin*yin);
 
-  //make a copy for now...
+  //make a copy so that can be modified and returned
   SVector6 par = inputState.parameters;
   SMatrixSym66 err = inputState.errors;
 
