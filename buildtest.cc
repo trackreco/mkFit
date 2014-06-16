@@ -66,7 +66,7 @@ void runBuildingTest(bool saveTree, unsigned int nevts) {
   }
 
   if (saveTree) {
-	saveValidationHists(f,validation_hists);
+    saveValidationHists(f,validation_hists);
     f->Write();
     f->Close();
   }
@@ -87,7 +87,7 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
 
   unsigned int Ntracks = 500;//50
 
-  const int maxCand = 10;
+  const unsigned int maxCand = 10;
 
   std::vector<std::vector<Hit> > evt_lay_hits(10);//hits per layer
   std::vector<Track> evt_sim_tracks;
@@ -120,7 +120,7 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
     }
   }//end of track simulation loop
 
-  fillValidationHists(validation_hists, evt_seeds);
+  fillValidationHists(validation_hists, evt_sim_tracks);
 
   //sort in phi and dump hits per layer, fill phi partitioning
   for (unsigned int ilay=0;ilay<evt_lay_hits.size();++ilay) {
@@ -205,8 +205,9 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
 	if (debug) std::cout << "predict hit index between: " << firstIndex << " " << lastIndex << std::endl;
 	
 	//consider hits on layer
-	float minChi2 = std::numeric_limits<float>::max();
-	unsigned int minChi2Hit = evt_lay_hits[ilay].size();
+	//float minChi2 = std::numeric_limits<float>::max();//needed in case of best hit only
+	//unsigned int minChi2Hit = evt_lay_hits[ilay].size();//needed in case of best hit only
+	//
 	//for (unsigned int ihit=0;ihit<evt_lay_hits[ilay].size();++ihit) {//loop over hits on layer (consider all hits on layer)
 	for (unsigned int ihit=firstIndex;ihit<lastIndex;++ihit) {//loop over hits on layer (consider only hits from partition)
 	  float hitx = evt_lay_hits[ilay][ihit].position()[0];
@@ -289,12 +290,12 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
 
 
 void setupValidationHists(std::map<std::string,TH1F*>& validation_hists){
-  validation_hists["gen_trk_Pt"] = makeValidationHist("h_gen_trk_Pt", "P_{T} of generated tracks", 20, 0, 10, "P_{T} [GeV]", "Events");
-  validation_hists["gen_trk_Px"] = makeValidationHist("h_gen_trk_Px", "P_{x} of generated tracks", 20, -10, 10, "P_{x} [GeV]", "Events");
-  validation_hists["gen_trk_Py"] = makeValidationHist("h_gen_trk_Py", "P_{y} of generated tracks", 20, -10, 10, "P_{y} [GeV]", "Events");
-  validation_hists["gen_trk_Pz"] = makeValidationHist("h_gen_trk_Pz", "P_{z} of generated tracks", 20, -15, 15, "P_{z} [GeV]", "Events");
+  validation_hists["gen_trk_Pt"] = makeValidationHist("h_gen_trk_Pt", "P_{T} of generated tracks", 30, 0, 15, "P_{T} [GeV]", "Events");
+  validation_hists["gen_trk_Px"] = makeValidationHist("h_gen_trk_Px", "P_{x} of generated tracks", 30, -15, 15, "P_{x} [GeV]", "Events");
+  validation_hists["gen_trk_Py"] = makeValidationHist("h_gen_trk_Py", "P_{y} of generated tracks", 30, -15, 15, "P_{y} [GeV]", "Events");
+  validation_hists["gen_trk_Pz"] = makeValidationHist("h_gen_trk_Pz", "P_{z} of generated tracks", 30, -20, 20, "P_{z} [GeV]", "Events");
   validation_hists["gen_trk_phi"] = makeValidationHist("h_gen_trk_phi", "phi of generated tracks", 20, -4, 4, "#phi", "Events");
-  validation_hists["gen_trk_eta"] = makeValidationHist("h_gen_trk_eta", "eta of generated tracks", 20, -1, 1, "#eta", "Events");
+  validation_hists["gen_trk_eta"] = makeValidationHist("h_gen_trk_eta", "eta of generated tracks", 40, -2, 2, "#eta", "Events");
   validation_hists["gen_trk_dPhi"] = makeValidationHist("h_gen_trk_dPhi", "#Delta#phi between tracks", 20, 0, 4, "#Delta#phi", "Events");
   validation_hists["gen_trk_mindPhi"] = makeValidationHist("h_gen_trk_mindPhi", "smallest #Delta#phi between tracks", 40, 0, 0.1, "#Delta#phi", "Events");
   validation_hists["gen_trk_dR"] = makeValidationHist("h_gen_trk_dR", "#DeltaR between tracks", 20, 0, 4, "#Delta R", "Events");
