@@ -6,8 +6,8 @@
   gStyle->SetOptFit(1011);
 
   bool doFit = 1;
-  bool doBuild = 1;
-  bool doSim = 1;
+  bool doBuild = 0;
+  bool doSim = 0;
 
   if (doFit) {
 
