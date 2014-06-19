@@ -6,8 +6,8 @@
   gStyle->SetOptFit(1011);
 
   bool doFit = 1;
-  bool doBuild = 0;
-  bool doSim = 0;
+  bool doBuild = 1;
+  bool doSim = 1;
 
   if (doFit) {
 
@@ -17,14 +17,14 @@
     TH1F* pt_res = new TH1F("pt_res","pt resolution",100,-0.5,0.5);
     pt_res->GetXaxis()->SetTitle("(p_{T}^{MC} - p_{T}^{fit})/p_{T}^{MC}");
     tree->Draw("(pt_mc-pt_fit)/pt_mc>>pt_res");
-    pt_res->Fit("gaus","","",-0.1,0.1);
+    pt_res->Fit("gaus","","",-0.07,0.07);
     cf1.SaveAs("pt_res.png");  
     
     TCanvas cf2;
     TH1F* pt_pul = new TH1F("pt_pul","pt pull",100,-10,10);
     pt_pul->GetXaxis()->SetTitle("(p_{T}^{MC} - p_{T}^{fit})/#sigma(p_{T}^{fit})");
     tree->Draw("(pt_mc-pt_fit)/pt_err>>pt_pul");
-    pt_pul->Fit("gaus","","",-2,2);
+    pt_pul->Fit("gaus","","",-3,3);
     cf2.SaveAs("pt_pull.png");  
     
     //TCanvas cf3;
