@@ -28,8 +28,10 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
   //initial covariance can be tricky
   for (unsigned int r=0;r<6;++r) {
     for (unsigned int c=0;c<6;++c) {
-      if (r==c) covtrk(r,c)=1;
-      else covtrk(r,c)=0.5;
+      if (r==c) {
+	if (r<3) covtrk(r,c)=pow(1.0*pos[r],2);//100% uncertainty on position
+	else covtrk(r,c)=pow(1.0*mom[r-3],2);  //100% uncertainty on momentum
+      } else covtrk(r,c)=0.;                   //no covariance
     }
   }
 
