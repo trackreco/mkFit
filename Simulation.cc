@@ -14,6 +14,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     else charge = 1;
   }
 
+  //float phi = 0.5*TMath::Pi()*(1-g_unif(g_gen)); // make an angle between 0 and pi/2 //fixme
   float phi = 0.5*TMath::Pi()*g_unif(g_gen); // make an angle between 0 and pi/2
   float px = pt * cos(phi);
   float py = pt * sin(phi);

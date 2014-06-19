@@ -4,6 +4,7 @@
 #include "KalmanUtils.h"
 #include "Propagation.h"
 #include "Simulation.h"
+#include "ConformalUtils.h"
 
 #ifndef NO_ROOT
 #include "TFile.h"
@@ -120,6 +121,7 @@ void runFittingTest(bool saveTree, unsigned int Ntracks)
     std::cout << "p: " << updatedState.parameters[3] << " " << updatedState.parameters[4] << " " << updatedState.parameters[5] << std::endl;
     std::cout << "updatedState.errors" << std::endl;
     dumpMatrix(updatedState.errors);
+    conformalFit(hits[0],hits[5],hits[9],trk.charge());
 
 #ifndef NO_ROOT
     if (saveTree) {
