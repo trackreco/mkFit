@@ -1,5 +1,7 @@
 #include "ConformalUtils.h"
 
+//M. Hansroul, H. Jeremie and D. Savard, NIM A 270 (1988) 498
+//http://www.sciencedirect.com/science/article/pii/016890028890722X
 void conformalFit(Hit hit0,Hit hit1,Hit hit2,int charge) {
 
   float bsx = 0.;
