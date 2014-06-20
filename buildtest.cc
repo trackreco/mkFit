@@ -95,7 +95,6 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
   std::vector<Track> evt_track_candidates;
 
   //first is first hit index in bin, second is size of this bin
-  typedef std::pair<unsigned int,unsigned int> BinInfo;
   std::vector<std::vector<BinInfo> > evt_lay_phi_hit_idx(10);//phi partitioning map
 
   for (unsigned int itrack=0;itrack<Ntracks;++itrack) {
@@ -164,6 +163,30 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
     evt_seeds.push_back(seed);
   }
 
+  buildTestSerial(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug);
+
+  //dump candidates
+  for (unsigned int itkcand=0;itkcand<evt_track_candidates.size();++itkcand) {
+    Track tkcand = evt_track_candidates[itkcand];
+    std::cout << "found track candidate with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << std::endl;
+	validation_hists["rec_trk_nHits"]->Fill(tkcand.nHits());
+    if (saveTree) {
+      tk_nhits = tkcand.nHits();
+      tk_chi2 = tkcand.chi2();
+      tree->Fill();
+    }
+
+  }
+
+}
+
+
+void buildTestSerial(std::vector<Track>& evt_seeds,
+		     std::vector<Track>& evt_track_candidates,
+		     std::vector<std::vector<Hit> >& evt_lay_hits,
+		     std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
+		     const int& nhits_per_seed,const unsigned int& maxCand,
+		     SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug) {
 
   //process seeds
   for (unsigned int iseed=0;iseed<evt_seeds.size();++iseed) {
@@ -268,25 +291,8 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
     }
   }//end of process seeds loop
 
-  //dump candidates
-  for (unsigned int itkcand=0;itkcand<evt_track_candidates.size();++itkcand) {
-    Track tkcand = evt_track_candidates[itkcand];
-    std::cout << "found track candidate with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << std::endl;
-	validation_hists["rec_trk_nHits"]->Fill(tkcand.nHits());
-    if (saveTree) {
-      tk_nhits = tkcand.nHits();
-      tk_chi2 = tkcand.chi2();
-      tree->Fill();
-    }
-
-  }
 
 }
-
-
-
-
-
 
 
 void setupValidationHists(std::map<std::string,TH1F*>& validation_hists){
