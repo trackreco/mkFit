@@ -84,7 +84,6 @@ void updateParameters66(TrackState& propagatedState, MeasurementState& measureme
 }
 
 //------------------------------------------------------------------------------
-#ifndef __APPLE__
 // #include "MatriplexSymNT.h"
 
 // const idx_t M = 6;
@@ -175,7 +174,6 @@ void updateParametersMPlex(const MPlexSS &psErr,  const MPlexMV& psPar,
   //     printf("%8f ", outErr.At(i,j,0)); printf("\n");
   // } printf("\n");
 }
-#endif
 
 //==============================================================================
 

@@ -8,6 +8,7 @@
 // ssh root@mic0 ./mult66-mic
 
 #include "MatriplexSym.h"
+#include "MatriplexSym.icc"
 
 #include "mplex-common.h"
 

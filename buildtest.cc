@@ -1,5 +1,11 @@
 #include "buildtest.h"
 
+#include "Track.h"
+#include "Matrix.h"
+#include "TFile.h"
+#include "TTree.h"
+#include "TH1F.h"
+
 #include "KalmanUtils.h"
 #include "Propagation.h"
 #include "Simulation.h"
@@ -8,7 +14,7 @@
 #include <iostream>
 
 void runBuildingTest(bool saveTree, TTree *tree, unsigned int& tk_nhits, float& chi2, std::map<std::string,TH1F*>& validation_hists);
-
+bool sortByPhi(Hit hit1,Hit hit2);
 
 void setupValidationHists(std::map<std::string,TH1F*>& validation_hists);
 TH1F* makeValidationHist(const std::string& name, const std::string& title, const int nbins, const double min, const double max, 

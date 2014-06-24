@@ -192,6 +192,7 @@ void InvertCramer(Matriplex<T, D, D, N>& C, double *determ=0)
 template<typename T, idx_t D, idx_t N>
 struct CholInverter
 {
+   CholInverter(Matriplex<T, D, D, N>& m) {}
    void operator()(Matriplex<T, D, D, N>& C, double *determ=0)
    {
       // We don't do general Inverts.
@@ -211,7 +212,7 @@ struct CholInverterBase
 {
    T fL[N * D * (D + 1) / 2];
 
-   template<typename G, idx_t N>
+   template<typename G, idx_t N1>
    struct PackedArrayAdapter
    {
       G* fArr; ///< pointer to first array element
@@ -221,10 +222,10 @@ struct CholInverterBase
 
       /// read access to elements (make sure that j <= i)
       const G operator()(unsigned i, unsigned j) const
-      { return fArr[N * (((i * (i + 1)) / 2) + j)]; }
+      { return fArr[N1 * (((i * (i + 1)) / 2) + j)]; }
       /// write access to elements (make sure that j <= i)
       G& operator()(unsigned i, unsigned j)
-      { return fArr[N * (((i * (i + 1)) / 2) + j)]; }
+      { return fArr[N1 * (((i * (i + 1)) / 2) + j)]; }
    };
 
 };
