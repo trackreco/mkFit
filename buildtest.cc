@@ -163,7 +163,8 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
     evt_seeds.push_back(seed);
   }
 
-  buildTestSerial(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug);
+  //buildTestSerial(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug);
+  buildTestParallel(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug);
 
   //dump candidates
   for (unsigned int itkcand=0;itkcand<evt_track_candidates.size();++itkcand) {
@@ -179,7 +180,6 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
   }
 
 }
-
 
 void buildTestSerial(std::vector<Track>& evt_seeds,
 		     std::vector<Track>& evt_track_candidates,
@@ -291,6 +291,108 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
     }
   }//end of process seeds loop
 
+
+}
+
+
+void buildTestParallel(std::vector<Track>& evt_seeds,
+		       std::vector<Track>& evt_track_candidates,
+		       std::vector<std::vector<Hit> >& evt_lay_hits,
+		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
+		       const int& nhits_per_seed,const unsigned int& maxCand,
+		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug) {
+
+  //save a vector of candidates per each seed. initialize to the seed itself
+  std::vector<std::vector<std::pair<Track, TrackState> > > track_candidates(evt_seeds.size());
+  for (unsigned int iseed=0;iseed<evt_seeds.size();++iseed) {
+    if (debug) std::cout << "saving seed #" << iseed << " par=" << evt_seeds[iseed].parameters() << std::endl;
+    track_candidates[iseed].push_back(std::pair<Track, TrackState>(evt_seeds[iseed],evt_seeds[iseed].state()));
+  }
+  
+  for (unsigned int ilay=nhits_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
+
+    /*if (debug)*/ std::cout << "going to layer #" << ilay << std::endl;
+
+    //process seeds
+    for (unsigned int iseed=0;iseed<evt_seeds.size();++iseed) {
+      if (debug) std::cout /*<< std::endl*/ << "processing seed #" << iseed << " par=" << evt_seeds[iseed].parameters() << std::endl;
+
+      std::vector<std::pair<Track, TrackState> > tmp_candidates;
+      for (unsigned int icand=0;icand<track_candidates[iseed].size();++icand) {//loop over running candidates 
+
+	std::pair<Track, TrackState>& cand = track_candidates[iseed][icand];
+	Track& tkcand = cand.first;
+	TrackState& updatedState = cand.second;
+	
+	if (debug) std::cout << "processing candidate with nHits=" << tkcand.nHits() << std::endl;
+
+	TrackState propState = propagateHelixToR(updatedState,4.*float(ilay+1));//radius of 4*ilay
+	float predx = propState.parameters.At(0);
+	float predy = propState.parameters.At(1);
+	float predz = propState.parameters.At(2);
+	if (debug) std::cout << "propState at hit#" << ilay << " r/phi/z : " << sqrt(pow(predx,2)+pow(predy,2)) << " "
+			     << std::atan2(predy,predx) << " " << predz << std::endl;
+
+	unsigned int bin = getPhiPartition(std::atan2(predy,predx));
+	if (debug) std::cout << "central bin: " << bin << std::endl;
+	BinInfo binInfoM1 = evt_lay_phi_hit_idx[ilay][std::max(0,int(bin)-1)];
+	BinInfo binInfoP1 = evt_lay_phi_hit_idx[ilay][std::min(63,int(bin)+1)];//fixme periodicity, fixme consider compatible window
+	unsigned int firstIndex = binInfoM1.first;
+	unsigned int lastIndex = binInfoP1.first+binInfoP1.second;
+	if (debug) std::cout << "predict hit index between: " << firstIndex << " " << lastIndex << std::endl;
+	
+	//consider hits on layer
+	//float minChi2 = std::numeric_limits<float>::max();//needed in case of best hit only
+	//unsigned int minChi2Hit = evt_lay_hits[ilay].size();//needed in case of best hit only
+	//
+	//for (unsigned int ihit=0;ihit<evt_lay_hits[ilay].size();++ihit) {//loop over hits on layer (consider all hits on layer)
+	for (unsigned int ihit=firstIndex;ihit<lastIndex;++ihit) {//loop over hits on layer (consider only hits from partition)
+	  float hitx = evt_lay_hits[ilay][ihit].position()[0];
+	  float hity = evt_lay_hits[ilay][ihit].position()[1];
+	  float hitz = evt_lay_hits[ilay][ihit].position()[2];
+	  MeasurementState hitMeas = evt_lay_hits[ilay][ihit].measurementState();
+	  float chi2 = computeChi2(propState,hitMeas,projMatrix36,projMatrix36T);
+	  if (debug) std::cout << "consider hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
+			       << std::atan2(hity,hitx) << " " << hitz << " chi2=" << chi2 << std::endl;
+	  
+	  if (chi2<15.) {//fixme 
+	    if (debug) std::cout << "found hit with index: " << ihit << " chi2=" << chi2 << std::endl;
+	    TrackState tmpUpdatedState = updateParameters(propState, hitMeas,projMatrix36,projMatrix36T);
+	    Track tmpCand = tkcand.clone();
+	    tmpCand.addHit(evt_lay_hits[ilay][ihit],chi2);
+	    tmp_candidates.push_back(std::pair<Track, TrackState>(tmpCand,tmpUpdatedState));
+	  } 
+	  
+	}//end of consider hits on layer loop
+
+	//add also the candidate for no hit found
+	//do it only if no hits found
+	//if (tmp_candidates.size()==0 && tkcand.nHits()==ilay) {//fixme
+	if (debug) std::cout << "adding candidate with no hit" << std::endl;
+	tmp_candidates.push_back(std::pair<Track, TrackState>(tkcand,propState));
+	//}
+
+      }//end of running candidates loop
+	  
+      if (tmp_candidates.size()>maxCand) {
+		if (debug) std::cout << "huge size=" << tmp_candidates.size() << " keeping best "<< maxCand << " only" << std::endl;
+		std::sort(tmp_candidates.begin(),tmp_candidates.end(),sortByHitsChi2);
+		tmp_candidates.erase(tmp_candidates.begin()+maxCand,tmp_candidates.end());
+      }
+      if (debug) std::cout << "swapping with size=" << tmp_candidates.size() << std::endl;
+      track_candidates[iseed].swap(tmp_candidates);
+      tmp_candidates.clear();
+      
+    }//end of process seeds loop
+	
+  }//end of layer loop
+
+  for (unsigned int iseed=0;iseed<evt_seeds.size();++iseed) {
+    if (track_candidates[iseed].size()>0) {
+      std::sort(track_candidates[iseed].begin(),track_candidates[iseed].end(),sortByHitsChi2);
+      evt_track_candidates.push_back(track_candidates[iseed][0].first);
+    }
+  }
 
 }
 

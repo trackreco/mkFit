@@ -20,5 +20,9 @@ void buildTestSerial(std::vector<Track>& evt_seeds,std::vector<Track>& evt_track
 		     std::vector<std::vector<Hit> >& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
 		     const int& nhits_per_seed,const unsigned int& maxCand,
 		     SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug);
+void buildTestParallel(std::vector<Track>& evt_seeds,std::vector<Track>& evt_track_candidates,
+		       std::vector<std::vector<Hit> >& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
+		       const int& nhits_per_seed,const unsigned int& maxCand,
+		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug);
 
 #endif
