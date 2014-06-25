@@ -2,6 +2,7 @@
 #define MatriplexNT_H
 
 #include "MatriplexCommon.h"
+#include <stdlib.h>
 
 template<typename T, idx_t D1, idx_t D2>
 class Matriplex
@@ -24,12 +25,20 @@ public:
 
    Matriplex(idx_t nn) : N(nn), kTotSize(N*kSize)
    {
+#ifdef __INTEL_COMPILER
       fArray = (T*) _mm_malloc(sizeof(T) * kTotSize, 64);
+#else
+      posix_memalign((void**)&fArray, 64, sizeof(T) * kTotSize);
+#endif
    }
 
    ~Matriplex()
    {
+#ifdef __INTEL_COMPILER
       _mm_free(fArray);
+#else
+      free(fArray);
+#endif
    }
 
    Matriplex(idx_t nn, T v) : N(nn), kTotSize(N*kSize) { SetVal(v); }
@@ -103,88 +112,6 @@ void Multiply(const Matriplex<T, D1, D2>& A,
       }
    }
 }
-
-/* This is 50% faster on host, 30% faster on mic */
-template<>
-void Multiply<float, 3, 3, 3>(const Matriplex<float, 3, 3>& A,
-                              const Matriplex<float, 3, 3>& B,
-                                    Matriplex<float, 3, 3>& C)
-{
-   const idx_t N = A.N;
-
-  __assume_aligned(A.fArray, 64);
-  __assume_aligned(B.fArray, 64);
-  __assume_aligned(C.fArray, 64);
-  __assume(N%16==0);
-
-#pragma simd
-   for (idx_t n = 0; n < N; ++n)
-   {
-      C.fArray[0 * N + n] = A.fArray[0 * N + n] * B.fArray[0 * N + n] + A.fArray[1 * N + n] * B.fArray[1 * N + n] + A.fArray[3 * N + n] * B.fArray[3 * N + n];
-      C.fArray[1 * N + n] = A.fArray[0 * N + n] * B.fArray[1 * N + n] + A.fArray[1 * N + n] * B.fArray[2 * N + n] + A.fArray[3 * N + n] * B.fArray[4 * N + n];
-      C.fArray[2 * N + n] = A.fArray[0 * N + n] * B.fArray[3 * N + n] + A.fArray[1 * N + n] * B.fArray[4 * N + n] + A.fArray[3 * N + n] * B.fArray[5 * N + n];
-      C.fArray[3 * N + n] = A.fArray[1 * N + n] * B.fArray[0 * N + n] + A.fArray[2 * N + n] * B.fArray[1 * N + n] + A.fArray[4 * N + n] * B.fArray[3 * N + n];
-      C.fArray[4 * N + n] = A.fArray[1 * N + n] * B.fArray[1 * N + n] + A.fArray[2 * N + n] * B.fArray[2 * N + n] + A.fArray[4 * N + n] * B.fArray[4 * N + n];
-      C.fArray[5 * N + n] = A.fArray[1 * N + n] * B.fArray[3 * N + n] + A.fArray[2 * N + n] * B.fArray[4 * N + n] + A.fArray[4 * N + n] * B.fArray[5 * N + n];
-      C.fArray[6 * N + n] = A.fArray[3 * N + n] * B.fArray[0 * N + n] + A.fArray[4 * N + n] * B.fArray[1 * N + n] + A.fArray[5 * N + n] * B.fArray[3 * N + n];
-      C.fArray[7 * N + n] = A.fArray[3 * N + n] * B.fArray[1 * N + n] + A.fArray[4 * N + n] * B.fArray[2 * N + n] + A.fArray[5 * N + n] * B.fArray[4 * N + n];
-      C.fArray[8 * N + n] = A.fArray[3 * N + n] * B.fArray[3 * N + n] + A.fArray[4 * N + n] * B.fArray[4 * N + n] + A.fArray[5 * N + n] * B.fArray[5 * N + n];
-   }
-}
-
-/* This is same speed on host, 30% slower on mic */
-template<>
-void Multiply<float, 6, 6, 6>(const Matriplex<float, 6, 6>& A,
-                              const Matriplex<float, 6, 6>& B,
-                                    Matriplex<float, 6, 6>& C)
-{
-   const idx_t N = A.N;
-
-  __assume_aligned(C.fArray, 64);
-  __assume(N%16==0);
-
-#pragma simd
-   for (idx_t n = 0; n < N; ++n)
-   {
-      C.fArray[0 * N + n] = A.fArray[0 * N + n] * B.fArray[0 * N + n] + A.fArray[1 * N + n] * B.fArray[1 * N + n] + A.fArray[3 * N + n] * B.fArray[3 * N + n] + A.fArray[6 * N + n] * B.fArray[6 * N + n] + A.fArray[10 * N + n] * B.fArray[10 * N + n] + A.fArray[15 * N + n] * B.fArray[15 * N + n];
-      C.fArray[1 * N + n] = A.fArray[0 * N + n] * B.fArray[1 * N + n] + A.fArray[1 * N + n] * B.fArray[2 * N + n] + A.fArray[3 * N + n] * B.fArray[4 * N + n] + A.fArray[6 * N + n] * B.fArray[7 * N + n] + A.fArray[10 * N + n] * B.fArray[11 * N + n] + A.fArray[15 * N + n] * B.fArray[16 * N + n];
-      C.fArray[2 * N + n] = A.fArray[0 * N + n] * B.fArray[3 * N + n] + A.fArray[1 * N + n] * B.fArray[4 * N + n] + A.fArray[3 * N + n] * B.fArray[5 * N + n] + A.fArray[6 * N + n] * B.fArray[8 * N + n] + A.fArray[10 * N + n] * B.fArray[12 * N + n] + A.fArray[15 * N + n] * B.fArray[17 * N + n];
-      C.fArray[3 * N + n] = A.fArray[0 * N + n] * B.fArray[6 * N + n] + A.fArray[1 * N + n] * B.fArray[7 * N + n] + A.fArray[3 * N + n] * B.fArray[8 * N + n] + A.fArray[6 * N + n] * B.fArray[9 * N + n] + A.fArray[10 * N + n] * B.fArray[13 * N + n] + A.fArray[15 * N + n] * B.fArray[18 * N + n];
-      C.fArray[4 * N + n] = A.fArray[0 * N + n] * B.fArray[10 * N + n] + A.fArray[1 * N + n] * B.fArray[11 * N + n] + A.fArray[3 * N + n] * B.fArray[12 * N + n] + A.fArray[6 * N + n] * B.fArray[13 * N + n] + A.fArray[10 * N + n] * B.fArray[14 * N + n] + A.fArray[15 * N + n] * B.fArray[19 * N + n];
-      C.fArray[5 * N + n] = A.fArray[0 * N + n] * B.fArray[15 * N + n] + A.fArray[1 * N + n] * B.fArray[16 * N + n] + A.fArray[3 * N + n] * B.fArray[17 * N + n] + A.fArray[6 * N + n] * B.fArray[18 * N + n] + A.fArray[10 * N + n] * B.fArray[19 * N + n] + A.fArray[15 * N + n] * B.fArray[20 * N + n];
-      C.fArray[6 * N + n] = A.fArray[1 * N + n] * B.fArray[0 * N + n] + A.fArray[2 * N + n] * B.fArray[1 * N + n] + A.fArray[4 * N + n] * B.fArray[3 * N + n] + A.fArray[7 * N + n] * B.fArray[6 * N + n] + A.fArray[11 * N + n] * B.fArray[10 * N + n] + A.fArray[16 * N + n] * B.fArray[15 * N + n];
-      C.fArray[7 * N + n] = A.fArray[1 * N + n] * B.fArray[1 * N + n] + A.fArray[2 * N + n] * B.fArray[2 * N + n] + A.fArray[4 * N + n] * B.fArray[4 * N + n] + A.fArray[7 * N + n] * B.fArray[7 * N + n] + A.fArray[11 * N + n] * B.fArray[11 * N + n] + A.fArray[16 * N + n] * B.fArray[16 * N + n];
-      C.fArray[8 * N + n] = A.fArray[1 * N + n] * B.fArray[3 * N + n] + A.fArray[2 * N + n] * B.fArray[4 * N + n] + A.fArray[4 * N + n] * B.fArray[5 * N + n] + A.fArray[7 * N + n] * B.fArray[8 * N + n] + A.fArray[11 * N + n] * B.fArray[12 * N + n] + A.fArray[16 * N + n] * B.fArray[17 * N + n];
-      C.fArray[9 * N + n] = A.fArray[1 * N + n] * B.fArray[6 * N + n] + A.fArray[2 * N + n] * B.fArray[7 * N + n] + A.fArray[4 * N + n] * B.fArray[8 * N + n] + A.fArray[7 * N + n] * B.fArray[9 * N + n] + A.fArray[11 * N + n] * B.fArray[13 * N + n] + A.fArray[16 * N + n] * B.fArray[18 * N + n];
-      C.fArray[10 * N + n] = A.fArray[1 * N + n] * B.fArray[10 * N + n] + A.fArray[2 * N + n] * B.fArray[11 * N + n] + A.fArray[4 * N + n] * B.fArray[12 * N + n] + A.fArray[7 * N + n] * B.fArray[13 * N + n] + A.fArray[11 * N + n] * B.fArray[14 * N + n] + A.fArray[16 * N + n] * B.fArray[19 * N + n];
-      C.fArray[11 * N + n] = A.fArray[1 * N + n] * B.fArray[15 * N + n] + A.fArray[2 * N + n] * B.fArray[16 * N + n] + A.fArray[4 * N + n] * B.fArray[17 * N + n] + A.fArray[7 * N + n] * B.fArray[18 * N + n] + A.fArray[11 * N + n] * B.fArray[19 * N + n] + A.fArray[16 * N + n] * B.fArray[20 * N + n];
-      C.fArray[12 * N + n] = A.fArray[3 * N + n] * B.fArray[0 * N + n] + A.fArray[4 * N + n] * B.fArray[1 * N + n] + A.fArray[5 * N + n] * B.fArray[3 * N + n] + A.fArray[8 * N + n] * B.fArray[6 * N + n] + A.fArray[12 * N + n] * B.fArray[10 * N + n] + A.fArray[17 * N + n] * B.fArray[15 * N + n];
-      C.fArray[13 * N + n] = A.fArray[3 * N + n] * B.fArray[1 * N + n] + A.fArray[4 * N + n] * B.fArray[2 * N + n] + A.fArray[5 * N + n] * B.fArray[4 * N + n] + A.fArray[8 * N + n] * B.fArray[7 * N + n] + A.fArray[12 * N + n] * B.fArray[11 * N + n] + A.fArray[17 * N + n] * B.fArray[16 * N + n];
-      C.fArray[14 * N + n] = A.fArray[3 * N + n] * B.fArray[3 * N + n] + A.fArray[4 * N + n] * B.fArray[4 * N + n] + A.fArray[5 * N + n] * B.fArray[5 * N + n] + A.fArray[8 * N + n] * B.fArray[8 * N + n] + A.fArray[12 * N + n] * B.fArray[12 * N + n] + A.fArray[17 * N + n] * B.fArray[17 * N + n];
-      C.fArray[15 * N + n] = A.fArray[3 * N + n] * B.fArray[6 * N + n] + A.fArray[4 * N + n] * B.fArray[7 * N + n] + A.fArray[5 * N + n] * B.fArray[8 * N + n] + A.fArray[8 * N + n] * B.fArray[9 * N + n] + A.fArray[12 * N + n] * B.fArray[13 * N + n] + A.fArray[17 * N + n] * B.fArray[18 * N + n];
-      C.fArray[16 * N + n] = A.fArray[3 * N + n] * B.fArray[10 * N + n] + A.fArray[4 * N + n] * B.fArray[11 * N + n] + A.fArray[5 * N + n] * B.fArray[12 * N + n] + A.fArray[8 * N + n] * B.fArray[13 * N + n] + A.fArray[12 * N + n] * B.fArray[14 * N + n] + A.fArray[17 * N + n] * B.fArray[19 * N + n];
-      C.fArray[17 * N + n] = A.fArray[3 * N + n] * B.fArray[15 * N + n] + A.fArray[4 * N + n] * B.fArray[16 * N + n] + A.fArray[5 * N + n] * B.fArray[17 * N + n] + A.fArray[8 * N + n] * B.fArray[18 * N + n] + A.fArray[12 * N + n] * B.fArray[19 * N + n] + A.fArray[17 * N + n] * B.fArray[20 * N + n];
-      C.fArray[18 * N + n] = A.fArray[6 * N + n] * B.fArray[0 * N + n] + A.fArray[7 * N + n] * B.fArray[1 * N + n] + A.fArray[8 * N + n] * B.fArray[3 * N + n] + A.fArray[9 * N + n] * B.fArray[6 * N + n] + A.fArray[13 * N + n] * B.fArray[10 * N + n] + A.fArray[18 * N + n] * B.fArray[15 * N + n];
-      C.fArray[19 * N + n] = A.fArray[6 * N + n] * B.fArray[1 * N + n] + A.fArray[7 * N + n] * B.fArray[2 * N + n] + A.fArray[8 * N + n] * B.fArray[4 * N + n] + A.fArray[9 * N + n] * B.fArray[7 * N + n] + A.fArray[13 * N + n] * B.fArray[11 * N + n] + A.fArray[18 * N + n] * B.fArray[16 * N + n];
-      C.fArray[20 * N + n] = A.fArray[6 * N + n] * B.fArray[3 * N + n] + A.fArray[7 * N + n] * B.fArray[4 * N + n] + A.fArray[8 * N + n] * B.fArray[5 * N + n] + A.fArray[9 * N + n] * B.fArray[8 * N + n] + A.fArray[13 * N + n] * B.fArray[12 * N + n] + A.fArray[18 * N + n] * B.fArray[17 * N + n];
-      C.fArray[21 * N + n] = A.fArray[6 * N + n] * B.fArray[6 * N + n] + A.fArray[7 * N + n] * B.fArray[7 * N + n] + A.fArray[8 * N + n] * B.fArray[8 * N + n] + A.fArray[9 * N + n] * B.fArray[9 * N + n] + A.fArray[13 * N + n] * B.fArray[13 * N + n] + A.fArray[18 * N + n] * B.fArray[18 * N + n];
-      C.fArray[22 * N + n] = A.fArray[6 * N + n] * B.fArray[10 * N + n] + A.fArray[7 * N + n] * B.fArray[11 * N + n] + A.fArray[8 * N + n] * B.fArray[12 * N + n] + A.fArray[9 * N + n] * B.fArray[13 * N + n] + A.fArray[13 * N + n] * B.fArray[14 * N + n] + A.fArray[18 * N + n] * B.fArray[19 * N + n];
-      C.fArray[23 * N + n] = A.fArray[6 * N + n] * B.fArray[15 * N + n] + A.fArray[7 * N + n] * B.fArray[16 * N + n] + A.fArray[8 * N + n] * B.fArray[17 * N + n] + A.fArray[9 * N + n] * B.fArray[18 * N + n] + A.fArray[13 * N + n] * B.fArray[19 * N + n] + A.fArray[18 * N + n] * B.fArray[20 * N + n];
-      C.fArray[24 * N + n] = A.fArray[10 * N + n] * B.fArray[0 * N + n] + A.fArray[11 * N + n] * B.fArray[1 * N + n] + A.fArray[12 * N + n] * B.fArray[3 * N + n] + A.fArray[13 * N + n] * B.fArray[6 * N + n] + A.fArray[14 * N + n] * B.fArray[10 * N + n] + A.fArray[19 * N + n] * B.fArray[15 * N + n];
-      C.fArray[25 * N + n] = A.fArray[10 * N + n] * B.fArray[1 * N + n] + A.fArray[11 * N + n] * B.fArray[2 * N + n] + A.fArray[12 * N + n] * B.fArray[4 * N + n] + A.fArray[13 * N + n] * B.fArray[7 * N + n] + A.fArray[14 * N + n] * B.fArray[11 * N + n] + A.fArray[19 * N + n] * B.fArray[16 * N + n];
-      C.fArray[26 * N + n] = A.fArray[10 * N + n] * B.fArray[3 * N + n] + A.fArray[11 * N + n] * B.fArray[4 * N + n] + A.fArray[12 * N + n] * B.fArray[5 * N + n] + A.fArray[13 * N + n] * B.fArray[8 * N + n] + A.fArray[14 * N + n] * B.fArray[12 * N + n] + A.fArray[19 * N + n] * B.fArray[17 * N + n];
-      C.fArray[27 * N + n] = A.fArray[10 * N + n] * B.fArray[6 * N + n] + A.fArray[11 * N + n] * B.fArray[7 * N + n] + A.fArray[12 * N + n] * B.fArray[8 * N + n] + A.fArray[13 * N + n] * B.fArray[9 * N + n] + A.fArray[14 * N + n] * B.fArray[13 * N + n] + A.fArray[19 * N + n] * B.fArray[18 * N + n];
-      C.fArray[28 * N + n] = A.fArray[10 * N + n] * B.fArray[10 * N + n] + A.fArray[11 * N + n] * B.fArray[11 * N + n] + A.fArray[12 * N + n] * B.fArray[12 * N + n] + A.fArray[13 * N + n] * B.fArray[13 * N + n] + A.fArray[14 * N + n] * B.fArray[14 * N + n] + A.fArray[19 * N + n] * B.fArray[19 * N + n];
-      C.fArray[29 * N + n] = A.fArray[10 * N + n] * B.fArray[15 * N + n] + A.fArray[11 * N + n] * B.fArray[16 * N + n] + A.fArray[12 * N + n] * B.fArray[17 * N + n] + A.fArray[13 * N + n] * B.fArray[18 * N + n] + A.fArray[14 * N + n] * B.fArray[19 * N + n] + A.fArray[19 * N + n] * B.fArray[20 * N + n];
-      C.fArray[30 * N + n] = A.fArray[15 * N + n] * B.fArray[0 * N + n] + A.fArray[16 * N + n] * B.fArray[1 * N + n] + A.fArray[17 * N + n] * B.fArray[3 * N + n] + A.fArray[18 * N + n] * B.fArray[6 * N + n] + A.fArray[19 * N + n] * B.fArray[10 * N + n] + A.fArray[20 * N + n] * B.fArray[15 * N + n];
-      C.fArray[31 * N + n] = A.fArray[15 * N + n] * B.fArray[1 * N + n] + A.fArray[16 * N + n] * B.fArray[2 * N + n] + A.fArray[17 * N + n] * B.fArray[4 * N + n] + A.fArray[18 * N + n] * B.fArray[7 * N + n] + A.fArray[19 * N + n] * B.fArray[11 * N + n] + A.fArray[20 * N + n] * B.fArray[16 * N + n];
-      C.fArray[32 * N + n] = A.fArray[15 * N + n] * B.fArray[3 * N + n] + A.fArray[16 * N + n] * B.fArray[4 * N + n] + A.fArray[17 * N + n] * B.fArray[5 * N + n] + A.fArray[18 * N + n] * B.fArray[8 * N + n] + A.fArray[19 * N + n] * B.fArray[12 * N + n] + A.fArray[20 * N + n] * B.fArray[17 * N + n];
-      C.fArray[33 * N + n] = A.fArray[15 * N + n] * B.fArray[6 * N + n] + A.fArray[16 * N + n] * B.fArray[7 * N + n] + A.fArray[17 * N + n] * B.fArray[8 * N + n] + A.fArray[18 * N + n] * B.fArray[9 * N + n] + A.fArray[19 * N + n] * B.fArray[13 * N + n] + A.fArray[20 * N + n] * B.fArray[18 * N + n];
-      C.fArray[34 * N + n] = A.fArray[15 * N + n] * B.fArray[10 * N + n] + A.fArray[16 * N + n] * B.fArray[11 * N + n] + A.fArray[17 * N + n] * B.fArray[12 * N + n] + A.fArray[18 * N + n] * B.fArray[13 * N + n] + A.fArray[19 * N + n] * B.fArray[14 * N + n] + A.fArray[20 * N + n] * B.fArray[19 * N + n];
-      C.fArray[35 * N + n] = A.fArray[15 * N + n] * B.fArray[15 * N + n] + A.fArray[16 * N + n] * B.fArray[16 * N + n] + A.fArray[17 * N + n] * B.fArray[17 * N + n] + A.fArray[18 * N + n] * B.fArray[18 * N + n] + A.fArray[19 * N + n] * B.fArray[19 * N + n] + A.fArray[20 * N + n] * B.fArray[20 * N + n];
-   }
-}
-
 
 //==============================================================================
 // Cramer inversion

@@ -28,9 +28,9 @@ public:
 
   void SetVal(T v)
   {
-    for (idx_t i = 0; i < kTotSize; ++i)
+    for (idx_t i = 0; i < fV.size(); ++i)
     {
-      fArray[i] = v;
+      fV[i] = v;
     }
   }
 
