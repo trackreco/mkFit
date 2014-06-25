@@ -141,7 +141,6 @@ void runFittingTest(bool saveTree, unsigned int Ntracks)
 #endif
 }
 
-#ifndef __APPLE__
 void runFittingTestPlex(bool saveTree)
 {
   float pt_mc=0.,pt_fit=0.,pt_err=0.; 
@@ -158,11 +157,11 @@ void runFittingTestPlex(bool saveTree)
 #endif
 
   //these matrices are dummy and can be optimized without multriplying by zero all the world...
-  SMatrix36 projMatrix36;
-  projMatrix36(0,0)=1.;
-  projMatrix36(1,1)=1.;
-  projMatrix36(2,2)=1.;
-  SMatrix63 projMatrix36T = ROOT::Math::Transpose(projMatrix36);
+  //SMatrix36 projMatrix36;
+  //projMatrix36(0,0)=1.;
+  //projMatrix36(1,1)=1.;
+  //projMatrix36(2,2)=1.;
+  //SMatrix63 projMatrix36T = ROOT::Math::Transpose(projMatrix36);
 
   int Ntracks = 1000;
 
@@ -313,5 +312,3 @@ void runFittingTestPlex(bool saveTree)
   }
 #endif
 }
-
-#endif

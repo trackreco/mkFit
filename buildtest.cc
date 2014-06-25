@@ -1,5 +1,10 @@
 #include "buildtest.h"
 
+#include "Track.h"
+#include "TFile.h"
+#include "TTree.h"
+#include "TH1F.h"
+
 #include "KalmanUtils.h"
 #include "Propagation.h"
 #include "Simulation.h"
@@ -8,7 +13,7 @@
 #include <iostream>
 
 void runBuildingTest(bool saveTree, TTree *tree, unsigned int& tk_nhits, float& chi2, std::map<std::string,TH1F*>& validation_hists);
-
+bool sortByPhi(Hit hit1,Hit hit2);
 
 void setupValidationHists(std::map<std::string,TH1F*>& validation_hists);
 TH1F* makeValidationHist(const std::string& name, const std::string& title, const int nbins, const double min, const double max, 
@@ -85,7 +90,7 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
   projMatrix36(2,2)=1.;
   SMatrix63 projMatrix36T = ROOT::Math::Transpose(projMatrix36);
 
-  unsigned int Ntracks = 500;//50 
+  unsigned int Ntracks = 500;//50
 
   const unsigned int maxCand = 10;
 
@@ -218,11 +223,29 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
 	float predz = propState.parameters.At(2);
 	if (debug) std::cout << "propState at hit#" << ilay << " r/phi/z : " << sqrt(pow(predx,2)+pow(predy,2)) << " "
 			     << std::atan2(predy,predx) << " " << predz << std::endl;
+	if (debug) dumpMatrix(propState.errors);
 
-	unsigned int bin = getPhiPartition(std::atan2(predy,predx));
-	if (debug) std::cout << "central bin: " << bin << std::endl;
-	BinInfo binInfoM1 = evt_lay_phi_hit_idx[ilay][std::max(0,int(bin)-1)];
-	BinInfo binInfoP1 = evt_lay_phi_hit_idx[ilay][std::min(63,int(bin)+1)];//fixme periodicity, fixme consider compatible window
+	float phi = std::atan2(predy,predx);
+	float dphidx = -predy/(predx*predx+predy*predy);//denominator is just hit radius, consider avoiding re-computing it
+	float dphidy =  predx/(predx*predx+predy*predy);//denominator is just hit radius, consider avoiding re-computing it
+	float dphi = sqrt(fabs(dphidx*dphidx*propState.errors.At(0,0)+dphidy*dphidy*propState.errors.At(1,1)+2*dphidy*dphidx*propState.errors.At(0,1)));//how come I get negative squared errors sometimes?
+
+	float nSigma = 3.0;
+	float dphiMinus = phi-nSigma*dphi;
+	float dphiPlus  = phi+nSigma*dphi;
+	if (dphiMinus<-TMath::Pi()) dphiMinus=-TMath::Pi()+0.00001;//fixme periodicity
+	if (dphiPlus>TMath::Pi()) dphiPlus=TMath::Pi()-0.00001;//fixme periodicity
+
+	if (debug) std::cout << "phi error=" << dphi << " dphiMinus=" << dphiMinus << " dphiPlus=" << dphiPlus << std::endl;
+
+	unsigned int binM = getPhiPartition(dphiMinus);
+	unsigned int binP = getPhiPartition(dphiPlus);
+	if (debug) {
+	  unsigned int bin  = getPhiPartition(phi);
+	  std::cout << "central bin: " << bin << " binM=" << binM << " binP" << binP << std::endl;
+	}
+	BinInfo binInfoM1 = evt_lay_phi_hit_idx[ilay][std::max(0,int(binM))];
+	BinInfo binInfoP1 = evt_lay_phi_hit_idx[ilay][std::min(63,int(binP))];//fixme periodicity
 	unsigned int firstIndex = binInfoM1.first;
 	unsigned int lastIndex = binInfoP1.first+binInfoP1.second;
 	if (debug) std::cout << "predict hit index between: " << firstIndex << " " << lastIndex << std::endl;
@@ -254,9 +277,10 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
 	//add also the candidate for no hit found
 	//do it only if no hits found
 	//if (tmp_candidates.size()==0 && tkcand.nHits()==ilay) {//fixme
-	if (debug) std::cout << "adding candidate with no hit" << std::endl;
-	tmp_candidates.push_back(std::pair<Track, TrackState>(tkcand,propState));
-	//}
+	if (tkcand.nHits()==ilay) {//fixme: what to do in case of parallel version?
+	  if (debug) std::cout << "adding candidate with no hit" << std::endl;
+	  tmp_candidates.push_back(std::pair<Track, TrackState>(tkcand,propState));
+	}
 
 	/*	
 	//take only best hit for now
@@ -279,10 +303,14 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
 		std::sort(tmp_candidates.begin(),tmp_candidates.end(),sortByHitsChi2);
 		tmp_candidates.erase(tmp_candidates.begin()+maxCand,tmp_candidates.end());
       }
-      if (debug) std::cout << "swapping with size=" << tmp_candidates.size() << std::endl;
-      track_candidates.swap(tmp_candidates);
-      tmp_candidates.clear();
-      
+      if (tmp_candidates.size()!=0) {
+	if (debug) std::cout << "swapping with size=" << tmp_candidates.size() << std::endl;
+	track_candidates.swap(tmp_candidates);
+	tmp_candidates.clear();
+      } else {//fixme: what to do in case of parallel version?
+	if (debug) std::cout << "no more candidates, stop" << std::endl;
+	break;
+      }
     }//end of layer loop
 	
     if (track_candidates.size()>0) {
@@ -290,7 +318,6 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
       evt_track_candidates.push_back(track_candidates[0].first);
     }
   }//end of process seeds loop
-
 
 }
 

@@ -1,4 +1,3 @@
-#define ROOT_Math_MnConfig
 #include "Math/SMatrix.h"
 
 #include <random>
@@ -53,7 +52,13 @@ double dtime()
 template <typename X>
 X* new_sth(int n)
 {
+#ifdef __INTEL_COMPILER
   return (X*) _mm_malloc(sizeof(X) * n, ALIGN);
+#else
+  X* x;
+  posix_memalign((void**)&x, ALIGN, sizeof(X) * n);
+  return x;
+#endif
 }
 
 void init_mulmuz(SMatrixMM *mul,  SMatrixMM *muz,
