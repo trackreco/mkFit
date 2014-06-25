@@ -5,12 +5,10 @@
 #include <string>
 #include <vector>
 
-#include "Matrix.h"
+#include "Track.h"
 
 class TTree;
 class TH1F;
-class Track;
-class Hit;
 
 typedef std::pair<unsigned int,unsigned int> BinInfo;
 
@@ -25,5 +23,8 @@ void buildTestParallel(std::vector<Track>& evt_seeds,std::vector<Track>& evt_tra
 		       std::vector<std::vector<Hit> >& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
 		       const int& nhits_per_seed,const unsigned int& maxCand,
 		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug);
-
+void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<Track, TrackState> >& tmp_candidates,
+		       unsigned int ilay,std::vector<std::vector<Hit> >& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
+		       const int& nhits_per_seed,const unsigned int& maxCand,
+		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug);
 #endif
