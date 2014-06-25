@@ -9,8 +9,10 @@ void MultForKalmanGain(const MatriplexSym<float, 6>& A,
 
    const idx_t N = A.N;
 
+#ifdef __INTEL_COMPILER
   __assume_aligned(C.fArray, 64);
   __assume(N%16==0);
+#endif
 
 #pragma simd
    for (idx_t n = 0; n < N; ++n)
