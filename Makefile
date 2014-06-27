@@ -16,10 +16,13 @@ endif
 
 MOBJ = main.o Matrix.o KalmanUtils.o Propagation.o Simulation.o buildtest.o fittest.o
 
+MEXE-MIC = mplex-mic mplex-vec-mic mplex-nt-mic mplexsym-mic mplexsym-nt-mic
+MEXE-AVX = mplex mplex-vec mplex-nt mplexsym mplexsym-nt
+
 all: all-avx all-mic
 
-all-mic:	mplex-mic mplex-vec-mic mplex-nt-mic mplexsym-mic mplexsym-nt-mic
-all-avx:	mplex mplex-vec mplex-nt mplexsym mplexsym-nt
+all-mic:	$(MEXE-MIC)
+all-avx:	$(MEXE-AVX)
 
 test:	mplex-test mplex-vec-test mplex-nt-test mplexsym-test mplexsym-nt-test
 
@@ -56,3 +59,8 @@ Matrix.h: MatriplexSymNT.h
 Propagation.h: Track.h
 Simulation.h: Propagation.h
 Track.h: Hit.h Matrix.h
+
+.PHONY: all all-mic all-avx test clean 
+
+clean:
+	-rm $(MEXE-AVX) $(MEXE-MIC)
