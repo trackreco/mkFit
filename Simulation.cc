@@ -9,6 +9,8 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
   //assume beam spot width 1mm in xy and 1cm in z
   pos=SVector3(0.1*g_gaus(g_gen), 0.1*g_gaus(g_gen), 1.0*g_gaus(g_gen));
 
+  //std::cout << "pos x=" << pos[0] << " y=" << pos[1] << " z=" << pos[2] << std::endl;
+
   if (charge==0) {
     if (g_unif(g_gen) > 0.5) charge = -1;
     else charge = 1;
@@ -51,6 +53,8 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
   for (unsigned int nhit=1;nhit<=nTotHit;++nhit) {
     TrackState propState = propagateHelixToR(tmpState,4.*float(nhit));//radius of 4*nhit
 
+    //if (nhit==1) std::cout << "crossing #" << nhit << " " << propState.parameters.At(0) << " " << propState.parameters.At(1) << " " << propState.parameters.At(2) << std::endl;
+
     float hitx = hitposerrXY*g_gaus(g_gen)+propState.parameters.At(0);
     float hity = hitposerrXY*g_gaus(g_gen)+propState.parameters.At(1);
     //float hity = sqrt((pos.At(0) + k*(px*sinAP-py*(1-cosAP)))*(pos.At(0) + k*(px*sinAP-py*(1-cosAP)))+
@@ -58,7 +62,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     //	   	        hitx*hitx);//try to get the fixed radius
     float hitz = hitposerrZ*g_gaus(g_gen)+propState.parameters.At(2);
 
-    //std::cout << "hit#" << nhit << " " << hitx << " " << hity << " " << hitz << std::endl;
+    //if (nhit==1) std::cout << "hit#" << nhit << " " << hitx << " " << hity << " " << hitz << std::endl;
     SVector3 x1(hitx,hity,hitz);
     SMatrixSym33 covx1 = ROOT::Math::SMatrixIdentity();
     covx1(0,0)=hitposerrXY*hitposerrXY; 
