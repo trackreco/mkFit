@@ -15,8 +15,7 @@ void runBuildingTest(bool saveTree, TTree *tree, unsigned int& tk_nhits, float& 
 bool sortByPhi(Hit hit1,Hit hit2);
 
 void setupValidationHists(std::map<std::string,TH1F*>& validation_hists);
-TH1F* makeValidationHist(const std::string& name, const std::string& title, const int nbins, const double min, const double max, 
-						 const std::string& xlabel, const std::string& ylabel);
+TH1F * makeValidationHist(const std::string& name, const std::string& title, const int nbins, const double min, const double max, const std::string& xlabel, const std::string& ylabel);
 void fillValidationHists(std::map<std::string,TH1F*>& validation_hists, std::vector<Track> evt_seeds);
 void saveValidationHists(TFile *f, std::map<std::string,TH1F*>& validation_hists);
 void deleteValidationHists(std::map<std::string,TH1F*>& validation_hists);
@@ -89,6 +88,11 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
   projMatrix36(2,2)=1.;
   SMatrix63 projMatrix36T = ROOT::Math::Transpose(projMatrix36);
 
+
+  // Vary the number of tracks with g_gaus
+  //  unsigned int Ntracks = 5000 * g_gaus(g_gen));
+
+  
   unsigned int Ntracks = 500;//50
 
   const unsigned int maxCand = 10;
@@ -135,7 +139,7 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
       float hity = evt_lay_hits[ilay][ihit].position()[1];
       float hitz = evt_lay_hits[ilay][ihit].position()[2];
       if (debug) std::cout << "hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
-			   << std::atan2(hity,hitx) << " " << hitz << std::endl;
+      			   << std::atan2(hity,hitx) << " " << hitz << std::endl;
       unsigned int bin = getPhiPartition(std::atan2(hity,hitx));
       lay_phi_bin_count[bin]++;
     }
@@ -173,7 +177,7 @@ void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& t
   //dump candidates
   for (unsigned int itkcand=0;itkcand<evt_track_candidates.size();++itkcand) {
     Track tkcand = evt_track_candidates[itkcand];
-    std::cout << "found track candidate with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << std::endl;
+    //  std::cout << "found track candidate with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << std::endl;
 	validation_hists["rec_trk_nHits"]->Fill(tkcand.nHits());
     if (saveTree) {
       tk_nhits = tkcand.nHits();
@@ -194,7 +198,7 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
 
   //process seeds
   for (unsigned int iseed=0;iseed<evt_seeds.size();++iseed) {
-    /*if (debug)*/ std::cout /*<< std::endl*/ << "processing seed #" << iseed << " par=" << evt_seeds[iseed].parameters() << std::endl;
+    if (debug) std::cout << "processing seed #" << iseed << " par=" << evt_seeds[iseed].parameters() << std::endl;
 
     TrackState seed_state = evt_seeds[iseed].state();
     //seed_state.errors *= 0.01;//otherwise combinatorics explode!!!
@@ -255,7 +259,7 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
   
   for (unsigned int ilay=nhits_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
 
-    /*if (debug)*/ std::cout << "going to layer #" << ilay << std::endl;
+    if (debug) std::cout << "going to layer #" << ilay << std::endl;
 
     //process seeds
     for (unsigned int iseed=0;iseed<evt_seeds.size();++iseed) {
@@ -398,6 +402,10 @@ void setupValidationHists(std::map<std::string,TH1F*>& validation_hists){
   validation_hists["gen_trk_mindPhi"] = makeValidationHist("h_gen_trk_mindPhi", "smallest #Delta#phi between tracks", 40, 0, 0.1, "#Delta#phi", "Events");
   validation_hists["gen_trk_dR"] = makeValidationHist("h_gen_trk_dR", "#DeltaR between tracks", 20, 0, 4, "#Delta R", "Events");
   validation_hists["gen_trk_mindR"] = makeValidationHist("h_gen_trk_mindR", "smallest #DeltaR between tracks", 40, 0, 0.5, "#Delta R", "Events");
+  validation_hists["gen_hits_rad"] = makeValidationHist("h_gen_hits_rad", "Radius of Hits",400,0,40,"Radius","Hits");
+  validation_hists["gen_hits_rad_lay3"] = makeValidationHist("h_gen_hits_rad_lay3", "Radius of Hits in Layer 3",100,11.9,12.1,"Radius","Hits");
+  validation_hists["gen_hits_cov00"] = makeValidationHist("h_gen_hits_cov00", "Cov(X,X) for All Hits",1000,0.0000001,0.0001,"Covariance (cm^{2}","Hits");
+  validation_hists["gen_hits_cov11"] = makeValidationHist("h_gen_hits_cov11", "Cov(Y,Y) for All Hits",1000,0.0000001,0.0001,"Covariance (cm^{2}","Hits");
 
   validation_hists["rec_trk_nHits"] = makeValidationHist("h_rec_trk_nHits", "number of hits identified in track", 11, -0.5,10.5, "# Hits", "Events");
 }
@@ -430,6 +438,23 @@ void fillValidationHists(std::map<std::string,TH1F*>& validation_hists, std::vec
 	validation_hists["gen_trk_Pz"]->Fill( evt_seeds[iseed].momentum()[2] ); 
 	validation_hists["gen_trk_phi"]->Fill( getPhi(evt_seeds[iseed].momentum()[0], evt_seeds[iseed].momentum()[1]) );
 	validation_hists["gen_trk_eta"]->Fill( getEta(evt_seeds[iseed].momentum()[0], evt_seeds[iseed].momentum()[1], evt_seeds[iseed].momentum()[2]) );
+	
+	std::vector<Hit>& hits = evt_seeds[iseed].hitsVector();
+
+	for (unsigned int ihit = 0; ihit < hits.size(); ihit++){
+	  float rad = sqrt(hits[ihit].position()[0]*hits[ihit].position()[0] + hits[ihit].position()[1]*hits[ihit].position()[1]);
+	  validation_hists["gen_hits_rad"]->Fill( rad );
+
+	  // Fill histo for layer 3
+	  if ( (rad > 11.0) && (rad < 13.0) ) {
+	    validation_hists["gen_hits_rad_lay3"]->Fill( rad );
+	  }
+
+	  validation_hists["gen_hits_cov00"]->Fill( hits[ihit].error()[0][0] );
+	  validation_hists["gen_hits_cov11"]->Fill( hits[ihit].error()[1][1] );
+	}
+	
+
 	float mindR = 999999;
 	float mindPhi = 999999;
 	for( unsigned int jseed = 0; jseed < evt_seeds.size(); ++jseed ){
