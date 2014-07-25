@@ -28,8 +28,8 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
   for (unsigned int r=0;r<6;++r) {
     for (unsigned int c=0;c<6;++c) {
       if (r==c) {
-	if (r<3) covtrk(r,c)=pow(1.0*pos[r],2);//100% uncertainty on position
-	else covtrk(r,c)=pow(1.0*mom[r-3],2);  //100% uncertainty on momentum
+      if (r<3) covtrk(r,c)=pow(1.0*pos[r],2);//100% uncertainty on position
+      else covtrk(r,c)=pow(1.0*mom[r-3],2);  //100% uncertainty on momentum
       } else covtrk(r,c)=0.;                   //no covariance
     }
   }
@@ -53,8 +53,8 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     float hitx = hitposerrXY*g_gaus(g_gen)+propState.parameters.At(0);
     float hity = hitposerrXY*g_gaus(g_gen)+propState.parameters.At(1);
     //float hity = sqrt((pos.At(0) + k*(px*sinAP-py*(1-cosAP)))*(pos.At(0) + k*(px*sinAP-py*(1-cosAP)))+
-    //          	(pos.At(1) + k*(py*sinAP+px*(1-cosAP)))*(pos.At(1) + k*(py*sinAP+px*(1-cosAP)))-
-    //	   	        hitx*hitx);//try to get the fixed radius
+    //           (pos.At(1) + k*(py*sinAP+px*(1-cosAP)))*(pos.At(1) + k*(py*sinAP+px*(1-cosAP)))-
+    //		    	            hitx*hitx);//try to get the fixed radius
     float hitz = hitposerrZ*g_gaus(g_gen)+propState.parameters.At(2);
 
     //std::cout << "hit#" << nhit << " " << hitx << " " << hity << " " << hitz << std::endl;
@@ -78,8 +78,8 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     float hitx = gRandom->Gaus(0,hitposerr)+(pos.At(0) + k*(px*sinAP-py*(1-cosAP)));
     float hity = gRandom->Gaus(0,hitposerr)+(pos.At(1) + k*(py*sinAP+px*(1-cosAP)));
     //float hity = sqrt((pos.At(0) + k*(px*sinAP-py*(1-cosAP)))*(pos.At(0) + k*(px*sinAP-py*(1-cosAP)))+
-    //          	(pos.At(1) + k*(py*sinAP+px*(1-cosAP)))*(pos.At(1) + k*(py*sinAP+px*(1-cosAP)))-
-    //	   	        hitx*hitx);//try to get the fixed radius
+    //           (pos.At(1) + k*(py*sinAP+px*(1-cosAP)))*(pos.At(1) + k*(py*sinAP+px*(1-cosAP)))-
+    //		    	            hitx*hitx);//try to get the fixed radius
     float hitz = gRandom->Gaus(0,hitposerr)+(pos.At(2) + distance*ctgTheta);    
     //std::cout << "hit#" << nhit << " " << hitx << " " << hity << " " << hitz << std::endl;
     SVector3 x1(hitx,hity,hitz);

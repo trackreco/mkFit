@@ -8,10 +8,9 @@
 
 int main(){
   bool saveTree = true;
-  runFittingTest(saveTree,5000); 
+  //  runFittingTest(saveTree,5000); 
   //runFittingTestPlex(saveTree); 
   runBuildingTest(saveTree,10); 
   return 0;
-
 }
 
