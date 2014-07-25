@@ -1,4 +1,4 @@
-void plotCompare(){
+void plotCompare_phiSmear(){
 
   gROOT->Reset();
   gStyle->SetOptStat(111111);
@@ -19,6 +19,8 @@ void plotCompare(){
   TH1F* h_rec_trk_nHits_old = (TH1F*) _file0->Get("h_rec_trk_nHits");    
   TH1F* h_gen_hits_rad_old = (TH1F*) _file0->Get("h_gen_hits_rad");    
   TH1F* h_gen_hits_rad_lay3_old = (TH1F*) _file0->Get("h_gen_hits_rad_lay3");    
+  TH1F* h_gen_hits_cov00_old = (TH1F*) _file0->Get("h_gen_hits_cov00");    
+  TH1F* h_gen_hits_cov11_old = (TH1F*) _file0->Get("h_gen_hits_cov11");    
 
   TH1F* h_gen_trk_Pt = (TH1F*) _file1->Get("h_gen_trk_Pt");	  
   TH1F* h_gen_trk_Px = (TH1F*) _file1->Get("h_gen_trk_Px");	  
@@ -33,6 +35,8 @@ void plotCompare(){
   TH1F* h_rec_trk_nHits = (TH1F*) _file1->Get("h_rec_trk_nHits");    
   TH1F* h_gen_hits_rad = (TH1F*) _file1->Get("h_gen_hits_rad");    
   TH1F* h_gen_hits_rad_lay3 = (TH1F*) _file1->Get("h_gen_hits_rad_lay3");    
+  TH1F* h_gen_hits_cov00 = (TH1F*) _file0->Get("h_gen_hits_cov00");    
+  TH1F* h_gen_hits_cov11 = (TH1F*) _file0->Get("h_gen_hits_cov11");    
 
   bool savePNG = true;
   TFile * rootout = new TFile("compare_plots/compareBuild.root","RECREATE");
@@ -52,6 +56,8 @@ void plotCompare(){
   createPlot(canvas,h_rec_trk_nHits_old,h_rec_trk_nHits,rootout,savePNG);
   createPlot(canvas,h_gen_hits_rad_old,h_gen_hits_rad,rootout,savePNG);
   createPlot(canvas,h_gen_hits_rad_lay3_old,h_gen_hits_rad_lay3,rootout,savePNG);
+  createPlot(canvas,h_gen_hits_cov00_old,h_gen_hits_cov00,rootout,savePNG);
+  createPlot(canvas,h_gen_hits_cov11_old,h_gen_hits_cov11,rootout,savePNG);
   
   canvas->Close();
   rootout->Close();

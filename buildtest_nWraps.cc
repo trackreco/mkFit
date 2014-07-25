@@ -11,7 +11,9 @@
 #include <cmath>
 #include <iostream>
 
+void runBuildingTest(bool saveTree, TTree *tree, unsigned int& tk_nhits, float& chi2,unsigned int& tk_nhits_bestTrack, float& chi2_bestTrack, std::map<std::string,TH1F*>& validation_hists);
 bool sortByPhi(Hit hit1,Hit hit2);
+
 void setupValidationHists(std::map<std::string,TH1F*>& validation_hists);
 TH1F * makeValidationHist(const std::string& name, const std::string& title, const int nbins, const double min, const double max, const std::string& xlabel, const std::string& ylabel);
 void fillValidationHists(std::map<std::string,TH1F*>& validation_hists, std::vector<Track> evt_seeds);
@@ -49,6 +51,8 @@ void runBuildingTest(bool saveTree, unsigned int nevts) {
   TTree *tree=0;
   unsigned int tk_nhits = 0;
   float tk_chi2 = 0.;
+  //  unsigned int tk_nhits_bestTrack = 0;
+  //  float tk_chi2_bestTrack = 0.;
   std::map<std::string,TH1F*> validation_hists;
   setupValidationHists(validation_hists);
 
@@ -57,11 +61,14 @@ void runBuildingTest(bool saveTree, unsigned int nevts) {
     tree = new TTree("tree","tree");
     tree->Branch("nhits",&tk_nhits,"nhits/i");
     tree->Branch("chi2",&tk_chi2,"chi2/F");
+    //    tree->Branch("nhits_bestTrack",&tk_nhits_bestTrack,"nhits_bestTrack/i");
+    //   tree->Branch("chi2_bestTrack",&tk_chi2_bestTrack,"chi2_bestTrack/F");
   }
 
   for (unsigned int evt=0;evt<nevts;++evt) {
     std::cout << std::endl << "EVENT #"<< evt << std::endl << std::endl;
-    runBuildingTestEvt(saveTree,tree,tk_nhits,tk_chi2,validation_hists);
+    //    runBuildingTest(saveTree,tree,tk_nhits,tk_chi2,tk_nhits_bestTrack,tk_chi2_bestTrack, validation_hists);
+    runBuildingTest(saveTree,tree,tk_nhits,tk_chi2,validation_hists);
   }
 
   if (saveTree) {
@@ -73,7 +80,8 @@ void runBuildingTest(bool saveTree, unsigned int nevts) {
 
 }
 
-void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& tk_chi2, std::map<std::string,TH1F*>& validation_hists) {
+//void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& tk_chi2,unsigned int& tk_nhits_bestTrack, float& tk_chi2_bestTrack, std::map<std::string,TH1F*>& validation_hists) {
+void runBuildingTest(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& tk_chi2, std::map<std::string,TH1F*>& validation_hists) {
 
   bool debug = false;
 
@@ -91,10 +99,12 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
   std::vector<Track> evt_sim_tracks;
   std::vector<Track> evt_seeds;
   std::vector<Track> evt_track_candidates;
+  //  std::vector<Track> evt_track_candidates_bestTrack;
 
   //first is first hit index in bin, second is size of this bin
   std::vector<std::vector<BinInfo> > evt_lay_phi_hit_idx(10);//phi partitioning map
-  // Vector of vectors of std::pairs. A vector of maps, although vector is fixed to layer, so really array of maps, where maps are phi bins and the number of hits in those phi bins
+
+  // Vector of vectors of std::pairs... , really just a vector of maps, although vector is fixed to layer, so really array of maps ,where maps are phi bins and the number of hits in those phi bins
 
   for (unsigned int itrack=0;itrack<Ntracks;++itrack) {
 
@@ -124,14 +134,15 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
   for (unsigned int ilay=0;ilay<evt_lay_hits.size();++ilay) {
     if (debug) std::cout << "Hits in layer=" << ilay << std::endl;
     std::sort(evt_lay_hits[ilay].begin(),evt_lay_hits[ilay].end(),sortByPhi);
-    std::vector<unsigned int> lay_phi_bin_count(63);//should it be 63? - yes!
+    std::vector<unsigned int> lay_phi_bin_count(63);//should it be 63?
     for (unsigned int ihit=0;ihit<evt_lay_hits[ilay].size();++ihit) {
       float hitx = evt_lay_hits[ilay][ihit].position()[0];
       float hity = evt_lay_hits[ilay][ihit].position()[1];
       float hitz = evt_lay_hits[ilay][ihit].position()[2];
       if (debug) std::cout << "hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
       			   << std::atan2(hity,hitx) << " " << hitz << std::endl;
-      unsigned int bin = getPhiPartition(std::atan2(hity,hitx));
+      //      unsigned int bin = getPhiPartition(std::atan2(hity,hitx));
+      int bin = getPhiPartition(std::atan2(hity,hitx));
       lay_phi_bin_count[bin]++;
     }
     
@@ -164,15 +175,18 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
     evt_seeds.push_back(seed);
   }
 
-  buildTestSerial(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug);
+  buildTestSerial(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug,validation_hists);
   //buildTestParallel(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug);
 
   //dump candidates
   for (unsigned int itkcand=0;itkcand<evt_track_candidates.size();++itkcand) {
     Track tkcand = evt_track_candidates[itkcand];
-    if (debug) std::cout << "found track candidate with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << std::endl;
+    //std::cout << "found track candidate with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << std::endl;
+    //if (itkcand == 0){
     validation_hists["rec_trk_nHits"]->Fill(tkcand.nHits());
     validation_hists["rec_trk_phi"]->Fill( getPhi(tkcand.momentum()[0], tkcand.momentum()[1]) ); // sanity check from generated?
+    validation_hists["rec_trk_phi2"]->Fill( getPhi(tkcand.position()[1], tkcand.position()[0]) );
+      //}
     if (saveTree) {
       tk_nhits = tkcand.nHits();
       tk_chi2 = tkcand.chi2();
@@ -183,10 +197,12 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
 
 void buildTestSerial(std::vector<Track>& evt_seeds,
 		     std::vector<Track>& evt_track_candidates,
+		     //	     std::vector<Track>& evt_track_candidates_bestTrack,
 		     std::vector<std::vector<Hit> >& evt_lay_hits,
 		     std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
 		     const int& nhits_per_seed,const unsigned int& maxCand,
-		     SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug){
+		     SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug,
+		     std::map<std::string,TH1F*>& validation_hists) {
 
   //process seeds
   for (unsigned int iseed=0;iseed<evt_seeds.size();++iseed) {
@@ -198,6 +214,18 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
     std::vector<std::pair<Track, TrackState> > track_candidates;
     track_candidates.push_back(std::pair<Track, TrackState>(evt_seeds[iseed],seed_state));
 
+    unsigned int nWraps_lay[evt_lay_hits.size()];
+    unsigned int ndPhiOB_lay[evt_lay_hits.size()];
+    float nWraps_lay_fracCands[evt_lay_hits.size()];
+    float ndPhiOB_lay_fracCands[evt_lay_hits.size()];
+    for (unsigned int ilay=nhits_per_seed;ilay<evt_lay_hits.size();++ilay) {
+      nWraps_lay[ilay] = 0;
+      ndPhiOB_lay[ilay] = 0;
+
+      nWraps_lay_fracCands[ilay] = -1;
+      ndPhiOB_lay_fracCands[ilay] = -1;
+    }
+
     for (unsigned int ilay=nhits_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
 
       if (debug) std::cout << "going to layer #" << ilay << std::endl;
@@ -206,10 +234,15 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
       for (unsigned int icand=0;icand<track_candidates.size();++icand) {//loop over running candidates 
 
 	std::pair<Track, TrackState>& cand = track_candidates[icand];
-	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug);
+	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug,nWraps_lay[ilay],ndPhiOB_lay[ilay]);
+	//	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug,validation_hists);
+	//std::cout << "seed: " << iseed << " ilay: " << ilay << " icand: " << icand << std::endl;
 	
       }//end of running candidates loop
 
+      ndPhiOB_lay_fracCands[ilay] = ndPhiOB_lay[ilay] / float(track_candidates.size());
+      nWraps_lay_fracCands[ilay] = nWraps_lay[ilay] / float(track_candidates.size());
+ 
       if (tmp_candidates.size()>maxCand) {
 	if (debug) std::cout << "huge size=" << tmp_candidates.size() << " keeping best "<< maxCand << " only" << std::endl;
 	std::sort(tmp_candidates.begin(),tmp_candidates.end(),sortByHitsChi2);
@@ -226,10 +259,33 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
 
     }//end of layer loop
 
+    validation_hists["rec_seed_ndPhiOB_lay3"]->Fill(ndPhiOB_lay[2]);
+    validation_hists["rec_seed_ndPhiOB_lay5"]->Fill(ndPhiOB_lay[4]);
+    validation_hists["rec_seed_ndPhiOB_lay7"]->Fill(ndPhiOB_lay[6]);
+    validation_hists["rec_seed_ndPhiOB_lay10"]->Fill(ndPhiOB_lay[9]);
+
+    validation_hists["rec_seed_nWraps_lay3"]->Fill(nWraps_lay[2]);
+    validation_hists["rec_seed_nWraps_lay5"]->Fill(nWraps_lay[4]);
+    validation_hists["rec_seed_nWraps_lay7"]->Fill(nWraps_lay[6]);
+    validation_hists["rec_seed_nWraps_lay10"]->Fill(nWraps_lay[9]);
+
+    validation_hists["rec_seed_ndPhiOB_lay3_fracCands"]->Fill(ndPhiOB_lay_fracCands[2]);
+    validation_hists["rec_seed_ndPhiOB_lay5_fracCands"]->Fill(ndPhiOB_lay_fracCands[4]);
+    validation_hists["rec_seed_ndPhiOB_lay7_fracCands"]->Fill(ndPhiOB_lay_fracCands[6]);
+    validation_hists["rec_seed_ndPhiOB_lay10_fracCands"]->Fill(ndPhiOB_lay_fracCands[9]);
+
+    validation_hists["rec_seed_nWraps_lay3_fracCands"]->Fill(nWraps_lay_fracCands[2]);
+    validation_hists["rec_seed_nWraps_lay5_fracCands"]->Fill(nWraps_lay_fracCands[4]);
+    validation_hists["rec_seed_nWraps_lay7_fracCands"]->Fill(nWraps_lay_fracCands[6]);
+    validation_hists["rec_seed_nWraps_lay10_fracCands"]->Fill(nWraps_lay_fracCands[9]);
+
     if (track_candidates.size()>0) {
       std::sort(track_candidates.begin(),track_candidates.end(),sortByHitsChi2);
       if (debug) std::cout << "sorted by chi2" << std::endl;
-      evt_track_candidates.push_back(track_candidates[0].first); // only save one track candidate per seed, one with lowest chi2
+      evt_track_candidates.push_back(track_candidates[0].first);
+      /*      for(unsigned int track_cands=0;track_cands<track_candidates.size();++track_cands){
+	evt_track_candidates.push_back(track_candidates[track_cands].first);
+	}*/
     }
 
   }//end of process seeds loop
@@ -242,7 +298,8 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
 		       std::vector<std::vector<Hit> >& evt_lay_hits,
 		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
 		       const int& nhits_per_seed,const unsigned int& maxCand,
-		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug){
+		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug,
+		       std::map<std::string,TH1F*>& validation_hists) {
 
   //save a vector of candidates per each seed. initialize to the seed itself
   std::vector<std::vector<std::pair<Track, TrackState> > > track_candidates(evt_seeds.size());
@@ -263,7 +320,7 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
       for (unsigned int icand=0;icand<track_candidates[iseed].size();++icand) {//loop over running candidates 
 
 	std::pair<Track, TrackState>& cand = track_candidates[iseed][icand];
-	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug);
+	//   	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug,validation_hists);
 
       }//end of running candidates loop
 	  
@@ -301,7 +358,10 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
 		       unsigned int ilay,std::vector<std::vector<Hit> >& evt_lay_hits,
 		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
 		       const int& nhits_per_seed,const unsigned int& maxCand,
-		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T, bool debug){
+		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T, bool debug, 
+		       //std::map<std::string,TH1F*>& validation_hists
+		       unsigned int & nWraps_lay,
+		       unsigned int & ndPhiOB_lay) {
 
   Track& tkcand = cand.first;
   TrackState& updatedState = cand.second;
@@ -317,6 +377,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   if (debug) dumpMatrix(propState.errors);
   
   float phi = std::atan2(predy,predx);
+  //  if (phi<0){phi+=TMath::TwoPi();}
 
   float dphidx = -predy/(predx*predx+predy*predy);//denominator is just hit radius, consider avoiding re-computing it
   float dphidy =  predx/(predx*predx+predy*predy);//denominator is just hit radius, consider avoiding re-computing it
@@ -330,22 +391,60 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   dphiMinus = atan2(sin(dphiMinus),cos(dphiMinus));
   dphiPlus  = atan2(sin(dphiPlus),cos(dphiPlus));
 
+  //  if (dphiMinus<-TMath::Pi()) dphiMinus=-TMath::Pi()+0.00001;//fixme periodicity
+  //  if (dphiPlus>TMath::Pi()) dphiPlus=TMath::Pi()-0.00001;//fixme periodicity
+
+  if ((dphiMinus<-TMath::Pi()) || (dphiPlus>TMath::Pi())){
+    nWraps_lay++;
+  }
+
+  /*
+  while (dphiMinus<-TMath::Pi()) { // if dPhiMinus<-Pi, shift back to range of -pi to pi
+    dphiMinus += TMath::TwoPi();
+  }
+
+  while (dphiPlus>TMath::Pi()) { // if dphiplus > Pi, shift back to -pi - pi
+    dphiPlus -= TMath::TwoPi();
+  }
+  */
+
+  //  validation_hists["rec_trk_dphi"]->Fill(dphi);
+
+  //  std::cout << "phi error=" << dphi << " dphiMinus=" << dphiMinus << " dphiPlus=" << dphiPlus << std::endl << std::endl;
+
+  // Instead of using while statements which would make branches -- use modulo to return partition.  Do this check for every hit.    
+
+  // unsigned int binMinus = getPhiPartition(dphiMinus);
   unsigned int binMinus = getPhiPartition(dphiMinus);
   binMinus %= 63;
     
+  // unsigned int binPlus  = getPhiPartition(dphiPlus);
   unsigned int binPlus  = getPhiPartition(dphiPlus);
   binPlus  %= 63;
   
-  if (debug) std::cout << "phi: " << phi << " binMinus: " << binMinus << " binPlus: " << binPlus << std::endl;
+  if(binMinus>binPlus){
+    ndPhiOB_lay++;
+  }
+
+  if (debug) {
+    unsigned int bin  = getPhiPartition(phi);
+    std::cout << "central bin: " << bin << " binM=" << binMinus << " binP" << binPlus << std::endl;
+  }
+
+  //    BinInfo binInfoMinus = evt_lay_phi_hit_idx[ilay][std::max(0,int(binMinus))];
+  //   BinInfo binInfoPlus  = evt_lay_phi_hit_idx[ilay][std::min(63,int(binPlus))];//fixme periodicity
   
   BinInfo binInfoMinus = evt_lay_phi_hit_idx[ilay][int(binMinus)];
   BinInfo binInfoPlus  = evt_lay_phi_hit_idx[ilay][int(binPlus)];
  
+  BinInfo      lastBin    = evt_lay_phi_hit_idx[ilay][62];
+  unsigned int totalSize  = lastBin.first+lastBin.second;
+    
   unsigned int firstIndex = binInfoMinus.first;
+      //    unsigned int totalSize  = evt_lay_hits[ilay].size();
   unsigned int maxIndex   = binInfoPlus.first+binInfoPlus.second;
   unsigned int lastIndex  = -1;
-  unsigned int totalSize  = evt_lay_hits[ilay].size(); 
-
+  
   // Branch here from wrapping
   if (binMinus<=binPlus){
     lastIndex = maxIndex;
@@ -354,10 +453,10 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
     lastIndex = totalSize+maxIndex;
   }
 
-  if (debug) std::cout << "total size: " << totalSize << " firstIndex: " << firstIndex << " maxIndex: " << maxIndex << " lastIndex: " << lastIndex << std::endl;
+  //  std::cout << "total size: " << totalSize << " firstIndex: " << firstIndex << " maxIndex: " << maxIndex << " lastIndex: " << lastIndex << std::endl;
   
   for (unsigned int ihit=firstIndex;ihit<lastIndex;++ihit) {//loop over hits on layer (consider only hits from partition)
-    Hit hitCand; // unitialized hit, new constructor in Hit.h
+    Hit hitCand;
 
     // Introduce branch here from wrapping
     if (ihit<totalSize){
@@ -385,12 +484,107 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
     }
   }//end of consider hits on layer loop
 
+  /*
+  
+  if (binMinus<=binPlus){
+    unsigned int firstIndex = binInfoMinus.first;
+    BinInfo      lastBin    = evt_lay_phi_hit_idx[ilay][62];
+    unsigned int totalSize  = lastBin.first+lastBin.second;
+    unsigned int maxIndex   = binInfoPlus.first+binInfoPlus.second;
+    
+    unsigned int lastIndex  = maxIndex;
+
+    //std::cout << "total size: " << totalSize << " firstIndex: " << firstIndex << " maxIndex: " << maxIndex << " lastIndex: " << lastIndex << std::endl;
+ 
+    for (unsigned int ihit=firstIndex;ihit<lastIndex;++ihit) {//loop over hits on layer (consider only hits from partition)
+      //      std::cout << "Correct Phi? " << phi << "phi error=" << dphi << " dphiMinus=" << dphiMinus << " dphiPlus=" << dphiPlus << std::endl;
+      Hit candHit;
+      candHit =evt_lay_hits[ilay][ihit];
+
+      float hitx = candHit.position()[0];
+      float hity = candHit.position()[1];
+      float hitz = candHit.position()[2];
+      MeasurementState hitMeas = candHit.measurementState();
+      float chi2 = computeChi2(propState,hitMeas,projMatrix36,projMatrix36T);
+      if (debug) std::cout << "consider hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
+			   << std::atan2(hity,hitx) << " " << hitz << " chi2=" << chi2 << std::endl;
+    
+      if (chi2<15.) {//fixme 
+	if (debug) std::cout << "found hit with index: " << ihit << " chi2=" << chi2 << std::endl;
+	TrackState tmpUpdatedState = updateParameters(propState, hitMeas,projMatrix36,projMatrix36T);
+	Track tmpCand = tkcand.clone();
+	tmpCand.addHit(candHit,chi2);
+	tmp_candidates.push_back(std::pair<Track, TrackState>(tmpCand,tmpUpdatedState));
+      } 
+    
+    }//end of consider hits on layer loop
+  } // End if Min<Max
+  
+  else if (binMinus>binPlus) { // loop wrap around end of array for binMinus > binPlus, for dPhiMinus < 0 or dPhiPlus > 0 at initialization
+    unsigned int firstIndex = binInfoMinus.first;
+    BinInfo lastBin = evt_lay_phi_hit_idx[ilay][62];
+    unsigned int totalSize  = lastBin.first+lastBin.second;
+    unsigned int maxIndex = binInfoPlus.first+binInfoPlus.second;
+    unsigned int lastIndex  = totalSize+maxIndex;
+
+    //  std::cout << "total size: " << totalSize << " firstIndex: " << firstIndex << " maxIndex: " << maxIndex << " lastIndex: " << lastIndex << std::endl;
+
+    for (unsigned int ihit=firstIndex;ihit<lastIndex;++ihit) {//loop over hits on layer (consider only hits from partition) 
+      Hit candHit;
+      float hitx = 0.0;
+      float hity = 0.0;
+      float hitz = 0.0;
+      MeasurementState hitMeas;
+      float chi2 = 0.0;
+      if (ihit<totalSize){
+	//	std::cout << "Less than layer: "<< ilay << " ihit: " << ihit << std::endl; 
+	candHit =evt_lay_hits[ilay][ihit];
+	hitx = candHit.position()[0];
+	hity = candHit.position()[1];
+	hitz = candHit.position()[2];
+	hitMeas = candHit.measurementState();
+	chi2 = computeChi2(propState,hitMeas,projMatrix36,projMatrix36T);
+      }
+ 
+      else if (ihit>=totalSize) {
+	//	std::cout << "Greater than layer: "<< ilay << " ihit: " << ihit << std::endl; 
+	candHit =evt_lay_hits[ilay][ihit-totalSize];
+	hitx = candHit.position()[0];
+	hity = candHit.position()[1];
+	hitz = candHit.position()[2];
+	hitMeas = candHit.measurementState();
+	chi2 = computeChi2(propState,hitMeas,projMatrix36,projMatrix36T);
+      }
+    
+      else {
+	std::cout << "Serious loop error, moving outside of index: " << ihit << " size of array: " << totalSize << "min, max bins: " << binMinus << " " << binPlus << std::endl;
+      }
+      
+      if (chi2<15.) {//fixme 
+	if (debug) std::cout << "found hit with index: " << ihit << " chi2=" << chi2 << std::endl;
+	TrackState tmpUpdatedState = updateParameters(propState, hitMeas,projMatrix36,projMatrix36T);
+	Track tmpCand = tkcand.clone();
+	if (ihit<totalSize){
+	  tmpCand.addHit(candHit,chi2);
+	}
+	else if (ihit>=totalSize) {
+	  tmpCand.addHit(candHit,chi2);
+	}
+	tmp_candidates.push_back(std::pair<Track, TrackState>(tmpCand,tmpUpdatedState));
+      } 
+      
+    }//end of consider hits on layer loop
+  } // End if Min<Max, for dPhiMinus < 0 or dPhiPlus > 2Pi at initialization
+  */
   //add also the candidate for no hit found
   if (tkcand.nHits()==ilay) {//only if this is the first missing hit
     if (debug) std::cout << "adding candidate with no hit" << std::endl;
     tmp_candidates.push_back(std::pair<Track, TrackState>(tkcand,propState));
   }
 
+
+  //  if (debug) std::cout << "predict hit index between: " << firstIndex << " " << lastIndex << std::endl;
+  
   //consider hits on layer
   //float minChi2 = std::numeric_limits<float>::max();//needed in case of best hit only
   //unsigned int minChi2Hit = evt_lay_hits[ilay].size();//needed in case of best hit only
@@ -419,6 +613,7 @@ void setupValidationHists(std::map<std::string,TH1F*>& validation_hists){
   validation_hists["gen_trk_Py"] = makeValidationHist("h_gen_trk_Py", "P_{y} of generated tracks", 30, -15, 15, "P_{y} [GeV]", "Events");
   validation_hists["gen_trk_Pz"] = makeValidationHist("h_gen_trk_Pz", "P_{z} of generated tracks", 30, -20, 20, "P_{z} [GeV]", "Events");
   validation_hists["gen_trk_phi"] = makeValidationHist("h_gen_trk_phi", "phi of generated tracks from px/py", 20, -4, 4, "#phi", "Events");
+  validation_hists["gen_trk_phi2"] = makeValidationHist("h_gen_trk_phi2", "phi of generated tracks from x/y", 20, -4, 4, "#phi", "Events");
   validation_hists["gen_trk_eta"] = makeValidationHist("h_gen_trk_eta", "eta of generated tracks", 40, -2, 2, "#eta", "Events");
   validation_hists["gen_trk_dPhi"] = makeValidationHist("h_gen_trk_dPhi", "#Delta#phi between tracks", 20, 0, 4, "#Delta#phi", "Events");
   validation_hists["gen_trk_mindPhi"] = makeValidationHist("h_gen_trk_mindPhi", "smallest #Delta#phi between tracks", 40, 0, 0.1, "#Delta#phi", "Events");
@@ -429,9 +624,36 @@ void setupValidationHists(std::map<std::string,TH1F*>& validation_hists){
   validation_hists["gen_hits_cov00"] = makeValidationHist("h_gen_hits_cov00", "Cov(X,X) for All Hits",1000,0.0000001,0.0001,"Covariance (cm^{2}","Hits");
   validation_hists["gen_hits_cov11"] = makeValidationHist("h_gen_hits_cov11", "Cov(Y,Y) for All Hits",1000,0.0000001,0.0001,"Covariance (cm^{2}","Hits");
 
+  validation_hists["rec_seed_ndPhiOB_lay3"] = makeValidationHist("h_rec_seed_ndPhiOB_lay3", "n dPhi OB Per Seed layer 3", 20, 0, 20, "n d#phi OB Per Seed in Layer 3", "Seeds");
+  validation_hists["rec_seed_ndPhiOB_lay5"] = makeValidationHist("h_rec_seed_ndPhiOB_lay5", "n dPhi OB Per Seed layer 5", 20, 0, 20, "n d#phi OB Per Seed in Layer 5", "Seeds");
+  validation_hists["rec_seed_ndPhiOB_lay7"] = makeValidationHist("h_rec_seed_ndPhiOB_lay7", "n dPhi OB Per Seed layer 7", 20, 0, 20, "n d#phi OB Per Seed in Layer 7", "Seeds");
+  validation_hists["rec_seed_ndPhiOB_lay10"] = makeValidationHist("h_rec_seed_ndPhiOB_lay10", "n dPhi OB Per Seed layer 10", 20, 0, 20, "n d#phi OB Per Seed in Layer 10", "Seeds");
+
+  validation_hists["rec_seed_ndPhiOB_lay3_fracCands"] = makeValidationHist("h_rec_seed_ndPhiOB_lay3_fracCands", "n dPhi OB / n cands Per Seed layer 3", 20, 0, 1, "n d#phi OB / n Cands Per Seed in Layer 3", "Seeds");
+  validation_hists["rec_seed_ndPhiOB_lay5_fracCands"] = makeValidationHist("h_rec_seed_ndPhiOB_lay5_fracCands", "n dPhi OB / n cands Per Seed layer 5", 20, 0, 1, "n d#phi OB / n Cands Per Seed in Layer 5", "Seeds");
+  validation_hists["rec_seed_ndPhiOB_lay7_fracCands"] = makeValidationHist("h_rec_seed_ndPhiOB_lay7_fracCands", "n dPhi OB / n cands Per Seed layer 7", 20, 0, 1, "n d#phi OB / n Cands Per Seed in Layer 7", "Seeds");
+  validation_hists["rec_seed_ndPhiOB_lay10_fracCands"] = makeValidationHist("h_rec_seed_ndPhiOB_lay10_fracCands", "n dPhi OB / n cands Per Seed layer 10", 20, 0, 1, "n d#phi OB / n Cands Per Seed in Layer 10", "Seeds");
+
+  validation_hists["rec_seed_nWraps_lay3"] = makeValidationHist("h_rec_seed_nWraps_lay3", "n Wraps Per Seed layer 3", 20, 0, 20, "n Wraps Per Seed in Layer 3", "Seeds");
+  validation_hists["rec_seed_nWraps_lay5"] = makeValidationHist("h_rec_seed_nWraps_lay5", "n Wraps Per Seed layer 5", 20, 0, 20, "n Wraps Per Seed in Layer 5", "Seeds");
+  validation_hists["rec_seed_nWraps_lay7"] = makeValidationHist("h_rec_seed_nWraps_lay7", "n Wraps Per Seed layer 7", 20, 0, 20, "n Wraps Per Seed in Layer 7", "Seeds");
+  validation_hists["rec_seed_nWraps_lay10"] = makeValidationHist("h_rec_seed_nWraps_lay10", "n Wraps Per Seed layer 10", 20, 0, 20, "n Wraps Per Seed in Layer 10", "Seeds");
+
+  validation_hists["rec_seed_nWraps_lay3_fracCands"] = makeValidationHist("h_rec_seed_nWraps_lay3_fracCands", "n Wraps / n cands Per Seed layer 3", 20, 0, 1, "n Wraps / n Cands Per Seed in Layer 3", "Seeds");
+  validation_hists["rec_seed_nWraps_lay5_fracCands"] = makeValidationHist("h_rec_seed_nWraps_lay5_fracCands", "n Wraps / n cands Per Seed layer 5", 20, 0, 1, "n Wraps / n Cands Per Seed in Layer 5", "Seeds");
+  validation_hists["rec_seed_nWraps_lay7_fracCands"] = makeValidationHist("h_rec_seed_nWraps_lay7_fracCands", "n Wraps / n cands Per Seed layer 7", 20, 0, 1, "n Wraps / n Cands Per Seed in Layer 7", "Seeds");
+  validation_hists["rec_seed_nWraps_lay10_fracCands"] = makeValidationHist("h_rec_seed_nWraps_lay10_fracCands", "n Wraps / n cands Per Seed layer 10", 20, 0, 1, "n Wraps / n Cands Per Seed in Layer 10", "Seeds");
+
   validation_hists["rec_trk_nHits"] = makeValidationHist("h_rec_trk_nHits", "number of hits identified in track", 11, -0.5,10.5, "# Hits per Track Candidate", "Events");
   validation_hists["rec_trk_phi"] = makeValidationHist("h_rec_trk_phi", "phi of rec tracks from px/py", 20, -4, 4, "#phi", "Events");
+  validation_hists["rec_trk_phi2"] = makeValidationHist("h_rec_trk_phi2", "phi of rec tracks from y/x", 20, -4, 4, "#phi", "Events");
   validation_hists["rec_trk_dphi"] = makeValidationHist("h_rec_trk_dphi", "dphi of rec tracks from y/x", 200, -0.2, 0.2, "#phi", "Events");
+  /*
+  validation_hists["rec_trk_nHits_bestTrack"] = makeValidationHist("h_rec_trk_nHits_bestTrack", "number of hits identified in track (best per seed)", 11, -0.5,10.5, "# Hits", "Events");
+  validation_hists["rec_trk_phi_bestTrack"] = makeValidationHist("h_rec_trk_phi_bestTrack", "phi of rec tracks from px/py (best per seed)", 20, -4, 4, "#phi", "Events");
+  validation_hists["rec_trk_phi2_bestTrack"] = makeValidationHist("h_rec_trk_phi2_bestTrack", "phi of rec tracks from y/x (best per seed)", 20, -4, 4, "#phi", "Events");
+  */
+
 }
 
 
@@ -460,7 +682,8 @@ void fillValidationHists(std::map<std::string,TH1F*>& validation_hists, std::vec
 	validation_hists["gen_trk_Px"]->Fill( evt_sim_tracks[isim_track].momentum()[0] );
 	validation_hists["gen_trk_Py"]->Fill( evt_sim_tracks[isim_track].momentum()[1] ); 
 	validation_hists["gen_trk_Pz"]->Fill( evt_sim_tracks[isim_track].momentum()[2] ); 
-	validation_hists["gen_trk_phi"]->Fill( getPhi(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1]) );
+	validation_hists["gen_trk_phi"]->Fill( getPhi(evt_sim_tracks[isim_track].momentum()[1], evt_sim_tracks[isim_track].momentum()[0]) );
+	validation_hists["gen_trk_phi2"]->Fill( getPhi(evt_sim_tracks[isim_track].position()[1], evt_sim_tracks[isim_track].position()[0]) );  
 	validation_hists["gen_trk_eta"]->Fill( getEta(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1], evt_sim_tracks[isim_track].momentum()[2]) );
 	
 	std::vector<Hit>& hits = evt_sim_tracks[isim_track].hitsVector();
@@ -483,9 +706,9 @@ void fillValidationHists(std::map<std::string,TH1F*>& validation_hists, std::vec
 	float mindPhi = 999999;
 	for( unsigned int jsim_track = 0; jsim_track < evt_sim_tracks.size(); ++jsim_track ){
 	  if(jsim_track != isim_track){
-		float phii=getPhi(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1]);
+		float phii=getPhi(evt_sim_tracks[isim_track].momentum()[1], evt_sim_tracks[isim_track].momentum()[0]);
 		float etai=getEta(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1], evt_sim_tracks[isim_track].momentum()[2]);
-		float phij=getPhi(evt_sim_tracks[jsim_track].momentum()[0], evt_sim_tracks[jsim_track].momentum()[1]);
+		float phij=getPhi(evt_sim_tracks[jsim_track].momentum()[1], evt_sim_tracks[jsim_track].momentum()[0]);
 		float etaj=getEta(evt_sim_tracks[jsim_track].momentum()[0], evt_sim_tracks[jsim_track].momentum()[1], evt_sim_tracks[jsim_track].momentum()[2]);
 
 		mindR=std::min(mindR, deltaR(phii, etai, phij, etaj));
