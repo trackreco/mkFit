@@ -13,12 +13,32 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     else charge = 1;
   }
 
-  float phi = 0.5*TMath::Pi()*g_unif(g_gen); // make an angle between 0 and pi/2
+  //  float phi = 0.5*TMath::Pi()*g_unif(g_gen); // make an angle between 0 and pi/2
+  float phi = TMath::Pi(); // - (0.1*g_unif(g_gen));
+  float phi_mult = g_unif(g_gen);
+
+  if (g_unif(g_gen) < 0.5){
+    if (g_unif(g_gen) < 0.5){
+      phi = phi + (0.1*phi_mult);
+    }
+    else{
+      phi = phi - (0.1*phi_mult);
+    }
+  }
+  else{
+    if (g_unif(g_gen) < 0.5){
+      phi = -1.0*phi + (0.1*phi_mult);
+    }
+    else{
+      phi = -1.0*phi - (0.1*phi_mult);
+    }
+  }
+
   float px = pt * cos(phi);
   float py = pt * sin(phi);
 
-  if (g_unif(g_gen)>0.5) px*=-1.;
-  if (g_unif(g_gen)>0.5) py*=-1.;
+  //  if (g_unif(g_gen)>0.5) px*=-1.;
+  //  if (g_unif(g_gen)>0.5) py*=-1.;
   float pz = pt*(2.3*(g_unif(g_gen)-0.5));//so that we have -1<eta<1
 
   mom=SVector3(px,py,pz);
@@ -52,7 +72,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     TrackState propState = propagateHelixToR(tmpState,4.*float(nhit));//radius of 4*nhit
 
     // Uncomment these lines for phi smearing
-
+    /*
     float initX = propState.parameters.At(0);
     float initY = propState.parameters.At(1);
     float initZ  = propState.parameters.At(2);
@@ -62,14 +82,14 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     float hitx = convertPhitoX(hitPhi,initX,initY);
     float hity = convertPhitoY(hitPhi,initX,initY);
     float hitz = hitposerrZ*g_gaus(g_gen)+initZ;
-
+    */
     
 
     // Comment these lines for phi smearing if using xy smear
 
-    /*    float hitx = hitposerrXY*g_gaus(g_gen)+propState.parameters.At(0);
+    float hitx = hitposerrXY*g_gaus(g_gen)+propState.parameters.At(0);
     float hity = hitposerrXY*g_gaus(g_gen)+propState.parameters.At(1);
-    float hitz = hitposerrZ*g_gaus(g_gen)+propState.parameters.At(2);*/
+    float hitz = hitposerrZ*g_gaus(g_gen)+propState.parameters.At(2);
     //   //float hity = sqrt((pos.At(0) + k*(px*sinAP-py*(1-cosAP)))*(pos.At(0) + k*(px*sinAP-py*(1-cosAP)))+
     //          	(pos.At(1) + k*(py*sinAP+px*(1-cosAP)))*(pos.At(1) + k*(py*sinAP+px*(1-cosAP)))-
     //	   	        hitx*hitx);//try to get the fixed radius
@@ -80,14 +100,14 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     SVector3 x1(hitx,hity,hitz);
     
     // Uncomment this line for phi smear cov
-    SMatrixSym33 covx1 = calcSimCov(hitx,hity,hitz,hitposerrXY,hitposerrZ);
-    SMatrixSym33 covx2 = calcSimCov(initX,initY,initZ,hitposerrXY,hitposerrZ);
+    //    SMatrixSym33 covx1 = calcSimCov(hitx,hity,hitz,hitposerrXY,hitposerrZ);
+    //    SMatrixSym33 covx2 = calcSimCov(initX,initY,initZ,hitposerrXY,hitposerrZ);
 
     // Comment out these lines if not using xy smear
-    SMatrixSym33 covx3 = ROOT::Math::SMatrixIdentity();
-    covx3(0,0)=hitposerrXY*hitposerrXY; 
-    covx3(1,1)=hitposerrXY*hitposerrXY;
-    covx3(2,2)=hitposerrZ*hitposerrZ;
+    SMatrixSym33 covx1 = ROOT::Math::SMatrixIdentity();
+    covx1(0,0)=hitposerrXY*hitposerrXY; 
+    covx1(1,1)=hitposerrXY*hitposerrXY;
+    covx1(2,2)=hitposerrZ*hitposerrZ;
     
     Hit hit1(x1,covx1);    
     hits.push_back(hit1);  
@@ -165,12 +185,17 @@ SMatrixSym33 calcSimCov(float hitX, float hitY, float hitZ, float hitPosErrXY, f
   float rad2  = hitX2 + hitY2;
   float varXY = hitPosErrXY*hitPosErrXY;
   float varZ  = hitPosErrZ*hitPosErrZ;
+  float rad3  = rad2*rad2*rad2;
 
+  
+
+ 
   covXYZ(0,0) = varXY * (hitX2*hitX2 + hitY2 + hitX2*hitY2) / (rad2*rad2);
   covXYZ(1,1) = varXY * (hitY2*hitY2 + hitX2 + hitX2*hitY2) / (rad2*rad2);
   covXYZ(0,1) = varXY * hitX*hitY * (rad2 - 1) / (rad2*rad2);
   covXYZ(1,0) = covXYZ(0,1);
   covXYZ(2,2) = varZ;
-    
+  
+  
   return covXYZ;
 }
