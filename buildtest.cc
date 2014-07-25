@@ -331,10 +331,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   dphiPlus  = atan2(sin(dphiPlus),cos(dphiPlus));
 
   unsigned int binMinus = getPhiPartition(dphiMinus);
-  binMinus %= 63;
-    
   unsigned int binPlus  = getPhiPartition(dphiPlus);
-  binPlus  %= 63;
   
   if (debug) std::cout << "phi: " << phi << " binMinus: " << binMinus << " binPlus: " << binPlus << std::endl;
   
