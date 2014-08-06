@@ -24,8 +24,6 @@ float deltaPhi(float phi1, float phi2);
 float deltaEta(float eta1, float eta2);
 float deltaR(float phi1, float eta1, float phi2, float eta2);
 
-
-
 bool sortByHitsChi2(std::pair<Track, TrackState> cand1,std::pair<Track, TrackState> cand2) {
   if (cand1.first.nHits()==cand2.first.nHits()) return cand1.first.chi2()<cand2.first.chi2();
   return cand1.first.nHits()>cand2.first.nHits();
@@ -142,8 +140,9 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
       unsigned int firstBinIdx = lastIdxFound+1;
       BinInfo binInfo(firstBinIdx,binSize);
       evt_lay_phi_hit_idx[ilay].push_back(binInfo);
-      if (binSize>0){lastIdxFound+=binSize;}
-
+      if (binSize>0){
+	lastIdxFound+=binSize;
+      }
     }
   }
 
@@ -322,7 +321,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   float dphidy =  predx/(predx*predx+predy*predy);//denominator is just hit radius, consider avoiding re-computing it
   float dphi   =  sqrt(fabs(dphidx*dphidx*propState.errors.At(0,0)+dphidy*dphidy*propState.errors.At(1,1)+2*dphidy*dphidx*propState.errors.At(0,1)));//how come I get negative squared errors sometimes?
   
-  float nSigma = 3;
+  float nSigma = 3.0;
   float dphiMinus = phi-nSigma*dphi;
   float dphiPlus  = phi+nSigma*dphi;
   
