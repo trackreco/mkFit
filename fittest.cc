@@ -12,7 +12,7 @@
 
 #include <iostream>
 
-void runFittingTest(bool saveTree, unsigned int Ntracks)
+void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
 {
   float pt_mc=0.,pt_fit=0.,pt_err=0.; 
 #ifndef NO_ROOT
@@ -43,7 +43,7 @@ void runFittingTest(bool saveTree, unsigned int Ntracks)
     std::vector<Hit> hits;
     int q=0;//set it in setup function
     float pt = 0.5 + g_unif(g_gen) * 9.5;//this input, 0.5<pt<10 GeV  (below ~0.5 GeV does not make 10 layers)
-    setupTrackByToyMC(pos,mom,covtrk,hits,q,pt);
+    setupTrackByToyMC(pos,mom,covtrk,hits,q,pt,theGeom);
     Track simtrk(q,pos,mom,covtrk,hits,0.);
     simtracks.push_back(simtrk);
   }
@@ -141,7 +141,7 @@ void runFittingTest(bool saveTree, unsigned int Ntracks)
 #endif
 }
 
-void runFittingTestPlex(bool saveTree)
+void runFittingTestPlex(bool saveTree, Geometry* theGeom)
 {
   float pt_mc=0.,pt_fit=0.,pt_err=0.; 
 #ifndef NO_ROOT
@@ -175,7 +175,7 @@ void runFittingTestPlex(bool saveTree)
     std::vector<Hit> hits;
     int q=0;//set it in setup function
     float pt = 0.5+g_unif(g_gen)*9.5;//this input, 0.5<pt<10 GeV  (below ~0.5 GeV does not make 10 layers)
-    setupTrackByToyMC(pos,mom,covtrk,hits,q,pt);
+    setupTrackByToyMC(pos,mom,covtrk,hits,q,pt,theGeom);
     Track simtrk(q,pos,mom,covtrk,hits,0.);
     simtracks.push_back(simtrk);
   }

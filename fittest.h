@@ -1,7 +1,9 @@
 #ifndef _fittest_
 #define _fittest_
 
-void runFittingTest(bool saveTree, unsigned int Ntracks);
-void runFittingTestPlex(bool saveTree);
+#include "Geometry.h"
+
+void runFittingTest(bool saveTree, unsigned int Ntracks,Geometry*);
+void runFittingTestPlex(bool saveTree,Geometry*);
 
 #endif

@@ -7,6 +7,13 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
+#if defined(__GLIBCXX__) && (__GLIBCXX__ == 20120313)
+// compatibility hack for libstdc++ 4.4.7
+namespace std {
+  typedef minstd_rand0 default_random_engine;
+}
+#endif
+
 // Set this to 8 for AVX, 16 for MIC
 const idx_t Sfac = 1;
 #ifdef __MIC__
@@ -37,8 +44,6 @@ const int COMPARE_INVERSES = 0;
 
 typedef ROOT::Math::SMatrix<float, M>                                      SMatrixMM;
 typedef ROOT::Math::SMatrix<float, M, M, ROOT::Math::MatRepSym<float, M> > SMatrixSS;
-
-
 
 double dtime()
 {

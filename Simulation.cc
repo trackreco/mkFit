@@ -2,7 +2,7 @@
 
 #include "Simulation.h"
 
-void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::vector<Hit>& hits, int& charge, float pt) {
+void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::vector<Hit>& hits, int& charge, float pt, Geometry* theGeom) {
 
   unsigned int nTotHit = 10;
 
@@ -49,6 +49,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
   //do 4 cm in radius using propagation.h
   for (unsigned int nhit=1;nhit<=nTotHit;++nhit) {
     TrackState propState = propagateHelixToR(tmpState,4.*float(nhit));//radius of 4*nhit
+    // TrackState propState = propagateHelixToNextSolid(tmpState,theGeom);
 
     float hitx = hitposerrXY*g_gaus(g_gen)+propState.parameters.At(0);
     float hity = hitposerrXY*g_gaus(g_gen)+propState.parameters.At(1);
@@ -67,7 +68,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     hits.push_back(hit1);  
     tmpState = propState;
   }
-  
+
   /*
   //do 4 cm along path
   for (unsigned int nhit=1;nhit<=nTotHit;++nhit) {

@@ -41,7 +41,7 @@ unsigned int getPhiPartition(float phi) {
   return bin;
 }
 
-void runBuildingTest(bool saveTree, unsigned int nevts) {
+void runBuildingTest(bool saveTree, unsigned int nevts, Geometry* theGeom) {
 
   TFile* f=0;
   TTree *tree=0;
@@ -59,7 +59,7 @@ void runBuildingTest(bool saveTree, unsigned int nevts) {
 
   for (unsigned int evt=0;evt<nevts;++evt) {
     std::cout << std::endl << "EVENT #"<< evt << std::endl << std::endl;
-    runBuildingTestEvt(saveTree,tree,tk_nhits,tk_chi2,validation_hists);
+    runBuildingTestEvt(saveTree,tree,tk_nhits,tk_chi2,validation_hists,theGeom);
   }
 
   if (saveTree) {
@@ -71,9 +71,9 @@ void runBuildingTest(bool saveTree, unsigned int nevts) {
 
 }
 
-void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& tk_chi2, std::map<std::string,TH1F*>& validation_hists) {
+void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& tk_chi2, std::map<std::string,TH1F*>& validation_hists,Geometry* theGeom) {
 
-  bool debug = false;
+  bool debug = true;
 
   //these matrices are dummy and can be optimized without multriplying by zero all the world...
   SMatrix36 projMatrix36;
@@ -82,7 +82,7 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
   projMatrix36(2,2)=1.;
   SMatrix63 projMatrix36T = ROOT::Math::Transpose(projMatrix36);
   
-  unsigned int Ntracks = 500;//50
+  unsigned int Ntracks = 1;//500;//50
   const unsigned int maxCand = 10;
 
   std::vector<std::vector<Hit> > evt_lay_hits(10);//hits per layer
@@ -105,7 +105,7 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
     std::vector<Hit> hits;
     int q=0;//set it in setup function
     float pt = 0.5+g_unif(g_gen)*9.5;//this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
-    setupTrackByToyMC(pos,mom,covtrk,hits,q,pt);
+    setupTrackByToyMC(pos,mom,covtrk,hits,q,pt,theGeom);
     Track sim_track(q,pos,mom,covtrk,hits,0);
     //sim_track.resetHits();
     evt_sim_tracks.push_back(sim_track);
@@ -141,7 +141,7 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
       BinInfo binInfo(firstBinIdx,binSize);
       evt_lay_phi_hit_idx[ilay].push_back(binInfo);
       if (binSize>0){
-	lastIdxFound+=binSize;
+        lastIdxFound+=binSize;
       }
     }
   }
@@ -163,7 +163,7 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
     evt_seeds.push_back(seed);
   }
 
-  buildTestSerial(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug);
+  buildTestSerial(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug,theGeom);
   //buildTestParallel(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug);
 
   //dump candidates
@@ -185,7 +185,7 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
 		     std::vector<std::vector<Hit> >& evt_lay_hits,
 		     std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
 		     const int& nhits_per_seed,const unsigned int& maxCand,
-		     SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug){
+		     SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug,Geometry* theGeom){
 
   //process seeds
   for (unsigned int iseed=0;iseed<evt_seeds.size();++iseed) {
@@ -205,7 +205,7 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
       for (unsigned int icand=0;icand<track_candidates.size();++icand) {//loop over running candidates 
 
 	std::pair<Track, TrackState>& cand = track_candidates[icand];
-	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug);
+	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug,theGeom);
 	
       }//end of running candidates loop
 
@@ -241,7 +241,7 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
 		       std::vector<std::vector<Hit> >& evt_lay_hits,
 		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
 		       const int& nhits_per_seed,const unsigned int& maxCand,
-		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug){
+		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug,Geometry* theGeom){
 
   //save a vector of candidates per each seed. initialize to the seed itself
   std::vector<std::vector<std::pair<Track, TrackState> > > track_candidates(evt_seeds.size());
@@ -262,7 +262,7 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
       for (unsigned int icand=0;icand<track_candidates[iseed].size();++icand) {//loop over running candidates 
 
 	std::pair<Track, TrackState>& cand = track_candidates[iseed][icand];
-	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug);
+	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug,theGeom);
 
       }//end of running candidates loop
 	  
@@ -300,7 +300,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
 		       unsigned int ilay,std::vector<std::vector<Hit> >& evt_lay_hits,
 		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
 		       const int& nhits_per_seed,const unsigned int& maxCand,
-		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T, bool debug){
+		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T, bool debug,Geometry* theGeom){
 
   Track& tkcand = cand.first;
   TrackState& updatedState = cand.second;

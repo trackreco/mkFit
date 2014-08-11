@@ -39,6 +39,194 @@ TrackState propagateLineToR(TrackState& inputState, float r) {
 // each step travels for a path lenght equal to delta r between the current position and the target radius. 
 // for track with pT>=1 GeV this converges to the correct path lenght in <5 iterations
 // derivatives need to be updated at each iteration
+TrackState propagateHelixToNextSolid(TrackState& inputState, Geometry* theGeom) {
+  bool dump = true;
+
+  int& charge = inputState.charge;
+
+  float& xin = inputState.parameters.At(0);
+  float& yin = inputState.parameters.At(1);
+  float& zin = inputState.parameters.At(2);
+  float& pxin = inputState.parameters.At(3);
+  float& pyin = inputState.parameters.At(4);
+  float& pzin = inputState.parameters.At(5);
+  float  r0in = sqrt(xin*xin+yin*yin);
+
+  float pt2 = pxin*pxin+pyin*pyin;
+  float pt = sqrt(pt2);
+  float pt3 = pt*pt2;
+  //p=0.3Br => r=p/(0.3*B)
+  float k=charge*100./(-0.299792458*3.8);
+  float curvature = pt*k;//in cm
+  if (dump) std::cout << "curvature=" << curvature << std::endl;
+  float ctgTheta=pzin/pt;
+
+  //variables to be updated at each iterations
+  //derivatives initialized to value for first iteration, i.e. distance = r-r0in
+  float totalDistance = 0;
+  float dTDdx = r0in>0. ? -xin/r0in : 0.;
+  float dTDdy = r0in>0. ? -yin/r0in : 0.;
+  float dTDdpx = 0.;
+  float dTDdpy = 0.;
+
+  //make a copy so that can be modified and returned
+  TrackState result;
+  result.parameters = inputState.parameters;
+  result.errors = inputState.errors;
+  result.charge = charge;
+  //rename so that it is short
+  SVector6& par = result.parameters;
+  SMatrixSym66& err = result.errors;
+
+  auto startSolid = theGeom->InsideWhat(UVector3(xin,yin,zin));
+  //5 iterations is a good starting point
+  unsigned int Niter = 5;
+  for (unsigned int i=0;i<Niter;++i) {
+
+    if (dump) std::cout << "propagation iteration #" << i << std::endl;
+
+    float x = par.At(0);
+    float y = par.At(1);
+    float z = par.At(2);
+    float px = par.At(3);
+    float py = par.At(4);
+    float pz = par.At(5);
+
+    auto currentSolid = theGeom->InsideWhat(UVector3(x,y,z));
+    if (currentSolid && currentSolid != startSolid) {
+      if (dump) std::cout << "Inside next solid" << std::endl;
+      break;
+    }
+
+
+    float r0 = sqrt(x*x+y*y);
+    if (dump) std::cout << "r0=" << r0 << " pt=" << pt << std::endl;
+
+    float distance = std::max(theGeom->SafetyFromOutside(UVector3(x,y,z)), .0001);
+    totalDistance+=distance;
+    if (dump) std::cout << "distance=" << distance << std::endl;  
+    float angPath = distance/curvature;
+    if (dump) std::cout << "angPath=" << angPath << std::endl;
+    float cosAP=cos(angPath);
+    float sinAP=sin(angPath);
+
+    //helix propagation formulas
+    //http://www.phys.ufl.edu/~avery/fitting/fitting4.pdf
+    par.At(0) = x + k*(px*sinAP-py*(1-cosAP));
+    par.At(1) = y + k*(py*sinAP+px*(1-cosAP));
+    par.At(2) = z + distance*ctgTheta;
+    par.At(3) = px*cosAP-py*sinAP;
+    par.At(4) = py*cosAP+px*sinAP;
+    par.At(5) = pz;
+    
+    if (i+1!=Niter && r0>0.) {
+
+      //update derivatives on total distance for next step, where totalDistance+=r-r0
+      //now r0 depends on px and py
+      float r0inv = 1./r0;
+      if (dump) std::cout << "r0=" << r0 << " r0inv=" << r0inv << " pt=" << pt << std::endl;
+      //update derivative on D
+      float dAPdx = -x/(r0*curvature);
+      float dAPdy = -y/(r0*curvature);
+      float dAPdpx = -angPath*px/pt2;
+      float dAPdpy = -angPath*py/pt2;
+
+      float dxdx = 1 + k*dAPdx*(px*sinAP + py*cosAP);
+      float dxdy = k*dAPdy*(px*sinAP + py*cosAP);
+      float dydx = k*dAPdx*(py*sinAP - px*cosAP);
+      float dydy = 1 + k*dAPdy*(py*sinAP - px*cosAP);
+
+      float dxdpx = k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx);
+      float dxdpy = k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy);
+      float dydpx = k*(py*cosAP*dAPdpx + 1. - cosAP + px*sinAP*dAPdpx);
+      float dydpy = k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy);
+
+      dTDdx -= r0inv*(x*dxdx + y*dydx);
+      dTDdy -= r0inv*(x*dxdy + y*dydy);
+      dTDdpx -= r0inv*(x*dxdpx + y*dydpx);
+      dTDdpy -= r0inv*(x*dxdpy + y*dydpy);
+    }
+
+    if (dump) std::cout << par.At(0) << " " << par.At(1) << " " << par.At(2) << std::endl;
+    if (dump) std::cout << par.At(3) << " " << par.At(4) << " " << par.At(5) << std::endl;
+
+  }
+
+  float totalAngPath=totalDistance/curvature;
+
+  float& TD=totalDistance;
+  float& TP=totalAngPath;
+  float& C=curvature;
+
+  if (dump) std::cout << "TD=" << TD << " TP=" << TP << " arrived at r=" << sqrt(par.At(0)*par.At(0)+par.At(1)*par.At(1)) << std::endl;
+
+  float dCdpx = k*pxin/pt;
+  float dCdpy = k*pyin/pt;
+
+  float dTPdx = dTDdx/C;
+  float dTPdy = dTDdy/C;
+  float dTPdpx = (dTDdpx*C - TD*dCdpx)/(C*C);
+  float dTPdpy = (dTDdpy*C - TD*dCdpy)/(C*C);
+
+  float cosTP = cos(TP);
+  float sinTP = sin(TP);
+
+  //derive these to compute jacobian
+  //x = xin + k*(pxin*sinTP-pyin*(1-cosTP));
+  //y = yin + k*(pyin*sinTP+pxin*(1-cosTP));
+  //z = zin + TD*ctgTheta;
+  //px = pxin*cosTP-pyin*sinTP;
+  //py = pyin*cosTP+pxin*sinTP;
+  //pz = pzin;
+
+  //jacobian
+  SMatrix66 errorProp = ROOT::Math::SMatrixIdentity();//what is not explicitly set below is 1 (0) on (off) diagonal
+  errorProp(0,0) = 1 + k*dTPdx*(pxin*sinTP + pyin*cosTP);	          //dxdx;
+  errorProp(0,1) = k*dTPdy*(pxin*sinTP + pyin*cosTP);		          //dxdy;
+  errorProp(0,3) = k*(sinTP + pxin*cosTP*dTPdpx - pyin*sinTP*dTPdpx);     //dxdpx;
+  errorProp(0,4) = k*(pxin*cosTP*dTPdpy - 1. + cosTP - pyin*sinTP*dTPdpy);//dxdpy;
+
+  errorProp(1,0) = k*dTPdx*(pyin*sinTP - pxin*cosTP);		          //dydx;
+  errorProp(1,1) = 1 + k*dTPdy*(pyin*sinTP - pxin*cosTP);	          //dydy;
+  errorProp(1,3) = k*(pyin*cosTP*dTPdpx + 1. - cosTP + pxin*sinTP*dTPdpx);//dydpx;
+  errorProp(1,4) = k*(sinTP + pyin*cosTP*dTPdpy + pxin*sinTP*dTPdpy);     //dydpy;
+
+  errorProp(2,0) = dTDdx*ctgTheta;		      //dzdx;
+  errorProp(2,1) = dTDdy*ctgTheta;		      //dzdy;
+  errorProp(2,3) = dTDdpx*ctgTheta - TD*pzin*pxin/pt3;//dzdpx;
+  errorProp(2,4) = dTDdpy*ctgTheta - TD*pzin*pyin/pt3;//dzdpy;
+  errorProp(2,5) = TD/pt;                             //dzdpz;
+
+  errorProp(3,0) = -dTPdx*(pxin*sinTP + pyin*cosTP);	     //dpxdx;
+  errorProp(3,1) = -dTPdy*(pxin*sinTP + pyin*cosTP);	     //dpxdy;
+  errorProp(3,3) = cosTP - dTPdpx*(pxin*sinTP + pyin*cosTP); //dpxdpx;
+  errorProp(3,4) = -sinTP - dTPdpy*(pxin*sinTP + pyin*cosTP);//dpxdpy;
+
+  errorProp(4,0) = -dTPdx*(pyin*sinTP - pxin*cosTP);         //dpydx;
+  errorProp(4,1) = -dTPdy*(pyin*sinTP - pxin*cosTP);	     //dpydy;
+  errorProp(4,3) = +sinTP - dTPdpx*(pyin*sinTP - pxin*cosTP);//dpydpx;
+  errorProp(4,4) = +cosTP - dTPdpy*(pyin*sinTP - pxin*cosTP);//dpydpy;
+
+  result.errors=ROOT::Math::Similarity(errorProp,err);
+
+  if (dump) {
+    std::cout << "errorProp" << std::endl;
+    dumpMatrix(errorProp);
+    std::cout << "result.errors" << std::endl;
+    dumpMatrix(result.errors);
+  }
+  //if (fabs(sqrt(par[0]*par[0]+par[1]*par[1])-r)>0.0001) {
+  //std::cout << "DID NOT GET TO R, dR=" << fabs(sqrt(par[0]*par[0]+par[1]*par[1])-r) 
+  //	      << " r=" << r << " r0in=" << r0in << " rout=" << sqrt(par[0]*par[0]+par[1]*par[1]) << std::endl;
+  //std::cout << "pt=" << pt << " pz=" << inputState.parameters.At(2) << std::endl;
+  //}
+  return result;
+}
+
+// helix propagation in steps along helix trajectory. 
+// each step travels for a path lenght equal to delta r between the current position and the target radius. 
+// for track with pT>=1 GeV this converges to the correct path lenght in <5 iterations
+// derivatives need to be updated at each iteration
 TrackState propagateHelixToR(TrackState& inputState, float r) {
 
   bool dump = false;

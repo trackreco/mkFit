@@ -2,24 +2,24 @@
 # . /opt/rh/devtoolset-2/enable
 
 MPLEXDEFS := -I. -DMDIM=6
-LDFLAGS :=  $(shell root-config --libs)
+LDFLAGS :=  $(shell . /Volumes/User/Applications/root/bin/thisroot.sh && root-config --libs)
 #CXX=icc
 
 ifeq ($(CXX),c++)
-	CXXFLAGS := -std=c++11 -O3 -openmp -Wall -Wno-unknown-pragmas -I. $(shell root-config --cflags)
+	CXXFLAGS := -std=c++11 -O3 -openmp -Wall -Wno-unknown-pragmas -I. $(shell . /Volumes/User/Applications/root/bin/thisroot.sh && root-config --cflags)
 	MPLEXOPTS := -std=c++11 -O3 -openmp
 else
 	CXX := icc
-	CXXFLAGS := -std=gnu++0x -O3 -openmp -I. $(shell root-config --cflags)
+	CXXFLAGS := -std=gnu++0x -O3 -openmp -I. $(shell . /Volumes/User/Applications/root/bin/thisroot.sh && root-config --cflags)
 	MPLEXOPTS := -std=gnu++0x -O3 -openmp -vec-report=1 # -vec-threshold=0
 endif
 
-MOBJ = main.o Matrix.o KalmanUtils.o Propagation.o Simulation.o buildtest.o fittest.o
+MOBJ = main.o Matrix.o KalmanUtils.o Propagation.o Simulation.o buildtest.o fittest.o Geometry.o
 
 MEXE-MIC = mplex-mic mplex-vec-mic mplex-nt-mic mplexsym-mic mplexsym-nt-mic
 MEXE-AVX = mplex mplex-vec mplex-nt mplexsym mplexsym-nt
 
-all: all-avx all-mic
+all: main #all-avx all-mic
 
 all-mic:	$(MEXE-MIC)
 all-avx:	$(MEXE-AVX)
@@ -38,15 +38,17 @@ test:	mplex-test mplex-vec-test mplex-nt-test mplexsym-test mplexsym-nt-test
 	ssh root@mic0 ./$*-mic
 
 main: $(MOBJ)
-	$(CXX) -o $@ $^ $(LDFLAGS)
+	$(CXX) -o $@ $^ $(LDFLAGS) -LUSolids -lusolids
 
-main.o: fittest.h buildtest.h
-Matrix.o: Matrix.h
-KalmanUtils.o: KalmanUtils.h
-Propagation.o: Propagation.h
-Simulation.o: Simulation.h
-buildtest.o: buildtest.h KalmanUtils.h Simulation.h
-fittest.o: fittest.h KalmanUtils.h Simulation.h
+buildtest.o: buildtest.cc Propagation.h buildtest.h KalmanUtils.h Simulation.h Geometry.h
+fittest.o: fittest.cc Propagation.h fittest.h KalmanUtils.h Simulation.h Geometry.h
+Geometry.o: Geometry.h
+KalmanUtils.o: KalmanUtils.cc KalmanUtils.h Track.h
+main.o: main.cc fittest.h buildtest.h
+Matrix.o: Matrix.cc Matrix.h
+KalmanUtils.o: KalmanUtils.cc KalmanUtils.h
+Propagation.o: Propagation.cc Propagation.h Track.h
+Simulation.o: Simulation.cc Propagation.h Simulation.h Geometry.h
 
 Hit.h: Matrix.h
 KalmanUtils.h: Track.h

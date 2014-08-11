@@ -2,11 +2,14 @@
 #define _propagation_
 
 #include "Track.h"
+#include "Geometry.h"
 #include "Matrix.h"
 
 // line propagation from state radius to hit radius
 // assuming radial direction (i.e. origin at (0,0))
 TrackState propagateLineToR(TrackState& inputState, float r);
+
+TrackState propagateHelixToNextSolid(TrackState& inputState, Geometry* theGeom);
 
 // helix propagation in steps along helix trajectory. 
 // each step travels for a path lenght equal to delta r between the current position and the target radius. 
