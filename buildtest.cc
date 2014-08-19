@@ -308,6 +308,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   if (debug) std::cout << "processing candidate with nHits=" << tkcand.nHits() << std::endl;
     
   TrackState propState = propagateHelixToR(updatedState,4.*float(ilay+1));//radius of 4*ilay
+  //TrackState propState = propagateHelixToNextSolid(updatedState,theGeom);//radius of 4*ilay
   float predx = propState.parameters.At(0);
   float predy = propState.parameters.At(1);
   float predz = propState.parameters.At(2);

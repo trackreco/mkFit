@@ -284,8 +284,8 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
 
     if (dump) {
       if (r==r0) {
-	std::cout << "distance = 0 at iteration=" <<  i << std::endl;
-	break;
+        std::cout << "distance = 0 at iteration=" <<  i << std::endl;
+        break;
       } 
     }
 
