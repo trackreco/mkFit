@@ -51,19 +51,51 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     //TrackState propState = propagateHelixToR(tmpState,4.*float(nhit));//radius of 4*nhit
     TrackState propState = propagateHelixToNextSolid(tmpState,theGeom);
 
-    float hitx = hitposerrXY*g_gaus(g_gen)+propState.parameters.At(0);
-    float hity = hitposerrXY*g_gaus(g_gen)+propState.parameters.At(1);
+    // xy smear
+    //    float hitx = hitposerrXY*g_gaus(g_gen)+propState.parameters.At(0);
+    //   float hity = hitposerrXY*g_gaus(g_gen)+propState.parameters.At(1);
     //float hity = sqrt((pos.At(0) + k*(px*sinAP-py*(1-cosAP)))*(pos.At(0) + k*(px*sinAP-py*(1-cosAP)))+
     //           (pos.At(1) + k*(py*sinAP+px*(1-cosAP)))*(pos.At(1) + k*(py*sinAP+px*(1-cosAP)))-
     //		    	            hitx*hitx);//try to get the fixed radius
-    float hitz = hitposerrZ*g_gaus(g_gen)+propState.parameters.At(2);
+    //    float hitz = hitposerrZ*g_gaus(g_gen)+propState.parameters.At(2);
 
     //std::cout << "hit#" << nhit << " " << hitx << " " << hity << " " << hitz << std::endl;
-    SVector3 x1(hitx,hity,hitz);
+   
+    //rphi smear
+    float initX   = propState.parameters.At(0);
+    float initY   = propState.parameters.At(1);
+    float initZ   = propState.parameters.At(2);
+    float initPhi = atan2(initY,initX);
+    float initRad = sqrt(initX*initX+initY*initY);
+
+    float hitZ    = hitposerrZ*g_gaus(g_gen)+initZ;
+    float hitPhi  = ((hitposerrXY/initRad)*g_gaus(g_gen))+initPhi;
+    const float hitposerrR = hitposerrXY/10.;
+    float hitRad  = (hitposerrR)*g_gaus(g_gen)+initRad;
+    float hitRad2 = hitRad*hitRad;
+    float hitX    = hitRad*cos(hitPhi);
+    float hitY    = hitRad*sin(hitPhi);
+
+    float varXY  = hitposerrXY*hitposerrXY;
+    float varPhi = varXY/hitRad2;
+    float varR   = hitposerrR*hitposerrR;
+    float varZ   = hitposerrZ*hitposerrZ;
+
+    SVector3 x1(hitX,hitY,hitZ);
     SMatrixSym33 covx1 = ROOT::Math::SMatrixIdentity();
-    covx1(0,0)=hitposerrXY*hitposerrXY; 
-    covx1(1,1)=hitposerrXY*hitposerrXY;
-    covx1(2,2)=hitposerrZ*hitposerrZ;
+
+    //xy smear
+    //covx1(0,0)=hitposerrXY*hitposerrXY; 
+    //covx1(1,1)=hitposerrXY*hitposerrXY;
+    //covx1(2,2)=hitposerrZ*hitposerrZ;
+
+    //rphi smear
+    covx1(0,0) = hitX*hitX*varR/hitRad2 + hitY*hitY*varPhi;
+    covx1(1,1) = hitX*hitX*varPhi + hitY*hitY*varR/hitRad2;
+    covx1(2,2) = varZ;
+    covx1(0,1) = hitX*hitY*(varR/hitRad2 - varPhi);
+    covx1(1,0) = covx1(0,1);
+
     Hit hit1(x1,covx1);    
     hits.push_back(hit1);  
     tmpState = propState;
