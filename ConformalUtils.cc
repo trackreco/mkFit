@@ -74,19 +74,40 @@ void conformalFit(Hit& hit0,Hit& hit1,Hit& hit2,int& charge,TrackState& fitState
   fitStateHit0.parameters[5] = pz;
   //get them a posteriori from width of residue plots (i.e. unitary pulls)
   //warning: this errors are tuned for hits on layer 0,5,9
-  float xerr = 0.01;
-  float yerr = 0.01;
-  float zerr = 0.1;
-  float ptinverr = 0.0072;
+  const float hitposerrXY = 0.01;//assume 100mum uncertainty in xy coordinate
+  const float hitposerrZ = 0.1;//assume 1mm uncertainty in z coordinate
+  const float hitposerrR = hitposerrXY/10.;
+
+  //xy smearing
+  // float xerr = hitposerrXY;
+  // float yerr = hitposerrXY;
+  // float zerr = hitposerrZ;
+
+  //r-phi smearing
+  float hitRad2 = x[0]*x[0]+y[0]*y[0];
+  float varXY  = hitposerrXY*hitposerrXY;
+  float varPhi = varXY/hitRad2;
+  float varR   = hitposerrR*hitposerrR;
+  float varZ   = hitposerrZ*hitposerrZ;
+
+  float ptinverr = 0.0075;
   float pterr = pow(pt,2)*ptinverr;
-  float phierr = 0.0016;
+  float phierr = 0.0017;
   float thetaerr = 0.0031;
   
-  //this gives nice fitting results when scaling the erros by 10
+  //this gives nice fitting results when scaling the errors by 10
   fitStateHit0.errors=ROOT::Math::SMatrixIdentity();
-  fitStateHit0.errors[0][0] = pow(xerr,2);
-  fitStateHit0.errors[1][1] = pow(yerr,2);
-  fitStateHit0.errors[2][2] = pow(zerr,2);
+  //xy smearing
+  //fitStateHit0.errors[0][0] = pow(xerr,2);
+  //fitStateHit0.errors[1][1] = pow(yerr,2);
+  //fitStateHit0.errors[2][2] = pow(zerr,2);
+  //r-phi smearing
+  fitStateHit0.errors[0][0] = x[0]*x[0]*varR/hitRad2 + y[0]*y[0]*varPhi;
+  fitStateHit0.errors[1][1] = x[0]*x[0]*varPhi + y[0]*y[0]*varR/hitRad2;
+  fitStateHit0.errors[2][2] = varZ;
+  fitStateHit0.errors[1][0] = x[0]*y[0]*(varR/hitRad2 - varPhi);
+  fitStateHit0.errors[0][1] = fitStateHit0.errors[1][0];
+
   fitStateHit0.errors[3][3] = pow(cos(phi),2)*pow(pterr,2)+pow(pt*sin(phi),2)*pow(phierr,2);
   fitStateHit0.errors[4][4] = pow(sin(phi),2)*pow(pterr,2)+pow(pt*cos(phi),2)*pow(phierr,2);
   fitStateHit0.errors[5][5] = pow(1./tantheta,2)*pow(pterr,2)+pow(pt/pow(sin(atan(tantheta)),2),2)*pow(thetaerr,2);
