@@ -14,7 +14,7 @@ else
 	MPLEXOPTS := -std=gnu++0x -O3 -openmp -vec-report=1 # -vec-threshold=0
 endif
 
-MOBJ = main.o Matrix.o KalmanUtils.o Propagation.o Simulation.o buildtest.o fittest.o Geometry.o
+MOBJ = main.o Matrix.o KalmanUtils.o Propagation.o Simulation.o buildtest.o fittest.o Geometry.o ConformalUtils.o
 
 MEXE-MIC = mplex-mic mplex-vec-mic mplex-nt-mic mplexsym-mic mplexsym-nt-mic
 MEXE-AVX = mplex mplex-vec mplex-nt mplexsym mplexsym-nt
@@ -49,6 +49,7 @@ Matrix.o: Matrix.cc Matrix.h
 KalmanUtils.o: KalmanUtils.cc KalmanUtils.h
 Propagation.o: Propagation.cc Propagation.h Track.h
 Simulation.o: Simulation.cc Propagation.h Simulation.h Geometry.h
+ConformalUtils.o: ConformalUtils.h
 
 Hit.h: Matrix.h
 KalmanUtils.h: Track.h

@@ -298,6 +298,16 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
   HelixState hsout(hsin);
   SVector6& par = hsout.state.parameters;
 
+  if (dump) {
+    std::cout << "attempt propagation from r=" << hsin.r0 << " to r=" << r << std::endl;
+    std::cout << "x=" << hsin.x << " y=" << hsin.y << " px=" << hsin.px  << " py=" << hsin.py << " pz=" << hsin.pz << " q=" << inputState.charge << std::endl;
+  }
+
+  if ((hsin.r0-r)>=0) {
+    if (dump) std::cout << "target radius same or smaller than starting point, returning input" << std::endl;
+    return hsin.state;
+  }
+
   if (dump) std::cout << "curvature=" << hsin.curvature << std::endl;
 
   float totalDistance = 0;
