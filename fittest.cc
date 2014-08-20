@@ -4,6 +4,7 @@
 #include "KalmanUtils.h"
 #include "Propagation.h"
 #include "Simulation.h"
+#include "ConformalUtils.h"
 
 #ifndef NO_ROOT
 #include "TFile.h"
@@ -15,6 +16,9 @@
 void runFittingTest(bool saveTree, unsigned int Ntracks)
 {
   float pt_mc=0.,pt_fit=0.,pt_err=0.; 
+  float simHit0_x=0.,simHit0_y=0.,simHit0_z=0.,simHit0_px=0.,simHit0_py=0.,simHit0_pz=0.;
+  float cfitHit0_x=0.,cfitHit0_y=0.,cfitHit0_z=0.,cfitHit0_px=0.,cfitHit0_py=0.,cfitHit0_pz=0.;
+  float cfitHit0_xe=0.,cfitHit0_ye=0.,cfitHit0_ze=0.,cfitHit0_pxe=0.,cfitHit0_pye=0.,cfitHit0_pze=0.;
 #ifndef NO_ROOT
   TFile* f=0;
   TTree *tree=0;
@@ -24,6 +28,24 @@ void runFittingTest(bool saveTree, unsigned int Ntracks)
     tree->Branch("pt_mc",&pt_mc,"pt_mc");
     tree->Branch("pt_fit",&pt_fit,"pt_fit");
     tree->Branch("pt_err",&pt_err,"pt_err");
+    tree->Branch("simHit0_x",&simHit0_x,"simHit0_x");
+    tree->Branch("simHit0_y",&simHit0_y,"simHit0_y");
+    tree->Branch("simHit0_z",&simHit0_z,"simHit0_z");
+    tree->Branch("simHit0_px",&simHit0_px,"simHit0_px");
+    tree->Branch("simHit0_py",&simHit0_py,"simHit0_py");
+    tree->Branch("simHit0_pz",&simHit0_pz,"simHit0_pz");
+    tree->Branch("cfitHit0_x",&cfitHit0_x,"cfitHit0_x");
+    tree->Branch("cfitHit0_y",&cfitHit0_y,"cfitHit0_y");
+    tree->Branch("cfitHit0_z",&cfitHit0_z,"cfitHit0_z");
+    tree->Branch("cfitHit0_px",&cfitHit0_px,"cfitHit0_px");
+    tree->Branch("cfitHit0_py",&cfitHit0_py,"cfitHit0_py");
+    tree->Branch("cfitHit0_pz",&cfitHit0_pz,"cfitHit0_pz");
+    tree->Branch("cfitHit0_xe",&cfitHit0_xe,"cfitHit0_xe");
+    tree->Branch("cfitHit0_ye",&cfitHit0_ye,"cfitHit0_ye");
+    tree->Branch("cfitHit0_ze",&cfitHit0_ze,"cfitHit0_ze");
+    tree->Branch("cfitHit0_pxe",&cfitHit0_pxe,"cfitHit0_pxe");
+    tree->Branch("cfitHit0_pye",&cfitHit0_pye,"cfitHit0_pye");
+    tree->Branch("cfitHit0_pze",&cfitHit0_pze,"cfitHit0_pze");
   }
 #endif
 
@@ -63,9 +85,37 @@ void runFittingTest(bool saveTree, unsigned int Ntracks)
     std::vector<Hit>& hits = trk.hitsVector();
 
     TrackState initState = trk.state();
-    //make a copy since initState is used at the end to fill the tree
-    TrackState updatedState = initState;
-    
+    TrackState simStateHit0 = propagateHelixToR(initState,4.);//4 is the simulated radius 
+    std::cout << "simulation x=" << simStateHit0.parameters[0] << " y=" << simStateHit0.parameters[1] << " z=" << simStateHit0.parameters[2] << " r=" << sqrt(pow(simStateHit0.parameters[0],2)+pow(simStateHit0.parameters[1],2)) << std::endl; 
+    std::cout << "simulation px=" << simStateHit0.parameters[3] << " py=" << simStateHit0.parameters[4] << " pz=" << simStateHit0.parameters[5] << std::endl; 
+    TrackState cfitStateHit0;
+    //conformalFit(hits[0],hits[1],hits[2],trk.charge(),cfitStateHit0);//fit is problematic in case of very short lever arm
+    conformalFit(hits[0],hits[5],hits[9],trk.charge(),cfitStateHit0);
+    std::cout << "conformfit x=" << cfitStateHit0.parameters[0] << " y=" << cfitStateHit0.parameters[1] << " z=" << cfitStateHit0.parameters[2] << std::endl; 
+    std::cout << "conformfit px=" << cfitStateHit0.parameters[3] << " py=" << cfitStateHit0.parameters[4] << " pz=" << cfitStateHit0.parameters[5] << std::endl; 
+    if (saveTree) {
+      simHit0_x=simStateHit0.parameters[0];
+      simHit0_y=simStateHit0.parameters[1];
+      simHit0_z=simStateHit0.parameters[2];
+      simHit0_px=simStateHit0.parameters[3];
+      simHit0_py=simStateHit0.parameters[4];
+      simHit0_pz=simStateHit0.parameters[5];
+      cfitHit0_x=cfitStateHit0.parameters[0];
+      cfitHit0_y=cfitStateHit0.parameters[1];
+      cfitHit0_z=cfitStateHit0.parameters[2];
+      cfitHit0_px=cfitStateHit0.parameters[3];
+      cfitHit0_py=cfitStateHit0.parameters[4];
+      cfitHit0_pz=cfitStateHit0.parameters[5];
+      cfitHit0_xe=sqrt(cfitStateHit0.errors[0][0]);
+      cfitHit0_ye=sqrt(cfitStateHit0.errors[1][1]);
+      cfitHit0_ze=sqrt(cfitStateHit0.errors[2][2]);
+      cfitHit0_pxe=sqrt(cfitStateHit0.errors[3][3]);
+      cfitHit0_pye=sqrt(cfitStateHit0.errors[4][4]);
+      cfitHit0_pze=sqrt(cfitStateHit0.errors[5][5]);
+    }
+    cfitStateHit0.errors*=10;//rescale errors to avoid bias from reusing of hit information
+    TrackState updatedState = cfitStateHit0;
+
     bool dump = false;
     
     for (std::vector<Hit>::iterator hit=hits.begin();hit!=hits.end();++hit) {

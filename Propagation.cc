@@ -52,6 +52,14 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
   float& pzin = inputState.parameters.At(5);
   float  r0in = sqrt(xin*xin+yin*yin);
 
+  if (dump) std::cout << "attempt propagation from r=" << r0in << " to r=" << r << std::endl;
+  if (dump) std::cout << "x=" << xin << " y=" << yin << " px=" << pxin  << " py=" << pyin << " pz=" << pzin << " q=" << inputState.charge << std::endl;
+
+  if ((r0in-r)>=0) {
+    if (dump) std::cout << "target radius same or smaller than starting point, returning input" << std::endl;
+    return inputState;
+  }
+
   float pt2 = pxin*pxin+pyin*pyin;
   float pt = sqrt(pt2);
   float pt3 = pt*pt2;
@@ -214,11 +222,13 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
     std::cout << "result.errors" << std::endl;
     dumpMatrix(result.errors);
   }
-  //if (fabs(sqrt(par[0]*par[0]+par[1]*par[1])-r)>0.0001) {
-  //std::cout << "DID NOT GET TO R, dR=" << fabs(sqrt(par[0]*par[0]+par[1]*par[1])-r) 
-  //	      << " r=" << r << " r0in=" << r0in << " rout=" << sqrt(par[0]*par[0]+par[1]*par[1]) << std::endl;
-  //std::cout << "pt=" << pt << " pz=" << inputState.parameters.At(2) << std::endl;
-  //}
+  /*
+  if (fabs(sqrt(par[0]*par[0]+par[1]*par[1])-r)>0.0001) {
+    std::cout << "DID NOT GET TO R, dR=" << fabs(sqrt(par[0]*par[0]+par[1]*par[1])-r)
+              << " r=" << r << " r0in=" << r0in << " rout=" << sqrt(par[0]*par[0]+par[1]*par[1]) << std::endl;
+    std::cout << "pt=" << pt << " pz=" << inputState.parameters.At(2) << std::endl;
+  }
+  */
   return result;
 }
 
