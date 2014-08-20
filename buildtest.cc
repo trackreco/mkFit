@@ -85,13 +85,13 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
   unsigned int Ntracks = 1;//500;//50
   const unsigned int maxCand = 10;
 
-  std::vector<std::vector<Hit> > evt_lay_hits(10);//hits per layer
+  std::vector<std::vector<Hit> > evt_lay_hits(theGeom->CountLayers());//hits per layer
   std::vector<Track> evt_sim_tracks;
   std::vector<Track> evt_seeds;
   std::vector<Track> evt_track_candidates;
 
   //first is first hit index in bin, second is size of this bin
-  std::vector<std::vector<BinInfo> > evt_lay_phi_hit_idx(10);//phi partitioning map
+  std::vector<std::vector<BinInfo> > evt_lay_phi_hit_idx(theGeom->CountLayers());//phi partitioning map
   // Vector of vectors of std::pairs. A vector of maps, although vector is fixed to layer, so really array of maps, where maps are phi bins and the number of hits in those phi bins
 
   for (unsigned int itrack=0;itrack<Ntracks;++itrack) {
@@ -307,8 +307,8 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
     
   if (debug) std::cout << "processing candidate with nHits=" << tkcand.nHits() << std::endl;
     
-  TrackState propState = propagateHelixToR(updatedState,4.*float(ilay+1));//radius of 4*ilay
-  //TrackState propState = propagateHelixToNextSolid(updatedState,theGeom);//radius of 4*ilay
+  //TrackState propState = propagateHelixToR(updatedState,4.*float(ilay+1));//radius of 4*ilay
+  TrackState propState = propagateHelixToLayer(updatedState,ilay,theGeom);//radius of 4*ilay
   float predx = propState.parameters.At(0);
   float predy = propState.parameters.At(1);
   float predz = propState.parameters.At(2);
