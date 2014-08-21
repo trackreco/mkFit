@@ -14,12 +14,18 @@ typedef ROOT::Math::SVector<float,3> SVector3;
 typedef ROOT::Math::SMatrix<float,3,6> SMatrix36;
 typedef ROOT::Math::SMatrix<float,6,3> SMatrix63;
 
-void dumpMatrix(SMatrix33& m);
-void dumpMatrix(SMatrix36& m);
-void dumpMatrix(SMatrix63& m);
-void dumpMatrix(SMatrix66& m);
-void dumpMatrix(SMatrixSym33& m);
-void dumpMatrix(SMatrixSym66& m);
+// should work with any SMatrix
+template<typename Matrix>
+void dumpMatrix(Matrix m)
+{
+  for (unsigned int r=0;r<m.kRows;++r) {
+    for (unsigned int c=0;c<m.kCols;++c) {
+      std::cout << std::setw(12) << m.At(r,c) << " ";
+    }
+    std::cout << std::endl;
+  }
+}
+
 
 //==============================================================================
 

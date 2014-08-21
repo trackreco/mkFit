@@ -2,7 +2,8 @@
 
 #include "Simulation.h"
 
-void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::vector<Hit>& hits, int& charge, float pt, Geometry* theGeom) {
+void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::vector<Hit>& hits, int& charge, float pt,std::vector<Hit>& initHits) {
+  //void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::vector<Hit>& hits, int& charge, float pt, Geometry* theGeom) {
 
   unsigned int nTotHit = theGeom->CountLayers();
 
@@ -98,6 +99,12 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     Hit hit1(x1,covx1);    
     hits.push_back(hit1);  
     tmpState = propState;
+    
+    
+    SVector3 initVecXYZ(initX,initY,initZ);
+    Hit initHitXYZ(initVecXYZ,covXYZ);
+    initHits.push_back(initHitXYZ);
+
   }
 
   /*

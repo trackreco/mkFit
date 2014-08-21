@@ -2,15 +2,15 @@
 # . /opt/rh/devtoolset-2/enable
 
 MPLEXDEFS := -I. -DMDIM=6
-LDFLAGS :=  $(shell . root/bin/thisroot.sh && root-config --libs)
+LDFLAGS :=  $(shell root-config --libs)
 #CXX=icc
 
 ifeq ($(CXX),c++)
-	CXXFLAGS := -std=c++11 -O3 -openmp -Wall -Wno-unknown-pragmas -I. $(shell . root/bin/thisroot.sh && root-config --cflags)
+	CXXFLAGS := -std=c++11 -O3 -openmp -Wall -Wno-unknown-pragmas -I. $(shell root-config --cflags)
 	MPLEXOPTS := -std=c++11 -O3 -openmp
 else
 	CXX := icc
-	CXXFLAGS := -std=gnu++0x -O3 -openmp -I. $(shell . root/bin/thisroot.sh && root-config --cflags)
+	CXXFLAGS := -std=gnu++0x -O3 -openmp -I. $(shell root-config --cflags)
 	MPLEXOPTS := -std=gnu++0x -O3 -openmp -vec-report=1 # -vec-threshold=0
 endif
 
