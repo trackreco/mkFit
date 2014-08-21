@@ -39,6 +39,7 @@ void plotCompare(){
   TH1F* h_rec_trk_nHits_old = (TH1F*) _file0->Get("h_rec_trk_nHits");    
   TH1F* h_gen_hits_rad_old = (TH1F*) _file0->Get("h_gen_hits_rad");    
   TH1F* h_gen_hits_rad_lay3_old = (TH1F*) _file0->Get("h_gen_hits_rad_lay3");    
+  TH1F* h_rec_trk_chi2_old = (TH1F*) _file0->Get("h_rec_trk_chi2");    
  
   TH1F* h_gen_trk_Pt_new = (TH1F*) _file1->Get("h_gen_trk_Pt");	  
   TH1F* h_gen_trk_Px_new = (TH1F*) _file1->Get("h_gen_trk_Px");	  
@@ -53,6 +54,7 @@ void plotCompare(){
   TH1F* h_rec_trk_nHits_new = (TH1F*) _file1->Get("h_rec_trk_nHits");    
   TH1F* h_gen_hits_rad_new = (TH1F*) _file1->Get("h_gen_hits_rad");    
   TH1F* h_gen_hits_rad_lay3_new = (TH1F*) _file1->Get("h_gen_hits_rad_lay3");    
+  TH1F* h_rec_trk_chi2_new = (TH1F*) _file1->Get("h_rec_trk_chi2");    
     
   // Make Comparison plots
   createPlot(canvas,h_gen_trk_Pt_old,h_gen_trk_Pt_new,outDir,rootout,savePNG);
@@ -91,8 +93,8 @@ void createPlot(TCanvas *canvas, TH1F * hist_old, TH1F * hist_new, TString outDi
   TString hist_name = hist_old->GetName();
   canvas->SetName(hist_name.Data());
 
-  hist_old->SetName("No Periodicity");
-  hist_new->SetName("Phi Wrap Included");
+  hist_old->SetName("Old Prop");
+  hist_new->SetName("New Prop");
 
   //  hist_old->GetXaxis()->SetRangeUser(1,hist_old->GetXaxis()->GetLast());
   //  hist_new->GetXaxis()->SetRangeUser(1,hist_new->GetXaxis()->GetLast());
@@ -156,8 +158,8 @@ void createPlot(TCanvas *canvas, TH1F * hist_old, TH1F * hist_new, TString outDi
   leg->SetTextFont(42);
   leg->SetFillColor(10); 
   leg->SetBorderSize(1);
-  leg->AddEntry(hist_old, "No Periodicity", "L" );
-  leg->AddEntry(hist_new, "Phi Wrap Included", "L" );                                                                                                       
+  leg->AddEntry(hist_old, "Old Prop", "L" );
+  leg->AddEntry(hist_new, "New Prop", "L" );                                                                                                       
   leg->Draw("SAME");                             
 
   if (DrawRatio){
