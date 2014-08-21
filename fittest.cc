@@ -27,6 +27,7 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
 #ifndef NO_ROOT
   TFile* f=0;
   TTree *ptTree=0;
+  TTree *posTree=0;
   TTree *confTree=0;
   if (saveTree) {
     f=TFile::Open("validationtree.root", "recreate");
@@ -246,7 +247,7 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
       pt_err = sqrt( updatedState.errors[3][3]*updatedState.parameters[3]*updatedState.parameters[3] +
 		     updatedState.errors[4][4]*updatedState.parameters[4]*updatedState.parameters[4] + 
 		     2*updatedState.errors[3][4]*updatedState.parameters[3]*updatedState.parameters[4] )/pt_fit;
-      pTtree->Fill();
+      ptTree->Fill();
     }
 #endif
   }
@@ -293,7 +294,7 @@ void runFittingTestPlex(bool saveTree, Geometry* theGeom)
     std::vector<Hit> hits;
     int q=0;//set it in setup function
     float pt = 0.5+g_unif(g_gen)*9.5;//this input, 0.5<pt<10 GeV  (below ~0.5 GeV does not make 10 layers)
-    setupTrackByToyMC(pos,mom,covtrk,hits,q,pt,theGeom);
+    setupTrackByToyMC(pos,mom,covtrk,hits,q,pt,theGeom,hits);
     Track simtrk(q,pos,mom,covtrk,hits,0.);
     simtracks.push_back(simtrk);
   }
