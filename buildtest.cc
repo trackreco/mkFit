@@ -374,7 +374,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
     if (debug) std::cout << "consider hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
 			 << std::atan2(hity,hitx) << " " << hitz << " chi2=" << chi2 << std::endl;
     
-    if (chi2<15.) {//fixme 
+    if ((chi2<15.)&&(chi2>0)) {//fixme 
       if (debug) std::cout << "found hit with index: " << ihit << " chi2=" << chi2 << std::endl;
       TrackState tmpUpdatedState = updateParameters(propState, hitMeas,projMatrix36,projMatrix36T);
       Track tmpCand = tkcand.clone();
