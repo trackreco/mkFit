@@ -7,14 +7,17 @@ void plotCompare(){
   gStyle->SetHatchesLineWidth(1.0);
 
   // Open Input
-  TFile *_file0 = TFile::Open("build_validationtree_old.root");
-  TFile *_file1 = TFile::Open("build_validationtree_new.root");
+  TString file0name = "build_validationtree_old.root";
+  TString file1name = "build_validationtree_new.root";
+  
+  TFile *_file0 = TFile::Open(Form("%s",file0name.Data()));
+  TFile *_file1 = TFile::Open(Form("%s",file1name.Data()));
 
   // Define Output
   Bool_t savePNG = true;
 
   FileStat_t dummyFileStat;
-  TString outDir = "compare_plots_piPM";
+  TString outDir = "comparePlotsProp";
 
   if (gSystem->GetPathInfo(outDir.Data(), dummyFileStat) == 1){
     TString mkDir = "mkdir -p ";
@@ -70,10 +73,27 @@ void plotCompare(){
   createPlot(canvas,h_rec_trk_nHits_old,h_rec_trk_nHits_new,outDir,rootout,savePNG);
   createPlot(canvas,h_gen_hits_rad_old,h_gen_hits_rad_new,outDir,rootout,savePNG);
   createPlot(canvas,h_gen_hits_rad_lay3_old,h_gen_hits_rad_lay3_new,outDir,rootout,savePNG);
-  
+  createPlot(canvas,h_rec_trk_chi2_old,h_rec_trk_chi2_new,outDir,rootout,savePNG);  
+
   // Close the output files
   canvas->Close();
   rootout->Close();
+
+
+  TString mvFile = "mv ";
+  mvFile += rootfile.Data();
+  mvFile += " ";
+  mvFile += outDir.Data();
+  mvFile += "; mv ";
+  mvFile += file0name.Data();
+  mvFile += " ";
+  mvFile += outDir.Data();
+  mvFile += "; mv ";
+  mvFile += file1name.Data();
+  mvFile += " ";
+  mvFile += outDir.Data();
+  gSystem->Exec(mvFile.Data());
+  
 }
 
 void createPlot(TCanvas *canvas, TH1F * hist_old, TH1F * hist_new, TString outDir, TFile * rootout, Bool_t savePNG) {  

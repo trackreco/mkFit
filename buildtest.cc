@@ -73,7 +73,7 @@ void runBuildingTest(bool saveTree, unsigned int nevts, Geometry* theGeom) {
 
 void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& tk_chi2, std::map<std::string,TH1F*>& validation_hists,Geometry* theGeom) {
 
-  bool debug = true;
+  bool debug = false;
 
   //these matrices are dummy and can be optimized without multriplying by zero all the world...
   SMatrix36 projMatrix36;
@@ -82,7 +82,7 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
   projMatrix36(2,2)=1.;
   SMatrix63 projMatrix36T = ROOT::Math::Transpose(projMatrix36);
   
-  unsigned int Ntracks = 1;//500;//50
+  unsigned int Ntracks = 500;//500;//50
   const unsigned int maxCand = 10;
 
   std::vector<std::vector<Hit> > evt_lay_hits(theGeom->CountLayers());//hits per layer

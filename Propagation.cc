@@ -204,7 +204,7 @@ void HelixState::propagateErrors(HelixState& in, float totalDistance, bool dump)
 // Propagate to the next obj
 // each step travels for a path length equal to the safe step between the current position and the nearest object.
 TrackState propagateHelixToNextSolid(TrackState& inputState, Geometry* theGeom) {
-  bool dump = true;
+  bool dump = false;
 
   HelixState hsin(inputState);
   HelixState hsout(hsin);
