@@ -172,6 +172,7 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
     Track tkcand = evt_track_candidates[itkcand];
     if (debug) std::cout << "found track candidate with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << std::endl;
     validation_hists["rec_trk_nHits"]->Fill(tkcand.nHits());
+    validation_hists["rec_trk_chi2"]->Fill(tkcand.chi2());
     validation_hists["rec_trk_phi"]->Fill( getPhi(tkcand.momentum()[0], tkcand.momentum()[1]) ); // sanity check from generated?
     if (saveTree) {
       tk_nhits = tkcand.nHits();
@@ -430,6 +431,7 @@ void setupValidationHists(std::map<std::string,TH1F*>& validation_hists){
   validation_hists["rec_trk_nHits"] = makeValidationHist("h_rec_trk_nHits", "number of hits identified in track", 11, -0.5,10.5, "# Hits per Track Candidate", "Events");
   validation_hists["rec_trk_phi"] = makeValidationHist("h_rec_trk_phi", "phi of rec tracks from px/py", 20, -4, 4, "#phi", "Events");
   validation_hists["rec_trk_dphi"] = makeValidationHist("h_rec_trk_dphi", "dphi of rec tracks from y/x", 200, -0.2, 0.2, "#phi", "Events");
+  validation_hists["rec_trk_chi2"] = makeValidationHist("h_rec_trk_chi2", "chi2 of rec tracks", 100, 0, 100, "#chi^{2}", "Tracks");
 }
 
 
