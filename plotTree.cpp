@@ -26,7 +26,7 @@ void plotTree(){
     // ++++ Make Output Directory ++++ //
     
     FileStat_t dummyFileStat;
-    TString outDir = "png_fittest_newProp";
+    TString outDir = "png_fittest_oldProp_noConf";
 
     if (gSystem->GetPathInfo(outDir.Data(), dummyFileStat) == 1){
       TString mkDir = "mkdir -p ";
@@ -36,7 +36,7 @@ void plotTree(){
 
     // ++++ Get Root File, Trees ++++ //
 
-    TString rootfile = "validationtree_new.root";
+    TString rootfile = "validationtree.root";
     
     TFile * file     = TFile::Open(Form("%s",rootfile.Data()));
     TTree * ptTree   = (TTree*)file->Get("ptTree");

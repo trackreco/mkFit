@@ -26,35 +26,34 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
   float phi_init=0.,phi_mc=0.,phi_mcerr=0.,phi_prop=0.,phi_perr=0.,phi_update=0.,phi_uerr=0.;
 #ifndef NO_ROOT
   TFile* f=0;
-  TTree *ptTree=0;
+  TTree *tree=0;
   TTree *posTree=0;
-  TTree *confTree=0;
   if (saveTree) {
     f=TFile::Open("validationtree.root", "recreate");
-    ptTree = new TTree("ptTree","ptTree");
-    ptTree->Branch("pt_mc",&pt_mc,"pt_mc");
-    ptTree->Branch("pt_fit",&pt_fit,"pt_fit");
-    ptTree->Branch("pt_err",&pt_err,"pt_err");
+    tree = new TTree("tree","tree");
+    tree->Branch("pt_mc",&pt_mc,"pt_mc");
+    tree->Branch("pt_fit",&pt_fit,"pt_fit");
+    tree->Branch("pt_err",&pt_err,"pt_err");
 
-    confTree = new TTree("confTree","confTree");
-    confTree->Branch("simHit0_x",&simHit0_x,"simHit0_x");
-    confTree->Branch("simHit0_y",&simHit0_y,"simHit0_y");
-    confTree->Branch("simHit0_z",&simHit0_z,"simHit0_z");
-    confTree->Branch("simHit0_px",&simHit0_px,"simHit0_px");
-    confTree->Branch("simHit0_py",&simHit0_py,"simHit0_py");
-    confTree->Branch("simHit0_pz",&simHit0_pz,"simHit0_pz");
-    confTree->Branch("cfitHit0_x",&cfitHit0_x,"cfitHit0_x");
-    confTree->Branch("cfitHit0_y",&cfitHit0_y,"cfitHit0_y");
-    confTree->Branch("cfitHit0_z",&cfitHit0_z,"cfitHit0_z");
-    confTree->Branch("cfitHit0_px",&cfitHit0_px,"cfitHit0_px");
-    confTree->Branch("cfitHit0_py",&cfitHit0_py,"cfitHit0_py");
-    confTree->Branch("cfitHit0_pz",&cfitHit0_pz,"cfitHit0_pz");
-    confTree->Branch("cfitHit0_xe",&cfitHit0_xe,"cfitHit0_xe");
-    confTree->Branch("cfitHit0_ye",&cfitHit0_ye,"cfitHit0_ye");
-    confTree->Branch("cfitHit0_ze",&cfitHit0_ze,"cfitHit0_ze");
-    confTree->Branch("cfitHit0_pxe",&cfitHit0_pxe,"cfitHit0_pxe");
-    confTree->Branch("cfitHit0_pye",&cfitHit0_pye,"cfitHit0_pye");
-    confTree->Branch("cfitHit0_pze",&cfitHit0_pze,"cfitHit0_pze");
+    tree = new TTree("tree","tree");
+    tree->Branch("simHit0_x",&simHit0_x,"simHit0_x");
+    tree->Branch("simHit0_y",&simHit0_y,"simHit0_y");
+    tree->Branch("simHit0_z",&simHit0_z,"simHit0_z");
+    tree->Branch("simHit0_px",&simHit0_px,"simHit0_px");
+    tree->Branch("simHit0_py",&simHit0_py,"simHit0_py");
+    tree->Branch("simHit0_pz",&simHit0_pz,"simHit0_pz");
+    tree->Branch("cfitHit0_x",&cfitHit0_x,"cfitHit0_x");
+    tree->Branch("cfitHit0_y",&cfitHit0_y,"cfitHit0_y");
+    tree->Branch("cfitHit0_z",&cfitHit0_z,"cfitHit0_z");
+    tree->Branch("cfitHit0_px",&cfitHit0_px,"cfitHit0_px");
+    tree->Branch("cfitHit0_py",&cfitHit0_py,"cfitHit0_py");
+    tree->Branch("cfitHit0_pz",&cfitHit0_pz,"cfitHit0_pz");
+    tree->Branch("cfitHit0_xe",&cfitHit0_xe,"cfitHit0_xe");
+    tree->Branch("cfitHit0_ye",&cfitHit0_ye,"cfitHit0_ye");
+    tree->Branch("cfitHit0_ze",&cfitHit0_ze,"cfitHit0_ze");
+    tree->Branch("cfitHit0_pxe",&cfitHit0_pxe,"cfitHit0_pxe");
+    tree->Branch("cfitHit0_pye",&cfitHit0_pye,"cfitHit0_pye");
+    tree->Branch("cfitHit0_pze",&cfitHit0_pze,"cfitHit0_pze");
     
     posTree = new TTree("posTree","posTree");
     posTree->Branch("x_init",&x_init,"x_init");
@@ -126,6 +125,8 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
       std::cout << "simulation x=" << simStateHit0.parameters[0] << " y=" << simStateHit0.parameters[1] << " z=" << simStateHit0.parameters[2] << " r=" << sqrt(pow(simStateHit0.parameters[0],2)+pow(simStateHit0.parameters[1],2)) << std::endl; 
       std::cout << "simulation px=" << simStateHit0.parameters[3] << " py=" << simStateHit0.parameters[4] << " pz=" << simStateHit0.parameters[5] << std::endl; 
     }
+
+    
     TrackState cfitStateHit0;
     //conformalFit(hits[0],hits[1],hits[2],trk.charge(),cfitStateHit0);//fit is problematic in case of very short lever arm
     conformalFit(hits[0],hits[5],hits[9],trk.charge(),cfitStateHit0);
@@ -152,11 +153,11 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
       cfitHit0_pxe=sqrt(cfitStateHit0.errors[3][3]);
       cfitHit0_pye=sqrt(cfitStateHit0.errors[4][4]);
       cfitHit0_pze=sqrt(cfitStateHit0.errors[5][5]);
-      confTree->Fill();
     }
     cfitStateHit0.errors*=10;//rescale errors to avoid bias from reusing of hit information
     TrackState updatedState = cfitStateHit0;
     
+    //TrackState updatedState = initState;
     //    for (std::vector<Hit>::iterator ihit=hits.begin();ihit!=hits.end();++ihit) {
     for (unsigned int ihit = 0; ihit < hits.size(); ihit++) {
       if (dump)  std::cout << "processing hit: " << ihit << std::endl << std::endl;
@@ -251,7 +252,7 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
       pt_err = sqrt( updatedState.errors[3][3]*updatedState.parameters[3]*updatedState.parameters[3] +
 		     updatedState.errors[4][4]*updatedState.parameters[4]*updatedState.parameters[4] + 
 		     2*updatedState.errors[3][4]*updatedState.parameters[3]*updatedState.parameters[4] )/pt_fit;
-      ptTree->Fill();
+      tree->Fill();
     }
 #endif
   }
@@ -298,7 +299,7 @@ void runFittingTestPlex(bool saveTree, Geometry* theGeom)
     std::vector<Hit> hits;
     int q=0;//set it in setup function
     float pt = 0.5+g_unif(g_gen)*9.5;//this input, 0.5<pt<10 GeV  (below ~0.5 GeV does not make 10 layers)
-    setupTrackByToyMC(pos,mom,covtrk,hits,q,pt,theGeom,hits);
+    setupTrackByToyMC(pos,mom,covtrk,hits,q,pt,theGeom);
     Track simtrk(q,pos,mom,covtrk,hits,0.);
     simtracks.push_back(simtrk);
   }

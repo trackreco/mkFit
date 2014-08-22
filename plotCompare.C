@@ -24,8 +24,9 @@ void plotCompare(){
     mkDir += outDir.Data();
     gSystem->Exec(mkDir.Data());
   }
-  
-  TFile * rootout = new TFile(Form("%s/compareBuild.root",outDir.Data()),"RECREATE");
+
+  TString compareRoot = "compareBuild.root";
+  TFile * rootout = new TFile(Form("%s"compareRoot.Data()),"RECREATE");
   TCanvas * canvas = new TCanvas();
 
   // Get all histos
@@ -81,7 +82,7 @@ void plotCompare(){
 
 
   TString mvFile = "mv ";
-  mvFile += rootfile.Data();
+  mvFile += compareRoot.Data();
   mvFile += " ";
   mvFile += outDir.Data();
   mvFile += "; mv ";

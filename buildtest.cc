@@ -103,11 +103,10 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
     SVector3 mom;
     SMatrixSym66 covtrk;
     std::vector<Hit> hits;
-    std::vector<Hit> initHits; // validation
     int q=0;//set it in setup function
     float pt = 0.5+g_unif(g_gen)*9.5;//this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
-    setupTrackByToyMC(pos,mom,covtrk,hits,q,pt,theGeom,initHits);
-    Track sim_track(q,pos,mom,covtrk,hits,0,initHits);
+    setupTrackByToyMC(pos,mom,covtrk,hits,q,pt,theGeom);
+    Track sim_track(q,pos,mom,covtrk,hits,0);
     //sim_track.resetHits();
     evt_sim_tracks.push_back(sim_track);
 
