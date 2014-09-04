@@ -290,7 +290,7 @@ TrackState propagateHelixToLayer(TrackState& inputState, unsigned int layer, Geo
       break;
     }
 
-    float distance = std::max(target->SafetyFromOutside(UVector3(hsout.x,hsout.y,hsout.z)), .0001);
+    float distance = std::max(target->SafetyFromOutside(UVector3(hsout.x,hsout.y,hsout.z),true), .0001);
     totalDistance += distance;
 
     if (dump) {
