@@ -137,8 +137,9 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
     std::vector<Hit>& initHits = trk.initHitsVector();
 
     TrackState initState = trk.state();
-    // should this use the geometry? Or at least go to the radius of the first hit?
-    TrackState simStateHit0 = propagateHelixToR(initState,4.);//4 is the simulated radius 
+
+    //TrackState simStateHit0 = propagateHelixToR(initState,4.);//4 is the simulated radius 
+    TrackState simStateHit0 = propagateHelixToLayer(initState,1, theGeom);//4 is the simulated radius 
     if (dump) {
       std::cout << "simulation x=" << simStateHit0.parameters[0] << " y=" << simStateHit0.parameters[1] << " z=" << simStateHit0.parameters[2] << " r=" << sqrt(pow(simStateHit0.parameters[0],2)+pow(simStateHit0.parameters[1],2)) << std::endl; 
       std::cout << "simulation px=" << simStateHit0.parameters[3] << " py=" << simStateHit0.parameters[4] << " pz=" << simStateHit0.parameters[5] << std::endl; 
