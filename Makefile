@@ -66,4 +66,4 @@ Track.h: Hit.h Matrix.h
 .PHONY: all all-mic all-avx test clean 
 
 clean:
-	-rm $(MEXE-AVX) $(MEXE-MIC)
+	-rm $(MEXE-AVX) $(MEXE-MIC) *.o
