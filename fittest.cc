@@ -101,7 +101,7 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
     Track simtrk(q,pos,mom,covtrk,hits,0.,initHits);
     simtracks.push_back(simtrk);
   }
-#define DUMPPW
+  //#define DUMPPW
 #ifdef DUMPPW
   for (unsigned int itrack=0;itrack<simtracks.size();++itrack) {
     Track& trk = simtracks[itrack];
@@ -139,7 +139,7 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
     TrackState initState = trk.state();
 
     //TrackState simStateHit0 = propagateHelixToR(initState,4.);//4 is the simulated radius 
-    TrackState simStateHit0 = propagateHelixToLayer(initState,1, theGeom);//4 is the simulated radius 
+    TrackState simStateHit0 = propagateHelixToLayer(initState,0, theGeom); // innermost layer
     if (dump) {
       std::cout << "simulation x=" << simStateHit0.parameters[0] << " y=" << simStateHit0.parameters[1] << " z=" << simStateHit0.parameters[2] << " r=" << sqrt(pow(simStateHit0.parameters[0],2)+pow(simStateHit0.parameters[1],2)) << std::endl; 
       std::cout << "simulation px=" << simStateHit0.parameters[3] << " py=" << simStateHit0.parameters[4] << " pz=" << simStateHit0.parameters[5] << std::endl; 
