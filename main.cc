@@ -26,11 +26,16 @@ int main(){
     UTubs* utub = new UTubs(s, r, r+.01, 100.0, 0, TMath::TwoPi());
     theGeom->AddLayer(utub);
 #else
+    float xs = 5.0; // approximate sensor size in cm
+    if ( l >= 5 ) // bigger sensors in outer layers
+      xs *= 2.;
+    int nsectors = int(TMath::TwoPi()/(2*atan2(xs/2,r))); // keep ~constant sensors size
+    std::cout << "l = " << l << ", nsectors = "<< nsectors << std::endl;
     std::string s = "PolyHedra" + std::string(1, 48+l);
     const double zPlane[] = {-100.,100.};
     const double rInner[] = {r,r};
     const double rOuter[] = {r+.01,r+.01};
-    UPolyhedra* upolyh = new UPolyhedra(s, 0, TMath::TwoPi(), 8, 2, zPlane, rInner, rOuter);
+    UPolyhedra* upolyh = new UPolyhedra(s, 0, TMath::TwoPi(), nsectors, 2, zPlane, rInner, rOuter);
     theGeom->AddLayer(upolyh);
 #endif
   }
@@ -38,7 +43,7 @@ int main(){
   bool saveTree = true;
   runFittingTest(saveTree,50000,theGeom); 
   //runFittingTestPlex(saveTree,theGeom); 
-  //runBuildingTest(saveTree,100,theGeom); 
+  runBuildingTest(saveTree,100,theGeom); 
 
   delete theGeom;
   return 0;
