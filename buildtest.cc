@@ -48,6 +48,7 @@ void runBuildingTest(bool saveTree, unsigned int nevts, Geometry* theGeom) {
   unsigned int tk_nhits = 0;
   float tk_chi2 = 0.;
   std::map<std::string,TH1F*> validation_hists;
+  bool debug = false;
   setupValidationHists(validation_hists);
 
   if (saveTree) {
@@ -58,7 +59,8 @@ void runBuildingTest(bool saveTree, unsigned int nevts, Geometry* theGeom) {
   }
 
   for (unsigned int evt=0;evt<nevts;++evt) {
-    std::cout << std::endl << "EVENT #"<< evt << std::endl << std::endl;
+    if ( debug ) 
+      std::cout << std::endl << "EVENT #"<< evt << std::endl << std::endl;
     runBuildingTestEvt(saveTree,tree,tk_nhits,tk_chi2,validation_hists,theGeom);
   }
 
@@ -307,9 +309,12 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   TrackState& updatedState = cand.second;
     
   if (debug) std::cout << "processing candidate with nHits=" << tkcand.nHits() << std::endl;
-    
-  //TrackState propState = propagateHelixToR(updatedState,4.*float(ilay+1));//radius of 4*ilay
+  //#define SLOW
+#ifndef SLOW
+  TrackState propState = propagateHelixToR(updatedState,theGeom->Radius(ilay));//radius of 4*ilay
+#else
   TrackState propState = propagateHelixToLayer(updatedState,ilay,theGeom);//radius of 4*ilay
+#endif // SLOW
   float predx = propState.parameters.At(0);
   float predy = propState.parameters.At(1);
   float predz = propState.parameters.At(2);

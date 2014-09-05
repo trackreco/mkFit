@@ -20,11 +20,11 @@ int main(){
   // are added starting from the center
   for (int l = 0; l < 10; l++) {
     float r = (l+1)*4.;
-    //#define CYLINDER
+// #define CYLINDER
 #ifdef CYLINDER
     std::string s = "Cylinder" + std::string(1, 48+l);
     UTubs* utub = new UTubs(s, r, r+.01, 100.0, 0, TMath::TwoPi());
-    theGeom->AddLayer(utub);
+    theGeom->AddLayer(utub,r);
 #else
     float xs = 5.0; // approximate sensor size in cm
     if ( l >= 5 ) // bigger sensors in outer layers
@@ -36,8 +36,12 @@ int main(){
     const double rInner[] = {r,r};
     const double rOuter[] = {r+.01,r+.01};
     UPolyhedra* upolyh = new UPolyhedra(s, 0, TMath::TwoPi(), nsectors, 2, zPlane, rInner, rOuter);
-    theGeom->AddLayer(upolyh);
+    theGeom->AddLayer(upolyh, r);
 #endif
+  }
+
+  for ( int i = 0; i < theGeom->CountLayers(); ++i ) {
+    std::cout << "Layer = " << i << ", Radius = " << theGeom->Radius(i) << std::endl;
   }
 
   bool saveTree = true;
