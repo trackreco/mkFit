@@ -7,22 +7,26 @@ void plotCompare(){
   gStyle->SetHatchesLineWidth(1.0);
 
   // Open Input
-  TFile *_file0 = TFile::Open("build_validationtree_old.root");
-  TFile *_file1 = TFile::Open("build_validationtree_new.root");
+  TString file0name = "build_validationtree_old.root";
+  TString file1name = "build_validationtree_new.root";
+  
+  TFile *_file0 = TFile::Open(Form("%s",file0name.Data()));
+  TFile *_file1 = TFile::Open(Form("%s",file1name.Data()));
 
   // Define Output
   Bool_t savePNG = true;
 
   FileStat_t dummyFileStat;
-  TString outDir = "compare_plots_piPM";
+  TString outDir = "comparePlotsProp";
 
   if (gSystem->GetPathInfo(outDir.Data(), dummyFileStat) == 1){
     TString mkDir = "mkdir -p ";
     mkDir += outDir.Data();
     gSystem->Exec(mkDir.Data());
   }
-  
-  TFile * rootout = new TFile(Form("%s/compareBuild.root",outDir.Data()),"RECREATE");
+
+  TString compareRoot = "compareBuild.root";
+  TFile * rootout = new TFile(Form("%s"compareRoot.Data()),"RECREATE");
   TCanvas * canvas = new TCanvas();
 
   // Get all histos
@@ -39,6 +43,7 @@ void plotCompare(){
   TH1F* h_rec_trk_nHits_old = (TH1F*) _file0->Get("h_rec_trk_nHits");    
   TH1F* h_gen_hits_rad_old = (TH1F*) _file0->Get("h_gen_hits_rad");    
   TH1F* h_gen_hits_rad_lay3_old = (TH1F*) _file0->Get("h_gen_hits_rad_lay3");    
+  TH1F* h_rec_trk_chi2_old = (TH1F*) _file0->Get("h_rec_trk_chi2");    
  
   TH1F* h_gen_trk_Pt_new = (TH1F*) _file1->Get("h_gen_trk_Pt");	  
   TH1F* h_gen_trk_Px_new = (TH1F*) _file1->Get("h_gen_trk_Px");	  
@@ -53,6 +58,7 @@ void plotCompare(){
   TH1F* h_rec_trk_nHits_new = (TH1F*) _file1->Get("h_rec_trk_nHits");    
   TH1F* h_gen_hits_rad_new = (TH1F*) _file1->Get("h_gen_hits_rad");    
   TH1F* h_gen_hits_rad_lay3_new = (TH1F*) _file1->Get("h_gen_hits_rad_lay3");    
+  TH1F* h_rec_trk_chi2_new = (TH1F*) _file1->Get("h_rec_trk_chi2");    
     
   // Make Comparison plots
   createPlot(canvas,h_gen_trk_Pt_old,h_gen_trk_Pt_new,outDir,rootout,savePNG);
@@ -68,10 +74,27 @@ void plotCompare(){
   createPlot(canvas,h_rec_trk_nHits_old,h_rec_trk_nHits_new,outDir,rootout,savePNG);
   createPlot(canvas,h_gen_hits_rad_old,h_gen_hits_rad_new,outDir,rootout,savePNG);
   createPlot(canvas,h_gen_hits_rad_lay3_old,h_gen_hits_rad_lay3_new,outDir,rootout,savePNG);
-  
+  createPlot(canvas,h_rec_trk_chi2_old,h_rec_trk_chi2_new,outDir,rootout,savePNG);  
+
   // Close the output files
   canvas->Close();
   rootout->Close();
+
+
+  TString mvFile = "mv ";
+  mvFile += compareRoot.Data();
+  mvFile += " ";
+  mvFile += outDir.Data();
+  mvFile += "; mv ";
+  mvFile += file0name.Data();
+  mvFile += " ";
+  mvFile += outDir.Data();
+  mvFile += "; mv ";
+  mvFile += file1name.Data();
+  mvFile += " ";
+  mvFile += outDir.Data();
+  gSystem->Exec(mvFile.Data());
+  
 }
 
 void createPlot(TCanvas *canvas, TH1F * hist_old, TH1F * hist_new, TString outDir, TFile * rootout, Bool_t savePNG) {  
@@ -91,8 +114,8 @@ void createPlot(TCanvas *canvas, TH1F * hist_old, TH1F * hist_new, TString outDi
   TString hist_name = hist_old->GetName();
   canvas->SetName(hist_name.Data());
 
-  hist_old->SetName("No Periodicity");
-  hist_new->SetName("Phi Wrap Included");
+  hist_old->SetName("Old Prop");
+  hist_new->SetName("New Prop");
 
   //  hist_old->GetXaxis()->SetRangeUser(1,hist_old->GetXaxis()->GetLast());
   //  hist_new->GetXaxis()->SetRangeUser(1,hist_new->GetXaxis()->GetLast());
@@ -156,8 +179,8 @@ void createPlot(TCanvas *canvas, TH1F * hist_old, TH1F * hist_new, TString outDi
   leg->SetTextFont(42);
   leg->SetFillColor(10); 
   leg->SetBorderSize(1);
-  leg->AddEntry(hist_old, "No Periodicity", "L" );
-  leg->AddEntry(hist_new, "Phi Wrap Included", "L" );                                                                                                       
+  leg->AddEntry(hist_old, "Old Prop", "L" );
+  leg->AddEntry(hist_new, "New Prop", "L" );                                                                                                       
   leg->Draw("SAME");                             
 
   if (DrawRatio){

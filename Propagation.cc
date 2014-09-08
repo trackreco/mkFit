@@ -225,19 +225,39 @@ TrackState propagateHelixToNextSolid(TrackState& inputState, Geometry* theGeom) 
   float totalDistance = 0;
   auto startSolid = theGeom->InsideWhat(UVector3(hsin.x,hsin.y,hsin.z));
 
+  if (dump) {
+    std::cout << "startSolid = " << startSolid << std::endl;
+    // distance to all layers
+    UVector3 origin(0,0,0);
+    //UVector3 direction(par(4),par(5),par(6));
+    UVector3 direction(hsout.px,hsout.py,hsout.pz);
+    direction.Normalize();
+    std::cout << "direction is " << direction << std::endl;
+    for ( unsigned int i = 0; i < theGeom->CountLayers(); ++i ) {
+      auto distance1 = theGeom->Layer(i)->DistanceToIn(origin, direction);
+      auto distance2 = theGeom->Layer(i)->SafetyFromOutside(origin, false);
+      std::cout << "disance to layer " << i << " = " << distance1 
+		<< " " << distance2 << ", inside=" << theGeom->Layer(i)->Inside(origin)
+		<< std::endl;
+    }
+  }
+    
+
   //5 iterations is a good starting point
-  unsigned int Niter = 5;
+  unsigned int Niter = 10;
   for (unsigned int i=0;i<Niter;++i) {
     if (dump) std::cout << "propagation iteration #" << i << std::endl;
     hsout.setCoords(hsout.state.parameters);
 
     auto currentSolid = theGeom->InsideWhat(UVector3(hsout.x,hsout.y,hsout.z));
+    if ( dump ) 
+      std::cout << "Current solid = " << currentSolid << std::endl;
     if (currentSolid && currentSolid != startSolid) {
       if (dump) std::cout << "Inside next solid" << std::endl;
       break;
     }
 
-    float distance = std::max(theGeom->SafetyFromOutside(UVector3(hsout.x,hsout.y,hsout.z)), .0001);
+    float distance = std::max(theGeom->SafetyFromOutside(UVector3(hsout.x,hsout.y,hsout.z),true), .0001);
     totalDistance += distance;
 
     if (dump) {
@@ -279,7 +299,7 @@ TrackState propagateHelixToLayer(TrackState& inputState, unsigned int layer, Geo
       break;
     }
 
-    float distance = std::max(target->SafetyFromOutside(UVector3(hsout.x,hsout.y,hsout.z)), .0001);
+    float distance = std::max(target->SafetyFromOutside(UVector3(hsout.x,hsout.y,hsout.z),true), .0001);
     totalDistance += distance;
 
     if (dump) {

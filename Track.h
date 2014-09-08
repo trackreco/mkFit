@@ -28,6 +28,14 @@ public:
     hits_=hits;
     chi2_=chi2;
   }
+  Track(int charge,SVector3 position, SVector3 momentum, SMatrixSym66 errors,std::vector<Hit> hits, float chi2,std::vector<Hit> initHits) {
+    state_.charge=charge;
+    state_.errors=errors;
+    state_.parameters = SVector6(position.At(0),position.At(1),position.At(2),momentum.At(0),momentum.At(1),momentum.At(2));
+    hits_=hits;
+    initHits_=initHits;
+    chi2_=chi2;
+  }
   Track(int& charge,SVector6& parameters, SMatrixSym66& errors,std::vector<Hit> hits, float chi2) {
     state_.charge=charge;
     state_.errors=errors;
@@ -45,6 +53,7 @@ public:
   SMatrixSym66& errors() {return state_.errors;}
   TrackState state() {return state_;}
   std::vector<Hit>& hitsVector() {return hits_;}
+  std::vector<Hit>& initHitsVector() {return initHits_;}
   float& chi2() {return chi2_;}
   void resetHits() {hits_.clear();}
   void addHit(Hit hit,float chi2) {hits_.push_back(hit);chi2_+=chi2;}
@@ -54,6 +63,7 @@ public:
 private:
   TrackState state_;
   std::vector<Hit> hits_;
+  std::vector<Hit> initHits_;
   float chi2_;
 
 };
