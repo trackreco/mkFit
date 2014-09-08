@@ -138,5 +138,5 @@ void conformalFit(Hit& hit0,Hit& hit1,Hit& hit2,int& charge,TrackState& fitState
   */
 
   fitStateHit0.charge = charge;//fixme, estimate from fit
-  dumpMatrix(fitStateHit0.errors);
+  //dumpMatrix(fitStateHit0.errors);
 }

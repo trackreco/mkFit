@@ -17,16 +17,16 @@ int main(){
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
   for (int l = 0; l < 10; l++) {
-    float r = (l+1)*3;
+    float r = (l+1)*4;
     std::string s = "Cylinder" + std::string(1, 48+l);
     UTubs* utub = new UTubs(s, r, r+.01, 100.0, 0, TMath::TwoPi());
     theGeom->AddLayer(utub);
   }
 
-  bool saveTree = true;
-  //runFittingTest(saveTree,5000,theGeom); 
+  bool saveTree = false;
+  runFittingTest(saveTree,10000,theGeom); 
   //runFittingTestPlex(saveTree,theGeom); 
-  runBuildingTest(saveTree,1,theGeom); 
+  runBuildingTest(saveTree,10000,theGeom); 
 
   delete theGeom;
   return 0;

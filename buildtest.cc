@@ -58,7 +58,7 @@ void runBuildingTest(bool saveTree, unsigned int nevts, Geometry* theGeom) {
   }
 
   for (unsigned int evt=0;evt<nevts;++evt) {
-    std::cout << std::endl << "EVENT #"<< evt << std::endl << std::endl;
+    //std::cout << std::endl << "EVENT #"<< evt << std::endl << std::endl;
     runBuildingTestEvt(saveTree,tree,tk_nhits,tk_chi2,validation_hists,theGeom);
   }
 
@@ -73,7 +73,7 @@ void runBuildingTest(bool saveTree, unsigned int nevts, Geometry* theGeom) {
 
 void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& tk_chi2, std::map<std::string,TH1F*>& validation_hists,Geometry* theGeom) {
 
-  bool debug = true;
+  bool debug = false;
 
   //these matrices are dummy and can be optimized without multriplying by zero all the world...
   SMatrix36 projMatrix36;
@@ -82,7 +82,7 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
   projMatrix36(2,2)=1.;
   SMatrix63 projMatrix36T = ROOT::Math::Transpose(projMatrix36);
   
-  unsigned int Ntracks = 1;//500;//50
+  unsigned int Ntracks = 500;//500;//50
   const unsigned int maxCand = 10;
 
   std::vector<std::vector<Hit> > evt_lay_hits(theGeom->CountLayers());//hits per layer
@@ -308,7 +308,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   if (debug) std::cout << "processing candidate with nHits=" << tkcand.nHits() << std::endl;
     
   //TrackState propState = propagateHelixToR(updatedState,4.*float(ilay+1));//radius of 4*ilay
-  TrackState propState = propagateHelixToLayer(updatedState,ilay,theGeom);//radius of 4*ilay
+  TrackState propState = propagateHelixToLayer(updatedState,ilay,theGeom);
   float predx = propState.parameters.At(0);
   float predy = propState.parameters.At(1);
   float predz = propState.parameters.At(2);

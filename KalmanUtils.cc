@@ -207,15 +207,14 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
   SMatrixSym66 updatedErrs = propErr - ROOT::Math::SimilarityT(propErr,simil);
 
   if (print) {
-    std::cout << "\n updateParameters \n" << std::endl;
-    std::cout << "noise" << std::endl;
+    std::cout << "\n updateParameters \n" << std::endl << "noise" << std::endl;
     dumpMatrix(noise);
     std::cout << "propErr" << std::endl;
     dumpMatrix(propErr);
     std::cout << "propErr33" << std::endl;
     dumpMatrix(propErr33);
-    std::cout << "residual: " << residual[0] << " " << residual[1] << " " << residual[2] << std::endl;
-    std::cout << "resErr" << std::endl;
+    std::cout << "residual: " << residual[0] << " " << residual[1] << " " << residual[2] << std::endl
+              << "resErr" << std::endl;
     dumpMatrix(resErr);
     std::cout << "resErrInv" << std::endl;
     dumpMatrix(resErrInv);
@@ -224,9 +223,9 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
     std::cout << "kalmanGain" << std::endl;
     dumpMatrix(kalmanGain);
     std::cout << "kGr: " << kGr[0] << " " << kGr[1] << " " << kGr[2] << " "
-	      << kGr[3] << " " << kGr[4] << " " << kGr[5] << " " << std::endl;
-    std::cout << "updatedParams: " << updatedParams[0] << " " << updatedParams[1] << " " << updatedParams[2] << " "
-	      << updatedParams[3] << " " << updatedParams[4] << " " << updatedParams[5] << " " << std::endl;
+	            << kGr[3] << " " << kGr[4] << " " << kGr[5] << " " << std::endl
+              << "updatedParams: " << updatedParams[0] << " " << updatedParams[1] << " " << updatedParams[2] << " "
+              << updatedParams[3] << " " << updatedParams[4] << " " << updatedParams[5] << " " << std::endl;
     //std::cout << "kGpM" << std::endl;
     //dumpMatrix(kGpM);
     std::cout << "updatedErrs" << std::endl;

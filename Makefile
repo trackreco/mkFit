@@ -38,7 +38,7 @@ test:	mplex-test mplex-vec-test mplex-nt-test mplexsym-test mplexsym-nt-test
 	ssh root@mic0 ./$*-mic
 
 main: $(MOBJ)
-	$(CXX) -o $@ $^ $(LDFLAGS) -LUSolids -lusolids
+	$(CXX) -o $@ $^ $(LDFLAGS) -LUSolids -lusolids -framework Accelerate
 
 buildtest.o: buildtest.cc Propagation.h buildtest.h KalmanUtils.h Simulation.h Geometry.h
 fittest.o: fittest.cc Propagation.h fittest.h KalmanUtils.h Simulation.h Geometry.h
