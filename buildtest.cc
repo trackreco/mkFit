@@ -24,6 +24,13 @@ float deltaPhi(float phi1, float phi2);
 float deltaEta(float eta1, float eta2);
 float deltaR(float phi1, float eta1, float phi2, float eta2);
 
+inline float normalizedPhi(float phi) {
+ static float const TWO_PI = M_PI * 2;
+ while ( phi < -M_PI ) phi += TWO_PI;
+ while ( phi >  M_PI ) phi -= TWO_PI;
+ return phi;
+}
+
 bool sortByHitsChi2(std::pair<Track, TrackState> cand1,std::pair<Track, TrackState> cand2) {
   if (cand1.first.nHits()==cand2.first.nHits()) return cand1.first.chi2()<cand2.first.chi2();
   return cand1.first.nHits()>cand2.first.nHits();
@@ -307,39 +314,39 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
 
   Track& tkcand = cand.first;
   TrackState& updatedState = cand.second;
+  //debug = true;
     
   if (debug) std::cout << "processing candidate with nHits=" << tkcand.nHits() << std::endl;
   //#define SLOW
 #ifndef SLOW
-  TrackState propState = propagateHelixToR(updatedState,theGeom->Radius(ilay));//radius of 4*ilay
+  TrackState propState = propagateHelixToR(updatedState,theGeom->Radius(ilay));
 #else
-  TrackState propState = propagateHelixToLayer(updatedState,ilay,theGeom);//radius of 4*ilay
+  TrackState propState = propagateHelixToLayer(updatedState,ilay,theGeom);
 #endif // SLOW
-  float predx = propState.parameters.At(0);
-  float predy = propState.parameters.At(1);
-  float predz = propState.parameters.At(2);
+  const float predx = propState.parameters.At(0);
+  const float predy = propState.parameters.At(1);
+  const float predz = propState.parameters.At(2);
   if (debug) std::cout << "propState at hit#" << ilay << " r/phi/z : " << sqrt(pow(predx,2)+pow(predy,2)) << " "
 		       << std::atan2(predy,predx) << " " << predz << std::endl;
   if (debug) dumpMatrix(propState.errors);
   
-  float phi = std::atan2(predy,predx);
+  const float phi = std::atan2(predy,predx);
 
-  float dphidx = -predy/(predx*predx+predy*predy);//denominator is just hit radius, consider avoiding re-computing it
-  float dphidy =  predx/(predx*predx+predy*predy);//denominator is just hit radius, consider avoiding re-computing it
-  float dphi   =  sqrt(fabs(dphidx*dphidx*propState.errors.At(0,0)+dphidy*dphidy*propState.errors.At(1,1)+2*dphidy*dphidx*propState.errors.At(0,1)));//how come I get negative squared errors sometimes?
+  const float dphidx = -predy/(predx*predx+predy*predy);//denominator is just hit radius, consider avoiding re-computing it
+  const float dphidy =  predx/(predx*predx+predy*predy);//denominator is just hit radius, consider avoiding re-computing it
+  const float dphi2  = dphidx*dphidx*(propState.errors.At(0,0)) +
+                       dphidy*dphidy*(propState.errors.At(1,1)) +
+                     2*dphidy*dphidx*(propState.errors.At(0,1));
+  const float dphi   =  sqrt(fabs(dphi2));//how come I get negative squared errors sometimes?
   
-  float nSigma = 3.0;
-  float dphiMinus = phi-nSigma*dphi;
-  float dphiPlus  = phi+nSigma*dphi;
+  const float nSigma = 3.0;
+  const float dphiMinus = normalizedPhi(phi-nSigma*dphi);
+  const float dphiPlus  = normalizedPhi(phi+nSigma*dphi);
   
-  // Unfortunately the only way to return these dphi's within -Pi to Pi without using while statement
-  dphiMinus = atan2(sin(dphiMinus),cos(dphiMinus));
-  dphiPlus  = atan2(sin(dphiPlus),cos(dphiPlus));
-
   unsigned int binMinus = getPhiPartition(dphiMinus);
   unsigned int binPlus  = getPhiPartition(dphiPlus);
   
-  if (debug) std::cout << "phi: " << phi << " binMinus: " << binMinus << " binPlus: " << binPlus << std::endl;
+  if (debug) std::cout << "phi: " << phi << " binMinus: " << binMinus << " binPlus: " << binPlus << " dphi2: " << dphi2 << std::endl;
   
   BinInfo binInfoMinus = evt_lay_phi_hit_idx[ilay][int(binMinus)];
   BinInfo binInfoPlus  = evt_lay_phi_hit_idx[ilay][int(binPlus)];
@@ -352,29 +359,44 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   // Branch here from wrapping
   if (binMinus<=binPlus){
     lastIndex = maxIndex;
-  }
-  else if (binMinus>binPlus) { // loop wrap around end of array for binMinus > binPlus, for dPhiMinus < 0 or dPhiPlus > 0 at initialization
+  } else { // loop wrap around end of array for binMinus > binPlus, for dPhiMinus < 0 or dPhiPlus > 0 at initialization
     lastIndex = totalSize+maxIndex;
   }
 
   if (debug) std::cout << "total size: " << totalSize << " firstIndex: " << firstIndex << " maxIndex: " << maxIndex << " lastIndex: " << lastIndex << std::endl;
-  
-  for (unsigned int ihit=firstIndex;ihit<lastIndex;++ihit) {//loop over hits on layer (consider only hits from partition)
-    Hit hitCand; // unitialized hit, new constructor in Hit.h
 
-    // Introduce branch here from wrapping
-    if (ihit<totalSize){
-      hitCand = evt_lay_hits[ilay][ihit];
-    }
-    else if (ihit>=totalSize) {
-      hitCand = evt_lay_hits[ilay][ihit-totalSize];
-    }
+#ifndef SLOW
+  const float minR = theGeom->Radius(ilay);
+  float maxR = minR;
+  for (unsigned int ihit=firstIndex;ihit<lastIndex;++ihit) {//loop over hits on layer (consider only hits from partition)
+    const float candR = evt_lay_hits[ilay][ihit % totalSize].r();
+    if (candR > maxR) maxR = candR;
+  }
+  const float deltaR = maxR - minR;
+
+  if (debug) std::cout << "min, max: " << minR << ", " << maxR << std::endl;
+  const TrackState propStateMin = propState;
+  const TrackState propStateMax = propagateHelixToR(updatedState,maxR);
+#endif
     
-    float hitx = hitCand.position()[0];
-    float hity = hitCand.position()[1];
-    float hitz = hitCand.position()[2];
+  for (unsigned int ihit=firstIndex;ihit<lastIndex;++ihit) {//loop over hits on layer (consider only hits from partition)
+    Hit hitCand = evt_lay_hits[ilay][ihit % totalSize];
+    
+    const float hitx = hitCand.position()[0];
+    const float hity = hitCand.position()[1];
+    const float hitz = hitCand.position()[2];
     MeasurementState hitMeas = hitCand.measurementState();
-    float chi2 = computeChi2(propState,hitMeas,projMatrix36,projMatrix36T);
+
+#ifndef SLOW
+    const float ratio = (hitCand.r() - minR)/deltaR;
+    propState.parameters = (1.0-ratio)*propStateMin.parameters + ratio*propStateMax.parameters;
+    if (debug) {
+      std::cout << std::endl << ratio << std::endl << propStateMin.parameters << std::endl << propState.parameters << std::endl
+                << propStateMax.parameters << std::endl << propStateMax.parameters - propStateMin.parameters
+                << std::endl << std::endl << hitMeas.parameters << std::endl << std::endl;
+    }
+#endif
+    const float chi2 = computeChi2(propState,hitMeas,projMatrix36,projMatrix36T);
     
     if (debug) std::cout << "consider hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
 			 << std::atan2(hity,hitx) << " " << hitz << " chi2=" << chi2 << std::endl;

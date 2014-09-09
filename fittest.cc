@@ -30,7 +30,7 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
   TTree *posTree=0;
   if (saveTree) {
     f=TFile::Open("validationtree.root", "recreate");
-    tree = new TTree("tree","tree");
+    tree = new TTree("ptTree","ptTree");
     tree->Branch("pt_mc",&pt_mc,"pt_mc");
     tree->Branch("pt_fit",&pt_fit,"pt_fit");
     tree->Branch("pt_err",&pt_err,"pt_err");
@@ -292,7 +292,7 @@ void runFittingTestPlex(bool saveTree, Geometry* theGeom)
   TTree *tree=0;
   if (saveTree) {
     f=TFile::Open("validationtree_plex.root", "recreate");
-    tree = new TTree("tree","tree");
+    tree = new TTree("ptTree","ptTree");
     tree->Branch("pt_mc",&pt_mc,"pt_mc");
     tree->Branch("pt_fit",&pt_fit,"pt_fit");
     tree->Branch("pt_err",&pt_err,"pt_err");

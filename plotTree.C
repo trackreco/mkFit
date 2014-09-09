@@ -18,6 +18,7 @@
     TH1F* pt_res = new TH1F("pt_res","pt resolution",100,-0.5,0.5);
     pt_res->GetXaxis()->SetTitle("(p_{T}^{MC} - p_{T}^{fit})/p_{T}^{MC}");
     //tree->Draw("(1./pt_mc-1./pt_fit)/(1./pt_mc)>>pt_res");
+    TTree * tree   = (TTree*) _file0->Get("ptTree");
     tree->Draw("(pt_mc-pt_fit)/pt_mc>>pt_res");
     pt_res->Fit("gaus","","",-0.07,0.07);
     cf1.SaveAs("pt_res.png");  
@@ -164,6 +165,7 @@
   if (doBuild) {
 
     TFile *_file0 = TFile::Open("build_validationtree.root");
+    TTree * tree   = (TTree*)_file0->Get("tree");
 
     TCanvas cb1;
     TH1F* nhits = new TH1F("nhits","nhits",15,0,15);
@@ -194,47 +196,43 @@
     TH1F* h_gen_trk_mindR = (TH1F*) _file0->Get("h_gen_trk_mindR");  
     TH1F* h_gen_trk_phi = (TH1F*) _file0->Get("h_gen_trk_phi");    
 
-    TH1F* h_gen_trk_Pt = (TH1F*) _file0->Get("h_gen_trk_Pt");	  
     TCanvas c1;
     //h_gen_trk_Pt->GetYaxis()->SetRangeUser(0.,h_gen_trk_Pt->GetMaximum()*1.1);
     h_gen_trk_Pt->Draw();
     c1.SaveAs("gen_trk_Pt.png");
-    TH1F* h_gen_trk_Px = (TH1F*) _file0->Get("h_gen_trk_Px");	  
+
     TCanvas c2;
     h_gen_trk_Px->Draw();
     c2.SaveAs("gen_trk_Px.png");
-    TH1F* h_gen_trk_Py = (TH1F*) _file0->Get("h_gen_trk_Py");	  
+
     TCanvas c3;
     h_gen_trk_Py->Draw();
     c3.SaveAs("gen_trk_Py.png");
-    TH1F* h_gen_trk_Pz = (TH1F*) _file0->Get("h_gen_trk_Pz");	  
+
     TCanvas c4;
     h_gen_trk_Pz->Draw();
     c4.SaveAs("gen_trk_Pz.png");
 
-    TH1F* h_gen_trk_eta = (TH1F*) _file0->Get("h_gen_trk_eta");	  
     TCanvas c5;
     h_gen_trk_eta->Draw();
     c5.SaveAs("gen_trk_eta.png");
-    TH1F* h_gen_trk_phi = (TH1F*) _file0->Get("h_gen_trk_phi");	  
+
     TCanvas c6;
     h_gen_trk_phi->Draw();
     c6.SaveAs("gen_trk_phi.png");
 
-    TH1F* h_gen_trk_dPhi = (TH1F*) _file0->Get("h_gen_trk_dPhi");	  
     TCanvas c7;
     h_gen_trk_dPhi->Draw();
     c7.SaveAs("gen_trk_dPhi.png");
-    TH1F* h_gen_trk_dR = (TH1F*) _file0->Get("h_gen_trk_dR");	  
+
     TCanvas c8;
     h_gen_trk_dR->Draw();
     c8.SaveAs("gen_trk_dR.png");
 
-    TH1F* h_gen_trk_mindPhi = (TH1F*) _file0->Get("h_gen_trk_mindPhi");	  
     TCanvas c9;
     h_gen_trk_mindPhi->Draw();
     c9.SaveAs("gen_trk_mindPhi.png");
-    TH1F* h_gen_trk_mindR = (TH1F*) _file0->Get("h_gen_trk_mindR");	  
+
     TCanvas c10;
     h_gen_trk_mindR->Draw();
     c10.SaveAs("gen_trk_mindR.png");
