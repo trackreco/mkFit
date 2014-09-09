@@ -10,7 +10,7 @@
 #include "buildtest.h"
 #include "Geometry.h"
 #include "USolids/include/UTubs.hh"
-#include "USolids/include/UPolyHedra.hh"
+#include "USolids/include/UPolyhedra.hh"
 #include "USolids/include/USphere.hh"
 
 int main(){

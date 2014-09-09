@@ -339,9 +339,9 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
                      2*dphidy*dphidx*(propState.errors.At(0,1));
   const float dphi   =  sqrt(fabs(dphi2));//how come I get negative squared errors sometimes?
   
-  const float nSigma = 3.0;
-  const float dphiMinus = normalizedPhi(phi-nSigma*dphi);
-  const float dphiPlus  = normalizedPhi(phi+nSigma*dphi);
+  const float nSigmaDphi = std::min(3.0 * dphi, M_PI);
+  const float dphiMinus = normalizedPhi(phi-nSigmaDphi);
+  const float dphiPlus  = normalizedPhi(phi+nSigmaDphi);
   
   unsigned int binMinus = getPhiPartition(dphiMinus);
   unsigned int binPlus  = getPhiPartition(dphiPlus);

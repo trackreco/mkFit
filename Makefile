@@ -38,7 +38,7 @@ test:	mplex-test mplex-vec-test mplex-nt-test mplexsym-test mplexsym-nt-test
 	ssh root@mic0 ./$*-mic
 
 main: $(MOBJ)
-	$(CXX) -o $@ $^ $(LDFLAGS) -LUSolids -lusolids -framework Accelerate
+	$(CXX) -o $@ $^ $(LDFLAGS) -LUSolids -lusolids
 
 .PHONY: all all-mic all-avx test clean depend
 
