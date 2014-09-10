@@ -332,12 +332,13 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   
   const float phi = std::atan2(predy,predx);
 
-  const float dphidx = -predy/(predx*predx+predy*predy);//denominator is just hit radius, consider avoiding re-computing it
-  const float dphidy =  predx/(predx*predx+predy*predy);//denominator is just hit radius, consider avoiding re-computing it
+  const float px2py2 = predx*predx+predy*predy;
+  const float dphidx = -predy/px2py2;
+  const float dphidy =  predx/px2py2;
   const float dphi2  = dphidx*dphidx*(propState.errors.At(0,0)) +
                        dphidy*dphidy*(propState.errors.At(1,1)) +
                      2*dphidy*dphidx*(propState.errors.At(0,1));
-  const float dphi   =  sqrt(fabs(dphi2));//how come I get negative squared errors sometimes?
+  const float dphi   =  sqrt(std::abs(dphi2));//how come I get negative squared errors sometimes?
   
   const float nSigmaDphi = std::min(3.0 * dphi, M_PI);
   const float dphiMinus = normalizedPhi(phi-nSigmaDphi);

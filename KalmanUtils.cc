@@ -4,13 +4,13 @@ float computeChi2(TrackState& propagatedState, MeasurementState& measurementStat
 				  SMatrix36& projMatrix,SMatrix63& projMatrixT) {
 
   //test adding noise (mutiple scattering) on position (needs to be done more properly...)
-  SMatrix66 noise;
+  //SMatrix66 noise;
   //float noiseVal = 0.000001;
   //noise(0,0)=noiseVal;
   //noise(1,1)=noiseVal;
   //noise(2,2)=noiseVal;
-  SMatrix66 propErr = propagatedState.errors + noise;
-  SMatrix33 propErr33 = projMatrix*propErr*projMatrixT;
+  //SMatrix66 propErr = propagatedState.errors + noise;
+  SMatrix33 propErr33 = projMatrix*propagatedState.errors*projMatrixT;
   SVector3 residual = measurementState.parameters-projMatrix*propagatedState.parameters;
   SMatrix33 resErr = measurementState.errors+propErr33;
   SMatrix33 resErrInv = resErr;
@@ -184,12 +184,13 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
   bool print = false;
 
   //test adding noise (mutiple scattering) on position (needs to be done more properly...)
-  SMatrixSym66 noise;
+  //SMatrixSym66 noise;
   //float noiseVal = 0.000001;
   //noise(0,0)=noiseVal;
   //noise(1,1)=noiseVal;
   //noise(2,2)=noiseVal;
-  SMatrixSym66 propErr = propagatedState.errors + noise;
+  //SMatrixSym66 propErr = propagatedState.errors + noise;
+  SMatrixSym66& propErr = propagatedState.errors;
   SMatrixSym33 propErr33 = ROOT::Math::Similarity(projMatrix,propErr);
   SVector3 residual = measurementState.parameters-projMatrix*propagatedState.parameters;
   SMatrixSym33 resErr = measurementState.errors+propErr33;
@@ -207,8 +208,7 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
   SMatrixSym66 updatedErrs = propErr - ROOT::Math::SimilarityT(propErr,simil);
 
   if (print) {
-    std::cout << "\n updateParameters \n" << std::endl << "noise" << std::endl;
-    dumpMatrix(noise);
+    std::cout << "\n updateParameters \n" << std::endl;
     std::cout << "propErr" << std::endl;
     dumpMatrix(propErr);
     std::cout << "propErr33" << std::endl;
