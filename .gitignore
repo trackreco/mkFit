@@ -5,9 +5,3 @@ log*
 main
 *.root
 *.o
-mplex
-mplex-vec
-mplex-nt
-mplexsym
-mplexsym-nt
-*-mic
