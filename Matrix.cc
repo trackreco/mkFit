@@ -1,5 +1,4 @@
 #include "Matrix.h"
-#include "MatriplexSymNT.icc"
 
 void dumpMatrix(SMatrix33& m){
   for (unsigned int r=0;r<3;++r) {
