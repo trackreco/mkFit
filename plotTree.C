@@ -17,8 +17,7 @@
     TCanvas cf1;
     TH1F* pt_res = new TH1F("pt_res","pt resolution",100,-0.5,0.5);
     pt_res->GetXaxis()->SetTitle("(p_{T}^{MC} - p_{T}^{fit})/p_{T}^{MC}");
-    //tree->Draw("(1./pt_mc-1./pt_fit)/(1./pt_mc)>>pt_res");
-    tree->Draw("(pt_mc-pt_fit)/pt_mc>>pt_res");
+    tree->Draw("(pt_mc-pt_fit)/(pt_mc)>>pt_res","");//*pt_mc
     pt_res->Fit("gaus","","",-0.07,0.07);
     cf1.SaveAs("pt_res.png");  
     
@@ -29,12 +28,12 @@
     pt_pul->Fit("gaus","","",-3,3);
     cf2.SaveAs("pt_pull.png");  
     
-    //TCanvas cf3;
-    //TH1F* ipt_res = new TH1F("ipt_res","inverse pt resolution",100,-0.5,0.5);
-    //ipt_res->GetXaxis()->SetTitle("(1./p_{T}^{MC} - 1./p_{T}^{fit})/(1./p_{T}^{MC})");
-    //tree->Draw("(1./pt_mc-1./pt_fit)/(1./pt_mc)>>ipt_res");
-    //ipt_res->Fit("gaus");
-    //cf1.SaveAs("ipt_res.png");  
+    TCanvas cf3;
+    TH1F* ipt_res = new TH1F("ipt_res","inverse pt residual",100,-0.05,0.05);
+    ipt_res->GetXaxis()->SetTitle("1./p_{T}^{MC} - 1./p_{T}^{fit} [1/GeV]");
+    tree->Draw("(1./pt_mc-1./pt_fit)>>ipt_res");
+    ipt_res->Fit("gaus");
+    cf3.SaveAs("ipt_res.png");  
 
     if (doConformal) {
       TCanvas ccf1;
