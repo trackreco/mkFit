@@ -40,6 +40,23 @@ inline double dtime()
     return( tseconds );
 }
 
+inline float hipo(float x, float y)
+{
+   return sqrt(x*x + y*y);
+}
+
+inline void sincos4(float x, float& sin, float& cos)
+{
+   // Had this writen with explicit division by factorial.
+   // The *whole* fitting test ran like 2.5% slower on MIC, sigh.
+
+   cos  = 1;
+   sin  = x;   x *= x * 0.5f;
+   cos -= x;   x *= x * 0.33333333f;
+   sin -= x;   x *= x * 0.25f;
+   cos += x;
+}
+
 //==============================================================================
 
 // This ifdef needs to be changed to something like "use matriplex" and/or
