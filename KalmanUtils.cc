@@ -89,7 +89,7 @@ void updateParameters66(TrackState& propagatedState, MeasurementState& measureme
 TrackState updateParameters(TrackState& propagatedState, MeasurementState& measurementState, 
 			    SMatrix36& projMatrix,SMatrix63& projMatrixT) {
 
-  bool print = false;
+  const bool print = g_dump;
 
   //test adding noise (mutiple scattering) on position (needs to be done more properly...)
   SMatrixSym66 noise;
@@ -99,21 +99,27 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
   //noise(2,2)=noiseVal;
   SMatrixSym66 propErr = propagatedState.errors + noise;
   SMatrixSym33 propErr33 = ROOT::Math::Similarity(projMatrix,propErr);
-  SVector3 residual = measurementState.parameters-projMatrix*propagatedState.parameters;
+
   SMatrixSym33 resErr = measurementState.errors+propErr33;
   SMatrixSym33 resErrInv = resErr;
+
   bool invResult =
     //resErrInv.Invert();//fixme
     resErrInv.InvertFast();//fixme
     //resErrInv.InvertChol();//fixme
   if (invResult==false) std::cout << "FAILED INVERSION" << std::endl;
+
   SMatrix63 pMTrEI = projMatrixT*resErrInv;
+
   SMatrix63 kalmanGain = propErr*pMTrEI;
-  SVector6 kGr = kalmanGain*residual;
-  SVector6 updatedParams = propagatedState.parameters + kGr;
-  SMatrixSym66 simil = ROOT::Math::SimilarityT(projMatrix,resErrInv);//fixme check T
+  SVector3 residual    = measurementState.parameters-projMatrix*propagatedState.parameters;
+  SVector6 kGr         = kalmanGain*residual;
+
+  SVector6 updatedParams   = propagatedState.parameters + kGr;
+  SMatrixSym66 simil       = ROOT::Math::SimilarityT(projMatrix,resErrInv);//fixme check T
   SMatrixSym66 updatedErrs = propErr - ROOT::Math::SimilarityT(propErr,simil);
 
+#ifdef DEBUG
   if (print) {
     std::cout << "\n updateParameters \n" << std::endl;
     std::cout << "noise" << std::endl;
@@ -141,6 +147,7 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
     dumpMatrix(updatedErrs);
     std::cout << std::endl;
   }
+#endif
 
   TrackState result;
   result.parameters=updatedParams;
