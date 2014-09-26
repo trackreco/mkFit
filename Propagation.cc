@@ -236,6 +236,7 @@ TrackState propagateHelixToNextSolid(TrackState& inputState, Geometry* theGeom) 
   }
     
 
+  //5 iterations is a good starting point
   const unsigned int Niter = 10;
   for (unsigned int i=0;i<Niter;++i) {
     if (dump) std::cout << "propagation iteration #" << i << std::endl;
@@ -259,6 +260,12 @@ TrackState propagateHelixToNextSolid(TrackState& inputState, Geometry* theGeom) 
 
     const bool updateDeriv = i+1!=Niter && hsout.r0>0.;
     hsout.updateHelix(distance, updateDeriv, dump);
+    if ( i == (Niter-1) ) {
+      std::cerr << __FILE__ << ":" << __LINE__ 
+		<< ": failed to converge in propagateHelixToNextSolid() after " << (i+1) << " iterations, "
+		<< distance 
+		<< std::endl;
+    }
   }
 
   hsout.propagateErrors(hsin, totalDistance, dump);

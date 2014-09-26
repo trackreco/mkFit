@@ -101,17 +101,19 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
     Track simtrk(q,pos,mom,covtrk,hits,0.,initHits);
     simtracks.push_back(simtrk);
   }
-  //#define DUMPPW
+#define DUMPPW
 #ifdef DUMPPW
   for (unsigned int itrack=0;itrack<simtracks.size();++itrack) {
     Track& trk = simtracks[itrack];
 
     std::vector<Hit>& initHits = trk.initHitsVector();
+    int ii = 0;
     for ( auto i = initHits.begin(); i != initHits.end(); ++i ) {
       std::cout << "PWHIT: "
 		<< i->position()[0] << " "
 		<< i->position()[1]<< " "
 		<< i->position()[2]<< " "
+		<< ii++ << " "
 		<< std::endl;
     }
 
