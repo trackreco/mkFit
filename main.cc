@@ -10,7 +10,7 @@
 #include "buildtest.h"
 #include "Geometry.h"
 #include "USolids/include/UTubs.hh"
-#include "USolids/include/UPolyHedra.hh"
+#include "USolids/include/UPolyhedra.hh"
 #include "USolids/include/USphere.hh"
 
 int main(){
@@ -20,7 +20,7 @@ int main(){
   // are added starting from the center
   for (int l = 0; l < 10; l++) {
     float r = (l+1)*4.;
-// #define CYLINDER
+    //#define CYLINDER
 #ifdef CYLINDER
     std::string s = "Cylinder" + std::string(1, 48+l);
     UTubs* utub = new UTubs(s, r, r+.01, 100.0, 0, TMath::TwoPi());
@@ -45,7 +45,7 @@ int main(){
   }
 
   bool saveTree = true;
-  runFittingTest(saveTree,50000,theGeom); 
+  //runFittingTest(saveTree,50000,theGeom); 
   //runFittingTestPlex(saveTree,theGeom); 
   runBuildingTest(saveTree,100,theGeom); 
 

@@ -1,9 +1,11 @@
 #include "Propagation.h"
+#ifdef __APPLE__
+#include <Accelerate/Accelerate.h>
+#endif
 
 // line propagation from state radius to hit radius
 // assuming radial direction (i.e. origin at (0,0))
 TrackState propagateLineToR(TrackState& inputState, float r) {
-
   bool dump = false;
 
   SVector6& par = inputState.parameters;
@@ -80,12 +82,14 @@ struct HelixState {
   TrackState& state;
 };
 
+/*  APPLE: vvsincosf(&sinAP, &cosAP, &angPath, &n); */
+
 void HelixState::updateHelix(float distance, bool updateDeriv, bool dump)
 {
-  float angPath = distance/curvature;
+  const float angPath = distance/curvature;
   if (dump) std::cout << "angPath=" << angPath << std::endl;
-  float cosAP = cos(angPath);
-  float sinAP = sin(angPath);
+  const float cosAP = cos(angPath);
+  const float sinAP = sin(angPath);
 
   //helix propagation formulas
   //http://www.phys.ufl.edu/~avery/fitting/fitting4.pdf
@@ -101,23 +105,23 @@ void HelixState::updateHelix(float distance, bool updateDeriv, bool dump)
 
     //update derivatives on total distance for next step, where totalDistance+=r-r0
     //now r0 depends on px and py
-    float r0inv = 1./r0;
+    const float r0inv = 1./r0;
     if (dump) std::cout << "r0=" << r0 << " r0inv=" << r0inv << " pt=" << pt << std::endl;
     //update derivative on D
-    float dAPdx = -x/(r0*curvature);
-    float dAPdy = -y/(r0*curvature);
-    float dAPdpx = -angPath*px/pt2;
-    float dAPdpy = -angPath*py/pt2;
+    const float dAPdx = -x/(r0*curvature);
+    const float dAPdy = -y/(r0*curvature);
+    const float dAPdpx = -angPath*px/pt2;
+    const float dAPdpy = -angPath*py/pt2;
 
-    float dxdx = 1 + k*dAPdx*(px*sinAP + py*cosAP);
-    float dxdy = k*dAPdy*(px*sinAP + py*cosAP);
-    float dydx = k*dAPdx*(py*sinAP - px*cosAP);
-    float dydy = 1 + k*dAPdy*(py*sinAP - px*cosAP);
+    const float dxdx = 1 + k*dAPdx*(px*sinAP + py*cosAP);
+    const float dxdy = k*dAPdy*(px*sinAP + py*cosAP);
+    const float dydx = k*dAPdx*(py*sinAP - px*cosAP);
+    const float dydy = 1 + k*dAPdy*(py*sinAP - px*cosAP);
 
-    float dxdpx = k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx);
-    float dxdpy = k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy);
-    float dydpx = k*(py*cosAP*dAPdpx + 1. - cosAP + px*sinAP*dAPdpx);
-    float dydpy = k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy);
+    const float dxdpx = k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx);
+    const float dxdpy = k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy);
+    const float dydpx = k*(py*cosAP*dAPdpx + 1. - cosAP + px*sinAP*dAPdpx);
+    const float dydpy = k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy);
 
     dTDdx -= r0inv*(x*dxdx + y*dydx);
     dTDdy -= r0inv*(x*dxdy + y*dydy);
@@ -125,31 +129,31 @@ void HelixState::updateHelix(float distance, bool updateDeriv, bool dump)
     dTDdpy -= r0inv*(x*dxdpy + y*dydpy);
   }
 
-  if (dump) std::cout << par.At(0) << " " << par.At(1) << " " << par.At(2) << std::endl;
-  if (dump) std::cout << par.At(3) << " " << par.At(4) << " " << par.At(5) << std::endl;
+  if (dump) {
+    std::cout << par.At(0) << " " << par.At(1) << " " << par.At(2) << std::endl
+              << par.At(3) << " " << par.At(4) << " " << par.At(5) << std::endl;
+  }
 }
 
 void HelixState::propagateErrors(HelixState& in, float totalDistance, bool dump)
 {
-  float totalAngPath=totalDistance/curvature;
-
-  float& TD=totalDistance;
-  float& TP=totalAngPath;
-  float& C=curvature;
+  const float TD=totalDistance;
+  const float TP=totalDistance/curvature;
+  const float C=curvature;
 
   SVector6& par = state.parameters;
   if (dump) std::cout << "TD=" << TD << " TP=" << TP << " arrived at r=" << sqrt(par.At(0)*par.At(0)+par.At(1)*par.At(1)) << std::endl;
 
-  float dCdpx = k*in.px/pt;
-  float dCdpy = k*in.py/pt;
+  const float dCdpx = k*in.px/pt;
+  const float dCdpy = k*in.py/pt;
 
-  float dTPdx = dTDdx/C;
-  float dTPdy = dTDdy/C;
-  float dTPdpx = (dTDdpx*C - TD*dCdpx)/(C*C);
-  float dTPdpy = (dTDdpy*C - TD*dCdpy)/(C*C);
+  const float dTPdx = dTDdx/C;
+  const float dTPdy = dTDdy/C;
+  const float dTPdpx = (dTDdpx*C - TD*dCdpx)/(C*C);
+  const float dTPdpy = (dTDdpy*C - TD*dCdpy)/(C*C);
 
-  float cosTP = cos(TP);
-  float sinTP = sin(TP);
+  const float cosTP = cos(TP);
+  const float sinTP = sin(TP);
 
   //derive these to compute jacobian
   //x = xin + k*(pxin*sinTP-pyin*(1-cosTP));
@@ -208,7 +212,6 @@ TrackState propagateHelixToNextSolid(TrackState& inputState, Geometry* theGeom) 
 
   HelixState hsin(inputState);
   HelixState hsout(hsin);
-  SVector6& par = hsout.state.parameters;
 
   if (dump) std::cout << "curvature=" << hsin.curvature << std::endl;
 
@@ -233,11 +236,10 @@ TrackState propagateHelixToNextSolid(TrackState& inputState, Geometry* theGeom) 
   }
     
 
-  //5 iterations is a good starting point
-  unsigned int Niter = 10;
+  const unsigned int Niter = 10;
   for (unsigned int i=0;i<Niter;++i) {
     if (dump) std::cout << "propagation iteration #" << i << std::endl;
-    hsout.setCoords(par);
+    hsout.setCoords(hsout.state.parameters);
 
     auto currentSolid = theGeom->InsideWhat(UVector3(hsout.x,hsout.y,hsout.z));
     if ( dump ) 
@@ -247,7 +249,7 @@ TrackState propagateHelixToNextSolid(TrackState& inputState, Geometry* theGeom) 
       break;
     }
 
-    float distance = std::max(theGeom->SafetyFromOutside(UVector3(hsout.x,hsout.y,hsout.z),true), .0001);
+    const float distance = std::max(theGeom->SafetyFromOutside(UVector3(hsout.x,hsout.y,hsout.z),true), .0001);
     totalDistance += distance;
 
     if (dump) {
@@ -255,7 +257,7 @@ TrackState propagateHelixToNextSolid(TrackState& inputState, Geometry* theGeom) 
       std::cout << "distance=" << distance << std::endl;
     }
 
-    bool updateDeriv = i+1!=Niter && hsout.r0>0.;
+    const bool updateDeriv = i+1!=Niter && hsout.r0>0.;
     hsout.updateHelix(distance, updateDeriv, dump);
   }
 
@@ -272,17 +274,16 @@ TrackState propagateHelixToLayer(TrackState& inputState, unsigned int layer, Geo
 
   HelixState hsin(inputState);
   HelixState hsout(hsin);
-  SVector6& par = hsout.state.parameters;
 
   if (dump) std::cout << "curvature=" << hsin.curvature << std::endl;
 
   float totalDistance = 0;
 
   //5 iterations is a good starting point
-  unsigned int Niter = 5;
+  const unsigned int Niter = 5;
   for (unsigned int i=0;i<Niter;++i) {
     if (dump) std::cout << "propagation iteration #" << i << std::endl;
-    hsout.setCoords(par);
+    hsout.setCoords(hsout.state.parameters);
 
     auto currentSolid = theGeom->InsideWhat(UVector3(hsout.x,hsout.y,hsout.z));
     if (currentSolid == target) {
@@ -290,7 +291,7 @@ TrackState propagateHelixToLayer(TrackState& inputState, unsigned int layer, Geo
       break;
     }
 
-    float distance = std::max(target->SafetyFromOutside(UVector3(hsout.x,hsout.y,hsout.z),true), .0001);
+    const float distance = std::max(target->SafetyFromOutside(UVector3(hsout.x,hsout.y,hsout.z),true), .0001);
     totalDistance += distance;
 
     if (dump) {
@@ -298,7 +299,7 @@ TrackState propagateHelixToLayer(TrackState& inputState, unsigned int layer, Geo
       std::cout << "distance=" << distance << std::endl;
     }
 
-    bool updateDeriv = i+1!=Niter && hsout.r0>0.;
+    const bool updateDeriv = i+1!=Niter && hsout.r0>0.;
     hsout.updateHelix(distance, updateDeriv, dump);
   }
 
@@ -316,11 +317,11 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
 
   HelixState hsin(inputState);
   HelixState hsout(hsin);
-  SVector6& par = hsout.state.parameters;
 
   if (dump) {
-    std::cout << "attempt propagation from r=" << hsin.r0 << " to r=" << r << std::endl;
-    std::cout << "x=" << hsin.x << " y=" << hsin.y << " px=" << hsin.px  << " py=" << hsin.py << " pz=" << hsin.pz << " q=" << inputState.charge << std::endl;
+    std::cout << "attempt propagation from r=" << hsin.r0 << " to r=" << r << std::endl
+              << "x=" << hsin.x << " y=" << hsin.y << " px=" << hsin.px
+              << " py=" << hsin.py << " pz=" << hsin.pz << " q=" << inputState.charge << std::endl;
   }
 
   if ((hsin.r0-r)>=0) {
@@ -333,23 +334,23 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
   float totalDistance = 0;
 
   //5 iterations is a good starting point
-  unsigned int Niter = 5;
+  const unsigned int Niter = 5;
   for (unsigned int i=0;i<Niter;++i) {
 
     if (dump) std::cout << "propagation iteration #" << i << std::endl;
-    hsout.setCoords(par);
+    hsout.setCoords(hsout.state.parameters);
 
     if (r==hsout.r0) {
       if (dump) std::cout << "distance = 0 at iteration=" <<  i << std::endl;
       break;
     }
 
-    float distance = r-hsout.r0;
+    const float distance = r-hsout.r0;
     totalDistance+=distance;
 
     if (dump) {
-      std::cout << "r0=" << hsout.r0 << " pt=" << hsout.pt << std::endl;
-      std::cout << "distance=" << distance << std::endl;
+      std::cout << "r0=" << hsout.r0 << " pt=" << hsout.pt << std::endl
+                << "distance=" << distance << std::endl;
     }
  
     bool updateDeriv = i+1!=Niter && hsout.r0>0.;

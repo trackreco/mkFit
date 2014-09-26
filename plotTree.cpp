@@ -41,7 +41,10 @@ void plotTree(){
     TFile * file     = TFile::Open(Form("%s",rootfile.Data()));
     TTree * ptTree   = (TTree*)file->Get("ptTree");
     TTree * posTree  = (TTree*)file->Get("posTree");
-    
+    if (nullptr == ptTree || nullptr == posTree) {
+      std::cout << "ptTree: " << ptTree << " posTree: " << posTree << std::endl;
+      exit(1);
+    }
     // ++++ Initialize Histos ++++ //
     
     /////////// pt
