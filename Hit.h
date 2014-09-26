@@ -13,6 +13,7 @@ public:
 class Hit
 {
 public:
+  Hit() {}
 
   Hit(MeasurementState state)
   {

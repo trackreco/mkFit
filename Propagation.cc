@@ -501,7 +501,7 @@ void propagateHelixToR_fewerTemps(TrackState& inputState, float r, TrackState& r
       par.At(2) = par.At(2) + (r-r0)*ctgTheta;
       par.At(3) = px*cosAP-py*sinAP;
       par.At(4) = py*cosAP+px*sinAP;
-      par.At(5) = pz; //take this out as it is redundant
+      // par.At(5) = pz; //take this out as it is redundant
 
       if (i+1!=Niter && r0>0.)
       {

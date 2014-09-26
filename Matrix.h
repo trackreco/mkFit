@@ -62,7 +62,7 @@ inline void sincos4(float x, float& sin, float& cos)
 // This ifdef needs to be changed to something like "use matriplex" and/or
 // "is icc" as we can only do vectorization with icc now.
 
-#ifndef __APPLE__
+#ifdef WITH_MATRIPLEX
 
 #include "Matriplex/MatriplexSym.h"
 
