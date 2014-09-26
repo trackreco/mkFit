@@ -54,7 +54,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
   //do 4 cm in radius using propagation.h
   for (unsigned int nhit=1;nhit<=nTotHit;++nhit) {
     //TrackState propState = propagateHelixToR(tmpState,4.*float(nhit));//radius of 4*nhit
-    TrackState propState = propagateHelixToNextSolid(tmpState,theGeom);
+    auto propState = propagateHelixToNextSolid(tmpState,theGeom);
 
     float initX   = propState.parameters.At(0);
     float initY   = propState.parameters.At(1);
@@ -62,9 +62,94 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     float initPhi = atan2(initY,initX);
     float initRad = sqrt(initX*initX+initY*initY);
 
-    float hitZ    = hitposerrZ*g_gaus(g_gen)+initZ;
-    float hitPhi  = ((hitposerrXY/initRad)*g_gaus(g_gen))+initPhi;
-    float hitRad  = (hitposerrR)*g_gaus(g_gen)+initRad;
+    // PW START
+    // multiple scattering. Follow discussion in PDG Ch 32.3
+    // this generates a scattering distance yplane and an angle theta_plane in a coordinate
+    // system normal to the initial direction of the incident particle ...
+    const float z1 = g_gaus(g_gen);
+    const float z2 = g_gaus(g_gen);
+    const float phismear = g_gaus(g_gen)*TMath::TwoPi(); // random rotation of scattering plane
+    const float X0 = 9.370; // cm, from http://pdg.lbl.gov/2014/AtomicNuclearProperties/HTML/silicon_Si.html
+    const float x = 0.1; // cm  -assumes radial impact. This is bigger than what we have in main
+    // should use tilt angle to make this more accurate
+    const float p = sqrt(propState.parameters.At(3)*propState.parameters.At(3)+
+			 propState.parameters.At(4)*propState.parameters.At(4)+
+			 propState.parameters.At(5)*propState.parameters.At(5));
+    const float betac = p/0.135; // m=130 MeV, pion
+    const int z = 14; // Si atomic number
+    const float theta_0 = 0.0136/(betac*p)*z*sqrt(x/X0)*(1+0.038*log(x/X0));// eq 32.14
+    float y_plane = z1*x*theta_0/sqrt(12.)+ z2*x*theta_0/2.;
+    float theta_plane = z2*theta_0;
+    if ( dump ) 
+      std::cout << "yplane, theta_plane = " << y_plane << ", " << theta_plane << std::endl;
+    // now we need to transform to the right coordinate system
+    // in this coordinate system z -> z'=z i.e., unchanged (this is a freedom I have since the 
+    // definition of the plane defined by nhat is invariant under rotations about nhat
+    // x, y change
+    // so the transformation is a rotation about z and a translation
+    // if the normal vector is given by n == x' = (x1,y1,0) [NB no component along z here]
+    // then the 
+    // y axis in the new coordinate system is given by y' = z' x x' = (-y1,x1,0)
+    //  virtual bool Normal( const UVector3& aPoint, UVector3 &aNormal ) const = 0; 
+    UVector3 point(initX,initY,initZ);
+    const auto *theSolid = theGeom->InsideWhat(point);
+    if ( ! theSolid ) {
+      std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid." <<std::endl;
+      std::cerr << "nhit = " << nhit << ", r = " << initRad
+		<< ", phi = " << initPhi ;
+      float pt = sqrt(propState.parameters[3]*propState.parameters[3]+
+		      propState.parameters[4]*propState.parameters[4]);
+      std::cerr << ", pt = " << pt << ", pz = " << propState.parameters[5] << std::endl;
+
+      continue;
+    }
+    UVector3 xprime; // normal on surface
+    bool good = theSolid->Normal(point, xprime);
+      
+    if ( ! good ) {
+      std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find normal vector." <<std::endl;
+      continue;
+    }
+    assert(std::fabs(xprime[2])<1e-10);
+    UVector3 yprime(-xprime[1],xprime[0],0); // result of dot product with zhat
+    //const double phi0 = atan2(xpime[1], xprime[0]);
+    
+    const float scatteredX = initX + y_plane *(-xprime[1]*cos(phismear)); 
+    const float scatteredY = initY + y_plane *(+xprime[0]*cos(phismear));
+    const float scatteredZ = initZ + y_plane *(           sin(phismear));
+    const float scatteredPhi = atan2(scatteredY,scatteredX);
+    const float scatteredRad = sqrt(scatteredX*scatteredX+scatteredY*scatteredY);
+
+
+    //point = point + ;
+
+    UVector3 pvec=UVector3(propState.parameters.At(3), propState.parameters.At(4), propState.parameters.At(5))/p;
+    UVector3 pvecprime(pvec[0]*cos(theta_0)-cos(phismear)*sin(theta_0)-pvec[1]*sin(theta_0)*sin(phismear)/pvec[0],
+		       pvec[1]*(cos(theta_0)-cos(phismear)*sin(theta_0)/pvec[1])+sin(theta_0)*sin(phismear),
+		       pvec[2]*cos(theta_0)+(pvec[0]*pvec[0]+pvec[1]*pvec[1])*sin(theta_0)*cos(phismear)/(pvec[0]*pvec[1]));
+    pvecprime.Normalize();
+    if ( dump ) {
+      std::cout << "xprime = " << xprime << std::endl;
+      std::cout << "yprime = " << yprime << std::endl;
+      std::cout << "phat      = " << pvec << "\t" << pvec.Mag() << std::endl;
+      std::cout << "pvecprime = " << pvecprime << "\t" << pvecprime.Mag() << std::endl;
+      std::cout << "angle     = " << pvecprime.Dot(pvec) << "(" << cos(theta_plane) << ")" << std::endl;
+    }
+
+    // now update propstate with the new scattered results
+    propState.parameters[0] = scatteredX;
+    propState.parameters[1] = scatteredY;
+    propState.parameters[2] = scatteredZ;
+
+    propState.parameters[3] = pvecprime[0]*p;
+    propState.parameters[4] = pvecprime[1]*p;
+    propState.parameters[5] = pvecprime[2]*p;
+    
+    // PW END
+
+    float hitZ    = hitposerrZ*g_gaus(g_gen)+scatteredZ;
+    float hitPhi  = ((hitposerrXY/scatteredRad)*g_gaus(g_gen))+scatteredPhi;
+    float hitRad  = (hitposerrR)*g_gaus(g_gen)+scatteredRad;
     float hitRad2 = hitRad*hitRad;
     float hitX    = hitRad*cos(hitPhi);
     float hitY    = hitRad*sin(hitPhi);
@@ -173,6 +258,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     float hitRad2 = hitRad*hitRad;
     float hitX    = hitRad*cos(hitPhi);
     float hitY    = hitRad*sin(hitPhi);
+
 
     float varXY  = hitposerrXY*hitposerrXY;
     float varPhi = varXY/hitRad2;
