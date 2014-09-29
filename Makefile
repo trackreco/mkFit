@@ -6,8 +6,8 @@ LDFLAGS :=  $(shell root-config --libs)
 #CXX=icc
 
 ifeq ($(CXX),c++)
-	#CXXFLAGS := -std=c++11 -O3 -openmp -Wall -Wno-unknown-pragmas -I. $(shell root-config --cflags)
-	CXXFLAGS := -std=c++11 -g  -openmp -Wall -Wno-unknown-pragmas -I. $(shell root-config --cflags)
+	CXXFLAGS := -std=c++11 -O3 -openmp -Wall -Wno-unknown-pragmas -I. $(shell root-config --cflags)
+	#CXXFLAGS := -std=c++11 -g  -openmp -Wall -Wno-unknown-pragmas -I. $(shell root-config --cflags)
 	MPLEXOPTS := -std=c++11 -O3 -openmp
 else
 	CXX := icc

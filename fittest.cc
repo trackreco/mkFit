@@ -101,7 +101,7 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
     Track simtrk(q,pos,mom,covtrk,hits,0.,initHits);
     simtracks.push_back(simtrk);
   }
-#define DUMPPW
+  //#define DUMPPW
 #ifdef DUMPPW
   for (unsigned int itrack=0;itrack<simtracks.size();++itrack) {
     Track& trk = simtracks[itrack];

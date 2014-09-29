@@ -68,7 +68,7 @@ void updateParameters66(TrackState& propagatedState, MeasurementState& measureme
     //resErrInv33.Invert();//fixme
     resErrInv33.InvertFast();//fixme
     //resErrInv33.InvertChol();//fixme
-  if (invResult==false) std::cout << "FAILED INVERSION" << std::endl;
+  if (invResult==false) std::cout << __FILE__ << ":" << __LINE__ << ": FAILED INVERSION" << std::endl;
   SMatrixSym66 resErrInv;
   copy33Into66(resErrInv33,resErrInv);
 
@@ -199,7 +199,7 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
     //resErrInv.Invert();//fixme
     resErrInv.InvertFast();//fixme
     //resErrInv.InvertChol();//fixme
-  if (invResult==false) std::cout << "FAILED INVERSION" << std::endl;
+  if (invResult==false) std::cout << __FILE__ << ":" << __LINE__ << ": FAILED INVERSION" << std::endl;
   SMatrix63 pMTrEI = projMatrixT*resErrInv;
   SMatrix63 kalmanGain = propErr*pMTrEI;
   SVector6 kGr = kalmanGain*residual;

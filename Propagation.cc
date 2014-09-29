@@ -264,6 +264,7 @@ TrackState propagateHelixToNextSolid(TrackState& inputState, Geometry* theGeom) 
       std::cerr << __FILE__ << ":" << __LINE__ 
 		<< ": failed to converge in propagateHelixToNextSolid() after " << (i+1) << " iterations, "
 		<< distance 
+		<< ", pt = " << hsout.pt
 		<< std::endl;
     }
   }
