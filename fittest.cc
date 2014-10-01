@@ -125,11 +125,13 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
     Track& trk = simtracks[itrack];
 
     std::vector<Hit>& initHits = trk.initHitsVector();
+    int ii = 0;
     for ( auto i = initHits.begin(); i != initHits.end(); ++i ) {
       std::cout << "PWHIT: "
 		<< i->position()[0] << " "
 		<< i->position()[1]<< " "
 		<< i->position()[2]<< " "
+		<< ii++ << " "
 		<< std::endl;
     }
 

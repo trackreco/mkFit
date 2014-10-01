@@ -45,7 +45,7 @@ int main(){
   }
 
   bool saveTree = true;
-  //runFittingTest(saveTree,50000,theGeom); 
+  runFittingTest(saveTree,50000,theGeom); 
   //runFittingTestPlex(saveTree,theGeom); 
   runBuildingTest(saveTree,100,theGeom); 
 
