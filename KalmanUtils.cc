@@ -199,7 +199,13 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
     //resErrInv.Invert();//fixme
     resErrInv.InvertFast();//fixme
     //resErrInv.InvertChol();//fixme
-  if (invResult==false) std::cout << __FILE__ << ":" << __LINE__ << ": FAILED INVERSION" << std::endl;
+  if (invResult==false) {
+    std::cout << __FILE__ << ":" << __LINE__ << ": FAILED FAST INVERSION" << std::endl;
+    invResult = resErrInv.Invert();//fixme
+    if ( invResult == false ) {
+      std::cout << __FILE__ << ":" << __LINE__ << ": FAILED SLOW INVERSION, TOO" << std::endl;
+    }
+  }
   SMatrix63 pMTrEI = projMatrixT*resErrInv;
   SMatrix63 kalmanGain = propErr*pMTrEI;
   SVector6 kGr = kalmanGain*residual;

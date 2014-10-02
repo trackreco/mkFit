@@ -67,6 +67,8 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     // multiple scattering. Follow discussion in PDG Ch 32.3
     // this generates a scattering distance yplane and an angle theta_plane in a coordinate
     // system normal to the initial direction of the incident particle ...
+    // question: do I need to generate two scattering angles in two planes (theta_plane) and add those or 
+    // can I do what I did, generate one (theta_space) and rotate it by another random numbers
     const float z1 = g_gaus(g_gen);
     const float z2 = g_gaus(g_gen);
     const float phismear = g_unif(g_gen)*TMath::TwoPi(); // random rotation of scattering plane
@@ -110,15 +112,12 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
 
     x /= std::abs(xprime.Dot(pvec)); // take care of dip angle
     const float betac = sqrt(p*p+(.135*.135))/(p*p); // m=130 MeV, pion
-    const int z = 1; // charge of scatterer
-    const float theta_0 = 0.0136/(betac*p)*z*sqrt(x/X0)*(1+0.038*log(x/X0));// eq 32.14
-    float y_plane = z1*x*theta_0/sqrt(12.)+ z2*x*theta_0/2.;
-    float theta_plane = z2*theta_0;
+    const float theta_0 = 0.0136/(betac*p)*sqrt(x/X0)*(1+0.038*log(x/X0));// eq 32.14
+    const float y_plane = z1*x*theta_0/sqrt(12.)+ z2*x*theta_0/2.;
+    const float theta_plane = z2*theta_0;
+    const float theta_space = sqrt(2)*theta_plane;
     if ( dump ) 
-      std::cout << "yplane, theta_plane = " << y_plane << ", " << theta_plane << std::endl;
-   // std::cout <<  "theta_0 = " << theta_0 << ", x = " 
-   // 	      << x << ", theta_plane = " << theta_plane   << ", yplane = " << y_plane
-   // 	      << std::endl;
+      std::cout << "yplane, theta_space = " << y_plane << ", " << theta_space << std::endl;
 
     UVector3 yprime(-xprime[1],xprime[0],0); // result of dot product with zhat
     //const double phi0 = atan2(xpime[1], xprime[0]);
@@ -146,20 +145,20 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
 	return 0;
     };
 		    
-    pvecprime[0] = a*cos(theta_plane) + ((b + c)*cos(phismear)*sin(theta_plane))/(a*v0) + 
-      (a*(b - c)*sin(theta_plane)*sin(phismear))/(v1*sign(1 + (b - c)*c));
-    pvecprime[1] = b*cos(theta_plane) - (cos(phismear)*sin(theta_plane))/v0 + 
-      ((-1 + pow(b,2) - b*c)*sin(theta_plane)*sin(phismear))/(v1*sign(1 + (b - c)*c));
-    pvecprime[2] = c*cos(theta_plane) - (cos(phismear)*sin(theta_plane))/v0 + 
-      (std::abs(1 + (b - c)*c)*sin(theta_plane)*sin(phismear))/v1; 
+    pvecprime[0] = a*cos(theta_space) + ((b + c)*cos(phismear)*sin(theta_space))/(a*v0) + 
+      (a*(b - c)*sin(theta_space)*sin(phismear))/(v1*sign(1 + (b - c)*c));
+    pvecprime[1] = b*cos(theta_space) - (cos(phismear)*sin(theta_space))/v0 + 
+      ((-1 + pow(b,2) - b*c)*sin(theta_space)*sin(phismear))/(v1*sign(1 + (b - c)*c));
+    pvecprime[2] = c*cos(theta_space) - (cos(phismear)*sin(theta_space))/v0 + 
+      (std::abs(1 + (b - c)*c)*sin(theta_space)*sin(phismear))/v1; 
     assert(pvecprime.Mag()<=1.0001);
     if ( dump ) {
-      std::cout << "theta_plane, phismear = " << theta_plane << ", " << phismear << std::endl;
+      std::cout << "theta_space, phismear = " << theta_space << ", " << phismear << std::endl;
       std::cout << "xprime = " << xprime << std::endl;
       std::cout << "yprime = " << yprime << std::endl;
       std::cout << "phat      = " << pvec << "\t" << pvec.Mag() << std::endl;
       std::cout << "pvecprime = " << pvecprime << "\t" << pvecprime.Mag() << std::endl;
-      std::cout << "angle     = " << pvecprime.Dot(pvec) << "(" << cos(theta_plane) << ")" << std::endl;
+      std::cout << "angle     = " << pvecprime.Dot(pvec) << "(" << cos(theta_space) << ")" << std::endl;
       std::cout << "pt, before and after: " << pvec.Perp()*p << ", "<< pvecprime.Perp()*p << std::endl;
     }
     pvecprime.Normalize();
