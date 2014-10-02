@@ -20,22 +20,22 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
   float cfitHit0_x=0.,cfitHit0_y=0.,cfitHit0_z=0.,cfitHit0_px=0.,cfitHit0_py=0.,cfitHit0_pz=0.;
   float cfitHit0_xe=0.,cfitHit0_ye=0.,cfitHit0_ze=0.,cfitHit0_pxe=0.,cfitHit0_pye=0.,cfitHit0_pze=0.;
   float x_init=0.,x_mc=0.,x_mcerr=0.,x_prop=0.,x_perr=0.,x_update=0.,x_uerr=0.; 
-  float y_mcerr=0.;
+  float y_init=0.,y_mc=0.,y_mcerr=0.,y_prop=0.,y_perr=0.,y_update=0.,y_uerr=0.; 
+  float z_init=0.,z_mc=0.,z_mcerr=0.,z_prop=0.,z_perr=0.,z_update=0.,z_uerr=0.; 
   float xy_mcerr=0.;
   float r_init=0.,r_mc=0.,r_prop=0.,r_update=0.;
   float phi_init=0.,phi_mc=0.,phi_mcerr=0.,phi_prop=0.,phi_perr=0.,phi_update=0.,phi_uerr=0.;
 #ifndef NO_ROOT
-  TFile* f=0;
+  TFile *f=0;
   TTree *tree=0;
   TTree *posTree=0;
   if (saveTree) {
     f=TFile::Open("validationtree.root", "recreate");
-    tree = new TTree("ptTree","ptTree");
+    tree = new TTree("tree","tree");
     tree->Branch("pt_mc",&pt_mc,"pt_mc");
     tree->Branch("pt_fit",&pt_fit,"pt_fit");
     tree->Branch("pt_err",&pt_err,"pt_err");
 
-    //tree = new TTree("tree","tree");
     tree->Branch("simHit0_x",&simHit0_x,"simHit0_x");
     tree->Branch("simHit0_y",&simHit0_y,"simHit0_y");
     tree->Branch("simHit0_z",&simHit0_z,"simHit0_z");
@@ -63,12 +63,30 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
     posTree->Branch("x_perr",&x_perr,"x_perr");
     posTree->Branch("x_update",&x_update,"x_update");
     posTree->Branch("x_uerr",&x_uerr,"x_uerr");
+
+    posTree->Branch("y_init",&y_init,"y_init");
+    posTree->Branch("y_mc",&y_mc,"y_mc");
     posTree->Branch("y_mcerr",&y_mcerr,"y_mcerr");
+    posTree->Branch("y_prop",&y_prop,"y_prop");
+    posTree->Branch("y_perr",&y_perr,"y_perr");
+    posTree->Branch("y_update",&y_update,"y_update");
+    posTree->Branch("y_uerr",&y_uerr,"y_uerr");
+
+    posTree->Branch("z_init",&z_init,"z_init");
+    posTree->Branch("z_mc",&z_mc,"z_mc");
+    posTree->Branch("z_mcerr",&z_mcerr,"z_mcerr");
+    posTree->Branch("z_prop",&z_prop,"z_prop");
+    posTree->Branch("z_perr",&z_perr,"z_perr");
+    posTree->Branch("z_update",&z_update,"z_update");
+    posTree->Branch("z_uerr",&z_uerr,"z_uerr");
+
     posTree->Branch("xy_mcerr",&xy_mcerr,"xy_mcerr");
+
     posTree->Branch("r_init",&r_init,"r_init");
     posTree->Branch("r_mc",&r_mc,"r_mc");
     posTree->Branch("r_prop",&r_prop,"r_prop");
     posTree->Branch("r_update",&r_update,"r_update");
+
     posTree->Branch("phi_init",&phi_init,"phi_init");
     posTree->Branch("phi_mc",&phi_mc,"phi_mc");
     posTree->Branch("phi_mcerr",&phi_mcerr,"phi_mcerr");
@@ -176,10 +194,9 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
       cfitHit0_pze=sqrt(cfitStateHit0.errors[5][5]);
     }
     cfitStateHit0.errors*=10;//rescale errors to avoid bias from reusing of hit information
-    TrackState updatedState = cfitStateHit0;
+    //TrackState updatedState = cfitStateHit0;
     
-    //TrackState updatedState = initState;
-    //    for (std::vector<Hit>::iterator ihit=hits.begin();ihit!=hits.end();++ihit) {
+    TrackState updatedState = initState;
     for (unsigned int ihit = 0; ihit < hits.size(); ihit++) {
       if (dump)  std::cout << "processing hit: " << ihit << std::endl << std::endl;
 
@@ -219,14 +236,28 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
       if (saveTree){
 	x_init   = initMeasState.parameters[0];
 	x_mc     = measState.parameters[0];
-	x_mcerr  = measState.errors[0][0];
+	x_mcerr  = measState.errors[0][0]; // sigma^2 of x_mc (same with y,z)
 	x_prop   = propState.parameters[0];
-	x_perr   = propState.errors[0][0];
+	x_perr   = propState.errors[0][0]; // sigma^2 of x_prop
 	x_update = updatedState.parameters[0];
-	x_uerr   = updatedState.errors[0][0];
+	x_uerr   = updatedState.errors[0][0]; // sigma^2 of x_update
 
+	y_init   = initMeasState.parameters[1];
+	y_mc     = measState.parameters[1];
 	y_mcerr  = measState.errors[1][1];
-	
+	y_prop   = propState.parameters[1];
+	y_perr   = propState.errors[1][1];
+	y_update = updatedState.parameters[1];
+	y_uerr   = updatedState.errors[1][1];
+
+	z_init   = initMeasState.parameters[2];
+	z_mc     = measState.parameters[2];
+	z_mcerr  = measState.errors[2][2];
+	z_prop   = propState.parameters[2];
+	z_perr   = propState.errors[2][2];
+	z_update = updatedState.parameters[2];
+	z_uerr   = updatedState.errors[2][2];
+
 	xy_mcerr = measState.errors[0][1];
 
 	r_init   = sqrt( initMeasState.parameters[0]*initMeasState.parameters[0] +
@@ -240,20 +271,20 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
 
 	phi_init   = atan2(initMeasState.parameters[1],initMeasState.parameters[0]);
 	phi_mc     = atan2(measState.parameters[1],measState.parameters[0]);
-	phi_mcerr  = sqrt( measState.errors[0][0]*measState.parameters[0]*measState.parameters[0] +
-			   measState.errors[1][1]*measState.parameters[1]*measState.parameters[1] - 
-			   measState.errors[0][1]*measState.parameters[0]*measState.parameters[1] - 
-			   measState.errors[1][0]*measState.parameters[1]*measState.parameters[0] ) / r_mc;
+	phi_mcerr  = ( measState.errors[0][0]*measState.parameters[0]*measState.parameters[0] +
+		       measState.errors[1][1]*measState.parameters[1]*measState.parameters[1] - 
+		       measState.errors[0][1]*measState.parameters[0]*measState.parameters[1] - 
+		       measState.errors[1][0]*measState.parameters[1]*measState.parameters[0] ) / (r_mc*r_mc); // sigma^2 of phi
 	phi_prop   = atan2(propState.parameters[1],propState.parameters[0]);
-	phi_perr   = sqrt( propState.errors[0][0]*propState.parameters[0]*propState.parameters[0] +
-			   propState.errors[1][1]*propState.parameters[1]*propState.parameters[1] - 
-			   propState.errors[0][1]*propState.parameters[0]*propState.parameters[1] - 
-			   propState.errors[1][0]*propState.parameters[1]*propState.parameters[0] ) / r_prop;
+	phi_perr   = ( propState.errors[0][0]*propState.parameters[0]*propState.parameters[0] +
+		       propState.errors[1][1]*propState.parameters[1]*propState.parameters[1] - 
+		       propState.errors[0][1]*propState.parameters[0]*propState.parameters[1] - 
+		       propState.errors[1][0]*propState.parameters[1]*propState.parameters[0] ) / (r_prop*r_prop); // sigma^2 of phi
 	phi_update = atan2(updatedState.parameters[1],updatedState.parameters[0]);
-	phi_uerr   = sqrt( updatedState.errors[0][0]*updatedState.parameters[0]*updatedState.parameters[0] +
-			   updatedState.errors[1][1]*updatedState.parameters[1]*updatedState.parameters[1] - 
-			   updatedState.errors[0][1]*updatedState.parameters[0]*updatedState.parameters[1] - 
-			   updatedState.errors[1][0]*updatedState.parameters[1]*updatedState.parameters[0] ) / r_update;
+	phi_uerr   = ( updatedState.errors[0][0]*updatedState.parameters[0]*updatedState.parameters[0] +
+		       updatedState.errors[1][1]*updatedState.parameters[1]*updatedState.parameters[1] - 
+		       updatedState.errors[0][1]*updatedState.parameters[0]*updatedState.parameters[1] - 
+		       updatedState.errors[1][0]*updatedState.parameters[1]*updatedState.parameters[0] ) / (r_update*r_update); // sigma^2 of phi 
 	posTree->Fill();
       }
 #endif
@@ -274,7 +305,7 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
 		     updatedState.errors[4][4]*updatedState.parameters[4]*updatedState.parameters[4] + 
 		     2*updatedState.errors[3][4]*updatedState.parameters[3]*updatedState.parameters[4] )/pt_fit;
       tree->Fill();
-    }
+     }
 #endif
   }
 
@@ -294,7 +325,7 @@ void runFittingTestPlex(bool saveTree, Geometry* theGeom)
   TTree *tree=0;
   if (saveTree) {
     f=TFile::Open("validationtree_plex.root", "recreate");
-    tree = new TTree("ptTree","ptTree");
+    tree = new TTree("tree","tree");
     tree->Branch("pt_mc",&pt_mc,"pt_mc");
     tree->Branch("pt_fit",&pt_fit,"pt_fit");
     tree->Branch("pt_err",&pt_err,"pt_err");
