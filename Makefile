@@ -1,14 +1,20 @@
 # Requires some latest gcc, e.g.:
 # . /opt/rh/devtoolset-2/enable
 
-LDFLAGS :=  $(shell root-config --libs) -openmp
+ifeq ($(shell uname),Darwin)
+	OMP := -fopenmp
+else
+	OMP := -openmp
+endif
+
+LDFLAGS :=  $(shell root-config --libs) $(OMP)
 #CXX=icc
 
 ifeq ($(CXX),c++)
-	CXXFLAGS := -std=c++11 -O3 -openmp -Wall -Wno-unknown-pragmas -I. $(shell root-config --cflags)
+	CXXFLAGS := -std=c++11 -O3 $(OMP) -Wall -Wno-unknown-pragmas -I. $(shell root-config --cflags)
 else
 	CXX := icc
-	CXXFLAGS := -std=gnu++0x -O3 -openmp -I. $(shell root-config --cflags)
+	CXXFLAGS := -std=gnu++0x -O3 $(OMP) -I. $(shell root-config --cflags)
 endif
 
 MOBJ = main.o Matrix.o KalmanUtils.o Propagation.o Simulation.o buildtest.o fittest.o ConformalUtils.o
