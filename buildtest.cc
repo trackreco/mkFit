@@ -84,6 +84,7 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
   
   unsigned int Ntracks = 500;//50
   const unsigned int maxCand = 10;
+  const float chi2Cut = 15.;
 
   std::vector<std::vector<Hit> > evt_lay_hits(10);//hits per layer
   std::vector<Track> evt_sim_tracks;
@@ -163,8 +164,8 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
     evt_seeds.push_back(seed);
   }
 
-  buildTestSerial(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug);
-  //buildTestParallel(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug);
+  buildTestSerial(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,chi2Cut,projMatrix36,projMatrix36T,debug);
+  //buildTestParallel(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,chi2Cut,projMatrix36,projMatrix36T,debug);
 
   //dump candidates
   for (unsigned int itkcand=0;itkcand<evt_track_candidates.size();++itkcand) {
@@ -184,7 +185,7 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
 		     std::vector<Track>& evt_track_candidates,
 		     std::vector<std::vector<Hit> >& evt_lay_hits,
 		     std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
-		     const int& nhits_per_seed,const unsigned int& maxCand,
+		     const int& nhits_per_seed,const unsigned int& maxCand, const float& chi2Cut,
 		     SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug){
 
   //process seeds
@@ -205,7 +206,7 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
       for (unsigned int icand=0;icand<track_candidates.size();++icand) {//loop over running candidates 
 
 	std::pair<Track, TrackState>& cand = track_candidates[icand];
-	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug);
+	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,chi2Cut,projMatrix36,projMatrix36T,debug);
 	
       }//end of running candidates loop
 
@@ -240,7 +241,7 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
 		       std::vector<Track>& evt_track_candidates,
 		       std::vector<std::vector<Hit> >& evt_lay_hits,
 		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
-		       const int& nhits_per_seed,const unsigned int& maxCand,
+		       const int& nhits_per_seed,const unsigned int& maxCand, const float& chi2Cut,
 		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug){
 
   //save a vector of candidates per each seed. initialize to the seed itself
@@ -262,7 +263,7 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
       for (unsigned int icand=0;icand<track_candidates[iseed].size();++icand) {//loop over running candidates 
 
 	std::pair<Track, TrackState>& cand = track_candidates[iseed][icand];
-	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug);
+	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,chi2Cut,projMatrix36,projMatrix36T,debug);
 
       }//end of running candidates loop
 	  
@@ -299,7 +300,7 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
 void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<Track, TrackState> >& tmp_candidates,
 		       unsigned int ilay,std::vector<std::vector<Hit> >& evt_lay_hits,
 		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
-		       const int& nhits_per_seed,const unsigned int& maxCand,
+		       const int& nhits_per_seed,const unsigned int& maxCand, const float& chi2Cut,
 		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T, bool debug){
 
   Track& tkcand = cand.first;
@@ -372,7 +373,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
     if (debug) std::cout << "consider hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
 			 << std::atan2(hity,hitx) << " " << hitz << " chi2=" << chi2 << std::endl;
     
-    if ((chi2<15.)&&(chi2>0.)) {//fixme 
+    if ((chi2<chi2Cut)&&(chi2>0.)) {//fixme 
       if (debug) std::cout << "found hit with index: " << ihit << " chi2=" << chi2 << std::endl;
       TrackState tmpUpdatedState = updateParameters(propState, hitMeas,projMatrix36,projMatrix36T);
       Track tmpCand = tkcand.clone();
