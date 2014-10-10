@@ -87,9 +87,11 @@ void updateParameters66(TrackState& propagatedState, MeasurementState& measureme
 
 //see e.g. http://inspirehep.net/record/259509?ln=en
 TrackState updateParameters(TrackState& propagatedState, MeasurementState& measurementState, 
-			    SMatrix36& projMatrix,SMatrix63& projMatrixT) {
-
+			    SMatrix36& projMatrix,SMatrix63& projMatrixT)
+{
+#ifdef DEBUG
   const bool print = g_dump;
+#endif
 
   //test adding noise (mutiple scattering) on position (needs to be done more properly...)
   SMatrixSym66 noise;

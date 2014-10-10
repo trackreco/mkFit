@@ -1,45 +1,37 @@
-# Requires some latest gcc, e.g.:
-# . /opt/rh/devtoolset-2/enable
+include Makefile.config
 
-ifeq ($(shell uname),Darwin)
-	OMP := -fopenmp
+CPPFLAGS := -I. -MMD
+CXXFLAGS := -O3 -std=c++11
+LDFLAGS  :=
+
+ifeq (${WITH_ROOT},yes)
+  CPPFLAGS += $(shell root-config --cflags)
+  CXXFLAGS += 
+  LDFLAGS  += $(shell root-config --libs)
 else
-	OMP := -openmp
+  CPPFLAGS += -DNO_ROOT
 endif
 
-LDFLAGS :=  $(shell root-config --libs) $(OMP)
-#CXX=icc
-
-ifeq ($(CXX),c++)
-	CXXFLAGS := -std=c++11 -O3 $(OMP) -Wall -Wno-unknown-pragmas -I. $(shell root-config --cflags)
+ifeq ($(CXX),icc)
+  CXXFLAGS += -openmp
+  LDFLAGS  += -openmp
 else
-	CXX := icc
-	CXXFLAGS := -std=gnu++0x -O3 $(OMP) -I. $(shell root-config --cflags)
+  CXXFLAGS += -fopenmp -Wall -Wno-unknown-pragmas
+  LDFLAGS  += -fopenmp
 endif
-
-MOBJ = main.o Matrix.o KalmanUtils.o Propagation.o Simulation.o buildtest.o fittest.o ConformalUtils.o
-
-.PHONY: all clean 
 
 all: main
 
+SRCS := $(wildcard *.cc)
+DEPS := $(SRCS:.cc=.d)
+OBJS := $(SRCS:.cc=.o)
+
+-include ${DEPS}
+
+.PHONY: all clean 
+
 clean:
-	-rm -f main *.o
+	-rm -f main *.o *.d
 
-main: $(MOBJ)
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-main.o: fittest.h buildtest.h
-Matrix.o: Matrix.h
-KalmanUtils.o: KalmanUtils.h
-Propagation.o: Propagation.h
-Simulation.o: Simulation.h
-buildtest.o: buildtest.h KalmanUtils.h Simulation.h
-fittest.o: fittest.h KalmanUtils.h Simulation.h
-ConformalUtils.o: Track.h Matrix.h
-
-Hit.h: Matrix.h
-KalmanUtils.h: Track.h
-Propagation.h: Track.h
-Simulation.h: Propagation.h
-Track.h: Hit.h Matrix.h
+main: ${OBJS}
+	${CXX} -o $@ $^ ${LDFLAGS}

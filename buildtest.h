@@ -7,6 +7,7 @@
 
 #include "Track.h"
 
+class TFile;
 class TTree;
 class TH1F;
 
