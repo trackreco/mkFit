@@ -218,23 +218,40 @@ TrackState propagateHelixToNextSolid(TrackState& inputState, Geometry* theGeom) 
   float totalDistance = 0;
   auto startSolid = theGeom->InsideWhat(UVector3(hsin.x,hsin.y,hsin.z));
 
+  // have we scattered out of the solid?
+  if (hsin.r0 > 1.0 && !startSolid) {
+    UVector3 here(hsin.x,hsin.y,hsin.z);
+    for ( unsigned int i = 0; i < theGeom->CountLayers(); ++i ) {
+      auto d = theGeom->Layer(i)->SafetyFromOutside(here, true);
+      if (d < 0.0001) {
+        startSolid = theGeom->Layer(i);
+        break;
+      }
+    }
+    if (!startSolid) {
+      std::cerr << __FILE__ << ":" << __LINE__ 
+                << ": not in a solid or at origin: " << inputState.parameters
+                << std::endl;
+    }
+  }
+
   if (dump) {
-    std::cout << "startSolid = " << startSolid << std::endl;
-    // distance to all layers
-    UVector3 origin(0,0,0);
+    std::cout << "startSolid = " << startSolid << std::endl
+              << inputState.parameters << std::endl;
+    //UVector3 origin(0,0,0);
+    UVector3 here(hsin.x,hsin.y,hsin.z);
     //UVector3 direction(par(4),par(5),par(6));
     UVector3 direction(hsout.px,hsout.py,hsout.pz);
     direction.Normalize();
     std::cout << "direction is " << direction << std::endl;
     for ( unsigned int i = 0; i < theGeom->CountLayers(); ++i ) {
-      auto distance1 = theGeom->Layer(i)->DistanceToIn(origin, direction);
-      auto distance2 = theGeom->Layer(i)->SafetyFromOutside(origin, false);
-      std::cout << "disance to layer " << i << " = " << distance1 
-		<< " " << distance2 << ", inside=" << theGeom->Layer(i)->Inside(origin)
-		<< std::endl;
+      auto distance1 = theGeom->Layer(i)->DistanceToIn(here, direction);
+      auto distance2 = theGeom->Layer(i)->SafetyFromOutside(here, true);
+      std::cout << "distance to layer " << i << " = " << distance1 
+                << " " << distance2 << ", inside=" << theGeom->Layer(i)->Inside(here)
+                << std::endl;
     }
   }
-    
 
   //5 iterations is a good starting point
   const unsigned int Niter = 10;
@@ -243,8 +260,9 @@ TrackState propagateHelixToNextSolid(TrackState& inputState, Geometry* theGeom) 
     hsout.setCoords(hsout.state.parameters);
 
     auto currentSolid = theGeom->InsideWhat(UVector3(hsout.x,hsout.y,hsout.z));
-    if ( dump ) 
+    if ( dump ) {
       std::cout << "Current solid = " << currentSolid << std::endl;
+    }
     if (currentSolid && currentSolid != startSolid) {
       if (dump) std::cout << "Inside next solid" << std::endl;
       break;
@@ -262,10 +280,10 @@ TrackState propagateHelixToNextSolid(TrackState& inputState, Geometry* theGeom) 
     hsout.updateHelix(distance, updateDeriv, dump);
     if ( i == (Niter-1) ) {
       std::cerr << __FILE__ << ":" << __LINE__ 
-		<< ": failed to converge in propagateHelixToNextSolid() after " << (i+1) << " iterations, "
-		<< distance 
-		<< ", pt = " << hsout.pt
-		<< std::endl;
+                << ": failed to converge in propagateHelixToNextSolid() after " << (i+1) << " iterations, "
+                << distance 
+                << ", pt = " << hsout.pt
+                << std::endl;
     }
   }
 

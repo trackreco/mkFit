@@ -90,7 +90,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     // then the 
     // y axis in the new coordinate system is given by y' = z' x x' = (-y1,x1,0)
     UVector3 point(initX,initY,initZ);
-    const auto *theSolid = theGeom->InsideWhat(point);
+    const auto theSolid = theGeom->InsideWhat(point);
     if ( ! theSolid ) {
       std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid." <<std::endl;
       std::cerr << "nhit = " << nhit << ", r = " << initRad << ", r*4cm = " << 4*nhit 
@@ -138,11 +138,11 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
 
     auto sign = [] (const float a) { 
       if ( a > 0 ) 
-	return 1;
+        return 1;
       else if ( a < 0 ) 
-	return -1;
+        return -1;
       else
-	return 0;
+        return 0;
     };
 		    
     pvecprime[0] = a*cos(theta_space) + ((b + c)*cos(phismear)*sin(theta_space))/(a*v0) + 
