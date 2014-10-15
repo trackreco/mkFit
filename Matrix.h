@@ -62,9 +62,20 @@ inline void sincos4(float x, float& sin, float& cos)
 // This ifdef needs to be changed to something like "use matriplex" and/or
 // "is icc" as we can only do vectorization with icc now.
 
-#ifdef WITH_MATRIPLEX
+#ifdef __INTEL_COMPILER
+
+template<typename T> inline void ASSUME_ALIGNED(T* a, int b) { __assume_aligned(a, b); }
+
+#else
+
+template<typename T> inline void ASSUME_ALIGNED(T* a, int b) { a = (T*) __builtin_assume_aligned(a, b); }
+// #define ASSUME_ALIGNED(a, b) a = __builtin_assume_aligned(a, b)
+
+#endif
+
 
 #include "Matriplex/MatriplexSym.h"
+
 
 #ifndef MPT_SIZE
 #define MPT_SIZE 16
@@ -90,7 +101,6 @@ typedef Matriplex::Matriplex<float, LL, HH, NN>   MPlexLH;
 typedef Matriplex::Matriplex<float, 1, 1, NN>     MPlexQF;
 typedef Matriplex::Matriplex<int,   1, 1, NN>     MPlexQI;
 
-#endif
 
 #ifndef NUM_THREADS
 #define NUM_THREADS 1

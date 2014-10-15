@@ -109,7 +109,7 @@ public:
       // XXXXX Review, cannonize
       // XXX icc bitch says: loop was not vectorized: cannot vectorize empty simd loop
 
-      T *p = fArray; __assume_aligned(p, 64);
+      T *p = fArray; ASSUME_ALIGNED(p, 64);
 
 #pragma omp simd
       for (idx_t n = 0; n < N; ++n)
@@ -124,7 +124,7 @@ public:
    {
       typedef T TT;
 
-      T *a = fArray; __assume_aligned(a, 64);
+      T *a = fArray; ASSUME_ALIGNED(a, 64);
 
 #pragma simd
       for (idx_t n = 0; n < N; ++n)
@@ -177,9 +177,9 @@ struct SymMultiplyCls<T, 3, N>
                         const MPlexSym<T, 3, N>& B,
                         MPlex<T, 3, 3, N>& C)
 {
-   const T *a = A.fArray; __assume_aligned(a, 64);
-   const T *b = B.fArray; __assume_aligned(b, 64);
-         T *c = C.fArray; __assume_aligned(c, 64);
+   const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
 #ifdef MIC_INTRINSICS
 
@@ -207,9 +207,9 @@ struct SymMultiplyCls<T, 6, N>
                         const MPlexSym<float, 6, N>& B,
                         MPlex<float, 6, 6, N>& C)
 {
-   const T *a = A.fArray; __assume_aligned(a, 64);
-   const T *b = B.fArray; __assume_aligned(b, 64);
-         T *c = C.fArray; __assume_aligned(c, 64);
+   const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
 #ifdef MIC_INTRINSICS
 
@@ -259,7 +259,7 @@ struct CramerInverterSym<T, 2, N>
    {
       typedef T TT;
 
-      T *a = A.fArray; __assume_aligned(a, 64);
+      T *a = A.fArray; ASSUME_ALIGNED(a, 64);
 
 #pragma simd
       for (idx_t n = 0; n < N; ++n)
@@ -282,7 +282,7 @@ struct CramerInverterSym<T, 3, N>
    {
       typedef T TT;
 
-      T *a = A.fArray; __assume_aligned(a, 64);
+      T *a = A.fArray; ASSUME_ALIGNED(a, 64);
 
 #pragma simd
       for (idx_t n = 0; n < N; ++n)
