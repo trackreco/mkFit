@@ -2,8 +2,14 @@
 *.png
 *.log
 log*
-main
 *.root
 *.o
 *.d
 *.ah
+main
+main-mic
+mkFit/mkFit
+mkFit/mkFit-mic
+mkFit/auto-genmplex
+mkFit/auto-genmplex
+mkFit/auto-matriplex
