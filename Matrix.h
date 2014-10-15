@@ -64,12 +64,11 @@ inline void sincos4(float x, float& sin, float& cos)
 
 #ifdef __INTEL_COMPILER
 
-template<typename T> inline void ASSUME_ALIGNED(T* a, int b) { __assume_aligned(a, b); }
+#define ASSUME_ALIGNED(a, b) __assume_aligned(a, b)
 
 #else
 
 template<typename T> inline void ASSUME_ALIGNED(T* a, int b) { a = (T*) __builtin_assume_aligned(a, b); }
-// #define ASSUME_ALIGNED(a, b) a = __builtin_assume_aligned(a, b)
 
 #endif
 
