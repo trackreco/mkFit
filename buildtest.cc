@@ -48,15 +48,15 @@ unsigned int getPhiPartition(float phi) {
 
 void runBuildingTest(bool saveTree, unsigned int nevts)
 {
-  TFile* f=0;
-  TTree *tree=0;
   unsigned int tk_nhits = 0;
   float tk_chi2 = 0.;
 
   std::map<std::string,TH1F*> validation_hists;
   setupValidationHists(validation_hists);
 
+  TTree *tree=0;
 #ifndef NO_ROOT
+  TFile* f=0;
   if (saveTree) {
     f=TFile::Open("build_validationtree.root", "recreate");
     tree = new TTree("tree","tree");
