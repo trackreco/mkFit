@@ -6,3 +6,4 @@ main
 *.root
 *.o
 *.d
+*.ah
