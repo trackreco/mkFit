@@ -1,7 +1,5 @@
 #include "KalmanUtilsMPlex.h"
 
-#ifndef __APPLE__
-
 namespace
 {
 
@@ -20,10 +18,10 @@ void MultResidualsAdd(const MPlexLH& A,
    typedef float T;
    const idx_t N = NN;
 
-   const T *a = A.fArray; __assume_aligned(a, 64);
-   const T *b = B.fArray; __assume_aligned(b, 64);
-   const T *c = C.fArray; __assume_aligned(c, 64);
-         T *d = D.fArray; __assume_aligned(d, 64);
+   const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+   const T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+         T *d = D.fArray; ASSUME_ALIGNED(d, 64);
 
 #pragma simd
    for (idx_t n = 0; n < N; ++n)
@@ -53,9 +51,9 @@ void AddIntoUpperLeft3x3(const MPlexLS& A, const MPlexHS& B, MPlexHS& C)
    typedef float T;
    const idx_t N = NN;
 
-   const T *a = A.fArray; __assume_aligned(a, 64);
-   const T *b = B.fArray; __assume_aligned(b, 64);
-         T *c = C.fArray; __assume_aligned(c, 64);
+   const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
 #pragma simd
    for (idx_t n = 0; n < N; ++n)
@@ -78,9 +76,9 @@ void MultKalmanGain(const MPlexLS& A, const MPlexHS& B, MPlexLH& C)
   typedef float T;
   const idx_t N = NN;
   
-  const T *a = A.fArray; __assume_aligned(a, 64);
-  const T *b = B.fArray; __assume_aligned(b, 64);
-        T *c = C.fArray; __assume_aligned(c, 64);
+  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
 #include "upParam_MultKalmanGain.ah"
 
@@ -93,9 +91,9 @@ void simil_x_propErr(const MPlexHS& A, const MPlexLS& B, MPlexLL& C)
   typedef float T;
   const idx_t N = NN;
   
-  const T *a = A.fArray; __assume_aligned(a, 64);
-  const T *b = B.fArray; __assume_aligned(b, 64);
-        T *c = C.fArray; __assume_aligned(c, 64);
+  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
 #include "upParam_simil_x_propErr.ah"
 }
@@ -107,9 +105,9 @@ void propErrT_x_simil_propErr(const MPlexLH& A, const MPlexLS& B, MPlexLS& C)
   typedef float T;
   const idx_t N = NN;
   
-  const T *a = A.fArray; __assume_aligned(a, 64);
-  const T *b = B.fArray; __assume_aligned(b, 64);
-        T *c = C.fArray; __assume_aligned(c, 64);
+  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
 #include "upParam_propErrT_x_simil_propErr.ah"
 }
@@ -121,9 +119,9 @@ void kalmanGain_x_propErr(const MPlexLH& A, const MPlexLS& B, MPlexLS& C)
   typedef float T;
   const idx_t N = NN;
   
-  const T *a = A.fArray; __assume_aligned(a, 64);
-  const T *b = B.fArray; __assume_aligned(b, 64);
-        T *c = C.fArray; __assume_aligned(c, 64);
+  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
 #include "upParam_kalmanGain_x_propErr.ah"
 }
@@ -147,7 +145,9 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
 
   // Also: resErr could be 3x3, kalmanGain 6x3
 
+#ifdef DEBUG
   const bool dump = g_dump;
+#endif
 
   // updateParametersContext ctx;
   //assert((long long)(&updateCtx.propErr.fArray[0]) % 64 == 0);
@@ -241,5 +241,3 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
   }
 #endif
 }
-
-#endif

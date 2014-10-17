@@ -10,8 +10,6 @@ void   make_validation_tree(const char         *fname,
 
 double runFittingTest(std::vector<Track>& simtracks, std::vector<Track>& rectracks);
 
-#ifndef __APPLE__
 double runFittingTestPlex(std::vector<Track>& simtracks, std::vector<Track>& rectracks);
-#endif
 
 #endif

@@ -53,8 +53,10 @@ public:
     m_diff = m_end - m_beg;
     if (n_ops != 0)
       m_n_ops = n_ops;
+    return m_diff;
   }
 
+  double time()   { return m_diff; }
   double lap()    { return dtime() - m_beg; }
 
   double flops()  { return m_n_ops / m_diff;  }
@@ -68,8 +70,8 @@ public:
 
   long64 calibrate_loop(int n_vec, double run_time);
 
-  void time_loop(int n_vec, long64 n_loop);
-  void auto_time_loop(int n_vec, double run_time);
+  double time_loop(int n_vec, long64 n_loop);
+  double auto_time_loop(int n_vec, double run_time);
 
   void print_tuple_header();
   void print_header();

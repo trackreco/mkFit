@@ -1,11 +1,7 @@
 #include "MkFitter.h"
 
-#include "Propagation.h"
-
-namespace
-{
-   inline float hipo(float x, float y) { return sqrt(x*x + y*y); }
-}
+#include "PropagationMPlex.h"
+#include "KalmanUtilsMPlex.h"
 
 void MkFitter::CheckAlignment()
 {

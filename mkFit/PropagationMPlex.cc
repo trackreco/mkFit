@@ -72,9 +72,9 @@ void MultHelixProp(const MPlexLL& A, const MPlexLS& B, MPlexLL& C)
    typedef float T;
    const idx_t N  = NN;
 
-   const T *a = A.fArray; __assume_aligned(a, 64);
-   const T *b = B.fArray; __assume_aligned(b, 64);
-         T *c = C.fArray; __assume_aligned(c, 64);
+   const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
 #include "MultHelixProp.ah"
 }
@@ -86,9 +86,9 @@ void MultHelixPropTransp(const MPlexLL& A, const MPlexLL& B, MPlexLS& C)
    typedef float T;
    const idx_t N  = NN;
 
-   const T *a = A.fArray; __assume_aligned(a, 64);
-   const T *b = B.fArray; __assume_aligned(b, 64);
-         T *c = C.fArray; __assume_aligned(c, 64);
+   const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
 #include "MultHelixPropTransp.ah"
 }
@@ -106,7 +106,9 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
                             const MPlexQI &inChg,  const MPlexHV& msPar,
                                   MPlexLS &outErr,       MPlexLV& outPar)
 {
+#ifdef DEBUG
    const bool dump = false;
+#endif
 
    const idx_t N  = NN;
 

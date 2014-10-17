@@ -1,80 +1,91 @@
-# Request latest gcc!
-# . /opt/rh/devtoolset-2/enable
-
-VR       := 1
-VECHOST  := -mavx -vec-report=${VR}
-VECMIC   := -mmic -vec-report=${VR}
-
-### To disable vectorization set USER_CXXFLAGS := -no-simd -no-vec
+##### Random stuff #####
+#
+# To disable vectorization set USER_CXXFLAGS := -no-simd -no-vec
 # Setting only one of the above has little effect.
 # Note, this also screws-up prefetching so it's a lousy deal.
-
+#
 # -opt-prefetch-distance=64,8
-OPT      := -O3
 
-CPPFLAGS := -I. ${USER_CPPFLAGS} ${DEFS}
-CXXFLAGS := ${OPT} -openmp -std=gnu++0x ${USER_CXXFLAGS}
+include ../Makefile.config
 
-LDFLAGS  := ${USER_LDFLAGS}
+
+CPPFLAGS += -I.. ${USER_CPPFLAGS} ${DEFS}
+CXXFLAGS += ${USER_CXXFLAGS}
+
+LDFLAGS  += ${USER_LDFLAGS}
 
 TGTS     := mkFit
 
-EXES     := ${TGTS} $(addsuffix -mic, ${TGTS})
+EXES     := ${TGTS}
 
-xxxx:
-	@echo THIS MAKEFILE NEEDS TO BE ADAPTED FURTHER AFTER MPLEX MERGE.
+ifeq (${CXX},icc)
+  EXES   += $(addsuffix -mic, ${TGTS})
+endif
+
 
 all: ${EXES}
 
-matriplex-auto:
+
+auto-matriplex:
 	${MAKE} -C ../Matriplex auto && touch $@
 
-auto: matriplex-auto
-.PHONY: auto
+auto-genmplex: GenMPlexOps.pl
+	./GenMPlexOps.pl && touch $@
 
-%.o: %.cxx *.h matriplex-auto
-	icc ${CPPFLAGS} ${CXXFLAGS} ${VECHOST} -c -o $@ $<
-
-%.om: %.cxx *.h matriplex-auto
-	icc ${CPPFLAGS} ${CXXFLAGS} ${VECMIC} -c -o $@ $<
+AUTO_TGTS := auto-matriplex auto-genmplex
 
 
 clean:
-	rm -f ${EXES} *.o *.om 
+	rm -f ${EXES} *.d *.o *.om 
 
 distclean: clean
+	rm -f ${AUTO_TGTS} *.ah
 
 echo:
-	@echo CPPFLAGS = ${CPPFLAGS}
-	@echo CXXFLAGS = ${CXXFLAGS}
-	@echo LDFLAGS  = ${LDFLAGS}
+	@echo "CXX      = ${CXX}"
+	@echo "CPPFLAGS = ${CPPFLAGS}"
+	@echo "CXXFLAGS = ${CXXFLAGS}"
+	@echo "LDFLAGS  = ${LDFLAGS}"
+	@echo "EXES     = ${EXES}"
+
 
 ################################################################
 
-### mkFit test
+-include *.d ../*.d
+
+# Should be a lib, really
+ABOVE_OBJS := $(patsubst %, ../%.o, Matrix Hit Track Propagation KalmanUtils Simulation)
+
+${ABOVE_OBJS}:
+	${MAKE} -C ..
 
 MKFSRCS := $(wildcard *.cc)
 MKFHDRS := $(wildcard *.h)
 
-MKFOBJS     := $(MKFSRCS:.cc=.o)  Timing.o
-MKFOBJS_MIC := $(MKFSRCS:.cc=.om) Timing.om
+MKFOBJS := $(MKFSRCS:.cc=.o)
 
-### To run without validation
-MK_HOST_CFLAGS := -DNO_ROOT
-MK_HOST_LIBS   :=
-### To run with validation (host only)
-# MK_HOST_CFLAGS := -I${ROOTSYS}/include
-# MK_HOST_LIBS   := -L${ROOTSYS}/lib -lCore -lRIO -lTree
+ALLOBJS := ${MKFOBJS} ${ABOVE_OBJS}
 
-mkFit: auto ${MKFOBJS}
-	icc ${CXXFLAGS} ${VECHOST} ${LDFLAGS} ${MK_HOST_LIBS} -o $@ ${MKFOBJS}
+mkFit: ${AUTO_TGTS} ${ALLOBJS}
+	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} -o $@ ${ALLOBJS}
 
-mkFit-mic: auto ${MKFOBJS_MIC}
-	icc ${CXXFLAGS} ${VECMIC}  ${LDFLAGS} -o $@ ${MKFOBJS_MIC}
+${MKFOBJS}: %.o: %.cc
+	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<
+
+
+### MIC build, icc only
+
+ifeq ($(CXX),icc)
+
+MKFOBJS_MIC := $(MKFOBJS:.o=.om)
+
+ALLOBJS_MIC := $(ALLOBJS:.o=.om) 
+
+mkFit-mic: ${AUTO_TGTS} ${ALLOBJS_MIC}
+	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS} -o $@ ${ALLOBJS_MIC}
 	scp $@ mic0:
 
-%.o: %.cc *.h ../Matriplex/*
-	icc ${CPPFLAGS} ${CXXFLAGS} ${VECHOST} -IMatriplex ${MK_HOST_CFLAGS} -c -o $@ $<
+${MKFOBJS_MIC}: %.om: %.cc
+	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_MIC} -DNO_ROOT -IMatriplex -c -o $@ $<
 
-%.om: %.cc *.h ../Matriplex/*
-	icc ${CPPFLAGS} ${CXXFLAGS} ${VECMIC} -DNO_ROOT -IMatriplex -c -o $@ $<
+endif

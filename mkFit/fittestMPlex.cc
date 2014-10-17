@@ -118,8 +118,9 @@ double runFittingTest(std::vector<Track>& simtracks, std::vector<Track>& rectrac
 
       std::vector<Hit>& hits = trk.hitsVector();
 
-      TrackState initState = trk.state();
-      //make a copy since initState is used at the end to fill the tree
+      // Make a copy since initState is used at the end to fill the tree.
+      // Hmmh, not any more, it seems.
+      // TrackState initState = trk.state();
       TrackState& updatedState = trk.state();
     
       bool dump = false;
@@ -127,11 +128,7 @@ double runFittingTest(std::vector<Track>& simtracks, std::vector<Track>& rectrac
       for (std::vector<Hit>::iterator hit=hits.begin();hit!=hits.end();++hit)
       {
          //for each hit, propagate to hit radius and update track state with hit measurement
-         // TrackState propState = propagateHelixToR(updatedState,hit->r());
-
-         // XXXXXX Changed to Line ... to compare with Matriplex
-         TrackState propState;
-         propagateHelixToR(updatedState, hit->r(), propState);
+         TrackState propState = propagateHelixToR(updatedState, hit->r());
 
          MeasurementState measState = hit->measurementState();
          updatedState = updateParameters(propState, measState,projMatrix36,projMatrix36T);
@@ -196,8 +193,6 @@ double runFittingTest(std::vector<Track>& simtracks, std::vector<Track>& rectrac
 // runFittingTestPlex
 //==============================================================================
 
-#ifndef __APPLE__
-
 double runFittingTestPlex(std::vector<Track>& simtracks, std::vector<Track>& rectracks)
 {
    const int Nhits = MAX_HITS;
@@ -250,5 +245,3 @@ double runFittingTestPlex(std::vector<Track>& simtracks, std::vector<Track>& rec
 
    return time;
 }
-
-#endif

@@ -1,6 +1,6 @@
-#include "MatriplexCommon.h"
+#include "Matriplex/MatriplexCommon.h"
 
-#include "fittest.h"
+#include "fittestMPlex.h"
 
 #include "MkFitter.h"
 
@@ -151,7 +151,7 @@ void test_vtune()
 void test_standard()
 {
   int  Ntracks  = 1024 * 1024;// * 1024; // * 10
-  bool saveTree = false;
+  // bool saveTree = false;
 
   generateTracks(simtracks, Ntracks);
 

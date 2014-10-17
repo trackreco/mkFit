@@ -69,7 +69,7 @@ long64 Timing::calibrate_loop(int n_vec, double run_time)
 
 //------------------------------------------------------------------------------
 
-void Timing::time_loop(int n_vec, long64 n_loop)
+double Timing::time_loop(int n_vec, long64 n_loop)
 {
   m_n_ops = 0;
 
@@ -80,12 +80,12 @@ void Timing::time_loop(int n_vec, long64 n_loop)
     m_n_ops += m_func(n_vec);
   }
 
-  stop();
+  return stop();
 }
 
-void Timing::auto_time_loop(int n_vec, double run_time)
+double Timing::auto_time_loop(int n_vec, double run_time)
 {
   long64 n_loops = calibrate_loop(n_vec, run_time);
 
-  time_loop(n_vec, n_loops);
+  return time_loop(n_vec, n_loops);
 }
