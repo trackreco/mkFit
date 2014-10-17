@@ -62,6 +62,8 @@ inline void sincos4(float x, float& sin, float& cos)
 // This ifdef needs to be changed to something like "use matriplex" and/or
 // "is icc" as we can only do vectorization with icc now.
 
+#ifdef USE_MATRIPLEX
+
 #ifdef __INTEL_COMPILER
 
 #define ASSUME_ALIGNED(a, b) __assume_aligned(a, b)
@@ -107,6 +109,8 @@ typedef Matriplex::Matriplex<int,   1, 1, NN>     MPlexQI;
 
 #ifndef THREAD_BINDING
 #define THREAD_BINDING spread
+#endif
+
 #endif
 
 //==============================================================================
