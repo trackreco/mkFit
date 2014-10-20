@@ -4,12 +4,13 @@
 log*
 *.root
 *.o
+*.om
 *.d
 *.ah
 main
 main-mic
+auto-matriplex
 mkFit/mkFit
 mkFit/mkFit-mic
-mkFit/auto-genmplex
 mkFit/auto-genmplex
 mkFit/auto-matriplex
