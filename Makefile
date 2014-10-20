@@ -51,10 +51,10 @@ ifeq ($(CXX),icc)
 OBJS_MIC := $(OBJS:.o=.om)
 
 main-mic: ${AUTO_TGTS} ${OBJS_MIC}
-	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS} -o $@ ${OBJS_MIC}
+	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} -o $@ ${OBJS_MIC}
 	scp $@ mic0:
 
 ${OBJS_MIC}: %.om: %.cc
-	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_MIC} -DNO_ROOT -c -o $@ $<
+	${CXX} ${CPPFLAGS_NO_ROOT} ${CXXFLAGS} ${VEC_MIC} -c -o $@ $<
 
 endif

@@ -8,11 +8,16 @@
 
 include ../Makefile.config
 
+CPPEXTRA := -I.. ${USER_CPPFLAGS} ${DEFS}
+LDEXTRA  := ${USER_LDFLAGS}
 
-CPPFLAGS += -I.. ${USER_CPPFLAGS} ${DEFS}
+CPPFLAGS += ${CPPEXTRA}
 CXXFLAGS += ${USER_CXXFLAGS}
+LDFLAGS  += ${LDEXTRA}
 
-LDFLAGS  += ${USER_LDFLAGS}
+CPPFLAGS_NO_ROOT += ${CPPEXTRA}
+LDFLAGS_NO_ROOT  += ${LDEXTRA}
+
 
 TGTS     := mkFit
 
@@ -82,10 +87,10 @@ MKFOBJS_MIC := $(MKFOBJS:.o=.om)
 ALLOBJS_MIC := $(ALLOBJS:.o=.om) 
 
 mkFit-mic: ${AUTO_TGTS} ${ALLOBJS_MIC}
-	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS} -o $@ ${ALLOBJS_MIC}
+	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} -o $@ ${ALLOBJS_MIC}
 	scp $@ mic0:
 
 ${MKFOBJS_MIC}: %.om: %.cc
-	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_MIC} -DNO_ROOT -IMatriplex -c -o $@ $<
+	${CXX} ${CPPFLAGS_NO_ROOT} ${CXXFLAGS} ${VEC_MIC} -c -o $@ $<
 
 endif
