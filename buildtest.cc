@@ -137,7 +137,7 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
       float hity = evt_lay_hits[ilay][ihit].position()[1];
       float hitz = evt_lay_hits[ilay][ihit].position()[2];
       if (debug) std::cout << "hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
-      			   << std::atan2(hity,hitx) << " " << hitz << std::endl;
+                           << std::atan2(hity,hitx) << " " << hitz << std::endl;
       unsigned int bin = getPhiPartition(std::atan2(hity,hitx));
       lay_phi_bin_count[bin]++;
     }
@@ -164,6 +164,9 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
     std::vector<Hit> seedhits;
     for (int ihit=0;ihit<nhits_per_seed;++ihit) {//seeds have 3 hits
       TrackState       propState = propagateHelixToR(updatedState,hits[ihit].r());
+      if (!propState.valid) {
+        break;
+      }
       MeasurementState measState = hits[ihit].measurementState();
       updatedState = updateParameters(propState, measState,projMatrix36,projMatrix36T);
       seedhits.push_back(hits[ihit]);//fixme chi2
@@ -191,11 +194,11 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
 }
 
 void buildTestSerial(std::vector<Track>& evt_seeds,
-		     std::vector<Track>& evt_track_candidates,
-		     std::vector<std::vector<Hit> >& evt_lay_hits,
-		     std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
-		     const int& nhits_per_seed,const unsigned int& maxCand,
-		     SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug,Geometry* theGeom){
+                     std::vector<Track>& evt_track_candidates,
+                     std::vector<std::vector<Hit> >& evt_lay_hits,
+                     std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
+                     const int& nhits_per_seed,const unsigned int& maxCand,
+                     SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug,Geometry* theGeom){
 
   //process seeds
   for (unsigned int iseed=0;iseed<evt_seeds.size();++iseed) {
@@ -214,23 +217,23 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
       std::vector<std::pair<Track, TrackState> > tmp_candidates;
       for (unsigned int icand=0;icand<track_candidates.size();++icand) {//loop over running candidates 
 
-	std::pair<Track, TrackState>& cand = track_candidates[icand];
-	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug,theGeom);
-	
+        std::pair<Track, TrackState>& cand = track_candidates[icand];
+        processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug,theGeom);
+        
       }//end of running candidates loop
 
       if (tmp_candidates.size()>maxCand) {
-	if (debug) std::cout << "huge size=" << tmp_candidates.size() << " keeping best "<< maxCand << " only" << std::endl;
-	std::sort(tmp_candidates.begin(),tmp_candidates.end(),sortByHitsChi2);
-	tmp_candidates.erase(tmp_candidates.begin()+maxCand,tmp_candidates.end());
+        if (debug) std::cout << "huge size=" << tmp_candidates.size() << " keeping best "<< maxCand << " only" << std::endl;
+        std::sort(tmp_candidates.begin(),tmp_candidates.end(),sortByHitsChi2);
+        tmp_candidates.erase(tmp_candidates.begin()+maxCand,tmp_candidates.end());
       }
       if (tmp_candidates.size()!=0) {
-	if (debug) std::cout << "swapping with size=" << tmp_candidates.size() << std::endl;
-	track_candidates.swap(tmp_candidates);
-	tmp_candidates.clear();
+        if (debug) std::cout << "swapping with size=" << tmp_candidates.size() << std::endl;
+        track_candidates.swap(tmp_candidates);
+        tmp_candidates.clear();
       } else {//fixme: what to do in case of parallel version?
-	if (debug) std::cout << "no more candidates, stop" << std::endl;
-	break;
+        if (debug) std::cout << "no more candidates, stop" << std::endl;
+        break;
       }
 
     }//end of layer loop
@@ -247,11 +250,11 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
 
 
 void buildTestParallel(std::vector<Track>& evt_seeds,
-		       std::vector<Track>& evt_track_candidates,
-		       std::vector<std::vector<Hit> >& evt_lay_hits,
-		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
-		       const int& nhits_per_seed,const unsigned int& maxCand,
-		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug,Geometry* theGeom){
+                       std::vector<Track>& evt_track_candidates,
+                       std::vector<std::vector<Hit> >& evt_lay_hits,
+                       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
+                       const int& nhits_per_seed,const unsigned int& maxCand,
+                       SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug,Geometry* theGeom){
 
   //save a vector of candidates per each seed. initialize to the seed itself
   std::vector<std::vector<std::pair<Track, TrackState> > > track_candidates(evt_seeds.size());
@@ -271,29 +274,29 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
       std::vector<std::pair<Track, TrackState> > tmp_candidates;
       for (unsigned int icand=0;icand<track_candidates[iseed].size();++icand) {//loop over running candidates 
 
-	std::pair<Track, TrackState>& cand = track_candidates[iseed][icand];
-	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug,theGeom);
+        std::pair<Track, TrackState>& cand = track_candidates[iseed][icand];
+        processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,projMatrix36,projMatrix36T,debug,theGeom);
 
       }//end of running candidates loop
-	  
+          
       if (tmp_candidates.size()>maxCand) {
-	if (debug) std::cout << "huge size=" << tmp_candidates.size() << " keeping best "<< maxCand << " only" << std::endl;
-	std::sort(tmp_candidates.begin(),tmp_candidates.end(),sortByHitsChi2);
-	tmp_candidates.erase(tmp_candidates.begin()+maxCand,tmp_candidates.end());
+        if (debug) std::cout << "huge size=" << tmp_candidates.size() << " keeping best "<< maxCand << " only" << std::endl;
+        std::sort(tmp_candidates.begin(),tmp_candidates.end(),sortByHitsChi2);
+        tmp_candidates.erase(tmp_candidates.begin()+maxCand,tmp_candidates.end());
       }
       if (tmp_candidates.size()!=0) {
-	if (debug) std::cout << "swapping with size=" << tmp_candidates.size() << std::endl;
-	track_candidates[iseed].swap(tmp_candidates);
-	tmp_candidates.clear();
+        if (debug) std::cout << "swapping with size=" << tmp_candidates.size() << std::endl;
+        track_candidates[iseed].swap(tmp_candidates);
+        tmp_candidates.clear();
       } else {//fixme: what to do in case of parallel version?
-	if (debug) std::cout << "no more candidates, DON'T stop" << std::endl;
-	//break;//fixme: is there a way to stop going through the other layers? 
-	        //I guess we do not want to do it. 
-	        //Keep in mind this may introduce different output than serial version
+        if (debug) std::cout << "no more candidates, DON'T stop" << std::endl;
+        //break;//fixme: is there a way to stop going through the other layers? 
+                //I guess we do not want to do it. 
+                //Keep in mind this may introduce different output than serial version
       }
       
     }//end of process seeds loop
-	
+        
   }//end of layer loop
 
 
@@ -307,10 +310,10 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
 }
 
 void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<Track, TrackState> >& tmp_candidates,
-		       unsigned int ilay,std::vector<std::vector<Hit> >& evt_lay_hits,
-		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
-		       const int& nhits_per_seed,const unsigned int& maxCand,
-		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T, bool debug,Geometry* theGeom){
+                       unsigned int ilay,std::vector<std::vector<Hit> >& evt_lay_hits,
+                       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
+                       const int& nhits_per_seed,const unsigned int& maxCand,
+                       SMatrix36& projMatrix36,SMatrix63& projMatrix36T, bool debug,Geometry* theGeom){
 
   Track& tkcand = cand.first;
   TrackState& updatedState = cand.second;
@@ -323,12 +326,17 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
 #else
   TrackState propState = propagateHelixToLayer(updatedState,ilay,theGeom);
 #endif // SLOW
+  if (!propState.valid) {
+    return;
+  }
   const float predx = propState.parameters.At(0);
   const float predy = propState.parameters.At(1);
   const float predz = propState.parameters.At(2);
-  if (debug) std::cout << "propState at hit#" << ilay << " r/phi/z : " << sqrt(pow(predx,2)+pow(predy,2)) << " "
-		       << std::atan2(predy,predx) << " " << predz << std::endl;
-  if (debug) dumpMatrix(propState.errors);
+  if (debug) {
+    std::cout << "propState at hit#" << ilay << " r/phi/z : " << sqrt(pow(predx,2)+pow(predy,2)) << " "
+              << std::atan2(predy,predx) << " " << predz << std::endl;
+    dumpMatrix(propState.errors);
+  }
   
   const float phi = std::atan2(predy,predx);
 
@@ -378,6 +386,9 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   if (debug) std::cout << "min, max: " << minR << ", " << maxR << std::endl;
   const TrackState propStateMin = propState;
   const TrackState propStateMax = propagateHelixToR(updatedState,maxR);
+  if (!propStateMax.valid) {
+    return;
+  }
 #endif
     
   for (unsigned int ihit=firstIndex;ihit<lastIndex;++ihit) {//loop over hits on layer (consider only hits from partition)
@@ -400,7 +411,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
     const float chi2 = computeChi2(propState,hitMeas,projMatrix36,projMatrix36T);
     
     if (debug) std::cout << "consider hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
-			 << std::atan2(hity,hitx) << " " << hitz << " chi2=" << chi2 << std::endl;
+                         << std::atan2(hity,hitx) << " " << hitz << " chi2=" << chi2 << std::endl;
     
     if ((chi2<15.)&&(chi2>0)) {//fixme 
       if (debug) std::cout << "found hit with index: " << ihit << " chi2=" << chi2 << std::endl;
@@ -423,7 +434,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   //
   //for (unsigned int ihit=0;ihit<evt_lay_hits[ilay].size();++ihit) {//loop over hits on layer (consider all hits on layer)
 
-  /*	
+  /*    
   //take only best hit for now
   if (minChi2<30. && minChi2Hit!=evt_lay_hits[ilay].size()) {
   MeasurementState hitMeas = evt_lay_hits[ilay][minChi2Hit].measurementState();
@@ -435,7 +446,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   if (debug) std::cout << "not a good hit found, stopping at lay#" << ilay << std::endl;
   break;
   }
-  */		
+  */            
   
 }
 
@@ -472,59 +483,59 @@ TH1F* makeValidationHist(const std::string& name, const std::string& title, cons
 
 void fillValidationHists(std::map<std::string,TH1F*>& validation_hists, std::vector<Track> evt_sim_tracks){
   for( unsigned int isim_track = 0; isim_track < evt_sim_tracks.size(); ++isim_track){
-	// float gen_trk_Pt = sqrt( (evt_sim_tracks[isim_track].momentum()[0]) * (evt_sim_tracks[isim_track].momentum()[0]) +
-	// 						 (evt_sim_tracks[isim_track].momentum()[1]) * (evt_sim_tracks[isim_track].momentum()[1]) );
-	// float gen_trk_theta = atan2( gen_trk_Pt, evt_sim_tracks[isim_track].momentum()[2] );
-	// float gen_trk_eta = -1. * log( tan(gen_trk_theta / 2.) );
-	// validation_hists["gen_trk_Pt"]->Fill( gen_trk_Pt );
-	// validation_hists["gen_trk_Px"]->Fill( evt_sim_tracks[isim_track].momentum()[0] );
-	// validation_hists["gen_trk_Py"]->Fill( evt_sim_tracks[isim_track].momentum()[1] ); 
-	// validation_hists["gen_trk_Pz"]->Fill( evt_sim_tracks[isim_track].momentum()[2] ); 
-	// validation_hists["gen_trk_phi"]->Fill( std::atan2(evt_sim_tracks[isim_track].momentum()[1], evt_sim_tracks[isim_track].momentum()[0]) ); //phi=arctan(y/x), atan2 returns -pi,pi
-	// validation_hists["gen_trk_eta"]->Fill( gen_trk_eta );
-	
-	validation_hists["gen_trk_Pt"]->Fill( getPt(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1]) );
-	validation_hists["gen_trk_Px"]->Fill( evt_sim_tracks[isim_track].momentum()[0] );
-	validation_hists["gen_trk_Py"]->Fill( evt_sim_tracks[isim_track].momentum()[1] ); 
-	validation_hists["gen_trk_Pz"]->Fill( evt_sim_tracks[isim_track].momentum()[2] ); 
-	validation_hists["gen_trk_phi"]->Fill( getPhi(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1]) );
-	validation_hists["gen_trk_eta"]->Fill( getEta(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1], evt_sim_tracks[isim_track].momentum()[2]) );
-	
-	std::vector<Hit>& hits = evt_sim_tracks[isim_track].hitsVector();
+        // float gen_trk_Pt = sqrt( (evt_sim_tracks[isim_track].momentum()[0]) * (evt_sim_tracks[isim_track].momentum()[0]) +
+        //                                               (evt_sim_tracks[isim_track].momentum()[1]) * (evt_sim_tracks[isim_track].momentum()[1]) );
+        // float gen_trk_theta = atan2( gen_trk_Pt, evt_sim_tracks[isim_track].momentum()[2] );
+        // float gen_trk_eta = -1. * log( tan(gen_trk_theta / 2.) );
+        // validation_hists["gen_trk_Pt"]->Fill( gen_trk_Pt );
+        // validation_hists["gen_trk_Px"]->Fill( evt_sim_tracks[isim_track].momentum()[0] );
+        // validation_hists["gen_trk_Py"]->Fill( evt_sim_tracks[isim_track].momentum()[1] ); 
+        // validation_hists["gen_trk_Pz"]->Fill( evt_sim_tracks[isim_track].momentum()[2] ); 
+        // validation_hists["gen_trk_phi"]->Fill( std::atan2(evt_sim_tracks[isim_track].momentum()[1], evt_sim_tracks[isim_track].momentum()[0]) ); //phi=arctan(y/x), atan2 returns -pi,pi
+        // validation_hists["gen_trk_eta"]->Fill( gen_trk_eta );
+        
+        validation_hists["gen_trk_Pt"]->Fill( getPt(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1]) );
+        validation_hists["gen_trk_Px"]->Fill( evt_sim_tracks[isim_track].momentum()[0] );
+        validation_hists["gen_trk_Py"]->Fill( evt_sim_tracks[isim_track].momentum()[1] ); 
+        validation_hists["gen_trk_Pz"]->Fill( evt_sim_tracks[isim_track].momentum()[2] ); 
+        validation_hists["gen_trk_phi"]->Fill( getPhi(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1]) );
+        validation_hists["gen_trk_eta"]->Fill( getEta(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1], evt_sim_tracks[isim_track].momentum()[2]) );
+        
+        std::vector<Hit>& hits = evt_sim_tracks[isim_track].hitsVector();
 
-	for (unsigned int ihit = 0; ihit < hits.size(); ihit++){
-	  float rad = sqrt(hits[ihit].position()[0]*hits[ihit].position()[0] + hits[ihit].position()[1]*hits[ihit].position()[1]);
-	  validation_hists["gen_hits_rad"]->Fill( rad );
+        for (unsigned int ihit = 0; ihit < hits.size(); ihit++){
+          float rad = sqrt(hits[ihit].position()[0]*hits[ihit].position()[0] + hits[ihit].position()[1]*hits[ihit].position()[1]);
+          validation_hists["gen_hits_rad"]->Fill( rad );
 
-	  // Fill histo for layer 3
-	  if ( (rad > 11.0) && (rad < 13.0) ) {
-	    validation_hists["gen_hits_rad_lay3"]->Fill( rad );
-	  }
+          // Fill histo for layer 3
+          if ( (rad > 11.0) && (rad < 13.0) ) {
+            validation_hists["gen_hits_rad_lay3"]->Fill( rad );
+          }
 
-	  validation_hists["gen_hits_cov00"]->Fill( hits[ihit].error()[0][0] );
-	  validation_hists["gen_hits_cov11"]->Fill( hits[ihit].error()[1][1] );
-	}
-	
+          validation_hists["gen_hits_cov00"]->Fill( hits[ihit].error()[0][0] );
+          validation_hists["gen_hits_cov11"]->Fill( hits[ihit].error()[1][1] );
+        }
+        
 
-	float mindR = 999999;
-	float mindPhi = 999999;
-	for( unsigned int jsim_track = 0; jsim_track < evt_sim_tracks.size(); ++jsim_track ){
-	  if(jsim_track != isim_track){
-		float phii=getPhi(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1]);
-		float etai=getEta(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1], evt_sim_tracks[isim_track].momentum()[2]);
-		float phij=getPhi(evt_sim_tracks[jsim_track].momentum()[0], evt_sim_tracks[jsim_track].momentum()[1]);
-		float etaj=getEta(evt_sim_tracks[jsim_track].momentum()[0], evt_sim_tracks[jsim_track].momentum()[1], evt_sim_tracks[jsim_track].momentum()[2]);
+        float mindR = 999999;
+        float mindPhi = 999999;
+        for( unsigned int jsim_track = 0; jsim_track < evt_sim_tracks.size(); ++jsim_track ){
+          if(jsim_track != isim_track){
+                float phii=getPhi(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1]);
+                float etai=getEta(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1], evt_sim_tracks[isim_track].momentum()[2]);
+                float phij=getPhi(evt_sim_tracks[jsim_track].momentum()[0], evt_sim_tracks[jsim_track].momentum()[1]);
+                float etaj=getEta(evt_sim_tracks[jsim_track].momentum()[0], evt_sim_tracks[jsim_track].momentum()[1], evt_sim_tracks[jsim_track].momentum()[2]);
 
-		mindR=std::min(mindR, deltaR(phii, etai, phij, etaj));
-		mindPhi=std::min(mindPhi, deltaPhi(phii, phij));
-		if(jsim_track > isim_track){
-		  validation_hists["gen_trk_dR"]->Fill( deltaR(phii, etai, phij, etaj) );
-		  validation_hists["gen_trk_dPhi"]->Fill( deltaPhi(phii, phij) );
-		}
-	  }
-	} 
-	validation_hists["gen_trk_mindR"]->Fill( mindR );
-	validation_hists["gen_trk_mindPhi"]->Fill( mindPhi );
+                mindR=std::min(mindR, deltaR(phii, etai, phij, etaj));
+                mindPhi=std::min(mindPhi, deltaPhi(phii, phij));
+                if(jsim_track > isim_track){
+                  validation_hists["gen_trk_dR"]->Fill( deltaR(phii, etai, phij, etaj) );
+                  validation_hists["gen_trk_dPhi"]->Fill( deltaPhi(phii, phij) );
+                }
+          }
+        } 
+        validation_hists["gen_trk_mindR"]->Fill( mindR );
+        validation_hists["gen_trk_mindPhi"]->Fill( mindPhi );
   }
   
 }
@@ -533,11 +544,11 @@ void saveValidationHists(TFile *f, std::map<std::string,TH1F*>& validation_hists
   f->cd();
   std::map<std::string, TH1F*>::iterator mapitr;
   std::map<std::string, TH1F*>::iterator mapitrend = validation_hists.end();
-  	
+        
   for( mapitr = validation_hists.begin();
-	   mapitr != mapitrend;
-	   mapitr++){
-	(mapitr->second)->Write();
+           mapitr != mapitrend;
+           mapitr++){
+        (mapitr->second)->Write();
   }
 }
 
@@ -546,9 +557,9 @@ void deleteValidationHists(std::map<std::string,TH1F*>& validation_hists){
   std::map<std::string, TH1F*>::iterator mapitrend = validation_hists.end();
  
   for( mapitr = validation_hists.begin();
-	   mapitr != mapitrend;
-	   mapitr++){
-	delete (mapitr->second);
+           mapitr != mapitrend;
+           mapitr++){
+        delete (mapitr->second);
   }
   validation_hists.clear();
 }
@@ -567,5 +578,5 @@ float deltaPhi(float phi1, float phi2){
 float deltaEta(float eta1, float eta2){ return (eta1 - eta2); }
 float deltaR(float phi1, float eta1, float phi2, float eta2){ 
   return sqrt( deltaPhi(phi1,phi2) * deltaPhi(phi1,phi2) +
-			   deltaEta(eta1,eta2) * deltaEta(eta1,eta2) );
+                           deltaEta(eta1,eta2) * deltaEta(eta1,eta2) );
 }

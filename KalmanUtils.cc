@@ -1,7 +1,7 @@
 #include "KalmanUtils.h"
 
 float computeChi2(TrackState& propagatedState, MeasurementState& measurementState, 
-				  SMatrix36& projMatrix,SMatrix63& projMatrixT) {
+                                  SMatrix36& projMatrix,SMatrix63& projMatrixT) {
 
   //test adding noise (mutiple scattering) on position (needs to be done more properly...)
   //SMatrix66 noise;
@@ -73,8 +73,8 @@ void updateParameters66(TrackState& propagatedState, MeasurementState& measureme
   copy33Into66(resErrInv33,resErrInv);
 
   SVector6 residual = SVector6(measurementState.parameters[0]-propagatedState.parameters[0],
-			       measurementState.parameters[1]-propagatedState.parameters[1],
-			       measurementState.parameters[2]-propagatedState.parameters[2],0,0,0);
+                               measurementState.parameters[1]-propagatedState.parameters[1],
+                               measurementState.parameters[2]-propagatedState.parameters[2],0,0,0);
 
   SMatrix66 kalmanGain = propErr*resErrInv;
 
@@ -179,7 +179,7 @@ void updateParametersMPlex(const MPlexSS &psErr,  const MPlexMV& psPar,
 
 //see e.g. http://inspirehep.net/record/259509?ln=en
 TrackState updateParameters(TrackState& propagatedState, MeasurementState& measurementState, 
-			    SMatrix36& projMatrix,SMatrix63& projMatrixT) {
+                            SMatrix36& projMatrix,SMatrix63& projMatrixT) {
 
   bool print = false;
 
@@ -229,7 +229,7 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
     std::cout << "kalmanGain" << std::endl;
     dumpMatrix(kalmanGain);
     std::cout << "kGr: " << kGr[0] << " " << kGr[1] << " " << kGr[2] << " "
-	            << kGr[3] << " " << kGr[4] << " " << kGr[5] << " " << std::endl
+                    << kGr[3] << " " << kGr[4] << " " << kGr[5] << " " << std::endl
               << "updatedParams: " << updatedParams[0] << " " << updatedParams[1] << " " << updatedParams[2] << " "
               << updatedParams[3] << " " << updatedParams[4] << " " << updatedParams[5] << " " << std::endl;
     //std::cout << "kGpM" << std::endl;
@@ -243,5 +243,6 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
   result.parameters=updatedParams;
   result.errors=updatedErrs;
   result.charge = propagatedState.charge;
+  result.valid = propagatedState.valid;
   return result;
 }

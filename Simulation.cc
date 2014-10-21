@@ -77,8 +77,8 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     float x = 0.1; // cm  -assumes radial impact. This is bigger than what we have in main
     // will update for tilt down a few lines
     const float p = sqrt(propState.parameters.At(3)*propState.parameters.At(3)+
-			 propState.parameters.At(4)*propState.parameters.At(4)+
-			 propState.parameters.At(5)*propState.parameters.At(5));
+                         propState.parameters.At(4)*propState.parameters.At(4)+
+                         propState.parameters.At(5)*propState.parameters.At(5));
     UVector3 pvec=UVector3(propState.parameters.At(3), propState.parameters.At(4), propState.parameters.At(5))/p;
 
     // now we need to transform to the right coordinate system
@@ -94,9 +94,9 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     if ( ! theSolid ) {
       std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid." <<std::endl;
       std::cerr << "nhit = " << nhit << ", r = " << initRad << ", r*4cm = " << 4*nhit 
-		<< ", phi = " << initPhi ;
+                << ", phi = " << initPhi ;
       float pt = sqrt(propState.parameters[3]*propState.parameters[3]+
-		      propState.parameters[4]*propState.parameters[4]);
+                      propState.parameters[4]*propState.parameters[4]);
       std::cerr << ", pt = " << pt << ", pz = " << propState.parameters[5] << std::endl;
 
       continue;
@@ -144,7 +144,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
       else
         return 0;
     };
-		    
+                    
     pvecprime[0] = a*cos(theta_space) + ((b + c)*cos(phismear)*sin(theta_space))/(a*v0) + 
       (a*(b - c)*sin(theta_space)*sin(phismear))/(v1*sign(1 + (b - c)*c));
     pvecprime[1] = b*cos(theta_space) - (cos(phismear)*sin(theta_space))/v0 + 
@@ -201,9 +201,9 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
 
     if (dump) {
       std::cout << "initPhi: " << initPhi << " hitPhi: " << hitPhi << " initRad: " << initRad  << " hitRad: " << hitRad << std::endl
-		<< "initX: " << initX << " hitX: " << hitX << " initY: " << initY << " hitY: " << hitY << " initZ: " << initZ << " hitZ: " << hitZ << std::endl 
-		<< "cov(0,0): " << covXYZ(0,0) << " cov(1,1): " << covXYZ(1,1) << " varZ: " << varZ << " cov(2,2): " << covXYZ(2,2) << std::endl 
-		<< "cov(0,1): " << covXYZ(0,1) << " cov(1,0): " << covXYZ(1,0) << std::endl << std::endl;
+                << "initX: " << initX << " hitX: " << hitX << " initY: " << initY << " hitY: " << hitY << " initZ: " << initZ << " hitZ: " << hitZ << std::endl 
+                << "cov(0,0): " << covXYZ(0,0) << " cov(1,1): " << covXYZ(1,1) << " varZ: " << varZ << " cov(2,2): " << covXYZ(2,2) << std::endl 
+                << "cov(0,1): " << covXYZ(0,1) << " cov(1,0): " << covXYZ(1,0) << std::endl << std::endl;
     }
 
     Hit hit1(x1,covXYZ);    
@@ -329,7 +329,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     float hity = gRandom->Gaus(0,hitposerr)+(pos.At(1) + k*(py*sinAP+px*(1-cosAP)));
     //float hity = sqrt((pos.At(0) + k*(px*sinAP-py*(1-cosAP)))*(pos.At(0) + k*(px*sinAP-py*(1-cosAP)))+
     //           (pos.At(1) + k*(py*sinAP+px*(1-cosAP)))*(pos.At(1) + k*(py*sinAP+px*(1-cosAP)))-
-    //		    	            hitx*hitx);//try to get the fixed radius
+    //                              hitx*hitx);//try to get the fixed radius
     float hitz = gRandom->Gaus(0,hitposerr)+(pos.At(2) + distance*ctgTheta);    
     //std::cout << "hit#" << nhit << " " << hitx << " " << hity << " " << hitz << std::endl;
     SVector3 x1(hitx,hity,hitz);

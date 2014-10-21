@@ -8,9 +8,11 @@
 
 struct TrackState {
 public:
+  TrackState() : valid(true) {}
   SVector6 parameters;
   SMatrixSym66 errors;
   int charge;
+  bool valid;
 };
 
 class Track {
@@ -25,6 +27,7 @@ public:
     state_.charge=charge;
     state_.errors=errors;
     state_.parameters = SVector6(position.At(0),position.At(1),position.At(2),momentum.At(0),momentum.At(1),momentum.At(2));
+    state_.valid = true;
     hits_=hits;
     chi2_=chi2;
   }
@@ -32,6 +35,7 @@ public:
     state_.charge=charge;
     state_.errors=errors;
     state_.parameters = SVector6(position.At(0),position.At(1),position.At(2),momentum.At(0),momentum.At(1),momentum.At(2));
+    state_.valid = true;
     hits_=hits;
     initHits_=initHits;
     chi2_=chi2;
@@ -40,6 +44,7 @@ public:
     state_.charge=charge;
     state_.errors=errors;
     state_.parameters = parameters;
+    state_.valid = true;
     hits_=hits;
     chi2_=chi2;
   }

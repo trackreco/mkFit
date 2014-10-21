@@ -98,7 +98,7 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
   }
 #endif
 
-  //these matrices are dummy and can be optimized without multriplying by zero all the world...
+  //these matrices are dummy and can be optimized without multiplying by zero all the world...
   SMatrix36 projMatrix36;
   projMatrix36(0,0)=1.;
   projMatrix36(1,1)=1.;
@@ -128,11 +128,11 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
     int ii = 0;
     for ( auto i = initHits.begin(); i != initHits.end(); ++i ) {
       std::cout << "PWHIT: "
-		<< i->position()[0] << " "
-		<< i->position()[1]<< " "
-		<< i->position()[2]<< " "
-		<< ii++ << " "
-		<< std::endl;
+                << i->position()[0] << " "
+                << i->position()[1]<< " "
+                << i->position()[2]<< " "
+                << ii++ << " "
+                << std::endl;
     }
 
   }
@@ -149,7 +149,7 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
       std::cout << "x:  " << trk.parameters()[0] << " y:  " << trk.parameters()[1] << " z:  " << trk.parameters()[2] << std::endl;
       std::cout << "px: " << trk.parameters()[3] << " py: " << trk.parameters()[4] << " pz: " << trk.parameters()[5] << std::endl;
       std::cout << "errors: " << std::endl;
-      dumpMatrix(trk.errors());			
+      dumpMatrix(trk.errors());                 
       std::cout << std::endl;
     }
 
@@ -159,9 +159,11 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
     TrackState initState = trk.state();
 
     //TrackState simStateHit0 = propagateHelixToR(initState,4.);//4 is the simulated radius 
-    TrackState simStateHit0 = propagateHelixToLayer(initState,0,theGeom); // innermost layer
+    //TrackState simStateHit0 = propagateHelixToLayer(initState,0,theGeom); // innermost layer
+    TrackState simStateHit0 = propagateHelixToR(initState,hits[0].r()); // innermost hit
     if (dump) {
-      std::cout << "simulation x=" << simStateHit0.parameters[0] << " y=" << simStateHit0.parameters[1] << " z=" << simStateHit0.parameters[2] << " r=" << sqrt(pow(simStateHit0.parameters[0],2)+pow(simStateHit0.parameters[1],2)) << std::endl; 
+      std::cout << "simulation x=" << simStateHit0.parameters[0] << " y=" << simStateHit0.parameters[1] << " z=" << simStateHit0.parameters[2] 
+                << " r=" << sqrt(pow(simStateHit0.parameters[0],2)+pow(simStateHit0.parameters[1],2)) << std::endl; 
       std::cout << "simulation px=" << simStateHit0.parameters[3] << " py=" << simStateHit0.parameters[4] << " pz=" << simStateHit0.parameters[5] << std::endl; 
     }
 
@@ -198,94 +200,112 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
     
     TrackState updatedState = initState;
     for (unsigned int ihit = 0; ihit < hits.size(); ihit++) {
-      if (dump)  std::cout << "processing hit: " << ihit << std::endl << std::endl;
-
       //for each hit, propagate to hit radius and update track state with hit measurement
       MeasurementState measState = hits[ihit].measurementState();
       MeasurementState initMeasState = initHits[ihit].measurementState();
       
-      if (dump) {
-	std::cout << "measState" << std::endl;
-	std::cout << "x:  " << measState.parameters[0] << " y:  " << measState.parameters[1] << " z:  " << measState.parameters[2] << std::endl << std::endl;
-	std::cout << "measState.errors: " << std::endl;
-	dumpMatrix(measState.errors);
-	std::cout << std::endl;
-      }
-      
-      TrackState       propState = propagateHelixToR(updatedState,hits[ihit].r());
-      if (dump) {
-	std::cout << "propState" << std::endl;
-	std::cout << "x:  " << propState.parameters[0] << " y:  " << propState.parameters[1] << " z:  " << propState.parameters[2] << std::endl;
-      	std::cout << "px: " << propState.parameters[3] << " py: " << propState.parameters[4] << " pz: " << propState.parameters[5] << std::endl;
-       	std::cout << "propState.errors: " << std::endl;
-       	dumpMatrix(propState.errors);
-	std::cout << std::endl;
+      TrackState propState = propagateHelixToR(updatedState, hits[ihit].r());
+      updatedState = updateParameters(propState, measState, projMatrix36, projMatrix36T);
+
+      // crude test for numerical instability, need a better test
+      SVector3 propPos(propState.parameters[0],propState.parameters[1],0.0);
+      SVector3 updPos(updatedState.parameters[0],updatedState.parameters[1],0.0);
+      if (Mag(propPos - updPos) > 0.1 || std::abs(propState.parameters[2] - updatedState.parameters[2]) > 1.0) {
+        updatedState.valid = false;
       }
 
-      updatedState = updateParameters(propState, measState,projMatrix36,projMatrix36T);
       if (dump) {
-	std::cout << "updatedState" << std::endl;
-	std::cout << "x:  " << updatedState.parameters[0] << " y:  " << updatedState.parameters[1] << " z:  " << updatedState.parameters[2] << std::endl;
-	std::cout << "px: " << updatedState.parameters[3] << " py: " << updatedState.parameters[4] << " pz: " << updatedState.parameters[5] << std::endl;
-	std::cout << "updatedState.errors: " << std::endl;
-	dumpMatrix(updatedState.errors);	
-	std::cout << std::endl;
-      }	
+        std::cout << "processing hit: " << itrack << ":" << ihit << std::endl
+                  << "hitR, propR, updR = " << hits[ihit].r() << ", " << Mag(propPos) << ", " << Mag(updPos) << std::endl << std::endl;
 
+        std::cout << "measState" << std::endl;
+        std::cout << "x:  " << measState.parameters[0] << " y:  " << measState.parameters[1] << " z:  " << measState.parameters[2] << std::endl << std::endl;
+        std::cout << "measState.errors: " << std::endl;
+        dumpMatrix(measState.errors);
+        std::cout << std::endl;
+
+        std::cout << "initState" << std::endl;
+        std::cout << "x:  " << initState.parameters[0] << " y:  " << initState.parameters[1] << " z:  " << initState.parameters[2] << std::endl;
+        std::cout << "px: " << initState.parameters[3] << " py: " << initState.parameters[4] << " pz: " << initState.parameters[5] << std::endl;
+        std::cout << "initState.errors: " << std::endl;
+        dumpMatrix(initState.errors);
+        std::cout << std::endl;
+
+        std::cout << "propState" << std::endl;
+        std::cout << "x:  " << propState.parameters[0] << " y:  " << propState.parameters[1] << " z:  " << propState.parameters[2] << std::endl;
+        std::cout << "px: " << propState.parameters[3] << " py: " << propState.parameters[4] << " pz: " << propState.parameters[5] << std::endl;
+        std::cout << "propState.errors: " << std::endl;
+        dumpMatrix(propState.errors);
+        std::cout << std::endl;
+
+        std::cout << "updatedState" << std::endl;
+        std::cout << "x:  " << updatedState.parameters[0] << " y:  " << updatedState.parameters[1] << " z:  " << updatedState.parameters[2] << std::endl;
+        std::cout << "px: " << updatedState.parameters[3] << " py: " << updatedState.parameters[4] << " pz: " << updatedState.parameters[5] << std::endl;
+        std::cout << "updatedState.errors: " << std::endl;
+        dumpMatrix(updatedState.errors);        
+        std::cout << std::endl;
+      }
+      if (!propState.valid || !updatedState.valid) {
+        if (dump) {
+          std::cout << "Failed propagation processing track:hit: " << itrack << ":" << ihit << std::endl
+                    << "hitR, propR, updR = " << hits[ihit].r() << ", " << Mag(propPos) << ", " << Mag(updPos) << std::endl << std::endl;
+        }
+        break;
+      }
 #ifndef NO_ROOT
       if (saveTree){
-	x_init   = initMeasState.parameters[0];
-	x_mc     = measState.parameters[0];
-	x_mcerr  = measState.errors[0][0]; // sigma^2 of x_mc (same with y,z)
-	x_prop   = propState.parameters[0];
-	x_perr   = propState.errors[0][0]; // sigma^2 of x_prop
-	x_update = updatedState.parameters[0];
-	x_uerr   = updatedState.errors[0][0]; // sigma^2 of x_update
+        x_init   = initMeasState.parameters[0];
+        x_mc     = measState.parameters[0];
+        x_mcerr  = measState.errors[0][0]; // sigma^2 of x_mc (same with y,z)
+        x_prop   = propState.parameters[0];
+        x_perr   = propState.errors[0][0]; // sigma^2 of x_prop
+        x_update = updatedState.parameters[0];
+        x_uerr   = updatedState.errors[0][0]; // sigma^2 of x_update
 
-	y_init   = initMeasState.parameters[1];
-	y_mc     = measState.parameters[1];
-	y_mcerr  = measState.errors[1][1];
-	y_prop   = propState.parameters[1];
-	y_perr   = propState.errors[1][1];
-	y_update = updatedState.parameters[1];
-	y_uerr   = updatedState.errors[1][1];
+        y_init   = initMeasState.parameters[1];
+        y_mc     = measState.parameters[1];
+        y_mcerr  = measState.errors[1][1];
+        y_prop   = propState.parameters[1];
+        y_perr   = propState.errors[1][1];
+        y_update = updatedState.parameters[1];
+        y_uerr   = updatedState.errors[1][1];
 
-	z_init   = initMeasState.parameters[2];
-	z_mc     = measState.parameters[2];
-	z_mcerr  = measState.errors[2][2];
-	z_prop   = propState.parameters[2];
-	z_perr   = propState.errors[2][2];
-	z_update = updatedState.parameters[2];
-	z_uerr   = updatedState.errors[2][2];
+        z_init   = initMeasState.parameters[2];
+        z_mc     = measState.parameters[2];
+        z_mcerr  = measState.errors[2][2];
+        z_prop   = propState.parameters[2];
+        z_perr   = propState.errors[2][2];
+        z_update = updatedState.parameters[2];
+        z_uerr   = updatedState.errors[2][2];
 
-	xy_mcerr = measState.errors[0][1];
+        xy_mcerr = measState.errors[0][1];
 
-	r_init   = sqrt( initMeasState.parameters[0]*initMeasState.parameters[0] +
-			 initMeasState.parameters[1]*initMeasState.parameters[1] );
-	r_mc     = sqrt( measState.parameters[0]*measState.parameters[0] + 
-			 measState.parameters[1]*measState.parameters[1] ); 
-	r_prop   = sqrt( propState.parameters[0]*propState.parameters[0] + 
-			 propState.parameters[1]*propState.parameters[1] );
-	r_update = sqrt( updatedState.parameters[0]*updatedState.parameters[0] + 
-			 updatedState.parameters[1]*updatedState.parameters[1] );
+        r_init   = sqrt( initMeasState.parameters[0]*initMeasState.parameters[0] +
+                         initMeasState.parameters[1]*initMeasState.parameters[1] );
+        r_mc     = sqrt( measState.parameters[0]*measState.parameters[0] + 
+                         measState.parameters[1]*measState.parameters[1] ); 
+        r_prop   = sqrt( propState.parameters[0]*propState.parameters[0] + 
+                         propState.parameters[1]*propState.parameters[1] );
+        r_update = sqrt( updatedState.parameters[0]*updatedState.parameters[0] + 
+                         updatedState.parameters[1]*updatedState.parameters[1] );
 
-	phi_init   = atan2(initMeasState.parameters[1],initMeasState.parameters[0]);
-	phi_mc     = atan2(measState.parameters[1],measState.parameters[0]);
-	phi_mcerr  = ( measState.errors[0][0]*measState.parameters[0]*measState.parameters[0] +
-		       measState.errors[1][1]*measState.parameters[1]*measState.parameters[1] - 
-		       measState.errors[0][1]*measState.parameters[0]*measState.parameters[1] - 
-		       measState.errors[1][0]*measState.parameters[1]*measState.parameters[0] ) / (r_mc*r_mc); // sigma^2 of phi
-	phi_prop   = atan2(propState.parameters[1],propState.parameters[0]);
-	phi_perr   = ( propState.errors[0][0]*propState.parameters[0]*propState.parameters[0] +
-		       propState.errors[1][1]*propState.parameters[1]*propState.parameters[1] - 
-		       propState.errors[0][1]*propState.parameters[0]*propState.parameters[1] - 
-		       propState.errors[1][0]*propState.parameters[1]*propState.parameters[0] ) / (r_prop*r_prop); // sigma^2 of phi
-	phi_update = atan2(updatedState.parameters[1],updatedState.parameters[0]);
-	phi_uerr   = ( updatedState.errors[0][0]*updatedState.parameters[0]*updatedState.parameters[0] +
-		       updatedState.errors[1][1]*updatedState.parameters[1]*updatedState.parameters[1] - 
-		       updatedState.errors[0][1]*updatedState.parameters[0]*updatedState.parameters[1] - 
-		       updatedState.errors[1][0]*updatedState.parameters[1]*updatedState.parameters[0] ) / (r_update*r_update); // sigma^2 of phi 
-	posTree->Fill();
+        phi_init   = atan2(initMeasState.parameters[1],initMeasState.parameters[0]);
+        phi_mc     = atan2(measState.parameters[1],measState.parameters[0]);
+        phi_mcerr  = ( measState.errors[0][0]*measState.parameters[0]*measState.parameters[0] +
+                       measState.errors[1][1]*measState.parameters[1]*measState.parameters[1] - 
+                       measState.errors[0][1]*measState.parameters[0]*measState.parameters[1] - 
+                       measState.errors[1][0]*measState.parameters[1]*measState.parameters[0] ) / (r_mc*r_mc); // sigma^2 of phi
+        phi_prop   = atan2(propState.parameters[1],propState.parameters[0]);
+        phi_perr   = ( propState.errors[0][0]*propState.parameters[0]*propState.parameters[0] +
+                       propState.errors[1][1]*propState.parameters[1]*propState.parameters[1] - 
+                       propState.errors[0][1]*propState.parameters[0]*propState.parameters[1] - 
+                       propState.errors[1][0]*propState.parameters[1]*propState.parameters[0] ) / (r_prop*r_prop); // sigma^2 of phi
+        phi_update = atan2(updatedState.parameters[1],updatedState.parameters[0]);
+        phi_uerr   = ( updatedState.errors[0][0]*updatedState.parameters[0]*updatedState.parameters[0] +
+                       updatedState.errors[1][1]*updatedState.parameters[1]*updatedState.parameters[1] - 
+                       updatedState.errors[0][1]*updatedState.parameters[0]*updatedState.parameters[1] - 
+                       updatedState.errors[1][0]*updatedState.parameters[1]*updatedState.parameters[0] ) / (r_update*r_update); // sigma^2 of phi 
+        posTree->Fill();
       }
 #endif
     } // end loop over hits
@@ -302,8 +322,8 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
       pt_mc  = sqrt(initState.parameters[3]*initState.parameters[3]+initState.parameters[4]*initState.parameters[4]);
       pt_fit = sqrt(updatedState.parameters[3]*updatedState.parameters[3]+updatedState.parameters[4]*updatedState.parameters[4]);
       pt_err = sqrt( updatedState.errors[3][3]*updatedState.parameters[3]*updatedState.parameters[3] +
-		     updatedState.errors[4][4]*updatedState.parameters[4]*updatedState.parameters[4] + 
-		     2*updatedState.errors[3][4]*updatedState.parameters[3]*updatedState.parameters[4] )/pt_fit;
+                     updatedState.errors[4][4]*updatedState.parameters[4]*updatedState.parameters[4] + 
+                     2*updatedState.errors[3][4]*updatedState.parameters[3]*updatedState.parameters[4] )/pt_fit;
       tree->Fill();
      }
 #endif
@@ -396,25 +416,25 @@ void runFittingTestPlex(bool saveTree, Geometry* theGeom)
       outPar.SetArray(itrack, updatedState.parameters.Array());
       updatedState.charge = trk.charge();
 
-	// std::cout << "updatedState" << std::endl;
-	// std::cout << "x: " << updatedState.parameters[0] << " " << updatedState.parameters[1] << " " << updatedState.parameters[2] << std::endl;
-	// std::cout << "p: " << updatedState.parameters[3] << " " << updatedState.parameters[4] << " " << updatedState.parameters[5] << std::endl;
-	// std::cout << "updatedState.errors" << std::endl;
-	// dumpMatrix(updatedState.errors);	
+        // std::cout << "updatedState" << std::endl;
+        // std::cout << "x: " << updatedState.parameters[0] << " " << updatedState.parameters[1] << " " << updatedState.parameters[2] << std::endl;
+        // std::cout << "p: " << updatedState.parameters[3] << " " << updatedState.parameters[4] << " " << updatedState.parameters[5] << std::endl;
+        // std::cout << "updatedState.errors" << std::endl;
+        // dumpMatrix(updatedState.errors);     
 
       TrackState       propState = propagateHelixToR(updatedState, hit.r());
       MeasurementState measState = hit.measurementState();
 
-	// std::cout << "propState.parameters (helix propagation)" << std::endl;
-	// std::cout << "x: " << propState.parameters[0] << " " << propState.parameters[1] << " " << propState.parameters[2] << std::endl;
-	// std::cout << "p: " << propState.parameters[3] << " " << propState.parameters[4] << " " << propState.parameters[5] << std::endl;
-	// std::cout << "propState.errors" << std::endl;
-	// dumpMatrix(propState.errors);
-		
-	// std::cout << "measState.parameters" << std::endl;
-	// std::cout << "x: " << measState.parameters[0] << " " << measState.parameters[1] << " " << measState.parameters[2] << std::endl;
-	// std::cout << "measState.errors" << std::endl;
-	// dumpMatrix(measState.errors);
+        // std::cout << "propState.parameters (helix propagation)" << std::endl;
+        // std::cout << "x: " << propState.parameters[0] << " " << propState.parameters[1] << " " << propState.parameters[2] << std::endl;
+        // std::cout << "p: " << propState.parameters[3] << " " << propState.parameters[4] << " " << propState.parameters[5] << std::endl;
+        // std::cout << "propState.errors" << std::endl;
+        // dumpMatrix(propState.errors);
+                
+        // std::cout << "measState.parameters" << std::endl;
+        // std::cout << "x: " << measState.parameters[0] << " " << measState.parameters[1] << " " << measState.parameters[2] << std::endl;
+        // std::cout << "measState.errors" << std::endl;
+        // dumpMatrix(measState.errors);
 
 
       psErr.Assign(itrack, propState.errors.Array());
@@ -436,24 +456,24 @@ void runFittingTestPlex(bool saveTree, Geometry* theGeom)
     //   if (dump) {
     //     std::cout << std::endl;
     //     std::cout << "processing hit #" << hi << std::endl;
-	
+        
     //     std::cout << "propState.parameters (helix propagation)" << std::endl;
     //     std::cout << "x: " << propState.parameters[0] << " " << propState.parameters[1] << " " << propState.parameters[2] << std::endl;
     //     std::cout << "p: " << propState.parameters[3] << " " << propState.parameters[4] << " " << propState.parameters[5] << std::endl;
     //     std::cout << "propState.errors" << std::endl;
     //     dumpMatrix(propState.errors);
-		
+                
     //     std::cout << "measState.parameters" << std::endl;
     //     std::cout << "x: " << measState.parameters[0] << " " << measState.parameters[1] << " " << measState.parameters[2] << std::endl;
     //     std::cout << "measState.errors" << std::endl;
     //     dumpMatrix(measState.errors);
 
-	
+        
     //     std::cout << "updatedState" << std::endl;
     //     std::cout << "x: " << updatedState.parameters[0] << " " << updatedState.parameters[1] << " " << updatedState.parameters[2] << std::endl;
     //     std::cout << "p: " << updatedState.parameters[3] << " " << updatedState.parameters[4] << " " << updatedState.parameters[5] << std::endl;
     //     std::cout << "updatedState.errors" << std::endl;
-    //     dumpMatrix(updatedState.errors);	
+    //     dumpMatrix(updatedState.errors);     
     //   }
 
     // }
@@ -470,17 +490,17 @@ void runFittingTestPlex(bool saveTree, Geometry* theGeom)
       outErr.SetArray(itrack, updatedState.errors.Array());
       outPar.SetArray(itrack, updatedState.parameters.Array());
 
-    	std::cout << "updatedState" << std::endl
-    	          << "x: " << updatedState.parameters[0] << " " << updatedState.parameters[1] << " " << updatedState.parameters[2] << std::endl
-    	          << "p: " << updatedState.parameters[3] << " " << updatedState.parameters[4] << " " << updatedState.parameters[5] << std::endl
-    	          << "updatedState.errors" << std::endl;
-    	dumpMatrix(updatedState.errors);	
+      std::cout << "updatedState" << std::endl
+                << "x: " << updatedState.parameters[0] << " " << updatedState.parameters[1] << " " << updatedState.parameters[2] << std::endl
+                << "p: " << updatedState.parameters[3] << " " << updatedState.parameters[4] << " " << updatedState.parameters[5] << std::endl
+                << "updatedState.errors" << std::endl;
+      dumpMatrix(updatedState.errors);        
  
       pt_mc = sqrt(initState.parameters[3]*initState.parameters[3]+initState.parameters[4]*initState.parameters[4]);
       pt_fit = sqrt(updatedState.parameters[3]*updatedState.parameters[3]+updatedState.parameters[4]*updatedState.parameters[4]);
       pt_err = sqrt( updatedState.errors[3][3]*updatedState.parameters[3]*updatedState.parameters[3] +
-		     updatedState.errors[4][4]*updatedState.parameters[4]*updatedState.parameters[4] + 
-		     2*updatedState.errors[3][4]*updatedState.parameters[3]*updatedState.parameters[4] )/pt_fit;
+                     updatedState.errors[4][4]*updatedState.parameters[4]*updatedState.parameters[4] + 
+                     2*updatedState.errors[3][4]*updatedState.parameters[3]*updatedState.parameters[4] )/pt_fit;
       tree->Fill();
     }
 

@@ -5,7 +5,7 @@
 #include "Matrix.h"
 
 float computeChi2(TrackState& propagatedState, MeasurementState& measurementState, 
-		  SMatrix36& projMatrix,SMatrix63& projMatrixT);
+                  SMatrix36& projMatrix,SMatrix63& projMatrixT);
 
 void zeroBlocksOutOf33(SMatrixSym66& matrix);
 void copy33Into66(SMatrixSym33& in,SMatrixSym66& out);
@@ -15,7 +15,7 @@ void updateParameters66(TrackState& propagatedState, MeasurementState& measureme
 
 //see e.g. http://inspirehep.net/record/259509?ln=en
 TrackState updateParameters(TrackState& propagatedState, MeasurementState& measurementState, 
-			    SMatrix36& projMatrix,SMatrix63& projMatrixT);
+                            SMatrix36& projMatrix,SMatrix63& projMatrixT);
 
 void updateParametersMPlex(const MPlexSS &psErr,  const MPlexMV& psPar,
                            const MPlexSS &msErr,  const MPlexMV& msPar,
