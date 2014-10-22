@@ -50,11 +50,15 @@ void runBuildingTest(bool saveTree, unsigned int nevts)
 {
   unsigned int tk_nhits = 0;
   float tk_chi2 = 0.;
+  unsigned int layer = 0;
+  unsigned int branches = 0;
+  unsigned int cands = 0;
 
   std::map<std::string,TH1F*> validation_hists;
   setupValidationHists(validation_hists);
 
   TTree *tree=0;
+  TTree *tree_br=0;
 #ifndef NO_ROOT
   TFile* f=0;
   if (saveTree) {
@@ -62,12 +66,16 @@ void runBuildingTest(bool saveTree, unsigned int nevts)
     tree = new TTree("tree","tree");
     tree->Branch("nhits",&tk_nhits,"nhits/i");
     tree->Branch("chi2",&tk_chi2,"chi2/F");
+    tree_br = new TTree("tree_br","tree_br");
+    tree_br->Branch("layer",&layer,"layer/i");
+    tree_br->Branch("branches",&branches,"branches/i");
+    tree_br->Branch("cands",&cands,"cands/i");
   }
 #endif
 
   for (unsigned int evt=0;evt<nevts;++evt) {
     std::cout << std::endl << "EVENT #"<< evt << std::endl << std::endl;
-    runBuildingTestEvt(saveTree,tree,tk_nhits,tk_chi2,validation_hists);
+    runBuildingTestEvt(saveTree,tree,tk_nhits,tk_chi2,tree_br,layer,branches,cands,validation_hists);
   }
 
 #ifndef NO_ROOT
@@ -80,7 +88,9 @@ void runBuildingTest(bool saveTree, unsigned int nevts)
 #endif
 }
 
-void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& tk_chi2, std::map<std::string,TH1F*>& validation_hists) {
+void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float& tk_chi2, 
+			TTree *tree_br, unsigned int& layer, unsigned int& branches,unsigned int& cands,
+			std::map<std::string,TH1F*>& validation_hists) {
 
   bool debug = false;
 
@@ -177,7 +187,7 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
     evt_seeds.push_back(seed);
   }
 
-  buildTestSerial(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,chi2Cut,nSigma,minDPhi,projMatrix36,projMatrix36T,debug);
+  buildTestSerial(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,chi2Cut,nSigma,minDPhi,projMatrix36,projMatrix36T,debug,saveTree,tree_br,layer,branches,cands);
   //buildTestParallel(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,chi2Cut,nSigma,minDPhi,projMatrix36,projMatrix36T,debug);
 
   //dump candidates
@@ -201,7 +211,8 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
 		     std::vector<std::vector<Hit> >& evt_lay_hits,
 		     std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int& nhits_per_seed,
 		     const unsigned int& maxCand, const float& chi2Cut,const float& nSigma,const float& minDPhi,
-		     SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug)
+		     SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug,
+		     bool saveTree, TTree *tree_br, unsigned int& layer, unsigned int& branches, unsigned int& cands)
 {
   //process seeds
   for (unsigned int iseed=0;iseed<evt_seeds.size();++iseed) {
@@ -215,7 +226,7 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
 
     for (unsigned int ilay=nhits_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
 
-      if (debug) std::cout << "going to layer #" << ilay << std::endl;
+      if (debug) std::cout << "going to layer #" << ilay << " with N cands=" << track_candidates.size() << std::endl;
 
       std::vector<std::pair<Track, TrackState> > tmp_candidates;
       for (unsigned int icand=0;icand<track_candidates.size();++icand) {//loop over running candidates 
@@ -224,6 +235,13 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
 	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,chi2Cut,nSigma,minDPhi,projMatrix36,projMatrix36T,debug);
 	
       }//end of running candidates loop
+
+      if (saveTree) {
+	layer = ilay;
+	branches = tmp_candidates.size();
+	cands = track_candidates.size();
+	tree_br->Fill();
+      }
 
       if (tmp_candidates.size()>maxCand) {
 	if (debug) std::cout << "huge size=" << tmp_candidates.size() << " keeping best "<< maxCand << " only" << std::endl;

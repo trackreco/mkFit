@@ -162,20 +162,36 @@
 
   if (doBuild) {
 
-    TFile *_file0 = TFile::Open("build_validationtree.root");
+    TString suffix = "";
+
+    TFile *_file0 = TFile::Open("build_validationtree"+suffix+".root");
 
     TCanvas cb1;
     TH1F* nhits = new TH1F("nhits","nhits",15,0,15);
     nhits->GetXaxis()->SetTitle("number of hits");
     tree->Draw("nhits>>nhits");
-    cb1.SaveAs("nhits.png");  
+    cb1.SaveAs("nhits"+suffix+".png");  
 
     TCanvas cb2;
     TH1F* chi2 = new TH1F("chi2","normalized chi2",100,0,10);
     chi2->GetXaxis()->SetTitle("track #chi^{2}/ndof");
     tree->Draw("chi2/(3*(nhits-3)-5)>>chi2");//fixme //nhits-3 not to count seed which is fake at this stage
-    cb2.SaveAs("chi2.png");  
-    
+    cb2.SaveAs("chi2"+suffix+".png");  
+
+    TCanvas cb3;
+    TH2F* lay_vs_cands = new TH2F("lay_vs_cands","lay_vs_cands",13,0,13,11,0,11);
+    lay_vs_cands->GetXaxis()->SetTitle("number of candidates");
+    lay_vs_cands->GetYaxis()->SetTitle("layer");
+    tree_br->Draw("layer:cands>>lay_vs_cands","","colz");
+    cb3.SaveAs("lay_vs_cands"+suffix+".png");  
+
+    TCanvas cb4;
+    TH2F* lay_vs_branches = new TH2F("lay_vs_branches","lay_vs_branches",15,0,150,11,0,11);
+    lay_vs_branches->GetXaxis()->SetTitle("number of branches per candidate");
+    lay_vs_branches->GetYaxis()->SetTitle("layer");
+    tree_br->Draw("layer:branches/cands>>lay_vs_branches","","colz");
+    cb4.SaveAs("lay_vs_branches"+suffix+".png");  
+
   }
 
   if (doSim) {
