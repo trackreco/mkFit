@@ -207,12 +207,14 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
       TrackState propState = propagateHelixToR(updatedState, hits[ihit].r());
       updatedState = updateParameters(propState, measState, projMatrix36, projMatrix36T);
 
+#ifdef CHECKSTATEVALID
       // crude test for numerical instability, need a better test
       SVector3 propPos(propState.parameters[0],propState.parameters[1],0.0);
       SVector3 updPos(updatedState.parameters[0],updatedState.parameters[1],0.0);
       if (Mag(propPos - updPos) > 0.1 || std::abs(propState.parameters[2] - updatedState.parameters[2]) > 1.0) {
         updatedState.valid = false;
       }
+#endif
 
       if (dump) {
         std::cout << "processing hit: " << itrack << ":" << ihit << std::endl
@@ -250,7 +252,9 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
           std::cout << "Failed propagation processing track:hit: " << itrack << ":" << ihit << std::endl
                     << "hitR, propR, updR = " << hits[ihit].r() << ", " << Mag(propPos) << ", " << Mag(updPos) << std::endl << std::endl;
         }
+#ifdef CHECKSTATEVALID
         break;
+#endif
       }
 #ifndef NO_ROOT
       if (saveTree){

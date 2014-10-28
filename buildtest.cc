@@ -164,9 +164,11 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
     std::vector<Hit> seedhits;
     for (int ihit=0;ihit<nhits_per_seed;++ihit) {//seeds have 3 hits
       TrackState       propState = propagateHelixToR(updatedState,hits[ihit].r());
+#ifdef CHECKSTATEVALID
       if (!propState.valid) {
         break;
       }
+#endif
       MeasurementState measState = hits[ihit].measurementState();
       updatedState = updateParameters(propState, measState,projMatrix36,projMatrix36T);
       seedhits.push_back(hits[ihit]);//fixme chi2
@@ -320,15 +322,17 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   //debug = true;
     
   if (debug) std::cout << "processing candidate with nHits=" << tkcand.nHits() << std::endl;
-  //#define SLOW
-#ifndef SLOW
+#define LINEARINTERP
+#ifdef LINEARINTERP
   TrackState propState = propagateHelixToR(updatedState,theGeom->Radius(ilay));
 #else
   TrackState propState = propagateHelixToLayer(updatedState,ilay,theGeom);
-#endif // SLOW
+#endif // LINEARINTERP
+#ifdef CHECKSTATEVALID
   if (!propState.valid) {
     return;
   }
+#endif
   const float predx = propState.parameters.At(0);
   const float predy = propState.parameters.At(1);
   const float predz = propState.parameters.At(2);
@@ -374,7 +378,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
 
   if (debug) std::cout << "total size: " << totalSize << " firstIndex: " << firstIndex << " maxIndex: " << maxIndex << " lastIndex: " << lastIndex << std::endl;
 
-#ifndef SLOW
+#ifdef LINEARINTERP
   const float minR = theGeom->Radius(ilay);
   float maxR = minR;
   for (unsigned int ihit=firstIndex;ihit<lastIndex;++ihit) {//loop over hits on layer (consider only hits from partition)
@@ -386,9 +390,11 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   if (debug) std::cout << "min, max: " << minR << ", " << maxR << std::endl;
   const TrackState propStateMin = propState;
   const TrackState propStateMax = propagateHelixToR(updatedState,maxR);
+#ifdef CHECKSTATEVALID
   if (!propStateMax.valid) {
     return;
   }
+#endif
 #endif
     
   for (unsigned int ihit=firstIndex;ihit<lastIndex;++ihit) {//loop over hits on layer (consider only hits from partition)
@@ -399,7 +405,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
     const float hitz = hitCand.position()[2];
     MeasurementState hitMeas = hitCand.measurementState();
 
-#ifndef SLOW
+#ifdef LINEARINTERP
     const float ratio = (hitCand.r() - minR)/deltaR;
     propState.parameters = (1.0-ratio)*propStateMin.parameters + ratio*propStateMax.parameters;
     if (debug) {

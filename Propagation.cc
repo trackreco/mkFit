@@ -164,31 +164,31 @@ void HelixState::propagateErrors(const HelixState& in, float totalDistance, bool
 
   //jacobian
   SMatrix66 errorProp = ROOT::Math::SMatrixIdentity();//what is not explicitly set below is 1 (0) on (off) diagonal
-  errorProp(0,0) = 1 + k*dTPdx*(in.px*sinTP + in.py*cosTP);               //dxdx;
-  errorProp(0,1) = k*dTPdy*(in.px*sinTP + in.py*cosTP);                   //dxdy;
-  errorProp(0,3) = k*(sinTP + in.px*cosTP*dTPdpx - in.py*sinTP*dTPdpx);     //dxdpx;
-  errorProp(0,4) = k*(in.px*cosTP*dTPdpy - 1. + cosTP - in.py*sinTP*dTPdpy);//dxdpy;
+  errorProp(0,0) = 1 + k*dTPdx*(in.px*sinTP + in.py*cosTP);                   //dxdx;
+  errorProp(0,1) = k*dTPdy*(in.px*sinTP + in.py*cosTP);                       //dxdy;
+  errorProp(0,3) = k*(sinTP + in.px*cosTP*dTPdpx - in.py*sinTP*dTPdpx);       //dxdpx;
+  errorProp(0,4) = k*(in.px*cosTP*dTPdpy - 1. + cosTP - in.py*sinTP*dTPdpy);  //dxdpy;
 
-  errorProp(1,0) = k*dTPdx*(in.py*sinTP - in.px*cosTP);                   //dydx;
-  errorProp(1,1) = 1 + k*dTPdy*(in.py*sinTP - in.px*cosTP);               //dydy;
-  errorProp(1,3) = k*(in.py*cosTP*dTPdpx + 1. - cosTP + in.px*sinTP*dTPdpx);//dydpx;
-  errorProp(1,4) = k*(sinTP + in.py*cosTP*dTPdpy + in.px*sinTP*dTPdpy);     //dydpy;
+  errorProp(1,0) = k*dTPdx*(in.py*sinTP - in.px*cosTP);                       //dydx;
+  errorProp(1,1) = 1 + k*dTPdy*(in.py*sinTP - in.px*cosTP);                   //dydy;
+  errorProp(1,3) = k*(in.py*cosTP*dTPdpx + 1. - cosTP + in.px*sinTP*dTPdpx);  //dydpx;
+  errorProp(1,4) = k*(sinTP + in.py*cosTP*dTPdpy + in.px*sinTP*dTPdpy);       //dydpy;
 
-  errorProp(2,0) = dTDdx*ctgTheta;                    //dzdx;
-  errorProp(2,1) = dTDdy*ctgTheta;                    //dzdy;
-  errorProp(2,3) = dTDdpx*ctgTheta - TD*in.pz*in.px/pt3;//dzdpx;
-  errorProp(2,4) = dTDdpy*ctgTheta - TD*in.pz*in.py/pt3;//dzdpy;
-  errorProp(2,5) = TD/pt;                             //dzdpz;
+  errorProp(2,0) = dTDdx*ctgTheta;                                            //dzdx;
+  errorProp(2,1) = dTDdy*ctgTheta;                                            //dzdy;
+  errorProp(2,3) = dTDdpx*ctgTheta - TD*in.pz*in.px/pt3;                      //dzdpx;
+  errorProp(2,4) = dTDdpy*ctgTheta - TD*in.pz*in.py/pt3;                      //dzdpy;
+  errorProp(2,5) = TD/pt;                                                     //dzdpz;
 
-  errorProp(3,0) = -dTPdx*(in.px*sinTP + in.py*cosTP);       //dpxdx;
-  errorProp(3,1) = -dTPdy*(in.px*sinTP + in.py*cosTP);       //dpxdy;
-  errorProp(3,3) = cosTP - dTPdpx*(in.px*sinTP + in.py*cosTP); //dpxdpx;
-  errorProp(3,4) = -sinTP - dTPdpy*(in.px*sinTP + in.py*cosTP);//dpxdpy;
+  errorProp(3,0) = -dTPdx*(in.px*sinTP + in.py*cosTP);                        //dpxdx;
+  errorProp(3,1) = -dTPdy*(in.px*sinTP + in.py*cosTP);                        //dpxdy;
+  errorProp(3,3) = cosTP - dTPdpx*(in.px*sinTP + in.py*cosTP);                //dpxdpx;
+  errorProp(3,4) = -sinTP - dTPdpy*(in.px*sinTP + in.py*cosTP);               //dpxdpy;
 
-  errorProp(4,0) = -dTPdx*(in.py*sinTP - in.px*cosTP);         //dpydx;
-  errorProp(4,1) = -dTPdy*(in.py*sinTP - in.px*cosTP);       //dpydy;
-  errorProp(4,3) = +sinTP - dTPdpx*(in.py*sinTP - in.px*cosTP);//dpydpx;
-  errorProp(4,4) = +cosTP - dTPdpy*(in.py*sinTP - in.px*cosTP);//dpydpy;
+  errorProp(4,0) = -dTPdx*(in.py*sinTP - in.px*cosTP);                        //dpydx;
+  errorProp(4,1) = -dTPdy*(in.py*sinTP - in.px*cosTP);                        //dpydy;
+  errorProp(4,3) = +sinTP - dTPdpx*(in.py*sinTP - in.px*cosTP);               //dpydpx;
+  errorProp(4,4) = +cosTP - dTPdpy*(in.py*sinTP - in.px*cosTP);               //dpydpy;
 
   state.errors=ROOT::Math::Similarity(errorProp,state.errors);
 
@@ -213,9 +213,11 @@ TrackState propagateHelixToNextSolid(TrackState& inputState, const Geometry* the
   TrackState result(inputState);
   HelixState hsout(result);
 
+#ifdef CHECKSTATEVALID
   if (!hsout.state.valid) {
     return hsout.state;
   }
+#endif
   if (dump) std::cout << "curvature=" << hsin.curvature << std::endl;
 
   float totalDistance = 0;
@@ -293,9 +295,7 @@ TrackState propagateHelixToNextSolid(TrackState& inputState, const Geometry* the
     }
   }
 
-  if (hsout.state.valid) {
-    hsout.propagateErrors(hsin, totalDistance, dump);
-  }
+  hsout.propagateErrors(hsin, totalDistance, dump);
   return hsout.state;
 }
 
@@ -310,9 +310,11 @@ TrackState propagateHelixToLayer(TrackState& inputState, unsigned int layer, con
   TrackState result(inputState);
   HelixState hsout(result);
 
+#ifdef CHECKSTATEVALID
   if (!hsout.state.valid) {
     return hsout.state;
   }
+#endif
 
   if (theGeom->InsideWhat(UVector3(hsout.x,hsout.y,hsout.z)) == target) {
     if (dump) std::cout << "Inside target" << std::endl;
@@ -354,9 +356,7 @@ TrackState propagateHelixToLayer(TrackState& inputState, unsigned int layer, con
     }
   }
 
-  if (hsout.state.valid) {
-    hsout.propagateErrors(hsin, totalDistance, dump);
-  }
+  hsout.propagateErrors(hsin, totalDistance, dump);
   return hsout.state;
 }
 
@@ -371,15 +371,12 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
   const HelixState hsin(inputState);
   TrackState result(inputState);
   HelixState hsout(result);
+
+#ifdef CHECKSTATEVALID
   if (!hsout.state.valid) {
-    if (dump){
-      std::cout << "propagateHelixToR() called with invalid state\n";
-      std::cout << "attempt propagation from r=" << hsin.r0 << " to r=" << r << std::endl
-                << "x=" << hsin.x << " y=" << hsin.y << " px=" << hsin.px
-                << " py=" << hsin.py << " pz=" << hsin.pz << " q=" << inputState.charge << std::endl;
-    }
     return hsout.state;
   }
+#endif
 
   if (dump) {
     std::cout << "attempt propagation from r=" << hsin.r0 << " to r=" << r << std::endl
@@ -434,9 +431,7 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
     }
   }
 
-  if (hsout.state.valid) {
-    hsout.propagateErrors(hsin, totalDistance, dump);
-  }
+  hsout.propagateErrors(hsin, totalDistance, dump);
   return hsout.state;
 }
 

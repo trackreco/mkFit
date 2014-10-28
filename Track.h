@@ -1,6 +1,9 @@
 #ifndef _track_
 #define _track_
 
+// removing this define will remove all checks on track state valid flag
+#define CHECKSTATEVALID
+
 #include "Hit.h"
 #include "Matrix.h"
 #include <vector>
