@@ -4,6 +4,8 @@
 #include <vector>
 #include "USolids/include/VUSolid.hh"
 
+class VUSolid;
+
 class Geometry {
 public:
   void AddLayer(const VUSolid* s) { solids_.push_back(s); }
