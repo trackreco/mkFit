@@ -83,105 +83,15 @@ void updateParameters66(TrackState& propagatedState, MeasurementState& measureme
 
 }
 
-//------------------------------------------------------------------------------
-// #include "MatriplexSymNT.h"
-
-// const idx_t M = 6;
-
-// typedef Matriplex<float, M, M>   MPlexMM;
-// typedef Matriplex<float, M, 1>   MPlexMV;
-// typedef MatriplexSym<float, M>   MPlexSS;
-
-#include "KalmanOpsNT.h"
-
-struct UpdateParametersContext
-{
-  // Could also have input / output parameters here (as pointers, so that it's
-  // easy to swap last "out" into "in" for the next measuerement).
-
-  // Temporaries
-};
-
-void updateParametersMPlex(const MPlexSS &psErr,  const MPlexMV& psPar,
-                           const MPlexSS &msErr,  const MPlexMV& msPar,
-                                 MPlexSS &outErr,       MPlexMV& outPar)
-{
-  const idx_t N = psErr.N;
-  // Assert N-s of all parameters are the same.
-
-  // Temporaries -- this is expensive -- should have them allocated outside and reused.
-  // Can be passed in in a struct, see above.
-
-  // Also: resErr could be 3x3, kalmanGain 6x3
-
-  MPlexSS propErr(N);
-  propErr = psErr;       // could use/overwrite psErr?
-  propErr.AddNoise(0.0); // e.g. ?
-
-  // printf("propErr:\n");
-  // for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-  //     printf("%8f ", propErr.At(i,j,0)); printf("\n");
-  // } printf("\n");
-
-  // printf("msErr:\n");
-  // for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-  //     printf("%8f ", msErr.At(i,j,0)); printf("\n");
-  // } printf("\n");
-
-  MPlexSS resErr(N);
-  resErr.AddIntoUpperLeft3x3ZeroTheRest(msErr, propErr);
-  // Do not really need to zero the rest ... it is not used.
-
-  // printf("resErr:\n");
-  // for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-  //     printf("%8f ", resErr.At(i,j,0)); printf("\n");
-  // } printf("\n");
-
-  resErr.InvertUpperLeft3x3();
-  // resErr is now resErrInv
-  // XXX Both could be done in one operation.
-
-  // printf("resErrInv:\n");
-  // for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-  //     printf("%8f ", resErr.At(i,j,0)); printf("\n");
-  // } printf("\n");
-
-  MPlexMM kalmanGain(N);
-  MultForKalmanGain(propErr, resErr, kalmanGain);
-  // Do not need the right part, leave it unitialized.
-
-  // printf("kalmanGain:\n");
-  // for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-  //     printf("%8f ", kalmanGain.At(i,j,0)); printf("\n");
-  // } printf("\n");
-
-  // outPar = psPar + kalmanGain*(msPar-psPar)[0-2] (last three are 0!)
-  MultResidualsAdd(kalmanGain, psPar, msPar, outPar);
-
-  // printf("outPar:\n");
-  // for (int i = 0; i < 6; ++i) {
-  //     printf("%8f ", outPar.At(i,0,0)); printf("\n");
-  // } printf("\n");
-
-
-  // result.errors     = propErr - ROOT::Math::SimilarityT(propErr,resErrInv);
-  // == propErr - kalmanGain*propErr
-  outErr = propErr;
-  FinalKalmanErr(propErr, kalmanGain, outErr);
-
-  // printf("outErr:\n");
-  // for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-  //     printf("%8f ", outErr.At(i,j,0)); printf("\n");
-  // } printf("\n");
-}
-
 //==============================================================================
 
 //see e.g. http://inspirehep.net/record/259509?ln=en
 TrackState updateParameters(TrackState& propagatedState, MeasurementState& measurementState, 
-                            SMatrix36& projMatrix,SMatrix63& projMatrixT) {
-
-  bool print = false;
+                            SMatrix36& projMatrix,SMatrix63& projMatrixT)
+{
+#ifdef DEBUG
+  const bool print = g_dump;
+#endif
 
   //test adding noise (mutiple scattering) on position (needs to be done more properly...)
   //SMatrixSym66 noise;
@@ -192,27 +102,27 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
   //SMatrixSym66 propErr = propagatedState.errors + noise;
   SMatrixSym66& propErr = propagatedState.errors;
   SMatrixSym33 propErr33 = ROOT::Math::Similarity(projMatrix,propErr);
-  SVector3 residual = measurementState.parameters-projMatrix*propagatedState.parameters;
+
   SMatrixSym33 resErr = measurementState.errors+propErr33;
   SMatrixSym33 resErrInv = resErr;
+
   bool invResult =
     //resErrInv.Invert();//fixme
     resErrInv.InvertFast();//fixme
     //resErrInv.InvertChol();//fixme
-  if (invResult==false) {
-    std::cout << __FILE__ << ":" << __LINE__ << ": FAILED FAST INVERSION" << std::endl;
-    invResult = resErrInv.Invert();//fixme
-    if ( invResult == false ) {
-      std::cout << __FILE__ << ":" << __LINE__ << ": FAILED SLOW INVERSION, TOO" << std::endl;
-    }
-  }
+  if (invResult==false) std::cout << "FAILED INVERSION" << std::endl;
+
   SMatrix63 pMTrEI = projMatrixT*resErrInv;
+
   SMatrix63 kalmanGain = propErr*pMTrEI;
-  SVector6 kGr = kalmanGain*residual;
-  SVector6 updatedParams = propagatedState.parameters + kGr;
-  SMatrixSym66 simil = ROOT::Math::SimilarityT(projMatrix,resErrInv);//fixme check T
+  SVector3 residual    = measurementState.parameters-projMatrix*propagatedState.parameters;
+  SVector6 kGr         = kalmanGain*residual;
+
+  SVector6 updatedParams   = propagatedState.parameters + kGr;
+  SMatrixSym66 simil       = ROOT::Math::SimilarityT(projMatrix,resErrInv);//fixme check T
   SMatrixSym66 updatedErrs = propErr - ROOT::Math::SimilarityT(propErr,simil);
 
+#ifdef DEBUG
   if (print) {
     std::cout << "\n updateParameters \n" << std::endl;
     std::cout << "propErr" << std::endl;
@@ -238,6 +148,7 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
     dumpMatrix(updatedErrs);
     std::cout << std::endl;
   }
+#endif
 
   TrackState result;
   result.parameters=updatedParams;

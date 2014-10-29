@@ -2,7 +2,9 @@
 
 #include "Simulation.h"
 
-void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::vector<Hit>& hits, int& charge, float pt, Geometry *theGeom, std::vector<Hit>& initHits) {
+void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::vector<Hit>& hits,
+                       int& charge, float pt, Geometry *theGeom, std::vector<Hit>& initHits)
+{
   bool dump = false;
 
   unsigned int nTotHit = theGeom->CountLayers();
@@ -61,7 +63,6 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
     float initZ   = propState.parameters.At(2);
     float initPhi = atan2(initY,initX);
     float initRad = sqrt(initX*initX+initY*initY);
-#define SCATTERING
 #ifdef SCATTERING
     // PW START
     // multiple scattering. Follow discussion in PDG Ch 32.3
@@ -243,12 +244,14 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
   mom=SVector3(px,py,pz);
   covtrk=ROOT::Math::SMatrixIdentity();
   //initial covariance can be tricky
-  for (unsigned int r=0;r<6;++r) {
-    for (unsigned int c=0;c<6;++c) {
+  for (int r=0; r<6; ++r) {
+    for (int c=0; c<6; ++c) {
       if (r==c) {
-      if (r<3) covtrk(r,c)=pow(1.0*pos[r],2);//100% uncertainty on position
-      else covtrk(r,c)=pow(1.0*mom[r-3],2);  //100% uncertainty on momentum
-      } else covtrk(r,c)=0.;                   //no covariance
+        if (r<3) covtrk(r,c)=pow(1.0*pos[r],  2); //100% uncertainty on position
+        else     covtrk(r,c)=pow(1.0*mom[r-3],2); //100% uncertainty on momentum
+      } else {
+        covtrk(r,c)=0.; //no covariance
+      }
     }
   }
 
@@ -266,7 +269,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
   TrackState tmpState = initState;
 
   //do 4 cm in radius using propagation.h
-  for (unsigned int nhit=1;nhit<=nTotHit;++nhit) {
+  for (unsigned int nhit=1; nhit<=nTotHit; ++nhit) {
     //TrackState propState = propagateHelixToR(tmpState,4.*float(nhit));//radius of 4*nhit
     TrackState propState = propagateHelixToNextSolid(tmpState,theGeom);
 

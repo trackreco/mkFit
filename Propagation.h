@@ -24,4 +24,8 @@ TrackState propagateHelixToR(TrackState& inputState, float r);
 //2. there are 2 numerical solutions, 3. need to propagate uncertainties throgh the 2nd order equation
 TrackState propagateHelixToR_test(TrackState& inputState, float r);
 
+// Version with fewer temporaries and Taylor expansion of sin/cos.
+// This was used to compare SMatrix / Matriplex performance.
+void propagateHelixToR_fewerTemps(TrackState& inputState, float r, TrackState& result);
+
 #endif

@@ -3,23 +3,25 @@
 
 #include "Matrix.h"
 
-struct MeasurementState {
+struct MeasurementState
+{
 public:
   SVector3 parameters;
   SMatrixSym33 errors;
 };
 
-class Hit {
-
+class Hit
+{
 public:
+  Hit() {}
 
-  Hit(){}
-
-  Hit(MeasurementState state) {
+  Hit(MeasurementState state)
+  {
     state_=state;
   }
 
-  Hit(SVector3 position, SMatrixSym33 error) {
+  Hit(SVector3 position, SMatrixSym33 error)
+  {
     state_.parameters=position;
     state_.errors=error;
   }
