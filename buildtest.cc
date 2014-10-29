@@ -236,12 +236,14 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
 	
       }//end of running candidates loop
 
+#ifndef NO_ROOT
       if (saveTree) {
 	layer = ilay;
 	branches = tmp_candidates.size();
 	cands = track_candidates.size();
 	tree_br->Fill();
       }
+#endif
 
       if (tmp_candidates.size()>maxCand) {
 	if (debug) std::cout << "huge size=" << tmp_candidates.size() << " keeping best "<< maxCand << " only" << std::endl;
