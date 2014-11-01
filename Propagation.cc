@@ -242,24 +242,6 @@ TrackState propagateHelixToNextSolid(TrackState& inputState, const Geometry* the
     }
   }
 
-  if (dump) {
-    std::cout << "startSolid = " << startSolid << std::endl
-              << inputState.parameters << std::endl;
-    //UVector3 origin(0,0,0);
-    UVector3 here(hsin.x,hsin.y,hsin.z);
-    //UVector3 direction(par(4),par(5),par(6));
-    UVector3 direction(hsout.px,hsout.py,hsout.pz);
-    direction.Normalize();
-    std::cout << "direction is " << direction << std::endl;
-    for ( unsigned int i = 0; i < theGeom->CountLayers(); ++i ) {
-      auto distance1 = theGeom->Layer(i)->DistanceToIn(here, direction);
-      auto distance2 = theGeom->Layer(i)->SafetyFromOutside(here, true);
-      std::cout << "distance to layer " << i << " = " << distance1 
-                << " " << distance2 << ", inside=" << theGeom->Layer(i)->Inside(here)
-                << std::endl;
-    }
-  }
-
   //5 iterations is a good starting point
   const unsigned int Niter = 10;
   for (unsigned int i=0;i<Niter;++i) {

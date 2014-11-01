@@ -111,11 +111,11 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
     SVector3 pos;
     SVector3 mom;
     SMatrixSym66 covtrk;
-    std::vector<Hit> hits;
-    std::vector<Hit> initHits;
+    HitVec hits;
+    HitVec initHits;
     int q=0;//set it in setup function
     float pt = 0.5 + g_unif(g_gen) * 9.5;//this input, 0.5<pt<10 GeV  (below ~0.5 GeV does not make 10 layers)
-    setupTrackByToyMC(pos,mom,covtrk,hits,q,pt,theGeom,initHits);
+    setupTrackByToyMC(pos,mom,covtrk,hits,q,pt,theGeom,&initHits);
     Track simtrk(q,pos,mom,covtrk,hits,0.,initHits);
     simtracks.push_back(simtrk);
   }
@@ -124,7 +124,7 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
   for (unsigned int itrack=0;itrack<simtracks.size();++itrack) {
     Track& trk = simtracks[itrack];
 
-    std::vector<Hit>& initHits = trk.initHitsVector();
+    HitVec& initHits = trk.initHitsVector();
     int ii = 0;
     for ( auto i = initHits.begin(); i != initHits.end(); ++i ) {
       std::cout << "PWHIT: "
@@ -153,8 +153,8 @@ void runFittingTest(bool saveTree, unsigned int Ntracks, Geometry* theGeom)
       std::cout << std::endl;
     }
 
-    std::vector<Hit>& hits = trk.hitsVector();
-    std::vector<Hit>& initHits = trk.initHitsVector();
+    HitVec& hits = trk.hitsVector();
+    HitVec& initHits = trk.initHitsVector();
 
     TrackState initState = trk.state();
 

@@ -41,4 +41,3 @@ double Geometry::SafetyFromOutside ( const UVector3 &aPoint, bool aAccurate) con
   }
   return small;
 }
-

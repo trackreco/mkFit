@@ -2,9 +2,13 @@
 #define _geometry_
 
 #include <vector>
-#include "USolids/include/VUSolid.hh"
+#include "Matrix.h"
 
-class VUSolid;
+#ifdef WITH_USOLIDS
+#include "USolids/include/VUSolid.hh"
+#else
+#include "SimpleGeom.h"
+#endif
 
 class Geometry {
 public:

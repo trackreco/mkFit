@@ -9,11 +9,19 @@
 #include "fittest.h"
 #include "buildtest.h"
 #include "Geometry.h"
+
+//#define CYLINDER
+
+#ifdef WITH_USOLIDS
+#ifdef CYLINDER
 #include "USolids/include/UTubs.hh"
+#else
 #include "USolids/include/UPolyhedra.hh"
 #include "USolids/include/USphere.hh"
+#endif
 
-int main(){
+Geometry* initGeom()
+{
   Geometry* theGeom = new Geometry;
 
   // NB: we currently assume that each node is a layer, and that layers
@@ -39,6 +47,26 @@ int main(){
     theGeom->AddLayer(upolyh, r);
 #endif
   }
+  return theGeom;
+}
+#else
+Geometry* initGeom()
+{
+  Geometry* theGeom = new Geometry;
+
+  // NB: we currently assume that each node is a layer, and that layers
+  // are added starting from the center
+  for (int l = 0; l < 10; l++) {
+    float r = (l+1)*4.;
+    VUSolid* utub = new VUSolid(r, r+.01);
+    theGeom->AddLayer(utub, r);
+  }
+  return theGeom;
+}
+#endif
+
+int main(){
+  Geometry* theGeom = initGeom();
 
   for ( int i = 0; i < theGeom->CountLayers(); ++i ) {
     std::cout << "Layer = " << i << ", Radius = " << theGeom->Radius(i) << std::endl;

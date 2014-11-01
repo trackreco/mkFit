@@ -36,7 +36,7 @@ distclean: clean
 	rm -f ${AUTO_TGTS}
 
 
-main: ${AUTO_TGTS} ${OBJS}
+main: ${AUTO_TGTS} ${OBJS} ${LIBUSOLIDS}
 	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} -o $@ ${OBJS}
 
 ${OBJS}: %.o: %.cc

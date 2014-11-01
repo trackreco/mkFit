@@ -115,7 +115,7 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
   const float nSigma = 3.;
   const float minDPhi = 0.;
   
-  std::vector<std::vector<Hit> > evt_lay_hits(theGeom->CountLayers());//hits per layer
+  std::vector<HitVec > evt_lay_hits(theGeom->CountLayers());//hits per layer
   std::vector<Track> evt_sim_tracks;
   std::vector<Track> evt_seeds;
   std::vector<Track> evt_track_candidates;
@@ -132,7 +132,7 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
     SVector3 pos;
     SVector3 mom;
     SMatrixSym66 covtrk;
-    std::vector<Hit> hits;
+    HitVec hits;
     int q=0;//set it in setup function
     float pt = 0.5+g_unif(g_gen)*9.5;//this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
     setupTrackByToyMC(pos,mom,covtrk,hits,q,pt,theGeom);
@@ -182,9 +182,9 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
   const int nhits_per_seed = 3;
   for (unsigned int itrack=0;itrack<evt_sim_tracks.size();++itrack) {
     Track& trk = evt_sim_tracks[itrack];
-    std::vector<Hit>& hits = trk.hitsVector();
+    HitVec& hits = trk.hitsVector();
     TrackState updatedState = trk.state();
-    std::vector<Hit> seedhits;
+    HitVec seedhits;
     for (int ihit=0;ihit<nhits_per_seed;++ihit) {//seeds have 3 hits
       TrackState       propState = propagateHelixToR(updatedState,hits[ihit].r());
 #ifdef CHECKSTATEVALID
@@ -222,7 +222,7 @@ buildTestSerial(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,
 
 void buildTestSerial(std::vector<Track>& evt_seeds,
 		     std::vector<Track>& evt_track_candidates,
-		     std::vector<std::vector<Hit> >& evt_lay_hits,
+		     std::vector<HitVec >& evt_lay_hits,
 		     std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int& nhits_per_seed,
 		     const unsigned int& maxCand, const float& chi2Cut,const float& nSigma,const float& minDPhi,
 		     SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug,
@@ -284,7 +284,7 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
 
 void buildTestParallel(std::vector<Track>& evt_seeds,
 		       std::vector<Track>& evt_track_candidates,
-		       std::vector<std::vector<Hit> >& evt_lay_hits,
+		       std::vector<HitVec >& evt_lay_hits,
 		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int& nhits_per_seed,
 		       const unsigned int& maxCand, const float& chi2Cut,const float& nSigma,const float& minDPhi,
 		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug,Geometry* theGeom){
@@ -341,7 +341,7 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
 }
 
 void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<Track, TrackState> >& tmp_candidates,
-		       unsigned int ilay,std::vector<std::vector<Hit> >& evt_lay_hits,
+		       unsigned int ilay,std::vector<HitVec >& evt_lay_hits,
 		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int& nhits_per_seed,
 		       const unsigned int& maxCand, const float& chi2Cut,const float& nSigma,const float& minDPhi,
 		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T, bool debug,Geometry* theGeom){
@@ -550,7 +550,7 @@ void fillValidationHists(std::map<std::string,TH1F*>& validation_hists, std::vec
         validation_hists["gen_trk_phi"]->Fill( getPhi(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1]) );
         validation_hists["gen_trk_eta"]->Fill( getEta(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1], evt_sim_tracks[isim_track].momentum()[2]) );
         
-        std::vector<Hit>& hits = evt_sim_tracks[isim_track].hitsVector();
+        HitVec& hits = evt_sim_tracks[isim_track].hitsVector();
 
         for (unsigned int ihit = 0; ihit < hits.size(); ihit++){
           float rad = sqrt(hits[ihit].position()[0]*hits[ihit].position()[0] + hits[ihit].position()[1]*hits[ihit].position()[1]);
