@@ -248,12 +248,14 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
         processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,chi2Cut,nSigma,minDPhi,projMatrix36,projMatrix36T,debug,theGeom);
       }//end of running candidates loop
 
+#ifndef NO_ROOT
       if (saveTree) {
         layer = ilay;
         branches = tmp_candidates.size();
         cands = track_candidates.size();
         tree_br->Fill();
       }
+#endif
 
       if (tmp_candidates.size()>maxCand) {
         if (debug) std::cout << "huge size=" << tmp_candidates.size() << " keeping best "<< maxCand << " only" << std::endl;
