@@ -44,8 +44,7 @@ ${OBJS}: %.o: %.cc
 
 ${LIBUSOLIDS} : USolids/CMakeLists.txt
 	-mkdir USolids-host
-	cd USolids-host && \
-	cmake -DCMAKE_CXX_COMPILER=${CXX} -DCMAKE_CXX_FLAGS="${CXXFLAGS} ${VEC_HOST}" ../USolids && make
+	cd USolids-host && cmake ${CMAKEFLAGS} ../USolids && make
 
 ifeq ($(CXX),icc)
 
@@ -57,8 +56,7 @@ main-mic: ${AUTO_TGTS} ${OBJS_MIC} ${LIBUSOLIDS_MIC}
 
 ${LIBUSOLIDS_MIC} : USolids/CMakeLists.txt
 	-mkdir USolids-mic
-	cd USolids-mic && \
-	cmake -DCMAKE_CXX_COMPILER=${CXX} -DCMAKE_CXX_FLAGS="${CXXFLAGS} ${VEC_MIC}" ../USolids && make
+	cd USolids-mic && cmake ${CMAKEFLAGS_MIC} ../USolids && make
 
 ${OBJS_MIC}: %.om: %.cc
 	${CXX} ${CPPFLAGS_NO_ROOT} ${CXXFLAGS} ${VEC_MIC} -c -o $@ $<
