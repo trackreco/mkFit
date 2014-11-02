@@ -37,19 +37,28 @@ distclean: clean
 
 
 main: ${AUTO_TGTS} ${OBJS} ${LIBUSOLIDS}
-	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} -o $@ ${OBJS}
+	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} -o $@ ${OBJS} ${LIBUSOLIDS}
 
 ${OBJS}: %.o: %.cc
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<
 
+${LIBUSOLIDS} : USolids/CMakeLists.txt
+	-mkdir USolids-host
+	cd USolids-host && \
+	cmake -DCMAKE_CXX_COMPILER=${CXX} -DCMAKE_CXX_FLAGS="${CXXFLAGS} ${VEC_HOST}" ../USolids && make
 
 ifeq ($(CXX),icc)
 
 OBJS_MIC := $(OBJS:.o=.om)
 
-main-mic: ${AUTO_TGTS} ${OBJS_MIC}
-	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} -o $@ ${OBJS_MIC}
+main-mic: ${AUTO_TGTS} ${OBJS_MIC} ${LIBUSOLIDS_MIC}
+	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} -o $@ ${OBJS_MIC} ${LIBUSOLIDS_MIC}
 	scp $@ mic0:
+
+${LIBUSOLIDS_MIC} : USolids/CMakeLists.txt
+	-mkdir USolids-mic
+	cd USolids-mic && \
+	cmake -DCMAKE_CXX_COMPILER=${CXX} -DCMAKE_CXX_FLAGS="${CXXFLAGS} ${VEC_MIC}" ../USolids && make
 
 ${OBJS_MIC}: %.om: %.cc
 	${CXX} ${CPPFLAGS_NO_ROOT} ${CXXFLAGS} ${VEC_MIC} -c -o $@ $<
