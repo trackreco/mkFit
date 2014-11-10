@@ -67,7 +67,7 @@ Geometry* initGeom()
 int main(){
   Geometry* theGeom = initGeom();
 
-  for ( int i = 0; i < theGeom->CountLayers(); ++i ) {
+  for ( unsigned int i = 0; i < theGeom->CountLayers(); ++i ) {
     std::cout << "Layer = " << i << ", Radius = " << theGeom->Radius(i) << std::endl;
   }
 
