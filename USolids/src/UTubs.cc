@@ -450,6 +450,7 @@ bool UTubs::Normal(const UVector3& p, UVector3& n) const
     cout.precision(oldprc);
 #endif
     norm = ApproxSurfaceNormal(p);
+    noSurfaces ++;
   }
   else if (noSurfaces == 1)
   {
