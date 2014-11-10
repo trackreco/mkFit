@@ -2,7 +2,7 @@
 
 #include "Simulation.h"
 
-void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVec& hits,
+void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVec& hits, unsigned int itrack,
                        int& charge, float pt, Geometry *theGeom, HitVec* initHits)
 {
   bool dump = false;
@@ -209,7 +209,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
                 << "cov(0,1): " << covXYZ(0,1) << " cov(1,0): " << covXYZ(1,0) << std::endl << std::endl;
     }
 
-    Hit hit1(x1,covXYZ);    
+    Hit hit1(x1,covXYZ,itrack);    
     hits.push_back(hit1);  
     tmpState = propState;
 

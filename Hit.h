@@ -26,8 +26,16 @@ public:
     state_.errors=error;
   }
 
+  Hit(SVector3 position, SMatrixSym33 error, unsigned int itrack){
+    sim_index = itrack;
+    state_.parameters=position;
+    state_.errors=error;
+  }
+
+
   ~Hit(){}
 
+  unsigned int simIndex() {return sim_index;}
   SVector3&  position() {return state_.parameters;}
   SMatrixSym33& error() {return state_.errors;}
   SVector3& parameters() {return state_.parameters;}
@@ -38,7 +46,7 @@ public:
 
 private:
   MeasurementState state_;
-
+  unsigned int sim_index;
 };
 
 #endif

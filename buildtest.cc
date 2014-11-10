@@ -87,6 +87,11 @@ void runBuildingTest(bool saveTree, unsigned int nevts, Geometry* theGeom)
 
 #ifndef NO_ROOT
   if (saveTree) {
+    // Get the efficiency for track finding by dividing each bin by the total number from sim tracks
+    //    validation_hists["rec_eff_vs_Pt"]->Divide(validation_hists["matchedRec_vs_Pt"]);
+    validation_hists["rec_eff_vs_Pt"]->Divide(validation_hists["matchedRec_vs_Pt"],validation_hists["gen_trk_Pt"]);
+    validation_hists["rec_eff_vs_Phi"]->Divide(validation_hists["matchedRec_vs_Phi"],validation_hists["gen_trk_phi"]);
+    validation_hists["rec_eff_vs_Eta"]->Divide(validation_hists["matchedRec_vs_Eta"],validation_hists["gen_trk_eta"]);
     saveValidationHists(f,validation_hists);
     f->Write();
     f->Close();
@@ -118,7 +123,8 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
   std::vector<HitVec > evt_lay_hits(theGeom->CountLayers());//hits per layer
   std::vector<Track> evt_sim_tracks;
   std::vector<Track> evt_seeds;
-  std::vector<Track> evt_track_candidates;
+  std::vector<Track> evt_track_candidates; // need to assciotate reco tracks with 
+  //  std::vector<std::pair<Track, unsigned int> > 
 
   //first is first hit index in bin, second is size of this bin
   std::vector<std::vector<BinInfo> > evt_lay_phi_hit_idx(theGeom->CountLayers());//phi partitioning map
@@ -135,7 +141,7 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
     HitVec hits;
     int q=0;//set it in setup function
     float pt = 0.5+g_unif(g_gen)*9.5;//this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
-    setupTrackByToyMC(pos,mom,covtrk,hits,q,pt,theGeom);
+    setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,pt,theGeom);
     Track sim_track(q,pos,mom,covtrk,hits,0);
     //sim_track.resetHits();
     evt_sim_tracks.push_back(sim_track);
@@ -205,12 +211,33 @@ buildTestSerial(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,
 
   //dump candidates
   for (unsigned int itkcand=0;itkcand<evt_track_candidates.size();++itkcand) {
-    Track tkcand = evt_track_candidates[itkcand];
+    Track tkcand     = evt_track_candidates[itkcand];
+    HitVec& candHits = tkcand.hitsVector();
+
+    unsigned int hitMatches = 0;
+    for (unsigned int ilay=0;ilay<candHits.size();++ilay) {//loop over layers, starting from after the seed 
+      if (itkcand == candHits[ilay].simIndex()){ // 
+	hitMatches++;
+      }
+    }
+  
     if (debug) std::cout << "found track candidate with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << std::endl;
 #ifndef NO_ROOT
+  
+    if ( ((float)hitMatches / (float)evt_sim_tracks[itkcand].nHits()) > 0.75 ){
+      validation_hists["matchedRec_vs_Pt"]->Fill(getPt(evt_sim_tracks[itkcand].momentum()[0],evt_sim_tracks[itkcand].momentum()[1]));
+      validation_hists["matchedRec_vs_Phi"]->Fill(getPhi(evt_sim_tracks[itkcand].momentum()[0],evt_sim_tracks[itkcand].momentum()[1]));
+      validation_hists["matchedRec_vs_Eta"]->Fill(getEta(evt_sim_tracks[itkcand].momentum()[0],evt_sim_tracks[itkcand].momentum()[1],evt_sim_tracks[itkcand].momentum()[2]));
+    }
+
+    if ( (((float)hitMatches / (float)evt_sim_tracks[itkcand].nHits()) < 0.75) && (evt_track_candidates[itkcand].nHits() == evt_sim_tracks[itkcand].nHits()) ){
+      std::cout << "FAKE" << std::endl;
+    }
+      
     validation_hists["rec_trk_nHits"]->Fill(tkcand.nHits());
     validation_hists["rec_trk_chi2"]->Fill(tkcand.chi2());
     validation_hists["rec_trk_phi"]->Fill( getPhi(tkcand.momentum()[0], tkcand.momentum()[1]) ); // sanity check from generated?
+
     if (saveTree) {
       tk_nhits = tkcand.nHits();
       tk_chi2 = tkcand.chi2();
@@ -495,11 +522,14 @@ void setupValidationHists(std::map<std::string,TH1F*>& validation_hists)
 {
 #ifndef NO_ROOT
   validation_hists["gen_trk_Pt"] = makeValidationHist("h_gen_trk_Pt", "P_{T} of generated tracks", 30, 0, 15, "P_{T} [GeV]", "Events");
+  validation_hists["gen_trk_Pt"]->Sumw2();
   validation_hists["gen_trk_Px"] = makeValidationHist("h_gen_trk_Px", "P_{x} of generated tracks", 30, -15, 15, "P_{x} [GeV]", "Events");
   validation_hists["gen_trk_Py"] = makeValidationHist("h_gen_trk_Py", "P_{y} of generated tracks", 30, -15, 15, "P_{y} [GeV]", "Events");
   validation_hists["gen_trk_Pz"] = makeValidationHist("h_gen_trk_Pz", "P_{z} of generated tracks", 30, -20, 20, "P_{z} [GeV]", "Events");
   validation_hists["gen_trk_phi"] = makeValidationHist("h_gen_trk_phi", "phi of generated tracks from px/py", 20, -4, 4, "#phi", "Events");
+  validation_hists["gen_trk_phi"]->Sumw2();
   validation_hists["gen_trk_eta"] = makeValidationHist("h_gen_trk_eta", "eta of generated tracks", 40, -2, 2, "#eta", "Events");
+  validation_hists["gen_trk_eta"]->Sumw2();
   validation_hists["gen_trk_dPhi"] = makeValidationHist("h_gen_trk_dPhi", "#Delta#phi between tracks", 20, 0, 4, "#Delta#phi", "Events");
   validation_hists["gen_trk_mindPhi"] = makeValidationHist("h_gen_trk_mindPhi", "smallest #Delta#phi between tracks", 40, 0, 0.1, "#Delta#phi", "Events");
   validation_hists["gen_trk_dR"] = makeValidationHist("h_gen_trk_dR", "#DeltaR between tracks", 20, 0, 4, "#Delta R", "Events");
@@ -513,6 +543,18 @@ void setupValidationHists(std::map<std::string,TH1F*>& validation_hists)
   validation_hists["rec_trk_phi"] = makeValidationHist("h_rec_trk_phi", "phi of rec tracks from px/py", 20, -4, 4, "#phi", "Events");
   validation_hists["rec_trk_dphi"] = makeValidationHist("h_rec_trk_dphi", "dphi of rec tracks from y/x", 200, -0.2, 0.2, "#phi", "Events");
   validation_hists["rec_trk_chi2"] = makeValidationHist("h_rec_trk_chi2", "chi2 of rec tracks", 100, 0, 100, "#chi^{2}", "Tracks");
+
+  validation_hists["matchedRec_vs_Pt"]  = makeValidationHist("h_matchedRec_vs_Pt", "P_{T} of matched reco track", 30, 0, 15, "P_{T} [GeV]", "Events");
+  validation_hists["matchedRec_vs_Pt"]->Sumw2();
+  validation_hists["matchedRec_vs_Phi"] = makeValidationHist("h_matchedRec_vs_Phi", "phi of matched reco tracks from px/py", 20, -4, 4, "#phi", "Events");
+  validation_hists["matchedRec_vs_Phi"]->Sumw2();
+  validation_hists["matchedRec_vs_Eta"] = makeValidationHist("h_matchedRec_vs_Eta", "eta of matched reco tracks", 40, -2, 2, "#eta", "Events");
+  validation_hists["matchedRec_vs_Eta"]->Sumw2();
+  
+  validation_hists["rec_eff_vs_Pt"]  = makeValidationHist("h_rec_eff_vs_Pt", "P_{T} of matched reco track", 30, 0, 15, "P_{T} [GeV]", "Events");
+  validation_hists["rec_eff_vs_Phi"] = makeValidationHist("h_rec_eff_vs_Phi", "phi of matched reco tracks from px/py", 20, -4, 4, "#phi", "Events");
+  validation_hists["rec_eff_vs_Eta"] = makeValidationHist("h_rec_eff_vs_Eta", "eta of matched reco tracks", 40, -2, 2, "#eta", "Events");
+
 #endif
 }
 

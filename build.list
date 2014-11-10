@@ -12,3 +12,6 @@ h_gen_trk_mindR
 h_gen_trk_phi
 h_rec_trk_nHits
 h_rec_trk_chi2
+h_rec_eff_vs_Pt
+h_rec_eff_vs_Phi
+h_rec_eff_vs_Eta
