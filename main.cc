@@ -25,7 +25,6 @@ void initGeom(Geometry& geom)
   // are added starting from the center
   for (int l = 0; l < 10; l++) {
     float r = (l+1)*4.;
-    //#define CYLINDER
 #ifdef CYLINDER
     std::string s = "Cylinder" + std::string(1, 48+l);
     UTubs* utub = new UTubs(s, r, r+.01, 100.0, 0, TMath::TwoPi());
@@ -63,7 +62,7 @@ int main(){
   initGeom(geom);
   RootValidation val("valtree.root");
 
-  for ( int i = 0; i < geom.CountLayers(); ++i ) {
+  for ( unsigned int i = 0; i < geom.CountLayers(); ++i ) {
     std::cout << "Layer = " << i << ", Radius = " << geom.Radius(i) << std::endl;
   }
 

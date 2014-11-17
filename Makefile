@@ -31,6 +31,7 @@ OBJS := $(SRCS:.cc=.o)
 
 clean:
 	-rm -f ${EXES} *.d *.o *.om
+	-rm -rf USolids-{host,mic}
 
 distclean: clean
 	rm -f ${AUTO_TGTS}

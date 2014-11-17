@@ -108,8 +108,8 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     bool good = theSolid->Normal(point, xprime);
       
     if ( ! good ) {
-      std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find normal vector." <<std::endl;
-      continue;
+      std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find normal vector at " << point <<std::endl;
+      break;
     }
     assert(std::abs(xprime[2])<1e-10); // in this geometry normal vector is in xy plane
 
