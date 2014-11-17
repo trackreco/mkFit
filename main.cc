@@ -7,6 +7,7 @@
 
 #include "Matrix.h"
 #include "Event.h"
+#include "RootValidation.h"
 
 //#define CYLINDER
 
@@ -60,7 +61,7 @@ void initGeom(Geometry& geom)
 int main(){
   Geometry geom;
   initGeom(geom);
-  Validation val;
+  RootValidation val("valtree.root");
 
   for ( int i = 0; i < geom.CountLayers(); ++i ) {
     std::cout << "Layer = " << i << ", Radius = " << geom.Radius(i) << std::endl;
@@ -78,5 +79,7 @@ int main(){
     ev.Fit();
   }
 
+  val.saveHists();
+  val.deleteHists();
   return 0;
 }

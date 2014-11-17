@@ -2,6 +2,7 @@
 #include "Simulation.h"
 #include "KalmanUtils.h"
 #include "buildtest.h"
+#include "fittest.h"
 
 const int nhits_per_seed = 3;
 const unsigned int maxCand = 10;
@@ -13,14 +14,6 @@ const float minDPhi = 0.;
 static bool sortByPhi(Hit hit1, Hit hit2)
 {
   return std::atan2(hit1.position()[1],hit1.position()[0])<std::atan2(hit2.position()[1],hit2.position()[0]);
-}
-
-static unsigned int getPhiPartition(float phi) {
-  //assume phi is between -PI and PI
-  //  if (!(fabs(phi)<TMath::Pi())) std::cout << "anomalous phi=" << phi << std::endl;
-  float phiPlusPi  = phi+TMath::Pi();
-  unsigned int bin = phiPlusPi*10;
-  return bin;
 }
 
 Event::Event(Geometry& g, Validation& v) : geom_(g), validation_(v)
@@ -45,7 +38,7 @@ void Event::Simulate(unsigned int nTracks)
     int q=0;//set it in setup function
     float pt = 0.5+g_unif(g_gen)*9.5;//this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
     setupTrackByToyMC(pos,mom,covtrk,hits,q,pt,&geom_,&initialhits);
-    Track sim_track(q,pos,mom,covtrk,hits,0,initialhits);
+    Track sim_track(q,pos,mom,covtrk,hits,0,initialhits,itrack);
     simTracks_.push_back(sim_track);
 
     //fill vector of hits in each layer (assuming there is one hit per layer in hits vector)
@@ -53,8 +46,10 @@ void Event::Simulate(unsigned int nTracks)
       layerHits_.at(ilay).push_back(hits.at(ilay));
     }
   }
-  bool debug=false;
 
+  validation_.fillSimHists(simTracks_);
+
+  bool debug=false;
   //sort in phi and dump hits per layer, fill phi partitioning
   for (unsigned int ilay=0; ilay<layerHits_.size(); ++ilay) {
     if (debug) std::cout << "Hits in layer=" << ilay << std::endl;
@@ -103,7 +98,7 @@ void Event::Seed()
       updatedState = updateParameters(propState, measState,projMatrix36_,projMatrix36T_);
       seedhits.push_back(hits[ihit]);//fixme chi2
     }
-    Track seed(updatedState,seedhits,0.);//fixme chi2
+    Track seed(updatedState,seedhits,0.,itrack);//fixme chi2
     seedTracks_.push_back(seed);
   }
 }
@@ -111,8 +106,10 @@ void Event::Seed()
 void Event::Find()
 {
   buildTestSerial(*this, nhits_per_seed, maxCand, chi2Cut, nSigma, minDPhi);
+  validation_.fillCandidateHists(candidateTracks_);
 }
 
 void Event::Fit()
 {
+  runFittingTest(*this, candidateTracks_);
 }
