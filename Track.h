@@ -5,8 +5,6 @@
 #include "Matrix.h"
 #include <vector>
 
-typedef std::vector<Hit> HitVec;
-
 struct TrackState
 {
 public:
@@ -79,4 +77,5 @@ private:
 
 };
 
+typedef std::vector<Track> TrackVec;
 #endif

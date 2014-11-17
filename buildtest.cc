@@ -9,6 +9,7 @@
 #include "KalmanUtils.h"
 #include "Propagation.h"
 #include "Simulation.h"
+#include "Event.h"
 
 #include <cmath>
 #include <iostream>
@@ -33,19 +34,19 @@ inline float normalizedPhi(float phi) {
  return phi;
 }
 
-bool sortByHitsChi2(std::pair<Track, TrackState> cand1,std::pair<Track, TrackState> cand2)
+static bool sortByHitsChi2(std::pair<Track, TrackState> cand1,std::pair<Track, TrackState> cand2)
 {
   if (cand1.first.nHits()==cand2.first.nHits()) return cand1.first.chi2()<cand2.first.chi2();
   return cand1.first.nHits()>cand2.first.nHits();
 }
 
-bool sortByPhi(Hit hit1,Hit hit2)
+static bool sortByPhi(Hit hit1,Hit hit2)
 {
   return std::atan2(hit1.position()[1],hit1.position()[0])<std::atan2(hit2.position()[1],hit2.position()[0]);
 }
 
 //unsigned int getPhiPartition(float phi) {
-unsigned int getPhiPartition(float phi) {
+static unsigned int getPhiPartition(float phi) {
   //assume phi is between -PI and PI
   //  if (!(fabs(phi)<TMath::Pi())) std::cout << "anomalous phi=" << phi << std::endl;
   float phiPlusPi  = phi+TMath::Pi();
@@ -101,7 +102,7 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
 
   bool debug = false;
 
-  //these matrices are dummy and can be optimized without multriplying by zero all the world...
+  //these matrices are dummy and can be optimized without multiplying by zero all the world...
   SMatrix36 projMatrix36;
   projMatrix36(0,0)=1.;
   projMatrix36(1,1)=1.;
@@ -115,7 +116,7 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
   const float nSigma = 3.;
   const float minDPhi = 0.;
   
-  std::vector<HitVec > evt_lay_hits(theGeom->CountLayers());//hits per layer
+  std::vector<HitVec> evt_lay_hits(theGeom->CountLayers());//hits per layer
   std::vector<Track> evt_sim_tracks;
   std::vector<Track> evt_seeds;
   std::vector<Track> evt_track_candidates;
@@ -200,7 +201,7 @@ void runBuildingTestEvt(bool saveTree, TTree *tree,unsigned int& tk_nhits, float
     evt_seeds.push_back(seed);
   }
 
-buildTestSerial(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,chi2Cut,nSigma,minDPhi,projMatrix36,projMatrix36T,debug,saveTree,tree_br,layer,branches,cands,theGeom);
+//buildTestSerial(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,chi2Cut,nSigma,minDPhi,projMatrix36,projMatrix36T,debug,saveTree,tree_br,layer,branches,cands,theGeom);
   //buildTestParallel(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,chi2Cut,nSigma,minDPhi,projMatrix36,projMatrix36T,debug);
 
   //dump candidates
@@ -220,14 +221,20 @@ buildTestSerial(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,
   }
 }
 
-void buildTestSerial(std::vector<Track>& evt_seeds,
-		     std::vector<Track>& evt_track_candidates,
-		     std::vector<HitVec >& evt_lay_hits,
-		     std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int& nhits_per_seed,
-		     const unsigned int& maxCand, const float& chi2Cut,const float& nSigma,const float& minDPhi,
-		     SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug,
-		     bool saveTree, TTree *tree_br, unsigned int& layer, unsigned int& branches, unsigned int& cands,Geometry* theGeom)
+void buildTestSerial(Event& ev,const int nhits_per_seed,
+		     const unsigned int maxCand, const float chi2Cut, const float nSigma, const float minDPhi)
 {
+  auto& evt_seeds(ev.seedTracks_);
+  auto& evt_track_candidates(ev.candidateTracks_);
+  auto& evt_lay_hits(ev.layerHits_);
+	auto& evt_lay_phi_hit_idx(ev.lay_phi_hit_idx_);
+	auto& projMatrix36(ev.projMatrix36_);
+  auto& projMatrix36T(ev.projMatrix36T_);
+  bool debug(false);
+	bool saveTree(false);
+  TTree *tree_br(nullptr);
+  unsigned int layer(0), branches(0), cands(0);
+
   //process seeds
   for (unsigned int iseed=0;iseed<evt_seeds.size();++iseed) {
     if (debug) std::cout << "processing seed #" << iseed << " par=" << evt_seeds[iseed].parameters() << std::endl;
@@ -245,7 +252,8 @@ void buildTestSerial(std::vector<Track>& evt_seeds,
       std::vector<std::pair<Track, TrackState> > tmp_candidates;
       for (unsigned int icand=0;icand<track_candidates.size();++icand) {//loop over running candidates 
         std::pair<Track, TrackState>& cand = track_candidates[icand];
-        processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,chi2Cut,nSigma,minDPhi,projMatrix36,projMatrix36T,debug,theGeom);
+        processCandidates(cand, tmp_candidates, ilay, evt_lay_hits, evt_lay_phi_hit_idx,
+          nhits_per_seed, maxCand, chi2Cut, nSigma, minDPhi, projMatrix36, projMatrix36T, debug, &ev.geom_);
       }//end of running candidates loop
 
 #ifndef NO_ROOT
@@ -344,8 +352,8 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
 
 void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<Track, TrackState> >& tmp_candidates,
 		       unsigned int ilay,std::vector<HitVec >& evt_lay_hits,
-		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int& nhits_per_seed,
-		       const unsigned int& maxCand, const float& chi2Cut,const float& nSigma,const float& minDPhi,
+		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int nhits_per_seed,
+		       const unsigned int maxCand, const float chi2Cut,const float nSigma,const float minDPhi,
 		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T, bool debug,Geometry* theGeom){
 
   Track& tkcand = cand.first;

@@ -31,14 +31,20 @@ public:
   SVector3&  position() {return state_.parameters;}
   SMatrixSym33& error() {return state_.errors;}
   SVector3& parameters() {return state_.parameters;}
-  float r() {return sqrt(state_.parameters.At(0)*state_.parameters.At(0)+state_.parameters.At(1)*state_.parameters.At(1));}
+  float r() {
+    return sqrt(state_.parameters.At(0)*state_.parameters.At(0) +
+                state_.parameters.At(1)*state_.parameters.At(1));
+  }
   MeasurementState measurementState() {
     return state_;
   }
 
 private:
   MeasurementState state_;
-
 };
+
+typedef std::vector<Hit> HitVec;
+typedef unsigned int HitRef;
+typedef std::vector<HitRef> HitRefVec;
 
 #endif

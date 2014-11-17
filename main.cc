@@ -6,9 +6,7 @@
 #include <sstream>
 
 #include "Matrix.h"
-#include "fittest.h"
-#include "buildtest.h"
-#include "Geometry.h"
+#include "Event.h"
 
 //#define CYLINDER
 
@@ -20,10 +18,8 @@
 #include "USolids/include/USphere.hh"
 #endif
 
-Geometry* initGeom()
+void initGeom(Geometry& geom)
 {
-  Geometry* theGeom = new Geometry;
-
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
   for (int l = 0; l < 10; l++) {
@@ -32,7 +28,7 @@ Geometry* initGeom()
 #ifdef CYLINDER
     std::string s = "Cylinder" + std::string(1, 48+l);
     UTubs* utub = new UTubs(s, r, r+.01, 100.0, 0, TMath::TwoPi());
-    theGeom->AddLayer(utub,r);
+    geom,AddLayer(utub,r);
 #else
     float xs = 5.0; // approximate sensor size in cm
     if ( l >= 5 ) // bigger sensors in outer layers
@@ -44,39 +40,43 @@ Geometry* initGeom()
     const double rInner[] = {r,r};
     const double rOuter[] = {r+.01,r+.01};
     UPolyhedra* upolyh = new UPolyhedra(s, 0, TMath::TwoPi(), nsectors, 2, zPlane, rInner, rOuter);
-    theGeom->AddLayer(upolyh, r);
+    geom.AddLayer(upolyh, r);
 #endif
   }
-  return theGeom;
 }
 #else
-Geometry* initGeom()
+void initGeom(Geometry& geom)
 {
-  Geometry* theGeom = new Geometry;
-
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
   for (int l = 0; l < 10; l++) {
     float r = (l+1)*4.;
     VUSolid* utub = new VUSolid(r, r+.01);
-    theGeom->AddLayer(utub, r);
+    geom.AddLayer(utub, r);
   }
-  return theGeom;
 }
 #endif
 
 int main(){
-  Geometry* theGeom = initGeom();
+  Geometry geom;
+  initGeom(geom);
+  Validation val;
 
-  for ( int i = 0; i < theGeom->CountLayers(); ++i ) {
-    std::cout << "Layer = " << i << ", Radius = " << theGeom->Radius(i) << std::endl;
+  for ( int i = 0; i < geom.CountLayers(); ++i ) {
+    std::cout << "Layer = " << i << ", Radius = " << geom.Radius(i) << std::endl;
   }
 
-  bool saveTree = true;
-  runFittingTest(saveTree,50000,theGeom); 
-  //runFittingTestPlex(saveTree,theGeom); 
-  runBuildingTest(saveTree,100,theGeom); 
+  unsigned int Ntracks = 500;
+  unsigned int Nevents = 100;
 
-  delete theGeom;
+  for (unsigned int evt=0; evt<Nevents; ++evt) {
+    std::cout << std::endl << "EVENT #"<< evt << std::endl << std::endl;
+    Event ev(geom, val);
+    ev.Simulate(Ntracks);
+    ev.Seed();
+    ev.Find();
+    ev.Fit();
+  }
+
   return 0;
 }
