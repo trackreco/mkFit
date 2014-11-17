@@ -18,11 +18,20 @@ void runFittingTest(Event& ev, TrackVec& candidates)
 
     Track& trk = candidates[itrack];
 
+    unsigned int itrack0 = trk.SimTrackID();
+    Track& trk0 = ev.simTracks_[itrack0];
     if (dump) {
+      std::cout << std::endl << "Sim track: " << itrack0 << " State" << std::endl;
+      std::cout << "x:  " << trk0.parameters()[0] << " y:  " << trk0.parameters()[1] << " z:  " << trk0.parameters()[2] << std::endl;
+      std::cout << "px: " << trk0.parameters()[3] << " py: " << trk0.parameters()[4] << " pz: " << trk0.parameters()[5] << std::endl;
+      std::cout << "hits: " << trk0.nHits() << " valid: " << trk0.state().valid << " errors: " << std::endl;
+      dumpMatrix(trk0.errors());                 
+      std::cout << std::endl;
+
       std::cout << std::endl << "Initial track: " << itrack << " State" << std::endl;
       std::cout << "x:  " << trk.parameters()[0] << " y:  " << trk.parameters()[1] << " z:  " << trk.parameters()[2] << std::endl;
       std::cout << "px: " << trk.parameters()[3] << " py: " << trk.parameters()[4] << " pz: " << trk.parameters()[5] << std::endl;
-      std::cout << "errors: " << std::endl;
+      std::cout << "hits: " << trk.nHits() << " valid: " << trk.state().valid << " errors: " << std::endl;
       dumpMatrix(trk.errors());                 
       std::cout << std::endl;
     }
@@ -30,7 +39,7 @@ void runFittingTest(Event& ev, TrackVec& candidates)
     HitVec& hits = trk.hitsVector();
     HitVec& initHits = ev.simTracks_[trk.SimTrackID()].initHitsVector();
 
-    TrackState initState = trk.state();
+    TrackState initState = trk0.state();
 
     //TrackState simStateHit0 = propagateHelixToR(initState,4.);//4 is the simulated radius 
     //TrackState simStateHit0 = propagateHelixToLayer(initState,0,theGeom); // innermost layer
@@ -105,7 +114,8 @@ void runFittingTest(Event& ev, TrackVec& candidates)
       if (!propState.valid || !updatedState.valid) {
         if (dump) {
           std::cout << "Failed propagation processing track:hit: " << itrack << ":" << ihit << std::endl
-                    << "hitR, propR, updR = " << hits[ihit].r() << ", " << Mag(propPos) << ", " << Mag(updPos) << std::endl << std::endl;
+                    << "hitR, propR, updR = " << hits[ihit].r() << ", " << Mag(propPos) << ", " << Mag(updPos)
+                    << std::endl << std::endl;
         }
 #ifdef CHECKSTATEVALID
         break;

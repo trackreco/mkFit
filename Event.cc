@@ -112,4 +112,5 @@ void Event::Find()
 void Event::Fit()
 {
   runFittingTest(*this, candidateTracks_);
+  //runFittingTest(*this, simTracks_);
 }
