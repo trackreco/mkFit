@@ -48,7 +48,10 @@ void Event::Simulate(unsigned int nTracks)
   }
 
   validation_.fillSimHists(simTracks_);
+}
 
+void Event::Seed()
+{
   bool debug=false;
   //sort in phi and dump hits per layer, fill phi partitioning
   for (unsigned int ilay=0; ilay<layerHits_.size(); ++ilay) {
@@ -77,10 +80,7 @@ void Event::Simulate(unsigned int nTracks)
       }
     }
   }
-}
 
-void Event::Seed()
-{
   //create seeds (from sim tracks for now)
   for (unsigned int itrack=0;itrack<simTracks_.size();++itrack) {
     Track& trk = simTracks_[itrack];

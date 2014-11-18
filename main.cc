@@ -60,7 +60,11 @@ void initGeom(Geometry& geom)
 int main(){
   Geometry geom;
   initGeom(geom);
+#ifdef NO_ROOT
+  Validation val;
+#else
   RootValidation val("valtree.root");
+#endif
 
   for ( unsigned int i = 0; i < geom.CountLayers(); ++i ) {
     std::cout << "Layer = " << i << ", Radius = " << geom.Radius(i) << std::endl;

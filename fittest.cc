@@ -1,12 +1,46 @@
 #include "fittest.h"
-#include "Track.h"
 #include "Matrix.h"
 #include "KalmanUtils.h"
 #include "Propagation.h"
-#include "Simulation.h"
 #include "ConformalUtils.h"
 
 #include <iostream>
+
+static void print(TrackState& s)
+{
+  std::cout << "x:  "  << s.parameters[0] 
+            << " y:  " << s.parameters[1]
+            << " z:  " << s.parameters[2] << std::endl
+            << "px: "  << s.parameters[3]
+            << " py: " << s.parameters[4]
+            << " pz: " << s.parameters[5] << std::endl
+            << "valid: " << s.valid << " errors: " << std::endl;
+  dumpMatrix(s.errors);
+  std::cout << std::endl;
+}
+
+static void print(std::string label, unsigned int itrack, Track& trk)
+{
+  std::cout << std::endl << label << ": " << itrack << "hits: " << trk.nHits() << " State" << std::endl;
+  print(trk.state());
+}
+
+static void print(std::string label, TrackState& s)
+{
+  std::cout << label << std::endl;
+  print(s);
+}
+
+static void print(std::string label, MeasurementState& s)
+{
+  std::cout << label << std::endl;
+  std::cout << "x:  "  << s.parameters[0] 
+            << " y:  " << s.parameters[1]
+            << " z:  " << s.parameters[2] << std::endl
+            << " errors: " << std::endl;
+  dumpMatrix(s.errors);
+  std::cout << std::endl;
+}
 
 void runFittingTest(Event& ev, TrackVec& candidates)
 {
@@ -21,19 +55,8 @@ void runFittingTest(Event& ev, TrackVec& candidates)
     unsigned int itrack0 = trk.SimTrackID();
     Track& trk0 = ev.simTracks_[itrack0];
     if (dump) {
-      std::cout << std::endl << "Sim track: " << itrack0 << " State" << std::endl;
-      std::cout << "x:  " << trk0.parameters()[0] << " y:  " << trk0.parameters()[1] << " z:  " << trk0.parameters()[2] << std::endl;
-      std::cout << "px: " << trk0.parameters()[3] << " py: " << trk0.parameters()[4] << " pz: " << trk0.parameters()[5] << std::endl;
-      std::cout << "hits: " << trk0.nHits() << " valid: " << trk0.state().valid << " errors: " << std::endl;
-      dumpMatrix(trk0.errors());                 
-      std::cout << std::endl;
-
-      std::cout << std::endl << "Initial track: " << itrack << " State" << std::endl;
-      std::cout << "x:  " << trk.parameters()[0] << " y:  " << trk.parameters()[1] << " z:  " << trk.parameters()[2] << std::endl;
-      std::cout << "px: " << trk.parameters()[3] << " py: " << trk.parameters()[4] << " pz: " << trk.parameters()[5] << std::endl;
-      std::cout << "hits: " << trk.nHits() << " valid: " << trk.state().valid << " errors: " << std::endl;
-      dumpMatrix(trk.errors());                 
-      std::cout << std::endl;
+      print("Sim track", itrack0, trk0);
+      print("Initial track", itrack, trk);
     }
 
     HitVec& hits = trk.hitsVector();
@@ -45,18 +68,15 @@ void runFittingTest(Event& ev, TrackVec& candidates)
     //TrackState simStateHit0 = propagateHelixToLayer(initState,0,theGeom); // innermost layer
     TrackState simStateHit0 = propagateHelixToR(initState,hits[0].r()); // innermost hit
     if (dump) {
-      std::cout << "simulation x=" << simStateHit0.parameters[0] << " y=" << simStateHit0.parameters[1] << " z=" << simStateHit0.parameters[2] 
-                << " r=" << sqrt(pow(simStateHit0.parameters[0],2)+pow(simStateHit0.parameters[1],2)) << std::endl; 
-      std::cout << "simulation px=" << simStateHit0.parameters[3] << " py=" << simStateHit0.parameters[4] << " pz=" << simStateHit0.parameters[5] << std::endl; 
+      print("simStateHit0", simStateHit0);
     }
 
-    
     TrackState cfitStateHit0;
-    //conformalFit(hits[0],hits[1],hits[2],trk.charge(),cfitStateHit0);//fit is problematic in case of very short lever arm
+    //fit is problematic in case of very short lever arm
+    //conformalFit(hits[0],hits[1],hits[2],trk.charge(),cfitStateHit0);
     conformalFit(hits[0],hits[5],hits[9],trk.charge(),cfitStateHit0);
     if (dump) { 
-      std::cout << "conformfit x=" << cfitStateHit0.parameters[0] << " y=" << cfitStateHit0.parameters[1] << " z=" << cfitStateHit0.parameters[2] << std::endl; 
-      std::cout << "conformfit px=" << cfitStateHit0.parameters[3] << " py=" << cfitStateHit0.parameters[4] << " pz=" << cfitStateHit0.parameters[5] << std::endl; 
+      print("cfitStateHit0", cfitStateHit0);
     }      
     ev.validation_.fillFitStateHists(simStateHit0, cfitStateHit0);
     cfitStateHit0.errors*=10;//rescale errors to avoid bias from reusing of hit information
@@ -82,34 +102,13 @@ void runFittingTest(Event& ev, TrackVec& candidates)
 
       if (dump) {
         std::cout << "processing hit: " << itrack << ":" << ihit << std::endl
-                  << "hitR, propR, updR = " << hits[ihit].r() << ", " << Mag(propPos) << ", " << Mag(updPos) << std::endl << std::endl;
+                  << "hitR, propR, updR = " << hits[ihit].r() << ", " 
+                  << Mag(propPos) << ", " << Mag(updPos) << std::endl << std::endl;
 
-        std::cout << "measState" << std::endl;
-        std::cout << "x:  " << measState.parameters[0] << " y:  " << measState.parameters[1] << " z:  " << measState.parameters[2] << std::endl << std::endl;
-        std::cout << "measState.errors: " << std::endl;
-        dumpMatrix(measState.errors);
-        std::cout << std::endl;
-
-        std::cout << "initState" << std::endl;
-        std::cout << "x:  " << initState.parameters[0] << " y:  " << initState.parameters[1] << " z:  " << initState.parameters[2] << std::endl;
-        std::cout << "px: " << initState.parameters[3] << " py: " << initState.parameters[4] << " pz: " << initState.parameters[5] << std::endl;
-        std::cout << "initState.errors: " << std::endl;
-        dumpMatrix(initState.errors);
-        std::cout << std::endl;
-
-        std::cout << "propState" << std::endl;
-        std::cout << "x:  " << propState.parameters[0] << " y:  " << propState.parameters[1] << " z:  " << propState.parameters[2] << std::endl;
-        std::cout << "px: " << propState.parameters[3] << " py: " << propState.parameters[4] << " pz: " << propState.parameters[5] << std::endl;
-        std::cout << "propState.errors: " << std::endl;
-        dumpMatrix(propState.errors);
-        std::cout << std::endl;
-
-        std::cout << "updatedState" << std::endl;
-        std::cout << "x:  " << updatedState.parameters[0] << " y:  " << updatedState.parameters[1] << " z:  " << updatedState.parameters[2] << std::endl;
-        std::cout << "px: " << updatedState.parameters[3] << " py: " << updatedState.parameters[4] << " pz: " << updatedState.parameters[5] << std::endl;
-        std::cout << "updatedState.errors: " << std::endl;
-        dumpMatrix(updatedState.errors);        
-        std::cout << std::endl;
+        print("measState", measState);
+        print("initState", initState);
+        print("propState", propState);
+        print("updatedState", updatedState);
       }
       if (!propState.valid || !updatedState.valid) {
         if (dump) {
@@ -124,12 +123,7 @@ void runFittingTest(Event& ev, TrackVec& candidates)
       ev.validation_.fillFitHitHists(initMeasState, measState, propState, updatedState);
     } // end loop over hits
     if (dump) {
-      std::cout << "Fit Track: " << itrack << " State" << std::endl;
-      std::cout << "x:  " << updatedState.parameters[0] << " y:  " << updatedState.parameters[1] << " z:  " << updatedState.parameters[2] << std::endl;
-      std::cout << "px: " << updatedState.parameters[3] << " py: " << updatedState.parameters[4] << " pz: " << updatedState.parameters[5] << std::endl;
-      std::cout << "updatedState.errors" << std::endl;
-      dumpMatrix(updatedState.errors);
-      std::cout << std::endl;
+      print("Fit Track", updatedState);
     }
     ev.validation_.fillFitTrackHists(initState, updatedState);
   }
