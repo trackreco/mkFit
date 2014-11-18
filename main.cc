@@ -21,6 +21,12 @@
 
 void initGeom(Geometry& geom)
 {
+#ifdef CYLINDER
+  std::cout << "Constructing USolids Cylinder geometry" << std::endl;
+#else
+  std::cout << "Constructing USolids Polyhedral geometry" << std::endl;
+#endif
+
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
   for (int l = 0; l < 10; l++) {
@@ -47,6 +53,8 @@ void initGeom(Geometry& geom)
 #else
 void initGeom(Geometry& geom)
 {
+  std::cout << "Constructing SimpleGeometry Cylinder geometry" << std::endl;
+
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
   for (int l = 0; l < 10; l++) {

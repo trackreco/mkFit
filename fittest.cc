@@ -21,7 +21,7 @@ static void print(TrackState& s)
 
 static void print(std::string label, unsigned int itrack, Track& trk)
 {
-  std::cout << std::endl << label << ": " << itrack << "hits: " << trk.nHits() << " State" << std::endl;
+  std::cout << std::endl << label << ": " << itrack << " hits: " << trk.nHits() << " State" << std::endl;
   print(trk.state());
 }
 
@@ -62,7 +62,10 @@ void runFittingTest(Event& ev, TrackVec& candidates)
     HitVec& hits = trk.hitsVector();
     HitVec& initHits = ev.simTracks_[trk.SimTrackID()].initHitsVector();
 
-    TrackState initState = trk0.state();
+    TrackState initState = trk.state();
+    initState.parameters[0] = hits[0].parameters()[0];
+    initState.parameters[1] = hits[0].parameters()[1];
+    initState.parameters[2] = hits[0].parameters()[2];
 
     //TrackState simStateHit0 = propagateHelixToR(initState,4.);//4 is the simulated radius 
     //TrackState simStateHit0 = propagateHelixToLayer(initState,0,theGeom); // innermost layer
@@ -91,11 +94,15 @@ void runFittingTest(Event& ev, TrackVec& candidates)
       TrackState propState = propagateHelixToR(updatedState, hits[ihit].r());
       updatedState = updateParameters(propState, measState, projMatrix36, projMatrix36T);
 
-#ifdef CHECKSTATEVALID
-      // crude test for numerical instability, need a better test
       SVector3 propPos(propState.parameters[0],propState.parameters[1],0.0);
       SVector3 updPos(updatedState.parameters[0],updatedState.parameters[1],0.0);
-      if (Mag(propPos - updPos) > 0.1 || std::abs(propState.parameters[2] - updatedState.parameters[2]) > 1.0) {
+#if defined(CHECKSTATEVALID)
+      // crude test for numerical instability, need a better test
+      if (Mag(propPos - updPos)/Mag(propPos) > 0.1 || std::abs(propState.parameters[2] - updatedState.parameters[2]) > 1.0) {
+        if (dump) {
+          std::cout << "Failing stability " << Mag(propPos - updPos)/Mag(propPos) 
+                    << " " << std::abs(propState.parameters[2] - updatedState.parameters[2]) << std::endl;
+        }
         updatedState.valid = false;
       }
 #endif

@@ -373,7 +373,7 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
                 << "x=" << hsout.x << " y=" << hsout.y << " px=" << hsout.px
                 << " py=" << hsout.py << " pz=" << hsout.pz << " q=" << inputState.charge << std::endl;
     }
-    hsout.state.valid = false;
+    hsout.state.valid = hsout.r0-tolerance < r;
     return hsout.state;
   }
 
