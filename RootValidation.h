@@ -1,8 +1,14 @@
 #ifndef _rootvalidation_
 #define _rootvalidation_
 
-#ifndef NO_ROOT
 #include "Validation.h"
+
+#ifdef NO_ROOT
+class RootValidation : public Validation {
+public:
+  RootValidation(std::string, bool saveTree = true) {}
+};
+#else
 
 #include "TFile.h"
 #include "TTree.h"
