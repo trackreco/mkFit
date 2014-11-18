@@ -111,6 +111,9 @@ void Event::Find()
 
 void Event::Fit()
 {
+#ifdef ENDTOEND
   runFittingTest(*this, candidateTracks_);
-  //runFittingTest(*this, simTracks_);
+#else
+  runFittingTest(*this, simTracks_);
+#endif
 }

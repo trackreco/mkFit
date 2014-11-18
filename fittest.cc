@@ -63,9 +63,11 @@ void runFittingTest(Event& ev, TrackVec& candidates)
     HitVec& initHits = ev.simTracks_[trk.SimTrackID()].initHitsVector();
 
     TrackState initState = trk.state();
+#ifdef ENDTOEND
     initState.parameters[0] = hits[0].parameters()[0];
     initState.parameters[1] = hits[0].parameters()[1];
     initState.parameters[2] = hits[0].parameters()[2];
+#endif
 
     //TrackState simStateHit0 = propagateHelixToR(initState,4.);//4 is the simulated radius 
     //TrackState simStateHit0 = propagateHelixToLayer(initState,0,theGeom); // innermost layer
