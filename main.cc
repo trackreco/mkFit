@@ -26,12 +26,14 @@ Geometry* initGeom()
 
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
+  float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
   for (int l = 0; l < 10; l++) {
     float r = (l+1)*4.;
+    float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
 #ifdef CYLINDER
     std::string s = "Cylinder" + std::string(1, 48+l);
-    UTubs* utub = new UTubs(s, r, r+.01, 100.0, 0, TMath::TwoPi());
-    theGeom->AddLayer(utub,r);
+    UTubs* utub = new UTubs(s, r, r+.01, z, 0, TMath::TwoPi());
+    theGeom->AddLayer(utub,r,z);
 #else
     float xs = 5.0; // approximate sensor size in cm
     if ( l >= 5 ) // bigger sensors in outer layers
@@ -39,11 +41,11 @@ Geometry* initGeom()
     int nsectors = int(TMath::TwoPi()/(2*atan2(xs/2,r))); // keep ~constant sensors size
     std::cout << "l = " << l << ", nsectors = "<< nsectors << std::endl;
     std::string s = "PolyHedra" + std::string(1, 48+l);
-    const double zPlane[] = {-100.,100.};
+    const double zPlane[] = {-z,z};
     const double rInner[] = {r,r};
     const double rOuter[] = {r+.01,r+.01};
     UPolyhedra* upolyh = new UPolyhedra(s, 0, TMath::TwoPi(), nsectors, 2, zPlane, rInner, rOuter);
-    theGeom->AddLayer(upolyh, r);
+    theGeom->AddLayer(upolyh,r,z);
 #endif
   }
   return theGeom;
@@ -55,10 +57,11 @@ Geometry* initGeom()
 
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
+  // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
   for (int l = 0; l < 10; l++) {
     float r = (l+1)*4.;
     VUSolid* utub = new VUSolid(r, r+.01);
-    theGeom->AddLayer(utub, r);
+    theGeom->AddLayer(utub,r,z);
   }
   return theGeom;
 }
@@ -72,10 +75,10 @@ int main(){
   }
 
   bool saveTree = true;
-  runFittingTest(saveTree,50000,theGeom); 
+  //  runFittingTest(saveTree,50000,theGeom); 
   //runFittingTestPlex(saveTree,theGeom); 
-  runBuildingTest(saveTree,100,theGeom); 
-
+  runBuildingTest(saveTree,100,theGeom);
+    
   delete theGeom;
   return 0;
 }

@@ -2,6 +2,9 @@
 
 #include "Simulation.h"
 
+//#define SOLID_SMEAR
+#define SCATTER_XYZ
+
 void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVec& hits, unsigned int itrack,
                        int& charge, float pt, Geometry *theGeom, HitVec* initHits)
 {
@@ -48,6 +51,9 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
   const float hitposerrZ = 0.1;//assume 1mm uncertainty in z coordinate
   const float hitposerrR = hitposerrXY/10.;
 
+  const float varXY  = hitposerrXY*hitposerrXY;
+  const float varZ   = hitposerrZ*hitposerrZ;
+
   TrackState initState;
   initState.parameters=SVector6(pos[0],pos[1],pos[2],mom[0],mom[1],mom[2]);
   initState.errors=covtrk;
@@ -92,28 +98,28 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     // if the normal vector is given by n == x' = (x1,y1,0) [NB no component along z here]
     // then the 
     // y axis in the new coordinate system is given by y' = z' x x' = (-y1,x1,0)
-    UVector3 point(initX,initY,initZ);
-    const auto theSolid = theGeom->InsideWhat(point);
-    if ( ! theSolid ) {
+    UVector3 init_point(initX,initY,initZ);
+    const auto theInitSolid = theGeom->InsideWhat(init_point);
+    if ( ! theInitSolid ) {
       std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid." <<std::endl;
-      std::cerr << "nhit = " << nhit << ", r = " << initRad << ", r*4cm = " << 4*nhit 
-                << ", phi = " << initPhi ;
+      std::cerr << "itrack = " << itrack << ", nhit = " << nhit << ", r = " << initRad << ", r*4cm = " << 4*nhit << ", phi = " << initPhi << std::endl;
+      std::cerr << "initX = " << initX << ", initY = " << initY << ", initZ = " << initZ << std::endl << std::endl;
       float pt = sqrt(propState.parameters[3]*propState.parameters[3]+
                       propState.parameters[4]*propState.parameters[4]);
       std::cerr << ", pt = " << pt << ", pz = " << propState.parameters[5] << std::endl;
 
       continue;
     }
-    UVector3 xprime; // normal on surface
-    bool good = theSolid->Normal(point, xprime);
+    UVector3 init_xprime; // normal on surface
+    bool init_good = theInitSolid->Normal(init_point, init_xprime);
       
-    if ( ! good ) {
-      std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find normal vector at " << point <<std::endl;
+    if ( ! init_good ) {
+      std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find normal vector at " << init_point <<std::endl;
       break;
     }
-    assert(std::abs(xprime[2])<1e-10); // in this geometry normal vector is in xy plane
+    assert(std::abs(init_xprime[2])<1e-10); // in this geometry normal vector is in xy plane
 
-    x /= std::abs(xprime.Dot(pvec)); // take care of dip angle
+    x /= std::abs(init_xprime.Dot(pvec)); // take care of dip angle
     const float betac = sqrt(p*p+(.135*.135))/(p*p); // m=130 MeV, pion
     const float theta_0 = 0.0136/(betac*p)*sqrt(x/X0)*(1+0.038*log(x/X0));// eq 32.14
     const float y_plane = z1*x*theta_0/sqrt(12.)+ z2*x*theta_0/2.;
@@ -122,15 +128,22 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     if ( dump ) 
       std::cout << "yplane, theta_space = " << y_plane << ", " << theta_space << std::endl;
 
-    UVector3 yprime(-xprime[1],xprime[0],0); // result of dot product with zhat
-    //const double phi0 = atan2(xpime[1], xprime[0]);
-    
-    const float scatteredX = initX + y_plane *(-xprime[1]*cos(phismear)); 
-    const float scatteredY = initY + y_plane *(+xprime[0]*cos(phismear));
+    UVector3 yprime(-init_xprime[1],init_xprime[0],0); // result of cross product with zhat
+    //const double phi0 = atan2(xpime[1], init_xprime[0]);
+
+#ifdef SCATTER_XYZ
+    const float scatteredX = initX + y_plane *(-init_xprime[1]*cos(phismear)); 
+    const float scatteredY = initY + y_plane *(+init_xprime[0]*cos(phismear));
     const float scatteredZ = initZ + y_plane *(           sin(phismear));
     const float scatteredPhi = atan2(scatteredY,scatteredX);
     const float scatteredRad = sqrt(scatteredX*scatteredX+scatteredY*scatteredY);
-
+#else 
+    const float scatteredX = initX;
+    const float scatteredY = initY;
+    const float scatteredZ = initZ;
+    const float scatteredPhi = atan2(initY,initX);
+    const float scatteredRad = sqrt(initX*initX+initY*initY);
+#endif  // SCATTER_XYZ
     UVector3 pvecprime;
 
     const float v0 = sqrt(2+pow((pvec[1]+pvec[2])/pvec[0],2));
@@ -157,7 +170,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     assert(pvecprime.Mag()<=1.0001);
     if ( dump ) {
       std::cout << "theta_space, phismear = " << theta_space << ", " << phismear << std::endl;
-      std::cout << "xprime = " << xprime << std::endl;
+      std::cout << "init_xprime = " << init_xprime << std::endl;
       std::cout << "yprime = " << yprime << std::endl;
       std::cout << "phat      = " << pvec << "\t" << pvec.Mag() << std::endl;
       std::cout << "pvecprime = " << pvecprime << "\t" << pvecprime.Mag() << std::endl;
@@ -167,6 +180,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     pvecprime.Normalize();
 
     // now update propstate with the new scattered results
+
     propState.parameters[0] = scatteredX;
     propState.parameters[1] = scatteredY;
     propState.parameters[2] = scatteredZ;
@@ -179,23 +193,69 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     float hitZ    = hitposerrZ*g_gaus(g_gen)+scatteredZ;
     float hitPhi  = ((hitposerrXY/scatteredRad)*g_gaus(g_gen))+scatteredPhi;
     float hitRad  = (hitposerrR)*g_gaus(g_gen)+scatteredRad;
+
 #else // SCATTERING
     float hitZ    = hitposerrZ*g_gaus(g_gen)+initZ;
     float hitPhi  = ((hitposerrXY/initRad)*g_gaus(g_gen))+initPhi;
     float hitRad  = (hitposerrR)*g_gaus(g_gen)+initRad;
 #endif // SCATTERING
+
+#ifdef SOLID_SMEAR
+    UVector3 scattered_point(scatteredX,scatteredY,scatteredZ);
+    const auto theScatteredSolid = theGeom->InsideWhat(scattered_point);
+    if ( ! theScatteredSolid ) {
+      std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid AFTER scatter." << std::endl;
+      std::cerr << "itrack = " << itrack << ", nhit = " << nhit << ", r = " << sqrt(scatteredX*scatteredX + scatteredY*scatteredY) << ", r*4cm = " << 4*nhit << ", phi = " << atan2(scatteredY,scatteredX) << std::endl;
+      std::cerr << "initX = " << initX << ", initY = " << initY << ", initZ = " << initZ << std::endl;
+      std::cerr << "scatteredX = " << scatteredX << ", scatteredY = " << scatteredY << ", scatteredZ = " << scatteredZ << std::endl << std::endl;	
+      //    continue;
+    }
+
+    UVector3 scattered_xprime; // normal on surface
+    bool scattered_good = theScatteredSolid->Normal(scattered_point, scattered_xprime);
+      
+    if ( ! scattered_good ) {
+      std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find normal vector at " << scattered_point <<std::endl;
+    }
+    assert(std::abs(scattered_xprime[2])<1e-10); // in this geometry normal vector is in xy plane
+    
+    // smear along scattered yprime (where yprime = z_prime x x_prime, zprime = (0,0,1)
+
+    float xyres_smear = g_gaus(g_gen)*hitposerrXY;
+
+    float hitX = scatteredX - (scattered_xprime[1] * xyres_smear); 
+    float hitY = scatteredY + (scattered_xprime[0] * xyres_smear); 
+#else
     float hitRad2 = hitRad*hitRad;
     float hitX    = hitRad*cos(hitPhi);
     float hitY    = hitRad*sin(hitPhi);
 
-    float varXY  = hitposerrXY*hitposerrXY;
     float varPhi = varXY/hitRad2;
     float varR   = hitposerrR*hitposerrR;
-    float varZ   = hitposerrZ*hitposerrZ;
+#endif
+
+    if (dump) {
+      UVector3 hit_point(hitX,hitY,hitZ);
+      const auto theHitSolid = theGeom->InsideWhat(hit_point);
+      if ( ! theHitSolid ) {
+	std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid AFTER scatter+smear." << std::endl;
+	std::cerr << "itrack = " << itrack << ", nhit = " << nhit << ", r = " << sqrt(hitX*hitX + hitY*hitY) << ", r*4cm = " << 4*nhit << ", phi = " << atan2(hitY,hitX) << std::endl;
+	std::cerr << "initX = " << initX << ", initY = " << initY << ", initZ = " << initZ << std::endl;
+	std::cerr << "scatteredX = " << scatteredX << ", scatteredY = " << scatteredY << ", scatteredZ = " << scatteredZ << std::endl;
+	std::cerr << "hitX = " << hitX << ", hitY = " << hitY << ", hitZ = " << hitZ << std::endl << std::endl;	
+      }
+    }
 
     SVector3 x1(hitX,hitY,hitZ);
     SMatrixSym33 covXYZ = ROOT::Math::SMatrixIdentity();
 
+#ifdef SOLID_SMEAR
+    covXYZ(0,0) = varXY; // yn^2 / (xn^2 + yn^2) * delx^2 + xn^2 / (xn^2 + yn^2) * dely^2
+    covXYZ(1,1) = varXY; // xn^2 / (xn^2 + yn^2) * delx^2 + yn^2 / (xn^2 + yn^2) * dely^2
+    // covXYZ(0,1) -> -(xn * yn) / (xn^2 + yn^2) * delx^2 + (xn * yn) / (xn^2 + yn^2) * dely^2 
+    // covXYZ(1,0)  = covXYZ(0,1)    
+    covXYZ(2,2) = varZ;
+#else
     covXYZ(0,0) = hitX*hitX*varR/hitRad2 + hitY*hitY*varPhi;
     covXYZ(1,1) = hitX*hitX*varPhi + hitY*hitY*varR/hitRad2;
     covXYZ(2,2) = varZ;
@@ -208,6 +268,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
                 << "cov(0,0): " << covXYZ(0,0) << " cov(1,1): " << covXYZ(1,1) << " varZ: " << varZ << " cov(2,2): " << covXYZ(2,2) << std::endl 
                 << "cov(0,1): " << covXYZ(0,1) << " cov(1,0): " << covXYZ(1,0) << std::endl << std::endl;
     }
+#endif
 
     Hit hit1(x1,covXYZ,itrack);    
     hits.push_back(hit1);  

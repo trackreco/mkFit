@@ -21,8 +21,7 @@ class PlotComparator
   ~PlotComparator();
   void SetUpPlotter();
   void CreatePlot(TH1F * hist_old, TH1F * hist_new);
-  void PlotCompareFit(TString listOfPlots, TString inRootOldName, TString inRootNewName);
-  void PlotCompareBuild(TString listOfPlots, TString inRootOldName, TString inRootNewName); 
+  void PlotCompare(TString listOfPlots, TString inRootOldName, TString inRootNewName);
   void PlotLister(TString listOfPlots);
 
 private:

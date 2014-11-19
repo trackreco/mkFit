@@ -32,7 +32,7 @@ void PlotComparator::SetUpPlotter(){
   fCompareCanvas  = new TCanvas();
 }
 
-void PlotComparator::PlotCompareFit(TString listOfPlots, TString inRootOldName, TString inRootNewName){
+void PlotComparator::PlotCompare(TString listOfPlots, TString inRootOldName, TString inRootNewName){
 
   // Read in plots to be used
 
@@ -40,35 +40,12 @@ void PlotComparator::PlotCompareFit(TString listOfPlots, TString inRootOldName, 
 
   // Open Input Root Files
 
-  TFile *inRoot_fitOld = TFile::Open(Form("%s",inRootOldName.Data()));
-  TFile *inRoot_fitNew = TFile::Open(Form("%s",inRootNewName.Data()));
+  TFile *inRoot_Old = TFile::Open(Form("%s",inRootOldName.Data()));
+  TFile *inRoot_New = TFile::Open(Form("%s",inRootNewName.Data()));
 
   for (UInt_t i = 0; i < fNPlots; i++){
-    TH1F * hist_old = (TH1F*) inRoot_fitOld->Get(Form("%s",fPlotsList[i].Data()));
-    TH1F * hist_new = (TH1F*) inRoot_fitNew->Get(Form("%s",fPlotsList[i].Data()));
-    PlotComparator::CreatePlot(hist_old,hist_new);
-  }
-
-  // Free up memory for lister
-  delete[] fPlotsList;
-}
-
-void PlotComparator::PlotCompareBuild(TString listOfPlots, TString inRootOldName, TString inRootNewName){
-
-  // Read in plots to be used
-
-  PlotComparator::PlotLister(listOfPlots);
-
-  // Open Input Root Files
-  
-  TFile *inRoot_buildOld = TFile::Open(Form("%s",inRootOldName.Data()));
-  TFile *inRoot_buildNew = TFile::Open(Form("%s",inRootNewName.Data()));
-
-  // Create comparison plots over loop of list of plots
-
-  for (UInt_t i = 0; i < fNPlots; i++){
-    TH1F * hist_old = (TH1F*) inRoot_buildOld->Get(Form("%s",fPlotsList[i].Data()));
-    TH1F * hist_new = (TH1F*) inRoot_buildNew->Get(Form("%s",fPlotsList[i].Data()));
+    TH1F * hist_old = (TH1F*) inRoot_Old->Get(Form("%s",fPlotsList[i].Data()));
+    TH1F * hist_new = (TH1F*) inRoot_New->Get(Form("%s",fPlotsList[i].Data()));
     PlotComparator::CreatePlot(hist_old,hist_new);
   }
 

@@ -121,8 +121,8 @@ void PlotFit::PlotPosResPull(){
   // Draw, fit, and save plots
   for (UInt_t i = 0; i < 4; i++){
     for (UInt_t j = 0; j < 3; j++){
-      DrawFitSaveTH1Plot(posResPlot[i][j],0.005,Form("%s_res_%s",pos[i].Data(),step[j].Data()));
-      DrawFitSaveTH1Plot(posPullPlot[i][j],3.0,Form("%s_pull_%s",pos[i].Data(),step[j].Data()));
+      PlotFit::DrawFitSaveTH1Plot(posResPlot[i][j],0.005,Form("%s_res_%s",pos[i].Data(),step[j].Data()));
+      PlotFit::DrawFitSaveTH1Plot(posPullPlot[i][j],3.0,Form("%s_pull_%s",pos[i].Data(),step[j].Data()));
     }
   }  
   
@@ -199,8 +199,8 @@ void PlotFit::PlotOverFlow(){
  
   // Draw and save plots
   for (UInt_t j = 0; j < 3; j++){
-    DrawSaveTH1Plot(posOverFlow_stepPhi[j],Form("%s_phi_%s_xPullOverFlow",step[j].Data(),step[j].Data()));
-    DrawSaveTH1Plot(posOverFlow_initPhi[j],Form("init_phi_%s_xPullOverFlow",step[j].Data()));
+    PlotFit::DrawSaveTH1Plot(posOverFlow_stepPhi[j],Form("%s_phi_%s_xPullOverFlow",step[j].Data(),step[j].Data()));
+    PlotFit::DrawSaveTH1Plot(posOverFlow_initPhi[j],Form("init_phi_%s_xPullOverFlow",step[j].Data()));
   }  
   posTree->Delete();
 }
@@ -244,8 +244,8 @@ void PlotFit::PlotPtResPull(){
   } // end loop over entry in tree
 
   // Draw, fit, and save plots
-  DrawFitSaveTH1Plot(ptResPlot,0.3,"pt_res_fit");
-  DrawFitSaveTH1Plot(ptPullPlot,3.0,"pt_pull_fit");
+  PlotFit::DrawFitSaveTH1Plot(ptResPlot,0.3,"pt_res_fit");
+  PlotFit::DrawFitSaveTH1Plot(ptPullPlot,3.0,"pt_pull_fit");
 
   ptTree->Delete();
 }
@@ -307,7 +307,7 @@ void PlotFit::PlotGeo(){
   for (UInt_t i = 0; i < 2; i++){ // loop over coord index
     for (UInt_t j = 0; j < 3; j++){ // loop over step index
       //Geo
-      DrawSaveTH2Plot(geoPlot[i][j],Form("%s_vs_%s_%s",coord[i][0].Data(),coord[i][1].Data(),step[j].Data()),pixelRange[i]);
+      PlotFit::DrawSaveTH2Plot(geoPlot[i][j],Form("%s_vs_%s_%s",coord[i][0].Data(),coord[i][1].Data(),step[j].Data()),pixelRange[i]);
     }
   }
   posTree->Delete();
