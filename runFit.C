@@ -8,9 +8,9 @@ void runFit(){
   // Can make two objects to do fitting plots at same time for two different releases
   // Can run comparator immediately following running both objects
 
-  PlotFit fitPlotOld("validationtree_cylinder.root","cylinderFit","pdf");
+  PlotFit fitPlotOld("validationtree_XYZ_SCATTER.root","XYZ_SCATTER_fit","pdf");
   fitPlotOld.PlotAllHistos();
 
-  PlotFit fitPlotNew("validationtree_poly.root","polyFit","pdf");
-  fitPlotNew.PlotAllHistos();
+  //  PlotFit fitPlotNew("validationtree_SOLID_SMEAR.root","SOLID_SMEAR_fit","pdf");
+  //  fitPlotNew.PlotAllHistos();
 }

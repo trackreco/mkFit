@@ -208,7 +208,7 @@ void PlotFit::PlotOverFlow(){
 void PlotFit::PlotPtResPull(){
 
   // Get the trees
-  TTree *  ptTree = (TTree*)fInRoot->Get("tree");
+  TTree *  ptTree = (TTree*)fInRoot->Get("fittree");
 
   // Declare/initialize branch variables
   Float_t init_val = 0.;

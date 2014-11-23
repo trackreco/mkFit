@@ -6,9 +6,8 @@
 #include <sstream>
 
 #include "Matrix.h"
-#include "fittest.h"
-#include "buildtest.h"
-#include "Geometry.h"
+#include "Event.h"
+#include "RootValidation.h"
 
 //#define CYLINDER
 
@@ -20,9 +19,13 @@
 #include "USolids/include/USphere.hh"
 #endif
 
-Geometry* initGeom()
+void initGeom(Geometry& geom)
 {
-  Geometry* theGeom = new Geometry;
+#ifdef CYLINDER
+  std::cout << "Constructing USolids Cylinder geometry" << std::endl;
+#else
+  std::cout << "Constructing USolids Polyhedral geometry" << std::endl;
+#endif
 
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
@@ -32,8 +35,8 @@ Geometry* initGeom()
     float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
 #ifdef CYLINDER
     std::string s = "Cylinder" + std::string(1, 48+l);
-    UTubs* utub = new UTubs(s, r, r+.01, z, 0, TMath::TwoPi());
-    theGeom->AddLayer(utub,r,z);
+    UTubs* utub = new UTubs(s, r, r+.01, 100.0, 0, TMath::TwoPi());
+    geom.AddLayer(utub,r,z);
 #else
     float xs = 5.0; // approximate sensor size in cm
     if ( l >= 5 ) // bigger sensors in outer layers
@@ -45,15 +48,14 @@ Geometry* initGeom()
     const double rInner[] = {r,r};
     const double rOuter[] = {r+.01,r+.01};
     UPolyhedra* upolyh = new UPolyhedra(s, 0, TMath::TwoPi(), nsectors, 2, zPlane, rInner, rOuter);
-    theGeom->AddLayer(upolyh,r,z);
+    geom.AddLayer(upolyh, r, z);
 #endif
   }
-  return theGeom;
 }
 #else
-Geometry* initGeom()
+void initGeom(Geometry& geom)
 {
-  Geometry* theGeom = new Geometry;
+  std::cout << "Constructing SimpleGeometry Cylinder geometry" << std::endl;
 
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
@@ -61,24 +63,38 @@ Geometry* initGeom()
   for (int l = 0; l < 10; l++) {
     float r = (l+1)*4.;
     VUSolid* utub = new VUSolid(r, r+.01);
-    theGeom->AddLayer(utub,r,z);
+    geom.AddLayer(utub, r, z);
   }
-  return theGeom;
 }
 #endif
 
 int main(){
-  Geometry* theGeom = initGeom();
+  Geometry geom;
+  initGeom(geom);
+#ifdef NO_ROOT
+  Validation val;
+#else
+  RootValidation val("valtree.root");
+#endif
 
-  for ( int i = 0; i < theGeom->CountLayers(); ++i ) {
-    std::cout << "Layer = " << i << ", Radius = " << theGeom->Radius(i) << std::endl;
+  for ( unsigned int i = 0; i < geom.CountLayers(); ++i ) {
+    std::cout << "Layer = " << i << ", Radius = " << geom.Radius(i) << std::endl;
   }
 
-  bool saveTree = true;
-  //  runFittingTest(saveTree,50000,theGeom); 
-  //runFittingTestPlex(saveTree,theGeom); 
-  runBuildingTest(saveTree,100,theGeom);
-    
-  delete theGeom;
+  unsigned int Ntracks = 20; // 500
+  unsigned int Nevents = 1; // 100
+
+  for (unsigned int evt=0; evt<Nevents; ++evt) {
+    std::cout << std::endl << "EVENT #"<< evt << std::endl << std::endl;
+    Event ev(geom, val);
+    ev.Simulate(Ntracks);
+    ev.Segment();
+    ev.Seed();
+    ev.Find();
+    //ev.Fit();
+  }
+
+  val.saveHists();
+  val.deleteHists();
   return 0;
 }

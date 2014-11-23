@@ -10,7 +10,10 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
 {
   bool dump = false;
 
-  unsigned int nTotHit = theGeom->CountLayers();
+  unsigned int nTotHit = theGeom->CountLayers(); // do we really want this to decide where we end on the simulation?
+  // to include loopers, this most likely is not the case.  
+  // if block BREAK if hit.Layer == theGeom->CountLayers() 
+  // else --> if (NMAX TO LOOPER (maybe same as 10?) {break;} else {continue;}
 
   //assume beam spot width 1mm in xy and 1cm in z
   pos=SVector3(0.1*g_gaus(g_gen), 0.1*g_gaus(g_gen), 1.0*g_gaus(g_gen));
@@ -62,8 +65,8 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
   TrackState tmpState = initState;
 
   // go to first layer in radius using propagation.h
-  for (unsigned int nhit=1;nhit<=nTotHit;++nhit) {
-    //TrackState propState = propagateHelixToR(tmpState,4.*float(nhit));//radius of 4*nhit
+  for (unsigned int ihit=0;ihit<nTotHit;++ihit) {
+    //TrackState propState = propagateHelixToR(tmpState,4.*float(ihit+1));//radius of 4*ihit
     auto propState = propagateHelixToNextSolid(tmpState,theGeom);
 
     float initX   = propState.parameters.At(0);
@@ -102,7 +105,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     const auto theInitSolid = theGeom->InsideWhat(init_point);
     if ( ! theInitSolid ) {
       std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid." <<std::endl;
-      std::cerr << "itrack = " << itrack << ", nhit = " << nhit << ", r = " << initRad << ", r*4cm = " << 4*nhit << ", phi = " << initPhi << std::endl;
+      std::cerr << "itrack = " << itrack << ", ihit = " << ihit << ", r = " << initRad << ", r*4cm = " << 4*ihit << ", phi = " << initPhi << std::endl;
       std::cerr << "initX = " << initX << ", initY = " << initY << ", initZ = " << initZ << std::endl << std::endl;
       float pt = sqrt(propState.parameters[3]*propState.parameters[3]+
                       propState.parameters[4]*propState.parameters[4]);
@@ -205,7 +208,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     const auto theScatteredSolid = theGeom->InsideWhat(scattered_point);
     if ( ! theScatteredSolid ) {
       std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid AFTER scatter." << std::endl;
-      std::cerr << "itrack = " << itrack << ", nhit = " << nhit << ", r = " << sqrt(scatteredX*scatteredX + scatteredY*scatteredY) << ", r*4cm = " << 4*nhit << ", phi = " << atan2(scatteredY,scatteredX) << std::endl;
+      std::cerr << "itrack = " << itrack << ", ihit = " << ihit << ", r = " << sqrt(scatteredX*scatteredX + scatteredY*scatteredY) << ", r*4cm = " << 4*ihit << ", phi = " << atan2(scatteredY,scatteredX) << std::endl;
       std::cerr << "initX = " << initX << ", initY = " << initY << ", initZ = " << initZ << std::endl;
       std::cerr << "scatteredX = " << scatteredX << ", scatteredY = " << scatteredY << ", scatteredZ = " << scatteredZ << std::endl << std::endl;	
       //    continue;
@@ -239,7 +242,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
       const auto theHitSolid = theGeom->InsideWhat(hit_point);
       if ( ! theHitSolid ) {
 	std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid AFTER scatter+smear." << std::endl;
-	std::cerr << "itrack = " << itrack << ", nhit = " << nhit << ", r = " << sqrt(hitX*hitX + hitY*hitY) << ", r*4cm = " << 4*nhit << ", phi = " << atan2(hitY,hitX) << std::endl;
+	std::cerr << "itrack = " << itrack << ", ihit = " << ihit << ", r = " << sqrt(hitX*hitX + hitY*hitY) << ", r*4cm = " << 4*ihit << ", phi = " << atan2(hitY,hitX) << std::endl;
 	std::cerr << "initX = " << initX << ", initY = " << initY << ", initZ = " << initZ << std::endl;
 	std::cerr << "scatteredX = " << scatteredX << ", scatteredY = " << scatteredY << ", scatteredZ = " << scatteredZ << std::endl;
 	std::cerr << "hitX = " << hitX << ", hitY = " << hitY << ", hitZ = " << hitZ << std::endl << std::endl;	
@@ -270,14 +273,14 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     }
 #endif
 
-    Hit hit1(x1,covXYZ,itrack);    
+    Hit hit1(x1,covXYZ,itrack,ihit,0);    // will want to make ihit == ilayer, and last number is number of times in layer -- > set to zero++ for now
     hits.push_back(hit1);  
     tmpState = propState;
 
     SVector3 initVecXYZ(initX,initY,initZ);
-    Hit initHitXYZ(initVecXYZ,covXYZ);
+    Hit initHitXYZ(initVecXYZ,covXYZ,itrack,ihit,0); // last number is number of times in layer -- > set to zero++ for now
     if (nullptr != initHits) {
       initHits->push_back(initHitXYZ);
     }
-  }
+  } // end loop over nHitsPerTrack
 }

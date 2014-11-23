@@ -1,8 +1,8 @@
 #ifndef _fittest_
 #define _fittest_
 
-#include "Geometry.h"
+#include "Event.h"
 
-void runFittingTest(bool saveTree, unsigned int Ntracks,Geometry*);
+void runFittingTest(Event&, TrackVec&);
 
 #endif

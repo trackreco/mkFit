@@ -5,8 +5,6 @@
 #include "Matrix.h"
 #include <vector>
 
-typedef std::vector<Hit> HitVec;
-
 struct TrackState
 {
 public:
@@ -22,12 +20,12 @@ class Track
 public:
   Track() {}
 
-  Track(TrackState state,HitVec hits, float chi2) {
+  Track(TrackState state, HitVec hits, float chi2) {
     state_=state;
     hits_=hits;
     chi2_=chi2;
   }
-  Track(int charge,SVector3 position, SVector3 momentum, SMatrixSym66 errors,HitVec hits, float chi2) {
+  Track(int charge, SVector3 position, SVector3 momentum, SMatrixSym66 errors, HitVec hits, float chi2) {
     state_.charge=charge;
     state_.errors=errors;
     state_.parameters = SVector6(position.At(0),position.At(1),position.At(2),momentum.At(0),momentum.At(1),momentum.At(2));
@@ -35,7 +33,7 @@ public:
     hits_=hits;
     chi2_=chi2;
   }
-  Track(int charge,SVector3 position, SVector3 momentum, SMatrixSym66 errors,HitVec hits, float chi2,HitVec initHits) {
+  Track(int charge, SVector3 position, SVector3 momentum, SMatrixSym66 errors, HitVec hits, float chi2, HitVec initHits) {
     state_.charge=charge;
     state_.errors=errors;
     state_.parameters = SVector6(position.At(0),position.At(1),position.At(2),momentum.At(0),momentum.At(1),momentum.At(2));
@@ -44,7 +42,7 @@ public:
     initHits_=initHits;
     chi2_=chi2;
   }
-  Track(int& charge,SVector6& parameters, SMatrixSym66& errors,HitVec hits, float chi2) {
+  Track(int charge, SVector6& parameters, SMatrixSym66& errors,HitVec hits, float chi2) {
     state_.charge=charge;
     state_.errors=errors;
     state_.parameters = parameters;
@@ -66,6 +64,7 @@ public:
   HitVec& hitsVector() {return hits_;}
   HitVec& initHitsVector() {return initHits_;}
   void addHit(Hit hit,float chi2) {hits_.push_back(hit);chi2_+=chi2;}
+  void addInitHit(Hit hit);
   void resetHits() {hits_.clear();}
   unsigned int nHits() {return hits_.size();}
 
@@ -79,4 +78,6 @@ private:
 
 };
 
+typedef std::vector<Track> TrackVec;
+unsigned int getPhiPartition(float phi);
 #endif

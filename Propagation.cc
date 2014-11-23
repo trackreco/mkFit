@@ -373,7 +373,7 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
                 << "x=" << hsout.x << " y=" << hsout.y << " px=" << hsout.px
                 << " py=" << hsout.py << " pz=" << hsout.pz << " q=" << inputState.charge << std::endl;
     }
-    hsout.state.valid = false;
+    hsout.state.valid = hsout.r0-tolerance < r;
     return hsout.state;
   }
 
@@ -596,11 +596,11 @@ void propagateHelixToR_fewerTemps(TrackState& inputState, float r, TrackState& r
 {
    const bool dump = false;
 
-   float& xin = inputState.parameters.At(0);
-   float& yin = inputState.parameters.At(1);
-   float& pxin = inputState.parameters.At(3);
-   float& pyin = inputState.parameters.At(4);
-   float& pzin = inputState.parameters.At(5);
+   float xin = inputState.parameters.At(0);
+   float yin = inputState.parameters.At(1);
+   float pxin = inputState.parameters.At(3);
+   float pyin = inputState.parameters.At(4);
+   float pzin = inputState.parameters.At(5);
    float  r0in = sqrt(xin*xin+yin*yin);
    //copy into result so that can be modified and returned
    result.parameters = inputState.parameters;
