@@ -1,11 +1,6 @@
 #include "RootValidation.h"
 #ifndef NO_ROOT
 float getPt(float px, float py) { return sqrt(px*px + py*py); }
-float getPhi(float px, float py) { return std::atan2(py, px); }
-float getEta(float px, float py, float pz) {
-  float theta = atan2( getPt(px,py), pz );
-  return -1. * log( tan(theta/2.) );
-}
 float deltaPhi(float phi1, float phi2) {
   float dphi = std::abs(phi1 - phi2);
   if (dphi > TMath::Pi()) { dphi = (2.*TMath::Pi()) - dphi; }
@@ -104,23 +99,16 @@ RootValidation::RootValidation(std::string fileName, bool saveTree)
 void RootValidation::fillSimHists(TrackVec& evt_sim_tracks)
 {
   for(unsigned int isim_track = 0; isim_track < evt_sim_tracks.size(); ++isim_track){
-    // float gen_trk_Pt = sqrt( (evt_sim_tracks[isim_track].momentum()[0]) * (evt_sim_tracks[isim_track].momentum()[0]) +
-    //                                               (evt_sim_tracks[isim_track].momentum()[1]) * (evt_sim_tracks[isim_track].momentum()[1]) );
-    // float gen_trk_theta = atan2( gen_trk_Pt, evt_sim_tracks[isim_track].momentum()[2] );
-    // float gen_trk_eta = -1. * log( tan(gen_trk_theta / 2.) );
-    // validation_hists_["gen_trk_Pt"]->Fill( gen_trk_Pt );
-    // validation_hists_["gen_trk_Px"]->Fill( evt_sim_tracks[isim_track].momentum()[0] );
-    // validation_hists_["gen_trk_Py"]->Fill( evt_sim_tracks[isim_track].momentum()[1] ); 
-    // validation_hists_["gen_trk_Pz"]->Fill( evt_sim_tracks[isim_track].momentum()[2] ); 
-    // validation_hists_["gen_trk_phi"]->Fill( std::atan2(evt_sim_tracks[isim_track].momentum()[1], evt_sim_tracks[isim_track].momentum()[0]) ); //phi=arctan(y/x), atan2 returns -pi,pi
-    // validation_hists_["gen_trk_eta"]->Fill( gen_trk_eta );
-    
     validation_hists_["gen_trk_Pt"]->Fill( getPt(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1]) );
     validation_hists_["gen_trk_Px"]->Fill( evt_sim_tracks[isim_track].momentum()[0] );
     validation_hists_["gen_trk_Py"]->Fill( evt_sim_tracks[isim_track].momentum()[1] ); 
     validation_hists_["gen_trk_Pz"]->Fill( evt_sim_tracks[isim_track].momentum()[2] ); 
-    validation_hists_["gen_trk_phi"]->Fill( getPhi(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1]) );
-    validation_hists_["gen_trk_eta"]->Fill( getEta(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1], evt_sim_tracks[isim_track].momentum()[2]) );
+
+    //Phi/eta should be in terms of x/y/z, no? not px,py,pz
+    //    validation_hists_["gen_trk_phi"]->Fill( getPhi(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1]) );
+    //    validation_hists_["gen_trk_eta"]->Fill( getEta(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1], evt_sim_tracks[isim_track].momentum()[2]) );
+    validation_hists_["gen_trk_phi"]->Fill( getPhi(evt_sim_tracks[isim_track].position()[0], evt_sim_tracks[isim_track].position()[1]) );
+    validation_hists_["gen_trk_eta"]->Fill( getEta(evt_sim_tracks[isim_track].position()[0], evt_sim_tracks[isim_track].position()[1], evt_sim_tracks[isim_track].position()[2]) );
     
     HitVec& hits = evt_sim_tracks[isim_track].hitsVector();
     for (unsigned int ihit = 0; ihit < hits.size(); ihit++){
@@ -138,10 +126,10 @@ void RootValidation::fillSimHists(TrackVec& evt_sim_tracks)
     float mindPhi = 999999;
     for( unsigned int jsim_track = 0; jsim_track < evt_sim_tracks.size(); ++jsim_track ){
       if(jsim_track != isim_track) {
-        float phii=getPhi(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1]);
-        float etai=getEta(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1], evt_sim_tracks[isim_track].momentum()[2]);
-        float phij=getPhi(evt_sim_tracks[jsim_track].momentum()[0], evt_sim_tracks[jsim_track].momentum()[1]);
-        float etaj=getEta(evt_sim_tracks[jsim_track].momentum()[0], evt_sim_tracks[jsim_track].momentum()[1], evt_sim_tracks[jsim_track].momentum()[2]);
+        float phii=getPhi(evt_sim_tracks[isim_track].position()[0], evt_sim_tracks[isim_track].position()[1]);
+        float etai=getEta(evt_sim_tracks[isim_track].position()[0], evt_sim_tracks[isim_track].position()[1], evt_sim_tracks[isim_track].position()[2]);
+        float phij=getPhi(evt_sim_tracks[jsim_track].position()[0], evt_sim_tracks[jsim_track].position()[1]);
+        float etaj=getEta(evt_sim_tracks[jsim_track].position()[0], evt_sim_tracks[jsim_track].position()[1], evt_sim_tracks[jsim_track].position()[2]);
         mindR=std::min(mindR, deltaR(phii, etai, phij, etaj));
         mindPhi=std::min(mindPhi, deltaPhi(phii, phij));
         if(jsim_track > isim_track){
@@ -163,9 +151,9 @@ void RootValidation::fillCandidateHists(TrackVec& evt_track_candidates)
     Track tkcand = evt_track_candidates[itkcand];
     validation_hists_["rec_trk_nHits"]->Fill(tkcand.nHits());
     validation_hists_["rec_trk_chi2"]->Fill(tkcand.chi2());
-    validation_hists_["rec_trk_phi"]->Fill( getPhi(tkcand.momentum()[0], tkcand.momentum()[1]) );
+    validation_hists_["rec_trk_phi"]->Fill( getPhi(tkcand.position()[0], tkcand.position()[1]) );
     validation_hists_["rec_trk_Pt"]->Fill( getPt(tkcand.momentum()[0], tkcand.momentum()[1]) );
-    validation_hists_["rec_trk_eta"]->Fill( getEta(tkcand.momentum()[0], tkcand.momentum()[1], tkcand.momentum()[2]) );
+    validation_hists_["rec_trk_eta"]->Fill( getEta(tkcand.position()[0], tkcand.position()[1], tkcand.position()[2]) );
     if (savetree_) {
       tk_nhits_ = tkcand.nHits();
       tk_chi2_ = tkcand.chi2();
@@ -174,7 +162,7 @@ void RootValidation::fillCandidateHists(TrackVec& evt_track_candidates)
   }
 }
 
-void RootValidation::fillAssociationHists(TrackVec& evt_track_candidates, TrackVec& evt_sim_tracks){
+void RootValidation::fillAssociationHists(TrackVec& evt_track_candidates, TrackVec& evt_sim_tracks, TrackVec& evt_assoc_tracks_RD, TrackVec& evt_assoc_tracks_SD){
   //setup for assocation 
   std::vector<unsigned int> simIndices; // vector has elements equal to to its index
   std::vector<unsigned int>::iterator index_iter;
@@ -213,32 +201,41 @@ void RootValidation::fillAssociationHists(TrackVec& evt_track_candidates, TrackV
     unsigned int denom_nHits_RD = tkcand.nHits();
     for (index_iter = simIndices.begin(); index_iter != simIndices.end(); ++index_iter){ // association = n rec hits match sim hits / n rec hits in track > 75%
       if ( (float)hit_matches_found[*index_iter] / (float)denom_nHits_RD >= .75){ // if association criterion is passed, save the info
+	Track associatedTrack_RD = tkcand; // temporary associated track to be saved
 	if (associated_indices_found_RD[*index_iter] == 0){ // currently unmatched index, count it towards efficiency 
 	  // for efficiency studies
 	  validation_hists_["matchedRec_SimPt_RD"]->Fill(getPt(evt_sim_tracks[*index_iter].momentum()[0],evt_sim_tracks[*index_iter].momentum()[1]));
-	  validation_hists_["matchedRec_SimPhi_RD"]->Fill(getPhi(evt_sim_tracks[*index_iter].momentum()[0],evt_sim_tracks[*index_iter].momentum()[1]));
-	  validation_hists_["matchedRec_SimEta_RD"]->Fill(getEta(evt_sim_tracks[*index_iter].momentum()[0],evt_sim_tracks[*index_iter].momentum()[1],evt_sim_tracks[*index_iter].momentum()[2]));
+	  validation_hists_["matchedRec_SimPhi_RD"]->Fill(getPhi(evt_sim_tracks[*index_iter].position()[0],evt_sim_tracks[*index_iter].position()[1]));
+	  validation_hists_["matchedRec_SimEta_RD"]->Fill(getEta(evt_sim_tracks[*index_iter].position()[0],evt_sim_tracks[*index_iter].position()[1],evt_sim_tracks[*index_iter].position()[2]));
 	
 	  // for fake rate studies
 	  validation_hists_["matchedRec_RecPt_RD"]->Fill(getPt(tkcand.momentum()[0],tkcand.momentum()[1]));
-	  validation_hists_["matchedRec_RecPhi_RD"]->Fill(getPhi(tkcand.momentum()[0],tkcand.momentum()[1]));
-	  validation_hists_["matchedRec_RecEta_RD"]->Fill(getEta(tkcand.momentum()[0],tkcand.momentum()[1],tkcand.momentum()[2]));
+	  validation_hists_["matchedRec_RecPhi_RD"]->Fill(getPhi(tkcand.position()[0],tkcand.position()[1]));
+	  validation_hists_["matchedRec_RecEta_RD"]->Fill(getEta(tkcand.position()[0],tkcand.position()[1],tkcand.position()[2]));
 
 	  // count the matched index!
 	  associated_indices_found_RD[*index_iter]++;
+
+	  //Save the associated tracks
+	  associatedTrack_RD.setAssociationIndex(*index_iter);
+	  evt_assoc_tracks_RD.push_back(associatedTrack_RD);
 	} // end if block for simTrack with index found
 	else{ // reco track currently already matched sim track, don't count towards efficiency, but include reco info to not count it as fake
 	  // for fake rate studies
 	  validation_hists_["matchedRec_RecPt_RD"]->Fill(getPt(tkcand.momentum()[0],tkcand.momentum()[1]));
-	  validation_hists_["matchedRec_RecPhi_RD"]->Fill(getPhi(tkcand.momentum()[0],tkcand.momentum()[1]));
-	  validation_hists_["matchedRec_RecEta_RD"]->Fill(getEta(tkcand.momentum()[0],tkcand.momentum()[1],tkcand.momentum()[2]));
+	  validation_hists_["matchedRec_RecPhi_RD"]->Fill(getPhi(tkcand.position()[0],tkcand.position()[1]));
+	  validation_hists_["matchedRec_RecEta_RD"]->Fill(getEta(tkcand.position()[0],tkcand.position()[1],tkcand.position()[2]));
 
 	  // count the matched index!
 	  associated_indices_found_RD[*index_iter]++;
+
+	  //Save the associated tracks
+	  associatedTrack_RD.setAssociationIndex(*index_iter);
+	  evt_assoc_tracks_RD.push_back(associatedTrack_RD);
 	} // end cound duplicates
 	// remove sim index for next search to avoid repeating sim indices for matching
 	break; // after one found per track cand, no need to look for more 
-      } // end criterion if blco
+      } // end criterion if block
     } // end loop over search for dominant index in rec eff with rec denom
 
     // Check to see if reco track has enough hits matched -- SD
@@ -247,28 +244,37 @@ void RootValidation::fillAssociationHists(TrackVec& evt_track_candidates, TrackV
     for (index_iter = simIndices.begin(); index_iter != simIndices.end(); ++index_iter){ // association = n rec hits match sim hits / n rec hits in track > 75%
       denom_nHits_SD = evt_sim_tracks[*index_iter].nHits();    
       if ( (float)hit_matches_found[*index_iter] / (float)denom_nHits_SD >= .75){ // if association criterion is passed, save the info
+	Track associatedTrack_SD = tkcand;
 	if (associated_indices_found_SD[*index_iter] == 0){ // currently unmatched index, count it towards efficiency 
 	  // for efficiency studies
 	  validation_hists_["matchedRec_SimPt_SD"]->Fill(getPt(evt_sim_tracks[*index_iter].momentum()[0],evt_sim_tracks[*index_iter].momentum()[1]));
-	  validation_hists_["matchedRec_SimPhi_SD"]->Fill(getPhi(evt_sim_tracks[*index_iter].momentum()[0],evt_sim_tracks[*index_iter].momentum()[1]));
-	  validation_hists_["matchedRec_SimEta_SD"]->Fill(getEta(evt_sim_tracks[*index_iter].momentum()[0],evt_sim_tracks[*index_iter].momentum()[1],evt_sim_tracks[*index_iter].momentum()[2]));
+	  validation_hists_["matchedRec_SimPhi_SD"]->Fill(getPhi(evt_sim_tracks[*index_iter].position()[0],evt_sim_tracks[*index_iter].position()[1]));
+	  validation_hists_["matchedRec_SimEta_SD"]->Fill(getEta(evt_sim_tracks[*index_iter].position()[0],evt_sim_tracks[*index_iter].position()[1],evt_sim_tracks[*index_iter].position()[2]));
 	
 	  // for fake rate studies
 	  validation_hists_["matchedRec_RecPt_SD"]->Fill(getPt(tkcand.momentum()[0],tkcand.momentum()[1]));
-	  validation_hists_["matchedRec_RecPhi_SD"]->Fill(getPhi(tkcand.momentum()[0],tkcand.momentum()[1]));
-	  validation_hists_["matchedRec_RecEta_SD"]->Fill(getEta(tkcand.momentum()[0],tkcand.momentum()[1],tkcand.momentum()[2]));
+	  validation_hists_["matchedRec_RecPhi_SD"]->Fill(getPhi(tkcand.position()[0],tkcand.position()[1]));
+	  validation_hists_["matchedRec_RecEta_SD"]->Fill(getEta(tkcand.position()[0],tkcand.position()[1],tkcand.position()[2]));
 
 	  // count the matched index!
 	  associated_indices_found_SD[*index_iter]++;
+
+	  //Save the associated tracks
+	  associatedTrack_SD.setAssociationIndex(*index_iter);
+	  evt_assoc_tracks_SD.push_back(associatedTrack_SD);
 	}
 	else{ // currently already matched sim index, don't count towards efficiency, but include reco info to not count it as fake
 	  // for fake rate studies
 	  validation_hists_["matchedRec_RecPt_SD"]->Fill(getPt(tkcand.momentum()[0],tkcand.momentum()[1]));
-	  validation_hists_["matchedRec_RecPhi_SD"]->Fill(getPhi(tkcand.momentum()[0],tkcand.momentum()[1]));
-	  validation_hists_["matchedRec_RecEta_SD"]->Fill(getEta(tkcand.momentum()[0],tkcand.momentum()[1],tkcand.momentum()[2]));
+	  validation_hists_["matchedRec_RecPhi_SD"]->Fill(getPhi(tkcand.position()[0],tkcand.position()[1]));
+	  validation_hists_["matchedRec_RecEta_SD"]->Fill(getEta(tkcand.position()[0],tkcand.position()[1],tkcand.position()[2]));
 
 	  // count the matched index!
 	  associated_indices_found_SD[*index_iter]++;
+
+	  //Save the associated tracks
+	  associatedTrack_SD.setAssociationIndex(*index_iter);
+	  evt_assoc_tracks_SD.push_back(associatedTrack_SD);
 	}
 	// remove sim index for next search to avoid repeating sim indices for matching
 	break; // after one found per track cand, no need to look for more 
@@ -281,15 +287,15 @@ void RootValidation::fillAssociationHists(TrackVec& evt_track_candidates, TrackV
       // fill n-1 times e.g. if assoc_found == 3, means three tracks matched to one simTrack, i.e. TWO duplicates of one simTrack
       for (unsigned int iduplicates = 0; iduplicates < associated_indices_found_RD[*index_iter] - 1; ++iduplicates){
 	validation_hists_["duplicateRec_SimPt_RD"]->Fill(getPt(evt_sim_tracks[*index_iter].momentum()[0],evt_sim_tracks[*index_iter].momentum()[1]));
-	validation_hists_["duplicateRec_SimPhi_RD"]->Fill(getPhi(evt_sim_tracks[*index_iter].momentum()[0],evt_sim_tracks[*index_iter].momentum()[1]));
-	validation_hists_["duplicateRec_SimEta_RD"]->Fill(getEta(evt_sim_tracks[*index_iter].momentum()[0],evt_sim_tracks[*index_iter].momentum()[1],evt_sim_tracks[*index_iter].momentum()[2]));
+	validation_hists_["duplicateRec_SimPhi_RD"]->Fill(getPhi(evt_sim_tracks[*index_iter].position()[0],evt_sim_tracks[*index_iter].position()[1]));
+	validation_hists_["duplicateRec_SimEta_RD"]->Fill(getEta(evt_sim_tracks[*index_iter].position()[0],evt_sim_tracks[*index_iter].position()[1],evt_sim_tracks[*index_iter].position()[2]));
       }
     }
     if (associated_indices_found_SD[*index_iter] > 1){ // check if map of SD associated indices has a duplicate
       for (unsigned int iduplicates = 0; iduplicates < associated_indices_found_SD[*index_iter] - 1; ++iduplicates){
 	validation_hists_["duplicateRec_SimPt_SD"]->Fill(getPt(evt_sim_tracks[*index_iter].momentum()[0],evt_sim_tracks[*index_iter].momentum()[1]));
-	validation_hists_["duplicateRec_SimPhi_SD"]->Fill(getPhi(evt_sim_tracks[*index_iter].momentum()[0],evt_sim_tracks[*index_iter].momentum()[1]));
-	validation_hists_["duplicateRec_SimEta_SD"]->Fill(getEta(evt_sim_tracks[*index_iter].momentum()[0],evt_sim_tracks[*index_iter].momentum()[1],evt_sim_tracks[*index_iter].momentum()[2]));
+	validation_hists_["duplicateRec_SimPhi_SD"]->Fill(getPhi(evt_sim_tracks[*index_iter].position()[0],evt_sim_tracks[*index_iter].position()[1]));
+	validation_hists_["duplicateRec_SimEta_SD"]->Fill(getEta(evt_sim_tracks[*index_iter].position()[0],evt_sim_tracks[*index_iter].position()[1],evt_sim_tracks[*index_iter].position()[2]));
       }
     }
   } // end loop over index check for duplicates

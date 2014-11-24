@@ -61,10 +61,11 @@ public:
   TrackState&   state() {return state_;}
   float&        chi2() {return chi2_;}
 
+  void setAssociationIndex(unsigned int simIndex){assocID_=simIndex;}
+
   HitVec& hitsVector() {return hits_;}
   HitVec& initHitsVector() {return initHits_;}
   void addHit(Hit hit,float chi2) {hits_.push_back(hit);chi2_+=chi2;}
-  void addInitHit(Hit hit);
   void resetHits() {hits_.clear();}
   unsigned int nHits() {return hits_.size();}
 
@@ -75,9 +76,12 @@ private:
   HitVec hits_;
   HitVec initHits_;
   float chi2_;
-
+  unsigned int assocID_;
 };
 
 typedef std::vector<Track> TrackVec;
 unsigned int getPhiPartition(float phi);
+unsigned int getEtaPartition(float eta, float etaDet);
+float getPhi(float x, float y);
+float getEta(float x, float y, float z);
 #endif

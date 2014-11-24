@@ -12,37 +12,25 @@ const float nSigma = 3.;
 const float minDPhi = 0.;
 
 /*
-bool sortByZ(Hit hit1,Hit hit2){
-  return hit1.position()[2]<hit2.position()[2];
-}
-
-unsigned int getPhiPartition(float phi) {
-  //assume phi is between -PI and PI
-  //  if (!(fabs(phi)<TMath::Pi())) std::cout << "anomalous phi=" << phi << std::endl;
-  float phiPlusPi  = phi+TMath::Pi();
-  unsigned int bin = phiPlusPi*10; // Hardcode in 63 partitions with this multiplication --> need to change hit vector if this changes
-  return bin;
-}
-
-unsigned int getZPartition(float z, float zPlane){
-  float zPlusPlane  = z + zPlane;
-  float zPartSize   = 2*zPlane / 10.; // Hardcode in 10 partitions --> need to change vector of vectors if 10 changes
-  unsigned int bin  = zPlusPlane / zPartSize; 
-  return bin;
-}
-
-unsigned int getEtaPartition(float eta, float etaDet){
-  float etaPlusEtaDet  = eta + etaDet;
-  float twiceEtaDet    = 2.0*etaDet;
-  unsigned int bin     = (etaPlusEtaDet * 10.) / twiceEtaDet; 
-  return bin;
-}
+const unsigned int nPhiPart = 63;
+const unsigned int nEtaPart = 10;   
+const unsigned int nZPart = 10;
 */
 
 static bool sortByPhi(Hit hit1, Hit hit2)
 {
   return std::atan2(hit1.position()[1],hit1.position()[0])<std::atan2(hit2.position()[1],hit2.position()[0]);
 }
+
+static bool sortByEta(Hit hit1, Hit hit2){
+  return getEta(hit1.position()[0],hit1.position()[1],hit1.position()[2])<getEta(hit2.position()[0],hit2.position()[1],hit2.position()[2]);
+}
+
+/*
+static bool sortByZ(Hit hit1,Hit hit2){
+  return hit1.position()[2]<hit2.position()[2];
+}
+*/
 
 Event::Event(Geometry& g, Validation& v) : geom_(g), validation_(v)
 {
@@ -63,7 +51,6 @@ void Event::Simulate(unsigned int nTracks)
     SMatrixSym66 covtrk;
     HitVec hits, initialhits;
     //    unsigned int starting_layer  = 0; --> for displaced tracks, may want to consider running a separate Simulate() block with extra parameters
-
     int q=0;//set it in setup function
     float pt = 0.5+g_unif(g_gen)*9.5;//this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
     setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,pt,&geom_,&initialhits);
@@ -72,11 +59,14 @@ void Event::Simulate(unsigned int nTracks)
 
     //fill vector of hits in each layer (assuming there is one hit per layer in hits vector) --> for now, otherwise we would have 
     //to pass a number that counts layers passed by the track --> in setupTrackByToyMC --> for loopers
-    for (unsigned int ilayer=0;ilayer<hits.size();++ilayer) {
-      layerHits_.at(ilayer).push_back(hits.at(ilayer));
+    for (unsigned int ilayer=0;ilayer<geom_.CountLayers();++ilayer){
+      for (unsigned int ihit=0;ihit<hits.size();++ihit){
+	if (hits[ihit].layer() == ilayer){
+	  layerHits_.at(ilayer).push_back(hits.at(ilayer));
+	}
+      }
     }
   }
-
   validation_.fillSimHists(simTracks_);
 }
 
@@ -110,15 +100,10 @@ void Event::Segment()
       }
     }
   }
-
-  /*  const unsigned int nPhiPart = 63;
-  const unsigned int nEtaPart = 10;
-  const unsigned int nZPart = 10;
-  */
   
-  //  std::vector<std::vector<HitVec > > evt_lay_phi_hits(theGeom->CountLayers(),std::vector<HitVec > (63));
-//std::vector<std::vector<std::vector<HitVec > > > evt_lay_phi_Z_hits(theGeom->CountLayers(),std::vector<std::vector<HitVec > >(63,std::vector<HitVec >(10)));
-//std::vector<std::vector<std::vector<HitVec > > > evt_lay_phi_eta_hits(theGeom->CountLayers(),std::vector<std::vector<HitVec > >(63,std::vector<HitVec >(10)));
+  //std::vector<std::vector<HitVec > > evt_lay_phi_hits(theGeom->CountLayers(),std::vector<HitVec > (63));
+  //std::vector<std::vector<std::vector<HitVec > > > evt_lay_phi_Z_hits(theGeom->CountLayers(),std::vector<std::vector<HitVec > >(63,std::vector<HitVec >(10)));
+  //std::vector<std::vector<std::vector<HitVec > > > evt_lay_phi_eta_hits(theGeom->CountLayers(),std::vector<std::vector<HitVec > >(63,std::vector<HitVec >(10)));
 
 
 /*
@@ -183,7 +168,7 @@ void Event::Seed()
 void Event::Find()
 {
   buildTestSerial(*this, nlayers_per_seed, maxCand, chi2Cut, nSigma, minDPhi);
-  validation_.fillAssociationHists(candidateTracks_,simTracks_);
+  validation_.fillAssociationHists(candidateTracks_,simTracks_,associatedTracks_RD_,associatedTracks_SD_);
   validation_.fillCandidateHists(candidateTracks_);
 }
 

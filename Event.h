@@ -19,7 +19,7 @@ public:
   Geometry& geom_;
   Validation& validation_;
   std::vector<HitVec> layerHits_;
-  TrackVec simTracks_, seedTracks_, candidateTracks_, fitTracks_;
+  TrackVec simTracks_, seedTracks_, candidateTracks_, associatedTracks_RD_, associatedTracks_SD_, fitTracks_;
 
   //these matrices are dummy and can be optimized without multiplying by zero all the world...
   SMatrix36 projMatrix36_;

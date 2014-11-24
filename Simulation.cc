@@ -9,12 +9,6 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
                        int& charge, float pt, Geometry *theGeom, HitVec* initHits)
 {
   bool dump = false;
-
-  unsigned int nTotHit = theGeom->CountLayers(); // do we really want this to decide where we end on the simulation?
-  // to include loopers, this most likely is not the case.  
-  // if block BREAK if hit.Layer == theGeom->CountLayers() 
-  // else --> if (NMAX TO LOOPER (maybe same as 10?) {break;} else {continue;}
-
   //assume beam spot width 1mm in xy and 1cm in z
   pos=SVector3(0.1*g_gaus(g_gen), 0.1*g_gaus(g_gen), 1.0*g_gaus(g_gen));
 
@@ -64,8 +58,20 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
 
   TrackState tmpState = initState;
 
-  // go to first layer in radius using propagation.h
-  for (unsigned int ihit=0;ihit<nTotHit;++ihit) {
+  unsigned int nLayers = theGeom->CountLayers();
+  unsigned int layer_counts[nLayers];
+  for (unsigned int ilayer=0;ilayer<nLayers;++ilayer){
+    layer_counts[ilayer]=0;
+  }
+
+  unsigned int nTotHit = 10; // can tune this number!a
+  // to include loopers, and would rather add a break on the code if layer ten exceeded
+  // if block BREAK if hit.Layer == theGeom->CountLayers() 
+  // else --> if (NMAX TO LOOPER (maybe same as 10?) {break;} else {continue;}
+  
+  unsigned int simLayer = 0;
+
+  for (unsigned int ihit=0;ihit<nTotHit;++ihit) {  // go to first layer in radius using propagation.h
     //TrackState propState = propagateHelixToR(tmpState,4.*float(ihit+1));//radius of 4*ihit
     auto propState = propagateHelixToNextSolid(tmpState,theGeom);
 
@@ -74,6 +80,10 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     float initZ   = propState.parameters.At(2);
     float initPhi = atan2(initY,initX);
     float initRad = sqrt(initX*initX+initY*initY);
+
+    UVector3 init_point(initX,initY,initZ);
+    simLayer = theGeom->LayerIndex(init_point);
+
 #ifdef SCATTERING
     // PW START
     // multiple scattering. Follow discussion in PDG Ch 32.3
@@ -101,15 +111,14 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     // if the normal vector is given by n == x' = (x1,y1,0) [NB no component along z here]
     // then the 
     // y axis in the new coordinate system is given by y' = z' x x' = (-y1,x1,0)
-    UVector3 init_point(initX,initY,initZ);
     const auto theInitSolid = theGeom->InsideWhat(init_point);
     if ( ! theInitSolid ) {
       std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid." <<std::endl;
       std::cerr << "itrack = " << itrack << ", ihit = " << ihit << ", r = " << initRad << ", r*4cm = " << 4*ihit << ", phi = " << initPhi << std::endl;
-      std::cerr << "initX = " << initX << ", initY = " << initY << ", initZ = " << initZ << std::endl << std::endl;
+      std::cerr << "initX = " << initX << ", initY = " << initY << ", initZ = " << initZ << std::endl;
       float pt = sqrt(propState.parameters[3]*propState.parameters[3]+
                       propState.parameters[4]*propState.parameters[4]);
-      std::cerr << ", pt = " << pt << ", pz = " << propState.parameters[5] << std::endl;
+      std::cerr << "pt = " << pt << ", pz = " << propState.parameters[5] << std::endl;
 
       continue;
     }
@@ -273,14 +282,24 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     }
 #endif
 
-    Hit hit1(x1,covXYZ,itrack,ihit,0);    // will want to make ihit == ilayer, and last number is number of times in layer -- > set to zero++ for now
+    Hit hit1(x1,covXYZ,itrack,simLayer,layer_counts[simLayer]); // first argument is pos, second is error, third is simID, fourth is layer of hit, fifth is nth hit in layer
     hits.push_back(hit1);  
     tmpState = propState;
 
     SVector3 initVecXYZ(initX,initY,initZ);
-    Hit initHitXYZ(initVecXYZ,covXYZ,itrack,ihit,0); // last number is number of times in layer -- > set to zero++ for now
+    Hit initHitXYZ(initVecXYZ,covXYZ,itrack,simLayer,layer_counts[simLayer]); 
     if (nullptr != initHits) {
       initHits->push_back(initHitXYZ);
     }
+
+    if (dump){
+      std::cout << "ihit: " << ihit << " layer: " << simLayer << " counts: " << layer_counts[simLayer] << std::endl;
+    }
+
+    ++layer_counts[simLayer]; // count the number of times passed into layer
+
+    if (simLayer == nLayers -1){
+      break;
+    }  // will be useful for loopers
   } // end loop over nHitsPerTrack
 }

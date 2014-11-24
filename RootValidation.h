@@ -20,7 +20,7 @@ public:
 
   void fillSimHists(TrackVec& evt_sim_tracks) override;
   void fillCandidateHists(TrackVec& evt_track_candidates) override;
-  void fillAssociationHists(TrackVec& evt_track_candidates, TrackVec& evt_sim_tracks) override;
+  void fillAssociationHists(TrackVec& evt_track_candidates, TrackVec& evt_sim_tracks, TrackVec& evt_assoc_tracks_RD, TrackVec& evt_assoc_tracks_SD) override;
   void fillBuildHists(unsigned int, unsigned int, unsigned int) override;
   void fillFitStateHists(TrackState&, TrackState&) override;
   void fillFitHitHists(MeasurementState&, MeasurementState&, TrackState&, TrackState&) override;
