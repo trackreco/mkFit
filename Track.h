@@ -59,7 +59,7 @@ public:
   SVector6&     parameters() {return state_.parameters;}
   SMatrixSym66& errors() {return state_.errors;}
   TrackState&   state() {return state_;}
-  float&        chi2() {return chi2_;}
+  float         chi2() {return chi2_;}
 
   HitVec& hitsVector() {return hits_;}
   HitVec& initHitsVector() {return initHits_;}

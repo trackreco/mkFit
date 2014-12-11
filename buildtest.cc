@@ -42,14 +42,14 @@ void buildTestSerial(Event& ev,const int nlayers_per_seed,
   bool debug(false);
 
   //process seeds
-  for (unsigned int iseed=0;iseed<evt_seeds.size();++iseed) {
-    if (debug) std::cout << "processing seed #" << iseed << " par=" << evt_seeds[iseed].parameters() << std::endl;
-    TrackState seed_state = evt_seeds[iseed].state();
+  for (auto&& seed : evt_seeds) {
+    if (debug) std::cout << "processing seed # " << seed.SimTrackID() << " par=" << seed.parameters() << std::endl;
+    TrackState seed_state = seed.state();
     //seed_state.errors *= 0.01;//otherwise combinatorics explode!!!
 
     //should consider more than 1 candidate...
     std::vector<std::pair<Track, TrackState> > track_candidates;
-    track_candidates.push_back(std::pair<Track, TrackState>(evt_seeds[iseed],seed_state));
+    track_candidates.push_back(std::pair<Track, TrackState>(seed,seed_state));
 
     for (unsigned int ilay=nlayers_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
 

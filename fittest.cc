@@ -9,11 +9,11 @@
 static void print(TrackState& s)
 {
   std::cout << "x:  "  << s.parameters[0] 
-            << "y:  " << s.parameters[1]
-            << "z:  " << s.parameters[2] << std::endl
+            << " y:  " << s.parameters[1]
+            << " z:  " << s.parameters[2] << std::endl
             << "px: "  << s.parameters[3]
-            << "py: " << s.parameters[4]
-            << "pz: " << s.parameters[5] << std::endl
+            << " py: " << s.parameters[4]
+            << " pz: " << s.parameters[5] << std::endl
             << "valid: " << s.valid << " errors: " << std::endl;
   dumpMatrix(s.errors);
   std::cout << std::endl;
@@ -34,9 +34,9 @@ static void print(std::string label, TrackState& s)
 static void print(std::string label, MeasurementState& s)
 {
   std::cout << label << std::endl;
-  std::cout << "x:  "  << s.parameters[0] 
-            << "y:  " << s.parameters[1]
-            << "z:  " << s.parameters[2] << std::endl
+  std::cout << "x: "  << s.parameters[0] 
+            << " y: " << s.parameters[1]
+            << " z: " << s.parameters[2] << std::endl
             << "errors: " << std::endl;
   dumpMatrix(s.errors);
   std::cout << std::endl;
@@ -47,20 +47,21 @@ void runFittingTest(Event& ev, TrackVec& candidates)
   auto& projMatrix36(ev.projMatrix36_);
   auto& projMatrix36T(ev.projMatrix36T_);
 
-  for (unsigned int itrack=0; itrack<candidates.size(); ++itrack) {
+  for (auto&& trk : candidates) {
     bool dump(false);
 
-    Track& trk = candidates[itrack];
-
-    HitVec& hits = trk.hitsVector();
-
+    HitVec hits = trk.hitsVector();
+    //#define INWARD
+#if defined(INWARD)
+    std::reverse(hits.begin(), hits.end());
+#endif
     unsigned int itrack0 = trk.SimTrackID();
     Track trk0 = ev.simTracks_[itrack0];
     TrackState simState = trk0.state();
 
     if (dump) {
       print("Sim track", itrack0, trk0);
-      print("Initial track", itrack, trk);
+      print("Initial track", trk.SimTrackID(), trk);
     }
 
     //TrackState simStateHit0 = propagateHelixToR(initState,4.);//4 is the simulated radius 
@@ -78,26 +79,25 @@ void runFittingTest(Event& ev, TrackVec& candidates)
       print("cfitStateHit0", cfitStateHit0);
     }      
     ev.validation_.fillFitStateHists(simStateHit0, cfitStateHit0);
-#define CONFORMAL
+    //#define CONFORMAL
 #ifdef CONFORMAL
-    cfitStateHit0.errors*=10;//rescale errors to avoid bias from reusing of hit information
     TrackState updatedState = cfitStateHit0;
 #else    
-    TrackState updatedState = trk.state();
 #if defined(ENDTOEND)
+    TrackState updatedState = trk.state();
+    updatedState = propagateHelixToR(updatedState,hits[0].r());
+#else
+    TrackState updatedState = simStateHit0;
+#endif
+#endif
     updatedState.errors*=10;
-    //updatedState.errors=cfitStateHit0.errors*=10;
-    updatedState.parameters[0] = hits[0].parameters()[0];
-    updatedState.parameters[1] = hits[0].parameters()[1];
-    updatedState.parameters[2] = hits[0].parameters()[2];
-#endif
-#endif
-    for (unsigned int ihitx = 0; ihitx < hits.size(); ihitx++) {
-      unsigned int ihit = ihitx;
+    if (dump) print("updatedState", updatedState);
+
+    for (auto&& hit : hits) {
       //for each hit, propagate to hit radius and update track state with hit measurement
-      MeasurementState measState = hits[ihit].measurementState();
+      MeasurementState measState = hit.measurementState();
    
-      TrackState propState = propagateHelixToR(updatedState, hits[ihit].r());
+      TrackState propState = propagateHelixToR(updatedState, hit.r());
       updatedState = updateParameters(propState, measState, projMatrix36, projMatrix36T);
 
       SVector3 propPos(propState.parameters[0],propState.parameters[1],0.0);
@@ -114,19 +114,18 @@ void runFittingTest(Event& ev, TrackVec& candidates)
 #endif
 
       if (dump) {
-        std::cout << "processing hit: " << itrack << ":" << ihit << std::endl
-                  << "hitR, propR, updR = " << hits[ihit].r() << ", " 
+        std::cout << "processing hit: " << trk.SimTrackID() << ":" << hit.hitID() << std::endl
+                  << "hitR, propR, updR = " << hit.r() << ", " 
                   << Mag(propPos) << ", " << Mag(updPos) << std::endl << std::endl;
 
         print("measState", measState);
-        print("simState", simState);
         print("propState", propState);
         print("updatedState", updatedState);
       }
       if (!propState.valid || !updatedState.valid) {
         if (dump) {
-          std::cout << "Failed propagation processing track:hit: " << itrack << ":" << ihit << std::endl
-                    << "hitR, propR, updR = " << hits[ihit].r() << ", " << Mag(propPos) << ", " << Mag(updPos)
+          std::cout << "Failed propagation "
+                    << "hitR, propR, updR = " << hit.r() << ", " << Mag(propPos) << ", " << Mag(updPos)
                     << std::endl << std::endl;
         }
 #ifdef CHECKSTATEVALID
@@ -135,11 +134,12 @@ void runFittingTest(Event& ev, TrackVec& candidates)
       }
 
       // can this somehow be magically hidden by the validation class ? 
-      HitVec& mcInitHitVec = ev.simTracks_[hits[ihit].mcIndex()].initHitsVector();
+      HitVec& mcInitHitVec = ev.simTracks_[hit.mcIndex()].initHitsVector();
       MeasurementState initMeasState;
-      for (unsigned int jhit=0;jhit<mcInitHitVec.size();++jhit){
-        if(hits[ihit].hitID() == mcInitHitVec[jhit].hitID()){
-          initMeasState = mcInitHitVec[jhit].measurementState();
+      const auto hitid = hit.hitID();
+      for (auto&& mchit : mcInitHitVec){
+        if(mchit.hitID() == hitid){
+          initMeasState = mchit.measurementState();
           break;
         }
       }
