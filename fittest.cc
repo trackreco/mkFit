@@ -48,25 +48,24 @@ void runFittingTest(Event& ev, TrackVec& candidates)
   auto& projMatrix36T(ev.projMatrix36T_);
 
   for (unsigned int itrack=0; itrack<candidates.size(); ++itrack) {
-    bool dump = false;
+    bool dump(false);
 
     Track& trk = candidates[itrack];
+
+    HitVec& hits = trk.hitsVector();
+
+    unsigned int itrack0 = trk.SimTrackID();
+    Track trk0 = ev.simTracks_[itrack0];
+    TrackState simState = trk0.state();
+
     if (dump) {
+      print("Sim track", itrack0, trk0);
       print("Initial track", itrack, trk);
     }
 
-    HitVec& hits         = trk.hitsVector();
-    TrackState initState = trk.state();
-
-#ifdef ENDTOEND
-    initState.parameters[0] = hits[0].parameters()[0];
-    initState.parameters[1] = hits[0].parameters()[1];
-    initState.parameters[2] = hits[0].parameters()[2];
-#endif
-
     //TrackState simStateHit0 = propagateHelixToR(initState,4.);//4 is the simulated radius 
     //TrackState simStateHit0 = propagateHelixToLayer(initState,0,theGeom); // innermost layer
-    TrackState simStateHit0 = propagateHelixToR(initState,hits[0].r()); // innermost hit
+    TrackState simStateHit0 = propagateHelixToR(trk0.state(),hits[0].r()); // innermost hit
     if (dump) {
       print("simStateHit0", simStateHit0);
     }
@@ -74,16 +73,27 @@ void runFittingTest(Event& ev, TrackVec& candidates)
     TrackState cfitStateHit0;
     //fit is problematic in case of very short lever arm
     //conformalFit(hits[0],hits[1],hits[2],trk.charge(),cfitStateHit0);
-    conformalFit(hits[0],hits[5],hits[9],trk.charge(),cfitStateHit0);
+    conformalFit(hits[0],hits[hits.size()/2 + 1],hits[hits.size()-1],trk.charge(),cfitStateHit0);
     if (dump) { 
       print("cfitStateHit0", cfitStateHit0);
     }      
     ev.validation_.fillFitStateHists(simStateHit0, cfitStateHit0);
+#define CONFORMAL
+#ifdef CONFORMAL
     cfitStateHit0.errors*=10;//rescale errors to avoid bias from reusing of hit information
-    //TrackState updatedState = cfitStateHit0;
-    
-    TrackState updatedState = initState;
-    for (unsigned int ihit = 0; ihit < hits.size(); ihit++) {
+    TrackState updatedState = cfitStateHit0;
+#else    
+    TrackState updatedState = trk.state();
+#if defined(ENDTOEND)
+    updatedState.errors*=10;
+    //updatedState.errors=cfitStateHit0.errors*=10;
+    updatedState.parameters[0] = hits[0].parameters()[0];
+    updatedState.parameters[1] = hits[0].parameters()[1];
+    updatedState.parameters[2] = hits[0].parameters()[2];
+#endif
+#endif
+    for (unsigned int ihitx = 0; ihitx < hits.size(); ihitx++) {
+      unsigned int ihit = ihitx;
       //for each hit, propagate to hit radius and update track state with hit measurement
       MeasurementState measState = hits[ihit].measurementState();
    
@@ -94,7 +104,7 @@ void runFittingTest(Event& ev, TrackVec& candidates)
       SVector3 updPos(updatedState.parameters[0],updatedState.parameters[1],0.0);
 #if defined(CHECKSTATEVALID)
       // crude test for numerical instability, need a better test
-      if (Mag(propPos - updPos)/Mag(propPos) > 0.1 || std::abs(propState.parameters[2] - updatedState.parameters[2]) > 1.0) {
+      if (Mag(propPos - updPos)/Mag(propPos) > 0.1 || std::abs(propState.parameters[2] - updatedState.parameters[2]) > 10.0) {
         if (dump) {
           std::cout << "Failing stability " << Mag(propPos - updPos)/Mag(propPos) 
                     << " " << std::abs(propState.parameters[2] - updatedState.parameters[2]) << std::endl;
@@ -109,7 +119,7 @@ void runFittingTest(Event& ev, TrackVec& candidates)
                   << Mag(propPos) << ", " << Mag(updPos) << std::endl << std::endl;
 
         print("measState", measState);
-        print("initState", initState);
+        print("simState", simState);
         print("propState", propState);
         print("updatedState", updatedState);
       }
@@ -128,18 +138,16 @@ void runFittingTest(Event& ev, TrackVec& candidates)
       HitVec& mcInitHitVec = ev.simTracks_[hits[ihit].mcIndex()].initHitsVector();
       MeasurementState initMeasState;
       for (unsigned int jhit=0;jhit<mcInitHitVec.size();++jhit){
-	if(hits[ihit].mcHitInfo() == mcInitHitVec[jhit].mcHitInfo()){
-	  initMeasState = mcInitHitVec[jhit].measurementState();
-	  break;
-	}
+        if(hits[ihit].hitID() == mcInitHitVec[jhit].hitID()){
+          initMeasState = mcInitHitVec[jhit].measurementState();
+          break;
+        }
       }
-      // 
-
       ev.validation_.fillFitHitHists(initMeasState, measState, propState, updatedState);
     } // end loop over hits
     if (dump) {
       print("Fit Track", updatedState);
     }
-    ev.validation_.fillFitTrackHists(initState, updatedState);
+    ev.validation_.fillFitTrackHists(simState, updatedState);
   }
 }

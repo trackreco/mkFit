@@ -99,6 +99,15 @@ void HelixState::updateHelix(float distance, bool updateDeriv, bool dump)
   par.At(3) = px*cosAP-py*sinAP;
   par.At(4) = py*cosAP+px*sinAP;
   par.At(5) = pz;
+
+  if (dump) {
+    std::cout << "x + " << k*(px*sinAP-py*(1-cosAP)) << std::endl;
+    std::cout << "y + " << k*(py*sinAP+px*(1-cosAP)) << std::endl;
+    std::cout << "z + " << distance*ctgTheta << std::endl;
+    std::cout <<  "px: " << px*cosAP-py*sinAP
+              << " py: " << py*cosAP+px*sinAP
+              << " pz: " << pz << std::endl;
+  }
   
   if (updateDeriv) {
 
@@ -366,14 +375,10 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
               << " py=" << hsin.py << " pz=" << hsin.pz << " q=" << inputState.charge << std::endl;
   }
 
-  if (hsout.r0+tolerance >= r) {
+  if (std::abs(r-hsout.r0) < tolerance) {
     if (dump) {
-      std::cout << "target radius same or smaller than starting point, returning input" << std::endl;
-      std::cout << "attempt propagation from r=" << hsout.r0 << " to r=" << r << std::endl
-                << "x=" << hsout.x << " y=" << hsout.y << " px=" << hsout.px
-                << " py=" << hsout.py << " pz=" << hsout.pz << " q=" << inputState.charge << std::endl;
+      std::cout << "at target radius, returning input" << std::endl;
     }
-    hsout.state.valid = hsout.r0-tolerance < r;
     return hsout.state;
   }
 
@@ -753,25 +758,25 @@ void propagateHelixToR_fewerTemps(TrackState& inputState, float r, TrackState& r
    //pz = pzin;
    //jacobian
    SMatrix66 errorProp = ROOT::Math::SMatrixIdentity();//what is not explicitly set below is 1 (0) on (off) diagonal
-   errorProp(0,0) = 1 + k*dTPdx*(pxin*sinTP + pyin*cosTP);	//dxdx;
-   errorProp(0,1) = k*dTPdy*(pxin*sinTP + pyin*cosTP);	//dxdy;
+   errorProp(0,0) = 1 + k*dTPdx*(pxin*sinTP + pyin*cosTP);      //dxdx;
+   errorProp(0,1) = k*dTPdy*(pxin*sinTP + pyin*cosTP);  //dxdy;
    errorProp(0,3) = k*(sinTP + pxin*cosTP*dTPdpx - pyin*sinTP*dTPdpx); //dxdpx;
    errorProp(0,4) = k*(pxin*cosTP*dTPdpy - 1. + cosTP - pyin*sinTP*dTPdpy);//dxdpy;
-   errorProp(1,0) = k*dTPdx*(pyin*sinTP - pxin*cosTP);	//dydx;
-   errorProp(1,1) = 1 + k*dTPdy*(pyin*sinTP - pxin*cosTP);	//dydy;
+   errorProp(1,0) = k*dTPdx*(pyin*sinTP - pxin*cosTP);  //dydx;
+   errorProp(1,1) = 1 + k*dTPdy*(pyin*sinTP - pxin*cosTP);      //dydy;
    errorProp(1,3) = k*(pyin*cosTP*dTPdpx + 1. - cosTP + pxin*sinTP*dTPdpx);//dydpx;
    errorProp(1,4) = k*(sinTP + pyin*cosTP*dTPdpy + pxin*sinTP*dTPdpy); //dydpy;
-   errorProp(2,0) = dTDdx*ctgTheta;	//dzdx;
-   errorProp(2,1) = dTDdy*ctgTheta;	//dzdy;
+   errorProp(2,0) = dTDdx*ctgTheta;     //dzdx;
+   errorProp(2,1) = dTDdy*ctgTheta;     //dzdy;
    errorProp(2,3) = dTDdpx*ctgTheta - TD*pzin*pxin*pt2inv*ptinv;//dzdpx;
    errorProp(2,4) = dTDdpy*ctgTheta - TD*pzin*pyin*pt2inv*ptinv;//dzdpy;
    errorProp(2,5) = TD*ptinv; //dzdpz;
-   errorProp(3,0) = -dTPdx*(pxin*sinTP + pyin*cosTP);	//dpxdx;
-   errorProp(3,1) = -dTPdy*(pxin*sinTP + pyin*cosTP);	//dpxdy;
+   errorProp(3,0) = -dTPdx*(pxin*sinTP + pyin*cosTP);   //dpxdx;
+   errorProp(3,1) = -dTPdy*(pxin*sinTP + pyin*cosTP);   //dpxdy;
    errorProp(3,3) = cosTP - dTPdpx*(pxin*sinTP + pyin*cosTP); //dpxdpx;
    errorProp(3,4) = -sinTP - dTPdpy*(pxin*sinTP + pyin*cosTP);//dpxdpy;
    errorProp(4,0) = -dTPdx*(pyin*sinTP - pxin*cosTP); //dpydx;
-   errorProp(4,1) = -dTPdy*(pyin*sinTP - pxin*cosTP);	//dpydy;
+   errorProp(4,1) = -dTPdy*(pyin*sinTP - pxin*cosTP);   //dpydy;
    errorProp(4,3) = +sinTP - dTPdpx*(pyin*sinTP - pxin*cosTP);//dpydpx;
    errorProp(4,4) = +cosTP - dTPdpy*(pyin*sinTP - pxin*cosTP);//dpydpy;
    result.errors=ROOT::Math::Similarity(errorProp,err);

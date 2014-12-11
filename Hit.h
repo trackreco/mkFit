@@ -3,7 +3,20 @@
 
 #include "Matrix.h"
 
-typedef std::vector<unsigned int> MCHitInfo;
+struct MCHitInfo {
+  MCHitInfo() : mcHitID_(++mcHitIDCounter_) {}
+  MCHitInfo(unsigned int track, unsigned int layer, unsigned int ithlayerhit)
+    : mcTrack_(track), layer_(layer), ithLayerHit_(ithlayerhit), mcHitID_(++mcHitIDCounter_) {}
+
+
+  unsigned int mcTrack_;
+  unsigned int layer_;
+  unsigned int ithLayerHit_;
+  unsigned int mcHitID_;
+
+  static unsigned int mcHitIDCounter_;
+};
+
 typedef std::vector<MCHitInfo> MCHitInfoVec;
 
 struct MeasurementState
@@ -30,9 +43,16 @@ public:
   }
 
   Hit(SVector3 position, SMatrixSym33 error, unsigned int itrack, unsigned int ilayer, unsigned int ithLayerHit){
-    mcHitInfo_.push_back(itrack);
-    mcHitInfo_.push_back(ilayer);
-    mcHitInfo_.push_back(ithLayerHit);
+    mcHitInfo_.mcTrack_ = itrack;
+    mcHitInfo_.layer_ = ilayer;
+    mcHitInfo_.ithLayerHit_ = ithLayerHit;
+    state_.parameters=position;
+    state_.errors=error;
+  }
+
+  Hit(SVector3 position, SMatrixSym33 error, const MCHitInfo& mcHitInfo)
+    : mcHitInfo_(mcHitInfo)
+  {
     state_.parameters=position;
     state_.errors=error;
   }
@@ -50,14 +70,15 @@ public:
     return state_;
   }
 
-  MCHitInfo mcHitInfo(){return mcHitInfo_;}
-  unsigned int mcIndex(){return mcHitInfo_[0];}
-  unsigned int layer(){return mcHitInfo_[1];}
-  unsigned int ithLayerHit(){return mcHitInfo_[2];}
+  const MCHitInfo& mcHitInfo() const {return mcHitInfo_;}
+  unsigned int mcIndex() const {return mcHitInfo_.mcTrack_;}
+  unsigned int layer() const {return mcHitInfo_.layer_;}
+  unsigned int ithLayerHit() const {return mcHitInfo_.ithLayerHit_;}
+  unsigned int hitID() const {return mcHitInfo_.mcHitID_;}
 
 private:
   MeasurementState state_;
-  MCHitInfo mcHitInfo_; // [0] is simtrack index, [1] is layer, [2] is ihit in layer (to keep track of looper hits)
+  MCHitInfo mcHitInfo_;
 };
 
 typedef std::vector<Hit> HitVec;

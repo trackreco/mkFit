@@ -9,13 +9,13 @@
 #include <iostream>
 
 void buildTestParallel(std::vector<Track>& evt_seeds,std::vector<Track>& evt_track_candidates,
-		       std::vector<HitVec >& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
-		       const int& nlayers_per_seed,const unsigned int& maxCand,const float& chi2Cut,const float& nSigma,const float& minDPhi,
-		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug, Geometry* theGeom);
+                       std::vector<HitVec >& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
+                       const int& nlayers_per_seed,const unsigned int& maxCand,const float& chi2Cut,const float& nSigma,const float& minDPhi,
+                       SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug, Geometry* theGeom);
 void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<Track, TrackState> >& tmp_candidates,
-		       unsigned int ilay,std::vector<HitVec>& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
-		       const int nlayers_per_seed,const unsigned int maxCand,const float chi2Cut,const float nSigma,const float minDPhi,
-		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug, Geometry* theGeom);
+                       unsigned int ilay,std::vector<HitVec>& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
+                       const int nlayers_per_seed,const unsigned int maxCand,const float chi2Cut,const float nSigma,const float minDPhi,
+                       SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug, Geometry* theGeom);
 
 inline float normalizedPhi(float phi) {
   static float const TWO_PI = M_PI * 2;
@@ -31,13 +31,13 @@ static bool sortByHitsChi2(std::pair<Track, TrackState> cand1,std::pair<Track, T
 }
 
 void buildTestSerial(Event& ev,const int nlayers_per_seed,
-		     const unsigned int maxCand, const float chi2Cut, const float nSigma, const float minDPhi)
+                     const unsigned int maxCand, const float chi2Cut, const float nSigma, const float minDPhi)
 {
   auto& evt_seeds(ev.seedTracks_);
   auto& evt_track_candidates(ev.candidateTracks_);
   auto& evt_lay_hits(ev.layerHits_);
-	auto& evt_lay_phi_hit_idx(ev.lay_phi_hit_idx_);
-	auto& projMatrix36(ev.projMatrix36_);
+        auto& evt_lay_phi_hit_idx(ev.lay_phi_hit_idx_);
+        auto& projMatrix36(ev.projMatrix36_);
   auto& projMatrix36T(ev.projMatrix36T_);
   bool debug(false);
 
@@ -91,11 +91,11 @@ void buildTestSerial(Event& ev,const int nlayers_per_seed,
 }
 
 void buildTestParallel(std::vector<Track>& evt_seeds,
-		       std::vector<Track>& evt_track_candidates,
-		       std::vector<HitVec >& evt_lay_hits,
-		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int& nlayers_per_seed,
-		       const unsigned int& maxCand, const float& chi2Cut,const float& nSigma,const float& minDPhi,
-		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug,Geometry* theGeom){
+                       std::vector<Track>& evt_track_candidates,
+                       std::vector<HitVec >& evt_lay_hits,
+                       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int& nlayers_per_seed,
+                       const unsigned int& maxCand, const float& chi2Cut,const float& nSigma,const float& minDPhi,
+                       SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug,Geometry* theGeom){
 
   //save a vector of candidates per each seed. initialize to the seed itself
   std::vector<std::vector<std::pair<Track, TrackState> > > track_candidates(evt_seeds.size());
@@ -148,10 +148,10 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
 }
 
 void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<Track, TrackState> >& tmp_candidates,
-		       unsigned int ilayer,std::vector<HitVec >& evt_lay_hits,
-		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int nlayers_per_seed,
-		       const unsigned int maxCand, const float chi2Cut,const float nSigma,const float minDPhi,
-		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T, bool debug,Geometry* theGeom){
+                       unsigned int ilayer,std::vector<HitVec >& evt_lay_hits,
+                       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int nlayers_per_seed,
+                       const unsigned int maxCand, const float chi2Cut,const float nSigma,const float minDPhi,
+                       SMatrix36& projMatrix36,SMatrix63& projMatrix36T, bool debug,Geometry* theGeom){
 
   Track& tkcand = cand.first;
   TrackState& updatedState = cand.second;

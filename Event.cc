@@ -126,9 +126,9 @@ void Event::Segment()
     for (unsigned int iphi=0;iphi<evt_lay_phi_hits[ilayer].size();++iphi) {
       std::sort(evt_lay_phi_hits[ilayer][iphi].begin(),evt_lay_phi_hits[ilayer][iphi].end(),sortByZ);
       for (unsigned int ihit =0;ihit<evt_lay_phi_hits[ilayer][iphi].size();++ihit){
-	unsigned int bin = getZPartition(evt_lay_phi_hits[ilayer][iphi][ihit].position()[2]);
-	evt_lay_phi_Z_hits[ilayer][iphi][bin].push_back(evt_lay_phi_hits[ilayer][iphi][ihit]);
-	//	std::cout << "x: " << evt_lay_phi_hits[ilayer][iphi][ihit].position()[0] << " y: " << evt_lay_phi_hits[ilayer][iphi][ihit].position()[1] << " z: " << evt_lay_phi_hits[ilayer][iphi][ihit].position()[2] << std::endl;
+        unsigned int bin = getZPartition(evt_lay_phi_hits[ilayer][iphi][ihit].position()[2]);
+        evt_lay_phi_Z_hits[ilayer][iphi][bin].push_back(evt_lay_phi_hits[ilayer][iphi][ihit]);
+        //      std::cout << "x: " << evt_lay_phi_hits[ilayer][iphi][ihit].position()[0] << " y: " << evt_lay_phi_hits[ilayer][iphi][ihit].position()[1] << " z: " << evt_lay_phi_hits[ilayer][iphi][ihit].position()[2] << std::endl;
       }
     }
   }
@@ -136,13 +136,13 @@ void Event::Segment()
   for (unsigned int ilayer=0;ilayer<evt_lay_phi_Z_hits.size();++ilayer) {
     for (unsigned int iphi=0;iphi<evt_lay_phi_Z_hits[ilayer].size();++iphi) {
       for (unsigned int iz =0;iz<evt_lay_phi_Z_hits[ilayer][iphi].size();++iz){
-	if (evt_lay_phi_Z_hits[ilayer][iphi][iz].size() > 0){
-	  std::cout << "ilayer: " << ilayer << " iphi: " << iphi << " iz: " << iz << " size: " << evt_lay_phi_Z_hits[ilayer][iphi][iz].size() << std::endl;
-	  for (unsigned int ihit =0;ihit<evt_lay_phi_Z_hits[ilayer][iphi][iz].size();++ihit){
-	    std::cout << "x: " << evt_lay_phi_Z_hits[ilayer][iphi][iz][ihit].position()[0] << " y: " << evt_lay_phi_Z_hits[ilayer][iphi][iz][ihit].position()[1] << " z: " << evt_lay_phi_Z_hits[ilayer][iphi][iz][ihit].position()[2] << std::endl;
-	  }
-	  std::cout << std::endl;
-	}
+        if (evt_lay_phi_Z_hits[ilayer][iphi][iz].size() > 0){
+          std::cout << "ilayer: " << ilayer << " iphi: " << iphi << " iz: " << iz << " size: " << evt_lay_phi_Z_hits[ilayer][iphi][iz].size() << std::endl;
+          for (unsigned int ihit =0;ihit<evt_lay_phi_Z_hits[ilayer][iphi][iz].size();++ihit){
+            std::cout << "x: " << evt_lay_phi_Z_hits[ilayer][iphi][iz][ihit].position()[0] << " y: " << evt_lay_phi_Z_hits[ilayer][iphi][iz][ihit].position()[1] << " z: " << evt_lay_phi_Z_hits[ilayer][iphi][iz][ihit].position()[2] << std::endl;
+          }
+          std::cout << std::endl;
+        }
       }
     }
   }
@@ -160,10 +160,10 @@ void Event::Seed()
     for (int ilayer=0;ilayer<nlayers_per_seed;++ilayer) {//seeds have first three layers as seeds
       Hit seed_hit;
       for (int ihit=0;ihit<hits.size();++ihit){
-	if (hits[ihit].layer() == ilayer){
-	  seed_hit = hits[ihit];
-	  break;
-	}
+        if (hits[ihit].layer() == ilayer){
+          seed_hit = hits[ihit];
+          break;
+        }
       }
       TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
 #ifdef CHECKSTATEVALID

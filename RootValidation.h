@@ -10,6 +10,7 @@ public:
 };
 #else
 
+#include <unordered_map>
 #include "TFile.h"
 #include "TTree.h"
 #include "TH1F.h"
@@ -34,7 +35,7 @@ public:
     const int nbins, const double min, const double max,
     const std::string& xlabel, const std::string& ylabel);
 
-  std::map<std::string,TH1F*> validation_hists_;
+  std::unordered_map<std::string,TH1F*> validation_hists_;
   TFile* f_;
   TTree* buildtree_;
   TTree* fittree_;

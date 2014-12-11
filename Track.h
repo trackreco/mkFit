@@ -67,6 +67,8 @@ public:
   void addInitHit(Hit hit);
   void resetHits() {hits_.clear();}
   unsigned int nHits() {return hits_.size();}
+  unsigned int SimTrackID() const;
+  std::vector<unsigned int> SimTrackIDs() const;
 
   Track clone() {return Track(state_,hits_,chi2_);}
 
