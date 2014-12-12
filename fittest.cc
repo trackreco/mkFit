@@ -93,14 +93,13 @@ void runFittingTest(Event& ev, TrackVec& candidates)
       TrackState propState = propagateHelixToR(updatedState, hit.r());
       updatedState = updateParameters(propState, measState, projMatrix36, projMatrix36T);
 
-      SVector3 propPos(propState.parameters[0],propState.parameters[1],0.0);
-      SVector3 updPos(updatedState.parameters[0],updatedState.parameters[1],0.0);
+      SVector3 propPos(propState.parameters[0],propState.parameters[1],propState.parameters[2]);
+      SVector3 updPos(updatedState.parameters[0],updatedState.parameters[1],updatedState.parameters[2]);
 #if defined(CHECKSTATEVALID)
       // crude test for numerical instability, need a better test
-      if (Mag(propPos - updPos)/Mag(propPos) > 0.1 || std::abs(propState.parameters[2] - updatedState.parameters[2]) > 10.0) {
+      if (Mag(propPos - updPos)/Mag(propPos) > 0.5) {
         if (dump) {
-          std::cout << "Failing stability " << Mag(propPos - updPos)/Mag(propPos) 
-                    << " " << std::abs(propState.parameters[2] - updatedState.parameters[2]) << std::endl;
+          std::cout << "Failing stability " << Mag(propPos - updPos)/Mag(propPos) << std::endl;
         }
         updatedState.valid = false;
       }
@@ -126,17 +125,9 @@ void runFittingTest(Event& ev, TrackVec& candidates)
 #endif
       }
 
-      // can this somehow be magically hidden by the validation class ? 
       HitVec& mcInitHitVec = ev.simTracks_[hit.mcIndex()].initHitsVector();
-      MeasurementState initMeasState;
       const auto hitid = hit.hitID();
-      for (auto&& mchit : mcInitHitVec){
-        if(mchit.hitID() == hitid){
-          initMeasState = mchit.measurementState();
-          break;
-        }
-      }
-      ev.validation_.fillFitHitHists(initMeasState, measState, propState, updatedState);
+      ev.validation_.fillFitHitHists(hitid, mcInitHitVec, measState, propState, updatedState);
     } // end loop over hits
     if (dump) {
       print("Fit Track", updatedState);

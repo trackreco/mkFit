@@ -312,9 +312,17 @@ void RootValidation::fillFitStateHists(TrackState& simStateHit0, TrackState& cfi
   }
 }
 
-void RootValidation::fillFitHitHists(MeasurementState& initMeasState, MeasurementState& measState, TrackState& propState, TrackState& updatedState)
+void RootValidation::fillFitHitHists(unsigned int hitid, HitVec& mcInitHitVec, MeasurementState& measState, TrackState& propState, TrackState& updatedState)
 {
   if (savetree_){
+    MeasurementState initMeasState;
+    for (auto&& mchit : mcInitHitVec){
+      if(mchit.hitID() == hitid){
+        initMeasState = mchit.measurementState();
+        break;
+      }
+    }
+
     x_init   = initMeasState.parameters[0];
     x_mc     = measState.parameters[0];
     x_mcerr  = measState.errors[0][0]; // sigma^2 of x_mc (same with y,z)
