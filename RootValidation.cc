@@ -104,6 +104,7 @@ RootValidation::RootValidation(std::string fileName, bool saveTree)
 
 void RootValidation::fillSimHists(TrackVec& evt_sim_tracks)
 {
+  // these are expensive, only do once per track
   std::vector<float> phi;
   std::vector<float> eta;
   for (auto&& track : evt_sim_tracks) {
@@ -112,17 +113,6 @@ void RootValidation::fillSimHists(TrackVec& evt_sim_tracks)
   }
 
   for(unsigned int isim_track = 0; isim_track < evt_sim_tracks.size(); ++isim_track){
-    // float gen_trk_Pt = sqrt( (evt_sim_tracks[isim_track].momentum()[0]) * (evt_sim_tracks[isim_track].momentum()[0]) +
-    //                                               (evt_sim_tracks[isim_track].momentum()[1]) * (evt_sim_tracks[isim_track].momentum()[1]) );
-    // float gen_trk_theta = atan2( gen_trk_Pt, evt_sim_tracks[isim_track].momentum()[2] );
-    // float gen_trk_eta = -1. * log( tan(gen_trk_theta / 2.) );
-    // validation_hists_["gen_trk_Pt"]->Fill( gen_trk_Pt );
-    // validation_hists_["gen_trk_Px"]->Fill( evt_sim_tracks[isim_track].momentum()[0] );
-    // validation_hists_["gen_trk_Py"]->Fill( evt_sim_tracks[isim_track].momentum()[1] ); 
-    // validation_hists_["gen_trk_Pz"]->Fill( evt_sim_tracks[isim_track].momentum()[2] ); 
-    // validation_hists_["gen_trk_phi"]->Fill( std::atan2(evt_sim_tracks[isim_track].momentum()[1], evt_sim_tracks[isim_track].momentum()[0]) ); //phi=arctan(y/x), atan2 returns -pi,pi
-    // validation_hists_["gen_trk_eta"]->Fill( gen_trk_eta );
-    
     validation_hists_["gen_trk_Pt"]->Fill( getPt(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1]) );
     validation_hists_["gen_trk_Px"]->Fill( evt_sim_tracks[isim_track].momentum()[0] );
     validation_hists_["gen_trk_Py"]->Fill( evt_sim_tracks[isim_track].momentum()[1] ); 
@@ -150,6 +140,7 @@ void RootValidation::fillSimHists(TrackVec& evt_sim_tracks)
     auto&& gen_trk_dR(validation_hists_["gen_trk_dR"]);
     auto&& gen_trk_dPhi(validation_hists_["gen_trk_dPhi"]);
 
+    // doubly nested loop over # tracks, do as little as possible in the inner loop
     for( unsigned int jsim_track = 0; jsim_track < evt_sim_tracks.size(); ++jsim_track ){
       if(jsim_track != isim_track) {
         const float phij=phi[jsim_track];
@@ -286,6 +277,7 @@ void RootValidation::fillAssociationHists(TrackVec& evt_track_candidates, TrackV
     }
   } // end loop over index check for duplicates
 }
+
 void RootValidation::fillBuildHists(unsigned int layer, unsigned int branches, unsigned int cands)
 {
   if (savetree_) {

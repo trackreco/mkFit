@@ -64,8 +64,6 @@ void runFittingTest(Event& ev, TrackVec& candidates)
       print("Initial track", trk.SimTrackID(), trk);
     }
 
-    //TrackState simStateHit0 = propagateHelixToR(initState,4.);//4 is the simulated radius 
-    //TrackState simStateHit0 = propagateHelixToLayer(initState,0,theGeom); // innermost layer
     TrackState simStateHit0 = propagateHelixToR(trk0.state(),hits[0].r()); // innermost hit
     if (dump) {
       print("simStateHit0", simStateHit0);
@@ -73,7 +71,6 @@ void runFittingTest(Event& ev, TrackVec& candidates)
 
     TrackState cfitStateHit0;
     //fit is problematic in case of very short lever arm
-    //conformalFit(hits[0],hits[1],hits[2],trk.charge(),cfitStateHit0);
     conformalFit(hits[0],hits[hits.size()/2 + 1],hits[hits.size()-1],trk.charge(),cfitStateHit0);
     if (dump) { 
       print("cfitStateHit0", cfitStateHit0);
@@ -83,12 +80,8 @@ void runFittingTest(Event& ev, TrackVec& candidates)
 #ifdef CONFORMAL
     TrackState updatedState = cfitStateHit0;
 #else    
-#if defined(ENDTOEND)
     TrackState updatedState = trk.state();
     updatedState = propagateHelixToR(updatedState,hits[0].r());
-#else
-    TrackState updatedState = simStateHit0;
-#endif
 #endif
     updatedState.errors*=10;
     if (dump) print("updatedState", updatedState);
