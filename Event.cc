@@ -157,9 +157,9 @@ void Event::Seed()
     HitVec& hits = trk.hitsVector();
     TrackState updatedState = trk.state();
     HitVec seedhits;
-    for (int ilayer=0;ilayer<nlayers_per_seed;++ilayer) {//seeds have first three layers as seeds
+    for (auto ilayer=0U;ilayer<nlayers_per_seed;++ilayer) {//seeds have first three layers as seeds
       Hit seed_hit;
-      for (int ihit=0;ihit<hits.size();++ihit){
+      for (auto ihit=0U;ihit<hits.size();++ihit){
         if (hits[ihit].layer() == ilayer){
           seed_hit = hits[ihit];
           break;

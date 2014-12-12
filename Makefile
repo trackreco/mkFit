@@ -38,7 +38,7 @@ distclean: clean
 
 
 main: ${AUTO_TGTS} ${OBJS} ${LIBUSOLIDS}
-	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} -o $@ ${OBJS} ${LIBUSOLIDS}
+	${CXX} ${CXXFLAGS} ${VEC_HOST} -o $@ ${OBJS} ${LIBUSOLIDS} ${LDFLAGS}
 
 ${OBJS}: %.o: %.cc
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<
