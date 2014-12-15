@@ -59,22 +59,11 @@ void runFittingTest(Event& ev, TrackVec& candidates)
     Track trk0 = ev.simTracks_[itrack0];
     TrackState simState = trk0.state();
 
-    if (dump) {
-      print("Sim track", itrack0, trk0);
-      print("Initial track", trk.SimTrackID(), trk);
-    }
-
     TrackState simStateHit0 = propagateHelixToR(trk0.state(),hits[0].r()); // innermost hit
-    if (dump) {
-      print("simStateHit0", simStateHit0);
-    }
-
     TrackState cfitStateHit0;
+
     //fit is problematic in case of very short lever arm
     conformalFit(hits[0],hits[hits.size()/2 + 1],hits[hits.size()-1],trk.charge(),cfitStateHit0);
-    if (dump) { 
-      print("cfitStateHit0", cfitStateHit0);
-    }      
     ev.validation_.fillFitStateHists(simStateHit0, cfitStateHit0);
     //#define CONFORMAL
 #ifdef CONFORMAL
@@ -84,7 +73,14 @@ void runFittingTest(Event& ev, TrackVec& candidates)
     updatedState = propagateHelixToR(updatedState,hits[0].r());
 #endif
     updatedState.errors*=10;
-    if (dump) print("updatedState", updatedState);
+
+    if (dump) { 
+      print("Sim track", itrack0, trk0);
+      print("Initial track", trk.SimTrackID(), trk);
+      print("simStateHit0", simStateHit0);
+      print("cfitStateHit0", cfitStateHit0);
+      print("updatedState", updatedState);
+    }      
 
     for (auto&& hit : hits) {
       //for each hit, propagate to hit radius and update track state with hit measurement
