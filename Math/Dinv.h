@@ -81,7 +81,7 @@ public:
      static typename MatrixRep::value_type det(0);
       
       if (DfactMatrix(rhs,det,work) != 0) {
-	std::cerr << "Dfact_matrix failed!!" << std::endl;
+	//std::cerr << "Dfact_matrix failed!!" << std::endl;
 	return false;
       }
 

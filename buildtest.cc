@@ -5,6 +5,8 @@
 #include "Simulation.h"
 #include "Event.h"
 
+#include "tbb/tbb.h"
+
 #include <cmath>
 #include <iostream>
 
@@ -12,10 +14,10 @@ void buildTestParallel(std::vector<Track>& evt_seeds,std::vector<Track>& evt_tra
                        std::vector<HitVec >& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
                        const int& nlayers_per_seed,const unsigned int& maxCand,const float& chi2Cut,const float& nSigma,const float& minDPhi,
                        SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug, Geometry* theGeom);
-void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<Track, TrackState> >& tmp_candidates,
-                       unsigned int ilay,std::vector<HitVec>& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
+void processCandidates(const std::pair<Track, TrackState>& cand,std::vector<std::pair<Track, TrackState> >& tmp_candidates,
+                       unsigned int ilay,const std::vector<HitVec>& evt_lay_hits,const std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
                        const int nlayers_per_seed,const unsigned int maxCand,const float chi2Cut,const float nSigma,const float minDPhi,
-                       SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug, Geometry* theGeom);
+                       const SMatrix36& projMatrix36,const SMatrix63& projMatrix36T,bool debug, Geometry* theGeom);
 
 inline float normalizedPhi(float phi) {
   static float const TWO_PI = M_PI * 2;
@@ -33,12 +35,13 @@ static bool sortByHitsChi2(std::pair<Track, TrackState> cand1,std::pair<Track, T
 void buildTestSerial(Event& ev,const int nlayers_per_seed,
                      const unsigned int maxCand, const float chi2Cut, const float nSigma, const float minDPhi)
 {
-  auto& evt_seeds(ev.seedTracks_);
   auto& evt_track_candidates(ev.candidateTracks_);
-  auto& evt_lay_hits(ev.layerHits_);
-        auto& evt_lay_phi_hit_idx(ev.lay_phi_hit_idx_);
-        auto& projMatrix36(ev.projMatrix36_);
-  auto& projMatrix36T(ev.projMatrix36T_);
+
+  const auto& evt_seeds(ev.seedTracks_);
+  const auto& evt_lay_hits(ev.layerHits_);
+  const auto& evt_lay_phi_hit_idx(ev.lay_phi_hit_idx_);
+  const auto& projMatrix36(ev.projMatrix36_);
+  const auto& projMatrix36T(ev.projMatrix36T_);
   bool debug(false);
 
   //process seeds
@@ -56,8 +59,7 @@ void buildTestSerial(Event& ev,const int nlayers_per_seed,
       if (debug) std::cout << "going to layer #" << ilay << " with N cands=" << track_candidates.size() << std::endl;
 
       std::vector<std::pair<Track, TrackState> > tmp_candidates;
-      for (unsigned int icand=0;icand<track_candidates.size();++icand) {//loop over running candidates 
-        std::pair<Track, TrackState>& cand = track_candidates[icand];
+      for (auto&& cand : track_candidates) {//loop over running candidates 
         processCandidates(cand, tmp_candidates, ilay, evt_lay_hits, evt_lay_phi_hit_idx,
           nlayers_per_seed, maxCand, chi2Cut, nSigma, minDPhi, projMatrix36, projMatrix36T, debug, &ev.geom_);
       }//end of running candidates loop
@@ -103,7 +105,7 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
     if (debug) std::cout << "saving seed #" << iseed << " par=" << evt_seeds[iseed].parameters() << std::endl;
     track_candidates[iseed].push_back(std::pair<Track, TrackState>(evt_seeds[iseed],evt_seeds[iseed].state()));
   }
-  
+
   for (unsigned int ilay=nlayers_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
 
     if (debug) std::cout << "going to layer #" << ilay << std::endl;
@@ -147,14 +149,17 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
 
 }
 
-void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<Track, TrackState> >& tmp_candidates,
-                       unsigned int ilayer,std::vector<HitVec >& evt_lay_hits,
-                       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int nlayers_per_seed,
-                       const unsigned int maxCand, const float chi2Cut,const float nSigma,const float minDPhi,
-                       SMatrix36& projMatrix36,SMatrix63& projMatrix36T, bool debug,Geometry* theGeom){
+void processCandidates(const std::pair<Track, TrackState>& cand,
+                       std::vector<std::pair<Track, TrackState> >& tmp_candidates,
+                       unsigned int ilayer,
+                       const std::vector<HitVec >& evt_lay_hits,
+                       const std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
+                       const int nlayers_per_seed, const unsigned int maxCand,
+                       const float chi2Cut,const float nSigma,const float minDPhi,
+                       const SMatrix36& projMatrix36, const SMatrix63& projMatrix36T, bool debug, Geometry* theGeom){
 
-  Track& tkcand = cand.first;
-  TrackState& updatedState = cand.second;
+  const Track& tkcand = cand.first;
+  const TrackState& updatedState = cand.second;
   //debug = true;
     
   if (debug) std::cout << "processing candidate with nHits=" << tkcand.nHits() << std::endl;

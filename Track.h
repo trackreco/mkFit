@@ -53,24 +53,24 @@ public:
 
   ~Track(){}
 
-  int&          charge() {return state_.charge;}
-  SVector3      position() {return SVector3(state_.parameters[0],state_.parameters[1],state_.parameters[2]);}
-  SVector3      momentum() {return SVector3(state_.parameters[3],state_.parameters[4],state_.parameters[5]);}
-  SVector6&     parameters() {return state_.parameters;}
-  SMatrixSym66& errors() {return state_.errors;}
-  TrackState&   state() {return state_;}
-  float         chi2() {return chi2_;}
+  int           charge() const {return state_.charge;}
+  SVector3      position() const {return SVector3(state_.parameters[0],state_.parameters[1],state_.parameters[2]);}
+  SVector3      momentum() const {return SVector3(state_.parameters[3],state_.parameters[4],state_.parameters[5]);}
+  const SVector6&     parameters() const {return state_.parameters;}
+  const SMatrixSym66& errors() const {return state_.errors;}
+  const TrackState&   state() const {return state_;}
+  float         chi2() const {return chi2_;}
 
-  HitVec& hitsVector() {return hits_;}
-  HitVec& initHitsVector() {return initHits_;}
+  const HitVec& hitsVector() const {return hits_;}
+  const HitVec& initHitsVector() const {return initHits_;}
   void addHit(Hit hit,float chi2) {hits_.push_back(hit);chi2_+=chi2;}
   void addInitHit(Hit hit);
   void resetHits() {hits_.clear();}
-  unsigned int nHits() {return hits_.size();}
+  unsigned int nHits() const {return hits_.size();}
   unsigned int SimTrackID() const;
   std::vector<unsigned int> SimTrackIDs() const;
 
-  Track clone() {return Track(state_,hits_,chi2_);}
+  Track clone() const {return Track(state_,hits_,chi2_);}
 
 private:
   TrackState state_;

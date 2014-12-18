@@ -59,14 +59,14 @@ public:
 
   ~Hit(){}
 
-  SVector3&  position() {return state_.parameters;}
-  SMatrixSym33& error() {return state_.errors;}
-  SVector3& parameters() {return state_.parameters;}
-  float r() {
+  const SVector3&  position() const {return state_.parameters;}
+  const SMatrixSym33& error() const {return state_.errors;}
+  const SVector3& parameters() const {return state_.parameters;}
+  float r() const {
     return sqrt(state_.parameters.At(0)*state_.parameters.At(0) +
                 state_.parameters.At(1)*state_.parameters.At(1));
   }
-  MeasurementState measurementState() {
+  MeasurementState measurementState() const {
     return state_;
   }
 

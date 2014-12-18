@@ -4,11 +4,11 @@ const double tolerance = 0.001;
 
 // line propagation from state radius to hit radius
 // assuming radial direction (i.e. origin at (0,0))
-TrackState propagateLineToR(TrackState& inputState, float r) {
+TrackState propagateLineToR(const TrackState& inputState, float r) {
   bool dump = false;
 
-  SVector6& par = inputState.parameters;
-  SMatrixSym66& err = inputState.errors;
+  const SVector6& par = inputState.parameters;
+  const SMatrixSym66& err = inputState.errors;
 
   //straight line for now
   float r0 = sqrt(par.At(0)*par.At(0)+par.At(1)*par.At(1));
@@ -41,7 +41,7 @@ struct HelixState {
     setHelixPar(s);
   }
 
-  void setCoords(SVector6& par) {
+  void setCoords(const SVector6& par) {
     x = par.At(0);
     y = par.At(1);
     z = par.At(2);
@@ -51,7 +51,7 @@ struct HelixState {
     r0 = sqrt(x*x+y*y);
   }
 
-  void setHelixPar(TrackState& s) {
+  void setHelixPar(const TrackState& s) {
     charge = s.charge;
 
     pt2 = px*px+py*py;
@@ -215,7 +215,7 @@ void HelixState::propagateErrors(const HelixState& in, float totalDistance, bool
 
 // Propagate to the next obj
 // each step travels for a path length equal to the safe step between the current position and the nearest object.
-TrackState propagateHelixToNextSolid(TrackState& inputState, const Geometry* theGeom) {
+TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry* theGeom) {
   bool dump = false;
 
   const HelixState hsin(inputState);
@@ -292,7 +292,7 @@ TrackState propagateHelixToNextSolid(TrackState& inputState, const Geometry* the
 
 // Propagate to the next obj
 // each step travels for a path length equal to the safe step between the current position and the nearest object.
-TrackState propagateHelixToLayer(TrackState& inputState, unsigned int layer, const Geometry* theGeom) {
+TrackState propagateHelixToLayer(TrackState inputState, unsigned int layer, const Geometry* theGeom) {
   bool dump = false;
 
   const VUSolid* target = theGeom->Layer(layer);
@@ -356,7 +356,7 @@ TrackState propagateHelixToLayer(TrackState& inputState, unsigned int layer, con
 // each step travels for a path lenght equal to delta r between the current position and the target radius. 
 // for track with pT>=1 GeV this converges to the correct path lenght in <5 iterations
 // derivatives need to be updated at each iteration
-TrackState propagateHelixToR(TrackState& inputState, float r) {
+TrackState propagateHelixToR(TrackState inputState, float r) {
   bool dump = false;
 
   const HelixState hsin(inputState);

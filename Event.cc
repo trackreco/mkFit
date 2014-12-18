@@ -153,8 +153,8 @@ void Event::Seed()
 {
   //create seeds (from sim tracks for now)
   for (unsigned int itrack=0;itrack<simTracks_.size();++itrack) {
-    Track& trk = simTracks_[itrack];
-    HitVec& hits = trk.hitsVector();
+    const Track& trk = simTracks_[itrack];
+    const HitVec& hits = trk.hitsVector();
     TrackState updatedState = trk.state();
     HitVec seedhits;
     for (auto ilayer=0U;ilayer<nlayers_per_seed;++ilayer) {//seeds have first three layers as seeds

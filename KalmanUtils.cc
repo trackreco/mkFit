@@ -1,7 +1,7 @@
 #include "KalmanUtils.h"
 
-float computeChi2(TrackState& propagatedState, MeasurementState& measurementState, 
-                                  SMatrix36& projMatrix,SMatrix63& projMatrixT) {
+float computeChi2(const TrackState& propagatedState, const MeasurementState& measurementState, 
+                  const SMatrix36& projMatrix, const SMatrix63& projMatrixT) {
 
   //test adding noise (mutiple scattering) on position (needs to be done more properly...)
   //SMatrix66 noise;
@@ -87,7 +87,7 @@ void updateParameters66(TrackState& propagatedState, MeasurementState& measureme
 
 //see e.g. http://inspirehep.net/record/259509?ln=en
 TrackState updateParameters(TrackState& propagatedState, MeasurementState& measurementState, 
-                            SMatrix36& projMatrix,SMatrix63& projMatrixT)
+                            const SMatrix36& projMatrix, const SMatrix63& projMatrixT)
 {
 #ifdef DEBUG
   const bool print = g_dump;
@@ -110,7 +110,7 @@ TrackState updateParameters(TrackState& propagatedState, MeasurementState& measu
     //resErrInv.Invert();//fixme
     resErrInv.InvertFast();//fixme
     //resErrInv.InvertChol();//fixme
-  if (invResult==false) std::cout << "FAILED INVERSION" << std::endl;
+  //if (invResult==false) std::cout << "FAILED INVERSION" << std::endl;
 
   SMatrix63 pMTrEI = projMatrixT*resErrInv;
 

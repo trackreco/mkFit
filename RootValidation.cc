@@ -20,6 +20,7 @@ float deltaR(float phi1, float eta1, float phi2, float eta2) {
 RootValidation::RootValidation(std::string fileName, bool saveTree)
   : savetree_(saveTree)
 {
+  std::lock_guard<std::mutex> locker(glock_);
   setupHists();
 
   if (savetree_) {
@@ -102,7 +103,7 @@ RootValidation::RootValidation(std::string fileName, bool saveTree)
   }
 }
 
-void RootValidation::fillSimHists(TrackVec& evt_sim_tracks)
+void RootValidation::fillSimHists(const TrackVec& evt_sim_tracks)
 {
   // these are expensive, only do once per track
   std::vector<float> phi;
@@ -112,6 +113,7 @@ void RootValidation::fillSimHists(TrackVec& evt_sim_tracks)
     eta.push_back(getEta(track.momentum()[0], track.momentum()[1], track.momentum()[2]));
   }
 
+  std::lock_guard<std::mutex> locker(glock_);
   for(unsigned int isim_track = 0; isim_track < evt_sim_tracks.size(); ++isim_track){
     validation_hists_["gen_trk_Pt"]->Fill( getPt(evt_sim_tracks[isim_track].momentum()[0], evt_sim_tracks[isim_track].momentum()[1]) );
     validation_hists_["gen_trk_Px"]->Fill( evt_sim_tracks[isim_track].momentum()[0] );
@@ -120,7 +122,7 @@ void RootValidation::fillSimHists(TrackVec& evt_sim_tracks)
     validation_hists_["gen_trk_phi"]->Fill( phi[isim_track] );
     validation_hists_["gen_trk_eta"]->Fill( eta[isim_track] );
     
-    HitVec& hits = evt_sim_tracks[isim_track].hitsVector();
+    const HitVec& hits = evt_sim_tracks[isim_track].hitsVector();
     for (auto&& hit : hits){
       float rad = sqrt(hit.position()[0]*hit.position()[0] + hit.position()[1]*hit.position()[1]);
       validation_hists_["gen_hits_rad"]->Fill( rad );
@@ -161,8 +163,9 @@ void RootValidation::fillSimHists(TrackVec& evt_sim_tracks)
   }
 }
 
-void RootValidation::fillCandidateHists(TrackVec& evt_track_candidates)
+void RootValidation::fillCandidateHists(const TrackVec& evt_track_candidates)
 {
+  std::lock_guard<std::mutex> locker(glock_);
   //dump candidates
   for (auto&& tkcand : evt_track_candidates) {
     validation_hists_["rec_trk_nHits"]->Fill(tkcand.nHits());
@@ -178,7 +181,8 @@ void RootValidation::fillCandidateHists(TrackVec& evt_track_candidates)
   }
 }
 
-void RootValidation::fillAssociationHists(TrackVec& evt_track_candidates, TrackVec& evt_sim_tracks){
+void RootValidation::fillAssociationHists(const TrackVec& evt_track_candidates, const TrackVec& evt_sim_tracks){
+  std::lock_guard<std::mutex> locker(glock_);
   //setup for assocation; these are dense in simIndex, so use a vector
   std::vector<unsigned int> associated_indices_found_RD(evt_sim_tracks.size()); // key is simIndex, value is n times simTrack has index matched to associated reco track
   std::vector<unsigned int> associated_indices_found_SD(evt_sim_tracks.size()); // key is simIndex, value is n times simTrack has index matched to associated reco track
@@ -281,6 +285,7 @@ void RootValidation::fillAssociationHists(TrackVec& evt_track_candidates, TrackV
 void RootValidation::fillBuildHists(unsigned int layer, unsigned int branches, unsigned int cands)
 {
   if (savetree_) {
+    std::lock_guard<std::mutex> locker(glock_);
     layer_ = layer;
     branches_ = branches;
     cands_ = cands;
@@ -288,9 +293,11 @@ void RootValidation::fillBuildHists(unsigned int layer, unsigned int branches, u
   }
 }
 
-void RootValidation::fillFitStateHists(TrackState& simStateHit0, TrackState& cfitStateHit0)
+void RootValidation::fillFitStateHists(const TrackState& simStateHit0, const TrackState& cfitStateHit0)
 {
+  // may get inconsistencies due to changes made before the fill is done.
   if (savetree_) {
+    std::lock_guard<std::mutex> locker(glock_);
     simHit0_x=simStateHit0.parameters[0];
     simHit0_y=simStateHit0.parameters[1];
     simHit0_z=simStateHit0.parameters[2];
@@ -312,9 +319,10 @@ void RootValidation::fillFitStateHists(TrackState& simStateHit0, TrackState& cfi
   }
 }
 
-void RootValidation::fillFitHitHists(unsigned int hitid, HitVec& mcInitHitVec, MeasurementState& measState, TrackState& propState, TrackState& updatedState)
+void RootValidation::fillFitHitHists(unsigned int hitid, const HitVec& mcInitHitVec, const MeasurementState& measState, const TrackState& propState, const TrackState& updatedState)
 {
   if (savetree_){
+    std::lock_guard<std::mutex> locker(glock_);
     MeasurementState initMeasState;
     for (auto&& mchit : mcInitHitVec){
       if(mchit.hitID() == hitid){
@@ -378,9 +386,10 @@ void RootValidation::fillFitHitHists(unsigned int hitid, HitVec& mcInitHitVec, M
   }
 }
 
-void RootValidation::fillFitTrackHists(TrackState& initState, TrackState& updatedState)
+void RootValidation::fillFitTrackHists(const TrackState& initState, const TrackState& updatedState)
 {
   if (savetree_) {
+    std::lock_guard<std::mutex> locker(glock_);
     pt_mc  = sqrt(initState.parameters[3]*initState.parameters[3]+initState.parameters[4]*initState.parameters[4]);
     pt_fit = sqrt(updatedState.parameters[3]*updatedState.parameters[3]+updatedState.parameters[4]*updatedState.parameters[4]);
     pt_err = sqrt( updatedState.errors[3][3]*updatedState.parameters[3]*updatedState.parameters[3] +
@@ -392,6 +401,7 @@ void RootValidation::fillFitTrackHists(TrackState& initState, TrackState& update
 
 void RootValidation::saveHists() {
   if (savetree_) {
+    std::lock_guard<std::mutex> locker(glock_);
     f_->cd();
     for(auto&& mapitr : validation_hists_){
       mapitr.second->Write();
@@ -402,6 +412,7 @@ void RootValidation::saveHists() {
 }
 
 void RootValidation::deleteHists() {
+  std::lock_guard<std::mutex> locker(glock_);
   for(auto&& mapitr : validation_hists_) {
     delete (mapitr.second);
   }

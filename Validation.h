@@ -4,13 +4,13 @@
 
 class Validation {
 public:
-  virtual void fillSimHists(TrackVec& evt_sim_tracks) {}
-  virtual void fillCandidateHists(TrackVec& evt_track_candidates) {}
+  virtual void fillSimHists(const TrackVec&) {}
+  virtual void fillCandidateHists(const TrackVec&) {}
   virtual void fillBuildHists(unsigned int, unsigned int, unsigned int) {}
-  virtual void fillAssociationHists(TrackVec& evt_track_candidates, TrackVec& evt_sim_tracks) {}
-  virtual void fillFitStateHists(TrackState&, TrackState&) {}
-  virtual void fillFitHitHists(unsigned int, HitVec&, MeasurementState&, TrackState&, TrackState&) {}
-  virtual void fillFitTrackHists(TrackState&, TrackState&) {}
+  virtual void fillAssociationHists(const TrackVec&, const TrackVec&) {}
+  virtual void fillFitStateHists(const TrackState&, const TrackState&) {}
+  virtual void fillFitHitHists(unsigned int, const HitVec&, const MeasurementState&, const TrackState&, const TrackState&) {}
+  virtual void fillFitTrackHists(const TrackState&, const TrackState&) {}
   virtual void saveHists() {}
   virtual void deleteHists() {}
 };
