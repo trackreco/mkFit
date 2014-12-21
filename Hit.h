@@ -14,7 +14,7 @@ struct MCHitInfo {
   unsigned int ithLayerHit_;
   unsigned int mcHitID_;
 
-  static unsigned int mcHitIDCounter_;
+  static std::atomic<unsigned int> mcHitIDCounter_;
 };
 
 typedef std::vector<MCHitInfo> MCHitInfoVec;

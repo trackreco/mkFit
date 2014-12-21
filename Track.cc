@@ -20,6 +20,8 @@ std::vector<unsigned int> Track::SimTrackIDs() const
 // find the simtrack that provided the most hits
 unsigned int Track::SimTrackID() const
 {
+  if (hits_.size() == 0) return 0;
+
   auto mctrack(SimTrackIDs());
   std::sort(mctrack.begin(), mctrack.end());
 

@@ -182,7 +182,7 @@ void Event::Seed()
 
 void Event::Find()
 {
-  buildTestSerial(*this, nlayers_per_seed, maxCand, chi2Cut, nSigma, minDPhi);
+  buildTracks(*this, nlayers_per_seed, maxCand, chi2Cut, nSigma, minDPhi);
   validation_.fillAssociationHists(candidateTracks_,simTracks_);
   validation_.fillCandidateHists(candidateTracks_);
 }
