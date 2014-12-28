@@ -50,7 +50,7 @@ void buildTracks(Event& ev,const int nlayers_per_seed,
   const auto& projMatrix36(ev.projMatrix36_);
   const auto& projMatrix36T(ev.projMatrix36T_);
   bool debug(false);
-  //std::mutex evtlock;
+  std::mutex evtlock;
 
   std::vector<candvec> track_candidates(evt_seeds.size());
   for (auto iseed = 0U; iseed < evt_seeds.size(); iseed++) {
@@ -58,14 +58,13 @@ void buildTracks(Event& ev,const int nlayers_per_seed,
     track_candidates[iseed].push_back(cand_t(seed, seed.state()));
   }
 
-  for (auto ilay = nlayers_per_seed; ilay < evt_lay_hits.size(); ++ilay) //loop over layers, starting from after the seed
-  {
-    if (debug) std::cout << "going to layer #" << ilay << " with N cands=" << track_candidates.size() << std::endl;
+  //loop over layers, starting from after the seed
+  for (auto ilay = nlayers_per_seed; ilay < evt_lay_hits.size(); ++ilay) {
+    if (debug) std::cout << "going to layer #" << ilay << " with N cands = " << track_candidates.size() << std::endl;
 
     //process seeds
     parallel_for( tbb::blocked_range<size_t>(0, evt_seeds.size()), 
-        [&](const tbb::blocked_range<size_t>& seediter)
-    {
+        [&](const tbb::blocked_range<size_t>& seediter) {
       for (auto iseed = seediter.begin(); iseed != seediter.end(); ++iseed) {
         auto&& seed(evt_seeds[iseed]);
         if (debug) std::cout << "processing seed # " << seed.SimTrackID() << " par=" << seed.parameters() << std::endl;
@@ -74,45 +73,46 @@ void buildTracks(Event& ev,const int nlayers_per_seed,
         candvec tmp_candidates;
         auto&& candidates(track_candidates[iseed]);
 
-        //loop over running candidates
-        parallel_for( tbb::blocked_range<CandIter>(candidates.begin(),candidates.end()), 
-            [&](const tbb::blocked_range<CandIter>& cands)
-        {
-          for (auto&& cand : cands)
-          {
-            processCandidates(cand, tmp_candidates, ilay, evt_lay_hits, evt_lay_phi_hit_idx,
-              nlayers_per_seed, maxCand, chi2Cut, nSigma, minDPhi, projMatrix36, projMatrix36T, debug, &ev.geom_);
+        if (candidates.size() > 0) {
+          //loop over running candidates
+          parallel_for( tbb::blocked_range<CandIter>(candidates.begin(),candidates.end()), 
+              [&](const tbb::blocked_range<CandIter>& cands) {
+            for (auto&& cand : cands) {
+              processCandidates(cand, tmp_candidates, ilay, evt_lay_hits, evt_lay_phi_hit_idx,
+                nlayers_per_seed, maxCand, chi2Cut, nSigma, minDPhi, projMatrix36, projMatrix36T, debug, &ev.geom_);
+            }
+          }); //end of running candidates loop
+
+          ev.validation_.fillBuildHists(ilay, tmp_candidates.size(), candidates.size());
+
+          if (tmp_candidates.size()>maxCand) {
+            if (debug) std::cout << "huge size=" << tmp_candidates.size() << " keeping best "<< maxCand << " only" << std::endl;
+            std::partial_sort(tmp_candidates.begin(),tmp_candidates.begin()+maxCand,tmp_candidates.end(),sortByHitsChi2);
+            tmp_candidates.resize(maxCand); // thread local, so ok not thread safe
           }
-        }); //end of running candidates loop
-
-        ev.validation_.fillBuildHists(ilay, tmp_candidates.size(), candidates.size());
-
-        if (tmp_candidates.size()>maxCand) {
-          if (debug) std::cout << "huge size=" << tmp_candidates.size() << " keeping best "<< maxCand << " only" << std::endl;
-          std::sort(tmp_candidates.begin(),tmp_candidates.end(),sortByHitsChi2);
-          tmp_candidates.resize(maxCand); // thread local, so ok not thread safe
-        }
-        if (tmp_candidates.size()!=0) {
+          if (tmp_candidates.size()==0) {
+            if (debug) std::cout << "no more candidates, saving best" << std::endl;
+            auto&& best = std::max_element(candidates.begin(),candidates.end(),sortByHitsChi2);
+            std::lock_guard<std::mutex> evtguard(evtlock); // should be rare
+            evt_track_candidates.push_back(best->first);
+          }
           if (debug) std::cout << "swapping with size=" << tmp_candidates.size() << std::endl;
           candidates.swap(tmp_candidates);
           tmp_candidates.clear();
-        } else {//fixme: what to do in case of parallel version?
-          if (debug) std::cout << "no more candidates, no stopping" << std::endl;
-          //break;
         }
-
-
       }
     }); //end of process seeds loop
   } //end of layer loop
 
-  for (auto&& cand : track_candidates)
+  for (auto&& cand : track_candidates) {
     if (cand.size()>0) {
-      std::sort(cand.begin(),cand.end(),sortByHitsChi2);
-      if (debug) std::cout << "sorted by chi2" << std::endl;
+      // only save one track candidate per seed, one with lowest chi2
+      //std::partial_sort(cand.begin(),cand.begin()+1,cand.end(),sortByHitsChi2);
       //std::lock_guard<std::mutex> evtguard(evtlock);
-      evt_track_candidates.push_back(cand[0].first); // only save one track candidate per seed, one with lowest chi2
+      auto&& best = std::max_element(cand.begin(),cand.end(),sortByHitsChi2);
+      evt_track_candidates.push_back(best->first);
     }
+  }
 }
 
 void processCandidates(const cand_t& cand,
@@ -205,8 +205,7 @@ void processCandidates(const cand_t& cand,
     
   //loop over hits on layer (consider only hits from partition)
   parallel_for( tbb::blocked_range<size_t>(firstIndex, lastIndex), 
-      [&](const tbb::blocked_range<size_t>& ihits)
-  {
+      [&](const tbb::blocked_range<size_t>& ihits) {
     for (auto ihit = ihits.begin(); ihit != ihits.end(); ++ihit) {
       auto&& hitCand = evt_lay_hits[ilayer][ihit % totalSize];
     
@@ -240,7 +239,7 @@ void processCandidates(const cand_t& cand,
   }); //end of consider hits on layer loop
 
   //add also the candidate for no hit found
-  if (tkcand.nHits()==ilayer) {//only if this is the first missing hit
+  if (tkcand.nHits()==ilayer) { //only if this is the first missing hit
     if (debug) std::cout << "adding candidate with no hit" << std::endl;
     tmp_candidates.push_back(cand_t(tkcand,propState));
   }
