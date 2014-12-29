@@ -24,7 +24,7 @@ typedef candvec::const_iterator CandIter;
 void processCandidates(const cand_t& cand,candvec& tmp_candidates,
                        unsigned int ilay,const std::vector<HitVec>& evt_lay_hits,const std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
                        const int nlayers_per_seed,const unsigned int maxCand,const float chi2Cut,const float nSigma,const float minDPhi,
-                       const SMatrix36& projMatrix36,const SMatrix63& projMatrix36T,bool debug, Geometry* theGeom);
+                       bool debug, Geometry* theGeom);
 
 inline float normalizedPhi(float phi) {
   static float const TWO_PI = M_PI * 2;
@@ -47,8 +47,6 @@ void buildTracks(Event& ev,const int nlayers_per_seed,
   const auto& evt_seeds(ev.seedTracks_);
   const auto& evt_lay_hits(ev.layerHits_);
   const auto& evt_lay_phi_hit_idx(ev.lay_phi_hit_idx_);
-  const auto& projMatrix36(ev.projMatrix36_);
-  const auto& projMatrix36T(ev.projMatrix36T_);
   bool debug(false);
   std::mutex evtlock;
 
@@ -79,7 +77,7 @@ void buildTracks(Event& ev,const int nlayers_per_seed,
               [&](const tbb::blocked_range<CandIter>& cands) {
             for (auto&& cand : cands) {
               processCandidates(cand, tmp_candidates, ilay, evt_lay_hits, evt_lay_phi_hit_idx,
-                nlayers_per_seed, maxCand, chi2Cut, nSigma, minDPhi, projMatrix36, projMatrix36T, debug, &ev.geom_);
+                nlayers_per_seed, maxCand, chi2Cut, nSigma, minDPhi, debug, &ev.geom_);
             }
           }); //end of running candidates loop
 
@@ -122,7 +120,7 @@ void processCandidates(const cand_t& cand,
                        const std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
                        const int nlayers_per_seed, const unsigned int maxCand,
                        const float chi2Cut,const float nSigma,const float minDPhi,
-                       const SMatrix36& projMatrix36, const SMatrix63& projMatrix36T, bool debug, Geometry* theGeom){
+                       bool debug, Geometry* theGeom){
 
   const Track& tkcand = cand.first;
   const TrackState& updatedState = cand.second;
@@ -223,14 +221,14 @@ void processCandidates(const cand_t& cand,
                   << std::endl << std::endl << hitMeas.parameters << std::endl << std::endl;
       }
   #endif
-      const float chi2 = computeChi2(propState,hitMeas,projMatrix36,projMatrix36T);
+      const float chi2 = computeChi2(propState,hitMeas);
     
       if (debug) std::cout << "consider hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
                            << std::atan2(hity,hitx) << " " << hitz << " chi2=" << chi2 << std::endl;
     
       if ((chi2<chi2Cut)&&(chi2>0.)) {//fixme 
         if (debug) std::cout << "found hit with index: " << ihit << " chi2=" << chi2 << std::endl;
-        TrackState tmpUpdatedState = updateParameters(propState, hitMeas,projMatrix36,projMatrix36T);
+        TrackState tmpUpdatedState = updateParameters(propState, hitMeas);
         Track tmpCand = tkcand.clone();
         tmpCand.addHit(hitCand,chi2);
         tmp_candidates.push_back(cand_t(tmpCand,tmpUpdatedState));

@@ -48,9 +48,6 @@ static void print(std::string label, const MeasurementState& s)
 
 void fitTrack(const Track& trk, const Event& ev)
 {
-  const auto& projMatrix36(ev.projMatrix36_);
-  const auto& projMatrix36T(ev.projMatrix36T_);
-
   bool dump(false);
 
   //#define INWARD
@@ -94,7 +91,7 @@ void fitTrack(const Track& trk, const Event& ev)
     MeasurementState measState = hit.measurementState();
  
     TrackState propState = propagateHelixToR(updatedState, hit.r());
-    updatedState = updateParameters(propState, measState, projMatrix36, projMatrix36T);
+    updatedState = updateParameters(propState, measState);
 
     SVector3 propPos(propState.parameters[0],propState.parameters[1],propState.parameters[2]);
     SVector3 updPos(updatedState.parameters[0],updatedState.parameters[1],updatedState.parameters[2]);

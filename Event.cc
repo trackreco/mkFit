@@ -48,10 +48,6 @@ Event::Event(Geometry& g, Validation& v) : geom_(g), validation_(v)
 {
   layerHits_.resize(geom_.CountLayers());
   lay_phi_hit_idx_.resize(geom_.CountLayers());
-  projMatrix36_(0,0)=1.;
-  projMatrix36_(1,1)=1.;
-  projMatrix36_(2,2)=1.;
-  projMatrix36T_ = ROOT::Math::Transpose(projMatrix36_);
 }
 
 void Event::Simulate(unsigned int nTracks)
@@ -172,7 +168,7 @@ void Event::Seed()
       }
 #endif
       MeasurementState measState = seed_hit.measurementState();
-      updatedState = updateParameters(propState, measState,projMatrix36_,projMatrix36T_);
+      updatedState = updateParameters(propState, measState);
       seedhits.push_back(seed_hit);//fixme chi2
     }
     Track seed(updatedState,seedhits,0.);//fixme chi2
