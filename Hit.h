@@ -66,7 +66,7 @@ public:
     return sqrt(state_.parameters.At(0)*state_.parameters.At(0) +
                 state_.parameters.At(1)*state_.parameters.At(1));
   }
-  MeasurementState measurementState() const {
+  const MeasurementState& measurementState() const {
     return state_;
   }
 

@@ -52,7 +52,7 @@ void buildTracks(Event& ev,const int nlayers_per_seed,
 
   std::vector<candvec> track_candidates(evt_seeds.size());
   for (auto iseed = 0U; iseed < evt_seeds.size(); iseed++) {
-    auto&& seed(evt_seeds[iseed]);
+    const auto& seed(evt_seeds[iseed]);
     track_candidates[iseed].push_back(cand_t(seed, seed.state()));
   }
 
@@ -64,9 +64,8 @@ void buildTracks(Event& ev,const int nlayers_per_seed,
     parallel_for( tbb::blocked_range<size_t>(0, evt_seeds.size()), 
         [&](const tbb::blocked_range<size_t>& seediter) {
       for (auto iseed = seediter.begin(); iseed != seediter.end(); ++iseed) {
-        auto&& seed(evt_seeds[iseed]);
+        const auto& seed(evt_seeds[iseed]);
         if (debug) std::cout << "processing seed # " << seed.SimTrackID() << " par=" << seed.parameters() << std::endl;
-        TrackState seed_state = seed.state();
 
         candvec tmp_candidates;
         auto&& candidates(track_candidates[iseed]);
@@ -102,7 +101,7 @@ void buildTracks(Event& ev,const int nlayers_per_seed,
     }); //end of process seeds loop
   } //end of layer loop
 
-  for (auto&& cand : track_candidates) {
+  for (const auto& cand : track_candidates) {
     if (cand.size()>0) {
       // only save one track candidate per seed, one with lowest chi2
       //std::partial_sort(cand.begin(),cand.begin()+1,cand.end(),sortByHitsChi2);
@@ -160,13 +159,13 @@ void processCandidates(const cand_t& cand,
   const float dphiMinus = normalizedPhi(phi-nSigmaDphi);
   const float dphiPlus  = normalizedPhi(phi+nSigmaDphi);
   
-  unsigned int binMinus = getPhiPartition(dphiMinus);
-  unsigned int binPlus  = getPhiPartition(dphiPlus);
+  const unsigned int binMinus = getPhiPartition(dphiMinus);
+  const unsigned int binPlus  = getPhiPartition(dphiPlus);
   
   if (debug) std::cout << "phi: " << phi << " binMinus: " << binMinus << " binPlus: " << binPlus << " dphi2: " << dphi2 << std::endl;
   
-  BinInfo binInfoMinus = evt_lay_phi_hit_idx[ilayer][int(binMinus)];
-  BinInfo binInfoPlus  = evt_lay_phi_hit_idx[ilayer][int(binPlus)];
+  const BinInfo& binInfoMinus = evt_lay_phi_hit_idx[ilayer][int(binMinus)];
+  const BinInfo& binInfoPlus  = evt_lay_phi_hit_idx[ilayer][int(binPlus)];
  
   unsigned int firstIndex = binInfoMinus.first;
   unsigned int maxIndex   = binInfoPlus.first+binInfoPlus.second;
@@ -205,12 +204,9 @@ void processCandidates(const cand_t& cand,
   parallel_for( tbb::blocked_range<size_t>(firstIndex, lastIndex), 
       [&](const tbb::blocked_range<size_t>& ihits) {
     for (auto ihit = ihits.begin(); ihit != ihits.end(); ++ihit) {
-      auto&& hitCand = evt_lay_hits[ilayer][ihit % totalSize];
+      const auto& hitCand = evt_lay_hits[ilayer][ihit % totalSize];
     
-      const float hitx = hitCand.position()[0];
-      const float hity = hitCand.position()[1];
-      const float hitz = hitCand.position()[2];
-      MeasurementState hitMeas = hitCand.measurementState();
+      const MeasurementState& hitMeas = hitCand.measurementState();
 
   #ifdef LINEARINTERP
       const float ratio = (hitCand.r() - minR)/deltaR;
@@ -223,12 +219,17 @@ void processCandidates(const cand_t& cand,
   #endif
       const float chi2 = computeChi2(propState,hitMeas);
     
-      if (debug) std::cout << "consider hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
-                           << std::atan2(hity,hitx) << " " << hitz << " chi2=" << chi2 << std::endl;
+      if (debug) {
+        const float hitx = hitCand.position()[0];
+        const float hity = hitCand.position()[1];
+        const float hitz = hitCand.position()[2];
+        std::cout << "consider hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
+                  << std::atan2(hity,hitx) << " " << hitz << " chi2=" << chi2 << std::endl;
+      }
     
       if ((chi2<chi2Cut)&&(chi2>0.)) {//fixme 
         if (debug) std::cout << "found hit with index: " << ihit << " chi2=" << chi2 << std::endl;
-        TrackState tmpUpdatedState = updateParameters(propState, hitMeas);
+        const TrackState tmpUpdatedState = updateParameters(propState, hitMeas);
         Track tmpCand = tkcand.clone();
         tmpCand.addHit(hitCand,chi2);
         tmp_candidates.push_back(cand_t(tmpCand,tmpUpdatedState));

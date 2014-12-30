@@ -8,6 +8,7 @@
 
 #include <iostream>
 
+//#define DEBUG
 #ifdef DEBUG
 static void print(const TrackState& s)
 {
@@ -48,7 +49,9 @@ static void print(std::string label, const MeasurementState& s)
 
 void fitTrack(const Track& trk, const Event& ev)
 {
+#ifdef DEBUG
   bool dump(false);
+#endif
 
   //#define INWARD
 #if defined(INWARD)
@@ -99,9 +102,7 @@ void fitTrack(const Track& trk, const Event& ev)
     // crude test for numerical instability, need a better test
     if (Mag(propPos - updPos)/Mag(propPos) > 0.5) {
 #ifdef DEBUG
-      if (dump) {
-        std::cout << "Failing stability " << Mag(propPos - updPos)/Mag(propPos) << std::endl;
-      }
+      std::cout << "Failing stability " << Mag(propPos - updPos)/Mag(propPos) << std::endl;
 #endif
       updatedState.valid = false;
     }
@@ -119,11 +120,11 @@ void fitTrack(const Track& trk, const Event& ev)
     }
 #endif
     if (!propState.valid || !updatedState.valid) {
-      if (dump) {
-        std::cout << "Failed propagation "
-                  << "hitR, propR, updR = " << hit.r() << ", " << Mag(propPos) << ", " << Mag(updPos)
-                  << std::endl << std::endl;
-      }
+#ifdef DEBUG
+      std::cout << "Failed propagation "
+                << "hitR, propR, updR = " << hit.r() << ", " << Mag(propPos) << ", " << Mag(updPos)
+                << std::endl << std::endl;
+#endif
 #ifdef CHECKSTATEVALID
       break;
 #endif
