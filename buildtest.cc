@@ -229,7 +229,7 @@ void processCandidates(const Event& ev,
     
       const MeasurementState& hitMeas = hitCand.measurementState();
 
-  #ifdef LINEARINTERP
+#ifdef LINEARINTERP
       const float ratio = (hitCand.r() - minR)/deltaR;
       propState.parameters = (1.0-ratio)*propStateMin.parameters + ratio*propStateMax.parameters;
       if (debug) {
@@ -237,7 +237,7 @@ void processCandidates(const Event& ev,
                   << propStateMax.parameters << std::endl << propStateMax.parameters - propStateMin.parameters
                   << std::endl << std::endl << hitMeas.parameters << std::endl << std::endl;
       }
-  #endif
+#endif
       const float chi2 = computeChi2(propState,hitMeas);
     
       if (debug) {
