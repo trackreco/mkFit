@@ -2,6 +2,7 @@
 #define _hit_
 
 #include "Matrix.h"
+#include <atomic>
 
 struct MCHitInfo {
   MCHitInfo() : mcHitID_(++mcHitIDCounter_) {}

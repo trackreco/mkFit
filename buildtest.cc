@@ -7,6 +7,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <mutex>
 
 typedef std::pair<Track, TrackState> cand_t;
 typedef TrackVec::const_iterator TrkIter;
