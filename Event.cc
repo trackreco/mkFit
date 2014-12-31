@@ -4,13 +4,6 @@
 #include "buildtest.h"
 #include "fittest.h"
 
-const int nlayers_per_seed = 3;
-const unsigned int maxCand = 10;
-
-const float chi2Cut = 15.;
-const float nSigma = 3.;
-const float minDPhi = 0.;
-
 /*
 bool sortByZ(Hit hit1,Hit hit2){
   return hit1.position()[2]<hit2.position()[2];
@@ -153,7 +146,7 @@ void Event::Seed()
     const HitVec& hits = trk.hitsVector();
     TrackState updatedState = trk.state();
     HitVec seedhits;
-    for (auto ilayer=0U;ilayer<nlayers_per_seed;++ilayer) {//seeds have first three layers as seeds
+    for (auto ilayer=0U;ilayer<Config::nlayers_per_seed;++ilayer) {//seeds have first three layers as seeds
       Hit seed_hit;
       for (auto ihit=0U;ihit<hits.size();++ihit){
         if (hits[ihit].layer() == ilayer){
@@ -178,7 +171,7 @@ void Event::Seed()
 
 void Event::Find()
 {
-  buildTracks(*this, nlayers_per_seed, maxCand, chi2Cut, nSigma, minDPhi);
+  buildTracks(*this);
   validation_.fillAssociationHists(candidateTracks_,simTracks_);
   validation_.fillCandidateHists(candidateTracks_);
 }

@@ -8,8 +8,6 @@
 #include "Matrix.h"
 #include "Event.h"
 #include "RootValidation.h"
-#include "tbb/tick_count.h"
-#include "tbb/task_scheduler_init.h"
 
 //#define CYLINDER
 
@@ -70,6 +68,24 @@ void initGeom(Geometry& geom)
 }
 #endif
 
+
+typedef long long tick_t;
+
+static tick_t now()
+{
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  return static_cast<long long>(1000000)*static_cast<long long>(tv.tv_sec) + static_cast<long long>(tv.tv_usec);
+}
+
+static tick_t delta(tick_t& t0)
+{
+  tick_t t1 = now();
+  tick_t d = t1 - t0;
+  t0 = t1;
+  return d;
+}
+
 int main(){
   Geometry geom;
   initGeom(geom);
@@ -86,33 +102,26 @@ int main(){
   unsigned int Ntracks = 500;
   unsigned int Nevents = 100;
 
-  tbb::task_scheduler_init task;
-  task.initialize();
-  tbb::tick_count::interval_t tick[5];
+  tick_t tick[5] = {0,0,0,0,0};
 
   for (unsigned int evt=0; evt<Nevents; ++evt) {
     std::cout << "EVENT #"<< evt << std::endl;
     Event ev(geom, val);
 
-    tbb::tick_count t0(tbb::tick_count::now()), t1;
-    ev.Simulate(Ntracks);
-    t1 = tbb::tick_count::now(); tick[0] += t1 - t0; t0 = t1;
-    ev.Segment();
-    t1 = tbb::tick_count::now(); tick[1] += t1 - t0; t0 = t1;
-    ev.Seed();
-    t1 = tbb::tick_count::now(); tick[2] += t1 - t0; t0 = t1;
-    ev.Find();
-    t1 = tbb::tick_count::now(); tick[3] += t1 - t0; t0 = t1;
-    ev.Fit();
-    t1 = tbb::tick_count::now(); tick[4] += t1 - t0;
+    tick_t t0(now());
+    ev.Simulate(Ntracks); tick[0] += delta(t0);
+    ev.Segment();         tick[1] += delta(t0);
+    ev.Seed();            tick[2] += delta(t0);
+    ev.Find();            tick[3] += delta(t0);
+    ev.Fit();             tick[4] += delta(t0);
   }
 
   std::cout << "Ticks ";
   for (auto&& tt : tick) {
-    std::cout << tt.seconds() << " ";
+    std::cout << tt/1000000.0 << " ";
   }
   std::cout << std::endl;
-  task.terminate();
+
   val.saveHists();
   val.deleteHists();
   return 0;

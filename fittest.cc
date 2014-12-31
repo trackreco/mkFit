@@ -4,7 +4,9 @@
 #include "Propagation.h"
 #include "ConformalUtils.h"
 
+#ifdef TBB
 #include "tbb/tbb.h"
+#endif
 
 #include <iostream>
 
@@ -144,7 +146,6 @@ void fitTrack(const Track& trk, const Event& ev)
 
 typedef TrackVec::const_iterator TrkIter;
 
-#define TBB
 #ifdef TBB
 void runFittingTest(const Event& ev, const TrackVec& candidates)
 {
