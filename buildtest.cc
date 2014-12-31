@@ -111,7 +111,7 @@ void buildTracks(Event& ev)
     }); //end of process seeds loop
 #else
     //process seeds
-    for (auto iseed = 0; iseed != evt_seeds.size(); ++iseed) {
+    for (auto iseed = 0U; iseed != evt_seeds.size(); ++iseed) {
       const auto& seed(evt_seeds[iseed]);
       auto&& candidates(track_candidates[iseed]);
       processSeed(ev, seed, candidates, ilay, debug);
