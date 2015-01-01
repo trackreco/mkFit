@@ -41,12 +41,16 @@ void processSeed(Event& ev, const Track& seed, candvec& candidates, unsigned int
 {
   auto& evt_track_candidates(ev.candidateTracks_);
 
-  if (debug) std::cout << "processing seed # " << seed.SimTrackID() << " par=" << seed.parameters() << std::endl;
+  if (debug) {
+    std::cout << "processing seed # " << seed.SimTrackID() << " par=" << seed.parameters() 
+              << " candidates=" << candidates.size() << std::endl;
+  }
 
   candvec tmp_candidates;
+  tmp_candidates.reserve(3*candidates.size()/2);
 
   if (candidates.size() > 0) {
-#ifdef TBB
+#ifdef TBB0 // turned off, loop is too small
     //loop over running candidates
     parallel_for( tbb::blocked_range<CandIter>(candidates.begin(),candidates.end()), 
         [&](const tbb::blocked_range<CandIter>& cands) {
@@ -65,10 +69,9 @@ void processSeed(Event& ev, const Track& seed, candvec& candidates, unsigned int
 
     if (tmp_candidates.size()>Config::maxCand) {
       if (debug) std::cout << "huge size=" << tmp_candidates.size() << " keeping best "<< Config::maxCand << " only" << std::endl;
-      std::partial_sort(tmp_candidates.begin(),tmp_candidates.begin()+Config::maxCand,tmp_candidates.end(),sortByHitsChi2);
+      std::partial_sort(tmp_candidates.begin(),tmp_candidates.begin()+(Config::maxCand-1),tmp_candidates.end(),sortByHitsChi2);
       tmp_candidates.resize(Config::maxCand); // thread local, so ok not thread safe
-    }
-    if (tmp_candidates.size()==0) {
+    } else if (tmp_candidates.size()==0) {
       if (debug) std::cout << "no more candidates, saving best" << std::endl;
       // save the best candidate from the previous iteration and then swap in
       // the empty new candidate list; seed will be skipped on future iterations
@@ -196,7 +199,10 @@ void processCandidates(const Event& ev,
     lastIndex = totalSize+maxIndex;
   }
 
-  if (debug) std::cout << "total size: " << totalSize << " firstIndex: " << firstIndex << " maxIndex: " << maxIndex << " lastIndex: " << lastIndex << std::endl;
+  if (debug) {
+    std::cout << "Count: " << lastIndex-firstIndex << "/" << totalSize << " firstIndex: " << firstIndex 
+              << " maxIndex: " << maxIndex << " lastIndex: " << lastIndex << std::endl;
+  }
 
 #ifdef LINEARINTERP
   const float minR = ev.geom_.Radius(ilayer);
@@ -217,7 +223,7 @@ void processCandidates(const Event& ev,
 #endif
 #endif
     
-#ifdef TBB
+#ifdef TBB0 // turned off, loop is too small
   //loop over hits on layer (consider only hits from partition)
   parallel_for( tbb::blocked_range<size_t>(firstIndex, lastIndex), 
       [&](const tbb::blocked_range<size_t>& ihits) {
@@ -256,7 +262,7 @@ void processCandidates(const Event& ev,
         tmp_candidates.push_back(cand_t(tmpCand,tmpUpdatedState));
       }
     }
-#ifdef TBB
+#ifdef TBB0
   }); //end of consider hits on layer loop
 #endif
 

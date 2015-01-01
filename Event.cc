@@ -45,19 +45,30 @@ Event::Event(Geometry& g, Validation& v) : geom_(g), validation_(v)
 
 void Event::Simulate(unsigned int nTracks)
 {
+  simTracks_.resize(nTracks);
+  for (auto&& l : layerHits_) {
+    l.resize(nTracks);
+  }
+/*
+  Apparently USolids isn't thread safe??
+
+  parallel_for( tbb::blocked_range<size_t>(0, nTracks), 
+      [&](const tbb::blocked_range<size_t>& itracks) {
+    for (auto itrack = itracks.begin(); itrack != itracks.end(); ++itrack) {
+*/
   for (unsigned int itrack=0; itrack<nTracks; ++itrack) {
     //create the simulated track
     SVector3 pos;
     SVector3 mom;
     SMatrixSym66 covtrk;
     HitVec hits, initialhits;
-    //    unsigned int starting_layer  = 0; --> for displaced tracks, may want to consider running a separate Simulate() block with extra parameters
+    // unsigned int starting_layer  = 0; --> for displaced tracks, may want to consider running a separate Simulate() block with extra parameters
 
     int q=0;//set it in setup function
     float pt = 0.5+g_unif(g_gen)*9.5;//this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
-    setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,pt,&geom_,&initialhits);
+    setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,pt,geom_,initialhits);
     Track sim_track(q,pos,mom,covtrk,hits,0,initialhits);
-    simTracks_.push_back(sim_track);
+    simTracks_[itrack] = sim_track;
 
     //fill vector of hits in each layer (assuming there is one hit per layer in hits vector) --> for now, otherwise we would have 
     //to pass a number that counts layers passed by the track --> in setupTrackByToyMC --> for loopers

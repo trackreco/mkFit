@@ -4,6 +4,7 @@
 */
 
 #include <sstream>
+#include <chrono>
 
 #include "Matrix.h"
 #include "Event.h"
@@ -56,12 +57,14 @@ void initGeom(Geometry& geom)
 void initGeom(Geometry& geom)
 {
   std::cout << "Constructing SimpleGeometry Cylinder geometry" << std::endl;
+  float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
 
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
   // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
   for (int l = 0; l < 10; l++) {
     float r = (l+1)*4.;
+    float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
     VUSolid* utub = new VUSolid(r, r+.01);
     geom.AddLayer(utub, r, z);
   }
@@ -69,19 +72,18 @@ void initGeom(Geometry& geom)
 #endif
 
 
-typedef long long tick_t;
+typedef std::chrono::time_point<std::chrono::system_clock> timepoint;
+typedef std::chrono::duration<double> tick;
 
-static tick_t now()
+static timepoint now()
 {
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  return static_cast<long long>(1000000)*static_cast<long long>(tv.tv_sec) + static_cast<long long>(tv.tv_usec);
+  return std::chrono::system_clock::now();
 }
 
-static tick_t delta(tick_t& t0)
+static tick delta(timepoint& t0)
 {
-  tick_t t1 = now();
-  tick_t d = t1 - t0;
+  timepoint t1(now());
+  tick d = t1 - t0;
   t0 = t1;
   return d;
 }
@@ -102,23 +104,23 @@ int main(){
   unsigned int Ntracks = 500;
   unsigned int Nevents = 100;
 
-  tick_t tick[5] = {0,0,0,0,0};
+  tick ticks[5];
 
   for (unsigned int evt=0; evt<Nevents; ++evt) {
     std::cout << "EVENT #"<< evt << std::endl;
     Event ev(geom, val);
 
-    tick_t t0(now());
-    ev.Simulate(Ntracks); tick[0] += delta(t0);
-    ev.Segment();         tick[1] += delta(t0);
-    ev.Seed();            tick[2] += delta(t0);
-    ev.Find();            tick[3] += delta(t0);
-    ev.Fit();             tick[4] += delta(t0);
+    timepoint t0(now());
+    ev.Simulate(Ntracks); ticks[0] += delta(t0);
+    ev.Segment();         ticks[1] += delta(t0);
+    ev.Seed();            ticks[2] += delta(t0);
+    ev.Find();            ticks[3] += delta(t0);
+    ev.Fit();             ticks[4] += delta(t0);
   }
 
   std::cout << "Ticks ";
-  for (auto&& tt : tick) {
-    std::cout << tt/1000000.0 << " ";
+  for (auto&& tt : ticks) {
+    std::cout << tt.count() << " ";
   }
   std::cout << std::endl;
 

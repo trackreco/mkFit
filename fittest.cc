@@ -57,7 +57,7 @@ void fitTrack(const Track& trk, const Event& ev)
 
   //#define INWARD
 #if defined(INWARD)
-  auto hits = trk.hitsVector();
+  auto hits(trk.hitsVector());
   std::reverse(hits.begin(), hits.end());
 #else
   const auto& hits = trk.hitsVector();
