@@ -104,7 +104,7 @@ int main(){
   unsigned int Ntracks = 500;
   unsigned int Nevents = 100;
 
-  tick ticks[5];
+  std::vector<tick> ticks(5);
 
   for (unsigned int evt=0; evt<Nevents; ++evt) {
     std::cout << "EVENT #"<< evt << std::endl;
