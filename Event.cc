@@ -4,6 +4,10 @@
 #include "buildtest.h"
 #include "fittest.h"
 
+#ifdef TBB
+#include "tbb/tbb.h"
+#endif
+
 /*
 bool sortByZ(Hit hit1,Hit hit2){
   return hit1.position()[2]<hit2.position()[2];
@@ -47,33 +51,40 @@ void Event::Simulate(unsigned int nTracks)
 {
   simTracks_.resize(nTracks);
   for (auto&& l : layerHits_) {
-    l.resize(nTracks);
+    l.reserve(nTracks);
   }
-/*
-  Apparently USolids isn't thread safe??
 
+#ifdef TBB
   parallel_for( tbb::blocked_range<size_t>(0, nTracks), 
       [&](const tbb::blocked_range<size_t>& itracks) {
+
+    Geometry tmpgeom(geom_.clone()); // USolids isn't thread safe??
     for (auto itrack = itracks.begin(); itrack != itracks.end(); ++itrack) {
-*/
-  for (unsigned int itrack=0; itrack<nTracks; ++itrack) {
-    //create the simulated track
-    SVector3 pos;
-    SVector3 mom;
-    SMatrixSym66 covtrk;
-    HitVec hits, initialhits;
-    // unsigned int starting_layer  = 0; --> for displaced tracks, may want to consider running a separate Simulate() block with extra parameters
+#else
+    Geometry& tmpgeom(geom_);
+    for (unsigned int itrack=0; itrack<nTracks; ++itrack) {
+#endif
+      //create the simulated track
+      SVector3 pos;
+      SVector3 mom;
+      SMatrixSym66 covtrk;
+      HitVec hits, initialhits;
+      // unsigned int starting_layer  = 0; --> for displaced tracks, may want to consider running a separate Simulate() block with extra parameters
 
-    int q=0;//set it in setup function
-    float pt = 0.5+g_unif(g_gen)*9.5;//this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
-    setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,pt,geom_,initialhits);
-    Track sim_track(q,pos,mom,covtrk,hits,0,initialhits);
-    simTracks_[itrack] = sim_track;
+      int q=0;//set it in setup function
+      float pt = 0.5+g_unif(g_gen)*9.5;//this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
+      setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,pt,tmpgeom,initialhits);
+      Track sim_track(q,pos,mom,covtrk,hits,0,initialhits);
+      simTracks_[itrack] = sim_track;
+    }
+#ifdef TBB
+  });
+#endif
 
-    //fill vector of hits in each layer (assuming there is one hit per layer in hits vector) --> for now, otherwise we would have 
-    //to pass a number that counts layers passed by the track --> in setupTrackByToyMC --> for loopers
-    for (unsigned int ilayer=0;ilayer<hits.size();++ilayer) {
-      layerHits_.at(ilayer).push_back(hits.at(ilayer));
+  // fill vector of hits in each layer
+  for (const auto& track : simTracks_) {
+    for (const auto& hit : track.hitsVector()) {
+      layerHits_[hit.layer()].push_back(hit);
     }
   }
 
