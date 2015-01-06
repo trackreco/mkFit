@@ -81,8 +81,8 @@ int main(){
     std::cout << "Layer = " << i << ", Radius = " << geom.Radius(i) << std::endl;
   }
 
-  unsigned int Ntracks = 20; // 500
-  unsigned int Nevents = 1; // 100
+  unsigned int Ntracks = 500;
+  unsigned int Nevents = 100;
 
   for (unsigned int evt=0; evt<Nevents; ++evt) {
     std::cout << std::endl << "EVENT #"<< evt << std::endl << std::endl;
@@ -91,7 +91,7 @@ int main(){
     ev.Segment();
     ev.Seed();
     ev.Find();
-    //ev.Fit();
+    ev.Fit();
   }
 
   val.saveHists();

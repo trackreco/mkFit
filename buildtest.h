@@ -9,7 +9,6 @@
 #include "Geometry.h"
 #include "Event.h"
 
-void buildTestSerial(Event& ev,
-               const int nlayers_per_seed,
-      		     const unsigned int maxCand, const float chi2Cut, const float nSigma, const float minDPhi);
+void buildTestSerial(Event& ev, const int nlayers_per_seed,
+  const unsigned int maxCand, const float chi2Cut, const float nSigma, const float minDPhi);
 #endif

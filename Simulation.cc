@@ -58,13 +58,15 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
 
   TrackState tmpState = initState;
 
+  // useful info for loopers/overlaps
+
   unsigned int nLayers = theGeom->CountLayers();
   unsigned int layer_counts[nLayers];
   for (unsigned int ilayer=0;ilayer<nLayers;++ilayer){
     layer_counts[ilayer]=0;
   }
 
-  unsigned int nTotHit = 10; // can tune this number!a
+  unsigned int nTotHit = nLayers; // can tune this number!
   // to include loopers, and would rather add a break on the code if layer ten exceeded
   // if block BREAK if hit.Layer == theGeom->CountLayers() 
   // else --> if (NMAX TO LOOPER (maybe same as 10?) {break;} else {continue;}
@@ -219,7 +221,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
       std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid AFTER scatter." << std::endl;
       std::cerr << "itrack = " << itrack << ", ihit = " << ihit << ", r = " << sqrt(scatteredX*scatteredX + scatteredY*scatteredY) << ", r*4cm = " << 4*ihit << ", phi = " << atan2(scatteredY,scatteredX) << std::endl;
       std::cerr << "initX = " << initX << ", initY = " << initY << ", initZ = " << initZ << std::endl;
-      std::cerr << "scatteredX = " << scatteredX << ", scatteredY = " << scatteredY << ", scatteredZ = " << scatteredZ << std::endl << std::endl;	
+      std::cerr << "scatteredX = " << scatteredX << ", scatteredY = " << scatteredY << ", scatteredZ = " << scatteredZ << std::endl << std::endl;       
       //    continue;
     }
 
@@ -250,11 +252,13 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
       UVector3 hit_point(hitX,hitY,hitZ);
       const auto theHitSolid = theGeom->InsideWhat(hit_point);
       if ( ! theHitSolid ) {
-	std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid AFTER scatter+smear." << std::endl;
-	std::cerr << "itrack = " << itrack << ", ihit = " << ihit << ", r = " << sqrt(hitX*hitX + hitY*hitY) << ", r*4cm = " << 4*ihit << ", phi = " << atan2(hitY,hitX) << std::endl;
-	std::cerr << "initX = " << initX << ", initY = " << initY << ", initZ = " << initZ << std::endl;
-	std::cerr << "scatteredX = " << scatteredX << ", scatteredY = " << scatteredY << ", scatteredZ = " << scatteredZ << std::endl;
-	std::cerr << "hitX = " << hitX << ", hitY = " << hitY << ", hitZ = " << hitZ << std::endl << std::endl;	
+        std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid AFTER scatter+smear." << std::endl;
+        std::cerr << "itrack = " << itrack << ", ihit = " << ihit << ", r = " << sqrt(hitX*hitX + hitY*hitY) << ", r*4cm = " << 4*ihit << ", phi = " << atan2(hitY,hitX) << std::endl;
+        std::cerr << "initX = " << initX << ", initY = " << initY << ", initZ = " << initZ << std::endl;
+#ifdef SCATTERING
+        std::cerr << "scatteredX = " << scatteredX << ", scatteredY = " << scatteredY << ", scatteredZ = " << scatteredZ << std::endl;
+#endif
+        std::cerr << "hitX = " << hitX << ", hitY = " << hitY << ", hitZ = " << hitZ << std::endl << std::endl; 
       }
     }
 
@@ -282,24 +286,22 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     }
 #endif
 
-    Hit hit1(x1,covXYZ,itrack,simLayer,layer_counts[simLayer]); // first argument is pos, second is error, third is simID, fourth is layer of hit, fifth is nth hit in layer
-    hits.push_back(hit1);  
-    tmpState = propState;
-
     SVector3 initVecXYZ(initX,initY,initZ);
     Hit initHitXYZ(initVecXYZ,covXYZ,itrack,simLayer,layer_counts[simLayer]); 
     if (nullptr != initHits) {
       initHits->push_back(initHitXYZ);
     }
 
+    Hit hit1(x1,covXYZ,initHitXYZ.mcHitInfo());    // will want to make ihit == ilayer, and last number is number of times in layer -- > set to zero++ for now
+    hits.push_back(hit1);
+    tmpState = propState;
+
     if (dump){
+      std::cout << "initHitId: " << initHitXYZ.hitID() << " hit1Id: " << hit1.hitID() <<std::endl;
       std::cout << "ihit: " << ihit << " layer: " << simLayer << " counts: " << layer_counts[simLayer] << std::endl;
     }
 
     ++layer_counts[simLayer]; // count the number of times passed into layer
 
-    if (simLayer == nLayers -1){
-      break;
-    }  // will be useful for loopers
   } // end loop over nHitsPerTrack
 }

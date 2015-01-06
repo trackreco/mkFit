@@ -7,6 +7,13 @@
 
 typedef std::pair<unsigned int,unsigned int> BinInfo;
 
+/*
+struct LayEtaPhiInfo{
+  BinInfo lay_eta_hit_idx;
+  std::vector<BinInfo> vec_lay_phi_hit_idx;
+};
+*/
+
 class Event {
 public:
   Event(Geometry& g, Validation& v);
@@ -19,7 +26,8 @@ public:
   Geometry& geom_;
   Validation& validation_;
   std::vector<HitVec> layerHits_;
-  TrackVec simTracks_, seedTracks_, candidateTracks_, associatedTracks_RD_, associatedTracks_SD_, fitTracks_;
+  TrackVec simTracks_, seedTracks_, candidateTracks_;
+  //  TrackVec simTracks_, seedTracks_, candidateTracks_, associatedTracks_RD_, associatedTracks_SD_, fitTracks_;
 
   //these matrices are dummy and can be optimized without multiplying by zero all the world...
   SMatrix36 projMatrix36_;
@@ -29,7 +37,10 @@ public:
   // A vector of maps, although vector is fixed to layer, so really array of maps,
   // where maps are phi bins and the number of hits in those phi bins.
   // First is first hit index in bin, second is size of this bin
-  std::vector<std::vector<BinInfo> > lay_phi_hit_idx_;
+  //  std::vector<std::vector<BinInfo> > lay_phi_hit_idx_;
+  //  std::vector<std::vector<LayEtaPhiInfo> > lay_eta_phi_hit_idx_;
+
+  std::vector<std::vector<std::vector<BinInfo> > > lay_eta_phi_hit_idx_;
 };
 
 typedef std::vector<Event> EventVec;
