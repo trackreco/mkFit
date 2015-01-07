@@ -5,14 +5,9 @@
 #include "Validation.h"
 #include "Geometry.h"
 
-typedef std::pair<unsigned int,unsigned int> BinInfo;
+#define ETASEG
 
-/*
-struct LayEtaPhiInfo{
-  BinInfo lay_eta_hit_idx;
-  std::vector<BinInfo> vec_lay_phi_hit_idx;
-};
-*/
+typedef std::pair<unsigned int,unsigned int> BinInfo;
 
 class Event {
 public:
@@ -27,20 +22,19 @@ public:
   Validation& validation_;
   std::vector<HitVec> layerHits_;
   TrackVec simTracks_, seedTracks_, candidateTracks_;
-  //  TrackVec simTracks_, seedTracks_, candidateTracks_, associatedTracks_RD_, associatedTracks_SD_, fitTracks_;
 
   //these matrices are dummy and can be optimized without multiplying by zero all the world...
   SMatrix36 projMatrix36_;
   SMatrix63 projMatrix36T_;
 
-  // phi partitioning map: Vector of vectors of std::pairs. 
-  // A vector of maps, although vector is fixed to layer, so really array of maps,
-  // where maps are phi bins and the number of hits in those phi bins.
-  // First is first hit index in bin, second is size of this bin
-  //  std::vector<std::vector<BinInfo> > lay_phi_hit_idx_;
-  //  std::vector<std::vector<LayEtaPhiInfo> > lay_eta_phi_hit_idx_;
-
+  // phi-eta partitioning map: vector of vector of vectors of std::pairs. 
+  // vec[nLayers][nEtaBins][nPhiBins]
+#ifdef ETASEG
   std::vector<std::vector<std::vector<BinInfo> > > lay_eta_phi_hit_idx_;
+#else  
+  std::vector<std::vector<BinInfo> > lay_phi_hit_idx_;
+#endif
+
 };
 
 typedef std::vector<Event> EventVec;

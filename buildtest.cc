@@ -8,13 +8,24 @@
 #include <cmath>
 #include <iostream>
 
+#define ETASEG
+
+unsigned int somet = 0;
+
 void buildTestParallel(std::vector<Track>& evt_seeds,std::vector<Track>& evt_track_candidates,
-                       std::vector<HitVec >& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
+#ifdef ETASEG
+		       std::vector<HitVec >& evt_lay_hits,std::vector<std::vector<std::vector<BinInfo> > >& evt_lay_eta_phi_hit_idx,
+#else
+		       std::vector<HitVec >& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
+#endif
                        const int& nlayers_per_seed,const unsigned int& maxCand,const float& chi2Cut,const float& nSigma,const float& minDPhi,
                        SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug, Geometry* theGeom);
 void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<Track, TrackState> >& tmp_candidates,
-		       //unsigned int ilay,std::vector<HitVec>& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
+#ifdef ETASEG
                        unsigned int ilay,std::vector<HitVec>& evt_lay_hits,std::vector<std::vector<std::vector<BinInfo> > >& evt_lay_eta_phi_hit_idx,
+#else
+		       unsigned int ilay,std::vector<HitVec>& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
+#endif
                        const int nlayers_per_seed,const unsigned int maxCand,const float chi2Cut,const float nSigma,const float minDPhi,
                        SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug, Geometry* theGeom);
 
@@ -25,6 +36,7 @@ inline float normalizedPhi(float phi) {
   return phi;
 }
 
+#ifdef ETASEG
 inline float normalizedEta(float eta) {
   static float const ETA_DET = 2.0;
 
@@ -32,7 +44,7 @@ inline float normalizedEta(float eta) {
   if (eta >  ETA_DET ) eta =  ETA_DET-.00001;
   return eta;
 }
-
+#endif
 
 static bool sortByHitsChi2(std::pair<Track, TrackState> cand1,std::pair<Track, TrackState> cand2)
 {
@@ -51,7 +63,11 @@ void buildTestSerial(Event& ev,const int nlayers_per_seed,
   auto& projMatrix36T(ev.projMatrix36T_);
   bool debug(false);
     
+#ifdef ETASEG
   auto& evt_lay_eta_phi_hit_idx(ev.lay_eta_phi_hit_idx_);
+#else
+  auto& evt_lay_phi_hit_idx(ev.lay_phi_hit_idx_);
+#endif
 
   //process seeds
   for (auto&& seed : evt_seeds) {
@@ -59,45 +75,26 @@ void buildTestSerial(Event& ev,const int nlayers_per_seed,
     TrackState seed_state = seed.state();
     //seed_state.errors *= 0.01;//otherwise combinatorics explode!!!
 
+    std::cout << seed.SimTrackIDInfo().first << std::endl;
+
     //should consider more than 1 candidate...
     std::vector<std::pair<Track, TrackState> > track_candidates;
     track_candidates.push_back(std::pair<Track, TrackState>(seed,seed_state));
-
-    /*printf("seed mcID: %1u \n" , seed.SimTrackIDInfo().first);
-
-    HitVec seedHits = seed.hitsVector();
-    for (unsigned int ihit = 0; ihit < seedHits.size(); ++ihit){
-      float hitx = seedHits[ihit].position()[0];
-      float hity = seedHits[ihit].position()[1];
-      float hitz = seedHits[ihit].position()[2];
-
-
-      printf("hitID: %2u eta: % 01.6f etapart: %1u phi: % 01.6f phipart: %2u \n", 
-	     seedHits[ihit].hitID(), 
-	     getEta(hitx,hity,hitz), getEtaPartition(getEta(hitx,hity,hitz),2.0), 
-	     getPhi(hitx,hity), getPhiPartition(getPhi(hitx,hity))
-	     );
-      
-    }
-    */
     for (unsigned int ilay=nlayers_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
-
-      //std::cout << "Layer: " << ilay <<std::endl;
-
       if (debug) std::cout << "going to layer #" << ilay << " with N cands=" << track_candidates.size() << std::endl;
 
       std::vector<std::pair<Track, TrackState> > tmp_candidates;
       for (unsigned int icand=0;icand<track_candidates.size();++icand) {//loop over running candidates 
         std::pair<Track, TrackState>& cand = track_candidates[icand];
-	//		processCandidates(cand, tmp_candidates, ilay, evt_lay_hits, evt_lay_phi_hit_idx, nlayers_per_seed, maxCand, chi2Cut, nSigma, minDPhi, projMatrix36, projMatrix36T, debug, &ev.geom_);
-	
-
-
-	processCandidates(cand, tmp_candidates, ilay, evt_lay_hits, evt_lay_eta_phi_hit_idx, nlayers_per_seed, maxCand, chi2Cut, nSigma, minDPhi, projMatrix36, projMatrix36T, debug, &ev.geom_);
+#ifdef ETASEG
+	processCandidates(cand, tmp_candidates, ilay, evt_lay_hits, evt_lay_eta_phi_hit_idx, nlayers_per_seed, maxCand, chi2Cut, nSigma, minDPhi, projMatrix36, projMatrix36T, debug, &ev.geom_);	
+#else
+	processCandidates(cand, tmp_candidates, ilay, evt_lay_hits, evt_lay_phi_hit_idx, nlayers_per_seed, maxCand, chi2Cut, nSigma, minDPhi, projMatrix36, projMatrix36T, debug, &ev.geom_);
+#endif
       }//end of running candidates loop
-
       ev.validation_.fillBuildHists(ilay, tmp_candidates.size(), track_candidates.size());
 
+      //sort and save only top candidates -- up to ten
       if (tmp_candidates.size()>maxCand) {
         if (debug) std::cout << "huge size=" << tmp_candidates.size() << " keeping best "<< maxCand << " only" << std::endl;
         std::sort(tmp_candidates.begin(),tmp_candidates.end(),sortByHitsChi2);
@@ -119,17 +116,20 @@ void buildTestSerial(Event& ev,const int nlayers_per_seed,
       if (debug) std::cout << "sorted by chi2" << std::endl;
       evt_track_candidates.push_back(track_candidates[0].first); // only save one track candidate per seed, one with lowest chi2
     }
-
-    //    std::cout << std::endl << std::endl;
-  
   }//end of process seeds loop
 
+  std::cout << somet <<std::endl;
+  
 }
 
 void buildTestParallel(std::vector<Track>& evt_seeds,
                        std::vector<Track>& evt_track_candidates,
                        std::vector<HitVec >& evt_lay_hits,
+#ifdef ETASEG
+                       std::vector<std::vector<std::vector<BinInfo> > >& evt_lay_eta_phi_hit_idx,const int& nlayers_per_seed,
+#else
                        std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int& nlayers_per_seed,
+#endif
                        const unsigned int& maxCand, const float& chi2Cut,const float& nSigma,const float& minDPhi,
                        SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug,Geometry* theGeom){
 
@@ -151,7 +151,11 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
       std::vector<std::pair<Track, TrackState> > tmp_candidates;
       for (unsigned int icand=0;icand<track_candidates[iseed].size();++icand) {//loop over running candidates 
         std::pair<Track, TrackState>& cand = track_candidates[iseed][icand];
-	//        processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nlayers_per_seed,maxCand,chi2Cut,nSigma,minDPhi,projMatrix36,projMatrix36T,debug,theGeom);
+#ifdef ETASEG
+	processCandidates(cand, tmp_candidates, ilay, evt_lay_hits, evt_lay_eta_phi_hit_idx, nlayers_per_seed, maxCand, chi2Cut, nSigma, minDPhi, projMatrix36, projMatrix36T, debug, theGeom);	
+#else
+	processCandidates(cand, tmp_candidates, ilay, evt_lay_hits, evt_lay_phi_hit_idx, nlayers_per_seed, maxCand, chi2Cut, nSigma, minDPhi, projMatrix36, projMatrix36T, debug, theGeom);
+#endif
       }//end of running candidates loop
           
       if (tmp_candidates.size()>maxCand) {
@@ -185,8 +189,11 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
 
 void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<Track, TrackState> >& tmp_candidates,
                        unsigned int ilayer,std::vector<HitVec >& evt_lay_hits,
-		       //		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int nlayers_per_seed,
-		       std::vector<std::vector<std::vector<BinInfo> > >& evt_lay_eta_phi_hit_idx,const int nlayers_per_seed,
+#ifdef ETASEG
+		       std::vector<std::vector<std::vector<BinInfo> > >& evt_lay_eta_phi_hit_idx,const int nlayers_per_seed,		       
+#else
+		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int nlayers_per_seed,		       
+#endif
                        const unsigned int maxCand, const float chi2Cut,const float nSigma,const float minDPhi,
                        SMatrix36& projMatrix36,SMatrix63& projMatrix36T, bool debug,Geometry* theGeom){
 
@@ -213,7 +220,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
               << std::atan2(predy,predx) << " " << predz << std::endl;
     dumpMatrix(propState.errors);
   }
-  
+#ifdef ETASEG  
   const float eta = getEta(predx,predy,predz);
   const float px2py2 = predx*predx+predy*predy; // predicted radius^2
   const float pz2 = predz*predz;
@@ -239,20 +246,14 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   unsigned int etaBinMinus = getEtaPartition(detaMinus,etaDet);
   unsigned int etaBinPlus  = getEtaPartition(detaPlus,etaDet);
 
-  if( (detaMinus <= -2.0) || (detaPlus >= 2.0)) {
-  std::cout << "eta: " << eta << " detaMinus: " << detaMinus << " etaBinMinus: " << etaBinMinus
-	    << " detaPlus: " << detaPlus << " etaBinPlus: " << etaBinPlus 
-	    << " deta: " << deta << " nSigmaDeta: " << nSigmaDeta << std::endl;
-  }
-  /*
-  printf("eta: % 01.6f etaBM: %1u etaBP: %1u deta2: %01.6f \n",
-	 eta, etaBinMinus, etaBinPlus, deta2 
-	 );
-  */
+  if (debug) std::cout << "eta: " << eta << " etaBinMinus: " << etaBinMinus << " etaBinPlus: " << etaBinPlus << " deta2: " << deta2 << std::endl;
+
   for (unsigned int ieta = etaBinMinus; ieta <= etaBinPlus; ++ieta){
-  
+#endif
     const float phi = getPhi(predx,predy); //std::atan2(predy,predx); 
-    // const float px2py2 = predx*predx+predy*predy; // predicted radius^2
+#ifndef ETASEG
+    const float px2py2 = predx*predx+predy*predy; // predicted radius^2
+#endif
     const float dphidx = -predy/px2py2;
     const float dphidy =  predx/px2py2;
     const float dphi2  = dphidx*dphidx*(propState.errors.At(0,0)) +
@@ -268,43 +269,43 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
     unsigned int phiBinMinus = getPhiPartition(dphiMinus);
     unsigned int phiBinPlus  = getPhiPartition(dphiPlus);
 
-    if (debug) std::cout << "phi: " << phi << " phiBinMinus: " << phiBinMinus << " phiBinPlus: " << phiBinPlus << " dphi2: " << dphi2 << std::endl;
-  
-    //  BinInfo binInfoMinus = evt_lay_phi_hit_idx[ilayer][int(phiBinMinus)];
-    //BinInfo binInfoPlus  = evt_lay_phi_hit_idx[ilayer][int(phiBinPlus)];
-
+#ifdef ETASEG
     BinInfo binInfoMinus = evt_lay_eta_phi_hit_idx[ilayer][ieta][int(phiBinMinus)];
     BinInfo binInfoPlus  = evt_lay_eta_phi_hit_idx[ilayer][ieta][int(phiBinPlus)];
- 
+#else
+    BinInfo binInfoMinus = evt_lay_phi_hit_idx[ilayer][int(phiBinMinus)];
+    BinInfo binInfoPlus  = evt_lay_phi_hit_idx[ilayer][int(phiBinPlus)];
+ #endif
+
+    if (debug) std::cout << "phi: " << phi << " phiBinMinus: " << phiBinMinus << " phiBinPlus: " << phiBinPlus << " dphi2: " << dphi2 << std::endl;
+    
     unsigned int firstIndex = binInfoMinus.first;
+    unsigned int firstIndexLast = binInfoMinus.second;
+    unsigned int secondIndexFirst = binInfoPlus.first;
+    unsigned int secondIndexLast  = binInfoPlus.second;
     unsigned int maxIndex   = binInfoPlus.first+binInfoPlus.second;
     unsigned int lastIndex  = -1;
-
-    unsigned int totalSize  = evt_lay_eta_phi_hit_idx[ilayer][ieta][62].first+evt_lay_eta_phi_hit_idx[ilayer][ieta][62].second; // set 62 to the nPhiPartition -- > need to get n total entries in indexer 
-    //unsigned int totalSize  = evt_lay_hits[ilayer].size(); 
-
+    unsigned int totalSize  = evt_lay_hits[ilayer].size(); 
+    //    unsigned int totalSize  = evt_lay_eta_phi_hit_idx[ilayer][ieta][62].first+evt_lay_eta_phi_hit_idx[ilayer][ieta][62].second; // set 62 to the nPhiPartition -- > need to get n total entries in indexer 
+    
     // Branch here from wrapping
     if (phiBinMinus<=phiBinPlus){
       lastIndex = maxIndex;
     } else { // loop wrap around end of array for phiBinMinus > phiBinPlus, for dPhiMinus < 0 or dPhiPlus > 0 at initialization
+      somet++;
+
       lastIndex = totalSize+maxIndex;
+
+      std::cout << "eta: " << eta << " etaBinMinus: " << etaBinMinus << " etaBinPlus: " << etaBinPlus << " deta2: " << deta2 << std::endl;
+      std::cout << "phi: " << phi << " phiBinMinus: " << phiBinMinus << " phiBinPlus: " << phiBinPlus << " dphi2: " << dphi2 << std::endl;
+      std::cout << "firstIndex: " << firstIndex << " lastIndex: " << lastIndex << " maxIndex: " << maxIndex << " total size: " << totalSize << std::endl;
+      std::cout <<std::endl;
+      std::cout << "firstIndexFirst: " << firstIndex << " firstIndexLast: " << firstIndexLast << " secondIndexFirst: " << secondIndexFirst << " secondIndexLast: " << secondIndexLast << " sizefirst: " << firstIndex+firstIndexLast << " " << secondIndexFirst+secondIndexLast << std::endl << std::endl;
+
+
     }
 
-    /*
-    
-    printf("   ieta: %1u phi: % 01.6f phiBM: %1u phiBP: %1u dphi2: %01.6f \n",
-	   ieta, phi, phiBinMinus, phiBinPlus, dphi2 
-	   );
-    */
-    if (debug) std::cout << "phi: " << phi << " phiBinMinus: " << phiBinMinus << " phiBinPlus: " << phiBinPlus << " dphi2: " << dphi2 << std::endl;
     if (debug) std::cout << "total size: " << totalSize << " firstIndex: " << firstIndex << " maxIndex: " << maxIndex << " lastIndex: " << lastIndex << std::endl;
-
-    /*
-    printf("   totalSize: %1u firstIndex: %1u maxIndex: %1u lastIndex: %1u \n", 
-	   totalSize, firstIndex, maxIndex, lastIndex
-	   ); 
-    */
-  
 
 
 #ifdef LINEARINTERP
@@ -328,18 +329,11 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
     
     for (unsigned int ihit=firstIndex;ihit<lastIndex;++ihit) {//loop over hits on layer (consider only hits from partition)
 
+      if(firstIndex>maxIndex){
+	std::cout << "ihit: " << ihit % totalSize << std::endl;
+      }
+
       Hit hitCand = evt_lay_hits[ilayer][ihit % totalSize];
-    
-      const float hitx = hitCand.position()[0];
-      const float hity = hitCand.position()[1];
-      const float hitz = hitCand.position()[2];
-      /*
-      printf("        ihit: %1u hitID: %2u trackID: %1u eta: % 01.6f etapart: %1u phi: % 01.6f phipart: %2u \n", 
-	     ihit, hitCand.hitID(), hitCand.mcTrackID(), 
-	     getEta(hitx,hity,hitz), getEtaPartition(getEta(hitx,hity,hitz),2.0), 
-	     getPhi(hitx,hity), getPhiPartition(getPhi(hitx,hity))
-	     );
-      */
       MeasurementState hitMeas = hitCand.measurementState();
 
 #ifdef LINEARINTERP
@@ -353,9 +347,6 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
 #endif
       const float chi2 = computeChi2(propState,hitMeas,projMatrix36,projMatrix36T);
     
-      if (debug) std::cout << "consider hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
-			   << std::atan2(hity,hitx) << " " << hitz << " chi2=" << chi2 << std::endl;
-    
       if ((chi2<chi2Cut)&&(chi2>0.)) {//fixme 
 	if (debug) std::cout << "found hit with index: " << ihit << " chi2=" << chi2 << std::endl;
 	TrackState tmpUpdatedState = updateParameters(propState, hitMeas,projMatrix36,projMatrix36T);
@@ -364,8 +355,10 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
 	tmp_candidates.push_back(std::pair<Track, TrackState>(tmpCand,tmpUpdatedState));
       }
     }//end of consider hits on layer loop
-  }//end of eta loop
 
+#ifdef ETASEG
+  }//end of eta loop
+#endif
 
   //add also the candidate for no hit found
   if (tkcand.nHits()==ilayer) {//only if this is the first missing hit
