@@ -3,6 +3,7 @@
 #include "KalmanUtils.h"
 #include "buildtest.h"
 #include "fittest.h"
+#include "Debug.h"
 
 #ifdef TBB
 #include "tbb/tbb.h"
@@ -41,7 +42,7 @@ static bool sortByPhi(Hit hit1, Hit hit2)
   return std::atan2(hit1.position()[1],hit1.position()[0])<std::atan2(hit2.position()[1],hit2.position()[0]);
 }
 
-Event::Event(Geometry& g, Validation& v) : geom_(g), validation_(v)
+Event::Event(const Geometry& g, Validation& v) : geom_(g), validation_(v)
 {
   layerHits_.resize(geom_.CountLayers());
   lay_phi_hit_idx_.resize(geom_.CountLayers());
@@ -55,13 +56,13 @@ void Event::Simulate(unsigned int nTracks)
   }
 
 #ifdef TBB
-  parallel_for( tbb::blocked_range<size_t>(0, nTracks), 
+  parallel_for( tbb::blocked_range<size_t>(0, nTracks,100), 
       [&](const tbb::blocked_range<size_t>& itracks) {
 
-    Geometry tmpgeom(geom_.clone()); // USolids isn't thread safe??
+    const Geometry tmpgeom(geom_.clone()); // USolids isn't thread safe??
     for (auto itrack = itracks.begin(); itrack != itracks.end(); ++itrack) {
 #else
-    Geometry& tmpgeom(geom_);
+    const Geometry& tmpgeom(geom_);
     for (unsigned int itrack=0; itrack<nTracks; ++itrack) {
 #endif
       //create the simulated track
@@ -93,18 +94,20 @@ void Event::Simulate(unsigned int nTracks)
 
 void Event::Segment()
 {
+#ifdef DEBUG
  bool debug=false;
+#endif
   //sort in phi and dump hits per layer, fill phi partitioning
   for (unsigned int ilayer=0; ilayer<layerHits_.size(); ++ilayer) {
-    if (debug) std::cout << "Hits in layer=" << ilayer << std::endl;
+    dprint("Hits in layer=" << ilayer);
     std::sort(layerHits_[ilayer].begin(), layerHits_[ilayer].end(), sortByPhi);
     std::vector<unsigned int> lay_phi_bin_count(63);//should it be 63? - yes!
     for (unsigned int ihit=0;ihit<layerHits_[ilayer].size();++ihit) {
       float hitx = layerHits_[ilayer][ihit].position()[0];
       float hity = layerHits_[ilayer][ihit].position()[1];
       float hitz = layerHits_[ilayer][ihit].position()[2];
-      if (debug) std::cout << "hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
-                           << std::atan2(hity,hitx) << " " << hitz << std::endl;
+      dprint("hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
+                              << std::atan2(hity,hitx) << " " << hitz);
       unsigned int bin = getPhiPartition(std::atan2(hity,hitx));
       lay_phi_bin_count[bin]++;
     }

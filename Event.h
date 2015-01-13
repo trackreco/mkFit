@@ -17,14 +17,14 @@ struct Config {
 
 class Event {
 public:
-  Event(Geometry& g, Validation& v);
+  Event(const Geometry& g, Validation& v);
   void Simulate(unsigned int nTracks);
   void Segment();
   void Seed();
   void Find();
   void Fit();
 
-  Geometry& geom_;
+  const Geometry& geom_;
   Validation& validation_;
   std::vector<HitVec> layerHits_;
   TrackVec simTracks_, seedTracks_, candidateTracks_, fitTracks_;

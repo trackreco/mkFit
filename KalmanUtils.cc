@@ -1,4 +1,5 @@
 #include "KalmanUtils.h"
+#include "Debug.h"
 
 static const SMatrix36 projMatrix  = ROOT::Math::SMatrixIdentity();
 static const SMatrix63 projMatrixT = ROOT::Math::Transpose(projMatrix);
@@ -40,7 +41,7 @@ void updateParameters66(TrackState& propagatedState, MeasurementState& measureme
 TrackState updateParameters(const TrackState& propagatedState, const MeasurementState& measurementState)
 {
 #ifdef DEBUG
-  const bool print = g_dump;
+  const bool debug = g_dump;
 #endif
   int invFail(0);
   const SMatrixSym66& propErr = propagatedState.errors;
@@ -63,9 +64,8 @@ TrackState updateParameters(const TrackState& propagatedState, const Measurement
   result.valid = propagatedState.valid;
 
 #ifdef DEBUG
-  if (print) {
-    std::cout << "\n updateParameters \n" << std::endl;
-    std::cout << "propErr" << std::endl;
+  if (debug) {
+    std::cout << "\n updateParameters \n" << std::endl << "propErr" << std::endl;
     dumpMatrix(propErr);
     std::cout << "residual: " << residual[0] << " " << residual[1] << " " << residual[2] << std::endl
               << "resErr" << std::endl;

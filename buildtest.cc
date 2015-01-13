@@ -4,6 +4,7 @@
 #include "Propagation.h"
 #include "Simulation.h"
 #include "Event.h"
+#include "Debug.h"
 
 #include <cmath>
 #include <iostream>
@@ -18,15 +19,12 @@ typedef std::vector<cand_t> candvec;
 #include "tbb/tbb.h"
 typedef tbb::concurrent_vector<cand_t> candvec;
 #endif
-typedef candvec::const_iterator CandIter;
+typedef candvec::const_iterator canditer;
 
 void processCandidates(const Event& ev, const cand_t& cand, candvec& tmp_candidates, unsigned int ilay, bool debug);
 
 inline float normalizedPhi(float phi) {
-  static float const TWO_PI = M_PI * 2;
-  while ( phi < -M_PI ) phi += TWO_PI;
-  while ( phi >  M_PI ) phi -= TWO_PI;
-  return phi;
+  return std::fmod(phi, M_PI);
 }
 
 static bool sortByHitsChi2(cand_t cand1, cand_t cand2)
@@ -41,10 +39,7 @@ void processSeed(Event& ev, const Track& seed, candvec& candidates, unsigned int
 {
   auto& evt_track_candidates(ev.candidateTracks_);
 
-  if (debug) {
-    std::cout << "processing seed # " << seed.SimTrackID() << " par=" << seed.parameters() 
-              << " candidates=" << candidates.size() << std::endl;
-  }
+  dprint("processing seed # " << seed.SimTrackID() << " par=" << seed.parameters() << " candidates=" << candidates.size());
 
   candvec tmp_candidates;
   tmp_candidates.reserve(3*candidates.size()/2);
@@ -52,8 +47,8 @@ void processSeed(Event& ev, const Track& seed, candvec& candidates, unsigned int
   if (candidates.size() > 0) {
 #ifdef TBB0 // turned off, loop is too small
     //loop over running candidates
-    parallel_for( tbb::blocked_range<CandIter>(candidates.begin(),candidates.end()), 
-        [&](const tbb::blocked_range<CandIter>& cands) {
+    parallel_for( tbb::blocked_range<canditer>(candidates.begin(),candidates.end()), 
+        [&](const tbb::blocked_range<canditer>& cands) {
       for (auto&& cand : cands) {
         processCandidates(ev, cand, tmp_candidates, ilay, debug);
       }
@@ -68,18 +63,18 @@ void processSeed(Event& ev, const Track& seed, candvec& candidates, unsigned int
     ev.validation_.fillBuildHists(ilay, tmp_candidates.size(), candidates.size());
 
     if (tmp_candidates.size()>Config::maxCand) {
-      if (debug) std::cout << "huge size=" << tmp_candidates.size() << " keeping best "<< Config::maxCand << " only" << std::endl;
+      dprint("huge size=" << tmp_candidates.size() << " keeping best "<< Config::maxCand << " only");
       std::partial_sort(tmp_candidates.begin(),tmp_candidates.begin()+(Config::maxCand-1),tmp_candidates.end(),sortByHitsChi2);
       tmp_candidates.resize(Config::maxCand); // thread local, so ok not thread safe
     } else if (tmp_candidates.size()==0) {
-      if (debug) std::cout << "no more candidates, saving best" << std::endl;
+      dprint("no more candidates, saving best");
       // save the best candidate from the previous iteration and then swap in
       // the empty new candidate list; seed will be skipped on future iterations
       auto&& best = std::max_element(candidates.begin(),candidates.end(),sortByHitsChi2);
       std::lock_guard<std::mutex> evtguard(evtlock); // should be rare
       evt_track_candidates.push_back(best->first);
     }
-    if (debug) std::cout << "swapping with size=" << tmp_candidates.size() << std::endl;
+    dprint("swapping with size=" << tmp_candidates.size());
     candidates.swap(tmp_candidates);
     tmp_candidates.clear();
   }
@@ -100,7 +95,7 @@ void buildTracks(Event& ev)
 
   //loop over layers, starting from after the seed
   for (auto ilay = Config::nlayers_per_seed; ilay < evt_lay_hits.size(); ++ilay) {
-    if (debug) std::cout << "going to layer #" << ilay << " with N cands = " << track_candidates.size() << std::endl;
+    dprint("going to layer #" << ilay << " with N cands = " << track_candidates.size());
 
 #ifdef TBB
     //process seeds
@@ -143,12 +138,14 @@ void processCandidates(const Event& ev,
   const TrackState& updatedState = cand.second;
   const auto& evt_lay_hits(ev.layerHits_);
   const auto& evt_lay_phi_hit_idx(ev.lay_phi_hit_idx_);
-  //debug = true;
     
-  if (debug) std::cout << "processing candidate with nHits=" << tkcand.nHits() << std::endl;
+  dprint("processing candidate with nHits=" << tkcand.nHits());
 #ifdef LINEARINTERP
   TrackState propState = propagateHelixToR(updatedState,ev.geom_.Radius(ilayer));
 #else
+#ifdef TBB
+#error "Invalid combination of options (thread safety)"
+#endif
   TrackState propState = propagateHelixToLayer(updatedState,ilayer,&ev.geom_);
 #endif // LINEARINTERP
 #ifdef CHECKSTATEVALID
@@ -158,12 +155,14 @@ void processCandidates(const Event& ev,
 #endif
   const float predx = propState.parameters.At(0);
   const float predy = propState.parameters.At(1);
-  const float predz = propState.parameters.At(2);
+#ifdef DEBUG
   if (debug) {
+    const float predz = propState.parameters.At(2);
     std::cout << "propState at hit#" << ilayer << " r/phi/z : " << sqrt(pow(predx,2)+pow(predy,2)) << " "
               << std::atan2(predy,predx) << " " << predz << std::endl;
     dumpMatrix(propState.errors);
   }
+#endif
   
   const float phi = std::atan2(predy,predx);
 
@@ -182,7 +181,7 @@ void processCandidates(const Event& ev,
   const unsigned int binMinus = getPhiPartition(dphiMinus);
   const unsigned int binPlus  = getPhiPartition(dphiPlus);
   
-  if (debug) std::cout << "phi: " << phi << " binMinus: " << binMinus << " binPlus: " << binPlus << " dphi2: " << dphi2 << std::endl;
+  dprint("phi: " << phi << " binMinus: " << binMinus << " binPlus: " << binPlus << " dphi2: " << dphi2);
   
   const BinInfo& binInfoMinus = evt_lay_phi_hit_idx[ilayer][int(binMinus)];
   const BinInfo& binInfoPlus  = evt_lay_phi_hit_idx[ilayer][int(binPlus)];
@@ -199,10 +198,8 @@ void processCandidates(const Event& ev,
     lastIndex = totalSize+maxIndex;
   }
 
-  if (debug) {
-    std::cout << "Count: " << lastIndex-firstIndex << "/" << totalSize << " firstIndex: " << firstIndex 
-              << " maxIndex: " << maxIndex << " lastIndex: " << lastIndex << std::endl;
-  }
+  dprint("Count: " << lastIndex-firstIndex << "/" << totalSize << " firstIndex: " << firstIndex 
+                   << " maxIndex: " << maxIndex << " lastIndex: " << lastIndex);
 
 #ifdef LINEARINTERP
   const float minR = ev.geom_.Radius(ilayer);
@@ -213,7 +210,7 @@ void processCandidates(const Event& ev,
   }
   const float deltaR = maxR - minR;
 
-  if (debug) std::cout << "min, max: " << minR << ", " << maxR << std::endl;
+  dprint("min, max: " << minR << ", " << maxR);
   const TrackState propStateMin = propState;
   const TrackState propStateMax = propagateHelixToR(updatedState,maxR);
 #ifdef CHECKSTATEVALID
@@ -238,14 +235,13 @@ void processCandidates(const Event& ev,
 #ifdef LINEARINTERP
       const float ratio = (hitCand.r() - minR)/deltaR;
       propState.parameters = (1.0-ratio)*propStateMin.parameters + ratio*propStateMax.parameters;
-      if (debug) {
-        std::cout << std::endl << ratio << std::endl << propStateMin.parameters << std::endl << propState.parameters << std::endl
-                  << propStateMax.parameters << std::endl << propStateMax.parameters - propStateMin.parameters
-                  << std::endl << std::endl << hitMeas.parameters << std::endl << std::endl;
-      }
+      dprint(std::endl << ratio << std::endl << propStateMin.parameters << std::endl << propState.parameters << std::endl
+                       << propStateMax.parameters << std::endl << propStateMax.parameters - propStateMin.parameters
+                       << std::endl << std::endl << hitMeas.parameters << std::endl);
 #endif
       const float chi2 = computeChi2(propState,hitMeas);
     
+#ifdef DEBUG
       if (debug) {
         const float hitx = hitCand.position()[0];
         const float hity = hitCand.position()[1];
@@ -253,9 +249,10 @@ void processCandidates(const Event& ev,
         std::cout << "consider hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
                   << std::atan2(hity,hitx) << " " << hitz << " chi2=" << chi2 << std::endl;
       }
+#endif
     
       if ((chi2<Config::chi2Cut)&&(chi2>0.)) {//fixme 
-        if (debug) std::cout << "found hit with index: " << ihit << " chi2=" << chi2 << std::endl;
+        dprint("found hit with index: " << ihit << " chi2=" << chi2);
         const TrackState tmpUpdatedState = updateParameters(propState, hitMeas);
         Track tmpCand = tkcand.clone();
         tmpCand.addHit(hitCand,chi2);
@@ -268,7 +265,7 @@ void processCandidates(const Event& ev,
 
   //add also the candidate for no hit found
   if (tkcand.nHits()==ilayer) { //only if this is the first missing hit
-    if (debug) std::cout << "adding candidate with no hit" << std::endl;
+    dprint("adding candidate with no hit");
     tmp_candidates.push_back(cand_t(tkcand,propState));
   }
 }

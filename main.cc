@@ -88,7 +88,8 @@ static tick delta(timepoint& t0)
   return d;
 }
 
-int main(){
+int main()
+{
   Geometry geom;
   initGeom(geom);
 #if defined(NO_ROOT)

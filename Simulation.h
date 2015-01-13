@@ -6,5 +6,5 @@
 #include "Propagation.h"
 #include "Geometry.h"
 
-void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVec& hits, unsigned int itrack, int& charge, float pt, Geometry, HitVec& initHits);
+void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVec& hits, unsigned int itrack, int& charge, float pt, const Geometry&, HitVec& initHits);
 #endif

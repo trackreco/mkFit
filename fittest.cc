@@ -3,6 +3,7 @@
 #include "KalmanUtils.h"
 #include "Propagation.h"
 #include "ConformalUtils.h"
+#include "Debug.h"
 
 #ifdef TBB
 #include "tbb/tbb.h"
@@ -10,7 +11,6 @@
 
 #include <iostream>
 
-//#define DEBUG
 #ifdef DEBUG
 static void print(const TrackState& s)
 {
@@ -52,7 +52,7 @@ static void print(std::string label, const MeasurementState& s)
 void fitTrack(const Track& trk, const Event& ev)
 {
 #ifdef DEBUG
-  bool dump(false);
+  bool debug(false);
 #endif
 
   //#define INWARD
@@ -82,7 +82,7 @@ void fitTrack(const Track& trk, const Event& ev)
   updatedState.errors*=10;
 
 #ifdef DEBUG
-  if (dump) { 
+  if (debug) { 
     print("Sim track", itrack0, trk0);
     print("Initial track", trk.SimTrackID(), trk);
     print("simStateHit0", simStateHit0);
@@ -103,15 +103,13 @@ void fitTrack(const Track& trk, const Event& ev)
 #if defined(CHECKSTATEVALID)
     // crude test for numerical instability, need a better test
     if (Mag(propPos - updPos)/Mag(propPos) > 0.5) {
-#ifdef DEBUG
-      std::cout << "Failing stability " << Mag(propPos - updPos)/Mag(propPos) << std::endl;
-#endif
+      dprint("Failing stability " << Mag(propPos - updPos)/Mag(propPos));
       updatedState.valid = false;
     }
 #endif
 
 #ifdef DEBUG
-    if (dump) {
+    if (debug) {
       std::cout << "processing hit: " << trk.SimTrackID() << ":" << hit.hitID() << std::endl
                 << "hitR, propR, updR = " << hit.r() << ", " 
                 << Mag(propPos) << ", " << Mag(updPos) << std::endl << std::endl;
@@ -122,11 +120,7 @@ void fitTrack(const Track& trk, const Event& ev)
     }
 #endif
     if (!propState.valid || !updatedState.valid) {
-#ifdef DEBUG
-      std::cout << "Failed propagation "
-                << "hitR, propR, updR = " << hit.r() << ", " << Mag(propPos) << ", " << Mag(updPos)
-                << std::endl << std::endl;
-#endif
+      dprint("Failed propagation " << "hitR, propR, updR = " << hit.r() << ", " << Mag(propPos) << ", " << Mag(updPos));
 #ifdef CHECKSTATEVALID
       break;
 #endif
@@ -136,11 +130,7 @@ void fitTrack(const Track& trk, const Event& ev)
     const auto hitid = hit.hitID();
     ev.validation_.fillFitHitHists(hitid, mcInitHitVec, measState, propState, updatedState);
   } // end loop over hits
-#ifdef DEBUG
-  if (dump) {
-    print("Fit Track", updatedState);
-  }
-#endif
+  dcall(print("Fit Track", updatedState));
   ev.validation_.fillFitTrackHists(simState, updatedState);
 }
 
