@@ -24,7 +24,7 @@ typedef candvec::const_iterator canditer;
 void processCandidates(const Event& ev, const cand_t& cand, candvec& tmp_candidates, unsigned int ilay, bool debug);
 
 inline float normalizedPhi(float phi) {
-  return std::fmod(phi, M_PI);
+  return std::fmod(phi, (float) M_PI);
 }
 
 static bool sortByHitsChi2(cand_t cand1, cand_t cand2)
