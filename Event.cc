@@ -105,9 +105,11 @@ void Event::Segment()
     for (unsigned int ihit=0;ihit<layerHits_[ilayer].size();++ihit) {
       float hitx = layerHits_[ilayer][ihit].position()[0];
       float hity = layerHits_[ilayer][ihit].position()[1];
+#ifdef DEBUG
       float hitz = layerHits_[ilayer][ihit].position()[2];
       dprint("hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
                               << std::atan2(hity,hitx) << " " << hitz);
+#endif
       unsigned int bin = getPhiPartition(std::atan2(hity,hitx));
       lay_phi_bin_count[bin]++;
     }

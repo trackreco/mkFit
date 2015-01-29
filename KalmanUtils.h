@@ -5,7 +5,6 @@
 #include "Matrix.h"
 
 //float computeChi2(const TrackState& propagatedState, const MeasurementState& measurementState);
-
 inline float computeChi2(const TrackState& propagatedState, const MeasurementState& measurementState) {
   int invFail(0);
   const SMatrix33 resErr = measurementState.errors + propagatedState.errors.Sub<SMatrix33>(0,0);

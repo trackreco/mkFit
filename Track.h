@@ -20,11 +20,7 @@ class Track
 public:
   Track() {}
 
-  Track(TrackState state, HitVec hits, float chi2) {
-    state_=state;
-    hits_=hits;
-    chi2_=chi2;
-  }
+  Track(TrackState state, HitVec hits, float chi2) : state_(state), hits_(hits), chi2_(chi2) {}
   Track(int charge, SVector3 position, SVector3 momentum, SMatrixSym66 errors, HitVec hits, float chi2) {
     state_.charge=charge;
     state_.errors=errors;

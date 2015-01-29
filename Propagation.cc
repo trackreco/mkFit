@@ -145,8 +145,10 @@ void HelixState::propagateErrors(const HelixState& in, float totalDistance, bool
   const float TP=totalDistance/curvature;
   const float C=curvature;
 
+#ifdef DEBUG
   SVector6& par = state.parameters;
   dprint("TD=" << TD << " TP=" << TP << " arrived at r=" << sqrt(par.At(0)*par.At(0)+par.At(1)*par.At(1)));
+#endif
 
   const float dCdpx = k*in.px/pt;
   const float dCdpy = k*in.py/pt;
@@ -168,7 +170,7 @@ void HelixState::propagateErrors(const HelixState& in, float totalDistance, bool
   //pz = pzin;
 
   //jacobian
-  SMatrix66 errorProp = ROOT::Math::SMatrixIdentity();//what is not explicitly set below is 1 (0) on (off) diagonal
+  SMatrix66 errorProp = ROOT::Math::SMatrixIdentity(); //what is not explicitly set below is 1 (0) on (off) diagonal
   errorProp(0,0) = 1 + k*dTPdx*(in.px*sinTP + in.py*cosTP);                   //dxdx;
   errorProp(0,1) = k*dTPdy*(in.px*sinTP + in.py*cosTP);                       //dxdy;
   errorProp(0,3) = k*(sinTP + in.px*cosTP*dTPdpx - in.py*sinTP*dTPdpx);       //dxdpx;
