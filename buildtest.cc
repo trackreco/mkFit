@@ -9,19 +9,11 @@
 #include <iostream>
 
 void buildTestParallel(std::vector<Track>& evt_seeds,std::vector<Track>& evt_track_candidates,
-#ifdef ETASEG
 		       std::vector<HitVec >& evt_lay_hits,std::vector<std::vector<std::vector<BinInfo> > >& evt_lay_eta_phi_hit_idx,
-#else
-		       std::vector<HitVec >& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
-#endif
                        const int& nlayers_per_seed,const unsigned int& maxCand,const float& chi2Cut,const float& nSigma,const float& minDPhi,
                        SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug, Geometry* theGeom);
 void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<Track, TrackState> >& tmp_candidates,
-#ifdef ETASEG
                        unsigned int ilay,std::vector<HitVec>& evt_lay_hits,std::vector<std::vector<std::vector<BinInfo> > >& evt_lay_eta_phi_hit_idx,
-#else
-		       unsigned int ilay,std::vector<HitVec>& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
-#endif
                        const int nlayers_per_seed,const unsigned int maxCand,const float chi2Cut,const float nSigma,const float minDPhi,
                        SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug, Geometry* theGeom);
 
@@ -54,17 +46,11 @@ void buildTestSerial(Event& ev,const int nlayers_per_seed,
   auto& evt_seeds(ev.seedTracks_);
   auto& evt_track_candidates(ev.candidateTracks_);
   auto& evt_lay_hits(ev.layerHits_);
-  //        auto& evt_lay_phi_hit_idx(ev.lay_phi_hit_idx_);
-        auto& projMatrix36(ev.projMatrix36_);
+  auto& evt_lay_eta_phi_hit_idx(ev.lay_eta_phi_hit_idx_);
+  auto& projMatrix36(ev.projMatrix36_);
   auto& projMatrix36T(ev.projMatrix36T_);
   bool debug(false);
     
-#ifdef ETASEG
-  auto& evt_lay_eta_phi_hit_idx(ev.lay_eta_phi_hit_idx_);
-#else
-  auto& evt_lay_phi_hit_idx(ev.lay_phi_hit_idx_);
-#endif
-
   //process seeds
   for (auto&& seed : evt_seeds) {
     if (debug) std::cout << "processing seed # " << seed.SimTrackIDInfo().first << " par=" << seed.parameters() << std::endl;
@@ -82,11 +68,7 @@ void buildTestSerial(Event& ev,const int nlayers_per_seed,
       std::vector<std::pair<Track, TrackState> > tmp_candidates;
       for (unsigned int icand=0;icand<track_candidates.size();++icand) {//loop over running candidates 
         std::pair<Track, TrackState>& cand = track_candidates[icand];
-#ifdef ETASEG
 	processCandidates(cand, tmp_candidates, ilay, evt_lay_hits, evt_lay_eta_phi_hit_idx, nlayers_per_seed, maxCand, chi2Cut, nSigma, minDPhi, projMatrix36, projMatrix36T, debug, &ev.geom_);	
-#else
-	processCandidates(cand, tmp_candidates, ilay, evt_lay_hits, evt_lay_phi_hit_idx, nlayers_per_seed, maxCand, chi2Cut, nSigma, minDPhi, projMatrix36, projMatrix36T, debug, &ev.geom_);
-#endif
       }//end of running candidates loop
       ev.validation_.fillBuildHists(ilay, tmp_candidates.size(), track_candidates.size());
 
@@ -118,11 +100,7 @@ void buildTestSerial(Event& ev,const int nlayers_per_seed,
 void buildTestParallel(std::vector<Track>& evt_seeds,
                        std::vector<Track>& evt_track_candidates,
                        std::vector<HitVec >& evt_lay_hits,
-#ifdef ETASEG
                        std::vector<std::vector<std::vector<BinInfo> > >& evt_lay_eta_phi_hit_idx,const int& nlayers_per_seed,
-#else
-                       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int& nlayers_per_seed,
-#endif
                        const unsigned int& maxCand, const float& chi2Cut,const float& nSigma,const float& minDPhi,
                        SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug,Geometry* theGeom){
 
@@ -144,11 +122,7 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
       std::vector<std::pair<Track, TrackState> > tmp_candidates;
       for (unsigned int icand=0;icand<track_candidates[iseed].size();++icand) {//loop over running candidates 
         std::pair<Track, TrackState>& cand = track_candidates[iseed][icand];
-#ifdef ETASEG
 	processCandidates(cand, tmp_candidates, ilay, evt_lay_hits, evt_lay_eta_phi_hit_idx, nlayers_per_seed, maxCand, chi2Cut, nSigma, minDPhi, projMatrix36, projMatrix36T, debug, theGeom);	
-#else
-	processCandidates(cand, tmp_candidates, ilay, evt_lay_hits, evt_lay_phi_hit_idx, nlayers_per_seed, maxCand, chi2Cut, nSigma, minDPhi, projMatrix36, projMatrix36T, debug, theGeom);
-#endif
       }//end of running candidates loop
           
       if (tmp_candidates.size()>maxCand) {
@@ -182,11 +156,7 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
 
 void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<Track, TrackState> >& tmp_candidates,
                        unsigned int ilayer,std::vector<HitVec >& evt_lay_hits,
-#ifdef ETASEG
 		       std::vector<std::vector<std::vector<BinInfo> > >& evt_lay_eta_phi_hit_idx,const int nlayers_per_seed,		       
-#else
-		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int nlayers_per_seed,		       
-#endif
                        const unsigned int maxCand, const float chi2Cut,const float nSigma,const float minDPhi,
                        SMatrix36& projMatrix36,SMatrix63& projMatrix36T, bool debug,Geometry* theGeom){
 
@@ -208,6 +178,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   const float predx = propState.parameters.At(0);
   const float predy = propState.parameters.At(1);
   const float predz = propState.parameters.At(2);
+  const float px2py2 = predx*predx+predy*predy; // predicted radius^2
   if (debug) {
     std::cout << "propState at hit#" << ilayer << " r/phi/z : " << sqrt(pow(predx,2)+pow(predy,2)) << " "
               << std::atan2(predy,predx) << " " << predz << std::endl;
@@ -216,7 +187,6 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
 
 #ifdef ETASEG  
   const float eta = getEta(predx,predy,predz);
-  const float px2py2 = predx*predx+predy*predy; // predicted radius^2
   const float pz2 = predz*predz;
   const float detadx = -predx/(px2py2*sqrt(1+(px2py2/pz2)));
   const float detady = -predy/(px2py2*sqrt(1+(px2py2/pz2)));
@@ -241,12 +211,12 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   unsigned int etaBinPlus  = getEtaPartition(detaPlus,etaDet);
 
   if (debug) std::cout << "eta: " << eta << " etaBinMinus: " << etaBinMinus << " etaBinPlus: " << etaBinPlus << " deta2: " << deta2 << std::endl;
+#else // just assign the etaBin boundaries to keep code without 10k ifdefs
+  unsigned int etaBinMinus = 0;
+  unsigned int etaBinPlus  = 0;
 #endif
 
   const float phi = getPhi(predx,predy); //std::atan2(predy,predx); 
-#ifndef ETASEG
-  const float px2py2 = predx*predx+predy*predy; // predicted radius^2
-#endif
   const float dphidx = -predy/px2py2;
   const float dphidy =  predx/px2py2;
   const float dphi2  = dphidx*dphidx*(propState.errors.At(0,0)) +
@@ -264,15 +234,14 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
 
   if (debug) std::cout << "phi: " << phi << " phiBinMinus: " << phiBinMinus << " phiBinPlus: " << phiBinPlus << " dphi2: " << dphi2 << std::endl;
   
-#ifdef ETASEG
   for (unsigned int ieta = etaBinMinus; ieta <= etaBinPlus; ++ieta){
     
     BinInfo binInfoMinus = evt_lay_eta_phi_hit_idx[ilayer][ieta][int(phiBinMinus)];
     BinInfo binInfoPlus  = evt_lay_eta_phi_hit_idx[ilayer][ieta][int(phiBinPlus)];
-
+    
     std::vector<unsigned int> cand_hit_idx;
     std::vector<unsigned int>::iterator index_iter; // iterator for vector
-
+    
     // Branch here from wrapping
     if (phiBinMinus<=phiBinPlus){
       unsigned int firstIndex = binInfoMinus.first;
@@ -298,36 +267,14 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
       }
     }
   
-#else
-    BinInfo binInfoMinus = evt_lay_phi_hit_idx[ilayer][int(phiBinMinus)];
-    BinInfo binInfoPlus  = evt_lay_phi_hit_idx[ilayer][int(phiBinPlus)];
-
-    unsigned int firstIndex = binInfoMinus.first;
-    unsigned int maxIndex   = binInfoPlus.first+binInfoPlus.second;
-    unsigned int lastIndex  = -1;
-    unsigned int totalSize  = evt_lay_hits[ilayer].size(); 
-
-    if (phiBinMinus<=phiBinPlus){
-      lastIndex = maxIndex;
-    } else { // loop wrap around end of array for phiBinMinus > phiBinPlus, for dPhiMinus < 0 or dPhiPlus > 0 at initialization
-      lastIndex = totalSize+maxIndex;
-    }
-#endif
-
 #ifdef LINEARINTERP
     const float minR = theGeom->Radius(ilayer);
     float maxR = minR;
-#ifdef ETASEG
     for(index_iter = cand_hit_idx.begin(); index_iter != cand_hit_idx.end(); ++index_iter){
       const float candR = evt_lay_hits[ilayer][*index_iter].r();
-#else
-    for (unsigned int ihit=firstIndex;ihit<lastIndex;++ihit) {//loop over hits on layer (consider only hits from partition)
-      const float candR = evt_lay_hits[ilayer][ihit % totalSize].r();
-#endif
       if (candR > maxR) maxR = candR;
     }
     const float deltaR = maxR - minR;
-
     if (debug) std::cout << "min, max: " << minR << ", " << maxR << std::endl;
     const TrackState propStateMin = propState;
     const TrackState propStateMax = propagateHelixToR(updatedState,maxR);
@@ -338,13 +285,8 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
 #endif
 #endif
     
-#ifdef ETASEG
     for(index_iter = cand_hit_idx.begin(); index_iter != cand_hit_idx.end(); ++index_iter){
       Hit hitCand = evt_lay_hits[ilayer][*index_iter];
-#else
-    for (unsigned int ihit=firstIndex;ihit<lastIndex;++ihit) {//loop over hits on layer (consider only hits from partition)
-      Hit hitCand = evt_lay_hits[ilayer][ihit % totalSize];
-#endif
       MeasurementState hitMeas = hitCand.measurementState();
 
 #ifdef LINEARINTERP
@@ -359,45 +301,19 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
       const float chi2 = computeChi2(propState,hitMeas,projMatrix36,projMatrix36T);
     
       if ((chi2<chi2Cut)&&(chi2>0.)) {//fixme 
-#ifdef ETASEG
 	if (debug) std::cout << "found hit with index: " << *index_iter << " chi2=" << chi2 << std::endl;
-#else
-	if (debug) std::cout << "found hit with index: " << ihit << " chi2=" << chi2 << std::endl;
-#endif
 	TrackState tmpUpdatedState = updateParameters(propState, hitMeas,projMatrix36,projMatrix36T);
 	Track tmpCand = tkcand.clone();
 	tmpCand.addHit(hitCand,chi2);
 	tmp_candidates.push_back(std::pair<Track, TrackState>(tmpCand,tmpUpdatedState));
       }
     }//end of consider hits on layer loop
-
-#ifdef ETASEG
+    
   }//end of eta loop
-#endif
 
   //add also the candidate for no hit found
   if (tkcand.nHits()==ilayer) {//only if this is the first missing hit
     if (debug) std::cout << "adding candidate with no hit" << std::endl;
     tmp_candidates.push_back(std::pair<Track, TrackState>(tkcand,propState));
   }
-
-  //consider hits on layer
-  //float minChi2 = std::numeric_limits<float>::max();//needed in case of best hit only
-  //unsigned int minChi2Hit = evt_lay_hits[ilayer].size();//needed in case of best hit only
-  //
-  //for (unsigned int ihit=0;ihit<evt_lay_hits[ilayer].size();++ihit) {//loop over hits on layer (consider all hits on layer)
-
-  /*    
-  //take only best hit for now
-  if (minChi2<30. && minChi2Hit!=evt_lay_hits[ilayer].size()) {
-  MeasurementState hitMeas = evt_lay_hits[ilayer][minChi2Hit].measurementState();
-  TrackState tmpUpdatedState = updateParameters(propState, hitMeas,projMatrix36,projMatrix36T);
-  updatedState = tmpUpdatedState;
-  tk_cand.addHit(evt_lay_hits[ilayer][minChi2Hit],minChi2);
-  if (debug) std::cout << "found best hit with index: " << minChi2Hit << std::endl;
-  } else {
-  if (debug) std::cout << "not a good hit found, stopping at lay#" << ilayer << std::endl;
-  break;
-  }
-  */            
 }

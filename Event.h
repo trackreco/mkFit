@@ -27,11 +27,7 @@ public:
 
   // phi-eta partitioning map: vector of vector of vectors of std::pairs. 
   // vec[nLayers][nEtaBins][nPhiBins]
-#ifdef ETASEG
   std::vector<std::vector<std::vector<BinInfo> > > lay_eta_phi_hit_idx_;
-#else  
-  std::vector<std::vector<BinInfo> > lay_phi_hit_idx_;
-#endif
 
 };
 

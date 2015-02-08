@@ -11,14 +11,9 @@ const float chi2Cut = 15.;
 const float nSigma = 3.;
 const float minDPhi = 0.;
 
-#ifdef ETASEG
-const float etaDet = 2.0;
-#endif
-
 /*
 const unsigned int nPhiPart = 63;
 const unsigned int nEtaPart = 10;   
-const unsigned int nZPart = 10;
 */
 
 static bool sortByPhi(Hit hit1, Hit hit2)
@@ -27,6 +22,7 @@ static bool sortByPhi(Hit hit1, Hit hit2)
 }
 
 #ifdef ETASEG
+const float etaDet = 2.0;
 static bool sortByEta(Hit hit1, Hit hit2){
   return hit1.eta()<hit2.eta();
 }
@@ -35,11 +31,7 @@ static bool sortByEta(Hit hit1, Hit hit2){
 Event::Event(Geometry& g, Validation& v) : geom_(g), validation_(v)
 {
   layerHits_.resize(geom_.CountLayers());
-#ifdef ETASEG
   lay_eta_phi_hit_idx_.resize(geom_.CountLayers());
-#else
-  lay_phi_hit_idx_.resize(geom_.CountLayers());
-#endif
   projMatrix36_(0,0)=1.;
   projMatrix36_(1,1)=1.;
   projMatrix36_(2,2)=1.;
@@ -128,6 +120,7 @@ void Event::Segment()
       } // end loop over storing phi index
     } // end loop over storing eta index
 #else
+    lay_eta_phi_hit_idx_[ilayer].resize(10);    // only one eta bin for special case, avoid ifdefs
     std::sort(layerHits_[ilayer].begin(), layerHits_[ilayer].end(), sortByPhi);
     std::vector<unsigned int> lay_phi_bin_count(63);//should it be 63? - yes!
     for (unsigned int ihit=0;ihit<layerHits_[ilayer].size();++ihit) {
@@ -144,7 +137,7 @@ void Event::Segment()
       unsigned int binSize = lay_phi_bin_count[bin];
       unsigned int firstBinIdx = lastIdxFound+1;
       BinInfo binInfo(firstBinIdx, binSize);
-      lay_phi_hit_idx_[ilayer].push_back(binInfo);
+      lay_eta_phi_hit_idx_[ilayer][0].push_back(binInfo); // [0] bin is just the only eta bin ... reduce ifdefs
       if (binSize>0){
         lastIdxFound+=binSize;
       }
@@ -234,13 +227,6 @@ void Event::Seed()
     unsigned int phibinMinus = getPhiPartition(innerPhiMinus);
 
   }
-  /*  
-  for (unsigned int etabin = 0; etabin < 10; etabin++){ 
-    for (unsigned int phibin = 0; phibin < 63; phibin++){ 
-      lay_eta_phi_hit_idx_[1][etabin][phibin].first;
-      lay_eta_phi_hit_idx_[1][etabin][phibin].second+lay_eta_phi_hit_idx_[1][etabin][phibin].first;
-    }
-    }*/
 #endif
 }
 
