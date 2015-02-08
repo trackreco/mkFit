@@ -3,6 +3,31 @@
 
 #include "Matrix.h"
 
+inline unsigned int getPhiPartition(float phi){
+  //assume phi is between -PI and PI
+  //  if (!(fabs(phi)<TMath::Pi())) std::cout << "anomalous phi=" << phi << std::endl;
+  float phiPlusPi  = phi+TMath::Pi();
+  unsigned int bin = phiPlusPi*10;
+  return bin;
+}
+
+inline unsigned int getEtaPartition(float eta, float etaDet){
+  float etaPlusEtaDet  = eta + etaDet;
+  float twiceEtaDet    = 2.0*etaDet;
+  unsigned int bin     = (etaPlusEtaDet * 10.) / twiceEtaDet;  // ten bins for now ... update if changed in Event.cc
+  return bin;
+}
+
+inline float getPhi(float x, float y){
+  return std::atan2(y,x); 
+}
+
+inline float getEta(float x, float y, float z) {
+  float theta = atan2( std::sqrt(x*x+y*y), z );
+  return -1. * log( tan(theta/2.) );
+}
+
+
 struct MCHitInfo {
   MCHitInfo() : mcHitID_(++mcHitIDCounter_) {}
   MCHitInfo(unsigned int track, unsigned int layer, unsigned int ithlayerhit)
@@ -63,6 +88,13 @@ public:
     return sqrt(state_.parameters.At(0)*state_.parameters.At(0) +
                 state_.parameters.At(1)*state_.parameters.At(1));
   }
+  float phi(){
+    return getPhi(state_.parameters.At(0),state_.parameters.At(1));
+  }
+  float eta(){
+    return getEta(state_.parameters.At(0),state_.parameters.At(1),state_.parameters.At(2));
+  }
+
   MeasurementState measurementState() {
     return state_;
   }

@@ -82,8 +82,4 @@ private:
 };
 
 typedef std::vector<Track> TrackVec;
-unsigned int getPhiPartition(float phi);
-unsigned int getEtaPartition(float eta, float etaDet);
-float getPhi(float x, float y);
-float getEta(float x, float y, float z);
 #endif

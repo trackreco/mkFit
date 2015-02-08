@@ -8,10 +8,6 @@
 #include <cmath>
 #include <iostream>
 
-#define ETASEG
-
-unsigned int somet = 0;
-
 void buildTestParallel(std::vector<Track>& evt_seeds,std::vector<Track>& evt_track_candidates,
 #ifdef ETASEG
 		       std::vector<HitVec >& evt_lay_hits,std::vector<std::vector<std::vector<BinInfo> > >& evt_lay_eta_phi_hit_idx,
@@ -75,7 +71,7 @@ void buildTestSerial(Event& ev,const int nlayers_per_seed,
     TrackState seed_state = seed.state();
     //seed_state.errors *= 0.01;//otherwise combinatorics explode!!!
 
-    std::cout << seed.SimTrackIDInfo().first << std::endl;
+    if (debug) printf("seed mcID: %1u \n" , seed.SimTrackIDInfo().first);
 
     //should consider more than 1 candidate...
     std::vector<std::pair<Track, TrackState> > track_candidates;
@@ -117,9 +113,6 @@ void buildTestSerial(Event& ev,const int nlayers_per_seed,
       evt_track_candidates.push_back(track_candidates[0].first); // only save one track candidate per seed, one with lowest chi2
     }
   }//end of process seeds loop
-
-  std::cout << somet <<std::endl;
-  
 }
 
 void buildTestParallel(std::vector<Track>& evt_seeds,
@@ -220,6 +213,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
               << std::atan2(predy,predx) << " " << predz << std::endl;
     dumpMatrix(propState.errors);
   }
+
 #ifdef ETASEG  
   const float eta = getEta(predx,predy,predz);
   const float px2py2 = predx*predx+predy*predy; // predicted radius^2
@@ -247,72 +241,89 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   unsigned int etaBinPlus  = getEtaPartition(detaPlus,etaDet);
 
   if (debug) std::cout << "eta: " << eta << " etaBinMinus: " << etaBinMinus << " etaBinPlus: " << etaBinPlus << " deta2: " << deta2 << std::endl;
-
-  for (unsigned int ieta = etaBinMinus; ieta <= etaBinPlus; ++ieta){
 #endif
-    const float phi = getPhi(predx,predy); //std::atan2(predy,predx); 
+
+  const float phi = getPhi(predx,predy); //std::atan2(predy,predx); 
 #ifndef ETASEG
-    const float px2py2 = predx*predx+predy*predy; // predicted radius^2
+  const float px2py2 = predx*predx+predy*predy; // predicted radius^2
 #endif
-    const float dphidx = -predy/px2py2;
-    const float dphidy =  predx/px2py2;
-    const float dphi2  = dphidx*dphidx*(propState.errors.At(0,0)) +
-      dphidy*dphidy*(propState.errors.At(1,1)) +
-      2*dphidx*dphidy*(propState.errors.At(0,1));
+  const float dphidx = -predy/px2py2;
+  const float dphidy =  predx/px2py2;
+  const float dphi2  = dphidx*dphidx*(propState.errors.At(0,0)) +
+    dphidy*dphidy*(propState.errors.At(1,1)) +
+    2*dphidx*dphidy*(propState.errors.At(0,1));
+  
+  const float dphi   =  sqrt(std::abs(dphi2));//how come I get negative squared errors sometimes?
+  const float nSigmaDphi = std::min(std::max(nSigma*dphi,minDPhi), (float) M_PI);
+  
+  const float dphiMinus = normalizedPhi(phi-nSigmaDphi);
+  const float dphiPlus  = normalizedPhi(phi+nSigmaDphi);
+  
+  unsigned int phiBinMinus = getPhiPartition(dphiMinus);
+  unsigned int phiBinPlus  = getPhiPartition(dphiPlus);
 
-    const float dphi   =  sqrt(std::abs(dphi2));//how come I get negative squared errors sometimes?
-    const float nSigmaDphi = std::min(std::max(nSigma*dphi,minDPhi), (float) M_PI);
-
-    const float dphiMinus = normalizedPhi(phi-nSigmaDphi);
-    const float dphiPlus  = normalizedPhi(phi+nSigmaDphi);
-
-    unsigned int phiBinMinus = getPhiPartition(dphiMinus);
-    unsigned int phiBinPlus  = getPhiPartition(dphiPlus);
-
+  if (debug) std::cout << "phi: " << phi << " phiBinMinus: " << phiBinMinus << " phiBinPlus: " << phiBinPlus << " dphi2: " << dphi2 << std::endl;
+  
 #ifdef ETASEG
+  for (unsigned int ieta = etaBinMinus; ieta <= etaBinPlus; ++ieta){
+    
     BinInfo binInfoMinus = evt_lay_eta_phi_hit_idx[ilayer][ieta][int(phiBinMinus)];
     BinInfo binInfoPlus  = evt_lay_eta_phi_hit_idx[ilayer][ieta][int(phiBinPlus)];
+
+    std::vector<unsigned int> cand_hit_idx;
+    std::vector<unsigned int>::iterator index_iter; // iterator for vector
+
+    // Branch here from wrapping
+    if (phiBinMinus<=phiBinPlus){
+      unsigned int firstIndex = binInfoMinus.first;
+      unsigned int maxIndex   = binInfoPlus.first+binInfoPlus.second;
+
+      for (unsigned int ihit  = firstIndex; ihit < maxIndex; ++ihit){
+	cand_hit_idx.push_back(ihit);
+      }
+    } 
+    else { // loop wrap around end of array for phiBinMinus > phiBinPlus, for dPhiMinus < 0 or dPhiPlus > 0 at initialization
+      unsigned int firstIndex = binInfoMinus.first;
+      unsigned int etaBinSize = evt_lay_eta_phi_hit_idx[ilayer][ieta][62].first+evt_lay_eta_phi_hit_idx[ilayer][ieta][62].second;
+
+      for (unsigned int ihit  = firstIndex; ihit < etaBinSize; ++ihit){
+	cand_hit_idx.push_back(ihit);
+      }
+
+      unsigned int etaBinStart= evt_lay_eta_phi_hit_idx[ilayer][ieta][0].first;
+      unsigned int maxIndex   = binInfoPlus.first+binInfoPlus.second;
+
+      for (unsigned int ihit  = etaBinStart; ihit < maxIndex; ++ihit){
+	cand_hit_idx.push_back(ihit);
+      }
+    }
+  
 #else
     BinInfo binInfoMinus = evt_lay_phi_hit_idx[ilayer][int(phiBinMinus)];
     BinInfo binInfoPlus  = evt_lay_phi_hit_idx[ilayer][int(phiBinPlus)];
- #endif
 
-    if (debug) std::cout << "phi: " << phi << " phiBinMinus: " << phiBinMinus << " phiBinPlus: " << phiBinPlus << " dphi2: " << dphi2 << std::endl;
-    
     unsigned int firstIndex = binInfoMinus.first;
-    unsigned int firstIndexLast = binInfoMinus.second;
-    unsigned int secondIndexFirst = binInfoPlus.first;
-    unsigned int secondIndexLast  = binInfoPlus.second;
     unsigned int maxIndex   = binInfoPlus.first+binInfoPlus.second;
     unsigned int lastIndex  = -1;
     unsigned int totalSize  = evt_lay_hits[ilayer].size(); 
-    //    unsigned int totalSize  = evt_lay_eta_phi_hit_idx[ilayer][ieta][62].first+evt_lay_eta_phi_hit_idx[ilayer][ieta][62].second; // set 62 to the nPhiPartition -- > need to get n total entries in indexer 
-    
-    // Branch here from wrapping
+
     if (phiBinMinus<=phiBinPlus){
       lastIndex = maxIndex;
     } else { // loop wrap around end of array for phiBinMinus > phiBinPlus, for dPhiMinus < 0 or dPhiPlus > 0 at initialization
-      somet++;
-
       lastIndex = totalSize+maxIndex;
-
-      std::cout << "eta: " << eta << " etaBinMinus: " << etaBinMinus << " etaBinPlus: " << etaBinPlus << " deta2: " << deta2 << std::endl;
-      std::cout << "phi: " << phi << " phiBinMinus: " << phiBinMinus << " phiBinPlus: " << phiBinPlus << " dphi2: " << dphi2 << std::endl;
-      std::cout << "firstIndex: " << firstIndex << " lastIndex: " << lastIndex << " maxIndex: " << maxIndex << " total size: " << totalSize << std::endl;
-      std::cout <<std::endl;
-      std::cout << "firstIndexFirst: " << firstIndex << " firstIndexLast: " << firstIndexLast << " secondIndexFirst: " << secondIndexFirst << " secondIndexLast: " << secondIndexLast << " sizefirst: " << firstIndex+firstIndexLast << " " << secondIndexFirst+secondIndexLast << std::endl << std::endl;
-
-
     }
-
-    if (debug) std::cout << "total size: " << totalSize << " firstIndex: " << firstIndex << " maxIndex: " << maxIndex << " lastIndex: " << lastIndex << std::endl;
-
+#endif
 
 #ifdef LINEARINTERP
     const float minR = theGeom->Radius(ilayer);
     float maxR = minR;
+#ifdef ETASEG
+    for(index_iter = cand_hit_idx.begin(); index_iter != cand_hit_idx.end(); ++index_iter){
+      const float candR = evt_lay_hits[ilayer][*index_iter].r();
+#else
     for (unsigned int ihit=firstIndex;ihit<lastIndex;++ihit) {//loop over hits on layer (consider only hits from partition)
       const float candR = evt_lay_hits[ilayer][ihit % totalSize].r();
+#endif
       if (candR > maxR) maxR = candR;
     }
     const float deltaR = maxR - minR;
@@ -327,13 +338,13 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
 #endif
 #endif
     
+#ifdef ETASEG
+    for(index_iter = cand_hit_idx.begin(); index_iter != cand_hit_idx.end(); ++index_iter){
+      Hit hitCand = evt_lay_hits[ilayer][*index_iter];
+#else
     for (unsigned int ihit=firstIndex;ihit<lastIndex;++ihit) {//loop over hits on layer (consider only hits from partition)
-
-      if(firstIndex>maxIndex){
-	std::cout << "ihit: " << ihit % totalSize << std::endl;
-      }
-
       Hit hitCand = evt_lay_hits[ilayer][ihit % totalSize];
+#endif
       MeasurementState hitMeas = hitCand.measurementState();
 
 #ifdef LINEARINTERP
@@ -348,7 +359,11 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
       const float chi2 = computeChi2(propState,hitMeas,projMatrix36,projMatrix36T);
     
       if ((chi2<chi2Cut)&&(chi2>0.)) {//fixme 
+#ifdef ETASEG
+	if (debug) std::cout << "found hit with index: " << *index_iter << " chi2=" << chi2 << std::endl;
+#else
 	if (debug) std::cout << "found hit with index: " << ihit << " chi2=" << chi2 << std::endl;
+#endif
 	TrackState tmpUpdatedState = updateParameters(propState, hitMeas,projMatrix36,projMatrix36T);
 	Track tmpCand = tkcand.clone();
 	tmpCand.addHit(hitCand,chi2);

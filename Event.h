@@ -5,8 +5,6 @@
 #include "Validation.h"
 #include "Geometry.h"
 
-#define ETASEG
-
 typedef std::pair<unsigned int,unsigned int> BinInfo;
 
 class Event {
