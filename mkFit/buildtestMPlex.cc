@@ -36,7 +36,6 @@ double runBuildingTest(std::vector<Track>& evt_sim_tracks/*, std::vector<Track>&
    projMatrix36(2,2)=1.;
    SMatrix63 projMatrix36T = ROOT::Math::Transpose(projMatrix36);
   
-   unsigned int Ntracks = 500;//50
    const unsigned int maxCand = 10;
    const float chi2Cut = 15.;
    const float nSigma = 3.;
@@ -284,23 +283,18 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
      std::cout << "MX - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2() << std::endl;
    }
 
-
-   const int Nhits = MAX_HITS;
    // XXX What if there's a missing / double layer?
    // Eventually, should sort track vector by number of hits!
    // And pass the number in on each "setup" call.
    // Reserves should be made for maximum possible number (but this is just
    // measurments errors, params).
 
-   unsigned int Ntracks = 500;//50
-   const unsigned int maxCand = 10;
-   const float chi2Cut = 15.;
-   const float nSigma = 3.;
-   const float minDPhi = 0.;
+   // const unsigned int maxCand = 10;
+   // const float chi2Cut = 15.;
+   // const float nSigma = 3.;
+   // const float minDPhi = 0.;
   
    std::vector<std::vector<Hit> > evt_lay_hits(10);//hits per layer
-   std::vector<Track> evt_seeds;
-   std::vector<Track> evt_track_candidates;
 
    //first is first hit index in bin, second is size of this bin
    std::vector<std::vector<BinInfo> > evt_lay_phi_hit_idx(10);//phi partitioning map
