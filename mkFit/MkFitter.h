@@ -40,8 +40,24 @@ public:
 
   void InputTracksAndHits(std::vector<Track>& tracks, int beg, int end);
   void InputTracksOnly   (std::vector<Track>& tracks, int beg, int end);
+  void InputHitsOnly(std::vector<Hit>& hits, int beg, int end);
   void FitTracks();
-  void OutputFittedTracks(std::vector<Track>& tracks, int beg, int end);
+
+  void OutputTracks(std::vector<Track>& tracks, int beg, int end, int iCP);
+  void OutputFittedTracks(std::vector<Track>& tracks, int beg, int end) {
+    return OutputTracks(tracks,beg,end,iC);
+  }
+  void OutputPropagatedTracks(std::vector<Track>& tracks, int beg, int end){
+    return OutputTracks(tracks,beg,end,iP);
+  }
+
+  void OutputFittedTracksAndHits(std::vector<Track>& tracks, int beg, int end);
+
+  void PropagateTracksToR(float R);
+
+  void AddBestHit(std::vector<Hit>& lay_hits, int beg, int end);
+
+  void SetNhits(int newnhits) { Nhits=newnhits; }
 
 };
 

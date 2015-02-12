@@ -4,6 +4,7 @@
 #include "KalmanUtils.h"
 #include "Propagation.h"
 #include "Simulation.h"
+#include "Geometry.h"
 
 #include "MkFitter.h"
 
@@ -18,9 +19,29 @@
 #include <memory>
 
 //==============================================================================
+void initGeom(Geometry& geom)
+{
+  std::cout << "Constructing SimpleGeometry Cylinder geometry" << std::endl;
+
+  // NB: we currently assume that each node is a layer, and that layers
+  // are added starting from the center
+  // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
+  float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
+  for (int l = 0; l < 10; l++) {
+    float r = (l+1)*4.;
+    VUSolid* utub = new VUSolid(r, r+.01);
+    float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
+    geom.AddLayer(utub, r, z);
+  }
+}
+
 
 void generateTracks(std::vector<Track>& simtracks, int Ntracks)
 {
+
+  Geometry geom;
+  initGeom(geom);
+
    g_gen.seed(742331);
 
    simtracks.resize(Ntracks);
@@ -37,7 +58,7 @@ void generateTracks(std::vector<Track>& simtracks, int Ntracks)
       std::vector<Hit> hits;
       int q=0;//set it in setup function
       float pt = 0.5 + g_unif(g_gen) * 9.5;//this input, 0.5<pt<10 GeV  (below ~0.5 GeV does not make 10 layers)
-      setupTrackByToyMC(pos,mom,covtrk,hits,q,pt);
+      setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,pt,&geom);
       Track simtrk(q,pos,mom,covtrk,hits,0.);
       simtracks[itrack] = simtrk;
    }

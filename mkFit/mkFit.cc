@@ -1,6 +1,7 @@
 #include "Matriplex/MatriplexCommon.h"
 
 #include "fittestMPlex.h"
+#include "buildtestMPlex.h"
 
 #include "MkFitter.h"
 
@@ -150,7 +151,9 @@ void test_vtune()
 
 void test_standard()
 {
+
   int  Ntracks  = 1024 * 1024;// * 1024; // * 10
+  Ntracks  = 10;
   // bool saveTree = false;
 
   generateTracks(simtracks, Ntracks);
@@ -162,6 +165,9 @@ void test_standard()
 
   plex_tracks.resize(simtracks.size());
   tmp = runFittingTestPlex(simtracks, plex_tracks);
+
+  double tsm2 = runBuildingTest(simtracks);
+  double tmp2 = runBuildingTestPlex(simtracks);
 
   // Second pass -- select problematic tracks and refit them
   if (false)
@@ -199,7 +205,7 @@ void test_standard()
     tmp = runFittingTestPlex(simtracks, plex_tracks);
   }
 
-  printf("SMatrix = %.3f   Matriplex = %.3f   ---   SM/MP = %.3f\n", tsm, tmp, tsm / tmp);
+  printf("SMatrix = %.3f   Matriplex = %.3f   ---   SM/MP = %.3f  --- Build = %.3f \n", tsm, tmp, tsm / tmp, tsm2);
 
 #ifndef NO_ROOT
   make_validation_tree("validation-smat.root", simtracks, smat_tracks);

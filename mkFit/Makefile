@@ -59,7 +59,7 @@ echo:
 -include *.d ../*.d
 
 # Should be a lib, really
-ABOVE_OBJS := $(patsubst %, ../%.o, Matrix Hit Track Propagation KalmanUtils Simulation)
+ABOVE_OBJS := $(patsubst %, ../%.o, Matrix Hit Track Propagation KalmanUtils Simulation Geometry SimpleGeom)
 
 ${ABOVE_OBJS}:
 	${MAKE} -C ..
