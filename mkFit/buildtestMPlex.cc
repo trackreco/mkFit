@@ -408,6 +408,7 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 
 	 mkfp->SetNhits(ilay+1);//here again assuming one hits per layer
 
+	 //fixme: we don't need to keep a copy of all hits, we just need to keep record of them
 	 mkfp->OutputFittedTracksAndHits(reccands, itrack, end);
 
        }//end of process seeds loop
