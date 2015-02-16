@@ -21,6 +21,7 @@ public:
   float Radius(unsigned int l) const { return radii_.at(l); }
   float zPlane(unsigned int l) const { return zPlanes_.at(l); }
   VUSolid::EnumInside Inside (const UVector3 &aPoint) const;
+  unsigned int LayerIndex(const UVector3 &aPoint) const;
   const VUSolid* InsideWhat(const UVector3 &aPoint) const;
   double  SafetyFromInside ( const UVector3 &aPoint, bool aAccurate=false) const;
   double  SafetyFromOutside( const UVector3 &aPoint, bool aAccurate=false) const;

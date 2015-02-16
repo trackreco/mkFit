@@ -5,6 +5,8 @@
 #include "Matrix.h"
 #include <vector>
 
+typedef std::pair<unsigned int,unsigned int> SimTkIDInfo;
+
 struct TrackState
 {
 public:
@@ -59,12 +61,12 @@ public:
 
   const HitVec& hitsVector() const {return hits_;}
   const HitVec& initHitsVector() const {return initHits_;}
+
   void addHit(Hit hit,float chi2) {hits_.push_back(hit);chi2_+=chi2;}
-  void addInitHit(Hit hit);
   void resetHits() {hits_.clear();}
+
   unsigned int nHits() const {return hits_.size();}
-  unsigned int SimTrackID() const;
-  std::vector<unsigned int> SimTrackIDs() const;
+  SimTkIDInfo SimTrackIDInfo() const;
 
   Track clone() const {return Track(state_,hits_,chi2_);}
 
@@ -73,9 +75,7 @@ private:
   HitVec hits_;
   HitVec initHits_;
   float chi2_;
-
 };
 
 typedef std::vector<Track> TrackVec;
-unsigned int getPhiPartition(float phi);
 #endif

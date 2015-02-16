@@ -2,11 +2,6 @@
 #ifndef NO_ROOT
 
 float getPt(float px, float py) { return sqrt(px*px + py*py); }
-float getPhi(float px, float py) { return std::atan2(py, px); }
-float getEta(float px, float py, float pz) {
-  float theta = atan2( getPt(px,py), pz );
-  return -1. * log( tan(theta/2.) );
-}
 float deltaPhi(float phi1, float phi2) {
   float dphi = std::abs(phi1 - phi2);
   if (dphi > TMath::Pi()) { dphi = (2.*TMath::Pi()) - dphi; }
@@ -170,9 +165,9 @@ void RootValidation::fillCandidateHists(const TrackVec& evt_track_candidates)
   for (auto&& tkcand : evt_track_candidates) {
     validation_hists_["rec_trk_nHits"]->Fill(tkcand.nHits());
     validation_hists_["rec_trk_chi2"]->Fill(tkcand.chi2());
-    validation_hists_["rec_trk_phi"]->Fill( getPhi(tkcand.momentum()[0], tkcand.momentum()[1]) );
+    validation_hists_["rec_trk_phi"]->Fill( getPhi(tkcand.position()[0], tkcand.position()[1]) );
     validation_hists_["rec_trk_Pt"]->Fill( getPt(tkcand.momentum()[0], tkcand.momentum()[1]) );
-    validation_hists_["rec_trk_eta"]->Fill( getEta(tkcand.momentum()[0], tkcand.momentum()[1], tkcand.momentum()[2]) );
+    validation_hists_["rec_trk_eta"]->Fill( getEta(tkcand.position()[0], tkcand.position()[1], tkcand.position()[2]) );
     if (savetree_) {
       tk_nhits_ = tkcand.nHits();
       tk_chi2_ = tkcand.chi2();
@@ -184,83 +179,74 @@ void RootValidation::fillCandidateHists(const TrackVec& evt_track_candidates)
 void RootValidation::fillAssociationHists(const TrackVec& evt_track_candidates, const TrackVec& evt_sim_tracks){
   std::lock_guard<std::mutex> locker(glock_);
   //setup for assocation; these are dense in simIndex, so use a vector
-  std::vector<unsigned int> associated_indices_found_RD(evt_sim_tracks.size()); // key is simIndex, value is n times simTrack has index matched to associated reco track
-  std::vector<unsigned int> associated_indices_found_SD(evt_sim_tracks.size()); // key is simIndex, value is n times simTrack has index matched to associated reco track
+  std::vector<unsigned int> associated_indices_found_RD(evt_sim_tracks.size()); 
+  std::vector<unsigned int> associated_indices_found_SD(evt_sim_tracks.size()); 
 
   for (auto&& tkcand : evt_track_candidates) {
-    auto simtracks(tkcand.SimTrackIDs());
 
-    // Do hit matching HERE: this is sparse in simIndex, use a map
-    std::unordered_map <unsigned int,unsigned int> hit_matches_found; // key is simIndex, value is n times reco track hits sim Index matches simTrack index
-    for (auto hitid : simtracks) {//loop over hits in candidates
-      hit_matches_found[hitid]++; // count the number of hits in a reco track that match a hit index in sim tracks
-    } // end loop over hits in reco track
-    
+    // get sim Index --> matching only simTrackID, not hitIDs... probably not a big deal for loopers/overlap
+    SimTkIDInfo candSimIDInfo = tkcand.SimTrackIDInfo();
+    unsigned int simtrack     = candSimIDInfo.first;
+    unsigned int nHitsMatched = candSimIDInfo.second;
+
     // Check to see if reco track has enough hits matched -- RD
     unsigned int denom_nHits_RD = tkcand.nHits();
-    for (auto&& simtrack : simtracks){ // association = n rec hits match sim hits / n rec hits in track > 75%
-      if (4*hit_matches_found[simtrack] >= 3*denom_nHits_RD){ // if association criterion is passed, save the info
-        if (associated_indices_found_RD[simtrack] == 0){ // currently unmatched simtrack, count it towards efficiency 
-          // for efficiency studies
-          validation_hists_["matchedRec_SimPt_RD"]->Fill(getPt(evt_sim_tracks[simtrack].momentum()[0],evt_sim_tracks[simtrack].momentum()[1]));
-          validation_hists_["matchedRec_SimPhi_RD"]->Fill(getPhi(evt_sim_tracks[simtrack].momentum()[0],evt_sim_tracks[simtrack].momentum()[1]));
-          validation_hists_["matchedRec_SimEta_RD"]->Fill(getEta(evt_sim_tracks[simtrack].momentum()[0],evt_sim_tracks[simtrack].momentum()[1],evt_sim_tracks[simtrack].momentum()[2]));
+    if (4*nHitsMatched >= 3*denom_nHits_RD){ // if association criterion is passed, save the info
+      if (associated_indices_found_RD[simtrack] == 0){ // currently unmatched simtrack, count it towards efficiency 
         
-          // for fake rate studies
-          validation_hists_["matchedRec_RecPt_RD"]->Fill(getPt(tkcand.momentum()[0],tkcand.momentum()[1]));
-          validation_hists_["matchedRec_RecPhi_RD"]->Fill(getPhi(tkcand.momentum()[0],tkcand.momentum()[1]));
-          validation_hists_["matchedRec_RecEta_RD"]->Fill(getEta(tkcand.momentum()[0],tkcand.momentum()[1],tkcand.momentum()[2]));
-
-          // count the matched simtrack!
-          associated_indices_found_RD[simtrack]++;
-        } // end if block for simTrack with simtrack found
-        else{ // reco track currently already matched sim track, don't count towards efficiency, but include reco info to not count it as fake
-          // for fake rate studies
-          validation_hists_["matchedRec_RecPt_RD"]->Fill(getPt(tkcand.momentum()[0],tkcand.momentum()[1]));
-          validation_hists_["matchedRec_RecPhi_RD"]->Fill(getPhi(tkcand.momentum()[0],tkcand.momentum()[1]));
-          validation_hists_["matchedRec_RecEta_RD"]->Fill(getEta(tkcand.momentum()[0],tkcand.momentum()[1],tkcand.momentum()[2]));
-
-          // count the matched simtrack!
-          associated_indices_found_RD[simtrack]++;
-        } // end cound duplicates
-        // remove sim simtrack for next search to avoid repeating sim indices for matching
-        break; // after one found per track cand, no need to look for more 
-      } // end criterion if blco
-    } // end loop over search for dominant simtrack in rec eff with rec denom
-
+        // for efficiency studies
+        validation_hists_["matchedRec_SimPt_RD"]->Fill(getPt(evt_sim_tracks[simtrack].momentum()[0],evt_sim_tracks[simtrack].momentum()[1]));
+        validation_hists_["matchedRec_SimPhi_RD"]->Fill(getPhi(evt_sim_tracks[simtrack].momentum()[0],evt_sim_tracks[simtrack].momentum()[1]));
+        validation_hists_["matchedRec_SimEta_RD"]->Fill(getEta(evt_sim_tracks[simtrack].momentum()[0],evt_sim_tracks[simtrack].momentum()[1],evt_sim_tracks[simtrack].momentum()[2]));
+        
+        // for fake rate studies
+        validation_hists_["matchedRec_RecPt_RD"]->Fill(getPt(tkcand.momentum()[0],tkcand.momentum()[1]));
+        validation_hists_["matchedRec_RecPhi_RD"]->Fill(getPhi(tkcand.momentum()[0],tkcand.momentum()[1]));
+        validation_hists_["matchedRec_RecEta_RD"]->Fill(getEta(tkcand.momentum()[0],tkcand.momentum()[1],tkcand.momentum()[2]));
+        
+        // count the matched simtrack!
+        associated_indices_found_RD[simtrack]++;
+      } // end if block for simTrack with simtrack found
+      else{ // reco track currently already matched sim track, don't count towards efficiency, but include reco info to not count it as fake
+        // for fake rate studies
+        validation_hists_["matchedRec_RecPt_RD"]->Fill(getPt(tkcand.momentum()[0],tkcand.momentum()[1]));
+        validation_hists_["matchedRec_RecPhi_RD"]->Fill(getPhi(tkcand.momentum()[0],tkcand.momentum()[1]));
+        validation_hists_["matchedRec_RecEta_RD"]->Fill(getEta(tkcand.momentum()[0],tkcand.momentum()[1],tkcand.momentum()[2]));
+        
+        // count the matched simtrack!
+        associated_indices_found_RD[simtrack]++;
+      } // end count duplicates
+    } // end criterion if block
+  
     // Check to see if reco track has enough hits matched -- SD
 
     unsigned int denom_nHits_SD = 0;
-    for (auto&& simtrack : simtracks){ // association = n rec hits match sim hits / n rec hits in track > 75%
-      denom_nHits_SD = evt_sim_tracks[simtrack].nHits();    
-      if (4*hit_matches_found[simtrack] >= 3*denom_nHits_SD){ // if association criterion is passed, save the info
-        if (associated_indices_found_SD[simtrack] == 0){ // currently unmatched simtrack, count it towards efficiency 
-          // for efficiency studies
-          validation_hists_["matchedRec_SimPt_SD"]->Fill(getPt(evt_sim_tracks[simtrack].momentum()[0],evt_sim_tracks[simtrack].momentum()[1]));
-          validation_hists_["matchedRec_SimPhi_SD"]->Fill(getPhi(evt_sim_tracks[simtrack].momentum()[0],evt_sim_tracks[simtrack].momentum()[1]));
-          validation_hists_["matchedRec_SimEta_SD"]->Fill(getEta(evt_sim_tracks[simtrack].momentum()[0],evt_sim_tracks[simtrack].momentum()[1],evt_sim_tracks[simtrack].momentum()[2]));
+    denom_nHits_SD = evt_sim_tracks[simtrack].nHits();    
+    if (4*nHitsMatched >= 3*denom_nHits_SD){ // if association criterion is passed, save the info
+      if (associated_indices_found_SD[simtrack] == 0){ // currently unmatched simtrack, count it towards efficiency 
+        // for efficiency studies
+        validation_hists_["matchedRec_SimPt_SD"]->Fill(getPt(evt_sim_tracks[simtrack].momentum()[0],evt_sim_tracks[simtrack].momentum()[1]));
+        validation_hists_["matchedRec_SimPhi_SD"]->Fill(getPhi(evt_sim_tracks[simtrack].momentum()[0],evt_sim_tracks[simtrack].momentum()[1]));
+        validation_hists_["matchedRec_SimEta_SD"]->Fill(getEta(evt_sim_tracks[simtrack].momentum()[0],evt_sim_tracks[simtrack].momentum()[1],evt_sim_tracks[simtrack].momentum()[2]));
         
-          // for fake rate studies
-          validation_hists_["matchedRec_RecPt_SD"]->Fill(getPt(tkcand.momentum()[0],tkcand.momentum()[1]));
-          validation_hists_["matchedRec_RecPhi_SD"]->Fill(getPhi(tkcand.momentum()[0],tkcand.momentum()[1]));
-          validation_hists_["matchedRec_RecEta_SD"]->Fill(getEta(tkcand.momentum()[0],tkcand.momentum()[1],tkcand.momentum()[2]));
-
-          // count the matched simtrack!
-          associated_indices_found_SD[simtrack]++;
-        }
-        else{ // currently already matched sim simtrack, don't count towards efficiency, but include reco info to not count it as fake
-          // for fake rate studies
-          validation_hists_["matchedRec_RecPt_SD"]->Fill(getPt(tkcand.momentum()[0],tkcand.momentum()[1]));
-          validation_hists_["matchedRec_RecPhi_SD"]->Fill(getPhi(tkcand.momentum()[0],tkcand.momentum()[1]));
-          validation_hists_["matchedRec_RecEta_SD"]->Fill(getEta(tkcand.momentum()[0],tkcand.momentum()[1],tkcand.momentum()[2]));
-
-          // count the matched simtrack!
-          associated_indices_found_SD[simtrack]++;
-        }
-        // remove sim simtrack for next search to avoid repeating sim indices for matching
-        break; // after one found per track cand, no need to look for more 
+        // for fake rate studies
+        validation_hists_["matchedRec_RecPt_SD"]->Fill(getPt(tkcand.momentum()[0],tkcand.momentum()[1]));
+        validation_hists_["matchedRec_RecPhi_SD"]->Fill(getPhi(tkcand.momentum()[0],tkcand.momentum()[1]));
+        validation_hists_["matchedRec_RecEta_SD"]->Fill(getEta(tkcand.momentum()[0],tkcand.momentum()[1],tkcand.momentum()[2]));
+        
+        // count the matched simtrack!
+        associated_indices_found_SD[simtrack]++;
       }
-    } // end loop over search for dominant simtrack in rec eff with rec denom
+      else{ // currently already matched sim simtrack, don't count towards efficiency, but include reco info to not count it as fake
+        // for fake rate studies
+        validation_hists_["matchedRec_RecPt_SD"]->Fill(getPt(tkcand.momentum()[0],tkcand.momentum()[1]));
+        validation_hists_["matchedRec_RecPhi_SD"]->Fill(getPhi(tkcand.momentum()[0],tkcand.momentum()[1]));
+        validation_hists_["matchedRec_RecEta_SD"]->Fill(getEta(tkcand.momentum()[0],tkcand.momentum()[1],tkcand.momentum()[2]));
+        
+        // count the matched simtrack!
+        associated_indices_found_SD[simtrack]++;
+      }
+    }
   } // end loop over reco track candidate collection
 
   for (auto index = 0U; index < evt_sim_tracks.size(); ++index){ // loop over keys in map for duplicate tracks

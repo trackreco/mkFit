@@ -9,43 +9,22 @@
 #include "tbb/tbb.h"
 #endif
 
-/*
-bool sortByZ(Hit hit1,Hit hit2){
-  return hit1.position()[2]<hit2.position()[2];
-}
-
-unsigned int getPhiPartition(float phi) {
-  //assume phi is between -PI and PI
-  //  if (!(fabs(phi)<TMath::Pi())) std::cout << "anomalous phi=" << phi << std::endl;
-  float phiPlusPi  = phi+TMath::Pi();
-  unsigned int bin = phiPlusPi*10; // Hardcode in 63 partitions with this multiplication --> need to change hit vector if this changes
-  return bin;
-}
-
-unsigned int getZPartition(float z, float zPlane){
-  float zPlusPlane  = z + zPlane;
-  float zPartSize   = 2*zPlane / 10.; // Hardcode in 10 partitions --> need to change vector of vectors if 10 changes
-  unsigned int bin  = zPlusPlane / zPartSize; 
-  return bin;
-}
-
-unsigned int getEtaPartition(float eta, float etaDet){
-  float etaPlusEtaDet  = eta + etaDet;
-  float twiceEtaDet    = 2.0*etaDet;
-  unsigned int bin     = (etaPlusEtaDet * 10.) / twiceEtaDet; 
-  return bin;
-}
-*/
-
 static bool sortByPhi(Hit hit1, Hit hit2)
 {
-  return std::atan2(hit1.position()[1],hit1.position()[0])<std::atan2(hit2.position()[1],hit2.position()[0]);
+  return hit1.phi()<hit2.phi();
 }
+
+#ifdef ETASEG
+const float etaDet = 2.0;
+static bool sortByEta(Hit hit1, Hit hit2){
+  return hit1.eta()<hit2.eta();
+}
+#endif
 
 Event::Event(const Geometry& g, Validation& v) : geom_(g), validation_(v)
 {
   layerHits_.resize(geom_.CountLayers());
-  lay_phi_hit_idx_.resize(geom_.CountLayers());
+  segmentMap_.resize(geom_.CountLayers());
 }
 
 void Event::Simulate(unsigned int nTracks)
@@ -88,7 +67,6 @@ void Event::Simulate(unsigned int nTracks)
       layerHits_[hit.layer()].push_back(hit);
     }
   }
-
   validation_.fillSimHists(simTracks_);
 }
 
@@ -100,73 +78,88 @@ void Event::Segment()
   //sort in phi and dump hits per layer, fill phi partitioning
   for (unsigned int ilayer=0; ilayer<layerHits_.size(); ++ilayer) {
     dprint("Hits in layer=" << ilayer);
+    
+#ifdef ETASEG
+    // eta first then phi
+    std::sort(layerHits_[ilayer].begin(), layerHits_[ilayer].end(), sortByEta);
+    std::vector<unsigned int> lay_eta_bin_count(10);
+    for (unsigned int ihit=0;ihit<layerHits_[ilayer].size();++ihit) {
+      unsigned int etabin = getEtaPartition(layerHits_[ilayer][ihit].eta(),etaDet);
+      dprint("ihit: " << ihit << " eta: " << layerHits_[ilayer][ihit].eta() << " etabin: " << etabin);
+      lay_eta_bin_count[etabin]++;
+    }
+    //now set index and size in partitioning map and then sort the bin by phi
+    
+    int lastEtaIdxFound = -1;
+    int lastPhiIdxFound = -1;
+
+    for (unsigned int etabin=0; etabin<10; ++etabin) {
+      unsigned int firstEtaBinIdx = lastEtaIdxFound+1;
+      unsigned int etaBinSize = lay_eta_bin_count[etabin];
+      if (etaBinSize>0){
+        lastEtaIdxFound+=etaBinSize;
+      }
+
+      //sort by phi in each "eta bin"
+      std::sort(layerHits_[ilayer].begin() + firstEtaBinIdx,layerHits_[ilayer].begin() + (etaBinSize+firstEtaBinIdx), sortByPhi); // sort from first to last in eta
+      std::vector<unsigned int> lay_eta_phi_bin_count(63);
+
+      for(unsigned int ihit = firstEtaBinIdx; ihit < etaBinSize+firstEtaBinIdx; ++ihit){
+        dprint("ihit: " << ihit << " r(layer): " << layerHits_[ilayer][ihit].r() << "(" << ilayer << ") phi: " 
+                        << layerHits_[ilayer][ihit].phi() << " phipart: " << getPhiPartition(layerHits_[ilayer][ihit].phi()) << " eta: "
+                        << layerHits_[ilayer][ihit].eta() << " etapart: " << getEtaPartition(layerHits_[ilayer][ihit].eta(),etaDet));
+        unsigned int phibin = getPhiPartition(layerHits_[ilayer][ihit].phi());
+        lay_eta_phi_bin_count[phibin]++;
+      }
+
+      for (unsigned int phibin=0; phibin<63; ++phibin) {
+        unsigned int firstPhiBinIdx = lastPhiIdxFound+1;
+        unsigned int phiBinSize = lay_eta_phi_bin_count[phibin];
+        BinInfo phiBinInfo(firstPhiBinIdx,phiBinSize);
+        segmentMap_[ilayer][etabin].push_back(phiBinInfo);
+        if (phiBinSize>0){
+          lastPhiIdxFound+=phiBinSize;
+        }
+#ifdef DEBUG
+        if ((debug) && (phiBinSize !=0)) printf("ilayer: %1u etabin: %1u phibin: %2u first: %2u last: %2u \n", 
+                                                ilayer, etabin, phibin, 
+                                                segmentMap_[ilayer][etabin][phibin].first, 
+                                                segmentMap_[ilayer][etabin][phibin].second+segmentMap_[ilayer][etabin][phibin].first
+                                                );
+#endif
+      } // end loop over storing phi index
+    } // end loop over storing eta index
+#else
+    segmentMap_[ilayer].resize(10);    // only one eta bin for special case, avoid ifdefs
     std::sort(layerHits_[ilayer].begin(), layerHits_[ilayer].end(), sortByPhi);
     std::vector<unsigned int> lay_phi_bin_count(63);//should it be 63? - yes!
     for (unsigned int ihit=0;ihit<layerHits_[ilayer].size();++ihit) {
-      float hitx = layerHits_[ilayer][ihit].position()[0];
-      float hity = layerHits_[ilayer][ihit].position()[1];
-#ifdef DEBUG
-      float hitz = layerHits_[ilayer][ihit].position()[2];
-      dprint("hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
-                              << std::atan2(hity,hitx) << " " << hitz);
-#endif
-      unsigned int bin = getPhiPartition(std::atan2(hity,hitx));
-      lay_phi_bin_count[bin]++;
+      dprint("hit r/phi/eta : " << layerHits_[ilayer][ihit].r() << " "
+                                << layerHits_[ilayer][ihit].phi() << " " << layerHits_[ilayer][ihit].eta());
+
+      unsigned int phibin = getPhiPartition(layerHits_[ilayer][ihit].phi());
+      lay_phi_bin_count[phibin]++;
     }
-    
+
     //now set index and size in partitioning map
     int lastIdxFound = -1;
     for (unsigned int bin=0; bin<63; ++bin) {
       unsigned int binSize = lay_phi_bin_count[bin];
       unsigned int firstBinIdx = lastIdxFound+1;
       BinInfo binInfo(firstBinIdx, binSize);
-      lay_phi_hit_idx_[ilayer].push_back(binInfo);
+      segmentMap_[ilayer][0].push_back(binInfo); // [0] bin is just the only eta bin ... reduce ifdefs
       if (binSize>0){
         lastIdxFound+=binSize;
       }
     }
-  }
-
-  /*  const unsigned int nPhiPart = 63;
-  const unsigned int nEtaPart = 10;
-  const unsigned int nZPart = 10;
-  */
-  
-  //  std::vector<std::vector<HitVec > > evt_lay_phi_hits(theGeom->CountLayers(),std::vector<HitVec > (63));
-//std::vector<std::vector<std::vector<HitVec > > > evt_lay_phi_Z_hits(theGeom->CountLayers(),std::vector<std::vector<HitVec > >(63,std::vector<HitVec >(10)));
-//std::vector<std::vector<std::vector<HitVec > > > evt_lay_phi_eta_hits(theGeom->CountLayers(),std::vector<std::vector<HitVec > >(63,std::vector<HitVec >(10)));
-
-
-/*
-  for (unsigned int ilayer=0;ilayer<evt_lay_phi_hits.size();++ilayer) { //correct so far
-    for (unsigned int iphi=0;iphi<evt_lay_phi_hits[ilayer].size();++iphi) {
-      std::sort(evt_lay_phi_hits[ilayer][iphi].begin(),evt_lay_phi_hits[ilayer][iphi].end(),sortByZ);
-      for (unsigned int ihit =0;ihit<evt_lay_phi_hits[ilayer][iphi].size();++ihit){
-        unsigned int bin = getZPartition(evt_lay_phi_hits[ilayer][iphi][ihit].position()[2]);
-        evt_lay_phi_Z_hits[ilayer][iphi][bin].push_back(evt_lay_phi_hits[ilayer][iphi][ihit]);
-        //      std::cout << "x: " << evt_lay_phi_hits[ilayer][iphi][ihit].position()[0] << " y: " << evt_lay_phi_hits[ilayer][iphi][ihit].position()[1] << " z: " << evt_lay_phi_hits[ilayer][iphi][ihit].position()[2] << std::endl;
-      }
-    }
-  }
-
-  for (unsigned int ilayer=0;ilayer<evt_lay_phi_Z_hits.size();++ilayer) {
-    for (unsigned int iphi=0;iphi<evt_lay_phi_Z_hits[ilayer].size();++iphi) {
-      for (unsigned int iz =0;iz<evt_lay_phi_Z_hits[ilayer][iphi].size();++iz){
-        if (evt_lay_phi_Z_hits[ilayer][iphi][iz].size() > 0){
-          std::cout << "ilayer: " << ilayer << " iphi: " << iphi << " iz: " << iz << " size: " << evt_lay_phi_Z_hits[ilayer][iphi][iz].size() << std::endl;
-          for (unsigned int ihit =0;ihit<evt_lay_phi_Z_hits[ilayer][iphi][iz].size();++ihit){
-            std::cout << "x: " << evt_lay_phi_Z_hits[ilayer][iphi][iz][ihit].position()[0] << " y: " << evt_lay_phi_Z_hits[ilayer][iphi][iz][ihit].position()[1] << " z: " << evt_lay_phi_Z_hits[ilayer][iphi][iz][ihit].position()[2] << std::endl;
-          }
-          std::cout << std::endl;
-        }
-      }
-    }
-  }
-*/
+#endif
+  } // end loop over layers
 }
 
 void Event::Seed()
 {
+#define SIMSEEDS
+#ifdef SIMSEEDS
   //create seeds (from sim tracks for now)
   for (unsigned int itrack=0;itrack<simTracks_.size();++itrack) {
     const Track& trk = simTracks_[itrack];
@@ -174,13 +167,7 @@ void Event::Seed()
     TrackState updatedState = trk.state();
     HitVec seedhits;
     for (auto ilayer=0U;ilayer<Config::nlayers_per_seed;++ilayer) {//seeds have first three layers as seeds
-      Hit seed_hit;
-      for (auto ihit=0U;ihit<hits.size();++ihit){
-        if (hits[ihit].layer() == ilayer){
-          seed_hit = hits[ihit];
-          break;
-        }
-      }
+      Hit seed_hit = hits[ilayer]; // do this for now to make initHits element number line up with HitId number
       TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
 #ifdef CHECKSTATEVALID
       if (!propState.valid) {
@@ -194,11 +181,67 @@ void Event::Seed()
     Track seed(updatedState,seedhits,0.);//fixme chi2
     seedTracks_.push_back(seed);
   }
+#else
+
+  // follow CMSSW -> start with hits in 2nd layer, build seed by then projecting back to beamspot.
+  // build seed pairs... then project to third layer.
+
+  // p=qBR => R is rad of curvature (in meters), q = 0.2997 in natural units, B = 3.8T, p = min pt = 0.5 GeV. 
+  // so R = (0.5/0.2997...*3.8) * 100 -> max rad. of curv. in cm 
+
+  const float curvRad = 4.38900125;
+  const float d0 = 0.1; // 1 mm x,y beamspot from simulation
+  const float dZ = 2.0;
+
+  for (unsigned int ihit=0;ihit<layerHits_[1].size();++ihit) { // 1 = second layer
+    float outerrad  = layerHits_[1][ihit].r();
+    float ouerphi   = layerHits_[1][ihit].phi();
+
+    unsigned int mcID = layerHits_[1][ihit].mcTrackID();
+    Hit innerHit = simTracks_[mcID].hitsVector()[0];
+    float innerrad  = innerHit.r();
+    innerrad = 4.0;
+  
+    std::cout << "Diff: " << innerrad - 4.0 <<std::endl;
+
+    float innerPhiPlusCentral  = outerphi-acos(outerrad/(2.*curvRad))+acos(innerrad/(2.*curvRad));
+    float innerPhiMinusCentral = outerphi-acos(outerrad/(-2.*curvRad))+acos(-innerrad/(2.*curvRad));
+
+    // for d0 displacements
+
+    float alphaPlus = acos(-((d0*d0)+(outerrad*outerrad)-2.*(d0*curvRad))/((2.*outerrad)*(d0-curvRad)));
+    float betaPlus  = acos(-((d0*d0)+(innerrad*innerrad)-2.*(d0*curvRad))/((2.*innerrad)*(d0-curvRad)));
+
+    float alphaMinus = acos(-((d0*d0)+(outerrad*outerrad)+2.*(d0*curvRad))/((2.*outerrad)*(d0+curvRad)));
+    float betaMinus  = acos(-((d0*d0)+(innerrad*innerrad)+2.*(d0*curvRad))/((2.*innerrad)*(d0+curvRad)));
+
+    float innerPhiPlus = outerphi-alphaPlus+betaPlus;
+    float innerPhiMinus = outerphi-alphaMinus+betaMinus;
+
+    float innerZPlus  = (innerrad/outerrad)*(outerhitz-dZ)+dZ;
+    float innerZMinus = (innerrad/outerrad)*(outerhitz+dZ)-dZ;
+    float centralZ    = (innerrad/outerrad)*outerhitz;
+
+    printf("ihit: %1u \n   iphi: %5f ophi: %5f \n   iphiP: %5f iphiM: %5f \n   iphiPC: %5f iphiMC: %5f \n",
+           ihit,
+           innerHit.phi(), outerphi,
+           innerPhiPlus,innerPhiMinus,
+           innerPhiPlusCentral,innerPhiMinusCentral
+           );
+    printf("   innerZ: %5f iZM: %5f iZP: %5f cZ: %5f \n",
+           innerhitz,innerZMinus,innerZPlus,centralZ
+           );
+
+    unsigned int phibinPlus  = getPhiPartition(innerPhiPlus);
+    unsigned int phibinMinus = getPhiPartition(innerPhiMinus);
+
+  }
+#endif
 }
 
 void Event::Find()
 {
-  buildTracks(*this);
+  buildTracksParallel(*this);
   validation_.fillAssociationHists(candidateTracks_,simTracks_);
   validation_.fillCandidateHists(candidateTracks_);
 }
@@ -211,3 +254,4 @@ void Event::Fit()
   runFittingTest(*this, simTracks_);
 #endif
 }
+

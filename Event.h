@@ -7,6 +7,10 @@
 
 typedef std::pair<unsigned int,unsigned int> BinInfo;
 
+// phi-eta partitioning map: vector of vector of vectors of std::pairs. 
+// vec[nLayers][nEtaBins][nPhiBins]
+typedef std::vector<std::vector<std::vector<BinInfo> > > BinInfoMap;
+
 struct Config {
   static constexpr const unsigned int nlayers_per_seed = 3;
   static constexpr const unsigned int maxCand = 10;
@@ -27,13 +31,9 @@ public:
   const Geometry& geom_;
   Validation& validation_;
   std::vector<HitVec> layerHits_;
-  TrackVec simTracks_, seedTracks_, candidateTracks_, fitTracks_;
+  TrackVec simTracks_, seedTracks_, candidateTracks_;
 
-  // phi partitioning map: Vector of vectors of std::pairs. 
-  // A vector of maps, although vector is fixed to layer, so really array of maps,
-  // where maps are phi bins and the number of hits in those phi bins.
-  // First is first hit index in bin, second is size of this bin
-  std::vector<std::vector<BinInfo> > lay_phi_hit_idx_;
+  BinInfoMap segmentMap_;
 };
 
 typedef std::vector<Event> EventVec;

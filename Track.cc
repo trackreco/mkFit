@@ -1,29 +1,13 @@
 #include "Track.h"
 
-unsigned int getPhiPartition(float phi) {
-  //assume phi is between -PI and PI
-  //  if (!(fabs(phi)<TMath::Pi())) std::cout << "anomalous phi=" << phi << std::endl;
-  float phiPlusPi  = phi+TMath::Pi();
-  unsigned int bin = phiPlusPi*10;
-  return bin;
-}
-
-std::vector<unsigned int> Track::SimTrackIDs() const
+// find the simtrack that provided the most hits
+std::pair<unsigned int,unsigned int> Track::SimTrackIDInfo() const
 {
   std::vector<unsigned int> mctrack;
   for (auto&& ihit : hits_){
-    mctrack.push_back(ihit.mcIndex());
+    mctrack.push_back(ihit.mcTrackID());
   }
-  return mctrack;
-}
-
-// find the simtrack that provided the most hits
-unsigned int Track::SimTrackID() const
-{
-  if (hits_.size() == 0) return 0;
-
-  auto mctrack(SimTrackIDs());
-  std::sort(mctrack.begin(), mctrack.end());
+  std::sort(mctrack.begin(), mctrack.end()); // ensures all elements are checked properly
 
   auto mtrk(mctrack[0]), mcount(0U), m(mctrack[0]), c(0U);
 
@@ -32,5 +16,8 @@ unsigned int Track::SimTrackID() const
     if (c >= mcount) { mtrk = m; mcount = c; }
     m = i;
   }
-  return mtrk;
+
+  std::pair<unsigned int, unsigned int> simIDInfo (mtrk,mcount);
+  return simIDInfo;
 }
+

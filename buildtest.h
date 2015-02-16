@@ -9,5 +9,6 @@
 #include "Geometry.h"
 #include "Event.h"
 
-void buildTracks(Event& ev);
+void buildTracksParallel(Event& ev);
+void buildTracksSerial(Event& ev);
 #endif

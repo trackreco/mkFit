@@ -62,7 +62,7 @@ void fitTrack(const Track& trk, const Event& ev)
 #else
   const auto& hits = trk.hitsVector();
 #endif
-  unsigned int itrack0 = trk.SimTrackID();
+  unsigned int itrack0 = trk.SimTrackIDInfo().first;
   Track trk0 = ev.simTracks_[itrack0];
   TrackState simState = trk0.state();
 
@@ -84,7 +84,7 @@ void fitTrack(const Track& trk, const Event& ev)
 #ifdef DEBUG
   if (debug) { 
     print("Sim track", itrack0, trk0);
-    print("Initial track", trk.SimTrackID(), trk);
+    print("Initial track", trk.SimTrackIDInfo().first, trk);
     print("simStateHit0", simStateHit0);
     print("cfitStateHit0", cfitStateHit0);
     print("updatedState", updatedState);
@@ -110,7 +110,7 @@ void fitTrack(const Track& trk, const Event& ev)
 
 #ifdef DEBUG
     if (debug) {
-      std::cout << "processing hit: " << trk.SimTrackID() << ":" << hit.hitID() << std::endl
+      std::cout << "processing hit: " << trk.SimTrackIDInfo().first << ":" << hit.hitID() << std::endl
                 << "hitR, propR, updR = " << hit.r() << ", " 
                 << Mag(propPos) << ", " << Mag(updPos) << std::endl << std::endl;
 
@@ -126,7 +126,7 @@ void fitTrack(const Track& trk, const Event& ev)
 #endif
     }
 
-    const HitVec& mcInitHitVec = ev.simTracks_[hit.mcIndex()].initHitsVector();
+    const HitVec& mcInitHitVec = ev.simTracks_[hit.mcTrackID()].initHitsVector();
     const auto hitid = hit.hitID();
     ev.validation_.fillFitHitHists(hitid, mcInitHitVec, measState, propState, updatedState);
   } // end loop over hits
