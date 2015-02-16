@@ -16,10 +16,11 @@ typedef TrackVec::const_iterator TrkIter;
 typedef std::vector<cand_t> candvec;
 #else
 #include "tbb/tbb.h"
+#include <mutex>
 typedef tbb::concurrent_vector<cand_t> candvec;
+static std::mutex evtlock;
 #endif
 typedef candvec::const_iterator canditer;
-static std::mutex evtlock;
 
 void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidates, unsigned int ilay, bool debug);
 
@@ -47,7 +48,7 @@ void processCandidates(Event& ev, const Track& seed, candvec& candidates, unsign
 {
   auto& evt_track_candidates(ev.candidateTracks_);
 
-  dprint("processing seed # " << seed.SimTrackID() << " par=" << seed.parameters() << " candidates=" << candidates.size());
+  dprint("processing seed # " << seed.SimTrackIDInfo().first << " par=" << seed.parameters() << " candidates=" << candidates.size());
 
   candvec tmp_candidates;
   tmp_candidates.reserve(3*candidates.size()/2);
@@ -69,7 +70,9 @@ void processCandidates(Event& ev, const Track& seed, candvec& candidates, unsign
       // save the best candidate from the previous iteration and then swap in
       // the empty new candidate list; seed will be skipped on future iterations
       auto&& best = std::max_element(candidates.begin(),candidates.end(),sortByHitsChi2);
+#ifdef TBB
       std::lock_guard<std::mutex> evtguard(evtlock); // should be rare
+#endif
       evt_track_candidates.push_back(best->first);
     }
     dprint("swapping with size=" << tmp_candidates.size());
@@ -78,35 +81,45 @@ void processCandidates(Event& ev, const Track& seed, candvec& candidates, unsign
   }
 }
 
-void buildTracksSerial(Event& ev)
+void buildTracksBySeeds(Event& ev)
 {
   auto& evt_track_candidates(ev.candidateTracks_);
   const auto& evt_lay_hits(ev.layerHits_);
   const auto& evt_seeds(ev.seedTracks_);
   bool debug(false);
     
-  //process seeds
-  for (auto&& seed : evt_seeds) {
-    dprint("processing seed # " << seed.SimTrackIDInfo().first << " par=" << seed.parameters());
-    TrackState seed_state = seed.state();
-    //seed_state.errors *= 0.01;//otherwise combinatorics explode!!!
-    //should consider more than 1 candidate...
-    candvec track_candidates;
-    track_candidates.push_back(cand_t(seed,seed_state));
-    for (unsigned int ilay=Config::nlayers_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
-      dprint("going to layer #" << ilay << " with N cands=" << track_candidates.size());
-      processCandidates(ev, seed, track_candidates, ilay, debug);
-    }
-    //end of layer loop
+#ifdef TBB
+  //loop over seeds
+  parallel_for( tbb::blocked_range<size_t>(0, evt_seeds.size()), 
+      [&](const tbb::blocked_range<size_t>& seediter) {
+    for (auto iseed = seediter.begin(); iseed != seediter.end(); ++iseed) {
+      const auto& seed(evt_seeds[iseed]);
+#else
+    for (auto&& seed : evt_seeds) {
+#endif
+      dprint("processing seed # " << seed.SimTrackIDInfo().first << " par=" << seed.parameters());
+      TrackState seed_state = seed.state();
+      //seed_state.errors *= 0.01;//otherwise combinatorics explode!!!
+      //should consider more than 1 candidate...
+      candvec track_candidates;
+      track_candidates.push_back(cand_t(seed,seed_state));
+      for (unsigned int ilay=Config::nlayers_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
+        dprint("going to layer #" << ilay << " with N cands=" << track_candidates.size());
+        processCandidates(ev, seed, track_candidates, ilay, debug);
+      }
+      //end of layer loop
 
-    if (track_candidates.size()>0) {
-      auto&& best = std::max_element(track_candidates.begin(),track_candidates.end(),sortByHitsChi2);
-      evt_track_candidates.push_back(best->first); // only save one track candidate per seed, one with lowest chi2
-    }
-  }//end of process seeds loop
+      if (track_candidates.size()>0) {
+        auto&& best = std::max_element(track_candidates.begin(),track_candidates.end(),sortByHitsChi2);
+        evt_track_candidates.push_back(best->first); // only save one track candidate per seed, one with lowest chi2
+      }
+    }//end of process seeds loop
+#ifdef TBB
+  });
+#endif
 }
 
-void buildTracksParallel(Event& ev)
+void buildTracksByLayers(Event& ev)
 {
   auto& evt_track_candidates(ev.candidateTracks_);
   const auto& evt_lay_hits(ev.layerHits_);
@@ -257,7 +270,7 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
     } 
     else { // loop wrap around end of array for phiBinMinus > phiBinPlus, for dPhiMinus < 0 or dPhiPlus > 0 at initialization
       unsigned int firstIndex = binInfoMinus.first;
-      unsigned int etaBinSize = segmentMap[ilayer][ieta][62].first+segmentMap[ilayer][ieta][62].second;
+      unsigned int etaBinSize = segmentMap[ilayer][ieta][Config::nPhiPart-1].first+segmentMap[ilayer][ieta][Config::nPhiPart-1].second;
 
       for (unsigned int ihit  = firstIndex; ihit < etaBinSize; ++ihit){
         cand_hit_idx.push_back(ihit);
@@ -316,6 +329,6 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   //add also the candidate for no hit found
   if (tkcand.nHits()==ilayer) {//only if this is the first missing hit
     dprint("adding candidate with no hit");
-    tmp_candidates.push_back(std::pair<Track, TrackState>(tkcand,propState));
+    tmp_candidates.push_back(cand_t(tkcand,propState));
   }
 }

@@ -4,18 +4,24 @@
 #include "Matrix.h"
 #include <atomic>
 
+namespace Config {
+  static constexpr const unsigned int nPhiPart = 63;
+  static constexpr const unsigned int nPhiFactor = 10;  // nPhiPart/2pi
+  static constexpr const unsigned int nEtaPart = 10;
+};
+
 inline unsigned int getPhiPartition(float phi){
   //assume phi is between -PI and PI
   //  if (!(fabs(phi)<TMath::Pi())) std::cout << "anomalous phi=" << phi << std::endl;
   float phiPlusPi  = phi+TMath::Pi();
-  unsigned int bin = phiPlusPi*10;
+  unsigned int bin = phiPlusPi*Config::nPhiFactor;
   return bin;
 }
 
 inline unsigned int getEtaPartition(float eta, float etaDet){
   float etaPlusEtaDet  = eta + etaDet;
   float twiceEtaDet    = 2.0*etaDet;
-  unsigned int bin     = (etaPlusEtaDet * 10.) / twiceEtaDet;  // ten bins for now ... update if changed in Event.cc
+  unsigned int bin     = (etaPlusEtaDet * Config::nEtaPart) / twiceEtaDet;  // ten bins for now ... update if changed in Event.cc
   return bin;
 }
 
@@ -88,6 +94,9 @@ public:
   float r() const {
     return sqrt(state_.parameters.At(0)*state_.parameters.At(0) +
                 state_.parameters.At(1)*state_.parameters.At(1));
+  }
+  float z() const {
+    return state_.parameters.At(2);
   }
   float phi() const {
     return getPhi(state_.parameters.At(0),state_.parameters.At(1));

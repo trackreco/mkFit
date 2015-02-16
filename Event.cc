@@ -19,6 +19,11 @@ const float etaDet = 2.0;
 static bool sortByEta(Hit hit1, Hit hit2){
   return hit1.eta()<hit2.eta();
 }
+
+// within a layer with a "reasonable" geometry, ordering by Z is the same as eta
+static bool sortByZ(Hit hit1, Hit hit2){
+  return hit1.z()<hit2.z();
+}
 #endif
 
 Event::Event(const Geometry& g, Validation& v) : geom_(g), validation_(v)
@@ -73,16 +78,17 @@ void Event::Simulate(unsigned int nTracks)
 void Event::Segment()
 {
 #ifdef DEBUG
- bool debug=false;
+  bool debug=true;
 #endif
   //sort in phi and dump hits per layer, fill phi partitioning
   for (unsigned int ilayer=0; ilayer<layerHits_.size(); ++ilayer) {
     dprint("Hits in layer=" << ilayer);
     
 #ifdef ETASEG
+    segmentMap_[ilayer].resize(Config::nEtaPart);    
     // eta first then phi
-    std::sort(layerHits_[ilayer].begin(), layerHits_[ilayer].end(), sortByEta);
-    std::vector<unsigned int> lay_eta_bin_count(10);
+    std::sort(layerHits_[ilayer].begin(), layerHits_[ilayer].end(), sortByZ);
+    std::vector<unsigned int> lay_eta_bin_count(Config::nEtaPart);
     for (unsigned int ihit=0;ihit<layerHits_[ilayer].size();++ihit) {
       unsigned int etabin = getEtaPartition(layerHits_[ilayer][ihit].eta(),etaDet);
       dprint("ihit: " << ihit << " eta: " << layerHits_[ilayer][ihit].eta() << " etabin: " << etabin);
@@ -93,7 +99,7 @@ void Event::Segment()
     int lastEtaIdxFound = -1;
     int lastPhiIdxFound = -1;
 
-    for (unsigned int etabin=0; etabin<10; ++etabin) {
+    for (unsigned int etabin=0; etabin<Config::nEtaPart; ++etabin) {
       unsigned int firstEtaBinIdx = lastEtaIdxFound+1;
       unsigned int etaBinSize = lay_eta_bin_count[etabin];
       if (etaBinSize>0){
@@ -102,7 +108,7 @@ void Event::Segment()
 
       //sort by phi in each "eta bin"
       std::sort(layerHits_[ilayer].begin() + firstEtaBinIdx,layerHits_[ilayer].begin() + (etaBinSize+firstEtaBinIdx), sortByPhi); // sort from first to last in eta
-      std::vector<unsigned int> lay_eta_phi_bin_count(63);
+      std::vector<unsigned int> lay_eta_phi_bin_count(Config::nPhiPart);
 
       for(unsigned int ihit = firstEtaBinIdx; ihit < etaBinSize+firstEtaBinIdx; ++ihit){
         dprint("ihit: " << ihit << " r(layer): " << layerHits_[ilayer][ihit].r() << "(" << ilayer << ") phi: " 
@@ -112,7 +118,7 @@ void Event::Segment()
         lay_eta_phi_bin_count[phibin]++;
       }
 
-      for (unsigned int phibin=0; phibin<63; ++phibin) {
+      for (unsigned int phibin=0; phibin<Config::nPhiPart; ++phibin) {
         unsigned int firstPhiBinIdx = lastPhiIdxFound+1;
         unsigned int phiBinSize = lay_eta_phi_bin_count[phibin];
         BinInfo phiBinInfo(firstPhiBinIdx,phiBinSize);
@@ -130,9 +136,9 @@ void Event::Segment()
       } // end loop over storing phi index
     } // end loop over storing eta index
 #else
-    segmentMap_[ilayer].resize(10);    // only one eta bin for special case, avoid ifdefs
+    segmentMap_[ilayer].resize(1);    // only one eta bin for special case, avoid ifdefs
     std::sort(layerHits_[ilayer].begin(), layerHits_[ilayer].end(), sortByPhi);
-    std::vector<unsigned int> lay_phi_bin_count(63);//should it be 63? - yes!
+    std::vector<unsigned int> lay_phi_bin_count(Config::nPhiPart);//should it be 63? - yes!
     for (unsigned int ihit=0;ihit<layerHits_[ilayer].size();++ihit) {
       dprint("hit r/phi/eta : " << layerHits_[ilayer][ihit].r() << " "
                                 << layerHits_[ilayer][ihit].phi() << " " << layerHits_[ilayer][ihit].eta());
@@ -143,7 +149,7 @@ void Event::Segment()
 
     //now set index and size in partitioning map
     int lastIdxFound = -1;
-    for (unsigned int bin=0; bin<63; ++bin) {
+    for (unsigned int bin=0; bin<Config::nPhiPart; ++bin) {
       unsigned int binSize = lay_phi_bin_count[bin];
       unsigned int firstBinIdx = lastIdxFound+1;
       BinInfo binInfo(firstBinIdx, binSize);
@@ -241,7 +247,7 @@ void Event::Seed()
 
 void Event::Find()
 {
-  buildTracksParallel(*this);
+  buildTracksByLayers(*this);
   validation_.fillAssociationHists(candidateTracks_,simTracks_);
   validation_.fillCandidateHists(candidateTracks_);
 }
