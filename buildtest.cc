@@ -87,7 +87,13 @@ void buildTracksBySeeds(Event& ev)
   const auto& evt_lay_hits(ev.layerHits_);
   const auto& evt_seeds(ev.seedTracks_);
   bool debug(false);
-    
+
+  std::vector<candvec> track_candidates(evt_seeds.size());
+  for (auto iseed = 0U; iseed < evt_seeds.size(); iseed++) {
+    const auto& seed(evt_seeds[iseed]);
+    track_candidates[iseed].push_back(cand_t(seed, seed.state()));
+  }
+
 #ifdef TBB
   //loop over seeds
   parallel_for( tbb::blocked_range<size_t>(0, evt_seeds.size()), 
@@ -95,28 +101,31 @@ void buildTracksBySeeds(Event& ev)
     for (auto iseed = seediter.begin(); iseed != seediter.end(); ++iseed) {
       const auto& seed(evt_seeds[iseed]);
 #else
-    for (auto&& seed : evt_seeds) {
+    for (auto iseed = 0U; iseed != evt_seeds.size(); ++iseed) {
+      const auto& seed(evt_seeds[iseed]);
 #endif
       dprint("processing seed # " << seed.SimTrackIDInfo().first << " par=" << seed.parameters());
       TrackState seed_state = seed.state();
       //seed_state.errors *= 0.01;//otherwise combinatorics explode!!!
       //should consider more than 1 candidate...
-      candvec track_candidates;
-      track_candidates.push_back(cand_t(seed,seed_state));
+      auto&& candidates(track_candidates[iseed]);
       for (unsigned int ilay=Config::nlayers_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
         dprint("going to layer #" << ilay << " with N cands=" << track_candidates.size());
-        processCandidates(ev, seed, track_candidates, ilay, debug);
+        processCandidates(ev, seed, candidates, ilay, debug);
       }
       //end of layer loop
-
-      if (track_candidates.size()>0) {
-        auto&& best = std::max_element(track_candidates.begin(),track_candidates.end(),sortByHitsChi2);
-        evt_track_candidates.push_back(best->first); // only save one track candidate per seed, one with lowest chi2
-      }
     }//end of process seeds loop
 #ifdef TBB
   });
 #endif
+  for (const auto& cand : track_candidates) {
+    if (cand.size()>0) {
+      // only save one track candidate per seed, one with lowest chi2
+      //std::partial_sort(cand.begin(),cand.begin()+1,cand.end(),sortByHitsChi2);
+      auto&& best = std::max_element(cand.begin(),cand.end(),sortByHitsChi2);
+      evt_track_candidates.push_back(best->first);
+    }
+  }
 }
 
 void buildTracksByLayers(Event& ev)

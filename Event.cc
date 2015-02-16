@@ -247,7 +247,7 @@ void Event::Seed()
 
 void Event::Find()
 {
-  buildTracksByLayers(*this);
+  buildTracksBySeeds(*this);
   validation_.fillAssociationHists(candidateTracks_,simTracks_);
   validation_.fillCandidateHists(candidateTracks_);
 }
