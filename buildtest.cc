@@ -234,15 +234,15 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   const float detaPlus   = normalizedEta(eta+nSigmaDeta);
   
   // for now
-  float etaDet = 2.0;
+  const float etaDet = 2.0;
 
-  unsigned int etaBinMinus = getEtaPartition(detaMinus,etaDet);
-  unsigned int etaBinPlus  = getEtaPartition(detaPlus,etaDet);
+  const auto etaBinMinus = getEtaPartition(detaMinus,etaDet);
+  const auto etaBinPlus  = getEtaPartition(detaPlus,etaDet);
 
   dprint("eta: " << eta << " etaBinMinus: " << etaBinMinus << " etaBinPlus: " << etaBinPlus << " deta2: " << deta2);
 #else // just assign the etaBin boundaries to keep code without 10k ifdefs
-  unsigned int etaBinMinus = 0;
-  unsigned int etaBinPlus  = 0;
+  const auto etaBinMinus = 0U;
+  const auto etaBinPlus  = 0U;
 #endif
 
   const float phi = getPhi(predx,predy); //std::atan2(predy,predx); 
@@ -258,38 +258,38 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   const float dphiMinus = normalizedPhi(phi-nSigmaDphi);
   const float dphiPlus  = normalizedPhi(phi+nSigmaDphi);
   
-  unsigned int phiBinMinus = getPhiPartition(dphiMinus);
-  unsigned int phiBinPlus  = getPhiPartition(dphiPlus);
+  const auto phiBinMinus = getPhiPartition(dphiMinus);
+  const auto phiBinPlus  = getPhiPartition(dphiPlus);
 
   dprint("phi: " << phi << " phiBinMinus: " <<  phiBinMinus << " phiBinPlus: " << phiBinPlus << "  dphi2: " << dphi2);
   
   for (unsigned int ieta = etaBinMinus; ieta <= etaBinPlus; ++ieta){
     
-    BinInfo binInfoMinus = segmentMap[ilayer][ieta][int(phiBinMinus)];
-    BinInfo binInfoPlus  = segmentMap[ilayer][ieta][int(phiBinPlus)];
+    const BinInfo binInfoMinus = segmentMap[ilayer][ieta][int(phiBinMinus)];
+    const BinInfo binInfoPlus  = segmentMap[ilayer][ieta][int(phiBinPlus)];
     
     std::vector<unsigned int> cand_hit_idx;
     std::vector<unsigned int>::iterator index_iter; // iterator for vector
     
     // Branch here from wrapping
     if (phiBinMinus<=phiBinPlus){
-      unsigned int firstIndex = binInfoMinus.first;
-      unsigned int maxIndex   = binInfoPlus.first+binInfoPlus.second;
+      const auto firstIndex = binInfoMinus.first;
+      const auto maxIndex   = binInfoPlus.first+binInfoPlus.second;
 
-      for (unsigned int ihit  = firstIndex; ihit < maxIndex; ++ihit){
+      for (auto ihit  = firstIndex; ihit < maxIndex; ++ihit){
         cand_hit_idx.push_back(ihit);
       }
     } 
     else { // loop wrap around end of array for phiBinMinus > phiBinPlus, for dPhiMinus < 0 or dPhiPlus > 0 at initialization
-      unsigned int firstIndex = binInfoMinus.first;
-      unsigned int etaBinSize = segmentMap[ilayer][ieta][Config::nPhiPart-1].first+segmentMap[ilayer][ieta][Config::nPhiPart-1].second;
+      const auto firstIndex = binInfoMinus.first;
+      const auto etaBinSize = segmentMap[ilayer][ieta][Config::nPhiPart-1].first+segmentMap[ilayer][ieta][Config::nPhiPart-1].second;
 
-      for (unsigned int ihit  = firstIndex; ihit < etaBinSize; ++ihit){
+      for (auto ihit  = firstIndex; ihit < etaBinSize; ++ihit){
         cand_hit_idx.push_back(ihit);
       }
 
-      unsigned int etaBinStart= segmentMap[ilayer][ieta][0].first;
-      unsigned int maxIndex   = binInfoPlus.first+binInfoPlus.second;
+      const auto etaBinStart= segmentMap[ilayer][ieta][0].first;
+      const auto maxIndex   = binInfoPlus.first+binInfoPlus.second;
 
       for (unsigned int ihit  = etaBinStart; ihit < maxIndex; ++ihit){
         cand_hit_idx.push_back(ihit);
@@ -315,8 +315,8 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
 #endif
     
     for(index_iter = cand_hit_idx.begin(); index_iter != cand_hit_idx.end(); ++index_iter){
-      Hit hitCand = evt_lay_hits[ilayer][*index_iter];
-      MeasurementState hitMeas = hitCand.measurementState();
+      const Hit hitCand = evt_lay_hits[ilayer][*index_iter];
+      const MeasurementState hitMeas = hitCand.measurementState();
 
 #ifdef LINEARINTERP
       const float ratio = (hitCand.r() - minR)/deltaR;
