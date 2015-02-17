@@ -17,7 +17,10 @@ typedef std::vector<cand_t> candvec;
 #else
 #include "tbb/tbb.h"
 #include <mutex>
-typedef tbb::concurrent_vector<cand_t> candvec;
+// concurrent_vector is only needed if we parallelize the candidate loops;
+// not needed if we only parallelize over seeds.
+//typedef tbb::concurrent_vector<cand_t> candvec;
+typedef std::vector<cand_t> candvec;
 static std::mutex evtlock;
 #endif
 typedef candvec::const_iterator canditer;
