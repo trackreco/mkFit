@@ -10,6 +10,10 @@
 #include "Event.h"
 #include "RootValidation.h"
 
+#ifdef TBB
+#include "tbb/task_scheduler_init.h"
+#endif
+
 //#define CYLINDER
 
 #ifdef WITH_USOLIDS
@@ -88,7 +92,7 @@ static tick delta(timepoint& t0)
   return d;
 }
 
-int main()
+int main(int argc, char** argv)
 {
   Geometry geom;
   initGeom(geom);
@@ -107,8 +111,17 @@ int main()
 
   std::vector<tick> ticks(5);
 
+#ifdef TBB
+  auto nThread(tbb::task_scheduler_init::default_num_threads());
+  if (argc > 1) {
+    nThread = ::atoi(argv[1]);
+  }
+  std::cout << "Initializing with " << nThread << " threads." << std::endl;
+  tbb::task_scheduler_init tasks(nThread);
+#endif
+
   for (unsigned int evt=0; evt<Nevents; ++evt) {
-    std::cout << "EVENT #"<< evt << std::endl;
+    //std::cout << "EVENT #"<< evt << std::endl;
     Event ev(geom, val);
 
     timepoint t0(now());
