@@ -23,30 +23,29 @@ public:
   Track() {}
 
   Track(TrackState state, HitVec hits, float chi2) : state_(state), hits_(hits), chi2_(chi2) {}
-  Track(int charge, SVector3 position, SVector3 momentum, SMatrixSym66 errors, HitVec hits, float chi2) {
+  Track(int charge, SVector3 position, SVector3 momentum, SMatrixSym66 errors, HitVec hits, float chi2) 
+    : hits_(hits), chi2_(chi2) 
+  {
     state_.charge=charge;
     state_.errors=errors;
     state_.parameters = SVector6(position.At(0),position.At(1),position.At(2),momentum.At(0),momentum.At(1),momentum.At(2));
     state_.valid = true;
-    hits_=hits;
-    chi2_=chi2;
   }
-  Track(int charge, SVector3 position, SVector3 momentum, SMatrixSym66 errors, HitVec hits, float chi2, HitVec initHits) {
+  Track(int charge, SVector3 position, SVector3 momentum, SMatrixSym66 errors, HitVec hits, float chi2, HitVec initHits)
+    : hits_(hits), initHits_(initHits), chi2_(chi2) 
+  {
     state_.charge=charge;
     state_.errors=errors;
     state_.parameters = SVector6(position.At(0),position.At(1),position.At(2),momentum.At(0),momentum.At(1),momentum.At(2));
     state_.valid = true;
-    hits_=hits;
-    initHits_=initHits;
-    chi2_=chi2;
   }
-  Track(int charge, SVector6& parameters, SMatrixSym66& errors,HitVec hits, float chi2) {
+  Track(int charge, SVector6& parameters, SMatrixSym66& errors, HitVec hits, float chi2)
+    : hits_(hits), chi2_(chi2) 
+  {
     state_.charge=charge;
     state_.errors=errors;
     state_.parameters = parameters;
     state_.valid = true;
-    hits_=hits;
-    chi2_=chi2;
   }
 
   ~Track(){}
