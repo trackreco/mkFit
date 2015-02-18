@@ -21,7 +21,7 @@ namespace Config {
 
 class Event {
 public:
-  Event(const Geometry& g, Validation& v);
+  Event(const Geometry& g, Validation& v, int threads = 1);
   void Simulate(unsigned int nTracks);
   void Segment();
   void Seed();
@@ -32,6 +32,7 @@ public:
   Validation& validation_;
   std::vector<HitVec> layerHits_;
   TrackVec simTracks_, seedTracks_, candidateTracks_;
+  int threads_;
 
   BinInfoMap segmentMap_;
 };

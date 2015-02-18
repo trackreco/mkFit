@@ -150,8 +150,9 @@ void buildTracksByLayers(Event& ev)
     dprint("going to layer #" << ilay << " with N cands = " << track_candidates.size());
 
 #ifdef TBB
+    int chunks = (evt_seeds.size()/ev.threads_) + 1;
     //loop over seeds
-    parallel_for( tbb::blocked_range<size_t>(0, evt_seeds.size()), 
+    parallel_for( tbb::blocked_range<size_t>(0, evt_seeds.size(), chunks), 
         [&](const tbb::blocked_range<size_t>& seediter) {
       for (auto iseed = seediter.begin(); iseed != seediter.end(); ++iseed) {
         const auto& seed(evt_seeds[iseed]);

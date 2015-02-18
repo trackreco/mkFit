@@ -118,11 +118,13 @@ int main(int argc, char** argv)
   }
   std::cout << "Initializing with " << nThread << " threads." << std::endl;
   tbb::task_scheduler_init tasks(nThread);
+#else
+  auto nThread = 1;
 #endif
 
   for (unsigned int evt=0; evt<Nevents; ++evt) {
     //std::cout << "EVENT #"<< evt << std::endl;
-    Event ev(geom, val);
+    Event ev(geom, val, nThread);
 
     timepoint t0(now());
     ev.Simulate(Ntracks); ticks[0] += delta(t0);

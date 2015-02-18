@@ -31,7 +31,7 @@ static bool sortByZ(const Hit& hit1, const Hit& hit2){
 }
 #endif
 
-Event::Event(const Geometry& g, Validation& v) : geom_(g), validation_(v)
+Event::Event(const Geometry& g, Validation& v, int threads) : geom_(g), validation_(v), threads_(threads)
 {
   layerHits_.resize(geom_.CountLayers());
   segmentMap_.resize(geom_.CountLayers());
@@ -45,7 +45,7 @@ void Event::Simulate(unsigned int nTracks)
   }
 
 #ifdef TBB
-  parallel_for( tbb::blocked_range<size_t>(0, nTracks,100), 
+  parallel_for( tbb::blocked_range<size_t>(0, nTracks, 100), 
       [&](const tbb::blocked_range<size_t>& itracks) {
 
     const Geometry tmpgeom(geom_.clone()); // USolids isn't thread safe??
