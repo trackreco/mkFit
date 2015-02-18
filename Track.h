@@ -58,6 +58,11 @@ public:
   const TrackState&   state() const {return state_;}
   float         chi2() const {return chi2_;}
 
+  float posPhi() const { return getPhi(state_.parameters[0],state_.parameters[1]); }
+  float momPhi() const { return getPhi(state_.parameters[3],state_.parameters[4]); }
+  float posEta() const { return getEta(state_.parameters[0],state_.parameters[1],state_.parameters[2]); }
+  float momEta() const { return getEta(state_.parameters[3],state_.parameters[4],state_.parameters[5]); }
+
   const HitVec& hitsVector() const {return hits_;}
   const HitVec& initHitsVector() const {return initHits_;}
 

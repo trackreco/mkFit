@@ -42,7 +42,7 @@ inline float normalizedEta(float eta) {
 }
 #endif
 
-static bool sortByHitsChi2(cand_t cand1, cand_t cand2)
+static bool sortByHitsChi2(const cand_t& cand1, const cand_t& cand2)
 {
   if (cand1.nHits()==cand2.nHits()) return cand1.chi2()<cand2.chi2();
   return cand1.nHits()>cand2.nHits();

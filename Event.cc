@@ -9,19 +9,24 @@
 #include "tbb/tbb.h"
 #endif
 
-static bool sortByPhi(Hit hit1, Hit hit2)
+static bool sortByPhi(const Hit& hit1, const Hit& hit2)
 {
   return hit1.phi()<hit2.phi();
 }
 
+static bool tracksByPhi(const Track& t1, const Track& t2)
+{
+  return t1.posPhi()<t2.posPhi();
+}
+
 #ifdef ETASEG
 const float etaDet = 2.0;
-static bool sortByEta(Hit hit1, Hit hit2){
+static bool sortByEta(const Hit& hit1, const Hit& hit2){
   return hit1.eta()<hit2.eta();
 }
 
 // within a layer with a "reasonable" geometry, ordering by Z is the same as eta
-static bool sortByZ(Hit hit1, Hit hit2){
+static bool sortByZ(const Hit& hit1, const Hit& hit2){
   return hit1.z()<hit2.z();
 }
 #endif
@@ -243,6 +248,7 @@ void Event::Seed()
 
   }
 #endif
+  std::sort(seedTracks_.begin(), seedTracks_.end(), tracksByPhi);
 }
 
 void Event::Find()
