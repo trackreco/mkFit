@@ -9,7 +9,8 @@
 #include <cmath>
 #include <iostream>
 
-typedef std::pair<Track, TrackState> cand_t;
+//typedef std::pair<Track, TrackState> cand_t;
+typedef Track cand_t;
 typedef TrackVec::const_iterator TrkIter;
 
 #ifndef TBB
@@ -41,10 +42,10 @@ inline float normalizedEta(float eta) {
 }
 #endif
 
-static bool sortByHitsChi2(std::pair<Track, TrackState> cand1,std::pair<Track, TrackState> cand2)
+static bool sortByHitsChi2(cand_t cand1, cand_t cand2)
 {
-  if (cand1.first.nHits()==cand2.first.nHits()) return cand1.first.chi2()<cand2.first.chi2();
-  return cand1.first.nHits()>cand2.first.nHits();
+  if (cand1.nHits()==cand2.nHits()) return cand1.chi2()<cand2.chi2();
+  return cand1.nHits()>cand2.nHits();
 }
 
 void processCandidates(Event& ev, const Track& seed, candvec& candidates, unsigned int ilay, const bool debug)
@@ -76,7 +77,7 @@ void processCandidates(Event& ev, const Track& seed, candvec& candidates, unsign
 #ifdef TBB
       std::lock_guard<std::mutex> evtguard(evtlock); // should be rare
 #endif
-      evt_track_candidates.push_back(best->first);
+      evt_track_candidates.push_back(*best);
     }
     dprint("swapping with size=" << tmp_candidates.size());
     candidates.swap(tmp_candidates);
@@ -94,7 +95,7 @@ void buildTracksBySeeds(Event& ev)
   std::vector<candvec> track_candidates(evt_seeds.size());
   for (auto iseed = 0U; iseed < evt_seeds.size(); iseed++) {
     const auto& seed(evt_seeds[iseed]);
-    track_candidates[iseed].push_back(cand_t(seed, seed.state()));
+    track_candidates[iseed].push_back(seed);
   }
 
 #ifdef TBB
@@ -126,7 +127,7 @@ void buildTracksBySeeds(Event& ev)
       // only save one track candidate per seed, one with lowest chi2
       //std::partial_sort(cand.begin(),cand.begin()+1,cand.end(),sortByHitsChi2);
       auto&& best = std::max_element(cand.begin(),cand.end(),sortByHitsChi2);
-      evt_track_candidates.push_back(best->first);
+      evt_track_candidates.push_back(*best);
     }
   }
 }
@@ -141,7 +142,7 @@ void buildTracksByLayers(Event& ev)
   std::vector<candvec> track_candidates(evt_seeds.size());
   for (auto iseed = 0U; iseed < evt_seeds.size(); iseed++) {
     const auto& seed(evt_seeds[iseed]);
-    track_candidates[iseed].push_back(cand_t(seed, seed.state()));
+    track_candidates[iseed].push_back(seed);
   }
 
   //loop over layers, starting from after the seed
@@ -174,7 +175,7 @@ void buildTracksByLayers(Event& ev)
       // only save one track candidate per seed, one with lowest chi2
       //std::partial_sort(cand.begin(),cand.begin()+1,cand.end(),sortByHitsChi2);
       auto&& best = std::max_element(cand.begin(),cand.end(),sortByHitsChi2);
-      evt_track_candidates.push_back(best->first);
+      evt_track_candidates.push_back(*best);
     }
   }
 }
@@ -182,8 +183,8 @@ void buildTracksByLayers(Event& ev)
 void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidates, unsigned int ilayer,
                      bool debug)
 {
-  const Track& tkcand = cand.first;
-  const TrackState& updatedState = cand.second;
+  const Track& tkcand = cand;
+  const TrackState& updatedState = cand.state();
   const auto& evt_lay_hits(ev.layerHits_);
   const auto& segmentMap(ev.segmentMap_);
   //  debug = true;
@@ -330,9 +331,9 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
       if ((chi2<Config::chi2Cut)&&(chi2>0.)) {//fixme 
         dprint("found hit with index: " << *index_iter << " chi2=" << chi2);
         const TrackState tmpUpdatedState = updateParameters(propState, hitMeas);
-        Track tmpCand = tkcand.clone();
+        Track tmpCand(tmpUpdatedState,tkcand.hitsVector(),tkcand.chi2()); //= tkcand.clone();
         tmpCand.addHit(hitCand,chi2);
-        tmp_candidates.push_back(cand_t(tmpCand,tmpUpdatedState));
+        tmp_candidates.push_back(tmpCand);
       }
     }//end of consider hits on layer loop
     
@@ -341,6 +342,6 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   //add also the candidate for no hit found
   if (tkcand.nHits()==ilayer) {//only if this is the first missing hit
     dprint("adding candidate with no hit");
-    tmp_candidates.push_back(cand_t(tkcand,propState));
+    tmp_candidates.push_back(tkcand);
   }
 }

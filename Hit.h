@@ -60,18 +60,15 @@ class Hit
 public:
   Hit(){}
 
-  Hit(MeasurementState state)
-  {
-    state_=state;
-  }
+  Hit(const MeasurementState& state) : state_(state) {}
 
-  Hit(SVector3 position, SMatrixSym33 error)
+  Hit(const SVector3& position, const SMatrixSym33& error)
   {
     state_.parameters=position;
     state_.errors=error;
   }
 
-  Hit(SVector3 position, SMatrixSym33 error, unsigned int itrack, unsigned int ilayer, unsigned int ithLayerHit){
+  Hit(const SVector3& position, const SMatrixSym33& error, unsigned int itrack, unsigned int ilayer, unsigned int ithLayerHit){
     mcHitInfo_.mcTrackID_ = itrack;
     mcHitInfo_.layer_ = ilayer;
     mcHitInfo_.ithLayerHit_ = ithLayerHit;
@@ -79,7 +76,7 @@ public:
     state_.errors=error;
   }
 
-  Hit(SVector3 position, SMatrixSym33 error, const MCHitInfo& mcHitInfo)
+  Hit(const SVector3& position, const SMatrixSym33& error, const MCHitInfo& mcHitInfo)
     : mcHitInfo_(mcHitInfo)
   {
     state_.parameters=position;

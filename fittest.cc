@@ -55,7 +55,7 @@ void fitTrack(const Track& trk, const Event& ev)
   bool debug(false);
 #endif
 
-  //#define INWARD
+#define INWARD
 #if defined(INWARD)
   auto hits(trk.hitsVector());
   std::reverse(hits.begin(), hits.end());
@@ -66,7 +66,7 @@ void fitTrack(const Track& trk, const Event& ev)
   Track trk0 = ev.simTracks_[itrack0];
   TrackState simState = trk0.state();
 
-  TrackState simStateHit0 = propagateHelixToR(simState,hits[0].r()); // innermost hit
+  TrackState simStateHit0 = propagateHelixToR(simState,hits[0].r()); // first hit
   TrackState cfitStateHit0;
 
   //fit is problematic in case of very short lever arm
