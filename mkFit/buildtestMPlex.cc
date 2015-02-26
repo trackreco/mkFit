@@ -351,6 +351,8 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 
    double time = dtime();
 
+   std::vector<Track> reccands_stopped;
+
    std::vector<Track> reccands;
    reccands.resize(simtracks.size());
    std::cout << "fill seeds" << std::endl;
@@ -385,6 +387,9 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 
      int theEndCand = reccands.size();     
 
+     std::vector<Track> reccands_tmp;
+     reccands_tmp.reserve(reccands.size());
+
 #pragma omp parallel for num_threads(NUM_THREADS)
      for (int itrack = 0; itrack < theEndCand; itrack += NN)
        {
@@ -402,16 +407,29 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 	 std::cout << "propagate to lay=" << ilay+1 << std::endl;
 	 mkfp->PropagateTracksToR(4.*(ilay+1));
 
+	 /*
 	 //get best hit and update with it
 	 std::cout << "add best hit" << std::endl;
 	 mkfp->AddBestHit(evt_lay_hits[ilay],itrack,end);
-
 	 mkfp->SetNhits(ilay+1);//here again assuming one hits per layer
-
 	 //fixme: we don't need to keep a copy of all hits, we just need to keep record of them
-	 mkfp->OutputFittedTracksAndHits(reccands, itrack, end);
+	 mkfp->OutputFittedTracksAndHits(reccands_tmp, itrack, end);
+	 */
 
-       }//end of process seeds loop
+	 //make candidates with all compatible hits
+	 std::cout << "make new candidates" << std::endl;
+	 std::vector<int> idx_reccands_stopped;
+	 mkfp->FindCandidates(evt_lay_hits[ilay],itrack,end,reccands_tmp,idx_reccands_stopped);
+	 for (int idx=0;idx<idx_reccands_stopped.size();++idx)
+	   {
+	     reccands_stopped.push_back(reccands[idx_reccands_stopped[idx]]);
+	   }
+
+       }//end of process seeds/cands loop
+
+     reccands.clear();
+     swap(reccands,reccands_tmp);
+     std::cout << "end loop reccands.size()=" << reccands.size() << " reccands_tmp.size()=" << reccands_tmp.size() << std::endl;
 
      //dump candidates
      std::cout << "found total tracks=" << reccands.size() << std::endl;
@@ -423,7 +441,11 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
   }//end of layer loop
 
    //dump candidates
-   std::cout << "found total tracks=" << reccands.size() << std::endl;
+   std::cout << "found total tracks=" << reccands.size()+reccands_stopped.size() << std::endl;
+   for (unsigned int itkcand=0;itkcand<reccands_stopped.size();++itkcand) {
+     Track tkcand = reccands_stopped[itkcand];
+     std::cout << "MX - found track with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << " pT=" << sqrt(tkcand.momentum()[0]*tkcand.momentum()[0]+tkcand.momentum()[1]*tkcand.momentum()[1]) << std::endl;
+   }
    for (unsigned int itkcand=0;itkcand<reccands.size();++itkcand) {
      Track tkcand = reccands[itkcand];
      std::cout << "MX - found track with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << " pT=" << sqrt(tkcand.momentum()[0]*tkcand.momentum()[0]+tkcand.momentum()[1]*tkcand.momentum()[1]) << std::endl;

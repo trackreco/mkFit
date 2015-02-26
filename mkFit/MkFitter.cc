@@ -246,3 +246,112 @@ void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int beg, int end)
 			Err[iC], Par[iC]);
 
 }
+
+void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int beg, int end, std::vector<Track>& reccands_tmp, std::vector<int>& idx_reccands_stopped) {
+
+  float maxChi2Cut = 30./2.;
+
+  int nDaughters[NN];
+  std::fill_n(nDaughters, NN, 0);
+
+  //outer loop over hits, so that tracks can be vectorized
+  int ih = 0;
+  for ( ; ih<lay_hits.size(); ++ih)
+  {
+
+    std::cout << "consider hit #" << ih << " of " << lay_hits.size() << std::endl;
+    Hit &hit = lay_hits[ih];
+    std::cout << "hit x=" << hit.position()[0] << " y=" << hit.position()[1] << std::endl;      
+
+    //create a dummy matriplex with N times the same hit
+    //fixme this is just because I'm lazy and do not want to rewrite the chi2 calculation for simple vectors mixed with matriplex
+    MPlexHS msErr_oneHit;
+    MPlexHV msPar_oneHit;
+    int itrack = 0;
+    //fixme: please vectorize me...
+    for (int i = beg; i < end; ++i, ++itrack)
+    {
+      msErr_oneHit.CopyIn(itrack, hit.error().Array());
+      msPar_oneHit.CopyIn(itrack, hit.parameters().Array());
+    }
+
+    //now compute the chi2 of track state vs hit
+    MPlexQF outChi2;
+    computeChi2MPlex(Err[iP], Par[iP],msErr_oneHit, msPar_oneHit, outChi2);
+
+    //now update the track parameters with this hit (note that some calculations are already done when computing chi2, to be optimized)
+    //this is not needed for candidates the hit is not added to, but it's vectorized so doing it serially below should take the same time
+    //still it's a waste of time in case the hit is not added to any of the candidates, so check beforehand that at least one cand needs update
+    bool oneCandPassCut = false;
+    itrack = 0;
+    for (int i = beg; i < end; ++i, ++itrack)
+      {
+	float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
+	std::cout << "chi2=" << chi2 << std::endl;
+	if (chi2<maxChi2Cut)
+	  {
+	    oneCandPassCut = true;
+	    break;
+	  }
+      }
+    if (oneCandPassCut) { 
+      std::cout << "update parameters" << std::endl;
+      updateParametersMPlex(Err[iP], Par[iP], msErr_oneHit, msPar_oneHit,
+			    Err[iC], Par[iC]);
+      std::cout << "propagated track parameters x=" << Par[iP].ConstAt(itrack, 0, 0) << " y=" << Par[iP].ConstAt(itrack, 1, 0) << std::endl;
+      std::cout << "               hit position x=" << msPar[iP].ConstAt(itrack, 0, 0) << " y=" << msPar[iP].ConstAt(itrack, 1, 0) << std::endl;
+      std::cout << "   updated track parameters x=" << Par[iC].ConstAt(itrack, 0, 0) << " y=" << Par[iC].ConstAt(itrack, 1, 0) << std::endl;
+    }
+
+    if (!oneCandPassCut) continue;
+
+    //create candidate with hit in case chi2<maxChi2Cut
+    itrack = 0;
+    //fixme: please vectorize me... (not sure it's possible in this case)
+    for (int i = beg; i < end; ++i, ++itrack)
+    {
+      float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
+      std::cout << "chi2=" << chi2 << std::endl;      
+      if (chi2<maxChi2Cut)
+      {
+	std::cout << "chi2 cut passed, creating new candidate" << std::endl;
+	//create a new candidate and fill the reccands_tmp vector
+	Track newcand;
+	newcand.resetHits();//probably not needed
+	newcand.charge() = Chg(itrack, 0, 0);
+	newcand.setChi2(Chi2(itrack, 0, 0));
+	for (int hi = 0; hi < Nhits; ++hi)
+	  {
+	    Hit stored_hit;
+	    msErr[hi].CopyOut(itrack, stored_hit.error().Array());
+	    msPar[hi].CopyOut(itrack, stored_hit.parameters().Array());
+	    newcand.addHit(stored_hit,0.);//this should be ok since we already set the chi2 above
+	  }
+	newcand.addHit(hit,chi2);
+	//set the track state to the updated parameters
+	Err[iC].CopyOut(itrack, newcand.errors().Array());
+	Par[iC].CopyOut(itrack, newcand.parameters().Array());
+
+	std::cout << "updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << std::endl;
+
+	reccands_tmp.push_back(newcand);
+
+	nDaughters[itrack]++;
+
+      }
+    }
+
+  }//end loop over hits
+
+  int itrack = 0;
+  //fixme: please vectorize me... (not sure it's possible in this case)
+  for (int i = beg; i < end; ++i, ++itrack)
+    {
+      if (nDaughters[itrack]==0) {
+	std::cout << "track candidated stopped" << std::endl;
+	idx_reccands_stopped.push_back(i);
+      }
+    }
+    
+
+}

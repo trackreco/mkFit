@@ -59,6 +59,8 @@ public:
 
   void AddBestHit(std::vector<Hit>& lay_hits, int beg, int end);
 
+  void FindCandidates(std::vector<Hit>& lay_hits, int beg, int end, std::vector<Track>& reccands_tmp, std::vector<int>& idx_reccands_stopped);
+
   void SetNhits(int newnhits) { Nhits=newnhits; }
 
 };
