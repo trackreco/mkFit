@@ -12,6 +12,8 @@ class MkFitter
 
   MPlexQI Chg;
 
+  MPlexQF Chi2;
+
   MPlexHS msErr[MAX_HITS];
   MPlexHV msPar[MAX_HITS];
 

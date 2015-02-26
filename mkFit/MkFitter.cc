@@ -41,6 +41,7 @@ void MkFitter::InputTracksAndHits(std::vector<Track>& tracks, int beg, int end)
     Par[iC].CopyIn(itrack, trk.parameters().Array());
 
     Chg(itrack, 0, 0) = trk.charge();
+    Chi2(itrack, 0, 0) = trk.chi2();
 
     for (int hi = 0; hi < Nhits; ++hi)
     {
@@ -70,6 +71,7 @@ void MkFitter::InputTracksOnly(std::vector<Track>& tracks, int beg, int end)
     Par[iC].CopyIn(itrack, trk.parameters().Array());
 
     Chg(itrack, 0, 0) = trk.charge();
+    Chi2(itrack, 0, 0) = trk.chi2();
   }
 }
 
@@ -125,6 +127,7 @@ void MkFitter::OutputTracks(std::vector<Track>& tracks, int beg, int end, int iC
     tracks[i].charge() = Chg(itrack, 0, 0);
 
     // XXXXX chi2 is not set (also not in SMatrix fit, it seems)
+    tracks[i].setChi2(Chi2(itrack, 0, 0));
   }
 }
 
@@ -140,6 +143,7 @@ void MkFitter::OutputFittedTracksAndHits(std::vector<Track>& tracks, int beg, in
     Par[iC].CopyOut(itrack, tracks[i].parameters().Array());
 
     tracks[i].charge() = Chg(itrack, 0, 0);
+    tracks[i].setChi2(Chi2(itrack, 0, 0));
 
     // XXXXX chi2 is not set (also not in SMatrix fit, it seems)
 
@@ -225,6 +229,7 @@ void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int beg, int end)
   {
     //fixme decide what to do in case no hit found
     Hit &hit = bestHit[itrack]>=0 ? lay_hits[ bestHit[itrack] ] : lay_hits[0];
+    float& chi2 = bestHit[itrack]>=0 ? minChi2[itrack] : minChi2[0];
 
     std::cout << "ADD BEST HIT FOR TRACK #" << i << std::endl;
     std::cout << "prop x=" << Par[iP].ConstAt(itrack, 0, 0) << " y=" << Par[iP].ConstAt(itrack, 1, 0) << std::endl;      
@@ -232,6 +237,7 @@ void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int beg, int end)
 
     msErr[Nhits].CopyIn(itrack, hit.error().Array());
     msPar[Nhits].CopyIn(itrack, hit.parameters().Array());
+    Chi2(itrack, 0, 0) += chi2;
   }
 
   //now update the track parameters with this hit (note that some calculations are already done when computing chi2... not sure it's worth caching them?)

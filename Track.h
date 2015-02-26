@@ -69,6 +69,8 @@ public:
   void resetHits() {hits_.clear();}
   unsigned int nHits() {return hits_.size();}
 
+  void setChi2(float chi2) {chi2_=chi2;}
+
   HitVec& initHitsVector() {return initHits_;}
   SimTkIDInfo SimTrackIDInfo() const;
 

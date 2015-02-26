@@ -103,7 +103,7 @@ double runBuildingTest(std::vector<Track>& evt_sim_tracks/*, std::vector<Track>&
    std::cout << "found total tracks=" << evt_track_candidates.size() << std::endl;
    for (unsigned int itkcand=0;itkcand<evt_track_candidates.size();++itkcand) {
      Track tkcand = evt_track_candidates[itkcand];
-     std::cout << "SM - found track candidate with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << std::endl;
+     std::cout << "SM - found track candidate with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << " pT=" << sqrt(tkcand.momentum()[0]*tkcand.momentum()[0]+tkcand.momentum()[1]*tkcand.momentum()[1]) << std::endl;
    }
 
    return dtime() - time;
@@ -280,7 +280,7 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
    std::cout << "total simtracks=" << simtracks.size() << std::endl;
    for (unsigned int itrack=0;itrack<simtracks.size();++itrack) {
      Track track = simtracks[itrack];
-     std::cout << "MX - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2() << std::endl;
+     std::cout << "MX - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1])<< std::endl;
    }
 
    // XXX What if there's a missing / double layer?
@@ -426,7 +426,7 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
    std::cout << "found total tracks=" << reccands.size() << std::endl;
    for (unsigned int itkcand=0;itkcand<reccands.size();++itkcand) {
      Track tkcand = reccands[itkcand];
-     std::cout << "MX - found track candidate with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << std::endl;
+     std::cout << "MX - found track with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << " pT=" << sqrt(tkcand.momentum()[0]*tkcand.momentum()[0]+tkcand.momentum()[1]*tkcand.momentum()[1]) << std::endl;
    }
 
    time = dtime() - time;
