@@ -88,10 +88,13 @@ public:
     return sqrt(state_.parameters.At(0)*state_.parameters.At(0) +
                 state_.parameters.At(1)*state_.parameters.At(1));
   }
-  float phi(){
+  float z() const {
+    return state_.parameters.At(2);
+  }
+  float phi() const{
     return getPhi(state_.parameters.At(0),state_.parameters.At(1));
   }
-  float eta(){
+  float eta() const{
     return getEta(state_.parameters.At(0),state_.parameters.At(1),state_.parameters.At(2));
   }
 

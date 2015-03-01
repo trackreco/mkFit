@@ -26,6 +26,20 @@ inline float normalizedPhi(float phi) {
   return phi;
 }
 
+const float etaDet = 2.0;
+static bool sortByEta(const Hit& hit1, const Hit& hit2){
+  return hit1.eta()<hit2.eta();
+}
+static bool sortTracksByEta(const Track& track1, const Track& track2){
+  return track1.momEta()<track2.momEta();
+}
+
+// within a layer with a "reasonable" geometry, ordering by Z is the same as eta
+static bool sortByZ(const Hit& hit1, const Hit& hit2){
+  return hit1.z()<hit2.z();
+}
+
+
 double runBuildingTest(std::vector<Track>& evt_sim_tracks/*, std::vector<Track>& rectracks*/) {
 
    double time = dtime();
@@ -296,10 +310,6 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
   
    std::vector<std::vector<Hit> > evt_lay_hits(10);//hits per layer
 
-   //first is first hit index in bin, second is size of this bin
-   std::vector<std::vector<BinInfo> > evt_lay_phi_hit_idx(10);//phi partitioning map
-   // Vector of vectors of std::pairs. A vector of maps, although vector is fixed to layer, so really array of maps, where maps are phi bins and the number of hits in those phi bins
-
    for (unsigned int itrack=0;itrack<simtracks.size();++itrack) {
      //fill vector of hits in each layer (assuming there is one hit per layer in hits vector)
      for (unsigned int ilay=0;ilay<simtracks[itrack].nHits();++ilay) {
@@ -307,26 +317,33 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
      }
    }//end of track simulation loop
 
-   //sort in phi and dump hits per layer, fill phi partitioning
-   for (unsigned int ilay=0;ilay<evt_lay_hits.size();++ilay) {
-     std::sort(evt_lay_hits[ilay].begin(),evt_lay_hits[ilay].end(),sortByPhi);
-     std::vector<unsigned int> lay_phi_bin_count(63);//should it be 63? - yes!
-     for (unsigned int ihit=0;ihit<evt_lay_hits[ilay].size();++ihit) {
-       float hitx = evt_lay_hits[ilay][ihit].position()[0];
-       float hity = evt_lay_hits[ilay][ihit].position()[1];
-       unsigned int bin = getPhiPartition(std::atan2(hity,hitx));
-       lay_phi_bin_count[bin]++;
+
+   typedef std::pair<unsigned int,unsigned int> BinInfo;
+   typedef std::vector<std::vector<BinInfo> > BinInfoMap;//only eta map for now
+   BinInfoMap segmentMap_;
+   segmentMap_.resize(10);//geom_.CountLayers()
+   static const unsigned int nEtaPart = 10;
+   const float etaDet = 2.0;
+   for (unsigned int ilayer=0; ilayer<evt_lay_hits.size(); ++ilayer) {
+     //segmentMap_[ilayer].resize(nEtaPart);    
+     // eta first then phi
+     std::sort(evt_lay_hits[ilayer].begin(), evt_lay_hits[ilayer].end(), sortByZ);
+     std::vector<unsigned int> lay_eta_bin_count(nEtaPart);
+     for (unsigned int ihit=0;ihit<evt_lay_hits[ilayer].size();++ihit) {
+       unsigned int etabin = getEtaPartition(evt_lay_hits[ilayer][ihit].eta(),etaDet);
+       lay_eta_bin_count[etabin]++;
      }
+     //now set index and size in partitioning map and then sort the bin by phi
     
-     //now set index and size in partitioning map
-     int lastIdxFound = -1;
-     for (unsigned int bin=0;bin<63;++bin) {
-       unsigned int binSize = lay_phi_bin_count[bin];
-       unsigned int firstBinIdx = lastIdxFound+1;
-       BinInfo binInfo(firstBinIdx,binSize);
-       evt_lay_phi_hit_idx[ilay].push_back(binInfo);
-       if (binSize>0){
-	 lastIdxFound+=binSize;
+     int lastEtaIdxFound = -1;
+
+     for (unsigned int etabin=0; etabin<nEtaPart; ++etabin) {
+       unsigned int firstEtaBinIdx = lastEtaIdxFound+1;
+       unsigned int etaBinSize = lay_eta_bin_count[etabin];
+       BinInfo etaBinInfo(firstEtaBinIdx,etaBinSize);
+       segmentMap_[ilayer].push_back(etaBinInfo);
+       if (etaBinSize>0){
+	 lastEtaIdxFound+=etaBinSize;
        }
      }
    }
@@ -356,6 +373,9 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
    std::vector<Track> reccands;
    reccands.resize(simtracks.size());
    std::cout << "fill seeds" << std::endl;
+
+   //sort seeds by eta;
+   std::sort(simtracks.begin(), simtracks.end(), sortTracksByEta);
 
 #pragma omp parallel for num_threads(NUM_THREADS)
    for (int itrack = 0; itrack < theEnd; itrack += NN)
@@ -405,7 +425,7 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 
 	 //propagate to layer
 	 std::cout << "propagate to lay=" << ilay+1 << std::endl;
-	 mkfp->PropagateTracksToR(4.*(ilay+1));
+	 mkfp->PropagateTracksToR(4.*(ilay+1));//fixme: doesn't need itrack, end?
 
 	 /*
 	 //get best hit and update with it
@@ -416,10 +436,14 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 	 mkfp->OutputFittedTracksAndHits(reccands_tmp, itrack, end);
 	 */
 
+	 //this one is serial: get the hit range common to these track candidates
+	 int firstHit = -1, lastHit = -1;
+	 mkfp->GetHitRange(segmentMap_[ilay], itrack, end, etaDet, firstHit, lastHit);
+
 	 //make candidates with all compatible hits
 	 std::cout << "make new candidates" << std::endl;
 	 std::vector<int> idx_reccands_stopped;
-	 mkfp->FindCandidates(evt_lay_hits[ilay],itrack,end,reccands_tmp,idx_reccands_stopped);
+	 mkfp->FindCandidates(evt_lay_hits[ilay],firstHit,lastHit,itrack,end,reccands_tmp,idx_reccands_stopped);
 	 for (int idx=0;idx<idx_reccands_stopped.size();++idx)
 	   {
 	     reccands_stopped.push_back(reccands[idx_reccands_stopped[idx]]);

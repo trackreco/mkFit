@@ -247,7 +247,7 @@ void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int beg, int end)
 
 }
 
-void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int beg, int end, std::vector<Track>& reccands_tmp, std::vector<int>& idx_reccands_stopped) {
+void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end, std::vector<Track>& reccands_tmp, std::vector<int>& idx_reccands_stopped) {
 
   float maxChi2Cut = 30./2.;
 
@@ -255,8 +255,8 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int beg, int end, std:
   std::fill_n(nDaughters, NN, 0);
 
   //outer loop over hits, so that tracks can be vectorized
-  int ih = 0;
-  for ( ; ih<lay_hits.size(); ++ih)
+  int ih = firstHit;
+  for ( ; ih<lastHit; ++ih)
   {
 
     std::cout << "consider hit #" << ih << " of " << lay_hits.size() << std::endl;
@@ -354,4 +354,20 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int beg, int end, std:
     }
     
 
+}
+
+
+void MkFitter::GetHitRange(std::vector<BinInfo>& segmentMapLay_, int beg, int end, const float& etaDet, int& firstHit, int& lastHit) {
+
+    int itrack = 0;
+    for (int i = beg; i < end; ++i, ++itrack)
+      {
+	float eta = getEta(Par[iP].ConstAt(itrack, 3, 0),Par[iP].ConstAt(itrack, 4, 0),Par[iP].ConstAt(itrack, 5, 0));
+	unsigned int etabin = getEtaPartition(eta,etaDet);
+	BinInfo binInfo = segmentMapLay_[etabin];
+	std::cout << "propagated track parameters eta=" << eta << " bin=" << etabin << " begin=" << binInfo.first << " size=" << binInfo.second << std::endl;
+	if (firstHit==-1 || binInfo.first<firstHit) firstHit =  binInfo.first;
+	if (lastHit==-1 || (binInfo.first+binInfo.second)>lastHit) lastHit = binInfo.first+binInfo.second;
+      }
+    std::cout << "found range firstHit=" << firstHit << " lastHit=" << lastHit << std::endl;
 }

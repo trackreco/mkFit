@@ -59,7 +59,10 @@ public:
 
   void AddBestHit(std::vector<Hit>& lay_hits, int beg, int end);
 
-  void FindCandidates(std::vector<Hit>& lay_hits, int beg, int end, std::vector<Track>& reccands_tmp, std::vector<int>& idx_reccands_stopped);
+  typedef std::pair<unsigned int,unsigned int> BinInfo;
+  void GetHitRange(std::vector<BinInfo>& segmentMapLay_, int beg, int end, const float& etaDet, int& firstHit, int& lastHit);
+
+  void FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end, std::vector<Track>& reccands_tmp, std::vector<int>& idx_reccands_stopped);
 
   void SetNhits(int newnhits) { Nhits=newnhits; }
 
