@@ -4,6 +4,7 @@
 #include "Matrix.h"
 #include "KalmanUtils.h"
 
+//#define DEBUG 1
 
 class MkFitter
 {
@@ -16,6 +17,9 @@ class MkFitter
 
   MPlexHS msErr[MAX_HITS];
   MPlexHV msPar[MAX_HITS];
+
+  MPlexQI SeedIdx;
+  MPlexQI HitsIdx[MAX_HITS];
 
   // Indices into Err and Par arrays.
   // Thought I'll have to flip between them ...
@@ -41,6 +45,7 @@ public:
   void PrintPt(int idx);
 
   void InputTracksAndHits(std::vector<Track>& tracks, int beg, int end);
+  void InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks, std::vector<std::pair<int,int> >& idxs, int beg, int end);
   void InputTracksOnly   (std::vector<Track>& tracks, int beg, int end);
   void InputHitsOnly(std::vector<Hit>& hits, int beg, int end);
   void FitTracks();
@@ -62,9 +67,11 @@ public:
   typedef std::pair<unsigned int,unsigned int> BinInfo;
   void GetHitRange(std::vector<BinInfo>& segmentMapLay_, int beg, int end, const float& etaDet, int& firstHit, int& lastHit);
 
-  void FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end, std::vector<Track>& reccands_tmp, std::vector<int>& idx_reccands_stopped);
+  void FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end, std::vector<std::pair<Track,int> >& reccands_tmp);
 
   void SetNhits(int newnhits) { Nhits=newnhits; }
+
+  int countInvalidHits(int itrack);
 
 };
 

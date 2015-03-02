@@ -375,7 +375,9 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
       const float& pyin = inPar.ConstAt(n, 4, 0);
       const float& pzin = inPar.ConstAt(n, 5, 0);
 
+#ifdef DEBUG
       std::cout << "propagate track from x=" << xin << " y=" << yin << " using vecunit=" << n << std::endl;
+#endif
 
       float r0in = hipo(xin, yin);
 

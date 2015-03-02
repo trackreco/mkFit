@@ -14,6 +14,12 @@ bool sortByHitsChi2(std::pair<Track, TrackState> cand1,std::pair<Track, TrackSta
   return cand1.first.nHits()>cand2.first.nHits();
 }
 
+bool sortCandByHitsChi2(Track cand1,Track cand2)
+{
+  if (cand1.nHitIdx()==cand2.nHitIdx()) return cand1.chi2()<cand2.chi2();
+  return cand1.nHitIdx()>cand2.nHitIdx();
+}
+
 bool sortByPhi(Hit hit1,Hit hit2)
 {
   return std::atan2(hit1.position()[1],hit1.position()[0])<std::atan2(hit2.position()[1],hit2.position()[0]);
@@ -41,6 +47,12 @@ static bool sortByZ(const Hit& hit1, const Hit& hit2){
 
 
 double runBuildingTest(std::vector<Track>& evt_sim_tracks/*, std::vector<Track>& rectracks*/) {
+
+   std::cout << "total evt_sim_tracks=" << evt_sim_tracks.size() << std::endl;
+   for (unsigned int itrack=0;itrack<evt_sim_tracks.size();++itrack) {
+     Track track = evt_sim_tracks[itrack];
+     std::cout << "SM - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1])<< std::endl;
+   }
 
    double time = dtime();
 
@@ -117,7 +129,7 @@ double runBuildingTest(std::vector<Track>& evt_sim_tracks/*, std::vector<Track>&
    std::cout << "found total tracks=" << evt_track_candidates.size() << std::endl;
    for (unsigned int itkcand=0;itkcand<evt_track_candidates.size();++itkcand) {
      Track tkcand = evt_track_candidates[itkcand];
-     std::cout << "SM - found track candidate with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << " pT=" << sqrt(tkcand.momentum()[0]*tkcand.momentum()[0]+tkcand.momentum()[1]*tkcand.momentum()[1]) << std::endl;
+     std::cout << "SM - found track with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << " pT=" << sqrt(tkcand.momentum()[0]*tkcand.momentum()[0]+tkcand.momentum()[1]*tkcand.momentum()[1]) << std::endl;
    }
 
    return dtime() - time;
@@ -140,8 +152,16 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
   
   for (unsigned int ilay=nhits_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
 
+#ifdef DEBUG
+    std::cout << "going to lay=" << ilay+1 << " with input seeds=" << evt_seeds.size() << std::endl; 
+#endif
+
     //process seeds
     for (unsigned int iseed=0;iseed<evt_seeds.size();++iseed) {
+
+#ifdef DEBUG
+      std::cout << "input cands for this seed=" << track_candidates[iseed].size() << std::endl;
+#endif
 
       std::vector<std::pair<Track, TrackState> > tmp_candidates;
       for (unsigned int icand=0;icand<track_candidates[iseed].size();++icand) {//loop over running candidates 
@@ -150,8 +170,15 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
 	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,chi2Cut,nSigma,minDPhi,projMatrix36,projMatrix36T);
 
       }//end of running candidates loop
+
+#ifdef DEBUG
+      std::cout << "tmp cands for this seed=" << tmp_candidates.size() << std::endl;
+#endif
         
       if (tmp_candidates.size()>maxCand) {
+#ifdef DEBUG
+	std::cout << "cleanup: size=" << tmp_candidates.size() << " maxCand=" << maxCand << std::endl;
+#endif
 	std::sort(tmp_candidates.begin(),tmp_candidates.end(),sortByHitsChi2);
 	tmp_candidates.erase(tmp_candidates.begin()+maxCand,tmp_candidates.end());
       }
@@ -163,18 +190,24 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
 	//I guess we do not want to do it. 
 	//Keep in mind this may introduce different output than serial version
       }
+
+#ifdef DEBUG
+      std::cout << "output cands for this seed=" << track_candidates[iseed].size() << std::endl;
+#endif
       
     }//end of process seeds loop
     
   }//end of layer loop
 
-
+  int nCandsBeforeEnd = 0;
   for (unsigned int iseed=0;iseed<evt_seeds.size();++iseed) {
+    nCandsBeforeEnd+=track_candidates[iseed].size();
     if (track_candidates[iseed].size()>0) {
       std::sort(track_candidates[iseed].begin(),track_candidates[iseed].end(),sortByHitsChi2);
       evt_track_candidates.push_back(track_candidates[iseed][0].first);
     }
   }
+  std::cout << "nCandsBeforeEnd=" << nCandsBeforeEnd << std::endl;
 
 }
 
@@ -244,8 +277,10 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
     MeasurementState hitMeas = hitCand.measurementState();
     float chi2 = computeChi2(propState,hitMeas,projMatrix36,projMatrix36T);
     
-    // if (debug) std::cout << "consider hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
-    // 			 << std::atan2(hity,hitx) << " " << hitz << " chi2=" << chi2 << std::endl;
+#ifdef DEBUG
+    /*if (debug)*/ std::cout << "consider hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
+    			 << std::atan2(hity,hitx) << " " << hitz << " chi2=" << chi2 << std::endl;
+#endif
     
     if ((chi2<chi2Cut)&&(chi2>0.)) {//fixme 
       TrackState tmpUpdatedState = updateParameters(propState, hitMeas,projMatrix36,projMatrix36T);
@@ -368,11 +403,11 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 
    double time = dtime();
 
-   std::vector<Track> reccands_stopped;
-
-   std::vector<Track> reccands;
-   reccands.resize(simtracks.size());
+   std::vector<Track> recseeds;
+   recseeds.resize(simtracks.size());
+#ifdef DEBUG
    std::cout << "fill seeds" << std::endl;
+#endif
 
    //sort seeds by eta;
    std::sort(simtracks.begin(), simtracks.end(), sortTracksByEta);
@@ -388,43 +423,76 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 
       mkfp->FitTracks();
 
-      mkfp->OutputFittedTracksAndHits(reccands, itrack, end);
+      mkfp->OutputFittedTracksAndHits(recseeds, itrack, end);
    }
 
-   //ok now, we should have all seeds fitted in reccands
-   std::cout << "found total seeds=" << reccands.size() << std::endl;
-   for (unsigned int iseed=0;iseed<reccands.size();++iseed) {
-     Track seed = reccands[iseed];
+   //ok now, we should have all seeds fitted in recseeds
+#ifdef DEBUG
+   std::cout << "found total seeds=" << recseeds.size() << std::endl;
+   for (unsigned int iseed=0;iseed<recseeds.size();++iseed) {
+     Track seed = recseeds[iseed];
      std::cout << "MX - found seed with nHits=" << seed.nHits() << " chi2=" << seed.chi2() << std::endl;
    }
-
    std::cout << "loop over layers" << std::endl;
+#endif
+
+   //save a vector of candidates per each seed. initialize to the seed itself
+   std::vector<std::vector<Track> > track_candidates(recseeds.size());
+   for (unsigned int iseed=0;iseed<recseeds.size();++iseed) {
+     track_candidates[iseed].push_back(recseeds[iseed]);
+   }
+
+   const unsigned int maxCand = 10;
+
    //ok now we start looping over layers
    for (unsigned int ilay=nhits_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
 
-     //process seeds
+#ifdef DEBUG
      std::cout << "processing lay=" << ilay+1 << std::endl;
+#endif
 
-     int theEndCand = reccands.size();     
-
-     std::vector<Track> reccands_tmp;
-     reccands_tmp.reserve(reccands.size());
+     //prepare vector to loop over
+     std::vector<std::pair<int,int> > seed_cand_idx;
+     for (int is = 0; is<track_candidates.size(); ++is)
+       {
+	 for (int ic = 0; ic<track_candidates[is].size(); ++ic)
+	   {
+	     seed_cand_idx.push_back(std::pair<int,int>(is,ic));
+	   }
+       }
+     
+     int theEndCand = seed_cand_idx.size();     
+     
+     //poor man's thread safe container
+     std::vector<std::vector<std::pair<Track,int> > > reccands_thread_tmp;
+     reccands_thread_tmp.resize(NUM_THREADS);
+     for (int ith=0;ith<reccands_thread_tmp.size();++ith) 
+       {
+	 reccands_thread_tmp[ith].reserve(track_candidates.size()*maxCand/NUM_THREADS);//fixme, is this a reasonable number?
+       }
 
 #pragma omp parallel for num_threads(NUM_THREADS)
      for (int itrack = 0; itrack < theEndCand; itrack += NN)
        {
 	 int end = std::min(itrack + NN, theEndCand);
 
+	 //thread local version
+	 std::vector<std::pair<Track,int> > reccands_tmp;
+
+#ifdef DEBUG
 	 std::cout << "processing track=" << itrack << std::endl;
+#endif
 
 	 MkFitter *mkfp = mkfp_arr[omp_get_thread_num()];
 
-	 mkfp->SetNhits(ilay);//here again assuming one hits per layer
+	 mkfp->SetNhits(ilay);//here again assuming one hit per layer
 
-	 mkfp->InputTracksAndHits(reccands, itrack, end);
+	 mkfp->InputTracksAndHitIdx(track_candidates, seed_cand_idx, itrack, end);
 
 	 //propagate to layer
+#ifdef DEBUG
 	 std::cout << "propagate to lay=" << ilay+1 << std::endl;
+#endif
 	 mkfp->PropagateTracksToR(4.*(ilay+1));//fixme: doesn't need itrack, end?
 
 	 /*
@@ -441,41 +509,95 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 	 mkfp->GetHitRange(segmentMap_[ilay], itrack, end, etaDet, firstHit, lastHit);
 
 	 //make candidates with all compatible hits
+#ifdef DEBUG
 	 std::cout << "make new candidates" << std::endl;
-	 std::vector<int> idx_reccands_stopped;
-	 mkfp->FindCandidates(evt_lay_hits[ilay],firstHit,lastHit,itrack,end,reccands_tmp,idx_reccands_stopped);
-	 for (int idx=0;idx<idx_reccands_stopped.size();++idx)
-	   {
-	     reccands_stopped.push_back(reccands[idx_reccands_stopped[idx]]);
-	   }
+#endif
+	 mkfp->FindCandidates(evt_lay_hits[ilay],firstHit,lastHit,itrack,end,reccands_tmp);
 
+	 int tid = omp_get_thread_num();
+	 reccands_thread_tmp[tid].reserve(reccands_thread_tmp[tid].size() + distance(reccands_tmp.begin(),reccands_tmp.end()));
+	 reccands_thread_tmp[tid].insert(reccands_thread_tmp[tid].end(),reccands_tmp.begin(),reccands_tmp.end());
+	 
        }//end of process seeds/cands loop
 
-     reccands.clear();
-     swap(reccands,reccands_tmp);
-     std::cout << "end loop reccands.size()=" << reccands.size() << " reccands_tmp.size()=" << reccands_tmp.size() << std::endl;
+     //now I should clean the track_candidates, fill it with the new one and resize to maxCand
+     std::vector<std::vector<Track> > track_candidates_tmp(recseeds.size());
+     for (unsigned int tid=0;tid<reccands_thread_tmp.size();++tid)
+       {
+	 std::vector<std::pair<Track,int> >& reccands_tmp = reccands_thread_tmp[tid];
+	 for (unsigned int cid=0;cid<reccands_tmp.size();++cid) 
+	   {
+	     track_candidates_tmp[reccands_tmp[cid].second].push_back(reccands_tmp[cid].first);
+	   }
+       } 
+     for (unsigned int iseed=0;iseed<track_candidates.size();++iseed) 
+       {
+	 if (track_candidates_tmp[iseed].size()>0) 
+	   {
+	     track_candidates[iseed].clear();
+	     if (track_candidates_tmp[iseed].size()>maxCand)
+	       {
+		 std::sort(track_candidates_tmp[iseed].begin(), track_candidates_tmp[iseed].end(), sortCandByHitsChi2);
+		 track_candidates_tmp[iseed].erase(track_candidates_tmp[iseed].begin()+maxCand,track_candidates_tmp[iseed].end());
 
+#ifdef DEBUG
+		 std::cout << "erase extra candidates" << std::endl;
+#endif
+		 
+	       }
+	     track_candidates[iseed] = track_candidates_tmp[iseed];
+	   } 
+	 else 
+	   {
+	     //we do nothing in the serial version here, I think we should put these in the output and avoid keeping looping over them
+	   }
+       }
+
+
+     //reccands.clear();
+     //swap(reccands,reccands_tmp);
+#ifdef DEBUG
+     //std::cout << "end loop reccands.size()=" << reccands.size() << " reccands_tmp.size()=" << reccands_tmp.size() << std::endl;
      //dump candidates
-     std::cout << "found total tracks=" << reccands.size() << std::endl;
-     for (unsigned int itkcand=0;itkcand<reccands.size();++itkcand) {
-       Track tkcand = reccands[itkcand];
-       std::cout << "MX - found track candidate with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << std::endl;
-   }
-    
-  }//end of layer loop
+     int tottk = 0;
+     for (unsigned int iseed=0;iseed<track_candidates.size();++iseed)
+       {
+	 for (unsigned int itkcand=0;itkcand<track_candidates[iseed].size();++itkcand) {
+	   Track& tkcand = track_candidates[iseed][itkcand];
+	   std::cout << "MX - found track candidate with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << std::endl;
+	   tottk++;
+	 }
+       }
+     std::cout << "total track candidates=" << tottk << std::endl;
+#endif
+     
+   }//end of layer loop
+
+   //keep only best track per seed
+   int nCandsBeforeEnd = 0;
+   for (unsigned int iseed=0;iseed<track_candidates.size();++iseed) 
+     {
+       nCandsBeforeEnd+=track_candidates[iseed].size();
+       if (track_candidates[iseed].size()==0) continue;
+       std::sort(track_candidates[iseed].begin(), track_candidates[iseed].end(), sortCandByHitsChi2);
+       track_candidates[iseed].erase(track_candidates[iseed].begin()+1,track_candidates[iseed].end());
+     }
+   std::cout << "nCandsBeforeEnd=" << nCandsBeforeEnd << std::endl;
+
+   
+   time = dtime() - time;
 
    //dump candidates
-   std::cout << "found total tracks=" << reccands.size()+reccands_stopped.size() << std::endl;
-   for (unsigned int itkcand=0;itkcand<reccands_stopped.size();++itkcand) {
-     Track tkcand = reccands_stopped[itkcand];
-     std::cout << "MX - found track with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << " pT=" << sqrt(tkcand.momentum()[0]*tkcand.momentum()[0]+tkcand.momentum()[1]*tkcand.momentum()[1]) << std::endl;
-   }
-   for (unsigned int itkcand=0;itkcand<reccands.size();++itkcand) {
-     Track tkcand = reccands[itkcand];
-     std::cout << "MX - found track with nHits=" << tkcand.nHits() << " chi2=" << tkcand.chi2() << " pT=" << sqrt(tkcand.momentum()[0]*tkcand.momentum()[0]+tkcand.momentum()[1]*tkcand.momentum()[1]) << std::endl;
-   }
-
-   time = dtime() - time;
+   int tottk = 0;
+   for (unsigned int iseed=0;iseed<track_candidates.size();++iseed)
+     {
+       for (unsigned int itkcand=0;itkcand<track_candidates[iseed].size();++itkcand) {
+	 Track& tkcand = track_candidates[iseed][itkcand];
+	 std::cout << "MX - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << sqrt(tkcand.momentum()[0]*tkcand.momentum()[0]+tkcand.momentum()[1]*tkcand.momentum()[1]) << std::endl;
+	 tottk++;
+       }
+     }
+   std::cout << "total tracks=" << tottk << std::endl;
 
    for (int i = 0; i < NUM_THREADS; ++i)
    {
