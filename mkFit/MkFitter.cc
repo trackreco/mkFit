@@ -296,7 +296,8 @@ void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int beg, int end)
 
 }
 
-void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end, std::vector<std::pair<Track,int> >& reccands_tmp) {
+void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end, std::vector<std::vector<Track> >& tmp_candidates, int offset)
+{
 
   float maxChi2Cut = 30./2.;
 
@@ -393,7 +394,7 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
 	      std::cout << "updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << std::endl;
 #endif
 	      
-	      reccands_tmp.push_back(std::pair<Track,int>(newcand,SeedIdx(itrack, 0, 0)));
+	      tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
 	    }
 	}
     }
@@ -416,7 +417,7 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
 	//set the track state to the propagated parameters
 	Err[iP].CopyOut(itrack, newcand.errors().Array());
 	Par[iP].CopyOut(itrack, newcand.parameters().Array());	      
-	reccands_tmp.push_back(std::pair<Track,int>(newcand,SeedIdx(itrack, 0, 0)));
+	tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
       }
 
   }//end loop over hits

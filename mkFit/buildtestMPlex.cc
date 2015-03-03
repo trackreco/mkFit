@@ -402,7 +402,7 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 
    double time = dtime();
 
-#define TIME_DEBUG 1
+//#define TIME_DEBUG 1
 #ifdef TIME_DEBUG
    double timePre = 0.;
    double timePreL = 0.;
@@ -451,13 +451,14 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
    std::cout << "loop over layers" << std::endl;
 #endif
 
+   const unsigned int maxCand = 10;
+
    //save a vector of candidates per each seed. initialize to the seed itself
    std::vector<std::vector<Track> > track_candidates(recseeds.size());
    for (unsigned int iseed=0;iseed<recseeds.size();++iseed) {
+     track_candidates[iseed].reserve(maxCand);
      track_candidates[iseed].push_back(recseeds[iseed]);
    }
-
-   const unsigned int maxCand = 10;
 
 #ifdef TIME_DEBUG
    timePre = dtime()-timePre;
@@ -474,144 +475,128 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
      double timeTmpP = dtime();
 #endif
 
-     //prepare vector to loop over
-     std::vector<std::pair<int,int> > seed_cand_idx;
-     for (int is = 0; is<track_candidates.size(); ++is)
-       {
-	 for (int ic = 0; ic<track_candidates[is].size(); ++ic)
-	   {
-	     seed_cand_idx.push_back(std::pair<int,int>(is,ic));
-	   }
-       }
-     
-     int theEndCand = seed_cand_idx.size();     
-     
-     //poor man's thread safe container
-     std::vector<std::vector<std::pair<Track,int> > > reccands_thread_tmp;
-     reccands_thread_tmp.resize(NUM_THREADS);
-     for (int ith=0;ith<reccands_thread_tmp.size();++ith) 
-       {
-     	 reccands_thread_tmp[ith].reserve(10*track_candidates.size()*maxCand/NUM_THREADS);//fixme, is this a reasonable number?
-       }
+     //parallel section over seeds
+     int nseeds=track_candidates.size();
+#pragma omp parallel num_threads(NUM_THREADS)
+     {
+       int thread_num = omp_get_thread_num();
+       int num_threads = omp_get_num_threads();
+       int start = thread_num * nseeds / num_threads;
+       int end = (thread_num + 1) * nseeds / num_threads;
+
+       //prepare unrolled vector to loop over
+       std::vector<std::pair<int,int> > seed_cand_idx;
+       for (int iseed = start; iseed != end && iseed<nseeds; ++iseed) 
+	 {
+	   for (int ic = 0; ic<track_candidates[iseed].size(); ++ic)
+	     {
+	       seed_cand_idx.push_back(std::pair<int,int>(iseed,ic));
+	     }
+	 }
+	   
+       int theEndCand = seed_cand_idx.size();     
+
+       std::vector<std::vector<Track> > tmp_candidates(end-start);     
+
+       //seeds are sorted in eta, can we prefetch hits here?
 
 #ifdef TIME_DEBUG
-     timePreL += (dtime()-timeTmpP);
+       timePreL += (dtime()-timeTmpP);
 #endif
 
-#pragma omp parallel for num_threads(NUM_THREADS)
-     for (int itrack = 0; itrack < theEndCand; itrack += NN)
-       {
-
+       //vectorized loop
+       for (int itrack = 0; itrack < theEndCand; itrack += NN)
+	 {
+	   
 #ifdef TIME_DEBUG
-	 double timeTmp = dtime();
+	   double timeTmp = dtime();
 #endif
 
-	 int end = std::min(itrack + NN, theEndCand);
-
-	 //thread local version
-	 std::vector<std::pair<Track,int> > reccands_tmp;
-
+	   int end = std::min(itrack + NN, theEndCand);
+	   
 #ifdef DEBUG
-	 std::cout << "processing track=" << itrack << std::endl;
-#endif
-
-	 MkFitter *mkfp = mkfp_arr[omp_get_thread_num()];
-
-	 mkfp->SetNhits(ilay);//here again assuming one hit per layer
-
-	 mkfp->InputTracksAndHitIdx(track_candidates, seed_cand_idx, itrack, end);
-
-	 //propagate to layer
-#ifdef DEBUG
-	 std::cout << "propagate to lay=" << ilay+1 << std::endl;
-#endif
-	 mkfp->PropagateTracksToR(4.*(ilay+1));//fixme: doesn't need itrack, end?
-
-#ifdef TIME_DEBUG
-	 timePR += (dtime()-timeTmp);
-#endif
-
-	 /*
-	 //get best hit and update with it
-	 std::cout << "add best hit" << std::endl;
-	 mkfp->AddBestHit(evt_lay_hits[ilay],itrack,end);
-	 mkfp->SetNhits(ilay+1);//here again assuming one hits per layer
-	 //fixme: we don't need to keep a copy of all hits, we just need to keep record of them
-	 mkfp->OutputFittedTracksAndHits(reccands_tmp, itrack, end);
-	 */
-
-	 //this one is serial: get the hit range common to these track candidates
-	 int firstHit = -1, lastHit = -1;
-	 mkfp->GetHitRange(segmentMap_[ilay], itrack, end, etaDet, firstHit, lastHit);
-
-#ifdef TIME_DEBUG
-	 timeHR += (dtime()-timeTmp);
-#endif
-
-	 //make candidates with all compatible hits
-#ifdef DEBUG
-	 std::cout << "make new candidates" << std::endl;
-#endif
-	 mkfp->FindCandidates(evt_lay_hits[ilay],firstHit,lastHit,itrack,end,reccands_tmp);
-
-#ifdef TIME_DEBUG
-	 timeFC += (dtime()-timeTmp);
-#endif
-
-	 int tid = omp_get_thread_num();
-	 reccands_thread_tmp[tid].insert(reccands_thread_tmp[tid].end(),reccands_tmp.begin(),reccands_tmp.end());
-
-#ifdef TIME_DEBUG
-	 timeLP += (dtime()-timeTmp);
+	   std::cout << "processing track=" << itrack << std::endl;
 #endif
 	 
-       }//end of process seeds/cands loop
+	   MkFitter *mkfp = mkfp_arr[omp_get_thread_num()];
+
+	   mkfp->SetNhits(ilay);//here again assuming one hit per layer
+
+	   mkfp->InputTracksAndHitIdx(track_candidates, seed_cand_idx, itrack, end);//fixme find a way to deal only with the candidates needed in this thread
+	   
+	   //propagate to layer
+#ifdef DEBUG
+	   std::cout << "propagate to lay=" << ilay+1 << std::endl;
+#endif
+	   mkfp->PropagateTracksToR(4.*(ilay+1));//fixme: doesn't need itrack, end?
+	 
+#ifdef TIME_DEBUG
+	   timePR += (dtime()-timeTmp);
+#endif
+	 
+	   //this one is not vectorized: get the hit range common to these track candidates
+	   int firstHit = -1, lastHit = -1;
+	   mkfp->GetHitRange(segmentMap_[ilay], itrack, end, etaDet, firstHit, lastHit);
+	 
+#ifdef TIME_DEBUG
+	   timeHR += (dtime()-timeTmp);
+#endif
+
+	   //make candidates with all compatible hits
+#ifdef DEBUG
+	   std::cout << "make new candidates" << std::endl;
+#endif
+	   mkfp->FindCandidates(evt_lay_hits[ilay],firstHit,lastHit,itrack,end,tmp_candidates,start);//fixme find a way to use only the minimal hit subset
+
+#ifdef TIME_DEBUG
+	   timeFC += (dtime()-timeTmp);
+#endif
+
+#ifdef TIME_DEBUG
+	   timeLP += (dtime()-timeTmp);
+#endif
+	 
+	 }//end of process cands loop
+
 
 #ifdef TIME_DEBUG
      double timeTmpF = dtime();
 #endif
 
-     //now I should clean the track_candidates, fill it with the new one and resize to maxCand
-     std::vector<std::vector<Track> > track_candidates_tmp(recseeds.size());
-     for (unsigned int tid=0;tid<reccands_thread_tmp.size();++tid)
-       {
-	 std::vector<std::pair<Track,int> >& reccands_tmp = reccands_thread_tmp[tid];
-	 for (unsigned int cid=0;cid<reccands_tmp.size();++cid) 
-	   {
-	     track_candidates_tmp[reccands_tmp[cid].second].push_back(reccands_tmp[cid].first);
-	   }
-       } 
-     for (unsigned int iseed=0;iseed<track_candidates.size();++iseed) 
-       {
-	 if (track_candidates_tmp[iseed].size()>0) 
-	   {
-	     track_candidates[iseed].clear();
-	     if (track_candidates_tmp[iseed].size()>maxCand)
-	       {
-		 std::sort(track_candidates_tmp[iseed].begin(), track_candidates_tmp[iseed].end(), sortCandByHitsChi2);
-		 track_candidates_tmp[iseed].erase(track_candidates_tmp[iseed].begin()+maxCand,track_candidates_tmp[iseed].end());
-
+       //clean exceeding candidates per seed
+       for (unsigned int is=0;is<tmp_candidates.size();++is)
+	 {
+	   if (tmp_candidates[is].size()>maxCand)
+	     {
 #ifdef DEBUG
-		 std::cout << "erase extra candidates" << std::endl;
-#endif
-		 
-	       }
-	     track_candidates[iseed] = track_candidates_tmp[iseed];
-	   } 
-	 else 
-	   {
-	     //we do nothing in the serial version here, I think we should put these in the output and avoid keeping looping over them
-	   }
-       }
+	       std::cout << "erase extra candidates" << std::endl;
+#endif	     
+	       std::sort(tmp_candidates[is].begin(), tmp_candidates[is].end(), sortCandByHitsChi2);
+	       tmp_candidates[is].erase(tmp_candidates[is].begin()+maxCand,tmp_candidates[is].end());	       
+	     }
+	 } 
+       //now swap with input candidates
+       for (unsigned int is=0;is<tmp_candidates.size();++is)
+	 {
+	   if (tmp_candidates[is].size()>0)
+             {
+	       track_candidates[start+is].swap(tmp_candidates[is]);
+	       tmp_candidates[is].clear();
+	     }
+	   else 
+	     {
+	       //we do nothing in the SM version here, I think we should put these in the output and avoid keeping looping over them
+	     }
+	 }
 
 #ifdef TIME_DEBUG
      timeFinL += (dtime()-timeTmpF);
 #endif
+       
+     }//end of parallel section over seeds
 
-     //reccands.clear();
-     //swap(reccands,reccands_tmp);
+
 #ifdef DEBUG
-     //std::cout << "end loop reccands.size()=" << reccands.size() << " reccands_tmp.size()=" << reccands_tmp.size() << std::endl;
      //dump candidates
      int tottk = 0;
      for (unsigned int iseed=0;iseed<track_candidates.size();++iseed)

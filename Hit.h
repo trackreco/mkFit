@@ -6,7 +6,7 @@
 namespace Config {
   static constexpr const unsigned int nPhiPart = 63;
   static constexpr const unsigned int nPhiFactor = 10;  // nPhiPart/2pi
-  static constexpr const unsigned int nEtaPart = 60;
+  static constexpr const unsigned int nEtaPart = 10;
 };
 
 inline unsigned int getPhiPartition(float phi){

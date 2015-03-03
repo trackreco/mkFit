@@ -67,7 +67,7 @@ public:
   typedef std::pair<unsigned int,unsigned int> BinInfo;
   void GetHitRange(std::vector<BinInfo>& segmentMapLay_, int beg, int end, const float& etaDet, int& firstHit, int& lastHit);
 
-  void FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end, std::vector<std::pair<Track,int> >& reccands_tmp);
+  void FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end, std::vector<std::vector<Track> >& tmp_candidates, int offset);
 
   void SetNhits(int newnhits) { Nhits=newnhits; }
 

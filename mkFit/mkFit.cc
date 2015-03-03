@@ -153,7 +153,7 @@ void test_standard()
 {
 
   int  Ntracks  = 1024 * 1024;// * 1024; // * 10
-  Ntracks  = 4800;
+  Ntracks  = 480;
   // bool saveTree = false;
 
   generateTracks(simtracks, Ntracks);
