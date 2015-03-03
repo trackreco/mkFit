@@ -357,13 +357,12 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
    typedef std::vector<std::vector<BinInfo> > BinInfoMap;//only eta map for now
    BinInfoMap segmentMap_;
    segmentMap_.resize(10);//geom_.CountLayers()
-   static const unsigned int nEtaPart = 10;
    const float etaDet = 2.0;
    for (unsigned int ilayer=0; ilayer<evt_lay_hits.size(); ++ilayer) {
      //segmentMap_[ilayer].resize(nEtaPart);    
      // eta first then phi
      std::sort(evt_lay_hits[ilayer].begin(), evt_lay_hits[ilayer].end(), sortByZ);
-     std::vector<unsigned int> lay_eta_bin_count(nEtaPart);
+     std::vector<unsigned int> lay_eta_bin_count(Config::nEtaPart);
      for (unsigned int ihit=0;ihit<evt_lay_hits[ilayer].size();++ihit) {
        unsigned int etabin = getEtaPartition(evt_lay_hits[ilayer][ihit].eta(),etaDet);
        lay_eta_bin_count[etabin]++;
@@ -372,7 +371,7 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
     
      int lastEtaIdxFound = -1;
 
-     for (unsigned int etabin=0; etabin<nEtaPart; ++etabin) {
+     for (unsigned int etabin=0; etabin<Config::nEtaPart; ++etabin) {
        unsigned int firstEtaBinIdx = lastEtaIdxFound+1;
        unsigned int etaBinSize = lay_eta_bin_count[etabin];
        BinInfo etaBinInfo(firstEtaBinIdx,etaBinSize);
@@ -403,10 +402,26 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 
    double time = dtime();
 
+#define TIME_DEBUG 1
+#ifdef TIME_DEBUG
+   double timePre = 0.;
+   double timePreL = 0.;
+   double timePR = 0.;
+   double timeHR = 0.;
+   double timeFC = 0.;
+   double timeLP = 0.;
+   double timeFin = 0.;
+   double timeFinL = 0.;
+#endif
+
    std::vector<Track> recseeds;
    recseeds.resize(simtracks.size());
 #ifdef DEBUG
    std::cout << "fill seeds" << std::endl;
+#endif
+
+#ifdef TIME_DEBUG
+   timePre = dtime();
 #endif
 
    //sort seeds by eta;
@@ -444,11 +459,19 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 
    const unsigned int maxCand = 10;
 
+#ifdef TIME_DEBUG
+   timePre = dtime()-timePre;
+#endif
+
    //ok now we start looping over layers
    for (unsigned int ilay=nhits_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
 
 #ifdef DEBUG
      std::cout << "processing lay=" << ilay+1 << std::endl;
+#endif
+
+#ifdef TIME_DEBUG
+     double timeTmpP = dtime();
 #endif
 
      //prepare vector to loop over
@@ -468,12 +491,21 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
      reccands_thread_tmp.resize(NUM_THREADS);
      for (int ith=0;ith<reccands_thread_tmp.size();++ith) 
        {
-	 reccands_thread_tmp[ith].reserve(track_candidates.size()*maxCand/NUM_THREADS);//fixme, is this a reasonable number?
+     	 reccands_thread_tmp[ith].reserve(10*track_candidates.size()*maxCand/NUM_THREADS);//fixme, is this a reasonable number?
        }
+
+#ifdef TIME_DEBUG
+     timePreL += (dtime()-timeTmpP);
+#endif
 
 #pragma omp parallel for num_threads(NUM_THREADS)
      for (int itrack = 0; itrack < theEndCand; itrack += NN)
        {
+
+#ifdef TIME_DEBUG
+	 double timeTmp = dtime();
+#endif
+
 	 int end = std::min(itrack + NN, theEndCand);
 
 	 //thread local version
@@ -495,6 +527,10 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 #endif
 	 mkfp->PropagateTracksToR(4.*(ilay+1));//fixme: doesn't need itrack, end?
 
+#ifdef TIME_DEBUG
+	 timePR += (dtime()-timeTmp);
+#endif
+
 	 /*
 	 //get best hit and update with it
 	 std::cout << "add best hit" << std::endl;
@@ -508,17 +544,32 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 	 int firstHit = -1, lastHit = -1;
 	 mkfp->GetHitRange(segmentMap_[ilay], itrack, end, etaDet, firstHit, lastHit);
 
+#ifdef TIME_DEBUG
+	 timeHR += (dtime()-timeTmp);
+#endif
+
 	 //make candidates with all compatible hits
 #ifdef DEBUG
 	 std::cout << "make new candidates" << std::endl;
 #endif
 	 mkfp->FindCandidates(evt_lay_hits[ilay],firstHit,lastHit,itrack,end,reccands_tmp);
 
+#ifdef TIME_DEBUG
+	 timeFC += (dtime()-timeTmp);
+#endif
+
 	 int tid = omp_get_thread_num();
-	 reccands_thread_tmp[tid].reserve(reccands_thread_tmp[tid].size() + distance(reccands_tmp.begin(),reccands_tmp.end()));
 	 reccands_thread_tmp[tid].insert(reccands_thread_tmp[tid].end(),reccands_tmp.begin(),reccands_tmp.end());
+
+#ifdef TIME_DEBUG
+	 timeLP += (dtime()-timeTmp);
+#endif
 	 
        }//end of process seeds/cands loop
+
+#ifdef TIME_DEBUG
+     double timeTmpF = dtime();
+#endif
 
      //now I should clean the track_candidates, fill it with the new one and resize to maxCand
      std::vector<std::vector<Track> > track_candidates_tmp(recseeds.size());
@@ -553,6 +604,9 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 	   }
        }
 
+#ifdef TIME_DEBUG
+     timeFinL += (dtime()-timeTmpF);
+#endif
 
      //reccands.clear();
      //swap(reccands,reccands_tmp);
@@ -573,6 +627,10 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
      
    }//end of layer loop
 
+#ifdef TIME_DEBUG
+   timeFin = dtime();
+#endif
+
    //keep only best track per seed
    int nCandsBeforeEnd = 0;
    for (unsigned int iseed=0;iseed<track_candidates.size();++iseed) 
@@ -584,6 +642,9 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
      }
    std::cout << "nCandsBeforeEnd=" << nCandsBeforeEnd << std::endl;
 
+#ifdef TIME_DEBUG
+   timeFin = dtime()-timeFin;
+#endif
    
    time = dtime() - time;
 
@@ -598,6 +659,17 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
        }
      }
    std::cout << "total tracks=" << tottk << std::endl;
+
+#ifdef TIME_DEBUG
+   std::cout << "timePre=" << timePre << std::endl;
+   std::cout << "timePreL=" << timePreL << std::endl;
+   std::cout << "timePR=" << timePR << " d=" << timePR/timeLP << std::endl;
+   std::cout << "timeHR=" << timeHR << " d=" << (timeHR-timePR)/timeLP << std::endl;
+   std::cout << "timeFC=" << timeFC << " d=" << (timeFC-timeHR)/timeLP << std::endl;
+   std::cout << "timeLP=" << timeLP << " d=" << (timeLP-timeFC)/timeLP << std::endl;
+   std::cout << "timeFinL=" << timeFinL << std::endl;
+   std::cout << "timeFin=" << timeFin << std::endl;
+#endif
 
    for (int i = 0; i < NUM_THREADS; ++i)
    {

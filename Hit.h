@@ -3,6 +3,12 @@
 
 #include "Matrix.h"
 
+namespace Config {
+  static constexpr const unsigned int nPhiPart = 63;
+  static constexpr const unsigned int nPhiFactor = 10;  // nPhiPart/2pi
+  static constexpr const unsigned int nEtaPart = 60;
+};
+
 inline unsigned int getPhiPartition(float phi){
   //assume phi is between -PI and PI
   //  if (!(fabs(phi)<TMath::Pi())) std::cout << "anomalous phi=" << phi << std::endl;
@@ -14,7 +20,7 @@ inline unsigned int getPhiPartition(float phi){
 inline unsigned int getEtaPartition(float eta, float etaDet){
   float etaPlusEtaDet  = eta + etaDet;
   float twiceEtaDet    = 2.0*etaDet;
-  unsigned int bin     = (etaPlusEtaDet * 10.) / twiceEtaDet;  // ten bins for now ... update if changed in Event.cc
+  unsigned int bin     = (etaPlusEtaDet * Config::nEtaPart) / twiceEtaDet;  // ten bins for now ... update if changed in Event.cc
   return bin;
 }
 

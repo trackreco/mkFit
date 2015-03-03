@@ -153,7 +153,7 @@ void test_standard()
 {
 
   int  Ntracks  = 1024 * 1024;// * 1024; // * 10
-  Ntracks  = 10;
+  Ntracks  = 4800;
   // bool saveTree = false;
 
   generateTracks(simtracks, Ntracks);
@@ -205,7 +205,7 @@ void test_standard()
     tmp = runFittingTestPlex(simtracks, plex_tracks);
   }
 
-  printf("SMatrix = %.3f   Matriplex = %.3f   ---   SM/MP = %.3f  --- Build SM = %.3f    MX = %.3f\n", tsm, tmp, tsm / tmp, tsm2, tmp2);
+  printf("SMatrix = %.5f   Matriplex = %.5f   ---   SM/MP = %.5f  --- Build SM = %.5f    MX = %.5f\n", tsm, tmp, tsm / tmp, tsm2, tmp2);
 
 #ifndef NO_ROOT
   make_validation_tree("validation-smat.root", simtracks, smat_tracks);

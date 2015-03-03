@@ -6,6 +6,7 @@
 #include <vector>
 
 typedef std::pair<unsigned int,unsigned int> SimTkIDInfo;
+typedef std::vector<int> HitIdxVec;
 
 struct TrackState
 {
@@ -71,8 +72,18 @@ public:
   HitVec& hitsVector() {return hits_;}
 
   void addHit(Hit hit,float chi2) {hits_.push_back(hit);chi2_+=chi2;}
+  void addHitIdx(unsigned int hitIdx,float chi2) {hitIdxVec_.push_back(hitIdx);chi2_+=chi2;}
+
+  unsigned int getHitIdx(unsigned int posHitIdx) {return hitIdxVec_[posHitIdx];}
+
   void resetHits() {hits_.clear();}
   unsigned int nHits() {return hits_.size();}
+
+  unsigned int nHitIdx() {
+    unsigned int result = 0;
+    for (int i=0;i<hitIdxVec_.size();++i) if (hitIdxVec_[i]>=0) result++;
+    return result;
+  }
 
   void setChi2(float chi2) {chi2_=chi2;}
 
@@ -86,6 +97,7 @@ private:
   HitVec hits_;
   HitVec initHits_;
   float chi2_;
+  HitIdxVec hitIdxVec_;
 };
 
 typedef std::vector<Track> TrackVec;
