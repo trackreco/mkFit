@@ -426,6 +426,7 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 
    //sort seeds by eta;
    std::sort(simtracks.begin(), simtracks.end(), sortTracksByEta);
+   //further sorting could be in curvature, like e.g. q/pT
 
 #pragma omp parallel for num_threads(NUM_THREADS)
    for (int itrack = 0; itrack < theEnd; itrack += NN)
@@ -537,6 +538,8 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 	   //this one is not vectorized: get the hit range common to these track candidates
 	   int firstHit = -1, lastHit = -1;
 	   mkfp->GetHitRange(segmentMap_[ilay], itrack, end, etaDet, firstHit, lastHit);
+
+	   if (firstHit<0 || lastHit<0 || firstHit>=evt_lay_hits[ilay].size() || lastHit>evt_lay_hits[ilay].size()) continue;//protection
 	 
 #ifdef TIME_DEBUG
 	   timeHR += (dtime()-timeTmp);

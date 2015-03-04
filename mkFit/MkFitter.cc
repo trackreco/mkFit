@@ -345,7 +345,9 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
 	    break;
 	  }
       }
+
     if (oneCandPassCut) { 
+
       updateParametersMPlex(Err[iP], Par[iP], msErr_oneHit, msPar_oneHit,
 			    Err[iC], Par[iC]);
 #ifdef DEBUG
@@ -354,9 +356,6 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
       std::cout << "               hit position x=" << msPar[iP].ConstAt(itrack, 0, 0) << " y=" << msPar[iP].ConstAt(itrack, 1, 0) << std::endl;
       std::cout << "   updated track parameters x=" << Par[iC].ConstAt(itrack, 0, 0) << " y=" << Par[iC].ConstAt(itrack, 1, 0) << std::endl;
 #endif
-    }
-
-    if (oneCandPassCut) {
 
       //create candidate with hit in case chi2<maxChi2Cut
       itrack = 0;
@@ -397,30 +396,30 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
 	      tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
 	    }
 	}
-    }
-
-    //now add invalid hit
-    itrack = 0;
-    //fixme: please vectorize me...
-    for (int i = beg; i < end; ++i, ++itrack)
-      {
-	if (countInvalidHits(itrack)>0) continue;//check this is ok for vectorization //fixme not optimal
-	Track newcand;
-	newcand.resetHits();//probably not needed
-	newcand.charge() = Chg(itrack, 0, 0);
-	newcand.setChi2(Chi2(itrack, 0, 0));
-	for (int hi = 0; hi < Nhits; ++hi)
-	  {
-	    newcand.addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);//this should be ok since we already set the chi2 above
-	  }
-	newcand.addHitIdx(-1,0.);
-	//set the track state to the propagated parameters
-	Err[iP].CopyOut(itrack, newcand.errors().Array());
-	Par[iP].CopyOut(itrack, newcand.parameters().Array());	      
-	tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
-      }
+    }//end if (oneCandPassCut)
 
   }//end loop over hits
+
+  //now add invalid hit
+  int itrack = 0;
+  //fixme: please vectorize me...
+  for (int i = beg; i < end; ++i, ++itrack)
+    {
+      if (countInvalidHits(itrack)>0) continue;//check this is ok for vectorization //fixme not optimal
+      Track newcand;
+      newcand.resetHits();//probably not needed
+      newcand.charge() = Chg(itrack, 0, 0);
+      newcand.setChi2(Chi2(itrack, 0, 0));
+      for (int hi = 0; hi < Nhits; ++hi)
+	{
+	  newcand.addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);//this should be ok since we already set the chi2 above
+	}
+      newcand.addHitIdx(-1,0.);
+      //set the track state to the propagated parameters
+      Err[iP].CopyOut(itrack, newcand.errors().Array());
+      Par[iP].CopyOut(itrack, newcand.parameters().Array());	      
+      tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
+    }
 
 }
 
