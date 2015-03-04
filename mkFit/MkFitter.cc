@@ -431,6 +431,8 @@ void MkFitter::GetHitRange(std::vector<BinInfo>& segmentMapLay_, int beg, int en
     for (int i = beg; i < end; ++i, ++itrack)
       {
 	float eta = getEta(Par[iP].ConstAt(itrack, 3, 0),Par[iP].ConstAt(itrack, 4, 0),Par[iP].ConstAt(itrack, 5, 0));
+	//protect against anomalous eta (should go into getEtaPartition maybe?)
+	if (fabs(eta)>etaDet) eta = (eta>0 ? etaDet*0.99 : -etaDet*0.99);
 	unsigned int etabin = getEtaPartition(eta,etaDet);
 	BinInfo binInfo = segmentMapLay_[etabin];
 #ifdef DEBUG

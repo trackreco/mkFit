@@ -534,12 +534,14 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 #ifdef TIME_DEBUG
 	   timePR += (dtime()-timeTmp);
 #endif
+
+#ifdef DEBUG
+	   std::cout << "now get hit range" << std::endl;
+#endif
 	 
 	   //this one is not vectorized: get the hit range common to these track candidates
 	   int firstHit = -1, lastHit = -1;
 	   mkfp->GetHitRange(segmentMap_[ilay], itrack, end, etaDet, firstHit, lastHit);
-
-	   if (firstHit<0 || lastHit<0 || firstHit>=evt_lay_hits[ilay].size() || lastHit>evt_lay_hits[ilay].size()) continue;//protection
 	 
 #ifdef TIME_DEBUG
 	   timeHR += (dtime()-timeTmp);
