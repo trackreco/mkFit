@@ -18,7 +18,7 @@ $a = "a";
 $b = "b";
 $c = "c";
 
-$vectype = "__m512";
+$vectype = "IntrVec_t";
 
 $SYMMETRIC = 1;
 

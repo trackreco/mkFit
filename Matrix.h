@@ -70,52 +70,51 @@ inline void sincos4(float x, float& sin, float& cos)
 
 #ifdef USE_MATRIPLEX
 
-#ifdef __INTEL_COMPILER
+  #ifdef __INTEL_COMPILER
 
-#define ASSUME_ALIGNED(a, b) __assume_aligned(a, b)
+    #define ASSUME_ALIGNED(a, b) __assume_aligned(a, b)
 
-#else
+  #else
 
-template<typename T> inline void ASSUME_ALIGNED(T* a, int b) { a = (T*) __builtin_assume_aligned(a, b); }
+    template<typename T> inline void ASSUME_ALIGNED(T* a, int b) { a = (T*) __builtin_assume_aligned(a, b); }
 
-#endif
+  #endif
+
+  #include "Matriplex/MatriplexSym.h"
+
+  // It might make sense to change this for AVX intrinsics ... to be revisited.
+  #ifndef MPT_SIZE
+  #define MPT_SIZE 16
+  #endif
+
+  typedef int idx_t;
+
+  const idx_t NN =  MPT_SIZE; // "Length" of MPlex.
+
+  const idx_t LL =  6; // Dimension of large/long  MPlex entities
+  const idx_t HH =  3; // Dimension of small/short MPlex entities
+
+  typedef Matriplex::Matriplex<float, LL, LL, NN>   MPlexLL;
+  typedef Matriplex::Matriplex<float, LL,  1, NN>   MPlexLV;
+  typedef Matriplex::MatriplexSym<float, LL,  NN>   MPlexLS;
+
+  typedef Matriplex::Matriplex<float, HH, HH, NN>   MPlexHH;
+  typedef Matriplex::Matriplex<float, HH,  1, NN>   MPlexHV;
+  typedef Matriplex::MatriplexSym<float, HH,  NN>   MPlexHS;
+
+  typedef Matriplex::Matriplex<float, LL, HH, NN>   MPlexLH;
+
+  typedef Matriplex::Matriplex<float, 1, 1, NN>     MPlexQF;
+  typedef Matriplex::Matriplex<int,   1, 1, NN>     MPlexQI;
 
 
-#include "Matriplex/MatriplexSym.h"
+  #ifndef NUM_THREADS
+  #define NUM_THREADS 1
+  #endif
 
-
-#ifndef MPT_SIZE
-#define MPT_SIZE 16
-#endif
-
-typedef int idx_t;
-
-const idx_t NN =  MPT_SIZE; // "Length" of MPlex.
-
-const idx_t LL =  6; // Dimension of large/long  MPlex entities
-const idx_t HH =  3; // Dimension of small/short MPlex entities
-
-typedef Matriplex::Matriplex<float, LL, LL, NN>   MPlexLL;
-typedef Matriplex::Matriplex<float, LL,  1, NN>   MPlexLV;
-typedef Matriplex::MatriplexSym<float, LL,  NN>   MPlexLS;
-
-typedef Matriplex::Matriplex<float, HH, HH, NN>   MPlexHH;
-typedef Matriplex::Matriplex<float, HH,  1, NN>   MPlexHV;
-typedef Matriplex::MatriplexSym<float, HH,  NN>   MPlexHS;
-
-typedef Matriplex::Matriplex<float, LL, HH, NN>   MPlexLH;
-
-typedef Matriplex::Matriplex<float, 1, 1, NN>     MPlexQF;
-typedef Matriplex::Matriplex<int,   1, 1, NN>     MPlexQI;
-
-
-#ifndef NUM_THREADS
-#define NUM_THREADS 1
-#endif
-
-#ifndef THREAD_BINDING
-#define THREAD_BINDING spread
-#endif
+  #ifndef THREAD_BINDING
+  #define THREAD_BINDING spread
+  #endif
 
 #endif
 
