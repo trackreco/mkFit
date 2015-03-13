@@ -153,7 +153,8 @@ void test_standard()
 {
 
   int  Ntracks  = 1024 * 1024;// * 1024; // * 10
-  Ntracks  = 480*10;
+  Ntracks  = 480*100;
+  //Ntracks  = 1;
   // bool saveTree = false;
 
   generateTracks(simtracks, Ntracks);
@@ -166,8 +167,9 @@ void test_standard()
   plex_tracks.resize(simtracks.size());
   tmp = runFittingTestPlex(simtracks, plex_tracks);
 
-  double tsm2 = runBuildingTest(simtracks);
-  double tmp2 = runBuildingTestPlex(simtracks);
+  double tsm2 = 0;//runBuildingTest(simtracks);
+  double tmp2 = 0;//runBuildingTestPlex(simtracks);
+  double tmp2bh = runBuildingTestPlexBestHit(simtracks);
 
   // Second pass -- select problematic tracks and refit them
   if (false)
@@ -205,7 +207,7 @@ void test_standard()
     tmp = runFittingTestPlex(simtracks, plex_tracks);
   }
 
-  printf("SMatrix = %.5f   Matriplex = %.5f   ---   SM/MP = %.5f  --- Build SM = %.5f    MX = %.5f\n", tsm, tmp, tsm / tmp, tsm2, tmp2);
+  printf("SMatrix = %.5f   Matriplex = %.5f   ---   SM/MP = %.5f  --- Build SM = %.5f    MX = %.5f    BH = %.5f\n", tsm, tmp, tsm / tmp, tsm2, tmp2, tmp2bh);
 
 #ifndef NO_ROOT
   make_validation_tree("validation-smat.root", simtracks, smat_tracks);

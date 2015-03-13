@@ -1,6 +1,7 @@
 #ifndef MkFitter_h
 #define MkFitter_h
 
+#include "Event.h"
 #include "Matrix.h"
 #include "KalmanUtils.h"
 
@@ -45,6 +46,7 @@ public:
   void PrintPt(int idx);
 
   void InputTracksAndHits(std::vector<Track>& tracks, int beg, int end);
+  void InputTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end);
   void InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks, std::vector<std::pair<int,int> >& idxs, int beg, int end);
   void InputTracksOnly   (std::vector<Track>& tracks, int beg, int end);
   void InputHitsOnly(std::vector<Hit>& hits, int beg, int end);
@@ -59,13 +61,13 @@ public:
   }
 
   void OutputFittedTracksAndHits(std::vector<Track>& tracks, int beg, int end);
+  void OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end);
 
   void PropagateTracksToR(float R);
 
-  void AddBestHit(std::vector<Hit>& lay_hits, int beg, int end);
+  void AddBestHit(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end);
 
-  typedef std::pair<unsigned int,unsigned int> BinInfo;
-  void GetHitRange(std::vector<BinInfo>& segmentMapLay_, int beg, int end, const float& etaDet, int& firstHit, int& lastHit);
+  void GetHitRange(std::vector<std::vector<BinInfo> >& segmentMapLay_, int beg, int end, const float& etaDet, int& firstHit, int& lastHit);
 
   void FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end, std::vector<std::vector<Track> >& tmp_candidates, int offset);
 
@@ -73,6 +75,10 @@ public:
 
   int countInvalidHits(int itrack);
 
+  inline float normalizedPhi(float phi) {
+    return std::fmod(phi, (float) M_PI);
+  }
+  
 };
 
 #endif

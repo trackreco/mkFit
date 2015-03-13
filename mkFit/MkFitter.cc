@@ -54,6 +54,37 @@ void MkFitter::InputTracksAndHits(std::vector<Track>& tracks, int beg, int end)
   }
 }
 
+void MkFitter::InputTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end)
+{
+  // Assign track parameters to initial state and copy hit values in.
+
+  // This might not be true for the last chunk!
+  // assert(end - beg == NN);
+
+  int itrack = 0;
+  for (int i = beg; i < end; ++i, ++itrack)
+  {
+
+    Track &trk = tracks[i];
+
+    SeedIdx(itrack, 0, 0) = i;
+
+    Err[iC].CopyIn(itrack, trk.errors().Array());
+    Par[iC].CopyIn(itrack, trk.parameters().Array());
+
+    Chg(itrack, 0, 0) = trk.charge();
+    Chi2(itrack, 0, 0) = trk.chi2();
+
+    for (int hi = 0; hi < Nhits; ++hi)
+    {
+
+      HitsIdx[hi](itrack, 0, 0) = trk.getHitIdx(hi);//dummy value for now
+
+    }
+  }
+}
+
+
 void MkFitter::InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks, std::vector<std::pair<int,int> >& idxs, int beg, int end)
 {
   // Assign track parameters to initial state and copy hit values in.
@@ -197,8 +228,34 @@ void MkFitter::OutputFittedTracksAndHits(std::vector<Track>& tracks, int beg, in
       msPar[hi].CopyOut(itrack, hit.parameters().Array());
 
       tracks[i].addHit(hit,0.);
-      tracks[i].addHitIdx(0,0.);//fixme
+      tracks[i].addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);
 
+    }
+
+  }
+}
+
+
+void MkFitter::OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end)
+{
+  // Copies last track parameters (updated) into Track objects and up to Nhits.
+  // The tracks vector should be resized to allow direct copying.
+
+  int itrack = 0;
+  for (int i = beg; i < end; ++i, ++itrack)
+  {
+    Err[iC].CopyOut(itrack, tracks[i].errors().Array());
+    Par[iC].CopyOut(itrack, tracks[i].parameters().Array());
+
+    tracks[i].charge() = Chg(itrack, 0, 0);
+    tracks[i].setChi2(Chi2(itrack, 0, 0));
+
+    // XXXXX chi2 is not set (also not in SMatrix fit, it seems)
+
+    tracks[i].resetHits();
+    for (int hi = 0; hi < Nhits; ++hi)
+    {
+      tracks[i].addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);
     }
 
   }
@@ -213,7 +270,7 @@ void MkFitter::PropagateTracksToR(float R)
 }
 
 //fixme: do it properly with phi segmentation
-void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int beg, int end)
+void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end)
 {
 
   //fixme solve ambiguity NN vs beg-end
@@ -224,10 +281,9 @@ void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int beg, int end)
 
   //outer loop over hits, so that tracks can be vectorized
   int ih = 0;
-  for ( ; ih<lay_hits.size(); ++ih)
-  {
+  for (int layhit = firstHit; layhit<lastHit; ++ih, ++layhit) {
 
-    Hit &hit = lay_hits[ih];
+    Hit &hit = lay_hits[layhit];
 #ifdef DEBUG
     std::cout << "consider hit #" << ih << " of " << lay_hits.size() << std::endl;
     std::cout << "hit x=" << hit.position()[0] << " y=" << hit.position()[1] << std::endl;      
@@ -261,7 +317,7 @@ void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int beg, int end)
       if (chi2<minChi2[itrack]) 
       {
 	minChi2[itrack]=chi2;
-	bestHit[itrack]=ih;
+	bestHit[itrack]=layhit;
       }
     }
 
@@ -273,7 +329,7 @@ void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int beg, int end)
   for (int i = beg; i < end; ++i, ++itrack)
   {
     //fixme decide what to do in case no hit found
-    Hit &hit = bestHit[itrack]>=0 ? lay_hits[ bestHit[itrack] ] : lay_hits[0];
+    Hit &hit = bestHit[itrack]>=0 ? lay_hits[ bestHit[itrack] ] : lay_hits[firstHit];
     float& chi2 = bestHit[itrack]>=0 ? minChi2[itrack] : minChi2[0];
 
 #ifdef DEBUG
@@ -298,8 +354,6 @@ void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int beg, int end)
 
 void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end, std::vector<std::vector<Track> >& tmp_candidates, int offset)
 {
-
-  float maxChi2Cut = 30./2.;
 
   //outer loop over hits, so that tracks can be vectorized
   int ih = firstHit;
@@ -339,7 +393,7 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
 #ifdef DEBUG
 	std::cout << "chi2=" << chi2 << std::endl;
 #endif
-	if (chi2<maxChi2Cut)
+	if (chi2<Config::chi2Cut)
 	  {
 	    oneCandPassCut = true;
 	    break;
@@ -357,7 +411,7 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
       std::cout << "   updated track parameters x=" << Par[iC].ConstAt(itrack, 0, 0) << " y=" << Par[iC].ConstAt(itrack, 1, 0) << std::endl;
 #endif
 
-      //create candidate with hit in case chi2<maxChi2Cut
+      //create candidate with hit in case chi2<Config::chi2Cut
       itrack = 0;
       //fixme: please vectorize me... (not sure it's possible in this case)
       for (int i = beg; i < end; ++i, ++itrack)
@@ -366,7 +420,7 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
 #ifdef DEBUG
 	  std::cout << "chi2=" << chi2 << std::endl;      
 #endif
-	  if (chi2<maxChi2Cut)
+	  if (chi2<Config::chi2Cut)
 	    {
 #ifdef DEBUG
 	      std::cout << "chi2 cut passed, creating new candidate" << std::endl;
@@ -424,22 +478,61 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
 }
 
 
-void MkFitter::GetHitRange(std::vector<BinInfo>& segmentMapLay_, int beg, int end, const float& etaDet, int& firstHit, int& lastHit) {
+void MkFitter::GetHitRange(std::vector<std::vector<BinInfo> >& segmentMapLay_, int beg, int end, const float& etaDet, int& firstHit, int& lastHit) {
 
     int itrack = 0;
     //cannot be vectorized, I think
     for (int i = beg; i < end; ++i, ++itrack)
       {
-	float eta = getEta(Par[iP].ConstAt(itrack, 3, 0),Par[iP].ConstAt(itrack, 4, 0),Par[iP].ConstAt(itrack, 5, 0));
+
+	const float predx = Par[iP].ConstAt(itrack, 0, 0);
+	const float predy = Par[iP].ConstAt(itrack, 1, 0);
+	const float predz = Par[iP].ConstAt(itrack, 2, 0);
+
+	float eta = getEta(predx,predy,predz);
 	//protect against anomalous eta (should go into getEtaPartition maybe?)
 	if (fabs(eta)>etaDet) eta = (eta>0 ? etaDet*0.99 : -etaDet*0.99);
 	unsigned int etabin = getEtaPartition(eta,etaDet);
-	BinInfo binInfo = segmentMapLay_[etabin];
+
+	float phi = getPhi(predx,predy);
+
+	const float px2py2 = predx*predx+predy*predy; // predicted radius^2
+
+	const float dphidx = -predy/px2py2;
+	const float dphidy =  predx/px2py2;
+	const float dphi2  = dphidx*dphidx*(Err[iP].ConstAt(itrack, 0, 0) /*propState.errors.At(0,0)*/) +
+	  dphidy*dphidy*(Err[iP].ConstAt(itrack, 1, 1) /*propState.errors.At(1,1)*/) +
+	  2*dphidx*dphidy*(Err[iP].ConstAt(itrack, 0, 1) /*propState.errors.At(0,1)*/);
+  
+	const float dphi   =  sqrt(std::abs(dphi2));//how come I get negative squared errors sometimes?
+	const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi,(float) Config::minDPhi), float(M_PI/1.));//fixme
+	//const float nSigmaDphi = Config::nSigma*dphi;
+
+	//if (nSigmaDphi>0.3) std::cout << "window MX: " << predx << " " << predy << " " << predz << " " << Err[iP].ConstAt(itrack, 0, 0) << " " << Err[iP].ConstAt(itrack, 1, 1) << " " << Err[iP].ConstAt(itrack, 0, 1) << " " << nSigmaDphi << std::endl;
+
+	const float dphiMinus = normalizedPhi(phi-nSigmaDphi);
+	const float dphiPlus  = normalizedPhi(phi+nSigmaDphi);
+  
+	const auto phiBinMinus = getPhiPartition(dphiMinus);
+	const auto phiBinPlus  = getPhiPartition(dphiPlus);
+    
+	BinInfo binInfoMinus = segmentMapLay_[etabin][int(phiBinMinus)];
+	BinInfo binInfoPlus  = segmentMapLay_[etabin][int(phiBinPlus)];
+
+	//fixme: temporary to avoid wrapping
+	if (binInfoMinus>binInfoPlus) {
+	  unsigned int phibin = getPhiPartition(phi);
+	  binInfoMinus = segmentMapLay_[etabin][phibin];
+	  binInfoPlus = segmentMapLay_[etabin][phibin];
+	}
+
+	//fixme: if more than one eta bin we are looping over a huge range (need to make sure we are in the same eta bin)
+
 #ifdef DEBUG
-	std::cout << "propagated track parameters eta=" << eta << " bin=" << etabin << " begin=" << binInfo.first << " size=" << binInfo.second << std::endl;
+	std::cout << "propagated track parameters eta=" << eta << " bin=" << etabin << " begin=" << binInfoMinus.first << " end=" << binInfoPlus.first+binInfoPlus.second << std::endl;
 #endif
-	if (firstHit==-1 || binInfo.first<firstHit) firstHit =  binInfo.first;
-	if (lastHit==-1 || (binInfo.first+binInfo.second)>lastHit) lastHit = binInfo.first+binInfo.second;
+	if (firstHit==-1 || binInfoMinus.first<firstHit) firstHit =  binInfoMinus.first;
+	if (lastHit==-1 || (binInfoPlus.first+binInfoPlus.second)>lastHit) lastHit = binInfoPlus.first+binInfoPlus.second;
       }
 #ifdef DEBUG
     std::cout << "found range firstHit=" << firstHit << " lastHit=" << lastHit << std::endl;

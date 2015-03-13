@@ -56,8 +56,8 @@ void generateTracks(std::vector<Track>& simtracks, int Ntracks)
       SVector3 mom;
       SMatrixSym66 covtrk;
       std::vector<Hit> hits;
-      int q=0;//set it in setup function
-      float pt = 0.5 + g_unif(g_gen) * 9.5;//this input, 0.5<pt<10 GeV  (below ~0.5 GeV does not make 10 layers)
+      int q=1;//0;//set it in setup function
+      float pt = 9.99;//0.5 + g_unif(g_gen) * 9.5;//this input, 0.5<pt<10 GeV  (below ~0.5 GeV does not make 10 layers)
       setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,pt,&geom);
       Track simtrk(q,pos,mom,covtrk,hits,0.);
       simtracks[itrack] = simtrk;

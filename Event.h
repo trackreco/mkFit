@@ -7,6 +7,18 @@
 
 typedef std::pair<unsigned int,unsigned int> BinInfo;
 
+// phi-eta partitioning map: vector of vector of vectors of std::pairs. 
+// vec[nLayers][nEtaBins][nPhiBins]
+typedef std::vector<std::vector<std::vector<BinInfo> > > BinInfoMap;
+
+namespace Config {
+  static constexpr const unsigned int nlayers_per_seed = 3;
+  static constexpr const unsigned int maxCand = 10;
+  static constexpr const float chi2Cut = 15.;
+  static constexpr const float nSigma = 0.;
+  static constexpr const float minDPhi = 0.;
+};
+
 class Event {
 public:
   Event(Geometry& g, Validation& v);

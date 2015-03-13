@@ -76,7 +76,7 @@ public:
 
   unsigned int getHitIdx(unsigned int posHitIdx) {return hitIdxVec_[posHitIdx];}
 
-  void resetHits() {hits_.clear();}
+  void resetHits() {hits_.clear();hitIdxVec_.clear();}
   unsigned int nHits() {return hits_.size();}
 
   unsigned int nHitIdx() {
