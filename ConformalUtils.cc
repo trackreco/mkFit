@@ -55,10 +55,29 @@ void conformalFit(Hit& hit0,Hit& hit1,Hit& hit2,int& charge,TrackState& fitState
   std::cout << "R=" << R << " pt=" << pt << std::endl;
   */
 
-  //compute phi at 1st hit
+  //compute phi at 1st hit --> wouldnt we want phi at IP???
+
+  float abR2 = a*a + b*b;
+  float abR  = sqrt(abR2);
+  float d    = sqrt(R*R - abR2);
+  float vrx1 = d*cos(a/abR);
+  float vry1 = d*sin(b/abR);
+  
+  float e=b*b*b*C[2]/(R*R*R);
+
   float vrx = x[0]-a;
   float vry = y[0]-b;
+  /*
+  std::cout << "My naive Method - vrx: " << vrx1 << " vry: " << vry1 << std::endl;
+  std::cout << "Current Method  - vrx: " << vrx << " vry: " << vry <<std::endl;
+  std::cout << "IP: " << e  <<std::endl;
+  */
   float phi = atan2(vrx,vry);
+  /*
+  std::cout << "Naive Phi Pos (x/y)   " << atan2(vrx1,vry1) << " (y/x) " << atan2(vry1,vrx1) << std::endl;
+  std::cout << "Current Phi Pos (x/y) " << phi << " (y/x) " << atan2(vry,vrx) << std::endl;
+  */
+
   float px = fabs(pt*cos(phi))*((x[1]-x[0])>0. ? 1. : -1.);
   float py = fabs(pt*sin(phi))*((y[1]-y[0])>0. ? 1. : -1.);
   //compute theta
@@ -90,11 +109,11 @@ void conformalFit(Hit& hit0,Hit& hit1,Hit& hit2,int& charge,TrackState& fitState
   float varR   = hitposerrR*hitposerrR;
   float varZ   = hitposerrZ*hitposerrZ;
 
-  float ptinverr = 0.0075;
+  float ptinverr = 0.1789; // .0075
   float pterr = pow(pt,2)*ptinverr;
-  float phierr = 0.0017;
-  float thetaerr = 0.0031;
-  
+  float phierr = 0.0170; // 0.0017
+  float thetaerr = 0.0137; //0.0031
+   
   //this gives nice fitting results when scaling the errors by 10
   fitStateHit0.errors=ROOT::Math::SMatrixIdentity();
   //xy smearing
