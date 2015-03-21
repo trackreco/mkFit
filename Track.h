@@ -63,6 +63,8 @@ public:
   TrackState&   state() {return state_;}
   float         chi2() {return chi2_;}
 
+  // would like to move to a separate object
+  
   HitVec& hitsVector() {return hits_;}
 
   void addHit(Hit hit,float chi2) {hits_.push_back(hit);chi2_+=chi2;}
@@ -78,6 +80,7 @@ private:
   TrackState state_;
   HitVec hits_;
   HitVec initHits_;
+  SVector3 vertex_;
   float chi2_;
 };
 

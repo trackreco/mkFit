@@ -9,9 +9,16 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
                        int& charge, float pt, Geometry *theGeom, HitVec* initHits)
 {
   bool dump = false;
-  //assume beam spot width 1mm in xy and 1cm in z
-  pos=SVector3(0.1*g_gaus(g_gen), 0.1*g_gaus(g_gen), 1.0*g_gaus(g_gen));
+  //assume beam spot width 25um in xy and 5cm in z 
+  //  pos=SVector3(0.0,0.0,0.0); // no beamspot smearing
+  pos=SVector3(0.0025*g_gaus(g_gen), 0.0025*g_gaus(g_gen), 1.0*g_gaus(g_gen));
 
+  /*
+  std::cout << "Simulation Track: " << itrack << std::endl;
+  std::cout << "MC vrx: " << pos[0] << " vry: " << pos[1] << std::endl;
+  std::cout << "MC IP:  " << sqrt(pos[0]*pos[0] + pos[1]*pos[1]) << std::endl;
+  std::cout << "MC Pos Phi (x/y) "  << atan2(pos[0],pos[1]) << " (y/x) " << atan2(pos[1],pos[0]) << std::endl;
+  */
   if (dump) std::cout << "pos x=" << pos[0] << " y=" << pos[1] << " z=" << pos[2] << std::endl;
 
   if (charge==0) {
@@ -21,11 +28,16 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
 
   //float phi = 0.5*TMath::Pi()*(1-g_unif(g_gen)); // make an angle between 0 and pi/2 //fixme
   float phi = 0.5*TMath::Pi()*g_unif(g_gen); // make an angle between 0 and pi/2
+
+  //  std::cout << "MC Gen Phi "  << phi << std::endl;
+
   float px = pt * cos(phi);
   float py = pt * sin(phi);
 
   if (g_unif(g_gen)>0.5) px*=-1.;
   if (g_unif(g_gen)>0.5) py*=-1.;
+
+  //  std::cout << "MC Mom Phi (x/y) "  << atan2(px,py) << " (y/x) " << atan2(py,px) << std::endl;
   float pz = pt*(2.3*(g_unif(g_gen)-0.5));//so that we have -1<eta<1
 
   mom=SVector3(px,py,pz);
@@ -98,7 +110,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     const float phismear = g_unif(g_gen)*TMath::TwoPi(); // random rotation of scattering plane
     const float X0 = 9.370; // cm, from http://pdg.lbl.gov/2014/AtomicNuclearProperties/HTML/silicon_Si.html
     //const float X0 = 0.5612; // cm, for Pb
-    float x = 0.1; // cm  -assumes radial impact. This is bigger than what we have in main
+    float x = 0.0025; //.1 cm  -assumes radial impact. This is bigger than what we have in main
     // will update for tilt down a few lines
     const float p = sqrt(propState.parameters.At(3)*propState.parameters.At(3)+
                          propState.parameters.At(4)*propState.parameters.At(4)+
@@ -145,13 +157,13 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     UVector3 yprime(-init_xprime[1],init_xprime[0],0); // result of cross product with zhat
     //const double phi0 = atan2(xpime[1], init_xprime[0]);
 
-#ifdef SCATTER_XYZ
+#ifdef SCATTER_XYZ // --> particle will have 3D scatter constrained to detector (including momentum vector)
     const float scatteredX = initX + y_plane *(-init_xprime[1]*cos(phismear)); 
     const float scatteredY = initY + y_plane *(+init_xprime[0]*cos(phismear));
     const float scatteredZ = initZ + y_plane *(           sin(phismear));
     const float scatteredPhi = atan2(scatteredY,scatteredX);
     const float scatteredRad = sqrt(scatteredX*scatteredX+scatteredY*scatteredY);
-#else 
+#else // --> particle only has momentum vector scattered 
     const float scatteredX = initX;
     const float scatteredY = initY;
     const float scatteredZ = initZ;
@@ -204,11 +216,10 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     propState.parameters[5] = pvecprime[2]*p;
     
     // PW END
-    float hitZ    = hitposerrZ*g_gaus(g_gen)+scatteredZ;
-    float hitPhi  = ((hitposerrXY/scatteredRad)*g_gaus(g_gen))+scatteredPhi;
-    float hitRad  = (hitposerrR)*g_gaus(g_gen)+scatteredRad;
-
-#else // SCATTERING
+    float hitZ    = hitposerrZ*g_gaus(g_gen)+scatteredZ;  // smear in Z after scatter
+    float hitPhi  = ((hitposerrXY/scatteredRad)*g_gaus(g_gen))+scatteredPhi; // smear in phi after scatter
+    float hitRad  = (hitposerrR)*g_gaus(g_gen)+scatteredRad; // smear in rad after scatter
+#else // no Scattering --> use this position for smearing
     float hitZ    = hitposerrZ*g_gaus(g_gen)+initZ;
     float hitPhi  = ((hitposerrXY/initRad)*g_gaus(g_gen))+initPhi;
     float hitRad  = (hitposerrR)*g_gaus(g_gen)+initRad;
@@ -239,7 +250,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
 
     float hitX = scatteredX - (scattered_xprime[1] * xyres_smear); 
     float hitY = scatteredY + (scattered_xprime[0] * xyres_smear); 
-#else
+#else // No solid smearing --> use old r-phi smear, whether scattered or not
     float hitRad2 = hitRad*hitRad;
     float hitX    = hitRad*cos(hitPhi);
     float hitY    = hitRad*sin(hitPhi);
@@ -271,7 +282,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     // covXYZ(0,1) -> -(xn * yn) / (xn^2 + yn^2) * delx^2 + (xn * yn) / (xn^2 + yn^2) * dely^2 
     // covXYZ(1,0)  = covXYZ(0,1)    
     covXYZ(2,2) = varZ;
-#else
+#else //  SOLID_SMEAR --> covariance for pure cylindrical geometry with smearing
     covXYZ(0,0) = hitX*hitX*varR/hitRad2 + hitY*hitY*varPhi;
     covXYZ(1,1) = hitX*hitX*varPhi + hitY*hitY*varR/hitRad2;
     covXYZ(2,2) = varZ;

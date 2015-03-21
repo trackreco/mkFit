@@ -14,14 +14,15 @@ public:
 #include "TFile.h"
 #include "TTree.h"
 #include "TH1F.h"
+#include "TH2F.h"
 
 class RootValidation : public Validation {
 public:
   RootValidation(std::string fileName, bool saveTree = true);
 
   void fillSimHists(TrackVec& evt_sim_tracks) override;
+  void fillSeedHists(std::vector<HitVec>&, std::vector<HitVec>&, TrackVec&, HitVec &, HitVec &, std::vector<float> &, std::vector<float> &, TrackVec &, TrackVec &, TrackVec &) override;
   void fillCandidateHists(TrackVec& evt_track_candidates) override;
-  //  void fillAssociationHists(TrackVec& evt_track_candidates, TrackVec& evt_sim_tracks, TrackVec& evt_assoc_tracks_RD, TrackVec& evt_assoc_tracks_SD) override;
   void fillAssociationHists(TrackVec& evt_track_candidates, TrackVec& evt_sim_tracks) override;
   void fillBuildHists(unsigned int, unsigned int, unsigned int) override;
   void fillFitStateHists(TrackState&, TrackState&) override;
@@ -35,8 +36,14 @@ public:
   TH1F* makeHist(const std::string& name, const std::string& title,
     const int nbins, const double min, const double max,
     const std::string& xlabel, const std::string& ylabel);
+  TH2F* makeHist2(const std::string& name, const std::string& title,
+    const int nxbins, const double xmin, const double xmax,
+    const int nybins, const double ymin, const double ymax,
+    const std::string& xlabel, const std::string& ylabel);
 
   std::unordered_map<std::string,TH1F*> validation_hists_;
+  std::unordered_map<std::string,TH2F*> validation_hists2_;
+
   TFile* f_;
   TTree* buildtree_;
   TTree* fittree_;

@@ -33,4 +33,19 @@ public:
 
 typedef std::vector<Event> EventVec;
 
+inline float normalizedPhi(float phi) {
+  static float const TWO_PI = M_PI * 2;
+  while ( phi < -M_PI ) phi += TWO_PI;
+  while ( phi >  M_PI ) phi -= TWO_PI;
+  return phi;
+}
+
+inline float normalizedEta(float eta) {
+  static float const ETA_DET = 2.0;
+
+  if (eta < -ETA_DET ) eta = -ETA_DET+.00001;
+  if (eta >  ETA_DET ) eta =  ETA_DET-.00001;
+  return eta;
+}
+
 #endif

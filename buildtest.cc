@@ -17,23 +17,6 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
                        const int nlayers_per_seed,const unsigned int maxCand,const float chi2Cut,const float nSigma,const float minDPhi,
                        SMatrix36& projMatrix36,SMatrix63& projMatrix36T,bool debug, Geometry* theGeom);
 
-inline float normalizedPhi(float phi) {
-  static float const TWO_PI = M_PI * 2;
-  while ( phi < -M_PI ) phi += TWO_PI;
-  while ( phi >  M_PI ) phi -= TWO_PI;
-  return phi;
-}
-
-#ifdef ETASEG
-inline float normalizedEta(float eta) {
-  static float const ETA_DET = 2.0;
-
-  if (eta < -ETA_DET ) eta = -ETA_DET+.00001;
-  if (eta >  ETA_DET ) eta =  ETA_DET-.00001;
-  return eta;
-}
-#endif
-
 static bool sortByHitsChi2(std::pair<Track, TrackState> cand1,std::pair<Track, TrackState> cand2)
 {
   if (cand1.first.nHits()==cand2.first.nHits()) return cand1.first.chi2()<cand2.first.chi2();
@@ -162,7 +145,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
 
   Track& tkcand = cand.first;
   TrackState& updatedState = cand.second;
-  //  debug = true;
+  //debug = true;
     
   if (debug) std::cout << "processing candidate with nHits=" << tkcand.nHits() << std::endl;
 #ifdef LINEARINTERP
@@ -186,7 +169,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   }
 
 #ifdef ETASEG  
-  const float eta = getEta(predx,predy,predz);
+  const float eta = getEta(sqrt(px2py2),predz);
   const float pz2 = predz*predz;
   const float detadx = -predx/(px2py2*sqrt(1+(px2py2/pz2)));
   const float detady = -predy/(px2py2*sqrt(1+(px2py2/pz2)));
@@ -216,7 +199,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   unsigned int etaBinPlus  = 0;
 #endif
 
-  const float phi = getPhi(predx,predy); //std::atan2(predy,predx); 
+  const float phi    = getPhi(predx,predy); //std::atan2(predy,predx); 
   const float dphidx = -predy/px2py2;
   const float dphidy =  predx/px2py2;
   const float dphi2  = dphidx*dphidx*(propState.errors.At(0,0)) +
@@ -224,7 +207,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
     2*dphidx*dphidy*(propState.errors.At(0,1));
   
   const float dphi   =  sqrt(std::abs(dphi2));//how come I get negative squared errors sometimes?
-  const float nSigmaDphi = std::min(std::max(nSigma*dphi,minDPhi), (float) M_PI);
+  const float nSigmaDphi = std::min(std::max(nSigma*dphi,minDPhi), (float) M_PI); // nsigma = 1.0 for testing
   
   const float dphiMinus = normalizedPhi(phi-nSigmaDphi);
   const float dphiPlus  = normalizedPhi(phi+nSigmaDphi);
@@ -284,7 +267,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
     }
 #endif
 #endif
-    
+  
     for(index_iter = cand_hit_idx.begin(); index_iter != cand_hit_idx.end(); ++index_iter){
       Hit hitCand = evt_lay_hits[ilayer][*index_iter];
       MeasurementState hitMeas = hitCand.measurementState();
