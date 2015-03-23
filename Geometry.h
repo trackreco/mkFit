@@ -25,6 +25,7 @@ public:
   const VUSolid* InsideWhat(const UVector3 &aPoint) const;
   double  SafetyFromInside ( const UVector3 &aPoint, bool aAccurate=false) const;
   double  SafetyFromOutside( const UVector3 &aPoint, bool aAccurate=false) const;
+  Geometry clone() const;
 private:
   std::vector<const VUSolid*> solids_;
   std::vector<float> radii_;

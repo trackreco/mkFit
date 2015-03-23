@@ -5,24 +5,46 @@
 #include <cstring>
 #include <stdexcept>
 
-// Use intrinsics version of code when available
+// Use intrinsics version of code when available, done via CPP flags.
 // #define  MPLEX_USE_INTRINSICS
 
 //==============================================================================
 // Intrinsics -- preamble
 //==============================================================================
 
-#if defined(__MIC__) && defined(MPLEX_USE_INTRINSICS)
+#if defined(MPLEX_USE_INTRINSICS)
 
-#include "immintrin.h"
+  #if defined(__MIC__) || defined(__AVX__)
 
-#define MIC_INTRINSICS
+    #include "immintrin.h"
 
-#define LD(a, i)      _mm512_load_ps(&a[i*N+n])
-#define ADD(a, b)     _mm512_add_ps(a, b) 
-#define MUL(a, b)     _mm512_mul_ps(a, b)
-#define FMA(a, b, v)  _mm512_fmadd_ps(a, b, v)
-#define ST(a, i, r)   _mm512_store_ps(&a[i*N+n], r)
+    #define MPLEX_INTRINSICS
+
+  #endif
+
+  #if defined(__MIC__)
+
+    typedef __m512 IntrVec_t;
+    #define MPLEX_INTRINSICS_WIDTH 512
+
+    #define LD(a, i)      _mm512_load_ps(&a[i*N+n])
+    #define ADD(a, b)     _mm512_add_ps(a, b) 
+    #define MUL(a, b)     _mm512_mul_ps(a, b)
+    #define FMA(a, b, v)  _mm512_fmadd_ps(a, b, v)
+    #define ST(a, i, r)   _mm512_store_ps(&a[i*N+n], r)
+
+  #elif defined(__AVX__)
+
+    typedef __m256 IntrVec_t;
+    #define MPLEX_INTRINSICS_WIDTH 256
+
+    #define LD(a, i)      _mm256_load_ps(&a[i*N+n])
+    #define ADD(a, b)     _mm256_add_ps(a, b) 
+    #define MUL(a, b)     _mm256_mul_ps(a, b)
+    #define FMA(a, b, v)  { __m256 temp = _mm256_mul_ps(a, b); v = _mm256_add_ps(temp, v) }
+    #define ST(a, i, r)   _mm256_store_ps(&a[i*N+n], r)
+
+  #endif
 
 #endif
 
@@ -30,7 +52,7 @@
 // Intrinsics -- postamble
 //==============================================================================
 
-// #ifdef MIC_INTRINSICS
+// #ifdef MPLEX_INTRINSICS
 
 // #undef LD(a, i)
 // #undef ADD(a, b)
@@ -38,7 +60,7 @@
 // #undef FMA(a, b, v)
 // #undef ST(a, i, r)
 
-// #undef MIC_INTRINSICS
+// #undef MPLEX_INTRINSICS
 
 // #endif
 

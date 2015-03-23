@@ -50,3 +50,12 @@ double Geometry::SafetyFromOutside ( const UVector3 &aPoint, bool aAccurate) con
   }
   return small;
 }
+
+Geometry Geometry::clone() const
+{
+  Geometry NewGeo(*this);
+  for (auto&& t : NewGeo.solids_) {
+    t = t->Clone();
+  }
+  return NewGeo;
+}

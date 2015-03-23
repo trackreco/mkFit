@@ -1,8 +1,12 @@
 #include "Track.h"
 
 // find the simtrack that provided the most hits
-std::pair<unsigned int,unsigned int> Track::SimTrackIDInfo() const
+SimTkIDInfo Track::SimTrackIDInfo() const
 {
+  if (hits_.size() == 0){
+    return SimTkIDInfo(0,0);
+  }
+
   std::vector<unsigned int> mctrack;
   for (auto&& ihit : hits_){
     mctrack.push_back(ihit.mcTrackID());
@@ -17,7 +21,6 @@ std::pair<unsigned int,unsigned int> Track::SimTrackIDInfo() const
     m = i;
   }
 
-  std::pair<unsigned int, unsigned int> simIDInfo (mtrk,mcount);
-  return simIDInfo;
+  return SimTkIDInfo (mtrk,mcount);
 }
 

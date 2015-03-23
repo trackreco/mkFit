@@ -20,7 +20,7 @@ const int N   = 16;
 const int DIM =  3;
 const int DOM =  6;
 
-#ifdef MIC_INTRINSICS
+#ifdef MPLEX_INTRINSICS
 const float CMP_EPS = 2e-7;
 #else
 const float CMP_EPS = 4e-7;

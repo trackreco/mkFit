@@ -2,19 +2,26 @@
 #define _hit_
 
 #include "Matrix.h"
+#include <atomic>
+
+namespace Config {
+  static constexpr const unsigned int nPhiPart = 63;
+  static constexpr const unsigned int nPhiFactor = 10;  // nPhiPart/2pi
+  static constexpr const unsigned int nEtaPart = 10;
+};
 
 inline unsigned int getPhiPartition(float phi){
   //assume phi is between -PI and PI
   //  if (!(fabs(phi)<TMath::Pi())) std::cout << "anomalous phi=" << phi << std::endl;
   float phiPlusPi  = phi+TMath::Pi();
-  unsigned int bin = phiPlusPi*10;
+  unsigned int bin = phiPlusPi*Config::nPhiFactor;
   return bin;
 }
 
 inline unsigned int getEtaPartition(float eta, float etaDet){
   float etaPlusEtaDet  = eta + etaDet;
   float twiceEtaDet    = 2.0*etaDet;
-  unsigned int bin     = (etaPlusEtaDet * 10.) / twiceEtaDet;  // ten bins for now ... update if changed in Event.cc
+  unsigned int bin     = (etaPlusEtaDet * Config::nEtaPart) / twiceEtaDet;  // ten bins for now ... update if changed in Event.cc
   return bin;
 }
 
@@ -29,16 +36,16 @@ inline float getEta(float r, float z) {
 
 
 struct MCHitInfo {
-  MCHitInfo() : mcHitID_(++mcHitIDCounter_) {}
+  MCHitInfo() : mcHitID_(mcHitIDCounter_++) {}
   MCHitInfo(unsigned int track, unsigned int layer, unsigned int ithlayerhit)
-    : mcTrackID_(track), layer_(layer), ithLayerHit_(ithlayerhit), mcHitID_(++mcHitIDCounter_) {}
+    : mcTrackID_(track), layer_(layer), ithLayerHit_(ithlayerhit), mcHitID_(mcHitIDCounter_++) {}
 
   unsigned int mcTrackID_;
   unsigned int layer_;
   unsigned int ithLayerHit_;
   unsigned int mcHitID_;
 
-  static unsigned int mcHitIDCounter_;
+  static std::atomic<unsigned int> mcHitIDCounter_;
 };
 
 struct MeasurementState
@@ -53,18 +60,15 @@ class Hit
 public:
   Hit(){}
 
-  Hit(MeasurementState state)
-  {
-    state_=state;
-  }
+  Hit(const MeasurementState& state) : state_(state) {}
 
-  Hit(SVector3 position, SMatrixSym33 error)
+  Hit(const SVector3& position, const SMatrixSym33& error)
   {
     state_.parameters=position;
     state_.errors=error;
   }
 
-  Hit(SVector3 position, SMatrixSym33 error, unsigned int itrack, unsigned int ilayer, unsigned int ithLayerHit){
+  Hit(const SVector3& position, const SMatrixSym33& error, unsigned int itrack, unsigned int ilayer, unsigned int ithLayerHit){
     mcHitInfo_.mcTrackID_ = itrack;
     mcHitInfo_.layer_ = ilayer;
     mcHitInfo_.ithLayerHit_ = ithLayerHit;
@@ -72,7 +76,7 @@ public:
     state_.errors=error;
   }
 
-  Hit(SVector3 position, SMatrixSym33 error, const MCHitInfo& mcHitInfo)
+  Hit(const SVector3& position, const SMatrixSym33& error, const MCHitInfo& mcHitInfo)
     : mcHitInfo_(mcHitInfo)
   {
     state_.parameters=position;
@@ -81,21 +85,24 @@ public:
 
   ~Hit(){}
 
-  SVector3&  position() {return state_.parameters;}
-  SMatrixSym33& error() {return state_.errors;}
-  SVector3& parameters() {return state_.parameters;}
-  float r() {
+  const SVector3&  position() const {return state_.parameters;}
+  const SMatrixSym33& error() const {return state_.errors;}
+  const SVector3& parameters() const {return state_.parameters;}
+  float r() const {
     return sqrt(state_.parameters.At(0)*state_.parameters.At(0) +
                 state_.parameters.At(1)*state_.parameters.At(1));
   }
-  float phi(){
+  float z() const {
+    return state_.parameters.At(2);
+  }
+  float phi() const {
     return getPhi(state_.parameters.At(0),state_.parameters.At(1));
   }
-  float eta(){
+  float eta() const{
     return getEta(r(),state_.parameters.At(2));
   }
 
-  MeasurementState measurementState() {
+  const MeasurementState& measurementState() const {
     return state_;
   }
 

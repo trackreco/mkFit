@@ -15,6 +15,7 @@ float deltaR(float phi1, float eta1, float phi2, float eta2) {
 RootValidation::RootValidation(std::string fileName, bool saveTree)
   : savetree_(saveTree)
 {
+  std::lock_guard<std::mutex> locker(glock_);
   setupHists();
 
   if (savetree_) {
@@ -97,29 +98,12 @@ RootValidation::RootValidation(std::string fileName, bool saveTree)
   }
 }
 
-void RootValidation::fillSimHists(TrackVec& evt_sim_tracks)
+void RootValidation::fillSimHists(const TrackVec& evt_sim_tracks)
 {
   // these are expensive, only do once per track
   std::vector<float> pt;
   std::vector<float> phi;
   std::vector<float> eta;
-
-  unsigned int inc_pos = 0;
-  unsigned int inc_neg = 0;
-
-  unsigned int pos = 0,neg = 0, correct_all2 =0, correct_all3 =0, correct01=0,correct02=0,correct12=0, line_correct=0;
-  
-  unsigned int linesim02_or=0,linesim02_and=0,lineall2_or=0,lineall2_and=0,lineall3_or=0,lineall3_and=0;
-
-  unsigned int lineall2sim02_and =0,lineall2sim02_or =0;
-
-  bool bline  =false; 
-  bool bsim01 =false;
-  bool bsim12 =false;
-  bool bsim02 =false;
-  bool ball3  =false;
-  bool ball2  =false;
-
   for (auto&& simtrack : evt_sim_tracks) {
     float tkpt = getPt(simtrack.momentum()[0],simtrack.momentum()[1]);
     float tkphi = getPhi(simtrack.momentum()[0], simtrack.momentum()[1]);
@@ -131,155 +115,13 @@ void RootValidation::fillSimHists(TrackVec& evt_sim_tracks)
 
     HitVec simhits = simtrack.hitsVector();
 
-    bline  = false;
-    bsim01 = false;
-    bsim12 = false;
-    bsim02 = false;
-    ball3  = false;
-    ball2  = false;
-
-    pos = 0;
-    neg = 0;
-
-    /*    float ystar = ( (simhits[2].position()[1] - simhits[0].position()[1]) / (simhits[2].position()[0] - simhits[0].position()[0]) ) * (simhits[1].position()[0] - simhits[0].position()[0] ) + simhits[0].position()[1] ;
-
-    if (simhits[1].position()[0] > 0 ) {
-      if ((ystar < simhits[1].position()[1]) && (simtrack.charge() == 1) )  {
-	line_correct++;
-	bline = true;
-      } 
-      else if ((ystar > simhits[1].position()[1]) && (simtrack.charge() ==  -1) )  {
-	line_correct++;
-	bline = true;
-      } 
-    }
-    else if (simhits[1].position()[0] < 0 ) {
-      if ((ystar > simhits[1].position()[1]) && (simtrack.charge() == 1) )  {
-	line_correct++;
-	bline = true;
-      } 
-      else if ((ystar < simhits[1].position()[1]) && (simtrack.charge() == -1) )  {
-	line_correct++;
-	bline = true;
-      } 
-    }
-    
-    if ((simhits[1].phi() > simhits[2].phi()) && (simtrack.charge() == 1)){correct12++; bsim12 = true;}
-    else if ((simhits[1].phi() < simhits[2].phi()) && (simtrack.charge() == -1)){correct12++; bsim12 = true;}
-
-    if ((simhits[0].phi() > simhits[1].phi()) && (simtrack.charge() == 1)){correct01++; bsim01 = true;}
-    else if ((simhits[0].phi() < simhits[1].phi()) && (simtrack.charge() == -1)){correct01++; bsim01 = true;}
-
-    if ((simhits[0].phi() > simhits[2].phi()) && (simtrack.charge() == 1)){correct02++; bsim02 = true;}
-    else if ((simhits[0].phi() < simhits[2].phi()) && (simtrack.charge() == -1)){correct02++; bsim02 = true;}
-    
-    if (simhits[0].phi() > simhits[1].phi()) {
-      pos++;
-    }
-    else{
-      neg++;
-    }
-    
-    if (simhits[0].phi() > simhits[2].phi()) {
-      pos++;
-    }
-    else{
-      neg++;
-    }
-    
-    if (simhits[1].phi() > simhits[2].phi()){
-      pos++;
-    }
-    else {
-      neg++;
-    }
-
-    if ((pos == 3) && (simtrack.charge() == 1)){
-      correct_all3++;
-      ball3 = true;
-    }
-    else if ((neg == 3) && (simtrack.charge() == -1)){
-      correct_all3++;
-      ball3 = true;
-    }
-
-    if ((pos >= 2) && (simtrack.charge() == 1)){
-      correct_all2++;
-      ball2 = true;
-    }
-    else if ((neg >= 2) && (simtrack.charge() == -1)){
-      correct_all2++;
-      ball2 = true;
-    }
-
-    if ((bsim02) && (bline)){
-      linesim02_and++;
-    }
-
-    if ((bsim02) || (bline)){
-      linesim02_or++;
-    }
-
-    if ((ball2) && (bline)){
-      lineall2_and++;
-    }
-    if ((ball2) || (bline)){
-      lineall2_or++;
-    }
-
-    if ((ball3) && (bline)){
-      lineall3_and++;
-    }
-    if ((ball3) || (bline)){
-      lineall3_or++;
-    }
-
-    if ((ball2) && (bline) && (bsim02)){
-      lineall2sim02_and++;
-    }
-    if ((ball2) || (bline) || (bsim02)){
-      lineall2sim02_or++;
-    }
-
-
-    
-    if (simtrack.charge() ==  1) {
-      if (simhits[1].phi() > simhits[2].phi()) {}
-      //      else if ( (simhits[1].phi() < -TMath::Pi()+0.06) && (simhits[1].phi() > -TMath::Pi()) ) {pos++;}
-      else{
-	for (auto&& simhit : simhits){
-	  validation_hists2_["inc_detector"]->Fill(simhit.position()[0],simhit.position()[1]);
-	}
-	validation_hists_["inc_detector_phi"]->Fill(simhits[1].phi());
-	inc_pos++;}
-    }
-    else if (simtrack.charge() == -1) {
-      if (simhits[1].phi() < simhits[2].phi()) {}
-      //      else if ( (simhits[1].phi() > TMath::Pi()-0.06) && (simhits[1].phi() < TMath::Pi()) ) {neg++;}
-      else{
-	for (auto&& simhit : simhits){
-	  validation_hists2_["inc_detector"]->Fill(simhit.position()[0],simhit.position()[1]);
-	}
-	validation_hists_["inc_detector_phi"]->Fill(simhits[1].phi());
-	inc_neg++;}
-    }
-    */
     for (auto&& simhit : simhits){
       validation_hists2_["detectorzr"]->Fill(simhit.position()[2],simhit.r());
       validation_hists2_["detectorxy"]->Fill(simhit.position()[0],simhit.position()[1]);
     }
   }
-  /*
-  std::cout << "correct_all2: " << correct_all2/50000. << " correct_all3: " << correct_all3/50000. << std::endl
-	    << "line_correct: " << line_correct/50000. << std::endl
-	    << "correct01: " << correct01/50000. << " correct02: " << correct02/50000. << " correct12: " << correct12/50000. << std::endl;
 
-  std::cout << "linesim02_or: " << linesim02_or/50000. << " linesim02_and: " << linesim02_and/50000. << std::endl;
-  std::cout << "lineall2_or: " << lineall2_or/50000. << " lineall2_and: " << lineall2_and/50000. << std::endl;
-  std::cout << "lineall3_or: " << lineall3_or/50000. << " lineall3_and: " << lineall3_and/50000. << std::endl;
-  std::cout << "lineall2sim02_or: " << lineall2sim02_or/50000. << " lineall2sim02_and: " << lineall2sim02_and/50000. << std::endl;
-  */
-  
+  std::lock_guard<std::mutex> locker(glock_);
   for(unsigned int isim_track = 0; isim_track < evt_sim_tracks.size(); ++isim_track){
     validation_hists_["gen_trk_Pt"]->Fill( pt[isim_track] );
     validation_hists_["gen_trk_Px"]->Fill( evt_sim_tracks[isim_track].momentum()[0] );
@@ -288,7 +130,7 @@ void RootValidation::fillSimHists(TrackVec& evt_sim_tracks)
     validation_hists_["gen_trk_phi"]->Fill( phi[isim_track] );
     validation_hists_["gen_trk_eta"]->Fill( eta[isim_track] );
     
-    HitVec& hits = evt_sim_tracks[isim_track].hitsVector();
+    const HitVec& hits = evt_sim_tracks[isim_track].hitsVector();
     for (auto&& hit : hits){
       float rad = sqrt(hit.position()[0]*hit.position()[0] + hit.position()[1]*hit.position()[1]);
       validation_hists_["gen_hits_rad"]->Fill( rad );
@@ -466,9 +308,9 @@ void RootValidation::fillSeedHists(std::vector<HitVec>& seed_pairs, std::vector<
 
 }
 
-
-void RootValidation::fillCandidateHists(TrackVec& evt_track_candidates)
+void RootValidation::fillCandidateHists(const TrackVec& evt_track_candidates)
 {
+  std::lock_guard<std::mutex> locker(glock_);
   //dump candidates
   for (auto&& tkcand : evt_track_candidates) {
     //    if (tkcand.nHits() >= 10){
@@ -487,7 +329,8 @@ void RootValidation::fillCandidateHists(TrackVec& evt_track_candidates)
   }
 }
 
-void RootValidation::fillAssociationHists(TrackVec& evt_track_candidates, TrackVec& evt_sim_tracks){
+void RootValidation::fillAssociationHists(const TrackVec& evt_track_candidates, const TrackVec& evt_sim_tracks){
+  std::lock_guard<std::mutex> locker(glock_);
   //setup for assocation; these are dense in simIndex, so use a vector
   std::vector<unsigned int> associated_indices_found_RD(evt_sim_tracks.size()); 
   std::vector<unsigned int> associated_indices_found_SD(evt_sim_tracks.size()); 
@@ -520,7 +363,6 @@ void RootValidation::fillAssociationHists(TrackVec& evt_track_candidates, TrackV
     //    if (denom_nHits_RD >= 10){
     if (4*nHitsMatched >= 3*denom_nHits_RD){ // if association criterion is passed, save the info
       if (associated_indices_found_RD[simtrack] == 0){ // currently unmatched simtrack, count it towards efficiency 
-	
 	// for efficiency studies
 	validation_hists_["matchedRec_SimPt_RD"]->Fill(simpt[simtrack]);
 	validation_hists_["matchedRec_SimPhi_RD"]->Fill(simphi[simtrack]);
@@ -620,6 +462,7 @@ void RootValidation::fillAssociationHists(TrackVec& evt_track_candidates, TrackV
 void RootValidation::fillBuildHists(unsigned int layer, unsigned int branches, unsigned int cands)
 {
   if (savetree_) {
+    std::lock_guard<std::mutex> locker(glock_);
     layer_ = layer;
     branches_ = branches;
     cands_ = cands;
@@ -627,9 +470,11 @@ void RootValidation::fillBuildHists(unsigned int layer, unsigned int branches, u
   }
 }
 
-void RootValidation::fillFitStateHists(TrackState& simStateHit0, TrackState& cfitStateHit0)
+void RootValidation::fillFitStateHists(const TrackState& simStateHit0, const TrackState& cfitStateHit0)
 {
+  // may get inconsistencies due to changes made before the fill is done.
   if (savetree_) {
+    std::lock_guard<std::mutex> locker(glock_);
     simHit0_x=simStateHit0.parameters[0];
     simHit0_y=simStateHit0.parameters[1];
     simHit0_z=simStateHit0.parameters[2];
@@ -651,9 +496,10 @@ void RootValidation::fillFitStateHists(TrackState& simStateHit0, TrackState& cfi
   }
 }
 
-void RootValidation::fillFitHitHists(unsigned int hitid, HitVec& mcInitHitVec, MeasurementState& measState, TrackState& propState, TrackState& updatedState)
+void RootValidation::fillFitHitHists(unsigned int hitid, const HitVec& mcInitHitVec, const MeasurementState& measState, const TrackState& propState, const TrackState& updatedState)
 {
   if (savetree_){
+    std::lock_guard<std::mutex> locker(glock_);
     MeasurementState initMeasState;
     for (auto&& mchit : mcInitHitVec){
       if(mchit.hitID() == hitid){
@@ -717,9 +563,10 @@ void RootValidation::fillFitHitHists(unsigned int hitid, HitVec& mcInitHitVec, M
   }
 }
 
-void RootValidation::fillFitTrackHists(TrackState& initState, TrackState& updatedState)
+void RootValidation::fillFitTrackHists(const TrackState& initState, const TrackState& updatedState)
 {
   if (savetree_) {
+    std::lock_guard<std::mutex> locker(glock_);
     pt_mc  = sqrt(initState.parameters[3]*initState.parameters[3]+initState.parameters[4]*initState.parameters[4]);
     pt_fit = sqrt(updatedState.parameters[3]*updatedState.parameters[3]+updatedState.parameters[4]*updatedState.parameters[4]);
     pt_err = sqrt( updatedState.errors[3][3]*updatedState.parameters[3]*updatedState.parameters[3] +
@@ -731,6 +578,7 @@ void RootValidation::fillFitTrackHists(TrackState& initState, TrackState& update
 
 void RootValidation::saveHists() {
   if (savetree_) {
+    std::lock_guard<std::mutex> locker(glock_);
     f_->cd();
     for(auto&& mapitr : validation_hists_){
       mapitr.second->Write();
@@ -744,6 +592,7 @@ void RootValidation::saveHists() {
 }
 
 void RootValidation::deleteHists() {
+  std::lock_guard<std::mutex> locker(glock_);
   for(auto&& mapitr : validation_hists_) {
     delete (mapitr.second);
   }

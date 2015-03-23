@@ -7,45 +7,36 @@
 
 typedef std::pair<unsigned int,unsigned int> BinInfo;
 
+// phi-eta partitioning map: vector of vector of vectors of std::pairs. 
+// vec[nLayers][nEtaBins][nPhiBins]
+typedef std::vector<std::vector<std::vector<BinInfo> > > BinInfoMap;
+
+namespace Config {
+  static constexpr const unsigned int nlayers_per_seed = 3;
+  static constexpr const unsigned int maxCand = 10;
+  static constexpr const float chi2Cut = 15.;
+  static constexpr const float nSigma = 3.;
+  static constexpr const float minDPhi = 0.;
+};
+
 class Event {
 public:
-  Event(Geometry& g, Validation& v);
+  Event(const Geometry& g, Validation& v, int threads = 1);
   void Simulate(unsigned int nTracks);
   void Segment();
   void Seed();
   void Find();
   void Fit();
 
-  Geometry& geom_;
+  const Geometry& geom_;
   Validation& validation_;
   std::vector<HitVec> layerHits_;
   TrackVec simTracks_, seedTracks_, candidateTracks_;
+  int threads_;
 
-  //these matrices are dummy and can be optimized without multiplying by zero all the world...
-  SMatrix36 projMatrix36_;
-  SMatrix63 projMatrix36T_;
-
-  // phi-eta partitioning map: vector of vector of vectors of std::pairs. 
-  // vec[nLayers][nEtaBins][nPhiBins]
-  std::vector<std::vector<std::vector<BinInfo> > > lay_eta_phi_hit_idx_;
-
+  BinInfoMap segmentMap_;
 };
 
 typedef std::vector<Event> EventVec;
-
-inline float normalizedPhi(float phi) {
-  static float const TWO_PI = M_PI * 2;
-  while ( phi < -M_PI ) phi += TWO_PI;
-  while ( phi >  M_PI ) phi -= TWO_PI;
-  return phi;
-}
-
-inline float normalizedEta(float eta) {
-  static float const ETA_DET = 2.0;
-
-  if (eta < -ETA_DET ) eta = -ETA_DET+.00001;
-  if (eta >  ETA_DET ) eta =  ETA_DET-.00001;
-  return eta;
-}
 
 #endif

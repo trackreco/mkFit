@@ -49,7 +49,7 @@ namespace Math {
       {
          if (! rhs.IsInUse(lhs.begin() )  ) { 
            //unsigned int l = 0; 
-            #pragma omp simd collapse(2)
+            #pragma simd
             for(unsigned int i=0; i<D1; ++i) 
                for(unsigned int j=0; j<D2; ++j) { 
                   lhs.fRep[i*D2 + j] = rhs(i,j);
@@ -61,7 +61,7 @@ namespace Math {
             // std::cout << "create temp  for " << typeid(rhs).name() << std::endl;
             T tmp[D1*D2]; 
             //unsigned int l = 0; 
-            #pragma omp simd collapse(2)
+            #pragma simd
             for(unsigned int i=0; i<D1; ++i) 
                for(unsigned int j=0; j<D2; ++j) { 
                   tmp[i*D2 + j] = rhs(i,j);

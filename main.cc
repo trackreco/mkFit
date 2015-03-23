@@ -4,10 +4,15 @@
 */
 
 #include <sstream>
+#include <chrono>
 
 #include "Matrix.h"
 #include "Event.h"
 #include "RootValidation.h"
+
+#ifdef TBB
+#include "tbb/task_scheduler_init.h"
+#endif
 
 //#define CYLINDER
 
@@ -56,22 +61,42 @@ void initGeom(Geometry& geom)
 void initGeom(Geometry& geom)
 {
   std::cout << "Constructing SimpleGeometry Cylinder geometry" << std::endl;
+  float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
 
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
   // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
   for (int l = 0; l < 10; l++) {
     float r = (l+1)*4.;
+    float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
     VUSolid* utub = new VUSolid(r, r+.01);
     geom.AddLayer(utub, r, z);
   }
 }
 #endif
 
-int main(){
+
+typedef std::chrono::time_point<std::chrono::system_clock> timepoint;
+typedef std::chrono::duration<double> tick;
+
+static timepoint now()
+{
+  return std::chrono::system_clock::now();
+}
+
+static tick delta(timepoint& t0)
+{
+  timepoint t1(now());
+  tick d = t1 - t0;
+  t0 = t1;
+  return d;
+}
+
+int main(int argc, char** argv)
+{
   Geometry geom;
   initGeom(geom);
-#ifdef NO_ROOT
+#if defined(NO_ROOT)
   Validation val;
 #else
   RootValidation val("valtree.root");
@@ -84,15 +109,36 @@ int main(){
   unsigned int Ntracks = 500;
   unsigned int Nevents = 100;
 
-  for (unsigned int evt=0; evt<Nevents; ++evt) {
-    std::cout << std::endl << "EVENT #"<< evt << std::endl << std::endl;
-    Event ev(geom, val);
-    ev.Simulate(Ntracks);
-    ev.Segment();
-    ev.Seed();
-    ev.Find();
-    ev.Fit();
+  std::vector<tick> ticks(5);
+
+#ifdef TBB
+  auto nThread(tbb::task_scheduler_init::default_num_threads());
+  if (argc > 1) {
+    nThread = ::atoi(argv[1]);
   }
+  std::cout << "Initializing with " << nThread << " threads." << std::endl;
+  tbb::task_scheduler_init tasks(nThread);
+#else
+  auto nThread = 1;
+#endif
+
+  for (unsigned int evt=0; evt<Nevents; ++evt) {
+    //std::cout << "EVENT #"<< evt << std::endl;
+    Event ev(geom, val, nThread);
+
+    timepoint t0(now());
+    ev.Simulate(Ntracks); ticks[0] += delta(t0);
+    ev.Segment();         ticks[1] += delta(t0);
+    ev.Seed();            ticks[2] += delta(t0);
+    ev.Find();            ticks[3] += delta(t0);
+    ev.Fit();             ticks[4] += delta(t0);
+  }
+
+  std::cout << "Ticks ";
+  for (auto&& tt : ticks) {
+    std::cout << tt.count() << " ";
+  }
+  std::cout << std::endl;
 
   val.saveHists();
   val.deleteHists();

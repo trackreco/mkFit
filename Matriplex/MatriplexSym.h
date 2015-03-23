@@ -183,7 +183,7 @@ struct SymMultiplyCls<T, 3, N>
    const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
          T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
-#ifdef MIC_INTRINSICS
+#ifdef MPLEX_INTRINSICS
 
    for (idx_t n = 0; n < N; n += 64 / sizeof(T))
    {
@@ -213,7 +213,7 @@ struct SymMultiplyCls<T, 6, N>
    const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
          T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
-#ifdef MIC_INTRINSICS
+#ifdef MPLEX_INTRINSICS
 
    for (idx_t n = 0; n < N; n += 64 / sizeof(T))
    {

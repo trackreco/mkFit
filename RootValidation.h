@@ -11,6 +11,7 @@ public:
 #else
 
 #include <unordered_map>
+#include <mutex>
 #include "TFile.h"
 #include "TTree.h"
 #include "TH1F.h"
@@ -20,14 +21,14 @@ class RootValidation : public Validation {
 public:
   RootValidation(std::string fileName, bool saveTree = true);
 
-  void fillSimHists(TrackVec& evt_sim_tracks) override;
   void fillSeedHists(std::vector<HitVec>&, std::vector<HitVec>&, TrackVec&, HitVec &, HitVec &, std::vector<float> &, std::vector<float> &, TrackVec &, TrackVec &, TrackVec &) override;
-  void fillCandidateHists(TrackVec& evt_track_candidates) override;
-  void fillAssociationHists(TrackVec& evt_track_candidates, TrackVec& evt_sim_tracks) override;
+  void fillSimHists(const TrackVec& evt_sim_tracks) override;
+  void fillCandidateHists(const TrackVec& evt_track_candidates) override;
+  void fillAssociationHists(const TrackVec& evt_track_candidates, const TrackVec& evt_sim_tracks) override;
   void fillBuildHists(unsigned int, unsigned int, unsigned int) override;
-  void fillFitStateHists(TrackState&, TrackState&) override;
-  void fillFitHitHists(unsigned int, HitVec&, MeasurementState&, TrackState&, TrackState&) override;
-  void fillFitTrackHists(TrackState&, TrackState&) override;
+  void fillFitStateHists(const TrackState&, const TrackState&) override;
+  void fillFitHitHists(unsigned int, const HitVec&, const MeasurementState&, const TrackState&, const TrackState&) override;
+  void fillFitTrackHists(const TrackState&, const TrackState&) override;
 
   void saveHists() override;
   void deleteHists() override;
@@ -65,6 +66,7 @@ public:
   float xy_mcerr=0.;
   float r_init=0.,r_mc=0.,r_prop=0.,r_update=0.;
   float phi_init=0.,phi_mc=0.,phi_mcerr=0.,phi_prop=0.,phi_perr=0.,phi_update=0.,phi_uerr=0.;
+  std::mutex glock_;
 };
 #endif
 #endif

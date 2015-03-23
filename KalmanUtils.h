@@ -4,17 +4,16 @@
 #include "Track.h"
 #include "Matrix.h"
 
-float computeChi2(TrackState& propagatedState, MeasurementState& measurementState, 
-                  SMatrix36& projMatrix,SMatrix63& projMatrixT);
+//float computeChi2(const TrackState& propagatedState, const MeasurementState& measurementState);
+inline float computeChi2(const TrackState& propagatedState, const MeasurementState& measurementState) {
+  int invFail(0);
+  const SMatrix33 resErr = measurementState.errors + propagatedState.errors.Sub<SMatrix33>(0,0);
+  return ROOT::Math::Similarity(measurementState.parameters-propagatedState.parameters.Sub<SVector3>(0),
+                                resErr.InverseFast(invFail));
+}
 
-void zeroBlocksOutOf33(SMatrixSym66& matrix);
-void copy33Into66(SMatrixSym33& in,SMatrixSym66& out);
-void copy66Into33(SMatrixSym66& in,SMatrixSym33& out);
 //see e.g. http://inspirehep.net/record/259509?ln=en
 void updateParameters66(TrackState& propagatedState, MeasurementState& measurementState, TrackState& result);
-
-//see e.g. http://inspirehep.net/record/259509?ln=en
-TrackState updateParameters(TrackState& propagatedState, MeasurementState& measurementState, 
-                            SMatrix36& projMatrix,SMatrix63& projMatrixT);
+TrackState updateParameters(const TrackState& propagatedState, const MeasurementState& measurementState);
 
 #endif

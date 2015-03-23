@@ -1,14 +1,17 @@
 #include "Propagation.h"
+#include "Debug.h"
 
 const double tolerance = 0.001;
 
 // line propagation from state radius to hit radius
 // assuming radial direction (i.e. origin at (0,0))
-TrackState propagateLineToR(TrackState& inputState, float r) {
-  bool dump = false;
+TrackState propagateLineToR(const TrackState& inputState, float r) {
+#ifdef DEBUG
+  bool debug = false;
+#endif
 
-  SVector6& par = inputState.parameters;
-  SMatrixSym66& err = inputState.errors;
+  const SVector6& par = inputState.parameters;
+  const SMatrixSym66& err = inputState.errors;
 
   //straight line for now
   float r0 = sqrt(par.At(0)*par.At(0)+par.At(1)*par.At(1));
@@ -24,12 +27,9 @@ TrackState propagateLineToR(TrackState& inputState, float r) {
   propMatrix(1,4)=path;
   propMatrix(2,5)=path;
   result.parameters=propMatrix*par;
-  if (dump) {
-    //test R of propagation
-    std::cout << "initial R=" << r0 << std::endl;
-    std::cout << "target R=" << r << std::endl;
-    std::cout << "arrived at R=" << sqrt(result.parameters[0]*result.parameters[0]+result.parameters[1]*result.parameters[1]) << std::endl;
-  }
+  dprint("initial R=" << r0 << std::endl << "target R=" << r << std::endl
+                      << "arrived at R="
+                      << sqrt(result.parameters[0]*result.parameters[0]+result.parameters[1]*result.parameters[1]));
 
   result.errors=ROOT::Math::Similarity(propMatrix,err);
   return result;
@@ -41,7 +41,7 @@ struct HelixState {
     setHelixPar(s);
   }
 
-  void setCoords(SVector6& par) {
+  void setCoords(const SVector6& par) {
     x = par.At(0);
     y = par.At(1);
     z = par.At(2);
@@ -51,7 +51,7 @@ struct HelixState {
     r0 = sqrt(x*x+y*y);
   }
 
-  void setHelixPar(TrackState& s) {
+  void setHelixPar(const TrackState& s) {
     charge = s.charge;
 
     pt2 = px*px+py*py;
@@ -83,10 +83,10 @@ struct HelixState {
 
 /*  APPLE: vvsincosf(&sinAP, &cosAP, &angPath, &n); */
 
-void HelixState::updateHelix(float distance, bool updateDeriv, bool dump)
+void HelixState::updateHelix(float distance, bool updateDeriv, bool debug)
 {
   const float angPath = distance/curvature;
-  if (dump) std::cout << "angPath=" << angPath << std::endl;
+  dprint("angPath=" << angPath);
   const float cosAP = cos(angPath);
   const float sinAP = sin(angPath);
 
@@ -100,21 +100,19 @@ void HelixState::updateHelix(float distance, bool updateDeriv, bool dump)
   par.At(4) = py*cosAP+px*sinAP;
   par.At(5) = pz;
 
-  if (dump) {
-    std::cout << "x + " << k*(px*sinAP-py*(1-cosAP)) << std::endl;
-    std::cout << "y + " << k*(py*sinAP+px*(1-cosAP)) << std::endl;
-    std::cout << "z + " << distance*ctgTheta << std::endl;
-    std::cout <<  "px: " << px*cosAP-py*sinAP
-              << " py: " << py*cosAP+px*sinAP
-              << " pz: " << pz << std::endl;
-  }
+  dprint("x + " << k*(px*sinAP-py*(1-cosAP)) << std::endl
+      << "y + " << k*(py*sinAP+px*(1-cosAP)) << std::endl
+      << "z + " << distance*ctgTheta << std::endl
+      <<  "px: " << px*cosAP-py*sinAP
+      << " py: " << py*cosAP+px*sinAP
+      << " pz: " << pz);
   
   if (updateDeriv) {
 
     //update derivatives on total distance for next step, where totalDistance+=r-r0
     //now r0 depends on px and py
     const float r0inv = 1./r0;
-    if (dump) std::cout << "r0=" << r0 << " r0inv=" << r0inv << " pt=" << pt << std::endl;
+    dprint("r0=" << r0 << " r0inv=" << r0inv << " pt=" << pt);
     //update derivative on D
     const float dAPdx = -x/(r0*curvature);
     const float dAPdy = -y/(r0*curvature);
@@ -137,20 +135,20 @@ void HelixState::updateHelix(float distance, bool updateDeriv, bool dump)
     dTDdpy -= r0inv*(x*dxdpy + y*dydpy);
   }
 
-  if (dump) {
-    std::cout << par.At(0) << " " << par.At(1) << " " << par.At(2) << std::endl
-              << par.At(3) << " " << par.At(4) << " " << par.At(5) << std::endl;
-  }
+    dprint(par.At(0) << " " << par.At(1) << " " << par.At(2) << std::endl
+        << par.At(3) << " " << par.At(4) << " " << par.At(5));
 }
 
-void HelixState::propagateErrors(const HelixState& in, float totalDistance, bool dump)
+void HelixState::propagateErrors(const HelixState& in, float totalDistance, bool debug)
 {
   const float TD=totalDistance;
   const float TP=totalDistance/curvature;
   const float C=curvature;
 
+#ifdef DEBUG
   SVector6& par = state.parameters;
-  if (dump) std::cout << "TD=" << TD << " TP=" << TP << " arrived at r=" << sqrt(par.At(0)*par.At(0)+par.At(1)*par.At(1)) << std::endl;
+  dprint("TD=" << TD << " TP=" << TP << " arrived at r=" << sqrt(par.At(0)*par.At(0)+par.At(1)*par.At(1)));
+#endif
 
   const float dCdpx = k*in.px/pt;
   const float dCdpy = k*in.py/pt;
@@ -172,7 +170,7 @@ void HelixState::propagateErrors(const HelixState& in, float totalDistance, bool
   //pz = pzin;
 
   //jacobian
-  SMatrix66 errorProp = ROOT::Math::SMatrixIdentity();//what is not explicitly set below is 1 (0) on (off) diagonal
+  SMatrix66 errorProp = ROOT::Math::SMatrixIdentity(); //what is not explicitly set below is 1 (0) on (off) diagonal
   errorProp(0,0) = 1 + k*dTPdx*(in.px*sinTP + in.py*cosTP);                   //dxdx;
   errorProp(0,1) = k*dTPdy*(in.px*sinTP + in.py*cosTP);                       //dxdy;
   errorProp(0,3) = k*(sinTP + in.px*cosTP*dTPdpx - in.py*sinTP*dTPdpx);       //dxdpx;
@@ -201,12 +199,14 @@ void HelixState::propagateErrors(const HelixState& in, float totalDistance, bool
 
   state.errors=ROOT::Math::Similarity(errorProp,state.errors);
 
-  if (dump) {
+#ifdef DEBUG
+  if (debug) {
     std::cout << "errorProp" << std::endl;
     dumpMatrix(errorProp);
     std::cout << "result.errors" << std::endl;
     dumpMatrix(state.errors);
   }
+#endif
 }
 
 // helix propagation in steps along helix trajectory, several versions
@@ -215,8 +215,8 @@ void HelixState::propagateErrors(const HelixState& in, float totalDistance, bool
 
 // Propagate to the next obj
 // each step travels for a path length equal to the safe step between the current position and the nearest object.
-TrackState propagateHelixToNextSolid(TrackState& inputState, const Geometry* theGeom) {
-  bool dump = false;
+TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom) {
+  bool debug = false;
 
   const HelixState hsin(inputState);
   TrackState result(inputState);
@@ -227,18 +227,18 @@ TrackState propagateHelixToNextSolid(TrackState& inputState, const Geometry* the
     return hsout.state;
   }
 #endif
-  if (dump) std::cout << "curvature=" << hsin.curvature << std::endl;
+  dprint("curvature=" << hsin.curvature);
 
   float totalDistance = 0;
-  auto startSolid = theGeom->InsideWhat(UVector3(hsin.x,hsin.y,hsin.z));
+  auto startSolid = geom.InsideWhat(UVector3(hsin.x,hsin.y,hsin.z));
 
   // have we scattered out of the solid?
   if (hsin.r0 > 1.0 && !startSolid) {
     UVector3 here(hsin.x,hsin.y,hsin.z);
-    for ( unsigned int i = 0; i < theGeom->CountLayers(); ++i ) {
-      auto d = theGeom->Layer(i)->SafetyFromOutside(here, true);
+    for ( unsigned int i = 0; i < geom.CountLayers(); ++i ) {
+      auto d = geom.Layer(i)->SafetyFromOutside(here, true);
       if (d < tolerance) {
-        startSolid = theGeom->Layer(i);
+        startSolid = geom.Layer(i);
         break;
       }
     }
@@ -254,25 +254,21 @@ TrackState propagateHelixToNextSolid(TrackState& inputState, const Geometry* the
   //5 iterations is a good starting point
   const unsigned int Niter = 10;
   for (unsigned int i=0;i<Niter;++i) {
-    if (dump) std::cout << "propagation iteration #" << i << std::endl;
-    const float distance = std::max(theGeom->SafetyFromOutside(UVector3(hsout.x,hsout.y,hsout.z),true), tolerance);
+    dprint("propagation iteration #" << i);
+    const float distance = std::max(geom.SafetyFromOutside(UVector3(hsout.x,hsout.y,hsout.z),true), tolerance);
     totalDistance += distance;
 
-    if (dump) {
-      std::cout << "r0=" << hsout.r0 << " pt=" << hsout.pt << std::endl;
-      std::cout << "distance=" << distance << std::endl;
-    }
+    dprint("r0=" << hsout.r0 << " pt=" << hsout.pt << std::endl
+                 << "distance=" << distance);
 
     const bool updateDeriv = i+1!=Niter && hsout.r0>0.;
-    hsout.updateHelix(distance, updateDeriv, dump);
+    hsout.updateHelix(distance, updateDeriv, debug);
     hsout.setCoords(hsout.state.parameters);
 
-    auto currentSolid = theGeom->InsideWhat(UVector3(hsout.x,hsout.y,hsout.z));
-    if (dump) {
-      std::cout << "Current solid = " << currentSolid << std::endl;
-    }
+    auto currentSolid = geom.InsideWhat(UVector3(hsout.x,hsout.y,hsout.z));
+      dprint("Current solid = " << currentSolid);
     if (currentSolid && currentSolid != startSolid) {
-      if (dump) std::cout << "Inside next solid" << std::endl;
+      dprint("Inside next solid");
       break;
     }
 
@@ -286,16 +282,16 @@ TrackState propagateHelixToNextSolid(TrackState& inputState, const Geometry* the
     }
   }
 
-  hsout.propagateErrors(hsin, totalDistance, dump);
+  hsout.propagateErrors(hsin, totalDistance, debug);
   return hsout.state;
 }
 
 // Propagate to the next obj
 // each step travels for a path length equal to the safe step between the current position and the nearest object.
-TrackState propagateHelixToLayer(TrackState& inputState, unsigned int layer, const Geometry* theGeom) {
-  bool dump = false;
+TrackState propagateHelixToLayer(TrackState inputState, unsigned int layer, const Geometry& geom) {
+  bool debug = false;
 
-  const VUSolid* target = theGeom->Layer(layer);
+  const VUSolid* target = geom.Layer(layer);
 
   const HelixState hsin(inputState);
   TrackState result(inputState);
@@ -307,34 +303,32 @@ TrackState propagateHelixToLayer(TrackState& inputState, unsigned int layer, con
   }
 #endif
 
-  if (theGeom->InsideWhat(UVector3(hsout.x,hsout.y,hsout.z)) == target) {
-    if (dump) std::cout << "Inside target" << std::endl;
+  if (geom.InsideWhat(UVector3(hsout.x,hsout.y,hsout.z)) == target) {
+    dprint("Inside target");
     return hsout.state;
   }
-  if (dump) std::cout << "curvature=" << hsin.curvature << std::endl;
+  dprint("curvature=" << hsin.curvature);
 
   float totalDistance = 0;
 
   //5 iterations is a good starting point
   const unsigned int Niter = 5;
   for (unsigned int i=0;i<Niter;++i) {
-    if (dump) std::cout << "propagation iteration #" << i << std::endl;
+    dprint("propagation iteration #" << i);
 
     const float distance = std::max(target->SafetyFromOutside(UVector3(hsout.x,hsout.y,hsout.z),true), tolerance);
     totalDistance += distance;
 
-    if (dump) {
-      std::cout << "r0=" << hsout.r0 << " pt=" << hsout.pt << std::endl;
-      std::cout << "distance=" << distance << std::endl;
-    }
+    dprint("r0=" << hsout.r0 << " pt=" << hsout.pt << std::endl
+                 << "distance=" << distance);
 
     const bool updateDeriv = i+1!=Niter && hsout.r0>0.;
-    hsout.updateHelix(distance, updateDeriv, dump);
+    hsout.updateHelix(distance, updateDeriv, debug);
     hsout.setCoords(hsout.state.parameters);
 
-    auto currentSolid = theGeom->InsideWhat(UVector3(hsout.x,hsout.y,hsout.z));
+    auto currentSolid = geom.InsideWhat(UVector3(hsout.x,hsout.y,hsout.z));
     if (currentSolid == target) {
-      if (dump) std::cout << "Inside target" << std::endl;
+      dprint("Inside target");
       break;
     }
     if ( i == (Niter-1) ) {
@@ -347,7 +341,7 @@ TrackState propagateHelixToLayer(TrackState& inputState, unsigned int layer, con
     }
   }
 
-  hsout.propagateErrors(hsin, totalDistance, dump);
+  hsout.propagateErrors(hsin, totalDistance, debug);
   return hsout.state;
 }
 
@@ -356,8 +350,8 @@ TrackState propagateHelixToLayer(TrackState& inputState, unsigned int layer, con
 // each step travels for a path lenght equal to delta r between the current position and the target radius. 
 // for track with pT>=1 GeV this converges to the correct path lenght in <5 iterations
 // derivatives need to be updated at each iteration
-TrackState propagateHelixToR(TrackState& inputState, float r) {
-  bool dump = false;
+TrackState propagateHelixToR(TrackState inputState, float r) {
+  bool debug = false;
 
   const HelixState hsin(inputState);
   TrackState result(inputState);
@@ -369,20 +363,17 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
   }
 #endif
 
-  if (dump) {
-    std::cout << "attempt propagation from r=" << hsin.r0 << " to r=" << r << std::endl
+  dprint("attempt propagation from r=" << hsin.r0 << " to r=" << r << std::endl
               << "x=" << hsin.x << " y=" << hsin.y << " px=" << hsin.px
-              << " py=" << hsin.py << " pz=" << hsin.pz << " q=" << inputState.charge << std::endl;
-  }
+              << " py=" << hsin.py << " pz=" << hsin.pz << " q=" << inputState.charge);
+
 
   if (std::abs(r-hsout.r0) < tolerance) {
-    if (dump) {
-      std::cout << "at target radius, returning input" << std::endl;
-    }
+    dprint("at target radius, returning input");
     return hsout.state;
   }
 
-  if (dump) std::cout << "curvature=" << hsin.curvature << std::endl;
+  dprint("curvature=" << hsin.curvature);
 
   float totalDistance = 0;
 
@@ -390,37 +381,37 @@ TrackState propagateHelixToR(TrackState& inputState, float r) {
   const unsigned int Niter = 10;
   for (unsigned int i=0;i<Niter;++i) {
 
-    if (dump) std::cout << "propagation iteration #" << i << std::endl;
+    dprint("propagation iteration #" << i);
 
     const float distance = r-hsout.r0;
     totalDistance+=distance;
 
-    if (dump) {
-      std::cout << "r0=" << hsout.r0 << " pt=" << hsout.pt << std::endl
-                << "distance=" << distance << std::endl;
-    }
+    dprint("r0=" << hsout.r0 << " pt=" << hsout.pt << std::endl
+                 << "distance=" << distance);
  
     bool updateDeriv = i+1!=Niter && hsout.r0>0.;
-    hsout.updateHelix(distance, updateDeriv, dump);
+    hsout.updateHelix(distance, updateDeriv, debug);
     hsout.setCoords(hsout.state.parameters);
 
     if (std::abs(r-hsout.r0) < tolerance) {
-      if (dump) std::cout << "distance = " << r-hsout.r0 << " at iteration=" <<  i << std::endl;
+      dprint("distance = " << r-hsout.r0 << " at iteration=" <<  i);
       break;
     }
     if ( i == (Niter-1) && std::abs(r-hsout.r0) > tolerance) {
-      if (dump) { // common condition when fit fails to converge
+#ifdef DEBUG
+      if (debug) { // common condition when fit fails to converge
         std::cerr << __FILE__ << ":" << __LINE__ 
                   << ": failed to converge in propagateHelixToR() after " << (i+1) << " iterations, r = "
                   << r 
                   << ", hsout.r = " << hsout.r0
                   << std::endl;
       }
+#endif
       hsout.state.valid = false;
     }
   }
 
-  hsout.propagateErrors(hsin, totalDistance, dump);
+  hsout.propagateErrors(hsin, totalDistance, debug);
   return hsout.state;
 }
 

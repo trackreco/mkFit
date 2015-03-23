@@ -7,16 +7,16 @@
 
 // line propagation from state radius to hit radius
 // assuming radial direction (i.e. origin at (0,0))
-TrackState propagateLineToR(TrackState& inputState, float r);
+TrackState propagateLineToR(const TrackState& inputState, float r);
 
-TrackState propagateHelixToNextSolid(TrackState& inputState, Geometry const* theGeom);
-TrackState propagateHelixToLayer(TrackState& inputState, unsigned int layer, Geometry const* theGeom);
+TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom);
+TrackState propagateHelixToLayer(TrackState inputState, unsigned int layer, const Geometry& geom);
 
 // helix propagation in steps along helix trajectory. 
 // each step travels for a path lenght equal to delta r between the current position and the target radius. 
 // for track with pT>=1 GeV this converges to the correct path lenght in <5 iterations
 // derivatives need to be updated at each iteration
-TrackState propagateHelixToR(TrackState& inputState, float r);
+TrackState propagateHelixToR(TrackState inputState, float r);
 
 //test towards a helix propagation without iterative approach
 //version below solves the equation for the angular path at which x^2+y^2=r^2

@@ -3,10 +3,16 @@
 #include "KalmanUtils.h"
 #include "Propagation.h"
 #include "ConformalUtils.h"
+#include "Debug.h"
+
+#ifdef TBB
+#include "tbb/tbb.h"
+#endif
 
 #include <iostream>
 
-static void print(TrackState& s)
+#ifdef DEBUG
+static void print(const TrackState& s)
 {
   std::cout << "x:  "  << s.parameters[0] 
             << " y:  " << s.parameters[1]
@@ -19,19 +25,19 @@ static void print(TrackState& s)
   std::cout << std::endl;
 }
 
-static void print(std::string label, unsigned int itrack, Track& trk)
+static void print(std::string label, unsigned int itrack, const Track& trk)
 {
   std::cout << std::endl << label << ": " << itrack << " hits: " << trk.nHits() << " State" << std::endl;
   print(trk.state());
 }
 
-static void print(std::string label, TrackState& s)
+static void print(std::string label, const TrackState& s)
 {
   std::cout << label << std::endl;
   print(s);
 }
 
-static void print(std::string label, MeasurementState& s)
+static void print(std::string label, const MeasurementState& s)
 {
   std::cout << label << std::endl;
   std::cout << "x: "  << s.parameters[0] 
@@ -41,93 +47,111 @@ static void print(std::string label, MeasurementState& s)
   dumpMatrix(s.errors);
   std::cout << std::endl;
 }
+#endif
 
-void runFittingTest(Event& ev, TrackVec& candidates)
+void fitTrack(const Track& trk, const Event& ev)
 {
-  auto& projMatrix36(ev.projMatrix36_);
-  auto& projMatrix36T(ev.projMatrix36T_);
+#ifdef DEBUG
+  bool debug(false);
+#endif
 
-  for (auto&& trk : candidates) {
-    bool dump(false);
-
-    HitVec hits = trk.hitsVector();
-    //#define INWARD
+#define INWARD
 #if defined(INWARD)
-    std::reverse(hits.begin(), hits.end());
+  auto hits(trk.hitsVector());
+  std::reverse(hits.begin(), hits.end());
+#else
+  const auto& hits = trk.hitsVector();
 #endif
-    unsigned int itrack0 = trk.SimTrackIDInfo().first;
-    Track trk0 = ev.simTracks_[itrack0];
-    TrackState simState = trk0.state();
+  unsigned int itrack0 = trk.SimTrackIDInfo().first;
+  Track trk0 = ev.simTracks_[itrack0];
+  TrackState simState = trk0.state();
 
-    TrackState simStateHit0 = propagateHelixToR(trk0.state(),hits[0].r()); // innermost hit
-    TrackState cfitStateHit0;
+  TrackState simStateHit0 = propagateHelixToR(simState,hits[0].r()); // first hit
+  TrackState cfitStateHit0;
 
-    //fit is problematic in case of very short lever arm
-    conformalFit(hits[0],hits[hits.size()/2 + 1],hits[hits.size()-1],trk.charge(),cfitStateHit0);
-    ev.validation_.fillFitStateHists(simStateHit0, cfitStateHit0);
-    //#define CONFORMAL
+  //fit is problematic in case of very short lever arm
+  conformalFit(hits[0],hits[hits.size()/2 + 1],hits[hits.size()-1],trk.charge(),cfitStateHit0);
+  //#define CONFORMAL
 #ifdef CONFORMAL
-    TrackState updatedState = cfitStateHit0;
+  TrackState updatedState = cfitStateHit0;
 #else    
-    TrackState updatedState = trk.state();
-    updatedState = propagateHelixToR(updatedState,hits[0].r());
+  TrackState updatedState = trk.state();
+  updatedState = propagateHelixToR(updatedState,hits[0].r());
 #endif
-    updatedState.errors*=10;
+  ev.validation_.fillFitStateHists(simStateHit0, cfitStateHit0);
+  updatedState.errors*=10;
 
-    if (dump) { 
-      print("Sim track", itrack0, trk0);
-      print("Initial track", trk.SimTrackIDInfo().first, trk);
-      print("simStateHit0", simStateHit0);
-      print("cfitStateHit0", cfitStateHit0);
-      print("updatedState", updatedState);
-    }      
+#ifdef DEBUG
+  if (debug) { 
+    print("Sim track", itrack0, trk0);
+    print("Initial track", trk.SimTrackIDInfo().first, trk);
+    print("simStateHit0", simStateHit0);
+    print("cfitStateHit0", cfitStateHit0);
+    print("updatedState", updatedState);
+  }      
+#endif
 
-    for (auto&& hit : hits) {
-      //for each hit, propagate to hit radius and update track state with hit measurement
-      MeasurementState measState = hit.measurementState();
-   
-      TrackState propState = propagateHelixToR(updatedState, hit.r());
-      updatedState = updateParameters(propState, measState, projMatrix36, projMatrix36T);
+  for (auto&& hit : hits) {
+    //for each hit, propagate to hit radius and update track state with hit measurement
+    MeasurementState measState = hit.measurementState();
+ 
+    TrackState propState = propagateHelixToR(updatedState, hit.r());
+    updatedState = updateParameters(propState, measState);
 
-      SVector3 propPos(propState.parameters[0],propState.parameters[1],propState.parameters[2]);
-      SVector3 updPos(updatedState.parameters[0],updatedState.parameters[1],updatedState.parameters[2]);
+    SVector3 propPos(propState.parameters[0],propState.parameters[1],propState.parameters[2]);
+    SVector3 updPos(updatedState.parameters[0],updatedState.parameters[1],updatedState.parameters[2]);
 #if defined(CHECKSTATEVALID)
-      // crude test for numerical instability, need a better test
-      if (Mag(propPos - updPos)/Mag(propPos) > 0.5) {
-        if (dump) {
-          std::cout << "Failing stability " << Mag(propPos - updPos)/Mag(propPos) << std::endl;
-        }
-        updatedState.valid = false;
-      }
-#endif
-
-      if (dump) {
-        std::cout << "processing hit: " << trk.SimTrackIDInfo().first << ":" << hit.hitID() << std::endl
-                  << "hitR, propR, updR = " << hit.r() << ", " 
-                  << Mag(propPos) << ", " << Mag(updPos) << std::endl << std::endl;
-
-        print("measState", measState);
-        print("propState", propState);
-        print("updatedState", updatedState);
-      }
-      if (!propState.valid || !updatedState.valid) {
-        if (dump) {
-          std::cout << "Failed propagation "
-                    << "hitR, propR, updR = " << hit.r() << ", " << Mag(propPos) << ", " << Mag(updPos)
-                    << std::endl << std::endl;
-        }
-#ifdef CHECKSTATEVALID
-        break;
-#endif
-      }
-
-      HitVec& mcInitHitVec = ev.simTracks_[hit.mcTrackID()].initHitsVector();
-      const auto hitid = hit.hitID();
-      ev.validation_.fillFitHitHists(hitid, mcInitHitVec, measState, propState, updatedState);
-    } // end loop over hits
-    if (dump) {
-      print("Fit Track", updatedState);
+    // crude test for numerical instability, need a better test
+    if (Mag(propPos - updPos)/Mag(propPos) > 0.5) {
+      dprint("Failing stability " << Mag(propPos - updPos)/Mag(propPos));
+      updatedState.valid = false;
     }
-    ev.validation_.fillFitTrackHists(simState, updatedState);
+#endif
+
+#ifdef DEBUG
+    if (debug) {
+      std::cout << "processing hit: " << trk.SimTrackIDInfo().first << ":" << hit.hitID() << std::endl
+                << "hitR, propR, updR = " << hit.r() << ", " 
+                << Mag(propPos) << ", " << Mag(updPos) << std::endl << std::endl;
+
+      print("measState", measState);
+      print("propState", propState);
+      print("updatedState", updatedState);
+    }
+#endif
+    if (!propState.valid || !updatedState.valid) {
+      dprint("Failed propagation " << "hitR, propR, updR = " << hit.r() << ", " << Mag(propPos) << ", " << Mag(updPos));
+#ifdef CHECKSTATEVALID
+      break;
+#endif
+    }
+
+    const HitVec& mcInitHitVec = ev.simTracks_[hit.mcTrackID()].initHitsVector();
+    const auto hitid = hit.hitID();
+    ev.validation_.fillFitHitHists(hitid, mcInitHitVec, measState, propState, updatedState);
+  } // end loop over hits
+  dcall(print("Fit Track", updatedState));
+  ev.validation_.fillFitTrackHists(simState, updatedState);
+}
+
+typedef TrackVec::const_iterator TrkIter;
+
+#ifdef TBB
+void runFittingTest(const Event& ev, const TrackVec& candidates)
+{
+  parallel_for( tbb::blocked_range<TrkIter>(candidates.begin(),candidates.end()), 
+      [&](const tbb::blocked_range<TrkIter>& trks)
+  {
+    for (auto&& trk : trks) {
+      fitTrack(trk, ev);
+    }
+  });
+}
+#else
+void runFittingTest(const Event& ev, const TrackVec& candidates)
+{
+  for (auto&& trk : candidates) {
+    fitTrack(trk, ev);
   }
 }
+#endif

@@ -301,8 +301,8 @@ sub new
   my $S = {@_};
   bless($S, $class);
 
-  $S->{prefix}  = "      " unless defined $S->{prefix};
-  $S->{vectype} = "__m512" unless defined $S->{vectype};
+  $S->{prefix}  = "      "    unless defined $S->{prefix};
+  $S->{vectype} = "IntrVec_t" unless defined $S->{vectype};
 
   $S->{class} = $class;
 
@@ -679,7 +679,7 @@ sub dump_multiply_std_and_intrinsic
   }
 
   print <<"FNORD";
-#ifdef MIC_INTRINSICS
+#ifdef MPLEX_INTRINSICS
 
    for (int n = 0; n < N; n += 64 / sizeof(T))
    {

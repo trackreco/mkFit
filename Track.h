@@ -22,65 +22,64 @@ class Track
 public:
   Track() {}
 
-  Track(TrackState state, HitVec hits, float chi2) {
-    state_=state;
-    hits_=hits;
-    chi2_=chi2;
-  }
-  Track(int charge, SVector3 position, SVector3 momentum, SMatrixSym66 errors, HitVec hits, float chi2) {
+  Track(const TrackState& state, const HitVec& hits, float chi2) : state_(state), hits_(hits), chi2_(chi2) {}
+  Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, const HitVec& hits, float chi2) 
+    : hits_(hits), chi2_(chi2) 
+  {
     state_.charge=charge;
     state_.errors=errors;
     state_.parameters = SVector6(position.At(0),position.At(1),position.At(2),momentum.At(0),momentum.At(1),momentum.At(2));
     state_.valid = true;
-    hits_=hits;
-    chi2_=chi2;
   }
-  Track(int charge, SVector3 position, SVector3 momentum, SMatrixSym66 errors, HitVec hits, float chi2, HitVec initHits) {
+  Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, const HitVec& hits, float chi2, const HitVec& initHits)
+    : hits_(hits), initHits_(initHits), chi2_(chi2) 
+  {
     state_.charge=charge;
     state_.errors=errors;
     state_.parameters = SVector6(position.At(0),position.At(1),position.At(2),momentum.At(0),momentum.At(1),momentum.At(2));
     state_.valid = true;
-    hits_=hits;
-    initHits_=initHits;
-    chi2_=chi2;
   }
-  Track(int charge, SVector6& parameters, SMatrixSym66& errors,HitVec hits, float chi2) {
+  Track(int charge, const SVector6& parameters, const SMatrixSym66& errors, const HitVec& hits, float chi2)
+    : hits_(hits), chi2_(chi2) 
+  {
     state_.charge=charge;
     state_.errors=errors;
     state_.parameters = parameters;
     state_.valid = true;
-    hits_=hits;
-    chi2_=chi2;
   }
 
   ~Track(){}
 
-  int&          charge() {return state_.charge;}
-  SVector3      position() {return SVector3(state_.parameters[0],state_.parameters[1],state_.parameters[2]);}
-  SVector3      momentum() {return SVector3(state_.parameters[3],state_.parameters[4],state_.parameters[5]);}
-  SVector6&     parameters() {return state_.parameters;}
-  SMatrixSym66& errors() {return state_.errors;}
-  TrackState&   state() {return state_;}
-  float         chi2() {return chi2_;}
-
-  // would like to move to a separate object
+  int           charge() const {return state_.charge;}
+  SVector3      position() const {return SVector3(state_.parameters[0],state_.parameters[1],state_.parameters[2]);}
+  SVector3      momentum() const {return SVector3(state_.parameters[3],state_.parameters[4],state_.parameters[5]);}
+  const SVector6&     parameters() const {return state_.parameters;}
+  const SMatrixSym66& errors() const {return state_.errors;}
+  const TrackState&   state() const {return state_;}
+  float         chi2() const {return chi2_;}
   
-  HitVec& hitsVector() {return hits_;}
+  float posR()   const { return std::sqrt(state_.parameters[0]*state_.parameters[0] + state_.parameters[1]*state_.parameters[1]); }
+  float momR()   const { return std::sqrt(state_.parameters[3]*state_.parameters[3] + state_.parameters[4]*state_.parameters[4]); }
+  float posPhi() const { return getPhi(state_.parameters[0],state_.parameters[1]); }
+  float momPhi() const { return getPhi(state_.parameters[3],state_.parameters[4]); }
+  float posEta() const { return getEta(posR(),state_.parameters[2]); }
+  float momEta() const { return getEta(momR(),state_.parameters[5]); }
 
-  void addHit(Hit hit,float chi2) {hits_.push_back(hit);chi2_+=chi2;}
+  const HitVec& hitsVector() const {return hits_;}
+  const HitVec& initHitsVector() const {return initHits_;}
+
+  void addHit(const Hit& hit,float chi2) {hits_.push_back(hit);chi2_+=chi2;}
   void resetHits() {hits_.clear();}
-  unsigned int nHits() {return hits_.size();}
 
-  HitVec& initHitsVector() {return initHits_;}
+  unsigned int nHits() const {return hits_.size();}
   SimTkIDInfo SimTrackIDInfo() const;
 
-  Track clone() {return Track(state_,hits_,chi2_);}
+  Track clone() const {return Track(state_,hits_,chi2_);}
 
 private:
   TrackState state_;
   HitVec hits_;
   HitVec initHits_;
-  SVector3 vertex_;
   float chi2_;
 };
 
