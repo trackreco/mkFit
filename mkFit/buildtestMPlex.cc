@@ -877,9 +877,25 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
      event_of_cands.InsertCandidate(recseeds[iseed]);
    }
 
+   //dump seeds
+   for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
+   {
+     EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin]; 
+     for (int iseed = 0; iseed < etabin_of_candidates.m_fill_index; iseed++)
+       {
+	 Track& seed = etabin_of_candidates.m_candidates[iseed];
+	 std::cout << "MX - found seed with nHitIdx=" << seed.nHitIdx() << " chi2=" << seed.chi2() 
+		   << " x=" << seed.position()[0] << " y=" << seed.position()[1] << " z=" << seed.position()[2] 
+		   << " px=" << seed.momentum()[0] << " py=" << seed.momentum()[1] << " pz=" << seed.momentum()[2] 
+		   << " pT=" << sqrt(seed.momentum()[0]*seed.momentum()[0]+seed.momentum()[1]*seed.momentum()[1]) 
+		   << std::endl;
+       }
+   }
+
    //parallel section over seeds; num_threads can of course be smaller
    int nseeds=recseeds.size();
-#pragma omp parallel num_threads(Config::nEtaBin)
+//#pragma omp parallel num_threads(Config::nEtaBin)
+#pragma omp parallel num_threads(1)//fixme: set to one for debugging (to be revisited anyway - what if there are more threads than eta bins?)
    for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
    {
      // XXXX Could have nested paralellism, like NUM_THREADS/nEtaBins (but runding sucks here).
@@ -888,62 +904,67 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
      EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin];
 
      for (int itrack = 0; itrack < etabin_of_candidates.m_fill_index; itrack += NN)
-     {
-       int end = std::min(itrack + NN, etabin_of_candidates.m_fill_index);
-	   
-#ifdef DEBUG
-       std::cout << "processing track=" << itrack << std::endl;
-#endif
-	 
-       MkFitter *mkfp = mkfp_arr[omp_get_thread_num()];
-
-       mkfp->SetNhits(3);//just to be sure
-	 
-       mkfp->InputTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end);
-	 
-       //ok now we start looping over layers
-       //loop over layers, starting from after the seed
-       for (int ilay = nhits_per_seed; ilay < event_of_hits.m_n_layers; ++ilay)
        {
-         BunchOfHits &bunch_of_hits = event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];
+	 int end = std::min(itrack + NN, etabin_of_candidates.m_fill_index);
+	 
+#ifdef DEBUG
+	 std::cout << "processing track=" << itrack << " etabin=" << ebin << " findex=" << etabin_of_candidates.m_fill_index << " thn=" << omp_get_thread_num() << std::endl;
+#endif
 
+	 MkFitter *mkfp = mkfp_arr[omp_get_thread_num()];
+	     
+	 mkfp->SetNhits(3);//just to be sure (is this needed?)
+	 
+	 mkfp->InputTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end);
+	 
+	 //ok now we start looping over layers
+	 //loop over layers, starting from after the seed
+	 //consider inverting loop order and make layer outer, need to trade off hit prefetching with copy-out of candidates
+	 for (int ilay = nhits_per_seed; ilay < event_of_hits.m_n_layers; ++ilay)
+	   {
+	     BunchOfHits &bunch_of_hits = event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];	     
+	     	 
          //propagate to layer
 #ifdef DEBUG
-         std::cout << "propagate to lay=" << ilay+1 << std::endl;
+	     std::cout << "propagate to lay=" << ilay+1 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2) 
+		       << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << std::endl;
 #endif
-         mkfp->PropagateTracksToR(4.*(ilay+1));//fixme: doesn't need itrack, end?
+	     mkfp->PropagateTracksToR(4.*(ilay+1));//fixme: doesn't need itrack, end?
 	 
 #ifdef DEBUG
-         std::cout << "now get hit range" << std::endl;
+	     std::cout << "propagate to lay=" << ilay+1 << " arrive at x=" << mkfp->getPar(0, 1, 0) << std::endl;
+	     std::cout << "now get hit range" << std::endl;
 #endif
 	   
-	 mkfp->SelectHitRanges(bunch_of_hits);
-
-         //make candidates with best hit
+	     mkfp->SelectHitRanges(bunch_of_hits);
+	     
+	     //make candidates with best hit
 #ifdef DEBUG
-         std::cout << "make new candidates" << std::endl;
+	     std::cout << "make new candidates" << std::endl;
 #endif
-         mkfp->AddBestHit(bunch_of_hits);
-
-         mkfp->SetNhits(ilay + 1);  //here again assuming one hits per layer
-
-       }//end of layer loop
-
-       mkfp->OutputFittedTracksAndHitIdx(recseeds, itrack, end);
-
-     }//end of seed loop
-
+	     mkfp->AddBestHit(bunch_of_hits);
+	     
+	     mkfp->SetNhits(ilay + 1);  //here again assuming one hits per layer (is this needed?)
+	 
+	   }//end of layer loop
+	 
+	 mkfp->OutputFittedTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end);	 
+       }//end of seed loop
+     
    }//end of parallel section over seeds
 
-   
    time = dtime() - time;
 
    //dump tracks
-   std::cout << "found total tracks=" << recseeds.size() << std::endl;
-   for (int itkcand = 0; itkcand < recseeds.size(); ++itkcand)
+   //std::cout << "found total tracks=" << recseeds.size() << std::endl;
+   for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
    {
-     Track tkcand = recseeds[itkcand];
-     std::cout << "MX - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << sqrt(tkcand.momentum()[0]*tkcand.momentum()[0]+tkcand.momentum()[1]*tkcand.momentum()[1]) << std::endl;
+     EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin]; 
+     for (int itrack = 0; itrack < etabin_of_candidates.m_fill_index; itrack++)
+       {
+	 Track& tkcand = etabin_of_candidates.m_candidates[itrack];
+	 std::cout << "MX - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << sqrt(tkcand.momentum()[0]*tkcand.momentum()[0]+tkcand.momentum()[1]*tkcand.momentum()[1]) << std::endl;
+       }
    }
 
    for (int i = 0; i < NUM_THREADS; ++i)

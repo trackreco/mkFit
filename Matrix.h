@@ -85,7 +85,7 @@ template<typename T> inline void ASSUME_ALIGNED(T* a, int b) { a = (T*) __builti
 
 
 #ifndef MPT_SIZE
-#define MPT_SIZE 8
+#define MPT_SIZE 1
 #endif
 
 typedef int idx_t;
