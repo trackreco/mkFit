@@ -5,6 +5,8 @@
 #include "Matrix.h"
 #include "KalmanUtils.h"
 
+#include "HitStructures.h"
+
 //#define DEBUG 1
 
 class MkFitter
@@ -22,6 +24,10 @@ class MkFitter
   MPlexQI SeedIdx;
   MPlexQI HitsIdx[MAX_HITS];
 
+  // Hold hit indices to explore at current layer.
+  MPlexQI XHitBegin; // Should be pos (so can move it forward)
+  MPlexQI XHitEnd;   // Should be size (so i can reduce it)
+                     // with pos size could even handle phi wrap! XXXX do it
   // Indices into Err and Par arrays.
   // Thought I'll have to flip between them ...
   const int iC = 0; // current
@@ -67,7 +73,8 @@ public:
 
   void AddBestHit(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end);
 
-  void GetHitRange(std::vector<std::vector<BinInfo> >& segmentMapLay_, int beg, int end, const float& etaDet, int& firstHit, int& lastHit);
+  void GetHitRange(std::vector<std::vector<BinInfo> >& segmentMapLay_, int beg, int end,
+                   const float etaDet, int& firstHit, int& lastHit);
 
   void FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end, std::vector<std::vector<Track> >& tmp_candidates, int offset);
 
@@ -78,7 +85,14 @@ public:
   inline float normalizedPhi(float phi) {
     return std::fmod(phi, (float) M_PI);
   }
-  
+
+
+  // ================================================================
+  // MT methods
+  // ================================================================
+
+  void SelectHitRanges(BunchOfHits &bunch_of_hits);
+  void AddBestHit     (BunchOfHits &bunch_of_hits);
 };
 
 #endif

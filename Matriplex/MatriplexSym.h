@@ -90,6 +90,18 @@ public:
       }
    }
 
+   void SetDiagonal3x3(idx_t n, T d)
+   {
+      T *p = fArray + n;
+
+      p[0*N] = d;
+      p[1*N] = 0;
+      p[2*N] = d;
+      p[3*N] = 0;
+      p[4*N] = 0;
+      p[5*N] = d;
+   }
+
    MatriplexSym& Subtract(const MatriplexSym& a, const MatriplexSym& b)
    {
       // Does *this = a - b;

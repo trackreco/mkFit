@@ -344,7 +344,7 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 {
 
    std::cout << "total simtracks=" << simtracks.size() << std::endl;
-   for (unsigned int itrack=0;itrack<simtracks.size();++itrack) {
+   for (int itrack=0;itrack<simtracks.size();++itrack) {
      Track track = simtracks[itrack];
      std::cout << "MX - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1])<< std::endl;
    }
@@ -356,9 +356,9 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
    // measurments errors, params).
    std::vector<std::vector<Hit> > evt_lay_hits(10);//hits per layer
 
-   for (unsigned int itrack=0;itrack<simtracks.size();++itrack) {
+   for (int itrack=0;itrack<simtracks.size();++itrack) {
      //fill vector of hits in each layer (assuming there is one hit per layer in hits vector)
-     for (unsigned int ilay=0;ilay<simtracks[itrack].nHits();++ilay) {
+     for (int ilay=0;ilay<simtracks[itrack].nHits();++ilay) {
        evt_lay_hits[ilay].push_back(simtracks[itrack].hitsVector()[ilay]);
      }
    }//end of track simulation loop
@@ -367,13 +367,15 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
    BinInfoMap segmentMap_;
    segmentMap_.resize(10);//geom_.CountLayers()
    const float etaDet = 2.0;
-   for (unsigned int ilayer=0; ilayer<evt_lay_hits.size(); ++ilayer) {
+   for (int ilayer=0; ilayer<evt_lay_hits.size(); ++ilayer)
+   {
      segmentMap_[ilayer].resize(Config::nEtaPart);    
      // eta first then phi
      std::sort(evt_lay_hits[ilayer].begin(), evt_lay_hits[ilayer].end(), sortByZ);
-     std::vector<unsigned int> lay_eta_bin_count(Config::nEtaPart);
-     for (unsigned int ihit=0;ihit<evt_lay_hits[ilayer].size();++ihit) {
-       unsigned int etabin = getEtaPartition(evt_lay_hits[ilayer][ihit].eta(),etaDet);
+     std::vector<int> lay_eta_bin_count(Config::nEtaPart);
+     for (int ihit = 0; ihit < evt_lay_hits[ilayer].size(); ++ihit)
+     {
+       int etabin = getEtaPartition(evt_lay_hits[ilayer][ihit].eta(),etaDet);
        lay_eta_bin_count[etabin]++;
      }
      //now set index and size in partitioning map and then sort the bin by phi
@@ -381,25 +383,29 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
      int lastEtaIdxFound = -1;
      int lastPhiIdxFound = -1;
 
-     for (unsigned int etabin=0; etabin<Config::nEtaPart; ++etabin) {
-       unsigned int firstEtaBinIdx = lastEtaIdxFound+1;
-       unsigned int etaBinSize = lay_eta_bin_count[etabin];
-       if (etaBinSize>0){
+     for (int etabin=0; etabin<Config::nEtaPart; ++etabin)
+     {
+       int firstEtaBinIdx = lastEtaIdxFound+1;
+       int etaBinSize = lay_eta_bin_count[etabin];
+       if (etaBinSize > 0)
+       {
 	 lastEtaIdxFound+=etaBinSize;
        }
 
        //sort by phi in each "eta bin"
        std::sort(evt_lay_hits[ilayer].begin() + firstEtaBinIdx,evt_lay_hits[ilayer].begin() + (etaBinSize+firstEtaBinIdx), sortByPhi); // sort from first to last in eta
-       std::vector<unsigned int> lay_eta_phi_bin_count(Config::nPhiPart);
+       std::vector<int> lay_eta_phi_bin_count(Config::nPhiPart);
 
-       for(unsigned int ihit = firstEtaBinIdx; ihit < etaBinSize+firstEtaBinIdx; ++ihit){
-	 unsigned int phibin = getPhiPartition(evt_lay_hits[ilayer][ihit].phi());
+       for (int ihit = firstEtaBinIdx; ihit < etaBinSize+firstEtaBinIdx; ++ihit)
+       {
+	 int phibin = getPhiPartition(evt_lay_hits[ilayer][ihit].phi());
 	 lay_eta_phi_bin_count[phibin]++;
        }
 
-       for (unsigned int phibin=0; phibin<Config::nPhiPart; ++phibin) {
-	 unsigned int firstPhiBinIdx = lastPhiIdxFound+1;
-	 unsigned int phiBinSize = lay_eta_phi_bin_count[phibin];
+       for (int phibin=0; phibin<Config::nPhiPart; ++phibin)
+       {
+	 int firstPhiBinIdx = lastPhiIdxFound+1;
+	 int phiBinSize = lay_eta_phi_bin_count[phibin];
 	 BinInfo phiBinInfo(firstPhiBinIdx,phiBinSize);
 	 segmentMap_[ilayer][etabin].push_back(phiBinInfo);
 	 if (phiBinSize>0){
@@ -457,16 +463,16 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
    std::sort(simtracks.begin(), simtracks.end(), sortTracksByEta);
    //further sorting could be in curvature, like e.g. q/pT
    //sort just in phi within each eta bin for now
-   std::vector<unsigned int> lay_eta_bin_seed_count(Config::nEtaPart);
-   for (unsigned int iseed=0;iseed<simtracks.size();++iseed) {
-     unsigned int etabin = getEtaPartition(simtracks[iseed].momEta(),etaDet);
+   std::vector<int> lay_eta_bin_seed_count(Config::nEtaPart);
+   for (int iseed=0;iseed<simtracks.size();++iseed) {
+     int etabin = getEtaPartition(simtracks[iseed].momEta(),etaDet);
      lay_eta_bin_seed_count[etabin]++;
    }
    //now set index and size in partitioning map and then sort the bin by phi    
    int lastEtaSeedIdxFound = -1;
-   for (unsigned int etabin=0; etabin<Config::nEtaPart; ++etabin) {
-     unsigned int firstEtaSeedBinIdx = lastEtaSeedIdxFound+1;
-     unsigned int etaBinSize = lay_eta_bin_seed_count[etabin];
+   for (int etabin=0; etabin<Config::nEtaPart; ++etabin) {
+     int firstEtaSeedBinIdx = lastEtaSeedIdxFound+1;
+     int etaBinSize = lay_eta_bin_seed_count[etabin];
      if (etaBinSize>0){
        lastEtaSeedIdxFound+=etaBinSize;
      }
@@ -491,18 +497,18 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
    //ok now, we should have all seeds fitted in recseeds
 #ifdef DEBUG
    std::cout << "found total seeds=" << recseeds.size() << std::endl;
-   for (unsigned int iseed=0;iseed<recseeds.size();++iseed) {
+   for (int iseed=0;iseed<recseeds.size();++iseed) {
      Track seed = recseeds[iseed];
      std::cout << "MX - found seed with nHits=" << seed.nHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << std::endl;
    }
    std::cout << "loop over layers" << std::endl;
 #endif
 
-   const unsigned int maxCand = Config::maxCand;
+   const int maxCand = Config::maxCand;
 
    //save a vector of candidates per each seed. initialize to the seed itself
    std::vector<std::vector<Track> > track_candidates(recseeds.size());
-   for (unsigned int iseed=0;iseed<recseeds.size();++iseed) {
+   for (int iseed=0;iseed<recseeds.size();++iseed) {
      track_candidates[iseed].reserve(maxCand);
      track_candidates[iseed].push_back(recseeds[iseed]);
    }
@@ -521,7 +527,7 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
      int th_end = (thread_num + 1) * nseeds / num_threads;     
 
      //ok now we start looping over layers
-     for (unsigned int ilay=nhits_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
+     for (int ilay=nhits_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
        
 #ifdef DEBUG
        std::cout << "processing lay=" << ilay+1 << std::endl;
@@ -543,19 +549,19 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
               
        /*
        //sort just in phi within each eta bin for now
-       std::vector<unsigned int> lay_eta_bin_cand_count(Config::nEtaPart);
-       for (unsigned int icand=0;icand<seed_cand_idx.size();++icand) {
+       std::vector<int> lay_eta_bin_cand_count(Config::nEtaPart);
+       for (int icand=0;icand<seed_cand_idx.size();++icand) {
 	 std::pair<int,int> idx = seed_cand_idx[icand];
 	 float eta = getEtaPartition(track_candidates[idx.first][idx.second].momEta(),etaDet);
 	 if (fabs(eta)>etaDet) eta = (eta>0 ? etaDet*0.99 : -etaDet*0.99);
-	 unsigned int etabin = eta;
+	 int etabin = eta;
 	 lay_eta_bin_cand_count[etabin]++;
        }
        //now set index and size in partitioning map and then sort the bin by phi    
        int lastEtaCandIdxFound = -1;
-       for (unsigned int etabin=0; etabin<Config::nEtaPart; ++etabin) {
-	 unsigned int firstEtaCandBinIdx = lastEtaCandIdxFound+1;
-	 unsigned int etaBinSize = lay_eta_bin_cand_count[etabin];
+       for (int etabin=0; etabin<Config::nEtaPart; ++etabin) {
+	 int firstEtaCandBinIdx = lastEtaCandIdxFound+1;
+	 int etaBinSize = lay_eta_bin_cand_count[etabin];
 	 if (etaBinSize>0){
 	   lastEtaCandIdxFound+=etaBinSize;
 	 }
@@ -567,7 +573,7 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
        int theEndCand = seed_cand_idx.size();     
 
        std::vector<std::vector<Track> > tmp_candidates(th_end-th_start);     
-       for (unsigned int iseed=0;iseed<tmp_candidates.size();++iseed) {
+       for (int iseed=0;iseed<tmp_candidates.size();++iseed) {
 	 tmp_candidates[iseed].reserve(maxCand);
        }
 
@@ -641,7 +647,7 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 #endif
 
        //clean exceeding candidates per seed
-       for (unsigned int is=0;is<tmp_candidates.size();++is)
+       for (int is=0;is<tmp_candidates.size();++is)
 	 {
 	   if (tmp_candidates[is].size()>maxCand)
 	     {
@@ -653,7 +659,7 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 	     }
 	 } 
        //now swap with input candidates
-       for (unsigned int is=0;is<tmp_candidates.size();++is)
+       for (int is=0;is<tmp_candidates.size();++is)
 	 {
 	   if (tmp_candidates[is].size()>0)
              {
@@ -673,9 +679,9 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 #ifdef DEBUG
        //dump candidates
        int tottk = 0;
-       for (unsigned int iseed=0;iseed<track_candidates.size();++iseed)
+       for (int iseed=0;iseed<track_candidates.size();++iseed)
 	 {
-	   for (unsigned int itkcand=0;itkcand<track_candidates[iseed].size();++itkcand) {
+	   for (int itkcand=0;itkcand<track_candidates[iseed].size();++itkcand) {
 	     Track& tkcand = track_candidates[iseed][itkcand];
 	     std::cout << "MX - found track candidate with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << std::endl;
 	     tottk++;
@@ -698,7 +704,7 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 
    //keep only best track per seed
    int nCandsBeforeEnd = 0;
-   for (unsigned int iseed=0;iseed<track_candidates.size();++iseed) 
+   for (int iseed=0;iseed<track_candidates.size();++iseed) 
      {
        nCandsBeforeEnd+=track_candidates[iseed].size();
        if (track_candidates[iseed].size()==0) continue;
@@ -715,9 +721,9 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 
    //dump candidates
    int tottk = 0;
-   for (unsigned int iseed=0;iseed<track_candidates.size();++iseed)
+   for (int iseed=0;iseed<track_candidates.size();++iseed)
      {
-       for (unsigned int itkcand=0;itkcand<track_candidates[iseed].size();++itkcand) {
+       for (int itkcand=0;itkcand<track_candidates[iseed].size();++itkcand) {
 	 Track& tkcand = track_candidates[iseed][itkcand];
 	 std::cout << "MX - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << sqrt(tkcand.momentum()[0]*tkcand.momentum()[0]+tkcand.momentum()[1]*tkcand.momentum()[1]) << std::endl;
 	 tottk++;
@@ -748,6 +754,15 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 
 
 
+//==============================================================================
+// fillBinInfoKrappe
+//==============================================================================
+
+// void fillBinInfoKrappe(EventOfHits& eoh, std::vector<Track>& simtracks)
+// {
+//   // XXXX
+//   // Eventually have common function for filling up of eoh
+// }
 
 
 //==============================================================================
@@ -758,71 +773,23 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
 {
 
    std::cout << "total simtracks=" << simtracks.size() << std::endl;
-   for (unsigned int itrack=0;itrack<simtracks.size();++itrack) {
+   for (int itrack=0;itrack<simtracks.size();++itrack) {
      Track track = simtracks[itrack];
      std::cout << "MX - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1])<< std::endl;
    }
 
-   // XXX What if there's a missing / double layer?
-   // Eventually, should sort track vector by number of hits!
-   // And pass the number in on each "setup" call.
-   // Reserves should be made for maximum possible number (but this is just
-   // measurments errors, params).
-   std::vector<std::vector<Hit> > evt_lay_hits(10);//hits per layer
+   EventOfHits event_of_hits(10); // 10 layers, this should be out of event loop, passed in.
 
-   for (unsigned int itrack=0;itrack<simtracks.size();++itrack) {
+   for (int itrack=0; itrack < simtracks.size(); ++itrack)
+   {
      //fill vector of hits in each layer (assuming there is one hit per layer in hits vector)
-     for (unsigned int ilay=0;ilay<simtracks[itrack].nHits();++ilay) {
-       evt_lay_hits[ilay].push_back(simtracks[itrack].hitsVector()[ilay]);
-     }
-   }//end of track simulation loop
-
-
-   BinInfoMap segmentMap_;
-   segmentMap_.resize(10);//geom_.CountLayers()
-   const float etaDet = 2.0;
-   for (unsigned int ilayer=0; ilayer<evt_lay_hits.size(); ++ilayer) {
-     segmentMap_[ilayer].resize(Config::nEtaPart);    
-     // eta first then phi
-     std::sort(evt_lay_hits[ilayer].begin(), evt_lay_hits[ilayer].end(), sortByZ);
-     std::vector<unsigned int> lay_eta_bin_count(Config::nEtaPart);
-     for (unsigned int ihit=0;ihit<evt_lay_hits[ilayer].size();++ihit) {
-       unsigned int etabin = getEtaPartition(evt_lay_hits[ilayer][ihit].eta(),etaDet);
-       lay_eta_bin_count[etabin]++;
-     }
-     //now set index and size in partitioning map and then sort the bin by phi
-    
-     int lastEtaIdxFound = -1;
-     int lastPhiIdxFound = -1;
-
-     for (unsigned int etabin=0; etabin<Config::nEtaPart; ++etabin) {
-       unsigned int firstEtaBinIdx = lastEtaIdxFound+1;
-       unsigned int etaBinSize = lay_eta_bin_count[etabin];
-       if (etaBinSize>0){
-	 lastEtaIdxFound+=etaBinSize;
-       }
-
-       //sort by phi in each "eta bin"
-       std::sort(evt_lay_hits[ilayer].begin() + firstEtaBinIdx,evt_lay_hits[ilayer].begin() + (etaBinSize+firstEtaBinIdx), sortByPhi); // sort from first to last in eta
-       std::vector<unsigned int> lay_eta_phi_bin_count(Config::nPhiPart);
-
-       for(unsigned int ihit = firstEtaBinIdx; ihit < etaBinSize+firstEtaBinIdx; ++ihit){
-	 unsigned int phibin = getPhiPartition(evt_lay_hits[ilayer][ihit].phi());
-	 lay_eta_phi_bin_count[phibin]++;
-       }
-
-       for (unsigned int phibin=0; phibin<Config::nPhiPart; ++phibin) {
-	 unsigned int firstPhiBinIdx = lastPhiIdxFound+1;
-	 unsigned int phiBinSize = lay_eta_phi_bin_count[phibin];
-	 BinInfo phiBinInfo(firstPhiBinIdx,phiBinSize);
-	 segmentMap_[ilayer][etabin].push_back(phiBinInfo);
-	 if (phiBinSize>0){
-	   lastPhiIdxFound+=phiBinSize;
-	 }
-       }
-
+     for (int ilay = 0; ilay < simtracks[itrack].nHits(); ++ilay)
+     {
+       event_of_hits.InsertHit(simtracks[itrack].hitsVector()[ilay], ilay);
      }
    }
+
+   event_of_hits.SortByPhiBuildPhiBins();
 
    // NOTE: MkFitter *MUST* be on heap, not on stack!
    // Standard operator new screws up alignment of ALL MPlex memebrs of MkFitter,
@@ -851,25 +818,32 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
 #endif
 
    //sort seeds by eta;
-   std::sort(simtracks.begin(), simtracks.end(), sortTracksByEta);
+   // XXXX MT: no need
+   // std::sort(simtracks.begin(), simtracks.end(), sortTracksByEta);
    //further sorting could be in curvature, like e.g. q/pT
    //sort just in phi within each eta bin for now
-   std::vector<unsigned int> lay_eta_bin_seed_count(Config::nEtaPart);
-   for (unsigned int iseed=0;iseed<simtracks.size();++iseed) {
-     unsigned int etabin = getEtaPartition(simtracks[iseed].momEta(),etaDet);
-     lay_eta_bin_seed_count[etabin]++;
-   }
-   //now set index and size in partitioning map and then sort the bin by phi    
-   int lastEtaSeedIdxFound = -1;
-   for (unsigned int etabin=0; etabin<Config::nEtaPart; ++etabin) {
-     unsigned int firstEtaSeedBinIdx = lastEtaSeedIdxFound+1;
-     unsigned int etaBinSize = lay_eta_bin_seed_count[etabin];
-     if (etaBinSize>0){
-       lastEtaSeedIdxFound+=etaBinSize;
-     }
-     //sort by phi in each "eta bin"
-     std::sort(simtracks.begin() + firstEtaSeedBinIdx, simtracks.begin() + (etaBinSize+firstEtaSeedBinIdx), sortTracksByPhi); // sort from first to last in eta
-   }
+
+   // XXXX MT: count the recseeds after fitting;
+   // std::vector<int> lay_eta_bin_seed_count(Config::nEtaPart);
+   // for (int iseed = 0; iseed < simtracks.size(); ++iseed)
+   // {
+   //   int etabin = getEtaPartition(simtracks[iseed].momEta(),etaDet);
+   //   lay_eta_bin_seed_count[etabin]++;
+   // }
+
+   // //now set index and size in partitioning map and then sort the bin by phi    
+   // int lastEtaSeedIdxFound = -1;
+   // for (int etabin = 0; etabin < Config::nEtaPart; ++etabin)
+   // {
+   //   int firstEtaSeedBinIdx = lastEtaSeedIdxFound+1;
+   //   int etaBinSize = lay_eta_bin_seed_count[etabin];
+   //   if (etaBinSize>0){
+   //     lastEtaSeedIdxFound+=etaBinSize;
+   //   }
+   //   //sort by phi in each "eta bin"
+   //   // XXXX MT: no need
+   //   //std::sort(simtracks.begin() + firstEtaSeedBinIdx, simtracks.begin() + (etaBinSize+firstEtaSeedBinIdx), sortTracksByPhi); // sort from first to last in eta
+   // }
    
 #pragma omp parallel for num_threads(NUM_THREADS)
    for (int itrack = 0; itrack < theEnd; itrack += NN)
@@ -888,68 +862,76 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
    //ok now, we should have all seeds fitted in recseeds
 #ifdef DEBUG
    std::cout << "found total seeds=" << recseeds.size() << std::endl;
-   for (unsigned int iseed=0;iseed<recseeds.size();++iseed) {
+   for (int iseed=0;iseed<recseeds.size();++iseed)
+   {
      Track seed = recseeds[iseed];
      std::cout << "MX - found seed with nHits=" << seed.nHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << std::endl;
    }
    std::cout << "loop over layers" << std::endl;
 #endif
 
-
-   //parallel section over seeds
-   int nseeds=recseeds.size();
-#pragma omp parallel num_threads(NUM_THREADS)
+   // MT: partition recseeds into eta bins
+   EventOfCandidates event_of_cands;
+   for (int iseed = 0; iseed < recseeds.size(); ++iseed)
    {
-     int thread_num = omp_get_thread_num();
-     int num_threads = omp_get_num_threads();
-     int th_start = thread_num * nseeds / num_threads;
-     int th_end = (thread_num + 1) * nseeds / num_threads;     
+     event_of_cands.InsertCandidate(recseeds[iseed]);
+   }
 
-     //vectorized loop
-     for (int itrack = th_start; itrack < th_end; itrack += NN)
+   //parallel section over seeds; num_threads can of course be smaller
+   int nseeds=recseeds.size();
+#pragma omp parallel num_threads(Config::nEtaBin)
+   for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
+   {
+     // XXXX Could have nested paralellism, like NUM_THREADS/nEtaBins (but runding sucks here).
+     // XXXX So one should really have TBB, for this and for the above.
+     // vectorized loop
+     EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin];
+
+     for (int itrack = 0; itrack < etabin_of_candidates.m_fill_index; itrack += NN)
+     {
+       int end = std::min(itrack + NN, etabin_of_candidates.m_fill_index);
+	   
+#ifdef DEBUG
+       std::cout << "processing track=" << itrack << std::endl;
+#endif
+	 
+       MkFitter *mkfp = mkfp_arr[omp_get_thread_num()];
+
+       mkfp->SetNhits(3);//just to be sure
+	 
+       mkfp->InputTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end);
+	 
+       //ok now we start looping over layers
+       //loop over layers, starting from after the seed
+       for (int ilay = nhits_per_seed; ilay < event_of_hits.m_n_layers; ++ilay)
        {
-	 
-	 int end = std::min(itrack + NN, nseeds);
-	   
-#ifdef DEBUG
-	 std::cout << "processing track=" << itrack << std::endl;
-#endif
-	 
-	 MkFitter *mkfp = mkfp_arr[omp_get_thread_num()];
+         BunchOfHits &bunch_of_hits = event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];
 
-	 mkfp->SetNhits(3);//just to be sure
-	 
-	 mkfp->InputTracksAndHitIdx(recseeds, itrack, end);
-	 
-	 //ok now we start looping over layers
-	 for (unsigned int ilay=nhits_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
-       
-	   //propagate to layer
+         //propagate to layer
 #ifdef DEBUG
-	   std::cout << "propagate to lay=" << ilay+1 << std::endl;
+         std::cout << "propagate to lay=" << ilay+1 << std::endl;
 #endif
-	   mkfp->PropagateTracksToR(4.*(ilay+1));//fixme: doesn't need itrack, end?
+         mkfp->PropagateTracksToR(4.*(ilay+1));//fixme: doesn't need itrack, end?
 	 
 #ifdef DEBUG
-	   std::cout << "now get hit range" << std::endl;
+         std::cout << "now get hit range" << std::endl;
 #endif
 	   
-	   //this one is not vectorized: get the hit range common to these track candidates
-	   int firstHit = -1, lastHit = -1;
-	   mkfp->GetHitRange(segmentMap_[ilay], itrack, end, etaDet, firstHit, lastHit);
-	 
-	   //make candidates with best hit
+	 mkfp->SelectHitRanges(bunch_of_hits);
+
+         //make candidates with best hit
 #ifdef DEBUG
-	   std::cout << "make new candidates" << std::endl;
+         std::cout << "make new candidates" << std::endl;
 #endif
-	   mkfp->AddBestHit(evt_lay_hits[ilay],firstHit,lastHit,itrack,end);
-	   mkfp->SetNhits(ilay+1);//here again assuming one hits per layer
+         mkfp->AddBestHit(bunch_of_hits);
 
-	 }//end of layer loop
+         mkfp->SetNhits(ilay + 1);  //here again assuming one hits per layer
 
-	 mkfp->OutputFittedTracksAndHitIdx(recseeds, itrack, end);
+       }//end of layer loop
 
-       }//end of seed loop
+       mkfp->OutputFittedTracksAndHitIdx(recseeds, itrack, end);
+
+     }//end of seed loop
 
    }//end of parallel section over seeds
 
@@ -958,7 +940,8 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
 
    //dump tracks
    std::cout << "found total tracks=" << recseeds.size() << std::endl;
-   for (unsigned int itkcand=0;itkcand<recseeds.size();++itkcand) {
+   for (int itkcand = 0; itkcand < recseeds.size(); ++itkcand)
+   {
      Track tkcand = recseeds[itkcand];
      std::cout << "MX - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << sqrt(tkcand.momentum()[0]*tkcand.momentum()[0]+tkcand.momentum()[1]*tkcand.momentum()[1]) << std::endl;
    }

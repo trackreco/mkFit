@@ -151,10 +151,20 @@ void test_vtune()
 
 void test_standard()
 {
+  // ---- MT test eta bins
+  // int nb, b1, b2;
+  // for (float eta = -1.2; eta <= 1.2; eta += 0.01)
+  // {
+  //   nb = Config::getBothEtaBins(eta, b1, b2);
+  //   printf("eta=%6.2f  bin=%3d  bin1=%3d  bin2=%3d nb=%d\n",
+  //          eta, Config::getEtaBin(eta), b1, b2, nb);
+  // }
 
-  int  Ntracks  = 1024 * 1024;// * 1024; // * 10
-  Ntracks  = 480*100;
-  //Ntracks  = 1;
+  // return;
+  // ---- end MT test
+
+  int Ntracks = Config::g_NTracks;
+  // Ntracks  = 1;
   // bool saveTree = false;
 
   generateTracks(simtracks, Ntracks);
@@ -162,10 +172,10 @@ void test_standard()
   double tmp, tsm;
 
   smat_tracks.reserve(simtracks.size());
-  tsm = runFittingTest(simtracks, smat_tracks);
+  tsm = 0; // runFittingTest(simtracks, smat_tracks);
 
   plex_tracks.resize(simtracks.size());
-  tmp = runFittingTestPlex(simtracks, plex_tracks);
+  tmp = 0; // runFittingTestPlex(simtracks, plex_tracks);
 
   double tsm2 = 0;//runBuildingTest(simtracks);
   double tmp2 = 0;//runBuildingTestPlex(simtracks);

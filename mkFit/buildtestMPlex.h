@@ -1,6 +1,7 @@
 #ifndef _buildtest_mplex_
 #define _buildtest_mplex_
 
+#include "Event.h"
 #include "Track.h"
 
 /*
@@ -9,8 +10,6 @@ void   make_validation_tree(const char         *fname,
                             std::vector<Track> &simtracks,
                             std::vector<Track> &rectracks);
 */
-
-typedef std::pair<unsigned int,unsigned int> BinInfo;
 
 double runBuildingTest(std::vector<Track>& simtracks/*, std::vector<Track>& rectracks*/);
 
