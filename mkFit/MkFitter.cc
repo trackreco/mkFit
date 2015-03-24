@@ -635,8 +635,8 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits)
     std::cout << "propagated track parameters eta=" << eta << " bin=" << etabin << " begin=" << binInfoMinus.first << " end=" << binInfoPlus.first+binInfoPlus.second << std::endl;
 #endif
 
-    XHitBegin = binInfoMinus.first;
-    XHitEnd   = binInfoPlus .first + binInfoPlus.second;
+    XHitBegin.At(itrack, 0, 0) = binInfoMinus.first;
+    XHitEnd  .At(itrack, 0, 0) = binInfoPlus .first + binInfoPlus.second;
   }
 #ifdef DEBUG
     std::cout << "found range firstHit=" << firstHit << " lastHit=" << lastHit << std::endl;
@@ -746,12 +746,14 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
       // Don't update chi2
     }
 
-  } // tracks
-
-  //now update the track parameters with this hit (note that some calculations are already done when computing chi2... not sure it's worth caching them?)
+    //now update the track parameters with this hit (note that some calculations are already done when computing chi2... not sure it's worth caching them?)
 #ifdef DEBUG
-  std::cout << "update parameters" << std::endl;
+    std::cout << "update parameters" << std::endl;
 #endif
-  updateParametersMPlex(Err[iP], Par[iP], msErr[Nhits], msPar[Nhits],
-			Err[iC], Par[iC]);
+
+    // XXXXXX Same issue as compute chi2
+    updateParametersMPlex(Err[iP], Par[iP], msErr[Nhits], msPar[Nhits],
+                          Err[iC], Par[iC]);
+
+  } // tracks
 }
