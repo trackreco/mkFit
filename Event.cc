@@ -211,7 +211,7 @@ void Event::Seed()
       seedhits.push_back(seed_hit);//fixme chi2
       chi2 += computeChi2(propState,measState);
     }
-    Track seed(updatedState,seedhits,chi2);//fixme chi2
+    Track seed(updatedState,seedhits,0);//fixme chi2
     seedTracks_.push_back(seed);
   }
 #else
@@ -601,7 +601,7 @@ void Event::Seed()
       }
 #endif
       MeasurementState measState = seed_hit.measurementState();
-      updatedState = updateParameters(propState, measState,projMatrix36_,projMatrix36T_);
+      updatedState = updateParameters(propState, measState);
     }
     Track seed(updatedState,seed_triplet,0.);//fixme chi2
     seedTracks_.push_back(seed);
@@ -640,8 +640,8 @@ void Event::Seed()
 
 void Event::Find()
 {
-  //buildTracksBySeeds(*this);
-  buildTracksByLayers(*this);
+  buildTracksBySeeds(*this);
+  //buildTracksByLayers(*this);
   validation_.fillAssociationHists(candidateTracks_,simTracks_);
   validation_.fillCandidateHists(candidateTracks_);
 }

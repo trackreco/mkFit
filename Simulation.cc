@@ -11,10 +11,10 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
 {
 
 #ifdef DEBUG
-  bool debug = false;
+  bool debug = true;
 #endif
   //assume beam spot width 25um in xy and 5cm in z 
-  pos=SVector3(0.0025*g_gaus(g_gen), 0.0025*g_gaus(g_gen), 1.0*g_gaus(g_gen));
+  pos=SVector3(0.1*g_gaus(g_gen), 0.1*g_gaus(g_gen), 1.0*g_gaus(g_gen));
 
   /*
   std::cout << "Simulation Track: " << itrack << std::endl;
