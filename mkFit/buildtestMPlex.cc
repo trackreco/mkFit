@@ -867,7 +867,6 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
      Track& seed = recseeds[iseed];
      std::cout << "MX - found seed with nHits=" << seed.nHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.posR() << " pT=" << seed.pT() << std::endl;
    }
-   std::cout << "loop over layers" << std::endl;
 #endif
 
    // MT: partition recseeds into eta bins
@@ -878,6 +877,7 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
    }
 
    //dump seeds
+#ifdef DEBUG
    for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
    {
      EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin]; 
@@ -891,6 +891,7 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
 		   << std::endl;
        }
    }
+#endif
 
    //parallel section over seeds; num_threads can of course be smaller
    int nseeds=recseeds.size();

@@ -532,7 +532,7 @@ void MkFitter::GetHitRange(std::vector<std::vector<BinInfo> >& segmentMapLay_, i
 	  dphidy*dphidy*(Err[iP].ConstAt(itrack, 1, 1) /*propState.errors.At(1,1)*/) +
 	  2*dphidx*dphidy*(Err[iP].ConstAt(itrack, 0, 1) /*propState.errors.At(0,1)*/);
   
-	const float dphi   =  sqrt(std::abs(dphi2));//how come I get negative squared errors sometimes?
+	const float dphi   =  sqrt(std::fabs(dphi2));//how come I get negative squared errors sometimes?
 	const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi,(float) Config::minDPhi), float(M_PI/1.));//fixme
 	//const float nSigmaDphi = Config::nSigma*dphi;
 
@@ -607,7 +607,7 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits)
                              dphidy*dphidy*(Err[iP].ConstAt(itrack, 1, 1) /*propState.errors.At(1,1)*/) +
                          2 * dphidx*dphidy*(Err[iP].ConstAt(itrack, 0, 1) /*propState.errors.At(0,1)*/);
 
-    const float dphi       = sqrtf(std::abs(dphi2));//how come I get negative squared errors sometimes? MT -- how small?
+    const float dphi       = sqrtf(std::fabs(dphi2));//how come I get negative squared errors sometimes? MT -- how small?
     const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi,(float) Config::minDPhi), float(M_PI/1.));//fixme
     //const float nSigmaDphi = Config::nSigma*dphi;
 
@@ -618,15 +618,22 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits)
     const float dphiPlus  = normalizedPhi(phi+nSigmaDphi);
 
 #ifdef DEBUG
+    std::cout << "dphi = " << dphi  << ", dphi2 = " << dphi2 << ", nSigmaDphi = " << nSigmaDphi << ", nSigma = " << Config::nSigma << std::endl;
     std::cout << "phiMinus = " << dphiMinus << ", phiPlus = " << dphiPlus << std::endl;
 #endif
 
-    const int   phiBinMinus = getPhiPartition(dphiMinus);
-    const int   phiBinPlus  = getPhiPartition(dphiPlus);
+    int   phiBinMinus = getPhiPartition(dphiMinus);
+    int   phiBinPlus  = getPhiPartition(dphiPlus);
 
 #ifdef DEBUG
     std::cout << "phiBinMinus = " << phiBinMinus << ", phiBinPlus = " << phiBinPlus << std::endl;
 #endif
+
+    phiBinMinus = std::max(0,phiBinMinus);
+    phiBinMinus = std::min(Config::nPhiPart-1,phiBinMinus);
+    phiBinPlus = std::max(0,phiBinPlus);
+    phiBinPlus = std::min(Config::nPhiPart-1,phiBinPlus);
+
 
     BinInfo binInfoMinus = bunch_of_hits.m_phi_bin_infos[int(phiBinMinus)];
     BinInfo binInfoPlus  = bunch_of_hits.m_phi_bin_infos[int(phiBinPlus)];
@@ -635,6 +642,8 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits)
     if (binInfoMinus > binInfoPlus)
     {
       int phibin = getPhiPartition(phi);
+      phibin = std::max(0,phibin);
+      phibin = std::min(Config::nPhiPart-1,phibin);
       binInfoMinus = bunch_of_hits.m_phi_bin_infos[phibin];
       binInfoPlus  = bunch_of_hits.m_phi_bin_infos[phibin];
     }

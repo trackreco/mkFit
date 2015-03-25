@@ -4,18 +4,6 @@
 #include "buildtest.h"
 #include "fittest.h"
 
-const int nlayers_per_seed = 3;
-const unsigned int maxCand = 10;
-
-const float chi2Cut = 15.;
-const float nSigma = 3.;
-const float minDPhi = 0.;
-
-/*
-const unsigned int nPhiPart = 63;
-const unsigned int nEtaPart = 10;   
-*/
-
 static bool sortByPhi(Hit hit1, Hit hit2)
 {
   return hit1.phi()<hit2.phi();
@@ -157,7 +145,7 @@ void Event::Seed()
     TrackState updatedState = trk.state();
     HitVec seedhits;
     std::vector<HitVec> tmpSeeds;
-    for (auto ilayer=0U;ilayer<nlayers_per_seed;++ilayer) {//seeds have first three layers as seeds
+    for (auto ilayer=0U;ilayer<Config::nlayers_per_seed;++ilayer) {//seeds have first three layers as seeds
       Hit seed_hit = hits[ilayer]; // do this for now to make initHits element number line up with HitId number
       TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
 #ifdef CHECKSTATEVALID
@@ -232,7 +220,7 @@ void Event::Seed()
 
 void Event::Find()
 {
-  buildTestSerial(*this, nlayers_per_seed, maxCand, chi2Cut, nSigma, minDPhi);
+  buildTestSerial(*this, Config::nlayers_per_seed, Config::maxCand, Config::chi2Cut, Config::nSigma, Config::minDPhi);
   validation_.fillAssociationHists(candidateTracks_,simTracks_);
   validation_.fillCandidateHists(candidateTracks_);
 }
