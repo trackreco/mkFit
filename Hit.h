@@ -33,8 +33,10 @@ namespace Config
   inline int getEtaBin(float eta)
   {
     int bin = (eta + fEtaOff) * fEtaFac;
-    if      (bin < 0)        bin = 0;
-    else if (bin >= nEtaBin) bin = nEtaBin - 1;
+    // Return -1 if outside ... this back-fitting causes trouble.
+    // if      (bin < 0)        bin = 0;
+    // else if (bin >= nEtaBin) bin = nEtaBin - 1;
+    if (bin < 0 || bin >= nEtaBin) return -1;
     return bin;
   }
 
@@ -103,6 +105,11 @@ inline float getEta(float x, float y, float z)
 {
   float theta = atan2( std::sqrt(x*x+y*y), z );
   return -1. * log( tan(theta/2.) );
+}
+
+inline float getHypot(float x, float y)
+{
+  return sqrtf(x*x + y*y);
 }
 
 

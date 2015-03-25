@@ -69,6 +69,9 @@ public:
   float posEta() const { return getEta(state_.parameters[0],state_.parameters[1],state_.parameters[2]); }
   float momEta() const { return getEta(state_.parameters[3],state_.parameters[4],state_.parameters[5]); }
 
+  float posR()   const { return getHypot(state_.parameters[0],state_.parameters[1]); }
+  float pT()     const { return getHypot(state_.parameters[3],state_.parameters[4]); }
+
   HitVec& hitsVector() {return hits_;}
 
   void addHit(Hit hit,float chi2) {hits_.push_back(hit);chi2_+=chi2;}

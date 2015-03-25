@@ -616,9 +616,17 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits)
 
     const float dphiMinus = normalizedPhi(phi-nSigmaDphi);
     const float dphiPlus  = normalizedPhi(phi+nSigmaDphi);
-  
+
+#ifdef DEBUG
+    std::cout << "phiMinus = " << dphiMinus << ", phiPlus = " << dphiPlus << std::endl;
+#endif
+
     const int   phiBinMinus = getPhiPartition(dphiMinus);
     const int   phiBinPlus  = getPhiPartition(dphiPlus);
+
+#ifdef DEBUG
+    std::cout << "phiBinMinus = " << phiBinMinus << ", phiBinPlus = " << phiBinPlus << std::endl;
+#endif
 
     BinInfo binInfoMinus = bunch_of_hits.m_phi_bin_infos[int(phiBinMinus)];
     BinInfo binInfoPlus  = bunch_of_hits.m_phi_bin_infos[int(phiBinPlus)];
@@ -770,7 +778,7 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 
   //fixme solve ambiguity NN vs beg-end
   float minChi2[NN];
-  std::fill_n(minChi2, NN, 9999.);
+  std::fill_n(minChi2, NN, 100.); // XXXX MT was 9999
   int bestHit[NN];
   std::fill_n(bestHit, NN, -1);
 

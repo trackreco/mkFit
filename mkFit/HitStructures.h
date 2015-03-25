@@ -83,12 +83,14 @@ public:
 
   void SortByPhiBuildPhiBins()
   {
-    std::sort(m_hits.begin(), m_hits.end(), sortByPhiMT);
+    std::sort(m_hits.begin(), m_hits.begin() + m_fill_index, sortByPhiMT);
 
     int last_bin = -1;
     int idx      =  0;
-    for (auto &h : m_hits)
+    for (int i = 0; i < m_fill_index; ++i)
     {
+      Hit &h = m_hits[i];
+
       int bin = getPhiPartition(h.phi());
 
       if (bin != last_bin) 
@@ -235,7 +237,12 @@ public:
   void InsertCandidate(const Track& track)
   {
     // XXXX assuming vertex at origin.
+    // XXXX the R condition is trying to get rid of bad seeds (as a quick hack)
     int bin = Config::getEtaBin(track.momEta());
-    m_etabins_of_candidates[bin].InsertTrack(track);
+    float r = track.posR();
+    if (bin != -1 && r > 11.9 && r < 12.1)
+    {
+      m_etabins_of_candidates[bin].InsertTrack(track);
+    }
   }
 };
