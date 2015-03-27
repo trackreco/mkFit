@@ -9,6 +9,10 @@
 
 #include <limits>
 
+#if defined(USE_VTUNE_PAUSE)
+#include "ittnotify.h"
+#endif
+
 std::vector<Track> simtracks;
 
 std::vector<Track> smat_tracks;
@@ -229,6 +233,10 @@ void test_standard()
 
 int main()
 {
+#ifdef USE_VTUNE_PAUSE
+  __itt_pause();
+#endif
+
   // test_matriplex();
 
   // test_vtune();

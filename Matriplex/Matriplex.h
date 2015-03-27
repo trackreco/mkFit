@@ -63,6 +63,18 @@ public:
       }
    }
 
+#if defined(__MIC__)
+   void SlurpIn(T *arr, __m512i& vi)
+   {
+      for (int i = 0; i < kSize; ++i)
+      {
+         __m512 reg = _mm512_i32gather_ps(vi, arr, 1);
+         _mm512_store_ps(&fArray[i*N], reg);
+         ++arr;
+      }
+   }
+#endif
+   
    void CopyOut(idx_t n, T *arr)
    {
       for (idx_t i = n; i < kTotSize; i += N)

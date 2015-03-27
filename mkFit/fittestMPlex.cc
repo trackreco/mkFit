@@ -48,7 +48,7 @@ void generateTracks(std::vector<Track>& simtracks, int Ntracks)
 
    // double tstart = dtime();
 
-#pragma omp parallel for num_threads(120)
+#pragma omp parallel for num_threads(60)
    for (int itrack = 0; itrack < Ntracks; ++itrack)
    {
       //create the track

@@ -23,7 +23,7 @@
 
 namespace Config
 {
-  const int g_NTracks           = 5000;//50000;
+  const int g_NTracks           = 100000;//50000;
   const int g_MaxHitsPerBunch   = std::max(100, g_NTracks * 2 / Config::nEtaPart);
 
   const int g_MaxCandsPerSeed   = 6;
@@ -37,9 +37,14 @@ typedef std::pair<int, int> PhiBinInfo_t;
 
 //==============================================================================
 
-inline bool sortByPhiMT(const Hit& hit1, const Hit& hit2)
+inline bool sortHitsByPhiMT(const Hit& h1, const Hit& h2)
 {
-  return std::atan2(hit1.position()[1],hit1.position()[0])<std::atan2(hit2.position()[1],hit2.position()[0]);
+  return std::atan2(h1.position()[1],h1.position()[0])<std::atan2(h2.position()[1],h2.position()[0]);
+}
+
+inline bool sortTrksByPhiMT(const Track& t1, const Track& t2)
+{
+  return t1.momPhi() < t2.momPhi();
 }
 
 //==============================================================================
@@ -48,7 +53,8 @@ class BunchOfHits
 {
 public:
   // This eventually becomes a vector of pointers / refs / multi indices
-  std::vector<Hit>          m_hits;
+  //std::vector<Hit>          m_hits;
+  Hit                      *m_hits;
   std::vector<PhiBinInfo_t> m_phi_bin_infos;
 
   int     m_real_size;
@@ -56,12 +62,19 @@ public:
 
 public:
   BunchOfHits() :
-    m_hits          (Config::g_MaxHitsPerBunch),
+    //m_hits          (Config::g_MaxHitsPerBunch),
     m_phi_bin_infos (Config::nPhiPart),
     m_real_size     (Config::g_MaxHitsPerBunch),
     m_fill_index    (0)
-  {}
+  {
+    m_hits = (Hit*) _mm_malloc(sizeof(Hit)*Config::g_MaxHitsPerBunch, 64);
+  }
 
+  ~BunchOfHits()
+  {
+    _mm_free(m_hits);
+  }
+  
   void Reset()
   {
     for (auto &bi : m_phi_bin_infos)
@@ -83,7 +96,8 @@ public:
 
   void SortByPhiBuildPhiBins()
   {
-    std::sort(m_hits.begin(), m_hits.begin() + m_fill_index, sortByPhiMT);
+    // std::sort(m_hits.begin(), m_hits.begin() + m_fill_index, sortByPhiMT);
+    std::sort(&m_hits[0], &m_hits[m_fill_index], sortHitsByPhiMT);
 
     int last_bin = -1;
     int idx      =  0;
@@ -214,6 +228,11 @@ public:
     m_candidates[m_fill_index] = track;
     ++m_fill_index;
   }
+
+  void SortByPhi()
+  {
+    std::sort(m_candidates.begin(), m_candidates.begin() + m_fill_index, sortTrksByPhiMT);
+  }
 };
 
 class EventOfCandidates
@@ -243,6 +262,14 @@ public:
     if (bin != -1 && r > 11.9 && r < 12.1)
     {
       m_etabins_of_candidates[bin].InsertTrack(track);
+    }
+  }
+
+  void SortByPhi()
+  {
+    for (auto &i : m_etabins_of_candidates)
+    {
+      i.SortByPhi();
     }
   }
 };

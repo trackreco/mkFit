@@ -7,9 +7,12 @@
 
 namespace Config
 {
-  static constexpr const int nPhiPart   = 63;
-  static constexpr const int nPhiFactor = 10;  // nPhiPart/2pi
-  static constexpr const int nEtaPart   = 10;
+  static const float    PI = 3.14159265358979323846;
+  static const float TwoPI = 6.28318530717958647692;
+  
+  static constexpr const int   nPhiPart   = 80; // 63;
+  static constexpr const float nPhiFactor = nPhiPart / TwoPI;
+  static constexpr const int   nEtaPart   = 40; // 10;
 
   static const int   nEtaBin   = 2*nEtaPart - 1;
   static const float fEtaDet   = 1;
@@ -83,8 +86,8 @@ inline int getPhiPartition(float phi)
 {
   //assume phi is between -PI and PI
   //  if (!(fabs(phi)<TMath::Pi())) std::cout << "anomalous phi=" << phi << std::endl;
-  float phiPlusPi  = phi + TMath::Pi();
-  int bin = phiPlusPi*10;
+  float phiPlusPi  = phi + Config::PI;
+  int bin = phiPlusPi * Config::nPhiFactor;
   return bin;
 }
 
@@ -199,7 +202,7 @@ public:
 
 private:
   MeasurementState state_;
-  MCHitInfo mcHitInfo_;
+  MCHitInfo        mcHitInfo_;
 };
 
 typedef std::vector<Hit> HitVec;
