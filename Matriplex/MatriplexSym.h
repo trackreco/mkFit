@@ -83,13 +83,16 @@ public:
    }
 
 #if defined(__MIC__)
-   void SlurpIn(T *arr, __m512i& vi)
+   void SlurpIn(const char *arr, __m512i& vi)
    {
-      for (int i = 0; i < kSize; ++i)
+      //_mm512_prefetch_i32gather_ps(vi, arr, 1, _MM_HINT_T0);
+
+      for (int i = 0; i < kSize; ++i, arr += sizeof(T))
       {
+         //_mm512_prefetch_i32gather_ps(vi, arr+2, 1, _MM_HINT_NTA);
+
          __m512 reg = _mm512_i32gather_ps(vi, arr, 1);
          _mm512_store_ps(&fArray[i*N], reg);
-         ++arr;
       }
    }
 #endif

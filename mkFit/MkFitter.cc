@@ -784,6 +784,7 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 
 void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 {
+#if defined(__MIC__)
 
   //fixme solve ambiguity NN vs beg-end
   float minChi2[NN];
@@ -791,35 +792,45 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
   int bestHit[NN];
   std::fill_n(bestHit, NN, -1);
 
+
+  const char *vi_offset = (char*) bunch_of_hits.m_hits;
+
+  const int   off_error = (char*) bunch_of_hits.m_hits[0].error().Array()      - vi_offset;
+  const int   off_param = (char*) bunch_of_hits.m_hits[0].parameters().Array() - vi_offset;
+
+  int idx[NN];
   int maxSize = -1;
-  for (int itk = 0; itk < NN; ++itk)
+
+  for (int it = 0; it < NN; ++it)
   {
-    if ( (XHitEnd.At(itk, 0, 0) - XHitBegin.At(itk, 0, 0)) > maxSize ) maxSize = (XHitEnd.At(itk, 0, 0) - XHitBegin.At(itk, 0, 0));
+    int off = XHitBegin.At(it, 0, 0) * sizeof(Hit);
+
+    _mm_prefetch(vi_offset + off, _MM_HINT_T0);
+    _mm_prefetch(vi_offset + sizeof(Hit) + off, _MM_HINT_T1);
+
+    idx[it] = off;;
+
+    if (XHitEnd.At(it, 0, 0) - XHitBegin.At(it, 0, 0) > maxSize)
+    {
+      maxSize = (XHitEnd.At(it, 0, 0) - XHitBegin.At(it, 0, 0));
+    }
   }
 
-  for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
+  __m512i vi_arr = _mm512_setr_epi32(idx[ 0], idx[ 1], idx[ 2], idx[ 3], idx[ 4], idx[ 5], idx[ 6], idx[ 7],
+                                     idx[ 8], idx[ 9], idx[10], idx[11], idx[12], idx[13], idx[14], idx[15]);
+
+  for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt, vi_offset += sizeof(Hit))
   {
-
     //fixme what if size is zero???
-
-    int idx[NN];
-#if defined(__MIC__)
 
     for (int itrack = 0; itrack < NN; ++itrack)
     {
-      //_mm_prefetch((const char*) & bunch_of_hits.m_hits[XHitBegin.At(itrack, 0, 0) + hit_cnt],     _MM_HINT_T1);
-      //_mm_prefetch((const char*) & bunch_of_hits.m_hits[XHitBegin.At(itrack, 0, 0) + hit_cnt + 1], _MM_HINT_T2);
-      int off = XHitBegin.At(itrack, 0, 0) + hit_cnt;
-      idx[itrack] = sizeof(Hit) * off;
-      _mm_prefetch((const char*) & bunch_of_hits.m_hits[off], _MM_HINT_T1);
+      // _mm_prefetch(vi_offset +   sizeof(Hit) + idx[itrack], _MM_HINT_T0); // _MM_HINT_T0);
+      _mm_prefetch(vi_offset + 2*sizeof(Hit) + idx[itrack], _MM_HINT_T1); // _MM_HINT_T0);
     }
 
-    __m512i idx_arr = _mm512_setr_epi32(idx[ 0], idx[ 1], idx[ 2], idx[ 3], idx[ 4], idx[ 5], idx[ 6], idx[ 7],
-                                        idx[ 8], idx[ 9], idx[10], idx[11], idx[12], idx[13], idx[14], idx[15]);
-
- 
-    msErr[Nhits].SlurpIn(bunch_of_hits.m_hits[0].error().Array(),      idx_arr);
-    msPar[Nhits].SlurpIn(bunch_of_hits.m_hits[0].parameters().Array(), idx_arr);
+    msErr[Nhits].SlurpIn(vi_offset + off_error, vi_arr);
+    msPar[Nhits].SlurpIn(vi_offset + off_param, vi_arr);
 
 // #pragma simd
 //     for (int itrack = 0; itrack < NN; ++itrack)
@@ -831,12 +842,15 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 //       msPar[Nhits].CopyIn(itrack, hit.parameters().Array());
 //     }
 
-#endif
-    
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
     computeChi2MPlex(Err[iP], Par[iP], msErr[Nhits], msPar[Nhits], outChi2);
-      
+
+    for (int itrack = 0; itrack < NN; ++itrack)
+    {
+      _mm_prefetch(vi_offset + sizeof(Hit) + idx[itrack], _MM_HINT_T0);
+    }
+
     //update best hit in case chi2<minChi2
 #pragma simd
     for (int itrack = 0; itrack < NN; ++itrack)
@@ -845,19 +859,19 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 #ifdef DEBUG
       std::cout << "chi2=" << chi2 << " minChi2[itrack]=" << minChi2[itrack] << std::endl;      
 #endif
-      if (chi2<minChi2[itrack]) 
+      if (chi2 < minChi2[itrack]) 
       {
         minChi2[itrack]=chi2;
         bestHit[itrack]=hit_cnt;
       }
     }
-      
+
   }//end loop over hits
 
   //copy in MkFitter the hit with lowest chi2
   for (int itrack = 0; itrack < NN; ++itrack)
   {
-    _mm_prefetch((const char*) & bunch_of_hits.m_hits[XHitBegin.At(itrack, 0, 0) + bestHit[itrack]], _MM_HINT_T1);
+    _mm_prefetch((const char*) & bunch_of_hits.m_hits[XHitBegin.At(itrack, 0, 0) + bestHit[itrack]], _MM_HINT_T0);
   }
     
 #pragma simd
@@ -906,5 +920,7 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 			Err[iC], Par[iC]);
 
   //std::cout << "Par[iP](0,0,0)=" << Par[iP](0,0,0) << " Par[iC](0,0,0)=" << Par[iC](0,0,0)<< std::endl;
-  
+
+#endif // MIC
+
 }
