@@ -82,7 +82,7 @@ public:
       }
    }
 
-#if defined(__MIC__)
+#if defined(MIC_INTRINSICS)
    void SlurpIn(const char *arr, __m512i& vi)
    {
       //_mm512_prefetch_i32gather_ps(vi, arr, 1, _MM_HINT_T0);
