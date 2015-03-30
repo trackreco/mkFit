@@ -665,123 +665,10 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits)
   }
 }
 
-//------------------------------------------------------------------------------
 
-/*
-void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
-{
-  // XXXXXXXX Currently here.
-
-  // Have tracks loaded up.
-  // Bunch of hits (presumably the same as the one passed into SelectHitRanges
-  // Values of Begin End into vector of hits
-  //
-  // So, we need to: loop over available hits (this can be different for various tracks).
-  //     ((Eventually could copyin new tracks but this would break havos with openmp))
-  //
-  // reset XHitBest
-  // if (hits still available)
-  //   copy them into proper slots
-  //   evaluate the thing below
-  //   remember the best hit
-  // if best hit recorded --> copy it in and do full update, as before
-
-#pragma simd
-  for (int itrack = 0; itrack < NN; ++itrack)
-  {
-    float best_chi2    =  9999;
-    int   best_hit_cnt = -1;
-
-    int n_tracks_processed = 0;
-    for (int hit_cnt = 0; hit_cnt < Config::g_MaxHitsPerBunch; ++hit_cnt)
-    {
-      // This hopefully leads to usage of masked vector operations.
-      // Could be prettier if I used XHitPos & Size (left to proceess)
-      if (XHitEnd.ConstAt(itrack, 0, 0) - XHitBegin.ConstAt(itrack, 0, 0) < hit_cnt)
-      {
-        // This hopefully translates into "count the bits of mask register"
-        ++n_tracks_processed;
-
-        Hit &hit = bunch_of_hits.m_hits[XHitBegin.At(itrack, 0, 0) + hit_cnt];
-
-#ifdef DEBUG
-        std::cout << "consider hit #" << ih << " of " << lay_hits.size() << std::endl;
-        std::cout << "hit x=" << hit.position()[0] << " y=" << hit.position()[1] << std::endl;      
-#endif
-
-        msErr[Nhits].CopyIn(itrack, hit.error().Array());
-        msPar[Nhits].CopyIn(itrack, hit.parameters().Array());
-
-        // XXXXXX What here? Would need non-mplex version of computeChi2
-        // Or can I somehow shift between #pragma simd and Matriplex functions? Hmmhhh ... I'm withing an if here
-        //
-        //now compute the chi2 of track state vs hit
-        MPlexQF outChi2;
-        computeChi2MPlex(Err[iP], Par[iP], msErr[Nhits], msPar[Nhits], outChi2);
-
-        //update best hit in case chi2<minChi2
-        itrack = 0;
-        //fixme: please vectorize me...
-
-        float chi2 = fabsf(outChi2[itrack]);//fixme negative chi2 sometimes...
-#ifdef DEBUG
-        std::cout << "chi2=" << chi2 << " minChi2[itrack]=" << minChi2[itrack] << std::endl;      
-#endif
-        if (chi2 < best_chi2) 
-        {
-          best_chi2    = chi2;
-          best_hit_cnt = hit_cnt;
-        }
-
-      } // if track still has hits to process
-
-      if (n_tracks_processed == 0)
-        break;
-
-    }//end loop over hits
-
-    //fixme decide what to do in case no hit found
-    if (best_hit_cnt >= 0)
-    {
-      Hit   &hit  = bunch_of_hits.m_hits[XHitBegin.At(itrack, 0, 0) + best_hit_cnt];
-
-#ifdef DEBUG
-      std::cout << "ADD BEST HIT FOR TRACK #" << i << std::endl;
-      std::cout << "prop x=" << Par[iP].ConstAt(itrack, 0, 0) << " y=" << Par[iP].ConstAt(itrack, 1, 0) << std::endl;      
-      std::cout << "copy in hit #" << bestHit[itrack] << " x=" << hit.position()[0] << " y=" << hit.position()[1] << std::endl;    
-#endif
-
-      msErr[Nhits].CopyIn(itrack, hit.error().Array());
-      msPar[Nhits].CopyIn(itrack, hit.parameters().Array());
-      Chi2(itrack, 0, 0) += best_chi2;
-    }
-    else
-    {
-#ifdef DEBUG
-      std::cout << "ADD FAKE HIT FOR TRACK #" << i << std::endl;
-#endif
-
-      msErr[Nhits].SetDiagonal3x3(itrack, 666);
-      msPar[Nhits](itrack,0,0) = Par[iP](itrack,0,0);
-      msPar[Nhits](itrack,1,0) = Par[iP](itrack,1,0);
-      msPar[Nhits](itrack,2,0) = Par[iP](itrack,2,0);
-
-      // Don't update chi2
-    }
-
-    //now update the track parameters with this hit (note that some calculations are already done when computing chi2... not sure it's worth caching them?)
-#ifdef DEBUG
-    std::cout << "update parameters" << std::endl;
-#endif
-
-    // XXXXXX Same issue as compute chi2
-    updateParametersMPlex(Err[iP], Par[iP], msErr[Nhits], msPar[Nhits],
-                          Err[iC], Par[iC]);
-
-  } // tracks
-}
-*/
-
+//==============================================================================
+// AddBestHit() -- if-defed for mic intrinsics and a general case
+//==============================================================================
 
 //------------------------------------------------------------------------------
 #if defined(MIC_INTRINSICS)
@@ -804,6 +691,8 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
   int idx[NN];
   int maxSize = -1;
 
+  // Determine maximum number of hits for tracks in the collection.
+  // At the same time prefetch the first set of hits to L1 and the second one to L2.
   for (int it = 0; it < NN; ++it)
   {
     int off = XHitBegin.At(it, 0, 0) * sizeof(Hit);
@@ -822,33 +711,27 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
   __m512i vi_arr = _mm512_setr_epi32(idx[ 0], idx[ 1], idx[ 2], idx[ 3], idx[ 4], idx[ 5], idx[ 6], idx[ 7],
                                      idx[ 8], idx[ 9], idx[10], idx[11], idx[12], idx[13], idx[14], idx[15]);
 
+// Has basically no effect, it seems.
+//#pragma noprefetch
   for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt, vi_offset += sizeof(Hit))
   {
     //fixme what if size is zero???
 
+    // Prefetch to L2 the hits we'll process after two loops iterations.
+    // Ideally this would be initiated before coming here, for whole bunch_of_hits.m_hits vector.
     for (int itrack = 0; itrack < NN; ++itrack)
     {
-      // _mm_prefetch(vi_offset +   sizeof(Hit) + idx[itrack], _MM_HINT_T0); // _MM_HINT_T0);
-      _mm_prefetch(vi_offset + 2*sizeof(Hit) + idx[itrack], _MM_HINT_T1); // _MM_HINT_T0);
+      _mm_prefetch(vi_offset + 2*sizeof(Hit) + idx[itrack], _MM_HINT_T1);
     }
 
     msErr[Nhits].SlurpIn(vi_offset + off_error, vi_arr);
     msPar[Nhits].SlurpIn(vi_offset + off_param, vi_arr);
 
-// #pragma simd
-//     for (int itrack = 0; itrack < NN; ++itrack)
-//     {
-//       if ( XHitBegin.At(itrack, 0, 0) >= XHitEnd.At(itrack, 0, 0) ) continue;//is this going to break vectorization and also crash?
-
-//       Hit &hit = bunch_of_hits.m_hits[std::min(XHitBegin.At(itrack, 0, 0) + hit_cnt, XHitEnd.At(itrack, 0, 0) - 1)];//redo the last hit in case of overflow
-//       msErr[Nhits].CopyIn(itrack, hit.error().Array());
-//       msPar[Nhits].CopyIn(itrack, hit.parameters().Array());
-//     }
-
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
     computeChi2MPlex(Err[iP], Par[iP], msErr[Nhits], msPar[Nhits], outChi2);
 
+    // Prefetch to L1 the hits we'll process in the next loop iteration.
     for (int itrack = 0; itrack < NN; ++itrack)
     {
       _mm_prefetch(vi_offset + sizeof(Hit) + idx[itrack], _MM_HINT_T0);
@@ -869,7 +752,7 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
       }
     }
 
-  }//end loop over hits
+  } // end loop over hits
 
   //copy in MkFitter the hit with lowest chi2
   for (int itrack = 0; itrack < NN; ++itrack)
