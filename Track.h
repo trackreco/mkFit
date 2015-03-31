@@ -90,6 +90,8 @@ public:
 
   void setChi2(float chi2) {chi2_=chi2;}
 
+  void setState(TrackState newState) {state_=newState;}
+
   HitVec& initHitsVector() {return initHits_;}
   SimTkIDInfo SimTrackIDInfo() const;
 

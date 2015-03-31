@@ -341,6 +341,358 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
 
 
 //==============================================================================
+// runBuildTestBestHit
+//==============================================================================
+
+double runBuildingTestBestHit(std::vector<Track>& simtracks/*, std::vector<Track>& rectracks*/)
+{
+  printf("Hello, sizeof(Track)=%d, sizeof(Hit)=%d\n\n", sizeof(Track), sizeof(Hit));
+
+  std::cout << "total simtracks=" << simtracks.size() << std::endl;
+#ifdef DEBUG
+  for (int itrack=0;itrack<simtracks.size();++itrack) {
+    Track track = simtracks[itrack];
+    std::cout << "SX - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1]) <<" phi="<< track.momPhi() <<" eta=" << track.momEta() << std::endl;
+  }
+#endif
+
+  EventOfHits event_of_hits(10); // 10 layers, this should be out of event loop, passed in.
+
+  for (int itrack=0; itrack < simtracks.size(); ++itrack)
+  {
+    //fill vector of hits in each layer (assuming there is one hit per layer in hits vector)
+    for (int ilay = 0; ilay < simtracks[itrack].nHits(); ++ilay)
+    {
+#ifdef DEBUG
+      std::cout << "simtrack #" << itrack << " lay=" << ilay 
+		<< " x=" <<  simtracks[itrack].hitsVector()[ilay].x()
+		<< " y=" <<  simtracks[itrack].hitsVector()[ilay].y()
+		<< " z=" <<  simtracks[itrack].hitsVector()[ilay].z()
+		<< " r=" <<  simtracks[itrack].hitsVector()[ilay].r()
+		<< " eta=" <<  simtracks[itrack].hitsVector()[ilay].eta()
+		<< " phi=" <<  simtracks[itrack].hitsVector()[ilay].phi()
+		<< std::endl;
+#endif
+      event_of_hits.InsertHit(simtracks[itrack].hitsVector()[ilay], ilay);
+    }
+  }
+
+  event_of_hits.SortByPhiBuildPhiBins();
+
+
+#ifdef DEBUG
+  for (int ilay = 3; ilay < event_of_hits.m_n_layers; ++ilay)
+    {
+      for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
+	{
+	  BunchOfHits &bunch_of_hits = event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];	     
+	  for (int ihit = 0;  ihit<bunch_of_hits.m_fill_index; ++ihit) {
+	    Hit& hit = bunch_of_hits.m_hits[ihit];
+	    std::cout << "lay=" << ilay << " ebin=" << ebin 
+		      << " x=" <<  hit.x()
+		      << " y=" <<  hit.y()
+		      << " z=" <<  hit.z()
+		      << " r=" <<  hit.r()
+		      << " eta=" <<  hit.eta()
+		      << " phi=" <<  hit.phi()
+		      << std::endl;
+	  }
+	}
+    }
+#endif
+
+
+  SMatrix36 projMatrix36;
+  projMatrix36(0,0)=1.;
+  projMatrix36(1,1)=1.;
+  projMatrix36(2,2)=1.;
+  SMatrix63 projMatrix36T = ROOT::Math::Transpose(projMatrix36);
+
+  double time = dtime();
+
+  std::vector<Track> recseeds;
+  recseeds.reserve(simtracks.size());
+#ifdef DEBUG
+  std::cout << "fill seeds" << std::endl;
+#endif
+
+  //create seeds (from sim tracks for now)
+  const int nhits_per_seed = 3;
+  for (unsigned int itrack=0;itrack<simtracks.size();++itrack) {
+    Track& trk = simtracks[itrack];
+    std::vector<Hit>& hits = trk.hitsVector();
+    TrackState updatedState = trk.state();
+    /*
+    std::cout << "updatedState pos=" << updatedState.parameters[0] << " , " << updatedState.parameters[1] << " , " << updatedState.parameters[2]
+	      << " mom=" << updatedState.parameters[3] << " , " << updatedState.parameters[4] << " , " << updatedState.parameters[5]
+	      << "\n err=" << updatedState.errors
+	      << std::endl;
+    */
+    std::vector<Hit> seedhits;
+    for (int ihit=0;ihit<nhits_per_seed;++ihit) {//seeds have 3 hits
+      TrackState       propState = propagateHelixToR(updatedState,hits[ihit].r());
+      /*
+      std::cout << "propState pos=" << propState.parameters[0] << " , " << propState.parameters[1] << " , " << propState.parameters[2]
+		<< " mom=" << propState.parameters[3] << " , " << propState.parameters[4] << " , " << propState.parameters[5]
+		<< "\n err=" << propState.errors
+		<< std::endl;
+      */
+      MeasurementState measState = hits[ihit].measurementState();
+      updatedState = updateParameters(propState, measState,projMatrix36,projMatrix36T);
+      //updateParameters66(propState, measState, updatedState);
+      /*
+      std::cout << "updatedState pos=" << updatedState.parameters[0] << " , " << updatedState.parameters[1] << " , " << updatedState.parameters[2]
+		<< " mom=" << updatedState.parameters[3] << " , " << updatedState.parameters[4] << " , " << updatedState.parameters[5]
+		<< "\n err=" << updatedState.errors
+		<< std::endl;
+      */
+      seedhits.push_back(hits[ihit]);//fixme chi2
+    }
+    Track seed(updatedState,seedhits,0.);//fixme chi2
+    for (int ihit=0;ihit<nhits_per_seed;++ihit)
+      {
+	seed.addHitIdx(ihit,0);//fixme this should be the real idx not ihit
+      }
+    //std::cout << "SM - found seed with nHits=" << seed.nHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << std::endl;
+    recseeds.push_back(seed);
+  }
+
+  //ok now, we should have all seeds fitted in recseeds
+#ifdef DEBUG
+  std::cout << "found total seeds=" << recseeds.size() << std::endl;
+  for (int iseed=0;iseed<recseeds.size();++iseed)
+  {
+    Track& seed = recseeds[iseed];
+    std::cout << "SM - found seed with nHits=" << seed.nHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.posR() << " pT=" << seed.pT() << std::endl;
+  }
+#endif
+
+  // MT: partition recseeds into eta bins
+  EventOfCandidates event_of_cands;
+  for (int iseed = 0; iseed < recseeds.size(); ++iseed)
+  {
+    event_of_cands.InsertCandidate(recseeds[iseed]);
+  }
+
+  //dump seeds
+#ifdef DEBUG
+  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
+  {
+    EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin]; 
+    for (int iseed = 0; iseed < etabin_of_candidates.m_fill_index; iseed++)
+    {
+      Track& seed = etabin_of_candidates.m_candidates[iseed];
+      std::cout << "SM - found seed with nHitIdx=" << seed.nHitIdx() << " chi2=" << seed.chi2() 
+                << " x=" << seed.position()[0] << " y=" << seed.position()[1] << " z=" << seed.position()[2] 
+                << " px=" << seed.momentum()[0] << " py=" << seed.momentum()[1] << " pz=" << seed.momentum()[2] 
+                << " pT=" << sqrt(seed.momentum()[0]*seed.momentum()[0]+seed.momentum()[1]*seed.momentum()[1]) 
+                << std::endl;
+    }
+  }
+#endif
+
+  int nseeds=recseeds.size();
+  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
+  {
+
+     EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin];
+
+     for (int itrack = 0; itrack < etabin_of_candidates.m_fill_index; ++itrack)
+       {
+	 
+#ifdef DEBUG
+         std::cout << std::endl;
+	 std::cout << "processing track=" << itrack << " etabin=" << ebin << " findex=" << etabin_of_candidates.m_fill_index << std::endl;
+#endif	 
+	 //ok now we start looping over layers
+	 //loop over layers, starting from after the seed
+	 //consider inverting loop order and make layer outer, need to trade off hit prefetching with copy-out of candidates
+	 for (int ilay = nhits_per_seed; ilay < event_of_hits.m_n_layers; ++ilay)
+	   {
+	     BunchOfHits &bunch_of_hits = event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];	     
+
+	     Track& tkcand = etabin_of_candidates.m_candidates[itrack];
+	     TrackState& updatedState = tkcand.state();
+
+#ifdef DEBUG
+	     std::cout << "track with posEta=" << tkcand.posEta() << " posPhi=" << tkcand.posPhi() 
+		       << " momEta=" << tkcand.momEta() << " momPhi=" << tkcand.momPhi() 
+		       << " pT=" << tkcand.pT() << std::endl;
+#endif	 
+
+	     //propagate to layer
+
+	     TrackState propState = propagateHelixToR(updatedState,4.*float(ilay+1));//radius of 4*ilay
+	     float predx = propState.parameters.At(0);
+	     float predy = propState.parameters.At(1);
+	     float predz = propState.parameters.At(2);
+
+	     float phi = getPhi(predx,predy);
+
+	     const float px2py2 = predx*predx+predy*predy; // predicted radius^2
+
+	     const float dphidx = -predy/px2py2;
+	     const float dphidy =  predx/px2py2;
+	     const float dphi2  =  dphidx*dphidx*(propState.errors.At(0,0)) +
+	                           dphidy*dphidy*(propState.errors.At(1,1)) +
+	                           2 * dphidx*dphidy*(propState.errors.At(0,1));
+
+	     const float dphi       = sqrtf(std::fabs(dphi2));//how come I get negative squared errors sometimes? MT -- how small?
+	     const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi,(float) Config::minDPhi), float(M_PI/1.));//fixme
+	     //const float nSigmaDphi = Config::nSigma*dphi;
+
+	     //if (nSigmaDphi>0.3) 
+	     //std::cout << "window MX: " << predx << " " << predy << " " << predz << " " << Err[iP].ConstAt(itrack, 0, 0) << " " << Err[iP].ConstAt(itrack, 1, 1) << " " << Err[iP].ConstAt(itrack, 0, 1) << " " << nSigmaDphi << std::endl;
+	     
+	     const float dphiMinus = normalizedPhi(phi-nSigmaDphi);
+	     const float dphiPlus  = normalizedPhi(phi+nSigmaDphi);
+	     
+#ifdef DEBUG
+	     std::cout << "dphi = " << dphi  << ", dphi2 = " << dphi2 << ", nSigmaDphi = " << nSigmaDphi << ", nSigma = " << Config::nSigma << std::endl;
+	     std::cout << "phiMinus = " << dphiMinus << ", phiPlus = " << dphiPlus << std::endl;
+#endif
+
+	     int   phiBinMinus = getPhiPartition(dphiMinus);
+	     int   phiBinPlus  = getPhiPartition(dphiPlus);
+	     
+#ifdef DEBUG
+	     std::cout << "phiBinMinus = " << phiBinMinus << ", phiBinPlus = " << phiBinPlus << std::endl;
+#endif
+	     
+	     phiBinMinus = std::max(0,phiBinMinus);
+	     phiBinMinus = std::min(Config::nPhiPart-1,phiBinMinus);
+	     phiBinPlus = std::max(0,phiBinPlus);
+	     phiBinPlus = std::min(Config::nPhiPart-1,phiBinPlus);
+	     
+
+	     BinInfo binInfoMinus = bunch_of_hits.m_phi_bin_infos[int(phiBinMinus)];
+	     BinInfo binInfoPlus  = bunch_of_hits.m_phi_bin_infos[int(phiBinPlus)];
+	     
+	     //fixme: temporary to avoid wrapping
+	     if (binInfoMinus > binInfoPlus)
+	       {
+		 int phibin = getPhiPartition(phi);
+		 phibin = std::max(0,phibin);
+		 phibin = std::min(Config::nPhiPart-1,phibin);
+		 binInfoMinus = bunch_of_hits.m_phi_bin_infos[phibin];
+		 binInfoPlus  = bunch_of_hits.m_phi_bin_infos[phibin];
+	       }
+
+	     //std::cout << "SM number of hits in window in layer " << ilay << " is " <<  binInfoPlus.first+binInfoPlus.second-binInfoMinus.first << std::endl;
+ 
+#ifdef DEBUG
+	     std::cout << "bin info begin=" << binInfoMinus.first << " end=" << binInfoPlus.first+binInfoPlus.second << std::endl;
+#endif
+	     
+	     //make candidates with best hit
+#ifdef DEBUG
+	     std::cout << "make new candidates" << std::endl;
+#endif
+
+	     float minChi2 = 100.;
+	     int bestHit = -1;
+	     for (unsigned int ihit=binInfoMinus.first;ihit<binInfoPlus.first+binInfoPlus.second ;++ihit) {//loop over hits on layer (consider only hits from partition)
+
+	       Hit &hitCand = bunch_of_hits.m_hits[ihit];
+	       
+	       float hitx = hitCand.position()[0];
+	       float hity = hitCand.position()[1];
+	       float hitz = hitCand.position()[2];
+
+#ifdef DEBUG
+	       std::cout << "consider hit idx=" << ihit << " with x=" << hitx << " y=" << hity << " z=" << hitz << std::endl;
+#endif
+
+	       MeasurementState hitMeas = hitCand.measurementState();
+	       float chi2 = computeChi2(propState,hitMeas,projMatrix36,projMatrix36T);
+
+#ifdef DEBUG
+	       std::cout << "chi2=" << chi2 << " minChi2=" << minChi2 << std::endl;
+#endif
+
+	       if (chi2<minChi2) {
+		 minChi2=chi2;
+		 bestHit=ihit;
+	       }
+
+	     }
+
+	     if (bestHit>=0) {
+	       MeasurementState hitMeas = bunch_of_hits.m_hits[bestHit].measurementState();
+	       TrackState tmpUpdatedState = updateParameters(propState,hitMeas,projMatrix36,projMatrix36T);	     
+	       tkcand.addHitIdx(bestHit,minChi2);
+	       tkcand.setState(tmpUpdatedState);
+
+#ifdef DEBUG
+	       Hit &hit = bunch_of_hits.m_hits[bestHit];
+	       std::cout << "ADD BEST HIT FOR TRACK #" << itrack << std::endl;
+	       std::cout << "prop x=" << predx << " y=" << predy << std::endl;
+	       std::cout << "copy in hit #" << bestHit << " x=" << hit.position()[0] << " y=" << hit.position()[1] << std::endl;
+#endif
+
+	     } else {
+#ifdef DEBUG
+	       std::cout << "ADD FAKE HIT FOR TRACK #" << itrack << std::endl;
+#endif
+	       //do nothing, keep the track as it is (but add a record for an invalid hit)
+	       tkcand.addHitIdx(-1,0);
+	     }
+	 
+	   }//end of layer loop
+	 
+       }//end of seed loop
+     
+   }//end of parallel section over seeds
+
+
+   time = dtime() - time;
+
+   //dump tracks
+   //std::cout << "found total tracks=" << recseeds.size() << std::endl;
+   {
+     int cnt=0, cnt1=0, cnt2=0;
+     for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
+     {
+       EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin]; 
+       for (int itrack = 0; itrack < etabin_of_candidates.m_fill_index; itrack++)
+       {
+         Track& tkcand = etabin_of_candidates.m_candidates[itrack];
+         float pt = tkcand.pT();
+         ++cnt;
+         if (pt > 9 && pt < 11) ++cnt1;
+         if (pt > 8 && pt < 12) ++cnt2;
+#ifdef DEBUG
+         std::cout << "SM - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << sqrt(tkcand.momentum()[0]*tkcand.momentum()[0]+tkcand.momentum()[1]*tkcand.momentum()[1]) << std::endl;
+#endif
+       }
+     }
+     std::cout << "found tracks=" << cnt << "  in pT 10%=" << cnt1 << "  in pT 20%=" << cnt2 << std::endl;
+   }
+
+   return time;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//==============================================================================
 // runBuildTestPlex
 //==============================================================================
 
@@ -942,6 +1294,8 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
 	   
 	     mkfp->SelectHitRanges(bunch_of_hits);
 	     
+	     //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->XHitEnd  .At(0, 0, 0)-mkfp->XHitBegin.At(0, 0, 0) << std::endl;
+
 	     //make candidates with best hit
 #ifdef DEBUG
 	     std::cout << "make new candidates" << std::endl;

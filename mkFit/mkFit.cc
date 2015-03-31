@@ -183,6 +183,8 @@ void test_standard()
 
   double tsm2 = 0;//runBuildingTest(simtracks);
   double tmp2 = 0;//runBuildingTestPlex(simtracks);
+
+  double tsm2bh = runBuildingTestBestHit(simtracks);
   double tmp2bh = runBuildingTestPlexBestHit(simtracks);
 
   // Second pass -- select problematic tracks and refit them
@@ -221,7 +223,7 @@ void test_standard()
     tmp = runFittingTestPlex(simtracks, plex_tracks);
   }
 
-  printf("SMatrix = %.5f   Matriplex = %.5f   ---   SM/MP = %.5f  --- Build SM = %.5f    MX = %.5f    BH = %.5f\n", tsm, tmp, tsm / tmp, tsm2, tmp2, tmp2bh);
+  printf("SMatrix = %.5f   Matriplex = %.5f   ---   SM/MP = %.5f  --- Build SM = %.5f    MX = %.5f    BHSM = %.5f    BHMX = %.5f\n", tsm, tmp, tsm / tmp, tsm2, tmp2, tsm2bh, tmp2bh);
 
 #ifndef NO_ROOT
   make_validation_tree("validation-smat.root", simtracks, smat_tracks);

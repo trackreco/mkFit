@@ -12,6 +12,7 @@ void   make_validation_tree(const char         *fname,
 */
 
 double runBuildingTest(std::vector<Track>& simtracks/*, std::vector<Track>& rectracks*/);
+double runBuildingTestBestHit(std::vector<Track>& simtracks/*, std::vector<Track>& rectracks*/);
 
 void buildTestParallel(std::vector<Track>& evt_seeds,std::vector<Track>& evt_track_candidates,
 		       std::vector<std::vector<Hit> >& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,

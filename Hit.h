@@ -180,6 +180,12 @@ public:
     return sqrt(state_.parameters.At(0)*state_.parameters.At(0) +
                 state_.parameters.At(1)*state_.parameters.At(1));
   }
+  float x() const {
+    return state_.parameters.At(0);
+  }
+  float y() const {
+    return state_.parameters.At(1);
+  }
   float z() const {
     return state_.parameters.At(2);
   }
