@@ -63,6 +63,7 @@ public:
   SMatrixSym66& errors() {return state_.errors;}
   TrackState&   state() {return state_;}
   float         chi2() {return chi2_;}
+  int           label() {return label_;}
 
   float posPhi() const { return getPhi(state_.parameters[0],state_.parameters[1]); }
   float momPhi() const { return getPhi(state_.parameters[3],state_.parameters[4]); }
@@ -89,6 +90,7 @@ public:
   }
 
   void setChi2(float chi2) {chi2_=chi2;}
+  void setLabel(int lbl) {label_=lbl;}
 
   void setState(TrackState newState) {state_=newState;}
 
@@ -101,8 +103,9 @@ private:
   TrackState state_;
   HitVec hits_;
   HitVec initHits_;
-  float chi2_;
   HitIdxVec hitIdxVec_;
+  float chi2_;
+  int   label_ = -1;
 };
 
 typedef std::vector<Track> TrackVec;

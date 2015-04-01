@@ -34,8 +34,9 @@ void MkFitter::InputTracksAndHits(std::vector<Track>& tracks, int beg, int end)
   int itrack = 0;
   for (int i = beg; i < end; ++i, ++itrack)
   {
-
     Track &trk = tracks[i];
+
+    SeedIdx(itrack, 0, 0) = trk.label();
 
     Err[iC].CopyIn(itrack, trk.errors().Array());
     Par[iC].CopyIn(itrack, trk.parameters().Array());
@@ -67,7 +68,7 @@ void MkFitter::InputTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end
 
     Track &trk = tracks[i];
 
-    SeedIdx(itrack, 0, 0) = i;
+    SeedIdx(itrack, 0, 0) = trk.label();
 
     Err[iC].CopyIn(itrack, trk.errors().Array());
     Par[iC].CopyIn(itrack, trk.parameters().Array());
@@ -83,7 +84,6 @@ void MkFitter::InputTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end
     }
   }
 }
-
 
 void MkFitter::InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks, std::vector<std::pair<int,int> >& idxs, int beg, int end)
 {
@@ -143,6 +143,7 @@ void MkFitter::InputTracksOnly(std::vector<Track>& tracks, int beg, int end)
 
     Chg(itrack, 0, 0) = trk.charge();
     Chi2(itrack, 0, 0) = trk.chi2();
+    SeedIdx(itrack, 0, 0) = trk.label();
   }
 }
 
@@ -199,6 +200,7 @@ void MkFitter::OutputTracks(std::vector<Track>& tracks, int beg, int end, int iC
 
     // XXXXX chi2 is not set (also not in SMatrix fit, it seems)
     tracks[i].setChi2(Chi2(itrack, 0, 0));
+    tracks[i].setLabel(SeedIdx(itrack, 0, 0));
   }
 }
 
@@ -215,13 +217,13 @@ void MkFitter::OutputFittedTracksAndHits(std::vector<Track>& tracks, int beg, in
 
     tracks[i].charge() = Chg(itrack, 0, 0);
     tracks[i].setChi2(Chi2(itrack, 0, 0));
+    tracks[i].setLabel(SeedIdx(itrack, 0, 0));
 
     // XXXXX chi2 is not set (also not in SMatrix fit, it seems)
 
     tracks[i].resetHits();
     for (int hi = 0; hi < Nhits; ++hi)
     {
-
       Hit hit;
 
       msErr[hi].CopyOut(itrack, hit.error().Array());
@@ -229,9 +231,7 @@ void MkFitter::OutputFittedTracksAndHits(std::vector<Track>& tracks, int beg, in
 
       tracks[i].addHit(hit,0.);
       tracks[i].addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);
-
     }
-
   }
 }
 
@@ -249,6 +249,7 @@ void MkFitter::OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, 
 
     tracks[i].charge() = Chg(itrack, 0, 0);
     tracks[i].setChi2(Chi2(itrack, 0, 0));
+    tracks[i].setLabel(SeedIdx(itrack, 0, 0));
 
     // XXXXX chi2 is not set (also not in SMatrix fit, it seems)
 
@@ -708,6 +709,9 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
     }
   }
 
+  // XXXX MT Uber hack to avoid tracks with like 300 hits to process.
+  if (maxSize > 25) maxSize = 25;
+
   __m512i vi_arr = _mm512_setr_epi32(idx[ 0], idx[ 1], idx[ 2], idx[ 3], idx[ 4], idx[ 5], idx[ 6], idx[ 7],
                                      idx[ 8], idx[ 9], idx[10], idx[11], idx[12], idx[13], idx[14], idx[15]);
 
@@ -766,7 +770,6 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
     //fixme decide what to do in case no hit found
     if (bestHit[itrack] >= 0)
     {
-
       Hit   &hit  = bunch_of_hits.m_hits[ XHitBegin.At(itrack, 0, 0) + bestHit[itrack] ];
       float &chi2 = minChi2[itrack];
 	  
@@ -780,7 +783,6 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
       msPar[Nhits].CopyIn(itrack, hit.parameters().Array());
       Chi2(itrack, 0, 0) += chi2;
       HitsIdx[Nhits](itrack, 0, 0) = XHitBegin.At(itrack, 0, 0) + bestHit[itrack];
-
     }
     else
     {

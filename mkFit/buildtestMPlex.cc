@@ -1132,6 +1132,11 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
 
   for (int itrack=0; itrack < simtracks.size(); ++itrack)
   {
+    if (simtracks[itrack].label() != itrack)
+    {
+      printf("Bad label for simtrack %d -- %d\n", itrack, simtracks[itrack].label());
+    }
+
     //fill vector of hits in each layer (assuming there is one hit per layer in hits vector)
     for (int ilay = 0; ilay < simtracks[itrack].nHits(); ++ilay)
     {
@@ -1206,6 +1211,8 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
 
     MkFitter *mkfp = mkfp_arr[omp_get_thread_num()];
 
+    mkfp->SetNhits(3);//just to be sure (is this needed?)
+
     mkfp->InputTracksAndHits(simtracks, itrack, end);
 
     mkfp->FitTracks();
@@ -1227,6 +1234,11 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
   EventOfCandidates event_of_cands;
   for (int iseed = 0; iseed < recseeds.size(); ++iseed)
   {
+    if (recseeds[iseed].label() != iseed)
+    {
+      printf("Bad label for recseed %d -- %d\n", iseed, recseeds[iseed].label());
+    }
+
     event_of_cands.InsertCandidate(recseeds[iseed]);
   }
 
@@ -1253,7 +1265,7 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
 #pragma omp parallel num_threads(1)//fixme: set to one for debugging (to be revisited anyway - what if there are more threads than eta bins?)
    for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
    {
-     // XXXX Could have nested paralellism, like NUM_THREADS/nEtaBins (but runding sucks here).
+     // XXXX Could have nested paralellism, like NUM_THREADS/nEtaBins (but rounding sucks here).
      // XXXX So one should really have TBB, for this and for the above.
      // vectorized loop
      EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin];
@@ -1268,19 +1280,27 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
 #endif
 
 	 MkFitter *mkfp = mkfp_arr[omp_get_thread_num()];
-	     
+
 	 mkfp->SetNhits(3);//just to be sure (is this needed?)
-	 
+
 	 mkfp->InputTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end);
-	 
+
 	 //ok now we start looping over layers
 	 //loop over layers, starting from after the seed
 	 //consider inverting loop order and make layer outer, need to trade off hit prefetching with copy-out of candidates
 	 for (int ilay = nhits_per_seed; ilay < event_of_hits.m_n_layers; ++ilay)
 	   {
 	     BunchOfHits &bunch_of_hits = event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];	     
-	     	 
-         //propagate to layer
+
+             // XXX This should actually be done in some other thread for the next layer while
+             // this thread is crunching the current one.
+             // For now it's done in MkFitter::AddBestHit(), two loops before the data is needed.
+             // for (int i = 0; i < bunch_of_hits.m_fill_index; ++i)
+             // {
+             //   _mm_prefetch((char*) & bunch_of_hits.m_hits[i], _MM_HINT_T1);
+             // }
+
+             //propagate to layer
 #ifdef DEBUG
 	     std::cout << "propagate to lay=" << ilay+1 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
 		       << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
@@ -1302,7 +1322,7 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
 #endif
 	     mkfp->AddBestHit(bunch_of_hits);
 	     
-	     mkfp->SetNhits(ilay + 1);  //here again assuming one hits per layer (is this needed?)
+	     mkfp->SetNhits(ilay + 1);  //here again assuming one hit per layer (is this needed?)
 	 
 	   }//end of layer loop
 	 
@@ -1320,23 +1340,44 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
    //dump tracks
    //std::cout << "found total tracks=" << recseeds.size() << std::endl;
    {
-     int cnt=0, cnt1=0, cnt2=0;
+     int cnt=0, cnt1=0, cnt2=0, cnt_8=0, cnt1_8=0, cnt2_8=0, cnt_nomc=0;
      for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
      {
        EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin]; 
+
        for (int itrack = 0; itrack < etabin_of_candidates.m_fill_index; itrack++)
        {
          Track& tkcand = etabin_of_candidates.m_candidates[itrack];
-         float pt = tkcand.pT();
+
+         int   mctrk = tkcand.label();
+         if (mctrk < 0 || mctrk >= Config::g_NTracks)
+         {
+           ++cnt_nomc;
+           // std::cout << "XX bad track idx " << mctrk << "\n";
+           continue;
+         }
+         float pt    = tkcand.pT();
+         float ptmc  = simtracks[mctrk].pT() ;
+         float pr    = pt / ptmc;
+
          ++cnt;
-         if (pt > 9 && pt < 11) ++cnt1;
-         if (pt > 8 && pt < 12) ++cnt2;
+         if (pr > 0.9 && pr < 1.1) ++cnt1;
+         if (pr > 0.8 && pr < 1.2) ++cnt2;
+
+         if (tkcand.nHitIdx() >= 8)
+         {
+           ++cnt_8;
+           if (pr > 0.9 && pr < 1.1) ++cnt1_8;
+           if (pr > 0.8 && pr < 1.2) ++cnt2_8;
+         }
+
 #ifdef DEBUG
-         std::cout << "MX - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << sqrt(tkcand.momentum()[0]*tkcand.momentum()[0]+tkcand.momentum()[1]*tkcand.momentum()[1]) << std::endl;
+         std::cout << "MX - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
 #endif
        }
      }
-     std::cout << "found tracks=" << cnt << "  in pT 10%=" << cnt1 << "  in pT 20%=" << cnt2 << std::endl;
+     std::cout << "found tracks=" << cnt   << "  in pT 10%=" << cnt1   << "  in pT 20%=" << cnt2   << "     no_mc_assoc="<< cnt_nomc <<std::endl;
+     std::cout << "  nH >= 8   =" << cnt_8 << "  in pT 10%=" << cnt1_8 << "  in pT 20%=" << cnt2_8 << std::endl;
    }
    
    for (int i = 0; i < NUM_THREADS; ++i)
