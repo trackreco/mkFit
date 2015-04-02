@@ -51,6 +51,9 @@ public:
 
   void PrintPt(int idx);
 
+  int getXHitBegin(int arg0,int arg1,int arg2) { return XHitBegin.At(arg0, arg1, arg2); }
+  int getXHitEnd  (int arg0,int arg1,int arg2) { return XHitEnd  .At(arg0, arg1, arg2); }
+
   void InputTracksAndHits(std::vector<Track>& tracks, int beg, int end);
   void InputTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end);
   void InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks, std::vector<std::pair<int,int> >& idxs, int beg, int end);

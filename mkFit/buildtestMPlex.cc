@@ -12,6 +12,8 @@
 #include "ittnotify.h"
 #endif
 
+//#define PRINTOUTS_FOR_PLOTS
+
 bool sortByHitsChi2(std::pair<Track, TrackState> cand1,std::pair<Track, TrackState> cand2)
 {
   if (cand1.first.nHits()==cand2.first.nHits()) return cand1.first.chi2()<cand2.first.chi2();
@@ -578,8 +580,10 @@ double runBuildingTestBestHit(std::vector<Track>& simtracks/*, std::vector<Track
 		 binInfoPlus  = bunch_of_hits.m_phi_bin_infos[phibin];
 	       }
 
-	     //std::cout << "SM number of hits in window in layer " << ilay << " is " <<  binInfoPlus.first+binInfoPlus.second-binInfoMinus.first << std::endl;
- 
+#ifdef PRINTOUTS_FOR_PLOTS
+	     std::cout << "SM number of hits in window in layer " << ilay << " is " <<  binInfoPlus.first+binInfoPlus.second-binInfoMinus.first << std::endl;
+#endif 
+
 #ifdef DEBUG
 	     std::cout << "bin info begin=" << binInfoMinus.first << " end=" << binInfoPlus.first+binInfoPlus.second << std::endl;
 #endif
@@ -661,6 +665,10 @@ double runBuildingTestBestHit(std::vector<Track>& simtracks/*, std::vector<Track
          ++cnt;
          if (pt > 9 && pt < 11) ++cnt1;
          if (pt > 8 && pt < 12) ++cnt2;
+#ifdef PRINTOUTS_FOR_PLOTS
+         std::cout << "SM - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << sqrt(tkcand.momentum()[0]*tkcand.momentum()[0]+tkcand.momentum()[1]*tkcand.momentum()[1]) << std::endl;
+#endif
+
 #ifdef DEBUG
          std::cout << "SM - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << sqrt(tkcand.momentum()[0]*tkcand.momentum()[0]+tkcand.momentum()[1]*tkcand.momentum()[1]) << std::endl;
 #endif
@@ -1314,8 +1322,9 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
 	   
 	     mkfp->SelectHitRanges(bunch_of_hits);
 	     
-	     //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->XHitEnd  .At(0, 0, 0)-mkfp->XHitBegin.At(0, 0, 0) << std::endl;
-
+#ifdef PRINTOUTS_FOR_PLOTS
+	     std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
+#endif
 	     //make candidates with best hit
 #ifdef DEBUG
 	     std::cout << "make new candidates" << std::endl;
@@ -1371,6 +1380,9 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
            if (pr > 0.8 && pr < 1.2) ++cnt2_8;
          }
 
+#ifdef PRINTOUTS_FOR_PLOTS
+         std::cout << "MX - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
+#endif
 #ifdef DEBUG
          std::cout << "MX - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
 #endif
