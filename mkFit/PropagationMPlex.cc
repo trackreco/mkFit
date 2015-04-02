@@ -4,6 +4,8 @@
 // propagateLineToRMPlex
 //==============================================================================
 
+using namespace Matriplex;
+
 void propagateLineToRMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
                            const MPlexHS &msErr,  const MPlexHV& msPar,
                            MPlexLS &outErr,       MPlexLV& outPar)

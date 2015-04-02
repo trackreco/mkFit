@@ -3,6 +3,8 @@
 namespace
 {
 
+  using namespace Matriplex;
+
 inline
 void MultResidualsAdd(const MPlexLH& A,
                       const MPlexLV& B,
