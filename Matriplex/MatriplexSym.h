@@ -100,7 +100,6 @@ public:
    {
       T *store = fArray;
 
-#pragma simd
       for (int i = 0; i < kSize; ++i, arr += sizeof(T))
       {
         for (int j = 0; j < N; ++j)

@@ -12,11 +12,11 @@
 // Intrinsics -- preamble
 //==============================================================================
 
+#include "immintrin.h"
+
 #if defined(MPLEX_USE_INTRINSICS)
 
   #if defined(__MIC__) || defined(__AVX__)
-
-    #include "immintrin.h"
 
     #define MPLEX_INTRINSICS
 
@@ -26,6 +26,7 @@
 
     typedef __m512 IntrVec_t;
     #define MPLEX_INTRINSICS_WIDTH 512
+    #define MIC_INTRINSICS
 
     #define LD(a, i)      _mm512_load_ps(&a[i*N+n])
     #define ADD(a, b)     _mm512_add_ps(a, b) 
@@ -37,6 +38,7 @@
 
     typedef __m256 IntrVec_t;
     #define MPLEX_INTRINSICS_WIDTH 256
+    #define AVX_INTRINSICS
 
     #define LD(a, i)      _mm256_load_ps(&a[i*N+n])
     #define ADD(a, b)     _mm256_add_ps(a, b) 
@@ -45,6 +47,8 @@
     #define ST(a, i, r)   _mm256_store_ps(&a[i*N+n], r)
 
   #endif
+
+
 
 #endif
 
