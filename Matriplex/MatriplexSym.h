@@ -95,6 +95,20 @@ public:
          _mm512_store_ps(&fArray[i*N], reg);
       }
    }
+#else
+   void SlurpIn(const char *arr, int vi[N])
+   {
+      T *store = fArray;
+
+#pragma simd
+      for (int i = 0; i < kSize; ++i, arr += sizeof(T))
+      {
+        for (int j = 0; j < N; ++j)
+        {
+           store[i*N + j] = arr[ vi[j] ];
+        }
+      }
+   }
 #endif
 
    void CopyOut(idx_t n, T *arr)

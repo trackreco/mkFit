@@ -173,6 +173,8 @@ void test_standard()
 
   int Nevents = Config::g_NEvents;
 
+  double s_tmp=0, s_tsm=0, s_tsm2=0, s_tmp2=0, s_tsm2bh=0, s_tmp2bh=0;
+
   for (int ev = 0; ev < Nevents; ++ev)
   {
     generateTracks(simtracks, Ntracks);
@@ -227,9 +229,19 @@ void test_standard()
       tmp = runFittingTestPlex(simtracks, plex_tracks);
     }
 
-    printf("SMatrix = %.5f   Matriplex = %.5f   ---   SM/MP = %.5f  --- Build SM = %.5f    MX = %.5f    BHSM = %.5f    BHMX = %.5f\n", tsm, tmp, tsm / tmp, tsm2, tmp2, tsm2bh, tmp2bh);
+    printf("SMatrix = %.5f   Matriplex = %.5f   ---   SM/MP = %.5f  --- Build SM = %.5f    MX = %.5f    BHSM = %.5f    BHMX = %.5f\n",
+           tsm, tmp, tsm / tmp, tsm2, tmp2, tsm2bh, tmp2bh);
 
+    s_tmp    += tmp;    s_tsm    += tsm;
+    s_tsm2   += tsm2;   s_tmp2   += tmp2;
+    s_tsm2bh += tsm2bh; s_tmp2bh += tmp2bh;
   }
+  printf("================================================================\n");
+  printf("=== TOTAL for %d events\n", Nevents);
+  printf("================================================================\n");
+
+  printf("SMatrix = %.5f   Matriplex = %.5f   ---   SM/MP = %.5f  --- Build SM = %.5f    MX = %.5f    BHSM = %.5f    BHMX = %.5f\n",
+         s_tsm, s_tmp, s_tsm / s_tmp, s_tsm2, s_tmp2, s_tsm2bh, s_tmp2bh);
 
 #ifndef NO_ROOT
   make_validation_tree("validation-smat.root", simtracks, smat_tracks);

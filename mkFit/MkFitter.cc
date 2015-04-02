@@ -683,11 +683,10 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
   int bestHit[NN];
   std::fill_n(bestHit, NN, -1);
 
+  const char *varr      = (char*) bunch_of_hits.m_hits;
 
-  const char *vi_offset = (char*) bunch_of_hits.m_hits;
-
-  const int   off_error = (char*) bunch_of_hits.m_hits[0].error().Array()      - vi_offset;
-  const int   off_param = (char*) bunch_of_hits.m_hits[0].parameters().Array() - vi_offset;
+  const int   off_error = (char*) bunch_of_hits.m_hits[0].error().Array()      - varr;
+  const int   off_param = (char*) bunch_of_hits.m_hits[0].parameters().Array() - varr;
 
   int idx[NN];
   int maxSize = -1;
@@ -698,10 +697,10 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
   {
     int off = XHitBegin.At(it, 0, 0) * sizeof(Hit);
 
-    _mm_prefetch(vi_offset + off, _MM_HINT_T0);
-    _mm_prefetch(vi_offset + sizeof(Hit) + off, _MM_HINT_T1);
+    _mm_prefetch(varr + off, _MM_HINT_T0);
+    _mm_prefetch(varr + sizeof(Hit) + off, _MM_HINT_T1);
 
-    idx[it] = off;;
+    idx[it] = off;
 
     if (XHitEnd.At(it, 0, 0) - XHitBegin.At(it, 0, 0) > maxSize)
     {
@@ -712,12 +711,14 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
   // XXXX MT Uber hack to avoid tracks with like 300 hits to process.
   if (maxSize > 25) maxSize = 25;
 
-  __m512i vi_arr = _mm512_setr_epi32(idx[ 0], idx[ 1], idx[ 2], idx[ 3], idx[ 4], idx[ 5], idx[ 6], idx[ 7],
-                                     idx[ 8], idx[ 9], idx[10], idx[11], idx[12], idx[13], idx[14], idx[15]);
+#if defined(MIC_INTRINSICS)
+  __m512i vi = _mm512_setr_epi32(idx[ 0], idx[ 1], idx[ 2], idx[ 3], idx[ 4], idx[ 5], idx[ 6], idx[ 7],
+                                 idx[ 8], idx[ 9], idx[10], idx[11], idx[12], idx[13], idx[14], idx[15]);
+#endif
 
 // Has basically no effect, it seems.
 //#pragma noprefetch
-  for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt, vi_offset += sizeof(Hit))
+  for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt, varr += sizeof(Hit))
   {
     //fixme what if size is zero???
 
@@ -725,11 +726,16 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
     // Ideally this would be initiated before coming here, for whole bunch_of_hits.m_hits vector.
     for (int itrack = 0; itrack < NN; ++itrack)
     {
-      _mm_prefetch(vi_offset + 2*sizeof(Hit) + idx[itrack], _MM_HINT_T1);
+      _mm_prefetch(varr + 2*sizeof(Hit) + idx[itrack], _MM_HINT_T1);
     }
 
-    msErr[Nhits].SlurpIn(vi_offset + off_error, vi_arr);
-    msPar[Nhits].SlurpIn(vi_offset + off_param, vi_arr);
+#if defined(MIC_INTRINSICS)
+    msErr[Nhits].SlurpIn(varr + off_error, vi);
+    msPar[Nhits].SlurpIn(varr + off_param, vi);
+#else
+    msErr[Nhits].SlurpIn(varr + off_error, idx);
+    msPar[Nhits].SlurpIn(varr + off_param, idx);
+#endif
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
@@ -738,7 +744,7 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
     // Prefetch to L1 the hits we'll process in the next loop iteration.
     for (int itrack = 0; itrack < NN; ++itrack)
     {
-      _mm_prefetch(vi_offset + sizeof(Hit) + idx[itrack], _MM_HINT_T0);
+      _mm_prefetch(varr + sizeof(Hit) + idx[itrack], _MM_HINT_T0);
     }
 
     //update best hit in case chi2<minChi2
