@@ -684,7 +684,9 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
   const int   off_error = (char*) bunch_of_hits.m_hits[0].error().Array()      - varr;
   const int   off_param = (char*) bunch_of_hits.m_hits[0].parameters().Array() - varr;
 
-  int idx[NN] __attribute__((aligned(64)));
+  int idx[NN]      __attribute__((aligned(64)));
+  int idx_chew[NN] __attribute__((aligned(64)));
+
   int maxSize = -1;
 
   // Determine maximum number of hits for tracks in the collection.
@@ -696,7 +698,8 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
     _mm_prefetch(varr + off, _MM_HINT_T0);
     _mm_prefetch(varr + sizeof(Hit) + off, _MM_HINT_T1);
 
-    idx[it] = off;
+    idx[it]      = off;
+    idx_chew[it] = it*sizeof(Hit);
 
     if (XHitEnd.At(it, 0, 0) - XHitBegin.At(it, 0, 0) > maxSize)
     {
@@ -710,7 +713,8 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 #if defined(MIC_INTRINSICS)
   //__m512i vi = _mm512_setr_epi32(idx[ 0], idx[ 1], idx[ 2], idx[ 3], idx[ 4], idx[ 5], idx[ 6], idx[ 7],
   //                               idx[ 8], idx[ 9], idx[10], idx[11], idx[12], idx[13], idx[14], idx[15]);
-  __m512i vi = _mm512_load_epi32(idx);
+  __m512i vi      = _mm512_load_epi32(idx);
+  __m512i vi_chew = _mm512_load_epi32(idx_chew);
 #endif
 
 // Has basically no effect, it seems.
@@ -729,6 +733,19 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 #if defined(MIC_INTRINSICS)
     msErr[Nhits].SlurpIn(varr + off_error, vi);
     msPar[Nhits].SlurpIn(varr + off_param, vi);
+
+    //char arr_chew[NN*sizeof(Hit)] __attribute__((aligned(64)));
+
+    // This is a hack ... we know sizeof(Hit) = 64 = cache line = vector width.
+    // ChewIn runs about 2% slower than SlurpIn().
+    //msErr[Nhits].ChewIn(varr, off_error, idx, arr_chew, vi_chew);
+    //msPar[Nhits].ChewIn(varr, off_param, idx, arr_chew, vi_chew);
+
+    // This is a hack ... we know sizeof(Hit) = 64 = cache line = vector width.
+    // Contaginate + Plexify runs just about as fast as SlurpIn().
+    //msErr[Nhits].Contaginate(varr, idx, arr_chew);
+    //msErr[Nhits].Plexify(arr_chew + off_error, vi_chew);
+    //msPar[Nhits].Plexify(arr_chew + off_param, vi_chew);
 #else
     msErr[Nhits].SlurpIn(varr + off_error, idx);
     msPar[Nhits].SlurpIn(varr + off_param, idx);
