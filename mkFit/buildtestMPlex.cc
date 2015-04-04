@@ -1586,7 +1586,7 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
      } else {
 
        //case (a): define first and last eta bin for this thread
-       int ebin_idx_in_th = thread_num % n_eta_bin_per_th;
+       int ebin_idx_in_th = thread_num * n_eta_bin_per_th;
        th_start_ebin = ebin_idx_in_th;
        th_end_ebin = th_start_ebin + n_eta_bin_per_th;       
 
