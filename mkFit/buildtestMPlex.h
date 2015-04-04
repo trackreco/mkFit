@@ -24,6 +24,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
 		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T);
 
 double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& rectracks*/);
+double runBuildingTestPlexOld(std::vector<Track>& simtracks/*, std::vector<Track>& rectracks*/);
 double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<Track>& rectracks*/);
 
 #endif

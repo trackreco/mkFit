@@ -274,3 +274,96 @@ public:
     }
   }
 };
+
+
+
+//-------------------------------------------------------
+// for combinatorial version, switch to vector of vectors
+//-------------------------------------------------------
+
+class EtaBinOfCombCandidates
+{
+public:
+  std::vector<std::vector<Track> > m_candidates;
+
+  //these refer to seeds
+  int     m_real_size;
+  int     m_fill_index;
+
+public:
+  EtaBinOfCombCandidates() :
+    m_candidates (Config::g_MaxCandsPerEtaBin),
+    m_real_size  (Config::g_MaxCandsPerEtaBin),
+    m_fill_index (0)
+  {
+    for (int s=0;s<m_real_size;++s) m_candidates[s].reserve(Config::g_MaxCandsPerSeed);//we should never exceed this
+  }
+
+  void Reset()
+  {
+    m_fill_index = 0;
+  }
+
+  void InsertSeed(const Track& seed)
+  {
+    assert (m_fill_index < m_real_size); // or something
+
+    m_candidates[m_fill_index].push_back(seed);
+    ++m_fill_index;
+  }
+
+  void InsertTrack(const Track& track, int seed_index)
+  {
+    assert (seed_index <= m_fill_index); // or something
+
+    m_candidates[seed_index].push_back(track);
+  }
+
+  /* void SortByPhi() */
+  /* { */
+  /*   std::sort(m_candidates.begin(), m_candidates.begin() + m_fill_index, sortTrksByPhiMT); */
+  /* } */
+};
+
+class EventOfCombCandidates
+{
+public:
+  std::vector<EtaBinOfCombCandidates> m_etabins_of_comb_candidates;
+
+public:
+  EventOfCombCandidates() :
+    m_etabins_of_comb_candidates(Config::nEtaBin)
+  {}
+
+  void Reset()
+  {
+    for (auto &i : m_etabins_of_comb_candidates)
+    {
+      i.Reset();
+    }
+  }
+
+  void InsertSeed(const Track& seed)
+  {
+    // XXXX assuming vertex at origin.
+    // XXXX the R condition is trying to get rid of bad seeds (as a quick hack)
+    int bin = Config::getEtaBin(seed.momEta());
+    float r = seed.posR();
+    if (bin != -1 && r > 11.9 && r < 12.1)
+      {
+	m_etabins_of_comb_candidates[bin].InsertSeed(seed);
+      } 
+#ifdef DEBUG
+    else std::cout << "excluding seed with r=" << r << " etaBin=" << bin << std::endl;
+#endif
+  }
+
+  void InsertCandidate(const Track& track, int seed_index)
+  {
+    // XXXX assuming vertex at origin.
+    // XXXX the R condition is trying to get rid of bad seeds (as a quick hack)
+    int bin = Config::getEtaBin(track.momEta());
+    m_etabins_of_comb_candidates[bin].InsertTrack(track,seed_index);
+  }
+
+};

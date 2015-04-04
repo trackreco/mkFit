@@ -188,7 +188,7 @@ void test_standard()
     tmp = 0; // runFittingTestPlex(simtracks, plex_tracks);
 
     double tsm2 = 0;//runBuildingTest(simtracks);
-    double tmp2 = 0;//runBuildingTestPlex(simtracks);
+    double tmp2 = runBuildingTestPlex(simtracks);
 
     double tsm2bh = 0;//runBuildingTestBestHit(simtracks);
     double tmp2bh = runBuildingTestPlexBestHit(simtracks);

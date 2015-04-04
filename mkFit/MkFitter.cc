@@ -36,7 +36,7 @@ void MkFitter::InputTracksAndHits(std::vector<Track>& tracks, int beg, int end)
   {
     Track &trk = tracks[i];
 
-    SeedIdx(itrack, 0, 0) = trk.label();
+    Label(itrack, 0, 0) = trk.label();
 
     Err[iC].CopyIn(itrack, trk.errors().Array());
     Par[iC].CopyIn(itrack, trk.parameters().Array());
@@ -68,7 +68,7 @@ void MkFitter::InputTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end
 
     Track &trk = tracks[i];
 
-    SeedIdx(itrack, 0, 0) = trk.label();
+    Label(itrack, 0, 0) = trk.label();
 
     Err[iC].CopyIn(itrack, trk.errors().Array());
     Par[iC].CopyIn(itrack, trk.parameters().Array());
@@ -98,6 +98,7 @@ void MkFitter::InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks, st
 
     Track &trk = tracks[idxs[i].first][idxs[i].second];
 
+    Label(itrack, 0, 0) = trk.label();
     SeedIdx(itrack, 0, 0) = idxs[i].first;
 
     Err[iC].CopyIn(itrack, trk.errors().Array());
@@ -143,7 +144,7 @@ void MkFitter::InputTracksOnly(std::vector<Track>& tracks, int beg, int end)
 
     Chg(itrack, 0, 0) = trk.charge();
     Chi2(itrack, 0, 0) = trk.chi2();
-    SeedIdx(itrack, 0, 0) = trk.label();
+    Label(itrack, 0, 0) = trk.label();
   }
 }
 
@@ -200,7 +201,7 @@ void MkFitter::OutputTracks(std::vector<Track>& tracks, int beg, int end, int iC
 
     // XXXXX chi2 is not set (also not in SMatrix fit, it seems)
     tracks[i].setChi2(Chi2(itrack, 0, 0));
-    tracks[i].setLabel(SeedIdx(itrack, 0, 0));
+    tracks[i].setLabel(Label(itrack, 0, 0));
   }
 }
 
@@ -217,7 +218,7 @@ void MkFitter::OutputFittedTracksAndHits(std::vector<Track>& tracks, int beg, in
 
     tracks[i].charge() = Chg(itrack, 0, 0);
     tracks[i].setChi2(Chi2(itrack, 0, 0));
-    tracks[i].setLabel(SeedIdx(itrack, 0, 0));
+    tracks[i].setLabel(Label(itrack, 0, 0));
 
     // XXXXX chi2 is not set (also not in SMatrix fit, it seems)
 
@@ -249,7 +250,7 @@ void MkFitter::OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, 
 
     tracks[i].charge() = Chg(itrack, 0, 0);
     tracks[i].setChi2(Chi2(itrack, 0, 0));
-    tracks[i].setLabel(SeedIdx(itrack, 0, 0));
+    tracks[i].setLabel(Label(itrack, 0, 0));
 
     // XXXXX chi2 is not set (also not in SMatrix fit, it seems)
 
@@ -828,4 +829,180 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 			Err[iC], Par[iC]);
 
   //std::cout << "Par[iP](0,0,0)=" << Par[iP](0,0,0) << " Par[iC](0,0,0)=" << Par[iC](0,0,0)<< std::endl;
+}
+
+
+
+void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vector<Track> >& tmp_candidates, int offset)
+{
+
+  const char *varr      = (char*) bunch_of_hits.m_hits;
+
+  const int   off_error = (char*) bunch_of_hits.m_hits[0].error().Array()      - varr;
+  const int   off_param = (char*) bunch_of_hits.m_hits[0].parameters().Array() - varr;
+
+  int idx[NN]      __attribute__((aligned(64)));
+  int idx_chew[NN] __attribute__((aligned(64)));
+
+  int maxSize = -1;
+
+  // Determine maximum number of hits for tracks in the collection.
+  // At the same time prefetch the first set of hits to L1 and the second one to L2.
+  for (int it = 0; it < NN; ++it)
+  {
+    int off = XHitBegin.At(it, 0, 0) * sizeof(Hit);
+
+    _mm_prefetch(varr + off, _MM_HINT_T0);
+    _mm_prefetch(varr + sizeof(Hit) + off, _MM_HINT_T1);
+
+    idx[it]      = off;
+    idx_chew[it] = it*sizeof(Hit);
+
+    if (XHitEnd.At(it, 0, 0) - XHitBegin.At(it, 0, 0) > maxSize)
+    {
+      maxSize = (XHitEnd.At(it, 0, 0) - XHitBegin.At(it, 0, 0));
+    }
+  }
+
+  // XXXX MT Uber hack to avoid tracks with like 300 hits to process.
+  if (maxSize > 25) maxSize = 25;
+
+#if defined(MIC_INTRINSICS)
+  //__m512i vi = _mm512_setr_epi32(idx[ 0], idx[ 1], idx[ 2], idx[ 3], idx[ 4], idx[ 5], idx[ 6], idx[ 7],
+  //                               idx[ 8], idx[ 9], idx[10], idx[11], idx[12], idx[13], idx[14], idx[15]);
+  __m512i vi      = _mm512_load_epi32(idx);
+  __m512i vi_chew = _mm512_load_epi32(idx_chew);
+#endif
+
+// Has basically no effect, it seems.
+//#pragma noprefetch
+  for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt, varr += sizeof(Hit))
+  {
+    //fixme what if size is zero???
+
+    // Prefetch to L2 the hits we'll process after two loops iterations.
+    // Ideally this would be initiated before coming here, for whole bunch_of_hits.m_hits vector.
+    for (int itrack = 0; itrack < NN; ++itrack)
+    {
+      _mm_prefetch(varr + 2*sizeof(Hit) + idx[itrack], _MM_HINT_T1);
+    }
+
+#if defined(MIC_INTRINSICS)
+    msErr[Nhits].SlurpIn(varr + off_error, vi);
+    msPar[Nhits].SlurpIn(varr + off_param, vi);
+
+    //char arr_chew[NN*sizeof(Hit)] __attribute__((aligned(64)));
+
+    // This is a hack ... we know sizeof(Hit) = 64 = cache line = vector width.
+    // ChewIn runs about 2% slower than SlurpIn().
+    //msErr[Nhits].ChewIn(varr, off_error, idx, arr_chew, vi_chew);
+    //msPar[Nhits].ChewIn(varr, off_param, idx, arr_chew, vi_chew);
+
+    // This is a hack ... we know sizeof(Hit) = 64 = cache line = vector width.
+    // Contaginate + Plexify runs just about as fast as SlurpIn().
+    //msErr[Nhits].Contaginate(varr, idx, arr_chew);
+    //msErr[Nhits].Plexify(arr_chew + off_error, vi_chew);
+    //msPar[Nhits].Plexify(arr_chew + off_param, vi_chew);
+#else
+    msErr[Nhits].SlurpIn(varr + off_error, idx);
+    msPar[Nhits].SlurpIn(varr + off_param, idx);
+#endif
+
+    //now compute the chi2 of track state vs hit
+    MPlexQF outChi2;
+    computeChi2MPlex(Err[iP], Par[iP],msErr[Nhits], msPar[Nhits], outChi2);
+
+    // Prefetch to L1 the hits we'll process in the next loop iteration.
+    for (int itrack = 0; itrack < NN; ++itrack)
+    {
+      _mm_prefetch(varr + sizeof(Hit) + idx[itrack], _MM_HINT_T0);
+    }
+
+    //now update the track parameters with this hit (note that some calculations are already done when computing chi2, to be optimized)
+    //this is not needed for candidates the hit is not added to, but it's vectorized so doing it serially below should take the same time
+    //still it's a waste of time in case the hit is not added to any of the candidates, so check beforehand that at least one cand needs update
+    bool oneCandPassCut = false;
+    for (int itrack = 0; itrack < NN;++itrack)
+      {
+	float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
+#ifdef DEBUG
+	std::cout << "chi2=" << chi2 << std::endl;
+#endif
+	if (chi2<Config::chi2Cut)
+	  {
+	    oneCandPassCut = true;
+	    break;
+	  }
+      }
+
+    if (oneCandPassCut) { 
+
+      updateParametersMPlex(Err[iP], Par[iP], msErr[Nhits], msPar[Nhits], Err[iC], Par[iC]);
+#ifdef DEBUG
+      std::cout << "update parameters" << std::endl;
+      std::cout << "propagated track parameters x=" << Par[iP].ConstAt(0, 0, 0) << " y=" << Par[iP].ConstAt(0, 1, 0) << std::endl;
+      std::cout << "               hit position x=" << msPar[iP].ConstAt(0, 0, 0) << " y=" << msPar[iP].ConstAt(0, 1, 0) << std::endl;
+      std::cout << "   updated track parameters x=" << Par[iC].ConstAt(0, 0, 0) << " y=" << Par[iC].ConstAt(0, 1, 0) << std::endl;
+#endif
+
+      //create candidate with hit in case chi2<Config::chi2Cut
+      //fixme: please vectorize me... (not sure it's possible in this case)
+      for (int itrack = 0; itrack < NN; ++itrack)
+	{
+	  float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
+#ifdef DEBUG
+	  std::cout << "chi2=" << chi2 << std::endl;      
+#endif
+	  if (chi2<Config::chi2Cut)
+	    {
+#ifdef DEBUG
+	      std::cout << "chi2 cut passed, creating new candidate" << std::endl;
+#endif
+	      //create a new candidate and fill the reccands_tmp vector
+	      Track newcand;
+	      newcand.resetHits();//probably not needed
+	      newcand.charge() = Chg(itrack, 0, 0);
+	      newcand.setChi2(Chi2(itrack, 0, 0));
+	      for (int hi = 0; hi < Nhits; ++hi)
+		{
+		  newcand.addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);//this should be ok since we already set the chi2 above
+		}
+	      newcand.addHitIdx(XHitBegin.At(itrack, 0, 0) + hit_cnt,chi2);
+	      newcand.setLabel(Label(itrack, 0, 0));
+	      //set the track state to the updated parameters
+	      Err[iC].CopyOut(itrack, newcand.errors().Array());
+	      Par[iC].CopyOut(itrack, newcand.parameters().Array());
+	      
+#ifdef DEBUG
+	      std::cout << "updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << std::endl;
+#endif
+	      
+	      tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
+	    }
+	}
+    }//end if (oneCandPassCut)
+
+  }//end loop over hits
+
+  //now add invalid hit
+  //fixme: please vectorize me...
+  for (int itrack = 0; itrack < NN;++itrack)
+    {
+      if (countInvalidHits(itrack)>0) continue;//check this is ok for vectorization //fixme not optimal
+      Track newcand;
+      newcand.resetHits();//probably not needed
+      newcand.charge() = Chg(itrack, 0, 0);
+      newcand.setChi2(Chi2(itrack, 0, 0));
+      for (int hi = 0; hi < Nhits; ++hi)
+	{
+	  newcand.addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);//this should be ok since we already set the chi2 above
+	}
+      newcand.addHitIdx(-1,0.);
+      newcand.setLabel(Label(itrack, 0, 0));
+      //set the track state to the propagated parameters
+      Err[iP].CopyOut(itrack, newcand.errors().Array());
+      Par[iP].CopyOut(itrack, newcand.parameters().Array());	      
+      tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
+    }
+
 }

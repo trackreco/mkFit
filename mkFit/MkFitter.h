@@ -21,7 +21,8 @@ class MkFitter
   MPlexHS msErr[MAX_HITS];
   MPlexHV msPar[MAX_HITS];
 
-  MPlexQI SeedIdx;
+  MPlexQI Label;  //this is the seed index in global seed vector (for MC truth match)
+  MPlexQI SeedIdx;//this is the seed index in local thread (for bookkeeping at thread level)
   MPlexQI HitsIdx[MAX_HITS];
 
   // Hold hit indices to explore at current layer.
@@ -98,6 +99,9 @@ public:
 
   void SelectHitRanges(BunchOfHits &bunch_of_hits);
   void AddBestHit     (BunchOfHits &bunch_of_hits);
+
+  void FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vector<Track> >& tmp_candidates, int offset);
+
 };
 
 #endif
