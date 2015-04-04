@@ -17,8 +17,8 @@ namespace Config
   static const int   nEtaBin   = 2*nEtaPart - 1;
   static const float fEtaDet   = 1;
   static const float fEtaFull  = 2 * fEtaDet;
-  static const float fEtaOff   = fEtaDet - fEtaDet / (2 * nEtaPart);
-  static const float fEtaFac   = nEtaBin / (fEtaFull - fEtaFull / (2 * nEtaPart));
+  static const float lEtaPart  = fEtaFull/float(nEtaPart);
+  static const float lEtaBin   = lEtaPart/2.;
 
   static const float fEtaOffB1 = fEtaDet;
   static const float fEtaFacB1 = nEtaPart / fEtaFull;
@@ -35,12 +35,17 @@ namespace Config
 
   inline int getEtaBin(float eta)
   {
-    int bin = (eta + fEtaOff) * fEtaFac;
-    // Return -1 if outside ... this back-fitting causes trouble.
-    // if      (bin < 0)        bin = 0;
-    // else if (bin >= nEtaBin) bin = nEtaBin - 1;
-    if (bin < 0 || bin >= nEtaBin) return -1;
-    return bin;
+
+    //in this case we are out of bounds
+    if (fabs(eta)>fEtaDet) return -1;
+
+    //first and last bin have extra width
+    if (eta<(lEtaBin-fEtaDet)) return 0;
+    if (eta>(fEtaDet-lEtaBin)) return nEtaBin-1;
+
+    //now we can treat all bins as if they had same size
+    return int( (eta+fEtaDet-lEtaBin/2.)/lEtaBin );
+
   }
 
   inline int getBothEtaBins(float eta, int& b1, int& b2)
