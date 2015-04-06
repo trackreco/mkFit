@@ -76,13 +76,13 @@ public:
   HitVec& hitsVector() {return hits_;}
 
   void addHit(Hit hit,float chi2)       { hits_.push_back(hit); chi2_+=chi2; }
-  void addHitIdx(int hitIdx,float chi2) { hitIdxVec_.push_back(hitIdx); ++nHitIdx_; chi2_+=chi2; }
+  void addHitIdx(int hitIdx,float chi2) { hitIdxVec_.push_back(hitIdx); if (hitIdx>=0) ++nGoodHitIdx_; chi2_+=chi2; }
 
   int  getHitIdx(int posHitIdx) const {return hitIdxVec_[posHitIdx];}
 
-  void resetHits() { hits_.clear(); hitIdxVec_.clear(); nHitIdx_=0; }
+  void resetHits() { hits_.clear(); hitIdxVec_.clear(); nGoodHitIdx_=0; }
   int  nHits()   const { return hits_.size(); }
-  int  nHitIdx() const { return nHitIdx_; }
+  int  nHitIdx() const { return nGoodHitIdx_; }
 
   void setChi2(float chi2) {chi2_=chi2;}
   void setLabel(int lbl) {label_=lbl;}
@@ -100,8 +100,8 @@ private:
   HitVec initHits_;
   HitIdxVec hitIdxVec_;
   float chi2_;
-  int   nHitIdx_ =  0;
-  int   label_   = -1;
+  int   nGoodHitIdx_ =  0;
+  int   label_       = -1;
 };
 
 typedef std::vector<Track> TrackVec;
