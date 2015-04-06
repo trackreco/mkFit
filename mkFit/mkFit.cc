@@ -153,6 +153,84 @@ void test_vtune()
 
 //==============================================================================
 
+namespace
+{
+  FILE *g_file = 0;
+  int   g_file_num_ev = 0;
+  int   g_file_cur_ev = 0;
+
+  std::string g_operation;
+  std::string g_file_name = "simtracks.bin";
+}
+
+void generate_and_save_tracks()
+{
+  FILE *fp = fopen(g_file_name.c_str(), "w");
+
+  int Ntracks = Config::g_NTracks;
+
+  int Nevents = Config::g_NEvents;
+
+  fwrite(&Nevents, sizeof(int), 1, fp);
+
+  for (int ev = 0; ev < Nevents; ++ev)
+  {
+    generateTracks(simtracks, Ntracks);
+
+    fwrite(&Ntracks, sizeof(int), 1, fp);
+
+    for (int i = 0; i < Ntracks; ++i)
+    {
+      simtracks[i].write_out(fp);
+    }
+  }
+
+  fclose(fp);
+}
+
+
+int open_simtrack_file()
+{
+  g_file = fopen(g_file_name.c_str(), "r");
+
+  assert (g_file != 0);
+
+  fread(&g_file_num_ev, sizeof(int), 1, g_file);
+  g_file_cur_ev = 0;
+
+  printf("\nReading simulated tracks from \"%s\", %d events on file.\n\n",
+         g_file_name.c_str(), g_file_num_ev);
+
+  return g_file_num_ev;
+}
+
+int read_simtrack_event(std::vector<Track> &simtracks)
+{
+  int nt;
+
+  fread(&nt, sizeof(int), 1, g_file);
+
+  std::vector<Track> new_tracks(nt);
+  simtracks.swap(new_tracks);
+
+  for (int i = 0; i < nt; ++i)
+  {
+    simtracks[i].read_in(g_file);
+  }
+
+  ++g_file_cur_ev;
+
+  return nt;
+}
+
+void close_simtrack_file()
+{
+  fclose(g_file);
+  g_file = 0;
+  g_file_num_ev = 0;
+  g_file_cur_ev = 0;
+}
+
 void test_standard()
 {
   // ---- MT test eta bins
@@ -173,11 +251,23 @@ void test_standard()
 
   int Nevents = Config::g_NEvents;
 
+  if (g_operation == "read")
+  {
+    Nevents = open_simtrack_file();
+  }
+
   double s_tmp=0, s_tsm=0, s_tsm2=0, s_tmp2=0, s_tsm2bh=0, s_tmp2bh=0;
 
   for (int ev = 0; ev < Nevents; ++ev)
   {
-    generateTracks(simtracks, Ntracks);
+    if (g_operation == "read")
+    {
+      Ntracks = read_simtrack_event(simtracks);
+    }
+    else
+    {
+      generateTracks(simtracks, Ntracks);
+    }
 
     double tmp, tsm;
 
@@ -243,6 +333,11 @@ void test_standard()
   printf("SMatrix = %.5f   Matriplex = %.5f   ---   SM/MP = %.5f  --- Build SM = %.5f    MX = %.5f    BHSM = %.5f    BHMX = %.5f\n",
          s_tsm, s_tmp, s_tsm / s_tmp, s_tsm2, s_tmp2, s_tsm2bh, s_tmp2bh);
 
+  if (g_operation == "read")
+  {
+    close_simtrack_file();
+  }
+
 #ifndef NO_ROOT
   make_validation_tree("validation-smat.root", simtracks, smat_tracks);
   make_validation_tree("validation-plex.root", simtracks, plex_tracks);
@@ -251,17 +346,56 @@ void test_standard()
 
 //==============================================================================
 
-int main()
+void usage_and_die(const char* name)
+{
+  fprintf(stderr,
+          "Usage:\n"
+          "  %s                  --> runs simulation between events\n"
+          "  %s write [filename] --> runs simulation only, outputs events to file\n"
+          "  %s read  [filename] --> runs reco only, reads events from file\n"
+          "Default filename is \"simtracks.bin\".\n", name, name, name);
+  exit(1);
+}
+
+
+int main(int argc, const char *argv[])
 {
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
 #endif
 
+  if (argc >= 2)
+  {
+    g_operation = argv[1];
+
+    if (g_operation != "write" && g_operation != "read")
+    {
+      usage_and_die(argv[0]);
+    }
+
+    if (argc == 3)
+    {
+      g_file_name = argv[2];
+    }
+
+    if (argc > 3)
+    {
+      usage_and_die(argv[0]);
+    }
+  }
+
   // test_matriplex();
 
   // test_vtune();
 
-  test_standard();
+  if (g_operation == "write")
+  {
+    generate_and_save_tracks();
+  }
+  else
+  {
+    test_standard();
+  }
 
   return 0;
 }

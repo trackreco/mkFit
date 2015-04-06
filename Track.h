@@ -53,7 +53,12 @@ public:
     hits_=hits;
     chi2_=chi2;
   }
-
+  Track(TrackState state, float chi2, int label) :
+    state_(state),
+    chi2_(chi2),
+    label_(label)
+  {}
+  
   ~Track(){}
 
   int&          charge() {return state_.charge;}
@@ -93,6 +98,10 @@ public:
   SimTkIDInfo SimTrackIDInfo() const;
 
   Track clone() {return Track(state_,hits_,chi2_);}
+  Track clone_for_io() { return Track(state_,chi2_,label_);}
+
+  void write_out(FILE *fp);
+  void read_in  (FILE *fp);
 
 private:
   TrackState state_;
