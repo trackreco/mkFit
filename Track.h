@@ -62,8 +62,8 @@ public:
   SVector6&     parameters() {return state_.parameters;}
   SMatrixSym66& errors() {return state_.errors;}
   TrackState&   state() {return state_;}
-  float         chi2() {return chi2_;}
-  int           label() {return label_;}
+  float         chi2()  const {return chi2_;}
+  int           label() const {return label_;}
 
   float posPhi() const { return getPhi(state_.parameters[0],state_.parameters[1]); }
   float momPhi() const { return getPhi(state_.parameters[3],state_.parameters[4]); }
@@ -75,19 +75,14 @@ public:
 
   HitVec& hitsVector() {return hits_;}
 
-  void addHit(Hit hit,float chi2) {hits_.push_back(hit);chi2_+=chi2;}
-  void addHitIdx(unsigned int hitIdx,float chi2) {hitIdxVec_.push_back(hitIdx);chi2_+=chi2;}
+  void addHit(Hit hit,float chi2)       { hits_.push_back(hit); chi2_+=chi2; }
+  void addHitIdx(int hitIdx,float chi2) { hitIdxVec_.push_back(hitIdx); ++nHitIdx_; chi2_+=chi2; }
 
-  unsigned int getHitIdx(unsigned int posHitIdx) {return hitIdxVec_[posHitIdx];}
+  int  getHitIdx(int posHitIdx) const {return hitIdxVec_[posHitIdx];}
 
-  void resetHits() {hits_.clear();hitIdxVec_.clear();}
-  unsigned int nHits() {return hits_.size();}
-
-  unsigned int nHitIdx() {
-    unsigned int result = 0;
-    for (int i=0;i<hitIdxVec_.size();++i) if (hitIdxVec_[i]>=0) result++;
-    return result;
-  }
+  void resetHits() { hits_.clear(); hitIdxVec_.clear(); nHitIdx_=0; }
+  int  nHits()   const { return hits_.size(); }
+  int  nHitIdx() const { return nHitIdx_; }
 
   void setChi2(float chi2) {chi2_=chi2;}
   void setLabel(int lbl) {label_=lbl;}
@@ -105,7 +100,8 @@ private:
   HitVec initHits_;
   HitIdxVec hitIdxVec_;
   float chi2_;
-  int   label_ = -1;
+  int   nHitIdx_ =  0;
+  int   label_   = -1;
 };
 
 typedef std::vector<Track> TrackVec;

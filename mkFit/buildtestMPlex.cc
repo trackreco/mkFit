@@ -580,9 +580,9 @@ double runBuildingTestBestHit(std::vector<Track>& simtracks/*, std::vector<Track
 		 binInfoPlus  = bunch_of_hits.m_phi_bin_infos[phibin];
 	       }
 
-#ifdef PRINTOUTS_FOR_PLOTS
-	     std::cout << "SM number of hits in window in layer " << ilay << " is " <<  binInfoPlus.first+binInfoPlus.second-binInfoMinus.first << std::endl;
-#endif 
+//#ifdef PRINTOUTS_FOR_PLOTS
+//std::cout << "SM number of hits in window in layer " << ilay << " is " <<  binInfoPlus.first+binInfoPlus.second-binInfoMinus.first << std::endl;
+//#endif
 
 #ifdef DEBUG
 	     std::cout << "bin info begin=" << binInfoMinus.first << " end=" << binInfoPlus.first+binInfoPlus.second << std::endl;
@@ -1633,7 +1633,12 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 	   int theEndCand = seed_cand_idx.size();     
 	   
 	   std::vector<std::vector<Track> > tmp_candidates(th_end_seed-th_start_seed);     
-	   for (int iseed=0;iseed<tmp_candidates.size();++iseed) {
+	   for (int iseed=0;iseed<tmp_candidates.size();++iseed)
+           {
+             // XXXX MT: Tried adding 25 to reserve below as I was seeing some
+             // time spent in push_back ... but it didn't really help.
+             // We need to optimize this by throwing away and replacing the worst
+             // candidate once a better one arrives. This will also avoid sorting.
 	     tmp_candidates[iseed].reserve(2*Config::maxCand);//factor 2 seems reasonable to start with
 	   }
 	   
@@ -1668,9 +1673,10 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 	       
 	       mkfp->SelectHitRanges(bunch_of_hits);
 	       
-#ifdef PRINTOUTS_FOR_PLOTS
-	       std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
-#endif
+//#ifdef PRINTOUTS_FOR_PLOTS
+//std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
+//#endif
+
 	       //make candidates with best hit
 #ifdef DEBUG
 	       std::cout << "make new candidates" << std::endl;
@@ -1688,7 +1694,7 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 		   std::cout << "erase extra candidates" << std::endl;
 #endif	     
 		   std::sort(tmp_candidates[is].begin(), tmp_candidates[is].end(), sortCandByHitsChi2);
-		   tmp_candidates[is].erase(tmp_candidates[is].begin()+Config::maxCand,tmp_candidates[is].end());	       
+		   tmp_candidates[is].erase(tmp_candidates[is].begin()+Config::maxCand,tmp_candidates[is].end());
 		 }
 	     } 
 	   //now swap with input candidates

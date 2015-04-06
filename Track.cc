@@ -20,4 +20,3 @@ std::pair<unsigned int,unsigned int> Track::SimTrackIDInfo() const
   std::pair<unsigned int, unsigned int> simIDInfo (mtrk,mcount);
   return simIDInfo;
 }
-
