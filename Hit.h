@@ -12,7 +12,7 @@ namespace Config
   
   static constexpr const int   nPhiPart   = 80; // 63;
   static constexpr const float nPhiFactor = nPhiPart / TwoPI;
-  static constexpr const int   nEtaPart   = 10; // 10;
+  static constexpr const int   nEtaPart   = 11; // 10;
 
   static const int   nEtaBin   = 2*nEtaPart - 1;
   static const float fEtaDet   = 1;

@@ -12,7 +12,7 @@
 #include "ittnotify.h"
 #endif
 
-//#define PRINTOUTS_FOR_PLOTS
+#define PRINTOUTS_FOR_PLOTS
 
 bool sortByHitsChi2(std::pair<Track, TrackState> cand1,std::pair<Track, TrackState> cand2)
 {
@@ -1126,7 +1126,7 @@ double runBuildingTestPlexOld(std::vector<Track>& simtracks/*, std::vector<Track
 
 double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<Track>& rectracks*/)
 {
-  printf("Hello, sizeof(Track)=%d, sizeof(Hit)=%d\n\n", sizeof(Track), sizeof(Hit));
+  printf("Hello, runBuildingTestPlexBestHit sizeof(Track)=%d, sizeof(Hit)=%d, vusize=%i, num_th=%i\n\n", sizeof(Track), sizeof(Hit), MPT_SIZE, NUM_THREADS);
 
   std::cout << "total simtracks=" << simtracks.size() << std::endl;
 #ifdef DEBUG
@@ -1322,9 +1322,9 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
 	   
 	     mkfp->SelectHitRanges(bunch_of_hits);
 	     
-#ifdef PRINTOUTS_FOR_PLOTS
-	     std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
-#endif
+// #ifdef PRINTOUTS_FOR_PLOTS
+// 	     std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
+// #endif
 	     //make candidates with best hit
 #ifdef DEBUG
 	     std::cout << "make new candidates" << std::endl;
@@ -1381,10 +1381,10 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
          }
 
 #ifdef PRINTOUTS_FOR_PLOTS
-         std::cout << "MX - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
+         std::cout << "MXBH - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
 #endif
 #ifdef DEBUG
-         std::cout << "MX - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
+         std::cout << "MXBH - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
 #endif
        }
      }
@@ -1409,7 +1409,7 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
 
 double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& rectracks*/)
 {
-  printf("Hello, sizeof(Track)=%d, sizeof(Hit)=%d\n\n", sizeof(Track), sizeof(Hit));
+  printf("Hello, runBuildingTestPlex sizeof(Track)=%d, sizeof(Hit)=%d, vusize=%i, num_th=%i\n\n", sizeof(Track), sizeof(Hit), MPT_SIZE, NUM_THREADS);
 
   std::cout << "total simtracks=" << simtracks.size() << std::endl;
 #ifdef DEBUG
@@ -1559,6 +1559,12 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
   }
 #endif
 
+#ifdef DEBUG
+  omp_lock_t writelock;
+
+  omp_init_lock(&writelock);
+#endif
+
   //the logic below is as follows:
   //- threads can be either over eta bins (a) or over seeds in one eta bin (b)
   //- for (a) we need the same number of eta bins in each thread
@@ -1579,7 +1585,7 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 
      if (n_th_per_eta_bin>=1) {
 
-       // case (b): there is only one eta bin per thread, we'll split seeds in different threads below
+       // case (b): there is only one eta bin per thread (i.e. >1 thread per eta bin), we'll split seeds in different threads below
        th_start_ebin = thread_num/n_th_per_eta_bin;
        th_end_ebin = th_start_ebin+1;
 
@@ -1591,6 +1597,12 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
        th_end_ebin = th_start_ebin + n_eta_bin_per_th;       
 
      }
+
+#ifdef DEBUG
+     omp_set_lock(&writelock);
+     std::cout << "th_start_ebin-a=" << thread_num * n_eta_bin_per_th << " th_end_ebin-a=" << thread_num * n_eta_bin_per_th + n_eta_bin_per_th << " th_start_ebin-b=" << thread_num/n_th_per_eta_bin << " th_end_ebin-b=" << thread_num/n_th_per_eta_bin+1 << std::endl;
+     omp_unset_lock(&writelock);
+#endif
 
      //loop over eta bins
      for (int ebin = th_start_ebin; ebin < th_end_ebin; ++ebin)
@@ -1606,10 +1618,16 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 	 th_start_seed = th_idx_in_ebin * nseeds_ebin / n_th_per_eta_bin;
 	 th_end_seed = std::min( (th_idx_in_ebin + 1) * nseeds_ebin / n_th_per_eta_bin, nseeds_ebin );
        } else {
-	 // case (a): we process >1 eta bin in this thread, se we need to loop over all seeds in each eta bin
+	 // case (a): we process >=1 full eta bins in this thread, se we need to loop over all seeds in each eta bin
 	 th_start_seed=0;
 	 th_end_seed= etabin_of_comb_candidates.m_fill_index;
        }
+
+#ifdef DEBUG
+       omp_set_lock(&writelock);
+       std::cout << "th_start_seed-a=" << 0 << " th_end_seed-a=" << etabin_of_comb_candidates.m_fill_index << " th_start_seed-b=" << (thread_num % n_th_per_eta_bin) * nseeds_ebin / n_th_per_eta_bin << " th_end_seed-b=" << std::min( ( (thread_num % n_th_per_eta_bin)+ 1) * nseeds_ebin / n_th_per_eta_bin, nseeds_ebin ) << std::endl;       
+       omp_unset_lock(&writelock);
+#endif
 
        //ok now we start looping over layers
        //loop over layers, starting from after the seeD
@@ -1768,10 +1786,10 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
          }
 
 #ifdef PRINTOUTS_FOR_PLOTS
-         std::cout << "MX - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
+         std::cout << "MXFC - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
 #endif
 #ifdef DEBUG
-         std::cout << "MX - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
+         std::cout << "MXFC - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
 #endif
        }
      }

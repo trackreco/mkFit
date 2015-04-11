@@ -672,6 +672,9 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits)
 // AddBestHit()
 //==============================================================================
 
+//#define NO_PREFETCH
+//#define NO_GATHER
+
 void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 {
   //fixme solve ambiguity NN vs beg-end
@@ -696,8 +699,10 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
   {
     int off = XHitBegin.At(it, 0, 0) * sizeof(Hit);
 
+#ifndef NO_PREFETCH
     _mm_prefetch(varr + off, _MM_HINT_T0);
     _mm_prefetch(varr + sizeof(Hit) + off, _MM_HINT_T1);
+#endif
 
     idx[it]      = off;
     idx_chew[it] = it*sizeof(Hit);
@@ -709,7 +714,9 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
   }
 
   // XXXX MT Uber hack to avoid tracks with like 300 hits to process.
+  //fixme this makes results dependent on vector unit size
   if (maxSize > 25) maxSize = 25;
+
 
 #if defined(MIC_INTRINSICS)
   //__m512i vi = _mm512_setr_epi32(idx[ 0], idx[ 1], idx[ 2], idx[ 3], idx[ 4], idx[ 5], idx[ 6], idx[ 7],
@@ -724,12 +731,27 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
   {
     //fixme what if size is zero???
 
+#ifndef NO_PREFETCH
     // Prefetch to L2 the hits we'll process after two loops iterations.
     // Ideally this would be initiated before coming here, for whole bunch_of_hits.m_hits vector.
     for (int itrack = 0; itrack < NN; ++itrack)
     {
       _mm_prefetch(varr + 2*sizeof(Hit) + idx[itrack], _MM_HINT_T1);
     }
+#endif
+
+#ifdef NO_GATHER
+
+#pragma simd
+    for (int itrack = 0; itrack < NN; ++itrack)
+    {
+      if ( XHitBegin.At(itrack, 0, 0) >= XHitEnd.At(itrack, 0, 0) ) continue;//is this going to break vectorization and also crash?
+      Hit &hit = bunch_of_hits.m_hits[std::min(XHitBegin.At(itrack, 0, 0) + hit_cnt, XHitEnd.At(itrack, 0, 0) - 1)];//redo the last hit in case of overflow
+      msErr[Nhits].CopyIn(itrack, hit.error().Array());
+      msPar[Nhits].CopyIn(itrack, hit.parameters().Array());
+    }
+    
+#else //NO_GATHER
 
 #if defined(MIC_INTRINSICS)
     msErr[Nhits].SlurpIn(varr + off_error, vi);
@@ -752,15 +774,19 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
     msPar[Nhits].SlurpIn(varr + off_param, idx);
 #endif
 
+#endif //NO_GATHER
+
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
     computeChi2MPlex(Err[iP], Par[iP], msErr[Nhits], msPar[Nhits], outChi2);
 
+#ifndef NO_PREFETCH
     // Prefetch to L1 the hits we'll process in the next loop iteration.
     for (int itrack = 0; itrack < NN; ++itrack)
     {
       _mm_prefetch(varr + sizeof(Hit) + idx[itrack], _MM_HINT_T0);
     }
+#endif
 
     //update best hit in case chi2<minChi2
 #pragma simd
