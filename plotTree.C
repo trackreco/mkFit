@@ -7,17 +7,17 @@
 
   bool doFit = 1;
   bool doConformal = 0;
-  bool doBuild = 1;
+  bool doBuild = 0;
   bool doSim = 0;
 
   if (doFit) {
 
-    TFile *_file0 = TFile::Open("validationtree.root");
+    TFile *_file0 = TFile::Open("valtree.root");
     
     TCanvas cf1;
     TH1F* pt_res = new TH1F("pt_res","pt resolution",100,-0.5,0.5);
     pt_res->GetXaxis()->SetTitle("(p_{T}^{MC} - p_{T}^{fit})/p_{T}^{MC}");
-    TTree * tree   = (TTree*) _file0->Get("ptTree");
+    TTree * tree   = (TTree*) _file0->Get("fittree");
     tree->Draw("(pt_mc-pt_fit)/(pt_mc)>>pt_res","");//*pt_mc
     pt_res->Fit("gaus","","",-0.07,0.07);
     cf1.SaveAs("pt_res.png");  

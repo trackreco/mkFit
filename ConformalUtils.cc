@@ -2,7 +2,7 @@
 
 //M. Hansroul, H. Jeremie and D. Savard, NIM A 270 (1988) 498
 //http://www.sciencedirect.com/science/article/pii/016890028890722X
-void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge, TrackState& fitStateHit0) {
+void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge, TrackState& fitStateHit0, bool backward) {
 
   //fixme: does this work in case bs not in (0,0)? I think so, but need to check
 
@@ -64,6 +64,11 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
   //compute theta
   float tantheta = sqrt((x[0]-x[2])*(x[0]-x[2])+(y[0]-y[2])*(y[0]-y[2]))/(z[2]-z[0]);
   float pz = fabs(pt/tantheta)*((z[1]-z[0])>0. ? 1. : -1.);
+  if (backward) {
+    px*=-1.;
+    py*=-1.;
+    pz*=-1.;
+  }
   //return px,py,pz
   //std::cout << "fit px=" << px << " py=" << py << " pz=" << pz << std::endl; 
   fitStateHit0.parameters[0] = x[0];
