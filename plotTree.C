@@ -7,12 +7,12 @@
 
   bool doFit = 1;
   bool doConformal = 0;
-  bool doBuild = 0;
+  bool doBuild = 1;
   bool doSim = 0;
 
-  if (doFit) {
+  TFile *_file0 = TFile::Open("valtree.root");
 
-    TFile *_file0 = TFile::Open("valtree.root");
+  if (doFit) {
     
     TCanvas cf1;
     TH1F* pt_res = new TH1F("pt_res","pt resolution",100,-0.5,0.5);
@@ -165,8 +165,8 @@
 
     TString suffix = "";
 
-    TFile *_file0 = TFile::Open("build_validationtree"+suffix+".root");
-    TTree * tree   = (TTree*)_file0->Get("tree");
+    TTree * tree    = (TTree*)_file0->Get("buildtree");
+    TTree * tree_br = (TTree*)_file0->Get("tree_br");
 
     TCanvas cb1;
     TH1F* nhits = new TH1F("nhits","nhits",15,0,15);
