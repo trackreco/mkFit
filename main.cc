@@ -109,7 +109,7 @@ int main(int argc, char** argv)
   unsigned int Ntracks = 500;
   unsigned int Nevents = 100;
 
-  std::vector<tick> ticks(5);
+  std::vector<tick> ticks(7);
 
 #ifdef TBB
   auto nThread(tbb::task_scheduler_init::default_num_threads());
@@ -127,12 +127,18 @@ int main(int argc, char** argv)
     Event ev(geom, val, nThread);
 
     timepoint t0(now());
-    ev.Simulate(Ntracks); ticks[0] += delta(t0);
-    ev.Segment();         ticks[1] += delta(t0);
-    ev.Seed();            ticks[2] += delta(t0);
-    ev.Find();            ticks[3] += delta(t0);
-    //    ev.Fit();             ticks[4] += delta(t0);
+#ifdef ENDTOEND
+    ev.Simulate(Ntracks);   ticks[0] += delta(t0);
+    ev.Segment();           ticks[1] += delta(t0);
+    ev.Seed();              ticks[2] += delta(t0);
+    ev.Find();              ticks[3] += delta(t0);
+    ev.Fit();               ticks[4] += delta(t0);
+    ev.ValidateHighLevel(); ticks[5] += delta(t0);
+#endif
   }
+
+  timepoint t1(now());
+  val.saveTTrees(); ticks[5] += delta(t1);
 
   std::cout << "Ticks ";
   for (auto&& tt : ticks) {
@@ -140,7 +146,5 @@ int main(int argc, char** argv)
   }
   std::cout << std::endl;
 
-  val.saveHists();
-  val.deleteHists();
   return 0;
 }

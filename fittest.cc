@@ -69,17 +69,25 @@ void fitTrack(const Track& trk, const Event& ev)
   TrackState simStateHit0 = propagateHelixToR(simState,hits[0].r()); // first hit
   TrackState cfitStateHit0;
 
-  //fit is problematic in case of very short lever arm
-  conformalFit(hits[0],hits[hits.size()/2 + 1],hits[hits.size()-1],trk.charge(),cfitStateHit0);
-  //#define CONFORMAL
+//#define CONFORMAL
 #ifdef CONFORMAL
+  bool backward = false;
+#if defined(INWARD)
+  backward = true;
+#endif //INWARD
+  //fit is problematic in case of very short lever arm
+  conformalFit(hits[0],hits[hits.size()/2 + 1],hits[hits.size()-1],trk.charge(),cfitStateHit0,backward);
   TrackState updatedState = cfitStateHit0;
-#else    
+#else 
   TrackState updatedState = trk.state();
   updatedState = propagateHelixToR(updatedState,hits[0].r());
-#endif
+#endif 
+
+#if defined(ENDTOEND) || defined(CONFORMAL)
+  updatedState.errors*=10;//not needed when fitting straight from simulation
+#endif //ENDTOEND
+
   ev.validation_.fillFitStateHists(simStateHit0, cfitStateHit0);
-  updatedState.errors*=10;
 
 #ifdef DEBUG
   if (debug) { 

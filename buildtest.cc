@@ -73,7 +73,7 @@ void processCandidates(Event& ev, const Track& seed, candvec& candidates, unsign
       dprint("no more candidates, saving best");
       // save the best candidate from the previous iteration and then swap in
       // the empty new candidate list; seed will be skipped on future iterations
-      auto&& best = std::max_element(candidates.begin(),candidates.end(),sortByHitsChi2);
+      auto&& best = std::min_element(candidates.begin(),candidates.end(),sortByHitsChi2);
 #ifdef TBB
       std::lock_guard<std::mutex> evtguard(evtlock); // should be rare
 #endif
@@ -126,7 +126,7 @@ void buildTracksBySeeds(Event& ev)
     if (cand.size()>0) {
       // only save one track candidate per seed, one with lowest chi2
       //std::partial_sort(cand.begin(),cand.begin()+1,cand.end(),sortByHitsChi2);
-      auto&& best = std::max_element(cand.begin(),cand.end(),sortByHitsChi2);
+      auto&& best = std::min_element(cand.begin(),cand.end(),sortByHitsChi2);
       evt_track_candidates.push_back(*best);
     }
   }
@@ -174,7 +174,7 @@ void buildTracksByLayers(Event& ev)
     if (cand.size()>0) {
       // only save one track candidate per seed, one with lowest chi2
       //std::partial_sort(cand.begin(),cand.begin()+1,cand.end(),sortByHitsChi2);
-      auto&& best = std::max_element(cand.begin(),cand.end(),sortByHitsChi2);
+      auto&& best = std::min_element(cand.begin(),cand.end(),sortByHitsChi2);
       evt_track_candidates.push_back(*best);
     }
   }

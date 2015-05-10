@@ -50,6 +50,7 @@ public:
   double SafetyFromOutside(const UVector3 &aPoint, bool aAccurate=false) const;
   bool Normal( const UVector3& aPoint, UVector3 &aNormal ) const;
   double rin_, rout_;
+  VUSolid* Clone() const  {return new VUSolid(rin_, rout_);}
 };
 #endif
 #endif
