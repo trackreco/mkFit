@@ -8,7 +8,7 @@
 
 #include "Matrix.h"
 #include "Event.h"
-#include "RootValidation.h"
+#include "TTreeValidation.h"
 
 #ifdef TBB
 #include "tbb/task_scheduler_init.h"
@@ -99,7 +99,7 @@ int main(int argc, char** argv)
 #if defined(NO_ROOT)
   Validation val;
 #else
-  RootValidation val("valtree.root");
+  TTreeValidation val("valtree.root");
 #endif
 
   for ( unsigned int i = 0; i < geom.CountLayers(); ++i ) {
@@ -137,8 +137,8 @@ int main(int argc, char** argv)
 #endif
   }
 
-  timepoint t1(now());
-  val.saveTTrees(); ticks[5] += delta(t1);
+  timepoint t0(now());
+  val.saveTTrees(); ticks[6] += delta(t0); 
 
   std::cout << "Ticks ";
   for (auto&& tt : ticks) {

@@ -651,5 +651,6 @@ void Event::Fit()
 }
 
 void Event::ValidateHighLevel(){
+  validation_.makeSimToTkMaps(seedTracks_,candidateTracks_,fitTracks_);
   validation_.fillEffTree(simTracks_,seedTracks_,candidateTracks_,fitTracks_);
 }

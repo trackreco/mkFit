@@ -1,4 +1,4 @@
-#include "RootValidation.h"
+#include "TTreeValidation.h"
 #ifndef NO_ROOT
 
 static bool sortByHitsChi2(const Track& cand1, const Track& cand2)
@@ -12,7 +12,7 @@ static bool tracksByID(const Track& t1, const Track& t2)
   return t1.mcTrackID()<t2.mcTrackID();
 }
 
-RootValidation::RootValidation(std::string fileName)
+TTreeValidation::TTreeValidation(std::string fileName)
 {
   std::lock_guard<std::mutex> locker(glock_);
   f_ = TFile::Open(fileName.c_str(), "recreate");
@@ -22,7 +22,7 @@ RootValidation::RootValidation(std::string fileName)
   tree_br_->Branch("branches",&branches_,"branches/i");
   tree_br_->Branch("cands",&cands_,"cands/i");
   
-  // fit validation
+  // efficiency validation
   efftree_ = new TTree("efftree","efftree");
   efftree_->Branch("pt_mc",&pt_mc_);
   efftree_->Branch("pt_seed",&pt_seed_);
@@ -61,13 +61,38 @@ RootValidation::RootValidation(std::string fileName)
   efftree_->Branch("nHits_build",&nHits_build_);
   efftree_->Branch("nHits_fit",&nHits_fit_);
 
-  efftree_->Branch("chi2_mc",&chi2_mc_);
+  efftree_->Branch("chi2_seed",&chi2_seed_);
+  efftree_->Branch("chi2_build",&chi2_build_);
+  efftree_->Branch("chi2_fit",&chi2_fit_);
+
+  // fake rate validation
+  efftree_ = new TTree("efftree","efftree");
+  efftree_->Branch("pt_seed",&pt_seed_);
+  efftree_->Branch("pt_build",&pt_build_);
+  efftree_->Branch("pt_fit",&pt_fit_);
+
+  efftree_->Branch("pz_seed",&pz_seed_);
+  efftree_->Branch("pz_build",&pz_build_);
+  efftree_->Branch("pz_fit",&pz_fit_);
+
+  efftree_->Branch("phi_seed",&phi_seed_);
+  efftree_->Branch("phi_build",&phi_build_);
+  efftree_->Branch("phi_fit",&phi_fit_);
+
+  efftree_->Branch("eta_seed",&eta_seed_);
+  efftree_->Branch("eta_build",&eta_build_);
+  efftree_->Branch("eta_fit",&eta_fit_);
+
+  efftree_->Branch("nHits_seed",&nHits_seed_);
+  efftree_->Branch("nHits_build",&nHits_build_);
+  efftree_->Branch("nHits_fit",&nHits_fit_);
+
   efftree_->Branch("chi2_seed",&chi2_seed_);
   efftree_->Branch("chi2_build",&chi2_build_);
   efftree_->Branch("chi2_fit",&chi2_fit_);
 }
 
-void RootValidation::fillBuildTree(unsigned int layer, unsigned int branches, unsigned int cands)
+void TTreeValidation::fillBuildTree(const unsigned int layer, const unsigned int branches, const unsigned int cands)
 {
   std::lock_guard<std::mutex> locker(glock_);
   layer_    = layer;
@@ -76,18 +101,17 @@ void RootValidation::fillBuildTree(unsigned int layer, unsigned int branches, un
   tree_br_->Fill();
 }
 
-void RootValidation::fillEffTree( TrackVec& evt_sim_tracks,  TrackVec& evt_seed_tracks,  TrackVec& evt_build_tracks,  TrackVec& evt_fit_tracks){
+void TTreeValidation::makeSimToTkMaps(TrackVec& evt_seed_tracks, TrackVec& evt_build_tracks, TrackVec& evt_fit_tracks){
+  // set mcTkIDs... and sort by each (simTracks set in order by default!)
+  std::lock_guard<std::mutex> locker(glock_);
+  mapSimToTks(evt_seed_tracks,simToSeedMap_);
+  mapSimToTks(evt_build_tracks,simToBuildMap_);
+  mapSimToTks(evt_fit_tracks,simToFitMap_);
+}
+
+void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const TrackVec& evt_seed_tracks, const TrackVec& evt_build_tracks, const TrackVec& evt_fit_tracks){
   std::lock_guard<std::mutex> locker(glock_);
 
-  // set mcTkIDs... and sort by each (simTracks set in order by default!)
-
-  simToTkMap simToSeedMap;  
-  mapSimToTks(evt_seed_tracks,simToSeedMap);
-  simToTkMap simToBuildMap;
-  mapSimToTks(evt_build_tracks,simToBuildMap);
-  simToTkMap simToFitMap;
-  mapSimToTks(evt_fit_tracks,simToFitMap);
- 
   for (int i = 0; i < evt_sim_tracks.size(); i++){
     pt_mc_    = evt_sim_tracks[i].pt();
     pz_mc_    = evt_sim_tracks[i].pz();
@@ -95,21 +119,21 @@ void RootValidation::fillEffTree( TrackVec& evt_sim_tracks,  TrackVec& evt_seed_
     eta_mc_   = evt_sim_tracks[i].momEta();
     nHits_mc_ = evt_sim_tracks[i].nHits();
     
-    if (simToSeedMap.count(i)){ // recoToSim match : save reco track that first fills map (which by default is the best one --> most hits, lowest chi2)
-      pt_seed_    = simToSeedMap[i][0].pt(); 
-      ept_seed_   = simToSeedMap[i][0].ept();
+    if (simToSeedMap_.count(i)){ // recoToSim match : save reco track that first fills map (which by default is the best one --> most hits, lowest chi2)
+      pt_seed_    = simToSeedMap_[i][0].pt(); 
+      ept_seed_   = simToSeedMap_[i][0].ept();
 
-      pz_seed_    = simToSeedMap[i][0].pz(); 
-      epz_seed_   = simToSeedMap[i][0].epz();
+      pz_seed_    = simToSeedMap_[i][0].pz(); 
+      epz_seed_   = simToSeedMap_[i][0].epz();
       
-      phi_seed_   = simToSeedMap[i][0].momPhi(); 
-      ephi_seed_  = simToSeedMap[i][0].emomPhi();
+      phi_seed_   = simToSeedMap_[i][0].momPhi(); 
+      ephi_seed_  = simToSeedMap_[i][0].emomPhi();
       
-      eta_seed_   = simToSeedMap[i][0].momEta(); 
-      eeta_seed_  = simToSeedMap[i][0].emomEta();
+      eta_seed_   = simToSeedMap_[i][0].momEta(); 
+      eeta_seed_  = simToSeedMap_[i][0].emomEta();
 
-      nHits_seed_ = simToSeedMap[i][0].nHits();
-      chi2_seed_  = simToSeedMap[i][0].chi2();
+      nHits_seed_ = simToSeedMap_[i][0].nHits();
+      chi2_seed_  = simToSeedMap_[i][0].chi2();
     }
     else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
       pt_seed_    = -99;
@@ -128,21 +152,21 @@ void RootValidation::fillEffTree( TrackVec& evt_sim_tracks,  TrackVec& evt_seed_
       chi2_seed_ = -99;
     }
 
-    if (simToBuildMap.count(i)){ // recoToSim match : save reco track that first fills map (which by default is the best one --> most hits, lowest chi2)
-      pt_build_    = simToBuildMap[i][0].pt(); 
-      ept_build_   = simToBuildMap[i][0].ept();
+    if (simToBuildMap_.count(i)){ // recoToSim match : save reco track that first fills map (which by default is the best one --> most hits, lowest chi2)
+      pt_build_    = simToBuildMap_[i][0].pt(); 
+      ept_build_   = simToBuildMap_[i][0].ept();
 
-      pz_build_    = simToBuildMap[i][0].pz(); 
-      epz_build_   = simToBuildMap[i][0].epz();
+      pz_build_    = simToBuildMap_[i][0].pz(); 
+      epz_build_   = simToBuildMap_[i][0].epz();
       
-      phi_build_   = simToBuildMap[i][0].momPhi(); 
-      ephi_build_  = simToBuildMap[i][0].emomPhi();
+      phi_build_   = simToBuildMap_[i][0].momPhi(); 
+      ephi_build_  = simToBuildMap_[i][0].emomPhi();
       
-      eta_build_   = simToBuildMap[i][0].momEta(); 
-      eeta_build_  = simToBuildMap[i][0].emomEta();
+      eta_build_   = simToBuildMap_[i][0].momEta(); 
+      eeta_build_  = simToBuildMap_[i][0].emomEta();
 
-      nHits_build_ = simToBuildMap[i][0].nHits();
-      chi2_build_  = simToBuildMap[i][0].chi2();
+      nHits_build_ = simToBuildMap_[i][0].nHits();
+      chi2_build_  = simToBuildMap_[i][0].chi2();
     }
     else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
       pt_build_    = -99;
@@ -161,21 +185,21 @@ void RootValidation::fillEffTree( TrackVec& evt_sim_tracks,  TrackVec& evt_seed_
       chi2_build_  = -99;
     }
 
-    if (simToFitMap.count(i)){ // recoToSim match : save reco track that first fills map (which by default is the best one --> most hits, lowest chi2)
-      pt_fit_    = simToFitMap[i][0].pt(); 
-      ept_fit_   = simToFitMap[i][0].ept();
+    if (simToFitMap_.count(i)){ // recoToSim match : save reco track that first fills map (which by default is the best one --> most hits, lowest chi2)
+      pt_fit_    = simToFitMap_[i][0].pt(); 
+      ept_fit_   = simToFitMap_[i][0].ept();
 
-      pz_fit_    = simToFitMap[i][0].pz(); 
-      epz_fit_   = simToFitMap[i][0].epz();
+      pz_fit_    = simToFitMap_[i][0].pz(); 
+      epz_fit_   = simToFitMap_[i][0].epz();
       
-      phi_fit_   = simToFitMap[i][0].momPhi(); 
-      ephi_fit_  = simToFitMap[i][0].emomPhi();
+      phi_fit_   = simToFitMap_[i][0].momPhi(); 
+      ephi_fit_  = simToFitMap_[i][0].emomPhi();
       
-      eta_fit_   = simToFitMap[i][0].momEta(); 
-      eeta_fit_  = simToFitMap[i][0].emomEta();
+      eta_fit_   = simToFitMap_[i][0].momEta(); 
+      eeta_fit_  = simToFitMap_[i][0].emomEta();
 
-      nHits_fit_ = simToFitMap[i][0].nHits();
-      chi2_fit_  = simToFitMap[i][0].chi2();
+      nHits_fit_ = simToFitMap_[i][0].nHits();
+      chi2_fit_  = simToFitMap_[i][0].chi2();
     }
     else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
       pt_fit_    = -99;
@@ -193,12 +217,12 @@ void RootValidation::fillEffTree( TrackVec& evt_sim_tracks,  TrackVec& evt_seed_
       nHits_fit_ = -99;
       chi2_fit_  = -99;
     }
-
     efftree_->Fill();
   }
 }
 
-void RootValidation::mapSimToTks(TrackVec& evt_tracks, simToTkMap& simTkMap){
+void TTreeValidation::mapSimToTks(TrackVec& evt_tracks, simToTkMap& simTkMap_){
+  //  std::lock_guard<std::mutex> locker(glock_); 
   for (int i = 0; i < evt_tracks.size(); i++){
     evt_tracks[i].setMCTrackID();
   }
@@ -206,25 +230,25 @@ void RootValidation::mapSimToTks(TrackVec& evt_tracks, simToTkMap& simTkMap){
 
   TrkIter tkIter;
   for (tkIter = evt_tracks.begin(); tkIter != evt_tracks.end(); ++tkIter){
-    simTkMap[(*tkIter).mcTrackID()].push_back((*tkIter));
+    simTkMap_[(*tkIter).mcTrackID()].push_back((*tkIter));
   }
   
   simToTkMap::iterator tkMapIter;
-  for (tkMapIter = simTkMap.begin(); tkMapIter != simTkMap.end(); ++tkMapIter){
-    if (tkMapIter->second.size() < 2){
+  for (tkMapIter = simTkMap_.begin(); tkMapIter != simTkMap_.end(); ++tkMapIter){
+    if (tkMapIter->second.size() < 2){ // no duplicates, only one matched is by default best one
       continue;
     }
-    else{
-      std::sort(tkMapIter->second.begin(), tkMapIter->second.end(), sortByHitsChi2);
+    else{ //sort duplicates to keep the best one --> most hits, lowest chi2
+      std::sort(tkMapIter->second.begin(), tkMapIter->second.end(), sortByHitsChi2); 
     }
   }
 }
 
-void RootValidation::saveTTrees() {  
+void TTreeValidation::saveTTrees() {  
   std::lock_guard<std::mutex> locker(glock_); 
-  f_->cd();     
-  f_->Write();                
-  f_->Close();                                                                                                                                                                   
+  f_->cd();
+  f_->Write();
+  f_->Close();
 }             
 
 #endif

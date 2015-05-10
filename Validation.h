@@ -1,12 +1,13 @@
 #ifndef _validation_
 #define _validation_
 #include "Track.h"
-//#include <map>
 
 class Validation {
 public:
-  virtual void fillBuildTree(unsigned int, unsigned int, unsigned int) {}
-  virtual void fillEffTree(TrackVec&, TrackVec&, TrackVec&, TrackVec&) {}
+
+  virtual void fillBuildTree(const unsigned int, const unsigned int, const unsigned int) {}
+  virtual void makeSimToTkMaps(TrackVec&, TrackVec&, TrackVec&) {}
+  virtual void fillEffTree(const TrackVec&, const TrackVec&, const TrackVec&, const TrackVec&) {}
   virtual void saveTTrees() {}
 };
 

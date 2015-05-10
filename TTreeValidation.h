@@ -1,12 +1,12 @@
-#ifndef _rootvalidation_
-#define _rootvalidation_
+#ifndef _ttreevalidation_
+#define _ttreevalidation_
 
 #include "Validation.h"
 
 #ifdef NO_ROOT
-class RootValidation : public Validation {
+class TTreeValidation : public Validation {
 public:
-  RootValidation(std::string) {}
+  TTreeValidation(std::string) {}
 };
 #else
 
@@ -17,15 +17,19 @@ public:
 
 typedef std::map<unsigned int,TrackVec> simToTkMap;
 
-class RootValidation : public Validation {
+class TTreeValidation : public Validation {
 public:
-  RootValidation(std::string fileName);
+  TTreeValidation(std::string fileName);
 
-  void fillBuildTree(unsigned int layer, unsigned int branches, unsigned int cands) override;
-  void fillEffTree(TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, TrackVec& evt_build_tracks, TrackVec& evt_fit_tracks) override;
+  void fillBuildTree(const unsigned int layer, const unsigned int branches, const unsigned int cands) override;
+  void makeSimToTkMaps(TrackVec& evt_seed_tracks, TrackVec& evt_build_tracks, TrackVec& evt_fit_tracks) override;
+  void mapSimToTks(TrackVec& evt_tracks, simToTkMap& simTkMap_);
+  void fillEffTree(const TrackVec& evt_sim_tracks, const TrackVec& evt_seed_tracks, const TrackVec& evt_build_tracks, const TrackVec& evt_fit_tracks) override;
   void saveTTrees() override;
-  
-  void mapSimToTks(TrackVec& evt_tracks, simToTkMap& simTkMap);
+
+  simToTkMap simToSeedMap_;
+  simToTkMap simToBuildMap_;
+  simToTkMap simToFitMap_;
 
   TFile* f_;
   TTree* tree_br_;
@@ -37,7 +41,7 @@ public:
   float phi_mc_=0.,phi_seed_=0.,phi_build_=0.,phi_fit_=0.,ephi_seed_=0.,ephi_build_=0.,ephi_fit_=0.;
   float eta_mc_=0.,eta_seed_=0.,eta_build_=0.,eta_fit_=0.,eeta_seed_=0.,eeta_build_=0.,eeta_fit_=0.;
   int   nHits_mc_=0,nHits_seed_=0,nHits_build_=0,nHits_fit_=0;
-  float chi2_mc_=0.,chi2_seed_=0.,chi2_build_=0.,chi2_fit_=0.;
+  float chi2_seed_=0.,chi2_build_=0.,chi2_fit_=0.;
   
   std::mutex glock_;
 };
