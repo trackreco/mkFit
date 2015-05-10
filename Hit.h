@@ -13,16 +13,20 @@ namespace Config {
 inline unsigned int getPhiPartition(float phi){
   //assume phi is between -PI and PI
   //  if (!(fabs(phi)<TMath::Pi())) std::cout << "anomalous phi=" << phi << std::endl;
-  float phiPlusPi  = phi+TMath::Pi();
-  unsigned int bin = phiPlusPi*Config::nPhiFactor;
+  const float phiPlusPi  = phi+TMath::Pi();
+  const unsigned int bin = phiPlusPi*Config::nPhiFactor;
   return bin;
 }
 
 inline unsigned int getEtaPartition(float eta, float etaDet){
-  float etaPlusEtaDet  = eta + etaDet;
-  float twiceEtaDet    = 2.0*etaDet;
-  unsigned int bin     = (etaPlusEtaDet * Config::nEtaPart) / twiceEtaDet;  // ten bins for now ... update if changed in Event.cc
+  const float etaPlusEtaDet  = eta + etaDet;
+  const float twiceEtaDet    = 2.0*etaDet;
+  const unsigned int bin     = (etaPlusEtaDet * Config::nEtaPart) / twiceEtaDet;  // ten bins for now ... update if changed in Event.cc
   return bin;
+}
+
+inline float getRad2(float x, float y){
+  return x*x + y*y;
 }
 
 inline float getPhi(float x, float y){
@@ -30,10 +34,29 @@ inline float getPhi(float x, float y){
 }
 
 inline float getEta(float r, float z) {
-  float theta = atan2(r,z);
+  const float theta = atan2(r,z);
   return -1. * log( tan(theta/2.) );
 }
 
+inline float getRadErr2(float x, float y, float exx, float eyy, float exy){
+  return (x*x*exx + y*y*eyy + 2*x*y*exy) / getRad2(x,y);
+}  
+
+inline float getPhiErr2(float x, float y, float exx, float eyy, float exy){
+  const float rad2   = getRad2(x,y);
+  //  const float dphidx = -y/rad2;
+  //  const float dphidy =  x/rad2;
+  //  return dphidx*dphidx*exx + dphidy*dphidy*eyy + 2*dphidx*dphidy*exy;
+  return (y*y*exx + x*x*eyy - 2*x*y*exy)/(rad2*rad2);
+}
+
+inline float getEtaErr2(float x, float y, float z, float exx, float eyy, float ezz, float exy, float exz, float eyz){
+  const float rad2   = getRad2(x,y);
+  const float detadx = -x/(rad2*std::sqrt(1+rad2/(z*z)));
+  const float detady = -y/(rad2*std::sqrt(1+rad2/(z*z)));
+  const float detadz = 1.0/(z*std::sqrt(1+rad2/(z*z)));
+  return detadx*detadx*exx + detady*detady*eyy + detadz*detadz*ezz + 2*detadx*detady*exy + 2*detadx*detadz*exz + 2*detady*detadz*eyz;
+}
 
 struct MCHitInfo {
   MCHitInfo() : mcHitID_(mcHitIDCounter_++) {}
@@ -85,22 +108,13 @@ public:
 
   ~Hit(){}
 
-  const SVector3&  position() const {return state_.parameters;}
-  const SMatrixSym33& error() const {return state_.errors;}
+  const SVector3&  position()  const {return state_.parameters;}
+  const SMatrixSym33& error()  const {return state_.errors;}
   const SVector3& parameters() const {return state_.parameters;}
-  float r() const {
-    return sqrt(state_.parameters.At(0)*state_.parameters.At(0) +
-                state_.parameters.At(1)*state_.parameters.At(1));
-  }
-  float z() const {
-    return state_.parameters.At(2);
-  }
-  float phi() const {
-    return getPhi(state_.parameters.At(0),state_.parameters.At(1));
-  }
-  float eta() const{
-    return getEta(r(),state_.parameters.At(2));
-  }
+  float r() const {return std::sqrt(getRad2(state_.parameters.At(0),state_.parameters.At(1)));}
+  float z() const {return state_.parameters.At(2);}
+  float phi() const {return getPhi(state_.parameters.At(0),state_.parameters.At(1));}
+  float eta() const {return getEta(r(),z());}
 
   const MeasurementState& measurementState() const {
     return state_;

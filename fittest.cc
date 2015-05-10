@@ -49,7 +49,7 @@ static void print(std::string label, const MeasurementState& s)
 }
 #endif
 
-void fitTrack(const Track& trk, const Event& ev)
+void fitTrack(const Track & trk, Event& ev)
 {
 #ifdef DEBUG
   bool debug(false);
@@ -62,11 +62,6 @@ void fitTrack(const Track& trk, const Event& ev)
 #else
   const auto& hits = trk.hitsVector();
 #endif
-  unsigned int itrack0 = trk.SimTrackIDInfo().first;
-  Track trk0 = ev.simTracks_[itrack0];
-  TrackState simState = trk0.state();
-
-  TrackState simStateHit0 = propagateHelixToR(simState,hits[0].r()); // first hit
   TrackState cfitStateHit0;
 
 //#define CONFORMAL
@@ -87,12 +82,18 @@ void fitTrack(const Track& trk, const Event& ev)
   updatedState.errors*=10;//not needed when fitting straight from simulation
 #endif //ENDTOEND
 
-  ev.validation_.fillFitStateHists(simStateHit0, cfitStateHit0);
-
 #ifdef DEBUG
+  unsigned int itrack0 = trk.mcTrackID();
+  Track trk0 = ev.simTracks_[itrack0];
+  TrackState simState = trk0.state();
+
+  trk.setMCTrackID();
+
+  TrackState simStateHit0 = propagateHelixToR(simState,hits[0].r()); // first hit
+
   if (debug) { 
     print("Sim track", itrack0, trk0);
-    print("Initial track", trk.SimTrackIDInfo().first, trk);
+    print("Initial track", trk.mcTrackID(), trk);
     print("simStateHit0", simStateHit0);
     print("cfitStateHit0", cfitStateHit0);
     print("updatedState", updatedState);
@@ -133,19 +134,17 @@ void fitTrack(const Track& trk, const Event& ev)
       break;
 #endif
     }
-
-    const HitVec& mcInitHitVec = ev.simTracks_[hit.mcTrackID()].initHitsVector();
-    const auto hitid = hit.hitID();
-    ev.validation_.fillFitHitHists(hitid, mcInitHitVec, measState, propState, updatedState);
   } // end loop over hits
   dcall(print("Fit Track", updatedState));
-  ev.validation_.fillFitTrackHists(simState, updatedState);
+
+  Track fitTrack(updatedState,hits,0.); // eventually will want to include chi2 of fitTrack 
+  ev.fitTracks_.push_back(fitTrack);
 }
 
 typedef TrackVec::const_iterator TrkIter;
 
 #ifdef TBB
-void runFittingTest(const Event& ev, const TrackVec& candidates)
+void runFittingTest(Event& ev, const TrackVec& candidates)
 {
   parallel_for( tbb::blocked_range<TrkIter>(candidates.begin(),candidates.end()), 
       [&](const tbb::blocked_range<TrkIter>& trks)
@@ -156,7 +155,7 @@ void runFittingTest(const Event& ev, const TrackVec& candidates)
   });
 }
 #else
-void runFittingTest(const Event& ev, const TrackVec& candidates)
+void runFittingTest(Event& ev, const TrackVec& candidates)
 {
   for (auto&& trk : candidates) {
     fitTrack(trk, ev);

@@ -6,66 +6,39 @@
 #ifdef NO_ROOT
 class RootValidation : public Validation {
 public:
-  RootValidation(std::string, bool saveTree = false) {}
+  RootValidation(std::string) {}
 };
 #else
 
-#include <unordered_map>
+#include <map>
 #include <mutex>
 #include "TFile.h"
 #include "TTree.h"
-#include "TH1F.h"
-#include "TH2F.h"
+
+typedef std::map<unsigned int,TrackVec> simToTkMap;
 
 class RootValidation : public Validation {
 public:
-  RootValidation(std::string fileName, bool saveTree = true);
+  RootValidation(std::string fileName);
 
-  void fillSeedHists(std::vector<HitVec>&, std::vector<HitVec>&, TrackVec&, HitVec &, HitVec &, std::vector<float> &, std::vector<float> &, TrackVec &, TrackVec &, TrackVec &) override;
-  void fillSimHists(const TrackVec& evt_sim_tracks) override;
-  void fillCandidateHists(const TrackVec& evt_track_candidates) override;
-  void fillAssociationHists(const TrackVec& evt_track_candidates, const TrackVec& evt_sim_tracks) override;
-  void fillBuildHists(unsigned int, unsigned int, unsigned int) override;
-  void fillFitStateHists(const TrackState&, const TrackState&) override;
-  void fillFitHitHists(unsigned int, const HitVec&, const MeasurementState&, const TrackState&, const TrackState&) override;
-  void fillFitTrackHists(const TrackState&, const TrackState&) override;
-
-  void saveHists() override;
-  void deleteHists() override;
-
-  void setupHists();
-  TH1F* makeHist(const std::string& name, const std::string& title,
-    const int nbins, const double min, const double max,
-    const std::string& xlabel, const std::string& ylabel);
-  TH2F* makeHist2(const std::string& name, const std::string& title,
-    const int nxbins, const double xmin, const double xmax,
-    const int nybins, const double ymin, const double ymax,
-    const std::string& xlabel, const std::string& ylabel);
-
-  std::unordered_map<std::string,TH1F*> validation_hists_;
-  std::unordered_map<std::string,TH2F*> validation_hists2_;
+  void fillBuildTree(unsigned int layer, unsigned int branches, unsigned int cands) override;
+  void fillEffTree(TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, TrackVec& evt_build_tracks, TrackVec& evt_fit_tracks) override;
+  void saveTTrees() override;
+  
+  void mapSimToTks(TrackVec& evt_tracks, simToTkMap& simTkMap);
 
   TFile* f_;
-  TTree* buildtree_;
-  TTree* fittree_;
   TTree* tree_br_;
-  TTree* posTree_;
-  bool savetree_;
-  unsigned int tk_nhits_ = 0;
-  float tk_chi2_ = 0.;
-  unsigned int layer_ = 0;
-  unsigned int branches_ = 0;
-  unsigned int cands_ = 0;
-  float pt_mc=0.,pt_fit=0.,pt_err=0.; 
-  float simHit0_x=0.,simHit0_y=0.,simHit0_z=0.,simHit0_px=0.,simHit0_py=0.,simHit0_pz=0.;
-  float cfitHit0_x=0.,cfitHit0_y=0.,cfitHit0_z=0.,cfitHit0_px=0.,cfitHit0_py=0.,cfitHit0_pz=0.;
-  float cfitHit0_xe=0.,cfitHit0_ye=0.,cfitHit0_ze=0.,cfitHit0_pxe=0.,cfitHit0_pye=0.,cfitHit0_pze=0.;
-  float x_init=0.,x_mc=0.,x_mcerr=0.,x_prop=0.,x_perr=0.,x_update=0.,x_uerr=0.; 
-  float y_init=0.,y_mc=0.,y_mcerr=0.,y_prop=0.,y_perr=0.,y_update=0.,y_uerr=0.; 
-  float z_init=0.,z_mc=0.,z_mcerr=0.,z_prop=0.,z_perr=0.,z_update=0.,z_uerr=0.; 
-  float xy_mcerr=0.;
-  float r_init=0.,r_mc=0.,r_prop=0.,r_update=0.;
-  float phi_init=0.,phi_mc=0.,phi_mcerr=0.,phi_prop=0.,phi_perr=0.,phi_update=0.,phi_uerr=0.;
+  unsigned int layer_=0,branches_=0,cands_=0;
+
+  TTree* efftree_;  
+  float pt_mc_=0.,pt_seed_=0.,pt_build_=0.,pt_fit_=0.,ept_seed_=0.,ept_build_=0.,ept_fit_=0.;
+  float pz_mc_=0.,pz_seed_=0.,pz_build_=0.,pz_fit_=0.,epz_seed_=0.,epz_build_=0.,epz_fit_=0.;
+  float phi_mc_=0.,phi_seed_=0.,phi_build_=0.,phi_fit_=0.,ephi_seed_=0.,ephi_build_=0.,ephi_fit_=0.;
+  float eta_mc_=0.,eta_seed_=0.,eta_build_=0.,eta_fit_=0.,eeta_seed_=0.,eeta_build_=0.,eeta_fit_=0.;
+  int   nHits_mc_=0,nHits_seed_=0,nHits_build_=0,nHits_fit_=0;
+  float chi2_mc_=0.,chi2_seed_=0.,chi2_build_=0.,chi2_fit_=0.;
+  
   std::mutex glock_;
 };
 #endif

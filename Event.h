@@ -27,11 +27,12 @@ public:
   void Seed();
   void Find();
   void Fit();
+  void ValidateHighLevel();
 
   const Geometry& geom_;
   Validation& validation_;
   std::vector<HitVec> layerHits_;
-  TrackVec simTracks_, seedTracks_, candidateTracks_;
+  TrackVec simTracks_, seedTracks_, candidateTracks_, fitTracks_;
   int threads_;
 
   BinInfoMap segmentMap_;

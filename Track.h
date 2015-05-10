@@ -5,8 +5,6 @@
 #include "Matrix.h"
 #include <vector>
 
-typedef std::pair<unsigned int,unsigned int> SimTkIDInfo;
-
 struct TrackState
 {
 public:
@@ -31,8 +29,8 @@ public:
     state_.parameters = SVector6(position.At(0),position.At(1),position.At(2),momentum.At(0),momentum.At(1),momentum.At(2));
     state_.valid = true;
   }
-  Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, const HitVec& hits, float chi2, const HitVec& initHits)
-    : hits_(hits), initHits_(initHits), chi2_(chi2) 
+ Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, const HitVec& hits, float chi2, const HitVec& initHits)
+   : hits_(hits), initHits_(initHits), chi2_(chi2)
   {
     state_.charge=charge;
     state_.errors=errors;
@@ -50,20 +48,30 @@ public:
 
   ~Track(){}
 
-  int           charge() const {return state_.charge;}
-  SVector3      position() const {return SVector3(state_.parameters[0],state_.parameters[1],state_.parameters[2]);}
-  SVector3      momentum() const {return SVector3(state_.parameters[3],state_.parameters[4],state_.parameters[5]);}
+  int           charge()           const {return state_.charge;}
+  SVector3      position()         const {return SVector3(state_.parameters[0],state_.parameters[1],state_.parameters[2]);}
+  SVector3      momentum()         const {return SVector3(state_.parameters[3],state_.parameters[4],state_.parameters[5]);}
+  float         chi2()             const {return chi2_;}
   const SVector6&     parameters() const {return state_.parameters;}
-  const SMatrixSym66& errors() const {return state_.errors;}
-  const TrackState&   state() const {return state_;}
-  float         chi2() const {return chi2_;}
+  const SMatrixSym66& errors()     const {return state_.errors;}
+  const TrackState&   state()      const {return state_;}
+
+  // position 
+  float radius() const {return std::sqrt(state_.parameters[0]*state_.parameters[0] + state_.parameters[1]*state_.parameters[1]);}
+  float z()      const {return state_.parameters[2];}
+  float posPhi() const {return getPhi(state_.parameters[0],state_.parameters[1]);}
+  float posEta() const {return getEta(radius(),z());}
+
+  // momentum
+  float pt()     const {return std::sqrt(getRad2(state_.parameters[3],state_.parameters[4]));}
+  float pz()     const {return state_.parameters[5];}
+  float momPhi() const {return getPhi(state_.parameters[3],state_.parameters[4]);}
+  float momEta() const {return getEta(pt(),pz());}
   
-  float posR()   const { return std::sqrt(state_.parameters[0]*state_.parameters[0] + state_.parameters[1]*state_.parameters[1]); }
-  float momR()   const { return std::sqrt(state_.parameters[3]*state_.parameters[3] + state_.parameters[4]*state_.parameters[4]); }
-  float posPhi() const { return getPhi(state_.parameters[0],state_.parameters[1]); }
-  float momPhi() const { return getPhi(state_.parameters[3],state_.parameters[4]); }
-  float posEta() const { return getEta(posR(),state_.parameters[2]); }
-  float momEta() const { return getEta(momR(),state_.parameters[5]); }
+  float ept()     const {return std::sqrt(getRadErr2(state_.parameters[3],state_.parameters[4],state_.errors[3][3],state_.errors[4][4],state_.errors[3][4]));}
+  float epz()     const {return std::sqrt(state_.errors[3][3]);}
+  float emomPhi() const {return std::sqrt(getPhiErr2(state_.parameters[3],state_.parameters[4],state_.errors[3][3],state_.errors[4][4],state_.errors[3][4]));}
+  float emomEta() const {return std::sqrt(getEtaErr2(state_.parameters[3],state_.parameters[4],state_.parameters[5],state_.errors[3][3],state_.errors[4][4],state_.errors[5][5],state_.errors[3][4],state_.errors[3][5],state_.errors[4][5]));}
 
   const HitVec& hitsVector() const {return hits_;}
   const HitVec& initHitsVector() const {return initHits_;}
@@ -72,8 +80,8 @@ public:
   void resetHits() {hits_.clear();}
 
   unsigned int nHits() const {return hits_.size();}
-  SimTkIDInfo SimTrackIDInfo() const;
-
+  void setMCTrackID();
+  unsigned int mcTrackID() const {return mcTrackID_;}
   Track clone() const {return Track(state_,hits_,chi2_);}
 
 private:
@@ -81,7 +89,10 @@ private:
   HitVec hits_;
   HitVec initHits_;
   float chi2_;
+  unsigned int mcTrackID_;
 };
 
 typedef std::vector<Track> TrackVec;
+typedef TrackVec::const_iterator TrkIter;
+
 #endif

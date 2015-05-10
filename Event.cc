@@ -79,7 +79,6 @@ void Event::Simulate(unsigned int nTracks)
       layerHits_[hit.layer()].push_back(hit);
     }
   }
-  validation_.fillSimHists(simTracks_);
 }
 
 void Event::Segment()
@@ -632,8 +631,6 @@ void Event::Seed()
     Track seed(updatedState,seedhits,chi2);//fixme chi2
     seedTracksMC.push_back(seed);
   }
-
-  validation_.fillSeedHists(seed_pairs,seed_triplets,simTracks_,missed_phis,missed_etas,deta,chi2triplet,conformalTracks,seedTracks_,seedTracksMC);
 #endif
   std::sort(seedTracks_.begin(), seedTracks_.end(), tracksByPhi);
 }
@@ -642,8 +639,6 @@ void Event::Find()
 {
   buildTracksBySeeds(*this);
   //buildTracksByLayers(*this);
-  validation_.fillAssociationHists(candidateTracks_,simTracks_);
-  validation_.fillCandidateHists(candidateTracks_);
 }
 
 void Event::Fit()
@@ -655,3 +650,6 @@ void Event::Fit()
 #endif
 }
 
+void Event::ValidateHighLevel(){
+  validation_.fillEffTree(simTracks_,seedTracks_,candidateTracks_,fitTracks_);
+}

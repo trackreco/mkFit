@@ -1,12 +1,8 @@
 #include "Track.h"
 
 // find the simtrack that provided the most hits
-SimTkIDInfo Track::SimTrackIDInfo() const
+void Track::setMCTrackID() 
 {
-  if (hits_.size() == 0){
-    return SimTkIDInfo(0,0);
-  }
-
   std::vector<unsigned int> mctrack;
   for (auto&& ihit : hits_){
     mctrack.push_back(ihit.mcTrackID());
@@ -21,6 +17,16 @@ SimTkIDInfo Track::SimTrackIDInfo() const
     m = i;
   }
 
-  return SimTkIDInfo (mtrk,mcount);
+  if (4*mtrk >= 3*hits_.size()){ // if more, matched track --> set id info
+    if (hits_.size() != 0){
+      mcTrackID_ = mtrk;
+    }
+    else{ // zero size track, id = 1 000 000 
+      mcTrackID_ = 1000000;
+    }
+  }
+  else{ // fake track, id = 999 999
+    mcTrackID_ = 999999;
+  }
 }
 

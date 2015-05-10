@@ -1,5 +1,4 @@
 #include "buildtest.h"
-
 #include "KalmanUtils.h"
 #include "Propagation.h"
 #include "Simulation.h"
@@ -11,7 +10,11 @@
 
 //typedef std::pair<Track, TrackState> cand_t;
 typedef Track cand_t;
-typedef TrackVec::const_iterator TrkIter;
+static bool sortByHitsChi2(const cand_t& cand1, const cand_t& cand2)
+{
+  if (cand1.nHits()==cand2.nHits()) return cand1.chi2()<cand2.chi2();
+  return cand1.nHits()>cand2.nHits();
+}
 
 #ifndef TBB
 typedef std::vector<cand_t> candvec;
@@ -42,17 +45,9 @@ inline float normalizedEta(float eta) {
 }
 #endif
 
-static bool sortByHitsChi2(const cand_t& cand1, const cand_t& cand2)
-{
-  if (cand1.nHits()==cand2.nHits()) return cand1.chi2()<cand2.chi2();
-  return cand1.nHits()>cand2.nHits();
-}
-
-void processCandidates(Event& ev, const Track& seed, candvec& candidates, unsigned int ilay, const bool debug)
+void processCandidates(Event& ev, candvec& candidates, unsigned int ilay, const bool debug)
 {
   auto& evt_track_candidates(ev.candidateTracks_);
-
-  dprint("processing seed # " << seed.SimTrackIDInfo().first << " par=" << seed.parameters() << " candidates=" << candidates.size());
 
   candvec tmp_candidates;
   tmp_candidates.reserve(3*candidates.size()/2);
@@ -63,7 +58,7 @@ void processCandidates(Event& ev, const Track& seed, candvec& candidates, unsign
       extendCandidate(ev, cand, tmp_candidates, ilay, debug);
     }
 
-    ev.validation_.fillBuildHists(ilay, tmp_candidates.size(), candidates.size());
+    ev.validation_.fillBuildTree(ilay, tmp_candidates.size(), candidates.size());
 
     if (tmp_candidates.size()>Config::maxCand) {
       dprint("huge size=" << tmp_candidates.size() << " keeping best "<< Config::maxCand << " only");
@@ -115,7 +110,7 @@ void buildTracksBySeeds(Event& ev)
       auto&& candidates(track_candidates[iseed]);
       for (unsigned int ilay=Config::nlayers_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
         dprint("going to layer #" << ilay << " with N cands=" << track_candidates.size());
-        processCandidates(ev, seed, candidates, ilay, debug);
+        processCandidates(ev, candidates, ilay, debug);
       }
       //end of layer loop
     }//end of process seeds loop
@@ -156,7 +151,7 @@ void buildTracksByLayers(Event& ev)
       for (auto iseed = seediter.begin(); iseed != seediter.end(); ++iseed) {
         const auto& seed(evt_seeds[iseed]);
         auto&& candidates(track_candidates[iseed]);
-        processCandidates(ev, seed, candidates, ilay, debug);
+        processCandidates(ev, candidates, ilay, debug);
       }
     }); //end of process seeds loop
 #else
@@ -164,7 +159,7 @@ void buildTracksByLayers(Event& ev)
     for (auto iseed = 0U; iseed != evt_seeds.size(); ++iseed) {
       const auto& seed(evt_seeds[iseed]);
       auto&& candidates(track_candidates[iseed]);
-      processCandidates(ev, seed, candidates, ilay, debug);
+      processCandidates(ev, candidates, ilay, debug);
     }
 #endif
   } //end of layer loop
@@ -206,7 +201,7 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   const float predx = propState.parameters.At(0);
   const float predy = propState.parameters.At(1);
   const float predz = propState.parameters.At(2);
-  const float px2py2 = predx*predx+predy*predy; // predicted radius^2
+  // const SMatrixSym66 pErr2 = propState.errors;
 #ifdef DEBUG
   if (debug) {
     std::cout << "propState at hit#" << ilayer << " r/phi/z : " << sqrt(pow(predx,2)+pow(predy,2)) << " "
@@ -216,20 +211,11 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
 #endif
 
 #ifdef ETASEG  
-  const float eta = getEta(sqrt(px2py2),predz);
-  const float pz2 = predz*predz;
-  const float detadx = -predx/(px2py2*sqrt(1+(px2py2/pz2)));
-  const float detady = -predy/(px2py2*sqrt(1+(px2py2/pz2)));
-  const float detadz = 1.0/(predz*sqrt(1+(px2py2/pz2)));
-  const float deta2  = detadx*detadx*(propState.errors.At(0,0)) +
-    detady*detady*(propState.errors.At(1,1)) +
-    detadz*detadz*(propState.errors.At(2,2)) +
-    2*detadx*detady*(propState.errors.At(0,1)) +
-    2*detadx*detadz*(propState.errors.At(0,2)) +
-    2*detady*detadz*(propState.errors.At(1,2));
-  const float deta   = sqrt(std::abs(deta2));  
+  const float eta  = getEta(std::sqrt(getRad2(predx,predy)),predz);
+  const float deta = std::sqrt(std::abs(getEtaErr2(predx,predy,predz,propState.errors.At(0,0),propState.errors.At(1,1),propState.errors.At(2,2),propState.errors.At(0,1),propState.errors.At(0,2),propState.errors.At(1,2))));
+  //const float deta = std::sqrt(getEtaErr2(predx,predy,predz,pErr2.At(0,0),pErr2.At(1,1),pErr2.At(2,2),pErr2.At(0,1),pErr2.At(0,2),pErr2.At(1,2)));
   const float nSigmaDeta = std::min(std::max(Config::nSigma*deta,(float)0.0),float( 1.0)); // something to tune -- minDEta = 0.0
-
+  
   //for now as well --> eta boundary!!!
   const float detaMinus  = normalizedEta(eta-nSigmaDeta);
   const float detaPlus   = normalizedEta(eta+nSigmaDeta);
@@ -240,20 +226,15 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   const auto etaBinMinus = getEtaPartition(detaMinus,etaDet);
   const auto etaBinPlus  = getEtaPartition(detaPlus,etaDet);
 
-  dprint("eta: " << eta << " etaBinMinus: " << etaBinMinus << " etaBinPlus: " << etaBinPlus << " deta2: " << deta2);
+  dprint("eta: " << eta << " etaBinMinus: " << etaBinMinus << " etaBinPlus: " << etaBinPlus << " deta: " << deta);
 #else // just assign the etaBin boundaries to keep code without 10k ifdefs
   const auto etaBinMinus = 0U;
   const auto etaBinPlus  = 0U;
 #endif
 
   const float phi    = getPhi(predx,predy); //std::atan2(predy,predx); 
-  const float dphidx = -predy/px2py2;
-  const float dphidy =  predx/px2py2;
-  const float dphi2  = dphidx*dphidx*(propState.errors.At(0,0)) +
-    dphidy*dphidy*(propState.errors.At(1,1)) +
-    2*dphidx*dphidy*(propState.errors.At(0,1));
-  
-  const float dphi   =  sqrt(std::abs(dphi2));//how come I get negative squared errors sometimes?
+  const float dphi   = std::sqrt(std::abs(getPhiErr2(predx,predy,propState.errors.At(0,0),propState.errors.At(1,1),propState.errors.At(0,1))));
+  //  const float dphi   =  std::sqrt(getPhiErr2(predx,predy,pErr2.At(0,0),pErr2.At(1,1),pErr2.At(0,1)));
   const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi,(float) Config::minDPhi), (float) M_PI);
   
   const float dphiMinus = normalizedPhi(phi-nSigmaDphi);
@@ -262,7 +243,7 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   const auto phiBinMinus = getPhiPartition(dphiMinus);
   const auto phiBinPlus  = getPhiPartition(dphiPlus);
 
-  dprint("phi: " << phi << " phiBinMinus: " <<  phiBinMinus << " phiBinPlus: " << phiBinPlus << "  dphi2: " << dphi2);
+  dprint("phi: " << phi << " phiBinMinus: " <<  phiBinMinus << " phiBinPlus: " << phiBinPlus << "  dphi: " << dphi);
   
   for (unsigned int ieta = etaBinMinus; ieta <= etaBinPlus; ++ieta){
     
