@@ -27,7 +27,7 @@ public:
   void Seed();
   void Find();
   void Fit();
-  void ValidateHighLevel();
+  void ValidateHighLevel(const unsigned int &);
 
   const Geometry& geom_;
   Validation& validation_;

@@ -170,6 +170,7 @@ void Event::Segment()
 
 void Event::Seed()
 {
+
 #define SIMSEEDS
 #ifdef SIMSEEDS
   //create seeds (from sim tracks for now)
@@ -605,32 +606,6 @@ void Event::Seed()
     Track seed(updatedState,seed_triplet,0.);//fixme chi2
     seedTracks_.push_back(seed);
   }
-
-  TrackVec seedTracksMC;
-
-  for (unsigned int itrack=0;itrack<simTracks_.size();++itrack) {
-    HitVec seedhits;
-    Track& trk = simTracks_[itrack];
-    HitVec& hits = trk.hitsVector();
-    float chi2   = 0;
-    TrackState updatedState = trk.state();
-
-    for (auto ilayer=0U;ilayer<nlayers_per_seed;++ilayer) {//seeds have first three layers as seeds
-      Hit seed_hit = hits[ilayer]; // do this for now to make initHits element number line up with HitId number
-      TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
-#ifdef CHECKSTATEVALID
-      if (!propState.valid) {
-        break;
-      }
-#endif
-      MeasurementState measState = seed_hit.measurementState();
-      updatedState = updateParameters(propState,measState);
-      seedhits.push_back(seed_hit);//fixme chi2
-      chi2 += computeChi2(propState,measState);
-    }
-    Track seed(updatedState,seedhits,chi2);//fixme chi2
-    seedTracksMC.push_back(seed);
-  }
 #endif
   std::sort(seedTracks_.begin(), seedTracks_.end(), tracksByPhi);
 }
@@ -650,7 +625,7 @@ void Event::Fit()
 #endif
 }
 
-void Event::ValidateHighLevel(){
+void Event::ValidateHighLevel(const unsigned int & ievt){
   validation_.makeSimToTkMaps(seedTracks_,candidateTracks_,fitTracks_);
-  validation_.fillEffTree(simTracks_,seedTracks_,candidateTracks_,fitTracks_);
+  validation_.fillEffTree(simTracks_,seedTracks_,candidateTracks_,fitTracks_,ievt);
 }

@@ -64,7 +64,7 @@ void fitTrack(const Track & trk, Event& ev)
 #endif
   TrackState cfitStateHit0;
 
-//#define CONFORMAL
+  //#define CONFORMAL
 #ifdef CONFORMAL
   bool backward = false;
 #if defined(INWARD)
@@ -83,11 +83,10 @@ void fitTrack(const Track & trk, Event& ev)
 #endif //ENDTOEND
 
 #ifdef DEBUG
+  trk.setMCTrackIDInfo(); // to use this debug have to set fitTrack to non-const for Track& trk
   unsigned int itrack0 = trk.mcTrackID();
   Track trk0 = ev.simTracks_[itrack0];
   TrackState simState = trk0.state();
-
-  trk.setMCTrackID();
 
   TrackState simStateHit0 = propagateHelixToR(simState,hits[0].r()); // first hit
 
@@ -137,8 +136,8 @@ void fitTrack(const Track & trk, Event& ev)
   } // end loop over hits
   dcall(print("Fit Track", updatedState));
 
-  Track fitTrack(updatedState,hits,0.); // eventually will want to include chi2 of fitTrack 
-  ev.fitTracks_.push_back(fitTrack);
+  Track FitTrack(updatedState,hits,0.); // eventually will want to include chi2 of fitTrack 
+  ev.fitTracks_.push_back(FitTrack);
 }
 
 typedef TrackVec::const_iterator TrkIter;

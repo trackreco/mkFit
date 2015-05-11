@@ -80,8 +80,9 @@ public:
   void resetHits() {hits_.clear();}
 
   unsigned int nHits() const {return hits_.size();}
-  void setMCTrackID();
+  void setMCTrackIDInfo();
   unsigned int mcTrackID() const {return mcTrackID_;}
+  unsigned int nHitsMatched() const {return nHitsMatched_;}
   Track clone() const {return Track(state_,hits_,chi2_);}
 
 private:
@@ -90,9 +91,9 @@ private:
   HitVec initHits_;
   float chi2_;
   unsigned int mcTrackID_;
+  unsigned int nHitsMatched_;
 };
 
 typedef std::vector<Track> TrackVec;
-typedef TrackVec::const_iterator TrkIter;
 
 #endif

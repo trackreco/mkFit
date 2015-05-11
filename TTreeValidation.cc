@@ -7,11 +7,6 @@ static bool sortByHitsChi2(const Track& cand1, const Track& cand2)
   return cand1.nHits()>cand2.nHits();
 }
 
-static bool tracksByID(const Track& t1, const Track& t2)
-{
-  return t1.mcTrackID()<t2.mcTrackID();
-}
-
 TTreeValidation::TTreeValidation(std::string fileName)
 {
   std::lock_guard<std::mutex> locker(glock_);
@@ -65,8 +60,17 @@ TTreeValidation::TTreeValidation(std::string fileName)
   efftree_->Branch("chi2_build",&chi2_build_);
   efftree_->Branch("chi2_fit",&chi2_fit_);
 
+  efftree_->Branch("nHitsMatched_seed",&nHitsMatched_seed_);
+  efftree_->Branch("nHitsMatched_build",&nHitsMatched_build_);
+  efftree_->Branch("nHitsMatched_fit",&nHitsMatched_fit_);
+
+  efftree_->Branch("evt_mc",&evt_mc_);
+  efftree_->Branch("evt_seed",&evt_seed_);
+  efftree_->Branch("evt_build",&evt_build_);
+  efftree_->Branch("evt_fit",&evt_fit_);
+
   // fake rate validation
-  efftree_ = new TTree("efftree","efftree");
+  /*  efftree_ = new TTree("efftree","efftree");
   efftree_->Branch("pt_seed",&pt_seed_);
   efftree_->Branch("pt_build",&pt_build_);
   efftree_->Branch("pt_fit",&pt_fit_);
@@ -89,7 +93,7 @@ TTreeValidation::TTreeValidation(std::string fileName)
 
   efftree_->Branch("chi2_seed",&chi2_seed_);
   efftree_->Branch("chi2_build",&chi2_build_);
-  efftree_->Branch("chi2_fit",&chi2_fit_);
+  efftree_->Branch("chi2_fit",&chi2_fit_);*/
 }
 
 void TTreeValidation::fillBuildTree(const unsigned int layer, const unsigned int branches, const unsigned int cands)
@@ -104,12 +108,16 @@ void TTreeValidation::fillBuildTree(const unsigned int layer, const unsigned int
 void TTreeValidation::makeSimToTkMaps(TrackVec& evt_seed_tracks, TrackVec& evt_build_tracks, TrackVec& evt_fit_tracks){
   // set mcTkIDs... and sort by each (simTracks set in order by default!)
   std::lock_guard<std::mutex> locker(glock_);
+  simToSeedMap_.clear();
+  simToBuildMap_.clear();
+  simToFitMap_.clear();
+
   mapSimToTks(evt_seed_tracks,simToSeedMap_);
   mapSimToTks(evt_build_tracks,simToBuildMap_);
   mapSimToTks(evt_fit_tracks,simToFitMap_);
 }
 
-void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const TrackVec& evt_seed_tracks, const TrackVec& evt_build_tracks, const TrackVec& evt_fit_tracks){
+void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const TrackVec& evt_seed_tracks, const TrackVec& evt_build_tracks, const TrackVec& evt_fit_tracks, const unsigned int & ievt){
   std::lock_guard<std::mutex> locker(glock_);
 
   for (int i = 0; i < evt_sim_tracks.size(); i++){
@@ -118,7 +126,8 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const TrackVec
     phi_mc_   = evt_sim_tracks[i].momPhi();
     eta_mc_   = evt_sim_tracks[i].momEta();
     nHits_mc_ = evt_sim_tracks[i].nHits();
-    
+    evt_mc_   = ievt;
+  
     if (simToSeedMap_.count(i)){ // recoToSim match : save reco track that first fills map (which by default is the best one --> most hits, lowest chi2)
       pt_seed_    = simToSeedMap_[i][0].pt(); 
       ept_seed_   = simToSeedMap_[i][0].ept();
@@ -134,6 +143,9 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const TrackVec
 
       nHits_seed_ = simToSeedMap_[i][0].nHits();
       chi2_seed_  = simToSeedMap_[i][0].chi2();
+      nHitsMatched_seed_ = simToSeedMap_[i][0].nHitsMatched();
+
+      evt_seed_   = ievt;
     }
     else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
       pt_seed_    = -99;
@@ -149,9 +161,12 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const TrackVec
       eeta_seed_  = -99;
      
       nHits_seed_ = -99;
-      chi2_seed_ = -99;
-    }
+      chi2_seed_  = -99;
+      nHitsMatched_seed_ = -99;
 
+      evt_seed_   = -99;
+    }
+  
     if (simToBuildMap_.count(i)){ // recoToSim match : save reco track that first fills map (which by default is the best one --> most hits, lowest chi2)
       pt_build_    = simToBuildMap_[i][0].pt(); 
       ept_build_   = simToBuildMap_[i][0].ept();
@@ -167,6 +182,9 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const TrackVec
 
       nHits_build_ = simToBuildMap_[i][0].nHits();
       chi2_build_  = simToBuildMap_[i][0].chi2();
+      nHitsMatched_build_ = simToBuildMap_[i][0].nHitsMatched();
+
+      evt_build_   = ievt;
     }
     else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
       pt_build_    = -99;
@@ -183,6 +201,9 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const TrackVec
      
       nHits_build_ = -99;
       chi2_build_  = -99;
+      nHitsMatched_build_ = -99;
+
+      evt_build_   = -99;
     }
 
     if (simToFitMap_.count(i)){ // recoToSim match : save reco track that first fills map (which by default is the best one --> most hits, lowest chi2)
@@ -199,7 +220,10 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const TrackVec
       eeta_fit_  = simToFitMap_[i][0].emomEta();
 
       nHits_fit_ = simToFitMap_[i][0].nHits();
-      chi2_fit_  = simToFitMap_[i][0].chi2();
+      chi2_fit_  = -10;//simToFitMap_[i][0].chi2(); // --> currently not implemented
+      nHitsMatched_fit_ = simToFitMap_[i][0].nHitsMatched();
+
+      evt_fit_   = ievt;
     }
     else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
       pt_fit_    = -99;
@@ -216,6 +240,9 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const TrackVec
      
       nHits_fit_ = -99;
       chi2_fit_  = -99;
+      nHitsMatched_fit_ = -99;
+
+      evt_fit_   = -99;
     }
     efftree_->Fill();
   }
@@ -223,23 +250,22 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const TrackVec
 
 void TTreeValidation::mapSimToTks(TrackVec& evt_tracks, simToTkMap& simTkMap_){
   //  std::lock_guard<std::mutex> locker(glock_); 
-  for (int i = 0; i < evt_tracks.size(); i++){
-    evt_tracks[i].setMCTrackID();
-  }
-  std::sort(evt_tracks.begin(), evt_tracks.end(), tracksByID);
 
-  TrkIter tkIter;
-  for (tkIter = evt_tracks.begin(); tkIter != evt_tracks.end(); ++tkIter){
-    simTkMap_[(*tkIter).mcTrackID()].push_back((*tkIter));
+  for (auto&& track : evt_tracks){
+    track.setMCTrackIDInfo();
+    simTkMap_[track.mcTrackID()].push_back(track);
   }
-  
-  simToTkMap::iterator tkMapIter;
-  for (tkMapIter = simTkMap_.begin(); tkMapIter != simTkMap_.end(); ++tkMapIter){
-    if (tkMapIter->second.size() < 2){ // no duplicates, only one matched is by default best one
+  //  std::sort(evt_tracks.begin(), evt_tracks.end(), tracksByID);
+
+  for (auto&& simTkMatches : simTkMap_){
+    if (simTkMatches.second.size() < 2) {
       continue;
     }
-    else{ //sort duplicates to keep the best one --> most hits, lowest chi2
-      std::sort(tkMapIter->second.begin(), tkMapIter->second.end(), sortByHitsChi2); 
+    else if (simTkMatches.second[0].mcTrackID() == 999999){ // do not bother sorting fakes. nobody likes fakes.
+      continue;
+    }
+    else{ // sort duplicates (ghosts) to keep best one --> most hits, lowest chi2
+      std::sort(simTkMatches.second.begin(), simTkMatches.second.end(), sortByHitsChi2); 
     }
   }
 }
