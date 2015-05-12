@@ -15,7 +15,7 @@ public:
 #include "TFile.h"
 #include "TTree.h"
 
-typedef std::map<unsigned int,TrackVec> simToTkMap;
+typedef std::map<unsigned int,TrackVecRef> simToTkMap;
 
 class TTreeValidation : public Validation {
 public:
@@ -53,6 +53,7 @@ public:
   TTree* fakebuildtree_;
   TTree* fakefittree_;  
   bool  mask_seed_fake_=0,mask_build_fake_=0,mask_fit_fake_=0;
+  int   mask_seed_duplicate_=0,mask_build_duplicate_=0,mask_fit_duplicate_=0;
   float pt_seed_fake_=0.,pt_build_fake_=0.,pt_fit_fake_=0.;
   float pz_seed_fake_=0.,pz_build_fake_=0.,pz_fit_fake_=0.;
   float phi_seed_fake_=0.,phi_build_fake_=0.,phi_fit_fake_=0.;

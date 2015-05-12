@@ -67,11 +67,15 @@ public:
   float pz()     const {return state_.parameters[5];}
   float momPhi() const {return getPhi(state_.parameters[3],state_.parameters[4]);}
   float momEta() const {return getEta(pt(),pz());}
-  
-  float ept()     const {return std::sqrt(getRadErr2(state_.parameters[3],state_.parameters[4],state_.errors[3][3],state_.errors[4][4],state_.errors[3][4]));}
+
   float epz()     const {return std::sqrt(state_.errors[3][3]);}
-  float emomPhi() const {return std::sqrt(getPhiErr2(state_.parameters[3],state_.parameters[4],state_.errors[3][3],state_.errors[4][4],state_.errors[3][4]));}
-  float emomEta() const {return std::sqrt(getEtaErr2(state_.parameters[3],state_.parameters[4],state_.parameters[5],state_.errors[3][3],state_.errors[4][4],state_.errors[5][5],state_.errors[3][4],state_.errors[3][5],state_.errors[4][5]));}
+  
+  float ept()     const {return std::sqrt(std::abs(getRadErr2(state_.parameters[3],state_.parameters[4],state_.errors[3][3],state_.errors[4][4],state_.errors[3][4])));}
+  float emomPhi() const {return std::sqrt(std::abs(getPhiErr2(state_.parameters[3],state_.parameters[4],state_.errors[3][3],state_.errors[4][4],state_.errors[3][4])));}
+  float emomEta() const {return std::sqrt(std::abs(getEtaErr2(state_.parameters[3],state_.parameters[4],state_.parameters[5],state_.errors[3][3],state_.errors[4][4],state_.errors[5][5],state_.errors[3][4],state_.errors[3][5],state_.errors[4][5])));}
+  //float ept()     const {return std::sqrt(getRadErr2(state_.parameters[3],state_.parameters[4],state_.errors[3][3],state_.errors[4][4],state_.errors[3][4]));}
+  //float emomPhi() const {return std::sqrt(getPhiErr2(state_.parameters[3],state_.parameters[4],state_.errors[3][3],state_.errors[4][4],state_.errors[3][4]));}
+  //float emomEta() const {return std::sqrt(getEtaErr2(state_.parameters[3],state_.parameters[4],state_.parameters[5],state_.errors[3][3],state_.errors[4][4],state_.errors[5][5],state_.errors[3][4],state_.errors[3][5],state_.errors[4][5]));}
 
   const HitVec& hitsVector() const {return hits_;}
   const HitVec& initHitsVector() const {return initHits_;}
@@ -95,5 +99,6 @@ private:
 };
 
 typedef std::vector<Track> TrackVec;
+typedef std::vector<Track*> TrackVecRef;
 
 #endif
