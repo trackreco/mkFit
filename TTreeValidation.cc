@@ -19,81 +19,90 @@ TTreeValidation::TTreeValidation(std::string fileName)
   
   // efficiency validation
   efftree_ = new TTree("efftree","efftree");
-  efftree_->Branch("pt_mc",&pt_mc_);
-  efftree_->Branch("pt_seed",&pt_seed_);
-  efftree_->Branch("ept_seed",&ept_seed_);
-  efftree_->Branch("pt_build",&pt_build_);
-  efftree_->Branch("ept_build",&ept_build_);
-  efftree_->Branch("pt_fit",&pt_fit_);
-  efftree_->Branch("ept_fit",&ept_fit_);
+  efftree_->Branch("pt_mc",&pt_mc_eff_);
+  efftree_->Branch("pt_seed",&pt_seed_eff_);
+  efftree_->Branch("ept_seed",&ept_seed_eff_);
+  efftree_->Branch("pt_build",&pt_build_eff_);
+  efftree_->Branch("ept_build",&ept_build_eff_);
+  efftree_->Branch("pt_fit",&pt_fit_eff_);
+  efftree_->Branch("ept_fit",&ept_fit_eff_);
 
-  efftree_->Branch("pz_mc",&pz_mc_);
-  efftree_->Branch("pz_seed",&pz_seed_);
-  efftree_->Branch("epz_seed",&epz_seed_);
-  efftree_->Branch("pz_build",&pz_build_);
-  efftree_->Branch("epz_build",&epz_build_);
-  efftree_->Branch("pz_fit",&pz_fit_);
-  efftree_->Branch("epz_fit",&epz_fit_);
+  efftree_->Branch("pz_mc",&pz_mc_eff_);
+  efftree_->Branch("pz_seed",&pz_seed_eff_);
+  efftree_->Branch("epz_seed",&epz_seed_eff_);
+  efftree_->Branch("pz_build",&pz_build_eff_);
+  efftree_->Branch("epz_build",&epz_build_eff_);
+  efftree_->Branch("pz_fit",&pz_fit_eff_);
+  efftree_->Branch("epz_fit",&epz_fit_eff_);
 
-  efftree_->Branch("phi_mc",&phi_mc_);
-  efftree_->Branch("phi_seed",&phi_seed_);
-  efftree_->Branch("ephi_seed",&ephi_seed_);
-  efftree_->Branch("phi_build",&phi_build_);
-  efftree_->Branch("ephi_build",&ephi_build_);
-  efftree_->Branch("phi_fit",&phi_fit_);
-  efftree_->Branch("ephi_fit",&ephi_fit_);
+  efftree_->Branch("phi_mc",&phi_mc_eff_);
+  efftree_->Branch("phi_seed",&phi_seed_eff_);
+  efftree_->Branch("ephi_seed",&ephi_seed_eff_);
+  efftree_->Branch("phi_build",&phi_build_eff_);
+  efftree_->Branch("ephi_build",&ephi_build_eff_);
+  efftree_->Branch("phi_fit",&phi_fit_eff_);
+  efftree_->Branch("ephi_fit",&ephi_fit_eff_);
 
-  efftree_->Branch("eta_mc",&eta_mc_);
-  efftree_->Branch("eta_seed",&eta_seed_);
-  efftree_->Branch("eeta_seed",&eeta_seed_);
-  efftree_->Branch("eta_build",&eta_build_);
-  efftree_->Branch("eeta_build",&eeta_build_);
-  efftree_->Branch("eta_fit",&eta_fit_);
-  efftree_->Branch("eeta_fit",&eeta_fit_);
+  efftree_->Branch("eta_mc",&eta_mc_eff_);
+  efftree_->Branch("eta_seed",&eta_seed_eff_);
+  efftree_->Branch("eeta_seed",&eeta_seed_eff_);
+  efftree_->Branch("eta_build",&eta_build_eff_);
+  efftree_->Branch("eeta_build",&eeta_build_eff_);
+  efftree_->Branch("eta_fit",&eta_fit_eff_);
+  efftree_->Branch("eeta_fit",&eeta_fit_eff_);
 
-  efftree_->Branch("nHits_mc",&nHits_mc_);
-  efftree_->Branch("nHits_seed",&nHits_seed_);
-  efftree_->Branch("nHits_build",&nHits_build_);
-  efftree_->Branch("nHits_fit",&nHits_fit_);
+  efftree_->Branch("nHits_mc",&nHits_mc_eff_);
+  efftree_->Branch("nHits_seed",&nHits_seed_eff_);
+  efftree_->Branch("nHits_build",&nHits_build_eff_);
+  efftree_->Branch("nHits_fit",&nHits_fit_eff_);
 
-  efftree_->Branch("chi2_seed",&chi2_seed_);
-  efftree_->Branch("chi2_build",&chi2_build_);
-  efftree_->Branch("chi2_fit",&chi2_fit_);
+  efftree_->Branch("chi2_seed",&chi2_seed_eff_);
+  efftree_->Branch("chi2_build",&chi2_build_eff_);
+  efftree_->Branch("chi2_fit",&chi2_fit_eff_);
 
-  efftree_->Branch("nHitsMatched_seed",&nHitsMatched_seed_);
-  efftree_->Branch("nHitsMatched_build",&nHitsMatched_build_);
-  efftree_->Branch("nHitsMatched_fit",&nHitsMatched_fit_);
+  efftree_->Branch("nHitsMatched_seed",&nHitsMatched_seed_eff_);
+  efftree_->Branch("nHitsMatched_build",&nHitsMatched_build_eff_);
+  efftree_->Branch("nHitsMatched_fit",&nHitsMatched_fit_eff_);
 
-  efftree_->Branch("evt_mc",&evt_mc_);
-  efftree_->Branch("evt_seed",&evt_seed_);
-  efftree_->Branch("evt_build",&evt_build_);
-  efftree_->Branch("evt_fit",&evt_fit_);
+  efftree_->Branch("evt_mc",&evt_mc_eff_);
+  efftree_->Branch("evt_seed",&evt_seed_eff_);
+  efftree_->Branch("evt_build",&evt_build_eff_);
+  efftree_->Branch("evt_fit",&evt_fit_eff_);
+
+  efftree_->Branch("ghost_mask_seed",&ghost_mask_seed_eff_);
+  efftree_->Branch("ghost_mask_build",&ghost_mask_build_eff_);
+  efftree_->Branch("ghost_mask_fit",&ghost_mask_fit_eff_);
 
   // fake rate validation
-  /*  efftree_ = new TTree("efftree","efftree");
-  efftree_->Branch("pt_seed",&pt_seed_);
-  efftree_->Branch("pt_build",&pt_build_);
-  efftree_->Branch("pt_fit",&pt_fit_);
+  fakeseedtree_ = new TTree("fakeseedtree","fakeseedtree");
+  fakeseedtree_->Branch("mask_seed",&mask_seed_fake_);
+  fakeseedtree_->Branch("pt_seed",&pt_seed_fake_);
+  fakeseedtree_->Branch("pz_seed",&pz_seed_fake_);
+  fakeseedtree_->Branch("phi_seed",&phi_seed_fake_);
+  fakeseedtree_->Branch("eta_seed",&eta_seed_fake_);
+  fakeseedtree_->Branch("nHits_seed",&nHits_seed_fake_);
+  fakeseedtree_->Branch("chi2_seed",&chi2_seed_fake_);
+  fakeseedtree_->Branch("evt_seed",&evt_seed_fake_);
 
-  efftree_->Branch("pz_seed",&pz_seed_);
-  efftree_->Branch("pz_build",&pz_build_);
-  efftree_->Branch("pz_fit",&pz_fit_);
+  fakebuildtree_ = new TTree("fakebuildtree","fakebuildtree");
+  fakebuildtree_->Branch("mask_build",&mask_build_fake_);
+  fakebuildtree_->Branch("pt_build",&pt_build_fake_);
+  fakebuildtree_->Branch("pz_build",&pz_build_fake_);
+  fakebuildtree_->Branch("phi_build",&phi_build_fake_);
+  fakebuildtree_->Branch("eta_build",&eta_build_fake_);
+  fakebuildtree_->Branch("nHits_build",&nHits_build_fake_);
+  fakebuildtree_->Branch("chi2_build",&chi2_build_fake_);
+  fakebuildtree_->Branch("evt_build",&evt_build_fake_);
 
-  efftree_->Branch("phi_seed",&phi_seed_);
-  efftree_->Branch("phi_build",&phi_build_);
-  efftree_->Branch("phi_fit",&phi_fit_);
-
-  efftree_->Branch("eta_seed",&eta_seed_);
-  efftree_->Branch("eta_build",&eta_build_);
-  efftree_->Branch("eta_fit",&eta_fit_);
-
-  efftree_->Branch("nHits_seed",&nHits_seed_);
-  efftree_->Branch("nHits_build",&nHits_build_);
-  efftree_->Branch("nHits_fit",&nHits_fit_);
-
-  efftree_->Branch("chi2_seed",&chi2_seed_);
-  efftree_->Branch("chi2_build",&chi2_build_);
-  efftree_->Branch("chi2_fit",&chi2_fit_);*/
+  fakefittree_ = new TTree("fakefittree","fakefittree");
+  fakefittree_->Branch("mask_fit",&mask_fit_fake_);
+  fakefittree_->Branch("pt_fit",&pt_fit_fake_);
+  fakefittree_->Branch("pz_fit",&pz_fit_fake_);
+  fakefittree_->Branch("phi_fit",&phi_fit_fake_);
+  fakefittree_->Branch("eta_fit",&eta_fit_fake_);
+  fakefittree_->Branch("nHits_fit",&nHits_fit_fake_);
+  fakefittree_->Branch("chi2_fit",&chi2_fit_fake_);
+  fakefittree_->Branch("evt_fit",&evt_fit_fake_);
 }
 
 void TTreeValidation::fillBuildTree(const unsigned int layer, const unsigned int branches, const unsigned int cands)
@@ -117,137 +126,6 @@ void TTreeValidation::makeSimToTkMaps(TrackVec& evt_seed_tracks, TrackVec& evt_b
   mapSimToTks(evt_fit_tracks,simToFitMap_);
 }
 
-void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const TrackVec& evt_seed_tracks, const TrackVec& evt_build_tracks, const TrackVec& evt_fit_tracks, const unsigned int & ievt){
-  std::lock_guard<std::mutex> locker(glock_);
-
-  for (int i = 0; i < evt_sim_tracks.size(); i++){
-    pt_mc_    = evt_sim_tracks[i].pt();
-    pz_mc_    = evt_sim_tracks[i].pz();
-    phi_mc_   = evt_sim_tracks[i].momPhi();
-    eta_mc_   = evt_sim_tracks[i].momEta();
-    nHits_mc_ = evt_sim_tracks[i].nHits();
-    evt_mc_   = ievt;
-  
-    if (simToSeedMap_.count(i)){ // recoToSim match : save reco track that first fills map (which by default is the best one --> most hits, lowest chi2)
-      pt_seed_    = simToSeedMap_[i][0].pt(); 
-      ept_seed_   = simToSeedMap_[i][0].ept();
-
-      pz_seed_    = simToSeedMap_[i][0].pz(); 
-      epz_seed_   = simToSeedMap_[i][0].epz();
-      
-      phi_seed_   = simToSeedMap_[i][0].momPhi(); 
-      ephi_seed_  = simToSeedMap_[i][0].emomPhi();
-      
-      eta_seed_   = simToSeedMap_[i][0].momEta(); 
-      eeta_seed_  = simToSeedMap_[i][0].emomEta();
-
-      nHits_seed_ = simToSeedMap_[i][0].nHits();
-      chi2_seed_  = simToSeedMap_[i][0].chi2();
-      nHitsMatched_seed_ = simToSeedMap_[i][0].nHitsMatched();
-
-      evt_seed_   = ievt;
-    }
-    else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
-      pt_seed_    = -99;
-      ept_seed_   = -99;
-
-      pz_seed_    = -99;
-      epz_seed_   = -99;
-     
-      phi_seed_   = -99;
-      ephi_seed_  = -99;
-      
-      eta_seed_   = -99;
-      eeta_seed_  = -99;
-     
-      nHits_seed_ = -99;
-      chi2_seed_  = -99;
-      nHitsMatched_seed_ = -99;
-
-      evt_seed_   = -99;
-    }
-  
-    if (simToBuildMap_.count(i)){ // recoToSim match : save reco track that first fills map (which by default is the best one --> most hits, lowest chi2)
-      pt_build_    = simToBuildMap_[i][0].pt(); 
-      ept_build_   = simToBuildMap_[i][0].ept();
-
-      pz_build_    = simToBuildMap_[i][0].pz(); 
-      epz_build_   = simToBuildMap_[i][0].epz();
-      
-      phi_build_   = simToBuildMap_[i][0].momPhi(); 
-      ephi_build_  = simToBuildMap_[i][0].emomPhi();
-      
-      eta_build_   = simToBuildMap_[i][0].momEta(); 
-      eeta_build_  = simToBuildMap_[i][0].emomEta();
-
-      nHits_build_ = simToBuildMap_[i][0].nHits();
-      chi2_build_  = simToBuildMap_[i][0].chi2();
-      nHitsMatched_build_ = simToBuildMap_[i][0].nHitsMatched();
-
-      evt_build_   = ievt;
-    }
-    else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
-      pt_build_    = -99;
-      ept_build_   = -99;
-
-      pz_build_    = -99;
-      epz_build_   = -99;
-     
-      phi_build_   = -99;
-      ephi_build_  = -99;
-      
-      eta_build_   = -99;
-      eeta_build_  = -99;
-     
-      nHits_build_ = -99;
-      chi2_build_  = -99;
-      nHitsMatched_build_ = -99;
-
-      evt_build_   = -99;
-    }
-
-    if (simToFitMap_.count(i)){ // recoToSim match : save reco track that first fills map (which by default is the best one --> most hits, lowest chi2)
-      pt_fit_    = simToFitMap_[i][0].pt(); 
-      ept_fit_   = simToFitMap_[i][0].ept();
-
-      pz_fit_    = simToFitMap_[i][0].pz(); 
-      epz_fit_   = simToFitMap_[i][0].epz();
-      
-      phi_fit_   = simToFitMap_[i][0].momPhi(); 
-      ephi_fit_  = simToFitMap_[i][0].emomPhi();
-      
-      eta_fit_   = simToFitMap_[i][0].momEta(); 
-      eeta_fit_  = simToFitMap_[i][0].emomEta();
-
-      nHits_fit_ = simToFitMap_[i][0].nHits();
-      chi2_fit_  = -10;//simToFitMap_[i][0].chi2(); // --> currently not implemented
-      nHitsMatched_fit_ = simToFitMap_[i][0].nHitsMatched();
-
-      evt_fit_   = ievt;
-    }
-    else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
-      pt_fit_    = -99;
-      ept_fit_   = -99;
-
-      pz_fit_    = -99;
-      epz_fit_   = -99;
-     
-      phi_fit_   = -99;
-      ephi_fit_  = -99;
-      
-      eta_fit_   = -99;
-      eeta_fit_  = -99;
-     
-      nHits_fit_ = -99;
-      chi2_fit_  = -99;
-      nHitsMatched_fit_ = -99;
-
-      evt_fit_   = -99;
-    }
-    efftree_->Fill();
-  }
-}
-
 void TTreeValidation::mapSimToTks(TrackVec& evt_tracks, simToTkMap& simTkMap_){
   //  std::lock_guard<std::mutex> locker(glock_); 
 
@@ -255,7 +133,6 @@ void TTreeValidation::mapSimToTks(TrackVec& evt_tracks, simToTkMap& simTkMap_){
     track.setMCTrackIDInfo();
     simTkMap_[track.mcTrackID()].push_back(track);
   }
-  //  std::sort(evt_tracks.begin(), evt_tracks.end(), tracksByID);
 
   for (auto&& simTkMatches : simTkMap_){
     if (simTkMatches.second.size() < 2) {
@@ -269,6 +146,222 @@ void TTreeValidation::mapSimToTks(TrackVec& evt_tracks, simToTkMap& simTkMap_){
     }
   }
 }
+
+void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned int& ievt){
+  std::lock_guard<std::mutex> locker(glock_);
+
+  for (int i = 0; i < evt_sim_tracks.size(); i++){
+    pt_mc_eff_    = evt_sim_tracks[i].pt();
+    pz_mc_eff_    = evt_sim_tracks[i].pz();
+    phi_mc_eff_   = evt_sim_tracks[i].momPhi();
+    eta_mc_eff_   = evt_sim_tracks[i].momEta();
+    nHits_mc_eff_ = evt_sim_tracks[i].nHits();
+    evt_mc_eff_   = ievt;
+  
+    if (simToSeedMap_.count(i)){ // recoToSim match : save reco track that first fills map (which by default is the best one --> most hits, lowest chi2)
+      //      for (auto&& seedTk : simToSeedMap[i].second){
+	pt_seed_eff_    = simToSeedMap_[i][0].pt(); 
+	ept_seed_eff_   = simToSeedMap_[i][0].ept();
+	pz_seed_eff_    = simToSeedMap_[i][0].pz(); 
+	epz_seed_eff_   = simToSeedMap_[i][0].epz();
+	phi_seed_eff_   = simToSeedMap_[i][0].momPhi(); 
+	ephi_seed_eff_  = simToSeedMap_[i][0].emomPhi();
+	eta_seed_eff_   = simToSeedMap_[i][0].momEta(); 
+	eeta_seed_eff_  = simToSeedMap_[i][0].emomEta();
+	nHits_seed_eff_ = simToSeedMap_[i][0].nHits();
+	nHitsMatched_seed_eff_ = simToSeedMap_[i][0].nHitsMatched();
+	chi2_seed_eff_  = simToSeedMap_[i][0].chi2();
+	evt_seed_eff_   = ievt;
+	//      }
+    }
+    else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
+      pt_seed_eff_    = -99;
+      ept_seed_eff_   = -99;
+      pz_seed_eff_    = -99;
+      epz_seed_eff_   = -99;
+      phi_seed_eff_   = -99;
+      ephi_seed_eff_  = -99;
+      eta_seed_eff_   = -99;
+      eeta_seed_eff_  = -99;
+      nHits_seed_eff_ = -99;
+      nHitsMatched_seed_eff_ = -99;
+      chi2_seed_eff_  = -99;
+      evt_seed_eff_   = -99;
+    }
+  
+    if (simToBuildMap_.count(i)){ // recoToSim match : save reco track that first fills map (which by default is the best one --> most hits, lowest chi2)
+      pt_build_eff_    = simToBuildMap_[i][0].pt(); 
+      ept_build_eff_   = simToBuildMap_[i][0].ept();
+      pz_build_eff_    = simToBuildMap_[i][0].pz(); 
+      epz_build_eff_   = simToBuildMap_[i][0].epz();
+      phi_build_eff_   = simToBuildMap_[i][0].momPhi(); 
+      ephi_build_eff_  = simToBuildMap_[i][0].emomPhi();
+      eta_build_eff_   = simToBuildMap_[i][0].momEta(); 
+      eeta_build_eff_  = simToBuildMap_[i][0].emomEta();
+      nHits_build_eff_ = simToBuildMap_[i][0].nHits();
+      nHitsMatched_build_eff_ = simToBuildMap_[i][0].nHitsMatched();
+      chi2_build_eff_  = simToBuildMap_[i][0].chi2();
+      evt_build_eff_   = ievt;
+    }
+    else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
+      pt_build_eff_    = -99;
+      ept_build_eff_   = -99;
+      pz_build_eff_    = -99;
+      epz_build_eff_   = -99;
+      phi_build_eff_   = -99;
+      ephi_build_eff_  = -99;
+      eta_build_eff_   = -99;
+      eeta_build_eff_  = -99;
+      nHits_build_eff_ = -99;
+      nHitsMatched_build_eff_ = -99;
+      chi2_build_eff_  = -99;
+      evt_build_eff_   = -99;
+    }
+
+    if (simToFitMap_.count(i)){ // recoToSim match : save reco track that first fills map (which by default is the best one --> most hits, lowest chi2)
+      pt_fit_eff_    = simToFitMap_[i][0].pt(); 
+      ept_fit_eff_   = simToFitMap_[i][0].ept();
+      pz_fit_eff_    = simToFitMap_[i][0].pz(); 
+      epz_fit_eff_   = simToFitMap_[i][0].epz();
+      phi_fit_eff_   = simToFitMap_[i][0].momPhi(); 
+      ephi_fit_eff_  = simToFitMap_[i][0].emomPhi();
+      eta_fit_eff_   = simToFitMap_[i][0].momEta(); 
+      eeta_fit_eff_  = simToFitMap_[i][0].emomEta();
+      nHits_fit_eff_ = simToFitMap_[i][0].nHits();
+      nHitsMatched_fit_eff_ = simToFitMap_[i][0].nHitsMatched();
+      chi2_fit_eff_  = -10;//simToFitMap_[i][0].chi2(); // --> currently not implemented
+      evt_fit_eff_   = ievt;
+    }
+    else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
+      pt_fit_eff_    = -99;
+      ept_fit_eff_   = -99;
+      pz_fit_eff_    = -99;
+      epz_fit_eff_   = -99;
+      phi_fit_eff_   = -99;
+      ephi_fit_eff_  = -99;
+      eta_fit_eff_   = -99;
+      eeta_fit_eff_  = -99;
+      nHits_fit_eff_ = -99;
+      nHitsMatched_fit_eff_ = -99;
+      chi2_fit_eff_  = -99; // currently not implemented
+      evt_fit_eff_   = -99;
+    }
+    efftree_->Fill();
+  }
+}
+
+void TTreeValidation::fillFakeTrees(const unsigned int& ievt){
+  //  std::lock_guard<std::mutex> locker(glock_);
+
+  fillFakeSeedTree(ievt);
+  fillFakeBuildTree(ievt);
+  fillFakeFitTree(ievt);
+}
+
+void TTreeValidation::fillFakeSeedTree(const unsigned int& ievt){
+  std::lock_guard<std::mutex> locker(glock_);
+  
+  for (auto&& seedTks : simToSeedMap_){
+    for (auto&& seedTk : seedTks.second){
+      if (seedTk.mcTrackID() != 999999){
+	mask_seed_fake_ = 1;
+      }
+      else{
+	mask_seed_fake_ = 0;
+      }
+      pt_seed_fake_    = seedTk.pt();
+      pz_seed_fake_    = seedTk.pz();
+      phi_seed_fake_   = seedTk.momPhi();
+      eta_seed_fake_   = seedTk.momEta();
+      nHits_seed_fake_ = seedTk.nHits();
+      chi2_seed_fake_  = seedTk.chi2();
+      evt_seed_fake_   = ievt;
+      fakeseedtree_->Fill();
+    }
+  }
+}
+
+void TTreeValidation::fillFakeBuildTree(const unsigned int& ievt){
+  std::lock_guard<std::mutex> locker(glock_);
+  
+  for (auto&& buildTks : simToBuildMap_){
+    for (auto&& buildTk : buildTks.second){
+      if (buildTk.mcTrackID() != 999999){
+	mask_build_fake_ = 1;
+      }
+      else{
+	mask_build_fake_ = 0;
+      }
+      pt_build_fake_    = buildTk.pt();
+      pz_build_fake_    = buildTk.pz();
+      phi_build_fake_   = buildTk.momPhi();
+      eta_build_fake_   = buildTk.momEta();
+      nHits_build_fake_ = buildTk.nHits();
+      chi2_build_fake_  = buildTk.chi2();
+      evt_build_fake_   = ievt;
+      fakebuildtree_->Fill();
+    }
+  }
+}
+
+void TTreeValidation::fillFakeFitTree(const unsigned int& ievt){
+  std::lock_guard<std::mutex> locker(glock_);
+  
+  for (auto&& fitTks : simToFitMap_){
+    for (auto&& fitTk : fitTks.second){
+      if (fitTk.mcTrackID() != 999999){
+	mask_fit_fake_ = 1;
+      }
+      else{
+	mask_fit_fake_ = 0;
+      }
+      pt_fit_fake_    = fitTk.pt();
+      pz_fit_fake_    = fitTk.pz();
+      phi_fit_fake_   = fitTk.momPhi();
+      eta_fit_fake_   = fitTk.momEta();
+      nHits_fit_fake_ = fitTk.nHits();
+      chi2_fit_fake_  = fitTk.chi2();
+      evt_fit_fake_   = ievt;
+      fakefittree_->Fill();
+    }
+  }
+}
+
+void TTreeValidation::fillGhostTrees(const unsigned int& ievet){
+
+ 
+  if (simToBuildMap_.count(i)){ // recoToSim match : save reco track that first fills map (which by default is the best one --> most hits, lowest chi2)
+    pt_build_eff_    = simToBuildMap_[i][0].pt(); 
+    ept_build_eff_   = simToBuildMap_[i][0].ept();
+    pz_build_eff_    = simToBuildMap_[i][0].pz(); 
+    epz_build_eff_   = simToBuildMap_[i][0].epz();
+    phi_build_eff_   = simToBuildMap_[i][0].momPhi(); 
+    ephi_build_eff_  = simToBuildMap_[i][0].emomPhi();
+    eta_build_eff_   = simToBuildMap_[i][0].momEta(); 
+    eeta_build_eff_  = simToBuildMap_[i][0].emomEta();
+    nHits_build_eff_ = simToBuildMap_[i][0].nHits();
+    nHitsMatched_build_eff_ = simToBuildMap_[i][0].nHitsMatched();
+    chi2_build_eff_  = simToBuildMap_[i][0].chi2();
+    evt_build_eff_   = ievt;
+  }
+  else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
+    pt_build_eff_    = -99;
+    ept_build_eff_   = -99;
+    pz_build_eff_    = -99;
+    epz_build_eff_   = -99;
+    phi_build_eff_   = -99;
+    ephi_build_eff_  = -99;
+    eta_build_eff_   = -99;
+    eeta_build_eff_  = -99;
+    nHits_build_eff_ = -99;
+    nHitsMatched_build_eff_ = -99;
+    chi2_build_eff_  = -99;
+    evt_build_eff_   = -99;
+  }
+
+
+}
+
 
 void TTreeValidation::saveTTrees() {  
   std::lock_guard<std::mutex> locker(glock_); 
