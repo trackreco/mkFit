@@ -12,7 +12,7 @@ void Track::setMCTrackIDInfo()
   auto mtrk(mctrack[0]), mcount(0U), m(mctrack[0]), c(0U);
 
   for (auto i : mctrack) {
-    if (i == m) { ++c; } else { c = 0; }
+    if (i == m) { ++c; } else { c = 1; }
     if (c >= mcount) { mtrk = m; mcount = c; }
     m = i;
   }
