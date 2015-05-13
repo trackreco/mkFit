@@ -1,7 +1,7 @@
 #include "buildtest.h"
 #include "KalmanUtils.h"
 #include "Propagation.h"
-#include "Simulation.h"
+#include "BinInfoUtils.h"
 #include "Event.h"
 #include "Debug.h"
 
@@ -26,20 +26,6 @@ static std::mutex evtlock;
 typedef candvec::const_iterator canditer;
 
 void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidates, unsigned int ilay, bool debug);
-
-inline float normalizedPhi(float phi) {
-  return std::fmod(phi, (float) M_PI);
-}
-
-#ifdef ETASEG
-inline float normalizedEta(float eta) {
-  static float const ETA_DET = 2.0;
-
-  if (eta < -ETA_DET ) eta = -ETA_DET+.00001;
-  if (eta >  ETA_DET ) eta =  ETA_DET-.00001;
-  return eta;
-}
-#endif
 
 static bool sortByHitsChi2(const cand_t& cand1, const cand_t& cand2)
 {
@@ -200,10 +186,9 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
     return;
   }
 #endif
-  const float predx = propState.parameters.At(0);
-  const float predy = propState.parameters.At(1);
-  const float predz = propState.parameters.At(2);
-  // const SMatrixSym66 pErr2 = propState.errors;
+  const float predx  = propState.parameters.At(0);
+  const float predy  = propState.parameters.At(1);
+  const float predz  = propState.parameters.At(2);
 #ifdef DEBUG
   if (debug) {
     std::cout << "propState at hit#" << ilayer << " r/phi/z : " << sqrt(pow(predx,2)+pow(predy,2)) << " "
@@ -215,29 +200,29 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
 #ifdef ETASEG  
   const float eta  = getEta(std::sqrt(getRad2(predx,predy)),predz);
   const float deta = std::sqrt(std::abs(getEtaErr2(predx,predy,predz,propState.errors.At(0,0),propState.errors.At(1,1),propState.errors.At(2,2),propState.errors.At(0,1),propState.errors.At(0,2),propState.errors.At(1,2))));
-  //const float deta = std::sqrt(getEtaErr2(predx,predy,predz,pErr2.At(0,0),pErr2.At(1,1),pErr2.At(2,2),pErr2.At(0,1),pErr2.At(0,2),pErr2.At(1,2)));
   const float nSigmaDeta = std::min(std::max(Config::nSigma*deta,(float)0.0),float( 1.0)); // something to tune -- minDEta = 0.0
+#endif
+  const float phi    = getPhi(predx,predy); //std::atan2(predy,predx); 
+  const float dphi = std::sqrt(std::abs(getPhiErr2(predx,predy,propState.errors.At(0,0),propState.errors.At(1,1),propState.errors.At(0,1))));
+  const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi,(float) Config::minDPhi), (float) M_PI);
+
+  hitIndices cand_hit_idx = getCandHitIndices(eta,nSigmaDeta,phi,nSigmaDphi,ilayer,segmentMap);
+  hitIdxIter index_iter; // iterator for vector
+  /*
   
   //for now as well --> eta boundary!!!
   const float detaMinus  = normalizedEta(eta-nSigmaDeta);
   const float detaPlus   = normalizedEta(eta+nSigmaDeta);
   
   // for now
-  const float etaDet = 2.0;
-
-  const auto etaBinMinus = getEtaPartition(detaMinus,etaDet);
-  const auto etaBinPlus  = getEtaPartition(detaPlus,etaDet);
+  const auto etaBinMinus = getEtaPartition(detaMinus);
+  const auto etaBinPlus  = getEtaPartition(detaPlus);
 
   dprint("eta: " << eta << " etaBinMinus: " << etaBinMinus << " etaBinPlus: " << etaBinPlus << " deta: " << deta);
-#else // just assign the etaBin boundaries to keep code without 10k ifdefs
+#ifndef ETASEG // just assign the etaBin boundaries to keep code without 10k ifdefs
   const auto etaBinMinus = 0U;
   const auto etaBinPlus  = 0U;
 #endif
-
-  const float phi    = getPhi(predx,predy); //std::atan2(predy,predx); 
-  const float dphi   = std::sqrt(std::abs(getPhiErr2(predx,predy,propState.errors.At(0,0),propState.errors.At(1,1),propState.errors.At(0,1))));
-  //  const float dphi   =  std::sqrt(getPhiErr2(predx,predy,pErr2.At(0,0),pErr2.At(1,1),pErr2.At(0,1)));
-  const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi,(float) Config::minDPhi), (float) M_PI);
   
   const float dphiMinus = normalizedPhi(phi-nSigmaDphi);
   const float dphiPlus  = normalizedPhi(phi+nSigmaDphi);
@@ -246,14 +231,16 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   const auto phiBinPlus  = getPhiPartition(dphiPlus);
 
   dprint("phi: " << phi << " phiBinMinus: " <<  phiBinMinus << " phiBinPlus: " << phiBinPlus << "  dphi: " << dphi);
+  hitIndices cand_hit_idx;
+  hitIdxIter index_iter;
+  //
+  //  std::vector<unsigned int>::iterator index_iter; // iterator for vector
   
   for (unsigned int ieta = etaBinMinus; ieta <= etaBinPlus; ++ieta){
     
     const BinInfo binInfoMinus = segmentMap[ilayer][ieta][int(phiBinMinus)];
     const BinInfo binInfoPlus  = segmentMap[ilayer][ieta][int(phiBinPlus)];
     
-    std::vector<unsigned int> cand_hit_idx;
-    std::vector<unsigned int>::iterator index_iter; // iterator for vector
     
     // Branch here from wrapping
     if (phiBinMinus<=phiBinPlus){
@@ -279,7 +266,8 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
         cand_hit_idx.push_back(ihit);
       }
     }
-  
+  }
+  */
 #ifdef LINEARINTERP
     const float minR = ev.geom_.Radius(ilayer);
     float maxR = minR;
@@ -320,7 +308,7 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
       }
     }//end of consider hits on layer loop
     
-  }//end of eta loop
+    //   }//end of eta loop
 
   //add also the candidate for no hit found
   if (tkcand.nHits()==ilayer) {//only if this is the first missing hit

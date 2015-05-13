@@ -4,27 +4,6 @@
 #include "Matrix.h"
 #include <atomic>
 
-namespace Config {
-  static constexpr const unsigned int nPhiPart = 63;
-  static constexpr const unsigned int nPhiFactor = 10;  // nPhiPart/2pi
-  static constexpr const unsigned int nEtaPart = 10;
-};
-
-inline unsigned int getPhiPartition(float phi){
-  //assume phi is between -PI and PI
-  //  if (!(fabs(phi)<TMath::Pi())) std::cout << "anomalous phi=" << phi << std::endl;
-  const float phiPlusPi  = phi+TMath::Pi();
-  const unsigned int bin = phiPlusPi*Config::nPhiFactor;
-  return bin;
-}
-
-inline unsigned int getEtaPartition(float eta, float etaDet){
-  const float etaPlusEtaDet  = eta + etaDet;
-  const float twiceEtaDet    = 2.0*etaDet;
-  const unsigned int bin     = (etaPlusEtaDet * Config::nEtaPart) / twiceEtaDet;  // ten bins for now ... update if changed in Event.cc
-  return bin;
-}
-
 inline float getRad2(float x, float y){
   return x*x + y*y;
 }

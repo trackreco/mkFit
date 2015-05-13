@@ -34,7 +34,7 @@ void initGeom(Geometry& geom)
 
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
-  float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
+  float eta = Config::etaDet; // can tune this to whatever geometry required (one can make this layer dependent as well)
   for (int l = 0; l < 10; l++) {
     float r = (l+1)*4.;
     float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
@@ -61,7 +61,7 @@ void initGeom(Geometry& geom)
 void initGeom(Geometry& geom)
 {
   std::cout << "Constructing SimpleGeometry Cylinder geometry" << std::endl;
-  float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
+  float eta = Config::etaDet; // can tune this to whatever geometry required (one can make this layer dependent as well)
 
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
@@ -74,7 +74,6 @@ void initGeom(Geometry& geom)
   }
 }
 #endif
-
 
 typedef std::chrono::time_point<std::chrono::system_clock> timepoint;
 typedef std::chrono::duration<double> tick;

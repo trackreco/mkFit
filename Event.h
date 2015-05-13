@@ -4,12 +4,7 @@
 #include "Track.h"
 #include "Validation.h"
 #include "Geometry.h"
-
-typedef std::pair<unsigned int,unsigned int> BinInfo;
-
-// phi-eta partitioning map: vector of vector of vectors of std::pairs. 
-// vec[nLayers][nEtaBins][nPhiBins]
-typedef std::vector<std::vector<std::vector<BinInfo> > > BinInfoMap;
+#include "BinInfoUtils.h"
 
 namespace Config {
   static constexpr const unsigned int nlayers_per_seed = 3;
