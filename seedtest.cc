@@ -34,8 +34,8 @@ void buildSeedsByRoadTriplets(const std::vector<HitVec>& evt_lay_hits, const Bin
   //create seeds (from sim tracks for now)
   bool debug(false);
 
-  std::vector<HitVec> hitTriplets;   // first will be pairs, then triplets, then filtered chi2 triplets, then Conf fit, then KF fit
-  buildHitPairs(evt_lay_hits,segmentMap[0],hitTriplets); // pass only first layer map ... no need to pass the whole thing!
+  std::vector<HitVec> hitPairs;   // first will be pairs, then triplets, then filtered chi2 triplets, then Conf fit, then KF fit
+  buildHitPairs(evt_lay_hits,segmentMap[0],hitPairs); // pass only first layer map ... no need to pass the whole thing!
 
 #ifdef DEBUG  
   if (debug){
@@ -49,8 +49,9 @@ void buildSeedsByRoadTriplets(const std::vector<HitVec>& evt_lay_hits, const Bin
     std::cout << std::endl;
   }
 #endif
-  
-  buildHitTriplets(evt_lay_hits,segmentMap[2],hitTriplets);
+
+  std::vector<HitVec> hitTriplets;
+  buildHitTriplets(evt_lay_hits,segmentMap[2],hitPairs,hitTriplets);
 
 #ifdef DEBUG
   if (debug) {
@@ -65,8 +66,9 @@ void buildSeedsByRoadTriplets(const std::vector<HitVec>& evt_lay_hits, const Bin
   }
 #endif
   
-  filterHitTripletsByRZChi2(hitTriplets); // filter based on RZ chi2 cut
-  buildSeedsFromTriplets(hitTriplets,evt_seed_tracks);
+  std::vector<HitVec> filteredTriplets;
+  filterHitTripletsByRZChi2(hitTriplets, filteredTriplets); // filter based on RZ chi2 cut
+  buildSeedsFromTriplets(filteredTriplets,evt_seed_tracks);
 }
 
 void buildHitPairs(const std::vector<HitVec>& evt_lay_hits, const BinInfoLayerMap& segLayMap, std::vector<HitVec>& hit_pairs){
@@ -100,15 +102,12 @@ void buildHitPairs(const std::vector<HitVec>& evt_lay_hits, const BinInfoLayerMa
   }
 }  
 
-void buildHitTriplets(const std::vector<HitVec>& evt_lay_hits, const BinInfoLayerMap& segLayMap, std::vector<HitVec>& hit_triplets){
+void buildHitTriplets(const std::vector<HitVec>& evt_lay_hits, const BinInfoLayerMap& segLayMap, const std::vector<HitVec>& hit_pairs, std::vector<HitVec>& hit_triplets){
   const float dEta     = 0.6; // for almost max efficiency --> empirically derived
   const float dPhi     = 0.0458712; // numerically+semianalytically derived
   const float thirdRad = 12.0; // average third radius
 
-  std::vector<HitVec>::iterator hitTripsIter;
-  
-  for (hitTripsIter = hit_triplets.begin(); hitTripsIter != hit_triplets.end(); ++hitTripsIter){
-    HitVec hit_pair = (*hitTripsIter);
+  for (auto&& hit_pair : hit_pairs){
 #ifdef ETASEG
     const float thirdZline = 2*hit_pair[1].z()-hit_pair[0].z(); // for dz displacements -- straight line window
     const auto etaBinMinus = getEtaPartition(normalizedEta(getEta(thirdRad,thirdZline)-dEta));
@@ -135,15 +134,16 @@ void buildHitTriplets(const std::vector<HitVec>& evt_lay_hits, const BinInfoLaye
     hitIdxIter index_iter;  
     
     for (index_iter = cand_hit_idx.begin(); index_iter != cand_hit_idx.end(); ++index_iter){
-      (*hitTripsIter).push_back(evt_lay_hits[2][*index_iter]); // copy in matched hit to seed pair .. do this for with copies 
-      if (index_iter != cand_hit_idx.end()-1){ // make n copies of the first seed pair to keep adding hits
-	hitTripsIter = hit_triplets.emplace(hitTripsIter+1,hit_pair); 
-      }
+      HitVec hit_triplet;
+      hit_triplet.push_back(hit_pair[0]);
+      hit_triplet.push_back(hit_pair[1]);
+      hit_triplet.push_back(evt_lay_hits[2][(*index_iter)]);      
+      hit_triplets.push_back(hit_triplet);
     }
   }
 }
 
-void filterHitTripletsByRZChi2(std::vector<HitVec>& hit_triplets){
+void filterHitTripletsByRZChi2(const std::vector<HitVec>& hit_triplets, std::vector<HitVec>& filtered_triplets){
   // Seed cleaning --> do some chi2 fit for RZ line then throw away with high chi2
   // choose ind = r, dep = z... could do total chi2 but, z errors 10*r
   // A = y-int, B = slope
@@ -152,15 +152,13 @@ void filterHitTripletsByRZChi2(std::vector<HitVec>& hit_triplets){
   const float varZ    = 0.1*0.1; // from simulation ... will need to change if that changes!
   const float invsig2 = 3.*(1./varZ);
 
-  std::vector<HitVec>::iterator hitTripsIter;
-
-  for (hitTripsIter = hit_triplets.begin(); hitTripsIter != hit_triplets.end();){
+  for (auto&& hit_triplet : hit_triplets){
     // first do fit for three hits
     float sumx2sig2 = 0;
     float sumxsig2  = 0;
     float sumysig2  = 0;
     float sumxysig2 = 0;
-    for (auto&& seedhit : (*hitTripsIter)) { 
+    for (auto&& seedhit : hit_triplet) { 
       sumx2sig2 += ((seedhit.r())*(seedhit.r()) / varZ);
       sumxsig2  += (seedhit.r() / varZ);
       sumysig2  += (seedhit.z() / varZ);
@@ -171,23 +169,20 @@ void filterHitTripletsByRZChi2(std::vector<HitVec>& hit_triplets){
     const float bParam = norm * ((invsig2 * sumxysig2)  - (sumxsig2*sumysig2));
  
     float chi2fit = 0;     
-    for (auto&& seedhit : (*hitTripsIter)) { //now perform chi2 on fit!
+    for (auto&& seedhit : hit_triplet) { //now perform chi2 on fit!
       chi2fit += pow((seedhit.z() - aParam - (bParam * seedhit.r())),2) / varZ;
     }
 
-    if (chi2fit>9.0){ // cut empirically derived
-      hitTripsIter = hit_triplets.erase(hitTripsIter);
-    }
-    else{
-      ++hitTripsIter;
+    if (chi2fit<9.0){ // cut empirically derived
+      filtered_triplets.push_back(hit_triplet);
     }
   }
 }
 
-void buildSeedsFromTriplets(const std::vector<HitVec> & hit_triplets, TrackVec & evt_seed_tracks){
+void buildSeedsFromTriplets(const std::vector<HitVec> & filtered_triplets, TrackVec & evt_seed_tracks){
   // now perform kalman fit on seeds --> first need initial parameters --> get from Conformal fitter!
   const bool cf = false; // use errors derived for seeding
-  for(auto&& hit_triplet : hit_triplets){
+  for(auto&& hit_triplet : filtered_triplets){
     int charge = 0;
     if (hit_triplet[1].phi() > hit_triplet[2].phi()){charge = 1;}
     else {charge = -1;}
