@@ -214,14 +214,13 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   const auto phiBinMinus = getPhiPartition(normalizedPhi(phi-nSigmaDphi));
   const auto phiBinPlus  = getPhiPartition(normalizedPhi(phi+nSigmaDphi));
 
-  hitIndices cand_hit_idx = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
-  hitIdxIter index_iter; // iterator for vector
+  std::vector<unsigned int> cand_hit_indices = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
 
 #ifdef LINEARINTERP
     const float minR = ev.geom_.Radius(ilayer);
     float maxR = minR;
-    for(index_iter = cand_hit_idx.begin(); index_iter != cand_hit_idx.end(); ++index_iter){
-      const float candR = evt_lay_hits[ilayer][*index_iter].r();
+    for (auto&& cand_hit_idx : cand_hit_indices){
+      const float candR = evt_lay_hits[ilayer][cand_hit_idx].r();
       if (candR > maxR) maxR = candR;
     }
     const float deltaR = maxR - minR;
@@ -235,8 +234,8 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
 #endif
 #endif
   
-    for(index_iter = cand_hit_idx.begin(); index_iter != cand_hit_idx.end(); ++index_iter){
-      const Hit hitCand = evt_lay_hits[ilayer][*index_iter];
+    for (auto&& cand_hit_idx : cand_hit_indices){
+      const Hit hitCand = evt_lay_hits[ilayer][cand_hit_idx];
       const MeasurementState hitMeas = hitCand.measurementState();
 
 #ifdef LINEARINTERP
@@ -249,7 +248,7 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
       const float chi2 = computeChi2(propState,hitMeas);
     
       if ((chi2<Config::chi2Cut)&&(chi2>0.)) {//fixme 
-        dprint("found hit with index: " << *index_iter << " chi2=" << chi2);
+        dprint("found hit with index: " << cand_hit_idx << " chi2=" << chi2);
         const TrackState tmpUpdatedState = updateParameters(propState, hitMeas);
         Track tmpCand(tmpUpdatedState,tkcand.hitsVector(),tkcand.chi2()); //= tkcand.clone();
         tmpCand.addHit(hitCand,chi2);

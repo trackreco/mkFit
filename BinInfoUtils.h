@@ -13,8 +13,6 @@ namespace Config {
 typedef std::pair<unsigned int,unsigned int> BinInfo;
 typedef std::vector<std::vector<BinInfo> > BinInfoLayerMap;
 typedef std::vector<std::vector<std::vector<BinInfo> > > BinInfoMap;
-typedef std::vector<unsigned int> hitIndices;
-typedef hitIndices::iterator hitIdxIter;
 
 inline unsigned int getPhiPartition(float phi){
   //assume phi is between -PI and PI
@@ -42,6 +40,6 @@ inline float normalizedEta(float eta) {
 }
 #endif
 
-hitIndices getCandHitIndices(const unsigned int &, const unsigned int &, const unsigned int &, const unsigned int &, const BinInfoLayerMap &);
+std::vector<unsigned int> getCandHitIndices(const unsigned int &, const unsigned int &, const unsigned int &, const unsigned int &, const BinInfoLayerMap &);
 
 #endif

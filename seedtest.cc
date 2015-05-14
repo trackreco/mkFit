@@ -90,12 +90,10 @@ void buildHitPairs(const std::vector<HitVec>& evt_lay_hits, const BinInfoLayerMa
     const auto phiBinMinus = getPhiPartition(normalizedPhi(outerphi - alphaBeta));
     const auto phiBinPlus  = getPhiPartition(normalizedPhi(outerphi + alphaBeta));
 
-    hitIndices cand_hit_idx = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
-    hitIdxIter index_iter;  
-
-    for (index_iter = cand_hit_idx.begin(); index_iter != cand_hit_idx.end(); ++index_iter){
+    std::vector<unsigned int> cand_hit_indices = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
+    for (auto&& cand_hit_idx : cand_hit_indices){
       HitVec hit_pair;
-      hit_pair.push_back(evt_lay_hits[0][*index_iter]);
+      hit_pair.push_back(evt_lay_hits[0][cand_hit_idx]);
       hit_pair.push_back(evt_lay_hits[1][ihit]);
       hit_pairs.push_back(hit_pair);
     }
@@ -130,14 +128,12 @@ void buildHitTriplets(const std::vector<HitVec>& evt_lay_hits, const BinInfoLaye
     const auto phiBinMinus = getPhiPartition(thirdPhiMinus);
     const auto phiBinPlus  = getPhiPartition(thirdPhiPlus);
 
-    hitIndices cand_hit_idx = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
-    hitIdxIter index_iter;  
-    
-    for (index_iter = cand_hit_idx.begin(); index_iter != cand_hit_idx.end(); ++index_iter){
+    std::vector<unsigned int> cand_hit_indices = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
+    for (auto&& cand_hit_idx : cand_hit_indices){
       HitVec hit_triplet;
       hit_triplet.push_back(hit_pair[0]);
       hit_triplet.push_back(hit_pair[1]);
-      hit_triplet.push_back(evt_lay_hits[2][(*index_iter)]);      
+      hit_triplet.push_back(evt_lay_hits[2][cand_hit_idx]);      
       hit_triplets.push_back(hit_triplet);
     }
   }
