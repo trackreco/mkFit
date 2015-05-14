@@ -86,10 +86,18 @@ TTreeValidation::TTreeValidation(std::string fileName)
   efftree_->Branch("evt_seed",&evt_seed_eff_);
   efftree_->Branch("evt_build",&evt_build_eff_);
   efftree_->Branch("evt_fit",&evt_fit_eff_);
+  
+  efftree_->Branch("nDup_seed",&nDup_seed_eff_);
+  efftree_->Branch("nDup_build",&nDup_build_eff_);
+  efftree_->Branch("nDup_seed",&nDup_fit_eff_);
+
+  efftree_->Branch("mask_seed",&mask_seed_eff_);
+  efftree_->Branch("mask_build",&mask_build_eff_);
+  efftree_->Branch("mask_fit",&mask_fit_eff_);
 
   // fake rate validation
   fakeseedtree_ = new TTree("fakeseedtree","fakeseedtree");
-  fakeseedtree_->Branch("mask_seed_fake",&mask_seed_fake_);
+  fakeseedtree_->Branch("mask_seed_real",&mask_seed_real_);
   fakeseedtree_->Branch("mask_seed_duplicate",&mask_seed_duplicate_);
   fakeseedtree_->Branch("pt_seed",&pt_seed_fake_);
   fakeseedtree_->Branch("pz_seed",&pz_seed_fake_);
@@ -101,7 +109,7 @@ TTreeValidation::TTreeValidation(std::string fileName)
   fakeseedtree_->Branch("evt_seed",&evt_seed_fake_);
 
   fakebuildtree_ = new TTree("fakebuildtree","fakebuildtree");
-  fakebuildtree_->Branch("mask_build_fake",&mask_build_fake_);
+  fakebuildtree_->Branch("mask_build_real",&mask_build_real_);
   fakebuildtree_->Branch("mask_build_duplicate",&mask_build_duplicate_);
   fakebuildtree_->Branch("pt_build",&pt_build_fake_);
   fakebuildtree_->Branch("pz_build",&pz_build_fake_);
@@ -113,7 +121,7 @@ TTreeValidation::TTreeValidation(std::string fileName)
   fakebuildtree_->Branch("evt_build",&evt_build_fake_);
 
   fakefittree_ = new TTree("fakefittree","fakefittree");
-  fakefittree_->Branch("mask_fit_fake",&mask_fit_fake_);
+  fakefittree_->Branch("mask_fit_real",&mask_fit_real_);
   fakefittree_->Branch("mask_fit_duplicate",&mask_fit_duplicate_);
   fakefittree_->Branch("pt_fit",&pt_fit_fake_);
   fakefittree_->Branch("pz_fit",&pz_fit_fake_);
@@ -146,6 +154,18 @@ void TTreeValidation::makeSimToTkMaps(TrackVec& evt_seed_tracks, TrackVec& evt_b
   mapSimToTks(evt_fit_tracks,simToFitMap_);
 }
 
+void TTreeValidation::makeSeedToTkMaps(TrackVec& evt_seed_tracks, TrackVec& evt_build_tracks, TrackVec& evt_fit_tracks){
+  std::lock_guard<std::mutex> locker(glock_);
+  
+  seedToSeedMap_.clear();
+  seedToBuildMap_.clear();
+  seedToFitMap_.clear();
+
+  mapSeedToTks(evt_seed_tracks,seedToSeedMap_);
+  mapSeedToTks(evt_build_tracks,seedToBuildMap_);
+  mapSeedToTks(evt_fit_tracks,seedToFitMap_);
+}
+
 void TTreeValidation::mapSimToTks(TrackVec& evt_tracks, simToTkMap& simTkMap_){
   //  std::lock_guard<std::mutex> locker(glock_); 
 
@@ -162,6 +182,23 @@ void TTreeValidation::mapSimToTks(TrackVec& evt_tracks, simToTkMap& simTkMap_){
       continue;
     }
     else{ // sort duplicates (ghosts) to keep best one --> most hits, lowest chi2
+      std::sort(simTkMatches.second.begin(), simTkMatches.second.end(), sortByHitsChi2); 
+    }
+  }
+}
+
+void TTreeValidation::mapSeedToTks(TrackVec& evt_tracks, simToTkMap& simTkMap_){
+  //  std::lock_guard<std::mutex> locker(glock_); 
+
+  for (auto&& track : evt_tracks){
+    simTkMap_[track.seedID()].push_back(&track);
+  }
+
+  for (auto&& simTkMatches : simTkMap_){
+    if (simTkMatches.second.size() < 2) {
+      continue;
+    }
+    else{ // sort duplicates (ghosts) to keep best one --> most hits, lowest chi2 --> could have more than one track per seed!
       std::sort(simTkMatches.second.begin(), simTkMatches.second.end(), sortByHitsChi2); 
     }
   }
@@ -191,22 +228,28 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
     pz_mc_eff_    = evt_sim_tracks[i].pz();
     phi_mc_eff_   = evt_sim_tracks[i].momPhi();
     eta_mc_eff_   = evt_sim_tracks[i].momEta();
+
     nHits_mc_eff_ = evt_sim_tracks[i].nHits();
+
+    mcID_mc_eff_  = i; // i is simTrackID
     evt_mc_eff_   = ievt;
   
     if (simToSeedMap_.count(i)){ // recoToSim match : save best match --> most hits, lowest chi2
-      pt_seed_eff_    =  simToSeedMap_[i][0]->pt(); 
-      ept_seed_eff_   =  simToSeedMap_[i][0]->ept();
-      pz_seed_eff_    =  simToSeedMap_[i][0]->pz(); 
-      epz_seed_eff_   =  simToSeedMap_[i][0]->epz();
-      phi_seed_eff_   =  simToSeedMap_[i][0]->momPhi(); 
-      ephi_seed_eff_  =  simToSeedMap_[i][0]->emomPhi();
-      eta_seed_eff_   =  simToSeedMap_[i][0]->momEta(); 
-      eeta_seed_eff_  =  simToSeedMap_[i][0]->emomEta();
-      nHits_seed_eff_ =  simToSeedMap_[i][0]->nHits();
-      nHitsMatched_seed_eff_ =  simToSeedMap_[i][0]->nHitsMatched();
-      chi2_seed_eff_  =  simToSeedMap_[i][0]->chi2();
-      evt_seed_eff_   = ievt;
+      pt_seed_eff_    = simToSeedMap_[i][0]->pt(); 
+      ept_seed_eff_   = simToSeedMap_[i][0]->ept();
+      pz_seed_eff_    = simToSeedMap_[i][0]->pz(); 
+      epz_seed_eff_   = simToSeedMap_[i][0]->epz();
+      phi_seed_eff_   = simToSeedMap_[i][0]->momPhi(); 
+      ephi_seed_eff_  = simToSeedMap_[i][0]->emomPhi();
+      eta_seed_eff_   = simToSeedMap_[i][0]->momEta(); 
+      eeta_seed_eff_  = simToSeedMap_[i][0]->emomEta();
+
+      nHits_seed_eff_ = simToSeedMap_[i][0]->nHits();
+      nHitsMatched_seed_eff_ = simToSeedMap_[i][0]->nHitsMatched();
+      chi2_seed_eff_  = -10; //simToSeedMap_[i][0]->chi2(); // currently not implemented
+
+      mask_seed_eff_  = 1; // quick logic for matched
+      nDup_seed_eff_  = simToSeedMap_[i].size(); // n reco matches to this sim track, just no reco info
     }
     else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
       pt_seed_eff_    = -99;
@@ -217,115 +260,137 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
       ephi_seed_eff_  = -99;
       eta_seed_eff_   = -99;
       eeta_seed_eff_  = -99;
+
       nHits_seed_eff_ = -99;
       nHitsMatched_seed_eff_ = -99;
       chi2_seed_eff_  = -99;
-      evt_seed_eff_   = -99;
-    }
 
-    if (simToBuildMap_.count(i)){ // recoToSim match : save best match --> most hits, lowest chi2
-      pt_build_eff_    =  simToBuildMap_[i][0]->pt(); 
-      ept_build_eff_   =  simToBuildMap_[i][0]->ept();
-      pz_build_eff_    =  simToBuildMap_[i][0]->pz(); 
-      epz_build_eff_   =  simToBuildMap_[i][0]->epz();
-      phi_build_eff_   =  simToBuildMap_[i][0]->momPhi(); 
-      ephi_build_eff_  =  simToBuildMap_[i][0]->emomPhi();
-      eta_build_eff_   =  simToBuildMap_[i][0]->momEta(); 
-      eeta_build_eff_  =  simToBuildMap_[i][0]->emomEta();
-      nHits_build_eff_ =  simToBuildMap_[i][0]->nHits();
-      nHitsMatched_build_eff_ =  simToBuildMap_[i][0]->nHitsMatched();
-      chi2_build_eff_  =  simToBuildMap_[i][0]->chi2();
-      evt_build_eff_   = ievt;
-    }
-    else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
-      pt_build_eff_    = -99;
-      ept_build_eff_   = -99;
-      pz_build_eff_    = -99;
-      epz_build_eff_   = -99;
-      phi_build_eff_   = -99;
-      ephi_build_eff_  = -99;
-      eta_build_eff_   = -99;
-      eeta_build_eff_  = -99;
-      nHits_build_eff_ = -99;
-      nHitsMatched_build_eff_ = -99;
-      chi2_build_eff_  = -99;
-      evt_build_eff_   = -99;
-    }
+      // for all unmatched simTracks, store info on that sim track
 
-    if (simToFitMap_.count(i)){ // recoToSim match : save best match --> most hits, lowest chi2
-      pt_fit_eff_    =  simToFitMap_[i][0]->pt(); 
-      ept_fit_eff_   =  simToFitMap_[i][0]->ept();
-      pz_fit_eff_    =  simToFitMap_[i][0]->pz(); 
-      epz_fit_eff_   =  simToFitMap_[i][0]->epz();
-      phi_fit_eff_   =  simToFitMap_[i][0]->momPhi(); 
-      ephi_fit_eff_  =  simToFitMap_[i][0]->emomPhi();
-      eta_fit_eff_   =  simToFitMap_[i][0]->momEta(); 
-      eeta_fit_eff_  =  simToFitMap_[i][0]->emomEta();
-      nHits_fit_eff_ =  simToFitMap_[i][0]->nHits();
-      nHitsMatched_fit_eff_ =  simToFitMap_[i][0]->nHitsMatched();
-      chi2_fit_eff_  =  simToFitMap_[i][0]->chi2();
-      evt_fit_eff_   = ievt;
-    }
-    else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
-      pt_fit_eff_    = -99;
-      ept_fit_eff_   = -99;
-      pz_fit_eff_    = -99;
-      epz_fit_eff_   = -99;
-      phi_fit_eff_   = -99;
-      ephi_fit_eff_  = -99;
-      eta_fit_eff_   = -99;
-      eeta_fit_eff_  = -99;
-      nHits_fit_eff_ = -99;
-      nHitsMatched_fit_eff_ = -99;
-      chi2_fit_eff_  = -99;
-      evt_fit_eff_   = -99;
+      mask_seed_eff_  = 0; // quick logic for not matched
+      nDup_seed_eff_  = -1; // unmatched
     }
 
     efftree_->Fill(); // fill it once per sim track!
   }
 }
 
-void TTreeValidation::fillFakeTrees(const unsigned int& ievt){
-  //  std::lock_guard<std::mutex> locker(glock_);
+void TTreeValidation::fillFakeRateTree(const unsigned int& ievt){
+  std::lock_guard<std::mutex> locker(glock_);
+  
+  std::vector<float> simpt;
+  std::vector<float> simpz;
+  std::vector<float> simphi;
+  std::vector<float> simeta;
+  std::vector<unsigned int> simnHits;
 
-  fillFakeSeedTree(ievt);
-  fillFakeBuildTree(ievt);
-  fillFakeFitTree(ievt);
+  for (auto&& simtrack : evt_sim_tracks){
+    simpt.push_back(simtrack.pt());
+    simpz.push_back(simtrack.pz());
+    simphi.push_back(simtrack.phi());
+    simeta.push_back(simtrack.eta());
+    simnHits.push_back(simtrack.nHits());
+  }
+
+  for (auto&& recPairs : seedToSeedMap_){
+    unsigned int i = 0; // i is dummy counter ... want to keep track of where you are in vector... 1st element is ref to "best track"
+    for (auto&& track : recPairs.second){
+      pt_seed_FR_   = track->pt();
+      ept_seed_FR_  = track->ept();
+      pz_seed_FR_   = track->pz();
+      epz_seed_FR_  = track->epz();
+      phi_seed_FR_  = track->momPhi();
+      ephi_seed_FR_ = track->emomPhi();
+      eta_seed_FR_  = track->momEta();
+      eeta_seed_FR_ = track->emomEta();
+
+      nHits_seed_FR_ = track->nHits();
+      nHitsMatched_seed_FR_ = track->nHitsMatched();
+      chi2_seed_FR_  = track->chi2();
+
+      mcID_seed_FR_ = track->mcTrackID();
+      if (track->mcTrackID() != 999999){
+	mask_seed_FR_ = 1; // matched track
+	iDup_seed_FR_ = i; // ith duplicate track, i = 0 "best" match, i > 0 "still matched, real reco, not as good as i-1 track"
+
+	pt_mc_seed_FR_  = simpt[mcID_seed_FR_];
+	pz_mc_seed_FR_  = simpz[mcID_seed_FR_];
+	phi_mc_seed_FR_ = simphi[mcID_seed_FR_];
+	eta_mc_seed_FR_ = simeta[mcID_seed_FR_];
+	
+	nHits_mc_seed_FR_ = simnHits[mcID_seed_FR_];
+      }
+      else{
+	mask_seed_FR_ = 0;   // fake track (unmatched track)
+ 	iDup_seed_FR_ = -1;  // means "don't count towards duplicate_ info" 
+
+	// -99 for all sim info for reco tracks not associated to reco tracks
+	pt_mc_seed_FR_  = -99;
+	pz_mc_seed_FR_  = -99;
+	phi_mc_seed_FR_ = -99;
+	eta_mc_seed_FR_ = -99;
+	
+	nHits_mc_seed_FR_ = -99;
+      }
+
+      evt_seed_FR_   = ievt;
+      fakeseedtree_->Fill();
+      i++; // dummy counter
+    }
+  } // end of seed to seed loop
+
+  for (auto&& recPairs : seedToBuildMap_){
+    unsigned int i = 0; // i is dummy counter ... want to keep track of where you are in vector... 1st element is ref to "best track"
+    for (auto&& track : recPairs.second){
+      pt_build_FR_   = track->pt();
+      ept_build_FR_  = track->ept();
+      pz_build_FR_   = track->pz();
+      epz_build_FR_  = track->epz();
+      phi_build_FR_  = track->momPhi();
+      ephi_build_FR_ = track->emomPhi();
+      eta_build_FR_  = track->momEta();
+      eeta_build_FR_ = track->emomEta();
+
+      nHits_build_FR_ = track->nHits();
+      nHitsMatched_build_FR_ = track->nHitsMatched();
+      chi2_build_FR_  = track->chi2();
+
+      mcID_build_FR_ = track->mcTrackID();
+      if (track->mcTrackID() != 999999){
+	mask_build_FR_ = 1; // matched track
+	iDup_build_FR_ = i; // ith duplicate track, i = 0 "best" match, i > 0 "still matched, real reco, not as good as i-1 track"
+
+	pt_mc_build_FR_  = simpt[mcID_build_FR_];
+	pz_mc_build_FR_  = simpz[mcID_build_FR_];
+	phi_mc_build_FR_ = simphi[mcID_build_FR_];
+	eta_mc_build_FR_ = simeta[mcID_build_FR_];
+	
+	nHits_mc_build_FR_ = simnHits[mcID_build_FR_];
+      }
+      else{
+	mask_build_FR_ = 0;   // fake track (unmatched track)
+ 	iDup_build_FR_ = -1;  // means "don't count towards duplicate_ info" 
+
+	// -99 for all sim info for reco tracks not associated to reco tracks
+	pt_mc_build_FR_  = -99;
+	pz_mc_build_FR_  = -99;
+	phi_mc_build_FR_ = -99;
+	eta_mc_build_FR_ = -99;
+	
+	nHits_mc_build_FR_ = -99;
+      }
+
+      evt_build_FR_   = ievt;
+      fakebuildtree_->Fill();
+      i++; // dummy counter
+    }
+  }
 }
+
 
 void TTreeValidation::fillFakeSeedTree(const unsigned int& ievt){
   std::lock_guard<std::mutex> locker(glock_);
 
-  for (auto&& recPairs : simToSeedMap_){
-    unsigned int i = 0; // i is dummy counter ... want to keep track of where you are in vector... 1st element is ref to "best track"
-    for (auto&& track : recPairs.second){
-      if (track->mcTrackID() != 999999){
-	mask_seed_fake_ = 1;
-	if (i == 0){
-	  mask_seed_duplicate_ = 1; // 1 means "best candidate"
-       	}
-	else{
-	  mask_seed_duplicate_ = 0; // 0 means "not best candidate, but still real reco"
-	}
-      }
-      else{
-	mask_seed_fake_ = 0;
-	mask_seed_duplicate_ = -1; // means "don't count towards duplicate_ info" 
-      }
-
-      pt_seed_fake_    = track->pt();
-      pz_seed_fake_    = track->pz();
-      phi_seed_fake_   = track->momPhi();
-      eta_seed_fake_   = track->momEta();
-      nHits_seed_fake_ = track->nHits();
-      nHitsMatched_seed_fake_ = track->nHitsMatched();
-      chi2_seed_fake_  = track->chi2();
-      evt_seed_fake_   = ievt;
-
-      i++; // dummy counter
-      fakeseedtree_->Fill();
-    }
-  }
 }
 
 void TTreeValidation::fillFakeBuildTree(const unsigned int& ievt){
@@ -335,16 +400,11 @@ void TTreeValidation::fillFakeBuildTree(const unsigned int& ievt){
     unsigned int i = 0; // i is dummy counter ... want to keep track of where you are in vector... 1st element is ref to "best track"
     for (auto&& track : recPairs.second){
       if (track->mcTrackID() != 999999){
-	mask_build_fake_ = 1;
-	if (i == 0){
-	  mask_build_duplicate_ = 1; // 1 means "best candidate"
-       	}
-	else{
-	  mask_build_duplicate_ = 0; // 0 means "not best candidate, but still real reco"
-	}
+	mask_build_real_      = 1;
+	mask_build_duplicate_ = i; // 0 means "best candidate", i > 0 means "ith duplpicate that is real reco but not as good as ith-1 track"
       }
       else{
-	mask_build_fake_ = 0;
+	mask_build_real_ = 0;
 	mask_build_duplicate_ = -1; // means "don't count towards duplicate_ info" 
       }
 
@@ -370,16 +430,11 @@ void TTreeValidation::fillFakeFitTree(const unsigned int& ievt){
     unsigned int i = 0; // i is dummy counter ... want to keep track of where you are in vector... 1st element is ref to "best track"
     for (auto&& track : recPairs.second){
       if (track->mcTrackID() != 999999){
-	mask_fit_fake_ = 1;
-	if (i == 0){
-	  mask_fit_duplicate_ = 1; // 1 means "best candidate"
-       	}
-	else{
-	  mask_fit_duplicate_ = 0; // 0 means "not best candidate, but still real reco"
-	}
+	mask_fit_real_      = 1;
+	mask_fit_duplicate_ = i;
       }
       else{
-	mask_fit_fake_ = 0;
+	mask_fit_real_      = 0;
 	mask_fit_duplicate_ = -1; // means "don't count towards duplicate_ info" 
       }
 

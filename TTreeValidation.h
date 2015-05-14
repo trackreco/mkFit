@@ -58,12 +58,14 @@ public:
   int   nHits_mc_eff_=0,nHits_seed_eff_=0,nHits_build_eff_=0,nHits_fit_eff_=0;
   float chi2_seed_eff_=0.,chi2_build_eff_=0.,chi2_fit_eff_=0.;
   int   nHitsMatched_seed_eff_=0,nHitsMatched_build_eff_=0,nHitsMatched_fit_eff_=0;
+  int   nDup_seed_eff_=0,nDup_build_eff_=0,nDup_fit_eff_=0;
+  int   mask_seed_eff_=0,mask_build_eff_=0,mask_fit_eff_=0;
   int   evt_mc_eff_=0,evt_seed_eff_=0,evt_build_eff_=0,evt_fit_eff_=0;
 
   TTree* fakeseedtree_;
   TTree* fakebuildtree_;
   TTree* fakefittree_;  
-  bool  mask_seed_fake_=0,mask_build_fake_=0,mask_fit_fake_=0;
+  bool  mask_seed_real_=0,mask_build_real_=0,mask_fit_real_=0;
   int   mask_seed_duplicate_=0,mask_build_duplicate_=0,mask_fit_duplicate_=0;
   float pt_seed_fake_=0.,pt_build_fake_=0.,pt_fit_fake_=0.;
   float pz_seed_fake_=0.,pz_build_fake_=0.,pz_fit_fake_=0.;
