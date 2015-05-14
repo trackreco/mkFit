@@ -71,7 +71,7 @@ void fitTrack(const Track & trk, Event& ev)
   backward = true;
 #endif //INWARD
   //fit is problematic in case of very short lever arm
-  conformalFit(hits[0],hits[hits.size()/2 + 1],hits[hits.size()-1],trk.charge(),cfitStateHit0,backward);
+  conformalFit(hits[0],hits[hits.size()/2 + 1],hits[hits.size()-1],trk.charge(),cfitStateHit0,backward,bool(true)); // last bool denotes use cf derived errors for fitting
   TrackState updatedState = cfitStateHit0;
 #else 
   TrackState updatedState = trk.state();

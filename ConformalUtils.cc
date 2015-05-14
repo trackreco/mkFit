@@ -2,7 +2,7 @@
 
 //M. Hansroul, H. Jeremie and D. Savard, NIM A 270 (1988) 498
 //http://www.sciencedirect.com/science/article/pii/016890028890722X
-void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge, TrackState& fitStateHit0, bool backward) {
+void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge, TrackState& fitStateHit0, bool backward, bool fitORseed) {
 
   //fixme: does this work in case bs not in (0,0)? I think so, but need to check
 
@@ -55,7 +55,7 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
   std::cout << "R=" << R << " pt=" << pt << std::endl;
   */
 
-  //compute phi at 1st hit --> wouldnt we want phi at IP???
+  //compute phi at 1st hit --> wouldnt we want phi at PCA???
 
   float abR2 = a*a + b*b;
   float abR  = sqrt(abR2);
@@ -97,7 +97,7 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
   fitStateHit0.parameters[4] = py;
   fitStateHit0.parameters[5] = pz;
   //get them a posteriori from width of residue plots (i.e. unitary pulls)
-  //warning: this errors are tuned for hits on layer 0,5,9
+
   const float hitposerrXY = 0.01;//assume 100mum uncertainty in xy coordinate
   const float hitposerrZ = 0.1;//assume 1mm uncertainty in z coordinate
   const float hitposerrR = hitposerrXY/10.;
@@ -114,10 +114,24 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
   float varR   = hitposerrR*hitposerrR;
   float varZ   = hitposerrZ*hitposerrZ;
 
-  float ptinverr = 0.1789; // .0075
-  float pterr = pow(pt,2)*ptinverr;
-  float phierr = 0.0170; // 0.0017
-  float thetaerr = 0.0137; //0.0031
+  float ptinverr = 0.;
+  float pterr    = 0.;
+  float phierr   = 0.;
+  float thetaerr = 0.;
+
+  if (fitORseed) { // use fit errors, ie. hits on layers 0,5,9
+    ptinverr = 0.0075;
+    pterr    = pow(pt,2)*ptinverr;
+    phierr   = 0.0017;
+    thetaerr = 0.0031;
+  }
+  else{ //use seed errors, ie. hits on layers 0,1,2
+    ptinverr = 0.1789;
+    pterr    = pow(pt,2)*ptinverr;
+    phierr   = 0.0170;
+    thetaerr = 0.0137;
+  }
+
    
   //this gives nice fitting results when scaling the errors by 10
   fitStateHit0.errors=ROOT::Math::SMatrixIdentity();

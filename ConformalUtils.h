@@ -4,6 +4,6 @@
 #include "Track.h"
 #include "Matrix.h"
 
-void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge, TrackState& fitStateHit0, bool backward = 0);
+void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge, TrackState& fitStateHit0, bool backward = 0, bool fitORseed = 1);
 
 #endif
