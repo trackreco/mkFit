@@ -171,9 +171,9 @@ void Event::Segment()
 void Event::Seed()
 {
 #ifdef ENDTOEND
-  buildSeedsByMC(simTracks_,seedTracks_);
+  buildSeedsByRoadTriplets(layerHits_,segmentMap_,seedTracks_);
 #else
-  std::cout << "not gonna work yet";
+  buildSeedsByMC(simTracks_,seedTracks_);
 #endif
   std::sort(seedTracks_.begin(), seedTracks_.end(), tracksByPhi);
 }

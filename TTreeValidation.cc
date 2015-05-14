@@ -1,4 +1,6 @@
 #include "TTreeValidation.h"
+#include "BinInfoUtils.h"
+#include "Event.h"
 #ifndef NO_ROOT
 
 static bool sortByHitsChi2(const Track* cand1, const Track* cand2)
@@ -11,6 +13,22 @@ TTreeValidation::TTreeValidation(std::string fileName)
 {
   std::lock_guard<std::mutex> locker(glock_);
   f_ = TFile::Open(fileName.c_str(), "recreate");
+  // configuration storage
+  configtree_ = new TTree("configtree","configtree");
+  configtree_->Branch("simtime",&simtime_);
+  configtree_->Branch("segtime",&segtime_);
+  configtree_->Branch("seedtime",&seedtime_);
+  configtree_->Branch("buildtime",&buildtime_);
+  configtree_->Branch("fittime",&fittime_);
+  configtree_->Branch("hlvtime",&hlvtime_);
+  configtree_->Branch("Ntracks",&Ntracks_);
+  configtree_->Branch("Nevents",&Nevents_);
+  configtree_->Branch("nPhiPart",&nPhiPart_);
+  configtree_->Branch("nPhiFactor",&nPhiFactor_);
+  configtree_->Branch("nEtaPart",&nEtaPart_);
+  configtree_->Branch("etaDet",&etaDet_);
+  configtree_->Branch("nlayers_per_seed",&nlayers_per_seed_);
+
   // build validation
   tree_br_ = new TTree("tree_br","tree_br");
   tree_br_->Branch("layer",&layer_,"layer/i");
@@ -78,6 +96,7 @@ TTreeValidation::TTreeValidation(std::string fileName)
   fakeseedtree_->Branch("phi_seed",&phi_seed_fake_);
   fakeseedtree_->Branch("eta_seed",&eta_seed_fake_);
   fakeseedtree_->Branch("nHits_seed",&nHits_seed_fake_);
+  fakeseedtree_->Branch("nHitsMatched_seed",&nHitsMatched_seed_fake_);
   fakeseedtree_->Branch("chi2_seed",&chi2_seed_fake_);
   fakeseedtree_->Branch("evt_seed",&evt_seed_fake_);
 
@@ -89,6 +108,7 @@ TTreeValidation::TTreeValidation(std::string fileName)
   fakebuildtree_->Branch("phi_build",&phi_build_fake_);
   fakebuildtree_->Branch("eta_build",&eta_build_fake_);
   fakebuildtree_->Branch("nHits_build",&nHits_build_fake_);
+  fakebuildtree_->Branch("nHitsMatched_build",&nHitsMatched_build_fake_);
   fakebuildtree_->Branch("chi2_build",&chi2_build_fake_);
   fakebuildtree_->Branch("evt_build",&evt_build_fake_);
 
@@ -100,6 +120,7 @@ TTreeValidation::TTreeValidation(std::string fileName)
   fakefittree_->Branch("phi_fit",&phi_fit_fake_);
   fakefittree_->Branch("eta_fit",&eta_fit_fake_);
   fakefittree_->Branch("nHits_fit",&nHits_fit_fake_);
+  fakefittree_->Branch("nHitsMatched_fit",&nHitsMatched_fit_fake_);
   fakefittree_->Branch("chi2_fit",&chi2_fit_fake_);
   fakefittree_->Branch("evt_fit",&evt_fit_fake_);
 }
@@ -150,6 +171,22 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
   std::lock_guard<std::mutex> locker(glock_);
 
   for (int i = 0; i < evt_sim_tracks.size(); i++){
+    /*    x_reco_mc_.clear();  x_gen_mc_.clear();
+    y_reco_mc_.clear();  y_gen_mc_.clear();
+    z_reco_mc_.clear();  z_gen_mc_.clear();
+
+    for (auto&& hit : evt_sim_tracks[i].hitsVector()){
+      x_reco_mc_.push_back(hit.position()[0]);
+      y_reco_mc_.push_back(hit.position()[1]);
+      z_reco_mc_.push_back(hit.position()[2]);
+    }
+    for (auto&& hit : evt_sim_tracks[i].initHitsVector()){
+      x_gen_mc_.push_back(hit.position()[0]);
+      y_gen_mc_.push_back(hit.position()[1]);
+      z_gen_mc_.push_back(hit.position()[2]);
+    }
+    */    
+
     pt_mc_eff_    = evt_sim_tracks[i].pt();
     pz_mc_eff_    = evt_sim_tracks[i].pz();
     phi_mc_eff_   = evt_sim_tracks[i].momPhi();
@@ -281,6 +318,7 @@ void TTreeValidation::fillFakeSeedTree(const unsigned int& ievt){
       phi_seed_fake_   = track->momPhi();
       eta_seed_fake_   = track->momEta();
       nHits_seed_fake_ = track->nHits();
+      nHitsMatched_seed_fake_ = track->nHitsMatched();
       chi2_seed_fake_  = track->chi2();
       evt_seed_fake_   = ievt;
 
@@ -315,6 +353,7 @@ void TTreeValidation::fillFakeBuildTree(const unsigned int& ievt){
       phi_build_fake_   = track->momPhi();
       eta_build_fake_   = track->momEta();
       nHits_build_fake_ = track->nHits();
+      nHitsMatched_build_fake_ = track->nHitsMatched();
       chi2_build_fake_  = track->chi2();
       evt_build_fake_   = ievt;
       
@@ -349,6 +388,7 @@ void TTreeValidation::fillFakeFitTree(const unsigned int& ievt){
       phi_fit_fake_   = track->momPhi();
       eta_fit_fake_   = track->momEta();
       nHits_fit_fake_ = track->nHits();
+      nHitsMatched_fit_fake_ = track->nHitsMatched();
       chi2_fit_fake_  = track->chi2();
       evt_fit_fake_   = ievt;
       
@@ -356,6 +396,34 @@ void TTreeValidation::fillFakeFitTree(const unsigned int& ievt){
       fakefittree_->Fill();
     }
   }
+}
+
+void TTreeValidation::fillConfigTree(const unsigned int & ntracks, const unsigned int & nevents, const std::vector<double>& ticks){
+  simtime_   = ticks[0];
+  segtime_   = ticks[1];
+  seedtime_  = ticks[2];
+  buildtime_ = ticks[3];
+  fittime_   = ticks[4];
+  hlvtime_   = ticks[5];
+
+  Ntracks_ = ntracks;
+  Nevents_ = nevents;
+
+  nPhiPart_   = Config::nPhiPart;
+  nPhiFactor_ = Config::nPhiFactor;
+  nEtaPart_   = Config::nEtaPart;
+  etaDet_     = Config::etaDet;
+
+  nlayers_per_seed_ = Config::nlayers_per_seed;
+  maxCand_ = Config::maxCand;
+  chi2Cut_ = Config::chi2Cut;
+  nSigma_  = Config::nSigma;
+  minDPhi_ = Config::minDPhi;
+  maxDPhi_ = Config::maxDPhi;
+  minDEta_ = Config::minDEta;
+  maxDEta_ = Config::maxDEta;
+ 
+  configtree_->Fill();
 }
 
 void TTreeValidation::saveTTrees() {  

@@ -169,7 +169,7 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   const Track& tkcand = cand;
   const TrackState& updatedState = cand.state();
   const auto& evt_lay_hits(ev.layerHits_);
-  const auto& segmentMap(ev.segmentMap_);
+  const auto& segLayMap(ev.segmentMap_[ilayer]);
   //  debug = true;
 
   dprint("processing candidate with nHits=" << tkcand.nHits());
@@ -200,74 +200,23 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
 #ifdef ETASEG  
   const float eta  = getEta(std::sqrt(getRad2(predx,predy)),predz);
   const float deta = std::sqrt(std::abs(getEtaErr2(predx,predy,predz,propState.errors.At(0,0),propState.errors.At(1,1),propState.errors.At(2,2),propState.errors.At(0,1),propState.errors.At(0,2),propState.errors.At(1,2))));
-  const float nSigmaDeta = std::min(std::max(Config::nSigma*deta,(float)0.0),float( 1.0)); // something to tune -- minDEta = 0.0
-#endif
-  const float phi    = getPhi(predx,predy); //std::atan2(predy,predx); 
-  const float dphi = std::sqrt(std::abs(getPhiErr2(predx,predy,propState.errors.At(0,0),propState.errors.At(1,1),propState.errors.At(0,1))));
-  const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi,(float) Config::minDPhi), (float) M_PI);
-
-  hitIndices cand_hit_idx = getCandHitIndices(eta,nSigmaDeta,phi,nSigmaDphi,ilayer,segmentMap);
-  hitIdxIter index_iter; // iterator for vector
-  /*
-  
-  //for now as well --> eta boundary!!!
-  const float detaMinus  = normalizedEta(eta-nSigmaDeta);
-  const float detaPlus   = normalizedEta(eta+nSigmaDeta);
-  
-  // for now
-  const auto etaBinMinus = getEtaPartition(detaMinus);
-  const auto etaBinPlus  = getEtaPartition(detaPlus);
-
-  dprint("eta: " << eta << " etaBinMinus: " << etaBinMinus << " etaBinPlus: " << etaBinPlus << " deta: " << deta);
-#ifndef ETASEG // just assign the etaBin boundaries to keep code without 10k ifdefs
+  const float nSigmaDeta = std::min(std::max(Config::nSigma*deta,(float) Config::minDEta), (float) Config::maxDEta); // something to tune -- minDEta = 0.0
+  const auto etaBinMinus = getEtaPartition(normalizedEta(eta-nSigmaDeta));
+  const auto etaBinPlus  = getEtaPartition(normalizedEta(eta+nSigmaDeta));
+#else
   const auto etaBinMinus = 0U;
   const auto etaBinPlus  = 0U;
 #endif
-  
-  const float dphiMinus = normalizedPhi(phi-nSigmaDphi);
-  const float dphiPlus  = normalizedPhi(phi+nSigmaDphi);
-  
-  const auto phiBinMinus = getPhiPartition(dphiMinus);
-  const auto phiBinPlus  = getPhiPartition(dphiPlus);
 
-  dprint("phi: " << phi << " phiBinMinus: " <<  phiBinMinus << " phiBinPlus: " << phiBinPlus << "  dphi: " << dphi);
-  hitIndices cand_hit_idx;
-  hitIdxIter index_iter;
-  //
-  //  std::vector<unsigned int>::iterator index_iter; // iterator for vector
-  
-  for (unsigned int ieta = etaBinMinus; ieta <= etaBinPlus; ++ieta){
-    
-    const BinInfo binInfoMinus = segmentMap[ilayer][ieta][int(phiBinMinus)];
-    const BinInfo binInfoPlus  = segmentMap[ilayer][ieta][int(phiBinPlus)];
-    
-    
-    // Branch here from wrapping
-    if (phiBinMinus<=phiBinPlus){
-      const auto firstIndex = binInfoMinus.first;
-      const auto maxIndex   = binInfoPlus.first+binInfoPlus.second;
+  const float phi    = getPhi(predx,predy); //std::atan2(predy,predx); 
+  const float dphi = std::sqrt(std::abs(getPhiErr2(predx,predy,propState.errors.At(0,0),propState.errors.At(1,1),propState.errors.At(0,1))));
+  const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi,(float) Config::minDPhi), (float) Config::maxDPhi);
+  const auto phiBinMinus = getPhiPartition(normalizedPhi(phi-nSigmaDphi));
+  const auto phiBinPlus  = getPhiPartition(normalizedPhi(phi+nSigmaDphi));
 
-      for (auto ihit  = firstIndex; ihit < maxIndex; ++ihit){
-        cand_hit_idx.push_back(ihit);
-      }
-    } 
-    else { // loop wrap around end of array for phiBinMinus > phiBinPlus, for dPhiMinus < 0 or dPhiPlus > 0 at initialization
-      const auto firstIndex = binInfoMinus.first;
-      const auto etaBinSize = segmentMap[ilayer][ieta][Config::nPhiPart-1].first+segmentMap[ilayer][ieta][Config::nPhiPart-1].second;
+  hitIndices cand_hit_idx = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
+  hitIdxIter index_iter; // iterator for vector
 
-      for (auto ihit  = firstIndex; ihit < etaBinSize; ++ihit){
-        cand_hit_idx.push_back(ihit);
-      }
-
-      const auto etaBinStart= segmentMap[ilayer][ieta][0].first;
-      const auto maxIndex   = binInfoPlus.first+binInfoPlus.second;
-
-      for (unsigned int ihit  = etaBinStart; ihit < maxIndex; ++ihit){
-        cand_hit_idx.push_back(ihit);
-      }
-    }
-  }
-  */
 #ifdef LINEARINTERP
     const float minR = ev.geom_.Radius(ilayer);
     float maxR = minR;

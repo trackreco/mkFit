@@ -108,7 +108,7 @@ int main(int argc, char** argv)
   unsigned int Ntracks = 500;
   unsigned int Nevents = 100;
 
-  std::vector<tick> ticks(7);
+  std::vector<tick> ticks(6);
 
 #ifdef TBB
   auto nThread(tbb::task_scheduler_init::default_num_threads());
@@ -136,12 +136,17 @@ int main(int argc, char** argv)
 #endif
   }
 
-  timepoint t0(now());
-  val.saveTTrees(); ticks[6] += delta(t0); 
+  std::vector<double> time(ticks.size());
+  for (unsigned int i = 0; i < ticks.size(); ++i){
+    time[i]=ticks[i].count();
+  }
+
+  val.fillConfigTree(Ntracks,Nevents,time);
+  val.saveTTrees(); 
 
   std::cout << "Ticks ";
-  for (auto&& tt : ticks) {
-    std::cout << tt.count() << " ";
+  for (auto&& tt : time) {
+    std::cout << tt << " ";
   }
   std::cout << std::endl;
 

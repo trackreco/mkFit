@@ -11,8 +11,7 @@ namespace Config {
 };
 
 typedef std::pair<unsigned int,unsigned int> BinInfo;
-// phi-eta partitioning map: vector of vector of vectors of std::pairs. 
-// vec[nLayers][nEtaBins][nPhiBins]
+typedef std::vector<std::vector<BinInfo> > BinInfoLayerMap;
 typedef std::vector<std::vector<std::vector<BinInfo> > > BinInfoMap;
 typedef std::vector<unsigned int> hitIndices;
 typedef hitIndices::iterator hitIdxIter;
@@ -20,7 +19,7 @@ typedef hitIndices::iterator hitIdxIter;
 inline unsigned int getPhiPartition(float phi){
   //assume phi is between -PI and PI
   //  if (!(fabs(phi)<TMath::Pi())) std::cout << "anomalous phi=" << phi << std::endl;
-  const float phiPlusPi  = phi+TMath::Pi();
+  const float phiPlusPi  = phi+M_PI;
   const unsigned int bin = phiPlusPi*Config::nPhiFactor;
   return bin;
 }
@@ -43,6 +42,6 @@ inline float normalizedEta(float eta) {
 }
 #endif
 
-hitIndices getCandHitIndices(const float, const float, const float, const float, const unsigned int, const BinInfoMap&);
+hitIndices getCandHitIndices(const unsigned int &, const unsigned int &, const unsigned int &, const unsigned int &, const BinInfoLayerMap &);
 
 #endif

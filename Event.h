@@ -12,6 +12,9 @@ namespace Config {
   static constexpr const float chi2Cut = 15.;
   static constexpr const float nSigma = 3.;
   static constexpr const float minDPhi = 0.;
+  static constexpr const float maxDPhi = M_PI;
+  static constexpr const float minDEta = 0.;
+  static constexpr const float maxDEta = 1.0;
 };
 
 class Event {
@@ -30,6 +33,8 @@ public:
   TrackVec simTracks_, seedTracks_, candidateTracks_, fitTracks_;
   int threads_;
 
+  // phi-eta partitioning map: vector of vector of vectors of std::pairs. 
+  // vec[nLayers][nEtaBins][nPhiBins]
   BinInfoMap segmentMap_;
 };
 
