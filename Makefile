@@ -9,6 +9,7 @@ ifeq (${CXX},icc)
 endif
 
 all: ${EXES}
+	cd mkFit && ${MAKE}
 
 AUTO_TGTS :=
 
@@ -32,6 +33,7 @@ OBJS := $(SRCS:.cc=.o)
 clean:
 	-rm -f ${EXES} *.d *.o *.om
 	-rm -rf USolids-{host,mic}
+	cd mkFit && ${MAKE} clean
 
 distclean: clean
 	rm -f ${AUTO_TGTS}

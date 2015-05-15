@@ -177,6 +177,7 @@ void Event::Seed()
     const HitVec& hits = trk.hitsVector();
     TrackState updatedState = trk.state();
     HitVec seedhits;
+
     for (auto ilayer=0U;ilayer<Config::nlayers_per_seed;++ilayer) {//seeds have first three layers as seeds
       Hit seed_hit = hits[ilayer]; // do this for now to make initHits element number line up with HitId number
       TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
@@ -255,6 +256,10 @@ void Event::Find()
 {
   //buildTracksBySeeds(*this);
   buildTracksByLayers(*this);
+
+  // From CHEP-2015
+  // buildTestSerial(*this, Config::nlayers_per_seed, Config::maxCand, Config::chi2Cut, Config::nSigma, Config::minDPhi);
+
   validation_.fillAssociationHists(candidateTracks_,simTracks_);
   validation_.fillCandidateHists(candidateTracks_);
 }

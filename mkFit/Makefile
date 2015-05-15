@@ -59,7 +59,7 @@ echo:
 -include *.d ../*.d
 
 # Should be a lib, really
-ABOVE_OBJS := $(patsubst %, ../%.o, Matrix Hit Track Propagation KalmanUtils Simulation)
+ABOVE_OBJS := $(patsubst %, ../%.o, Matrix Hit Track Propagation KalmanUtils Simulation Geometry SimpleGeom)
 
 ${ABOVE_OBJS}:
 	${MAKE} -C ..
@@ -87,7 +87,8 @@ MKFOBJS_MIC := $(MKFOBJS:.o=.om)
 ALLOBJS_MIC := $(ALLOBJS:.o=.om) 
 
 mkFit-mic: ${AUTO_TGTS} ${ALLOBJS_MIC}
-	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} -o $@ ${ALLOBJS_MIC}
+	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} -o $@ ${ALLOBJS_MIC} \
+	-L/opt/intel/vtune_amplifier_xe/bin64/k1om -littnotify
 	scp $@ mic0:
 
 ${MKFOBJS_MIC}: %.om: %.cc

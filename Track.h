@@ -6,6 +6,7 @@
 #include <vector>
 
 typedef std::pair<unsigned int,unsigned int> SimTkIDInfo;
+typedef std::vector<int> HitIdxVec;
 
 struct TrackState
 {
@@ -47,7 +48,12 @@ public:
     state_.parameters = parameters;
     state_.valid = true;
   }
-
+  Track(TrackState state, float chi2, int label) :
+    state_(state),
+    chi2_(chi2),
+    label_(label)
+  {}
+  
   ~Track(){}
 
   int           charge() const {return state_.charge;}
@@ -57,28 +63,50 @@ public:
   const SMatrixSym66& errors() const {return state_.errors;}
   const TrackState&   state() const {return state_;}
   float         chi2() const {return chi2_;}
+  int           label() const {return label_;}
 
   float posPhi() const { return getPhi(state_.parameters[0],state_.parameters[1]); }
   float momPhi() const { return getPhi(state_.parameters[3],state_.parameters[4]); }
   float posEta() const { return getEta(state_.parameters[0],state_.parameters[1],state_.parameters[2]); }
   float momEta() const { return getEta(state_.parameters[3],state_.parameters[4],state_.parameters[5]); }
 
+  float posR()   const { return getHypot(state_.parameters[0],state_.parameters[1]); }
+  float pT()     const { return getHypot(state_.parameters[3],state_.parameters[4]); }
+
   const HitVec& hitsVector() const {return hits_;}
   const HitVec& initHitsVector() const {return initHits_;}
 
   void addHit(const Hit& hit,float chi2) {hits_.push_back(hit);chi2_+=chi2;}
-  void resetHits() {hits_.clear();}
+  void addHitIdx(int hitIdx,float chi2) { hitIdxVec_.push_back(hitIdx); if (hitIdx>=0) ++nGoodHitIdx_; chi2_+=chi2; }
+
+  int  getHitIdx(int posHitIdx) const {return hitIdxVec_[posHitIdx];}
+
+  void resetHits() { hits_.clear(); hitIdxVec_.clear(); nGoodHitIdx_=0; }
+  int  nHits()   const { return hits_.size(); }
+  int  nHitIdx() const { return nGoodHitIdx_; }
+
+  void setChi2(float chi2) {chi2_=chi2;}
+  void setLabel(int lbl) {label_=lbl;}
+
+  void setState(TrackState newState) {state_=newState;}
 
   unsigned int nHits() const {return hits_.size();}
   SimTkIDInfo SimTrackIDInfo() const;
 
   Track clone() const {return Track(state_,hits_,chi2_);}
+  Track clone_for_io() { return Track(state_,chi2_,label_);}
+
+  void write_out(FILE *fp);
+  void read_in  (FILE *fp);
 
 private:
   TrackState state_;
   HitVec hits_;
   HitVec initHits_;
+  HitIdxVec hitIdxVec_;
   float chi2_;
+  int   nGoodHitIdx_ =  0;
+  int   label_       = -1;
 };
 
 typedef std::vector<Track> TrackVec;
