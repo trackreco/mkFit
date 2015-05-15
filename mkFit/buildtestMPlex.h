@@ -16,12 +16,11 @@ double runBuildingTestBestHit(std::vector<Track>& simtracks/*, std::vector<Track
 
 void buildTestParallel(std::vector<Track>& evt_seeds,std::vector<Track>& evt_track_candidates,
 		       std::vector<std::vector<Hit> >& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
-		       const int& nhits_per_seed,const unsigned int& maxCand,const float& chi2Cut,const float& nSigma,const float& minDPhi,
-		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T);
+		       const int& nhits_per_seed,const unsigned int& maxCand,const float& chi2Cut,const float& nSigma,const float& minDPhi);
+
 void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<Track, TrackState> >& tmp_candidates,
 		       unsigned int ilay,std::vector<std::vector<Hit> >& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
-		       const int& nhits_per_seed,const unsigned int& maxCand,const float& chi2Cut,const float& nSigma,const float& minDPhi,
-		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T);
+		       const int& nhits_per_seed,const unsigned int& maxCand,const float& chi2Cut,const float& nSigma,const float& minDPhi);
 
 double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& rectracks*/);
 double runBuildingTestPlexOld(std::vector<Track>& simtracks/*, std::vector<Track>& rectracks*/);

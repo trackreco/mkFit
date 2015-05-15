@@ -6,12 +6,6 @@
 #include "Matrix.h"
 #include <atomic>
 
-namespace Config {
-  static constexpr const unsigned int nPhiPart = 63;
-  static constexpr const unsigned int nPhiFactor = 10;  // nPhiPart/2pi
-  static constexpr const unsigned int nEtaPart = 10;
-};
-
 namespace Config
 {
   static const float    PI = 3.14159265358979323846;
@@ -180,14 +174,13 @@ public:
 
   ~Hit(){}
 
-  // From CHEP-2015 -- had also thes enon-const accessors:
-  // SVector3&  position() {return state_.parameters;}
-  // SMatrixSym33& error() {return state_.errors;}
-  // SVector3& parameters() {return state_.parameters;}
-
   const SVector3&     position()   const {return state_.parameters;}
-  const SMatrixSym33& error()      const {return state_.errors;}
   const SVector3&     parameters() const {return state_.parameters;}
+  const SMatrixSym33& error()      const {return state_.errors;}
+
+  // Non-const versions needed for CopyOut of Matriplex.
+  SVector3&     parameters_nc() {return state_.parameters;}
+  SMatrixSym33& error_nc()      {return state_.errors;}
 
   float r() const {
     return sqrt(state_.parameters.At(0)*state_.parameters.At(0) +

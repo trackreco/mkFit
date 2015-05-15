@@ -55,7 +55,7 @@ void generateTracks(std::vector<Track>& simtracks, int Ntracks)
       SVector3 pos;
       SVector3 mom;
       SMatrixSym66 covtrk;
-      std::vector<Hit> hits;
+      std::vector<Hit> hits, initialhits;
 
       // Fixed pT / charge for testing
       // int   q  = 1;
@@ -64,7 +64,8 @@ void generateTracks(std::vector<Track>& simtracks, int Ntracks)
       int   q  = 0;                         // set it in setup function
       float pt = 0.5 + g_unif(g_gen) * 9.5; // this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
 
-      setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,pt,&geom);
+      setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,pt,geom,initialhits);
+      // CHEP-2015 -- we are not passing initialhits here.
       Track simtrk(q,pos,mom,covtrk,hits,0.);
       simtracks[itrack] = simtrk;
       simtracks[itrack].setLabel(itrack);
@@ -144,22 +145,22 @@ double runFittingTest(std::vector<Track>& simtracks, std::vector<Track>& rectrac
       // std::cout << "init e: " << std::endl;
       // dumpMatrix(trk.errors());
 
-      std::vector<Hit>& hits = trk.hitsVector();
+      const HitVec& hits = trk.hitsVector();
 
       // Make a copy since initState is used at the end to fill the tree.
       // Hmmh, not any more, it seems.
       // TrackState initState = trk.state();
-      TrackState& updatedState = trk.state();
+      TrackState& updatedState = trk.state_nc();
     
       bool dump = false;
     
-      for (std::vector<Hit>::iterator hit=hits.begin();hit!=hits.end();++hit)
+      for (auto hit=hits.begin();hit!=hits.end();++hit)
       {
          //for each hit, propagate to hit radius and update track state with hit measurement
          TrackState propState = propagateHelixToR(updatedState, hit->r());
 
          MeasurementState measState = hit->measurementState();
-         updatedState = updateParameters(propState, measState,projMatrix36,projMatrix36T);
+         updatedState = updateParameters(propState, measState);
          //updateParameters66(propState, measState, updatedState);//updated state is now modified
       
          if (dump)

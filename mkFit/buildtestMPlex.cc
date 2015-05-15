@@ -70,12 +70,6 @@ double runBuildingTest(std::vector<Track>& evt_sim_tracks/*, std::vector<Track>&
      std::cout << "SM - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1])<< std::endl;
    }
 
-   SMatrix36 projMatrix36;
-   projMatrix36(0,0)=1.;
-   projMatrix36(1,1)=1.;
-   projMatrix36(2,2)=1.;
-   SMatrix63 projMatrix36T = ROOT::Math::Transpose(projMatrix36);
-  
    const unsigned int maxCand = Config::maxCand;
    const float chi2Cut = Config::chi2Cut;
    const float nSigma = Config::nSigma;
@@ -124,15 +118,18 @@ double runBuildingTest(std::vector<Track>& evt_sim_tracks/*, std::vector<Track>&
 
    //create seeds (from sim tracks for now)
    const int nhits_per_seed = 3;
-   for (unsigned int itrack=0;itrack<evt_sim_tracks.size();++itrack) {
+   for (int itrack=0;itrack<evt_sim_tracks.size();++itrack)
+   {
      Track& trk = evt_sim_tracks[itrack];
-     std::vector<Hit>& hits = trk.hitsVector();
+     const HitVec& hits = trk.hitsVector();
      TrackState updatedState = trk.state();
      std::vector<Hit> seedhits;
-     for (int ihit=0;ihit<nhits_per_seed;++ihit) {//seeds have 3 hits
+     for (int ihit=0;ihit<nhits_per_seed;++ihit)
+     {
+       //seeds have 3 hits
        TrackState       propState = propagateHelixToR(updatedState,hits[ihit].r());
        MeasurementState measState = hits[ihit].measurementState();
-       updatedState = updateParameters(propState, measState,projMatrix36,projMatrix36T);
+       updatedState = updateParameters(propState, measState);
        seedhits.push_back(hits[ihit]);//fixme chi2
      }
      Track seed(updatedState,seedhits,0.);//fixme chi2
@@ -140,7 +137,7 @@ double runBuildingTest(std::vector<Track>& evt_sim_tracks/*, std::vector<Track>&
      evt_seeds.push_back(seed);
    }
 
-   buildTestParallel(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,chi2Cut,nSigma,minDPhi,projMatrix36,projMatrix36T);
+   buildTestParallel(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,chi2Cut,nSigma,minDPhi);
 
    time = dtime() - time;
 
@@ -160,9 +157,8 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
 		       std::vector<Track>& evt_track_candidates,
 		       std::vector<std::vector<Hit> >& evt_lay_hits,
 		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int& nhits_per_seed,
-		       const unsigned int& maxCand, const float& chi2Cut,const float& nSigma,const float& minDPhi,
-		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T){
-
+		       const unsigned int& maxCand, const float& chi2Cut,const float& nSigma,const float& minDPhi)
+{
   //save a vector of candidates per each seed. initialize to the seed itself
   std::vector<std::vector<std::pair<Track, TrackState> > > track_candidates(evt_seeds.size());
   for (unsigned int iseed=0;iseed<evt_seeds.size();++iseed) {
@@ -186,7 +182,7 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
       for (unsigned int icand=0;icand<track_candidates[iseed].size();++icand) {//loop over running candidates 
 
 	std::pair<Track, TrackState>& cand = track_candidates[iseed][icand];
-	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,chi2Cut,nSigma,minDPhi,projMatrix36,projMatrix36T);
+	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,chi2Cut,nSigma,minDPhi);
 
       }//end of running candidates loop
 
@@ -237,9 +233,8 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
 void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<Track, TrackState> >& tmp_candidates,
 		       unsigned int ilay,std::vector<std::vector<Hit> >& evt_lay_hits,
 		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int& nhits_per_seed,
-		       const unsigned int& maxCand, const float& chi2Cut,const float& nSigma,const float& minDPhi,
-		       SMatrix36& projMatrix36,SMatrix63& projMatrix36T){
-
+		       const unsigned int& maxCand, const float& chi2Cut,const float& nSigma,const float& minDPhi)
+{
   Track& tkcand = cand.first;
   TrackState& updatedState = cand.second;
     
@@ -298,7 +293,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
     float hity = hitCand.position()[1];
     float hitz = hitCand.position()[2];
     MeasurementState hitMeas = hitCand.measurementState();
-    float chi2 = computeChi2(propState,hitMeas,projMatrix36,projMatrix36T);
+    float chi2 = computeChi2(propState, hitMeas);
     
 #ifdef DEBUG
     /*if (debug)*/ std::cout << "consider hit r/phi/z : " << sqrt(pow(hitx,2)+pow(hity,2)) << " "
@@ -306,7 +301,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
 #endif
     
     if ((chi2<chi2Cut)&&(chi2>0.)) {//fixme 
-      TrackState tmpUpdatedState = updateParameters(propState, hitMeas,projMatrix36,projMatrix36T);
+      TrackState tmpUpdatedState = updateParameters(propState, hitMeas);
       Track tmpCand = tkcand.clone();
       tmpCand.addHit(hitCand,chi2);
       tmp_candidates.push_back(std::pair<Track, TrackState>(tmpCand,tmpUpdatedState));
@@ -328,7 +323,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   //take only best hit for now
   if (minChi2<30. && minChi2Hit!=evt_lay_hits[ilay].size()) {
   MeasurementState hitMeas = evt_lay_hits[ilay][minChi2Hit].measurementState();
-  TrackState tmpUpdatedState = updateParameters(propState, hitMeas,projMatrix36,projMatrix36T);
+  TrackState tmpUpdatedState = updateParameters(propState, hitMeas);
   updatedState = tmpUpdatedState;
   tk_cand.addHit(evt_lay_hits[ilay][minChi2Hit],minChi2);
   if (debug) std::cout << "found best hit with index: " << minChi2Hit << std::endl;
@@ -404,12 +399,6 @@ double runBuildingTestBestHit(std::vector<Track>& simtracks/*, std::vector<Track
 #endif
 
 
-  SMatrix36 projMatrix36;
-  projMatrix36(0,0)=1.;
-  projMatrix36(1,1)=1.;
-  projMatrix36(2,2)=1.;
-  SMatrix63 projMatrix36T = ROOT::Math::Transpose(projMatrix36);
-
   double time = dtime();
 
   std::vector<Track> recseeds;
@@ -422,7 +411,7 @@ double runBuildingTestBestHit(std::vector<Track>& simtracks/*, std::vector<Track
   const int nhits_per_seed = 3;
   for (unsigned int itrack=0;itrack<simtracks.size();++itrack) {
     Track& trk = simtracks[itrack];
-    std::vector<Hit>& hits = trk.hitsVector();
+    const HitVec& hits = trk.hitsVector();
     TrackState updatedState = trk.state();
     /*
     std::cout << "updatedState pos=" << updatedState.parameters[0] << " , " << updatedState.parameters[1] << " , " << updatedState.parameters[2]
@@ -440,7 +429,7 @@ double runBuildingTestBestHit(std::vector<Track>& simtracks/*, std::vector<Track
 		<< std::endl;
       */
       MeasurementState measState = hits[ihit].measurementState();
-      updatedState = updateParameters(propState, measState,projMatrix36,projMatrix36T);
+      updatedState = updateParameters(propState, measState);
       //updateParameters66(propState, measState, updatedState);
       /*
       std::cout << "updatedState pos=" << updatedState.parameters[0] << " , " << updatedState.parameters[1] << " , " << updatedState.parameters[2]
@@ -514,7 +503,7 @@ double runBuildingTestBestHit(std::vector<Track>& simtracks/*, std::vector<Track
 	     BunchOfHits &bunch_of_hits = event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];	     
 
 	     Track& tkcand = etabin_of_candidates.m_candidates[itrack];
-	     TrackState& updatedState = tkcand.state();
+	     const TrackState& updatedState = tkcand.state();
 
 #ifdef DEBUG
 	     std::cout << "track with posEta=" << tkcand.posEta() << " posPhi=" << tkcand.posPhi() 
@@ -608,7 +597,7 @@ double runBuildingTestBestHit(std::vector<Track>& simtracks/*, std::vector<Track
 #endif
 
 	       MeasurementState hitMeas = hitCand.measurementState();
-	       float chi2 = computeChi2(propState,hitMeas,projMatrix36,projMatrix36T);
+	       float chi2 = computeChi2(propState, hitMeas);
 
 #ifdef DEBUG
 	       std::cout << "chi2=" << chi2 << " minChi2=" << minChi2 << std::endl;
@@ -623,7 +612,7 @@ double runBuildingTestBestHit(std::vector<Track>& simtracks/*, std::vector<Track
 
 	     if (bestHit>=0) {
 	       MeasurementState hitMeas = bunch_of_hits.m_hits[bestHit].measurementState();
-	       TrackState tmpUpdatedState = updateParameters(propState,hitMeas,projMatrix36,projMatrix36T);	     
+	       TrackState tmpUpdatedState = updateParameters(propState, hitMeas);	     
 	       tkcand.addHitIdx(bestHit,minChi2);
 	       tkcand.setState(tmpUpdatedState);
 

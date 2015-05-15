@@ -7,6 +7,8 @@ log*
 *.om
 *.d
 *.ah
+*.optrpt
+*.gdb_history
 main
 main-mic
 auto-matriplex

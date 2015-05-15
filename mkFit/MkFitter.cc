@@ -46,8 +46,7 @@ void MkFitter::InputTracksAndHits(std::vector<Track>& tracks, int beg, int end)
 
     for (int hi = 0; hi < Nhits; ++hi)
     {
-
-      Hit &hit = trk.hitsVector()[hi];
+      const Hit &hit = trk.hitsVector()[hi];
 
       msErr[hi].CopyIn(itrack, hit.error().Array());
       msPar[hi].CopyIn(itrack, hit.parameters().Array());
@@ -194,10 +193,10 @@ void MkFitter::OutputTracks(std::vector<Track>& tracks, int beg, int end, int iC
   int itrack = 0;
   for (int i = beg; i < end; ++i, ++itrack)
   {
-    Err[iCP].CopyOut(itrack, tracks[i].errors().Array());
-    Par[iCP].CopyOut(itrack, tracks[i].parameters().Array());
+    Err[iCP].CopyOut(itrack, tracks[i].errors_nc().Array());
+    Par[iCP].CopyOut(itrack, tracks[i].parameters_nc().Array());
 
-    tracks[i].charge() = Chg(itrack, 0, 0);
+    tracks[i].setCharge(Chg(itrack, 0, 0));
 
     // XXXXX chi2 is not set (also not in SMatrix fit, it seems)
     tracks[i].setChi2(Chi2(itrack, 0, 0));
@@ -213,10 +212,10 @@ void MkFitter::OutputFittedTracksAndHits(std::vector<Track>& tracks, int beg, in
   int itrack = 0;
   for (int i = beg; i < end; ++i, ++itrack)
   {
-    Err[iC].CopyOut(itrack, tracks[i].errors().Array());
-    Par[iC].CopyOut(itrack, tracks[i].parameters().Array());
+    Err[iC].CopyOut(itrack, tracks[i].errors_nc().Array());
+    Par[iC].CopyOut(itrack, tracks[i].parameters_nc().Array());
 
-    tracks[i].charge() = Chg(itrack, 0, 0);
+    tracks[i].setCharge(Chg(itrack, 0, 0));
     tracks[i].setChi2(Chi2(itrack, 0, 0));
     tracks[i].setLabel(Label(itrack, 0, 0));
 
@@ -227,8 +226,8 @@ void MkFitter::OutputFittedTracksAndHits(std::vector<Track>& tracks, int beg, in
     {
       Hit hit;
 
-      msErr[hi].CopyOut(itrack, hit.error().Array());
-      msPar[hi].CopyOut(itrack, hit.parameters().Array());
+      msErr[hi].CopyOut(itrack, hit.error_nc().Array());
+      msPar[hi].CopyOut(itrack, hit.parameters_nc().Array());
 
       tracks[i].addHit(hit,0.);
       tracks[i].addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);
@@ -245,10 +244,10 @@ void MkFitter::OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, 
   int itrack = 0;
   for (int i = beg; i < end; ++i, ++itrack)
   {
-    Err[iC].CopyOut(itrack, tracks[i].errors().Array());
-    Par[iC].CopyOut(itrack, tracks[i].parameters().Array());
+    Err[iC].CopyOut(itrack, tracks[i].errors_nc().Array());
+    Par[iC].CopyOut(itrack, tracks[i].parameters_nc().Array());
 
-    tracks[i].charge() = Chg(itrack, 0, 0);
+    tracks[i].setCharge(Chg(itrack, 0, 0));
     tracks[i].setChi2(Chi2(itrack, 0, 0));
     tracks[i].setLabel(Label(itrack, 0, 0));
 
@@ -451,7 +450,7 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
 	      //create a new candidate and fill the reccands_tmp vector
 	      Track newcand;
 	      newcand.resetHits();//probably not needed
-	      newcand.charge() = Chg(itrack, 0, 0);
+	      newcand.setCharge(Chg(itrack, 0, 0));
 	      newcand.setChi2(Chi2(itrack, 0, 0));
 	      for (int hi = 0; hi < Nhits; ++hi)
 		{
@@ -463,8 +462,8 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
 
 	      newcand.addHitIdx(ih,chi2);
 	      //set the track state to the updated parameters
-	      Err[iC].CopyOut(itrack, newcand.errors().Array());
-	      Par[iC].CopyOut(itrack, newcand.parameters().Array());
+	      Err[iC].CopyOut(itrack, newcand.errors_nc().Array());
+	      Par[iC].CopyOut(itrack, newcand.parameters_nc().Array());
 	      
 #ifdef DEBUG
 	      std::cout << "updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << std::endl;
@@ -485,7 +484,7 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
       if (countInvalidHits(itrack)>0) continue;//check this is ok for vectorization //fixme not optimal
       Track newcand;
       newcand.resetHits();//probably not needed
-      newcand.charge() = Chg(itrack, 0, 0);
+      newcand.setCharge(Chg(itrack, 0, 0));
       newcand.setChi2(Chi2(itrack, 0, 0));
       for (int hi = 0; hi < Nhits; ++hi)
 	{
@@ -493,8 +492,8 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
 	}
       newcand.addHitIdx(-1,0.);
       //set the track state to the propagated parameters
-      Err[iP].CopyOut(itrack, newcand.errors().Array());
-      Par[iP].CopyOut(itrack, newcand.parameters().Array());	      
+      Err[iP].CopyOut(itrack, newcand.errors_nc().Array());
+      Par[iP].CopyOut(itrack, newcand.parameters_nc().Array());	      
       tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
     }
 
@@ -987,7 +986,7 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
 	      //create a new candidate and fill the reccands_tmp vector
 	      Track newcand;
 	      newcand.resetHits();//probably not needed
-	      newcand.charge() = Chg(itrack, 0, 0);
+	      newcand.setCharge(Chg(itrack, 0, 0));
 	      newcand.setChi2(Chi2(itrack, 0, 0));
 	      for (int hi = 0; hi < Nhits; ++hi)
 		{
@@ -996,8 +995,8 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
 	      newcand.addHitIdx(XHitBegin.At(itrack, 0, 0) + hit_cnt,chi2);
 	      newcand.setLabel(Label(itrack, 0, 0));
 	      //set the track state to the updated parameters
-	      Err[iC].CopyOut(itrack, newcand.errors().Array());
-	      Par[iC].CopyOut(itrack, newcand.parameters().Array());
+	      Err[iC].CopyOut(itrack, newcand.errors_nc().Array());
+	      Par[iC].CopyOut(itrack, newcand.parameters_nc().Array());
 	      
 #ifdef DEBUG
 	      std::cout << "updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << std::endl;
@@ -1017,7 +1016,7 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
       if (countInvalidHits(itrack)>0) continue;//check this is ok for vectorization //fixme not optimal
       Track newcand;
       newcand.resetHits();//probably not needed
-      newcand.charge() = Chg(itrack, 0, 0);
+      newcand.setCharge(Chg(itrack, 0, 0));
       newcand.setChi2(Chi2(itrack, 0, 0));
       for (int hi = 0; hi < Nhits; ++hi)
 	{
@@ -1026,8 +1025,8 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
       newcand.addHitIdx(-1,0.);
       newcand.setLabel(Label(itrack, 0, 0));
       //set the track state to the propagated parameters
-      Err[iP].CopyOut(itrack, newcand.errors().Array());
-      Par[iP].CopyOut(itrack, newcand.parameters().Array());	      
+      Err[iP].CopyOut(itrack, newcand.errors_nc().Array());
+      Par[iP].CopyOut(itrack, newcand.parameters_nc().Array());	      
       tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
     }
 

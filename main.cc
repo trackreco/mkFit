@@ -61,12 +61,13 @@ void initGeom(Geometry& geom)
 void initGeom(Geometry& geom)
 {
   std::cout << "Constructing SimpleGeometry Cylinder geometry" << std::endl;
-  float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
 
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
   // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
-  float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
+
+  float eta = Config::fEtaFull; // can tune this to whatever geometry required (one can make this layer dependent as well)
+
   for (int l = 0; l < 10; l++) {
     float r = (l+1)*4.;
     float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r

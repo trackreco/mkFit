@@ -289,8 +289,8 @@ void test_standard()
       int iout = 0;
       for (int i = 0; i < Ntracks; ++i)
       {
-        SVector6 &simp = simtracks[i].parameters();
-        SVector6 &recp = plex_tracks[i].parameters();
+        const SVector6 &simp = simtracks[i].parameters();
+        const SVector6 &recp = plex_tracks[i].parameters();
 
         float pt_mc  = sqrt(simp[3]*simp[3] + simp[4]*simp[4]);
         float pt_fit = sqrt(recp[3]*recp[3] + recp[4]*recp[4]);

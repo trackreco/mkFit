@@ -56,14 +56,21 @@ public:
   
   ~Track(){}
 
-  int           charge() const {return state_.charge;}
-  SVector3      position() const {return SVector3(state_.parameters[0],state_.parameters[1],state_.parameters[2]);}
-  SVector3      momentum() const {return SVector3(state_.parameters[3],state_.parameters[4],state_.parameters[5]);}
   const SVector6&     parameters() const {return state_.parameters;}
-  const SMatrixSym66& errors() const {return state_.errors;}
-  const TrackState&   state() const {return state_;}
-  float         chi2() const {return chi2_;}
-  int           label() const {return label_;}
+  const SMatrixSym66& errors()     const {return state_.errors;}
+  const TrackState&   state()      const {return state_;}
+
+  // Non-const versions needed for CopyOut of Matriplex.
+  SVector6&     parameters_nc() {return state_.parameters;}
+  SMatrixSym66& errors_nc()     {return state_.errors;}
+  TrackState&   state_nc()      {return state_;}
+
+  SVector3 position() const {return SVector3(state_.parameters[0],state_.parameters[1],state_.parameters[2]);}
+  SVector3 momentum() const {return SVector3(state_.parameters[3],state_.parameters[4],state_.parameters[5]);}
+
+  int      charge() const {return state_.charge;}
+  float    chi2()   const {return chi2_;}
+  int      label()  const {return label_;}
 
   float posPhi() const { return getPhi(state_.parameters[0],state_.parameters[1]); }
   float momPhi() const { return getPhi(state_.parameters[3],state_.parameters[4]); }
@@ -85,12 +92,12 @@ public:
   int  nHits()   const { return hits_.size(); }
   int  nHitIdx() const { return nGoodHitIdx_; }
 
+  void setCharge(int chg)  {state_.charge=chg;}
   void setChi2(float chi2) {chi2_=chi2;}
-  void setLabel(int lbl) {label_=lbl;}
+  void setLabel(int lbl)   {label_=lbl;}
 
   void setState(TrackState newState) {state_=newState;}
 
-  unsigned int nHits() const {return hits_.size();}
   SimTkIDInfo SimTrackIDInfo() const;
 
   Track clone() const {return Track(state_,hits_,chi2_);}

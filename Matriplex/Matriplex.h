@@ -55,7 +55,7 @@ public:
       memcpy(fArray, m.fArray, sizeof(T) * kTotSize); return *this;
    }
 
-   void CopyIn(idx_t n, T *arr)
+   void CopyIn(idx_t n, const T *arr)
    {
       for (idx_t i = n; i < kTotSize; i += N)
       {
