@@ -66,7 +66,7 @@ void Event::Simulate(unsigned int nTracks)
       int q=0;//set it in setup function
       float pt = 0.5+g_unif(g_gen)*9.5;//this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
       setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,pt,tmpgeom,initialhits);
-      Track sim_track(q,pos,mom,covtrk,hits,0,initialhits);
+      Track sim_track(q,pos,mom,covtrk,hits,0,initialhits,itrack);
       simTracks_[itrack] = sim_track;
     }
 #ifdef TBB
@@ -171,7 +171,8 @@ void Event::Segment()
 void Event::Seed()
 {
 #ifdef ENDTOEND
-  buildSeedsByRoadTriplets(layerHits_,segmentMap_,seedTracks_);
+  buildSeedsByMC(simTracks_,seedTracks_);
+  //buildSeedsByRoadTriplets(layerHits_,segmentMap_,seedTracks_);
 #else
   buildSeedsByMC(simTracks_,seedTracks_);
 #endif
@@ -194,7 +195,8 @@ void Event::Fit()
 }
 
 void Event::ValidateHighLevel(const unsigned int & ievt){
-  validation_.makeSimToTkMaps(seedTracks_,candidateTracks_,fitTracks_);
+  validation_.makeSimToTksMaps(seedTracks_,candidateTracks_,fitTracks_);
   validation_.fillEffTree(simTracks_,ievt);
-  validation_.fillFakeTrees(ievt);
+  validation_.makeSeedToTkMaps(candidateTracks_,fitTracks_);
+  validation_.fillFakeRateTree(simTracks_,seedTracks_,ievt);
 }

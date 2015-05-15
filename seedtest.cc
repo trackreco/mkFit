@@ -25,7 +25,7 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks){
       seedhits.push_back(seed_hit);
       chi2 += computeChi2(propState,measState);
     }
-    Track seed(updatedState,seedhits,0);//fixme chi2
+    Track seed(updatedState,seedhits,0,itrack);//fixme chi2 // itrack is seedID in this case
     evt_seed_tracks.push_back(seed);
   }
 }
@@ -178,6 +178,8 @@ void filterHitTripletsByRZChi2(const std::vector<HitVec>& hit_triplets, std::vec
 void buildSeedsFromTriplets(const std::vector<HitVec> & filtered_triplets, TrackVec & evt_seed_tracks){
   // now perform kalman fit on seeds --> first need initial parameters --> get from Conformal fitter!
   const bool cf = false; // use errors derived for seeding
+
+  unsigned int seedID = 0;
   for(auto&& hit_triplet : filtered_triplets){
     int charge = 0;
     if (hit_triplet[1].phi() > hit_triplet[2].phi()){charge = 1;}
@@ -197,9 +199,8 @@ void buildSeedsFromTriplets(const std::vector<HitVec> & filtered_triplets, Track
       MeasurementState measState = seed_hit.measurementState();
       updatedState = updateParameters(propState, measState);
     }
-    Track seed(updatedState,hit_triplet,0.);//fixme chi2
+    Track seed(updatedState,hit_triplet,0.,seedID);//fixme chi2 
     evt_seed_tracks.push_back(seed);
+    seedID++; // increment dummy counter for seedID
   }
 }
-
-

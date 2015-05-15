@@ -136,7 +136,7 @@ void fitTrack(const Track & trk, Event& ev)
   } // end loop over hits
   dcall(print("Fit Track", updatedState));
 
-  Track FitTrack(updatedState,hits,0.); // eventually will want to include chi2 of fitTrack 
+  Track FitTrack(updatedState,hits,0.,trk.seedID()); // eventually will want to include chi2 of fitTrack 
   ev.fitTracks_.push_back(FitTrack);
 }
 
