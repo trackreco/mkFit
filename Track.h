@@ -21,6 +21,7 @@ public:
   Track() {}
 
   Track(const TrackState& state, const HitVec& hits, float chi2) : state_(state), hits_(hits), chi2_(chi2) {}
+  Track(const TrackState& state, const HitVec& hits, float chi2, unsigned int seedID) : state_(state), hits_(hits), chi2_(chi2), seedID_(seedID) {}
   Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, const HitVec& hits, float chi2) 
     : hits_(hits), chi2_(chi2) 
   {
@@ -29,8 +30,8 @@ public:
     state_.parameters = SVector6(position.At(0),position.At(1),position.At(2),momentum.At(0),momentum.At(1),momentum.At(2));
     state_.valid = true;
   }
- Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, const HitVec& hits, float chi2, const HitVec& initHits)
-   : hits_(hits), initHits_(initHits), chi2_(chi2)
+ Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, const HitVec& hits, float chi2, const HitVec& initHits, unsigned int mcTrackID)
+   : hits_(hits), initHits_(initHits), chi2_(chi2), mcTrackID_(mcTrackID)
   {
     state_.charge=charge;
     state_.errors=errors;
@@ -87,7 +88,11 @@ public:
   void setMCTrackIDInfo();
   unsigned int mcTrackID() const {return mcTrackID_;}
   unsigned int nHitsMatched() const {return nHitsMatched_;}
-  Track clone() const {return Track(state_,hits_,chi2_);}
+  unsigned int seedID() const {return seedID_;}
+  void setMCDuplicateInfo(unsigned int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
+  bool isDuplicate() const {return isDuplicate_;}
+  unsigned int duplicateID() const {return duplicateID_;}
+  Track clone() const {return Track(state_,hits_,chi2_,seedID_);}
 
 private:
   TrackState state_;
@@ -96,6 +101,9 @@ private:
   float chi2_;
   unsigned int mcTrackID_;
   unsigned int nHitsMatched_;
+  unsigned int seedID_;
+  unsigned int duplicateID_;
+  bool isDuplicate_;
 };
 
 typedef std::vector<Track> TrackVec;
