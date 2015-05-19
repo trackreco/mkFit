@@ -28,6 +28,13 @@ static bool sortByHitsChi2(const Track* cand1, const Track* cand2)
   return cand1->nHits()>cand2->nHits();
 }
 
+float computeHelixChi2(const SVector6& simParams, const SVector6& recoParams, const SMatrixSym66& recoErrs){ 
+  float chi2 = 0;
+  for(auto i = 0U; i < simParams.size(); i++){
+    chi2 += std::pow((simParams.At(i) - recoParams.At(i)),2) / recoErrs.At(i,i);
+  }
+}
+
 TTreeValidation::TTreeValidation(std::string fileName)
 {
   std::lock_guard<std::mutex> locker(glock_);
@@ -62,7 +69,19 @@ TTreeValidation::TTreeValidation(std::string fileName)
   efftree_->Branch("mcmask_seed",&mcmask_seed_eff_);
   efftree_->Branch("mcmask_build",&mcmask_build_eff_);
   efftree_->Branch("mcmask_fit",&mcmask_fit_eff_);
+  /*
+  efftree_->Branch("x_vrx_mc",&x_vrx_mc_eff_);
+  efftree_->Branch("y_vrx_mc",&y_vrx_mc_eff_);
+  efftree_->Branch("z_vrx_mc",&z_vrx_mc_eff_);
 
+  efftree_->Branch("x_inithit_mc",&x_inithit_mc_eff_);
+  efftree_->Branch("y_inithit_mc",&y_inithit_mc_eff_);
+  efftree_->Branch("z_inithit_mc",&z_inithit_mc_eff_);
+
+  efftree_->Branch("x_hit_mc",&x_hit_mc_eff_);
+  efftree_->Branch("y_hit_mc",&y_hit_mc_eff_);
+  efftree_->Branch("z_hit_mc",&z_hit_mc_eff_);
+  */
   efftree_->Branch("pt_mc",&pt_mc_eff_);
   efftree_->Branch("pt_seed",&pt_seed_eff_);
   efftree_->Branch("ept_seed",&ept_seed_eff_);
