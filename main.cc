@@ -122,8 +122,8 @@ int main(int argc, char** argv)
 #endif
 
   for (unsigned int evt=0; evt<Nevents; ++evt) {
-    std::cout << "EVENT #"<< evt << std::endl;
-    Event ev(geom, val, nThread);
+    Event ev(geom, val, evt, nThread);
+    std::cout << "EVENT #"<< ev.evtID() << std::endl;
 
     timepoint t0(now());
 #ifdef ENDTOEND
@@ -131,7 +131,7 @@ int main(int argc, char** argv)
     ev.Segment();              ticks[1] += delta(t0);
     ev.Seed();                 ticks[2] += delta(t0);
     ev.Find();                 ticks[3] += delta(t0);
-    ev.Fit();                  ticks[4] += delta(t0);
+    //    ev.Fit();                  ticks[4] += delta(t0);
     ev.ValidateHighLevel(evt); ticks[5] += delta(t0);
 #endif
   }
