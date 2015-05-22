@@ -23,9 +23,9 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks){
       MeasurementState measState = seed_hit.measurementState();
       updatedState = updateParameters(propState, measState);
       seedhits.push_back(seed_hit);
-      chi2 += computeChi2(propState,measState);
+      //      chi2 += computeChi2(propState,measState); --> could use this to make the chi2
     }
-    Track seed(updatedState,seedhits,0,itrack);//fixme chi2 // itrack is seedID in this case
+    Track seed(updatedState,seedhits,chi2,itrack);//fixme chi2 // itrack is seedID in this case
     evt_seed_tracks.push_back(seed);
   }
 }
