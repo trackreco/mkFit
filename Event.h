@@ -19,14 +19,16 @@ namespace Config {
 
 class Event {
 public:
-  Event(const Geometry& g, Validation& v, int threads = 1);
+  Event(const Geometry& g, Validation& v, unsigned int evtID, int threads = 1);
   void Simulate(unsigned int nTracks);
   void Segment();
   void Seed();
   void Find();
   void Fit();
   void ValidateHighLevel(const unsigned int &);
-
+  
+  const unsigned int evtID() const {return evtID_;}
+  
   const Geometry& geom_;
   Validation& validation_;
   std::vector<HitVec> layerHits_;
@@ -36,6 +38,8 @@ public:
   // phi-eta partitioning map: vector of vector of vectors of std::pairs. 
   // vec[nLayers][nEtaBins][nPhiBins]
   BinInfoMap segmentMap_;
+ private:
+  unsigned int evtID_;
 };
 
 typedef std::vector<Event> EventVec;

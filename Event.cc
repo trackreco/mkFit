@@ -33,7 +33,7 @@ static bool sortByZ(const Hit& hit1, const Hit& hit2){
 }
 #endif
 
-Event::Event(const Geometry& g, Validation& v, int threads) : geom_(g), validation_(v), threads_(threads)
+Event::Event(const Geometry& g, Validation& v, unsigned int evtID, int threads) : geom_(g), validation_(v), evtID_(evtID), threads_(threads)
 {
   layerHits_.resize(geom_.CountLayers());
   segmentMap_.resize(geom_.CountLayers());
@@ -171,8 +171,8 @@ void Event::Segment()
 void Event::Seed()
 {
 #ifdef ENDTOEND
-  buildSeedsByMC(simTracks_,seedTracks_);
-  //buildSeedsByRoadTriplets(layerHits_,segmentMap_,seedTracks_);
+  //buildSeedsByMC(simTracks_,seedTracks_);
+  buildSeedsByRoadTriplets(layerHits_,segmentMap_,seedTracks_);
 #else
   buildSeedsByMC(simTracks_,seedTracks_);
 #endif
@@ -199,4 +199,5 @@ void Event::ValidateHighLevel(const unsigned int & ievt){
   validation_.fillEffTree(simTracks_,ievt);
   validation_.makeSeedToTkMaps(candidateTracks_,fitTracks_);
   validation_.fillFakeRateTree(simTracks_,seedTracks_,ievt);
+  validation_.fillChi2Tree(simTracks_,ievt);
 }
