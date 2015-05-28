@@ -18,18 +18,14 @@ void Track::setMCTrackIDInfo()
   }
 
   if (4*mcount >= 3*hits_.size()){ // if more, matched track --> set id info
-    if (hits_.size() != 0){
-      mcTrackID_    = mtrk;
-      nHitsMatched_ = mcount;
-    }
-    else{ // zero size track, id = 1 000 000 
-      mcTrackID_    = 1000000;
-      nHitsMatched_ = 0;
-    }
+    mcTrackID_    = mtrk;
+    nHitsMatched_ = mcount;
   }
   else{ // fake track, id = 999 999
     mcTrackID_    = 999999;
-    nHitsMatched_ = 0;
+    nHitsMatched_ = mcount;
   }
+
+  // need to include protection against zero size tracks --> need ID other than 999999
 }
 

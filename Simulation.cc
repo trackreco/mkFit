@@ -7,21 +7,20 @@
 #define SCATTER_XYZ
 
 void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVec& hits, unsigned int itrack,
-                       int& charge, float pt, const Geometry& geom, HitVec& initHits)
+                       int& charge, const Geometry& geom, TkParamVec & initParams)
 {
 
 #ifdef DEBUG
   bool debug = true;
 #endif
-  //assume beam spot width 25um in xy and 5cm in z 
-  pos=SVector3(0.1*g_gaus(g_gen), 0.1*g_gaus(g_gen), 1.0*g_gaus(g_gen));
+  float pt = Config::minSimPt+g_unif(g_gen)*(Config::maxSimPt-Config::minSimPt);//this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
+  pos=SVector3(Config::beamspotX*g_gaus(g_gen), Config::beamspotY*g_gaus(g_gen), Config::beamspotZ*g_gaus(g_gen));
 
-  /*
-  std::cout << "Simulation Track: " << itrack << std::endl;
-  std::cout << "MC vrx: " << pos[0] << " vry: " << pos[1] << std::endl;
-  std::cout << "MC IP:  " << sqrt(pos[0]*pos[0] + pos[1]*pos[1]) << std::endl;
-  std::cout << "MC Pos Phi (x/y) "  << atan2(pos[0],pos[1]) << " (y/x) " << atan2(pos[1],pos[0]) << std::endl;
-  */
+  dprint("Simulation Track: " << itrack << std::endl 
+	 << "MC vrx: " << pos[0] << " vry: " << pos[1] << std::endl
+	 << "MC IP:  " << sqrt(pos[0]*pos[0] + pos[1]*pos[1]) << std::endl
+	 << "MC Pos Phi (x/y) "  << atan2(pos[0],pos[1]) << " (y/x) " << atan2(pos[1],pos[0]) << std::endl
+	 );
 
   dprint("pos x=" << pos[0] << " y=" << pos[1] << " z=" << pos[2]);
 
@@ -30,10 +29,9 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     else charge = 1;
   }
 
-  //float phi = 0.5*TMath::Pi()*(1-g_unif(g_gen)); // make an angle between 0 and pi/2 //fixme
   float phi = 0.5*TMath::Pi()*g_unif(g_gen); // make an angle between 0 and pi/2
 
-  //  std::cout << "MC Gen Phi "  << phi << std::endl;
+  dprint("MC Gen Phi "  << phi << std::endl);
 
   float px = pt * cos(phi);
   float py = pt * sin(phi);
@@ -41,7 +39,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
   if (g_unif(g_gen)>0.5) px*=-1.;
   if (g_unif(g_gen)>0.5) py*=-1.;
 
-  //  std::cout << "MC Mom Phi (x/y) "  << atan2(px,py) << " (y/x) " << atan2(py,px) << std::endl;
+  dprint("MC Mom Phi (x/y) "  << atan2(px,py) << " (y/x) " << atan2(py,px) << std::endl);
   float pz = pt*(2.3*(g_unif(g_gen)-0.5));//so that we have -1<eta<1
 
   mom=SVector3(px,py,pz);
@@ -59,13 +57,6 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
   }
 
   dprint("track with px: " << px << " py: " << py << " pz: " << pz << " pt: " << sqrt(px*px+py*py) << " p: " << sqrt(px*px+py*py+pz*pz) << std::endl);
-
-  const float hitposerrXY = 0.01;//assume 100mum uncertainty in xy coordinate
-  const float hitposerrZ = 0.1;//assume 1mm uncertainty in z coordinate
-  const float hitposerrR = hitposerrXY/10.;
-
-  const float varXY  = hitposerrXY*hitposerrXY;
-  const float varZ   = hitposerrZ*hitposerrZ;
 
   TrackState initState;
   initState.parameters=SVector6(pos[0],pos[1],pos[2],mom[0],mom[1],mom[2]);
@@ -90,7 +81,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
   unsigned int simLayer = 0;
 
   hits.reserve(nTotHit);
-  initHits.reserve(nTotHit);
+  initParams.reserve(nTotHit);
 
   for (unsigned int ihit=0;ihit<nTotHit;++ihit) {  // go to first layer in radius using propagation.h
     //TrackState propState = propagateHelixToR(tmpState,4.*float(ihit+1));//radius of 4*ihit
@@ -222,14 +213,15 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     propState.parameters[5] = pvecprime[2]*p;
     
     // PW END
-    float hitZ    = hitposerrZ*g_gaus(g_gen)+scatteredZ;  // smear in Z after scatter
-    float hitPhi  = ((hitposerrXY/scatteredRad)*g_gaus(g_gen))+scatteredPhi; // smear in phi after scatter
-    float hitRad  = (hitposerrR)*g_gaus(g_gen)+scatteredRad; // smear in rad after scatter
+    float hitZ    = Config::hitposerrZ*g_gaus(g_gen)+scatteredZ;  // smear in Z after scatter
+    float hitPhi  = ((Config::hitposerrXY/scatteredRad)*g_gaus(g_gen))+scatteredPhi; // smear in phi after scatter
+    float hitRad  = (Config::hitposerrR)*g_gaus(g_gen)+scatteredRad; // smear in rad after scatter
 #else // no Scattering --> use this position for smearing
-    float hitZ    = hitposerrZ*g_gaus(g_gen)+initZ;
-    float hitPhi  = ((hitposerrXY/initRad)*g_gaus(g_gen))+initPhi;
-    float hitRad  = (hitposerrR)*g_gaus(g_gen)+initRad;
+    float hitZ    = Config::hitposerrZ*g_gaus(g_gen)+initZ;
+    float hitPhi  = ((Config::hitposerrXY/initRad)*g_gaus(g_gen))+initPhi;
+    float hitRad  = (Config::hitposerrR)*g_gaus(g_gen)+initRad;
 #endif // SCATTERING
+    initParams.push_back(propState.parameters); // if no scattering, will just parameters from prop to next layer
 
 #ifdef SOLID_SMEAR
     UVector3 scattered_point(scatteredX,scatteredY,scatteredZ);
@@ -252,17 +244,17 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     
     // smear along scattered yprime (where yprime = z_prime x x_prime, zprime = (0,0,1)
 
-    float xyres_smear = g_gaus(g_gen)*hitposerrXY;
+    float xyres_smear = g_gaus(g_gen)*Config::hitposerrXY;
 
     float hitX = scatteredX - (scattered_xprime[1] * xyres_smear); 
     float hitY = scatteredY + (scattered_xprime[0] * xyres_smear); 
 #else // No solid smearing --> use old r-phi smear, whether scattered or not
     float hitRad2 = hitRad*hitRad;
+
     float hitX    = hitRad*cos(hitPhi);
     float hitY    = hitRad*sin(hitPhi);
-
-    float varPhi = varXY/hitRad2;
-    float varR   = hitposerrR*hitposerrR;
+    
+    float varPhi = Config::varXY/hitRad2;
 #endif
 
 #ifdef DEBUG
@@ -285,34 +277,30 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     SMatrixSym33 covXYZ = ROOT::Math::SMatrixIdentity();
 
 #ifdef SOLID_SMEAR
-    covXYZ(0,0) = varXY; // yn^2 / (xn^2 + yn^2) * delx^2 + xn^2 / (xn^2 + yn^2) * dely^2
-    covXYZ(1,1) = varXY; // xn^2 / (xn^2 + yn^2) * delx^2 + yn^2 / (xn^2 + yn^2) * dely^2
+    covXYZ(0,0) = Config::varXY; // yn^2 / (xn^2 + yn^2) * delx^2 + xn^2 / (xn^2 + yn^2) * dely^2
+    covXYZ(1,1) = Config::varXY; // xn^2 / (xn^2 + yn^2) * delx^2 + yn^2 / (xn^2 + yn^2) * dely^2
     // covXYZ(0,1) -> -(xn * yn) / (xn^2 + yn^2) * delx^2 + (xn * yn) / (xn^2 + yn^2) * dely^2 
     // covXYZ(1,0)  = covXYZ(0,1)    
-    covXYZ(2,2) = varZ;
+    covXYZ(2,2) = Config::varZ;
 #else //  SOLID_SMEAR --> covariance for pure cylindrical geometry with smearing
-    covXYZ(0,0) = hitX*hitX*varR/hitRad2 + hitY*hitY*varPhi;
-    covXYZ(1,1) = hitX*hitX*varPhi + hitY*hitY*varR/hitRad2;
-    covXYZ(2,2) = varZ;
-    covXYZ(0,1) = hitX*hitY*(varR/hitRad2 - varPhi);
+    covXYZ(0,0) = hitX*hitX*Config::varR/hitRad2 + hitY*hitY*varPhi;
+    covXYZ(1,1) = hitX*hitX*varPhi + hitY*hitY*Config::varR/hitRad2;
+    covXYZ(2,2) = Config::varZ;
+    covXYZ(0,1) = hitX*hitY*(Config::varR/hitRad2 - varPhi);
     covXYZ(1,0) = covXYZ(0,1);
 
     dprint("initPhi: " << initPhi << " hitPhi: " << hitPhi << " initRad: " << initRad  << " hitRad: " << hitRad << std::endl
         << "initX: " << initX << " hitX: " << hitX << " initY: " << initY << " hitY: " << hitY << " initZ: " << initZ << " hitZ: " << hitZ << std::endl 
-        << "cov(0,0): " << covXYZ(0,0) << " cov(1,1): " << covXYZ(1,1) << " varZ: " << varZ << " cov(2,2): " << covXYZ(2,2) << std::endl 
+        << "cov(0,0): " << covXYZ(0,0) << " cov(1,1): " << covXYZ(1,1) << " Config::varZ: " << Config::varZ << " cov(2,2): " << covXYZ(2,2) << std::endl 
         << "cov(0,1): " << covXYZ(0,1) << " cov(1,0): " << covXYZ(1,0) << std::endl);
 #endif
 
-    SVector3 initVecXYZ(initX,initY,initZ);
-    Hit initHitXYZ(initVecXYZ,covXYZ,itrack,simLayer,layer_counts[simLayer]); 
-    initHits.push_back(initHitXYZ);
-
-    Hit hit1(x1,covXYZ,initHitXYZ.mcHitInfo());
+    Hit hit1(x1,covXYZ,itrack,simLayer,layer_counts[simLayer]); 
     hits.push_back(hit1);
     tmpState = propState;
 
-    dprint("initHitId: " << initHitXYZ.hitID() << " hit1Id: " << hit1.hitID() <<std::endl
-                         << "ihit: " << ihit << " layer: " << simLayer << " counts: " << layer_counts[simLayer]);
+    dprint("hit1Id: " << hit1.hitID() <<std::endl
+	   << "ihit: " << ihit << " layer: " << simLayer << " counts: " << layer_counts[simLayer]);
 
     ++layer_counts[simLayer]; // count the number of times passed into layer
 

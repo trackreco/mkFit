@@ -60,13 +60,13 @@ void Event::Simulate(unsigned int nTracks)
       SVector3 pos;
       SVector3 mom;
       SMatrixSym66 covtrk;
-      HitVec hits, initialhits;
+      HitVec hits;
+      TkParamVec initialParams;
       // unsigned int starting_layer  = 0; --> for displaced tracks, may want to consider running a separate Simulate() block with extra parameters
 
       int q=0;//set it in setup function
-      float pt = 0.5+g_unif(g_gen)*9.5;//this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
-      setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,pt,tmpgeom,initialhits);
-      Track sim_track(q,pos,mom,covtrk,hits,0,initialhits,itrack);
+      setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,tmpgeom,initialParams);
+      Track sim_track(q,pos,mom,covtrk,hits,0,itrack,initialParams);
       simTracks_[itrack] = sim_track;
     }
 #ifdef TBB
@@ -171,8 +171,8 @@ void Event::Segment()
 void Event::Seed()
 {
 #ifdef ENDTOEND
-  //buildSeedsByMC(simTracks_,seedTracks_);
-  buildSeedsByRoadTriplets(layerHits_,segmentMap_,seedTracks_);
+  buildSeedsByMC(simTracks_,seedTracks_);
+  //  buildSeedsByRoadTriplets(layerHits_,segmentMap_,seedTracks_);
 #else
   buildSeedsByMC(simTracks_,seedTracks_);
 #endif
@@ -199,5 +199,4 @@ void Event::ValidateHighLevel(const unsigned int & ievt){
   validation_.fillEffTree(simTracks_,ievt);
   validation_.makeSeedToTkMaps(candidateTracks_,fitTracks_);
   validation_.fillFakeRateTree(simTracks_,seedTracks_,ievt);
-  validation_.fillChi2Tree(simTracks_,ievt);
 }

@@ -31,15 +31,16 @@ public:
   
   const Geometry& geom_;
   Validation& validation_;
+ private:
+  unsigned int evtID_;
+ public:
+  int threads_;
   std::vector<HitVec> layerHits_;
   TrackVec simTracks_, seedTracks_, candidateTracks_, fitTracks_;
-  int threads_;
 
   // phi-eta partitioning map: vector of vector of vectors of std::pairs. 
   // vec[nLayers][nEtaBins][nPhiBins]
   BinInfoMap segmentMap_;
- private:
-  unsigned int evtID_;
 };
 
 typedef std::vector<Event> EventVec;

@@ -5,6 +5,8 @@
 #include "Matrix.h"
 #include <vector>
 
+typedef std::vector<SVector6> TkParamVec;
+
 struct TrackState
 {
 public:
@@ -30,8 +32,8 @@ public:
     state_.parameters = SVector6(position.At(0),position.At(1),position.At(2),momentum.At(0),momentum.At(1),momentum.At(2));
     state_.valid = true;
   }
- Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, const HitVec& hits, float chi2, const HitVec& initHits, unsigned int mcTrackID)
-   : hits_(hits), initHits_(initHits), chi2_(chi2), mcTrackID_(mcTrackID)
+ Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, const HitVec& hits, float chi2, unsigned int mcTrackID, const TkParamVec& initParams)
+   : hits_(hits), chi2_(chi2), mcTrackID_(mcTrackID), initParams_(initParams)
   {
     state_.charge=charge;
     state_.errors=errors;
@@ -57,15 +59,15 @@ public:
   const SMatrixSym66& errors()     const {return state_.errors;}
   const TrackState&   state()      const {return state_;}
 
-  // position 
+  // track state position 
+  const float radius() const {return std::sqrt(getRad2(state_.parameters[0],state_.parameters[1]));}
   const float x()      const {return state_.parameters[0];}
   const float y()      const {return state_.parameters[1];}
   const float z()      const {return state_.parameters[2];}
-  const float radius() const {return std::sqrt(state_.parameters[0]*state_.parameters[0] + state_.parameters[1]*state_.parameters[1]);}
   const float posPhi() const {return getPhi(state_.parameters[0],state_.parameters[1]);}
   const float posEta() const {return getEta(radius(),z());}
 
-  // momentum
+  // track state momentum
   const float pt()     const {return std::sqrt(getRad2(state_.parameters[3],state_.parameters[4]));}
   const float px()     const {return state_.parameters[3];}
   const float py()     const {return state_.parameters[4];}
@@ -73,18 +75,16 @@ public:
   const float momPhi() const {return getPhi(state_.parameters[3],state_.parameters[4]);}
   const float momEta() const {return getEta(pt(),pz());}
 
-  const float epx()    const {return std::sqrt(state_.errors[3][3]);}
-  const float epy()    const {return std::sqrt(state_.errors[4][4]);}
-  const float epz()    const {return std::sqrt(state_.errors[5][5]);}
+  // track state momentum errors
   const float ept()     const {return std::sqrt(std::abs(getRadErr2(state_.parameters[3],state_.parameters[4],state_.errors[3][3],state_.errors[4][4],state_.errors[3][4])));}
+  const float epx()     const {return std::sqrt(state_.errors[3][3]);}
+  const float epy()     const {return std::sqrt(state_.errors[4][4]);}
+  const float epz()     const {return std::sqrt(state_.errors[5][5]);}
   const float emomPhi() const {return std::sqrt(std::abs(getPhiErr2(state_.parameters[3],state_.parameters[4],state_.errors[3][3],state_.errors[4][4],state_.errors[3][4])));}
   const float emomEta() const {return std::sqrt(std::abs(getEtaErr2(state_.parameters[3],state_.parameters[4],state_.parameters[5],state_.errors[3][3],state_.errors[4][4],state_.errors[5][5],state_.errors[3][4],state_.errors[3][5],state_.errors[4][5])));}
-  //float ept()     const {return std::sqrt(getRadErr2(state_.parameters[3],state_.parameters[4],state_.errors[3][3],state_.errors[4][4],state_.errors[3][4]));}
-  //float emomPhi() const {return std::sqrt(getPhiErr2(state_.parameters[3],state_.parameters[4],state_.errors[3][3],state_.errors[4][4],state_.errors[3][4]));}
-  //float emomEta() const {return std::sqrt(getEtaErr2(state_.parameters[3],state_.parameters[4],state_.parameters[5],state_.errors[3][3],state_.errors[4][4],state_.errors[5][5],state_.errors[3][4],state_.errors[3][5],state_.errors[4][5]));}
 
   const HitVec& hitsVector() const {return hits_;}
-  const HitVec& initHitsVector() const {return initHits_;}
+  const TkParamVec& initParamsVector() const {return initParams_;}
 
   void addHit(const Hit& hit,float chi2) {hits_.push_back(hit);chi2_+=chi2;}
   void resetHits() {hits_.clear();}
@@ -102,9 +102,9 @@ public:
 private:
   TrackState state_;
   HitVec hits_;
-  HitVec initHits_;
   float chi2_;
   unsigned int mcTrackID_;
+  TkParamVec initParams_;
   unsigned int nHitsMatched_;
   unsigned int seedID_;
   unsigned int duplicateID_;
