@@ -36,8 +36,8 @@ clean:
 	cd mkFit && ${MAKE} clean
 
 distclean: clean
-	rm -f ${AUTO_TGTS}
-
+	-rm -f ${AUTO_TGTS}
+	cd mkFit && ${MAKE} distclean
 
 main: ${AUTO_TGTS} ${OBJS} ${LIBUSOLIDS}
 	${CXX} ${CXXFLAGS} ${VEC_HOST} -o $@ ${OBJS} ${LIBUSOLIDS} ${LDFLAGS}
