@@ -80,19 +80,21 @@ inline void sincos4(float x, float& sin, float& cos)
 
   #endif
 
+
   #include "Matriplex/MatriplexSym.h"
 
-  // It might make sense to change this for AVX intrinsics ... to be revisited.
   #ifndef MPT_SIZE
-  #define MPT_SIZE 16
+    #ifdef __MIC__
+      #define MPT_SIZE 16
+    #else
+      #define MPT_SIZE 8
+    #endif
   #endif
 
-  typedef int idx_t;
+  const Matriplex::idx_t NN =  MPT_SIZE; // "Length" of MPlex.
 
-  const idx_t NN =  MPT_SIZE; // "Length" of MPlex.
-
-  const idx_t LL =  6; // Dimension of large/long  MPlex entities
-  const idx_t HH =  3; // Dimension of small/short MPlex entities
+  const Matriplex::idx_t LL =  6; // Dimension of large/long  MPlex entities
+  const Matriplex::idx_t HH =  3; // Dimension of small/short MPlex entities
 
   typedef Matriplex::Matriplex<float, LL, LL, NN>   MPlexLL;
   typedef Matriplex::Matriplex<float, LL,  1, NN>   MPlexLV;
@@ -110,6 +112,10 @@ inline void sincos4(float x, float& sin, float& cos)
 
   #ifndef NUM_THREADS
   #define NUM_THREADS 1
+  #endif
+
+  #ifndef NUM_THREADS_SIM
+  #define NUM_THREADS_SIM 60
   #endif
 
   #ifndef THREAD_BINDING

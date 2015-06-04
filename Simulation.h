@@ -5,6 +5,7 @@
 #include "Matrix.h"
 #include "Propagation.h"
 #include "Geometry.h"
+#include "BinInfoUtils.h"
 
 namespace Config{  
   //CMS beam spot width 25um in xy and 5cm in z 

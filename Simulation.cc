@@ -29,7 +29,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     else charge = 1;
   }
 
-  float phi = 0.5*TMath::Pi()*g_unif(g_gen); // make an angle between 0 and pi/2
+  float phi = 0.5*Config::PI*g_unif(g_gen); // make an angle between 0 and pi/2
 
   dprint("MC Gen Phi "  << phi << std::endl);
 
@@ -105,7 +105,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     // can I do what I did, generate one (theta_space) and rotate it by another random numbers
     const float z1 = g_gaus(g_gen);
     const float z2 = g_gaus(g_gen);
-    const float phismear = g_unif(g_gen)*TMath::TwoPi(); // random rotation of scattering plane
+    const float phismear = g_unif(g_gen)*Config::TwoPI; // random rotation of scattering plane
     const float X0 = 9.370; // cm, from http://pdg.lbl.gov/2014/AtomicNuclearProperties/HTML/silicon_Si.html
     //const float X0 = 0.5612; // cm, for Pb
     float x = 0.0025; //.1 cm  -assumes radial impact. This is bigger than what we have in main

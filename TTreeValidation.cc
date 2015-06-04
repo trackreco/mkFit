@@ -728,7 +728,7 @@ void TTreeValidation::fillConfigTree(const unsigned int & ntracks, const unsigne
   nPhiPart_   = Config::nPhiPart;
   nPhiFactor_ = Config::nPhiFactor;
   nEtaPart_   = Config::nEtaPart;
-  etaDet_     = Config::etaDet;
+  etaDet_     = Config::fEtaDet;
 
   nlayers_per_seed_ = Config::nlayers_per_seed;
   maxCand_ = Config::maxCand;

@@ -182,7 +182,10 @@ void Event::Seed()
 void Event::Find()
 {
   buildTracksBySeeds(*this);
-  //buildTracksByLayers(*this);
+  //  buildTracksByLayers(*this);
+
+  // From CHEP-2015
+  // buildTestSerial(*this, Config::nlayers_per_seed, Config::maxCand, Config::chi2Cut, Config::nSigma, Config::minDPhi);
 }
 
 void Event::Fit()

@@ -29,3 +29,24 @@ void Track::setMCTrackIDInfo()
   // need to include protection against zero size tracks --> need ID other than 999999
 }
 
+void Track::write_out(FILE *fp)
+{
+  Track t = clone_for_io();
+  fwrite(&t, sizeof(Track), 1, fp);
+
+  unsigned int nh = nHits();
+  fwrite(&nh, sizeof(unsigned int), 1, fp);
+
+  fwrite(&hits_[0], sizeof(Hit), nh, fp);
+}
+
+void Track::read_in(FILE *fp)
+{
+  fread(this, sizeof(Track), 1, fp);
+
+  unsigned int nh = nHits();
+  fread(&nh, sizeof(unsigned int), 1, fp);
+
+  hits_.resize(nh);
+  fread(&hits_[0], sizeof(Hit), nh, fp);
+}

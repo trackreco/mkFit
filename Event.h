@@ -12,7 +12,7 @@ namespace Config {
   static constexpr const float chi2Cut = 15.;
   static constexpr const float nSigma = 3.;
   static constexpr const float minDPhi = 0.;
-  static constexpr const float maxDPhi = M_PI;
+  static constexpr const float maxDPhi = Config::PI;
   static constexpr const float minDEta = 0.;
   static constexpr const float maxDEta = 1.0;
 };

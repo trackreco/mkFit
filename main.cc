@@ -34,25 +34,25 @@ void initGeom(Geometry& geom)
 
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
-  float eta = Config::etaDet; // can tune this to whatever geometry required (one can make this layer dependent as well)
+  float eta = Config::fEtaDet; // can tune this to whatever geometry required (one can make this layer dependent as well)
   for (int l = 0; l < 10; l++) {
     float r = (l+1)*4.;
     float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
 #ifdef CYLINDER
     std::string s = "Cylinder" + std::string(1, 48+l);
-    UTubs* utub = new UTubs(s, r, r+.01, 100.0, 0, TMath::TwoPi());
+    UTubs* utub = new UTubs(s, r, r+.01, 100.0, 0, Config::TwoPI);
     geom.AddLayer(utub,r,z);
 #else
     float xs = 5.0; // approximate sensor size in cm
     if ( l >= 5 ) // bigger sensors in outer layers
       xs *= 2.;
-    int nsectors = int(TMath::TwoPi()/(2*atan2(xs/2,r))); // keep ~constant sensors size
+    int nsectors = int(Config::TwoPI/(2*atan2(xs/2,r))); // keep ~constant sensors size
     std::cout << "l = " << l << ", nsectors = "<< nsectors << std::endl;
     std::string s = "PolyHedra" + std::string(1, 48+l);
     const double zPlane[] = {-z,z};
     const double rInner[] = {r,r};
     const double rOuter[] = {r+.01,r+.01};
-    UPolyhedra* upolyh = new UPolyhedra(s, 0, TMath::TwoPi(), nsectors, 2, zPlane, rInner, rOuter);
+    UPolyhedra* upolyh = new UPolyhedra(s, 0, Config::TwoPI, nsectors, 2, zPlane, rInner, rOuter);
     geom.AddLayer(upolyh, r, z);
 #endif
   }
@@ -61,11 +61,12 @@ void initGeom(Geometry& geom)
 void initGeom(Geometry& geom)
 {
   std::cout << "Constructing SimpleGeometry Cylinder geometry" << std::endl;
-  float eta = Config::etaDet; // can tune this to whatever geometry required (one can make this layer dependent as well)
-
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
   // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
+
+  float eta = Config::fEtaDet; // can tune this to whatever geometry required (one can make this layer dependent as well)
+
   for (int l = 0; l < 10; l++) {
     float r = (l+1)*4.;
     float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
@@ -131,7 +132,7 @@ int main(int argc, char** argv)
     ev.Segment();              ticks[1] += delta(t0);
     ev.Seed();                 ticks[2] += delta(t0);
     ev.Find();                 ticks[3] += delta(t0);
-    //    ev.Fit();                  ticks[4] += delta(t0);
+    ev.Fit();                  ticks[4] += delta(t0);
     ev.ValidateHighLevel(evt); ticks[5] += delta(t0);
 #endif
   }

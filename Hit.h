@@ -1,6 +1,8 @@
 #ifndef _hit_
 #define _hit_
 
+#include <cmath>
+
 #include "Matrix.h"
 #include <atomic>
 
@@ -8,7 +10,8 @@ inline float getRad2(float x, float y){
   return x*x + y*y;
 }
 
-inline float getPhi(float x, float y){
+inline float getPhi(float x, float y)
+{
   return std::atan2(y,x); 
 }
 
@@ -37,15 +40,16 @@ inline float getEtaErr2(float x, float y, float z, float exx, float eyy, float e
   return detadx*detadx*exx + detady*detady*eyy + detadz*detadz*ezz + 2*detadx*detady*exy + 2*detadx*detadz*exz + 2*detady*detadz*eyz;
 }
 
-struct MCHitInfo {
+struct MCHitInfo
+{
   MCHitInfo() : mcHitID_(mcHitIDCounter_++) {}
-  MCHitInfo(unsigned int track, unsigned int layer, unsigned int ithlayerhit)
-    : mcTrackID_(track), layer_(layer), ithLayerHit_(ithlayerhit), mcHitID_(mcHitIDCounter_++) {}
+  MCHitInfo(int track, int layer, int ithlayerhit)
+    : mcTrackID_(track), layer_(layer), ithLayerHit_(ithlayerhit), mcHitID_(++mcHitIDCounter_) {}
 
-  unsigned int mcTrackID_;
-  unsigned int layer_;
-  unsigned int ithLayerHit_;
-  unsigned int mcHitID_;
+  int mcTrackID_;
+  int layer_;
+  int ithLayerHit_;
+  int mcHitID_;
 
   static std::atomic<unsigned int> mcHitIDCounter_;
 };
@@ -70,7 +74,8 @@ public:
     state_.errors=error;
   }
 
-  Hit(const SVector3& position, const SMatrixSym33& error, unsigned int itrack, unsigned int ilayer, unsigned int ithLayerHit){
+  Hit(const SVector3& position, const SMatrixSym33& error, int itrack, int ilayer, int ithLayerHit)
+  {
     mcHitInfo_.mcTrackID_ = itrack;
     mcHitInfo_.layer_ = ilayer;
     mcHitInfo_.ithLayerHit_ = ithLayerHit;
@@ -94,22 +99,26 @@ public:
   const float x() const {return state_.parameters.At(0);}
   const float y() const {return state_.parameters.At(1);}
   const float z() const {return state_.parameters.At(2);}
-  float phi() const {return getPhi(state_.parameters.At(0),state_.parameters.At(1));}
-  float eta() const {return getEta(r(),z());}
+  const float phi() const {return getPhi(state_.parameters.At(0),state_.parameters.At(1));}
+  const float eta() const {return getEta(r(),z());}
+
+  // Non-const versions needed for CopyOut of Matriplex.
+  SVector3&     parameters_nc() {return state_.parameters;}
+  SMatrixSym33& error_nc()      {return state_.errors;}
 
   const MeasurementState& measurementState() const {
     return state_;
   }
 
   const MCHitInfo& mcHitInfo() const {return mcHitInfo_;}
-  unsigned int mcTrackID() const {return mcHitInfo_.mcTrackID_;}
-  unsigned int layer() const {return mcHitInfo_.layer_;}
-  unsigned int ithLayerHit() const {return mcHitInfo_.ithLayerHit_;}
-  unsigned int hitID() const {return mcHitInfo_.mcHitID_;}
+  int mcTrackID() const {return mcHitInfo_.mcTrackID_;}
+  int layer() const {return mcHitInfo_.layer_;}
+  int ithLayerHit() const {return mcHitInfo_.ithLayerHit_;}
+  int hitID() const {return mcHitInfo_.mcHitID_;}
 
 private:
   MeasurementState state_;
-  MCHitInfo mcHitInfo_;
+  MCHitInfo        mcHitInfo_;
 };
 
 typedef std::vector<Hit> HitVec;

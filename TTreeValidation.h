@@ -110,8 +110,8 @@ public:
   TTree* configtree_;
   float        simtime_=0.,segtime_=0.,seedtime_=0.,buildtime_=0.,fittime_=0.,hlvtime_=0.;
   unsigned int Ntracks_=0,Nevents_=0;
-  unsigned int nPhiPart_=0,nPhiFactor_=0,nEtaPart_=0;
-  float        etaDet_=0.;
+  unsigned int nPhiPart_=0,nEtaPart_=0;
+  float        etaDet_=0.,nPhiFactor_=0.;
   unsigned int nlayers_per_seed_=0,maxCand_=0;
   float        chi2Cut_=0.,nSigma_=0.,minDPhi_=0.,maxDPhi_=0.,minDEta_=0.,maxDEta_=0.;
   float        beamspotX_=0.,beamspotY_=0.,beamspotZ_=0.;

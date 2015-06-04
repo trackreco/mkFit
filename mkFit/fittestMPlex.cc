@@ -4,6 +4,7 @@
 #include "KalmanUtils.h"
 #include "Propagation.h"
 #include "Simulation.h"
+#include "Geometry.h"
 
 #include "MkFitter.h"
 
@@ -18,28 +19,56 @@
 #include <memory>
 
 //==============================================================================
+void initGeom(Geometry& geom)
+{
+  std::cout << "Constructing SimpleGeometry Cylinder geometry" << std::endl;
+
+  // NB: we currently assume that each node is a layer, and that layers
+  // are added starting from the center
+  // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
+  float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
+  for (int l = 0; l < 10; l++) {
+    float r = (l+1)*4.;
+    VUSolid* utub = new VUSolid(r, r+.01);
+    float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
+    geom.AddLayer(utub, r, z);
+  }
+}
+
 
 void generateTracks(std::vector<Track>& simtracks, int Ntracks)
 {
+
+  Geometry geom;
+  initGeom(geom);
+
    g_gen.seed(742331);
 
    simtracks.resize(Ntracks);
 
    // double tstart = dtime();
 
-#pragma omp parallel for num_threads(120)
+#pragma omp parallel for num_threads(NUM_THREADS_SIM)
    for (int itrack = 0; itrack < Ntracks; ++itrack)
    {
       //create the track
       SVector3 pos;
       SVector3 mom;
       SMatrixSym66 covtrk;
-      std::vector<Hit> hits;
-      int q=0;//set it in setup function
-      float pt = 0.5 + g_unif(g_gen) * 9.5;//this input, 0.5<pt<10 GeV  (below ~0.5 GeV does not make 10 layers)
-      setupTrackByToyMC(pos,mom,covtrk,hits,q,pt);
+      std::vector<Hit> hits, initialhits;
+
+      // Fixed pT / charge for testing
+      // int   q  = 1;
+      // float pt = 9.99;
+
+      int   q  = 0;                         // set it in setup function
+      float pt = 0.5 + g_unif(g_gen) * 9.5; // this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
+
+      setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,pt,geom,initialhits);
+      // CHEP-2015 -- we are not passing initialhits here.
       Track simtrk(q,pos,mom,covtrk,hits,0.);
       simtracks[itrack] = simtrk;
+      simtracks[itrack].setLabel(itrack);
    }
 
    // printf("gen time = %f\n", dtime() - tstart);
@@ -116,22 +145,22 @@ double runFittingTest(std::vector<Track>& simtracks, std::vector<Track>& rectrac
       // std::cout << "init e: " << std::endl;
       // dumpMatrix(trk.errors());
 
-      std::vector<Hit>& hits = trk.hitsVector();
+      const HitVec& hits = trk.hitsVector();
 
       // Make a copy since initState is used at the end to fill the tree.
       // Hmmh, not any more, it seems.
       // TrackState initState = trk.state();
-      TrackState& updatedState = trk.state();
+      TrackState& updatedState = trk.state_nc();
     
       bool dump = false;
     
-      for (std::vector<Hit>::iterator hit=hits.begin();hit!=hits.end();++hit)
+      for (auto hit=hits.begin();hit!=hits.end();++hit)
       {
          //for each hit, propagate to hit radius and update track state with hit measurement
          TrackState propState = propagateHelixToR(updatedState, hit->r());
 
          MeasurementState measState = hit->measurementState();
-         updatedState = updateParameters(propState, measState,projMatrix36,projMatrix36T);
+         updatedState = updateParameters(propState, measState);
          //updateParameters66(propState, measState, updatedState);//updated state is now modified
       
          if (dump)

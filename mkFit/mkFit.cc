@@ -1,12 +1,19 @@
 #include "Matriplex/MatriplexCommon.h"
 
 #include "fittestMPlex.h"
+#include "buildtestMPlex.h"
 
 #include "MkFitter.h"
+
+#include "BinInfoUtils.h"
 
 #include "Timing.h"
 
 #include <limits>
+
+#if defined(USE_VTUNE_PAUSE)
+#include "ittnotify.h"
+#endif
 
 std::vector<Track> simtracks;
 
@@ -148,58 +155,190 @@ void test_vtune()
 
 //==============================================================================
 
-void test_standard()
+namespace
 {
-  int  Ntracks  = 1024 * 1024;// * 1024; // * 10
-  // bool saveTree = false;
+  FILE *g_file = 0;
+  int   g_file_num_ev = 0;
+  int   g_file_cur_ev = 0;
 
-  generateTracks(simtracks, Ntracks);
+  std::string g_operation;
+  std::string g_file_name = "simtracks.bin";
+}
 
-  double tmp, tsm;
+void generate_and_save_tracks()
+{
+  FILE *fp = fopen(g_file_name.c_str(), "w");
 
-  smat_tracks.reserve(simtracks.size());
-  tsm = runFittingTest(simtracks, smat_tracks);
+  int Ntracks = Config::g_NTracks;
 
-  plex_tracks.resize(simtracks.size());
-  tmp = runFittingTestPlex(simtracks, plex_tracks);
+  int Nevents = Config::g_NEvents;
 
-  // Second pass -- select problematic tracks and refit them
-  if (false)
+  fwrite(&Nevents, sizeof(int), 1, fp);
+
+  for (int ev = 0; ev < Nevents; ++ev)
   {
-    int iout = 0;
+    generateTracks(simtracks, Ntracks);
+
+    fwrite(&Ntracks, sizeof(int), 1, fp);
+
     for (int i = 0; i < Ntracks; ++i)
     {
-      SVector6 &simp = simtracks[i].parameters();
-      SVector6 &recp = plex_tracks[i].parameters();
-
-      float pt_mc  = sqrt(simp[3]*simp[3] + simp[4]*simp[4]);
-      float pt_fit = sqrt(recp[3]*recp[3] + recp[4]*recp[4]);
-
-      if (std::abs((pt_mc - pt_fit) / pt_mc) > 100)
-      {
-        printf("Got bad track: %d %d %f %f\n", i, iout, pt_mc, pt_fit);
-        if (i != 0)
-          simtracks[iout] = simtracks[i];
-        ++iout;
-        if (iout >= 16)
-          break;
-      }
+      simtracks[i].write_out(fp);
     }
-
-    g_dump = true;
-
-    simtracks.resize(16);
-    smat_tracks.resize(0); smat_tracks.reserve(16);
-    plex_tracks.resize(16);
-
-    tsm = runFittingTest(simtracks, smat_tracks);
-
-    printf("\n\n\n===========================================================\n\n\n");
-
-    tmp = runFittingTestPlex(simtracks, plex_tracks);
   }
 
-  printf("SMatrix = %.3f   Matriplex = %.3f   ---   SM/MP = %.3f\n", tsm, tmp, tsm / tmp);
+  fclose(fp);
+}
+
+
+int open_simtrack_file()
+{
+  g_file = fopen(g_file_name.c_str(), "r");
+
+  assert (g_file != 0);
+
+  fread(&g_file_num_ev, sizeof(int), 1, g_file);
+  g_file_cur_ev = 0;
+
+  printf("\nReading simulated tracks from \"%s\", %d events on file.\n\n",
+         g_file_name.c_str(), g_file_num_ev);
+
+  return g_file_num_ev;
+}
+
+int read_simtrack_event(std::vector<Track> &simtracks)
+{
+  int nt;
+
+  fread(&nt, sizeof(int), 1, g_file);
+
+  std::vector<Track> new_tracks(nt);
+  simtracks.swap(new_tracks);
+
+  for (int i = 0; i < nt; ++i)
+  {
+    simtracks[i].read_in(g_file);
+  }
+
+  ++g_file_cur_ev;
+
+  return nt;
+}
+
+void close_simtrack_file()
+{
+  fclose(g_file);
+  g_file = 0;
+  g_file_num_ev = 0;
+  g_file_cur_ev = 0;
+}
+
+void test_standard()
+{
+  // ---- MT test eta bins
+  // int nb, b1, b2;
+  // for (float eta = -1.2; eta <= 1.2; eta += 0.01)
+  // {
+  //   nb = Config::getBothEtaBins(eta, b1, b2);
+  //   printf("eta=%6.2f  bin=%3d  bin1=%3d  bin2=%3d nb=%d\n",
+  //          eta, Config::getEtaBin(eta), b1, b2, nb);
+  // }
+
+  // return;
+  // ---- end MT test
+
+  int Ntracks = Config::g_NTracks;
+  // Ntracks  = 1;
+  // bool saveTree = false;
+
+  int Nevents = Config::g_NEvents;
+
+  if (g_operation == "read")
+  {
+    Nevents = open_simtrack_file();
+  }
+
+  double s_tmp=0, s_tsm=0, s_tsm2=0, s_tmp2=0, s_tsm2bh=0, s_tmp2bh=0;
+
+  for (int ev = 0; ev < Nevents; ++ev)
+  {
+    if (g_operation == "read")
+    {
+      Ntracks = read_simtrack_event(simtracks);
+    }
+    else
+    {
+      generateTracks(simtracks, Ntracks);
+    }
+
+    double tmp, tsm;
+
+    smat_tracks.reserve(simtracks.size());
+    tsm = 0; // runFittingTest(simtracks, smat_tracks);
+
+    plex_tracks.resize(simtracks.size());
+    tmp = 0; // runFittingTestPlex(simtracks, plex_tracks);
+
+    double tsm2 = 0;//runBuildingTest(simtracks);
+    double tmp2 = runBuildingTestPlex(simtracks);
+
+    double tsm2bh = 0;//runBuildingTestBestHit(simtracks);
+    double tmp2bh = 0;//runBuildingTestPlexBestHit(simtracks);
+
+    // Second pass -- select problematic tracks and refit them
+    if (false)
+    {
+      int iout = 0;
+      for (int i = 0; i < Ntracks; ++i)
+      {
+        const SVector6 &simp = simtracks[i].parameters();
+        const SVector6 &recp = plex_tracks[i].parameters();
+
+        float pt_mc  = sqrt(simp[3]*simp[3] + simp[4]*simp[4]);
+        float pt_fit = sqrt(recp[3]*recp[3] + recp[4]*recp[4]);
+
+        if (std::abs((pt_mc - pt_fit) / pt_mc) > 100)
+        {
+          printf("Got bad track: %d %d %f %f\n", i, iout, pt_mc, pt_fit);
+          if (i != 0)
+            simtracks[iout] = simtracks[i];
+          ++iout;
+          if (iout >= 16)
+            break;
+        }
+      }
+
+      g_dump = true;
+
+      simtracks.resize(16);
+      smat_tracks.resize(0); smat_tracks.reserve(16);
+      plex_tracks.resize(16);
+
+      tsm = runFittingTest(simtracks, smat_tracks);
+
+      printf("\n\n\n===========================================================\n\n\n");
+
+      tmp = runFittingTestPlex(simtracks, plex_tracks);
+    }
+
+    printf("SMatrix = %.5f   Matriplex = %.5f   ---   SM/MP = %.5f  --- Build SM = %.5f    MX = %.5f    BHSM = %.5f    BHMX = %.5f\n",
+           tsm, tmp, tsm / tmp, tsm2, tmp2, tsm2bh, tmp2bh);
+
+    s_tmp    += tmp;    s_tsm    += tsm;
+    s_tsm2   += tsm2;   s_tmp2   += tmp2;
+    s_tsm2bh += tsm2bh; s_tmp2bh += tmp2bh;
+  }
+  printf("================================================================\n");
+  printf("=== TOTAL for %d events\n", Nevents);
+  printf("================================================================\n");
+
+  printf("SMatrix = %.5f   Matriplex = %.5f   ---   SM/MP = %.5f  --- Build SM = %.5f    MX = %.5f    BHSM = %.5f    BHMX = %.5f\n",
+         s_tsm, s_tmp, s_tsm / s_tmp, s_tsm2, s_tmp2, s_tsm2bh, s_tmp2bh);
+
+  if (g_operation == "read")
+  {
+    close_simtrack_file();
+  }
 
 #ifndef NO_ROOT
   make_validation_tree("validation-smat.root", simtracks, smat_tracks);
@@ -209,13 +348,56 @@ void test_standard()
 
 //==============================================================================
 
-int main()
+void usage_and_die(const char* name)
 {
+  fprintf(stderr,
+          "Usage:\n"
+          "  %s                  --> runs simulation between events\n"
+          "  %s write [filename] --> runs simulation only, outputs events to file\n"
+          "  %s read  [filename] --> runs reco only, reads events from file\n"
+          "Default filename is \"simtracks.bin\".\n", name, name, name);
+  exit(1);
+}
+
+
+int main(int argc, const char *argv[])
+{
+#ifdef USE_VTUNE_PAUSE
+  __itt_pause();
+#endif
+
+  if (argc >= 2)
+  {
+    g_operation = argv[1];
+
+    if (g_operation != "write" && g_operation != "read")
+    {
+      usage_and_die(argv[0]);
+    }
+
+    if (argc == 3)
+    {
+      g_file_name = argv[2];
+    }
+
+    if (argc > 3)
+    {
+      usage_and_die(argv[0]);
+    }
+  }
+
   // test_matriplex();
 
   // test_vtune();
 
-  test_standard();
+  if (g_operation == "write")
+  {
+    generate_and_save_tracks();
+  }
+  else
+  {
+    test_standard();
+  }
 
   return 0;
 }

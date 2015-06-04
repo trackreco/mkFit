@@ -6,6 +6,8 @@
 #include <vector>
 
 typedef std::vector<SVector6> TkParamVec;
+typedef std::pair<unsigned int,unsigned int> SimTkIDInfo;
+typedef std::vector<int> HitIdxVec;
 
 struct TrackState
 {
@@ -48,7 +50,12 @@ public:
     state_.parameters = parameters;
     state_.valid = true;
   }
-
+  Track(TrackState state, float chi2, int label) :
+    state_(state),
+    chi2_(chi2),
+    label_(label)
+  {}
+  
   ~Track(){}
 
   int           charge()           const {return state_.charge;}
@@ -58,6 +65,11 @@ public:
   const SVector6&     parameters() const {return state_.parameters;}
   const SMatrixSym66& errors()     const {return state_.errors;}
   const TrackState&   state()      const {return state_;}
+  // Non-const versions needed for CopyOut of Matriplex.
+  SVector6&     parameters_nc() {return state_.parameters;}
+  SMatrixSym66& errors_nc()     {return state_.errors;}
+  TrackState&   state_nc()      {return state_;}
+  int      label()  const {return label_;}
 
   // track state position 
   const float radius() const {return std::sqrt(getRad2(state_.parameters[0],state_.parameters[1]));}
@@ -87,7 +99,18 @@ public:
   const TkParamVec& initParamsVector() const {return initParams_;}
 
   void addHit(const Hit& hit,float chi2) {hits_.push_back(hit);chi2_+=chi2;}
-  void resetHits() {hits_.clear();}
+  void addHitIdx(int hitIdx,float chi2) { hitIdxVec_.push_back(hitIdx); if (hitIdx>=0) ++nGoodHitIdx_; chi2_+=chi2; }
+
+  int  getHitIdx(int posHitIdx) const {return hitIdxVec_[posHitIdx];}
+
+  void resetHits() { hits_.clear(); hitIdxVec_.clear(); nGoodHitIdx_=0; }
+  int  nHitIdx() const { return nGoodHitIdx_; }
+
+  void setCharge(int chg)  {state_.charge=chg;}
+  void setChi2(float chi2) {chi2_=chi2;}
+  void setLabel(int lbl)   {label_=lbl;}
+
+  void setState(TrackState newState) {state_=newState;}
 
   const unsigned int nHits() const {return hits_.size();}
   void setMCTrackIDInfo();
@@ -97,7 +120,11 @@ public:
   void setMCDuplicateInfo(unsigned int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
   const bool isDuplicate() const {return isDuplicate_;}
   const unsigned int duplicateID() const {return duplicateID_;}
-  Track clone() const {return Track(state_,hits_,chi2_,seedID_);}
+  Track clone() const {return Track(state_,hits_,chi2_);}
+  Track clone_for_io() { return Track(state_,chi2_,label_);}
+
+  void write_out(FILE *fp);
+  void read_in  (FILE *fp);
 
 private:
   TrackState state_;
@@ -109,6 +136,9 @@ private:
   unsigned int seedID_;
   unsigned int duplicateID_;
   bool isDuplicate_;
+  HitIdxVec hitIdxVec_;
+  int   nGoodHitIdx_ =  0;
+  int   label_       = -1;
 };
 
 typedef std::vector<Track> TrackVec;
