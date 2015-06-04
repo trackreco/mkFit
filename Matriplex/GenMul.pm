@@ -1,5 +1,15 @@
 ########################################################################
 ########################################################################
+# Top level package
+########################################################################
+########################################################################
+
+package GenMul;
+
+my $G_vec_width = 1;
+
+########################################################################
+########################################################################
 # MATRIX CLASSES
 ########################################################################
 ########################################################################
@@ -372,13 +382,32 @@ sub handle_all_zeros_ones
 
   if ($zeros or $ones)
   {
-    $S->unshift_out("");
+    my @zo;
 
-    $S->unshift_out("$S->{vectype} all_ones  = { ", join(", ", (1) x 16), " };")
+    push @zo, "#ifdef MIC_INTRINSICS";
+
+    push @zo, "$S->{vectype} all_zeros = { " . join(", ", (0) x 16) . " };"
+        if $zeros;
+
+    push @zo, "$S->{vectype} all_ones  = { " . join(", ", (1) x 16) . " };"
         if $ones;
 
-    $S->unshift_out("$S->{vectype} all_zeros = { ", join(", ", (0) x 16), " };")
+    push @zo, "#else";
+
+    push @zo, "$S->{vectype} all_zeros = { " . join(", ", (0) x 8) . " };"
         if $zeros;
+
+    push @zo, "$S->{vectype} all_ones  = { " . join(", ", (1) x 8) . " };"
+        if $ones;
+
+    push @zo, "#endif";
+
+    push @zo, "";
+
+    for $zol (reverse @zo)
+    {
+      $S->unshift_out($zol);
+    }
   }
 }
 
@@ -681,7 +710,7 @@ sub dump_multiply_std_and_intrinsic
   print <<"FNORD";
 #ifdef MPLEX_INTRINSICS
 
-   for (int n = 0; n < N; n += 64 / sizeof(T))
+   for (int n = 0; n < N; n += MPLEX_INTRINSICS_WIDTH_BYTES / sizeof(T))
    {
 FNORD
 
