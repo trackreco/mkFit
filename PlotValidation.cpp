@@ -1,7 +1,4 @@
 #include "PlotValidation.hh"
-#include "TROOT.h"
-#include "TSystem.h"
-#include "TStyle.h"
 
 PlotValidation::PlotValidation(TString inName, TString outName, TString outType){
 
@@ -15,18 +12,18 @@ PlotValidation::PlotValidation(TString inName, TString outName, TString outType)
   fOutName = outName;
   fOutType = outType;
   
+  // make output directory
   FileStat_t dummyFileStat;
-    
   if (gSystem->GetPathInfo(fOutName.Data(), dummyFileStat) == 1){
     TString mkDir = "mkdir -p ";
     mkDir += fOutName.Data();
     gSystem->Exec(mkDir.Data());
   }
 
+  // make output root file
   fOutRoot = new TFile(Form("%s/%s.root",fOutName.Data(),fOutName.Data()), "RECREATE");
 
   // General style
-
   gROOT->Reset();
   gStyle->SetOptStat(111111);
   gStyle->SetOptFit(1011);
@@ -39,55 +36,227 @@ PlotValidation::PlotValidation(TString inName, TString outName, TString outType)
 }
 
 PlotValidation::~PlotValidation(){
-  fInRoot->Delete();
-  fOutRoot->Delete();
-  fTH1Canv->Close();
+  delete fInRoot;
+  delete fOutRoot; // will delete all pointers to subdirectory
+  delete fTH1Canv;
 }
 
 void PlotValidation::Validation(Bool_t mvInput){
+  PlotValidation::PlotSimGeo();  
+  PlotValidation::PlotNHits(); 
+  //  PlotValidation::PlotPosPulls(); // subdir ??
   PlotValidation::PlotResPull(); 
-  PlotValidation::PlotEfficiency();
+  PlotValidation::PlotEfficiency(); 
   PlotValidation::PlotFakeRate();
-  PlotValidation::PlotDuplicateRateEffTree();
-  PlotValidation::PlotDuplicateRateFRTree();
-  //  PlotValidation::PlotNumerNHits();
-  //  PlotValidation::PlotSimGeo();
-  //  PlotValidation::PlotPosPulls();
-  //  PlotValidation::ShowRates();
+  PlotValidation::PlotDuplicateRate();
+
+  PlotValidation::PrintTotals();
   if (mvInput){
     PlotValidation::MoveInput();
   }
+}
+
+void PlotValidation::PlotSimGeo(){
+  // Get tree
+  TTree * efftree  = (TTree*)fInRoot->Get("efftree");
+
+  // make output subdirectory and subdir in ROOT file, and cd to it.
+  TString subdirname = "simgeo"; 
+  TDirectory * subdir;
+  PlotValidation::MakeSubDirectory(subdir,subdirname);
+  
+  // make plots, ensure in right directory
+  subdir->cd();
+  TH2F * xyplot = new TH2F("h_xy_simgeo","XY Simulation Geometry",450,-45.,45.,450,-45.,45.);
+  xyplot->GetXaxis()->SetTitle("x [cm]");
+  xyplot->GetYaxis()->SetTitle("y [cm]");
+  TH2F * rzplot = new TH2F("h_rz_simgeo","RZ Simulation Geometry",500,-50.,50.,225,0.,45.);
+  rzplot->GetXaxis()->SetTitle("z [cm]");
+  rzplot->GetYaxis()->SetTitle("radius [cm]");
+  
+  // set hit branches ... need to use pointers for vectors. I thought ROOT5 fixed this??
+  std::vector<float> * xhit = 0;
+  std::vector<float> * yhit = 0;
+  std::vector<float> * zhit = 0;
+
+  efftree->SetBranchAddress("x_hit_mc_reco",&xhit);
+  efftree->SetBranchAddress("y_hit_mc_reco",&yhit);
+  efftree->SetBranchAddress("z_hit_mc_reco",&zhit);
+
+  for (UInt_t k = 0; k < (UInt_t) efftree->GetEntries(); k++){
+    efftree->GetEntry(k);
+    for (UInt_t h = 0; h < xhit->size(); h++){ // x,y,z are all the same size
+      Float_t radius = std::sqrt( ((*xhit)[h])*((*xhit)[h]) + ((*yhit)[h])*((*yhit)[h]) );
+      xyplot->Fill((*xhit)[h],(*yhit)[h]);
+      rzplot->Fill((*zhit)[h],radius);
+    }
+  }
+
+  TCanvas * xycanv = new TCanvas("cxy","cxy",1000,1000);
+  xycanv->cd();
+  xyplot->Draw();
+  subdir->cd();
+  xyplot->Write();
+  xycanv->SaveAs(Form("%s/%s/xy_simulation_geometry.png",fOutName.Data(),subdirname.Data())); 
+  delete xycanv;
+  delete xyplot;
+
+  TCanvas * rzcanv = new TCanvas("crz","crz",1000,1000);
+  rzcanv->cd();
+  rzplot->Draw();
+  subdir->cd();
+  rzplot->Write();
+  rzcanv->SaveAs(Form("%s/%s/rz_simulation_geometry.png",fOutName.Data(),subdirname.Data()));
+  delete rzcanv;
+  delete rzplot;
+
+  delete efftree;
+}
+
+void PlotValidation::PlotNHits(){
+  // Get tree --> can do this all with fake rate tree
+  TTree * fakeratetree = (TTree*)fInRoot->Get("fakeratetree");
+
+  // make output subdirectory and subdir in ROOT file, and cd to it.
+  TString subdirname = "nHits"; 
+  TDirectory * subdir;
+  PlotValidation::MakeSubDirectory(subdir,subdirname);
+
+  //Declare strings for branches and plots
+  Bool_t  setLogy = true;
+  TStrVec trks  = {"seed","build","fit"};
+  TStrVec strks = {"Seed","Built","Fit"}; // strk --> labels for histograms for given track type
+  TStrVec coll  = {"allreco","fake","allmatch","bestmatch"};
+  TStrVec scoll = {"All Reco","Fake","All Match","Best Match"};
+
+  // Floats/Ints to be filled for trees
+  IntVec nHits_trk(trks.size());
+  FltVec fracHitsMatched_trk(trks.size());
+  
+  // masks
+  IntVec mcmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
+  IntVec seedmask_trk(trks.size()); // need to know if reco track associated to a seed track
+  IntVec iTkMatches_trk(trks.size()); 
+  
+  // Create plots
+  TH1IRefVecVec nHitsPlot(trks.size());
+  TH1FRefVecVec fracHitsMatchedPlot(trks.size());
+  for (UInt_t j = 0; j < trks.size(); j++){
+    nHitsPlot[j].reserve(coll.size());
+    fracHitsMatchedPlot[j].reserve(coll.size());
+  }
+
+  subdir->cd(); // make plots and ensure they are in the right directory
+  for (UInt_t j = 0; j < trks.size(); j++){
+    for (UInt_t c = 0; c < coll.size(); c++){
+      // Numerator only type plots only!
+      nHitsPlot[j][c] = new TH1I(Form("h_nHits_%s_%s",coll[c].Data(),trks[j].Data()),Form("%s %s Track vs nHits / Track",scoll[c].Data(),strks[j].Data()),11,0,11);
+      nHitsPlot[j][c]->GetXaxis()->SetTitle("nHits / Track");
+      nHitsPlot[j][c]->GetYaxis()->SetTitle("nTracks");    
+
+      fracHitsMatchedPlot[j][c] = new TH1F(Form("h_fracHitsMatched_%s_%s",coll[c].Data(),trks[j].Data()),Form("%s %s Track vs Highest Fraction of Matched Hits / Track",scoll[c].Data(),strks[j].Data()),4000,0,1.1);
+      fracHitsMatchedPlot[j][c]->GetXaxis()->SetTitle("Highest Fraction of Matched Hits / Track");
+      fracHitsMatchedPlot[j][c]->GetYaxis()->SetTitle("nTracks");    
+    }
+  }
+
+  //Initialize masks and variables, set branch addresses  
+  for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
+    mcmask_trk[j]          = 0;
+    seedmask_trk[j]        = 0;
+    iTkMatches_trk[j]      = 0;
+    nHits_trk[j]           = 0;
+    fracHitsMatched_trk[j] = 0;
+
+    fakeratetree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
+    fakeratetree->SetBranchAddress(Form("seedmask_%s",trks[j].Data()),&(seedmask_trk[j]));
+    fakeratetree->SetBranchAddress(Form("iTkMatches_%s",trks[j].Data()),&(iTkMatches_trk[j]));
+    fakeratetree->SetBranchAddress(Form("nHits_%s",trks[j].Data()),&(nHits_trk[j]));
+    fakeratetree->SetBranchAddress(Form("fracHitsMatched_%s",trks[j].Data()),&(fracHitsMatched_trk[j]));
+  }
+
+  // Fill histos, compute res/pull from tree branches 
+  for (UInt_t k = 0; k < (UInt_t) fakeratetree->GetEntries(); k++){
+    fakeratetree->GetEntry(k);
+    for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
+      for (UInt_t c = 0; c < coll.size(); c++){ // loop over trk collection type
+	if (c == 0) {
+	  if (seedmask_trk[j] == 1){
+	    nHitsPlot[j][c]->Fill(nHits_trk[j]);
+	    fracHitsMatchedPlot[j][c]->Fill(fracHitsMatched_trk[j]);
+	  }
+	}
+	else if (c == 1) {	  
+	  if ((seedmask_trk[j] == 1) && (mcmask_trk[j] == 0)) { 
+	    nHitsPlot[j][c]->Fill(nHits_trk[j]);
+	    fracHitsMatchedPlot[j][c]->Fill(fracHitsMatched_trk[j]);
+	  }
+	}
+	else if (c == 2) {	  
+	  if ((seedmask_trk[j] == 1) && (mcmask_trk[j] == 1)) {
+	    nHitsPlot[j][c]->Fill(nHits_trk[j]);
+	    fracHitsMatchedPlot[j][c]->Fill(fracHitsMatched_trk[j]);
+	  }
+	}
+	else if (c == 3) {	  
+	  if ((seedmask_trk[j] == 1) && (mcmask_trk[j] == 1) && (iTkMatches_trk[j] == 0)) {
+	    nHitsPlot[j][c]->Fill(nHits_trk[j]);
+	    fracHitsMatchedPlot[j][c]->Fill(fracHitsMatched_trk[j]);
+	  }
+	}
+      } // end loop over trk type collection
+    } // end loop over trks
+  } // end loop over entry in tree
+  
+  // Draw and save efficiency plots
+  for (UInt_t j = 0; j < trks.size(); j++){
+    for (UInt_t c = 0; c < coll.size(); c++){ // loop over trk collection type
+      PlotValidation::DrawWriteSaveTH1IPlot(subdir,nHitsPlot[j][c],subdirname,Form("nHits_%s_%s",coll[c].Data(),trks[j].Data()),setLogy);
+      PlotValidation::DrawWriteSaveTH1FPlot(subdir,fracHitsMatchedPlot[j][c],subdirname,Form("fracHitsMatched_%s_%s",coll[c].Data(),trks[j].Data()),setLogy);
+      
+      delete nHitsPlot[j][c];
+      delete fracHitsMatchedPlot[j][c];
+    }
+  }  
+    
+  delete fakeratetree;
 }
 
 void PlotValidation::PlotResPull(){
   // Get tree
   TTree * efftree  = (TTree*)fInRoot->Get("efftree");
 
+  // make output subdirectory and subdir in ROOT file, and cd to it.
+  TString subdirname = "respull"; 
+  TDirectory * subdir;
+  PlotValidation::MakeSubDirectory(subdir,subdirname);
+
   //Declare strings for branches and plots
   Bool_t  setLogy   = false;
-  TStrVec vars      = {"pt","pz","eta","phi"};
-  TStrVec evars     = {"ept","epz","eeta","ephi"};
-  TStrVec svars     = {"p_{T}","p_{z}","#eta","#phi"}; // svars --> labels for histograms for given variable
-  UIntVec nBinsRes  = {100,100,100,100};
-  FltVec  xlowRes   = {-0.5,-0.5,-0.5,-0.5};
-  FltVec  xhighRes  = {0.5,0.5,0.5,0.5};  
-  FltVec  gausRes   = {0.3,0.3,0.3,0.3}; // symmetric bounds for gaussian fit
-  UIntVec nBinsPull = {100,100,100,100};
-  FltVec  xlowPull  = {-5,-5,-5,-5};
-  FltVec  xhighPull = {5,5,5,5};  
-  FltVec  gausPull  = {3,3,3,3}; // symmetric bounds for gaussian fit
+  TStrVec vars      = {"pt","eta","phi"};
+  TStrVec evars     = {"ept","eeta","ephi"};
+  TStrVec svars     = {"p_{T} [GeV/c]","#eta","#phi"}; // svars --> labels for histograms for given variable
+  UIntVec nBinsRes  = {100,100,100};
+  FltVec  xlowRes   = {-0.5,-0.5,-0.5};
+  FltVec  xhighRes  = {0.5,0.5,0.5};  
+  FltVec  gausRes   = {0.3,0.3,0.3}; // symmetric bounds for gaussian fit
+  UIntVec nBinsPull = {100,100,100};
+  FltVec  xlowPull  = {-5,-5,-5};
+  FltVec  xhighPull = {5,5,5};  
+  FltVec  gausPull  = {3,3,3}; // symmetric bounds for gaussian fit
 
-  TStrVec trks       = {"seed","build","fit"};
-  TStrVec strks      = {"Seed","Built","Fit"}; // strk --> labels for histograms for given track type
+  TStrVec trks      = {"seed","build","fit"};
+  TStrVec strks     = {"Seed","Built","Fit"}; // strk --> labels for histograms for given track type
 
   // Floats/Ints to be filled for trees
-  FltVec    mc_val(vars.size());
+  FltVecVec mcvars_val(vars.size());
   IntVec    mcmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
-  FltVecVec vars_val(vars.size()); // first index is nVars, second is nTrkTypes
-  FltVecVec vars_err(vars.size());
+  FltVecVec recovars_val(vars.size()); // first index is nVars, second is nTrkTypes
+  FltVecVec recovars_err(vars.size());
   for (UInt_t i = 0; i < vars.size(); i++){
-    vars_val[i].reserve(trks.size());
-    vars_err[i].reserve(trks.size());
+    mcvars_val[i].reserve(trks.size());
+    recovars_val[i].reserve(trks.size());
+    recovars_err[i].reserve(trks.size());
   }
   Float_t   vars_out[2] = {0.,0.}; // res/pull output
   
@@ -99,6 +268,7 @@ void PlotValidation::PlotResPull(){
     varsPullPlot[i].reserve(trks.size());
   }
 
+  subdir->cd(); // ensure plots are put in right place 
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
       //Res
@@ -115,19 +285,16 @@ void PlotValidation::PlotResPull(){
 
   //Initialize var_val/err arrays, SetBranchAddress
   for (UInt_t i = 0; i < vars.size(); i++){ // loop over var index
-    //Initialize mc vals 
-    mc_val[i] = 0.;
-    
-    //Set mc_val branch
-    efftree->SetBranchAddress(Form("%s_mc",vars[i].Data()),&(mc_val[i]));
     for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
       // initialize var + errors
-      vars_val[i][j] = 0.;
-      vars_err[i][j] = 0.;
+      mcvars_val[i][j] = 0.;
+      recovars_val[i][j] = 0.;
+      recovars_err[i][j] = 0.;
       
       //Set var+trk branch
-      efftree->SetBranchAddress(Form("%s_%s",vars[i].Data(),trks[j].Data()),&(vars_val[i][j]));
-      efftree->SetBranchAddress(Form("%s_%s",evars[i].Data(),trks[j].Data()),&(vars_err[i][j]));
+      efftree->SetBranchAddress(Form("%s_mc_%s",vars[i].Data(),trks[j].Data()),&(mcvars_val[i][j]));
+      efftree->SetBranchAddress(Form("%s_%s",vars[i].Data(),trks[j].Data()),&(recovars_val[i][j]));
+      efftree->SetBranchAddress(Form("%s_%s",evars[i].Data(),trks[j].Data()),&(recovars_err[i][j]));
     }
   }
   
@@ -143,7 +310,7 @@ void PlotValidation::PlotResPull(){
     for (UInt_t i = 0; i < vars.size(); i++){  // loop over vars index
       for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
 	if (mcmask_trk[j] == 1){ // must be associated
-	  PlotValidation::ComputeResPull(mc_val[i],vars_val[i][j],vars_err[i][j],vars_out);
+	  PlotValidation::ComputeResPull(mcvars_val[i][j],recovars_val[i][j],recovars_err[i][j],vars_out);
 	  if (!isnan(vars_out[0])){ // fill if not nan
 	    varsResPlot[i][j]->Fill(vars_out[0]);
 	  }
@@ -158,36 +325,40 @@ void PlotValidation::PlotResPull(){
   // Draw, fit, and save plots
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
-      PlotValidation::DrawWriteFitSaveTH1Plot(varsResPlot[i][j],setLogy,Form("%s_res_%s",vars[i].Data(),trks[j].Data()),gausRes[i]);
-      PlotValidation::DrawWriteFitSaveTH1Plot(varsPullPlot[i][j],setLogy,Form("%s_pull_%s",vars[i].Data(),trks[j].Data()),gausPull[i]);
-      varsResPlot[i][j]->Delete();
-      varsPullPlot[i][j]->Delete();
+      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsResPlot[i][j],subdirname,Form("%s_res_%s",vars[i].Data(),trks[j].Data()),gausRes[i],setLogy);
+      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsPullPlot[i][j],subdirname,Form("%s_pull_%s",vars[i].Data(),trks[j].Data()),gausPull[i],setLogy);
+      delete varsResPlot[i][j];
+      delete varsPullPlot[i][j];
     }
   }  
-  efftree->Delete();
+  delete efftree;
 }
 
 void PlotValidation::PlotEfficiency(){
   // Get tree
   TTree * efftree  = (TTree*)fInRoot->Get("efftree");
 
+  // make output subdirectory and subdir in ROOT file, and cd to it.
+  TString subdirname = "efficiency"; 
+  TDirectory * subdir;  
+  PlotValidation::MakeSubDirectory(subdir,subdirname);
+
   //Declare strings for branches and plots
   Bool_t  setLogy = false;
-  TStrVec vars  = {"pt","pz","eta","phi"};
-  TStrVec evars = {"ept","epz","eeta","ephi"};
-  TStrVec svars = {"p_{T}","p_{z}","#eta","#phi"}; // svars --> labels for histograms for given variable
-  UIntVec nBins = {60,60,60,80};
-  FltVec  xlow  = {0,0,-3,-4};
-  FltVec  xhigh = {15,15,3,4};  
+  TStrVec vars  = {"pt","eta","phi"};
+  TStrVec svars = {"p_{T} [GeV/c]","#eta","#phi"}; // svars --> labels for histograms for given variable
+  UIntVec nBins = {60,60,80};
+  FltVec  xlow  = {0,-3,-4};
+  FltVec  xhigh = {15,3,4};  
 
   TStrVec trks  = {"seed","build","fit"};
   TStrVec strks = {"Seed","Built","Fit"}; // strk --> labels for histograms for given track type
 
   // Floats/Ints to be filled for trees
-  FltVec vars_val(vars.size()); // first index is var. only for mc values! so no extra index 
+  FltVec mcvars_val(vars.size()); // first index is var. only for mc values! so no extra index 
   IntVec mcmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
   
-  // Create pos plots
+  // Create plots
   TH1FRefVecVec varsNumerPlot(vars.size());
   TH1FRefVecVec varsDenomPlot(vars.size());
   TH1FRefVecVec varsEffPlot(vars.size());
@@ -197,14 +368,15 @@ void PlotValidation::PlotEfficiency(){
     varsEffPlot[i].reserve(trks.size());
   }  
 
+  subdir->cd(); // new plots and ensure they are in the right directory
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
       // Numerator
-      varsNumerPlot[i][j] = new TH1F(Form("h_sim_%s_numer_%s_eff",vars[i].Data(),trks[j].Data()),Form("%s Track vs MC %s (Numer)",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
+      varsNumerPlot[i][j] = new TH1F(Form("h_sim_%s_numer_%s_eff",vars[i].Data(),trks[j].Data()),Form("%s Track vs MC %s (Numer) Eff",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
       varsNumerPlot[i][j]->GetXaxis()->SetTitle(Form("%s",svars[i].Data()));
       varsNumerPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
       // Denominator
-      varsDenomPlot[i][j] = new TH1F(Form("h_sim_%s_denom_%s_eff",vars[i].Data(),trks[j].Data()),Form("%s Track vs MC %s (Denom)",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
+      varsDenomPlot[i][j] = new TH1F(Form("h_sim_%s_denom_%s_eff",vars[i].Data(),trks[j].Data()),Form("%s Track vs MC %s (Denom) Eff",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
       varsDenomPlot[i][j]->GetXaxis()->SetTitle(Form("%s",svars[i].Data()));
       varsDenomPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
       // Effiency
@@ -217,10 +389,10 @@ void PlotValidation::PlotEfficiency(){
   //Initialize var_val/err arrays, SetBranchAddress
   for (UInt_t i = 0; i < vars.size(); i++){ // loop over trks index
     // initialize var
-    vars_val[i] = 0.;
+    mcvars_val[i] = 0.;
     
     //Set var+trk branch
-    efftree->SetBranchAddress(Form("%s_mc",vars[i].Data()),&(vars_val[i]));
+    efftree->SetBranchAddress(Form("%s_mc_gen",vars[i].Data()),&(mcvars_val[i]));
   }
   
   //Initialize masks, set branch addresses  
@@ -234,9 +406,9 @@ void PlotValidation::PlotEfficiency(){
     efftree->GetEntry(k);
     for (UInt_t i = 0; i < vars.size(); i++){  // loop over vars index
       for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
-	varsDenomPlot[i][j]->Fill(vars_val[i]);
+	varsDenomPlot[i][j]->Fill(mcvars_val[i]);
 	if (mcmask_trk[j] == 1){ // must be associated
-	  varsNumerPlot[i][j]->Fill(vars_val[i]);
+	  varsNumerPlot[i][j]->Fill(mcvars_val[i]);
 	} // must be a matched track for effiency
       } // end loop over trks
     } // end loop over vars
@@ -246,41 +418,48 @@ void PlotValidation::PlotEfficiency(){
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
       PlotValidation::ComputeRatioPlot(varsNumerPlot[i][j],varsDenomPlot[i][j],varsEffPlot[i][j]);
-      PlotValidation::DrawWriteTH1Plot(varsNumerPlot[i][j],setLogy);
-      PlotValidation::DrawWriteTH1Plot(varsDenomPlot[i][j],setLogy);
-      PlotValidation::DrawWriteSaveTH1Plot(varsEffPlot[i][j],setLogy,Form("%s_eff_%s",vars[i].Data(),trks[j].Data()));
-      varsNumerPlot[i][j]->Delete();
-      varsDenomPlot[i][j]->Delete();
-      varsEffPlot[i][j]->Delete();
+      PlotValidation::DrawWriteTH1Plot(subdir,varsNumerPlot[i][j]);
+      PlotValidation::DrawWriteTH1Plot(subdir,varsDenomPlot[i][j]);
+      PlotValidation::ZeroSuppressPlot(varsEffPlot[i][j]);
+      PlotValidation::DrawWriteSaveTH1FPlot(subdir,varsEffPlot[i][j],subdirname,Form("%s_eff_%s",vars[i].Data(),trks[j].Data()),setLogy);
+      delete varsNumerPlot[i][j];
+      delete varsDenomPlot[i][j];
+      delete varsEffPlot[i][j];
     }
   }  
-  efftree->Delete();
+  delete efftree;
 }
 
 void PlotValidation::PlotFakeRate(){
   // Get tree
   TTree * fakeratetree  = (TTree*)fInRoot->Get("fakeratetree");
 
+  // make output subdirectory and subdir in ROOT file, and cd to it.
+  TString subdirname = "fakerate"; 
+  TDirectory * subdir;
+  PlotValidation::MakeSubDirectory(subdir,subdirname);
+
   //Declare strings for branches and plots
   Bool_t  setLogy = false;
-  TStrVec vars  = {"pt","pz","eta","phi"};
-  TStrVec evars = {"ept","epz","eeta","ephi"};
-  TStrVec svars = {"p_{T}","p_{z}","#eta","#phi"}; // svars --> labels for histograms for given variable
-  UIntVec nBins = {60,60,60,80};
-  FltVec  xlow  = {0,0,-3,-4};
-  FltVec  xhigh = {15,15,3,4};  
+  TStrVec vars  = {"pt","eta","phi"};
+  TStrVec svars = {"p_{T} [GeV/c]","#eta","#phi"}; // svars --> labels for histograms for given variable
+  UIntVec nBins = {60,60,80};
+  FltVec  xlow  = {0,-3,-4};
+  FltVec  xhigh = {15,3,4};  
 
   TStrVec trks  = {"seed","build","fit"};
   TStrVec strks = {"Seed","Built","Fit"}; // strk --> labels for histograms for given track type
 
   // Floats/Ints to be filled for trees
-  FltVecVec vars_val(vars.size()); // first index is var, second is type of track
+  FltVecVec recovars_val(vars.size()); // first index is var, second is type of track
   for (UInt_t i = 0; i < vars.size(); i++){
-    vars_val[i].reserve(trks.size());
+    recovars_val[i].reserve(trks.size());
   }
-  IntVec    mcmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
+
+  IntVec mcmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
+  IntVec seedmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
   
-  // Create pos plots
+  // Create FR plots
   TH1FRefVecVec varsNumerPlot(vars.size());
   TH1FRefVecVec varsDenomPlot(vars.size());
   TH1FRefVecVec varsFRPlot(vars.size());
@@ -290,14 +469,15 @@ void PlotValidation::PlotFakeRate(){
     varsFRPlot[i].reserve(trks.size());
   }  
 
+  subdir->cd(); // make plots in right place
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
       // Numerator
-      varsNumerPlot[i][j] = new TH1F(Form("h_reco_%s_numer_%s_FR",vars[i].Data(),trks[j].Data()),Form("%s Track vs Reco %s (Numer)",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
+      varsNumerPlot[i][j] = new TH1F(Form("h_reco_%s_numer_%s_FR",vars[i].Data(),trks[j].Data()),Form("%s Track vs Reco %s (Numer) FR",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
       varsNumerPlot[i][j]->GetXaxis()->SetTitle(Form("%s",svars[i].Data()));
       varsNumerPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
       // Denominator
-      varsDenomPlot[i][j] = new TH1F(Form("h_reco_%s_denom_%s_FR",vars[i].Data(),trks[j].Data()),Form("%s Track vs Reco %s (Denom)",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
+      varsDenomPlot[i][j] = new TH1F(Form("h_reco_%s_denom_%s_FR",vars[i].Data(),trks[j].Data()),Form("%s Track vs Reco %s (Denom) FR",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
       varsDenomPlot[i][j]->GetXaxis()->SetTitle(Form("%s",svars[i].Data()));
       varsDenomPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
       // Fake Rate
@@ -311,17 +491,20 @@ void PlotValidation::PlotFakeRate(){
   for (UInt_t i = 0; i < vars.size(); i++){ // loop over vars index
     for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
       // initialize var
-      vars_val[i][j] = 0.;
+      recovars_val[i][j] = 0.;
     
       //Set var+trk branch
-      fakeratetree->SetBranchAddress(Form("%s_%s",vars[i].Data(),trks[j].Data()),&(vars_val[i][j]));
+      fakeratetree->SetBranchAddress(Form("%s_%s",vars[i].Data(),trks[j].Data()),&(recovars_val[i][j]));
     }
   }
   
   //Initialize masks, set branch addresses  
   for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
     mcmask_trk[j] = 0;
+    seedmask_trk[j] = 0;
+    
     fakeratetree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
+    fakeratetree->SetBranchAddress(Form("seedmask_%s",trks[j].Data()),&(seedmask_trk[j]));
   }
 
   // Fill histos, compute res/pull from tree branches 
@@ -329,10 +512,10 @@ void PlotValidation::PlotFakeRate(){
     fakeratetree->GetEntry(k);
     for (UInt_t i = 0; i < vars.size(); i++){  // loop over vars index
       for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
-	if (mcmask_trk[j] != -1 ) { // make sure it is actually a reco track
-	  varsDenomPlot[i][j]->Fill(vars_val[i][j]); // all reco tracks fill denom
+	if (seedmask_trk[j] == 1) { // make sure it is actually a reco track matched to a seed
+	  varsDenomPlot[i][j]->Fill(recovars_val[i][j]); // all reco tracks fill denom
 	  if (mcmask_trk[j] == 0){ // only completely unassociated reco tracks enter FR
-	    varsNumerPlot[i][j]->Fill(vars_val[i][j]);
+	    varsNumerPlot[i][j]->Fill(recovars_val[i][j]);
 	  } // must be an unmatched track for FR
 	} // must be a real reco track for FR
       } // end loop over trks
@@ -343,39 +526,44 @@ void PlotValidation::PlotFakeRate(){
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
       PlotValidation::ComputeRatioPlot(varsNumerPlot[i][j],varsDenomPlot[i][j],varsFRPlot[i][j]);
-      PlotValidation::DrawWriteTH1Plot(varsNumerPlot[i][j],setLogy);
-      PlotValidation::DrawWriteTH1Plot(varsDenomPlot[i][j],setLogy);
-      PlotValidation::DrawWriteSaveTH1Plot(varsFRPlot[i][j],setLogy,Form("%s_FR_%s",vars[i].Data(),trks[j].Data()));
-      varsNumerPlot[i][j]->Delete();
-      varsDenomPlot[i][j]->Delete();
-      varsFRPlot[i][j]->Delete();
+      PlotValidation::DrawWriteTH1Plot(subdir,varsNumerPlot[i][j]);
+      PlotValidation::DrawWriteTH1Plot(subdir,varsDenomPlot[i][j]);
+      PlotValidation::ZeroSuppressPlot(varsFRPlot[i][j]);
+      PlotValidation::DrawWriteSaveTH1FPlot(subdir,varsFRPlot[i][j],subdirname,Form("%s_FR_%s",vars[i].Data(),trks[j].Data()),setLogy);
+      delete varsNumerPlot[i][j];
+      delete varsDenomPlot[i][j];
+      delete varsFRPlot[i][j];
     }
   }  
-  fakeratetree->Delete();
+  delete fakeratetree;
 }
 
-void PlotValidation::PlotDuplicateRateEffTree(){
+void PlotValidation::PlotDuplicateRate(){
   // Get tree
   TTree * efftree  = (TTree*)fInRoot->Get("efftree");
 
+  // make output subdirectory and subdir in ROOT file, and cd to it.
+  TString subdirname = "duplicaterate"; 
+  TDirectory * subdir;
+
+  PlotValidation::MakeSubDirectory(subdir,subdirname);
   //Declare strings for branches and plots
   Bool_t  setLogy = false;
-  TStrVec vars  = {"pt","pz","eta","phi"};
-  TStrVec evars = {"ept","epz","eeta","ephi"};
-  TStrVec svars = {"p_{T}","p_{z}","#eta","#phi"}; // svars --> labels for histograms for given variable
-  UIntVec nBins = {60,60,60,80};
-  FltVec  xlow  = {0,0,-3,-4};
-  FltVec  xhigh = {15,15,3,4};  
+  TStrVec vars  = {"pt","eta","phi"};
+  TStrVec svars = {"p_{T} [GeV/c]","#eta","#phi"}; // svars --> labels for histograms for given variable
+  UIntVec nBins = {60,60,80};
+  FltVec  xlow  = {0,-3,-4};
+  FltVec  xhigh = {15,3,4};  
 
   TStrVec trks  = {"seed","build","fit"};
   TStrVec strks = {"Seed","Built","Fit"}; // strk --> labels for histograms for given track type
 
   // Floats/Ints to be filled for trees
-  FltVec vars_val(vars.size()); // first index is var. only for mc values! so no extra index 
+  FltVec mcvars_val(vars.size()); // first index is var. only for mc values! so no extra index 
   IntVec mcmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
-  IntVec duplmask_trk(trks.size()); // need to know if associated sim track is duplicated
+  IntVec nTkMatches_trk(trks.size()); // need to know how many duplicates each mc track produces.  nDupl == 1 means one reco track
   
-  // Create pos plots
+  // Create DR plots
   TH1FRefVecVec varsNumerPlot(vars.size());
   TH1FRefVecVec varsDenomPlot(vars.size());
   TH1FRefVecVec varsDRPlot(vars.size());
@@ -385,14 +573,15 @@ void PlotValidation::PlotDuplicateRateEffTree(){
     varsDRPlot[i].reserve(trks.size());
   }  
 
+  subdir->cd(); // ensure plots are in right place
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
       // Numerator
-      varsNumerPlot[i][j] = new TH1F(Form("h_sim_%s_numer_%s_DR",vars[i].Data(),trks[j].Data()),Form("%s Track vs MC %s (Numer)",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
+      varsNumerPlot[i][j] = new TH1F(Form("h_sim_%s_numer_%s_DR",vars[i].Data(),trks[j].Data()),Form("%s Track vs MC %s (Numer) DR",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
       varsNumerPlot[i][j]->GetXaxis()->SetTitle(Form("%s",svars[i].Data()));
       varsNumerPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
       // Denominator
-      varsDenomPlot[i][j] = new TH1F(Form("h_sim_%s_denom_%s_DR",vars[i].Data(),trks[j].Data()),Form("%s Track vs MC %s (Denom)",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
+      varsDenomPlot[i][j] = new TH1F(Form("h_sim_%s_denom_%s_DR",vars[i].Data(),trks[j].Data()),Form("%s Track vs MC %s (Denom) DR",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
       varsDenomPlot[i][j]->GetXaxis()->SetTitle(Form("%s",svars[i].Data()));
       varsDenomPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
       // Duplicate Rate
@@ -405,19 +594,19 @@ void PlotValidation::PlotDuplicateRateEffTree(){
   //Initialize var_val/err arrays, SetBranchAddress
   for (UInt_t i = 0; i < vars.size(); i++){ // loop over trks index
     // initialize var
-    vars_val[i] = 0.;
+    mcvars_val[i] = 0.;
     
     //Set var+trk branch
-    efftree->SetBranchAddress(Form("%s_mc",vars[i].Data()),&(vars_val[i]));
+    efftree->SetBranchAddress(Form("%s_mc_gen",vars[i].Data()),&(mcvars_val[i]));
   }
 
   //Initialize masks, set branch addresses  
   for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
     mcmask_trk[j] = 0;
-    duplmask_trk[j] = 0;
+    nTkMatches_trk[j] = 0;
     
     efftree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
-    efftree->SetBranchAddress(Form("duplmask_%s",trks[j].Data()),&(duplmask_trk[j]));
+    efftree->SetBranchAddress(Form("nTkMatches_%s",trks[j].Data()),&(nTkMatches_trk[j]));
   }
 
   // Fill histos, compute res/pull from tree branches 
@@ -425,10 +614,12 @@ void PlotValidation::PlotDuplicateRateEffTree(){
     efftree->GetEntry(k);
     for (UInt_t i = 0; i < vars.size(); i++){  // loop over vars index
       for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
-	varsDenomPlot[i][j]->Fill(vars_val[i]);
-	if ((mcmask_trk[j] == 1) && (duplmask_trk[j] == 1)){ // must be associated and have duplicates 
-	  varsNumerPlot[i][j]->Fill(vars_val[i]);
-	} // must be a matched track for effiency and be a sim track with at least two matched reco tracks
+	if (mcmask_trk[j] == 1) {
+	  varsDenomPlot[i][j]->Fill(mcvars_val[i]);
+	  for (Int_t n = 0; n < nTkMatches_trk[j]; n++){
+	    varsNumerPlot[i][j]->Fill(mcvars_val[i]);
+	  } // fill n times sim track is matched. filled once is one sim to one reco.  filled twice is two reco to one sim
+	} // must be a matched track for proper denom
       } // end loop over trks
     } // end loop over vars
   } // end loop over entry in tree
@@ -437,119 +628,134 @@ void PlotValidation::PlotDuplicateRateEffTree(){
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
       PlotValidation::ComputeRatioPlot(varsNumerPlot[i][j],varsDenomPlot[i][j],varsDRPlot[i][j]);
-      PlotValidation::DrawWriteTH1Plot(varsNumerPlot[i][j],setLogy);
-      PlotValidation::DrawWriteTH1Plot(varsDenomPlot[i][j],setLogy);
-      PlotValidation::DrawWriteSaveTH1Plot(varsDRPlot[i][j],setLogy,Form("%s_simDR_%s",vars[i].Data(),trks[j].Data()));
-      varsNumerPlot[i][j]->Delete();
-      varsDenomPlot[i][j]->Delete();
-      varsDRPlot[i][j]->Delete();
+      PlotValidation::DrawWriteTH1Plot(subdir,varsNumerPlot[i][j]);
+      PlotValidation::DrawWriteTH1Plot(subdir,varsDenomPlot[i][j]);
+      PlotValidation::ZeroSuppressPlot(varsDRPlot[i][j]);
+      PlotValidation::DrawWriteSaveTH1FPlot(subdir,varsDRPlot[i][j],subdirname,Form("%s_DR_%s",vars[i].Data(),trks[j].Data()),setLogy);
+      delete varsNumerPlot[i][j];
+      delete varsDenomPlot[i][j];
+      delete varsDRPlot[i][j];
     }
   }  
-  efftree->Delete();
+  delete efftree;
 }
 
-void PlotValidation::PlotDuplicateRateFRTree(){
-  // Get tree
-  TTree * fakeratetree  = (TTree*)fInRoot->Get("fakeratetree");
+void PlotValidation::PrintTotals(){
+  // want to print out totals of nHits, fraction of Hits shared, efficiency, fake rate, duplicate rate of seeds, build, fit
+  // --> numer/denom plots for phi, know it will be in the bounds.  
 
-  //Declare strings for branches and plots
-  Bool_t  setLogy = false;
-  TStrVec vars  = {"pt","pz","eta","phi"};
-  TStrVec evars = {"ept","epz","eeta","ephi"};
-  TStrVec svars = {"p_{T}","p_{z}","#eta","#phi"}; // svars --> labels for histograms for given variable
-  UIntVec nBins = {60,60,60,80};
-  FltVec  xlow  = {0,0,-3,-4};
-  FltVec  xhigh = {15,15,3,4};  
-
-  TStrVec trks  = {"seed","build","fit"};
-  TStrVec strks = {"Seed","Built","Fit"}; // strk --> labels for histograms for given track type
-
-  // Floats/Ints to be filled for trees
-  FltVecVec vars_val(vars.size()); // first index is var. second index is track type
-  for (UInt_t i = 0; i < vars.size(); i++){
-    vars_val[i].reserve(trks.size());
-  }
-  IntVec mcmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
-  IntVec duplmask_trk(trks.size()); // need to know if associated sim track is duplicated
+  TStrVec trks   = {"seed","build","fit"};
+  TStrVec strks  = {"Seed","Build","Fit"};
+  TStrVec rates  = {"eff","FR","DR"};
+  TStrVec srates = {"Efficiency","Fake Rate","Duplicate Rate"};
+  TStrVec rateSD = {"efficiency","fakerate","duplicaterate"};
+  TStrVec snumer = {"Sim Tracks Matched","Unmatched Reco Tracks","n Times Sim Tracks Matched"};
+  TStrVec sdenom = {"All Sim Tracks","All Reco Tracks","All Sim Tracks"};
+  TStrVec types  = {"sim","reco","sim"}; // types will be same size as rates!
   
-  // Create pos plots
-  TH1FRefVecVec varsNumerPlot(vars.size());
-  TH1FRefVecVec varsDenomPlot(vars.size());
-  TH1FRefVecVec varsDRPlot(vars.size());
-  for (UInt_t i = 0; i < vars.size(); i++){
-    varsNumerPlot[i].reserve(trks.size());
-    varsDenomPlot[i].reserve(trks.size());
-    varsDRPlot[i].reserve(trks.size());
-  }  
+  TH1FRefVecVec numerPhiPlot(trks.size());
+  TH1FRefVecVec denomPhiPlot(trks.size());
+  for (UInt_t j = 0; j < trks.size(); j++) {
+    numerPhiPlot[j].reserve(rates.size());
+    denomPhiPlot[j].reserve(rates.size());
+  }
 
-  for (UInt_t i = 0; i < vars.size(); i++){
-    for (UInt_t j = 0; j < trks.size(); j++){
-      // Numerator
-      varsNumerPlot[i][j] = new TH1F(Form("h_reco_%s_numer_%s_DR",vars[i].Data(),trks[j].Data()),Form("%s Track vs Reco %s (Numer)",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
-      varsNumerPlot[i][j]->GetXaxis()->SetTitle(Form("%s",svars[i].Data()));
-      varsNumerPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
-      // Denominator
-      varsDenomPlot[i][j] = new TH1F(Form("h_reco_%s_denom_%s_DR",vars[i].Data(),trks[j].Data()),Form("%s Track vs Reco %s (Denom)",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
-      varsDenomPlot[i][j]->GetXaxis()->SetTitle(Form("%s",svars[i].Data()));
-      varsDenomPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
-      // Duplicate Rate
-      varsDRPlot[i][j] = new TH1F(Form("h_reco_%s_DR_%s_DR",vars[i].Data(),trks[j].Data()),Form("%s Track Duplicate Rate vs Reco %s",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
-      varsDRPlot[i][j]->GetXaxis()->SetTitle(Form("%s",svars[i].Data()));
-      varsDRPlot[i][j]->GetYaxis()->SetTitle("Duplicate Rate");    
+  for (UInt_t j = 0; j < trks.size(); j++) {
+    for (UInt_t r = 0; r < rates.size(); r++) {
+      numerPhiPlot[j][r] = (TH1F*) fOutRoot->Get(Form("%s/h_%s_phi_numer_%s_%s",rateSD[r].Data(),types[r].Data(),trks[j].Data(),rates[r].Data()));
+      denomPhiPlot[j][r] = (TH1F*) fOutRoot->Get(Form("%s/h_%s_phi_denom_%s_%s",rateSD[r].Data(),types[r].Data(),trks[j].Data(),rates[r].Data()));
     }
   }
 
-  //Initialize var_val/err arrays, SetBranchAddress
-  for (UInt_t i = 0; i < vars.size(); i++){ // loop over trks index
-    for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
-      // initialize var
-      vars_val[i][j] = 0.;
-    
-      //Set var+trk branch
-      fakeratetree->SetBranchAddress(Form("%s_%s",vars[i].Data(),trks[j].Data()),&(vars_val[i][j]));
+  // want nHits plots for all types of tracks
+  TStrVec coll  = {"allreco","fake","bestmatch"};
+  TStrVec scoll = {"All Reco","Fake","Best Match"};
+
+  TH1IRefVecVec nHitsPlot(trks.size());
+  TH1FRefVecVec fracHitsMatchedPlot(trks.size());
+  for (UInt_t j = 0; j < trks.size(); j++) {
+    nHitsPlot[j].reserve(coll.size());
+    fracHitsMatchedPlot[j].reserve(coll.size());
+  }
+
+  for (UInt_t j = 0; j < trks.size(); j++) {
+    for (UInt_t c = 0; c < coll.size(); c++) {
+      nHitsPlot[j][c] = (TH1I*) fOutRoot->Get(Form("nHits/h_nHits_%s_%s",coll[c].Data(),trks[j].Data()));
+      fracHitsMatchedPlot[j][c] = (TH1F*) fOutRoot->Get(Form("nHits/h_fracHitsMatched_%s_%s",coll[c].Data(),trks[j].Data()));
     }
   }
-
-  //Initialize masks, set branch addresses  
-  for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
-    mcmask_trk[j] = 0;
-    duplmask_trk[j] = 0;
-    
-    fakeratetree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
-    fakeratetree->SetBranchAddress(Form("duplmask_%s",trks[j].Data()),&(duplmask_trk[j]));
-  }
-
-  // Fill histos, compute res/pull from tree branches 
-  for (UInt_t k = 0; k < (UInt_t) fakeratetree->GetEntries(); k++){
-    fakeratetree->GetEntry(k);
-    for (UInt_t i = 0; i < vars.size(); i++){  // loop over vars index
-      for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
-	varsDenomPlot[i][j]->Fill(vars_val[i][j]);
-	if ((mcmask_trk[j] == 1) && (duplmask_trk[j] == 1)){ // must be associated and have duplicates 
-	  varsNumerPlot[i][j]->Fill(vars_val[i][j]);
-	} // must be a matched track for effiency and be a duplicate
-      } // end loop over trks
-    } // end loop over vars
-  } // end loop over entry in tree
   
-  // Draw, divide, and save efficiency plots
-  for (UInt_t i = 0; i < vars.size(); i++){
-    for (UInt_t j = 0; j < trks.size(); j++){
-      PlotValidation::ComputeRatioPlot(varsNumerPlot[i][j],varsDenomPlot[i][j],varsDRPlot[i][j]);
-      PlotValidation::DrawWriteTH1Plot(varsNumerPlot[i][j],setLogy);
-      PlotValidation::DrawWriteTH1Plot(varsDenomPlot[i][j],setLogy);
-      PlotValidation::DrawWriteSaveTH1Plot(varsDRPlot[i][j],setLogy,Form("%s_recoDR_%s",vars[i].Data(),trks[j].Data()));
-      varsNumerPlot[i][j]->Delete();
-      varsDenomPlot[i][j]->Delete();
-      varsDRPlot[i][j]->Delete();
+  ofstream totalsout;
+  totalsout.open(Form("%s/totals_%s.csv",fOutName.Data(),fOutName.Data()));
+
+  for (UInt_t j = 0; j < trks.size(); j++) {
+    std::cout << strks[j].Data() << " Tracks" << std::endl;
+    totalsout << strks[j].Data() << " Tracks" << std::endl;
+    for (UInt_t c = 0; c < coll.size(); c++) {
+      Float_t nHits_mean = nHitsPlot[j][c]->GetMean(1); // 1 is mean of x-axis
+      Float_t fracHits_mean = fracHitsMatchedPlot[j][c]->GetMean(1);
+      std::cout << scoll[c].Data() << " Tracks" << std::endl;
+      std::cout << "Average nHits / Track: " << nHits_mean << std::endl;
+      std::cout << "Average shared Hits / Track: " << fracHits_mean << std::endl;
+      totalsout << scoll[c].Data() << " Tracks" << std::endl;
+      totalsout << "Average nHits / Track," << nHits_mean << std::endl;
+      totalsout << "Average shared Hits / Track," << fracHits_mean << std::endl;
     }
-  }  
-  fakeratetree->Delete();
+    
+    for (UInt_t r = 0; r < rates.size(); r++) {
+      Int_t numerIntegral = numerPhiPlot[j][r]->Integral();
+      Int_t denomIntegral = denomPhiPlot[j][r]->Integral();
+      Float_t ratetotal   = Float_t(numerIntegral) / Float_t(denomIntegral);
+    
+      std::cout << snumer[r].Data() << ": " << numerIntegral << std::endl;
+      std::cout << sdenom[r].Data() << ": " << denomIntegral << std::endl;
+      std::cout << srates[r].Data() << ": " << ratetotal << std::endl;
+
+      totalsout << snumer[r].Data() << "," << numerIntegral << std::endl;
+      totalsout << sdenom[r].Data() << "," << denomIntegral << std::endl;
+      totalsout << srates[r].Data() << "," << ratetotal << std::endl;
+    }
+    std::cout << std::endl << std::endl;
+    totalsout << std::endl << std::endl;
+  }
+  
+  totalsout.close();
 }
 
-void PlotValidation::ComputeResPull(const Float_t& mc_val, const Float_t& var_val, const Float_t& var_err, Float_t var_out[]){
-  var_out[0] = (var_val - mc_val)/mc_val;
-  var_out[1] = (var_val - mc_val)/var_err;
+void PlotValidation::MakeSubDirectory(TDirectory *& subdir, const TString subdirname){
+  subdir = fOutRoot->mkdir(subdirname.Data());
+  FileStat_t dummyFileStat;
+  if (gSystem->GetPathInfo(Form("%s/%s",fOutName.Data(), subdirname.Data()), dummyFileStat) == 1){
+    TString mkDir = "mkdir -p ";
+    mkDir += fOutName.Data();
+    mkDir += "/";
+    mkDir += subdirname.Data();
+    gSystem->Exec(mkDir.Data());
+  }
+}
+
+void PlotValidation::ComputeResPull(const Float_t& mcvar_val, const Float_t& recovar_val, const Float_t& recovar_err, Float_t var_out[]){
+  var_out[0] = (recovar_val - mcvar_val)/mcvar_val;
+  var_out[1] = (recovar_val - mcvar_val)/recovar_err;
+}
+
+void PlotValidation::ZeroSuppressPlot(TH1F *& hist){
+  Float_t max = hist->GetBinContent(hist->GetMaximumBin());
+  Float_t min = 100;
+  Bool_t newmin = false;
+
+  for (Int_t bin = 1; bin <= hist->GetNbinsX(); bin++){
+    Float_t tmpmin = hist->GetBinContent(bin);
+    if ((tmpmin < min) && (tmpmin > 0)) {
+      min = tmpmin;
+      newmin = true;
+    }
+  }
+  
+  hist->SetMaximum(1.02*max);
+  if (newmin){
+    hist->SetMinimum(0.98*min);
+  }
 }
 
 void PlotValidation::ComputeRatioPlot(const TH1F * numer, const TH1F * denom, TH1F *& ratioPlot){
@@ -569,33 +775,39 @@ void PlotValidation::ComputeRatioPlot(const TH1F * numer, const TH1F * denom, TH
   }
 }
 
-void PlotValidation::DrawWriteTH1Plot(TH1F * hist, const Bool_t setLogy){
+void PlotValidation::DrawWriteTH1Plot(TDirectory *& subdir, TH1F *& hist){
   fTH1Canv->cd();
-  fTH1Canv->SetLogy(setLogy);
   hist->Draw();
-  fOutRoot->cd();
+  subdir->cd();
   hist->Write();
 }
 
-void PlotValidation::DrawWriteSaveTH1Plot(TH1F * hist, const Bool_t setLogy, const TString plotName){
+void PlotValidation::DrawWriteSaveTH1IPlot(TDirectory *& subdir, TH1I *& hist, const TString subdirname, const TString plotName, const Bool_t setLogy){
   fTH1Canv->cd();
-  fTH1Canv->SetLogy(setLogy);
   hist->Draw();  
-  fOutRoot->cd();
+  subdir->cd();
   hist->Write();
-  fTH1Canv->cd();
-  fTH1Canv->SaveAs(Form("%s/%s_%s.%s",fOutName.Data(),plotName.Data(),fOutName.Data(),fOutType.Data()));  
+  fTH1Canv->SetLogy(setLogy);
+  fTH1Canv->SaveAs(Form("%s/%s/%s.%s",fOutName.Data(),subdirname.Data(),plotName.Data(),fOutType.Data()));  
 }
 
-void PlotValidation::DrawWriteFitSaveTH1Plot(TH1F * hist, const Bool_t setLogy, const TString plotName, const Float_t fitRange){ // separate method for fitting pulls/res, do not want gaus line in root file
+void PlotValidation::DrawWriteSaveTH1FPlot(TDirectory *& subdir, TH1F *& hist, const TString subdirname, const TString plotName, const Bool_t setLogy){
   fTH1Canv->cd();
-  fTH1Canv->SetLogy(setLogy);
-  hist->Draw();
-  fOutRoot->cd();
+  hist->Draw();  
+  subdir->cd();
   hist->Write();
+  fTH1Canv->SetLogy(setLogy);
+  fTH1Canv->SaveAs(Form("%s/%s/%s.%s",fOutName.Data(),subdirname.Data(),plotName.Data(),fOutType.Data()));  
+}
+
+void PlotValidation::DrawWriteFitSaveTH1FPlot(TDirectory *& subdir, TH1F *& hist, const TString subdirname, const TString plotName, const Float_t fitRange, const Bool_t setLogy){ // separate method for fitting pulls/res, do not want gaus line in root file
   fTH1Canv->cd();
+  hist->Draw();
+  subdir->cd();
+  hist->Write();
   hist->Fit("gaus","","",-fitRange,fitRange);
-  fTH1Canv->SaveAs(Form("%s/%s_%s.%s",fOutName.Data(),plotName.Data(),fOutName.Data(),fOutType.Data()));  
+  fTH1Canv->SetLogy(setLogy);
+  fTH1Canv->SaveAs(Form("%s/%s/%s.%s",fOutName.Data(),subdirname.Data(),plotName.Data(),fOutType.Data()));  
 }
 
 void PlotValidation::MoveInput(){
@@ -604,60 +816,4 @@ void PlotValidation::MoveInput(){
   mvin += " ";
   mvin += fOutName.Data();
   gSystem->Exec(mvin.Data());
-}
-
-void PlotValidation::PlotNumerNHits(){
-  // Get tree
-  TTree * fakeratetree = (TTree*)fInRoot->Get("fakeratetree");
-
-  //Declare strings for branches and plots
-  Bool_t  setLogy = true;
-  TStrVec trks  = {"seed","build","fit"};
-  TStrVec strks = {"Seed","Built","Fit"}; // strk --> labels for histograms for given track type
-
-  // Floats/Ints to be filled for trees
-  FltVec vars_val(trks.size());
-  IntVec mcmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
-  IntVec duplmask_trk(trks.size()); 
-  
-  // Create pos plots
-  TH1FRefVec varsNumerPlot(3);
-  TH1FRefVec varsDenomPlot(3);
-  TH1FRefVec varsEffPlot(3);
-
-  for (UInt_t j = 0; j < trks.size(); j++){
-    // Numerator
-    varsNumerPlot[j] = new TH1F(Form("h_sim_frac_numer_%s_eff",trks[j].Data()),Form("%s Track vs Fraction of Matched Hits (Numer)",strks[j].Data()),42,0.,1.05);
-    varsNumerPlot[j]->GetXaxis()->SetTitle("Fraction of Shared Hits");
-    varsNumerPlot[j]->GetYaxis()->SetTitle("nTracks");    
-  }
-
-  //Initialize masks, set branch addresses  
-  for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
-    mcmask_trk[j] = 0;
-    duplmask_trk[j] = 0;
-    vars_val[j] = 0;
-
-    fakeratetree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
-    fakeratetree->SetBranchAddress(Form("duplmask_%s",trks[j].Data()),&(duplmask_trk[j]));
-    fakeratetree->SetBranchAddress(Form("fracHitsMatched_%s",trks[j].Data()),&(vars_val[j]));
-  }
-
-  // Fill histos, compute res/pull from tree branches 
-  for (UInt_t k = 0; k < (UInt_t) fakeratetree->GetEntries(); k++){
-    fakeratetree->GetEntry(k);
-    for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
-      if ((mcmask_trk[j] == 1) && (duplmask_trk[j] == 1)){ // must be associated
-	varsNumerPlot[j]->Fill(vars_val[j]);
-      } // must be a matched track for effiency
-    } // end loop over trks
-  } // end loop over entry in tree
-
-  // Draw, divide, and save efficiency plots
-  for (UInt_t j = 0; j < trks.size(); j++){
-    PlotValidation::DrawWriteSaveTH1Plot(varsNumerPlot[j],setLogy,Form("fractionSharedNhits_fr_%s",trks[j].Data()));
-    varsNumerPlot[j]->Delete();
-  }  
-  
-  fakeratetree->Delete();
 }

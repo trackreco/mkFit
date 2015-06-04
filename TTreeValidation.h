@@ -74,7 +74,7 @@ public:
   float helixchi2_seed_eff_=0.,helixchi2_build_eff_=0.,helixchi2_fit_eff_=0.;
 
   int   duplmask_seed_eff_=0,duplmask_build_eff_=0,duplmask_fit_eff_=0;
-  int   nDupl_seed_eff_=0,nDupl_build_eff_=0,nDupl_fit_eff_=0;
+  int   nTkMatches_seed_eff_=0,nTkMatches_build_eff_=0,nTkMatches_fit_eff_=0;
 
   // fake rate tree and variables
   seedToTkMap seedToBuildMap_;
@@ -83,7 +83,7 @@ public:
   TTree* fakeratetree_;
   unsigned int evtID_FR_=0,seedID_FR_=0;
 
-  int   seedmask_build_FR_=0,seedmask_fit_FR_=0;
+  int   seedmask_seed_FR_=0,seedmask_build_FR_=0,seedmask_fit_FR_=0;
   float pt_mc_seed_FR_=0.,pt_mc_build_FR_=0.,pt_mc_fit_FR_=0.;
   float pt_seed_FR_=0.,pt_build_FR_=0.,pt_fit_FR_=0.,ept_seed_FR_=0.,ept_build_FR_=0.,ept_fit_FR_=0.;
   float phi_mc_seed_FR_=0.,phi_mc_build_FR_=0.,phi_mc_fit_FR_=0.;
@@ -104,7 +104,7 @@ public:
   float helixchi2_seed_FR_=0.,helixchi2_build_FR_=0.,helixchi2_fit_FR_=0.;
 
   int   duplmask_seed_FR_=0,duplmask_build_FR_=0,duplmask_fit_FR_=0;
-  int   iDupl_seed_FR_=0,iDupl_build_FR_=0,iDupl_fit_FR_=0;
+  int   iTkMatches_seed_FR_=0,iTkMatches_build_FR_=0,iTkMatches_fit_FR_=0;
 
   // configuration tree
   TTree* configtree_;

@@ -3,9 +3,9 @@
 // --> mcmask_[reco] == 0, "unassociated" reco to sim track. by definition no duplicates (no reco to associate to sim tracks!) [possible duplmask_[reco] == 2 {eff and FR}]
 // --> mcmask_[reco] == -1, "no matching seed to build/fit" track, therefore no build/fit track to match sim! [possible duplmask_[reco] == -1] {FR only} 
 
-// --> nDupl_[reco] > 1,   n reco tracks associated to the same sim track ID {eff only}
-// --> nDupl_[reco] == 1,  1 reco track associated to single sim track ID {eff only}
-// --> nDupl_[reco] == -99, no reco to sim match {eff only}
+// --> nTkMatches_[reco] > 1,   n reco tracks associated to the same sim track ID {eff only}
+// --> nTkMatches_[reco] == 1,  1 reco track associated to single sim track ID {eff only}
+// --> nTkMatches_[reco] == -99, no reco to sim match {eff only}
 
 // --> reco var == -99, "unassociated" reco to sim track, mcTrackID == 999999 [possible mcmask_[reco] == 0; possible duplmask_[reco] == 2] {eff only}
 // --> sim  var == -99, "unassociated" reco to sim track, mcTrackID == 999999 [possible mcmask_[reco] == 0; possible duplmask_[reco] == 2] {FR only}
@@ -147,9 +147,9 @@ TTreeValidation::TTreeValidation(std::string fileName)
   efftree_->Branch("duplmask_build",&duplmask_build_eff_);
   efftree_->Branch("duplmask_fit",&duplmask_fit_eff_);
 
-  efftree_->Branch("nDupl_seed",&nDupl_seed_eff_);
-  efftree_->Branch("nDupl_build",&nDupl_build_eff_);
-  efftree_->Branch("nDupl_fit",&nDupl_fit_eff_);
+  efftree_->Branch("nTkMatches_seed",&nTkMatches_seed_eff_);
+  efftree_->Branch("nTkMatches_build",&nTkMatches_build_eff_);
+  efftree_->Branch("nTkMatches_fit",&nTkMatches_fit_eff_);
 
   // fake rate validation
   fakeratetree_ = new TTree("fakeratetree","fakeratetree");
@@ -157,6 +157,7 @@ TTreeValidation::TTreeValidation(std::string fileName)
   fakeratetree_->Branch("evtID",&evtID_FR_);
   fakeratetree_->Branch("seedID",&seedID_FR_);
 
+  fakeratetree_->Branch("seedmask_seed",&seedmask_seed_FR_);
   fakeratetree_->Branch("seedmask_build",&seedmask_build_FR_);
   fakeratetree_->Branch("seedmask_fit",&seedmask_fit_FR_);
 
@@ -230,9 +231,9 @@ TTreeValidation::TTreeValidation(std::string fileName)
   fakeratetree_->Branch("duplmask_build",&duplmask_build_FR_);
   fakeratetree_->Branch("duplmask_fit",&duplmask_fit_FR_);
 
-  fakeratetree_->Branch("iDupl_seed",&iDupl_seed_FR_);
-  fakeratetree_->Branch("iDupl_build",&iDupl_build_FR_);
-  fakeratetree_->Branch("iDupl_fit",&iDupl_fit_FR_);
+  fakeratetree_->Branch("iTkMatches_seed",&iTkMatches_seed_FR_);
+  fakeratetree_->Branch("iTkMatches_build",&iTkMatches_build_FR_);
+  fakeratetree_->Branch("iTkMatches_fit",&iTkMatches_fit_FR_);
 }
 
 void TTreeValidation::fillBuildTree(const unsigned int layer, const unsigned int branches, const unsigned int cands)
@@ -351,8 +352,8 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
       hitchi2_seed_eff_   = -10; //simToSeedMap_[mcID_eff_][0]->chi2(); // currently not being used
       helixchi2_seed_eff_ = computeHelixChi2(initLayPrms,simToSeedMap_[mcID_eff_][0]->parameters(),simToSeedMap_[mcID_eff_][0]->errors());
 
-      duplmask_seed_eff_ = simToSeedMap_[mcID_eff_][0]->isDuplicate(); 
-      nDupl_seed_eff_    = simToSeedMap_[mcID_eff_].size(); // n reco matches to this sim track.
+      duplmask_seed_eff_   = simToSeedMap_[mcID_eff_][0]->isDuplicate(); 
+      nTkMatches_seed_eff_ = simToSeedMap_[mcID_eff_].size(); // n reco matches to this sim track.
     }
     else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
       mcmask_seed_eff_  = 0; // quick logic for not matched
@@ -376,7 +377,7 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
       helixchi2_seed_eff_ = -99;
       
       duplmask_seed_eff_ = 2; // mask means unmatched sim track
-      nDupl_seed_eff_    = -99; // unmatched
+      nTkMatches_seed_eff_    = -99; // unmatched
     }
 
     // matched build track
@@ -405,8 +406,8 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
       hitchi2_build_eff_   = -10; //simToBuildMap_[mcID_eff_][0]->chi2(); // currently not being used
       helixchi2_build_eff_ = computeHelixChi2(initLayPrms,simToBuildMap_[mcID_eff_][0]->parameters(),simToBuildMap_[mcID_eff_][0]->errors());
 
-      duplmask_build_eff_ = simToBuildMap_[mcID_eff_][0]->isDuplicate(); 
-      nDupl_build_eff_    = simToBuildMap_[mcID_eff_].size(); // n reco matches to this sim track.
+      duplmask_build_eff_   = simToBuildMap_[mcID_eff_][0]->isDuplicate(); 
+      nTkMatches_build_eff_ = simToBuildMap_[mcID_eff_].size(); // n reco matches to this sim track.
     }
     else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
       mcmask_build_eff_  = 0; // quick logic for not matched
@@ -429,8 +430,8 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
       hitchi2_build_eff_   = -99;
       helixchi2_build_eff_ = -99;
       
-      duplmask_build_eff_ = 2; // mask means unmatched sim track
-      nDupl_build_eff_    = -99; // unmatched
+      duplmask_build_eff_   = 2; // mask means unmatched sim track
+      nTkMatches_build_eff_ = -99; // unmatched
     }
     
     // matched fit track
@@ -459,8 +460,8 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
       hitchi2_fit_eff_   = -10; //simToFitMap_[mcID_eff_][0]->chi2(); // currently not being used
       helixchi2_fit_eff_ = computeHelixChi2(initLayPrms,simToFitMap_[mcID_eff_][0]->parameters(),simToFitMap_[mcID_eff_][0]->errors());
 
-      duplmask_fit_eff_ = simToFitMap_[mcID_eff_][0]->isDuplicate(); 
-      nDupl_fit_eff_    = simToFitMap_[mcID_eff_].size(); // n reco matches to this sim track.
+      duplmask_fit_eff_   = simToFitMap_[mcID_eff_][0]->isDuplicate(); 
+      nTkMatches_fit_eff_ = simToFitMap_[mcID_eff_].size(); // n reco matches to this sim track.
     }
     else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
       mcmask_fit_eff_  = 0; // quick logic for not matched
@@ -483,8 +484,8 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
       hitchi2_fit_eff_   = -99;
       helixchi2_fit_eff_ = -99;
       
-      duplmask_fit_eff_ = 2; // mask means unmatched sim track
-      nDupl_fit_eff_    = -99; // unmatched
+      duplmask_fit_eff_   = 2; // mask means unmatched sim track
+      nTkMatches_fit_eff_ = -99; // unmatched
     }
 
     efftree_->Fill(); // fill it once per sim track!
@@ -499,6 +500,8 @@ void TTreeValidation::fillFakeRateTree(const TrackVec& evt_sim_tracks, const Tra
     seedID_FR_ = seedtrack.seedID();
 
     // seed info
+    seedmask_seed_FR_ = 1; // automatically set to 1, because at the moment no cuts on seeds after conformal+KF fit.  seed triplets filetered by RZ chi2 before fitting. 
+
     pt_seed_FR_   = seedtrack.pt();
     ept_seed_FR_  = seedtrack.ept();
     phi_seed_FR_  = seedtrack.momPhi();
@@ -527,8 +530,8 @@ void TTreeValidation::fillFakeRateTree(const TrackVec& evt_sim_tracks, const Tra
 
       helixchi2_seed_FR_ = computeHelixChi2(initLayPrms,seedtrack.parameters(),seedtrack.errors());
 
-      duplmask_seed_FR_ = seedtrack.isDuplicate();
-      iDupl_seed_FR_    = seedtrack.duplicateID(); // ith duplicate seed track, i = 0 "best" match, i > 0 "still matched, real reco, not as good as i-1 track"      
+      duplmask_seed_FR_   = seedtrack.isDuplicate();
+      iTkMatches_seed_FR_ = seedtrack.duplicateID(); // ith duplicate seed track, i = 0 "best" match, i > 0 "still matched, real reco, not as good as i-1 track"      
     }
     else{
       mcmask_seed_FR_ = 0;   // fake track (unmatched track)
@@ -539,8 +542,8 @@ void TTreeValidation::fillFakeRateTree(const TrackVec& evt_sim_tracks, const Tra
       eta_mc_seed_FR_ = -99;
       nHits_mc_seed_FR_ = -99;
 
-      duplmask_seed_FR_ = 2; // see notation above      
-      iDupl_seed_FR_    = -99;  
+      duplmask_seed_FR_   = 2; // see notation above      
+      iTkMatches_seed_FR_ = -99;  
     }
 
     //==========================//
@@ -577,8 +580,8 @@ void TTreeValidation::fillFakeRateTree(const TrackVec& evt_sim_tracks, const Tra
 
 	helixchi2_build_FR_ = computeHelixChi2(initLayPrms,seedToBuildMap_[seedID_FR_]->parameters(),seedToBuildMap_[seedID_FR_]->errors());
 
-	duplmask_build_FR_ = seedToBuildMap_[seedID_FR_]->isDuplicate();
-	iDupl_build_FR_    = seedToBuildMap_[seedID_FR_]->duplicateID(); // ith duplicate build track, i = 0 "best" match, i > 0 "still matched, real reco, not as good as i-1 track"
+	duplmask_build_FR_   = seedToBuildMap_[seedID_FR_]->isDuplicate();
+	iTkMatches_build_FR_ = seedToBuildMap_[seedID_FR_]->duplicateID(); // ith duplicate build track, i = 0 "best" match, i > 0 "still matched, real reco, not as good as i-1 track"
       }
       else{ // build track matched only to seed not to sim
 	mcmask_build_FR_ = 0;   // fake track (unmatched track)
@@ -589,8 +592,8 @@ void TTreeValidation::fillFakeRateTree(const TrackVec& evt_sim_tracks, const Tra
 	eta_mc_build_FR_ = -99;
 	nHits_mc_build_FR_ = -99;
 
-	duplmask_build_FR_ = 2;
-	iDupl_build_FR_    = -99;
+	duplmask_build_FR_   = 2;
+	iTkMatches_build_FR_ = -99;
       } // matched seed to build, not build to sim
     }
 
@@ -622,8 +625,8 @@ void TTreeValidation::fillFakeRateTree(const TrackVec& evt_sim_tracks, const Tra
 
       helixchi2_build_FR_ = -100;
 
-      duplmask_build_FR_ = -1;
-      iDupl_build_FR_    = -100;
+      duplmask_build_FR_   = -1;
+      iTkMatches_build_FR_ = -100;
     }
 
     //============================// fit tracks
@@ -658,8 +661,8 @@ void TTreeValidation::fillFakeRateTree(const TrackVec& evt_sim_tracks, const Tra
 
 	helixchi2_fit_FR_ = computeHelixChi2(initLayPrms,seedToFitMap_[seedID_FR_]->parameters(),seedToFitMap_[seedID_FR_]->errors());
 
-	duplmask_fit_FR_ = seedToFitMap_[seedID_FR_]->isDuplicate();
-	iDupl_fit_FR_    = seedToFitMap_[seedID_FR_]->duplicateID(); // ith duplicate fit track, i = 0 "best" match, i > 0 "still matched, real reco, not as good as i-1 track"
+	duplmask_fit_FR_   = seedToFitMap_[seedID_FR_]->isDuplicate();
+	iTkMatches_fit_FR_ = seedToFitMap_[seedID_FR_]->duplicateID(); // ith duplicate fit track, i = 0 "best" match, i > 0 "still matched, real reco, not as good as i-1 track"
       }
       else{ // fit track matched only to seed not to sim
 	mcmask_fit_FR_ = 0;   // fake track (unmatched track)
@@ -670,8 +673,8 @@ void TTreeValidation::fillFakeRateTree(const TrackVec& evt_sim_tracks, const Tra
 	eta_mc_fit_FR_ = -99;
 	nHits_mc_fit_FR_ = -99;
 
-	duplmask_fit_FR_ = 2;
-	iDupl_fit_FR_    = -99;
+	duplmask_fit_FR_   = 2;
+	iTkMatches_fit_FR_ = -99;
       } // matched seed to fit, not fit to sim
     }
 
@@ -703,8 +706,8 @@ void TTreeValidation::fillFakeRateTree(const TrackVec& evt_sim_tracks, const Tra
 
       helixchi2_fit_FR_ = -100;
 
-      duplmask_fit_FR_ = -1;
-      iDupl_fit_FR_    = -100;
+      duplmask_fit_FR_   = -1;
+      iTkMatches_fit_FR_ = -100;
     }
         
     fakeratetree_->Fill(); // fill once per seed!
