@@ -5,7 +5,7 @@
 #include "KalmanUtils.h"
 #include "Propagation.h"
 #include "Simulation.h"
-#include "BinInfoUtils.h"
+#include "Config.h"
 
 #include <omp.h>
 
@@ -1406,8 +1406,8 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
     {
       float eta = -1.5 + 0.05*i;
       int b1, b2;
-      int cnt = Config::getBothEtaBins(eta, b1, b2);
-      std::cout << "eta=" << eta << " bin=" << Config::getEtaBin(eta) << " hb1=" << b1 << " hb2=" << b2 << std::endl;
+      int cnt = getBothEtaBins(eta, b1, b2);
+      std::cout << "eta=" << eta << " bin=" << getEtaBin(eta) << " hb1=" << b1 << " hb2=" << b2 << std::endl;
     }
   //dump sim tracks
   for (int itrack=0;itrack<simtracks.size();++itrack) {

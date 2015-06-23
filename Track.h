@@ -5,11 +5,10 @@
 #include "Matrix.h"
 #include <vector>
 
-typedef std::vector<SVector6> TkParamVec;
 typedef std::pair<unsigned int,unsigned int> SimTkIDInfo;
 typedef std::vector<int> HitIdxVec;
 
-struct TrackState
+struct TrackState //  possible to add same accessors as track? 
 {
 public:
   TrackState() : valid(true) {}
@@ -34,8 +33,8 @@ public:
     state_.parameters = SVector6(position.At(0),position.At(1),position.At(2),momentum.At(0),momentum.At(1),momentum.At(2));
     state_.valid = true;
   }
- Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, const HitVec& hits, float chi2, unsigned int mcTrackID, const TkParamVec& initParams)
-   : hits_(hits), chi2_(chi2), mcTrackID_(mcTrackID), initParams_(initParams)
+ Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, const HitVec& hits, float chi2, unsigned int mcTrackID)
+   : hits_(hits), chi2_(chi2), mcTrackID_(mcTrackID)
   {
     state_.charge=charge;
     state_.errors=errors;
@@ -96,7 +95,6 @@ public:
   const float emomEta() const {return std::sqrt(std::abs(getEtaErr2(state_.parameters[3],state_.parameters[4],state_.parameters[5],state_.errors[3][3],state_.errors[4][4],state_.errors[5][5],state_.errors[3][4],state_.errors[3][5],state_.errors[4][5])));}
 
   const HitVec& hitsVector() const {return hits_;}
-  const TkParamVec& initParamsVector() const {return initParams_;}
 
   void addHit(const Hit& hit,float chi2) {hits_.push_back(hit);chi2_+=chi2;}
   void addHitIdx(int hitIdx,float chi2) { hitIdxVec_.push_back(hitIdx); if (hitIdx>=0) ++nGoodHitIdx_; chi2_+=chi2; }
@@ -131,7 +129,6 @@ private:
   HitVec hits_;
   float chi2_;
   unsigned int mcTrackID_;
-  TkParamVec initParams_;
   unsigned int nHitsMatched_;
   unsigned int seedID_;
   unsigned int duplicateID_;
@@ -142,6 +139,7 @@ private:
 };
 
 typedef std::vector<Track> TrackVec;
-typedef std::vector<Track*> TrackVecRef;
+typedef std::vector<Track*> TrackRefVec;
+typedef std::vector<TrackState> TSVec;
 
 #endif

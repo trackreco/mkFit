@@ -16,48 +16,63 @@ public:
 #include "TTree.h"
 #include "TROOT.h"
 
-typedef std::map<unsigned int,std::vector<TrackState> > tkStateMap;
-typedef std::map<unsigned int,TrackVecRef> simToTksMap;
-typedef std::map<unsigned int,const Track*> seedToTkMap;
+typedef std::map<unsigned int,const Track*> TkToTkRefMap;
+typedef std::map<unsigned int,TrackRefVec>  TkToTkRefVecMap;
+typedef std::map<unsigned int,TrackState>   TkToTSMap;   
+typedef std::map<unsigned int,TSVec>        TkToTSVecMap;
 
 class TTreeValidation : public Validation {
 public:
   TTreeValidation(std::string fileName);
 
+  void resetValidationMaps() override;
+  
+  void collectSimTkTSVecMapInfo(const unsigned int mcTrackID, const TSVec& initTSs) override;
+  void collectSeedTkCFMapInfo(const unsigned int seedID, const TrackState& cfitStateHit0) override;
+  void collectFitTkCFMapInfo(const unsigned int seedID, const TrackState& cfitStateHit0) override;
+
   void fillBuildTree(const unsigned int layer, const unsigned int branches, const unsigned int cands) override;
 
-  void makeSimToTksMaps(TrackVec& evt_seed_tracks, TrackVec& evt_build_tracks, TrackVec& evt_fit_tracks) override;
-  void mapSimToTks(TrackVec& evt_tracks, simToTksMap& simTkMap);
-  void fillEffTree(const TrackVec& evt_sim_tracks, const unsigned int & ievt) override;
+  void makeSimTkToRecoTksMaps(TrackVec& evt_seed_tracks, TrackVec& evt_build_tracks, TrackVec& evt_fit_tracks) override;
+  void mapSimTkToRecoTks(TrackVec& evt_tracks, TkToTkRefVecMap& simTkMap);
+  void fillEffTree(const TrackVec& evt_sim_tracks, const unsigned int ievt) override;
 
-  void makeSeedToTkMaps(const TrackVec& evt_build_tracks, const TrackVec& evt_fit_tracks) override;
-  void mapSeedToTk(const TrackVec& evt_tracks, seedToTkMap& seedTkMap);
-  void fillFakeRateTree(const TrackVec& evt_sim_tracks, const TrackVec& evt_seed_tracks, const unsigned int & ievt) override;
+  void makeSeedTkToRecoTkMaps(const TrackVec& evt_build_tracks, const TrackVec& evt_fit_tracks) override;
+  void mapSeedTkToRecoTk(const TrackVec& evt_tracks, TkToTkRefMap& seedTkMap);
+  void fillFakeRateTree(const TrackVec& evt_seed_tracks, const unsigned int ievt) override;
 
-  void fillConfigTree(const unsigned int & ntracks, const unsigned int & nevts, const std::vector<double> & ticks);
+  void fillConfigTree(const std::vector<double> & ticks);
 
   void saveTTrees() override;
 
   TFile* f_;
 
+  // declare vector of trackStates for various track collections to be used in pulls/resolutions
+  TkToTSVecMap simTkTSVecMap_;
+  
+  TkToTSMap seedTkCFMap_;
+  TkToTSMap fitTkCFMap_;
+
   // build branching tree
   TTree* tree_br_;
   unsigned int layer_=0,branches_=0,cands_=0;
-
+  
   // efficiency trees and variables
-  simToTksMap simToSeedMap_;
-  simToTksMap simToBuildMap_;
-  simToTksMap simToFitMap_;
+  TkToTkRefVecMap simToSeedMap_;
+  TkToTkRefVecMap simToBuildMap_;
+  TkToTkRefVecMap simToFitMap_;
 
   TTree* efftree_;  
   unsigned int evtID_eff_=0,mcID_eff_=0;
   int   mcmask_seed_eff_=0,mcmask_build_eff_=0,mcmask_fit_eff_=0;
 
+  int   seedID_seed_eff_=0,seedID_build_eff_=0,seedID_fit_eff_=0;
+
   float pt_mc_gen_eff_=0.,phi_mc_gen_eff_=0.,eta_mc_gen_eff_=0.;
   int   nHits_mc_eff_=0;
 
-  std::vector<float> x_hit_mc_reco_eff_,y_hit_mc_reco_eff_,z_hit_mc_reco_eff_;
-  float x_vrx_mc_gen_eff_=0.,y_vrx_mc_gen_eff_=0.,z_vrx_mc_gen_eff_=0.;
+  std::vector<float> x_mc_reco_hit_eff_,y_mc_reco_hit_eff_,z_mc_reco_hit_eff_;
+  float x_mc_gen_vrx_eff_=0.,y_mc_gen_vrx_eff_=0.,z_mc_gen_vrx_eff_=0.;
 
   float pt_mc_seed_eff_=0.,pt_mc_build_eff_=0.,pt_mc_fit_eff_=0.;
   float pt_seed_eff_=0.,pt_build_eff_=0.,pt_fit_eff_=0.,ept_seed_eff_=0.,ept_build_eff_=0.,ept_fit_eff_=0.;
@@ -65,6 +80,18 @@ public:
   float phi_seed_eff_=0.,phi_build_eff_=0.,phi_fit_eff_=0.,ephi_seed_eff_=0.,ephi_build_eff_=0.,ephi_fit_eff_=0.;
   float eta_mc_seed_eff_=0.,eta_mc_build_eff_=0.,eta_mc_fit_eff_=0.;
   float eta_seed_eff_=0.,eta_build_eff_=0.,eta_fit_eff_=0.,eeta_seed_eff_=0.,eeta_build_eff_=0.,eeta_fit_eff_=0.;
+  
+  float x_mc_cf_seed_eff_=0.,y_mc_cf_seed_eff_=0.,z_mc_cf_seed_eff_=0.,x_mc_cf_fit_eff_=0.,y_mc_cf_fit_eff_=0.,z_mc_cf_fit_eff_=0.;
+  float x_cf_seed_eff_=0.,y_cf_seed_eff_=0.,z_cf_seed_eff_=0.,x_cf_fit_eff_=0.,y_cf_fit_eff_=0.,z_cf_fit_eff_=0.;
+  float ex_cf_seed_eff_=0.,ey_cf_seed_eff_=0.,ez_cf_seed_eff_=0.,ex_cf_fit_eff_=0.,ey_cf_fit_eff_=0.,ez_cf_fit_eff_=0.;
+
+  float px_mc_cf_seed_eff_=0.,py_mc_cf_seed_eff_=0.,pz_mc_cf_seed_eff_=0.,px_mc_cf_fit_eff_=0.,py_mc_cf_fit_eff_=0.,pz_mc_cf_fit_eff_=0.;
+  float px_cf_seed_eff_=0.,py_cf_seed_eff_=0.,pz_cf_seed_eff_=0.,px_cf_fit_eff_=0.,py_cf_fit_eff_=0.,pz_cf_fit_eff_=0.;
+  float epx_cf_seed_eff_=0.,epy_cf_seed_eff_=0.,epz_cf_seed_eff_=0.,epx_cf_fit_eff_=0.,epy_cf_fit_eff_=0.,epz_cf_fit_eff_=0.;
+
+  float pt_mc_cf_seed_eff_=0.,invpt_mc_cf_seed_eff_=0.,phi_mc_cf_seed_eff_=0.,theta_mc_cf_seed_eff_=0.,pt_mc_cf_fit_eff_=0.,invpt_mc_cf_fit_eff_=0.,phi_mc_cf_fit_eff_=0.,theta_mc_cf_fit_eff_=0.;
+  float pt_cf_seed_eff_=0.,invpt_cf_seed_eff_=0.,phi_cf_seed_eff_=0.,theta_cf_seed_eff_=0.,pt_cf_fit_eff_=0.,invpt_cf_fit_eff_=0.,phi_cf_fit_eff_=0.,theta_cf_fit_eff_=0.;
+  float ept_cf_seed_eff_=0.,einvpt_cf_seed_eff_=0.,ephi_cf_seed_eff_=0.,etheta_cf_seed_eff_=0.,ept_cf_fit_eff_=0.,einvpt_cf_fit_eff_=0.,ephi_cf_fit_eff_=0.,etheta_cf_fit_eff_=0.;
 
   int   nHits_seed_eff_=0,nHits_build_eff_=0,nHits_fit_eff_=0;
   int   nHitsMatched_seed_eff_=0,nHitsMatched_build_eff_=0,nHitsMatched_fit_eff_=0;
@@ -77,8 +104,8 @@ public:
   int   nTkMatches_seed_eff_=0,nTkMatches_build_eff_=0,nTkMatches_fit_eff_=0;
 
   // fake rate tree and variables
-  seedToTkMap seedToBuildMap_;
-  seedToTkMap seedToFitMap_;
+  TkToTkRefMap seedToBuildMap_;
+  TkToTkRefMap seedToFitMap_;
   
   TTree* fakeratetree_;
   unsigned int evtID_FR_=0,seedID_FR_=0;
@@ -111,13 +138,14 @@ public:
   float        simtime_=0.,segtime_=0.,seedtime_=0.,buildtime_=0.,fittime_=0.,hlvtime_=0.;
   unsigned int Ntracks_=0,Nevents_=0;
   unsigned int nPhiPart_=0,nEtaPart_=0;
-  float        etaDet_=0.,nPhiFactor_=0.;
+  float        fEtaDet_=0.,nPhiFactor_=0.;
   unsigned int nlayers_per_seed_=0,maxCand_=0;
   float        chi2Cut_=0.,nSigma_=0.,minDPhi_=0.,maxDPhi_=0.,minDEta_=0.,maxDEta_=0.;
   float        beamspotX_=0.,beamspotY_=0.,beamspotZ_=0.;
   float        minSimPt_=0.,maxSimPt_=0.;
   float        hitposerrXY_=0.,hitposerrZ_=0.,hitposerrR_=0.;
   float        varXY_=0.,varZ_=0.;
+  float        ptinverr049_=0.,phierr049_=0.,thetaerr049_=0.,ptinverr012_=0.,phierr012_=0.,thetaerr012_=0.;
 
   std::mutex glock_;
 };

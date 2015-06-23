@@ -44,8 +44,10 @@ PlotValidation::~PlotValidation(){
 void PlotValidation::Validation(Bool_t mvInput){
   PlotValidation::PlotSimGeo();  
   PlotValidation::PlotNHits(); 
-  //  PlotValidation::PlotPosPulls(); // subdir ??
-  PlotValidation::PlotResPull(); 
+  PlotValidation::PlotCFResidual();
+  PlotValidation::PlotCFResolutionPull();
+  //PlotValidation::PlotPosResoluationPull(); 
+  PlotValidation::PlotMomResolutionPull(); 
   PlotValidation::PlotEfficiency(); 
   PlotValidation::PlotFakeRate();
   PlotValidation::PlotDuplicateRate();
@@ -67,21 +69,36 @@ void PlotValidation::PlotSimGeo(){
   
   // make plots, ensure in right directory
   subdir->cd();
-  TH2F * xyplot = new TH2F("h_xy_simgeo","XY Simulation Geometry",450,-45.,45.,450,-45.,45.);
+  TH2F * xyplot = new TH2F("h_xy_simdetgeo","XY Simulation Detector Geometry",450,-45.,45.,450,-45.,45.);
   xyplot->GetXaxis()->SetTitle("x [cm]");
   xyplot->GetYaxis()->SetTitle("y [cm]");
-  TH2F * rzplot = new TH2F("h_rz_simgeo","RZ Simulation Geometry",500,-50.,50.,225,0.,45.);
+  TH2F * rzplot = new TH2F("h_rz_simdetgeo","RZ Simulation Detector Geometry",500,-50.,50.,225,0.,45.);
   rzplot->GetXaxis()->SetTitle("z [cm]");
   rzplot->GetYaxis()->SetTitle("radius [cm]");
+
+  TH2F * xy_vrxplot = new TH2F("h_xy_simvrxgeo","XY Simulation Beamspot Geometry",500,-0.5,0.5,500,-0.5,0.5);
+  xy_vrxplot->GetXaxis()->SetTitle("x [cm]");
+  xy_vrxplot->GetYaxis()->SetTitle("y [cm]");
+  TH2F * rz_vrxplot = new TH2F("h_rz_simvrxgeo","RZ Simulation Beamspot Geometry",500,-5.0,5.0,225,0.,0.5);
+  rz_vrxplot->GetXaxis()->SetTitle("z [cm]");
+  rz_vrxplot->GetYaxis()->SetTitle("radius [cm]");
   
   // set hit branches ... need to use pointers for vectors. I thought ROOT5 fixed this??
-  std::vector<float> * xhit = 0;
-  std::vector<float> * yhit = 0;
-  std::vector<float> * zhit = 0;
+  std::vector<Float_t> * xhit = 0;
+  std::vector<Float_t> * yhit = 0;
+  std::vector<Float_t> * zhit = 0;
+  
+  Float_t xvrx = 0.;
+  Float_t yvrx = 0.;
+  Float_t zvrx = 0.;
 
-  efftree->SetBranchAddress("x_hit_mc_reco",&xhit);
-  efftree->SetBranchAddress("y_hit_mc_reco",&yhit);
-  efftree->SetBranchAddress("z_hit_mc_reco",&zhit);
+  efftree->SetBranchAddress("x_mc_reco_hit",&xhit);
+  efftree->SetBranchAddress("y_mc_reco_hit",&yhit);
+  efftree->SetBranchAddress("z_mc_reco_hit",&zhit);
+
+  efftree->SetBranchAddress("x_mc_gen_vrx",&xvrx);
+  efftree->SetBranchAddress("y_mc_gen_vrx",&yvrx);
+  efftree->SetBranchAddress("z_mc_gen_vrx",&zvrx);
 
   for (UInt_t k = 0; k < (UInt_t) efftree->GetEntries(); k++){
     efftree->GetEntry(k);
@@ -89,26 +106,48 @@ void PlotValidation::PlotSimGeo(){
       Float_t radius = std::sqrt( ((*xhit)[h])*((*xhit)[h]) + ((*yhit)[h])*((*yhit)[h]) );
       xyplot->Fill((*xhit)[h],(*yhit)[h]);
       rzplot->Fill((*zhit)[h],radius);
+      
+      Float_t radius_vrx = std::sqrt(xvrx*xvrx + yvrx*yvrx);
+      xy_vrxplot->Fill(xvrx,yvrx);
+      rz_vrxplot->Fill(zvrx,radius_vrx);
     }
   }
 
   TCanvas * xycanv = new TCanvas("cxy","cxy",1000,1000);
+
   xycanv->cd();
-  xyplot->Draw();
+  xyplot->Draw("colz");
   subdir->cd();
   xyplot->Write();
-  xycanv->SaveAs(Form("%s/%s/xy_simulation_geometry.png",fOutName.Data(),subdirname.Data())); 
+  xycanv->SaveAs(Form("%s/%s/xy_simulation_detgeometry.png",fOutName.Data(),subdirname.Data())); 
+  
+  xycanv->cd();
+  xy_vrxplot->Draw("colz");
+  subdir->cd();
+  xy_vrxplot->Write();
+  xycanv->SaveAs(Form("%s/%s/xy_simulation_vrxgeometry.png",fOutName.Data(),subdirname.Data())); 
+
   delete xycanv;
   delete xyplot;
+  delete xy_vrxplot;
 
   TCanvas * rzcanv = new TCanvas("crz","crz",1000,1000);
+
   rzcanv->cd();
-  rzplot->Draw();
+  rzplot->Draw("colz");
   subdir->cd();
   rzplot->Write();
-  rzcanv->SaveAs(Form("%s/%s/rz_simulation_geometry.png",fOutName.Data(),subdirname.Data()));
+  rzcanv->SaveAs(Form("%s/%s/rz_simulation_detgeometry.png",fOutName.Data(),subdirname.Data()));
+
+  rzcanv->cd();
+  rz_vrxplot->Draw("colz");
+  subdir->cd();
+  rz_vrxplot->Write();
+  rzcanv->SaveAs(Form("%s/%s/rz_simulation_vrxgeometry.png",fOutName.Data(),subdirname.Data()));
+
   delete rzcanv;
   delete rzplot;
+  delete rz_vrxplot;
 
   delete efftree;
 }
@@ -125,7 +164,7 @@ void PlotValidation::PlotNHits(){
   //Declare strings for branches and plots
   Bool_t  setLogy = true;
   TStrVec trks  = {"seed","build","fit"};
-  TStrVec strks = {"Seed","Built","Fit"}; // strk --> labels for histograms for given track type
+  TStrVec strks = {"Seed","Build","Fit"}; // strk --> labels for histograms for given track type
   TStrVec coll  = {"allreco","fake","allmatch","bestmatch"};
   TStrVec scoll = {"All Reco","Fake","All Match","Best Match"};
 
@@ -222,12 +261,217 @@ void PlotValidation::PlotNHits(){
   delete fakeratetree;
 }
 
-void PlotValidation::PlotResPull(){
+void PlotValidation::PlotCFResidual(){
   // Get tree
   TTree * efftree  = (TTree*)fInRoot->Get("efftree");
 
   // make output subdirectory and subdir in ROOT file, and cd to it.
-  TString subdirname = "respull"; 
+  TString subdirname = "conformalFit_residual"; 
+  TDirectory * subdir;
+  PlotValidation::MakeSubDirectory(subdir,subdirname);
+  // xyz, pxpypz residual, pt, theta, phi --> used to get errors, but only for pt, phi, theta.  x,y,z,px,py,pz from simulation 
+
+  //Declare strings for branches and plots
+  Bool_t  setLogy = false;
+  TStrVec vars    = {"x","y","z","px","py","pz","pt","invpt","phi","theta"}; // pt will be inverse
+  TStrVec svars   = {"x","y","z","p_{x}","p_{y}","p_{z}","p_{T}","1/p_{T}","#phi","#theta"}; // svars --> labels for histograms for given variable
+  TStrVec sunits  = {"[cm]","[cm]","[cm]","[GeV/c]","[GeV/c]","[GeV/c]","[GeV/c]","[GeV/c]^{-1}","",""}; // svars --> labels for histograms for given variable
+  UIntVec nBins   = {100,100,100,100,100,100,100,100,100,100};
+  FltVec  xlow    = {-0.05,-0.05,-0.5,-0.5,-0.5,-0.5,-0.5,-0.05,-0.05,-0.05};
+  FltVec  xhigh   = {0.05,0.05,0.5,0.5,0.5,0.5,0.5,0.05,0.05,0.05};  
+  FltVec  gaus    = {0.03,0.03,0.3,0.3,0.3,0.3,0.3,0.03,0.03,0.03}; // symmetric bounds for gaussian fit
+  TStrVec trks    = {"seed","fit"};
+  TStrVec strks   = {"Seed","Fit"}; // strk --> labels for histograms for given track type
+
+  // Floats/Ints to be filled for trees
+  FltVecVec mcvars_val(vars.size());
+  IntVec    mcmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
+  FltVecVec recovars_val(vars.size()); // first index is nVars, second is nTrkTypes
+  for (UInt_t i = 0; i < vars.size(); i++){
+    mcvars_val[i].reserve(trks.size());
+    recovars_val[i].reserve(trks.size());
+  }
+  Float_t   vars_out = 0.; // residual output
+
+  // Create residual plots
+  TH1FRefVecVec varsResidualPlot(vars.size());
+  for (UInt_t i = 0; i < vars.size(); i++){
+    varsResidualPlot[i].reserve(trks.size());
+  }
+
+  subdir->cd(); // ensure plots are put in right place 
+  for (UInt_t i = 0; i < vars.size(); i++){
+    for (UInt_t j = 0; j < trks.size(); j++){
+      varsResidualPlot[i][j] = new TH1F(Form("h_%s_cfresidual_%s",vars[i].Data(),trks[j].Data()),Form("%s Residual (CF %s Track vs. MC Track)",svars[i].Data(),strks[j].Data()),nBins[i],xlow[i],xhigh[i]);
+      varsResidualPlot[i][j]->GetXaxis()->SetTitle(Form("%s^{CF %s}%s - %s^{mc}%s",svars[i].Data(),strks[j].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data()));
+      varsResidualPlot[i][j]->GetYaxis()->SetTitle("nTracks");
+    }
+  }
+
+  //Initialize var_val/err arrays, SetBranchAddress
+  for (UInt_t i = 0; i < vars.size(); i++){ // loop over var index
+    for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
+      // initialize var + errors
+      mcvars_val[i][j] = 0.;
+      recovars_val[i][j] = 0.;
+      
+      //Set var+trk branch
+      efftree->SetBranchAddress(Form("%s_mc_cf_%s",vars[i].Data(),trks[j].Data()),&(mcvars_val[i][j]));
+      efftree->SetBranchAddress(Form("%s_cf_%s",vars[i].Data(),trks[j].Data()),&(recovars_val[i][j]));
+    }
+  }
+  
+  //Initialize masks, set branch addresses  
+  for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
+    mcmask_trk[j] = 0;
+    efftree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
+  }
+
+  // Fill histos, compute residual from tree branches 
+  for (UInt_t k = 0; k < (UInt_t) efftree->GetEntries(); k++){
+    efftree->GetEntry(k);
+    for (UInt_t i = 0; i < vars.size(); i++){  // loop over vars index
+      for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
+	if (mcmask_trk[j] == 1){ // must be associated
+	  PlotValidation::ComputeResidual(mcvars_val[i][j],recovars_val[i][j],vars_out);
+	  if (!isnan(vars_out)){ // fill if not nan
+	    varsResidualPlot[i][j]->Fill(vars_out);
+	  }
+	} // must be a matched track to make resolution plots
+      } // end loop over trks
+    } // end loop over vars
+  } // end loop over entry in tree
+
+  // Draw, fit, and save plots
+  for (UInt_t i = 0; i < vars.size(); i++){
+    for (UInt_t j = 0; j < trks.size(); j++){
+      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsResidualPlot[i][j],subdirname,Form("%s_cfresidual_%s",vars[i].Data(),trks[j].Data()),gaus[i],setLogy);
+      delete varsResidualPlot[i][j];
+    }
+  }  
+  delete efftree;
+}
+
+void PlotValidation::PlotCFResolutionPull(){
+  // Get tree
+  TTree * efftree  = (TTree*)fInRoot->Get("efftree");
+
+  // make output subdirectory and subdir in ROOT file, and cd to it.
+  TString subdirname = "conformalFit_resolutionpull"; 
+  TDirectory * subdir;
+  PlotValidation::MakeSubDirectory(subdir,subdirname);
+
+  // xyz,pxpypz resolutions + pulls
+  Bool_t  setLogy   = false;
+  TStrVec vars      = {"x","y","z","px","py","pz","pt","invpt","phi","theta"};
+  TStrVec svars     = {"x","y","z","p_{x}","p_{y}","p_{z}","p_{T}","1/p_{T}","#phi","#theta"}; // svars --> labels for histograms for given variable
+  TStrVec sunits    = {"[cm]","[cm]","[cm]","[GeV/c]","[GeV/c]","[GeV/c]","[GeV/c]","[GeV/c]^{-1}","",""}; // svars --> labels for histograms for given variable
+  TStrVec evars     = {"ex","ey","ez","epx","epy","epz","ept","einvpt","ephi","etheta"};
+  TStrVec trks      = {"seed","fit"};
+  TStrVec strks     = {"Seed","Fit"}; // strk --> labels for histograms for given track type
+  UIntVec nBinsRes  = {100,100,100,100,100,100,100,100,100,100};
+  FltVec  xlowRes   = {-0.05,-0.05,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5};
+  FltVec  xhighRes  = {0.05,0.05,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5};  
+  FltVec  gausRes   = {0.03,0.03,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3}; // symmetric bounds for gaussian fit
+  UIntVec nBinsPull = {100,100,100,100,100,100,100,100,100,100};
+  FltVec  xlowPull  = {-5,-5,-5,-5,-5,-5,-5,-5,-5,-5};
+  FltVec  xhighPull = {5,5,5,5,5,5,5,5,5,5};  
+  FltVec  gausPull  = {3,3,3,3,3,3,3,3,3,3}; // symmetric bounds for gaussian fit
+  
+  //Declare strings for branches and plots
+
+  // Floats/Ints to be filled for trees
+  FltVecVec mcvars_val(vars.size());
+  IntVec    mcmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
+  FltVecVec recovars_val(vars.size()); // first index is nVars, second is nTrkTypes
+  FltVecVec recovars_err(vars.size());
+  for (UInt_t i = 0; i < vars.size(); i++){
+    mcvars_val[i].reserve(trks.size());
+    recovars_val[i].reserve(trks.size());
+    recovars_err[i].reserve(trks.size());
+  }
+  Float_t   vars_out[2] = {0.,0.}; // res/pull output
+  
+  // Create pos plots
+  TH1FRefVecVec varsResPlot(vars.size());
+  TH1FRefVecVec varsPullPlot(vars.size());
+  for (UInt_t i = 0; i < vars.size(); i++){
+    varsResPlot[i].reserve(trks.size());
+    varsPullPlot[i].reserve(trks.size());
+  }
+
+  subdir->cd(); // ensure plots are put in right place 
+  for (UInt_t i = 0; i < vars.size(); i++){
+    for (UInt_t j = 0; j < trks.size(); j++){
+      //Res
+      varsResPlot[i][j] = new TH1F(Form("h_%s_cfres_%s",vars[i].Data(),trks[j].Data()),Form("%s Resolution (CF %s Track vs. MC Track)",svars[i].Data(),strks[j].Data()),nBinsRes[i],xlowRes[i],xhighRes[i]);
+      varsResPlot[i][j]->GetXaxis()->SetTitle(Form("(%s^{CF %s}%s - %s^{mc}%s)/%s^{mc}%s",svars[i].Data(),strks[j].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data()));
+      varsResPlot[i][j]->GetYaxis()->SetTitle("nTracks");
+
+      //Pull
+      varsPullPlot[i][j] = new TH1F(Form("h_%s_cfpull_%s",vars[i].Data(),trks[j].Data()),Form("%s Pull (CF %s Track vs. MC Track)",svars[i].Data(),strks[j].Data()),nBinsPull[i],xlowPull[i],xhighPull[i]);
+      varsPullPlot[i][j]->GetXaxis()->SetTitle(Form("(%s^{CF %s}%s - %s^{mc}%s)/#sigma(%s^{CF %s}%s)",svars[i].Data(),strks[j].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data(),svars[i].Data(),strks[j].Data(),sunits[i].Data()));
+      varsPullPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
+    }
+  }
+
+  //Initialize var_val/err arrays, SetBranchAddress
+  for (UInt_t i = 0; i < vars.size(); i++){ // loop over var index
+    for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
+      // initialize var + errors
+      mcvars_val[i][j] = 0.;
+      recovars_val[i][j] = 0.;
+      recovars_err[i][j] = 0.;
+      
+      //Set var+trk branch
+      efftree->SetBranchAddress(Form("%s_mc_cf_%s",vars[i].Data(),trks[j].Data()),&(mcvars_val[i][j]));
+      efftree->SetBranchAddress(Form("%s_cf_%s",vars[i].Data(),trks[j].Data()),&(recovars_val[i][j]));
+      efftree->SetBranchAddress(Form("%s_cf_%s",evars[i].Data(),trks[j].Data()),&(recovars_err[i][j]));
+    }
+  }
+  
+  //Initialize masks, set branch addresses  
+  for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
+    mcmask_trk[j] = 0;
+    efftree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
+  }
+
+  // Fill histos, compute res/pull from tree branches 
+  for (UInt_t k = 0; k < (UInt_t) efftree->GetEntries(); k++){
+    efftree->GetEntry(k);
+    for (UInt_t i = 0; i < vars.size(); i++){  // loop over vars index
+      for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
+	if (mcmask_trk[j] == 1){ // must be associated
+	  PlotValidation::ComputeResolutionPull(mcvars_val[i][j],recovars_val[i][j],recovars_err[i][j],vars_out);
+	  if (!isnan(vars_out[0])){ // fill if not nan
+	    varsResPlot[i][j]->Fill(vars_out[0]);
+	  }
+	  if (!isnan(vars_out[1])){ // fill if not nan
+	    varsPullPlot[i][j]->Fill(vars_out[1]);
+	  }
+	} // must be a matched track to make resolution plots
+      } // end loop over trks
+    } // end loop over vars
+  } // end loop over entry in tree
+
+  // Draw, fit, and save plots
+  for (UInt_t i = 0; i < vars.size(); i++){
+    for (UInt_t j = 0; j < trks.size(); j++){
+      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsResPlot[i][j],subdirname,Form("%s_cfresolution_%s",vars[i].Data(),trks[j].Data()),gausRes[i],setLogy);
+      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsPullPlot[i][j],subdirname,Form("%s_cfpull_%s",vars[i].Data(),trks[j].Data()),gausPull[i],setLogy);
+      delete varsResPlot[i][j];
+      delete varsPullPlot[i][j];
+    }
+  }  
+  delete efftree;
+}
+
+void PlotValidation::PlotMomResolutionPull(){
+  // Get tree
+  TTree * efftree  = (TTree*)fInRoot->Get("efftree");
+
+  // make output subdirectory and subdir in ROOT file, and cd to it.
+  TString subdirname = "momentum_resolutionpull"; 
   TDirectory * subdir;
   PlotValidation::MakeSubDirectory(subdir,subdirname);
 
@@ -236,6 +480,7 @@ void PlotValidation::PlotResPull(){
   TStrVec vars      = {"pt","eta","phi"};
   TStrVec evars     = {"ept","eeta","ephi"};
   TStrVec svars     = {"p_{T} [GeV/c]","#eta","#phi"}; // svars --> labels for histograms for given variable
+  TStrVec sunits    = {"[GeV/c]","",""}; // svars --> labels for histograms for given variable
   UIntVec nBinsRes  = {100,100,100};
   FltVec  xlowRes   = {-0.5,-0.5,-0.5};
   FltVec  xhighRes  = {0.5,0.5,0.5};  
@@ -246,7 +491,7 @@ void PlotValidation::PlotResPull(){
   FltVec  gausPull  = {3,3,3}; // symmetric bounds for gaussian fit
 
   TStrVec trks      = {"seed","build","fit"};
-  TStrVec strks     = {"Seed","Built","Fit"}; // strk --> labels for histograms for given track type
+  TStrVec strks     = {"Seed","Build","Fit"}; // strk --> labels for histograms for given track type
 
   // Floats/Ints to be filled for trees
   FltVecVec mcvars_val(vars.size());
@@ -273,12 +518,12 @@ void PlotValidation::PlotResPull(){
     for (UInt_t j = 0; j < trks.size(); j++){
       //Res
       varsResPlot[i][j] = new TH1F(Form("h_%s_res_%s",vars[i].Data(),trks[j].Data()),Form("%s Resolution (%s Track vs. MC Track)",svars[i].Data(),strks[j].Data()),nBinsRes[i],xlowRes[i],xhighRes[i]);
-      varsResPlot[i][j]->GetXaxis()->SetTitle(Form("(%s^{%s} - %s^{mc})/%s^{mc}",svars[i].Data(),strks[j].Data(),svars[i].Data(),svars[i].Data()));
+      varsResPlot[i][j]->GetXaxis()->SetTitle(Form("(%s^{%s}%s - %s^{mc}%s)/%s^{mc}%s",svars[i].Data(),strks[j].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data()));
       varsResPlot[i][j]->GetYaxis()->SetTitle("nTracks");
 
       //Pull
       varsPullPlot[i][j] = new TH1F(Form("h_%s_pull_%s",vars[i].Data(),trks[j].Data()),Form("%s Pull (%s Track vs. MC Track)",svars[i].Data(),strks[j].Data()),nBinsPull[i],xlowPull[i],xhighPull[i]);
-      varsPullPlot[i][j]->GetXaxis()->SetTitle(Form("(%s^{%s} - %s^{mc})/#sigma(%s^{%s})",svars[i].Data(),strks[j].Data(),svars[i].Data(),svars[i].Data(),strks[j].Data()));
+      varsPullPlot[i][j]->GetXaxis()->SetTitle(Form("(%s^{%s}%s - %s^{mc}%s)/#sigma(%s^{%s}%s)",svars[i].Data(),strks[j].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data(),svars[i].Data(),strks[j].Data(),sunits[i].Data()));
       varsPullPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
     }
   }
@@ -310,7 +555,7 @@ void PlotValidation::PlotResPull(){
     for (UInt_t i = 0; i < vars.size(); i++){  // loop over vars index
       for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
 	if (mcmask_trk[j] == 1){ // must be associated
-	  PlotValidation::ComputeResPull(mcvars_val[i][j],recovars_val[i][j],recovars_err[i][j],vars_out);
+	  PlotValidation::ComputeResolutionPull(mcvars_val[i][j],recovars_val[i][j],recovars_err[i][j],vars_out);
 	  if (!isnan(vars_out[0])){ // fill if not nan
 	    varsResPlot[i][j]->Fill(vars_out[0]);
 	  }
@@ -325,7 +570,7 @@ void PlotValidation::PlotResPull(){
   // Draw, fit, and save plots
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
-      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsResPlot[i][j],subdirname,Form("%s_res_%s",vars[i].Data(),trks[j].Data()),gausRes[i],setLogy);
+      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsResPlot[i][j],subdirname,Form("%s_resolution_%s",vars[i].Data(),trks[j].Data()),gausRes[i],setLogy);
       PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsPullPlot[i][j],subdirname,Form("%s_pull_%s",vars[i].Data(),trks[j].Data()),gausPull[i],setLogy);
       delete varsResPlot[i][j];
       delete varsPullPlot[i][j];
@@ -352,7 +597,7 @@ void PlotValidation::PlotEfficiency(){
   FltVec  xhigh = {15,3,4};  
 
   TStrVec trks  = {"seed","build","fit"};
-  TStrVec strks = {"Seed","Built","Fit"}; // strk --> labels for histograms for given track type
+  TStrVec strks = {"Seed","Build","Fit"}; // strk --> labels for histograms for given track type
 
   // Floats/Ints to be filled for trees
   FltVec mcvars_val(vars.size()); // first index is var. only for mc values! so no extra index 
@@ -448,7 +693,7 @@ void PlotValidation::PlotFakeRate(){
   FltVec  xhigh = {15,3,4};  
 
   TStrVec trks  = {"seed","build","fit"};
-  TStrVec strks = {"Seed","Built","Fit"}; // strk --> labels for histograms for given track type
+  TStrVec strks = {"Seed","Build","Fit"}; // strk --> labels for histograms for given track type
 
   // Floats/Ints to be filled for trees
   FltVecVec recovars_val(vars.size()); // first index is var, second is type of track
@@ -556,7 +801,7 @@ void PlotValidation::PlotDuplicateRate(){
   FltVec  xhigh = {15,3,4};  
 
   TStrVec trks  = {"seed","build","fit"};
-  TStrVec strks = {"Seed","Built","Fit"}; // strk --> labels for histograms for given track type
+  TStrVec strks = {"Seed","Build","Fit"}; // strk --> labels for histograms for given track type
 
   // Floats/Ints to be filled for trees
   FltVec mcvars_val(vars.size()); // first index is var. only for mc values! so no extra index 
@@ -690,7 +935,11 @@ void PlotValidation::PrintTotals(){
 
   for (UInt_t j = 0; j < trks.size(); j++) {
     std::cout << strks[j].Data() << " Tracks" << std::endl;
+    std::cout << "+++++++++++++++++++++++++++++++" << std::endl << std::endl;
     totalsout << strks[j].Data() << " Tracks" << std::endl;
+    std::cout << "Hit Totals for " << strks[j].Data() << " Track Collections" << std::endl;
+    std::cout << "===============================" << std::endl;
+    totalsout << "Hit Totals for " << strks[j].Data() << " Track Collections" << std::endl;
     for (UInt_t c = 0; c < coll.size(); c++) {
       Float_t nHits_mean = nHitsPlot[j][c]->GetMean(1); // 1 is mean of x-axis
       Float_t fracHits_mean = fracHitsMatchedPlot[j][c]->GetMean(1);
@@ -702,6 +951,9 @@ void PlotValidation::PrintTotals(){
       totalsout << "Average shared Hits / Track," << fracHits_mean << std::endl;
     }
     
+    std::cout << std::endl << "Rates for " << strks[j].Data() << " Tracks" << std::endl;
+    totalsout << std::endl << "Rates for " << strks[j].Data() << " Tracks" << std::endl;
+    std::cout << "===============================" << std::endl;
     for (UInt_t r = 0; r < rates.size(); r++) {
       Int_t numerIntegral = numerPhiPlot[j][r]->Integral();
       Int_t denomIntegral = denomPhiPlot[j][r]->Integral();
@@ -709,8 +961,10 @@ void PlotValidation::PrintTotals(){
     
       std::cout << snumer[r].Data() << ": " << numerIntegral << std::endl;
       std::cout << sdenom[r].Data() << ": " << denomIntegral << std::endl;
+      std::cout << "-------------------------------" << std::endl;
       std::cout << srates[r].Data() << ": " << ratetotal << std::endl;
-
+      std::cout << "-------------------------------" << std::endl;
+      
       totalsout << snumer[r].Data() << "," << numerIntegral << std::endl;
       totalsout << sdenom[r].Data() << "," << denomIntegral << std::endl;
       totalsout << srates[r].Data() << "," << ratetotal << std::endl;
@@ -734,7 +988,11 @@ void PlotValidation::MakeSubDirectory(TDirectory *& subdir, const TString subdir
   }
 }
 
-void PlotValidation::ComputeResPull(const Float_t& mcvar_val, const Float_t& recovar_val, const Float_t& recovar_err, Float_t var_out[]){
+void PlotValidation::ComputeResidual(const Float_t mcvar_val, const Float_t recovar_val, Float_t & var_out){
+  var_out = recovar_val - mcvar_val;
+}
+
+void PlotValidation::ComputeResolutionPull(const Float_t mcvar_val, const Float_t recovar_val, const Float_t recovar_err, Float_t var_out[]){
   var_out[0] = (recovar_val - mcvar_val)/mcvar_val;
   var_out[1] = (recovar_val - mcvar_val)/recovar_err;
 }

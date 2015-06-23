@@ -106,9 +106,6 @@ int main(int argc, char** argv)
     std::cout << "Layer = " << i << ", Radius = " << geom.Radius(i) << std::endl;
   }
 
-  unsigned int Ntracks = 500;
-  unsigned int Nevents = 100;
-
   std::vector<tick> ticks(6);
 
 #ifdef TBB
@@ -122,18 +119,18 @@ int main(int argc, char** argv)
   auto nThread = 1;
 #endif
 
-  for (unsigned int evt=0; evt<Nevents; ++evt) {
+  for (unsigned int evt=0; evt<Config::nEvents; ++evt) {
     Event ev(geom, val, evt, nThread);
     std::cout << "EVENT #"<< ev.evtID() << std::endl;
 
     timepoint t0(now());
 #ifdef ENDTOEND
-    ev.Simulate(Ntracks);      ticks[0] += delta(t0);
-    ev.Segment();              ticks[1] += delta(t0);
-    ev.Seed();                 ticks[2] += delta(t0);
-    ev.Find();                 ticks[3] += delta(t0);
-    ev.Fit();                  ticks[4] += delta(t0);
-    ev.ValidateHighLevel(evt); ticks[5] += delta(t0);
+    ev.Simulate();           ticks[0] += delta(t0);
+    ev.Segment();            ticks[1] += delta(t0);
+    ev.Seed();               ticks[2] += delta(t0);
+    ev.Find();               ticks[3] += delta(t0);
+    ev.Fit();                ticks[4] += delta(t0);
+    ev.Validate(ev.evtID()); ticks[5] += delta(t0);
 #endif
   }
 
@@ -142,7 +139,7 @@ int main(int argc, char** argv)
     time[i]=ticks[i].count();
   }
 
-  val.fillConfigTree(Ntracks,Nevents,time);
+  val.fillConfigTree(time);
   val.saveTTrees(); 
 
   std::cout << "Ticks ";

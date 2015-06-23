@@ -64,15 +64,17 @@ void fitTrack(const Track & trk, Event& ev)
 #endif
   TrackState cfitStateHit0;
 
-  //#define CONFORMAL
+#define CONFORMAL
 #ifdef CONFORMAL
   bool backward = false;
+  const bool fiterrs  = true;
 #if defined(INWARD)
   backward = true;
 #endif //INWARD
   //fit is problematic in case of very short lever arm
-  conformalFit(hits[0],hits[hits.size()/2 + 1],hits[hits.size()-1],trk.charge(),cfitStateHit0,backward,bool(true)); // last bool denotes use cf derived errors for fitting
+  conformalFit(hits[0],hits[hits.size()/2 + 1],hits[hits.size()-1],trk.charge(),cfitStateHit0,backward,fiterrs); // last bool denotes use cf derived errors for fitting
   TrackState updatedState = cfitStateHit0;
+  ev.validation_.collectFitTkCFMapInfo(trk.seedID(),cfitStateHit0); // pass along all info and map it to a given seed
 #else 
   TrackState updatedState = trk.state();
   updatedState = propagateHelixToR(updatedState,hits[0].r());
@@ -136,7 +138,7 @@ void fitTrack(const Track & trk, Event& ev)
   } // end loop over hits
   dcall(print("Fit Track", updatedState));
 
-  Track FitTrack(updatedState,hits,0.,trk.seedID()); // eventually will want to include chi2 of fitTrack 
+  Track FitTrack(updatedState,hits,trk.chi2(),trk.seedID()); // eventually will want to include chi2 of fitTrack --> chi2 for now just copied from build tracks
   ev.fitTracks_.push_back(FitTrack);
 }
 

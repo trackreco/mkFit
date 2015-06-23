@@ -5,27 +5,17 @@
 #include "Validation.h"
 #include "Geometry.h"
 #include "BinInfoUtils.h"
-
-namespace Config {
-  static constexpr const unsigned int nlayers_per_seed = 3;
-  static constexpr const unsigned int maxCand = 10;
-  static constexpr const float chi2Cut = 15.;
-  static constexpr const float nSigma = 3.;
-  static constexpr const float minDPhi = 0.;
-  static constexpr const float maxDPhi = Config::PI;
-  static constexpr const float minDEta = 0.;
-  static constexpr const float maxDEta = 1.0;
-};
+#include "Config.h"
 
 class Event {
 public:
   Event(const Geometry& g, Validation& v, unsigned int evtID, int threads = 1);
-  void Simulate(unsigned int nTracks);
+  void Simulate();
   void Segment();
   void Seed();
   void Find();
   void Fit();
-  void ValidateHighLevel(const unsigned int &);
+  void Validate(const unsigned int);
   
   const unsigned int evtID() const {return evtID_;}
   

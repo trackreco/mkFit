@@ -2,7 +2,8 @@
 
 //M. Hansroul, H. Jeremie and D. Savard, NIM A 270 (1988) 498
 //http://www.sciencedirect.com/science/article/pii/016890028890722X
-void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge, TrackState& fitStateHit0, bool backward, bool fitORseed) {
+
+void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge, TrackState& fitStateHit0, bool backward, bool fiterrs) {
 
   //fixme: does this work in case bs not in (0,0)? I think so, but need to check
 
@@ -55,31 +56,12 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
   std::cout << "R=" << R << " pt=" << pt << std::endl;
   */
 
-  //compute phi at 1st hit --> wouldnt we want phi at PCA???
-
-  float abR2 = a*a + b*b;
-  float abR  = sqrt(abR2);
-  float d    = sqrt(R*R - abR2);
-  float vrx1 = d*cos(a/abR);
-  float vry1 = d*sin(b/abR);
-  
-  float e=b*b*b*C[2]/(R*R*R);
-
   float vrx = x[0]-a;
   float vry = y[0]-b;
-  /*
-  std::cout << "My naive Method - vrx: " << vrx1 << " vry: " << vry1 << std::endl;
-  std::cout << "Current Method  - vrx: " << vrx << " vry: " << vry <<std::endl;
-  std::cout << "IP: " << e  <<std::endl;
-  */
   float phi = atan2(vrx,vry);
-  /*
-  std::cout << "Naive Phi Pos (x/y)   " << atan2(vrx1,vry1) << " (y/x) " << atan2(vry1,vrx1) << std::endl;
-  std::cout << "Current Phi Pos (x/y) " << phi << " (y/x) " << atan2(vry,vrx) << std::endl;
-  */
-
   float px = fabs(pt*cos(phi))*((x[1]-x[0])>0. ? 1. : -1.);
   float py = fabs(pt*sin(phi))*((y[1]-y[0])>0. ? 1. : -1.);
+
   //compute theta
   float tantheta = sqrt((x[0]-x[2])*(x[0]-x[2])+(y[0]-y[2])*(y[0]-y[2]))/(z[2]-z[0]);
   float pz = fabs(pt/tantheta)*((z[1]-z[0])>0. ? 1. : -1.);
@@ -119,19 +101,17 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
   float phierr   = 0.;
   float thetaerr = 0.;
 
-  if (fitORseed) { // use fit errors, ie. hits on layers 0,5,9
-    ptinverr = 0.0075;
-    pterr    = pow(pt,2)*ptinverr;
-    phierr   = 0.0017;
-    thetaerr = 0.0031;
+  if (fiterrs) { // use fit errors, ie. hits on layers 0,5,9
+    ptinverr = Config::ptinverr049;
+    phierr   = Config::phierr049;
+    thetaerr = Config::thetaerr049;
   }
   else{ //use seed errors, ie. hits on layers 0,1,2
-    ptinverr = 0.1789;
-    pterr    = pow(pt,2)*ptinverr;
-    phierr   = 0.0170;
-    thetaerr = 0.0137;
+    ptinverr = Config::ptinverr012;
+    phierr   = Config::phierr012;
+    thetaerr = Config::thetaerr012;
   }
-
+  pterr = (pt*pt)*ptinverr;
    
   //this gives nice fitting results when scaling the errors by 10
   fitStateHit0.errors=ROOT::Math::SMatrixIdentity();

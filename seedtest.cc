@@ -30,8 +30,7 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks){
   }
 }
 
-void buildSeedsByRoadTriplets(const std::vector<HitVec>& evt_lay_hits, const BinInfoMap& segmentMap, TrackVec& evt_seed_tracks){
-  //create seeds (from sim tracks for now)
+void buildSeedsByRoadTriplets(const std::vector<HitVec>& evt_lay_hits, const BinInfoMap& segmentMap, TrackVec& evt_seed_tracks, Event& ev){
   bool debug(false);
 
   std::vector<HitVec> hitPairs;   // first will be pairs, then triplets, then filtered chi2 triplets, then Conf fit, then KF fit
@@ -68,7 +67,7 @@ void buildSeedsByRoadTriplets(const std::vector<HitVec>& evt_lay_hits, const Bin
   
   std::vector<HitVec> filteredTriplets;
   filterHitTripletsByRZChi2(hitTriplets, filteredTriplets); // filter based on RZ chi2 cut
-  buildSeedsFromTriplets(filteredTriplets,evt_seed_tracks);
+  buildSeedsFromTriplets(filteredTriplets,evt_seed_tracks,ev);
 }
 
 void buildHitPairs(const std::vector<HitVec>& evt_lay_hits, const BinInfoLayerMap& segLayMap, std::vector<HitVec>& hit_pairs){
@@ -175,9 +174,10 @@ void filterHitTripletsByRZChi2(const std::vector<HitVec>& hit_triplets, std::vec
   }
 }
 
-void buildSeedsFromTriplets(const std::vector<HitVec> & filtered_triplets, TrackVec & evt_seed_tracks){
+void buildSeedsFromTriplets(const std::vector<HitVec> & filtered_triplets, TrackVec & evt_seed_tracks, Event& ev){
   // now perform kalman fit on seeds --> first need initial parameters --> get from Conformal fitter!
-  const bool cf = false; // use errors derived for seeding
+  const bool backward = false; // use for forward fit of conformal utils
+  const bool fiterrs  = false; // use errors derived for seeding
 
   unsigned int seedID = 0;
   for(auto&& hit_triplet : filtered_triplets){
@@ -186,8 +186,9 @@ void buildSeedsFromTriplets(const std::vector<HitVec> & filtered_triplets, Track
     else {charge = -1;}
 
     TrackState updatedState;
-    conformalFit(hit_triplet[0],hit_triplet[1],hit_triplet[2],charge,updatedState,bool(false),cf); // first bool is backward fit == false
-
+    conformalFit(hit_triplet[0],hit_triplet[1],hit_triplet[2],charge,updatedState,backward,fiterrs); 
+    ev.validation_.collectSeedTkCFMapInfo(seedID,updatedState);
+    
     for (auto ilayer=0U;ilayer<Config::nlayers_per_seed;++ilayer) {
       Hit seed_hit = hit_triplet[ilayer];
       TrackState propState = propagateHelixToR(updatedState,seed_hit.r());

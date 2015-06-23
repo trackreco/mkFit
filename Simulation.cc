@@ -7,7 +7,7 @@
 #define SCATTER_XYZ
 
 void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVec& hits, unsigned int itrack,
-                       int& charge, const Geometry& geom, TkParamVec & initParams)
+                       int& charge, const Geometry& geom, TSVec & initTSs)
 {
 
 #ifdef DEBUG
@@ -16,13 +16,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
   float pt = Config::minSimPt+g_unif(g_gen)*(Config::maxSimPt-Config::minSimPt);//this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
   pos=SVector3(Config::beamspotX*g_gaus(g_gen), Config::beamspotY*g_gaus(g_gen), Config::beamspotZ*g_gaus(g_gen));
 
-  dprint("Simulation Track: " << itrack << std::endl 
-	 << "MC vrx: " << pos[0] << " vry: " << pos[1] << std::endl
-	 << "MC IP:  " << sqrt(pos[0]*pos[0] + pos[1]*pos[1]) << std::endl
-	 << "MC Pos Phi (x/y) "  << atan2(pos[0],pos[1]) << " (y/x) " << atan2(pos[1],pos[0]) << std::endl
-	 );
-
-  dprint("pos x=" << pos[0] << " y=" << pos[1] << " z=" << pos[2]);
+  dprint("production point x=" << pos[0] << " y=" << pos[1] << " z=" << pos[2] << std::endl);
 
   if (charge==0) {
     if (g_unif(g_gen) > 0.5) charge = -1;
@@ -31,15 +25,14 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
 
   float phi = 0.5*Config::PI*g_unif(g_gen); // make an angle between 0 and pi/2
 
-  dprint("MC Gen Phi "  << phi << std::endl);
-
   float px = pt * cos(phi);
   float py = pt * sin(phi);
 
   if (g_unif(g_gen)>0.5) px*=-1.;
   if (g_unif(g_gen)>0.5) py*=-1.;
 
-  dprint("MC Mom Phi (x/y) "  << atan2(px,py) << " (y/x) " << atan2(py,px) << std::endl);
+  dprint("phi= " << phi << std::endl);
+
   float pz = pt*(2.3*(g_unif(g_gen)-0.5));//so that we have -1<eta<1
 
   mom=SVector3(px,py,pz);
@@ -81,7 +74,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
   unsigned int simLayer = 0;
 
   hits.reserve(nTotHit);
-  initParams.reserve(nTotHit);
+  initTSs.reserve(nTotHit);
 
   for (unsigned int ihit=0;ihit<nTotHit;++ihit) {  // go to first layer in radius using propagation.h
     //TrackState propState = propagateHelixToR(tmpState,4.*float(ihit+1));//radius of 4*ihit
@@ -221,7 +214,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     float hitPhi  = ((Config::hitposerrXY/initRad)*g_gaus(g_gen))+initPhi;
     float hitRad  = (Config::hitposerrR)*g_gaus(g_gen)+initRad;
 #endif // SCATTERING
-    initParams.push_back(propState.parameters); // if no scattering, will just parameters from prop to next layer
+    initTSs.push_back(propState); // if no scattering, will just parameters from prop to next layer
 
 #ifdef SOLID_SMEAR
     UVector3 scattered_point(scatteredX,scatteredY,scatteredZ);

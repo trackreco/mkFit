@@ -37,36 +37,39 @@ Event::Event(const Geometry& g, Validation& v, unsigned int evtID, int threads) 
 {
   layerHits_.resize(geom_.CountLayers());
   segmentMap_.resize(geom_.CountLayers());
+
+  validation_.resetValidationMaps(); // need to reset maps for every event.
 }
 
-void Event::Simulate(unsigned int nTracks)
+void Event::Simulate()
 {
-  simTracks_.resize(nTracks);
+  simTracks_.resize(Config::nTracks);
   for (auto&& l : layerHits_) {
-    l.reserve(nTracks);
+    l.reserve(Config::nTracks);
   }
 
 #ifdef TBB
-  parallel_for( tbb::blocked_range<size_t>(0, nTracks, 100), 
+  parallel_for( tbb::blocked_range<size_t>(0, Config::nTracks, 100), 
       [&](const tbb::blocked_range<size_t>& itracks) {
 
     const Geometry tmpgeom(geom_.clone()); // USolids isn't thread safe??
     for (auto itrack = itracks.begin(); itrack != itracks.end(); ++itrack) {
 #else
     const Geometry& tmpgeom(geom_);
-    for (unsigned int itrack=0; itrack<nTracks; ++itrack) {
+    for (unsigned int itrack=0; itrack<Config::nTracks; ++itrack) {
 #endif
       //create the simulated track
       SVector3 pos;
       SVector3 mom;
       SMatrixSym66 covtrk;
       HitVec hits;
-      TkParamVec initialParams;
+      TSVec  initialTSs;
       // unsigned int starting_layer  = 0; --> for displaced tracks, may want to consider running a separate Simulate() block with extra parameters
 
       int q=0;//set it in setup function
-      setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,tmpgeom,initialParams);
-      Track sim_track(q,pos,mom,covtrk,hits,0,itrack,initialParams);
+      setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,tmpgeom,initialTSs); // do the simulation
+      validation_.collectSimTkTSVecMapInfo(itrack,initialTSs); // save initial TS parameters
+      Track sim_track(q,pos,mom,covtrk,hits,0,itrack);
       simTracks_[itrack] = sim_track;
     }
 #ifdef TBB
@@ -171,8 +174,7 @@ void Event::Segment()
 void Event::Seed()
 {
 #ifdef ENDTOEND
-  buildSeedsByMC(simTracks_,seedTracks_);
-  //  buildSeedsByRoadTriplets(layerHits_,segmentMap_,seedTracks_);
+  buildSeedsByRoadTriplets(layerHits_,segmentMap_,seedTracks_,*this);
 #else
   buildSeedsByMC(simTracks_,seedTracks_);
 #endif
@@ -197,9 +199,9 @@ void Event::Fit()
 #endif
 }
 
-void Event::ValidateHighLevel(const unsigned int & ievt){
-  validation_.makeSimToTksMaps(seedTracks_,candidateTracks_,fitTracks_);
+void Event::Validate(const unsigned int ievt){
+  validation_.makeSimTkToRecoTksMaps(seedTracks_,candidateTracks_,fitTracks_);
   validation_.fillEffTree(simTracks_,ievt);
-  validation_.makeSeedToTkMaps(candidateTracks_,fitTracks_);
-  validation_.fillFakeRateTree(simTracks_,seedTracks_,ievt);
+  validation_.makeSeedTkToRecoTkMaps(candidateTracks_,fitTracks_);
+  validation_.fillFakeRateTree(seedTracks_,ievt);
 }

@@ -5,7 +5,7 @@
 
 #include "MkFitter.h"
 
-#include "BinInfoUtils.h"
+#include "Config.h"
 
 #include "Timing.h"
 
@@ -239,9 +239,9 @@ void test_standard()
   // int nb, b1, b2;
   // for (float eta = -1.2; eta <= 1.2; eta += 0.01)
   // {
-  //   nb = Config::getBothEtaBins(eta, b1, b2);
+  //   nb = getBothEtaBins(eta, b1, b2);
   //   printf("eta=%6.2f  bin=%3d  bin1=%3d  bin2=%3d nb=%d\n",
-  //          eta, Config::getEtaBin(eta), b1, b2, nb);
+  //          eta, getEtaBin(eta), b1, b2, nb);
   // }
 
   // return;

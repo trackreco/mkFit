@@ -34,13 +34,16 @@ public:
   void Validation(Bool_t mvInput = false);
   void PlotSimGeo();
   void PlotNHits();
-  void PlotResPull();
+  void PlotCFResidual();
+  void PlotCFResolutionPull();
+  void PlotMomResolutionPull();
   void PlotEfficiency();
   void PlotFakeRate();
   void PlotDuplicateRate();
   void PrintTotals();
   void MakeSubDirectory(TDirectory *& subdir, const TString subdirname);
-  void ComputeResPull(const Float_t& mcvar_val, const Float_t& recovar_val, const Float_t& recovar_err, Float_t var_out[]);
+  void ComputeResidual(const Float_t mcvar_val, const Float_t recovar_val, Float_t & var_out);
+  void ComputeResolutionPull(const Float_t mcvar_val, const Float_t recovar_val, const Float_t recovar_err, Float_t var_out[]);
   void ComputeRatioPlot(const TH1F * numer, const TH1F * denom, TH1F *& ratioPlot);
   void ZeroSuppressPlot(TH1F *& histo);
   void DrawWriteTH1Plot(TDirectory *& subdir, TH1F *& histo);
