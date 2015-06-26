@@ -321,6 +321,7 @@ void test_standard()
 
     printf("SMatrix = %.5f   Matriplex = %.5f   ---   SM/MP = %.5f  --- Build SM = %.5f    MX = %.5f    BHSM = %.5f    BHMX = %.5f\n",
            tsm, tmp, tsm / tmp, tsm2, tmp2, tsm2bh, tmp2bh);
+    printf("\n");
 
     s_tmp    += tmp;    s_tsm    += tsm;
     s_tsm2   += tsm2;   s_tmp2   += tmp2;
