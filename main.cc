@@ -35,23 +35,27 @@ void initGeom(Geometry& geom)
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
   float eta = Config::fEtaDet; // can tune this to whatever geometry required (one can make this layer dependent as well)
-  for (int l = 0; l < 10; l++) {
-    float r = (l+1)*4.;
+  for (unsigned int l = 0; l < Config::nLayers; l++) {
+    float r = (l+1)*Config::fRadialSpacing;
     float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
 #ifdef CYLINDER
     std::string s = "Cylinder" + std::string(1, 48+l);
-    UTubs* utub = new UTubs(s, r, r+.01, 100.0, 0, Config::TwoPI);
+    UTubs* utub = new UTubs(s, r, r+Config::fRadialExtent, z, 0, Config::TwoPI);
     geom.AddLayer(utub,r,z);
 #else
-    float xs = 5.0; // approximate sensor size in cm
-    if ( l >= 5 ) // bigger sensors in outer layers
-      xs *= 2.;
+    float xs = 0.;
+    if ( l < 5 ) {
+      xs = Config::fInnerSensorSize;
+    }
+    else if ( l >= 5 ) { // bigger sensors in outer layers
+      xs = Config::fOuterSensorSize;
+    }
     int nsectors = int(Config::TwoPI/(2*atan2(xs/2,r))); // keep ~constant sensors size
     std::cout << "l = " << l << ", nsectors = "<< nsectors << std::endl;
     std::string s = "PolyHedra" + std::string(1, 48+l);
     const double zPlane[] = {-z,z};
     const double rInner[] = {r,r};
-    const double rOuter[] = {r+.01,r+.01};
+    const double rOuter[] = {r+Config::fRadialExtent,r+Config::fRadialExtent};
     UPolyhedra* upolyh = new UPolyhedra(s, 0, Config::TwoPI, nsectors, 2, zPlane, rInner, rOuter);
     geom.AddLayer(upolyh, r, z);
 #endif
@@ -67,10 +71,10 @@ void initGeom(Geometry& geom)
 
   float eta = Config::fEtaDet; // can tune this to whatever geometry required (one can make this layer dependent as well)
 
-  for (int l = 0; l < 10; l++) {
-    float r = (l+1)*4.;
+  for (unsigned int l = 0; l < Config::nLayers; l++) {
+    float r = (l+1)*Config::fRadialSpacing;
     float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
-    VUSolid* utub = new VUSolid(r, r+.01);
+    VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent);
     geom.AddLayer(utub, r, z);
   }
 }
@@ -102,7 +106,7 @@ int main(int argc, char** argv)
   TTreeValidation val("valtree.root");
 #endif
 
-  for ( unsigned int i = 0; i < geom.CountLayers(); ++i ) {
+  for ( unsigned int i = 0; i < Config::nLayers; ++i ) {
     std::cout << "Layer = " << i << ", Radius = " << geom.Radius(i) << std::endl;
   }
 
@@ -125,6 +129,8 @@ int main(int argc, char** argv)
 
     timepoint t0(now());
 #ifdef ENDTOEND
+    //    val.resetValidationMaps(); // need to reset maps for every event.
+
     ev.Simulate();           ticks[0] += delta(t0);
     ev.Segment();            ticks[1] += delta(t0);
     ev.Seed();               ticks[2] += delta(t0);

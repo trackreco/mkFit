@@ -1,19 +1,30 @@
 #ifndef _config_
 #define _config_
 
-#include "Matrix.h"
-
 namespace Config{  
-  // math general
-  static constexpr const float    PI = 3.14159265358979323846;
-  static constexpr const float TwoPI = 6.28318530717958647692;
+  // math general --> from namespace TMath
+  static constexpr const float    PI    = 3.14159265358979323846;
+  static constexpr const float TwoPI    = 6.28318530717958647692;
+  static constexpr const float PIOver2  = Config::PI / 2.0;
+  static constexpr const float PIOver4  = Config::PI / 4.0;
+  static constexpr const float InvPI    = 1.0 / Config::PI;
+  static constexpr const float RadToDeg = 180.0 / Config::PI;
+  static constexpr const float DegToRad = Config::PI / 180.0;
+  static constexpr const double Sqrt2   = 1.4142135623730950488016887242097;
 
   // config on main
   static constexpr const unsigned int nTracks = 500;
   static constexpr const unsigned int nEvents = 100;
 
+  // config on main -- for geometry
+  static constexpr const unsigned int nLayers   = 10;
+  static constexpr const float fRadialSpacing   = 4.;
+  static constexpr const float fRadialExtent    = 0.01;
+  static constexpr const float fInnerSensorSize = 5.0; // approximate sensor size in cm
+  static constexpr const float fOuterSensorSize = fInnerSensorSize * 2.;
+  static constexpr const float fEtaDet          = 2;  // 1 from chep
+
   // config on Event
-  static constexpr const unsigned int nlayers_per_seed = 3;
   static constexpr const unsigned int maxCand = 10;
   static constexpr const float chi2Cut = 15.;
   static constexpr const float nSigma = 3.;
@@ -30,6 +41,9 @@ namespace Config{
   
   static constexpr const float minSimPt = 0.5;
   static constexpr const float maxSimPt = 10.;
+
+  static constexpr const float maxEta   = 1.0;
+
   static constexpr const float hitposerrXY = 0.01; // resolution is 100um in xy
   static constexpr const float hitposerrZ  = 0.1; // resolution is 1mm in z
   static constexpr const float hitposerrR  = hitposerrXY/10.;
@@ -37,11 +51,17 @@ namespace Config{
   static constexpr const float varZ  = hitposerrZ*hitposerrZ;
   static constexpr const float varR  = hitposerrR*hitposerrR;
 
+  static constexpr const unsigned int nTotHit = nLayers; // for now one hit per layer for simu
+
+  // Config for seeding
+  static constexpr const unsigned int nlayers_per_seed = 3;
+
+  static constexpr const float chi2seedcut = 9.0;
+
   // Config for Hit and BinInfoUtils
   static constexpr const unsigned int nPhiPart   = 63; //80; 
-  static constexpr const float        nPhiFactor = nPhiPart / TwoPI;
+  static constexpr const float        fPhiFactor = nPhiPart / TwoPI;
   static constexpr const unsigned int nEtaPart   = 10; // 11;
-  static constexpr const float        fEtaDet    = 2;  // 1
   static constexpr const unsigned int nEtaBin    = 2*nEtaPart - 1;
 
   static constexpr const float        fEtaFull  = 2 * fEtaDet;
@@ -70,13 +90,13 @@ namespace Config{
   static constexpr const float phierr012   = 0.0071; // 0170; 
   static constexpr const float thetaerr012 = 0.0130; // 0.0137; 
 
-  // config for MPlex HitStructures
-  const int g_NEvents           = 10;
-  const int g_NTracks           = 20000;
-  const int g_MaxHitsPerBunch   = std::max((unsigned int)100, g_NTracks * 2 / Config::nEtaPart);
+  // config for MPlex HitStructures // cannot get to compile, commented out for now
+  /*  static constexpr const unsigned int g_NEvents  = 10;
+  static constexpr const unsigned int g_NTracks  = 20000;
+  const unsigned int g_MaxHitsPerBunch = std::max( (unsigned int)(100), (unsigned int)((Config::g_NTracks * 2) / Config::nEtaPart));
 
-  const int g_MaxCandsPerSeed   = 6;
-  const int g_MaxCandsPerEtaBin = std::max((unsigned int)100, g_MaxCandsPerSeed * g_NTracks / Config::nEtaPart);
+  static constexpr const unsigned int g_MaxCandsPerSeed   = 6;
+  const unsigned int g_MaxCandsPerEtaBin = std::max( (unsigned int)(100), (unsigned int)((Config::g_MaxCandsPerSeed * Config::g_NTracks) / Config::nEtaPart));*/
   // Effective eta bin is one half of nEtaPart -- so the above is twice the "average".
   // Note that last and first bin are 3/4 nEtaPart ... but can be made 1/4 by adding
   // additional bins on each end.
