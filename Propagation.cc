@@ -235,7 +235,7 @@ TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom
   // have we scattered out of the solid?
   if (hsin.r0 > 1.0 && !startSolid) {
     UVector3 here(hsin.x,hsin.y,hsin.z);
-    for ( unsigned int i = 0; i < geom.CountLayers(); ++i ) {
+    for ( unsigned int i = 0; i < Config::nLayers; ++i ) {
       auto d = geom.Layer(i)->SafetyFromOutside(here, true);
       if (d < tolerance) {
         startSolid = geom.Layer(i);

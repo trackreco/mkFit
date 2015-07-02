@@ -33,7 +33,14 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
 
   dprint("phi= " << phi << std::endl);
 
-  float pz = pt*(2.3*(g_unif(g_gen)-0.5));//so that we have -1<eta<1
+  // this generates flat in eta
+  
+  float eta = Config::maxEta*g_unif(g_gen);
+  float pz  = pt*(1./(std::tan(2*std::atan(std::exp(-eta)))));
+  if (g_unif(g_gen)>0.5) pz*=-1.;
+  
+  // flat in pz
+  //  float pz = pt*(2.3*(g_unif(g_gen)-0.5));//so that we have -1<eta<1
 
   mom=SVector3(px,py,pz);
   covtrk=ROOT::Math::SMatrixIdentity();
@@ -60,23 +67,21 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
 
   // useful info for loopers/overlaps
 
-  unsigned int nLayers = geom.CountLayers();
-  unsigned int layer_counts[nLayers];
-  for (unsigned int ilayer=0;ilayer<nLayers;++ilayer){
+  unsigned int layer_counts[Config::nLayers];
+  for (unsigned int ilayer=0;ilayer<Config::nLayers;++ilayer){
     layer_counts[ilayer]=0;
   }
 
-  unsigned int nTotHit = nLayers; // can tune this number!
-  // to include loopers, and would rather add a break on the code if layer ten exceeded
+  // to include loopers would rather add a break on the code if nLayers
   // if block BREAK if hit.Layer == theGeom->CountLayers() 
   // else --> if (NMAX TO LOOPER (maybe same as 10?) {break;} else {continue;}
   
-  unsigned int simLayer = 0;
+  unsigned int simLayer = 0; // use to keep track where hit lies on, will proceed monotonically increasing without loopers/overlaps
 
-  hits.reserve(nTotHit);
-  initTSs.reserve(nTotHit);
+  hits.reserve(Config::nTotHit);
+  initTSs.reserve(Config::nTotHit);
 
-  for (unsigned int ihit=0;ihit<nTotHit;++ihit) {  // go to first layer in radius using propagation.h
+  for (unsigned int ihit=0;ihit<Config::nTotHit;++ihit) {  // go to first layer in radius using propagation.h
     //TrackState propState = propagateHelixToR(tmpState,4.*float(ihit+1));//radius of 4*ihit
     auto propState = propagateHelixToNextSolid(tmpState,geom);
 
