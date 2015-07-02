@@ -1,7 +1,10 @@
 #ifndef _bininfoutils_
 #define _bininfoutils_
 
-#include "TMath.h"
+// could #include "TMath.h", but then this is problematic for non root running.  This compiles and runs without tmath.h
+
+#include <cmath>
+#include <vector>
 #include "Config.h"
 
 typedef std::pair<unsigned int,unsigned int> BinInfo;
@@ -12,7 +15,7 @@ inline unsigned int getPhiPartition(float phi){
   //assume phi is between -PI and PI
   //  if (!(fabs(phi)<Config::PI)) std::cout << "anomalous phi=" << phi << std::endl;
   const float phiPlusPi  = phi+Config::PI;
-  const unsigned int bin = phiPlusPi*Config::nPhiFactor;
+  const unsigned int bin = phiPlusPi*Config::fPhiFactor;
   return bin;
 }
 
@@ -22,13 +25,25 @@ inline unsigned int getEtaPartition(float eta){
   return bin;
 }
 
-inline float normalizedPhi(float phi) {
-  return std::fmod(phi, (float) Config::PI);
+inline float downPhi(float phi){
+  while (phi > Config::PI) {phi-=Config::TwoPI;}
+  return phi;
+}
+	
+inline float upPhi(float phi){
+  while (phi < -Config::PI) {phi+=Config::TwoPI;}
+  return phi;
 }
 
+inline float normalizedPhi(float phi) {
+  //  return std::fmod(phi, (float) Config::PI); // return phi +pi out of phase for |phi| beyond boundary! 
+  if (fabs(phi)>Config::PI) {phi = (phi>0 ? downPhi(phi) : upPhi(phi));}
+  return phi;
+}
+			      
 #ifdef ETASEG
 inline float normalizedEta(float eta) {
-  if (fabs(eta)>Config::fEtaDet) eta = (eta>0 ? Config::fEtaDet*0.99 : -Config::fEtaDet*0.99);
+  if (fabs(eta)>Config::fEtaDet) {eta = (eta>0 ? Config::fEtaDet*0.99 : -Config::fEtaDet*0.99);}
   return eta;
 }
 #endif

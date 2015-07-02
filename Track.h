@@ -141,5 +141,6 @@ private:
 typedef std::vector<Track> TrackVec;
 typedef std::vector<Track*> TrackRefVec;
 typedef std::vector<TrackState> TSVec;
+typedef std::vector<std::pair<unsigned int, TrackState> > TSLayerPairVec;
 
 #endif

@@ -35,8 +35,8 @@ static bool sortByZ(const Hit& hit1, const Hit& hit2){
 
 Event::Event(const Geometry& g, Validation& v, unsigned int evtID, int threads) : geom_(g), validation_(v), evtID_(evtID), threads_(threads)
 {
-  layerHits_.resize(geom_.CountLayers());
-  segmentMap_.resize(geom_.CountLayers());
+  layerHits_.resize(Config::nLayers);
+  segmentMap_.resize(Config::nLayers);
 
   validation_.resetValidationMaps(); // need to reset maps for every event.
 }
@@ -174,15 +174,17 @@ void Event::Segment()
 void Event::Seed()
 {
 #ifdef ENDTOEND
-  buildSeedsByRoadTriplets(layerHits_,segmentMap_,seedTracks_,*this);
+  //  buildSeedsByRoadTriplets(layerHits_,segmentMap_,seedTracks_,*this);
+  buildSeedsByMC(simTracks_,seedTracks_,*this);
 #else
-  buildSeedsByMC(simTracks_,seedTracks_);
+  buildSeedsByMC(simTracks_,seedTracks_,*this);
 #endif
   std::sort(seedTracks_.begin(), seedTracks_.end(), tracksByPhi);
 }
 
 void Event::Find()
 {
+  
   buildTracksBySeeds(*this);
   //  buildTracksByLayers(*this);
 

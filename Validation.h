@@ -7,10 +7,14 @@ public:
   virtual void resetValidationMaps() {}
 
   virtual void collectSimTkTSVecMapInfo(const unsigned int, const TSVec&) {}
-  virtual void collectSeedTkCFMapInfo(const unsigned int, const TrackState&) {}
-  virtual void collectFitTkCFMapInfo(const unsigned int, const TrackState&) {}
 
-  virtual void fillBuildTree(const unsigned int, const unsigned int, const unsigned int) {}
+  virtual void collectSeedTkCFMapInfo(const unsigned int, const TrackState&) {}
+  virtual void collectSeedTkTSLayerPairVecMapInfo(const unsigned int, const TSLayerPairVec&) {}
+
+  virtual void collectFitTkCFMapInfo(const unsigned int, const TrackState&) {}
+  virtual void collectFitTkTSLayerPairVecMapInfo(const unsigned int, const TSLayerPairVec&) {}
+
+  virtual void fillBuildTree(const unsigned int, const unsigned int, const std::vector<unsigned int>&, const std::vector<unsigned int>&, const std::vector<unsigned int>&) {}
 
   virtual void makeSimTkToRecoTksMaps(TrackVec&, TrackVec&, TrackVec&) {}
   virtual void fillEffTree(const TrackVec&, const unsigned int) {}

@@ -5,26 +5,33 @@
 #include "KalmanUtils.h"
 #include "Propagation.h"
 
-void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks){
+void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, Event& ev){
   for (unsigned int itrack=0;itrack<evt_sim_tracks.size();++itrack) {
     const Track& trk = evt_sim_tracks[itrack];
     const HitVec& hits = trk.hitsVector();
     HitVec seedhits;
     float chi2 = 0;
     TrackState updatedState = trk.state();
+
+    TSLayerPairVec updatedStates; // validation for position pulls
+
     for (auto ilayer=0U;ilayer<Config::nlayers_per_seed;++ilayer) {//seeds have first three layers as seeds
       Hit seed_hit = hits[ilayer]; // do this for now to make initHits element number line up with HitId number
       TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
 #ifdef CHECKSTATEVALID
       if (!propState.valid) {
-        break;
+	break;
       }
 #endif
       MeasurementState measState = seed_hit.measurementState();
       updatedState = updateParameters(propState, measState);
       seedhits.push_back(seed_hit);
-      //      chi2 += computeChi2(propState,measState); --> could use this to make the chi2
+      //      chi2 += computeChi2(updatedState,measState); --> could use this to make the chi2
+
+      updatedStates.push_back(std::make_pair(ilayer,updatedState)); // validation
     }
+    ev.validation_.collectSeedTkTSLayerPairVecMapInfo(itrack,updatedStates); // use to collect position pull info
+
     Track seed(updatedState,seedhits,chi2,itrack);//fixme chi2 // itrack is seedID in this case
     evt_seed_tracks.push_back(seed);
   }
@@ -168,7 +175,7 @@ void filterHitTripletsByRZChi2(const std::vector<HitVec>& hit_triplets, std::vec
       chi2fit += pow((seedhit.z() - aParam - (bParam * seedhit.r())),2) / varZ;
     }
 
-    if (chi2fit<9.0){ // cut empirically derived
+    if (chi2fit<Config::chi2seedcut){ // cut empirically derived
       filtered_triplets.push_back(hit_triplet);
     }
   }
@@ -188,6 +195,8 @@ void buildSeedsFromTriplets(const std::vector<HitVec> & filtered_triplets, Track
     TrackState updatedState;
     conformalFit(hit_triplet[0],hit_triplet[1],hit_triplet[2],charge,updatedState,backward,fiterrs); 
     ev.validation_.collectSeedTkCFMapInfo(seedID,updatedState);
+
+    TSLayerPairVec updatedStates; // validation for position pulls
     
     for (auto ilayer=0U;ilayer<Config::nlayers_per_seed;++ilayer) {
       Hit seed_hit = hit_triplet[ilayer];
@@ -199,7 +208,12 @@ void buildSeedsFromTriplets(const std::vector<HitVec> & filtered_triplets, Track
 #endif
       MeasurementState measState = seed_hit.measurementState();
       updatedState = updateParameters(propState, measState);
+      //      chi2 += computeChi2(updatedState,measState); --> could use this to make the chi2
+
+      updatedStates.push_back(std::make_pair(ilayer,updatedState)); // validation
     }
+    ev.validation_.collectSeedTkTSLayerPairVecMapInfo(seedID,updatedStates); // use to collect position pull info
+
     Track seed(updatedState,hit_triplet,0.,seedID);//fixme chi2 
     evt_seed_tracks.push_back(seed);
     seedID++; // increment dummy counter for seedID

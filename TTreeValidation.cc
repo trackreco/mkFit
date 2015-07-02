@@ -7,6 +7,7 @@
 // --> nTkMatches_[reco] == 1,  1 reco track associated to single sim track ID {eff only}
 // --> nTkMatches_[reco] == -99, no reco to sim match {eff only}
 
+// excluding position variables, as position could be -99!
 // --> reco var == -99, "unassociated" reco to sim track, mcTrackID == 999999 [possible mcmask_[reco] == 0; possible duplmask_[reco] == 2] {eff only}
 // --> sim  var == -99, "unassociated" reco to sim track, mcTrackID == 999999 [possible mcmask_[reco] == 0; possible duplmask_[reco] == 2] {FR only}
 // --> reco/sim var == -100, "no matching seed to build/fit" track, fill all reco/sim variables -100 [possible mcmask_[reco] == -1, possible duplmask_[reco] == -1] {FR only}
@@ -20,6 +21,10 @@
 // --> duplmask_[reco] == -1, no matching built/fit track for given seed [possible mcmask_[reco] == -1] {FR only}
 
 // --> reco var == -10, variable not yet implemented for given track object
+
+// position reco variables
+// --> layers_[reco]    ==  -1, reco unassociated to sim tk {eff only}
+// --> reco pos+err var == -2000, reco tk is unassociated to sim tk, just filled once {eff only}
 
 #include "TTreeValidation.h"
 #include "Config.h"
@@ -48,6 +53,9 @@ TTreeValidation::TTreeValidation(std::string fileName)
   gROOT->ProcessLine("#include <vector>");
   f_ = TFile::Open(fileName.c_str(), "recreate");
   // configuration storage
+
+  // include ALL config ++ real seeding parameters ...
+
   configtree_ = new TTree("configtree","configtree");
   configtree_->Branch("simtime",&simtime_);
   configtree_->Branch("segtime",&segtime_);
@@ -58,11 +66,17 @@ TTreeValidation::TTreeValidation(std::string fileName)
 
   configtree_->Branch("Ntracks",&Ntracks_);
   configtree_->Branch("Nevents",&Nevents_);
+  
+  configtree_->Branch("nLayers",&nLayers_);
+  configtree_->Branch("fRadialSpacing",&fRadialSpacing_);
+  configtree_->Branch("fRadialExtent",&fRadialExtent_);
+  configtree_->Branch("fInnerSensorSize",&fInnerSensorSize_);
+  configtree_->Branch("fOuterSensorSize",&fOuterSensorSize_);
+  configtree_->Branch("fEtaDet",&fEtaDet_);
 
   configtree_->Branch("nPhiPart",&nPhiPart_);
-  configtree_->Branch("nPhiFactor",&nPhiFactor_);
+  configtree_->Branch("fPhiFactor",&fPhiFactor_);
   configtree_->Branch("nEtaPart",&nEtaPart_);
-  configtree_->Branch("fEtaDet",&fEtaDet_);
 
   configtree_->Branch("nlayers_per_seed",&nlayers_per_seed_);
   configtree_->Branch("maxCand",&maxCand_);
@@ -87,6 +101,8 @@ TTreeValidation::TTreeValidation(std::string fileName)
   configtree_->Branch("varXY",&varXY_);
   configtree_->Branch("varZ",&varZ_);
 
+  configtree_->Branch("nTotHit",&nTotHit_);
+
   configtree_->Branch("ptinverr049",&ptinverr049_);
   configtree_->Branch("phierr049",&phierr049_);
   configtree_->Branch("thetaerr049",&thetaerr049_);
@@ -96,9 +112,11 @@ TTreeValidation::TTreeValidation(std::string fileName)
 
   // build validation
   tree_br_ = new TTree("tree_br","tree_br");
-  tree_br_->Branch("layer",&layer_,"layer/i");
-  tree_br_->Branch("branches",&branches_,"branches/i");
-  tree_br_->Branch("cands",&cands_,"cands/i");
+  tree_br_->Branch("layer",&layer_);
+  tree_br_->Branch("cands",&cands_);
+  tree_br_->Branch("candEtaPhiBins",&candEtaPhiBins_);
+  tree_br_->Branch("candHits",&candHits_);
+  tree_br_->Branch("candBranches",&candBranches_);
   
   // efficiency validation
   efftree_ = new TTree("efftree","efftree");
@@ -228,6 +246,28 @@ TTreeValidation::TTreeValidation(std::string fileName)
   efftree_->Branch("theta_cf_fit",&theta_cf_fit_eff_);
   efftree_->Branch("etheta_cf_fit",&etheta_cf_fit_eff_);
 
+  // end of conformal stuff
+
+  // position pull info --> should be on it's own tree or not included at all...
+  efftree_->Branch("layers_seed",&layers_seed_eff_);
+  efftree_->Branch("layers_fit",&layers_fit_eff_);
+
+  efftree_->Branch("x_lay_seed",&x_lay_seed_eff_);
+  efftree_->Branch("y_lay_seed",&y_lay_seed_eff_);
+  efftree_->Branch("z_lay_seed",&z_lay_seed_eff_);
+  efftree_->Branch("ex_lay_seed",&ex_lay_seed_eff_);
+  efftree_->Branch("ey_lay_seed",&ey_lay_seed_eff_);
+  efftree_->Branch("ez_lay_seed",&ez_lay_seed_eff_);
+
+  efftree_->Branch("x_lay_fit",&x_lay_fit_eff_);
+  efftree_->Branch("y_lay_fit",&y_lay_fit_eff_);
+  efftree_->Branch("z_lay_fit",&z_lay_fit_eff_);
+  efftree_->Branch("ex_lay_fit",&ex_lay_fit_eff_);
+  efftree_->Branch("ey_lay_fit",&ey_lay_fit_eff_);
+  efftree_->Branch("ez_lay_fit",&ez_lay_fit_eff_);
+  
+  // end of position pull info
+
   efftree_->Branch("nHits_seed",&nHits_seed_eff_);
   efftree_->Branch("nHits_build",&nHits_build_eff_);
   efftree_->Branch("nHits_fit",&nHits_fit_eff_);
@@ -341,12 +381,16 @@ TTreeValidation::TTreeValidation(std::string fileName)
   fakeratetree_->Branch("iTkMatches_fit",&iTkMatches_fit_FR_);
 }
 
-void TTreeValidation::fillBuildTree(const unsigned int layer, const unsigned int branches, const unsigned int cands)
+void TTreeValidation::fillBuildTree(const unsigned int layer, const unsigned int cands, const std::vector<unsigned int>& candEtaPhiBins, const std::vector<unsigned int>& candHits, const std::vector<unsigned int>& candBranches)
 {
   std::lock_guard<std::mutex> locker(glock_);
-  layer_    = layer;
-  branches_ = branches;
-  cands_    = cands;
+  layer_ = layer;
+  cands_ = cands;
+
+  candEtaPhiBins_ = candEtaPhiBins;
+  candHits_       = candHits;
+  candBranches_   = candBranches;
+
   tree_br_->Fill();
 }
 
@@ -359,6 +403,10 @@ void TTreeValidation::resetValidationMaps(){
   // reset map of reco tracks to Conformal Fit track states 
   seedTkCFMap_.clear();
   fitTkCFMap_.clear(); 
+
+  // reset map of reco tracks to updated layer track states and bool pairs
+  seedTkTSLayerPairVecMap_.clear();
+  fitTkTSLayerPairVecMap_.clear();
 
   // reset map of sim tracks to reco tracks
   simToSeedMap_.clear();
@@ -378,8 +426,16 @@ void TTreeValidation::collectSeedTkCFMapInfo(const unsigned int seedID, const Tr
   seedTkCFMap_[seedID] = cfitStateHit0;
 }
 
+void TTreeValidation::collectSeedTkTSLayerPairVecMapInfo(const unsigned int seedID, const TSLayerPairVec& updatedStates){
+  seedTkTSLayerPairVecMap_[seedID] = updatedStates;
+}
+
 void TTreeValidation::collectFitTkCFMapInfo(const unsigned int seedID, const TrackState& cfitStateHit0){
   fitTkCFMap_[seedID] = cfitStateHit0;
+}
+
+void TTreeValidation::collectFitTkTSLayerPairVecMapInfo(const unsigned int seedID, const TSLayerPairVec& updatedStates){
+  fitTkTSLayerPairVecMap_[seedID] = updatedStates;
 }
 
 void TTreeValidation::makeSimTkToRecoTksMaps(TrackVec& evt_seed_tracks, TrackVec& evt_build_tracks, TrackVec& evt_fit_tracks){
@@ -445,7 +501,7 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
     x_mc_reco_hit_eff_.clear();
     y_mc_reco_hit_eff_.clear();
     z_mc_reco_hit_eff_.clear();
-    for (auto&& simhit : simtrack.hitsVector()){
+    for (auto&& simhit : simtrack.hitsVector()){ // assume one hit per layer
       x_mc_reco_hit_eff_.push_back(simhit.x());
       y_mc_reco_hit_eff_.push_back(simhit.y());
       z_mc_reco_hit_eff_.push_back(simhit.z());
@@ -454,6 +510,23 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
     x_mc_gen_vrx_eff_ = simtrack.x();
     y_mc_gen_vrx_eff_ = simtrack.y();
     z_mc_gen_vrx_eff_ = simtrack.z();
+
+    // clear vectors for position pulls
+    layers_seed_eff_.clear();
+    x_lay_seed_eff_.clear();
+    y_lay_seed_eff_.clear();
+    z_lay_seed_eff_.clear();
+    ex_lay_seed_eff_.clear();
+    ey_lay_seed_eff_.clear();
+    ez_lay_seed_eff_.clear();
+
+    layers_fit_eff_.clear();
+    x_lay_fit_eff_.clear();
+    y_lay_fit_eff_.clear();
+    z_lay_fit_eff_.clear();
+    ex_lay_fit_eff_.clear();
+    ey_lay_fit_eff_.clear();
+    ez_lay_fit_eff_.clear();
 
     // matched seed track
     if (simToSeedMap_.count(mcID_eff_)){ // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToSeedMap_[matched SimID][first element in vector]
@@ -491,7 +564,7 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
       phi_mc_cf_seed_eff_   = getPhi(px_mc_cf_seed_eff_,py_mc_cf_seed_eff_);
       theta_mc_cf_seed_eff_ = getTheta(pt_mc_cf_seed_eff_,pz_mc_cf_seed_eff_);
 
-      const TrackState & cfSeedTS = seedTkCFMap_[simToSeedMap_[mcID_eff_][0]->seedID()];
+      const TrackState & cfSeedTS = seedTkCFMap_[seedID_seed_eff_];
 
       x_cf_seed_eff_ = cfSeedTS.parameters.At(0);
       y_cf_seed_eff_ = cfSeedTS.parameters.At(1);
@@ -518,6 +591,20 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
       einvpt_cf_seed_eff_ = std::sqrt(getInvRadErr2(px_cf_seed_eff_,py_cf_seed_eff_,epx_cf_seed_eff_,epy_cf_seed_eff_,cfSeedTS.errors(3,4)));
       ephi_cf_seed_eff_   = std::sqrt(getPhiErr2(px_cf_seed_eff_,py_cf_seed_eff_,epx_cf_seed_eff_,epy_cf_seed_eff_,cfSeedTS.errors(3,4)));
       etheta_cf_seed_eff_ = std::sqrt(getThetaErr2(cfSeedTS.parameters.At(3),cfSeedTS.parameters.At(4),cfSeedTS.parameters.At(5),cfSeedTS.errors.At(3,3),cfSeedTS.errors.At(4,4),cfSeedTS.errors(5,5),cfSeedTS.errors(3,4),cfSeedTS.errors(3,5),cfSeedTS.errors(4,5)));
+
+      // position pull info
+      const TSLayerPairVec & seedTSLayerPairVec = seedTkTSLayerPairVecMap_[seedID_seed_eff_];
+      for (unsigned int ilay = 0; ilay < seedTSLayerPairVec.size(); ilay++){ // loop over layers present in pair vector
+	layers_seed_eff_.push_back(seedTSLayerPairVec[ilay].first); // want to push back the ACTUAL layers stored, not the index of the loop!
+	
+	x_lay_seed_eff_.push_back(seedTSLayerPairVec[ilay].second.parameters.At(0)); // therefore, trackstate filled in sync with the layer it was saved on for the vector
+	y_lay_seed_eff_.push_back(seedTSLayerPairVec[ilay].second.parameters.At(1));
+	z_lay_seed_eff_.push_back(seedTSLayerPairVec[ilay].second.parameters.At(2));
+	
+	ex_lay_seed_eff_.push_back(std::sqrt(seedTSLayerPairVec[ilay].second.errors.At(0,0)));
+	ey_lay_seed_eff_.push_back(std::sqrt(seedTSLayerPairVec[ilay].second.errors.At(1,1)));
+	ez_lay_seed_eff_.push_back(std::sqrt(seedTSLayerPairVec[ilay].second.errors.At(2,2)));
+      }
 
       // rest of mc info
       nHits_seed_eff_           = simToSeedMap_[mcID_eff_][0]->nHits();
@@ -546,9 +633,9 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
       eta_seed_eff_  = -99;
       eeta_seed_eff_ = -99;
 
-      x_mc_cf_seed_eff_ = -99;
-      y_mc_cf_seed_eff_ = -99; 
-      z_mc_cf_seed_eff_ = -99; 
+      x_mc_cf_seed_eff_ = -2000;
+      y_mc_cf_seed_eff_ = -2000;
+      z_mc_cf_seed_eff_ = -2000;
 
       px_mc_cf_seed_eff_ = -99;
       py_mc_cf_seed_eff_ = -99;
@@ -559,13 +646,13 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
       phi_mc_cf_seed_eff_   = -99;
       theta_mc_cf_seed_eff_ = -99;
 
-      x_cf_seed_eff_ = -99;
-      y_cf_seed_eff_ = -99;
-      z_cf_seed_eff_ = -99;
+      x_cf_seed_eff_ = -2000;
+      y_cf_seed_eff_ = -2000;
+      z_cf_seed_eff_ = -2000;
       
-      ex_cf_seed_eff_ = -99;
-      ey_cf_seed_eff_ = -99;
-      ez_cf_seed_eff_ = -99;
+      ex_cf_seed_eff_ = -2000;
+      ey_cf_seed_eff_ = -2000;
+      ez_cf_seed_eff_ = -2000;
 
       px_cf_seed_eff_ = -99;
       py_cf_seed_eff_ = -99;
@@ -585,6 +672,16 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
       ephi_cf_seed_eff_   = -99;
       etheta_cf_seed_eff_ = -99;
 
+      layers_seed_eff_.push_back(-1); // mask per layer
+      
+      x_lay_seed_eff_.push_back(-2000);
+      y_lay_seed_eff_.push_back(-2000);
+      z_lay_seed_eff_.push_back(-2000);
+      
+      ex_lay_seed_eff_.push_back(-2000);
+      ey_lay_seed_eff_.push_back(-2000);
+      ez_lay_seed_eff_.push_back(-2000);
+
       nHits_seed_eff_           = -99;
       nHitsMatched_seed_eff_    = -99;
       fracHitsMatched_seed_eff_ = -99;
@@ -592,8 +689,8 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
       hitchi2_seed_eff_   = -99;
       helixchi2_seed_eff_ = -99;
       
-      duplmask_seed_eff_ = 2; // mask means unmatched sim track
-      nTkMatches_seed_eff_    = -99; // unmatched
+      duplmask_seed_eff_   = 2; // mask means unmatched sim track
+      nTkMatches_seed_eff_ = -99; // unmatched
     }
 
     // matched build track
@@ -689,7 +786,7 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
       phi_mc_cf_fit_eff_   = getPhi(px_mc_cf_fit_eff_,py_mc_cf_fit_eff_);
       theta_mc_cf_fit_eff_ = getTheta(pt_mc_cf_fit_eff_,pz_mc_cf_fit_eff_);
 
-      const TrackState & cfFitTS = fitTkCFMap_[simToFitMap_[mcID_eff_][0]->seedID()];
+      const TrackState & cfFitTS = fitTkCFMap_[seedID_fit_eff_];
 
       x_cf_fit_eff_ = cfFitTS.parameters.At(0);
       y_cf_fit_eff_ = cfFitTS.parameters.At(1);
@@ -717,6 +814,20 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
       ephi_cf_fit_eff_   = std::sqrt(getPhiErr2(cfFitTS.parameters.At(3),cfFitTS.parameters.At(4),cfFitTS.errors.At(3,3),cfFitTS.errors.At(4,4),cfFitTS.errors(3,4)));
       etheta_cf_fit_eff_ = std::sqrt(getThetaErr2(cfFitTS.parameters.At(3),cfFitTS.parameters.At(4),cfFitTS.parameters.At(5),cfFitTS.errors.At(3,3),cfFitTS.errors.At(4,4),cfFitTS.errors(5,5),cfFitTS.errors(3,4),cfFitTS.errors(3,5),cfFitTS.errors(4,5)));
       
+      // position pull info
+      const TSLayerPairVec & fitTSLayerPairVec = fitTkTSLayerPairVecMap_[seedID_fit_eff_];
+      for (unsigned int ilay = 0; ilay < fitTSLayerPairVec.size(); ilay++){
+	layers_fit_eff_.push_back(fitTSLayerPairVec[ilay].first); // want ACTUAL layers fit landed on, not the index of pair vec
+	
+	x_lay_fit_eff_.push_back(fitTSLayerPairVec[ilay].second.parameters.At(0)); // TS in sync with layer it landed on
+	y_lay_fit_eff_.push_back(fitTSLayerPairVec[ilay].second.parameters.At(1));
+	z_lay_fit_eff_.push_back(fitTSLayerPairVec[ilay].second.parameters.At(2));
+	
+	ex_lay_fit_eff_.push_back(std::sqrt(fitTSLayerPairVec[ilay].second.errors.At(0,0)));
+	ey_lay_fit_eff_.push_back(std::sqrt(fitTSLayerPairVec[ilay].second.errors.At(1,1)));
+	ez_lay_fit_eff_.push_back(std::sqrt(fitTSLayerPairVec[ilay].second.errors.At(2,2)));
+      }
+
       // rest of mc info
       nHits_fit_eff_           = simToFitMap_[mcID_eff_][0]->nHits();
       nHitsMatched_fit_eff_    = simToFitMap_[mcID_eff_][0]->nHitsMatched();
@@ -744,9 +855,9 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
       eta_fit_eff_  = -99;
       eeta_fit_eff_ = -99;
 
-      x_mc_cf_fit_eff_ = -99;
-      y_mc_cf_fit_eff_ = -99; 
-      z_mc_cf_fit_eff_ = -99; 
+      x_mc_cf_fit_eff_ = -2000;
+      y_mc_cf_fit_eff_ = -2000;
+      z_mc_cf_fit_eff_ = -2000;
 
       px_mc_cf_fit_eff_ = -99;
       py_mc_cf_fit_eff_ = -99;
@@ -757,13 +868,13 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
       phi_mc_cf_fit_eff_   = -99;
       theta_mc_cf_fit_eff_ = -99;
 
-      x_cf_fit_eff_ = -99;
-      y_cf_fit_eff_ = -99;
-      z_cf_fit_eff_ = -99;
+      x_cf_fit_eff_ = -2000;
+      y_cf_fit_eff_ = -2000;
+      z_cf_fit_eff_ = -2000;
       
-      ex_cf_fit_eff_ = -99;
-      ey_cf_fit_eff_ = -99;
-      ez_cf_fit_eff_ = -99;
+      ex_cf_fit_eff_ = -2000;
+      ey_cf_fit_eff_ = -2000;
+      ez_cf_fit_eff_ = -2000;
 
       px_cf_fit_eff_ = -99;
       py_cf_fit_eff_ = -99;
@@ -782,6 +893,16 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
       einvpt_cf_fit_eff_ = -99;
       ephi_cf_fit_eff_   = -99;
       etheta_cf_fit_eff_ = -99;
+
+      layers_fit_eff_.push_back(-1); // mask per layer
+      
+      x_lay_fit_eff_.push_back(-2000);
+      y_lay_fit_eff_.push_back(-2000);
+      z_lay_fit_eff_.push_back(-2000);
+      
+      ex_lay_fit_eff_.push_back(-2000);
+      ey_lay_fit_eff_.push_back(-2000);
+      ez_lay_fit_eff_.push_back(-2000);
 
       nHits_fit_eff_           = -99;
       nHitsMatched_fit_eff_    = -99;
@@ -1031,10 +1152,16 @@ void TTreeValidation::fillConfigTree(const std::vector<double>& ticks){
   Ntracks_ = Config::nTracks;
   Nevents_ = Config::nEvents;
 
+  nLayers_ = Config::nLayers;
+  fRadialSpacing_ = Config::fRadialSpacing;
+  fRadialExtent_  = Config::fRadialExtent;
+  fInnerSensorSize_ = Config::fInnerSensorSize;
+  fOuterSensorSize_ = Config::fOuterSensorSize;
+  fEtaDet_ = Config::fEtaDet;
+
   nPhiPart_   = Config::nPhiPart;
-  nPhiFactor_ = Config::nPhiFactor;
+  fPhiFactor_ = Config::fPhiFactor;
   nEtaPart_   = Config::nEtaPart;
-  fEtaDet_    = Config::fEtaDet;
 
   nlayers_per_seed_ = Config::nlayers_per_seed;
   maxCand_ = Config::maxCand;
@@ -1058,6 +1185,8 @@ void TTreeValidation::fillConfigTree(const std::vector<double>& ticks){
   varXY_ = Config::varXY;
   varZ_  = Config::varZ;
   
+  nTotHit_ = Config::nTotHit;
+
   ptinverr049_ = Config::ptinverr049;
   phierr049_   = Config::phierr049;
   thetaerr049_ = Config::thetaerr049;

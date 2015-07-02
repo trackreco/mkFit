@@ -33,20 +33,23 @@ PlotValidation::PlotValidation(TString inName, TString outName, TString outType)
   gStyle->SetStatH(0.08);
 
   fTH1Canv = new TCanvas();
+  fTH2Canv = new TCanvas();
 }
 
 PlotValidation::~PlotValidation(){
   delete fInRoot;
   delete fOutRoot; // will delete all pointers to subdirectory
   delete fTH1Canv;
+  delete fTH2Canv;
 }
 
 void PlotValidation::Validation(Bool_t mvInput){
+  PlotValidation::PlotBranching();
   PlotValidation::PlotSimGeo();  
   PlotValidation::PlotNHits(); 
   PlotValidation::PlotCFResidual();
   PlotValidation::PlotCFResolutionPull();
-  //PlotValidation::PlotPosResoluationPull(); 
+  PlotValidation::PlotPosResoluationPull(); 
   PlotValidation::PlotMomResolutionPull(); 
   PlotValidation::PlotEfficiency(); 
   PlotValidation::PlotFakeRate();
@@ -58,9 +61,109 @@ void PlotValidation::Validation(Bool_t mvInput){
   }
 }
 
+void PlotValidation::PlotBranching(){
+  // Get tree
+  TTree * tree_br = (TTree*)fInRoot->Get("tree_br");
+  
+  // Get config tree for printing out info
+  TTree * configtree = (TTree*)fInRoot->Get("configtree"); // use to get nLayers
+  UInt_t  nLayers = 0;
+  configtree->SetBranchAddress("nLayers",&nLayers);
+  configtree->GetEntry(0);
+
+  // make output subdirectory and subdir in ROOT file, and cd to it.
+  TString subdirname = "branching"; 
+  TDirectory * subdir;
+  PlotValidation::MakeSubDirectory(subdir,subdirname);
+
+  // make plots, ensure in right directory
+  subdir->cd();
+  TH2I * laycands = new TH2I("h_lay_vs_cands","Layer vs Candidates",20,0,20,nLayers,0,nLayers);
+  laycands->GetXaxis()->SetTitle("Number of Input Candidates Per Seed / Layer");
+  laycands->GetYaxis()->SetTitle("Layer");  
+
+  TH2I * layetaphibins = new TH2I("h_lay_vs_etaphibins","Layer vs nEtaPhiBins",20,0,20,nLayers,0,nLayers);
+  layetaphibins->GetXaxis()->SetTitle("Number of Temporary Candidate EtaPhiBins Produced Per Seed / Layer");
+  layetaphibins->GetYaxis()->SetTitle("Layer");
+  TH2I * layhits = new TH2I("h_lay_vs_hits","Layer vs Hits",50,0,50,nLayers,0,nLayers);
+  layhits->GetXaxis()->SetTitle("Total Number of Hits Explored Per Seed / Layer");
+  layhits->GetYaxis()->SetTitle("Layer");
+  TH2I * laybranches = new TH2I("h_lay_vs_branches","Layer vs Branches",20,0,20,nLayers,0,nLayers);
+  laybranches->GetXaxis()->SetTitle("Number of Temporary Candidate Branches Produced Per Seed / Layer");
+  laybranches->GetYaxis()->SetTitle("Layer");
+
+  TH2I * layetaphibins_percand = new TH2I("h_lay_vs_etaphibins_percand","Layer vs nEtaPhiBins per Cand",20,0,20,nLayers,0,nLayers);
+  layetaphibins_percand->GetXaxis()->SetTitle("Number of Temporary Candidate nEtaPhiBins Produced Per Input Candidate Per Seed / Layer");
+  layetaphibins_percand->GetYaxis()->SetTitle("Layer");
+  TH2I * layhits_percand = new TH2I("h_lay_vs_hits_percand","Layer vs Hits per Cand",50,0,50,nLayers,0,nLayers);
+  layhits_percand->GetXaxis()->SetTitle("Total Number of Hits Explored Per Input Candidate Per Seed / Layer");
+  layhits_percand->GetYaxis()->SetTitle("Layer");
+  TH2I * laybranches_percand = new TH2I("h_lay_vs_branches_percand","Layer vs Branches per Cand",20,0,20,nLayers,0,nLayers);
+  laybranches_percand->GetXaxis()->SetTitle("Number of Temporary Candidate Branches Produced Per Input Candidate Per Seed / Layer");
+  laybranches_percand->GetYaxis()->SetTitle("Layer");
+
+  // see comment in plotsimgeo about vectors. set up branches here
+  std::vector<UInt_t> * candEtaPhiBins = 0;
+  std::vector<UInt_t> * candHits       = 0;
+  std::vector<UInt_t> * candBranches   = 0;
+  
+  UInt_t layer  = 0;
+  UInt_t nCands = 0;
+  UInt_t nCandEtaPhiBins = 0; // sum of vector
+  UInt_t nCandHits       = 0; // sum of vector
+  UInt_t nCandBranches   = 0; // sum of vector 
+
+  tree_br->SetBranchAddress("layer",&layer);
+  tree_br->SetBranchAddress("cands",&nCands); // n candidates for a seed
+  tree_br->SetBranchAddress("candEtaPhiBins",&candEtaPhiBins); // vector stores n possible candidate eta/phi bins for any branch for a track candidate per seed ... sum up for a total per seed 
+  tree_br->SetBranchAddress("candHits",&candHits); // vector stores n possible candidate hits for any branch for a track candidate per seed ... sum up for a total per seed 
+  tree_br->SetBranchAddress("candBranches",&candBranches); // remember, from before was just a single number, now a vector.  just sum up vector to get total branches before puning as before
+
+  for (UInt_t k = 0; k < (UInt_t) tree_br->GetEntries(); k++){
+    tree_br->GetEntry(k);
+
+    nCandEtaPhiBins = 0; 
+    nCandHits       = 0;
+    nCandBranches   = 0; 
+
+    for (UInt_t c = 0; c < nCands; c++){ // cands (unless we really screwed up) equals candBranches.size() == candHits.size()
+      layetaphibins_percand->Fill((*candEtaPhiBins)[c],layer);
+      layhits_percand->Fill((*candHits)[c],layer);
+      laybranches_percand->Fill((*candBranches)[c],layer);
+
+      nCandEtaPhiBins += (*candEtaPhiBins)[c];
+      nCandHits       += (*candHits)[c];
+      nCandBranches   += (*candBranches)[c];
+    }
+
+    laycands->Fill(nCands,layer);
+    layetaphibins->Fill(nCandEtaPhiBins,layer);
+    layhits->Fill(nCandHits,layer);
+    laybranches->Fill(nCandBranches,layer);
+  }
+
+  PlotValidation::DrawWriteSaveTH2IPlot(subdir,laycands,subdirname,"lay_vs_cands");
+  PlotValidation::DrawWriteSaveTH2IPlot(subdir,layetaphibins,subdirname,"lay_vs_etaphibins");
+  PlotValidation::DrawWriteSaveTH2IPlot(subdir,layhits,subdirname,"lay_vs_hits");
+  PlotValidation::DrawWriteSaveTH2IPlot(subdir,laybranches,subdirname,"lay_vs_branches");  
+  PlotValidation::DrawWriteSaveTH2IPlot(subdir,layetaphibins_percand,subdirname,"lay_vs_etaphibins_percand");
+  PlotValidation::DrawWriteSaveTH2IPlot(subdir,layhits_percand,subdirname,"lay_vs_hits_percand");
+  PlotValidation::DrawWriteSaveTH2IPlot(subdir,laybranches_percand,subdirname,"lay_vs_branches_percand");
+
+  delete laycands;
+  delete layetaphibins;
+  delete layhits;
+  delete laybranches;
+  delete laybranches_percand;
+  delete layhits_percand;
+
+  delete configtree;
+  delete tree_br;
+}
+
 void PlotValidation::PlotSimGeo(){
   // Get tree
-  TTree * efftree  = (TTree*)fInRoot->Get("efftree");
+  TTree * efftree = (TTree*)fInRoot->Get("efftree");
 
   // make output subdirectory and subdir in ROOT file, and cd to it.
   TString subdirname = "simgeo"; 
@@ -69,12 +172,12 @@ void PlotValidation::PlotSimGeo(){
   
   // make plots, ensure in right directory
   subdir->cd();
-  TH2F * xyplot = new TH2F("h_xy_simdetgeo","XY Simulation Detector Geometry",450,-45.,45.,450,-45.,45.);
-  xyplot->GetXaxis()->SetTitle("x [cm]");
-  xyplot->GetYaxis()->SetTitle("y [cm]");
-  TH2F * rzplot = new TH2F("h_rz_simdetgeo","RZ Simulation Detector Geometry",500,-50.,50.,225,0.,45.);
-  rzplot->GetXaxis()->SetTitle("z [cm]");
-  rzplot->GetYaxis()->SetTitle("radius [cm]");
+  TH2F * xy_detplot = new TH2F("h_xy_simdetgeo","XY Simulation Detector Geometry",450,-45.,45.,450,-45.,45.);
+  xy_detplot->GetXaxis()->SetTitle("x [cm]");
+  xy_detplot->GetYaxis()->SetTitle("y [cm]");
+  TH2F * rz_detplot = new TH2F("h_rz_simdetgeo","RZ Simulation Detector Geometry",500,-50.,50.,225,0.,45.);
+  rz_detplot->GetXaxis()->SetTitle("z [cm]");
+  rz_detplot->GetYaxis()->SetTitle("radius [cm]");
 
   TH2F * xy_vrxplot = new TH2F("h_xy_simvrxgeo","XY Simulation Beamspot Geometry",500,-0.5,0.5,500,-0.5,0.5);
   xy_vrxplot->GetXaxis()->SetTitle("x [cm]");
@@ -104,8 +207,8 @@ void PlotValidation::PlotSimGeo(){
     efftree->GetEntry(k);
     for (UInt_t h = 0; h < xhit->size(); h++){ // x,y,z are all the same size
       Float_t radius = std::sqrt( ((*xhit)[h])*((*xhit)[h]) + ((*yhit)[h])*((*yhit)[h]) );
-      xyplot->Fill((*xhit)[h],(*yhit)[h]);
-      rzplot->Fill((*zhit)[h],radius);
+      xy_detplot->Fill((*xhit)[h],(*yhit)[h]);
+      rz_detplot->Fill((*zhit)[h],radius);
       
       Float_t radius_vrx = std::sqrt(xvrx*xvrx + yvrx*yvrx);
       xy_vrxplot->Fill(xvrx,yvrx);
@@ -113,40 +216,15 @@ void PlotValidation::PlotSimGeo(){
     }
   }
 
-  TCanvas * xycanv = new TCanvas("cxy","cxy",1000,1000);
-
-  xycanv->cd();
-  xyplot->Draw("colz");
-  subdir->cd();
-  xyplot->Write();
-  xycanv->SaveAs(Form("%s/%s/xy_simulation_detgeometry.png",fOutName.Data(),subdirname.Data())); 
-  
-  xycanv->cd();
-  xy_vrxplot->Draw("colz");
-  subdir->cd();
-  xy_vrxplot->Write();
-  xycanv->SaveAs(Form("%s/%s/xy_simulation_vrxgeometry.png",fOutName.Data(),subdirname.Data())); 
-
-  delete xycanv;
-  delete xyplot;
+  // before plotting set the canvas size to be square 1000x1000
+  fTH2Canv->SetCanvasSize(1000,1000);
+  PlotValidation::DrawWriteSaveTH2FPlot(subdir,xy_detplot,subdirname,"xy_simulation_detgeometry");
+  PlotValidation::DrawWriteSaveTH2FPlot(subdir,rz_detplot,subdirname,"rz_simulation_detgeometry");
+  PlotValidation::DrawWriteSaveTH2FPlot(subdir,xy_vrxplot,subdirname,"xy_simulation_vrxgeometry");
+  PlotValidation::DrawWriteSaveTH2FPlot(subdir,rz_vrxplot,subdirname,"rz_simulation_vrxgeometry");
+  delete xy_detplot;
+  delete rz_detplot;
   delete xy_vrxplot;
-
-  TCanvas * rzcanv = new TCanvas("crz","crz",1000,1000);
-
-  rzcanv->cd();
-  rzplot->Draw("colz");
-  subdir->cd();
-  rzplot->Write();
-  rzcanv->SaveAs(Form("%s/%s/rz_simulation_detgeometry.png",fOutName.Data(),subdirname.Data()));
-
-  rzcanv->cd();
-  rz_vrxplot->Draw("colz");
-  subdir->cd();
-  rz_vrxplot->Write();
-  rzcanv->SaveAs(Form("%s/%s/rz_simulation_vrxgeometry.png",fOutName.Data(),subdirname.Data()));
-
-  delete rzcanv;
-  delete rzplot;
   delete rz_vrxplot;
 
   delete efftree;
@@ -219,25 +297,25 @@ void PlotValidation::PlotNHits(){
     fakeratetree->GetEntry(k);
     for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
       for (UInt_t c = 0; c < coll.size(); c++){ // loop over trk collection type
-	if (c == 0) {
+	if (c == 0) { // all reco
 	  if (seedmask_trk[j] == 1){
 	    nHitsPlot[j][c]->Fill(nHits_trk[j]);
 	    fracHitsMatchedPlot[j][c]->Fill(fracHitsMatched_trk[j]);
 	  }
 	}
-	else if (c == 1) {	  
+	else if (c == 1) { // fake 
 	  if ((seedmask_trk[j] == 1) && (mcmask_trk[j] == 0)) { 
 	    nHitsPlot[j][c]->Fill(nHits_trk[j]);
 	    fracHitsMatchedPlot[j][c]->Fill(fracHitsMatched_trk[j]);
 	  }
 	}
-	else if (c == 2) {	  
+	else if (c == 2) { // all matches  
 	  if ((seedmask_trk[j] == 1) && (mcmask_trk[j] == 1)) {
 	    nHitsPlot[j][c]->Fill(nHits_trk[j]);
 	    fracHitsMatchedPlot[j][c]->Fill(fracHitsMatched_trk[j]);
 	  }
 	}
-	else if (c == 3) {	  
+	else if (c == 3) { // best matches only	  
 	  if ((seedmask_trk[j] == 1) && (mcmask_trk[j] == 1) && (iTkMatches_trk[j] == 0)) {
 	    nHitsPlot[j][c]->Fill(nHits_trk[j]);
 	    fracHitsMatchedPlot[j][c]->Fill(fracHitsMatched_trk[j]);
@@ -466,6 +544,119 @@ void PlotValidation::PlotCFResolutionPull(){
   delete efftree;
 }
 
+void PlotValidation::PlotPosResolutionPull(){
+  TTree * efftree     = (TTree*)fInRoot->Get("efftree");
+  TTree * configtree  = (TTree*)fInRoot->Get("configtree"); // use to set resolutions
+
+  // make output subdirectory and subdir in ROOT file, and cd to it.
+  TString subdirname = "position_resolutionpull"; 
+  TDirectory * subdir;
+  PlotValidation::MakeSubDirectory(subdir,subdirname);
+
+  //Declare strings for branches and plots
+  Bool_t  setLogy   = false;
+  TStrVec vars      = {"x","y","z"};
+  TStrVec evars     = {"ex","ey","ez"};
+  TStrVec svars     = {"x","y","z"}; // svars --> labels for histograms for given variable
+  TStrVec sunits    = {"[cm]","[cm]","[cm]"}; // svars --> labels for histograms for given variable
+  UIntVec nBinsRes  = {100,100,100};
+  FltVec  xlowRes   = {-0.5,-0.5,-0.5};
+  FltVec  xhighRes  = {0.5,0.5,0.5};  
+  FltVec  gausRes   = {0.3,0.3,0.3}; // symmetric bounds for gaussian fit
+  UIntVec nBinsPull = {100,100,100};
+  FltVec  xlowPull  = {-5,-5,-5};
+  FltVec  xhighPull = {5,5,5};  
+  FltVec  gausPull  = {3,3,3}; // symmetric bounds for gaussian fit
+
+  TStrVec trks      = {"seed","build","fit"};
+  TStrVec strks     = {"Seed","Build","Fit"}; // strk --> labels for histograms for given track type
+
+  // Floats/Ints to be filled for trees
+  FltVecVec mcvars_val(vars.size());
+  IntVec    mcmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
+  FltVecVec recovars_val(vars.size()); // first index is nVars, second is nTrkTypes
+  FltVecVec recovars_err(vars.size());
+  for (UInt_t i = 0; i < vars.size(); i++){
+    mcvars_val[i].reserve(trks.size());
+    recovars_val[i].reserve(trks.size());
+    recovars_err[i].reserve(trks.size());
+  }
+  Float_t   vars_out[2] = {0.,0.}; // res/pull output
+  
+  // Create pos plots
+  TH1FRefVecVec varsResPlot(vars.size());
+  TH1FRefVecVec varsPullPlot(vars.size());
+  for (UInt_t i = 0; i < vars.size(); i++){
+    varsResPlot[i].reserve(trks.size());
+    varsPullPlot[i].reserve(trks.size());
+  }
+
+  subdir->cd(); // ensure plots are put in right place 
+  for (UInt_t i = 0; i < vars.size(); i++){
+    for (UInt_t j = 0; j < trks.size(); j++){
+      //Res
+      varsResPlot[i][j] = new TH1F(Form("h_%s_res_%s",vars[i].Data(),trks[j].Data()),Form("%s Resolution (%s Track vs. MC Track)",svars[i].Data(),strks[j].Data()),nBinsRes[i],xlowRes[i],xhighRes[i]);
+      varsResPlot[i][j]->GetXaxis()->SetTitle(Form("(%s^{%s}%s - %s^{mc}%s)/%s^{mc}%s",svars[i].Data(),strks[j].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data()));
+      varsResPlot[i][j]->GetYaxis()->SetTitle("nTracks");
+
+      //Pull
+      varsPullPlot[i][j] = new TH1F(Form("h_%s_pull_%s",vars[i].Data(),trks[j].Data()),Form("%s Pull (%s Track vs. MC Track)",svars[i].Data(),strks[j].Data()),nBinsPull[i],xlowPull[i],xhighPull[i]);
+      varsPullPlot[i][j]->GetXaxis()->SetTitle(Form("(%s^{%s}%s - %s^{mc}%s)/#sigma(%s^{%s}%s)",svars[i].Data(),strks[j].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data(),svars[i].Data(),strks[j].Data(),sunits[i].Data()));
+      varsPullPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
+    }
+  }
+
+  //Initialize var_val/err arrays, SetBranchAddress
+  for (UInt_t i = 0; i < vars.size(); i++){ // loop over var index
+    for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
+      // initialize var + errors
+      mcvars_val[i][j] = 0.;
+      recovars_val[i][j] = 0.;
+      recovars_err[i][j] = 0.;
+      
+      //Set var+trk branch
+      efftree->SetBranchAddress(Form("%s_mc_%s",vars[i].Data(),trks[j].Data()),&(mcvars_val[i][j]));
+      efftree->SetBranchAddress(Form("%s_%s",vars[i].Data(),trks[j].Data()),&(recovars_val[i][j]));
+      efftree->SetBranchAddress(Form("%s_%s",evars[i].Data(),trks[j].Data()),&(recovars_err[i][j]));
+    }
+  }
+  
+  //Initialize masks, set branch addresses  
+  for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
+    mcmask_trk[j] = 0;
+    efftree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
+  }
+
+  // Fill histos, compute res/pull from tree branches 
+  for (UInt_t k = 0; k < (UInt_t) efftree->GetEntries(); k++){
+    efftree->GetEntry(k);
+    for (UInt_t i = 0; i < vars.size(); i++){  // loop over vars index
+      for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
+	if (mcmask_trk[j] == 1){ // must be associated
+	  PlotValidation::ComputeResolutionPull(mcvars_val[i][j],recovars_val[i][j],recovars_err[i][j],vars_out);
+	  if (!isnan(vars_out[0])){ // fill if not nan
+	    varsResPlot[i][j]->Fill(vars_out[0]);
+	  }
+	  if (!isnan(vars_out[1])){ // fill if not nan
+	    varsPullPlot[i][j]->Fill(vars_out[1]);
+	  }
+	} // must be a matched track to make resolution plots
+      } // end loop over trks
+    } // end loop over vars
+  } // end loop over entry in tree
+
+  // Draw, fit, and save plots
+  for (UInt_t i = 0; i < vars.size(); i++){
+    for (UInt_t j = 0; j < trks.size(); j++){
+      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsResPlot[i][j],subdirname,Form("%s_resolution_%s",vars[i].Data(),trks[j].Data()),gausRes[i],setLogy);
+      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsPullPlot[i][j],subdirname,Form("%s_pull_%s",vars[i].Data(),trks[j].Data()),gausPull[i],setLogy);
+      delete varsResPlot[i][j];
+      delete varsPullPlot[i][j];
+    }
+  }  
+  delete efftree;
+}
+
 void PlotValidation::PlotMomResolutionPull(){
   // Get tree
   TTree * efftree  = (TTree*)fInRoot->Get("efftree");
@@ -479,8 +670,8 @@ void PlotValidation::PlotMomResolutionPull(){
   Bool_t  setLogy   = false;
   TStrVec vars      = {"pt","eta","phi"};
   TStrVec evars     = {"ept","eeta","ephi"};
-  TStrVec svars     = {"p_{T} [GeV/c]","#eta","#phi"}; // svars --> labels for histograms for given variable
-  TStrVec sunits    = {"[GeV/c]","",""}; // svars --> labels for histograms for given variable
+  TStrVec svars     = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
+  TStrVec sunits    = {"[GeV/c]","",""}; // units --> labels for histograms for given variable
   UIntVec nBinsRes  = {100,100,100};
   FltVec  xlowRes   = {-0.5,-0.5,-0.5};
   FltVec  xhighRes  = {0.5,0.5,0.5};  
@@ -1031,6 +1222,22 @@ void PlotValidation::ComputeRatioPlot(const TH1F * numer, const TH1F * denom, TH
       ratioPlot->SetBinError(bin,err);
     }
   }
+}
+
+void PlotValidation::DrawWriteSaveTH2IPlot(TDirectory *& subdir, TH2I *& hist, const TString subdirname, const TString plotName){
+  fTH2Canv->cd();
+  hist->Draw("colz");  
+  subdir->cd();
+  hist->Write();
+  fTH2Canv->SaveAs(Form("%s/%s/%s.png",fOutName.Data(),subdirname.Data(),plotName.Data()));  
+}
+
+void PlotValidation::DrawWriteSaveTH2FPlot(TDirectory *& subdir, TH2F *& hist, const TString subdirname, const TString plotName){
+  fTH2Canv->cd();
+  hist->Draw("colz");  
+  subdir->cd();
+  hist->Write();
+  fTH2Canv->SaveAs(Form("%s/%s/%s.png",fOutName.Data(),subdirname.Data(),plotName.Data()));  
 }
 
 void PlotValidation::DrawWriteTH1Plot(TDirectory *& subdir, TH1F *& hist){

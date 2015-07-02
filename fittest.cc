@@ -101,6 +101,8 @@ void fitTrack(const Track & trk, Event& ev)
   }      
 #endif
 
+  TSLayerPairVec updatedStates; // need this for position pulls --> can ifdef out for performance tests? --> assume one hit per layer
+
   for (auto&& hit : hits) {
     //for each hit, propagate to hit radius and update track state with hit measurement
     MeasurementState measState = hit.measurementState();
@@ -135,8 +137,12 @@ void fitTrack(const Track & trk, Event& ev)
       break;
 #endif
     }
+
+    updatedStates.push_back(std::make_pair(hit.layer(),updatedState)); // validation for pos pull
   } // end loop over hits
   dcall(print("Fit Track", updatedState));
+
+  ev.validation_.collectFitTkTSLayerPairVecMapInfo(trk.seedID(),updatedStates); // for position pulls
 
   Track FitTrack(updatedState,hits,trk.chi2(),trk.seedID()); // eventually will want to include chi2 of fitTrack --> chi2 for now just copied from build tracks
   ev.fitTracks_.push_back(FitTrack);

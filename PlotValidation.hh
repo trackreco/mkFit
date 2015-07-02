@@ -32,6 +32,7 @@ public:
   PlotValidation(TString inName, TString outName, TString outType);
   ~PlotValidation();
   void Validation(Bool_t mvInput = false);
+  void PlotBranching();
   void PlotSimGeo();
   void PlotNHits();
   void PlotCFResidual();
@@ -46,6 +47,8 @@ public:
   void ComputeResolutionPull(const Float_t mcvar_val, const Float_t recovar_val, const Float_t recovar_err, Float_t var_out[]);
   void ComputeRatioPlot(const TH1F * numer, const TH1F * denom, TH1F *& ratioPlot);
   void ZeroSuppressPlot(TH1F *& histo);
+  void DrawWriteSaveTH2IPlot(TDirectory *& subdir, TH2I *& histo, const TString subdirname, const TString plotName);
+  void DrawWriteSaveTH2FPlot(TDirectory *& subdir, TH2F *& histo, const TString subdirname, const TString plotName);
   void DrawWriteTH1Plot(TDirectory *& subdir, TH1F *& histo);
   void DrawWriteSaveTH1IPlot(TDirectory *& subdir, TH1I *& histo, const TString subdirname, const TString plotName, const Bool_t setLogy);
   void DrawWriteSaveTH1FPlot(TDirectory *& subdir, TH1F *& histo, const TString subdirname, const TString plotName, const Bool_t setLogy);
@@ -59,4 +62,5 @@ private:
   TString fOutName;
   TFile * fOutRoot;
   TCanvas * fTH1Canv;
+  TCanvas * fTH2Canv;
 };

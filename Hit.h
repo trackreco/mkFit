@@ -111,13 +111,13 @@ inline float getEtaErr2(float x, float y, float z, float exx, float eyy, float e
 struct MCHitInfo
 {
   MCHitInfo() : mcHitID_(mcHitIDCounter_++) {}
-  MCHitInfo(int track, int layer, int ithlayerhit)
+  MCHitInfo(unsigned int track, unsigned int layer, unsigned int ithlayerhit)
     : mcTrackID_(track), layer_(layer), ithLayerHit_(ithlayerhit), mcHitID_(++mcHitIDCounter_) {}
 
-  int mcTrackID_;
-  int layer_;
-  int ithLayerHit_;
-  int mcHitID_;
+  unsigned int mcTrackID_;
+  unsigned int layer_;
+  unsigned int ithLayerHit_;
+  unsigned int mcHitID_;
 
   static std::atomic<unsigned int> mcHitIDCounter_;
 };
@@ -142,7 +142,7 @@ public:
     state_.errors=error;
   }
 
-  Hit(const SVector3& position, const SMatrixSym33& error, int itrack, int ilayer, int ithLayerHit)
+  Hit(const SVector3& position, const SMatrixSym33& error, unsigned int itrack, unsigned int ilayer, unsigned int ithLayerHit)
   {
     mcHitInfo_.mcTrackID_ = itrack;
     mcHitInfo_.layer_ = ilayer;
@@ -179,10 +179,10 @@ public:
   }
 
   const MCHitInfo& mcHitInfo() const {return mcHitInfo_;}
-  int mcTrackID() const {return mcHitInfo_.mcTrackID_;}
-  int layer() const {return mcHitInfo_.layer_;}
-  int ithLayerHit() const {return mcHitInfo_.ithLayerHit_;}
-  int hitID() const {return mcHitInfo_.mcHitID_;}
+  unsigned int mcTrackID() const {return mcHitInfo_.mcTrackID_;}
+  unsigned int layer() const {return mcHitInfo_.layer_;}
+  unsigned int ithLayerHit() const {return mcHitInfo_.ithLayerHit_;}
+  unsigned int hitID() const {return mcHitInfo_.mcHitID_;}
 
 private:
   MeasurementState state_;

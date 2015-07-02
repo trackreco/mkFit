@@ -16,10 +16,11 @@ public:
 #include "TTree.h"
 #include "TROOT.h"
 
-typedef std::map<unsigned int,const Track*> TkToTkRefMap;
-typedef std::map<unsigned int,TrackRefVec>  TkToTkRefVecMap;
-typedef std::map<unsigned int,TrackState>   TkToTSMap;   
-typedef std::map<unsigned int,TSVec>        TkToTSVecMap;
+typedef std::map<unsigned int,const Track*>  TkToTkRefMap;
+typedef std::map<unsigned int,TrackRefVec>   TkToTkRefVecMap;
+typedef std::map<unsigned int,TrackState>    TkToTSMap;   
+typedef std::map<unsigned int,TSVec>         TkToTSVecMap;
+typedef std::map<unsigned int,TSLayerPairVec> TkToTSLayerPairVecMap;
 
 class TTreeValidation : public Validation {
 public:
@@ -28,10 +29,14 @@ public:
   void resetValidationMaps() override;
   
   void collectSimTkTSVecMapInfo(const unsigned int mcTrackID, const TSVec& initTSs) override;
-  void collectSeedTkCFMapInfo(const unsigned int seedID, const TrackState& cfitStateHit0) override;
-  void collectFitTkCFMapInfo(const unsigned int seedID, const TrackState& cfitStateHit0) override;
 
-  void fillBuildTree(const unsigned int layer, const unsigned int branches, const unsigned int cands) override;
+  void collectSeedTkCFMapInfo(const unsigned int seedID, const TrackState& cfitStateHit0) override;
+  void collectSeedTkTSLayerPairVecMapInfo(const unsigned int seedID, const TSLayerPairVec& updatedStates) override;
+
+  void collectFitTkCFMapInfo(const unsigned int seedID, const TrackState& cfitStateHit0) override;
+  void collectFitTkTSLayerPairVecMapInfo(const unsigned int seedID, const TSLayerPairVec& updatedStates) override;
+
+  void fillBuildTree(const unsigned int layer, const unsigned int cands, const std::vector<unsigned int>& candEtaPhiBins, const std::vector<unsigned int>& candHits, const std::vector<unsigned int>& candBranches) override;
 
   void makeSimTkToRecoTksMaps(TrackVec& evt_seed_tracks, TrackVec& evt_build_tracks, TrackVec& evt_fit_tracks) override;
   void mapSimTkToRecoTks(TrackVec& evt_tracks, TkToTkRefVecMap& simTkMap);
@@ -51,11 +56,15 @@ public:
   TkToTSVecMap simTkTSVecMap_;
   
   TkToTSMap seedTkCFMap_;
+  TkToTSLayerPairVecMap seedTkTSLayerPairVecMap_;
+
   TkToTSMap fitTkCFMap_;
+  TkToTSLayerPairVecMap fitTkTSLayerPairVecMap_;
 
   // build branching tree
   TTree* tree_br_;
-  unsigned int layer_=0,branches_=0,cands_=0;
+  unsigned int layer_=0,cands_=0;
+  std::vector<unsigned int> candEtaPhiBins_,candHits_,candBranches_;
   
   // efficiency trees and variables
   TkToTkRefVecMap simToSeedMap_;
@@ -68,12 +77,15 @@ public:
 
   int   seedID_seed_eff_=0,seedID_build_eff_=0,seedID_fit_eff_=0;
 
+  // for efficiency and duplicate rate plots
   float pt_mc_gen_eff_=0.,phi_mc_gen_eff_=0.,eta_mc_gen_eff_=0.;
   int   nHits_mc_eff_=0;
 
+  // for position pulls and geo plots
   std::vector<float> x_mc_reco_hit_eff_,y_mc_reco_hit_eff_,z_mc_reco_hit_eff_;
   float x_mc_gen_vrx_eff_=0.,y_mc_gen_vrx_eff_=0.,z_mc_gen_vrx_eff_=0.;
 
+  // for track resolutions / pulls
   float pt_mc_seed_eff_=0.,pt_mc_build_eff_=0.,pt_mc_fit_eff_=0.;
   float pt_seed_eff_=0.,pt_build_eff_=0.,pt_fit_eff_=0.,ept_seed_eff_=0.,ept_build_eff_=0.,ept_fit_eff_=0.;
   float phi_mc_seed_eff_=0.,phi_mc_build_eff_=0.,phi_mc_fit_eff_=0.;
@@ -81,6 +93,7 @@ public:
   float eta_mc_seed_eff_=0.,eta_mc_build_eff_=0.,eta_mc_fit_eff_=0.;
   float eta_seed_eff_=0.,eta_build_eff_=0.,eta_fit_eff_=0.,eeta_seed_eff_=0.,eeta_build_eff_=0.,eeta_fit_eff_=0.;
   
+  // for conformal fit resolutions/pulls/residuals
   float x_mc_cf_seed_eff_=0.,y_mc_cf_seed_eff_=0.,z_mc_cf_seed_eff_=0.,x_mc_cf_fit_eff_=0.,y_mc_cf_fit_eff_=0.,z_mc_cf_fit_eff_=0.;
   float x_cf_seed_eff_=0.,y_cf_seed_eff_=0.,z_cf_seed_eff_=0.,x_cf_fit_eff_=0.,y_cf_fit_eff_=0.,z_cf_fit_eff_=0.;
   float ex_cf_seed_eff_=0.,ey_cf_seed_eff_=0.,ez_cf_seed_eff_=0.,ex_cf_fit_eff_=0.,ey_cf_fit_eff_=0.,ez_cf_fit_eff_=0.;
@@ -93,6 +106,12 @@ public:
   float pt_cf_seed_eff_=0.,invpt_cf_seed_eff_=0.,phi_cf_seed_eff_=0.,theta_cf_seed_eff_=0.,pt_cf_fit_eff_=0.,invpt_cf_fit_eff_=0.,phi_cf_fit_eff_=0.,theta_cf_fit_eff_=0.;
   float ept_cf_seed_eff_=0.,einvpt_cf_seed_eff_=0.,ephi_cf_seed_eff_=0.,etheta_cf_seed_eff_=0.,ept_cf_fit_eff_=0.,einvpt_cf_fit_eff_=0.,ephi_cf_fit_eff_=0.,etheta_cf_fit_eff_=0.;
 
+  // for position pulls
+  std::vector<float> x_lay_seed_eff_,y_lay_seed_eff_,z_lay_seed_eff_,x_lay_fit_eff_,y_lay_fit_eff_,z_lay_fit_eff_;
+  std::vector<float> ex_lay_seed_eff_,ey_lay_seed_eff_,ez_lay_seed_eff_,ex_lay_fit_eff_,ey_lay_fit_eff_,ez_lay_fit_eff_;
+  std::vector<unsigned int> layers_seed_eff_,layers_fit_eff_;
+
+  // for hit countings
   int   nHits_seed_eff_=0,nHits_build_eff_=0,nHits_fit_eff_=0;
   int   nHitsMatched_seed_eff_=0,nHitsMatched_build_eff_=0,nHitsMatched_fit_eff_=0;
   float fracHitsMatched_seed_eff_=0,fracHitsMatched_build_eff_=0,fracHitsMatched_fit_eff_=0;
@@ -100,6 +119,7 @@ public:
   float hitchi2_seed_eff_=0.,hitchi2_build_eff_=0.,hitchi2_fit_eff_=0.;
   float helixchi2_seed_eff_=0.,helixchi2_build_eff_=0.,helixchi2_fit_eff_=0.;
 
+  // for duplicate track matches
   int   duplmask_seed_eff_=0,duplmask_build_eff_=0,duplmask_fit_eff_=0;
   int   nTkMatches_seed_eff_=0,nTkMatches_build_eff_=0,nTkMatches_fit_eff_=0;
 
@@ -137,14 +157,17 @@ public:
   TTree* configtree_;
   float        simtime_=0.,segtime_=0.,seedtime_=0.,buildtime_=0.,fittime_=0.,hlvtime_=0.;
   unsigned int Ntracks_=0,Nevents_=0;
+  unsigned int nLayers_=0;
+  float        fRadialSpacing_=0.,fRadialExtent_=0.,fInnerSensorSize_=0.,fOuterSensorSize_=0.;
+  float        fEtaDet_=0.,fPhiFactor_=0.;
   unsigned int nPhiPart_=0,nEtaPart_=0;
-  float        fEtaDet_=0.,nPhiFactor_=0.;
   unsigned int nlayers_per_seed_=0,maxCand_=0;
   float        chi2Cut_=0.,nSigma_=0.,minDPhi_=0.,maxDPhi_=0.,minDEta_=0.,maxDEta_=0.;
   float        beamspotX_=0.,beamspotY_=0.,beamspotZ_=0.;
   float        minSimPt_=0.,maxSimPt_=0.;
   float        hitposerrXY_=0.,hitposerrZ_=0.,hitposerrR_=0.;
   float        varXY_=0.,varZ_=0.;
+  unsigned int nTotHit_=0;
   float        ptinverr049_=0.,phierr049_=0.,thetaerr049_=0.,ptinverr012_=0.,phierr012_=0.,thetaerr012_=0.;
 
   std::mutex glock_;

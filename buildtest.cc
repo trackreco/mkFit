@@ -25,7 +25,7 @@ static std::mutex evtlock;
 #endif
 typedef candvec::const_iterator canditer;
 
-void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidates, unsigned int ilay, bool debug);
+void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidates, unsigned int ilay, unsigned int validationArray[], bool debug);
 
 static bool sortByHitsChi2(const cand_t& cand1, const cand_t& cand2)
 {
@@ -41,12 +41,26 @@ void processCandidates(Event& ev, candvec& candidates, unsigned int ilay, const 
   tmp_candidates.reserve(3*candidates.size()/2);
 
   if (candidates.size() > 0) {
+    std::vector<unsigned int> candBranches; // validation info --> store the n of branches per candidate, i.e. how many hits passed chi2 cut (subset of candHits)  
+    unsigned int tmp_candidates_size = 0; // need dummy counter to keep track of branches      
+
+    // these will be filled by validationArray pass to extendCandidate
+    unsigned int validationArray[2] = {0,0}; // pass this to extend candidate to collect info
+    std::vector<unsigned int> candEtaPhiBins; // validation info --> store n Eta/Phi Sectors explored by extending candidate per candidate (validationArray[0])
+    std::vector<unsigned int> candHits; // validation info --> store n Hits explored per candidate. (validationArray[1])
+    
     //loop over running candidates
     for (auto&& cand : candidates) {
-      extendCandidate(ev, cand, tmp_candidates, ilay, debug);
+      tmp_candidates_size = tmp_candidates.size(); // validation
+
+      extendCandidate(ev, cand, tmp_candidates, ilay, validationArray, debug);
+
+      candEtaPhiBins.push_back(validationArray[0]); // validation
+      candHits.push_back(validationArray[1]); // validation
+      candBranches.push_back(tmp_candidates.size() - tmp_candidates_size); // validation
     }
 
-    ev.validation_.fillBuildTree(ilay, tmp_candidates.size(), candidates.size());
+    ev.validation_.fillBuildTree(ilay, candidates.size(), candEtaPhiBins, candHits, candBranches);
 
     if (tmp_candidates.size()>Config::maxCand) {
       dprint("huge size=" << tmp_candidates.size() << " keeping best "<< Config::maxCand << " only");
@@ -163,8 +177,8 @@ void buildTracksByLayers(Event& ev)
   }
 }
 
-void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidates, unsigned int ilayer,
-                     bool debug)
+  void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidates, unsigned int ilayer, 
+		       unsigned int validationArray[], bool debug)
 {
   const Track& tkcand = cand;
   const TrackState& updatedState = cand.state();
@@ -207,14 +221,30 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   const auto etaBinMinus = 0U;
   const auto etaBinPlus  = 0U;
 #endif
-
   const float phi    = getPhi(predx,predy); //std::atan2(predy,predx); 
   const float dphi = std::sqrt(std::abs(getPhiErr2(predx,predy,propState.errors.At(0,0),propState.errors.At(1,1),propState.errors.At(0,1))));
   const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi,(float) Config::minDPhi), (float) Config::maxDPhi);
   const auto phiBinMinus = getPhiPartition(normalizedPhi(phi-nSigmaDphi));
   const auto phiBinPlus  = getPhiPartition(normalizedPhi(phi+nSigmaDphi));
 
+#ifdef DEBUG
+  if (debug) {
+    std::cout << "propState at layer: " << ilayer << " r/phi/eta : " << std::sqrt(getRad2(predx,predy)) << " "
+              << phi << " " << eta << std::endl;
+    dumpMatrix(propState.errors);
+  }
+#endif
+
+  //nsectors for validation
+  if (phiBinPlus >= phiBinMinus){ // count the number of eta/phi bins explored
+    validationArray[0] = (etaBinPlus-etaBinMinus+1)*(phiBinPlus-phiBinMinus+1);
+  }
+  else{
+    validationArray[0] = (etaBinPlus-etaBinMinus+1)*(Config::nPhiPart-phiBinMinus+phiBinPlus+1);
+  }
+    
   std::vector<unsigned int> cand_hit_indices = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
+  validationArray[1] = cand_hit_indices.size(); // validation info --> tried to be as minimally invasive as possible --> if worried about performance, ifdef this out and change the funciton call for extend candidate ... a bit excessive
 
 #ifdef LINEARINTERP
     const float minR = ev.geom_.Radius(ilayer);
@@ -255,8 +285,6 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
         tmp_candidates.push_back(tmpCand);
       }
     }//end of consider hits on layer loop
-    
-    //   }//end of eta loop
 
   //add also the candidate for no hit found
   if (tkcand.nHits()==ilayer) {//only if this is the first missing hit
