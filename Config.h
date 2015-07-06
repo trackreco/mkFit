@@ -1,6 +1,8 @@
 #ifndef _config_
 #define _config_
 
+#include <algorithm>
+
 namespace Config{  
   // math general --> from namespace TMath
   static constexpr const float    PI    = 3.14159265358979323846;
@@ -13,8 +15,8 @@ namespace Config{
   static constexpr const double Sqrt2   = 1.4142135623730950488016887242097;
 
   // config on main
-  static constexpr const unsigned int nTracks = 500;
-  static constexpr const unsigned int nEvents = 100;
+  static constexpr const unsigned int nTracks = 5000;
+  static constexpr const unsigned int nEvents = 10;
 
   // config on main -- for geometry
   static constexpr const unsigned int nLayers   = 10;
@@ -91,12 +93,12 @@ namespace Config{
   static constexpr const float thetaerr012 = 0.0130; // 0.0137; 
 
   // config for MPlex HitStructures // cannot get to compile, commented out for now
-  /*  static constexpr const unsigned int g_NEvents  = 10;
+  static constexpr const unsigned int g_NEvents  = 10;
   static constexpr const unsigned int g_NTracks  = 20000;
   const unsigned int g_MaxHitsPerBunch = std::max( (unsigned int)(100), (unsigned int)((Config::g_NTracks * 2) / Config::nEtaPart));
 
   static constexpr const unsigned int g_MaxCandsPerSeed   = 6;
-  const unsigned int g_MaxCandsPerEtaBin = std::max( (unsigned int)(100), (unsigned int)((Config::g_MaxCandsPerSeed * Config::g_NTracks) / Config::nEtaPart));*/
+  const unsigned int g_MaxCandsPerEtaBin = std::max( (unsigned int)(100), (unsigned int)((Config::g_MaxCandsPerSeed * Config::g_NTracks) / Config::nEtaPart));
   // Effective eta bin is one half of nEtaPart -- so the above is twice the "average".
   // Note that last and first bin are 3/4 nEtaPart ... but can be made 1/4 by adding
   // additional bins on each end.

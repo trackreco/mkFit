@@ -1,4 +1,5 @@
 #include "PlotValidation.hh"
+#include "TLegend.h"
 
 PlotValidation::PlotValidation(TString inName, TString outName, TString outType){
 
@@ -49,12 +50,12 @@ void PlotValidation::Validation(Bool_t mvInput){
   PlotValidation::PlotNHits(); 
   PlotValidation::PlotCFResidual();
   PlotValidation::PlotCFResolutionPull();
-  PlotValidation::PlotPosResoluationPull(); 
-  PlotValidation::PlotMomResolutionPull(); 
+  //  PlotValidation::PlotPosResolutionPull(); 
+  PlotValidation::PlotMomResolutionPull();
   PlotValidation::PlotEfficiency(); 
   PlotValidation::PlotFakeRate();
   PlotValidation::PlotDuplicateRate();
-
+  
   PlotValidation::PrintTotals();
   if (mvInput){
     PlotValidation::MoveInput();
@@ -68,7 +69,9 @@ void PlotValidation::PlotBranching(){
   // Get config tree for printing out info
   TTree * configtree = (TTree*)fInRoot->Get("configtree"); // use to get nLayers
   UInt_t  nLayers = 0;
+  UInt_t  nlayers_per_seed = 0;
   configtree->SetBranchAddress("nLayers",&nLayers);
+  configtree->SetBranchAddress("nlayers_per_seed",&nlayers_per_seed);
   configtree->GetEntry(0);
 
   // make output subdirectory and subdir in ROOT file, and cd to it.
@@ -78,46 +81,94 @@ void PlotValidation::PlotBranching(){
 
   // make plots, ensure in right directory
   subdir->cd();
-  TH2I * laycands = new TH2I("h_lay_vs_cands","Layer vs Candidates",20,0,20,nLayers,0,nLayers);
-  laycands->GetXaxis()->SetTitle("Number of Input Candidates Per Seed / Layer");
+  TH2I * laycands = new TH2I("h_lay_vs_cands","Layer vs nCandidates",20,0,20,nLayers,0,nLayers);
+  laycands->GetXaxis()->SetTitle("nInputCands / Layer / Seed");
   laycands->GetYaxis()->SetTitle("Layer");  
 
   TH2I * layetaphibins = new TH2I("h_lay_vs_etaphibins","Layer vs nEtaPhiBins",20,0,20,nLayers,0,nLayers);
-  layetaphibins->GetXaxis()->SetTitle("Number of Temporary Candidate EtaPhiBins Produced Per Seed / Layer");
+  layetaphibins->GetXaxis()->SetTitle("Total nEtaPhiBins Explored / Layer / Seed");
   layetaphibins->GetYaxis()->SetTitle("Layer");
-  TH2I * layhits = new TH2I("h_lay_vs_hits","Layer vs Hits",50,0,50,nLayers,0,nLayers);
-  layhits->GetXaxis()->SetTitle("Total Number of Hits Explored Per Seed / Layer");
+  TH2I * layhits = new TH2I("h_lay_vs_hits","Layer vs nHits",50,0,50,nLayers,0,nLayers);
+  layhits->GetXaxis()->SetTitle("Total nHits Explored / Layer / Seed");
   layhits->GetYaxis()->SetTitle("Layer");
-  TH2I * laybranches = new TH2I("h_lay_vs_branches","Layer vs Branches",20,0,20,nLayers,0,nLayers);
-  laybranches->GetXaxis()->SetTitle("Number of Temporary Candidate Branches Produced Per Seed / Layer");
+  TH2I * laybranches = new TH2I("h_lay_vs_branches","Layer vs nBranches",20,0,20,nLayers,0,nLayers);
+  laybranches->GetXaxis()->SetTitle("Total nTempCandBranches Produced / Layer / Seed");
   laybranches->GetYaxis()->SetTitle("Layer");
 
-  TH2I * layetaphibins_percand = new TH2I("h_lay_vs_etaphibins_percand","Layer vs nEtaPhiBins per Cand",20,0,20,nLayers,0,nLayers);
-  layetaphibins_percand->GetXaxis()->SetTitle("Number of Temporary Candidate nEtaPhiBins Produced Per Input Candidate Per Seed / Layer");
+  TH2I * layetaphibins_unique = new TH2I("h_lay_vs_etaphibins_unique","Layer vs nUniqueEtaPhiBins",20,0,20,nLayers,0,nLayers);
+  layetaphibins_unique->GetXaxis()->SetTitle("Total nUniqueEtaPhiBins Explored / Layer / Seed");
+  layetaphibins_unique->GetYaxis()->SetTitle("Layer");
+  TH2I * layhits_unique = new TH2I("h_lay_vs_hits_unique","Layer vs nUniqueHits",50,0,50,nLayers,0,nLayers);
+  layhits_unique->GetXaxis()->SetTitle("Total nUniqueHits Explored / Layer / Seed");
+  layhits_unique->GetYaxis()->SetTitle("Layer");
+  TH2I * laybranches_unique = new TH2I("h_lay_vs_braches_unique","Layer vs nUniqueBranches",20,0,20,nLayers,0,nLayers);
+  laybranches_unique->GetXaxis()->SetTitle("Total nTempCandUniqueBranches Produced / Layer / Seed");
+  laybranches_unique->GetYaxis()->SetTitle("Layer");
+
+  TH2I * layetaphibins_percand = new TH2I("h_lay_vs_etaphibins_percand","Layer vs nEtaPhiBins per InputCand",20,0,20,nLayers,0,nLayers);
+  layetaphibins_percand->GetXaxis()->SetTitle("nEtaPhiBins Explored per InputCand / Layer / Seed");
   layetaphibins_percand->GetYaxis()->SetTitle("Layer");
-  TH2I * layhits_percand = new TH2I("h_lay_vs_hits_percand","Layer vs Hits per Cand",50,0,50,nLayers,0,nLayers);
-  layhits_percand->GetXaxis()->SetTitle("Total Number of Hits Explored Per Input Candidate Per Seed / Layer");
+  TH2I * layhits_percand = new TH2I("h_lay_vs_hits_percand","Layer vs nHits per InputCand",50,0,50,nLayers,0,nLayers);
+  layhits_percand->GetXaxis()->SetTitle("nHits Explored per InputCand / Layer / Seed");
   layhits_percand->GetYaxis()->SetTitle("Layer");
-  TH2I * laybranches_percand = new TH2I("h_lay_vs_branches_percand","Layer vs Branches per Cand",20,0,20,nLayers,0,nLayers);
-  laybranches_percand->GetXaxis()->SetTitle("Number of Temporary Candidate Branches Produced Per Input Candidate Per Seed / Layer");
+  TH2I * laybranches_percand = new TH2I("h_lay_vs_branches_percand","Layer vs nBranches per InputCand",20,0,20,nLayers,0,nLayers);
+  laybranches_percand->GetXaxis()->SetTitle("nTempCandBranches Produced per InputCand / Layer / Seed");
   laybranches_percand->GetYaxis()->SetTitle("Layer");
 
+  TH2F * layetaphibins_percand_norm = new TH2F("h_lay_vs_etaphibins_percand_norm","Layer vs nEtaPhiBins per InputCand (Normalized)",20,0,20,nLayers,0,nLayers);
+  layetaphibins_percand_norm->GetXaxis()->SetTitle("nEtaPhiBins Explored per InputCand / Layer / Seed");
+  layetaphibins_percand_norm->GetYaxis()->SetTitle("Layer (Normalized by nInputCands in Layer)");
+  TH2F * layhits_percand_norm = new TH2F("h_lay_vs_hits_percand_norm","Layer vs nHits per InputCand (Normalized)",50,0,50,nLayers,0,nLayers);
+  layhits_percand_norm->GetXaxis()->SetTitle("nHits Explored per InputCand / Layer / Seed");
+  layhits_percand_norm->GetYaxis()->SetTitle("Layer (Normalized by nInputCands / Layer)");
+  TH2F * laybranches_percand_norm = new TH2F("h_lay_vs_branches_percand_norm","Layer vs nBranches per Cand (Normalized)",20,0,20,nLayers,0,nLayers);
+  laybranches_percand_norm->GetXaxis()->SetTitle("nTempCandBranches Produced per InputCand / Layer / Seed");
+  laybranches_percand_norm->GetYaxis()->SetTitle("Layer (Normalized by nInputCands / Layer)");
+
+  TH1FRefVec layNSigmaDeta(nLayers);
+  TH1FRefVec layNSigmaDphi(nLayers);
+  for (UInt_t l = 0; l < nLayers; l++){
+    layNSigmaDeta[l] = new TH1F(Form("h_lay_%u_nSigmaDeta",l),Form("Layer %u n#sigma_{#eta}#timesd#eta",l),100,0.0,0.1);
+    layNSigmaDeta[l]->GetXaxis()->SetTitle("n#sigma_{#eta}#timesd#eta / Layer / Seed");
+    layNSigmaDeta[l]->GetYaxis()->SetTitle("nInputCands");
+    
+    layNSigmaDphi[l] = new TH1F(Form("h_lay_%u_nSigmaDphi",l),Form("Layer %u n#sigma_{#phi}#timesd#phi",l),100,0.0,0.02);
+    layNSigmaDphi[l]->GetXaxis()->SetTitle("n#sigma_{#phi}#timesd#phi / Layer / Seed");
+    layNSigmaDphi[l]->GetYaxis()->SetTitle("nInputCands");
+  }
+
   // see comment in plotsimgeo about vectors. set up branches here
-  std::vector<UInt_t> * candEtaPhiBins = 0;
-  std::vector<UInt_t> * candHits       = 0;
-  std::vector<UInt_t> * candBranches   = 0;
-  
+  UIntVecRef candEtaPhiBins = 0;
+  UIntVecRef candHits       = 0;
+  UIntVecRef candBranches   = 0;
+
   UInt_t layer  = 0;
   UInt_t nCands = 0;
+
   UInt_t nCandEtaPhiBins = 0; // sum of vector
   UInt_t nCandHits       = 0; // sum of vector
   UInt_t nCandBranches   = 0; // sum of vector 
 
+  UInt_t uniqueEtaPhiBins = 0;
+  UInt_t uniqueHits = 0;
+  UInt_t uniqueBranches = 0;
+  
+  FltVecRef  candnSigmaDeta = 0;
+  FltVecRef  candnSigmaDphi = 0;
+
   tree_br->SetBranchAddress("layer",&layer);
   tree_br->SetBranchAddress("cands",&nCands); // n candidates for a seed
+
   tree_br->SetBranchAddress("candEtaPhiBins",&candEtaPhiBins); // vector stores n possible candidate eta/phi bins for any branch for a track candidate per seed ... sum up for a total per seed 
   tree_br->SetBranchAddress("candHits",&candHits); // vector stores n possible candidate hits for any branch for a track candidate per seed ... sum up for a total per seed 
   tree_br->SetBranchAddress("candBranches",&candBranches); // remember, from before was just a single number, now a vector.  just sum up vector to get total branches before puning as before
+
+  tree_br->SetBranchAddress("uniqueEtaPhiBins",&uniqueEtaPhiBins); // total number of unique eta/phi bins explored per seed per layer over all input cands
+  tree_br->SetBranchAddress("uniqueHits",&uniqueHits); // total number of unique hits explored per seed per layer over all input cands
+  tree_br->SetBranchAddress("uniqueBranches",&uniqueBranches); // total number of unique hits used to create temp cands, plus at least one ghoster per seed per layer over all input cands
+
+  tree_br->SetBranchAddress("candnSigmaDeta",&candnSigmaDeta);
+  tree_br->SetBranchAddress("candnSigmaDphi",&candnSigmaDphi);
 
   for (UInt_t k = 0; k < (UInt_t) tree_br->GetEntries(); k++){
     tree_br->GetEntry(k);
@@ -127,6 +178,9 @@ void PlotValidation::PlotBranching(){
     nCandBranches   = 0; 
 
     for (UInt_t c = 0; c < nCands; c++){ // cands (unless we really screwed up) equals candBranches.size() == candHits.size()
+      layNSigmaDeta[layer]->Fill((*candnSigmaDeta)[c]);
+      layNSigmaDphi[layer]->Fill((*candnSigmaDphi)[c]);
+
       layetaphibins_percand->Fill((*candEtaPhiBins)[c],layer);
       layhits_percand->Fill((*candHits)[c],layer);
       laybranches_percand->Fill((*candBranches)[c],layer);
@@ -137,25 +191,160 @@ void PlotValidation::PlotBranching(){
     }
 
     laycands->Fill(nCands,layer);
+
     layetaphibins->Fill(nCandEtaPhiBins,layer);
     layhits->Fill(nCandHits,layer);
     laybranches->Fill(nCandBranches,layer);
+
+    layetaphibins_unique->Fill(uniqueEtaPhiBins,layer);
+    layhits_unique->Fill(uniqueHits,layer);
+    laybranches_unique->Fill(uniqueBranches,layer);
   }
 
+  // Loop over layers first, then sum up entries in each bin stepping left to right (INCLUDE OVERFLOW!)
+  // root conventions means we have vectors offset by 1
+  UIntVec etaphibins_laycount(nLayers+1);
+  UIntVec hits_laycount(nLayers+1); 
+  UIntVec branches_laycount(nLayers+1); 
+
+  for (Int_t lay = 1; lay <= Int_t(nLayers); lay++){
+    etaphibins_laycount[lay] = 0;
+    hits_laycount[lay] = 0;
+    branches_laycount[lay] = 0;
+    
+    //etaphi
+    for (Int_t xbin = 1; xbin <= layetaphibins_percand->GetNbinsX()+1; xbin++){ // root bins start at 1, then go up to including nBins, plus want overflows to properly normalize
+      etaphibins_laycount[lay] += layetaphibins_percand->GetBinContent(xbin,lay);
+    }
+    //hits
+    for (Int_t xbin = 1; xbin <= layhits_percand->GetNbinsX()+1; xbin++){ // root bins start at 1, then go up to including nBins, plus want overflows to properly normalize
+      hits_laycount[lay] += layhits_percand->GetBinContent(xbin,lay);
+    }
+    //branches
+    for (Int_t xbin = 1; xbin <= laybranches_percand->GetNbinsX()+1; xbin++){ // root bins start at 1, then go up to including nBins, plus want overflows to properly normalize
+      branches_laycount[lay] += laybranches_percand->GetBinContent(xbin,lay);
+    }
+  }
+
+  //now fill the plots appropriately scaled
+  for (Int_t lay = 1; lay <= Int_t(nLayers); lay++){
+    // fill norm etaphi
+    for (Int_t xbin = 1; xbin <= layetaphibins_percand_norm->GetNbinsX()+1; xbin++){ // normalize the overflow!
+      if (!(etaphibins_laycount[lay] == 0)){
+	layetaphibins_percand_norm->SetBinContent(xbin,lay,float(layetaphibins_percand->GetBinContent(xbin,lay))/float(etaphibins_laycount[lay]));
+      }
+    }
+    // fill norm hits
+    for (Int_t xbin = 1; xbin <= layhits_percand_norm->GetNbinsX()+1; xbin++){ // normalize the overflow!
+      if (!(hits_laycount[lay] == 0)){
+	layhits_percand_norm->SetBinContent(xbin,lay,float(layhits_percand->GetBinContent(xbin,lay))/float(hits_laycount[lay]));
+      }
+    }
+    // fill norm branches
+    for (Int_t xbin = 1; xbin <= laybranches_percand_norm->GetNbinsX()+1; xbin++){ // normalize the overflow!
+      if (!(branches_laycount[lay] == 0)){
+	laybranches_percand_norm->SetBinContent(xbin,lay,float(laybranches_percand->GetBinContent(xbin,lay))/float(branches_laycount[lay]));
+      }
+    }
+  }
+  
   PlotValidation::DrawWriteSaveTH2IPlot(subdir,laycands,subdirname,"lay_vs_cands");
+
   PlotValidation::DrawWriteSaveTH2IPlot(subdir,layetaphibins,subdirname,"lay_vs_etaphibins");
   PlotValidation::DrawWriteSaveTH2IPlot(subdir,layhits,subdirname,"lay_vs_hits");
   PlotValidation::DrawWriteSaveTH2IPlot(subdir,laybranches,subdirname,"lay_vs_branches");  
-  PlotValidation::DrawWriteSaveTH2IPlot(subdir,layetaphibins_percand,subdirname,"lay_vs_etaphibins_percand");
-  PlotValidation::DrawWriteSaveTH2IPlot(subdir,layhits_percand,subdirname,"lay_vs_hits_percand");
-  PlotValidation::DrawWriteSaveTH2IPlot(subdir,laybranches_percand,subdirname,"lay_vs_branches_percand");
+
+  PlotValidation::WriteTH2IPlot(subdir,layetaphibins_percand); 
+  PlotValidation::WriteTH2IPlot(subdir,layhits_percand);
+  PlotValidation::WriteTH2IPlot(subdir,laybranches_percand); 
+
+  PlotValidation::DrawWriteSaveTH2FPlot(subdir,layetaphibins_percand_norm,subdirname,"lay_vs_etaphibins_percand_norm");
+  PlotValidation::DrawWriteSaveTH2FPlot(subdir,layhits_percand_norm,subdirname,"lay_vs_hits_percand_norm");
+  PlotValidation::DrawWriteSaveTH2FPlot(subdir,laybranches_percand_norm,subdirname,"lay_vs_branches_percand_norm");
+
+  PlotValidation::DrawWriteSaveTH2IPlot(subdir,layetaphibins_unique,subdirname,"lay_vs_etaphibins_unique");
+  PlotValidation::DrawWriteSaveTH2IPlot(subdir,layhits_unique,subdirname,"lay_vs_hits_unique");
+  PlotValidation::DrawWriteSaveTH2IPlot(subdir,laybranches_unique,subdirname,"lay_vs_branches_unique");
+
+  // draw and stuff for Deta, Dphi plots
+  
+  float max = 0.0;
+  // write the bare plots, scale, and get max and min
+  for (UInt_t l = nlayers_per_seed; l < nLayers; l++){ // only fill ones with actual propagation
+    PlotValidation::WriteTH1FPlot(subdir,layNSigmaDeta[l]);
+    layNSigmaDeta[l]->Scale(1.0/layNSigmaDeta[l]->Integral());
+    float tmpmax = layNSigmaDeta[l]->GetBinContent(layNSigmaDeta[l]->GetMaximumBin());
+    if (tmpmax > max) {
+      max = tmpmax;
+    }
+  }
+  TLegend * legeta = new TLegend(0.75,0.7,0.9,0.9);
+  for (UInt_t l = nlayers_per_seed; l < nLayers; l++){ // only fill ones with actual propagation and overplot
+    fTH1Canv->cd();    
+    layNSigmaDeta[l]->SetStats(0);
+    layNSigmaDeta[l]->SetTitle("n#sigma_{#eta}#timesd#eta for All Layers (Normalized)"); 
+    layNSigmaDeta[l]->SetMaximum(1.1*max);
+    layNSigmaDeta[l]->SetLineColor(l);
+    layNSigmaDeta[l]->SetLineWidth(2);
+    layNSigmaDeta[l]->Draw((l>nlayers_per_seed)?"SAME":"");
+    legeta->AddEntry(layNSigmaDeta[l],Form("Layer %u",l),"L");
+  }
+  fTH1Canv->cd();    
+  legeta->Draw("SAME");
+  fTH1Canv->SetLogy(1);
+  fTH1Canv->SaveAs(Form("%s/%s/nSigmaDeta_layers.png",fOutName.Data(),subdirname.Data()));      
+  for (UInt_t l = 0; l < nLayers; l++){ // delete all histos, including layers not filled in
+    delete layNSigmaDeta[l];
+  }
+  delete legeta;
+
+  max = 0;
+  for (UInt_t l = nlayers_per_seed; l < nLayers; l++){ // only fill ones with actual propagation
+    PlotValidation::WriteTH1FPlot(subdir,layNSigmaDphi[l]);
+    layNSigmaDphi[l]->Scale(1.0/layNSigmaDphi[l]->Integral());
+    float tmpmax = layNSigmaDphi[l]->GetBinContent(layNSigmaDphi[l]->GetMaximumBin());
+    if (tmpmax > max) {
+      max = tmpmax;
+    }
+  }
+  TLegend * legphi = new TLegend(0.75,0.7,0.9,0.9);
+  // normalize all nsigma distributions automatically and write them
+  for (UInt_t l = nlayers_per_seed; l < nLayers; l++){ // only fill ones with actual propagation
+    fTH1Canv->cd();
+    layNSigmaDphi[l]->SetStats(0);
+    layNSigmaDphi[l]->SetTitle("n#sigma_{#phi}#timesd#phi for All Layers (Normalized)"); 
+    layNSigmaDphi[l]->SetMaximum(1.1*max);
+    layNSigmaDphi[l]->SetLineColor(l);
+    layNSigmaDphi[l]->SetLineWidth(2);
+    layNSigmaDphi[l]->Draw((l>nlayers_per_seed)?"SAME":"");
+    legphi->AddEntry(layNSigmaDphi[l],Form("Layer %u",l),"L");
+  }
+  fTH1Canv->cd();    
+  legphi->Draw("SAME");
+  fTH1Canv->SetLogy(1);
+  fTH1Canv->SaveAs(Form("%s/%s/nSigmaDphi_layers.png",fOutName.Data(),subdirname.Data()));    
+  for (UInt_t l = 0; l < nLayers; l++){ // delete all histos, including layers not filled in
+    delete layNSigmaDphi[l];
+  }
+  delete legphi;
 
   delete laycands;
+
   delete layetaphibins;
   delete layhits;
   delete laybranches;
+
+  delete layetaphibins_percand;
   delete laybranches_percand;
   delete layhits_percand;
+
+  delete layetaphibins_percand_norm;
+  delete laybranches_percand_norm;
+  delete layhits_percand_norm;
+
+  delete layetaphibins_unique;
+  delete laybranches_unique;
+  delete layhits_unique;
 
   delete configtree;
   delete tree_br;
@@ -187,9 +376,9 @@ void PlotValidation::PlotSimGeo(){
   rz_vrxplot->GetYaxis()->SetTitle("radius [cm]");
   
   // set hit branches ... need to use pointers for vectors. I thought ROOT5 fixed this??
-  std::vector<Float_t> * xhit = 0;
-  std::vector<Float_t> * yhit = 0;
-  std::vector<Float_t> * zhit = 0;
+  FltVecRef xhit = new FltVec();
+  FltVecRef yhit = new FltVec();
+  FltVecRef zhit = new FltVec();
   
   Float_t xvrx = 0.;
   Float_t yvrx = 0.;
@@ -222,6 +411,11 @@ void PlotValidation::PlotSimGeo(){
   PlotValidation::DrawWriteSaveTH2FPlot(subdir,rz_detplot,subdirname,"rz_simulation_detgeometry");
   PlotValidation::DrawWriteSaveTH2FPlot(subdir,xy_vrxplot,subdirname,"xy_simulation_vrxgeometry");
   PlotValidation::DrawWriteSaveTH2FPlot(subdir,rz_vrxplot,subdirname,"rz_simulation_vrxgeometry");
+
+  delete xhit;
+  delete yhit;
+  delete zhit;
+
   delete xy_detplot;
   delete rz_detplot;
   delete xy_vrxplot;
@@ -353,7 +547,7 @@ void PlotValidation::PlotCFResidual(){
   Bool_t  setLogy = false;
   TStrVec vars    = {"x","y","z","px","py","pz","pt","invpt","phi","theta"}; // pt will be inverse
   TStrVec svars   = {"x","y","z","p_{x}","p_{y}","p_{z}","p_{T}","1/p_{T}","#phi","#theta"}; // svars --> labels for histograms for given variable
-  TStrVec sunits  = {"[cm]","[cm]","[cm]","[GeV/c]","[GeV/c]","[GeV/c]","[GeV/c]","[GeV/c]^{-1}","",""}; // svars --> labels for histograms for given variable
+  TStrVec sunits  = {" [cm]"," [cm]"," [cm]"," [GeV/c]"," [GeV/c]"," [GeV/c]"," [GeV/c]"," [GeV/c]^{-1}","",""}; // svars --> labels for histograms for given variable
   UIntVec nBins   = {100,100,100,100,100,100,100,100,100,100};
   FltVec  xlow    = {-0.05,-0.05,-0.5,-0.5,-0.5,-0.5,-0.5,-0.05,-0.05,-0.05};
   FltVec  xhigh   = {0.05,0.05,0.5,0.5,0.5,0.5,0.5,0.05,0.05,0.05};  
@@ -443,7 +637,7 @@ void PlotValidation::PlotCFResolutionPull(){
   Bool_t  setLogy   = false;
   TStrVec vars      = {"x","y","z","px","py","pz","pt","invpt","phi","theta"};
   TStrVec svars     = {"x","y","z","p_{x}","p_{y}","p_{z}","p_{T}","1/p_{T}","#phi","#theta"}; // svars --> labels for histograms for given variable
-  TStrVec sunits    = {"[cm]","[cm]","[cm]","[GeV/c]","[GeV/c]","[GeV/c]","[GeV/c]","[GeV/c]^{-1}","",""}; // svars --> labels for histograms for given variable
+  TStrVec sunits    = {" [cm]"," [cm]"," [cm]"," [GeV/c]"," [GeV/c]"," [GeV/c]"," [GeV/c]"," [GeV/c]^{-1}","",""}; // svars --> labels for histograms for given variable
   TStrVec evars     = {"ex","ey","ez","epx","epy","epz","ept","einvpt","ephi","etheta"};
   TStrVec trks      = {"seed","fit"};
   TStrVec strks     = {"Seed","Fit"}; // strk --> labels for histograms for given track type
@@ -468,7 +662,7 @@ void PlotValidation::PlotCFResolutionPull(){
     recovars_val[i].reserve(trks.size());
     recovars_err[i].reserve(trks.size());
   }
-  Float_t   vars_out[2] = {0.,0.}; // res/pull output
+  FltVec    vars_out = {0.,0.}; // res/pull output
   
   // Create pos plots
   TH1FRefVecVec varsResPlot(vars.size());
@@ -488,7 +682,7 @@ void PlotValidation::PlotCFResolutionPull(){
 
       //Pull
       varsPullPlot[i][j] = new TH1F(Form("h_%s_cfpull_%s",vars[i].Data(),trks[j].Data()),Form("%s Pull (CF %s Track vs. MC Track)",svars[i].Data(),strks[j].Data()),nBinsPull[i],xlowPull[i],xhighPull[i]);
-      varsPullPlot[i][j]->GetXaxis()->SetTitle(Form("(%s^{CF %s}%s - %s^{mc}%s)/#sigma(%s^{CF %s}%s)",svars[i].Data(),strks[j].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data(),svars[i].Data(),strks[j].Data(),sunits[i].Data()));
+      varsPullPlot[i][j]->GetXaxis()->SetTitle(Form("(%s^{CF %s}%s - %s^{mc}%s)/#sigma(%s^{CF %s})%s",svars[i].Data(),strks[j].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data(),svars[i].Data(),strks[j].Data(),sunits[i].Data()));
       varsPullPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
     }
   }
@@ -545,10 +739,18 @@ void PlotValidation::PlotCFResolutionPull(){
 }
 
 void PlotValidation::PlotPosResolutionPull(){
-  TTree * efftree     = (TTree*)fInRoot->Get("efftree");
-  TTree * configtree  = (TTree*)fInRoot->Get("configtree"); // use to set resolutions
+  // get tree
+  TTree * efftree    = (TTree*)fInRoot->Get("efftree");
+  
+  // get nLayers
+  TTree * configtree = (TTree*)fInRoot->Get("configtree");
+  unsigned int nlayers_per_seed = 0;
+  unsigned int nLayers = 0;
+  configtree->SetBranchAddress("nlayers_per_seed",&nlayers_per_seed);
+  configtree->SetBranchAddress("nLayers",&nLayers);
+  configtree->GetEntry(0);
 
-  // make output subdirectory and subdir in ROOT file, and cd to it.
+  // make  output subdirectory and subdir in ROOT file, and cd to it.
   TString subdirname = "position_resolutionpull"; 
   TDirectory * subdir;
   PlotValidation::MakeSubDirectory(subdir,subdirname);
@@ -558,7 +760,7 @@ void PlotValidation::PlotPosResolutionPull(){
   TStrVec vars      = {"x","y","z"};
   TStrVec evars     = {"ex","ey","ez"};
   TStrVec svars     = {"x","y","z"}; // svars --> labels for histograms for given variable
-  TStrVec sunits    = {"[cm]","[cm]","[cm]"}; // svars --> labels for histograms for given variable
+  TStrVec sunits    = {" [cm]"," [cm]"," [cm]"}; // svars --> labels for histograms for given variable
   UIntVec nBinsRes  = {100,100,100};
   FltVec  xlowRes   = {-0.5,-0.5,-0.5};
   FltVec  xhighRes  = {0.5,0.5,0.5};  
@@ -568,92 +770,113 @@ void PlotValidation::PlotPosResolutionPull(){
   FltVec  xhighPull = {5,5,5};  
   FltVec  gausPull  = {3,3,3}; // symmetric bounds for gaussian fit
 
-  TStrVec trks      = {"seed","build","fit"};
-  TStrVec strks     = {"Seed","Build","Fit"}; // strk --> labels for histograms for given track type
+  TStrVec trks      = {"seed","fit"};
+  TStrVec strks     = {"Seed","Fit"}; // strk --> labels for histograms for given track type
 
-  // Floats/Ints to be filled for trees
-  FltVecVec mcvars_val(vars.size());
-  IntVec    mcmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
-  FltVecVec recovars_val(vars.size()); // first index is nVars, second is nTrkTypes
-  FltVecVec recovars_err(vars.size());
-  for (UInt_t i = 0; i < vars.size(); i++){
-    mcvars_val[i].reserve(trks.size());
-    recovars_val[i].reserve(trks.size());
-    recovars_err[i].reserve(trks.size());
-  }
-  Float_t   vars_out[2] = {0.,0.}; // res/pull output
-  
+  UIntVec nlayers_trk = {nlayers_per_seed, nLayers}; // want to reserve just enough space
+
   // Create pos plots
-  TH1FRefVecVec varsResPlot(vars.size());
-  TH1FRefVecVec varsPullPlot(vars.size());
-  for (UInt_t i = 0; i < vars.size(); i++){
-    varsResPlot[i].reserve(trks.size());
-    varsPullPlot[i].reserve(trks.size());
+  TH1FRefVecVecVec varsResPlot(trks.size()); // in this case, outer layer is tracks, then variable, then by layer
+  TH1FRefVecVecVec varsPullPlot(trks.size());
+
+  for (UInt_t j = 0; j < trks.size(); j++){
+    varsResPlot[j].reserve(vars.size());
+    varsPullPlot[j].reserve(vars.size());
+    for (UInt_t i = 0; i < vars.size(); i++){
+      varsResPlot[j][i].reserve(nlayers_trk[j]);
+      varsPullPlot[j][i].reserve(nlayers_trk[j]);
+    }
   }
 
   subdir->cd(); // ensure plots are put in right place 
-  for (UInt_t i = 0; i < vars.size(); i++){
-    for (UInt_t j = 0; j < trks.size(); j++){
-      //Res
-      varsResPlot[i][j] = new TH1F(Form("h_%s_res_%s",vars[i].Data(),trks[j].Data()),Form("%s Resolution (%s Track vs. MC Track)",svars[i].Data(),strks[j].Data()),nBinsRes[i],xlowRes[i],xhighRes[i]);
-      varsResPlot[i][j]->GetXaxis()->SetTitle(Form("(%s^{%s}%s - %s^{mc}%s)/%s^{mc}%s",svars[i].Data(),strks[j].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data()));
-      varsResPlot[i][j]->GetYaxis()->SetTitle("nTracks");
+  for (UInt_t j = 0; j < trks.size(); j++){
+    for (UInt_t i = 0; i < vars.size(); i++){
+      for (UInt_t l = 0; l < nlayers_trk[j]; l++){	
+	//Res
+	varsResPlot[j][i][l] = new TH1F(Form("h_%s_res_lay_%u_%s",vars[i].Data(),l,trks[j].Data()),Form("%s Resolution Layer %u (%s Track vs. MC Track)",svars[i].Data(),l,strks[j].Data()),nBinsRes[i],xlowRes[i],xhighRes[i]);
+	varsResPlot[j][i][l]->GetXaxis()->SetTitle(Form("(%s^{%s}%s - %s^{mc}%s)/%s^{mc}%s",svars[i].Data(),strks[j].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data()));
+	varsResPlot[j][i][l]->GetYaxis()->SetTitle("nTracks");
 
-      //Pull
-      varsPullPlot[i][j] = new TH1F(Form("h_%s_pull_%s",vars[i].Data(),trks[j].Data()),Form("%s Pull (%s Track vs. MC Track)",svars[i].Data(),strks[j].Data()),nBinsPull[i],xlowPull[i],xhighPull[i]);
-      varsPullPlot[i][j]->GetXaxis()->SetTitle(Form("(%s^{%s}%s - %s^{mc}%s)/#sigma(%s^{%s}%s)",svars[i].Data(),strks[j].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data(),svars[i].Data(),strks[j].Data(),sunits[i].Data()));
-      varsPullPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
+	//Pull
+	varsPullPlot[j][i][l] = new TH1F(Form("h_%s_pull_lay_%u_%s",vars[i].Data(),l,trks[j].Data()),Form("%s Pull Layer %u (%s Track vs. MC Track)",svars[i].Data(),l,strks[j].Data()),nBinsPull[i],xlowPull[i],xhighPull[i]);
+	varsPullPlot[j][i][l]->GetXaxis()->SetTitle(Form("(%s^{%s}%s - %s^{mc}%s)/#sigma(%s^{%s})%s",svars[i].Data(),strks[j].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data(),svars[i].Data(),strks[j].Data(),sunits[i].Data()));
+	varsPullPlot[j][i][l]->GetYaxis()->SetTitle("nTracks");
+      }
     }
   }
+
+  // Floats/Ints to be filled for trees
+  UIntVecRefVec   layers_trk(trks.size());   // only needed per track type
+  FltVecRefVecVec recovars_val(trks.size()); // first index is nVars, second is nTrkTypes
+  FltVecRefVecVec recovars_err(trks.size());
+  for (UInt_t j = 0; j < trks.size(); j++){
+    layers_trk[j] = new UIntVec(); // initialize pointer
+
+    recovars_val[j].reserve(vars.size());
+    recovars_err[j].reserve(vars.size());
+    for (UInt_t i = 0; i < vars.size(); i++){
+      recovars_val[j][i] = new FltVec(); // initialize pointers
+      recovars_err[j][i] = new FltVec(); // initialize pointers
+    }
+  }
+
+  IntVec       mcmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
+  FltVecRefVec mcvars_val(vars.size()); // good for all track types
+  for (UInt_t i = 0; i < vars.size(); i++){
+    mcvars_val[i] = 0; // initialize pointers
+  }
+  FltVec vars_out = {0.,0.}; // res/pull output initialization
 
   //Initialize var_val/err arrays, SetBranchAddress
-  for (UInt_t i = 0; i < vars.size(); i++){ // loop over var index
-    for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
-      // initialize var + errors
-      mcvars_val[i][j] = 0.;
-      recovars_val[i][j] = 0.;
-      recovars_err[i][j] = 0.;
-      
+  for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
+    // get the layers needed for reco vars
+    efftree->SetBranchAddress(Form("layers_%s",trks[j].Data()),&layers_trk[j]); 
+    efftree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));   
+
+    for (UInt_t i = 0; i < vars.size(); i++){ // loop over var index
       //Set var+trk branch
-      efftree->SetBranchAddress(Form("%s_mc_%s",vars[i].Data(),trks[j].Data()),&(mcvars_val[i][j]));
-      efftree->SetBranchAddress(Form("%s_%s",vars[i].Data(),trks[j].Data()),&(recovars_val[i][j]));
-      efftree->SetBranchAddress(Form("%s_%s",evars[i].Data(),trks[j].Data()),&(recovars_err[i][j]));
+      efftree->SetBranchAddress(Form("%s_lay_%s",vars[i].Data(),trks[j].Data()),&(recovars_val[j][i]));
+      efftree->SetBranchAddress(Form("%s_lay_%s",evars[i].Data(),trks[j].Data()),&(recovars_err[j][i]));
     }
   }
-  
-  //Initialize masks, set branch addresses  
-  for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
-    mcmask_trk[j] = 0;
-    efftree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
+
+  for (UInt_t i = 0; i < vars.size(); i++){ // loop over var index
+    efftree->SetBranchAddress(Form("%s_mc_reco_hit",vars[i].Data()),&(mcvars_val[i]));
   }
 
   // Fill histos, compute res/pull from tree branches 
   for (UInt_t k = 0; k < (UInt_t) efftree->GetEntries(); k++){
     efftree->GetEntry(k);
-    for (UInt_t i = 0; i < vars.size(); i++){  // loop over vars index
-      for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
-	if (mcmask_trk[j] == 1){ // must be associated
-	  PlotValidation::ComputeResolutionPull(mcvars_val[i][j],recovars_val[i][j],recovars_err[i][j],vars_out);
-	  if (!isnan(vars_out[0])){ // fill if not nan
-	    varsResPlot[i][j]->Fill(vars_out[0]);
+    for (UInt_t j = 0; j < trks.size(); j++){ // loop over trks index
+      if (mcmask_trk[j] == 1){ // must be associated
+	for (UInt_t i = 0; i < vars.size(); i++){  // loop over vars index
+	  for (UInt_t l = 0; l < layers_trk[j]->size(); l++){ // loop over layers, assuming one hit per layer
+	    const UInt_t layer = (*layers_trk[j])[l]; // layer we are on.
+	    PlotValidation::ComputeResolutionPull((*mcvars_val[i])[layer],(*recovars_val[j][i])[l],(*recovars_err[j][i])[l],vars_out); // we assume one hit per layer and track is simulated to be built outward
+	    if (!isnan(vars_out[0])){ // fill if not nan
+	      varsResPlot[j][i][layer]->Fill(vars_out[0]);
+	    }
+	    if (!isnan(vars_out[1])){ // fill if not nan
+	      varsPullPlot[j][i][layer]->Fill(vars_out[1]);
+	    }
 	  }
-	  if (!isnan(vars_out[1])){ // fill if not nan
-	    varsPullPlot[i][j]->Fill(vars_out[1]);
-	  }
-	} // must be a matched track to make resolution plots
-      } // end loop over trks
-    } // end loop over vars
+	} // end loop over vars
+      } // must be a matched track to make resolution plots
+    } // end loop over trks
   } // end loop over entry in tree
 
   // Draw, fit, and save plots
-  for (UInt_t i = 0; i < vars.size(); i++){
-    for (UInt_t j = 0; j < trks.size(); j++){
-      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsResPlot[i][j],subdirname,Form("%s_resolution_%s",vars[i].Data(),trks[j].Data()),gausRes[i],setLogy);
-      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsPullPlot[i][j],subdirname,Form("%s_pull_%s",vars[i].Data(),trks[j].Data()),gausPull[i],setLogy);
-      delete varsResPlot[i][j];
-      delete varsPullPlot[i][j];
+  for (UInt_t j = 0; j < trks.size(); j++){
+    for (UInt_t i = 0; i < vars.size(); i++){
+      for (UInt_t l = 0; l < nlayers_trk[j]; l++){
+	PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsResPlot[j][i][l],subdirname,Form("%s_resolution_lay%u_%s",vars[i].Data(),l,trks[j].Data()),gausRes[i],setLogy);
+	PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsPullPlot[j][i][l],subdirname,Form("%s_pull_lay%u_%s",vars[i].Data(),l,trks[j].Data()),gausPull[i],setLogy);
+	delete varsResPlot[j][i][l];
+	delete varsPullPlot[j][i][l];
+      }
     }
   }  
+  delete configtree;
   delete efftree;
 }
 
@@ -671,7 +894,7 @@ void PlotValidation::PlotMomResolutionPull(){
   TStrVec vars      = {"pt","eta","phi"};
   TStrVec evars     = {"ept","eeta","ephi"};
   TStrVec svars     = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
-  TStrVec sunits    = {"[GeV/c]","",""}; // units --> labels for histograms for given variable
+  TStrVec sunits    = {" [GeV/c]","",""}; // units --> labels for histograms for given variable
   UIntVec nBinsRes  = {100,100,100};
   FltVec  xlowRes   = {-0.5,-0.5,-0.5};
   FltVec  xhighRes  = {0.5,0.5,0.5};  
@@ -694,7 +917,7 @@ void PlotValidation::PlotMomResolutionPull(){
     recovars_val[i].reserve(trks.size());
     recovars_err[i].reserve(trks.size());
   }
-  Float_t   vars_out[2] = {0.,0.}; // res/pull output
+  FltVec vars_out = {0.,0.}; // res/pull output
   
   // Create pos plots
   TH1FRefVecVec varsResPlot(vars.size());
@@ -714,7 +937,7 @@ void PlotValidation::PlotMomResolutionPull(){
 
       //Pull
       varsPullPlot[i][j] = new TH1F(Form("h_%s_pull_%s",vars[i].Data(),trks[j].Data()),Form("%s Pull (%s Track vs. MC Track)",svars[i].Data(),strks[j].Data()),nBinsPull[i],xlowPull[i],xhighPull[i]);
-      varsPullPlot[i][j]->GetXaxis()->SetTitle(Form("(%s^{%s}%s - %s^{mc}%s)/#sigma(%s^{%s}%s)",svars[i].Data(),strks[j].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data(),svars[i].Data(),strks[j].Data(),sunits[i].Data()));
+      varsPullPlot[i][j]->GetXaxis()->SetTitle(Form("(%s^{%s}%s - %s^{mc}%s)/#sigma(%s^{%s})%s",svars[i].Data(),strks[j].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data(),svars[i].Data(),strks[j].Data(),sunits[i].Data()));
       varsPullPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
     }
   }
@@ -782,7 +1005,8 @@ void PlotValidation::PlotEfficiency(){
   //Declare strings for branches and plots
   Bool_t  setLogy = false;
   TStrVec vars  = {"pt","eta","phi"};
-  TStrVec svars = {"p_{T} [GeV/c]","#eta","#phi"}; // svars --> labels for histograms for given variable
+  TStrVec svars = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
+  TStrVec sunits= {" [GeV/c]","",""}; // units --> labels for histograms for given variable
   UIntVec nBins = {60,60,80};
   FltVec  xlow  = {0,-3,-4};
   FltVec  xhigh = {15,3,4};  
@@ -809,15 +1033,15 @@ void PlotValidation::PlotEfficiency(){
     for (UInt_t j = 0; j < trks.size(); j++){
       // Numerator
       varsNumerPlot[i][j] = new TH1F(Form("h_sim_%s_numer_%s_eff",vars[i].Data(),trks[j].Data()),Form("%s Track vs MC %s (Numer) Eff",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
-      varsNumerPlot[i][j]->GetXaxis()->SetTitle(Form("%s",svars[i].Data()));
+      varsNumerPlot[i][j]->GetXaxis()->SetTitle(Form("%s%s",svars[i].Data(),sunits[i].Data()));
       varsNumerPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
       // Denominator
       varsDenomPlot[i][j] = new TH1F(Form("h_sim_%s_denom_%s_eff",vars[i].Data(),trks[j].Data()),Form("%s Track vs MC %s (Denom) Eff",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
-      varsDenomPlot[i][j]->GetXaxis()->SetTitle(Form("%s",svars[i].Data()));
+      varsDenomPlot[i][j]->GetXaxis()->SetTitle(Form("%s%s",svars[i].Data(),sunits[i].Data()));
       varsDenomPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
       // Effiency
       varsEffPlot[i][j] = new TH1F(Form("h_sim_%s_eff_%s_eff",vars[i].Data(),trks[j].Data()),Form("%s Track Effiency vs MC %s",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
-      varsEffPlot[i][j]->GetXaxis()->SetTitle(Form("%s",svars[i].Data()));
+      varsEffPlot[i][j]->GetXaxis()->SetTitle(Form("%s%s",svars[i].Data(),sunits[i].Data()));
       varsEffPlot[i][j]->GetYaxis()->SetTitle("Efficiency");    
     }
   }
@@ -854,8 +1078,8 @@ void PlotValidation::PlotEfficiency(){
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
       PlotValidation::ComputeRatioPlot(varsNumerPlot[i][j],varsDenomPlot[i][j],varsEffPlot[i][j]);
-      PlotValidation::DrawWriteTH1Plot(subdir,varsNumerPlot[i][j]);
-      PlotValidation::DrawWriteTH1Plot(subdir,varsDenomPlot[i][j]);
+      PlotValidation::WriteTH1FPlot(subdir,varsNumerPlot[i][j]);
+      PlotValidation::WriteTH1FPlot(subdir,varsDenomPlot[i][j]);
       PlotValidation::ZeroSuppressPlot(varsEffPlot[i][j]);
       PlotValidation::DrawWriteSaveTH1FPlot(subdir,varsEffPlot[i][j],subdirname,Form("%s_eff_%s",vars[i].Data(),trks[j].Data()),setLogy);
       delete varsNumerPlot[i][j];
@@ -878,7 +1102,8 @@ void PlotValidation::PlotFakeRate(){
   //Declare strings for branches and plots
   Bool_t  setLogy = false;
   TStrVec vars  = {"pt","eta","phi"};
-  TStrVec svars = {"p_{T} [GeV/c]","#eta","#phi"}; // svars --> labels for histograms for given variable
+  TStrVec svars = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
+  TStrVec sunits= {" [GeV/c]","",""}; // units --> labels for histograms for given variable
   UIntVec nBins = {60,60,80};
   FltVec  xlow  = {0,-3,-4};
   FltVec  xhigh = {15,3,4};  
@@ -910,15 +1135,15 @@ void PlotValidation::PlotFakeRate(){
     for (UInt_t j = 0; j < trks.size(); j++){
       // Numerator
       varsNumerPlot[i][j] = new TH1F(Form("h_reco_%s_numer_%s_FR",vars[i].Data(),trks[j].Data()),Form("%s Track vs Reco %s (Numer) FR",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
-      varsNumerPlot[i][j]->GetXaxis()->SetTitle(Form("%s",svars[i].Data()));
+      varsNumerPlot[i][j]->GetXaxis()->SetTitle(Form("%s%s",svars[i].Data(),sunits[i].Data()));
       varsNumerPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
       // Denominator
       varsDenomPlot[i][j] = new TH1F(Form("h_reco_%s_denom_%s_FR",vars[i].Data(),trks[j].Data()),Form("%s Track vs Reco %s (Denom) FR",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
-      varsDenomPlot[i][j]->GetXaxis()->SetTitle(Form("%s",svars[i].Data()));
+      varsDenomPlot[i][j]->GetXaxis()->SetTitle(Form("%s%s",svars[i].Data(),sunits[i].Data()));
       varsDenomPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
       // Fake Rate
       varsFRPlot[i][j] = new TH1F(Form("h_reco_%s_FR_%s_FR",vars[i].Data(),trks[j].Data()),Form("%s Track Fake Rate vs Reco %s",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
-      varsFRPlot[i][j]->GetXaxis()->SetTitle(Form("%s",svars[i].Data()));
+      varsFRPlot[i][j]->GetXaxis()->SetTitle(Form("%s%s",svars[i].Data(),sunits[i].Data()));
       varsFRPlot[i][j]->GetYaxis()->SetTitle("Fake Rate");    
     }
   }
@@ -962,8 +1187,8 @@ void PlotValidation::PlotFakeRate(){
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
       PlotValidation::ComputeRatioPlot(varsNumerPlot[i][j],varsDenomPlot[i][j],varsFRPlot[i][j]);
-      PlotValidation::DrawWriteTH1Plot(subdir,varsNumerPlot[i][j]);
-      PlotValidation::DrawWriteTH1Plot(subdir,varsDenomPlot[i][j]);
+      PlotValidation::WriteTH1FPlot(subdir,varsNumerPlot[i][j]);
+      PlotValidation::WriteTH1FPlot(subdir,varsDenomPlot[i][j]);
       PlotValidation::ZeroSuppressPlot(varsFRPlot[i][j]);
       PlotValidation::DrawWriteSaveTH1FPlot(subdir,varsFRPlot[i][j],subdirname,Form("%s_FR_%s",vars[i].Data(),trks[j].Data()),setLogy);
       delete varsNumerPlot[i][j];
@@ -986,7 +1211,8 @@ void PlotValidation::PlotDuplicateRate(){
   //Declare strings for branches and plots
   Bool_t  setLogy = false;
   TStrVec vars  = {"pt","eta","phi"};
-  TStrVec svars = {"p_{T} [GeV/c]","#eta","#phi"}; // svars --> labels for histograms for given variable
+  TStrVec svars = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
+  TStrVec sunits= {" [GeV/c]","",""}; // units --> labels for histograms for given variable
   UIntVec nBins = {60,60,80};
   FltVec  xlow  = {0,-3,-4};
   FltVec  xhigh = {15,3,4};  
@@ -1014,15 +1240,15 @@ void PlotValidation::PlotDuplicateRate(){
     for (UInt_t j = 0; j < trks.size(); j++){
       // Numerator
       varsNumerPlot[i][j] = new TH1F(Form("h_sim_%s_numer_%s_DR",vars[i].Data(),trks[j].Data()),Form("%s Track vs MC %s (Numer) DR",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
-      varsNumerPlot[i][j]->GetXaxis()->SetTitle(Form("%s",svars[i].Data()));
+      varsNumerPlot[i][j]->GetXaxis()->SetTitle(Form("%s%s",svars[i].Data(),sunits[i].Data()));
       varsNumerPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
       // Denominator
       varsDenomPlot[i][j] = new TH1F(Form("h_sim_%s_denom_%s_DR",vars[i].Data(),trks[j].Data()),Form("%s Track vs MC %s (Denom) DR",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
-      varsDenomPlot[i][j]->GetXaxis()->SetTitle(Form("%s",svars[i].Data()));
+      varsDenomPlot[i][j]->GetXaxis()->SetTitle(Form("%s%s",svars[i].Data(),sunits[i].Data()));
       varsDenomPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
       // Duplicate Rate
       varsDRPlot[i][j] = new TH1F(Form("h_sim_%s_DR_%s_DR",vars[i].Data(),trks[j].Data()),Form("%s Track Duplicate Rate vs MC %s",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
-      varsDRPlot[i][j]->GetXaxis()->SetTitle(Form("%s",svars[i].Data()));
+      varsDRPlot[i][j]->GetXaxis()->SetTitle(Form("%s%s",svars[i].Data(),sunits[i].Data()));
       varsDRPlot[i][j]->GetYaxis()->SetTitle("Duplicate Rate");    
     }
   }
@@ -1064,8 +1290,8 @@ void PlotValidation::PlotDuplicateRate(){
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
       PlotValidation::ComputeRatioPlot(varsNumerPlot[i][j],varsDenomPlot[i][j],varsDRPlot[i][j]);
-      PlotValidation::DrawWriteTH1Plot(subdir,varsNumerPlot[i][j]);
-      PlotValidation::DrawWriteTH1Plot(subdir,varsDenomPlot[i][j]);
+      PlotValidation::WriteTH1FPlot(subdir,varsNumerPlot[i][j]);
+      PlotValidation::WriteTH1FPlot(subdir,varsDenomPlot[i][j]);
       PlotValidation::ZeroSuppressPlot(varsDRPlot[i][j]);
       PlotValidation::DrawWriteSaveTH1FPlot(subdir,varsDRPlot[i][j],subdirname,Form("%s_DR_%s",vars[i].Data(),trks[j].Data()),setLogy);
       delete varsNumerPlot[i][j];
@@ -1183,7 +1409,7 @@ void PlotValidation::ComputeResidual(const Float_t mcvar_val, const Float_t reco
   var_out = recovar_val - mcvar_val;
 }
 
-void PlotValidation::ComputeResolutionPull(const Float_t mcvar_val, const Float_t recovar_val, const Float_t recovar_err, Float_t var_out[]){
+void PlotValidation::ComputeResolutionPull(const Float_t mcvar_val, const Float_t recovar_val, const Float_t recovar_err, FltVec & var_out){
   var_out[0] = (recovar_val - mcvar_val)/mcvar_val;
   var_out[1] = (recovar_val - mcvar_val)/recovar_err;
 }
@@ -1224,6 +1450,11 @@ void PlotValidation::ComputeRatioPlot(const TH1F * numer, const TH1F * denom, TH
   }
 }
 
+void PlotValidation::WriteTH2IPlot(TDirectory *& subdir, TH2I *& hist){
+  subdir->cd();
+  hist->Write();
+}
+
 void PlotValidation::DrawWriteSaveTH2IPlot(TDirectory *& subdir, TH2I *& hist, const TString subdirname, const TString plotName){
   fTH2Canv->cd();
   hist->Draw("colz");  
@@ -1240,9 +1471,7 @@ void PlotValidation::DrawWriteSaveTH2FPlot(TDirectory *& subdir, TH2F *& hist, c
   fTH2Canv->SaveAs(Form("%s/%s/%s.png",fOutName.Data(),subdirname.Data(),plotName.Data()));  
 }
 
-void PlotValidation::DrawWriteTH1Plot(TDirectory *& subdir, TH1F *& hist){
-  fTH1Canv->cd();
-  hist->Draw();
+void PlotValidation::WriteTH1FPlot(TDirectory *& subdir, TH1F *& hist){
   subdir->cd();
   hist->Write();
 }

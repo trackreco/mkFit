@@ -202,6 +202,7 @@ void Event::Fit()
 }
 
 void Event::Validate(const unsigned int ievt){
+  validation_.fillBranchTree(ievt);
   validation_.makeSimTkToRecoTksMaps(seedTracks_,candidateTracks_,fitTracks_);
   validation_.fillEffTree(simTracks_,ievt);
   validation_.makeSeedTkToRecoTkMaps(candidateTracks_,fitTracks_);

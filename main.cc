@@ -129,8 +129,6 @@ int main(int argc, char** argv)
 
     timepoint t0(now());
 #ifdef ENDTOEND
-    //    val.resetValidationMaps(); // need to reset maps for every event.
-
     ev.Simulate();           ticks[0] += delta(t0);
     ev.Segment();            ticks[1] += delta(t0);
     ev.Seed();               ticks[2] += delta(t0);

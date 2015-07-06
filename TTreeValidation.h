@@ -10,17 +10,41 @@ public:
 };
 #else
 
-#include <map>
+#include <unordered_map>
 #include <mutex>
 #include "TFile.h"
 #include "TTree.h"
 #include "TROOT.h"
 
-typedef std::map<unsigned int,const Track*>  TkToTkRefMap;
-typedef std::map<unsigned int,TrackRefVec>   TkToTkRefVecMap;
-typedef std::map<unsigned int,TrackState>    TkToTSMap;   
-typedef std::map<unsigned int,TSVec>         TkToTSVecMap;
-typedef std::map<unsigned int,TSLayerPairVec> TkToTSLayerPairVecMap;
+// branching valiation typedefs
+struct BranchVal
+{
+public:
+  BranchVal() {}
+  float nSigmaDeta;
+  float nSigmaDphi;
+
+  unsigned int etaBinMinus;
+  unsigned int etaBinPlus;
+  unsigned int phiBinMinus;
+  unsigned int phiBinPlus;
+
+  std::vector<unsigned int> cand_hit_indices;
+  std::vector<unsigned int> branch_hit_indices; // size of was just branches
+};
+
+typedef std::vector<BranchVal> BranchValVec;
+typedef std::unordered_map<unsigned int, BranchValVec> BranchValVecLayMap;
+typedef std::unordered_map<unsigned int, BranchValVecLayMap> TkToBranchValVecLayMapMap;
+typedef TkToBranchValVecLayMapMap::iterator TkToBVVMMIter;
+typedef BranchValVecLayMap::iterator BVVLMiter;
+
+// other typedefs
+typedef std::unordered_map<unsigned int,const Track*>  TkToTkRefMap;
+typedef std::unordered_map<unsigned int,TrackRefVec>   TkToTkRefVecMap;
+typedef std::unordered_map<unsigned int,TrackState>    TkToTSMap;   
+typedef std::unordered_map<unsigned int,TSVec>         TkToTSVecMap;
+typedef std::unordered_map<unsigned int,TSLayerPairVec> TkToTSLayerPairVecMap;
 
 class TTreeValidation : public Validation {
 public:
@@ -33,10 +57,12 @@ public:
   void collectSeedTkCFMapInfo(const unsigned int seedID, const TrackState& cfitStateHit0) override;
   void collectSeedTkTSLayerPairVecMapInfo(const unsigned int seedID, const TSLayerPairVec& updatedStates) override;
 
+  void collectBranchingInfo(const unsigned int seedID, const unsigned int ilayer, const float nSigmaDeta, const float etaBinMinus, const unsigned int etaBinPlus, const float nSigmaDphi, const unsigned int phiBinMinus, const unsigned int phiBinPlus, const std::vector<unsigned int> & cand_hit_indices, const std::vector<unsigned int> cand_hits_branches);
+
   void collectFitTkCFMapInfo(const unsigned int seedID, const TrackState& cfitStateHit0) override;
   void collectFitTkTSLayerPairVecMapInfo(const unsigned int seedID, const TSLayerPairVec& updatedStates) override;
 
-  void fillBuildTree(const unsigned int layer, const unsigned int cands, const std::vector<unsigned int>& candEtaPhiBins, const std::vector<unsigned int>& candHits, const std::vector<unsigned int>& candBranches) override;
+  void fillBranchTree(const unsigned int evtID) override;
 
   void makeSimTkToRecoTksMaps(TrackVec& evt_seed_tracks, TrackVec& evt_build_tracks, TrackVec& evt_fit_tracks) override;
   void mapSimTkToRecoTks(TrackVec& evt_tracks, TkToTkRefVecMap& simTkMap);
@@ -58,13 +84,18 @@ public:
   TkToTSMap seedTkCFMap_;
   TkToTSLayerPairVecMap seedTkTSLayerPairVecMap_;
 
+  TkToBranchValVecLayMapMap seedToBranchValVecLayMapMap_;
+
   TkToTSMap fitTkCFMap_;
   TkToTSLayerPairVecMap fitTkTSLayerPairVecMap_;
 
   // build branching tree
   TTree* tree_br_;
+  unsigned int evtID_br_=0,seedID_br_=0;
   unsigned int layer_=0,cands_=0;
+  unsigned int uniqueEtaPhiBins_,uniqueHits_,uniqueBranches_;
   std::vector<unsigned int> candEtaPhiBins_,candHits_,candBranches_;
+  std::vector<float> candnSigmaDeta_,candnSigmaDphi_;
   
   // efficiency trees and variables
   TkToTkRefVecMap simToSeedMap_;

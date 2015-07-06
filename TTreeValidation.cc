@@ -112,11 +112,22 @@ TTreeValidation::TTreeValidation(std::string fileName)
 
   // build validation
   tree_br_ = new TTree("tree_br","tree_br");
+  tree_br_->Branch("evtID",&evtID_br_);
+  tree_br_->Branch("seedID",&seedID_br_);
+
   tree_br_->Branch("layer",&layer_);
   tree_br_->Branch("cands",&cands_);
+
   tree_br_->Branch("candEtaPhiBins",&candEtaPhiBins_);
   tree_br_->Branch("candHits",&candHits_);
   tree_br_->Branch("candBranches",&candBranches_);
+  
+  tree_br_->Branch("uniqueEtaPhiBins",&uniqueEtaPhiBins_);
+  tree_br_->Branch("uniqueHits",&uniqueHits_);
+  tree_br_->Branch("uniqueBranches",&uniqueBranches_);
+      
+  tree_br_->Branch("candnSigmaDeta",&candnSigmaDeta_);
+  tree_br_->Branch("candnSigmaDphi",&candnSigmaDphi_);
   
   // efficiency validation
   efftree_ = new TTree("efftree","efftree");
@@ -381,17 +392,39 @@ TTreeValidation::TTreeValidation(std::string fileName)
   fakeratetree_->Branch("iTkMatches_fit",&iTkMatches_fit_FR_);
 }
 
-void TTreeValidation::fillBuildTree(const unsigned int layer, const unsigned int cands, const std::vector<unsigned int>& candEtaPhiBins, const std::vector<unsigned int>& candHits, const std::vector<unsigned int>& candBranches)
-{
-  std::lock_guard<std::mutex> locker(glock_);
-  layer_ = layer;
-  cands_ = cands;
+void TTreeValidation::collectSimTkTSVecMapInfo(const unsigned int mcTrackID, const TSVec& initTSs){
+  simTkTSVecMap_[mcTrackID] = initTSs;
+}
 
-  candEtaPhiBins_ = candEtaPhiBins;
-  candHits_       = candHits;
-  candBranches_   = candBranches;
+void TTreeValidation::collectSeedTkCFMapInfo(const unsigned int seedID, const TrackState& cfitStateHit0){
+  seedTkCFMap_[seedID] = cfitStateHit0;
+}
 
-  tree_br_->Fill();
+void TTreeValidation::collectSeedTkTSLayerPairVecMapInfo(const unsigned int seedID, const TSLayerPairVec& updatedStates){
+  seedTkTSLayerPairVecMap_[seedID] = updatedStates;
+}
+
+void TTreeValidation::collectBranchingInfo(const unsigned int seedID, const unsigned int ilayer, const float nSigmaDeta, const float etaBinMinus, const unsigned int etaBinPlus, const float nSigmaDphi, const unsigned int phiBinMinus, const unsigned int phiBinPlus, const std::vector<unsigned int> & cand_hit_indices, const std::vector<unsigned int> branch_hit_indices){
+  
+  BranchVal tmpBranchVal;
+  tmpBranchVal.nSigmaDeta  = nSigmaDeta;
+  tmpBranchVal.etaBinMinus = etaBinMinus;
+  tmpBranchVal.etaBinPlus  = etaBinPlus;
+  tmpBranchVal.nSigmaDphi  = nSigmaDphi;
+  tmpBranchVal.phiBinMinus = phiBinMinus;
+  tmpBranchVal.phiBinPlus  = phiBinPlus;
+  tmpBranchVal.cand_hit_indices   = cand_hit_indices;
+  tmpBranchVal.branch_hit_indices = branch_hit_indices; // size of vector formerly known as just "branches"
+  
+  seedToBranchValVecLayMapMap_[seedID][ilayer].push_back(tmpBranchVal);
+}
+
+void TTreeValidation::collectFitTkCFMapInfo(const unsigned int seedID, const TrackState& cfitStateHit0){
+  fitTkCFMap_[seedID] = cfitStateHit0;
+}
+
+void TTreeValidation::collectFitTkTSLayerPairVecMapInfo(const unsigned int seedID, const TSLayerPairVec& updatedStates){
+  fitTkTSLayerPairVecMap_[seedID] = updatedStates;
 }
 
 void TTreeValidation::resetValidationMaps(){
@@ -408,6 +441,9 @@ void TTreeValidation::resetValidationMaps(){
   seedTkTSLayerPairVecMap_.clear();
   fitTkTSLayerPairVecMap_.clear();
 
+  // reset branching map
+  seedToBranchValVecLayMapMap_.clear();
+
   // reset map of sim tracks to reco tracks
   simToSeedMap_.clear();
   simToBuildMap_.clear();
@@ -418,24 +454,90 @@ void TTreeValidation::resetValidationMaps(){
   seedToFitMap_.clear();
 }
 
-void TTreeValidation::collectSimTkTSVecMapInfo(const unsigned int mcTrackID, const TSVec& initTSs){
-  simTkTSVecMap_[mcTrackID] = initTSs;
-}
+void TTreeValidation::fillBranchTree(const unsigned int evtID)
+{
+  std::lock_guard<std::mutex> locker(glock_);
+  
+  evtID_br_  = evtID;
+  for (TkToBVVMMIter seediter = seedToBranchValVecLayMapMap_.begin(); seediter != seedToBranchValVecLayMapMap_.end(); ++seediter){
+    seedID_br_ = (*seediter).first;
+    for (BVVLMiter layiter = (*seediter).second.begin(); layiter != (*seediter).second.end(); ++layiter){
+      const auto& BranchValVec((*layiter).second);
+      const unsigned int cands = BranchValVec.size();
+ 
+      // clear vectors before filling
+      candEtaPhiBins_.clear();
+      candHits_.clear();
+      candBranches_.clear();
+      candnSigmaDeta_.clear();
+      candnSigmaDphi_.clear();
+        
+      // totals
+      std::vector<unsigned int> candEtaPhiBins(cands);
+      std::vector<unsigned int> candHits(cands);
+      std::vector<unsigned int> candBranches(cands);
 
-void TTreeValidation::collectSeedTkCFMapInfo(const unsigned int seedID, const TrackState& cfitStateHit0){
-  seedTkCFMap_[seedID] = cfitStateHit0;
-}
+      // unique hits, etaphibins, branches...
+      std::unordered_map<unsigned int, bool> uniqueEtaPhiBins;
+      std::unordered_map<unsigned int, bool> uniqueHits;
+      std::unordered_map<unsigned int, bool> uniqueBranches;
+  
+      // nSigmaDeta/phi vec
+      std::vector<float> candnSigmaDeta(cands);
+      std::vector<float> candnSigmaDphi(cands);
 
-void TTreeValidation::collectSeedTkTSLayerPairVecMapInfo(const unsigned int seedID, const TSLayerPairVec& updatedStates){
-  seedTkTSLayerPairVecMap_[seedID] = updatedStates;
-}
+      for (unsigned int cand = 0; cand < cands; cand++){ // loop over input candidates at this layer for this seed
+	const auto& BranchVal(BranchValVec[cand]);
+	
+	if (BranchVal.phiBinPlus >= BranchVal.phiBinMinus){ // count the number of eta/phi bins explored
+	  candEtaPhiBins[cand] = (BranchVal.etaBinPlus-BranchVal.etaBinMinus+1)*(BranchVal.phiBinPlus-BranchVal.phiBinMinus+1);
 
-void TTreeValidation::collectFitTkCFMapInfo(const unsigned int seedID, const TrackState& cfitStateHit0){
-  fitTkCFMap_[seedID] = cfitStateHit0;
-}
+	  for (unsigned int ibin = BranchVal.phiBinMinus; ibin <= BranchVal.phiBinPlus; ibin++){
+	    uniqueEtaPhiBins[ibin] = true;
+	  }
+	}
+	else{
+	  candEtaPhiBins[cand] = (BranchVal.etaBinPlus-BranchVal.etaBinMinus+1)*(Config::nPhiPart-BranchVal.phiBinMinus+BranchVal.phiBinPlus+1);
+	  for (unsigned int ibin = BranchVal.phiBinMinus; ibin < Config::nPhiPart; ibin++){
+	    uniqueEtaPhiBins[ibin] = true;
+	  }
+	  for (unsigned int ibin = 0; ibin <= BranchVal.phiBinPlus; ibin++){
+	    uniqueEtaPhiBins[ibin] = true;
+	  }
+	}
+	
+	candHits[cand]     = BranchVal.cand_hit_indices.size();
+	candBranches[cand] = BranchVal.branch_hit_indices.size();
 
-void TTreeValidation::collectFitTkTSLayerPairVecMapInfo(const unsigned int seedID, const TSLayerPairVec& updatedStates){
-  fitTkTSLayerPairVecMap_[seedID] = updatedStates;
+	for (auto&& cand_hit_idx : BranchVal.cand_hit_indices){ // save unique hits 
+	  uniqueHits[cand_hit_idx] = true;
+	}
+	
+	for (auto&& branch_hit_idx : BranchVal.branch_hit_indices){ // save unique branches --> only consider adding one ghost temp per input?
+	  uniqueBranches[branch_hit_idx] = true;
+	}
+
+	candnSigmaDeta[cand] = BranchVal.nSigmaDeta;
+	candnSigmaDphi[cand] = BranchVal.nSigmaDphi;
+      }
+    
+      layer_  = (*layiter).first; // first index here is layer
+      cands_  = cands;
+    
+      candEtaPhiBins_ = candEtaPhiBins;
+      candHits_       = candHits;
+      candBranches_   = candBranches;
+
+      uniqueEtaPhiBins_ = uniqueEtaPhiBins.size();
+      uniqueHits_       = uniqueHits.size();
+      uniqueBranches_   = uniqueBranches.size();
+      
+      candnSigmaDeta_ = candnSigmaDeta;
+      candnSigmaDphi_ = candnSigmaDphi;
+    
+      tree_br_->Fill();  // fill once per layer per seed
+    }
+  }
 }
 
 void TTreeValidation::makeSimTkToRecoTksMaps(TrackVec& evt_seed_tracks, TrackVec& evt_build_tracks, TrackVec& evt_fit_tracks){
