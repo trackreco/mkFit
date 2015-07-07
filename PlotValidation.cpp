@@ -1350,6 +1350,44 @@ void PlotValidation::PrintTotals(){
   ofstream totalsout;
   totalsout.open(Form("%s/totals_%s.csv",fOutName.Data(),fOutName.Data()));
 
+  // timing dump
+  TTree * configtree = (TTree*)fInRoot->Get("configtree");
+  unsigned int Ntracks = 0, Nevents = 0, nEtaPart = 0, nPhiPart = 0;
+  float simtime = 0., segtime = 0., seedtime = 0., buildtime = 0., fittime = 0., hlvtime = 0.;
+  configtree->SetBranchAddress("Nevents",&Nevents);
+  configtree->SetBranchAddress("Ntracks",&Ntracks);
+  configtree->SetBranchAddress("nEtaPart",&nEtaPart);
+  configtree->SetBranchAddress("nPhiPart",&nPhiPart);
+  configtree->SetBranchAddress("simtime",&simtime);
+  configtree->SetBranchAddress("segtime",&segtime);
+  configtree->SetBranchAddress("seedtime",&seedtime);
+  configtree->SetBranchAddress("buildtime",&buildtime);
+  configtree->SetBranchAddress("fittime",&fittime);
+  configtree->SetBranchAddress("hlvtime",&hlvtime);
+  configtree->GetEntry(0);
+  
+  std::cout << "-----Track Reconstruction Summary-----" << std::endl;
+  std::cout << "nEvents: " << Nevents << " nTracks/evt: " << Ntracks << std::endl;
+  std::cout << "nEtaPart: " << nEtaPart << " nPhiPart: " << nPhiPart << std::endl;
+  std::cout << "+++++++++++++++++++++++++++++++" << std::endl;
+  std::cout << "Simulation time: " << simtime   << std::endl;
+  std::cout << "Segmenting time: " << segtime   << std::endl;
+  std::cout << "Seeding time: "    << seedtime  << std::endl;
+  std::cout << "Building time: "   << buildtime << std::endl;
+  std::cout << "Fitting time: "    << fittime   << std::endl;
+  std::cout << "Validation time: " << hlvtime   << std::endl;
+  std::cout << std::endl;
+
+  totalsout << "-----Track Reconstruction Summary-----" << std::endl;
+  totalsout << "nEvents," << Nevents << ",nTracks/evt," << Ntracks << std::endl;
+  totalsout << "Simulation time," << simtime   << std::endl;
+  totalsout << "Segmenting time," << segtime   << std::endl;
+  totalsout << "Seeding time,"    << seedtime  << std::endl;
+  totalsout << "Building time,"   << buildtime << std::endl;
+  totalsout << "Fitting time,"    << fittime   << std::endl;
+  totalsout << "Validation time," << hlvtime   << std::endl;
+  totalsout << std::endl;
+
   for (UInt_t j = 0; j < trks.size(); j++) {
     std::cout << strks[j].Data() << " Tracks" << std::endl;
     std::cout << "+++++++++++++++++++++++++++++++" << std::endl << std::endl;

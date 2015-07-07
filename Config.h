@@ -15,8 +15,8 @@ namespace Config{
   static constexpr const double Sqrt2   = 1.4142135623730950488016887242097;
 
   // config on main
-  static constexpr const unsigned int nTracks = 5000;
-  static constexpr const unsigned int nEvents = 10;
+  static constexpr const unsigned int nTracks = 500;
+  static constexpr const unsigned int nEvents = 100;
 
   // config on main -- for geometry
   static constexpr const unsigned int nLayers   = 10;
@@ -61,7 +61,7 @@ namespace Config{
   static constexpr const float chi2seedcut = 9.0;
 
   // Config for Hit and BinInfoUtils
-  static constexpr const unsigned int nPhiPart   = 63; //80; 
+  static constexpr const unsigned int nPhiPart   = 500; //63; //80; 
   static constexpr const float        fPhiFactor = nPhiPart / TwoPI;
   static constexpr const unsigned int nEtaPart   = 10; // 11;
   static constexpr const unsigned int nEtaBin    = 2*nEtaPart - 1;
@@ -84,9 +84,9 @@ namespace Config{
 
   // Config for Conformal fitter --> these change depending on inward/outward, which tracks used (MC vs reco), geometry, layers used, track params generated...
   // parameters for layers 0,4,9 
-  static constexpr const float ptinverr049 = 0.010; // 0.0075; // errors used for MC only fit, straight from sim tracks, outward with simple geometry
-  static constexpr const float phierr049   = 0.0021; // 0.0017;
-  static constexpr const float thetaerr049 = 0.0042; // 0.0031; 
+  static constexpr const float ptinverr049 = 0.0078; // 0.0075; // errors used for MC only fit, straight from sim tracks, outward with simple geometry
+  static constexpr const float phierr049   = 0.0017; // 0.0017;
+  static constexpr const float thetaerr049 = 0.0033; // 0.0031; 
   // parameters for layers 0,1,2 // --> ENDTOEND with "real seeding", fit is outward by definition, with poly geo
   static constexpr const float ptinverr012 = 0.1234; // 0.1789;  -->old values from only MC seeds
   static constexpr const float phierr012   = 0.0071; // 0170; 
