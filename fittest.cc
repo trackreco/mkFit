@@ -72,7 +72,9 @@ void fitTrack(const Track & trk, Event& ev)
   backward = true;
 #endif //INWARD
   //fit is problematic in case of very short lever arm
-  conformalFit(hits[0],hits[hits.size()/2 + 1],hits[hits.size()-1],trk.charge(),cfitStateHit0,backward,fiterrs); // last bool denotes use cf derived errors for fitting
+  // changed second from + 1 to - 1... would end up on same layer for low nhit tracks! --KM
+  // want 10 hit tracks to be evenly spaced!  so, layers 0,4,9 (originally was set to 0,6,9!)
+  conformalFit(hits[0],hits[hits.size()/2 - 1],hits[hits.size() - 1],trk.charge(),cfitStateHit0,backward,fiterrs); // last bool denotes use cf derived errors for fitting
   TrackState updatedState = cfitStateHit0;
   ev.validation_.collectFitTkCFMapInfo(trk.seedID(),cfitStateHit0); // pass along all info and map it to a given seed
 #else 
@@ -102,7 +104,7 @@ void fitTrack(const Track & trk, Event& ev)
 #endif
 
   TSLayerPairVec updatedStates; // need this for position pulls --> can ifdef out for performance tests? --> assume one hit per layer
-
+  
   for (auto&& hit : hits) {
     //for each hit, propagate to hit radius and update track state with hit measurement
     MeasurementState measState = hit.measurementState();
