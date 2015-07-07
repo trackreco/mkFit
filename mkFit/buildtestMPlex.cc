@@ -13,7 +13,7 @@
 #include "ittnotify.h"
 #endif
 
-#define PRINTOUTS_FOR_PLOTS
+// #define PRINTOUTS_FOR_PLOTS
 
 bool sortByHitsChi2(std::pair<Track, TrackState> cand1,std::pair<Track, TrackState> cand2)
 {
@@ -1397,7 +1397,7 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
 
 double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& rectracks*/)
 {
-  printf("Hello, runBuildingTestPlex sizeof(Track)=%d, sizeof(Hit)=%d, vusize=%i, num_th=%i\n\n", sizeof(Track), sizeof(Hit), MPT_SIZE, NUM_THREADS);
+  printf("Hello, runBuildingTestPlex sizeof(Track)=%d, sizeof(Hit)=%d, vusize=%i, num_th=%i\n", sizeof(Track), sizeof(Hit), MPT_SIZE, NUM_THREADS);
 
   std::cout << "total simtracks=" << simtracks.size() << std::endl;
 #ifdef DEBUG
