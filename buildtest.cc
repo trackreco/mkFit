@@ -88,7 +88,7 @@ void buildTracksBySeeds(Event& ev)
     for (auto iseed = 0U; iseed != evt_seeds.size(); ++iseed) {
       const auto& seed(evt_seeds[iseed]);
 #endif
-      dprint("processing seed # " << seed.SimTrackIDInfo().first << " par=" << seed.parameters());
+      dprint("processing seed # " << seed.seedID() << " par=" << seed.parameters());
       TrackState seed_state = seed.state();
       //seed_state.errors *= 0.01;//otherwise combinatorics explode!!!
       //should consider more than 1 candidate...
@@ -167,7 +167,7 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   const TrackState& updatedState = cand.state();
   const auto& evt_lay_hits(ev.layerHits_);
   const auto& segLayMap(ev.segmentMap_[ilayer]);
-  //  debug = true;
+  debug = true;
 
   dprint("processing candidate with nHits=" << tkcand.nHits());
 #ifdef LINEARINTERP

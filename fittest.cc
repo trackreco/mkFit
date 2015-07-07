@@ -87,8 +87,9 @@ void fitTrack(const Track & trk, Event& ev)
 #endif //ENDTOEND
 
 #ifdef DEBUG
-  trk.setMCTrackIDInfo(); // to use this debug have to set fitTrack to non-const for Track& trk
-  unsigned int itrack0 = trk.mcTrackID();
+  Track copytrk(trk.state(),hits,trk.chi2(),trk.seedID()); // to use this for debugging, have to make a copy of the track in order not to change function fittrack from const & to non const & trk
+  copytrk.setMCTrackIDInfo();
+  unsigned int itrack0 = copytrk.seedID(); // if mcTrackID() is not set, can not print out! so this only works for when seeds are produced from MC
   Track trk0 = ev.simTracks_[itrack0];
   TrackState simState = trk0.state();
 
@@ -96,7 +97,7 @@ void fitTrack(const Track & trk, Event& ev)
 
   if (debug) { 
     print("Sim track", itrack0, trk0);
-    print("Initial track", trk.mcTrackID(), trk);
+    print("Initial track", copytrk.mcTrackID(), copytrk);
     print("simStateHit0", simStateHit0);
     print("cfitStateHit0", cfitStateHit0);
     print("updatedState", updatedState);
@@ -124,7 +125,7 @@ void fitTrack(const Track & trk, Event& ev)
 
 #ifdef DEBUG
     if (debug) {
-      std::cout << "processing hit: " << trk.SimTrackIDInfo().first << ":" << hit.hitID() << std::endl
+      std::cout << "processing hit: " << hit.hitID() << std::endl
                 << "hitR, propR, updR = " << hit.r() << ", " 
                 << Mag(propPos) << ", " << Mag(updPos) << std::endl << std::endl;
 
