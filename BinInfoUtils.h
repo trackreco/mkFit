@@ -6,24 +6,11 @@
 #include <cmath>
 #include <vector>
 #include "Config.h"
+#include <iostream>
 
 typedef std::pair<unsigned int,unsigned int> BinInfo;
 typedef std::vector<std::vector<BinInfo> > BinInfoLayerMap;
 typedef std::vector<std::vector<std::vector<BinInfo> > > BinInfoMap;
-
-inline unsigned int getPhiPartition(float phi){
-  //assume phi is between -PI and PI
-  //  if (!(fabs(phi)<Config::PI)) std::cout << "anomalous phi=" << phi << std::endl;
-  const float phiPlusPi  = phi+Config::PI;
-  const unsigned int bin = phiPlusPi*Config::fPhiFactor;
-  return bin;
-}
-
-inline unsigned int getEtaPartition(float eta){
-  const float etaPlusEtaDet  = eta + Config::fEtaDet;
-  const unsigned int bin     = (etaPlusEtaDet * Config::nEtaPart) / (2.0 * Config::fEtaDet);  // ten bins for now ... update if changed in Event.cc
-  return bin;
-}
 
 inline float downPhi(float phi){
   while (phi > Config::PI) {phi-=Config::TwoPI;}
@@ -39,6 +26,22 @@ inline float normalizedPhi(float phi) {
   //  return std::fmod(phi, (float) Config::PI); // return phi +pi out of phase for |phi| beyond boundary! 
   if (fabs(phi)>Config::PI) {phi = (phi>0 ? downPhi(phi) : upPhi(phi));}
   return phi;
+}
+
+inline unsigned int getPhiPartition(float phi){
+  //assume phi is between -PI and PI
+  //  if (!(fabs(phi)<Config::PI)) std::cout << "anomalous phi=" << phi << std::endl;
+  //  const float phiPlusPi  = std::fmod(phi+Config::PI,Config::TwoPI); // normaliztion done here
+  const float phiPlusPi  = phi+Config::PI; 
+  const unsigned int bin = ((unsigned int)(phiPlusPi*Config::fPhiFactor))%Config::nPhiPart; // annoying extra step... need to do this for when phi = pi (kept getting bin = 63)!
+
+  return bin;
+}
+
+inline unsigned int getEtaPartition(float eta){
+  const float etaPlusEtaDet  = eta + Config::fEtaDet;
+  const unsigned int bin     = (etaPlusEtaDet * Config::nEtaPart) / (2.0 * Config::fEtaDet);  // ten bins for now ... update if changed in Event.cc
+  return bin;
 }
 			      
 #ifdef ETASEG
