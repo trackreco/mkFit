@@ -46,6 +46,7 @@ public:
   ~PlotValidation();
   void Validation(Bool_t mvInput = false);
   void PlotBranching();
+  void PlotTiming();
   void PlotSimGeo();
   void PlotNHits();
   void PlotCFResidual();

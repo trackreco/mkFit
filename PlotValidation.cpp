@@ -45,7 +45,8 @@ PlotValidation::~PlotValidation(){
 }
 
 void PlotValidation::Validation(Bool_t mvInput){
-  PlotValidation::PlotBranching();
+  //  PlotValidation::PlotBranching();
+  PlotValidation::PlotTiming();
   PlotValidation::PlotSimGeo();  
   PlotValidation::PlotNHits(); 
   PlotValidation::PlotCFResidual();
@@ -55,8 +56,8 @@ void PlotValidation::Validation(Bool_t mvInput){
   PlotValidation::PlotEfficiency(); 
   PlotValidation::PlotFakeRate();
   PlotValidation::PlotDuplicateRate();
-  
   PlotValidation::PrintTotals();
+  
   if (mvInput){
     PlotValidation::MoveInput();
   }
@@ -349,6 +350,72 @@ void PlotValidation::PlotBranching(){
   delete configtree;
   delete tree_br;
 }
+
+void PlotValidation::PlotTiming(){
+  // get input tree
+  TTree * configtree = (TTree*)fInRoot->Get("configtree");
+
+  // labels for histos (x-axis)
+  TStrVec stime = {"Simulate","Segment","Seed","Build","Fit","Validate"};
+
+  TString subdirname = "timing"; 
+  TDirectory * subdir;
+  PlotValidation::MakeSubDirectory(subdir,subdirname);
+  
+  // output plots
+  // cd to right output directory
+  subdir->cd();
+  TH1F * tottime = new TH1F("h_total_timing","Total Time Spent in Simulation",6,0,6);
+  tottime->GetXaxis()->SetTitle("Event Function Call");
+  tottime->GetYaxis()->SetTitle("Time [s]");
+  tottime->SetStats(0);
+  for (Int_t t = 1; t <= tottime->GetNbinsX(); t++){
+    tottime->GetXaxis()->SetBinLabel(t,stime[t-1].Data());
+  }
+  
+  TH1F * rectime = new TH1F("h_reco_timing_norm","Normalized Time Spent in Reconstruction",4,0,4);
+  tottime->GetXaxis()->SetTitle("Event Function Call");
+  rectime->GetYaxis()->SetTitle("Fraction of Time in Reco");
+  rectime->SetStats(0);
+  for (Int_t t = 1; t <= rectime->GetNbinsX(); t++){
+    rectime->GetXaxis()->SetBinLabel(t,stime[t].Data());
+  }
+  
+  float simtime = 0., segtime = 0., seedtime = 0., buildtime = 0., fittime = 0., hlvtime = 0.;
+  configtree->SetBranchAddress("simtime",&simtime);
+  configtree->SetBranchAddress("segtime",&segtime);
+  configtree->SetBranchAddress("seedtime",&seedtime);
+  configtree->SetBranchAddress("buildtime",&buildtime);
+  configtree->SetBranchAddress("fittime",&fittime);
+  configtree->SetBranchAddress("hlvtime",&hlvtime);
+  configtree->GetEntry(0);
+  
+  // fill histos
+  tottime->SetBinContent(1,simtime);
+  tottime->SetBinContent(2,segtime);
+  tottime->SetBinContent(3,seedtime);
+  tottime->SetBinContent(4,buildtime);
+  tottime->SetBinContent(5,fittime);
+  tottime->SetBinContent(6,hlvtime);
+  
+  rectime->SetBinContent(1,segtime);
+  rectime->SetBinContent(2,seedtime);
+  rectime->SetBinContent(3,buildtime);
+  rectime->SetBinContent(4,fittime);
+  
+  // normalize rec time
+  rectime->Scale(1.0/rectime->Integral());
+  
+  // draw and save stuff
+  PlotValidation::DrawWriteSaveTH1FPlot(subdir,tottime,subdirname,"total_time_sim",false);
+  PlotValidation::DrawWriteSaveTH1FPlot(subdir,rectime,subdirname,"norm_time_reco",false);
+
+  delete tottime;
+  delete rectime;
+  
+  delete configtree;
+}
+
 
 void PlotValidation::PlotSimGeo(){
   // Get tree
@@ -1348,7 +1415,7 @@ void PlotValidation::PrintTotals(){
   }
   
   ofstream totalsout;
-  totalsout.open(Form("%s/totals_%s.csv",fOutName.Data(),fOutName.Data()));
+  totalsout.open(Form("%s/totals_%s.txt",fOutName.Data(),fOutName.Data()));
 
   // timing dump
   TTree * configtree = (TTree*)fInRoot->Get("configtree");
@@ -1372,43 +1439,56 @@ void PlotValidation::PrintTotals(){
   std::cout << "+++++++++++++++++++++++++++++++" << std::endl;
   std::cout << "Simulation time: " << simtime   << std::endl;
   std::cout << "Segmenting time: " << segtime   << std::endl;
-  std::cout << "Seeding time: "    << seedtime  << std::endl;
-  std::cout << "Building time: "   << buildtime << std::endl;
-  std::cout << "Fitting time: "    << fittime   << std::endl;
+  std::cout << "Seeding time:    " << seedtime  << std::endl;
+  std::cout << "Building time:   " << buildtime << std::endl;
+  std::cout << "Fitting time:    " << fittime   << std::endl;
   std::cout << "Validation time: " << hlvtime   << std::endl;
   std::cout << std::endl;
 
   totalsout << "-----Track Reconstruction Summary-----" << std::endl;
-  totalsout << "nEvents," << Nevents << ",nTracks/evt," << Ntracks << std::endl;
-  totalsout << "Simulation time," << simtime   << std::endl;
-  totalsout << "Segmenting time," << segtime   << std::endl;
-  totalsout << "Seeding time,"    << seedtime  << std::endl;
-  totalsout << "Building time,"   << buildtime << std::endl;
-  totalsout << "Fitting time,"    << fittime   << std::endl;
-  totalsout << "Validation time," << hlvtime   << std::endl;
+  totalsout << "nEvents: " << Nevents << " nTracks/evt: " << Ntracks << std::endl;
+  totalsout << "nEtaPart: " << nEtaPart << " nPhiPart: " << nPhiPart << std::endl;
+  totalsout << "+++++++++++++++++++++++++++++++" << std::endl;
+  totalsout << "Simulation time: " << simtime   << std::endl;
+  totalsout << "Segmenting time: " << segtime   << std::endl;
+  totalsout << "Seeding time:    " << seedtime  << std::endl;
+  totalsout << "Building time:   " << buildtime << std::endl;
+  totalsout << "Fitting time:    " << fittime   << std::endl;
+  totalsout << "Validation time: " << hlvtime   << std::endl;
   totalsout << std::endl;
 
   for (UInt_t j = 0; j < trks.size(); j++) {
     std::cout << strks[j].Data() << " Tracks" << std::endl;
     std::cout << "+++++++++++++++++++++++++++++++" << std::endl << std::endl;
-    totalsout << strks[j].Data() << " Tracks" << std::endl;
     std::cout << "Hit Totals for " << strks[j].Data() << " Track Collections" << std::endl;
     std::cout << "===============================" << std::endl;
+
+    totalsout << strks[j].Data() << " Tracks" << std::endl;
+    totalsout << "+++++++++++++++++++++++++++++++" << std::endl << std::endl;
     totalsout << "Hit Totals for " << strks[j].Data() << " Track Collections" << std::endl;
+    totalsout << "===============================" << std::endl;
     for (UInt_t c = 0; c < coll.size(); c++) {
       Float_t nHits_mean = nHitsPlot[j][c]->GetMean(1); // 1 is mean of x-axis
       Float_t fracHits_mean = fracHitsMatchedPlot[j][c]->GetMean(1);
+
       std::cout << scoll[c].Data() << " Tracks" << std::endl;
       std::cout << "Average nHits / Track: " << nHits_mean << std::endl;
       std::cout << "Average shared Hits / Track: " << fracHits_mean << std::endl;
+
       totalsout << scoll[c].Data() << " Tracks" << std::endl;
-      totalsout << "Average nHits / Track," << nHits_mean << std::endl;
-      totalsout << "Average shared Hits / Track," << fracHits_mean << std::endl;
+      totalsout << "Average nHits / Track: " << nHits_mean << std::endl;
+      totalsout << "Average shared Hits / Track: " << fracHits_mean << std::endl;
     }
     
     std::cout << std::endl << "Rates for " << strks[j].Data() << " Tracks" << std::endl;
-    totalsout << std::endl << "Rates for " << strks[j].Data() << " Tracks" << std::endl;
     std::cout << "===============================" << std::endl;
+    std::cout << std::endl << "Rates for " << strks[j].Data() << " Tracks" << std::endl;
+    std::cout << "===============================" << std::endl;
+
+    totalsout << std::endl << "Rates for " << strks[j].Data() << " Tracks" << std::endl;
+    totalsout << "===============================" << std::endl;
+    totalsout << std::endl << "Rates for " << strks[j].Data() << " Tracks" << std::endl;
+    totalsout << "===============================" << std::endl;
     for (UInt_t r = 0; r < rates.size(); r++) {
       Int_t numerIntegral = numerPhiPlot[j][r]->Integral();
       Int_t denomIntegral = denomPhiPlot[j][r]->Integral();
@@ -1419,15 +1499,16 @@ void PlotValidation::PrintTotals(){
       std::cout << "-------------------------------" << std::endl;
       std::cout << srates[r].Data() << ": " << ratetotal << std::endl;
       std::cout << "-------------------------------" << std::endl;
-      
-      totalsout << snumer[r].Data() << "," << numerIntegral << std::endl;
-      totalsout << sdenom[r].Data() << "," << denomIntegral << std::endl;
-      totalsout << srates[r].Data() << "," << ratetotal << std::endl;
+    
+      totalsout << snumer[r].Data() << ": " << numerIntegral << std::endl;
+      totalsout << sdenom[r].Data() << ": " << denomIntegral << std::endl;
+      totalsout << "-------------------------------" << std::endl;
+      totalsout << srates[r].Data() << ": " << ratetotal << std::endl;
+      totalsout << "-------------------------------" << std::endl;
     }
     std::cout << std::endl << std::endl;
     totalsout << std::endl << std::endl;
   }
-  
   totalsout.close();
 }
 
