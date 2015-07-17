@@ -2,8 +2,7 @@
 
 namespace
 {
-
-  using namespace Matriplex;
+  using idx_t = Matriplex::idx_t;
 
 inline
 void MultResidualsAdd(const MPlexLH& A,
