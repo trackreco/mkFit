@@ -24,7 +24,7 @@ namespace Config{
   static constexpr const float fRadialExtent    = 0.01;
   static constexpr const float fInnerSensorSize = 5.0; // approximate sensor size in cm
   static constexpr const float fOuterSensorSize = fInnerSensorSize * 2.;
-  static constexpr const float fEtaDet          = 1;  // 1 from chep
+  static constexpr const float fEtaDet          = 2;  // 1 from chep
 
   // config on Event
   static constexpr const unsigned int maxCand = 10;
