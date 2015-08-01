@@ -6,6 +6,7 @@
 #include "Propagation.h"
 #include "Simulation.h"
 #include "Config.h"
+#include "BinInfoUtils.h"
 
 #include <omp.h>
 
@@ -30,12 +31,6 @@ bool sortCandByHitsChi2(Track cand1,Track cand2)
 bool sortByPhi(Hit hit1,Hit hit2)
 {
   return std::atan2(hit1.y(),hit1.x())<std::atan2(hit2.y(),hit2.x());
-}
-
-inline float normalizedPhi(float phi) {
-  while ( phi < -Config::PI ) phi += Config::Two_PI;
-  while ( phi >  Config::PI ) phi -= Config::Two_PI;
-  return phi;
 }
 
 static bool sortByEta(const Hit& hit1, const Hit& hit2){
@@ -548,11 +543,13 @@ double runBuildingTestBestHit(std::vector<Track>& simtracks/*, std::vector<Track
 #ifdef DEBUG
 	     std::cout << "phiBinMinus = " << phiBinMinus << ", phiBinPlus = " << phiBinPlus << std::endl;
 #endif
+
+	     // can optimize this with BinInfoUtils!  Handles wrapping -- KPM (so can replace the lines 547-583 with one function call)
 	     
 	     phiBinMinus = std::max(0,phiBinMinus);
-	     phiBinMinus = std::min(Config::nPhiPart-1,phiBinMinus);
+	     phiBinMinus = std::min(int(Config::nPhiPart-1),phiBinMinus);
 	     phiBinPlus = std::max(0,phiBinPlus);
-	     phiBinPlus = std::min(Config::nPhiPart-1,phiBinPlus);
+	     phiBinPlus = std::min(int(Config::nPhiPart-1),phiBinPlus);
 	     
 
 	     BinInfo binInfoMinus = bunch_of_hits.m_phi_bin_infos[int(phiBinMinus)];
@@ -563,7 +560,7 @@ double runBuildingTestBestHit(std::vector<Track>& simtracks/*, std::vector<Track
 	       {
 		 int phibin = getPhiPartition(phi);
 		 phibin = std::max(0,phibin);
-		 phibin = std::min(Config::nPhiPart-1,phibin);
+		 phibin = std::min(int(Config::nPhiPart-1),phibin);
 		 binInfoMinus = bunch_of_hits.m_phi_bin_infos[phibin];
 		 binInfoPlus  = bunch_of_hits.m_phi_bin_infos[phibin];
 	       }
@@ -718,7 +715,6 @@ double runBuildingTestPlexOld(std::vector<Track>& simtracks/*, std::vector<Track
 
    BinInfoMap segmentMap_;
    segmentMap_.resize(10);//geom_.CountLayers()
-   const float Config::fEtaDet = 2.0;
    for (int ilayer=0; ilayer<evt_lay_hits.size(); ++ilayer)
    {
      segmentMap_[ilayer].resize(Config::nEtaPart);    
@@ -727,7 +723,7 @@ double runBuildingTestPlexOld(std::vector<Track>& simtracks/*, std::vector<Track
      std::vector<int> lay_eta_bin_count(Config::nEtaPart);
      for (int ihit = 0; ihit < evt_lay_hits[ilayer].size(); ++ihit)
      {
-       int etabin = getEtaPartition(evt_lay_hits[ilayer][ihit].eta(),Config::fEtaDet);
+       int etabin = getEtaPartition(evt_lay_hits[ilayer][ihit].eta());
        lay_eta_bin_count[etabin]++;
      }
      //now set index and size in partitioning map and then sort the bin by phi
@@ -817,7 +813,7 @@ double runBuildingTestPlexOld(std::vector<Track>& simtracks/*, std::vector<Track
    //sort just in phi within each eta bin for now
    std::vector<int> lay_eta_bin_seed_count(Config::nEtaPart);
    for (int iseed=0;iseed<simtracks.size();++iseed) {
-     int etabin = getEtaPartition(simtracks[iseed].momEta(),Config::fEtaDet);
+     int etabin = getEtaPartition(simtracks[iseed].momEta());
      lay_eta_bin_seed_count[etabin]++;
    }
    //now set index and size in partitioning map and then sort the bin by phi    
@@ -904,7 +900,7 @@ double runBuildingTestPlexOld(std::vector<Track>& simtracks/*, std::vector<Track
        std::vector<int> lay_eta_bin_cand_count(Config::nEtaPart);
        for (int icand=0;icand<seed_cand_idx.size();++icand) {
 	 std::pair<int,int> idx = seed_cand_idx[icand];
-	 float eta = getEtaPartition(track_candidates[idx.first][idx.second].momEta(),Config::fEtaDet);
+	 float eta = getEtaPartition(track_candidates[idx.first][idx.second].momEta());
 	 if (fabs(eta)>Config::fEtaDet) eta = (eta>0 ? Config::fEtaDet*0.99 : -Config::fEtaDet*0.99);
 	 int etabin = eta;
 	 lay_eta_bin_cand_count[etabin]++;
@@ -971,7 +967,7 @@ double runBuildingTestPlexOld(std::vector<Track>& simtracks/*, std::vector<Track
 	 
 	   //this one is not vectorized: get the hit range common to these track candidates
 	   int firstHit = -1, lastHit = -1;
-	   mkfp->GetHitRange(segmentMap_[ilay], itrack, end, Config::fEtaDet, firstHit, lastHit);
+	   mkfp->GetHitRange(segmentMap_[ilay], itrack, end, firstHit, lastHit);
 	 
 #ifdef TIME_DEBUG
 	   timeHR += (dtime()-timeTmp);
@@ -1178,7 +1174,7 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
   // std::vector<int> lay_eta_bin_seed_count(Config::nEtaPart);
   // for (int iseed = 0; iseed < simtracks.size(); ++iseed)
   // {
-  //   int etabin = getEtaPartition(simtracks[iseed].momEta(),Config::fEtaDet);
+  //   int etabin = getEtaPartition(simtracks[iseed].momEta());
   //   lay_eta_bin_seed_count[etabin]++;
   // }
 

@@ -501,19 +501,23 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
 
 
 void MkFitter::GetHitRange(std::vector<std::vector<BinInfo> >& segmentMapLay_, int beg, int end,
-                           const float etaDet, int& firstHit, int& lastHit)
+                           int& firstHit, int& lastHit)
 {
 
     int itrack = 0;
 
 
+    // what exactly is this function doing?  why are you calling the first simtrack in the event to get the eta??
+
     const float eta_predx = Par[iP].ConstAt(itrack, 0, 0);
     const float eta_predy = Par[iP].ConstAt(itrack, 1, 0);
     const float eta_predz = Par[iP].ConstAt(itrack, 2, 0);
-    float eta = getEta(eta_predx,eta_predy,eta_predz);
+    float eta = getEta(sqrt(getRad2(eta_predx,eta_predy)),eta_predz);
     //protect against anomalous eta (should go into getEtaPartition maybe?)
-    if (fabs(eta) > etaDet) eta = (eta>0 ? etaDet*0.99 : -etaDet*0.99);
-    unsigned int etabin = getEtaPartition(eta,etaDet);
+    // --> Use BinInfoUtils methods instead: handles eta/phi wrapping ... just call normalize{eta/phi}(), and also use it for getting indices -- KPM
+
+    if (fabs(eta) > Config::fEtaDet) eta = (eta>0 ? Config::fEtaDet*0.99 : -Config::fEtaDet*0.99);
+    unsigned int etabin = getEtaPartition(eta);
 
     //cannot be vectorized, I think
     for (int i = beg; i < end; ++i, ++itrack)
@@ -534,7 +538,7 @@ void MkFitter::GetHitRange(std::vector<std::vector<BinInfo> >& segmentMapLay_, i
 	  2*dphidx*dphidy*(Err[iP].ConstAt(itrack, 0, 1) /*propState.errors.At(0,1)*/);
   
 	const float dphi   =  sqrt(std::fabs(dphi2));//how come I get negative squared errors sometimes?
-	const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi,(float) Config::minDPhi), float(Config::PI/1.));//fixme
+	const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi,(float) Config::minDPhi), float(Config::PI/1.));//fixme --> can move this to BinInfoUtils to match SMatrix code
 	//const float nSigmaDphi = Config::nSigma*dphi;
 
 	//if (nSigmaDphi>0.3) std::cout << "window MX: " << predx << " " << predy << " " << predz << " " << Err[iP].ConstAt(itrack, 0, 0) << " " << Err[iP].ConstAt(itrack, 1, 1) << " " << Err[iP].ConstAt(itrack, 0, 1) << " " << nSigmaDphi << std::endl;
@@ -590,7 +594,7 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits)
     // Hmmh ... this should all be solved by partitioning ... let's try below ...
     //
     // float eta = getEta(eta_predx,eta_predy,eta_predz);
-    // //protect against anomalous eta (should go into getEtaPartition maybe?)
+    // //protect against anomalous eta (should go into getEtaPartition maybe?) // see comments on same question --KPM
     // if (fabs(eta) > etaDet) eta = (eta>0 ? etaDet*0.99 : -etaDet*0.99);
     // unsigned int etabin = getEtaPartition(eta,etaDet);
 
@@ -631,9 +635,9 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits)
 #endif
 
     phiBinMinus = std::max(0,phiBinMinus);
-    phiBinMinus = std::min(Config::nPhiPart-1,phiBinMinus);
+    phiBinMinus = std::min(int(Config::nPhiPart-1),phiBinMinus);
     phiBinPlus = std::max(0,phiBinPlus);
-    phiBinPlus = std::min(Config::nPhiPart-1,phiBinPlus);
+    phiBinPlus = std::min(int(Config::nPhiPart-1),phiBinPlus);
 
 
     BinInfo binInfoMinus = bunch_of_hits.m_phi_bin_infos[int(phiBinMinus)];
@@ -644,7 +648,7 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits)
     {
       int phibin = getPhiPartition(phi);
       phibin = std::max(0,phibin);
-      phibin = std::min(Config::nPhiPart-1,phibin);
+      phibin = std::min(int(Config::nPhiPart-1),phibin);
       binInfoMinus = bunch_of_hits.m_phi_bin_infos[phibin];
       binInfoPlus  = bunch_of_hits.m_phi_bin_infos[phibin];
     }

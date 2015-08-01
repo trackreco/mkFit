@@ -79,7 +79,7 @@ public:
   void AddBestHit(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end);
 
   void GetHitRange(std::vector<std::vector<BinInfo> >& segmentMapLay_, int beg, int end,
-                   const float etaDet, int& firstHit, int& lastHit);
+                    int& firstHit, int& lastHit);
 
   void FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end, std::vector<std::vector<Track> >& tmp_candidates, int offset);
 

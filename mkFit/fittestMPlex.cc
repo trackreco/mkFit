@@ -55,17 +55,18 @@ void generateTracks(std::vector<Track>& simtracks, int Ntracks)
       SVector3 pos;
       SVector3 mom;
       SMatrixSym66 covtrk;
-      std::vector<Hit> hits, initialhits;
+      std::vector<Hit> hits;
+      TSVec initialTSs;
 
       // Fixed pT / charge for testing
       // int   q  = 1;
       // float pt = 9.99;
 
       int   q  = 0;                         // set it in setup function
-      float pt = 0.5 + g_unif(g_gen) * 9.5; // this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
-
-      setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,pt,geom,initialhits);
+      // pt moved to inside setupTrackByMC --> see Simulation.cc (now uses Config info as well)
+      setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,geom,initialTSs);
       // CHEP-2015 -- we are not passing initialhits here.
+      // KPM: do not need initialhits, use TSVec instead --> only used for validation...
       Track simtrk(q,pos,mom,covtrk,hits,0.);
       simtracks[itrack] = simtrk;
       simtracks[itrack].setLabel(itrack);
@@ -95,9 +96,9 @@ void make_validation_tree(const char         *fname,
    const int NT = simtracks.size();
    for (int i = 0; i < NT; ++i)
    {
-      SVector6     &simp   = simtracks[i].parameters();
-      SVector6     &recp   = rectracks[i].parameters();
-      SMatrixSym66 &recerr = rectracks[i].errors();
+      SVector6     &simp   = simtracks[i].parameters_nc();
+      SVector6     &recp   = rectracks[i].parameters_nc();
+      SMatrixSym66 &recerr = rectracks[i].errors_nc();
 
       pt_mc  = sqrt(simp[3]*simp[3] + simp[4]*simp[4]);
       pt_fit = sqrt(recp[3]*recp[3] + recp[4]*recp[4]);
