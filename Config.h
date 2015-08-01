@@ -15,7 +15,7 @@ namespace Config{
   static constexpr const double Sqrt2   = 1.4142135623730950488016887242097;
 
   // config on main
-  static constexpr const unsigned int nTracks = 5000;
+  static constexpr const unsigned int nTracks = 500;
   static constexpr const unsigned int nEvents = 100;
 
   // config on main -- for geometry
@@ -24,7 +24,7 @@ namespace Config{
   static constexpr const float fRadialExtent    = 0.01;
   static constexpr const float fInnerSensorSize = 5.0; // approximate sensor size in cm
   static constexpr const float fOuterSensorSize = fInnerSensorSize * 2.;
-  static constexpr const float fEtaDet          = 2;  // 1 from chep
+  static constexpr const float fEtaDet          = 1;  // 1 from chep
 
   // config on Event
   static constexpr const unsigned int maxCand = 10;
@@ -61,7 +61,7 @@ namespace Config{
   static constexpr const float chi2seedcut = 9.0;
 
   // Config for Hit and BinInfoUtils
-  static constexpr const unsigned int nPhiPart   = 6300; //315 = 63*5  //63; //80; 
+  static constexpr const unsigned int nPhiPart   = 63; //315 = 63*5  //63; //80; 
   static constexpr const float        fPhiFactor = nPhiPart / TwoPI;
   static constexpr const unsigned int nEtaPart   = 10; // 11;
   static constexpr const unsigned int nEtaBin    = 2*nEtaPart - 1;
