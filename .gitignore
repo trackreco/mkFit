@@ -4,6 +4,7 @@
 log*
 *.root
 *.o
+*.so
 *.om
 *.d
 *.ah
