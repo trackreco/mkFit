@@ -169,6 +169,22 @@ void Event::Segment()
     }
 #endif
   } // end loop over layers
+
+#ifdef DEBUG
+  for (unsigned int ilayer = 0; ilayer < Config::nLayers; ilayer++) {
+    unsigned int etahitstotal = 0;
+    for (unsigned int etabin = 0; etabin < Config::nEtaPart; etabin++){
+      unsigned int etahits = segmentMap_[ilayer][etabin][Config::nPhiPart-1].first + segmentMap_[ilayer][etabin][Config::nPhiPart-1].second - segmentMap_[ilayer][etabin][0].first;
+      std::cout << "etabin: " << etabin << " hits in bin: " << etahits << std::endl;
+      etahitstotal += etahits;
+
+      for (unsigned int phibin = 0; phibin < Config::nPhiPart; phibin++){
+	if (segmentMap_[i][etabin][phibin].second > 3) {std::cout << "   phibin: " << phibin << " hits: " << segmentMap_[i][etabin][phibin].second << std::endl;}
+      }
+    }
+    std::cout << "layer: " << i << " totalhits: " << etahitstotal << std::endl;
+  }
+#endif
 }
 
 void Event::Seed()
@@ -184,7 +200,6 @@ void Event::Seed()
 
 void Event::Find()
 {
-  
   buildTracksBySeeds(*this);
   //  buildTracksByLayers(*this);
 

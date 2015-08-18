@@ -46,6 +46,9 @@ clean:
 distclean: clean
 	rm -f ${AUTO_TGTS} *.ah
 
+squeakyclean: distclean
+	rm -f *.optrpt
+
 echo:
 	@echo "CXX      = ${CXX}"
 	@echo "CPPFLAGS = ${CPPFLAGS}"

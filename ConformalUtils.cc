@@ -80,21 +80,9 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
   fitStateHit0.parameters[5] = pz;
   //get them a posteriori from width of residue plots (i.e. unitary pulls)
 
-  const float hitposerrXY = 0.01;//assume 100mum uncertainty in xy coordinate
-  const float hitposerrZ = 0.1;//assume 1mm uncertainty in z coordinate
-  const float hitposerrR = hitposerrXY/10.;
-
-  //xy smearing
-  // float xerr = hitposerrXY;
-  // float yerr = hitposerrXY;
-  // float zerr = hitposerrZ;
-
   //r-phi smearing
   float hitRad2 = x[0]*x[0]+y[0]*y[0];
-  float varXY  = hitposerrXY*hitposerrXY;
-  float varPhi = varXY/hitRad2;
-  float varR   = hitposerrR*hitposerrR;
-  float varZ   = hitposerrZ*hitposerrZ;
+  float varPhi = Config::varXY/hitRad2;
 
   float ptinverr = 0.;
   float pterr    = 0.;
@@ -120,10 +108,10 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
   //fitStateHit0.errors[1][1] = pow(yerr,2);
   //fitStateHit0.errors[2][2] = pow(zerr,2);
   //r-phi smearing
-  fitStateHit0.errors[0][0] = x[0]*x[0]*varR/hitRad2 + y[0]*y[0]*varPhi;
-  fitStateHit0.errors[1][1] = x[0]*x[0]*varPhi + y[0]*y[0]*varR/hitRad2;
-  fitStateHit0.errors[2][2] = varZ;
-  fitStateHit0.errors[1][0] = x[0]*y[0]*(varR/hitRad2 - varPhi);
+  fitStateHit0.errors[0][0] = x[0]*x[0]*Config::varR/hitRad2 + y[0]*y[0]*varPhi;
+  fitStateHit0.errors[1][1] = x[0]*x[0]*varPhi + y[0]*y[0]*Config::varR/hitRad2;
+  fitStateHit0.errors[2][2] = Config::varZ;
+  fitStateHit0.errors[1][0] = x[0]*y[0]*(Config::varR/hitRad2 - varPhi);
   fitStateHit0.errors[0][1] = fitStateHit0.errors[1][0];
 
   fitStateHit0.errors[3][3] = pow(cos(phi),2)*pow(pterr,2)+pow(pt*sin(phi),2)*pow(phierr,2);
