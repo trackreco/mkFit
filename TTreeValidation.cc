@@ -478,7 +478,7 @@ void TTreeValidation::fillBranchTree(const unsigned int evtID)
       std::vector<unsigned int> candBranches(cands);
 
       // unique hits, etaphibins, branches...
-      std::unordered_map<unsigned int, bool> uniqueEtaPhiBins;
+      std::unordered_map<unsigned int, bool> uniqueEtaPhiBins; // once a bin, branch, hit is used, set to true to count it only once. take size of map as "uniques"
       std::unordered_map<unsigned int, bool> uniqueHits;
       std::unordered_map<unsigned int, bool> uniqueBranches;
   
@@ -487,17 +487,25 @@ void TTreeValidation::fillBranchTree(const unsigned int evtID)
       std::vector<float> candnSigmaDphi(cands);
 
       for (unsigned int cand = 0; cand < cands; cand++){ // loop over input candidates at this layer for this seed
-	const auto& BranchVal(BranchValVec[cand]);
+	const auto& BranchVal(BranchValVec[cand]); // grab the branch validation object
 	
-	if (BranchVal.phiBinPlus >= BranchVal.phiBinMinus){ // count the number of eta/phi bins explored
-	  candEtaPhiBins[cand] = (BranchVal.etaBinPlus-BranchVal.etaBinMinus+1)*(BranchVal.phiBinPlus-BranchVal.phiBinMinus+1);
+	////////////////////////////////////
+	//  EtaPhiBins Explored Counting  //
+	////////////////////////////////////
+	
+	// set values for total etaphibins explored per candidate, also unique ones for all candidates
+	if (BranchVal.phiBinPlus >= BranchVal.phiBinMinus){ // count the number of eta/phi bins explored if no phi wrapping
+	  candEtaPhiBins[cand] = (BranchVal.etaBinPlus-BranchVal.etaBinMinus+1)*(BranchVal.phiBinPlus-BranchVal.phiBinMinus+1); // total etaphibins for this candidate
 
+	  // no phi wrap to count uniques
 	  for (unsigned int ibin = BranchVal.phiBinMinus; ibin <= BranchVal.phiBinPlus; ibin++){
 	    uniqueEtaPhiBins[ibin] = true;
 	  }
 	}
-	else{
-	  candEtaPhiBins[cand] = (BranchVal.etaBinPlus-BranchVal.etaBinMinus+1)*(Config::nPhiPart-BranchVal.phiBinMinus+BranchVal.phiBinPlus+1);
+	else{ // if phi wrapping, count need to do this obnoxious counting
+	  candEtaPhiBins[cand] = (BranchVal.etaBinPlus-BranchVal.etaBinMinus+1)*(Config::nPhiPart-BranchVal.phiBinMinus+BranchVal.phiBinPlus+1); // total etaphibins for this candidate with phi wrapping
+
+	  // use phi wrapping to count uniques
 	  for (unsigned int ibin = BranchVal.phiBinMinus; ibin < Config::nPhiPart; ibin++){
 	    uniqueEtaPhiBins[ibin] = true;
 	  }
@@ -505,39 +513,56 @@ void TTreeValidation::fillBranchTree(const unsigned int evtID)
 	    uniqueEtaPhiBins[ibin] = true;
 	  }
 	}
-	
-	candHits[cand]     = BranchVal.cand_hit_indices.size();
-	candBranches[cand] = BranchVal.branch_hit_indices.size();
 
+	//////////////////////////////
+	//  Hits Explored Counting  //
+	//////////////////////////////
+
+	candHits[cand] = BranchVal.cand_hit_indices.size(); // set value of nHits explored per input cand for this seed+layer
 	for (auto&& cand_hit_idx : BranchVal.cand_hit_indices){ // save unique hits 
 	  uniqueHits[cand_hit_idx] = true;
 	}
-	
+
+	/////////////////////////////////
+	//  Branches Created Counting  //
+	/////////////////////////////////
+
+	candBranches[cand] = BranchVal.branch_hit_indices.size(); // set values for total branches created per input candidate before chi2 max cand cleaning (for this seed+layer)
 	for (auto&& branch_hit_idx : BranchVal.branch_hit_indices){ // save unique branches --> only consider adding one ghost temp per input?
 	  uniqueBranches[branch_hit_idx] = true;
 	}
 
+	// store the parameters for width of eta/phi windows for this input candidates building
+
 	candnSigmaDeta[cand] = BranchVal.nSigmaDeta;
 	candnSigmaDphi[cand] = BranchVal.nSigmaDphi;
-      }
+      } // end loop over input candidates for given seed/layer
     
+      // fill the rest of the tree after identifying uniques
+
       layer_  = (*layiter).first; // first index here is layer
       cands_  = cands;
-    
+      
+      // will use these to create total plots (once summed by looping over the vectors), and make per input candidate by looping over these vectors individually
+      
       candEtaPhiBins_ = candEtaPhiBins;
       candHits_       = candHits;
       candBranches_   = candBranches;
+
+      // will use this directly to make unique plots by just taking the size of these unordered maps with "trues"
 
       uniqueEtaPhiBins_ = uniqueEtaPhiBins.size();
       uniqueHits_       = uniqueHits.size();
       uniqueBranches_   = uniqueBranches.size();
       
+      // will normalize to equal area, loop over vectors to plot directly
+
       candnSigmaDeta_ = candnSigmaDeta;
       candnSigmaDphi_ = candnSigmaDphi;
     
       tree_br_->Fill();  // fill once per layer per seed
-    }
-  }
+    } // end loop over layers
+  } // end loop over seeds
 }
 
 void TTreeValidation::makeSimTkToRecoTksMaps(TrackVec& evt_seed_tracks, TrackVec& evt_build_tracks, TrackVec& evt_fit_tracks){
