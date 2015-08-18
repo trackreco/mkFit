@@ -26,7 +26,8 @@ PlotValidation::PlotValidation(TString inName, TString outName, TString outType)
 
   // General style
   gROOT->Reset();
-  gStyle->SetOptStat(111111);
+  //  gStyle->SetOptStat(111111);
+  gStyle->SetOptStat(0);
   gStyle->SetOptFit(1011);
   gStyle->SetStatX(1.0);
   gStyle->SetStatY(0.9);
@@ -45,14 +46,14 @@ PlotValidation::~PlotValidation(){
 }
 
 void PlotValidation::Validation(Bool_t mvInput){
-  //  PlotValidation::PlotBranching();
+  PlotValidation::PlotBranching();
   PlotValidation::PlotTiming();
-  PlotValidation::PlotSimGeo();  
+  //PlotValidation::PlotSimGeo();  
   PlotValidation::PlotNHits(); 
-  PlotValidation::PlotCFResidual();
-  PlotValidation::PlotCFResolutionPull();
+  // PlotValidation::PlotCFResidual();
+  // PlotValidation::PlotCFResolutionPull();
   //  PlotValidation::PlotPosResolutionPull(); 
-  PlotValidation::PlotMomResolutionPull();
+  // PlotValidation::PlotMomResolutionPull();
   PlotValidation::PlotEfficiency(); 
   PlotValidation::PlotFakeRate();
   PlotValidation::PlotDuplicateRate();
@@ -258,6 +259,10 @@ void PlotValidation::PlotBranching(){
   PlotValidation::WriteTH2IPlot(subdir,layetaphibins_percand); 
   PlotValidation::WriteTH2IPlot(subdir,layhits_percand);
   PlotValidation::WriteTH2IPlot(subdir,laybranches_percand); 
+
+  PlotValidation::DrawWriteSaveTH2IPlot(subdir,layetaphibins_percand,subdirname,"lay_vs_etaphibins_percand");
+  PlotValidation::DrawWriteSaveTH2IPlot(subdir,layhits_percand,subdirname,"lay_vs_hits_percand");
+  PlotValidation::DrawWriteSaveTH2IPlot(subdir,laybranches_percand,subdirname,"lay_vs_branches_percand");
 
   PlotValidation::DrawWriteSaveTH2FPlot(subdir,layetaphibins_percand_norm,subdirname,"lay_vs_etaphibins_percand_norm");
   PlotValidation::DrawWriteSaveTH2FPlot(subdir,layhits_percand_norm,subdirname,"lay_vs_hits_percand_norm");
