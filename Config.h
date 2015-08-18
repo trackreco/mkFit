@@ -15,8 +15,8 @@ namespace Config{
   static constexpr const double Sqrt2   = 1.4142135623730950488016887242097;
 
   // config on main
-  static constexpr const unsigned int nTracks = 500;
-  static constexpr const unsigned int nEvents = 100;
+  static constexpr const unsigned int nTracks = 5000;
+  static constexpr const unsigned int nEvents = 20;
 
   // config on main -- for geometry
   static constexpr const unsigned int nLayers   = 10;
@@ -61,7 +61,7 @@ namespace Config{
   static constexpr const float chi2seedcut = 9.0;
 
   // Config for Hit and BinInfoUtils
-  static constexpr const unsigned int nPhiPart   = 63; //315 = 63*5  //63; //80; 
+  static constexpr const unsigned int nPhiPart   = 1000; //315 = 63*5  //63; //80; 
   static constexpr const float        fPhiFactor = nPhiPart / TwoPI;
   static constexpr const unsigned int nEtaPart   = 10; // 11;
   static constexpr const unsigned int nEtaBin    = 2*nEtaPart - 1;
