@@ -604,7 +604,7 @@ void PlotValidation::PlotNHits(){
     } // end loop over trks
   } // end loop over entry in tree
   
-  // Draw and save efficiency plots
+  // Draw and save nHits plots
   for (UInt_t j = 0; j < trks.size(); j++){
     for (UInt_t c = 0; c < coll.size(); c++){ // loop over trk collection type
       PlotValidation::DrawWriteSaveTH1FPlot(subdir,nHitsPlot[j][c],subdirname,Form("nHits_%s_%s",coll[c].Data(),trks[j].Data()),zeroSupLin);
