@@ -1,4 +1,4 @@
-void createplot(TFile *&, TFile *&, const TString, const TString, const TString);
+void createplot(TFile *&, const TString, TFile *&, const TString, const TString, const TString, const TString);
 
 void mplexPlotComparison(){
 
