@@ -48,12 +48,12 @@ PlotValidation::~PlotValidation(){
 void PlotValidation::Validation(Bool_t mvInput){
   PlotValidation::PlotBranching();
   PlotValidation::PlotTiming();
-  //PlotValidation::PlotSimGeo();  
+  PlotValidation::PlotSimGeo();  
   PlotValidation::PlotNHits(); 
-  // PlotValidation::PlotCFResidual();
-  // PlotValidation::PlotCFResolutionPull();
-  //  PlotValidation::PlotPosResolutionPull(); 
-  // PlotValidation::PlotMomResolutionPull();
+  PlotValidation::PlotCFResidual();
+  PlotValidation::PlotCFResolutionPull();
+  //PlotValidation::PlotPosResolutionPull(); 
+  PlotValidation::PlotMomResolutionPull();
   PlotValidation::PlotEfficiency(); 
   PlotValidation::PlotFakeRate();
   PlotValidation::PlotDuplicateRate();
@@ -83,37 +83,37 @@ void PlotValidation::PlotBranching(){
 
   // make plots, ensure in right directory
   subdir->cd();
-  TH2I * laycands = new TH2I("h_lay_vs_cands","Layer vs nCandidates",20,0,20,nLayers,0,nLayers);
+  TH2F * laycands = new TH2F("h_lay_vs_cands","Layer vs nCandidates",20,0,20,nLayers,0,nLayers);
   laycands->GetXaxis()->SetTitle("nInputCands / Layer / Seed");
   laycands->GetYaxis()->SetTitle("Layer");  
 
-  TH2I * layetaphibins = new TH2I("h_lay_vs_etaphibins","Layer vs nEtaPhiBins",20,0,20,nLayers,0,nLayers);
+  TH2F * layetaphibins = new TH2F("h_lay_vs_etaphibins","Layer vs nEtaPhiBins",20,0,20,nLayers,0,nLayers);
   layetaphibins->GetXaxis()->SetTitle("Total nEtaPhiBins Explored / Layer / Seed");
   layetaphibins->GetYaxis()->SetTitle("Layer");
-  TH2I * layhits = new TH2I("h_lay_vs_hits","Layer vs nHits",50,0,50,nLayers,0,nLayers);
+  TH2F * layhits = new TH2F("h_lay_vs_hits","Layer vs nHits",50,0,50,nLayers,0,nLayers);
   layhits->GetXaxis()->SetTitle("Total nHits Explored / Layer / Seed");
   layhits->GetYaxis()->SetTitle("Layer");
-  TH2I * laybranches = new TH2I("h_lay_vs_branches","Layer vs nBranches",20,0,20,nLayers,0,nLayers);
+  TH2F * laybranches = new TH2F("h_lay_vs_branches","Layer vs nBranches",20,0,20,nLayers,0,nLayers);
   laybranches->GetXaxis()->SetTitle("Total nTempCandBranches Produced / Layer / Seed");
   laybranches->GetYaxis()->SetTitle("Layer");
 
-  TH2I * layetaphibins_unique = new TH2I("h_lay_vs_etaphibins_unique","Layer vs nUniqueEtaPhiBins",20,0,20,nLayers,0,nLayers);
+  TH2F * layetaphibins_unique = new TH2F("h_lay_vs_etaphibins_unique","Layer vs nUniqueEtaPhiBins",20,0,20,nLayers,0,nLayers);
   layetaphibins_unique->GetXaxis()->SetTitle("Total nUniqueEtaPhiBins Explored / Layer / Seed");
   layetaphibins_unique->GetYaxis()->SetTitle("Layer");
-  TH2I * layhits_unique = new TH2I("h_lay_vs_hits_unique","Layer vs nUniqueHits",50,0,50,nLayers,0,nLayers);
+  TH2F * layhits_unique = new TH2F("h_lay_vs_hits_unique","Layer vs nUniqueHits",50,0,50,nLayers,0,nLayers);
   layhits_unique->GetXaxis()->SetTitle("Total nUniqueHits Explored / Layer / Seed");
   layhits_unique->GetYaxis()->SetTitle("Layer");
-  TH2I * laybranches_unique = new TH2I("h_lay_vs_braches_unique","Layer vs nUniqueBranches",20,0,20,nLayers,0,nLayers);
+  TH2F * laybranches_unique = new TH2F("h_lay_vs_braches_unique","Layer vs nUniqueBranches",20,0,20,nLayers,0,nLayers);
   laybranches_unique->GetXaxis()->SetTitle("Total nTempCandUniqueBranches Produced / Layer / Seed");
   laybranches_unique->GetYaxis()->SetTitle("Layer");
 
-  TH2I * layetaphibins_percand = new TH2I("h_lay_vs_etaphibins_percand","Layer vs nEtaPhiBins per InputCand",20,0,20,nLayers,0,nLayers);
+  TH2F * layetaphibins_percand = new TH2F("h_lay_vs_etaphibins_percand","Layer vs nEtaPhiBins per InputCand",20,0,20,nLayers,0,nLayers);
   layetaphibins_percand->GetXaxis()->SetTitle("nEtaPhiBins Explored per InputCand / Layer / Seed");
   layetaphibins_percand->GetYaxis()->SetTitle("Layer");
-  TH2I * layhits_percand = new TH2I("h_lay_vs_hits_percand","Layer vs nHits per InputCand",50,0,50,nLayers,0,nLayers);
+  TH2F * layhits_percand = new TH2F("h_lay_vs_hits_percand","Layer vs nHits per InputCand",50,0,50,nLayers,0,nLayers);
   layhits_percand->GetXaxis()->SetTitle("nHits Explored per InputCand / Layer / Seed");
   layhits_percand->GetYaxis()->SetTitle("Layer");
-  TH2I * laybranches_percand = new TH2I("h_lay_vs_branches_percand","Layer vs nBranches per InputCand",20,0,20,nLayers,0,nLayers);
+  TH2F * laybranches_percand = new TH2F("h_lay_vs_branches_percand","Layer vs nBranches per InputCand",20,0,20,nLayers,0,nLayers);
   laybranches_percand->GetXaxis()->SetTitle("nTempCandBranches Produced per InputCand / Layer / Seed");
   laybranches_percand->GetYaxis()->SetTitle("Layer");
 
@@ -250,27 +250,27 @@ void PlotValidation::PlotBranching(){
     }
   }
   
-  PlotValidation::DrawWriteSaveTH2IPlot(subdir,laycands,subdirname,"lay_vs_cands");
+  PlotValidation::DrawWriteSaveTH2FPlot(subdir,laycands,subdirname,"lay_vs_cands");
 
-  PlotValidation::DrawWriteSaveTH2IPlot(subdir,layetaphibins,subdirname,"lay_vs_etaphibins");
-  PlotValidation::DrawWriteSaveTH2IPlot(subdir,layhits,subdirname,"lay_vs_hits");
-  PlotValidation::DrawWriteSaveTH2IPlot(subdir,laybranches,subdirname,"lay_vs_branches");  
+  PlotValidation::DrawWriteSaveTH2FPlot(subdir,layetaphibins,subdirname,"lay_vs_etaphibins");
+  PlotValidation::DrawWriteSaveTH2FPlot(subdir,layhits,subdirname,"lay_vs_hits");
+  PlotValidation::DrawWriteSaveTH2FPlot(subdir,laybranches,subdirname,"lay_vs_branches");  
 
-  PlotValidation::WriteTH2IPlot(subdir,layetaphibins_percand); 
-  PlotValidation::WriteTH2IPlot(subdir,layhits_percand);
-  PlotValidation::WriteTH2IPlot(subdir,laybranches_percand); 
+  PlotValidation::WriteTH2FPlot(subdir,layetaphibins_percand); 
+  PlotValidation::WriteTH2FPlot(subdir,layhits_percand);
+  PlotValidation::WriteTH2FPlot(subdir,laybranches_percand); 
 
-  PlotValidation::DrawWriteSaveTH2IPlot(subdir,layetaphibins_percand,subdirname,"lay_vs_etaphibins_percand");
-  PlotValidation::DrawWriteSaveTH2IPlot(subdir,layhits_percand,subdirname,"lay_vs_hits_percand");
-  PlotValidation::DrawWriteSaveTH2IPlot(subdir,laybranches_percand,subdirname,"lay_vs_branches_percand");
+  PlotValidation::DrawWriteSaveTH2FPlot(subdir,layetaphibins_percand,subdirname,"lay_vs_etaphibins_percand");
+  PlotValidation::DrawWriteSaveTH2FPlot(subdir,layhits_percand,subdirname,"lay_vs_hits_percand");
+  PlotValidation::DrawWriteSaveTH2FPlot(subdir,laybranches_percand,subdirname,"lay_vs_branches_percand");
 
   PlotValidation::DrawWriteSaveTH2FPlot(subdir,layetaphibins_percand_norm,subdirname,"lay_vs_etaphibins_percand_norm");
   PlotValidation::DrawWriteSaveTH2FPlot(subdir,layhits_percand_norm,subdirname,"lay_vs_hits_percand_norm");
   PlotValidation::DrawWriteSaveTH2FPlot(subdir,laybranches_percand_norm,subdirname,"lay_vs_branches_percand_norm");
 
-  PlotValidation::DrawWriteSaveTH2IPlot(subdir,layetaphibins_unique,subdirname,"lay_vs_etaphibins_unique");
-  PlotValidation::DrawWriteSaveTH2IPlot(subdir,layhits_unique,subdirname,"lay_vs_hits_unique");
-  PlotValidation::DrawWriteSaveTH2IPlot(subdir,laybranches_unique,subdirname,"lay_vs_branches_unique");
+  PlotValidation::DrawWriteSaveTH2FPlot(subdir,layetaphibins_unique,subdirname,"lay_vs_etaphibins_unique");
+  PlotValidation::DrawWriteSaveTH2FPlot(subdir,layhits_unique,subdirname,"lay_vs_hits_unique");
+  PlotValidation::DrawWriteSaveTH2FPlot(subdir,laybranches_unique,subdirname,"lay_vs_branches_unique");
 
   // draw and stuff for Deta, Dphi plots
   
@@ -522,7 +522,7 @@ void PlotValidation::PlotNHits(){
   IntVec iTkMatches_trk(trks.size()); 
   
   // Create plots
-  TH1IRefVecVec nHitsPlot(trks.size());
+  TH1FRefVecVec nHitsPlot(trks.size());
   TH1FRefVecVec fracHitsMatchedPlot(trks.size());
   for (UInt_t j = 0; j < trks.size(); j++){
     nHitsPlot[j].reserve(coll.size());
@@ -533,7 +533,7 @@ void PlotValidation::PlotNHits(){
   for (UInt_t j = 0; j < trks.size(); j++){
     for (UInt_t c = 0; c < coll.size(); c++){
       // Numerator only type plots only!
-      nHitsPlot[j][c] = new TH1I(Form("h_nHits_%s_%s",coll[c].Data(),trks[j].Data()),Form("%s %s Track vs nHits / Track",scoll[c].Data(),strks[j].Data()),11,0,11);
+      nHitsPlot[j][c] = new TH1F(Form("h_nHits_%s_%s",coll[c].Data(),trks[j].Data()),Form("%s %s Track vs nHits / Track",scoll[c].Data(),strks[j].Data()),11,0,11);
       nHitsPlot[j][c]->GetXaxis()->SetTitle("nHits / Track");
       nHitsPlot[j][c]->GetYaxis()->SetTitle("nTracks");    
 
@@ -594,7 +594,7 @@ void PlotValidation::PlotNHits(){
   // Draw and save efficiency plots
   for (UInt_t j = 0; j < trks.size(); j++){
     for (UInt_t c = 0; c < coll.size(); c++){ // loop over trk collection type
-      PlotValidation::DrawWriteSaveTH1IPlot(subdir,nHitsPlot[j][c],subdirname,Form("nHits_%s_%s",coll[c].Data(),trks[j].Data()),setLogy);
+      PlotValidation::DrawWriteSaveTH1FPlot(subdir,nHitsPlot[j][c],subdirname,Form("nHits_%s_%s",coll[c].Data(),trks[j].Data()),setLogy);
       PlotValidation::DrawWriteSaveTH1FPlot(subdir,fracHitsMatchedPlot[j][c],subdirname,Form("fracHitsMatched_%s_%s",coll[c].Data(),trks[j].Data()),setLogy);
       
       delete nHitsPlot[j][c];
@@ -1405,7 +1405,7 @@ void PlotValidation::PrintTotals(){
   TStrVec coll  = {"allreco","fake","bestmatch"};
   TStrVec scoll = {"All Reco","Fake","Best Match"};
 
-  TH1IRefVecVec nHitsPlot(trks.size());
+  TH1FRefVecVec nHitsPlot(trks.size());
   TH1FRefVecVec fracHitsMatchedPlot(trks.size());
   for (UInt_t j = 0; j < trks.size(); j++) {
     nHitsPlot[j].reserve(coll.size());
@@ -1414,7 +1414,7 @@ void PlotValidation::PrintTotals(){
 
   for (UInt_t j = 0; j < trks.size(); j++) {
     for (UInt_t c = 0; c < coll.size(); c++) {
-      nHitsPlot[j][c] = (TH1I*) fOutRoot->Get(Form("nHits/h_nHits_%s_%s",coll[c].Data(),trks[j].Data()));
+      nHitsPlot[j][c] = (TH1F*) fOutRoot->Get(Form("nHits/h_nHits_%s_%s",coll[c].Data(),trks[j].Data()));
       fracHitsMatchedPlot[j][c] = (TH1F*) fOutRoot->Get(Form("nHits/h_fracHitsMatched_%s_%s",coll[c].Data(),trks[j].Data()));
     }
   }
@@ -1574,17 +1574,9 @@ void PlotValidation::ComputeRatioPlot(const TH1F * numer, const TH1F * denom, TH
   }
 }
 
-void PlotValidation::WriteTH2IPlot(TDirectory *& subdir, TH2I *& hist){
+void PlotValidation::WriteTH2FPlot(TDirectory *& subdir, TH2F *& hist){
   subdir->cd();
   hist->Write();
-}
-
-void PlotValidation::DrawWriteSaveTH2IPlot(TDirectory *& subdir, TH2I *& hist, const TString subdirname, const TString plotName){
-  fTH2Canv->cd();
-  hist->Draw("colz");  
-  subdir->cd();
-  hist->Write();
-  fTH2Canv->SaveAs(Form("%s/%s/%s.png",fOutName.Data(),subdirname.Data(),plotName.Data()));  
 }
 
 void PlotValidation::DrawWriteSaveTH2FPlot(TDirectory *& subdir, TH2F *& hist, const TString subdirname, const TString plotName){
@@ -1598,15 +1590,6 @@ void PlotValidation::DrawWriteSaveTH2FPlot(TDirectory *& subdir, TH2F *& hist, c
 void PlotValidation::WriteTH1FPlot(TDirectory *& subdir, TH1F *& hist){
   subdir->cd();
   hist->Write();
-}
-
-void PlotValidation::DrawWriteSaveTH1IPlot(TDirectory *& subdir, TH1I *& hist, const TString subdirname, const TString plotName, const Bool_t setLogy){
-  fTH1Canv->cd();
-  hist->Draw();  
-  subdir->cd();
-  hist->Write();
-  fTH1Canv->SetLogy(setLogy);
-  fTH1Canv->SaveAs(Form("%s/%s/%s.%s",fOutName.Data(),subdirname.Data(),plotName.Data(),fOutType.Data()));  
 }
 
 void PlotValidation::DrawWriteSaveTH1FPlot(TDirectory *& subdir, TH1F *& hist, const TString subdirname, const TString plotName, const Bool_t setLogy){
