@@ -4,8 +4,14 @@ void mplexPlotComparison(){
 
   gStyle->SetOptStat(1);
 
+  // input stuff
+  TString suffix1 = "devel"; // use for stats box + legend
+  TFile * file1   = TFile::Open(Form("test%s.root",suffix1.Data()));
+  TString suffix2 = "ttm2";  // use for stats box + legend
+  TFile * file2   = TFile::Open(Form("test%s.root",suffix2.Data()));
+
   // output stuff
-  TString outdir = "bh";
+  TString outdir = Form("%s_vs_%s_bh",suffix1.Data(),suffix2.Data());
   // make output directory
   FileStat_t dummyFileStat;
   if (gSystem->GetPathInfo(outdir.Data(), dummyFileStat) == 1){
@@ -13,12 +19,6 @@ void mplexPlotComparison(){
     mkDir += outdir.Data();
     gSystem->Exec(mkDir.Data());
   }
-
-  // input stuff
-  TString suffix1 = "devel"; // use for stats box + legend
-  TFile * file1   = TFile::Open(Form("test%s.root",suffix1.Data()));
-  TString suffix2 = "ttm2";  // use for stats box + legend
-  TFile * file2   = TFile::Open(Form("test%s.root",suffix2.Data()));
 
   createplot(file1,suffix1,file2,suffix2,"MXNH","nHits",outdir);
   createplot(file1,suffix1,file2,suffix2,"MXC2","#chi^{2}",outdir);
