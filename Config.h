@@ -14,7 +14,7 @@ namespace Config{
   static constexpr const float DegToRad = Config::PI / 180.0;
   static constexpr const double Sqrt2   = 1.4142135623730950488016887242097;
 
-  // config on main
+  // config on main --> NOT UNIFIED ... NEED TO CHANGE
   static constexpr const unsigned int nTracks = 5000;
   static constexpr const unsigned int nEvents = 20;
 
@@ -24,7 +24,7 @@ namespace Config{
   static constexpr const float fRadialExtent    = 0.01;
   static constexpr const float fInnerSensorSize = 5.0; // approximate sensor size in cm
   static constexpr const float fOuterSensorSize = fInnerSensorSize * 2.;
-  static constexpr const float fEtaDet          = 2;  // 1 from chep
+  static constexpr const float fEtaDet          = 1;  // 1 from chep
 
   // config on Event
   static constexpr const unsigned int maxCand = 10;
@@ -61,9 +61,9 @@ namespace Config{
   static constexpr const float chi2seedcut = 9.0;
 
   // Config for Hit and BinInfoUtils
-  static constexpr const unsigned int nPhiPart   = 1000; //315 = 63*5  //63; //80; 
+  static constexpr const unsigned int nPhiPart   = 80; //315 = 63*5  //63; //80; 
   static constexpr const float        fPhiFactor = nPhiPart / TwoPI;
-  static constexpr const unsigned int nEtaPart   = 10; // 11;
+  static constexpr const unsigned int nEtaPart   = 11; //11;
   static constexpr const unsigned int nEtaBin    = 2*nEtaPart - 1;
 
   static constexpr const float        fEtaFull  = 2 * fEtaDet;
@@ -102,7 +102,35 @@ namespace Config{
   // Effective eta bin is one half of nEtaPart -- so the above is twice the "average".
   // Note that last and first bin are 3/4 nEtaPart ... but can be made 1/4 by adding
   // additional bins on each end.
-};
 
+  //matrix config
+#ifndef MAX_HITS
+#define MAX_HITS 10
+#endif
+
+#ifdef USE_MATRIPLEX
+
+  #ifndef MPT_SIZE
+    #ifdef __MIC__
+      #define MPT_SIZE 16
+    #else
+      #define MPT_SIZE 1
+    #endif
+  #endif
+
+  #ifndef NUM_THREADS
+  #define NUM_THREADS 1
+  #endif
+
+  #ifndef NUM_THREADS_SIM
+  #define NUM_THREADS_SIM 1
+  #endif
+
+  #ifndef THREAD_BINDING
+  #define THREAD_BINDING spread
+  #endif
+
+#endif
+};
 
 #endif 

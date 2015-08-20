@@ -1,11 +1,8 @@
 #ifndef _matrix_
 #define _matrix_
 
-#ifndef MAX_HITS
-#define MAX_HITS 10
-#endif
-
 #include "Math/SMatrix.h"
+#include "Config.h"
 
 typedef ROOT::Math::SMatrix<float,6,6,ROOT::Math::MatRepSym<float,6> >    SMatrixSym66;
 typedef ROOT::Math::SMatrix<float,6> SMatrix66;
@@ -80,16 +77,7 @@ inline void sincos4(float x, float& sin, float& cos)
 
   #endif
 
-
   #include "Matriplex/MatriplexSym.h"
-
-  #ifndef MPT_SIZE
-    #ifdef __MIC__
-      #define MPT_SIZE 16
-    #else
-      #define MPT_SIZE 8
-    #endif
-  #endif
 
   const Matriplex::idx_t NN =  MPT_SIZE; // "Length" of MPlex.
 
@@ -108,19 +96,6 @@ inline void sincos4(float x, float& sin, float& cos)
 
   typedef Matriplex::Matriplex<float, 1, 1, NN>     MPlexQF;
   typedef Matriplex::Matriplex<int,   1, 1, NN>     MPlexQI;
-
-
-  #ifndef NUM_THREADS
-  #define NUM_THREADS 1
-  #endif
-
-  #ifndef NUM_THREADS_SIM
-  #define NUM_THREADS_SIM 60
-  #endif
-
-  #ifndef THREAD_BINDING
-  #define THREAD_BINDING spread
-  #endif
 
 #endif
 
