@@ -8,6 +8,7 @@
 #include "TStyle.h"
 #include "TH2F.h"
 #include "TDirectory.h"
+#include "TColor.h"
 
 #include <vector>
 #include <iostream>
@@ -54,7 +55,7 @@ public:
   void PlotDuplicateRate();
   void PrintTotals();
 
-  void MakeSubDirectory(TDirectory *& subdir, const TString subdirname);
+  void MakeSubDirectory(const TString subdirname);
 
   void ComputeResidual      (const Float_t mcvar_val, const Float_t recovar_val, Float_t & var_out);
   void ComputeResolutionPull(const Float_t mcvar_val, const Float_t recovar_val, const Float_t recovar_err, FltVec & var_out);
@@ -67,8 +68,8 @@ public:
   void DrawWriteSaveTH2FPlot(TDirectory *& subdir, TH2F *& histo, const TString subdirname, const TString plotName);
 
   void WriteTH1FPlot           (TDirectory *& subdir, TH1F *& histo);
-  void DrawWriteSaveTH1FPlot   (TDirectory *& subdir, TH1F *& histo, const TString subdirname, const TString plotName, const Bool_t setLogy);
-  void DrawWriteFitSaveTH1FPlot(TDirectory *& subdir, TH1F *& histo, const TString subdirname, const TString plotName, const Float_t fitrange, const Bool_t setLogy);
+  void DrawWriteSaveTH1FPlot   (TDirectory *& subdir, TH1F *& histo, const TString subdirname, const TString plotName, const Bool_t zeroSupLin);
+  void DrawWriteFitSaveTH1FPlot(TDirectory *& subdir, TH1F *& histo, const TString subdirname, const TString plotName, const Float_t fitrange);
 
   void MoveInput();
 

@@ -14,20 +14,15 @@ PlotValidation::PlotValidation(TString inName, TString outName, TString outType)
   fOutType = outType;
   
   // make output directory
-  FileStat_t dummyFileStat;
-  if (gSystem->GetPathInfo(fOutName.Data(), dummyFileStat) == 1){
-    TString mkDir = "mkdir -p ";
-    mkDir += fOutName.Data();
-    gSystem->Exec(mkDir.Data());
-  }
+  PlotValidation::MakeSubDirectory(fOutName);
 
   // make output root file
   fOutRoot = new TFile(Form("%s/%s.root",fOutName.Data(),fOutName.Data()), "RECREATE");
 
   // General style
   gROOT->Reset();
-  //  gStyle->SetOptStat(111111);
-  gStyle->SetOptStat(0);
+  gStyle->SetOptStat(111111);
+  //gStyle->SetOptStat(0);
   gStyle->SetOptFit(1011);
   gStyle->SetStatX(1.0);
   gStyle->SetStatY(0.9);
@@ -78,11 +73,11 @@ void PlotValidation::PlotBranching(){
 
   // make output subdirectory and subdir in ROOT file, and cd to it.
   TString subdirname = "branching"; 
-  TDirectory * subdir;
-  PlotValidation::MakeSubDirectory(subdir,subdirname);
+  PlotValidation::MakeSubDirectory(subdirname);
+  TDirectory * subdir = fOutRoot->mkdir(subdirname.Data());
+  subdir->cd();
 
   // make plots, ensure in right directory
-  subdir->cd();
   TH2F * laycands = new TH2F("h_lay_vs_cands","Layer vs nCandidates",20,0,20,nLayers,0,nLayers);
   laycands->GetXaxis()->SetTitle("nInputCands / Layer / Seed");
   laycands->GetYaxis()->SetTitle("Layer");  
@@ -249,6 +244,16 @@ void PlotValidation::PlotBranching(){
       }
     }
   }
+
+  const Int_t NRGBs = 5;
+  const Int_t NCont = 255;
+
+  Double_t stops[NRGBs] = { 0.00, 0.34, 0.61, 0.84, 1.00 };
+  Double_t red[NRGBs]   = { 0.00, 0.00, 0.87, 1.00, 0.51 };
+  Double_t green[NRGBs] = { 0.00, 0.81, 1.00, 0.20, 0.00 };
+  Double_t blue[NRGBs]  = { 0.51, 1.00, 0.12, 0.00, 0.00 };
+  TColor::CreateGradientColorTable(NRGBs, stops, red, green, blue, NCont);
+  gStyle->SetNumberContours(NCont);
   
   PlotValidation::DrawWriteSaveTH2FPlot(subdir,laycands,subdirname,"lay_vs_cands");
 
@@ -273,7 +278,8 @@ void PlotValidation::PlotBranching(){
   PlotValidation::DrawWriteSaveTH2FPlot(subdir,laybranches_unique,subdirname,"lay_vs_branches_unique");
 
   // draw and stuff for Deta, Dphi plots
-  
+  std::vector<Color_t> colors = {kBlue,kOrange+8,kGreen+1,kRed,kYellow+1,kViolet+2,kCyan,kPink+6,kSpring+10};
+
   float max = 0.0;
   // write the bare plots, scale, and get max and min
   for (UInt_t l = nlayers_per_seed; l < nLayers; l++){ // only fill ones with actual propagation
@@ -290,7 +296,7 @@ void PlotValidation::PlotBranching(){
     layNSigmaDeta[l]->SetStats(0);
     layNSigmaDeta[l]->SetTitle("n#sigma_{#eta}#timesd#eta for All Layers (Normalized)"); 
     layNSigmaDeta[l]->SetMaximum(1.1*max);
-    layNSigmaDeta[l]->SetLineColor(l);
+    layNSigmaDeta[l]->SetLineColor(colors[l-nlayers_per_seed]);
     layNSigmaDeta[l]->SetLineWidth(2);
     layNSigmaDeta[l]->Draw((l>nlayers_per_seed)?"SAME":"");
     legeta->AddEntry(layNSigmaDeta[l],Form("Layer %u",l),"L");
@@ -320,7 +326,7 @@ void PlotValidation::PlotBranching(){
     layNSigmaDphi[l]->SetStats(0);
     layNSigmaDphi[l]->SetTitle("n#sigma_{#phi}#timesd#phi for All Layers (Normalized)"); 
     layNSigmaDphi[l]->SetMaximum(1.1*max);
-    layNSigmaDphi[l]->SetLineColor(l);
+    layNSigmaDphi[l]->SetLineColor(colors[l-nlayers_per_seed]);
     layNSigmaDphi[l]->SetLineWidth(2);
     layNSigmaDphi[l]->Draw((l>nlayers_per_seed)?"SAME":"");
     legphi->AddEntry(layNSigmaDphi[l],Form("Layer %u",l),"L");
@@ -363,13 +369,18 @@ void PlotValidation::PlotTiming(){
   // labels for histos (x-axis)
   TStrVec stime = {"Simulate","Segment","Seed","Build","Fit","Validate"};
 
+  // make subdirectory
   TString subdirname = "timing"; 
-  TDirectory * subdir;
-  PlotValidation::MakeSubDirectory(subdir,subdirname);
+  PlotValidation::MakeSubDirectory(subdirname);
+  PlotValidation::MakeSubDirectory(Form("%s/lin",subdirname.Data()));
+  PlotValidation::MakeSubDirectory(Form("%s/log",subdirname.Data()));
+  TDirectory * subdir = fOutRoot->mkdir(subdirname.Data());
+  subdir->cd();
   
   // output plots
-  // cd to right output directory
-  subdir->cd();
+  Bool_t zeroSupLin;
+
+  // make new timing plots
   TH1F * tottime = new TH1F("h_total_timing","Total Time Spent in Simulation",6,0,6);
   tottime->GetXaxis()->SetTitle("Event Function Call");
   tottime->GetYaxis()->SetTitle("Time [s]");
@@ -412,8 +423,8 @@ void PlotValidation::PlotTiming(){
   rectime->Scale(1.0/rectime->Integral());
   
   // draw and save stuff
-  PlotValidation::DrawWriteSaveTH1FPlot(subdir,tottime,subdirname,"total_time_sim",false);
-  PlotValidation::DrawWriteSaveTH1FPlot(subdir,rectime,subdirname,"norm_time_reco",false);
+  PlotValidation::DrawWriteSaveTH1FPlot(subdir,tottime,subdirname,"total_time_sim",zeroSupLin);
+  PlotValidation::DrawWriteSaveTH1FPlot(subdir,rectime,subdirname,"norm_time_reco",zeroSupLin);
 
   delete tottime;
   delete rectime;
@@ -428,11 +439,11 @@ void PlotValidation::PlotSimGeo(){
 
   // make output subdirectory and subdir in ROOT file, and cd to it.
   TString subdirname = "simgeo"; 
-  TDirectory * subdir;
-  PlotValidation::MakeSubDirectory(subdir,subdirname);
+  PlotValidation::MakeSubDirectory(subdirname);
+  TDirectory * subdir = fOutRoot->mkdir(subdirname.Data());
+  subdir->cd();
   
   // make plots, ensure in right directory
-  subdir->cd();
   TH2F * xy_detplot = new TH2F("h_xy_simdetgeo","XY Simulation Detector Geometry",450,-45.,45.,450,-45.,45.);
   xy_detplot->GetXaxis()->SetTitle("x [cm]");
   xy_detplot->GetYaxis()->SetTitle("y [cm]");
@@ -502,11 +513,14 @@ void PlotValidation::PlotNHits(){
 
   // make output subdirectory and subdir in ROOT file, and cd to it.
   TString subdirname = "nHits"; 
-  TDirectory * subdir;
-  PlotValidation::MakeSubDirectory(subdir,subdirname);
+  PlotValidation::MakeSubDirectory(subdirname);
+  PlotValidation::MakeSubDirectory(Form("%s/lin",subdirname.Data()));
+  PlotValidation::MakeSubDirectory(Form("%s/log",subdirname.Data()));
+  TDirectory * subdir = fOutRoot->mkdir(subdirname.Data());
+  subdir->cd();
 
   //Declare strings for branches and plots
-  Bool_t  setLogy = true;
+  Bool_t  zeroSupLin = false;
   TStrVec trks  = {"seed","build","fit"};
   TStrVec strks = {"Seed","Build","Fit"}; // strk --> labels for histograms for given track type
   TStrVec coll  = {"allreco","fake","allmatch","bestmatch"};
@@ -529,7 +543,6 @@ void PlotValidation::PlotNHits(){
     fracHitsMatchedPlot[j].reserve(coll.size());
   }
 
-  subdir->cd(); // make plots and ensure they are in the right directory
   for (UInt_t j = 0; j < trks.size(); j++){
     for (UInt_t c = 0; c < coll.size(); c++){
       // Numerator only type plots only!
@@ -594,8 +607,8 @@ void PlotValidation::PlotNHits(){
   // Draw and save efficiency plots
   for (UInt_t j = 0; j < trks.size(); j++){
     for (UInt_t c = 0; c < coll.size(); c++){ // loop over trk collection type
-      PlotValidation::DrawWriteSaveTH1FPlot(subdir,nHitsPlot[j][c],subdirname,Form("nHits_%s_%s",coll[c].Data(),trks[j].Data()),setLogy);
-      PlotValidation::DrawWriteSaveTH1FPlot(subdir,fracHitsMatchedPlot[j][c],subdirname,Form("fracHitsMatched_%s_%s",coll[c].Data(),trks[j].Data()),setLogy);
+      PlotValidation::DrawWriteSaveTH1FPlot(subdir,nHitsPlot[j][c],subdirname,Form("nHits_%s_%s",coll[c].Data(),trks[j].Data()),zeroSupLin);
+      PlotValidation::DrawWriteSaveTH1FPlot(subdir,fracHitsMatchedPlot[j][c],subdirname,Form("fracHitsMatched_%s_%s",coll[c].Data(),trks[j].Data()),zeroSupLin);
       
       delete nHitsPlot[j][c];
       delete fracHitsMatchedPlot[j][c];
@@ -611,12 +624,14 @@ void PlotValidation::PlotCFResidual(){
 
   // make output subdirectory and subdir in ROOT file, and cd to it.
   TString subdirname = "conformalFit_residual"; 
-  TDirectory * subdir;
-  PlotValidation::MakeSubDirectory(subdir,subdirname);
-  // xyz, pxpypz residual, pt, theta, phi --> used to get errors, but only for pt, phi, theta.  x,y,z,px,py,pz from simulation 
+  PlotValidation::MakeSubDirectory(subdirname);
+  PlotValidation::MakeSubDirectory(Form("%s/lin",subdirname.Data()));
+  PlotValidation::MakeSubDirectory(Form("%s/log",subdirname.Data()));
+  TDirectory * subdir = fOutRoot->mkdir(subdirname.Data());
+  subdir->cd();
 
-  //Declare strings for branches and plots
-  Bool_t  setLogy = false;
+  // Declare strings for branches and plots
+  // xyz, pxpypz residual, pt, theta, phi --> used to get errors, but only for pt, phi, theta.  x,y,z,px,py,pz from simulation 
   TStrVec vars    = {"x","y","z","px","py","pz","pt","invpt","phi","theta"}; // pt will be inverse
   TStrVec svars   = {"x","y","z","p_{x}","p_{y}","p_{z}","p_{T}","1/p_{T}","#phi","#theta"}; // svars --> labels for histograms for given variable
   TStrVec sunits  = {" [cm]"," [cm]"," [cm]"," [GeV/c]"," [GeV/c]"," [GeV/c]"," [GeV/c]"," [GeV/c]^{-1}","",""}; // svars --> labels for histograms for given variable
@@ -643,7 +658,6 @@ void PlotValidation::PlotCFResidual(){
     varsResidualPlot[i].reserve(trks.size());
   }
 
-  subdir->cd(); // ensure plots are put in right place 
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
       varsResidualPlot[i][j] = new TH1F(Form("h_%s_cfresidual_%s",vars[i].Data(),trks[j].Data()),Form("%s Residual (CF %s Track vs. MC Track)",svars[i].Data(),strks[j].Data()),nBins[i],xlow[i],xhigh[i]);
@@ -689,7 +703,7 @@ void PlotValidation::PlotCFResidual(){
   // Draw, fit, and save plots
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
-      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsResidualPlot[i][j],subdirname,Form("%s_cfresidual_%s",vars[i].Data(),trks[j].Data()),gaus[i],setLogy);
+      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsResidualPlot[i][j],subdirname,Form("%s_cfresidual_%s",vars[i].Data(),trks[j].Data()),gaus[i]);
       delete varsResidualPlot[i][j];
     }
   }  
@@ -702,11 +716,14 @@ void PlotValidation::PlotCFResolutionPull(){
 
   // make output subdirectory and subdir in ROOT file, and cd to it.
   TString subdirname = "conformalFit_resolutionpull"; 
-  TDirectory * subdir;
-  PlotValidation::MakeSubDirectory(subdir,subdirname);
+  PlotValidation::MakeSubDirectory(subdirname);
+  PlotValidation::MakeSubDirectory(Form("%s/lin",subdirname.Data()));
+  PlotValidation::MakeSubDirectory(Form("%s/log",subdirname.Data()));
+  TDirectory * subdir = fOutRoot->mkdir(subdirname.Data());
+  subdir->cd();
 
+  // Declare strings for branches and plots
   // xyz,pxpypz resolutions + pulls
-  Bool_t  setLogy   = false;
   TStrVec vars      = {"x","y","z","px","py","pz","pt","invpt","phi","theta"};
   TStrVec svars     = {"x","y","z","p_{x}","p_{y}","p_{z}","p_{T}","1/p_{T}","#phi","#theta"}; // svars --> labels for histograms for given variable
   TStrVec sunits    = {" [cm]"," [cm]"," [cm]"," [GeV/c]"," [GeV/c]"," [GeV/c]"," [GeV/c]"," [GeV/c]^{-1}","",""}; // svars --> labels for histograms for given variable
@@ -722,8 +739,6 @@ void PlotValidation::PlotCFResolutionPull(){
   FltVec  xhighPull = {5,5,5,5,5,5,5,5,5,5};  
   FltVec  gausPull  = {3,3,3,3,3,3,3,3,3,3}; // symmetric bounds for gaussian fit
   
-  //Declare strings for branches and plots
-
   // Floats/Ints to be filled for trees
   FltVecVec mcvars_val(vars.size());
   IntVec    mcmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
@@ -744,7 +759,6 @@ void PlotValidation::PlotCFResolutionPull(){
     varsPullPlot[i].reserve(trks.size());
   }
 
-  subdir->cd(); // ensure plots are put in right place 
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
       //Res
@@ -801,8 +815,8 @@ void PlotValidation::PlotCFResolutionPull(){
   // Draw, fit, and save plots
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
-      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsResPlot[i][j],subdirname,Form("%s_cfresolution_%s",vars[i].Data(),trks[j].Data()),gausRes[i],setLogy);
-      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsPullPlot[i][j],subdirname,Form("%s_cfpull_%s",vars[i].Data(),trks[j].Data()),gausPull[i],setLogy);
+      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsResPlot[i][j],subdirname,Form("%s_cfresolution_%s",vars[i].Data(),trks[j].Data()),gausRes[i]);
+      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsPullPlot[i][j],subdirname,Form("%s_cfpull_%s",vars[i].Data(),trks[j].Data()),gausPull[i]);
       delete varsResPlot[i][j];
       delete varsPullPlot[i][j];
     }
@@ -824,11 +838,13 @@ void PlotValidation::PlotPosResolutionPull(){
 
   // make  output subdirectory and subdir in ROOT file, and cd to it.
   TString subdirname = "position_resolutionpull"; 
-  TDirectory * subdir;
-  PlotValidation::MakeSubDirectory(subdir,subdirname);
+  PlotValidation::MakeSubDirectory(subdirname);
+  PlotValidation::MakeSubDirectory(Form("%s/lin",subdirname.Data()));
+  PlotValidation::MakeSubDirectory(Form("%s/log",subdirname.Data()));
+  TDirectory * subdir = fOutRoot->mkdir(subdirname.Data());
+  subdir->cd();
 
   //Declare strings for branches and plots
-  Bool_t  setLogy   = false;
   TStrVec vars      = {"x","y","z"};
   TStrVec evars     = {"ex","ey","ez"};
   TStrVec svars     = {"x","y","z"}; // svars --> labels for histograms for given variable
@@ -860,7 +876,6 @@ void PlotValidation::PlotPosResolutionPull(){
     }
   }
 
-  subdir->cd(); // ensure plots are put in right place 
   for (UInt_t j = 0; j < trks.size(); j++){
     for (UInt_t i = 0; i < vars.size(); i++){
       for (UInt_t l = 0; l < nlayers_trk[j]; l++){	
@@ -941,8 +956,8 @@ void PlotValidation::PlotPosResolutionPull(){
   for (UInt_t j = 0; j < trks.size(); j++){
     for (UInt_t i = 0; i < vars.size(); i++){
       for (UInt_t l = 0; l < nlayers_trk[j]; l++){
-	PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsResPlot[j][i][l],subdirname,Form("%s_resolution_lay%u_%s",vars[i].Data(),l,trks[j].Data()),gausRes[i],setLogy);
-	PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsPullPlot[j][i][l],subdirname,Form("%s_pull_lay%u_%s",vars[i].Data(),l,trks[j].Data()),gausPull[i],setLogy);
+	PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsResPlot[j][i][l],subdirname,Form("%s_resolution_lay%u_%s",vars[i].Data(),l,trks[j].Data()),gausRes[i]);
+	PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsPullPlot[j][i][l],subdirname,Form("%s_pull_lay%u_%s",vars[i].Data(),l,trks[j].Data()),gausPull[i]);
 	delete varsResPlot[j][i][l];
 	delete varsPullPlot[j][i][l];
       }
@@ -956,13 +971,15 @@ void PlotValidation::PlotMomResolutionPull(){
   // Get tree
   TTree * efftree  = (TTree*)fInRoot->Get("efftree");
 
-  // make output subdirectory and subdir in ROOT file, and cd to it.
+  // make  output subdirectory and subdir in ROOT file, and cd to it.
   TString subdirname = "momentum_resolutionpull"; 
-  TDirectory * subdir;
-  PlotValidation::MakeSubDirectory(subdir,subdirname);
+  PlotValidation::MakeSubDirectory(subdirname);
+  PlotValidation::MakeSubDirectory(Form("%s/lin",subdirname.Data()));
+  PlotValidation::MakeSubDirectory(Form("%s/log",subdirname.Data()));
+  TDirectory * subdir = fOutRoot->mkdir(subdirname.Data());
+  subdir->cd();
 
   //Declare strings for branches and plots
-  Bool_t  setLogy   = false;
   TStrVec vars      = {"pt","eta","phi"};
   TStrVec evars     = {"ept","eeta","ephi"};
   TStrVec svars     = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
@@ -999,7 +1016,6 @@ void PlotValidation::PlotMomResolutionPull(){
     varsPullPlot[i].reserve(trks.size());
   }
 
-  subdir->cd(); // ensure plots are put in right place 
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
       //Res
@@ -1056,8 +1072,8 @@ void PlotValidation::PlotMomResolutionPull(){
   // Draw, fit, and save plots
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
-      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsResPlot[i][j],subdirname,Form("%s_resolution_%s",vars[i].Data(),trks[j].Data()),gausRes[i],setLogy);
-      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsPullPlot[i][j],subdirname,Form("%s_pull_%s",vars[i].Data(),trks[j].Data()),gausPull[i],setLogy);
+      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsResPlot[i][j],subdirname,Form("%s_resolution_%s",vars[i].Data(),trks[j].Data()),gausRes[i]);
+      PlotValidation::DrawWriteFitSaveTH1FPlot(subdir,varsPullPlot[i][j],subdirname,Form("%s_pull_%s",vars[i].Data(),trks[j].Data()),gausPull[i]);
       delete varsResPlot[i][j];
       delete varsPullPlot[i][j];
     }
@@ -1071,11 +1087,14 @@ void PlotValidation::PlotEfficiency(){
 
   // make output subdirectory and subdir in ROOT file, and cd to it.
   TString subdirname = "efficiency"; 
-  TDirectory * subdir;  
-  PlotValidation::MakeSubDirectory(subdir,subdirname);
+  PlotValidation::MakeSubDirectory(subdirname);
+  PlotValidation::MakeSubDirectory(Form("%s/lin",subdirname.Data()));
+  PlotValidation::MakeSubDirectory(Form("%s/log",subdirname.Data()));
+  TDirectory * subdir = fOutRoot->mkdir(subdirname.Data());
+  subdir->cd();
 
   //Declare strings for branches and plots
-  Bool_t  setLogy = false;
+  Bool_t  zeroSupLin = true;
   TStrVec vars  = {"pt","eta","phi"};
   TStrVec svars = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
   TStrVec sunits= {" [GeV/c]","",""}; // units --> labels for histograms for given variable
@@ -1100,7 +1119,6 @@ void PlotValidation::PlotEfficiency(){
     varsEffPlot[i].reserve(trks.size());
   }  
 
-  subdir->cd(); // new plots and ensure they are in the right directory
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
       // Numerator
@@ -1133,7 +1151,7 @@ void PlotValidation::PlotEfficiency(){
     efftree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
   }
 
-  // Fill histos, compute res/pull from tree branches 
+  // Fill histos, compute eff from tree branches 
   for (UInt_t k = 0; k < (UInt_t) efftree->GetEntries(); k++){
     efftree->GetEntry(k);
     for (UInt_t i = 0; i < vars.size(); i++){  // loop over vars index
@@ -1152,8 +1170,7 @@ void PlotValidation::PlotEfficiency(){
       PlotValidation::ComputeRatioPlot(varsNumerPlot[i][j],varsDenomPlot[i][j],varsEffPlot[i][j]);
       PlotValidation::WriteTH1FPlot(subdir,varsNumerPlot[i][j]);
       PlotValidation::WriteTH1FPlot(subdir,varsDenomPlot[i][j]);
-      PlotValidation::ZeroSuppressPlot(varsEffPlot[i][j]);
-      PlotValidation::DrawWriteSaveTH1FPlot(subdir,varsEffPlot[i][j],subdirname,Form("%s_eff_%s",vars[i].Data(),trks[j].Data()),setLogy);
+      PlotValidation::DrawWriteSaveTH1FPlot(subdir,varsEffPlot[i][j],subdirname,Form("%s_eff_%s",vars[i].Data(),trks[j].Data()),zeroSupLin);
       delete varsNumerPlot[i][j];
       delete varsDenomPlot[i][j];
       delete varsEffPlot[i][j];
@@ -1168,11 +1185,14 @@ void PlotValidation::PlotFakeRate(){
 
   // make output subdirectory and subdir in ROOT file, and cd to it.
   TString subdirname = "fakerate"; 
-  TDirectory * subdir;
-  PlotValidation::MakeSubDirectory(subdir,subdirname);
+  PlotValidation::MakeSubDirectory(subdirname);
+  PlotValidation::MakeSubDirectory(Form("%s/lin",subdirname.Data()));
+  PlotValidation::MakeSubDirectory(Form("%s/log",subdirname.Data()));
+  TDirectory * subdir = fOutRoot->mkdir(subdirname.Data());
+  subdir->cd();
 
   //Declare strings for branches and plots
-  Bool_t  setLogy = false;
+  Bool_t  zeroSupLin = true;
   TStrVec vars  = {"pt","eta","phi"};
   TStrVec svars = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
   TStrVec sunits= {" [GeV/c]","",""}; // units --> labels for histograms for given variable
@@ -1202,7 +1222,6 @@ void PlotValidation::PlotFakeRate(){
     varsFRPlot[i].reserve(trks.size());
   }  
 
-  subdir->cd(); // make plots in right place
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
       // Numerator
@@ -1240,7 +1259,7 @@ void PlotValidation::PlotFakeRate(){
     fakeratetree->SetBranchAddress(Form("seedmask_%s",trks[j].Data()),&(seedmask_trk[j]));
   }
 
-  // Fill histos, compute res/pull from tree branches 
+  // Fill histos, compute fake rate from tree branches 
   for (UInt_t k = 0; k < (UInt_t) fakeratetree->GetEntries(); k++){
     fakeratetree->GetEntry(k);
     for (UInt_t i = 0; i < vars.size(); i++){  // loop over vars index
@@ -1261,8 +1280,7 @@ void PlotValidation::PlotFakeRate(){
       PlotValidation::ComputeRatioPlot(varsNumerPlot[i][j],varsDenomPlot[i][j],varsFRPlot[i][j]);
       PlotValidation::WriteTH1FPlot(subdir,varsNumerPlot[i][j]);
       PlotValidation::WriteTH1FPlot(subdir,varsDenomPlot[i][j]);
-      PlotValidation::ZeroSuppressPlot(varsFRPlot[i][j]);
-      PlotValidation::DrawWriteSaveTH1FPlot(subdir,varsFRPlot[i][j],subdirname,Form("%s_FR_%s",vars[i].Data(),trks[j].Data()),setLogy);
+      PlotValidation::DrawWriteSaveTH1FPlot(subdir,varsFRPlot[i][j],subdirname,Form("%s_FR_%s",vars[i].Data(),trks[j].Data()),zeroSupLin);
       delete varsNumerPlot[i][j];
       delete varsDenomPlot[i][j];
       delete varsFRPlot[i][j];
@@ -1277,11 +1295,14 @@ void PlotValidation::PlotDuplicateRate(){
 
   // make output subdirectory and subdir in ROOT file, and cd to it.
   TString subdirname = "duplicaterate"; 
-  TDirectory * subdir;
+  PlotValidation::MakeSubDirectory(subdirname);
+  PlotValidation::MakeSubDirectory(Form("%s/lin",subdirname.Data()));
+  PlotValidation::MakeSubDirectory(Form("%s/log",subdirname.Data()));
+  TDirectory * subdir = fOutRoot->mkdir(subdirname.Data());
+  subdir->cd();
 
-  PlotValidation::MakeSubDirectory(subdir,subdirname);
   //Declare strings for branches and plots
-  Bool_t  setLogy = false;
+  Bool_t  zeroSupLin = true;
   TStrVec vars  = {"pt","eta","phi"};
   TStrVec svars = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
   TStrVec sunits= {" [GeV/c]","",""}; // units --> labels for histograms for given variable
@@ -1307,7 +1328,6 @@ void PlotValidation::PlotDuplicateRate(){
     varsDRPlot[i].reserve(trks.size());
   }  
 
-  subdir->cd(); // ensure plots are in right place
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
       // Numerator
@@ -1343,7 +1363,7 @@ void PlotValidation::PlotDuplicateRate(){
     efftree->SetBranchAddress(Form("nTkMatches_%s",trks[j].Data()),&(nTkMatches_trk[j]));
   }
 
-  // Fill histos, compute res/pull from tree branches 
+  // Fill histos, compute DR from tree branches 
   for (UInt_t k = 0; k < (UInt_t) efftree->GetEntries(); k++){
     efftree->GetEntry(k);
     for (UInt_t i = 0; i < vars.size(); i++){  // loop over vars index
@@ -1358,14 +1378,13 @@ void PlotValidation::PlotDuplicateRate(){
     } // end loop over vars
   } // end loop over entry in tree
 
-  // Draw, divide, and save efficiency plots
+  // Draw, divide, and save DR plots
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
       PlotValidation::ComputeRatioPlot(varsNumerPlot[i][j],varsDenomPlot[i][j],varsDRPlot[i][j]);
       PlotValidation::WriteTH1FPlot(subdir,varsNumerPlot[i][j]);
       PlotValidation::WriteTH1FPlot(subdir,varsDenomPlot[i][j]);
-      PlotValidation::ZeroSuppressPlot(varsDRPlot[i][j]);
-      PlotValidation::DrawWriteSaveTH1FPlot(subdir,varsDRPlot[i][j],subdirname,Form("%s_DR_%s",vars[i].Data(),trks[j].Data()),setLogy);
+      PlotValidation::DrawWriteSaveTH1FPlot(subdir,varsDRPlot[i][j],subdirname,Form("%s_DR_%s",vars[i].Data(),trks[j].Data()),zeroSupLin);
       delete varsNumerPlot[i][j];
       delete varsDenomPlot[i][j];
       delete varsDRPlot[i][j];
@@ -1517,8 +1536,7 @@ void PlotValidation::PrintTotals(){
   totalsout.close();
 }
 
-void PlotValidation::MakeSubDirectory(TDirectory *& subdir, const TString subdirname){
-  subdir = fOutRoot->mkdir(subdirname.Data());
+void PlotValidation::MakeSubDirectory(const TString subdirname){
   FileStat_t dummyFileStat;
   if (gSystem->GetPathInfo(Form("%s/%s",fOutName.Data(), subdirname.Data()), dummyFileStat) == 1){
     TString mkDir = "mkdir -p ";
@@ -1592,23 +1610,38 @@ void PlotValidation::WriteTH1FPlot(TDirectory *& subdir, TH1F *& hist){
   hist->Write();
 }
 
-void PlotValidation::DrawWriteSaveTH1FPlot(TDirectory *& subdir, TH1F *& hist, const TString subdirname, const TString plotName, const Bool_t setLogy){
+void PlotValidation::DrawWriteSaveTH1FPlot(TDirectory *& subdir, TH1F *& hist, const TString subdirname, const TString plotName, const Bool_t zeroSupLin){
   fTH1Canv->cd();
   hist->Draw();  
   subdir->cd();
   hist->Write();
-  fTH1Canv->SetLogy(setLogy);
-  fTH1Canv->SaveAs(Form("%s/%s/%s.%s",fOutName.Data(),subdirname.Data(),plotName.Data(),fOutType.Data()));  
+
+  // first save log
+  fTH1Canv->SetLogy(1);
+  fTH1Canv->SaveAs(Form("%s/%s/log/%s.%s",fOutName.Data(),subdirname.Data(),plotName.Data(),fOutType.Data()));  
+
+  // second save linear (check to zero suppress)
+  if (zeroSupLin) {
+    PlotValidation::ZeroSuppressPlot(hist);
+  }
+  fTH1Canv->SetLogy(0);
+  fTH1Canv->SaveAs(Form("%s/%s/lin/%s.%s",fOutName.Data(),subdirname.Data(),plotName.Data(),fOutType.Data()));  
 }
 
-void PlotValidation::DrawWriteFitSaveTH1FPlot(TDirectory *& subdir, TH1F *& hist, const TString subdirname, const TString plotName, const Float_t fitRange, const Bool_t setLogy){ // separate method for fitting pulls/res, do not want gaus line in root file
+void PlotValidation::DrawWriteFitSaveTH1FPlot(TDirectory *& subdir, TH1F *& hist, const TString subdirname, const TString plotName, const Float_t fitRange){ // separate method for fitting pulls/res, do not want gaus line in root file
   fTH1Canv->cd();
   hist->Draw();
   subdir->cd();
   hist->Write();
   hist->Fit("gaus","","",-fitRange,fitRange);
-  fTH1Canv->SetLogy(setLogy);
-  fTH1Canv->SaveAs(Form("%s/%s/%s.%s",fOutName.Data(),subdirname.Data(),plotName.Data(),fOutType.Data()));  
+  
+  // first save log
+  fTH1Canv->SetLogy(1);
+  fTH1Canv->SaveAs(Form("%s/%s/log/%s.%s",fOutName.Data(),subdirname.Data(),plotName.Data(),fOutType.Data()));  
+
+  // second save linear
+  fTH1Canv->SetLogy(0);
+  fTH1Canv->SaveAs(Form("%s/%s/lin/%s.%s",fOutName.Data(),subdirname.Data(),plotName.Data(),fOutType.Data()));  
 }
 
 void PlotValidation::MoveInput(){
