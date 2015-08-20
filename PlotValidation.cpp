@@ -21,12 +21,13 @@ PlotValidation::PlotValidation(TString inName, TString outName, TString outType)
 
   // General style
   gROOT->Reset();
-  gStyle->SetOptStat(111111);
+  gStyle->SetOptStat("eou");
   //gStyle->SetOptStat(0);
+  gStyle->SetTitleFontSize(0.04);
   gStyle->SetOptFit(1011);
-  gStyle->SetStatX(1.0);
-  gStyle->SetStatY(0.9);
+  gStyle->SetStatX(0.9);
   gStyle->SetStatW(0.1);
+  gStyle->SetStatY(1.0);
   gStyle->SetStatH(0.08);
 
   fTH1Canv = new TCanvas();
@@ -256,7 +257,7 @@ void PlotValidation::PlotBranching(){
   gStyle->SetNumberContours(NCont);
   
   PlotValidation::DrawWriteSaveTH2FPlot(subdir,laycands,subdirname,"lay_vs_cands");
-
+  
   PlotValidation::DrawWriteSaveTH2FPlot(subdir,layetaphibins,subdirname,"lay_vs_etaphibins");
   PlotValidation::DrawWriteSaveTH2FPlot(subdir,layhits,subdirname,"lay_vs_hits");
   PlotValidation::DrawWriteSaveTH2FPlot(subdir,laybranches,subdirname,"lay_vs_branches");  
@@ -1457,10 +1458,10 @@ void PlotValidation::PrintTotals(){
   configtree->SetBranchAddress("hlvtime",&hlvtime);
   configtree->GetEntry(0);
   
-  std::cout << "-----Track Reconstruction Summary-----" << std::endl;
-  std::cout << "nEvents: " << Nevents << " nTracks/evt: " << Ntracks << std::endl;
-  std::cout << "nEtaPart: " << nEtaPart << " nPhiPart: " << nPhiPart << std::endl;
-  std::cout << "+++++++++++++++++++++++++++++++" << std::endl;
+  std::cout << "--------Track Reconstruction Summary--------" << std::endl;
+  std::cout << "nEvents: "  << Nevents  << " nTracks/evt: " << Ntracks  << std::endl;
+  std::cout << "nEtaPart: " << nEtaPart << " nPhiPart: "    << nPhiPart << std::endl;
+  std::cout << "++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
   std::cout << "Simulation time: " << simtime   << std::endl;
   std::cout << "Segmenting time: " << segtime   << std::endl;
   std::cout << "Seeding time:    " << seedtime  << std::endl;
@@ -1469,10 +1470,10 @@ void PlotValidation::PrintTotals(){
   std::cout << "Validation time: " << hlvtime   << std::endl;
   std::cout << std::endl;
 
-  totalsout << "-----Track Reconstruction Summary-----" << std::endl;
-  totalsout << "nEvents: " << Nevents << " nTracks/evt: " << Ntracks << std::endl;
-  totalsout << "nEtaPart: " << nEtaPart << " nPhiPart: " << nPhiPart << std::endl;
-  totalsout << "+++++++++++++++++++++++++++++++" << std::endl;
+  totalsout << "--------Track Reconstruction Summary--------" << std::endl;
+  totalsout << "nEvents: "  << Nevents  << " nTracks/evt: " << Ntracks  << std::endl;
+  totalsout << "nEtaPart: " << nEtaPart << " nPhiPart: "    << nPhiPart << std::endl;
+  totalsout << "++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
   totalsout << "Simulation time: " << simtime   << std::endl;
   totalsout << "Segmenting time: " << segtime   << std::endl;
   totalsout << "Seeding time:    " << seedtime  << std::endl;
@@ -1483,14 +1484,14 @@ void PlotValidation::PrintTotals(){
 
   for (UInt_t j = 0; j < trks.size(); j++) {
     std::cout << strks[j].Data() << " Tracks" << std::endl;
-    std::cout << "+++++++++++++++++++++++++++++++" << std::endl << std::endl;
+    std::cout << "++++++++++++++++++++++++++++++++++++++++++" << std::endl << std::endl;
     std::cout << "Hit Totals for " << strks[j].Data() << " Track Collections" << std::endl;
-    std::cout << "===============================" << std::endl;
+    std::cout << "==========================================" << std::endl;
 
     totalsout << strks[j].Data() << " Tracks" << std::endl;
-    totalsout << "+++++++++++++++++++++++++++++++" << std::endl << std::endl;
+    totalsout << "++++++++++++++++++++++++++++++++++++++++++" << std::endl << std::endl;
     totalsout << "Hit Totals for " << strks[j].Data() << " Track Collections" << std::endl;
-    totalsout << "===============================" << std::endl;
+    totalsout << "==========================================" << std::endl;
     for (UInt_t c = 0; c < coll.size(); c++) {
       Float_t nHits_mean = nHitsPlot[j][c]->GetMean(1); // 1 is mean of x-axis
       Float_t fracHits_mean = fracHitsMatchedPlot[j][c]->GetMean(1);
@@ -1505,14 +1506,14 @@ void PlotValidation::PrintTotals(){
     }
     
     std::cout << std::endl << "Rates for " << strks[j].Data() << " Tracks" << std::endl;
-    std::cout << "===============================" << std::endl;
+    std::cout << "==========================================" << std::endl;
     std::cout << std::endl << "Rates for " << strks[j].Data() << " Tracks" << std::endl;
-    std::cout << "===============================" << std::endl;
+    std::cout << "==========================================" << std::endl;
 
     totalsout << std::endl << "Rates for " << strks[j].Data() << " Tracks" << std::endl;
-    totalsout << "===============================" << std::endl;
+    totalsout << "==========================================" << std::endl;
     totalsout << std::endl << "Rates for " << strks[j].Data() << " Tracks" << std::endl;
-    totalsout << "===============================" << std::endl;
+    totalsout << "==========================================" << std::endl;
     for (UInt_t r = 0; r < rates.size(); r++) {
       Int_t numerIntegral = numerPhiPlot[j][r]->Integral();
       Int_t denomIntegral = denomPhiPlot[j][r]->Integral();
@@ -1520,15 +1521,15 @@ void PlotValidation::PrintTotals(){
     
       std::cout << snumer[r].Data() << ": " << numerIntegral << std::endl;
       std::cout << sdenom[r].Data() << ": " << denomIntegral << std::endl;
-      std::cout << "-------------------------------" << std::endl;
+      std::cout << "------------------------------------------" << std::endl;
       std::cout << srates[r].Data() << ": " << ratetotal << std::endl;
-      std::cout << "-------------------------------" << std::endl;
+      std::cout << "------------------------------------------" << std::endl;
     
       totalsout << snumer[r].Data() << ": " << numerIntegral << std::endl;
       totalsout << sdenom[r].Data() << ": " << denomIntegral << std::endl;
-      totalsout << "-------------------------------" << std::endl;
+      totalsout << "------------------------------------------" << std::endl;
       totalsout << srates[r].Data() << ": " << ratetotal << std::endl;
-      totalsout << "-------------------------------" << std::endl;
+      totalsout << "------------------------------------------" << std::endl;
     }
     std::cout << std::endl << std::endl;
     totalsout << std::endl << std::endl;
