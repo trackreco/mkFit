@@ -33,15 +33,17 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
 
   dprint("phi= " << phi << std::endl);
 
+#ifdef FLAT_ETA
   // this generates flat in eta
   
   float eta = Config::maxEta*g_unif(g_gen);
   float pz  = pt*(1./(std::tan(2*std::atan(std::exp(-eta)))));
   if (g_unif(g_gen)>0.5) pz*=-1.;
-  
-  // flat in pz
-  //  float pz = pt*(2.3*(g_unif(g_gen)-0.5));//so that we have -1<eta<1
+#else
+  // generate flat in pz
 
+  float pz = pt*(2.3*(g_unif(g_gen)-0.5));//so that we have -1<eta<1
+#endif
   mom=SVector3(px,py,pz);
   covtrk=ROOT::Math::SMatrixIdentity();
   //initial covariance can be tricky
