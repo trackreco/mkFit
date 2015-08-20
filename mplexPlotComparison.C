@@ -6,12 +6,12 @@ void mplexPlotComparison(){
 
   // input stuff
   TString suffix1 = "devel"; // use for stats box + legend
-  TFile * file1   = TFile::Open(Form("test%s.root",suffix1.Data()));
+  TFile * file1   = TFile::Open(Form("test%s_fc.root",suffix1.Data()));
   TString suffix2 = "ttm2";  // use for stats box + legend
-  TFile * file2   = TFile::Open(Form("test%s.root",suffix2.Data()));
+  TFile * file2   = TFile::Open(Form("test%s_fc.root",suffix2.Data()));
 
   // output stuff
-  TString outdir = Form("%s_vs_%s_bh",suffix1.Data(),suffix2.Data());
+  TString outdir = Form("%s_vs_%s_fc",suffix1.Data(),suffix2.Data());
   // make output directory
   FileStat_t dummyFileStat;
   if (gSystem->GetPathInfo(outdir.Data(), dummyFileStat) == 1){
@@ -36,11 +36,13 @@ void createplot(TFile *& file1, const TString suffix1, TFile *& file2, const TSt
   hist1->SetLineColor(kRed);
   hist1->SetName(suffix1.Data());
   hist1->GetYaxis()->SetTitle("nTracks");
+  hist1->SetTitle("");
   TH1F * hist2 = (TH1F*)file2->Get(Form("h_%s",histname.Data()));
   hist2->SetLineColor(kBlue);
   hist2->SetName(suffix2.Data());
+  hist2->SetTitle("");
 
-  TLegend * leg = new TLegend(0.22,0.22,0.3,0.32);
+  TLegend * leg = new TLegend(0.17,0.22,0.25,0.32);
   leg->AddEntry(hist1,suffix1.Data(),"l");
   leg->AddEntry(hist2,suffix2.Data(),"l");
   
@@ -48,20 +50,22 @@ void createplot(TFile *& file1, const TString suffix1, TFile *& file2, const TSt
   ratiohist->Sumw2();                                                            
   ratiohist->Divide(hist2);  
   ratiohist->SetLineColor(kBlack);                 
+  ratiohist->SetMarkerStyle(20);
+  ratiohist->SetMarkerSize(0.6);
   ratiohist->SetMinimum(0.75); // Define Y ..                       
   ratiohist->SetMaximum(1.25); // .. range                                         
   ratiohist->SetStats(0);     // No statistics on lower plot                      
 
   ratiohist->GetXaxis()->SetTitle(xlabel.Data());
-  ratiohist->GetXaxis()->SetTitleSize(0.15);
+  ratiohist->GetXaxis()->SetTitleSize(0.13);
   ratiohist->GetXaxis()->SetLabelSize(0.11);
   ratiohist->GetXaxis()->SetTickSize(0.11);
 
   ratiohist->GetYaxis()->SetTitle(Form("%s/%s",suffix1.Data(),suffix2.Data()));
   ratiohist->GetYaxis()->SetNdivisions(505);
-  ratiohist->GetYaxis()->SetTitleSize(0.15);
+  ratiohist->GetYaxis()->SetTitleSize(0.13);
   ratiohist->GetYaxis()->SetLabelSize(0.11);
-  ratiohist->GetYaxis()->SetTitleOffset(0.5);
+  ratiohist->GetYaxis()->SetTitleOffset(0.28);
 
   TLine * line = new TLine();
   line->SetX1(ratiohist->GetXaxis()->GetXmin());
