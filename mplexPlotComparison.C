@@ -5,13 +5,13 @@ void mplexPlotComparison(){
   gStyle->SetOptStat(1);
 
   // input stuff
-  TString suffix1 = "devel"; // use for stats box + legend
-  TFile * file1   = TFile::Open(Form("test%s_fc.root",suffix1.Data()));
-  TString suffix2 = "ttm2";  // use for stats box + legend
-  TFile * file2   = TFile::Open(Form("test%s_fc.root",suffix2.Data()));
+  TString suffix1 = "develseed"; // use for stats box + legend
+  TFile * file1   = TFile::Open(Form("test%s_bh.root",suffix1.Data()));
+  TString suffix2 = "ttm2seed";  // use for stats box + legend
+  TFile * file2   = TFile::Open(Form("test%s_bh.root",suffix2.Data()));
 
   // output stuff
-  TString outdir = Form("%s_vs_%s_fc",suffix1.Data(),suffix2.Data());
+  TString outdir = Form("%s_vs_%s_bh",suffix1.Data(),suffix2.Data());
   // make output directory
   FileStat_t dummyFileStat;
   if (gSystem->GetPathInfo(outdir.Data(), dummyFileStat) == 1){
@@ -19,7 +19,7 @@ void mplexPlotComparison(){
     mkDir += outdir.Data();
     gSystem->Exec(mkDir.Data());
   }
-
+  /*
   createplot(file1,suffix1,file2,suffix2,"MXNH","nHits",outdir);
   createplot(file1,suffix1,file2,suffix2,"MXC2","#chi^{2}",outdir);
   createplot(file1,suffix1,file2,suffix2,"MXPT","p_{T} Reco",outdir);
@@ -31,6 +31,13 @@ void mplexPlotComparison(){
   createplot(file1,suffix1,file2,suffix2,"SIMPT","MC p_{T}",outdir);
   createplot(file1,suffix1,file2,suffix2,"SIMPHI","MC #phi",outdir);
   createplot(file1,suffix1,file2,suffix2,"SIMETA","MC #eta",outdir);
+  */
+  createplot(file1,suffix1,file2,suffix2,"SEEDNH","MC nHits",outdir);
+  createplot(file1,suffix1,file2,suffix2,"SEEDC2","MC #chi^{2}",outdir);
+  createplot(file1,suffix1,file2,suffix2,"SEEDPOSPHI","MC pos #phi",outdir);
+  createplot(file1,suffix1,file2,suffix2,"SEEDPOSETA","MC pos #eta",outdir);
+  createplot(file1,suffix1,file2,suffix2,"SEEDPOSR","MC pos R",outdir);
+  createplot(file1,suffix1,file2,suffix2,"SEEDPT","MC p_{T}",outdir);
 
   delete file1;
   delete file2;
