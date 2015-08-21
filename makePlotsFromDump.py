@@ -1,7 +1,7 @@
 import os.path, glob, sys
 import ROOT
 
-suffix = "ttm2"
+suffix = "ttm2seed"
 
 g = ROOT.TFile("test"+suffix+"_bh.root","recreate")
 
@@ -25,6 +25,14 @@ h_SIMC2 = ROOT.TH1F("h_SIMC2", "h_SIMC2", 40, 0, 20)
 h_SIMPT = ROOT.TH1F("h_SIMPT", "h_SIMPT", 20, 0, 20)
 h_SIMPHI = ROOT.TH1F("h_SIMPHI", "h_SIMPHI", 32, -3.2, 3.2)
 h_SIMETA = ROOT.TH1F("h_SIMETA", "h_SIMETA", 20, -2, 2)
+
+# recseed only validation
+h_SEEDNH = ROOT.TH1F("h_SEEDNH", "h_SEEDNH", 11, 0, 11)
+h_SEEDC2 = ROOT.TH1F("h_SEEDC2", "h_SEEDC2", 40, 0, 20)
+h_SEEDPOSETA = ROOT.TH1F("h_SEEDPOSETA", "h_SEEDPOSETA", 20, -2, 2)
+h_SEEDPOSPHI = ROOT.TH1F("h_SEEDPOSPHI", "h_SEEDPOSPHI", 32, -3.2, 3.2)
+h_SEEDPOSR = ROOT.TH1F("h_SEEDPOSR", "h_SEEDPOSR", 20, 10, 14)
+h_SEEDPT = ROOT.TH1F("h_SEEDPT", "h_SEEDPT", 20, 0, 20)
 
 with open('log'+suffix+'.txt') as f:
     for line in f:
@@ -68,7 +76,19 @@ with open('log'+suffix+'.txt') as f:
             h_SIMPHI.Fill(float(PHI))
             ETA = line.split()[8].split('=')[1]
             h_SIMETA.Fill(float(ETA))
-            
+        elif "MX - found seed with nHits" in line:
+            NH = line.split()[5].split('=')[1]
+            h_SEEDNH.Fill(float(NH))
+            C2 = line.split()[6].split('=')[1]
+            h_SEEDC2.Fill(float(C2))
+            POSETA = line.split()[7].split('=')[1]
+            h_SEEDPOSETA.Fill(float(POSETA))
+            POSPHI = line.split()[8].split('=')[1]
+            h_SEEDPOSPHI.Fill(float(POSPHI))
+            POSR = line.split()[9].split('=')[1]
+            h_SEEDPOSR.Fill(float(POSR))
+            PT = line.split()[10].split('=')[1]
+            h_SEEDPT.Fill(float(PT))
 
 h_SM3.Draw()
 h_MX3.Draw()
@@ -86,5 +106,11 @@ h_SIMC2.Draw()
 h_SIMPT.Draw()
 h_SIMPHI.Draw()
 h_SIMETA.Draw()
+h_SEEDNH.Draw()
+h_SEEDC2.Draw()
+h_SEEDPOSETA.Draw()
+h_SEEDPOSPHI.Draw()
+h_SEEDPOSR.Draw()
+h_SEEDPT.Draw()
 g.Write()
 g.Close()
