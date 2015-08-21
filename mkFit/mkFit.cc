@@ -283,7 +283,7 @@ void test_standard()
     double tmp2 = runBuildingTestPlex(simtracks);
 
     double tsm2bh = 0;//runBuildingTestBestHit(simtracks);
-    double tmp2bh = 0;//runBuildingTestPlexBestHit(simtracks);
+    double tmp2bh = runBuildingTestPlexBestHit(simtracks);
 
     // Second pass -- select problematic tracks and refit them
     if (false)

@@ -14,7 +14,7 @@
 #include "ittnotify.h"
 #endif
 
-// #define PRINTOUTS_FOR_PLOTS
+#define PRINTOUTS_FOR_PLOTS
 
 bool sortByHitsChi2(std::pair<Track, TrackState> cand1,std::pair<Track, TrackState> cand2)
 {
@@ -1120,6 +1120,13 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
   }
 #endif
 
+#ifdef PRINTOUTS_FOR_PLOTS
+  for (int itrack=0;itrack<simtracks.size();++itrack) {
+    Track track = simtracks[itrack];
+    std::cout << "MX - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1]) <<" phi="<< track.momPhi() <<" eta=" << track.momEta() << std::endl;
+  }
+#endif
+
   EventOfHits event_of_hits(10); // 10 layers, this should be out of event loop, passed in.
 
   for (int itrack=0; itrack < simtracks.size(); ++itrack)
@@ -1411,6 +1418,14 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
     std::cout << "MX - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1]) <<" phi="<< track.momPhi() <<" eta=" << track.momEta() << std::endl;
   }
 #endif
+
+#ifdef PRINTOUTS_FOR_PLOTS
+  for (int itrack=0;itrack<simtracks.size();++itrack) {
+    Track track = simtracks[itrack];
+    std::cout << "MX - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1]) <<" phi="<< track.momPhi() <<" eta=" << track.momEta() << std::endl;
+  }
+#endif
+
 
   EventOfHits event_of_hits(10); // 10 layers, this should be out of event loop, passed in.
 
@@ -1768,7 +1783,7 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
            if (pr > 0.9 && pr < 1.1) ++cnt1_8;
            if (pr > 0.8 && pr < 1.2) ++cnt2_8;
          }
-
+       
 #ifdef PRINTOUTS_FOR_PLOTS
          std::cout << "MXFC - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
 #endif
