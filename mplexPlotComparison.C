@@ -26,6 +26,12 @@ void mplexPlotComparison(){
   createplot(file1,suffix1,file2,suffix2,"MXPTm","p_{T} MC",outdir);
   createplot(file1,suffix1,file2,suffix2,"MXPTr","p_{T} Resolution",outdir);
 
+  createplot(file1,suffix1,file2,suffix2,"SIMNH","MC nHits",outdir);
+  createplot(file1,suffix1,file2,suffix2,"SIMC2","MC #chi^{2}",outdir);
+  createplot(file1,suffix1,file2,suffix2,"SIMPT","MC p_{T}",outdir);
+  createplot(file1,suffix1,file2,suffix2,"SIMPHI","MC #phi",outdir);
+  createplot(file1,suffix1,file2,suffix2,"SIMETA","MC #eta",outdir);
+
   delete file1;
   delete file2;
 }
@@ -96,7 +102,7 @@ void createplot(TFile *& file1, const TString suffix1, TFile *& file2, const TSt
   Double_t x1ndc = 0.77;
   Double_t x2ndc = 0.98;
 
-  if (histname.Contains("MXNH",TString::kExact)){
+  if (histname.Contains("NH",TString::kExact)){
     x1ndc = 0.45;
     x2ndc = 0.66;
   }
