@@ -29,16 +29,16 @@ void smatrixPlotComparison(){
   std::vector<TString> trks = {"seed","build","fit"};
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
-      createplot(file1,suffix1,file2,suffix2,Form("efficiency/h_sim_%s_eff_%s_eff",vars[i].Data(),trks[j].Data()),outdir);
-      createplot(file1,suffix1,file2,suffix2,Form("fakerate/h_reco_%s_FR_%s_FR",vars[i].Data(),trks[j].Data()),outdir);
-      createplot(file1,suffix1,file2,suffix2,Form("duplicaterate/h_sim_%s_DR_%s_DR",vars[i].Data(),trks[j].Data()),outdir);
-      createplot(file1,suffix1,file2,suffix2,Form("momentum_resolutionpull/h_%s_res_%s",vars[i].Data(),trks[j].Data()),outdir);
-      createplot(file1,suffix1,file2,suffix2,Form("momentum_resolutionpull/h_%s_pull_%s",vars[i].Data(),trks[j].Data()),outdir);
+      createplot(file1,label1,file2,label2,Form("efficiency/h_sim_%s_eff_%s_eff",vars[i].Data(),trks[j].Data()),outdir);
+      createplot(file1,label1,file2,label2,Form("fakerate/h_reco_%s_FR_%s_FR",vars[i].Data(),trks[j].Data()),outdir);
+      createplot(file1,label1,file2,label2,Form("duplicaterate/h_sim_%s_DR_%s_DR",vars[i].Data(),trks[j].Data()),outdir);
+      createplot(file1,label1,file2,label2,Form("momentum_resolutionpull/h_%s_res_%s",vars[i].Data(),trks[j].Data()),outdir);
+      createplot(file1,label1,file2,label2,Form("momentum_resolutionpull/h_%s_pull_%s",vars[i].Data(),trks[j].Data()),outdir);
     }
   }
 
-  createplot(file1,suffix1,file2,suffix2,"timing/h_total_timing",outdir);
-  createplot(file1,suffix1,file2,suffix2,"timing/h_reco_timing_norm",outdir);
+  createplot(file1,label1,file2,label2,"timing/h_total_timing",outdir);
+  createplot(file1,label1,file2,label2,"timing/h_reco_timing_norm",outdir);
 
   delete file1;
   delete file2;
@@ -53,7 +53,7 @@ void createplot(TFile *& file1, const TString label1, TFile *& file2, const TStr
   hist2->SetLineColor(kBlue);
   hist2->SetName(label2.Data());
 
-  TLegend * leg = new TLegend(0.22,0.22,0.3,0.32);
+  TLegend * leg = new TLegend(0.17,0.22,0.25,0.32);
   leg->AddEntry(hist1,label1.Data(),"l");
   leg->AddEntry(hist2,label2.Data(),"l");
   
@@ -61,19 +61,20 @@ void createplot(TFile *& file1, const TString label1, TFile *& file2, const TStr
   ratiohist->Sumw2();                                                            
   ratiohist->Divide(hist2);  
   ratiohist->SetLineColor(kBlack);                 
+  ratiohist->SetMarkerStyle(20);
   ratiohist->SetMinimum(0.75); // Define Y ..                       
   ratiohist->SetMaximum(1.25); // .. range                                         
   ratiohist->SetStats(0);     // No statistics on lower plot                      
 
-  ratiohist->GetXaxis()->SetTitleSize(0.15);
+  ratiohist->GetXaxis()->SetTitleSize(0.13);
   ratiohist->GetXaxis()->SetLabelSize(0.11);
   ratiohist->GetXaxis()->SetTickSize(0.11);
 
   ratiohist->GetYaxis()->SetTitle(Form("%s/%s",label1.Data(),label2.Data()));
   ratiohist->GetYaxis()->SetNdivisions(505);
-  ratiohist->GetYaxis()->SetTitleSize(0.15);
+  ratiohist->GetYaxis()->SetTitleSize(0.13);
   ratiohist->GetYaxis()->SetLabelSize(0.11);
-  ratiohist->GetYaxis()->SetTitleOffset(0.5);
+  ratiohist->GetYaxis()->SetTitleOffset(0.28);
 
   TLine * line = new TLine();
   line->SetX1(ratiohist->GetXaxis()->GetXmin());
