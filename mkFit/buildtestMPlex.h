@@ -15,12 +15,10 @@ double runBuildingTest(std::vector<Track>& simtracks/*, std::vector<Track>& rect
 double runBuildingTestBestHit(std::vector<Track>& simtracks/*, std::vector<Track>& rectracks*/);
 
 void buildTestParallel(std::vector<Track>& evt_seeds,std::vector<Track>& evt_track_candidates,
-		       std::vector<std::vector<Hit> >& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
-		       const int& nhits_per_seed,const unsigned int& maxCand,const float& chi2Cut,const float& nSigma,const float& minDPhi);
+		       std::vector<std::vector<Hit> >& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx);
 
 void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<Track, TrackState> >& tmp_candidates,
-		       unsigned int ilay,std::vector<std::vector<Hit> >& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,
-		       const int& nhits_per_seed,const unsigned int& maxCand,const float& chi2Cut,const float& nSigma,const float& minDPhi);
+		       unsigned int ilay,std::vector<std::vector<Hit> >& evt_lay_hits,std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx);
 
 double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& rectracks*/);
 double runBuildingTestPlexOld(std::vector<Track>& simtracks/*, std::vector<Track>& rectracks*/);

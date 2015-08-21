@@ -63,11 +63,6 @@ double runBuildingTest(std::vector<Track>& evt_sim_tracks/*, std::vector<Track>&
      Track track = evt_sim_tracks[itrack];
      std::cout << "SM - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1])<< std::endl;
    }
-
-   const unsigned int maxCand = Config::maxCand;
-   const float chi2Cut = Config::chi2Cut;
-   const float nSigma = Config::nSigma;
-   const float minDPhi = Config::minDPhi;
   
    std::vector<std::vector<Hit> > evt_lay_hits(10);//hits per layer
    std::vector<Track> evt_seeds;
@@ -111,14 +106,13 @@ double runBuildingTest(std::vector<Track>& evt_sim_tracks/*, std::vector<Track>&
    double time = dtime();
 
    //create seeds (from sim tracks for now)
-   const int nhits_per_seed = 3;
    for (int itrack=0;itrack<evt_sim_tracks.size();++itrack)
    {
      Track& trk = evt_sim_tracks[itrack];
      const HitVec& hits = trk.hitsVector();
      TrackState updatedState = trk.state();
      std::vector<Hit> seedhits;
-     for (int ihit=0;ihit<nhits_per_seed;++ihit)
+     for (int ihit=0;ihit<Config::nlayers_per_seed;++ihit)
      {
        //seeds have 3 hits
        TrackState       propState = propagateHelixToR(updatedState,hits[ihit].r());
@@ -131,7 +125,7 @@ double runBuildingTest(std::vector<Track>& evt_sim_tracks/*, std::vector<Track>&
      evt_seeds.push_back(seed);
    }
 
-   buildTestParallel(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,chi2Cut,nSigma,minDPhi);
+   buildTestParallel(evt_seeds,evt_track_candidates,evt_lay_hits,evt_lay_phi_hit_idx);
 
    time = dtime() - time;
 
@@ -150,8 +144,7 @@ double runBuildingTest(std::vector<Track>& evt_sim_tracks/*, std::vector<Track>&
 void buildTestParallel(std::vector<Track>& evt_seeds,
 		       std::vector<Track>& evt_track_candidates,
 		       std::vector<std::vector<Hit> >& evt_lay_hits,
-		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int& nhits_per_seed,
-		       const unsigned int& maxCand, const float& chi2Cut,const float& nSigma,const float& minDPhi)
+		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx)
 {
   //save a vector of candidates per each seed. initialize to the seed itself
   std::vector<std::vector<std::pair<Track, TrackState> > > track_candidates(evt_seeds.size());
@@ -159,7 +152,7 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
     track_candidates[iseed].push_back(std::pair<Track, TrackState>(evt_seeds[iseed],evt_seeds[iseed].state()));
   }
   
-  for (unsigned int ilay=nhits_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
+  for (unsigned int ilay=Config::nlayers_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
 
 #ifdef DEBUG
     std::cout << "going to lay=" << ilay+1 << " with input seeds=" << evt_seeds.size() << std::endl; 
@@ -176,7 +169,7 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
       for (unsigned int icand=0;icand<track_candidates[iseed].size();++icand) {//loop over running candidates 
 
 	std::pair<Track, TrackState>& cand = track_candidates[iseed][icand];
-	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx,nhits_per_seed,maxCand,chi2Cut,nSigma,minDPhi);
+	processCandidates(cand,tmp_candidates,ilay,evt_lay_hits,evt_lay_phi_hit_idx);
 
       }//end of running candidates loop
 
@@ -184,12 +177,12 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
       std::cout << "tmp cands for this seed=" << tmp_candidates.size() << std::endl;
 #endif
         
-      if (tmp_candidates.size()>maxCand) {
+      if (tmp_candidates.size()>Config::maxCand) {
 #ifdef DEBUG
-	std::cout << "cleanup: size=" << tmp_candidates.size() << " maxCand=" << maxCand << std::endl;
+	std::cout << "cleanup: size=" << tmp_candidates.size() << " maxCand=" << Config::maxCand << std::endl;
 #endif
 	std::sort(tmp_candidates.begin(),tmp_candidates.end(),sortByHitsChi2);
-	tmp_candidates.erase(tmp_candidates.begin()+maxCand,tmp_candidates.end());
+	tmp_candidates.erase(tmp_candidates.begin()+Config::maxCand,tmp_candidates.end());
       }
       if (tmp_candidates.size()!=0) {
 	track_candidates[iseed].swap(tmp_candidates);
@@ -226,13 +219,12 @@ void buildTestParallel(std::vector<Track>& evt_seeds,
 
 void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<Track, TrackState> >& tmp_candidates,
 		       unsigned int ilay,std::vector<std::vector<Hit> >& evt_lay_hits,
-		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx,const int& nhits_per_seed,
-		       const unsigned int& maxCand, const float& chi2Cut,const float& nSigma,const float& minDPhi)
+		       std::vector<std::vector<BinInfo> >& evt_lay_phi_hit_idx)
 {
   Track& tkcand = cand.first;
   TrackState& updatedState = cand.second;
     
-  TrackState propState = propagateHelixToR(updatedState,4.*float(ilay+1));//radius of 4*ilay
+  TrackState propState = propagateHelixToR(updatedState,Config::fRadialSpacing*float(ilay+1));//radius of 4*ilay
   float predx = propState.parameters.At(0);
   float predy = propState.parameters.At(1);
   float predz = propState.parameters.At(2);
@@ -242,7 +234,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
   float dphidy =  predx/(predx*predx+predy*predy);//denominator is just hit radius, consider avoiding re-computing it
   float dphi   =  sqrt(fabs(dphidx*dphidx*propState.errors.At(0,0)+dphidy*dphidy*propState.errors.At(1,1)+2*dphidy*dphidx*propState.errors.At(0,1)));//how come I get negative squared errors sometimes?
   
-  float nSigmaDPhi = std::max(nSigma*dphi,minDPhi);
+  float nSigmaDPhi = std::max(Config::nSigma*dphi,Config::minDPhi);
 
   // if (nSigmaDPhi>0.3) std::cout << "window SM: " << predx << " " << predy << " " << predz << " " << propState.errors.At(0,0) << " " << propState.errors.At(1,1) << " " << propState.errors.At(0,1) << " " << nSigmaDPhi << std::endl;
 
@@ -294,7 +286,7 @@ void processCandidates(std::pair<Track, TrackState>& cand,std::vector<std::pair<
     			 << std::atan2(hity,hitx) << " " << hitz << " chi2=" << chi2 << std::endl;
 #endif
     
-    if ((chi2<chi2Cut)&&(chi2>0.)) {//fixme 
+    if ((chi2<Config::chi2Cut)&&(chi2>0.)) {//fixme 
       TrackState tmpUpdatedState = updateParameters(propState, hitMeas);
       Track tmpCand = tkcand.clone();
       tmpCand.addHit(hitCand,chi2);
@@ -402,7 +394,6 @@ double runBuildingTestBestHit(std::vector<Track>& simtracks/*, std::vector<Track
 #endif
 
   //create seeds (from sim tracks for now)
-  const int nhits_per_seed = 3;
   for (unsigned int itrack=0;itrack<simtracks.size();++itrack) {
     Track& trk = simtracks[itrack];
     const HitVec& hits = trk.hitsVector();
@@ -414,7 +405,7 @@ double runBuildingTestBestHit(std::vector<Track>& simtracks/*, std::vector<Track
 	      << std::endl;
     */
     std::vector<Hit> seedhits;
-    for (int ihit=0;ihit<nhits_per_seed;++ihit) {//seeds have 3 hits
+    for (int ihit=0;ihit<Config::nlayers_per_seed;++ihit) {//seeds have 3 hits
       TrackState       propState = propagateHelixToR(updatedState,hits[ihit].r());
       /*
       std::cout << "propState pos=" << propState.parameters[0] << " , " << propState.parameters[1] << " , " << propState.parameters[2]
@@ -434,7 +425,7 @@ double runBuildingTestBestHit(std::vector<Track>& simtracks/*, std::vector<Track
       seedhits.push_back(hits[ihit]);//fixme chi2
     }
     Track seed(updatedState,seedhits,0.);//fixme chi2
-    for (int ihit=0;ihit<nhits_per_seed;++ihit)
+    for (int ihit=0;ihit<Config::nlayers_per_seed;++ihit)
       {
 	seed.addHitIdx(ihit,0);//fixme this should be the real idx not ihit
       }
@@ -492,7 +483,7 @@ double runBuildingTestBestHit(std::vector<Track>& simtracks/*, std::vector<Track
 	 //ok now we start looping over layers
 	 //loop over layers, starting from after the seed
 	 //consider inverting loop order and make layer outer, need to trade off hit prefetching with copy-out of candidates
-	 for (int ilay = nhits_per_seed; ilay < event_of_hits.m_n_layers; ++ilay)
+	 for (int ilay = Config::nlayers_per_seed; ilay < event_of_hits.m_n_layers; ++ilay)
 	   {
 	     BunchOfHits &bunch_of_hits = event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];	     
 
@@ -771,13 +762,12 @@ double runBuildingTestPlexOld(std::vector<Track>& simtracks/*, std::vector<Track
    // MkFitter *mkfp = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Nhits);
 
    //create seeds (from sim tracks for now)
-   const int nhits_per_seed = 3;
 
    MkFitter *mkfp_arr[NUM_THREADS];
 
    for (int i = 0; i < NUM_THREADS; ++i)
    {
-     mkfp_arr[i] = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(nhits_per_seed);
+     mkfp_arr[i] = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Config::nlayers_per_seed);
    }
 
    int theEnd = simtracks.size();
@@ -875,7 +865,7 @@ double runBuildingTestPlexOld(std::vector<Track>& simtracks/*, std::vector<Track
      int th_end = (thread_num + 1) * nseeds / num_threads;     
 
      //ok now we start looping over layers
-     for (int ilay=nhits_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
+     for (int ilay=Config::nlayers_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
        
 #ifdef DEBUG
        std::cout << "processing lay=" << ilay+1 << std::endl;
@@ -1123,7 +1113,7 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
 #ifdef PRINTOUTS_FOR_PLOTS
   for (int itrack=0;itrack<simtracks.size();++itrack) {
     Track track = simtracks[itrack];
-    std::cout << "MX - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1]) <<" phi="<< track.momPhi() <<" eta=" << track.momEta() << std::endl;
+    //    std::cout << "MX - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1]) <<" phi="<< track.momPhi() <<" eta=" << track.momEta() << std::endl;
   }
 #endif
 
@@ -1152,13 +1142,12 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
   // MkFitter *mkfp = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Nhits);
 
   //create seeds (from sim tracks for now)
-  const int nhits_per_seed = 3;
 
   MkFitter *mkfp_arr[NUM_THREADS];
 
   for (int i = 0; i < NUM_THREADS; ++i)
   {
-    mkfp_arr[i] = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(nhits_per_seed);
+    mkfp_arr[i] = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Config::nlayers_per_seed);
   }
 
   int theEnd = simtracks.size();
@@ -1220,14 +1209,14 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
   }
 
   //ok now, we should have all seeds fitted in recseeds
-#ifdef DEBUG
+  //#ifdef DEBUG
   std::cout << "found total seeds=" << recseeds.size() << std::endl;
   for (int iseed=0;iseed<recseeds.size();++iseed)
   {
     Track& seed = recseeds[iseed];
     std::cout << "MX - found seed with nHits=" << seed.nHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.radius() << " pT=" << seed.pt() << std::endl;
   }
-#endif
+  //#endif
 
   // MT: partition recseeds into eta bins
   EventOfCandidates event_of_cands;
@@ -1287,7 +1276,7 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
 	 //ok now we start looping over layers
 	 //loop over layers, starting from after the seed
 	 //consider inverting loop order and make layer outer, need to trade off hit prefetching with copy-out of candidates
-	 for (int ilay = nhits_per_seed; ilay < event_of_hits.m_n_layers; ++ilay)
+	 for (int ilay = Config::nlayers_per_seed; ilay < event_of_hits.m_n_layers; ++ilay)
 	   {
 	     BunchOfHits &bunch_of_hits = event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];	     
 
@@ -1371,9 +1360,9 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
            if (pr > 0.8 && pr < 1.2) ++cnt2_8;
          }
 
-#ifdef PRINTOUTS_FOR_PLOTS
-         std::cout << "MXBH - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
-#endif
+	 //#ifdef PRINTOUTS_FOR_PLOTS
+	 //         std::cout << "MXBH - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
+	 //#endif
 #ifdef DEBUG
          std::cout << "MXBH - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
 #endif
@@ -1452,13 +1441,12 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
   // MkFitter *mkfp = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Nhits);
 
   //create seeds (from sim tracks for now)
-  const int nhits_per_seed = 3;
 
   MkFitter *mkfp_arr[NUM_THREADS];
 
   for (int i = 0; i < NUM_THREADS; ++i)
   {
-    mkfp_arr[i] = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(nhits_per_seed);
+    mkfp_arr[i] = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Config::nlayers_per_seed);
   }
 
   int theEnd = simtracks.size();
@@ -1630,7 +1618,7 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 
        //ok now we start looping over layers
        //loop over layers, starting from after the seeD
-       for (int ilay = nhits_per_seed; ilay < event_of_hits.m_n_layers; ++ilay)
+       for (int ilay = Config::nlayers_per_seed; ilay < event_of_hits.m_n_layers; ++ilay)
 	 {
 	   BunchOfHits &bunch_of_hits = event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];	     
 	   
