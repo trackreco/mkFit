@@ -169,9 +169,9 @@ void generate_and_save_tracks()
 {
   FILE *fp = fopen(g_file_name.c_str(), "w");
 
-  int Ntracks = Config::g_NTracks;
+  int Ntracks = Config::nTracks;
 
-  int Nevents = Config::g_NEvents;
+  int Nevents = Config::nEvents;
 
   fwrite(&Nevents, sizeof(int), 1, fp);
 
@@ -247,11 +247,11 @@ void test_standard()
   // return;
   // ---- end MT test
 
-  int Ntracks = Config::g_NTracks;
+  int Ntracks = Config::nTracks;
   // Ntracks  = 1;
   // bool saveTree = false;
 
-  int Nevents = Config::g_NEvents;
+  int Nevents = Config::nEvents;
 
   if (g_operation == "read")
   {

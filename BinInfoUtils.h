@@ -39,7 +39,7 @@ inline unsigned int getPhiPartition(float phi){
 
 inline unsigned int getEtaPartition(float eta){
   const float etaPlusEtaDet  = eta + Config::fEtaDet;
-  const unsigned int bin     = (etaPlusEtaDet * Config::nEtaPart) / (2.0 * Config::fEtaDet);  // ten bins for now ... update if changed in Event.cc
+  const unsigned int bin     = (etaPlusEtaDet * Config::nEtaPart) / (Config::fEtaFull);  // ten bins for now ... update if changed in Event.cc
   return bin;
 }
 			      

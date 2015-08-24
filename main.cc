@@ -34,10 +34,9 @@ void initGeom(Geometry& geom)
 
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
-  float eta = Config::fEtaDet; // can tune this to whatever geometry required (one can make this layer dependent as well)
   for (unsigned int l = 0; l < Config::nLayers; l++) {
     float r = (l+1)*Config::fRadialSpacing;
-    float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
+    float z = (Config::fRadialSpacing * Config::nLayers) / std::tan(2.0*std::atan(std::exp(-Config::fEtaDet))); // calculate z extent based on eta for the last radius (used to be based on layer radius)
 #ifdef CYLINDER
     std::string s = "Cylinder" + std::string(1, 48+l);
     UTubs* utub = new UTubs(s, r, r+Config::fRadialExtent, z, 0, Config::TwoPI);
@@ -69,11 +68,9 @@ void initGeom(Geometry& geom)
   // are added starting from the center
   // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
 
-  float eta = Config::fEtaDet; // can tune this to whatever geometry required (one can make this layer dependent as well)
-
   for (unsigned int l = 0; l < Config::nLayers; l++) {
     float r = (l+1)*Config::fRadialSpacing;
-    float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
+    float z = r / std::tan(2.0*std::atan(std::exp(-Config::fEtaDet))); // calculate z extent based on eta, r
     VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent);
     geom.AddLayer(utub, r, z);
   }

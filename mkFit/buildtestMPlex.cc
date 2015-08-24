@@ -1113,7 +1113,7 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
 #ifdef PRINTOUTS_FOR_PLOTS
   for (int itrack=0;itrack<simtracks.size();++itrack) {
     Track track = simtracks[itrack];
-    //    std::cout << "MX - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1]) <<" phi="<< track.momPhi() <<" eta=" << track.momEta() << std::endl;
+    std::cout << "MX - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1]) <<" phi="<< track.momPhi() <<" eta=" << track.momEta() << std::endl;
   }
 #endif
 
@@ -1209,14 +1209,22 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
   }
 
   //ok now, we should have all seeds fitted in recseeds
-  //#ifdef DEBUG
+#ifdef DEBUG
   std::cout << "found total seeds=" << recseeds.size() << std::endl;
   for (int iseed=0;iseed<recseeds.size();++iseed)
   {
     Track& seed = recseeds[iseed];
     std::cout << "MX - found seed with nHits=" << seed.nHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.radius() << " pT=" << seed.pt() << std::endl;
   }
-  //#endif
+#endif
+
+#ifdef PRINTOUTS_FOR_PLOTS
+  for (int iseed=0;iseed<recseeds.size();++iseed)
+  {
+    Track& seed = recseeds[iseed];
+    std::cout << "MX - found seed with nHits=" << seed.nHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.radius() << " pT=" << seed.pt() << std::endl;
+  }
+#endif
 
   // MT: partition recseeds into eta bins
   EventOfCandidates event_of_cands;
@@ -1339,7 +1347,7 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
          Track& tkcand = etabin_of_candidates.m_candidates[itrack];
 
          int   mctrk = tkcand.label();
-         if (mctrk < 0 || mctrk >= Config::g_NTracks)
+         if (mctrk < 0 || mctrk >= Config::nTracks)
          {
            ++cnt_nomc;
            // std::cout << "XX bad track idx " << mctrk << "\n";
@@ -1360,11 +1368,12 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
            if (pr > 0.8 && pr < 1.2) ++cnt2_8;
          }
 
-	 //#ifdef PRINTOUTS_FOR_PLOTS
-	 //         std::cout << "MXBH - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
-	 //#endif
 #ifdef DEBUG
          std::cout << "MXBH - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
+#endif
+
+#ifdef PRINTOUTS_FOR_PLOTS
+	 std::cout << "MX - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
 #endif
        }
      }
@@ -1509,6 +1518,15 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 
   //ok now, we should have all seeds fitted in recseeds
 #ifdef DEBUG
+  std::cout << "found total seeds=" << recseeds.size() << std::endl;
+  for (int iseed=0;iseed<recseeds.size();++iseed)
+  {
+    Track& seed = recseeds[iseed];
+    std::cout << "MX - found seed with nHits=" << seed.nHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.radius() << " pT=" << seed.pt() << std::endl;
+  }
+#endif
+
+#ifdef PRINTOUTS_FOR_PLOTS
   std::cout << "found total seeds=" << recseeds.size() << std::endl;
   for (int iseed=0;iseed<recseeds.size();++iseed)
   {
@@ -1751,7 +1769,7 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
          Track& tkcand = etabin_of_comb_candidates.m_candidates[iseed].front();
 
          int   mctrk = tkcand.label();
-         if (mctrk < 0 || mctrk >= Config::g_NTracks)
+         if (mctrk < 0 || mctrk >= Config::nTracks)
          {
            ++cnt_nomc;
            //std::cout << "XX bad track idx " << mctrk << "\n";
@@ -1772,11 +1790,12 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
            if (pr > 0.8 && pr < 1.2) ++cnt2_8;
          }
        
-#ifdef PRINTOUTS_FOR_PLOTS
-         std::cout << "MXFC - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
-#endif
 #ifdef DEBUG
          std::cout << "MXFC - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
+#endif
+
+#ifdef PRINTOUTS_FOR_PLOTS
+         std::cout << "MX - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
 #endif
        }
      }

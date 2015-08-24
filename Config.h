@@ -92,13 +92,11 @@ namespace Config{
   static constexpr const float phierr012   = 0.0071; // 0170; 
   static constexpr const float thetaerr012 = 0.0130; // 0.0137; 
 
-  // config for MPlex HitStructures // cannot get to compile, commented out for now
-  static constexpr const unsigned int g_NEvents  = 10;
-  static constexpr const unsigned int g_NTracks  = 20000;
-  static const unsigned int g_MaxHitsPerBunch = std::max( (unsigned int)(100), (unsigned int)((Config::g_NTracks * 2) / Config::nEtaPart));
+  // config for MPlex HitStructures 
+  static const unsigned int g_MaxHitsPerBunch = std::max( (unsigned int)(100), (unsigned int)((Config::nTracks * 2) / Config::nEtaPart));
 
   static constexpr const unsigned int g_MaxCandsPerSeed   = 6;
-  static const unsigned int g_MaxCandsPerEtaBin = std::max( (unsigned int)(100), (unsigned int)((Config::g_MaxCandsPerSeed * Config::g_NTracks) / Config::nEtaPart));
+  static const unsigned int g_MaxCandsPerEtaBin = std::max( (unsigned int)(100), (unsigned int)((Config::g_MaxCandsPerSeed * Config::nTracks) / Config::nEtaPart));
   // Effective eta bin is one half of nEtaPart -- so the above is twice the "average".
   // Note that last and first bin are 3/4 nEtaPart ... but can be made 1/4 by adding
   // additional bins on each end.
