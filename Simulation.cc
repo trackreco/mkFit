@@ -33,7 +33,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
 
   dprint("phi= " << phi << std::endl);
 
-#ifdef FLAT_ETA
+#ifdef GENFLATETA
   // this generates flat in eta
   
   float eta = Config::maxEta*g_unif(g_gen);
@@ -90,11 +90,24 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     float initX   = propState.parameters.At(0);
     float initY   = propState.parameters.At(1);
     float initZ   = propState.parameters.At(2);
-    float initPhi = atan2(initY,initX);
-    float initRad = sqrt(initX*initX+initY*initY);
+    float initPhi = getPhi(initX,initY);
+    float initRad = std::sqrt(getRad2(initX,initY));
 
     UVector3 init_point(initX,initY,initZ);
     simLayer = geom.LayerIndex(init_point);
+
+    // check to see if propagation actually landed inside a layer!
+    const auto theInitSolid = geom.InsideWhat(init_point);
+    if ( ! theInitSolid ) {
+      std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid." <<std::endl;
+      std::cerr << "itrack = " << itrack << ", ihit = " << ihit << ", r = " << initRad << ", r*4cm = " << 4*ihit << ", phi = " << initPhi << ", eta = " << getEta(initRad,initZ) << std::endl;
+      std::cerr << "initX = " << initX << ", initY = " << initY << ", initZ = " << initZ << std::endl;
+      float outpt  = std::sqrt(getRad2(propState.parameters[3],propState.parameters[4]));
+      float outphi = getPhi(propState.parameters[3],propState.parameters[4]);
+      std::cerr << "pt = " << outpt << ", pz = " << propState.parameters[5] << ", track phi = " << outphi << ", track eta = " << getEta(pt,pz) << std::endl;
+
+      continue;
+    }
 
 #ifdef SCATTERING
     // PW START
@@ -123,17 +136,6 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     // if the normal vector is given by n == x' = (x1,y1,0) [NB no component along z here]
     // then the 
     // y axis in the new coordinate system is given by y' = z' x x' = (-y1,x1,0)
-    const auto theInitSolid = geom.InsideWhat(init_point);
-    if ( ! theInitSolid ) {
-      std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid." <<std::endl;
-      std::cerr << "itrack = " << itrack << ", ihit = " << ihit << ", r = " << initRad << ", r*4cm = " << 4*ihit << ", phi = " << initPhi << std::endl;
-      std::cerr << "initX = " << initX << ", initY = " << initY << ", initZ = " << initZ << std::endl;
-      float pt = sqrt(propState.parameters[3]*propState.parameters[3]+
-                      propState.parameters[4]*propState.parameters[4]);
-      std::cerr << "pt = " << pt << ", pz = " << propState.parameters[5] << std::endl;
-
-      continue;
-    }
     UVector3 init_xprime; // normal on surface
     bool init_good = theInitSolid->Normal(init_point, init_xprime);
       
@@ -158,17 +160,17 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     const float scatteredX = initX + y_plane *(-init_xprime[1]*cos(phismear)); 
     const float scatteredY = initY + y_plane *(+init_xprime[0]*cos(phismear));
     const float scatteredZ = initZ + y_plane *(           sin(phismear));
-    const float scatteredPhi = atan2(scatteredY,scatteredX);
-    const float scatteredRad = sqrt(scatteredX*scatteredX+scatteredY*scatteredY);
+    const float scatteredPhi = getPhi(scatteredX,scatteredY);
+    const float scatteredRad = std::sqrt(getPhi(scatteredX,scatteredY));
 #else // --> particle only has momentum vector scattered 
     const float scatteredX = initX;
     const float scatteredY = initY;
     const float scatteredZ = initZ;
-    const float scatteredPhi = atan2(initY,initX);
-    const float scatteredRad = sqrt(initX*initX+initY*initY);
+    const float scatteredPhi = getPhi(initX,initY);
+    const float scatteredRad = std::sqrt(getRad2(initX,initY));
 #endif  // SCATTER_XYZ
     UVector3 pvecprime;
-
+    
     const float v0 = sqrt(2+pow((pvec[1]+pvec[2])/pvec[0],2));
     const float v1 = sqrt(2-pow((pvec[1]-pvec[2]),2));
     const float a = pvec[0]; 
@@ -228,7 +230,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     const auto theScatteredSolid = geom.InsideWhat(scattered_point);
     if ( ! theScatteredSolid ) {
       std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid AFTER scatter." << std::endl;
-      std::cerr << "itrack = " << itrack << ", ihit = " << ihit << ", r = " << sqrt(scatteredX*scatteredX + scatteredY*scatteredY) << ", r*4cm = " << 4*ihit << ", phi = " << atan2(scatteredY,scatteredX) << std::endl;
+      std::cerr << "itrack = " << itrack << ", ihit = " << ihit << ", r = " << sqrt(scatteredX*scatteredX + scatteredY*scatteredY) << ", r*4cm = " << 4*ihit << ", phi = " << getPhi(scatteredX,scatteredY) << std::endl;
       std::cerr << "initX = " << initX << ", initY = " << initY << ", initZ = " << initZ << std::endl;
       std::cerr << "scatteredX = " << scatteredX << ", scatteredY = " << scatteredY << ", scatteredZ = " << scatteredZ << std::endl << std::endl;       
       //    continue;
@@ -263,7 +265,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
       const auto theHitSolid = geom.InsideWhat(hit_point);
       if ( ! theHitSolid ) {
         std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid AFTER scatter+smear." << std::endl;
-        std::cerr << "itrack = " << itrack << ", ihit = " << ihit << ", r = " << sqrt(hitX*hitX + hitY*hitY) << ", r*4cm = " << 4*ihit << ", phi = " << atan2(hitY,hitX) << std::endl;
+        std::cerr << "itrack = " << itrack << ", ihit = " << ihit << ", r = " << sqrt(hitX*hitX + hitY*hitY) << ", r*4cm = " << 4*ihit << ", phi = " << getPhi(hitX,hitY) << std::endl;
         std::cerr << "initX = " << initX << ", initY = " << initY << ", initZ = " << initZ << std::endl;
 #ifdef SCATTERING
         std::cerr << "scatteredX = " << scatteredX << ", scatteredY = " << scatteredY << ", scatteredZ = " << scatteredZ << std::endl;
