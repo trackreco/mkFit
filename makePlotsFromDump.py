@@ -3,7 +3,7 @@ import ROOT
 
 suffix = "ttm2seed"
 
-g = ROOT.TFile("test"+suffix+"_bh.root","recreate")
+g = ROOT.TFile("test"+suffix+".root","recreate")
 
 h_SM3 = ROOT.TH1F("h_SM3", "h_SM3", 300, 0, 300)
 h_SM6 = ROOT.TH1F("h_SM6", "h_SM6", 300, 0, 300)
