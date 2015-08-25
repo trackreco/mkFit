@@ -99,7 +99,7 @@ void Event::Segment()
     std::sort(layerHits_[ilayer].begin(), layerHits_[ilayer].end(), sortByZ);
     std::vector<unsigned int> lay_eta_bin_count(Config::nEtaPart);
     for (unsigned int ihit=0;ihit<layerHits_[ilayer].size();++ihit) {
-      unsigned int etabin = getEtaPartition(layerHits_[ilayer][ihit].eta());
+      unsigned int etabin = getEtaPartition(normalizedEta(layerHits_[ilayer][ihit].eta()));
       dprint("ihit: " << ihit << " eta: " << layerHits_[ilayer][ihit].eta() << " etabin: " << etabin);
       lay_eta_bin_count[etabin]++;
     }
@@ -179,10 +179,10 @@ void Event::Segment()
       etahitstotal += etahits;
 
       for (unsigned int phibin = 0; phibin < Config::nPhiPart; phibin++){
-	if (segmentMap_[i][etabin][phibin].second > 3) {std::cout << "   phibin: " << phibin << " hits: " << segmentMap_[i][etabin][phibin].second << std::endl;}
+	//	if (segmentMap_[ilayer][etabin][phibin].second > 3) {std::cout << "   phibin: " << phibin << " hits: " << segmentMap_[ilayer][etabin][phibin].second << std::endl;}
       }
     }
-    std::cout << "layer: " << i << " totalhits: " << etahitstotal << std::endl;
+    std::cout << "layer: " << ilayer << " totalhits: " << etahitstotal << std::endl;
   }
 #endif
 }
