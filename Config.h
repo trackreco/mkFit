@@ -14,9 +14,9 @@ namespace Config{
   static constexpr const float DegToRad = Config::PI / 180.0;
   static constexpr const double Sqrt2   = 1.4142135623730950488016887242097;
 
-  // config on main --> NOT UNIFIED ... NEED TO CHANGE
-  static constexpr const unsigned int nTracks = 5000;
-  static constexpr const unsigned int nEvents = 20;
+  // config on main + mkFit
+  static constexpr const unsigned int nTracks = 20000;
+  static constexpr const unsigned int nEvents = 10;
 
   // config on main -- for geometry
   static constexpr const unsigned int nLayers   = 10;
@@ -112,7 +112,7 @@ namespace Config{
     #ifdef __MIC__
       #define MPT_SIZE 16
     #else
-      #define MPT_SIZE 1
+      #define MPT_SIZE 8
     #endif
   #endif
 
@@ -121,7 +121,7 @@ namespace Config{
   #endif
 
   #ifndef NUM_THREADS_SIM
-  #define NUM_THREADS_SIM 1
+  #define NUM_THREADS_SIM 60
   #endif
 
   #ifndef THREAD_BINDING

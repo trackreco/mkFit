@@ -64,12 +64,12 @@ double runBuildingTest(std::vector<Track>& evt_sim_tracks/*, std::vector<Track>&
      std::cout << "SM - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1])<< std::endl;
    }
   
-   std::vector<std::vector<Hit> > evt_lay_hits(10);//hits per layer
+   std::vector<std::vector<Hit> > evt_lay_hits(Config::nLayers);//hits per layer
    std::vector<Track> evt_seeds;
    std::vector<Track> evt_track_candidates;
 
    //first is first hit index in bin, second is size of this bin
-   std::vector<std::vector<BinInfo> > evt_lay_phi_hit_idx(10);//phi partitioning map
+   std::vector<std::vector<BinInfo> > evt_lay_phi_hit_idx(Config::nLayers);//phi partitioning map
    // Vector of vectors of std::pairs. A vector of maps, although vector is fixed to layer, so really array of maps, where maps are phi bins and the number of hits in those phi bins
 
    for (unsigned int itrack=0;itrack<evt_sim_tracks.size();++itrack) {
@@ -339,7 +339,7 @@ double runBuildingTestBestHit(std::vector<Track>& simtracks/*, std::vector<Track
   }
 #endif
 
-  EventOfHits event_of_hits(10); // 10 layers, this should be out of event loop, passed in.
+  EventOfHits event_of_hits(Config::nLayers); // 10 layers, this should be out of event loop, passed in.
 
   for (int itrack=0; itrack < simtracks.size(); ++itrack)
   {
@@ -694,7 +694,7 @@ double runBuildingTestPlexOld(std::vector<Track>& simtracks/*, std::vector<Track
    // And pass the number in on each "setup" call.
    // Reserves should be made for maximum possible number (but this is just
    // measurments errors, params).
-   std::vector<std::vector<Hit> > evt_lay_hits(10);//hits per layer
+   std::vector<std::vector<Hit> > evt_lay_hits(Config::nLayers);//hits per layer
 
    for (int itrack=0;itrack<simtracks.size();++itrack) {
      //fill vector of hits in each layer (assuming there is one hit per layer in hits vector)
@@ -705,7 +705,7 @@ double runBuildingTestPlexOld(std::vector<Track>& simtracks/*, std::vector<Track
 
 
    BinInfoMap segmentMap_;
-   segmentMap_.resize(10);//geom_.CountLayers()
+   segmentMap_.resize(Config::nLayers);//geom_.CountLayers()
    for (int ilayer=0; ilayer<evt_lay_hits.size(); ++ilayer)
    {
      segmentMap_[ilayer].resize(Config::nEtaPart);    
@@ -1117,7 +1117,7 @@ double runBuildingTestPlexBestHit(std::vector<Track>& simtracks/*, std::vector<T
   }
 #endif
 
-  EventOfHits event_of_hits(10); // 10 layers, this should be out of event loop, passed in.
+  EventOfHits event_of_hits(Config::nLayers); // 10 layers, this should be out of event loop, passed in.
 
   for (int itrack=0; itrack < simtracks.size(); ++itrack)
   {
@@ -1425,7 +1425,7 @@ double runBuildingTestPlex(std::vector<Track>& simtracks/*, std::vector<Track>& 
 #endif
 
 
-  EventOfHits event_of_hits(10); // 10 layers, this should be out of event loop, passed in.
+  EventOfHits event_of_hits(Config::nLayers); // 10 layers, this should be out of event loop, passed in.
 
   for (int itrack=0; itrack < simtracks.size(); ++itrack)
   {

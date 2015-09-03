@@ -26,8 +26,8 @@ void initGeom(Geometry& geom)
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
   // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
-  for (int l = 0; l < 10; l++) {
-    float r = (l+1)*4.;
+  for (int l = 0; l < Config::nLayers; l++) {
+    float r = (l+1)*Config::fRadialSpacing;
     VUSolid* utub = new VUSolid(r, r+.01);
     float z = r / std::tan(2.0*std::atan(std::exp(-Config::fEtaDet))); // calculate z extent based on eta, r
     geom.AddLayer(utub, r, z);

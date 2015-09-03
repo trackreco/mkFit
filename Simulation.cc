@@ -121,7 +121,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     const float phismear = g_unif(g_gen)*Config::TwoPI; // random rotation of scattering plane
     const float X0 = 9.370; // cm, from http://pdg.lbl.gov/2014/AtomicNuclearProperties/HTML/silicon_Si.html
     //const float X0 = 0.5612; // cm, for Pb
-    float x = 0.0025; //.1 cm  -assumes radial impact. This is bigger than what we have in main
+    const float x = 0.1; //.1 cm  -assumes radial impact. This is bigger than what we have in main
     // will update for tilt down a few lines
     const float p = sqrt(propState.parameters.At(3)*propState.parameters.At(3)+
                          propState.parameters.At(4)*propState.parameters.At(4)+

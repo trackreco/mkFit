@@ -37,11 +37,8 @@ clean:
 
 distclean: clean
 	-rm -f ${AUTO_TGTS}
-	cd mkFit && ${MAKE} distclean
-
-squeakyclean: distclean
 	-rm -f *.optrpt
-	cd mkFit && ${MAKE} squeakyclean
+	cd mkFit && ${MAKE} distclean
 
 main: ${AUTO_TGTS} ${OBJS} ${LIBUSOLIDS}
 	${CXX} ${CXXFLAGS} ${VEC_HOST} -o $@ ${OBJS} ${LIBUSOLIDS} ${LDFLAGS}

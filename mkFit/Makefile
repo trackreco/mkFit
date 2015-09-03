@@ -44,10 +44,8 @@ clean:
 	rm -f ${EXES} *.d *.o *.om 
 
 distclean: clean
-	rm -f ${AUTO_TGTS} *.ah
-
-squeakyclean: distclean
 	rm -f *.optrpt
+	rm -f ${AUTO_TGTS} *.ah
 
 echo:
 	@echo "CXX      = ${CXX}"
