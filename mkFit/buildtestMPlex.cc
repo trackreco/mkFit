@@ -14,7 +14,7 @@
 #include "ittnotify.h"
 #endif
 
-#define PRINTOUTS_FOR_PLOTS
+//#define PRINTOUTS_FOR_PLOTS
 
 bool sortByHitsChi2(std::pair<Track, TrackState> cand1,std::pair<Track, TrackState> cand2)
 {
