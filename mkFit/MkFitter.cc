@@ -506,9 +506,6 @@ void MkFitter::GetHitRange(std::vector<std::vector<BinInfo> >& segmentMapLay_, i
 
     int itrack = 0;
 
-
-    // what exactly is this function doing?  why are you calling the first simtrack in the event to get the eta??
-
     const float eta_predx = Par[iP].ConstAt(itrack, 0, 0);
     const float eta_predy = Par[iP].ConstAt(itrack, 1, 0);
     const float eta_predz = Par[iP].ConstAt(itrack, 2, 0);
