@@ -119,9 +119,6 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     const float z1 = g_gaus(g_gen);
     const float z2 = g_gaus(g_gen);
     const float phismear = g_unif(g_gen)*Config::TwoPI; // random rotation of scattering plane
-    const float X0 = 9.370; // cm, from http://pdg.lbl.gov/2014/AtomicNuclearProperties/HTML/silicon_Si.html
-    //const float X0 = 0.5612; // cm, for Pb
-    const float x = 0.1; //.1 cm  -assumes radial impact. This is bigger than what we have in main
     // will update for tilt down a few lines
     const float p = sqrt(propState.parameters.At(3)*propState.parameters.At(3)+
                          propState.parameters.At(4)*propState.parameters.At(4)+
@@ -147,8 +144,8 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
 
     x /= std::abs(init_xprime.Dot(pvec)); // take care of dip angle
     const float betac = sqrt(p*p+(.135*.135))/(p*p); // m=130 MeV, pion
-    const float theta_0 = 0.0136/(betac*p)*sqrt(x/X0)*(1+0.038*log(x/X0));// eq 32.14
-    const float y_plane = z1*x*theta_0/sqrt(12.)+ z2*x*theta_0/2.;
+    const float theta_0 = 0.0136/(betac*p)*sqrt(Config::xr/Config::X0)*(1+0.038*log(Config::xr/Config::X0));// eq 32.14
+    const float y_plane = z1*Config::xr*theta_0/sqrt(12.)+ z2*Config::xr*theta_0/2.;
     const float theta_plane = z2*theta_0;
     const float theta_space = sqrt(2)*theta_plane;
     dprint("yplane, theta_space = " << y_plane << ", " << theta_space);

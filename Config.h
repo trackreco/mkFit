@@ -53,7 +53,11 @@ namespace Config{
   constexpr float varZ  = hitposerrZ*hitposerrZ;
   constexpr float varR  = hitposerrR*hitposerrR;
 
-  constexpr unsigned int nTotHit = nLayers; // for now one hit per layer for simu
+  constexpr unsigned int nTotHit = nLayers; // for now one hit per layer for sim
+
+  // scattering simulation
+  constexpr float X0 = 9.370; // cm, from http://pdg.lbl.gov/2014/AtomicNuclearProperties/HTML/silicon_Si.html // Pb = 0.5612 cm
+  constexpr float xr = 0.1; //.1 cm  -assumes radial impact. This is bigger than what we have in main
 
   // Config for seeding
   constexpr unsigned int nlayers_per_seed = 3;
