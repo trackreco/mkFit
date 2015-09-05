@@ -71,28 +71,28 @@ public:
   int      label()  const {return label_;}
 
   // track state position 
-  const float radius() const {return std::sqrt(getRad2(state_.parameters[0],state_.parameters[1]));}
-  const float x()      const {return state_.parameters[0];}
-  const float y()      const {return state_.parameters[1];}
-  const float z()      const {return state_.parameters[2];}
-  const float posPhi() const {return getPhi(state_.parameters[0],state_.parameters[1]);}
-  const float posEta() const {return getEta(radius(),z());}
+  float radius() const {return std::sqrt(getRad2(state_.parameters[0],state_.parameters[1]));}
+  float x()      const {return state_.parameters[0];}
+  float y()      const {return state_.parameters[1];}
+  float z()      const {return state_.parameters[2];}
+  float posPhi() const {return getPhi(state_.parameters[0],state_.parameters[1]);}
+  float posEta() const {return getEta(radius(),z());}
 
   // track state momentum
-  const float pt()     const {return std::sqrt(getRad2(state_.parameters[3],state_.parameters[4]));}
-  const float px()     const {return state_.parameters[3];}
-  const float py()     const {return state_.parameters[4];}
-  const float pz()     const {return state_.parameters[5];}
-  const float momPhi() const {return getPhi(state_.parameters[3],state_.parameters[4]);}
-  const float momEta() const {return getEta(pt(),pz());}
+  float pt()     const {return std::sqrt(getRad2(state_.parameters[3],state_.parameters[4]));}
+  float px()     const {return state_.parameters[3];}
+  float py()     const {return state_.parameters[4];}
+  float pz()     const {return state_.parameters[5];}
+  float momPhi() const {return getPhi(state_.parameters[3],state_.parameters[4]);}
+  float momEta() const {return getEta(pt(),pz());}
 
   // track state momentum errors
-  const float ept()     const {return std::sqrt(std::abs(getRadErr2(state_.parameters[3],state_.parameters[4],state_.errors[3][3],state_.errors[4][4],state_.errors[3][4])));}
-  const float epx()     const {return std::sqrt(state_.errors[3][3]);}
-  const float epy()     const {return std::sqrt(state_.errors[4][4]);}
-  const float epz()     const {return std::sqrt(state_.errors[5][5]);}
-  const float emomPhi() const {return std::sqrt(std::abs(getPhiErr2(state_.parameters[3],state_.parameters[4],state_.errors[3][3],state_.errors[4][4],state_.errors[3][4])));}
-  const float emomEta() const {return std::sqrt(std::abs(getEtaErr2(state_.parameters[3],state_.parameters[4],state_.parameters[5],state_.errors[3][3],state_.errors[4][4],state_.errors[5][5],state_.errors[3][4],state_.errors[3][5],state_.errors[4][5])));}
+  float ept()     const {return std::sqrt(std::abs(getRadErr2(state_.parameters[3],state_.parameters[4],state_.errors[3][3],state_.errors[4][4],state_.errors[3][4])));}
+  float epx()     const {return std::sqrt(state_.errors[3][3]);}
+  float epy()     const {return std::sqrt(state_.errors[4][4]);}
+  float epz()     const {return std::sqrt(state_.errors[5][5]);}
+  float emomPhi() const {return std::sqrt(std::abs(getPhiErr2(state_.parameters[3],state_.parameters[4],state_.errors[3][3],state_.errors[4][4],state_.errors[3][4])));}
+  float emomEta() const {return std::sqrt(std::abs(getEtaErr2(state_.parameters[3],state_.parameters[4],state_.parameters[5],state_.errors[3][3],state_.errors[4][4],state_.errors[5][5],state_.errors[3][4],state_.errors[3][5],state_.errors[4][5])));}
 
   const HitVec& hitsVector() const {return hits_;}
 
@@ -110,14 +110,14 @@ public:
 
   void setState(TrackState newState) {state_=newState;}
 
-  const unsigned int nHits() const {return hits_.size();}
+  unsigned int nHits() const {return hits_.size();}
   void setMCTrackIDInfo();
-  const unsigned int mcTrackID() const {return mcTrackID_;}
-  const unsigned int nHitsMatched() const {return nHitsMatched_;}
-  const unsigned int seedID() const {return seedID_;}
+  unsigned int mcTrackID() const {return mcTrackID_;}
+  unsigned int nHitsMatched() const {return nHitsMatched_;}
+  unsigned int seedID() const {return seedID_;}
   void setMCDuplicateInfo(unsigned int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
-  const bool isDuplicate() const {return isDuplicate_;}
-  const unsigned int duplicateID() const {return duplicateID_;}
+  bool isDuplicate() const {return isDuplicate_;}
+  unsigned int duplicateID() const {return duplicateID_;}
   Track clone() const {return Track(state_,hits_,chi2_);}
   Track clone_for_io() { return Track(state_,chi2_,label_);}
 

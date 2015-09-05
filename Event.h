@@ -17,7 +17,7 @@ public:
   void Fit();
   void Validate(const unsigned int);
   
-  const unsigned int evtID() const {return evtID_;}
+  unsigned int evtID() const {return evtID_;}
   
   const Geometry& geom_;
   Validation& validation_;

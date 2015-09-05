@@ -163,12 +163,12 @@ public:
   const SVector3&  position()  const {return state_.parameters;}
   const SMatrixSym33& error()  const {return state_.errors;}
   const SVector3& parameters() const {return state_.parameters;}
-  const float r() const {return std::sqrt(getRad2(state_.parameters.At(0),state_.parameters.At(1)));}
-  const float x() const {return state_.parameters.At(0);}
-  const float y() const {return state_.parameters.At(1);}
-  const float z() const {return state_.parameters.At(2);}
-  const float phi() const {return getPhi(state_.parameters.At(0),state_.parameters.At(1));}
-  const float eta() const {return getEta(r(),z());}
+  float r() const {return std::sqrt(getRad2(state_.parameters.At(0),state_.parameters.At(1)));}
+  float x() const {return state_.parameters.At(0);}
+  float y() const {return state_.parameters.At(1);}
+  float z() const {return state_.parameters.At(2);}
+  float phi() const {return getPhi(state_.parameters.At(0),state_.parameters.At(1));}
+  float eta() const {return getEta(r(),z());}
 
   // Non-const versions needed for CopyOut of Matriplex.
   SVector3&     parameters_nc() {return state_.parameters;}
