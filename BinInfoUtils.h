@@ -24,7 +24,7 @@ inline float upPhi(float phi){
 
 inline float normalizedPhi(float phi) {
   //  return std::fmod(phi, (float) Config::PI); // return phi +pi out of phase for |phi| beyond boundary! 
-  if (fabs(phi)>=Config::PI) {phi = (phi>0 ? downPhi(phi) : upPhi(phi));}
+  if (std::abs(phi)>=Config::PI) {phi = (phi>0 ? downPhi(phi) : upPhi(phi));}
   return phi;
 }
 
@@ -45,7 +45,7 @@ inline unsigned int getEtaPartition(float eta){
 			      
 #ifdef ETASEG
 inline float normalizedEta(float eta) {
-  if (fabs(eta)>Config::fEtaDet) {eta = (eta>0 ? Config::fEtaDet*0.99 : -Config::fEtaDet*0.99);}
+  if (std::abs(eta)>Config::fEtaDet) {eta = (eta>0 ? Config::fEtaDet*0.99 : -Config::fEtaDet*0.99);}
   return eta;
 }
 #endif
