@@ -49,7 +49,7 @@ static void print(std::string label, const MeasurementState& s)
 }
 #endif
 
-void fitTrack(const Track& trk, const Event& ev)
+void fitTrack(const Track & trk, Event& ev)
 {
 #ifdef DEBUG
   bool debug(false);
@@ -62,22 +62,21 @@ void fitTrack(const Track& trk, const Event& ev)
 #else
   const auto& hits = trk.hitsVector();
 #endif
-  unsigned int itrack0 = trk.SimTrackIDInfo().first;
-  Track trk0 = ev.simTracks_[itrack0];
-  TrackState simState = trk0.state();
-
-  TrackState simStateHit0 = propagateHelixToR(simState,hits[0].r()); // first hit
   TrackState cfitStateHit0;
 
-//#define CONFORMAL
+#define CONFORMAL
 #ifdef CONFORMAL
   bool backward = false;
+  const bool fiterrs  = true;
 #if defined(INWARD)
   backward = true;
 #endif //INWARD
   //fit is problematic in case of very short lever arm
-  conformalFit(hits[0],hits[hits.size()/2 + 1],hits[hits.size()-1],trk.charge(),cfitStateHit0,backward);
+  // changed second from + 1 to - 1... would end up on same layer for low nhit tracks! --KM
+  // want 10 hit tracks to be evenly spaced!  so, layers 0,4,9 (originally was set to 0,6,9!)
+  conformalFit(hits[0],hits[hits.size()/2 - 1],hits[hits.size() - 1],trk.charge(),cfitStateHit0,backward,fiterrs); // last bool denotes use cf derived errors for fitting
   TrackState updatedState = cfitStateHit0;
+  ev.validation_.collectFitTkCFMapInfo(trk.seedID(),cfitStateHit0); // pass along all info and map it to a given seed
 #else 
   TrackState updatedState = trk.state();
   updatedState = propagateHelixToR(updatedState,hits[0].r());
@@ -87,18 +86,26 @@ void fitTrack(const Track& trk, const Event& ev)
   updatedState.errors*=10;//not needed when fitting straight from simulation
 #endif //ENDTOEND
 
-  ev.validation_.fillFitStateHists(simStateHit0, cfitStateHit0);
-
 #ifdef DEBUG
+  Track copytrk(trk.state(),hits,trk.chi2(),trk.seedID()); // to use this for debugging, have to make a copy of the track in order not to change function fittrack from const & to non const & trk
+  copytrk.setMCTrackIDInfo();
+  unsigned int itrack0 = copytrk.seedID(); // if mcTrackID() is not set, can not print out! so this only works for when seeds are produced from MC
+  Track trk0 = ev.simTracks_[itrack0];
+  TrackState simState = trk0.state();
+
+  TrackState simStateHit0 = propagateHelixToR(simState,hits[0].r()); // first hit
+
   if (debug) { 
     print("Sim track", itrack0, trk0);
-    print("Initial track", trk.SimTrackIDInfo().first, trk);
+    print("Initial track", copytrk.mcTrackID(), copytrk);
     print("simStateHit0", simStateHit0);
     print("cfitStateHit0", cfitStateHit0);
     print("updatedState", updatedState);
   }      
 #endif
 
+  TSLayerPairVec updatedStates; // need this for position pulls --> can ifdef out for performance tests? --> assume one hit per layer
+  
   for (auto&& hit : hits) {
     //for each hit, propagate to hit radius and update track state with hit measurement
     MeasurementState measState = hit.measurementState();
@@ -118,7 +125,7 @@ void fitTrack(const Track& trk, const Event& ev)
 
 #ifdef DEBUG
     if (debug) {
-      std::cout << "processing hit: " << trk.SimTrackIDInfo().first << ":" << hit.hitID() << std::endl
+      std::cout << "processing hit: " << hit.hitID() << std::endl
                 << "hitR, propR, updR = " << hit.r() << ", " 
                 << Mag(propPos) << ", " << Mag(updPos) << std::endl << std::endl;
 
@@ -134,18 +141,20 @@ void fitTrack(const Track& trk, const Event& ev)
 #endif
     }
 
-    const HitVec& mcInitHitVec = ev.simTracks_[hit.mcTrackID()].initHitsVector();
-    const auto hitid = hit.hitID();
-    ev.validation_.fillFitHitHists(hitid, mcInitHitVec, measState, propState, updatedState);
+    updatedStates.push_back(std::make_pair(hit.layer(),updatedState)); // validation for pos pull
   } // end loop over hits
   dcall(print("Fit Track", updatedState));
-  ev.validation_.fillFitTrackHists(simState, updatedState);
+
+  ev.validation_.collectFitTkTSLayerPairVecMapInfo(trk.seedID(),updatedStates); // for position pulls
+
+  Track FitTrack(updatedState,hits,trk.chi2(),trk.seedID()); // eventually will want to include chi2 of fitTrack --> chi2 for now just copied from build tracks
+  ev.fitTracks_.push_back(FitTrack);
 }
 
 typedef TrackVec::const_iterator TrkIter;
 
 #ifdef TBB
-void runFittingTest(const Event& ev, const TrackVec& candidates)
+void runFittingTest(Event& ev, const TrackVec& candidates)
 {
   parallel_for( tbb::blocked_range<TrkIter>(candidates.begin(),candidates.end()), 
       [&](const tbb::blocked_range<TrkIter>& trks)
@@ -156,7 +165,7 @@ void runFittingTest(const Event& ev, const TrackVec& candidates)
   });
 }
 #else
-void runFittingTest(const Event& ev, const TrackVec& candidates)
+void runFittingTest(Event& ev, const TrackVec& candidates)
 {
   for (auto&& trk : candidates) {
     fitTrack(trk, ev);

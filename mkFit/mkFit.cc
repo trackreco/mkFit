@@ -5,6 +5,8 @@
 
 #include "MkFitter.h"
 
+#include "Config.h"
+
 #include "Timing.h"
 
 #include <limits>
@@ -167,9 +169,9 @@ void generate_and_save_tracks()
 {
   FILE *fp = fopen(g_file_name.c_str(), "w");
 
-  int Ntracks = Config::g_NTracks;
+  int Ntracks = Config::nTracks;
 
-  int Nevents = Config::g_NEvents;
+  int Nevents = Config::nEvents;
 
   fwrite(&Nevents, sizeof(int), 1, fp);
 
@@ -237,19 +239,19 @@ void test_standard()
   // int nb, b1, b2;
   // for (float eta = -1.2; eta <= 1.2; eta += 0.01)
   // {
-  //   nb = Config::getBothEtaBins(eta, b1, b2);
+  //   nb = getBothEtaBins(eta, b1, b2);
   //   printf("eta=%6.2f  bin=%3d  bin1=%3d  bin2=%3d nb=%d\n",
-  //          eta, Config::getEtaBin(eta), b1, b2, nb);
+  //          eta, getEtaBin(eta), b1, b2, nb);
   // }
 
   // return;
   // ---- end MT test
 
-  int Ntracks = Config::g_NTracks;
+  int Ntracks = Config::nTracks;
   // Ntracks  = 1;
   // bool saveTree = false;
 
-  int Nevents = Config::g_NEvents;
+  int Nevents = Config::nEvents;
 
   if (g_operation == "read")
   {
@@ -281,7 +283,7 @@ void test_standard()
     double tmp2 = runBuildingTestPlex(simtracks);
 
     double tsm2bh = 0;//runBuildingTestBestHit(simtracks);
-    double tmp2bh = 0;//runBuildingTestPlexBestHit(simtracks);
+    double tmp2bh = runBuildingTestPlexBestHit(simtracks);
 
     // Second pass -- select problematic tracks and refit them
     if (false)

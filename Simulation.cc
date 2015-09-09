@@ -7,30 +7,43 @@
 #define SCATTER_XYZ
 
 void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVec& hits, unsigned int itrack,
-                       int& charge, float pt, const Geometry& geom, HitVec& initHits)
+                       int& charge, const Geometry& geom, TSVec & initTSs)
 {
-#ifdef DEBUG
-  bool debug = false;
-#endif
-  //assume beam spot width 1mm in xy and 1cm in z
-  pos=SVector3(0.1*g_gaus(g_gen), 0.1*g_gaus(g_gen), 1.0*g_gaus(g_gen));
 
-  dprint("pos x=" << pos[0] << " y=" << pos[1] << " z=" << pos[2]);
+#ifdef DEBUG
+  bool debug = true;
+#endif
+  float pt = Config::minSimPt+g_unif(g_gen)*(Config::maxSimPt-Config::minSimPt);//this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
+  pos=SVector3(Config::beamspotX*g_gaus(g_gen), Config::beamspotY*g_gaus(g_gen), Config::beamspotZ*g_gaus(g_gen));
+
+  dprint("production point x=" << pos[0] << " y=" << pos[1] << " z=" << pos[2] << std::endl);
 
   if (charge==0) {
     if (g_unif(g_gen) > 0.5) charge = -1;
     else charge = 1;
   }
 
-  //float phi = 0.5*TMath::Pi()*(1-g_unif(g_gen)); // make an angle between 0 and pi/2 //fixme
-  float phi = 0.5*TMath::Pi()*g_unif(g_gen); // make an angle between 0 and pi/2
+  float phi = 0.5*Config::PI*g_unif(g_gen); // make an angle between 0 and pi/2
+
   float px = pt * cos(phi);
   float py = pt * sin(phi);
 
   if (g_unif(g_gen)>0.5) px*=-1.;
   if (g_unif(g_gen)>0.5) py*=-1.;
-  float pz = pt*(2.3*(g_unif(g_gen)-0.5));//so that we have -1<eta<1
 
+  dprint("phi= " << phi << std::endl);
+
+#ifdef GENFLATETA
+  // this generates flat in eta
+  
+  float eta = Config::maxEta*g_unif(g_gen);
+  float pz  = pt*(1./(std::tan(2*std::atan(std::exp(-eta)))));
+  if (g_unif(g_gen)>0.5) pz*=-1.;
+#else
+  // generate flat in pz
+
+  float pz = pt*(2.3*(g_unif(g_gen)-0.5));//so that we have -1<eta<1
+#endif
   mom=SVector3(px,py,pz);
   covtrk=ROOT::Math::SMatrixIdentity();
   //initial covariance can be tricky
@@ -47,13 +60,6 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
 
   dprint("track with px: " << px << " py: " << py << " pz: " << pz << " pt: " << sqrt(px*px+py*py) << " p: " << sqrt(px*px+py*py+pz*pz) << std::endl);
 
-  const float hitposerrXY = 0.01;//assume 100mum uncertainty in xy coordinate
-  const float hitposerrZ = 0.1;//assume 1mm uncertainty in z coordinate
-  const float hitposerrR = hitposerrXY/10.;
-
-  const float varXY  = hitposerrXY*hitposerrXY;
-  const float varZ   = hitposerrZ*hitposerrZ;
-
   TrackState initState;
   initState.parameters=SVector6(pos[0],pos[1],pos[2],mom[0],mom[1],mom[2]);
   initState.errors=covtrk;
@@ -63,34 +69,45 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
 
   // useful info for loopers/overlaps
 
-  unsigned int nLayers = geom.CountLayers();
-  unsigned int layer_counts[nLayers];
-  for (unsigned int ilayer=0;ilayer<nLayers;++ilayer){
+  unsigned int layer_counts[Config::nLayers];
+  for (unsigned int ilayer=0;ilayer<Config::nLayers;++ilayer){
     layer_counts[ilayer]=0;
   }
 
-  unsigned int nTotHit = nLayers; // can tune this number!
-  // to include loopers, and would rather add a break on the code if layer ten exceeded
+  // to include loopers would rather add a break on the code if nLayers
   // if block BREAK if hit.Layer == theGeom->CountLayers() 
   // else --> if (NMAX TO LOOPER (maybe same as 10?) {break;} else {continue;}
   
-  unsigned int simLayer = 0;
+  unsigned int simLayer = 0; // use to keep track where hit lies on, will proceed monotonically increasing without loopers/overlaps
 
-  hits.reserve(nTotHit);
-  initHits.reserve(nTotHit);
+  hits.reserve(Config::nTotHit);
+  initTSs.reserve(Config::nTotHit);
 
-  for (unsigned int ihit=0;ihit<nTotHit;++ihit) {  // go to first layer in radius using propagation.h
+  for (unsigned int ihit=0;ihit<Config::nTotHit;++ihit) {  // go to first layer in radius using propagation.h
     //TrackState propState = propagateHelixToR(tmpState,4.*float(ihit+1));//radius of 4*ihit
     auto propState = propagateHelixToNextSolid(tmpState,geom);
 
     float initX   = propState.parameters.At(0);
     float initY   = propState.parameters.At(1);
     float initZ   = propState.parameters.At(2);
-    float initPhi = atan2(initY,initX);
-    float initRad = sqrt(initX*initX+initY*initY);
+    float initPhi = getPhi(initX,initY);
+    float initRad = std::sqrt(getRad2(initX,initY));
 
     UVector3 init_point(initX,initY,initZ);
     simLayer = geom.LayerIndex(init_point);
+
+    // check to see if propagation actually landed inside a layer!
+    const auto theInitSolid = geom.InsideWhat(init_point);
+    if ( ! theInitSolid ) {
+      std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid." <<std::endl;
+      std::cerr << "itrack = " << itrack << ", ihit = " << ihit << ", r = " << initRad << ", r*4cm = " << 4*ihit << ", phi = " << initPhi << ", eta = " << getEta(initRad,initZ) << std::endl;
+      std::cerr << "initX = " << initX << ", initY = " << initY << ", initZ = " << initZ << std::endl;
+      float outpt  = std::sqrt(getRad2(propState.parameters[3],propState.parameters[4]));
+      float outphi = getPhi(propState.parameters[3],propState.parameters[4]);
+      std::cerr << "pt = " << outpt << ", pz = " << propState.parameters[5] << ", track phi = " << outphi << ", track eta = " << getEta(pt,pz) << std::endl;
+
+      continue;
+    }
 
 #ifdef SCATTERING
     // PW START
@@ -101,10 +118,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     // can I do what I did, generate one (theta_space) and rotate it by another random numbers
     const float z1 = g_gaus(g_gen);
     const float z2 = g_gaus(g_gen);
-    const float phismear = g_unif(g_gen)*TMath::TwoPi(); // random rotation of scattering plane
-    const float X0 = 9.370; // cm, from http://pdg.lbl.gov/2014/AtomicNuclearProperties/HTML/silicon_Si.html
-    //const float X0 = 0.5612; // cm, for Pb
-    float x = 0.1; // cm  -assumes radial impact. This is bigger than what we have in main
+    const float phismear = g_unif(g_gen)*Config::TwoPI; // random rotation of scattering plane
     // will update for tilt down a few lines
     const float p = sqrt(propState.parameters.At(3)*propState.parameters.At(3)+
                          propState.parameters.At(4)*propState.parameters.At(4)+
@@ -119,17 +133,6 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     // if the normal vector is given by n == x' = (x1,y1,0) [NB no component along z here]
     // then the 
     // y axis in the new coordinate system is given by y' = z' x x' = (-y1,x1,0)
-    const auto theInitSolid = geom.InsideWhat(init_point);
-    if ( ! theInitSolid ) {
-      std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid." <<std::endl;
-      std::cerr << "itrack = " << itrack << ", ihit = " << ihit << ", r = " << initRad << ", r*4cm = " << 4*ihit << ", phi = " << initPhi << std::endl;
-      std::cerr << "initX = " << initX << ", initY = " << initY << ", initZ = " << initZ << std::endl;
-      float pt = sqrt(propState.parameters[3]*propState.parameters[3]+
-                      propState.parameters[4]*propState.parameters[4]);
-      std::cerr << "pt = " << pt << ", pz = " << propState.parameters[5] << std::endl;
-
-      continue;
-    }
     UVector3 init_xprime; // normal on surface
     bool init_good = theInitSolid->Normal(init_point, init_xprime);
       
@@ -141,8 +144,8 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
 
     x /= std::abs(init_xprime.Dot(pvec)); // take care of dip angle
     const float betac = sqrt(p*p+(.135*.135))/(p*p); // m=130 MeV, pion
-    const float theta_0 = 0.0136/(betac*p)*sqrt(x/X0)*(1+0.038*log(x/X0));// eq 32.14
-    const float y_plane = z1*x*theta_0/sqrt(12.)+ z2*x*theta_0/2.;
+    const float theta_0 = 0.0136/(betac*p)*sqrt(Config::xr/Config::X0)*(1+0.038*log(Config::xr/Config::X0));// eq 32.14
+    const float y_plane = z1*Config::xr*theta_0/sqrt(12.)+ z2*Config::xr*theta_0/2.;
     const float theta_plane = z2*theta_0;
     const float theta_space = sqrt(2)*theta_plane;
     dprint("yplane, theta_space = " << y_plane << ", " << theta_space);
@@ -150,21 +153,21 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     UVector3 yprime(-init_xprime[1],init_xprime[0],0); // result of cross product with zhat
     //const double phi0 = atan2(xpime[1], init_xprime[0]);
 
-#ifdef SCATTER_XYZ
+#ifdef SCATTER_XYZ // --> particle will have 3D scatter constrained to detector (including momentum vector)
     const float scatteredX = initX + y_plane *(-init_xprime[1]*cos(phismear)); 
     const float scatteredY = initY + y_plane *(+init_xprime[0]*cos(phismear));
     const float scatteredZ = initZ + y_plane *(           sin(phismear));
-    const float scatteredPhi = atan2(scatteredY,scatteredX);
-    const float scatteredRad = sqrt(scatteredX*scatteredX+scatteredY*scatteredY);
-#else 
+    const float scatteredPhi = getPhi(scatteredX,scatteredY);
+    const float scatteredRad = std::sqrt(getPhi(scatteredX,scatteredY));
+#else // --> particle only has momentum vector scattered 
     const float scatteredX = initX;
     const float scatteredY = initY;
     const float scatteredZ = initZ;
-    const float scatteredPhi = atan2(initY,initX);
-    const float scatteredRad = sqrt(initX*initX+initY*initY);
+    const float scatteredPhi = getPhi(initX,initY);
+    const float scatteredRad = std::sqrt(getRad2(initX,initY));
 #endif  // SCATTER_XYZ
     UVector3 pvecprime;
-
+    
     const float v0 = sqrt(2+pow((pvec[1]+pvec[2])/pvec[0],2));
     const float v1 = sqrt(2-pow((pvec[1]-pvec[2]),2));
     const float a = pvec[0]; 
@@ -209,22 +212,22 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     propState.parameters[5] = pvecprime[2]*p;
     
     // PW END
-    float hitZ    = hitposerrZ*g_gaus(g_gen)+scatteredZ;
-    float hitPhi  = ((hitposerrXY/scatteredRad)*g_gaus(g_gen))+scatteredPhi;
-    float hitRad  = (hitposerrR)*g_gaus(g_gen)+scatteredRad;
-
-#else // SCATTERING
-    float hitZ    = hitposerrZ*g_gaus(g_gen)+initZ;
-    float hitPhi  = ((hitposerrXY/initRad)*g_gaus(g_gen))+initPhi;
-    float hitRad  = (hitposerrR)*g_gaus(g_gen)+initRad;
+    float hitZ    = Config::hitposerrZ*g_gaus(g_gen)+scatteredZ;  // smear in Z after scatter
+    float hitPhi  = ((Config::hitposerrXY/scatteredRad)*g_gaus(g_gen))+scatteredPhi; // smear in phi after scatter
+    float hitRad  = (Config::hitposerrR)*g_gaus(g_gen)+scatteredRad; // smear in rad after scatter
+#else // no Scattering --> use this position for smearing
+    float hitZ    = Config::hitposerrZ*g_gaus(g_gen)+initZ;
+    float hitPhi  = ((Config::hitposerrXY/initRad)*g_gaus(g_gen))+initPhi;
+    float hitRad  = (Config::hitposerrR)*g_gaus(g_gen)+initRad;
 #endif // SCATTERING
+    initTSs.push_back(propState); // if no scattering, will just parameters from prop to next layer
 
 #ifdef SOLID_SMEAR
     UVector3 scattered_point(scatteredX,scatteredY,scatteredZ);
     const auto theScatteredSolid = geom.InsideWhat(scattered_point);
     if ( ! theScatteredSolid ) {
       std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid AFTER scatter." << std::endl;
-      std::cerr << "itrack = " << itrack << ", ihit = " << ihit << ", r = " << sqrt(scatteredX*scatteredX + scatteredY*scatteredY) << ", r*4cm = " << 4*ihit << ", phi = " << atan2(scatteredY,scatteredX) << std::endl;
+      std::cerr << "itrack = " << itrack << ", ihit = " << ihit << ", r = " << sqrt(scatteredX*scatteredX + scatteredY*scatteredY) << ", r*4cm = " << 4*ihit << ", phi = " << getPhi(scatteredX,scatteredY) << std::endl;
       std::cerr << "initX = " << initX << ", initY = " << initY << ", initZ = " << initZ << std::endl;
       std::cerr << "scatteredX = " << scatteredX << ", scatteredY = " << scatteredY << ", scatteredZ = " << scatteredZ << std::endl << std::endl;       
       //    continue;
@@ -240,17 +243,17 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     
     // smear along scattered yprime (where yprime = z_prime x x_prime, zprime = (0,0,1)
 
-    float xyres_smear = g_gaus(g_gen)*hitposerrXY;
+    float xyres_smear = g_gaus(g_gen)*Config::hitposerrXY;
 
     float hitX = scatteredX - (scattered_xprime[1] * xyres_smear); 
     float hitY = scatteredY + (scattered_xprime[0] * xyres_smear); 
-#else
+#else // No solid smearing --> use old r-phi smear, whether scattered or not
     float hitRad2 = hitRad*hitRad;
+
     float hitX    = hitRad*cos(hitPhi);
     float hitY    = hitRad*sin(hitPhi);
-
-    float varPhi = varXY/hitRad2;
-    float varR   = hitposerrR*hitposerrR;
+    
+    float varPhi = Config::varXY/hitRad2;
 #endif
 
 #ifdef DEBUG
@@ -259,7 +262,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
       const auto theHitSolid = geom.InsideWhat(hit_point);
       if ( ! theHitSolid ) {
         std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid AFTER scatter+smear." << std::endl;
-        std::cerr << "itrack = " << itrack << ", ihit = " << ihit << ", r = " << sqrt(hitX*hitX + hitY*hitY) << ", r*4cm = " << 4*ihit << ", phi = " << atan2(hitY,hitX) << std::endl;
+        std::cerr << "itrack = " << itrack << ", ihit = " << ihit << ", r = " << sqrt(hitX*hitX + hitY*hitY) << ", r*4cm = " << 4*ihit << ", phi = " << getPhi(hitX,hitY) << std::endl;
         std::cerr << "initX = " << initX << ", initY = " << initY << ", initZ = " << initZ << std::endl;
 #ifdef SCATTERING
         std::cerr << "scatteredX = " << scatteredX << ", scatteredY = " << scatteredY << ", scatteredZ = " << scatteredZ << std::endl;
@@ -273,34 +276,30 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     SMatrixSym33 covXYZ = ROOT::Math::SMatrixIdentity();
 
 #ifdef SOLID_SMEAR
-    covXYZ(0,0) = varXY; // yn^2 / (xn^2 + yn^2) * delx^2 + xn^2 / (xn^2 + yn^2) * dely^2
-    covXYZ(1,1) = varXY; // xn^2 / (xn^2 + yn^2) * delx^2 + yn^2 / (xn^2 + yn^2) * dely^2
+    covXYZ(0,0) = Config::varXY; // yn^2 / (xn^2 + yn^2) * delx^2 + xn^2 / (xn^2 + yn^2) * dely^2
+    covXYZ(1,1) = Config::varXY; // xn^2 / (xn^2 + yn^2) * delx^2 + yn^2 / (xn^2 + yn^2) * dely^2
     // covXYZ(0,1) -> -(xn * yn) / (xn^2 + yn^2) * delx^2 + (xn * yn) / (xn^2 + yn^2) * dely^2 
     // covXYZ(1,0)  = covXYZ(0,1)    
-    covXYZ(2,2) = varZ;
-#else
-    covXYZ(0,0) = hitX*hitX*varR/hitRad2 + hitY*hitY*varPhi;
-    covXYZ(1,1) = hitX*hitX*varPhi + hitY*hitY*varR/hitRad2;
-    covXYZ(2,2) = varZ;
-    covXYZ(0,1) = hitX*hitY*(varR/hitRad2 - varPhi);
+    covXYZ(2,2) = Config::varZ;
+#else //  SOLID_SMEAR --> covariance for pure cylindrical geometry with smearing
+    covXYZ(0,0) = hitX*hitX*Config::varR/hitRad2 + hitY*hitY*varPhi;
+    covXYZ(1,1) = hitX*hitX*varPhi + hitY*hitY*Config::varR/hitRad2;
+    covXYZ(2,2) = Config::varZ;
+    covXYZ(0,1) = hitX*hitY*(Config::varR/hitRad2 - varPhi);
     covXYZ(1,0) = covXYZ(0,1);
 
     dprint("initPhi: " << initPhi << " hitPhi: " << hitPhi << " initRad: " << initRad  << " hitRad: " << hitRad << std::endl
         << "initX: " << initX << " hitX: " << hitX << " initY: " << initY << " hitY: " << hitY << " initZ: " << initZ << " hitZ: " << hitZ << std::endl 
-        << "cov(0,0): " << covXYZ(0,0) << " cov(1,1): " << covXYZ(1,1) << " varZ: " << varZ << " cov(2,2): " << covXYZ(2,2) << std::endl 
+        << "cov(0,0): " << covXYZ(0,0) << " cov(1,1): " << covXYZ(1,1) << " Config::varZ: " << Config::varZ << " cov(2,2): " << covXYZ(2,2) << std::endl 
         << "cov(0,1): " << covXYZ(0,1) << " cov(1,0): " << covXYZ(1,0) << std::endl);
 #endif
 
-    SVector3 initVecXYZ(initX,initY,initZ);
-    Hit initHitXYZ(initVecXYZ,covXYZ,itrack,simLayer,layer_counts[simLayer]); 
-    initHits.push_back(initHitXYZ);
-
-    Hit hit1(x1,covXYZ,initHitXYZ.mcHitInfo());
+    Hit hit1(x1,covXYZ,itrack,simLayer,layer_counts[simLayer]); 
     hits.push_back(hit1);
     tmpState = propState;
 
-    dprint("initHitId: " << initHitXYZ.hitID() << " hit1Id: " << hit1.hitID() <<std::endl
-                         << "ihit: " << ihit << " layer: " << simLayer << " counts: " << layer_counts[simLayer]);
+    dprint("hit1Id: " << hit1.hitID() <<std::endl
+	   << "ihit: " << ihit << " layer: " << simLayer << " counts: " << layer_counts[simLayer]);
 
     ++layer_counts[simLayer]; // count the number of times passed into layer
 

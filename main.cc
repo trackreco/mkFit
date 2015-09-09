@@ -8,7 +8,7 @@
 
 #include "Matrix.h"
 #include "Event.h"
-#include "RootValidation.h"
+#include "TTreeValidation.h"
 
 #ifdef TBB
 #include "tbb/task_scheduler_init.h"
@@ -34,25 +34,28 @@ void initGeom(Geometry& geom)
 
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
-  float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
-  for (int l = 0; l < 10; l++) {
-    float r = (l+1)*4.;
-    float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
+  for (unsigned int l = 0; l < Config::nLayers; l++) {
+    float r = (l+1)*Config::fRadialSpacing;
+    float z = (Config::fRadialSpacing * Config::nLayers) / std::tan(2.0*std::atan(std::exp(-Config::fEtaDet))); // calculate z extent based on eta for the last radius (used to be based on layer radius)
 #ifdef CYLINDER
     std::string s = "Cylinder" + std::string(1, 48+l);
-    UTubs* utub = new UTubs(s, r, r+.01, 100.0, 0, TMath::TwoPi());
+    UTubs* utub = new UTubs(s, r, r+Config::fRadialExtent, z, 0, Config::TwoPI);
     geom.AddLayer(utub,r,z);
 #else
-    float xs = 5.0; // approximate sensor size in cm
-    if ( l >= 5 ) // bigger sensors in outer layers
-      xs *= 2.;
-    int nsectors = int(TMath::TwoPi()/(2*atan2(xs/2,r))); // keep ~constant sensors size
+    float xs = 0.;
+    if ( l < 5 ) {
+      xs = Config::fInnerSensorSize;
+    }
+    else if ( l >= 5 ) { // bigger sensors in outer layers
+      xs = Config::fOuterSensorSize;
+    }
+    int nsectors = int(Config::TwoPI/(2*atan2(xs/2,r))); // keep ~constant sensors size
     std::cout << "l = " << l << ", nsectors = "<< nsectors << std::endl;
     std::string s = "PolyHedra" + std::string(1, 48+l);
     const double zPlane[] = {-z,z};
     const double rInner[] = {r,r};
-    const double rOuter[] = {r+.01,r+.01};
-    UPolyhedra* upolyh = new UPolyhedra(s, 0, TMath::TwoPi(), nsectors, 2, zPlane, rInner, rOuter);
+    const double rOuter[] = {r+Config::fRadialExtent,r+Config::fRadialExtent};
+    UPolyhedra* upolyh = new UPolyhedra(s, 0, Config::TwoPI, nsectors, 2, zPlane, rInner, rOuter);
     geom.AddLayer(upolyh, r, z);
 #endif
   }
@@ -61,22 +64,18 @@ void initGeom(Geometry& geom)
 void initGeom(Geometry& geom)
 {
   std::cout << "Constructing SimpleGeometry Cylinder geometry" << std::endl;
-
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
   // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
 
-  float eta = Config::fEtaFull; // can tune this to whatever geometry required (one can make this layer dependent as well)
-
-  for (int l = 0; l < 10; l++) {
-    float r = (l+1)*4.;
-    float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
-    VUSolid* utub = new VUSolid(r, r+.01);
+  for (unsigned int l = 0; l < Config::nLayers; l++) {
+    float r = (l+1)*Config::fRadialSpacing;
+    float z = r / std::tan(2.0*std::atan(std::exp(-Config::fEtaDet))); // calculate z extent based on eta, r
+    VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent);
     geom.AddLayer(utub, r, z);
   }
 }
 #endif
-
 
 typedef std::chrono::time_point<std::chrono::system_clock> timepoint;
 typedef std::chrono::duration<double> tick;
@@ -101,17 +100,14 @@ int main(int argc, char** argv)
 #if defined(NO_ROOT)
   Validation val;
 #else
-  RootValidation val("valtree.root");
+  TTreeValidation val("valtree.root");
 #endif
 
-  for ( unsigned int i = 0; i < geom.CountLayers(); ++i ) {
+  for ( unsigned int i = 0; i < Config::nLayers; ++i ) {
     std::cout << "Layer = " << i << ", Radius = " << geom.Radius(i) << std::endl;
   }
 
-  unsigned int Ntracks = 500;
-  unsigned int Nevents = 100;
-
-  std::vector<tick> ticks(5);
+  std::vector<tick> ticks(6);
 
 #ifdef TBB
   auto nThread(tbb::task_scheduler_init::default_num_threads());
@@ -124,27 +120,34 @@ int main(int argc, char** argv)
   auto nThread = 1;
 #endif
 
-  for (unsigned int evt=0; evt<Nevents; ++evt) {
-    //std::cout << "EVENT #"<< evt << std::endl;
-    Event ev(geom, val, nThread);
+  for (unsigned int evt=0; evt<Config::nEvents; ++evt) {
+    Event ev(geom, val, evt, nThread);
+    std::cout << "EVENT #"<< ev.evtID() << std::endl;
 
     timepoint t0(now());
-    ev.Simulate(Ntracks); ticks[0] += delta(t0);
 #ifdef ENDTOEND
-    ev.Segment();         ticks[1] += delta(t0);
-    ev.Seed();            ticks[2] += delta(t0);
-    ev.Find();            ticks[3] += delta(t0);
+    ev.Simulate();           ticks[0] += delta(t0);
+    ev.Segment();            ticks[1] += delta(t0);
+    ev.Seed();               ticks[2] += delta(t0);
+    ev.Find();               ticks[3] += delta(t0);
+    ev.Fit();                ticks[4] += delta(t0);
+    ev.Validate(ev.evtID()); ticks[5] += delta(t0);
 #endif
-    ev.Fit();             ticks[4] += delta(t0);
   }
 
+  std::vector<double> time(ticks.size());
+  for (unsigned int i = 0; i < ticks.size(); ++i){
+    time[i]=ticks[i].count();
+  }
+
+  val.fillConfigTree(time);
+  val.saveTTrees(); 
+
   std::cout << "Ticks ";
-  for (auto&& tt : ticks) {
-    std::cout << tt.count() << " ";
+  for (auto&& tt : time) {
+    std::cout << tt << " ";
   }
   std::cout << std::endl;
 
-  val.saveHists();
-  val.deleteHists();
   return 0;
 }

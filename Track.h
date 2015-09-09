@@ -8,7 +8,7 @@
 typedef std::pair<unsigned int,unsigned int> SimTkIDInfo;
 typedef std::vector<int> HitIdxVec;
 
-struct TrackState
+struct TrackState //  possible to add same accessors as track? 
 {
 public:
   TrackState() : valid(true) {}
@@ -24,6 +24,7 @@ public:
   Track() {}
 
   Track(const TrackState& state, const HitVec& hits, float chi2) : state_(state), hits_(hits), chi2_(chi2) {}
+  Track(const TrackState& state, const HitVec& hits, float chi2, unsigned int seedID) : state_(state), hits_(hits), chi2_(chi2), seedID_(seedID) {}
   Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, const HitVec& hits, float chi2) 
     : hits_(hits), chi2_(chi2) 
   {
@@ -32,8 +33,8 @@ public:
     state_.parameters = SVector6(position.At(0),position.At(1),position.At(2),momentum.At(0),momentum.At(1),momentum.At(2));
     state_.valid = true;
   }
-  Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, const HitVec& hits, float chi2, const HitVec& initHits)
-    : hits_(hits), initHits_(initHits), chi2_(chi2) 
+ Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, const HitVec& hits, float chi2, unsigned int mcTrackID)
+   : hits_(hits), chi2_(chi2), mcTrackID_(mcTrackID)
   {
     state_.charge=charge;
     state_.errors=errors;
@@ -56,32 +57,44 @@ public:
   
   ~Track(){}
 
+  int           charge()           const {return state_.charge;}
+  SVector3      position()         const {return SVector3(state_.parameters[0],state_.parameters[1],state_.parameters[2]);}
+  SVector3      momentum()         const {return SVector3(state_.parameters[3],state_.parameters[4],state_.parameters[5]);}
+  float         chi2()             const {return chi2_;}
   const SVector6&     parameters() const {return state_.parameters;}
   const SMatrixSym66& errors()     const {return state_.errors;}
   const TrackState&   state()      const {return state_;}
-
   // Non-const versions needed for CopyOut of Matriplex.
   SVector6&     parameters_nc() {return state_.parameters;}
   SMatrixSym66& errors_nc()     {return state_.errors;}
   TrackState&   state_nc()      {return state_;}
-
-  SVector3 position() const {return SVector3(state_.parameters[0],state_.parameters[1],state_.parameters[2]);}
-  SVector3 momentum() const {return SVector3(state_.parameters[3],state_.parameters[4],state_.parameters[5]);}
-
-  int      charge() const {return state_.charge;}
-  float    chi2()   const {return chi2_;}
   int      label()  const {return label_;}
 
-  float posPhi() const { return getPhi(state_.parameters[0],state_.parameters[1]); }
-  float momPhi() const { return getPhi(state_.parameters[3],state_.parameters[4]); }
-  float posEta() const { return getEta(state_.parameters[0],state_.parameters[1],state_.parameters[2]); }
-  float momEta() const { return getEta(state_.parameters[3],state_.parameters[4],state_.parameters[5]); }
+  // track state position 
+  float radius() const {return std::sqrt(getRad2(state_.parameters[0],state_.parameters[1]));}
+  float x()      const {return state_.parameters[0];}
+  float y()      const {return state_.parameters[1];}
+  float z()      const {return state_.parameters[2];}
+  float posPhi() const {return getPhi(state_.parameters[0],state_.parameters[1]);}
+  float posEta() const {return getEta(radius(),z());}
 
-  float posR()   const { return getHypot(state_.parameters[0],state_.parameters[1]); }
-  float pT()     const { return getHypot(state_.parameters[3],state_.parameters[4]); }
+  // track state momentum
+  float pt()     const {return std::sqrt(getRad2(state_.parameters[3],state_.parameters[4]));}
+  float px()     const {return state_.parameters[3];}
+  float py()     const {return state_.parameters[4];}
+  float pz()     const {return state_.parameters[5];}
+  float momPhi() const {return getPhi(state_.parameters[3],state_.parameters[4]);}
+  float momEta() const {return getEta(pt(),pz());}
+
+  // track state momentum errors
+  float ept()     const {return std::sqrt(std::abs(getRadErr2(state_.parameters[3],state_.parameters[4],state_.errors[3][3],state_.errors[4][4],state_.errors[3][4])));}
+  float epx()     const {return std::sqrt(state_.errors[3][3]);}
+  float epy()     const {return std::sqrt(state_.errors[4][4]);}
+  float epz()     const {return std::sqrt(state_.errors[5][5]);}
+  float emomPhi() const {return std::sqrt(std::abs(getPhiErr2(state_.parameters[3],state_.parameters[4],state_.errors[3][3],state_.errors[4][4],state_.errors[3][4])));}
+  float emomEta() const {return std::sqrt(std::abs(getEtaErr2(state_.parameters[3],state_.parameters[4],state_.parameters[5],state_.errors[3][3],state_.errors[4][4],state_.errors[5][5],state_.errors[3][4],state_.errors[3][5],state_.errors[4][5])));}
 
   const HitVec& hitsVector() const {return hits_;}
-  const HitVec& initHitsVector() const {return initHits_;}
 
   void addHit(const Hit& hit,float chi2) {hits_.push_back(hit);chi2_+=chi2;}
   void addHitIdx(int hitIdx,float chi2) { hitIdxVec_.push_back(hitIdx); if (hitIdx>=0) ++nGoodHitIdx_; chi2_+=chi2; }
@@ -89,7 +102,6 @@ public:
   int  getHitIdx(int posHitIdx) const {return hitIdxVec_[posHitIdx];}
 
   void resetHits() { hits_.clear(); hitIdxVec_.clear(); nGoodHitIdx_=0; }
-  int  nHits()   const { return hits_.size(); }
   int  nHitIdx() const { return nGoodHitIdx_; }
 
   void setCharge(int chg)  {state_.charge=chg;}
@@ -98,8 +110,14 @@ public:
 
   void setState(TrackState newState) {state_=newState;}
 
-  SimTkIDInfo SimTrackIDInfo() const;
-
+  unsigned int nHits() const {return hits_.size();}
+  void setMCTrackIDInfo();
+  unsigned int mcTrackID() const {return mcTrackID_;}
+  unsigned int nHitsMatched() const {return nHitsMatched_;}
+  unsigned int seedID() const {return seedID_;}
+  void setMCDuplicateInfo(unsigned int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
+  bool isDuplicate() const {return isDuplicate_;}
+  unsigned int duplicateID() const {return duplicateID_;}
   Track clone() const {return Track(state_,hits_,chi2_);}
   Track clone_for_io() { return Track(state_,chi2_,label_);}
 
@@ -109,12 +127,20 @@ public:
 private:
   TrackState state_;
   HitVec hits_;
-  HitVec initHits_;
-  HitIdxVec hitIdxVec_;
   float chi2_;
+  unsigned int mcTrackID_;
+  unsigned int nHitsMatched_;
+  unsigned int seedID_;
+  unsigned int duplicateID_;
+  bool isDuplicate_;
+  HitIdxVec hitIdxVec_;
   int   nGoodHitIdx_ =  0;
   int   label_       = -1;
 };
 
 typedef std::vector<Track> TrackVec;
+typedef std::vector<Track*> TrackRefVec;
+typedef std::vector<TrackState> TSVec;
+typedef std::vector<std::pair<unsigned int, TrackState> > TSLayerPairVec;
+
 #endif

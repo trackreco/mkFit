@@ -1,4 +1,5 @@
 #include "Hit.h"
+#include "Config.h"
 
 // for each layer
 //   Config::nEtaBin vectors of hits, resized to large enough N
@@ -20,19 +21,6 @@
 
 // Need a good "array of pods" class with aligned alloc and automatic growth.
 // For now just implement the no-resize / no-destroy basics in the BoH.
-
-namespace Config
-{
-  const int g_NEvents           = 10;
-  const int g_NTracks           = 20000;
-  const int g_MaxHitsPerBunch   = std::max(100, g_NTracks * 2 / Config::nEtaPart);
-
-  const int g_MaxCandsPerSeed   = 6;
-  const int g_MaxCandsPerEtaBin = std::max(100, g_MaxCandsPerSeed * g_NTracks / Config::nEtaPart);
-  // Effective eta bin is one half of nEtaPart -- so the above is twice the "average".
-  // Note that last and first bin are 3/4 nEtaPart ... but can be made 1/4 by adding
-  // additional bins on each end.
-}
 
 typedef std::pair<int, int> PhiBinInfo_t;
 
@@ -144,7 +132,7 @@ public:
   void InsertHit(const Hit& hit)
   {
     int b1, b2;
-    int cnt = Config::getBothEtaBins(hit.eta(), b1, b2);
+    int cnt = getBothEtaBins(hit.eta(), b1, b2);
 
     if (b1 != -1) m_bunches_of_hits[b1].InsertHit(hit);
     if (b2 != -1) m_bunches_of_hits[b2].InsertHit(hit);
@@ -258,8 +246,8 @@ public:
   {
     // XXXX assuming vertex at origin.
     // XXXX the R condition is trying to get rid of bad seeds (as a quick hack)
-    int bin = Config::getEtaBin(track.momEta());
-    float r = track.posR();
+    int bin = getEtaBin(track.momEta());
+    float r = track.radius();
     if (bin != -1 && r > 11.9 && r < 12.1)
     {
       m_etabins_of_candidates[bin].InsertTrack(track);
@@ -347,8 +335,8 @@ public:
   {
     // XXXX assuming vertex at origin.
     // XXXX the R condition is trying to get rid of bad seeds (as a quick hack)
-    int bin = Config::getEtaBin(seed.momEta());
-    float r = seed.posR();
+    int bin = getEtaBin(seed.momEta());
+    float r = seed.radius();
     if (bin != -1 && r > 11.9 && r < 12.1)
       {
 	m_etabins_of_comb_candidates[bin].InsertSeed(seed);
@@ -362,7 +350,7 @@ public:
   {
     // XXXX assuming vertex at origin.
     // XXXX the R condition is trying to get rid of bad seeds (as a quick hack)
-    int bin = Config::getEtaBin(track.momEta());
+    int bin = getEtaBin(track.momEta());
     m_etabins_of_comb_candidates[bin].InsertTrack(track,seed_index);
   }
 

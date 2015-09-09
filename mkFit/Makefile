@@ -44,6 +44,7 @@ clean:
 	rm -f ${EXES} *.d *.o *.om 
 
 distclean: clean
+	rm -f *.optrpt
 	rm -f ${AUTO_TGTS} *.ah
 
 echo:

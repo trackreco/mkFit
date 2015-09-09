@@ -37,6 +37,7 @@ clean:
 
 distclean: clean
 	-rm -f ${AUTO_TGTS}
+	-rm -f *.optrpt
 	cd mkFit && ${MAKE} distclean
 
 main: ${AUTO_TGTS} ${OBJS} ${LIBUSOLIDS}

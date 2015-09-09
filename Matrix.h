@@ -1,11 +1,8 @@
 #ifndef _matrix_
 #define _matrix_
 
-#ifndef MAX_HITS
-#define MAX_HITS 10
-#endif
-
 #include "Math/SMatrix.h"
+#include "Config.h"
 
 typedef ROOT::Math::SMatrix<float,6,6,ROOT::Math::MatRepSym<float,6> >    SMatrixSym66;
 typedef ROOT::Math::SMatrix<float,6> SMatrix66;
@@ -80,16 +77,7 @@ inline void sincos4(float x, float& sin, float& cos)
 
   #endif
 
-
   #include "Matriplex/MatriplexSym.h"
-
-  #ifndef MPT_SIZE
-    #ifdef __MIC__
-      #define MPT_SIZE 16
-    #else
-      #define MPT_SIZE 8
-    #endif
-  #endif
 
   const Matriplex::idx_t NN =  MPT_SIZE; // "Length" of MPlex.
 
@@ -109,19 +97,6 @@ inline void sincos4(float x, float& sin, float& cos)
   typedef Matriplex::Matriplex<float, 1, 1, NN>     MPlexQF;
   typedef Matriplex::Matriplex<int,   1, 1, NN>     MPlexQI;
 
-
-  #ifndef NUM_THREADS
-  #define NUM_THREADS 1
-  #endif
-
-  #ifndef NUM_THREADS_SIM
-  #define NUM_THREADS_SIM 60
-  #endif
-
-  #ifndef THREAD_BINDING
-  #define THREAD_BINDING spread
-  #endif
-
 #endif
 
 //==============================================================================
@@ -136,27 +111,5 @@ extern std::uniform_real_distribution<float> g_unif;
 // #define DEBUG
 
 extern bool g_dump;
-
-#ifdef NO_ROOT
-
-typedef double Double_t;
-
-namespace TMath
-{
-   inline Double_t Pi()       { return 3.14159265358979323846; }
-   inline Double_t TwoPi()    { return 2.0 * Pi(); }
-   inline Double_t PiOver2()  { return Pi() / 2.0; }
-   inline Double_t PiOver4()  { return Pi() / 4.0; }
-   inline Double_t InvPi()    { return 1.0 / Pi(); }
-   inline Double_t RadToDeg() { return 180.0 / Pi(); }
-   inline Double_t DegToRad() { return Pi() / 180.0; }
-   inline Double_t Sqrt2()    { return 1.4142135623730950488016887242097; }
-}
-
-#else
-
-#include "TMath.h"
-
-#endif
 
 #endif

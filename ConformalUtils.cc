@@ -2,7 +2,8 @@
 
 //M. Hansroul, H. Jeremie and D. Savard, NIM A 270 (1988) 498
 //http://www.sciencedirect.com/science/article/pii/016890028890722X
-void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge, TrackState& fitStateHit0, bool backward) {
+
+void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge, TrackState& fitStateHit0, bool backward, bool fiterrs) {
 
   //fixme: does this work in case bs not in (0,0)? I think so, but need to check
 
@@ -55,12 +56,12 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
   std::cout << "R=" << R << " pt=" << pt << std::endl;
   */
 
-  //compute phi at 1st hit
   float vrx = x[0]-a;
   float vry = y[0]-b;
   float phi = atan2(vrx,vry);
   float px = fabs(pt*cos(phi))*((x[1]-x[0])>0. ? 1. : -1.);
   float py = fabs(pt*sin(phi))*((y[1]-y[0])>0. ? 1. : -1.);
+
   //compute theta
   float tantheta = sqrt((x[0]-x[2])*(x[0]-x[2])+(y[0]-y[2])*(y[0]-y[2]))/(z[2]-z[0]);
   float pz = fabs(pt/tantheta)*((z[1]-z[0])>0. ? 1. : -1.);
@@ -78,28 +79,28 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
   fitStateHit0.parameters[4] = py;
   fitStateHit0.parameters[5] = pz;
   //get them a posteriori from width of residue plots (i.e. unitary pulls)
-  //warning: this errors are tuned for hits on layer 0,5,9
-  const float hitposerrXY = 0.01;//assume 100mum uncertainty in xy coordinate
-  const float hitposerrZ = 0.1;//assume 1mm uncertainty in z coordinate
-  const float hitposerrR = hitposerrXY/10.;
-
-  //xy smearing
-  // float xerr = hitposerrXY;
-  // float yerr = hitposerrXY;
-  // float zerr = hitposerrZ;
 
   //r-phi smearing
   float hitRad2 = x[0]*x[0]+y[0]*y[0];
-  float varXY  = hitposerrXY*hitposerrXY;
-  float varPhi = varXY/hitRad2;
-  float varR   = hitposerrR*hitposerrR;
-  float varZ   = hitposerrZ*hitposerrZ;
+  float varPhi = Config::varXY/hitRad2;
 
-  float ptinverr = 0.0075;
-  float pterr = pow(pt,2)*ptinverr;
-  float phierr = 0.0017;
-  float thetaerr = 0.0031;
-  
+  float ptinverr = 0.;
+  float pterr    = 0.;
+  float phierr   = 0.;
+  float thetaerr = 0.;
+
+  if (fiterrs) { // use fit errors, ie. hits on layers 0,5,9
+    ptinverr = Config::ptinverr049;
+    phierr   = Config::phierr049;
+    thetaerr = Config::thetaerr049;
+  }
+  else{ //use seed errors, ie. hits on layers 0,1,2
+    ptinverr = Config::ptinverr012;
+    phierr   = Config::phierr012;
+    thetaerr = Config::thetaerr012;
+  }
+  pterr = (pt*pt)*ptinverr;
+   
   //this gives nice fitting results when scaling the errors by 10
   fitStateHit0.errors=ROOT::Math::SMatrixIdentity();
   //xy smearing
@@ -107,10 +108,10 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
   //fitStateHit0.errors[1][1] = pow(yerr,2);
   //fitStateHit0.errors[2][2] = pow(zerr,2);
   //r-phi smearing
-  fitStateHit0.errors[0][0] = x[0]*x[0]*varR/hitRad2 + y[0]*y[0]*varPhi;
-  fitStateHit0.errors[1][1] = x[0]*x[0]*varPhi + y[0]*y[0]*varR/hitRad2;
-  fitStateHit0.errors[2][2] = varZ;
-  fitStateHit0.errors[1][0] = x[0]*y[0]*(varR/hitRad2 - varPhi);
+  fitStateHit0.errors[0][0] = x[0]*x[0]*Config::varR/hitRad2 + y[0]*y[0]*varPhi;
+  fitStateHit0.errors[1][1] = x[0]*x[0]*varPhi + y[0]*y[0]*Config::varR/hitRad2;
+  fitStateHit0.errors[2][2] = Config::varZ;
+  fitStateHit0.errors[1][0] = x[0]*y[0]*(Config::varR/hitRad2 - varPhi);
   fitStateHit0.errors[0][1] = fitStateHit0.errors[1][0];
 
   fitStateHit0.errors[3][3] = pow(cos(phi),2)*pow(pterr,2)+pow(pt*sin(phi),2)*pow(phierr,2);

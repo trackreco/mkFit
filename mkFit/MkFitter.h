@@ -4,6 +4,7 @@
 #include "Event.h"
 #include "Matrix.h"
 #include "KalmanUtils.h"
+#include "BinInfoUtils.h"
 
 #include "HitStructures.h"
 
@@ -78,7 +79,7 @@ public:
   void AddBestHit(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end);
 
   void GetHitRange(std::vector<std::vector<BinInfo> >& segmentMapLay_, int beg, int end,
-                   const float etaDet, int& firstHit, int& lastHit);
+                    int& firstHit, int& lastHit);
 
   void FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end, std::vector<std::vector<Track> >& tmp_candidates, int offset);
 
@@ -89,7 +90,7 @@ public:
   float getPar(int itrack, int i, int par) { return Par[i].ConstAt(itrack, 0, par); }
 
   inline float normalizedPhi(float phi) {
-    return std::fmod(phi, (float) M_PI);
+    return std::fmod(phi, (float) Config::PI);
   }
 
 
