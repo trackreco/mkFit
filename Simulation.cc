@@ -142,10 +142,10 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     }
     assert(std::abs(init_xprime[2])<1e-10); // in this geometry normal vector is in xy plane
 
-    x /= std::abs(init_xprime.Dot(pvec)); // take care of dip angle
+    const float x = Config::xr / std::abs(init_xprime.Dot(pvec)); // take care of dip angle
     const float betac = sqrt(p*p+(.135*.135))/(p*p); // m=130 MeV, pion
-    const float theta_0 = 0.0136/(betac*p)*sqrt(Config::xr/Config::X0)*(1+0.038*log(Config::xr/Config::X0));// eq 32.14
-    const float y_plane = z1*Config::xr*theta_0/sqrt(12.)+ z2*Config::xr*theta_0/2.;
+    const float theta_0 = 0.0136/(betac*p)*sqrt(x/Config::X0)*(1+0.038*log(x/Config::X0));// eq 32.14
+    const float y_plane = z1*x*theta_0/sqrt(12.)+ z2*x*theta_0/2.;
     const float theta_plane = z2*theta_0;
     const float theta_space = sqrt(2)*theta_plane;
     dprint("yplane, theta_space = " << y_plane << ", " << theta_space);
