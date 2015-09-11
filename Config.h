@@ -23,13 +23,13 @@ namespace Config{
   constexpr float fRadialSpacing   = 4.;
   constexpr float fRadialExtent    = 0.01;
   constexpr float fInnerSensorSize = 5.0; // approximate sensor size in cm
-  constexpr float fOuterSensorSize = fInnerSensorSize * 2.;
+  constexpr float fOuterSensorSize = Config::fInnerSensorSize * 2.;
   constexpr float fEtaDet          = 1;  // 1 from chep
 
   // config on Event
   constexpr unsigned int maxCand = 10;
   constexpr float chi2Cut = 15.;
-  constexpr float nSigma = 3.;
+  constexpr float nSigma  = 3.;
   constexpr float minDPhi = 0.;
   constexpr float maxDPhi = Config::PI;
   constexpr float minDEta = 0.;
@@ -48,16 +48,17 @@ namespace Config{
 
   constexpr float hitposerrXY = 0.01; // resolution is 100um in xy
   constexpr float hitposerrZ  = 0.1; // resolution is 1mm in z
-  constexpr float hitposerrR  = hitposerrXY/10.;
-  constexpr float varXY = hitposerrXY*hitposerrXY;
-  constexpr float varZ  = hitposerrZ*hitposerrZ;
-  constexpr float varR  = hitposerrR*hitposerrR;
+  constexpr float hitposerrR  = Config::hitposerrXY/10.;
+  constexpr float varXY       = Config::hitposerrXY*Config::hitposerrXY;
+  constexpr float varZ        = Config::hitposerrZ*Config::hitposerrZ;
+  constexpr float varR        = Config::hitposerrR*Config::hitposerrR;
 
-  constexpr unsigned int nTotHit = nLayers; // for now one hit per layer for sim
+  constexpr unsigned int nTotHit = Config::nLayers; // for now one hit per layer for sim
 
   // scattering simulation
   constexpr float X0 = 9.370; // cm, from http://pdg.lbl.gov/2014/AtomicNuclearProperties/HTML/silicon_Si.html // Pb = 0.5612 cm
-  constexpr float xr = 0.1; //.1 cm  -assumes radial impact. This is bigger than what we have in main
+  constexpr float xr = 0.1; //  -assumes radial impact. This is bigger than what we have in main --> shouldn't it be the parameter below??? if radial impact??
+  //const     float xr = std::sqrt(Config::beamspotX*Config::beamspotX + Config::beamspotY*Config::beamspotY); 
 
   // Config for seeding
   constexpr unsigned int nlayers_per_seed = 3;
@@ -66,17 +67,17 @@ namespace Config{
 
   // Config for Hit and BinInfoUtils
   constexpr unsigned int nPhiPart   = 80; //315 = 63*5  //63; //80; 
-  constexpr float        fPhiFactor = nPhiPart / TwoPI;
+  constexpr float        fPhiFactor = Config::nPhiPart / Config::TwoPI;
   constexpr unsigned int nEtaPart   = 11; //11;
-  constexpr unsigned int nEtaBin    = 2*nEtaPart - 1;
+  constexpr unsigned int nEtaBin    = 2*Config::nEtaPart - 1;
 
-  constexpr float        fEtaFull  = 2 * fEtaDet;
-  constexpr float        lEtaPart  = fEtaFull/float(nEtaPart);
-  constexpr float        lEtaBin   = lEtaPart/2.;
-  constexpr float        fEtaOffB1 = fEtaDet;
-  constexpr float        fEtaFacB1 = nEtaPart / fEtaFull;
-  constexpr float        fEtaOffB2 = fEtaDet - fEtaFull / (2 * nEtaPart);
-  constexpr float        fEtaFacB2 = (nEtaPart - 1) / (fEtaFull - fEtaFull / nEtaPart);
+  constexpr float        fEtaFull  = 2 * Config::fEtaDet;
+  constexpr float        lEtaPart  = Config::fEtaFull/float(Config::nEtaPart);
+  constexpr float        lEtaBin   = Config::lEtaPart/2.;
+  constexpr float        fEtaOffB1 = Config::fEtaDet;
+  constexpr float        fEtaFacB1 = Config::nEtaPart / Config::fEtaFull;
+  constexpr float        fEtaOffB2 = Config::fEtaDet - Config::fEtaFull / (2 * Config::nEtaPart);
+  constexpr float        fEtaFacB2 = (Config::nEtaPart - 1) / (Config::fEtaFull - Config::fEtaFull / Config::nEtaPart);
 
   // This is for extra bins narrower ... thinking about this some more it
   // seems it would be even better to have two more exta bins, hanging off at
