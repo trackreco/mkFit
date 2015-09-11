@@ -158,7 +158,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
     const float scatteredY = initY + y_plane *(+init_xprime[0]*cos(phismear));
     const float scatteredZ = initZ + y_plane *(           sin(phismear));
     const float scatteredPhi = getPhi(scatteredX,scatteredY);
-    const float scatteredRad = std::sqrt(getPhi(scatteredX,scatteredY));
+    const float scatteredRad = std::sqrt(getRad2(scatteredX,scatteredY));
 #else // --> particle only has momentum vector scattered 
     const float scatteredX = initX;
     const float scatteredY = initY;
