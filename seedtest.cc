@@ -20,6 +20,7 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, E
       TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
 #ifdef CHECKSTATEVALID
       if (!propState.valid) {
+	std::cout << "Seeding failed to propagate to layer: " << ilayer << " for sim track: " << itrack << std::endl;
 	break;
       }
 #endif
