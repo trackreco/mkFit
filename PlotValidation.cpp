@@ -14,7 +14,12 @@ PlotValidation::PlotValidation(TString inName, TString outName, TString outType)
   fOutType = outType;
   
   // make output directory
-  PlotValidation::MakeSubDirectory(fOutName);
+  FileStat_t dummyFileStat;
+  if (gSystem->GetPathInfo(fOutName.Data(), dummyFileStat) == 1){
+    TString mkDir = "mkdir -p ";
+    mkDir += fOutName.Data();
+    gSystem->Exec(mkDir.Data());
+  }
 
   // make output root file
   fOutRoot = new TFile(Form("%s/%s.root",fOutName.Data(),fOutName.Data()), "RECREATE");
@@ -386,6 +391,7 @@ void PlotValidation::PlotTiming(){
   tottime->GetXaxis()->SetTitle("Event Function Call");
   tottime->GetYaxis()->SetTitle("Time [s]");
   tottime->SetStats(0);
+  tottime->Sumw2();
   for (Int_t t = 1; t <= tottime->GetNbinsX(); t++){
     tottime->GetXaxis()->SetBinLabel(t,stime[t-1].Data());
   }
@@ -394,6 +400,7 @@ void PlotValidation::PlotTiming(){
   tottime->GetXaxis()->SetTitle("Event Function Call");
   rectime->GetYaxis()->SetTitle("Fraction of Time in Reco");
   rectime->SetStats(0);
+  rectime->Sumw2();
   for (Int_t t = 1; t <= rectime->GetNbinsX(); t++){
     rectime->GetXaxis()->SetBinLabel(t,stime[t].Data());
   }
@@ -550,10 +557,12 @@ void PlotValidation::PlotNHits(){
       nHitsPlot[j][c] = new TH1F(Form("h_nHits_%s_%s",coll[c].Data(),trks[j].Data()),Form("%s %s Track vs nHits / Track",scoll[c].Data(),strks[j].Data()),11,0,11);
       nHitsPlot[j][c]->GetXaxis()->SetTitle("nHits / Track");
       nHitsPlot[j][c]->GetYaxis()->SetTitle("nTracks");    
+      nHitsPlot[j][c]->Sumw2();
 
       fracHitsMatchedPlot[j][c] = new TH1F(Form("h_fracHitsMatched_%s_%s",coll[c].Data(),trks[j].Data()),Form("%s %s Track vs Highest Fraction of Matched Hits / Track",scoll[c].Data(),strks[j].Data()),4000,0,1.1);
       fracHitsMatchedPlot[j][c]->GetXaxis()->SetTitle("Highest Fraction of Matched Hits / Track");
       fracHitsMatchedPlot[j][c]->GetYaxis()->SetTitle("nTracks");    
+      fracHitsMatchedPlot[j][c]->Sumw2();
     }
   }
 
@@ -1023,11 +1032,13 @@ void PlotValidation::PlotMomResolutionPull(){
       varsResPlot[i][j] = new TH1F(Form("h_%s_res_%s",vars[i].Data(),trks[j].Data()),Form("%s Resolution (%s Track vs. MC Track)",svars[i].Data(),strks[j].Data()),nBinsRes[i],xlowRes[i],xhighRes[i]);
       varsResPlot[i][j]->GetXaxis()->SetTitle(Form("(%s^{%s}%s - %s^{mc}%s)/%s^{mc}%s",svars[i].Data(),strks[j].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data()));
       varsResPlot[i][j]->GetYaxis()->SetTitle("nTracks");
+      varsResPlot[i][j]->Sumw2();
 
       //Pull
       varsPullPlot[i][j] = new TH1F(Form("h_%s_pull_%s",vars[i].Data(),trks[j].Data()),Form("%s Pull (%s Track vs. MC Track)",svars[i].Data(),strks[j].Data()),nBinsPull[i],xlowPull[i],xhighPull[i]);
       varsPullPlot[i][j]->GetXaxis()->SetTitle(Form("(%s^{%s}%s - %s^{mc}%s)/#sigma(%s^{%s})%s",svars[i].Data(),strks[j].Data(),sunits[i].Data(),svars[i].Data(),sunits[i].Data(),svars[i].Data(),strks[j].Data(),sunits[i].Data()));
       varsPullPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
+      varsPullPlot[i][j]->Sumw2();
     }
   }
 
