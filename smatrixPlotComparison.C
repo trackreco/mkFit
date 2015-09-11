@@ -59,6 +59,9 @@ void smatrixPlotComparison(){
   subdirs = outdir;
   subdirs.Append("/timing");
   makeDir(subdirs);
+  subdirs = outdir;
+  subdirs.Append("/nHits");
+  makeDir(subdirs);
  
   std::vector<TString> vars;
   vars.push_back("eta");
@@ -77,6 +80,18 @@ void smatrixPlotComparison(){
       createplot(file1,label1,file2,label2,Form("duplicaterate/h_sim_%s_DR_%s_DR",vars[i].Data(),trks[j].Data()),outdir);
       createplot(file1,label1,file2,label2,Form("momentum_resolutionpull/h_%s_res_%s",vars[i].Data(),trks[j].Data()),outdir);
       createplot(file1,label1,file2,label2,Form("momentum_resolutionpull/h_%s_pull_%s",vars[i].Data(),trks[j].Data()),outdir);
+    }
+  }
+
+  std::vector<TString> coll;
+  coll.push_back("allreco");
+  coll.push_back("fake");
+  coll.push_back("allmatch");
+  coll.push_back("bestmatch");
+  for (UInt_t i = 0; i < coll.size(); i++){
+    for (UInt_t j = 0; j < trks.size(); j++){
+      createplot(file1,label1,file2,label2,Form("nHits/h_nHits_%s_%s",coll[i].Data(),trks[j].Data()),outdir);
+      createplot(file1,label1,file2,label2,Form("nHits/h_fracHitsMatched_%s_%s",coll[i].Data(),trks[j].Data()),outdir);
     }
   }
 
