@@ -24,13 +24,14 @@ typedef std::vector<FltVecRefVec> FltVecRefVecVec;
 
 typedef std::vector<TString> TStrVec;
 
-typedef std::vector<UInt_t>  UIntVec;
+typedef std::vector<UInt_t> UIntVec;
 
-typedef std::vector<Int_t>   IntVec;
-typedef std::vector<IntVec>  IntVecVec;
+typedef std::vector<Int_t>  IntVec;
+typedef std::vector<IntVec> IntVecVec;
 
-typedef std::vector<Float_t> FltVec;
-typedef std::vector<FltVec>  FltVecVec;
+typedef std::vector<Float_t>   FltVec;
+typedef std::vector<FltVec>    FltVecVec;
+typedef std::vector<FltVecVec> FltVecVecVec;
 
 typedef std::vector<TH1F *>        TH1FRefVec;
 typedef std::vector<TH1FRefVec>    TH1FRefVecVec;
@@ -44,6 +45,7 @@ public:
   void Validation(Bool_t mvInput = false);
   void PlotBranching();
   void PlotTiming();
+  void PlotSegment();
   void PlotSimGeo();
   void PlotNHits();
   void PlotCFResidual();
@@ -81,4 +83,9 @@ private:
   TFile * fOutRoot;
   TCanvas * fTH1Canv;
   TCanvas * fTH2Canv;
+
+  // color base
+  std::vector<Color_t> fColors;
+  UInt_t fColorSize;
+
 };
