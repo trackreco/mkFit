@@ -69,7 +69,7 @@ void PlotValidation::Validation(Bool_t mvInput){
   PlotValidation::PlotNHits(); 
   PlotValidation::PlotCFResidual();
   PlotValidation::PlotCFResolutionPull();
-  //  PlotValidation::PlotPosResolutionPull(); 
+  PlotValidation::PlotPosResolutionPull(); 
   PlotValidation::PlotMomResolutionPull();
   PlotValidation::PlotEfficiency(); 
   PlotValidation::PlotFakeRate();
@@ -529,7 +529,7 @@ void PlotValidation::PlotSegment(){
   TH1FRefVec    etabinplots(nLayers);
   TH1FRefVecVec phibinplots(nLayers);
   for (UInt_t ilay = 0; ilay < nLayers; ilay++){
-    phibinplots[ilay].reserve(nEtaPart);
+    phibinplots[ilay].resize(nEtaPart);
   }
 
   // make output subdirectory and subdir in ROOT file, and cd to it.
@@ -772,8 +772,8 @@ void PlotValidation::PlotNHits(){
   TH1FRefVecVec nHitsPlot(trks.size());
   TH1FRefVecVec fracHitsMatchedPlot(trks.size());
   for (UInt_t j = 0; j < trks.size(); j++){
-    nHitsPlot[j].reserve(coll.size());
-    fracHitsMatchedPlot[j].reserve(coll.size());
+    nHitsPlot[j].resize(coll.size());
+    fracHitsMatchedPlot[j].resize(coll.size());
   }
 
   for (UInt_t j = 0; j < trks.size(); j++){
@@ -890,7 +890,7 @@ void PlotValidation::PlotCFResidual(){
   // Create residual plots
   TH1FRefVecVec varsResidualPlot(vars.size());
   for (UInt_t i = 0; i < vars.size(); i++){
-    varsResidualPlot[i].reserve(trks.size());
+    varsResidualPlot[i].resize(trks.size());
   }
 
   for (UInt_t i = 0; i < vars.size(); i++){
@@ -990,8 +990,8 @@ void PlotValidation::PlotCFResolutionPull(){
   TH1FRefVecVec varsResPlot(vars.size());
   TH1FRefVecVec varsPullPlot(vars.size());
   for (UInt_t i = 0; i < vars.size(); i++){
-    varsResPlot[i].reserve(trks.size());
-    varsPullPlot[i].reserve(trks.size());
+    varsResPlot[i].resize(trks.size());
+    varsPullPlot[i].resize(trks.size());
   }
 
   for (UInt_t i = 0; i < vars.size(); i++){
@@ -1096,18 +1096,18 @@ void PlotValidation::PlotPosResolutionPull(){
   TStrVec trks      = {"seed","fit"};
   TStrVec strks     = {"Seed","Fit"}; // strk --> labels for histograms for given track type
 
-  UIntVec nlayers_trk = {nlayers_per_seed, nLayers}; // want to reserve just enough space
+  UIntVec nlayers_trk = {nlayers_per_seed, nLayers}; // want to resize just enough space
 
   // Create pos plots
   TH1FRefVecVecVec varsResPlot(trks.size()); // in this case, outer layer is tracks, then variable, then by layer
   TH1FRefVecVecVec varsPullPlot(trks.size());
 
   for (UInt_t j = 0; j < trks.size(); j++){
-    varsResPlot[j].reserve(vars.size());
-    varsPullPlot[j].reserve(vars.size());
+    varsResPlot[j].resize(vars.size());
+    varsPullPlot[j].resize(vars.size());
     for (UInt_t i = 0; i < vars.size(); i++){
-      varsResPlot[j][i].reserve(nlayers_trk[j]);
-      varsPullPlot[j][i].reserve(nlayers_trk[j]);
+      varsResPlot[j][i].resize(nlayers_trk[j]);
+      varsPullPlot[j][i].resize(nlayers_trk[j]);
     }
   }
 
@@ -1134,8 +1134,8 @@ void PlotValidation::PlotPosResolutionPull(){
   for (UInt_t j = 0; j < trks.size(); j++){
     layers_trk[j] = new UIntVec(); // initialize pointer
 
-    recovars_val[j].reserve(vars.size());
-    recovars_err[j].reserve(vars.size());
+    recovars_val[j].resize(vars.size());
+    recovars_err[j].resize(vars.size());
     for (UInt_t i = 0; i < vars.size(); i++){
       recovars_val[j][i] = new FltVec(); // initialize pointers
       recovars_err[j][i] = new FltVec(); // initialize pointers
@@ -1247,8 +1247,8 @@ void PlotValidation::PlotMomResolutionPull(){
   TH1FRefVecVec varsResPlot(vars.size());
   TH1FRefVecVec varsPullPlot(vars.size());
   for (UInt_t i = 0; i < vars.size(); i++){
-    varsResPlot[i].reserve(trks.size());
-    varsPullPlot[i].reserve(trks.size());
+    varsResPlot[i].resize(trks.size());
+    varsPullPlot[i].resize(trks.size());
   }
 
   for (UInt_t i = 0; i < vars.size(); i++){
@@ -1351,9 +1351,9 @@ void PlotValidation::PlotEfficiency(){
   TH1FRefVecVec varsDenomPlot(vars.size());
   TH1FRefVecVec varsEffPlot(vars.size());
   for (UInt_t i = 0; i < vars.size(); i++){
-    varsNumerPlot[i].reserve(trks.size());
-    varsDenomPlot[i].reserve(trks.size());
-    varsEffPlot[i].reserve(trks.size());
+    varsNumerPlot[i].resize(trks.size());
+    varsDenomPlot[i].resize(trks.size());
+    varsEffPlot[i].resize(trks.size());
   }  
 
   for (UInt_t i = 0; i < vars.size(); i++){
@@ -1454,9 +1454,9 @@ void PlotValidation::PlotFakeRate(){
   TH1FRefVecVec varsDenomPlot(vars.size());
   TH1FRefVecVec varsFRPlot(vars.size());
   for (UInt_t i = 0; i < vars.size(); i++){
-    varsNumerPlot[i].reserve(trks.size());
-    varsDenomPlot[i].reserve(trks.size());
-    varsFRPlot[i].reserve(trks.size());
+    varsNumerPlot[i].resize(trks.size());
+    varsDenomPlot[i].resize(trks.size());
+    varsFRPlot[i].resize(trks.size());
   }  
 
   for (UInt_t i = 0; i < vars.size(); i++){
@@ -1560,9 +1560,9 @@ void PlotValidation::PlotDuplicateRate(){
   TH1FRefVecVec varsDenomPlot(vars.size());
   TH1FRefVecVec varsDRPlot(vars.size());
   for (UInt_t i = 0; i < vars.size(); i++){
-    varsNumerPlot[i].reserve(trks.size());
-    varsDenomPlot[i].reserve(trks.size());
-    varsDRPlot[i].reserve(trks.size());
+    varsNumerPlot[i].resize(trks.size());
+    varsDenomPlot[i].resize(trks.size());
+    varsDRPlot[i].resize(trks.size());
   }  
 
   for (UInt_t i = 0; i < vars.size(); i++){
@@ -1646,8 +1646,8 @@ void PlotValidation::PrintTotals(){
   TH1FRefVecVec numerPhiPlot(trks.size());
   TH1FRefVecVec denomPhiPlot(trks.size());
   for (UInt_t j = 0; j < trks.size(); j++) {
-    numerPhiPlot[j].reserve(rates.size());
-    denomPhiPlot[j].reserve(rates.size());
+    numerPhiPlot[j].resize(rates.size());
+    denomPhiPlot[j].resize(rates.size());
   }
 
   for (UInt_t j = 0; j < trks.size(); j++) {
@@ -1664,8 +1664,8 @@ void PlotValidation::PrintTotals(){
   TH1FRefVecVec nHitsPlot(trks.size());
   TH1FRefVecVec fracHitsMatchedPlot(trks.size());
   for (UInt_t j = 0; j < trks.size(); j++) {
-    nHitsPlot[j].reserve(coll.size());
-    fracHitsMatchedPlot[j].reserve(coll.size());
+    nHitsPlot[j].resize(coll.size());
+    fracHitsMatchedPlot[j].resize(coll.size());
   }
 
   for (UInt_t j = 0; j < trks.size(); j++) {
