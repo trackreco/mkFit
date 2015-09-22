@@ -37,6 +37,21 @@ PlotValidation::PlotValidation(TString inName, TString outName, TString outType)
 
   fTH1Canv = new TCanvas();
   fTH2Canv = new TCanvas();
+  
+  // fColorBase 
+  fColors.push_back(kBlue);
+  fColors.push_back(kOrange+8);
+  fColors.push_back(kGreen+1);
+  fColors.push_back(kRed);
+  fColors.push_back(kYellow+1);
+  fColors.push_back(kViolet+2);
+  fColors.push_back(kCyan);
+  fColors.push_back(kPink);
+  fColors.push_back(kPink+6);
+  fColors.push_back(kSpring+10);
+  fColors.push_back(kBlack);
+  
+  fColorSize = fColors.size();
 }
 
 PlotValidation::~PlotValidation(){
@@ -48,12 +63,13 @@ PlotValidation::~PlotValidation(){
 
 void PlotValidation::Validation(Bool_t mvInput){
   PlotValidation::PlotBranching();
+  PlotValidation::PlotSegment();
   PlotValidation::PlotTiming();
   PlotValidation::PlotSimGeo();  
   PlotValidation::PlotNHits(); 
   PlotValidation::PlotCFResidual();
   PlotValidation::PlotCFResolutionPull();
-  //PlotValidation::PlotPosResolutionPull(); 
+  PlotValidation::PlotPosResolutionPull(); 
   PlotValidation::PlotMomResolutionPull();
   PlotValidation::PlotEfficiency(); 
   PlotValidation::PlotFakeRate();
@@ -234,19 +250,19 @@ void PlotValidation::PlotBranching(){
     // fill norm etaphi
     for (Int_t xbin = 1; xbin <= layetaphibins_percand_norm->GetNbinsX()+1; xbin++){ // normalize the overflow!
       if (!(etaphibins_laycount[lay] == 0)){
-	layetaphibins_percand_norm->SetBinContent(xbin,lay,float(layetaphibins_percand->GetBinContent(xbin,lay))/float(etaphibins_laycount[lay]));
+	layetaphibins_percand_norm->SetBinContent(xbin,lay,Float_t(layetaphibins_percand->GetBinContent(xbin,lay))/Float_t(etaphibins_laycount[lay]));
       }
     }
     // fill norm hits
     for (Int_t xbin = 1; xbin <= layhits_percand_norm->GetNbinsX()+1; xbin++){ // normalize the overflow!
       if (!(hits_laycount[lay] == 0)){
-	layhits_percand_norm->SetBinContent(xbin,lay,float(layhits_percand->GetBinContent(xbin,lay))/float(hits_laycount[lay]));
+	layhits_percand_norm->SetBinContent(xbin,lay,Float_t(layhits_percand->GetBinContent(xbin,lay))/Float_t(hits_laycount[lay]));
       }
     }
     // fill norm branches
     for (Int_t xbin = 1; xbin <= laybranches_percand_norm->GetNbinsX()+1; xbin++){ // normalize the overflow!
       if (!(branches_laycount[lay] == 0)){
-	laybranches_percand_norm->SetBinContent(xbin,lay,float(laybranches_percand->GetBinContent(xbin,lay))/float(branches_laycount[lay]));
+	laybranches_percand_norm->SetBinContent(xbin,lay,Float_t(laybranches_percand->GetBinContent(xbin,lay))/Float_t(branches_laycount[lay]));
       }
     }
   }
@@ -283,15 +299,12 @@ void PlotValidation::PlotBranching(){
   PlotValidation::DrawWriteSaveTH2FPlot(subdir,layhits_unique,subdirname,"lay_vs_hits_unique");
   PlotValidation::DrawWriteSaveTH2FPlot(subdir,laybranches_unique,subdirname,"lay_vs_branches_unique");
 
-  // draw and stuff for Deta, Dphi plots
-  std::vector<Color_t> colors = {kBlue,kOrange+8,kGreen+1,kRed,kYellow+1,kViolet+2,kCyan,kPink+6,kSpring+10};
-
-  float max = 0.0;
+  Float_t max = 0.0;
   // write the bare plots, scale, and get max and min
   for (UInt_t l = nlayers_per_seed; l < nLayers; l++){ // only fill ones with actual propagation
     PlotValidation::WriteTH1FPlot(subdir,layNSigmaDeta[l]);
     layNSigmaDeta[l]->Scale(1.0/layNSigmaDeta[l]->Integral());
-    float tmpmax = layNSigmaDeta[l]->GetBinContent(layNSigmaDeta[l]->GetMaximumBin());
+    Float_t tmpmax = layNSigmaDeta[l]->GetBinContent(layNSigmaDeta[l]->GetMaximumBin());
     if (tmpmax > max) {
       max = tmpmax;
     }
@@ -302,7 +315,7 @@ void PlotValidation::PlotBranching(){
     layNSigmaDeta[l]->SetStats(0);
     layNSigmaDeta[l]->SetTitle("n#sigma_{#eta}#timesd#eta for All Layers (Normalized)"); 
     layNSigmaDeta[l]->SetMaximum(1.1*max);
-    layNSigmaDeta[l]->SetLineColor(colors[l-nlayers_per_seed]);
+    layNSigmaDeta[l]->SetLineColor(fColors[(l-nlayers_per_seed)%fColorSize]+(l/fColorSize)); // allow colors to loop!
     layNSigmaDeta[l]->SetLineWidth(2);
     layNSigmaDeta[l]->Draw((l>nlayers_per_seed)?"SAME":"");
     legeta->AddEntry(layNSigmaDeta[l],Form("Layer %u",l),"L");
@@ -310,7 +323,7 @@ void PlotValidation::PlotBranching(){
   fTH1Canv->cd();    
   legeta->Draw("SAME");
   fTH1Canv->SetLogy(1);
-  fTH1Canv->SaveAs(Form("%s/%s/nSigmaDeta_layers.png",fOutName.Data(),subdirname.Data()));      
+  fTH1Canv->SaveAs(Form("%s/%s/nSigmaDeta_layers.%s",fOutName.Data(),subdirname.Data(),fOutType.Data()));      
   for (UInt_t l = 0; l < nLayers; l++){ // delete all histos, including layers not filled in
     delete layNSigmaDeta[l];
   }
@@ -320,7 +333,7 @@ void PlotValidation::PlotBranching(){
   for (UInt_t l = nlayers_per_seed; l < nLayers; l++){ // only fill ones with actual propagation
     PlotValidation::WriteTH1FPlot(subdir,layNSigmaDphi[l]);
     layNSigmaDphi[l]->Scale(1.0/layNSigmaDphi[l]->Integral());
-    float tmpmax = layNSigmaDphi[l]->GetBinContent(layNSigmaDphi[l]->GetMaximumBin());
+    Float_t tmpmax = layNSigmaDphi[l]->GetBinContent(layNSigmaDphi[l]->GetMaximumBin());
     if (tmpmax > max) {
       max = tmpmax;
     }
@@ -332,7 +345,7 @@ void PlotValidation::PlotBranching(){
     layNSigmaDphi[l]->SetStats(0);
     layNSigmaDphi[l]->SetTitle("n#sigma_{#phi}#timesd#phi for All Layers (Normalized)"); 
     layNSigmaDphi[l]->SetMaximum(1.1*max);
-    layNSigmaDphi[l]->SetLineColor(colors[l-nlayers_per_seed]);
+    layNSigmaDphi[l]->SetLineColor(fColors[(l-nlayers_per_seed)%fColorSize]+(l/fColorSize)); // allow colors to loop!
     layNSigmaDphi[l]->SetLineWidth(2);
     layNSigmaDphi[l]->Draw((l>nlayers_per_seed)?"SAME":"");
     legphi->AddEntry(layNSigmaDphi[l],Form("Layer %u",l),"L");
@@ -340,7 +353,7 @@ void PlotValidation::PlotBranching(){
   fTH1Canv->cd();    
   legphi->Draw("SAME");
   fTH1Canv->SetLogy(1);
-  fTH1Canv->SaveAs(Form("%s/%s/nSigmaDphi_layers.png",fOutName.Data(),subdirname.Data()));    
+  fTH1Canv->SaveAs(Form("%s/%s/nSigmaDphi_layers.%s",fOutName.Data(),subdirname.Data(),fOutType.Data()));    
   for (UInt_t l = 0; l < nLayers; l++){ // delete all histos, including layers not filled in
     delete layNSigmaDphi[l];
   }
@@ -405,7 +418,7 @@ void PlotValidation::PlotTiming(){
     rectime->GetXaxis()->SetBinLabel(t,stime[t].Data());
   }
   
-  float simtime = 0., segtime = 0., seedtime = 0., buildtime = 0., fittime = 0., hlvtime = 0.;
+  Float_t simtime = 0., segtime = 0., seedtime = 0., buildtime = 0., fittime = 0., hlvtime = 0.;
   configtree->SetBranchAddress("simtime",&simtime);
   configtree->SetBranchAddress("segtime",&segtime);
   configtree->SetBranchAddress("seedtime",&seedtime);
@@ -440,6 +453,218 @@ void PlotValidation::PlotTiming(){
   delete configtree;
 }
 
+void PlotValidation::PlotSegment(){
+  // Get trees and set addresses
+  TTree * segtree = (TTree*)fInRoot->Get("segtree");
+  
+  UInt_t event  = 0;
+  UInt_t layer  = 0;
+  UInt_t etabin = 0;
+  UInt_t phibin = 0;
+  UInt_t nHits  = 0;
+  
+  segtree->SetBranchAddress("evtID",&event);
+  segtree->SetBranchAddress("layer",&layer);
+  segtree->SetBranchAddress("etabin",&etabin);
+  segtree->SetBranchAddress("phibin",&phibin);
+  segtree->SetBranchAddress("nHits",&nHits);
+  
+  // get config info
+  TTree * configtree = (TTree*)fInRoot->Get("configtree");
+  UInt_t nEvents  = 0;
+  UInt_t nLayers  = 0;
+  UInt_t nEtaPart = 0;
+  UInt_t nPhiPart = 0;
+  configtree->SetBranchAddress("Nevents",&nEvents);
+  configtree->SetBranchAddress("nLayers",&nLayers);
+  configtree->SetBranchAddress("nEtaPart",&nEtaPart);
+  configtree->SetBranchAddress("nPhiPart",&nPhiPart);
+  configtree->GetEntry(0);
+
+  ////////////////////////////////////////
+  // Store the info in relevant vectors //
+  ////////////////////////////////////////
+
+  // initialize the relevant vectors here
+  FltVecVec    nHitsEtaVV(nLayers); // vector to store how many hits in given eta bin (sum over the phi bins)
+  FltVecVecVec nHitsPhiVVV(nLayers); // vector to store how many hits in given eta-phi bin
+  for (UInt_t ilay = 0; ilay < nLayers; ilay++){
+    nHitsEtaVV[ilay].resize(nEtaPart);
+    nHitsPhiVVV[ilay].resize(nEtaPart);
+    for (UInt_t ieta = 0; ieta < nEtaPart; ieta++){
+      nHitsEtaVV[ilay][ieta] = 0;
+      nHitsPhiVVV[ilay][ieta].resize(nPhiPart);
+      for (UInt_t iphi = 0; iphi < nPhiPart; iphi++){
+	nHitsPhiVVV[ilay][ieta][iphi] = 0;
+      }
+    }
+  }
+
+  // just fill the eta-phi bin vector, and then sum over phi bins for the eta vector
+  for (UInt_t i = 0; i < segtree->GetEntries(); i++) {
+    segtree->GetEntry(i);
+    nHitsPhiVVV[layer][etabin][phibin] += nHits;     
+  }
+
+  // sum over phi bins into eta bin vector
+  for (UInt_t ilay = 0; ilay < nLayers; ilay++){
+    for (UInt_t ieta = 0; ieta < nEtaPart; ieta++){
+      for (UInt_t iphi = 0; iphi < nPhiPart; iphi++){
+	nHitsEtaVV[ilay][ieta] += nHitsPhiVVV[ilay][ieta][iphi];
+      }
+    }
+  }
+  
+  // average over events
+  for (UInt_t ilay = 0; ilay < nLayers; ilay++){
+    for (UInt_t ieta = 0; ieta < nEtaPart; ieta++){
+      nHitsEtaVV[ilay][ieta] /= nEvents;
+      for (UInt_t iphi = 0; iphi < nPhiPart; iphi++){
+	nHitsPhiVVV[ilay][ieta][iphi] /= nEvents;
+      }
+    }
+  }
+
+  // initialize plot vectors
+  TH1FRefVec    etabinplots(nLayers);
+  TH1FRefVecVec phibinplots(nLayers);
+  for (UInt_t ilay = 0; ilay < nLayers; ilay++){
+    phibinplots[ilay].resize(nEtaPart);
+  }
+
+  // make output subdirectory and subdir in ROOT file, and cd to it.
+  TString subdirname = "segment"; 
+  PlotValidation::MakeSubDirectory(subdirname);
+  TDirectory * subdir = fOutRoot->mkdir(subdirname.Data());
+  subdir->cd();
+
+  // new and fill!
+  for (UInt_t ilay = 0; ilay < nLayers; ilay++){
+    etabinplots[ilay] = new TH1F(Form("h_nHits_vs_etabin_lay%u",ilay),Form("nHits vs EtaBin (Layer: %u)",ilay),nEtaPart,0,nEtaPart);
+    etabinplots[ilay]->GetXaxis()->SetTitle("Eta Bin Number");
+    etabinplots[ilay]->GetYaxis()->SetTitle("nHits in Eta Bin");
+
+    for (UInt_t ieta = 0; ieta < nEtaPart; ieta++){
+      //fill the eta bin plots
+      etabinplots[ilay]->SetBinContent(ieta+1,nHitsEtaVV[ilay][ieta]);
+
+      // eta-phi bin plots new
+      phibinplots[ilay][ieta] = new TH1F(Form("h_nHits_vs_phibin_lay%u_eta%u",ilay,ieta),Form("nHits vs PhiBin (Layer: %u, EtaBin: %u)",ilay,ieta),nPhiPart,0,nPhiPart);
+      phibinplots[ilay][ieta]->GetXaxis()->SetTitle("Phi Bin Number");
+      phibinplots[ilay][ieta]->GetYaxis()->SetTitle("nHits in Phi Bin");
+
+      // fill eta-phi bin plots
+      for (UInt_t iphi = 0; iphi < nPhiPart; iphi++){
+	phibinplots[ilay][ieta]->SetBinContent(iphi+1,nHitsPhiVVV[ilay][ieta][iphi]);
+      }
+    }
+  }
+  
+  // write out the individual plots to the root file
+  for (UInt_t ilay = 0; ilay < nLayers; ilay++){
+    PlotValidation::WriteTH1FPlot(subdir,etabinplots[ilay]);
+    for (UInt_t ieta = 0; ieta < nEtaPart; ieta++){
+      PlotValidation::WriteTH1FPlot(subdir,phibinplots[ilay][ieta]);
+    }
+  }
+
+  // now we want to overplot the eta plots first
+  fTH1Canv->cd();
+  fTH1Canv->SetLogy(0);
+
+  Float_t max = 0;
+  for (UInt_t ilay = 0; ilay < nLayers; ilay++){
+    Float_t tmpmax = etabinplots[ilay]->GetBinContent(etabinplots[ilay]->GetMaximumBin());
+    if (tmpmax > max) {
+      max = tmpmax;
+    }
+  }
+  
+  // overplot
+  TLegend * legeta = new TLegend(0.75,0.7,0.9,0.9);
+  for (UInt_t ilay = 0; ilay < nLayers; ilay++){
+    etabinplots[ilay]->SetStats(0);
+    etabinplots[ilay]->SetTitle("Average nHits per Event vs EtaBin for All Layers"); 
+    etabinplots[ilay]->SetMaximum(1.1*max);
+    etabinplots[ilay]->SetLineColor(fColors[ilay%fColorSize]+(ilay/fColorSize)); // allow colors to loop over base!
+    etabinplots[ilay]->SetLineWidth(2);
+    etabinplots[ilay]->Draw((ilay>0)?"SAME":"");
+    legeta->AddEntry(etabinplots[ilay],Form("Layer %u",ilay),"L");
+  }
+  legeta->Draw("SAME");
+  fTH1Canv->SaveAs(Form("%s/%s/nHits_vs_Etabin_allLayers.%s",fOutName.Data(),subdirname.Data(),fOutType.Data()));    
+  for (UInt_t ilay = 0; ilay < nLayers; ilay++){ // delete all histos, including layers not filled in
+    delete etabinplots[ilay];
+  }
+  delete legeta;
+
+  // now we want to overplot the phi plots second ... a bit more complicated
+  // first do the phi bin plots for a given eta bin, overplot layer
+  // then  do the phi bin plots for a given layer, overplot eta bin
+  fTH1Canv->cd();
+  fTH1Canv->SetLogy(0);
+
+  // so fix the eta bin, then overplot layers
+  for (UInt_t ieta = 0; ieta < nEtaPart; ieta++){
+    Float_t max = 0;
+    for (UInt_t ilay = 0; ilay < nLayers; ilay++){
+      Float_t tmpmax = phibinplots[ilay][ieta]->GetBinContent(phibinplots[ilay][ieta]->GetMaximumBin());
+      if (tmpmax > max) {
+	max = tmpmax;
+      }
+    }
+  
+    // overplot
+    TLegend * legphi = new TLegend(0.75,0.7,0.9,0.9);
+    for (UInt_t ilay = 0; ilay < nLayers; ilay++){
+      phibinplots[ilay][ieta]->SetStats(0);
+      phibinplots[ilay][ieta]->SetTitle(Form("Average nHits per Event vs PhiBin for All Layers (EtaBin: %u)",ieta)); 
+      phibinplots[ilay][ieta]->SetMaximum(1.1*max);
+      phibinplots[ilay][ieta]->SetLineColor(fColors[ilay%fColorSize]+(ilay/fColorSize)); // allow colors to loop over base!
+      phibinplots[ilay][ieta]->SetLineWidth(2);
+      phibinplots[ilay][ieta]->Draw((ilay>0)?"SAME":"");
+      legphi->AddEntry(phibinplots[ilay][ieta],Form("Layer %u",ilay),"L");
+    }
+    legphi->Draw("SAME");
+    fTH1Canv->SaveAs(Form("%s/%s/nHits_vs_Phibin_allLayers_etabin%u.%s",fOutName.Data(),subdirname.Data(),ieta,fOutType.Data()));    
+    delete legphi;
+  }  
+  
+  // now fix layer, overplot eta bins
+  for (UInt_t ilay = 0; ilay < nLayers; ilay++){
+    Float_t max = 0;
+    for (UInt_t ieta = 0; ieta < nEtaPart; ieta++){
+      Float_t tmpmax = phibinplots[ilay][ieta]->GetBinContent(phibinplots[ilay][ieta]->GetMaximumBin());
+      if (tmpmax > max) {
+	max = tmpmax;
+      }
+    }
+  
+    // overplot
+    TLegend * legphi = new TLegend(0.75,0.7,0.9,0.9);
+    for (UInt_t ieta = 0; ieta < nEtaPart; ieta++){
+      phibinplots[ilay][ieta]->SetStats(0);
+      phibinplots[ilay][ieta]->SetTitle(Form("Average nHits per Event vs PhiBin for All EtaBins (Layer: %u)",ilay)); 
+      phibinplots[ilay][ieta]->SetMaximum(1.1*max);
+      phibinplots[ilay][ieta]->SetLineColor(fColors[ieta%fColorSize]+(ieta/fColorSize)); // allow colors to loop over base!
+      phibinplots[ilay][ieta]->SetLineWidth(2);
+      phibinplots[ilay][ieta]->Draw((ieta>0)?"SAME":"");
+      legphi->AddEntry(phibinplots[ilay][ieta],Form("EtaBin %u",ieta),"L");
+    }
+    legphi->Draw("SAME");
+    fTH1Canv->SaveAs(Form("%s/%s/nHits_vs_Phibin_allEtaBins_layer%u.%s",fOutName.Data(),subdirname.Data(),ilay,fOutType.Data()));    
+    delete legphi;
+  }  
+  
+  for (UInt_t ilay = 0; ilay < nLayers; ilay++){
+    for (UInt_t ieta = 0; ieta < nEtaPart; ieta++){
+      delete phibinplots[ilay][ieta];
+    }
+  }
+
+  delete configtree;
+  delete segtree;
+}
 
 void PlotValidation::PlotSimGeo(){
   // Get tree
@@ -547,8 +772,8 @@ void PlotValidation::PlotNHits(){
   TH1FRefVecVec nHitsPlot(trks.size());
   TH1FRefVecVec fracHitsMatchedPlot(trks.size());
   for (UInt_t j = 0; j < trks.size(); j++){
-    nHitsPlot[j].reserve(coll.size());
-    fracHitsMatchedPlot[j].reserve(coll.size());
+    nHitsPlot[j].resize(coll.size());
+    fracHitsMatchedPlot[j].resize(coll.size());
   }
 
   for (UInt_t j = 0; j < trks.size(); j++){
@@ -657,15 +882,15 @@ void PlotValidation::PlotCFResidual(){
   IntVec    mcmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
   FltVecVec recovars_val(vars.size()); // first index is nVars, second is nTrkTypes
   for (UInt_t i = 0; i < vars.size(); i++){
-    mcvars_val[i].reserve(trks.size());
-    recovars_val[i].reserve(trks.size());
+    mcvars_val[i].resize(trks.size());
+    recovars_val[i].resize(trks.size());
   }
   Float_t   vars_out = 0.; // residual output
 
   // Create residual plots
   TH1FRefVecVec varsResidualPlot(vars.size());
   for (UInt_t i = 0; i < vars.size(); i++){
-    varsResidualPlot[i].reserve(trks.size());
+    varsResidualPlot[i].resize(trks.size());
   }
 
   for (UInt_t i = 0; i < vars.size(); i++){
@@ -755,9 +980,9 @@ void PlotValidation::PlotCFResolutionPull(){
   FltVecVec recovars_val(vars.size()); // first index is nVars, second is nTrkTypes
   FltVecVec recovars_err(vars.size());
   for (UInt_t i = 0; i < vars.size(); i++){
-    mcvars_val[i].reserve(trks.size());
-    recovars_val[i].reserve(trks.size());
-    recovars_err[i].reserve(trks.size());
+    mcvars_val[i].resize(trks.size());
+    recovars_val[i].resize(trks.size());
+    recovars_err[i].resize(trks.size());
   }
   FltVec    vars_out = {0.,0.}; // res/pull output
   
@@ -765,8 +990,8 @@ void PlotValidation::PlotCFResolutionPull(){
   TH1FRefVecVec varsResPlot(vars.size());
   TH1FRefVecVec varsPullPlot(vars.size());
   for (UInt_t i = 0; i < vars.size(); i++){
-    varsResPlot[i].reserve(trks.size());
-    varsPullPlot[i].reserve(trks.size());
+    varsResPlot[i].resize(trks.size());
+    varsPullPlot[i].resize(trks.size());
   }
 
   for (UInt_t i = 0; i < vars.size(); i++){
@@ -840,8 +1065,8 @@ void PlotValidation::PlotPosResolutionPull(){
   
   // get nLayers
   TTree * configtree = (TTree*)fInRoot->Get("configtree");
-  unsigned int nlayers_per_seed = 0;
-  unsigned int nLayers = 0;
+  UInt_t nlayers_per_seed = 0;
+  UInt_t nLayers = 0;
   configtree->SetBranchAddress("nlayers_per_seed",&nlayers_per_seed);
   configtree->SetBranchAddress("nLayers",&nLayers);
   configtree->GetEntry(0);
@@ -871,18 +1096,18 @@ void PlotValidation::PlotPosResolutionPull(){
   TStrVec trks      = {"seed","fit"};
   TStrVec strks     = {"Seed","Fit"}; // strk --> labels for histograms for given track type
 
-  UIntVec nlayers_trk = {nlayers_per_seed, nLayers}; // want to reserve just enough space
+  UIntVec nlayers_trk = {nlayers_per_seed, nLayers}; // want to resize just enough space
 
   // Create pos plots
   TH1FRefVecVecVec varsResPlot(trks.size()); // in this case, outer layer is tracks, then variable, then by layer
   TH1FRefVecVecVec varsPullPlot(trks.size());
 
   for (UInt_t j = 0; j < trks.size(); j++){
-    varsResPlot[j].reserve(vars.size());
-    varsPullPlot[j].reserve(vars.size());
+    varsResPlot[j].resize(vars.size());
+    varsPullPlot[j].resize(vars.size());
     for (UInt_t i = 0; i < vars.size(); i++){
-      varsResPlot[j][i].reserve(nlayers_trk[j]);
-      varsPullPlot[j][i].reserve(nlayers_trk[j]);
+      varsResPlot[j][i].resize(nlayers_trk[j]);
+      varsPullPlot[j][i].resize(nlayers_trk[j]);
     }
   }
 
@@ -909,8 +1134,8 @@ void PlotValidation::PlotPosResolutionPull(){
   for (UInt_t j = 0; j < trks.size(); j++){
     layers_trk[j] = new UIntVec(); // initialize pointer
 
-    recovars_val[j].reserve(vars.size());
-    recovars_err[j].reserve(vars.size());
+    recovars_val[j].resize(vars.size());
+    recovars_err[j].resize(vars.size());
     for (UInt_t i = 0; i < vars.size(); i++){
       recovars_val[j][i] = new FltVec(); // initialize pointers
       recovars_err[j][i] = new FltVec(); // initialize pointers
@@ -1012,9 +1237,9 @@ void PlotValidation::PlotMomResolutionPull(){
   FltVecVec recovars_val(vars.size()); // first index is nVars, second is nTrkTypes
   FltVecVec recovars_err(vars.size());
   for (UInt_t i = 0; i < vars.size(); i++){
-    mcvars_val[i].reserve(trks.size());
-    recovars_val[i].reserve(trks.size());
-    recovars_err[i].reserve(trks.size());
+    mcvars_val[i].resize(trks.size());
+    recovars_val[i].resize(trks.size());
+    recovars_err[i].resize(trks.size());
   }
   FltVec vars_out = {0.,0.}; // res/pull output
   
@@ -1022,8 +1247,8 @@ void PlotValidation::PlotMomResolutionPull(){
   TH1FRefVecVec varsResPlot(vars.size());
   TH1FRefVecVec varsPullPlot(vars.size());
   for (UInt_t i = 0; i < vars.size(); i++){
-    varsResPlot[i].reserve(trks.size());
-    varsPullPlot[i].reserve(trks.size());
+    varsResPlot[i].resize(trks.size());
+    varsPullPlot[i].resize(trks.size());
   }
 
   for (UInt_t i = 0; i < vars.size(); i++){
@@ -1126,9 +1351,9 @@ void PlotValidation::PlotEfficiency(){
   TH1FRefVecVec varsDenomPlot(vars.size());
   TH1FRefVecVec varsEffPlot(vars.size());
   for (UInt_t i = 0; i < vars.size(); i++){
-    varsNumerPlot[i].reserve(trks.size());
-    varsDenomPlot[i].reserve(trks.size());
-    varsEffPlot[i].reserve(trks.size());
+    varsNumerPlot[i].resize(trks.size());
+    varsDenomPlot[i].resize(trks.size());
+    varsEffPlot[i].resize(trks.size());
   }  
 
   for (UInt_t i = 0; i < vars.size(); i++){
@@ -1218,7 +1443,7 @@ void PlotValidation::PlotFakeRate(){
   // Floats/Ints to be filled for trees
   FltVecVec recovars_val(vars.size()); // first index is var, second is type of track
   for (UInt_t i = 0; i < vars.size(); i++){
-    recovars_val[i].reserve(trks.size());
+    recovars_val[i].resize(trks.size());
   }
 
   IntVec mcmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
@@ -1229,9 +1454,9 @@ void PlotValidation::PlotFakeRate(){
   TH1FRefVecVec varsDenomPlot(vars.size());
   TH1FRefVecVec varsFRPlot(vars.size());
   for (UInt_t i = 0; i < vars.size(); i++){
-    varsNumerPlot[i].reserve(trks.size());
-    varsDenomPlot[i].reserve(trks.size());
-    varsFRPlot[i].reserve(trks.size());
+    varsNumerPlot[i].resize(trks.size());
+    varsDenomPlot[i].resize(trks.size());
+    varsFRPlot[i].resize(trks.size());
   }  
 
   for (UInt_t i = 0; i < vars.size(); i++){
@@ -1335,9 +1560,9 @@ void PlotValidation::PlotDuplicateRate(){
   TH1FRefVecVec varsDenomPlot(vars.size());
   TH1FRefVecVec varsDRPlot(vars.size());
   for (UInt_t i = 0; i < vars.size(); i++){
-    varsNumerPlot[i].reserve(trks.size());
-    varsDenomPlot[i].reserve(trks.size());
-    varsDRPlot[i].reserve(trks.size());
+    varsNumerPlot[i].resize(trks.size());
+    varsDenomPlot[i].resize(trks.size());
+    varsDRPlot[i].resize(trks.size());
   }  
 
   for (UInt_t i = 0; i < vars.size(); i++){
@@ -1421,8 +1646,8 @@ void PlotValidation::PrintTotals(){
   TH1FRefVecVec numerPhiPlot(trks.size());
   TH1FRefVecVec denomPhiPlot(trks.size());
   for (UInt_t j = 0; j < trks.size(); j++) {
-    numerPhiPlot[j].reserve(rates.size());
-    denomPhiPlot[j].reserve(rates.size());
+    numerPhiPlot[j].resize(rates.size());
+    denomPhiPlot[j].resize(rates.size());
   }
 
   for (UInt_t j = 0; j < trks.size(); j++) {
@@ -1439,8 +1664,8 @@ void PlotValidation::PrintTotals(){
   TH1FRefVecVec nHitsPlot(trks.size());
   TH1FRefVecVec fracHitsMatchedPlot(trks.size());
   for (UInt_t j = 0; j < trks.size(); j++) {
-    nHitsPlot[j].reserve(coll.size());
-    fracHitsMatchedPlot[j].reserve(coll.size());
+    nHitsPlot[j].resize(coll.size());
+    fracHitsMatchedPlot[j].resize(coll.size());
   }
 
   for (UInt_t j = 0; j < trks.size(); j++) {
@@ -1455,8 +1680,8 @@ void PlotValidation::PrintTotals(){
 
   // timing dump
   TTree * configtree = (TTree*)fInRoot->Get("configtree");
-  unsigned int Ntracks = 0, Nevents = 0, nEtaPart = 0, nPhiPart = 0;
-  float simtime = 0., segtime = 0., seedtime = 0., buildtime = 0., fittime = 0., hlvtime = 0.;
+  UInt_t  Ntracks = 0, Nevents = 0, nEtaPart = 0, nPhiPart = 0;
+  Float_t simtime = 0., segtime = 0., seedtime = 0., buildtime = 0., fittime = 0., hlvtime = 0.;
   configtree->SetBranchAddress("Nevents",&Nevents);
   configtree->SetBranchAddress("Ntracks",&Ntracks);
   configtree->SetBranchAddress("nEtaPart",&nEtaPart);

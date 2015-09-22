@@ -1,6 +1,7 @@
 #ifndef _validation_
 #define _validation_
 #include "Track.h"
+#include "BinInfoUtils.h"
 
 class Validation {
 public:
@@ -15,6 +16,8 @@ public:
 
   virtual void collectFitTkCFMapInfo(const unsigned int, const TrackState&) {}
   virtual void collectFitTkTSLayerPairVecMapInfo(const unsigned int, const TSLayerPairVec&) {}
+
+  virtual void fillSegmentTree(const BinInfoMap&, const unsigned int) {}
 
   virtual void fillBranchTree(const unsigned int) {}
 

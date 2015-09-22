@@ -62,6 +62,8 @@ public:
   void collectFitTkCFMapInfo(const unsigned int seedID, const TrackState& cfitStateHit0) override;
   void collectFitTkTSLayerPairVecMapInfo(const unsigned int seedID, const TSLayerPairVec& updatedStates) override;
 
+  void fillSegmentTree(const BinInfoMap& segmentMap, const unsigned int evtID) override;
+
   void fillBranchTree(const unsigned int evtID) override;
 
   void makeSimTkToRecoTksMaps(TrackVec& evt_seed_tracks, TrackVec& evt_build_tracks, TrackVec& evt_fit_tracks) override;
@@ -77,6 +79,10 @@ public:
   void saveTTrees() override;
 
   TFile* f_;
+
+  // segment map tree
+  TTree* segtree_;
+  unsigned int evtID_seg_=0,layer_seg_=0,etabin_seg_=0,phibin_seg_=0,nHits_seg_=0;
 
   // declare vector of trackStates for various track collections to be used in pulls/resolutions
   TkToTSVecMap simTkTSVecMap_;

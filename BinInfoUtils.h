@@ -45,7 +45,7 @@ inline unsigned int getEtaPartition(float eta){
 			      
 #ifdef ETASEG
 inline float normalizedEta(float eta) {
-  if (std::abs(eta)>Config::fEtaDet) {eta = (eta>0 ? Config::fEtaDet*0.99 : -Config::fEtaDet*0.99);}
+  if (std::abs(eta)>=Config::fEtaDet) {eta = (eta>0 ? Config::fEtaDet*0.99 : -Config::fEtaDet*0.99);}
   return eta;
 }
 #endif

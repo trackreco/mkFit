@@ -52,10 +52,8 @@ TTreeValidation::TTreeValidation(std::string fileName)
   std::lock_guard<std::mutex> locker(glock_);
   gROOT->ProcessLine("#include <vector>");
   f_ = TFile::Open(fileName.c_str(), "recreate");
-  // configuration storage
 
   // include ALL config ++ real seeding parameters ...
-
   configtree_ = new TTree("configtree","configtree");
   configtree_->Branch("simtime",&simtime_);
   configtree_->Branch("segtime",&segtime_);
@@ -109,6 +107,14 @@ TTreeValidation::TTreeValidation(std::string fileName)
   configtree_->Branch("ptinverr012",&ptinverr012_);
   configtree_->Branch("phierr012",&phierr012_);
   configtree_->Branch("thetaerr012",&thetaerr012_);
+
+  // segment validation
+  segtree_ = new TTree("segtree","segtree");
+  segtree_->Branch("evtID",&evtID_seg_);
+  segtree_->Branch("layer",&layer_seg_);
+  segtree_->Branch("etabin",&etabin_seg_);
+  segtree_->Branch("phibin",&phibin_seg_);
+  segtree_->Branch("nHits",&nHits_seg_);
 
   // build validation
   tree_br_ = new TTree("tree_br","tree_br");
@@ -454,6 +460,24 @@ void TTreeValidation::resetValidationMaps(){
   seedToFitMap_.clear();
 }
 
+void TTreeValidation::fillSegmentTree(const BinInfoMap& segmentMap, const unsigned int evtID){
+  std::lock_guard<std::mutex> locker(glock_);
+
+  evtID_seg_ = evtID;
+  for (unsigned int i = 0; i < Config::nLayers; i++) {
+    layer_seg_ = i;
+    for (unsigned int j = 0; j < Config::nEtaPart; j++) {
+      etabin_seg_ = j;
+      for (unsigned int k = 0; k < Config::nPhiPart; k++) {
+	phibin_seg_ = k;
+	nHits_seg_  = segmentMap[i][j][k].second;
+
+	segtree_->Fill();
+      }
+    }
+  }
+}
+
 void TTreeValidation::fillBranchTree(const unsigned int evtID)
 {
   std::lock_guard<std::mutex> locker(glock_);
@@ -461,6 +485,10 @@ void TTreeValidation::fillBranchTree(const unsigned int evtID)
   evtID_br_  = evtID;
   for (TkToBVVMMIter seediter = seedToBranchValVecLayMapMap_.begin(); seediter != seedToBranchValVecLayMapMap_.end(); ++seediter){
     seedID_br_ = (*seediter).first;
+    /*
+    std::cout << std::endl;
+    std::cout << "Seed ID: " << seedID_br_ << std::endl;
+    */
     for (BVVLMiter layiter = (*seediter).second.begin(); layiter != (*seediter).second.end(); ++layiter){
       const auto& BranchValVec((*layiter).second);
       const unsigned int cands = BranchValVec.size();
@@ -489,6 +517,12 @@ void TTreeValidation::fillBranchTree(const unsigned int evtID)
       for (unsigned int cand = 0; cand < cands; cand++){ // loop over input candidates at this layer for this seed
 	const auto& BranchVal(BranchValVec[cand]); // grab the branch validation object
 	
+	/*	if ((*layiter).first == 9){
+	  std::cout << "Cand: " << cand << std::endl;
+	  std::cout << "pM: " << BranchVal.phiBinMinus << " pP: " << BranchVal.phiBinPlus << std::endl;
+	  std::cout << "eM: " << BranchVal.etaBinMinus << " eP: " << BranchVal.etaBinPlus << std::endl;
+	  }*/
+
 	////////////////////////////////////
 	//  EtaPhiBins Explored Counting  //
 	////////////////////////////////////
@@ -520,6 +554,9 @@ void TTreeValidation::fillBranchTree(const unsigned int evtID)
 
 	candHits[cand] = BranchVal.cand_hit_indices.size(); // set value of nHits explored per input cand for this seed+layer
 	for (auto&& cand_hit_idx : BranchVal.cand_hit_indices){ // save unique hits 
+	  /*  if ((*layiter).first == 9){
+	    std::cout << "layer9 hit: " << cand_hit_idx << std::endl;
+	    }*/
 	  uniqueHits[cand_hit_idx] = true;
 	}
 
