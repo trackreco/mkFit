@@ -57,17 +57,88 @@ static bool sortByZ(const Hit& hit1, const Hit& hit2){
 
 
 //==============================================================================
-// runBuildTestPlexBestHit
+// Common functions
 //==============================================================================
 
-double runBuildingTestPlexBestHit(Event& ev)
+class MkBuilder
 {
-  printf("Hello, runBuildingTestPlexBestHit sizeof(Track)=%d, sizeof(Hit)=%d, vusize=%i, num_th=%i\n\n", sizeof(Track), sizeof(Hit), MPT_SIZE, NUM_THREADS);
+private:
+  Event         *m_event;
+  EventOfHits    m_event_of_hits;
+  MkFitter      *m_mkfp_arr[NUM_THREADS];
+
+  std::vector<Track> m_recseeds;
+
+  int m_cnt=0, m_cnt1=0, m_cnt2=0, m_cnt_8=0, m_cnt1_8=0, m_cnt2_8=0, m_cnt_nomc=0;
+
+public:
+  MkBuilder();
+  ~MkBuilder();
+
+  // --------
+
+  void begin_event(Event& ev, const char* build_type);
+
+  void fit_seeds();
+
+  void end_event();
+
+  // --------
+
+  void quality_reset();
+  void quality_process(Track& tkcand);
+  void quality_print();
+
+  // --------
+
+  void FindTracksBestHit(EventOfCandidates& event_of_cands);
+
+  void FindTracks(EventOfCombCandidates& event_of_comb_cands);
+};
+
+//------------------------------------------------------------------------------
+// MkBuilder - constructor and destructor
+//------------------------------------------------------------------------------
+
+MkBuilder::MkBuilder() :
+  m_event(0),
+  m_event_of_hits(Config::nLayers)
+{
+  for (int i = 0; i < NUM_THREADS; ++i)
+  {
+    m_mkfp_arr[i] = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Config::nlayers_per_seed);
+  }
+}
+
+MkBuilder::~MkBuilder()
+{
+   for (int i = 0; i < NUM_THREADS; ++i)
+   {
+     _mm_free(m_mkfp_arr[i]);
+   }
+}
+
+//------------------------------------------------------------------------------
+// MkBuilder - common functions
+//------------------------------------------------------------------------------
+
+void MkBuilder::begin_event(Event& ev, const char* build_type)
+{
+  m_event = &ev;
 
   std::vector<Track>& simtracks = ev.simTracks_;
 
-  std::cout << "total simtracks=" << simtracks.size() << std::endl;
+  std::cout << "Building tracks with '" << build_type << "', total simtracks=" << simtracks.size() << std::endl;
 #ifdef DEBUG
+  //unit test for eta partitioning
+  for (int i=0;i<60; ++i)
+    {
+      float eta = -1.5 + 0.05*i;
+      int b1, b2;
+      int cnt = getBothEtaBins(eta, b1, b2);
+      std::cout << "eta=" << eta << " bin=" << getEtaBin(eta) << " hb1=" << b1 << " hb2=" << b2 << std::endl;
+    }
+  //dump sim tracks
   for (int itrack=0;itrack<simtracks.size();++itrack) {
     Track track = simtracks[itrack];
     std::cout << "MX - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1]) <<" phi="<< track.momPhi() <<" eta=" << track.momEta() << std::endl;
@@ -81,7 +152,7 @@ double runBuildingTestPlexBestHit(Event& ev)
   }
 #endif
 
-  EventOfHits event_of_hits(Config::nLayers); // 10 layers, this should be out of event loop, passed in.
+  m_event_of_hits.Reset();
 
   for (int itrack=0; itrack < simtracks.size(); ++itrack)
   {
@@ -93,75 +164,27 @@ double runBuildingTestPlexBestHit(Event& ev)
     //fill vector of hits in each layer (assuming there is one hit per layer in hits vector)
     for (int ilay = 0; ilay < simtracks[itrack].nHits(); ++ilay)
     {
-      event_of_hits.InsertHit(simtracks[itrack].hitsVector()[ilay], ilay);
+      m_event_of_hits.InsertHit(simtracks[itrack].hitsVector()[ilay], ilay);
     }
   }
 
-  event_of_hits.SortByPhiBuildPhiBins();
+  m_event_of_hits.SortByPhiBuildPhiBins();
 
-  // NOTE: MkFitter *MUST* be on heap, not on stack!
-  // Standard operator new screws up alignment of ALL MPlex memebrs of MkFitter,
-  // even if one adds attr(aligned(64)) thingy to every possible place.
+  m_recseeds.resize(simtracks.size());
+}
 
-  // MkFitter *mkfp = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Nhits);
-
-  //create seeds (from sim tracks for now)
-
-  MkFitter *mkfp_arr[NUM_THREADS];
-
-  for (int i = 0; i < NUM_THREADS; ++i)
-  {
-    mkfp_arr[i] = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Config::nlayers_per_seed);
-  }
+void MkBuilder::fit_seeds()
+{
+  std::vector<Track>& simtracks = m_event->simTracks_;
 
   int theEnd = simtracks.size();
-
-  double time = dtime();
-
-  std::vector<Track> recseeds;
-  recseeds.resize(simtracks.size());
-#ifdef DEBUG
-  std::cout << "fill seeds" << std::endl;
-#endif
-
-  //sort seeds by eta;
-  // XXXX MT: no need
-  // std::sort(simtracks.begin(), simtracks.end(), sortTracksByEta);
-  //further sorting could be in curvature, like e.g. q/pT
-  //sort just in phi within each eta bin for now
-
-  // XXXX MT: count the recseeds after fitting;
-  // std::vector<int> lay_eta_bin_seed_count(Config::nEtaPart);
-  // for (int iseed = 0; iseed < simtracks.size(); ++iseed)
-  // {
-  //   int etabin = getEtaPartition(simtracks[iseed].momEta());
-  //   lay_eta_bin_seed_count[etabin]++;
-  // }
-
-  // //now set index and size in partitioning map and then sort the bin by phi    
-  // int lastEtaSeedIdxFound = -1;
-  // for (int etabin = 0; etabin < Config::nEtaPart; ++etabin)
-  // {
-  //   int firstEtaSeedBinIdx = lastEtaSeedIdxFound+1;
-  //   int etaBinSize = lay_eta_bin_seed_count[etabin];
-  //   if (etaBinSize>0){
-  //     lastEtaSeedIdxFound+=etaBinSize;
-  //   }
-  //   //sort by phi in each "eta bin"
-  //   // XXXX MT: no need
-  //   //std::sort(simtracks.begin() + firstEtaSeedBinIdx, simtracks.begin() + (etaBinSize+firstEtaSeedBinIdx), sortTracksByPhi); // sort from first to last in eta
-  // }
-
-#ifdef USE_VTUNE_PAUSE
-  __itt_resume();
-#endif
 
 #pragma omp parallel for num_threads(NUM_THREADS)
   for (int itrack = 0; itrack < theEnd; itrack += NN)
   {
     int end = std::min(itrack + NN, theEnd);
 
-    MkFitter *mkfp = mkfp_arr[omp_get_thread_num()];
+    MkFitter *mkfp = m_mkfp_arr[omp_get_thread_num()];
 
     mkfp->SetNhits(3);//just to be sure (is this needed?)
 
@@ -169,37 +192,96 @@ double runBuildingTestPlexBestHit(Event& ev)
 
     mkfp->FitTracks();
 
-    mkfp->OutputFittedTracksAndHits(recseeds, itrack, end);
+    mkfp->OutputFittedTracksAndHits(m_recseeds, itrack, end);
   }
 
   //ok now, we should have all seeds fitted in recseeds
 #ifdef DEBUG
-  std::cout << "found total seeds=" << recseeds.size() << std::endl;
-  for (int iseed=0;iseed<recseeds.size();++iseed)
+  std::cout << "found total seeds=" << m_recseeds.size() << std::endl;
+  for (int iseed = 0; iseed < m_recseeds.size(); ++iseed)
   {
-    Track& seed = recseeds[iseed];
+    Track& seed = m_recseeds[iseed];
     std::cout << "MX - found seed with nHits=" << seed.nHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.radius() << " pT=" << seed.pt() << std::endl;
   }
 #endif
 
 #ifdef PRINTOUTS_FOR_PLOTS
-  for (int iseed=0;iseed<recseeds.size();++iseed)
+  std::cout << "found total seeds=" << m_recseeds.size() << std::endl;
+  for (int iseed = 0; iseed < m_recseeds.size(); ++iseed)
   {
-    Track& seed = recseeds[iseed];
+    Track& seed = m_recseeds[iseed];
     std::cout << "MX - found seed with nHits=" << seed.nHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.radius() << " pT=" << seed.pt() << std::endl;
   }
 #endif
+}
 
-  // MT: partition recseeds into eta bins
-  EventOfCandidates event_of_cands;
-  for (int iseed = 0; iseed < recseeds.size(); ++iseed)
+void MkBuilder::end_event()
+{
+
+  m_event = 0;
+}
+
+//------------------------------------------------------------------------------
+
+void MkBuilder::quality_reset()
+{
+  m_cnt = m_cnt1 = m_cnt2 = m_cnt_8 = m_cnt1_8 = m_cnt2_8 = m_cnt_nomc = 0;
+}
+
+void MkBuilder::quality_process(Track &tkcand)
+{
+  int mctrk = tkcand.label();
+  if (mctrk < 0 || mctrk >= Config::nTracks)
   {
-    if (recseeds[iseed].label() != iseed)
+    ++m_cnt_nomc;
+    // std::cout << "XX bad track idx " << mctrk << "\n";
+    return;
+  }
+  float pt    = tkcand.pt();
+  float ptmc  = m_event->simTracks_[mctrk].pt() ;
+  float pr    = pt / ptmc;
+
+  ++m_cnt;
+  if (pr > 0.9 && pr < 1.1) ++m_cnt1;
+  if (pr > 0.8 && pr < 1.2) ++m_cnt2;
+
+  if (tkcand.nHitIdx() >= 8)
+  {
+    ++m_cnt_8;
+    if (pr > 0.9 && pr < 1.1) ++m_cnt1_8;
+    if (pr > 0.8 && pr < 1.2) ++m_cnt2_8;
+  }
+
+#ifdef DEBUG
+  std::cout << "MXBH - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
+#endif
+
+#ifdef PRINTOUTS_FOR_PLOTS
+  std::cout << "MX - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
+#endif
+}
+
+void MkBuilder::quality_print()
+{
+  std::cout << "found tracks=" << m_cnt   << "  in pT 10%=" << m_cnt1   << "  in pT 20%=" << m_cnt2   << "     no_mc_assoc="<< m_cnt_nomc <<std::endl;
+  std::cout << "  nH >= 8   =" << m_cnt_8 << "  in pT 10%=" << m_cnt1_8 << "  in pT 20%=" << m_cnt2_8 << std::endl;
+}
+
+//------------------------------------------------------------------------------
+// FindTracksBestHit
+//------------------------------------------------------------------------------
+
+void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
+{
+  // partition recseeds into eta bins
+  for (int iseed = 0; iseed < m_recseeds.size(); ++iseed)
+  {
+    if (m_recseeds[iseed].label() != iseed)
     {
-      printf("Bad label for recseed %d -- %d\n", iseed, recseeds[iseed].label());
+      printf("Bad label for recseed %d -- %d\n", iseed, m_recseeds[iseed].label());
     }
 
-    event_of_cands.InsertCandidate(recseeds[iseed]);
+    event_of_cands.InsertCandidate(m_recseeds[iseed]);
   }
 
   //dump seeds
@@ -220,7 +302,7 @@ double runBuildingTestPlexBestHit(Event& ev)
 #endif
 
   //parallel section over seeds; num_threads can of course be smaller
-  int nseeds=recseeds.size();
+  int nseeds = m_recseeds.size();
   //#pragma omp parallel num_threads(Config::nEtaBin)
 #pragma omp parallel num_threads(1)//fixme: set to one for debugging (to be revisited anyway - what if there are more threads than eta bins?)
    for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
@@ -239,7 +321,7 @@ double runBuildingTestPlexBestHit(Event& ev)
 	 std::cout << "processing track=" << itrack << " etabin=" << ebin << " findex=" << etabin_of_candidates.m_fill_index << " thn=" << omp_get_thread_num() << std::endl;
 #endif
 
-	 MkFitter *mkfp = mkfp_arr[omp_get_thread_num()];
+	 MkFitter *mkfp = m_mkfp_arr[omp_get_thread_num()];
 
 	 mkfp->SetNhits(3);//just to be sure (is this needed?)
 
@@ -248,9 +330,9 @@ double runBuildingTestPlexBestHit(Event& ev)
 	 //ok now we start looping over layers
 	 //loop over layers, starting from after the seed
 	 //consider inverting loop order and make layer outer, need to trade off hit prefetching with copy-out of candidates
-	 for (int ilay = Config::nlayers_per_seed; ilay < event_of_hits.m_n_layers; ++ilay)
+	 for (int ilay = Config::nlayers_per_seed; ilay < m_event_of_hits.m_n_layers; ++ilay)
 	   {
-	     BunchOfHits &bunch_of_hits = event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];	     
+	     BunchOfHits &bunch_of_hits = m_event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];	     
 
              // XXX This should actually be done in some other thread for the next layer while
              // this thread is crunching the current one.
@@ -291,226 +373,23 @@ double runBuildingTestPlexBestHit(Event& ev)
        }//end of seed loop
      
    }//end of parallel section over seeds
-
-#ifdef USE_VTUNE_PAUSE
-  __itt_pause();
-#endif
-
-   time = dtime() - time;
-
-   //dump tracks
-   //std::cout << "found total tracks=" << recseeds.size() << std::endl;
-   {
-     int cnt=0, cnt1=0, cnt2=0, cnt_8=0, cnt1_8=0, cnt2_8=0, cnt_nomc=0;
-     for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
-     {
-       EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin]; 
-
-       for (int itrack = 0; itrack < etabin_of_candidates.m_fill_index; itrack++)
-       {
-         Track& tkcand = etabin_of_candidates.m_candidates[itrack];
-
-         int   mctrk = tkcand.label();
-         if (mctrk < 0 || mctrk >= Config::nTracks)
-         {
-           ++cnt_nomc;
-           // std::cout << "XX bad track idx " << mctrk << "\n";
-           continue;
-         }
-         float pt    = tkcand.pt();
-         float ptmc  = simtracks[mctrk].pt() ;
-         float pr    = pt / ptmc;
-
-         ++cnt;
-         if (pr > 0.9 && pr < 1.1) ++cnt1;
-         if (pr > 0.8 && pr < 1.2) ++cnt2;
-
-         if (tkcand.nHitIdx() >= 8)
-         {
-           ++cnt_8;
-           if (pr > 0.9 && pr < 1.1) ++cnt1_8;
-           if (pr > 0.8 && pr < 1.2) ++cnt2_8;
-         }
-
-#ifdef DEBUG
-         std::cout << "MXBH - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
-#endif
-
-#ifdef PRINTOUTS_FOR_PLOTS
-	 std::cout << "MX - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
-#endif
-       }
-     }
-     std::cout << "found tracks=" << cnt   << "  in pT 10%=" << cnt1   << "  in pT 20%=" << cnt2   << "     no_mc_assoc="<< cnt_nomc <<std::endl;
-     std::cout << "  nH >= 8   =" << cnt_8 << "  in pT 10%=" << cnt1_8 << "  in pT 20%=" << cnt2_8 << std::endl;
-   }
-   
-   for (int i = 0; i < NUM_THREADS; ++i)
-   {
-     _mm_free(mkfp_arr[i]);
-   }
-   //_mm_free(mkfp);
-
-   return time;
 }
 
+//------------------------------------------------------------------------------
+// FindTracks
+//------------------------------------------------------------------------------
 
-
-//==============================================================================
-// runBuildTestPlex
-//==============================================================================
-
-double runBuildingTestPlex(Event& ev)
+void MkBuilder::FindTracks(EventOfCombCandidates& event_of_comb_cands)
 {
-  printf("Hello, runBuildingTestPlex sizeof(Track)=%d, sizeof(Hit)=%d, vusize=%i, num_th=%i\n", sizeof(Track), sizeof(Hit), MPT_SIZE, NUM_THREADS);
-
-  std::vector<Track>& simtracks = ev.simTracks_;
-
-  std::cout << "total simtracks=" << simtracks.size() << std::endl;
-#ifdef DEBUG
-  //unit test for eta partitioning
-  for (int i=0;i<60; ++i) 
-    {
-      float eta = -1.5 + 0.05*i;
-      int b1, b2;
-      int cnt = getBothEtaBins(eta, b1, b2);
-      std::cout << "eta=" << eta << " bin=" << getEtaBin(eta) << " hb1=" << b1 << " hb2=" << b2 << std::endl;
-    }
-  //dump sim tracks
-  for (int itrack=0;itrack<simtracks.size();++itrack) {
-    Track track = simtracks[itrack];
-    std::cout << "MX - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1]) <<" phi="<< track.momPhi() <<" eta=" << track.momEta() << std::endl;
-  }
-#endif
-
-#ifdef PRINTOUTS_FOR_PLOTS
-  for (int itrack=0;itrack<simtracks.size();++itrack) {
-    Track track = simtracks[itrack];
-    std::cout << "MX - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1]) <<" phi="<< track.momPhi() <<" eta=" << track.momEta() << std::endl;
-  }
-#endif
-
-
-  EventOfHits event_of_hits(Config::nLayers); // 10 layers, this should be out of event loop, passed in.
-
-  for (int itrack=0; itrack < simtracks.size(); ++itrack)
-  {
-    if (simtracks[itrack].label() != itrack)
-    {
-      printf("Bad label for simtrack %d -- %d\n", itrack, simtracks[itrack].label());
-    }
-
-    //fill vector of hits in each layer (assuming there is one hit per layer in hits vector)
-    for (int ilay = 0; ilay < simtracks[itrack].nHits(); ++ilay)
-    {
-      event_of_hits.InsertHit(simtracks[itrack].hitsVector()[ilay], ilay);
-    }
-  }
-
-  event_of_hits.SortByPhiBuildPhiBins();
-
-  // NOTE: MkFitter *MUST* be on heap, not on stack!
-  // Standard operator new screws up alignment of ALL MPlex memebrs of MkFitter,
-  // even if one adds attr(aligned(64)) thingy to every possible place.
-
-  // MkFitter *mkfp = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Nhits);
-
-  //create seeds (from sim tracks for now)
-
-  MkFitter *mkfp_arr[NUM_THREADS];
-
-  for (int i = 0; i < NUM_THREADS; ++i)
-  {
-    mkfp_arr[i] = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Config::nlayers_per_seed);
-  }
-
-  int theEnd = simtracks.size();
-
-  double time = dtime();
-
-  std::vector<Track> recseeds;
-  recseeds.resize(simtracks.size());
-#ifdef DEBUG
-  std::cout << "fill seeds" << std::endl;
-#endif
-
-  //sort seeds by eta;
-  // XXXX MT: no need
-  // std::sort(simtracks.begin(), simtracks.end(), sortTracksByEta);
-  //further sorting could be in curvature, like e.g. q/pT
-  //sort just in phi within each eta bin for now
-
-  // XXXX MT: count the recseeds after fitting;
-  // std::vector<int> lay_eta_bin_seed_count(Config::nEtaPart);
-  // for (int iseed = 0; iseed < simtracks.size(); ++iseed)
-  // {
-  //   int etabin = getEtaPartition(simtracks[iseed].momEta(),Config::fEtaDet);
-  //   lay_eta_bin_seed_count[etabin]++;
-  // }
-
-  // //now set index and size in partitioning map and then sort the bin by phi    
-  // int lastEtaSeedIdxFound = -1;
-  // for (int etabin = 0; etabin < Config::nEtaPart; ++etabin)
-  // {
-  //   int firstEtaSeedBinIdx = lastEtaSeedIdxFound+1;
-  //   int etaBinSize = lay_eta_bin_seed_count[etabin];
-  //   if (etaBinSize>0){
-  //     lastEtaSeedIdxFound+=etaBinSize;
-  //   }
-  //   //sort by phi in each "eta bin"
-  //   // XXXX MT: no need
-  //   //std::sort(simtracks.begin() + firstEtaSeedBinIdx, simtracks.begin() + (etaBinSize+firstEtaSeedBinIdx), sortTracksByPhi); // sort from first to last in eta
-  // }
-
-#ifdef USE_VTUNE_PAUSE
-  __itt_resume();
-#endif
-
-#pragma omp parallel for num_threads(NUM_THREADS)
-  for (int itrack = 0; itrack < theEnd; itrack += NN)
-  {
-    int end = std::min(itrack + NN, theEnd);
-
-    MkFitter *mkfp = mkfp_arr[omp_get_thread_num()];
-
-    mkfp->SetNhits(3);//just to be sure (is this needed?)
-
-    mkfp->InputTracksAndHits(simtracks, itrack, end);
-
-    mkfp->FitTracks();
-
-    mkfp->OutputFittedTracksAndHits(recseeds, itrack, end);
-  }
-
-  //ok now, we should have all seeds fitted in recseeds
-#ifdef DEBUG
-  std::cout << "found total seeds=" << recseeds.size() << std::endl;
-  for (int iseed=0;iseed<recseeds.size();++iseed)
-  {
-    Track& seed = recseeds[iseed];
-    std::cout << "MX - found seed with nHits=" << seed.nHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.radius() << " pT=" << seed.pt() << std::endl;
-  }
-#endif
-
-#ifdef PRINTOUTS_FOR_PLOTS
-  std::cout << "found total seeds=" << recseeds.size() << std::endl;
-  for (int iseed=0;iseed<recseeds.size();++iseed)
-  {
-    Track& seed = recseeds[iseed];
-    std::cout << "MX - found seed with nHits=" << seed.nHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.radius() << " pT=" << seed.pt() << std::endl;
-  }
-#endif
-
   // MT: partition recseeds into eta bins
-  EventOfCombCandidates event_of_comb_cands;
-  for (int iseed = 0; iseed < recseeds.size(); ++iseed)
+  for (int iseed = 0; iseed < m_recseeds.size(); ++iseed)
   {
-    if (recseeds[iseed].label() != iseed)
+    if (m_recseeds[iseed].label() != iseed)
     {
-      printf("Bad label for recseed %d -- %d\n", iseed, recseeds[iseed].label());
+      printf("Bad label for recseed %d -- %d\n", iseed, m_recseeds[iseed].label());
     }
 
-    event_of_comb_cands.InsertSeed(recseeds[iseed]);
+    event_of_comb_cands.InsertSeed(m_recseeds[iseed]);
   }
 
   //dump seeds
@@ -602,9 +481,9 @@ double runBuildingTestPlex(Event& ev)
 
        //ok now we start looping over layers
        //loop over layers, starting from after the seeD
-       for (int ilay = Config::nlayers_per_seed; ilay < event_of_hits.m_n_layers; ++ilay)
+       for (int ilay = Config::nlayers_per_seed; ilay < m_event_of_hits.m_n_layers; ++ilay)
 	 {
-	   BunchOfHits &bunch_of_hits = event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];	     
+	   BunchOfHits &bunch_of_hits = m_event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];	     
 	   
 #ifdef DEBUG
 	   std::cout << "processing lay=" << ilay+1 << std::endl;
@@ -641,7 +520,7 @@ double runBuildingTestPlex(Event& ev)
 	       std::cout << "processing track=" << itrack << std::endl;
 #endif
 	       
-	       MkFitter *mkfp = mkfp_arr[omp_get_thread_num()];
+	       MkFitter *mkfp = m_mkfp_arr[omp_get_thread_num()];
 	       
 	       mkfp->SetNhits(ilay);//here again assuming one hit per layer
 	       
@@ -714,6 +593,78 @@ double runBuildingTestPlex(Event& ev)
      }//end of loop over eta bins
 
    }//end of parallel section over seeds
+}
+
+
+//==============================================================================
+// runBuildTestPlexBestHit
+//==============================================================================
+
+double runBuildingTestPlexBestHit(Event& ev)
+{
+  MkBuilder builder;
+
+  builder.begin_event(ev, __func__);
+
+  double time = dtime();
+
+#ifdef USE_VTUNE_PAUSE
+  __itt_resume();
+#endif
+
+  builder.fit_seeds();
+
+  EventOfCandidates event_of_cands;
+
+  builder.FindTracksBestHit(event_of_cands);
+
+#ifdef USE_VTUNE_PAUSE
+  __itt_pause();
+#endif
+
+   time = dtime() - time;
+
+   builder.quality_reset();
+
+   for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
+   {
+     EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin]; 
+
+     for (int itrack = 0; itrack < etabin_of_candidates.m_fill_index; itrack++)
+     {
+       builder.quality_process(etabin_of_candidates.m_candidates[itrack]);
+     }
+   }
+
+   builder.quality_print();
+
+   builder.end_event();
+
+   return time;
+}
+
+
+//==============================================================================
+// runBuildTestPlex
+//==============================================================================
+
+double runBuildingTestPlex(Event& ev)
+{
+  MkBuilder builder;
+
+  builder.begin_event(ev, __func__);
+
+  double time = dtime();
+
+#ifdef USE_VTUNE_PAUSE
+  __itt_resume();
+#endif
+
+  builder.fit_seeds();
+
+  EventOfCombCandidates event_of_comb_cands;
+
+  builder.FindTracks(event_of_comb_cands);
 
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
@@ -723,6 +674,7 @@ double runBuildingTestPlex(Event& ev)
 
    //dump tracks
    //std::cout << "found total tracks=" << recseeds.size() << std::endl;
+   builder.quality_reset();
    {
      int cnt=0, cnt1=0, cnt2=0, cnt_8=0, cnt1_8=0, cnt2_8=0, cnt_nomc=0;
      for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
@@ -732,48 +684,14 @@ double runBuildingTestPlex(Event& ev)
        for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed++)
        {
 	 //take the first one!
-         Track& tkcand = etabin_of_comb_candidates.m_candidates[iseed].front();
-
-         int   mctrk = tkcand.label();
-         if (mctrk < 0 || mctrk >= Config::nTracks)
-         {
-           ++cnt_nomc;
-           //std::cout << "XX bad track idx " << mctrk << "\n";
-           continue;
-         }
-         float pt    = tkcand.pt();
-         float ptmc  = simtracks[mctrk].pt() ;
-         float pr    = pt / ptmc;
-
-         ++cnt;
-         if (pr > 0.9 && pr < 1.1) ++cnt1;
-         if (pr > 0.8 && pr < 1.2) ++cnt2;
-
-         if (tkcand.nHitIdx() >= 8)
-         {
-           ++cnt_8;
-           if (pr > 0.9 && pr < 1.1) ++cnt1_8;
-           if (pr > 0.8 && pr < 1.2) ++cnt2_8;
-         }
-       
-#ifdef DEBUG
-         std::cout << "MXFC - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
-#endif
-
-#ifdef PRINTOUTS_FOR_PLOTS
-         std::cout << "MX - found track with nHitIdx=" << tkcand.nHitIdx() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
-#endif
+         builder.quality_process(etabin_of_comb_candidates.m_candidates[iseed].front());
        }
      }
-     std::cout << "found tracks=" << cnt   << "  in pT 10%=" << cnt1   << "  in pT 20%=" << cnt2   << "     no_mc_assoc="<< cnt_nomc <<std::endl;
-     std::cout << "  nH >= 8   =" << cnt_8 << "  in pT 10%=" << cnt1_8 << "  in pT 20%=" << cnt2_8 << std::endl;
    }
-   
-   for (int i = 0; i < NUM_THREADS; ++i)
-   {
-     _mm_free(mkfp_arr[i]);
-   }
-   //_mm_free(mkfp);
+
+   builder.quality_print();
+
+   builder.end_event();
 
    return time;
 }
