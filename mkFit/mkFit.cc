@@ -136,6 +136,11 @@ void test_standard()
   // return;
   // ---- end MT test
 
+  printf("Running test_standard(), operation=\"%s\"\n", g_operation.c_str());
+  printf("  vusize=%i, num_th=%i\n",  MPT_SIZE, NUM_THREADS);
+  printf("  sizeof(Track)=%d, sizeof(Hit)=%d, sizeof(SVector3)=%d, sizeof(SMatrixSym33)=%d, sizeof(MCHitInfo)=%d\n",
+         sizeof(Track), sizeof(Hit), sizeof(SVector3), sizeof(SMatrixSym33), sizeof(MCHitInfo));
+
   int Ntracks = Config::nTracks;
   // Ntracks  = 1;
   // bool saveTree = false;
@@ -153,8 +158,11 @@ void test_standard()
 
   double s_tmp=0, s_tsm=0, s_tsm2=0, s_tmp2=0, s_tsm2bh=0, s_tmp2bh=0;
 
-  for (int evt = 0; evt < Nevents; ++evt)
+  printf("\n");
+
+  for (int evt = 1; evt <= Nevents; ++evt)
   {
+    printf("Processing event %d\n", evt);
 
     Event ev(geom, val, evt);
 
