@@ -597,10 +597,10 @@ void MkBuilder::FindTracks(EventOfCombCandidates& event_of_comb_cands)
 
 
 //==============================================================================
-// runBuildTestPlexBestHit
+// runBuildingTestPlexBestHit
 //==============================================================================
 
-double runBuildingTestPlexBestHit(Event& ev)
+double runBuildingTestPlexBestHit(Event& ev, EventOfCandidates& event_of_cands)
 {
   MkBuilder builder;
 
@@ -614,7 +614,8 @@ double runBuildingTestPlexBestHit(Event& ev)
 
   builder.fit_seeds();
 
-  EventOfCandidates event_of_cands;
+  //EventOfCandidates event_of_cands;
+  event_of_cands.Reset();
 
   builder.FindTracksBestHit(event_of_cands);
 
@@ -645,10 +646,10 @@ double runBuildingTestPlexBestHit(Event& ev)
 
 
 //==============================================================================
-// runBuildTestPlex
+// runBuildingTestPlex
 //==============================================================================
 
-double runBuildingTestPlex(Event& ev)
+double runBuildingTestPlex(Event& ev, EventOfCombCandidates& event_of_comb_cands)
 {
   MkBuilder builder;
 
@@ -662,7 +663,8 @@ double runBuildingTestPlex(Event& ev)
 
   builder.fit_seeds();
 
-  EventOfCombCandidates event_of_comb_cands;
+  //EventOfCombCandidates event_of_comb_cands;
+  event_of_comb_cands.Reset();
 
   builder.FindTracks(event_of_comb_cands);
 

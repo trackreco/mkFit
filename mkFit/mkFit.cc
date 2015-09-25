@@ -156,6 +156,12 @@ void test_standard()
   initGeom(geom);
   Validation val;
 
+  EventOfCombCandidates evocc;
+  EventOfCombCandidates& event_of_comb_cands = evocc;
+
+  EventOfCandidates evoc;
+  EventOfCandidates& event_of_cands = evoc;
+
   double s_tmp=0, s_tsm=0, s_tsm2=0, s_tmp2=0, s_tsm2bh=0, s_tmp2bh=0;
 
   printf("\n");
@@ -178,9 +184,9 @@ void test_standard()
     plex_tracks.resize(ev.simTracks_.size());
     double tmp = runFittingTestPlex(ev, plex_tracks);
 
-    double tmp2 = runBuildingTestPlex(ev);
+    double tmp2 = runBuildingTestPlex(ev, event_of_comb_cands);
 
-    double tmp2bh = runBuildingTestPlexBestHit(ev);
+    double tmp2bh = runBuildingTestPlexBestHit(ev, event_of_cands);
 
     printf("Matriplex fit = %.5f  --- Build  MX = %.5f  BHMX = %.5f\n",
            tmp, tmp2, tmp2bh);
