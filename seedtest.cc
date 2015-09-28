@@ -87,8 +87,8 @@ void buildHitPairs(const std::vector<HitVec>& evt_lay_hits, const BinInfoLayerMa
     const float outerphi  = evt_lay_hits[1][ihit].phi();
 
 #ifdef ETASEG
-    const auto etaBinMinus = getEtaPartition(getEta(Config::fRadialSpacing,(outerhitz-Config::dZ)/2.));
-    const auto etaBinPlus  = getEtaPartition(getEta(Config::fRadialSpacing,(outerhitz+Config::dZ)/2.));
+    const auto etaBinMinus = getEtaPartition(getEta(Config::fRadialSpacing,(outerhitz-Config::beamspotZ)/2.));
+    const auto etaBinPlus  = getEtaPartition(getEta(Config::fRadialSpacing,(outerhitz+Config::beamspotZ)/2.));
 #else
     const auto etaBinMinus = 0U;
     const auto etaBinPlus  = 0U;
@@ -169,7 +169,7 @@ void filterHitTripletsByRZChi2(const std::vector<HitVec>& hit_triplets, std::vec
  
     float chi2fit = 0;     
     for (auto&& seedhit : hit_triplet) { //now perform chi2 on fit!
-      chi2fit += pow((seedhit.z() - aParam - (bParam * seedhit.r())),2) / varZ;
+      chi2fit += pow((seedhit.z() - aParam - (bParam * seedhit.r())),2) / Config::varZ;
     }
 
     if (chi2fit<Config::chi2seedcut){ // cut empirically derived

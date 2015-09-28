@@ -33,7 +33,7 @@ inline unsigned int getPhiPartition(float phi){
   //  if (!(fabs(phi)<Config::PI)) std::cout << "anomalous phi=" << phi << std::endl;
   //  const float phiPlusPi  = std::fmod(phi+Config::PI,Config::TwoPI); // normaliztion done here
   const float phiPlusPi  = phi+Config::PI; 
-  const unsigned int bin = phiPlusPi*Config::fPhiFactor;
+  const unsigned int bin = phiPlusPi*Config::fPhiFactor; // would have to change this to just a regular int (no const) if want to use commented lines below
   //  second condition appeared once in very bizarre corner case where propagated phi == pi != Config::PI in check of normalizedPhi 
   //  i.e. delta on floating point check smaller than comparison... making what should be bin = nPhiPart - 1 instead bin = nPhiPart (out of bounds!!) 
   //  if      (bin<0)                 bin = 0;
@@ -43,11 +43,12 @@ inline unsigned int getPhiPartition(float phi){
 
 inline unsigned int getEtaPartition(float eta){
   const float etaPlusEtaDet  = eta + Config::fEtaDet;
-  const unsigned int bin     = (etaPlusEtaDet * Config::nEtaPart) / (Config::fEtaFull);  // ten bins for now ... update if changed in Event.cc
+  int bin = (etaPlusEtaDet * Config::nEtaPart) / (Config::fEtaFull);  // ten bins for now ... update if changed in Event.cc
   // use this check instead of normalizedEta()... directly bin into first/last bins eta of range of detector
-  if      (etabin<0)                 etabin = 0; 
-  else if (etabin>=Config::nEtaPart) etabin = Config::nEtaPart - 1;
-  return bin;
+  if      (bin<0)                 bin = 0; 
+  else if (bin>=Config::nEtaPart) bin = Config::nEtaPart - 1;
+
+  return (unsigned int) bin;
 }
 
 std::vector<unsigned int> getCandHitIndices(const unsigned int &, const unsigned int &, const unsigned int &, const unsigned int &, const BinInfoLayerMap &);
