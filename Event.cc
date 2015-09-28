@@ -69,7 +69,7 @@ void Event::Simulate()
       int q=0;//set it in setup function
       setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,tmpgeom,initialTSs); // do the simulation
       validation_.collectSimTkTSVecMapInfo(itrack,initialTSs); // save initial TS parameters
-      Track sim_track(q,pos,mom,covtrk,hits,0,itrack);
+      Track sim_track(q,pos,mom,covtrk,hits,0,itrack,itrack);
       simTracks_[itrack] = sim_track;
     }
 #ifdef TBB

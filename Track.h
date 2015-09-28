@@ -33,8 +33,8 @@ public:
     state_.parameters = SVector6(position.At(0),position.At(1),position.At(2),momentum.At(0),momentum.At(1),momentum.At(2));
     state_.valid = true;
   }
- Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, const HitVec& hits, float chi2, unsigned int mcTrackID)
-   : hits_(hits), chi2_(chi2), mcTrackID_(mcTrackID)
+ Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, const HitVec& hits, float chi2, unsigned int seedID, unsigned int mcTrackID)
+   : hits_(hits), chi2_(chi2), seedID_(seedID), mcTrackID_(mcTrackID)
   {
     state_.charge=charge;
     state_.errors=errors;
@@ -52,7 +52,7 @@ public:
   Track(TrackState state, float chi2, int label) :
     state_(state),
     chi2_(chi2),
-    label_(label)
+    seedID_(label)
   {}
   
   ~Track(){}
@@ -68,7 +68,7 @@ public:
   SVector6&     parameters_nc() {return state_.parameters;}
   SMatrixSym66& errors_nc()     {return state_.errors;}
   TrackState&   state_nc()      {return state_;}
-  int      label()  const {return label_;}
+  int      label()  const {return seedID_;}
 
   // track state position 
   float radius() const {return std::sqrt(getRad2(state_.parameters[0],state_.parameters[1]));}
@@ -106,7 +106,7 @@ public:
 
   void setCharge(int chg)  {state_.charge=chg;}
   void setChi2(float chi2) {chi2_=chi2;}
-  void setLabel(int lbl)   {label_=lbl;}
+  void setLabel(int lbl)   {seedID_=lbl;}
 
   void setState(TrackState newState) {state_=newState;}
 
@@ -119,7 +119,7 @@ public:
   bool isDuplicate() const {return isDuplicate_;}
   unsigned int duplicateID() const {return duplicateID_;}
   Track clone() const {return Track(state_,hits_,chi2_);}
-  Track clone_for_io() { return Track(state_,chi2_,label_);}
+  Track clone_for_io() { return Track(state_,chi2_,seedID_);}
 
   void write_out(FILE *fp);
   void read_in  (FILE *fp);
@@ -135,7 +135,7 @@ private:
   bool isDuplicate_;
   HitIdxVec hitIdxVec_;
   int   nGoodHitIdx_ =  0;
-  int   label_       = -1;
+  //int   label_       = -1;
 };
 
 typedef std::vector<Track> TrackVec;
