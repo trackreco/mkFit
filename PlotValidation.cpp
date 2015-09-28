@@ -89,8 +89,10 @@ void PlotValidation::PlotBranching(){
   TTree * configtree = (TTree*)fInRoot->Get("configtree"); // use to get nLayers
   UInt_t  nLayers = 0;
   UInt_t  nlayers_per_seed = 0;
+  UInt_t  nEvents = 0;
   configtree->SetBranchAddress("nLayers",&nLayers);
   configtree->SetBranchAddress("nlayers_per_seed",&nlayers_per_seed);
+  configtree->SetBranchAddress("Nevents",&nEvents);
   configtree->GetEntry(0);
 
   // make output subdirectory and subdir in ROOT file, and cd to it.
@@ -133,6 +135,20 @@ void PlotValidation::PlotBranching(){
   TH2F * laybranches_percand = new TH2F("h_lay_vs_branches_percand","Layer vs nBranches per InputCand",20,0,20,nLayers,0,nLayers);
   laybranches_percand->GetXaxis()->SetTitle("nTempCandBranches Produced per InputCand / Layer / Seed");
   laybranches_percand->GetYaxis()->SetTitle("Layer");
+
+  // scaled to 1/nEvents
+  TH1FRefVec etaphibins_percand(nLayers);
+  TH1FRefVec hits_percand(nLayers);
+
+  for (UInt_t layer = 0; layer < nLayers; layer++){
+    etaphibins_percand[layer] = new TH1F(Form("h_etaphibins_percand_lay%u",layer),Form("Average nEtaPhiBins per InputCand per Event (Layer %u)",layer),20,0,20);
+    etaphibins_percand[layer]->GetXaxis()->SetTitle("nEtaPhiBins Explored per InputCand / Seed");
+    etaphibins_percand[layer]->GetYaxis()->SetTitle("Cands");
+
+    hits_percand[layer] = new TH1F(Form("h_hits_percand_lay%u",layer),Form("Average nHits per InputCand (Layer %u) per Event",layer),20,0,20);
+    hits_percand[layer]->GetXaxis()->SetTitle("nHits Explored per InputCand / Seed");
+    hits_percand[layer]->GetYaxis()->SetTitle("Cands");
+  }
 
   TH2F * layetaphibins_percand_norm = new TH2F("h_lay_vs_etaphibins_percand_norm","Layer vs nEtaPhiBins per InputCand (Normalized)",20,0,20,nLayers,0,nLayers);
   layetaphibins_percand_norm->GetXaxis()->SetTitle("nEtaPhiBins Explored per InputCand / Layer / Seed");
@@ -189,6 +205,9 @@ void PlotValidation::PlotBranching(){
   tree_br->SetBranchAddress("candnSigmaDeta",&candnSigmaDeta);
   tree_br->SetBranchAddress("candnSigmaDphi",&candnSigmaDphi);
 
+  UInt_t seedID = 0;
+  tree_br->SetBranchAddress("seedID",&seedID);
+
   for (UInt_t k = 0; k < (UInt_t) tree_br->GetEntries(); k++){
     tree_br->GetEntry(k);
 
@@ -202,6 +221,8 @@ void PlotValidation::PlotBranching(){
 
       layetaphibins_percand->Fill((*candEtaPhiBins)[c],layer);
       layhits_percand->Fill((*candHits)[c],layer);
+
+      etaphibins_percand[layer]->Fill((*candEtaPhiBins)[c]);
       laybranches_percand->Fill((*candBranches)[c],layer);
 
       nCandEtaPhiBins += (*candEtaPhiBins)[c];
@@ -219,6 +240,77 @@ void PlotValidation::PlotBranching(){
     layhits_unique->Fill(uniqueHits,layer);
     laybranches_unique->Fill(uniqueBranches,layer);
   }
+
+  ////////////////////////////////////////////////////
+  // Write out the per event projection plots first //
+  ////////////////////////////////////////////////////
+  
+  // write out the individual plots to the root file ... scale first to nEvents, then input cands
+  for (UInt_t ilay = nlayers_per_seed; ilay < nLayers; ilay++){
+    PlotValidation::WriteTH1FPlot(subdir,etaphibins_percand[ilay]);
+    PlotValidation::WriteTH1FPlot(subdir,hits_percand[ilay]);
+
+    // scale to input cands
+    etaphibins_percand[ilay]->Scale(1./etaphibins_percand[ilay]->Integral());
+    hits_percand[ilay]->Scale(1./hits_percand[ilay]->Integral());
+  }
+
+  // first do the etaphibin plots
+  fTH1Canv->cd();
+  fTH1Canv->SetLogy(0);
+
+  Float_t max = 0;
+  for (UInt_t ilay = nlayers_per_seed; ilay < nLayers; ilay++){
+    Float_t tmpmax = etaphibins_percand[ilay]->GetBinContent(etaphibins_percand[ilay]->GetMaximumBin());
+    if (tmpmax > max) {
+      max = tmpmax;
+    }
+  }
+  
+  // overplot
+  TLegend * legetaphibins = new TLegend(0.75,0.7,0.9,0.9);
+  for (UInt_t ilay = nlayers_per_seed; ilay < nLayers; ilay++){
+    etaphibins_percand[ilay]->SetStats(0);
+    etaphibins_percand[ilay]->SetTitle("EtaPhiBins per InputCand for All Layers (Normalized)"); 
+    etaphibins_percand[ilay]->SetMaximum(1.1*max);
+    etaphibins_percand[ilay]->SetLineColor(fColors[(ilay-nlayers_per_seed)%fColorSize]+(ilay/fColorSize)); // allow colors to loop over base!
+    etaphibins_percand[ilay]->SetLineWidth(2);
+    etaphibins_percand[ilay]->Draw((ilay>nlayers_per_seed)?"SAME":"");
+    legetaphibins->AddEntry(etaphibins_percand[ilay],Form("Layer %u",ilay),"L");
+  }
+  legetaphibins->Draw("SAME");
+  fTH1Canv->SaveAs(Form("%s/%s/normalized_etaphibins_percand_allLayers.%s",fOutName.Data(),subdirname.Data(),fOutType.Data()));    
+  for (UInt_t ilay = nlayers_per_seed; ilay < nLayers; ilay++){ // delete all histos, including layers not filled in
+    delete etaphibins_percand[ilay];
+  }
+  delete legetaphibins;
+
+  // second do the nhits plots
+  max = 0;
+  for (UInt_t ilay = nlayers_per_seed; ilay < nLayers; ilay++){
+    Float_t tmpmax = hits_percand[ilay]->GetBinContent(hits_percand[ilay]->GetMaximumBin());
+    if (tmpmax > max) {
+      max = tmpmax;
+    }
+  }
+  
+  // overplot
+  TLegend * leghits = new TLegend(0.75,0.7,0.9,0.9);
+  for (UInt_t ilay = nlayers_per_seed; ilay < nLayers; ilay++){
+    hits_percand[ilay]->SetStats(0);
+    hits_percand[ilay]->SetTitle("Hits per InputCand for All Layers (Normalized)"); 
+    hits_percand[ilay]->SetMaximum(1.1*max);
+    hits_percand[ilay]->SetLineColor(fColors[(ilay-nlayers_per_seed)%fColorSize]+(ilay/fColorSize)); // allow colors to loop over base!
+    hits_percand[ilay]->SetLineWidth(2);
+    hits_percand[ilay]->Draw((ilay>nlayers_per_seed)?"SAME":"");
+    leghits->AddEntry(hits_percand[ilay],Form("Layer %u",ilay),"L");
+  }
+  leghits->Draw("SAME");
+  fTH1Canv->SaveAs(Form("%s/%s/normalized_nhits_percand_allLayers.%s",fOutName.Data(),subdirname.Data(),fOutType.Data()));    
+  for (UInt_t ilay = nlayers_per_seed; ilay < nLayers; ilay++){ // delete all histos, including layers not filled in
+    delete hits_percand[ilay];
+  }
+  delete leghits;
 
   // Loop over layers first, then sum up entries in each bin stepping left to right (INCLUDE OVERFLOW!)
   // root conventions means we have vectors offset by 1
@@ -276,7 +368,7 @@ void PlotValidation::PlotBranching(){
   Double_t blue[NRGBs]  = { 0.51, 1.00, 0.12, 0.00, 0.00 };
   TColor::CreateGradientColorTable(NRGBs, stops, red, green, blue, NCont);
   gStyle->SetNumberContours(NCont);
-  
+
   PlotValidation::DrawWriteSaveTH2FPlot(subdir,laycands,subdirname,"lay_vs_cands");
   
   PlotValidation::DrawWriteSaveTH2FPlot(subdir,layetaphibins,subdirname,"lay_vs_etaphibins");
@@ -299,7 +391,7 @@ void PlotValidation::PlotBranching(){
   PlotValidation::DrawWriteSaveTH2FPlot(subdir,layhits_unique,subdirname,"lay_vs_hits_unique");
   PlotValidation::DrawWriteSaveTH2FPlot(subdir,laybranches_unique,subdirname,"lay_vs_branches_unique");
 
-  Float_t max = 0.0;
+  max = 0.0;
   // write the bare plots, scale, and get max and min
   for (UInt_t l = nlayers_per_seed; l < nLayers; l++){ // only fill ones with actual propagation
     PlotValidation::WriteTH1FPlot(subdir,layNSigmaDeta[l]);
@@ -526,6 +618,7 @@ void PlotValidation::PlotSegment(){
   }
 
   // initialize plot vectors
+  TH1FRefVec    nHitsplots(nLayers);
   TH1FRefVec    etabinplots(nLayers);
   TH1FRefVecVec phibinplots(nLayers);
   for (UInt_t ilay = 0; ilay < nLayers; ilay++){
@@ -540,6 +633,10 @@ void PlotValidation::PlotSegment(){
 
   // new and fill!
   for (UInt_t ilay = 0; ilay < nLayers; ilay++){
+    nHitsplots[ilay] = new TH1F(Form("h_nHits_perEtaPhiBin_lay%u",ilay),Form("nHits per EtaPhiBin (Layer: %u)",ilay),20,0,20);
+    nHitsplots[ilay]->GetXaxis()->SetTitle("nHits per EtaPhiBin");
+    nHitsplots[ilay]->GetYaxis()->SetTitle("nEtaPhiBins");
+    
     etabinplots[ilay] = new TH1F(Form("h_nHits_vs_etabin_lay%u",ilay),Form("nHits vs EtaBin (Layer: %u)",ilay),nEtaPart,0,nEtaPart);
     etabinplots[ilay]->GetXaxis()->SetTitle("Eta Bin Number");
     etabinplots[ilay]->GetYaxis()->SetTitle("nHits in Eta Bin");
@@ -556,23 +653,61 @@ void PlotValidation::PlotSegment(){
       // fill eta-phi bin plots
       for (UInt_t iphi = 0; iphi < nPhiPart; iphi++){
 	phibinplots[ilay][ieta]->SetBinContent(iphi+1,nHitsPhiVVV[ilay][ieta][iphi]);
+	
+	if (ilay == 9) {
+	  total += nHitsPhiVVV[ilay][ieta][iphi];
+	}
+	
+	nHitsplots[ilay]->Fill(nHitsPhiVVV[ilay][ieta][iphi]);
       }
     }
   }
-  
+
   // write out the individual plots to the root file
   for (UInt_t ilay = 0; ilay < nLayers; ilay++){
+    PlotValidation::WriteTH1FPlot(subdir,nHitsplots[ilay]);
     PlotValidation::WriteTH1FPlot(subdir,etabinplots[ilay]);
     for (UInt_t ieta = 0; ieta < nEtaPart; ieta++){
       PlotValidation::WriteTH1FPlot(subdir,phibinplots[ilay][ieta]);
     }
   }
 
-  // now we want to overplot the eta plots first
+  ///////////////////////////////
+  // Plot segment results here //
+  ///////////////////////////////
+
+  // first do the nHits plot
   fTH1Canv->cd();
   fTH1Canv->SetLogy(0);
 
   Float_t max = 0;
+  for (UInt_t ilay = 0; ilay < nLayers; ilay++){
+    Float_t tmpmax = nHitsplots[ilay]->GetBinContent(nHitsplots[ilay]->GetMaximumBin());
+    if (tmpmax > max) {
+      max = tmpmax;
+    }
+  }
+  
+  // overplot
+  TLegend * legnhit = new TLegend(0.75,0.7,0.9,0.9);
+  for (UInt_t ilay = 0; ilay < nLayers; ilay++){
+    nHitsplots[ilay]->SetStats(0);
+    nHitsplots[ilay]->SetTitle("Average nHits per Event per EtaPhiBin for All Layers"); 
+    nHitsplots[ilay]->SetMaximum(1.1*max);
+    nHitsplots[ilay]->SetLineColor(fColors[ilay%fColorSize]+(ilay/fColorSize)); // allow colors to loop over base!
+    nHitsplots[ilay]->SetLineWidth(2);
+    nHitsplots[ilay]->Draw((ilay>0)?"SAME":"");
+    legnhit->AddEntry(nHitsplots[ilay],Form("Layer %u",ilay),"L");
+  }
+  legnhit->Draw("SAME");
+  fTH1Canv->SaveAs(Form("%s/%s/nHits_perEtaPhiBin_allLayers.%s",fOutName.Data(),subdirname.Data(),fOutType.Data()));    
+  for (UInt_t ilay = 0; ilay < nLayers; ilay++){ // delete all histos, including layers not filled in
+    delete nHitsplots[ilay];
+  }
+  delete legnhit;
+
+  // now we want to overplot the eta plots second
+  max = 0;
   for (UInt_t ilay = 0; ilay < nLayers; ilay++){
     Float_t tmpmax = etabinplots[ilay]->GetBinContent(etabinplots[ilay]->GetMaximumBin());
     if (tmpmax > max) {
@@ -601,8 +736,6 @@ void PlotValidation::PlotSegment(){
   // now we want to overplot the phi plots second ... a bit more complicated
   // first do the phi bin plots for a given eta bin, overplot layer
   // then  do the phi bin plots for a given layer, overplot eta bin
-  fTH1Canv->cd();
-  fTH1Canv->SetLogy(0);
 
   // so fix the eta bin, then overplot layers
   for (UInt_t ieta = 0; ieta < nEtaPart; ieta++){
