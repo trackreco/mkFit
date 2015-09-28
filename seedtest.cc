@@ -79,23 +79,22 @@ void buildSeedsByRoadTriplets(const std::vector<HitVec>& evt_lay_hits, const Bin
 }
 
 void buildHitPairs(const std::vector<HitVec>& evt_lay_hits, const BinInfoLayerMap& segLayMap, std::vector<HitVec>& hit_pairs){
-  const float dZ = 1.0; // 3.25 - 3.3
-  const float innerrad = 4.0; // average radius of inner radius
-  const float alphaBeta = 0.0520195; // 0.0458378 --> for d0 = .0025 cm --> analytically derived
+  // use only average radius of inner radius for calculation
+  // alphaBeta is a parameter for phi search window derived numerically from Mathematica... see one of my old talks
 
   for (unsigned int ihit=0;ihit<evt_lay_hits[1].size();++ihit) { // 1 = second layer
     const float outerhitz = evt_lay_hits[1][ihit].z(); // remember, layer[0] is first layer! --> second layer = [1]
     const float outerphi  = evt_lay_hits[1][ihit].phi();
 
 #ifdef ETASEG
-    const auto etaBinMinus = getEtaPartition(normalizedEta(getEta(innerrad,(outerhitz-dZ)/2.)));
-    const auto etaBinPlus  = getEtaPartition(normalizedEta(getEta(innerrad,(outerhitz+dZ)/2.)));
+    const auto etaBinMinus = getEtaPartition(getEta(Config::fRadialSpacing,(outerhitz-Config::dZ)/2.));
+    const auto etaBinPlus  = getEtaPartition(getEta(Config::fRadialSpacing,(outerhitz+Config::dZ)/2.));
 #else
     const auto etaBinMinus = 0U;
     const auto etaBinPlus  = 0U;
 #endif
-    const auto phiBinMinus = getPhiPartition(normalizedPhi(outerphi - alphaBeta));
-    const auto phiBinPlus  = getPhiPartition(normalizedPhi(outerphi + alphaBeta));
+    const auto phiBinMinus = getPhiPartition(normalizedPhi(outerphi - Config::alphaBeta));
+    const auto phiBinPlus  = getPhiPartition(normalizedPhi(outerphi + Config::alphaBeta));
 
     std::vector<unsigned int> cand_hit_indices = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
     for (auto&& cand_hit_idx : cand_hit_indices){
@@ -108,15 +107,13 @@ void buildHitPairs(const std::vector<HitVec>& evt_lay_hits, const BinInfoLayerMa
 }  
 
 void buildHitTriplets(const std::vector<HitVec>& evt_lay_hits, const BinInfoLayerMap& segLayMap, const std::vector<HitVec>& hit_pairs, std::vector<HitVec>& hit_triplets){
-  const float dEta     = 0.6; // for almost max efficiency --> empirically derived
-  const float dPhi     = 0.0458712; // numerically+semianalytically derived
-  const float thirdRad = 12.0; // average third radius
+  const float thirdRad = Config::fRadialSpacing * 3.0; // average third radius
 
   for (auto&& hit_pair : hit_pairs){
 #ifdef ETASEG
     const float thirdZline = 2*hit_pair[1].z()-hit_pair[0].z(); // for dz displacements -- straight line window
-    const auto etaBinMinus = getEtaPartition(normalizedEta(getEta(thirdRad,thirdZline)-dEta));
-    const auto etaBinPlus  = getEtaPartition(normalizedEta(getEta(thirdRad,thirdZline)+dEta));
+    const auto etaBinMinus = getEtaPartition(getEta(thirdRad,thirdZline)-Config::dEtaSeedTrip);
+    const auto etaBinPlus  = getEtaPartition(getEta(thirdRad,thirdZline)+Config::dEtaSeedTrip);
 #else
     const auto etaBinMinus = 0U;
     const auto etaBinPlus  = 0U;
@@ -125,12 +122,12 @@ void buildHitTriplets(const std::vector<HitVec>& evt_lay_hits, const BinInfoLaye
     float thirdPhiMinus = 0.0;
     float thirdPhiPlus  = 0.0;  
     if (hit_pair[0].phi() < hit_pair[1].phi() ){
-      thirdPhiMinus = normalizedPhi(linePhi - dPhi);
+      thirdPhiMinus = normalizedPhi(linePhi - Config::dPhiSeedTrip);
       thirdPhiPlus  = normalizedPhi(linePhi);
     }
     else{
       thirdPhiMinus = normalizedPhi(linePhi);
-      thirdPhiPlus  = normalizedPhi(linePhi + dPhi);
+      thirdPhiPlus  = normalizedPhi(linePhi + Config::dPhiSeedTrip);
     }
     const auto phiBinMinus = getPhiPartition(thirdPhiMinus);
     const auto phiBinPlus  = getPhiPartition(thirdPhiPlus);
@@ -152,8 +149,7 @@ void filterHitTripletsByRZChi2(const std::vector<HitVec>& hit_triplets, std::vec
   // A = y-int, B = slope
 
   // res on z is set to be hitposerrZ*hitposerrZ
-  const float varZ    = 0.1*0.1; // from simulation ... will need to change if that changes!
-  const float invsig2 = 3.*(1./varZ);
+  const float invsig2 = 3.*(1./Config::varZ);
 
   for (auto&& hit_triplet : hit_triplets){
     // first do fit for three hits
@@ -162,10 +158,10 @@ void filterHitTripletsByRZChi2(const std::vector<HitVec>& hit_triplets, std::vec
     float sumysig2  = 0;
     float sumxysig2 = 0;
     for (auto&& seedhit : hit_triplet) { 
-      sumx2sig2 += ((seedhit.r())*(seedhit.r()) / varZ);
-      sumxsig2  += (seedhit.r() / varZ);
-      sumysig2  += (seedhit.z() / varZ);
-      sumxysig2 += ((seedhit.r())*(seedhit.z()) / varZ);
+      sumx2sig2 += ((seedhit.r())*(seedhit.r()) / Config::varZ);
+      sumxsig2  += (seedhit.r() / Config::varZ);
+      sumysig2  += (seedhit.z() / Config::varZ);
+      sumxysig2 += ((seedhit.r())*(seedhit.z()) / Config::varZ);
     }
     const float norm   = 1./ ((invsig2*sumx2sig2) - (sumxsig2*sumxsig2));
     const float aParam = norm * ((sumx2sig2 * sumysig2) - (sumxsig2*sumxysig2));

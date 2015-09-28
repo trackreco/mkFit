@@ -34,21 +34,21 @@ inline unsigned int getPhiPartition(float phi){
   //  const float phiPlusPi  = std::fmod(phi+Config::PI,Config::TwoPI); // normaliztion done here
   const float phiPlusPi  = phi+Config::PI; 
   const unsigned int bin = phiPlusPi*Config::fPhiFactor;
+  //  second condition appeared once in very bizarre corner case where propagated phi == pi != Config::PI in check of normalizedPhi 
+  //  i.e. delta on floating point check smaller than comparison... making what should be bin = nPhiPart - 1 instead bin = nPhiPart (out of bounds!!) 
+  //  if      (bin<0)                 bin = 0;
+  //  else if (bin>=Config::nPhiPart) bin = Config::nPhiPart - 1;
   return bin;
 }
 
 inline unsigned int getEtaPartition(float eta){
   const float etaPlusEtaDet  = eta + Config::fEtaDet;
   const unsigned int bin     = (etaPlusEtaDet * Config::nEtaPart) / (Config::fEtaFull);  // ten bins for now ... update if changed in Event.cc
+  // use this check instead of normalizedEta()... directly bin into first/last bins eta of range of detector
+  if      (etabin<0)                 etabin = 0; 
+  else if (etabin>=Config::nEtaPart) etabin = Config::nEtaPart - 1;
   return bin;
 }
-			      
-#ifdef ETASEG
-inline float normalizedEta(float eta) {
-  if (std::abs(eta)>=Config::fEtaDet) {eta = (eta>0 ? Config::fEtaDet*0.99 : -Config::fEtaDet*0.99);}
-  return eta;
-}
-#endif
 
 std::vector<unsigned int> getCandHitIndices(const unsigned int &, const unsigned int &, const unsigned int &, const unsigned int &, const BinInfoLayerMap &);
 
