@@ -32,13 +32,16 @@ inline unsigned int getPhiPartition(float phi){
   //assume phi is between -PI and PI
   //  if (!(fabs(phi)<Config::PI)) std::cout << "anomalous phi=" << phi << std::endl;
   //  const float phiPlusPi  = std::fmod(phi+Config::PI,Config::TwoPI); // normaliztion done here
-  const float phiPlusPi  = phi+Config::PI; 
-  const unsigned int bin = phiPlusPi*Config::fPhiFactor; // would have to change this to just a regular int (no const) if want to use commented lines below
-  //  second condition appeared once in very bizarre corner case where propagated phi == pi != Config::PI in check of normalizedPhi 
-  //  i.e. delta on floating point check smaller than comparison... making what should be bin = nPhiPart - 1 instead bin = nPhiPart (out of bounds!!) 
-  //  if      (bin<0)                 bin = 0;
-  //  else if (bin>=Config::nPhiPart) bin = Config::nPhiPart - 1;
-  return bin;
+  const float phiPlusPi = phi+Config::PI; 
+  int bin = phiPlusPi*Config::fPhiFactor;
+  
+  // theoretically these checks below should be taken care of by normalizedPhi, however...
+  // these condition checks appeared in very bizarre corner case where propagated phi == pi != Config::PI in check of normalizedPhi (but not unexpected... comparing float point numbers)
+  // i.e. delta on floating point check smaller than comparison... making what should be bin = nPhiPart - 1 instead bin = nPhiPart (out of bounds!!) ...or worse if unsigned bin < 0, bin == unsigned int max!
+  if (bin<0)                      bin = 0;
+  else if (bin>=Config::nPhiPart) bin = Config::nPhiPart - 1;
+
+  return (unsigned int) bin;
 }
 
 inline unsigned int getEtaPartition(float eta){
