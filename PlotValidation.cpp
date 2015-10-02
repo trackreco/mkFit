@@ -653,11 +653,6 @@ void PlotValidation::PlotSegment(){
       // fill eta-phi bin plots
       for (UInt_t iphi = 0; iphi < nPhiPart; iphi++){
 	phibinplots[ilay][ieta]->SetBinContent(iphi+1,nHitsPhiVVV[ilay][ieta][iphi]);
-	
-	if (ilay == 9) {
-	  total += nHitsPhiVVV[ilay][ieta][iphi];
-	}
-	
 	nHitsplots[ilay]->Fill(nHitsPhiVVV[ilay][ieta][iphi]);
       }
     }
