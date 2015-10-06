@@ -73,6 +73,7 @@ void Event::Simulate()
 
       simTracks_[itrack] = Track(q,pos,mom,covtrk,0.0f);
       auto& sim_track = simTracks_[itrack];
+      sim_track.setLabel(itrack);
       for (int ilay = 0; ilay < hits.size(); ++ilay) {
         sim_track.addHitIdx(layerHits_[ilay].size(),0.0f);
         layerHits_[ilay].push_back(hits[ilay]);
