@@ -74,6 +74,17 @@ inline float getEta(float r, float z) {
   return -1. * log( tan(getTheta(r,z)/2.) );
 }
 
+inline float getEta(float x, float y, float z)
+{
+  float theta = atan2( std::sqrt(x*x+y*y), z );
+  return -1. * log( tan(theta/2.) );
+}
+
+inline float getHypot(float x, float y)
+{
+  return sqrtf(x*x + y*y);
+}
+
 inline float getRadErr2(float x, float y, float exx, float eyy, float exy){
   return (x*x*exx + y*y*eyy + 2*x*y*exy) / getRad2(x,y);
 }  
@@ -110,7 +121,7 @@ inline float getEtaErr2(float x, float y, float z, float exx, float eyy, float e
 
 struct MCHitInfo
 {
-  MCHitInfo() : mcHitID_(mcHitIDCounter_++) {}
+  MCHitInfo() {}
   MCHitInfo(unsigned int track, unsigned int layer, unsigned int ithlayerhit)
     : mcTrackID_(track), layer_(layer), ithLayerHit_(ithlayerhit), mcHitID_(++mcHitIDCounter_) {}
 
@@ -125,70 +136,75 @@ struct MCHitInfo
 struct MeasurementState
 {
 public:
-  SVector3 parameters;
-  SMatrixSym33 errors;
+  MeasurementState() {}
+  MeasurementState(const SVector3& p, const SVector6& e)
+    : pos_(p), err_(e) {}
+  MeasurementState(const SVector3& p, const SMatrixSym33& e)
+    : pos_(p) {
+      for (int i=0;i<6;++i) err_[i] = e.Array()[i];
+    }
+  const SVector3& parameters() const { return pos_; }
+  SMatrixSym33 errors() const { 
+    SMatrixSym33 result;
+    for (int i=0;i<6;++i) result.Array()[i]=err_[i];
+    return result; 
+  }
+  SVector3 pos_;
+  SVector6 err_;
 };
 
 class Hit
 {
 public:
   Hit(){}
-
-  Hit(const MeasurementState& state) : state_(state) {}
-
-  Hit(const SVector3& position, const SMatrixSym33& error)
-  {
-    state_.parameters=position;
-    state_.errors=error;
-  }
-
-  Hit(const SVector3& position, const SMatrixSym33& error, unsigned int itrack, unsigned int ilayer, unsigned int ithLayerHit)
-  {
-    mcHitInfo_.mcTrackID_ = itrack;
-    mcHitInfo_.layer_ = ilayer;
-    mcHitInfo_.ithLayerHit_ = ithLayerHit;
-    state_.parameters=position;
-    state_.errors=error;
-  }
-
-  Hit(const SVector3& position, const SMatrixSym33& error, const MCHitInfo& mcHitInfo)
-    : mcHitInfo_(mcHitInfo)
-  {
-    state_.parameters=position;
-    state_.errors=error;
-  }
+  Hit(const SVector3& position, const SMatrixSym33& error, int mcHitID = -1)
+    : state_(position, error), mcHitID_(mcHitID) {}
 
   ~Hit(){}
 
-  const SVector3&  position()  const {return state_.parameters;}
-  const SMatrixSym33& error()  const {return state_.errors;}
-  const SVector3& parameters() const {return state_.parameters;}
-  float r() const {return std::sqrt(getRad2(state_.parameters.At(0),state_.parameters.At(1)));}
-  float x() const {return state_.parameters.At(0);}
-  float y() const {return state_.parameters.At(1);}
-  float z() const {return state_.parameters.At(2);}
-  float phi() const {return getPhi(state_.parameters.At(0),state_.parameters.At(1));}
-  float eta() const {return getEta(r(),z());}
+  const SVector3&  position()  const {return state_.parameters();}
+  const SVector3& parameters() const {return state_.parameters();}
+  const SMatrixSym33 error()  const {return state_.errors();}
+
+  const float* posArray() const {return state_.pos_.Array();}
+  const float* errArray() const {return state_.err_.Array();}
 
   // Non-const versions needed for CopyOut of Matriplex.
-  SVector3&     parameters_nc() {return state_.parameters;}
-  SMatrixSym33& error_nc()      {return state_.errors;}
+  SVector3&     parameters_nc() {return state_.pos_;}
+  SVector6&     error_nc()      {return state_.err_;}
+
+  float r() const {
+    return std::sqrt(state_.parameters().At(0)*state_.parameters().At(0) +
+                     state_.parameters().At(1)*state_.parameters().At(1));
+  }
+  float x() const {
+    return state_.parameters().At(0);
+  }
+  float y() const {
+    return state_.parameters().At(1);
+  }
+  float z() const {
+    return state_.parameters().At(2);
+  }
+  float phi() const {
+    return getPhi(state_.parameters().At(0), state_.parameters().At(1));
+  }
+  float eta() const {
+    return getEta(state_.parameters().At(0), state_.parameters().At(1), state_.parameters().At(2));
+  }
 
   const MeasurementState& measurementState() const {
     return state_;
   }
 
-  const MCHitInfo& mcHitInfo() const {return mcHitInfo_;}
-  unsigned int mcTrackID() const {return mcHitInfo_.mcTrackID_;}
-  unsigned int layer() const {return mcHitInfo_.layer_;}
-  unsigned int ithLayerHit() const {return mcHitInfo_.ithLayerHit_;}
-  unsigned int hitID() const {return mcHitInfo_.mcHitID_;}
+  int mcHitID() const { return mcHitID_; }
 
 private:
   MeasurementState state_;
-  MCHitInfo        mcHitInfo_;
+  int mcHitID_;
 };
 
 typedef std::vector<Hit> HitVec;
+typedef std::vector<MCHitInfo> MCHitInfoVec;
 
 #endif

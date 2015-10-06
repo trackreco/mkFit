@@ -44,6 +44,7 @@ Event::Event(const Geometry& g, Validation& v, unsigned int evtID, int threads) 
 void Event::Simulate()
 {
   simTracks_.resize(Config::nTracks);
+  simHitsInfo_.resize(Config::nTracks*Config::nTracks);
   for (auto&& l : layerHits_) {
     l.reserve(Config::nTracks);
   }
@@ -67,21 +68,19 @@ void Event::Simulate()
       // unsigned int starting_layer  = 0; --> for displaced tracks, may want to consider running a separate Simulate() block with extra parameters
 
       int q=0;//set it in setup function
-      setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,tmpgeom,initialTSs); // do the simulation
+      setupTrackByToyMC(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs); // do the simulation
       validation_.collectSimTkTSVecMapInfo(itrack,initialTSs); // save initial TS parameters
-      Track sim_track(q,pos,mom,covtrk,hits,0,itrack,itrack);
-      simTracks_[itrack] = sim_track;
+
+      simTracks_[itrack] = Track(q,pos,mom,covtrk,0.0f);
+      auto& sim_track = simTracks_[itrack];
+      for (int ilay = 0; ilay < hits.size(); ++ilay) {
+        sim_track.addHitIdx(layerHits_[ilay].size(),0.0f);
+        layerHits_[ilay].push_back(hits[ilay]);
+      }
     }
 #ifdef TBB
   });
 #endif
-
-  // fill vector of hits in each layer
-  for (const auto& track : simTracks_) {
-    for (const auto& hit : track.hitsVector()) {
-      layerHits_[hit.layer()].push_back(hit);
-    }
-  }
 }
 
 void Event::Segment()

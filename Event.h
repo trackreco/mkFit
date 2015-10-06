@@ -26,6 +26,8 @@ public:
  public:
   int threads_;
   std::vector<HitVec> layerHits_;
+  MCHitInfoVec simHitsInfo_;
+
   TrackVec simTracks_, seedTracks_, candidateTracks_, fitTracks_;
 
   // phi-eta partitioning map: vector of vector of vectors of std::pairs. 

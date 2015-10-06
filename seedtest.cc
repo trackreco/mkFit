@@ -8,36 +8,31 @@
 void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, Event& ev){
   for (unsigned int itrack=0;itrack<evt_sim_tracks.size();++itrack) {
     const Track& trk = evt_sim_tracks[itrack];
-    const HitVec& hits = trk.hitsVector();
-    HitVec seedhits;
+    int   seedhits[Config::nLayers];
     float chi2 = 0;
     TrackState updatedState = trk.state();
 
     TSLayerPairVec updatedStates; // validation for position pulls
 
     for (auto ilayer=0U;ilayer<Config::nlayers_per_seed;++ilayer) {//seeds have first three layers as seeds
-      Hit seed_hit = hits[ilayer]; // do this for now to make initHits element number line up with HitId number
+      auto hitidx = trk.getHitIdx(ilayer);
+      const Hit& seed_hit = ev.layerHits_[ilayer][hitidx];
       TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
-#ifdef CHECKSTATEVALID
-      if (!propState.valid) {
-	std::cout << "Seeding failed to propagate to layer: " << ilayer << " for sim track: " << itrack << std::endl;
-	break;
-      }
-#endif
       MeasurementState measState = seed_hit.measurementState();
       updatedState = updateParameters(propState, measState);
-      seedhits.push_back(seed_hit);
+      seedhits[ilayer] = hitidx;
       //      chi2 += computeChi2(updatedState,measState); --> could use this to make the chi2
 
       updatedStates.push_back(std::make_pair(ilayer,updatedState)); // validation
     }
     ev.validation_.collectSeedTkTSLayerPairVecMapInfo(itrack,updatedStates); // use to collect position pull info
 
-    Track seed(updatedState,seedhits,chi2,itrack);//fixme chi2 // itrack is seedID in this case
+    Track seed(updatedState,0.,itrack,Config::nlayers_per_seed,seedhits);//fixme chi2
     evt_seed_tracks.push_back(seed);
   }
 }
 
+#ifdef BUILDSEEDS
 void buildSeedsByRoadTriplets(const std::vector<HitVec>& evt_lay_hits, const BinInfoMap& segmentMap, TrackVec& evt_seed_tracks, Event& ev){
   bool debug(false);
 
@@ -220,3 +215,4 @@ void buildSeedsFromTriplets(const std::vector<HitVec> & filtered_triplets, Track
     seedID++; // increment dummy counter for seedID
   }
 }
+#endif

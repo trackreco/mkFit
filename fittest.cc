@@ -57,10 +57,10 @@ void fitTrack(const Track & trk, Event& ev)
 
 #define INWARD
 #if defined(INWARD)
-  auto hits(trk.hitsVector());
+  auto hits(trk.hitsVector(ev.layerHits_));
   std::reverse(hits.begin(), hits.end());
 #else
-  const auto& hits = trk.hitsVector();
+  const auto& hits = trk.hitsVector(ev.layerHits_);
 #endif
   TrackState cfitStateHit0;
 
@@ -141,14 +141,18 @@ void fitTrack(const Track & trk, Event& ev)
 #endif
     }
 
+#ifdef VALIDATION
     updatedStates.push_back(std::make_pair(hit.layer(),updatedState)); // validation for pos pull
+#endif
   } // end loop over hits
   dcall(print("Fit Track", updatedState));
 
+#ifdef VALIDATION
   ev.validation_.collectFitTkTSLayerPairVecMapInfo(trk.seedID(),updatedStates); // for position pulls
 
   Track FitTrack(updatedState,hits,trk.chi2(),trk.seedID()); // eventually will want to include chi2 of fitTrack --> chi2 for now just copied from build tracks
   ev.fitTracks_.push_back(FitTrack);
+#endif
 }
 
 typedef TrackVec::const_iterator TrkIter;
