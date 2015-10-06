@@ -16,19 +16,19 @@
 
 //#define PRINTOUTS_FOR_PLOTS
 
-bool sortByHitsChi2(std::pair<Track, TrackState> cand1,std::pair<Track, TrackState> cand2)
+bool sortByHitsChi2(const std::pair<Track, TrackState>& cand1, const std::pair<Track, TrackState>& cand2)
 {
-  if (cand1.first.nHits()==cand2.first.nHits()) return cand1.first.chi2()<cand2.first.chi2();
-  return cand1.first.nHits()>cand2.first.nHits();
+  if (cand1.first.nFoundHits()==cand2.first.nFoundHits()) return cand1.first.chi2()<cand2.first.chi2();
+  return cand1.first.nFoundHits()>cand2.first.nFoundHits();
 }
 
-bool sortCandByHitsChi2(Track cand1,Track cand2)
+bool sortCandByHitsChi2(const Track& cand1, const Track& cand2)
 {
-  if (cand1.nHitIdx()==cand2.nHitIdx()) return cand1.chi2()<cand2.chi2();
-  return cand1.nHitIdx()>cand2.nHitIdx();
+  if (cand1.nFoundHits()==cand2.nFoundHits()) return cand1.chi2()<cand2.chi2();
+  return cand1.nFoundHits()>cand2.nFoundHits();
 }
 
-bool sortByPhi(Hit hit1,Hit hit2)
+bool sortByPhi(const Hit& hit1, const Hit& hit2)
 {
   return std::atan2(hit1.y(),hit1.x())<std::atan2(hit2.y(),hit2.x());
 }
@@ -141,14 +141,14 @@ void MkBuilder::begin_event(Event& ev, const char* build_type)
   //dump sim tracks
   for (int itrack=0;itrack<simtracks.size();++itrack) {
     Track track = simtracks[itrack];
-    std::cout << "MX - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1]) <<" phi="<< track.momPhi() <<" eta=" << track.momEta() << std::endl;
+    std::cout << "MX - simtrack with nHits=" << track.nFoundHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1]) <<" phi="<< track.momPhi() <<" eta=" << track.momEta() << std::endl;
   }
 #endif
 
 #ifdef PRINTOUTS_FOR_PLOTS
   for (int itrack=0;itrack<simtracks.size();++itrack) {
     Track track = simtracks[itrack];
-    std::cout << "MX - simtrack with nHits=" << track.nHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1]) <<" phi="<< track.momPhi() <<" eta=" << track.momEta() << std::endl;
+    std::cout << "MX - simtrack with nHits=" << track.nFoundHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1]) <<" phi="<< track.momPhi() <<" eta=" << track.momEta() << std::endl;
   }
 #endif
 
@@ -162,9 +162,9 @@ void MkBuilder::begin_event(Event& ev, const char* build_type)
     }
 
     //fill vector of hits in each layer (assuming there is one hit per layer in hits vector)
-    for (int ilay = 0; ilay < simtracks[itrack].nHits(); ++ilay)
+    for (int ilay = 0; ilay < simtracks[itrack].nTotalHits(); ++ilay)
     {
-      m_event_of_hits.InsertHit(simtracks[itrack].hitsVector()[ilay], ilay);
+      m_event_of_hits.InsertHit(simtracks[itrack].hitsVector(ev.layerHits_)[ilay], ilay);
     }
   }
 
@@ -188,11 +188,11 @@ void MkBuilder::fit_seeds()
 
     mkfp->SetNhits(3);//just to be sure (is this needed?)
 
-    mkfp->InputTracksAndHits(simtracks, itrack, end);
+    mkfp->InputTracksAndHits(simtracks, m_event->layerHits_, itrack, end);
 
     mkfp->FitTracks();
 
-    mkfp->OutputFittedTracksAndHits(m_recseeds, itrack, end);
+    mkfp->OutputFittedTracksAndHitIdx(m_recseeds, itrack, end);
   }
 
   //ok now, we should have all seeds fitted in recseeds
@@ -201,7 +201,7 @@ void MkBuilder::fit_seeds()
   for (int iseed = 0; iseed < m_recseeds.size(); ++iseed)
   {
     Track& seed = m_recseeds[iseed];
-    std::cout << "MX - found seed with nHits=" << seed.nHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.radius() << " pT=" << seed.pt() << std::endl;
+    std::cout << "MX - found seed with nHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.radius() << " pT=" << seed.pt() << std::endl;
   }
 #endif
 
@@ -210,7 +210,7 @@ void MkBuilder::fit_seeds()
   for (int iseed = 0; iseed < m_recseeds.size(); ++iseed)
   {
     Track& seed = m_recseeds[iseed];
-    std::cout << "MX - found seed with nHits=" << seed.nHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.radius() << " pT=" << seed.pt() << std::endl;
+    std::cout << "MX - found seed with nHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.radius() << " pT=" << seed.pt() << std::endl;
   }
 #endif
 }
@@ -237,15 +237,15 @@ void MkBuilder::quality_process(Track &tkcand)
     // std::cout << "XX bad track idx " << mctrk << "\n";
     return;
   }
-  float pt    = tkcand.pt();
-  float ptmc  = m_event->simTracks_[mctrk].pt() ;
+  float pt    = tkcand.pT();
+  float ptmc  = m_event->simTracks_[mctrk].pT() ;
   float pr    = pt / ptmc;
 
   ++m_cnt;
   if (pr > 0.9 && pr < 1.1) ++m_cnt1;
   if (pr > 0.8 && pr < 1.2) ++m_cnt2;
 
-  if (tkcand.nHitIdx() >= 8)
+  if (tkcand.nFoundHits() >= 8)
   {
     ++m_cnt_8;
     if (pr > 0.9 && pr < 1.1) ++m_cnt1_8;

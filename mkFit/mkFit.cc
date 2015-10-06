@@ -138,7 +138,7 @@ void test_standard()
 
   printf("Running test_standard(), operation=\"%s\"\n", g_operation.c_str());
   printf("  vusize=%i, num_th=%i\n",  MPT_SIZE, NUM_THREADS);
-  printf("  sizeof(Track)=%d, sizeof(Hit)=%d, sizeof(SVector3)=%d, sizeof(SMatrixSym33)=%d, sizeof(MCHitInfo)=%d\n",
+  printf("  sizeof(Track)=%zu, sizeof(Hit)=%zu, sizeof(SVector3)=%zu, sizeof(SMatrixSym33)=%zu, sizeof(MCHitInfo)=%zu\n",
          sizeof(Track), sizeof(Hit), sizeof(SVector3), sizeof(SMatrixSym33), sizeof(MCHitInfo));
 
   int Ntracks = Config::nTracks;

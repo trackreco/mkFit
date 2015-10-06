@@ -24,7 +24,9 @@ void MkFitter::PrintPt(int idx)
 
 //==============================================================================
 
-void MkFitter::InputTracksAndHits(std::vector<Track>& tracks, int beg, int end)
+void MkFitter::InputTracksAndHits(std::vector<Track>&  tracks,
+                                  std::vector<HitVec>& layerHits,
+                                  int beg, int end)
 {
   // Assign track parameters to initial state and copy hit values in.
 
@@ -46,10 +48,12 @@ void MkFitter::InputTracksAndHits(std::vector<Track>& tracks, int beg, int end)
 
     for (int hi = 0; hi < Nhits; ++hi)
     {
-      const Hit &hit = trk.hitsVector()[hi];
+      const int hidx = trk.getHitIdx(hi);
+      const Hit &hit = layerHits[hi][hidx];
 
-      msErr[hi].CopyIn(itrack, hit.error().Array());
-      msPar[hi].CopyIn(itrack, hit.parameters().Array());
+      msErr[hi].CopyIn(itrack, hit.errArray());
+      msPar[hi].CopyIn(itrack, hit.posArray());
+      HitsIdx[hi](itrack, 0, 0) = hidx;
     }
   }
 }
@@ -203,38 +207,6 @@ void MkFitter::OutputTracks(std::vector<Track>& tracks, int beg, int end, int iC
     tracks[i].setLabel(Label(itrack, 0, 0));
   }
 }
-
-void MkFitter::OutputFittedTracksAndHits(std::vector<Track>& tracks, int beg, int end)
-{
-  // Copies last track parameters (updated) into Track objects and up to Nhits.
-  // The tracks vector should be resized to allow direct copying.
-
-  int itrack = 0;
-  for (int i = beg; i < end; ++i, ++itrack)
-  {
-    Err[iC].CopyOut(itrack, tracks[i].errors_nc().Array());
-    Par[iC].CopyOut(itrack, tracks[i].parameters_nc().Array());
-
-    tracks[i].setCharge(Chg(itrack, 0, 0));
-    tracks[i].setChi2(Chi2(itrack, 0, 0));
-    tracks[i].setLabel(Label(itrack, 0, 0));
-
-    // XXXXX chi2 is not set (also not in SMatrix fit, it seems)
-
-    tracks[i].resetHits();
-    for (int hi = 0; hi < Nhits; ++hi)
-    {
-      Hit hit;
-
-      msErr[hi].CopyOut(itrack, hit.error_nc().Array());
-      msPar[hi].CopyOut(itrack, hit.parameters_nc().Array());
-
-      tracks[i].addHit(hit,0.);
-      tracks[i].addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);
-    }
-  }
-}
-
 
 void MkFitter::OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end)
 {

@@ -30,9 +30,9 @@ SimTkIDInfo Track::MCTrackIDInfo(const MCHitInfoVec& globalHitInfo) const
 #endif
 }
 
-#if 0
 void Track::write_out(FILE *fp)
 {
+#if 0
   Track t = clone_for_io();
   fwrite(&t, sizeof(Track), 1, fp);
 
@@ -40,10 +40,12 @@ void Track::write_out(FILE *fp)
   fwrite(&nh, sizeof(unsigned int), 1, fp);
 
   fwrite(&hits_[0], sizeof(Hit), nh, fp);
+#endif
 }
 
 void Track::read_in(FILE *fp)
 {
+#if 0
   fread(this, sizeof(Track), 1, fp);
 
   unsigned int nh = nHits();
@@ -51,5 +53,5 @@ void Track::read_in(FILE *fp)
 
   hits_.resize(nh);
   fread(&hits_[0], sizeof(Hit), nh, fp);
-}
 #endif
+}
