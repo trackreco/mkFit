@@ -74,7 +74,7 @@ public:
   void OutputFittedTracksAndHits(std::vector<Track>& tracks, int beg, int end);
   void OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end);
 
-  void PropagateTracksToR(float R);
+  void PropagateTracksToR(float R, const int N_proc);
 
   void AddBestHit(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end);
 
@@ -98,7 +98,7 @@ public:
   // MT methods
   // ================================================================
 
-  void SelectHitRanges(BunchOfHits &bunch_of_hits);
+  void SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc);
   void AddBestHit     (BunchOfHits &bunch_of_hits);
 
   void FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vector<Track> >& tmp_candidates, int offset);

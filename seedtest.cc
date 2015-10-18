@@ -4,13 +4,17 @@
 #include "ConformalUtils.h"
 #include "KalmanUtils.h"
 #include "Propagation.h"
+//#define DEBUG
+#include "Debug.h"
 
 void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, Event& ev){
+  bool debug(true);
   for (unsigned int itrack=0;itrack<evt_sim_tracks.size();++itrack) {
     const Track& trk = evt_sim_tracks[itrack];
     int   seedhits[Config::nLayers];
     float chi2 = 0;
     TrackState updatedState = trk.state();
+    dprint("processing sim track # " << trk.seedID() << " par=" << trk.parameters());
 
     TSLayerPairVec updatedStates; // validation for position pulls
 
@@ -28,6 +32,7 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, E
     ev.validation_.collectSeedTkTSLayerPairVecMapInfo(itrack,updatedStates); // use to collect position pull info
 
     Track seed(updatedState,0.,itrack,Config::nlayers_per_seed,seedhits);//fixme chi2
+    dprint("created seed track # " << seed.seedID() << " par=" << seed.parameters());
     evt_seed_tracks.push_back(seed);
   }
 }

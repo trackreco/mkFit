@@ -45,6 +45,9 @@ public:
   const SMatrixSym66& errors()     const {return state_.errors;}
   const TrackState&   state()      const {return state_;}
 
+  const float* posArray() const {return state_.parameters.Array();}
+  const float* errArray() const {return state_.errors.Array();}
+
   // Non-const versions needed for CopyOut of Matriplex.
   SVector6&     parameters_nc() {return state_.parameters;}
   SMatrixSym66& errors_nc()     {return state_.errors;}
@@ -87,6 +90,10 @@ public:
   int  getHitIdx(int posHitIdx) const
   {
     return hitIdxArr_[posHitIdx];
+  }
+
+  void setHitIdx(int posHitIdx, int newIdx) {
+    hitIdxArr_[posHitIdx] = newIdx;
   }
 
   void resetHits()

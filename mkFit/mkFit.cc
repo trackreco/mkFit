@@ -67,6 +67,7 @@ void generate_and_save_tracks()
     Event ev(geom, val, evt);
 
     ev.Simulate();//fixme add g_gen.seed(742331); and #pragma omp parallel for num_threads(NUM_THREADS_SIM)
+    ev.resetLayerHitMap();
 
     fwrite(&Ntracks, sizeof(int), 1, fp);
 
@@ -173,6 +174,7 @@ void test_standard()
     else
     {
       ev.Simulate();//fixme add g_gen.seed(742331); and #pragma omp parallel for num_threads(NUM_THREADS_SIM)
+      ev.resetLayerHitMap();
     }
 
     plex_tracks.resize(ev.simTracks_.size());

@@ -40,8 +40,8 @@ void MkFitter::InputTracksAndHits(std::vector<Track>&  tracks,
 
     Label(itrack, 0, 0) = trk.label();
 
-    Err[iC].CopyIn(itrack, trk.errors().Array());
-    Par[iC].CopyIn(itrack, trk.parameters().Array());
+    Err[iC].CopyIn(itrack, trk.errArray());
+    Par[iC].CopyIn(itrack, trk.posArray());
 
     Chg(itrack, 0, 0) = trk.charge();
     Chi2(itrack, 0, 0) = trk.chi2();
@@ -73,8 +73,8 @@ void MkFitter::InputTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end
 
     Label(itrack, 0, 0) = trk.label();
 
-    Err[iC].CopyIn(itrack, trk.errors().Array());
-    Par[iC].CopyIn(itrack, trk.parameters().Array());
+    Err[iC].CopyIn(itrack, trk.errArray());
+    Par[iC].CopyIn(itrack, trk.posArray());
 
     Chg(itrack, 0, 0) = trk.charge();
     Chi2(itrack, 0, 0) = trk.chi2();
@@ -98,14 +98,13 @@ void MkFitter::InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks, st
   int itrack = 0;
   for (int i = beg; i < end; ++i, ++itrack)
   {
-
     Track &trk = tracks[idxs[i].first][idxs[i].second];
 
     Label(itrack, 0, 0) = trk.label();
     SeedIdx(itrack, 0, 0) = idxs[i].first;
 
-    Err[iC].CopyIn(itrack, trk.errors().Array());
-    Par[iC].CopyIn(itrack, trk.parameters().Array());
+    Err[iC].CopyIn(itrack, trk.errArray());
+    Par[iC].CopyIn(itrack, trk.posArray());
 
     Chg(itrack, 0, 0) = trk.charge();
     Chi2(itrack, 0, 0) = trk.chi2();
@@ -142,8 +141,8 @@ void MkFitter::InputTracksOnly(std::vector<Track>& tracks, int beg, int end)
   {
     Track &trk = tracks[i];
 
-    Err[iC].CopyIn(itrack, trk.errors().Array());
-    Par[iC].CopyIn(itrack, trk.parameters().Array());
+    Err[iC].CopyIn(itrack, trk.errArray());
+    Par[iC].CopyIn(itrack, trk.posArray());
 
     Chg(itrack, 0, 0) = trk.charge();
     Chi2(itrack, 0, 0) = trk.chi2();
@@ -163,8 +162,8 @@ void MkFitter::InputHitsOnly(std::vector<Hit>& hits, int beg, int end)
   {
     Hit &hit = hits[itrack];
 
-    msErr[Nhits].CopyIn(itrack, hit.error().Array());
-    msPar[Nhits].CopyIn(itrack, hit.parameters().Array());
+    msErr[Nhits].CopyIn(itrack, hit.errArray());
+    msPar[Nhits].CopyIn(itrack, hit.posArray());
   }
   Nhits++;
 }
@@ -234,12 +233,10 @@ void MkFitter::OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, 
   }
 }
 
-void MkFitter::PropagateTracksToR(float R)
+void MkFitter::PropagateTracksToR(float R, const int N_proc)
 {
-
     propagateHelixToRMPlex(Err[iC], Par[iC], Chg, R,
-                           Err[iP], Par[iP]);
-
+                           Err[iP], Par[iP], N_proc);
 }
 
 //fixme: do it properly with phi segmentation
@@ -271,8 +268,8 @@ void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int firstHit, int lastHit,
     //#pragma simd
     for (int i = beg; i < end; ++i, ++itrack)
     {
-      msErr_oneHit.CopyIn(itrack, hit.error().Array());
-      msPar_oneHit.CopyIn(itrack, hit.parameters().Array());
+      msErr_oneHit.CopyIn(itrack, hit.errArray());
+      msPar_oneHit.CopyIn(itrack, hit.posArray());
     }
 
     //now compute the chi2 of track state vs hit
@@ -316,8 +313,8 @@ void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int firstHit, int lastHit,
       std::cout << "copy in hit #" << bestHit[itrack] << " x=" << hit.position()[0] << " y=" << hit.position()[1] << std::endl;    
 #endif
 
-      msErr[Nhits].CopyIn(itrack, hit.error().Array());
-      msPar[Nhits].CopyIn(itrack, hit.parameters().Array());
+      msErr[Nhits].CopyIn(itrack, hit.errArray());
+      msPar[Nhits].CopyIn(itrack, hit.posArray());
       Chi2(itrack, 0, 0) += chi2;
       HitsIdx[Nhits](itrack, 0, 0) = bestHit[itrack];//fixme should add the offset
     }
@@ -368,8 +365,8 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
     //fixme: please vectorize me...
     for (int i = beg; i < end; ++i, ++itrack)
     {
-      msErr_oneHit.CopyIn(itrack, hit.error().Array());
-      msPar_oneHit.CopyIn(itrack, hit.parameters().Array());
+      msErr_oneHit.CopyIn(itrack, hit.errArray());
+      msPar_oneHit.CopyIn(itrack, hit.posArray());
     }
 
     //now compute the chi2 of track state vs hit
@@ -547,7 +544,7 @@ void MkFitter::GetHitRange(std::vector<std::vector<BinInfo> >& segmentMapLay_, i
 // MT methods
 // ======================================================================================
 
-void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits)
+void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
 {
   // must store hit vector into a data member so it can be used in hit selection.
   // or ... can have it passed into other functions.
@@ -558,7 +555,7 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits)
 
   // vecorized for
 #pragma simd
-  for (int itrack = 0; itrack < NN; ++itrack)
+  for (int itrack = 0; itrack < N_proc; ++itrack)
   {
     // Hmmh ... this should all be solved by partitioning ... let's try below ...
     //
@@ -657,8 +654,8 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 
   const char *varr      = (char*) bunch_of_hits.m_hits;
 
-  const int   off_error = (char*) bunch_of_hits.m_hits[0].error().Array()      - varr;
-  const int   off_param = (char*) bunch_of_hits.m_hits[0].parameters().Array() - varr;
+  const int   off_error = (char*) bunch_of_hits.m_hits[0].errArray() - varr;
+  const int   off_param = (char*) bunch_of_hits.m_hits[0].posArray() - varr;
 
   int idx[NN]      __attribute__((aligned(64)));
   int idx_chew[NN] __attribute__((aligned(64)));
@@ -719,8 +716,8 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
     {
       if ( XHitBegin.At(itrack, 0, 0) >= XHitEnd.At(itrack, 0, 0) ) continue;//is this going to break vectorization and also crash?
       Hit &hit = bunch_of_hits.m_hits[std::min(XHitBegin.At(itrack, 0, 0) + hit_cnt, XHitEnd.At(itrack, 0, 0) - 1)];//redo the last hit in case of overflow
-      msErr[Nhits].CopyIn(itrack, hit.error().Array());
-      msPar[Nhits].CopyIn(itrack, hit.parameters().Array());
+      msErr[Nhits].CopyIn(itrack, hit.errArray());
+      msPar[Nhits].CopyIn(itrack, hit.posArray());
     }
     
 #else //NO_GATHER
@@ -798,8 +795,8 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
       std::cout << "copy in hit #" << bestHit[itrack] << " x=" << hit.position()[0] << " y=" << hit.position()[1] << std::endl;    
 #endif
 	  
-      msErr[Nhits].CopyIn(itrack, hit.error().Array());
-      msPar[Nhits].CopyIn(itrack, hit.parameters().Array());
+      msErr[Nhits].CopyIn(itrack, hit.errArray());
+      msPar[Nhits].CopyIn(itrack, hit.posArray());
       Chi2(itrack, 0, 0) += chi2;
       HitsIdx[Nhits](itrack, 0, 0) = XHitBegin.At(itrack, 0, 0) + bestHit[itrack];
     }
@@ -836,8 +833,8 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
 
   const char *varr      = (char*) bunch_of_hits.m_hits;
 
-  const int   off_error = (char*) bunch_of_hits.m_hits[0].error().Array()      - varr;
-  const int   off_param = (char*) bunch_of_hits.m_hits[0].parameters().Array() - varr;
+  const int   off_error = (char*) bunch_of_hits.m_hits[0].posArray() - varr;
+  const int   off_param = (char*) bunch_of_hits.m_hits[0].errArray() - varr;
 
   int idx[NN]      __attribute__((aligned(64)));
   int idx_chew[NN] __attribute__((aligned(64)));
@@ -975,7 +972,8 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
 	      std::cout << "updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << std::endl;
 #endif
 	      
-	      tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
+        //assert(SeedIdx(itrack, 0, 0)-offset < tmp_candidates.size());
+        tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
 	    }
 	}
     }//end if (oneCandPassCut)
@@ -1000,6 +998,7 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
       //set the track state to the propagated parameters
       Err[iP].CopyOut(itrack, newcand.errors_nc().Array());
       Par[iP].CopyOut(itrack, newcand.parameters_nc().Array());	      
+      //assert(SeedIdx(itrack, 0, 0)-offset < tmp_candidates.size());
       tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
     }
 

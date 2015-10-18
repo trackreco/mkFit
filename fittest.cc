@@ -27,7 +27,7 @@ static void print(const TrackState& s)
 
 static void print(std::string label, unsigned int itrack, const Track& trk)
 {
-  std::cout << std::endl << label << ": " << itrack << " hits: " << trk.nHits() << " State" << std::endl;
+  std::cout << std::endl << label << ": " << itrack << " hits: " << trk.nFoundHits() << " State" << std::endl;
   print(trk.state());
 }
 
@@ -40,11 +40,11 @@ static void print(std::string label, const TrackState& s)
 static void print(std::string label, const MeasurementState& s)
 {
   std::cout << label << std::endl;
-  std::cout << "x: "  << s.parameters[0] 
-            << " y: " << s.parameters[1]
-            << " z: " << s.parameters[2] << std::endl
+  std::cout << "x: "  << s.parameters()[0] 
+            << " y: " << s.parameters()[1]
+            << " z: " << s.parameters()[2] << std::endl
             << "errors: " << std::endl;
-  dumpMatrix(s.errors);
+  dumpMatrix(s.errors());
   std::cout << std::endl;
 }
 #endif
@@ -86,7 +86,7 @@ void fitTrack(const Track & trk, Event& ev)
   updatedState.errors*=10;//not needed when fitting straight from simulation
 #endif //ENDTOEND
 
-#ifdef DEBUG
+#ifdef DEBUG_VALIDATION
   Track copytrk(trk.state(),hits,trk.chi2(),trk.seedID()); // to use this for debugging, have to make a copy of the track in order not to change function fittrack from const & to non const & trk
   copytrk.setMCTrackIDInfo();
   unsigned int itrack0 = copytrk.seedID(); // if mcTrackID() is not set, can not print out! so this only works for when seeds are produced from MC
@@ -125,7 +125,7 @@ void fitTrack(const Track & trk, Event& ev)
 
 #ifdef DEBUG
     if (debug) {
-      std::cout << "processing hit: " << hit.hitID() << std::endl
+      std::cout << "processing hit: " << hit.mcHitID() << std::endl
                 << "hitR, propR, updR = " << hit.r() << ", " 
                 << Mag(propPos) << ", " << Mag(updPos) << std::endl << std::endl;
 
