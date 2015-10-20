@@ -11,7 +11,7 @@ void updateParameters66(TrackState& propagatedState, MeasurementState& measureme
 {
   SMatrixSym66& propErr = propagatedState.errors;
   SMatrixSym66 measErr;
-  measErr.Place_at(measurementState.errors,0,0);
+  measErr.Place_at(measurementState.errors(),0,0);
 
   SMatrixSym66 resErr = measErr+propErr;
 
@@ -25,9 +25,9 @@ void updateParameters66(TrackState& propagatedState, MeasurementState& measureme
   SMatrixSym66 resErrInv;
   resErrInv.Place_at(resErrInv33,0,0);
 
-  SVector6 residual = SVector6(measurementState.parameters[0]-propagatedState.parameters[0],
-                               measurementState.parameters[1]-propagatedState.parameters[1],
-                               measurementState.parameters[2]-propagatedState.parameters[2],0,0,0);
+  SVector6 residual = SVector6(measurementState.parameters()[0]-propagatedState.parameters[0],
+                               measurementState.parameters()[1]-propagatedState.parameters[1],
+                               measurementState.parameters()[2]-propagatedState.parameters[2],0,0,0);
 
   SMatrix66 kalmanGain = propErr*resErrInv;
 
@@ -45,7 +45,7 @@ TrackState updateParameters(const TrackState& propagatedState, const Measurement
 #endif
   int invFail(0);
   const SMatrixSym66& propErr = propagatedState.errors;
-  const SMatrixSym33 resErr = measurementState.errors + propErr.Sub<SMatrixSym33>(0,0);
+  const SMatrixSym33 resErr = measurementState.errors() + propErr.Sub<SMatrixSym33>(0,0);
   const SMatrixSym33 resErrInv = resErr.InverseFast(invFail);
 
   if (0 != invFail) {
@@ -55,7 +55,7 @@ TrackState updateParameters(const TrackState& propagatedState, const Measurement
 
   //const SMatrix63 kalmanGain = propErr*projMatrixT*resErrInv;
   //const SMatrixSym66 simil   = ROOT::Math::SimilarityT(projMatrix,resErrInv);//fixme check T
-  const SVector3 residual = measurementState.parameters-propagatedState.parameters.Sub<SVector3>(0);
+  const SVector3 residual = measurementState.parameters()-propagatedState.parameters.Sub<SVector3>(0);
 
   TrackState result;
   result.parameters = propagatedState.parameters + propErr*projMatrixT*resErrInv*residual;

@@ -101,7 +101,7 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 
       MkFitter *mkfp = mkfp_arr[omp_get_thread_num()];
 
-      mkfp->InputTracksAndHits(simtracks, itrack, end);
+      mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
 
       mkfp->FitTracks();
 

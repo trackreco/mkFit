@@ -12,7 +12,7 @@
 #include "tbb/tbb.h"
 #endif
 
-static bool sortByPhi(const Hit& hit1, const Hit& hit2)
+inline bool sortByPhi(const Hit& hit1, const Hit& hit2)
 {
   return hit1.phi()<hit2.phi();
 }
@@ -23,15 +23,33 @@ static bool tracksByPhi(const Track& t1, const Track& t2)
 }
 
 #ifdef ETASEG
-static bool sortByEta(const Hit& hit1, const Hit& hit2){
+inline bool sortByEta(const Hit& hit1, const Hit& hit2){
   return hit1.eta()<hit2.eta();
 }
 
 // within a layer with a "reasonable" geometry, ordering by Z is the same as eta
-static bool sortByZ(const Hit& hit1, const Hit& hit2){
+inline bool sortByZ(const Hit& hit1, const Hit& hit2){
   return hit1.z()<hit2.z();
 }
 #endif
+
+void Event::resetLayerHitMap(bool resetSimHits) {
+  layerHitMap_.clear();
+  layerHitMap_.resize(simHitsInfo_.size());
+  for (int ilayer = 0; ilayer < layerHits_.size(); ++ilayer) {
+    for (int index = 0; index < layerHits_[ilayer].size(); ++index) {
+      auto& hit = layerHits_[ilayer][index];
+      layerHitMap_[hit.mcHitID()] = HitID(ilayer, index);
+    }
+  }
+  if (resetSimHits) {
+    for (auto&& track : simTracks_) {
+      for (int il = 0; il < track.nTotalHits(); ++il) {
+        track.setHitIdx(il, layerHitMap_[track.getHitIdx(il)].index);
+      }
+    }
+  }
+}
 
 Event::Event(const Geometry& g, Validation& v, unsigned int evtID, int threads) : geom_(g), validation_(v), evtID_(evtID), threads_(threads)
 {
@@ -44,6 +62,7 @@ Event::Event(const Geometry& g, Validation& v, unsigned int evtID, int threads) 
 void Event::Simulate()
 {
   simTracks_.resize(Config::nTracks);
+  simHitsInfo_.resize(Config::nTracks*Config::nTracks);
   for (auto&& l : layerHits_) {
     l.reserve(Config::nTracks);
   }
@@ -67,21 +86,20 @@ void Event::Simulate()
       // unsigned int starting_layer  = 0; --> for displaced tracks, may want to consider running a separate Simulate() block with extra parameters
 
       int q=0;//set it in setup function
-      setupTrackByToyMC(pos,mom,covtrk,hits,itrack,q,tmpgeom,initialTSs); // do the simulation
+      setupTrackByToyMC(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs); // do the simulation
       validation_.collectSimTkTSVecMapInfo(itrack,initialTSs); // save initial TS parameters
-      Track sim_track(q,pos,mom,covtrk,hits,0,itrack,itrack);
-      simTracks_[itrack] = sim_track;
+
+      simTracks_[itrack] = Track(q,pos,mom,covtrk,0.0f);
+      auto& sim_track = simTracks_[itrack];
+      sim_track.setLabel(itrack);
+      for (int ilay = 0; ilay < hits.size(); ++ilay) {
+        sim_track.addHitIdx(hits[ilay].mcHitID(),0.0f); // tmp because of sorting...
+        layerHits_[ilay].push_back(hits[ilay]);
+      }
     }
 #ifdef TBB
   });
 #endif
-
-  // fill vector of hits in each layer
-  for (const auto& track : simTracks_) {
-    for (const auto& hit : track.hitsVector()) {
-      layerHits_[hit.layer()].push_back(hit);
-    }
-  }
 }
 
 void Event::Segment()
@@ -185,6 +203,7 @@ void Event::Segment()
     std::cout << "layer: " << ilayer << " totalhits: " << etahitstotal << std::endl;
   }
 #endif
+  resetLayerHitMap();
 }
 
 void Event::Seed()

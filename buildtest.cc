@@ -27,10 +27,10 @@ typedef candvec::const_iterator canditer;
 
 void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidates, unsigned int ilay, bool debug);
 
-static bool sortByHitsChi2(const cand_t& cand1, const cand_t& cand2)
+inline bool sortByHitsChi2(const cand_t& cand1, const cand_t& cand2)
 {
-  if (cand1.nHits()==cand2.nHits()) return cand1.chi2()<cand2.chi2();
-  return cand1.nHits()>cand2.nHits();
+  if (cand1.nFoundHits()==cand2.nFoundHits()) return cand1.chi2()<cand2.chi2();
+  return cand1.nFoundHits()>cand2.nFoundHits();
 }
 
 void processCandidates(Event& ev, candvec& candidates, unsigned int ilay, const bool debug)
@@ -169,7 +169,7 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   const auto& segLayMap(ev.segmentMap_[ilayer]);
   debug = true;
 
-  dprint("processing candidate with nHits=" << tkcand.nHits());
+  dprint("processing candidate with nHits=" << tkcand.nFoundHits());
 #ifdef LINEARINTERP
   TrackState propState = propagateHelixToR(updatedState,ev.geom_.Radius(ilayer));
 #else
@@ -248,25 +248,26 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
       propState.parameters = (1.0-ratio)*propStateMin.parameters + ratio*propStateMax.parameters;
       dprint(std::endl << ratio << std::endl << propStateMin.parameters << std::endl << propState.parameters << std::endl
                        << propStateMax.parameters << std::endl << propStateMax.parameters - propStateMin.parameters
-                       << std::endl << std::endl << hitMeas.parameters);
+                       << std::endl << std::endl << hitMeas.parameters());
 #endif
       const float chi2 = computeChi2(propState,hitMeas);
     
       if ((chi2<Config::chi2Cut)&&(chi2>0.)) {//fixme 
         dprint("found hit with index: " << cand_hit_idx << " chi2=" << chi2);
         const TrackState tmpUpdatedState = updateParameters(propState, hitMeas);
-	Track tmpCand(tmpUpdatedState,tkcand.hitsVector(),tkcand.chi2(),tkcand.seedID()); //= tkcand.clone();
-        tmpCand.addHit(hitCand,chi2);
+        Track tmpCand = tkcand.clone();
+        tmpCand.addHitIdx(cand_hit_idx,chi2);
         tmp_candidates.push_back(tmpCand);
 	branch_hit_indices.push_back(cand_hit_idx); // validation
       }
     }//end of consider hits on layer loop
 
   //add also the candidate for no hit found
-  if (tkcand.nHits()==ilayer) {//only if this is the first missing hit
+  if (tkcand.nFoundHits()==ilayer) {//only if this is the first missing hit
     dprint("adding candidate with no hit");
     tmp_candidates.push_back(tkcand);
     branch_hit_indices.push_back(Config::nTracks); // since tracks go from 0-Config::nTracks -1, the ghost index is just the one beyond
   }
-  ev.validation_.collectBranchingInfo(tkcand.seedID(),ilayer,nSigmaDeta,etaBinMinus,etaBinPlus,nSigmaDphi,phiBinMinus,phiBinPlus,cand_hit_indices,branch_hit_indices);
+  ev.validation_.collectBranchingInfo(tkcand.seedID(),ilayer,nSigmaDeta,etaBinMinus,etaBinPlus,
+                                      nSigmaDphi,phiBinMinus,phiBinPlus,cand_hit_indices,branch_hit_indices);
 }

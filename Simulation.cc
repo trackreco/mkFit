@@ -6,7 +6,7 @@
 //#define SOLID_SMEAR
 #define SCATTER_XYZ
 
-void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVec& hits, unsigned int itrack,
+void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVec& hits, MCHitInfoVec& initialhitinfo, unsigned int itrack,
                        int& charge, const Geometry& geom, TSVec & initTSs)
 {
 
@@ -294,11 +294,12 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVe
         << "cov(0,1): " << covXYZ(0,1) << " cov(1,0): " << covXYZ(1,0) << std::endl);
 #endif
 
-    Hit hit1(x1,covXYZ,itrack,simLayer,layer_counts[simLayer]); 
-    hits.push_back(hit1);
+    MCHitInfo hitinfo(itrack, simLayer, layer_counts[simLayer]);
+    initialhitinfo[hitinfo.mcHitID_] = hitinfo;
+    hits.emplace_back(x1,covXYZ,hitinfo.mcHitID_);
     tmpState = propState;
 
-    dprint("hit1Id: " << hit1.hitID() <<std::endl
+    dprint("hit1Id: " << hitinfo.mcHitID_ <<std::endl
 	   << "ihit: " << ihit << " layer: " << simLayer << " counts: " << layer_counts[simLayer]);
 
     ++layer_counts[simLayer]; // count the number of times passed into layer

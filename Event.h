@@ -7,6 +7,14 @@
 #include "BinInfoUtils.h"
 #include "Config.h"
 
+struct HitID {
+  HitID() : layer(-1), index(-1) {}
+  HitID(short l, short i) : layer(l), index(i) {}
+  short layer;
+  short index;
+};
+typedef std::vector<HitID> HitIDVec;
+
 class Event {
 public:
   Event(const Geometry& g, Validation& v, unsigned int evtID, int threads = 1);
@@ -18,7 +26,8 @@ public:
   void Validate(const unsigned int);
   
   unsigned int evtID() const {return evtID_;}
-  
+  void resetLayerHitMap(bool resetSimHits = true);
+
   const Geometry& geom_;
   Validation& validation_;
  private:
@@ -26,6 +35,9 @@ public:
  public:
   int threads_;
   std::vector<HitVec> layerHits_;
+  MCHitInfoVec simHitsInfo_;
+  HitIDVec layerHitMap_; // indexed same as simHitsInfo_, maps to layer & hit
+
   TrackVec simTracks_, seedTracks_, candidateTracks_, fitTracks_;
 
   // phi-eta partitioning map: vector of vector of vectors of std::pairs. 

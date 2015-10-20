@@ -108,7 +108,7 @@ int main(int argc, char** argv)
   }
 
   std::vector<tick> ticks(6);
-
+  std::vector<unsigned int> tracks(4);
 #ifdef TBB
   auto nThread(tbb::task_scheduler_init::default_num_threads());
   if (argc > 1) {
@@ -133,6 +133,11 @@ int main(int argc, char** argv)
     ev.Fit();                ticks[4] += delta(t0);
     ev.Validate(ev.evtID()); ticks[5] += delta(t0);
 #endif
+    std::cout << "sim: " << ev.simTracks_.size() << " seed: " << ev.seedTracks_.size() << " found: " << ev.candidateTracks_.size() << " fit: " << ev.fitTracks_.size() << std::endl;
+    tracks[0] += ev.simTracks_.size();
+    tracks[1] += ev.seedTracks_.size();
+    tracks[2] += ev.candidateTracks_.size();
+    tracks[3] += ev.fitTracks_.size();
   }
 
   std::vector<double> time(ticks.size());
@@ -148,6 +153,10 @@ int main(int argc, char** argv)
     std::cout << tt << " ";
   }
   std::cout << std::endl;
-
+  std::cout << "Tracks ";
+  for (auto t : tracks) {
+    std::cout << t << " ";
+  }
+  std::cout << std::endl;
   return 0;
 }

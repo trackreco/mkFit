@@ -353,15 +353,14 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    */
 }
 
-void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
-                            const MPlexQI &inChg,  const float r,
-                                  MPlexLS &outErr,       MPlexLV& outPar)
+void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
+                            const MPlexQI& inChg,  const float    r,
+                                  MPlexLS& outErr,       MPlexLV& outPar,
+                            const int      N_proc)
 {
 #ifdef DEBUG
    const bool dump = false;
 #endif
-
-   const idx_t N  = NN;
 
    outErr = inErr;
    outPar = inPar;
@@ -369,7 +368,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    MPlexLL errorProp;
 
 #pragma simd
-   for (int n = 0; n < N; ++n)
+   for (int n = 0; n < N_proc; ++n)
    {
       const float& xin  = inPar.ConstAt(n, 0, 0);
       const float& yin  = inPar.ConstAt(n, 1, 0);
@@ -581,7 +580,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    // This dump is now out of its place as similarity is done with matriplex ops.
 #ifdef DEBUG
    if (dump) {
-     for (int kk = 0; kk < N; ++kk)
+     for (int kk = 0; kk < N_proc; ++kk)
      {
        printf("outErr %d\n", kk);
        for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)

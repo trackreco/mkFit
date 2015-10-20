@@ -1,11 +1,11 @@
 #include "Track.h"
 
 // find the simtrack that provided the most hits
-void Track::setMCTrackIDInfo() 
+SimTkIDInfo Track::MCTrackIDInfo(const MCHitInfoVec& globalHitInfo) const
 {
   std::vector<unsigned int> mctrack;
-  for (auto&& ihit : hits_){
-    mctrack.push_back(ihit.mcTrackID());
+  for (int ihit = 0; ihit <= hitIdxPos_ ; ++ihit){
+    mctrack.push_back(globalHitInfo[hitIdxArr_[ihit]].mcTrackID_);
   }
   std::sort(mctrack.begin(), mctrack.end()); // ensures all elements are checked properly
 
@@ -16,7 +16,8 @@ void Track::setMCTrackIDInfo()
     if (c >= mcount) { mtrk = m; mcount = c; }
     m = i;
   }
-
+  return SimTkIDInfo (mtrk,mcount);
+#if 0
   if (4*mcount >= 3*hits_.size()){ // if more, matched track --> set id info
     mcTrackID_    = mtrk;
     nHitsMatched_ = mcount;
@@ -25,12 +26,13 @@ void Track::setMCTrackIDInfo()
     mcTrackID_    = 999999;
     nHitsMatched_ = mcount;
   }
-
   // need to include protection against zero size tracks --> need ID other than 999999
+#endif
 }
 
 void Track::write_out(FILE *fp)
 {
+#if 0
   Track t = clone_for_io();
   fwrite(&t, sizeof(Track), 1, fp);
 
@@ -38,10 +40,12 @@ void Track::write_out(FILE *fp)
   fwrite(&nh, sizeof(unsigned int), 1, fp);
 
   fwrite(&hits_[0], sizeof(Hit), nh, fp);
+#endif
 }
 
 void Track::read_in(FILE *fp)
 {
+#if 0
   fread(this, sizeof(Track), 1, fp);
 
   unsigned int nh = nHits();
@@ -49,4 +53,5 @@ void Track::read_in(FILE *fp)
 
   hits_.resize(nh);
   fread(&hits_[0], sizeof(Hit), nh, fp);
+#endif
 }

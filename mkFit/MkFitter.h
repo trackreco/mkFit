@@ -56,7 +56,7 @@ public:
   int getXHitBegin(int arg0,int arg1,int arg2) { return XHitBegin.At(arg0, arg1, arg2); }
   int getXHitEnd  (int arg0,int arg1,int arg2) { return XHitEnd  .At(arg0, arg1, arg2); }
 
-  void InputTracksAndHits(std::vector<Track>& tracks, int beg, int end);
+  void InputTracksAndHits(std::vector<Track>& tracks, std::vector<HitVec>& layerHits, int beg, int end);
   void InputTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end);
   void InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks, std::vector<std::pair<int,int> >& idxs, int beg, int end);
   void InputTracksOnly   (std::vector<Track>& tracks, int beg, int end);
@@ -74,7 +74,7 @@ public:
   void OutputFittedTracksAndHits(std::vector<Track>& tracks, int beg, int end);
   void OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end);
 
-  void PropagateTracksToR(float R);
+  void PropagateTracksToR(float R, const int N_proc);
 
   void AddBestHit(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end);
 
@@ -98,7 +98,7 @@ public:
   // MT methods
   // ================================================================
 
-  void SelectHitRanges(BunchOfHits &bunch_of_hits);
+  void SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc);
   void AddBestHit     (BunchOfHits &bunch_of_hits);
 
   void FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vector<Track> >& tmp_candidates, int offset);
