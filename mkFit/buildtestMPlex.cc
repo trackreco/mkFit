@@ -16,36 +16,36 @@
 
 //#define PRINTOUTS_FOR_PLOTS
 
-bool sortByHitsChi2(const std::pair<Track, TrackState>& cand1, const std::pair<Track, TrackState>& cand2)
+inline bool sortByHitsChi2(const std::pair<Track, TrackState>& cand1, const std::pair<Track, TrackState>& cand2)
 {
   if (cand1.first.nFoundHits()==cand2.first.nFoundHits()) return cand1.first.chi2()<cand2.first.chi2();
   return cand1.first.nFoundHits()>cand2.first.nFoundHits();
 }
 
-bool sortCandByHitsChi2(const Track& cand1, const Track& cand2)
+inline bool sortCandByHitsChi2(const Track& cand1, const Track& cand2)
 {
   if (cand1.nFoundHits()==cand2.nFoundHits()) return cand1.chi2()<cand2.chi2();
   return cand1.nFoundHits()>cand2.nFoundHits();
 }
 
-bool sortByPhi(const Hit& hit1, const Hit& hit2)
+inline bool sortByPhi(const Hit& hit1, const Hit& hit2)
 {
   return std::atan2(hit1.y(),hit1.x())<std::atan2(hit2.y(),hit2.x());
 }
 
-static bool sortByEta(const Hit& hit1, const Hit& hit2){
+inline bool sortByEta(const Hit& hit1, const Hit& hit2){
   return hit1.eta()<hit2.eta();
 }
-static bool sortTracksByEta(const Track& track1, const Track& track2){
+inline bool sortTracksByEta(const Track& track1, const Track& track2){
   return track1.momEta()<track2.momEta();
 }
-static bool sortTracksByPhi(const Track& track1, const Track& track2){
+inline bool sortTracksByPhi(const Track& track1, const Track& track2){
   return track1.momPhi()<track2.momPhi();
 }
 struct sortTracksByPhiStruct {
   std::vector<std::vector<Track> >* track_candidates;
   sortTracksByPhiStruct(std::vector<std::vector<Track> >* track_candidates_) { track_candidates=track_candidates_; }
-  bool operator() (std::pair<int,int> track1, std::pair<int,int> track2) {
+  bool operator() (const std::pair<int,int>& track1, const std::pair<int,int>& track2) {
     return (*track_candidates)[track1.first][track1.second].posPhi()<(*track_candidates)[track2.first][track2.second].posPhi();
   }
 };
