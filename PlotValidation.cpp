@@ -489,7 +489,7 @@ void PlotValidation::PlotTiming(){
   subdir->cd();
   
   // output plots
-  Bool_t zeroSupLin;
+  Bool_t zeroSupLin = true;
 
   // make new timing plots
   TH1F * tottime = new TH1F("h_total_timing","Total Time Spent in Simulation",6,0,6);
@@ -653,11 +653,6 @@ void PlotValidation::PlotSegment(){
       // fill eta-phi bin plots
       for (UInt_t iphi = 0; iphi < nPhiPart; iphi++){
 	phibinplots[ilay][ieta]->SetBinContent(iphi+1,nHitsPhiVVV[ilay][ieta][iphi]);
-	
-	if (ilay == 9) {
-	  total += nHitsPhiVVV[ilay][ieta][iphi];
-	}
-	
 	nHitsplots[ilay]->Fill(nHitsPhiVVV[ilay][ieta][iphi]);
       }
     }
