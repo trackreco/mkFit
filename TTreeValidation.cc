@@ -485,14 +485,11 @@ void TTreeValidation::fillBranchTree(const unsigned int evtID)
   evtID_br_  = evtID;
   for (TkToBVVMMIter seediter = seedToBranchValVecLayMapMap_.begin(); seediter != seedToBranchValVecLayMapMap_.end(); ++seediter){
     seedID_br_ = (*seediter).first;
-    /*
-    std::cout << std::endl;
-    std::cout << "Seed ID: " << seedID_br_ << std::endl;
-    */
     for (BVVLMiter layiter = (*seediter).second.begin(); layiter != (*seediter).second.end(); ++layiter){
       const auto& BranchValVec((*layiter).second);
       const unsigned int cands = BranchValVec.size();
- 
+      layer_  = (*layiter).first; // first index here is layer
+
       // clear vectors before filling
       candEtaPhiBins_.clear();
       candHits_.clear();
@@ -516,12 +513,6 @@ void TTreeValidation::fillBranchTree(const unsigned int evtID)
 
       for (unsigned int cand = 0; cand < cands; cand++){ // loop over input candidates at this layer for this seed
 	const auto& BranchVal(BranchValVec[cand]); // grab the branch validation object
-	
-	/*	if ((*layiter).first == 9){
-	  std::cout << "Cand: " << cand << std::endl;
-	  std::cout << "pM: " << BranchVal.phiBinMinus << " pP: " << BranchVal.phiBinPlus << std::endl;
-	  std::cout << "eM: " << BranchVal.etaBinMinus << " eP: " << BranchVal.etaBinPlus << std::endl;
-	  }*/
 
 	////////////////////////////////////
 	//  EtaPhiBins Explored Counting  //
@@ -547,16 +538,13 @@ void TTreeValidation::fillBranchTree(const unsigned int evtID)
 	    uniqueEtaPhiBins[ibin] = true;
 	  }
 	}
-
+	
 	//////////////////////////////
 	//  Hits Explored Counting  //
 	//////////////////////////////
 
 	candHits[cand] = BranchVal.cand_hit_indices.size(); // set value of nHits explored per input cand for this seed+layer
 	for (auto&& cand_hit_idx : BranchVal.cand_hit_indices){ // save unique hits 
-	  /*  if ((*layiter).first == 9){
-	    std::cout << "layer9 hit: " << cand_hit_idx << std::endl;
-	    }*/
 	  uniqueHits[cand_hit_idx] = true;
 	}
 
@@ -577,7 +565,6 @@ void TTreeValidation::fillBranchTree(const unsigned int evtID)
     
       // fill the rest of the tree after identifying uniques
 
-      layer_  = (*layiter).first; // first index here is layer
       cands_  = cands;
       
       // will use these to create total plots (once summed by looping over the vectors), and make per input candidate by looping over these vectors individually

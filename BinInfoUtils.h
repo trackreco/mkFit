@@ -32,23 +32,27 @@ inline unsigned int getPhiPartition(float phi){
   //assume phi is between -PI and PI
   //  if (!(fabs(phi)<Config::PI)) std::cout << "anomalous phi=" << phi << std::endl;
   //  const float phiPlusPi  = std::fmod(phi+Config::PI,Config::TwoPI); // normaliztion done here
-  const float phiPlusPi  = phi+Config::PI; 
-  const unsigned int bin = phiPlusPi*Config::fPhiFactor;
-  return bin;
+  const float phiPlusPi = phi+Config::PI; 
+  int bin = phiPlusPi*Config::fPhiFactor;
+  
+  // theoretically these checks below should be taken care of by normalizedPhi, however...
+  // these condition checks appeared in very bizarre corner case where propagated phi == pi != Config::PI in check of normalizedPhi (but not unexpected... comparing float point numbers)
+  // i.e. delta on floating point check smaller than comparison... making what should be bin = nPhiPart - 1 instead bin = nPhiPart (out of bounds!!) ...or worse if unsigned bin < 0, bin == unsigned int max!
+  if (bin<0)                      bin = 0;
+  else if (bin>=Config::nPhiPart) bin = Config::nPhiPart - 1;
+
+  return (unsigned int) bin;
 }
 
 inline unsigned int getEtaPartition(float eta){
   const float etaPlusEtaDet  = eta + Config::fEtaDet;
-  const unsigned int bin     = (etaPlusEtaDet * Config::nEtaPart) / (Config::fEtaFull);  // ten bins for now ... update if changed in Event.cc
-  return bin;
+  int bin = (etaPlusEtaDet * Config::nEtaPart) / (Config::fEtaFull);  // ten bins for now ... update if changed in Event.cc
+  // use this check instead of normalizedEta()... directly bin into first/last bins eta of range of detector
+  if      (bin<0)                 bin = 0; 
+  else if (bin>=Config::nEtaPart) bin = Config::nEtaPart - 1;
+
+  return (unsigned int) bin;
 }
-			      
-#ifdef ETASEG
-inline float normalizedEta(float eta) {
-  if (std::abs(eta)>=Config::fEtaDet) {eta = (eta>0 ? Config::fEtaDet*0.99 : -Config::fEtaDet*0.99);}
-  return eta;
-}
-#endif
 
 std::vector<unsigned int> getCandHitIndices(const unsigned int &, const unsigned int &, const unsigned int &, const unsigned int &, const BinInfoLayerMap &);
 

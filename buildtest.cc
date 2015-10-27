@@ -198,8 +198,8 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   const float eta  = getEta(std::sqrt(getRad2(predx,predy)),predz);
   const float deta = std::sqrt(std::abs(getEtaErr2(predx,predy,predz,propState.errors.At(0,0),propState.errors.At(1,1),propState.errors.At(2,2),propState.errors.At(0,1),propState.errors.At(0,2),propState.errors.At(1,2))));
   const float nSigmaDeta = std::min(std::max(Config::nSigma*deta,(float) Config::minDEta), (float) Config::maxDEta); // something to tune -- minDEta = 0.0
-  const auto etaBinMinus = getEtaPartition(normalizedEta(eta-nSigmaDeta));
-  const auto etaBinPlus  = getEtaPartition(normalizedEta(eta+nSigmaDeta));
+  const auto etaBinMinus = getEtaPartition(eta-nSigmaDeta);
+  const auto etaBinPlus  = getEtaPartition(eta+nSigmaDeta);
 #else
   const float nSigmaDeta = 0.;
   const auto etaBinMinus = 0U;

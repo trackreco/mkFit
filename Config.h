@@ -62,8 +62,10 @@ namespace Config{
 
   // Config for seeding
   constexpr unsigned int nlayers_per_seed = 3;
-
-  constexpr float chi2seedcut = 9.0;
+  constexpr float chi2seedcut  = 9.0;
+  constexpr float alphaBeta    = 0.0520195; // 0.0458378 --> for d0 = .0025 cm --> analytically derived... depends on geometry of detector --> from mathematica
+  constexpr float dEtaSeedTrip = 0.6; // for almost max efficiency --> empirically derived... depends on geometry of detector
+  constexpr float dPhiSeedTrip = 0.0458712; // numerically+semianalytically derived... depends on geometry of detector
 
   // Config for Hit and BinInfoUtils
   constexpr unsigned int nPhiPart   = 80; //315 = 63*5  //63; //80; 
