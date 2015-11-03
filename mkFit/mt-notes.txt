@@ -1,0 +1,80 @@
+#########
+Work plan
+#########
+
+1. MkFitter::FindCandidatesMinimizeCopy() -- see comment XXXX MT FIXME in the
+   middle of index vector initialization loops.
+   In short - it's about supporting partial SlurpIn and masked intrinsics.
+
+   Matriplex could have a MAX_N member that would be used for non-vectorized
+   code. I'm not super sure about that -- if we limit the loading of data and
+   then never read out the parts that were not used it costs us nothing (or
+   little) to do operations on whole vectors.
+
+2. Fix access of hits out of bunch_of_hits in FindCandidatesMinimizeCopy().
+   When we determine phi range for each track, this can oveflow over the end
+   of the array.
+   - Replace XHitBegin/XHitEnd with XHitPos/XHitSize
+   - Calculate them properly including phi wrap in SelectHitRanges()
+   - In FindCandidatesMinimizeCopy() wrap back the index vector.
+
+   Or, alternatively, copy a couple of front hits to the back.
+   Ouch, this is not so trivial, need to fix overrrun in the other direction,
+   too! Heh, I could always copy the last couple of hits to the front :)
+   No ... the first solution is fine!
+
+   Note --- there is also the maxSize there counter + a hack limiting it to 25
+   there. We should also fix this properly, either by restricting the number
+   of phi bins or by killing the candidates whose errors get too big.
+
+3. Hand-made multi-threading for eta bins.
+
+   Later, multi-threading over multiple events to fill all slots and to not
+   stall waiting for threads that take longer to process.
+
+   Note, current simulation produces higher occupancy at higher eta.
+
+   Once we have endcaps, the transition region will also become more
+   expensive.
+
+4. Attempt number two at prefetching in a service thread.
+
+5. Make MkFitter use a single array of hits, copy in as they are needed.
+   Now we have a fixed set of 10 hits ... this was done for final fitting so
+   we could copy in all the hits in the beginning.
+   Or, if it turns out this makes sense for fitting, separate MkFitter and
+   MkBuilder, optionally using a common MkBase.
+
+6. Implement write/read events for the new event/track/hit format.
+   Started doing this on glut.
+
+
+#########
+Valgrind running notes
+#########
+
+# Valgrind memcheck on OSX, no leak checking
+valgrind --log-file=vg.5 --error-limit=no --dsymutil=yes --leak-check=no --time-stamp=yes ./mkFit > o.5 2> e.5
+
+# Valgrind with remote gdb
+valgrind --vgdb=yes --vgdb-error=0 --error-limit=no --leak-check=no --track-origins=yes --time-stamp=yes ./mkFit
+gdb ./mkFit
+  target remote | vgdb
+
+
+########
+Thread pinning notes
+########
+
+Thread pinning on host
+
+  7.07s -- CandCloner cloner(8, 20); // Same core
+  6.13s -- CandCloner cloner(1, 2);  // Same socket, another core
+  7.90s -- CandCloner cloner(1, 7);  // Another socket
+
+Thread pinning on MIC (no real difference)
+
+ 38.00s -- CandCloner cloner(1,  2);  // Same core (any pair of 1,2,3,4)
+ 37.95s -- CandCloner cloner(1,  5);  // Another cpu
+ 36.75s -- CandCloner cloner(1, 25);  // Another cpu
+ 37.75s -- CandCloner cloner(1, 233); // Another cpu

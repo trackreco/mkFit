@@ -97,6 +97,10 @@ public:
       }
    }
 
+   /*
+   // Experimental methods, SlurpIn() seems to be at least as fast.
+   // See comments in mkFit/MkFitter.cc MkFitter::AddBestHit().
+
    void ChewIn(const char *arr, int off, int vi[N], const char *tmp,  __m512i& ui)
    {
       // This is a hack ... we know sizeof(Hit) = 64 = cache line = vector width.
@@ -133,6 +137,7 @@ public:
          _mm512_store_ps(&fArray[i*N], reg);
       }
    }
+   */
 
 #else
 

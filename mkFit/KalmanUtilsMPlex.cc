@@ -48,7 +48,7 @@ inline
 void Chi2Similarity(const MPlexHV& A,//msPar
 		    const MPlexLV& B,//psPar
 		    const MPlexHS& C,//resErr
-		    MPlexQF& D)//outChi2
+                          MPlexQF& D)//outChi2
 {
 
    // outChi2 = (msPar-psPar) * resErr * (msPar-psPar)
@@ -80,8 +80,8 @@ void Chi2Similarity(const MPlexHV& A,//msPar
       */
 
       // generate loop (can also write it manually this time, it's not much)
-      d[0 * N + n] = c[0 * N + n]*x0*x0 + c[2 * N + n]*x1*x1 + c[5 * N + n]*x2*x2 + 2*( c[1 * N + n]*x1*x0 + c[3 * N + n]*x2*x0 + c[4 * N + n]*x1*x2  );
-
+      d[0 * N + n] =    c[0 * N + n]*x0*x0 + c[2 * N + n]*x1*x1 + c[5 * N + n]*x2*x2 +
+                    2*( c[1 * N + n]*x1*x0 + c[3 * N + n]*x2*x0 + c[4 * N + n]*x1*x2);
    }
 }
 
@@ -288,8 +288,8 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
 
 
 void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
-		      const MPlexHS &msErr,  const MPlexHV& msPar,
-		      MPlexQF& outChi2)
+                      const MPlexHS &msErr,  const MPlexHV& msPar,
+                            MPlexQF& outChi2)
 {
 
   // const idx_t N = psErr.N;
@@ -359,6 +359,5 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
   }
 #endif
 
-  Chi2Similarity(msPar,psPar,resErr, outChi2);
-
+  Chi2Similarity(msPar, psPar, resErr, outChi2);
 }

@@ -3,7 +3,8 @@
 
 #include <algorithm>
 
-namespace Config{  
+namespace Config
+{
   // math general --> from namespace TMath
   constexpr float    PI    = 3.14159265358979323846;
   constexpr float TwoPI    = 6.28318530717958647692;
@@ -15,11 +16,11 @@ namespace Config{
   constexpr double Sqrt2   = 1.4142135623730950488016887242097;
 
   // config on main + mkFit
-  constexpr unsigned int nTracks = 20000;
-  constexpr unsigned int nEvents = 10;
+  constexpr int nTracks = 20000;
+  constexpr int nEvents = 10;
 
   // config on main -- for geometry
-  constexpr unsigned int nLayers   = 10;
+  constexpr int   nLayers   = 10;
   constexpr float fRadialSpacing   = 4.;
   constexpr float fRadialExtent    = 0.01;
   constexpr float fInnerSensorSize = 5.0; // approximate sensor size in cm
@@ -27,7 +28,7 @@ namespace Config{
   constexpr float fEtaDet          = 1;  // 1 from chep
 
   // config on Event
-  constexpr unsigned int maxCand = 10;
+  constexpr int   maxCand = 10;
   constexpr float chi2Cut = 15.;
   constexpr float nSigma  = 3.;
   constexpr float minDPhi = 0.;
@@ -53,7 +54,7 @@ namespace Config{
   constexpr float varZ        = Config::hitposerrZ*Config::hitposerrZ;
   constexpr float varR        = Config::hitposerrR*Config::hitposerrR;
 
-  constexpr unsigned int nTotHit = Config::nLayers; // for now one hit per layer for sim
+  constexpr int nTotHit = Config::nLayers; // for now one hit per layer for sim
 
   // scattering simulation
   constexpr float X0 = 9.370; // cm, from http://pdg.lbl.gov/2014/AtomicNuclearProperties/HTML/silicon_Si.html // Pb = 0.5612 cm
@@ -61,17 +62,17 @@ namespace Config{
   //const     float xr = std::sqrt(Config::beamspotX*Config::beamspotX + Config::beamspotY*Config::beamspotY); 
 
   // Config for seeding
-  constexpr unsigned int nlayers_per_seed = 3;
+  constexpr int   nlayers_per_seed = 3;
   constexpr float chi2seedcut  = 9.0;
   constexpr float alphaBeta    = 0.0520195; // 0.0458378 --> for d0 = .0025 cm --> analytically derived... depends on geometry of detector --> from mathematica
   constexpr float dEtaSeedTrip = 0.6; // for almost max efficiency --> empirically derived... depends on geometry of detector
   constexpr float dPhiSeedTrip = 0.0458712; // numerically+semianalytically derived... depends on geometry of detector
 
   // Config for Hit and BinInfoUtils
-  constexpr unsigned int nPhiPart   = 80; //315 = 63*5  //63; //80; 
-  constexpr float        fPhiFactor = Config::nPhiPart / Config::TwoPI;
-  constexpr unsigned int nEtaPart   = 11; //11;
-  constexpr unsigned int nEtaBin    = 2*Config::nEtaPart - 1;
+  constexpr int   nPhiPart   = 80; //315 = 63*5  //63; //80; 
+  constexpr float fPhiFactor = nPhiPart / TwoPI;
+  constexpr int   nEtaPart   = 11;
+  constexpr int   nEtaBin    = 2 * nEtaPart - 1;
 
   constexpr float        fEtaFull  = 2 * Config::fEtaDet;
   constexpr float        lEtaPart  = Config::fEtaFull/float(Config::nEtaPart);
@@ -99,19 +100,34 @@ namespace Config{
   constexpr float phierr012   = 0.0071; // 0170; 
   constexpr float thetaerr012 = 0.0130; // 0.0137; 
 
-  // config for MPlex HitStructures 
-  const unsigned int g_MaxHitsPerBunch = std::max( (unsigned int)(100), (unsigned int)((Config::nTracks * 2) / Config::nEtaPart));
+  // matrix config
+  // XXXX MT this should be renamed, made constexpr
+#ifndef MAX_HITS
+#define MAX_HITS 10
+#endif
 
-  constexpr unsigned int g_MaxCandsPerSeed   = 6;
-  const unsigned int g_MaxCandsPerEtaBin = std::max( (unsigned int)(100), (unsigned int)((Config::g_MaxCandsPerSeed * Config::nTracks) / Config::nEtaPart));
+  // Clone engine configuration
+  // MT If you comment this out, also set g_PropagateAtEnd to false !!!
+#define TEST_CLONE_ENGINE 
+
+  const     int g_MaxHitsPerBunch   = std::max(100, nTracks * 2 / nEtaPart);
+
+  constexpr int g_MaxCandsPerSeed   = 6;
+  const     int g_MaxCandsPerEtaBin = std::max(100, g_MaxCandsPerSeed * nTracks / nEtaPart);
   // Effective eta bin is one half of nEtaPart -- so the above is twice the "average".
   // Note that last and first bin are 3/4 nEtaPart ... but can be made 1/4 by adding
   // additional bins on each end.
 
-  //matrix config
-#ifndef MAX_HITS
-#define MAX_HITS 10
-#endif
+  // XXX std::min/max have constexpr versions in c++-14.
+
+  constexpr int  g_MaxHitsConsidered = 25;
+
+  constexpr bool g_PropagateAtEnd = true;
+
+  extern int   g_num_threads          ;
+  extern bool  g_cloner_single_thread ;
+  extern int   g_best_out_of          ;
+
 
 #ifdef USE_MATRIPLEX
 
@@ -123,12 +139,17 @@ namespace Config{
     #endif
   #endif
 
+  // XXXX MT mkFit/mkFit now uses Config::g_num_threads
   #ifndef NUM_THREADS
   #define NUM_THREADS 1
   #endif
 
   #ifndef NUM_THREADS_SIM
-  #define NUM_THREADS_SIM 60
+    #ifdef __MIC__
+      #define NUM_THREADS_SIM 60
+    #else
+      #define NUM_THREADS_SIM 12
+    #endif
   #endif
 
   #ifndef THREAD_BINDING
