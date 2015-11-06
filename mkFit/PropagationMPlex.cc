@@ -296,13 +296,13 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 
       // Not everything is set! GenMul patterns are used to set 0 and 1 elements.
       errorProp(n,0,0) = 1 + k*dTPdx*(pxin*cosTP - pyin*sinTP);	//dxdx;
-      errorProp(n,0,1) = k*dTPdy*(pxin*cosTP - pyin*sinTP);	//dxdy;
+      errorProp(n,0,1) =     k*dTPdy*(pxin*cosTP - pyin*sinTP);	//dxdy;
       errorProp(n,0,2) = 0.;
       errorProp(n,0,3) = k*(sinTP + pxin*cosTP*dTPdpx - pyin*sinTP*dTPdpx); //dxdpx;
       errorProp(n,0,4) = k*(pxin*cosTP*dTPdpy - 1. + cosTP - pyin*sinTP*dTPdpy);//dxdpy;
       errorProp(n,0,5) = 0.;
-      errorProp(n,1,0) = k*dTPdx*(pyin*cosTP + pxin*sinTP);	//dydx;
-      errorProp(n,1,1) = 1 + k*dTPdy*(pyin*cosTP + pxin*cosTP);	//dydy;
+      errorProp(n,1,0) =     k*dTPdx*(pyin*cosTP + pxin*sinTP);	//dydx;
+      errorProp(n,1,1) = 1 + k*dTPdy*(pyin*cosTP + pxin*sinTP);	//dydy;
       errorProp(n,1,2) = 0.;
       errorProp(n,1,3) = k*(pyin*cosTP*dTPdpx + 1. - cosTP + pxin*sinTP*dTPdpx);//dydpx;
       errorProp(n,1,4) = k*(sinTP + pyin*cosTP*dTPdpy + pxin*sinTP*dTPdpy); //dydpy;

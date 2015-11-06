@@ -93,6 +93,12 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
     for (int ilay = 0; ilay < simtracks[itrack].nTotalHits(); ++ilay)
     {
       m_event_of_hits.InsertHit(simtracks[itrack].hitsVector(m_event->layerHits_)[ilay], ilay);
+#ifdef DEBUG
+      std::cout << "track #" << itrack << " lay=" << ilay+1
+                << " hit pos=" << simtracks[itrack].hitsVector(m_event->layerHits_)[ilay].position()
+                << " phi=" << simtracks[itrack].hitsVector(m_event->layerHits_)[ilay].phi()
+                << " phiPart=" << getPhiPartition(simtracks[itrack].hitsVector(m_event->layerHits_)[ilay].phi()) << std::endl;
+#endif
     }
   }
 

@@ -6,7 +6,8 @@
 //#define SOLID_SMEAR
 #define SCATTER_XYZ
 
-void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVec& hits, MCHitInfoVec& initialhitinfo, unsigned int itrack,
+void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
+                       HitVec& hits, MCHitInfoVec& initialhitinfo, unsigned int itrack,
                        int& charge, const Geometry& geom, TSVec & initTSs)
 {
 

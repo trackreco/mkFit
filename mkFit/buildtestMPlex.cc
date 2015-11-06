@@ -139,26 +139,26 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
   __itt_pause();
 #endif
 
-   time = dtime() - time;
+  time = dtime() - time;
 
-   builder.quality_reset();
+  builder.quality_reset();
 
   EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
 
-   for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
-   {
-     EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin]; 
+  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
+  {
+    EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
 
-     for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed++)
-     {
-       // take the first one!
-       builder.quality_process(etabin_of_comb_candidates.m_candidates[iseed].front());
-     }
-   }
+    for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed++)
+    {
+      // take the first one!
+      builder.quality_process(etabin_of_comb_candidates.m_candidates[iseed].front());
+    }
+  }
 
-   builder.quality_print();
+  builder.quality_print();
 
-   builder.end_event();
+  builder.end_event();
 
-   return time;
+  return time;
 }

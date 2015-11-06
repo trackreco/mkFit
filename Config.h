@@ -49,10 +49,10 @@ namespace Config
 
   constexpr float hitposerrXY = 0.01; // resolution is 100um in xy
   constexpr float hitposerrZ  = 0.1; // resolution is 1mm in z
-  constexpr float hitposerrR  = Config::hitposerrXY/10.;
-  constexpr float varXY       = Config::hitposerrXY*Config::hitposerrXY;
-  constexpr float varZ        = Config::hitposerrZ*Config::hitposerrZ;
-  constexpr float varR        = Config::hitposerrR*Config::hitposerrR;
+  constexpr float hitposerrR  = Config::hitposerrXY / 10.;
+  constexpr float varXY       = Config::hitposerrXY * Config::hitposerrXY;
+  constexpr float varZ        = Config::hitposerrZ  * Config::hitposerrZ;
+  constexpr float varR        = Config::hitposerrR  * Config::hitposerrR;
 
   constexpr int nTotHit = Config::nLayers; // for now one hit per layer for sim
 
@@ -69,7 +69,7 @@ namespace Config
   constexpr float dPhiSeedTrip = 0.0458712; // numerically+semianalytically derived... depends on geometry of detector
 
   // Config for Hit and BinInfoUtils
-  constexpr int   nPhiPart   = 80; //315 = 63*5  //63; //80; 
+  constexpr int   nPhiPart   = 1260;
   constexpr float fPhiFactor = nPhiPart / TwoPI;
   constexpr int   nEtaPart   = 11;
   constexpr int   nEtaBin    = 2 * nEtaPart - 1;
@@ -122,7 +122,9 @@ namespace Config
 
   constexpr int  g_MaxHitsConsidered = 25;
 
+  // Propagate-at-end does not work with find-best-hit !!!
   constexpr bool g_PropagateAtEnd = true;
+  //constexpr bool g_PropagateAtEnd = false;
 
   extern int   g_num_threads          ;
   extern bool  g_cloner_single_thread ;

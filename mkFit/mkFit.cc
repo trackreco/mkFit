@@ -181,17 +181,19 @@ void test_standard()
       omp_set_num_threads(NUM_THREADS_SIM);
 
       ev.Simulate();//fixme add g_gen.seed(742331); and #pragma omp parallel for num_threads(NUM_THREADS_SIM)
-      ev.resetLayerHitMap();
+      ev.resetLayerHitMap(true);
 
       omp_set_num_threads(Config::g_num_threads);
     }
 
     plex_tracks.resize(ev.simTracks_.size());
-    double tmp = runFittingTestPlex(ev, plex_tracks);
+
+    double tmp = -1;  // runFittingTestPlex(ev, plex_tracks);
 
     double tmp2 = runBuildingTestPlex(ev, ev_tmp);
 
-    double tmp2bh = runBuildingTestPlexBestHit(ev);
+    // Propagate-at-end does not work with find-best-hit !!!
+    double tmp2bh = -1; //runBuildingTestPlexBestHit(ev);
 
     printf("Matriplex fit = %.5f  --- Build  MX = %.5f  BHMX = %.5f\n",
            tmp, tmp2, tmp2bh);
