@@ -61,8 +61,10 @@ Event::Event(const Geometry& g, Validation& v, unsigned int evtID, int threads) 
 
 void Event::Simulate()
 {
+  MCHitInfo::mcHitIDCounter_ = -1;
+
   simTracks_.resize(Config::nTracks);
-  simHitsInfo_.resize(Config::nTracks*Config::nTracks);
+  simHitsInfo_.resize(Config::nTotHit * Config::nTracks);
   for (auto&& l : layerHits_) {
     l.reserve(Config::nTracks);
   }
@@ -203,7 +205,7 @@ void Event::Segment()
     std::cout << "layer: " << ilayer << " totalhits: " << etahitstotal << std::endl;
   }
 #endif
-  resetLayerHitMap();
+  resetLayerHitMap(true);
 }
 
 void Event::Seed()

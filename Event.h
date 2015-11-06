@@ -26,7 +26,7 @@ public:
   void Validate(const unsigned int);
   
   unsigned int evtID() const {return evtID_;}
-  void resetLayerHitMap(bool resetSimHits = true);
+  void resetLayerHitMap(bool resetSimHits);
 
   const Geometry& geom_;
   Validation& validation_;
