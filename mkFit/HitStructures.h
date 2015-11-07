@@ -1,5 +1,9 @@
-#include "Hit.h"
+#ifndef HitStructures_H
+#define HitStructures_H
+
 #include "Config.h"
+#include "Hit.h"
+#include "Track.h"
 
 // for each layer
 //   Config::nEtaBin vectors of hits, resized to large enough N
@@ -57,6 +61,7 @@ public:
     m_fill_index    (0)
   {
     m_hits = (Hit*) _mm_malloc(sizeof(Hit)*Config::g_MaxHitsPerBunch, 64);
+    Reset();
   }
 
   ~BunchOfHits()
@@ -64,16 +69,7 @@ public:
     _mm_free(m_hits);
   }
   
-  void Reset()
-  {
-    for (auto &bi : m_phi_bin_infos)
-    {
-      bi.first  = -1;
-      bi.second =  0;
-    }
-
-    m_fill_index = 0;
-  }
+  void Reset();
 
   void InsertHit(const Hit& hit)
   {
@@ -83,30 +79,7 @@ public:
     ++m_fill_index;
   }
 
-  void SortByPhiBuildPhiBins()
-  {
-    // std::sort(m_hits.begin(), m_hits.begin() + m_fill_index, sortByPhiMT);
-    std::sort(&m_hits[0], &m_hits[m_fill_index], sortHitsByPhiMT);
-
-    int last_bin = -1;
-    int idx      =  0;
-    for (int i = 0; i < m_fill_index; ++i)
-    {
-      Hit &h = m_hits[i];
-
-      int bin = getPhiPartition(h.phi());
-
-      if (bin != last_bin) 
-      {
-        m_phi_bin_infos[bin].first  = idx;
-        // PhiBinInfo.second set to 0 in Reset()
-      }
-      ++m_phi_bin_infos[bin].second;
-
-      last_bin = bin;
-      ++idx;
-    }
-  }
+  void SortByPhiBuildPhiBins();
 };
 
 //==============================================================================
@@ -284,12 +257,22 @@ public:
     m_real_size  (Config::g_MaxCandsPerEtaBin),
     m_fill_index (0)
   {
-    for (int s=0;s<m_real_size;++s) m_candidates[s].reserve(Config::g_MaxCandsPerSeed);//we should never exceed this
+    for (int s=0;s<m_real_size;++s)
+    {
+      // m_candidates[s].reserve(Config::g_MaxCandsPerSeed);//we should never exceed this
+      // XXXX MY but we do ... actual size grows to two times that, it might be it
+      // is actually just one past (automatic resizing is x2).
+      m_candidates[s].reserve(2 * Config::g_MaxCandsPerSeed);
+    }
   }
 
   void Reset()
   {
     m_fill_index = 0;
+    for (int s=0;s<m_real_size;++s)
+    {
+      m_candidates[s].clear();
+    }
   }
 
   void InsertSeed(const Track& seed)
@@ -337,10 +320,16 @@ public:
     // XXXX the R condition is trying to get rid of bad seeds (as a quick hack)
     int bin = getEtaBin(seed.momEta());
     float r = seed.radius();
-    if (bin != -1 && r > 11.9 && r < 12.1)
-      {
-	m_etabins_of_comb_candidates[bin].InsertSeed(seed);
-      } 
+    //for tracks from cmssw... I guess this should become geometry-aware
+    if ( bin != -1 &&
+         ( (Config::g_PropagateAtEnd == false && r > 11.9 && r < 12.1) ||
+           (Config::g_PropagateAtEnd == true  && r > 15.9 && r < 16.1) ||
+           (Config::g_PropagateAtEnd == true  && r > 23.0 && r < 24.0)
+         )
+       )
+    {
+      m_etabins_of_comb_candidates[bin].InsertSeed(seed);
+    } 
 #ifdef DEBUG
     else std::cout << "excluding seed with r=" << r << " etaBin=" << bin << std::endl;
 #endif
@@ -355,3 +344,5 @@ public:
   }
 
 };
+
+#endif

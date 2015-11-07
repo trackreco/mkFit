@@ -8,27 +8,31 @@
 #include "Config.h"
 #include <iostream>
 
-typedef std::pair<unsigned int,unsigned int> BinInfo;
-typedef std::vector<std::vector<BinInfo> > BinInfoLayerMap;
-typedef std::vector<std::vector<std::vector<BinInfo> > > BinInfoMap;
+typedef std::pair<int, int>                 BinInfo;
+typedef std::vector<std::vector<BinInfo>>   BinInfoLayerMap;
+typedef std::vector<BinInfoLayerMap>        BinInfoMap;
 
-inline float downPhi(float phi){
+inline float downPhi(float phi)
+{
   while (phi >= Config::PI) {phi-=Config::TwoPI;}
   return phi;
 }
 	
-inline float upPhi(float phi){
+inline float upPhi(float phi)
+{
   while (phi <= -Config::PI) {phi+=Config::TwoPI;}
   return phi;
 }
 
-inline float normalizedPhi(float phi) {
+inline float normalizedPhi(float phi)
+{
   //  return std::fmod(phi, (float) Config::PI); // return phi +pi out of phase for |phi| beyond boundary! 
   if (std::abs(phi)>=Config::PI) {phi = (phi>0 ? downPhi(phi) : upPhi(phi));}
   return phi;
 }
 
-inline unsigned int getPhiPartition(float phi){
+inline int getPhiPartition(float phi)
+{
   //assume phi is between -PI and PI
   //  if (!(fabs(phi)<Config::PI)) std::cout << "anomalous phi=" << phi << std::endl;
   //  const float phiPlusPi  = std::fmod(phi+Config::PI,Config::TwoPI); // normaliztion done here
@@ -41,10 +45,11 @@ inline unsigned int getPhiPartition(float phi){
   if (bin<0)                      bin = 0;
   else if (bin>=Config::nPhiPart) bin = Config::nPhiPart - 1;
 
-  return (unsigned int) bin;
+  return bin;
 }
 
-inline unsigned int getEtaPartition(float eta){
+inline int getEtaPartition(float eta)
+{
   const float etaPlusEtaDet  = eta + Config::fEtaDet;
   int bin = (etaPlusEtaDet * Config::nEtaPart) / (Config::fEtaFull);  // ten bins for now ... update if changed in Event.cc
   // use this check instead of normalizedEta()... directly bin into first/last bins eta of range of detector

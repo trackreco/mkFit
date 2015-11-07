@@ -115,10 +115,10 @@ public:
   int seedID() const { return -1; } // tmp
 
   Track clone() const { return Track(state_,chi2_,label_,nTotalHits(),hitIdxArr_); }
-  /* Track clone_for_io() { return Track(state_,chi2_,label_); } */
 
-  void write_out(FILE *fp);
-  void read_in  (FILE *fp);
+  /* Track clone_for_io() { return Track(state_,chi2_,label_); } */
+  /* void write_out(FILE *fp); */
+  /* void read_in  (FILE *fp); */
 
 private:
   TrackState state_;

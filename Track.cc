@@ -30,6 +30,7 @@ SimTkIDInfo Track::MCTrackIDInfo(const MCHitInfoVec& globalHitInfo) const
 #endif
 }
 
+/*
 void Track::write_out(FILE *fp)
 {
 #if 0
@@ -55,3 +56,4 @@ void Track::read_in(FILE *fp)
   fread(&hits_[0], sizeof(Hit), nh, fp);
 #endif
 }
+*/

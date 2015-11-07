@@ -238,23 +238,23 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
             dAPdpx = -angPath*px*pt2inv;
             dAPdpy = -angPath*py*pt2inv;
             //reduce temporary variables
-            //dxdx = 1 + k*dAPdx*(px*sinAP + py*cosAP);
-            //dydx = k*dAPdx*(py*sinAP - px*cosAP);
+            //dxdx = 1 + k*dAPdx*(px*cosAP - py*sinAP);
+            //dydx = k*dAPdx*(py*cosAP + px*sinAP);
             //dTDdx -= r0*(x*dxdx + y*dydx);
-            dTDdx -= r0*(x*(1 + k*dAPdx*(px*sinAP + py*cosAP)) + y*(k*dAPdx*(py*sinAP - px*cosAP)));
+	    dTDdx -= r0*(x*(1 + k*dAPdx*(px*cosAP - py*sinAP)) + y*(k*dAPdx*(py*cosAP + px*sinAP)));
             //reuse same temporary variables
-            //dxdy = k*dAPdy*(px*sinAP + py*cosAP);
-            //dydy = 1 + k*dAPdy*(py*sinAP - px*cosAP);
+            //dxdy = k*dAPdy*(px*cosAP - py*sinAP);
+            //dydy = 1 + k*dAPdy*(py*cosAP + px*sinAP);
             //dTDdy -= r0*(x*dxdy + y*dydy);
-            dTDdy -= r0*(x*(k*dAPdy*(px*sinAP + py*cosAP)) + y*(1 + k*dAPdy*(py*sinAP - px*cosAP)));
+	    dTDdy -= r0*(x*(k*dAPdy*(px*cosAP - py*sinAP)) + y*(1 + k*dAPdy*(py*cosAP + px*sinAP)));
             //dxdpx = k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx);
             //dydpx = k*(py*cosAP*dAPdpx + 1. - cosAP + px*sinAP*dAPdpx);
             //dTDdpx -= r0*(x*dxdpx + y*dTDdpx);
-            dTDdpx -= r0*(x*(k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx)) + y*(k*(py*cosAP*dAPdpx + 1. - cosAP + px*sinAP*dAPdpx)));
+	    dTDdpx -= r0*(x*(k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx)) + y*(k*(py*cosAP*dAPdpx + 1. - cosAP + px*sinAP*dAPdpx)));
             //dxdpy = k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy);
             //dydpy = k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy);
             //dTDdpy -= r0*(x*dxdpy + y*(k*dydpy);
-            dTDdpy -= r0*(x*(k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy)) + y*(k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy)));
+	    dTDdpy -= r0*(x*(k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy)) + y*(k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy)));
          }
 
 #ifdef DEBUG
@@ -287,7 +287,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
       //derive these to compute jacobian
       //x = xin + k*(pxin*sinTP-pyin*(1-cosTP));
       //y = yin + k*(pyin*sinTP+pxin*(1-cosTP));
-      //z = zin + TD*ctgTheta;
+      //z = zin + k*TP*pzin;
       //px = pxin*cosTP-pyin*sinTP;
       //py = pyin*cosTP+pxin*sinTP;
       //pz = pzin;
@@ -295,28 +295,42 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 
 
       // Not everything is set! GenMul patterns are used to set 0 and 1 elements.
-
-      errorProp(n,0,0) = 1 + k*dTPdx*(pxin*sinTP + pyin*cosTP);	//dxdx;
-      errorProp(n,0,1) = k*dTPdy*(pxin*sinTP + pyin*cosTP);	//dxdy;
+      errorProp(n,0,0) = 1 + k*dTPdx*(pxin*cosTP - pyin*sinTP);	//dxdx;
+      errorProp(n,0,1) =     k*dTPdy*(pxin*cosTP - pyin*sinTP);	//dxdy;
+      errorProp(n,0,2) = 0.;
       errorProp(n,0,3) = k*(sinTP + pxin*cosTP*dTPdpx - pyin*sinTP*dTPdpx); //dxdpx;
       errorProp(n,0,4) = k*(pxin*cosTP*dTPdpy - 1. + cosTP - pyin*sinTP*dTPdpy);//dxdpy;
-      errorProp(n,1,0) = k*dTPdx*(pyin*sinTP - pxin*cosTP);	//dydx;
-      errorProp(n,1,1) = 1 + k*dTPdy*(pyin*sinTP - pxin*cosTP);	//dydy;
+      errorProp(n,0,5) = 0.;
+      errorProp(n,1,0) =     k*dTPdx*(pyin*cosTP + pxin*sinTP);	//dydx;
+      errorProp(n,1,1) = 1 + k*dTPdy*(pyin*cosTP + pxin*sinTP);	//dydy;
+      errorProp(n,1,2) = 0.;
       errorProp(n,1,3) = k*(pyin*cosTP*dTPdpx + 1. - cosTP + pxin*sinTP*dTPdpx);//dydpx;
       errorProp(n,1,4) = k*(sinTP + pyin*cosTP*dTPdpy + pxin*sinTP*dTPdpy); //dydpy;
-      errorProp(n,2,0) = dTDdx*ctgTheta;	//dzdx;
-      errorProp(n,2,1) = dTDdy*ctgTheta;	//dzdy;
-      errorProp(n,2,3) = dTDdpx*ctgTheta - TD*pzin*pxin*pt2inv*ptinv;//dzdpx;
-      errorProp(n,2,4) = dTDdpy*ctgTheta - TD*pzin*pyin*pt2inv*ptinv;//dzdpy;
-      errorProp(n,2,5) = TD*ptinv; //dzdpz;
+      errorProp(n,1,5) = 0.;
+      errorProp(n,2,0) = k*pzin*dTPdx;	//dzdx;
+      errorProp(n,2,1) = k*pzin*dTPdy;	//dzdy;
+      errorProp(n,2,2) = 1.;
+      errorProp(n,2,3) = k*pzin*dTPdpx;//dzdpx;
+      errorProp(n,2,4) = k*pzin*dTPdpy;//dzdpy;
+      errorProp(n,2,5) = k*TP; //dzdpz;
       errorProp(n,3,0) = -dTPdx*(pxin*sinTP + pyin*cosTP);	//dpxdx;
       errorProp(n,3,1) = -dTPdy*(pxin*sinTP + pyin*cosTP);	//dpxdy;
+      errorProp(n,3,2) = 0.;
       errorProp(n,3,3) = cosTP - dTPdpx*(pxin*sinTP + pyin*cosTP); //dpxdpx;
       errorProp(n,3,4) = -sinTP - dTPdpy*(pxin*sinTP + pyin*cosTP);//dpxdpy;
+      errorProp(n,3,5) = 0.;
       errorProp(n,4,0) = -dTPdx*(pyin*sinTP - pxin*cosTP); //dpydx;
       errorProp(n,4,1) = -dTPdy*(pyin*sinTP - pxin*cosTP);	//dpydy;
+      errorProp(n,4,2) = 0.;
       errorProp(n,4,3) = +sinTP - dTPdpx*(pyin*sinTP - pxin*cosTP);//dpydpx;
       errorProp(n,4,4) = +cosTP - dTPdpy*(pyin*sinTP - pxin*cosTP);//dpydpy;
+      errorProp(n,4,2) = 0.;
+      errorProp(n,5,0) = 0.;
+      errorProp(n,5,1) = 0.;
+      errorProp(n,5,2) = 0.;
+      errorProp(n,5,3) = 0.;
+      errorProp(n,5,4) = 0.;
+      errorProp(n,5,5) = 1.;
    }
 
    // Matriplex version of:
@@ -407,8 +421,8 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
       //variables to be updated at each iterations
       //derivatives initialized to value for first iteration, i.e. distance = r-r0in
       float totalDistance = 0;
-      float dTDdx = r0in>0. ? -xin/r0in : 0.;
-      float dTDdy = r0in>0. ? -yin/r0in : 0.;
+      float dTDdx = r0in > 0. ? -xin/r0in : 0.;
+      float dTDdy = r0in > 0. ? -yin/r0in : 0.;
       float dTDdpx = 0.;
       float dTDdpy = 0.;
       //temporaries used within the loop (declare here to reduce memory operations)

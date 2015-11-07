@@ -28,8 +28,8 @@ ifeq (${CXX},icc)
 endif
 
 
-all: ${EXES}
-
+all:: ${AUTO_TGTS}
+all:: ${EXES}
 
 auto-matriplex:
 	${MAKE} -C ../Matriplex auto && touch $@
@@ -60,7 +60,7 @@ echo:
 -include *.d ../*.d
 
 # Should be a lib, really
-ABOVE_OBJS := $(patsubst %, ../%.o, Matrix Event Hit Track Propagation KalmanUtils Simulation Geometry SimpleGeom fittest buildtest ConformalUtils seedtest BinInfoUtils)
+ABOVE_OBJS := $(patsubst %, ../%.o, Config Matrix Event Hit Track Propagation KalmanUtils Simulation Geometry SimpleGeom fittest buildtest ConformalUtils seedtest BinInfoUtils)
 
 ${ABOVE_OBJS}:
 	${MAKE} -C ..
@@ -73,7 +73,7 @@ MKFOBJS := $(MKFSRCS:.cc=.o)
 ALLOBJS := ${MKFOBJS} ${ABOVE_OBJS}
 
 mkFit: ${AUTO_TGTS} ${ALLOBJS}
-	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} -o $@ ${ALLOBJS}
+	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} ${ALLOBJS} -o $@ ${LDFLAGS_HOST}
 
 ${MKFOBJS}: %.o: %.cc
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<
@@ -88,8 +88,7 @@ MKFOBJS_MIC := $(MKFOBJS:.o=.om)
 ALLOBJS_MIC := $(ALLOBJS:.o=.om) 
 
 mkFit-mic: ${AUTO_TGTS} ${ALLOBJS_MIC}
-	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} -o $@ ${ALLOBJS_MIC} \
-	-L/opt/intel/vtune_amplifier_xe/bin64/k1om -littnotify
+	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} ${ALLOBJS_MIC} -o $@ ${LDFLAGS_MIC}
 	scp $@ mic0:
 
 ${MKFOBJS_MIC}: %.om: %.cc
