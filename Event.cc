@@ -88,7 +88,8 @@ void Event::Simulate()
       // unsigned int starting_layer  = 0; --> for displaced tracks, may want to consider running a separate Simulate() block with extra parameters
 
       int q=0;//set it in setup function
-      setupTrackByToyMC(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs); // do the simulation
+      //setupTrackByToyMC(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs); // do the simulation
+      setupTrackFromTextFile(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs);
       validation_.collectSimTkTSVecMapInfo(itrack,initialTSs); // save initial TS parameters
 
       simTracks_[itrack] = Track(q,pos,mom,covtrk,0.0f);

@@ -204,7 +204,7 @@ void MkFitter::FitTracks()
     propagateHelixToRMPlex(Err[iC], Par[iC], Chg, msPar[hi],
                            Err[iP], Par[iP]);
 
-    updateParametersMPlex(Err[iP], Par[iP], msErr[hi], msPar[hi],
+    updateParametersMPlex(Err[iP], Par[iP],  Chg, msErr[hi], msPar[hi],
                           Err[iC], Par[iC]);
   }
 
@@ -298,7 +298,7 @@ void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int firstHit, int lastHit,
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
-    computeChi2MPlex(Err[iP], Par[iP],msErr_oneHit, msPar_oneHit, outChi2);
+    computeChi2MPlex(Err[iP], Par[iP], Chg, msErr_oneHit, msPar_oneHit, outChi2);
 
     //update best hit in case chi2<minChi2
     itrack = 0;
@@ -362,7 +362,7 @@ void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int firstHit, int lastHit,
 #ifdef DEBUG
   std::cout << "update parameters" << std::endl;
 #endif
-  updateParametersMPlex(Err[iP], Par[iP], msErr[Nhits], msPar[Nhits],
+  updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits],
 			Err[iC], Par[iC]);
 
 }
@@ -395,7 +395,7 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
-    computeChi2MPlex(Err[iP], Par[iP],msErr_oneHit, msPar_oneHit, outChi2);
+    computeChi2MPlex(Err[iP], Par[iP], Chg, msErr_oneHit, msPar_oneHit, outChi2);
 
     //now update the track parameters with this hit (note that some calculations are already done when computing chi2, to be optimized)
     //this is not needed for candidates the hit is not added to, but it's vectorized so doing it serially below should take the same time
@@ -417,7 +417,7 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
 
     if (oneCandPassCut) { 
 
-      updateParametersMPlex(Err[iP], Par[iP], msErr_oneHit, msPar_oneHit,
+      updateParametersMPlex(Err[iP], Par[iP], Chg, msErr_oneHit, msPar_oneHit,
 			    Err[iC], Par[iC]);
 #ifdef DEBUG
       std::cout << "update parameters" << std::endl;
@@ -607,11 +607,25 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
     const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi,(float) Config::minDPhi), float(M_PI/1.));//fixme
     //const float nSigmaDphi = Config::nSigma*dphi;
 
+    //now correct for bending and for layer thickness unsing linear approximation
+    const float predpx = Par[iP].ConstAt(itrack, 3, 0);
+    const float predpy = Par[iP].ConstAt(itrack, 4, 0);
+    float deltaR = Config::cmsDeltaRad; //fixme! using constant vale, to be taken from layer properties
+    float radius = sqrt(px2py2);
+    float pt     = sqrt(predpx*predpx + predpy*predpy);
+    float cosTheta = ( predx*predpx + predy*predpy )/(pt*radius);
+    float hipo = deltaR/cosTheta;
+    float dist = sqrt(hipo*hipo - deltaR*deltaR);
+    float dPhiMargin = dist/radius;
+#ifdef DEBUG
+    std::cout << "dPhiMargin=" << dPhiMargin << std::endl;
+#endif
+
     //if (nSigmaDphi>0.3) 
     //std::cout << "window MX: " << predx << " " << predy << " " << predz << " " << Err[iP].ConstAt(itrack, 0, 0) << " " << Err[iP].ConstAt(itrack, 1, 1) << " " << Err[iP].ConstAt(itrack, 0, 1) << " " << nSigmaDphi << std::endl;
 
-    const float dphiMinus = normalizedPhi(phi-nSigmaDphi);
-    const float dphiPlus  = normalizedPhi(phi+nSigmaDphi);
+    const float dphiMinus = normalizedPhi(phi-nSigmaDphi-dPhiMargin);
+    const float dphiPlus  = normalizedPhi(phi+nSigmaDphi+dPhiMargin);
 
 #ifdef DEBUG
     std::ostringstream xout;
@@ -813,7 +827,7 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
-    computeChi2MPlex(Err[iP], Par[iP], msErr[Nhits], msPar[Nhits], outChi2);
+    computeChi2MPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits], outChi2);
 
 #ifndef NO_PREFETCH
     // Prefetch to L1 the hits we'll process in the next loop iteration.
@@ -886,7 +900,7 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 #ifdef DEBUG
   std::cout << "update parameters" << std::endl;
 #endif
-  updateParametersMPlex(Err[iP], Par[iP], msErr[Nhits], msPar[Nhits],
+  updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits],
 			Err[iC], Par[iC]);
 
   //std::cout << "Par[iP](0,0,0)=" << Par[iP](0,0,0) << " Par[iC](0,0,0)=" << Par[iC](0,0,0)<< std::endl;
@@ -969,7 +983,7 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
-    computeChi2MPlex(Err[iP], Par[iP],msErr[Nhits], msPar[Nhits], outChi2);
+    computeChi2MPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits], outChi2);
 
     // Prefetch to L1 the hits we'll process in the next loop iteration.
     for (int itrack = 0; itrack < NN; ++itrack)
@@ -996,7 +1010,7 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
 
     if (oneCandPassCut) { 
 
-      updateParametersMPlex(Err[iP], Par[iP], msErr[Nhits], msPar[Nhits], Err[iC], Par[iC]);
+      updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits], Err[iC], Par[iC]);
 #ifdef DEBUG
       std::cout << "update parameters" << std::endl;
       std::cout << "propagated track parameters x=" << Par[iP].ConstAt(0, 0, 0) << " y=" << Par[iP].ConstAt(0, 1, 0) << std::endl;
@@ -1162,7 +1176,7 @@ void MkFitter::FindCandidatesMinimizeCopy(BunchOfHits &bunch_of_hits, CandCloner
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
-    computeChi2MPlex(Err[iP], Par[iP], msErr[Nhits], msPar[Nhits], outChi2);
+    computeChi2MPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits], outChi2);
 
     // Prefetch to L1 the hits we'll process in the next loop iteration.
     for (int itrack = 0; itrack < N_proc; ++itrack)
@@ -1278,7 +1292,7 @@ void MkFitter::UpdateWithHit(BunchOfHits &bunch_of_hits,
       msPar[Nhits].CopyIn(itrack, hit.posArray());
     }
   
-  updateParametersMPlex(Err[iP], Par[iP], msErr[Nhits], msPar[Nhits], Err[iC], Par[iC]);
+  updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits], Err[iC], Par[iC]);
   
   itrack = 0;
 #pragma simd // DOES NOT VECTORIZE AS IT IS NOW
@@ -1326,7 +1340,7 @@ void MkFitter::UpdateWithHit(BunchOfHits &bunch_of_hits,
       msPar[Nhits].CopyIn(itrack, hit.posArray());
     }
   
-  updateParametersMPlex(Err[iP], Par[iP], msErr[Nhits], msPar[Nhits], Err[iC], Par[iC]);
+  updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits], Err[iC], Par[iC]);
 
   //now that we have moved propagation at the end of the sequence we lost the handle of 
   //using the propagated parameters instead of the updated for the missing hit case. 

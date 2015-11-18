@@ -8,7 +8,7 @@
 #include "HitStructures.h"
 #include "BinInfoUtils.h"
 
-//#define DEBUG 1
+#define DEBUG 1
 
 class CandCloner;
 

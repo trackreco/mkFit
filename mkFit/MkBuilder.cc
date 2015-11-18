@@ -84,6 +84,7 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
 
   for (int itrack = 0; itrack < simtracks.size(); ++itrack)
   {
+
     if (simtracks[itrack].label() != itrack)
     {
       printf("Bad label for simtrack %d -- %d\n", itrack, simtracks[itrack].label());

@@ -16,8 +16,8 @@ namespace Config
   constexpr double Sqrt2   = 1.4142135623730950488016887242097;
 
   // config on main + mkFit
-  constexpr int nTracks = 20000;
-  constexpr int nEvents = 10;
+  constexpr int nTracks = 1;
+  constexpr int nEvents = 1;
 
   // config on main -- for geometry
   constexpr int   nLayers   = 10;
@@ -26,6 +26,9 @@ namespace Config
   constexpr float fInnerSensorSize = 5.0; // approximate sensor size in cm
   constexpr float fOuterSensorSize = Config::fInnerSensorSize * 2.;
   constexpr float fEtaDet          = 1;  // 1 from chep
+
+  constexpr float cmsAvgRads[10] = {4.42,7.31,10.17,25.65,33.81,41.89,49.67,60.95,69.11,78.19}; // cms average radii
+  constexpr float cmsDeltaRad = 2.5; //fixme! using constant 2.5 cm, to be taken from layer properties
 
   // config on Event
   constexpr int   maxCand = 10;
@@ -71,7 +74,7 @@ namespace Config
   // Config for Hit and BinInfoUtils
   constexpr int   nPhiPart   = 1260;
   constexpr float fPhiFactor = nPhiPart / TwoPI;
-  constexpr int   nEtaPart   = 11;
+  constexpr int   nEtaPart   = 1;//11;
   constexpr int   nEtaBin    = 2 * nEtaPart - 1;
 
   constexpr float        fEtaFull  = 2 * Config::fEtaDet;
@@ -80,7 +83,7 @@ namespace Config
   constexpr float        fEtaOffB1 = Config::fEtaDet;
   constexpr float        fEtaFacB1 = Config::nEtaPart / Config::fEtaFull;
   constexpr float        fEtaOffB2 = Config::fEtaDet - Config::fEtaFull / (2 * Config::nEtaPart);
-  constexpr float        fEtaFacB2 = (Config::nEtaPart - 1) / (Config::fEtaFull - Config::fEtaFull / Config::nEtaPart);
+  constexpr float        fEtaFacB2 = (Config::nEtaPart>1 ? (Config::nEtaPart - 1) / (Config::fEtaFull - Config::fEtaFull / Config::nEtaPart) : 1);
 
   // This is for extra bins narrower ... thinking about this some more it
   // seems it would be even better to have two more exta bins, hanging off at
@@ -110,7 +113,9 @@ namespace Config
   // MT If you comment this out, also set g_PropagateAtEnd to false !!!
 #define TEST_CLONE_ENGINE 
 
-  const     int g_MaxHitsPerBunch   = std::max(100, nTracks * 2 / nEtaPart);
+  constexpr int  g_MaxHitsConsidered = 25;
+
+  const     int g_MaxHitsPerBunch   = std::max(100, nTracks * 2 / nEtaPart) + Config::g_MaxHitsConsidered;
 
   constexpr int g_MaxCandsPerSeed   = 6;
   const     int g_MaxCandsPerEtaBin = std::max(100, g_MaxCandsPerSeed * nTracks / nEtaPart);
@@ -119,8 +124,6 @@ namespace Config
   // additional bins on each end.
 
   // XXX std::min/max have constexpr versions in c++-14.
-
-  constexpr int  g_MaxHitsConsidered = 25;
 
   // Propagate-at-end does not work with find-best-hit !!!
   constexpr bool g_PropagateAtEnd = true;
@@ -137,7 +140,7 @@ namespace Config
     #ifdef __MIC__
       #define MPT_SIZE 16
     #else
-      #define MPT_SIZE 8
+      #define MPT_SIZE 1
     #endif
   #endif
 
