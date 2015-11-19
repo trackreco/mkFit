@@ -39,6 +39,7 @@ public:
   HitIDVec layerHitMap_; // indexed same as simHitsInfo_, maps to layer & hit
 
   TrackVec simTracks_, seedTracks_, candidateTracks_, fitTracks_;
+  TrackExtraVec candidateTracksExtra_;
 
   // phi-eta partitioning map: vector of vector of vectors of std::pairs. 
   // vec[nLayers][nEtaBins][nPhiBins]

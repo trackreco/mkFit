@@ -25,7 +25,7 @@ static std::mutex evtlock;
 #endif
 typedef candvec::const_iterator canditer;
 
-void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidates, unsigned int ilay, bool debug);
+void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidates, unsigned int ilay, unsigned int iseed, bool debug);
 
 inline bool sortByHitsChi2(const cand_t& cand1, const cand_t& cand2)
 {
@@ -33,7 +33,7 @@ inline bool sortByHitsChi2(const cand_t& cand1, const cand_t& cand2)
   return cand1.nFoundHits()>cand2.nFoundHits();
 }
 
-void processCandidates(Event& ev, candvec& candidates, unsigned int ilay, const bool debug)
+void processCandidates(Event& ev, candvec& candidates, unsigned int ilay, unsigned int iseed, const bool debug)
 {
   auto& evt_track_candidates(ev.candidateTracks_);
 
@@ -43,7 +43,7 @@ void processCandidates(Event& ev, candvec& candidates, unsigned int ilay, const 
   if (candidates.size() > 0) {
     //loop over running candidates
     for (auto&& cand : candidates) {
-      extendCandidate(ev, cand, tmp_candidates, ilay, debug);
+      extendCandidate(ev, cand, tmp_candidates, ilay, iseed, debug);
     }
     if (tmp_candidates.size()>Config::maxCand) {
       dprint("huge size=" << tmp_candidates.size() << " keeping best "<< Config::maxCand << " only");
@@ -58,6 +58,7 @@ void processCandidates(Event& ev, candvec& candidates, unsigned int ilay, const 
       std::lock_guard<std::mutex> evtguard(evtlock); // should be rare
 #endif
       evt_track_candidates.push_back(*best);
+      ev.candidateTracksExtra_.emplace_back(iseed);
     }
     dprint("swapping with size=" << tmp_candidates.size());
     candidates.swap(tmp_candidates);
@@ -88,26 +89,28 @@ void buildTracksBySeeds(Event& ev)
     for (auto iseed = 0U; iseed != evt_seeds.size(); ++iseed) {
       const auto& seed(evt_seeds[iseed]);
 #endif
-      dprint("processing seed # " << seed.seedID() << " par=" << seed.parameters());
+      dprint("processing seed # " << iseed << " par=" << seed.parameters());
       TrackState seed_state = seed.state();
       //seed_state.errors *= 0.01;//otherwise combinatorics explode!!!
       //should consider more than 1 candidate...
       auto&& candidates(track_candidates[iseed]);
       for (unsigned int ilay=Config::nlayers_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
         dprint("going to layer #" << ilay << " with N cands=" << track_candidates.size());
-        processCandidates(ev, candidates, ilay, debug);
+        processCandidates(ev, candidates, ilay, iseed, debug);
       }
       //end of layer loop
     }//end of process seeds loop
 #ifdef TBB
   });
 #endif
-  for (const auto& cand : track_candidates) {
+  for (auto iseed = 0U; iseed < track_candidates.size(); ++iseed) {
+    const auto& cand = track_candidates[iseed];
     if (cand.size()>0) {
       // only save one track candidate per seed, one with lowest chi2
       //std::partial_sort(cand.begin(),cand.begin()+1,cand.end(),sortByHitsChi2);
       auto&& best = std::min_element(cand.begin(),cand.end(),sortByHitsChi2);
       evt_track_candidates.push_back(*best);
+      ev.candidateTracksExtra_.emplace_back(iseed);
     }
   }
 }		
@@ -136,7 +139,7 @@ void buildTracksByLayers(Event& ev)
       for (auto iseed = seediter.begin(); iseed != seediter.end(); ++iseed) {
         const auto& seed(evt_seeds[iseed]);
         auto&& candidates(track_candidates[iseed]);
-        processCandidates(ev, candidates, ilay, debug);
+        processCandidates(ev, candidates, ilay, iseed, debug);
       }
     }); //end of process seeds loop
 #else
@@ -144,23 +147,25 @@ void buildTracksByLayers(Event& ev)
     for (auto iseed = 0U; iseed != evt_seeds.size(); ++iseed) {
       const auto& seed(evt_seeds[iseed]);
       auto&& candidates(track_candidates[iseed]);
-      processCandidates(ev, candidates, ilay, debug);
+      processCandidates(ev, candidates, ilay, iseed, debug);
     }
 #endif
   } //end of layer loop
 
   //std::lock_guard<std::mutex> evtguard(evtlock);
-  for (const auto& cand : track_candidates) {
+  for (auto iseed = 0U; iseed < track_candidates.size(); ++iseed) {
+    const auto& cand = track_candidates[iseed];
     if (cand.size()>0) {
       // only save one track candidate per seed, one with lowest chi2
       //std::partial_sort(cand.begin(),cand.begin()+1,cand.end(),sortByHitsChi2);
       auto&& best = std::min_element(cand.begin(),cand.end(),sortByHitsChi2);
       evt_track_candidates.push_back(*best);
+      ev.candidateTracksExtra_.emplace_back(iseed);
     }
   }
 }
 
-void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidates, unsigned int ilayer, bool debug)
+void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidates, unsigned int ilayer, unsigned int iseed, bool debug)
 {
   std::vector<unsigned int> branch_hit_indices; // temp variable for validation... could be used for cand hit builder engine!
   const Track& tkcand = cand;
@@ -268,6 +273,6 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
     tmp_candidates.push_back(tkcand);
     branch_hit_indices.push_back(Config::nTracks); // since tracks go from 0-Config::nTracks -1, the ghost index is just the one beyond
   }
-  ev.validation_.collectBranchingInfo(tkcand.seedID(),ilayer,nSigmaDeta,etaBinMinus,etaBinPlus,
+  ev.validation_.collectBranchingInfo(iseed,ilayer,nSigmaDeta,etaBinMinus,etaBinPlus,
                                       nSigmaDphi,phiBinMinus,phiBinPlus,cand_hit_indices,branch_hit_indices);
 }

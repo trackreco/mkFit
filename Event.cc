@@ -61,7 +61,7 @@ Event::Event(const Geometry& g, Validation& v, unsigned int evtID, int threads) 
 
 void Event::Simulate()
 {
-  MCHitInfo::mcHitIDCounter_ = -1;
+  MCHitInfo::mcHitIDCounter_ = 0;
 
   simTracks_.resize(Config::nTracks);
   simHitsInfo_.resize(Config::nTotHit * Config::nTracks);
@@ -230,6 +230,7 @@ void Event::Find()
 
 void Event::Fit()
 {
+  fitTracks_.resize(candidateTracks_.size());
 #ifdef ENDTOEND
   runFittingTest(*this, candidateTracks_);
 #else

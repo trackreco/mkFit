@@ -123,7 +123,7 @@ struct MCHitInfo
 {
   MCHitInfo() {}
   MCHitInfo(unsigned int track, unsigned int layer, unsigned int ithlayerhit)
-    : mcTrackID_(track), layer_(layer), ithLayerHit_(ithlayerhit), mcHitID_(++mcHitIDCounter_) {}
+    : mcTrackID_(track), layer_(layer), ithLayerHit_(ithlayerhit), mcHitID_(mcHitIDCounter_++) {}
 
   unsigned int mcTrackID_;
   unsigned int layer_;

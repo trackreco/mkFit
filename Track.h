@@ -108,11 +108,9 @@ public:
   void setChi2(float chi2) {chi2_=chi2;}
   void setLabel(int lbl)   {label_=lbl;}
 
-  void setState(TrackState newState) {state_=newState;}
+  void setState(const TrackState& newState) {state_=newState;}
 
   SimTkIDInfo MCTrackIDInfo(const MCHitInfoVec& globalHitInfo) const;
-
-  int seedID() const { return -1; } // tmp
 
   Track clone() const { return Track(state_,chi2_,label_,nTotalHits(),hitIdxArr_); }
 
@@ -129,6 +127,26 @@ private:
   int   label_       = -1;
 };
 
+class TrackExtra {
+public:
+  TrackExtra(unsigned int seedID) : seedID_(seedID) {}
+  void setMCTrackIDInfo();
+  unsigned int mcTrackID() const {return mcTrackID_;}
+  unsigned int nHitsMatched() const {return nHitsMatched_;}
+  unsigned int seedID() const {return seedID_;}
+  bool isDuplicate() const {return isDuplicate_;}
+  unsigned int duplicateID() const {return duplicateID_;}
+  void setMCDuplicateInfo(unsigned int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
+private:
+  friend class Track;
+  unsigned int mcTrackID_;
+  unsigned int nHitsMatched_;
+  unsigned int seedID_;
+  unsigned int duplicateID_;
+  bool isDuplicate_;
+};
+
+typedef std::vector<TrackExtra> TrackExtraVec;
 typedef std::vector<Track> TrackVec;
 typedef std::vector<Track*> TrackRefVec;
 typedef std::vector<TrackState> TSVec;
