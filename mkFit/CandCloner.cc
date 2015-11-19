@@ -50,7 +50,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
     std::sort(hitsToAddForThisSeed.begin(), hitsToAddForThisSeed.end(), sortCandListByHitsChi2);
   }
 
-  //2) now create the candidates for the best maxCand, we'll do it vectorized with MkFitter
+  //2) now create the candidates for the best maxCandsPerSeed, we'll do it vectorized with MkFitter
   //2a) first we need to unroll the vectors
 
   // XXXX std::vector<std::pair<int,MkFitter::IdxChi2List> > seed_newcand_idx;
@@ -58,7 +58,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
   for (int is = is_beg; is < is_end; ++is)
   {
     std::vector<MkFitter::IdxChi2List>& hitsToAddForThisSeed = m_hits_to_add[is];
-    for (int ih = 0; ih < hitsToAddForThisSeed.size() && ih < Config::maxCand; ih++)
+    for (int ih = 0; ih < hitsToAddForThisSeed.size() && ih < Config::maxCandsPerSeed; ih++)
     {
       t_seed_newcand_idx.push_back(std::pair<int,MkFitter::IdxChi2List>(is, hitsToAddForThisSeed[ih]));
     }

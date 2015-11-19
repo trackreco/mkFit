@@ -32,12 +32,12 @@ public:
   {
     m_fitter = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(0);
 
-    t_seed_newcand_idx.reserve(s_max_seed_range * Config::maxCand);
+    t_seed_newcand_idx.reserve(s_max_seed_range * Config::maxCandsPerSeed);
 
     t_cands_for_next_lay.resize(s_max_seed_range);
     for (int iseed = 0; iseed < s_max_seed_range; ++iseed)
     {
-      t_cands_for_next_lay[iseed].reserve(Config::maxCand);
+      t_cands_for_next_lay[iseed].reserve(Config::maxCandsPerSeed);
     }
 
     SetMainThreadCpuId(cpuid);
@@ -67,7 +67,7 @@ public:
     // XXX Should resize vectors in m_hits_to_add to whatever makes sense ???
     // for (int i = 0; i < n_seeds; ++i)
     // {
-    //   m_hits_to_add[i].reserve(20 * Config::maxCand);
+    //   m_hits_to_add[i].reserve(20 * Config::maxCandsPerSeed);
     // }
 
 #ifdef CC_TIME_ETA

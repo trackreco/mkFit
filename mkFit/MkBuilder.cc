@@ -499,7 +499,7 @@ void MkBuilder::FindTracks()
           // time spent in push_back ... but it didn't really help.
           // We need to optimize this by throwing away and replacing the worst
           // candidate once a better one arrives. This will also avoid sorting.
-          tmp_candidates[iseed].reserve(2*Config::maxCand);//factor 2 seems reasonable to start with
+          tmp_candidates[iseed].reserve(2*Config::maxCandsPerSeed);//factor 2 seems reasonable to start with
         }
 #endif // TEST_CLONE_ENGINE
 
@@ -593,18 +593,18 @@ void MkBuilder::FindTracks()
 #ifdef DEBUG
           std::cout << "dump seed n " << is << " with input candidates=" << tmp_candidates[is].size() << std::endl;
 #endif
-          if (tmp_candidates[is].size() > Config::maxCand)
+          if (tmp_candidates[is].size() > Config::maxCandsPerSeed)
           {
 #ifdef DEBUG
             std::cout << "erase extra candidates" 
                       << " tmp_candidates[is].size()=" << tmp_candidates[is].size()
-                      << " Config::maxCand=" << Config::maxCand
+                      << " Config::maxCandsPerSeed=" << Config::maxCandsPerSeed
                       << std::endl;
             std::cout << "erase extra candidates" << std::endl;
 #endif
 
             std::sort(tmp_candidates[is].begin(), tmp_candidates[is].end(), sortCandByHitsChi2);
-            tmp_candidates[is].erase(tmp_candidates[is].begin() + Config::maxCand,
+            tmp_candidates[is].erase(tmp_candidates[is].begin() + Config::maxCandsPerSeed,
                                      tmp_candidates[is].end());
           }
 #ifdef DEBUG

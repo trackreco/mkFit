@@ -1315,7 +1315,7 @@ void TTreeValidation::fillConfigTree(const std::vector<double>& ticks){
   nEtaPart_   = Config::nEtaPart;
 
   nlayers_per_seed_ = Config::nlayers_per_seed;
-  maxCand_ = Config::maxCand;
+  maxCand_ = Config::maxCandsPerSeed;
   chi2Cut_ = Config::chi2Cut;
   nSigma_  = Config::nSigma;
   minDPhi_ = Config::minDPhi;

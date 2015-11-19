@@ -28,7 +28,6 @@ namespace Config
   constexpr float fEtaDet          = 1;  // 1 from chep
 
   // config on Event
-  constexpr int   maxCand = 10;
   constexpr float chi2Cut = 15.;
   constexpr float nSigma  = 3.;
   constexpr float minDPhi = 0.;
