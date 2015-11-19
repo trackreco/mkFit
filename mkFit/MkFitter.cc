@@ -638,7 +638,7 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
     PhiBinInfo_t binInfoMinus = bunch_of_hits.m_phi_bin_infos[phiBinMinus];
     PhiBinInfo_t binInfoPlus  = bunch_of_hits.m_phi_bin_infos[phiBinPlus];
 
-    if (binInfoPlus.first + binInfoPlus.second - binInfoMinus.first > Config::g_MaxHitsConsidered)
+    if (binInfoPlus.first + binInfoPlus.second - binInfoMinus.first > Config::maxHitsConsidered)
     {
       // XXXX
       // Do something smart to reduce the range.
@@ -653,7 +653,7 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
     // instead of shifting of the base address as is done now. Sigh.
     
     // fixme: temporary to avoid wrapping
-    // This is now fixed with Config::g_MaxHitsConsidered extra hits copied to the end +
+    // This is now fixed with Config::maxHitsConsidered extra hits copied to the end +
     // changing XHitBegin/End to XHitPos/Size.
     // Putting all of it into DEBUG
 #ifdef DEBUG
@@ -681,18 +681,18 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
     if (XHitSize.At(itrack, 0, 0) < 0)
     {
       // XXX It would be nice to have BunchOfHits.m_n_real_hits.
-      XHitSize.At(itrack, 0, 0) += bunch_of_hits.m_fill_index - Config::g_MaxHitsConsidered;
+      XHitSize.At(itrack, 0, 0) += bunch_of_hits.m_fill_index - Config::maxHitsConsidered;
     }
 
-    // XXXX Hack to limit N_hits to g_MaxHitsConsidered.
+    // XXXX Hack to limit N_hits to maxHitsConsidered.
     // Should at least take hits around central bin -- to be explored, esp. with jet presence.
     // Strange ... this is worse than just taking first 25 hits !!!
     // Comment out for now. Must talk to Giuseppe about this.
-    // if (XHitSize.At(itrack, 0, 0) > Config::g_MaxHitsConsidered)
+    // if (XHitSize.At(itrack, 0, 0) > Config::maxHitsConsidered)
     // {
     //   xout_dump = true;
-    //   XHitPos .At(itrack, 0, 0) += (XHitSize.At(itrack, 0, 0) - Config::g_MaxHitsConsidered) / 2;
-    //   XHitSize.At(itrack, 0, 0) = Config::g_MaxHitsConsidered;
+    //   XHitPos .At(itrack, 0, 0) += (XHitSize.At(itrack, 0, 0) - Config::maxHitsConsidered) / 2;
+    //   XHitSize.At(itrack, 0, 0) = Config::maxHitsConsidered;
     // }
 
 #ifdef DEBUG
@@ -751,7 +751,7 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 
   // XXXX MT Uber hack to avoid tracks with like 300 hits to process.
   //fixme this makes results dependent on vector unit size
-  maxSize = std::min(maxSize, Config::g_MaxHitsConsidered);
+  maxSize = std::min(maxSize, Config::maxHitsConsidered);
 
 #if defined(MIC_INTRINSICS)
   //__m512i vi = _mm512_setr_epi32(idx[ 0], idx[ 1], idx[ 2], idx[ 3], idx[ 4], idx[ 5], idx[ 6], idx[ 7],
@@ -924,7 +924,7 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
   }
 
   // XXXX MT Uber hack to avoid tracks with like 300 hits to process.
-  maxSize = std::min(maxSize, Config::g_MaxHitsConsidered);
+  maxSize = std::min(maxSize, Config::maxHitsConsidered);
 
 #if defined(MIC_INTRINSICS)
   //__m512i vi = _mm512_setr_epi32(idx[ 0], idx[ 1], idx[ 2], idx[ 3], idx[ 4], idx[ 5], idx[ 6], idx[ 7],
@@ -1114,7 +1114,7 @@ void MkFitter::FindCandidatesMinimizeCopy(BunchOfHits &bunch_of_hits, CandCloner
 
   // XXXX MT Uber hack to avoid tracks with like 300 hits to process.
   // This will actually be applied in SelectHitRanges now ...
-  maxSize = std::min(maxSize, Config::g_MaxHitsConsidered);
+  maxSize = std::min(maxSize, Config::maxHitsConsidered);
 
 #if defined(MIC_INTRINSICS)
   //__m512i vi = _mm512_setr_epi32(idx[ 0], idx[ 1], idx[ 2], idx[ 3], idx[ 4], idx[ 5], idx[ 6], idx[ 7],

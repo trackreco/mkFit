@@ -27,9 +27,9 @@ MkBuilder::MkBuilder() :
   m_event_tmp(0),
   m_event_of_hits(Config::nLayers)
 {
-  m_mkfp_arr.resize(Config::g_num_threads);
+  m_mkfp_arr.resize(Config::numThreadsFinder);
 
-  for (int i = 0; i < Config::g_num_threads; ++i)
+  for (int i = 0; i < Config::numThreadsFinder; ++i)
   {
     m_mkfp_arr[i] = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(0);
   }
@@ -37,7 +37,7 @@ MkBuilder::MkBuilder() :
 
 MkBuilder::~MkBuilder()
 {
-   for (int i = 0; i < Config::g_num_threads; ++i)
+   for (int i = 0; i < Config::numThreadsFinder; ++i)
    {
      _mm_free(m_mkfp_arr[i]);
    }
@@ -113,7 +113,7 @@ void MkBuilder::fit_seeds()
 
   int theEnd = simtracks.size();
 
-#pragma omp parallel for num_threads(NUM_THREADS)
+#pragma omp parallel for
   for (int itrack = 0; itrack < theEnd; itrack += NN)
   {
     int end = std::min(itrack + NN, theEnd);
@@ -247,14 +247,10 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
 
   //parallel section over seeds; num_threads can of course be smaller
   int nseeds = m_recseeds.size();
-  //#pragma omp parallel num_threads(Config::nEtaBin)
-  //fixme: set to one for debugging (to be revisited anyway - what if there are more threads than eta bins?)
-  // MT: this is now done differently for "normal" find tracks
-#pragma omp parallel num_threads(1)
+
+#pragma omp parallel
   for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
   {
-    // XXXX Could have nested paralellism, like NUM_THREADS/nEtaBins (but rounding sucks here).
-    // XXXX So one should really have TBB, for this and for the above.
     // vectorized loop
     EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin];
 
@@ -371,7 +367,7 @@ void MkBuilder::FindTracks()
   //- threads can be either over eta bins (a) or over seeds in one eta bin (b)
   //- for (a) we need the same number of eta bins in each thread
   //- for (b) we need the same number of threads in each eta bin
-  assert( (Config::nEtaBin % NUM_THREADS == 0) || (NUM_THREADS % Config::nEtaBin == 0) );
+  assert( (Config::nEtaBin % Config::numThreadsFinder == 0) || (Config::numThreadsFinder % Config::nEtaBin == 0) );
 
   // parallel section over seeds
   // number of threads to be set through omp_set_num_threads (see mkFit.cc)

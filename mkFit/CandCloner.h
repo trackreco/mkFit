@@ -43,7 +43,7 @@ public:
     SetMainThreadCpuId(cpuid);
     if (pin_mt) PinMainThread();
 
-    if ( ! Config::g_cloner_single_thread)
+    if ( ! Config::clonerUseSingleThread)
       SpawnSideThread(cpuid_st);
   }
 
@@ -51,7 +51,7 @@ public:
   {
     // printf("CandCloner::~CandCloner will try to join the side thread now ...\n");
 
-    if ( ! Config::g_cloner_single_thread)
+    if ( ! Config::clonerUseSingleThread)
       JoinSideThread();
 
     _mm_free(m_fitter);
@@ -126,7 +126,7 @@ public:
       signal_work_to_st(m_idx_max + 1);
     }
 
-    if ( ! Config::g_cloner_single_thread)
+    if ( ! Config::clonerUseSingleThread)
       WaitForSideThreadToFinish();
 
     for (int i = 0; i < m_n_seeds; ++i)
@@ -152,7 +152,7 @@ public:
   {
     // printf("CandCloner::signal_work_to_st assigning work up to seed %d\n", idx);
 
-    if ( ! Config::g_cloner_single_thread)
+    if ( ! Config::clonerUseSingleThread)
       QueueWork(std::make_pair(m_idx_max_prev, idx));
     else
       DoWorkInSideThread(std::make_pair(m_idx_max_prev, idx));

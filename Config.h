@@ -110,25 +110,27 @@ namespace Config
   // MT If you comment this out, also set g_PropagateAtEnd to false !!!
 #define TEST_CLONE_ENGINE 
 
-  const     int g_MaxHitsPerBunch   = std::max(100, nTracks * 2 / nEtaPart);
+  const     int maxHitsPerBunch   = std::max(100, nTracks * 2 / nEtaPart);
 
-  constexpr int g_MaxCandsPerSeed   = 6;
-  const     int g_MaxCandsPerEtaBin = std::max(100, g_MaxCandsPerSeed * nTracks / nEtaPart);
+  constexpr int maxCandsPerSeed   = 6;
+  const     int maxCandsPerEtaBin = std::max(100, maxCandsPerSeed * nTracks / nEtaPart);
   // Effective eta bin is one half of nEtaPart -- so the above is twice the "average".
   // Note that last and first bin are 3/4 nEtaPart ... but can be made 1/4 by adding
   // additional bins on each end.
 
   // XXX std::min/max have constexpr versions in c++-14.
 
-  constexpr int  g_MaxHitsConsidered = 25;
+  constexpr int maxHitsConsidered = 25;
 
   // Propagate-at-end does not work with find-best-hit !!!
   constexpr bool g_PropagateAtEnd = true;
   //constexpr bool g_PropagateAtEnd = false;
 
-  extern int   g_num_threads          ;
-  extern bool  g_cloner_single_thread ;
-  extern int   g_best_out_of          ;
+  extern int   numThreadsFinder;
+  extern int   numThreadsSimulation;
+
+  extern bool  clonerUseSingleThread;
+  extern int   finderReportBestOutOfN;
 
 
 #ifdef USE_MATRIPLEX
@@ -138,19 +140,6 @@ namespace Config
       #define MPT_SIZE 16
     #else
       #define MPT_SIZE 8
-    #endif
-  #endif
-
-  // XXXX MT mkFit/mkFit now uses Config::g_num_threads
-  #ifndef NUM_THREADS
-  #define NUM_THREADS 1
-  #endif
-
-  #ifndef NUM_THREADS_SIM
-    #ifdef __MIC__
-      #define NUM_THREADS_SIM 60
-    #else
-      #define NUM_THREADS_SIM 12
     #endif
   #endif
 

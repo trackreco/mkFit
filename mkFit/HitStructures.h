@@ -55,12 +55,12 @@ public:
 
 public:
   BunchOfHits() :
-    //m_hits          (Config::g_MaxHitsPerBunch),
+    //m_hits          (Config::maxHitsPerBunch),
     m_phi_bin_infos (Config::nPhiPart),
-    m_real_size     (Config::g_MaxHitsPerBunch),
+    m_real_size     (Config::maxHitsPerBunch),
     m_fill_index    (0)
   {
-    m_hits = (Hit*) _mm_malloc(sizeof(Hit)*Config::g_MaxHitsPerBunch, 64);
+    m_hits = (Hit*) _mm_malloc(sizeof(Hit)*Config::maxHitsPerBunch, 64);
     Reset();
   }
 
@@ -173,8 +173,8 @@ public:
 
 public:
   EtaBinOfCandidates() :
-    m_candidates (Config::g_MaxCandsPerEtaBin),
-    m_real_size  (Config::g_MaxCandsPerEtaBin),
+    m_candidates (Config::maxCandsPerEtaBin),
+    m_real_size  (Config::maxCandsPerEtaBin),
     m_fill_index (0)
   {}
 
@@ -253,16 +253,16 @@ public:
 
 public:
   EtaBinOfCombCandidates() :
-    m_candidates (Config::g_MaxCandsPerEtaBin),
-    m_real_size  (Config::g_MaxCandsPerEtaBin),
+    m_candidates (Config::maxCandsPerEtaBin),
+    m_real_size  (Config::maxCandsPerEtaBin),
     m_fill_index (0)
   {
     for (int s=0;s<m_real_size;++s)
     {
-      // m_candidates[s].reserve(Config::g_MaxCandsPerSeed);//we should never exceed this
+      // m_candidates[s].reserve(Config::maxCandsPerSeed);//we should never exceed this
       // XXXX MY but we do ... actual size grows to two times that, it might be it
       // is actually just one past (automatic resizing is x2).
-      m_candidates[s].reserve(2 * Config::g_MaxCandsPerSeed);
+      m_candidates[s].reserve(2 * Config::maxCandsPerSeed);
     }
   }
 

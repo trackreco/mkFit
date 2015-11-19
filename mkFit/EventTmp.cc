@@ -7,13 +7,13 @@ EventTmp::EventTmp() :
   // Standard operator new screws up alignment of ALL MPlex memebrs of MkFitter,
   // even if one adds attr(aligned(64)) thingy to every possible place.
 
-  m_cand_cloners.resize(Config::g_num_threads);
+  m_cand_cloners.resize(Config::numThreadsFinder);
 
-  for (int i = 0; i < Config::g_num_threads; ++i)
+  for (int i = 0; i < Config::numThreadsFinder; ++i)
   {
 #ifdef TEST_CLONE_ENGINE
 
-    if (Config::g_cloner_single_thread)
+    if (Config::clonerUseSingleThread)
     {
 #if defined(__MIC__)
       m_cand_cloners[i] = new CandCloner(1 + i*4, -1, false);
@@ -39,7 +39,7 @@ EventTmp::EventTmp() :
 
 EventTmp::~EventTmp()
 {
-  for (int i = 0; i < Config::g_num_threads; ++i)
+  for (int i = 0; i < Config::numThreadsFinder; ++i)
   {
 #ifdef TEST_CLONE_ENGINE
     delete m_cand_cloners[i];

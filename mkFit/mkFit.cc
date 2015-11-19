@@ -69,7 +69,7 @@ void generate_and_save_tracks()
   {
     Event ev(geom, val, evt);
 
-    ev.Simulate();//fixme add g_gen.seed(742331); and #pragma omp parallel for num_threads(NUM_THREADS_SIM)
+    ev.Simulate();
     ev.resetLayerHitMap();
 
     fwrite(&Ntracks, sizeof(int), 1, fp);
@@ -142,7 +142,8 @@ void test_standard()
   // ---- end MT test
 
   printf("Running test_standard(), operation=\"%s\"\n", g_operation.c_str());
-  printf("  vusize=%i, num_th=%i\n",  MPT_SIZE, NUM_THREADS);
+  printf("  vusize=%d, num_th_sim=%d, num_th_finder=%d\n",
+         MPT_SIZE, Config::numThreadsSimulation, Config::numThreadsFinder);
   printf("  sizeof(Track)=%zu, sizeof(Hit)=%zu, sizeof(SVector3)=%zu, sizeof(SMatrixSym33)=%zu, sizeof(MCHitInfo)=%zu\n",
          sizeof(Track), sizeof(Hit), sizeof(SVector3), sizeof(SMatrixSym33), sizeof(MCHitInfo));
 
@@ -178,12 +179,12 @@ void test_standard()
     }
     else
     {
-      omp_set_num_threads(NUM_THREADS_SIM);
+      omp_set_num_threads(Config::numThreadsSimulation);
 
-      ev.Simulate();//fixme add g_gen.seed(742331); and #pragma omp parallel for num_threads(NUM_THREADS_SIM)
+      ev.Simulate();
       ev.resetLayerHitMap(true);
 
-      omp_set_num_threads(Config::g_num_threads);
+      omp_set_num_threads(Config::numThreadsFinder);
     }
 
     plex_tracks.resize(ev.simTracks_.size());
@@ -267,28 +268,37 @@ int main(int argc, const char *argv[])
       printf(
         "Usage: %s [options]\n"
         "Options:\n"
-        "  --num-threads   <num>    number of threads (def: 1)\n"
+        "  --num-thr-sim   <num>    number of threads for simulation (def: %d)\n"
+        "  --num-thr       <num>    number of threads for track finding (def: %d)\n"
         "                           extra cloning thread is spawned for each of them\n"
-        "  --best-out-of   <num>    run track finding num times, report best time (def: 1)\n"
-        "  --cloner-single-thread   do not spawn extra cloning thread\n"
+        "  --cloner-single-thread   do not spawn extra cloning thread (def: %s)\n"
+        "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
         ,
-        argv[0]
+        argv[0],
+        Config::numThreadsSimulation, Config::numThreadsFinder,
+        Config::clonerUseSingleThread ? "true" : "false",
+        Config::finderReportBestOutOfN
       );
       exit(0);
     }
-    else if (*i == "--num-threads")
+    else if (*i == "--num-thr-sim")
     {
       next_arg_or_die(mArgs, i);
-      Config::g_num_threads = atoi(i->c_str());
+      Config::numThreadsSimulation = atoi(i->c_str());
+    }
+    else if (*i == "--num-thr")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::numThreadsFinder = atoi(i->c_str());
     }
     else if(*i == "--cloner-single-thread")
     {
-      Config::g_cloner_single_thread = true;
+      Config::clonerUseSingleThread = true;
     }
     else if(*i == "--best-out-of")
     {
       next_arg_or_die(mArgs, i);
-      Config::g_best_out_of = atoi(i->c_str());
+      Config::finderReportBestOutOfN = atoi(i->c_str());
     }
     else
     {
@@ -300,7 +310,7 @@ int main(int argc, const char *argv[])
   }
 
   printf ("Running with n_threads=%d, cloner_single_thread=%d, best_out_of=%d\n",
-          Config::g_num_threads, Config::g_cloner_single_thread, Config::g_best_out_of);
+          Config::numThreadsFinder, Config::clonerUseSingleThread, Config::finderReportBestOutOfN);
 
   /*
   if (argc >= 2)
