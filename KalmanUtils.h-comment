@@ -142,7 +142,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, std::
   //std::cout << "track with p=" << px << " " << py << " " << pz << " pt=" << sqrt(px*px+py*py) << " p=" << sqrt(px*px+py*py+pz*pz) << std::endl;
 
   float hitposerr = 0.01;//assume 100mum uncertainty in each coordinate
-  float k=charge*100./(-0.299792458*3.8);
+  float k=charge*100./(-0.299792458*Config::Bfield);
   float curvature = pt*k;
   float ctgTheta=mom.At(2)/pt;
 

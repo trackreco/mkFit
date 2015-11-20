@@ -71,6 +71,10 @@ namespace Config
   constexpr float dEtaSeedTrip = 0.6; // for almost max efficiency --> empirically derived... depends on geometry of detector
   constexpr float dPhiSeedTrip = 0.0458712; // numerically+semianalytically derived... depends on geometry of detector
 
+  // Config for propagation
+  constexpr int Niter = 5;
+  constexpr float Bfield = 3.8112
+
   // Config for Hit and BinInfoUtils
   constexpr int   nPhiPart   = 1260;
   constexpr float fPhiFactor = nPhiPart / TwoPI;

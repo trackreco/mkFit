@@ -39,7 +39,7 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
   float R=sqrt((x[0]-a)*(x[0]-a)+(y[0]-b)*(y[0]-b));
   //float e=b*b*b*C[2]/(R*R*R);
 
-  float k=charge*100./(-0.299792458*3.8);
+  float k=charge*100./(-0.299792458*Config::Bfield);
   float pt = R/k;
   /*
   std::cout << "hit0=" << x[0] << "," << y[0] << std::endl;
