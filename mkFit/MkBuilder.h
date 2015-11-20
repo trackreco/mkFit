@@ -45,13 +45,15 @@ public:
 
   // Common foos for FindTracks() / FindTracksCloneEngine() ???
 
+  void find_tracks_load_seeds();
+
   // --------
 
   void FindTracksBestHit(EventOfCandidates& event_of_cands);
 
   void FindTracks();
 
-  // void FindTracksCloneEngine(EventOfCombCandidates& event_of_comb_cands);
+  void FindTracksCloneEngine();
 };
 
 #endif

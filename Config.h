@@ -105,9 +105,6 @@ namespace Config
 #define MAX_HITS 10
 #endif
 
-  // Clone engine configuration
-#define TEST_CLONE_ENGINE 
-
   const     int maxHitsPerBunch   = std::max(100, nTracks * 2 / nEtaPart);
 
   constexpr int maxCandsPerSeed   = 6;

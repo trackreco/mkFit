@@ -156,7 +156,7 @@ void test_standard()
   initGeom(geom);
   Validation val;
 
-  double s_tmp=0, s_tsm=0, s_tsm2=0, s_tmp2=0, s_tsm2bh=0, s_tmp2bh=0;
+  double s_tmp=0, s_tsm=0, s_tsm2=0, s_tmp2=0, s_tsm2bh=0, s_tmp2bh=0, s_tmp2ce=0;
 
   EventTmp ev_tmp;
 
@@ -185,24 +185,27 @@ void test_standard()
 
     double tmp = -1;  // runFittingTestPlex(ev, plex_tracks);
 
-    double tmp2   = runBuildingTestPlex(ev, ev_tmp);
-
     double tmp2bh = runBuildingTestPlexBestHit(ev);
 
-    printf("Matriplex fit = %.5f  --- Build  MX = %.5f  BHMX = %.5f\n",
-           tmp, tmp2, tmp2bh);
+    double tmp2   = runBuildingTestPlex(ev, ev_tmp);
+
+    double tmp2ce = runBuildingTestPlexCloneEngine(ev, ev_tmp);
+
+    printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f\n",
+           tmp, tmp2bh, tmp2, tmp2ce);
     printf("\n");
 
     s_tmp    += tmp;
     s_tmp2   += tmp2;
     s_tmp2bh += tmp2bh;
+    s_tmp2ce += tmp2ce;
   }
   printf("================================================================\n");
   printf("=== TOTAL for %d events\n", Config::nEvents);
   printf("================================================================\n");
 
-  printf("Matriplex fit = %.5f  --- Build  MX = %.5f  BHMX = %.5f\n",
-         s_tmp, s_tmp2, s_tmp2bh);
+  printf("Matriplex fit = %.5f  --- Build  MX = %.5f  BHMX = %.5f  CEMX = %.5f\n",
+         s_tmp, s_tmp2bh, s_tmp2, s_tmp2ce);
 
   if (g_operation == "read")
   {

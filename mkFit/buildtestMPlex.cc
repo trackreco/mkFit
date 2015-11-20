@@ -162,3 +162,52 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
 
   return time;
 }
+
+
+//==============================================================================
+// runBuildTestPlexCloneEngine
+//==============================================================================
+
+double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
+{
+  MkBuilder builder;
+
+  builder.begin_event(&ev, &ev_tmp, __func__);
+
+  double time = dtime();
+
+#ifdef USE_VTUNE_PAUSE
+  __itt_resume();
+#endif
+
+  builder.fit_seeds();
+
+  builder.FindTracksCloneEngine();
+
+#ifdef USE_VTUNE_PAUSE
+  __itt_pause();
+#endif
+
+  time = dtime() - time;
+
+  builder.quality_reset();
+
+  EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
+
+  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
+  {
+    EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
+
+    for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed++)
+    {
+      // take the first one!
+      builder.quality_process(etabin_of_comb_candidates.m_candidates[iseed].front());
+    }
+  }
+
+  builder.quality_print();
+
+  builder.end_event();
+
+  return time;
+}
