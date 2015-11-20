@@ -134,12 +134,12 @@ class TrackExtra {
 public:
   TrackExtra() : seedID_(UINT_MAX) {}
   TrackExtra(unsigned int seedID) : seedID_(seedID) {}
-  void setMCTrackIDInfo(const Track& trk, const MCHitInfoVec& globalHitInfo);
   unsigned int mcTrackID() const {return mcTrackID_;}
   unsigned int nHitsMatched() const {return nHitsMatched_;}
   unsigned int seedID() const {return seedID_;}
   bool isDuplicate() const {return isDuplicate_;}
   unsigned int duplicateID() const {return duplicateID_;}
+  void setMCTrackIDInfo(const Track& trk, const MCHitInfoVec& globalHitInfo);
   void setMCDuplicateInfo(unsigned int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
 private:
   friend class Track;

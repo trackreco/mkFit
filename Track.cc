@@ -1,11 +1,12 @@
 #include "Track.h"
 
 // find the simtrack that provided the most hits
-void TrackExtra::setMCTrackIDInfo(const Track& trk, const MCHitInfoVec& globalHitInfo) const
+void TrackExtra::setMCTrackIDInfo(const Track& trk, const MCHitInfoVec& globalHitInfo)
 {
   std::vector<unsigned int> mctrack;
   auto hitIdxArr = trk.getHitIdxArr();
-  for (int ihit = 0; ihit <= hitIdxPos_ ; ++ihit){
+  auto hitIdx = trk.nTotalHits();
+  for (int ihit = 0; ihit < hitIdx; ++ihit){
     mctrack.push_back(globalHitInfo[hitIdxArr[ihit]].mcTrackID_);
   }
   std::sort(mctrack.begin(), mctrack.end()); // ensures all elements are checked properly
@@ -17,7 +18,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const MCHitInfoVec& globalHi
     if (c >= mcount) { mtrk = m; mcount = c; }
     m = i;
   }
-  if (4*mcount >= 3*hits_.size()){ // if more, matched track --> set id info
+  if (4*mcount >= 3*trk.nFoundHits()){ // if more, matched track --> set id info
     mcTrackID_    = mtrk;
     nHitsMatched_ = mcount;
   }
