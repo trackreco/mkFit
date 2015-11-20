@@ -305,7 +305,8 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	  //float angPath = (r-r0)*invcurvature;
 	  cosAP=cos((r-r0)*invcurvature);
 	  sinAP=sin((r-r0)*invcurvature);
-	  // sincos4(angPath, sinAP, cosAP);
+	  //fixme switch to this after carefully checking it does not harm
+	  // sincos4((r-r0)*invcurvature, sinAP, cosAP);
 	  
 	  //helix propagation formulas
 	  //http://www.phys.ufl.edu/~avery/fitting/fitting4.pdf
