@@ -147,12 +147,6 @@ void test_standard()
   printf("  sizeof(Track)=%zu, sizeof(Hit)=%zu, sizeof(SVector3)=%zu, sizeof(SMatrixSym33)=%zu, sizeof(MCHitInfo)=%zu\n",
          sizeof(Track), sizeof(Hit), sizeof(SVector3), sizeof(SMatrixSym33), sizeof(MCHitInfo));
 
-  int Ntracks = Config::nTracks;
-  // Ntracks  = 1;
-  // bool saveTree = false;
-
-  int Nevents = Config::nEvents;
-
   if (g_operation == "read")
   {
     // Nevents = open_simtrack_file();
@@ -166,7 +160,7 @@ void test_standard()
 
   EventTmp ev_tmp;
 
-  for (int evt = 1; evt <= Nevents; ++evt)
+  for (int evt = 1; evt <= Config::nEvents; ++evt)
   {
     printf("\n");
     printf("Processing event %d\n", evt);
@@ -191,10 +185,9 @@ void test_standard()
 
     double tmp = -1;  // runFittingTestPlex(ev, plex_tracks);
 
-    double tmp2 = runBuildingTestPlex(ev, ev_tmp);
+    double tmp2   = runBuildingTestPlex(ev, ev_tmp);
 
-    // Propagate-at-end does not work with find-best-hit !!!
-    double tmp2bh = -1; //runBuildingTestPlexBestHit(ev);
+    double tmp2bh = runBuildingTestPlexBestHit(ev);
 
     printf("Matriplex fit = %.5f  --- Build  MX = %.5f  BHMX = %.5f\n",
            tmp, tmp2, tmp2bh);
@@ -205,7 +198,7 @@ void test_standard()
     s_tmp2bh += tmp2bh;
   }
   printf("================================================================\n");
-  printf("=== TOTAL for %d events\n", Nevents);
+  printf("=== TOTAL for %d events\n", Config::nEvents);
   printf("================================================================\n");
 
   printf("Matriplex fit = %.5f  --- Build  MX = %.5f  BHMX = %.5f\n",
@@ -342,10 +335,6 @@ int main(int argc, const char *argv[])
     test_standard();
   }
   */
-
-#ifndef TEST_CLONE_ENGINE
-  assert (Config::g_PropagateAtEnd == false && "Non-cloning engine code only works with propagation at the beginning.");
-#endif
 
   test_standard();
 

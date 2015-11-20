@@ -220,8 +220,12 @@ public:
     // XXXX assuming vertex at origin.
     // XXXX the R condition is trying to get rid of bad seeds (as a quick hack)
     int bin = getEtaBin(track.momEta());
+    // XXXXX MT this screws up best-hit finding with prop-at-end!!!
+    // should add layer 4 radius range ... but this is getting hacky.
+    // additionally, get seeds with nans in pos, mom
+    // ... so i put the radius check beck in, same as for eventofcombcands
     float r = track.radius();
-    if (bin != -1 && r > 11.9 && r < 12.1)
+    if (bin != -1 && ( (r > 15.9 && r < 16.1) || (r > 23.0 && r < 24.0) ))
     {
       m_etabins_of_candidates[bin].InsertTrack(track);
     }
@@ -321,12 +325,7 @@ public:
     int bin = getEtaBin(seed.momEta());
     float r = seed.radius();
     //for tracks from cmssw... I guess this should become geometry-aware
-    if ( bin != -1 &&
-         ( (Config::g_PropagateAtEnd == false && r > 11.9 && r < 12.1) ||
-           (Config::g_PropagateAtEnd == true  && r > 15.9 && r < 16.1) ||
-           (Config::g_PropagateAtEnd == true  && r > 23.0 && r < 24.0)
-         )
-       )
+    if (bin != -1 && ( (r > 15.9 && r < 16.1) || (r > 23.0 && r < 24.0) ))
     {
       m_etabins_of_comb_candidates[bin].InsertSeed(seed);
     } 

@@ -106,7 +106,6 @@ namespace Config
 #endif
 
   // Clone engine configuration
-  // MT If you comment this out, also set g_PropagateAtEnd to false !!!
 #define TEST_CLONE_ENGINE 
 
   const     int maxHitsPerBunch   = std::max(100, nTracks * 2 / nEtaPart);
@@ -121,15 +120,11 @@ namespace Config
 
   constexpr int maxHitsConsidered = 25;
 
-  // Propagate-at-end does not work with find-best-hit !!!
-  constexpr bool g_PropagateAtEnd = true;
-  //constexpr bool g_PropagateAtEnd = false;
+  extern int    numThreadsFinder;
+  extern int    numThreadsSimulation;
 
-  extern int   numThreadsFinder;
-  extern int   numThreadsSimulation;
-
-  extern bool  clonerUseSingleThread;
-  extern int   finderReportBestOutOfN;
+  extern bool   clonerUseSingleThread;
+  extern int    finderReportBestOutOfN;
 
 
 #ifdef USE_MATRIPLEX
