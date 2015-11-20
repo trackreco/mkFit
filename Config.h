@@ -73,7 +73,7 @@ namespace Config
 
   // Config for propagation
   constexpr int Niter = 5;
-  constexpr float Bfield = 3.8112
+  constexpr float Bfield = 3.8112;
 
   // Config for Hit and BinInfoUtils
   constexpr int   nPhiPart   = 1260;

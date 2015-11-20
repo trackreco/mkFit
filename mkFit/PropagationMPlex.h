@@ -18,4 +18,20 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
 			          MPlexLS& outErr,       MPlexLV& outPar,
                             const int      N_proc, bool doIterative = true);
 
+//inline?
+inline void computeJacobianSimple(int n, MPlexLL& errorProp, 
+				  float s, float k, float p, float pxin, float pyin, float pzin, 
+				  float TP, float cosTP, float sinTP);
+
+void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, 
+			         MPlexLV& outPar, const MPlexQF &msRad, 
+			         MPlexLL& errorProp);
+
+void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, 
+                                    MPlexLV& outPar, const MPlexQF &msRad, 
+   			            MPlexLL& errorProp);
+
+void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, 
+			  MPlexLS &outErr, MPlexLV& outPar);
+
 #endif

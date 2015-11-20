@@ -144,7 +144,7 @@ void MultHelixPropTranspFull(const MPlexLL& A, const MPlexLL& B, MPlexLS& C)
 
 
 
-inline void computeJacobianSimple(int n, MPlexLL& errorProp, float s, float k, float p, float pxin, float pyin, float pzin, float TP, float cosTP, float sinTP) {
+void computeJacobianSimple(int n, MPlexLL& errorProp, float s, float k, float p, float pxin, float pyin, float pzin, float TP, float cosTP, float sinTP) {
 
   // std::cout << "total path s=" << s << std::endl;
   // TD = s*pt/p;
@@ -205,7 +205,7 @@ inline void computeJacobianSimple(int n, MPlexLL& errorProp, float s, float k, f
   
 }
 
-#define DEBUG
+//#define DEBUG
 
 void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar, const MPlexQF &msRad, MPlexLL& errorProp) {
 
