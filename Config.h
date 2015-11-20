@@ -16,8 +16,8 @@ namespace Config
   constexpr double Sqrt2   = 1.4142135623730950488016887242097;
 
   // config on main + mkFit
-  constexpr int nTracks = 1;
-  constexpr int nEvents = 1;
+  constexpr int nTracks = 20000;
+  constexpr int nEvents = 10;
 
   // config on main -- for geometry
   constexpr int   nLayers   = 10;
@@ -78,7 +78,7 @@ namespace Config
   // Config for Hit and BinInfoUtils
   constexpr int   nPhiPart   = 1260;
   constexpr float fPhiFactor = nPhiPart / TwoPI;
-  constexpr int   nEtaPart   = 1;//11;
+  constexpr int   nEtaPart   = 11;
   constexpr int   nEtaBin    = 2 * nEtaPart - 1;
 
   constexpr float        fEtaFull  = 2 * Config::fEtaDet;
@@ -144,7 +144,7 @@ namespace Config
     #ifdef __MIC__
       #define MPT_SIZE 16
     #else
-      #define MPT_SIZE 1
+      #define MPT_SIZE 8
     #endif
   #endif
 

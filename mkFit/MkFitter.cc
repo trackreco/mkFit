@@ -607,19 +607,21 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
     const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi,(float) Config::minDPhi), float(M_PI/1.));//fixme
     //const float nSigmaDphi = Config::nSigma*dphi;
 
-    //now correct for bending and for layer thickness unsing linear approximation
-    const float predpx = Par[iP].ConstAt(itrack, 3, 0);
-    const float predpy = Par[iP].ConstAt(itrack, 4, 0);
-    float deltaR = Config::cmsDeltaRad; //fixme! using constant vale, to be taken from layer properties
-    float radius = sqrt(px2py2);
-    float pt     = sqrt(predpx*predpx + predpy*predpy);
-    float cosTheta = ( predx*predpx + predy*predpy )/(pt*radius);
-    float hipo = deltaR/cosTheta;
-    float dist = sqrt(hipo*hipo - deltaR*deltaR);
-    float dPhiMargin = dist/radius;
-#ifdef DEBUG
-    std::cout << "dPhiMargin=" << dPhiMargin << std::endl;
-#endif
+    float dPhiMargin = 0.;
+    //fixme: find a way to automatically turn this on when needed
+//     //now correct for bending and for layer thickness unsing linear approximation
+//     const float predpx = Par[iP].ConstAt(itrack, 3, 0);
+//     const float predpy = Par[iP].ConstAt(itrack, 4, 0);
+//     float deltaR = Config::cmsDeltaRad; //fixme! using constant vale, to be taken from layer properties
+//     float radius = sqrt(px2py2);
+//     float pt     = sqrt(predpx*predpx + predpy*predpy);
+//     float cosTheta = ( predx*predpx + predy*predpy )/(pt*radius);
+//     float hipo = deltaR/cosTheta;
+//     float dist = sqrt(hipo*hipo - deltaR*deltaR);
+//     dPhiMargin = dist/radius;
+// #ifdef DEBUG
+//     std::cout << "dPhiMargin=" << dPhiMargin << std::endl;
+// #endif
 
     //if (nSigmaDphi>0.3) 
     //std::cout << "window MX: " << predx << " " << predy << " " << predz << " " << Err[iP].ConstAt(itrack, 0, 0) << " " << Err[iP].ConstAt(itrack, 1, 1) << " " << Err[iP].ConstAt(itrack, 0, 1) << " " << nSigmaDphi << std::endl;
