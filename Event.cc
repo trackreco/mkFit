@@ -212,9 +212,9 @@ void Event::Seed()
 {
 #ifdef ENDTOEND
   //  buildSeedsByRoadTriplets(layerHits_,segmentMap_,seedTracks_,*this);
-  buildSeedsByMC(simTracks_,seedTracks_,*this);
+  buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
 #else
-  buildSeedsByMC(simTracks_,seedTracks_,*this);
+  buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
 #endif
   std::sort(seedTracks_.begin(), seedTracks_.end(), tracksByPhi);
 }
@@ -231,17 +231,18 @@ void Event::Find()
 void Event::Fit()
 {
   fitTracks_.resize(candidateTracks_.size());
+  fitTracksExtra_.resize(candidateTracks_.size());
 #ifdef ENDTOEND
-  runFittingTest(*this, candidateTracks_);
+  runFittingTest(*this, candidateTracks_, candidateTracksExtra_);
 #else
-  runFittingTest(*this, simTracks_);
+  runFittingTest(*this, simTracks_, simTracksExtra_);
 #endif
 }
 
 void Event::Validate(const unsigned int ievt){
   validation_.fillSegmentTree(segmentMap_,ievt);
   validation_.fillBranchTree(ievt);
-  validation_.makeSimTkToRecoTksMaps(seedTracks_,candidateTracks_,fitTracks_);
+  validation_.makeSimTkToRecoTksMaps(*this);
   validation_.fillEffTree(simTracks_,ievt);
   validation_.makeSeedTkToRecoTkMaps(candidateTracks_,fitTracks_);
   validation_.fillFakeRateTree(seedTracks_,ievt);

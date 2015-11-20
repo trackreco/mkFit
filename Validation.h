@@ -3,6 +3,8 @@
 #include "Track.h"
 #include "BinInfoUtils.h"
 
+class Event;
+
 class Validation {
 public:
   virtual void resetValidationMaps() {}
@@ -21,7 +23,7 @@ public:
 
   virtual void fillBranchTree(unsigned int) {}
 
-  virtual void makeSimTkToRecoTksMaps(const TrackVec&, const TrackVec&, const TrackVec&) {}
+  virtual void makeSimTkToRecoTksMaps(const Event&) {}
   virtual void fillEffTree(const TrackVec&, unsigned int) {}
 
   virtual void makeSeedTkToRecoTkMaps(const TrackVec&, const TrackVec&) {}

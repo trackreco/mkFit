@@ -49,13 +49,13 @@ static void print(std::string label, const MeasurementState& s)
 }
 #endif
 
-void fitTrack(const Track & trk, unsigned int itrack, Event& ev)
+void fitTrack(const Track & trk, const TrackExtra& trkextra, unsigned int itrack, Event& ev)
 {
 #ifdef DEBUG
   bool debug(false);
 #endif
 
-  auto iseed = ev.candidateTracksExtra_[itrack].seedID();
+  auto iseed = trkextra.seedID();
 
 #define INWARD
 #if defined(INWARD)
@@ -155,28 +155,31 @@ void fitTrack(const Track & trk, unsigned int itrack, Event& ev)
   Track FitTrack(trk);
   FitTrack.setState(updatedState); // eventually will want to include chi2 of fitTrack --> chi2 for now just copied from build tracks
   ev.fitTracks_[itrack] = FitTrack;
+  ev.fitTracksExtra_[itrack] = TrackExtra();
 }
 
 typedef TrackVec::const_iterator TrkIter;
 
 #ifdef TBB
-void runFittingTest(Event& ev, const TrackVec& candidates)
+void runFittingTest(Event& ev, const TrackVec& candidates, const TrackExtraVec& candextra)
 {
   parallel_for( tbb::blocked_range<size_t>(0, candidates.size()), 
       [&](const tbb::blocked_range<size_t>& trackiter)
   {
     for (auto itrack = trackiter.begin(); itrack != trackiter.end(); ++itrack) {
       const auto& trk = candidates[itrack];
-      fitTrack(trk, itrack, ev);
+      assert(trk.label() == itrack);
+      fitTrack(trk, candextra[itrack], itrack, ev);
     }
   });
 }
 #else
-void runFittingTest(Event& ev, const TrackVec& candidates)
+void runFittingTest(Event& ev, const TrackVec& candidates, , const TrackExtraVec& candextra)
 {
   for (auto itrack = 0U; itrack < candidates.size(); ++itrack) {
     const auto& trk = candidates[itrack];
-    fitTrack(trk, itrack, ev);
+    assert(trk.label() == itrack);
+    fitTrack(trk, candextra[itrack], itrack, ev);
   }
 }
 #endif

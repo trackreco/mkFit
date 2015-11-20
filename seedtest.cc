@@ -7,7 +7,7 @@
 //#define DEBUG
 #include "Debug.h"
 
-void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, Event& ev){
+void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, TrackExtraVec& seed_track_extra, Event& ev){
   bool debug(true);
   for (unsigned int itrack=0;itrack<evt_sim_tracks.size();++itrack) {
     const Track& trk = evt_sim_tracks[itrack];
@@ -34,6 +34,7 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, E
     Track seed(updatedState,0.,itrack,Config::nlayers_per_seed,seedhits);//fixme chi2
     dprint("created seed track # " << itrack << " par=" << seed.parameters());
     evt_seed_tracks.push_back(seed);
+    seed_track_extra.emplace_back(itrack);
   }
 }
 

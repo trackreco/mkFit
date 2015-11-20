@@ -53,10 +53,11 @@ void processCandidates(Event& ev, candvec& candidates, unsigned int ilay, unsign
       dprint("no more candidates, saving best");
       // save the best candidate from the previous iteration and then swap in
       // the empty new candidate list; seed will be skipped on future iterations
-      auto&& best = std::min_element(candidates.begin(),candidates.end(),sortByHitsChi2);
+      auto best = std::min_element(candidates.begin(),candidates.end(),sortByHitsChi2);
 #ifdef TBB
       std::lock_guard<std::mutex> evtguard(evtlock); // should be rare
 #endif
+      best->setLabel(evt_track_candidates.size());
       evt_track_candidates.push_back(*best);
       ev.candidateTracksExtra_.emplace_back(iseed);
     }
@@ -104,11 +105,12 @@ void buildTracksBySeeds(Event& ev)
   });
 #endif
   for (auto iseed = 0U; iseed < track_candidates.size(); ++iseed) {
-    const auto& cand = track_candidates[iseed];
+    auto& cand = track_candidates[iseed];
     if (cand.size()>0) {
       // only save one track candidate per seed, one with lowest chi2
       //std::partial_sort(cand.begin(),cand.begin()+1,cand.end(),sortByHitsChi2);
-      auto&& best = std::min_element(cand.begin(),cand.end(),sortByHitsChi2);
+      auto best = std::min_element(cand.begin(),cand.end(),sortByHitsChi2);
+      best->setLabel(evt_track_candidates.size());
       evt_track_candidates.push_back(*best);
       ev.candidateTracksExtra_.emplace_back(iseed);
     }
@@ -154,11 +156,12 @@ void buildTracksByLayers(Event& ev)
 
   //std::lock_guard<std::mutex> evtguard(evtlock);
   for (auto iseed = 0U; iseed < track_candidates.size(); ++iseed) {
-    const auto& cand = track_candidates[iseed];
+    auto& cand = track_candidates[iseed];
     if (cand.size()>0) {
       // only save one track candidate per seed, one with lowest chi2
       //std::partial_sort(cand.begin(),cand.begin()+1,cand.end(),sortByHitsChi2);
-      auto&& best = std::min_element(cand.begin(),cand.end(),sortByHitsChi2);
+      auto best = std::min_element(cand.begin(),cand.end(),sortByHitsChi2);
+      best->setLabel(evt_track_candidates.size());
       evt_track_candidates.push_back(*best);
       ev.candidateTracksExtra_.emplace_back(iseed);
     }

@@ -87,9 +87,14 @@ public:
     if (hitIdx >= 0) ++nGoodHitIdx_; chi2_+=chi2;
   }
 
-  int  getHitIdx(int posHitIdx) const
+  int getHitIdx(int posHitIdx) const
   {
     return hitIdxArr_[posHitIdx];
+  }
+
+  const int* getHitIdxArr() const
+  {
+    return hitIdxArr_;
   }
 
   void setHitIdx(int posHitIdx, int newIdx) {
@@ -110,8 +115,6 @@ public:
 
   void setState(const TrackState& newState) {state_=newState;}
 
-  SimTkIDInfo MCTrackIDInfo(const MCHitInfoVec& globalHitInfo) const;
-
   Track clone() const { return Track(state_,chi2_,label_,nTotalHits(),hitIdxArr_); }
 
   /* Track clone_for_io() { return Track(state_,chi2_,label_); } */
@@ -129,8 +132,9 @@ private:
 
 class TrackExtra {
 public:
+  TrackExtra() : seedID_(UINT_MAX) {}
   TrackExtra(unsigned int seedID) : seedID_(seedID) {}
-  void setMCTrackIDInfo();
+  void setMCTrackIDInfo(const Track& trk, const MCHitInfoVec& globalHitInfo);
   unsigned int mcTrackID() const {return mcTrackID_;}
   unsigned int nHitsMatched() const {return nHitsMatched_;}
   unsigned int seedID() const {return seedID_;}
@@ -148,7 +152,9 @@ private:
 
 typedef std::vector<TrackExtra> TrackExtraVec;
 typedef std::vector<Track> TrackVec;
-typedef std::vector<Track*> TrackRefVec;
+// pointer to an object in a vector is a bad idea, if the vector has to
+// resize that invalidates the pointer...
+//typedef std::vector<const Track*> TrackRefVec;
 typedef std::vector<TrackState> TSVec;
 typedef std::vector<std::pair<unsigned int, TrackState> > TSLayerPairVec;
 
