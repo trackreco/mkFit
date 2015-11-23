@@ -10,13 +10,12 @@ void propagateLineToRMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
 
 void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
                             const MPlexQI &inChg,  const MPlexHV& msPar,
-			          MPlexLS &outErr,       MPlexLV& outPar,
-			    bool doIterative = true);
+			          MPlexLS &outErr,       MPlexLV& outPar);
 
 void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
                             const MPlexQI& inChg,  const float    r,
 			          MPlexLS& outErr,       MPlexLV& outPar,
-                            const int      N_proc, bool doIterative = true);
+                            const int      N_proc);
 
 //inline?
 inline void computeJacobianSimple(int n, MPlexLL& errorProp, 
@@ -25,7 +24,7 @@ inline void computeJacobianSimple(int n, MPlexLL& errorProp,
 
 void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, 
 			         MPlexLV& outPar, const MPlexQF &msRad, 
-			         MPlexLL& errorProp);
+			         MPlexLL& errorProp, bool useSimpleJac);
 
 void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, 
                                     MPlexLV& outPar, const MPlexQF &msRad, 

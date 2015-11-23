@@ -326,7 +326,7 @@ public:
   {
     // XXXX assuming vertex at origin.
     // XXXX the R condition is trying to get rid of bad seeds (as a quick hack)
-    int bin = getEtaBin(track.momEta());
+    int bin = getEtaBin(track.posEta());
     m_etabins_of_comb_candidates[bin].InsertTrack(track,seed_index);
   }
 
