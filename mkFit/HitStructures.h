@@ -217,18 +217,8 @@ public:
 
   void InsertCandidate(const Track& track)
   {
-    // XXXX assuming vertex at origin.
-    // XXXX the R condition is trying to get rid of bad seeds (as a quick hack)
-    int bin = getEtaBin(track.momEta());
-    // XXXXX MT this screws up best-hit finding with prop-at-end!!!
-    // should add layer 4 radius range ... but this is getting hacky.
-    // additionally, get seeds with nans in pos, mom
-    // ... so i put the radius check beck in, same as for eventofcombcands
-    float r = track.radius();
-    if (bin != -1 && ( (r > 15.9 && r < 16.1) || (r > 23.0 && r < 24.0) ))
-    {
-      m_etabins_of_candidates[bin].InsertTrack(track);
-    }
+    int bin = getEtaBin(track.posEta());
+    m_etabins_of_candidates[bin].InsertTrack(track);
   }
 
   void SortByPhi()
@@ -320,12 +310,8 @@ public:
 
   void InsertSeed(const Track& seed)
   {
-    // XXXX assuming vertex at origin.
-    // XXXX the R condition is trying to get rid of bad seeds (as a quick hack)
-    int bin = getEtaBin(seed.momEta());
-    float r = seed.radius();
-    //for tracks from cmssw... I guess this should become geometry-aware
-    if (bin != -1 && ( (r > 15.9 && r < 16.1) || (r > 23.0 && r < 24.0) ))
+    int bin = getEtaBin(seed.posEta());
+    if ( bin != -1 )
     {
       m_etabins_of_comb_candidates[bin].InsertSeed(seed);
     } 
@@ -338,7 +324,7 @@ public:
   {
     // XXXX assuming vertex at origin.
     // XXXX the R condition is trying to get rid of bad seeds (as a quick hack)
-    int bin = getEtaBin(track.momEta());
+    int bin = getEtaBin(track.posEta());
     m_etabins_of_comb_candidates[bin].InsertTrack(track,seed_index);
   }
 

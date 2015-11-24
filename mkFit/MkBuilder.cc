@@ -84,6 +84,7 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
 
   for (int itrack = 0; itrack < simtracks.size(); ++itrack)
   {
+
     if (simtracks[itrack].label() != itrack)
     {
       printf("Bad label for simtrack %d -- %d\n", itrack, simtracks[itrack].label());
@@ -196,7 +197,7 @@ void MkBuilder::quality_process(Track &tkcand)
   }
 
 #ifdef DEBUG
-  std::cout << "MXBH - found track with nFoundHits=" << tkcand.nFoundHits() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
+  std::cout << "MX - found track with nFoundHits=" << tkcand.nFoundHits() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
 #endif
 
 #ifdef PRINTOUTS_FOR_PLOTS
