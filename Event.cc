@@ -226,7 +226,7 @@ void Event::Find()
   //  buildTracksByLayers(*this);
 
   // From CHEP-2015
-  // buildTestSerial(*this, Config::nlayers_per_seed, Config::maxCand, Config::chi2Cut, Config::nSigma, Config::minDPhi);
+  // buildTestSerial(*this, Config::nlayers_per_seed, Config::maxCandsPerSeed, Config::chi2Cut, Config::nSigma, Config::minDPhi);
 }
 
 void Event::Fit()

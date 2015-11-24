@@ -19,6 +19,9 @@ public:
 
   EventTmp();
   ~EventTmp();
+
+  void AssureCandClonersExist(int n_thr);
+  void DeleteCandCloners();
 };
 
 #endif

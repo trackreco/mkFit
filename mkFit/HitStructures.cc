@@ -53,7 +53,7 @@ void BunchOfHits::SortByPhiBuildPhiBins()
 
   int m_fill_index_old = m_fill_index;
   // Copy first g_MaxHitsConsidered to the end to simplify +/- pi break.
-  for (int i = 0; i < Config::g_MaxHitsConsidered && i < m_fill_index_old; ++i)
+  for (int i = 0; i < Config::maxHitsConsidered && i < m_fill_index_old; ++i)
   {
     InsertHit(m_hits[i]);
   }

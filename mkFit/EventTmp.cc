@@ -2,18 +2,26 @@
 
 EventTmp::EventTmp() :
   m_event_of_comb_cands()
+{}
+
+EventTmp::~EventTmp()
 {
-  // NOTE: MkFitter *MUST* be on heap, not on stack!
-  // Standard operator new screws up alignment of ALL MPlex memebrs of MkFitter,
-  // even if one adds attr(aligned(64)) thingy to every possible place.
+  DeleteCandCloners();
+}
 
-  m_cand_cloners.resize(Config::g_num_threads);
+//------------------------------------------------------------------------------
 
-  for (int i = 0; i < Config::g_num_threads; ++i)
+void EventTmp::AssureCandClonersExist(int n_thr)
+{
+  if (m_cand_cloners.size() == n_thr) return;
+
+  DeleteCandCloners();
+
+  m_cand_cloners.resize(n_thr);
+
+  for (int i = 0; i < n_thr; ++i)
   {
-#ifdef TEST_CLONE_ENGINE
-
-    if (Config::g_cloner_single_thread)
+    if (Config::clonerUseSingleThread)
     {
 #if defined(__MIC__)
       m_cand_cloners[i] = new CandCloner(1 + i*4, -1, false);
@@ -33,16 +41,15 @@ EventTmp::EventTmp() :
       // CandCloner cloner(1, 7);  // Another socket
 #endif
     }
-#endif
   }
 }
 
-EventTmp::~EventTmp()
+void EventTmp::DeleteCandCloners()
 {
-  for (int i = 0; i < Config::g_num_threads; ++i)
+  int n_thr = m_cand_cloners.size();
+
+  for (int i = 0; i < n_thr; ++i)
   {
-#ifdef TEST_CLONE_ENGINE
     delete m_cand_cloners[i];
-#endif
   }
 }

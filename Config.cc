@@ -3,7 +3,14 @@
 namespace Config
 {
   // Multi threading and Clone engine configuration
-  int   g_num_threads          = 1;
-  bool  g_cloner_single_thread = false;
-  int   g_best_out_of          = 1;
+  int   numThreadsFinder = 1;
+
+#ifdef __MIC__
+  int   numThreadsSimulation = 60;
+#else
+  int   numThreadsSimulation = 12;
+#endif
+
+  bool  clonerUseSingleThread  = false;
+  int   finderReportBestOutOfN = 1;
 }

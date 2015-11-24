@@ -61,12 +61,16 @@ void MkFitter::InputTracksAndHits(std::vector<Track>&  tracks,
   }
 }
 
-void MkFitter::InputTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end)
+void MkFitter::InputTracksAndHitIdx(std::vector<Track>& tracks,
+                                    int beg, int end,
+                                    bool inputProp)
 {
   // Assign track parameters to initial state and copy hit values in.
 
   // This might not be true for the last chunk!
   // assert(end - beg == NN);
+
+  const int iI = inputProp ? iP : iC;
 
   int itrack = 0;
   for (int i = beg; i < end; ++i, ++itrack)
@@ -76,8 +80,8 @@ void MkFitter::InputTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end
 
     Label(itrack, 0, 0) = trk.label();
 
-    Err[iC].CopyIn(itrack, trk.errors().Array());
-    Par[iC].CopyIn(itrack, trk.parameters().Array());
+    Err[iI].CopyIn(itrack, trk.errors().Array());
+    Par[iI].CopyIn(itrack, trk.parameters().Array());
 
     Chg (itrack, 0, 0) = trk.charge();
     Chi2(itrack, 0, 0) = trk.chi2();
@@ -91,12 +95,16 @@ void MkFitter::InputTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end
   }
 }
 
-void MkFitter::InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks, std::vector<std::pair<int,int> >& idxs, int beg, int end, bool inputProp)
+void MkFitter::InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks,
+                                    std::vector<std::pair<int,int> >& idxs,
+                                    int beg, int end, bool inputProp)
 {
   // Assign track parameters to initial state and copy hit values in.
 
   // This might not be true for the last chunk!
   // assert(end - beg == NN);
+
+  const int iI = inputProp ? iP : iC;
 
   int itrack = 0;
   for (int i = beg; i < end; ++i, ++itrack)
@@ -107,17 +115,9 @@ void MkFitter::InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks, st
     Label(itrack, 0, 0) = trk.label();
     SeedIdx(itrack, 0, 0) = idxs[i].first;
     CandIdx(itrack, 0, 0) = idxs[i].second;
-    
-    if (inputProp) 
-    {
-      Err[iP].CopyIn(itrack, trk.errors().Array());
-      Par[iP].CopyIn(itrack, trk.parameters().Array());
-    }
-    else
-    {
-      Err[iC].CopyIn(itrack, trk.errors().Array());
-      Par[iC].CopyIn(itrack, trk.parameters().Array());
-    }
+
+    Err[iI].CopyIn(itrack, trk.errors().Array());
+    Par[iI].CopyIn(itrack, trk.parameters().Array());
 
     Chg(itrack, 0, 0) = trk.charge();
     Chi2(itrack, 0, 0) = trk.chi2();
@@ -230,13 +230,14 @@ void MkFitter::OutputTracks(std::vector<Track>& tracks, int beg, int end, int iC
   }
 }
 
-void MkFitter::OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end, bool outputProp)
+void MkFitter::OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end,
+                                           bool outputProp)
 {
   // Copies last track parameters (updated) into Track objects and up to Nhits.
   // The tracks vector should be resized to allow direct copying.
 
   const int iO = outputProp ? iP : iC;
-  
+
   int itrack = 0;
   for (int i = beg; i < end; ++i, ++itrack)
   {
@@ -578,6 +579,8 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
   // Also, must store two ints per Matriplex elements ... first index and size.
   // These are XPos and XSize
 
+  const int iI = iP;
+
   // vecorized for
 #pragma simd
   for (int itrack = 0; itrack < N_proc; ++itrack)
@@ -589,9 +592,9 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
     // if (fabs(eta) > etaDet) eta = (eta>0 ? etaDet*0.99 : -etaDet*0.99);
     // unsigned int etabin = getEtaPartition(eta,etaDet);
 
-    const float predx = Par[iP].ConstAt(itrack, 0, 0);
-    const float predy = Par[iP].ConstAt(itrack, 1, 0);
-    const float predz = Par[iP].ConstAt(itrack, 2, 0);
+    const float predx = Par[iI].ConstAt(itrack, 0, 0);
+    const float predy = Par[iI].ConstAt(itrack, 1, 0);
+    const float predz = Par[iI].ConstAt(itrack, 2, 0);
 
     float phi = getPhi(predx,predy);
 
@@ -599,9 +602,9 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
 
     const float dphidx = -predy/px2py2;
     const float dphidy =  predx/px2py2;
-    const float dphi2  =     dphidx*dphidx*(Err[iP].ConstAt(itrack, 0, 0) /*propState.errors.At(0,0)*/) +
-                             dphidy*dphidy*(Err[iP].ConstAt(itrack, 1, 1) /*propState.errors.At(1,1)*/) +
-                         2 * dphidx*dphidy*(Err[iP].ConstAt(itrack, 0, 1) /*propState.errors.At(0,1)*/);
+    const float dphi2  =     dphidx*dphidx*(Err[iI].ConstAt(itrack, 0, 0) /*propState.errors.At(0,0)*/) +
+                             dphidy*dphidy*(Err[iI].ConstAt(itrack, 1, 1) /*propState.errors.At(1,1)*/) +
+                         2 * dphidx*dphidy*(Err[iI].ConstAt(itrack, 0, 1) /*propState.errors.At(0,1)*/);
 
     const float dphi       = sqrtf(std::fabs(dphi2));//how come I get negative squared errors sometimes? MT -- how small?
     const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi,(float) Config::minDPhi), float(M_PI/1.));//fixme
@@ -624,7 +627,7 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
 // #endif
 
     //if (nSigmaDphi>0.3) 
-    //std::cout << "window MX: " << predx << " " << predy << " " << predz << " " << Err[iP].ConstAt(itrack, 0, 0) << " " << Err[iP].ConstAt(itrack, 1, 1) << " " << Err[iP].ConstAt(itrack, 0, 1) << " " << nSigmaDphi << std::endl;
+    //std::cout << "window MX: " << predx << " " << predy << " " << predz << " " << Err[iI].ConstAt(itrack, 0, 0) << " " << Err[iI].ConstAt(itrack, 1, 1) << " " << Err[iI].ConstAt(itrack, 0, 1) << " " << nSigmaDphi << std::endl;
 
     const float dphiMinus = normalizedPhi(phi-nSigmaDphi-dPhiMargin);
     const float dphiPlus  = normalizedPhi(phi+nSigmaDphi+dPhiMargin);
@@ -654,7 +657,7 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
     PhiBinInfo_t binInfoMinus = bunch_of_hits.m_phi_bin_infos[phiBinMinus];
     PhiBinInfo_t binInfoPlus  = bunch_of_hits.m_phi_bin_infos[phiBinPlus];
 
-    if (binInfoPlus.first + binInfoPlus.second - binInfoMinus.first > Config::g_MaxHitsConsidered)
+    if (binInfoPlus.first + binInfoPlus.second - binInfoMinus.first > Config::maxHitsConsidered)
     {
       // XXXX
       // Do something smart to reduce the range.
@@ -669,7 +672,7 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
     // instead of shifting of the base address as is done now. Sigh.
     
     // fixme: temporary to avoid wrapping
-    // This is now fixed with Config::g_MaxHitsConsidered extra hits copied to the end +
+    // This is now fixed with Config::maxHitsConsidered extra hits copied to the end +
     // changing XHitBegin/End to XHitPos/Size.
     // Putting all of it into DEBUG
 #ifdef DEBUG
@@ -697,18 +700,18 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
     if (XHitSize.At(itrack, 0, 0) < 0)
     {
       // XXX It would be nice to have BunchOfHits.m_n_real_hits.
-      XHitSize.At(itrack, 0, 0) += bunch_of_hits.m_fill_index - Config::g_MaxHitsConsidered;
+      XHitSize.At(itrack, 0, 0) += bunch_of_hits.m_fill_index - Config::maxHitsConsidered;
     }
 
-    // XXXX Hack to limit N_hits to g_MaxHitsConsidered.
+    // XXXX Hack to limit N_hits to maxHitsConsidered.
     // Should at least take hits around central bin -- to be explored, esp. with jet presence.
     // Strange ... this is worse than just taking first 25 hits !!!
     // Comment out for now. Must talk to Giuseppe about this.
-    // if (XHitSize.At(itrack, 0, 0) > Config::g_MaxHitsConsidered)
+    // if (XHitSize.At(itrack, 0, 0) > Config::maxHitsConsidered)
     // {
     //   xout_dump = true;
-    //   XHitPos .At(itrack, 0, 0) += (XHitSize.At(itrack, 0, 0) - Config::g_MaxHitsConsidered) / 2;
-    //   XHitSize.At(itrack, 0, 0) = Config::g_MaxHitsConsidered;
+    //   XHitPos .At(itrack, 0, 0) += (XHitSize.At(itrack, 0, 0) - Config::maxHitsConsidered) / 2;
+    //   XHitSize.At(itrack, 0, 0) = Config::maxHitsConsidered;
     // }
 
 #ifdef DEBUG
@@ -767,7 +770,7 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 
   // XXXX MT Uber hack to avoid tracks with like 300 hits to process.
   //fixme this makes results dependent on vector unit size
-  maxSize = std::min(maxSize, Config::g_MaxHitsConsidered);
+  maxSize = std::min(maxSize, Config::maxHitsConsidered);
 
 #if defined(MIC_INTRINSICS)
   //__m512i vi = _mm512_setr_epi32(idx[ 0], idx[ 1], idx[ 2], idx[ 3], idx[ 4], idx[ 5], idx[ 6], idx[ 7],
@@ -796,8 +799,8 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 #pragma simd
     for (int itrack = 0; itrack < NN; ++itrack)
     {
-       Hit &hit = bunch_of_hits.m_hits[XHitBegin.At(itrack, 0, 0) +
-                                       std::min(hit_cnt, XHitSize.At(itrack, 0, 0) - 1)]; //redo the last hit in case of overflow
+      Hit &hit = bunch_of_hits.m_hits[XHitBegin.At(itrack, 0, 0) +
+                                      std::min(hit_cnt, XHitSize.At(itrack, 0, 0) - 1)]; //redo the last hit in case of overflow
       msErr[Nhits].CopyIn(itrack, hit.errArray());
       msPar[Nhits].CopyIn(itrack, hit.posArray());
     }
@@ -861,7 +864,7 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
   {
     _mm_prefetch((const char*) & bunch_of_hits.m_hits[XHitPos.At(itrack, 0, 0) + bestHit[itrack]], _MM_HINT_T0);
   }
-    
+
 #pragma simd
   for (int itrack = 0; itrack < NN; ++itrack)
   {
@@ -870,7 +873,7 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
     {
       Hit   &hit  = bunch_of_hits.m_hits[ XHitPos.At(itrack, 0, 0) + bestHit[itrack] ];
       float &chi2 = minChi2[itrack];
-	  
+
 #ifdef DEBUG
       std::cout << "ADD BEST HIT FOR TRACK #" << itrack << std::endl;
       std::cout << "prop x=" << Par[iP].ConstAt(itrack, 0, 0) << " y=" << Par[iP].ConstAt(itrack, 1, 0) << std::endl;      
@@ -887,17 +890,17 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 #ifdef DEBUG
       std::cout << "ADD FAKE HIT FOR TRACK #" << itrack << std::endl;
 #endif
-	  
+
       msErr[Nhits].SetDiagonal3x3(itrack, 666);
       msPar[Nhits](itrack,0,0) = Par[iP](itrack,0,0);
       msPar[Nhits](itrack,1,0) = Par[iP](itrack,1,0);
       msPar[Nhits](itrack,2,0) = Par[iP](itrack,2,0);
       HitsIdx[Nhits](itrack, 0, 0) = -1;
-	  
+
       // Don't update chi2
     }
   }
-  
+
   //now update the track parameters with this hit (note that some calculations are already done when computing chi2... not sure it's worth caching them?)
 #ifdef DEBUG
   std::cout << "update parameters" << std::endl;
@@ -940,7 +943,7 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
   }
 
   // XXXX MT Uber hack to avoid tracks with like 300 hits to process.
-  maxSize = std::min(maxSize, Config::g_MaxHitsConsidered);
+  maxSize = std::min(maxSize, Config::maxHitsConsidered);
 
 #if defined(MIC_INTRINSICS)
   //__m512i vi = _mm512_setr_epi32(idx[ 0], idx[ 1], idx[ 2], idx[ 3], idx[ 4], idx[ 5], idx[ 6], idx[ 7],
@@ -1130,7 +1133,7 @@ void MkFitter::FindCandidatesMinimizeCopy(BunchOfHits &bunch_of_hits, CandCloner
 
   // XXXX MT Uber hack to avoid tracks with like 300 hits to process.
   // This will actually be applied in SelectHitRanges now ...
-  maxSize = std::min(maxSize, Config::g_MaxHitsConsidered);
+  maxSize = std::min(maxSize, Config::maxHitsConsidered);
 
 #if defined(MIC_INTRINSICS)
   //__m512i vi = _mm512_setr_epi32(idx[ 0], idx[ 1], idx[ 2], idx[ 3], idx[ 4], idx[ 5], idx[ 6], idx[ 7],

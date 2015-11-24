@@ -9,7 +9,7 @@ double runBuildingTestPlexBestHit(Event& ev);
 
 double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp);
 
-// double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& evtmp);
+double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& evtmp);
 
 /*
   R W

@@ -40,16 +40,21 @@ void processCandidates(Event& ev, candvec& candidates, unsigned int ilay, const 
   candvec tmp_candidates;
   tmp_candidates.reserve(3*candidates.size()/2);
 
-  if (candidates.size() > 0) {
+  if (candidates.size() > 0)
+  {
     //loop over running candidates
-    for (auto&& cand : candidates) {
+    for (auto&& cand : candidates)
+    {
       extendCandidate(ev, cand, tmp_candidates, ilay, debug);
     }
-    if (tmp_candidates.size()>Config::maxCand) {
-      dprint("huge size=" << tmp_candidates.size() << " keeping best "<< Config::maxCand << " only");
-      std::partial_sort(tmp_candidates.begin(),tmp_candidates.begin()+(Config::maxCand-1),tmp_candidates.end(),sortByHitsChi2);
-      tmp_candidates.resize(Config::maxCand); // thread local, so ok not thread safe
-    } else if (tmp_candidates.size()==0) {
+    if (tmp_candidates.size()>Config::maxCandsPerSeed)
+    {
+      dprint("huge size=" << tmp_candidates.size() << " keeping best "<< Config::maxCandsPerSeed << " only");
+      std::partial_sort(tmp_candidates.begin(),tmp_candidates.begin()+(Config::maxCandsPerSeed-1),tmp_candidates.end(),sortByHitsChi2);
+      tmp_candidates.resize(Config::maxCandsPerSeed); // thread local, so ok not thread safe
+    }
+    else if (tmp_candidates.size()==0)
+    {
       dprint("no more candidates, saving best");
       // save the best candidate from the previous iteration and then swap in
       // the empty new candidate list; seed will be skipped on future iterations
