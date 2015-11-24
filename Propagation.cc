@@ -59,7 +59,7 @@ struct HelixState {
     pt3 = pt*pt2;
 
     //p=0.3Br => r=p/(0.3*B)
-    k = charge*100./(-0.299792458*3.8);
+    k = charge*100./(-0.299792458*Config::Bfield);
     curvature = pt*k; //in cm
     ctgTheta=pz/pt;
 
@@ -436,7 +436,7 @@ TrackState propagateHelixToR_test(TrackState& inputState, float r) {
   float pt = sqrt(pt2);
   float pt3 = pt*pt2;
   //p=0.3Br => r=p/(0.3*B)
-  float k=charge*100./(-0.299792458*3.8);
+  float k=charge*100./(-0.299792458*Config::Bfield);
   float curvature = pt*k;//in cm
   if (dump) std::cout << "curvature=" << curvature << std::endl;
   float ctgTheta=pzin/pt;
@@ -622,7 +622,7 @@ void propagateHelixToR_fewerTemps(TrackState& inputState, float r, TrackState& r
    float ptinv = 1./pt;
    float pt2inv = ptinv*ptinv;
    //p=0.3Br => r=p/(0.3*B)
-   float k=inputState.charge*100./(-0.299792458*3.8);
+   float k=inputState.charge*100./(-0.299792458*Config::Bfield);
    float invcurvature = 1./(pt*k);//in 1./cm
    if (dump) std::cout << "curvature=" << 1./invcurvature << std::endl;
    float ctgTheta=pzin*ptinv;

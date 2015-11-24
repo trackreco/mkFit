@@ -51,8 +51,9 @@ void BunchOfHits::SortByPhiBuildPhiBins()
     //std::cout << "bin=" << b << " set to " << m_phi_bin_infos[b].first << "," << m_phi_bin_infos[b].second << std::endl;
   }
 
+  int m_fill_index_old = m_fill_index;
   // Copy first g_MaxHitsConsidered to the end to simplify +/- pi break.
-  for (int i = 0; i < Config::g_MaxHitsConsidered; ++i)
+  for (int i = 0; i < Config::g_MaxHitsConsidered && i < m_fill_index_old; ++i)
   {
     InsertHit(m_hits[i]);
   }
