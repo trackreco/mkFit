@@ -83,9 +83,9 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 
    // MkFitter *mkfp = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Nhits);
 
-   MkFitter *mkfp_arr[NUM_THREADS];
+   std::vector<MkFitter*> mkfp_arr(Config::numThreadsFinder);
 
-   for (int i = 0; i < NUM_THREADS; ++i)
+   for (int i = 0; i < Config::numThreadsFinder; ++i)
    {
      mkfp_arr[i] = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Nhits);
    }
@@ -94,7 +94,7 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 
    double time = dtime();
 
-#pragma omp parallel for num_threads(NUM_THREADS)
+#pragma omp parallel for
    for (int itrack = 0; itrack < theEnd; itrack += NN)
    {
       int end = std::min(itrack + NN, theEnd);
@@ -112,7 +112,7 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 
    time = dtime() - time;
 
-   for (int i = 0; i < NUM_THREADS; ++i)
+   for (int i = 0; i < Config::numThreadsFinder; ++i)
    {
      _mm_free(mkfp_arr[i]);
    }

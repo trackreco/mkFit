@@ -24,6 +24,7 @@ public:
   void Find();
   void Fit();
   void Validate(const unsigned int);
+  void PrintStats(const TrackVec&, TrackExtraVec&);
   
   unsigned int evtID() const {return evtID_;}
   void resetLayerHitMap(bool resetSimHits);

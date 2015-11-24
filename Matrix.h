@@ -68,13 +68,9 @@ inline void sincos4(float x, float& sin, float& cos)
 #ifdef USE_MATRIPLEX
 
   #ifdef __INTEL_COMPILER
-
     #define ASSUME_ALIGNED(a, b) __assume_aligned(a, b)
-
   #else
-
-    template<typename T> inline void ASSUME_ALIGNED(T* a, int b) { a = (T*) __builtin_assume_aligned(a, b); }
-
+    #define ASSUME_ALIGNED(a, b) __builtin_assume_aligned(a, b)
   #endif
 
   #include "Matriplex/MatriplexSym.h"

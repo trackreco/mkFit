@@ -69,12 +69,12 @@ public:
 
   void fillBranchTree(unsigned int evtID) override;
 
-  void makeSimTkToRecoTksMaps(const TrackVec& evt_seed_tracks, const TrackVec& evt_build_tracks, const TrackVec& evt_fit_tracks) override;
-  void mapSimTkToRecoTks(const TrackVec& evt_tracks, TkToTkRefVecMap& simTkMap);
+  void makeSimTkToRecoTksMaps(const Event& ev) override;
+  void mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extra, const MCHitInfoVec&, TkToTkRefVecMap& simTkMap);
   void fillEffTree(const TrackVec& evt_sim_tracks, unsigned int ievt) override;
 
   void makeSeedTkToRecoTkMaps(const TrackVec& evt_build_tracks, const TrackVec& evt_fit_tracks) override;
-  void mapSeedTkToRecoTk(const TrackVec& evt_tracks, TkToTkRefMap& seedTkMap);
+  void mapSeedTkToRecoTk(const TrackVec& evt_tracks, const Event& ev, TkToTkRefMap& seedTkMap);
   void fillFakeRateTree(const TrackVec& evt_seed_tracks, unsigned int ievt) override;
 
   void fillConfigTree(const std::vector<double>& ticks) override;

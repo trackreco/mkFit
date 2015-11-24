@@ -32,18 +32,18 @@ public:
   {
     m_fitter = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(0);
 
-    t_seed_newcand_idx.reserve(s_max_seed_range * Config::maxCand);
+    t_seed_newcand_idx.reserve(s_max_seed_range * Config::maxCandsPerSeed);
 
     t_cands_for_next_lay.resize(s_max_seed_range);
     for (int iseed = 0; iseed < s_max_seed_range; ++iseed)
     {
-      t_cands_for_next_lay[iseed].reserve(Config::maxCand);
+      t_cands_for_next_lay[iseed].reserve(Config::maxCandsPerSeed);
     }
 
     SetMainThreadCpuId(cpuid);
     if (pin_mt) PinMainThread();
 
-    if ( ! Config::g_cloner_single_thread)
+    if ( ! Config::clonerUseSingleThread)
       SpawnSideThread(cpuid_st);
   }
 
@@ -51,7 +51,7 @@ public:
   {
     // printf("CandCloner::~CandCloner will try to join the side thread now ...\n");
 
-    if ( ! Config::g_cloner_single_thread)
+    if ( ! Config::clonerUseSingleThread)
       JoinSideThread();
 
     _mm_free(m_fitter);
@@ -67,7 +67,7 @@ public:
     // XXX Should resize vectors in m_hits_to_add to whatever makes sense ???
     // for (int i = 0; i < n_seeds; ++i)
     // {
-    //   m_hits_to_add[i].reserve(20 * Config::maxCand);
+    //   m_hits_to_add[i].reserve(20 * Config::maxCandsPerSeed);
     // }
 
 #ifdef CC_TIME_ETA
@@ -126,7 +126,7 @@ public:
       signal_work_to_st(m_idx_max + 1);
     }
 
-    if ( ! Config::g_cloner_single_thread)
+    if ( ! Config::clonerUseSingleThread)
       WaitForSideThreadToFinish();
 
     for (int i = 0; i < m_n_seeds; ++i)
@@ -152,7 +152,7 @@ public:
   {
     // printf("CandCloner::signal_work_to_st assigning work up to seed %d\n", idx);
 
-    if ( ! Config::g_cloner_single_thread)
+    if ( ! Config::clonerUseSingleThread)
       QueueWork(std::make_pair(m_idx_max_prev, idx));
     else
       DoWorkInSideThread(std::make_pair(m_idx_max_prev, idx));

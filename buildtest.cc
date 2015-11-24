@@ -3,6 +3,7 @@
 #include "Propagation.h"
 #include "BinInfoUtils.h"
 #include "Event.h"
+#define DEBUG
 #include "Debug.h"
 
 #include <cmath>
@@ -40,17 +41,17 @@ void processCandidates(Event& ev, candvec& candidates, unsigned int ilay, unsign
   candvec tmp_candidates;
   tmp_candidates.reserve(3*candidates.size()/2);
 
-  if (candidates.size() > 0) {
+  if (candidates.size() > 0)
+  {
     //loop over running candidates
     for (auto&& cand : candidates) {
       extendCandidate(ev, cand, tmp_candidates, ilay, iseed, debug);
     }
-    if (tmp_candidates.size()>Config::maxCand) {
-      dprint("huge size=" << tmp_candidates.size() << " keeping best "<< Config::maxCand << " only");
-      std::partial_sort(tmp_candidates.begin(),tmp_candidates.begin()+(Config::maxCand-1),tmp_candidates.end(),sortByHitsChi2);
-      tmp_candidates.resize(Config::maxCand); // thread local, so ok not thread safe
+    if (tmp_candidates.size()>Config::maxCandsPerSeed) {
+      dprint("huge size=" << tmp_candidates.size() << " keeping best "<< Config::maxCandsPerSeed << " only");
+      std::partial_sort(tmp_candidates.begin(),tmp_candidates.begin()+(Config::maxCandsPerSeed-1),tmp_candidates.end(),sortByHitsChi2);
+      tmp_candidates.resize(Config::maxCandsPerSeed); // thread local, so ok not thread safe
     } else if (tmp_candidates.size()==0) {
-      dprint("no more candidates, saving best");
       // save the best candidate from the previous iteration and then swap in
       // the empty new candidate list; seed will be skipped on future iterations
       auto best = std::min_element(candidates.begin(),candidates.end(),sortByHitsChi2);
@@ -58,6 +59,8 @@ void processCandidates(Event& ev, candvec& candidates, unsigned int ilay, unsign
       std::lock_guard<std::mutex> evtguard(evtlock); // should be rare
 #endif
       best->setLabel(evt_track_candidates.size());
+      dprint("no more candidates, saving track from seed " << iseed << " label " << best->label() << " hits " 
+                                       << best->nFoundHits() << " parameters " << best->parameters() << std::endl);
       evt_track_candidates.push_back(*best);
       ev.candidateTracksExtra_.emplace_back(iseed);
     }
@@ -72,7 +75,7 @@ void buildTracksBySeeds(Event& ev)
   auto& evt_track_candidates(ev.candidateTracks_);
   const auto& evt_lay_hits(ev.layerHits_);
   const auto& evt_seeds(ev.seedTracks_);
-  bool debug(false);
+  bool debug(true);
 
   std::vector<candvec> track_candidates(evt_seeds.size());
   for (auto iseed = 0U; iseed < evt_seeds.size(); iseed++) {
@@ -91,6 +94,7 @@ void buildTracksBySeeds(Event& ev)
       const auto& seed(evt_seeds[iseed]);
 #endif
       dprint("processing seed # " << iseed << " par=" << seed.parameters());
+      dprint("from MC track par = " << ev.simTracks_[iseed].parameters()); // will be wrong with real seeding
       TrackState seed_state = seed.state();
       //seed_state.errors *= 0.01;//otherwise combinatorics explode!!!
       //should consider more than 1 candidate...
@@ -111,6 +115,8 @@ void buildTracksBySeeds(Event& ev)
       //std::partial_sort(cand.begin(),cand.begin()+1,cand.end(),sortByHitsChi2);
       auto best = std::min_element(cand.begin(),cand.end(),sortByHitsChi2);
       best->setLabel(evt_track_candidates.size());
+      dprint("Saving track from seed " << iseed << " label " << best->label() << " hits " 
+                                       << best->nFoundHits() << " parameters " << best->parameters() << std::endl);
       evt_track_candidates.push_back(*best);
       ev.candidateTracksExtra_.emplace_back(iseed);
     }
@@ -122,7 +128,7 @@ void buildTracksByLayers(Event& ev)
   auto& evt_track_candidates(ev.candidateTracks_);
   const auto& evt_lay_hits(ev.layerHits_);
   const auto& evt_seeds(ev.seedTracks_);
-  bool debug(false);
+  bool debug(true);
 
   std::vector<candvec> track_candidates(evt_seeds.size());
   for (auto iseed = 0U; iseed < evt_seeds.size(); iseed++) {
@@ -175,7 +181,6 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   const TrackState& updatedState = cand.state();
   const auto& evt_lay_hits(ev.layerHits_);
   const auto& segLayMap(ev.segmentMap_[ilayer]);
-  debug = true;
 
   dprint("processing candidate with nHits=" << tkcand.nFoundHits());
 #ifdef LINEARINTERP
@@ -194,13 +199,6 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   const float predx  = propState.parameters.At(0);
   const float predy  = propState.parameters.At(1);
   const float predz  = propState.parameters.At(2);
-#ifdef DEBUG
-  if (debug) {
-    std::cout << "propState at hit#" << ilayer << " r/phi/z : " << sqrt(pow(predx,2)+pow(predy,2)) << " "
-              << std::atan2(predy,predx) << " " << predz << std::endl;
-    dumpMatrix(propState.errors);
-  }
-#endif
 
 #ifdef ETASEG  
   const float eta  = getEta(std::sqrt(getRad2(predx,predy)),predz);
@@ -219,13 +217,8 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   const auto phiBinMinus = getPhiPartition(normalizedPhi(phi-nSigmaDphi));
   const auto phiBinPlus  = getPhiPartition(normalizedPhi(phi+nSigmaDphi));
 
-#ifdef DEBUG
-  if (debug) {
-    std::cout << "propState at layer: " << ilayer << " r/phi/eta : " << std::sqrt(getRad2(predx,predy)) << " "
-              << phi << " " << eta << std::endl;
-    dumpMatrix(propState.errors);
-  }
-#endif
+  dprint("propState at layer: " << ilayer << ": " << propState.parameters);
+  dcall(dumpMatrix(propState.errors));
   // get candidate hits for this track candidate at this layer
   std::vector<unsigned int> cand_hit_indices = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
 
@@ -237,7 +230,7 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
       if (candR > maxR) maxR = candR;
     }
     const float deltaR = maxR - minR;
-    dprint("min, max: " << minR << ", " << maxR);
+    dprint("min, max, delta: " << minR << ", " << maxR << ", " << deltaR);
     const TrackState propStateMin = propState;
     const TrackState propStateMax = propagateHelixToR(updatedState,maxR);
 #ifdef CHECKSTATEVALID
@@ -252,21 +245,26 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
       const MeasurementState hitMeas = hitCand.measurementState();
 
 #ifdef LINEARINTERP
-      const float ratio = (hitCand.r() - minR)/deltaR;
-      propState.parameters = (1.0-ratio)*propStateMin.parameters + ratio*propStateMax.parameters;
-      dprint(std::endl << ratio << std::endl << propStateMin.parameters << std::endl << propState.parameters << std::endl
+      if (hitCand.r() > minR) {
+        const float ratio = (hitCand.r() - minR)/deltaR;
+        dprint("ratio " << ratio);
+        propState.parameters = (1.0-ratio)*propStateMin.parameters + ratio*propStateMax.parameters;
+      }
+      dprint(std::endl << propStateMin.parameters << std::endl << propState.parameters << std::endl
                        << propStateMax.parameters << std::endl << propStateMax.parameters - propStateMin.parameters
-                       << std::endl << std::endl << hitMeas.parameters());
+                       << std::endl << hitMeas.parameters());
 #endif
       const float chi2 = computeChi2(propState,hitMeas);
+      dprint("found hit with index: " << cand_hit_idx << " from sim track " 
+        << ev.simHitsInfo_[evt_lay_hits[ilayer][cand_hit_idx].mcHitID()].mcTrackID_
+        << " chi2=" << chi2 << std::endl);
     
       if ((chi2<Config::chi2Cut)&&(chi2>0.)) {//fixme 
-        dprint("found hit with index: " << cand_hit_idx << " chi2=" << chi2);
         const TrackState tmpUpdatedState = updateParameters(propState, hitMeas);
         Track tmpCand = tkcand.clone();
         tmpCand.addHitIdx(cand_hit_idx,chi2);
         tmp_candidates.push_back(tmpCand);
-	branch_hit_indices.push_back(cand_hit_idx); // validation
+        branch_hit_indices.push_back(cand_hit_idx); // validation
       }
     }//end of consider hits on layer loop
 

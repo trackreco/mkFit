@@ -70,7 +70,7 @@ void generate_and_save_tracks()
   {
     Event ev(geom, val, evt);
 
-    ev.Simulate();//fixme add g_gen.seed(742331); and #pragma omp parallel for num_threads(NUM_THREADS_SIM)
+    ev.Simulate();
     ev.resetLayerHitMap();
 
     fwrite(&Ntracks, sizeof(int), 1, fp);
@@ -143,15 +143,10 @@ void test_standard()
   // ---- end MT test
 
   printf("Running test_standard(), operation=\"%s\"\n", g_operation.c_str());
-  printf("  vusize=%i, num_th=%i\n",  MPT_SIZE, NUM_THREADS);
+  printf("  vusize=%d, num_th_sim=%d, num_th_finder=%d\n",
+         MPT_SIZE, Config::numThreadsSimulation, Config::numThreadsFinder);
   printf("  sizeof(Track)=%zu, sizeof(Hit)=%zu, sizeof(SVector3)=%zu, sizeof(SMatrixSym33)=%zu, sizeof(MCHitInfo)=%zu\n",
          sizeof(Track), sizeof(Hit), sizeof(SVector3), sizeof(SMatrixSym33), sizeof(MCHitInfo));
-
-  int Ntracks = Config::nTracks;
-  // Ntracks  = 1;
-  // bool saveTree = false;
-
-  int Nevents = Config::nEvents;
 
   if (g_operation == "read")
   {
@@ -162,11 +157,11 @@ void test_standard()
   initGeom(geom);
   Validation val;
 
-  double s_tmp=0, s_tsm=0, s_tsm2=0, s_tmp2=0, s_tsm2bh=0, s_tmp2bh=0;
+  double s_tmp=0, s_tsm=0, s_tsm2=0, s_tmp2=0, s_tsm2bh=0, s_tmp2bh=0, s_tmp2ce=0;
 
   EventTmp ev_tmp;
 
-  for (int evt = 1; evt <= Nevents; ++evt)
+  for (int evt = 1; evt <= Config::nEvents; ++evt)
   {
     printf("\n");
     printf("Processing event %d\n", evt);
@@ -179,37 +174,39 @@ void test_standard()
     }
     else
     {
-      omp_set_num_threads(NUM_THREADS_SIM);
+      omp_set_num_threads(Config::numThreadsSimulation);
 
-      ev.Simulate();//fixme add g_gen.seed(742331); and #pragma omp parallel for num_threads(NUM_THREADS_SIM)
+      ev.Simulate();
       ev.resetLayerHitMap(true);
 
-      omp_set_num_threads(Config::g_num_threads);
+      omp_set_num_threads(Config::numThreadsFinder);
     }
 
     plex_tracks.resize(ev.simTracks_.size());
 
     double tmp = -1;  // runFittingTestPlex(ev, plex_tracks);
 
-    double tmp2 = runBuildingTestPlex(ev, ev_tmp);
+    double tmp2bh = runBuildingTestPlexBestHit(ev);
 
-    // Propagate-at-end does not work with find-best-hit !!!
-    double tmp2bh = -1; //runBuildingTestPlexBestHit(ev);
+    double tmp2   = runBuildingTestPlex(ev, ev_tmp);
 
-    printf("Matriplex fit = %.5f  --- Build  MX = %.5f  BHMX = %.5f\n",
-           tmp, tmp2, tmp2bh);
+    double tmp2ce = runBuildingTestPlexCloneEngine(ev, ev_tmp);
+
+    printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f\n",
+           tmp, tmp2bh, tmp2, tmp2ce);
     printf("\n");
 
     s_tmp    += tmp;
     s_tmp2   += tmp2;
     s_tmp2bh += tmp2bh;
+    s_tmp2ce += tmp2ce;
   }
   printf("================================================================\n");
-  printf("=== TOTAL for %d events\n", Nevents);
+  printf("=== TOTAL for %d events\n", Config::nEvents);
   printf("================================================================\n");
 
-  printf("Matriplex fit = %.5f  --- Build  MX = %.5f  BHMX = %.5f\n",
-         s_tmp, s_tmp2, s_tmp2bh);
+  printf("Matriplex fit = %.5f  --- Build  MX = %.5f  BHMX = %.5f  CEMX = %.5f\n",
+         s_tmp, s_tmp2bh, s_tmp2, s_tmp2ce);
 
   if (g_operation == "read")
   {
@@ -268,28 +265,37 @@ int main(int argc, const char *argv[])
       printf(
         "Usage: %s [options]\n"
         "Options:\n"
-        "  --num-threads   <num>    number of threads (def: 1)\n"
+        "  --num-thr-sim   <num>    number of threads for simulation (def: %d)\n"
+        "  --num-thr       <num>    number of threads for track finding (def: %d)\n"
         "                           extra cloning thread is spawned for each of them\n"
-        "  --best-out-of   <num>    run track finding num times, report best time (def: 1)\n"
-        "  --cloner-single-thread   do not spawn extra cloning thread\n"
+        "  --cloner-single-thread   do not spawn extra cloning thread (def: %s)\n"
+        "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
         ,
-        argv[0]
+        argv[0],
+        Config::numThreadsSimulation, Config::numThreadsFinder,
+        Config::clonerUseSingleThread ? "true" : "false",
+        Config::finderReportBestOutOfN
       );
       exit(0);
     }
-    else if (*i == "--num-threads")
+    else if (*i == "--num-thr-sim")
     {
       next_arg_or_die(mArgs, i);
-      Config::g_num_threads = atoi(i->c_str());
+      Config::numThreadsSimulation = atoi(i->c_str());
+    }
+    else if (*i == "--num-thr")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::numThreadsFinder = atoi(i->c_str());
     }
     else if(*i == "--cloner-single-thread")
     {
-      Config::g_cloner_single_thread = true;
+      Config::clonerUseSingleThread = true;
     }
     else if(*i == "--best-out-of")
     {
       next_arg_or_die(mArgs, i);
-      Config::g_best_out_of = atoi(i->c_str());
+      Config::finderReportBestOutOfN = atoi(i->c_str());
     }
     else
     {
@@ -301,7 +307,7 @@ int main(int argc, const char *argv[])
   }
 
   printf ("Running with n_threads=%d, cloner_single_thread=%d, best_out_of=%d\n",
-          Config::g_num_threads, Config::g_cloner_single_thread, Config::g_best_out_of);
+          Config::numThreadsFinder, Config::clonerUseSingleThread, Config::finderReportBestOutOfN);
 
   /*
   if (argc >= 2)
@@ -333,10 +339,6 @@ int main(int argc, const char *argv[])
     test_standard();
   }
   */
-
-#ifndef TEST_CLONE_ENGINE
-  assert (Config::g_PropagateAtEnd == false && "Non-cloning engine code only works with propagation at the beginning.");
-#endif
 
   test_standard();
 

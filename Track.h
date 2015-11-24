@@ -92,11 +92,6 @@ public:
     return hitIdxArr_[posHitIdx];
   }
 
-  const int* getHitIdxArr() const
-  {
-    return hitIdxArr_;
-  }
-
   void setHitIdx(int posHitIdx, int newIdx) {
     hitIdxArr_[posHitIdx] = newIdx;
   }
@@ -138,8 +133,9 @@ public:
   unsigned int nHitsMatched() const {return nHitsMatched_;}
   unsigned int seedID() const {return seedID_;}
   bool isDuplicate() const {return isDuplicate_;}
+  bool isMissed() const {return 999999 == mcTrackID_;}
   unsigned int duplicateID() const {return duplicateID_;}
-  void setMCTrackIDInfo(const Track& trk, const MCHitInfoVec& globalHitInfo);
+  void setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo);
   void setMCDuplicateInfo(unsigned int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
 private:
   friend class Track;

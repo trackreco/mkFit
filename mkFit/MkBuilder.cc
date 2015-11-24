@@ -27,9 +27,9 @@ MkBuilder::MkBuilder() :
   m_event_tmp(0),
   m_event_of_hits(Config::nLayers)
 {
-  m_mkfp_arr.resize(Config::g_num_threads);
+  m_mkfp_arr.resize(Config::numThreadsFinder);
 
-  for (int i = 0; i < Config::g_num_threads; ++i)
+  for (int i = 0; i < Config::numThreadsFinder; ++i)
   {
     m_mkfp_arr[i] = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(0);
   }
@@ -37,7 +37,7 @@ MkBuilder::MkBuilder() :
 
 MkBuilder::~MkBuilder()
 {
-   for (int i = 0; i < Config::g_num_threads; ++i)
+   for (int i = 0; i < Config::numThreadsFinder; ++i)
    {
      _mm_free(m_mkfp_arr[i]);
    }
@@ -114,7 +114,7 @@ void MkBuilder::fit_seeds()
 
   int theEnd = simtracks.size();
 
-#pragma omp parallel for num_threads(NUM_THREADS)
+#pragma omp parallel for
   for (int itrack = 0; itrack < theEnd; itrack += NN)
   {
     int end = std::min(itrack + NN, theEnd);
@@ -127,17 +127,17 @@ void MkBuilder::fit_seeds()
 
     mkfp->FitTracks();
 
-    if (Config::g_PropagateAtEnd)
-    {
-      const int ilay = 3; // layer 4
+    const int ilay = 3; // layer 4
 #ifdef DEBUG
-      std::cout << "propagate to lay=" << ilay+1 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
-		<< " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
+    std::cout << "propagate to lay=" << ilay+1 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
+              << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
 #endif
-      mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
-    }
+    mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
+#ifdef DEBUG
+          std::cout << "propagate to lay=" << ilay+1 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
+#endif
 
-    mkfp->OutputFittedTracksAndHitIdx(m_recseeds, itrack, end, Config::g_PropagateAtEnd);
+    mkfp->OutputFittedTracksAndHitIdx(m_recseeds, itrack, end, true);
   }
 
   //ok now, we should have all seeds fitted in recseeds
@@ -234,6 +234,7 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
   for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
   {
     EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin]; 
+
     for (int iseed = 0; iseed < etabin_of_candidates.m_fill_index; iseed++)
     {
       Track& seed = etabin_of_candidates.m_candidates[iseed];
@@ -248,14 +249,10 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
 
   //parallel section over seeds; num_threads can of course be smaller
   int nseeds = m_recseeds.size();
-  //#pragma omp parallel num_threads(Config::nEtaBin)
-  //fixme: set to one for debugging (to be revisited anyway - what if there are more threads than eta bins?)
-  // MT: this is now done differently for "normal" find tracks
-#pragma omp parallel num_threads(1)
+
+#pragma omp parallel
   for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
   {
-    // XXXX Could have nested paralellism, like NUM_THREADS/nEtaBins (but rounding sucks here).
-    // XXXX So one should really have TBB, for this and for the above.
     // vectorized loop
     EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin];
 
@@ -272,14 +269,14 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
 
       mkfp->SetNhits(3);//just to be sure (is this needed?)
 
-      mkfp->InputTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end);
+      mkfp->InputTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end, true);
 
       //ok now we start looping over layers
       //loop over layers, starting from after the seed
       //consider inverting loop order and make layer outer, need to trade off hit prefetching with copy-out of candidates
-      for (int ilay = Config::nlayers_per_seed; ilay < m_event_of_hits.m_n_layers; ++ilay)
+      for (int ilay = Config::nlayers_per_seed; ilay < Config::nLayers; ++ilay)
       {
-        BunchOfHits &bunch_of_hits = m_event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];	     
+        BunchOfHits &bunch_of_hits = m_event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];
 
         // XXX This should actually be done in some other thread for the next layer while
         // this thread is crunching the current one.
@@ -288,18 +285,6 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
         // {
         //   _mm_prefetch((char*) & bunch_of_hits.m_hits[i], _MM_HINT_T1);
         // }
-
-        //propagate to layer
-#ifdef DEBUG
-        std::cout << "propagate to lay=" << ilay+1 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << std::sqrt(getRad2(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1)))
-                  << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << std::sqrt(getRad2(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4))) << std::endl;
-#endif
-        mkfp->PropagateTracksToR(4.*(ilay+1), end - itrack);
-
-#ifdef DEBUG
-        std::cout << "propagate to lay=" << ilay+1 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << std::sqrt(getRad2(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1))) << std::endl;
-        std::cout << "now get hit range" << std::endl;
-#endif
 
         mkfp->SelectHitRanges(bunch_of_hits, end - itrack);
 
@@ -315,9 +300,26 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
 
         mkfp->SetNhits(ilay + 1);  //here again assuming one hit per layer (is this needed?)
 
+        //propagate to layer
+        // This is sort of a silly fix as no-clone-engine code produces
+        // zero good tracks with propagate-at-the-end.
+        // But at least it doesn't crash with uncaught exception :)
+        if (ilay + 1 < Config::nLayers)
+        {
+#ifdef DEBUG
+          std::cout << "propagate to lay=" << ilay+2 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
+                    << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
+#endif
+          mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay+1), end - itrack);
+#ifdef DEBUG
+          std::cout << "propagate to lay=" << ilay+2 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
+#endif
+        }
+
       } // end of layer loop
 
-      mkfp->OutputFittedTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end);	 
+      mkfp->OutputFittedTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end, true);
+
     } // end of seed loop
 
    } //end of parallel section over seeds
@@ -325,15 +327,12 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
 
 
 //------------------------------------------------------------------------------
-// FindTracks
+// FindTracks & FindTracksCloneEngine common functions
 //------------------------------------------------------------------------------
 
-void MkBuilder::FindTracks()
+void MkBuilder::find_tracks_load_seeds()
 {
-  // MT: partition recseeds into eta bins
-
   EventOfCombCandidates &event_of_comb_cands = m_event_tmp->m_event_of_comb_cands;
-  event_of_comb_cands.Reset();
 
   for (int iseed = 0; iseed < m_recseeds.size(); ++iseed)
   {
@@ -361,41 +360,53 @@ void MkBuilder::FindTracks()
     }
   }
 #endif
+}
+
+struct OmpThreadData
+{
+  omp_lock_t& writelock;
+
+  // thread, eta bin data
+
+  int thread_num;
+  int num_threads;
+
+  int n_th_per_eta_bin;
+  int n_eta_bin_per_th;
+
+  int th_start_ebin, th_end_ebin;
+
+  // seed range data
+
+  int th_start_seed, th_end_seed;
+  int th_n_seeds;
+
+  // ----------------------------------------------------------------
+
+  OmpThreadData(omp_lock_t& wlck) :
+    writelock(wlck)
+  {
+    thread_num  = omp_get_thread_num();
+    num_threads = omp_get_num_threads();
 
 #ifdef DEBUG
-  omp_lock_t writelock;
-
-  omp_init_lock(&writelock);
-#endif
-
-  //the logic below is as follows:
-  //- threads can be either over eta bins (a) or over seeds in one eta bin (b)
-  //- for (a) we need the same number of eta bins in each thread
-  //- for (b) we need the same number of threads in each eta bin
-  assert( (Config::nEtaBin % NUM_THREADS == 0) || (NUM_THREADS % Config::nEtaBin == 0) );
-
-  // parallel section over seeds
-  // number of threads to be set through omp_set_num_threads (see mkFit.cc)
-#pragma omp parallel
-  {
-    int thread_num  = omp_get_thread_num();
-    int num_threads = omp_get_num_threads();
-
     if (thread_num == 0)
     {
       printf("Main parallel section, num threads = %d\n", num_threads);
     }
+#endif
 
-    int n_th_per_eta_bin = num_threads / Config::nEtaBin;
-    int n_eta_bin_per_th = Config::nEtaBin / num_threads;
+    n_th_per_eta_bin = num_threads / Config::nEtaBin;
+    n_eta_bin_per_th = Config::nEtaBin / num_threads;
 
-    int th_start_ebin=-1, th_end_ebin=-1;
+    th_start_ebin = -1;
+    th_end_ebin   = -1;
 
     if (n_th_per_eta_bin >= 1)
     {
       // case (b): there is only one eta bin per thread (i.e. >1 thread per eta bin), we'll split seeds in different threads below
-      th_start_ebin = thread_num/n_th_per_eta_bin;
-      th_end_ebin = th_start_ebin+1;
+      th_start_ebin = thread_num / n_th_per_eta_bin;
+      th_end_ebin = th_start_ebin + 1;
     }
     else
     {
@@ -416,34 +427,28 @@ void MkBuilder::FindTracks()
     std::cout << std::endl;
     omp_unset_lock(&writelock);
 #endif
+  }
 
-#ifdef TEST_CLONE_ENGINE
-    CandCloner &cloner = * m_event_tmp->m_cand_cloners[thread_num];
-    cloner.PinMainThread();
-#endif
+  void calculate_seed_ranges(int n_seed)
+  {
+    th_start_seed = -1;
+    th_end_seed   = -1;
 
-    // loop over eta bins
-    for (int ebin = th_start_ebin; ebin < th_end_ebin; ++ebin)
+    if (th_end_ebin == th_start_ebin + 1)
     {
-      EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
+      // case (b): define first and last seed in this eta bin for this thread
+      int th_idx_in_ebin = thread_num % n_th_per_eta_bin;
+      th_start_seed = th_idx_in_ebin * n_seed / n_th_per_eta_bin;
+      th_end_seed   = std::min( (th_idx_in_ebin + 1) * n_seed / n_th_per_eta_bin, n_seed );
+    }
+    else
+    {
+      // case (a): we process >= 1 full eta bins in this thread, se we need to loop over all seeds in each eta bin
+      th_start_seed = 0;
+      th_end_seed   = n_seed;
+    }
+    th_n_seeds = th_end_seed - th_start_seed;
 
-      int th_start_seed = -1, th_end_seed = -1;
-      int nseeds_ebin   = event_of_comb_cands.m_etabins_of_comb_candidates[ebin].m_fill_index;
-      if (th_end_ebin == th_start_ebin + 1)
-      {
-        // case (b): define first and last seed in this eta bin for this thread
-        int th_idx_in_ebin = thread_num % n_th_per_eta_bin;       
-        th_start_seed = th_idx_in_ebin * nseeds_ebin / n_th_per_eta_bin;
-        th_end_seed   = std::min( (th_idx_in_ebin + 1) * nseeds_ebin / n_th_per_eta_bin, nseeds_ebin );
-      }
-      else
-      {
-        // case (a): we process >= 1 full eta bins in this thread, se we need to loop over all seeds in each eta bin
-        th_start_seed = 0;
-        th_end_seed   = etabin_of_comb_candidates.m_fill_index;
-      }
-      int th_n_seeds = th_end_seed - th_start_seed;
-       
 #ifdef DEBUG
       omp_set_lock(&writelock);
       std::cout << "ebin=" << ebin << std::endl;
@@ -454,14 +459,47 @@ void MkBuilder::FindTracks()
       std::cout << std::endl;
       omp_unset_lock(&writelock);
 #endif
+  }
+};
 
-#ifdef TEST_CLONE_ENGINE
-      cloner.begin_eta_bin(&etabin_of_comb_candidates, th_start_seed, th_n_seeds);
+//------------------------------------------------------------------------------
+// FindTracks
+//------------------------------------------------------------------------------
+
+void MkBuilder::FindTracks()
+{
+  EventOfCombCandidates &event_of_comb_cands = m_event_tmp->m_event_of_comb_cands;
+  event_of_comb_cands.Reset();
+
+  find_tracks_load_seeds();
+
+  omp_lock_t writelock;
+#ifdef DEBUG
+  omp_init_lock(&writelock);
 #endif
+
+  //the logic in OmpThreadData above is as follows:
+  //- threads can be either over eta bins (a) or over seeds in one eta bin (b)
+  //- for (a) we need the same number of eta bins in each thread
+  //- for (b) we need the same number of threads in each eta bin
+  assert( (Config::nEtaBin % Config::numThreadsFinder == 0) || (Config::numThreadsFinder % Config::nEtaBin == 0) );
+
+  // parallel section over seeds
+  // number of threads to be set through omp_set_num_threads (see mkFit.cc)
+#pragma omp parallel
+  {
+    OmpThreadData otd(writelock);
+
+    // loop over eta bins
+    for (int ebin = otd.th_start_ebin; ebin < otd.th_end_ebin; ++ebin)
+    {
+      EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
+
+      otd.calculate_seed_ranges(etabin_of_comb_candidates.m_fill_index);
 
       //ok now we start looping over layers
       //loop over layers, starting from after the seeD
-      for (int ilay = Config::nlayers_per_seed; ilay < m_event_of_hits.m_n_layers; ++ilay)
+      for (int ilay = Config::nlayers_per_seed; ilay < Config::nLayers; ++ilay)
       {
         BunchOfHits &bunch_of_hits = m_event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];
 
@@ -471,42 +509,29 @@ void MkBuilder::FindTracks()
 
         //prepare unrolled vector to loop over
         std::vector<std::pair<int,int> > seed_cand_idx;
-        for (int iseed = th_start_seed; iseed != th_end_seed; ++iseed) 
+        for (int iseed = otd.th_start_seed; iseed != otd.th_end_seed; ++iseed)
         {
           for (int ic = 0; ic < etabin_of_comb_candidates.m_candidates[iseed].size(); ++ic)
           {
             seed_cand_idx.push_back(std::pair<int,int>(iseed,ic));
           }
         }
-        int theEndCand = seed_cand_idx.size();     
+        int theEndCand = seed_cand_idx.size();
 
         // don't bother messing with the clone engine if there are no candidates
         // (actually it crashes, so this protection is needed)
         // XXXX MT ??? How does this happen ???
         if (theEndCand == 0) continue;
 
-        // XXXXX TEST_CLONE_ENGINE - cloner.begin_layer()
-        // XXXXX MT ??? How come propagate is only done for clone engine ???
-#ifdef TEST_CLONE_ENGINE
-        if (Config::g_PropagateAtEnd && ilay + 1 < m_event_of_hits.m_n_layers)
-        {
-          cloner.begin_layer(&bunch_of_hits, ilay, m_event->geom_.Radius(ilay+1));
-        }
-        else
-        {
-          cloner.begin_layer(&bunch_of_hits, ilay, m_event->geom_.Radius(ilay));
-        }
-#else
-        std::vector<std::vector<Track>> tmp_candidates(th_end_seed - th_start_seed);     
+        std::vector<std::vector<Track>> tmp_candidates(otd.th_n_seeds);     
         for (int iseed = 0; iseed < tmp_candidates.size(); ++iseed)
         {
           // XXXX MT: Tried adding 25 to reserve below as I was seeing some
           // time spent in push_back ... but it didn't really help.
           // We need to optimize this by throwing away and replacing the worst
           // candidate once a better one arrives. This will also avoid sorting.
-          tmp_candidates[iseed].reserve(2*Config::maxCand);//factor 2 seems reasonable to start with
+          tmp_candidates[iseed].reserve(2*Config::maxCandsPerSeed);//factor 2 seems reasonable to start with
         }
-#endif // TEST_CLONE_ENGINE
 
         //vectorized loop
         for (int itrack = 0; itrack < theEndCand; itrack += NN)
@@ -524,21 +549,7 @@ void MkBuilder::FindTracks()
           //fixme find a way to deal only with the candidates needed in this thread
           mkfp->InputTracksAndHitIdx(etabin_of_comb_candidates.m_candidates,
                                      seed_cand_idx, itrack, end,
-                                     Config::g_PropagateAtEnd);
-
-          if ( ! Config::g_PropagateAtEnd)
-          {
-            //propagate to layer
-#ifdef DEBUG
-            std::cout << "propagate to lay=" << ilay+1 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << std::sqrt(getRad2(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1)))
-                      << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << std::sqrt(getRad2(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4))) << std::endl;
-#endif
-            mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
-
-#ifdef DEBUG
-            std::cout << "propagate to lay=" << ilay+1 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << std::sqrt(getRad2(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1))) << std::endl;
-#endif
-          }
+                                     true);
 
 #ifdef DEBUG
           std::cout << "now get hit range" << std::endl;
@@ -550,47 +561,30 @@ void MkBuilder::FindTracks()
 //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
 //#endif
 
-
 #ifdef DEBUG
           std::cout << "make new candidates" << std::endl;
 #endif
 
-          // XXXXX TEST_CLONE_ENGINE - different find-candidate, propagate at end for non-cleng
-#ifdef TEST_CLONE_ENGINE
-          cloner.begin_iteration();
-          mkfp->FindCandidatesMinimizeCopy(bunch_of_hits, cloner,
-                                           th_start_seed, end - itrack);
-          cloner.end_iteration();
-#else
-          mkfp->FindCandidates(bunch_of_hits, tmp_candidates, th_start_seed);
+          mkfp->FindCandidates(bunch_of_hits, tmp_candidates, otd.th_start_seed);
 
-          if (Config::g_PropagateAtEnd)
+          //propagate to layer
+          // This is sort of a silly fix as no-clone-engine code produces
+          // zero good tracks with propagate-at-the-end.
+          // But at least it doesn't crash with uncaught exception :)
+          if (ilay + 1 < Config::nLayers)
           {
-            //propagate to layer
 #ifdef DEBUG
             std::cout << "propagate to lay=" << ilay+2 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
                       << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
 #endif
-            // This is sort of a silly fix as no-clone-engine code produces
-            // zero good tracks with propagate-at-the-end.
-            // But at least it doesn't crash with uncaught exception :)
-            if (ilay + 1 < event_of_hits.m_n_layers)
-              mkfp->PropagateTracksToR(ev.geom_.Radius(ilay+1), end - itrack);
+            mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay+1), end - itrack);
 #ifdef DEBUG
             std::cout << "propagate to lay=" << ilay+2 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
 #endif
           }
 
-#endif // TEST_CLONE_ENGINE
-
         } //end of vectorized loop
 
-        
-#ifdef TEST_CLONE_ENGINE
-
-        cloner.end_layer();
-
-#else
         // clean exceeding candidates per seed
         // FIXME: is there a reason why these are not vectorized????
         for (int is = 0; is < tmp_candidates.size(); ++is)
@@ -598,18 +592,18 @@ void MkBuilder::FindTracks()
 #ifdef DEBUG
           std::cout << "dump seed n " << is << " with input candidates=" << tmp_candidates[is].size() << std::endl;
 #endif
-          if (tmp_candidates[is].size() > Config::maxCand)
+          if (tmp_candidates[is].size() > Config::maxCandsPerSeed)
           {
 #ifdef DEBUG
             std::cout << "erase extra candidates" 
                       << " tmp_candidates[is].size()=" << tmp_candidates[is].size()
-                      << " Config::maxCand=" << Config::maxCand
+                      << " Config::maxCandsPerSeed=" << Config::maxCandsPerSeed
                       << std::endl;
             std::cout << "erase extra candidates" << std::endl;
 #endif
 
             std::sort(tmp_candidates[is].begin(), tmp_candidates[is].end(), sortCandByHitsChi2);
-            tmp_candidates[is].erase(tmp_candidates[is].begin() + Config::maxCand,
+            tmp_candidates[is].erase(tmp_candidates[is].begin() + Config::maxCandsPerSeed,
                                      tmp_candidates[is].end());
           }
 #ifdef DEBUG
@@ -621,7 +615,7 @@ void MkBuilder::FindTracks()
         {
           if (tmp_candidates[is].size() > 0)
           {
-            etabin_of_comb_candidates.m_candidates[th_start_seed+is].swap(tmp_candidates[is]);
+            etabin_of_comb_candidates.m_candidates[otd.th_start_seed+is].swap(tmp_candidates[is]);
             tmp_candidates[is].clear();
           }
           else 
@@ -629,17 +623,151 @@ void MkBuilder::FindTracks()
             //we do nothing in the SM version here, I think we should put these in the output and avoid keeping looping over them
           }
         }
-#endif // TEST_CLONE_ENGINE    
 
       } // end of layer loop
 
-#ifdef TEST_CLONE_ENGINE
-      cloner.end_eta_bin();
+      // final sorting
+      int nCandsBeforeEnd = 0;
+      for (int iseed = otd.th_start_seed; iseed < otd.th_end_seed; ++iseed)
+      {
+        std::vector<Track>& finalcands = etabin_of_comb_candidates.m_candidates[iseed];
+        if (finalcands.size() == 0) continue;
+        std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
+      }
+
+    } // end of loop over eta bins
+
+  } // end of parallel section over seeds
+}
+
+
+//------------------------------------------------------------------------------
+// FindTracksCloneEngine
+//------------------------------------------------------------------------------
+
+void MkBuilder::FindTracksCloneEngine()
+{
+  m_event_tmp->AssureCandClonersExist(Config::numThreadsFinder);
+
+  EventOfCombCandidates &event_of_comb_cands = m_event_tmp->m_event_of_comb_cands;
+  event_of_comb_cands.Reset();
+
+  find_tracks_load_seeds();
+
+  omp_lock_t writelock;
+#ifdef DEBUG
+  omp_init_lock(&writelock);
 #endif
+
+  //the logic in OmpThreadData above is as follows:
+  //- threads can be either over eta bins (a) or over seeds in one eta bin (b)
+  //- for (a) we need the same number of eta bins in each thread
+  //- for (b) we need the same number of threads in each eta bin
+  assert( (Config::nEtaBin % Config::numThreadsFinder == 0) || (Config::numThreadsFinder % Config::nEtaBin == 0) );
+
+  // parallel section over seeds
+  // number of threads to be set through omp_set_num_threads (see mkFit.cc)
+#pragma omp parallel
+  {
+    OmpThreadData otd(writelock);
+
+    CandCloner &cloner = * m_event_tmp->m_cand_cloners[otd.thread_num];
+    cloner.PinMainThread();
+
+    // loop over eta bins
+    for (int ebin = otd.th_start_ebin; ebin < otd.th_end_ebin; ++ebin)
+    {
+      EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
+
+      otd.calculate_seed_ranges(etabin_of_comb_candidates.m_fill_index);
+
+      cloner.begin_eta_bin(&etabin_of_comb_candidates, otd.th_start_seed, otd.th_n_seeds);
+
+      //ok now we start looping over layers
+      //loop over layers, starting from after the seeD
+      for (int ilay = Config::nlayers_per_seed; ilay < Config::nLayers; ++ilay)
+      {
+        BunchOfHits &bunch_of_hits = m_event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];
+
+#ifdef DEBUG
+        std::cout << "processing lay=" << ilay+1 << std::endl;
+#endif
+
+        //prepare unrolled vector to loop over
+        std::vector<std::pair<int,int> > seed_cand_idx;
+        for (int iseed = otd.th_start_seed; iseed != otd.th_end_seed; ++iseed)
+        {
+          for (int ic = 0; ic < etabin_of_comb_candidates.m_candidates[iseed].size(); ++ic)
+          {
+            seed_cand_idx.push_back(std::pair<int,int>(iseed,ic));
+          }
+        }
+        int theEndCand = seed_cand_idx.size();
+
+        // don't bother messing with the clone engine if there are no candidates
+        // (actually it crashes, so this protection is needed)
+        // XXXX MT ??? How does this happen ???
+        if (theEndCand == 0) continue;
+
+        // XXXX This is only needed not to access non-existing radius in geom_.
+        // Cloner will not propagate when layer >= 9.
+        if (ilay + 1 < Config::nLayers)
+        {
+          cloner.begin_layer(&bunch_of_hits, ilay, m_event->geom_.Radius(ilay+1));
+        }
+        else
+        {
+          cloner.begin_layer(&bunch_of_hits, ilay, m_event->geom_.Radius(ilay));
+        }
+
+        //vectorized loop
+        for (int itrack = 0; itrack < theEndCand; itrack += NN)
+        {
+          int end = std::min(itrack + NN, theEndCand);
+
+#ifdef DEBUG
+          std::cout << "processing track=" << itrack << std::endl;
+#endif
+
+          MkFitter *mkfp = m_mkfp_arr[omp_get_thread_num()];
+
+          mkfp->SetNhits(ilay);//here again assuming one hit per layer
+
+          //fixme find a way to deal only with the candidates needed in this thread
+          mkfp->InputTracksAndHitIdx(etabin_of_comb_candidates.m_candidates,
+                                     seed_cand_idx, itrack, end,
+                                     true);
+
+#ifdef DEBUG
+          std::cout << "now get hit range" << std::endl;
+#endif
+
+          mkfp->SelectHitRanges(bunch_of_hits, end - itrack);
+
+//#ifdef PRINTOUTS_FOR_PLOTS
+//std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
+//#endif
+
+#ifdef DEBUG
+          std::cout << "make new candidates" << std::endl;
+#endif
+
+          cloner.begin_iteration();
+          mkfp->FindCandidatesMinimizeCopy(bunch_of_hits, cloner,
+                                           otd.th_start_seed, end - itrack);
+          cloner.end_iteration();
+
+        } //end of vectorized loop
+
+        cloner.end_layer();
+
+      } // end of layer loop
+
+      cloner.end_eta_bin();
 
       // final sorting
       int nCandsBeforeEnd = 0;
-      for (int iseed = th_start_seed; iseed < th_end_seed; ++iseed) 
+      for (int iseed = otd.th_start_seed; iseed < otd.th_end_seed; ++iseed)
       {
         std::vector<Track>& finalcands = etabin_of_comb_candidates.m_candidates[iseed];
         if (finalcands.size() == 0) continue;

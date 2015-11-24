@@ -49,7 +49,7 @@ TrackState updateParameters(const TrackState& propagatedState, const Measurement
   const SMatrixSym33 resErrInv = resErr.InverseFast(invFail);
 
   if (0 != invFail) {
-    std::cerr << __FILE__ << ":" << __LINE__ << ": FAILED INVERSION" << std::endl;
+    //std::cerr << __FILE__ << ":" << __LINE__ << ": FAILED INVERSION" << std::endl;
     return propagatedState;
   }
 

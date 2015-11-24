@@ -155,7 +155,7 @@ void fitTrack(const Track & trk, const TrackExtra& trkextra, unsigned int itrack
   Track FitTrack(trk);
   FitTrack.setState(updatedState); // eventually will want to include chi2 of fitTrack --> chi2 for now just copied from build tracks
   ev.fitTracks_[itrack] = FitTrack;
-  ev.fitTracksExtra_[itrack] = TrackExtra();
+  ev.fitTracksExtra_[itrack] = trkextra;
 }
 
 typedef TrackVec::const_iterator TrkIter;

@@ -22,7 +22,7 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, T
       auto hitidx = trk.getHitIdx(ilayer);
       const Hit& seed_hit = ev.layerHits_[ilayer][hitidx];
       TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
-      MeasurementState measState = seed_hit.measurementState();
+      const auto& measState = seed_hit.measurementState();
       updatedState = updateParameters(propState, measState);
       seedhits[ilayer] = hitidx;
       //      chi2 += computeChi2(updatedState,measState); --> could use this to make the chi2

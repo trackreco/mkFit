@@ -60,8 +60,10 @@ public:
   //int getXHitEnd  (int arg0,int arg1,int arg2) { return XHitEnd  .At(arg0, arg1, arg2); }
 
   void InputTracksAndHits(std::vector<Track>& tracks, std::vector<HitVec>& layerHits, int beg, int end);
-  void InputTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end);
-  void InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks, std::vector<std::pair<int,int> >& idxs, int beg, int end, bool inputProp = false);
+  void InputTracksAndHitIdx(std::vector<Track>& tracks,
+                            int beg, int end, bool inputProp);
+  void InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks, std::vector<std::pair<int,int> >& idxs,
+                            int beg, int end, bool inputProp);
   void InputTracksOnly   (std::vector<Track>& tracks, int beg, int end);
   void InputHitsOnly(std::vector<Hit>& hits, int beg, int end);
   void FitTracks();
@@ -74,7 +76,7 @@ public:
     return OutputTracks(tracks,beg,end,iP);
   }
 
-  void OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end, bool outputProp = false);
+  void OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end, bool outputProp);
 
   void PropagateTracksToR(float R, const int N_proc);
 

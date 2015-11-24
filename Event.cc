@@ -217,7 +217,8 @@ void Event::Seed()
 #else
   buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
 #endif
-  std::sort(seedTracks_.begin(), seedTracks_.end(), tracksByPhi);
+  // if we sort here, also have to sort seedTracksExtra and redo labels.
+  //std::sort(seedTracks_.begin(), seedTracks_.end(), tracksByPhi);
 }
 
 void Event::Find()
@@ -226,7 +227,7 @@ void Event::Find()
   //  buildTracksByLayers(*this);
 
   // From CHEP-2015
-  // buildTestSerial(*this, Config::nlayers_per_seed, Config::maxCand, Config::chi2Cut, Config::nSigma, Config::minDPhi);
+  // buildTestSerial(*this, Config::nlayers_per_seed, Config::maxCandsPerSeed, Config::chi2Cut, Config::nSigma, Config::minDPhi);
 }
 
 void Event::Fit()
@@ -247,4 +248,31 @@ void Event::Validate(const unsigned int ievt){
   validation_.fillEffTree(simTracks_,ievt);
   validation_.makeSeedTkToRecoTkMaps(candidateTracks_,fitTracks_);
   validation_.fillFakeRateTree(seedTracks_,ievt);
+}
+
+void Event::PrintStats(const TrackVec& trks, TrackExtraVec& trkextras)
+{
+  int miss(0), found(0), fp_10(0), fp_20(0), hit8(0), h8_10(0), h8_20(0);
+
+  for (auto&& trk : trks) {
+    auto&& extra = trkextras[trk.label()];
+    extra.setMCTrackIDInfo(trk, layerHits_, simHitsInfo_);
+    if (extra.isMissed()) {
+      ++miss;
+    } else {
+      auto&& mctrk = simTracks_[extra.mcTrackID()];
+      auto pr = trk.pT()/mctrk.pT();
+      found++;
+      bool h8 = trk.nFoundHits() >= 8;
+      bool pt10 = pr > 0.9 && pr < 1.1;
+      bool pt20 = pr > 0.8 && pr < 1.2;
+      fp_10 += pt10;
+      fp_20 += pt20;
+      hit8 += h8;
+      h8_10 += h8 && pt10;
+      h8_20 += h8 && pt20;
+    }
+  }
+  std::cout << "found tracks=" << found   << "  in pT 10%=" << fp_10    << "  in pT 20%=" << fp_20    << "     no_mc_assoc="<< miss <<std::endl
+            << "  nH >= 8   =" << hit8    << "  in pT 10%=" << h8_10    << "  in pT 20%=" << h8_20    << std::endl;
 }
