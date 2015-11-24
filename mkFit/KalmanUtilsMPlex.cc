@@ -1,4 +1,5 @@
 #include "KalmanUtilsMPlex.h"
+#include "PropagationMPlex.h"
 
 namespace
 {
@@ -177,7 +178,7 @@ void kalmanGain_x_propErr(const MPlexLH& A, const MPlexLS& B, MPlexLS& C)
 // updateParametersMPlex
 //==============================================================================
 
-void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
+void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
                            const MPlexHS &msErr,  const MPlexHV& msPar,
                            MPlexLS &outErr,       MPlexLV& outPar)
 {
@@ -197,8 +198,12 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
   //assert((long long)(&updateCtx.propErr.fArray[0]) % 64 == 0);
 
   MPlexLS propErr;
-  propErr = psErr;       // could use/overwrite psErr?
-  propErr.AddNoiseIntoUpperLeft3x3(0.0); // e.g. ?
+  MPlexLV propPar;
+  // do a full propagation step to correct for residual distance from the hit radius - need the charge for this
+  // propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar);
+
+  propErr = psErr;
+  propPar = psPar;
 
 #ifdef DEBUG
   if (dump) {
@@ -256,7 +261,7 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
 #endif
 
   // outPar = psPar + kalmanGain*(msPar-psPar)[0-2] (last three are 0!)
-  MultResidualsAdd(kalmanGain, psPar, msPar, outPar);
+  MultResidualsAdd(kalmanGain, propPar, msPar, outPar);
 
 #ifdef DEBUG
   if (dump) {
@@ -287,7 +292,7 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
 }
 
 
-void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
+void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
                       const MPlexHS &msErr,  const MPlexHV& msPar,
                             MPlexQF& outChi2)
 {
@@ -308,8 +313,12 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
   //assert((long long)(&updateCtx.propErr.fArray[0]) % 64 == 0);
 
   MPlexLS propErr;
-  propErr = psErr;       // could use/overwrite psErr?
-  propErr.AddNoiseIntoUpperLeft3x3(0.0); // e.g. ?
+  MPlexLV propPar;
+  // do a full propagation step to correct for residual distance from the hit radius - need the charge for this
+  // propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar);
+
+  propErr = psErr;
+  propPar = psPar;
 
 #ifdef DEBUG
   if (dump) {
@@ -359,5 +368,5 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
   }
 #endif
 
-  Chi2Similarity(msPar, psPar, resErr, outChi2);
+  Chi2Similarity(msPar, propPar, resErr, outChi2);
 }

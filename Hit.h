@@ -30,6 +30,12 @@ inline int getBothEtaBins(float eta, int& b1, int& b2)
     {
       return 0;
     }
+
+  if (Config::nEtaBin == 1) {
+    b1 = 0;
+    b2 = -1;
+    return 1;
+  }
   
   int b1p = std::floor((eta + Config::fEtaOffB1) * Config::fEtaFacB1);
   int b2p = std::floor((eta + Config::fEtaOffB2) * Config::fEtaFacB2);
