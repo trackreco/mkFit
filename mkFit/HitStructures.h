@@ -218,7 +218,12 @@ public:
   void InsertCandidate(const Track& track)
   {
     int bin = getEtaBin(track.posEta());
-    m_etabins_of_candidates[bin].InsertTrack(track);
+    // XXXX MT Had to add back this conditional for best-hit (bad seeds)
+    float r = track.radius(); 
+    if (bin != -1 && ( (r > 15.9 && r < 16.1) || (r > 23.0 && r < 24.0) ))
+    {
+      m_etabins_of_candidates[bin].InsertTrack(track);
+    }
   }
 
   void SortByPhi()
