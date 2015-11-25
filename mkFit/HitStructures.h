@@ -217,10 +217,11 @@ public:
 
   void InsertCandidate(const Track& track)
   {
-    int bin = getEtaBin(track.posEta());
+    int bin = getEtaBinExtendedEdge(track.posEta());
     // XXXX MT Had to add back this conditional for best-hit (bad seeds)
-    float r = track.radius(); 
-    if (bin != -1 && ( (r > 15.9 && r < 16.1) || (r > 23.0 && r < 24.0) ))
+    // Note also the ExtendedEdge above, this practically removes bin = -1
+    // occurence and improves efficiency.
+    if (bin != -1)
     {
       m_etabins_of_candidates[bin].InsertTrack(track);
     }
@@ -327,8 +328,6 @@ public:
 
   void InsertCandidate(const Track& track, int seed_index)
   {
-    // XXXX assuming vertex at origin.
-    // XXXX the R condition is trying to get rid of bad seeds (as a quick hack)
     int bin = getEtaBin(track.posEta());
     m_etabins_of_comb_candidates[bin].InsertTrack(track,seed_index);
   }
