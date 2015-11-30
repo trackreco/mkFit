@@ -3,7 +3,7 @@
 #include "Propagation.h"
 #include "BinInfoUtils.h"
 #include "Event.h"
-#define DEBUG
+//#define DEBUG
 #include "Debug.h"
 
 #include <cmath>

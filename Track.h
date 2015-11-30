@@ -128,7 +128,7 @@ private:
 
 class TrackExtra {
 public:
-  TrackExtra() : seedID_(UINT_MAX) {}
+  TrackExtra() : seedID_(std::numeric_limits<unsigned int>::max() ) {}
   TrackExtra(unsigned int seedID) : seedID_(seedID) {}
   unsigned int mcTrackID() const {return mcTrackID_;}
   unsigned int nHitsMatched() const {return nHitsMatched_;}
