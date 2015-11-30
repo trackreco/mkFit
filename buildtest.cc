@@ -250,10 +250,13 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
         dprint("ratio " << ratio);
         propState.parameters = (1.0-ratio)*propStateMin.parameters + ratio*propStateMax.parameters;
       }
-      dprint(std::endl << propStateMin.parameters << std::endl << propState.parameters << std::endl
-                       << propStateMax.parameters << std::endl << propStateMax.parameters - propStateMin.parameters
-                       << std::endl << hitMeas.parameters());
+      dprint("interp propState " << propState.parameters << std::endl
+                                 << propStateMax.parameters - propStateMin.parameters);
+      dcall(dumpMatrix(propState.errors));
+      dprint(hitMeas.parameters());
+      dcall(dumpMatrix(hitMeas.errors()));
 #endif
+      dprint(propState.position() - hitMeas.parameters());
       const float chi2 = computeChi2(propState,hitMeas);
       dprint("found hit with index: " << cand_hit_idx << " from sim track " 
         << ev.simHitsInfo_[evt_lay_hits[ilayer][cand_hit_idx].mcHitID()].mcTrackID_

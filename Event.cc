@@ -39,12 +39,14 @@ void Event::resetLayerHitMap(bool resetSimHits) {
   for (int ilayer = 0; ilayer < layerHits_.size(); ++ilayer) {
     for (int index = 0; index < layerHits_[ilayer].size(); ++index) {
       auto& hit = layerHits_[ilayer][index];
+      assert(hit.mcHitID() >= 0); // tmp debug
       layerHitMap_[hit.mcHitID()] = HitID(ilayer, index);
     }
   }
   if (resetSimHits) {
     for (auto&& track : simTracks_) {
       for (int il = 0; il < track.nTotalHits(); ++il) {
+        assert(layerHitMap_[track.getHitIdx(il)].index >= 0); // tmp debug
         track.setHitIdx(il, layerHitMap_[track.getHitIdx(il)].index);
       }
     }
@@ -66,7 +68,7 @@ void Event::Simulate()
   simTracks_.resize(Config::nTracks);
   simHitsInfo_.resize(Config::nTotHit * Config::nTracks);
   for (auto&& l : layerHits_) {
-    l.reserve(Config::nTracks);
+    l.resize(Config::nTracks);  // thread safety
   }
 
 #ifdef TBB
@@ -96,8 +98,8 @@ void Event::Simulate()
       auto& sim_track = simTracks_[itrack];
       sim_track.setLabel(itrack);
       for (int ilay = 0; ilay < hits.size(); ++ilay) {
-        sim_track.addHitIdx(hits[ilay].mcHitID(),0.0f); // tmp because of sorting...
-        layerHits_[ilay].push_back(hits[ilay]);
+        sim_track.addHitIdx(hits[ilay].mcHitID(),0.0f); // set to the correct hit index after sorting
+        layerHits_[ilay][itrack] = hits[ilay];  // thread safety
       }
     }
 #ifdef TBB

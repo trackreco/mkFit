@@ -1,4 +1,5 @@
 #include "Track.h"
+#include "Debug.h"
 
 // find the simtrack that provided the most hits
 void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo)
@@ -25,7 +26,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
     mcTrackID_    = 999999;
     nHitsMatched_ = mcount;
   }
-  std::cout << "Track " << trk.label() << " best mc track " << mtrk << " count " << mcount << "/" << trk.nFoundHits() << std::endl;
+  dprint("Track " << trk.label() << " best mc track " << mtrk << " count " << mcount << "/" << trk.nFoundHits());
   // need to include protection against zero size tracks --> need ID other than 999999
 }
 
