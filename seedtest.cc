@@ -7,14 +7,14 @@
 //#define DEBUG
 #include "Debug.h"
 
-void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, Event& ev){
+void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, TrackExtraVec& seed_track_extra, Event& ev){
   bool debug(true);
   for (unsigned int itrack=0;itrack<evt_sim_tracks.size();++itrack) {
     const Track& trk = evt_sim_tracks[itrack];
     int   seedhits[Config::nLayers];
     float chi2 = 0;
     TrackState updatedState = trk.state();
-    dprint("processing sim track # " << trk.seedID() << " par=" << trk.parameters());
+    dprint("processing sim track # " << itrack << " par=" << trk.parameters());
 
     TSLayerPairVec updatedStates; // validation for position pulls
 
@@ -22,7 +22,7 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, E
       auto hitidx = trk.getHitIdx(ilayer);
       const Hit& seed_hit = ev.layerHits_[ilayer][hitidx];
       TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
-      MeasurementState measState = seed_hit.measurementState();
+      const auto& measState = seed_hit.measurementState();
       updatedState = updateParameters(propState, measState);
       seedhits[ilayer] = hitidx;
       //      chi2 += computeChi2(updatedState,measState); --> could use this to make the chi2
@@ -32,8 +32,9 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, E
     ev.validation_.collectSeedTkTSLayerPairVecMapInfo(itrack,updatedStates); // use to collect position pull info
 
     Track seed(updatedState,0.,itrack,Config::nlayers_per_seed,seedhits);//fixme chi2
-    dprint("created seed track # " << seed.seedID() << " par=" << seed.parameters());
+    dprint("created seed track # " << itrack << " par=" << seed.parameters());
     evt_seed_tracks.push_back(seed);
+    seed_track_extra.emplace_back(itrack);
   }
 }
 
@@ -198,11 +199,6 @@ void buildSeedsFromTriplets(const std::vector<HitVec> & filtered_triplets, Track
     for (auto ilayer=0U;ilayer<Config::nlayers_per_seed;++ilayer) {
       Hit seed_hit = hit_triplet[ilayer];
       TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
-#ifdef CHECKSTATEVALID
-      if (!propState.valid) {
-        break;
-      }
-#endif
       MeasurementState measState = seed_hit.measurementState();
       updatedState = updateParameters(propState, measState);
       //      chi2 += computeChi2(updatedState,measState); --> could use this to make the chi2
@@ -211,7 +207,7 @@ void buildSeedsFromTriplets(const std::vector<HitVec> & filtered_triplets, Track
     }
     ev.validation_.collectSeedTkTSLayerPairVecMapInfo(seedID,updatedStates); // use to collect position pull info
 
-    Track seed(updatedState,hit_triplet,0.,seedID);//fixme chi2 
+    Track seed(updatedState,hit_triplet,0.);//fixme chi2 
     evt_seed_tracks.push_back(seed);
     seedID++; // increment dummy counter for seedID
   }

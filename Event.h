@@ -24,6 +24,7 @@ public:
   void Find();
   void Fit();
   void Validate(const unsigned int);
+  void PrintStats(const TrackVec&, TrackExtraVec&);
   
   unsigned int evtID() const {return evtID_;}
   void resetLayerHitMap(bool resetSimHits);
@@ -39,6 +40,8 @@ public:
   HitIDVec layerHitMap_; // indexed same as simHitsInfo_, maps to layer & hit
 
   TrackVec simTracks_, seedTracks_, candidateTracks_, fitTracks_;
+  // validation sets these, so needs to be mutable
+  mutable TrackExtraVec seedTracksExtra_, candidateTracksExtra_, fitTracksExtra_;
 
   // phi-eta partitioning map: vector of vector of vectors of std::pairs. 
   // vec[nLayers][nEtaBins][nPhiBins]

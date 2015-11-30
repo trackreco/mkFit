@@ -3,29 +3,31 @@
 #include "Track.h"
 #include "BinInfoUtils.h"
 
+class Event;
+
 class Validation {
 public:
   virtual void resetValidationMaps() {}
 
-  virtual void collectSimTkTSVecMapInfo(const unsigned int, const TSVec&) {}
+  virtual void collectSimTkTSVecMapInfo(unsigned int, const TSVec&) {}
 
-  virtual void collectSeedTkCFMapInfo(const unsigned int, const TrackState&) {}
-  virtual void collectSeedTkTSLayerPairVecMapInfo(const unsigned int, const TSLayerPairVec&) {}
+  virtual void collectSeedTkCFMapInfo(unsigned int, const TrackState&) {}
+  virtual void collectSeedTkTSLayerPairVecMapInfo(unsigned int, const TSLayerPairVec&) {}
 
-  virtual void collectBranchingInfo(const unsigned int, const unsigned int, const float, const float, const unsigned int, const float, const unsigned int, const unsigned int, const std::vector<unsigned int> &, const std::vector<unsigned int>) {}
+  virtual void collectBranchingInfo(unsigned int, unsigned int, float, float, unsigned int, float, unsigned int, unsigned int, const std::vector<unsigned int>&, const std::vector<unsigned int>&) {}
 
-  virtual void collectFitTkCFMapInfo(const unsigned int, const TrackState&) {}
-  virtual void collectFitTkTSLayerPairVecMapInfo(const unsigned int, const TSLayerPairVec&) {}
+  virtual void collectFitTkCFMapInfo(unsigned int, const TrackState&) {}
+  virtual void collectFitTkTSLayerPairVecMapInfo(unsigned int, const TSLayerPairVec&) {}
 
-  virtual void fillSegmentTree(const BinInfoMap&, const unsigned int) {}
+  virtual void fillSegmentTree(const BinInfoMap&, unsigned int) {}
 
-  virtual void fillBranchTree(const unsigned int) {}
+  virtual void fillBranchTree(unsigned int) {}
 
-  virtual void makeSimTkToRecoTksMaps(TrackVec&, TrackVec&, TrackVec&) {}
-  virtual void fillEffTree(const TrackVec&, const unsigned int) {}
+  virtual void makeSimTkToRecoTksMaps(const Event&) {}
+  virtual void fillEffTree(const TrackVec&, unsigned int) {}
 
   virtual void makeSeedTkToRecoTkMaps(const TrackVec&, const TrackVec&) {}
-  virtual void fillFakeRateTree(const TrackVec&, const unsigned int) {}
+  virtual void fillFakeRateTree(const TrackVec&, unsigned int) {}
 
   virtual void fillConfigTree(const std::vector<double> &) {}
 

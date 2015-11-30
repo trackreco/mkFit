@@ -39,12 +39,14 @@ void Event::resetLayerHitMap(bool resetSimHits) {
   for (int ilayer = 0; ilayer < layerHits_.size(); ++ilayer) {
     for (int index = 0; index < layerHits_[ilayer].size(); ++index) {
       auto& hit = layerHits_[ilayer][index];
+      assert(hit.mcHitID() >= 0); // tmp debug
       layerHitMap_[hit.mcHitID()] = HitID(ilayer, index);
     }
   }
   if (resetSimHits) {
     for (auto&& track : simTracks_) {
       for (int il = 0; il < track.nTotalHits(); ++il) {
+        assert(layerHitMap_[track.getHitIdx(il)].index >= 0); // tmp debug
         track.setHitIdx(il, layerHitMap_[track.getHitIdx(il)].index);
       }
     }
@@ -61,12 +63,12 @@ Event::Event(const Geometry& g, Validation& v, unsigned int evtID, int threads) 
 
 void Event::Simulate()
 {
-  MCHitInfo::mcHitIDCounter_ = -1;
+  MCHitInfo::mcHitIDCounter_ = 0;
 
   simTracks_.resize(Config::nTracks);
   simHitsInfo_.resize(Config::nTotHit * Config::nTracks);
   for (auto&& l : layerHits_) {
-    l.reserve(Config::nTracks);
+    l.resize(Config::nTracks);  // thread safety
   }
 
 #ifdef TBB
@@ -96,8 +98,8 @@ void Event::Simulate()
       auto& sim_track = simTracks_[itrack];
       sim_track.setLabel(itrack);
       for (int ilay = 0; ilay < hits.size(); ++ilay) {
-        sim_track.addHitIdx(hits[ilay].mcHitID(),0.0f); // tmp because of sorting...
-        layerHits_[ilay].push_back(hits[ilay]);
+        sim_track.addHitIdx(hits[ilay].mcHitID(),0.0f); // set to the correct hit index after sorting
+        layerHits_[ilay][itrack] = hits[ilay];  // thread safety
       }
     }
 #ifdef TBB
@@ -213,11 +215,12 @@ void Event::Seed()
 {
 #ifdef ENDTOEND
   //  buildSeedsByRoadTriplets(layerHits_,segmentMap_,seedTracks_,*this);
-  buildSeedsByMC(simTracks_,seedTracks_,*this);
+  buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
 #else
-  buildSeedsByMC(simTracks_,seedTracks_,*this);
+  buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
 #endif
-  std::sort(seedTracks_.begin(), seedTracks_.end(), tracksByPhi);
+  // if we sort here, also have to sort seedTracksExtra and redo labels.
+  //std::sort(seedTracks_.begin(), seedTracks_.end(), tracksByPhi);
 }
 
 void Event::Find()
@@ -231,18 +234,47 @@ void Event::Find()
 
 void Event::Fit()
 {
+  fitTracks_.resize(candidateTracks_.size());
+  fitTracksExtra_.resize(candidateTracks_.size());
 #ifdef ENDTOEND
-  runFittingTest(*this, candidateTracks_);
+  runFittingTest(*this, candidateTracks_, candidateTracksExtra_);
 #else
-  runFittingTest(*this, simTracks_);
+  runFittingTest(*this, simTracks_, simTracksExtra_);
 #endif
 }
 
 void Event::Validate(const unsigned int ievt){
   validation_.fillSegmentTree(segmentMap_,ievt);
   validation_.fillBranchTree(ievt);
-  validation_.makeSimTkToRecoTksMaps(seedTracks_,candidateTracks_,fitTracks_);
+  validation_.makeSimTkToRecoTksMaps(*this);
   validation_.fillEffTree(simTracks_,ievt);
   validation_.makeSeedTkToRecoTkMaps(candidateTracks_,fitTracks_);
   validation_.fillFakeRateTree(seedTracks_,ievt);
+}
+
+void Event::PrintStats(const TrackVec& trks, TrackExtraVec& trkextras)
+{
+  int miss(0), found(0), fp_10(0), fp_20(0), hit8(0), h8_10(0), h8_20(0);
+
+  for (auto&& trk : trks) {
+    auto&& extra = trkextras[trk.label()];
+    extra.setMCTrackIDInfo(trk, layerHits_, simHitsInfo_);
+    if (extra.isMissed()) {
+      ++miss;
+    } else {
+      auto&& mctrk = simTracks_[extra.mcTrackID()];
+      auto pr = trk.pT()/mctrk.pT();
+      found++;
+      bool h8 = trk.nFoundHits() >= 8;
+      bool pt10 = pr > 0.9 && pr < 1.1;
+      bool pt20 = pr > 0.8 && pr < 1.2;
+      fp_10 += pt10;
+      fp_20 += pt20;
+      hit8 += h8;
+      h8_10 += h8 && pt10;
+      h8_20 += h8 && pt20;
+    }
+  }
+  std::cout << "found tracks=" << found   << "  in pT 10%=" << fp_10    << "  in pT 20%=" << fp_20    << "     no_mc_assoc="<< miss <<std::endl
+            << "  nH >= 8   =" << hit8    << "  in pT 10%=" << h8_10    << "  in pT 20%=" << h8_20    << std::endl;
 }

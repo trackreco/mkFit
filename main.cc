@@ -138,6 +138,10 @@ int main(int argc, char** argv)
     tracks[1] += ev.seedTracks_.size();
     tracks[2] += ev.candidateTracks_.size();
     tracks[3] += ev.fitTracks_.size();
+    std::cout << "Built tracks" << std::endl;
+    ev.PrintStats(ev.candidateTracks_, ev.candidateTracksExtra_);
+    std::cout << "Fit tracks" << std::endl;
+    ev.PrintStats(ev.fitTracks_, ev.fitTracksExtra_);
   }
 
   std::vector<double> time(ticks.size());

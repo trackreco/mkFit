@@ -1,11 +1,14 @@
 #include "Track.h"
+#include "Debug.h"
 
 // find the simtrack that provided the most hits
-SimTkIDInfo Track::MCTrackIDInfo(const MCHitInfoVec& globalHitInfo) const
+void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo)
 {
   std::vector<unsigned int> mctrack;
-  for (int ihit = 0; ihit <= hitIdxPos_ ; ++ihit){
-    mctrack.push_back(globalHitInfo[hitIdxArr_[ihit]].mcTrackID_);
+  auto hitIdx = trk.nTotalHits();
+  for (int ihit = 0; ihit < hitIdx; ++ihit){
+    auto mchitid = layerHits[ihit][trk.getHitIdx(ihit)].mcHitID();
+    mctrack.push_back(globalHitInfo[mchitid].mcTrackID_);
   }
   std::sort(mctrack.begin(), mctrack.end()); // ensures all elements are checked properly
 
@@ -16,18 +19,15 @@ SimTkIDInfo Track::MCTrackIDInfo(const MCHitInfoVec& globalHitInfo) const
     if (c >= mcount) { mtrk = m; mcount = c; }
     m = i;
   }
-  return SimTkIDInfo (mtrk,mcount);
-#if 0
-  if (4*mcount >= 3*hits_.size()){ // if more, matched track --> set id info
+  if (3*mcount > 2*trk.nFoundHits()){ // if more, matched track --> set id info
     mcTrackID_    = mtrk;
     nHitsMatched_ = mcount;
-  }
-  else{ // fake track, id = 999 999
+  } else { // fake track, id = 999 999
     mcTrackID_    = 999999;
     nHitsMatched_ = mcount;
   }
+  dprint("Track " << trk.label() << " best mc track " << mtrk << " count " << mcount << "/" << trk.nFoundHits());
   // need to include protection against zero size tracks --> need ID other than 999999
-#endif
 }
 
 /*
