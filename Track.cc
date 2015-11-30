@@ -19,7 +19,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
     if (c >= mcount) { mtrk = m; mcount = c; }
     m = i;
   }
-  if (2*mcount > trk.nFoundHits()){ // if more, matched track --> set id info
+  if (3*mcount > 2*trk.nFoundHits()){ // if more, matched track --> set id info
     mcTrackID_    = mtrk;
     nHitsMatched_ = mcount;
   } else { // fake track, id = 999 999

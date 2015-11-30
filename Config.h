@@ -16,7 +16,7 @@ namespace Config
   constexpr double Sqrt2   = 1.4142135623730950488016887242097;
 
   // config on main + mkFit
-  constexpr int nTracks = 1;
+  constexpr int nTracks = 20000;
   constexpr int nEvents = 10;
 
   // config on main -- for geometry

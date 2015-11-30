@@ -18,7 +18,7 @@ void updateParameters66(TrackState& propagatedState, MeasurementState& measureme
   int invFail(0);
   SMatrixSym33 resErrInv33 = resErr.Sub<SMatrixSym33>(0,0).InverseFast(invFail);
   if (0 != invFail) {
-    std::cout << __FILE__ << ":" << __LINE__ << ": FAILED INVERSION" << std::endl;
+    dprint(__FILE__ << ":" << __LINE__ << ": FAILED INVERSION");
     result = propagatedState;
     return;
   }
@@ -49,7 +49,7 @@ TrackState updateParameters(const TrackState& propagatedState, const Measurement
   const SMatrixSym33 resErrInv = resErr.InverseFast(invFail);
 
   if (0 != invFail) {
-    //std::cerr << __FILE__ << ":" << __LINE__ << ": FAILED INVERSION" << std::endl;
+    dprint(__FILE__ << ":" << __LINE__ << ": FAILED INVERSION");
     return propagatedState;
   }
 
