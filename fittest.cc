@@ -174,7 +174,7 @@ void runFittingTest(Event& ev, const TrackVec& candidates, const TrackExtraVec& 
   });
 }
 #else
-void runFittingTest(Event& ev, const TrackVec& candidates, , const TrackExtraVec& candextra)
+void runFittingTest(Event& ev, const TrackVec& candidates, const TrackExtraVec& candextra)
 {
   for (auto itrack = 0U; itrack < candidates.size(); ++itrack) {
     const auto& trk = candidates[itrack];
