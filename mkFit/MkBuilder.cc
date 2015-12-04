@@ -7,7 +7,7 @@
 
 #include <omp.h>
 
-#define PRINTOUTS_FOR_PLOTS
+//#define PRINTOUTS_FOR_PLOTS
 
 namespace
 {
