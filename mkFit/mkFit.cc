@@ -205,7 +205,7 @@ void test_standard()
   printf("=== TOTAL for %d events\n", Config::nEvents);
   printf("================================================================\n");
 
-  printf("Matriplex fit = %.5f  --- Build  MX = %.5f  BHMX = %.5f  CEMX = %.5f\n",
+  printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f\n",
          s_tmp, s_tmp2bh, s_tmp2, s_tmp2ce);
 
   if (g_operation == "read")
