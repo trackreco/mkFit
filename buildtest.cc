@@ -245,7 +245,7 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
       const MeasurementState hitMeas = hitCand.measurementState();
 
 #ifdef LINEARINTERP
-      if (hitCand.r() > minR) {
+      if (hitCand.r() > minR && deltaR > 0.0f) {
         const float ratio = (hitCand.r() - minR)/deltaR;
         dprint("ratio " << ratio);
         propState.parameters = (1.0-ratio)*propStateMin.parameters + ratio*propStateMax.parameters;
@@ -266,6 +266,7 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
         const TrackState tmpUpdatedState = updateParameters(propState, hitMeas);
         Track tmpCand = tkcand.clone();
         tmpCand.addHitIdx(cand_hit_idx,chi2);
+        tmpCand.setState(tmpUpdatedState);
         tmp_candidates.push_back(tmpCand);
         branch_hit_indices.push_back(cand_hit_idx); // validation
       }
