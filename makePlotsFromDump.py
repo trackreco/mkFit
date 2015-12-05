@@ -1,7 +1,7 @@
 import os.path, glob, sys
 import ROOT
 
-suffix = "ttm2seed"
+suffix = "20k_10ev_VU8_TH7_dump"
 
 g = ROOT.TFile("test"+suffix+".root","recreate")
 
@@ -34,7 +34,7 @@ h_SEEDPOSPHI = ROOT.TH1F("h_SEEDPOSPHI", "h_SEEDPOSPHI", 32, -3.2, 3.2)
 h_SEEDPOSR   = ROOT.TH1F("h_SEEDPOSR", "h_SEEDPOSR", 20, 10, 14)
 h_SEEDPT     = ROOT.TH1F("h_SEEDPT", "h_SEEDPT", 20, 0, 20)
 
-with open('log'+suffix+'.txt') as f:
+with open('log_'+suffix+'.txt') as f:
     for line in f:
         if "number of hits in window in layer 3" in line:
             val = line.split()[10]
@@ -54,7 +54,7 @@ with open('log'+suffix+'.txt') as f:
                 h_SM9.Fill(float(val))
             if "MX" in line:
                 h_MX9.Fill(float(val))
-        elif "MX - found track with nHitIdx" in line:
+        elif "MX - found track with nFoundHits" in line:
             NH = line.split()[5].split('=')[1]
             h_MXNH.Fill(float(NH))
             C2 = line.split()[6].split('=')[1]

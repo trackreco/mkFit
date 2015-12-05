@@ -52,29 +52,32 @@ public:
 
   void resetValidationMaps() override;
   
-  void collectSimTkTSVecMapInfo(const unsigned int mcTrackID, const TSVec& initTSs) override;
+  void collectSimTkTSVecMapInfo(unsigned int mcTrackID, const TSVec& initTSs) override;
 
-  void collectSeedTkCFMapInfo(const unsigned int seedID, const TrackState& cfitStateHit0) override;
-  void collectSeedTkTSLayerPairVecMapInfo(const unsigned int seedID, const TSLayerPairVec& updatedStates) override;
+  void collectSeedTkCFMapInfo(unsigned int seedID, const TrackState& cfitStateHit0) override;
+  void collectSeedTkTSLayerPairVecMapInfo(unsigned int seedID, const TSLayerPairVec& updatedStates) override;
 
-  void collectBranchingInfo(const unsigned int seedID, const unsigned int ilayer, const float nSigmaDeta, const float etaBinMinus, const unsigned int etaBinPlus, const float nSigmaDphi, const unsigned int phiBinMinus, const unsigned int phiBinPlus, const std::vector<unsigned int> & cand_hit_indices, const std::vector<unsigned int> cand_hits_branches);
+  void collectBranchingInfo(unsigned int seedID, unsigned int ilayer,
+                            float nSigmaDeta, float etaBinMinus, unsigned int etaBinPlus,
+                            float nSigmaDphi, unsigned int phiBinMinus, unsigned int phiBinPlus,
+                            const std::vector<unsigned int>& cand_hit_indices, const std::vector<unsigned int>& cand_hits_branches) override;
 
-  void collectFitTkCFMapInfo(const unsigned int seedID, const TrackState& cfitStateHit0) override;
-  void collectFitTkTSLayerPairVecMapInfo(const unsigned int seedID, const TSLayerPairVec& updatedStates) override;
+  void collectFitTkCFMapInfo(unsigned int seedID, const TrackState& cfitStateHit0) override;
+  void collectFitTkTSLayerPairVecMapInfo(unsigned int seedID, const TSLayerPairVec& updatedStates) override;
 
-  void fillSegmentTree(const BinInfoMap& segmentMap, const unsigned int evtID) override;
+  void fillSegmentTree(const BinInfoMap& segmentMap, unsigned int evtID) override;
 
-  void fillBranchTree(const unsigned int evtID) override;
+  void fillBranchTree(unsigned int evtID) override;
 
-  void makeSimTkToRecoTksMaps(TrackVec& evt_seed_tracks, TrackVec& evt_build_tracks, TrackVec& evt_fit_tracks) override;
-  void mapSimTkToRecoTks(TrackVec& evt_tracks, TkToTkRefVecMap& simTkMap);
-  void fillEffTree(const TrackVec& evt_sim_tracks, const unsigned int ievt) override;
+  void makeSimTkToRecoTksMaps(const Event& ev) override;
+  void mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extra, const MCHitInfoVec&, TkToTkRefVecMap& simTkMap);
+  void fillEffTree(const TrackVec& evt_sim_tracks, unsigned int ievt) override;
 
   void makeSeedTkToRecoTkMaps(const TrackVec& evt_build_tracks, const TrackVec& evt_fit_tracks) override;
-  void mapSeedTkToRecoTk(const TrackVec& evt_tracks, TkToTkRefMap& seedTkMap);
-  void fillFakeRateTree(const TrackVec& evt_seed_tracks, const unsigned int ievt) override;
+  void mapSeedTkToRecoTk(const TrackVec& evt_tracks, const Event& ev, TkToTkRefMap& seedTkMap);
+  void fillFakeRateTree(const TrackVec& evt_seed_tracks, unsigned int ievt) override;
 
-  void fillConfigTree(const std::vector<double> & ticks);
+  void fillConfigTree(const std::vector<double>& ticks) override;
 
   void saveTTrees() override;
 

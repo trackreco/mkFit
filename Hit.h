@@ -142,7 +142,7 @@ struct MCHitInfo
 {
   MCHitInfo() {}
   MCHitInfo(unsigned int track, unsigned int layer, unsigned int ithlayerhit)
-    : mcTrackID_(track), layer_(layer), ithLayerHit_(ithlayerhit), mcHitID_(++mcHitIDCounter_) {}
+    : mcTrackID_(track), layer_(layer), ithLayerHit_(ithlayerhit), mcHitID_(mcHitIDCounter_.fetch_add(1)) {}
 
   unsigned int mcTrackID_;
   unsigned int layer_;
@@ -175,7 +175,7 @@ public:
 class Hit
 {
 public:
-  Hit(){}
+  Hit() : mcHitID_(-1) {}
   Hit(const SVector3& position, const SMatrixSym33& error, int mcHitID = -1)
     : state_(position, error), mcHitID_(mcHitID) {}
 

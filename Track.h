@@ -15,6 +15,7 @@ public:
   TrackState(int charge, const SVector3& pos, const SVector3& mom, const SMatrixSym66& err) :
     parameters(SVector6(pos.At(0),pos.At(1),pos.At(2),mom.At(0),mom.At(1),mom.At(2))),
     errors(err), charge(charge), valid(true) {}
+  SVector3 position() const {return SVector3(parameters[0],parameters[1],parameters[2]);}
   SVector6 parameters;
   SMatrixSym66 errors;
   short charge;
@@ -87,7 +88,7 @@ public:
     if (hitIdx >= 0) ++nGoodHitIdx_; chi2_+=chi2;
   }
 
-  int  getHitIdx(int posHitIdx) const
+  int getHitIdx(int posHitIdx) const
   {
     return hitIdxArr_[posHitIdx];
   }
@@ -108,11 +109,7 @@ public:
   void setChi2(float chi2) {chi2_=chi2;}
   void setLabel(int lbl)   {label_=lbl;}
 
-  void setState(TrackState newState) {state_=newState;}
-
-  SimTkIDInfo MCTrackIDInfo(const MCHitInfoVec& globalHitInfo) const;
-
-  int seedID() const { return -1; } // tmp
+  void setState(const TrackState& newState) {state_=newState;}
 
   Track clone() const { return Track(state_,chi2_,label_,nTotalHits(),hitIdxArr_); }
 
@@ -129,8 +126,32 @@ private:
   int   label_       = -1;
 };
 
+class TrackExtra {
+public:
+  TrackExtra() : seedID_(std::numeric_limits<unsigned int>::max() ) {}
+  TrackExtra(unsigned int seedID) : seedID_(seedID) {}
+  unsigned int mcTrackID() const {return mcTrackID_;}
+  unsigned int nHitsMatched() const {return nHitsMatched_;}
+  unsigned int seedID() const {return seedID_;}
+  bool isDuplicate() const {return isDuplicate_;}
+  bool isMissed() const {return 999999 == mcTrackID_;}
+  unsigned int duplicateID() const {return duplicateID_;}
+  void setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo);
+  void setMCDuplicateInfo(unsigned int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
+private:
+  friend class Track;
+  unsigned int mcTrackID_;
+  unsigned int nHitsMatched_;
+  unsigned int seedID_;
+  unsigned int duplicateID_;
+  bool isDuplicate_;
+};
+
+typedef std::vector<TrackExtra> TrackExtraVec;
 typedef std::vector<Track> TrackVec;
-typedef std::vector<Track*> TrackRefVec;
+// pointer to an object in a vector is a bad idea, if the vector has to
+// resize that invalidates the pointer...
+//typedef std::vector<const Track*> TrackRefVec;
 typedef std::vector<TrackState> TSVec;
 typedef std::vector<std::pair<unsigned int, TrackState> > TSLayerPairVec;
 

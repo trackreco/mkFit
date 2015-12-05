@@ -3,6 +3,6 @@
 
 #include "Event.h"
 
-void runFittingTest(Event&, const TrackVec&);
+void runFittingTest(Event&, const TrackVec&, const TrackExtraVec&);
 
 #endif

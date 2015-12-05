@@ -27,14 +27,15 @@
 // --> reco pos+err var == -2000, reco tk is unassociated to sim tk, just filled once {eff only}
 
 #include "TTreeValidation.h"
+#include "Event.h"
 #include "Config.h"
 #include "Propagation.h"
 #ifndef NO_ROOT
 
-static bool sortByHitsChi2(const Track* cand1, const Track* cand2)
+inline bool sortByHitsChi2(const Track* cand1, const Track* cand2)
 {
-  if (cand1->nHits()==cand2->nHits()) return cand1->chi2()<cand2->chi2();
-  return cand1->nHits()>cand2->nHits();
+  if (cand1->nFoundHits()==cand2->nFoundHits()) return cand1->chi2()<cand2->chi2();
+  return cand1->nFoundHits()>cand2->nFoundHits();
 }
 
 inline float computeHelixChi2(const SVector6& simParams, const SVector6& recoParams, const SMatrixSym66& recoErrs)
@@ -398,19 +399,19 @@ TTreeValidation::TTreeValidation(std::string fileName)
   fakeratetree_->Branch("iTkMatches_fit",&iTkMatches_fit_FR_);
 }
 
-void TTreeValidation::collectSimTkTSVecMapInfo(const unsigned int mcTrackID, const TSVec& initTSs){
+void TTreeValidation::collectSimTkTSVecMapInfo(unsigned int mcTrackID, const TSVec& initTSs){
   simTkTSVecMap_[mcTrackID] = initTSs;
 }
 
-void TTreeValidation::collectSeedTkCFMapInfo(const unsigned int seedID, const TrackState& cfitStateHit0){
+void TTreeValidation::collectSeedTkCFMapInfo(unsigned int seedID, const TrackState& cfitStateHit0){
   seedTkCFMap_[seedID] = cfitStateHit0;
 }
 
-void TTreeValidation::collectSeedTkTSLayerPairVecMapInfo(const unsigned int seedID, const TSLayerPairVec& updatedStates){
+void TTreeValidation::collectSeedTkTSLayerPairVecMapInfo(unsigned int seedID, const TSLayerPairVec& updatedStates){
   seedTkTSLayerPairVecMap_[seedID] = updatedStates;
 }
 
-void TTreeValidation::collectBranchingInfo(const unsigned int seedID, const unsigned int ilayer, const float nSigmaDeta, const float etaBinMinus, const unsigned int etaBinPlus, const float nSigmaDphi, const unsigned int phiBinMinus, const unsigned int phiBinPlus, const std::vector<unsigned int> & cand_hit_indices, const std::vector<unsigned int> branch_hit_indices){
+void TTreeValidation::collectBranchingInfo(unsigned int seedID, unsigned int ilayer, float nSigmaDeta, float etaBinMinus, unsigned int etaBinPlus, float nSigmaDphi, unsigned int phiBinMinus, unsigned int phiBinPlus, const std::vector<unsigned int>& cand_hit_indices, const std::vector<unsigned int>& branch_hit_indices){
   
   BranchVal tmpBranchVal;
   tmpBranchVal.nSigmaDeta  = nSigmaDeta;
@@ -425,11 +426,11 @@ void TTreeValidation::collectBranchingInfo(const unsigned int seedID, const unsi
   seedToBranchValVecLayMapMap_[seedID][ilayer].push_back(tmpBranchVal);
 }
 
-void TTreeValidation::collectFitTkCFMapInfo(const unsigned int seedID, const TrackState& cfitStateHit0){
+void TTreeValidation::collectFitTkCFMapInfo(unsigned int seedID, const TrackState& cfitStateHit0){
   fitTkCFMap_[seedID] = cfitStateHit0;
 }
 
-void TTreeValidation::collectFitTkTSLayerPairVecMapInfo(const unsigned int seedID, const TSLayerPairVec& updatedStates){
+void TTreeValidation::collectFitTkTSLayerPairVecMapInfo(unsigned int seedID, const TSLayerPairVec& updatedStates){
   fitTkTSLayerPairVecMap_[seedID] = updatedStates;
 }
 
@@ -460,7 +461,7 @@ void TTreeValidation::resetValidationMaps(){
   seedToFitMap_.clear();
 }
 
-void TTreeValidation::fillSegmentTree(const BinInfoMap& segmentMap, const unsigned int evtID){
+void TTreeValidation::fillSegmentTree(const BinInfoMap& segmentMap, unsigned int evtID){
   std::lock_guard<std::mutex> locker(glock_);
 
   evtID_seg_ = evtID;
@@ -478,7 +479,7 @@ void TTreeValidation::fillSegmentTree(const BinInfoMap& segmentMap, const unsign
   }
 }
 
-void TTreeValidation::fillBranchTree(const unsigned int evtID)
+void TTreeValidation::fillBranchTree(unsigned int evtID)
 {
   std::lock_guard<std::mutex> locker(glock_);
   
@@ -589,33 +590,36 @@ void TTreeValidation::fillBranchTree(const unsigned int evtID)
   } // end loop over seeds
 }
 
-void TTreeValidation::makeSimTkToRecoTksMaps(TrackVec& evt_seed_tracks, TrackVec& evt_build_tracks, TrackVec& evt_fit_tracks){
+void TTreeValidation::makeSimTkToRecoTksMaps(const Event& ev){
   std::lock_guard<std::mutex> locker(glock_);
-
   // set mcTkIDs... and sort by each (simTracks set in order by default!)
-  mapSimTkToRecoTks(evt_seed_tracks,simToSeedMap_);
-  mapSimTkToRecoTks(evt_build_tracks,simToBuildMap_);
-  mapSimTkToRecoTks(evt_fit_tracks,simToFitMap_);
+  mapSimTkToRecoTks(ev.seedTracks_,ev.seedTracksExtra_,ev.simHitsInfo_,simToSeedMap_);
+  mapSimTkToRecoTks(ev.candidateTracks_,ev.candidateTracksExtra_,ev.simHitsInfo_,simToBuildMap_);
+  mapSimTkToRecoTks(ev.fitTracks_,ev.fitTracksExtra_,ev.simHitsInfo_,simToFitMap_);
 }
 
-void TTreeValidation::mapSimTkToRecoTks(TrackVec& evt_tracks, TkToTkRefVecMap& simTkMap){
-  for (auto&& track : evt_tracks){
-    track.setMCTrackIDInfo();
-    if (track.mcTrackID() != 999999){ // skip fakes, don't store them at all in sim map
-      simTkMap[track.mcTrackID()].push_back(&track);
+void TTreeValidation::mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extra, const MCHitInfoVec& mcHits, TkToTkRefVecMap& simTkMap){
+  for (auto itrack = 0U; itrack < evt_tracks.size(); ++itrack){
+    auto&& track(evt_tracks[itrack]);
+    auto&& extra(evt_extra[itrack]);
+    extra.setMCTrackIDInfo(track, mcHits);
+    if (extra.mcTrackID() != 999999){ // skip fakes, don't store them at all in sim map
+      simTkMap[extra.mcTrackID()].push_back(&track);
     }
   }
 
   for (auto&& simTkMatches : simTkMap){
     if (simTkMatches.second.size() < 2) { // no duplicates
-      simTkMatches.second[0]->setMCDuplicateInfo(0,bool(false));
+      auto& extra(evt_extra[simTkMatches.second[0]->label()]);
+      extra.setMCDuplicateInfo(0,bool(false));
     }
     else{ // sort duplicates (ghosts) to keep best one --> most hits, lowest chi2
       std::sort(simTkMatches.second.begin(), simTkMatches.second.end(), sortByHitsChi2); 
       unsigned int duplicateID = 0;
       for (auto&& track : simTkMatches.second){
-	track->setMCDuplicateInfo(duplicateID,bool(true));
-	duplicateID++; // used in fake rate trees!
+        auto& extra(evt_extra[track->label()]);
+        extra.setMCDuplicateInfo(duplicateID,bool(true));
+        duplicateID++; // used in fake rate trees!
       } 
     }
   }
@@ -635,7 +639,7 @@ void TTreeValidation::mapSeedTkToRecoTk(const TrackVec& evt_tracks, TkToTkRefMap
   }
 }
 
-void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned int ievt){
+void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, unsigned int ievt){
   std::lock_guard<std::mutex> locker(glock_);
 
   for (auto&& simtrack : evt_sim_tracks){
@@ -1070,7 +1074,7 @@ void TTreeValidation::fillEffTree(const TrackVec& evt_sim_tracks, const unsigned
   }
 }
 
-void TTreeValidation::fillFakeRateTree(const TrackVec& evt_seed_tracks, const unsigned int ievt){
+void TTreeValidation::fillFakeRateTree(const TrackVec& evt_seed_tracks, unsigned int ievt){
   std::lock_guard<std::mutex> locker(glock_);
   
   for (auto&& seedtrack : evt_seed_tracks){
