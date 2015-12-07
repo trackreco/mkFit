@@ -22,6 +22,19 @@ inline int getEtaBin(float eta)
   return int( (eta+Config::fEtaDet-Config::lEtaBin/2.)/Config::lEtaBin );
 }
 
+inline int getEtaBinExtendedEdge(float eta)
+{
+  //in this case we are out of bounds
+  if (fabs(eta) > Config::fEtaDet + Config::lEtaPart) return -1;
+  
+  //first and last bin have extra width
+  if (eta<(Config::lEtaBin-Config::fEtaDet)) return 0;
+  if (eta>(Config::fEtaDet-Config::lEtaBin)) return Config::nEtaBin-1;
+  
+  //now we can treat all bins as if they had same size
+  return int( (eta+Config::fEtaDet-Config::lEtaBin/2.)/Config::lEtaBin );
+}
+
 inline int getBothEtaBins(float eta, int& b1, int& b2)
 {
   b1 = b2 = -1;

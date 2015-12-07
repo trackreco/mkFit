@@ -46,6 +46,13 @@ namespace
   int   g_file_num_ev = 0;
   int   g_file_cur_ev = 0;
 
+  bool  g_run_fit_std   = false;
+
+  bool  g_run_build_all = true;
+  bool  g_run_build_bh  = false;
+  bool  g_run_build_std = false;
+  bool  g_run_build_ce  = false;
+
   std::string g_operation = "simulate_and_process";;
   std::string g_file_name = "simtracks.bin";
 }
@@ -184,13 +191,15 @@ void test_standard()
 
     plex_tracks.resize(ev.simTracks_.size());
 
-    double tmp = -1;  // runFittingTestPlex(ev, plex_tracks);
+    double tmp = 0, tmp2bh = 0, tmp2 = 0, tmp2ce = 0;
 
-    double tmp2bh = runBuildingTestPlexBestHit(ev);
+    if (g_run_fit_std) tmp = runFittingTestPlex(ev, plex_tracks);
 
-    double tmp2   = runBuildingTestPlex(ev, ev_tmp);
+    if (g_run_build_all || g_run_build_bh)  tmp2bh = runBuildingTestPlexBestHit(ev);
 
-    double tmp2ce = runBuildingTestPlexCloneEngine(ev, ev_tmp);
+    if (g_run_build_all || g_run_build_std) tmp2   = runBuildingTestPlex(ev, ev_tmp);
+
+    if (g_run_build_all || g_run_build_ce)  tmp2ce = runBuildingTestPlexCloneEngine(ev, ev_tmp);
 
     printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f\n",
            tmp, tmp2bh, tmp2, tmp2ce);
@@ -268,6 +277,10 @@ int main(int argc, const char *argv[])
         "  --num-thr-sim   <num>    number of threads for simulation (def: %d)\n"
         "  --num-thr       <num>    number of threads for track finding (def: %d)\n"
         "                           extra cloning thread is spawned for each of them\n"
+        "  --fit-std                run standard fitting test (def: false)\n"
+        "  --build-bh               run best-hit building test (def: run all building tests)\n"
+        "  --build-std              run standard building test\n"
+        "  --build-ce               run clone-engine building test\n"
         "  --cloner-single-thread   do not spawn extra cloning thread (def: %s)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
         ,
@@ -287,6 +300,22 @@ int main(int argc, const char *argv[])
     {
       next_arg_or_die(mArgs, i);
       Config::numThreadsFinder = atoi(i->c_str());
+    }
+    else if(*i == "--fit-std")
+    {
+      g_run_fit_std = true;
+    }
+    else if(*i == "--build-bh")
+    {
+      g_run_build_all = false; g_run_build_bh = true;
+    }
+    else if(*i == "--build-std")
+    {
+      g_run_build_all = false; g_run_build_std = true;
+    }
+    else if(*i == "--build-ce")
+    {
+      g_run_build_all = false; g_run_build_ce = true;
     }
     else if(*i == "--cloner-single-thread")
     {
