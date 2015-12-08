@@ -25,7 +25,7 @@ void MultResidualsAdd(const MPlexLH& A,
    const T *c = C.fArray; ASSUME_ALIGNED(c, 64);
          T *d = D.fArray; ASSUME_ALIGNED(d, 64);
 
-#pragma simd
+//#pragma simd
    for (idx_t n = 0; n < N; ++n)
    {
       // manually subrtact into local vars -- 3 of them
@@ -125,8 +125,7 @@ void MultKalmanGain(const MPlexLS& A, const MPlexHS& B, MPlexLH& C)
   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
-#include "upParam_MultKalmanGain.ah"
-
+  #include "upParam_MultKalmanGain.ah"
 }
 
 void simil_x_propErr(const MPlexHS& A, const MPlexLS& B, MPlexLL& C)
@@ -276,7 +275,6 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   //        = propErr - kalmanGain*propErr
   //
   // XXX Ideally would also subtract at the same time in auto generated code.
-
   MPlexLS outErrTemp;
   kalmanGain_x_propErr(kalmanGain, propErr, outErrTemp);
   outErr.Subtract(propErr, outErrTemp);

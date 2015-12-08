@@ -139,7 +139,9 @@ namespace Config
     #ifdef __MIC__
       #define MPT_SIZE 16
     #else
-      #define MPT_SIZE 8
+      // TODO: revert to 8 and add an "elif USE_GPU" statement 
+      #define MPT_SIZE 20000 
+      //#define MPT_SIZE 8
     #endif
   #endif
 

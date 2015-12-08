@@ -141,6 +141,13 @@ public:
   void CopyOutClone(std::vector<std::pair<int,IdxChi2List> >& idxs,
 		    std::vector<std::vector<Track> >& cands_for_next_lay,
 		    int offset, int beg, int end, bool outputProp = false);
+
+  // FIXME: temporary mess to access private variables
+  MPlexQI *get_Chg() {return &Chg;}
+  MPlexLV *get_Par0() {return &Par[0];}
+  MPlexLS *get_Err0() {return &Err[0];}
+  MPlexHV *get_msPar() {return msPar;}
+  MPlexHS *get_msErr() {return msErr;}
 };
 
 #endif

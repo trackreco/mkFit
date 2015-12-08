@@ -10,4 +10,5 @@ void   make_validation_tree(const char         *fname,
 
 double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks);
 
+double runFittingTestPlexGPU(Event& ev, std::vector<Track>& rectracks);
 #endif
