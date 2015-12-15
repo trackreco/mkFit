@@ -322,7 +322,7 @@ public:
       m_etabins_of_comb_candidates[bin].InsertSeed(seed);
     } 
 #ifdef DEBUG
-    else std::cout << "excluding seed with r=" << r << " etaBin=" << bin << std::endl;
+    else std::cout << "excluding seed with r=" << seed.posR() << " etaBin=" << bin << std::endl;
 #endif
   }
 
