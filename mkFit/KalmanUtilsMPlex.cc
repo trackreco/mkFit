@@ -200,10 +200,12 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   MPlexLS propErr;
   MPlexLV propPar;
   // do a full propagation step to correct for residual distance from the hit radius - need the charge for this
-  // propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar);
-
-  propErr = psErr;
-  propPar = psPar;
+  if (Config::useCMSGeom) {
+    propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar);
+  } else {
+    propErr = psErr;
+    propPar = psPar;
+  }
 
 #ifdef DEBUG
   if (dump) {
@@ -315,10 +317,12 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
   MPlexLS propErr;
   MPlexLV propPar;
   // do a full propagation step to correct for residual distance from the hit radius - need the charge for this
-  // propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar);
-
-  propErr = psErr;
-  propPar = psPar;
+  if (Config::useCMSGeom) {
+    propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar);
+  } else {
+    propErr = psErr;
+    propPar = psPar;
+  }
 
 #ifdef DEBUG
   if (dump) {

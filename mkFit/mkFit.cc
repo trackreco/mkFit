@@ -32,8 +32,7 @@ void initGeom(Geometry& geom)
   // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
   float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
   for (int l = 0; l < 10; l++) {
-    float r = (l+1)*Config::fRadialSpacing;
-    //float r = Config::cmsAvgRads[l];
+    float r = Config::useCMSGeom ? Config::cmsAvgRads[l] : (l+1)*Config::fRadialSpacing;
     VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent);
     float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
     geom.AddLayer(utub, r, z);
@@ -154,6 +153,9 @@ void test_standard()
          MPT_SIZE, Config::numThreadsSimulation, Config::numThreadsFinder);
   printf("  sizeof(Track)=%zu, sizeof(Hit)=%zu, sizeof(SVector3)=%zu, sizeof(SMatrixSym33)=%zu, sizeof(MCHitInfo)=%zu\n",
          sizeof(Track), sizeof(Hit), sizeof(SVector3), sizeof(SMatrixSym33), sizeof(MCHitInfo));
+  if (Config::useCMSGeom) printf ("Using CMS-like geometry \n");
+  else printf ("Using 4-cm spacing geometry \n");
+
 
   if (g_operation == "read")
   {
@@ -283,11 +285,13 @@ int main(int argc, const char *argv[])
         "  --build-ce               run clone-engine building test\n"
         "  --cloner-single-thread   do not spawn extra cloning thread (def: %s)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
+	"  --cms-geom               use cms-like geometry (def: false)\n"
         ,
         argv[0],
         Config::numThreadsSimulation, Config::numThreadsFinder,
         Config::clonerUseSingleThread ? "true" : "false",
-        Config::finderReportBestOutOfN
+        Config::finderReportBestOutOfN,
+	Config::useCMSGeom
       );
       exit(0);
     }
@@ -325,6 +329,10 @@ int main(int argc, const char *argv[])
     {
       next_arg_or_die(mArgs, i);
       Config::finderReportBestOutOfN = atoi(i->c_str());
+    }
+    else if(*i == "--cms-geom")
+    {
+      Config::useCMSGeom = true;
     }
     else
     {

@@ -13,4 +13,6 @@ namespace Config
 
   bool  clonerUseSingleThread  = false;
   int   finderReportBestOutOfN = 1;
+
+  bool  useCMSGeom = false;
 }

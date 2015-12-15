@@ -132,6 +132,7 @@ namespace Config
   extern bool   clonerUseSingleThread;
   extern int    finderReportBestOutOfN;
 
+  extern bool   useCMSGeom;
 
 #ifdef USE_MATRIPLEX
 
