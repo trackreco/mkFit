@@ -453,12 +453,7 @@ struct OmpThreadData
 
 #ifdef DEBUG
       omp_set_lock(&writelock);
-      std::cout << "ebin=" << ebin << std::endl;
-      if (n_th_per_eta_bin>=1)
-        std::cout << "th_start_seed-a=" << 0 << " th_end_seed-a=" << etabin_of_comb_candidates.m_fill_index << " th_start_seed-b=" << (thread_num % n_th_per_eta_bin) * nseeds_ebin / n_th_per_eta_bin << " th_end_seed-b=" << std::min( ( (thread_num % n_th_per_eta_bin)+ 1) * nseeds_ebin / n_th_per_eta_bin, nseeds_ebin ) << std::endl;
-      else
-        std::cout << "th_start_seed-a=" << 0 << " th_end_seed-a=" << etabin_of_comb_candidates.m_fill_index << std::endl;
-      std::cout << std::endl;
+      std::cout << "th_start_seed=" << th_start_seed << " th_end_seed=" << th_end_seed << std::endl;
       omp_unset_lock(&writelock);
 #endif
   }
