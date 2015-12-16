@@ -285,7 +285,7 @@ int main(int argc, const char *argv[])
         "  --build-ce               run clone-engine building test\n"
         "  --cloner-single-thread   do not spawn extra cloning thread (def: %s)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
-	"  --cms-geom               use cms-like geometry (def: false)\n"
+	"  --cms-geom               use cms-like geometry (def: %i)\n"
         ,
         argv[0],
         Config::numThreadsSimulation, Config::numThreadsFinder,
