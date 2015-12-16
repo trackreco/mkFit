@@ -738,7 +738,7 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 {
   //fixme solve ambiguity NN vs beg-end
   float minChi2[NN];
-  std::fill_n(minChi2, NN, 100.); // XXXX MT was 9999
+  std::fill_n(minChi2, NN, Config::chi2Cut);
   int bestHit[NN];
   std::fill_n(bestHit, NN, -1);
 
