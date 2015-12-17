@@ -74,7 +74,7 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
   }
 #endif
 
-#ifdef PRINTOUTS_FOR_PLOTS
+#ifdef DEBUG
   for (int itrack = 0; itrack < simtracks.size(); ++itrack)
   {
     Track track = simtracks[itrack];
@@ -152,7 +152,7 @@ void MkBuilder::fit_seeds()
   }
 #endif
 
-#ifdef PRINTOUTS_FOR_PLOTS
+#ifdef DEBUG
   std::cout << "found total seeds=" << m_recseeds.size() << std::endl;
   for (int iseed = 0; iseed < m_recseeds.size(); ++iseed)
   {
