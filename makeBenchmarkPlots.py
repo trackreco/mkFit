@@ -9,26 +9,22 @@ for test in {'BH','CE','CEST'}:
     if 'BH' in test: pos = 9
     g_HOST_VU = ROOT.TGraph(4)
     g_HOST_VU_speedup = ROOT.TGraph(4)
-    #os.system('grep Total log_10x20k_'+test+'_NVU*_NTH1.txt >& log_10x20k_'+test+'_VU.txt')
-    with open('log_10x20k_'+test+'_VU.txt') as f:
-        point = 0
-        for line in f:
-            lsplit = line.split()
-            yval = float(lsplit[pos])
-            for sub in lsplit: 
-            #print val
-                if "NVU" in sub:
-                    for subsub in sub.split('_'):
-                        if "NVU" in subsub:
-                            xval = float(subsub.replace("NVU",""))
-                            print xval, yval
-                            g_HOST_VU.SetPoint(point,xval,yval)
-                            point = point+1
+    point = 0
+    for vu in [1,2,4,8]:
+        os.system('grep Total log_10x20k_'+test+'_NVU'+str(vu)+'_NTH1.txt >& log_10x20k_'+test+'_VU.txt')
+        with open('log_10x20k_'+test+'_VU.txt') as f:
+            for line in f:
+                lsplit = line.split()
+                xval = float(vu)
+                yval = float(lsplit[pos])
+                print xval, yval
+                g_HOST_VU.SetPoint(point,xval,yval)
+                point = point+1
     x0 = array.array('d',[0])
     y0 = array.array('d',[0])
     g_HOST_VU.GetPoint(0,x0,y0)
     point = 0
-    for vu in {1,2,4,8}:
+    for vu in [1,2,4,8]:
         xval = array.array('d',[0])
         yval = array.array('d',[0])
         g_HOST_VU.GetPoint(point,xval,yval)
@@ -39,27 +35,22 @@ for test in {'BH','CE','CEST'}:
 
     g_HOSTTH = ROOT.TGraph(4)
     g_HOSTTH_speedup = ROOT.TGraph(4)
-    #os.system('grep Total log_10x20k_'+test+'_NVU8_NTH*.txt >& log_10x20k_'+test+'_TH.txt')
-    with open('log_10x20k_'+test+'_TH.txt') as f:
-        point = 0
-        for line in f:
-            lsplit = line.split()
-            yval = float(lsplit[pos])
-            for sub in lsplit: 
-            #print val
-                if "NTH" in sub:
-                    for subsub in sub.split('_'):
-                        if "NTH" in subsub:
-                            print subsub
-                            xval = float(subsub.replace("NTH","").replace(".txt:Total",""))
-                            print xval, yval
-                            g_HOSTTH.SetPoint(point,xval,yval)
-                            point = point+1
+    point = 0
+    for th in [1,3,7,21]:
+        os.system('grep Total log_10x20k_'+test+'_NVU8_NTH'+str(th)+'.txt >& log_10x20k_'+test+'_TH.txt')
+        with open('log_10x20k_'+test+'_TH.txt') as f:
+            for line in f:
+                lsplit = line.split()
+                xval = float(th)
+                yval = float(lsplit[pos])
+                print xval, yval
+                g_HOSTTH.SetPoint(point,xval,yval)
+                point = point+1
     x0 = array.array('d',[0])
     y0 = array.array('d',[0])
     g_HOSTTH.GetPoint(0,x0,y0)
     point = 0
-    for vu in {1,3,7,21}:
+    for th in [1,3,7,21]:
         xval = array.array('d',[0])
         yval = array.array('d',[0])
         g_HOSTTH.GetPoint(point,xval,yval)
