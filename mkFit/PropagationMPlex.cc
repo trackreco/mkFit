@@ -722,9 +722,15 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    MPlexLL errorProp;
 
    MPlexQF msRad;
+   // MPlexQF hitsRl;
+   // MPlexQF hitsXi;
 #pragma simd
    for (int n = 0; n < N; ++n) {
      msRad.At(n, 0, 0) = hipo(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
+     // if (Config::useCMSGeom) {
+     //   hitsRl.At(n, 0, 0) = getRlVal(msRad.ConstAt(n, 0, 0), outPar.ConstAt(n, 2, 0));
+     //   hitsXi.At(n, 0, 0) = getXiVal(msRad.ConstAt(n, 0, 0), outPar.ConstAt(n, 2, 0));
+     // }
    }
 
    if (Config::doIterative) {
@@ -761,7 +767,11 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    MPlexLL temp;
    MultHelixProp      (errorProp, outErr, temp);
    MultHelixPropTransp(errorProp, temp,   outErr);
-   
+
+   // if (Config::useCMSGeom) {
+   //   applyMaterialEffects(hitsRl, hitsXi, outErr, outPar);
+   // }
+
    // This dump is now out of its place as similarity is done with matriplex ops.
 #ifdef DEBUG
    if (dump) {
@@ -816,7 +826,7 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
      helixAtRFromIntersection(inPar, inChg, outPar, msRad, errorProp);
    }
 
-   //add multiple scattering uncertainty and energy loss
+   //add multiple scattering uncertainty and energy loss (FIXME: in this way it is not applied in track fit)
    if (Config::useCMSGeom) {
      MPlexQF hitsRl;
      MPlexQF hitsXi;
