@@ -5,7 +5,7 @@ sed -i 's/\/\/\#define PRINTOUTS_FOR_PLOTS/\#define PRINTOUTS_FOR_PLOTS/g' mkFit
 make clean
 make -j 8
 
-for nth in 1 3 7
+for nth in 1 3 7 21
 do
 ./mkFit/mkFit --build-bh --num-thr ${nth} >& log_10x20k_BH_NVU8_NTH${nth}.txt
 ./mkFit/mkFit --build-ce --num-thr ${nth} >& log_10x20k_CE_NVU8_NTH${nth}.txt
