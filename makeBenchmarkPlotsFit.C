@@ -59,7 +59,7 @@
   g_FIT_TH->GetXaxis()->SetRangeUser(1,21);
   g_FIT_TH->GetYaxis()->SetRangeUser(0,0.04);
   if (isMic) g_FIT_TH->GetXaxis()->SetRangeUser(1,210);
-  if (isMic) g_FIT_TH->GetYaxis()->SetRangeUser(0,14);
+  if (isMic) g_FIT_TH->GetYaxis()->SetRangeUser(0,0.14);
   g_FIT_TH->SetLineWidth(2);
   g_FIT_TH->SetLineColor(kBlue);
   g_FIT_TH->SetMarkerStyle(kFullCircle);
