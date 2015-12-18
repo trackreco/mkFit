@@ -280,6 +280,7 @@ int main(int argc, const char *argv[])
         "  --num-thr       <num>    number of threads for track finding (def: %d)\n"
         "                           extra cloning thread is spawned for each of them\n"
         "  --fit-std                run standard fitting test (def: false)\n"
+        "  --fit-std-only           run only standard fitting test (def: false)\n"
         "  --build-bh               run best-hit building test (def: run all building tests)\n"
         "  --build-std              run standard building test\n"
         "  --build-ce               run clone-engine building test\n"
@@ -308,6 +309,11 @@ int main(int argc, const char *argv[])
     else if(*i == "--fit-std")
     {
       g_run_fit_std = true;
+    }
+    else if(*i == "--fit-std-only")
+    {
+      g_run_fit_std = true;
+      g_run_build_all = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = false;
     }
     else if(*i == "--build-bh")
     {
