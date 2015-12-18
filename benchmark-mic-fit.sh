@@ -8,7 +8,7 @@ make -j 8
 for nth in 1 3 7 21 42 63 84 105 126 147 168 189 210
 do
 echo nth=${nth}
-ssh mic0 ./mkFit-mic --fit-std-only --num-thr ${nth} >& log_mic_10x20k_FIT_NVU8_NTH${nth}.txt
+ssh mic0 ./mkFit-mic --fit-std-only --num-thr ${nth} >& log_mic_10x20k_FIT_NVU16_NTH${nth}.txt
 done
 
 #sed -i 's/define MPT_SIZE 16/define MPT_SIZE XX/g' Config.h
