@@ -687,7 +687,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, MPlexLS 
       outErr.At(n, 3, 5) += -pz*px*thetaMSC2;
       outErr.At(n, 4, 5) += -pz*py*thetaMSC2;
       // std::cout << "beta=" << beta << " p=" << p << std::endl;
-      std::cout << "multiple scattering thetaMSC=" << thetaMSC << " thetaMSC2=" << thetaMSC2 << " radL=" << radL << " cxx=" << (py*py*p*p + pz*pz*px*px)*thetaMSC2overPt2 << " cyy=" << (px*px*p*p + pz*pz*py*py)*thetaMSC2overPt2 << " czz=" << pt*pt*thetaMSC2 << std::endl;
+      // std::cout << "multiple scattering thetaMSC=" << thetaMSC << " thetaMSC2=" << thetaMSC2 << " radL=" << radL << " cxx=" << (py*py*p*p + pz*pz*px*px)*thetaMSC2overPt2 << " cyy=" << (px*px*p*p + pz*pz*py*py)*thetaMSC2overPt2 << " czz=" << pt*pt*thetaMSC2 << std::endl;
       // energy loss
       float gamma = 1./sqrt(1 - beta2);
       float gamma2 = gamma*gamma;
@@ -708,7 +708,6 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, MPlexLS 
 
 void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
                             const MPlexQI &inChg,  const MPlexHV& msPar, 
-			    //const MPlexQF &hitsRl, const MPlexQF& hitsXi,
 			          MPlexLS &outErr,       MPlexLV& outPar)
 {
 #ifdef DEBUG
@@ -723,9 +722,15 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    MPlexLL errorProp;
 
    MPlexQF msRad;
+   // MPlexQF hitsRl;
+   // MPlexQF hitsXi;
 #pragma simd
    for (int n = 0; n < N; ++n) {
      msRad.At(n, 0, 0) = hipo(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
+     // if (Config::useCMSGeom) {
+     //   hitsRl.At(n, 0, 0) = getRlVal(msRad.ConstAt(n, 0, 0), outPar.ConstAt(n, 2, 0));
+     //   hitsXi.At(n, 0, 0) = getXiVal(msRad.ConstAt(n, 0, 0), outPar.ConstAt(n, 2, 0));
+     // }
    }
 
    if (Config::doIterative) {
@@ -762,7 +767,11 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    MPlexLL temp;
    MultHelixProp      (errorProp, outErr, temp);
    MultHelixPropTransp(errorProp, temp,   outErr);
-   
+
+   // if (Config::useCMSGeom) {
+   //   applyMaterialEffects(hitsRl, hitsXi, outErr, outPar);
+   // }
+
    // This dump is now out of its place as similarity is done with matriplex ops.
 #ifdef DEBUG
    if (dump) {
@@ -780,9 +789,6 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
      }
    }
 #endif
-
-   //add multiple scattering uncertainty and energy loss
-   //applyMaterialEffects(hitsRl, hitsXi, outErr, outPar);
 
 #ifdef DEBUG
    if (fabs(hipo(outPar.At(0,0,0), outPar.At(0,1,0))-hipo(msPar.ConstAt(0, 0, 0), msPar.ConstAt(0, 1, 0)))>0.0001) {
@@ -807,6 +813,7 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
 
    MPlexLL errorProp;
 
+
    MPlexQF msRad;
 #pragma simd
    for (int n = 0; n < N_proc; ++n) {
@@ -817,6 +824,18 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
      helixAtRFromIterative(inPar, inChg, outPar, msRad, errorProp);
    } else {
      helixAtRFromIntersection(inPar, inChg, outPar, msRad, errorProp);
+   }
+
+   //add multiple scattering uncertainty and energy loss (FIXME: in this way it is not applied in track fit)
+   if (Config::useCMSGeom) {
+     MPlexQF hitsRl;
+     MPlexQF hitsXi;
+#pragma simd
+     for (int n = 0; n < N_proc; ++n) {
+       hitsRl.At(n, 0, 0) = getRlVal(r, outPar.ConstAt(n, 2, 0));
+       hitsXi.At(n, 0, 0) = getXiVal(r, outPar.ConstAt(n, 2, 0));
+     }
+     applyMaterialEffects(hitsRl, hitsXi, outErr, outPar);
    }
 
    // Matriplex version of:

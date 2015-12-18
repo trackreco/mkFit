@@ -12,7 +12,7 @@ inline int getEtaBin(float eta)
 {
   
   //in this case we are out of bounds
-  if (fabs(eta)>Config::fEtaDet) return -1;
+  //if (fabs(eta)>Config::fEtaDet) return -1;//remove this line, just return first or last bin
   
   //first and last bin have extra width
   if (eta<(Config::lEtaBin-Config::fEtaDet)) return 0;

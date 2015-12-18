@@ -1,7 +1,8 @@
 import os.path, glob, sys
 import ROOT
 
-suffix = "20k_10ev_VU8_TH7_dump"
+suffix = "_mic_10x20k_BH_NVU16_NTH21"
+#suffix = "_cmssw_1x100_10GeV_CE_NVU8_NTH1"
 
 g = ROOT.TFile("test"+suffix+".root","recreate")
 
@@ -34,7 +35,7 @@ h_SEEDPOSPHI = ROOT.TH1F("h_SEEDPOSPHI", "h_SEEDPOSPHI", 32, -3.2, 3.2)
 h_SEEDPOSR   = ROOT.TH1F("h_SEEDPOSR", "h_SEEDPOSR", 20, 10, 14)
 h_SEEDPT     = ROOT.TH1F("h_SEEDPT", "h_SEEDPT", 20, 0, 20)
 
-with open('log_'+suffix+'.txt') as f:
+with open('log'+suffix+'.txt') as f:
     for line in f:
         if "number of hits in window in layer 3" in line:
             val = line.split()[10]
