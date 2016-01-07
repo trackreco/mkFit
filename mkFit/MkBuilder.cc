@@ -303,9 +303,6 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
         mkfp->SetNhits(ilay + 1);  //here again assuming one hit per layer (is this needed?)
 
         //propagate to layer
-        // This is sort of a silly fix as no-clone-engine code produces
-        // zero good tracks with propagate-at-the-end.
-        // But at least it doesn't crash with uncaught exception :)
         if (ilay + 1 < Config::nLayers)
         {
 #ifdef DEBUG
@@ -326,7 +323,6 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
 
    } //end of parallel section over seeds
 }
-
 
 //------------------------------------------------------------------------------
 // FindTracks & FindTracksCloneEngine common functions
@@ -548,6 +544,21 @@ void MkBuilder::FindTracks()
                                      seed_cand_idx, itrack, end,
                                      true);
 
+          //propagate to layer
+          // Can't propagate after FindCandidates because candidates are in
+          // tmp_candidates, not Matriplex
+          if (ilay > Config::nlayers_per_seed)
+          {
+#ifdef DEBUG
+            std::cout << "propagate to lay=" << ilay+1 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
+                      << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
+#endif
+            mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
+#ifdef DEBUG
+            std::cout << "propagate to lay=" << ilay+1 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
+#endif
+          }
+
 #ifdef DEBUG
           std::cout << "now get hit range" << std::endl;
 #endif
@@ -563,22 +574,6 @@ void MkBuilder::FindTracks()
 #endif
 
           mkfp->FindCandidates(bunch_of_hits, tmp_candidates, otd.th_start_seed);
-
-          //propagate to layer
-          // This is sort of a silly fix as no-clone-engine code produces
-          // zero good tracks with propagate-at-the-end.
-          // But at least it doesn't crash with uncaught exception :)
-          if (ilay + 1 < Config::nLayers)
-          {
-#ifdef DEBUG
-            std::cout << "propagate to lay=" << ilay+2 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
-                      << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
-#endif
-            mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay+1), end - itrack);
-#ifdef DEBUG
-            std::cout << "propagate to lay=" << ilay+2 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
-#endif
-          }
 
         } //end of vectorized loop
 
@@ -636,7 +631,6 @@ void MkBuilder::FindTracks()
 
   } // end of parallel section over seeds
 }
-
 
 //------------------------------------------------------------------------------
 // FindTracksCloneEngine

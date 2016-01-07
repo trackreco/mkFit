@@ -129,6 +129,12 @@ void MkFitter::InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks,
 
     }
   }
+  if (end - beg < NN) {
+    for (int i = end; i < NN; ++i, ++itrack) {
+      Label(itrack, 0, 0) = -1;
+      SeedIdx(itrack, 0, 0) = -1;
+    }
+  }
 }
 
 int MkFitter::countValidHits(int itrack, int end_hit)
@@ -1028,6 +1034,7 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
       //fixme: please vectorize me... (not sure it's possible in this case)
       for (int itrack = 0; itrack < NN; ++itrack)
 	{
+          if (SeedIdx(itrack, 0, 0) < 0) continue;
 	  float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
 #ifdef DEBUG
 	  std::cout << "chi2=" << chi2 << std::endl;      
@@ -1081,7 +1088,12 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
       //set the track state to the propagated parameters
       Err[iP].CopyOut(itrack, newcand.errors_nc().Array());
       Par[iP].CopyOut(itrack, newcand.parameters_nc().Array());	      
-      tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
+      if (SeedIdx(itrack, 0, 0) >= 0) {
+#ifdef DEBUG
+        std::cout << "ADD FAKE HIT FOR TRACK #" << itrack << " index " << SeedIdx(itrack, 0, 0)-offset << std::endl;
+#endif
+        tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
+      }
     }
 
 }
