@@ -15,6 +15,8 @@
   g_FIT_VU->GetYaxis()->SetTitleOffset(1.25);
   g_FIT_VU->GetXaxis()->SetRangeUser(1,8);
   g_FIT_VU->GetYaxis()->SetRangeUser(0,0.2);
+  if (isMic) g_FIT_VU->GetXaxis()->SetRangeUser(1,16);
+  if (isMic) g_FIT_VU->GetYaxis()->SetRangeUser(0,1);
   g_FIT_VU->SetLineWidth(2);
   g_FIT_VU->SetLineColor(kBlue);
   g_FIT_VU->SetMarkerStyle(kFullCircle);
@@ -35,8 +37,8 @@
   g_FIT_VU_speedup->GetYaxis()->SetTitle("Speedup");
   g_FIT_VU_speedup->GetXaxis()->SetRangeUser(1,8);
   g_FIT_VU_speedup->GetYaxis()->SetRangeUser(1,8);
-  // if (isMic) g_FIT_VU->GetXaxis()->SetRangeUser(1,16);
-  // if (isMic) g_FIT_VU->GetYaxis()->SetRangeUser(1,16);
+  if (isMic) g_FIT_VU_speedup->GetXaxis()->SetRangeUser(1,16);
+  if (isMic) g_FIT_VU_speedup->GetYaxis()->SetRangeUser(1,16);
   g_FIT_VU_speedup->SetLineWidth(2);
   g_FIT_VU_speedup->SetLineColor(kBlue);
   g_FIT_VU_speedup->SetMarkerStyle(kFullCircle);

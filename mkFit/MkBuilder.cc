@@ -252,7 +252,7 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
   //parallel section over seeds; num_threads can of course be smaller
   int nseeds = m_recseeds.size();
 
-#pragma omp parallel
+#pragma omp parallel for
   for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
   {
     // vectorized loop
