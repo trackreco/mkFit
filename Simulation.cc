@@ -339,10 +339,12 @@ void setupTrackFromTextFile(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
   initTSs.reserve(Config::nTotHit);
 
   bool doSmearing = true;
-  std::ifstream infile("cmssw.simtracks.SingleMu10GeV.10k.eta06z5.txt");
-  // std::ifstream infile("cmssw.simtracks.SingleMu1GeV.1k.eta06z5.txt");
-  // std::ifstream infile("cmssw.simtracks.SingleMu1GeVNoMaterial.1k.eta06z5.txt");doSmearing = false;
-  // std::ifstream infile("cmssw.simtracks.SingleMu06GeV.1k.eta06z5.txt");
+  // std::ifstream infile("cmssw.simtracks.SingleMu1GeV.test.txt");doSmearing = false;
+  // std::ifstream infile("cmssw.simtracks.SingleMu10GeV.10k.new.txt");
+  std::ifstream infile("cmssw.simtracks.SingleMu1GeV.10k.new.txt");
+  // std::ifstream infile("cmssw.rectracks.SingleMu10GeV.10k.new.txt");
+  // std::ifstream infile("cmssw.rectracks.SingleMu1GeV.10k.new.txt");
+  // std::ifstream infile("cmssw.rectracks.SingleMu1GeV.test.txt");
   std::string line;
   int countTracks = -1;
   unsigned int countHits   = 0;
@@ -438,7 +440,39 @@ void setupTrackFromTextFile(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
       if (countHits>=Config::nLayers) return;
 
     }
+
+    if (type=="recHit" && gotTrack) {
+      
+      countHits++;
+
+      float hitX,hitY,hitZ;
+      float hitXX,hitXY,hitYY,hitYZ,hitZZ,hitZX;
+      float r,eta;
+      float radl,xi;
+      iss >> hitX >> hitY >> hitZ >> hitXX >> hitXY >> hitYY >> hitYZ >> hitZZ >> hitZX >> r >> eta >> radl >> xi;
+
+      SVector3 x1(hitX,hitY,hitZ);
+      SMatrixSym33 covXYZ = ROOT::Math::SMatrixIdentity();
+      covXYZ(0,0) = hitXX;
+      covXYZ(0,1) = hitXY;
+      covXYZ(1,0) = covXYZ(0,1);
+      covXYZ(1,1) = hitYY;
+      covXYZ(1,2) = hitYZ;
+      covXYZ(2,1) = covXYZ(1,2);
+      covXYZ(2,2) = hitZZ;
+      covXYZ(2,0) = hitZX;
+      covXYZ(0,2) = covXYZ(2,0);
     
+      MCHitInfo hitinfo(itrack, simLayer, layer_counts[simLayer]);
+      initialhitinfo[hitinfo.mcHitID_] = hitinfo;
+      hits.emplace_back(x1,covXYZ,hitinfo.mcHitID_);
+
+      ++layer_counts[simLayer];
+
+      if (countHits>=Config::nLayers) return;
+
+    }
+   
     // process pair (a,b)
   }
 
