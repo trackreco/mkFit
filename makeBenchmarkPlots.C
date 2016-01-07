@@ -16,6 +16,7 @@
   g_BH_VU->GetYaxis()->SetTitle("Time for 10 events x 20k tracks [s]");
   g_BH_VU->GetXaxis()->SetRangeUser(1,8);
   g_BH_VU->GetYaxis()->SetRangeUser(0,10);
+  if (isMic) g_BH_VU->GetYaxis()->SetRangeUser(0,16);
   g_BH_VU->SetLineWidth(2);
   g_CE_VU->SetLineWidth(2);
   g_CEST_VU->SetLineWidth(2);
@@ -50,6 +51,8 @@
   g_BH_VU_speedup->GetYaxis()->SetTitle("Speedup");
   g_BH_VU_speedup->GetXaxis()->SetRangeUser(1,8);
   g_BH_VU_speedup->GetYaxis()->SetRangeUser(1,8);
+  if (isMic) g_BH_VU_speedup->GetXaxis()->SetRangeUser(1,16);
+  if (isMic) g_BH_VU_speedup->GetYaxis()->SetRangeUser(1,16);
   g_BH_VU_speedup->SetLineWidth(2);
   g_CE_VU_speedup->SetLineWidth(2);
   g_CEST_VU_speedup->SetLineWidth(2);

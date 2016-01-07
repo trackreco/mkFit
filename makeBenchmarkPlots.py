@@ -15,7 +15,9 @@ for test in ['BH','CE','CEST','FIT']:
     g_VU = ROOT.TGraph(4)
     g_VU_speedup = ROOT.TGraph(4)
     point = 0
-    for vu in [1,2,4,8]:
+    vuvals = [1,2,4,8]
+    if hORm == 'mic': vuvals.append(16)
+    for vu in vuvals:
         os.system('grep Matriplex log_'+hORm+'_10x20k_'+test+'_NVU'+str(vu)+'_NTH1.txt >& log_'+hORm+'_10x20k_'+test+'_VU.txt')
         xval = float(vu)
         yval = 0.
@@ -56,7 +58,7 @@ for test in ['BH','CE','CEST','FIT']:
 
     point = 0
     nvu = '8'
-    if hORm == 'mic': nvu = '16'
+    if hORm == 'mic': nvu = '16int'
     thvals = [1,3,7,21]
     if hORm == 'mic' and 'FIT' in test: thvals = [1,3,7,21,42,63,84,105,126,147,168,189,210]
     g_TH = ROOT.TGraph(len(thvals))
