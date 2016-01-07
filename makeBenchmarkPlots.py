@@ -15,11 +15,16 @@ for test in ['BH','CE','CEST','FIT']:
     g_VU = ROOT.TGraph(4)
     g_VU_speedup = ROOT.TGraph(4)
     point = 0
-    vuvals = [1,2,4,8]
-    if hORm == 'mic': vuvals.append(16)
+    vuvals = ['1','2','4','8']
+    if hORm == 'mic': 
+        vuvals.append('16')
+        vuvals.append('16int')
     for vu in vuvals:
-        os.system('grep Matriplex log_'+hORm+'_10x20k_'+test+'_NVU'+str(vu)+'_NTH1.txt >& log_'+hORm+'_10x20k_'+test+'_VU.txt')
-        xval = float(vu)
+        os.system('grep Matriplex log_'+hORm+'_10x20k_'+test+'_NVU'+vu+'_NTH1.txt >& log_'+hORm+'_10x20k_'+test+'_VU.txt')
+        if vu == '16int':
+            xval = 16.0
+        else:
+            xval = float(vu)
         yval = 0.
         firstFound = False
         with open('log_'+hORm+'_10x20k_'+test+'_VU.txt') as f:
@@ -45,7 +50,7 @@ for test in ['BH','CE','CEST','FIT']:
     y0 = array.array('d',[0])
     g_VU.GetPoint(0,x0,y0)
     point = 0
-    for vu in [1,2,4,8]:
+    for vu in vuvals:
         xval = array.array('d',[0])
         yval = array.array('d',[0])
         g_VU.GetPoint(point,xval,yval)
