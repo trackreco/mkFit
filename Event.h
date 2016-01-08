@@ -9,9 +9,9 @@
 
 struct HitID {
   HitID() : layer(-1), index(-1) {}
-  HitID(short l, short i) : layer(l), index(i) {}
-  short layer;
-  short index;
+  HitID(int l, int i) : layer(l), index(i) {}
+  int layer;
+  int index;
 };
 typedef std::vector<HitID> HitIDVec;
 
