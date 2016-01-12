@@ -252,7 +252,7 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
   //parallel section over seeds; num_threads can of course be smaller
   int nseeds = m_recseeds.size();
 
-#pragma omp parallel
+#pragma omp parallel for
   for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
   {
     // vectorized loop
@@ -495,7 +495,7 @@ void MkBuilder::FindTracks()
       otd.calculate_seed_ranges(etabin_of_comb_candidates.m_fill_index);
 
       //ok now we start looping over layers
-      //loop over layers, starting from after the seeD
+      //loop over layers, starting from after the seed
       for (int ilay = Config::nlayers_per_seed; ilay < Config::nLayers; ++ilay)
       {
         BunchOfHits &bunch_of_hits = m_event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];
