@@ -150,7 +150,7 @@ public:
 
   void signal_work_to_st(int idx)
   {
-    // printf("CandCloner::signal_work_to_st assigning work up to seed %d\n", idx);
+    // printf("CandCloner::signal_work_to_st assigning work from seed %d to %d\n", m_idx_max_prev, idx);
 
     if ( ! Config::clonerUseSingleThread)
       QueueWork(std::make_pair(m_idx_max_prev, idx));
