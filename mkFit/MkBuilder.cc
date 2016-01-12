@@ -504,8 +504,9 @@ void MkBuilder::FindTracks()
         std::cout << "processing lay=" << ilay+1 << std::endl;
 #endif
 
-        //prepare unrolled vector to loop over
+        // prepare unrolled vector to loop over
         std::vector<std::pair<int,int> > seed_cand_idx;
+
         for (int iseed = otd.th_start_seed; iseed != otd.th_end_seed; ++iseed)
         {
           for (int ic = 0; ic < etabin_of_comb_candidates.m_candidates[iseed].size(); ++ic)
@@ -546,7 +547,20 @@ void MkBuilder::FindTracks()
           //fixme find a way to deal only with the candidates needed in this thread
           mkfp->InputTracksAndHitIdx(etabin_of_comb_candidates.m_candidates,
                                      seed_cand_idx, itrack, end,
-                                     true);
+                                     ilay == Config::nlayers_per_seed);
+
+          //propagate to layer
+          if (ilay > Config::nlayers_per_seed)
+          {
+#ifdef DEBUG
+            std::cout << "propagate to lay=" << ilay+1 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
+                      << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
+#endif
+            mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
+#ifdef DEBUG
+            std::cout << "propagate to lay=" << ilay+1 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
+#endif
+          }
 
 #ifdef DEBUG
           std::cout << "now get hit range" << std::endl;
@@ -562,23 +576,7 @@ void MkBuilder::FindTracks()
           std::cout << "make new candidates" << std::endl;
 #endif
 
-          mkfp->FindCandidates(bunch_of_hits, tmp_candidates, otd.th_start_seed);
-
-          //propagate to layer
-          // This is sort of a silly fix as no-clone-engine code produces
-          // zero good tracks with propagate-at-the-end.
-          // But at least it doesn't crash with uncaught exception :)
-          if (ilay + 1 < Config::nLayers)
-          {
-#ifdef DEBUG
-            std::cout << "propagate to lay=" << ilay+2 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
-                      << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
-#endif
-            mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay+1), end - itrack);
-#ifdef DEBUG
-            std::cout << "propagate to lay=" << ilay+2 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
-#endif
-          }
+          mkfp->FindCandidates(bunch_of_hits, tmp_candidates, otd.th_start_seed, end - itrack);
 
         } //end of vectorized loop
 
