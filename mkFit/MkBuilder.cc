@@ -452,9 +452,12 @@ struct OmpThreadData
     th_n_seeds = th_end_seed - th_start_seed;
 
 #ifdef DEBUG
-      omp_set_lock(&writelock);
-      std::cout << "th_start_seed=" << th_start_seed << " th_end_seed=" << th_end_seed << std::endl;
-      omp_unset_lock(&writelock);
+    omp_set_lock(&writelock);
+    printf("thread_num=%d, num_threads=%d\n", thread_num, num_threads);
+    printf("n_th_per_eta_bin=%d, n_eta_bin_per_th=%d\n", n_th_per_eta_bin, n_eta_bin_per_th);
+    printf("th_start_ebin=%d, th_end_ebin=%d\n", th_start_ebin, th_end_ebin);
+    printf("th_start_seed=%d, th_end_seed=%d, th_n_seeds=%d\n", th_start_seed, th_end_seed, th_n_seeds);
+    omp_unset_lock(&writelock);
 #endif
   }
 };
