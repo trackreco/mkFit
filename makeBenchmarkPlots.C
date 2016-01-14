@@ -5,18 +5,26 @@
   TString hORm = "host";
   if (isMic) hORm = "mic";
 
+  TString label = "Xeon";
+  if (isMic) label+=" Phi";
+
+  float maxvu = 8;
+  if (isMic) maxvu = 16;
+  float maxth = 21;
+  if (isMic) maxth = 210;
+
   TFile* f = TFile::Open("benchmark_"+hORm+".root");
 
   TCanvas c1;
   TGraph* g_BH_VU = (TGraph*) f->Get("g_BH_VU");
   TGraph* g_CE_VU = (TGraph*) f->Get("g_CE_VU");
   TGraph* g_CEST_VU = (TGraph*) f->Get("g_CEST_VU");
-  g_BH_VU->SetTitle("Vectorization benchmark on "+hORm);
+  g_BH_VU->SetTitle("Vectorization benchmark on "+label);
   g_BH_VU->GetXaxis()->SetTitle("Vector Unit Utilization");
   g_BH_VU->GetYaxis()->SetTitle("Time for 10 events x 20k tracks [s]");
-  g_BH_VU->GetXaxis()->SetRangeUser(1,8);
+  g_BH_VU->GetXaxis()->SetRangeUser(1,maxvu);
   g_BH_VU->GetYaxis()->SetRangeUser(0,10);
-  if (isMic) g_BH_VU->GetYaxis()->SetRangeUser(0,16);
+  if (isMic) g_BH_VU->GetYaxis()->SetRangeUser(0,70);
   g_BH_VU->SetLineWidth(2);
   g_CE_VU->SetLineWidth(2);
   g_CEST_VU->SetLineWidth(2);
@@ -46,13 +54,11 @@
   TGraph* g_BH_VU_speedup = (TGraph*) f->Get("g_BH_VU_speedup");
   TGraph* g_CE_VU_speedup = (TGraph*) f->Get("g_CE_VU_speedup");
   TGraph* g_CEST_VU_speedup = (TGraph*) f->Get("g_CEST_VU_speedup");
-  g_BH_VU_speedup->SetTitle("Vectorization speedup on "+hORm);
+  g_BH_VU_speedup->SetTitle("Vectorization speedup on "+label);
   g_BH_VU_speedup->GetXaxis()->SetTitle("Vector Unit Utilization");
   g_BH_VU_speedup->GetYaxis()->SetTitle("Speedup");
-  g_BH_VU_speedup->GetXaxis()->SetRangeUser(1,8);
-  g_BH_VU_speedup->GetYaxis()->SetRangeUser(1,8);
-  if (isMic) g_BH_VU_speedup->GetXaxis()->SetRangeUser(1,16);
-  if (isMic) g_BH_VU_speedup->GetYaxis()->SetRangeUser(1,16);
+  g_BH_VU_speedup->GetXaxis()->SetRangeUser(1,maxvu);
+  g_BH_VU_speedup->GetYaxis()->SetRangeUser(0,maxvu);
   g_BH_VU_speedup->SetLineWidth(2);
   g_CE_VU_speedup->SetLineWidth(2);
   g_CEST_VU_speedup->SetLineWidth(2);
@@ -68,6 +74,8 @@
   g_BH_VU_speedup->Draw("ALP");
   g_CE_VU_speedup->Draw("LP");
   g_CEST_VU_speedup->Draw("LP");
+  TLine lvu(1,1,maxvu,maxvu);
+  lvu.Draw();
   TLegend* leg_VU_speedup = new TLegend(0.20,0.60,0.45,0.85);
   leg_VU_speedup->SetBorderSize(0);
   leg_VU_speedup->AddEntry(g_BH_VU_speedup,"BestHit","LP");
@@ -82,10 +90,10 @@
   TGraph* g_BH_TH = (TGraph*) f->Get("g_BH_TH");
   TGraph* g_CE_TH = (TGraph*) f->Get("g_CE_TH");
   TGraph* g_CEST_TH = (TGraph*) f->Get("g_CEST_TH");
-  g_BH_TH->SetTitle("Parallelization benchmark on "+hORm);
+  g_BH_TH->SetTitle("Parallelization benchmark on "+label);
   g_BH_TH->GetXaxis()->SetTitle("Number of Threads");
   g_BH_TH->GetYaxis()->SetTitle("Time for 10 events x 20k tracks [s]");
-  g_BH_TH->GetXaxis()->SetRangeUser(1,21);
+  g_BH_TH->GetXaxis()->SetRangeUser(1,maxth);
   g_BH_TH->GetYaxis()->SetRangeUser(0,6);
   if (isMic) g_BH_TH->GetYaxis()->SetRangeUser(0,40);
   g_BH_TH->SetLineWidth(2);
@@ -117,11 +125,11 @@
   TGraph* g_BH_TH_speedup = (TGraph*) f->Get("g_BH_TH_speedup");
   TGraph* g_CE_TH_speedup = (TGraph*) f->Get("g_CE_TH_speedup");
   TGraph* g_CEST_TH_speedup = (TGraph*) f->Get("g_CEST_TH_speedup");
-  g_BH_TH_speedup->SetTitle("Parallelization speedup on "+hORm);
+  g_BH_TH_speedup->SetTitle("Parallelization speedup on "+label);
   g_BH_TH_speedup->GetXaxis()->SetTitle("Number of Threads");
   g_BH_TH_speedup->GetYaxis()->SetTitle("Speedup");
-  g_BH_TH_speedup->GetXaxis()->SetRangeUser(0,21);
-  g_BH_TH_speedup->GetYaxis()->SetRangeUser(0,21);
+  g_BH_TH_speedup->GetXaxis()->SetRangeUser(1,maxth);
+  g_BH_TH_speedup->GetYaxis()->SetRangeUser(0,maxth);
   g_BH_TH_speedup->SetLineWidth(2);
   g_CE_TH_speedup->SetLineWidth(2);
   g_CEST_TH_speedup->SetLineWidth(2);
@@ -137,6 +145,8 @@
   g_BH_TH_speedup->Draw("ALP");
   g_CE_TH_speedup->Draw("LP");
   g_CEST_TH_speedup->Draw("LP");
+  TLine lth(1,1,maxth,maxth);
+  lth.Draw();
   TLegend* leg_TH_speedup = new TLegend(0.20,0.60,0.45,0.85);
   leg_TH_speedup->SetBorderSize(0);
   leg_TH_speedup->AddEntry(g_BH_TH_speedup,"BestHit","LP");
