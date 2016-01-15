@@ -2,9 +2,10 @@
 
   gStyle->SetOptStat(0);
 
-  TString test = "CEST";
-  test = "CE";
-  test = "BH";
+  //TString test = "CEST";
+  //TString test = "CE";
+  //TString test = "BH";
+  //TString test = "ST";
 
   TCanvas c1;
   c1.SetLogy();
@@ -16,6 +17,7 @@
   if (test== "CEST") h1->SetTitle("CloneEngineSingleThread");
   if (test== "CE") h1->SetTitle("CloneEngine");
   if (test== "BH") h1->SetTitle("BestHit");
+  if (test== "ST") h1->SetTitle("NoCloneEngine");
   h1->GetXaxis()->SetTitle("Number of Hits Found");
   h1->GetYaxis()->SetTitle("Fraction of Tracks");
   h1->DrawNormalized();
@@ -30,13 +32,13 @@
   h2->SetMarkerColor(kBlue);
   h2->DrawNormalized("Psame");
 
-  TFile* f3 = TFile::Open("test_mic_10x20k_"+test+"_NVU16_NTH1.root");
+  TFile* f3 = TFile::Open("test_mic_10x20k_"+test+"_NVU1_NTH1.root");
   TH1F* h3 = (TH1F*) f3->Get("h_MXNH");
   h3->SetMarkerStyle(kOpenSquare);
   h3->SetMarkerColor(kRed);
   h3->DrawNormalized("Psame");
 
-  TFile* f4 = TFile::Open("test_mic_10x20k_"+test+"_NVU16_NTH21.root");
+  TFile* f4 = TFile::Open("test_mic_10x20k_"+test+"_NVU16int_NTH210.root");
   TH1F* h4 = (TH1F*) f4->Get("h_MXNH");
   h4->SetMarkerStyle(kOpenTriangleUp);
   h4->SetMarkerColor(kMagenta);
@@ -46,8 +48,8 @@
   leg->SetBorderSize(0);
   leg->AddEntry(h1,"host NVU1 NTH1","L");
   leg->AddEntry(h2,"host NVU8 NTH21","LP");
-  leg->AddEntry(h3,"mic NVU16 NTH1","LP");
-  leg->AddEntry(h4,"mic NVU16 NTH21","LP");
+  leg->AddEntry(h3,"mic NVU1 NTH1","LP");
+  leg->AddEntry(h4,"mic NVU16int NTH210","LP");
   leg->Draw();
 
   c1.SaveAs("nHits_"+test+".png");

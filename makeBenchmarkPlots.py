@@ -2,16 +2,24 @@ import os.path, glob, sys
 import ROOT
 import array
 
-hORm = 'host'
-#hORm = 'mic'
+if len(sys.argv)!=2: exit
+
+hORm = sys.argv[1]
+
+if hORm!='host' and hORm!='mic': exit
 
 g = ROOT.TFile('benchmark_'+hORm+'.root',"recreate")
 
-for test in ['BH','CE','CEST','FIT']:
+for test in ['BH','CE','CEST','ST','FIT']:
     print test
     pos = 14
+    ntks = '20k'
     if 'BH' in test: pos = 8
-    if 'FIT' in test: pos = 3
+    if 'ST' == test: pos = 11
+    if 'FIT' in test: 
+        pos = 3
+        ntks = '1M'
+        if hORm == 'mic': ntks = '500k'
     g_VU = ROOT.TGraph(4)
     g_VU_speedup = ROOT.TGraph(4)
     point = 0
@@ -20,14 +28,14 @@ for test in ['BH','CE','CEST','FIT']:
         vuvals.append('16')
         vuvals.append('16int')
     for vu in vuvals:
-        os.system('grep Matriplex log_'+hORm+'_10x20k_'+test+'_NVU'+vu+'_NTH1.txt >& log_'+hORm+'_10x20k_'+test+'_VU.txt')
+        os.system('grep Matriplex log_'+hORm+'_10x'+ntks+'_'+test+'_NVU'+vu+'_NTH1.txt >& log_'+hORm+'_10x'+ntks+'_'+test+'_VU.txt')
         if vu == '16int':
             xval = 16.0
         else:
             xval = float(vu)
         yval = 0.
         firstFound = False
-        with open('log_'+hORm+'_10x20k_'+test+'_VU.txt') as f:
+        with open('log_'+hORm+'_10x'+ntks+'_'+test+'_VU.txt') as f:
             for line in f:
                 if 'Matriplex' not in line: continue
                 if 'Total' in line: continue
@@ -65,15 +73,15 @@ for test in ['BH','CE','CEST','FIT']:
     nvu = '8'
     if hORm == 'mic': nvu = '16int'
     thvals = [1,3,7,21]
-    if hORm == 'mic' and 'FIT' in test: thvals = [1,3,7,21,42,63,84,105,126,147,168,189,210]
+    if hORm == 'mic': thvals = [1,3,7,21,42,63,84,105,126,147,168,189,210]
     g_TH = ROOT.TGraph(len(thvals))
     g_TH_speedup = ROOT.TGraph(len(thvals))
     for th in thvals:
-        os.system('grep Matriplex log_'+hORm+'_10x20k_'+test+'_NVU'+nvu+'_NTH'+str(th)+'.txt >& log_'+hORm+'_10x20k_'+test+'_TH.txt')
+        os.system('grep Matriplex log_'+hORm+'_10x'+ntks+'_'+test+'_NVU'+nvu+'_NTH'+str(th)+'.txt >& log_'+hORm+'_10x'+ntks+'_'+test+'_TH.txt')
         xval = float(th)
         yval = 0.
         firstFound = False
-        with open('log_'+hORm+'_10x20k_'+test+'_TH.txt') as f:
+        with open('log_'+hORm+'_10x'+ntks+'_'+test+'_TH.txt') as f:
             for line in f:
                 if 'Matriplex' not in line: continue
                 if 'Total' in line: continue

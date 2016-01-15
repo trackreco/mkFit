@@ -1,8 +1,9 @@
 import os.path, glob, sys
 import ROOT
 
-suffix = "_mic_10x20k_BH_NVU16_NTH21"
-#suffix = "_cmssw_1x100_10GeV_CE_NVU8_NTH1"
+if len(sys.argv)!=2: exit
+
+suffix = sys.argv[1]
 
 g = ROOT.TFile("test"+suffix+".root","recreate")
 

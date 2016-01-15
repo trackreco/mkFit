@@ -8,6 +8,9 @@
   TString label = "Xeon";
   if (isMic) label+=" Phi";
 
+  TString ntrk = "1M";
+  if (isMic) ntrk+="500k";
+
   float maxvu = 8;
   if (isMic) maxvu = 16;
   float maxth = 21;
@@ -19,11 +22,10 @@
   TGraph* g_FIT_VU = (TGraph*) f->Get("g_FIT_VU");
   g_FIT_VU->SetTitle("Vectorization benchmark on "+label);
   g_FIT_VU->GetXaxis()->SetTitle("Vector Unit Utilization");
-  g_FIT_VU->GetYaxis()->SetTitle("Time for 20k tracks [s]");
+  g_FIT_VU->GetYaxis()->SetTitle("Time for "+ntrk+" tracks [s]");
   g_FIT_VU->GetYaxis()->SetTitleOffset(1.25);
   g_FIT_VU->GetXaxis()->SetRangeUser(1,maxvu);
-  g_FIT_VU->GetYaxis()->SetRangeUser(0,0.2);
-  if (isMic) g_FIT_VU->GetYaxis()->SetRangeUser(0,1);
+  g_FIT_VU->GetYaxis()->SetRangeUser(0,1.2*g_FIT_VU->GetY()[0]);
   g_FIT_VU->SetLineWidth(2);
   g_FIT_VU->SetLineColor(kBlue);
   g_FIT_VU->SetMarkerStyle(kFullCircle);
@@ -63,11 +65,10 @@
   TGraph* g_FIT_TH = (TGraph*) f->Get("g_FIT_TH");
   g_FIT_TH->SetTitle("Parallelization benchmark on "+label);
   g_FIT_TH->GetXaxis()->SetTitle("Number of Threads");
-  g_FIT_TH->GetYaxis()->SetTitle("Time for 20k tracks [s]");
+  g_FIT_TH->GetYaxis()->SetTitle("Time for "+ntrk+" tracks [s]");
   g_FIT_TH->GetYaxis()->SetTitleOffset(1.25);
   g_FIT_TH->GetXaxis()->SetRangeUser(1,maxth);
-  g_FIT_TH->GetYaxis()->SetRangeUser(0,0.04);
-  if (isMic) g_FIT_TH->GetYaxis()->SetRangeUser(0,0.14);
+  g_FIT_TH->GetYaxis()->SetRangeUser(0,1.2*g_FIT_TH->GetY()[0]);
   g_FIT_TH->SetLineWidth(2);
   g_FIT_TH->SetLineColor(kBlue);
   g_FIT_TH->SetMarkerStyle(kFullCircle);
