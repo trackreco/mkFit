@@ -21,7 +21,7 @@
   TGraph* g_CEST_VU = (TGraph*) f->Get("g_CEST_VU");
   TGraph* g_ST_VU = (TGraph*) f->Get("g_ST_VU");
   g_BH_VU->SetTitle("Vectorization benchmark on "+label);
-  g_BH_VU->GetXaxis()->SetTitle("Vector Unit Utilization");
+  g_BH_VU->GetXaxis()->SetTitle("Vector Width");
   g_BH_VU->GetYaxis()->SetTitle("Time for 10 events x 20k tracks [s]");
   g_BH_VU->GetXaxis()->SetRangeUser(1,maxvu);
   g_BH_VU->GetYaxis()->SetRangeUser(0,10);
@@ -63,7 +63,7 @@
   TGraph* g_CEST_VU_speedup = (TGraph*) f->Get("g_CEST_VU_speedup");
   TGraph* g_ST_VU_speedup = (TGraph*) f->Get("g_ST_VU_speedup");
   g_BH_VU_speedup->SetTitle("Vectorization speedup on "+label);
-  g_BH_VU_speedup->GetXaxis()->SetTitle("Vector Unit Utilization");
+  g_BH_VU_speedup->GetXaxis()->SetTitle("Vector Width");
   g_BH_VU_speedup->GetYaxis()->SetTitle("Speedup");
   g_BH_VU_speedup->GetXaxis()->SetRangeUser(1,maxvu);
   g_BH_VU_speedup->GetYaxis()->SetRangeUser(0,maxvu);
