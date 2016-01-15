@@ -79,6 +79,7 @@
   leg_TH->AddEntry(g_FIT_TH,"Fit","LP");
   leg_TH->Draw();
   c3.SetGridy();
+  if (isMic) c3.SetLogy();
   c3.Update();
   c3.SaveAs(hORm+"_th_fittime.png");
 

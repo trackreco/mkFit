@@ -110,7 +110,7 @@
   g_BH_TH->GetYaxis()->SetTitle("Time for 10 events x 20k tracks [s]");
   g_BH_TH->GetXaxis()->SetRangeUser(1,maxth);
   g_BH_TH->GetYaxis()->SetRangeUser(0,6);
-  if (isMic) g_BH_TH->GetYaxis()->SetRangeUser(0,40);
+  if (isMic) g_BH_TH->GetYaxis()->SetRangeUser(0.5,80);
   g_BH_TH->SetLineWidth(2);
   g_CE_TH->SetLineWidth(2);
   g_CEST_TH->SetLineWidth(2);
@@ -139,6 +139,7 @@
   leg_TH->AddEntry(g_ST_TH,"NoCloneEngine","LP");
   leg_TH->Draw();
   c3.SetGridy();
+  if (isMic) c3.SetLogy();
   c3.Update();
   c3.SaveAs(hORm+"_th_time.png");
 
