@@ -148,7 +148,7 @@ public:
 
   void JoinSideThread()
   {
-    printf("SideThread::JoinSideThread entering ...\n");
+    // printf("SideThread::JoinSideThread entering ...\n");
     // printf("SideThread::JoinSideThread in cpuid %d\n", sched_getcpu());
     {
       std::unique_lock<std::mutex> lk(m_moo);

@@ -27,6 +27,8 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
 
   const int is_num = is_end - is_beg;
 
+  // printf("CandCloner::ProcessSeedRange is_beg=%d, is_end=%d, is_num=%d\n", is_beg, is_end, is_num);
+
   //1) sort the candidates
   for (int is = is_beg; is < is_end; ++is)
   {
@@ -60,7 +62,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
     std::vector<MkFitter::IdxChi2List>& hitsToAddForThisSeed = m_hits_to_add[is];
     for (int ih = 0; ih < hitsToAddForThisSeed.size() && ih < Config::maxCandsPerSeed; ih++)
     {
-      t_seed_newcand_idx.push_back(std::pair<int,MkFitter::IdxChi2List>(is, hitsToAddForThisSeed[ih]));
+      t_seed_newcand_idx.push_back(std::pair<int,MkFitter::IdxChi2List>(is + m_start_seed, hitsToAddForThisSeed[ih]));
     }
   }
 

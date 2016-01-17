@@ -8,6 +8,8 @@ ifeq (${CXX},icc)
   EXES   += $(addsuffix -mic, ${TGTS})
 endif
 
+.PHONY: all clean distclean
+
 all: ${EXES}
 	cd mkFit && ${MAKE}
 
@@ -23,19 +25,20 @@ AUTO_TGTS += auto-matriplex
 endif
 
 SRCS := $(wildcard *.cc)
-DEPS := $(SRCS:.cc=.d)
 OBJS := $(SRCS:.cc=.o)
 
--include ${DEPS}
+ifeq ($(filter clean-local clean distclean, ${MAKECMDGOALS}),)
+include $(SRCS:.cc=.d)
+endif
 
-.PHONY: all clean 
-
-clean:
+clean-local:
 	-rm -f ${EXES} *.d *.o *.om
 	-rm -rf USolids-{host,mic}
+
+clean: clean-local
 	cd mkFit && ${MAKE} clean
 
-distclean: clean
+distclean: clean-local
 	-rm -f ${AUTO_TGTS}
 	-rm -f *.optrpt
 	cd mkFit && ${MAKE} distclean
@@ -43,7 +46,7 @@ distclean: clean
 main: ${AUTO_TGTS} ${OBJS} ${LIBUSOLIDS}
 	${CXX} ${CXXFLAGS} ${VEC_HOST} -o $@ ${OBJS} ${LIBUSOLIDS} ${LDFLAGS}
 
-${OBJS}: %.o: %.cc
+${OBJS}: %.o: %.cc %.d
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<
 
 ${LIBUSOLIDS} : USolids/CMakeLists.txt

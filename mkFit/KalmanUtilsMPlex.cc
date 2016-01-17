@@ -178,6 +178,8 @@ void kalmanGain_x_propErr(const MPlexLH& A, const MPlexLS& B, MPlexLS& C)
 // updateParametersMPlex
 //==============================================================================
 
+//#define DEBUG
+
 void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
                            const MPlexHS &msErr,  const MPlexHV& msPar,
                            MPlexLS &outErr,       MPlexLV& outPar)
@@ -200,26 +202,33 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   MPlexLS propErr;
   MPlexLV propPar;
   // do a full propagation step to correct for residual distance from the hit radius - need the charge for this
-  // propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar);
-
-  propErr = psErr;
-  propPar = psPar;
+  if (Config::useCMSGeom) {
+    propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar);
+  } else {
+    propErr = psErr;
+    propPar = psPar;
+  }
 
 #ifdef DEBUG
   if (dump) {
+    printf("propPar:\n");
+    for (int i = 0; i < 6; ++i) { 
+      printf("%8f ", propPar.ConstAt(0,0,i)); printf("\n");
+    } printf("\n");
+    printf("msPar:\n");
+    for (int i = 0; i < 3; ++i) { 
+      printf("%8f ", msPar.ConstAt(0,0,i)); printf("\n");
+    } printf("\n");
     printf("propErr:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
         printf("%8f ", propErr.At(0,i,j)); printf("\n");
     } printf("\n");
+    printf("msErr:\n");
+    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+        printf("%8f ", msErr.ConstAt(0,i,j)); printf("\n");
+    } printf("\n");
   }
 #endif
-
-  // if (dump) {
-  //   printf("msErr:\n");
-  //   for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-  //       printf("%8f ", msErr.ConstAt(0,i,j)); printf("\n");
-  //   } printf("\n");
-  // }
 
   MPlexHS resErr;
   AddIntoUpperLeft3x3(propErr, msErr, resErr);
@@ -306,7 +315,7 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
   // Also: resErr could be 3x3, kalmanGain 6x3
 
 #ifdef DEBUG
-  const bool dump = true;//g_dump;
+  const bool dump = g_dump;
 #endif
 
   // updateParametersContext ctx;
@@ -315,31 +324,33 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
   MPlexLS propErr;
   MPlexLV propPar;
   // do a full propagation step to correct for residual distance from the hit radius - need the charge for this
-  // propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar);
-
-  propErr = psErr;
-  propPar = psPar;
+  if (Config::useCMSGeom) {
+    propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar);
+  } else {
+    propErr = psErr;
+    propPar = psPar;
+  }
 
 #ifdef DEBUG
   if (dump) {
-    MPlexLV propState = psPar;
-    printf("propState:\n");
+    printf("propPar:\n");
     for (int i = 0; i < 6; ++i) { 
-      printf("%8f ", propState.At(0,0,i));
+      printf("%8f ", propPar.ConstAt(0,0,i)); printf("\n");
+    } printf("\n");
+    printf("msPar:\n");
+    for (int i = 0; i < 3; ++i) { 
+      printf("%8f ", msPar.ConstAt(0,0,i)); printf("\n");
     } printf("\n");
     printf("propErr:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
         printf("%8f ", propErr.At(0,i,j)); printf("\n");
     } printf("\n");
+    printf("msErr:\n");
+    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+        printf("%8f ", msErr.ConstAt(0,i,j)); printf("\n");
+    } printf("\n");
   }
 #endif
-
-  // if (dump) {
-  //   printf("msErr:\n");
-  //   for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-  //       printf("%8f ", msErr.ConstAt(0,i,j)); printf("\n");
-  //   } printf("\n");
-  // }
 
   MPlexHS resErr;
   AddIntoUpperLeft3x3(propErr, msErr, resErr);

@@ -109,7 +109,6 @@ void MkFitter::InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks,
   int itrack = 0;
   for (int i = beg; i < end; ++i, ++itrack)
   {
-
     Track &trk = tracks[idxs[i].first][idxs[i].second];
 
     Label(itrack, 0, 0) = trk.label();
@@ -119,7 +118,7 @@ void MkFitter::InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks,
     Err[iI].CopyIn(itrack, trk.errors().Array());
     Par[iI].CopyIn(itrack, trk.parameters().Array());
 
-    Chg(itrack, 0, 0) = trk.charge();
+    Chg (itrack, 0, 0) = trk.charge();
     Chi2(itrack, 0, 0) = trk.chi2();
 
     for (int hi = 0; hi < Nhits; ++hi)
@@ -611,20 +610,21 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
     //const float nSigmaDphi = Config::nSigma*dphi;
 
     float dPhiMargin = 0.;
-    //fixme: find a way to automatically turn this on when needed
-//     //now correct for bending and for layer thickness unsing linear approximation
-//     const float predpx = Par[iP].ConstAt(itrack, 3, 0);
-//     const float predpy = Par[iP].ConstAt(itrack, 4, 0);
-//     float deltaR = Config::cmsDeltaRad; //fixme! using constant vale, to be taken from layer properties
-//     float radius = sqrt(px2py2);
-//     float pt     = sqrt(predpx*predpx + predpy*predpy);
-//     float cosTheta = ( predx*predpx + predy*predpy )/(pt*radius);
-//     float hipo = deltaR/cosTheta;
-//     float dist = sqrt(hipo*hipo - deltaR*deltaR);
-//     dPhiMargin = dist/radius;
-// #ifdef DEBUG
-//     std::cout << "dPhiMargin=" << dPhiMargin << std::endl;
-// #endif
+    if (Config::useCMSGeom) {
+      //now correct for bending and for layer thickness unsing linear approximation
+      const float predpx = Par[iP].ConstAt(itrack, 3, 0);
+      const float predpy = Par[iP].ConstAt(itrack, 4, 0);
+      float deltaR = Config::cmsDeltaRad; //fixme! using constant vale, to be taken from layer properties
+      float radius = sqrt(px2py2);
+      float pt     = sqrt(predpx*predpx + predpy*predpy);
+      float cosTheta = ( predx*predpx + predy*predpy )/(pt*radius);
+      float hipo = deltaR/cosTheta;
+      float dist = sqrt(hipo*hipo - deltaR*deltaR);
+      dPhiMargin = dist/radius;
+    }
+    // #ifdef DEBUG
+    //     std::cout << "dPhiMargin=" << dPhiMargin << std::endl;
+    // #endif
 
     //if (nSigmaDphi>0.3) 
     //std::cout << "window MX: " << predx << " " << predy << " " << predz << " " << Err[iI].ConstAt(itrack, 0, 0) << " " << Err[iI].ConstAt(itrack, 1, 1) << " " << Err[iI].ConstAt(itrack, 0, 1) << " " << nSigmaDphi << std::endl;
@@ -737,7 +737,7 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 {
   //fixme solve ambiguity NN vs beg-end
   float minChi2[NN];
-  std::fill_n(minChi2, NN, 100.); // XXXX MT was 9999
+  std::fill_n(minChi2, NN, Config::chi2Cut);
   int bestHit[NN];
   std::fill_n(bestHit, NN, -1);
 
@@ -913,7 +913,9 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 
 
 
-void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vector<Track> >& tmp_candidates, int offset)
+void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits,
+                              std::vector<std::vector<Track> >& tmp_candidates,
+                              const int offset, const int N_proc)
 {
 
   const char *varr      = (char*) bunch_of_hits.m_hits;
@@ -922,13 +924,13 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
   const int   off_param = (char*) bunch_of_hits.m_hits[0].posArray() - varr;
 
   int idx[NN]      __attribute__((aligned(64)));
-  int idx_chew[NN] __attribute__((aligned(64)));
+  // int idx_chew[NN] __attribute__((aligned(64)));
 
   int maxSize = -1;
 
   // Determine maximum number of hits for tracks in the collection.
   // At the same time prefetch the first set of hits to L1 and the second one to L2.
-  for (int it = 0; it < NN; ++it)
+  for (int it = 0; it < N_proc; ++it)
   {
     int off = XHitPos.At(it, 0, 0) * sizeof(Hit);
 
@@ -936,10 +938,22 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
     _mm_prefetch(varr + sizeof(Hit) + off, _MM_HINT_T1);
 
     idx[it]      = off;
-    idx_chew[it] = it*sizeof(Hit);
+    // idx_chew[it] = it*sizeof(Hit);
 
     // XXX There is an intrinsic for that, out of loop.
     maxSize = std::max(maxSize, XHitSize.At(it, 0, 0));
+  }
+  // XXXX MT FIXME: Use the limit for:
+  // - SlurpIns, use masked gather for MIC_INTRINSICS
+  // - prefetching loops - DONE
+  // - computeChi2MPlex() -- really hard ... it calls Matriplex functions. This
+  //       should be fine. - DOES NOT NEED TO BE DONE
+  // - hit (valid or invalid) registration loops - DONE
+  // The following loop is not needed then. But I do need a mask for intrinsics slurpin.
+  for (int it = N_proc; it < NN; ++it)
+  {
+    idx[it]      = idx[0];
+    // idx_chew[it] = idx_chew[0];
   }
 
   // XXXX MT Uber hack to avoid tracks with like 300 hits to process.
@@ -949,7 +963,7 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
   //__m512i vi = _mm512_setr_epi32(idx[ 0], idx[ 1], idx[ 2], idx[ 3], idx[ 4], idx[ 5], idx[ 6], idx[ 7],
   //                               idx[ 8], idx[ 9], idx[10], idx[11], idx[12], idx[13], idx[14], idx[15]);
   __m512i vi      = _mm512_load_epi32(idx);
-  __m512i vi_chew = _mm512_load_epi32(idx_chew);
+  // __m512i vi_chew = _mm512_load_epi32(idx_chew);
 #endif
 
 // Has basically no effect, it seems.
@@ -960,7 +974,7 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
 
     // Prefetch to L2 the hits we'll process after two loops iterations.
     // Ideally this would be initiated before coming here, for whole bunch_of_hits.m_hits vector.
-    for (int itrack = 0; itrack < NN; ++itrack)
+    for (int itrack = 0; itrack < N_proc; ++itrack)
     {
       _mm_prefetch(varr + 2*sizeof(Hit) + idx[itrack], _MM_HINT_T1);
     }
@@ -991,7 +1005,7 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
     computeChi2MPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits], outChi2);
 
     // Prefetch to L1 the hits we'll process in the next loop iteration.
-    for (int itrack = 0; itrack < NN; ++itrack)
+    for (int itrack = 0; itrack < N_proc; ++itrack)
     {
       _mm_prefetch(varr + sizeof(Hit) + idx[itrack], _MM_HINT_T0);
     }
@@ -1000,7 +1014,7 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
     //this is not needed for candidates the hit is not added to, but it's vectorized so doing it serially below should take the same time
     //still it's a waste of time in case the hit is not added to any of the candidates, so check beforehand that at least one cand needs update
     bool oneCandPassCut = false;
-    for (int itrack = 0; itrack < NN;++itrack)
+    for (int itrack = 0; itrack < N_proc;++itrack)
       {
 	float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
 #ifdef DEBUG
@@ -1025,7 +1039,7 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
 
       //create candidate with hit in case chi2<Config::chi2Cut
       //fixme: please vectorize me... (not sure it's possible in this case)
-      for (int itrack = 0; itrack < NN; ++itrack)
+      for (int itrack = 0; itrack < N_proc; ++itrack)
 	{
 	  float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
 #ifdef DEBUG
@@ -1050,11 +1064,11 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
 	      //set the track state to the updated parameters
 	      Err[iC].CopyOut(itrack, newcand.errors_nc().Array());
 	      Par[iC].CopyOut(itrack, newcand.parameters_nc().Array());
-	      
+
 #ifdef DEBUG
 	      std::cout << "updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << std::endl;
 #endif
-	      
+
 	      tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
 	    }
 	}
@@ -1064,7 +1078,7 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vecto
 
   //now add invalid hit
   //fixme: please vectorize me...
-  for (int itrack = 0; itrack < NN;++itrack)
+  for (int itrack = 0; itrack < N_proc; ++itrack)
     {
       if (countInvalidHits(itrack)>0) continue;//check this is ok for vectorization //fixme not optimal
       Track newcand;
