@@ -105,6 +105,14 @@ void Event::Simulate()
 #ifdef TBB
   });
 #endif
+
+
+		for (int i = 0; i < simHitsInfo_.size(); i++){
+		  std::cout << "loop variable: " << i << " mcID: " << simHitsInfo_[i].mcHitID_ << std::endl;
+
+		}
+
+
 }
 
 void Event::Segment()
@@ -220,7 +228,9 @@ void Event::Seed()
   buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
 #endif
   // if we sort here, also have to sort seedTracksExtra and redo labels.
-  //std::sort(seedTracks_.begin(), seedTracks_.end(), tracksByPhi);
+  
+  std::sort(seedTracks_.begin(), seedTracks_.end(), tracksByPhi);
+  validation_.alignTrackExtra(seedTracks_,seedTracksExtra_);
 }
 
 void Event::Find()
@@ -248,7 +258,7 @@ void Event::Validate(const unsigned int ievt){
   validation_.fillBranchTree(ievt);
   validation_.makeSimTkToRecoTksMaps(*this);
   validation_.fillEffTree(simTracks_,ievt);
-  validation_.makeSeedTkToRecoTkMaps(candidateTracks_,fitTracks_);
+  validation_.makeSeedTkToRecoTkMaps(*this);
   validation_.fillFakeRateTree(seedTracks_,ievt);
 }
 
