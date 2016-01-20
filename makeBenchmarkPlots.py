@@ -27,10 +27,14 @@ for test in ['BH','CE','CEST','ST','FIT']:
     if hORm == 'mic': 
         vuvals.append('16')
         vuvals.append('16int')
+    else:
+        vuvals.append('8int')
     for vu in vuvals:
         os.system('grep Matriplex log_'+hORm+'_10x'+ntks+'_'+test+'_NVU'+vu+'_NTH1.txt >& log_'+hORm+'_10x'+ntks+'_'+test+'_VU.txt')
         if vu == '16int':
             xval = 16.0
+        elif vu == '8int':
+            xval = 8.0
         else:
             xval = float(vu)
         yval = 0.
@@ -70,7 +74,7 @@ for test in ['BH','CE','CEST','ST','FIT']:
     g_VU_speedup.Write("g_"+test+"_VU_speedup")
 
     point = 0
-    nvu = '8'
+    nvu = '8int'
     if hORm == 'mic': nvu = '16int'
     thvals = [1,3,7,21]
     if hORm == 'mic': thvals = [1,3,7,21,42,63,84,105,126,147,168,189,210]
