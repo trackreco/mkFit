@@ -14,7 +14,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
   }
   std::sort(mctrack.begin(), mctrack.end()); // ensures all elements are checked properly
 
-  auto mtrk(mctrack[0]), mcount(0U), m(mctrack[0]), c(0U);
+  auto mtrk(mctrack[0]), mcount(0), m(mctrack[0]), c(0);
 
   for (auto i : mctrack) {
     if (i == m) { ++c; } else { c = 1; }

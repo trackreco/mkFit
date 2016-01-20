@@ -41,7 +41,7 @@ inline bool sortByHitsChi2(const Track & cand1, const Track & cand2)
 inline float computeHelixChi2(const SVector6& simParams, const SVector6& recoParams, const SMatrixSym66& recoErrs)
 { 
   float chi2 = 0;
-  for(auto i = 0U; i < 6; i++){
+  for(auto i = 0; i < 6; i++){
     float delta = simParams.At(i) - recoParams.At(i);
     chi2 += (delta*delta) / recoErrs.At(i,i);
   }
@@ -620,7 +620,7 @@ void TTreeValidation::makeSimTkToRecoTksMaps(Event& ev){
 
 void TTreeValidation::mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, const std::vector<HitVec>& layerHits, 
 					const MCHitInfoVec& mcHitInfo, TkIDToTkIDVecMap& simTkMap){
-  for (auto itrack = 0U; itrack < evt_tracks.size(); ++itrack){
+  for (auto itrack = 0; itrack < evt_tracks.size(); ++itrack){
     auto&& track(evt_tracks[itrack]);
     auto&& extra(evt_extras[itrack]);
     extra.setMCTrackIDInfo(track, layerHits, mcHitInfo);
@@ -643,7 +643,7 @@ void TTreeValidation::mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVe
 	tmpMatches.push_back(evt_tracks[label]);
       }
       std::sort(tmpMatches.begin(), tmpMatches.end(), sortByHitsChi2); // sort the tracks
-      for (auto itrack = 0U; itrack < tmpMatches.size(); itrack++){ // loop over sorted tracks, now make the vector of sorted labels
+      for (auto itrack = 0; itrack < tmpMatches.size(); itrack++){ // loop over sorted tracks, now make the vector of sorted labels
 	simTkMatches.second[itrack] = evt_tracks[itrack].label();
       }
       

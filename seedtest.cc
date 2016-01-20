@@ -18,7 +18,7 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, T
 
     TSLayerPairVec updatedStates; // validation for position pulls
 
-    for (auto ilayer=0U;ilayer<Config::nlayers_per_seed;++ilayer) {//seeds have first three layers as seeds
+    for (auto ilayer=0;ilayer<Config::nlayers_per_seed;++ilayer) {//seeds have first three layers as seeds
       auto hitidx = trk.getHitIdx(ilayer);
       const Hit& seed_hit = ev.layerHits_[ilayer][hitidx];
       TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
@@ -91,8 +91,8 @@ void buildHitPairs(const std::vector<HitVec>& evt_lay_hits, const BinInfoLayerMa
     const auto etaBinMinus = getEtaPartition(getEta(Config::fRadialSpacing,(outerhitz-Config::beamspotZ)/2.));
     const auto etaBinPlus  = getEtaPartition(getEta(Config::fRadialSpacing,(outerhitz+Config::beamspotZ)/2.));
 #else
-    const auto etaBinMinus = 0U;
-    const auto etaBinPlus  = 0U;
+    const auto etaBinMinus = 0;
+    const auto etaBinPlus  = 0;
 #endif
     const auto phiBinMinus = getPhiPartition(normalizedPhi(outerphi - Config::alphaBeta));
     const auto phiBinPlus  = getPhiPartition(normalizedPhi(outerphi + Config::alphaBeta));
@@ -116,8 +116,8 @@ void buildHitTriplets(const std::vector<HitVec>& evt_lay_hits, const BinInfoLaye
     const auto etaBinMinus = getEtaPartition(getEta(thirdRad,thirdZline)-Config::dEtaSeedTrip);
     const auto etaBinPlus  = getEtaPartition(getEta(thirdRad,thirdZline)+Config::dEtaSeedTrip);
 #else
-    const auto etaBinMinus = 0U;
-    const auto etaBinPlus  = 0U;
+    const auto etaBinMinus = 0;
+    const auto etaBinPlus  = 0;
 #endif    
     const float linePhi = getPhi(hit_pair[1].position()[0] - hit_pair[0].position()[0], hit_pair[1].position()[1] - hit_pair[0].position()[1]);
     float thirdPhiMinus = 0.0;
@@ -195,7 +195,7 @@ void buildSeedsFromTriplets(const std::vector<HitVec> & filtered_triplets, Track
 
     TSLayerPairVec updatedStates; // validation for position pulls
     
-    for (auto ilayer=0U;ilayer<Config::nlayers_per_seed;++ilayer) {
+    for (auto ilayer=0;ilayer<Config::nlayers_per_seed;++ilayer) {
       Hit seed_hit = hit_triplet[ilayer];
       TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
       MeasurementState measState = seed_hit.measurementState();

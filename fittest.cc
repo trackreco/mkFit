@@ -166,7 +166,7 @@ void runFittingTest(Event& ev, const TrackVec& candidates, const TrackExtraVec& 
 #else
 void runFittingTest(Event& ev, const TrackVec& candidates, const TrackExtraVec& candextra)
 {
-  for (auto itrack = 0U; itrack < candidates.size(); ++itrack) {
+  for (auto itrack = 0; itrack < candidates.size(); ++itrack) {
     const auto& trk = candidates[itrack];
     assert(trk.label() == itrack);
     fitTrack(trk, candextra[itrack], itrack, ev);

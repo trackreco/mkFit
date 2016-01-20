@@ -79,7 +79,7 @@ void buildTracksBySeeds(Event& ev)
   bool debug(true);
 
   std::vector<candvec> track_candidates(evt_seeds.size());
-  for (auto iseed = 0U; iseed < evt_seeds.size(); iseed++) {
+  for (auto iseed = 0; iseed < evt_seeds.size(); iseed++) {
     const auto& seed(evt_seeds[iseed]);
     track_candidates[iseed].push_back(seed);
   }
@@ -91,7 +91,7 @@ void buildTracksBySeeds(Event& ev)
     for (auto iseed = seediter.begin(); iseed != seediter.end(); ++iseed) {
       const auto& seed(evt_seeds[iseed]);
 #else
-    for (auto iseed = 0U; iseed != evt_seeds.size(); ++iseed) {
+    for (auto iseed = 0; iseed != evt_seeds.size(); ++iseed) {
       const auto& seed(evt_seeds[iseed]);
 #endif
       dprint("processing seed # " << iseed << " par=" << seed.parameters());
@@ -109,7 +109,7 @@ void buildTracksBySeeds(Event& ev)
 #ifdef TBB
   });
 #endif
-  for (auto iseed = 0U; iseed < track_candidates.size(); ++iseed) {
+  for (auto iseed = 0; iseed < track_candidates.size(); ++iseed) {
     auto& cand = track_candidates[iseed];
     if (cand.size()>0) {
       // only save one track candidate per seed, one with lowest chi2
@@ -133,7 +133,7 @@ void buildTracksByLayers(Event& ev)
   bool debug(true);
 
   std::vector<candvec> track_candidates(evt_seeds.size());
-  for (auto iseed = 0U; iseed < evt_seeds.size(); iseed++) {
+  for (auto iseed = 0; iseed < evt_seeds.size(); iseed++) {
     const auto& seed(evt_seeds[iseed]);
     track_candidates[iseed].push_back(seed);
   }
@@ -154,7 +154,7 @@ void buildTracksByLayers(Event& ev)
     }); //end of process seeds loop
 #else
     //process seeds
-    for (auto iseed = 0U; iseed != evt_seeds.size(); ++iseed) {
+    for (auto iseed = 0; iseed != evt_seeds.size(); ++iseed) {
       const auto& seed(evt_seeds[iseed]);
       auto&& candidates(track_candidates[iseed]);
       processCandidates(ev, candidates, ilay, evt_seeds_extra[iseed].seedID(), debug);
@@ -163,7 +163,7 @@ void buildTracksByLayers(Event& ev)
   } //end of layer loop
 
   //std::lock_guard<std::mutex> evtguard(evtlock);
-  for (auto iseed = 0U; iseed < track_candidates.size(); ++iseed) {
+  for (auto iseed = 0; iseed < track_candidates.size(); ++iseed) {
     auto& cand = track_candidates[iseed];
     if (cand.size()>0) {
       // only save one track candidate per seed, one with lowest chi2
@@ -210,8 +210,8 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   const auto etaBinPlus  = getEtaPartition(eta+nSigmaDeta);
 #else
   const float nSigmaDeta = 0.;
-  const auto etaBinMinus = 0U;
-  const auto etaBinPlus  = 0U;
+  const auto etaBinMinus = 0;
+  const auto etaBinPlus  = 0;
 #endif
   const float phi    = getPhi(predx,predy); //std::atan2(predy,predx); 
   const float dphi = std::sqrt(std::abs(getPhiErr2(predx,predy,propState.errors.At(0,0),propState.errors.At(1,1),propState.errors.At(0,1))));
