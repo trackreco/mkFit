@@ -25,7 +25,7 @@ static void print(const TrackState& s)
   std::cout << std::endl;
 }
 
-static void print(std::string label, unsigned int itrack, const Track& trk)
+static void print(std::string label, int itrack, const Track& trk)
 {
   std::cout << std::endl << label << ": " << itrack << " hits: " << trk.nFoundHits() << " State" << std::endl;
   print(trk.state());
@@ -49,7 +49,7 @@ static void print(std::string label, const MeasurementState& s)
 }
 #endif
 
-void fitTrack(const Track & trk, const TrackExtra& trkextra, unsigned int itrack, Event& ev)
+void fitTrack(const Track & trk, const TrackExtra& trkextra, int itrack, Event& ev)
 {
 #ifdef DEBUG
   bool debug(false);

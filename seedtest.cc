@@ -9,7 +9,7 @@
 
 void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, TrackExtraVec& seed_track_extra, Event& ev){
   bool debug(true);
-  for (unsigned int itrack=0;itrack<evt_sim_tracks.size();++itrack) {
+  for (int itrack=0;itrack<evt_sim_tracks.size();++itrack) {
     const Track& trk = evt_sim_tracks[itrack];
     int   seedhits[Config::nLayers];
     float chi2 = 0;
@@ -83,7 +83,7 @@ void buildHitPairs(const std::vector<HitVec>& evt_lay_hits, const BinInfoLayerMa
   // use only average radius of inner radius for calculation
   // alphaBeta is a parameter for phi search window derived numerically from Mathematica... see one of my old talks
 
-  for (unsigned int ihit=0;ihit<evt_lay_hits[1].size();++ihit) { // 1 = second layer
+  for (int ihit=0;ihit<evt_lay_hits[1].size();++ihit) { // 1 = second layer
     const float outerhitz = evt_lay_hits[1][ihit].z(); // remember, layer[0] is first layer! --> second layer = [1]
     const float outerphi  = evt_lay_hits[1][ihit].phi();
 
@@ -97,7 +97,7 @@ void buildHitPairs(const std::vector<HitVec>& evt_lay_hits, const BinInfoLayerMa
     const auto phiBinMinus = getPhiPartition(normalizedPhi(outerphi - Config::alphaBeta));
     const auto phiBinPlus  = getPhiPartition(normalizedPhi(outerphi + Config::alphaBeta));
 
-    std::vector<unsigned int> cand_hit_indices = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
+    std::vector<int> cand_hit_indices = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
     for (auto&& cand_hit_idx : cand_hit_indices){
       HitVec hit_pair;
       hit_pair.push_back(evt_lay_hits[0][cand_hit_idx]);
@@ -133,7 +133,7 @@ void buildHitTriplets(const std::vector<HitVec>& evt_lay_hits, const BinInfoLaye
     const auto phiBinMinus = getPhiPartition(thirdPhiMinus);
     const auto phiBinPlus  = getPhiPartition(thirdPhiPlus);
 
-    std::vector<unsigned int> cand_hit_indices = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
+    std::vector<int> cand_hit_indices = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
     for (auto&& cand_hit_idx : cand_hit_indices){
       HitVec hit_triplet;
       hit_triplet.push_back(hit_pair[0]);
@@ -181,17 +181,16 @@ void filterHitTripletsByRZChi2(const std::vector<HitVec>& hit_triplets, std::vec
 
 void buildSeedsFromTriplets(const std::vector<HitVec> & filtered_triplets, TrackVec & evt_seed_tracks, Event& ev){
   // now perform kalman fit on seeds --> first need initial parameters --> get from Conformal fitter!
-  const bool backward = false; // use for forward fit of conformal utils
   const bool fiterrs  = false; // use errors derived for seeding
 
-  unsigned int seedID = 0;
+  int seedID = 0;
   for(auto&& hit_triplet : filtered_triplets){
     int charge = 0;
     if (hit_triplet[1].phi() > hit_triplet[2].phi()){charge = 1;}
     else {charge = -1;}
 
     TrackState updatedState;
-    conformalFit(hit_triplet[0],hit_triplet[1],hit_triplet[2],charge,updatedState,backward,fiterrs); 
+    conformalFit(hit_triplet[0],hit_triplet[1],hit_triplet[2],charge,updatedState,fiterrs); 
     ev.validation_.collectSeedTkCFMapInfo(seedID,updatedState);
 
     TSLayerPairVec updatedStates; // validation for position pulls

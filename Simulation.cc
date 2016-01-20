@@ -7,7 +7,7 @@
 #define SCATTER_XYZ
 
 void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
-                       HitVec& hits, MCHitInfoVec& initialhitinfo, unsigned int itrack,
+                       HitVec& hits, MCHitInfoVec& initialhitinfo, int itrack,
                        int& charge, const Geometry& geom, TSVec & initTSs)
 {
 
@@ -48,8 +48,8 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
   mom=SVector3(px,py,pz);
   covtrk=ROOT::Math::SMatrixIdentity();
   //initial covariance can be tricky
-  for (unsigned int r=0; r<6; ++r) {
-    for (unsigned int c=0; c<6; ++c) {
+  for (int r=0; r<6; ++r) {
+    for (int c=0; c<6; ++c) {
       if (r==c) {
       if (r<3) covtrk(r,c)=pow(1.0*pos[r],2);//100% uncertainty on position
       else covtrk(r,c)=pow(1.0*mom[r-3],2);  //100% uncertainty on momentum
@@ -70,8 +70,8 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
 
   // useful info for loopers/overlaps
 
-  unsigned int layer_counts[Config::nLayers];
-  for (unsigned int ilayer=0;ilayer<Config::nLayers;++ilayer){
+  int layer_counts[Config::nLayers];
+  for (int ilayer=0;ilayer<Config::nLayers;++ilayer){
     layer_counts[ilayer]=0;
   }
 
@@ -79,12 +79,12 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
   // if block BREAK if hit.Layer == theGeom->CountLayers() 
   // else --> if (NMAX TO LOOPER (maybe same as 10?) {break;} else {continue;}
   
-  unsigned int simLayer = 0; // use to keep track where hit lies on, will proceed monotonically increasing without loopers/overlaps
+  int simLayer = 0; // use to keep track where hit lies on, will proceed monotonically increasing without loopers/overlaps
 
   hits.reserve(Config::nTotHit);
   initTSs.reserve(Config::nTotHit);
 
-  for (unsigned int ihit=0;ihit<Config::nTotHit;++ihit) {  // go to first layer in radius using propagation.h
+  for (int ihit=0;ihit<Config::nTotHit;++ihit) {  // go to first layer in radius using propagation.h
     //TrackState propState = propagateHelixToR(tmpState,4.*float(ihit+1));//radius of 4*ihit
     auto propState = propagateHelixToNextSolid(tmpState,geom);
 
@@ -313,7 +313,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
 #include <sstream>
 
 void setupTrackFromTextFile(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, 
-			    HitVec& hits, MCHitInfoVec& initialhitinfo, unsigned int itrack,
+			    HitVec& hits, MCHitInfoVec& initialhitinfo, int itrack,
 			    int& charge, const Geometry& geom, TSVec & initTSs)
 {
 
@@ -326,15 +326,15 @@ void setupTrackFromTextFile(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
   const float varXY  = hitposerrXY*hitposerrXY;
   const float varZ   = hitposerrZ*hitposerrZ;
 
-  unsigned int layer_counts[Config::nLayers];
-  for (unsigned int ilayer=0;ilayer<Config::nLayers;++ilayer){
+  int layer_counts[Config::nLayers];
+  for (int ilayer=0;ilayer<Config::nLayers;++ilayer){
     layer_counts[ilayer]=0;
   }
-  unsigned int nTotHit = Config::nLayers; // can tune this number!
+  int nTotHit = Config::nLayers; // can tune this number!
   // to include loopers, and would rather add a break on the code if layer ten exceeded
   // if block BREAK if hit.Layer == theGeom->CountLayers() 
   // else --> if (NMAX TO LOOPER (maybe same as 10?) {break;} else {continue;}
-  unsigned int simLayer = 0;
+  int simLayer = 0;
   hits.reserve(Config::nTotHit);
   initTSs.reserve(Config::nTotHit);
 
@@ -347,7 +347,7 @@ void setupTrackFromTextFile(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
   // std::ifstream infile("cmssw.rectracks.SingleMu1GeV.test.txt");
   std::string line;
   int countTracks = -1;
-  unsigned int countHits   = 0;
+  int countHits   = 0;
   bool gotTrack = false;
   while (std::getline(infile, line)) {
 
@@ -373,8 +373,8 @@ void setupTrackFromTextFile(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
       mom=SVector3(px,py,pz);
       covtrk=ROOT::Math::SMatrixIdentity();
       //initial covariance can be tricky
-      for (unsigned int r=0; r<6; ++r) {
-	for (unsigned int c=0; c<6; ++c) {
+      for (int r=0; r<6; ++r) {
+	for (int c=0; c<6; ++c) {
 	  if (r==c) {
 	    if (r<3) covtrk(r,c)=pow(1.0*pos[r],2);//100% uncertainty on position
 	    else covtrk(r,c)=pow(1.0*mom[r-3],2);  //100% uncertainty on momentum

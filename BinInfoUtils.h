@@ -41,7 +41,7 @@ inline int getPhiPartition(float phi)
   
   // theoretically these checks below should be taken care of by normalizedPhi, however...
   // these condition checks appeared in very bizarre corner case where propagated phi == pi != Config::PI in check of normalizedPhi (but not unexpected... comparing float point numbers)
-  // i.e. delta on floating point check smaller than comparison... making what should be bin = nPhiPart - 1 instead bin = nPhiPart (out of bounds!!) ...or worse if unsigned bin < 0, bin == unsigned int max!
+  // i.e. delta on floating point check smaller than comparison... making what should be bin = nPhiPart - 1 instead bin = nPhiPart (out of bounds!!) ...or worse if unsigned bin < 0, bin == int max!
   if (bin<0)                      bin = 0;
   else if (bin>=Config::nPhiPart) bin = Config::nPhiPart - 1;
 
@@ -56,9 +56,9 @@ inline int getEtaPartition(float eta)
   if      (bin<0)                 bin = 0; 
   else if (bin>=Config::nEtaPart) bin = Config::nEtaPart - 1;
 
-  return (unsigned int) bin;
+  return bin;
 }
 
-std::vector<unsigned int> getCandHitIndices(const unsigned int &, const unsigned int &, const unsigned int &, const unsigned int &, const BinInfoLayerMap &);
+std::vector<int> getCandHitIndices(const int &, const int &, const int &, const int &, const BinInfoLayerMap &);
 
 #endif

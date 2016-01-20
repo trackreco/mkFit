@@ -26,7 +26,7 @@ static std::mutex evtlock;
 #endif
 typedef candvec::const_iterator canditer;
 
-void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidates, unsigned int ilay, unsigned int seedID, bool debug);
+void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidates, int ilay, int seedID, bool debug);
 
 inline bool sortByHitsChi2(const cand_t& cand1, const cand_t& cand2)
 {
@@ -34,7 +34,7 @@ inline bool sortByHitsChi2(const cand_t& cand1, const cand_t& cand2)
   return cand1.nFoundHits()>cand2.nFoundHits();
 }
 
-void processCandidates(Event& ev, candvec& candidates, unsigned int ilay, unsigned int seedID, const bool debug)
+void processCandidates(Event& ev, candvec& candidates, int ilay, int seedID, const bool debug)
 {
   auto& evt_track_candidates(ev.candidateTracks_);
 
@@ -100,7 +100,7 @@ void buildTracksBySeeds(Event& ev)
       //seed_state.errors *= 0.01;//otherwise combinatorics explode!!!
       //should consider more than 1 candidate...
       auto&& candidates(track_candidates[iseed]);
-      for (unsigned int ilay=Config::nlayers_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
+      for (int ilay=Config::nlayers_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
         dprint("going to layer #" << ilay << " with N cands=" << track_candidates.size());
         processCandidates(ev, candidates, ilay, evt_seeds_extra[iseed].seedID(), debug);
       }
@@ -176,9 +176,9 @@ void buildTracksByLayers(Event& ev)
   }
 }
 
-void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidates, unsigned int ilayer, unsigned int seedID, bool debug)
+void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidates, int ilayer, int seedID, bool debug)
 {
-  std::vector<unsigned int> branch_hit_indices; // temp variable for validation... could be used for cand hit builder engine!
+  std::vector<int> branch_hit_indices; // temp variable for validation... could be used for cand hit builder engine!
   const Track& tkcand = cand;
   const TrackState& updatedState = cand.state();
   const auto& evt_lay_hits(ev.layerHits_);
@@ -222,7 +222,7 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   dprint("propState at layer: " << ilayer << ": " << propState.parameters);
   dcall(dumpMatrix(propState.errors));
   // get candidate hits for this track candidate at this layer
-  std::vector<unsigned int> cand_hit_indices = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
+  std::vector<int> cand_hit_indices = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
 
 #ifdef LINEARINTERP
     const float minR = ev.geom_.Radius(ilayer);

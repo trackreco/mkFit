@@ -141,15 +141,15 @@ inline float getEtaErr2(float x, float y, float z, float exx, float eyy, float e
 struct MCHitInfo
 {
   MCHitInfo() {}
-  MCHitInfo(unsigned int track, unsigned int layer, unsigned int ithlayerhit)
+  MCHitInfo(int track, int layer, int ithlayerhit)
     : mcTrackID_(track), layer_(layer), ithLayerHit_(ithlayerhit), mcHitID_(mcHitIDCounter_.fetch_add(1)) {}
 
-  unsigned int mcTrackID_;
-  unsigned int layer_;
-  unsigned int ithLayerHit_;
-  unsigned int mcHitID_;
+  int mcTrackID_;
+  int layer_;
+  int ithLayerHit_;
+  int mcHitID_;
 
-  static std::atomic<unsigned int> mcHitIDCounter_;
+  static std::atomic<int> mcHitIDCounter_;
 };
 typedef std::vector<MCHitInfo> MCHitInfoVec;
 

@@ -399,22 +399,22 @@ TTreeValidation::TTreeValidation(std::string fileName)
   fakeratetree_->Branch("iTkMatches_fit",&iTkMatches_fit_FR_);
 }
 
-void TTreeValidation::collectSimTkTSVecMapInfo(unsigned int mcTrackID, const TSVec& initTSs){
+void TTreeValidation::collectSimTkTSVecMapInfo(int mcTrackID, const TSVec& initTSs){
   simTkTSVecMap_[mcTrackID] = initTSs;
 }
 
-void TTreeValidation::collectSeedTkCFMapInfo(unsigned int seedID, const TrackState& cfitStateHit0){
+void TTreeValidation::collectSeedTkCFMapInfo(int seedID, const TrackState& cfitStateHit0){
   seedTkCFMap_[seedID] = cfitStateHit0;
 }
 
-void TTreeValidation::collectSeedTkTSLayerPairVecMapInfo(unsigned int seedID, const TSLayerPairVec& updatedStates){
+void TTreeValidation::collectSeedTkTSLayerPairVecMapInfo(int seedID, const TSLayerPairVec& updatedStates){
   seedTkTSLayerPairVecMap_[seedID] = updatedStates;
 }
 
-void TTreeValidation::collectBranchingInfo(unsigned int seedID, unsigned int ilayer, 
-					   float nSigmaDeta, float etaBinMinus, unsigned int etaBinPlus, 
-					   float nSigmaDphi, unsigned int phiBinMinus, unsigned int phiBinPlus, 
-					   const std::vector<unsigned int>& cand_hit_indices, const std::vector<unsigned int>& branch_hit_indices){
+void TTreeValidation::collectBranchingInfo(int seedID, int ilayer, 
+					   float nSigmaDeta, float etaBinMinus, int etaBinPlus, 
+					   float nSigmaDphi, int phiBinMinus, int phiBinPlus, 
+					   const std::vector<int>& cand_hit_indices, const std::vector<int>& branch_hit_indices){
   
   BranchVal tmpBranchVal;
   tmpBranchVal.nSigmaDeta  = nSigmaDeta;
@@ -429,11 +429,11 @@ void TTreeValidation::collectBranchingInfo(unsigned int seedID, unsigned int ila
   seedToBranchValVecLayMapMap_[seedID][ilayer].push_back(tmpBranchVal);
 }
 
-void TTreeValidation::collectFitTkCFMapInfo(unsigned int seedID, const TrackState& cfitStateHit0){
+void TTreeValidation::collectFitTkCFMapInfo(int seedID, const TrackState& cfitStateHit0){
   fitTkCFMap_[seedID] = cfitStateHit0;
 }
 
-void TTreeValidation::collectFitTkTSLayerPairVecMapInfo(unsigned int seedID, const TSLayerPairVec& updatedStates){
+void TTreeValidation::collectFitTkTSLayerPairVecMapInfo(int seedID, const TSLayerPairVec& updatedStates){
   fitTkTSLayerPairVecMap_[seedID] = updatedStates;
 }
 
@@ -481,15 +481,15 @@ void TTreeValidation::resetValidationMaps(){
   seedToFitMap_.clear();
 }
 
-void TTreeValidation::fillSegmentTree(const BinInfoMap& segmentMap, unsigned int evtID){
+void TTreeValidation::fillSegmentTree(const BinInfoMap& segmentMap, int evtID){
   std::lock_guard<std::mutex> locker(glock_);
 
   evtID_seg_ = evtID;
-  for (unsigned int i = 0; i < Config::nLayers; i++) {
+  for (int i = 0; i < Config::nLayers; i++) {
     layer_seg_ = i;
-    for (unsigned int j = 0; j < Config::nEtaPart; j++) {
+    for (int j = 0; j < Config::nEtaPart; j++) {
       etabin_seg_ = j;
-      for (unsigned int k = 0; k < Config::nPhiPart; k++) {
+      for (int k = 0; k < Config::nPhiPart; k++) {
 	phibin_seg_ = k;
 	nHits_seg_  = segmentMap[i][j][k].second;
 
@@ -499,7 +499,7 @@ void TTreeValidation::fillSegmentTree(const BinInfoMap& segmentMap, unsigned int
   }
 }
 
-void TTreeValidation::fillBranchTree(unsigned int evtID)
+void TTreeValidation::fillBranchTree(int evtID)
 {
   std::lock_guard<std::mutex> locker(glock_);
   
@@ -508,7 +508,7 @@ void TTreeValidation::fillBranchTree(unsigned int evtID)
     seedID_br_ = (*seediter).first;
     for (BVVLMiter layiter = (*seediter).second.begin(); layiter != (*seediter).second.end(); ++layiter){
       const auto& BranchValVec((*layiter).second);
-      const unsigned int cands = BranchValVec.size();
+      const int cands = BranchValVec.size();
       layer_  = (*layiter).first; // first index here is layer
 
       // clear vectors before filling
@@ -519,20 +519,20 @@ void TTreeValidation::fillBranchTree(unsigned int evtID)
       candnSigmaDphi_.clear();
         
       // totals
-      std::vector<unsigned int> candEtaPhiBins(cands);
-      std::vector<unsigned int> candHits(cands);
-      std::vector<unsigned int> candBranches(cands);
+      std::vector<int> candEtaPhiBins(cands);
+      std::vector<int> candHits(cands);
+      std::vector<int> candBranches(cands);
 
       // unique hits, etaphibins, branches...
-      std::unordered_map<unsigned int, bool> uniqueEtaPhiBins; // once a bin, branch, hit is used, set to true to count it only once. take size of map as "uniques"
-      std::unordered_map<unsigned int, bool> uniqueHits;
-      std::unordered_map<unsigned int, bool> uniqueBranches;
+      std::unordered_map<int, bool> uniqueEtaPhiBins; // once a bin, branch, hit is used, set to true to count it only once. take size of map as "uniques"
+      std::unordered_map<int, bool> uniqueHits;
+      std::unordered_map<int, bool> uniqueBranches;
   
       // nSigmaDeta/phi vec
       std::vector<float> candnSigmaDeta(cands);
       std::vector<float> candnSigmaDphi(cands);
 
-      for (unsigned int cand = 0; cand < cands; cand++){ // loop over input candidates at this layer for this seed
+      for (int cand = 0; cand < cands; cand++){ // loop over input candidates at this layer for this seed
 	const auto& BranchVal(BranchValVec[cand]); // grab the branch validation object
 
 	////////////////////////////////////
@@ -544,7 +544,7 @@ void TTreeValidation::fillBranchTree(unsigned int evtID)
 	  candEtaPhiBins[cand] = (BranchVal.etaBinPlus-BranchVal.etaBinMinus+1)*(BranchVal.phiBinPlus-BranchVal.phiBinMinus+1); // total etaphibins for this candidate
 
 	  // no phi wrap to count uniques
-	  for (unsigned int ibin = BranchVal.phiBinMinus; ibin <= BranchVal.phiBinPlus; ibin++){
+	  for (int ibin = BranchVal.phiBinMinus; ibin <= BranchVal.phiBinPlus; ibin++){
 	    uniqueEtaPhiBins[ibin] = true;
 	  }
 	}
@@ -552,10 +552,10 @@ void TTreeValidation::fillBranchTree(unsigned int evtID)
 	  candEtaPhiBins[cand] = (BranchVal.etaBinPlus-BranchVal.etaBinMinus+1)*(Config::nPhiPart-BranchVal.phiBinMinus+BranchVal.phiBinPlus+1); // total etaphibins for this candidate with phi wrapping
 
 	  // use phi wrapping to count uniques
-	  for (unsigned int ibin = BranchVal.phiBinMinus; ibin < Config::nPhiPart; ibin++){
+	  for (int ibin = BranchVal.phiBinMinus; ibin < Config::nPhiPart; ibin++){
 	    uniqueEtaPhiBins[ibin] = true;
 	  }
-	  for (unsigned int ibin = 0; ibin <= BranchVal.phiBinPlus; ibin++){
+	  for (int ibin = 0; ibin <= BranchVal.phiBinPlus; ibin++){
 	    uniqueEtaPhiBins[ibin] = true;
 	  }
 	}
@@ -647,7 +647,7 @@ void TTreeValidation::mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVe
 	simTkMatches.second[itrack] = evt_tracks[itrack].label();
       }
       
-      unsigned int duplicateID = 0;
+      int duplicateID = 0;
       for (auto&& label : simTkMatches.second){ // loop over vector of reco tracsk 
         auto& extra(evt_extras[label]);
         extra.setMCDuplicateInfo(duplicateID,bool(true));
@@ -795,7 +795,7 @@ void TTreeValidation::fillEffTree(const Event& ev){
 
       // position pull info
       const TSLayerPairVec & seedTSLayerPairVec = seedTkTSLayerPairVecMap_[seedID_seed_eff_];
-      for (unsigned int ilay = 0; ilay < seedTSLayerPairVec.size(); ilay++){ // loop over layers present in pair vector
+      for (int ilay = 0; ilay < seedTSLayerPairVec.size(); ilay++){ // loop over layers present in pair vector
 	layers_seed_eff_.push_back(seedTSLayerPairVec[ilay].first); // want to push back the ACTUAL layers stored, not the index of the loop!
 	
 	x_lay_seed_eff_.push_back(seedTSLayerPairVec[ilay].second.x()); // therefore, trackstate filled in sync with the layer it was saved on for the vector
@@ -1032,7 +1032,7 @@ void TTreeValidation::fillEffTree(const Event& ev){
 
       // position pull info
       const TSLayerPairVec & fitTSLayerPairVec = fitTkTSLayerPairVecMap_[seedID_fit_eff_];
-      for (unsigned int ilay = 0; ilay < fitTSLayerPairVec.size(); ilay++){ // loop over layers present in pair vector
+      for (int ilay = 0; ilay < fitTSLayerPairVec.size(); ilay++){ // loop over layers present in pair vector
 	layers_fit_eff_.push_back(fitTSLayerPairVec[ilay].first); // want to push back the ACTUAL layers stored, not the index of the loop!
 	
 	x_lay_fit_eff_.push_back(fitTSLayerPairVec[ilay].second.x()); // therefore, trackstate filled in sync with the layer it was saved on for the vector
