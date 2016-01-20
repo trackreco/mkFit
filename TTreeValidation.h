@@ -35,16 +35,16 @@ public:
 
 typedef std::vector<BranchVal> BranchValVec;
 typedef std::unordered_map<unsigned int, BranchValVec> BranchValVecLayMap;
-typedef std::unordered_map<unsigned int, BranchValVecLayMap> TkToBranchValVecLayMapMap;
-typedef TkToBranchValVecLayMapMap::iterator TkToBVVMMIter;
+typedef std::unordered_map<unsigned int, BranchValVecLayMap> TkIDToBranchValVecLayMapMap;
+typedef TkIDToBranchValVecLayMapMap::iterator TkIDToBVVMMIter;
 typedef BranchValVecLayMap::iterator BVVLMiter;
 
 // other typedefs
-typedef std::unordered_map<unsigned int,const Track*>  TkToTkRefMap;
-typedef std::unordered_map<unsigned int,TrackRefVec>   TkToTkRefVecMap;
-typedef std::unordered_map<unsigned int,TrackState>    TkToTSMap;   
-typedef std::unordered_map<unsigned int,TSVec>         TkToTSVecMap;
-typedef std::unordered_map<unsigned int,TSLayerPairVec> TkToTSLayerPairVecMap;
+typedef std::unordered_map<unsigned int,int>               TkIDToTkIDMap;
+typedef std::unordered_map<unsigned int,std::vector<int> > TkIDToTkIDVecMap;
+typedef std::unordered_map<unsigned int,TrackState>        TkIDToTSMap;   
+typedef std::unordered_map<unsigned int,TSVec>             TkIDToTSVecMap;
+typedef std::unordered_map<unsigned int,TSLayerPairVec>    TkIDToTSLayerPairVecMap;
 
 class TTreeValidation : public Validation {
 public:
@@ -52,6 +52,8 @@ public:
 
   void resetValidationMaps() override;
   
+  void alignTrackExtra(TrackVec& evt_tracks, TrackExtraVec& evt_extra) override;
+
   void collectSimTkTSVecMapInfo(unsigned int mcTrackID, const TSVec& initTSs) override;
 
   void collectSeedTkCFMapInfo(unsigned int seedID, const TrackState& cfitStateHit0) override;
@@ -69,13 +71,14 @@ public:
 
   void fillBranchTree(unsigned int evtID) override;
 
-  void makeSimTkToRecoTksMaps(const Event& ev) override;
-  void mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extra, const MCHitInfoVec&, TkToTkRefVecMap& simTkMap);
-  void fillEffTree(const TrackVec& evt_sim_tracks, unsigned int ievt) override;
+  void makeSimTkToRecoTksMaps(Event& ev) override;
+  void mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extra, const std::vector<HitVec>& layerHits, 
+			 const MCHitInfoVec&, TkIDToTkIDVecMap& simTkMap);
+  void fillEffTree(const Event& ev) override;
 
-  void makeSeedTkToRecoTkMaps(const TrackVec& evt_build_tracks, const TrackVec& evt_fit_tracks) override;
-  void mapSeedTkToRecoTk(const TrackVec& evt_tracks, const Event& ev, TkToTkRefMap& seedTkMap);
-  void fillFakeRateTree(const TrackVec& evt_seed_tracks, unsigned int ievt) override;
+  void makeSeedTkToRecoTkMaps(Event& ev) override;
+  void mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackExtraVec& evt_extras, TkIDToTkIDMap& seedTkMap);
+  void fillFakeRateTree(const Event& ev) override;
 
   void fillConfigTree(const std::vector<double>& ticks) override;
 
@@ -88,15 +91,15 @@ public:
   unsigned int evtID_seg_=0,layer_seg_=0,etabin_seg_=0,phibin_seg_=0,nHits_seg_=0;
 
   // declare vector of trackStates for various track collections to be used in pulls/resolutions
-  TkToTSVecMap simTkTSVecMap_;
+  TkIDToTSVecMap simTkTSVecMap_;
   
-  TkToTSMap seedTkCFMap_;
-  TkToTSLayerPairVecMap seedTkTSLayerPairVecMap_;
+  TkIDToTSMap seedTkCFMap_;
+  TkIDToTSLayerPairVecMap seedTkTSLayerPairVecMap_;
 
-  TkToBranchValVecLayMapMap seedToBranchValVecLayMapMap_;
+  TkIDToBranchValVecLayMapMap seedToBranchValVecLayMapMap_;
 
-  TkToTSMap fitTkCFMap_;
-  TkToTSLayerPairVecMap fitTkTSLayerPairVecMap_;
+  TkIDToTSMap fitTkCFMap_;
+  TkIDToTSLayerPairVecMap fitTkTSLayerPairVecMap_;
 
   // build branching tree
   TTree* tree_br_;
@@ -107,9 +110,9 @@ public:
   std::vector<float> candnSigmaDeta_,candnSigmaDphi_;
   
   // efficiency trees and variables
-  TkToTkRefVecMap simToSeedMap_;
-  TkToTkRefVecMap simToBuildMap_;
-  TkToTkRefVecMap simToFitMap_;
+  TkIDToTkIDVecMap simToSeedMap_;
+  TkIDToTkIDVecMap simToBuildMap_;
+  TkIDToTkIDVecMap simToFitMap_;
 
   TTree* efftree_;  
   unsigned int evtID_eff_=0,mcID_eff_=0;
@@ -164,8 +167,8 @@ public:
   int   nTkMatches_seed_eff_=0,nTkMatches_build_eff_=0,nTkMatches_fit_eff_=0;
 
   // fake rate tree and variables
-  TkToTkRefMap seedToBuildMap_;
-  TkToTkRefMap seedToFitMap_;
+  TkIDToTkIDMap seedToBuildMap_;
+  TkIDToTkIDMap seedToFitMap_;
   
   TTree* fakeratetree_;
   unsigned int evtID_FR_=0,seedID_FR_=0;

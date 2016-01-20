@@ -148,7 +148,7 @@ void MkBuilder::fit_seeds()
   for (int iseed = 0; iseed < m_recseeds.size(); ++iseed)
   {
     Track& seed = m_recseeds[iseed];
-    std::cout << "MX - found seed with nHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.radius() << " pT=" << seed.pT() << std::endl;
+    std::cout << "MX - found seed with nHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.posR() << " pT=" << seed.pT() << std::endl;
   }
 #endif
 
@@ -157,7 +157,7 @@ void MkBuilder::fit_seeds()
   for (int iseed = 0; iseed < m_recseeds.size(); ++iseed)
   {
     Track& seed = m_recseeds[iseed];
-    std::cout << "MX - found seed with nHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.radius() << " pT=" << seed.pT() << std::endl;
+    std::cout << "MX - found seed with nHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.posR() << " pT=" << seed.pT() << std::endl;
   }
 #endif
 }

@@ -106,14 +106,6 @@ void Event::Simulate()
 #ifdef TBB
   });
 #endif
-
-
-		for (int i = 0; i < simHitsInfo_.size(); i++){
-		  std::cout << "loop variable: " << i << " mcID: " << simHitsInfo_[i].mcHitID_ << std::endl;
-
-		}
-
-
 }
 
 void Event::Segment()
@@ -258,9 +250,9 @@ void Event::Validate(const unsigned int ievt){
   validation_.fillSegmentTree(segmentMap_,ievt);
   validation_.fillBranchTree(ievt);
   validation_.makeSimTkToRecoTksMaps(*this);
-  validation_.fillEffTree(simTracks_,ievt);
+  validation_.fillEffTree(*this);
   validation_.makeSeedTkToRecoTkMaps(*this);
-  validation_.fillFakeRateTree(seedTracks_,ievt);
+  validation_.fillFakeRateTree(*this);
 }
 
 void Event::PrintStats(const TrackVec& trks, TrackExtraVec& trkextras)

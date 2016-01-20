@@ -122,7 +122,7 @@ inline float getPhiErr2(float x, float y, float exx, float eyy, float exy){
 
 inline float getThetaErr2(float x, float y, float z, float exx, float eyy, float ezz, float exy, float exz, float eyz){
   const float rad2     = getRad2(x,y);
-  const float rad      = std::sqrt(rad2);
+  const float rad      = sqrtf(rad2);
   const float hypot2   = rad2 + z*z;
   const float dthetadx = x*z/(rad*hypot2);
   const float dthetady = y*z/(rad*hypot2);
@@ -132,9 +132,9 @@ inline float getThetaErr2(float x, float y, float z, float exx, float eyy, float
 
 inline float getEtaErr2(float x, float y, float z, float exx, float eyy, float ezz, float exy, float exz, float eyz){
   const float rad2   = getRad2(x,y);
-  const float detadx = -x/(rad2*std::sqrt(1+rad2/(z*z)));
-  const float detady = -y/(rad2*std::sqrt(1+rad2/(z*z)));
-  const float detadz = 1.0/(z*std::sqrt(1+rad2/(z*z)));
+  const float detadx = -x/(rad2*sqrtf(1+rad2/(z*z)));
+  const float detady = -y/(rad2*sqrtf(1+rad2/(z*z)));
+  const float detadz = 1.0/(z*sqrtf(1+rad2/(z*z)));
   return detadx*detadx*exx + detady*detady*eyy + detadz*detadz*ezz + 2*detadx*detady*exy + 2*detadx*detadz*exz + 2*detady*detadz*eyz;
 }
 
