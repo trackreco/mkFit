@@ -203,14 +203,13 @@ private:
 
 class TrackExtra {
 public:
-  TrackExtra() : seedID_(std::numeric_limits<unsigned int>::max(), isReverse(false) ) {}
-  TrackExtra(unsigned int seedID) : seedID_(seedID), isReverse(false) {}
+ TrackExtra() : seedID_(std::numeric_limits<unsigned int>::max()) {}
+  TrackExtra(unsigned int seedID) : seedID_(seedID) {}
   unsigned int mcTrackID() const {return mcTrackID_;}
   unsigned int nHitsMatched() const {return nHitsMatched_;}
   unsigned int seedID() const {return seedID_;}
   bool isDuplicate() const {return isDuplicate_;}
   bool isMissed() const {return 999999 == mcTrackID_;}
-  bool reverse() const {return isReverse_;}
   unsigned int duplicateID() const {return duplicateID_;}
   void setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo);
   void setMCDuplicateInfo(unsigned int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
@@ -221,7 +220,6 @@ private:
   unsigned int seedID_;
   unsigned int duplicateID_;
   bool isDuplicate_;
-  bool isReverse_;
 };
 
 typedef std::vector<TrackExtra> TrackExtraVec;

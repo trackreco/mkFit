@@ -964,7 +964,11 @@ void TTreeValidation::fillEffTree(const Event& ev){
 
       // use this to access correct sim track layer params
 
+#ifdef INWARDFIT
+      const float layer = fittrack.foundLayers().front(); // last layer fit ended up on
+#else
       const float layer = fittrack.foundLayers().back(); // last layer fit ended up on
+#endif
       const TrackState & initLayTS = simTkTSVecMap_[mcID_eff_][layer]; //--> can do this as all sim tracks pass through each layer once, and are stored in order... will need to fix this once we have loopers/overlaps
 
       pt_mc_fit_eff_  = initLayTS.pT();
@@ -979,7 +983,11 @@ void TTreeValidation::fillEffTree(const Event& ev){
       eeta_fit_eff_ = fittrack.emomEta();
 
       // Conformal fit stuff to match how it was done before
-      const float cflayer = fittrack.foundLayers().front(); //  layer for which cf parameters are calculated with respect to (either first or last layer of track!)
+#ifdef INWARDFIT
+      const float cflayer = fittrack.foundLayers().back(); // last layer fit ended up on
+#else
+      const float cflayer = fittrack.foundLayers().front(); // last layer fit ended up on
+#endif
       const TrackState & cfInitLayTS = simTkTSVecMap_[mcID_eff_][cflayer]; //--> can do this as all sim tracks pass through each layer once, and are stored in order... will need to fix this once we have loopers/overlaps
       x_mc_cf_fit_eff_ = cfInitLayTS.x();
       y_mc_cf_fit_eff_ = cfInitLayTS.y();
@@ -1301,7 +1309,11 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
       if (mcID_fit_FR_ != 999999){ // fit track matched to seed and sim 
 	mcmask_fit_FR_ = 1; // matched track to sim
 
+#ifdef INWARDFIT
 	const float layer = fittrack.foundLayers().front(); // last layer fiting ended up on
+#else
+	const float layer = fittrack.foundLayers().back(); // last layer fiting ended up on
+#endif
 	const TrackState & initLayTS = simTkTSVecMap_[mcID_fit_FR_][layer]; //--> can do this as all sim tracks pass through each layer once, and are stored in order... will need to fix this once we have loopers/overlaps
    
 	pt_mc_fit_FR_    = initLayTS.pT(); // again, pt of mc truth at the layer the seed ends

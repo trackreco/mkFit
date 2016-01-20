@@ -54,61 +54,56 @@ void fitTrack(const Track & trk, const TrackExtra& trkextra, unsigned int itrack
 #ifdef DEBUG
   bool debug(false);
 #endif
+  auto& evt_lay_hits = ev.layerHits_;
+  auto seedID = trkextra.seedID();
 
-  auto iseed = trkextra.seedID();
-
-#define INWARD
-#if defined(INWARD)
-  auto hits(trk.hitsVector(ev.layerHits_));
-  std::reverse(hits.begin(), hits.end());
+  auto trkLayers = trk.foundLayers(); // need the exact layers to make sure we are accessing the right hits for conformal fit!
+#ifdef INWARDFIT
+  const Hit& hit1 = evt_lay_hits[trkLayers.back()][trk.getHitIdx(trkLayers.back())];
 #else
-  const auto& hits = trk.hitsVector(ev.layerHits_);
+  const Hit& hit1 = evt_lay_hits[trkLayers.front()][trk.getHitIdx(trkLayers.front())];
 #endif
+
   TrackState cfitStateHit0;
 
 #define CONFORMAL
 #ifdef CONFORMAL
-  bool backward = false;
   const bool fiterrs  = true;
-#if defined(INWARD)
-  backward = true;
-#endif //INWARD
   //fit is problematic in case of very short lever arm
-  // changed second from + 1 to - 1... would end up on same layer for low nhit tracks! --KM
-  // want 10 hit tracks to be evenly spaced!  so, layers 0,4,9 (originally was set to 0,6,9!)
-  conformalFit(hits[0],hits[hits.size()/2 - 1],hits[hits.size() - 1],trk.charge(),cfitStateHit0,backward,fiterrs); // last bool denotes use cf derived errors for fitting
+  // hits from track foundLayers(): 0, size()/2, size()-1.
+  // i.e. outward: front(), size()/2, back()  of foundLayers()
+  // i.e. inward:  back(),  size()/2, front() of foundLayers()
+  // for 10 hits outward this 0,  5, 10; for 9 hits this is 0, 4, 9; for 3 hits this is 0, 1, 2.
+  // for 10 hits inward  this 10, 4, 0;  for 9 hits this is 9, 4, 0; for 3 hits this is 2, 1, 0.
+
+#ifdef INWARDFIT
+  const Hit& hit2 = evt_lay_hits[trkLayers.size()/2][trk.getHitIdx(trkLayers.size()/2)];
+  const Hit& hit3 = evt_lay_hits[trkLayers.front()][trk.getHitIdx(trkLayers.front())];
+#else
+  const Hit& hit2 = evt_lay_hits[trkLayers.size()/2][trk.getHitIdx(trkLayers.size()/2)];
+  const Hit& hit3 = evt_lay_hits[trkLayers.back()][trk.getHitIdx(trkLayers.back())];
+#endif
+  conformalFit(hit1,hit2,hit3,trk.charge(),cfitStateHit0,fiterrs); // last bool denotes use cf derived errors for fitting
   TrackState updatedState = cfitStateHit0;
-  ev.validation_.collectFitTkCFMapInfo(iseed,cfitStateHit0); // pass along all info and map it to a given seed
+  ev.validation_.collectFitTkCFMapInfo(seedID,cfitStateHit0); // pass along all info and map it to a given seed
 #else 
   TrackState updatedState = trk.state();
-  updatedState = propagateHelixToR(updatedState,hits[0].r());
+  updatedState = propagateHelixToR(updatedState,hit1.r()); // see first ifdef on INWARDFIT
 #endif 
 
 #if defined(ENDTOEND) || defined(CONFORMAL)
   updatedState.errors*=10;//not needed when fitting straight from simulation
 #endif //ENDTOEND
 
-#ifdef DEBUG
-  Track copytrk(trk.state(),hits,trk.chi2()); // to use this for debugging, have to make a copy of the track in order not to change function fittrack from const & to non const & trk
-  copytrk.setMCTrackIDInfo();
-  Track trk0 = ev.simTracks_[iseed];
-  TrackState simState = trk0.state();
-
-  TrackState simStateHit0 = propagateHelixToR(simState,hits[0].r()); // first hit
-
-  if (debug) { 
-    print("Sim track", itrack0, trk0);
-    print("Initial track", copytrk.mcTrackID(), copytrk);
-    print("simStateHit0", simStateHit0);
-    print("cfitStateHit0", cfitStateHit0);
-    print("updatedState", updatedState);
-  }      
-#endif
-
   TSLayerPairVec updatedStates; // need this for position pulls --> can ifdef out for performance tests? --> assume one hit per layer
   
-  for (auto&& hit : hits) {
+#ifdef INWARDFIT
+  for (int i = trkLayers.size()-1; i >= 0; i--){
+#else
+  for (int i = 0; i < trkLayers.size(); i++){
+#endif
     //for each hit, propagate to hit radius and update track state with hit measurement
+    const Hit& hit = evt_lay_hits[trkLayers[i]][trk.getHitIdx(trkLayers[i])];
     MeasurementState measState = hit.measurementState();
  
     TrackState propState = propagateHelixToR(updatedState, hit.r());
@@ -141,16 +136,11 @@ void fitTrack(const Track & trk, const TrackExtra& trkextra, unsigned int itrack
       break;
 #endif
     }
-
-#ifdef VALIDATION
-    updatedStates.push_back(std::make_pair(hit.layer(),updatedState)); // validation for pos pull
-#endif
+    updatedStates.push_back(std::make_pair(hit.layer(ev.simHitsInfo_),updatedState)); // validation for pos pull
   } // end loop over hits
-  dcall(print("Fit Track", updatedState));
 
-#ifdef VALIDATION
-  ev.validation_.collectFitTkTSLayerPairVecMapInfo(iseed,updatedStates); // for position pulls
-#endif
+  dcall(print("Fit Track", updatedState));
+  ev.validation_.collectFitTkTSLayerPairVecMapInfo(seedID,updatedStates); // for position pulls
 
   Track FitTrack(trk);
   FitTrack.setState(updatedState); // eventually will want to include chi2 of fitTrack --> chi2 for now just copied from build tracks

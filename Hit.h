@@ -151,6 +151,7 @@ struct MCHitInfo
 
   static std::atomic<unsigned int> mcHitIDCounter_;
 };
+typedef std::vector<MCHitInfo> MCHitInfoVec;
 
 struct MeasurementState
 {
@@ -217,13 +218,13 @@ public:
   }
 
   int mcHitID() const { return mcHitID_; }
-
+  int layer(const MCHitInfoVec& globalMCHitInfo) const { return globalMCHitInfo[mcHitID_].layer_; }
+  
 private:
   MeasurementState state_;
   int mcHitID_;
 };
 
 typedef std::vector<Hit> HitVec;
-typedef std::vector<MCHitInfo> MCHitInfoVec;
 
 #endif
