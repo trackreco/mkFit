@@ -15,6 +15,9 @@ namespace Config
   constexpr float DegToRad = Config::PI / 180.0;
   constexpr double Sqrt2   = 1.4142135623730950488016887242097;
 
+  // general parameters of matrices
+  constexpr int nParams = 6;
+
   // config on main + mkFit
   constexpr int nTracks = 20000;
   constexpr int nEvents = 10;
