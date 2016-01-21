@@ -64,8 +64,6 @@ TTreeValidation::TTreeValidation(std::string fileName)
 }
 
 void TTreeValidation::initializeSegmentTree(){
-  std::lock_guard<std::mutex> locker(glock_);
-
   // segment validation
   segtree_ = new TTree("segtree","segtree");
   segtree_->Branch("evtID",&evtID_seg_);
@@ -76,8 +74,6 @@ void TTreeValidation::initializeSegmentTree(){
 }
 
 void TTreeValidation::initializeBranchTree(){
-  std::lock_guard<std::mutex> locker(glock_);
-
   // build validation
   tree_br_ = new TTree("tree_br","tree_br");
   tree_br_->Branch("evtID",&evtID_br_);
@@ -99,8 +95,6 @@ void TTreeValidation::initializeBranchTree(){
 }
 
 void TTreeValidation::initializeEfficiencyTree(){  
-  std::lock_guard<std::mutex> locker(glock_);
-
   // efficiency validation
   efftree_ = new TTree("efftree","efftree");
   efftree_->Branch("evtID",&evtID_eff_);
@@ -180,8 +174,6 @@ void TTreeValidation::initializeEfficiencyTree(){
 }
 
 void TTreeValidation::initializeFakeRateTree(){
-  std::lock_guard<std::mutex> locker(glock_);
-
   // fake rate validation
   fakeratetree_ = new TTree("fakeratetree","fakeratetree");
 
@@ -268,8 +260,6 @@ void TTreeValidation::initializeFakeRateTree(){
 }
 
 void TTreeValidation::initializeGeometryTree(){
-  std::lock_guard<std::mutex> locker(glock_);
-
   // Geometry validation
   geotree_ = new TTree("geotree","geotree");
 
@@ -310,8 +300,6 @@ void TTreeValidation::initializeGeometryTree(){
 }
 
 void TTreeValidation::initializeConformalTree(){
-  std::lock_guard<std::mutex> locker(glock_);
-
   // Conformal Fit validation
   cftree_ = new TTree("cftree","cftree");
 
@@ -394,9 +382,7 @@ void TTreeValidation::initializeConformalTree(){
 }
 
 void TTreeValidation::initializeConfigTree(){
-  std::lock_guard<std::mutex> locker(glock_);
-
-  // include ALL config ++ real seeding parameters ...
+  // include config ++ real seeding parameters ...
   configtree_ = new TTree("configtree","configtree");
   configtree_->Branch("simtime",&simtime_);
   configtree_->Branch("segtime",&segtime_);

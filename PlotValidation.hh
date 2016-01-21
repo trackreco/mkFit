@@ -15,46 +15,45 @@
 #include <fstream>
 #include <cmath>
 
-typedef std::vector<UInt_t> *   UIntVecRef;
-typedef std::vector<UIntVecRef> UIntVecRefVec;
-
+typedef std::vector<Float_t>      FltVec;
+typedef std::vector<FltVec>       FltVecVec;
+typedef std::vector<FltVecVec>    FltVecVecVec;
 typedef std::vector<Float_t> *    FltVecRef;
 typedef std::vector<FltVecRef>    FltVecRefVec;
 typedef std::vector<FltVecRefVec> FltVecRefVecVec;
 
-typedef std::vector<TString> TStrVec;
-
-typedef std::vector<UInt_t> UIntVec;
-
-typedef std::vector<Int_t>  IntVec;
-typedef std::vector<IntVec> IntVecVec;
-
-typedef std::vector<Float_t>   FltVec;
-typedef std::vector<FltVec>    FltVecVec;
-typedef std::vector<FltVecVec> FltVecVecVec;
+typedef std::vector<Int_t>     IntVec;
+typedef std::vector<IntVec>    IntVecVec;
+typedef std::vector<Int_t> *   IntVecRef;
+typedef std::vector<IntVecRef> IntVecRefVec;
 
 typedef std::vector<TH1F *>        TH1FRefVec;
 typedef std::vector<TH1FRefVec>    TH1FRefVecVec;
 typedef std::vector<TH1FRefVecVec> TH1FRefVecVecVec;
+
+typedef std::vector<TString> TStrVec;
 
 class PlotValidation
 {
 public:
   PlotValidation(TString inName, TString outName, TString outType);
   ~PlotValidation();
-  void Validation(Bool_t mvInput = false);
-  void PlotBranching();
-  void PlotTiming();
-  void PlotSegment();
-  void PlotSimGeo();
-  void PlotNHits();
-  void PlotCFResidual();
-  void PlotCFResolutionPull();
-  void PlotPosResolutionPull();
-  void PlotMomResolutionPull();
+  void Validation(Bool_t fullVal = false, Bool_t mvInput = false);
+
   void PlotEfficiency();
   void PlotFakeRate();
   void PlotDuplicateRate();
+  void PlotNHits();
+  void PlotTiming();
+  void PlotMomResolutionPull();
+
+  void PlotSegment();
+  void PlotBranching();
+  void PlotSimGeo();
+  void PlotPosResolutionPull();
+  void PlotCFResidual();
+  void PlotCFResolutionPull();
+
   void PrintTotals();
 
   void MakeSubDirectory(const TString subdirname);
