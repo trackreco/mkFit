@@ -1876,11 +1876,7 @@ void PlotValidation::PrintTotals(){
     
     std::cout << std::endl << "Rates for " << strks[j].Data() << " Tracks" << std::endl;
     std::cout << "==========================================" << std::endl;
-    std::cout << std::endl << "Rates for " << strks[j].Data() << " Tracks" << std::endl;
-    std::cout << "==========================================" << std::endl;
 
-    totalsout << std::endl << "Rates for " << strks[j].Data() << " Tracks" << std::endl;
-    totalsout << "==========================================" << std::endl;
     totalsout << std::endl << "Rates for " << strks[j].Data() << " Tracks" << std::endl;
     totalsout << "==========================================" << std::endl;
     for (UInt_t r = 0; r < rates.size(); r++) {
