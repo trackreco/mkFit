@@ -41,7 +41,8 @@ clean: clean-local
 distclean: clean-local
 	-rm -f ${AUTO_TGTS}
 	-rm -f *.optrpt
-	cd mkFit && ${MAKE} distclean
+	cd Matriplex && ${MAKE} distclean
+	cd mkFit     && ${MAKE} distclean
 
 main: ${AUTO_TGTS} ${OBJS} ${LIBUSOLIDS}
 	${CXX} ${CXXFLAGS} ${VEC_HOST} -o $@ ${OBJS} ${LIBUSOLIDS} ${LDFLAGS}

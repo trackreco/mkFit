@@ -30,9 +30,6 @@ ifeq (${CXX},icc)
   EXES   += $(addsuffix -mic, ${TGTS})
 endif
 
-auto-matriplex:
-	${MAKE} -C ../Matriplex auto && touch $@
-
 AUTO_HEADERS := upParam_MultKalmanGain.ah \
 		upParam_simil_x_propErr.ah \
 		upParam_propErrT_x_simil_propErr.ah \
@@ -46,7 +43,7 @@ ${AUTO_HEADERS}: auto-genmplex
 auto-genmplex: GenMPlexOps.pl
 	./GenMPlexOps.pl
 
-AUTO_TGTS := auto-matriplex ${AUTO_HEADERS}
+AUTO_TGTS := ${AUTO_HEADERS}
 
 default: ${AUTO_TGTS} ${EXES}
 
