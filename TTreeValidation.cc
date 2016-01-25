@@ -553,8 +553,8 @@ void TTreeValidation::mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVe
 	tmpMatches.push_back(evt_tracks[label]);
       }
       std::sort(tmpMatches.begin(), tmpMatches.end(), sortByHitsChi2); // sort the tracks
-      for (auto itrack = 0; itrack < tmpMatches.size(); itrack++){ // loop over sorted tracks, now make the vector of sorted labels
-	simTkMatches.second[itrack] = evt_tracks[itrack].label();
+      for (auto itrack = 0; itrack < tmpMatches.size(); itrack++){ // loop over sorted tracks, now make the vector of sorted labels match
+ 	simTkMatches.second[itrack] = tmpMatches[itrack].label();
       }
       
       int duplicateID = 0;
