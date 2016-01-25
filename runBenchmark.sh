@@ -1,5 +1,7 @@
 #! /bin/bash
 
+source ~matevz/root/bin/thisroot.sh 
+
 source benchmark.sh
 source benchmark-fit.sh  
 
