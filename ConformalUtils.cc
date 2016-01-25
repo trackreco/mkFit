@@ -66,9 +66,11 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
   float tantheta = sqrt((x[0]-x[2])*(x[0]-x[2])+(y[0]-y[2])*(y[0]-y[2]))/(z[2]-z[0]);
   float pz = fabs(pt/tantheta)*((z[1]-z[0])>0. ? 1. : -1.);
 #ifdef INWARDFIT
+  if (fiterrs) { // need conformal fit on seeds to be forward!
     px*=-1.;
     py*=-1.;
     pz*=-1.;
+  }
 #endif
   //return px,py,pz
   //std::cout << "fit px=" << px << " py=" << py << " pz=" << pz << std::endl; 

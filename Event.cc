@@ -212,11 +212,11 @@ void Event::Segment()
   resetLayerHitMap(true);
 }
 
-void Event::Seed()
+  void Event::Seed()
 {
 #ifdef ENDTOEND
-  //  buildSeedsByRoadTriplets(layerHits_,segmentMap_,seedTracks_,*this);
-  buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
+  buildSeedsByRoadTriplets(seedTracks_,seedTracksExtra_,layerHits_,segmentMap_,*this);
+  //buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
 #else
   buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
 #endif
