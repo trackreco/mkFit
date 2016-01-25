@@ -1,6 +1,6 @@
 {
 
-  gStyle->SetOptStat(0);
+  gStyle->SetOptStat("m");
 
   //TString test = "CEST";
   //TString test = "CE";
