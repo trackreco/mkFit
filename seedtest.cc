@@ -30,9 +30,9 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, T
       }
 #endif
       const auto& measState = seed_hit.measurementState();
+      chi2 += computeChi2(propState,measState); //--> could use this to make the chi2
       updatedState = updateParameters(propState, measState);
       seedhits[ilayer] = hitidx;
-      //      chi2 += computeChi2(updatedState,measState); --> could use this to make the chi2
 
       updatedStates.push_back(std::make_pair(ilayer,updatedState)); // validation
     }
@@ -229,15 +229,15 @@ void buildSeedsFromTriplets(const std::vector<HitVec>& evt_lay_hits, const std::
       }
 #endif
       MeasurementState measState = seed_hit.measurementState();
+      chi2 += computeChi2(propState,measState);// --> could use this to make the chi2
       updatedState = updateParameters(propState, measState);
-      chi2 += computeChi2(updatedState,measState);// --> could use this to make the chi2
 
       updatedStates.push_back(std::make_pair(ilayer,updatedState)); // validation
     }
     ev.validation_.collectSeedTkTSLayerPairVecMapInfo(seedID,updatedStates); // use to collect position pull info
 
     int hitIndices[3] = {hit_triplet[0],hit_triplet[1],hit_triplet[2]};
-    Track seed(updatedState,0.,seedID,Config::nlayers_per_seed,hitIndices);//fixme chi2
+    Track seed(updatedState,chi2,seedID,Config::nlayers_per_seed,hitIndices);//fixme chi2
     evt_seed_tracks.push_back(seed);
     evt_seed_extras.emplace_back(seedID);
     seedID++; // increment dummy counter for seedID
