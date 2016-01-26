@@ -13,6 +13,10 @@ endif
 all: ${EXES}
 	cd mkFit && ${MAKE}
 
+SRCS := $(wildcard *.cc)
+OBJS := $(SRCS:.cc=.o)
+DEPS := $(SRCS:.cc=.d)
+
 AUTO_TGTS :=
 
 ifdef USE_MATRIPLEX
@@ -22,13 +26,12 @@ auto-matriplex:
 
 AUTO_TGTS += auto-matriplex
 
+${DEPS}: auto-matriplex
+
 endif
 
-SRCS := $(wildcard *.cc)
-OBJS := $(SRCS:.cc=.o)
-
 ifeq ($(filter clean-local clean distclean, ${MAKECMDGOALS}),)
-include $(SRCS:.cc=.d)
+include ${DEPS}
 endif
 
 clean-local:

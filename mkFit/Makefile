@@ -30,20 +30,10 @@ ifeq (${CXX},icc)
   EXES   += $(addsuffix -mic, ${TGTS})
 endif
 
-AUTO_HEADERS := upParam_MultKalmanGain.ah \
-		upParam_simil_x_propErr.ah \
-		upParam_propErrT_x_simil_propErr.ah \
-		upParam_kalmanGain_x_propErr.ah \
-		MultHelixProp.ah \
-		MultHelixPropTransp.ah
-
-${AUTO_HEADERS}: auto-genmplex
-
-.INTERMEDIATE: auto-genmplex
 auto-genmplex: GenMPlexOps.pl
-	./GenMPlexOps.pl
+	./GenMPlexOps.pl && touch $@
 
-AUTO_TGTS := ${AUTO_HEADERS}
+AUTO_TGTS := auto-genmplex
 
 default: ${AUTO_TGTS} ${EXES}
 
@@ -52,7 +42,7 @@ clean:
 
 distclean: clean
 	rm -f *.optrpt
-	rm -f ${AUTO_TGTS}
+	rm -f ${AUTO_TGTS} *.ah
 
 echo:
 	@echo "CXX      = ${CXX}"
@@ -74,11 +64,14 @@ MKFSRCS := $(wildcard *.cc)
 MKFHDRS := $(wildcard *.h)
 
 MKFOBJS := $(MKFSRCS:.cc=.o)
+MKFDEPS := $(MKFSRCS:.cc=.d)
 
 ALLOBJS := ${MKFOBJS} ${ABOVE_OBJS}
 
+${MKFDEPS}: auto-genmplex
+
 ifeq ($(filter clean distclean, ${MAKECMDGOALS}),)
-include $(MKFSRCS:.cc=.d)
+include ${MKFDEPS}
 endif
 
 mkFit: ${ALLOBJS}
