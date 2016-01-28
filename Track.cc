@@ -9,7 +9,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
   for (int ihit = 0; ihit < hitIdx; ++ihit){
     if (trk.getHitIdx(ihit) >= 0) {
       auto mchitid = layerHits[ihit][trk.getHitIdx(ihit)].mcHitID();
-      mctrack.push_back(globalHitInfo[mchitid].mcTrackID_);
+      mctrack.push_back(globalHitInfo[mchitid].mcTrackID());
     }
   }
   std::sort(mctrack.begin(), mctrack.end()); // ensures all elements are checked properly

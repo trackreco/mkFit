@@ -261,8 +261,8 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
       dprint(propState.position() - hitMeas.parameters());
       const float chi2 = computeChi2(propState,hitMeas);
       dprint("found hit with index: " << cand_hit_idx << " from sim track " 
-        << ev.simHitsInfo_[evt_lay_hits[ilayer][cand_hit_idx].mcHitID()].mcTrackID_
-        << " chi2=" << chi2 << std::endl);
+	     << ev.simHitsInfo_[evt_lay_hits[ilayer][cand_hit_idx].mcHitID()].mcTrackID()
+	     << " chi2=" << chi2 << std::endl);
     
       if ((chi2<Config::chi2Cut)&&(chi2>0.)) {//fixme 
         const TrackState tmpUpdatedState = updateParameters(propState, hitMeas);

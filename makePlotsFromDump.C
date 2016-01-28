@@ -26,7 +26,7 @@
   cout << "Nhits>=6: " << h1->Integral(7,11)/h1->Integral() << endl;
   cout << "Nhits>=9: " << h1->Integral(10,11)/h1->Integral() << endl;
 
-  TFile* f2 = TFile::Open("test_host_10x20k_"+test+"_NVU8_NTH21.root");
+  TFile* f2 = TFile::Open("test_host_10x20k_"+test+"_NVU8int_NTH21.root");
   TH1F* h2 = (TH1F*) f2->Get("h_MXNH");
   h2->SetMarkerStyle(kOpenCircle);
   h2->SetMarkerColor(kBlue);
