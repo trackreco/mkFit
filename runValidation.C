@@ -18,7 +18,14 @@ void runValidation() {
   // First is input name of root file
   // Second is output name of directory/rootfile/file plots
   // Third is output type of plots
-  
-  PlotValidation Validation("valtree.root","5000tk_100evts_630phi_10eta","pdf");
-  Validation.Validation(Bool_t(true)); // bool to move input root file to output directory
+
+  // Validation() has two boolean arguments
+  // First bool == true for full validation, false for only "main" validation.
+  // Main validation includes efficiencies, fake rates, duplicate rates. Also momentum pulls, nHits plots, timing plots.
+  // Full validation includes main validation plus geometry plots, positions pulls, and CF pulls/residuals.  
+  // Full validation also includes branching plots and segmenting plots
+  // The second boolean argument == true to move input root file to output directory, false to keep input file where it is.
+
+  PlotValidation Val("valtree.root","full_validation","pdf");
+  Val.Validation( Bool_t(false), Bool_t(true) ); 
 }
