@@ -19,8 +19,8 @@ typedef ROOT::Math::SMatrix<float,6,3> SMatrix63;
 template<typename Matrix>
 void dumpMatrix(Matrix m)
 {
-  for (unsigned int r=0;r<m.kRows;++r) {
-    for (unsigned int c=0;c<m.kCols;++c) {
+  for (int r=0;r<m.kRows;++r) {
+    for (int c=0;c<m.kCols;++c) {
       std::cout << std::setw(12) << m.At(r,c) << " ";
     }
     std::cout << std::endl;

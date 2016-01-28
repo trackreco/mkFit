@@ -9,7 +9,7 @@
 
 void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, TrackExtraVec& seed_track_extra, Event& ev){
   bool debug(true);
-  for (unsigned int itrack=0;itrack<evt_sim_tracks.size();++itrack) {
+  for (int itrack=0;itrack<evt_sim_tracks.size();++itrack) {
     const Track& trk = evt_sim_tracks[itrack];
     int   seedhits[Config::nLayers];
     float chi2 = 0;
@@ -18,7 +18,7 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, T
 
     TSLayerPairVec updatedStates; // validation for position pulls
 
-    for (auto ilayer=0U;ilayer<Config::nlayers_per_seed;++ilayer) {//seeds have first three layers as seeds
+    for (auto ilayer=0;ilayer<Config::nlayers_per_seed;++ilayer) {//seeds have first three layers as seeds
       auto hitidx = trk.getHitIdx(ilayer);
       const Hit& seed_hit = ev.layerHits_[ilayer][hitidx];
       TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
@@ -83,7 +83,7 @@ void buildHitPairs(const std::vector<HitVec>& evt_lay_hits, const BinInfoLayerMa
   // use only average radius of inner radius for calculation
   // alphaBeta is a parameter for phi search window derived numerically from Mathematica... see one of my old talks
 
-  for (unsigned int ihit=0;ihit<evt_lay_hits[1].size();++ihit) { // 1 = second layer
+  for (int ihit=0;ihit<evt_lay_hits[1].size();++ihit) { // 1 = second layer
     const float outerhitz = evt_lay_hits[1][ihit].z(); // remember, layer[0] is first layer! --> second layer = [1]
     const float outerphi  = evt_lay_hits[1][ihit].phi();
 
@@ -91,13 +91,13 @@ void buildHitPairs(const std::vector<HitVec>& evt_lay_hits, const BinInfoLayerMa
     const auto etaBinMinus = getEtaPartition(getEta(Config::fRadialSpacing,(outerhitz-Config::beamspotZ)/2.));
     const auto etaBinPlus  = getEtaPartition(getEta(Config::fRadialSpacing,(outerhitz+Config::beamspotZ)/2.));
 #else
-    const auto etaBinMinus = 0U;
-    const auto etaBinPlus  = 0U;
+    const auto etaBinMinus = 0;
+    const auto etaBinPlus  = 0;
 #endif
     const auto phiBinMinus = getPhiPartition(normalizedPhi(outerphi - Config::alphaBeta));
     const auto phiBinPlus  = getPhiPartition(normalizedPhi(outerphi + Config::alphaBeta));
 
-    std::vector<unsigned int> cand_hit_indices = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
+    std::vector<int> cand_hit_indices = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
     for (auto&& cand_hit_idx : cand_hit_indices){
       HitVec hit_pair;
       hit_pair.push_back(evt_lay_hits[0][cand_hit_idx]);
@@ -116,8 +116,8 @@ void buildHitTriplets(const std::vector<HitVec>& evt_lay_hits, const BinInfoLaye
     const auto etaBinMinus = getEtaPartition(getEta(thirdRad,thirdZline)-Config::dEtaSeedTrip);
     const auto etaBinPlus  = getEtaPartition(getEta(thirdRad,thirdZline)+Config::dEtaSeedTrip);
 #else
-    const auto etaBinMinus = 0U;
-    const auto etaBinPlus  = 0U;
+    const auto etaBinMinus = 0;
+    const auto etaBinPlus  = 0;
 #endif    
     const float linePhi = getPhi(hit_pair[1].position()[0] - hit_pair[0].position()[0], hit_pair[1].position()[1] - hit_pair[0].position()[1]);
     float thirdPhiMinus = 0.0;
@@ -133,7 +133,7 @@ void buildHitTriplets(const std::vector<HitVec>& evt_lay_hits, const BinInfoLaye
     const auto phiBinMinus = getPhiPartition(thirdPhiMinus);
     const auto phiBinPlus  = getPhiPartition(thirdPhiPlus);
 
-    std::vector<unsigned int> cand_hit_indices = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
+    std::vector<int> cand_hit_indices = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
     for (auto&& cand_hit_idx : cand_hit_indices){
       HitVec hit_triplet;
       hit_triplet.push_back(hit_pair[0]);
@@ -181,22 +181,21 @@ void filterHitTripletsByRZChi2(const std::vector<HitVec>& hit_triplets, std::vec
 
 void buildSeedsFromTriplets(const std::vector<HitVec> & filtered_triplets, TrackVec & evt_seed_tracks, Event& ev){
   // now perform kalman fit on seeds --> first need initial parameters --> get from Conformal fitter!
-  const bool backward = false; // use for forward fit of conformal utils
   const bool fiterrs  = false; // use errors derived for seeding
 
-  unsigned int seedID = 0;
+  int seedID = 0;
   for(auto&& hit_triplet : filtered_triplets){
     int charge = 0;
     if (hit_triplet[1].phi() > hit_triplet[2].phi()){charge = 1;}
     else {charge = -1;}
 
     TrackState updatedState;
-    conformalFit(hit_triplet[0],hit_triplet[1],hit_triplet[2],charge,updatedState,backward,fiterrs); 
+    conformalFit(hit_triplet[0],hit_triplet[1],hit_triplet[2],charge,updatedState,fiterrs); 
     ev.validation_.collectSeedTkCFMapInfo(seedID,updatedState);
 
     TSLayerPairVec updatedStates; // validation for position pulls
     
-    for (auto ilayer=0U;ilayer<Config::nlayers_per_seed;++ilayer) {
+    for (auto ilayer=0;ilayer<Config::nlayers_per_seed;++ilayer) {
       Hit seed_hit = hit_triplet[ilayer];
       TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
       MeasurementState measState = seed_hit.measurementState();

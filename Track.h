@@ -5,7 +5,7 @@
 #include "Matrix.h"
 #include <vector>
 
-typedef std::pair<unsigned int,unsigned int> SimTkIDInfo;
+typedef std::pair<int,int> SimTkIDInfo;
 typedef std::vector<int> HitIdxVec;
 
 struct TrackState //  possible to add same accessors as track? 
@@ -203,22 +203,22 @@ private:
 
 class TrackExtra {
 public:
- TrackExtra() : seedID_(std::numeric_limits<unsigned int>::max()) {}
-  TrackExtra(unsigned int seedID) : seedID_(seedID) {}
-  unsigned int mcTrackID() const {return mcTrackID_;}
-  unsigned int nHitsMatched() const {return nHitsMatched_;}
-  unsigned int seedID() const {return seedID_;}
+ TrackExtra() : seedID_(std::numeric_limits<int>::max()) {}
+  TrackExtra(int seedID) : seedID_(seedID) {}
+  int mcTrackID() const {return mcTrackID_;}
+  int nHitsMatched() const {return nHitsMatched_;}
+  int seedID() const {return seedID_;}
   bool isDuplicate() const {return isDuplicate_;}
   bool isMissed() const {return 999999 == mcTrackID_;}
-  unsigned int duplicateID() const {return duplicateID_;}
+  int duplicateID() const {return duplicateID_;}
   void setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo);
-  void setMCDuplicateInfo(unsigned int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
+  void setMCDuplicateInfo(int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
 private:
   friend class Track;
-  unsigned int mcTrackID_;
-  unsigned int nHitsMatched_;
-  unsigned int seedID_;
-  unsigned int duplicateID_;
+  int mcTrackID_;
+  int nHitsMatched_;
+  int seedID_;
+  int duplicateID_;
   bool isDuplicate_;
 };
 
@@ -228,6 +228,6 @@ typedef std::vector<Track> TrackVec;
 // resize that invalidates the pointer...
 //typedef std::vector<const Track*> TrackRefVec;
 typedef std::vector<TrackState> TSVec;
-typedef std::vector<std::pair<unsigned int, TrackState> > TSLayerPairVec;
+typedef std::vector<std::pair<int, TrackState> > TSLayerPairVec;
 
 #endif

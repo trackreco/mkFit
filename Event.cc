@@ -53,7 +53,7 @@ void Event::resetLayerHitMap(bool resetSimHits) {
   }
 }
 
-Event::Event(const Geometry& g, Validation& v, unsigned int evtID, int threads) : geom_(g), validation_(v), evtID_(evtID), threads_(threads)
+Event::Event(const Geometry& g, Validation& v, int evtID, int threads) : geom_(g), validation_(v), evtID_(evtID), threads_(threads)
 {
   layerHits_.resize(Config::nLayers);
   segmentMap_.resize(Config::nLayers);
@@ -79,7 +79,7 @@ void Event::Simulate()
     for (auto itrack = itracks.begin(); itrack != itracks.end(); ++itrack) {
 #else
     const Geometry& tmpgeom(geom_);
-    for (unsigned int itrack=0; itrack<Config::nTracks; ++itrack) {
+    for (int itrack=0; itrack<Config::nTracks; ++itrack) {
 #endif
       //create the simulated track
       SVector3 pos;
@@ -87,7 +87,7 @@ void Event::Simulate()
       SMatrixSym66 covtrk;
       HitVec hits;
       TSVec  initialTSs;
-      // unsigned int starting_layer  = 0; --> for displaced tracks, may want to consider running a separate Simulate() block with extra parameters
+      // int starting_layer  = 0; --> for displaced tracks, may want to consider running a separate Simulate() block with extra parameters
 
       int q=0;//set it in setup function
       // do the simulation
@@ -114,16 +114,16 @@ void Event::Segment()
   bool debug=true;
 #endif
   //sort in phi and dump hits per layer, fill phi partitioning
-  for (unsigned int ilayer=0; ilayer<layerHits_.size(); ++ilayer) {
+  for (int ilayer=0; ilayer<layerHits_.size(); ++ilayer) {
     dprint("Hits in layer=" << ilayer);
     
 #ifdef ETASEG
     segmentMap_[ilayer].resize(Config::nEtaPart);    
     // eta first then phi
     std::sort(layerHits_[ilayer].begin(), layerHits_[ilayer].end(), sortByZ);
-    std::vector<unsigned int> lay_eta_bin_count(Config::nEtaPart);
-    for (unsigned int ihit=0;ihit<layerHits_[ilayer].size();++ihit) {
-      unsigned int etabin = getEtaPartition(layerHits_[ilayer][ihit].eta());
+    std::vector<int> lay_eta_bin_count(Config::nEtaPart);
+    for (int ihit=0;ihit<layerHits_[ilayer].size();++ihit) {
+      int etabin = getEtaPartition(layerHits_[ilayer][ihit].eta());
       dprint("ihit: " << ihit << " eta: " << layerHits_[ilayer][ihit].eta() << " etabin: " << etabin);
       lay_eta_bin_count[etabin]++;
     }
@@ -132,28 +132,28 @@ void Event::Segment()
     int lastEtaIdxFound = -1;
     int lastPhiIdxFound = -1;
 
-    for (unsigned int etabin=0; etabin<Config::nEtaPart; ++etabin) {
-      unsigned int firstEtaBinIdx = lastEtaIdxFound+1;
-      unsigned int etaBinSize = lay_eta_bin_count[etabin];
+    for (int etabin=0; etabin<Config::nEtaPart; ++etabin) {
+      int firstEtaBinIdx = lastEtaIdxFound+1;
+      int etaBinSize = lay_eta_bin_count[etabin];
       if (etaBinSize>0){
         lastEtaIdxFound+=etaBinSize;
       }
 
       //sort by phi in each "eta bin"
       std::sort(layerHits_[ilayer].begin() + firstEtaBinIdx,layerHits_[ilayer].begin() + (etaBinSize+firstEtaBinIdx), sortByPhi); // sort from first to last in eta
-      std::vector<unsigned int> lay_eta_phi_bin_count(Config::nPhiPart);
+      std::vector<int> lay_eta_phi_bin_count(Config::nPhiPart);
 
-      for(unsigned int ihit = firstEtaBinIdx; ihit < etaBinSize+firstEtaBinIdx; ++ihit){
+      for(int ihit = firstEtaBinIdx; ihit < etaBinSize+firstEtaBinIdx; ++ihit){
         dprint("ihit: " << ihit << " r(layer): " << layerHits_[ilayer][ihit].r() << "(" << ilayer << ") phi: " 
 	                << layerHits_[ilayer][ihit].phi() << " phipart: " << getPhiPartition(layerHits_[ilayer][ihit].phi()) << " eta: "
 	                << layerHits_[ilayer][ihit].eta() << " etapart: " << getEtaPartition(layerHits_[ilayer][ihit].eta()));
-        unsigned int phibin = getPhiPartition(layerHits_[ilayer][ihit].phi());
+        int phibin = getPhiPartition(layerHits_[ilayer][ihit].phi());
         lay_eta_phi_bin_count[phibin]++;
       }
 
-      for (unsigned int phibin=0; phibin<Config::nPhiPart; ++phibin) {
-        unsigned int firstPhiBinIdx = lastPhiIdxFound+1;
-        unsigned int phiBinSize = lay_eta_phi_bin_count[phibin];
+      for (int phibin=0; phibin<Config::nPhiPart; ++phibin) {
+        int firstPhiBinIdx = lastPhiIdxFound+1;
+        int phiBinSize = lay_eta_phi_bin_count[phibin];
         BinInfo phiBinInfo(firstPhiBinIdx,phiBinSize);
         segmentMap_[ilayer][etabin].push_back(phiBinInfo);
         if (phiBinSize>0){
@@ -171,20 +171,20 @@ void Event::Segment()
 #else
     segmentMap_[ilayer].resize(1);    // only one eta bin for special case, avoid ifdefs
     std::sort(layerHits_[ilayer].begin(), layerHits_[ilayer].end(), sortByPhi);
-    std::vector<unsigned int> lay_phi_bin_count(Config::nPhiPart);//should it be 63? - yes!
-    for (unsigned int ihit=0;ihit<layerHits_[ilayer].size();++ihit) {
+    std::vector<int> lay_phi_bin_count(Config::nPhiPart);//should it be 63? - yes!
+    for (int ihit=0;ihit<layerHits_[ilayer].size();++ihit) {
       dprint("hit r/phi/eta : " << layerHits_[ilayer][ihit].r() << " "
                                 << layerHits_[ilayer][ihit].phi() << " " << layerHits_[ilayer][ihit].eta());
 
-      unsigned int phibin = getPhiPartition(layerHits_[ilayer][ihit].phi());
+      int phibin = getPhiPartition(layerHits_[ilayer][ihit].phi());
       lay_phi_bin_count[phibin]++;
     }
 
     //now set index and size in partitioning map
     int lastIdxFound = -1;
-    for (unsigned int bin=0; bin<Config::nPhiPart; ++bin) {
-      unsigned int binSize = lay_phi_bin_count[bin];
-      unsigned int firstBinIdx = lastIdxFound+1;
+    for (int bin=0; bin<Config::nPhiPart; ++bin) {
+      int binSize = lay_phi_bin_count[bin];
+      int firstBinIdx = lastIdxFound+1;
       BinInfo binInfo(firstBinIdx, binSize);
       segmentMap_[ilayer][0].push_back(binInfo); // [0] bin is just the only eta bin ... reduce ifdefs
       if (binSize>0){
@@ -195,14 +195,14 @@ void Event::Segment()
   } // end loop over layers
 
 #ifdef DEBUG
-  for (unsigned int ilayer = 0; ilayer < Config::nLayers; ilayer++) {
-    unsigned int etahitstotal = 0;
-    for (unsigned int etabin = 0; etabin < Config::nEtaPart; etabin++){
-      unsigned int etahits = segmentMap_[ilayer][etabin][Config::nPhiPart-1].first + segmentMap_[ilayer][etabin][Config::nPhiPart-1].second - segmentMap_[ilayer][etabin][0].first;
+  for (int ilayer = 0; ilayer < Config::nLayers; ilayer++) {
+    int etahitstotal = 0;
+    for (int etabin = 0; etabin < Config::nEtaPart; etabin++){
+      int etahits = segmentMap_[ilayer][etabin][Config::nPhiPart-1].first + segmentMap_[ilayer][etabin][Config::nPhiPart-1].second - segmentMap_[ilayer][etabin][0].first;
       std::cout << "etabin: " << etabin << " hits in bin: " << etahits << std::endl;
       etahitstotal += etahits;
 
-      for (unsigned int phibin = 0; phibin < Config::nPhiPart; phibin++){
+      for (int phibin = 0; phibin < Config::nPhiPart; phibin++){
 	//	if (segmentMap_[ilayer][etabin][phibin].second > 3) {std::cout << "   phibin: " << phibin << " hits: " << segmentMap_[ilayer][etabin][phibin].second << std::endl;}
       }
     }
@@ -246,7 +246,7 @@ void Event::Fit()
 #endif
 }
 
-void Event::Validate(const unsigned int ievt){
+void Event::Validate(int ievt){
   validation_.fillSegmentTree(segmentMap_,ievt);
   validation_.fillBranchTree(ievt);
   validation_.makeSimTkToRecoTksMaps(*this);

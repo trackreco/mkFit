@@ -34,7 +34,7 @@ void initGeom(Geometry& geom)
 
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
-  for (unsigned int l = 0; l < Config::nLayers; l++) {
+  for (int l = 0; l < Config::nLayers; l++) {
     float r = (l+1)*Config::fRadialSpacing;
     float z = (Config::fRadialSpacing * Config::nLayers) / std::tan(2.0*std::atan(std::exp(-Config::fEtaDet))); // calculate z extent based on eta for the last radius (used to be based on layer radius)
 #ifdef CYLINDER
@@ -68,7 +68,7 @@ void initGeom(Geometry& geom)
   // are added starting from the center
   // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
 
-  for (unsigned int l = 0; l < Config::nLayers; l++) {
+  for (int l = 0; l < Config::nLayers; l++) {
     float r = (l+1)*Config::fRadialSpacing;
     float z = r / std::tan(2.0*std::atan(std::exp(-Config::fEtaDet))); // calculate z extent based on eta, r
     VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent);
@@ -103,7 +103,7 @@ int main(int argc, char** argv)
   TTreeValidation val("valtree.root");
 #endif
 
-  for ( unsigned int i = 0; i < Config::nLayers; ++i ) {
+  for ( int i = 0; i < Config::nLayers; ++i ) {
     std::cout << "Layer = " << i << ", Radius = " << geom.Radius(i) << std::endl;
   }
 
@@ -120,7 +120,7 @@ int main(int argc, char** argv)
   auto nThread = 1;
 #endif
 
-  for (unsigned int evt=0; evt<Config::nEvents; ++evt) {
+  for (int evt=0; evt<Config::nEvents; ++evt) {
     Event ev(geom, val, evt, nThread);
     std::cout << "EVENT #"<< ev.evtID() << std::endl;
 

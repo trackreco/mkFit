@@ -24,27 +24,27 @@ public:
   float nSigmaDeta;
   float nSigmaDphi;
 
-  unsigned int etaBinMinus;
-  unsigned int etaBinPlus;
-  unsigned int phiBinMinus;
-  unsigned int phiBinPlus;
+  int etaBinMinus;
+  int etaBinPlus;
+  int phiBinMinus;
+  int phiBinPlus;
 
-  std::vector<unsigned int> cand_hit_indices;
-  std::vector<unsigned int> branch_hit_indices; // size of was just branches
+  std::vector<int> cand_hit_indices;
+  std::vector<int> branch_hit_indices; // size of was just branches
 };
 
 typedef std::vector<BranchVal> BranchValVec;
-typedef std::unordered_map<unsigned int, BranchValVec> BranchValVecLayMap;
-typedef std::unordered_map<unsigned int, BranchValVecLayMap> TkIDToBranchValVecLayMapMap;
+typedef std::unordered_map<int, BranchValVec> BranchValVecLayMap;
+typedef std::unordered_map<int, BranchValVecLayMap> TkIDToBranchValVecLayMapMap;
 typedef TkIDToBranchValVecLayMapMap::iterator TkIDToBVVMMIter;
 typedef BranchValVecLayMap::iterator BVVLMiter;
 
 // other typedefs
-typedef std::unordered_map<unsigned int,int>               TkIDToTkIDMap;
-typedef std::unordered_map<unsigned int,std::vector<int> > TkIDToTkIDVecMap;
-typedef std::unordered_map<unsigned int,TrackState>        TkIDToTSMap;   
-typedef std::unordered_map<unsigned int,TSVec>             TkIDToTSVecMap;
-typedef std::unordered_map<unsigned int,TSLayerPairVec>    TkIDToTSLayerPairVecMap;
+typedef std::unordered_map<int,int>               TkIDToTkIDMap;
+typedef std::unordered_map<int,std::vector<int> > TkIDToTkIDVecMap;
+typedef std::unordered_map<int,TrackState>        TkIDToTSMap;   
+typedef std::unordered_map<int,TSVec>             TkIDToTSVecMap;
+typedef std::unordered_map<int,TSLayerPairVec>    TkIDToTSLayerPairVecMap;
 
 class TTreeValidation : public Validation {
 public:
@@ -54,22 +54,22 @@ public:
   
   void alignTrackExtra(TrackVec& evt_tracks, TrackExtraVec& evt_extra) override;
 
-  void collectSimTkTSVecMapInfo(unsigned int mcTrackID, const TSVec& initTSs) override;
+  void collectSimTkTSVecMapInfo(int mcTrackID, const TSVec& initTSs) override;
 
-  void collectSeedTkCFMapInfo(unsigned int seedID, const TrackState& cfitStateHit0) override;
-  void collectSeedTkTSLayerPairVecMapInfo(unsigned int seedID, const TSLayerPairVec& updatedStates) override;
+  void collectSeedTkCFMapInfo(int seedID, const TrackState& cfitStateHit0) override;
+  void collectSeedTkTSLayerPairVecMapInfo(int seedID, const TSLayerPairVec& updatedStates) override;
 
-  void collectBranchingInfo(unsigned int seedID, unsigned int ilayer,
-                            float nSigmaDeta, float etaBinMinus, unsigned int etaBinPlus,
-                            float nSigmaDphi, unsigned int phiBinMinus, unsigned int phiBinPlus,
-                            const std::vector<unsigned int>& cand_hit_indices, const std::vector<unsigned int>& cand_hits_branches) override;
+  void collectBranchingInfo(int seedID, int ilayer,
+                            float nSigmaDeta, float etaBinMinus, int etaBinPlus,
+                            float nSigmaDphi, int phiBinMinus, int phiBinPlus,
+                            const std::vector<int>& cand_hit_indices, const std::vector<int>& cand_hits_branches) override;
 
-  void collectFitTkCFMapInfo(unsigned int seedID, const TrackState& cfitStateHit0) override;
-  void collectFitTkTSLayerPairVecMapInfo(unsigned int seedID, const TSLayerPairVec& updatedStates) override;
+  void collectFitTkCFMapInfo(int seedID, const TrackState& cfitStateHit0) override;
+  void collectFitTkTSLayerPairVecMapInfo(int seedID, const TSLayerPairVec& updatedStates) override;
 
-  void fillSegmentTree(const BinInfoMap& segmentMap, unsigned int evtID) override;
+  void fillSegmentTree(const BinInfoMap& segmentMap, int evtID) override;
 
-  void fillBranchTree(unsigned int evtID) override;
+  void fillBranchTree(int evtID) override;
 
   void makeSimTkToRecoTksMaps(Event& ev) override;
   void mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extra, const std::vector<HitVec>& layerHits, 
@@ -88,7 +88,7 @@ public:
 
   // segment map tree
   TTree* segtree_;
-  unsigned int evtID_seg_=0,layer_seg_=0,etabin_seg_=0,phibin_seg_=0,nHits_seg_=0;
+  int evtID_seg_=0,layer_seg_=0,etabin_seg_=0,phibin_seg_=0,nHits_seg_=0;
 
   // declare vector of trackStates for various track collections to be used in pulls/resolutions
   TkIDToTSVecMap simTkTSVecMap_;
@@ -103,10 +103,10 @@ public:
 
   // build branching tree
   TTree* tree_br_;
-  unsigned int evtID_br_=0,seedID_br_=0;
-  unsigned int layer_=0,cands_=0;
-  unsigned int uniqueEtaPhiBins_,uniqueHits_,uniqueBranches_;
-  std::vector<unsigned int> candEtaPhiBins_,candHits_,candBranches_;
+  int evtID_br_=0,seedID_br_=0;
+  int layer_=0,cands_=0;
+  int uniqueEtaPhiBins_,uniqueHits_,uniqueBranches_;
+  std::vector<int> candEtaPhiBins_,candHits_,candBranches_;
   std::vector<float> candnSigmaDeta_,candnSigmaDphi_;
   
   // efficiency trees and variables
@@ -115,10 +115,10 @@ public:
   TkIDToTkIDVecMap simToFitMap_;
 
   TTree* efftree_;  
-  unsigned int evtID_eff_=0,mcID_eff_=0;
-  int   mcmask_seed_eff_=0,mcmask_build_eff_=0,mcmask_fit_eff_=0;
+  int evtID_eff_=0,mcID_eff_=0;
+  int mcmask_seed_eff_=0,mcmask_build_eff_=0,mcmask_fit_eff_=0;
 
-  int   seedID_seed_eff_=0,seedID_build_eff_=0,seedID_fit_eff_=0;
+  int seedID_seed_eff_=0,seedID_build_eff_=0,seedID_fit_eff_=0;
 
   // for efficiency and duplicate rate plots
   float pt_mc_gen_eff_=0.,phi_mc_gen_eff_=0.,eta_mc_gen_eff_=0.;
@@ -152,7 +152,7 @@ public:
   // for position pulls
   std::vector<float> x_lay_seed_eff_,y_lay_seed_eff_,z_lay_seed_eff_,x_lay_fit_eff_,y_lay_fit_eff_,z_lay_fit_eff_;
   std::vector<float> ex_lay_seed_eff_,ey_lay_seed_eff_,ez_lay_seed_eff_,ex_lay_fit_eff_,ey_lay_fit_eff_,ez_lay_fit_eff_;
-  std::vector<unsigned int> layers_seed_eff_,layers_fit_eff_;
+  std::vector<int> layers_seed_eff_,layers_fit_eff_;
 
   // for hit countings
   int   nHits_seed_eff_=0,nHits_build_eff_=0,nHits_fit_eff_=0;
@@ -171,7 +171,7 @@ public:
   TkIDToTkIDMap seedToFitMap_;
   
   TTree* fakeratetree_;
-  unsigned int evtID_FR_=0,seedID_FR_=0;
+  int   evtID_FR_=0,seedID_FR_=0;
 
   int   seedmask_seed_FR_=0,seedmask_build_FR_=0,seedmask_fit_FR_=0;
   float pt_mc_seed_FR_=0.,pt_mc_build_FR_=0.,pt_mc_fit_FR_=0.;
@@ -198,20 +198,20 @@ public:
 
   // configuration tree
   TTree* configtree_;
-  float        simtime_=0.,segtime_=0.,seedtime_=0.,buildtime_=0.,fittime_=0.,hlvtime_=0.;
-  unsigned int Ntracks_=0,Nevents_=0;
-  unsigned int nLayers_=0;
-  float        fRadialSpacing_=0.,fRadialExtent_=0.,fInnerSensorSize_=0.,fOuterSensorSize_=0.;
-  float        fEtaDet_=0.,fPhiFactor_=0.;
-  unsigned int nPhiPart_=0,nEtaPart_=0;
-  unsigned int nlayers_per_seed_=0,maxCand_=0;
-  float        chi2Cut_=0.,nSigma_=0.,minDPhi_=0.,maxDPhi_=0.,minDEta_=0.,maxDEta_=0.;
-  float        beamspotX_=0.,beamspotY_=0.,beamspotZ_=0.;
-  float        minSimPt_=0.,maxSimPt_=0.;
-  float        hitposerrXY_=0.,hitposerrZ_=0.,hitposerrR_=0.;
-  float        varXY_=0.,varZ_=0.;
-  unsigned int nTotHit_=0;
-  float        ptinverr049_=0.,phierr049_=0.,thetaerr049_=0.,ptinverr012_=0.,phierr012_=0.,thetaerr012_=0.;
+  float simtime_=0.,segtime_=0.,seedtime_=0.,buildtime_=0.,fittime_=0.,hlvtime_=0.;
+  int   Ntracks_=0,Nevents_=0;
+  int   nLayers_=0;
+  float fRadialSpacing_=0.,fRadialExtent_=0.,fInnerSensorSize_=0.,fOuterSensorSize_=0.;
+  float fEtaDet_=0.,fPhiFactor_=0.;
+  int   nPhiPart_=0,nEtaPart_=0;
+  int   nlayers_per_seed_=0,maxCand_=0;
+  float chi2Cut_=0.,nSigma_=0.,minDPhi_=0.,maxDPhi_=0.,minDEta_=0.,maxDEta_=0.;
+  float beamspotX_=0.,beamspotY_=0.,beamspotZ_=0.;
+  float minSimPt_=0.,maxSimPt_=0.;
+  float hitposerrXY_=0.,hitposerrZ_=0.,hitposerrR_=0.;
+  float varXY_=0.,varZ_=0.;
+  int   nTotHit_=0;
+  float ptinverr049_=0.,phierr049_=0.,thetaerr049_=0.,ptinverr012_=0.,phierr012_=0.,thetaerr012_=0.;
 
   std::mutex glock_;
 };
