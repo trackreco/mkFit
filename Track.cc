@@ -7,8 +7,10 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
   std::vector<unsigned int> mctrack;
   auto hitIdx = trk.nTotalHits();
   for (int ihit = 0; ihit < hitIdx; ++ihit){
-    auto mchitid = layerHits[ihit][trk.getHitIdx(ihit)].mcHitID();
-    mctrack.push_back(globalHitInfo[mchitid].mcTrackID_);
+    if (trk.getHitIdx(ihit) >= 0) {
+      auto mchitid = layerHits[ihit][trk.getHitIdx(ihit)].mcHitID();
+      mctrack.push_back(globalHitInfo[mchitid].mcTrackID_);
+    }
   }
   std::sort(mctrack.begin(), mctrack.end()); // ensures all elements are checked properly
 
@@ -19,7 +21,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
     if (c >= mcount) { mtrk = m; mcount = c; }
     m = i;
   }
-  if (3*mcount > 2*trk.nFoundHits()){ // if more, matched track --> set id info
+  if (4*mcount > 3*trk.nFoundHits()){ // if more, matched track --> set id info
     mcTrackID_    = mtrk;
     nHitsMatched_ = mcount;
   } else { // fake track, id = 999 999

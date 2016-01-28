@@ -20,6 +20,44 @@ public:
   SMatrixSym66 errors;
   short charge;
   bool valid;
+
+  // track state position
+  float x()      const {return parameters.At(0);}
+  float y()      const {return parameters.At(1);}
+  float z()      const {return parameters.At(2);}
+  float posR()   const {return getHypot(x(),y());}
+  float posPhi() const {return getPhi  (x(),y());}
+  float posEta() const {return getEta  (posR(),z());}
+
+  // track state position errors
+  float exx()    const {return sqrtf(errors.At(0,0));}
+  float eyy()    const {return sqrtf(errors.At(1,1));}
+  float ezz()    const {return sqrtf(errors.At(2,2));}
+
+  // track state momentum
+  float px()     const {return parameters.At(3);}
+  float py()     const {return parameters.At(4);}
+  float pz()     const {return parameters.At(5);}
+  float pT()     const {return sqrtf(getRad2(px(),py()));}
+  float momPhi() const {return       getPhi (px(),py());}
+  float momEta() const {return       getEta (pT(),pz());}
+
+  // track state momentum errors
+  float epxpx()   const {return sqrtf(errors.At(3,3));}
+  float epypy()   const {return sqrtf(errors.At(4,4));}
+  float epzpz()   const {return sqrtf(errors.At(5,5));}
+  float epxpy()   const {return sqrtf(errors.At(3,4));}
+  float epxpz()   const {return sqrtf(errors.At(3,5));}
+  float epypz()   const {return sqrtf(errors.At(4,5));}
+
+  float epT()     const {return sqrtf(getRadErr2(px(),py(),epxpx(),epypy(),epxpy()));}
+  float emomPhi() const {return sqrtf(getPhiErr2(px(),py(),epxpx(),epypy(),epxpy()));}
+  float emomEta() const {return sqrtf(getEtaErr2(px(),py(),pz(),epxpx(),epypy(),epzpz(),epxpy(),epxpz(),epypz()));}
+
+  float theta()   const {return getTheta(pT(),pz());}
+  float invpT()   const {return sqrtf(getInvRad2(px(),py()));}
+  float etheta()  const {return sqrtf(getThetaErr2(px(),py(),pz(),epxpx(),epypy(),epzpz(),epxpy(),epxpz(),epypz()));}
+  float einvpT()  const {return sqrtf(getInvRadErr2(px(),py(),epxpx(),epypy(),epxpy()));}
 };
 
 class Track
@@ -35,6 +73,9 @@ public:
     for (int h = 0; h < nHits; ++h)
     {
       addHitIdx(hitIdxArr[h],0.);
+    }
+    for (int h = nHits; h < Config::nLayers; ++h){
+      setHitIdx(h,-1);
     }
   }
   
@@ -54,8 +95,6 @@ public:
   SMatrixSym66& errors_nc()     {return state_.errors;}
   TrackState&   state_nc()      {return state_;}
 
-  float radius() const {return std::sqrt(getRad2(state_.parameters[0],state_.parameters[1]));}
-
   SVector3 position() const {return SVector3(state_.parameters[0],state_.parameters[1],state_.parameters[2]);}
   SVector3 momentum() const {return SVector3(state_.parameters[3],state_.parameters[4],state_.parameters[5]);}
 
@@ -63,21 +102,41 @@ public:
   float    chi2()   const {return chi2_;}
   int      label()  const {return label_;}
 
+  float x()      const { return state_.parameters[0];}
+  float y()      const { return state_.parameters[1];}
+  float z()      const { return state_.parameters[2];}
+  float posR()   const { return getHypot(state_.parameters[0],state_.parameters[1]); }
   float posPhi() const { return getPhi(state_.parameters[0],state_.parameters[1]); }
-  float momPhi() const { return getPhi(state_.parameters[3],state_.parameters[4]); }
   float posEta() const { return getEta(state_.parameters[0],state_.parameters[1],state_.parameters[2]); }
+
+  float px()     const { return state_.parameters[3];}
+  float py()     const { return state_.parameters[4];}
+  float pz()     const { return state_.parameters[5];}
+  float pT()     const { return getHypot(state_.parameters[3],state_.parameters[4]); }
+  float momPhi() const { return getPhi(state_.parameters[3],state_.parameters[4]); }
   float momEta() const { return getEta(state_.parameters[3],state_.parameters[4],state_.parameters[5]); }
 
-  float posR()   const { return getHypot(state_.parameters[0],state_.parameters[1]); }
-  float pT()     const { return getHypot(state_.parameters[3],state_.parameters[4]); }
-
+  // track state momentum errors
+  float epx()     const { return sqrtf(state_.errors[3][3]);}
+  float epy()     const { return sqrtf(state_.errors[4][4]);}
+  float epz()     const { return sqrtf(state_.errors[5][5]);}
+  float epT()     const { return sqrtf(fabs(getRadErr2(state_.parameters[3],state_.parameters[4],
+						       state_.errors[3][3],state_.errors[4][4],state_.errors[3][4])));}
+  float emomPhi() const { return sqrtf(fabs(getPhiErr2(state_.parameters[3],state_.parameters[4],
+						       state_.errors[3][3],state_.errors[4][4],state_.errors[3][4])));}
+  float emomEta() const { return sqrtf(fabs(getEtaErr2(state_.parameters[3],state_.parameters[4],state_.parameters[5],
+						       state_.errors[3][3],state_.errors[4][4],state_.errors[5][5],state_.errors[3][4],
+						       state_.errors[3][5],state_.errors[4][5])));}
+  
   //this function is very inefficient, use only for debug and validation!
-  //currenlty used in fittest...
+  //currently used in fittest...
   const HitVec hitsVector(const std::vector<HitVec>& globalHitVec) const 
   {
     HitVec hitsVec;
-    for (int ihit = 0; ihit <= hitIdxPos_ ; ++ihit){
-      hitsVec.push_back( globalHitVec[ihit][ hitIdxArr_[ihit] ] );
+    for (int ihit = 0; ihit < Config::nLayers ; ++ihit){
+      if (hitIdxArr_[ihit] >= 0){
+	hitsVec.push_back( globalHitVec[ihit][ hitIdxArr_[ihit] ] );
+      }
     }
     return hitsVec;
   }
@@ -93,6 +152,12 @@ public:
     return hitIdxArr_[posHitIdx];
   }
 
+  void fillEmptyLayers() {
+    for (int h = hitIdxPos_+1; h < Config::nLayers; h++){
+      setHitIdx(h,-1);
+    }
+  }
+
   void setHitIdx(int posHitIdx, int newIdx) {
     hitIdxArr_[posHitIdx] = newIdx;
   }
@@ -104,6 +169,16 @@ public:
   }
   int  nFoundHits() const { return nGoodHitIdx_; }
   int  nTotalHits() const { return hitIdxPos_+1; }
+  
+  const std::vector<int> foundLayers() const { 
+    std::vector<int> layers;
+    for (int ihit = 0; ihit <= hitIdxPos_ ; ++ihit){
+      if (hitIdxArr_[ihit] >= 0) {
+	layers.push_back(ihit);
+      }
+    }
+    return layers;
+  }
 
   void setCharge(int chg)  {state_.charge=chg;}
   void setChi2(float chi2) {chi2_=chi2;}
@@ -128,7 +203,7 @@ private:
 
 class TrackExtra {
 public:
-  TrackExtra() : seedID_(std::numeric_limits<unsigned int>::max() ) {}
+ TrackExtra() : seedID_(std::numeric_limits<unsigned int>::max()) {}
   TrackExtra(unsigned int seedID) : seedID_(seedID) {}
   unsigned int mcTrackID() const {return mcTrackID_;}
   unsigned int nHitsMatched() const {return nHitsMatched_;}

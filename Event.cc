@@ -221,7 +221,9 @@ void Event::Seed()
   buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
 #endif
   // if we sort here, also have to sort seedTracksExtra and redo labels.
-  //std::sort(seedTracks_.begin(), seedTracks_.end(), tracksByPhi);
+  
+  std::sort(seedTracks_.begin(), seedTracks_.end(), tracksByPhi);
+  validation_.alignTrackExtra(seedTracks_,seedTracksExtra_);
 }
 
 void Event::Find()
@@ -248,9 +250,9 @@ void Event::Validate(const unsigned int ievt){
   validation_.fillSegmentTree(segmentMap_,ievt);
   validation_.fillBranchTree(ievt);
   validation_.makeSimTkToRecoTksMaps(*this);
-  validation_.fillEffTree(simTracks_,ievt);
-  validation_.makeSeedTkToRecoTkMaps(candidateTracks_,fitTracks_);
-  validation_.fillFakeRateTree(seedTracks_,ievt);
+  validation_.fillEffTree(*this);
+  validation_.makeSeedTkToRecoTkMaps(*this);
+  validation_.fillFakeRateTree(*this);
 }
 
 void Event::PrintStats(const TrackVec& trks, TrackExtraVec& trkextras)
