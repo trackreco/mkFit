@@ -760,7 +760,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev){
       nHitsMatched_seed_eff_    = seedextra.nHitsMatched();
       fracHitsMatched_seed_eff_ = float(nHitsMatched_seed_eff_) / float(nHits_seed_eff_);
 
-      hitchi2_seed_eff_   = -10; //seedtrack.chi2(); // currently not being used
+      hitchi2_seed_eff_   = seedtrack.chi2(); // currently not being used
       helixchi2_seed_eff_ = computeHelixChi2(initLayTS.parameters,seedtrack.parameters(),seedtrack.errors());
 
       duplmask_seed_eff_   = seedextra.isDuplicate(); 
@@ -953,7 +953,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
     nHitsMatched_seed_FR_    = seedextra.nHitsMatched();
     fracHitsMatched_seed_FR_ = float(nHitsMatched_seed_FR_) / float(nHits_seed_FR_);
 
-    hitchi2_seed_FR_ = -10; // seedtrack.chi2(); --> not currently used
+    hitchi2_seed_FR_ = seedtrack.chi2(); //--> not currently used
 
     // sim info for seed track
     mcID_seed_FR_ = seedextra.mcTrackID();

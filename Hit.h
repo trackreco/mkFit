@@ -148,7 +148,9 @@ struct MCHitInfo
   int layer_;
   int ithLayerHit_;
   int mcHitID_;
-
+  
+  int mcTrackID() const { return mcTrackID_; } 
+  int layer()     const { return layer_; } 
   static std::atomic<int> mcHitIDCounter_;
 };
 typedef std::vector<MCHitInfo> MCHitInfoVec;
@@ -218,7 +220,7 @@ public:
   }
 
   int mcHitID() const { return mcHitID_; }
-  int layer(const MCHitInfoVec& globalMCHitInfo) const { return globalMCHitInfo[mcHitID_].layer_; }
+  int layer(const MCHitInfoVec& globalMCHitInfo) const { return globalMCHitInfo[mcHitID_].layer(); }
   
 private:
   MeasurementState state_;
@@ -226,5 +228,4 @@ private:
 };
 
 typedef std::vector<Hit> HitVec;
-
 #endif
