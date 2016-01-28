@@ -21,7 +21,7 @@
   TGraph* g_CEST_VU = (TGraph*) f->Get("g_CEST_VU");
   TGraph* g_ST_VU = (TGraph*) f->Get("g_ST_VU");
   g_BH_VU->SetTitle("Vectorization benchmark on "+label);
-  g_BH_VU->GetXaxis()->SetTitle("Vector Unit Utilization");
+  g_BH_VU->GetXaxis()->SetTitle("Vector Width");
   g_BH_VU->GetYaxis()->SetTitle("Time for 10 events x 20k tracks [s]");
   g_BH_VU->GetXaxis()->SetRangeUser(1,maxvu);
   g_BH_VU->GetYaxis()->SetRangeUser(0,10);
@@ -63,7 +63,7 @@
   TGraph* g_CEST_VU_speedup = (TGraph*) f->Get("g_CEST_VU_speedup");
   TGraph* g_ST_VU_speedup = (TGraph*) f->Get("g_ST_VU_speedup");
   g_BH_VU_speedup->SetTitle("Vectorization speedup on "+label);
-  g_BH_VU_speedup->GetXaxis()->SetTitle("Vector Unit Utilization");
+  g_BH_VU_speedup->GetXaxis()->SetTitle("Vector Width");
   g_BH_VU_speedup->GetYaxis()->SetTitle("Speedup");
   g_BH_VU_speedup->GetXaxis()->SetRangeUser(1,maxvu);
   g_BH_VU_speedup->GetYaxis()->SetRangeUser(0,maxvu);
@@ -110,7 +110,7 @@
   g_BH_TH->GetYaxis()->SetTitle("Time for 10 events x 20k tracks [s]");
   g_BH_TH->GetXaxis()->SetRangeUser(1,maxth);
   g_BH_TH->GetYaxis()->SetRangeUser(0,6);
-  if (isMic) g_BH_TH->GetYaxis()->SetRangeUser(0,40);
+  if (isMic) g_BH_TH->GetYaxis()->SetRangeUser(0.5,80);
   g_BH_TH->SetLineWidth(2);
   g_CE_TH->SetLineWidth(2);
   g_CEST_TH->SetLineWidth(2);
@@ -139,6 +139,7 @@
   leg_TH->AddEntry(g_ST_TH,"NoCloneEngine","LP");
   leg_TH->Draw();
   c3.SetGridy();
+  if (isMic) c3.SetLogy();
   c3.Update();
   c3.SaveAs(hORm+"_th_time.png");
 

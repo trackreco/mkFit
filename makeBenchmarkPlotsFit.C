@@ -21,7 +21,7 @@
   TCanvas c1;
   TGraph* g_FIT_VU = (TGraph*) f->Get("g_FIT_VU");
   g_FIT_VU->SetTitle("Vectorization benchmark on "+label);
-  g_FIT_VU->GetXaxis()->SetTitle("Vector Unit Utilization");
+  g_FIT_VU->GetXaxis()->SetTitle("Vector Width");
   g_FIT_VU->GetYaxis()->SetTitle("Time for "+ntrk+" tracks [s]");
   g_FIT_VU->GetYaxis()->SetTitleOffset(1.25);
   g_FIT_VU->GetXaxis()->SetRangeUser(1,maxvu);
@@ -42,7 +42,7 @@
   TCanvas c2;
   TGraph* g_FIT_VU_speedup = (TGraph*) f->Get("g_FIT_VU_speedup");
   g_FIT_VU_speedup->SetTitle("Vectorization speedup on "+label);
-  g_FIT_VU_speedup->GetXaxis()->SetTitle("Vector Unit Utilization");
+  g_FIT_VU_speedup->GetXaxis()->SetTitle("Vector Width");
   g_FIT_VU_speedup->GetYaxis()->SetTitle("Speedup");
   g_FIT_VU_speedup->GetXaxis()->SetRangeUser(1,maxvu);
   g_FIT_VU_speedup->GetYaxis()->SetRangeUser(0,maxvu);
@@ -79,6 +79,7 @@
   leg_TH->AddEntry(g_FIT_TH,"Fit","LP");
   leg_TH->Draw();
   c3.SetGridy();
+  if (isMic) c3.SetLogy();
   c3.Update();
   c3.SaveAs(hORm+"_th_fittime.png");
 
