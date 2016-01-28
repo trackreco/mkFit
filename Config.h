@@ -3,6 +3,8 @@
 
 #include <algorithm>
 
+//#define PRINTOUTS_FOR_PLOTS
+
 namespace Config
 {
   // math general --> from namespace TMath
