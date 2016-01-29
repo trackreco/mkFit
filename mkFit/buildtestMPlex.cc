@@ -150,7 +150,10 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
     for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed++)
     {
       // take the first one!
-      builder.quality_process(etabin_of_comb_candidates.m_candidates[iseed].front());
+      if ( ! etabin_of_comb_candidates.m_candidates[iseed].empty())
+      {
+        builder.quality_process(etabin_of_comb_candidates.m_candidates[iseed].front());
+      }
     }
   }
 
@@ -199,7 +202,10 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
     for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed++)
     {
       // take the first one!
-      builder.quality_process(etabin_of_comb_candidates.m_candidates[iseed].front());
+      if ( ! etabin_of_comb_candidates.m_candidates[iseed].empty())
+      {
+        builder.quality_process(etabin_of_comb_candidates.m_candidates[iseed].front());
+      }
     }
   }
 

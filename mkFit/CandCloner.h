@@ -16,13 +16,10 @@ class CandCloner : public SideThread<CandClonerWork_t>
 {
 public:
   // Maximum number of seeds processed in one call to ProcessSeedRange()
-  static const int s_max_seed_range = 4;
+  static const int s_max_seed_range = MPT_SIZE;
 
 private:
   // Temporaries in ProcessSeedRange(), re-sized/served  in constructor.
-
-  // Size of this guy is s_max_seed_range * max_cand
-  std::vector<std::pair<int,MkFitter::IdxChi2List> > t_seed_newcand_idx;
 
   // Size of this one is s_max_seed_range
   std::vector<std::vector<Track> > t_cands_for_next_lay;
@@ -30,9 +27,7 @@ private:
 public:
   CandCloner(int cpuid=-1, int cpuid_st=-1, bool pin_mt=true)
   {
-    m_fitter = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(0);
-
-    t_seed_newcand_idx.reserve(s_max_seed_range * Config::maxCandsPerSeed);
+    // m_fitter = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(0);
 
     t_cands_for_next_lay.resize(s_max_seed_range);
     for (int iseed = 0; iseed < s_max_seed_range; ++iseed)
@@ -54,7 +49,7 @@ public:
     if ( ! Config::clonerUseSingleThread)
       JoinSideThread();
 
-    _mm_free(m_fitter);
+    // _mm_free(m_fitter);
   }
 
   void begin_eta_bin(EtaBinOfCombCandidates * eb_o_ccs, int start_seed, int n_seeds)
@@ -76,18 +71,14 @@ public:
 #endif
   }
 
-  void begin_layer(BunchOfHits *b_o_hs, int lay, float rad)
+  void begin_layer(int lay)
   {
-    mp_bunch_of_hits = b_o_hs;
-
     m_layer = lay;
 
-    m_fitter->SetNhits(m_layer);//here again assuming one hit per layer
+    // m_fitter->SetNhits(m_layer);//here again assuming one hit per layer
 
     m_idx_max      = 0;
     m_idx_max_prev = 0;
-
-    m_rad = rad;
 
 #ifdef CC_TIME_LAYER
     t_lay = dtime();
@@ -121,9 +112,9 @@ public:
 
   void end_layer()
   {
-    if (m_idx_max + 1 > m_idx_max_prev)
+    if (m_n_seeds > m_idx_max_prev)
     {
-      signal_work_to_st(m_idx_max + 1);
+      signal_work_to_st(m_n_seeds);
     }
 
     if ( ! Config::clonerUseSingleThread)
@@ -137,6 +128,8 @@ public:
 #ifdef CC_TIME_LAYER
     t_lay = dtime() - t_lay;
     printf("CandCloner::end_layer %d -- t_lay=%8.6f\n", m_layer, t_lay);
+    printf("                      m_idx_max=%d, m_idx_max_prev=%d, issued work=%d\n",
+           m_idx_max, m_idx_max_prev, m_idx_max + 1 > m_idx_max_prev);
 #endif
   }
 
@@ -174,10 +167,9 @@ public:
   int  m_idx_max, m_idx_max_prev;
   std::vector<std::vector<MkFitter::IdxChi2List>> m_hits_to_add;
 
-  BunchOfHits            *mp_bunch_of_hits;
   EtaBinOfCombCandidates *mp_etabin_of_comb_candidates;
 
-  MkFitter               *m_fitter;
+  // MkFitter               *m_fitter;
 
 #if defined(CC_TIME_ETA) or defined(CC_TIME_LAYER)
   double    t_eta, t_lay;
@@ -185,8 +177,6 @@ public:
 
   int       m_start_seed, m_n_seeds;
   int       m_layer;
-
-  float     m_rad;
 };
 
 #endif

@@ -474,7 +474,7 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
   //fixme: please vectorize me...
   for (int i = beg; i < end; ++i, ++itrack)
     {
-      if (countInvalidHits(itrack)>0) continue;//check this is ok for vectorization //fixme not optimal
+      // if (countInvalidHits(itrack)>0) continue;//check this is ok for vectorization //fixme not optimal
       Track newcand;
       newcand.resetHits();//probably not needed
       newcand.setCharge(Chg(itrack, 0, 0));
@@ -606,7 +606,7 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
                          2 * dphidx*dphidy*(Err[iI].ConstAt(itrack, 0, 1) /*propState.errors.At(0,1)*/);
 
     const float dphi       = sqrtf(std::fabs(dphi2));//how come I get negative squared errors sometimes? MT -- how small?
-    const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi,(float) Config::minDPhi), float(M_PI/1.));//fixme
+    const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi, Config::minDPhi), Config::PI);
     //const float nSigmaDphi = Config::nSigma*dphi;
 
     float dPhiMargin = 0.;
@@ -1080,7 +1080,7 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits,
   //fixme: please vectorize me...
   for (int itrack = 0; itrack < N_proc; ++itrack)
     {
-      if (countInvalidHits(itrack)>0) continue;//check this is ok for vectorization //fixme not optimal
+      // if (countInvalidHits(itrack)>0) continue;//check this is ok for vectorization //fixme not optimal
       Track newcand;
       newcand.resetHits();//probably not needed
       newcand.setCharge(Chg(itrack, 0, 0));
@@ -1224,7 +1224,7 @@ void MkFitter::FindCandidatesMinimizeCopy(BunchOfHits &bunch_of_hits, CandCloner
             cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
 	    // hitsToAdd[SeedIdx(itrack, 0, 0)-offset].push_back(tmpList);
 #ifdef DEBUG
-	    std::cout << "adding hit with hit_cnt=" << hit_cnt << " for trkIdx=" << tmpList.trkIdx << std::endl;
+	    std::cout << "adding hit with hit_cnt=" << hit_cnt << " for trkIdx=" << tmpList.trkIdx << " orig Seed=" << Label(itrack, 0, 0) << std::endl;
 #endif
 	  }
       }
@@ -1236,9 +1236,9 @@ void MkFitter::FindCandidatesMinimizeCopy(BunchOfHits &bunch_of_hits, CandCloner
   for (int itrack = 0; itrack < N_proc; ++itrack)
     {
 #ifdef DEBUG
-      std::cout << "countInvalidHits(itrack)=" << countInvalidHits(itrack) << std::endl;
+      std::cout << "countInvalidHits(" << itrack << ")=" << countInvalidHits(itrack) << std::endl;
 #endif
-      if (countInvalidHits(itrack) > 0) continue;//check this is ok for vectorization //fixme not optimal
+      // if (countInvalidHits(itrack) > 0) continue;//check this is ok for vectorization //fixme not optimal
       IdxChi2List tmpList;
       tmpList.trkIdx = CandIdx(itrack, 0, 0);
       tmpList.hitIdx = -1;
@@ -1380,11 +1380,48 @@ void MkFitter::UpdateWithHit(BunchOfHits &bunch_of_hits,
   
 }
 
+void MkFitter::UpdateWithLastHit(BunchOfHits &bunch_of_hits,
+                                 int N_proc)
+{
+  for (int i = 0; i < N_proc; ++i)
+  {
+    int hit_idx = HitsIdx[Nhits - 1](i, 0, 0);
+
+    if (hit_idx < 0) continue;
+
+    Hit &hit = bunch_of_hits.m_hits[hit_idx];
+
+    msErr[Nhits - 1].CopyIn(i, hit.errArray());
+    msPar[Nhits - 1].CopyIn(i, hit.posArray());
+  }
+
+  updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[Nhits-1], msPar[Nhits-1], Err[iC], Par[iC]);
+
+  //now that we have moved propagation at the end of the sequence we lost the handle of
+  //using the propagated parameters instead of the updated for the missing hit case.
+  //so we need to replace by hand the updated with the propagated
+  //there may be a better way to restore this...
+
+  for (int i = 0; i < N_proc; ++i)
+  {
+    if (HitsIdx[Nhits - 1](i, 0, 0) < 0)
+    {
+      float tmp[21];
+      Err[iP].CopyOut(i, tmp);
+      Err[iC].CopyIn(i, tmp);
+      Par[iP].CopyOut(i, tmp);
+      Par[iC].CopyIn(i, tmp);
+    }
+  }
+}
+
 
 void MkFitter::CopyOutClone(std::vector<std::pair<int,IdxChi2List> >& idxs,
 			    std::vector<std::vector<Track> >& cands_for_next_lay,
 			    int offset, int beg, int end, bool outputProp)
 {
+  const int iO = outputProp ? iP : iC;
+
   int itrack = 0;
 #pragma simd // DOES NOT VECTORIZE AS IT IS NOW
   for (int i = beg; i < end; ++i, ++itrack)
@@ -1403,17 +1440,37 @@ void MkFitter::CopyOutClone(std::vector<std::pair<int,IdxChi2List> >& idxs,
       newcand.setLabel(Label(itrack, 0, 0));
 
       //set the track state to the updated parameters
-      if (outputProp) {
-	Err[iP].CopyOut(itrack, newcand.errors_nc().Array());
-	Par[iP].CopyOut(itrack, newcand.parameters_nc().Array());
-      } else {
-	Err[iC].CopyOut(itrack, newcand.errors_nc().Array());
-	Par[iC].CopyOut(itrack, newcand.parameters_nc().Array());
-      }
+      Err[iO].CopyOut(itrack, newcand.errors_nc().Array());
+      Par[iO].CopyOut(itrack, newcand.parameters_nc().Array());
+
 #ifdef DEBUG
       std::cout << "updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << std::endl;
 #endif
 
       cands_for_next_lay[SeedIdx(itrack, 0, 0) - offset].push_back(newcand);
     }
+}
+
+void MkFitter::CopyOutParErr(std::vector<std::vector<Track> >& seed_cand_vec,
+                             int N_proc, bool outputProp)
+{
+  const int iO = outputProp ? iP : iC;
+
+  for (int i = 0; i < N_proc; ++i)
+  {
+    //create a new candidate and fill the cands_for_next_lay vector
+    Track &cand = seed_cand_vec[SeedIdx(i, 0, 0)][CandIdx(i, 0, 0)];
+
+    //set the track state to the updated parameters
+    Err[iO].CopyOut(i, cand.errors_nc().Array());
+    Par[iO].CopyOut(i, cand.parameters_nc().Array());
+
+#ifdef DEBUG
+    std::cout << "updated track parameters x=" << cand.parameters()[0]
+              << " y=" << cand.parameters()[1]
+              << " z=" << cand.parameters()[2]
+              << " posEta=" << cand.posEta()
+              << " etaBin=" << getEtaBin(cand.posEta()) << std::endl;
+#endif
+  }
 }

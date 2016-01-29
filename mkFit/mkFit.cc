@@ -195,7 +195,7 @@ void test_standard()
     plex_tracks.resize(ev.simTracks_.size());
 
     double t_best[NT] = {0}, t_cur[NT];
-    
+
     for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
     {
       t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
