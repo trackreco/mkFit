@@ -7,8 +7,6 @@
 
 #include <omp.h>
 
-//#define PRINTOUTS_FOR_PLOTS
-
 namespace
 {
   bool sortCandByHitsChi2(const Track& cand1, const Track& cand2)

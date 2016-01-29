@@ -338,13 +338,8 @@ void setupTrackFromTextFile(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
   hits.reserve(Config::nTotHit);
   initTSs.reserve(Config::nTotHit);
 
-  bool doSmearing = true;
-  // std::ifstream infile("cmssw.simtracks.SingleMu1GeV.test.txt");doSmearing = false;
-  // std::ifstream infile("cmssw.simtracks.SingleMu10GeV.10k.new.txt");
-  std::ifstream infile("cmssw.simtracks.SingleMu1GeV.10k.new.txt");
-  // std::ifstream infile("cmssw.rectracks.SingleMu10GeV.10k.new.txt");
-  // std::ifstream infile("cmssw.rectracks.SingleMu1GeV.10k.new.txt");
-  // std::ifstream infile("cmssw.rectracks.SingleMu1GeV.test.txt");
+  bool doSmearing = true;//doSmearing = false;
+  std::ifstream infile(Config::inputFile);
   std::string line;
   int countTracks = -1;
   int countHits   = 0;

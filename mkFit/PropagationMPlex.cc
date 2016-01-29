@@ -675,8 +675,8 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, MPlexLS 
       // we consider two planar angles theta1 and theta2 in the uv and us planes respectively
       // note theta1 and theta2 are different angles but with the same rms value thetaMSC
       // first order approximation: sin_thetaMSC ~ thetaMSC
-      // px' = px - (py*p*theta1 + pz*px*theta2)/pt; 
-      // py' = py + (px*p*theta1 - pz*py*theta2)/pt;
+      // px' = px + (py*p*theta1 + pz*px*theta2)/pt; 
+      // py' = py - (px*p*theta1 - pz*py*theta2)/pt;
       // pz' = pz + pt*theta2;
       // this actually changes |p| so that p'^2 = p^2(1+2thetaMSC^2) so we should renormalize everything but we neglect this effect here (we are just inflating uncertainties a bit)
       float thetaMSC = 0.0136*sqrt(radL)*(1.+0.038*log(radL))/(beta*p);// eq 32.15
@@ -685,7 +685,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, MPlexLS 
       outErr.At(n, 3, 3) += (py*py*p*p + pz*pz*px*px)*thetaMSC2overPt2;
       outErr.At(n, 4, 4) += (px*px*p*p + pz*pz*py*py)*thetaMSC2overPt2;
       outErr.At(n, 5, 5) += pt*pt*thetaMSC2;
-      outErr.At(n, 3, 4) += px*py*(p*p + pz*pz)*thetaMSC2overPt2;
+      outErr.At(n, 3, 4) += -px*py*thetaMSC2;
       outErr.At(n, 3, 5) += -pz*px*thetaMSC2;
       outErr.At(n, 4, 5) += -pz*py*thetaMSC2;
       // std::cout << "beta=" << beta << " p=" << p << std::endl;
@@ -698,12 +698,22 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, MPlexLS 
       constexpr float I = 16.0e-9 * 10.75;
       float deltahalf = log(28.816e-9 * sqrt(2.33*0.498)/I) + log(beta*gamma) - 0.5;
       float dEdx = hitsXi.ConstAt(n,0,0) * invCos * (0.5*log(2*me*beta2*gamma2*wmax/(I*I)) - beta2 - deltahalf) / beta2 ;
+      dEdx = dEdx*2.;//xi in cmssw is defined with an extra factor 0.5 with respect to formula 27.1 in pdg
       // std::cout << "dEdx=" << dEdx << " delta=" << deltahalf << std::endl;
       float dP = dEdx/beta;
       outPar.At(n, 0, 3) -= dP*px/p;
       outPar.At(n, 0, 4) -= dP*py/p;
       outPar.At(n, 0, 5) -= dP*pz/p;
-      //we do nothing on the uncertainty for now
+      //assume 100% uncertainty
+      dP = dP*dP;//warning, redefining dP!
+      p2 = 1./p2;//warning, redefining p2!
+      outErr.At(n, 3, 3) += dP*px*px*p2;//dP^2*px*px/p^2
+      outErr.At(n, 4, 4) += dP*py*py*p2;
+      outErr.At(n, 5, 5) += dP*pz*pz*p2;
+      p2 = p2/p;//warning, redefining p2!
+      outErr.At(n, 3, 4) += dP*px*py*p2;//dP^2*px*py/p^3
+      outErr.At(n, 3, 5) += dP*px*pz*p2;
+      outErr.At(n, 4, 5) += dP*pz*py*p2;
     }
 
 }
