@@ -1,6 +1,6 @@
 #! /bin/bash
 
-sed -i 's/\/\/\#define PRINTOUTS_FOR_PLOTS/\#define PRINTOUTS_FOR_PLOTS/g' mkFit/MkBuilder.cc
+sed -i 's/\/\/\#define PRINTOUTS_FOR_PLOTS/\#define PRINTOUTS_FOR_PLOTS/g' Config.h
 
 make clean
 make -j 8
@@ -29,7 +29,7 @@ sed -i "s/MPT_SIZE=${nvu}/MPT_SIZE=XX/g" Makefile.config
 done
 sed -i 's/USE_INTRINSICS := -DMPT_SIZE=XX/# USE_INTRINSICS := -DMPT_SIZE=1/g' Makefile.config
 
-sed -i 's/\#define PRINTOUTS_FOR_PLOTS/\/\/\#define PRINTOUTS_FOR_PLOTS/g' mkFit/MkBuilder.cc
+sed -i 's/\#define PRINTOUTS_FOR_PLOTS/\/\/\#define PRINTOUTS_FOR_PLOTS/g' Config.h
 
 make clean
 make -j 8
