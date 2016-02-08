@@ -474,7 +474,7 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
   //fixme: please vectorize me...
   for (int i = beg; i < end; ++i, ++itrack)
     {
-      // if (countInvalidHits(itrack)>0) continue;//check this is ok for vectorization //fixme not optimal
+      if (countInvalidHits(itrack)>0) continue;//check this is ok for vectorization //fixme not optimal
       Track newcand;
       newcand.resetHits();//probably not needed
       newcand.setCharge(Chg(itrack, 0, 0));
@@ -1080,7 +1080,7 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits,
   //fixme: please vectorize me...
   for (int itrack = 0; itrack < N_proc; ++itrack)
     {
-      // if (countInvalidHits(itrack)>0) continue;//check this is ok for vectorization //fixme not optimal
+      if (countInvalidHits(itrack)>0) continue;//check this is ok for vectorization //fixme not optimal
       Track newcand;
       newcand.resetHits();//probably not needed
       newcand.setCharge(Chg(itrack, 0, 0));
@@ -1238,7 +1238,7 @@ void MkFitter::FindCandidatesMinimizeCopy(BunchOfHits &bunch_of_hits, CandCloner
 #ifdef DEBUG
       std::cout << "countInvalidHits(" << itrack << ")=" << countInvalidHits(itrack) << std::endl;
 #endif
-      // if (countInvalidHits(itrack) > 0) continue;//check this is ok for vectorization //fixme not optimal
+      if (countInvalidHits(itrack) > 0) continue;//check this is ok for vectorization //fixme not optimal
       IdxChi2List tmpList;
       tmpList.trkIdx = CandIdx(itrack, 0, 0);
       tmpList.hitIdx = -1;
