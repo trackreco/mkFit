@@ -145,7 +145,8 @@ int MkFitter::countInvalidHits(int itrack, int end_hit)
   int result = 0;
   for (int hi = 0; hi < end_hit; ++hi)
     {
-      if (HitsIdx[hi](itrack, 0, 0) < 0) result++;
+      // XXXX MT: Should also count -2 hits as invalid?
+      if (HitsIdx[hi](itrack, 0, 0) == -1) result++;
     }
   return result;
 }
@@ -474,7 +475,8 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
   //fixme: please vectorize me...
   for (int i = beg; i < end; ++i, ++itrack)
     {
-      if (countInvalidHits(itrack)>0) continue;//check this is ok for vectorization //fixme not optimal
+      int hit_idx = countInvalidHits(itrack) < Config::maxHolesPerCand ? -1 : -2;
+
       Track newcand;
       newcand.resetHits();//probably not needed
       newcand.setCharge(Chg(itrack, 0, 0));
@@ -483,7 +485,7 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
 	{
 	  newcand.addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);//this should be ok since we already set the chi2 above
 	}
-      newcand.addHitIdx(-1,0.);
+      newcand.addHitIdx(hit_idx, 0.);
       //set the track state to the propagated parameters
       Err[iP].CopyOut(itrack, newcand.errors_nc().Array());
       Par[iP].CopyOut(itrack, newcand.parameters_nc().Array());	      
@@ -1020,15 +1022,15 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits,
 #ifdef DEBUG
 	std::cout << "chi2=" << chi2 << std::endl;
 #endif
-	if (chi2<Config::chi2Cut)
+	if (chi2 < Config::chi2Cut)
 	  {
 	    oneCandPassCut = true;
 	    break;
 	  }
       }
 
-    if (oneCandPassCut) { 
-
+    if (oneCandPassCut)
+    {
       updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits], Err[iC], Par[iC]);
 #ifdef DEBUG
       std::cout << "update parameters" << std::endl;
@@ -1080,7 +1082,8 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits,
   //fixme: please vectorize me...
   for (int itrack = 0; itrack < N_proc; ++itrack)
     {
-      if (countInvalidHits(itrack)>0) continue;//check this is ok for vectorization //fixme not optimal
+      int hit_idx = countInvalidHits(itrack) < Config::maxHolesPerCand ? -1 : -2;
+
       Track newcand;
       newcand.resetHits();//probably not needed
       newcand.setCharge(Chg(itrack, 0, 0));
@@ -1089,7 +1092,7 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits,
 	{
 	  newcand.addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);//this should be ok since we already set the chi2 above
 	}
-      newcand.addHitIdx(-1,0.);
+      newcand.addHitIdx(hit_idx, 0.);
       newcand.setLabel(Label(itrack, 0, 0));
       //set the track state to the propagated parameters
       Err[iP].CopyOut(itrack, newcand.errors_nc().Array());
@@ -1238,10 +1241,12 @@ void MkFitter::FindCandidatesMinimizeCopy(BunchOfHits &bunch_of_hits, CandCloner
 #ifdef DEBUG
       std::cout << "countInvalidHits(" << itrack << ")=" << countInvalidHits(itrack) << std::endl;
 #endif
-      if (countInvalidHits(itrack) > 0) continue;//check this is ok for vectorization //fixme not optimal
+
+      int hit_idx = countInvalidHits(itrack) < Config::maxHolesPerCand ? -1 : -2;
+
       IdxChi2List tmpList;
       tmpList.trkIdx = CandIdx(itrack, 0, 0);
-      tmpList.hitIdx = -1;
+      tmpList.hitIdx = hit_idx;
       tmpList.nhits  = countValidHits(itrack);
       tmpList.chi2   = Chi2(itrack, 0, 0);
       cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);

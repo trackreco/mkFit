@@ -511,9 +511,13 @@ void MkBuilder::FindTracks()
 
         for (int iseed = otd.th_start_seed; iseed != otd.th_end_seed; ++iseed)
         {
-          for (int ic = 0; ic < etabin_of_comb_candidates.m_candidates[iseed].size(); ++ic)
+          std::vector<Track> &scands = etabin_of_comb_candidates.m_candidates[iseed];
+          for (int ic = 0; ic < scands.size(); ++ic)
           {
-            seed_cand_idx.push_back(std::pair<int,int>(iseed,ic));
+            if (scands[ic].getLastHitIdx() >= -1)
+            {
+              seed_cand_idx.push_back(std::pair<int,int>(iseed,ic));
+            }
           }
         }
         int theEndCand = seed_cand_idx.size();
@@ -570,9 +574,9 @@ void MkBuilder::FindTracks()
 
           mkfp->SelectHitRanges(bunch_of_hits, end - itrack);
 
-//#ifdef PRINTOUTS_FOR_PLOTS
-//std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
-//#endif
+          //#ifdef PRINTOUTS_FOR_PLOTS
+          //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
+          //#endif
 
 #ifdef DEBUG
           std::cout << "make new candidates" << std::endl;
@@ -589,6 +593,8 @@ void MkBuilder::FindTracks()
 #ifdef DEBUG
           std::cout << "dump seed n " << is << " with input candidates=" << tmp_candidates[is].size() << std::endl;
 #endif
+          std::sort(tmp_candidates[is].begin(), tmp_candidates[is].end(), sortCandByHitsChi2);
+
           if (tmp_candidates[is].size() > Config::maxCandsPerSeed)
           {
 #ifdef DEBUG
@@ -599,7 +605,6 @@ void MkBuilder::FindTracks()
             std::cout << "erase extra candidates" << std::endl;
 #endif
 
-            std::sort(tmp_candidates[is].begin(), tmp_candidates[is].end(), sortCandByHitsChi2);
             tmp_candidates[is].erase(tmp_candidates[is].begin() + Config::maxCandsPerSeed,
                                      tmp_candidates[is].end());
           }
@@ -612,13 +617,35 @@ void MkBuilder::FindTracks()
         {
           if (tmp_candidates[is].size() > 0)
           {
+            // Copy the best -2 cands back to the current list.
+            int num_hits = tmp_candidates[is].size();
+
+            if (num_hits < Config::maxCandsPerSeed)
+            {
+              std::vector<Track> &ov = etabin_of_comb_candidates.m_candidates[otd.th_start_seed+is];
+              int cur_m2 = 0;
+              int max_m2 = ov.size();
+              while (cur_m2 < max_m2 && ov[cur_m2].getLastHitIdx() != -2) ++cur_m2;
+              while (cur_m2 < max_m2 && num_hits < Config::maxCandsPerSeed)
+              {
+                tmp_candidates[is].push_back( ov[cur_m2++] );
+                ++num_hits;
+              }
+            }
+
             etabin_of_comb_candidates.m_candidates[otd.th_start_seed+is].swap(tmp_candidates[is]);
             tmp_candidates[is].clear();
           }
-          else 
-          {
-            //we do nothing in the SM version here, I think we should put these in the output and avoid keeping looping over them
-          }
+          // else
+          // {
+          //   // MT: make sure we have all cands with last hit idx == -2 at this point
+          //
+          //   for (auto &cand : etabin_of_comb_candidates.m_candidates[otd.th_start_seed+is])
+          //   {
+          //     assert(cand.getLastHitIdx() == -2);
+          //   }
+          // }
+
         }
 
       } // end of layer loop
@@ -696,9 +723,13 @@ void MkBuilder::FindTracksCloneEngine()
 
         for (int iseed = otd.th_start_seed; iseed != otd.th_end_seed; ++iseed)
         {
-          for (int ic = 0; ic < etabin_of_comb_candidates.m_candidates[iseed].size(); ++ic)
+          std::vector<Track> &scands = etabin_of_comb_candidates.m_candidates[iseed];
+          for (int ic = 0; ic < scands.size(); ++ic)
           {
-            seed_cand_idx.push_back(std::pair<int,int>(iseed,ic));
+            if (scands[ic].getLastHitIdx() >= -1)
+            {
+              seed_cand_idx.push_back(std::pair<int,int>(iseed,ic));
+            }
           }
         }
         const int theEndCand = seed_cand_idx.size();
@@ -740,7 +771,7 @@ void MkBuilder::FindTracksCloneEngine()
 
 #ifdef DEBUG
           for (int i=itrack; i < end; ++i)
-             printf("  track %d, idx %d is from seed %d\n", i, i - itrack, mkfp->Label(i - itrack,0,0));
+            printf("  track %d, idx %d is from seed %d\n", i, i - itrack, mkfp->Label(i - itrack,0,0));
           printf("\n");
 #endif
 
@@ -777,9 +808,9 @@ void MkBuilder::FindTracksCloneEngine()
 
           mkfp->SelectHitRanges(bunch_of_hits, end - itrack);
 
-//#ifdef PRINTOUTS_FOR_PLOTS
-//std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
-//#endif
+          //#ifdef PRINTOUTS_FOR_PLOTS
+          //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
+          //#endif
 
 #ifdef DEBUG
           std::cout << "make new candidates" << std::endl;

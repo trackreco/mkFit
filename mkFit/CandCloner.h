@@ -97,6 +97,11 @@ public:
     m_idx_max = std::max(m_idx_max, idx);
   }
 
+  int num_cands(int idx)
+  {
+    return m_hits_to_add[idx].size();
+  }
+
   void end_iteration()
   {
     int proc_n = m_idx_max - m_idx_max_prev;
