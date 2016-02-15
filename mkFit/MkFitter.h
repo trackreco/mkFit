@@ -12,7 +12,7 @@
 
 class CandCloner;
 
-class MkFitter
+struct MkFitter
 {
   MPlexLS Err[2];
   MPlexLV Par[2];
@@ -138,10 +138,18 @@ public:
                      std::vector<std::pair<int,IdxChi2List> >& idxs,
                      int beg, int end);
 
+  //method used by the clone engine update the track parameters based on the last hit index
+  //present in the track
+  void UpdateWithLastHit(BunchOfHits &bunch_of_hits,
+                         int N_proc);
+
   //method used by the clone engine to do the actual cloning on the predefined candidate+hit
   void CopyOutClone(std::vector<std::pair<int,IdxChi2List> >& idxs,
 		    std::vector<std::vector<Track> >& cands_for_next_lay,
-		    int offset, int beg, int end, bool outputProp = false);
+		    int offset, int beg, int end, bool outputProp);
+
+  void CopyOutParErr(std::vector<std::vector<Track> >& seed_cand_vec,
+                     int N_proc, bool outputProp);
 };
 
 #endif

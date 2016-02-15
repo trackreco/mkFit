@@ -152,6 +152,11 @@ public:
     return hitIdxArr_[posHitIdx];
   }
 
+  int getLastHitIdx() const
+  {
+    return hitIdxArr_[hitIdxPos_];
+  }
+
   void fillEmptyLayers() {
     for (int h = hitIdxPos_+1; h < Config::nLayers; h++){
       setHitIdx(h,-1);

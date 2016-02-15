@@ -166,7 +166,8 @@ void test_standard()
   initGeom(geom);
   Validation val;
 
-  double s_tmp=0, s_tsm=0, s_tsm2=0, s_tmp2=0, s_tsm2bh=0, s_tmp2bh=0, s_tmp2ce=0;
+  const int NT = 4;
+  double t_sum[NT] = {0};
 
   EventTmp ev_tmp;
 
@@ -193,31 +194,42 @@ void test_standard()
 
     plex_tracks.resize(ev.simTracks_.size());
 
-    double tmp = 0, tmp2bh = 0, tmp2 = 0, tmp2ce = 0;
+    double t_best[NT] = {0}, t_cur[NT];
 
-    if (g_run_fit_std) tmp = runFittingTestPlex(ev, plex_tracks);
+    for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
+    {
+      t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
 
-    if (g_run_build_all || g_run_build_bh)  tmp2bh = runBuildingTestPlexBestHit(ev);
+      t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev) : 0;
 
-    if (g_run_build_all || g_run_build_std) tmp2   = runBuildingTestPlex(ev, ev_tmp);
+      t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlex(ev, ev_tmp) : 0;
 
-    if (g_run_build_all || g_run_build_ce)  tmp2ce = runBuildingTestPlexCloneEngine(ev, ev_tmp);
+      t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, ev_tmp) : 0;
+
+      for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
+
+      if (Config::finderReportBestOutOfN > 1)
+      {
+        printf("----------------------------------------------------------------\n");
+        printf("Best-of-times:");
+        for (int i = 0; i < NT; ++i) printf("  %.5f/%.5f", t_cur[i], t_best[i]);
+        printf("\n");
+      }
+      printf("----------------------------------------------------------------\n");
+    }
 
     printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f\n",
-           tmp, tmp2bh, tmp2, tmp2ce);
-    printf("\n");
+           t_best[0], t_best[1], t_best[2], t_best[3]);
 
-    s_tmp    += tmp;
-    s_tmp2   += tmp2;
-    s_tmp2bh += tmp2bh;
-    s_tmp2ce += tmp2ce;
+    for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
   }
+  printf("\n");
   printf("================================================================\n");
   printf("=== TOTAL for %d events\n", Config::nEvents);
   printf("================================================================\n");
 
   printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f\n",
-         s_tmp, s_tmp2bh, s_tmp2, s_tmp2ce);
+         t_sum[0], t_sum[1], t_sum[2], t_sum[3]);
 
   if (g_operation == "read")
   {

@@ -124,6 +124,7 @@ namespace Config
   const     int maxHitsPerBunch   = std::max(100, nTracks * 2 / nEtaPart) + maxHitsConsidered;
 
   constexpr int maxCandsPerSeed   = 6;
+  constexpr int maxHolesPerCand   = 2;
   const     int maxCandsPerEtaBin = std::max(100, maxCandsPerSeed * nTracks / nEtaPart);
   // Effective eta bin is one half of nEtaPart -- so the above is twice the "average".
   // Note that last and first bin are 3/4 nEtaPart ... but can be made 1/4 by adding
