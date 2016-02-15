@@ -107,7 +107,7 @@ void MultHelixPropTransp(const MPlexLL& A, const MPlexLL& B, MPlexLS& C)
 }
 
 // this version does not assume to know which elements are 0 or 1, so it does the full mupltiplication
-void MultHelixPropFull(const MPlexLL& A, const MPlexLS& B, MPlexLL& C)
+void MultHelixPropFull(const MPlexLL& A, const MPlexLL& B, MPlexLL& C)
 {
 
 #pragma simd
@@ -124,7 +124,7 @@ void MultHelixPropFull(const MPlexLL& A, const MPlexLS& B, MPlexLL& C)
 }
 
 // this version does not assume to know which elements are 0 or 1, so it does the full mupltiplication
-void MultHelixPropTranspFull(const MPlexLL& A, const MPlexLL& B, MPlexLS& C)
+void MultHelixPropTranspFull(const MPlexLL& A, const MPlexLL& B, MPlexLL& C)
 {
 
 #pragma simd
@@ -208,6 +208,11 @@ void computeJacobianSimple(int n, MPlexLL& errorProp, float s, float k, float p,
 //#define DEBUG
 
 void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar, const MPlexQF &msRad, MPlexLL& errorProp) {
+
+  MPlexLL rotateCart(0);
+  MPlexLL jacCartToCurv(0);
+  MPlexLL jacCurvToCart(0);
+  MPlexLL jacCurvProp(0);
 
 #pragma simd
   for (int n = 0; n < NN; ++n)
@@ -396,7 +401,259 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	<< std::endl;
 #endif
 
-      if (Config::useSimpleJac) { 
+      if (Config::useCurvJac) {
+	
+        const float& zin  = inPar.ConstAt(n, 2, 0);
+        float p2 = pt2 + pzin*pzin;
+        float p = sqrt(p2);
+        float p3 = p2*p;
+        float s = TD*p*ptinv;
+        int q = inChg.ConstAt(n, 0, 0);
+	
+        float x  = outPar.ConstAt(n, 0, 0);
+        float y  = outPar.ConstAt(n, 1, 0);
+        float z  = outPar.ConstAt(n, 2, 0);
+        float px = outPar.ConstAt(n, 3, 0);
+        float py = outPar.ConstAt(n, 4, 0);
+        float pz = outPar.ConstAt(n, 5, 0);
+        
+        float xtx = px/p;//in
+        float xty = py/p;//in
+        float xtz = pz/p;//in
+        float ytx = -py/pt;
+        float yty =  px/pt;
+        float ytz = 0.;
+        float ztx = xty*ytz - xtz*yty;
+        float zty = xtz*ytx - xtx*ytz;
+        float ztz = xtx*yty - xty*ytx;
+        rotateCart(n,0,0) = xtx;
+        rotateCart(n,1,0) = xty;
+        rotateCart(n,2,0) = xtz;
+        rotateCart(n,0,1) = ytx;
+        rotateCart(n,1,1) = yty;
+        rotateCart(n,2,1) = ytz;
+        rotateCart(n,0,2) = ztx;
+        rotateCart(n,1,2) = zty;
+        rotateCart(n,2,2) = ztz;
+        rotateCart(n,3,3) = 1.0;
+        rotateCart(n,4,4) = 1.0;
+        rotateCart(n,5,5) = 1.0;
+	
+#ifdef DEBUG
+	std::cout << "rotateCart" << std::endl;
+	printf("%5f %5f %5f %5f %5f %5f\n", rotateCart(n,0,0),rotateCart(n,0,1),rotateCart(n,0,2),rotateCart(n,0,3),rotateCart(n,0,4),rotateCart(n,0,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", rotateCart(n,1,0),rotateCart(n,1,1),rotateCart(n,1,2),rotateCart(n,1,3),rotateCart(n,1,4),rotateCart(n,1,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", rotateCart(n,2,0),rotateCart(n,2,1),rotateCart(n,2,2),rotateCart(n,2,3),rotateCart(n,2,4),rotateCart(n,2,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", rotateCart(n,3,0),rotateCart(n,3,1),rotateCart(n,3,2),rotateCart(n,3,3),rotateCart(n,3,4),rotateCart(n,3,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", rotateCart(n,4,0),rotateCart(n,4,1),rotateCart(n,4,2),rotateCart(n,4,3),rotateCart(n,4,4),rotateCart(n,4,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", rotateCart(n,5,0),rotateCart(n,5,1),rotateCart(n,5,2),rotateCart(n,5,3),rotateCart(n,5,4),rotateCart(n,5,5));
+#endif
+	
+        jacCartToCurv(n,0,3) = -q*px/p3;        
+        jacCartToCurv(n,0,4) = -q*py/p3;        
+        jacCartToCurv(n,0,5) = -q*pz/p3;
+        jacCartToCurv(n,1,3) = -(px*pz)/(pt*p2); 
+        jacCartToCurv(n,1,4) = -(py*pz)/(pt*p2); 
+        jacCartToCurv(n,1,5) = pt/p2;
+        jacCartToCurv(n,2,3) = -py/pt2;         
+        jacCartToCurv(n,2,4) = px/pt2;          
+        jacCartToCurv(n,2,5) = 0.;
+        jacCartToCurv(n,3,1) = 1.;
+        jacCartToCurv(n,4,2) = 1.;
+
+#ifdef DEBUG
+	std::cout << "jacCartToCurv" << std::endl;
+	printf("%5f %5f %5f %5f %5f %5f\n", jacCartToCurv(n,0,0),jacCartToCurv(n,0,1),jacCartToCurv(n,0,2),jacCartToCurv(n,0,3),jacCartToCurv(n,0,4),jacCartToCurv(n,0,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", jacCartToCurv(n,1,0),jacCartToCurv(n,1,1),jacCartToCurv(n,1,2),jacCartToCurv(n,1,3),jacCartToCurv(n,1,4),jacCartToCurv(n,1,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", jacCartToCurv(n,2,0),jacCartToCurv(n,2,1),jacCartToCurv(n,2,2),jacCartToCurv(n,2,3),jacCartToCurv(n,2,4),jacCartToCurv(n,2,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", jacCartToCurv(n,3,0),jacCartToCurv(n,3,1),jacCartToCurv(n,3,2),jacCartToCurv(n,3,3),jacCartToCurv(n,3,4),jacCartToCurv(n,3,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", jacCartToCurv(n,4,0),jacCartToCurv(n,4,1),jacCartToCurv(n,4,2),jacCartToCurv(n,4,3),jacCartToCurv(n,4,4),jacCartToCurv(n,4,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", jacCartToCurv(n,5,0),jacCartToCurv(n,5,1),jacCartToCurv(n,5,2),jacCartToCurv(n,5,3),jacCartToCurv(n,5,4),jacCartToCurv(n,5,5));
+#endif
+	
+        float sinlambda = pz/p;//fixme check sign
+        float coslambda = pt/p;
+        float sinphi = py/pt;
+        float cosphi = px/pt;
+	
+#ifdef DEBUG
+        std::cout << "q=" << q << " p2=" << p2 << " coslambda=" << coslambda << " cosphi=" << cosphi << std::endl;
+#endif
+	
+        jacCurvToCart(n,1,3) = 1.;
+        jacCurvToCart(n,2,4) = 1.;
+        jacCurvToCart(n,3,0) = -q * p2 * coslambda * cosphi;
+        jacCurvToCart(n,3,1) = -p * sinlambda * cosphi;
+        jacCurvToCart(n,3,2) = -p * coslambda * sinphi;
+        jacCurvToCart(n,4,0) = -q * p2 * coslambda * sinphi;
+        jacCurvToCart(n,4,1) = -p * sinlambda * sinphi;
+        jacCurvToCart(n,4,2) = p * coslambda * cosphi;
+        jacCurvToCart(n,5,0) = -q * p2 * sinlambda;
+        jacCurvToCart(n,5,1) = p * coslambda;
+        jacCurvToCart(n,5,2) = 0.;
+
+#ifdef DEBUG
+	std::cout << "jacCurvToCart" << std::endl;
+	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvToCart(n,0,0),jacCurvToCart(n,0,1),jacCurvToCart(n,0,2),jacCurvToCart(n,0,3),jacCurvToCart(n,0,4),jacCurvToCart(n,0,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvToCart(n,1,0),jacCurvToCart(n,1,1),jacCurvToCart(n,1,2),jacCurvToCart(n,1,3),jacCurvToCart(n,1,4),jacCurvToCart(n,1,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvToCart(n,2,0),jacCurvToCart(n,2,1),jacCurvToCart(n,2,2),jacCurvToCart(n,2,3),jacCurvToCart(n,2,4),jacCurvToCart(n,2,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvToCart(n,3,0),jacCurvToCart(n,3,1),jacCurvToCart(n,3,2),jacCurvToCart(n,3,3),jacCurvToCart(n,3,4),jacCurvToCart(n,3,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvToCart(n,4,0),jacCurvToCart(n,4,1),jacCurvToCart(n,4,2),jacCurvToCart(n,4,3),jacCurvToCart(n,4,4),jacCurvToCart(n,4,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvToCart(n,5,0),jacCurvToCart(n,5,1),jacCurvToCart(n,5,2),jacCurvToCart(n,5,3),jacCurvToCart(n,5,4),jacCurvToCart(n,5,5));
+#endif
+
+        // calculate transport matrix
+        float t11 = pxin/p; 
+        float t12 = pyin/p; 
+        float t13 = pzin/p;
+        float t21 = px/p; 
+        float t22 = py/p; 
+        float t23 = pz/p;
+        float cosl0 = pt/p; 
+        float cosl1 = p/pt;//fixme
+        // define average magnetic field and gradient 
+        // at initial point - inlike TRPRFN
+        // GlobalVector hn = h.unit();
+        float qbp = q/p;
+        float qp = -3.8 * 2.99792458e-3f;
+        float qq = qp*qbp;
+        float theta = qq*s; 
+        float sint = sin(theta);
+        float cost = cos(theta);
+        float hn1 = 0; 
+        float hn2 = 0; 
+        float hn3 = 1.;
+        float dx1 = xin-x; 
+        float dx2 = yin-y; 
+        float dx3 = zin-z;
+        float gamma = hn1*t21 + hn2*t22 + hn3*t23;
+        float an1 = hn2*t23 - hn3*t22;
+        float an2 = hn3*t21 - hn1*t23;
+        float an3 = hn1*t22 - hn2*t21;
+        float au = 1./sqrt(t11*t11 + t12*t12);
+        float u11 = -au*t12; 
+        float u12 = au*t11;
+        float v11 = -t13*u12; 
+        float v12 = t13*u11; 
+        float v13 = t11*u12 - t12*u11;
+        au = 1./sqrt(t21*t21 + t22*t22);
+        float u21 = -au*t22; 
+        float u22 = au*t21;
+        float v21 = -t23*u22; 
+        float v22 = t23*u21; 
+        float v23 = t21*u22 - t22*u21;
+        // now prepare the transport matrix
+        float anv = -(hn1*u21 + hn2*u22          );
+        float anu =  (hn1*v21 + hn2*v22 + hn3*v23);
+        float omcost = 1. - cost; float tmsint = theta - sint;
+        float hu1 =         - hn3*u12;
+        float hu2 = hn3*u11;
+        float hu3 = hn1*u12 - hn2*u11;  
+        float hv1 = hn2*v13 - hn3*v12;
+        float hv2 = hn3*v11 - hn1*v13;
+        float hv3 = hn1*v12 - hn2*v11;
+
+        jacCurvProp(n,0,0) = 1.;  for (auto i=1;i<5; ++i) jacCurvProp(n,0,i)=0.;  
+        jacCurvProp(n,1,0) = -qp*anv*(t21*dx1 + t22*dx2 + t23*dx3);
+        jacCurvProp(n,1,1) = cost*(v11*v21 + v12*v22 + v13*v23) +
+          sint*(hv1*v21 + hv2*v22 + hv3*v23) +
+          omcost*(hn1*v11 + hn2*v12 + hn3*v13) *
+          (hn1*v21 + hn2*v22 + hn3*v23) +
+          anv*(-sint*(v11*t21 + v12*t22 + v13*t23) +
+               omcost*(v11*an1 + v12*an2 + v13*an3) -
+               tmsint*gamma*(hn1*v11 + hn2*v12 + hn3*v13) );
+        jacCurvProp(n,1,2) = cost*(u11*v21 + u12*v22          ) +
+          sint*(hu1*v21 + hu2*v22 + hu3*v23) +
+          omcost*(hn1*u11 + hn2*u12          ) *
+          (hn1*v21 + hn2*v22 + hn3*v23) +
+          anv*(-sint*(u11*t21 + u12*t22          ) +
+               omcost*(u11*an1 + u12*an2          ) -
+               tmsint*gamma*(hn1*u11 + hn2*u12          ) );
+        jacCurvProp(n,1,2) *= cosl0;
+        jacCurvProp(n,1,3) = -qq*anv*(u11*t21 + u12*t22          );
+        jacCurvProp(n,1,4) = -qq*anv*(v11*t21 + v12*t22 + v13*t23);
+        jacCurvProp(n,2,0) = -qp*anu*(t21*dx1 + t22*dx2 + t23*dx3)*cosl1;
+        jacCurvProp(n,2,1) = cost*(v11*u21 + v12*u22          ) +
+          sint*(hv1*u21 + hv2*u22          ) +
+          omcost*(hn1*v11 + hn2*v12 + hn3*v13) *
+          (hn1*u21 + hn2*u22          ) +
+          anu*(-sint*(v11*t21 + v12*t22 + v13*t23) +
+               omcost*(v11*an1 + v12*an2 + v13*an3) -
+               tmsint*gamma*(hn1*v11 + hn2*v12 + hn3*v13) );
+        jacCurvProp(n,2,1) *= cosl1;
+        jacCurvProp(n,2,2) = cost*(u11*u21 + u12*u22          ) +
+          sint*(hu1*u21 + hu2*u22          ) +
+          omcost*(hn1*u11 + hn2*u12          ) *
+          (hn1*u21 + hn2*u22          ) +
+          anu*(-sint*(u11*t21 + u12*t22          ) +
+               omcost*(u11*an1 + u12*an2          ) -
+               tmsint*gamma*(hn1*u11 + hn2*u12          ) );
+        jacCurvProp(n,2,2) *= cosl1*cosl0;
+        jacCurvProp(n,2,3) = -qq*anu*(u11*t21 + u12*t22          )*cosl1;
+        jacCurvProp(n,2,4) = -qq*anu*(v11*t21 + v12*t22 + v13*t23)*cosl1;
+        //std::cout << "hn2=" << hn2 << " t13=" << t13 << " hn3=" << hn3 << " t12=" << t12 << std::endl;
+        float hp11 = hn2*t13 - hn3*t12;
+        float hp12 = hn3*t11 - hn1*t13;
+        float hp13 = hn1*t12 - hn2*t11;
+        float temp1 = hp11*u21 + hp12*u22;
+        //std::cout << "hp11=" << hp11 << " u21=" << u21 << " hp12=" << hp12 << " u22=" << u22 << std::endl;
+        float s2 = s*s;
+        //std::cout << "qp=" << qp << " temp1=" << temp1 << " s2=" << s2 << std::endl;
+        float secondOrder41 = 0.5 * qp * temp1 * s2;
+        float ghnmp1 = gamma*hn1 - t11;
+        float ghnmp2 = gamma*hn2 - t12;
+        float ghnmp3 = gamma*hn3 - t13;
+        float temp2 = ghnmp1*u21 + ghnmp2*u22;
+        float s3 = s2 * s;
+        float s4 = s3 * s;
+        float h1 = 3.8 * 2.99792458e-3f;
+        float h2 = h1 * h1;
+        float h3 = h2 * h1;
+        float qbp2 = qbp * qbp;
+        //                           s*qp*s* (qp*s *qbp)
+        float thirdOrder41 = 1./3 * h2 * s3 * qbp * temp2;
+        //                           -qp * s * qbp  * above
+        float fourthOrder41 = 1./8 * h3 * s4 * qbp2 * temp1;
+        jacCurvProp(n,3,0) = secondOrder41 + (thirdOrder41 + fourthOrder41);
+        // std::cout << "jacCurvProp(n,3,0)=" << jacCurvProp(n,3,0) << " secondOrder41=" << secondOrder41 << " thirdOrder41=" <<  thirdOrder41 << " fourthOrder41=" << fourthOrder41 << std::endl;
+        float temp3 = hp11*v21 + hp12*v22 + hp13*v23;
+        float secondOrder51 = 0.5 * qp * temp3 * s2;
+        float temp4 = ghnmp1*v21 + ghnmp2*v22 + ghnmp3*v23;
+        float thirdOrder51 = 1./3 * h2 * s3 * qbp * temp4;
+        float fourthOrder51 = 1./8 * h3 * s4 * qbp2 * temp3;
+        jacCurvProp(n,4,0) = secondOrder51 + (thirdOrder51 + fourthOrder51);
+        jacCurvProp(n,3,1) = (sint*(v11*u21 + v12*u22          ) +
+                              omcost*(hv1*u21 + hv2*u22          ) +
+                              tmsint*(hn1*u21 + hn2*u22          ) *
+                              (hn1*v11 + hn2*v12 + hn3*v13))/qq;
+        jacCurvProp(n,3,2) = (sint*(u11*u21 + u12*u22          ) +
+                              omcost*(hu1*u21 + hu2*u22          ) +
+                              tmsint*(hn1*u21 + hn2*u22          ) *
+                              (hn1*u11 + hn2*u12          ))*cosl0/qq;
+        jacCurvProp(n,3,3) = (u11*u21 + u12*u22          );
+        jacCurvProp(n,3,4) = (v11*u21 + v12*u22          );
+        jacCurvProp(n,4,1) = (sint*(v11*v21 + v12*v22 + v13*v23) +
+                              omcost*(hv1*v21 + hv2*v22 + hv3*v23) +
+                              tmsint*(hn1*v21 + hn2*v22 + hn3*v23) *
+                              (hn1*v11 + hn2*v12 + hn3*v13))/qq;
+        jacCurvProp(n,4,2) = (sint*(u11*v21 + u12*v22          ) +
+                              omcost*(hu1*v21 + hu2*v22 + hu3*v23) +
+                              tmsint*(hn1*v21 + hn2*v22 + hn3*v23) *
+                              (hn1*u11 + hn2*u12          ))*cosl0/qq;
+        jacCurvProp(n,4,3) = (u11*v21 + u12*v22          );
+        jacCurvProp(n,4,4) = (v11*v21 + v12*v22 + v13*v23);
+
+#ifdef DEBUG
+      std::cout << "jacCurvProp" << std::endl;
+      printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,0,0),jacCurvProp(n,0,1),jacCurvProp(n,0,2),jacCurvProp(n,0,3),jacCurvProp(n,0,4),jacCurvProp(n,0,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,1,0),jacCurvProp(n,1,1),jacCurvProp(n,1,2),jacCurvProp(n,1,3),jacCurvProp(n,1,4),jacCurvProp(n,1,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,2,0),jacCurvProp(n,2,1),jacCurvProp(n,2,2),jacCurvProp(n,2,3),jacCurvProp(n,2,4),jacCurvProp(n,2,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,3,0),jacCurvProp(n,3,1),jacCurvProp(n,3,2),jacCurvProp(n,3,3),jacCurvProp(n,3,4),jacCurvProp(n,3,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,4,0),jacCurvProp(n,4,1),jacCurvProp(n,4,2),jacCurvProp(n,4,3),jacCurvProp(n,4,4),jacCurvProp(n,4,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,5,0),jacCurvProp(n,5,1),jacCurvProp(n,5,2),jacCurvProp(n,5,3),jacCurvProp(n,5,4),jacCurvProp(n,5,5));
+#endif
+        
+      } else if (Config::useSimpleJac) { 
 	//assume total path length s as given and with no uncertainty
 	float p = pt2 + pzin*pzin;
 	p = sqrt(p);
@@ -457,15 +714,55 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       }
 
 #ifdef DEBUG
-      std::cout << "jacobian iterative" << std::endl;
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,2,0),errorProp(n,2,1),errorProp(n,2,2),errorProp(n,2,3),errorProp(n,2,4),errorProp(n,2,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,3,0),errorProp(n,3,1),errorProp(n,3,2),errorProp(n,3,3),errorProp(n,3,4),errorProp(n,3,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,4,0),errorProp(n,4,1),errorProp(n,4,2),errorProp(n,4,3),errorProp(n,4,4),errorProp(n,4,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,5,0),errorProp(n,5,1),errorProp(n,5,2),errorProp(n,5,3),errorProp(n,5,4),errorProp(n,5,5));
+      if (Config::useCurvJac==0) {
+	std::cout << "jacobian iterative" << std::endl;
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,2,0),errorProp(n,2,1),errorProp(n,2,2),errorProp(n,2,3),errorProp(n,2,4),errorProp(n,2,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,3,0),errorProp(n,3,1),errorProp(n,3,2),errorProp(n,3,3),errorProp(n,3,4),errorProp(n,3,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,4,0),errorProp(n,4,1),errorProp(n,4,2),errorProp(n,4,3),errorProp(n,4,4),errorProp(n,4,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,5,0),errorProp(n,5,1),errorProp(n,5,2),errorProp(n,5,3),errorProp(n,5,4),errorProp(n,5,5));
+      }
 #endif
     }
+
+  if (Config::useCurvJac) {    
+    MPlexLL temp;
+    MultHelixPropTranspFull(rotateCart, jacCartToCurv, temp);
+#ifdef DEBUG
+      std::cout << "rotated jacCartToCurv" << std::endl;
+      printf("%5f %5f %5f %5f %5f %5f\n", temp(0,0,0),temp(0,0,1),temp(0,0,2),temp(0,0,3),temp(0,0,4),temp(0,0,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", temp(0,1,0),temp(0,1,1),temp(0,1,2),temp(0,1,3),temp(0,1,4),temp(0,1,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", temp(0,2,0),temp(0,2,1),temp(0,2,2),temp(0,2,3),temp(0,2,4),temp(0,2,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", temp(0,3,0),temp(0,3,1),temp(0,3,2),temp(0,3,3),temp(0,3,4),temp(0,3,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", temp(0,4,0),temp(0,4,1),temp(0,4,2),temp(0,4,3),temp(0,4,4),temp(0,4,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", temp(0,5,0),temp(0,5,1),temp(0,5,2),temp(0,5,3),temp(0,5,4),temp(0,5,5));
+#endif
+    MPlexLL temp2;
+    MultHelixPropFull(rotateCart, jacCurvToCart, temp2);
+#ifdef DEBUG
+      std::cout << "rotated jacCurvToCart" << std::endl;
+      printf("%5f %5f %5f %5f %5f %5f\n", temp2(0,0,0),temp2(0,0,1),temp2(0,0,2),temp2(0,0,3),temp2(0,0,4),temp2(0,0,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", temp2(0,1,0),temp2(0,1,1),temp2(0,1,2),temp2(0,1,3),temp2(0,1,4),temp2(0,1,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", temp2(0,2,0),temp2(0,2,1),temp2(0,2,2),temp2(0,2,3),temp2(0,2,4),temp2(0,2,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", temp2(0,3,0),temp2(0,3,1),temp2(0,3,2),temp2(0,3,3),temp2(0,3,4),temp2(0,3,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", temp2(0,4,0),temp2(0,4,1),temp2(0,4,2),temp2(0,4,3),temp2(0,4,4),temp2(0,4,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", temp2(0,5,0),temp2(0,5,1),temp2(0,5,2),temp2(0,5,3),temp2(0,5,4),temp2(0,5,5));
+#endif
+    MPlexLL temp3;
+    MultHelixPropFull(jacCurvProp, temp, temp3);
+    MultHelixPropFull(temp2, temp3, errorProp);
+#ifdef DEBUG
+      std::cout << "jacobian iterative" << std::endl;
+      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(0,0,0),errorProp(0,0,1),errorProp(0,0,2),errorProp(0,0,3),errorProp(0,0,4),errorProp(0,0,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(0,1,0),errorProp(0,1,1),errorProp(0,1,2),errorProp(0,1,3),errorProp(0,1,4),errorProp(0,1,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(0,2,0),errorProp(0,2,1),errorProp(0,2,2),errorProp(0,2,3),errorProp(0,2,4),errorProp(0,2,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(0,3,0),errorProp(0,3,1),errorProp(0,3,2),errorProp(0,3,3),errorProp(0,3,4),errorProp(0,3,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(0,4,0),errorProp(0,4,1),errorProp(0,4,2),errorProp(0,4,3),errorProp(0,4,4),errorProp(0,4,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(0,5,0),errorProp(0,5,1),errorProp(0,5,2),errorProp(0,5,3),errorProp(0,5,4),errorProp(0,5,5));
+#endif
+  }
+
 }
 
 void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar, const MPlexQF &msRad, MPlexLL& errorProp) {
