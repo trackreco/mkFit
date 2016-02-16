@@ -752,6 +752,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
      // helixAtRFromIterative(inPar, inChg, outPar, msRad, errorProp);
      // MPlexLV tmpPar = outPar;
      // std::cout << "FROM INTERSECTION" << std::endl;
+     // TODO: not ported for now. Assuming Config::doIterative
      helixAtRFromIntersection(inPar, inChg, outPar, msRad, errorProp);
      // if (fabs(tmpPar.At(0,0,0)-outPar.At(0,0,0))>0.01 ) std::cout << "PROPAGATION PROBLEM" << std::endl;
    }

@@ -3,6 +3,8 @@
 
 #include "PropagationMPlex.h"
 #include "KalmanUtilsMPlex.h"
+//#include "KalmanUpdaterCU.h"
+#include "FitterCU.h"
 
 #include <sstream>
 
@@ -36,9 +38,13 @@ void MkFitter::InputTracksAndHits(std::vector<Track>&  tracks,
   // This might not be true for the last chunk!
   // assert(end - beg == NN);
 
-  int itrack = 0;
-  for (int i = beg; i < end; ++i, ++itrack)
-  {
+  int itrack;
+  omp_set_num_threads(Config::numThreadsFinder);
+#ifdef USE_CUDA
+#pragma omp parallel for private(itrack)
+#endif
+  for (int i = beg; i < end; ++i) {
+    itrack = i - beg;
     Track &trk = tracks[i];
 
     Label(itrack, 0, 0) = trk.label();
@@ -49,6 +55,10 @@ void MkFitter::InputTracksAndHits(std::vector<Track>&  tracks,
     Chg(itrack, 0, 0) = trk.charge();
     Chi2(itrack, 0, 0) = trk.chi2();
 
+// CopyIn is really fast, but indirections are dead slow.
+// It has been moved in between kernels so it is overlapped
+// with GPU computations.
+#ifndef USE_CUDA
     for (int hi = 0; hi < Nhits; ++hi)
     {
       const int hidx = trk.getHitIdx(hi);
@@ -58,6 +68,7 @@ void MkFitter::InputTracksAndHits(std::vector<Track>&  tracks,
       msPar[hi].CopyIn(itrack, hit.posArray());
       HitsIdx[hi](itrack, 0, 0) = hidx;
     }
+#endif
   }
 }
 
@@ -195,6 +206,40 @@ void MkFitter::FitTracks()
 {
   // Fitting loop.
 
+#if 0  //USE_CUDA
+  FitterCU<float> cuFitter(NN);
+  cuFitter.allocateDevice();
+  cuFitter.sendInChgToDevice(Chg);
+  cuFitter.sendInParToDevice(Par[iC]);
+  cuFitter.sendInErrToDevice(Err[iC]);
+
+  for (int hi = 0; hi < Nhits; ++hi)
+  {
+    cuFitter.setOutParFromInPar();
+    cuFitter.setOutErrFromInErr(); // d_Err_iP
+
+    cuFitter.sendMsParToDevice(msPar[hi]);
+    cuFitter.sendMsErrToDevice(msErr[hi]);
+
+    cuFitter.computeMsRad();
+    if (Config::doIterative) {
+      cuFitter.helixAtRFromIterative();
+    } else {
+      ; // Nothing for now
+    }
+
+    cuFitter.similarity();
+
+    cuFitter.addIntoUpperLeft3x3();
+    cuFitter.InvertCramerSym();
+    cuFitter.multKalmanGainCU();
+    cuFitter.multResidualsAdd();
+    cuFitter.kalmanGain_x_propErr();
+  }
+  cuFitter.getOutParFromDevice(Par[iC]);
+  cuFitter.getOutErrFromDevice(Err[iC]);
+  cuFitter.freeDevice();
+#else
   for (int hi = 0; hi < Nhits; ++hi)
   {
     // Note, charge is not passed (line propagation).
@@ -207,7 +252,7 @@ void MkFitter::FitTracks()
     updateParametersMPlex(Err[iP], Par[iP],  Chg, msErr[hi], msPar[hi],
                           Err[iC], Par[iC]);
   }
-
+#endif
   // XXXXX What's with chi2?
 }
 

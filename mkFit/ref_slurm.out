@@ -1,0 +1,70 @@
+Running with n_threads=1, cloner_single_thread=0, best_out_of=1
+Running test_standard(), operation="simulate_and_process"
+  vusize=8, num_th_sim=12, num_th_finder=1
+  sizeof(Track)=184, sizeof(Hit)=40, sizeof(SVector3)=12, sizeof(SMatrixSym33)=32, sizeof(MCHitInfo)=16
+Constructing SimpleGeometry Cylinder geometry
+ERROR in cling::CIFactory::createCI(): cannot extract standard library include paths!
+Invoking:
+    echo | LC_ALL=C g++  -pipe -m64 -Wall -W -Woverloaded-virtual -fsigned-char -fPIC -pthread -std=c++11 -Wno-deprecated-declarations -Wno-comment -Wno-unused-parameter -Wno-maybe-uninitialized -Wno-unused-but-set-variable -Wno-missing-field-initializers  -fPIC -fvisibility-inlines-hidden -std=c++11 -ffunction-sections -fdata-sections -fno-common -Woverloaded-virtual -Wcast-qual -fno-strict-aliasing -pedantic -Wno-long-long -Wall -W -Wno-unused-parameter -Wwrite-strings -O2 -DNDEBUG -xc++ -E -v - 2>&1 >/dev/null | awk '/^#include </,/^End of search/{if (!/^#include </ && !/^End of search/){ print }}' | grep -E "(c|g)\+\+"
+results in
+with exit code 256
+input_line_1:1:10: fatal error: 'new' file not found
+#include <new>
+         ^
+input_line_3:38:10: fatal error: 'string' file not found
+#include <string>
+         ^
+
+Processing event 1
+Matriplex fit = 10.90850  --- Build  BHMX = 0.00000  MX = 0.00000  CEMX = 0.00000
+
+Mean value for (pt_mc-pt_fit)/pt_err: -0.0957188 standard dev: 1.17029
+
+Processing event 2
+Matriplex fit = 10.73082  --- Build  BHMX = 0.00000  MX = 0.00000  CEMX = 0.00000
+
+Mean value for (pt_mc-pt_fit)/pt_err: -0.0874507 standard dev: 1.17868
+
+Processing event 3
+Matriplex fit = 10.68509  --- Build  BHMX = 0.00000  MX = 0.00000  CEMX = 0.00000
+
+Mean value for (pt_mc-pt_fit)/pt_err: -0.0941957 standard dev: 1.17393
+
+Processing event 4
+Matriplex fit = 10.66165  --- Build  BHMX = 0.00000  MX = 0.00000  CEMX = 0.00000
+
+Mean value for (pt_mc-pt_fit)/pt_err: -0.0883954 standard dev: 1.16259
+
+Processing event 5
+Matriplex fit = 10.64726  --- Build  BHMX = 0.00000  MX = 0.00000  CEMX = 0.00000
+
+Mean value for (pt_mc-pt_fit)/pt_err: -0.0932676 standard dev: 1.15382
+
+Processing event 6
+Matriplex fit = 10.67642  --- Build  BHMX = 0.00000  MX = 0.00000  CEMX = 0.00000
+
+Mean value for (pt_mc-pt_fit)/pt_err: -0.100164 standard dev: 1.17903
+
+Processing event 7
+Matriplex fit = 10.58684  --- Build  BHMX = 0.00000  MX = 0.00000  CEMX = 0.00000
+
+Mean value for (pt_mc-pt_fit)/pt_err: -0.0783475 standard dev: 1.15683
+
+Processing event 8
+Matriplex fit = 10.64275  --- Build  BHMX = 0.00000  MX = 0.00000  CEMX = 0.00000
+
+Mean value for (pt_mc-pt_fit)/pt_err: -0.0896003 standard dev: 1.14851
+
+Processing event 9
+Matriplex fit = 10.59830  --- Build  BHMX = 0.00000  MX = 0.00000  CEMX = 0.00000
+
+Mean value for (pt_mc-pt_fit)/pt_err: -0.0874693 standard dev: 1.17137
+
+Processing event 10
+Matriplex fit = 10.59522  --- Build  BHMX = 0.00000  MX = 0.00000  CEMX = 0.00000
+
+Mean value for (pt_mc-pt_fit)/pt_err: -0.0830755 standard dev: 1.17693
+================================================================
+=== TOTAL for 10 events
+================================================================
+Total Matriplex fit = 106.73285  --- Build  BHMX = 0.00000  MX = 0.00000  CEMX = 0.00000

@@ -50,6 +50,7 @@ echo:
 	@echo "CXXFLAGS = ${CXXFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo "EXES     = ${EXES}"
+	@echo "CU_OBJ   = ${CU_OBJS}"
 
 
 ################################################################
@@ -66,7 +67,18 @@ MKFHDRS := $(wildcard *.h)
 MKFOBJS := $(MKFSRCS:.cc=.o)
 MKFDEPS := $(MKFSRCS:.cc=.d)
 
-ALLOBJS := ${MKFOBJS} ${ABOVE_OBJS}
+ifdef NV
+CU_SRCS := $(wildcard *.cu)
+CU_OBJS := $(CU_SRCS:.cu=.o)
+
+LDFLAGS_CU := -lcudart
+
+# TODO: Clean the "-I.. -std=c++11"
+${CU_OBJS}: %.o: %.cu
+	${NV} -c -o $@ $< -I.. -std=c++11 -DUSE_MATRIPLEX
+endif
+
+ALLOBJS := ${MKFOBJS} ${ABOVE_OBJS} ${CU_OBJS}
 
 ${MKFDEPS}: auto-genmplex
 
@@ -75,10 +87,23 @@ include ${MKFDEPS}
 endif
 
 mkFit: ${ALLOBJS}
-	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} ${ALLOBJS} -o $@ ${LDFLAGS_HOST}
+	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} ${ALLOBJS} -o $@ ${LDFLAGS_HOST} ${LDFLAGS_CU}
+
+fittestMPlex.o : CPPFLAGS += $(shell root-config --cflags)
+
+TFile.h: 
+	echo "Using dummy rule for TFile.h"
+
+TTree.h: 
+	echo "Using dummy rule for TTree.h"
 
 ${MKFOBJS}: %.o: %.cc %.d
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<
+
+#### GPU compilation
+#ifdef NV
+##CU_OBJS := $(CU_SRC:.cu=.o)
+#endif
 
 ### MIC build, icc only
 

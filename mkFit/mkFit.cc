@@ -45,9 +45,9 @@ namespace
   int   g_file_num_ev = 0;
   int   g_file_cur_ev = 0;
 
-  bool  g_run_fit_std   = false;
+  bool  g_run_fit_std   = true;
 
-  bool  g_run_build_all = true;
+  bool  g_run_build_all = false;
   bool  g_run_build_bh  = false;
   bool  g_run_build_std = false;
   bool  g_run_build_ce  = false;
@@ -171,6 +171,57 @@ void test_standard()
 
   EventTmp ev_tmp;
 
+#if USE_CUDA
+  double s_tmp = 0.0;
+
+  std::vector<Event> events;
+  std::vector<Validation> validations(Config::nEvents);
+  for (int evt = 1; evt <= Config::nEvents; ++evt) {
+    printf("Simulating event %d\n", evt);
+    Event ev(geom, val, evt);
+    ev.Simulate();
+    ev.resetLayerHitMap(true);
+    
+    events.push_back(ev);
+  }
+  omp_set_num_threads(Config::numThreadsFinder);
+
+  //{
+    ////Warmup
+  //Event &ev = events[0];
+  //std::vector<Track> plex_tracks_ev;
+  //plex_tracks_ev.resize(ev.simTracks_.size());
+
+  //if (g_run_fit_std) runFittingTestPlexGPU(ev, plex_tracks_ev);
+  //}
+  double total_gpu_time = dtime();
+#pragma omp parallel for reduction(+:s_tmp)
+  for (int evt = 1; evt <= Config::nEvents; ++evt) {
+    printf("==============================================================\n");
+    printf("Processing event %d\n", evt);
+    Event &ev = events[evt-1];
+    std::vector<Track> plex_tracks_ev;
+    plex_tracks_ev.resize(ev.simTracks_.size());
+    double tmp = 0, tmp2bh = 0, tmp2 = 0, tmp2ce = 0;
+
+    if (g_run_fit_std) tmp = runFittingTestPlex(ev, plex_tracks_ev);
+
+    printf("Matriplex fit = %.5f  -------------------------------------", tmp);
+    printf("\n");
+    s_tmp    += tmp;
+#if 1
+    // Validation crashes for multiple threads
+    //if (omp_get_num_threads() <= 1) {
+      if (g_run_fit_std) {
+        std::string tree_name = "validation-plex-" + std::to_string(evt) + ".root";
+        make_validation_tree(tree_name.c_str(), ev.simTracks_, plex_tracks_ev);
+      }
+    //}
+#endif
+  }
+  std::cerr << "###### Total GPU time: " << dtime() - total_gpu_time << " ######\n";
+
+#else
   for (int evt = 1; evt <= Config::nEvents; ++evt)
   {
     printf("\n");
@@ -223,6 +274,7 @@ void test_standard()
 
     for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
   }
+#endif
   printf("\n");
   printf("================================================================\n");
   printf("=== TOTAL for %d events\n", Config::nEvents);
@@ -236,9 +288,9 @@ void test_standard()
     // close_simtrack_file();
   }
 
-#ifndef NO_ROOT
-  make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
-#endif
+//#ifndef NO_ROOT
+  //make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
+//#endif
 }
 
 //==============================================================================
