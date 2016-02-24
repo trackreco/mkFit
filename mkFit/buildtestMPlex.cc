@@ -183,7 +183,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
 
   builder.fit_seeds();
 
-  builder.FindTracksCloneEngine();
+  builder.FindTracksCloneEngineMT();
 
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();

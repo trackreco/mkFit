@@ -14,5 +14,7 @@ namespace Config
   bool  clonerUseSingleThread  = false;
   int   finderReportBestOutOfN = 1;
 
+  int   numSeedsPerTask = 128;
+
   bool  useCMSGeom = false;
 }

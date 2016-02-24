@@ -15,6 +15,8 @@
 
 #include <omp.h>
 
+#include <tbb/task_scheduler_init.h>
+
 #if defined(USE_VTUNE_PAUSE)
 #include "ittnotify.h"
 #endif
@@ -171,6 +173,10 @@ void test_standard()
 
   EventTmp ev_tmp;
 
+  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder != 0 ?
+                                    Config::numThreadsFinder :
+                                    tbb::task_scheduler_init::automatic);
+
   for (int evt = 1; evt <= Config::nEvents; ++evt)
   {
     printf("\n");
@@ -297,6 +303,7 @@ int main(int argc, const char *argv[])
         "  --build-std              run standard building test\n"
         "  --build-ce               run clone-engine building test\n"
         "  --cloner-single-thread   do not spawn extra cloning thread (def: %s)\n"
+        "  --seeds-per-task         number of seeds to process in a tbb task (def: %d)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
 	"  --cms-geom               use cms-like geometry (def: %i)\n"
         ,
@@ -304,6 +311,7 @@ int main(int argc, const char *argv[])
         Config::numThreadsSimulation, Config::numThreadsFinder,
         Config::clonerUseSingleThread ? "true" : "false",
         Config::finderReportBestOutOfN,
+        Config::numSeedsPerTask,
 	Config::useCMSGeom
       );
       exit(0);
@@ -342,6 +350,11 @@ int main(int argc, const char *argv[])
     else if(*i == "--cloner-single-thread")
     {
       Config::clonerUseSingleThread = true;
+    }
+    else if (*i == "--seeds-per-task")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::numSeedsPerTask = atoi(i->c_str());
     }
     else if(*i == "--best-out-of")
     {

@@ -138,6 +138,8 @@ namespace Config
   extern bool   clonerUseSingleThread;
   extern int    finderReportBestOutOfN;
 
+  extern int    numSeedsPerTask;
+
   extern bool   useCMSGeom;
 
   const std::string inputFile = "cmssw.simtracks.SingleMu1GeV.10k.new.txt";
