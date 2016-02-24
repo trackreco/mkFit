@@ -236,17 +236,6 @@ bool has_suffix(const std::string &str, const std::string &suffix)
            str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 
-void usage_and_die(const char* name)
-{
-  fprintf(stderr,
-          "Usage:\n"
-          "  %s                  --> runs simulation between events\n"
-          "  %s write [filename] --> runs simulation only, outputs events to file\n"
-          "  %s read  [filename] --> runs reco only, reads events from file\n"
-          "Default filename is \"simtracks.bin\".\n", name, name, name);
-  exit(1);
-}
-
 void next_arg_or_die(lStr_t& args, lStr_i& i, bool allow_single_minus=false)
 {
   lStr_i j = i;
