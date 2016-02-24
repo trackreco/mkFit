@@ -56,8 +56,6 @@ namespace
   std::string g_file_name = "simtracks.bin";
 }
 
-// take out the part for reading and writing the event
-/*
 void generate_and_save_tracks()
 {
   FILE *fp = fopen(g_file_name.c_str(), "w");
@@ -72,19 +70,18 @@ void generate_and_save_tracks()
 
   fwrite(&Nevents, sizeof(int), 1, fp);
 
+  printf("writing %i events\n",Nevents);
+
   for (int evt = 0; evt < Nevents; ++evt)
   {
     Event ev(geom, val, evt);
 
+    omp_set_num_threads(Config::numThreadsSimulation);
+
     ev.Simulate();
-    ev.resetLayerHitMap();
+    ev.resetLayerHitMap(true);
 
-    fwrite(&Ntracks, sizeof(int), 1, fp);
-
-    for (int i = 0; i < Ntracks; ++i)
-    {
-      // ev.simTracks_[i].write_out(fp);
-    }
+    ev.write_out(fp);
   }
 
   fclose(fp);
@@ -106,25 +103,6 @@ int open_simtrack_file()
   return g_file_num_ev;
 }
 
-int read_simtrack_event(std::vector<Track> &simtracks)
-{
-  int nt;
-
-  fread(&nt, sizeof(int), 1, g_file);
-
-  std::vector<Track> new_tracks(nt);
-  simtracks.swap(new_tracks);
-
-  for (int i = 0; i < nt; ++i)
-  {
-    // simtracks[i].read_in(g_file);
-  }
-
-  ++g_file_cur_ev;
-
-  return nt;
-}
-
 void close_simtrack_file()
 {
   fclose(g_file);
@@ -132,7 +110,6 @@ void close_simtrack_file()
   g_file_num_ev = 0;
   g_file_cur_ev = 0;
 }
-*/
 
 void test_standard()
 {
@@ -156,10 +133,14 @@ void test_standard()
   if (Config::useCMSGeom) printf ("Using CMS-like geometry \n");
   else printf ("Using 4-cm spacing geometry \n");
 
+  if (g_operation == "write") {
+    generate_and_save_tracks();
+    return;
+  }
 
   if (g_operation == "read")
   {
-    // Nevents = open_simtrack_file();
+    Config::nEvents = open_simtrack_file();
   }
 
   Geometry geom;
@@ -180,7 +161,10 @@ void test_standard()
 
     if (g_operation == "read")
     {
-      // Ntracks = read_simtrack_event(ev.simTracks_);
+      ev.read_in(g_file);
+      ev.resetLayerHitMap(false);//hitIdx's in the sim tracks are already ok 
+
+      omp_set_num_threads(Config::numThreadsFinder);
     }
     else
     {
@@ -233,7 +217,7 @@ void test_standard()
 
   if (g_operation == "read")
   {
-    // close_simtrack_file();
+    close_simtrack_file();
   }
 
 #ifndef NO_ROOT
@@ -250,6 +234,17 @@ bool has_suffix(const std::string &str, const std::string &suffix)
 {
     return str.size() >= suffix.size() &&
            str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
+void usage_and_die(const char* name)
+{
+  fprintf(stderr,
+          "Usage:\n"
+          "  %s                  --> runs simulation between events\n"
+          "  %s write [filename] --> runs simulation only, outputs events to file\n"
+          "  %s read  [filename] --> runs reco only, reads events from file\n"
+          "Default filename is \"simtracks.bin\".\n", name, name, name);
+  exit(1);
 }
 
 void next_arg_or_die(lStr_t& args, lStr_i& i, bool allow_single_minus=false)
@@ -299,12 +294,16 @@ int main(int argc, const char *argv[])
         "  --cloner-single-thread   do not spawn extra cloning thread (def: %s)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
 	"  --cms-geom               use cms-like geometry (def: %i)\n"
+	"  --write                  write simulation to file and exit\n"
+	"  --read                   read simulation from file\n"
+	"  --file-name              file name for write/read (def: %s)\n"
         ,
         argv[0],
         Config::numThreadsSimulation, Config::numThreadsFinder,
         Config::clonerUseSingleThread ? "true" : "false",
         Config::finderReportBestOutOfN,
-	Config::useCMSGeom
+	Config::useCMSGeom,
+	g_file_name.c_str()
       );
       exit(0);
     }
@@ -352,6 +351,14 @@ int main(int argc, const char *argv[])
     {
       Config::useCMSGeom = true;
     }
+    else if(*i == "--write")
+    {
+      g_operation = "write";
+    }
+    else if(*i == "--read")
+    {
+      g_operation = "read";
+    }
     else
     {
       fprintf(stderr, "Error: Unknown option/argument '%s'.\n", i->c_str());
@@ -363,37 +370,6 @@ int main(int argc, const char *argv[])
 
   printf ("Running with n_threads=%d, cloner_single_thread=%d, best_out_of=%d\n",
           Config::numThreadsFinder, Config::clonerUseSingleThread, Config::finderReportBestOutOfN);
-
-  /*
-  if (argc >= 2)
-  {
-    g_operation = argv[1];
-
-    if (g_operation != "write" && g_operation != "read")
-    {
-      usage_and_die(argv[0]);
-    }
-
-    if (argc == 3)
-    {
-      g_file_name = argv[2];
-    }
-
-    if (argc > 3)
-    {
-      usage_and_die(argv[0]);
-    }
-  }
-
-  if (g_operation == "write")
-  {
-    //fixme generate_and_save_tracks();
-  }
-  else
-  {
-    test_standard();
-  }
-  */
 
   test_standard();
 

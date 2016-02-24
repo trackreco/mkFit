@@ -21,8 +21,8 @@ namespace Config
   constexpr int nParams = 6;
 
   // config on main + mkFit
-  constexpr int nTracks = 20000;
-  constexpr int nEvents = 10;
+  extern int nTracks; //defined in Config.cc by default or when reading events from file
+  extern int nEvents;
 
   // config on main -- for geometry
   constexpr int   nLayers   = 10;
