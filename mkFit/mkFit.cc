@@ -348,6 +348,11 @@ int main(int argc, const char *argv[])
     {
       g_operation = "read";
     }
+    else if(*i == "--file-name")
+    {
+      next_arg_or_die(mArgs, i);
+      g_file_name = *i;
+    }
     else
     {
       fprintf(stderr, "Error: Unknown option/argument '%s'.\n", i->c_str());
