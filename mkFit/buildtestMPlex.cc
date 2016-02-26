@@ -75,23 +75,23 @@ double runBuildingTestPlexBestHit(Event& ev)
 
   builder.begin_event(&ev, 0, __func__);
 
-  double time = dtime();
+  builder.fit_seeds();
+
+  EventOfCandidates event_of_cands;
 
 #ifdef USE_VTUNE_PAUSE
   __itt_resume();
 #endif
 
-  builder.fit_seeds();
-
-  EventOfCandidates event_of_cands;
+  double time = dtime();
 
   builder.FindTracksBestHit(event_of_cands);
+
+  time = dtime() - time;
 
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
 #endif
-
-   time = dtime() - time;
 
    builder.quality_reset();
 
@@ -130,19 +130,19 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
 
   builder.find_tracks_load_seeds();
 
-  double time = dtime();
-
 #ifdef USE_VTUNE_PAUSE
   __itt_resume();
 #endif
 
+  double time = dtime();
+
   builder.FindTracks();
+
+  time = dtime() - time;
 
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
 #endif
-
-  time = dtime() - time;
 
   builder.quality_reset();
 
@@ -185,19 +185,19 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
 
   builder.find_tracks_load_seeds();
 
-  double time = dtime();
-
 #ifdef USE_VTUNE_PAUSE
   __itt_resume();
 #endif
 
+  double time = dtime();
+
   builder.FindTracksCloneEngine();
+
+  time = dtime() - time;
 
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
 #endif
-
-  time = dtime() - time;
 
   builder.quality_reset();
 
@@ -240,19 +240,19 @@ double runBuildingTestPlexTbb(Event& ev, EventTmp& ev_tmp)
 
   builder.find_tracks_load_seeds();
 
-  double time = dtime();
-
 #ifdef USE_VTUNE_PAUSE
   __itt_resume();
 #endif
 
+  double time = dtime();
+
   builder.FindTracksCloneEngineTbb();
+
+  time = dtime() - time;
 
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
 #endif
-
-  time = dtime() - time;
 
   builder.quality_reset();
 
