@@ -119,17 +119,22 @@ double runBuildingTestPlexBestHit(Event& ev)
 
 double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
 {
+  EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
+  event_of_comb_cands.Reset();
+
   MkBuilder builder;
 
   builder.begin_event(&ev, &ev_tmp, __func__);
+
+  builder.fit_seeds();
+
+  builder.find_tracks_load_seeds();
 
   double time = dtime();
 
 #ifdef USE_VTUNE_PAUSE
   __itt_resume();
 #endif
-
-  builder.fit_seeds();
 
   builder.FindTracks();
 
@@ -140,8 +145,6 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
   time = dtime() - time;
 
   builder.quality_reset();
-
-  EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
 
   for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
   {
@@ -171,9 +174,16 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
 
 double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
 {
+  EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
+  event_of_comb_cands.Reset();
+
   MkBuilder builder;
 
   builder.begin_event(&ev, &ev_tmp, __func__);
+
+  builder.fit_seeds();
+
+  builder.find_tracks_load_seeds();
 
   double time = dtime();
 
@@ -181,9 +191,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
   __itt_resume();
 #endif
 
-  builder.fit_seeds();
-
-  builder.FindTracksCloneEngineMT();
+  builder.FindTracksCloneEngine();
 
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
@@ -193,7 +201,60 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
 
   builder.quality_reset();
 
+  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
+  {
+    EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
+
+    for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed++)
+    {
+      // take the first one!
+      if ( ! etabin_of_comb_candidates.m_candidates[iseed].empty())
+      {
+        builder.quality_process(etabin_of_comb_candidates.m_candidates[iseed].front());
+      }
+    }
+  }
+
+  builder.quality_print();
+
+  builder.end_event();
+
+  return time;
+}
+
+
+//==============================================================================
+// runBuildTestPlexCloneEngine
+//==============================================================================
+
+double runBuildingTestPlexTbb(Event& ev, EventTmp& ev_tmp)
+{
   EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
+  event_of_comb_cands.Reset();
+
+  MkBuilder builder;
+
+  builder.begin_event(&ev, &ev_tmp, __func__);
+
+  builder.fit_seeds();
+
+  builder.find_tracks_load_seeds();
+
+  double time = dtime();
+
+#ifdef USE_VTUNE_PAUSE
+  __itt_resume();
+#endif
+
+  builder.FindTracksCloneEngineTbb();
+
+#ifdef USE_VTUNE_PAUSE
+  __itt_pause();
+#endif
+
+  time = dtime() - time;
+
+  builder.quality_reset();
 
   for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
   {

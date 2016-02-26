@@ -53,6 +53,7 @@ namespace
   bool  g_run_build_bh  = false;
   bool  g_run_build_std = false;
   bool  g_run_build_ce  = false;
+  bool  g_run_build_tbb = false;
 
   std::string g_operation = "simulate_and_process";;
   std::string g_file_name = "simtracks.bin";
@@ -168,14 +169,17 @@ void test_standard()
   initGeom(geom);
   Validation val;
 
-  const int NT = 4;
+  const int NT = 5;
   double t_sum[NT] = {0};
 
   EventTmp ev_tmp;
 
-  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder != 0 ?
-                                    Config::numThreadsFinder :
-                                    tbb::task_scheduler_init::automatic);
+  // MT: task_scheduler_init::automatic doesn't really work (segv!) + we don't
+  // know what to do for non-tbb cases.
+  // tbb::task_scheduler_init tbb_init(Config::numThreadsFinder != 0 ?
+  //                                   Config::numThreadsFinder :
+  //                                   tbb::task_scheduler_init::automatic);
+  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
 
   for (int evt = 1; evt <= Config::nEvents; ++evt)
   {
@@ -212,6 +216,8 @@ void test_standard()
 
       t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, ev_tmp) : 0;
 
+      t_cur[4] = (g_run_build_all || g_run_build_tbb) ? runBuildingTestPlexTbb(ev, ev_tmp) : 0;
+
       for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
 
       if (Config::finderReportBestOutOfN > 1)
@@ -224,8 +230,8 @@ void test_standard()
       printf("----------------------------------------------------------------\n");
     }
 
-    printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f\n",
-           t_best[0], t_best[1], t_best[2], t_best[3]);
+    printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
+           t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
 
     for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
   }
@@ -234,8 +240,8 @@ void test_standard()
   printf("=== TOTAL for %d events\n", Config::nEvents);
   printf("================================================================\n");
 
-  printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f\n",
-         t_sum[0], t_sum[1], t_sum[2], t_sum[3]);
+  printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
+         t_sum[0], t_sum[1], t_sum[2], t_sum[3], t_sum[4]);
 
   if (g_operation == "read")
   {
@@ -302,6 +308,7 @@ int main(int argc, const char *argv[])
         "  --build-bh               run best-hit building test (def: run all building tests)\n"
         "  --build-std              run standard building test\n"
         "  --build-ce               run clone-engine building test\n"
+        "  --build-tbb              run tbb building test\n"
         "  --cloner-single-thread   do not spawn extra cloning thread (def: %s)\n"
         "  --seeds-per-task         number of seeds to process in a tbb task (def: %d)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
@@ -310,8 +317,8 @@ int main(int argc, const char *argv[])
         argv[0],
         Config::numThreadsSimulation, Config::numThreadsFinder,
         Config::clonerUseSingleThread ? "true" : "false",
-        Config::finderReportBestOutOfN,
         Config::numSeedsPerTask,
+        Config::finderReportBestOutOfN,
 	Config::useCMSGeom
       );
       exit(0);
@@ -346,6 +353,10 @@ int main(int argc, const char *argv[])
     else if(*i == "--build-ce")
     {
       g_run_build_all = false; g_run_build_ce = true;
+    }
+    else if(*i == "--build-tbb")
+    {
+      g_run_build_all = false; g_run_build_tbb = true;
     }
     else if(*i == "--cloner-single-thread")
     {

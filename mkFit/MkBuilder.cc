@@ -468,9 +468,6 @@ struct OmpThreadData
 void MkBuilder::FindTracks()
 {
   EventOfCombCandidates &event_of_comb_cands = m_event_tmp->m_event_of_comb_cands;
-  event_of_comb_cands.Reset();
-
-  find_tracks_load_seeds();
 
   omp_lock_t writelock;
 #ifdef DEBUG
@@ -674,9 +671,6 @@ void MkBuilder::FindTracksCloneEngine()
   m_event_tmp->AssureCandClonersExist(Config::numThreadsFinder);
 
   EventOfCombCandidates &event_of_comb_cands = m_event_tmp->m_event_of_comb_cands;
-  event_of_comb_cands.Reset();
-
-  find_tracks_load_seeds();
 
   omp_lock_t writelock;
 #ifdef DEBUG
@@ -859,10 +853,10 @@ namespace
 #include <tbb/task.h>
 
 //------------------------------------------------------------------------------
-// FindTracksCloneEngineMT
+// FindTracksCloneEngineTbb
 //------------------------------------------------------------------------------
 
-void MkBuilder::FindTracksCloneEngineMT()
+void MkBuilder::FindTracksCloneEngineTbb()
 {
   struct SeedSetTask : public tbb::task
   {
@@ -888,7 +882,6 @@ void MkBuilder::FindTracksCloneEngineMT()
     {
       CandCloner &cloner = * g_exe_ctx.m_cloners.GetFromPool();
       MkFitter   *mkfp   =   g_exe_ctx.m_fitters.GetFromPool();
-
 
       //loop over layers, starting from after the seeD
       for (int ilay = Config::nlayers_per_seed; ilay <= Config::nLayers; ++ilay)
@@ -1101,11 +1094,6 @@ void MkBuilder::FindTracksCloneEngineMT()
   };
 
   //------------------------------------------------------------------------------
-
-  EventOfCombCandidates &event_of_comb_cands = m_event_tmp->m_event_of_comb_cands;
-  event_of_comb_cands.Reset();
-
-  find_tracks_load_seeds();
 
   EventTask &et = * new (tbb::task::allocate_root()) EventTask(m_event, m_event_tmp->m_event_of_comb_cands, m_event_of_hits);
 

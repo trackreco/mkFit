@@ -27,6 +27,16 @@ struct Pool
   std::stack<TT*> m_stack;
   std::mutex      m_moo;
 
+  void populate()
+  {
+    std::unique_lock<std::mutex> lk(m_moo);
+
+    for (int i = 0; i < Config::numThreadsFinder; ++i)
+    {
+      m_stack.push(m_create_foo());
+    }
+  }
+
   Pool() {}
   Pool(CFoo_t cf, DFoo_t df) : m_create_foo(cf), m_destroy_foo(df) {}
 
@@ -66,7 +76,11 @@ struct ExecutionContext
   Pool<CandCloner> m_cloners;
   Pool<MkFitter>   m_fitters;
 
-  ExecutionContext() {}
+  ExecutionContext()
+  {
+    m_cloners.populate();
+    m_fitters.populate();
+  }
 };
 
 
@@ -124,7 +138,7 @@ public:
 
   void FindTracksCloneEngine();
 
-  void FindTracksCloneEngineMT();
+  void FindTracksCloneEngineTbb();
 };
 
 #endif
