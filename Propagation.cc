@@ -3,6 +3,13 @@
 
 const double tolerance = 0.001;
 
+/////////////////////////////// SPECIAL NOTE: KPM ////////////////////////////////////
+// In porting simple jacobian, and fixing of propagation of derivatives and errors, //
+// fixed only updateHelix and propagateErrors in HelixState.                        // 
+// Therefore, the test functions with updating of derivs + prop of errors hardcoded //
+// remain unfixed.                                                                  //
+//////////////////////////////////////////////////////////////////////////////////////
+
 // line propagation from state radius to hit radius
 // assuming radial direction (i.e. origin at (0,0))
 TrackState propagateLineToR(const TrackState& inputState, float r) {
@@ -14,9 +21,9 @@ TrackState propagateLineToR(const TrackState& inputState, float r) {
   const SMatrixSym66& err = inputState.errors;
 
   //straight line for now
-  float r0 = sqrt(par.At(0)*par.At(0)+par.At(1)*par.At(1));
+  float r0 = inputState.posR();
   float dr = r-r0;
-  float pt = sqrt(par.At(3)*par.At(3)+par.At(4)*par.At(4));
+  float pt = inputState.pT();
   float path = dr/pt;//this works only if direction is along radius, i.e. origin is at (0,0)
 
   TrackState result;
@@ -48,18 +55,18 @@ struct HelixState {
     px = par.At(3);
     py = par.At(4);
     pz = par.At(5);
-    r0 = sqrt(x*x+y*y);
+    r0 = getHypot(x,y);
   }
 
   void setHelixPar(const TrackState& s) {
     charge = s.charge;
 
-    pt2 = px*px+py*py;
-    pt = sqrt(pt2);
+    pt = getHypot(px,py);
+    pt2 = pt*pt;
     pt3 = pt*pt2;
 
     //p=0.3Br => r=p/(0.3*B)
-    k = charge*100./(-0.299792458*Config::Bfield);
+    k = charge*100./(-Config::sol*Config::Bfield);
     curvature = pt*k; //in cm
     ctgTheta=pz/pt;
 
@@ -119,10 +126,10 @@ void HelixState::updateHelix(float distance, bool updateDeriv, bool debug)
     const float dAPdpx = -angPath*px/pt2;
     const float dAPdpy = -angPath*py/pt2;
 
-    const float dxdx = 1 + k*dAPdx*(px*sinAP + py*cosAP);
-    const float dxdy = k*dAPdy*(px*sinAP + py*cosAP);
-    const float dydx = k*dAPdx*(py*sinAP - px*cosAP);
-    const float dydy = 1 + k*dAPdy*(py*sinAP - px*cosAP);
+    const float dxdx = 1 + k*dAPdx*(px*cosAP - py*sinAP);
+    const float dxdy = k*dAPdy*(px*cosAP - py*sinAP);
+    const float dydx = k*dAPdx*(py*cosAP + px*sinAP);
+    const float dydy = 1 + k*dAPdy*(py*cosAP + px*sinAP);
 
     const float dxdpx = k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx);
     const float dxdpy = k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy);
@@ -171,31 +178,45 @@ void HelixState::propagateErrors(const HelixState& in, float totalDistance, bool
 
   //jacobian
   SMatrix66 errorProp = ROOT::Math::SMatrixIdentity(); //what is not explicitly set below is 1 (0) on (off) diagonal
-  errorProp(0,0) = 1 + k*dTPdx*(in.px*sinTP + in.py*cosTP);                   //dxdx;
-  errorProp(0,1) = k*dTPdy*(in.px*sinTP + in.py*cosTP);                       //dxdy;
-  errorProp(0,3) = k*(sinTP + in.px*cosTP*dTPdpx - in.py*sinTP*dTPdpx);       //dxdpx;
-  errorProp(0,4) = k*(in.px*cosTP*dTPdpy - 1. + cosTP - in.py*sinTP*dTPdpy);  //dxdpy;
 
-  errorProp(1,0) = k*dTPdx*(in.py*sinTP - in.px*cosTP);                       //dydx;
-  errorProp(1,1) = 1 + k*dTPdy*(in.py*sinTP - in.px*cosTP);                   //dydy;
-  errorProp(1,3) = k*(in.py*cosTP*dTPdpx + 1. - cosTP + in.px*sinTP*dTPdpx);  //dydpx;
-  errorProp(1,4) = k*(sinTP + in.py*cosTP*dTPdpy + in.px*sinTP*dTPdpy);       //dydpy;
+  if (Config::useSimpleJac) {
+    errorProp(0,3) = k*(sinTP);      //dxdpx
+    errorProp(0,4) = k*(cosTP - 1.); //dxdpy
+    errorProp(1,3) = k*(1. - cosTP); //dydpx
+    errorProp(1,4) = k*(sinTP);      //dydpy
+    errorProp(2,5) = k*TP;           //dzdpz
+    errorProp(3,3) = cosTP;          //dpxdpx
+    errorProp(3,4) = -sinTP;         //dpxdpy
+    errorProp(4,3) = +sinTP;         //dpydpx
+    errorProp(4,4) = +cosTP;         //dpydpy
+  }
+  else {
+    errorProp(0,0) = 1 + k*dTPdx*(in.px*cosTP - in.py*sinTP);                   //dxdx;
+    errorProp(0,1) = k*dTPdy*(in.px*cosTP - in.py*sinTP);                       //dxdy;
+    errorProp(0,3) = k*(sinTP + in.px*cosTP*dTPdpx - in.py*sinTP*dTPdpx);       //dxdpx;
+    errorProp(0,4) = k*(in.px*cosTP*dTPdpy - 1. + cosTP - in.py*sinTP*dTPdpy);  //dxdpy;
 
-  errorProp(2,0) = dTDdx*ctgTheta;                                            //dzdx;
-  errorProp(2,1) = dTDdy*ctgTheta;                                            //dzdy;
-  errorProp(2,3) = dTDdpx*ctgTheta - TD*in.pz*in.px/pt3;                      //dzdpx;
-  errorProp(2,4) = dTDdpy*ctgTheta - TD*in.pz*in.py/pt3;                      //dzdpy;
-  errorProp(2,5) = TD/pt;                                                     //dzdpz;
+    errorProp(1,0) = k*dTPdx*(in.py*cosTP + in.px*sinTP);                       //dydx;
+    errorProp(1,1) = 1 + k*dTPdy*(in.py*cosTP + in.px*sinTP);                   //dydy;
+    errorProp(1,3) = k*(in.py*cosTP*dTPdpx + 1. - cosTP + in.px*sinTP*dTPdpx);  //dydpx;
+    errorProp(1,4) = k*(sinTP + in.py*cosTP*dTPdpy + in.px*sinTP*dTPdpy);       //dydpy;
 
-  errorProp(3,0) = -dTPdx*(in.px*sinTP + in.py*cosTP);                        //dpxdx;
-  errorProp(3,1) = -dTPdy*(in.px*sinTP + in.py*cosTP);                        //dpxdy;
-  errorProp(3,3) = cosTP - dTPdpx*(in.px*sinTP + in.py*cosTP);                //dpxdpx;
-  errorProp(3,4) = -sinTP - dTPdpy*(in.px*sinTP + in.py*cosTP);               //dpxdpy;
+    errorProp(2,0) = dTDdx*ctgTheta;                                            //dzdx;
+    errorProp(2,1) = dTDdy*ctgTheta;                                            //dzdy;
+    errorProp(2,3) = dTDdpx*ctgTheta - TD*in.pz*in.px/pt3;                      //dzdpx;
+    errorProp(2,4) = dTDdpy*ctgTheta - TD*in.pz*in.py/pt3;                      //dzdpy;
+    errorProp(2,5) = TD/pt;                                                     //dzdpz;
 
-  errorProp(4,0) = -dTPdx*(in.py*sinTP - in.px*cosTP);                        //dpydx;
-  errorProp(4,1) = -dTPdy*(in.py*sinTP - in.px*cosTP);                        //dpydy;
-  errorProp(4,3) = +sinTP - dTPdpx*(in.py*sinTP - in.px*cosTP);               //dpydpx;
-  errorProp(4,4) = +cosTP - dTPdpy*(in.py*sinTP - in.px*cosTP);               //dpydpy;
+    errorProp(3,0) = -dTPdx*(in.px*sinTP + in.py*cosTP);                        //dpxdx;
+    errorProp(3,1) = -dTPdy*(in.px*sinTP + in.py*cosTP);                        //dpxdy;
+    errorProp(3,3) = cosTP - dTPdpx*(in.px*sinTP + in.py*cosTP);                //dpxdpx;
+    errorProp(3,4) = -sinTP - dTPdpy*(in.px*sinTP + in.py*cosTP);               //dpxdpy;
+
+    errorProp(4,0) = -dTPdx*(in.py*sinTP - in.px*cosTP);                        //dpydx;
+    errorProp(4,1) = -dTPdy*(in.py*sinTP - in.px*cosTP);                        //dpydy;
+    errorProp(4,3) = +sinTP - dTPdpx*(in.py*sinTP - in.px*cosTP);               //dpydpx;
+    errorProp(4,4) = +cosTP - dTPdpy*(in.py*sinTP - in.px*cosTP);               //dpydpy;
+  }
 
   state.errors=ROOT::Math::Similarity(errorProp,state.errors);
 
@@ -251,9 +272,8 @@ TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom
     }
   }
 
-  //5 iterations is a good starting point
-  const unsigned int Niter = 10;
-  for (unsigned int i=0;i<Niter;++i) {
+
+  for (unsigned int i=0;i<Config::Niter;++i) {
     dprint("propagation iteration #" << i);
     const float distance = std::max(geom.SafetyFromOutside(UVector3(hsout.x,hsout.y,hsout.z),true), tolerance);
     totalDistance += distance;
@@ -261,7 +281,7 @@ TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom
     dprint("r0=" << hsout.r0 << " pt=" << hsout.pt << std::endl
                  << "distance=" << distance);
 
-    const bool updateDeriv = i+1!=Niter && hsout.r0>0.;
+    const bool updateDeriv = i+1!=Config::Niter && hsout.r0>0. && !Config::useSimpleJac;
     hsout.updateHelix(distance, updateDeriv, debug);
     hsout.setCoords(hsout.state.parameters);
 
@@ -272,7 +292,7 @@ TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom
       break;
     }
 
-    if ( i == (Niter-1) ) {
+    if ( i == (Config::Niter-1) ) {
       std::cerr << __FILE__ << ":" << __LINE__ 
                 << ": failed to converge in propagateHelixToNextSolid() after " << (i+1) << " iterations, "
                 << distance 
@@ -311,9 +331,8 @@ TrackState propagateHelixToLayer(TrackState inputState, int layer, const Geometr
 
   float totalDistance = 0;
 
-  //5 iterations is a good starting point
-  const unsigned int Niter = 5;
-  for (unsigned int i=0;i<Niter;++i) {
+
+  for (unsigned int i=0;i<Config::Niter;++i) {
     dprint("propagation iteration #" << i);
 
     const float distance = std::max(target->SafetyFromOutside(UVector3(hsout.x,hsout.y,hsout.z),true), tolerance);
@@ -322,7 +341,7 @@ TrackState propagateHelixToLayer(TrackState inputState, int layer, const Geometr
     dprint("r0=" << hsout.r0 << " pt=" << hsout.pt << std::endl
                  << "distance=" << distance);
 
-    const bool updateDeriv = i+1!=Niter && hsout.r0>0.;
+    const bool updateDeriv = i+1!=Config::Niter && hsout.r0>0. && !Config::useSimpleJac;
     hsout.updateHelix(distance, updateDeriv, debug);
     hsout.setCoords(hsout.state.parameters);
 
@@ -331,7 +350,7 @@ TrackState propagateHelixToLayer(TrackState inputState, int layer, const Geometr
       dprint("Inside target");
       break;
     }
-    if ( i == (Niter-1) ) {
+    if ( i == (Config::Niter-1) ) {
       std::cerr << __FILE__ << ":" << __LINE__ 
                 << ": failed to converge in propagateHelixToLayer() after " << (i+1) << " iterations, "
                 << distance 
@@ -377,9 +396,7 @@ TrackState propagateHelixToR(TrackState inputState, float r) {
 
   float totalDistance = 0;
 
-  //5 iterations is a good starting point
-  const unsigned int Niter = 10;
-  for (unsigned int i=0;i<Niter;++i) {
+  for (unsigned int i=0;i<Config::Niter;++i) {
 
     dprint("propagation iteration #" << i);
 
@@ -389,7 +406,7 @@ TrackState propagateHelixToR(TrackState inputState, float r) {
     dprint("r0=" << hsout.r0 << " pt=" << hsout.pt << std::endl
                  << "distance=" << distance);
  
-    bool updateDeriv = i+1!=Niter && hsout.r0>0.;
+    bool updateDeriv = i+1!=Config::Niter && hsout.r0>0. && !Config::useSimpleJac;
     hsout.updateHelix(distance, updateDeriv, debug);
     hsout.setCoords(hsout.state.parameters);
 
@@ -397,7 +414,7 @@ TrackState propagateHelixToR(TrackState inputState, float r) {
       dprint("distance = " << r-hsout.r0 << " at iteration=" <<  i);
       break;
     }
-    if ( i == (Niter-1) && std::abs(r-hsout.r0) > tolerance) {
+    if ( i == (Config::Niter-1) && std::abs(r-hsout.r0) > tolerance) {
 #ifdef DEBUG
       if (debug) { // common condition when fit fails to converge
         std::cerr << __FILE__ << ":" << __LINE__ 
@@ -436,7 +453,7 @@ TrackState propagateHelixToR_test(TrackState& inputState, float r) {
   float pt = sqrt(pt2);
   float pt3 = pt*pt2;
   //p=0.3Br => r=p/(0.3*B)
-  float k=charge*100./(-0.299792458*Config::Bfield);
+  float k=charge*100./(-Config::sol*Config::Bfield);
   float curvature = pt*k;//in cm
   if (dump) std::cout << "curvature=" << curvature << std::endl;
   float ctgTheta=pzin/pt;
@@ -622,7 +639,7 @@ void propagateHelixToR_fewerTemps(TrackState& inputState, float r, TrackState& r
    float ptinv = 1./pt;
    float pt2inv = ptinv*ptinv;
    //p=0.3Br => r=p/(0.3*B)
-   float k=inputState.charge*100./(-0.299792458*Config::Bfield);
+   float k=inputState.charge*100./(-Config::sol*Config::Bfield);
    float invcurvature = 1./(pt*k);//in 1./cm
    if (dump) std::cout << "curvature=" << 1./invcurvature << std::endl;
    float ctgTheta=pzin*ptinv;
@@ -642,9 +659,8 @@ void propagateHelixToR_fewerTemps(TrackState& inputState, float r, TrackState& r
    float dAPdpy = 0.;
    // float dxdvar = 0.;
    // float dydvar = 0.;
-   //5 iterations is a good starting point
-   const int Niter = 5;
-   for (int i = 0; i < Niter; ++i)
+ 
+   for (int i = 0; i < Config::Niter; ++i)
    {
 #ifdef DEBUG
       if (dump) std::cout << "propagation iteration #" << i << std::endl;
@@ -686,7 +702,7 @@ void propagateHelixToR_fewerTemps(TrackState& inputState, float r, TrackState& r
       par.At(4) = py*cosAP+px*sinAP;
       // par.At(5) = pz; //take this out as it is redundant
 
-      if (i+1!=Niter && r0>0.)
+      if (i+1!=Config::Niter && r0>0.)
       {
          //update derivatives on total distance for next step, where totalDistance+=r-r0
          //now r0 depends on px and py
