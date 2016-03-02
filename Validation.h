@@ -21,6 +21,9 @@ public:
   virtual void collectFitTkCFMapInfo(int, const TrackState&) {}
   virtual void collectFitTkTSLayerPairVecMapInfo(int, const TSLayerPairVec&) {}
 
+  virtual void fillSeedInfoTree(const TripletIdxVec&, const Event&) {}
+  virtual void fillSeedTree(const TripletIdxVec&, const TripletIdxVec&, const Event&) {}
+
   virtual void fillSegmentTree(const BinInfoMap&, int) {}
   virtual void fillBranchTree(int) {}
   virtual void fillEfficiencyTree(const Event&) {}

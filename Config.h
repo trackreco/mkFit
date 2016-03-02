@@ -2,6 +2,7 @@
 #define _config_
 
 #include <algorithm>
+#include <string> // won't compile on clang gcc for mac OS w/o this!
 
 //#define PRINTOUTS_FOR_PLOTS
 
@@ -16,6 +17,7 @@ namespace Config
   constexpr float RadToDeg = 180.0 / Config::PI;
   constexpr float DegToRad = Config::PI / 180.0;
   constexpr double Sqrt2   = 1.4142135623730950488016887242097;
+  constexpr float sol      = 0.299792458; // speed of light in nm/s
 
   // general parameters of matrices
   constexpr int nParams = 6;
@@ -54,7 +56,7 @@ namespace Config
 
   constexpr float maxEta   = 1.0;
 
-  constexpr float hitposerrXY = 0.01; // resolution is 100um in xy
+  constexpr float hitposerrXY = 0.01; // resolution is 100um in xy --> more realistic scenario is 0.003
   constexpr float hitposerrZ  = 0.1; // resolution is 1mm in z
   constexpr float hitposerrR  = Config::hitposerrXY / 10.;
   constexpr float varXY       = Config::hitposerrXY * Config::hitposerrXY;
@@ -71,16 +73,23 @@ namespace Config
   // Config for seeding
   constexpr int   nlayers_per_seed = 3;
   constexpr float chi2seedcut  = 9.0;
-  constexpr float alphaBeta    = 0.0520195; // 0.0458378 --> for d0 = .0025 cm --> analytically derived... depends on geometry of detector --> from mathematica
+  constexpr float lay12angdiff = 0.0634888; // analytically derived... depends on geometry of detector --> from mathematica ... d0 set to one sigma of getHypot(bsX,bsY)
+  constexpr float lay13angdiff = 0.11537;
   constexpr float dEtaSeedTrip = 0.6; // for almost max efficiency --> empirically derived... depends on geometry of detector
   constexpr float dPhiSeedTrip = 0.0458712; // numerically+semianalytically derived... depends on geometry of detector
-
+  constexpr float seed_z0cut   = beamspotZ * 3.0; // 3cm
+  constexpr float lay2Zcut     = hitposerrZ * 3.6; // 3.6 mm --> to match efficiency from chi2cut
+  constexpr float seed_d0cut   = 0.5; // 5mm
+  
   // Config for propagation
   constexpr int Niter = 5;
   constexpr float Bfield = 3.8112;
   constexpr bool doIterative = true;
   constexpr bool useSimpleJac = true;
   constexpr bool useTrigApprox = true;
+
+  // Config for seeding as well... needed bfield
+  constexpr float maxCurvR = (100 * minSimPt) / (sol * Bfield); // in cm
 
   // Config for Hit and BinInfoUtils
   constexpr int   nPhiPart   = 1260;

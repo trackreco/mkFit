@@ -33,6 +33,14 @@ public:
   float exx()    const {return sqrtf(errors.At(0,0));}
   float eyy()    const {return sqrtf(errors.At(1,1));}
   float ezz()    const {return sqrtf(errors.At(2,2));}
+  float exy()    const {return sqrtf(errors.At(0,1));}
+  float exz()    const {return sqrtf(errors.At(0,2));}
+  float eyz()    const {return sqrtf(errors.At(1,2));}
+
+  float eposR()   const {return sqrtf(getRadErr2(x(),y(),errors.At(0,0),errors.At(1,1),errors.At(0,1)));}
+  float eposPhi() const {return sqrtf(getPhiErr2(x(),y(),errors.At(0,0),errors.At(1,1),errors.At(0,1)));}
+  float eposEta() const {return sqrtf(getEtaErr2(x(),y(),z(),errors.At(0,0),errors.At(1,1),errors.At(2,2),
+						 errors.At(0,1),errors.At(0,2),errors.At(1,2)));}
 
   // track state momentum
   float px()     const {return parameters.At(3);}
@@ -50,14 +58,16 @@ public:
   float epxpz()   const {return sqrtf(errors.At(3,5));}
   float epypz()   const {return sqrtf(errors.At(4,5));}
 
-  float epT()     const {return sqrtf(getRadErr2(px(),py(),epxpx(),epypy(),epxpy()));}
-  float emomPhi() const {return sqrtf(getPhiErr2(px(),py(),epxpx(),epypy(),epxpy()));}
-  float emomEta() const {return sqrtf(getEtaErr2(px(),py(),pz(),epxpx(),epypy(),epzpz(),epxpy(),epxpz(),epypz()));}
+  float epT()     const {return sqrtf(getRadErr2(px(),py(),errors.At(3,3),errors.At(4,4),errors.At(3,4)));}
+  float emomPhi() const {return sqrtf(getPhiErr2(px(),py(),errors.At(3,3),errors.At(4,4),errors.At(3,4)));}
+  float emomEta() const {return sqrtf(getEtaErr2(px(),py(),pz(),errors.At(3,3),errors.At(4,4),errors.At(5,5),
+						 errors.At(3,4),errors.At(3,5),errors.At(4,5)));}
 
   float theta()   const {return getTheta(pT(),pz());}
   float invpT()   const {return sqrtf(getInvRad2(px(),py()));}
-  float etheta()  const {return sqrtf(getThetaErr2(px(),py(),pz(),epxpx(),epypy(),epzpz(),epxpy(),epxpz(),epypz()));}
-  float einvpT()  const {return sqrtf(getInvRadErr2(px(),py(),epxpx(),epypy(),epxpy()));}
+  float etheta()  const {return sqrtf(getThetaErr2(px(),py(),pz(),errors.At(3,3),errors.At(4,4),errors.At(5,5),
+						   errors.At(3,4),errors.At(3,5),errors.At(4,5)));}
+  float einvpT()  const {return sqrtf(getInvRadErr2(px(),py(),errors.At(3,3),errors.At(4,4),errors.At(3,4)));}
 };
 
 class Track
@@ -129,7 +139,6 @@ public:
 						       state_.errors[3][5],state_.errors[4][5])));}
   
   //this function is very inefficient, use only for debug and validation!
-  //currently used in fittest...
   const HitVec hitsVector(const std::vector<HitVec>& globalHitVec) const 
   {
     HitVec hitsVec;

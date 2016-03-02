@@ -51,6 +51,8 @@ class TTreeValidation : public Validation {
 public:
   TTreeValidation(std::string fileName);
 
+  void initializeSeedInfoTree();
+  void initializeSeedTree();
   void initializeSegmentTree();
   void initializeBranchTree();
   void initializeEfficiencyTree();
@@ -78,6 +80,9 @@ public:
   void makeSeedTkToRecoTkMaps(Event& ev) override;
   void mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackExtraVec& evt_extras, TkIDToTkIDMap& seedTkMap);
 
+  void fillSeedInfoTree(const TripletIdxVec& hit_triplets, const Event& ev) override;
+  void fillSeedTree(const TripletIdxVec& hit_triplets, const TripletIdxVec& filtered_triplets, const Event& ev) override;
+  
   void fillSegmentTree(const BinInfoMap& segmentMap, int evtID) override;
   void fillBranchTree(int evtID) override;
   void fillEfficiencyTree(const Event& ev) override;
@@ -107,6 +112,24 @@ public:
   // Reco to Reco Maps
   TkIDToTkIDMap seedToBuildMap_;
   TkIDToTkIDMap seedToFitMap_;
+
+  // seedinfo tree
+  TTree* seedinfotree_;
+  int evtID_seedinfo_;
+  int mcID_seedinfo_;
+  float pt_gen_seedinfo_;
+  float eta_gen_seedinfo_;
+  float phi_gen_seedinfo_;
+  float a,b,r,d0;
+  bool pass;
+
+  // seed tree
+  TTree* seedtree_;
+  int evtID_seed_;
+  int nTkAll_;
+  int nTkAllMC_;
+  int nTkCut_;
+  int nTkCutMC_;
 
   // segment map tree
   TTree* segtree_;
