@@ -121,7 +121,7 @@ namespace Config
 #endif
 
   constexpr int maxHitsConsidered = 25;
-  const     int maxHitsPerBunch   = std::max(100, nTracks * 2 / nEtaPart) + maxHitsConsidered;
+  const     int maxHitsPerBunch   = std::max(100, nTracks * 12 / 10 / nEtaPart) + maxHitsConsidered;
 
   constexpr int maxCandsPerSeed   = 6;
   constexpr int maxHolesPerCand   = 2;
