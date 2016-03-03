@@ -193,10 +193,6 @@ public:
 
   Track clone() const { return Track(state_,chi2_,label_,nTotalHits(),hitIdxArr_); }
 
-  /* Track clone_for_io() { return Track(state_,chi2_,label_); } */
-  /* void write_out(FILE *fp); */
-  /* void read_in  (FILE *fp); */
-
 private:
   TrackState state_;
   float chi2_ = 0.;
