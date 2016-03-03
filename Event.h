@@ -29,6 +29,9 @@ public:
   int evtID() const {return evtID_;}
   void resetLayerHitMap(bool resetSimHits);
 
+  void write_out(FILE *fp);
+  void read_in(FILE *fp);
+
   const Geometry& geom_;
   Validation& validation_;
  private:

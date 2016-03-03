@@ -253,16 +253,13 @@ public:
 
 public:
   EtaBinOfCombCandidates() :
-    m_candidates (Config::maxCandsPerEtaBin),
-    m_real_size  (Config::maxCandsPerEtaBin),
+    m_candidates (Config::maxCandsPerEtaBin / Config::maxCandsPerSeed),
+    m_real_size  (Config::maxCandsPerEtaBin / Config::maxCandsPerSeed),
     m_fill_index (0)
   {
     for (int s=0;s<m_real_size;++s)
     {
-      // m_candidates[s].reserve(Config::maxCandsPerSeed);//we should never exceed this
-      // XXXX MY but we do ... actual size grows to two times that, it might be it
-      // is actually just one past (automatic resizing is x2).
-      m_candidates[s].reserve(2 * Config::maxCandsPerSeed);
+      m_candidates[s].reserve(Config::maxCandsPerSeed);//we should never exceed this
     }
   }
 

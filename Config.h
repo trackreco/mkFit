@@ -23,8 +23,8 @@ namespace Config
   constexpr int nParams = 6;
 
   // config on main + mkFit
-  constexpr int nTracks = 20000;
-  constexpr int nEvents = 10;
+  extern int nTracks; //defined in Config.cc by default or when reading events from file
+  extern int nEvents;
 
   // config on main -- for geometry
   constexpr int   nLayers   = 10;
@@ -130,7 +130,7 @@ namespace Config
 #endif
 
   constexpr int maxHitsConsidered = 25;
-  const     int maxHitsPerBunch   = std::max(100, nTracks * 2 / nEtaPart) + maxHitsConsidered;
+  const     int maxHitsPerBunch   = std::max(100, nTracks * 12 / 10 / nEtaPart) + maxHitsConsidered;
 
   constexpr int maxCandsPerSeed   = 6;
   constexpr int maxHolesPerCand   = 2;

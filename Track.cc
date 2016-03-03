@@ -31,31 +31,3 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
   dprint("Track " << trk.label() << " best mc track " << mtrk << " count " << mcount << "/" << trk.nFoundHits());
   // need to include protection against zero size tracks --> need ID other than 999999
 }
-
-/*
-void Track::write_out(FILE *fp)
-{
-#if 0
-  Track t = clone_for_io();
-  fwrite(&t, sizeof(Track), 1, fp);
-
-  int nh = nHits();
-  fwrite(&nh, sizeof(int), 1, fp);
-
-  fwrite(&hits_[0], sizeof(Hit), nh, fp);
-#endif
-}
-
-void Track::read_in(FILE *fp)
-{
-#if 0
-  fread(this, sizeof(Track), 1, fp);
-
-  int nh = nHits();
-  fread(&nh, sizeof(int), 1, fp);
-
-  hits_.resize(nh);
-  fread(&hits_[0], sizeof(Hit), nh, fp);
-#endif
-}
-*/
