@@ -6,6 +6,7 @@
 #include "Config.h"
 #include "Matrix.h"
 #include <atomic>
+#include <array>
 
 // moved from config to here
 inline int getEtaBin(float eta)
@@ -228,4 +229,8 @@ private:
 };
 
 typedef std::vector<Hit> HitVec;
+typedef std::array<int,2>    PairIdx;
+typedef std::vector<PairIdx> PairIdxVec;
+typedef std::array<int,3>       TripletIdx;
+typedef std::vector<TripletIdx> TripletIdxVec;
 #endif

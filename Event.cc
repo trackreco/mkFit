@@ -217,14 +217,12 @@ void Event::Segment()
 {
 #ifdef ENDTOEND
   buildSeedsByRoadTriplets(seedTracks_,seedTracksExtra_,layerHits_,segmentMap_,*this);
-  //buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
+  //buildSeedsByRZFirstRPhiSecond(seedTracks_,seedTracksExtra_,layerHits_,segmentMap_,*this);
 #else
   buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
 #endif
-  // if we sort here, also have to sort seedTracksExtra and redo labels.
-  
   std::sort(seedTracks_.begin(), seedTracks_.end(), tracksByPhi);
-  validation_.alignTrackExtra(seedTracks_,seedTracksExtra_);
+  validation_.alignTrackExtra(seedTracks_,seedTracksExtra_);   // if we sort here, also have to sort seedTracksExtra and redo labels.
 }
 
 void Event::Find()

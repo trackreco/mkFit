@@ -142,60 +142,39 @@ void MultHelixPropTranspFull(const MPlexLL& A, const MPlexLL& B, MPlexLS& C)
 
 }
 
+void computeJacobianSimple(int n, MPlexLL& errorProp, float k, float TP, float cosTP, float sinTP) {
 
-
-void computeJacobianSimple(int n, MPlexLL& errorProp, float s, float k, float p, float pxin, float pyin, float pzin, float TP, float cosTP, float sinTP) {
-
-  // std::cout << "total path s=" << s << std::endl;
-  // TD = s*pt/p;
   // TP = TD/(pt*k) = s/(p*k);
-  float dTPdpx = -s*pxin/(k*p*p*p);
-  float dTPdpy = -s*pyin/(k*p*p*p);
-  float dTPdpz = -s*pzin/(k*p*p*p);
-  //ok let's assume that the quantity with no error is the angular path (phase change)
-  dTPdpx = 0;
-  dTPdpy = 0;
-  dTPdpz = 0;
-  
-  //derive these to compute jacobian
-  //x = xin + k*(pxin*sinTP-pyin*(1-cosTP));
-  //y = yin + k*(pyin*sinTP+pxin*(1-cosTP));
-  //z = zin + k*TP*pzin;
-  //px = pxin*cosTP-pyin*sinTP;
-  //py = pyin*cosTP+pxin*sinTP;
-  //pz = pzin;
-  //jacobian
-  
   errorProp(n,0,0) = 1.;	                                             //dxdx
   errorProp(n,0,1) = 0.;	                                             //dxdy
   errorProp(n,0,2) = 0.;                                                     //dxdz
-  errorProp(n,0,3) = k*(sinTP + pxin*cosTP*dTPdpx - pyin*sinTP*dTPdpx);      //dxdpx
-  errorProp(n,0,4) = k*(pxin*cosTP*dTPdpy - 1. + cosTP - pyin*sinTP*dTPdpy); //dxdpy
-  errorProp(n,0,5) = k*dTPdpz*(pxin*cosTP - pyin*sinTP);                     //dxdpz
+  errorProp(n,0,3) = k*sinTP;                                                //dxdpx
+  errorProp(n,0,4) = k*(cosTP - 1.);                                         //dxdpy
+  errorProp(n,0,5) = 0.;                                                     //dxdpz
   errorProp(n,1,0) = 0.;	                                             //dydx
   errorProp(n,1,1) = 1.;	                                             //dydy
   errorProp(n,1,2) = 0.;                                                     //dydz
-  errorProp(n,1,3) = k*(pyin*cosTP*dTPdpx + 1. - cosTP + pxin*sinTP*dTPdpx); //dydpx
-  errorProp(n,1,4) = k*(sinTP + pyin*cosTP*dTPdpy + pxin*sinTP*dTPdpy);      //dydpy
-  errorProp(n,1,5) = k*dTPdpz*(pyin*cosTP + pxin*sinTP);                     //dydpz
+  errorProp(n,1,3) = k*(1. - cosTP);                                         //dydpx
+  errorProp(n,1,4) = k*sinTP;                                                //dydpy
+  errorProp(n,1,5) = 0.;                                                     //dydpz
   errorProp(n,2,0) = 0.;	                                             //dzdx
   errorProp(n,2,1) = 0.;	                                             //dzdy
   errorProp(n,2,2) = 1.;                                                     //dzdz
-  errorProp(n,2,3) = k*pzin*dTPdpx;                                          //dzdpx
-  errorProp(n,2,4) = k*pzin*dTPdpy;                                          //dzdpy
-  errorProp(n,2,5) = k*(TP + dTPdpz*pzin);                                   //dzdpz
+  errorProp(n,2,3) = 0;                                                      //dzdpx
+  errorProp(n,2,4) = 0;                                                      //dzdpy
+  errorProp(n,2,5) = k*TP;                                                   //dzdpz
   errorProp(n,3,0) = 0.;	                                             //dpxdx
   errorProp(n,3,1) = 0.;	                                             //dpxdy
   errorProp(n,3,2) = 0.;                                                     //dpxdz
-  errorProp(n,3,3) = cosTP - dTPdpx*(pxin*sinTP + pyin*cosTP);               //dpxdpx
-  errorProp(n,3,4) = -sinTP - dTPdpy*(pxin*sinTP + pyin*cosTP);              //dpxdpy
-  errorProp(n,3,5) = -dTPdpz*(pxin*sinTP + pyin*cosTP);                      //dpxdpz
+  errorProp(n,3,3) = cosTP;                                                  //dpxdpx
+  errorProp(n,3,4) = -sinTP;                                                 //dpxdpy
+  errorProp(n,3,5) = 0.;                                                     //dpxdpz
   errorProp(n,4,0) = 0.;                                                     //dpydx
   errorProp(n,4,1) = 0.;	                                             //dpydy
   errorProp(n,4,2) = 0.;                                                     //dpydz
-  errorProp(n,4,3) = +sinTP - dTPdpx*(pyin*sinTP - pxin*cosTP);              //dpydpx
-  errorProp(n,4,4) = +cosTP - dTPdpy*(pyin*sinTP - pxin*cosTP);              //dpydpy
-  errorProp(n,4,5) = -dTPdpz*(pyin*sinTP - pxin*cosTP);                      //dpydpz
+  errorProp(n,4,3) = +sinTP;                                                 //dpydpx
+  errorProp(n,4,4) = +cosTP;                                                 //dpydpy
+  errorProp(n,4,5) = 0.;                                                     //dpydpz
   errorProp(n,5,0) = 0.;                                                     //dpzdx
   errorProp(n,5,1) = 0.;						     //dpzdy
   errorProp(n,5,2) = 0.;						     //dpzdz 
@@ -233,7 +212,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 #ifdef DEBUG
 	std::cout << "distance less than 1mum, skip" << std::endl;
 #endif
-	computeJacobianSimple(n, errorProp, 0, 1, 1, 1, 1, 1, 0, 1, 0);//get an identity matrix
+	computeJacobianSimple(n, errorProp, 1, 0, 1, 0);//get an identity matrix
 	continue;
       }
       
@@ -242,7 +221,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       float ptinv  = 1./pt;
       float pt2inv = ptinv*ptinv;
       //p=0.3Br => r=p/(0.3*B)
-      float k = inChg.ConstAt(n, 0, 0) * 100. / (-0.299792458*Config::Bfield);
+      float k = inChg.ConstAt(n, 0, 0) * 100. / (-Config::sol*Config::Bfield);
       float invcurvature = 1./(pt*k);//in 1./cm
       float ctgTheta=pzin*ptinv;
       
@@ -350,7 +329,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
             dTDdpx -= r0*(x*(k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx)) + y*(k*(py*cosAP*dAPdpx + 1. - cosAP + px*sinAP*dAPdpx)));
             //dxdpy = k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy);
             //dydpy = k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy);
-            //dTDdpy -= r0*(x*dxdpy + y*(k*dydpy);
+            //dTDdpy -= r0*(x*dxdpy + y*(dydpy);
             dTDdpy -= r0*(x*(k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy)) + y*(k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy)));
 
          }
@@ -401,7 +380,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	float p = pt2 + pzin*pzin;
 	p = sqrt(p);
 	float s = TD*p*ptinv;
-	computeJacobianSimple(n, errorProp, s, k, p, pxin, pyin, pzin, TP, cosTP, sinTP);
+	computeJacobianSimple(n, errorProp, k, TP, cosTP, sinTP);
       } else {
 	//now try to make full jacobian
 	//derive these to compute jacobian
@@ -495,7 +474,7 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
 #ifdef DEBUG
 	std::cout << "distance less than 1mum, skip" << std::endl;
 #endif
-	computeJacobianSimple(n, errorProp, 0, 1, 1, 1, 1, 1, 0, 1, 0);//get an identity matrix
+	computeJacobianSimple(n, errorProp, 1, 0, 1, 0);//get an identity matrix
 	continue;
       }
       
@@ -504,7 +483,7 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
       float ptinv  = 1./pt;
       float pt2inv = ptinv*ptinv;
       //p=0.3Br => r=p/(0.3*B)
-      float k = inChg.ConstAt(n, 0, 0) * 100. / (-0.299792458*Config::Bfield);
+      float k = inChg.ConstAt(n, 0, 0) * 100. / (-Config::sol*Config::Bfield);
       float curvature = pt*k;//in cm
       float invcurvature = 1./(curvature);//in 1./cm
       
@@ -632,7 +611,7 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
       float p = pt2 + pzin*pzin;
       p=sqrt(p);
       float s = TP*curvature*p*ptinv;
-      computeJacobianSimple(n, errorProp, s, k, p, pxin, pyin, pzin, TP, cosTP, sinTP);
+      computeJacobianSimple(n, errorProp, k, TP, cosTP, sinTP);
 
 #ifdef DEBUG
       std::cout << "jacobian intersection" << std::endl;

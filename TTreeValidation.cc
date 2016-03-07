@@ -54,6 +54,8 @@ TTreeValidation::TTreeValidation(std::string fileName)
   gROOT->ProcessLine("#include <vector>");
   f_ = TFile::Open(fileName.c_str(), "recreate");
 
+  initializeSeedInfoTree();
+  initializeSeedTree();
   initializeSegmentTree();
   initializeBranchTree();
   initializeEfficiencyTree();
@@ -61,6 +63,31 @@ TTreeValidation::TTreeValidation(std::string fileName)
   initializeGeometryTree();
   initializeConformalTree();
   initializeConfigTree();
+}
+
+void TTreeValidation::initializeSeedInfoTree(){
+  // seed validation
+  seedinfotree_ = new TTree("seedinfotree","seedinfotree");
+  seedinfotree_->Branch("evtID",&evtID_seedinfo_);
+  seedinfotree_->Branch("mcID",&mcID_seedinfo_);
+  seedinfotree_->Branch("pt_gen",&pt_gen_seedinfo_);
+  seedinfotree_->Branch("eta_gen",&eta_gen_seedinfo_);
+  seedinfotree_->Branch("phi_gen",&phi_gen_seedinfo_);
+  seedinfotree_->Branch("a",&a);
+  seedinfotree_->Branch("b",&b);
+  seedinfotree_->Branch("r",&r);
+  seedinfotree_->Branch("d0",&d0);
+  seedinfotree_->Branch("pass",&pass);
+}
+
+void TTreeValidation::initializeSeedTree(){
+  // seed validation
+  seedtree_ = new TTree("seedtree","seedtree");
+  seedtree_->Branch("evtID",&evtID_seed_);
+  seedtree_->Branch("nTkAll",&nTkAll_);
+  seedtree_->Branch("nTkAllMC",&nTkAllMC_);
+  seedtree_->Branch("nTkCut",&nTkCut_);
+  seedtree_->Branch("nTkCutMC",&nTkCutMC_);
 }
 
 void TTreeValidation::initializeSegmentTree(){
@@ -599,6 +626,74 @@ void TTreeValidation::fillSegmentTree(const BinInfoMap& segmentMap, int evtID){
   }
 }
 
+void TTreeValidation::fillSeedInfoTree(const TripletIdxVec& hit_triplets, const Event& ev) {
+  evtID_seedinfo_ = ev.evtID();
+
+  const auto & evt_lay_hits = ev.layerHits_;
+
+  for (auto&& hitTriplet : hit_triplets) {
+    mcID_seedinfo_    = ev.simHitsInfo_[evt_lay_hits[0][hitTriplet[0]].mcHitID()].mcTrackID();
+    if (  ev.simHitsInfo_[evt_lay_hits[1][hitTriplet[1]].mcHitID()].mcTrackID() == mcID_seedinfo_){
+      if (ev.simHitsInfo_[evt_lay_hits[2][hitTriplet[2]].mcHitID()].mcTrackID() == mcID_seedinfo_){
+	pt_gen_seedinfo_  = ev.simTracks_[mcID_seedinfo_].pT();
+	eta_gen_seedinfo_ = ev.simTracks_[mcID_seedinfo_].momEta();
+	phi_gen_seedinfo_ = ev.simTracks_[mcID_seedinfo_].momPhi();
+
+	const float x0 = evt_lay_hits[0][hitTriplet[0]].x();
+	const float y0 = evt_lay_hits[0][hitTriplet[0]].y();
+	const float x1 = evt_lay_hits[1][hitTriplet[1]].x();
+	const float y1 = evt_lay_hits[1][hitTriplet[1]].y();
+	const float x2 = evt_lay_hits[2][hitTriplet[2]].x();
+	const float y2 = evt_lay_hits[2][hitTriplet[2]].y();
+
+	// now fit a circle, extract pT and d0 from center and radius
+	const float mr = (y1-y0)/(x1-x0);
+	const float mt = (y2-y1)/(x2-x1);
+
+	a  = (mr*mt*(y2-y0) + mr*(x1+x2) - mt*(x0+x1))/(2.*(mr-mt));
+        b  = -1.*(a-(x0+x1)/2.)/mr + (y0+y1)/2.;
+	r  = getHypot(x0-a,y0-b);
+	d0 = getHypot(a,b)-r;
+	pass = false;
+	if ((r >= Config::maxCurvR) && (fabs(d0) <= 0.1)) {
+	  pass = true;
+	} // d0 cut 1mm, pT cut 0.5 GeV
+
+	seedinfotree_->Fill();
+      }
+    }
+  }
+}
+
+void TTreeValidation::fillSeedTree(const TripletIdxVec& hit_triplets, const TripletIdxVec& filtered_triplets, const Event& ev) {
+  evtID_seed_ = ev.evtID();
+  const auto & evt_lay_hits = ev.layerHits_;
+
+  int correct_all = 0;
+  for (auto&& hitTriplet : hit_triplets){
+    if (  ev.simHitsInfo_[evt_lay_hits[0][hitTriplet[0]].mcHitID()].mcTrackID() == ev.simHitsInfo_[evt_lay_hits[1][hitTriplet[1]].mcHitID()].mcTrackID()){
+      if (ev.simHitsInfo_[evt_lay_hits[2][hitTriplet[2]].mcHitID()].mcTrackID() == ev.simHitsInfo_[evt_lay_hits[1][hitTriplet[1]].mcHitID()].mcTrackID()){
+	correct_all++;
+      }
+    }
+  }
+  nTkAll_   = hit_triplets.size();
+  nTkAllMC_ = correct_all; 
+
+  int correct_cut = 0;
+  for (auto&& hitTriplet : filtered_triplets){
+    if (  ev.simHitsInfo_[evt_lay_hits[0][hitTriplet[0]].mcHitID()].mcTrackID() == ev.simHitsInfo_[evt_lay_hits[1][hitTriplet[1]].mcHitID()].mcTrackID()){
+      if (ev.simHitsInfo_[evt_lay_hits[2][hitTriplet[2]].mcHitID()].mcTrackID() == ev.simHitsInfo_[evt_lay_hits[1][hitTriplet[1]].mcHitID()].mcTrackID()){
+	correct_cut++;
+      }
+    }
+  }
+  nTkCut_   = filtered_triplets.size();
+  nTkCutMC_ = correct_cut; 
+
+  seedtree_->Fill();
+}
+
 void TTreeValidation::fillBranchTree(int evtID)
 {
   std::lock_guard<std::mutex> locker(glock_);
@@ -741,7 +836,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev){
       seedID_seed_eff_ = seedextra.seedID(); 
 
       // use this to access correct sim track layer params
-      const float layer = seedtrack.foundLayers().back(); // last layer seed ended up on
+      const int layer = seedtrack.foundLayers().back(); // last layer seed ended up on
       const TrackState & initLayTS = simTkTSVecMap_[mcID_eff_][layer]; //--> can do this as all sim tracks pass through each layer once, and are stored in order... will need to fix this once we have loopers/overlaps
 
       pt_mc_seed_eff_  = initLayTS.pT();
@@ -802,7 +897,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev){
       seedID_build_eff_ = buildextra.seedID(); 
 
       // use this to access correct sim track layer params
-      const float layer = buildtrack.foundLayers().back(); // last layer build ended up on
+      const int layer = buildtrack.foundLayers().back(); // last layer build ended up on
       const TrackState & initLayTS = simTkTSVecMap_[mcID_eff_][layer]; //--> can do this as all sim tracks pass through each layer once, and are stored in order... will need to fix this once we have loopers/overlaps
 
       pt_mc_build_eff_  = initLayTS.pT();
@@ -864,9 +959,9 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev){
       // use this to access correct sim track layer params
 
 #ifdef INWARDFIT
-      const float layer = fittrack.foundLayers().front(); // last layer fit ended up on
+      const int layer = fittrack.foundLayers().front(); // last layer fit ended up on
 #else
-      const float layer = fittrack.foundLayers().back(); // last layer fit ended up on
+      const int layer = fittrack.foundLayers().back(); // last layer fit ended up on
 #endif
       const TrackState & initLayTS = simTkTSVecMap_[mcID_eff_][layer]; //--> can do this as all sim tracks pass through each layer once, and are stored in order... will need to fix this once we have loopers/overlaps
 
@@ -960,7 +1055,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
     if (mcID_seed_FR_ != 999999){ // store sim info at that final layer!!! --> gen info stored only in eff tree
       mcmask_seed_FR_ = 1; // matched track to sim
 
-      const float layer = seedtrack.foundLayers().back(); // last layer fit ended up on
+      const int layer = seedtrack.foundLayers().back(); // last layer fit ended up on
       const TrackState & initLayTS = simTkTSVecMap_[mcID_seed_FR_][layer]; //--> can do this as all sim tracks pass through each layer once, and are stored in order... will need to fix this once we have loopers/overlaps
 
       pt_mc_seed_FR_    = initLayTS.pT();
@@ -1013,7 +1108,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
       if (mcID_build_FR_ != 999999){ // build track matched to seed and sim 
 	mcmask_build_FR_ = 1; // matched track to sim
 	
-	const float layer = buildtrack.foundLayers().back(); // last layer fit ended up on
+	const int layer = buildtrack.foundLayers().back(); // last layer fit ended up on
 	const TrackState & initLayTS = simTkTSVecMap_[mcID_build_FR_][layer]; //--> can do this as all sim tracks pass through each layer once, and are stored in order... will need to fix this once we have loopers/overlaps
 	
 	pt_mc_build_FR_    = initLayTS.pT();
@@ -1098,9 +1193,9 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
 	mcmask_fit_FR_ = 1; // matched track to sim
 
 #ifdef INWARDFIT
-	const float layer = fittrack.foundLayers().front(); // last layer fiting ended up on
+	const int layer = fittrack.foundLayers().front(); // last layer fiting ended up on
 #else
-	const float layer = fittrack.foundLayers().back(); // last layer fiting ended up on
+	const int layer = fittrack.foundLayers().back(); // last layer fiting ended up on
 #endif
 	const TrackState & initLayTS = simTkTSVecMap_[mcID_fit_FR_][layer]; //--> can do this as all sim tracks pass through each layer once, and are stored in order... will need to fix this once we have loopers/overlaps
    
@@ -1304,7 +1399,7 @@ void TTreeValidation::fillConformalTree(const Event& ev){
       seedID_seed_cf_ = seedextra.seedID(); 
 
       // Conformal fit stuff to match how it was done before
-      const float cflayer = seedtrack.foundLayers().front(); //  layer for which cf parameters are calculated with respect to (either first or last layer of track!)
+      const int cflayer = seedtrack.foundLayers().front(); //  layer for which cf parameters are calculated with respect to (either first or last layer of track!)
       const TrackState & cfInitLayTS = simTkTSVecMap_[mcID_cf_][cflayer]; //--> can do this as all sim tracks pass through each layer once, and are stored in order... will need to fix this once we have loopers/overlaps
       x_mc_seed_cf_ = cfInitLayTS.x();
       y_mc_seed_cf_ = cfInitLayTS.y();
@@ -1397,9 +1492,9 @@ void TTreeValidation::fillConformalTree(const Event& ev){
 
       // Conformal fit stuff to match how it was done before
 #ifdef INWARDFIT
-      const float cflayer = fittrack.foundLayers().back(); // last layer fit ended up on
+      const int cflayer = fittrack.foundLayers().back(); // last layer fit ended up on
 #else
-      const float cflayer = fittrack.foundLayers().front(); // last layer fit ended up on
+      const int cflayer = fittrack.foundLayers().front(); // last layer fit ended up on
 #endif
       const TrackState & cfInitLayTS = simTkTSVecMap_[mcID_cf_][cflayer]; //--> can do this as all sim tracks pass through each layer once, and are stored in order... will need to fix this once we have loopers/overlaps
       x_mc_fit_cf_ = cfInitLayTS.x();
