@@ -15,6 +15,7 @@ for test in ['BH','CE','CEST','ST','TBB','TBBST','FIT']:
     pos = 14
     ntks = '20k'
     if 'BH' in test: pos = 8
+    if 'TBB' in test: pos = 17
     if 'ST' == test: pos = 11
     if 'FIT' in test: 
         pos = 3
