@@ -149,15 +149,6 @@ void MkBuilder::fit_seeds()
     std::cout << "MX - found seed with nHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.posR() << " pT=" << seed.pT() << std::endl;
   }
 #endif
-
-#ifdef DEBUG
-  std::cout << "found total seeds=" << m_recseeds.size() << std::endl;
-  for (int iseed = 0; iseed < m_recseeds.size(); ++iseed)
-  {
-    Track& seed = m_recseeds[iseed];
-    std::cout << "MX - found seed with nHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.posR() << " pT=" << seed.pT() << std::endl;
-  }
-#endif
 }
 
 void MkBuilder::end_event()
@@ -850,7 +841,55 @@ namespace
   ExecutionContext g_exe_ctx;
 }
 
-#include <tbb/task.h>
+#include <tbb/tbb.h>
+
+void MkBuilder::fit_seeds_tbb()
+{
+  std::vector<Track>& simtracks = m_event->simTracks_;
+
+  int theEnd = simtracks.size();
+  int count = (theEnd + NN - 1)/NN;
+
+  tbb::parallel_for(tbb::blocked_range<int>(0, count),
+    [&](const tbb::blocked_range<int>& i) {
+      for (int it = i.begin(); it < i.end(); ++it)
+      {
+        int itrack = it*NN;
+        int end = std::min(itrack + NN, theEnd);
+
+        MkFitter *mkfp = g_exe_ctx.m_fitters.GetFromPool();
+
+        mkfp->SetNhits(3);//just to be sure (is this needed?)
+        mkfp->InputTracksAndHits(simtracks, m_event->layerHits_, itrack, end);
+        mkfp->FitTracks();
+
+        const int ilay = 3; // layer 4
+    #ifdef DEBUG
+        std::cout << "propagate to lay=" << ilay+1 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
+                  << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
+    #endif
+
+        mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
+
+    #ifdef DEBUG
+              std::cout << "propagate to lay=" << ilay+1 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
+    #endif
+
+        mkfp->OutputFittedTracksAndHitIdx(m_recseeds, itrack, end, true);
+      }
+    }
+  );
+
+  //ok now, we should have all seeds fitted in recseeds
+#ifdef DEBUG
+  std::cout << "found total seeds=" << m_recseeds.size() << std::endl;
+  for (int iseed = 0; iseed < m_recseeds.size(); ++iseed)
+  {
+    Track& seed = m_recseeds[iseed];
+    std::cout << "MX - found seed with nHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.posR() << " pT=" << seed.pT() << std::endl;
+  }
+#endif
+}
 
 //------------------------------------------------------------------------------
 // FindTracksCloneEngineTbb
@@ -858,28 +897,26 @@ namespace
 
 void MkBuilder::FindTracksCloneEngineTbb()
 {
-  struct SeedSetTask : public tbb::task
+  struct SeedSetTask
   {
     Event                  *m_event;
     EtaBinOfCombCandidates &etabin_of_comb_candidates;
     EventOfHits            &event_of_hits;
     int ebin;
-    int start_seed;
-    int end_seed;
-    int n_seeds;
 
-    SeedSetTask(Event *ev, EtaBinOfCombCandidates &eb_of_cc, EventOfHits &evt_of_hits, int eb, int ss, int es) :
+    SeedSetTask(Event *ev, EtaBinOfCombCandidates &eb_of_cc, EventOfHits &evt_of_hits, int eb) :
       m_event(ev),
       etabin_of_comb_candidates(eb_of_cc),
       event_of_hits(evt_of_hits),
-      ebin(eb),
-      start_seed(ss),
-      end_seed(es),
-      n_seeds(es - ss)
+      ebin(eb)
     {}
 
-    tbb::task* execute()
+    void operator()(const tbb::blocked_range<int>& seeds) const
     {
+      int start_seed = seeds.begin();
+      int end_seed = seeds.end();
+      int n_seeds = end_seed - start_seed;
+
       CandCloner &cloner = * g_exe_ctx.m_cloners.GetFromPool();
       MkFitter   *mkfp   =   g_exe_ctx.m_fitters.GetFromPool();
 
@@ -1018,47 +1055,32 @@ void MkBuilder::FindTracksCloneEngineTbb()
         if (finalcands.size() == 0) continue;
         std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
       }
-
-      return 0;
     }
   };
 
   //------------------------------------------------------------------------------
 
-  struct EtaBinTask : public tbb::task
+  struct EtaBinTask
   {
     Event                  *m_event;
-    EtaBinOfCombCandidates &etabin_of_comb_candidates;
+    EventOfCombCandidates  &event_of_comb_cands;
     EventOfHits            &event_of_hits;
     int ebin;
 
-    EtaBinTask(Event *ev, EtaBinOfCombCandidates &eb_of_cc, EventOfHits &evt_of_hits, int eb) :
+    EtaBinTask(Event *ev, EventOfCombCandidates &evt_of_cc, EventOfHits &evt_of_hits) :
       m_event(ev),
-      etabin_of_comb_candidates(eb_of_cc),
-      event_of_hits(evt_of_hits),
-      ebin(eb)
+      event_of_comb_cands(evt_of_cc),
+      event_of_hits(evt_of_hits)
     {}
 
-    tbb::task* execute()
+    void operator()(const tbb::blocked_range<int>& bins) const
     {
-      int n_task = (etabin_of_comb_candidates.m_fill_index - 1) / Config::numSeedsPerTask + 1;
-
-      set_ref_count(n_task + 1);
-
       // printf("Expecting to schedule %d seed-tasks, max = %d\n", n_task, etabin_of_comb_candidates.m_fill_index);
-      int count = 0;
-      for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed += Config::numSeedsPerTask)
-      {
-        // printf("scheduling seed range %d: %d %d for ebin=%d\n", ++count, iseed, std::min(etabin_of_comb_candidates.m_fill_index, iseed + Config::numSeedsPerTask), ebin);
-
-        spawn(* new (allocate_child()) SeedSetTask(m_event, etabin_of_comb_candidates, event_of_hits, ebin,
-                                                   iseed, std::min(etabin_of_comb_candidates.m_fill_index, iseed + Config::numSeedsPerTask)));
+      for (int ebin = bins.begin(); ebin != bins.end(); ++ebin) {
+        EtaBinOfCombCandidates& etabin_of_comb_candidates(event_of_comb_cands.m_etabins_of_comb_candidates[ebin]);
+        tbb::parallel_for(tbb::blocked_range<int>(0,etabin_of_comb_candidates.m_fill_index,Config::numSeedsPerTask), 
+                          SeedSetTask(m_event, etabin_of_comb_candidates, event_of_hits, ebin));
       }
-
-      // ???
-      wait_for_all();
-
-      return 0;
     }
   };
 
@@ -1078,16 +1100,9 @@ void MkBuilder::FindTracksCloneEngineTbb()
 
     tbb::task* execute()
     {
-      set_ref_count(Config::nEtaBin + 1);
-
       // loop over eta bins
-      for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
-      {
-        spawn(* new (allocate_child()) EtaBinTask(m_event, event_of_comb_cands.m_etabins_of_comb_candidates[ebin], event_of_hits, ebin));
-      } // end of loop over eta bins
-
-      // ???
-      wait_for_all();
+      tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEtaBin),
+                        EtaBinTask(m_event, event_of_comb_cands, event_of_hits));
 
       return 0;
     }

@@ -115,6 +115,7 @@ public:
   void begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type);
 
   void fit_seeds();
+  void fit_seeds_tbb();
 
   void end_event();
 

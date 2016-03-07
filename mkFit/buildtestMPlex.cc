@@ -236,7 +236,7 @@ double runBuildingTestPlexTbb(Event& ev, EventTmp& ev_tmp)
 
   builder.begin_event(&ev, &ev_tmp, __func__);
 
-  builder.fit_seeds();
+  builder.fit_seeds_tbb();
 
   builder.find_tracks_load_seeds();
 

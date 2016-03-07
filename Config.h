@@ -2,6 +2,7 @@
 #define _config_
 
 #include <algorithm>
+#include <string>
 
 //#define PRINTOUTS_FOR_PLOTS
 
