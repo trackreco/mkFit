@@ -12,6 +12,8 @@ echo nth=${nth}
 ./mkFit/mkFit --build-std --num-thr ${nth} >& log_host_10x20k_ST_NVU8int_NTH${nth}.txt
 ./mkFit/mkFit --build-ce  --num-thr ${nth} >& log_host_10x20k_CE_NVU8int_NTH${nth}.txt
 ./mkFit/mkFit --build-ce  --num-thr ${nth} --cloner-single-thread >& log_host_10x20k_CEST_NVU8int_NTH${nth}.txt
+./mkFit/mkFit --build-tbb --num-thr ${nth} >& log_host_10x20k_TBB_NVU8int_NTH${nth}.txt
+./mkFit/mkFit --build-tbb --num-thr ${nth} --cloner-single-thread >& log_host_10x20k_TBBST_NVU8int_NTH${nth}.txt
 done
 
 sed -i 's/# USE_INTRINSICS := -DMPT_SIZE=1/USE_INTRINSICS := -DMPT_SIZE=XX/g' Makefile.config
@@ -25,6 +27,8 @@ echo nvu=${nvu}
 ./mkFit/mkFit --build-std --num-thr 1 >& log_host_10x20k_ST_NVU${nvu}_NTH1.txt
 ./mkFit/mkFit --build-ce  --num-thr 1 >& log_host_10x20k_CE_NVU${nvu}_NTH1.txt
 ./mkFit/mkFit --build-ce  --num-thr 1 --cloner-single-thread >& log_host_10x20k_CEST_NVU${nvu}_NTH1.txt
+./mkFit/mkFit --build-tbb --num-thr 1 >& log_host_10x20k_TBB_NVU${nvu}_NTH1.txt
+./mkFit/mkFit --build-tbb --num-thr 1 --cloner-single-thread >& log_host_10x20k_TBBST_NVU${nvu}_NTH1.txt
 sed -i "s/MPT_SIZE=${nvu}/MPT_SIZE=XX/g" Makefile.config
 done
 sed -i 's/USE_INTRINSICS := -DMPT_SIZE=XX/# USE_INTRINSICS := -DMPT_SIZE=1/g' Makefile.config

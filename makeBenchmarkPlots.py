@@ -10,7 +10,7 @@ if hORm!='host' and hORm!='mic': exit
 
 g = ROOT.TFile('benchmark_'+hORm+'.root',"recreate")
 
-for test in ['BH','CE','CEST','ST','FIT']:
+for test in ['BH','CE','CEST','ST','TBB','TBBST','FIT']:
     print test
     pos = 14
     ntks = '20k'

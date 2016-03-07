@@ -1,6 +1,6 @@
 #! /bin/bash
 
-source ~matevz/root/bin/thisroot.sh 
+[ -z "$ROOTSYS" ] && source ~matevz/root/bin/thisroot.sh 
 
 source benchmark.sh
 source benchmark-fit.sh  
