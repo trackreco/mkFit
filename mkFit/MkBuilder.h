@@ -11,7 +11,7 @@
 #include "MkFitter.h"
 #include "CandCloner.h"
 
-#include <stack>
+#include "tbb/concurrent_queue.h"
 #include <functional>
 #include <mutex>
 
@@ -24,13 +24,10 @@ struct Pool
   CFoo_t m_create_foo  = []()     { return new (_mm_malloc(sizeof(TT), 64)) TT; };
   DFoo_t m_destroy_foo = [](TT* x){ _mm_free(x); };
 
-  std::stack<TT*> m_stack;
-  std::mutex      m_moo;
+  tbb::concurrent_queue<TT*> m_stack;
 
   void populate()
   {
-    std::unique_lock<std::mutex> lk(m_moo);
-
     for (int i = 0; i < Config::numThreadsFinder; ++i)
     {
       m_stack.push(m_create_foo());
@@ -42,10 +39,10 @@ struct Pool
 
   ~Pool()
   {
-    while ( ! m_stack.empty())
+    TT *x;
+    while (m_stack.try_pop(x))
     {
-      m_destroy_foo(m_stack.top());
-      m_stack.pop();
+      m_destroy_foo(x);
     }
   }
 
@@ -54,19 +51,16 @@ struct Pool
 
   TT* GetFromPool()
   {
-    std::unique_lock<std::mutex> lk(m_moo);
-
-    if (m_stack.empty()) return m_create_foo();
-
-    TT *x = m_stack.top();
-    m_stack.pop();
-    return x;
+    TT *x;
+    if (m_stack.try_pop(x)) {
+      return x;
+    } else {
+      return m_create_foo();
+    }
   }
 
   void ReturnToPool(TT *x)
   {
-    std::unique_lock<std::mutex> lk(m_moo);
-
     m_stack.push(x);
   }
 };
