@@ -25,7 +25,7 @@
   g_BH_VU->GetYaxis()->SetTitle("Time for 10 events x 20k tracks [s]");
   g_BH_VU->GetXaxis()->SetRangeUser(1,maxvu);
   g_BH_VU->GetYaxis()->SetRangeUser(0,10);
-  if (isMic) g_BH_VU->GetYaxis()->SetRangeUser(0,70);
+  if (isMic) g_BH_VU->GetYaxis()->SetRangeUser(0,80);
   g_BH_VU->SetLineWidth(2);
   g_CE_VU->SetLineWidth(2);
   g_CEST_VU->SetLineWidth(2);
