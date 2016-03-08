@@ -54,15 +54,147 @@ TTreeValidation::TTreeValidation(std::string fileName)
   gROOT->ProcessLine("#include <vector>");
   f_ = TFile::Open(fileName.c_str(), "recreate");
 
-  initializeSeedInfoTree();
-  initializeSeedTree();
-  initializeSegmentTree();
-  initializeBranchTree();
-  initializeEfficiencyTree();
-  initializeFakeRateTree();  
-  initializeGeometryTree();
-  initializeConformalTree();
+  if (!Config::super_debug) { // regular validation
+    initializeSeedInfoTree();
+    initializeSeedTree();
+    initializeSegmentTree();
+    initializeBranchTree();
+    initializeEfficiencyTree();
+    initializeFakeRateTree();  
+    initializeGeometryTree();
+    initializeConformalTree();
+  }
+  else {
+    initializeDebugTree();
+  }
   initializeConfigTree();
+}
+
+void TTreeValidation::initializeDebugTree(){
+  nlayers_debug_ = Config::nLayers;
+
+  // debug tree(lots and lots of variables)
+  debugtree_ = new TTree("debugtree","debugtree");
+
+  debugtree_->Branch("nlayers",&nlayers_debug_,"nlayers_debug_/I");
+
+  debugtree_->Branch("recocharge",&recocharge_debug_,"recocharge/I");
+  debugtree_->Branch("mccharge",&mccharge_debug_,"mccharge/I");
+
+  debugtree_->Branch("event",&event_debug_,"event/I");
+  debugtree_->Branch("nHits",&nHits_debug_,"nHits/I");
+
+  debugtree_->Branch("pt_gen",&pt_gen_debug_,"pt_gen/F");
+  debugtree_->Branch("phi_gen",&phi_gen_debug_,"phi_gen/F");
+  debugtree_->Branch("eta_gen",&eta_gen_debug_,"eta_gen/F");
+
+  debugtree_->Branch("layer_mc",&layer_mc_debug_,"layer_mc[nlayers_debug_]/I");
+
+  debugtree_->Branch("layer_chi2",&layer_chi2_debug_,"layer_chi2[nlayers_debug_]/I");
+  debugtree_->Branch("chi2",&chi2_debug_,"chi2[nlayers_debug_]/F");
+
+  // MC
+  debugtree_->Branch("x_mc",&x_mc_debug_,"x_mc[nlayers_debug_]/F");
+  debugtree_->Branch("y_mc",&y_mc_debug_,"y_mc[nlayers_debug_]/F");
+  debugtree_->Branch("z_mc",&z_mc_debug_,"z_mc[nlayers_debug_]/F");
+  debugtree_->Branch("exx_mc",&exx_mc_debug_,"exx_mc[nlayers_debug_]/F");
+  debugtree_->Branch("eyy_mc",&eyy_mc_debug_,"eyy_mc[nlayers_debug_]/F");
+  debugtree_->Branch("ezz_mc",&ezz_mc_debug_,"ezz_mc[nlayers_debug_]/F");
+
+  debugtree_->Branch("px_mc",&px_mc_debug_,"px_mc[nlayers_debug_]/F");
+  debugtree_->Branch("py_mc",&py_mc_debug_,"py_mc[nlayers_debug_]/F");
+  debugtree_->Branch("pz_mc",&pz_mc_debug_,"pz_mc[nlayers_debug_]/F");
+
+  debugtree_->Branch("pt_mc",&pt_mc_debug_,"pt_mc[nlayers_debug_]/F");
+  debugtree_->Branch("phi_mc",&phi_mc_debug_,"phi_mc[nlayers_debug_]/F");
+  debugtree_->Branch("eta_mc",&eta_mc_debug_,"eta_mc[nlayers_debug_]/F");
+  debugtree_->Branch("invpt_mc",&invpt_mc_debug_,"invpt_mc[nlayers_debug_]/F");
+  debugtree_->Branch("theta_mc",&theta_mc_debug_,"theta_mc[nlayers_debug_]/F");
+
+  // conformal
+  debugtree_->Branch("x_cf",&x_cf_debug_,"x_cf/F");
+  debugtree_->Branch("y_cf",&y_cf_debug_,"y_cf/F");
+  debugtree_->Branch("z_cf",&z_cf_debug_,"z_cf/F");
+  debugtree_->Branch("exx_cf",&exx_cf_debug_,"exx_cf/F");
+  debugtree_->Branch("eyy_cf",&eyy_cf_debug_,"eyy_cf/F");
+  debugtree_->Branch("ezz_cf",&ezz_cf_debug_,"ezz_cf/F");
+
+  debugtree_->Branch("px_cf",&px_cf_debug_,"px_cf/F");
+  debugtree_->Branch("py_cf",&py_cf_debug_,"py_cf/F");
+  debugtree_->Branch("pz_cf",&pz_cf_debug_,"pz_cf/F");
+  debugtree_->Branch("epxpx_cf",&epxpx_cf_debug_,"epxpx_cf/F");
+  debugtree_->Branch("epypy_cf",&epypy_cf_debug_,"epypy_cf/F");
+  debugtree_->Branch("epzpz_cf",&epzpz_cf_debug_,"epzpz_cf/F");
+
+  debugtree_->Branch("pt_cf",&pt_cf_debug_,"pt_cf/F");
+  debugtree_->Branch("phi_cf",&phi_cf_debug_,"phi_cf/F");
+  debugtree_->Branch("eta_cf",&eta_cf_debug_,"eta_cf/F");
+  debugtree_->Branch("ept_cf",&ept_cf_debug_,"ept_cf/F");
+  debugtree_->Branch("ephi_cf",&ephi_cf_debug_,"ephi_cf/F");
+  debugtree_->Branch("eeta_cf",&eeta_cf_debug_,"eeta_cf/F");
+
+  debugtree_->Branch("invpt_cf",&invpt_cf_debug_,"invpt_cf/F");
+  debugtree_->Branch("einvpt_cf",&einvpt_cf_debug_,"einvpt_cf/F");
+  debugtree_->Branch("theta_cf",&theta_cf_debug_,"theta_cf/F");
+  debugtree_->Branch("etheta_cf",&etheta_cf_debug_,"etheta_cf/F");
+
+  // prop
+  debugtree_->Branch("layer_prop",&layer_prop_debug_,"layer_prop[nlayers_debug_]/I");
+
+  debugtree_->Branch("x_prop",&x_prop_debug_,"x_prop[nlayers_debug_]/F");
+  debugtree_->Branch("y_prop",&y_prop_debug_,"y_prop[nlayers_debug_]/F");
+  debugtree_->Branch("z_prop",&z_prop_debug_,"z_prop[nlayers_debug_]/F");
+  debugtree_->Branch("exx_prop",&exx_prop_debug_,"exx_prop[nlayers_debug_]/F");
+  debugtree_->Branch("eyy_prop",&eyy_prop_debug_,"eyy_prop[nlayers_debug_]/F");
+  debugtree_->Branch("ezz_prop",&ezz_prop_debug_,"ezz_prop[nlayers_debug_]/F");
+
+  debugtree_->Branch("px_prop",&px_prop_debug_,"px_prop[nlayers_debug_]/F");
+  debugtree_->Branch("py_prop",&py_prop_debug_,"py_prop[nlayers_debug_]/F");
+  debugtree_->Branch("pz_prop",&pz_prop_debug_,"pz_prop[nlayers_debug_]/F");
+  debugtree_->Branch("epxpx_prop",&epxpx_prop_debug_,"epxpx_prop[nlayers_debug_]/F");
+  debugtree_->Branch("epypy_prop",&epypy_prop_debug_,"epypy_prop[nlayers_debug_]/F");
+  debugtree_->Branch("epzpz_prop",&epzpz_prop_debug_,"epzpz_prop[nlayers_debug_]/F");
+
+  debugtree_->Branch("pt_prop",&pt_prop_debug_,"pt_prop[nlayers_debug_]/F");
+  debugtree_->Branch("phi_prop",&phi_prop_debug_,"phi_prop[nlayers_debug_]/F");
+  debugtree_->Branch("eta_prop",&eta_prop_debug_,"eta_prop[nlayers_debug_]/F");
+  debugtree_->Branch("ept_prop",&ept_prop_debug_,"ept_prop[nlayers_debug_]/F");
+  debugtree_->Branch("ephi_prop",&ephi_prop_debug_,"ephi_prop[nlayers_debug_]/F");
+  debugtree_->Branch("eeta_prop",&eeta_prop_debug_,"eeta_prop[nlayers_debug_]/F");
+
+  debugtree_->Branch("invpt_prop",&invpt_prop_debug_,"invpt_prop[nlayers_debug_]/F");
+  debugtree_->Branch("einvpt_prop",&einvpt_prop_debug_,"einvpt_prop[nlayers_debug_]/F");
+  debugtree_->Branch("theta_prop",&theta_prop_debug_,"theta_prop[nlayers_debug_]/F");
+  debugtree_->Branch("etheta_prop",&etheta_prop_debug_,"etheta_prop[nlayers_debug_]/F");
+
+  //update
+  debugtree_->Branch("layer_up",&layer_up_debug_,"layer_up[nlayers_debug_]/I");
+
+  debugtree_->Branch("x_up",&x_up_debug_,"x_up[nlayers_debug_]/F");
+  debugtree_->Branch("y_up",&y_up_debug_,"y_up[nlayers_debug_]/F");
+  debugtree_->Branch("z_up",&z_up_debug_,"z_up[nlayers_debug_]/F");
+  debugtree_->Branch("exx_up",&exx_up_debug_,"exx_up[nlayers_debug_]/F");
+  debugtree_->Branch("eyy_up",&eyy_up_debug_,"eyy_up[nlayers_debug_]/F");
+  debugtree_->Branch("ezz_up",&ezz_up_debug_,"ezz_up[nlayers_debug_]/F");
+
+  debugtree_->Branch("px_up",&px_up_debug_,"px_up[nlayers_debug_]/F");
+  debugtree_->Branch("py_up",&py_up_debug_,"py_up[nlayers_debug_]/F");
+  debugtree_->Branch("pz_up",&pz_up_debug_,"pz_up[nlayers_debug_]/F");
+  debugtree_->Branch("epxpx_up",&epxpx_up_debug_,"epxpx_up[nlayers_debug_]/F");
+  debugtree_->Branch("epypy_up",&epypy_up_debug_,"epypy_up[nlayers_debug_]/F");
+  debugtree_->Branch("epzpz_up",&epzpz_up_debug_,"epzpz_up[nlayers_debug_]/F");
+
+  debugtree_->Branch("pt_up",&pt_up_debug_,"pt_up[nlayers_debug_]/F");
+  debugtree_->Branch("phi_up",&phi_up_debug_,"phi_up[nlayers_debug_]/F");
+  debugtree_->Branch("eta_up",&eta_up_debug_,"eta_up[nlayers_debug_]/F");
+  debugtree_->Branch("ept_up",&ept_up_debug_,"ept_up[nlayers_debug_]/F");
+  debugtree_->Branch("ephi_up",&ephi_up_debug_,"ephi_up[nlayers_debug_]/F");
+  debugtree_->Branch("eeta_up",&eeta_up_debug_,"eeta_up[nlayers_debug_]/F");
+
+  debugtree_->Branch("invpt_up",&invpt_up_debug_,"invpt_up[nlayers_debug_]/F");
+  debugtree_->Branch("einvpt_up",&einvpt_up_debug_,"einvpt_up[nlayers_debug_]/F");
+  debugtree_->Branch("theta_up",&theta_up_debug_,"theta_up[nlayers_debug_]/F");
+  debugtree_->Branch("etheta_up",&etheta_up_debug_,"etheta_up[nlayers_debug_]/F");
 }
 
 void TTreeValidation::initializeSeedInfoTree(){
@@ -520,6 +652,18 @@ void TTreeValidation::collectFitTkTSLayerPairVecMapInfo(int seedID, const TSLaye
   fitTkTSLayerPairVecMap_[seedID] = updatedStates;
 }
 
+void TTreeValidation::collectPropTSLayerVecInfo(int layer, const TrackState& propTS){
+  propTSLayerPairVec_.push_back(std::make_pair(layer,propTS)); 
+}
+
+void TTreeValidation::collectChi2LayerVecInfo(int layer, float chi2){
+  chi2LayerPairVec_.push_back(std::make_pair(layer,chi2)); 
+}
+
+void TTreeValidation::collectUpTSLayerVecInfo(int layer, const TrackState& upTS){
+  upTSLayerPairVec_.push_back(std::make_pair(layer,upTS)); 
+}
+
 void TTreeValidation::resetValidationMaps(){
   std::lock_guard<std::mutex> locker(glock_);
   
@@ -547,12 +691,20 @@ void TTreeValidation::resetValidationMaps(){
   seedToFitMap_.clear();
 }
 
+void TTreeValidation::resetDebugVectors(){
+  std::lock_guard<std::mutex> locker(glock_);
+  
+  propTSLayerPairVec_.clear(); // used exclusively for debugtree (prop states)
+  chi2LayerPairVec_.clear();   // used exclusively for debugtree 
+  upTSLayerPairVec_.clear();   // used exclusively for debugtree (updated states)
+}
+
 void TTreeValidation::makeSimTkToRecoTksMaps(Event& ev){
   std::lock_guard<std::mutex> locker(glock_);
   // set mcTkIDs... and sort by each (simTracks set in order by default!)
   mapSimTkToRecoTks(ev.seedTracks_,ev.seedTracksExtra_,ev.layerHits_,ev.simHitsInfo_,simToSeedMap_);
   mapSimTkToRecoTks(ev.candidateTracks_,ev.candidateTracksExtra_,ev.layerHits_,ev.simHitsInfo_,simToBuildMap_);
-  mapSimTkToRecoTks(ev.fitTracks_,ev.fitTracksExtra_,ev.layerHits_,ev.simHitsInfo_,simToFitMap_);
+  if (!Config::super_debug) mapSimTkToRecoTks(ev.fitTracks_,ev.fitTracksExtra_,ev.layerHits_,ev.simHitsInfo_,simToFitMap_);
 }
 
 void TTreeValidation::mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, const std::vector<HitVec>& layerHits, 
@@ -606,6 +758,195 @@ void TTreeValidation::mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackE
   for (auto&& track : evt_tracks){
     seedTkMap[evt_extras[track.label()].seedID()] = track.label();
   }
+}
+
+void TTreeValidation::resetDebugTreeArrays(){
+  for (int i = 0; i < Config::nLayers; i++){
+    // reset MC info
+    layer_mc_debug_[i]=-99;
+    x_mc_debug_[i]=-99;     y_mc_debug_[i]=-99;     z_mc_debug_[i]=-99; 
+    exx_mc_debug_[i]=-99;   eyy_mc_debug_[i]=-99;   ezz_mc_debug_[i]=-99;
+    px_mc_debug_[i]=-99;    py_mc_debug_[i]=-99;    pz_mc_debug_[i]=-99;
+    pt_mc_debug_[i]=-99;    phi_mc_debug_[i]=-99;   eta_mc_debug_[i]=-99;
+    invpt_mc_debug_[i]=-99; theta_mc_debug_[i]=-99;
+
+    // reset prop info
+    layer_prop_debug_[i]=-99;
+    x_prop_debug_[i]=-99;      y_prop_debug_[i]=-99;      z_prop_debug_[i]=-99;
+    exx_prop_debug_[i]=-99;    eyy_prop_debug_[i]=-99;    ezz_prop_debug_[i]=-99;
+    px_prop_debug_[i]=-99;     py_prop_debug_[i]=-99;     pz_prop_debug_[i]=-99;
+    epxpx_prop_debug_[i]=-99;  epypy_prop_debug_[i]=-99;  epzpz_prop_debug_[i]=-99;
+    pt_prop_debug_[i]=-99;     phi_prop_debug_[i]=-99;    eta_prop_debug_[i]=-99;
+    ept_prop_debug_[i]=-99;    ephi_prop_debug_[i]=-99;   eeta_prop_debug_[i]=-99;
+    invpt_prop_debug_[i] =-99; theta_prop_debug_[i] =-99;
+    einvpt_prop_debug_[i]=-99; etheta_prop_debug_[i]=-99;
+
+    // reset chi2
+    layer_chi2_debug_[i]=-99;
+    chi2_debug_[i]=-99;
+
+    // reset update info
+    layer_up_debug_[i]=99;
+    x_up_debug_[i]=-99;      y_up_debug_[i]=-99;      z_up_debug_[i]=-99;
+    exx_up_debug_[i]=-99;    eyy_up_debug_[i]=-99;    ezz_up_debug_[i]=-99;
+    px_up_debug_[i]=-99;     py_up_debug_[i]=-99;     pz_up_debug_[i]=-99;
+    epxpx_up_debug_[i]=-99;  epypy_up_debug_[i]=-99;  epzpz_up_debug_[i]=-99;
+    pt_up_debug_[i]=-99;     phi_up_debug_[i]=-99;    eta_up_debug_[i]=-99;
+    ept_up_debug_[i]=-99;    ephi_up_debug_[i]=-99;   eeta_up_debug_[i]=-99;
+    invpt_up_debug_[i] =-99; theta_up_debug_[i] =-99;
+    einvpt_up_debug_[i]=-99; etheta_up_debug_[i]=-99;
+  }
+}
+
+void TTreeValidation::fillDebugTree(const Event& ev){
+  std::lock_guard<std::mutex> locker(glock_);
+  resetDebugTreeArrays();
+  
+  auto& simtrack   = ev.simTracks_[0];       // since it is the only one!
+  auto& seedtrack  = ev.seedTracks_[0];      // since it is the only one! 
+  auto& buildtrack = ev.candidateTracks_[0]; // since it is the only one! 
+
+  int mcID   = simtrack.label();
+  int seedID = ev.seedTracksExtra_[seedtrack.label()].seedID(); 
+
+  event_debug_ = ev.evtID();
+  nHits_debug_ = buildtrack.nFoundHits();
+
+  recocharge_debug_ = seedtrack.charge(); 
+  mccharge_debug_   = simtrack.charge();
+
+  // Set MC First
+  pt_gen_debug_  = simtrack.pT(); 
+  phi_gen_debug_ = simtrack.momPhi(); 
+  eta_gen_debug_ = simtrack.momEta(); 
+
+  auto& simhits = simtrack.hitsVector(ev.layerHits_);
+  for (int i = 0; i < simhits.size(); i++){ // assume one hit for layer for sim tracks...
+    layer_mc_debug_[i] = i;
+
+    x_mc_debug_[i] = simhits[i].x();
+    y_mc_debug_[i] = simhits[i].y();
+    z_mc_debug_[i] = simhits[i].z();
+    exx_mc_debug_[i] = simhits[i].exx();
+    eyy_mc_debug_[i] = simhits[i].eyy();
+    ezz_mc_debug_[i] = simhits[i].ezz();
+
+    const TrackState & mcstate = simTkTSVecMap_[mcID][i];
+    pt_mc_debug_[i]  = mcstate.pT();
+    phi_mc_debug_[i] = mcstate.momPhi();
+    eta_mc_debug_[i] = mcstate.momEta();
+
+    px_mc_debug_[i]  = mcstate.px();
+    py_mc_debug_[i]  = mcstate.py();
+    pz_mc_debug_[i]  = mcstate.pz();
+      
+    invpt_mc_debug_[i] = mcstate.invpT();
+    theta_mc_debug_[i] = mcstate.theta();
+  }
+
+  // CF next
+  const TrackState & cfSeedTS = seedTkCFMap_[seedID];
+  x_cf_debug_   = cfSeedTS.x();
+  y_cf_debug_   = cfSeedTS.y();
+  z_cf_debug_   = cfSeedTS.z();
+  exx_cf_debug_ = cfSeedTS.exx();
+  eyy_cf_debug_ = cfSeedTS.eyy();
+  ezz_cf_debug_ = cfSeedTS.ezz();
+
+  px_cf_debug_    = cfSeedTS.px();
+  py_cf_debug_    = cfSeedTS.py();
+  pz_cf_debug_    = cfSeedTS.pz();
+  epxpx_cf_debug_ = cfSeedTS.epxpx();
+  epypy_cf_debug_ = cfSeedTS.epypy();
+  epzpz_cf_debug_ = cfSeedTS.epzpz();
+
+  pt_cf_debug_   = cfSeedTS.pT();
+  phi_cf_debug_  = cfSeedTS.momPhi();
+  eta_cf_debug_  = cfSeedTS.momEta();
+  ept_cf_debug_  = cfSeedTS.epT();
+  ephi_cf_debug_ = cfSeedTS.emomPhi();
+  eeta_cf_debug_ = cfSeedTS.emomEta();
+
+  invpt_cf_debug_  = cfSeedTS.invpT();
+  einvpt_cf_debug_ = cfSeedTS.einvpT();
+  theta_cf_debug_  = cfSeedTS.theta();
+  etheta_cf_debug_ = cfSeedTS.etheta();
+
+  // prop states
+  for (int i = 0; i < propTSLayerPairVec_.size(); i++){
+    int layer = propTSLayerPairVec_[i].first; 
+    layer_prop_debug_[layer] = layer;
+	
+    const TrackState & propTS = propTSLayerPairVec_[i].second;
+    x_prop_debug_[layer]   = propTS.x();
+    y_prop_debug_[layer]   = propTS.y();
+    z_prop_debug_[layer]   = propTS.z();
+    exx_prop_debug_[layer] = propTS.exx();
+    eyy_prop_debug_[layer] = propTS.eyy();
+    ezz_prop_debug_[layer] = propTS.ezz();
+
+    px_prop_debug_[layer]    = propTS.px();
+    py_prop_debug_[layer]    = propTS.py();
+    pz_prop_debug_[layer]    = propTS.pz();
+    epxpx_prop_debug_[layer] = propTS.epxpx();
+    epypy_prop_debug_[layer] = propTS.epypy();
+    epzpz_prop_debug_[layer] = propTS.epzpz();
+
+    pt_prop_debug_[layer]   = propTS.pT();
+    phi_prop_debug_[layer]  = propTS.momPhi();
+    eta_prop_debug_[layer]  = propTS.momEta();
+    ept_prop_debug_[layer]  = propTS.epT();
+    ephi_prop_debug_[layer] = propTS.emomPhi();
+    eeta_prop_debug_[layer] = propTS.emomEta();
+
+    invpt_prop_debug_[layer]  = propTS.invpT();
+    einvpt_prop_debug_[layer] = propTS.einvpT();
+    theta_prop_debug_[layer]  = propTS.theta();
+    etheta_prop_debug_[layer] = propTS.etheta();
+  }
+    
+  // do the chi2
+  for (int i = 0; i < chi2LayerPairVec_.size(); i++){
+    int layer = chi2LayerPairVec_[i].first; 
+    layer_chi2_debug_[layer] = layer;
+    chi2_debug_[layer]       = chi2LayerPairVec_[i].second; 
+  }
+
+  // updated states 
+  for (int i = 0; i < upTSLayerPairVec_.size(); i++){
+    int layer = upTSLayerPairVec_[i].first; 
+    layer_up_debug_[layer] = layer;
+	
+    const TrackState & upTS = upTSLayerPairVec_[i].second;
+    x_up_debug_[layer]   = upTS.x();
+    y_up_debug_[layer]   = upTS.y();
+    z_up_debug_[layer]   = upTS.z();
+    exx_up_debug_[layer] = upTS.exx();
+    eyy_up_debug_[layer] = upTS.eyy();
+    ezz_up_debug_[layer] = upTS.ezz();
+
+    px_up_debug_[layer]    = upTS.px();
+    py_up_debug_[layer]    = upTS.py();
+    pz_up_debug_[layer]    = upTS.pz();
+    epxpx_up_debug_[layer] = upTS.epxpx();
+    epypy_up_debug_[layer] = upTS.epypy();
+    epzpz_up_debug_[layer] = upTS.epzpz();
+
+    pt_up_debug_[layer]   = upTS.pT();
+    phi_up_debug_[layer]  = upTS.momPhi();
+    eta_up_debug_[layer]  = upTS.momEta();
+    ept_up_debug_[layer]  = upTS.epT();
+    ephi_up_debug_[layer] = upTS.emomPhi();
+    eeta_up_debug_[layer] = upTS.emomEta();
+
+    invpt_up_debug_[layer]  = upTS.invpT();
+    einvpt_up_debug_[layer] = upTS.einvpT();
+    theta_up_debug_[layer]  = upTS.theta();
+    etheta_up_debug_[layer] = upTS.etheta();
+  }
+
+  // fill it once per track (i.e. once per track by definition)
+  debugtree_->Fill();
 }
 
 void TTreeValidation::fillSegmentTree(const BinInfoMap& segmentMap, int evtID){

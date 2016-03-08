@@ -209,6 +209,15 @@ public:
   float z() const {
     return state_.parameters().At(2);
   }
+  float exx() const {
+    return state_.errors().At(0,0);
+  }
+  float eyy() const {
+    return state_.errors().At(1,1);
+  }
+  float ezz() const {
+    return state_.errors().At(2,2);
+  }
   float phi() const {
     return getPhi(state_.parameters().At(0), state_.parameters().At(1));
   }

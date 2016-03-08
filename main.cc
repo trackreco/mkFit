@@ -130,18 +130,21 @@ int main(int argc, char** argv)
     ev.Segment();            ticks[1] += delta(t0);
     ev.Seed();               ticks[2] += delta(t0);
     ev.Find();               ticks[3] += delta(t0);
-    ev.Fit();                ticks[4] += delta(t0);
+    if (!Config::super_debug) ev.Fit();                ticks[4] += delta(t0);
     ev.Validate(ev.evtID()); ticks[5] += delta(t0);
 #endif
-    std::cout << "sim: " << ev.simTracks_.size() << " seed: " << ev.seedTracks_.size() << " found: " << ev.candidateTracks_.size() << " fit: " << ev.fitTracks_.size() << std::endl;
-    tracks[0] += ev.simTracks_.size();
-    tracks[1] += ev.seedTracks_.size();
-    tracks[2] += ev.candidateTracks_.size();
-    tracks[3] += ev.fitTracks_.size();
-    std::cout << "Built tracks" << std::endl;
-    ev.PrintStats(ev.candidateTracks_, ev.candidateTracksExtra_);
-    std::cout << "Fit tracks" << std::endl;
-    ev.PrintStats(ev.fitTracks_, ev.fitTracksExtra_);
+
+    if (!Config::super_debug) {
+      std::cout << "sim: " << ev.simTracks_.size() << " seed: " << ev.seedTracks_.size() << " found: " << ev.candidateTracks_.size() << " fit: " << ev.fitTracks_.size() << std::endl;
+      tracks[0] += ev.simTracks_.size();
+      tracks[1] += ev.seedTracks_.size();
+      tracks[2] += ev.candidateTracks_.size();
+      tracks[3] += ev.fitTracks_.size();
+      std::cout << "Built tracks" << std::endl;
+      ev.PrintStats(ev.candidateTracks_, ev.candidateTracksExtra_);
+      std::cout << "Fit tracks" << std::endl;
+      ev.PrintStats(ev.fitTracks_, ev.fitTracksExtra_);
+    }
   }
 
   std::vector<double> time(ticks.size());

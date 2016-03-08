@@ -234,10 +234,7 @@ private:
 
 typedef std::vector<TrackExtra> TrackExtraVec;
 typedef std::vector<Track> TrackVec;
-// pointer to an object in a vector is a bad idea, if the vector has to
-// resize that invalidates the pointer...
-//typedef std::vector<const Track*> TrackRefVec;
 typedef std::vector<TrackState> TSVec;
 typedef std::vector<std::pair<int, TrackState> > TSLayerPairVec;
-
+typedef std::vector<std::pair<int, float> > FltLayerPairVec; // used exclusively for debugtree
 #endif

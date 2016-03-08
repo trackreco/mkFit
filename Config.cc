@@ -2,8 +2,14 @@
 
 namespace Config
 {
+
+#ifdef SUPERDEBUG // to avoid include of Config.h
+  int nTracks = 1;
+  int nEvents = 100000;
+#else
   int nTracks = 20000;
   int nEvents = 10;
+#endif
 
   // Multi threading and Clone engine configuration
   int   numThreadsFinder = 1;
