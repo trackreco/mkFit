@@ -251,9 +251,9 @@ void Event::Fit()
 
 void Event::Validate(int ievt){
   // KM: Config tree just filled once... in main.cc
-  validation_.makeSimTkToRecoTksMaps(*this);
-  validation_.makeSeedTkToRecoTkMaps(*this);
   if (!Config::super_debug){ // regular validation
+    validation_.makeSimTkToRecoTksMaps(*this);
+    validation_.makeSeedTkToRecoTkMaps(*this);
     validation_.fillSegmentTree(segmentMap_,ievt);
     validation_.fillBranchTree(ievt);
     validation_.fillEfficiencyTree(*this);

@@ -130,7 +130,7 @@ int main(int argc, char** argv)
     ev.Segment();            ticks[1] += delta(t0);
     ev.Seed();               ticks[2] += delta(t0);
     ev.Find();               ticks[3] += delta(t0);
-    if (!Config::super_debug) ev.Fit();                ticks[4] += delta(t0);
+    if (!Config::super_debug) {ev.Fit();                ticks[4] += delta(t0);}
     ev.Validate(ev.evtID()); ticks[5] += delta(t0);
 #endif
 
