@@ -8,6 +8,12 @@
 
 namespace Config
 {
+#ifdef SUPERDEBUG
+  constexpr bool super_debug = true;
+#else
+  constexpr bool super_debug = false;
+#endif
+
   // math general --> from namespace TMath
   constexpr float    PI    = 3.14159265358979323846;
   constexpr float TwoPI    = 6.28318530717958647692;

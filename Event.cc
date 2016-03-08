@@ -60,6 +60,9 @@ Event::Event(const Geometry& g, Validation& v, int evtID, int threads) : geom_(g
   segmentMap_.resize(Config::nLayers);
 
   validation_.resetValidationMaps(); // need to reset maps for every event.
+  if (Config::super_debug) {
+    validation_.resetDebugVectors(); // need to reset vectors for every event.
+  }
 }
 
 void Event::Simulate()
@@ -218,6 +221,7 @@ void Event::Segment()
 #ifdef ENDTOEND
   buildSeedsByRoadTriplets(seedTracks_,seedTracksExtra_,layerHits_,segmentMap_,*this);
   //buildSeedsByRZFirstRPhiSecond(seedTracks_,seedTracksExtra_,layerHits_,segmentMap_,*this);
+  //buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
 #else
   buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
 #endif
@@ -247,14 +251,19 @@ void Event::Fit()
 
 void Event::Validate(int ievt){
   // KM: Config tree just filled once... in main.cc
-  validation_.makeSimTkToRecoTksMaps(*this);
-  validation_.makeSeedTkToRecoTkMaps(*this);
-  validation_.fillSegmentTree(segmentMap_,ievt);
-  validation_.fillBranchTree(ievt);
-  validation_.fillEfficiencyTree(*this);
-  validation_.fillFakeRateTree(*this);
-  validation_.fillGeometryTree(*this);
-  validation_.fillConformalTree(*this);
+  if (!Config::super_debug){ // regular validation
+    validation_.makeSimTkToRecoTksMaps(*this);
+    validation_.makeSeedTkToRecoTkMaps(*this);
+    validation_.fillSegmentTree(segmentMap_,ievt);
+    validation_.fillBranchTree(ievt);
+    validation_.fillEfficiencyTree(*this);
+    validation_.fillFakeRateTree(*this);
+    validation_.fillGeometryTree(*this);
+    validation_.fillConformalTree(*this);
+  }
+  else{ // super debug mode
+    validation_.fillDebugTree(*this);
+  }
 }
 
 void Event::PrintStats(const TrackVec& trks, TrackExtraVec& trkextras)
