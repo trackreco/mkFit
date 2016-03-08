@@ -24,7 +24,7 @@
   g_FIT_VU->GetYaxis()->SetTitle("Time for "+ntrk+" tracks [s]");
   g_FIT_VU->GetYaxis()->SetTitleOffset(1.25);
   g_FIT_VU->GetXaxis()->SetRangeUser(1,maxvu);
-  g_FIT_VU->GetYaxis()->SetRangeUser(0,1.2*g_FIT_VU->GetY()[0]);
+  g_FIT_VU->GetYaxis()->SetRangeUser(0,(isMic ? 45 : 8));
   g_FIT_VU->SetLineWidth(2);
   g_FIT_VU->SetLineColor(kBlue);
   g_FIT_VU->SetMarkerStyle(kFullCircle);
@@ -61,13 +61,14 @@
   c2.SaveAs(hORm+"_vu_fitspeedup.png");
 
   TCanvas c3;
+  if (isMic) c3.SetLogy();
   TGraph* g_FIT_TH = (TGraph*) f->Get("g_FIT_TH");
   g_FIT_TH->SetTitle("Parallelization benchmark on "+label);
   g_FIT_TH->GetXaxis()->SetTitle("Number of Threads");
   g_FIT_TH->GetYaxis()->SetTitle("Time for "+ntrk+" tracks [s]");
   g_FIT_TH->GetYaxis()->SetTitleOffset(1.25);
   g_FIT_TH->GetXaxis()->SetRangeUser(1,maxth);
-  g_FIT_TH->GetYaxis()->SetRangeUser(0,1.2*g_FIT_TH->GetY()[0]);
+  g_FIT_TH->GetYaxis()->SetRangeUser((isMic ? 0.01 : 0),(isMic ? 10 : 2));
   g_FIT_TH->SetLineWidth(2);
   g_FIT_TH->SetLineColor(kBlue);
   g_FIT_TH->SetMarkerStyle(kFullCircle);
@@ -78,7 +79,6 @@
   leg_TH->AddEntry(g_FIT_TH,"Fit","LP");
   leg_TH->Draw();
   c3.SetGridy();
-  if (isMic) c3.SetLogy();
   c3.Update();
   c3.SaveAs(hORm+"_th_fittime.png");
 

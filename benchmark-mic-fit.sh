@@ -30,7 +30,7 @@ sed -i "s/MPT_SIZE=${nvu}/MPT_SIZE=XX/g" Makefile.config
 done
 sed -i 's/USE_INTRINSICS := -DMPT_SIZE=XX/# USE_INTRINSICS := -DMPT_SIZE=1/g' Makefile.config
 
-sed -i 's/int nTracks = 500000/int nTracks = 20000/g' Config.cc 
+sed -i 's/int nTracks = 1000000/int nTracks = 20000/g' Config.cc 
 
 make clean
 make -j 8
