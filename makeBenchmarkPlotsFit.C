@@ -9,7 +9,6 @@
   if (isMic) label+=" Phi";
 
   TString ntrk = "1M";
-  if (isMic) ntrk = "500k";
 
   float maxvu = 8;
   if (isMic) maxvu = 16;
