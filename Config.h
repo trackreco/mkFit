@@ -8,11 +8,9 @@
 
 namespace Config
 {
-#ifdef SUPERDEBUG
-  constexpr bool super_debug = true;
-#else
-  constexpr bool super_debug = false;
-#endif
+  // super debug mode in SMatrix
+  extern bool super_debug;
+  extern bool cf_seeding;
 
   // math general --> from namespace TMath
   constexpr float    PI    = 3.14159265358979323846;

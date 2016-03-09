@@ -221,9 +221,9 @@ void Event::Segment()
 #ifdef ENDTOEND
   buildSeedsByRoadTriplets(seedTracks_,seedTracksExtra_,layerHits_,segmentMap_,*this);
   //buildSeedsByRZFirstRPhiSecond(seedTracks_,seedTracksExtra_,layerHits_,segmentMap_,*this);
-  //buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
 #else
   buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
+  simTracksExtra_ = seedTracksExtra_;
 #endif
   std::sort(seedTracks_.begin(), seedTracks_.end(), tracksByPhi);
   validation_.alignTrackExtra(seedTracks_,seedTracksExtra_);   // if we sort here, also have to sort seedTracksExtra and redo labels.

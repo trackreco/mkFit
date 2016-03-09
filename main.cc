@@ -5,6 +5,7 @@
 
 #include <sstream>
 #include <chrono>
+#include <list>
 
 #include "Matrix.h"
 #include "Event.h"
@@ -93,8 +94,81 @@ static tick delta(timepoint& t0)
   return d;
 }
 
-int main(int argc, char** argv)
+// also from mkfit
+typedef std::list<std::string> lStr_t;
+typedef lStr_t::iterator       lStr_i;
+
+void next_arg_or_die(lStr_t& args, lStr_i& i, bool allow_single_minus=false)
 {
+  lStr_i j = i;
+  if (++j == args.end() ||
+      ((*j)[0] == '-' && ! (*j == "-" && allow_single_minus)))
+  {
+    std::cerr <<"Error: option "<< *i <<" requires an argument.\n";
+    exit(1);
+  }
+  i = j;
+}
+
+int main(int argc, const char* argv[])
+{
+#ifdef TBB
+  auto nThread(tbb::task_scheduler_init::default_num_threads());
+#else
+  auto nThread = 1;
+#endif
+
+  // following mkFit on argv
+  lStr_t mArgs; 
+  for (int i = 1; i < argc; ++i)
+  {
+    mArgs.push_back(argv[i]);
+  }
+
+  lStr_i i  = mArgs.begin();
+  while (i != mArgs.end())
+  {
+    lStr_i start = i;
+
+    if (*i == "-h" || *i == "-help" || *i == "--help")
+    {
+      printf(
+        "Usage: %s [options]\n"
+        "Options:\n"
+	"  --num-thr       <num>    number of threads used for TBB  (def: %d)\n"
+	"  --super-debug            bool to enable super debug mode (def: %s)\n"
+	"  --cf-seeding             bool to enable CF in MC seeding (def: %s)\n"
+        ,
+        argv[0],
+        nThread, 
+	(Config::super_debug ? "true" : "false"),
+	(Config::cf_seeding  ? "true" : "false")
+      );
+      exit(0);
+    }
+    else if (*i == "--num-thr")
+    {
+      next_arg_or_die(mArgs, i);
+      nThread = atoi(i->c_str());
+    }
+    else if (*i == "--super-debug")
+    {
+      Config::super_debug = true;
+      Config::nTracks     = 1;
+      Config::nEvents     = 100000;
+    }
+    else if (*i == "--cf-seeding")
+    {
+      Config::cf_seeding = true;
+    }
+    else
+    {
+      fprintf(stderr, "Error: Unknown option/argument '%s'.\n", i->c_str());
+      exit(1);
+    }
+    mArgs.erase(start, ++i);
+  }
+
   Geometry geom;
   initGeom(geom);
 #if defined(NO_ROOT)
@@ -110,14 +184,8 @@ int main(int argc, char** argv)
   std::vector<tick> ticks(6);
   std::vector<unsigned int> tracks(4);
 #ifdef TBB
-  auto nThread(tbb::task_scheduler_init::default_num_threads());
-  if (argc > 1) {
-    nThread = ::atoi(argv[1]);
-  }
   std::cout << "Initializing with " << nThread << " threads." << std::endl;
   tbb::task_scheduler_init tasks(nThread);
-#else
-  auto nThread = 1;
 #endif
 
   for (int evt=0; evt<Config::nEvents; ++evt) {
@@ -125,17 +193,16 @@ int main(int argc, char** argv)
     std::cout << "EVENT #"<< ev.evtID() << std::endl;
 
     timepoint t0(now());
-#ifdef ENDTOEND
     ev.Simulate();           ticks[0] += delta(t0);
     ev.Segment();            ticks[1] += delta(t0);
     ev.Seed();               ticks[2] += delta(t0);
     ev.Find();               ticks[3] += delta(t0);
     if (!Config::super_debug) {ev.Fit();                ticks[4] += delta(t0);}
     ev.Validate(ev.evtID()); ticks[5] += delta(t0);
-#endif
 
     if (!Config::super_debug) {
-      std::cout << "sim: " << ev.simTracks_.size() << " seed: " << ev.seedTracks_.size() << " found: " << ev.candidateTracks_.size() << " fit: " << ev.fitTracks_.size() << std::endl;
+      std::cout << "sim: " << ev.simTracks_.size() << " seed: " << ev.seedTracks_.size() << " found: " 
+		<< ev.candidateTracks_.size() << " fit: " << ev.fitTracks_.size() << std::endl;
       tracks[0] += ev.simTracks_.size();
       tracks[1] += ev.seedTracks_.size();
       tracks[2] += ev.candidateTracks_.size();

@@ -17,7 +17,6 @@ inline float predz(const float z0, const float r0, const float z2, const float r
 
 void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_extras, Event& ev){
   bool debug(true);
-  bool cfseed(false); // use CF fit for initial estimate
 
   for (int itrack=0;itrack<evt_sim_tracks.size();++itrack) {
     const Track& trk = evt_sim_tracks[itrack];
@@ -25,7 +24,7 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, T
     float sumchi2 = 0;
 
     TrackState updatedState;
-    if (cfseed) {
+    if (Config::cf_seeding) {
       conformalFit(ev.layerHits_[0][trk.getHitIdx(0)],ev.layerHits_[1][trk.getHitIdx(1)],ev.layerHits_[2][trk.getHitIdx(2)],trk.charge(),updatedState,false); 
     }
     else {
