@@ -53,3 +53,19 @@ python makePlotsFromDump.py _mic_10x20k_ST_NVU16int_NTH210
 sed -i 's/\/\/TString test = "ST"/TString test = \"ST\"/g' makePlotsFromDump.C
 root -b -q -l makePlotsFromDump.C
 sed -i 's/TString test = "ST"/\/\/TString test = \"ST\"/g' makePlotsFromDump.C
+
+python makePlotsFromDump.py _host_10x20k_TBB_NVU1_NTH1
+python makePlotsFromDump.py _host_10x20k_TBB_NVU8int_NTH21
+python makePlotsFromDump.py _mic_10x20k_TBB_NVU1_NTH1
+python makePlotsFromDump.py _mic_10x20k_TBB_NVU16int_NTH210
+sed -i 's/\/\/TString test = "TBB"/TString test = \"TBB\"/g' makePlotsFromDump.C
+root -b -q -l makePlotsFromDump.C
+sed -i 's/TString test = "TBB"/\/\/TString test = \"TBB\"/g' makePlotsFromDump.C
+
+python makePlotsFromDump.py _host_10x20k_TBBST_NVU1_NTH1
+python makePlotsFromDump.py _host_10x20k_TBBST_NVU8int_NTH21
+python makePlotsFromDump.py _mic_10x20k_TBBST_NVU1_NTH1
+python makePlotsFromDump.py _mic_10x20k_TBBST_NVU16int_NTH210
+sed -i 's/\/\/TString test = "TBBST"/TString test = \"TBBST\"/g' makePlotsFromDump.C
+root -b -q -l makePlotsFromDump.C
+sed -i 's/TString test = "TBBST"/\/\/TString test = \"TBBST\"/g' makePlotsFromDump.C

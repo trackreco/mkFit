@@ -6,6 +6,8 @@
   //TString test = "CE";
   //TString test = "BH";
   //TString test = "ST";
+  //TString test = "TBBST";
+  //TString test = "TBB";
 
   TCanvas c1;
   c1.SetLogy();
@@ -14,10 +16,12 @@
   TH1F* h1 = (TH1F*) f1->Get("h_MXNH");
   h1->SetLineColor(kBlack);
   h1->SetLineWidth(2);
-  if (test== "CEST") h1->SetTitle("CloneEngineSingleThread");
+  if (test== "CEST") h1->SetTitle("CloneEngineSameThread");
   if (test== "CE") h1->SetTitle("CloneEngine");
   if (test== "BH") h1->SetTitle("BestHit");
   if (test== "ST") h1->SetTitle("NoCloneEngine");
+  if (test== "TBBST") h1->SetTitle("TBB-SameThread");
+  if (test== "TBB") h1->SetTitle("TBB-CE");
   h1->GetXaxis()->SetTitle("Number of Hits Found");
   h1->GetYaxis()->SetTitle("Fraction of Tracks");
   h1->DrawNormalized();
