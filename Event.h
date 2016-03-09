@@ -44,7 +44,7 @@ public:
 
   TrackVec simTracks_, seedTracks_, candidateTracks_, fitTracks_;
   // validation sets these, so needs to be mutable
-  mutable TrackExtraVec seedTracksExtra_, candidateTracksExtra_, fitTracksExtra_;
+  mutable TrackExtraVec simTracksExtra_, seedTracksExtra_, candidateTracksExtra_, fitTracksExtra_;
 
   // phi-eta partitioning map: vector of vector of vectors of std::pairs. 
   // vec[nLayers][nEtaBins][nPhiBins]

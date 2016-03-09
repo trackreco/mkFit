@@ -51,6 +51,7 @@ class TTreeValidation : public Validation {
 public:
   TTreeValidation(std::string fileName);
 
+  void initializeDebugTree();
   void initializeSeedInfoTree();
   void initializeSeedTree();
   void initializeSegmentTree();
@@ -72,17 +73,22 @@ public:
                             const std::vector<int>& cand_hit_indices, const std::vector<int>& cand_hits_branches) override;
   void collectFitTkCFMapInfo(int seedID, const TrackState& cfitStateHit0) override;
   void collectFitTkTSLayerPairVecMapInfo(int seedID, const TSLayerPairVec& updatedStates) override;
+  void collectPropTSLayerVecInfo(int layer, const TrackState& propTS) override;
+  void collectChi2LayerVecInfo(int layer, float chi2) override;
+  void collectUpTSLayerVecInfo(int layer, const TrackState& upTS) override;
 
   void resetValidationMaps() override;
+  void resetDebugVectors() override;
+  void resetDebugTreeArrays();
   void makeSimTkToRecoTksMaps(Event& ev) override;
   void mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extra, const std::vector<HitVec>& layerHits, 
 			 const MCHitInfoVec&, TkIDToTkIDVecMap& simTkMap);
   void makeSeedTkToRecoTkMaps(Event& ev) override;
   void mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackExtraVec& evt_extras, TkIDToTkIDMap& seedTkMap);
 
+  void fillDebugTree(const Event& ev) override;
   void fillSeedInfoTree(const TripletIdxVec& hit_triplets, const Event& ev) override;
   void fillSeedTree(const TripletIdxVec& hit_triplets, const TripletIdxVec& filtered_triplets, const Event& ev) override;
-  
   void fillSegmentTree(const BinInfoMap& segmentMap, int evtID) override;
   void fillBranchTree(int evtID) override;
   void fillEfficiencyTree(const Event& ev) override;
@@ -99,9 +105,13 @@ public:
   TkIDToTSLayerPairVecMap seedTkTSLayerPairVecMap_; // used for position pulls for seed track
   TkIDToTSLayerPairVecMap fitTkTSLayerPairVecMap_; //  used for position pulls for fit track
   TkIDToBranchValVecLayMapMap seedToBranchValVecLayMapMap_; // map created inside collectBranchingInfo
+  
+  TSLayerPairVec  propTSLayerPairVec_; // used exclusively for debugtree (prop states)
+  FltLayerPairVec chi2LayerPairVec_; // used exclusively for debugtree 
+  TSLayerPairVec  upTSLayerPairVec_; // used exclusively for debugtree (updated states)
 
-  TkIDToTSVecMap simTkTSVecMap_; // used for pulls (map all sim track TS to sim ID)
-  TkIDToTSMap seedTkCFMap_; // map CF TS to seedID of seed track
+  TkIDToTSVecMap simTkTSVecMap_; // used for pulls (map all sim track TS to sim ID) ... also used in super debug mode
+  TkIDToTSMap seedTkCFMap_; // map CF TS to seedID of seed track ... also used in super debug mode
   TkIDToTSMap fitTkCFMap_; // map CF TS to seedID of fit track
 
   // Sim to Reco Maps
@@ -113,6 +123,56 @@ public:
   TkIDToTkIDMap seedToBuildMap_;
   TkIDToTkIDMap seedToFitMap_;
 
+  // debug tree
+  TTree* debugtree_;
+
+  int nlayers_debug_,event_debug_,nHits_debug_;
+  float pt_gen_debug_,phi_gen_debug_,eta_gen_debug_;
+
+  // mc truth
+  int mccharge_debug_;
+  int layer_mc_debug_[Config::nLayers];
+  float x_mc_debug_[Config::nLayers],y_mc_debug_[Config::nLayers],z_mc_debug_[Config::nLayers];
+  float exx_mc_debug_[Config::nLayers],eyy_mc_debug_[Config::nLayers],ezz_mc_debug_[Config::nLayers];
+  float px_mc_debug_[Config::nLayers],py_mc_debug_[Config::nLayers],pz_mc_debug_[Config::nLayers];
+  float pt_mc_debug_[Config::nLayers],phi_mc_debug_[Config::nLayers],eta_mc_debug_[Config::nLayers];
+  float invpt_mc_debug_[Config::nLayers],theta_mc_debug_[Config::nLayers];
+
+  // track info
+  int recocharge_debug_;
+
+  // cf info
+  float x_cf_debug_,y_cf_debug_,z_cf_debug_,exx_cf_debug_,eyy_cf_debug_,ezz_cf_debug_;
+  float px_cf_debug_,py_cf_debug_,pz_cf_debug_,epxpx_cf_debug_,epypy_cf_debug_,epzpz_cf_debug_;
+  float pt_cf_debug_,phi_cf_debug_,eta_cf_debug_,ept_cf_debug_,ephi_cf_debug_,eeta_cf_debug_;
+  float invpt_cf_debug_,theta_cf_debug_,einvpt_cf_debug_,etheta_cf_debug_;
+
+  // chi2 info
+  int layer_chi2_debug_[Config::nLayers];
+  float chi2_debug_[Config::nLayers];
+
+  // prop info
+  int layer_prop_debug_[Config::nLayers];
+  float x_prop_debug_[Config::nLayers],y_prop_debug_[Config::nLayers],z_prop_debug_[Config::nLayers];
+  float exx_prop_debug_[Config::nLayers],eyy_prop_debug_[Config::nLayers],ezz_prop_debug_[Config::nLayers];
+  float px_prop_debug_[Config::nLayers],py_prop_debug_[Config::nLayers],pz_prop_debug_[Config::nLayers];
+  float epxpx_prop_debug_[Config::nLayers],epypy_prop_debug_[Config::nLayers],epzpz_prop_debug_[Config::nLayers];
+  float pt_prop_debug_[Config::nLayers],phi_prop_debug_[Config::nLayers],eta_prop_debug_[Config::nLayers];
+  float ept_prop_debug_[Config::nLayers],ephi_prop_debug_[Config::nLayers],eeta_prop_debug_[Config::nLayers];
+  float invpt_prop_debug_[Config::nLayers],theta_prop_debug_[Config::nLayers];
+  float einvpt_prop_debug_[Config::nLayers],etheta_prop_debug_[Config::nLayers];
+
+  // update info
+  int layer_up_debug_[Config::nLayers];
+  float x_up_debug_[Config::nLayers],y_up_debug_[Config::nLayers],z_up_debug_[Config::nLayers];
+  float exx_up_debug_[Config::nLayers],eyy_up_debug_[Config::nLayers],ezz_up_debug_[Config::nLayers];
+  float px_up_debug_[Config::nLayers],py_up_debug_[Config::nLayers],pz_up_debug_[Config::nLayers];
+  float epxpx_up_debug_[Config::nLayers],epypy_up_debug_[Config::nLayers],epzpz_up_debug_[Config::nLayers];
+  float pt_up_debug_[Config::nLayers],phi_up_debug_[Config::nLayers],eta_up_debug_[Config::nLayers];
+  float ept_up_debug_[Config::nLayers],ephi_up_debug_[Config::nLayers],eeta_up_debug_[Config::nLayers];
+  float invpt_up_debug_[Config::nLayers],theta_up_debug_[Config::nLayers];
+  float einvpt_up_debug_[Config::nLayers],etheta_up_debug_[Config::nLayers];
+  
   // seedinfo tree
   TTree* seedinfotree_;
   int evtID_seedinfo_;
