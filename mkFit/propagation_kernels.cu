@@ -6,9 +6,9 @@
 #define LL 36
 #define LS 21
 
-#define BLOCK_SIZE_X 16
-#define BLOCK_SIZE_X_2 256
-#define BLOCK_SIZE_HELIX_AT 128
+// values from 32 to 512 give good results.
+// 32 gives slightly better results (on a K40)
+#define BLOCK_SIZE_X 32
 #define MAX_BLOCKS_X 65535 // CUDA constraint
 
 __device__ float hipo(float x, float y) {
@@ -24,79 +24,12 @@ __device__ void sincos4(float x, float& sin, float& cos) {
    cos += x;
 }
 
-// TODO: remove this function, has been superseed by the register version
-__device__ void computeJacobianSimple(int n, 
-    float *errorProp, size_t errorProp_stride,
+// computeJacobianSimple works on values that are in registers.
+// Registers are thread-private. Thus this function has no notion of
+// parallelism. It is ran serially by each calling thread.
+__device__ void computeJacobianSimple(float *errorProp,
     float s, float k, float p, float pxin, float pyin, float pzin, 
     float TP, float cosTP, float sinTP, int N) {
-
-  size_t epN = errorProp_stride;
-
-  // std::cout << "total path s=" << s << std::endl;
-  // TD = s*pt/p;
-  // TP = TD/(pt*k) = s/(p*k);
-  float dTPdpx = -s*pxin/(k*p*p*p);
-  float dTPdpy = -s*pyin/(k*p*p*p);
-  float dTPdpz = -s*pzin/(k*p*p*p);
-  //ok let's assume that the quantity with no error is the angular path (phase change)
-  dTPdpx = 0;
-  dTPdpy = 0;
-  dTPdpz = 0;
-  
-  //derive these to compute jacobian
-  //x = xin + k*(pxin*sinTP-pyin*(1-cosTP));
-  //y = yin + k*(pyin*sinTP+pxin*(1-cosTP));
-  //z = zin + k*TP*pzin;
-  //px = pxin*cosTP-pyin*sinTP;
-  //py = pyin*cosTP+pxin*sinTP;
-  //pz = pzin;
-  //jacobian
-  
-  errorProp[(0*L + 0)*epN + n] = 1.;	                                             //dxdx
-  errorProp[(0*L + 1)*epN + n] = 0.;	                                             //dxdy
-  errorProp[(0*L + 2)*epN + n] = 0.;                                                     //dxdz
-  errorProp[(0*L + 3)*epN + n] = k*(sinTP + pxin*cosTP*dTPdpx - pyin*sinTP*dTPdpx);      //dxdpx
-  errorProp[(0*L + 4)*epN + n] = k*(pxin*cosTP*dTPdpy - 1. + cosTP - pyin*sinTP*dTPdpy); //dxdpy
-  errorProp[(0*L + 5)*epN + n] = k*dTPdpz*(pxin*cosTP - pyin*sinTP);                     //dxdpz
-  errorProp[(1*L + 0)*epN + n] = 0.;	                                             //dydx
-  errorProp[(1*L + 1)*epN + n] = 1.;	                                             //dydy
-  errorProp[(1*L + 2)*epN + n] = 0.;                                                     //dydz
-  errorProp[(1*L + 3)*epN + n] = k*(pyin*cosTP*dTPdpx + 1. - cosTP + pxin*sinTP*dTPdpx); //dydpx
-  errorProp[(1*L + 4)*epN + n] = k*(sinTP + pyin*cosTP*dTPdpy + pxin*sinTP*dTPdpy);      //dydpy
-  errorProp[(1*L + 5)*epN + n] = k*dTPdpz*(pyin*cosTP + pxin*sinTP);                     //dydpz
-  errorProp[(2*L + 0)*epN + n] = 0.;	                                             //dzdx
-  errorProp[(2*L + 1)*epN + n] = 0.;	                                             //dzdy
-  errorProp[(2*L + 2)*epN + n] = 1.;                                                     //dzdz
-  errorProp[(2*L + 3)*epN + n] = k*pzin*dTPdpx;                                          //dzdpx
-  errorProp[(2*L + 4)*epN + n] = k*pzin*dTPdpy;                                          //dzdpy
-  errorProp[(2*L + 5)*epN + n] = k*(TP + dTPdpz*pzin);                                   //dzdpz
-  errorProp[(3*L + 0)*epN + n] = 0.;	                                             //dpxdx
-  errorProp[(3*L + 1)*epN + n] = 0.;	                                             //dpxdy
-  errorProp[(3*L + 2)*epN + n] = 0.;                                                     //dpxdz
-  errorProp[(3*L + 3)*epN + n] = cosTP - dTPdpx*(pxin*sinTP + pyin*cosTP);               //dpxdpx
-  errorProp[(3*L + 4)*epN + n] = -sinTP - dTPdpy*(pxin*sinTP + pyin*cosTP);              //dpxdpy
-  errorProp[(3*L + 5)*epN + n] = -dTPdpz*(pxin*sinTP + pyin*cosTP);                      //dpxdpz
-  errorProp[(4*L + 0)*epN + n] = 0.;                                                     //dpydx
-  errorProp[(4*L + 1)*epN + n] = 0.;	                                             //dpydy
-  errorProp[(4*L + 2)*epN + n] = 0.;                                                     //dpydz
-  errorProp[(4*L + 3)*epN + n] = +sinTP - dTPdpx*(pyin*sinTP - pxin*cosTP);              //dpydpx
-  errorProp[(4*L + 4)*epN + n] = +cosTP - dTPdpy*(pyin*sinTP - pxin*cosTP);              //dpydpy
-  errorProp[(4*L + 5)*epN + n] = -dTPdpz*(pyin*sinTP - pxin*cosTP);                      //dpydpz
-  errorProp[(5*L + 0)*epN + n] = 0.;                                                     //dpzdx
-  errorProp[(5*L + 1)*epN + n] = 0.;						     //dpzdy
-  errorProp[(5*L + 2)*epN + n] = 0.;						     //dpzdz 
-  errorProp[(5*L + 3)*epN + n] = 0.;						     //dpzdpx
-  errorProp[(5*L + 4)*epN + n] = 0.;						     //dpzdpy
-  errorProp[(5*L + 5)*epN + n] = 1.;						     //dpzdpz  
-}
-
-__device__ void computeJacobianSimple_reg(int n, 
-    float *errorProp, size_t errorProp_stride,
-    float s, float k, float p, float pxin, float pyin, float pzin, 
-    float TP, float cosTP, float sinTP, int N) {
-
-  /*int i = threadIdx.x;*/
-  /*size_t epN = errorProp_stride;*/
 
   // std::cout << "total path s=" << s << std::endl;
   // TD = s*pt/p;
@@ -156,45 +89,43 @@ __device__ void computeJacobianSimple_reg(int n,
   errorProp[(5*L + 5)] = 1.;						     //dpzdpz  
 }
 
-// inChg.stride is not passed as inChg is [QI][N], with QI == 1;
-// msRad.stride is not passed as msRad is [QF][N], with QF == 1;
-__global__ 
-/*__launch_bounds__(BLOCK_SIZE_HELIX_AT, 8)*/
-void helixAtRFromIterative_kernel(float *inPar, size_t inPar_stride,
-    int *inChg, float *outPar, size_t outPar_stride, float *msRad, 
-    float *errorProp, size_t errorProp_stride, int N) {
+/// Compute MsRad /////////////////////////////////////////////////////////////
+// Not passing msRad.stride, as QF == 1 (second dim f msRad)
+__device__ void computeMsRad_fn(const float* __restrict__ msPar,
+    size_t stride_msPar, float* msRad, int N, int n) {
+  /*int n = threadIdx.x + blockIdx.x * blockDim.x;*/
+  if (n < N) {
+    *msRad = hipo(msPar[n], msPar[n + stride_msPar]);
+  }
+}
 
-  size_t epN = errorProp_stride;
+__device__ 
+void helixAtRFromIterative_fn(float *inPar, size_t inPar_stride,
+    int *inChg, float *outPar, size_t outPar_stride, float msRad, 
+    float *errorProp_reg, int N, int n) {
+
   size_t opN = outPar_stride;
   size_t ipN = inPar_stride;
 
-  int n = threadIdx.x + blockIdx.x * blockDim.x;
-  /*int i = threadIdx.x;*/
+  /*int n = threadIdx.x + blockIdx.x * blockDim.x;*/
 
   float outPar_reg[5];
-  /*__shared__ float sh_errorProp[LL][BLOCK_SIZE_HELIX_AT];*/
-  float sh_errorProp[LL];
 
   if (n < N) {
     for (int j = 0; j < 5; ++j) {
       outPar_reg[j] = outPar[n+j*opN]; 
     }
-    for (int j = 0; j < LL; ++j) {
-      /*sh_errorProp[j][i] = errorProp[n + j*epN]; */
-      sh_errorProp[j] = errorProp[n + j*epN]; 
-    }
-   //const T& ConstAt(idx_t n, idx_t i, idx_t j) const { return fArray[(i * D2 + j) * N + n]; }
     const float& xin = inPar[n + 0*ipN]; 
     const float& yin = inPar[n + 1*ipN]; 
     const float& pxin = inPar[n + 3*ipN]; 
     const float& pyin = inPar[n + 4*ipN]; 
     const float& pzin = inPar[n + 5*ipN]; 
-    const float& r = msRad[n]; 
+    const float& r = msRad; 
     float r0 = hipo(xin, yin);
 
     if (fabs(r-r0)<0.0001) {
       // get an identity matrix
-      computeJacobianSimple_reg(n, sh_errorProp, epN, 0, 1, 1, 1, 1, 1, 0, 1, 0, N);
+      computeJacobianSimple(errorProp_reg, 0, 1, 1, 1, 1, 1, 0, 1, 0, N);
       return;  // continue;
     }
     float pt2    = pxin*pxin+pyin*pyin;
@@ -228,7 +159,6 @@ void helixAtRFromIterative_kernel(float *inPar, size_t inPar_stride,
     // float dydvar = 0.;
     //5 iterations is a good starting point
     //const unsigned int Niter = 10;
-    // TODO: remove this function, has been superseed by the register version
     // const unsigned int Niter = 5+std::round(r-r0)/2;
     for (unsigned int iter=0; iter < Config::Niter; ++iter) {
       x  = outPar_reg[0];
@@ -310,7 +240,7 @@ void helixAtRFromIterative_kernel(float *inPar, size_t inPar_stride,
         float p = pt2 + pzin*pzin;
         p = sqrt(p);
         float s = TD*p*ptinv;
-        computeJacobianSimple_reg(n, sh_errorProp, epN, s, k, p, pxin, pyin, pzin, TP, cosTP, sinTP, N);
+        computeJacobianSimple(errorProp_reg, s, k, p, pxin, pyin, pzin, TP, cosTP, sinTP, N);
       } else {
         //now try to make full jacobian
         //derive these to compute jacobian
@@ -322,196 +252,189 @@ void helixAtRFromIterative_kernel(float *inPar, size_t inPar_stride,
         //pz = pzin;
         //jacobian
 
-        sh_errorProp[(0*L + 0)] = 1 + k*dTPdx*(pxin*cosTP - pyin*sinTP);	//dxdx;
-        sh_errorProp[(0*L + 1)] = k*dTPdy*(pxin*cosTP - pyin*sinTP);	//dxdy;
-        sh_errorProp[(0*L + 2)] = 0.;
-        sh_errorProp[(0*L + 3)] = k*(sinTP + pxin*cosTP*dTPdpx - pyin*sinTP*dTPdpx); //dxdpx;
-        sh_errorProp[(0*L + 4)] = k*(pxin*cosTP*dTPdpy - 1. + cosTP - pyin*sinTP*dTPdpy);//dxdpy;
-        sh_errorProp[(0*L + 5)] = 0.;
+        errorProp_reg[(0*L + 0)] = 1 + k*dTPdx*(pxin*cosTP - pyin*sinTP);	//dxdx;
+        errorProp_reg[(0*L + 1)] = k*dTPdy*(pxin*cosTP - pyin*sinTP);	//dxdy;
+        errorProp_reg[(0*L + 2)] = 0.;
+        errorProp_reg[(0*L + 3)] = k*(sinTP + pxin*cosTP*dTPdpx - pyin*sinTP*dTPdpx); //dxdpx;
+        errorProp_reg[(0*L + 4)] = k*(pxin*cosTP*dTPdpy - 1. + cosTP - pyin*sinTP*dTPdpy);//dxdpy;
+        errorProp_reg[(0*L + 5)] = 0.;
 
-        sh_errorProp[(1*L + 0)] = k*dTPdx*(pyin*cosTP + pxin*sinTP);	//dydx;
-        sh_errorProp[(1*L + 1)] = 1 + k*dTPdy*(pyin*cosTP + pxin*sinTP);	//dydy;
-        sh_errorProp[(1*L + 2)] = 0.;
-        sh_errorProp[(1*L + 3)] = k*(pyin*cosTP*dTPdpx + 1. - cosTP + pxin*sinTP*dTPdpx);//dydpx;
-        sh_errorProp[(1*L + 4)] = k*(sinTP + pyin*cosTP*dTPdpy + pxin*sinTP*dTPdpy); //dydpy;
-        sh_errorProp[(1*L + 5)] = 0.;
+        errorProp_reg[(1*L + 0)] = k*dTPdx*(pyin*cosTP + pxin*sinTP);	//dydx;
+        errorProp_reg[(1*L + 1)] = 1 + k*dTPdy*(pyin*cosTP + pxin*sinTP);	//dydy;
+        errorProp_reg[(1*L + 2)] = 0.;
+        errorProp_reg[(1*L + 3)] = k*(pyin*cosTP*dTPdpx + 1. - cosTP + pxin*sinTP*dTPdpx);//dydpx;
+        errorProp_reg[(1*L + 4)] = k*(sinTP + pyin*cosTP*dTPdpy + pxin*sinTP*dTPdpy); //dydpy;
+        errorProp_reg[(1*L + 5)] = 0.;
 
-        sh_errorProp[(2*L + 0)] = k*pzin*dTPdx;	//dzdx;
-        sh_errorProp[(2*L + 1)] = k*pzin*dTPdy;	//dzdy;
-        sh_errorProp[(2*L + 2)] = 1.;
-        sh_errorProp[(2*L + 3)] = k*pzin*dTPdpx;//dzdpx;
-        sh_errorProp[(2*L + 4)] = k*pzin*dTPdpy;//dzdpy;
-        sh_errorProp[(2*L + 5)] = k*TP; //dzdpz;
+        errorProp_reg[(2*L + 0)] = k*pzin*dTPdx;	//dzdx;
+        errorProp_reg[(2*L + 1)] = k*pzin*dTPdy;	//dzdy;
+        errorProp_reg[(2*L + 2)] = 1.;
+        errorProp_reg[(2*L + 3)] = k*pzin*dTPdpx;//dzdpx;
+        errorProp_reg[(2*L + 4)] = k*pzin*dTPdpy;//dzdpy;
+        errorProp_reg[(2*L + 5)] = k*TP; //dzdpz;
 
-        sh_errorProp[(3*L + 0)] = -dTPdx*(pxin*sinTP + pyin*cosTP);	//dpxdx;
-        sh_errorProp[(3*L + 1)] = -dTPdy*(pxin*sinTP + pyin*cosTP);	//dpxdy;
-        sh_errorProp[(3*L + 2)] = 0.;
-        sh_errorProp[(3*L + 3)] = cosTP - dTPdpx*(pxin*sinTP + pyin*cosTP); //dpxdpx;
-        sh_errorProp[(3*L + 4)] = -sinTP - dTPdpy*(pxin*sinTP + pyin*cosTP);//dpxdpy;
-        sh_errorProp[(3*L + 5)] = 0.;
+        errorProp_reg[(3*L + 0)] = -dTPdx*(pxin*sinTP + pyin*cosTP);	//dpxdx;
+        errorProp_reg[(3*L + 1)] = -dTPdy*(pxin*sinTP + pyin*cosTP);	//dpxdy;
+        errorProp_reg[(3*L + 2)] = 0.;
+        errorProp_reg[(3*L + 3)] = cosTP - dTPdpx*(pxin*sinTP + pyin*cosTP); //dpxdpx;
+        errorProp_reg[(3*L + 4)] = -sinTP - dTPdpy*(pxin*sinTP + pyin*cosTP);//dpxdpy;
+        errorProp_reg[(3*L + 5)] = 0.;
 
-        sh_errorProp[(4*L + 0)] = -dTPdx*(pyin*sinTP - pxin*cosTP); //dpydx;
-        sh_errorProp[(4*L + 1)] = -dTPdy*(pyin*sinTP - pxin*cosTP);	//dpydy;
-        sh_errorProp[(4*L + 2)] = 0.;
-        sh_errorProp[(4*L + 3)] = +sinTP - dTPdpx*(pyin*sinTP - pxin*cosTP);//dpydpx;
-        sh_errorProp[(4*L + 4)] = +cosTP - dTPdpy*(pyin*sinTP - pxin*cosTP);//dpydpy;
-        sh_errorProp[(4*L + 5)] = 0.;
+        errorProp_reg[(4*L + 0)] = -dTPdx*(pyin*sinTP - pxin*cosTP); //dpydx;
+        errorProp_reg[(4*L + 1)] = -dTPdy*(pyin*sinTP - pxin*cosTP);	//dpydy;
+        errorProp_reg[(4*L + 2)] = 0.;
+        errorProp_reg[(4*L + 3)] = +sinTP - dTPdpx*(pyin*sinTP - pxin*cosTP);//dpydpx;
+        errorProp_reg[(4*L + 4)] = +cosTP - dTPdpy*(pyin*sinTP - pxin*cosTP);//dpydpy;
+        errorProp_reg[(4*L + 5)] = 0.;
 
-        sh_errorProp[(5*L + 0)] = 0.;
-        sh_errorProp[(5*L + 1)] = 0.;
-        sh_errorProp[(5*L + 2)] = 0.;
-        sh_errorProp[(5*L + 3)] = 0.;
-        sh_errorProp[(5*L + 4)] = 0.;
-        sh_errorProp[(5*L + 5)] = 1.;
+        errorProp_reg[(5*L + 0)] = 0.;
+        errorProp_reg[(5*L + 1)] = 0.;
+        errorProp_reg[(5*L + 2)] = 0.;
+        errorProp_reg[(5*L + 3)] = 0.;
+        errorProp_reg[(5*L + 4)] = 0.;
+        errorProp_reg[(5*L + 5)] = 1.;
       }
     }
+    // Once computations are done. Get values from registers to global memory.
     for (int j = 0; j < 5; ++j) {
       outPar[n + j*opN] = outPar_reg[j];
-    }
-    for (int j = 0; j < LL; ++j) {
-      /*errorProp[n + j*epN] = sh_errorProp[j][i];*/
-      errorProp[n + j*epN] = sh_errorProp[j];
     }
   }
 }
 
-
-void helixAtRFromIterative_wrapper(dim3 grid, dim3 block, cudaStream_t& stream,
-    GPlex<float>& inPar, GPlex<int>& inChg, GPlex<float>& outPar,
-    GPlex<float>& msRad, GPlex<float>& errorProp, int N) {
-  int gridx = std::min((N-1)/BLOCK_SIZE_HELIX_AT + 1,
-                       MAX_BLOCKS_X);
-  dim3 grid2(gridx, 1, 1);
-  dim3 block2(BLOCK_SIZE_HELIX_AT, 1, 1);
-  helixAtRFromIterative_kernel<<<grid2, block2, 0, stream>>>
-      (inPar.ptr, inPar.stride, inChg.ptr, outPar.ptr, outPar.stride, 
-       msRad.ptr, errorProp.ptr, errorProp.stride, N);
-}
-
 /// Similarity ////////////////////////////////////////////////////////////////
-/*__global__ void similarity_kernel(float *errorProp, size_t errorProp_stride,*/
-    /*float *outErr, size_t stride_outErr, int N) {*/
-  /*float *a = errorProp; float *b = outErr; // float *c = temp*/
-__global__ void similarity_kernel(const float* __restrict__ a, size_t errorProp_stride,
-    float *b, size_t stride_outErr, int N) {
-  /*float *a = errorProp; float *b = outErr; // float *c = temp*/
-  size_t aN = errorProp_stride;
+__device__ void similarity_fn(float* a, float *b, size_t stride_outErr,
+    int N, int n) {
   size_t bN = stride_outErr;
   
-  /*__shared__ float sh_a[LL][BLOCK_SIZE_X_2];*/
-  /*__shared__ float sh_b[LS][BLOCK_SIZE_X];*/
-  float sh_b[LL];
+  // Keep most values in registers.
+  float b_reg[LL];
+  // To avoid using too many registers, tmp[] as a limited size and is reused.
   float tmp[6];
 
-  /*int i = threadIdx.x;*/
-  int n = threadIdx.x + blockIdx.x * blockDim.x;
+  /*int n = threadIdx.x + blockIdx.x * blockDim.x;*/
 
   if (n < N) {
-    for (int j = 0; j < LL; j++) {
-      /*sh_a[j][i] = a[n + j*aN];*/
-    }
     for (int j = 0; j < LS; j++) {
-      /*sh_b[j][i] = b[n + j*bN];*/
-      sh_b[j] = b[n + j*bN];
+      b_reg[j] = b[n + j*bN];
     }
 
-    tmp[ 0] = a[n+ 0*aN]*sh_b[ 0] + a[n+ 1*aN]*sh_b[ 1] + a[n+ 3*aN]*sh_b[ 6] + a[n+ 4*aN]*sh_b[10];
-    tmp[ 1] = a[n+ 0*aN]*sh_b[ 1] + a[n+ 1*aN]*sh_b[ 2] + a[n+ 3*aN]*sh_b[ 7] + a[n+ 4*aN]*sh_b[11];
-    /*tmp[ 2] = a[n+ 0*aN]*sh_b[ 3] + a[n+ 1*aN]*sh_b[ 4] + a[n+ 3*aN]*sh_b[ 8] + a[n+ 4*aN]*sh_b[12];*/
-    tmp[ 3] = a[n+ 0*aN]*sh_b[ 6] + a[n+ 1*aN]*sh_b[ 7] + a[n+ 3*aN]*sh_b[ 9] + a[n+ 4*aN]*sh_b[13];
-    tmp[ 4] = a[n+ 0*aN]*sh_b[10] + a[n+ 1*aN]*sh_b[11] + a[n+ 3*aN]*sh_b[13] + a[n+ 4*aN]*sh_b[14];
-    /*tmp[ 5] = a[n+ 0*aN]*sh_b[15] + a[n+ 1*aN]*sh_b[16] + a[n+ 3*aN]*sh_b[18] + a[n+ 4*aN]*sh_b[19];*/
+    tmp[ 0] = a[0]*b_reg[ 0] + a[1]*b_reg[ 1] + a[3]*b_reg[ 6] + a[4]*b_reg[10];
+    tmp[ 1] = a[0]*b_reg[ 1] + a[1]*b_reg[ 2] + a[3]*b_reg[ 7] + a[4]*b_reg[11];
+    /*tmp[ 2] = a[0]*b_reg[ 3] + a[1]*b_reg[ 4] + a[3]*b_reg[ 8] + a[4]*b_reg[12];*/
+    tmp[ 3] = a[0]*b_reg[ 6] + a[1]*b_reg[ 7] + a[3]*b_reg[ 9] + a[4]*b_reg[13];
+    tmp[ 4] = a[0]*b_reg[10] + a[1]*b_reg[11] + a[3]*b_reg[13] + a[4]*b_reg[14];
+    /*tmp[ 5] = a[0]*b_reg[15] + a[1]*b_reg[16] + a[3]*b_reg[18] + a[4]*b_reg[19];*/
 
-    b[ 0*bN+n] = tmp[ 0]*a[n+ 0*aN] + tmp[ 1]*a[n+ 1*aN] + tmp[ 3]*a[n+ 3*aN] + tmp[ 4]*a[n+ 4*aN];
-
-
-    tmp[ 0] = a[n+ 6*aN]*sh_b[ 0] + a[n+ 7*aN]*sh_b[ 1] + a[n+ 9*aN]*sh_b[ 6] + a[n+10*aN]*sh_b[10];
-    tmp[ 1] = a[n+ 6*aN]*sh_b[ 1] + a[n+ 7*aN]*sh_b[ 2] + a[n+ 9*aN]*sh_b[ 7] + a[n+10*aN]*sh_b[11];
-    /*tmp[ 8] = a[n+ 6*aN]*sh_b[ 3] + a[n+ 7*aN]*sh_b[ 4] + a[n+ 9*aN]*sh_b[ 8] + a[n+10*aN]*sh_b[12];*/
-    tmp[ 3] = a[n+ 6*aN]*sh_b[ 6] + a[n+ 7*aN]*sh_b[ 7] + a[n+ 9*aN]*sh_b[ 9] + a[n+10*aN]*sh_b[13];
-    tmp[ 4] = a[n+ 6*aN]*sh_b[10] + a[n+ 7*aN]*sh_b[11] + a[n+ 9*aN]*sh_b[13] + a[n+10*aN]*sh_b[14];
-    /*tmp[11] = a[n+ 6*aN]*sh_b[15] + a[n+ 7*aN]*sh_b[16] + a[n+ 9*aN]*sh_b[18] + a[n+10*aN]*sh_b[19];*/
-
-    b[ 1*bN+n] = tmp[ 0]*a[n+ 0*aN] + tmp[ 1]*a[n+ 1*aN] + tmp[ 3]*a[n+ 3*aN] + tmp[ 4]*a[n+ 4*aN];
-    b[ 2*bN+n] = tmp[ 0]*a[n+ 6*aN] + tmp[ 1]*a[n+ 7*aN] + tmp[ 3]*a[n+ 9*aN] + tmp[ 4]*a[n+10*aN];
+    b[ 0*bN+n] = tmp[ 0]*a[0] + tmp[ 1]*a[1] + tmp[ 3]*a[3] + tmp[ 4]*a[4];
 
 
-    tmp[ 0] = a[n+12*aN]*sh_b[ 0] + a[n+13*aN]*sh_b[ 1] + sh_b[ 3] + a[n+15*aN]*sh_b[ 6] + a[n+16*aN]*sh_b[10] + a[n+17*aN]*sh_b[15];
-    tmp[ 1] = a[n+12*aN]*sh_b[ 1] + a[n+13*aN]*sh_b[ 2] + sh_b[ 4] + a[n+15*aN]*sh_b[ 7] + a[n+16*aN]*sh_b[11] + a[n+17*aN]*sh_b[16];
-    tmp[ 2] = a[n+12*aN]*sh_b[ 3] + a[n+13*aN]*sh_b[ 4] + sh_b[ 5] + a[n+15*aN]*sh_b[ 8] + a[n+16*aN]*sh_b[12] + a[n+17*aN]*sh_b[17];
-    tmp[ 3] = a[n+12*aN]*sh_b[ 6] + a[n+13*aN]*sh_b[ 7] + sh_b[ 8] + a[n+15*aN]*sh_b[ 9] + a[n+16*aN]*sh_b[13] + a[n+17*aN]*sh_b[18];
-    tmp[ 4] = a[n+12*aN]*sh_b[10] + a[n+13*aN]*sh_b[11] + sh_b[12] + a[n+15*aN]*sh_b[13] + a[n+16*aN]*sh_b[14] + a[n+17*aN]*sh_b[19];
-    tmp[ 5] = a[n+12*aN]*sh_b[15] + a[n+13*aN]*sh_b[16] + sh_b[17] + a[n+15*aN]*sh_b[18] + a[n+16*aN]*sh_b[19] + a[n+17*aN]*sh_b[20];
+    tmp[ 0] = a[6]*b_reg[ 0] + a[7]*b_reg[ 1] + a[9]*b_reg[ 6] + a[10]*b_reg[10];
+    tmp[ 1] = a[6]*b_reg[ 1] + a[7]*b_reg[ 2] + a[9]*b_reg[ 7] + a[10]*b_reg[11];
+    /*tmp[ 8] = a[6]*b_reg[ 3] + a[7]*b_reg[ 4] + a[9]*b_reg[ 8] + a[10]*b_reg[12];*/
+    tmp[ 3] = a[6]*b_reg[ 6] + a[7]*b_reg[ 7] + a[9]*b_reg[ 9] + a[10]*b_reg[13];
+    tmp[ 4] = a[6]*b_reg[10] + a[7]*b_reg[11] + a[9]*b_reg[13] + a[10]*b_reg[14];
+    /*tmp[11] = a[6]*b_reg[15] + a[7]*b_reg[16] + a[9]*b_reg[18] + a[10]*b_reg[19];*/
 
-    b[ 3*bN+n] = tmp[ 0]*a[n+ 0*aN] + tmp[ 1]*a[n+ 1*aN]           + tmp[ 3]*a[n+ 3*aN] + tmp[ 4]*a[n+ 4*aN];
-    b[ 4*bN+n] = tmp[ 0]*a[n+ 6*aN] + tmp[ 1]*a[n+ 7*aN]           + tmp[ 3]*a[n+ 9*aN] + tmp[ 4]*a[n+10*aN];
-    b[ 5*bN+n] = tmp[ 0]*a[n+12*aN] + tmp[ 1]*a[n+13*aN] + tmp[ 2] + tmp[ 3]*a[n+15*aN] + tmp[ 4]*a[n+16*aN] + tmp[ 5]*a[n+17*aN];
-
-
-    tmp[ 0] = a[n+18*aN]*sh_b[ 0] + a[n+19*aN]*sh_b[ 1] + a[n+21*aN]*sh_b[ 6] + a[n+22*aN]*sh_b[10];
-    tmp[ 1] = a[n+18*aN]*sh_b[ 1] + a[n+19*aN]*sh_b[ 2] + a[n+21*aN]*sh_b[ 7] + a[n+22*aN]*sh_b[11];
-    tmp[ 2] = a[n+18*aN]*sh_b[ 3] + a[n+19*aN]*sh_b[ 4] + a[n+21*aN]*sh_b[ 8] + a[n+22*aN]*sh_b[12];
-    tmp[ 3] = a[n+18*aN]*sh_b[ 6] + a[n+19*aN]*sh_b[ 7] + a[n+21*aN]*sh_b[ 9] + a[n+22*aN]*sh_b[13];
-    tmp[ 4] = a[n+18*aN]*sh_b[10] + a[n+19*aN]*sh_b[11] + a[n+21*aN]*sh_b[13] + a[n+22*aN]*sh_b[14];
-    tmp[ 5] = a[n+18*aN]*sh_b[15] + a[n+19*aN]*sh_b[16] + a[n+21*aN]*sh_b[18] + a[n+22*aN]*sh_b[19];
-
-    b[ 6*bN+n] = tmp[ 0]*a[n+ 0*aN] + tmp[ 1]*a[n+ 1*aN]           + tmp[ 3]*a[n+ 3*aN] + tmp[ 4]*a[n+ 4*aN];
-    b[ 7*bN+n] = tmp[ 0]*a[n+ 6*aN] + tmp[ 1]*a[n+ 7*aN]           + tmp[ 3]*a[n+ 9*aN] + tmp[ 4]*a[n+10*aN];
-    b[ 8*bN+n] = tmp[ 0]*a[n+12*aN] + tmp[ 1]*a[n+13*aN] + tmp[ 2] + tmp[ 3]*a[n+15*aN] + tmp[ 4]*a[n+16*aN] + tmp[ 5]*a[n+17*aN];
-    b[ 9*bN+n] = tmp[ 0]*a[n+18*aN] + tmp[ 1]*a[n+19*aN]           + tmp[ 3]*a[n+21*aN] + tmp[ 4]*a[n+22*aN];
+    b[ 1*bN+n] = tmp[ 0]*a[0] + tmp[ 1]*a[1] + tmp[ 3]*a[3] + tmp[ 4]*a[4];
+    b[ 2*bN+n] = tmp[ 0]*a[6] + tmp[ 1]*a[7] + tmp[ 3]*a[9] + tmp[ 4]*a[10];
 
 
-    tmp[ 0] = a[n+24*aN]*sh_b[ 0] + a[n+25*aN]*sh_b[ 1] + a[n+27*aN]*sh_b[ 6] + a[n+28*aN]*sh_b[10];
-    tmp[ 1] = a[n+24*aN]*sh_b[ 1] + a[n+25*aN]*sh_b[ 2] + a[n+27*aN]*sh_b[ 7] + a[n+28*aN]*sh_b[11];
-    tmp[ 2] = a[n+24*aN]*sh_b[ 3] + a[n+25*aN]*sh_b[ 4] + a[n+27*aN]*sh_b[ 8] + a[n+28*aN]*sh_b[12];
-    tmp[ 3] = a[n+24*aN]*sh_b[ 6] + a[n+25*aN]*sh_b[ 7] + a[n+27*aN]*sh_b[ 9] + a[n+28*aN]*sh_b[13];
-    tmp[ 4] = a[n+24*aN]*sh_b[10] + a[n+25*aN]*sh_b[11] + a[n+27*aN]*sh_b[13] + a[n+28*aN]*sh_b[14];
-    tmp[ 5] = a[n+24*aN]*sh_b[15] + a[n+25*aN]*sh_b[16] + a[n+27*aN]*sh_b[18] + a[n+28*aN]*sh_b[19];
+    tmp[ 0] = a[12]*b_reg[ 0] + a[13]*b_reg[ 1] + b_reg[ 3] + a[15]*b_reg[ 6] + a[16]*b_reg[10] + a[17]*b_reg[15];
+    tmp[ 1] = a[12]*b_reg[ 1] + a[13]*b_reg[ 2] + b_reg[ 4] + a[15]*b_reg[ 7] + a[16]*b_reg[11] + a[17]*b_reg[16];
+    tmp[ 2] = a[12]*b_reg[ 3] + a[13]*b_reg[ 4] + b_reg[ 5] + a[15]*b_reg[ 8] + a[16]*b_reg[12] + a[17]*b_reg[17];
+    tmp[ 3] = a[12]*b_reg[ 6] + a[13]*b_reg[ 7] + b_reg[ 8] + a[15]*b_reg[ 9] + a[16]*b_reg[13] + a[17]*b_reg[18];
+    tmp[ 4] = a[12]*b_reg[10] + a[13]*b_reg[11] + b_reg[12] + a[15]*b_reg[13] + a[16]*b_reg[14] + a[17]*b_reg[19];
+    tmp[ 5] = a[12]*b_reg[15] + a[13]*b_reg[16] + b_reg[17] + a[15]*b_reg[18] + a[16]*b_reg[19] + a[17]*b_reg[20];
 
-    b[10*bN+n] = tmp[ 0]*a[n+ 0*aN] + tmp[ 1]*a[n+ 1*aN]           + tmp[ 3]*a[n+ 3*aN] + tmp[ 4]*a[n+ 4*aN];
-    b[11*bN+n] = tmp[ 0]*a[n+ 6*aN] + tmp[ 1]*a[n+ 7*aN]           + tmp[ 3]*a[n+ 9*aN] + tmp[ 4]*a[n+10*aN];
-    b[12*bN+n] = tmp[ 0]*a[n+12*aN] + tmp[ 1]*a[n+13*aN] + tmp[ 2] + tmp[ 3]*a[n+15*aN] + tmp[ 4]*a[n+16*aN] + tmp[ 5]*a[n+17*aN];
-    b[13*bN+n] = tmp[ 0]*a[n+18*aN] + tmp[ 1]*a[n+19*aN]           + tmp[ 3]*a[n+21*aN] + tmp[ 4]*a[n+22*aN];
-    b[14*bN+n] = tmp[ 0]*a[n+24*aN] + tmp[ 1]*a[n+25*aN]           + tmp[ 3]*a[n+27*aN] + tmp[ 4]*a[n+28*aN];
+    b[ 3*bN+n] = tmp[ 0]*a[0] + tmp[ 1]*a[1]           + tmp[ 3]*a[3] + tmp[ 4]*a[4];
+    b[ 4*bN+n] = tmp[ 0]*a[6] + tmp[ 1]*a[7]           + tmp[ 3]*a[9] + tmp[ 4]*a[10];
+    b[ 5*bN+n] = tmp[ 0]*a[12] + tmp[ 1]*a[13] + tmp[ 2] + tmp[ 3]*a[15] + tmp[ 4]*a[16] + tmp[ 5]*a[17];
 
-    tmp[ 0] = sh_b[15];
-    tmp[ 1] = sh_b[16];
-    tmp[ 2] = sh_b[17];
-    tmp[ 3] = sh_b[18];
-    tmp[ 4] = sh_b[19];
-    tmp[ 5] = sh_b[20];
+
+    tmp[ 0] = a[18]*b_reg[ 0] + a[19]*b_reg[ 1] + a[21]*b_reg[ 6] + a[22]*b_reg[10];
+    tmp[ 1] = a[18]*b_reg[ 1] + a[19]*b_reg[ 2] + a[21]*b_reg[ 7] + a[22]*b_reg[11];
+    tmp[ 2] = a[18]*b_reg[ 3] + a[19]*b_reg[ 4] + a[21]*b_reg[ 8] + a[22]*b_reg[12];
+    tmp[ 3] = a[18]*b_reg[ 6] + a[19]*b_reg[ 7] + a[21]*b_reg[ 9] + a[22]*b_reg[13];
+    tmp[ 4] = a[18]*b_reg[10] + a[19]*b_reg[11] + a[21]*b_reg[13] + a[22]*b_reg[14];
+    tmp[ 5] = a[18]*b_reg[15] + a[19]*b_reg[16] + a[21]*b_reg[18] + a[22]*b_reg[19];
+
+    b[ 6*bN+n] = tmp[ 0]*a[0] + tmp[ 1]*a[1]           + tmp[ 3]*a[3] + tmp[ 4]*a[4];
+    b[ 7*bN+n] = tmp[ 0]*a[6] + tmp[ 1]*a[7]           + tmp[ 3]*a[9] + tmp[ 4]*a[10];
+    b[ 8*bN+n] = tmp[ 0]*a[12] + tmp[ 1]*a[13] + tmp[ 2] + tmp[ 3]*a[15] + tmp[ 4]*a[16] + tmp[ 5]*a[17];
+    b[ 9*bN+n] = tmp[ 0]*a[18] + tmp[ 1]*a[19]           + tmp[ 3]*a[21] + tmp[ 4]*a[22];
+
+
+    tmp[ 0] = a[24]*b_reg[ 0] + a[25]*b_reg[ 1] + a[27]*b_reg[ 6] + a[28]*b_reg[10];
+    tmp[ 1] = a[24]*b_reg[ 1] + a[25]*b_reg[ 2] + a[27]*b_reg[ 7] + a[28]*b_reg[11];
+    tmp[ 2] = a[24]*b_reg[ 3] + a[25]*b_reg[ 4] + a[27]*b_reg[ 8] + a[28]*b_reg[12];
+    tmp[ 3] = a[24]*b_reg[ 6] + a[25]*b_reg[ 7] + a[27]*b_reg[ 9] + a[28]*b_reg[13];
+    tmp[ 4] = a[24]*b_reg[10] + a[25]*b_reg[11] + a[27]*b_reg[13] + a[28]*b_reg[14];
+    tmp[ 5] = a[24]*b_reg[15] + a[25]*b_reg[16] + a[27]*b_reg[18] + a[28]*b_reg[19];
+
+    b[10*bN+n] = tmp[ 0]*a[0] + tmp[ 1]*a[1]           + tmp[ 3]*a[3] + tmp[ 4]*a[4];
+    b[11*bN+n] = tmp[ 0]*a[6] + tmp[ 1]*a[7]           + tmp[ 3]*a[9] + tmp[ 4]*a[10];
+    b[12*bN+n] = tmp[ 0]*a[12] + tmp[ 1]*a[13] + tmp[ 2] + tmp[ 3]*a[15] + tmp[ 4]*a[16] + tmp[ 5]*a[17];
+    b[13*bN+n] = tmp[ 0]*a[18] + tmp[ 1]*a[19]           + tmp[ 3]*a[21] + tmp[ 4]*a[22];
+    b[14*bN+n] = tmp[ 0]*a[24] + tmp[ 1]*a[25]           + tmp[ 3]*a[27] + tmp[ 4]*a[28];
+
+    tmp[ 0] = b_reg[15];
+    tmp[ 1] = b_reg[16];
+    tmp[ 2] = b_reg[17];
+    tmp[ 3] = b_reg[18];
+    tmp[ 4] = b_reg[19];
+    tmp[ 5] = b_reg[20];
 
     // MultHelixPropTransp
-    b[15*bN+n] = tmp[ 0]*a[n+ 0*aN] + tmp[ 1]*a[n+ 1*aN]           + tmp[ 3]*a[n+ 3*aN] + tmp[ 4]*a[n+ 4*aN];
-    b[16*bN+n] = tmp[ 0]*a[n+ 6*aN] + tmp[ 1]*a[n+ 7*aN]           + tmp[ 3]*a[n+ 9*aN] + tmp[ 4]*a[n+10*aN];
-    b[17*bN+n] = tmp[ 0]*a[n+12*aN] + tmp[ 1]*a[n+13*aN] + tmp[ 2] + tmp[ 3]*a[n+15*aN] + tmp[ 4]*a[n+16*aN] + tmp[ 5]*a[n+17*aN];
-    b[18*bN+n] = tmp[ 0]*a[n+18*aN] + tmp[ 1]*a[n+19*aN]           + tmp[ 3]*a[n+21*aN] + tmp[ 4]*a[n+22*aN];
-    b[19*bN+n] = tmp[ 0]*a[n+24*aN] + tmp[ 1]*a[n+25*aN]           + tmp[ 3]*a[n+27*aN] + tmp[ 4]*a[n+28*aN];
+    b[15*bN+n] = tmp[ 0]*a[0] + tmp[ 1]*a[1]           + tmp[ 3]*a[3] + tmp[ 4]*a[4];
+    b[16*bN+n] = tmp[ 0]*a[6] + tmp[ 1]*a[7]           + tmp[ 3]*a[9] + tmp[ 4]*a[10];
+    b[17*bN+n] = tmp[ 0]*a[12] + tmp[ 1]*a[13] + tmp[ 2] + tmp[ 3]*a[15] + tmp[ 4]*a[16] + tmp[ 5]*a[17];
+    b[18*bN+n] = tmp[ 0]*a[18] + tmp[ 1]*a[19]           + tmp[ 3]*a[21] + tmp[ 4]*a[22];
+    b[19*bN+n] = tmp[ 0]*a[24] + tmp[ 1]*a[25]           + tmp[ 3]*a[27] + tmp[ 4]*a[28];
     b[20*bN+n] = tmp[ 5];
   }
 }
 
-void similarity_wrapper(dim3 grid, dim3 block, cudaStream_t& stream,
-    GPlex<float>& errorProp, GPlex<float>& outErr, int N) {
-  int gridx = std::min((N-1)/BLOCK_SIZE_X_2 + 1,
-                       MAX_BLOCKS_X);
-  dim3 grid2(gridx, 1, 1);
-  dim3 block2(BLOCK_SIZE_X_2, 1, 1);
-  similarity_kernel<<<grid2, block2, 0, stream>>>
-      (errorProp.ptr, errorProp.stride, outErr.ptr, outErr.stride, N);
-}
+__global__ void propagation_kernel(
+    const float* __restrict__ msPar, size_t stride_msPar, 
+    float *inPar, size_t inPar_stride, int *inChg,
+    float *outPar, size_t outPar_stride, float *errorProp,
+    size_t errorProp_stride, float *outErr, size_t outErr_stride, int N) {
 
-/// Compute MsRad /////////////////////////////////////////////////////////////
-// Not passing msRad.stride, as QF == 1 (second dim f msRad)
-__global__ void computeMsRad_kernel(float *msPar, size_t stride_msPar,
-    float *msRad, int N) {
+  int grid_width = blockDim.x * gridDim.x;
   int n = threadIdx.x + blockIdx.x * blockDim.x;
-  if (n < N) {
-    msRad[n] = hipo(msPar[n], msPar[n + stride_msPar]);
+  float msRad_reg;
+  // Using registers instead of shared memory is ~ 30% faster.
+  float errorProp_reg[LL];
+  // If there is more matrices than MAX_BLOCKS_X * BLOCK_SIZE_X 
+  for (int z = 0; z < (N-1)/grid_width  +1; z++) {
+    n += z*grid_width;
+    if (n < N) {
+      computeMsRad_fn(msPar, stride_msPar, &msRad_reg, N, n);
+      if (Config::doIterative) {
+        helixAtRFromIterative_fn(inPar, inPar_stride,
+            inChg, outPar, outPar_stride, msRad_reg, 
+            errorProp_reg, N, n);
+      }
+      similarity_fn(errorProp_reg, outErr, outErr_stride, N, n);
+    }
   }
 }
 
-void computeMsRad_wrapper(dim3 grid, dim3 block, cudaStream_t& stream,
-    GPlex<float>& msPar, GPlex<float>& msRad, int N) {
-  computeMsRad_kernel<<<grid, block, 0, stream>>>(msPar.ptr, msPar.stride, msRad.ptr, N);
+
+void propagation_wrapper(cudaStream_t& stream,
+    GPlex<float>& msPar,
+    GPlex<float>& inPar, GPlex<int>& inChg,
+    GPlex<float>& outPar, GPlex<float>& errorProp,
+    GPlex<float>& outErr, 
+    const int N) {
+  int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
+                       MAX_BLOCKS_X);
+  dim3 grid(gridx, 1, 1);
+  dim3 block(BLOCK_SIZE_X, 1, 1);
+  propagation_kernel <<<grid, block, 0, stream >>>
+    (msPar.ptr, msPar.stride,
+     inPar.ptr, inPar.stride, inChg.ptr,
+     outPar.ptr, outPar.stride, errorProp.ptr,
+     errorProp.stride, outErr.ptr, outErr.stride, N);
 }

@@ -235,7 +235,7 @@ TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom
   // have we scattered out of the solid?
   if (hsin.r0 > 1.0 && !startSolid) {
     UVector3 here(hsin.x,hsin.y,hsin.z);
-    for ( unsigned int i = 0; i < Config::nLayers; ++i ) {
+    for ( int i = 0; i < Config::nLayers; ++i ) {
       auto d = geom.Layer(i)->SafetyFromOutside(here, true);
       if (d < tolerance) {
         startSolid = geom.Layer(i);
@@ -288,7 +288,7 @@ TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom
 
 // Propagate to the next obj
 // each step travels for a path length equal to the safe step between the current position and the nearest object.
-TrackState propagateHelixToLayer(TrackState inputState, unsigned int layer, const Geometry& geom) {
+TrackState propagateHelixToLayer(TrackState inputState, int layer, const Geometry& geom) {
   bool debug = false;
 
   const VUSolid* target = geom.Layer(layer);

@@ -9,30 +9,30 @@
 
 struct HitID {
   HitID() : layer(-1), index(-1) {}
-  HitID(short l, short i) : layer(l), index(i) {}
-  short layer;
-  short index;
+  HitID(int l, int i) : layer(l), index(i) {}
+  int layer;
+  int index;
 };
 typedef std::vector<HitID> HitIDVec;
 
 class Event {
 public:
-  Event(const Geometry& g, Validation& v, unsigned int evtID, int threads = 1);
+  Event(const Geometry& g, Validation& v, int evtID, int threads = 1);
   void Simulate();
   void Segment();
   void Seed();
   void Find();
   void Fit();
-  void Validate(const unsigned int);
+  void Validate(int);
   void PrintStats(const TrackVec&, TrackExtraVec&);
   
-  unsigned int evtID() const {return evtID_;}
+  int evtID() const {return evtID_;}
   void resetLayerHitMap(bool resetSimHits);
 
   const Geometry& geom_;
   Validation& validation_;
  private:
-  unsigned int evtID_;
+  int evtID_;
  public:
   int threads_;
   std::vector<HitVec> layerHits_;

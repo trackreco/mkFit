@@ -4,22 +4,24 @@
 // find the simtrack that provided the most hits
 void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo)
 {
-  std::vector<unsigned int> mctrack;
+  std::vector<int> mctrack;
   auto hitIdx = trk.nTotalHits();
   for (int ihit = 0; ihit < hitIdx; ++ihit){
-    auto mchitid = layerHits[ihit][trk.getHitIdx(ihit)].mcHitID();
-    mctrack.push_back(globalHitInfo[mchitid].mcTrackID_);
+    if (trk.getHitIdx(ihit) >= 0) {
+      auto mchitid = layerHits[ihit][trk.getHitIdx(ihit)].mcHitID();
+      mctrack.push_back(globalHitInfo[mchitid].mcTrackID());
+    }
   }
   std::sort(mctrack.begin(), mctrack.end()); // ensures all elements are checked properly
 
-  auto mtrk(mctrack[0]), mcount(0U), m(mctrack[0]), c(0U);
+  auto mtrk(mctrack[0]), mcount(0), m(mctrack[0]), c(0);
 
   for (auto i : mctrack) {
     if (i == m) { ++c; } else { c = 1; }
     if (c >= mcount) { mtrk = m; mcount = c; }
     m = i;
   }
-  if (3*mcount > 2*trk.nFoundHits()){ // if more, matched track --> set id info
+  if (4*mcount > 3*trk.nFoundHits()){ // if more, matched track --> set id info
     mcTrackID_    = mtrk;
     nHitsMatched_ = mcount;
   } else { // fake track, id = 999 999
@@ -37,8 +39,8 @@ void Track::write_out(FILE *fp)
   Track t = clone_for_io();
   fwrite(&t, sizeof(Track), 1, fp);
 
-  unsigned int nh = nHits();
-  fwrite(&nh, sizeof(unsigned int), 1, fp);
+  int nh = nHits();
+  fwrite(&nh, sizeof(int), 1, fp);
 
   fwrite(&hits_[0], sizeof(Hit), nh, fp);
 #endif
@@ -49,8 +51,8 @@ void Track::read_in(FILE *fp)
 #if 0
   fread(this, sizeof(Track), 1, fp);
 
-  unsigned int nh = nHits();
-  fread(&nh, sizeof(unsigned int), 1, fp);
+  int nh = nHits();
+  fread(&nh, sizeof(int), 1, fp);
 
   hits_.resize(nh);
   fread(&hits_[0], sizeof(Hit), nh, fp);

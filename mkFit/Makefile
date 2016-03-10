@@ -18,6 +18,9 @@ LDFLAGS  += ${LDEXTRA}
 CPPFLAGS_NO_ROOT += ${CPPEXTRA}
 LDFLAGS_NO_ROOT  += ${LDEXTRA}
 
+.PHONY: all clean distclean echo
+
+all: default
 
 TGTS     := mkFit
 
@@ -27,18 +30,12 @@ ifeq (${CXX},icc)
   EXES   += $(addsuffix -mic, ${TGTS})
 endif
 
-
-all:: ${AUTO_TGTS}
-all:: ${EXES}
-
-auto-matriplex:
-	${MAKE} -C ../Matriplex auto && touch $@
-
 auto-genmplex: GenMPlexOps.pl
 	./GenMPlexOps.pl && touch $@
 
-AUTO_TGTS := auto-matriplex auto-genmplex
+AUTO_TGTS := auto-genmplex
 
+default: ${AUTO_TGTS} ${EXES}
 
 clean:
 	rm -f ${EXES} *.d *.o *.om 
@@ -58,8 +55,6 @@ echo:
 
 ################################################################
 
--include *.d ../*.d
-
 # Should be a lib, really
 ABOVE_OBJS := $(patsubst %, ../%.o, Config Matrix Event Hit Track Propagation KalmanUtils Simulation Geometry SimpleGeom fittest buildtest ConformalUtils seedtest BinInfoUtils)
 
@@ -70,6 +65,7 @@ MKFSRCS := $(wildcard *.cc)
 MKFHDRS := $(wildcard *.h)
 
 MKFOBJS := $(MKFSRCS:.cc=.o)
+MKFDEPS := $(MKFSRCS:.cc=.d)
 
 ifdef NV
 CU_SRCS := $(wildcard *.cu)
@@ -84,12 +80,24 @@ endif
 
 ALLOBJS := ${MKFOBJS} ${ABOVE_OBJS} ${CU_OBJS}
 
-mkFit: ${AUTO_TGTS} ${ALLOBJS}
+${MKFDEPS}: auto-genmplex
+
+ifeq ($(filter clean distclean, ${MAKECMDGOALS}),)
+include ${MKFDEPS}
+endif
+
+mkFit: ${ALLOBJS}
 	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} ${ALLOBJS} -o $@ ${LDFLAGS_HOST} ${LDFLAGS_CU}
 
 fittestMPlex.o : CPPFLAGS += $(shell root-config --cflags)
 
-${MKFOBJS}: %.o: %.cc
+TFile.h: 
+	echo "Using dummy rule for TFile.h"
+
+TTree.h: 
+	echo "Using dummy rule for TTree.h"
+
+${MKFOBJS}: %.o: %.cc %.d
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<
 
 #### GPU compilation
@@ -105,11 +113,11 @@ MKFOBJS_MIC := $(MKFOBJS:.o=.om)
 
 ALLOBJS_MIC := $(ALLOBJS:.o=.om) 
 
-mkFit-mic: ${AUTO_TGTS} ${ALLOBJS_MIC}
+mkFit-mic: ${ALLOBJS_MIC}
 	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} ${ALLOBJS_MIC} -o $@ ${LDFLAGS_MIC}
 	scp $@ mic0:
 
-${MKFOBJS_MIC}: %.om: %.cc
+${MKFOBJS_MIC}: %.om: %.cc %.d
 	${CXX} ${CPPFLAGS_NO_ROOT} ${CXXFLAGS} ${VEC_MIC} -c -o $@ $<
 
 endif

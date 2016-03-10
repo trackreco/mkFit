@@ -18,7 +18,7 @@ const VUSolid* Geometry::InsideWhat(const UVector3 &aPoint) const {
   return nullptr;
 }
 
-unsigned int Geometry::LayerIndex(const UVector3 &aPoint) const {
+int Geometry::LayerIndex(const UVector3 &aPoint) const {
   for (auto i = solids_.begin(); i != solids_.end(); ++i) {
     if ((*i)->Inside(aPoint) != VUSolid::eOutside) {
       return std::distance(solids_.begin(),i);

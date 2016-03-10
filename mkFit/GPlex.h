@@ -4,6 +4,13 @@
 #include <cuda_runtime.h>
 #include <stdio.h>
 
+// GPU implementation of a Matriplex-like structure
+// The number of tracks is the fast dimension and is padded in order to have
+// consecutive and aligned memory accesses. For cached reads, this result in a
+// single memory transaction for the 32 threads of a warp to access 32 floats.
+// See:
+// http://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#global-memory-3-0
+// In practice, The number of tracks (ntracks) is set to be MPT_SIZE
 template <typename T>
 struct GPlex { 
   T* ptr;
@@ -13,7 +20,7 @@ struct GPlex {
     x = ntracks;
     y = plex_size;
     cudaMallocPitch((void**)&ptr, &pitch, x*sizeof(T), y);
-    stride = pitch/sizeof(T);
+    stride = pitch/sizeof(T);  // Number of elements
   }
   void free() {
     cudaFree(ptr);

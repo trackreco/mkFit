@@ -10,7 +10,7 @@
 TrackState propagateLineToR(const TrackState& inputState, float r);
 
 TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom);
-TrackState propagateHelixToLayer(TrackState inputState, unsigned int layer, const Geometry& geom);
+TrackState propagateHelixToLayer(TrackState inputState, int layer, const Geometry& geom);
 
 // helix propagation in steps along helix trajectory. 
 // each step travels for a path lenght equal to delta r between the current position and the target radius. 

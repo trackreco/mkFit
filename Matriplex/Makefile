@@ -5,6 +5,8 @@ auto: std_sym intr_sym
 clean:
 	rm -f *.ah
 
+distclean: clean
+
 # ---------------------------------------------------------------- #
 
 std_sym:  std_sym_3x3.ah std_sym_6x6.ah

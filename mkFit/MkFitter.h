@@ -12,7 +12,7 @@
 
 class CandCloner;
 
-class MkFitter
+struct MkFitter
 {
   MPlexLS Err[2];
   MPlexLV Par[2];
@@ -104,7 +104,8 @@ public:
   void SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc);
   void AddBestHit     (BunchOfHits &bunch_of_hits);
 
-  void FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vector<Track> >& tmp_candidates, int offset);
+  void FindCandidates(BunchOfHits &bunch_of_hits, std::vector<std::vector<Track> >& tmp_candidates,
+                      const int offset, const int N_proc);
 
   // ================================================================
   // Methods to be used with clone engine
@@ -137,17 +138,18 @@ public:
                      std::vector<std::pair<int,IdxChi2List> >& idxs,
                      int beg, int end);
 
+  //method used by the clone engine update the track parameters based on the last hit index
+  //present in the track
+  void UpdateWithLastHit(BunchOfHits &bunch_of_hits,
+                         int N_proc);
+
   //method used by the clone engine to do the actual cloning on the predefined candidate+hit
   void CopyOutClone(std::vector<std::pair<int,IdxChi2List> >& idxs,
 		    std::vector<std::vector<Track> >& cands_for_next_lay,
-		    int offset, int beg, int end, bool outputProp = false);
+		    int offset, int beg, int end, bool outputProp);
 
-  // FIXME: temporary mess to access private variables
-  MPlexQI *get_Chg() {return &Chg;}
-  MPlexLV *get_Par0() {return &Par[0];}
-  MPlexLS *get_Err0() {return &Err[0];}
-  MPlexHV *get_msPar() {return msPar;}
-  MPlexHS *get_msErr() {return msErr;}
+  void CopyOutParErr(std::vector<std::vector<Track> >& seed_cand_vec,
+                     int N_proc, bool outputProp);
 };
 
 #endif

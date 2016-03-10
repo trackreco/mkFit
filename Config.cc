@@ -4,6 +4,10 @@ namespace Config
 {
   // Multi threading and Clone engine configuration
   int   numThreadsFinder = 1;
+  
+  // GPU computations
+  int   numThreadsEvents = 1;
+  int   numThreadsReorg = 1;
 
 #ifdef __MIC__
   int   numThreadsSimulation = 60;
@@ -13,4 +17,6 @@ namespace Config
 
   bool  clonerUseSingleThread  = false;
   int   finderReportBestOutOfN = 1;
+
+  bool  useCMSGeom = false;
 }

@@ -3,6 +3,7 @@
 
 #include <cuda_runtime.h>
 #include <omp.h>
+#include <stdexcept>
 
 #include "Matrix.h"
 #include "propagation_kernels.h"
@@ -23,7 +24,8 @@
 
 using idx_t = Matriplex::idx_t;
 
-//Macro for checking cuda errors following a cuda launch or api call
+// Macro for checking cuda errors following a cuda launch or api call
+// This comes from Jeff Larkins (NVIDIA)
 #define cudaCheckError() {                                          \
   cudaError_t e=cudaGetLastError();                                 \
   if(e!=cudaSuccess) {                                              \
@@ -40,16 +42,12 @@ using idx_t = Matriplex::idx_t;
 #define cudaCheckErrorSync() {}
 #endif
 
-// FIXME: remove me
-//void raiseNotImplemented() {
-  //throw ("notImplemented error"); 
-//}
-
+void separate_first_call_for_meaningful_profiling_numbers();
 
 template <typename T>
 class FitterCU {
  public:
-  FitterCU (idx_t N) : N(N) {};
+  FitterCU (idx_t Nalloc) : Nalloc(Nalloc) {};
   virtual ~FitterCU () {};
 
   void allocateDevice();
@@ -58,19 +56,17 @@ class FitterCU {
   void createStream();
   void destroyStream();
 
+  void setNumberTracks(idx_t Ntracks);
+
   void sendInParToDevice(const MPlexLV& inPar);
   void sendInErrToDevice(const MPlexLS& inErr);
   void sendInChgToDevice(const MPlexQI& inChg);
   void sendMsRadToDevice(const MPlexQF& msRad);
-  void sendOutParToDevice(const MPlexLV& outPar); // TODO: temporary
-  // TODO: actually inErr should be send to the device as initial
-  //       values for outErr. Rename accordingly?
+  void sendOutParToDevice(const MPlexLV& outPar);
   void sendOutErrToDevice(const MPlexLS& outErr);
   void sendMsParToDevice(const MPlexHV& msPar);
   
-  //void getOutParFromDevice(MPlexLV& outPar);  // Par_iP 
   void getErrorPropFromDevice(MPlexLL& errorProp);
-  //void getOutErrFromDevice(MPlexLS& outErr);  // Err_iP
   void getMsRadFromDevice(MPlexQF& msRad);
 
   void setOutParFromInPar();
@@ -80,22 +76,6 @@ class FitterCU {
   void sendMsErrToDevice(const MPlexHS& msErr);
   void getOutParFromDevice(MPlexLV& outPar);
   void getOutErrFromDevice(MPlexLS& outErr);
-
-  void swap_iP_iC();
-
-  // Propagator methods
-  void computeMsRad();
-  void helixAtRFromIterative();
-  void similarity();
-
-  // Updater methods
-#if 0
-  void addIntoUpperLeft3x3();
-  void InvertCramerSym();
-  void multKalmanGainCU();
-  void multResidualsAdd();
-  void kalmanGain_x_propErr();
-#endif
 
   void propagationMerged();
   void kalmanUpdateMerged();
@@ -107,6 +87,9 @@ class FitterCU {
                  std::vector<HitVec> &layerHits);
 
  private:
+  // N is the actual size, Nalloc should be >= N, as it is intended
+  // to allocated arrays that can be used for several sets of tracks.
+  idx_t Nalloc;
   idx_t N;
   /* data */
   GPlex<T> d_par_iC;  // LV
@@ -117,10 +100,7 @@ class FitterCU {
   GPlex<T> d_Err_iP;
   GPlex<T> d_msPar;
 
-  // variables from KalmanUpdaterCU.h not shared with FitterCU
-  GPlex<T> d_kalmanGain;
   GPlex<T> d_outErr;
-  GPlex<T> d_resErr;
   GPlex<T> d_msErr;
   
   // everything run in a stream so multiple instance of FitterCU can

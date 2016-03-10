@@ -13,6 +13,10 @@
 
 #include "Event.h"
 
+#ifdef USE_CUDA
+#include "FitterCU.h"
+#endif
+
 #include <omp.h>
 
 #if defined(USE_VTUNE_PAUSE)
@@ -32,8 +36,7 @@ void initGeom(Geometry& geom)
   // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
   float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
   for (int l = 0; l < 10; l++) {
-    float r = (l+1)*Config::fRadialSpacing;
-    //float r = Config::cmsAvgRads[l];
+    float r = Config::useCMSGeom ? Config::cmsAvgRads[l] : (l+1)*Config::fRadialSpacing;
     VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent);
     float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
     geom.AddLayer(utub, r, z);
@@ -154,6 +157,9 @@ void test_standard()
          MPT_SIZE, Config::numThreadsSimulation, Config::numThreadsFinder);
   printf("  sizeof(Track)=%zu, sizeof(Hit)=%zu, sizeof(SVector3)=%zu, sizeof(SMatrixSym33)=%zu, sizeof(MCHitInfo)=%zu\n",
          sizeof(Track), sizeof(Hit), sizeof(SVector3), sizeof(SMatrixSym33), sizeof(MCHitInfo));
+  if (Config::useCMSGeom) printf ("Using CMS-like geometry \n");
+  else printf ("Using 4-cm spacing geometry \n");
+
 
   if (g_operation == "read")
   {
@@ -164,13 +170,23 @@ void test_standard()
   initGeom(geom);
   Validation val;
 
-  double s_tmp=0, s_tsm=0, s_tsm2=0, s_tmp2=0, s_tsm2bh=0, s_tmp2bh=0, s_tmp2ce=0;
+  const int NT = 4;
+  double t_sum[NT] = {0};
 
   EventTmp ev_tmp;
 
 #if USE_CUDA
+  // fittest time. Sum of all events. In case of multiple events
+  // being run simultaneously in different streams this time will
+  // be larger than the elapsed time.
+  double s_tmp = 0.0;
+
   std::vector<Event> events;
   std::vector<Validation> validations(Config::nEvents);
+
+  // simulations are all performed before the fitting loop.
+  // It is mandatory in order to see the benefits of running
+  // multiple streams.
   for (int evt = 1; evt <= Config::nEvents; ++evt) {
     printf("Simulating event %d\n", evt);
     Event ev(geom, val, evt);
@@ -179,40 +195,73 @@ void test_standard()
     
     events.push_back(ev);
   }
-  omp_set_num_threads(Config::numThreadsFinder);
 
-  //{
-    ////Warmup
-  //Event &ev = events[0];
-  //std::vector<Track> plex_tracks_ev;
-  //plex_tracks_ev.resize(ev.simTracks_.size());
-
-  //if (g_run_fit_std) runFittingTestPlexGPU(ev, plex_tracks_ev);
-  //}
-  double total_gpu_time = dtime();
-#pragma omp parallel for reduction(+:s_tmp)
-  for (int evt = 1; evt <= Config::nEvents; ++evt) {
-    printf("==============================================================\n");
-    printf("Processing event %d\n", evt);
-    Event &ev = events[evt-1];
+  // The first call to a GPU function always take a very long time.
+  // Everything needs to be initialized.
+  // Nothing is done in this function, except calling an harmless
+  // CUDA function. These function can be changed to another one
+  // if it becomes important to time (e.g. if you want the profiler to
+  // tell you how much time is spend running cudaDeviceSynchronize(),
+  // use another function). 
+  separate_first_call_for_meaningful_profiling_numbers();
+#if 0
+  In principle, the warmup loop should not be required.
+  The separate_first_call_for_meaningful_profiling_numbers() function
+  should be enough.
+  // Warmup loop
+  for (int i = 0; i < 1; ++i) {
+    FitterCU<float> cuFitter(NN);
+    cuFitter.allocateDevice();
+    Event &ev = events[0];
     std::vector<Track> plex_tracks_ev;
     plex_tracks_ev.resize(ev.simTracks_.size());
-    double tmp = 0, tmp2bh = 0, tmp2 = 0, tmp2ce = 0;
 
-    if (g_run_fit_std) tmp = runFittingTestPlexGPU(ev, plex_tracks_ev);
-
-    printf("Matriplex fit = %.5f  -------------------------------------", tmp);
-    printf("\n");
-    s_tmp    += tmp;
-#if 1
-    // Validation crashes for multiple threads
-    //if (omp_get_num_threads() <= 1) {
-      if (g_run_fit_std) {
-        std::string tree_name = "validation-plex-" + std::to_string(evt) + ".root";
-        make_validation_tree(tree_name.c_str(), ev.simTracks_, plex_tracks_ev);
-      }
-    //}
+    if (g_run_fit_std) runFittingTestPlexGPU(cuFitter, ev, plex_tracks_ev);
+    cuFitter.freeDevice();
+  }
 #endif
+
+  // Reorgnanization (copyIn) can eventually be multithreaded.
+  omp_set_nested(1);
+      
+  omp_set_num_threads(Config::numThreadsEvents);
+  double total_gpu_time = dtime();
+#pragma omp parallel reduction(+:s_tmp)
+  {
+  int numThreadsEvents = omp_get_num_threads();
+  int thr_idx = omp_get_thread_num();
+
+  // FitterCU is declared here to share allocations and deallocations
+  // between the multiple events processed by a single thread.
+  FitterCU<float> cuFitter(NN);
+  cuFitter.allocateDevice();
+
+    for (int evt = thr_idx+1; evt <= Config::nEvents; evt+= numThreadsEvents) {
+      int idx = thr_idx;
+      printf("==============================================================\n");
+      printf("Processing event %d with thread %d\n", evt, idx);
+      Event &ev = events[evt-1];
+      std::vector<Track> plex_tracks_ev;
+      plex_tracks_ev.resize(ev.simTracks_.size());
+      double tmp = 0, tmp2bh = 0, tmp2 = 0, tmp2ce = 0;
+
+      if (g_run_fit_std) tmp = runFittingTestPlexGPU(cuFitter, ev, plex_tracks_ev);
+
+      printf("Matriplex fit = %.5f  -------------------------------------", tmp);
+      printf("\n");
+      s_tmp    += tmp;
+#if 1  // 0 for timing, 1 for validation
+      // Validation crashes for multiple threads.
+      // It is something in relation to ROOT. Not sure what. 
+      if (omp_get_num_threads() <= 1) {
+        if (g_run_fit_std) {
+          std::string tree_name = "validation-plex-" + std::to_string(evt) + ".root";
+          make_validation_tree(tree_name.c_str(), ev.simTracks_, plex_tracks_ev);
+        }
+      }
+#endif
+    }
+    cuFitter.freeDevice();
   }
   std::cerr << "###### Total GPU time: " << dtime() - total_gpu_time << " ######\n";
 
@@ -240,45 +289,52 @@ void test_standard()
 
     plex_tracks.resize(ev.simTracks_.size());
 
-    double tmp = 0, tmp2bh = 0, tmp2 = 0, tmp2ce = 0;
+    double t_best[NT] = {0}, t_cur[NT];
 
-    if (g_run_fit_std) tmp = runFittingTestPlex(ev, plex_tracks);
+    for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
+    {
+      t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
 
-    if (g_run_build_all || g_run_build_bh)  tmp2bh = runBuildingTestPlexBestHit(ev);
+      t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev) : 0;
 
-    if (g_run_build_all || g_run_build_std) tmp2   = runBuildingTestPlex(ev, ev_tmp);
+      t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlex(ev, ev_tmp) : 0;
 
-    if (g_run_build_all || g_run_build_ce)  tmp2ce = runBuildingTestPlexCloneEngine(ev, ev_tmp);
+      t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, ev_tmp) : 0;
+
+      for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
+
+      if (Config::finderReportBestOutOfN > 1)
+      {
+        printf("----------------------------------------------------------------\n");
+        printf("Best-of-times:");
+        for (int i = 0; i < NT; ++i) printf("  %.5f/%.5f", t_cur[i], t_best[i]);
+        printf("\n");
+      }
+      printf("----------------------------------------------------------------\n");
+    }
 
     printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f\n",
-           tmp, tmp2bh, tmp2, tmp2ce);
-    printf("\n");
+           t_best[0], t_best[1], t_best[2], t_best[3]);
 
-    s_tmp    += tmp;
-    s_tmp2   += tmp2;
-    s_tmp2bh += tmp2bh;
-    s_tmp2ce += tmp2ce;
-    if (g_run_fit_std) {
-      std::string tree_name = "validation-plex-" + std::to_string(evt) + ".root";
-      make_validation_tree(tree_name.c_str(), ev.simTracks_, plex_tracks);
-    }
+    for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
   }
 #endif
+  printf("\n");
   printf("================================================================\n");
   printf("=== TOTAL for %d events\n", Config::nEvents);
   printf("================================================================\n");
 
   printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f\n",
-         s_tmp, s_tmp2bh, s_tmp2, s_tmp2ce);
+         t_sum[0], t_sum[1], t_sum[2], t_sum[3]);
 
   if (g_operation == "read")
   {
     // close_simtrack_file();
   }
 
-#ifndef NO_ROOT
-  make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
-#endif
+//#ifndef NO_ROOT
+  //make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
+//#endif
 }
 
 //==============================================================================
@@ -332,16 +388,22 @@ int main(int argc, const char *argv[])
         "  --num-thr       <num>    number of threads for track finding (def: %d)\n"
         "                           extra cloning thread is spawned for each of them\n"
         "  --fit-std                run standard fitting test (def: false)\n"
+        "  --fit-std-only           run only standard fitting test (def: false)\n"
         "  --build-bh               run best-hit building test (def: run all building tests)\n"
         "  --build-std              run standard building test\n"
         "  --build-ce               run clone-engine building test\n"
         "  --cloner-single-thread   do not spawn extra cloning thread (def: %s)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
+	"  --cms-geom               use cms-like geometry (def: %i)\n"
+        "GPU specific options: \n"
+        "  --num-thr-ev    <num>    number of threads to run the event loop\n"
+        "  --num-thr-reorg <num>    number of threads to run the hits reorganization\n"
         ,
         argv[0],
         Config::numThreadsSimulation, Config::numThreadsFinder,
         Config::clonerUseSingleThread ? "true" : "false",
-        Config::finderReportBestOutOfN
+        Config::finderReportBestOutOfN,
+	Config::useCMSGeom
       );
       exit(0);
     }
@@ -358,6 +420,11 @@ int main(int argc, const char *argv[])
     else if(*i == "--fit-std")
     {
       g_run_fit_std = true;
+    }
+    else if(*i == "--fit-std-only")
+    {
+      g_run_fit_std = true;
+      g_run_build_all = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = false;
     }
     else if(*i == "--build-bh")
     {
@@ -379,6 +446,20 @@ int main(int argc, const char *argv[])
     {
       next_arg_or_die(mArgs, i);
       Config::finderReportBestOutOfN = atoi(i->c_str());
+    }
+    else if(*i == "--cms-geom")
+    {
+      Config::useCMSGeom = true;
+    }
+    else if (*i == "--num-thr-ev")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::numThreadsEvents = atoi(i->c_str());
+    }
+    else if (*i == "--num-thr-reorg")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::numThreadsReorg = atoi(i->c_str());
     }
     else
     {

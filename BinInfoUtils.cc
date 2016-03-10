@@ -1,10 +1,10 @@
 #include "BinInfoUtils.h"
 
-std::vector<unsigned int> getCandHitIndices(const unsigned int & etaBinMinus, const unsigned int & etaBinPlus, const unsigned int & phiBinMinus, const unsigned int & phiBinPlus, const BinInfoLayerMap& segLayMap){    
-  std::vector<unsigned int> cand_hit_indices;
-  for (unsigned int ieta = etaBinMinus; ieta <= etaBinPlus; ++ieta){
-    const BinInfo binInfoMinus = segLayMap[ieta][int(phiBinMinus)];
-    const BinInfo binInfoPlus  = segLayMap[ieta][int(phiBinPlus)];
+std::vector<int> getCandHitIndices(const int & etaBinMinus, const int & etaBinPlus, const int & phiBinMinus, const int & phiBinPlus, const BinInfoLayerMap& segLayMap){    
+  std::vector<int> cand_hit_indices;
+  for (int ieta = etaBinMinus; ieta <= etaBinPlus; ++ieta){
+    const BinInfo binInfoMinus = segLayMap[ieta][phiBinMinus];
+    const BinInfo binInfoPlus  = segLayMap[ieta][phiBinPlus];
     
     // Branch here from wrapping
     if (phiBinMinus<=phiBinPlus){

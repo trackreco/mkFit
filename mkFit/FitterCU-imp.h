@@ -1,4 +1,16 @@
 template <typename T>
+void FitterCU<T>::setNumberTracks(idx_t Ntracks) {
+  N = Ntracks;
+
+  // Raise an exceptioin when the FitterCU instance is too small
+  // This should not happen as the loop over tracks in runFittestGPU 
+  // takes care of it.
+  if (Ntracks > Nalloc) {
+    throw std::length_error("FitterCU: Ntracks should be smaller than Nalloc");
+  }
+}
+
+template <typename T>
 void FitterCU<T>::createStream() {
   cudaStreamCreate(&stream);
 }
@@ -10,16 +22,14 @@ void FitterCU<T>::destroyStream() {
 
 template <typename T>
 void FitterCU<T>::allocateDevice() {
-  d_par_iC.allocate(N, LV);
-  d_inChg.allocate(N, QI);
-  d_par_iP.allocate(N, LV);
-  //d_msRad.allocate(N, QF);
-  d_errorProp.allocate(N, LL);
-  d_Err_iP.allocate(N, LS);
-  d_msPar.allocate(N, HV);
-  d_kalmanGain.allocate(N, LH);
-  d_outErr.allocate(N, LS);
-  d_msErr.allocate(N, HS);
+  d_par_iC.allocate(Nalloc, LV);
+  d_inChg.allocate(Nalloc, QI);
+  d_par_iP.allocate(Nalloc, LV);
+  d_errorProp.allocate(Nalloc, LL);
+  d_Err_iP.allocate(Nalloc, LS);
+  d_msPar.allocate(Nalloc, HV);
+  d_outErr.allocate(Nalloc, LS);
+  d_msErr.allocate(Nalloc, HS);
 
   cudaCheckError()
 }
@@ -29,11 +39,9 @@ void FitterCU<T>::freeDevice() {
   d_par_iC.free();
   d_inChg.free();
   d_par_iP.free();
-  //d_msRad.free();
   d_errorProp.free();
   d_Err_iP.free();
   d_msPar.free();
-  d_kalmanGain.free();
   d_outErr.free();
   d_msErr.free();
 
@@ -140,122 +148,15 @@ void FitterCU<T>::setOutErrFromInErr() {
 }
 
 template <typename T>
-void FitterCU<T>::swap_iP_iC() {
-  T *tmp;
-  tmp = d_par_iC.ptr;
-  d_par_iC.ptr = d_par_iP.ptr;
-  d_par_iP.ptr = tmp;
-}
-
-template <typename T>
-void FitterCU<T>::computeMsRad() {
-  int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
-                       MAX_BLOCKS_X);
-  dim3 grid(gridx, 1, 1);
-  dim3 block(BLOCK_SIZE_X, 1, 1);
-
-  computeMsRad_wrapper(grid, block, stream, d_msPar, d_msRad, N);
- 
-  cudaCheckErrorSync();
-}
-
-template <typename T>
-void FitterCU<T>::helixAtRFromIterative() {
-  int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
-                       MAX_BLOCKS_X);
-  dim3 grid(gridx, 1, 1);
-  dim3 block(BLOCK_SIZE_X, 1, 1);
-
-  helixAtRFromIterative_wrapper(grid, block, stream, d_par_iC, d_inChg, d_par_iP,
-      d_msRad, d_errorProp, N);
-  cudaCheckErrorSync();
-}
-
-template <typename T>
-void FitterCU<T>::similarity() {
-  int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
-                       MAX_BLOCKS_X);
-  dim3 grid(gridx, 1, 1);
-  dim3 block(BLOCK_SIZE_X, 1, 1);
-
-  similarity_wrapper(grid, block, stream, d_errorProp, d_Err_iP, N);
-  cudaCheckErrorSync();
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///  Updater-specific methods                                               ///
-///////////////////////////////////////////////////////////////////////////////
-#if 0
-template <typename T>
-void FitterCU<T>::multKalmanGainCU() {
-  int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
-                       MAX_BLOCKS_X);
-  dim3 grid(gridx, 1, 1);
-  dim3 block(BLOCK_SIZE_X, 1, 1);
-
-  upParam_MultKalmanGain_wrapper(grid, block, stream,
-      d_Err_iP, d_resErr, d_kalmanGain, N);
-  cudaCheckErrorSync();
-}
-
-
-template <typename T>
-void FitterCU<T>::multResidualsAdd() {
-  int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
-                       MAX_BLOCKS_X);
-  dim3 grid(gridx, 1, 1);
-  dim3 block(BLOCK_SIZE_X, 1, 1);
-  
-  multResidualsAdd_wrapper(grid, block, stream,
-      d_kalmanGain, d_par_iP, d_msPar, d_par_iC, N);
-  cudaCheckErrorSync();
-}
-
-
-template <typename T>
-void FitterCU<T>::kalmanGain_x_propErr() {
-  int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
-                       MAX_BLOCKS_X);
-  dim3 grid(gridx, 1, 1);
-  dim3 block(BLOCK_SIZE_X, 1, 1);
-  
-  kalmanGain_x_propErr_wrapper(grid, block, stream,
-      d_kalmanGain, d_Err_iP, d_outErr, N);
-  cudaCheckErrorSync();
-}
-
-
-template <typename T>
-void FitterCU<T>::InvertCramerSym() {
-  int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
-                       MAX_BLOCKS_X);
-  dim3 grid(gridx, 1, 1);
-  dim3 block(BLOCK_SIZE_X, 1, 1);
-
-  invertCramerSym_wrapper(grid, block, stream, d_resErr, N);
-}
-
-template <typename T>
-void FitterCU<T>::addIntoUpperLeft3x3() {
-  int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
-                       MAX_BLOCKS_X);
-  dim3 grid(gridx, 1, 1);
-  dim3 block(BLOCK_SIZE_X, 1, 1);
-
-  addIntoUpperLeft3x3_wrapper(grid, block, stream, d_Err_iP, d_msErr, d_resErr, N);
-}
-#endif
-
-template <typename T>
 void FitterCU<T>::kalmanUpdateMerged() {
-  kalmanUpdateMerged_wrapper(stream, d_Err_iP, d_msErr, d_kalmanGain,
-                             d_par_iP, d_msPar, d_par_iC, d_outErr, N);
+  kalmanUpdate_wrapper(stream, d_Err_iP, d_msErr,
+                       d_par_iP, d_msPar, d_par_iC, d_outErr, N);
 }
 
 template <typename T>
 void FitterCU<T>::propagationMerged() {
-  propagationMerged_wrapper(stream, d_msPar, d_par_iC, d_inChg,
-                            d_par_iP, d_errorProp, d_Err_iP, N);
+  propagation_wrapper(stream, d_msPar, d_par_iC, d_inChg,
+                      d_par_iP, d_errorProp, d_Err_iP, N);
 }
 
 
@@ -269,9 +170,13 @@ void FitterCU<T>::FitTracks(MPlexQI &Chg, MPlexLV& par_iC, MPlexLS& err_iC,
   cudaEventCreate(&start);
   cudaEventCreate(&stop);
 
+  //launch everything in a stream to enable concurrent execution of events
   createStream();
 
-  allocateDevice();
+  // allocateDevice();  -> moved to mkFit/mkFit.cc
+
+  setNumberTracks(end-beg);
+
   sendInChgToDevice(Chg);
   sendInParToDevice(par_iC);
   sendInErrToDevice(err_iC);
@@ -281,12 +186,14 @@ void FitterCU<T>::FitTracks(MPlexQI &Chg, MPlexLV& par_iC, MPlexLS& err_iC,
   double total_reorg = 0.;
   for (int hi = 0; hi < Nhits; ++hi)
   {
+    // Switch outPut and inPut parameters and errors
+    // similar to iC <-> iP in the CPU code.
     setOutParFromInPar();
     setOutErrFromInErr(); // d_Err_iP
     
     double time_input = dtime();
     int itrack;
-    omp_set_num_threads(Config::numThreadsFinder);
+    omp_set_num_threads(Config::numThreadsReorg);
 #pragma omp parallel for
     for (int i = beg; i < end; ++i) {
       itrack = i - beg;
@@ -298,10 +205,7 @@ void FitterCU<T>::FitTracks(MPlexQI &Chg, MPlexLV& par_iC, MPlexLS& err_iC,
       msErr[hi].CopyIn(itrack, hit.errArray());
       msPar[hi].CopyIn(itrack, hit.posArray());
     }
-    //std::cerr << "Reorg time: " << (omp_get_wtime() - omp_start_time)*1e3 << std::endl;
-    //total_reorg += (omp_get_wtime() - omp_start_time)*1e3;
     total_reorg += (dtime() - time_input)*1e3;
-    //std::cerr << "Reorg time: " << (dtime() - time_input)*1e3 << std::endl;
 
     sendMsParToDevice(msPar[hi]);
     sendMsErrToDevice(msErr[hi]);
@@ -319,10 +223,11 @@ void FitterCU<T>::FitTracks(MPlexQI &Chg, MPlexLV& par_iC, MPlexLS& err_iC,
   getOutParFromDevice(par_iC);
   getOutErrFromDevice(err_iC);
   
-  cudaDeviceSynchronize();  // TODO: change with cudaStreamSynchronize();
-  freeDevice();
+  cudaStreamSynchronize(stream);
+  // freeDevice(); -> moved to mkFit/mkFit.cc
   destroyStream();
 
   cudaEventDestroy(start);
   cudaEventDestroy(stop);
 }
+

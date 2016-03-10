@@ -3,6 +3,8 @@
 
 #include <algorithm>
 
+//#define PRINTOUTS_FOR_PLOTS
+
 namespace Config
 {
   // math general --> from namespace TMath
@@ -14,6 +16,9 @@ namespace Config
   constexpr float RadToDeg = 180.0 / Config::PI;
   constexpr float DegToRad = Config::PI / 180.0;
   constexpr double Sqrt2   = 1.4142135623730950488016887242097;
+
+  // general parameters of matrices
+  constexpr int nParams = 6;
 
   // config on main + mkFit
   constexpr int nTracks = 20000;
@@ -119,29 +124,39 @@ namespace Config
   const     int maxHitsPerBunch   = std::max(100, nTracks * 2 / nEtaPart) + maxHitsConsidered;
 
   constexpr int maxCandsPerSeed   = 6;
+  constexpr int maxHolesPerCand   = 2;
   const     int maxCandsPerEtaBin = std::max(100, maxCandsPerSeed * nTracks / nEtaPart);
   // Effective eta bin is one half of nEtaPart -- so the above is twice the "average".
   // Note that last and first bin are 3/4 nEtaPart ... but can be made 1/4 by adding
   // additional bins on each end.
 
   // XXX std::min/max have constexpr versions in c++-14.
-
   extern int    numThreadsFinder;
   extern int    numThreadsSimulation;
+
+  // For GPU computations
+  extern int    numThreadsEvents;
+  extern int    numThreadsReorg;
 
   extern bool   clonerUseSingleThread;
   extern int    finderReportBestOutOfN;
 
+  extern bool   useCMSGeom;
+
+  const std::string inputFile = "cmssw.simtracks.SingleMu1GeV.10k.new.txt";
+  //const std::string inputFile = "cmssw.simtracks.SingleMu10GeV.10k.new.txt";
+  //const std::string inputFile = "cmssw.rectracks.SingleMu1GeV.10k.new.txt";
+  //const std::string inputFile = "cmssw.rectracks.SingleMu10GeV.10k.new.txt";
 
 #ifdef USE_MATRIPLEX
 
   #ifndef MPT_SIZE
     #ifdef __MIC__
       #define MPT_SIZE 16
+    #elif defined USE_CUDA
+      #define MPT_SIZE 10000
     #else
-      // TODO: revert to 8 and add an "elif USE_GPU" statement 
-      #define MPT_SIZE 20000 
-      //#define MPT_SIZE 8
+      #define MPT_SIZE 8
     #endif
   #endif
 
