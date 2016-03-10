@@ -2,6 +2,9 @@
 
 namespace Config
 {
+  int nTracks = 20000;
+  int nEvents = 10;
+
   // Multi threading and Clone engine configuration
   int   numThreadsFinder = 1;
   
@@ -19,4 +22,7 @@ namespace Config
   int   finderReportBestOutOfN = 1;
 
   bool  useCMSGeom = false;
+
+  bool  super_debug = false;
+  bool  cf_seeding  = false;
 }

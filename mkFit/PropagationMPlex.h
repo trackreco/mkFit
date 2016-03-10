@@ -19,8 +19,7 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
 
 //inline?
 inline void computeJacobianSimple(int n, MPlexLL& errorProp, 
-				  float s, float k, float p, float pxin, float pyin, float pzin, 
-				  float TP, float cosTP, float sinTP);
+				  float k, float TP, float cosTP, float sinTP);
 
 void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, 
 			         MPlexLV& outPar, const MPlexQF &msRad, 
