@@ -68,38 +68,22 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
   for (int itrack = 0; itrack < simtracks.size(); ++itrack)
   {
     Track track = simtracks[itrack];
-    std::cout << "MX - simtrack with nHits=" << track.nFoundHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1]) <<" phi="<< track.momPhi() <<" eta=" << track.momEta() << std::endl;
-  }
-#endif
-
-#ifdef DEBUG
-  for (int itrack = 0; itrack < simtracks.size(); ++itrack)
-  {
-    Track track = simtracks[itrack];
+    if (track.label() != itrack)
+    {
+      printf("Bad label for simtrack %d -- %d\n", itrack, track.label());
+    }
     std::cout << "MX - simtrack with nHits=" << track.nFoundHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1]) <<" phi="<< track.momPhi() <<" eta=" << track.momEta() << std::endl;
   }
 #endif
 
   m_event_of_hits.Reset();
 
-  for (int itrack = 0; itrack < simtracks.size(); ++itrack)
+  //fill vector of hits in each layer (assuming there is one hit per layer in hits vector)
+  for (int ilay = 0; ilay<m_event->layerHits_.size();++ilay) 
   {
-
-    if (simtracks[itrack].label() != itrack)
+    for (int ihit = 0; ihit<m_event->layerHits_[ilay].size();++ihit) 
     {
-      printf("Bad label for simtrack %d -- %d\n", itrack, simtracks[itrack].label());
-    }
-
-    //fill vector of hits in each layer (assuming there is one hit per layer in hits vector)
-    for (int ilay = 0; ilay < simtracks[itrack].nTotalHits(); ++ilay)
-    {
-      m_event_of_hits.InsertHit(simtracks[itrack].hitsVector(m_event->layerHits_)[ilay], ilay);
-#ifdef DEBUG
-      std::cout << "track #" << itrack << " lay=" << ilay+1
-                << " hit pos=" << simtracks[itrack].hitsVector(m_event->layerHits_)[ilay].position()
-                << " phi=" << simtracks[itrack].hitsVector(m_event->layerHits_)[ilay].phi()
-                << " phiPart=" << getPhiPartition(simtracks[itrack].hitsVector(m_event->layerHits_)[ilay].phi()) << std::endl;
-#endif
+      m_event_of_hits.InsertHit(m_event->layerHits_[ilay][ihit],ilay);
     }
   }
 
@@ -150,14 +134,6 @@ void MkBuilder::fit_seeds()
   }
 #endif
 
-#ifdef DEBUG
-  std::cout << "found total seeds=" << m_recseeds.size() << std::endl;
-  for (int iseed = 0; iseed < m_recseeds.size(); ++iseed)
-  {
-    Track& seed = m_recseeds[iseed];
-    std::cout << "MX - found seed with nHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.posR() << " pT=" << seed.pT() << std::endl;
-  }
-#endif
 }
 
 void MkBuilder::end_event()
@@ -184,31 +160,29 @@ void MkBuilder::quality_process(Track &tkcand)
   float pt    = tkcand.pT();
   float ptmc  = m_event->simTracks_[mctrk].pT() ;
   float pr    = pt / ptmc;
+  int nfoundmc = m_event->simTracks_[mctrk].nFoundHits();
 
   ++m_cnt;
   if (pr > 0.9 && pr < 1.1) ++m_cnt1;
   if (pr > 0.8 && pr < 1.2) ++m_cnt2;
 
-  if (tkcand.nFoundHits() >= 8)
+  if (tkcand.nFoundHits() >= 0.8*nfoundmc)
   {
     ++m_cnt_8;
     if (pr > 0.9 && pr < 1.1) ++m_cnt1_8;
     if (pr > 0.8 && pr < 1.2) ++m_cnt2_8;
   }
 
-#ifdef DEBUG
-  std::cout << "MX - found track with nFoundHits=" << tkcand.nFoundHits() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc <<" lab="<< tkcand.label() <<std::endl;
+#if defined(DEBUG) || defined(PRINTOUTS_FOR_PLOTS)
+  std::cout << "MX - found track with nFoundHits=" << tkcand.nFoundHits() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << " nfoundmc=" << nfoundmc <<" lab="<< tkcand.label() <<std::endl;
 #endif
 
-#ifdef PRINTOUTS_FOR_PLOTS
-  std::cout << "MX - found track with nFoundHits=" << tkcand.nFoundHits() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << std::endl;
-#endif
 }
 
 void MkBuilder::quality_print()
 {
   std::cout << "found tracks=" << m_cnt   << "  in pT 10%=" << m_cnt1   << "  in pT 20%=" << m_cnt2   << "     no_mc_assoc="<< m_cnt_nomc <<std::endl;
-  std::cout << "  nH >= 8   =" << m_cnt_8 << "  in pT 10%=" << m_cnt1_8 << "  in pT 20%=" << m_cnt2_8 << std::endl;
+  std::cout << "  nH >= 80% =" << m_cnt_8 << "  in pT 10%=" << m_cnt1_8 << "  in pT 20%=" << m_cnt2_8 << std::endl;
 }
 
 

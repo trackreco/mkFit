@@ -351,11 +351,15 @@ void Event::read_in(FILE *fp)
   /*
   printf("read %i tracks\n",nt);
   for (int it = 0; it<nt; it++) {
-    printf("track with pT=%5.3f\n",simTracks_[it].pT());
+    printf("track with q=%i pT=%5.3f and nHits=%i\n",simTracks_[it].charge(),simTracks_[it].pT(),simTracks_[it].nTotalHits());
     for (int ih=0; ih<simTracks_[it].nTotalHits(); ++ih) {
-      printf("hit idx=%i\n", simTracks_[it].getHitIdx(ih));
+      if (simTracks_[it].getHitIdx(ih)>=0)
+	printf("hit #%i idx=%i pos r=%5.3f\n",ih,simTracks_[it].getHitIdx(ih),layerHits_[ih][simTracks_[it].getHitIdx(ih)].r());
+      else
+	printf("hit #%i idx=%i\n",ih,simTracks_[it].getHitIdx(ih));
     }
   }
+
   printf("read %i layers\n",nl);
   for (int il = 0; il<nl; il++) {
     printf("read %i hits in layer %i\n",layerHits_[il].size(),il);
