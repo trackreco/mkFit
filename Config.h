@@ -18,8 +18,8 @@ namespace Config
   constexpr double Sqrt2   = 1.4142135623730950488016887242097;
 
   // config on main + mkFit
-  constexpr int nTracks = 500;//20000;
-  constexpr int nEvents = 1;//10;
+  constexpr int nTracks = 20000;
+  constexpr int nEvents = 10;
 
   // config on main -- for geometry
   constexpr int   nLayers   = 10;
@@ -33,7 +33,7 @@ namespace Config
   constexpr float cmsDeltaRad = 2.5; //fixme! using constant 2.5 cm, to be taken from layer properties
 
   // config on Event
-  constexpr float chi2Cut = 30.;//15.;
+  constexpr float chi2Cut = 15.;
   constexpr float nSigma  = 3.;
   constexpr float minDPhi = 0.;
   constexpr float maxDPhi = Config::PI;
@@ -83,7 +83,7 @@ namespace Config
   // Config for Hit and BinInfoUtils
   constexpr int   nPhiPart   = 1260;
   constexpr float fPhiFactor = nPhiPart / TwoPI;
-  constexpr int   nEtaPart   = 1.;//11;
+  constexpr int   nEtaPart   = 11;
   constexpr int   nEtaBin    = 2 * nEtaPart - 1;
 
   constexpr float        fEtaFull  = 2 * Config::fEtaDet;

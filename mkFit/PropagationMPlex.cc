@@ -106,7 +106,24 @@ void MultHelixPropTransp(const MPlexLL& A, const MPlexLL& B, MPlexLS& C)
 #include "MultHelixPropTransp.ah"
 }
 
-// this version does not assume to know which elements are 0 or 1, so it does the full mupltiplication
+// this version does not assume to know which elements are 0 or 1, so it does the full multiplication
+void MultHelixPropFull(const MPlexLL& A, const MPlexLS& B, MPlexLL& C)
+{
+
+#pragma simd
+  for (int n = 0; n < NN; ++n)
+    {
+      for (int i = 0; i < 6; ++i) {
+	for (int j = 0; j < 6; ++j) {
+	  C(n,i,j) = 0.;
+	  for (int k = 0; k < 6; ++k) C(n,i,j) += A.ConstAt(n,i,k)*B.ConstAt(n,k,j);
+	}
+      }
+    }
+  
+}
+
+// this version does not assume to know which elements are 0 or 1, so it does the full multiplication
 void MultHelixPropFull(const MPlexLL& A, const MPlexLL& B, MPlexLL& C)
 {
 
@@ -117,6 +134,23 @@ void MultHelixPropFull(const MPlexLL& A, const MPlexLL& B, MPlexLL& C)
 	for (int j = 0; j < 6; ++j) {
 	  C(n,i,j) = 0.;
 	  for (int k = 0; k < 6; ++k) C(n,i,j) += A.ConstAt(n,i,k)*B.ConstAt(n,k,j);
+	}
+      }
+    }
+  
+}
+
+// this version does not assume to know which elements are 0 or 1, so it does the full mupltiplication
+void MultHelixPropTranspFull(const MPlexLL& A, const MPlexLL& B, MPlexLS& C)
+{
+
+#pragma simd
+  for (int n = 0; n < NN; ++n)
+    {
+      for (int i = 0; i < 6; ++i) {
+	for (int j = 0; j < 6; ++j) {
+	  C(n,i,j) = 0.;
+	  for (int k = 0; k < 6; ++k) C(n,i,j) += B.ConstAt(n,i,k)*A.ConstAt(n,j,k);
 	}
       }
     }
@@ -209,7 +243,8 @@ void computeJacobianSimple(int n, MPlexLL& errorProp, float s, float k, float p,
 
 void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar, const MPlexQF &msRad, MPlexLL& errorProp) {
 
-  MPlexLL rotateCart(0);
+  MPlexLL rotateCartCu2Ca(0);
+  MPlexLL rotateCartCa2Cu(0);
   MPlexLL jacCartToCurv(0);
   MPlexLL jacCurvToCart(0);
   MPlexLL jacCurvProp(0);
@@ -226,6 +261,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       float r0 = hipo(xin, yin);
       
 #ifdef DEBUG
+      std::cout << std::endl;
       std::cout << "attempt propagation from r=" << r0 << " to r=" << r << std::endl;
       std::cout << "x=" << xin << " y=" << yin  << " z=" << inPar.ConstAt(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pzin << " q=" << inChg.ConstAt(n, 0, 0) << std::endl;
       // if ((r0-r)>=0) {
@@ -417,46 +453,75 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
         float py = outPar.ConstAt(n, 4, 0);
         float pz = outPar.ConstAt(n, 5, 0);
         
-        float xtx = px/p;//in
-        float xty = py/p;//in
-        float xtz = pz/p;//in
+        float xtx = px/p;
+        float xty = py/p;
+        float xtz = pz/p;
         float ytx = -py/pt;
         float yty =  px/pt;
         float ytz = 0.;
         float ztx = xty*ytz - xtz*yty;
         float zty = xtz*ytx - xtx*ytz;
         float ztz = xtx*yty - xty*ytx;
-        rotateCart(n,0,0) = xtx;
-        rotateCart(n,1,0) = xty;
-        rotateCart(n,2,0) = xtz;
-        rotateCart(n,0,1) = ytx;
-        rotateCart(n,1,1) = yty;
-        rotateCart(n,2,1) = ytz;
-        rotateCart(n,0,2) = ztx;
-        rotateCart(n,1,2) = zty;
-        rotateCart(n,2,2) = ztz;
-        rotateCart(n,3,3) = 1.0;
-        rotateCart(n,4,4) = 1.0;
-        rotateCart(n,5,5) = 1.0;
+        rotateCartCu2Ca(n,0,0) = xtx;
+        rotateCartCu2Ca(n,1,0) = xty;
+        rotateCartCu2Ca(n,2,0) = xtz;
+        rotateCartCu2Ca(n,0,1) = ytx;
+        rotateCartCu2Ca(n,1,1) = yty;
+        rotateCartCu2Ca(n,2,1) = ytz;
+        rotateCartCu2Ca(n,0,2) = ztx;
+        rotateCartCu2Ca(n,1,2) = zty;
+        rotateCartCu2Ca(n,2,2) = ztz;
+        rotateCartCu2Ca(n,3,3) = 1.0;
+        rotateCartCu2Ca(n,4,4) = 1.0;
+        rotateCartCu2Ca(n,5,5) = 1.0;
+	
+        float xtxin = pxin/p;
+        float xtyin = pyin/p;
+        float xtzin = pzin/p;
+        float ytxin = -pyin/pt;
+        float ytyin =  pxin/pt;
+        float ytzin = 0.;
+        float ztxin = xtyin*ytzin - xtzin*ytyin;
+        float ztyin = xtzin*ytxin - xtxin*ytzin;
+        float ztzin = xtxin*ytyin - xtyin*ytxin;
+        rotateCartCa2Cu(n,0,0) = xtxin;
+        rotateCartCa2Cu(n,1,0) = ytxin;
+        rotateCartCa2Cu(n,2,0) = ztxin;
+        rotateCartCa2Cu(n,0,1) = xtyin;
+        rotateCartCa2Cu(n,1,1) = ytyin;
+        rotateCartCa2Cu(n,2,1) = ztyin;
+        rotateCartCa2Cu(n,0,2) = xtzin;
+        rotateCartCa2Cu(n,1,2) = ytzin;
+        rotateCartCa2Cu(n,2,2) = ztzin;
+        rotateCartCa2Cu(n,3,3) = 1.0;
+        rotateCartCa2Cu(n,4,4) = 1.0;
+        rotateCartCa2Cu(n,5,5) = 1.0;
 	
 #ifdef DEBUG
-	std::cout << "rotateCart" << std::endl;
-	printf("%5f %5f %5f %5f %5f %5f\n", rotateCart(n,0,0),rotateCart(n,0,1),rotateCart(n,0,2),rotateCart(n,0,3),rotateCart(n,0,4),rotateCart(n,0,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", rotateCart(n,1,0),rotateCart(n,1,1),rotateCart(n,1,2),rotateCart(n,1,3),rotateCart(n,1,4),rotateCart(n,1,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", rotateCart(n,2,0),rotateCart(n,2,1),rotateCart(n,2,2),rotateCart(n,2,3),rotateCart(n,2,4),rotateCart(n,2,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", rotateCart(n,3,0),rotateCart(n,3,1),rotateCart(n,3,2),rotateCart(n,3,3),rotateCart(n,3,4),rotateCart(n,3,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", rotateCart(n,4,0),rotateCart(n,4,1),rotateCart(n,4,2),rotateCart(n,4,3),rotateCart(n,4,4),rotateCart(n,4,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", rotateCart(n,5,0),rotateCart(n,5,1),rotateCart(n,5,2),rotateCart(n,5,3),rotateCart(n,5,4),rotateCart(n,5,5));
+	std::cout << "rotateCartCu2Ca" << std::endl;
+	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCu2Ca(n,0,0),rotateCartCu2Ca(n,0,1),rotateCartCu2Ca(n,0,2),rotateCartCu2Ca(n,0,3),rotateCartCu2Ca(n,0,4),rotateCartCu2Ca(n,0,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCu2Ca(n,1,0),rotateCartCu2Ca(n,1,1),rotateCartCu2Ca(n,1,2),rotateCartCu2Ca(n,1,3),rotateCartCu2Ca(n,1,4),rotateCartCu2Ca(n,1,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCu2Ca(n,2,0),rotateCartCu2Ca(n,2,1),rotateCartCu2Ca(n,2,2),rotateCartCu2Ca(n,2,3),rotateCartCu2Ca(n,2,4),rotateCartCu2Ca(n,2,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCu2Ca(n,3,0),rotateCartCu2Ca(n,3,1),rotateCartCu2Ca(n,3,2),rotateCartCu2Ca(n,3,3),rotateCartCu2Ca(n,3,4),rotateCartCu2Ca(n,3,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCu2Ca(n,4,0),rotateCartCu2Ca(n,4,1),rotateCartCu2Ca(n,4,2),rotateCartCu2Ca(n,4,3),rotateCartCu2Ca(n,4,4),rotateCartCu2Ca(n,4,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCu2Ca(n,5,0),rotateCartCu2Ca(n,5,1),rotateCartCu2Ca(n,5,2),rotateCartCu2Ca(n,5,3),rotateCartCu2Ca(n,5,4),rotateCartCu2Ca(n,5,5));
+	std::cout << "rotateCartCa2Cu" << std::endl;
+	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCa2Cu(n,0,0),rotateCartCa2Cu(n,0,1),rotateCartCa2Cu(n,0,2),rotateCartCa2Cu(n,0,3),rotateCartCa2Cu(n,0,4),rotateCartCa2Cu(n,0,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCa2Cu(n,1,0),rotateCartCa2Cu(n,1,1),rotateCartCa2Cu(n,1,2),rotateCartCa2Cu(n,1,3),rotateCartCa2Cu(n,1,4),rotateCartCa2Cu(n,1,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCa2Cu(n,2,0),rotateCartCa2Cu(n,2,1),rotateCartCa2Cu(n,2,2),rotateCartCa2Cu(n,2,3),rotateCartCa2Cu(n,2,4),rotateCartCa2Cu(n,2,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCa2Cu(n,3,0),rotateCartCa2Cu(n,3,1),rotateCartCa2Cu(n,3,2),rotateCartCa2Cu(n,3,3),rotateCartCa2Cu(n,3,4),rotateCartCa2Cu(n,3,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCa2Cu(n,4,0),rotateCartCa2Cu(n,4,1),rotateCartCa2Cu(n,4,2),rotateCartCa2Cu(n,4,3),rotateCartCa2Cu(n,4,4),rotateCartCa2Cu(n,4,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCa2Cu(n,5,0),rotateCartCa2Cu(n,5,1),rotateCartCa2Cu(n,5,2),rotateCartCa2Cu(n,5,3),rotateCartCa2Cu(n,5,4),rotateCartCa2Cu(n,5,5));
 #endif
 	
-        jacCartToCurv(n,0,3) = -q*px/p3;        
-        jacCartToCurv(n,0,4) = -q*py/p3;        
-        jacCartToCurv(n,0,5) = -q*pz/p3;
-        jacCartToCurv(n,1,3) = -(px*pz)/(pt*p2); 
-        jacCartToCurv(n,1,4) = -(py*pz)/(pt*p2); 
+        jacCartToCurv(n,0,3) = -q*pxin/p3;        
+        jacCartToCurv(n,0,4) = -q*pyin/p3;        
+        jacCartToCurv(n,0,5) = -q*pzin/p3;
+        jacCartToCurv(n,1,3) = -(pxin*pzin)/(pt*p2); 
+        jacCartToCurv(n,1,4) = -(pyin*pzin)/(pt*p2); 
         jacCartToCurv(n,1,5) = pt/p2;
-        jacCartToCurv(n,2,3) = -py/pt2;         
-        jacCartToCurv(n,2,4) = px/pt2;          
+        jacCartToCurv(n,2,3) = -pyin/pt2;         
+        jacCartToCurv(n,2,4) = pxin/pt2;          
         jacCartToCurv(n,2,5) = 0.;
         jacCartToCurv(n,3,1) = 1.;
         jacCartToCurv(n,4,2) = 1.;
@@ -728,7 +793,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 
   if (Config::useCurvJac) {    
     MPlexLL temp;
-    MultHelixPropTranspFull(rotateCart, jacCartToCurv, temp);
+    MultHelixPropFull(jacCartToCurv, rotateCartCa2Cu, temp);
 #ifdef DEBUG
       std::cout << "rotated jacCartToCurv" << std::endl;
       printf("%5f %5f %5f %5f %5f %5f\n", temp(0,0,0),temp(0,0,1),temp(0,0,2),temp(0,0,3),temp(0,0,4),temp(0,0,5));
@@ -739,7 +804,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       printf("%5f %5f %5f %5f %5f %5f\n", temp(0,5,0),temp(0,5,1),temp(0,5,2),temp(0,5,3),temp(0,5,4),temp(0,5,5));
 #endif
     MPlexLL temp2;
-    MultHelixPropFull(rotateCart, jacCurvToCart, temp2);
+    MultHelixPropFull(rotateCartCu2Ca, jacCurvToCart, temp2);
 #ifdef DEBUG
       std::cout << "rotated jacCurvToCart" << std::endl;
       printf("%5f %5f %5f %5f %5f %5f\n", temp2(0,0,0),temp2(0,0,1),temp2(0,0,2),temp2(0,0,3),temp2(0,0,4),temp2(0,0,5));
@@ -1074,8 +1139,13 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    // Matriplex version of:
    // result.errors = ROOT::Math::Similarity(errorProp, outErr);
    MPlexLL temp;
-   MultHelixProp      (errorProp, outErr, temp);
-   MultHelixPropTransp(errorProp, temp,   outErr);
+   if (Config::useCurvJac) {
+     MultHelixPropFull      (errorProp, outErr, temp);
+     MultHelixPropTranspFull(errorProp, temp,   outErr);
+   } else {
+     MultHelixProp      (errorProp, outErr, temp);
+     MultHelixPropTransp(errorProp, temp,   outErr);
+   }
 
    // if (Config::useCMSGeom) {
    //   applyMaterialEffects(hitsRl, hitsXi, outErr, outPar);
@@ -1151,8 +1221,13 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
    // result.errors = ROOT::Math::Similarity(errorProp, outErr);
 
    MPlexLL temp;
-   MultHelixProp      (errorProp, outErr, temp);
-   MultHelixPropTransp(errorProp, temp,   outErr);
+   if (Config::useCurvJac) {
+     MultHelixPropFull      (errorProp, outErr, temp);
+     MultHelixPropTranspFull(errorProp, temp,   outErr);
+   } else {
+     MultHelixProp      (errorProp, outErr, temp);
+     MultHelixPropTransp(errorProp, temp,   outErr);
+   }
    
    // This dump is now out of its place as similarity is done with matriplex ops.
 #ifdef DEBUG
