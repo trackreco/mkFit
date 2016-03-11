@@ -3,7 +3,7 @@
 
 #include <algorithm>
 
-//#define PRINTOUTS_FOR_PLOTS
+#define PRINTOUTS_FOR_PLOTS
 
 namespace Config
 {
@@ -79,7 +79,8 @@ namespace Config
   constexpr int Niter = 5;
   constexpr float Bfield = 3.8112;
   constexpr bool doIterative = true;
-  constexpr bool useSimpleJac = true;
+  constexpr bool useSimpleJac = true;  
+  constexpr bool useCurvJac = false;
   constexpr bool useTrigApprox = true;
 
   // Config for Hit and BinInfoUtils
