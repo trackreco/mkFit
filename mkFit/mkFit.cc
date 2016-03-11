@@ -272,6 +272,8 @@ int main(int argc, const char *argv[])
       printf(
         "Usage: %s [options]\n"
         "Options:\n"
+        "  --num-events    <num>    number of events to run over (def: %d)\n"
+        "  --num-tracks    <num>    number of tracks to generate for each event (def: %d)\n"
         "  --num-thr-sim   <num>    number of threads for simulation (def: %d)\n"
         "  --num-thr       <num>    number of threads for track finding (def: %d)\n"
         "                           extra cloning thread is spawned for each of them\n"
@@ -288,6 +290,8 @@ int main(int argc, const char *argv[])
 	"  --file-name              file name for write/read (def: %s)\n"
         ,
         argv[0],
+        Config::nEvents,
+        Config::nTracks,
         Config::numThreadsSimulation, Config::numThreadsFinder,
         Config::clonerUseSingleThread ? "true" : "false",
         Config::finderReportBestOutOfN,
@@ -295,6 +299,16 @@ int main(int argc, const char *argv[])
 	g_file_name.c_str()
       );
       exit(0);
+    }
+    else if (*i == "--num-events")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::nEvents = atoi(i->c_str());
+    }
+    else if (*i == "--num-tracks")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::nTracks = atoi(i->c_str());
     }
     else if (*i == "--num-thr-sim")
     {
