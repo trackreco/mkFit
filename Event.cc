@@ -34,6 +34,7 @@ inline bool sortByZ(const Hit& hit1, const Hit& hit2){
 #endif
 
 void Event::resetLayerHitMap(bool resetSimHits) {
+  //gc: not sure what is being done here
   layerHitMap_.clear();
   layerHitMap_.resize(simHitsInfo_.size());
   for (int ilayer = 0; ilayer < layerHits_.size(); ++ilayer) {
@@ -59,6 +60,9 @@ Event::Event(const Geometry& g, Validation& v, int evtID, int threads) : geom_(g
   segmentMap_.resize(Config::nLayers);
 
   validation_.resetValidationMaps(); // need to reset maps for every event.
+  if (Config::super_debug) {
+    validation_.resetDebugVectors(); // need to reset vectors for every event.
+  }
 }
 
 void Event::Simulate()
@@ -216,14 +220,13 @@ void Event::Segment()
 {
 #ifdef ENDTOEND
   buildSeedsByRoadTriplets(seedTracks_,seedTracksExtra_,layerHits_,segmentMap_,*this);
-  //buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
+  //buildSeedsByRZFirstRPhiSecond(seedTracks_,seedTracksExtra_,layerHits_,segmentMap_,*this);
 #else
   buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
+  simTracksExtra_ = seedTracksExtra_;
 #endif
-  // if we sort here, also have to sort seedTracksExtra and redo labels.
-  
   std::sort(seedTracks_.begin(), seedTracks_.end(), tracksByPhi);
-  validation_.alignTrackExtra(seedTracks_,seedTracksExtra_);
+  validation_.alignTrackExtra(seedTracks_,seedTracksExtra_);   // if we sort here, also have to sort seedTracksExtra and redo labels.
 }
 
 void Event::Find()
@@ -248,14 +251,19 @@ void Event::Fit()
 
 void Event::Validate(int ievt){
   // KM: Config tree just filled once... in main.cc
-  validation_.makeSimTkToRecoTksMaps(*this);
-  validation_.makeSeedTkToRecoTkMaps(*this);
-  validation_.fillSegmentTree(segmentMap_,ievt);
-  validation_.fillBranchTree(ievt);
-  validation_.fillEfficiencyTree(*this);
-  validation_.fillFakeRateTree(*this);
-  validation_.fillGeometryTree(*this);
-  validation_.fillConformalTree(*this);
+  if (!Config::super_debug){ // regular validation
+    validation_.makeSimTkToRecoTksMaps(*this);
+    validation_.makeSeedTkToRecoTkMaps(*this);
+    validation_.fillSegmentTree(segmentMap_,ievt);
+    validation_.fillBranchTree(ievt);
+    validation_.fillEfficiencyTree(*this);
+    validation_.fillFakeRateTree(*this);
+    validation_.fillGeometryTree(*this);
+    validation_.fillConformalTree(*this);
+  }
+  else{ // super debug mode
+    validation_.fillDebugTree(*this);
+  }
 }
 
 void Event::PrintStats(const TrackVec& trks, TrackExtraVec& trkextras)
@@ -283,4 +291,84 @@ void Event::PrintStats(const TrackVec& trks, TrackExtraVec& trkextras)
   }
   std::cout << "found tracks=" << found   << "  in pT 10%=" << fp_10    << "  in pT 20%=" << fp_20    << "     no_mc_assoc="<< miss <<std::endl
             << "  nH >= 8   =" << hit8    << "  in pT 10%=" << h8_10    << "  in pT 20%=" << h8_20    << std::endl;
+}
+ 
+void Event::write_out(FILE *fp) 
+{
+
+  int nt = simTracks_.size();
+  fwrite(&nt, sizeof(int), 1, fp);
+  fwrite(&simTracks_[0], sizeof(Track), nt, fp);
+
+  int nl = layerHits_.size();
+  fwrite(&nl, sizeof(int), 1, fp);
+  for (int il = 0; il<nl; ++il) {
+    int nh = layerHits_[il].size();
+    fwrite(&nh, sizeof(int), 1, fp);
+    fwrite(&layerHits_[il][0], sizeof(Hit), nh, fp);
+  }
+
+  int nm = simHitsInfo_.size();
+  fwrite(&nm, sizeof(int), 1, fp);
+  fwrite(&simHitsInfo_[0], sizeof(MCHitInfo), nm, fp);
+
+  //layerHitMap_ is recreated afterwards
+
+  /*
+  printf("write %i tracks\n",nt);
+  for (int it = 0; it<nt; it++) {
+    printf("track with pT=%5.3f\n",simTracks_[it].pT());
+    for (int ih=0; ih<simTracks_[it].nTotalHits(); ++ih) {
+      printf("hit idx=%i\n", simTracks_[it].getHitIdx(ih));
+    }
+  }
+  printf("write %i layers\n",nl);
+  for (int il = 0; il<nl; il++) {
+    printf("write %i hits in layer %i\n",layerHits_[il].size(),il);
+    for (int ih = 0; ih<layerHits_[il].size(); ih++) {
+      printf("hit with r=%5.3f x=%5.3f y=%5.3f z=%5.3f\n",layerHits_[il][ih].r(),layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z());
+    }
+  }
+  */
+}
+
+void Event::read_in(FILE *fp)
+{
+
+  int nt;
+  fread(&nt, sizeof(int), 1, fp);
+  simTracks_.resize(nt);
+  fread(&simTracks_[0], sizeof(Track), nt, fp);
+
+  int nl;
+  fread(&nl, sizeof(int), 1, fp);
+  layerHits_.resize(nl);
+  for (int il = 0; il<nl; ++il) {
+    int nh;
+    fread(&nh, sizeof(int), 1, fp);
+    layerHits_[il].resize(nh);
+    fread(&layerHits_[il][0], sizeof(Hit), nh, fp);
+  }
+
+  int nm; 
+  fread(&nm, sizeof(int), 1, fp);
+  simHitsInfo_.resize(nm);
+  fread(&simHitsInfo_[0], sizeof(MCHitInfo), nm, fp);
+
+  /*
+  printf("read %i tracks\n",nt);
+  for (int it = 0; it<nt; it++) {
+    printf("track with pT=%5.3f\n",simTracks_[it].pT());
+    for (int ih=0; ih<simTracks_[it].nTotalHits(); ++ih) {
+      printf("hit idx=%i\n", simTracks_[it].getHitIdx(ih));
+    }
+  }
+  printf("read %i layers\n",nl);
+  for (int il = 0; il<nl; il++) {
+    printf("read %i hits in layer %i\n",layerHits_[il].size(),il);
+    for (int ih = 0; ih<layerHits_[il].size(); ih++) {
+      printf("hit with r=%5.3f x=%5.3f y=%5.3f z=%5.3f\n",layerHits_[il][ih].r(),layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z());
+    }
+  }
+  */
 }

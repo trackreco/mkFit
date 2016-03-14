@@ -10,7 +10,7 @@ if hORm!='host' and hORm!='mic': exit
 
 g = ROOT.TFile('benchmark_'+hORm+'.root',"recreate")
 
-for test in ['BH','CE','CEST','ST','TBB','TBBST','FIT']:
+for test in ['BH','CE','CEST','ST','TBBST','FIT']:
     print test
     pos = 14
     ntks = '20k'
@@ -20,7 +20,6 @@ for test in ['BH','CE','CEST','ST','TBB','TBBST','FIT']:
     if 'FIT' in test: 
         pos = 3
         ntks = '1M'
-        if hORm == 'mic': ntks = '500k'
     g_VU = ROOT.TGraph(4)
     g_VU_speedup = ROOT.TGraph(4)
     point = 0

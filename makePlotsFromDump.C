@@ -7,7 +7,6 @@
   //TString test = "BH";
   //TString test = "ST";
   //TString test = "TBBST";
-  //TString test = "TBB";
 
   TCanvas c1;
   c1.SetLogy();
@@ -21,7 +20,6 @@
   if (test== "BH") h1->SetTitle("BestHit");
   if (test== "ST") h1->SetTitle("NoCloneEngine");
   if (test== "TBBST") h1->SetTitle("TBB-SameThread");
-  if (test== "TBB") h1->SetTitle("TBB-CE");
   h1->GetXaxis()->SetTitle("Number of Hits Found");
   h1->GetYaxis()->SetTitle("Fraction of Tracks");
   h1->DrawNormalized();
