@@ -1,8 +1,3 @@
-void setupGraph(TGraph* tg)
-{
-  
-}
-
 void makeBenchmarkPlots()
 {
 
