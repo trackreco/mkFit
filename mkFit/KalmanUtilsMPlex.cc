@@ -25,7 +25,7 @@ void MultResidualsAdd(const MPlexLH& A,
    const T *c = C.fArray; ASSUME_ALIGNED(c, 64);
          T *d = D.fArray; ASSUME_ALIGNED(d, 64);
 
-//#pragma simd
+#pragma simd
    for (idx_t n = 0; n < N; ++n)
    {
       // manually subrtact into local vars -- 3 of them

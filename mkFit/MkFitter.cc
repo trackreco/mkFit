@@ -3,8 +3,9 @@
 
 #include "PropagationMPlex.h"
 #include "KalmanUtilsMPlex.h"
-//#include "KalmanUpdaterCU.h"
+#ifdef USE_CUDA
 #include "FitterCU.h"
+#endif
 
 #include <sstream>
 

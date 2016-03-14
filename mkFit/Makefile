@@ -67,7 +67,7 @@ MKFHDRS := $(wildcard *.h)
 MKFOBJS := $(MKFSRCS:.cc=.o)
 MKFDEPS := $(MKFSRCS:.cc=.d)
 
-ifdef NV
+ifdef USE_CUDA
 CU_SRCS := $(wildcard *.cu)
 CU_OBJS := $(CU_SRCS:.cu=.o)
 
@@ -99,11 +99,6 @@ TTree.h:
 
 ${MKFOBJS}: %.o: %.cc %.d
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<
-
-#### GPU compilation
-#ifdef NV
-##CU_OBJS := $(CU_SRC:.cu=.o)
-#endif
 
 ### MIC build, icc only
 

@@ -3,7 +3,10 @@
 
 #include "Event.h"
 #include "Track.h"
+
+#ifdef USE_CUDA
 #include "FitterCU.h"
+#endif
 
 void   make_validation_tree(const char         *fname,
                             std::vector<Track> &simtracks,
@@ -11,5 +14,8 @@ void   make_validation_tree(const char         *fname,
 
 double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks);
 
+#ifdef USE_CUDA
 double runFittingTestPlexGPU(FitterCU<float> &cuFitter, Event& ev, std::vector<Track>& rectracks);
+#endif
+
 #endif

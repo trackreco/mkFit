@@ -7,12 +7,14 @@
 #include "Geometry.h"
 
 #include "MkFitter.h"
+#if USE_CUDA
 #include "FitterCU.h"
+#endif
 
-//#ifndef NO_ROOT
+#ifndef NO_ROOT
 #include "TFile.h"
 #include "TTree.h"
-//#endif
+#endif
 
 #include <omp.h>
 
@@ -25,7 +27,7 @@ void make_validation_tree(const char         *fname,
                           std::vector<Track> &simtracks,
                           std::vector<Track> &rectracks)
 {
-//#ifndef NO_ROOT
+#ifndef NO_ROOT
 
    assert(simtracks.size() == rectracks.size());
 
@@ -39,7 +41,9 @@ void make_validation_tree(const char         *fname,
    tree->Branch("pt_err", &pt_err, "pt_err");
    tree->Branch("chg",    &chg,    "chg");
 
+#ifdef USE_CUDA
    std::vector<float> diff_vec;
+#endif
 
    const int NT = simtracks.size();
    for (int i = 0; i < NT; ++i)
@@ -57,11 +61,14 @@ void make_validation_tree(const char         *fname,
 
       tree->Fill();
 
+#ifdef USE_CUDA
       float diff = (pt_mc - pt_fit) / pt_err;
       if (std::abs(diff) < 5.0f) {
         diff_vec.push_back(diff);
       }
+#endif
    }
+#ifdef USE_CUDA
    float mean = std::accumulate(diff_vec.begin(), diff_vec.end(), 0.0)
               / diff_vec.size();
 
@@ -75,11 +82,12 @@ void make_validation_tree(const char         *fname,
 
    std::cerr << "Mean value for (pt_mc-pt_fit)/pt_err: " << mean
             << " standard dev: " << stdev << std::endl;
+#endif
 
    file->Write();
    file->Close();
    delete file;
-//#endif
+#endif
 }
 
 //==============================================================================
@@ -115,24 +123,19 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 
    double time = dtime();
 
-   int Nstride = NN;
-
-   for (int itrack = 0; itrack < theEnd; itrack += Nstride)
+#pragma omp parallel for
+   for (int itrack = 0; itrack < theEnd; itrack += NN)
    {
-      int end = std::min(itrack + Nstride, theEnd);
+      int end = std::min(itrack + NN, theEnd);
 
       MkFitter *mkfp = mkfp_arr[omp_get_thread_num()];
 
-      //double time_input = dtime();
       mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
-      //std::cerr << "Input time: " << (dtime() - time_input)*1e3 << std::endl;
 
       mkfp->FitTracks();
 
 #ifndef NO_ROOT
-      double time_output = dtime();
       mkfp->OutputFittedTracks(rectracks, itrack, end);
-      std::cerr << "Output time: " << (dtime() - time_output)*1e3 << std::endl;
 #endif
    }
 
@@ -147,6 +150,7 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
    return time;
 }
 
+#ifdef USE_CUDA
 double runFittingTestPlexGPU(FitterCU<float> &cuFitter, 
     Event& ev, std::vector<Track>& rectracks)
 {
@@ -182,7 +186,6 @@ double runFittingTestPlexGPU(FitterCU<float> &cuFitter,
       mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
       //std::cerr << "Input time: " << (dtime() - time_input)*1e3 << std::endl;
 
-#if USE_CUDA
       cuFitter.FitTracks(mkfp->Chg,
                          mkfp->GetPar0(),
                          mkfp->GetErr0(),
@@ -190,16 +193,12 @@ double runFittingTestPlexGPU(FitterCU<float> &cuFitter,
                          mkfp->msErr,
                          Nhits,
                          simtracks, itrack, end, ev.layerHits_);
-                         
-#else
-      mkfp->FitTracks();
-#endif
 
-//#ifndef NO_ROOT
+#ifndef NO_ROOT
       double time_output = dtime();
       mkfp->OutputFittedTracks(rectracks, itrack, end);
       std::cerr << "Output time: " << (dtime() - time_output)*1e3 << std::endl;
-//#endif
+#endif
    }
 
    time = dtime() - time;
@@ -208,3 +207,4 @@ double runFittingTestPlexGPU(FitterCU<float> &cuFitter,
 
    return time;
 }
+#endif
