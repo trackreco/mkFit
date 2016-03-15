@@ -657,6 +657,139 @@ void MkBuilder::FindTracks()
 // FindTracksCloneEngine
 //------------------------------------------------------------------------------
 
+void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_candidates, CandIdx_t& seed_cand_idx,
+                                      CandCloner &cloner, MkFitter *mkfp, int start_seed, int end_seed, int ebin)
+{
+  cloner.begin_eta_bin(&etabin_of_comb_candidates, start_seed, end_seed - start_seed);
+
+  //loop over layers, starting from after the seeD
+  for (int ilay = Config::nlayers_per_seed; ilay <= Config::nLayers; ++ilay)
+  {
+#ifdef DEBUG
+    std::cout << "processing lay=" << ilay+1 << std::endl;
+#endif
+
+    //prepare unrolled vector to loop over
+
+    for (int iseed = start_seed; iseed != end_seed; ++iseed)
+    {
+      std::vector<Track> &scands = etabin_of_comb_candidates.m_candidates[iseed];
+      for (int ic = 0; ic < scands.size(); ++ic)
+      {
+        if (scands[ic].getLastHitIdx() >= -1)
+        {
+          seed_cand_idx.push_back(std::pair<int,int>(iseed,ic));
+        }
+      }
+    }
+    const int theEndCand = seed_cand_idx.size();
+
+    // don't bother messing with the clone engine if there are no candidates
+    // (actually it crashes, so this protection is needed)
+    // XXXX MT ??? How does this happen ???
+    if (theEndCand == 0) continue;
+
+    if (ilay < Config::nLayers)
+    {
+      cloner.begin_layer(ilay);
+    }
+
+    //vectorized loop
+    for (int itrack = 0; itrack < theEndCand; itrack += NN)
+    {
+      const int end = std::min(itrack + NN, theEndCand);
+
+#ifdef DEBUG
+      std::cout << "processing track=" << itrack << std::endl;
+      printf("FTCE: start_seed=%d, n_seeds=%d, theEndCand=%d\n"
+             "      itrack=%d, end=%d, nn=%d, end_eq_tec=%d\n",
+             start_seed, end_seed-start_seed, theEndCand,
+             itrack, end, end-itrack, end == theEndCand);
+      printf("      ");
+      for (int i=itrack; i < end; ++i) printf("%d,%d  ", seed_cand_idx[i].first, seed_cand_idx[i].second);
+      printf("\n");
+#endif
+
+      // mkfp->SetNhits(ilay == Config::nlayers_per_seed ? ilay : ilay + 1);
+      mkfp->SetNhits(ilay);
+
+      mkfp->InputTracksAndHitIdx(etabin_of_comb_candidates.m_candidates,
+                                 seed_cand_idx, itrack, end,
+                                 true);
+
+#ifdef DEBUG
+      for (int i=itrack; i < end; ++i)
+        printf("  track %d, idx %d is from seed %d\n", i, i - itrack, mkfp->Label(i - itrack,0,0));
+      printf("\n");
+#endif
+
+      if (ilay > Config::nlayers_per_seed)
+      {
+        BunchOfHits &bunch_of_hits = m_event_of_hits.m_layers_of_hits[ilay - 1].m_bunches_of_hits[ebin];
+
+        // Update with hits from previous layer
+
+        mkfp->UpdateWithLastHit(bunch_of_hits, end - itrack);
+
+        if (ilay < Config::nLayers)
+        {
+          // Propagate to this layer
+
+          mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
+        }
+
+        // copy_out track params, errors only (hit-idcs and chi2 already updated)
+        mkfp->CopyOutParErr(etabin_of_comb_candidates.m_candidates,
+                            end - itrack, true);
+      }
+
+      if (ilay == Config::nLayers)
+      {
+        break;
+      }
+
+#ifdef DEBUG
+      std::cout << "now get hit range" << std::endl;
+#endif
+
+      BunchOfHits &bunch_of_hits = m_event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];
+
+      mkfp->SelectHitRanges(bunch_of_hits, end - itrack);
+
+      //#ifdef PRINTOUTS_FOR_PLOTS
+      //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
+      //#endif
+
+#ifdef DEBUG
+      std::cout << "make new candidates" << std::endl;
+#endif
+
+      cloner.begin_iteration();
+      mkfp->FindCandidatesMinimizeCopy(bunch_of_hits, cloner, start_seed, end - itrack);
+      cloner.end_iteration();
+    } //end of vectorized loop
+
+    if (ilay < Config::nLayers)
+    {
+      cloner.end_layer();
+    }
+    seed_cand_idx.clear();
+
+  } // end of layer loop
+
+  cloner.end_eta_bin();
+
+  // final sorting
+  int nCandsBeforeEnd = 0;
+  for (int iseed = start_seed; iseed < end_seed; ++iseed)
+  {
+    std::vector<Track>& finalcands = etabin_of_comb_candidates.m_candidates[iseed];
+    if (finalcands.size() == 0) continue;
+    std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
+  }
+}
+
+
 void MkBuilder::FindTracksCloneEngine()
 {
   m_event_tmp->AssureCandClonersExist(Config::numThreadsFinder);
@@ -690,141 +823,12 @@ void MkBuilder::FindTracksCloneEngine()
 
       otd.calculate_seed_ranges(etabin_of_comb_candidates.m_fill_index);
 
-      cloner.begin_eta_bin(&etabin_of_comb_candidates, otd.th_start_seed, otd.th_n_seeds);
-
-      //ok now we start looping over layers
-
       std::vector<std::pair<int,int> > seed_cand_idx;
       seed_cand_idx.reserve(otd.th_n_seeds * Config::maxCandsPerSeed);
 
-      //loop over layers, starting from after the seeD
-      for (int ilay = Config::nlayers_per_seed; ilay <= Config::nLayers; ++ilay)
-      {
-#ifdef DEBUG
-        std::cout << "processing lay=" << ilay+1 << std::endl;
-#endif
-
-        //prepare unrolled vector to loop over
-
-        for (int iseed = otd.th_start_seed; iseed != otd.th_end_seed; ++iseed)
-        {
-          std::vector<Track> &scands = etabin_of_comb_candidates.m_candidates[iseed];
-          for (int ic = 0; ic < scands.size(); ++ic)
-          {
-            if (scands[ic].getLastHitIdx() >= -1)
-            {
-              seed_cand_idx.push_back(std::pair<int,int>(iseed,ic));
-            }
-          }
-        }
-        const int theEndCand = seed_cand_idx.size();
-
-        // don't bother messing with the clone engine if there are no candidates
-        // (actually it crashes, so this protection is needed)
-        // XXXX MT ??? How does this happen ???
-        if (theEndCand == 0) continue;
-
-        if (ilay < Config::nLayers)
-        {
-          cloner.begin_layer(ilay);
-        }
-
-        //vectorized loop
-        for (int itrack = 0; itrack < theEndCand; itrack += NN)
-        {
-          const int end = std::min(itrack + NN, theEndCand);
-
-#ifdef DEBUG
-          std::cout << "processing track=" << itrack << std::endl;
-          printf("FTCE: otd.th_start_seed=%d, otd.th_n_seeds=%d, theEndCand=%d\n"
-                 "      itrack=%d, end=%d, nn=%d, end_eq_tec=%d\n",
-                 otd.th_start_seed, otd.th_n_seeds, theEndCand,
-                 itrack, end, end-itrack, end == theEndCand);
-          printf("      ");
-          for (int i=itrack; i < end; ++i) printf("%d,%d  ", seed_cand_idx[i].first, seed_cand_idx[i].second);
-          printf("\n");
-#endif
-
-          MkFitter *mkfp = m_mkfp_arr[omp_get_thread_num()];
-
-          // mkfp->SetNhits(ilay == Config::nlayers_per_seed ? ilay : ilay + 1);
-          mkfp->SetNhits(ilay);
-
-          mkfp->InputTracksAndHitIdx(etabin_of_comb_candidates.m_candidates,
-                                     seed_cand_idx, itrack, end,
-                                     true);
-
-#ifdef DEBUG
-          for (int i=itrack; i < end; ++i)
-            printf("  track %d, idx %d is from seed %d\n", i, i - itrack, mkfp->Label(i - itrack,0,0));
-          printf("\n");
-#endif
-
-          if (ilay > Config::nlayers_per_seed)
-          {
-            BunchOfHits &bunch_of_hits = m_event_of_hits.m_layers_of_hits[ilay - 1].m_bunches_of_hits[ebin];
-
-            // Update with hits from previous layer
-
-            mkfp->UpdateWithLastHit(bunch_of_hits, end - itrack);
-
-            if (ilay < Config::nLayers)
-            {
-              // Propagate to this layer
-
-              mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
-            }
-
-            // copy_out track params, errors only (hit-idcs and chi2 already updated)
-            mkfp->CopyOutParErr(etabin_of_comb_candidates.m_candidates,
-                                end - itrack, true);
-          }
-
-          if (ilay == Config::nLayers)
-          {
-            break;
-          }
-
-#ifdef DEBUG
-          std::cout << "now get hit range" << std::endl;
-#endif
-
-          BunchOfHits &bunch_of_hits = m_event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];
-
-          mkfp->SelectHitRanges(bunch_of_hits, end - itrack);
-
-          //#ifdef PRINTOUTS_FOR_PLOTS
-          //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
-          //#endif
-
-#ifdef DEBUG
-          std::cout << "make new candidates" << std::endl;
-#endif
-
-          cloner.begin_iteration();
-          mkfp->FindCandidatesMinimizeCopy(bunch_of_hits, cloner,
-                                           otd.th_start_seed, end - itrack);
-          cloner.end_iteration();
-        } //end of vectorized loop
-
-        if (ilay < Config::nLayers)
-        {
-          cloner.end_layer();
-        }
-        seed_cand_idx.clear();
-
-      } // end of layer loop
-
-      cloner.end_eta_bin();
-
-      // final sorting
-      int nCandsBeforeEnd = 0;
-      for (int iseed = otd.th_start_seed; iseed < otd.th_end_seed; ++iseed)
-      {
-        std::vector<Track>& finalcands = etabin_of_comb_candidates.m_candidates[iseed];
-        if (finalcands.size() == 0) continue;
-        std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
-      }
+      //ok now we start looping over layers
+      find_tracks_in_layers(etabin_of_comb_candidates, seed_cand_idx, cloner,
+                            m_mkfp_arr[omp_get_thread_num()], otd.th_start_seed, otd.th_end_seed, ebin);
 
     } // end of loop over eta bins
 
@@ -899,12 +903,14 @@ void MkBuilder::FindTracksCloneEngineTbb()
 {
   struct SeedSetTask
   {
+    MkBuilder              *m_mkb;
     Event                  *m_event;
     EtaBinOfCombCandidates &etabin_of_comb_candidates;
     EventOfHits            &event_of_hits;
     int ebin;
 
-    SeedSetTask(Event *ev, EtaBinOfCombCandidates &eb_of_cc, EventOfHits &evt_of_hits, int eb) :
+    SeedSetTask(MkBuilder *mkb, Event *ev, EtaBinOfCombCandidates &eb_of_cc, EventOfHits &evt_of_hits, int eb) :
+      m_mkb(mkb),
       m_event(ev),
       etabin_of_comb_candidates(eb_of_cc),
       event_of_hits(evt_of_hits),
@@ -920,141 +926,16 @@ void MkBuilder::FindTracksCloneEngineTbb()
       CandCloner &cloner = * g_exe_ctx.m_cloners.GetFromPool();
       MkFitter   *mkfp   =   g_exe_ctx.m_fitters.GetFromPool();
 
-      //loop over layers, starting from after the seeD
-      for (int ilay = Config::nlayers_per_seed; ilay <= Config::nLayers; ++ilay)
-      {
-#ifdef DEBUG
-        std::cout << "processing lay=" << ilay+1 << std::endl;
-#endif
+      //ok now we start looping over layers
 
-        cloner.begin_eta_bin(&etabin_of_comb_candidates, start_seed, n_seeds);
+      std::vector<std::pair<int,int>> seed_cand_idx;
+      seed_cand_idx.reserve(n_seeds * Config::maxCandsPerSeed);
 
-        //ok now we start looping over layers
+      m_mkb->find_tracks_in_layers(etabin_of_comb_candidates, seed_cand_idx, cloner,
+                                   mkfp, start_seed, end_seed, ebin);
 
-        std::vector<std::pair<int,int> > seed_cand_idx;
-        seed_cand_idx.reserve(n_seeds * Config::maxCandsPerSeed);
-
-        //prepare unrolled vector to loop over
-
-        for (int iseed = start_seed; iseed != end_seed; ++iseed)
-        {
-          std::vector<Track> &scands = etabin_of_comb_candidates.m_candidates[iseed];
-          for (int ic = 0; ic < scands.size(); ++ic)
-          {
-            if (scands[ic].getLastHitIdx() >= -1)
-            {
-              seed_cand_idx.push_back(std::pair<int,int>(iseed,ic));
-            }
-          }
-        }
-        const int theEndCand = seed_cand_idx.size();
-
-        // don't bother messing with the clone engine if there are no candidates
-        // (actually it crashes, so this protection is needed)
-        // XXXX MT ??? How does this happen ???
-        if (theEndCand == 0) continue;
-
-        if (ilay < Config::nLayers)
-        {
-          cloner.begin_layer(ilay);
-        }
-
-        //vectorized loop
-        for (int itrack = 0; itrack < theEndCand; itrack += NN)
-        {
-          const int end = std::min(itrack + NN, theEndCand);
-
-#ifdef DEBUG
-          std::cout << "processing track=" << itrack << std::endl;
-          printf("FTCE: otd.th_start_seed=%d, otd.th_n_seeds=%d, theEndCand=%d\n"
-                 "      itrack=%d, end=%d, nn=%d, end_eq_tec=%d\n",
-                 otd.th_start_seed, otd.th_n_seeds, theEndCand,
-                 itrack, end, end-itrack, end == theEndCand);
-          printf("      ");
-          for (int i=itrack; i < end; ++i) printf("%d,%d  ", seed_cand_idx[i].first, seed_cand_idx[i].second);
-          printf("\n");
-#endif
-
-          // mkfp->SetNhits(ilay == Config::nlayers_per_seed ? ilay : ilay + 1);
-          mkfp->SetNhits(ilay);
-
-          mkfp->InputTracksAndHitIdx(etabin_of_comb_candidates.m_candidates,
-                                     seed_cand_idx, itrack, end,
-                                     true);
-
-#ifdef DEBUG
-          for (int i=itrack; i < end; ++i)
-            printf("  track %d, idx %d is from seed %d\n", i, i - itrack, mkfp->Label(i - itrack,0,0));
-          printf("\n");
-#endif
-
-          if (ilay > Config::nlayers_per_seed)
-          {
-            BunchOfHits &bunch_of_hits = event_of_hits.m_layers_of_hits[ilay - 1].m_bunches_of_hits[ebin];
-
-            // Update with hits from previous layer
-
-            mkfp->UpdateWithLastHit(bunch_of_hits, end - itrack);
-
-            if (ilay < Config::nLayers)
-            {
-              // Propagate to this layer
-
-              mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
-            }
-
-            // copy_out track params, errors only (hit-idcs and chi2 already updated)
-            mkfp->CopyOutParErr(etabin_of_comb_candidates.m_candidates,
-                                end - itrack, true);
-          }
-
-          if (ilay == Config::nLayers)
-          {
-            break;
-          }
-
-#ifdef DEBUG
-          std::cout << "now get hit range" << std::endl;
-#endif
-
-          BunchOfHits &bunch_of_hits = event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];
-
-          mkfp->SelectHitRanges(bunch_of_hits, end - itrack);
-
-          //#ifdef PRINTOUTS_FOR_PLOTS
-          //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
-          //#endif
-
-#ifdef DEBUG
-          std::cout << "make new candidates" << std::endl;
-#endif
-
-          cloner.begin_iteration();
-          mkfp->FindCandidatesMinimizeCopy(bunch_of_hits, cloner,
-                                           start_seed, end - itrack);
-          cloner.end_iteration();
-        } //end of vectorized loop
-
-        if (ilay < Config::nLayers)
-        {
-          cloner.end_layer();
-        }
-        seed_cand_idx.clear();
-
-      } // end of layer loop
-      g_exe_ctx.m_fitters.ReturnToPool( mkfp);
+      g_exe_ctx.m_fitters.ReturnToPool(mkfp);
       g_exe_ctx.m_cloners.ReturnToPool(&cloner);
-
-      cloner.end_eta_bin();
-
-      // final sorting
-      int nCandsBeforeEnd = 0;
-      for (int iseed = start_seed; iseed < end_seed; ++iseed)
-      {
-        std::vector<Track>& finalcands = etabin_of_comb_candidates.m_candidates[iseed];
-        if (finalcands.size() == 0) continue;
-        std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
-      }
     }
   };
 
@@ -1062,12 +943,14 @@ void MkBuilder::FindTracksCloneEngineTbb()
 
   struct EtaBinTask
   {
+    MkBuilder              *m_mkb;
     Event                  *m_event;
     EventOfCombCandidates  &event_of_comb_cands;
     EventOfHits            &event_of_hits;
     int ebin;
 
-    EtaBinTask(Event *ev, EventOfCombCandidates &evt_of_cc, EventOfHits &evt_of_hits) :
+    EtaBinTask(MkBuilder *mkb, Event *ev, EventOfCombCandidates &evt_of_cc, EventOfHits &evt_of_hits) :
+      m_mkb(mkb),
       m_event(ev),
       event_of_comb_cands(evt_of_cc),
       event_of_hits(evt_of_hits)
@@ -1079,7 +962,7 @@ void MkBuilder::FindTracksCloneEngineTbb()
       for (int ebin = bins.begin(); ebin != bins.end(); ++ebin) {
         EtaBinOfCombCandidates& etabin_of_comb_candidates(event_of_comb_cands.m_etabins_of_comb_candidates[ebin]);
         tbb::parallel_for(tbb::blocked_range<int>(0,etabin_of_comb_candidates.m_fill_index,Config::numSeedsPerTask), 
-                          SeedSetTask(m_event, etabin_of_comb_candidates, event_of_hits, ebin));
+                          SeedSetTask(m_mkb, m_event, etabin_of_comb_candidates, event_of_hits, ebin));
       }
     }
   };
@@ -1088,11 +971,13 @@ void MkBuilder::FindTracksCloneEngineTbb()
 
   struct EventTask : public tbb::task
   {
+    MkBuilder             *m_mkb;
     Event                 *m_event;
     EventOfCombCandidates &event_of_comb_cands;
     EventOfHits           &event_of_hits;
 
-    EventTask(Event *ev, EventOfCombCandidates &evt_of_cc, EventOfHits &evt_of_hits) :
+    EventTask(MkBuilder *mkb, Event *ev, EventOfCombCandidates &evt_of_cc, EventOfHits &evt_of_hits) :
+      m_mkb(mkb),
       m_event(ev),
       event_of_comb_cands(evt_of_cc),
       event_of_hits(evt_of_hits)
@@ -1102,7 +987,7 @@ void MkBuilder::FindTracksCloneEngineTbb()
     {
       // loop over eta bins
       tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEtaBin),
-                        EtaBinTask(m_event, event_of_comb_cands, event_of_hits));
+                        EtaBinTask(m_mkb, m_event, event_of_comb_cands, event_of_hits));
 
       return 0;
     }
@@ -1110,7 +995,7 @@ void MkBuilder::FindTracksCloneEngineTbb()
 
   //------------------------------------------------------------------------------
 
-  EventTask &et = * new (tbb::task::allocate_root()) EventTask(m_event, m_event_tmp->m_event_of_comb_cands, m_event_of_hits);
+  EventTask &et = * new (tbb::task::allocate_root()) EventTask(this, m_event, m_event_tmp->m_event_of_comb_cands, m_event_of_hits);
 
   tbb::task::spawn_root_and_wait(et);
 }

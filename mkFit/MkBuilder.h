@@ -101,6 +101,8 @@ private:
   int m_cnt=0, m_cnt1=0, m_cnt2=0, m_cnt_8=0, m_cnt1_8=0, m_cnt2_8=0, m_cnt_nomc=0;
 
 public:
+  typedef std::vector<std::pair<int,int>> CandIdx_t;
+
   MkBuilder();
   ~MkBuilder();
 
@@ -124,15 +126,14 @@ public:
   // Common foos for FindTracks() / FindTracksCloneEngine() ???
 
   void find_tracks_load_seeds();
+  void find_tracks_in_layers(EtaBinOfCombCandidates &eb_of_cc, CandIdx_t& seed_cand_idx,
+                             CandCloner &cloner, MkFitter *mkfp, int start_seed, int end_seed, int ebin);
 
   // --------
 
   void FindTracksBestHit(EventOfCandidates& event_of_cands);
-
   void FindTracks();
-
   void FindTracksCloneEngine();
-
   void FindTracksCloneEngineTbb();
 };
 
