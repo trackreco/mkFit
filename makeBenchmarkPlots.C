@@ -126,7 +126,7 @@ void makeBenchmarkPlots()
   g_BH_TH->GetYaxis()->SetTitle("Time for 10 events x 20k tracks [s]");
   g_BH_TH->GetXaxis()->SetRangeUser(1,maxth);
   g_BH_TH->GetYaxis()->SetRangeUser(0,6);
-  if (isMic) g_BH_TH->GetYaxis()->SetRangeUser(0.5,80);
+  if (isMic) g_BH_TH->GetYaxis()->SetRangeUser(0.2,80);
   g_BH_TH->SetLineWidth(2);
   g_CE_TH->SetLineWidth(2);
   g_CEST_TH->SetLineWidth(2);
