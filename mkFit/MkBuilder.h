@@ -126,8 +126,8 @@ public:
   // Common foos for FindTracks() / FindTracksCloneEngine() ???
 
   void find_tracks_load_seeds();
-  void find_tracks_in_layers(EtaBinOfCombCandidates &eb_of_cc, CandIdx_t& seed_cand_idx,
-                             CandCloner &cloner, MkFitter *mkfp, int start_seed, int end_seed, int ebin);
+  void find_tracks_in_layers(EtaBinOfCombCandidates &eb_of_cc, CandCloner &cloner, MkFitter *mkfp,
+                             int start_seed, int end_seed, int ebin);
 
   // --------
 

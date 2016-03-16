@@ -657,10 +657,15 @@ void MkBuilder::FindTracks()
 // FindTracksCloneEngine
 //------------------------------------------------------------------------------
 
-void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_candidates, CandIdx_t& seed_cand_idx,
-                                      CandCloner &cloner, MkFitter *mkfp, int start_seed, int end_seed, int ebin)
+void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_candidates, CandCloner &cloner,
+                                      MkFitter *mkfp, int start_seed, int end_seed, int ebin)
 {
-  cloner.begin_eta_bin(&etabin_of_comb_candidates, start_seed, end_seed - start_seed);
+  auto n_seeds = end_seed - start_seed;
+
+  std::vector<std::pair<int,int>> seed_cand_idx;
+  seed_cand_idx.reserve(n_seeds * Config::maxCandsPerSeed);
+
+  cloner.begin_eta_bin(&etabin_of_comb_candidates, start_seed, n_seeds);
 
   //loop over layers, starting from after the seeD
   for (int ilay = Config::nlayers_per_seed; ilay <= Config::nLayers; ++ilay)
@@ -703,7 +708,7 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
       std::cout << "processing track=" << itrack << std::endl;
       printf("FTCE: start_seed=%d, n_seeds=%d, theEndCand=%d\n"
              "      itrack=%d, end=%d, nn=%d, end_eq_tec=%d\n",
-             start_seed, end_seed-start_seed, theEndCand,
+             start_seed, n_seeds, theEndCand,
              itrack, end, end-itrack, end == theEndCand);
       printf("      ");
       for (int i=itrack; i < end; ++i) printf("%d,%d  ", seed_cand_idx[i].first, seed_cand_idx[i].second);
@@ -823,12 +828,9 @@ void MkBuilder::FindTracksCloneEngine()
 
       otd.calculate_seed_ranges(etabin_of_comb_candidates.m_fill_index);
 
-      std::vector<std::pair<int,int> > seed_cand_idx;
-      seed_cand_idx.reserve(otd.th_n_seeds * Config::maxCandsPerSeed);
-
-      //ok now we start looping over layers
-      find_tracks_in_layers(etabin_of_comb_candidates, seed_cand_idx, cloner,
-                            m_mkfp_arr[omp_get_thread_num()], otd.th_start_seed, otd.th_end_seed, ebin);
+      //loop over layers
+      find_tracks_in_layers(etabin_of_comb_candidates, cloner, m_mkfp_arr[omp_get_thread_num()],
+                            otd.th_start_seed, otd.th_end_seed, ebin);
 
     } // end of loop over eta bins
 
@@ -843,6 +845,8 @@ void MkBuilder::FindTracksCloneEngine()
 namespace
 {
   ExecutionContext g_exe_ctx;
+  auto retcand = [](CandCloner* cloner) { g_exe_ctx.m_cloners.ReturnToPool(cloner); };
+  auto retfitr = [](MkFitter*   mkfp  ) { g_exe_ctx.m_fitters.ReturnToPool(mkfp);   };
 }
 
 #include <tbb/tbb.h>
@@ -861,7 +865,7 @@ void MkBuilder::fit_seeds_tbb()
         int itrack = it*NN;
         int end = std::min(itrack + NN, theEnd);
 
-        MkFitter *mkfp = g_exe_ctx.m_fitters.GetFromPool();
+        std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
 
         mkfp->SetNhits(3);//just to be sure (is this needed?)
         mkfp->InputTracksAndHits(simtracks, m_event->layerHits_, itrack, end);
@@ -901,101 +905,25 @@ void MkBuilder::fit_seeds_tbb()
 
 void MkBuilder::FindTracksCloneEngineTbb()
 {
-  struct SeedSetTask
-  {
-    MkBuilder              *m_mkb;
-    Event                  *m_event;
-    EtaBinOfCombCandidates &etabin_of_comb_candidates;
-    EventOfHits            &event_of_hits;
-    int ebin;
+  EventOfCombCandidates &event_of_comb_cands = m_event_tmp->m_event_of_comb_cands;
 
-    SeedSetTask(MkBuilder *mkb, Event *ev, EtaBinOfCombCandidates &eb_of_cc, EventOfHits &evt_of_hits, int eb) :
-      m_mkb(mkb),
-      m_event(ev),
-      etabin_of_comb_candidates(eb_of_cc),
-      event_of_hits(evt_of_hits),
-      ebin(eb)
-    {}
-
-    void operator()(const tbb::blocked_range<int>& seeds) const
+  tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEtaBin),
+    [&](const tbb::blocked_range<int>& ebins)
     {
-      int start_seed = seeds.begin();
-      int end_seed = seeds.end();
-      int n_seeds = end_seed - start_seed;
+      for (int ebin = ebins.begin(); ebin != ebins.end(); ++ebin) {
+        EtaBinOfCombCandidates& etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
 
-      CandCloner &cloner = * g_exe_ctx.m_cloners.GetFromPool();
-      MkFitter   *mkfp   =   g_exe_ctx.m_fitters.GetFromPool();
-
-      //ok now we start looping over layers
-
-      std::vector<std::pair<int,int>> seed_cand_idx;
-      seed_cand_idx.reserve(n_seeds * Config::maxCandsPerSeed);
-
-      m_mkb->find_tracks_in_layers(etabin_of_comb_candidates, seed_cand_idx, cloner,
-                                   mkfp, start_seed, end_seed, ebin);
-
-      g_exe_ctx.m_fitters.ReturnToPool(mkfp);
-      g_exe_ctx.m_cloners.ReturnToPool(&cloner);
-    }
-  };
-
-  //------------------------------------------------------------------------------
-
-  struct EtaBinTask
-  {
-    MkBuilder              *m_mkb;
-    Event                  *m_event;
-    EventOfCombCandidates  &event_of_comb_cands;
-    EventOfHits            &event_of_hits;
-    int ebin;
-
-    EtaBinTask(MkBuilder *mkb, Event *ev, EventOfCombCandidates &evt_of_cc, EventOfHits &evt_of_hits) :
-      m_mkb(mkb),
-      m_event(ev),
-      event_of_comb_cands(evt_of_cc),
-      event_of_hits(evt_of_hits)
-    {}
-
-    void operator()(const tbb::blocked_range<int>& bins) const
-    {
-      // printf("Expecting to schedule %d seed-tasks, max = %d\n", n_task, etabin_of_comb_candidates.m_fill_index);
-      for (int ebin = bins.begin(); ebin != bins.end(); ++ebin) {
-        EtaBinOfCombCandidates& etabin_of_comb_candidates(event_of_comb_cands.m_etabins_of_comb_candidates[ebin]);
         tbb::parallel_for(tbb::blocked_range<int>(0,etabin_of_comb_candidates.m_fill_index,Config::numSeedsPerTask), 
-                          SeedSetTask(m_mkb, m_event, etabin_of_comb_candidates, event_of_hits, ebin));
+          [&](const tbb::blocked_range<int>& seeds)
+          {
+            std::unique_ptr<CandCloner, decltype(retcand)> cloner(g_exe_ctx.m_cloners.GetFromPool(), retcand);
+            std::unique_ptr<MkFitter,   decltype(retfitr)> mkfp  (g_exe_ctx.m_fitters.GetFromPool(), retfitr);
+
+            // loop over layers
+            find_tracks_in_layers(etabin_of_comb_candidates, *cloner, mkfp.get(), seeds.begin(), seeds.end(), ebin);
+          }
+        );
       }
     }
-  };
-
-  //------------------------------------------------------------------------------
-
-  struct EventTask : public tbb::task
-  {
-    MkBuilder             *m_mkb;
-    Event                 *m_event;
-    EventOfCombCandidates &event_of_comb_cands;
-    EventOfHits           &event_of_hits;
-
-    EventTask(MkBuilder *mkb, Event *ev, EventOfCombCandidates &evt_of_cc, EventOfHits &evt_of_hits) :
-      m_mkb(mkb),
-      m_event(ev),
-      event_of_comb_cands(evt_of_cc),
-      event_of_hits(evt_of_hits)
-    {}
-
-    tbb::task* execute()
-    {
-      // loop over eta bins
-      tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEtaBin),
-                        EtaBinTask(m_mkb, m_event, event_of_comb_cands, event_of_hits));
-
-      return 0;
-    }
-  };
-
-  //------------------------------------------------------------------------------
-
-  EventTask &et = * new (tbb::task::allocate_root()) EventTask(this, m_event, m_event_tmp->m_event_of_comb_cands, m_event_of_hits);
-
-  tbb::task::spawn_root_and_wait(et);
+  );
 }

@@ -152,6 +152,7 @@ void test_standard()
 
   const int NT = 5;
   double t_sum[NT] = {0};
+  double t_skip[NT] = {0};
 
   EventTmp ev_tmp;
 
@@ -217,7 +218,8 @@ void test_standard()
     printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
            t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
 
-    for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
+    for (int i = 0; i < NT; ++i) t_sum[i] += t_cur[i];
+    if (evt > 1) for (int i = 0; i < NT; ++i) t_skip[i] += t_cur[i];
   }
   printf("\n");
   printf("================================================================\n");
@@ -226,6 +228,8 @@ void test_standard()
 
   printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
          t_sum[0], t_sum[1], t_sum[2], t_sum[3], t_sum[4]);
+  printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
+         t_skip[0], t_skip[1], t_skip[2], t_skip[3], t_skip[4]);
 
   if (g_operation == "read")
   {
