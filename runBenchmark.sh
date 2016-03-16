@@ -2,16 +2,16 @@
 
 [ -z "$ROOTSYS" ] && source ~matevz/root/bin/thisroot.sh 
 
-source benchmark.sh
-source benchmark-fit.sh  
+./benchmark.sh
+./benchmark-fit.sh  
 
 python makeBenchmarkPlots.py host
 
 root -b -q -l makeBenchmarkPlots.C
 root -b -q -l makeBenchmarkPlotsFit.C
 
-source benchmark-mic.sh  
-source benchmark-mic-fit.sh  
+./benchmark-mic.sh  
+./benchmark-mic-fit.sh  
 
 python makeBenchmarkPlots.py mic
 

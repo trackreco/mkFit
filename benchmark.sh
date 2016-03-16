@@ -6,7 +6,7 @@ make -j 8
 
 dir=/data/nfsmic/${USER}/tmp
 
-mkdir ${dir}
+mkdir -p ${dir}
 ./mkFit/mkFit --write --file-name simtracks_10x20k.bin
 mv simtracks_10x20k.bin ${dir}/
 
@@ -29,6 +29,7 @@ sed -i 's/# USE_INTRINSICS := -DMPT_SIZE=1/USE_INTRINSICS := -DMPT_SIZE=XX/g' Ma
 for nvu in 1 2 4 8
 do
 sed -i "s/MPT_SIZE=XX/MPT_SIZE=${nvu}/g" Makefile.config
+make clean
 make -j 8
 echo nvu=${nvu}
 ./mkFit/mkFit --read --file-name ${dir}/simtracks_10x20k.bin --build-bh  --num-thr 1 >& log_host_10x20k_BH_NVU${nvu}_NTH1.txt
@@ -42,4 +43,5 @@ sed -i 's/USE_INTRINSICS := -DMPT_SIZE=XX/# USE_INTRINSICS := -DMPT_SIZE=1/g' Ma
 
 sed -i 's/\#define PRINTOUTS_FOR_PLOTS/\/\/\#define PRINTOUTS_FOR_PLOTS/g' Config.h
 
+make clean
 make -j 8

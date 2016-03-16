@@ -7,7 +7,7 @@ make -j 8
 dir=/data/nfsmic/${USER}/tmp
 micdir=/nfsmic/${USER}/tmp
 
-mkdir ${dir}
+mkdir -p ${dir}
 ./mkFit/mkFit --write --file-name simtracks_10x1M.bin
 mv simtracks_10x1M.bin ${dir}/
 
@@ -21,6 +21,7 @@ sed -i 's/# USE_INTRINSICS := -DMPT_SIZE=1/USE_INTRINSICS := -DMPT_SIZE=XX/g' Ma
 for nvu in 1 2 4 8 16
 do
 sed -i "s/MPT_SIZE=XX/MPT_SIZE=${nvu}/g" Makefile.config
+make clean
 make -j 8
 echo nvu=${nvu}
 ssh mic0 ./mkFit-mic --read --file-name ${micdir}/simtracks_10x1M.bin --fit-std-only --num-thr 1 >& log_mic_10x1M_FIT_NVU${nvu}_NTH1.txt
@@ -30,4 +31,5 @@ sed -i 's/USE_INTRINSICS := -DMPT_SIZE=XX/# USE_INTRINSICS := -DMPT_SIZE=1/g' Ma
 
 sed -i 's/int nTracks = 1000000/int nTracks = 20000/g' Config.cc 
 
+make clean
 make -j 8
