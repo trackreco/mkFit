@@ -144,9 +144,12 @@ namespace Config
   // additional bins on each end.
 
   // XXX std::min/max have constexpr versions in c++-14.
-
   extern int    numThreadsFinder;
   extern int    numThreadsSimulation;
+
+  // For GPU computations
+  extern int    numThreadsEvents;
+  extern int    numThreadsReorg;
 
   extern bool   clonerUseSingleThread;
   extern int    finderReportBestOutOfN;
@@ -165,6 +168,8 @@ namespace Config
   #ifndef MPT_SIZE
     #ifdef __MIC__
       #define MPT_SIZE 16
+    #elif defined USE_CUDA
+      #define MPT_SIZE 10000
     #else
       #define MPT_SIZE 8
     #endif

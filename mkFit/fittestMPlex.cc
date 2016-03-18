@@ -7,6 +7,9 @@
 #include "Geometry.h"
 
 #include "MkFitter.h"
+#if USE_CUDA
+#include "FitterCU.h"
+#endif
 
 #ifndef NO_ROOT
 #include "TFile.h"
@@ -38,6 +41,10 @@ void make_validation_tree(const char         *fname,
    tree->Branch("pt_err", &pt_err, "pt_err");
    tree->Branch("chg",    &chg,    "chg");
 
+#ifdef USE_CUDA
+   std::vector<float> diff_vec;
+#endif
+
    const int NT = simtracks.size();
    for (int i = 0; i < NT; ++i)
    {
@@ -53,7 +60,29 @@ void make_validation_tree(const char         *fname,
       chg = simtracks[i].charge();
 
       tree->Fill();
+
+#ifdef USE_CUDA
+      float diff = (pt_mc - pt_fit) / pt_err;
+      if (std::abs(diff) < 5.0f) {
+        diff_vec.push_back(diff);
+      }
+#endif
    }
+#ifdef USE_CUDA
+   float mean = std::accumulate(diff_vec.begin(), diff_vec.end(), 0.0)
+              / diff_vec.size();
+
+   std::transform(diff_vec.begin(), diff_vec.end(), 
+                  diff_vec.begin(),  // in-place
+                  [mean](float x) {return (x-mean)*(x-mean);});
+                  
+   float stdev = std::sqrt(
+       std::accumulate(diff_vec.begin(), diff_vec.end(), 0.0)
+       / diff_vec.size());
+
+   std::cerr << "Mean value for (pt_mc-pt_fit)/pt_err: " << mean
+            << " standard dev: " << stdev << std::endl;
+#endif
 
    file->Write();
    file->Close();
@@ -120,3 +149,62 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 
    return time;
 }
+
+#ifdef USE_CUDA
+double runFittingTestPlexGPU(FitterCU<float> &cuFitter, 
+    Event& ev, std::vector<Track>& rectracks)
+{
+
+   std::vector<Track>& simtracks = ev.simTracks_;
+
+   const int Nhits = MAX_HITS;
+   // XXX What if there's a missing / double layer?
+   // Eventually, should sort track vector by number of hits!
+   // And pass the number in on each "setup" call.
+   // Reserves should be made for maximum possible number (but this is just
+   // measurments errors, params).
+
+   // NOTE: MkFitter *MUST* be on heap, not on stack!
+   // Standard operator new screws up alignment of ALL MPlex memebrs of MkFitter,
+   // even if one adds attr(aligned(64)) thingy to every possible place.
+
+   // MkFitter *mkfp = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Nhits);
+
+   MkFitter* mkfp_arr = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Nhits);
+
+   int theEnd = simtracks.size();
+   double time = dtime();
+   int Nstride = NN;
+
+   for (int itrack = 0; itrack < theEnd; itrack += Nstride)
+   {
+      int end = std::min(itrack + Nstride, theEnd);
+
+      MkFitter *mkfp = mkfp_arr;
+
+      //double time_input = dtime();
+      mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
+      //std::cerr << "Input time: " << (dtime() - time_input)*1e3 << std::endl;
+
+      cuFitter.FitTracks(mkfp->Chg,
+                         mkfp->GetPar0(),
+                         mkfp->GetErr0(),
+                         mkfp->msPar,
+                         mkfp->msErr,
+                         Nhits,
+                         simtracks, itrack, end, ev.layerHits_);
+
+#ifndef NO_ROOT
+      double time_output = dtime();
+      mkfp->OutputFittedTracks(rectracks, itrack, end);
+      std::cerr << "Output time: " << (dtime() - time_output)*1e3 << std::endl;
+#endif
+   }
+
+   time = dtime() - time;
+
+   _mm_free(mkfp_arr);
+
+   return time;
+}
+#endif
