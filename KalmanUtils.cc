@@ -43,6 +43,8 @@ TrackState updateParameters(const TrackState& propagatedState, const Measurement
 #ifdef DEBUG
   const bool debug = g_dump;
 #endif
+
+  /*
   int invFail(0);
   const SMatrixSym66& propErr = propagatedState.errors;
   const SMatrixSym33 resErr = measurementState.errors() + propErr.Sub<SMatrixSym33>(0,0);
@@ -62,6 +64,56 @@ TrackState updateParameters(const TrackState& propagatedState, const Measurement
   result.errors = propErr - ROOT::Math::SimilarityT(propErr,ROOT::Math::SimilarityT(projMatrix,resErrInv));
   result.charge = propagatedState.charge;
   result.valid = propagatedState.valid;
+  */
+
+  float r = getHypot(measurementState.pos_[0],measurementState.pos_[1]);
+  SMatrix33 rot;
+  rot[0][0] = -measurementState.pos_[1]/r;
+  rot[0][1] = 0;
+  rot[0][2] = measurementState.pos_[0]/r;
+  rot[1][0] = rot[0][2];
+  rot[1][1] = 0;
+  rot[1][2] = -rot[0][0];
+  rot[2][0] = 0;
+  rot[2][1] = 1;
+  rot[2][2] = 0;
+  const SMatrix33 rotT = ROOT::Math::Transpose(rot);
+  const SVector3 res_glo = measurementState.parameters()-propagatedState.parameters.Sub<SVector3>(0);
+  const SVector3 res_loc3 = rotT * res_glo;
+  const SVector3 res(res_loc3[0],res_loc3[1],0);
+  const SMatrixSym33 resErr_glo = measurementState.errors() + propagatedState.errors.Sub<SMatrixSym33>(0,0);
+  //the matrix to invert has to be 2x2
+  int invFail(0);
+  const SMatrixSym22 resErr22 = ROOT::Math::SimilarityT(rot,resErr_glo).Sub<SMatrixSym22>(0,0);
+  const SMatrixSym22 resErrInv22 = resErr22.InverseFast(invFail);
+  //now go back to 3x3
+  SMatrixSym33 resErrInv;
+  resErrInv[0][0] = resErrInv22[0][0];
+  resErrInv[1][1] = resErrInv22[1][1];
+  resErrInv[1][0] = resErrInv22[1][0];
+
+  SMatrixSym66 I66 = ROOT::Math::SMatrixIdentity();
+  SMatrix36 H = rotT*projMatrix;
+  SMatrix63 K = propagatedState.errors*ROOT::Math::Transpose(H)*resErrInv;	
+  SMatrixSym33 locErrMeas = ROOT::Math::SimilarityT(rot,measurementState.errors());
+  locErrMeas[2][0] = 0;
+  locErrMeas[2][1] = 0;
+  locErrMeas[2][2] = 0;
+  locErrMeas[1][2] = 0;
+  locErrMeas[0][2] = 0;
+
+  //const SMatrix63 kalmanGain = propErr*projMatrixT*resErrInv;
+  //const SMatrixSym66 simil   = ROOT::Math::SimilarityT(projMatrix,resErrInv);//fixme check T
+  TrackState result;
+  result.parameters = propagatedState.parameters + K*res;
+  result.errors = ROOT::Math::Similarity(I66-K*H,propagatedState.errors) + ROOT::Math::Similarity(K,locErrMeas);
+  result.charge = propagatedState.charge;
+  result.valid = propagatedState.valid;
+
+  if (0 != invFail) {
+    dprint(__FILE__ << ":" << __LINE__ << ": FAILED INVERSION");
+    return propagatedState;
+  }
 
 #ifdef DEBUG
   if (debug) {
