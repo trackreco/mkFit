@@ -699,7 +699,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, MPlexLS 
 
 void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
                             const MPlexQI &inChg,  const MPlexHV& msPar, 
-			          MPlexLS &outErr,       MPlexLV& outPar)
+                            MPlexLS &outErr,       MPlexLV& outPar)
 {
 #ifdef DEBUG
   const bool dump = false;
@@ -793,7 +793,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 
 void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
                             const MPlexQI& inChg,  const float    r,
-			    MPlexLS&       outErr, MPlexLV&       outPar,
+                            MPlexLS&       outErr, MPlexLV&       outPar,
                             const int      N_proc)
 {
 #ifdef DEBUG

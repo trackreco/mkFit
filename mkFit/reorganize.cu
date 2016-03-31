@@ -17,11 +17,11 @@ __global__ void toMatriplex_kernel(float *dst, int dst_stride,
   }
 }
 
-void toMatriplex_wrapper(cudaStream_t& stream, GPlex<float> &dst, GPlex<float> &src, int N, int LS) {
-  dim3 block(16, 8, 1);
-  dim3 grid((N-1)/16 + 1, (LS-1)/8 +1, 1);
-  toMatriplex_kernel <<<grid, block, 0, stream>>> (dst.ptr, dst.stride, src.ptr, src.stride, N, LS);
-}
+/*void toMatriplex_wrapper(cudaStream_t& stream, GPlex<float> &dst, GPlex<float> &src, int N, int LS) {*/
+  /*dim3 block(16, 8, 1);*/
+  /*dim3 grid((N-1)/16 + 1, (LS-1)/8 +1, 1);*/
+  /*toMatriplex_kernel <<<grid, block, 0, stream>>> (dst.ptr, dst.stride, src.ptr, src.stride, N, LS);*/
+/*}*/
 
 
 __global__ void reorganizeMs(float *msPar, size_t msPar_stride,
@@ -54,8 +54,9 @@ __global__ void reorganizeMs(float *msPar, size_t msPar_stride,
   }
 }
 
-void reorganizeMs_wrapper(cudaStream_t& stream, GPlex<float>& msPar, float *full_posArray,
-    GPlex<float>& msErr, float *full_errArray, int *full_hitIdx, int hi, int maxHits,
+void reorganizeMs_wrapper(cudaStream_t& stream, GPlex<float, MPlexQF>& msPar,
+    float *full_posArray, GPlex<float, MPlexHS>& msErr, 
+    float *full_errArray, int *full_hitIdx, int hi, int maxHits,
     int N, int hs, int hv, int Nhits) {
   dim3 block(16, 6, 1);
   dim3 grid((N-1)/16 + 1, (hs-1)/6 +1, 1);

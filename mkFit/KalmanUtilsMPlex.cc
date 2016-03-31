@@ -1,6 +1,10 @@
 #include "KalmanUtilsMPlex.h"
 #include "PropagationMPlex.h"
 
+#ifdef USE_CUDA
+#include "FitterCU.h"
+#endif
+
 namespace
 {
   using idx_t = Matriplex::idx_t;
@@ -297,7 +301,6 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   }
 #endif
 }
-
 
 void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
                       const MPlexHS &msErr,  const MPlexHV& msPar,

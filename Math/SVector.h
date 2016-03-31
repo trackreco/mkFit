@@ -185,6 +185,9 @@ public:
    const T* Array() const;
    /// return non-const pointer to internal array
    T* Array();
+//#ifdef USE_CUDA
+   T* ArrayCU();
+//#endif
    
    /** @name --- STL-like interface --- */
    

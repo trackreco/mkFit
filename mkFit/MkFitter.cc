@@ -3,9 +3,6 @@
 
 #include "PropagationMPlex.h"
 #include "KalmanUtilsMPlex.h"
-#ifdef USE_CUDA
-#include "FitterCU.h"
-#endif
 
 #include <sstream>
 
@@ -40,7 +37,10 @@ void MkFitter::InputTracksAndHits(std::vector<Track>&  tracks,
   // assert(end - beg == NN);
 
   int itrack;
-#ifdef USE_CUDA
+
+// FIXME: uncomment when track building is ported to GPU.
+#if 0
+//#ifdef USE_CUDA
   // This openmp loop brings some performances when using
   // a single thread to fit all events.
   // However, it is more advantageous to use the threads to
@@ -63,7 +63,9 @@ void MkFitter::InputTracksAndHits(std::vector<Track>&  tracks,
 // CopyIn seems fast enough, but indirections are quite slow.
 // For GPU computations, it has been moved in between kernels
 // in an attempt to overlap CPU and GPU computations.
-#ifndef USE_CUDA
+// FIXME: uncomment when track building is ported to GPU.
+#if 1
+//#ifndef USE_CUDA
     for (int hi = 0; hi < Nhits; ++hi)
     {
       const int hidx = trk.getHitIdx(hi);
@@ -670,7 +672,6 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
     phiBinPlus  = std::max(0,phiBinPlus);
     phiBinPlus  = std::min(Config::nPhiPart-1,phiBinPlus);
 
-
     PhiBinInfo_t binInfoMinus = bunch_of_hits.m_phi_bin_infos[phiBinMinus];
     PhiBinInfo_t binInfoPlus  = bunch_of_hits.m_phi_bin_infos[phiBinPlus];
 
@@ -922,9 +923,9 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 #ifdef DEBUG
   std::cout << "update parameters" << std::endl;
 #endif
+
   updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits],
 			Err[iC], Par[iC]);
-
   //std::cout << "Par[iP](0,0,0)=" << Par[iP](0,0,0) << " Par[iC](0,0,0)=" << Par[iC](0,0,0)<< std::endl;
 }
 

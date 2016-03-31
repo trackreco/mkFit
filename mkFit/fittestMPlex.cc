@@ -8,6 +8,7 @@
 
 #include "MkFitter.h"
 #if USE_CUDA
+#include "fittestMPlex.h"
 #include "FitterCU.h"
 #endif
 
@@ -151,6 +152,73 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 }
 
 #ifdef USE_CUDA
+void runAllEventsFittingTestPlexGPU(std::vector<Event>& events)
+{
+  double s_tmp = 0.0;
+#if 0
+  In principle, the warmup loop should not be required.
+  The separate_first_call_for_meaningful_profiling_numbers() function
+  should be enough.
+  // Warmup loop
+  for (int i = 0; i < 1; ++i) {
+    FitterCU<float> cuFitter(NN);
+    cuFitter.allocateDevice();
+    Event &ev = events[0];
+    std::vector<Track> plex_tracks_ev;
+    plex_tracks_ev.resize(ev.simTracks_.size());
+
+    if (g_run_fit_std) runFittingTestPlexGPU(cuFitter, ev, plex_tracks_ev);
+    cuFitter.freeDevice();
+  }
+#endif
+
+  // Reorgnanization (copyIn) can eventually be multithreaded.
+  omp_set_nested(1);
+      
+  omp_set_num_threads(Config::numThreadsEvents);
+  double total_gpu_time = dtime();
+#pragma omp parallel reduction(+:s_tmp)
+  {
+  int numThreadsEvents = omp_get_num_threads();
+  int thr_idx = omp_get_thread_num();
+
+  // FitterCU is declared here to share allocations and deallocations
+  // between the multiple events processed by a single thread.
+  FitterCU<float> cuFitter(NN);
+  cuFitter.allocateDevice();
+
+    for (int evt = thr_idx+1; evt <= Config::nEvents; evt+= numThreadsEvents) {
+      int idx = thr_idx;
+      printf("==============================================================\n");
+      printf("Processing event %d with thread %d\n", evt, idx);
+      Event &ev = events[evt-1];
+      std::vector<Track> plex_tracks_ev;
+      plex_tracks_ev.resize(ev.simTracks_.size());
+      double tmp = 0, tmp2bh = 0, tmp2 = 0, tmp2ce = 0;
+
+      //if (g_run_fit_std) tmp = runFittingTestPlexGPU(cuFitter, ev, plex_tracks_ev);
+      runFittingTestPlexGPU(cuFitter, ev, plex_tracks_ev);
+
+      printf("Matriplex fit = %.5f  -------------------------------------", tmp);
+      printf("\n");
+      s_tmp    += tmp;
+#if 0  // 0 for timing, 1 for validation
+      // Validation crashes for multiple threads.
+      // It is something in relation to ROOT. Not sure what. 
+      if (omp_get_num_threads() <= 1) {
+        if (g_run_fit_std) {
+          std::string tree_name = "validation-plex-" + std::to_string(evt) + ".root";
+          make_validation_tree(tree_name.c_str(), ev.simTracks_, plex_tracks_ev);
+        }
+      }
+#endif
+    }
+    cuFitter.freeDevice();
+  }
+  std::cerr << "###### Total GPU time: " << dtime() - total_gpu_time << " ######\n";
+}
+
+
 double runFittingTestPlexGPU(FitterCU<float> &cuFitter, 
     Event& ev, std::vector<Track>& rectracks)
 {

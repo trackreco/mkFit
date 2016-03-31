@@ -191,6 +191,10 @@ public:
 
   const float* posArray() const {return state_.pos_.Array();}
   const float* errArray() const {return state_.err_.Array();}
+//#ifdef USE_CUDA
+  float* posArrayCU();
+  float* errArrayCU();
+//#endif
 
   // Non-const versions needed for CopyOut of Matriplex.
   SVector3&     parameters_nc() {return state_.pos_;}

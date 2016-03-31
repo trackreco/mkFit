@@ -167,7 +167,7 @@ namespace Config
     #ifdef __MIC__
       #define MPT_SIZE 16
     #elif defined USE_CUDA
-      #define MPT_SIZE 10000
+      #define MPT_SIZE 8 // 20000
     #else
       #define MPT_SIZE 8
     #endif

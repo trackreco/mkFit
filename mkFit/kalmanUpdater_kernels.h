@@ -4,13 +4,20 @@
 #include "GPlex.h"
 
 void kalmanUpdate_wrapper(cudaStream_t& stream,
-    GPlex<float>& d_propErr, GPlex<float>& d_msErr,
-    GPlex<float>& d_par_iP, GPlex<float>& d_msPar,
-    GPlex<float>& d_par_iC, GPlex<float>& d_outErr,
+    GPlexLS& d_propErr, GPlexHS& d_msErr,
+    GPlexLV& d_par_iP, GPlexHV& d_msPar,
+    GPlexLV& d_par_iC, GPlexLS& d_outErr,
     const int N);
 
-void reorganizeMs_wrapper(cudaStream_t& stream, GPlex<float>& msPar, float *full_posArray,
-    GPlex<float>& msErr, float *full_errArray, int *full_hitIdx, int hi, int maxHits,
+void reorganizeMs_wrapper(cudaStream_t& stream, GPlexQF& msPar,
+    float *full_posArray, GPlexHS& msErr, 
+    float *full_errArray, int *full_hitIdx, int hi, int maxHits,
     int N, int hs, int hv, int Nhits);
+
+__device__ void addIntoUpperLeft3x3_fn(const float* __restrict__ a, size_t aN, 
+                                       const float* __restrict__ b, size_t bN, 
+                                       float *c, const int N, int n);
+
+__device__ void invertCramerSym_fn(float *a);
 
 #endif  // _KALMAN_UPDATER_KERNELS_H_

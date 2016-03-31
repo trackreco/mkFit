@@ -235,6 +235,17 @@ __global__ void kalmanUpdate_kernel(
       for (int j = 0; j < HS; ++j) {
         resErr_reg[j] = 0; //resErr[j*resErr_stride + n];
       }
+
+      // FIXME: Add useCMSGeom -> port propagateHelixToRMPlex
+#if 0
+      if (Config::useCMSGeom) {
+        propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar);
+      } else {
+        propErr = psErr;
+        propPar = psPar;
+      }
+#endif
+
       addIntoUpperLeft3x3_fn(propErr, propErr_stride,
           msErr, msErr_stride, resErr_reg, N, n);
       invertCramerSym_fn(resErr_reg);
@@ -252,9 +263,9 @@ __global__ void kalmanUpdate_kernel(
 }
 
 void kalmanUpdate_wrapper(cudaStream_t& stream,
-    GPlex<float>& d_propErr, GPlex<float>& d_msErr,
-    GPlex<float>& d_par_iP, GPlex<float>& d_msPar,
-    GPlex<float>& d_par_iC, GPlex<float>& d_outErr,
+    GPlexLS& d_propErr, GPlexHS& d_msErr,
+    GPlexLV& d_par_iP, GPlexHV& d_msPar,
+    GPlexLV& d_par_iC, GPlexLS& d_outErr,
     const int N) {
   int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
                        MAX_BLOCKS_X);

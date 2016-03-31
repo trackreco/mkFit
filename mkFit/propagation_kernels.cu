@@ -11,10 +11,10 @@
 #define BLOCK_SIZE_X 32
 #define MAX_BLOCKS_X 65535 // CUDA constraint
 
-__device__ float hipo(float x, float y) {
+__device__ float hipo_cu(float x, float y) {
   return sqrt(x*x + y*y);
 }
-__device__ void sincos4(float x, float& sin, float& cos) {
+__device__ void sincos4_cu(float x, float& sin, float& cos) {
    // Had this writen with explicit division by factorial.
    // The *whole* fitting test ran like 2.5% slower on MIC, sigh.
    cos  = 1;
@@ -95,9 +95,17 @@ __device__ void computeMsRad_fn(const float* __restrict__ msPar,
     size_t stride_msPar, float* msRad, int N, int n) {
   /*int n = threadIdx.x + blockIdx.x * blockDim.x;*/
   if (n < N) {
-    *msRad = hipo(msPar[n], msPar[n + stride_msPar]);
+    *msRad = hipo_cu(msPar[n], msPar[n + stride_msPar]);
   }
 }
+
+__device__ void assignMsRad_fn(const float r, float* msRad, int N, int n) {
+  /*int n = threadIdx.x + blockIdx.x * blockDim.x;*/
+  if (n < N) {
+    *msRad = r;
+  }
+}
+
 
 __device__ 
 void helixAtRFromIterative_fn(float *inPar, size_t inPar_stride,
@@ -121,7 +129,7 @@ void helixAtRFromIterative_fn(float *inPar, size_t inPar_stride,
     const float& pyin = inPar[n + 4*ipN]; 
     const float& pzin = inPar[n + 5*ipN]; 
     const float& r = msRad; 
-    float r0 = hipo(xin, yin);
+    float r0 = hipo_cu(xin, yin);
 
     if (fabs(r-r0)<0.0001) {
       // get an identity matrix
@@ -165,11 +173,11 @@ void helixAtRFromIterative_fn(float *inPar, size_t inPar_stride,
       y  = outPar_reg[1];
       px = outPar_reg[3];
       py = outPar_reg[4];
-      r0 = hipo(outPar_reg[0], outPar_reg[1]);
+      r0 = hipo_cu(outPar_reg[0], outPar_reg[1]);
 
       totalDistance += (r-r0);
       if (Config::useTrigApprox) {  // TODO: uncomment
-        sincos4((r-r0)*invcurvature, sinAP, cosAP);
+        sincos4_cu((r-r0)*invcurvature, sinAP, cosAP);
       } else {
         cosAP=cos((r-r0)*invcurvature);
         sinAP=sin((r-r0)*invcurvature);
@@ -229,7 +237,7 @@ void helixAtRFromIterative_fn(float *inPar, size_t inPar_stride,
       
       float cosTP, sinTP;
       if (Config::useTrigApprox) {
-        sincos4(TP, sinTP, cosTP);
+        sincos4_cu(TP, sinTP, cosTP);
       } else {
         cosTP = cos(TP);
         sinTP = sin(TP);
@@ -395,6 +403,7 @@ __device__ void similarity_fn(float* a, float *b, size_t stride_outErr,
   }
 }
 
+// PropagationMPlex.cc:propagateHelixToRMPlex, first version with 6 arguments 
 __global__ void propagation_kernel(
     const float* __restrict__ msPar, size_t stride_msPar, 
     float *inPar, size_t inPar_stride, int *inChg,
@@ -415,6 +424,9 @@ __global__ void propagation_kernel(
         helixAtRFromIterative_fn(inPar, inPar_stride,
             inChg, outPar, outPar_stride, msRad_reg, 
             errorProp_reg, N, n);
+      } else {
+        // TODO: not ported for now. Assuming Config::doIterative
+        // helixAtRFromIntersection(inPar, inChg, outPar, msRad, errorProp);
       }
       similarity_fn(errorProp_reg, outErr, outErr_stride, N, n);
     }
@@ -423,10 +435,10 @@ __global__ void propagation_kernel(
 
 
 void propagation_wrapper(cudaStream_t& stream,
-    GPlex<float>& msPar,
-    GPlex<float>& inPar, GPlex<int>& inChg,
-    GPlex<float>& outPar, GPlex<float>& errorProp,
-    GPlex<float>& outErr, 
+    GPlexHV& msPar,
+    GPlexLV& inPar, GPlexQI& inChg,
+    GPlexLV& outPar, GPlexLL& errorProp,
+    GPlexLS& outErr, 
     const int N) {
   int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
                        MAX_BLOCKS_X);
@@ -438,3 +450,53 @@ void propagation_wrapper(cudaStream_t& stream,
      outPar.ptr, outPar.stride, errorProp.ptr,
      errorProp.stride, outErr.ptr, outErr.stride, N);
 }
+
+
+// PropagationMPlex.cc:propagateHelixToRMPlex, second version with 7 arguments 
+// Imposes the radius
+__global__ void propagationForBuilding_kernel(
+    float r,
+    float *inPar, size_t inPar_stride, int *inChg,
+    float *outPar, size_t outPar_stride, float *errorProp,
+    size_t errorProp_stride, float *outErr, size_t outErr_stride, int N) {
+
+  int grid_width = blockDim.x * gridDim.x;
+  int n = threadIdx.x + blockIdx.x * blockDim.x;
+  float msRad_reg;
+  // Using registers instead of shared memory is ~ 30% faster.
+  float errorProp_reg[LL];
+  // If there is more matrices than MAX_BLOCKS_X * BLOCK_SIZE_X 
+  for (int z = 0; z < (N-1)/grid_width  +1; z++) {
+    n += z*grid_width;
+    if (n < N) {
+      assignMsRad_fn(r, &msRad_reg, N, n);
+      if (Config::doIterative) {
+        helixAtRFromIterative_fn(inPar, inPar_stride,
+            inChg, outPar, outPar_stride, msRad_reg, 
+            errorProp_reg, N, n);
+      } else {
+        // TODO: not ported for now. Assuming Config::doIterative
+        // helixAtRFromIntersection(inPar, inChg, outPar, msRad, errorProp);
+      }
+      similarity_fn(errorProp_reg, outErr, outErr_stride, N, n);
+    }
+  }
+}
+
+void propagationForBuilding_wrapper(cudaStream_t& stream,
+    float radius,
+    GPlexLV& inPar, GPlexQI& inChg,
+    GPlexLV& outPar, GPlexLL& errorProp,
+    GPlexLS& outErr, 
+    const int N) {
+  int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
+                       MAX_BLOCKS_X);
+  dim3 grid(gridx, 1, 1);
+  dim3 block(BLOCK_SIZE_X, 1, 1);
+  propagationForBuilding_kernel<<<grid, block, 0, stream >>>
+    (radius,
+     inPar.ptr, inPar.stride, inChg.ptr,
+     outPar.ptr, outPar.stride, errorProp.ptr,
+     errorProp.stride, outErr.ptr, outErr.stride, N);
+}
+

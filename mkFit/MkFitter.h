@@ -8,6 +8,8 @@
 #include "HitStructures.h"
 #include "BinInfoUtils.h"
 
+#include "FitterCU.h"
+
 //#define DEBUG 1
 
 class CandCloner;

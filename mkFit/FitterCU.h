@@ -8,6 +8,8 @@
 #include "Matrix.h"
 #include "propagation_kernels.h"
 #include "kalmanUpdater_kernels.h"
+#include "computeChi2_kernels.h"
+#include "HitStructuresCU.h"
 #include "GPlex.h"
 
 #define LV 6
@@ -58,27 +60,25 @@ class FitterCU {
 
   void setNumberTracks(idx_t Ntracks);
 
-  void sendInParToDevice(const MPlexLV& inPar);
-  void sendInErrToDevice(const MPlexLS& inErr);
-  void sendInChgToDevice(const MPlexQI& inChg);
-  void sendMsRadToDevice(const MPlexQF& msRad);
-  void sendOutParToDevice(const MPlexLV& outPar);
-  void sendOutErrToDevice(const MPlexLS& outErr);
-  void sendMsParToDevice(const MPlexHV& msPar);
-  
-  void getErrorPropFromDevice(MPlexLL& errorProp);
-  void getMsRadFromDevice(MPlexQF& msRad);
-
-  void setOutParFromInPar();
-  void setOutErrFromInErr();
-
-  // updater specfic transfers.
-  void sendMsErrToDevice(const MPlexHS& msErr);
-  void getOutParFromDevice(MPlexLV& outPar);
-  void getOutErrFromDevice(MPlexLS& outErr);
-
   void propagationMerged();
   void kalmanUpdateMerged();
+
+  void computeChi2gpu(const MPlexLS &psErr, MPlexHS &msErr,
+      MPlexHV& msPar, const MPlexLV& propPar, GPlexQF& d_outChi2, int NN);
+
+  void allocate_extra_addBestHit();
+  void free_extra_addBestHit();
+
+  void prepare_addBestHit(
+      const MPlexLS &psErr, const MPlexLV& propPar,
+      const MPlexQI &inChg, 
+      size_t NN);
+  void finalize_addBestHit(
+      MPlexHS &msErr, MPlexHV& msPar,
+      MPlexLS &outErr, MPlexLV &outPar,
+      MPlexQI &HitsIdx, MPlexQF &Chi2);
+
+  void addBestHit(BunchOfHitsCU &bunch);
 
   // fitting higher order methods
   void FitTracks(MPlexQI &Chg, MPlexLV& par_iC, MPlexLS& err_iC,
@@ -91,18 +91,27 @@ class FitterCU {
   // to allocated arrays that can be used for several sets of tracks.
   idx_t Nalloc;
   idx_t N;
-  /* data */
-  GPlex<T> d_par_iC;  // LV
-  GPlex<int> d_inChg;  // QI
-  GPlex<T> d_par_iP; // LV
-  GPlex<T> d_msRad;  // QF
-  GPlex<T> d_errorProp;  // LL
-  GPlex<T> d_Err_iP;
-  GPlex<T> d_msPar;
 
-  GPlex<T> d_outErr;
-  GPlex<T> d_msErr;
+  /* data */
+  GPlexLV d_par_iP; // LV
+  GPlexLV d_par_iC; // LV
+
+  GPlexLS d_Err_iP; // LS
+  GPlexLS d_Err_iC; // LS
+
+  GPlexQI d_inChg;  // QI
+  GPlexQF d_msRad;  // QF
+  GPlexLL d_errorProp;  // LL
+
+  GPlexHV d_msPar;
+  GPlexHS d_msErr;
   
+  GPlexQI d_XHitPos;  // QI : 1D arrary following itracks
+  GPlexQI d_XHitSize;  // QI : " "
+  GPlexQF d_outChi2;
+  int *d_HitsIdx;
+  float *d_Chi2;
+
   // everything run in a stream so multiple instance of FitterCU can
   // run concurrently on the GPU.
   cudaStream_t stream;

@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "HitStructures.h"
+#include "FitterCU.h"
 
 class Event;
 class EventTmp;
@@ -18,6 +19,9 @@ private:
   EventOfHits    m_event_of_hits;
 
   std::vector<MkFitter*> m_mkfp_arr;
+#ifdef USE_CUDA
+  std::vector<FitterCU<float>*> m_cuFitter_arr;
+#endif
 
   std::vector<Track>     m_recseeds;
 

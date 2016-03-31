@@ -7,6 +7,7 @@
 #include "BinInfoUtils.h"
 
 #include "MkBuilder.h"
+#include "FitterCU.h"
 
 #include <omp.h>
 
@@ -73,6 +74,7 @@ double runBuildingTestPlexBestHit(Event& ev)
 {
   MkBuilder builder;
 
+  std::cout << "Building event...\n";
   builder.begin_event(&ev, 0, __func__);
 
   double time = dtime();
@@ -81,10 +83,12 @@ double runBuildingTestPlexBestHit(Event& ev)
   __itt_resume();
 #endif
 
+  std::cout << "Fitting seeds...\n";
   builder.fit_seeds();
 
   EventOfCandidates event_of_cands;
 
+  std::cout << "Finding best hits...\n";
   builder.FindTracksBestHit(event_of_cands);
 
 #ifdef USE_VTUNE_PAUSE
