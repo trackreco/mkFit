@@ -837,7 +837,7 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
     {
       const float& xin  = inPar.ConstAt(n, 0, 0);
       const float& yin  = inPar.ConstAt(n, 1, 0);
-      const float& zin  = inPar.ConstAt(0, 2, 0);
+      const float& zin  = inPar.ConstAt(n, 2, 0);
       const float& pxin = inPar.ConstAt(n, 3, 0);
       const float& pyin = inPar.ConstAt(n, 4, 0);
       const float& pzin = inPar.ConstAt(n, 5, 0);

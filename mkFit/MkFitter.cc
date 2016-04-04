@@ -423,7 +423,7 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
 #ifdef DEBUG
       std::cout << "update parameters" << std::endl;
       std::cout << "propagated track parameters x=" << Par[iP].ConstAt(itrack, 0, 0) << " y=" << Par[iP].ConstAt(itrack, 1, 0) << std::endl;
-      std::cout << "               hit position x=" << msPar[iP].ConstAt(itrack, 0, 0) << " y=" << msPar[iP].ConstAt(itrack, 1, 0) << std::endl;
+      std::cout << "               hit position x=" << msPar_oneHit.ConstAt(itrack, 0, 0) << " y=" << msPar_oneHit.ConstAt(itrack, 1, 0) << std::endl;
       std::cout << "   updated track parameters x=" << Par[iC].ConstAt(itrack, 0, 0) << " y=" << Par[iC].ConstAt(itrack, 1, 0) << std::endl;
 #endif
 
@@ -1035,7 +1035,7 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits,
 #ifdef DEBUG
       std::cout << "update parameters" << std::endl;
       std::cout << "propagated track parameters x=" << Par[iP].ConstAt(0, 0, 0) << " y=" << Par[iP].ConstAt(0, 1, 0) << std::endl;
-      std::cout << "               hit position x=" << msPar[iP].ConstAt(0, 0, 0) << " y=" << msPar[iP].ConstAt(0, 1, 0) << std::endl;
+      std::cout << "               hit position x=" << msPar[Nhits].ConstAt(0, 0, 0) << " y=" << msPar[Nhits].ConstAt(0, 1, 0) << std::endl;
       std::cout << "   updated track parameters x=" << Par[iC].ConstAt(0, 0, 0) << " y=" << Par[iC].ConstAt(0, 1, 0) << std::endl;
 #endif
 
