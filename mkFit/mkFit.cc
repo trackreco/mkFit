@@ -13,6 +13,10 @@
 
 #include "Event.h"
 
+#ifdef USE_CUDA
+#include "FitterCU.h"
+#endif
+
 #include <omp.h>
 
 #if defined(USE_VTUNE_PAUSE)
@@ -155,6 +159,97 @@ void test_standard()
 
   EventTmp ev_tmp;
 
+#if USE_CUDA
+  // fittest time. Sum of all events. In case of multiple events
+  // being run simultaneously in different streams this time will
+  // be larger than the elapsed time.
+  double s_tmp = 0.0;
+
+  std::vector<Event> events;
+  std::vector<Validation> validations(Config::nEvents);
+
+  // simulations are all performed before the fitting loop.
+  // It is mandatory in order to see the benefits of running
+  // multiple streams.
+  for (int evt = 1; evt <= Config::nEvents; ++evt) {
+    printf("Simulating event %d\n", evt);
+    Event ev(geom, val, evt);
+    ev.Simulate();
+    ev.resetLayerHitMap(true);
+    
+    events.push_back(ev);
+  }
+
+  // The first call to a GPU function always take a very long time.
+  // Everything needs to be initialized.
+  // Nothing is done in this function, except calling an harmless
+  // CUDA function. These function can be changed to another one
+  // if it becomes important to time (e.g. if you want the profiler to
+  // tell you how much time is spend running cudaDeviceSynchronize(),
+  // use another function). 
+  separate_first_call_for_meaningful_profiling_numbers();
+#if 0
+  In principle, the warmup loop should not be required.
+  The separate_first_call_for_meaningful_profiling_numbers() function
+  should be enough.
+  // Warmup loop
+  for (int i = 0; i < 1; ++i) {
+    FitterCU<float> cuFitter(NN);
+    cuFitter.allocateDevice();
+    Event &ev = events[0];
+    std::vector<Track> plex_tracks_ev;
+    plex_tracks_ev.resize(ev.simTracks_.size());
+
+    if (g_run_fit_std) runFittingTestPlexGPU(cuFitter, ev, plex_tracks_ev);
+    cuFitter.freeDevice();
+  }
+#endif
+
+  // Reorgnanization (copyIn) can eventually be multithreaded.
+  omp_set_nested(1);
+      
+  omp_set_num_threads(Config::numThreadsEvents);
+  double total_gpu_time = dtime();
+#pragma omp parallel reduction(+:s_tmp)
+  {
+  int numThreadsEvents = omp_get_num_threads();
+  int thr_idx = omp_get_thread_num();
+
+  // FitterCU is declared here to share allocations and deallocations
+  // between the multiple events processed by a single thread.
+  FitterCU<float> cuFitter(NN);
+  cuFitter.allocateDevice();
+
+    for (int evt = thr_idx+1; evt <= Config::nEvents; evt+= numThreadsEvents) {
+      int idx = thr_idx;
+      printf("==============================================================\n");
+      printf("Processing event %d with thread %d\n", evt, idx);
+      Event &ev = events[evt-1];
+      std::vector<Track> plex_tracks_ev;
+      plex_tracks_ev.resize(ev.simTracks_.size());
+      double tmp = 0, tmp2bh = 0, tmp2 = 0, tmp2ce = 0;
+
+      if (g_run_fit_std) tmp = runFittingTestPlexGPU(cuFitter, ev, plex_tracks_ev);
+
+      printf("Matriplex fit = %.5f  -------------------------------------", tmp);
+      printf("\n");
+      s_tmp    += tmp;
+#if 1  // 0 for timing, 1 for validation
+      // Validation crashes for multiple threads.
+      // It is something in relation to ROOT. Not sure what. 
+      if (omp_get_num_threads() <= 1) {
+        if (g_run_fit_std) {
+          std::string tree_name = "validation-plex-" + std::to_string(evt) + ".root";
+          make_validation_tree(tree_name.c_str(), ev.simTracks_, plex_tracks_ev);
+        }
+      }
+#endif
+    }
+    cuFitter.freeDevice();
+  }
+  std::cerr << "###### Total GPU time: " << dtime() - total_gpu_time << " ######\n";
+
+#else
   for (int evt = 1; evt <= Config::nEvents; ++evt)
   {
     printf("\n");
@@ -210,6 +305,7 @@ void test_standard()
 
     for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
   }
+#endif
   printf("\n");
   printf("================================================================\n");
   printf("=== TOTAL for %d events\n", Config::nEvents);
@@ -275,6 +371,8 @@ int main(int argc, const char *argv[])
       printf(
         "Usage: %s [options]\n"
         "Options:\n"
+        "  --num-events    <num>    number of events to run over (def: %d)\n"
+        "  --num-tracks    <num>    number of tracks to generate for each event (def: %d)\n"
         "  --num-thr-sim   <num>    number of threads for simulation (def: %d)\n"
         "  --num-thr       <num>    number of threads for track finding (def: %d)\n"
         "                           extra cloning thread is spawned for each of them\n"
@@ -290,8 +388,13 @@ int main(int argc, const char *argv[])
 	"  --write                  write simulation to file and exit\n"
 	"  --read                   read simulation from file\n"
 	"  --file-name              file name for write/read (def: %s)\n"
+        "GPU specific options: \n"
+        "  --num-thr-ev    <num>    number of threads to run the event loop\n"
+        "  --num-thr-reorg <num>    number of threads to run the hits reorganization\n"
         ,
         argv[0],
+        Config::nEvents,
+        Config::nTracks,
         Config::numThreadsSimulation, Config::numThreadsFinder,
         Config::clonerUseSingleThread ? "true" : "false",
         Config::finderReportBestOutOfN,
@@ -300,6 +403,16 @@ int main(int argc, const char *argv[])
 	g_file_name.c_str()
       );
       exit(0);
+    }
+    else if (*i == "--num-events")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::nEvents = atoi(i->c_str());
+    }
+    else if (*i == "--num-tracks")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::nTracks = atoi(i->c_str());
     }
     else if (*i == "--num-thr-sim")
     {
@@ -348,6 +461,16 @@ int main(int argc, const char *argv[])
     else if(*i == "--cmssw-seeds")
     {
       Config::readCmsswSeeds = true;
+    }
+    else if (*i == "--num-thr-ev")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::numThreadsEvents = atoi(i->c_str());
+    }
+    else if (*i == "--num-thr-reorg")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::numThreadsReorg = atoi(i->c_str());
     }
     else if(*i == "--write")
     {

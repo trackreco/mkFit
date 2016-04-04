@@ -3,6 +3,9 @@
 
 #include "PropagationMPlex.h"
 #include "KalmanUtilsMPlex.h"
+#ifdef USE_CUDA
+#include "FitterCU.h"
+#endif
 
 #include <sstream>
 
@@ -36,9 +39,17 @@ void MkFitter::InputTracksAndHits(std::vector<Track>&  tracks,
   // This might not be true for the last chunk!
   // assert(end - beg == NN);
 
-  int itrack = 0;
-  for (int i = beg; i < end; ++i, ++itrack)
-  {
+  int itrack;
+#ifdef USE_CUDA
+  // This openmp loop brings some performances when using
+  // a single thread to fit all events.
+  // However, it is more advantageous to use the threads to
+  // parallelize over Events.
+  omp_set_num_threads(Config::numThreadsReorg);
+#pragma omp parallel for private(itrack)
+#endif
+  for (int i = beg; i < end; ++i) {
+    itrack = i - beg;
     Track &trk = tracks[i];
 
     Label(itrack, 0, 0) = trk.label();
@@ -49,6 +60,10 @@ void MkFitter::InputTracksAndHits(std::vector<Track>&  tracks,
     Chg(itrack, 0, 0) = trk.charge();
     Chi2(itrack, 0, 0) = trk.chi2();
 
+// CopyIn seems fast enough, but indirections are quite slow.
+// For GPU computations, it has been moved in between kernels
+// in an attempt to overlap CPU and GPU computations.
+#ifndef USE_CUDA
     for (int hi = 0; hi < Nhits; ++hi)
     {
       const int hidx = trk.getHitIdx(hi);
@@ -58,6 +73,7 @@ void MkFitter::InputTracksAndHits(std::vector<Track>&  tracks,
       msPar[hi].CopyIn(itrack, hit.posArray());
       HitsIdx[hi](itrack, 0, 0) = hidx;
     }
+#endif
   }
 }
 
@@ -207,7 +223,6 @@ void MkFitter::FitTracks()
     updateParametersMPlex(Err[iP], Par[iP],  Chg, msErr[hi], msPar[hi],
                           Err[iC], Par[iC]);
   }
-
   // XXXXX What's with chi2?
 }
 

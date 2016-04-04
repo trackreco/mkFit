@@ -19,7 +19,6 @@ for test in ['BH','CE','CEST','ST','FIT']:
     if 'FIT' in test: 
         pos = 3
         ntks = '1M'
-        if hORm == 'mic': ntks = '500k'
     g_VU = ROOT.TGraph(4)
     g_VU_speedup = ROOT.TGraph(4)
     point = 0

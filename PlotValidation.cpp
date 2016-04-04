@@ -26,7 +26,7 @@ PlotValidation::PlotValidation(TString inName, TString outName, TString outType)
 
   // General style
   gROOT->Reset();
-  gStyle->SetOptStat("eou");
+  gStyle->SetOptStat("emou");
   //gStyle->SetOptStat(0);
   gStyle->SetTitleFontSize(0.04);
   gStyle->SetOptFit(1011);
