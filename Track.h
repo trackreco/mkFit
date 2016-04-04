@@ -39,6 +39,7 @@ public:
   float py()     const {return parameters.At(4);}
   float pz()     const {return parameters.At(5);}
   float pT()     const {return sqrtf(getRad2(px(),py()));}
+  float p()      const {return sqrtf(px()*px()+py()*py()+pz()*pz());}
   float momPhi() const {return       getPhi (px(),py());}
   float momEta() const {return       getEta (pT(),pz());}
 

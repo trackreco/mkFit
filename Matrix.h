@@ -12,6 +12,10 @@ typedef ROOT::Math::SMatrix<float,3> SMatrix33;
 typedef ROOT::Math::SMatrix<float,3,3,ROOT::Math::MatRepSym<float,3> >    SMatrixSym33;
 typedef ROOT::Math::SVector<float,3> SVector3;
 
+typedef ROOT::Math::SMatrix<float,2> SMatrix22;
+typedef ROOT::Math::SMatrix<float,2,2,ROOT::Math::MatRepSym<float,2> >    SMatrixSym22;
+typedef ROOT::Math::SVector<float,2> SVector2;
+
 typedef ROOT::Math::SMatrix<float,3,6> SMatrix36;
 typedef ROOT::Math::SMatrix<float,6,3> SMatrix63;
 
@@ -88,7 +92,12 @@ inline void sincos4(float x, float& sin, float& cos)
   typedef Matriplex::Matriplex<float, HH,  1, NN>   MPlexHV;
   typedef Matriplex::MatriplexSym<float, HH,  NN>   MPlexHS;
 
+  typedef Matriplex::Matriplex<float, 2,  2, NN>    MPlex22;
+  typedef Matriplex::Matriplex<float, 2,  1, NN>    MPlex2V;
+  typedef Matriplex::MatriplexSym<float,  2, NN>    MPlex2S;
+
   typedef Matriplex::Matriplex<float, LL, HH, NN>   MPlexLH;
+  typedef Matriplex::Matriplex<float, HH, LL, NN>   MPlexHL;
 
   typedef Matriplex::Matriplex<float, 1, 1, NN>     MPlexQF;
   typedef Matriplex::Matriplex<int,   1, 1, NN>     MPlexQI;
