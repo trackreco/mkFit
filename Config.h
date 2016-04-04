@@ -79,8 +79,8 @@ namespace Config
   constexpr int Niter = 5;
   constexpr float Bfield = 3.8112;
   constexpr bool doIterative = true;
-  constexpr bool useSimpleJac = true;  
-  constexpr bool useCurvJac = false;
+  constexpr bool useSimpleJac = false;
+  constexpr bool useCurvJac   = false;
   constexpr bool useTrigApprox = true;
 
   // Config for Hit and BinInfoUtils
@@ -121,6 +121,7 @@ namespace Config
 #define MAX_HITS 10
 #endif
 
+  //fixme: these should not be constant and modified when nTracks is set from reading a file
   constexpr int maxHitsConsidered = 25;
   const     int maxHitsPerBunch   = std::max(100, nTracks * 12 / 10 / nEtaPart) + maxHitsConsidered;
 
@@ -140,6 +141,7 @@ namespace Config
   extern int    finderReportBestOutOfN;
 
   extern bool   useCMSGeom;
+  extern bool   readCmsswSeeds;
 
   const std::string inputFile = "cmssw.simtracks.SingleMu1GeV.10k.new.txt";
   //const std::string inputFile = "cmssw.simtracks.SingleMu10GeV.10k.new.txt";

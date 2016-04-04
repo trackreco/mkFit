@@ -18,4 +18,5 @@ namespace Config
   int   finderReportBestOutOfN = 1;
 
   bool  useCMSGeom = false;
+  bool  readCmsswSeeds = false;
 }

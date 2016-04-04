@@ -332,6 +332,7 @@ void Event::read_in(FILE *fp)
   fread(&nt, sizeof(int), 1, fp);
   simTracks_.resize(nt);
   fread(&simTracks_[0], sizeof(Track), nt, fp);
+  Config::nTracks = nt;
 
   int nl;
   fread(&nl, sizeof(int), 1, fp);
@@ -347,6 +348,14 @@ void Event::read_in(FILE *fp)
   fread(&nm, sizeof(int), 1, fp);
   simHitsInfo_.resize(nm);
   fread(&simHitsInfo_[0], sizeof(MCHitInfo), nm, fp);
+
+  if (Config::useCMSGeom) {
+    int ns;
+    fread(&ns, sizeof(int), 1, fp);
+    seedTracks_.resize(ns);
+    if (Config::readCmsswSeeds) fread(&seedTracks_[0], sizeof(Track), ns, fp);
+    else fseek(fp, sizeof(Track)*ns, SEEK_CUR);
+  }
 
   /*
   printf("read %i tracks\n",nt);

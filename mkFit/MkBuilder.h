@@ -19,8 +19,6 @@ private:
 
   std::vector<MkFitter*> m_mkfp_arr;
 
-  std::vector<Track>     m_recseeds;
-
   int m_cnt=0, m_cnt1=0, m_cnt2=0, m_cnt_8=0, m_cnt1_8=0, m_cnt2_8=0, m_cnt_nomc=0;
 
 public:
