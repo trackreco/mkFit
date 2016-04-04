@@ -716,8 +716,12 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
     XHitSize.At(itrack, 0, 0) = binInfoPlus .first + binInfoPlus.second - binInfoMinus.first;
     if (XHitSize.At(itrack, 0, 0) < 0)
     {
+#ifdef DEBUG
+      xout << "XHitSize=" << XHitSize.At(itrack, 0, 0) << "  bunch_of_hits.m_fill_index=" <<  bunch_of_hits.m_fill_index << " Config::maxHitsConsidered=" << Config::maxHitsConsidered << std::endl;
+#endif
       // XXX It would be nice to have BunchOfHits.m_n_real_hits.
-      XHitSize.At(itrack, 0, 0) += bunch_of_hits.m_fill_index - Config::maxHitsConsidered;
+      //XHitSize.At(itrack, 0, 0) += bunch_of_hits.m_fill_index - Config::maxHitsConsidered;//this can be negative!
+      XHitSize.At(itrack, 0, 0) = std::min(int(bunch_of_hits.m_fill_index),int(Config::maxHitsConsidered));//fixme: not sure this is the desired behavior
     }
 
     // XXXX Hack to limit N_hits to maxHitsConsidered.
