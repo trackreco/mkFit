@@ -340,40 +340,40 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	  //outPar.At(n, 5, 0) = pz; //take this out as it is redundant
 
 	  if (Config::useSimpleJac==0 && i+1 != Config::Niter && r0 > 0 && fabs((r-r0)*invcurvature)>0.000000001)
-         {
-            //update derivatives on total distance for next step, where totalDistance+=r-r0
-            //now r0 depends on px and py
-            r0 = 1./r0;//WARNING, now r0 is r0inv (one less temporary)
+	  {
+	     //update derivatives on total distance for next step, where totalDistance+=r-r0
+	     //now r0 depends on px and py
+	     r0 = 1./r0;//WARNING, now r0 is r0inv (one less temporary)
 
 #ifdef DEBUG
-            std::cout << "r0=" << 1./r0 << " r0inv=" << r0 << " pt=" << pt << std::endl;
+	     std::cout << "r0=" << 1./r0 << " r0inv=" << r0 << " pt=" << pt << std::endl;
 #endif
 
-            //update derivative on D
-            dAPdx = -x*r0*invcurvature;
-            dAPdy = -y*r0*invcurvature;
-            dAPdpx = -(r-1./r0)*invcurvature*px*pt2inv;//weird, using r0 instead of 1./r0 improves things but it should be wrong since r0 in now r0inv
-            dAPdpy = -(r-1./r0)*invcurvature*py*pt2inv;//weird, using r0 instead of 1./r0 improves things but it should be wrong since r0 in now r0inv
-            //reduce temporary variables
-            //dxdx = 1 + k*dAPdx*(px*cosAP - py*sinAP);
-            //dydx = k*dAPdx*(py*cosAP + px*sinAP);
-            //dTDdx -= r0*(x*dxdx + y*dydx);
-            dTDdx -= r0*(x*(1 + k*dAPdx*(px*cosAP - py*sinAP)) + y*(k*dAPdx*(py*cosAP + px*sinAP)));
-            //reuse same temporary variables
-            //dxdy = k*dAPdy*(px*cosAP - py*sinAP);
-            //dydy = 1 + k*dAPdy*(py*cosAP + px*sinAP);
-            //dTDdy -= r0*(x*dxdy + y*dydy);
-            dTDdy -= r0*(x*(k*dAPdy*(px*cosAP - py*sinAP)) + y*(1 + k*dAPdy*(py*cosAP + px*sinAP)));
-            //dxdpx = k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx);
-            //dydpx = k*(py*cosAP*dAPdpx + 1. - cosAP + px*sinAP*dAPdpx);
-            //dTDdpx -= r0*(x*dxdpx + y*dydpx);
-            dTDdpx -= r0*(x*(k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx)) + y*(k*(py*cosAP*dAPdpx + 1. - cosAP + px*sinAP*dAPdpx)));
-            //dxdpy = k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy);
-            //dydpy = k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy);
-            //dTDdpy -= r0*(x*dxdpy + y*(dydpy);
-            dTDdpy -= r0*(x*(k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy)) + y*(k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy)));
+	     //update derivative on D
+	     dAPdx = -x*r0*invcurvature;
+	     dAPdy = -y*r0*invcurvature;
+	     dAPdpx = -(r-1./r0)*invcurvature*px*pt2inv;//weird, using r0 instead of 1./r0 improves things but it should be wrong since r0 in now r0inv
+	     dAPdpy = -(r-1./r0)*invcurvature*py*pt2inv;//weird, using r0 instead of 1./r0 improves things but it should be wrong since r0 in now r0inv
+	     //reduce temporary variables
+	     //dxdx = 1 + k*dAPdx*(px*cosAP - py*sinAP);
+	     //dydx = k*dAPdx*(py*cosAP + px*sinAP);
+	     //dTDdx -= r0*(x*dxdx + y*dydx);
+	     dTDdx -= r0*(x*(1 + k*dAPdx*(px*cosAP - py*sinAP)) + y*(k*dAPdx*(py*cosAP + px*sinAP)));
+	     //reuse same temporary variables
+	     //dxdy = k*dAPdy*(px*cosAP - py*sinAP);
+	     //dydy = 1 + k*dAPdy*(py*cosAP + px*sinAP);
+	     //dTDdy -= r0*(x*dxdy + y*dydy);
+	     dTDdy -= r0*(x*(k*dAPdy*(px*cosAP - py*sinAP)) + y*(1 + k*dAPdy*(py*cosAP + px*sinAP)));
+	     //dxdpx = k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx);
+	     //dydpx = k*(py*cosAP*dAPdpx + 1. - cosAP + px*sinAP*dAPdpx);
+	     //dTDdpx -= r0*(x*dxdpx + y*dydpx);
+	     dTDdpx -= r0*(x*(k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx)) + y*(k*(py*cosAP*dAPdpx + 1. - cosAP + px*sinAP*dAPdpx)));
+	     //dxdpy = k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy);
+	     //dydpy = k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy);
+	     //dTDdpy -= r0*(x*dxdpy + y*(dydpy);
+	     dTDdpy -= r0*(x*(k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy)) + y*(k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy)));
 
-         }
+	  }
 	  
 #ifdef DEBUG
 	  std::cout << "iteration end, dump parameters" << std::endl;
@@ -688,15 +688,50 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
         jacCurvProp(n,4,4) = (v11*v21 + v12*v22 + v13*v23);
 
 #ifdef DEBUG
-      std::cout << "jacCurvProp" << std::endl;
-      printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,0,0),jacCurvProp(n,0,1),jacCurvProp(n,0,2),jacCurvProp(n,0,3),jacCurvProp(n,0,4),jacCurvProp(n,0,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,1,0),jacCurvProp(n,1,1),jacCurvProp(n,1,2),jacCurvProp(n,1,3),jacCurvProp(n,1,4),jacCurvProp(n,1,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,2,0),jacCurvProp(n,2,1),jacCurvProp(n,2,2),jacCurvProp(n,2,3),jacCurvProp(n,2,4),jacCurvProp(n,2,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,3,0),jacCurvProp(n,3,1),jacCurvProp(n,3,2),jacCurvProp(n,3,3),jacCurvProp(n,3,4),jacCurvProp(n,3,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,4,0),jacCurvProp(n,4,1),jacCurvProp(n,4,2),jacCurvProp(n,4,3),jacCurvProp(n,4,4),jacCurvProp(n,4,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,5,0),jacCurvProp(n,5,1),jacCurvProp(n,5,2),jacCurvProp(n,5,3),jacCurvProp(n,5,4),jacCurvProp(n,5,5));
+	std::cout << "jacCurvProp" << std::endl;
+	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,0,0),jacCurvProp(n,0,1),jacCurvProp(n,0,2),jacCurvProp(n,0,3),jacCurvProp(n,0,4),jacCurvProp(n,0,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,1,0),jacCurvProp(n,1,1),jacCurvProp(n,1,2),jacCurvProp(n,1,3),jacCurvProp(n,1,4),jacCurvProp(n,1,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,2,0),jacCurvProp(n,2,1),jacCurvProp(n,2,2),jacCurvProp(n,2,3),jacCurvProp(n,2,4),jacCurvProp(n,2,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,3,0),jacCurvProp(n,3,1),jacCurvProp(n,3,2),jacCurvProp(n,3,3),jacCurvProp(n,3,4),jacCurvProp(n,3,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,4,0),jacCurvProp(n,4,1),jacCurvProp(n,4,2),jacCurvProp(n,4,3),jacCurvProp(n,4,4),jacCurvProp(n,4,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,5,0),jacCurvProp(n,5,1),jacCurvProp(n,5,2),jacCurvProp(n,5,3),jacCurvProp(n,5,4),jacCurvProp(n,5,5));
 #endif
-        
+
+	MPlexLL temp5;
+	MultHelixPropFull(jacCartToCurv, rotateCartCa2Cu, temp5);
+#ifdef DEBUG
+	std::cout << "rotated jacCartToCurv" << std::endl;
+	printf("%5f %5f %5f %5f %5f %5f\n", temp5(n,0,0),temp5(n,0,1),temp5(n,0,2),temp5(n,0,3),temp5(n,0,4),temp5(n,0,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", temp5(n,1,0),temp5(n,1,1),temp5(n,1,2),temp5(n,1,3),temp5(n,1,4),temp5(n,1,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", temp5(n,2,0),temp5(n,2,1),temp5(n,2,2),temp5(n,2,3),temp5(n,2,4),temp5(n,2,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", temp5(n,3,0),temp5(n,3,1),temp5(n,3,2),temp5(n,3,3),temp5(n,3,4),temp5(n,3,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", temp5(n,4,0),temp5(n,4,1),temp5(n,4,2),temp5(n,4,3),temp5(n,4,4),temp5(n,4,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", temp5(n,5,0),temp5(n,5,1),temp5(n,5,2),temp5(n,5,3),temp5(n,5,4),temp5(n,5,5));
+#endif
+	MPlexLL temp6;
+	MultHelixPropFull(rotateCartCu2Ca, jacCurvToCart, temp6);
+#ifdef DEBUG
+	std::cout << "rotated jacCurvToCart" << std::endl;
+	printf("%5f %5f %5f %5f %5f %5f\n", temp6(n,0,0),temp6(n,0,1),temp6(n,0,2),temp6(n,0,3),temp6(n,0,4),temp6(n,0,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", temp6(n,1,0),temp6(n,1,1),temp6(n,1,2),temp6(n,1,3),temp6(n,1,4),temp6(n,1,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", temp6(n,2,0),temp6(n,2,1),temp6(n,2,2),temp6(n,2,3),temp6(n,2,4),temp6(n,2,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", temp6(n,3,0),temp6(n,3,1),temp6(n,3,2),temp6(n,3,3),temp6(n,3,4),temp6(n,3,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", temp6(n,4,0),temp6(n,4,1),temp6(n,4,2),temp6(n,4,3),temp6(n,4,4),temp6(n,4,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", temp6(n,5,0),temp6(n,5,1),temp6(n,5,2),temp6(n,5,3),temp6(n,5,4),temp6(n,5,5));
+#endif
+	MPlexLL temp7;
+	MultHelixPropFull(jacCurvProp, temp5, temp7);
+	MultHelixPropFull(temp6, temp7, errorProp);
+#ifdef DEBUG
+	std::cout << "jacobian iterative" << std::endl;
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,2,0),errorProp(n,2,1),errorProp(n,2,2),errorProp(n,2,3),errorProp(n,2,4),errorProp(n,2,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,3,0),errorProp(n,3,1),errorProp(n,3,2),errorProp(n,3,3),errorProp(n,3,4),errorProp(n,3,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,4,0),errorProp(n,4,1),errorProp(n,4,2),errorProp(n,4,3),errorProp(n,4,4),errorProp(n,4,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,5,0),errorProp(n,5,1),errorProp(n,5,2),errorProp(n,5,3),errorProp(n,5,4),errorProp(n,5,5));
+#endif
+
       } else if (Config::useSimpleJac) { 
 	//assume total path length s as given and with no uncertainty
 	float p = pt2 + pzin*pzin;
@@ -758,55 +793,15 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       }
 
 #ifdef DEBUG
-      if (Config::useCurvJac==0) {
-	std::cout << "jacobian iterative" << std::endl;
-	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,2,0),errorProp(n,2,1),errorProp(n,2,2),errorProp(n,2,3),errorProp(n,2,4),errorProp(n,2,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,3,0),errorProp(n,3,1),errorProp(n,3,2),errorProp(n,3,3),errorProp(n,3,4),errorProp(n,3,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,4,0),errorProp(n,4,1),errorProp(n,4,2),errorProp(n,4,3),errorProp(n,4,4),errorProp(n,4,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,5,0),errorProp(n,5,1),errorProp(n,5,2),errorProp(n,5,3),errorProp(n,5,4),errorProp(n,5,5));
-      }
+      std::cout << "jacobian iterative" << std::endl;
+      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,2,0),errorProp(n,2,1),errorProp(n,2,2),errorProp(n,2,3),errorProp(n,2,4),errorProp(n,2,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,3,0),errorProp(n,3,1),errorProp(n,3,2),errorProp(n,3,3),errorProp(n,3,4),errorProp(n,3,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,4,0),errorProp(n,4,1),errorProp(n,4,2),errorProp(n,4,3),errorProp(n,4,4),errorProp(n,4,5));
+      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,5,0),errorProp(n,5,1),errorProp(n,5,2),errorProp(n,5,3),errorProp(n,5,4),errorProp(n,5,5));
 #endif
     }
-
-  if (Config::useCurvJac) {    
-    MPlexLL temp;
-    MultHelixPropFull(jacCartToCurv, rotateCartCa2Cu, temp);
-#ifdef DEBUG
-      std::cout << "rotated jacCartToCurv" << std::endl;
-      printf("%5f %5f %5f %5f %5f %5f\n", temp(0,0,0),temp(0,0,1),temp(0,0,2),temp(0,0,3),temp(0,0,4),temp(0,0,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", temp(0,1,0),temp(0,1,1),temp(0,1,2),temp(0,1,3),temp(0,1,4),temp(0,1,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", temp(0,2,0),temp(0,2,1),temp(0,2,2),temp(0,2,3),temp(0,2,4),temp(0,2,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", temp(0,3,0),temp(0,3,1),temp(0,3,2),temp(0,3,3),temp(0,3,4),temp(0,3,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", temp(0,4,0),temp(0,4,1),temp(0,4,2),temp(0,4,3),temp(0,4,4),temp(0,4,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", temp(0,5,0),temp(0,5,1),temp(0,5,2),temp(0,5,3),temp(0,5,4),temp(0,5,5));
-#endif
-    MPlexLL temp2;
-    MultHelixPropFull(rotateCartCu2Ca, jacCurvToCart, temp2);
-#ifdef DEBUG
-      std::cout << "rotated jacCurvToCart" << std::endl;
-      printf("%5f %5f %5f %5f %5f %5f\n", temp2(0,0,0),temp2(0,0,1),temp2(0,0,2),temp2(0,0,3),temp2(0,0,4),temp2(0,0,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", temp2(0,1,0),temp2(0,1,1),temp2(0,1,2),temp2(0,1,3),temp2(0,1,4),temp2(0,1,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", temp2(0,2,0),temp2(0,2,1),temp2(0,2,2),temp2(0,2,3),temp2(0,2,4),temp2(0,2,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", temp2(0,3,0),temp2(0,3,1),temp2(0,3,2),temp2(0,3,3),temp2(0,3,4),temp2(0,3,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", temp2(0,4,0),temp2(0,4,1),temp2(0,4,2),temp2(0,4,3),temp2(0,4,4),temp2(0,4,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", temp2(0,5,0),temp2(0,5,1),temp2(0,5,2),temp2(0,5,3),temp2(0,5,4),temp2(0,5,5));
-#endif
-    MPlexLL temp3;
-    MultHelixPropFull(jacCurvProp, temp, temp3);
-    MultHelixPropFull(temp2, temp3, errorProp);
-#ifdef DEBUG
-      std::cout << "jacobian iterative" << std::endl;
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(0,0,0),errorProp(0,0,1),errorProp(0,0,2),errorProp(0,0,3),errorProp(0,0,4),errorProp(0,0,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(0,1,0),errorProp(0,1,1),errorProp(0,1,2),errorProp(0,1,3),errorProp(0,1,4),errorProp(0,1,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(0,2,0),errorProp(0,2,1),errorProp(0,2,2),errorProp(0,2,3),errorProp(0,2,4),errorProp(0,2,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(0,3,0),errorProp(0,3,1),errorProp(0,3,2),errorProp(0,3,3),errorProp(0,3,4),errorProp(0,3,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(0,4,0),errorProp(0,4,1),errorProp(0,4,2),errorProp(0,4,3),errorProp(0,4,4),errorProp(0,4,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(0,5,0),errorProp(0,5,1),errorProp(0,5,2),errorProp(0,5,3),errorProp(0,5,4),errorProp(0,5,5));
-#endif
-  }
-
 }
 
 void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar, const MPlexQF &msRad, MPlexLL& errorProp) {
