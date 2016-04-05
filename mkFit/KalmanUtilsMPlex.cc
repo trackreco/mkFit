@@ -199,11 +199,9 @@ void kalmanGain_x_propErr(const MPlexLH& A, const MPlexLS& B, MPlexLS& C)
 template<typename T1, typename T2, typename T3>
 void MultFull(const T1& A, int nia, int nja, const T2& B, int nib, int njb, T3& C, int nic, int njc)
 {
-
   assert(nja==nib);
   assert(nia==nic);
   assert(njb==njc);
-
 #pragma simd
   for (int n = 0; n < NN; ++n)
     {
@@ -219,11 +217,9 @@ void MultFull(const T1& A, int nia, int nja, const T2& B, int nib, int njb, T3& 
 template<typename T1, typename T2, typename T3>
 void MultTranspFull(const T1& A, int nia, int nja, const T2& B, int nib, int njb, T3& C, int nic, int njc)
 {
-
   assert(nja==njb);
   assert(nia==nic);
   assert(nib==njc);
-
 #pragma simd
   for (int n = 0; n < NN; ++n)
     {
@@ -263,6 +259,9 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
 
   // updateParametersContext ctx;
   //assert((long long)(&updateCtx.propErr.fArray[0]) % 64 == 0);
+
+  MPlexHH tempHH;
+  MPlexLL tempLL;
 
   MPlexLS propErr;
   MPlexLV propPar;
@@ -333,19 +332,9 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   MPlexHV res_loc;
   MultiplyGeneral(rotT,res_glo,res_loc);
 
-#ifdef DEBUG
-  if (dump) {
-    printf("res_loc:\n");
-    for (int i = 0; i < 3; ++i) {
-        printf("%8f ", res_loc.At(0,i,0));
-    } printf("\n");
-  }
-#endif
-
   MPlexHS resErr_loc;
-  MPlexHH temp;
-  MultFull      (rotT,3,3, resErr_glo,3,3, temp,3,3);
-  MultTranspFull(rotT,3,3, temp,3,3, resErr_loc,3,3);
+  MultFull      (rotT,3,3, resErr_glo,3,3, tempHH,3,3);
+  MultTranspFull(rotT,3,3, tempHH,3,3, resErr_loc,3,3);
 
   MPlex2S resErr;
 #pragma simd
@@ -357,25 +346,7 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
     }
   }
 
-#ifdef DEBUG
-  if (dump) {
-    printf("resErr:\n");
-    for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
-        printf("%8f ", resErr.At(0,i,j)); printf("\n");
-    } printf("\n");
-  }
-#endif
-
   Matriplex::InvertCramerSym(resErr);
-
-#ifdef DEBUG
-  if (dump) {
-    printf("resErrInv:\n");
-    for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
-        printf("%8f ", resErr.At(0,i,j)); printf("\n");
-    } printf("\n");
-  }
-#endif
 
 #pragma simd
   for (int n = 0; n < NN; ++n) {
@@ -387,47 +358,17 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
     }
   }
 
-
-#ifdef DEBUG
-  if (dump) {
-    printf("resErr_loc:\n");
-    for (int i = 0; i < 3; ++i) { for (int j = 0; j < 3; ++j)
-        printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
-    } printf("\n");
-  }
-#endif
-
-  MPlexHH resErrTmp;
-  MultFull(rot,3,3, resErr_loc,3,3, resErrTmp,3,3);
-
-#ifdef DEBUG
-  if (dump) {
-    printf("resErrTmp:\n");
-    for (int i = 0; i < 3; ++i) { for (int j = 0; j < 3; ++j)
-        printf("%8f ", resErrTmp.At(0,i,j)); printf("\n");
-    } printf("\n");
-  }
-#endif
-
+  MultFull(rot,3,3, resErr_loc,3,3, tempHH,3,3);
   MPlexLH resErrTmpLH;
 #pragma simd
   for (int n = 0; n < NN; ++n) {
     for (int i = 0; i < 6; ++i) {
       for (int j = 0; j < 3; ++j) {
 	if (i>2) resErrTmpLH.At(n, i, j) = 0.;
-	else resErrTmpLH.At(n, i, j) = resErrTmp.ConstAt(n,i,j);
+	else resErrTmpLH.At(n, i, j) = tempHH.ConstAt(n,i,j);
       }
     }
   }
-
-#ifdef DEBUG
-  if (dump) {
-    printf("resErrTmpLH:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 3; ++j)
-        printf("%8f ", resErrTmpLH.At(0,i,j)); printf("\n");
-    } printf("\n");
-  }
-#endif
 
   MPlexLV propPar_pol;
   MPlexLL jac_pol;
@@ -458,40 +399,12 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
     jac_pol.At(n, 5, 5) = -pt/p2;
   }
 
-#ifdef DEBUG
-  if (dump) {
-    printf("jac_pol:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", jac_pol.At(0,i,j)); printf("\n");
-    } printf("\n");
-  }
-#endif
-
   MPlexLS propErr_pol;
-  MPlexLL propErr_tmp;
-  MultFull(jac_pol,6,6,propErr,6,6,propErr_tmp,6,6);
-  MultTranspFull(propErr_tmp,6,6,jac_pol,6,6,propErr_pol,6,6);
-
-#ifdef DEBUG
-  if (dump) {
-    printf("propErr_pol:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", propErr_pol.At(0,i,j)); printf("\n");
-    } printf("\n");
-  }
-#endif
+  MultFull(jac_pol,6,6,propErr,6,6,tempLL,6,6);
+  MultTranspFull(tempLL,6,6,jac_pol,6,6,propErr_pol,6,6);
 
   MPlexLH K;
   MultFull(propErr_pol,6,6,resErrTmpLH,6,3,K,6,3);
-
-#ifdef DEBUG
-  if (dump) {
-    printf("K:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 3; ++j)
-        printf("%8f ", K.At(0,i,j)); printf("\n");
-    } printf("\n");
-  }
-#endif
 
   MPlexLV dPar;
   MultFull(K,6,3,res_loc,3,1,dPar,6,1);
@@ -502,20 +415,6 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
     for (int i = 0; i < 6; ++i) {
       outPar_pol.At(n, i, 0) = propPar_pol.At(n, i, 0) + dPar.At(n, i, 0);
     }
-  }
-
-#ifdef DEBUG
-  if (dump) {
-    printf("outPar_pol:\n");
-    for (int i = 0; i < 6; ++i) {
-      printf("%8f  ", outPar_pol.At(0,i,0));
-    } printf("\n");
-    printf("\n");
-  }
-#endif
-
-#pragma simd
-  for (int n = 0; n < NN; ++n) {
     for (int i = 0; i < 3; ++i) {
       outPar.At(n, i, 0) = outPar_pol.At(n, i, 0);
     }
@@ -524,71 +423,37 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
     outPar.At(n, 5, 0) = cos(outPar_pol.At(n, 5, 0))/(sin(outPar_pol.At(n, 5, 0))*outPar_pol.At(n, 3, 0));
   }
 
-#ifdef DEBUG
-  if (dump) {
-    printf("outPar:\n");
-    for (int i = 0; i < 6; ++i) {
-      printf("%8f  ", outPar.At(0,i,0));
-    } printf("\n");
-    printf("\n");
-  }
-#endif
-
   MPlexLS I66;
-#pragma simd
-  for (int n = 0; n < NN; ++n) {
-    for (int i = 0; i < 6; ++i) {
-      for (int j = 0; j < 6; ++j) {
-	if (i==j) I66.At(n, i, j) = 1.;
-	else I66.At(n, i, j) = 0.;
-      }
-    }
-  }
-
   MPlexHL H;
 #pragma simd
   for (int n = 0; n < NN; ++n) {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 6; ++i) {
       for (int j = 0; j < 6; ++j) {
-	if (j>2) H.At(n, i, j) = 0.;
-	else H.At(n, i, j) = rotT.At(n, i, j);
+	//Identity
+	if (i==j) I66.At(n, i, j) = 1.;
+	else I66.At(n, i, j) = 0.;
+	//H
+	if (i<3) {
+	  if (j>2) H.At(n, i, j) = 0.;
+	  else H.At(n, i, j) = rotT.At(n, i, j);
+	}
+	//
       }
     }
   }
 
-#ifdef DEBUG
-  if (dump) {
-    printf("H:\n");
-    for (int i = 0; i < 3; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", H.At(0,i,j)); printf("\n");
-    } printf("\n");
-  }
-#endif
-
   MPlexHS locErrMeas;
-  MultFull      (rotT,3,3, msErr,3,3, temp,3,3);
-  MultTranspFull(rotT,3,3, temp,3,3, locErrMeas,3,3);
+  MultFull      (rotT,3,3, msErr,3,3, tempHH,3,3);
+  MultTranspFull(rotT,3,3, tempHH,3,3, locErrMeas,3,3);
 #pragma simd
   for (int n = 0; n < NN; ++n) {
     locErrMeas.At(n, 2, 0) = 0;
     locErrMeas.At(n, 2, 1) = 0;
     locErrMeas.At(n, 2, 2) = 0;
-    //locErrMeas.At(n, 1, 2) = 0;
-    //locErrMeas.At(n, 0, 2) = 0;
   }
-
-#ifdef DEBUG
-  if (dump) {
-    printf("locErrMeas:\n");
-    for (int i = 0; i < 3; ++i) { for (int j = 0; j < 3; ++j)
-        printf("%8f ", locErrMeas.At(0,i,j)); printf("\n");
-    } printf("\n");
-  }
-#endif
 
   MPlexLS T1;
   MPlexLL tmp1;
-  MPlexLL tmp11;
   MultFull(K,6,3,H,3,6,tmp1,6,6);
 #pragma simd
   for (int n = 0; n < NN; ++n) {
@@ -598,41 +463,13 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
       }
     }
   }
-  MultFull(tmp1,6,6,propErr_pol,6,6,tmp11,6,6);
-  MultTranspFull(tmp11,6,6,tmp1,6,6,T1,6,6);
-
-#ifdef DEBUG
-  if (dump) {
-    printf("T1:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", T1.At(0,i,j)); printf("\n");
-    } printf("\n");
-  }
-#endif
+  MultFull(tmp1,6,6,propErr_pol,6,6,tempLL,6,6);
+  MultTranspFull(tempLL,6,6,tmp1,6,6,T1,6,6);
 
   MPlexLS T2;
   MPlexHL tmp2;
   MultTranspFull(locErrMeas,3,3,K,6,3,tmp2,3,6);
-
-#ifdef DEBUG
-  if (dump) {
-    printf("tmp2:\n");
-    for (int i = 0; i < 3; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", tmp2.At(0,i,j)); printf("\n");
-    } printf("\n");
-  }
-#endif
-
   MultFull(K,6,3,tmp2,3,6,T2,6,6);
-
-#ifdef DEBUG
-  if (dump) {
-    printf("T2:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", T2.At(0,i,j)); printf("\n");
-    } printf("\n");
-  }
-#endif
 
   MPlexLS outErr_pol;
 #pragma simd
@@ -643,15 +480,6 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
       }
     }
   }
-
-#ifdef DEBUG
-  if (dump) {
-    printf("outErr_pol:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", outErr_pol.At(0,i,j)); printf("\n");
-    } printf("\n");
-  }
-#endif
 
   MPlexLL jac_back_pol;
 #pragma simd
@@ -671,21 +499,79 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
     jac_back_pol.At(n, 5, 5) = -1./(pow(sin(outPar_pol.At(n, 5, 0)),2)*outPar_pol.At(n, 3, 0));
   }
 
+  MultFull(jac_back_pol,6,6,outErr_pol,6,6,tempLL,6,6);
+  MultTranspFull(tempLL,6,6,jac_back_pol,6,6,outErr,6,6);
+
 #ifdef DEBUG
   if (dump) {
+    printf("res_loc:\n");
+    for (int i = 0; i < 3; ++i) {
+        printf("%8f ", res_loc.At(0,i,0));
+    } printf("\n");
+    printf("resErr:\n");
+    for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
+        printf("%8f ", resErr.At(0,i,j)); printf("\n");
+    } printf("\n");
+    printf("resErrInv:\n");
+    for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
+        printf("%8f ", resErr.At(0,i,j)); printf("\n");
+    } printf("\n");
+    printf("resErr_loc:\n");
+    for (int i = 0; i < 3; ++i) { for (int j = 0; j < 3; ++j)
+        printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
+    } printf("\n");
+    printf("resErrTmp:\n");
+    for (int i = 0; i < 3; ++i) { for (int j = 0; j < 3; ++j)
+        printf("%8f ", tempHH.At(0,i,j)); printf("\n");
+    } printf("\n");
+    printf("resErrTmpLH:\n");
+    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 3; ++j)
+        printf("%8f ", resErrTmpLH.At(0,i,j)); printf("\n");
+    } printf("\n");
+    printf("jac_pol:\n");
+    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+        printf("%8f ", jac_pol.At(0,i,j)); printf("\n");
+    } printf("\n");
+    printf("propErr_pol:\n");
+    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+        printf("%8f ", propErr_pol.At(0,i,j)); printf("\n");
+    } printf("\n");
+    printf("K:\n");
+    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 3; ++j)
+        printf("%8f ", K.At(0,i,j)); printf("\n");
+    } printf("\n");
+    printf("outPar_pol:\n");
+    for (int i = 0; i < 6; ++i) {
+      printf("%8f  ", outPar_pol.At(0,i,0));
+    } printf("\n");
+    printf("outPar:\n");
+    for (int i = 0; i < 6; ++i) {
+      printf("%8f  ", outPar.At(0,i,0));
+    } printf("\n");
+    printf("H:\n");
+    for (int i = 0; i < 3; ++i) { for (int j = 0; j < 6; ++j)
+        printf("%8f ", H.At(0,i,j)); printf("\n");
+    } printf("\n");
+    printf("locErrMeas:\n");
+    for (int i = 0; i < 3; ++i) { for (int j = 0; j < 3; ++j)
+        printf("%8f ", locErrMeas.At(0,i,j)); printf("\n");
+    } printf("\n");
+    printf("T1:\n");
+    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+        printf("%8f ", T1.At(0,i,j)); printf("\n");
+    } printf("\n");
+    printf("T2:\n");
+    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+        printf("%8f ", T2.At(0,i,j)); printf("\n");
+    } printf("\n");
+    printf("outErr_pol:\n");
+    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+        printf("%8f ", outErr_pol.At(0,i,j)); printf("\n");
+    } printf("\n");
     printf("jac_back_pol:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
         printf("%8f ", jac_back_pol.At(0,i,j)); printf("\n");
     } printf("\n");
-  }
-#endif
-
-  MPlexLL outErr_tmp;
-  MultFull(jac_back_pol,6,6,outErr_pol,6,6,outErr_tmp,6,6);
-  MultTranspFull(outErr_tmp,6,6,jac_back_pol,6,6,outErr,6,6);
-
-#ifdef DEBUG
-  if (dump) {
     printf("outErr:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
         printf("%8f ", outErr.At(0,i,j)); printf("\n");
@@ -784,9 +670,9 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
   MPlexHV res_loc;
   MultiplyGeneral(rotT,res_glo,res_loc);
   MPlexHS resErr_loc;
-  MPlexHH temp;
-  MultFull      (rotT,3,3, resErr_glo,3,3, temp,3,3);
-  MultTranspFull(rotT,3,3, temp,3,3, resErr_loc,3,3);
+  MPlexHH tempHH;
+  MultFull      (rotT,3,3, resErr_glo,3,3, tempHH,3,3);
+  MultTranspFull(rotT,3,3, tempHH,3,3, resErr_loc,3,3);
 
   MPlex2S resErr;
 #pragma simd
@@ -798,19 +684,14 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
     }
   }
 
+  Matriplex::InvertCramerSym(resErr);
+
 #ifdef DEBUG
   if (dump) {
     printf("resErr:\n");
     for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
         printf("%8f ", resErr.At(0,i,j)); printf("\n");
     } printf("\n");
-  }
-#endif
-
-  Matriplex::InvertCramerSym(resErr);
-
-#ifdef DEBUG
-  if (dump) {
     printf("resErrInv:\n");
     for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
         printf("%8f ", resErr.At(0,i,j)); printf("\n");
