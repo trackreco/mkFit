@@ -52,13 +52,15 @@ public:
 
   int     m_real_size;
   int     m_fill_index;
+  int     m_fill_index_old;
 
 public:
   BunchOfHits() :
     //m_hits          (Config::maxHitsPerBunch),
     m_phi_bin_infos (Config::nPhiPart),
     m_real_size     (Config::maxHitsPerBunch),
-    m_fill_index    (0)
+    m_fill_index    (0),
+    m_fill_index_old(0)
   {
     m_hits = (Hit*) _mm_malloc(sizeof(Hit)*Config::maxHitsPerBunch, 64);
     Reset();

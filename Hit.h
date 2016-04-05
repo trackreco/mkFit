@@ -25,6 +25,7 @@ inline int getEtaBin(float eta)
 
 inline int getEtaBinExtendedEdge(float eta)
 {
+  if (std::isfinite(eta)==0) return -1;
   //in this case we are out of bounds
   if (fabs(eta) > Config::fEtaDet + Config::lEtaPart) return -1;
   

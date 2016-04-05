@@ -719,9 +719,7 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
 #ifdef DEBUG
       xout << "XHitSize=" << XHitSize.At(itrack, 0, 0) << "  bunch_of_hits.m_fill_index=" <<  bunch_of_hits.m_fill_index << " Config::maxHitsConsidered=" << Config::maxHitsConsidered << std::endl;
 #endif
-      // XXX It would be nice to have BunchOfHits.m_n_real_hits.
-      //XHitSize.At(itrack, 0, 0) += bunch_of_hits.m_fill_index - Config::maxHitsConsidered;//this can be negative!
-      XHitSize.At(itrack, 0, 0) = std::min(int(bunch_of_hits.m_fill_index),int(Config::maxHitsConsidered));//fixme: not sure this is the desired behavior
+      XHitSize.At(itrack, 0, 0) += bunch_of_hits.m_fill_index_old;
     }
 
     // XXXX Hack to limit N_hits to maxHitsConsidered.
@@ -848,7 +846,6 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
     msErr[Nhits].SlurpIn(varr + off_error, idx);
     msPar[Nhits].SlurpIn(varr + off_param, idx);
 #endif
-
 #endif //NO_GATHER
 
     //now compute the chi2 of track state vs hit
@@ -867,6 +864,8 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 #pragma simd
     for (int itrack = 0; itrack < NN; ++itrack)
     {
+      // make sure the hit was in the compatiblity window for the candidate
+      if (hit_cnt >= XHitSize.At(itrack, 0, 0)) continue;
       float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
 #ifdef DEBUG
       std::cout << "chi2=" << chi2 << " minChi2[itrack]=" << minChi2[itrack] << std::endl;      
@@ -1037,6 +1036,8 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits,
     bool oneCandPassCut = false;
     for (int itrack = 0; itrack < N_proc;++itrack)
       {
+	// make sure the hit was in the compatiblity window for the candidate
+	if (hit_cnt >= XHitSize.At(itrack, 0, 0)) continue;
 	float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
 #ifdef DEBUG
 	std::cout << "chi2=" << chi2 << std::endl;
@@ -1062,6 +1063,8 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits,
       //fixme: please vectorize me... (not sure it's possible in this case)
       for (int itrack = 0; itrack < N_proc; ++itrack)
 	{
+	  // make sure the hit was in the compatiblity window for the candidate
+	  if (hit_cnt >= XHitSize.At(itrack, 0, 0)) continue;
 	  float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
 #ifdef DEBUG
 	  std::cout << "chi2=" << chi2 << std::endl;      
