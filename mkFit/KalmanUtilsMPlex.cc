@@ -7,12 +7,12 @@ namespace
 
 inline
 void MultResidualsAdd(const MPlexLH& A,
-                      const MPlexLV& B,
-                      const MPlexHV& C,
-                            MPlexLV& D)
+		      const MPlexLV& B,
+		      const MPlex2V& C,
+		            MPlexLV& D)
 {
-   // outPar = psPar + kalmanGain*(msPar-psPar)
-   //   D    =   B         A         C  -  B
+   // outPar = psPar + kalmanGain*(dPar)
+   //   D    =   B         A         C
    // where right half of kalman gain is 0 
 
    // XXX Regenerate with a script.
@@ -28,74 +28,26 @@ void MultResidualsAdd(const MPlexLH& A,
 #pragma simd
    for (idx_t n = 0; n < N; ++n)
    {
-      // manually subrtact into local vars -- 3 of them
-      float x0 = c[0 * N + n] - b[0 * N + n];
-      float x1 = c[1 * N + n] - b[1 * N + n];
-      float x2 = c[2 * N + n] - b[2 * N + n];
-
       // generate loop (can also write it manually this time, it's not much)
-      d[0 * N + n] = b[0 * N + n] + a[ 0 * N + n] * x0 + a[ 1 * N + n] * x1 + a[ 2 * N + n] * x2;
-      d[1 * N + n] = b[1 * N + n] + a[ 3 * N + n] * x0 + a[ 4 * N + n] * x1 + a[ 5 * N + n] * x2;
-      d[2 * N + n] = b[2 * N + n] + a[ 6 * N + n] * x0 + a[ 7 * N + n] * x1 + a[ 8 * N + n] * x2;
-      d[3 * N + n] = b[3 * N + n] + a[ 9 * N + n] * x0 + a[10 * N + n] * x1 + a[11 * N + n] * x2;
-      d[4 * N + n] = b[4 * N + n] + a[12 * N + n] * x0 + a[13 * N + n] * x1 + a[14 * N + n] * x2;
-      d[5 * N + n] = b[5 * N + n] + a[15 * N + n] * x0 + a[16 * N + n] * x1 + a[17 * N + n] * x2;
+      d[0 * N + n] = b[0 * N + n] + a[ 0 * N + n] * c[0 * N + n] + a[ 1 * N + n] * c[1 * N + n];
+      d[1 * N + n] = b[1 * N + n] + a[ 3 * N + n] * c[0 * N + n] + a[ 4 * N + n] * c[1 * N + n];
+      d[2 * N + n] = b[2 * N + n] + a[ 6 * N + n] * c[0 * N + n] + a[ 7 * N + n] * c[1 * N + n];
+      d[3 * N + n] = b[3 * N + n] + a[ 9 * N + n] * c[0 * N + n] + a[10 * N + n] * c[1 * N + n];
+      d[4 * N + n] = b[4 * N + n] + a[12 * N + n] * c[0 * N + n] + a[13 * N + n] * c[1 * N + n];
+      d[5 * N + n] = b[5 * N + n] + a[15 * N + n] * c[0 * N + n] + a[16 * N + n] * c[1 * N + n];
    }
 }
 
 //------------------------------------------------------------------------------
 
 inline
-void Chi2Similarity(const MPlexHV& A,//msPar
-		    const MPlexLV& B,//psPar
-		    const MPlexHS& C,//resErr
-                          MPlexQF& D)//outChi2
-{
-
-   // outChi2 = (msPar-psPar) * resErr * (msPar-psPar)
-   //   D     =    A - B      *    C   *      A-B
-
-   // XXX Regenerate with a script.
-
-   typedef float T;
-   const idx_t N = NN;
-
-   const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
-   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
-   const T *c = C.fArray; ASSUME_ALIGNED(c, 64);
-         T *d = D.fArray; ASSUME_ALIGNED(d, 64);
-
-#pragma simd
-   for (idx_t n = 0; n < N; ++n)
-   {
-      // manually subtract into local vars -- 3 of them
-      float x0 = a[0 * N + n] - b[0 * N + n];
-      float x1 = a[1 * N + n] - b[1 * N + n];
-      float x2 = a[2 * N + n] - b[2 * N + n];
-
-      /*
-      std::cout << "x: " << x0 << ", " << x1 << ", " << x2 << std::endl;
-      std::cout << "c0: " << c[0 * N + n] << ", " << c[1 * N + n] << ", " << c[3 * N + n] << std::endl;
-      std::cout << "c0: " << c[1 * N + n] << ", " << c[2 * N + n] << ", " << c[4 * N + n] << std::endl;
-      std::cout << "c0: " << c[3 * N + n] << ", " << c[4 * N + n] << ", " << c[5 * N + n] << std::endl;
-      */
-
-      // generate loop (can also write it manually this time, it's not much)
-      d[0 * N + n] =    c[0 * N + n]*x0*x0 + c[2 * N + n]*x1*x1 + c[5 * N + n]*x2*x2 +
-                    2*( c[1 * N + n]*x1*x0 + c[3 * N + n]*x2*x0 + c[4 * N + n]*x1*x2);
-   }
-}
-
-inline
-void Chi2Similarity(const MPlexHV& A,//resPar
+void Chi2Similarity(const MPlex2V& A,//resPar
 		    const MPlex2S& C,//resErr
                           MPlexQF& D)//outChi2
 {
 
    // outChi2 = (resPar) * resErr * (resPar)
    //   D     =    A      *    C   *      A
-
-   // XXX Regenerate with a script.
 
    typedef float T;
    const idx_t N = NN;
@@ -138,99 +90,351 @@ void AddIntoUpperLeft3x3(const MPlexLS& A, const MPlexHS& B, MPlexHS& C)
    }
 }
 
+//------------------------------------------------------------------------------
+
+inline
+void SubtractFirst3(const MPlexHV& A, const MPlexLV& B, MPlexHV& C)
+{
+   // The rest of matrix is left untouched.
+
+   typedef float T;
+   const idx_t N = NN;
+
+   const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+
+#pragma simd
+   for (idx_t n = 0; n < N; ++n)
+   {
+      c[0*N+n] = a[0*N+n] - b[0*N+n];
+      c[1*N+n] = a[1*N+n] - b[1*N+n];
+      c[2*N+n] = a[2*N+n] - b[2*N+n];
+   }
+}
+
 //==============================================================================
 
-void MultKalmanGain(const MPlexLS& A, const MPlexHS& B, MPlexLH& C)
+inline
+void ProjectResErr(const MPlexQF& A00,
+		   const MPlexQF& A01,
+		   const MPlexHS& B, 
+		         MPlexHH& C)
 {
-  // C = A * B, C is 6x3, A is 6x6 sym, B is 3x3 sym
+  // C = A * B, C is 3x3, A is 3x3 , B is 3x3 sym
+
+  // Based on script generation and adapted to custom sizes.
 
   typedef float T;
   const idx_t N = NN;
   
-  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
-  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
-        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+  const T *a00 = A00.fArray; ASSUME_ALIGNED(a00, 64);
+  const T *a01 = A01.fArray; ASSUME_ALIGNED(a01, 64);
+  const T *b   = B.fArray; ASSUME_ALIGNED(b, 64);
+        T *c   = C.fArray; ASSUME_ALIGNED(c, 64);
 
-  #include "upParam_MultKalmanGain.ah"
-}
-
-void simil_x_propErr(const MPlexHS& A, const MPlexLS& B, MPlexLL& C)
-{
-  // C = A * B, C is 6x6, A is 3x3 sym, B is 6x6 sym, yes we're cheating with the math by making a copy of 3x3 into 6x6 at the same time as doing the actual multiplication
- 
-  typedef float T;
-  const idx_t N = NN;
-  
-  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
-  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
-        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
-
-#include "upParam_simil_x_propErr.ah"
-}
-
-void propErrT_x_simil_propErr(const MPlexLH& A, const MPlexLS& B, MPlexLS& C)
-{
-  // C = A * B, C is 6x6 sym, A is 6x3, B is 6x6 sym
- 
-  typedef float T;
-  const idx_t N = NN;
-  
-  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
-  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
-        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
-
-#include "upParam_propErrT_x_simil_propErr.ah"
-}
-
-void kalmanGain_x_propErr(const MPlexLH& A, const MPlexLS& B, MPlexLS& C)
-{
-  // C = A * B, C is 6x6 sym, A is 6x6 , B is 6x6 sym
- 
-  typedef float T;
-  const idx_t N = NN;
-  
-  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
-  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
-        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
-
-#include "upParam_kalmanGain_x_propErr.ah"
-}
-
-template<typename T1, typename T2, typename T3>
-void MultFull(const T1& A, int nia, int nja, const T2& B, int nib, int njb, T3& C, int nic, int njc)
-{
-  assert(nja==nib);
-  assert(nia==nic);
-  assert(njb==njc);
 #pragma simd
-  for (int n = 0; n < NN; ++n)
-    {
-      for (int i = 0; i < nia; ++i) {
-	for (int j = 0; j < njb; ++j) {
-	  C(n,i,j) = 0.;
-	  for (int k = 0; k < nja; ++k) C(n,i,j) += A.ConstAt(n,i,k)*B.ConstAt(n,k,j);
-	}
-      }
-    }
+   for (int n = 0; n < N; ++n)
+   {
+      c[ 0*N+n] = a00[n]*b[ 0*N+n] + a01[n]*b[ 1*N+n];
+      c[ 1*N+n] = a00[n]*b[ 1*N+n] + a01[n]*b[ 2*N+n];
+      c[ 2*N+n] = a00[n]*b[ 3*N+n] + a01[n]*b[ 4*N+n];
+      c[ 3*N+n] = b[ 3*N+n];
+      c[ 4*N+n] = b[ 4*N+n];
+      c[ 5*N+n] = b[ 5*N+n];
+      c[ 6*N+n] = a01[n]*b[ 0*N+n] - a00[n]*b[ 1*N+n];
+      c[ 7*N+n] = a01[n]*b[ 1*N+n] - a00[n]*b[ 2*N+n];
+      c[ 8*N+n] = a01[n]*b[ 3*N+n] - a00[n]*b[ 4*N+n];
+   }
 }
 
-template<typename T1, typename T2, typename T3>
-void MultTranspFull(const T1& A, int nia, int nja, const T2& B, int nib, int njb, T3& C, int nic, int njc)
+inline
+void ProjectResErrTransp(const MPlexQF& A00,
+			 const MPlexQF& A01,
+			 const MPlexHH& B, 
+			       MPlex2S& C)
 {
-  assert(nja==njb);
-  assert(nia==nic);
-  assert(nib==njc);
+  // C = A * B, C is 3x3 sym, A is 3x3 , B is 3x3
+
+  // Based on script generation and adapted to custom sizes.
+ 
+  typedef float T;
+  const idx_t N = NN;
+  
+  const T *a00 = A00.fArray; ASSUME_ALIGNED(a00, 64);
+  const T *a01 = A01.fArray; ASSUME_ALIGNED(a01, 64);
+  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+
 #pragma simd
-  for (int n = 0; n < NN; ++n)
-    {
-      for (int i = 0; i < nia; ++i) {
-	for (int j = 0; j < nib; ++j) {
-	  C(n,i,j) = 0.;
-	  for (int k = 0; k < nja; ++k) C(n,i,j) += A.ConstAt(n,i,k)*B.ConstAt(n,j,k);
-	}
-      }
-    }
+   for (int n = 0; n < N; ++n)
+   {
+      c[ 0*N+n] = b[ 0*N+n]*a00[n] + b[ 1*N+n]*a01[n];
+      c[ 1*N+n] = b[ 3*N+n]*a00[n] + b[ 4*N+n]*a01[n];
+      c[ 2*N+n] = b[ 5*N+n];
+   }
 }
+
+inline
+void PolarErr(const MPlexLL& A, const MPlexLS& B, MPlexLL& C)
+{
+  // C = A * B, C is 6x6, A is 6x6 , B is 6x6 sym
+ 
+  typedef float T;
+  const idx_t N = NN;
+  
+  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+
+#include "PolarErr.ah"
+}
+
+inline
+void PolarErrTransp(const MPlexLL& A, const MPlexLL& B, MPlexLS& C)
+{
+  // C = A * B, C is sym, A is 6x6 , B is 6x6
+ 
+  typedef float T;
+  const idx_t N = NN;
+  
+  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+
+#include "PolarErrTransp.ah"
+}
+
+inline
+void CartesianErr(const MPlexLL& A, const MPlexLS& B, MPlexLL& C)
+{
+  // C = A * B, C is 6x6, A is 6x6 , B is 6x6 sym
+ 
+  typedef float T;
+  const idx_t N = NN;
+  
+  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+
+#include "CartesianErr.ah"
+}
+
+inline
+void CartesianErrTransp(const MPlexLL& A, const MPlexLL& B, MPlexLS& C)
+{
+  // C = A * B, C is sym, A is 6x6 , B is 6x6
+ 
+  typedef float T;
+  const idx_t N = NN;
+  
+  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+
+#include "CartesianErrTransp.ah"
+}
+
+inline
+void RotateResidulsOnTangentPlane(const MPlexQF& R00,//r00
+				  const MPlexQF& R01,//r01
+				  const MPlexHV& A  ,//res_glo
+				        MPlex2V& B  )//res_loc
+{
+
+   // res_loc = rotT * res_glo
+   //   B     =  R   *    A   
+
+   typedef float T;
+   const idx_t N = NN;
+
+   const T *a   = A.fArray;   ASSUME_ALIGNED(a, 64);
+   const T *r00 = R00.fArray; ASSUME_ALIGNED(r00, 64);
+   const T *r01 = R01.fArray; ASSUME_ALIGNED(r01, 64);
+         T *b   = B.fArray;   ASSUME_ALIGNED(b, 64);
+
+#pragma simd
+   for (idx_t n = 0; n < N; ++n)
+   {
+      b[0 * N + n] =  r00[0 * N + n]*a[0 * N + n] + r01[0 * N + n]*a[1 * N + n];
+      b[1 * N + n] =  a[2 * N + n];
+   }
+}
+
+inline
+void KalmanHTG(const MPlexQF& A00,
+	       const MPlexQF& A01,
+	       const MPlex2S& B  ,
+	             MPlexLH& C  )
+{
+
+   // HTG  = rot * res_loc
+   //   C  =  A  *    B   
+
+   // Based on script generation and adapted to custom sizes.
+
+   typedef float T;
+   const idx_t N = NN;
+
+   const T *a00 = A00.fArray; ASSUME_ALIGNED(a00, 64);
+   const T *a01 = A01.fArray; ASSUME_ALIGNED(a01, 64);
+   const T *b   = B.fArray;   ASSUME_ALIGNED(b, 64);
+         T *c   = C.fArray;   ASSUME_ALIGNED(c, 64);
+
+#pragma simd
+   for (int n = 0; n < N; ++n)
+   {
+      c[ 0*N+n] = a00[n]*b[ 0*N+n];
+      c[ 1*N+n] = a00[n]*b[ 1*N+n];
+      c[ 2*N+n] = 0.;
+      c[ 3*N+n] = a01[n]*b[ 0*N+n];
+      c[ 4*N+n] = a01[n]*b[ 1*N+n];
+      c[ 5*N+n] = 0.;
+      c[ 6*N+n] = b[ 1*N+n];
+      c[ 7*N+n] = b[ 2*N+n];
+      c[ 8*N+n] = 0.;
+      c[ 9*N+n] = 0.;
+      c[10*N+n] = 0.;
+      c[11*N+n] = 0.;
+      c[12*N+n] = 0.;
+      c[13*N+n] = 0.;
+      c[14*N+n] = 0.;
+      c[15*N+n] = 0.;
+      c[16*N+n] = 0.;
+      c[17*N+n] = 0.;
+   }
+}
+
+inline
+void KalmanGain(const MPlexLS& A, const MPlexLH& B, MPlexLH& C)
+{
+  // C = A * B, C is 6x3, A is 6x6 sym , B is 6x3
+ 
+  typedef float T;
+  const idx_t N = NN;
+  
+  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+
+#include "KalmanGain.ah"
+}
+
+inline
+void KHMult(const MPlexLH& A, 
+	    const MPlexQF& B00,
+	    const MPlexQF& B01,
+	          MPlexLL& C)
+{
+  // C = A * B, C is 6x6, A is 6x3 , B is 3x6
+ 
+  typedef float T;
+  const idx_t N = NN;
+  
+  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+  const T *b00 = B00.fArray; ASSUME_ALIGNED(b00, 64);
+  const T *b01 = B01.fArray; ASSUME_ALIGNED(b01, 64);
+        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+
+#pragma simd
+   for (int n = 0; n < N; ++n)
+   {
+      c[ 0*N+n] = a[ 0*N+n]*b00[n];
+      c[ 1*N+n] = a[ 0*N+n]*b01[n];
+      c[ 2*N+n] = a[ 1*N+n];
+      c[ 3*N+n] = 0;
+      c[ 4*N+n] = 0;
+      c[ 5*N+n] = 0;
+      c[ 6*N+n] = a[ 3*N+n]*b00[n];
+      c[ 7*N+n] = a[ 3*N+n]*b01[n];
+      c[ 8*N+n] = a[ 4*N+n];
+      c[ 9*N+n] = 0;
+      c[10*N+n] = 0;
+      c[11*N+n] = 0;
+      c[12*N+n] = a[ 6*N+n]*b00[n];
+      c[13*N+n] = a[ 6*N+n]*b01[n];
+      c[14*N+n] = a[ 7*N+n];
+      c[15*N+n] = 0;
+      c[16*N+n] = 0;
+      c[17*N+n] = 0;
+      c[18*N+n] = a[ 9*N+n]*b00[n];
+      c[19*N+n] = a[ 9*N+n]*b01[n];
+      c[20*N+n] = a[10*N+n];
+      c[21*N+n] = 0;
+      c[22*N+n] = 0;
+      c[23*N+n] = 0;
+      c[24*N+n] = a[12*N+n]*b00[n];
+      c[25*N+n] = a[12*N+n]*b01[n];
+      c[26*N+n] = a[13*N+n];
+      c[27*N+n] = 0;
+      c[28*N+n] = 0;
+      c[29*N+n] = 0;
+      c[30*N+n] = a[15*N+n]*b00[n];
+      c[31*N+n] = a[15*N+n]*b01[n];
+      c[32*N+n] = a[16*N+n];
+      c[33*N+n] = 0;
+      c[34*N+n] = 0;
+      c[35*N+n] = 0;
+   }
+}
+
+
+inline
+void KHC(const MPlexLL& A, const MPlexLS& B, MPlexLS& C)
+{
+  // C = A * B, C is 6x6, A is 6x6 , B is 6x6 sym
+ 
+  typedef float T;
+  const idx_t N = NN;
+  
+  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+
+#include "KHC.ah"
+}
+
+
+// //Warning: MultFull is not vectorized, use only for testing!
+// template<typename T1, typename T2, typename T3>
+// void MultFull(const T1& A, int nia, int nja, const T2& B, int nib, int njb, T3& C, int nic, int njc)
+// {
+// #ifdef DEBUG
+//   assert(nja==nib);
+//   assert(nia==nic);
+//   assert(njb==njc);
+// #endif
+//   for (int n = 0; n < NN; ++n)
+//     {
+//       for (int i = 0; i < nia; ++i) {
+// 	for (int j = 0; j < njb; ++j) {
+// 	  C(n,i,j) = 0.;
+// 	  for (int k = 0; k < nja; ++k) C(n,i,j) += A.ConstAt(n,i,k)*B.ConstAt(n,k,j);
+// 	}
+//       }
+//     }
+// }
+
+// //Warning: MultTranspFull is not vectorized, use only for testing!
+// // (careful about which one is transposed, I think rows and cols are swapped and the one that is transposed is A)
+// template<typename T1, typename T2, typename T3>
+// void MultTranspFull(const T1& A, int nia, int nja, const T2& B, int nib, int njb, T3& C, int nic, int njc)
+// {
+// #ifdef DEBUG
+//   assert(nja==njb);
+//   assert(nia==nic);
+//   assert(nib==njc);
+// #endif
+//   for (int n = 0; n < NN; ++n)
+//     {
+//       for (int i = 0; i < nia; ++i) {
+// 	for (int j = 0; j < nib; ++j) {
+// 	  C(n,i,j) = 0.;
+// 	  for (int k = 0; k < nja; ++k) C(n,i,j) += A.ConstAt(n,i,k)*B.ConstAt(n,j,k);
+// 	}
+//       }
+//     }
+// }
 
 }
 
@@ -243,15 +447,13 @@ void MultTranspFull(const T1& A, int nia, int nja, const T2& B, int nib, int njb
 
 void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
                            const MPlexHS &msErr,  const MPlexHV& msPar,
-                           MPlexLS &outErr,       MPlexLV& outPar)
+                                MPlexLS &outErr,       MPlexLV& outPar)
 {
   // const idx_t N = psErr.N;
   // Assert N-s of all parameters are the same.
 
   // Temporaries -- this is expensive -- should have them allocated outside and reused.
   // Can be passed in in a struct, see above.
-
-  // Also: resErr could be 3x3, kalmanGain 6x3
 
 #ifdef DEBUG
   const bool dump = g_dump;
@@ -294,85 +496,52 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   }
 #endif
 
-  MPlexHH rot;//we may not need this one
-  MPlexHH rotT;
-  MPlexHV res_glo;
-  MPlexHS resErr_glo;
+  // Rotate global point on tangent plane to cylinder
+  // Tangent point is half way between hit and propagate position
+
+  // Rotation matrix
+  //  rotT00  0  rotT01
+  //  rotT01  0 -rotT00
+  //     0    1    0
+  // Minimize temporaries: only two float are needed!
+
+  MPlexQF rotT00;
+  MPlexQF rotT01;
 #pragma simd
   for (int n = 0; n < NN; ++n) {
     float r = hipo(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
-    rot.At(n, 0, 0) = -(msPar.ConstAt(n, 1, 0)+propPar.ConstAt(n, 1, 0))/(2*r);
-    rot.At(n, 0, 1) = 0;
-    rot.At(n, 0, 2) =  (msPar.ConstAt(n, 0, 0)+propPar.ConstAt(n, 0, 0))/(2*r);
-    rot.At(n, 1, 0) = rot.ConstAt(n, 0, 2);
-    rot.At(n, 1, 1) = 0;
-    rot.At(n, 1, 2) = -rot.ConstAt(n, 0, 0);
-    rot.At(n, 2, 0) = 0;
-    rot.At(n, 2, 1) = 1;
-    rot.At(n, 2, 2) = 0;
-    //
-    rotT.At(n, 0, 0) = rot.ConstAt(n, 0, 0);
-    rotT.At(n, 0, 1) = rot.ConstAt(n, 1, 0);
-    rotT.At(n, 0, 2) = rot.ConstAt(n, 2, 0);
-    rotT.At(n, 1, 0) = rot.ConstAt(n, 0, 1);
-    rotT.At(n, 1, 1) = rot.ConstAt(n, 1, 1);
-    rotT.At(n, 1, 2) = rot.ConstAt(n, 2, 1);
-    rotT.At(n, 2, 0) = rot.ConstAt(n, 0, 2);
-    rotT.At(n, 2, 1) = rot.ConstAt(n, 1, 2);
-    rotT.At(n, 2, 2) = rot.ConstAt(n, 2, 2);
-    //
-    for (int i = 0; i < 3; ++i) {
-      res_glo.At(n, i, 0) = msPar.ConstAt(n, i, 0) - propPar.ConstAt(n, i, 0);
-      for (int j = 0; j < 3; ++j) {
-	resErr_glo.At(n, i, j) = msErr.ConstAt(n,i,j) + propErr.ConstAt(n,i,j);
-      }
-    }
+    rotT00.At(n, 0, 0) = -(msPar.ConstAt(n, 1, 0)+propPar.ConstAt(n, 1, 0))/(2*r);
+    rotT01.At(n, 0, 0) =  (msPar.ConstAt(n, 0, 0)+propPar.ConstAt(n, 0, 0))/(2*r);
   }
 
-  MPlexHV res_loc;
-  MultiplyGeneral(rotT,res_glo,res_loc);
+  MPlexHV res_glo;   //position residual in global coordinates
+  SubtractFirst3(msPar, propPar, res_glo);
+  
+  MPlexHS resErr_glo;//covariance sum in global position coordinates
+  AddIntoUpperLeft3x3(propErr, msErr, resErr_glo);
 
-  MPlexHS resErr_loc;
-  MultFull      (rotT,3,3, resErr_glo,3,3, tempHH,3,3);
-  MultTranspFull(rotT,3,3, tempHH,3,3, resErr_loc,3,3);
+  MPlex2V res_loc;   //position residual in local coordinates
+  RotateResidulsOnTangentPlane(rotT00,rotT01,res_glo,res_loc);
+  MPlex2S resErr_loc;//covariance sum in local position coordinates
+  ProjectResErr      (rotT00, rotT01, resErr_glo, tempHH);
+  ProjectResErrTransp(rotT00, rotT01, tempHH, resErr_loc);
 
-  MPlex2S resErr;
-#pragma simd
-  for (int n = 0; n < NN; ++n) {
-    for (int i = 0; i < 2; ++i) {
-      for (int j = i; j < 2; ++j) {
-	resErr.At(n, i, j) = resErr_loc.ConstAt(n,i,j);
-      }
-    }
+#ifdef DEBUG
+  if (dump) {
+    printf("resErr:\n");
+    for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
+        printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
+    } printf("\n");
   }
+#endif
 
-  Matriplex::InvertCramerSym(resErr);
+  //invert the 2x2 matrix
+  Matriplex::InvertCramerSym(resErr_loc);
 
-#pragma simd
-  for (int n = 0; n < NN; ++n) {
-    for (int i = 0; i < 3; ++i) {
-      for (int j = i; j < 3; ++j) {
-	if (i==2||j==2) resErr_loc.At(n, i, j) = 0.;
-	else resErr_loc.At(n, i, j) = resErr.ConstAt(n,i,j);
-      }
-    }
-  }
+  // Move to "polar" coordinates: (x,y,z,1/pT,phi,theta) [can we find a better name?]
 
-  MultFull(rot,3,3, resErr_loc,3,3, tempHH,3,3);
-  MPlexLH resErrTmpLH;
-#pragma simd
-  for (int n = 0; n < NN; ++n) {
-    for (int i = 0; i < 6; ++i) {
-      for (int j = 0; j < 3; ++j) {
-	if (i>2) resErrTmpLH.At(n, i, j) = 0.;
-	else resErrTmpLH.At(n, i, j) = tempHH.ConstAt(n,i,j);
-      }
-    }
-  }
-
-  MPlexLV propPar_pol;
-  MPlexLL jac_pol;
-#pragma simd
+  MPlexLV propPar_pol;// propagated parameters in "polar" coordinates
+  MPlexLL jac_pol;    // jacobian from cartesian to "polar"
   for (int n = 0; n < NN; ++n) {
     //propPar_pol
     for (int i = 0; i < 3; ++i) {
@@ -380,6 +549,7 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
     }
     float pt = getHypot(propPar.At(n, 3, 0), propPar.At(n, 4, 0));
     propPar_pol.At(n, 3, 0) = 1./pt;
+    //fixme: use trig approx
     propPar_pol.At(n, 4, 0) = getPhi(propPar.At(n, 3, 0), propPar.At(n, 4, 0));
     propPar_pol.At(n, 5, 0) = getTheta(pt, propPar.At(n, 5, 0));
     //jac_pol:first set to identity, then modify the relevant terms
@@ -399,90 +569,38 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
     jac_pol.At(n, 5, 5) = -pt/p2;
   }
 
-  MPlexLS propErr_pol;
-  MultFull(jac_pol,6,6,propErr,6,6,tempLL,6,6);
-  MultTranspFull(tempLL,6,6,jac_pol,6,6,propErr_pol,6,6);
+  MPlexLS propErr_pol; // propagated errors in "polar" coordinates
+  PolarErr      (jac_pol, propErr, tempLL);
+  PolarErrTransp(jac_pol, tempLL, propErr_pol);
 
-  MPlexLH K;
-  MultFull(propErr_pol,6,6,resErrTmpLH,6,3,K,6,3);
+  MPlexLH resErrTmpLH; // term to get kalman gain (H^T*G) //fixme should be H2
+  MPlexLH K;           // kalman gain                     //fixme should be L2
+  KalmanHTG(rotT00, rotT01, resErr_loc, resErrTmpLH);
+  KalmanGain(propErr_pol, resErrTmpLH, K);
 
-  MPlexLV dPar;
-  MultFull(K,6,3,res_loc,3,1,dPar,6,1);
+  MPlexLV outPar_pol;  // output parameters in "polar" coordinates
+  MultResidualsAdd(K, propPar_pol, res_loc, outPar_pol);//fixme check vs old impl.
 
-  MPlexLV outPar_pol;
-#pragma simd
+  MPlexLS outErr_pol;  // output error in "polar" coordinates
+  KHMult(K, rotT00, rotT01, tempLL);
+  KHC(tempLL, propErr_pol, outErr_pol);
+  outErr_pol.Subtract(propErr_pol, outErr_pol);
+
+  // Go back to cartesian coordinates
+
+  // output parameters
   for (int n = 0; n < NN; ++n) {
-    for (int i = 0; i < 6; ++i) {
-      outPar_pol.At(n, i, 0) = propPar_pol.At(n, i, 0) + dPar.At(n, i, 0);
-    }
     for (int i = 0; i < 3; ++i) {
       outPar.At(n, i, 0) = outPar_pol.At(n, i, 0);
     }
+    //fixme: use trig approx
     outPar.At(n, 3, 0) = cos(outPar_pol.At(n, 4, 0))/outPar_pol.At(n, 3, 0);
     outPar.At(n, 4, 0) = sin(outPar_pol.At(n, 4, 0))/outPar_pol.At(n, 3, 0);
     outPar.At(n, 5, 0) = cos(outPar_pol.At(n, 5, 0))/(sin(outPar_pol.At(n, 5, 0))*outPar_pol.At(n, 3, 0));
   }
 
-  MPlexLS I66;
-  MPlexHL H;
-#pragma simd
-  for (int n = 0; n < NN; ++n) {
-    for (int i = 0; i < 6; ++i) {
-      for (int j = 0; j < 6; ++j) {
-	//Identity
-	if (i==j) I66.At(n, i, j) = 1.;
-	else I66.At(n, i, j) = 0.;
-	//H
-	if (i<3) {
-	  if (j>2) H.At(n, i, j) = 0.;
-	  else H.At(n, i, j) = rotT.At(n, i, j);
-	}
-	//
-      }
-    }
-  }
-
-  MPlexHS locErrMeas;
-  MultFull      (rotT,3,3, msErr,3,3, tempHH,3,3);
-  MultTranspFull(rotT,3,3, tempHH,3,3, locErrMeas,3,3);
-#pragma simd
-  for (int n = 0; n < NN; ++n) {
-    locErrMeas.At(n, 2, 0) = 0;
-    locErrMeas.At(n, 2, 1) = 0;
-    locErrMeas.At(n, 2, 2) = 0;
-  }
-
-  MPlexLS T1;
-  MPlexLL tmp1;
-  MultFull(K,6,3,H,3,6,tmp1,6,6);
-#pragma simd
-  for (int n = 0; n < NN; ++n) {
-    for (int i = 0; i < 6; ++i) {
-      for (int j = 0; j < 6; ++j) {
-	tmp1.At(n, i, j) = I66.At(n, i, j) - tmp1.At(n, i, j);
-      }
-    }
-  }
-  MultFull(tmp1,6,6,propErr_pol,6,6,tempLL,6,6);
-  MultTranspFull(tempLL,6,6,tmp1,6,6,T1,6,6);
-
-  MPlexLS T2;
-  MPlexHL tmp2;
-  MultTranspFull(locErrMeas,3,3,K,6,3,tmp2,3,6);
-  MultFull(K,6,3,tmp2,3,6,T2,6,6);
-
-  MPlexLS outErr_pol;
-#pragma simd
-  for (int n = 0; n < NN; ++n) {
-    for (int i = 0; i < 6; ++i) {
-      for (int j = i; j < 6; ++j) {
-	outErr_pol.At(n, i, j) = T1.At(n, i, j) + T2.At(n, i, j);
-      }
-    }
-  }
-
-  MPlexLL jac_back_pol;
-#pragma simd
+  // output errors
+  MPlexLL jac_back_pol; // jacobian from "polar" to cartesian
   for (int n = 0; n < NN; ++n) {
     //jac_back_pol:first set to identity, then modify the relevant terms
     for (int i = 0; i < 6; ++i) {
@@ -491,6 +609,7 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
 	else jac_back_pol.At(n, i, j) = 0.;
       }
     }
+    //fixme: use trig approx
     jac_back_pol.At(n, 3, 3) = -cos(outPar_pol.At(n, 4, 0))/pow(outPar_pol.At(n, 3, 0),2);
     jac_back_pol.At(n, 3, 4) = -sin(outPar_pol.At(n, 4, 0))/outPar_pol.At(n, 3, 0);
     jac_back_pol.At(n, 4, 3) = -sin(outPar_pol.At(n, 4, 0))/pow(outPar_pol.At(n, 3, 0),2);
@@ -498,31 +617,22 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
     jac_back_pol.At(n, 5, 3) = -cos(outPar_pol.At(n, 5, 0))/(sin(outPar_pol.At(n, 5, 0))*pow(outPar_pol.At(n, 3, 0),2));
     jac_back_pol.At(n, 5, 5) = -1./(pow(sin(outPar_pol.At(n, 5, 0)),2)*outPar_pol.At(n, 3, 0));
   }
-
-  MultFull(jac_back_pol,6,6,outErr_pol,6,6,tempLL,6,6);
-  MultTranspFull(tempLL,6,6,jac_back_pol,6,6,outErr,6,6);
+  CartesianErr      (jac_back_pol, outErr_pol, tempLL);
+  CartesianErrTransp(jac_back_pol, tempLL, outErr);
 
 #ifdef DEBUG
   if (dump) {
-    printf("res_loc:\n");
+    printf("res_glo:\n");
     for (int i = 0; i < 3; ++i) {
+        printf("%8f ", res_glo.At(0,i,0));
+    } printf("\n");
+    printf("res_loc:\n");
+    for (int i = 0; i < 2; ++i) {
         printf("%8f ", res_loc.At(0,i,0));
     } printf("\n");
-    printf("resErr:\n");
+    printf("resErr_loc (Inv):\n");
     for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
-        printf("%8f ", resErr.At(0,i,j)); printf("\n");
-    } printf("\n");
-    printf("resErrInv:\n");
-    for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
-        printf("%8f ", resErr.At(0,i,j)); printf("\n");
-    } printf("\n");
-    printf("resErr_loc:\n");
-    for (int i = 0; i < 3; ++i) { for (int j = 0; j < 3; ++j)
         printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
-    } printf("\n");
-    printf("resErrTmp:\n");
-    for (int i = 0; i < 3; ++i) { for (int j = 0; j < 3; ++j)
-        printf("%8f ", tempHH.At(0,i,j)); printf("\n");
     } printf("\n");
     printf("resErrTmpLH:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 3; ++j)
@@ -547,22 +657,6 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
     printf("outPar:\n");
     for (int i = 0; i < 6; ++i) {
       printf("%8f  ", outPar.At(0,i,0));
-    } printf("\n");
-    printf("H:\n");
-    for (int i = 0; i < 3; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", H.At(0,i,j)); printf("\n");
-    } printf("\n");
-    printf("locErrMeas:\n");
-    for (int i = 0; i < 3; ++i) { for (int j = 0; j < 3; ++j)
-        printf("%8f ", locErrMeas.At(0,i,j)); printf("\n");
-    } printf("\n");
-    printf("T1:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", T1.At(0,i,j)); printf("\n");
-    } printf("\n");
-    printf("T2:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", T2.At(0,i,j)); printf("\n");
     } printf("\n");
     printf("outErr_pol:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
@@ -591,8 +685,6 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
 
   // Temporaries -- this is expensive -- should have them allocated outside and reused.
   // Can be passed in in a struct, see above.
-
-  // Also: resErr could be 3x3, kalmanGain 6x3
 
 #ifdef DEBUG
   const bool dump = g_dump;
@@ -632,72 +724,57 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
   }
 #endif
 
-  MPlexHH rot;//we may not need this one
-  MPlexHH rotT;
-  MPlexHV res_glo;
-  MPlexHS resErr_glo;
-#pragma simd
+  // Rotate global point on tangent plane to cylinder
+  // Tangent point is half way between hit and propagate position
+
+  // Rotation matrix
+  //  rotT00  0  rotT01
+  //  rotT01  0 -rotT00
+  //     0    1    0
+  // Minimize temporaries: only two float are needed!
+
+  MPlexQF rotT00;
+  MPlexQF rotT01;
   for (int n = 0; n < NN; ++n) {
     float r = hipo(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
-    rot.At(n, 0, 0) = -(msPar.ConstAt(n, 1, 0)+propPar.ConstAt(n, 1, 0))/(2*r);
-    rot.At(n, 0, 1) = 0;
-    rot.At(n, 0, 2) =  (msPar.ConstAt(n, 0, 0)+propPar.ConstAt(n, 0, 0))/(2*r);
-    rot.At(n, 1, 0) = rot.ConstAt(n, 0, 2);
-    rot.At(n, 1, 1) = 0;
-    rot.At(n, 1, 2) = -rot.ConstAt(n, 0, 0);
-    rot.At(n, 2, 0) = 0;
-    rot.At(n, 2, 1) = 1;
-    rot.At(n, 2, 2) = 0;
-    //
-    rotT.At(n, 0, 0) = rot.ConstAt(n, 0, 0);
-    rotT.At(n, 0, 1) = rot.ConstAt(n, 1, 0);
-    rotT.At(n, 0, 2) = rot.ConstAt(n, 2, 0);
-    rotT.At(n, 1, 0) = rot.ConstAt(n, 0, 1);
-    rotT.At(n, 1, 1) = rot.ConstAt(n, 1, 1);
-    rotT.At(n, 1, 2) = rot.ConstAt(n, 2, 1);
-    rotT.At(n, 2, 0) = rot.ConstAt(n, 0, 2);
-    rotT.At(n, 2, 1) = rot.ConstAt(n, 1, 2);
-    rotT.At(n, 2, 2) = rot.ConstAt(n, 2, 2);
-    //
-    for (int i = 0; i < 3; ++i) {
-      res_glo.At(n, i, 0) = msPar.ConstAt(n, i, 0) - propPar.ConstAt(n, i, 0);
-      for (int j = 0; j < 3; ++j) {
-	resErr_glo.At(n, i, j) = msErr.ConstAt(n,i,j) + propErr.ConstAt(n,i,j);
-      }
-    }
+    rotT00.At(n, 0, 0) = -(msPar.ConstAt(n, 1, 0)+propPar.ConstAt(n, 1, 0))/(2*r);
+    rotT01.At(n, 0, 0) =  (msPar.ConstAt(n, 0, 0)+propPar.ConstAt(n, 0, 0))/(2*r);
   }
 
-  MPlexHV res_loc;
-  MultiplyGeneral(rotT,res_glo,res_loc);
-  MPlexHS resErr_loc;
+  MPlexHV res_glo;   //position residual in global coordinates
+  SubtractFirst3(msPar, propPar, res_glo);
+  
+  MPlexHS resErr_glo;//covariance sum in global position coordinates
+  AddIntoUpperLeft3x3(propErr, msErr, resErr_glo);
+
+  MPlex2V res_loc;   //position residual in local coordinates
+  RotateResidulsOnTangentPlane(rotT00,rotT01,res_glo,res_loc);
+  MPlex2S resErr_loc;//covariance sum in local position coordinates
   MPlexHH tempHH;
-  MultFull      (rotT,3,3, resErr_glo,3,3, tempHH,3,3);
-  MultTranspFull(rotT,3,3, tempHH,3,3, resErr_loc,3,3);
-
-  MPlex2S resErr;
-#pragma simd
-  for (int n = 0; n < NN; ++n) {
-    for (int i = 0; i < 2; ++i) {
-      for (int j = i; j < 2; ++j) {
-	resErr.At(n, i, j) = resErr_loc.ConstAt(n,i,j);
-      }
-    }
-  }
-
-  Matriplex::InvertCramerSym(resErr);
+  ProjectResErr      (rotT00, rotT01, resErr_glo, tempHH);
+  ProjectResErrTransp(rotT00, rotT01, tempHH, resErr_loc);
 
 #ifdef DEBUG
   if (dump) {
-    printf("resErr:\n");
+    printf("resErr_loc:\n");
     for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
-        printf("%8f ", resErr.At(0,i,j)); printf("\n");
-    } printf("\n");
-    printf("resErrInv:\n");
-    for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
-        printf("%8f ", resErr.At(0,i,j)); printf("\n");
+        printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
     } printf("\n");
   }
 #endif
 
-  Chi2Similarity(res_loc, resErr, outChi2);
+  //invert the 2x2 matrix
+  Matriplex::InvertCramerSym(resErr_loc);
+
+#ifdef DEBUG
+  if (dump) {
+    printf("resErr_loc (Inv):\n");
+    for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
+        printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
+    } printf("\n");
+  }
+#endif
+
+  //compute chi2
+  Chi2Similarity(res_loc, resErr_loc, outChi2);
 }
