@@ -222,12 +222,6 @@ void computeJacobianSimple(int n, MPlexLL& errorProp, float k, float TP, float c
 
 void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar, const MPlexQF &msRad, MPlexLL& errorProp) {
 
-  MPlexLL rotateCartCu2Ca(0);
-  MPlexLL rotateCartCa2Cu(0);
-  MPlexLL jacCartToCurv(0);
-  MPlexLL jacCurvToCart(0);
-  MPlexLL jacCurvProp(0);
-
 #pragma simd
   for (int n = 0; n < NN; ++n)
     {
@@ -417,7 +411,13 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 #endif
 
       if (Config::useCurvJac) {
-	
+
+	MPlexLL rotateCartCu2Ca(0);
+	MPlexLL rotateCartCa2Cu(0);
+	MPlexLL jacCartToCurv(0);
+	MPlexLL jacCurvToCart(0);
+	MPlexLL jacCurvProp(0);	
+
         const float& zin  = inPar.ConstAt(n, 2, 0);
         float p2 = pt2 + pzin*pzin;
         float p = sqrt(p2);
