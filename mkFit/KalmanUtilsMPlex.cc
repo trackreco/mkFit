@@ -394,6 +394,134 @@ void KHC(const MPlexLL& A, const MPlexLS& B, MPlexLS& C)
 #include "KHC.ah"
 }
 
+inline
+void ConvertToPolar(const MPlexLV& A, MPlexLV& B, MPlexLL& C)
+{
+ 
+  typedef float T;
+  const idx_t N = NN;
+  
+  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+        T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+
+#pragma simd
+  for (int n = 0; n < N; ++n)
+  {
+    float pt = getHypot(a[ 3*N+n], a[ 4*N+n]);
+    float p2 = pt*pt + a[ 5*N+n]*a[ 5*N+n];
+    //
+    b[ 0*N+n] = a[ 0*N+n];
+    b[ 1*N+n] = a[ 1*N+n];
+    b[ 2*N+n] = a[ 2*N+n];
+    b[ 3*N+n] = 1./pt;
+    b[ 4*N+n] = getPhi(a[ 3*N+n], a[ 4*N+n]); //fixme: use trig approx
+    b[ 5*N+n] = getTheta(pt, a[ 5*N+n]);
+    //
+    c[ 0*N+n] = 1.;
+    c[ 1*N+n] = 0.;
+    c[ 2*N+n] = 0.;
+    c[ 3*N+n] = 0.;
+    c[ 4*N+n] = 0.;
+    c[ 5*N+n] = 0.;
+    c[ 6*N+n] = 0.;
+    c[ 7*N+n] = 1.;
+    c[ 8*N+n] = 0.;
+    c[ 9*N+n] = 0.;
+    c[10*N+n] = 0.;
+    c[11*N+n] = 0.;
+    c[12*N+n] = 0.;
+    c[13*N+n] = 0.;
+    c[14*N+n] = 1.;
+    c[15*N+n] = 0.;
+    c[16*N+n] = 0.;
+    c[17*N+n] = 0.;
+    c[18*N+n] = 0.;
+    c[19*N+n] = 0.;
+    c[20*N+n] = 0.;
+    c[21*N+n] = -a[ 3*N+n]/(pt*pt*pt);
+    c[22*N+n] = -a[ 4*N+n]/(pt*pt*pt);
+    c[23*N+n] = 0.;
+    c[24*N+n] = 0.;
+    c[25*N+n] = 0.;
+    c[26*N+n] = 0.;
+    c[27*N+n] = -a[ 4*N+n]/(pt*pt);
+    c[28*N+n] =  a[ 3*N+n]/(pt*pt);
+    c[29*N+n] = 0.;
+    c[30*N+n] = 0.;
+    c[31*N+n] = 0.;
+    c[32*N+n] = 0.;
+    c[33*N+n] =  a[ 3*N+n]*a[ 5*N+n]/(pt*p2);
+    c[34*N+n] =  a[ 4*N+n]*a[ 5*N+n]/(pt*p2);
+    c[35*N+n] = -pt/p2;
+  }
+}
+
+inline
+void ConvertToCartesian(const MPlexLV& A, MPlexLV& B, MPlexLL& C)
+{
+ 
+  typedef float T;
+  const idx_t N = NN;
+  
+  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+        T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+
+#pragma simd
+  for (int n = 0; n < N; ++n)
+  {
+    float cosP = cos(a[ 4*N+n]); //fixme: use trig approx
+    float sinP = sin(a[ 4*N+n]);
+    float cosT = cos(a[ 5*N+n]);
+    float sinT = sin(a[ 5*N+n]);
+    //
+    b[ 0*N+n] = a[ 0*N+n];
+    b[ 1*N+n] = a[ 1*N+n];
+    b[ 2*N+n] = a[ 2*N+n];
+    b[ 3*N+n] = cosP/a[ 3*N+n];
+    b[ 4*N+n] = sinP/a[ 3*N+n];
+    b[ 5*N+n] = cosT/(sinT*a[ 3*N+n]);
+    //
+    c[ 0*N+n] = 1.;
+    c[ 1*N+n] = 0.;
+    c[ 2*N+n] = 0.;
+    c[ 3*N+n] = 0.;
+    c[ 4*N+n] = 0.;
+    c[ 5*N+n] = 0.;
+    c[ 6*N+n] = 0.;
+    c[ 7*N+n] = 1.;
+    c[ 8*N+n] = 0.;
+    c[ 9*N+n] = 0.;
+    c[10*N+n] = 0.;
+    c[11*N+n] = 0.;
+    c[12*N+n] = 0.;
+    c[13*N+n] = 0.;
+    c[14*N+n] = 1.;
+    c[15*N+n] = 0.;
+    c[16*N+n] = 0.;
+    c[17*N+n] = 0.;
+    c[18*N+n] = 0.;
+    c[19*N+n] = 0.;
+    c[20*N+n] = 0.;
+    c[21*N+n] = -cosP/pow(a[ 3*N+n],2);
+    c[22*N+n] = -sinP/a[ 3*N+n];
+    c[23*N+n] = 0.;
+    c[24*N+n] = 0.;
+    c[25*N+n] = 0.;
+    c[26*N+n] = 0.;
+    c[27*N+n] = -sinP/pow(a[ 3*N+n],2);
+    c[28*N+n] =  cosP/a[ 3*N+n];
+    c[29*N+n] = 0.;
+    c[30*N+n] = 0.;
+    c[31*N+n] = 0.;
+    c[32*N+n] = 0.;
+    c[33*N+n] = -cosT/(sinT*pow(a[ 3*N+n],2));
+    c[34*N+n] = 0.;
+    c[35*N+n] = -1./(pow(sinT,2)*a[ 3*N+n]);
+  }
+}
+
 
 // //Warning: MultFull is not vectorized, use only for testing!
 // template<typename T1, typename T2, typename T3>
@@ -542,32 +670,7 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
 
   MPlexLV propPar_pol;// propagated parameters in "polar" coordinates
   MPlexLL jac_pol;    // jacobian from cartesian to "polar"
-  for (int n = 0; n < NN; ++n) {
-    //propPar_pol
-    for (int i = 0; i < 3; ++i) {
-      propPar_pol.At(n, i, 0) = propPar.At(n, i, 0);
-    }
-    float pt = getHypot(propPar.At(n, 3, 0), propPar.At(n, 4, 0));
-    propPar_pol.At(n, 3, 0) = 1./pt;
-    //fixme: use trig approx
-    propPar_pol.At(n, 4, 0) = getPhi(propPar.At(n, 3, 0), propPar.At(n, 4, 0));
-    propPar_pol.At(n, 5, 0) = getTheta(pt, propPar.At(n, 5, 0));
-    //jac_pol:first set to identity, then modify the relevant terms
-    for (int i = 0; i < 6; ++i) {
-      for (int j = 0; j < 6; ++j) {
-	if (i==j) jac_pol.At(n, i, j) = 1.;
-	else jac_pol.At(n, i, j) = 0.;
-      }
-    }
-    jac_pol.At(n, 3, 3) = -propPar.At(n, 3, 0)/(pt*pt*pt);
-    jac_pol.At(n, 3, 4) = -propPar.At(n, 4, 0)/(pt*pt*pt);
-    jac_pol.At(n, 4, 3) = -propPar.At(n, 4, 0)/(pt*pt);
-    jac_pol.At(n, 4, 4) =  propPar.At(n, 3, 0)/(pt*pt);
-    float p2 = pt*pt + propPar.At(n, 5, 0)*propPar.At(n, 5, 0);
-    jac_pol.At(n, 5, 3) =  propPar.At(n, 3, 0)*propPar.At(n, 5, 0)/(pt*p2);
-    jac_pol.At(n, 5, 4) =  propPar.At(n, 4, 0)*propPar.At(n, 5, 0)/(pt*p2);
-    jac_pol.At(n, 5, 5) = -pt/p2;
-  }
+  ConvertToPolar(propPar,propPar_pol,jac_pol);
 
   MPlexLS propErr_pol; // propagated errors in "polar" coordinates
   PolarErr      (jac_pol, propErr, tempLL);
@@ -588,35 +691,8 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
 
   // Go back to cartesian coordinates
 
-  // output parameters
-  for (int n = 0; n < NN; ++n) {
-    for (int i = 0; i < 3; ++i) {
-      outPar.At(n, i, 0) = outPar_pol.At(n, i, 0);
-    }
-    //fixme: use trig approx
-    outPar.At(n, 3, 0) = cos(outPar_pol.At(n, 4, 0))/outPar_pol.At(n, 3, 0);
-    outPar.At(n, 4, 0) = sin(outPar_pol.At(n, 4, 0))/outPar_pol.At(n, 3, 0);
-    outPar.At(n, 5, 0) = cos(outPar_pol.At(n, 5, 0))/(sin(outPar_pol.At(n, 5, 0))*outPar_pol.At(n, 3, 0));
-  }
-
-  // output errors
   MPlexLL jac_back_pol; // jacobian from "polar" to cartesian
-  for (int n = 0; n < NN; ++n) {
-    //jac_back_pol:first set to identity, then modify the relevant terms
-    for (int i = 0; i < 6; ++i) {
-      for (int j = 0; j < 6; ++j) {
-	if (i==j) jac_back_pol.At(n, i, j) = 1.;
-	else jac_back_pol.At(n, i, j) = 0.;
-      }
-    }
-    //fixme: use trig approx
-    jac_back_pol.At(n, 3, 3) = -cos(outPar_pol.At(n, 4, 0))/pow(outPar_pol.At(n, 3, 0),2);
-    jac_back_pol.At(n, 3, 4) = -sin(outPar_pol.At(n, 4, 0))/outPar_pol.At(n, 3, 0);
-    jac_back_pol.At(n, 4, 3) = -sin(outPar_pol.At(n, 4, 0))/pow(outPar_pol.At(n, 3, 0),2);
-    jac_back_pol.At(n, 4, 4) =  cos(outPar_pol.At(n, 4, 0))/outPar_pol.At(n, 3, 0);
-    jac_back_pol.At(n, 5, 3) = -cos(outPar_pol.At(n, 5, 0))/(sin(outPar_pol.At(n, 5, 0))*pow(outPar_pol.At(n, 3, 0),2));
-    jac_back_pol.At(n, 5, 5) = -1./(pow(sin(outPar_pol.At(n, 5, 0)),2)*outPar_pol.At(n, 3, 0));
-  }
+  ConvertToCartesian(outPar_pol, outPar, jac_back_pol);
   CartesianErr      (jac_back_pol, outErr_pol, tempLL);
   CartesianErrTransp(jac_back_pol, tempLL, outErr);
 
@@ -654,10 +730,6 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
     for (int i = 0; i < 6; ++i) {
       printf("%8f  ", outPar_pol.At(0,i,0));
     } printf("\n");
-    printf("outPar:\n");
-    for (int i = 0; i < 6; ++i) {
-      printf("%8f  ", outPar.At(0,i,0));
-    } printf("\n");
     printf("outErr_pol:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
         printf("%8f ", outErr_pol.At(0,i,j)); printf("\n");
@@ -665,6 +737,10 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
     printf("jac_back_pol:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
         printf("%8f ", jac_back_pol.At(0,i,j)); printf("\n");
+    } printf("\n");
+    printf("outPar:\n");
+    for (int i = 0; i < 6; ++i) {
+      printf("%8f  ", outPar.At(0,i,0));
     } printf("\n");
     printf("outErr:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
