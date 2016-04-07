@@ -504,21 +504,21 @@ void ConvertToCartesian(const MPlexLV& A, MPlexLV& B, MPlexLL& C)
     c[18*N+n] = 0.;
     c[19*N+n] = 0.;
     c[20*N+n] = 0.;
-    c[21*N+n] = -cosP/pow(a[ 3*N+n],2);
+    c[21*N+n] = -cosP/(a[ 3*N+n]*a[ 3*N+n]);
     c[22*N+n] = -sinP/a[ 3*N+n];
     c[23*N+n] = 0.;
     c[24*N+n] = 0.;
     c[25*N+n] = 0.;
     c[26*N+n] = 0.;
-    c[27*N+n] = -sinP/pow(a[ 3*N+n],2);
+    c[27*N+n] = -sinP/(a[ 3*N+n]*a[ 3*N+n]);
     c[28*N+n] =  cosP/a[ 3*N+n];
     c[29*N+n] = 0.;
     c[30*N+n] = 0.;
     c[31*N+n] = 0.;
     c[32*N+n] = 0.;
-    c[33*N+n] = -cosT/(sinT*pow(a[ 3*N+n],2));
+    c[33*N+n] = -cosT/(sinT*a[ 3*N+n]*a[ 3*N+n]);
     c[34*N+n] = 0.;
-    c[35*N+n] = -1./(pow(sinT,2)*a[ 3*N+n]);
+    c[35*N+n] = -1./(sinT*sinT*a[ 3*N+n]);
   }
 }
 
