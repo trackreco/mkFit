@@ -319,8 +319,8 @@ void setupTrackFromTextFile(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
 
   //fixme: check also event count
 
-  const float hitposerrXY = 0.01;//assume 100mum uncertainty in xy coordinate
-  const float hitposerrZ = 0.1;//assume 1mm uncertainty in z coordinate
+  const float hitposerrXY = Config::hitposerrXY;
+  const float hitposerrZ = Config::hitposerrZ;
   const float hitposerrR = hitposerrXY/10.;
 
   const float varXY  = hitposerrXY*hitposerrXY;

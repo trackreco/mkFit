@@ -134,8 +134,11 @@ void test_standard()
          MPT_SIZE, Config::numThreadsSimulation, Config::numThreadsFinder);
   printf("  sizeof(Track)=%zu, sizeof(Hit)=%zu, sizeof(SVector3)=%zu, sizeof(SMatrixSym33)=%zu, sizeof(MCHitInfo)=%zu\n",
          sizeof(Track), sizeof(Hit), sizeof(SVector3), sizeof(SMatrixSym33), sizeof(MCHitInfo));
-  if (Config::useCMSGeom) printf ("Using CMS-like geometry \n");
-  else printf ("Using 4-cm spacing geometry \n");
+  if (Config::useCMSGeom) {
+    printf ("Using CMS-like geometry ");
+    if (Config::readCmsswSeeds) printf ("with CMSSW seeds \n");
+    else printf ("with MC-truth seeds \n");
+  } else printf ("Using 4-cm spacing geometry \n");
 
   if (g_operation == "write") {
     generate_and_save_tracks();
@@ -381,6 +384,7 @@ int main(int argc, const char *argv[])
         "  --cloner-single-thread   do not spawn extra cloning thread (def: %s)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
 	"  --cms-geom               use cms-like geometry (def: %i)\n"
+	"  --cmssw-seeds            take seeds from CMSSW (def: %i)\n"
 	"  --write                  write simulation to file and exit\n"
 	"  --read                   read simulation from file\n"
 	"  --file-name              file name for write/read (def: %s)\n"
@@ -395,6 +399,7 @@ int main(int argc, const char *argv[])
         Config::clonerUseSingleThread ? "true" : "false",
         Config::finderReportBestOutOfN,
 	Config::useCMSGeom,
+	Config::readCmsswSeeds,
 	g_file_name.c_str()
       );
       exit(0);
@@ -452,6 +457,10 @@ int main(int argc, const char *argv[])
     else if(*i == "--cms-geom")
     {
       Config::useCMSGeom = true;
+    }
+    else if(*i == "--cmssw-seeds")
+    {
+      Config::readCmsswSeeds = true;
     }
     else if (*i == "--num-thr-ev")
     {
