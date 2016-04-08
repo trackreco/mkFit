@@ -265,7 +265,7 @@ inline
 void KalmanHTG(const MPlexQF& A00,
 	       const MPlexQF& A01,
 	       const MPlex2S& B  ,
-	             MPlexLH& C  )
+	             MPlexHH& C  )
 {
 
    // HTG  = rot * res_loc
@@ -293,20 +293,11 @@ void KalmanHTG(const MPlexQF& A00,
       c[ 6*N+n] = b[ 1*N+n];
       c[ 7*N+n] = b[ 2*N+n];
       c[ 8*N+n] = 0.;
-      c[ 9*N+n] = 0.;
-      c[10*N+n] = 0.;
-      c[11*N+n] = 0.;
-      c[12*N+n] = 0.;
-      c[13*N+n] = 0.;
-      c[14*N+n] = 0.;
-      c[15*N+n] = 0.;
-      c[16*N+n] = 0.;
-      c[17*N+n] = 0.;
    }
 }
 
 inline
-void KalmanGain(const MPlexLS& A, const MPlexLH& B, MPlexLH& C)
+void KalmanGain(const MPlexLS& A, const MPlexHH& B, MPlexLH& C)
 {
   // C = A * B, C is 6x3, A is 6x6 sym , B is 6x3
  
@@ -317,7 +308,28 @@ void KalmanGain(const MPlexLS& A, const MPlexLH& B, MPlexLH& C)
   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
-#include "KalmanGain.ah"
+#pragma simd
+   for (int n = 0; n < N; ++n)
+   {
+      c[ 0*N+n] = a[ 0*N+n]*b[ 0*N+n] + a[ 1*N+n]*b[ 3*N+n] + a[ 3*N+n]*b[ 6*N+n];
+      c[ 1*N+n] = a[ 0*N+n]*b[ 1*N+n] + a[ 1*N+n]*b[ 4*N+n] + a[ 3*N+n]*b[ 7*N+n];
+      c[ 2*N+n] = 0;
+      c[ 3*N+n] = a[ 1*N+n]*b[ 0*N+n] + a[ 2*N+n]*b[ 3*N+n] + a[ 4*N+n]*b[ 6*N+n];
+      c[ 4*N+n] = a[ 1*N+n]*b[ 1*N+n] + a[ 2*N+n]*b[ 4*N+n] + a[ 4*N+n]*b[ 7*N+n];
+      c[ 5*N+n] = 0;
+      c[ 6*N+n] = a[ 3*N+n]*b[ 0*N+n] + a[ 4*N+n]*b[ 3*N+n] + a[ 5*N+n]*b[ 6*N+n];
+      c[ 7*N+n] = a[ 3*N+n]*b[ 1*N+n] + a[ 4*N+n]*b[ 4*N+n] + a[ 5*N+n]*b[ 7*N+n];
+      c[ 8*N+n] = 0;
+      c[ 9*N+n] = a[ 6*N+n]*b[ 0*N+n] + a[ 7*N+n]*b[ 3*N+n] + a[ 8*N+n]*b[ 6*N+n];
+      c[10*N+n] = a[ 6*N+n]*b[ 1*N+n] + a[ 7*N+n]*b[ 4*N+n] + a[ 8*N+n]*b[ 7*N+n];
+      c[11*N+n] = 0;
+      c[12*N+n] = a[10*N+n]*b[ 0*N+n] + a[11*N+n]*b[ 3*N+n] + a[12*N+n]*b[ 6*N+n];
+      c[13*N+n] = a[10*N+n]*b[ 1*N+n] + a[11*N+n]*b[ 4*N+n] + a[12*N+n]*b[ 7*N+n];
+      c[14*N+n] = 0;
+      c[15*N+n] = a[15*N+n]*b[ 0*N+n] + a[16*N+n]*b[ 3*N+n] + a[17*N+n]*b[ 6*N+n];
+      c[16*N+n] = a[15*N+n]*b[ 1*N+n] + a[16*N+n]*b[ 4*N+n] + a[17*N+n]*b[ 7*N+n];
+      c[17*N+n] = 0;
+   }
 }
 
 inline
@@ -590,9 +602,6 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   // updateParametersContext ctx;
   //assert((long long)(&updateCtx.propErr.fArray[0]) % 64 == 0);
 
-  MPlexHH tempHH;
-  MPlexLL tempLL;
-
   MPlexLS propErr;
   MPlexLV propPar;
   // do a full propagation step to correct for residual distance from the hit radius - need the charge for this
@@ -651,6 +660,7 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   MPlex2V res_loc;   //position residual in local coordinates
   RotateResidulsOnTangentPlane(rotT00,rotT01,res_glo,res_loc);
   MPlex2S resErr_loc;//covariance sum in local position coordinates
+  MPlexHH tempHH;
   ProjectResErr      (rotT00, rotT01, resErr_glo, tempHH);
   ProjectResErrTransp(rotT00, rotT01, tempHH, resErr_loc);
 
@@ -672,26 +682,26 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   MPlexLL jac_pol;    // jacobian from cartesian to "polar"
   ConvertToPolar(propPar,propPar_pol,jac_pol);
 
-  MPlexLS propErr_pol; // propagated errors in "polar" coordinates
+  MPlexLL tempLL;
   PolarErr      (jac_pol, propErr, tempLL);
-  PolarErrTransp(jac_pol, tempLL, propErr_pol);
+  PolarErrTransp(jac_pol, tempLL, propErr);// propErr is now propagated errors in "polar" coordinates
 
-  MPlexLH resErrTmpLH; // term to get kalman gain (H^T*G) //fixme should be H2
-  MPlexLH K;           // kalman gain                     //fixme should be L2
-  KalmanHTG(rotT00, rotT01, resErr_loc, resErrTmpLH);
-  KalmanGain(propErr_pol, resErrTmpLH, K);
+  // Kalman update in "polar" coordinates
 
-  MPlexLV outPar_pol;  // output parameters in "polar" coordinates
-  MultResidualsAdd(K, propPar_pol, res_loc, outPar_pol);//fixme check vs old impl.
+  MPlexLH K;           // kalman gain, fixme should be L2
+  KalmanHTG(rotT00, rotT01, resErr_loc, tempHH); // intermediate term to get kalman gain (H^T*G)
+  KalmanGain(propErr, tempHH, K);
+
+  MultResidualsAdd(K, propPar_pol, res_loc, propPar_pol);// propPar_pol is not the updated parameters in "polar" coordinates
 
   KHMult(K, rotT00, rotT01, tempLL);
-  KHC(tempLL, propErr_pol, outErr);
-  outErr.Subtract(propErr_pol, outErr);// outErr is in "polar" coordinates now
+  KHC(tempLL, propErr, outErr);
+  outErr.Subtract(propErr, outErr);// outErr is in "polar" coordinates now
 
   // Go back to cartesian coordinates
 
   // jac_pol is now the jacobian from "polar" to cartesian
-  ConvertToCartesian(outPar_pol, outPar, jac_pol);
+  ConvertToCartesian(propPar_pol, outPar, jac_pol);
   CartesianErr      (jac_pol, outErr, tempLL);
   CartesianErrTransp(jac_pol, tempLL, outErr);// outErr is in cartesian coordinates now
 
@@ -709,25 +719,13 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
     for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
         printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
     } printf("\n");
-    printf("resErrTmpLH:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 3; ++j)
-        printf("%8f ", resErrTmpLH.At(0,i,j)); printf("\n");
-    } printf("\n");
     printf("jac_pol:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
         printf("%8f ", jac_pol.At(0,i,j)); printf("\n");
     } printf("\n");
-    printf("propErr_pol:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", propErr_pol.At(0,i,j)); printf("\n");
-    } printf("\n");
     printf("K:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 3; ++j)
         printf("%8f ", K.At(0,i,j)); printf("\n");
-    } printf("\n");
-    printf("outPar_pol:\n");
-    for (int i = 0; i < 6; ++i) {
-      printf("%8f  ", outPar_pol.At(0,i,0));
     } printf("\n");
     printf("outPar:\n");
     for (int i = 0; i < 6; ++i) {
