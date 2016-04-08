@@ -684,17 +684,16 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   MPlexLV outPar_pol;  // output parameters in "polar" coordinates
   MultResidualsAdd(K, propPar_pol, res_loc, outPar_pol);//fixme check vs old impl.
 
-  MPlexLS outErr_pol;  // output error in "polar" coordinates
   KHMult(K, rotT00, rotT01, tempLL);
-  KHC(tempLL, propErr_pol, outErr_pol);
-  outErr_pol.Subtract(propErr_pol, outErr_pol);
+  KHC(tempLL, propErr_pol, outErr);
+  outErr.Subtract(propErr_pol, outErr);// outErr is in "polar" coordinates now
 
   // Go back to cartesian coordinates
 
   // jac_pol is now the jacobian from "polar" to cartesian
   ConvertToCartesian(outPar_pol, outPar, jac_pol);
-  CartesianErr      (jac_pol, outErr_pol, tempLL);
-  CartesianErrTransp(jac_pol, tempLL, outErr);
+  CartesianErr      (jac_pol, outErr, tempLL);
+  CartesianErrTransp(jac_pol, tempLL, outErr);// outErr is in cartesian coordinates now
 
 #ifdef DEBUG
   if (dump) {
@@ -729,10 +728,6 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
     printf("outPar_pol:\n");
     for (int i = 0; i < 6; ++i) {
       printf("%8f  ", outPar_pol.At(0,i,0));
-    } printf("\n");
-    printf("outErr_pol:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", outErr_pol.At(0,i,j)); printf("\n");
     } printf("\n");
     printf("outPar:\n");
     for (int i = 0; i < 6; ++i) {
