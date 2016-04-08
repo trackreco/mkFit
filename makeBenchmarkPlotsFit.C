@@ -1,6 +1,6 @@
 {
 
-  bool isMic = true;
+  bool isMic = false;
   
   TString hORm = "host";
   if (isMic) hORm = "mic";
