@@ -691,10 +691,10 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
 
   // Go back to cartesian coordinates
 
-  MPlexLL jac_back_pol; // jacobian from "polar" to cartesian
-  ConvertToCartesian(outPar_pol, outPar, jac_back_pol);
-  CartesianErr      (jac_back_pol, outErr_pol, tempLL);
-  CartesianErrTransp(jac_back_pol, tempLL, outErr);
+  // jac_pol is now the jacobian from "polar" to cartesian
+  ConvertToCartesian(outPar_pol, outPar, jac_pol);
+  CartesianErr      (jac_pol, outErr_pol, tempLL);
+  CartesianErrTransp(jac_pol, tempLL, outErr);
 
 #ifdef DEBUG
   if (dump) {
@@ -733,10 +733,6 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
     printf("outErr_pol:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
         printf("%8f ", outErr_pol.At(0,i,j)); printf("\n");
-    } printf("\n");
-    printf("jac_back_pol:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", jac_back_pol.At(0,i,j)); printf("\n");
     } printf("\n");
     printf("outPar:\n");
     for (int i = 0; i < 6; ++i) {
