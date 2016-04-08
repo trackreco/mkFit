@@ -412,6 +412,8 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 
       if (Config::useCurvJac) {
 
+	//fixme, these need to be move outside simd loop, at beginning of helixAtRFromIterative
+	//they are placed here for now to avoid creating temporaries that are not used by default
 	MPlexLL rotateCartCu2Ca(0);
 	MPlexLL rotateCartCa2Cu(0);
 	MPlexLL jacCartToCurv(0);
