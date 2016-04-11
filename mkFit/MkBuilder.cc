@@ -847,7 +847,7 @@ namespace
 
 void MkBuilder::fit_seeds_tbb()
 {
-  std::vector<Track>& simtracks = m_event->simTracks_;
+  std::vector<Track>& simtracks = (Config::readCmsswSeeds ? m_event->seedTracks_ : m_event->simTracks_);
 
   int theEnd = simtracks.size();
   int count = (theEnd + NN - 1)/NN;
@@ -863,7 +863,7 @@ void MkBuilder::fit_seeds_tbb()
 
         mkfp->SetNhits(3);//just to be sure (is this needed?)
         mkfp->InputTracksAndHits(simtracks, m_event->layerHits_, itrack, end);
-        mkfp->FitTracks();
+        if (Config::readCmsswSeeds==false) mkfp->FitTracks();
 
         const int ilay = 3; // layer 4
     #ifdef DEBUG
@@ -877,7 +877,7 @@ void MkBuilder::fit_seeds_tbb()
               std::cout << "propagate to lay=" << ilay+1 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
     #endif
 
-        mkfp->OutputFittedTracksAndHitIdx(m_recseeds, itrack, end, true);
+        mkfp->OutputFittedTracksAndHitIdx(m_event->seedTracks_, itrack, end, true);
       }
     }
   );
@@ -887,7 +887,7 @@ void MkBuilder::fit_seeds_tbb()
   std::cout << "found total seeds=" << m_recseeds.size() << std::endl;
   for (int iseed = 0; iseed < m_recseeds.size(); ++iseed)
   {
-    Track& seed = m_recseeds[iseed];
+    Track& seed = m_event->seedTracks_[iseed];
     std::cout << "MX - found seed with nHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.posR() << " pT=" << seed.pT() << std::endl;
   }
 #endif
