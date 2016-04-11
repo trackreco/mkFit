@@ -884,8 +884,8 @@ void MkBuilder::fit_seeds_tbb()
 
   //ok now, we should have all seeds fitted in recseeds
 #ifdef DEBUG
-  std::cout << "found total seeds=" << m_recseeds.size() << std::endl;
-  for (int iseed = 0; iseed < m_recseeds.size(); ++iseed)
+  std::cout << "found total seeds=" << m_event->seedTracks_.size() << std::endl;
+  for (int iseed = 0; iseed < m_event->seedTracks_.size(); ++iseed)
   {
     Track& seed = m_event->seedTracks_[iseed];
     std::cout << "MX - found seed with nHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.posR() << " pT=" << seed.pT() << std::endl;
