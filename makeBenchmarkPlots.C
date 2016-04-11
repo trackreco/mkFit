@@ -26,8 +26,8 @@ void makeBenchmarkPlots()
   g_BH_VU->GetXaxis()->SetTitle("Vector Width");
   g_BH_VU->GetYaxis()->SetTitle("Time for 10 events x 20k tracks [s]");
   g_BH_VU->GetXaxis()->SetRangeUser(1,maxvu);
-  g_BH_VU->GetYaxis()->SetRangeUser(0,10);
-  if (isMic) g_BH_VU->GetYaxis()->SetRangeUser(0,80);
+  g_BH_VU->GetYaxis()->SetRangeUser(0,20);
+  if (isMic) g_BH_VU->GetYaxis()->SetRangeUser(0,200);
   g_BH_VU->SetLineWidth(2);
   g_CE_VU->SetLineWidth(2);
   g_CEST_VU->SetLineWidth(2);
@@ -125,8 +125,8 @@ void makeBenchmarkPlots()
   g_BH_TH->GetXaxis()->SetTitle("Number of Threads");
   g_BH_TH->GetYaxis()->SetTitle("Time for 10 events x 20k tracks [s]");
   g_BH_TH->GetXaxis()->SetRangeUser(1,maxth);
-  g_BH_TH->GetYaxis()->SetRangeUser(0,6);
-  if (isMic) g_BH_TH->GetYaxis()->SetRangeUser(0.2,80);
+  g_BH_TH->GetYaxis()->SetRangeUser(0,10);
+  if (isMic) g_BH_TH->GetYaxis()->SetRangeUser(0.2,100);
   g_BH_TH->SetLineWidth(2);
   g_CE_TH->SetLineWidth(2);
   g_CEST_TH->SetLineWidth(2);

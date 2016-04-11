@@ -339,6 +339,7 @@ void Event::read_in(FILE *fp)
   fread(&nt, sizeof(int), 1, fp);
   simTracks_.resize(nt);
   fread(&simTracks_[0], sizeof(Track), nt, fp);
+  Config::nTracks = nt;
 
   int nl;
   fread(&nl, sizeof(int), 1, fp);
@@ -355,14 +356,26 @@ void Event::read_in(FILE *fp)
   simHitsInfo_.resize(nm);
   fread(&simHitsInfo_[0], sizeof(MCHitInfo), nm, fp);
 
+  if (Config::useCMSGeom) {
+    int ns;
+    fread(&ns, sizeof(int), 1, fp);
+    seedTracks_.resize(ns);
+    if (Config::readCmsswSeeds) fread(&seedTracks_[0], sizeof(Track), ns, fp);
+    else fseek(fp, sizeof(Track)*ns, SEEK_CUR);
+  }
+
   /*
   printf("read %i tracks\n",nt);
   for (int it = 0; it<nt; it++) {
-    printf("track with pT=%5.3f\n",simTracks_[it].pT());
+    printf("track with q=%i pT=%5.3f and nHits=%i\n",simTracks_[it].charge(),simTracks_[it].pT(),simTracks_[it].nTotalHits());
     for (int ih=0; ih<simTracks_[it].nTotalHits(); ++ih) {
-      printf("hit idx=%i\n", simTracks_[it].getHitIdx(ih));
+      if (simTracks_[it].getHitIdx(ih)>=0)
+	printf("hit #%i idx=%i pos r=%5.3f\n",ih,simTracks_[it].getHitIdx(ih),layerHits_[ih][simTracks_[it].getHitIdx(ih)].r());
+      else
+	printf("hit #%i idx=%i\n",ih,simTracks_[it].getHitIdx(ih));
     }
   }
+
   printf("read %i layers\n",nl);
   for (int il = 0; il<nl; il++) {
     printf("read %i hits in layer %i\n",layerHits_[il].size(),il);

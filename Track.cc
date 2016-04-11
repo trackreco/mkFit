@@ -4,6 +4,9 @@
 // find the simtrack that provided the most hits
 void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo)
 {
+#ifdef DEBUG
+  const bool debug = g_dump;
+#endif
   std::vector<int> mctrack;
   auto hitIdx = trk.nTotalHits();
   for (int ihit = 0; ihit < hitIdx; ++ihit){

@@ -24,6 +24,7 @@ namespace Config
   int   numSeedsPerTask = 32;
 
   bool  useCMSGeom = false;
+  bool  readCmsswSeeds = false;
 
   bool  super_debug = false;
   bool  cf_seeding  = false;
