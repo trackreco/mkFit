@@ -852,14 +852,14 @@ void MkBuilder::fit_seeds_tbb()
   int theEnd = simtracks.size();
   int count = (theEnd + NN - 1)/NN;
 
-  tbb::parallel_for(tbb::blocked_range<int>(0, count),
+  tbb::parallel_for(tbb::blocked_range<int>(0, count, std::max(1, Config::numSeedsPerTask/NN)),
     [&](const tbb::blocked_range<int>& i) {
+
+      std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
       for (int it = i.begin(); it < i.end(); ++it)
       {
         int itrack = it*NN;
         int end = std::min(itrack + NN, theEnd);
-
-        std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
 
         mkfp->SetNhits(3);//just to be sure (is this needed?)
         mkfp->InputTracksAndHits(simtracks, m_event->layerHits_, itrack, end);

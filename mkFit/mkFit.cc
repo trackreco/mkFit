@@ -277,12 +277,11 @@ void test_standard()
     }
     else
     {
-      omp_set_num_threads(Config::numThreadsSimulation);
+      //Simulate() parallelism is via TBB
+      tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
 
       ev.Simulate();
       ev.resetLayerHitMap(true);
-
-      omp_set_num_threads(Config::numThreadsFinder);
     }
 
     plex_tracks.resize(ev.simTracks_.size());

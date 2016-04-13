@@ -12,6 +12,7 @@
 
 class Geometry {
 public:
+  ~Geometry() { for (auto& s : solids_) { delete s; }}
   void AddLayer(const VUSolid* s) { solids_.push_back(s); }
   void AddLayer(const VUSolid* s, const float radius, const float zPlane) { 
     solids_.push_back(s); radii_.push_back(radius); zPlanes_.push_back(zPlane);
