@@ -105,36 +105,35 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
   if (Config::readCmsswSeeds==false) m_event->seedTracks_.resize(simtracks.size());
 }
 
+inline void MkBuilder::fit_one_seed(TrackVec& simtracks, int itrack, int end, MkFitter *mkfp)
+{
+  mkfp->SetNhits(3);//just to be sure (is this needed?)
+  mkfp->InputTracksAndHits(simtracks, m_event->layerHits_, itrack, end);
+  if (Config::readCmsswSeeds==false) mkfp->FitTracks();
+
+  const int ilay = 3; // layer 4
+#ifdef DEBUG
+  std::cout << "propagate to lay=" << ilay+1 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
+            << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
+#endif
+  mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
+#ifdef DEBUG
+  std::cout << "propagate to lay=" << ilay+1 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
+#endif
+
+  mkfp->OutputFittedTracksAndHitIdx(m_event->seedTracks_, itrack, end, true);
+}
+
 void MkBuilder::fit_seeds()
 {
   std::vector<Track>& simtracks = (Config::readCmsswSeeds ? m_event->seedTracks_ : m_event->simTracks_);
-
   int theEnd = simtracks.size();
 
 #pragma omp parallel for
   for (int itrack = 0; itrack < theEnd; itrack += NN)
   {
-    int end = std::min(itrack + NN, theEnd);
-
     MkFitter *mkfp = m_mkfp_arr[omp_get_thread_num()];
-
-    mkfp->SetNhits(3);//just to be sure (is this needed?)
-
-    mkfp->InputTracksAndHits(simtracks, m_event->layerHits_, itrack, end);
-
-    if (Config::readCmsswSeeds==false) mkfp->FitTracks();
-
-    const int ilay = 3; // layer 4
-#ifdef DEBUG
-    std::cout << "propagate to lay=" << ilay+1 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
-              << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
-#endif
-    mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
-#ifdef DEBUG
-          std::cout << "propagate to lay=" << ilay+1 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
-#endif
-
-    mkfp->OutputFittedTracksAndHitIdx(m_event->seedTracks_, itrack, end, true);
+    fit_one_seed(simtracks, itrack, std::min(itrack + NN, theEnd), mkfp);
   }
 
   //ok now, we should have all seeds fitted in recseeds
@@ -833,7 +832,7 @@ void MkBuilder::FindTracksCloneEngine()
 
 
 //==============================================================================
-// MT Experimental section
+// TBB section
 //==============================================================================
 
 namespace
@@ -858,26 +857,7 @@ void MkBuilder::fit_seeds_tbb()
       std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
       for (int it = i.begin(); it < i.end(); ++it)
       {
-        int itrack = it*NN;
-        int end = std::min(itrack + NN, theEnd);
-
-        mkfp->SetNhits(3);//just to be sure (is this needed?)
-        mkfp->InputTracksAndHits(simtracks, m_event->layerHits_, itrack, end);
-        if (Config::readCmsswSeeds==false) mkfp->FitTracks();
-
-        const int ilay = 3; // layer 4
-    #ifdef DEBUG
-        std::cout << "propagate to lay=" << ilay+1 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
-                  << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
-    #endif
-
-        mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
-
-    #ifdef DEBUG
-              std::cout << "propagate to lay=" << ilay+1 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
-    #endif
-
-        mkfp->OutputFittedTracksAndHitIdx(m_event->seedTracks_, itrack, end, true);
+        fit_one_seed(simtracks, it*NN, std::min((it+1)*NN, theEnd), mkfp.get());
       }
     }
   );
