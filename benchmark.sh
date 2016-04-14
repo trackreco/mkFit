@@ -23,6 +23,7 @@ for nth in 10 12 14 16
 do
 echo nth=${nth}
 ./mkFit/mkFit --read --file-name ${dir}/simtracks_10x20k.bin --build-tbb --num-thr ${nth} --cloner-single-thread >& log_host_10x20k_TBBST_NVU8int_NTH${nth}.txt
+./mkFit/mkFit --read --file-name ${dir}/simtracks_10x20k.bin --build-bh  --num-thr ${nth} >& log_host_10x20k_BH_NVU8int_NTH${nth}.txt
 done
 
 sed -i 's/# USE_INTRINSICS := -DMPT_SIZE=1/USE_INTRINSICS := -DMPT_SIZE=XX/g' Makefile.config

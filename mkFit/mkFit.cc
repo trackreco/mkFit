@@ -254,13 +254,6 @@ void test_standard()
   std::cerr << "###### Total GPU time: " << dtime() - total_gpu_time << " ######\n";
 
 #else
-  // MT: task_scheduler_init::automatic doesn't really work (segv!) + we don't
-  // know what to do for non-tbb cases.
-  // tbb::task_scheduler_init tbb_init(Config::numThreadsFinder != 0 ?
-  //                                   Config::numThreadsFinder :
-  //                                   tbb::task_scheduler_init::automatic);
-  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
-
   for (int evt = 1; evt <= Config::nEvents; ++evt)
   {
     printf("\n");
@@ -272,17 +265,22 @@ void test_standard()
     {
       ev.read_in(g_file);
       ev.resetLayerHitMap(false);//hitIdx's in the sim tracks are already ok 
-
-      omp_set_num_threads(Config::numThreadsFinder);
     }
     else
     {
       //Simulate() parallelism is via TBB
       tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
-
       ev.Simulate();
       ev.resetLayerHitMap(true);
     }
+
+    // MT: task_scheduler_init::automatic doesn't really work (segv!) + we don't
+    // know what to do for non-tbb cases.
+    // tbb::task_scheduler_init tbb_init(Config::numThreadsFinder != 0 ?
+    //                                   Config::numThreadsFinder :
+    //                                   tbb::task_scheduler_init::automatic);
+    tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
+    omp_set_num_threads(Config::numThreadsFinder);
 
     plex_tracks.resize(ev.simTracks_.size());
 
@@ -291,13 +289,9 @@ void test_standard()
     for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
     {
       t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
-
       t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev) : 0;
-
       t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlex(ev, ev_tmp) : 0;
-
       t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, ev_tmp) : 0;
-
       t_cur[4] = (g_run_build_all || g_run_build_tbb) ? runBuildingTestPlexTbb(ev, ev_tmp) : 0;
 
       for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);

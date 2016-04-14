@@ -90,7 +90,7 @@ class MkFitter;
 class MkBuilder
 {
 private:
-  void fit_one_seed(TrackVec& simtracks, int itrack, int end, MkFitter *mkfp);
+  void fit_one_seed_set(TrackVec& simtracks, int itrack, int end, MkFitter *mkfp);
 
   Event         *m_event;
   EventTmp      *m_event_tmp;
