@@ -277,8 +277,6 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
   //dump seeds
   dcall(print_seeds(event_of_cands));
 
-  assert(Config::numSeedsPerTask % NN == 0);
-
   tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEtaBin),
     [&](const tbb::blocked_range<int>& ebins)
   {
@@ -288,11 +286,12 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
       tbb::parallel_for(tbb::blocked_range<int>(0,etabin_of_candidates.m_fill_index,Config::numSeedsPerTask), 
         [&](const tbb::blocked_range<int>& tracks)
       {
+        std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
+
         for (int itrack = tracks.begin(); itrack < tracks.end(); itrack += NN) {
-          int end = std::min(itrack + NN, etabin_of_candidates.m_fill_index);
+          int end = std::min(itrack + NN, tracks.end());
 
           dprint(std::endl << "processing track=" << itrack << " etabin=" << ebin << " findex=" << etabin_of_candidates.m_fill_index);
-          std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
 
           mkfp->SetNhits(3);//just to be sure (is this needed?)
           mkfp->InputTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end, true);
