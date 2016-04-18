@@ -5,7 +5,68 @@
 
 #include "MkFitter.h"
 
+//#define DEBUG
+#include "Debug.h"
+
 #include <omp.h>
+
+#ifdef DEBUG
+namespace {
+  void pre_prop_print(int ilay, MkFitter* mkfp) {
+    std::cout << "propagate to lay=" << ilay+1 
+              << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)
+              << " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
+              << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5)
+              << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
+  }
+
+  void post_prop_print(int ilay, MkFitter* mkfp) {
+    std::cout << "propagate to lay=" << ilay+1 
+              << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)
+              << " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
+  }
+
+  void print_seed(const Track& seed) {
+    std::cout << "MX - found seed with nHits=" << seed.nFoundHits() << " chi2=" << seed.chi2()
+              << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.posR()
+              << " pT=" << seed.pT() << std::endl;
+  }
+
+  void print_seed2(const Track& seed) {
+    std::cout << "MX - found seed with nFoundHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() 
+              << " x=" << seed.x() << " y=" << seed.y() << " z=" << seed.z()
+              << " px=" << seed.px() << " py=" << seed.py() << " pz=" << seed.pz()
+              << " pT=" << seed.pT() << std::endl;
+  }
+
+  void print_seeds(const TrackVec& seeds) {
+    std::cout << "found total seeds=" << seeds.size() << std::endl;
+    for (auto&& seed : seeds) {
+      print_seed(seed);
+    }
+  }
+
+  void print_seeds(const EventOfCandidates& event_of_cands) {
+    for (int ebin = 0; ebin < Config::nEtaBin; ++ebin) {
+      const EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin]; 
+      for (int iseed = 0; iseed < etabin_of_candidates.m_fill_index; iseed++) {
+        print_seed2(etabin_of_candidates.m_candidates[iseed]);
+      }
+    }
+  }
+
+  void print_seeds(const EventOfCombCandidates& event_of_comb_cands) {
+    for (int ebin = 0; ebin < Config::nEtaBin; ++ebin) {
+      const EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin]; 
+      for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed++) {
+        print_seed2(etabin_of_comb_candidates.m_candidates[iseed].front());
+      }
+    }
+  }
+
+  bool debug = true;
+}
+#endif
 
 namespace
 {
@@ -72,7 +133,8 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
     {
       printf("Bad label for simtrack %d -- %d\n", itrack, track.label());
     }
-    std::cout << "MX - simtrack with nHits=" << track.nFoundHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1]) <<" phi="<< track.momPhi() <<" eta=" << track.momEta() << std::endl;
+    std::cout << "MX - simtrack with nHits=" << track.nFoundHits() << " chi2=" << track.chi2()
+              << " pT=" << track.pT() <<" phi="<< track.momPhi() <<" eta=" << track.momEta() << std::endl;
   }
 #endif
 
@@ -112,14 +174,10 @@ inline void MkBuilder::fit_one_seed(TrackVec& simtracks, int itrack, int end, Mk
   if (Config::readCmsswSeeds==false) mkfp->FitTracks();
 
   const int ilay = 3; // layer 4
-#ifdef DEBUG
-  std::cout << "propagate to lay=" << ilay+1 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
-            << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
-#endif
+
+  dcall(pre_prop_print(ilay, mkfp));
   mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
-#ifdef DEBUG
-  std::cout << "propagate to lay=" << ilay+1 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
-#endif
+  dcall(post_prop_print(ilay, mkfp));
 
   mkfp->OutputFittedTracksAndHitIdx(m_event->seedTracks_, itrack, end, true);
 }
@@ -137,14 +195,7 @@ void MkBuilder::fit_seeds()
   }
 
   //ok now, we should have all seeds fitted in recseeds
-#ifdef DEBUG
-  std::cout << "found total seeds=" << m_event->seedTracks_.size() << std::endl;
-  for (int iseed = 0; iseed < m_event->seedTracks_.size(); ++iseed)
-  {
-    Track& seed = m_event->seedTracks_[iseed];
-    std::cout << "MX - found seed with nHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.posR() << " pT=" << seed.pT() << std::endl;
-  }
-#endif
+  dcall(print_seeds(simtracks));
 }
 
 void MkBuilder::end_event()
@@ -215,22 +266,7 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
   }
 
   //dump seeds
-#ifdef DEBUG
-  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
-  {
-    EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin]; 
-
-    for (int iseed = 0; iseed < etabin_of_candidates.m_fill_index; iseed++)
-    {
-      Track& seed = etabin_of_candidates.m_candidates[iseed];
-      std::cout << "MX - found seed with nFoundHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() 
-                << " x=" << seed.position()[0] << " y=" << seed.position()[1] << " z=" << seed.position()[2] 
-                << " px=" << seed.momentum()[0] << " py=" << seed.momentum()[1] << " pz=" << seed.momentum()[2] 
-                << " pT=" << sqrt(seed.momentum()[0]*seed.momentum()[0]+seed.momentum()[1]*seed.momentum()[1]) 
-                << std::endl;
-    }
-  }
-#endif
+  dcall(print_seeds(event_of_cands));
 
   //parallel section over seeds; num_threads can of course be smaller
   int nseeds = m_event->seedTracks_.size();
@@ -245,10 +281,7 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
     {
       int end = std::min(itrack + NN, etabin_of_candidates.m_fill_index);
 	 
-#ifdef DEBUG
-      std::cout << std::endl;
-      std::cout << "processing track=" << itrack << " etabin=" << ebin << " findex=" << etabin_of_candidates.m_fill_index << " thn=" << omp_get_thread_num() << std::endl;
-#endif
+      dprint(std::endl << "processing track=" << itrack << " etabin=" << ebin << " findex=" << etabin_of_candidates.m_fill_index);
 
       MkFitter *mkfp = m_mkfp_arr[omp_get_thread_num()];
 
@@ -278,9 +311,7 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
 // #endif
 
         //make candidates with best hit
-#ifdef DEBUG
-        std::cout << "make new candidates" << std::endl;
-#endif
+        dprint("make new candidates");
         mkfp->AddBestHit(bunch_of_hits);
 
         mkfp->SetNhits(ilay + 1);  //here again assuming one hit per layer (is this needed?)
@@ -291,14 +322,9 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
         // But at least it doesn't crash with uncaught exception :)
         if (ilay + 1 < Config::nLayers)
         {
-#ifdef DEBUG
-          std::cout << "propagate to lay=" << ilay+2 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
-                    << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
-#endif
+          dcall(pre_prop_print(ilay, mkfp));
           mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay+1), end - itrack);
-#ifdef DEBUG
-          std::cout << "propagate to lay=" << ilay+2 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
-#endif
+          dcall(post_prop_print(ilay, mkfp));
         }
 
       } // end of layer loop
@@ -329,21 +355,7 @@ void MkBuilder::find_tracks_load_seeds()
   }
 
   //dump seeds
-#ifdef DEBUG
-  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
-  {
-    EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin]; 
-    for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed++)
-    {
-      Track& seed = etabin_of_comb_candidates.m_candidates[iseed].front();
-      std::cout << "MX - found seed with nFoundHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() 
-                << " x=" << seed.position()[0] << " y=" << seed.position()[1] << " z=" << seed.position()[2] 
-                << " px=" << seed.momentum()[0] << " py=" << seed.momentum()[1] << " pz=" << seed.momentum()[2] 
-                << " pT=" << sqrt(seed.momentum()[0]*seed.momentum()[0]+seed.momentum()[1]*seed.momentum()[1]) 
-                << std::endl;
-    }
-  }
-#endif
+  dcall(print_seeds(event_of_comb_cands));
 }
 
 struct OmpThreadData
@@ -483,9 +495,7 @@ void MkBuilder::FindTracks()
       {
         BunchOfHits &bunch_of_hits = m_event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];
 
-#ifdef DEBUG
-        std::cout << "processing lay=" << ilay+1 << std::endl;
-#endif
+        dprint("processing lay=" << ilay+1);
 
         // prepare unrolled vector to loop over
         std::vector<std::pair<int,int> > seed_cand_idx;
@@ -523,9 +533,7 @@ void MkBuilder::FindTracks()
         {
           int end = std::min(itrack + NN, theEndCand);
 
-#ifdef DEBUG
-          std::cout << "processing track=" << itrack << std::endl;
-#endif
+          dprint("processing track=" << itrack);
 
           MkFitter *mkfp = m_mkfp_arr[omp_get_thread_num()];
 
@@ -539,19 +547,12 @@ void MkBuilder::FindTracks()
           //propagate to layer
           if (ilay > Config::nlayers_per_seed)
           {
-#ifdef DEBUG
-            std::cout << "propagate to lay=" << ilay+1 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
-                      << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
-#endif
+            dcall(pre_prop_print(ilay, mkfp));
             mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
-#ifdef DEBUG
-            std::cout << "propagate to lay=" << ilay+1 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
-#endif
+            dcall(post_prop_print(ilay, mkfp));
           }
 
-#ifdef DEBUG
-          std::cout << "now get hit range" << std::endl;
-#endif
+          dprint("now get hit range");
 
           mkfp->SelectHitRanges(bunch_of_hits, end - itrack);
 
@@ -559,9 +560,7 @@ void MkBuilder::FindTracks()
           //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
           //#endif
 
-#ifdef DEBUG
-          std::cout << "make new candidates" << std::endl;
-#endif
+          dprint("make new candidates");
 
           mkfp->FindCandidates(bunch_of_hits, tmp_candidates, otd.th_start_seed, end - itrack);
 
@@ -571,27 +570,18 @@ void MkBuilder::FindTracks()
         // FIXME: is there a reason why these are not vectorized????
         for (int is = 0; is < tmp_candidates.size(); ++is)
         {
-#ifdef DEBUG
-          std::cout << "dump seed n " << is << " with input candidates=" << tmp_candidates[is].size() << std::endl;
-#endif
+          dprint("dump seed n " << is << " with input candidates=" << tmp_candidates[is].size());
           std::sort(tmp_candidates[is].begin(), tmp_candidates[is].end(), sortCandByHitsChi2);
 
           if (tmp_candidates[is].size() > Config::maxCandsPerSeed)
           {
-#ifdef DEBUG
-            std::cout << "erase extra candidates" 
-                      << " tmp_candidates[is].size()=" << tmp_candidates[is].size()
-                      << " Config::maxCandsPerSeed=" << Config::maxCandsPerSeed
-                      << std::endl;
-            std::cout << "erase extra candidates" << std::endl;
-#endif
+            dprint("erase extra candidates" << " tmp_candidates[is].size()=" << tmp_candidates[is].size()
+                      << " Config::maxCandsPerSeed=" << Config::maxCandsPerSeed);
 
             tmp_candidates[is].erase(tmp_candidates[is].begin() + Config::maxCandsPerSeed,
                                      tmp_candidates[is].end());
           }
-#ifdef DEBUG
-          std::cout << "dump seed n " << is << " with output candidates=" << tmp_candidates[is].size() << std::endl;
-#endif
+          dprint("dump seed n " << is << " with output candidates=" << tmp_candidates[is].size());
         }
         //now swap with input candidates
         for (int is = 0; is < tmp_candidates.size(); ++is)
@@ -663,9 +653,7 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
   //loop over layers, starting from after the seeD
   for (int ilay = Config::nlayers_per_seed; ilay <= Config::nLayers; ++ilay)
   {
-#ifdef DEBUG
-    std::cout << "processing lay=" << ilay+1 << std::endl;
-#endif
+    dprint("processing lay=" << ilay+1);
 
     //prepare unrolled vector to loop over
 
@@ -746,9 +734,7 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
         break;
       }
 
-#ifdef DEBUG
-      std::cout << "now get hit range" << std::endl;
-#endif
+      dprint("now get hit range");
 
       BunchOfHits &bunch_of_hits = m_event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];
 
@@ -758,9 +744,7 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
       //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
       //#endif
 
-#ifdef DEBUG
-      std::cout << "make new candidates" << std::endl;
-#endif
+      dprint("make new candidates");
 
       cloner.begin_iteration();
       mkfp->FindCandidatesMinimizeCopy(bunch_of_hits, cloner, start_seed, end - itrack);
@@ -863,14 +847,7 @@ void MkBuilder::fit_seeds_tbb()
   );
 
   //ok now, we should have all seeds fitted in recseeds
-#ifdef DEBUG
-  std::cout << "found total seeds=" << m_event->seedTracks_.size() << std::endl;
-  for (int iseed = 0; iseed < m_event->seedTracks_.size(); ++iseed)
-  {
-    Track& seed = m_event->seedTracks_[iseed];
-    std::cout << "MX - found seed with nHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.posR() << " pT=" << seed.pT() << std::endl;
-  }
-#endif
+  dcall(print_seeds(simtracks));
 }
 
 //------------------------------------------------------------------------------
