@@ -272,8 +272,6 @@ void test_standard()
     {
       ev.read_in(g_file);
       ev.resetLayerHitMap(false);//hitIdx's in the sim tracks are already ok 
-
-      omp_set_num_threads(Config::numThreadsFinder);
     }
     else
     {
@@ -283,6 +281,7 @@ void test_standard()
       ev.Simulate();
       ev.resetLayerHitMap(true);
     }
+    omp_set_num_threads(Config::numThreadsFinder);
 
     plex_tracks.resize(ev.simTracks_.size());
 
