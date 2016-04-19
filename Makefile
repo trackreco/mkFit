@@ -36,6 +36,7 @@ endif
 
 clean-local:
 	-rm -f ${EXES} *.d *.o *.om
+	-rm -rf main.dSYM
 	-rm -rf USolids-{host,mic}
 
 clean: clean-local

@@ -6,10 +6,12 @@
 
 void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
                            const MPlexHS &msErr,  const MPlexHV& msPar,
-                                 MPlexLS &outErr,       MPlexLV& outPar);
+                                 MPlexLS &outErr,       MPlexLV& outPar,
+                           const int      N_proc);
 
 void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
 		      const MPlexHS &msErr,  const MPlexHV& msPar,
-                            MPlexQF& outChi2);
+                            MPlexQF& outChi2,
+                      const int      N_proc);
 
 #endif

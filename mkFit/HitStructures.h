@@ -30,6 +30,10 @@
 
 typedef std::pair<int, int> PhiBinInfo_t;
 
+typedef std::vector<PhiBinInfo_t> vecPhiBinInfo_t;
+
+typedef std::vector<vecPhiBinInfo_t> vecvecPhiBinInfo_t;
+
 //==============================================================================
 
 inline bool sortHitsByPhiMT(const Hit& h1, const Hit& h2)
@@ -44,84 +48,111 @@ inline bool sortTrksByPhiMT(const Track& t1, const Track& t2)
 
 //==============================================================================
 
-class BunchOfHits
-{
-public:
-  // This eventually becomes a vector of pointers / refs / multi indices
-  //std::vector<Hit>          m_hits;
-  Hit                      *m_hits;
-  std::vector<PhiBinInfo_t> m_phi_bin_infos;
+const float g_layer_zwidth[] = { 10, 14, 18, 23, 28, 32, 37, 42, 48, 52 };
 
-  int     m_real_size;
-  int     m_fill_index;
-  int     m_fill_index_old;
+const float g_layer_dz[]     = { 0.6, 0.55, 0.5, 0.5, 0.45, 0.4, 0.4, 0.4, 0.35, 0.35 };
 
-public:
-  BunchOfHits() :
-    //m_hits          (Config::maxHitsPerBunch),
-    m_phi_bin_infos (Config::nPhiPart),
-    m_real_size     (Config::maxHitsPerBunch),
-    m_fill_index    (0),
-    m_fill_index_old(0)
-  {
-    m_hits = (Hit*) _mm_malloc(sizeof(Hit)*Config::maxHitsPerBunch, 64);
-    Reset();
-  }
+// Use extra arrays to store phi and z of hits.
+// MT: This would in principle allow fast selection of good hits, if
+// we had good error estimates and reasonable *minimal* phi and z windows.
+// Speed-wise, those arrays (filling AND access, about half each) cost 1.5%
+// and could help us reduce the number of hits we need to process with bigger
+// potential gains.
 
-  ~BunchOfHits()
-  {
-    _mm_free(m_hits);
-  }
-  
-  void Reset();
-
-  void InsertHit(const Hit& hit)
-  {
-    assert (m_fill_index < m_real_size); // or something
-
-    m_hits[m_fill_index] = hit;
-    ++m_fill_index;
-  }
-
-  void SortByPhiBuildPhiBins();
-};
-
-//==============================================================================
+// #define LOH_USE_PHI_Z_ARRAYS
 
 class LayerOfHits
 {
 public:
-  std::vector<BunchOfHits> m_bunches_of_hits;
+  Hit                      *m_hits = 0;
+  vecvecPhiBinInfo_t        m_phi_bin_infos;
+#ifdef LOH_USE_PHI_Z_ARRAYS
+  std::vector<float>        m_hit_phis;
+  std::vector<float>        m_hit_zs;
+#endif
+
+  float m_zmin, m_zmax, m_fz;
+  int   m_nz = 0;
+  int   m_capacity = 0;
+
+  // This could be a parameter, layer dependent.
+  static constexpr int   m_nphi = 1024;
+  // Testing bin filling
+  //  static constexpr int   m_nphi = 16;
+  static constexpr float m_fphi = m_nphi / Config::TwoPI;
+  static constexpr int   m_phi_mask = 0x3ff;
+
+  // As above
+  static constexpr float m_max_dz   = 1;
+  static constexpr float m_max_dphi = 0.02;
+
+protected:
+  void alloc_hits(int size)
+  {
+    m_hits = (Hit*) _mm_malloc(sizeof(Hit) * size, 64);
+    m_capacity = size;
+#ifdef LOH_USE_PHI_Z_ARRAYS
+    m_hit_phis.resize(size);
+    m_hit_zs  .resize(size);
+#endif
+  }
+
+  void free_hits()
+  {
+    _mm_free(m_hits);
+  }
+
+  void set_phi_bin(int z_bin, int phi_bin, int &hit_count, int &hits_in_bin)
+  {
+    m_phi_bin_infos[z_bin][phi_bin] = { hit_count, hit_count + hits_in_bin };
+    hit_count  += hits_in_bin;
+    hits_in_bin = 0;
+  }
+
+  void empty_phi_bins(int z_bin, int phi_bin_1, int phi_bin_2, int hit_count)
+  {
+    for (int pb = phi_bin_1; pb < phi_bin_2; ++pb)
+    {
+      m_phi_bin_infos[z_bin][pb] = { hit_count, hit_count };
+    }
+  }
+
+  void empty_z_bins(int z_bin_1, int z_bin_2, int hit_count)
+  {
+    for (int zb = z_bin_1; zb < z_bin_2; ++zb)
+    {
+      empty_phi_bins(zb, 0, m_nphi, hit_count);
+    }
+  }
 
 public:
-  LayerOfHits() :
-    m_bunches_of_hits(Config::nEtaBin)
-  {}
+  LayerOfHits() {}
 
-  void Reset()
+  ~LayerOfHits()
   {
-    for (auto &i : m_bunches_of_hits)
-    {
-      i.Reset();
-    }
+    free_hits();
   }
 
-  void InsertHit(const Hit& hit)
-  {
-    int b1, b2;
-    int cnt = getBothEtaBins(hit.eta(), b1, b2);
+  void Reset() {}
 
-    if (b1 != -1) m_bunches_of_hits[b1].InsertHit(hit);
-    if (b2 != -1) m_bunches_of_hits[b2].InsertHit(hit);
-  }
+  void SetupLayer(float zmin, float zmax, float dz);
 
-  void SortByPhiBuildPhiBins()
-  {
-    for (auto &i : m_bunches_of_hits)
-    {
-      i.SortByPhiBuildPhiBins();
-    }
-  }
+  float NormalizeZ(float z) const { if (z < m_zmin) return m_zmin; if (z > m_zmax) return m_zmax; return z; }
+
+  int   GetZBin(float z)    const { return (z - m_zmin) * m_fz; }
+
+  int   GetZBinChecked(float z) const { int zb = GetZBin(z); if (zb < 0) zb = 0; else if (zb >= m_nz) zb = m_nz - 1; return zb; }
+
+  // if you don't pass phi in (-pi, +pi), mask away the upper bits using m_phi_mask
+  int   GetPhiBin(float phi) const { return std::floor(m_fphi * (phi + Config::PI)); }
+
+  const vecPhiBinInfo_t& GetVecPhiBinInfo(float z) const { return m_phi_bin_infos[GetZBin(z)]; }
+
+  void SuckInHits(const HitVec &hitv);
+
+  int  SelectHitIndices(float z, float phi, float dz, float dphi, bool dump=false);
+
+  void PrintBins();
 };
 
 //==============================================================================
@@ -136,7 +167,12 @@ public:
   EventOfHits(int n_layers) :
     m_layers_of_hits(n_layers),
     m_n_layers(n_layers)
-  {}
+  {
+    for (int i = 0; i < n_layers; ++i)
+    {
+      m_layers_of_hits[i].SetupLayer(-g_layer_zwidth[i], g_layer_zwidth[i], g_layer_dz[i]);
+    }
+  }
 
   void Reset()
   {
@@ -146,17 +182,9 @@ public:
     }
   }
 
-  void InsertHit(const Hit& hit, int layer)
+  void SuckInHits(const HitVec &hitv, int layer)
   {
-    m_layers_of_hits[layer].InsertHit(hit);
-  }
-
-  void SortByPhiBuildPhiBins()
-  {
-    for (auto &i : m_layers_of_hits)
-    {
-      i.SortByPhiBuildPhiBins();
-    }
+    m_layers_of_hits[layer].SuckInHits(hitv);
   }
 };
 
