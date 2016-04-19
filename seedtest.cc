@@ -79,7 +79,7 @@ void buildSeedsByRZFirstRPhiSecond(TrackVec& evt_seed_tracks, TrackExtraVec& evt
   if (rz_path == 0) {
     for (int i = 0; i < evt_lay_hits[0].size(); i++){
       for (int j = 0; j < evt_lay_hits[2].size(); j++){
-	if ( abs(((3.*evt_lay_hits[0][i].z()-evt_lay_hits[2][j].z())/2.)) > (Config::seed_z0cut)) {continue;}
+	if ( fabs(((3.*evt_lay_hits[0][i].z()-evt_lay_hits[2][j].z())/2.)) > (Config::seed_z0cut)) {continue;}
 	const float z1 = (evt_lay_hits[0][i].z() + evt_lay_hits[2][j].z()) / 2.;
 	for (int k = 0; k < evt_lay_hits[1].size(); k++){
 	  if (fabs(z1-evt_lay_hits[1][k].z()) < Config::lay2Zcut) {

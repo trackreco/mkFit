@@ -156,6 +156,8 @@ namespace Config
   extern bool   clonerUseSingleThread;
   extern int    finderReportBestOutOfN;
 
+  extern int    numSeedsPerTask;
+
   extern bool   useCMSGeom;
   extern bool   readCmsswSeeds;
 

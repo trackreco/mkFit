@@ -41,6 +41,8 @@ struct MkFitter
   int Nhits;
 
 public:
+  MkFitter() : Nhits(0)
+  {}
   MkFitter(int n_hits) : Nhits(n_hits)
   {
     // XXXX Eventually dynamically allocate measurement arrays.
