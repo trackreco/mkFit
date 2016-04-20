@@ -30,6 +30,7 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, T
     else {
       updatedState = trk.state();
     }
+    if (Config::super_debug) { ev.validation_.collectSeedTkCFMapInfo(itrack,updatedState); }
 
     dprint("processing sim track # " << itrack << " par=" << trk.parameters());
     TSLayerPairVec updatedStates; // validation for position pulls
