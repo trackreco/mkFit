@@ -1,5 +1,8 @@
 #include "PropagationMPlex.h"
 
+//#define DEBUG
+#include "Debug.h"
+
 //==============================================================================
 // propagateLineToRMPlex
 //==============================================================================
@@ -21,9 +24,7 @@ void propagateLineToRMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
      const float cosA = (psPar[0 * N + n] * psPar[3 * N + n] + psPar[1 * N + n] * psPar[4 * N + n]) / ( sqrt( ( psPar[0 * N + n] * psPar[0 * N + n] + psPar[1 * N + n] * psPar[1 * N + n] ) * ( psPar[3 * N + n] * psPar[3 * N + n] + psPar[4 * N + n] * psPar[4 * N + n] ) ) );
      const float dr  = (hipo(msPar[0 * N + n], msPar[1 * N + n]) - hipo(psPar[0 * N + n], psPar[1 * N + n])) / cosA;
 
-#ifdef DEBUG
-     std::cout << "propagateLineToRMPlex dr=" << dr << std::endl;
-#endif
+     dprint("propagateLineToRMPlex dr=" << dr);
 
       const float pt  = hipo(psPar[3 * N + n], psPar[4 * N + n]);
       const float p   = dr / pt; // path
@@ -63,10 +64,7 @@ void propagateLineToRMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
         B.fArray[20 * N + n] = A.fArray[20 * N + n] + p * (A.fArray[17 * N + n] + A.fArray[17 * N + n]) + psq * A.fArray[5 * N + n];
       }
 
-#ifdef DEBUG
-      std::cout << "propagateLineToRMPlex arrive at r=" << hipo(outPar[0 * N + n], outPar[1 * N + n]) << std::endl;
-#endif
-
+      dprint("propagateLineToRMPlex arrive at r=" << hipo(outPar[0 * N + n], outPar[1 * N + n]));
    }
 }
 
@@ -233,10 +231,9 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       const float& r    = msRad.ConstAt(n, 0, 0);
       float r0 = hipo(xin, yin);
       
+      dprint(std::endl << "attempt propagation from r=" << r0 << " to r=" << r << std::endl
+        << "x=" << xin << " y=" << yin  << " z=" << inPar.ConstAt(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pzin << " q=" << inChg.ConstAt(n, 0, 0));
 #ifdef DEBUG
-      std::cout << std::endl;
-      std::cout << "attempt propagation from r=" << r0 << " to r=" << r << std::endl;
-      std::cout << "x=" << xin << " y=" << yin  << " z=" << inPar.ConstAt(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pzin << " q=" << inChg.ConstAt(n, 0, 0) << std::endl;
       // if ((r0-r)>=0) {
       //    if (dump) std::cout << "target radius same or smaller than starting point, returning input" << std::endl;
       //    return;
@@ -244,9 +241,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 #endif
 
       if (fabs(r-r0)<0.0001) {
-#ifdef DEBUG
-	std::cout << "distance less than 1mum, skip" << std::endl;
-#endif
+	dprint("distance less than 1mum, skip");
 	computeJacobianSimple(n, errorProp, 1, 0, 1, 0);//get an identity matrix
 	continue;
       }
@@ -260,9 +255,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       float invcurvature = 1./(pt*k);//in 1./cm
       float ctgTheta=pzin*ptinv;
       
-#ifdef DEBUG
-      std::cout << "curvature=" << 1./invcurvature << std::endl;
-#endif
+      dprint("curvature=" << 1./invcurvature);
       
       //variables to be updated at each iterations
       float totalDistance = 0;
@@ -289,9 +282,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       // const unsigned int Niter = 5+std::round(r-r0)/2;
       for (unsigned int i=0;i<Config::Niter;++i)
 	{
-#ifdef DEBUG
-	  std::cout << "propagation iteration #" << i << std::endl;
-#endif
+	  dprint("propagation iteration #" << i);
 	  
 	  x  = outPar.At(n, 0, 0);
 	  y  = outPar.At(n, 1, 0);
@@ -299,8 +290,8 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	  py = outPar.At(n, 4, 0);
 	  r0 = hipo(outPar.At(n, 0, 0), outPar.At(n, 1, 0));
 	  
+	  dprint("r0=" << r0 << " pt=" << pt);
 #ifdef DEBUG
-	  std::cout << "r0=" << r0 << " pt=" << pt << std::endl;
 	  // if (dump) {
 	  //    if (r==r0) {
 	  //       std::cout << "distance = 0 at iteration=" << i << std::endl;
@@ -312,9 +303,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	  //distance=r-r0;//remove temporary
 	  totalDistance+=(r-r0);
 	  
-#ifdef DEBUG
-	  std::cout << "distance=" << (r-r0) << " angPath=" << (r-r0)*invcurvature << std::endl;
-#endif
+	  dprint("distance=" << (r-r0) << " angPath=" << (r-r0)*invcurvature);
 	  
 	  //float angPath = (r-r0)*invcurvature;
 	  if (Config::useTrigApprox) {
@@ -339,9 +328,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	     //now r0 depends on px and py
 	     r0 = 1./r0;//WARNING, now r0 is r0inv (one less temporary)
 
-#ifdef DEBUG
-	     std::cout << "r0=" << 1./r0 << " r0inv=" << r0 << " pt=" << pt << std::endl;
-#endif
+	     dprint("r0=" << 1./r0 << " r0inv=" << r0 << " pt=" << pt);
 
 	     //update derivative on D
 	     dAPdx = -x*r0*invcurvature;
@@ -369,22 +356,18 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 
 	  }
 	  
-#ifdef DEBUG
-	  std::cout << "iteration end, dump parameters" << std::endl;
-	  std::cout << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl;
-	  std::cout << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0) << std::endl;
-	  std::cout << "r=" << sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << sqrt( outPar.At(n, 3, 0)*outPar.At(n, 3, 0) + outPar.At(n, 4, 0)*outPar.At(n, 4, 0) ) << std::endl;
-#endif
+	  dprint("iteration end, dump parameters" << std::endl
+      << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
+	    << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0) << std::endl
+	    << "r=" << sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << sqrt( outPar.At(n, 3, 0)*outPar.At(n, 3, 0) + outPar.At(n, 4, 0)*outPar.At(n, 4, 0) ));
 	}
       
       float& TD=totalDistance;
       float  TP=TD*invcurvature;//totalAngPath
       
-#ifdef DEBUG
-      std::cout << "TD=" << TD << " TP=" << TP << " arrived at r=" << sqrt(outPar.At(n, 0, 0)*outPar.At(n, 0, 0)+outPar.At(n, 1, 0)*outPar.At(n, 1, 0)) << std::endl;
-      std::cout << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl;
-      std::cout << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0) << std::endl;
-#endif
+      dprint("TD=" << TD << " TP=" << TP << " arrived at r=" << sqrt(outPar.At(n, 0, 0)*outPar.At(n, 0, 0)+outPar.At(n, 1, 0)*outPar.At(n, 1, 0)) << std::endl
+        << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
+        << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0));
 
       float& iC=invcurvature;
       float dCdpx = k*pxin*ptinv;
@@ -402,13 +385,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	sinTP = sin(TP);
       }
 
-#ifdef DEBUG
-      std::cout 
-	<< "sinTP=" << sinTP
-	<< " cosTP=" << cosTP
-	<< " TD=" << TD
-	<< std::endl;
-#endif
+      dprint("sinTP=" << sinTP << " cosTP=" << cosTP << " TD=" << TD);
 
       if (Config::useCurvJac) {
 
@@ -522,9 +499,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
         float sinphi = py/pt;
         float cosphi = px/pt;
 	
-#ifdef DEBUG
-        std::cout << "q=" << q << " p2=" << p2 << " coslambda=" << coslambda << " cosphi=" << cosphi << std::endl;
-#endif
+        dprint("q=" << q << " p2=" << p2 << " coslambda=" << coslambda << " cosphi=" << cosphi);
 	
         jacCurvToCart(n,1,3) = 1.;
         jacCurvToCart(n,2,4) = 1.;
@@ -820,9 +795,9 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
       const float& rout = msRad.ConstAt(n, 0, 0);
       const float r0in = hipo(xin, yin);
       
+      dprint("attempt propagation from r=" << r0in << " to r=" << rout << std::endl
+        << "x=" << xin << " y=" << yin  << " z=" << inPar.ConstAt(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pzin << " q=" << inChg.ConstAt(n, 0, 0));
 #ifdef DEBUG
-      std::cout << "attempt propagation from r=" << r0in << " to r=" << rout << std::endl;
-      std::cout << "x=" << xin << " y=" << yin  << " z=" << inPar.ConstAt(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pzin << " q=" << inChg.ConstAt(n, 0, 0) << std::endl;
       // if ((r0in-r)>=0) {
       //    if (dump) std::cout << "target radius same or smaller than starting point, returning input" << std::endl;
       //    return;
@@ -830,9 +805,7 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
 #endif
 
       if (fabs(rout-r0in)<0.0001) {
-#ifdef DEBUG
-	std::cout << "distance less than 1mum, skip" << std::endl;
-#endif
+	dprint("distance less than 1mum, skip");
 	computeJacobianSimple(n, errorProp, 1, 0, 1, 0);//get an identity matrix
 	continue;
       }
@@ -846,9 +819,7 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
       float curvature = pt*k;//in cm
       float invcurvature = 1./(curvature);//in 1./cm
       
-#ifdef DEBUG
-      std::cout << "k=" << k << " curvature=" << curvature << " invcurvature=" << invcurvature << std::endl;
-#endif
+      dprint("k=" << k << " curvature=" << curvature << " invcurvature=" << invcurvature);
       
       //coordinates of center of circle defined as helix projection on transverse plane 
       float xc = xin - k*pyin;
@@ -869,13 +840,11 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
 	float x_m = ( -B - sqrt(B*B - 4*A*C) ) / (2*A);
 	float y_m = -x_m*xc/yc + (rout*rout + rc*rc - curvature*curvature)/(2*yc);
 	float cosDelta_m = (pxin*(x_m-xin) + pyin*(y_m-yin))/(pt*sqrt((x_m-xin)*(x_m-xin)+(y_m-yin)*(y_m-yin)));
-#ifdef DEBUG
-	std::cout << "solve for x" << std::endl;
-	std::cout << "xc=" << xc << " yc=" << yc << " rc=" << rc << std::endl;
-	std::cout << "A=" << A << " B=" << B << " C=" << C << std::endl;
-	std::cout << "xp=" << x_p << " y_p=" << y_p << " cosDelta_p=" << cosDelta_p << std::endl;
-	std::cout << "xm=" << x_m << " y_m=" << y_m << " cosDelta_m=" << cosDelta_m << std::endl;
-#endif 
+	dprint("solve for x" << std::endl
+	  << "xc=" << xc << " yc=" << yc << " rc=" << rc << std::endl
+	  << "A=" << A << " B=" << B << " C=" << C << std::endl
+	  << "xp=" << x_p << " y_p=" << y_p << " cosDelta_p=" << cosDelta_p << std::endl
+	  << "xm=" << x_m << " y_m=" << y_m << " cosDelta_m=" << cosDelta_m);
 	float Sx = sqrt(B*B - 4*A*C);
 	//arbitrate based on momentum and vector connecting the end points
 	if ( (rout>r0in) ? (cosDelta_p > cosDelta_m) : (cosDelta_p < cosDelta_m)) { 
@@ -884,20 +853,14 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
 	  TP = 2*asin(sinTPHalf_p);
 	  x = x_p;
 	  y = y_p;
-#ifdef DEBUG
-	  std::cout << "pos solution" << std::endl;
-	  std::cout << "chord_p=" << chord_p << " sinTPHalf_p=" << sinTPHalf_p << " TP=" << TP << std::endl;
-#endif
+	  dprint("pos solution" << std::endl << "chord_p=" << chord_p << " sinTPHalf_p=" << sinTPHalf_p << " TP=" << TP);
 	} else {
 	  float chord_m = sqrt( (x_m-xin)*(x_m-xin) + (y_m-yin)*(y_m-yin) );
 	  float sinTPHalf_m = 0.5*chord_m*invcurvature;
 	  TP = 2*asin(sinTPHalf_m);
 	  x = x_m;
 	  y = y_m;
-#ifdef DEBUG
-	  std::cout << "neg solution" << std::endl;
-	  std::cout << "chord_m=" << chord_m << " sinTPHalf_m=" << sinTPHalf_m << " TP=" << TP << std::endl;
-#endif
+	  dprint("neg solution" << std::endl << "chord_m=" << chord_m << " sinTPHalf_m=" << sinTPHalf_m << " TP=" << TP);
 	} 
       } else {
 	//solve for y since xc!=0
@@ -912,13 +875,11 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
 	float y_m = ( -B - sqrt(B*B - 4*A*C) ) / (2*A);
 	float x_m = -y_m*yc/xc + (rout*rout + rc*rc - curvature*curvature)/(2*xc);
 	float cosDelta_m = (pxin*(x_m-xin) + pyin*(y_m-yin))/(pt*sqrt((x_m-xin)*(x_m-xin)+(y_m-yin)*(y_m-yin)));
-#ifdef DEBUG
-	std::cout << "solve for y" << std::endl;
-	std::cout << "xc=" << xc << " yc=" << yc << " rc=" << rc << std::endl;
-	std::cout << "A=" << A << " B=" << B << " C=" << C << std::endl;
-	std::cout << "xp=" << x_p << " y_p=" << y_p << " cosDelta_p=" << cosDelta_p << std::endl;
-	std::cout << "xm=" << x_m << " y_m=" << y_m << " cosDelta_m=" << cosDelta_m << std::endl;
-#endif
+	dprint("solve for y" << std::endl
+	  << "xc=" << xc << " yc=" << yc << " rc=" << rc << std::endl
+	  << "A=" << A << " B=" << B << " C=" << C << std::endl
+	  << "xp=" << x_p << " y_p=" << y_p << " cosDelta_p=" << cosDelta_p << std::endl
+	  << "xm=" << x_m << " y_m=" << y_m << " cosDelta_m=" << cosDelta_m);
 	float Sx = sqrt(B*B - 4*A*C);
 	//arbitrate based on momentum and vector connecting the end points
 	if ( (rout>r0in) ? (cosDelta_p > cosDelta_m) : (cosDelta_p < cosDelta_m)) { 
@@ -960,12 +921,10 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
       outPar.At(n, 4, 0) = pyin*cosTP+pxin*sinTP;
       //outPar.At(n, 5, 0) = pzin; //take this out as it is redundant
 
-#ifdef DEBUG
-      std::cout << "propagation end, dump parameters" << std::endl;
-      std::cout << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl;
-      std::cout << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0) << std::endl;
-      std::cout << "r=" << sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << sqrt( outPar.At(n, 3, 0)*outPar.At(n, 3, 0) + outPar.At(n, 4, 0)*outPar.At(n, 4, 0) ) << std::endl;
-#endif
+      dprint("propagation end, dump parameters" << std::endl
+        << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
+        << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0) << std::endl
+        << "r=" << sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << sqrt( outPar.At(n, 3, 0)*outPar.At(n, 3, 0) + outPar.At(n, 4, 0)*outPar.At(n, 4, 0) ));
 
       float p = pt2 + pzin*pzin;
       p=sqrt(p);

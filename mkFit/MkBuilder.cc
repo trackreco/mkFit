@@ -63,8 +63,6 @@ namespace {
       }
     }
   }
-
-  bool debug = true;
 }
 #endif
 
