@@ -59,11 +59,14 @@ inline void sincos4(float x, float& sin, float& cos)
 
    cos  = 1;
    sin  = x;   x *= x * 0.5f;
-   cos -= x;   x *= x * 0.33333333f;
-   sin -= x;   x *= x * 0.25f;
-   cos += x;
+   cos -= x;   //x *= x * 0.33333333f;
+   //sin -= x;   x *= x * 0.25f;
+   //cos += x;
 }
 
+inline float asintay(float x) {
+  return x + 0.16666667f*x*x*x;
+}
 //==============================================================================
 
 // This ifdef needs to be changed to something like "use matriplex" and/or

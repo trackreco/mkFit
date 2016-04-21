@@ -25,6 +25,14 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg,
 			         MPlexLV& outPar, const MPlexQF &msRad, 
 			         MPlexLL& errorProp, bool useSimpleJac);
 
+void helixAtRCart(const MPlexLV& inPar, const MPlexQI& inChg, 
+		  MPlexLV& outPar, const MPlexQF &msRad, 
+		  MPlexLL& errorProp);
+
+void helixAtR(const MPlexLV& inPar, const MPlexQI& inChg, 
+	      MPlexLV& outPar, const MPlexQF &msRad, 
+	      MPlexLL& errorProp);
+
 void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, 
                                     MPlexLV& outPar, const MPlexQF &msRad, 
    			            MPlexLL& errorProp);

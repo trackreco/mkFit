@@ -3,6 +3,7 @@
 
 #include "Hit.h"
 #include "Matrix.h"
+#include "Config.h"
 #include <vector>
 
 typedef std::pair<int,int> SimTkIDInfo;
@@ -43,15 +44,28 @@ public:
 						 errors.At(0,1),errors.At(0,2),errors.At(1,2)));}
 
   // track state momentum
+#ifdef POLCOORD
+  float invpT()  const {return parameters.At(3);}
+  float momPhi() const {return parameters.At(4);}
+  float theta()  const {return parameters.At(5);}
+  float pT()     const {return fabs(1./parameters.At(3));}
+  float px()     const {return pT()*cos(parameters.At(4));}
+  float py()     const {return pT()*sin(parameters.At(4));}
+  float pz()     const {return pT()/tan(parameters.At(5));}
+  float momEta() const {return getEta (pT(),pz());}
+#else
   float px()     const {return parameters.At(3);}
   float py()     const {return parameters.At(4);}
   float pz()     const {return parameters.At(5);}
   float pT()     const {return sqrtf(getRad2(px(),py()));}
-  float p()      const {return sqrtf(px()*px()+py()*py()+pz()*pz());}
   float momPhi() const {return       getPhi (px(),py());}
   float momEta() const {return       getEta (pT(),pz());}
+  float theta()  const {return getTheta(pT(),pz());}
+  float invpT()  const {return sqrtf(getInvRad2(px(),py()));}
+#endif
+  float p()      const {return sqrtf(px()*px()+py()*py()+pz()*pz());}
 
-  // track state momentum errors
+  // track state momentum errors //fixme these are all wrong now
   float epxpx()   const {return sqrtf(errors.At(3,3));}
   float epypy()   const {return sqrtf(errors.At(4,4));}
   float epzpz()   const {return sqrtf(errors.At(5,5));}
@@ -64,8 +78,6 @@ public:
   float emomEta() const {return sqrtf(getEtaErr2(px(),py(),pz(),errors.At(3,3),errors.At(4,4),errors.At(5,5),
 						 errors.At(3,4),errors.At(3,5),errors.At(4,5)));}
 
-  float theta()   const {return getTheta(pT(),pz());}
-  float invpT()   const {return sqrtf(getInvRad2(px(),py()));}
   float etheta()  const {return sqrtf(getThetaErr2(px(),py(),pz(),errors.At(3,3),errors.At(4,4),errors.At(5,5),
 						   errors.At(3,4),errors.At(3,5),errors.At(4,5)));}
   float einvpT()  const {return sqrtf(getInvRadErr2(px(),py(),errors.At(3,3),errors.At(4,4),errors.At(3,4)));}
@@ -120,12 +132,12 @@ public:
   float posPhi() const { return getPhi(state_.parameters[0],state_.parameters[1]); }
   float posEta() const { return getEta(state_.parameters[0],state_.parameters[1],state_.parameters[2]); }
 
-  float px()     const { return state_.parameters[3];}
-  float py()     const { return state_.parameters[4];}
-  float pz()     const { return state_.parameters[5];}
-  float pT()     const { return getHypot(state_.parameters[3],state_.parameters[4]); }
-  float momPhi() const { return getPhi(state_.parameters[3],state_.parameters[4]); }
-  float momEta() const { return getEta(state_.parameters[3],state_.parameters[4],state_.parameters[5]); }
+  float px()     const { return state_.px();}
+  float py()     const { return state_.py();}
+  float pz()     const { return state_.pz();}
+  float pT()     const { return state_.pT(); }
+  float momPhi() const { return state_.momPhi(); }
+  float momEta() const { return state_.momEta(); }
 
   // track state momentum errors
   float epx()     const { return sqrtf(state_.errors[3][3]);}

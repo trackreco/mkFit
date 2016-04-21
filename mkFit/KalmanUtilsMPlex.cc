@@ -676,6 +676,7 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   //invert the 2x2 matrix
   Matriplex::InvertCramerSym(resErr_loc);
 
+#ifndef POLCOORD
   // Move to "polar" coordinates: (x,y,z,1/pT,phi,theta) [can we find a better name?]
 
   MPlexLV propPar_pol;// propagated parameters in "polar" coordinates
@@ -685,6 +686,7 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   MPlexLL tempLL;
   PolarErr      (jac_pol, propErr, tempLL);
   PolarErrTransp(jac_pol, tempLL, propErr);// propErr is now propagated errors in "polar" coordinates
+#endif
 
   // Kalman update in "polar" coordinates
 
@@ -692,18 +694,26 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   KalmanHTG(rotT00, rotT01, resErr_loc, tempHH); // intermediate term to get kalman gain (H^T*G)
   KalmanGain(propErr, tempHH, K);
 
-  MultResidualsAdd(K, propPar_pol, res_loc, propPar_pol);// propPar_pol is not the updated parameters in "polar" coordinates
+#ifdef POLCOORD
+  MultResidualsAdd(K, propPar, res_loc, outPar);// propPar_pol is now the updated parameters in "polar" coordinates
+  MPlexLL tempLL;
+#else
+  MultResidualsAdd(K, propPar_pol, res_loc, propPar_pol);// propPar_pol is now the updated parameters in "polar" coordinates
+#endif
+
 
   KHMult(K, rotT00, rotT01, tempLL);
   KHC(tempLL, propErr, outErr);
   outErr.Subtract(propErr, outErr);// outErr is in "polar" coordinates now
 
+#ifndef POLCOORD
   // Go back to cartesian coordinates
 
   // jac_pol is now the jacobian from "polar" to cartesian
   ConvertToCartesian(propPar_pol, outPar, jac_pol);
   CartesianErr      (jac_pol, outErr, tempLL);
   CartesianErrTransp(jac_pol, tempLL, outErr);// outErr is in cartesian coordinates now
+#endif
 
 #ifdef DEBUG
   if (dump) {
@@ -831,15 +841,19 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
   //invert the 2x2 matrix
   Matriplex::InvertCramerSym(resErr_loc);
 
+  //compute chi2
+  Chi2Similarity(res_loc, resErr_loc, outChi2);
+
 #ifdef DEBUG
   if (dump) {
     printf("resErr_loc (Inv):\n");
     for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
         printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
     } printf("\n");
+    printf("chi2:\n");
+        printf("%8f ", outChi2.At(0,0,0)); printf("\n");
+    } printf("\n");
   }
 #endif
 
-  //compute chi2
-  Chi2Similarity(res_loc, resErr_loc, outChi2);
 }

@@ -5,6 +5,7 @@
 #include <string> // won't compile on clang gcc for mac OS w/o this!
 
 //#define PRINTOUTS_FOR_PLOTS
+//#define POLCOORD
 
 namespace Config
 {
@@ -90,8 +91,8 @@ namespace Config
   constexpr float Bfield = 3.8112;
   constexpr bool doIterative = true;
   constexpr bool useSimpleJac = false;//bad results
-  constexpr bool useCurvJac   = false;//not optimized, needs a manual change in PropagationMPlex.cc
-  constexpr bool useTrigApprox = true;
+  //constexpr bool useCurvJac   = false;//not optimized, needs a manual change in PropagationMPlex.cc
+  constexpr bool useTrigApprox = false;
 
   // Config for seeding as well... needed bfield
   constexpr float maxCurvR = (100 * minSimPt) / (sol * Bfield); // in cm

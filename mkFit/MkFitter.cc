@@ -629,7 +629,7 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
     float dPhiMargin = 0.;
     if (Config::useCMSGeom) {
       //now correct for bending and for layer thickness unsing linear approximation
-      const float predpx = Par[iP].ConstAt(itrack, 3, 0);
+      const float predpx = Par[iP].ConstAt(itrack, 3, 0);//FIXME FOR POLCOORD
       const float predpy = Par[iP].ConstAt(itrack, 4, 0);
       float deltaR = Config::cmsDeltaRad; //fixme! using constant vale, to be taken from layer properties
       float radius = sqrt(px2py2);

@@ -99,6 +99,10 @@ void Event::Simulate()
       else setupTrackByToyMC(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs); 
       validation_.collectSimTkTSVecMapInfo(itrack,initialTSs); // save initial TS parameters
 
+#ifdef POLCOORD
+      float pt = sqrt(mom[0]*mom[0]+mom[1]*mom[1]);
+      mom=SVector3(1./pt,atan2(mom[1],mom[0]),atan2(pt,mom[2]));
+#endif
       simTracks_[itrack] = Track(q,pos,mom,covtrk,0.0f);
       auto& sim_track = simTracks_[itrack];
       sim_track.setLabel(itrack);
