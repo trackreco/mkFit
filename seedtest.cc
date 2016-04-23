@@ -187,7 +187,7 @@ void buildSeedsByRoadTriplets(TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed
   if (debug){
     dprint("Hit Pairs");
     for(auto&& hitPair : hitPairs){
-      printf("ilay0: %1u ilay1: %1u  \n",
+      dprintf("ilay0: %1u ilay1: %1u  \n",
  	     ev.simHitsInfo_[evt_lay_hits[0][hitPair[0]].mcHitID()].mcTrackID(),
  	     ev.simHitsInfo_[evt_lay_hits[1][hitPair[1]].mcHitID()].mcTrackID()
 	     );
@@ -216,7 +216,7 @@ void buildSeedsByRoadTriplets(TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed
   if (debug){
     dprint("Hit Triplets");
     for(auto&& hitTriplet : hitTriplets){
-      printf("ilay0: %1u ilay1: %1u ilay2: %1u \n",
+      dprintf("ilay0: %1u ilay1: %1u ilay2: %1u \n",
  	     ev.simHitsInfo_[evt_lay_hits[0][hitTriplet[0]].mcHitID()].mcTrackID(),
  	     ev.simHitsInfo_[evt_lay_hits[1][hitTriplet[1]].mcHitID()].mcTrackID(),
  	     ev.simHitsInfo_[evt_lay_hits[2][hitTriplet[2]].mcHitID()].mcTrackID()

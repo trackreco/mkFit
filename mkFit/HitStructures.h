@@ -4,6 +4,7 @@
 #include "Config.h"
 #include "Hit.h"
 #include "Track.h"
+#include "Debug.h"
 
 // for each layer
 //   Config::nEtaBin vectors of hits, resized to large enough N
@@ -321,7 +322,7 @@ public:
       m_etabins_of_comb_candidates[bin].InsertSeed(seed);
     } 
 #ifdef DEBUG
-    else std::cout << "excluding seed with r=" << seed.posR() << " etaBin=" << bin << std::endl;
+    else { dprint("excluding seed with r=" << seed.posR() << " etaBin=" << bin) };
 #endif
   }
 

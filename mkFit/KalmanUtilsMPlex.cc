@@ -1,5 +1,6 @@
 #include "KalmanUtilsMPlex.h"
 #include "PropagationMPlex.h"
+#include "Debug.h"
 
 namespace
 {
@@ -596,7 +597,7 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   // Can be passed in in a struct, see above.
 
 #ifdef DEBUG
-  const bool dump = g_dump;
+  const bool debug = g_dump;
 #endif
 
   // updateParametersContext ctx;
@@ -613,7 +614,8 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   }
 
 #ifdef DEBUG
-  if (dump) {
+  if (debug) {
+    dmutex;
     printf("propPar:\n");
     for (int i = 0; i < 6; ++i) { 
       printf("%8f ", propPar.ConstAt(0,0,i)); printf("\n");
@@ -665,7 +667,8 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   ProjectResErrTransp(rotT00, rotT01, tempHH, resErr_loc);
 
 #ifdef DEBUG
-  if (dump) {
+  if (debug) {
+    dmutex;
     printf("resErr:\n");
     for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
         printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
@@ -706,7 +709,8 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   CartesianErrTransp(jac_pol, tempLL, outErr);// outErr is in cartesian coordinates now
 
 #ifdef DEBUG
-  if (dump) {
+  if (debug) {
+    dmutex;
     printf("res_glo:\n");
     for (int i = 0; i < 3; ++i) {
         printf("%8f ", res_glo.At(0,i,0));
@@ -752,7 +756,7 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
   // Can be passed in in a struct, see above.
 
 #ifdef DEBUG
-  const bool dump = g_dump;
+  const bool debug = g_dump;
 #endif
 
   // updateParametersContext ctx;
@@ -769,7 +773,8 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
   }
 
 #ifdef DEBUG
-  if (dump) {
+  if (debug) {
+    dmutex;
     printf("propPar:\n");
     for (int i = 0; i < 6; ++i) { 
       printf("%8f ", propPar.ConstAt(0,0,i)); printf("\n");
@@ -820,7 +825,8 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
   ProjectResErrTransp(rotT00, rotT01, tempHH, resErr_loc);
 
 #ifdef DEBUG
-  if (dump) {
+  if (debug) {
+    dmutex;
     printf("resErr_loc:\n");
     for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
         printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
@@ -832,7 +838,8 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
   Matriplex::InvertCramerSym(resErr_loc);
 
 #ifdef DEBUG
-  if (dump) {
+  if (debug) {
+    dmutex;
     printf("resErr_loc (Inv):\n");
     for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
         printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");

@@ -710,8 +710,10 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
 
 #ifdef DEBUG
     xout << "found range firstHit=" << XHitPos.At(itrack, 0, 0) << " size=" << XHitSize.At(itrack, 0, 0) << std::endl;
-    if (xout_dump)
-       std::cout << xout.str();
+    if (xout_dump) {
+      dmutex;
+      std::cout << xout.str();
+    }
 #endif
 
   }

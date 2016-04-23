@@ -1,10 +1,17 @@
-//#define DEBUG
+#ifndef _debug_
+#define _debug_
 #ifdef DEBUG
-#define dprint(x) if (debug) std::cout << x << std::endl
-#define dcall(x)  if (debug) { x; }
-#define dprintf(...) if (debug) { printf(__VA_ARGS__); }
+#include <mutex>
 
-namespace { bool debug = true; } // default value, can be overridden locally
+#define dmutex std::lock_guard<std::mutex> dlock(debug_mutex)
+#define dprint(x) if (debug) { dmutex; std::cout << x << std::endl; }
+#define dcall(x)  if (debug) { dmutex; x; }
+#define dprintf(...) if (debug) { dmutex; printf(__VA_ARGS__); }
+
+namespace { 
+  bool debug = true; // default, can be overridden locally
+  std::mutex debug_mutex;
+}
 
 static void print(const TrackState& s)
 {
@@ -46,4 +53,5 @@ static void print(std::string label, const MeasurementState& s)
 #define dprint(x) (void(0))
 #define dcall(x) (void(0))
 #define dprintf(...) (void(0))
+#endif
 #endif

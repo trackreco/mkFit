@@ -164,11 +164,11 @@ void Event::Segment()
           lastPhiIdxFound+=phiBinSize;
         }
 #ifdef DEBUG
-        if ((debug) && (phiBinSize !=0)) printf("ilayer: %1u etabin: %1u phibin: %2u first: %2u last: %2u \n", 
-                                                ilayer, etabin, phibin, 
-                                                segmentMap_[ilayer][etabin][phibin].first, 
-                                                segmentMap_[ilayer][etabin][phibin].second+segmentMap_[ilayer][etabin][phibin].first
-                                                );
+        if ((debug) && (phiBinSize !=0)) dprintf("ilayer: %1u etabin: %1u phibin: %2u first: %2u last: %2u \n", 
+                                                 ilayer, etabin, phibin, 
+                                                 segmentMap_[ilayer][etabin][phibin].first, 
+                                                 segmentMap_[ilayer][etabin][phibin].second+segmentMap_[ilayer][etabin][phibin].first
+                                                 );
 #endif
       } // end loop over storing phi index
     } // end loop over storing eta index
@@ -200,6 +200,7 @@ void Event::Segment()
 
 #ifdef DEBUG
   for (int ilayer = 0; ilayer < Config::nLayers; ilayer++) {
+    dmutex;
     int etahitstotal = 0;
     for (int etabin = 0; etabin < Config::nEtaPart; etabin++){
       int etahits = segmentMap_[ilayer][etabin][Config::nPhiPart-1].first + segmentMap_[ilayer][etabin][Config::nPhiPart-1].second - segmentMap_[ilayer][etabin][0].first;
