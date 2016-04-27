@@ -1,4 +1,4 @@
-#include "Matriplex/MatriplexCommon.h"
+A1;2c#include "Matriplex/MatriplexCommon.h"
 
 #include "fittestMPlex.h"
 #include "buildtestMPlex.h"
@@ -12,6 +12,10 @@
 #include <limits>
 
 #include "Event.h"
+
+#ifndef NO_ROOT
+#include "TTreeValidation.h"
+#endif
 
 #ifdef USE_CUDA
 #include "FitterCU.h"
@@ -155,8 +159,12 @@ void test_standard()
 
   Geometry geom;
   initGeom(geom);
+#ifdef NO_ROOT
   Validation val;
-
+#else 
+  TTreeValidation val("valtree.root");
+#endif
+  
   const int NT = 5;
   double t_sum[NT] = {0};
   double t_skip[NT] = {0};
@@ -316,6 +324,10 @@ void test_standard()
 
     for (int i = 0; i < NT; ++i) t_sum[i] += t_cur[i];
     if (evt > 1) for (int i = 0; i < NT; ++i) t_skip[i] += t_cur[i];
+
+#ifndef NO_ROOT
+    make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
+#endif
   }
 #endif
   printf("\n");
@@ -332,10 +344,6 @@ void test_standard()
   {
     close_simtrack_file();
   }
-
-#ifndef NO_ROOT
-  make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
-#endif
 }
 
 //==============================================================================

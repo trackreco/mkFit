@@ -198,8 +198,8 @@ public:
   SVector6&     error_nc()      {return state_.err_;}
 
   float r() const {
-    return std::sqrt(state_.parameters().At(0)*state_.parameters().At(0) +
-                     state_.parameters().At(1)*state_.parameters().At(1));
+    return sqrtf(state_.parameters().At(0)*state_.parameters().At(0) +
+		 state_.parameters().At(1)*state_.parameters().At(1));
   }
   float x() const {
     return state_.parameters().At(0);

@@ -17,6 +17,7 @@ namespace Config
   constexpr float TwoPI    = 6.28318530717958647692;
   constexpr float PIOver2  = Config::PI / 2.0;
   constexpr float PIOver4  = Config::PI / 4.0;
+  constexpr float PI3Over4 = 3.0 * Config::PI / 4.0;
   constexpr float InvPI    = 1.0 / Config::PI;
   constexpr float RadToDeg = 180.0 / Config::PI;
   constexpr float DegToRad = Config::PI / 180.0;
@@ -124,9 +125,9 @@ namespace Config
   constexpr float phierr049   = 0.0017; // 0.0017;
   constexpr float thetaerr049 = 0.0033; // 0.0031; 
   // parameters for layers 0,1,2 // --> ENDTOEND with "real seeding", fit is outward by definition, with poly geo
-  constexpr float ptinverr012 = 0.1234; // 0.1789;  -->old values from only MC seeds
-  constexpr float phierr012   = 0.0071; // 0170; 
-  constexpr float thetaerr012 = 0.0130; // 0.0137; 
+  constexpr float ptinverr012 = 0.12007; // 0.1789;  -->old values from only MC seeds
+  constexpr float phierr012   = 0.00646; // 0.0071 
+  constexpr float thetaerr012 = 0.01366; // 0.0130; 
 
   // matrix config
   // XXXX MT this should be renamed, made constexpr
