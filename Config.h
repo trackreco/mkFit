@@ -10,7 +10,6 @@ namespace Config
 {
   // super debug mode in SMatrix
   extern bool super_debug;
-  extern bool cf_seeding;
 
   // math general --> from namespace TMath
   constexpr float    PI    = 3.14159265358979323846;
@@ -85,7 +84,8 @@ namespace Config
   constexpr float seed_z0cut   = beamspotZ * 3.0; // 3cm
   constexpr float lay2Zcut     = hitposerrZ * 3.6; // 3.6 mm --> to match efficiency from chi2cut
   constexpr float seed_d0cut   = 0.5; // 5mm
-  
+  extern bool cf_seeding;
+
   // Config for propagation
   constexpr int Niter = 5;
   constexpr float Bfield = 3.8112;
@@ -128,6 +128,9 @@ namespace Config
   constexpr float ptinverr012 = 0.12007; // 0.1789;  -->old values from only MC seeds
   constexpr float phierr012   = 0.00646; // 0.0071 
   constexpr float thetaerr012 = 0.01366; // 0.0130; 
+
+  // config on fitting
+  extern bool cf_fitting;
 
   // matrix config
   // XXXX MT this should be renamed, made constexpr

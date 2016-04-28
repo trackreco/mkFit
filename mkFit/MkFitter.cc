@@ -3,6 +3,7 @@
 
 #include "PropagationMPlex.h"
 #include "KalmanUtilsMPlex.h"
+#include "ConformalUtilsMPlex.h"
 #ifdef USE_CUDA
 #include "FitterCU.h"
 #endif
@@ -205,6 +206,70 @@ void MkFitter::InputHitsOnly(std::vector<Hit>& hits, int beg, int end)
     msPar[Nhits].CopyIn(itrack, hit.posArray());
   }
   Nhits++;
+}
+
+void MkFitter::ConformalFitTracks(bool fitting, int beg, int end)
+{
+  // bool fitting to determine to use fitting CF error widths
+  // in reality, this is depedent on hits used to make pulls 
+  // could consider writing an array for widths for a given hit combo 
+  // to give precise widths --> then would drop boolean
+  // also used to determine which hits to use
+
+  int front,middle,back;
+  
+  // FIXME FITTING HITS --> assume one hit per layer and all layers found! BAD! Need vector of indices to do this right instead... 
+  // can always assume 0,1,2 for seeding --> triplets in forward direction
+#ifdef INWARDFIT
+  front  = (fitting ?  Config::nLayers-1    : 0); // i.e. would rather have true option not hardcoded... but set by ACTUAL last hit found
+  middle = (fitting ? (Config::nLayers-1)/2 : 1); // same with this one... would rather middle hit be in the middle!
+  back   = (fitting ? 0 : 2); 
+#else
+  front  = (fitting ? 0 : 0); 
+  middle = (fitting ? (Config::nLayers-1)/2 : 1); // ditto above
+  back   = (fitting ?  Config::nLayers-1    : 2); // yup...
+#endif
+
+#ifdef DEBUG
+  for (int n = 0; n < NN; ++n){
+    float px, py, pt, pz, phi, theta;
+    px = Par[iC].ConstAt(n, 3, 0); py = Par[iC].ConstAt(n, 4, 0);
+    pz = Par[iC].ConstAt(n, 5, 0); pt = hipo(px,py);
+    theta = getTheta(pt,pz);
+    phi   = getPhi(px,py);
+    int label = Label.ConstAt(n, 0, 0);
+    float z0, z1, z2;
+    float x0, x2, y0, y2;
+    x0 = msPar[0].ConstAt(n, 0, 0); x2 = msPar[2].ConstAt(n, 0, 0); y0 = msPar[0].ConstAt(n, 1, 0); y2 = msPar[2].ConstAt(n, 1, 0);  
+    z0 = msPar[0].ConstAt(n, 2, 0); z1 = msPar[1].ConstAt(n, 2, 0); z2 = msPar[2].ConstAt(n, 2, 0);  
+    float tantheta = sqrtf(hipo(x0-x2,y0-y2))/(z2-z0);
+    printf("MC label: %i pt: %7.4f pz: % 8.4f theta: %6.4f tantheta: % 7.4f \n",label,pt,pz,theta,tantheta);
+    printf("             px: % 8.4f py: % 8.4f phi: % 7.4f \n");
+  }
+#endif
+
+  // write to iC --> next step will be a propagation no matter what
+  conformalFitMPlex(fitting, Chg, Err[iC], Par[iC], 
+		    msPar[front], msPar[middle], msPar[back]);
+
+#ifdef DEBUG
+  for (int n = 0; n < NN; ++n){
+    float px, py, pt, pz, phi, theta;
+    px = Par[iC].ConstAt(n, 3, 0); py = Par[iC].ConstAt(n, 4, 0); 
+    pz = Par[iC].ConstAt(n, 5, 0); pt = hipo(px,py);
+    theta = getTheta(pt,pz);
+    phi   = getPhi(px,py);
+    int label = Label.ConstAt(n, 0, 0);
+    float z0, z1, z2;
+    float x0, x2, y0, y2;
+    x0 = msPar[0].ConstAt(n, 0, 0); x2 = msPar[2].ConstAt(n, 0, 0); y0 = msPar[0].ConstAt(n, 1, 0); y2 = msPar[2].ConstAt(n, 1, 0);  
+    z0 = msPar[0].ConstAt(n, 2, 0); z1 = msPar[1].ConstAt(n, 2, 0); z2 = msPar[2].ConstAt(n, 2, 0);  
+    float tantheta = sqrtf(hipo(x0-x2,y0-y2))/(z2-z0);
+    printf("CF label: %i pt: %7.4f pz: % 8.4f theta: %6.4f tantheta: % 7.4f \n",label,pt,pz,theta,tantheta);
+    printf("             px: % 8.4f py: % 8.4f phi: % 7.4f \n");
+  }
+#endif
+
 }
 
 void MkFitter::FitTracks()

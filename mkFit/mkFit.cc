@@ -1,4 +1,4 @@
-A1;2c#include "Matriplex/MatriplexCommon.h"
+#include "Matriplex/MatriplexCommon.h"
 
 #include "fittestMPlex.h"
 #include "buildtestMPlex.h"
@@ -409,6 +409,8 @@ int main(int argc, const char *argv[])
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
 	"  --cms-geom               use cms-like geometry (def: %i)\n"
 	"  --cmssw-seeds            take seeds from CMSSW (def: %i)\n"
+	"  --cf-seeding             enable CF in seeding (def: %s)\n"
+	"  --cf-fitting             enable CF in fitting (def: %s)\n"
 	"  --write                  write simulation to file and exit\n"
 	"  --read                   read simulation from file\n"
 	"  --file-name              file name for write/read (def: %s)\n"
@@ -425,6 +427,8 @@ int main(int argc, const char *argv[])
         Config::finderReportBestOutOfN,
 	Config::useCMSGeom,
 	Config::readCmsswSeeds,
+	Config::cf_seeding ? "true" : "false",
+	Config::cf_fitting ? "true" : "false",
 	g_file_name.c_str()
       );
       exit(0);
@@ -495,6 +499,14 @@ int main(int argc, const char *argv[])
     else if(*i == "--cmssw-seeds")
     {
       Config::readCmsswSeeds = true;
+    }
+    else if (*i == "--cf-seeding")
+    {
+      Config::cf_seeding = true;
+    }
+    else if (*i == "--cf-fitting")
+    {
+      Config::cf_fitting = true;
     }
     else if (*i == "--num-thr-ev")
     {

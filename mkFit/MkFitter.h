@@ -68,6 +68,7 @@ public:
                             int beg, int end, bool inputProp);
   void InputTracksOnly   (std::vector<Track>& tracks, int beg, int end);
   void InputHitsOnly(std::vector<Hit>& hits, int beg, int end);
+  void ConformalFitTracks(bool fitting, int beg, int end);
   void FitTracks();
 
   void OutputTracks(std::vector<Track>& tracks, int beg, int end, int iCP);

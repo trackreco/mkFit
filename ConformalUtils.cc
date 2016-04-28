@@ -19,8 +19,8 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
   z[2]=hit2.position()[2];
 
   float u[3],v[3]; // conformal points
-  float initphi = abs(atan2(y[1],x[1])); // use this to decide when to use x -> u or x -> v
-  bool xtou = (initphi<Config::PIOver4 || initPhi>Config::PI3Over4);
+  float initphi = fabs(getPhi(x[1],y[1])); // use this to decide when to use x -> u or x -> v
+  bool xtou = (initphi<Config::PIOver4 || initphi>Config::PI3Over4);
 
   if (xtou){ // x -> u 
     for (unsigned int h=0;h<3;++h) {
@@ -65,7 +65,7 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
   float py  = fabs(pt*sin(phi))*((y[1]-y[0])>0. ? 1. : -1.);
 
   //compute theta
-  float tantheta = sqrtf(getRad2((x[0]-x[2]),(y[0]-y[2]))/(z[2]-z[0]);
+  float tantheta = sqrtf(getRad2((x[0]-x[2]),(y[0]-y[2])))/(z[2]-z[0]);
   float pz = fabs(pt/tantheta)*((z[1]-z[0])>0. ? 1. : -1.);
 #ifdef INWARDFIT
   if (fiterrs) { // need conformal fit on seeds to be forward!
@@ -120,7 +120,7 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
 
   fitStateHit0.errors[3][3] = pow(cos(phi),2)*pow(pterr,2)+pow(pt*sin(phi),2)*pow(phierr,2);
   fitStateHit0.errors[4][4] = pow(sin(phi),2)*pow(pterr,2)+pow(pt*cos(phi),2)*pow(phierr,2);
-  fitStateHit0.errors[5][5] = pow(1./tantheta,2)*pow(pterr,2)+pow(pt/pow(sin(atan(tantheta)),2),2)*pow(thetaerr,2);
+  fitStateHit0.errors[5][5] = pow(1./tantheta,2)*pow(pterr,2)+pow(pt/pow(tantheta/sqrtf(1.+pow(tantheta,2)),2),2)*pow(thetaerr,2);
 
   /*
   //fixme: if done with correlations pt pull gets larger, do I have a bug?  (actually scaling by 10k it looks nice as well)
