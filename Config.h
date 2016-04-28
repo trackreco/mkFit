@@ -89,9 +89,6 @@ namespace Config
   // Config for propagation
   constexpr int Niter = 5;
   constexpr float Bfield = 3.8112;
-  constexpr bool doIterative = true;
-  constexpr bool useSimpleJac = false;//bad results
-  //constexpr bool useCurvJac   = false;//not optimized, needs a manual change in PropagationMPlex.cc
   constexpr bool useTrigApprox = false;
 
   // Config for seeding as well... needed bfield
