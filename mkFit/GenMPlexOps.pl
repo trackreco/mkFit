@@ -206,6 +206,14 @@ x x 0 x x 0
 x x 0 x x 0
 0 0 0 0 0 1
 FNORD
+#switch to the one below when moving to polar coordinates only
+#x x 0 x x 0
+#x x 0 x x 0
+#x x 1 x x x
+#0 0 0 1 0 0
+#x x 0 x x 0
+#0 0 0 0 0 1
+#FNORD
 
 $outErr = new GenMul::MatrixSym('name'=>'b', 'M'=>$DIM, 'N'=>$DIM);
 

@@ -21,6 +21,14 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
 inline void computeJacobianSimple(int n, MPlexLL& errorProp, 
 				  float k, float TP, float cosTP, float sinTP);
 
+void helixAtRFromIterativePolarFullJac(const MPlexLV& inPar, const MPlexQI& inChg,
+				             MPlexLV& outPar, const MPlexQF &msRad,
+				             MPlexLL& errorProp);
+
+void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg,
+			              MPlexLV& outPar, const MPlexQF &msRad,
+			              MPlexLL& errorProp);
+
 void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, 
 			         MPlexLV& outPar, const MPlexQF &msRad, 
 			         MPlexLL& errorProp, bool useSimpleJac);
