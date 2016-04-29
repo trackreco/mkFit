@@ -3,10 +3,10 @@
 #ifdef DEBUG
 #include <mutex>
 
-#define dmutex std::lock_guard<std::mutex> dlock(debug_mutex)
-#define dprint(x) if (debug) { dmutex; std::cout << x << std::endl; }
-#define dcall(x)  if (debug) { dmutex; x; }
-#define dprintf(...) if (debug) { dmutex; printf(__VA_ARGS__); }
+#define dmutex_guard std::lock_guard<std::mutex> dlock(debug_mutex)
+#define dprint(x) if (debug) { dmutex_guard; std::cout << x << std::endl; }
+#define dcall(x)  if (debug) { dmutex_guard; x; }
+#define dprintf(...) if (debug) { dmutex_guard; printf(__VA_ARGS__); }
 
 namespace { 
   bool debug = true; // default, can be overridden locally

@@ -457,7 +457,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	
 #ifdef DEBUG
         {
-          dmutex;
+          dmutex_guard;
         	std::cout << "rotateCartCu2Ca" << std::endl;
         	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCu2Ca(n,0,0),rotateCartCu2Ca(n,0,1),rotateCartCu2Ca(n,0,2),rotateCartCu2Ca(n,0,3),rotateCartCu2Ca(n,0,4),rotateCartCu2Ca(n,0,5));
         	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCu2Ca(n,1,0),rotateCartCu2Ca(n,1,1),rotateCartCu2Ca(n,1,2),rotateCartCu2Ca(n,1,3),rotateCartCu2Ca(n,1,4),rotateCartCu2Ca(n,1,5));
@@ -489,7 +489,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 
 #ifdef DEBUG
         {
-          dmutex;
+          dmutex_guard;
         	std::cout << "jacCartToCurv" << std::endl;
         	printf("%5f %5f %5f %5f %5f %5f\n", jacCartToCurv(n,0,0),jacCartToCurv(n,0,1),jacCartToCurv(n,0,2),jacCartToCurv(n,0,3),jacCartToCurv(n,0,4),jacCartToCurv(n,0,5));
         	printf("%5f %5f %5f %5f %5f %5f\n", jacCartToCurv(n,1,0),jacCartToCurv(n,1,1),jacCartToCurv(n,1,2),jacCartToCurv(n,1,3),jacCartToCurv(n,1,4),jacCartToCurv(n,1,5));
@@ -521,7 +521,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 
 #ifdef DEBUG
         {
-          dmutex;
+          dmutex_guard;
         	std::cout << "jacCurvToCart" << std::endl;
         	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvToCart(n,0,0),jacCurvToCart(n,0,1),jacCurvToCart(n,0,2),jacCurvToCart(n,0,3),jacCurvToCart(n,0,4),jacCurvToCart(n,0,5));
         	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvToCart(n,1,0),jacCurvToCart(n,1,1),jacCurvToCart(n,1,2),jacCurvToCart(n,1,3),jacCurvToCart(n,1,4),jacCurvToCart(n,1,5));
@@ -675,7 +675,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 
 #ifdef DEBUG
         {
-          dmutex;
+          dmutex_guard;
         	std::cout << "jacCurvProp" << std::endl;
         	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,0,0),jacCurvProp(n,0,1),jacCurvProp(n,0,2),jacCurvProp(n,0,3),jacCurvProp(n,0,4),jacCurvProp(n,0,5));
         	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,1,0),jacCurvProp(n,1,1),jacCurvProp(n,1,2),jacCurvProp(n,1,3),jacCurvProp(n,1,4),jacCurvProp(n,1,5));
@@ -690,7 +690,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	MultHelixPropFull(jacCartToCurv, rotateCartCa2Cu, temp5);
 #ifdef DEBUG
   {
-    dmutex;
+    dmutex_guard;
   	std::cout << "rotated jacCartToCurv" << std::endl;
   	printf("%5f %5f %5f %5f %5f %5f\n", temp5(n,0,0),temp5(n,0,1),temp5(n,0,2),temp5(n,0,3),temp5(n,0,4),temp5(n,0,5));
   	printf("%5f %5f %5f %5f %5f %5f\n", temp5(n,1,0),temp5(n,1,1),temp5(n,1,2),temp5(n,1,3),temp5(n,1,4),temp5(n,1,5));
@@ -704,7 +704,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	MultHelixPropFull(rotateCartCu2Ca, jacCurvToCart, temp6);
 #ifdef DEBUG
   {
-    dmutex;
+    dmutex_guard;
   	std::cout << "rotated jacCurvToCart" << std::endl;
   	printf("%5f %5f %5f %5f %5f %5f\n", temp6(n,0,0),temp6(n,0,1),temp6(n,0,2),temp6(n,0,3),temp6(n,0,4),temp6(n,0,5));
   	printf("%5f %5f %5f %5f %5f %5f\n", temp6(n,1,0),temp6(n,1,1),temp6(n,1,2),temp6(n,1,3),temp6(n,1,4),temp6(n,1,5));
@@ -719,7 +719,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	MultHelixPropFull(temp6, temp7, errorProp);
 #ifdef DEBUG
   {
-    dmutex;
+    dmutex_guard;
   	std::cout << "jacobian iterative" << std::endl;
   	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
   	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
@@ -792,7 +792,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 
 #ifdef DEBUG
       {
-        dmutex;
+        dmutex_guard;
         std::cout << "jacobian iterative" << std::endl;
         printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
         printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
@@ -957,7 +957,7 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
 
 #ifdef DEBUG
       {
-        dmutex;
+        dmutex_guard;
         std::cout << "jacobian intersection" << std::endl;
         printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
         printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));

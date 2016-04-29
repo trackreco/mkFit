@@ -200,7 +200,7 @@ void Event::Segment()
 
 #ifdef DEBUG
   for (int ilayer = 0; ilayer < Config::nLayers; ilayer++) {
-    dmutex;
+    dmutex_guard;
     int etahitstotal = 0;
     for (int etabin = 0; etabin < Config::nEtaPart; etabin++){
       int etahits = segmentMap_[ilayer][etabin][Config::nPhiPart-1].first + segmentMap_[ilayer][etabin][Config::nPhiPart-1].second - segmentMap_[ilayer][etabin][0].first;

@@ -413,7 +413,7 @@ TrackState propagateHelixToR(TrackState inputState, float r) {
     if ( i == (Config::Niter-1) && std::abs(r-hsout.r0) > tolerance) {
 #ifdef DEBUG
       if (debug) { // common condition when fit fails to converge
-        dmutex;
+        dmutex_guard;
         std::cerr << __FILE__ << ":" << __LINE__ 
                   << ": failed to converge in propagateHelixToR() after " << (i+1) << " iterations, r = "
                   << r 

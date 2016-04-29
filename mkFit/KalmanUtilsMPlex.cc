@@ -615,7 +615,7 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
 
 #ifdef DEBUG
   if (debug) {
-    dmutex;
+    dmutex_guard;
     printf("propPar:\n");
     for (int i = 0; i < 6; ++i) { 
       printf("%8f ", propPar.ConstAt(0,0,i)); printf("\n");
@@ -668,7 +668,7 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
 
 #ifdef DEBUG
   if (debug) {
-    dmutex;
+    dmutex_guard;
     printf("resErr:\n");
     for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
         printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
@@ -710,7 +710,7 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
 
 #ifdef DEBUG
   if (debug) {
-    dmutex;
+    dmutex_guard;
     printf("res_glo:\n");
     for (int i = 0; i < 3; ++i) {
         printf("%8f ", res_glo.At(0,i,0));
@@ -774,7 +774,7 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
 
 #ifdef DEBUG
   if (debug) {
-    dmutex;
+    dmutex_guard;
     printf("propPar:\n");
     for (int i = 0; i < 6; ++i) { 
       printf("%8f ", propPar.ConstAt(0,0,i)); printf("\n");
@@ -826,7 +826,7 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
 
 #ifdef DEBUG
   if (debug) {
-    dmutex;
+    dmutex_guard;
     printf("resErr_loc:\n");
     for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
         printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
@@ -839,7 +839,7 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
 
 #ifdef DEBUG
   if (debug) {
-    dmutex;
+    dmutex_guard;
     printf("resErr_loc (Inv):\n");
     for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
         printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
