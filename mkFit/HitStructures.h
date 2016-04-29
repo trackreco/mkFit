@@ -322,7 +322,7 @@ public:
       m_etabins_of_comb_candidates[bin].InsertSeed(seed);
     } 
 #ifdef DEBUG
-    else { dprint("excluding seed with r=" << seed.posR() << " etaBin=" << bin) };
+    else { dprint("excluding seed with r=" << seed.posR() << " etaBin=" << bin); };
 #endif
   }
 
