@@ -28,38 +28,46 @@ void conformalFitMPlex(bool fitting, const MPlexQI inChg,
   using idx_t = Matriplex::idx_t;
   const idx_t N = NN;
 
-  // Store positions in mplex vectors... could consider storing in a 3x3 matrix, too
-  MPlexHV x, y, z, r2;
+  MPlexHH pos;
+  // positions arranged in mplex as such
+  // x0 y0 z0
+  // x1 y1 y1
+  // x2 y2 z2
 #pragma simd
   for (int n = 0; n < N; ++n) 
   {
-    x.At(n, 0, 0) = msPar0.ConstAt(n, 0, 0);
-    x.At(n, 1, 0) = msPar1.ConstAt(n, 0, 0);
-    x.At(n, 2, 0) = msPar2.ConstAt(n, 0, 0);
+    pos.At(n, 0, 0) = msPar0.ConstAt(n, 0, 0);
+    pos.At(n, 1, 0) = msPar1.ConstAt(n, 0, 0);
+    pos.At(n, 2, 0) = msPar2.ConstAt(n, 0, 0);
 
-    y.At(n, 0, 0) = msPar0.ConstAt(n, 1, 0);
-    y.At(n, 1, 0) = msPar1.ConstAt(n, 1, 0);
-    y.At(n, 2, 0) = msPar2.ConstAt(n, 1, 0);
+    pos.At(n, 0, 1) = msPar0.ConstAt(n, 1, 0);
+    pos.At(n, 1, 1) = msPar1.ConstAt(n, 1, 0);
+    pos.At(n, 2, 1) = msPar2.ConstAt(n, 1, 0);
 
-    z.At(n, 0, 0) = msPar0.ConstAt(n, 2, 0);
-    z.At(n, 1, 0) = msPar1.ConstAt(n, 2, 0);
-    z.At(n, 2, 0) = msPar2.ConstAt(n, 2, 0);
-    
+    pos.At(n, 0, 2) = msPar0.ConstAt(n, 2, 0);
+    pos.At(n, 1, 2) = msPar1.ConstAt(n, 2, 0);
+    pos.At(n, 2, 2) = msPar2.ConstAt(n, 2, 0);
+  }
+
+  MPlexHV r2;
+#pragma simd
+  for (int n = 0; n < N; ++n)
+  {
     for (int i = 0; i < 3; ++i)
     {
-      r2.At(n, i, 0) = getRad2(x.ConstAt(n, i, 0), y.ConstAt(n, i, 0));
+      r2.At(n, i, 0) = getRad2(pos.ConstAt(n, i, 0), pos.ConstAt(n, i, 1));
     }
   }
   
   MPlexQF initPhi;
-  MPlexQI xtou; // bool to determine "split space", i.e. map x to u or v
+  MPlexQI xtou; // bool to determine "split space", i.e. map x to u or v (use the second layer to decide)
 #pragma simd
   for (int n = 0; n < N; ++n) 
   {
-    initPhi.At(n, 0, 0) = fabs(getPhi(x.ConstAt(n, 0, 0), y.ConstAt(n, 0, 0)));
+    initPhi.At(n, 0, 0) = fabs(getPhi(pos.ConstAt(n, 1, 0), pos.ConstAt(n, 1, 1)));
     xtou.At(n, 0, 0)    = ((initPhi.ConstAt(n, 0, 0) < Config::PIOver4 || initPhi.ConstAt(n, 0, 0) > Config::PI3Over4) ? 1 : 0);
   }
-
+  
   MPlexHV u,v;
 #pragma simd
   for (int n = 0; n < N; ++n) 
@@ -68,22 +76,22 @@ void conformalFitMPlex(bool fitting, const MPlexQI inChg,
     {
       for (int i = 0; i < 3; ++i) 
       {
-	u.At(n, i, 0) = x.ConstAt(n, i, 0) / r2.ConstAt(n, i, 0);
-	v.At(n, i, 0) = y.ConstAt(n, i, 0) / r2.ConstAt(n, i, 0);
+	u.At(n, i, 0) = pos.ConstAt(n, i, 0) / r2.ConstAt(n, i, 0);
+	v.At(n, i, 0) = pos.ConstAt(n, i, 1) / r2.ConstAt(n, i, 0);
       }
     }
     else // x mapped to v
     {
       for (int i = 0; i < 3; ++i) 
       {
-	u.At(n, i, 0) = y.ConstAt(n, i, 0) / r2.ConstAt(n, i, 0);
-	v.At(n, i, 0) = x.ConstAt(n, i, 0) / r2.ConstAt(n, i, 0);
+	u.At(n, i, 0) = pos.ConstAt(n, i, 1) / r2.ConstAt(n, i, 0);
+	v.At(n, i, 0) = pos.ConstAt(n, i, 0) / r2.ConstAt(n, i, 0);
       }
     }
   }
 
   MPlexHH A;
-  MPlexHV B;
+  //  MPlexHV B;
 #pragma simd
   for (int n = 0; n < N; ++n) 
   {
@@ -92,12 +100,12 @@ void conformalFitMPlex(bool fitting, const MPlexQI inChg,
       A.At(n, i, 0) = 1.;
       A.At(n, i, 1) = -u.ConstAt(n, i, 0);
       A.At(n, i, 2) = -u.ConstAt(n, i, 0)*u.ConstAt(n, i, 0);
-      B.At(n, i, 0) = v.ConstAt(n, i, 0);
+      //      B.At(n, i, 0) = v.ConstAt(n, i, 0);
     }
   }
   Matriplex::InvertCramer(A);  
   MPlexHV C; 
-  CFMap(A, B, C);
+  CFMap(A, v, C);
   
   MPlexQF a,b;
 #pragma simd
@@ -112,13 +120,13 @@ void conformalFitMPlex(bool fitting, const MPlexQI inChg,
   //#pragma simd
   for (int n = 0; n < N; ++n)
   {
-    vrx.At(n, 0, 0) = (xtou.ConstAt(n, 0, 0) ? x.ConstAt(n, 0, 0) - a.ConstAt(n, 0, 0) : x.ConstAt(n, 0, 0) - b.ConstAt(n, 0, 0));
-    vry.At(n, 0, 0) = (xtou.ConstAt(n, 0, 0) ? y.ConstAt(n, 0, 0) - b.ConstAt(n, 0, 0) : y.ConstAt(n, 0, 0) - a.ConstAt(n, 0, 0));
+    vrx.At(n, 0, 0) = (xtou.ConstAt(n, 0, 0) ? pos.ConstAt(n, 0, 0) - a.ConstAt(n, 0, 0) : pos.ConstAt(n, 0, 0) - b.ConstAt(n, 0, 0));
+    vry.At(n, 0, 0) = (xtou.ConstAt(n, 0, 0) ? pos.ConstAt(n, 0, 1) - b.ConstAt(n, 0, 0) : pos.ConstAt(n, 0, 1) - a.ConstAt(n, 0, 0));
     phi.At(n, 0, 0) = atan2(vrx.ConstAt(n, 0, 0),vry.ConstAt(n, 0, 0));
     pT.At (n, 0, 0) = (-Config::sol*Config::Bfield)*hipo(vrx.ConstAt(n, 0, 0), vry.ConstAt(n, 0, 0)) / (inChg.ConstAt(n, 0, 0) * 100);
-    px.At (n, 0, 0) = fabs(pT.ConstAt(n, 0, 0) * cos(phi.ConstAt(n, 0, 0))) * ((x.ConstAt(n, 1, 0) - x.ConstAt(n, 0, 0))>0. ? 1. : -1.);
-    py.At (n, 0, 0) = fabs(pT.ConstAt(n, 0, 0) * sin(phi.ConstAt(n, 0, 0))) * ((y.ConstAt(n, 1, 0) - y.ConstAt(n, 0, 0))>0. ? 1. : -1.);
-    pz.At (n, 0, 0) = fabs((pT.ConstAt(n, 0, 0) * (z.ConstAt(n, 2, 0) - z.ConstAt(n, 0, 0))) / hipo((x.ConstAt(n, 2, 0) - x.ConstAt(n, 0, 0)), (y.ConstAt(n, 2, 0) - y.ConstAt(n, 0, 0)))) * ((z.ConstAt(n, 1, 0) - z.ConstAt(n, 0, 0)) > 0. ? 1. : -1.);
+    px.At (n, 0, 0) = fabs(pT.ConstAt(n, 0, 0) * cos(phi.ConstAt(n, 0, 0))) * ((pos.ConstAt(n, 1, 0) - pos.ConstAt(n, 0, 0))>0. ? 1. : -1.);
+    py.At (n, 0, 0) = fabs(pT.ConstAt(n, 0, 0) * sin(phi.ConstAt(n, 0, 0))) * ((pos.ConstAt(n, 1, 1) - pos.ConstAt(n, 0, 1))>0. ? 1. : -1.);
+    pz.At (n, 0, 0) = fabs((pT.ConstAt(n, 0, 0) * (pos.ConstAt(n, 2, 2) - pos.ConstAt(n, 0, 2))) / hipo((pos.ConstAt(n, 2, 0) - pos.ConstAt(n, 0, 0)), (pos.ConstAt(n, 2, 1) - pos.ConstAt(n, 0, 1)))) * ((pos.ConstAt(n, 1, 2) - pos.ConstAt(n, 0, 2)) > 0. ? 1. : -1.);
 
     pT2.At(n, 0, 0) = pT.ConstAt(n, 0, 0)*pT.ConstAt(n, 0, 0);
     pz2.At(n, 0, 0) = pz.ConstAt(n, 0, 0)*pz.ConstAt(n, 0, 0);
@@ -141,9 +149,9 @@ void conformalFitMPlex(bool fitting, const MPlexQI inChg,
 #pragma simd
   for (int n = 0; n < N; ++n)
   {
-    outPar.At(n, 0, 0) = x.ConstAt(n, 0, 0);
-    outPar.At(n, 1, 0) = y.ConstAt(n, 0, 0);
-    outPar.At(n, 2, 0) = z.ConstAt(n, 0, 0);
+    outPar.At(n, 0, 0) = pos.ConstAt(n, 0, 0);
+    outPar.At(n, 1, 0) = pos.ConstAt(n, 0, 1);
+    outPar.At(n, 2, 0) = pos.ConstAt(n, 0, 2);
     outPar.At(n, 3, 0) = px.ConstAt(n, 0, 0);
     outPar.At(n, 4, 0) = py.ConstAt(n, 0, 0);
     outPar.At(n, 5, 0) = pz.ConstAt(n, 0, 0);
@@ -178,15 +186,15 @@ void conformalFitMPlex(bool fitting, const MPlexQI inChg,
 #pragma simd
   for (int n = 0; n < N; ++n)
   {
-    outErr.At(n, 0, 0) = x.ConstAt(n, 0, 0)*x.ConstAt(n, 0, 0)*invvarR2.ConstAt(n, 0, 0) + y.ConstAt(n, 0, 0)*y.ConstAt(n, 0, 0)*varPhi.ConstAt(n, 0, 0);
-    outErr.At(n, 0, 1) = x.ConstAt(n, 0, 0)*y.ConstAt(n, 0, 0)*(invvarR2.ConstAt(n, 0, 0) - varPhi.ConstAt(n, 0, 0));
+    outErr.At(n, 0, 0) = pos.ConstAt(n, 0, 0)*pos.ConstAt(n, 0, 0)*invvarR2.ConstAt(n, 0, 0) + pos.ConstAt(n, 0, 1)*pos.ConstAt(n, 0, 1)*varPhi.ConstAt(n, 0, 0);
+    outErr.At(n, 0, 1) = pos.ConstAt(n, 0, 0)*pos.ConstAt(n, 0, 1)*(invvarR2.ConstAt(n, 0, 0) - varPhi.ConstAt(n, 0, 0));
     outErr.At(n, 0, 2) = 0.;
     outErr.At(n, 0, 3) = 0.;
     outErr.At(n, 0, 4) = 0.;
     outErr.At(n, 0, 5) = 0.;
 
     outErr.At(n, 1, 0) = outErr.ConstAt(n, 0, 1);
-    outErr.At(n, 1, 1) = y.ConstAt(n, 0, 0)*y.ConstAt(n, 0, 0)*invvarR2.ConstAt(n, 0, 0) + x.ConstAt(n, 0, 0)*x.ConstAt(n, 0, 0)*varPhi.ConstAt(n, 0, 0);
+    outErr.At(n, 1, 1) = pos.ConstAt(n, 0, 1)*pos.ConstAt(n, 0, 1)*invvarR2.ConstAt(n, 0, 0) + pos.ConstAt(n, 0, 0)*pos.ConstAt(n, 0, 0)*varPhi.ConstAt(n, 0, 0);
     outErr.At(n, 1, 2) = 0.;
     outErr.At(n, 1, 3) = 0.;
     outErr.At(n, 1, 4) = 0.;
