@@ -1,6 +1,48 @@
 #include "Track.h"
 #include "Debug.h"
 
+SVector6 TrackState::cartesianParameters() const {
+  float cosP, sinP, cosT, sinT;
+  if (Config::useTrigApprox) {
+    sincos4(parameters.At(4), sinP, cosP);
+    sincos4(parameters.At(5), sinT, cosT);
+  } else {
+    cosP = cos(parameters.At(4));
+    sinP = sin(parameters.At(4));
+    cosT = cos(parameters.At(5));
+    sinT = sin(parameters.At(5));
+  }
+  float pt = pT();
+  return SVector6(parameters.At(0),parameters.At(1),parameters.At(2),pt*cosP,pt*sinP,pt*cosT/sinT);
+}
+
+SMatrix66 TrackState::jacobianPolarToCartesian() const {
+  SMatrix66 jac = ROOT::Math::SMatrixIdentity();
+  float cosP, sinP, cosT, sinT;
+  if (Config::useTrigApprox) {
+    sincos4(parameters.At(4), sinP, cosP);
+    sincos4(parameters.At(5), sinT, cosT);
+  } else {
+    cosP = cos(parameters.At(4));
+    sinP = sin(parameters.At(4));
+    cosT = cos(parameters.At(5));
+    sinT = sin(parameters.At(5));
+  }
+  float pt = pT();
+  jac(3,3) = -cosP*pt*pt;
+  jac(3,4) = -sinP*pt;
+  jac(4,3) = -sinP*pt*pt;
+  jac(4,4) =  cosP*pt;
+  jac(5,3) = -cosT*pt*pt/sinT;
+  jac(5,5) = -pt/(sinT*sinT);
+  return jac;
+}
+
+SMatrixSym66 TrackState::cartesianErrors() const {
+  SMatrix66 jac = jacobianPolarToCartesian();
+  return ROOT::Math::Similarity(jac,errors);
+}
+
 // find the simtrack that provided the most hits
 void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo)
 {

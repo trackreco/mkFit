@@ -304,6 +304,11 @@ void test_standard()
            t_best[0], t_best[1], t_best[2], t_best[3]);
 
     for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
+
+#ifndef NO_ROOT
+  make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
+#endif
+
   }
 #endif
   printf("\n");
@@ -319,9 +324,6 @@ void test_standard()
     close_simtrack_file();
   }
 
-#ifndef NO_ROOT
-  make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
-#endif
 }
 
 //==============================================================================
