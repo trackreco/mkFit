@@ -254,6 +254,14 @@ void test_standard()
   std::cerr << "###### Total GPU time: " << dtime() - total_gpu_time << " ######\n";
 
 #else
+  // MT: task_scheduler_init::automatic doesn't really work (segv!) + we don't
+  // know what to do for non-tbb cases.
+  // tbb::task_scheduler_init tbb_init(Config::numThreadsFinder != 0 ?
+  //                                   Config::numThreadsFinder :
+  //                                   tbb::task_scheduler_init::automatic);
+  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
+  omp_set_num_threads(Config::numThreadsFinder);
+
   for (int evt = 1; evt <= Config::nEvents; ++evt)
   {
     printf("\n");
@@ -269,18 +277,11 @@ void test_standard()
     else
     {
       //Simulate() parallelism is via TBB
-      tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
+      //tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
+
       ev.Simulate();
       ev.resetLayerHitMap(true);
     }
-
-    // MT: task_scheduler_init::automatic doesn't really work (segv!) + we don't
-    // know what to do for non-tbb cases.
-    // tbb::task_scheduler_init tbb_init(Config::numThreadsFinder != 0 ?
-    //                                   Config::numThreadsFinder :
-    //                                   tbb::task_scheduler_init::automatic);
-    tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
-    omp_set_num_threads(Config::numThreadsFinder);
 
     plex_tracks.resize(ev.simTracks_.size());
 
