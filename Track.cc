@@ -1,34 +1,58 @@
 #include "Track.h"
 #include "Debug.h"
 
-SVector6 TrackState::cartesianParameters() const {
-  float cosP, sinP, cosT, sinT;
-  if (Config::useTrigApprox) {
-    sincos4(parameters.At(4), sinP, cosP);
-    sincos4(parameters.At(5), sinT, cosT);
-  } else {
-    cosP = cos(parameters.At(4));
-    sinP = sin(parameters.At(4));
-    cosT = cos(parameters.At(5));
-    sinT = sin(parameters.At(5));
-  }
-  float pt = pT();
-  return SVector6(parameters.At(0),parameters.At(1),parameters.At(2),pt*cosP,pt*sinP,pt*cosT/sinT);
+void TrackState::convertFromCartesianToPolar() {
+  //assume we are currently in cartesian coordinates and want to move to polar
+  float px = parameters.At(3);
+  float py = parameters.At(4);
+  float pz = parameters.At(5);
+  float pt = sqrtf(px*px+py*py);
+  float phi = getPhi(px,py);
+  float theta = getTheta(pt,pz);
+  parameters.At(3) = 1.f/pt;
+  parameters.At(4) = phi;
+  parameters.At(5) = theta;
+  SMatrix66 jac = jacobianCartesianToPolar(px,py,pz);
+  errors = ROOT::Math::Similarity(jac,errors);
 }
 
-SMatrix66 TrackState::jacobianPolarToCartesian() const {
+void TrackState::convertFromPolarToCartesian() {
+  //assume we are currently in polar coordinates and want to move to cartesian
+  float invpt = parameters.At(3);
+  float phi   = parameters.At(4);
+  float theta = parameters.At(5);
+  float pt = 1.f/invpt;
+  float cosP, sinP, cosT, sinT;
+  if (Config::useTrigApprox) {
+    sincos4(phi, sinP, cosP);
+    sincos4(theta, sinT, cosT);
+  } else {
+    cosP = cos(phi);
+    sinP = sin(phi);
+    cosT = cos(theta);
+    sinT = sin(theta);
+  }
+  parameters.At(3) = cosP*pt;
+  parameters.At(4) = sinP*pt;
+  parameters.At(5) = cosT*pt/sinT;
+  SMatrix66 jac = jacobianPolarToCartesian(invpt, phi, theta);
+  errors = ROOT::Math::Similarity(jac,errors);
+}
+
+SMatrix66 TrackState::jacobianPolarToCartesian(float invpt,float phi,float theta) const {
+  //arguments are passed so that the function can be used both starting from polar and from cartesian
   SMatrix66 jac = ROOT::Math::SMatrixIdentity();
   float cosP, sinP, cosT, sinT;
   if (Config::useTrigApprox) {
-    sincos4(parameters.At(4), sinP, cosP);
-    sincos4(parameters.At(5), sinT, cosT);
+    sincos4(phi, sinP, cosP);
+    sincos4(theta, sinT, cosT);
   } else {
-    cosP = cos(parameters.At(4));
-    sinP = sin(parameters.At(4));
-    cosT = cos(parameters.At(5));
-    sinT = sin(parameters.At(5));
+    cosP = cos(phi);
+    sinP = sin(phi);
+    cosT = cos(theta);
+    sinT = sin(theta);
   }
-  float pt = pT();
+  float pt = 1.f/invpt;
   jac(3,3) = -cosP*pt*pt;
   jac(3,4) = -sinP*pt;
   jac(4,3) = -sinP*pt*pt;
@@ -38,9 +62,19 @@ SMatrix66 TrackState::jacobianPolarToCartesian() const {
   return jac;
 }
 
-SMatrixSym66 TrackState::cartesianErrors() const {
-  SMatrix66 jac = jacobianPolarToCartesian();
-  return ROOT::Math::Similarity(jac,errors);
+SMatrix66 TrackState::jacobianCartesianToPolar(float px,float py,float pz) const {
+  //arguments are passed so that the function can be used both starting from polar and from cartesian
+  SMatrix66 jac = ROOT::Math::SMatrixIdentity();
+  float pt = sqrtf(px*px+py*py);
+  float p2 = px*px+py*py+pz*pz;
+  jac(3,3) = -px/(pt*pt*pt);
+  jac(3,4) = -py/(pt*pt*pt);
+  jac(4,3) = -py/(pt*pt);
+  jac(4,4) =  px/(pt*pt);
+  jac(5,3) =  px*pz/(pt*p2);
+  jac(5,4) =  py*pz/(pt*p2);
+  jac(5,5) = -pt/p2;
+  return jac;
 }
 
 // find the simtrack that provided the most hits

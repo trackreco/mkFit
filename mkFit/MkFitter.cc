@@ -629,14 +629,28 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
     float dPhiMargin = 0.;
     if (Config::useCMSGeom) {
       //now correct for bending and for layer thickness unsing linear approximation
-      const float predpx = Par[iP].ConstAt(itrack, 3, 0);//FIXME FOR POLCOORD
-      const float predpy = Par[iP].ConstAt(itrack, 4, 0);
-      float deltaR = Config::cmsDeltaRad; //fixme! using constant vale, to be taken from layer properties
+      float deltaR = Config::cmsDeltaRad; //fixme! using constant value, to be taken from layer properties
       float radius = sqrt(px2py2);
+#ifdef POLCOORD
+      //here alpha is the difference between posPhi and momPhi
+      float alpha = phi-Par[iP].ConstAt(itrack, 4, 0);
+      float cosA,sinA;
+      if (Config::useTrigApprox) {
+	sincos4(alpha, sinA, cosA);
+      } else {
+	cosA=cos(alpha);
+	sinA=sin(alpha);
+      }
+#else
+      const float predpx = Par[iP].ConstAt(itrack, 3, 0);
+      const float predpy = Par[iP].ConstAt(itrack, 4, 0);
       float pt     = sqrt(predpx*predpx + predpy*predpy);
-      float cosTheta = ( predx*predpx + predy*predpy )/(pt*radius);
-      float hipo = deltaR/cosTheta;
-      float dist = sqrt(hipo*hipo - deltaR*deltaR);
+      //here alpha is the difference between posPhi and momPhi
+      float cosA = ( predx*predpx + predy*predpy )/(pt*radius);
+      float sinA = ( predy*predpx - predx*predpy )/(pt*radius);
+#endif
+      //take fabs so that we always inflate the window
+      float dist = fabs(deltaR*sinA/cosA);
       dPhiMargin = dist/radius;
     }
     // #ifdef DEBUG

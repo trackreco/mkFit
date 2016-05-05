@@ -55,10 +55,6 @@ public:
   float momEta() const {return getEta (pT(),pz());}
   float p()      const {return pT()/sin(parameters.At(5));}
 
-  SVector6 cartesianParameters() const;
-  SMatrix66 jacobianPolarToCartesian() const;
-  SMatrixSym66 cartesianErrors() const;
-
   float einvpT()  const {return sqrtf(errors.At(3,3));}
   float emomPhi() const {return sqrtf(errors.At(4,4));}
   float etheta()  const {return sqrtf(errors.At(5,5));}
@@ -93,6 +89,11 @@ public:
 						   errors.At(3,4),errors.At(3,5),errors.At(4,5)));}
   float einvpT()  const {return sqrtf(getInvRadErr2(px(),py(),errors.At(3,3),errors.At(4,4),errors.At(3,4)));}
 #endif
+
+  void convertFromCartesianToPolar();
+  void convertFromPolarToCartesian();
+  SMatrix66 jacobianPolarToCartesian(float invpt,float phi,float theta) const;
+  SMatrix66 jacobianCartesianToPolar(float px,float py,float pz) const;
 
 };
 
@@ -193,6 +194,12 @@ public:
 
   void setHitIdx(int posHitIdx, int newIdx) {
     hitIdxArr_[posHitIdx] = newIdx;
+  }
+
+  void setNGoodHitIdx() {
+    for (int i=0;i<= hitIdxPos_;i++) {
+      if (hitIdxArr_[i]>=0) nGoodHitIdx_++;
+    }
   }
 
   void resetHits()

@@ -837,6 +837,48 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, MPlexLS 
 #pragma simd
   for (int n = 0; n < NN; ++n)
     {
+#ifdef POLCOORD
+
+      float radL = hitsRl.ConstAt(n,0,0);
+      if (radL<0.0000000000001) continue;//ugly, please fixme
+      const float& x = outPar.ConstAt(n,0,0);
+      const float& y = outPar.ConstAt(n,0,1);
+      const float& theta = outPar.ConstAt(n,0,5);
+      float r = sqrt(x*x+y*y);
+      float pt = 1.f/outPar.ConstAt(n,0,3);
+      //trig approx for sin theta
+      float p = pt/(theta - 0.1666667f*theta*theta*theta);
+      float p2 = p*p;
+      float cosPhi, sinPhi;
+      sincos4(outPar.ConstAt(n,0,4), sinPhi, cosPhi);
+      constexpr float mpi = 0.140; // m=140 MeV, pion
+      constexpr float mpi2 = 0.140*0.140; // m=140 MeV, pion
+      float beta2 = p2/(p2+mpi2);
+      float beta = sqrt(beta2);
+      //radiation lenght, corrected for the crossing angle (cos alpha from dot product of radius vector and momentum)
+      float invCos = (p*r)/fabs(x*pt*cosPhi+y*pt*sinPhi);
+      radL = radL * invCos; //fixme works only for barrel geom
+      // multiple scattering
+      //vary independently phi and theta by the rms of the planar multiple scattering angle
+      float thetaMSC = 0.0136*sqrt(radL)*(1.+0.038*log(radL))/(beta*p);// eq 32.15
+      float thetaMSC2 = thetaMSC*thetaMSC;
+      outErr.At(n, 4, 4) += thetaMSC2;
+      outErr.At(n, 5, 5) += thetaMSC2;
+      // energy loss
+      float gamma = 1./sqrt(1 - beta2);
+      float gamma2 = gamma*gamma;
+      constexpr float me = 0.0005; // m=0.5 MeV, electron
+      float wmax = 2.*me*beta2*gamma2 / ( 1 + 2.*gamma*me/mpi + me*me/(mpi*mpi) );
+      constexpr float I = 16.0e-9 * 10.75;
+      float deltahalf = log(28.816e-9 * sqrt(2.33*0.498)/I) + log(beta*gamma) - 0.5;
+      float dEdx = hitsXi.ConstAt(n,0,0) * invCos * (0.5*log(2*me*beta2*gamma2*wmax/(I*I)) - beta2 - deltahalf) / beta2 ;
+      dEdx = dEdx*2.;//xi in cmssw is defined with an extra factor 0.5 with respect to formula 27.1 in pdg
+      // std::cout << "dEdx=" << dEdx << " delta=" << deltahalf << std::endl;
+      float dP = dEdx/beta;
+      outPar.At(n, 0, 3) = p/((p+dP)*pt);
+      //assume 100% uncertainty
+      outErr.At(n, 3, 3) += dP*dP/(p2*pt*pt);
+#else
       float radL = hitsRl.ConstAt(n,0,0);
       if (radL<0.0000000000001) continue;//ugly, please fixme
       const float& x = outPar.ConstAt(n,0,0);
@@ -900,6 +942,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, MPlexLS 
       outErr.At(n, 3, 4) += dP*px*py*p2;//dP^2*px*py/p^3
       outErr.At(n, 3, 5) += dP*px*pz*p2;
       outErr.At(n, 4, 5) += dP*pz*py*p2;
+#endif
     }
 
 }
