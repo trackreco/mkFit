@@ -21,6 +21,10 @@
 #include <iostream>
 #include <memory>
 
+#if defined(USE_VTUNE_PAUSE)
+#include "ittnotify.h"
+#endif
+
 //==============================================================================
 
 void make_validation_tree(const char         *fname,
@@ -121,6 +125,10 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 
    int theEnd = simtracks.size();
 
+#ifdef USE_VTUNE_PAUSE
+   __itt_resume();
+#endif
+
    double time = dtime();
 
 #pragma omp parallel for
@@ -140,6 +148,10 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
    }
 
    time = dtime() - time;
+
+#ifdef USE_VTUNE_PAUSE
+   __itt_pause();
+#endif
 
    for (int i = 0; i < Config::numThreadsFinder; ++i)
    {

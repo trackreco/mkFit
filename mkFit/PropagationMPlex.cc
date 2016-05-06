@@ -1,5 +1,8 @@
 #include "PropagationMPlex.h"
 
+//#define DEBUG
+#include "Debug.h"
+
 //==============================================================================
 // propagateLineToRMPlex
 //==============================================================================
@@ -21,9 +24,7 @@ void propagateLineToRMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
      const float cosA = (psPar[0 * N + n] * psPar[3 * N + n] + psPar[1 * N + n] * psPar[4 * N + n]) / ( sqrt( ( psPar[0 * N + n] * psPar[0 * N + n] + psPar[1 * N + n] * psPar[1 * N + n] ) * ( psPar[3 * N + n] * psPar[3 * N + n] + psPar[4 * N + n] * psPar[4 * N + n] ) ) );
      const float dr  = (hipo(msPar[0 * N + n], msPar[1 * N + n]) - hipo(psPar[0 * N + n], psPar[1 * N + n])) / cosA;
 
-#ifdef DEBUG
-     std::cout << "propagateLineToRMPlex dr=" << dr << std::endl;
-#endif
+     dprint("propagateLineToRMPlex dr=" << dr);
 
       const float pt  = hipo(psPar[3 * N + n], psPar[4 * N + n]);
       const float p   = dr / pt; // path
@@ -63,10 +64,7 @@ void propagateLineToRMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
         B.fArray[20 * N + n] = A.fArray[20 * N + n] + p * (A.fArray[17 * N + n] + A.fArray[17 * N + n]) + psq * A.fArray[5 * N + n];
       }
 
-#ifdef DEBUG
-      std::cout << "propagateLineToRMPlex arrive at r=" << hipo(outPar[0 * N + n], outPar[1 * N + n]) << std::endl;
-#endif
-
+      dprint("propagateLineToRMPlex arrive at r=" << hipo(outPar[0 * N + n], outPar[1 * N + n]));
    }
 }
 
@@ -233,10 +231,9 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       const float& r    = msRad.ConstAt(n, 0, 0);
       float r0 = hipo(xin, yin);
       
+      dprint(std::endl << "attempt propagation from r=" << r0 << " to r=" << r << std::endl
+        << "x=" << xin << " y=" << yin  << " z=" << inPar.ConstAt(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pzin << " q=" << inChg.ConstAt(n, 0, 0));
 #ifdef DEBUG
-      std::cout << std::endl;
-      std::cout << "attempt propagation from r=" << r0 << " to r=" << r << std::endl;
-      std::cout << "x=" << xin << " y=" << yin  << " z=" << inPar.ConstAt(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pzin << " q=" << inChg.ConstAt(n, 0, 0) << std::endl;
       // if ((r0-r)>=0) {
       //    if (dump) std::cout << "target radius same or smaller than starting point, returning input" << std::endl;
       //    return;
@@ -244,9 +241,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 #endif
 
       if (fabs(r-r0)<0.0001) {
-#ifdef DEBUG
-	std::cout << "distance less than 1mum, skip" << std::endl;
-#endif
+	dprint("distance less than 1mum, skip");
 	computeJacobianSimple(n, errorProp, 1, 0, 1, 0);//get an identity matrix
 	continue;
       }
@@ -260,9 +255,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       float invcurvature = 1./(pt*k);//in 1./cm
       float ctgTheta=pzin*ptinv;
       
-#ifdef DEBUG
-      std::cout << "curvature=" << 1./invcurvature << std::endl;
-#endif
+      dprint("curvature=" << 1./invcurvature);
       
       //variables to be updated at each iterations
       float totalDistance = 0;
@@ -289,9 +282,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       // const unsigned int Niter = 5+std::round(r-r0)/2;
       for (unsigned int i=0;i<Config::Niter;++i)
 	{
-#ifdef DEBUG
-	  std::cout << "propagation iteration #" << i << std::endl;
-#endif
+	  dprint("propagation iteration #" << i);
 	  
 	  x  = outPar.At(n, 0, 0);
 	  y  = outPar.At(n, 1, 0);
@@ -299,8 +290,8 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	  py = outPar.At(n, 4, 0);
 	  r0 = hipo(outPar.At(n, 0, 0), outPar.At(n, 1, 0));
 	  
+	  dprint("r0=" << r0 << " pt=" << pt);
 #ifdef DEBUG
-	  std::cout << "r0=" << r0 << " pt=" << pt << std::endl;
 	  // if (dump) {
 	  //    if (r==r0) {
 	  //       std::cout << "distance = 0 at iteration=" << i << std::endl;
@@ -312,9 +303,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	  //distance=r-r0;//remove temporary
 	  totalDistance+=(r-r0);
 	  
-#ifdef DEBUG
-	  std::cout << "distance=" << (r-r0) << " angPath=" << (r-r0)*invcurvature << std::endl;
-#endif
+	  dprint("distance=" << (r-r0) << " angPath=" << (r-r0)*invcurvature);
 	  
 	  //float angPath = (r-r0)*invcurvature;
 	  if (Config::useTrigApprox) {
@@ -339,9 +328,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	     //now r0 depends on px and py
 	     r0 = 1./r0;//WARNING, now r0 is r0inv (one less temporary)
 
-#ifdef DEBUG
-	     std::cout << "r0=" << 1./r0 << " r0inv=" << r0 << " pt=" << pt << std::endl;
-#endif
+	     dprint("r0=" << 1./r0 << " r0inv=" << r0 << " pt=" << pt);
 
 	     //update derivative on D
 	     dAPdx = -x*r0*invcurvature;
@@ -369,22 +356,18 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 
 	  }
 	  
-#ifdef DEBUG
-	  std::cout << "iteration end, dump parameters" << std::endl;
-	  std::cout << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl;
-	  std::cout << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0) << std::endl;
-	  std::cout << "r=" << sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << sqrt( outPar.At(n, 3, 0)*outPar.At(n, 3, 0) + outPar.At(n, 4, 0)*outPar.At(n, 4, 0) ) << std::endl;
-#endif
+	  dprint("iteration end, dump parameters" << std::endl
+      << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
+	    << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0) << std::endl
+	    << "r=" << sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << sqrt( outPar.At(n, 3, 0)*outPar.At(n, 3, 0) + outPar.At(n, 4, 0)*outPar.At(n, 4, 0) ));
 	}
       
       float& TD=totalDistance;
       float  TP=TD*invcurvature;//totalAngPath
       
-#ifdef DEBUG
-      std::cout << "TD=" << TD << " TP=" << TP << " arrived at r=" << sqrt(outPar.At(n, 0, 0)*outPar.At(n, 0, 0)+outPar.At(n, 1, 0)*outPar.At(n, 1, 0)) << std::endl;
-      std::cout << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl;
-      std::cout << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0) << std::endl;
-#endif
+      dprint("TD=" << TD << " TP=" << TP << " arrived at r=" << sqrt(outPar.At(n, 0, 0)*outPar.At(n, 0, 0)+outPar.At(n, 1, 0)*outPar.At(n, 1, 0)) << std::endl
+        << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
+        << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0));
 
       float& iC=invcurvature;
       float dCdpx = k*pxin*ptinv;
@@ -402,13 +385,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	sinTP = sin(TP);
       }
 
-#ifdef DEBUG
-      std::cout 
-	<< "sinTP=" << sinTP
-	<< " cosTP=" << cosTP
-	<< " TD=" << TD
-	<< std::endl;
-#endif
+      dprint("sinTP=" << sinTP << " cosTP=" << cosTP << " TD=" << TD);
 
       if (Config::useCurvJac) {
 
@@ -479,20 +456,23 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
         rotateCartCa2Cu(n,5,5) = 1.0;
 	
 #ifdef DEBUG
-	std::cout << "rotateCartCu2Ca" << std::endl;
-	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCu2Ca(n,0,0),rotateCartCu2Ca(n,0,1),rotateCartCu2Ca(n,0,2),rotateCartCu2Ca(n,0,3),rotateCartCu2Ca(n,0,4),rotateCartCu2Ca(n,0,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCu2Ca(n,1,0),rotateCartCu2Ca(n,1,1),rotateCartCu2Ca(n,1,2),rotateCartCu2Ca(n,1,3),rotateCartCu2Ca(n,1,4),rotateCartCu2Ca(n,1,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCu2Ca(n,2,0),rotateCartCu2Ca(n,2,1),rotateCartCu2Ca(n,2,2),rotateCartCu2Ca(n,2,3),rotateCartCu2Ca(n,2,4),rotateCartCu2Ca(n,2,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCu2Ca(n,3,0),rotateCartCu2Ca(n,3,1),rotateCartCu2Ca(n,3,2),rotateCartCu2Ca(n,3,3),rotateCartCu2Ca(n,3,4),rotateCartCu2Ca(n,3,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCu2Ca(n,4,0),rotateCartCu2Ca(n,4,1),rotateCartCu2Ca(n,4,2),rotateCartCu2Ca(n,4,3),rotateCartCu2Ca(n,4,4),rotateCartCu2Ca(n,4,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCu2Ca(n,5,0),rotateCartCu2Ca(n,5,1),rotateCartCu2Ca(n,5,2),rotateCartCu2Ca(n,5,3),rotateCartCu2Ca(n,5,4),rotateCartCu2Ca(n,5,5));
-	std::cout << "rotateCartCa2Cu" << std::endl;
-	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCa2Cu(n,0,0),rotateCartCa2Cu(n,0,1),rotateCartCa2Cu(n,0,2),rotateCartCa2Cu(n,0,3),rotateCartCa2Cu(n,0,4),rotateCartCa2Cu(n,0,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCa2Cu(n,1,0),rotateCartCa2Cu(n,1,1),rotateCartCa2Cu(n,1,2),rotateCartCa2Cu(n,1,3),rotateCartCa2Cu(n,1,4),rotateCartCa2Cu(n,1,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCa2Cu(n,2,0),rotateCartCa2Cu(n,2,1),rotateCartCa2Cu(n,2,2),rotateCartCa2Cu(n,2,3),rotateCartCa2Cu(n,2,4),rotateCartCa2Cu(n,2,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCa2Cu(n,3,0),rotateCartCa2Cu(n,3,1),rotateCartCa2Cu(n,3,2),rotateCartCa2Cu(n,3,3),rotateCartCa2Cu(n,3,4),rotateCartCa2Cu(n,3,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCa2Cu(n,4,0),rotateCartCa2Cu(n,4,1),rotateCartCa2Cu(n,4,2),rotateCartCa2Cu(n,4,3),rotateCartCa2Cu(n,4,4),rotateCartCa2Cu(n,4,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCa2Cu(n,5,0),rotateCartCa2Cu(n,5,1),rotateCartCa2Cu(n,5,2),rotateCartCa2Cu(n,5,3),rotateCartCa2Cu(n,5,4),rotateCartCa2Cu(n,5,5));
+        {
+          dmutex_guard;
+        	std::cout << "rotateCartCu2Ca" << std::endl;
+        	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCu2Ca(n,0,0),rotateCartCu2Ca(n,0,1),rotateCartCu2Ca(n,0,2),rotateCartCu2Ca(n,0,3),rotateCartCu2Ca(n,0,4),rotateCartCu2Ca(n,0,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCu2Ca(n,1,0),rotateCartCu2Ca(n,1,1),rotateCartCu2Ca(n,1,2),rotateCartCu2Ca(n,1,3),rotateCartCu2Ca(n,1,4),rotateCartCu2Ca(n,1,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCu2Ca(n,2,0),rotateCartCu2Ca(n,2,1),rotateCartCu2Ca(n,2,2),rotateCartCu2Ca(n,2,3),rotateCartCu2Ca(n,2,4),rotateCartCu2Ca(n,2,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCu2Ca(n,3,0),rotateCartCu2Ca(n,3,1),rotateCartCu2Ca(n,3,2),rotateCartCu2Ca(n,3,3),rotateCartCu2Ca(n,3,4),rotateCartCu2Ca(n,3,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCu2Ca(n,4,0),rotateCartCu2Ca(n,4,1),rotateCartCu2Ca(n,4,2),rotateCartCu2Ca(n,4,3),rotateCartCu2Ca(n,4,4),rotateCartCu2Ca(n,4,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCu2Ca(n,5,0),rotateCartCu2Ca(n,5,1),rotateCartCu2Ca(n,5,2),rotateCartCu2Ca(n,5,3),rotateCartCu2Ca(n,5,4),rotateCartCu2Ca(n,5,5));
+        	std::cout << "rotateCartCa2Cu" << std::endl;
+        	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCa2Cu(n,0,0),rotateCartCa2Cu(n,0,1),rotateCartCa2Cu(n,0,2),rotateCartCa2Cu(n,0,3),rotateCartCa2Cu(n,0,4),rotateCartCa2Cu(n,0,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCa2Cu(n,1,0),rotateCartCa2Cu(n,1,1),rotateCartCa2Cu(n,1,2),rotateCartCa2Cu(n,1,3),rotateCartCa2Cu(n,1,4),rotateCartCa2Cu(n,1,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCa2Cu(n,2,0),rotateCartCa2Cu(n,2,1),rotateCartCa2Cu(n,2,2),rotateCartCa2Cu(n,2,3),rotateCartCa2Cu(n,2,4),rotateCartCa2Cu(n,2,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCa2Cu(n,3,0),rotateCartCa2Cu(n,3,1),rotateCartCa2Cu(n,3,2),rotateCartCa2Cu(n,3,3),rotateCartCa2Cu(n,3,4),rotateCartCa2Cu(n,3,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCa2Cu(n,4,0),rotateCartCa2Cu(n,4,1),rotateCartCa2Cu(n,4,2),rotateCartCa2Cu(n,4,3),rotateCartCa2Cu(n,4,4),rotateCartCa2Cu(n,4,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", rotateCartCa2Cu(n,5,0),rotateCartCa2Cu(n,5,1),rotateCartCa2Cu(n,5,2),rotateCartCa2Cu(n,5,3),rotateCartCa2Cu(n,5,4),rotateCartCa2Cu(n,5,5));
+        }
 #endif
 	
         jacCartToCurv(n,0,3) = -q*pxin/p3;        
@@ -508,13 +488,16 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
         jacCartToCurv(n,4,2) = 1.;
 
 #ifdef DEBUG
-	std::cout << "jacCartToCurv" << std::endl;
-	printf("%5f %5f %5f %5f %5f %5f\n", jacCartToCurv(n,0,0),jacCartToCurv(n,0,1),jacCartToCurv(n,0,2),jacCartToCurv(n,0,3),jacCartToCurv(n,0,4),jacCartToCurv(n,0,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", jacCartToCurv(n,1,0),jacCartToCurv(n,1,1),jacCartToCurv(n,1,2),jacCartToCurv(n,1,3),jacCartToCurv(n,1,4),jacCartToCurv(n,1,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", jacCartToCurv(n,2,0),jacCartToCurv(n,2,1),jacCartToCurv(n,2,2),jacCartToCurv(n,2,3),jacCartToCurv(n,2,4),jacCartToCurv(n,2,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", jacCartToCurv(n,3,0),jacCartToCurv(n,3,1),jacCartToCurv(n,3,2),jacCartToCurv(n,3,3),jacCartToCurv(n,3,4),jacCartToCurv(n,3,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", jacCartToCurv(n,4,0),jacCartToCurv(n,4,1),jacCartToCurv(n,4,2),jacCartToCurv(n,4,3),jacCartToCurv(n,4,4),jacCartToCurv(n,4,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", jacCartToCurv(n,5,0),jacCartToCurv(n,5,1),jacCartToCurv(n,5,2),jacCartToCurv(n,5,3),jacCartToCurv(n,5,4),jacCartToCurv(n,5,5));
+        {
+          dmutex_guard;
+        	std::cout << "jacCartToCurv" << std::endl;
+        	printf("%5f %5f %5f %5f %5f %5f\n", jacCartToCurv(n,0,0),jacCartToCurv(n,0,1),jacCartToCurv(n,0,2),jacCartToCurv(n,0,3),jacCartToCurv(n,0,4),jacCartToCurv(n,0,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", jacCartToCurv(n,1,0),jacCartToCurv(n,1,1),jacCartToCurv(n,1,2),jacCartToCurv(n,1,3),jacCartToCurv(n,1,4),jacCartToCurv(n,1,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", jacCartToCurv(n,2,0),jacCartToCurv(n,2,1),jacCartToCurv(n,2,2),jacCartToCurv(n,2,3),jacCartToCurv(n,2,4),jacCartToCurv(n,2,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", jacCartToCurv(n,3,0),jacCartToCurv(n,3,1),jacCartToCurv(n,3,2),jacCartToCurv(n,3,3),jacCartToCurv(n,3,4),jacCartToCurv(n,3,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", jacCartToCurv(n,4,0),jacCartToCurv(n,4,1),jacCartToCurv(n,4,2),jacCartToCurv(n,4,3),jacCartToCurv(n,4,4),jacCartToCurv(n,4,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", jacCartToCurv(n,5,0),jacCartToCurv(n,5,1),jacCartToCurv(n,5,2),jacCartToCurv(n,5,3),jacCartToCurv(n,5,4),jacCartToCurv(n,5,5));
+        }
 #endif
 	
         float sinlambda = pz/p;//fixme check sign
@@ -522,9 +505,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
         float sinphi = py/pt;
         float cosphi = px/pt;
 	
-#ifdef DEBUG
-        std::cout << "q=" << q << " p2=" << p2 << " coslambda=" << coslambda << " cosphi=" << cosphi << std::endl;
-#endif
+        dprint("q=" << q << " p2=" << p2 << " coslambda=" << coslambda << " cosphi=" << cosphi);
 	
         jacCurvToCart(n,1,3) = 1.;
         jacCurvToCart(n,2,4) = 1.;
@@ -539,13 +520,16 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
         jacCurvToCart(n,5,2) = 0.;
 
 #ifdef DEBUG
-	std::cout << "jacCurvToCart" << std::endl;
-	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvToCart(n,0,0),jacCurvToCart(n,0,1),jacCurvToCart(n,0,2),jacCurvToCart(n,0,3),jacCurvToCart(n,0,4),jacCurvToCart(n,0,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvToCart(n,1,0),jacCurvToCart(n,1,1),jacCurvToCart(n,1,2),jacCurvToCart(n,1,3),jacCurvToCart(n,1,4),jacCurvToCart(n,1,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvToCart(n,2,0),jacCurvToCart(n,2,1),jacCurvToCart(n,2,2),jacCurvToCart(n,2,3),jacCurvToCart(n,2,4),jacCurvToCart(n,2,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvToCart(n,3,0),jacCurvToCart(n,3,1),jacCurvToCart(n,3,2),jacCurvToCart(n,3,3),jacCurvToCart(n,3,4),jacCurvToCart(n,3,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvToCart(n,4,0),jacCurvToCart(n,4,1),jacCurvToCart(n,4,2),jacCurvToCart(n,4,3),jacCurvToCart(n,4,4),jacCurvToCart(n,4,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvToCart(n,5,0),jacCurvToCart(n,5,1),jacCurvToCart(n,5,2),jacCurvToCart(n,5,3),jacCurvToCart(n,5,4),jacCurvToCart(n,5,5));
+        {
+          dmutex_guard;
+        	std::cout << "jacCurvToCart" << std::endl;
+        	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvToCart(n,0,0),jacCurvToCart(n,0,1),jacCurvToCart(n,0,2),jacCurvToCart(n,0,3),jacCurvToCart(n,0,4),jacCurvToCart(n,0,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvToCart(n,1,0),jacCurvToCart(n,1,1),jacCurvToCart(n,1,2),jacCurvToCart(n,1,3),jacCurvToCart(n,1,4),jacCurvToCart(n,1,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvToCart(n,2,0),jacCurvToCart(n,2,1),jacCurvToCart(n,2,2),jacCurvToCart(n,2,3),jacCurvToCart(n,2,4),jacCurvToCart(n,2,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvToCart(n,3,0),jacCurvToCart(n,3,1),jacCurvToCart(n,3,2),jacCurvToCart(n,3,3),jacCurvToCart(n,3,4),jacCurvToCart(n,3,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvToCart(n,4,0),jacCurvToCart(n,4,1),jacCurvToCart(n,4,2),jacCurvToCart(n,4,3),jacCurvToCart(n,4,4),jacCurvToCart(n,4,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvToCart(n,5,0),jacCurvToCart(n,5,1),jacCurvToCart(n,5,2),jacCurvToCart(n,5,3),jacCurvToCart(n,5,4),jacCurvToCart(n,5,5));
+        }
 #endif
 
         // calculate transport matrix
@@ -690,48 +674,60 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
         jacCurvProp(n,4,4) = (v11*v21 + v12*v22 + v13*v23);
 
 #ifdef DEBUG
-	std::cout << "jacCurvProp" << std::endl;
-	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,0,0),jacCurvProp(n,0,1),jacCurvProp(n,0,2),jacCurvProp(n,0,3),jacCurvProp(n,0,4),jacCurvProp(n,0,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,1,0),jacCurvProp(n,1,1),jacCurvProp(n,1,2),jacCurvProp(n,1,3),jacCurvProp(n,1,4),jacCurvProp(n,1,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,2,0),jacCurvProp(n,2,1),jacCurvProp(n,2,2),jacCurvProp(n,2,3),jacCurvProp(n,2,4),jacCurvProp(n,2,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,3,0),jacCurvProp(n,3,1),jacCurvProp(n,3,2),jacCurvProp(n,3,3),jacCurvProp(n,3,4),jacCurvProp(n,3,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,4,0),jacCurvProp(n,4,1),jacCurvProp(n,4,2),jacCurvProp(n,4,3),jacCurvProp(n,4,4),jacCurvProp(n,4,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,5,0),jacCurvProp(n,5,1),jacCurvProp(n,5,2),jacCurvProp(n,5,3),jacCurvProp(n,5,4),jacCurvProp(n,5,5));
+        {
+          dmutex_guard;
+        	std::cout << "jacCurvProp" << std::endl;
+        	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,0,0),jacCurvProp(n,0,1),jacCurvProp(n,0,2),jacCurvProp(n,0,3),jacCurvProp(n,0,4),jacCurvProp(n,0,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,1,0),jacCurvProp(n,1,1),jacCurvProp(n,1,2),jacCurvProp(n,1,3),jacCurvProp(n,1,4),jacCurvProp(n,1,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,2,0),jacCurvProp(n,2,1),jacCurvProp(n,2,2),jacCurvProp(n,2,3),jacCurvProp(n,2,4),jacCurvProp(n,2,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,3,0),jacCurvProp(n,3,1),jacCurvProp(n,3,2),jacCurvProp(n,3,3),jacCurvProp(n,3,4),jacCurvProp(n,3,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,4,0),jacCurvProp(n,4,1),jacCurvProp(n,4,2),jacCurvProp(n,4,3),jacCurvProp(n,4,4),jacCurvProp(n,4,5));
+        	printf("%5f %5f %5f %5f %5f %5f\n", jacCurvProp(n,5,0),jacCurvProp(n,5,1),jacCurvProp(n,5,2),jacCurvProp(n,5,3),jacCurvProp(n,5,4),jacCurvProp(n,5,5));
+        }
 #endif
 
 	MPlexLL temp5;
 	MultHelixPropFull(jacCartToCurv, rotateCartCa2Cu, temp5);
 #ifdef DEBUG
-	std::cout << "rotated jacCartToCurv" << std::endl;
-	printf("%5f %5f %5f %5f %5f %5f\n", temp5(n,0,0),temp5(n,0,1),temp5(n,0,2),temp5(n,0,3),temp5(n,0,4),temp5(n,0,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", temp5(n,1,0),temp5(n,1,1),temp5(n,1,2),temp5(n,1,3),temp5(n,1,4),temp5(n,1,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", temp5(n,2,0),temp5(n,2,1),temp5(n,2,2),temp5(n,2,3),temp5(n,2,4),temp5(n,2,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", temp5(n,3,0),temp5(n,3,1),temp5(n,3,2),temp5(n,3,3),temp5(n,3,4),temp5(n,3,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", temp5(n,4,0),temp5(n,4,1),temp5(n,4,2),temp5(n,4,3),temp5(n,4,4),temp5(n,4,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", temp5(n,5,0),temp5(n,5,1),temp5(n,5,2),temp5(n,5,3),temp5(n,5,4),temp5(n,5,5));
+  {
+    dmutex_guard;
+  	std::cout << "rotated jacCartToCurv" << std::endl;
+  	printf("%5f %5f %5f %5f %5f %5f\n", temp5(n,0,0),temp5(n,0,1),temp5(n,0,2),temp5(n,0,3),temp5(n,0,4),temp5(n,0,5));
+  	printf("%5f %5f %5f %5f %5f %5f\n", temp5(n,1,0),temp5(n,1,1),temp5(n,1,2),temp5(n,1,3),temp5(n,1,4),temp5(n,1,5));
+  	printf("%5f %5f %5f %5f %5f %5f\n", temp5(n,2,0),temp5(n,2,1),temp5(n,2,2),temp5(n,2,3),temp5(n,2,4),temp5(n,2,5));
+  	printf("%5f %5f %5f %5f %5f %5f\n", temp5(n,3,0),temp5(n,3,1),temp5(n,3,2),temp5(n,3,3),temp5(n,3,4),temp5(n,3,5));
+  	printf("%5f %5f %5f %5f %5f %5f\n", temp5(n,4,0),temp5(n,4,1),temp5(n,4,2),temp5(n,4,3),temp5(n,4,4),temp5(n,4,5));
+  	printf("%5f %5f %5f %5f %5f %5f\n", temp5(n,5,0),temp5(n,5,1),temp5(n,5,2),temp5(n,5,3),temp5(n,5,4),temp5(n,5,5));
+  }
 #endif
 	MPlexLL temp6;
 	MultHelixPropFull(rotateCartCu2Ca, jacCurvToCart, temp6);
 #ifdef DEBUG
-	std::cout << "rotated jacCurvToCart" << std::endl;
-	printf("%5f %5f %5f %5f %5f %5f\n", temp6(n,0,0),temp6(n,0,1),temp6(n,0,2),temp6(n,0,3),temp6(n,0,4),temp6(n,0,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", temp6(n,1,0),temp6(n,1,1),temp6(n,1,2),temp6(n,1,3),temp6(n,1,4),temp6(n,1,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", temp6(n,2,0),temp6(n,2,1),temp6(n,2,2),temp6(n,2,3),temp6(n,2,4),temp6(n,2,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", temp6(n,3,0),temp6(n,3,1),temp6(n,3,2),temp6(n,3,3),temp6(n,3,4),temp6(n,3,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", temp6(n,4,0),temp6(n,4,1),temp6(n,4,2),temp6(n,4,3),temp6(n,4,4),temp6(n,4,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", temp6(n,5,0),temp6(n,5,1),temp6(n,5,2),temp6(n,5,3),temp6(n,5,4),temp6(n,5,5));
+  {
+    dmutex_guard;
+  	std::cout << "rotated jacCurvToCart" << std::endl;
+  	printf("%5f %5f %5f %5f %5f %5f\n", temp6(n,0,0),temp6(n,0,1),temp6(n,0,2),temp6(n,0,3),temp6(n,0,4),temp6(n,0,5));
+  	printf("%5f %5f %5f %5f %5f %5f\n", temp6(n,1,0),temp6(n,1,1),temp6(n,1,2),temp6(n,1,3),temp6(n,1,4),temp6(n,1,5));
+  	printf("%5f %5f %5f %5f %5f %5f\n", temp6(n,2,0),temp6(n,2,1),temp6(n,2,2),temp6(n,2,3),temp6(n,2,4),temp6(n,2,5));
+  	printf("%5f %5f %5f %5f %5f %5f\n", temp6(n,3,0),temp6(n,3,1),temp6(n,3,2),temp6(n,3,3),temp6(n,3,4),temp6(n,3,5));
+  	printf("%5f %5f %5f %5f %5f %5f\n", temp6(n,4,0),temp6(n,4,1),temp6(n,4,2),temp6(n,4,3),temp6(n,4,4),temp6(n,4,5));
+  	printf("%5f %5f %5f %5f %5f %5f\n", temp6(n,5,0),temp6(n,5,1),temp6(n,5,2),temp6(n,5,3),temp6(n,5,4),temp6(n,5,5));
+  }
 #endif
 	MPlexLL temp7;
 	MultHelixPropFull(jacCurvProp, temp5, temp7);
 	MultHelixPropFull(temp6, temp7, errorProp);
 #ifdef DEBUG
-	std::cout << "jacobian iterative" << std::endl;
-	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,2,0),errorProp(n,2,1),errorProp(n,2,2),errorProp(n,2,3),errorProp(n,2,4),errorProp(n,2,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,3,0),errorProp(n,3,1),errorProp(n,3,2),errorProp(n,3,3),errorProp(n,3,4),errorProp(n,3,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,4,0),errorProp(n,4,1),errorProp(n,4,2),errorProp(n,4,3),errorProp(n,4,4),errorProp(n,4,5));
-	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,5,0),errorProp(n,5,1),errorProp(n,5,2),errorProp(n,5,3),errorProp(n,5,4),errorProp(n,5,5));
+  {
+    dmutex_guard;
+  	std::cout << "jacobian iterative" << std::endl;
+  	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
+  	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
+  	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,2,0),errorProp(n,2,1),errorProp(n,2,2),errorProp(n,2,3),errorProp(n,2,4),errorProp(n,2,5));
+  	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,3,0),errorProp(n,3,1),errorProp(n,3,2),errorProp(n,3,3),errorProp(n,3,4),errorProp(n,3,5));
+  	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,4,0),errorProp(n,4,1),errorProp(n,4,2),errorProp(n,4,3),errorProp(n,4,4),errorProp(n,4,5));
+  	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,5,0),errorProp(n,5,1),errorProp(n,5,2),errorProp(n,5,3),errorProp(n,5,4),errorProp(n,5,5));
+  }
 #endif
 
       } else if (Config::useSimpleJac) { 
@@ -795,13 +791,16 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       }
 
 #ifdef DEBUG
-      std::cout << "jacobian iterative" << std::endl;
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,2,0),errorProp(n,2,1),errorProp(n,2,2),errorProp(n,2,3),errorProp(n,2,4),errorProp(n,2,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,3,0),errorProp(n,3,1),errorProp(n,3,2),errorProp(n,3,3),errorProp(n,3,4),errorProp(n,3,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,4,0),errorProp(n,4,1),errorProp(n,4,2),errorProp(n,4,3),errorProp(n,4,4),errorProp(n,4,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,5,0),errorProp(n,5,1),errorProp(n,5,2),errorProp(n,5,3),errorProp(n,5,4),errorProp(n,5,5));
+      {
+        dmutex_guard;
+        std::cout << "jacobian iterative" << std::endl;
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,2,0),errorProp(n,2,1),errorProp(n,2,2),errorProp(n,2,3),errorProp(n,2,4),errorProp(n,2,5));
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,3,0),errorProp(n,3,1),errorProp(n,3,2),errorProp(n,3,3),errorProp(n,3,4),errorProp(n,3,5));
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,4,0),errorProp(n,4,1),errorProp(n,4,2),errorProp(n,4,3),errorProp(n,4,4),errorProp(n,4,5));
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,5,0),errorProp(n,5,1),errorProp(n,5,2),errorProp(n,5,3),errorProp(n,5,4),errorProp(n,5,5));
+      }
 #endif
     }
 }
@@ -820,9 +819,9 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
       const float& rout = msRad.ConstAt(n, 0, 0);
       const float r0in = hipo(xin, yin);
       
+      dprint("attempt propagation from r=" << r0in << " to r=" << rout << std::endl
+        << "x=" << xin << " y=" << yin  << " z=" << inPar.ConstAt(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pzin << " q=" << inChg.ConstAt(n, 0, 0));
 #ifdef DEBUG
-      std::cout << "attempt propagation from r=" << r0in << " to r=" << rout << std::endl;
-      std::cout << "x=" << xin << " y=" << yin  << " z=" << inPar.ConstAt(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pzin << " q=" << inChg.ConstAt(n, 0, 0) << std::endl;
       // if ((r0in-r)>=0) {
       //    if (dump) std::cout << "target radius same or smaller than starting point, returning input" << std::endl;
       //    return;
@@ -830,9 +829,7 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
 #endif
 
       if (fabs(rout-r0in)<0.0001) {
-#ifdef DEBUG
-	std::cout << "distance less than 1mum, skip" << std::endl;
-#endif
+	dprint("distance less than 1mum, skip");
 	computeJacobianSimple(n, errorProp, 1, 0, 1, 0);//get an identity matrix
 	continue;
       }
@@ -846,9 +843,7 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
       float curvature = pt*k;//in cm
       float invcurvature = 1./(curvature);//in 1./cm
       
-#ifdef DEBUG
-      std::cout << "k=" << k << " curvature=" << curvature << " invcurvature=" << invcurvature << std::endl;
-#endif
+      dprint("k=" << k << " curvature=" << curvature << " invcurvature=" << invcurvature);
       
       //coordinates of center of circle defined as helix projection on transverse plane 
       float xc = xin - k*pyin;
@@ -869,13 +864,11 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
 	float x_m = ( -B - sqrt(B*B - 4*A*C) ) / (2*A);
 	float y_m = -x_m*xc/yc + (rout*rout + rc*rc - curvature*curvature)/(2*yc);
 	float cosDelta_m = (pxin*(x_m-xin) + pyin*(y_m-yin))/(pt*sqrt((x_m-xin)*(x_m-xin)+(y_m-yin)*(y_m-yin)));
-#ifdef DEBUG
-	std::cout << "solve for x" << std::endl;
-	std::cout << "xc=" << xc << " yc=" << yc << " rc=" << rc << std::endl;
-	std::cout << "A=" << A << " B=" << B << " C=" << C << std::endl;
-	std::cout << "xp=" << x_p << " y_p=" << y_p << " cosDelta_p=" << cosDelta_p << std::endl;
-	std::cout << "xm=" << x_m << " y_m=" << y_m << " cosDelta_m=" << cosDelta_m << std::endl;
-#endif 
+	dprint("solve for x" << std::endl
+	  << "xc=" << xc << " yc=" << yc << " rc=" << rc << std::endl
+	  << "A=" << A << " B=" << B << " C=" << C << std::endl
+	  << "xp=" << x_p << " y_p=" << y_p << " cosDelta_p=" << cosDelta_p << std::endl
+	  << "xm=" << x_m << " y_m=" << y_m << " cosDelta_m=" << cosDelta_m);
 	float Sx = sqrt(B*B - 4*A*C);
 	//arbitrate based on momentum and vector connecting the end points
 	if ( (rout>r0in) ? (cosDelta_p > cosDelta_m) : (cosDelta_p < cosDelta_m)) { 
@@ -884,20 +877,14 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
 	  TP = 2*asin(sinTPHalf_p);
 	  x = x_p;
 	  y = y_p;
-#ifdef DEBUG
-	  std::cout << "pos solution" << std::endl;
-	  std::cout << "chord_p=" << chord_p << " sinTPHalf_p=" << sinTPHalf_p << " TP=" << TP << std::endl;
-#endif
+	  dprint("pos solution" << std::endl << "chord_p=" << chord_p << " sinTPHalf_p=" << sinTPHalf_p << " TP=" << TP);
 	} else {
 	  float chord_m = sqrt( (x_m-xin)*(x_m-xin) + (y_m-yin)*(y_m-yin) );
 	  float sinTPHalf_m = 0.5*chord_m*invcurvature;
 	  TP = 2*asin(sinTPHalf_m);
 	  x = x_m;
 	  y = y_m;
-#ifdef DEBUG
-	  std::cout << "neg solution" << std::endl;
-	  std::cout << "chord_m=" << chord_m << " sinTPHalf_m=" << sinTPHalf_m << " TP=" << TP << std::endl;
-#endif
+	  dprint("neg solution" << std::endl << "chord_m=" << chord_m << " sinTPHalf_m=" << sinTPHalf_m << " TP=" << TP);
 	} 
       } else {
 	//solve for y since xc!=0
@@ -912,13 +899,11 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
 	float y_m = ( -B - sqrt(B*B - 4*A*C) ) / (2*A);
 	float x_m = -y_m*yc/xc + (rout*rout + rc*rc - curvature*curvature)/(2*xc);
 	float cosDelta_m = (pxin*(x_m-xin) + pyin*(y_m-yin))/(pt*sqrt((x_m-xin)*(x_m-xin)+(y_m-yin)*(y_m-yin)));
-#ifdef DEBUG
-	std::cout << "solve for y" << std::endl;
-	std::cout << "xc=" << xc << " yc=" << yc << " rc=" << rc << std::endl;
-	std::cout << "A=" << A << " B=" << B << " C=" << C << std::endl;
-	std::cout << "xp=" << x_p << " y_p=" << y_p << " cosDelta_p=" << cosDelta_p << std::endl;
-	std::cout << "xm=" << x_m << " y_m=" << y_m << " cosDelta_m=" << cosDelta_m << std::endl;
-#endif
+	dprint("solve for y" << std::endl
+	  << "xc=" << xc << " yc=" << yc << " rc=" << rc << std::endl
+	  << "A=" << A << " B=" << B << " C=" << C << std::endl
+	  << "xp=" << x_p << " y_p=" << y_p << " cosDelta_p=" << cosDelta_p << std::endl
+	  << "xm=" << x_m << " y_m=" << y_m << " cosDelta_m=" << cosDelta_m);
 	float Sx = sqrt(B*B - 4*A*C);
 	//arbitrate based on momentum and vector connecting the end points
 	if ( (rout>r0in) ? (cosDelta_p > cosDelta_m) : (cosDelta_p < cosDelta_m)) { 
@@ -960,12 +945,10 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
       outPar.At(n, 4, 0) = pyin*cosTP+pxin*sinTP;
       //outPar.At(n, 5, 0) = pzin; //take this out as it is redundant
 
-#ifdef DEBUG
-      std::cout << "propagation end, dump parameters" << std::endl;
-      std::cout << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl;
-      std::cout << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0) << std::endl;
-      std::cout << "r=" << sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << sqrt( outPar.At(n, 3, 0)*outPar.At(n, 3, 0) + outPar.At(n, 4, 0)*outPar.At(n, 4, 0) ) << std::endl;
-#endif
+      dprint("propagation end, dump parameters" << std::endl
+        << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
+        << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0) << std::endl
+        << "r=" << sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << sqrt( outPar.At(n, 3, 0)*outPar.At(n, 3, 0) + outPar.At(n, 4, 0)*outPar.At(n, 4, 0) ));
 
       float p = pt2 + pzin*pzin;
       p=sqrt(p);
@@ -973,13 +956,16 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
       computeJacobianSimple(n, errorProp, k, TP, cosTP, sinTP);
 
 #ifdef DEBUG
-      std::cout << "jacobian intersection" << std::endl;
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,2,0),errorProp(n,2,1),errorProp(n,2,2),errorProp(n,2,3),errorProp(n,2,4),errorProp(n,2,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,3,0),errorProp(n,3,1),errorProp(n,3,2),errorProp(n,3,3),errorProp(n,3,4),errorProp(n,3,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,4,0),errorProp(n,4,1),errorProp(n,4,2),errorProp(n,4,3),errorProp(n,4,4),errorProp(n,4,5));
-      printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,5,0),errorProp(n,5,1),errorProp(n,5,2),errorProp(n,5,3),errorProp(n,5,4),errorProp(n,5,5));
+      {
+        dmutex_guard;
+        std::cout << "jacobian intersection" << std::endl;
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,2,0),errorProp(n,2,1),errorProp(n,2,2),errorProp(n,2,3),errorProp(n,2,4),errorProp(n,2,5));
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,3,0),errorProp(n,3,1),errorProp(n,3,2),errorProp(n,3,3),errorProp(n,3,4),errorProp(n,3,5));
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,4,0),errorProp(n,4,1),errorProp(n,4,2),errorProp(n,4,3),errorProp(n,4,4),errorProp(n,4,5));
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,5,0),errorProp(n,5,1),errorProp(n,5,2),errorProp(n,5,3),errorProp(n,5,4),errorProp(n,5,5));
+      }
 #endif
     }
 }
@@ -1061,7 +1047,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 			          MPlexLS &outErr,       MPlexLV& outPar)
 {
 #ifdef DEBUG
-  const bool dump = false;
+  const bool debug = false;
 #endif
 
    const idx_t N  = NN;
@@ -1096,18 +1082,18 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    }
 
 #ifdef DEBUG
-   if (dump) {
+   if (debug) {
      for (int kk = 0; kk < N; ++kk)
      {
-       printf("outErr before prop %d\n", kk);
+       dprintf("outErr before prop %d\n", kk);
        for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-           printf("%8f ", outErr.At(kk,i,j)); printf("\n");
-       } printf("\n");
+           dprintf("%8f ", outErr.At(kk,i,j)); printf("\n");
+       } dprintf("\n");
 
-       printf("errorProp %d\n", kk);
+       dprintf("errorProp %d\n", kk);
        for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-           printf("%8f ", errorProp.At(kk,i,j)); printf("\n");
-       } printf("\n");
+           dprintf("%8f ", errorProp.At(kk,i,j)); printf("\n");
+       } dprintf("\n");
 
      }
    }
@@ -1130,27 +1116,27 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 
    // This dump is now out of its place as similarity is done with matriplex ops.
 #ifdef DEBUG
-   if (dump) {
+   if (debug) {
      for (int kk = 0; kk < N; ++kk)
      {
-       printf("outErr %d\n", kk);
+       dprintf("outErr %d\n", kk);
        for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-           printf("%8f ", outErr.At(kk,i,j)); printf("\n");
-       } printf("\n");
+           dprintf("%8f ", outErr.At(kk,i,j)); printf("\n");
+       } dprintf("\n");
 
-       printf("outPar %d\n", kk);
+       dprintf("outPar %d\n", kk);
        for (int i = 0; i < 6; ++i) {
-           printf("%8f ", outPar.At(kk,i,0)); printf("\n");
-       } printf("\n");
+           dprintf("%8f ", outPar.At(kk,i,0)); printf("\n");
+       } dprintf("\n");
      }
    }
 #endif
 
 #ifdef DEBUG
    if (fabs(hipo(outPar.At(0,0,0), outPar.At(0,1,0))-hipo(msPar.ConstAt(0, 0, 0), msPar.ConstAt(0, 1, 0)))>0.0001) {
-     std::cout << "DID NOT GET TO R, dR=" << fabs(hipo(outPar.At(0,0,0), outPar.At(0,1,0))-hipo(msPar.ConstAt(0, 0, 0), msPar.ConstAt(0, 1, 0)))
-	       << " r=" << hipo(msPar.ConstAt(0, 0, 0), msPar.ConstAt(0, 1, 0)) << " r0in=" << hipo(inPar.ConstAt(0,0,0), inPar.ConstAt(0,1,0)) << " rout=" << hipo(outPar.At(0,0,0), outPar.At(0,1,0)) << std::endl;
-     std::cout << "pt=" << hipo(inPar.ConstAt(0,3,0), inPar.ConstAt(0,4,0)) << " pz=" << inPar.ConstAt(0,5,0) << std::endl;
+     dprint("DID NOT GET TO R, dR=" << fabs(hipo(outPar.At(0,0,0), outPar.At(0,1,0))-hipo(msPar.ConstAt(0, 0, 0), msPar.ConstAt(0, 1, 0)))
+	       << " r=" << hipo(msPar.ConstAt(0, 0, 0), msPar.ConstAt(0, 1, 0)) << " r0in=" << hipo(inPar.ConstAt(0,0,0), inPar.ConstAt(0,1,0)) << " rout=" << hipo(outPar.At(0,0,0), outPar.At(0,1,0)) << std::endl
+         << "pt=" << hipo(inPar.ConstAt(0,3,0), inPar.ConstAt(0,4,0)) << " pz=" << inPar.ConstAt(0,5,0));
    }
 #endif
 }
@@ -1161,7 +1147,7 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
                             const int      N_proc)
 {
 #ifdef DEBUG
-  const bool dump = false;
+  const bool debug = false;
 #endif
 
    outErr = inErr;
@@ -1208,18 +1194,18 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
    
    // This dump is now out of its place as similarity is done with matriplex ops.
 #ifdef DEBUG
-   if (dump) {
+   if (debug) {
      for (int kk = 0; kk < N_proc; ++kk)
      {
-       printf("outErr %d\n", kk);
+       dprintf("outErr %d\n", kk);
        for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-           printf("%8f ", outErr.At(kk,i,j)); printf("\n");
-       } printf("\n");
+           dprintf("%8f ", outErr.At(kk,i,j)); printf("\n");
+       } dprintf("\n");
 
-       printf("outPar %d\n", kk);
+       dprintf("outPar %d\n", kk);
        for (int i = 0; i < 6; ++i) {
-           printf("%8f ", outPar.At(kk,i,0)); printf("\n");
-       } printf("\n");
+           dprintf("%8f ", outPar.At(kk,i,0)); printf("\n");
+       } dprintf("\n");
      }
    }
 #endif
