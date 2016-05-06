@@ -169,6 +169,7 @@ inline void MkBuilder::fit_one_seed(TrackVec& simtracks, int itrack, int end, Mk
 {
   mkfp->SetNhits(3);//just to be sure (is this needed?)
   mkfp->InputTracksAndHits(simtracks, m_event->layerHits_, itrack, end);
+  if (Config::cf_seeding) mkfp->ConformalFitTracks(false, itrack, end);
   if (Config::readCmsswSeeds==false) mkfp->FitTracks();
 
   const int ilay = 3; // layer 4

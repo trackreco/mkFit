@@ -18,10 +18,21 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
   z[1]=hit1.position()[2];
   z[2]=hit2.position()[2];
 
-  float u[3],v[3];
-  for (unsigned int h=0;h<3;++h) {
-    u[h]=x[h]/(x[h]*x[h]+y[h]*y[h]);
-    v[h]=y[h]/(x[h]*x[h]+y[h]*y[h]);
+  float u[3],v[3]; // conformal points
+  float initphi = fabs(getPhi(x[1],y[1])); // use this to decide when to use x -> u or x -> v
+  bool xtou = (initphi<Config::PIOver4 || initphi>Config::PI3Over4);
+
+  if (xtou){ // x -> u 
+    for (unsigned int h=0;h<3;++h) {
+      u[h]=x[h]/getRad2(x[h],y[h]);
+      v[h]=y[h]/getRad2(x[h],y[h]);
+    }
+  }
+  else { // x -> v
+    for (unsigned int h=0;h<3;++h) {
+      v[h]=x[h]/getRad2(x[h],y[h]);
+      u[h]=y[h]/getRad2(x[h],y[h]);
+    }
   }
 
   //R^2=a^2+b^2
@@ -36,34 +47,25 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
 
   float b=1./(2.*C[0]);
   float a=b*C[1];
-  float R=sqrt((x[0]-a)*(x[0]-a)+(y[0]-b)*(y[0]-b));
+
+  // Special note, "vr" is short for vector, not vertex!           
+  // evaluate momentum, phi, theta at layer one
+  // taking vector from center of circle to layer one position
+  // therefore phi is the perpendicular to vector just described        
+
+  float vrx = (xtou ? x[0]-a : x[0]-b);
+  float vry = (xtou ? y[0]-b : y[0]-a);
+
+  float R   = sqrtf(getRad2(vrx,vry));
   //float e=b*b*b*C[2]/(R*R*R);
-
-  float k=charge*100./(-Config::sol*Config::Bfield);
-  float pt = R/k;
-  /*
-  std::cout << "hit0=" << x[0] << "," << y[0] << std::endl;
-  std::cout << "hit1=" << x[1] << "," << y[1] << std::endl;
-  std::cout << "hit2=" << x[2] << "," << y[2] << std::endl;
-  std::cout << "hit0t=" << u[0] << "," << v[0] << std::endl;
-  std::cout << "hit1t=" << u[1] << "," << v[1] << std::endl;
-  std::cout << "hit2t=" << u[2] << "," << v[2] << std::endl;
-  std::cout << "vfit0=" << C[0]-u[0]*C[1]-u[0]*u[0]*C[2] << std::endl;
-  std::cout << "vfit1=" << C[0]-u[1]*C[1]-u[1]*u[1]*C[2] << std::endl;
-  std::cout << "vfit2=" << C[0]-u[2]*C[1]-u[2]*u[2]*C[2] << std::endl;
-  std::cout << "c0=" << C[0] << " c1=" << C[1] << " c2=" << C[2] << std::endl;
-  std::cout << "a=" << a << " b=" << b << " e=" << e << std::endl;
-  std::cout << "R=" << R << " pt=" << pt << std::endl;
-  */
-
-  float vrx = x[0]-a;
-  float vry = y[0]-b;
-  float phi = atan2(vrx,vry);
-  float px = fabs(pt*cos(phi))*((x[1]-x[0])>0. ? 1. : -1.);
-  float py = fabs(pt*sin(phi))*((y[1]-y[0])>0. ? 1. : -1.);
+  float k   = charge*100./(-Config::sol*Config::Bfield);
+  float pt  = R/k;
+  float phi = getPhi(vry,vrx);
+  float px  = fabs(pt*cos(phi))*((x[1]-x[0])>0. ? 1. : -1.);
+  float py  = fabs(pt*sin(phi))*((y[1]-y[0])>0. ? 1. : -1.);
 
   //compute theta
-  float tantheta = sqrt((x[0]-x[2])*(x[0]-x[2])+(y[0]-y[2])*(y[0]-y[2]))/(z[2]-z[0]);
+  float tantheta = sqrtf(getRad2((x[0]-x[2]),(y[0]-y[2])))/(z[2]-z[0]);
   float pz = fabs(pt/tantheta)*((z[1]-z[0])>0. ? 1. : -1.);
 #ifdef INWARDFIT
   if (fiterrs) { // need conformal fit on seeds to be forward!
@@ -118,7 +120,7 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
 
   fitStateHit0.errors[3][3] = pow(cos(phi),2)*pow(pterr,2)+pow(pt*sin(phi),2)*pow(phierr,2);
   fitStateHit0.errors[4][4] = pow(sin(phi),2)*pow(pterr,2)+pow(pt*cos(phi),2)*pow(phierr,2);
-  fitStateHit0.errors[5][5] = pow(1./tantheta,2)*pow(pterr,2)+pow(pt/pow(sin(atan(tantheta)),2),2)*pow(thetaerr,2);
+  fitStateHit0.errors[5][5] = pow(1./tantheta,2)*pow(pterr,2)+pow(pt/pow(tantheta/sqrtf(1.+pow(tantheta,2)),2),2)*pow(thetaerr,2);
 
   /*
   //fixme: if done with correlations pt pull gets larger, do I have a bug?  (actually scaling by 10k it looks nice as well)
@@ -145,6 +147,6 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
   fitStateHit0.errors = ROOT::Math::Similarity(jacobian,fiterrors);
   */
 
-  fitStateHit0.charge = charge;//fixme, estimate from fit
+  fitStateHit0.charge = charge; //taken from slopes!
   //dumpMatrix(fitStateHit0.errors);
 }
