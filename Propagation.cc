@@ -1,4 +1,5 @@
 #include "Propagation.h"
+//#define DEBUG
 #include "Debug.h"
 
 const double tolerance = 0.001;

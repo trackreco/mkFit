@@ -6,6 +6,8 @@
 #include "fittest.h"
 #include "BinInfoUtils.h"
 #include "ConformalUtils.h"
+
+//#define DEBUG
 #include "Debug.h"
 
 #ifdef TBB

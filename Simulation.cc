@@ -1,6 +1,7 @@
 #include <cmath>
 
 #include "Simulation.h"
+//#define DEBUG
 #include "Debug.h"
 
 //#define SOLID_SMEAR
