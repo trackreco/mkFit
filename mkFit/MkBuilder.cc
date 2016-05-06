@@ -5,7 +5,66 @@
 
 #include "MkFitter.h"
 
+//#define DEBUG
+#include "Debug.h"
+
 #include <omp.h>
+
+#ifdef DEBUG
+namespace {
+  void pre_prop_print(int ilay, MkFitter* mkfp) {
+    std::cout << "propagate to lay=" << ilay+1 
+              << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)
+              << " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
+              << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5)
+              << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
+  }
+
+  void post_prop_print(int ilay, MkFitter* mkfp) {
+    std::cout << "propagate to lay=" << ilay+1 
+              << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)
+              << " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
+  }
+
+  void print_seed(const Track& seed) {
+    std::cout << "MX - found seed with nHits=" << seed.nFoundHits() << " chi2=" << seed.chi2()
+              << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.posR()
+              << " pT=" << seed.pT() << std::endl;
+  }
+
+  void print_seed2(const Track& seed) {
+    std::cout << "MX - found seed with nFoundHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() 
+              << " x=" << seed.x() << " y=" << seed.y() << " z=" << seed.z()
+              << " px=" << seed.px() << " py=" << seed.py() << " pz=" << seed.pz()
+              << " pT=" << seed.pT() << std::endl;
+  }
+
+  void print_seeds(const TrackVec& seeds) {
+    std::cout << "found total seeds=" << seeds.size() << std::endl;
+    for (auto&& seed : seeds) {
+      print_seed(seed);
+    }
+  }
+
+  void print_seeds(const EventOfCandidates& event_of_cands) {
+    for (int ebin = 0; ebin < Config::nEtaBin; ++ebin) {
+      const EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin]; 
+      for (int iseed = 0; iseed < etabin_of_candidates.m_fill_index; iseed++) {
+        print_seed2(etabin_of_candidates.m_candidates[iseed]);
+      }
+    }
+  }
+
+  void print_seeds(const EventOfCombCandidates& event_of_comb_cands) {
+    for (int ebin = 0; ebin < Config::nEtaBin; ++ebin) {
+      const EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin]; 
+      for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed++) {
+        print_seed2(etabin_of_comb_candidates.m_candidates[iseed].front());
+      }
+    }
+  }
+}
+#endif
 
 namespace
 {
@@ -62,7 +121,7 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
     float eta = -1.5 + 0.05*i;
     int b1, b2;
     int cnt = getBothEtaBins(eta, b1, b2);
-    std::cout << "eta=" << eta << " bin=" << getEtaBin(eta) << " hb1=" << b1 << " hb2=" << b2 << std::endl;
+    dprint("eta=" << eta << " bin=" << getEtaBin(eta) << " hb1=" << b1 << " hb2=" << b2);
   }
   //dump sim tracks
   for (int itrack = 0; itrack < simtracks.size(); ++itrack)
@@ -70,9 +129,10 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
     Track track = simtracks[itrack];
     if (track.label() != itrack)
     {
-      printf("Bad label for simtrack %d -- %d\n", itrack, track.label());
+      dprintf("Bad label for simtrack %d -- %d\n", itrack, track.label());
     }
-    std::cout << "MX - simtrack with nHits=" << track.nFoundHits() << " chi2=" << track.chi2()  << " pT=" << sqrt(track.momentum()[0]*track.momentum()[0]+track.momentum()[1]*track.momentum()[1]) <<" phi="<< track.momPhi() <<" eta=" << track.momEta() << std::endl;
+    dprint("MX - simtrack with nHits=" << track.nFoundHits() << " chi2=" << track.chi2()
+              << " pT=" << track.pT() <<" phi="<< track.momPhi() <<" eta=" << track.momEta());
   }
 #endif
 
@@ -92,10 +152,10 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
   {
     for (int ilay = 0; ilay < simtracks[itrack].nTotalHits(); ++ilay)
     {
-      std::cout << "track #" << itrack << " lay=" << ilay+1
-		<< " hit pos=" << simtracks[itrack].hitsVector(m_event->layerHits_)[ilay].position()
-		<< " phi=" << simtracks[itrack].hitsVector(m_event->layerHits_)[ilay].phi()
-		<< " phiPart=" << getPhiPartition(simtracks[itrack].hitsVector(m_event->layerHits_)[ilay].phi()) << std::endl;
+      dprint("track #" << itrack << " lay=" << ilay+1
+	            << " hit pos=" << simtracks[itrack].hitsVector(m_event->layerHits_)[ilay].position()
+              << " phi=" << simtracks[itrack].hitsVector(m_event->layerHits_)[ilay].phi()
+              << " phiPart=" << getPhiPartition(simtracks[itrack].hitsVector(m_event->layerHits_)[ilay].phi()));
     }
   }
 #endif
@@ -112,14 +172,10 @@ inline void MkBuilder::fit_one_seed(TrackVec& simtracks, int itrack, int end, Mk
   if (Config::readCmsswSeeds==false) mkfp->FitTracks();
 
   const int ilay = 3; // layer 4
-#ifdef DEBUG
-  std::cout << "propagate to lay=" << ilay+1 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
-            << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
-#endif
+
+  dcall(pre_prop_print(ilay, mkfp));
   mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
-#ifdef DEBUG
-  std::cout << "propagate to lay=" << ilay+1 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
-#endif
+  dcall(post_prop_print(ilay, mkfp));
 
   mkfp->OutputFittedTracksAndHitIdx(m_event->seedTracks_, itrack, end, true);
 }
@@ -137,14 +193,7 @@ void MkBuilder::fit_seeds()
   }
 
   //ok now, we should have all seeds fitted in recseeds
-#ifdef DEBUG
-  std::cout << "found total seeds=" << m_event->seedTracks_.size() << std::endl;
-  for (int iseed = 0; iseed < m_event->seedTracks_.size(); ++iseed)
-  {
-    Track& seed = m_event->seedTracks_[iseed];
-    std::cout << "MX - found seed with nHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.posR() << " pT=" << seed.pT() << std::endl;
-  }
-#endif
+  dcall(print_seeds(simtracks));
 }
 
 void MkBuilder::end_event()
@@ -215,22 +264,7 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
   }
 
   //dump seeds
-#ifdef DEBUG
-  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
-  {
-    EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin]; 
-
-    for (int iseed = 0; iseed < etabin_of_candidates.m_fill_index; iseed++)
-    {
-      Track& seed = etabin_of_candidates.m_candidates[iseed];
-      std::cout << "MX - found seed with nFoundHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() 
-                << " x=" << seed.position()[0] << " y=" << seed.position()[1] << " z=" << seed.position()[2] 
-                << " px=" << seed.momentum()[0] << " py=" << seed.momentum()[1] << " pz=" << seed.momentum()[2] 
-                << " pT=" << sqrt(seed.momentum()[0]*seed.momentum()[0]+seed.momentum()[1]*seed.momentum()[1]) 
-                << std::endl;
-    }
-  }
-#endif
+  dcall(print_seeds(event_of_cands));
 
   //parallel section over seeds; num_threads can of course be smaller
   int nseeds = m_event->seedTracks_.size();
@@ -245,10 +279,7 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
     {
       int end = std::min(itrack + NN, etabin_of_candidates.m_fill_index);
 	 
-#ifdef DEBUG
-      std::cout << std::endl;
-      std::cout << "processing track=" << itrack << " etabin=" << ebin << " findex=" << etabin_of_candidates.m_fill_index << " thn=" << omp_get_thread_num() << std::endl;
-#endif
+      dprint(std::endl << "processing track=" << itrack << " etabin=" << ebin << " findex=" << etabin_of_candidates.m_fill_index);
 
       MkFitter *mkfp = m_mkfp_arr[omp_get_thread_num()];
 
@@ -278,9 +309,7 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
 // #endif
 
         //make candidates with best hit
-#ifdef DEBUG
-        std::cout << "make new candidates" << std::endl;
-#endif
+        dprint("make new candidates");
         mkfp->AddBestHit(bunch_of_hits);
 
         mkfp->SetNhits(ilay + 1);  //here again assuming one hit per layer (is this needed?)
@@ -291,14 +320,9 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
         // But at least it doesn't crash with uncaught exception :)
         if (ilay + 1 < Config::nLayers)
         {
-#ifdef DEBUG
-          std::cout << "propagate to lay=" << ilay+2 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
-                    << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
-#endif
+          dcall(pre_prop_print(ilay, mkfp));
           mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay+1), end - itrack);
-#ifdef DEBUG
-          std::cout << "propagate to lay=" << ilay+2 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
-#endif
+          dcall(post_prop_print(ilay, mkfp));
         }
 
       } // end of layer loop
@@ -329,27 +353,11 @@ void MkBuilder::find_tracks_load_seeds()
   }
 
   //dump seeds
-#ifdef DEBUG
-  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
-  {
-    EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin]; 
-    for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed++)
-    {
-      Track& seed = etabin_of_comb_candidates.m_candidates[iseed].front();
-      std::cout << "MX - found seed with nFoundHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() 
-                << " x=" << seed.position()[0] << " y=" << seed.position()[1] << " z=" << seed.position()[2] 
-                << " px=" << seed.momentum()[0] << " py=" << seed.momentum()[1] << " pz=" << seed.momentum()[2] 
-                << " pT=" << sqrt(seed.momentum()[0]*seed.momentum()[0]+seed.momentum()[1]*seed.momentum()[1]) 
-                << std::endl;
-    }
-  }
-#endif
+  dcall(print_seeds(event_of_comb_cands));
 }
 
 struct OmpThreadData
 {
-  omp_lock_t& writelock;
-
   // thread, eta bin data
 
   int thread_num;
@@ -367,17 +375,15 @@ struct OmpThreadData
 
   // ----------------------------------------------------------------
 
-  OmpThreadData(omp_lock_t& wlck) :
-    writelock(wlck)
+  OmpThreadData()
   {
     thread_num  = omp_get_thread_num();
     num_threads = omp_get_num_threads();
 
 #ifdef DEBUG
-    omp_set_lock(&writelock);
     if (thread_num == 0)
     {
-      printf("Main parallel section, num threads = %d\n", num_threads);
+      dprintf("Main parallel section, num threads = %d\n", num_threads);
     }
 #endif
 
@@ -402,14 +408,13 @@ struct OmpThreadData
     }
 
 #ifdef DEBUG
-    if (n_th_per_eta_bin >= 1)
-      std::cout << "th_start_ebin-a="  << thread_num * n_eta_bin_per_th
-                << " th_end_ebin-a=" << thread_num * n_eta_bin_per_th + n_eta_bin_per_th
-                << " th_start_ebin-b=" << thread_num/n_th_per_eta_bin << " th_end_ebin-b=" << thread_num/n_th_per_eta_bin+1 << std::endl;
-    else 
-      std::cout << "th_start_ebin-a=" << thread_num * n_eta_bin_per_th << " th_end_ebin-a=" << thread_num * n_eta_bin_per_th + n_eta_bin_per_th << std::endl;
-    std::cout << std::endl;
-    omp_unset_lock(&writelock);
+    if (n_th_per_eta_bin >= 1) {
+      dprint("th_start_ebin-a="  << thread_num * n_eta_bin_per_th
+            << " th_end_ebin-a=" << thread_num * n_eta_bin_per_th + n_eta_bin_per_th
+            << " th_start_ebin-b=" << thread_num/n_th_per_eta_bin << " th_end_ebin-b=" << thread_num/n_th_per_eta_bin+1);
+    } else {
+      dprint("th_start_ebin-a=" << thread_num * n_eta_bin_per_th << " th_end_ebin-a=" << thread_num * n_eta_bin_per_th + n_eta_bin_per_th);
+    }
 #endif
   }
 
@@ -433,15 +438,11 @@ struct OmpThreadData
     }
     th_n_seeds = th_end_seed - th_start_seed;
 
-#ifdef DEBUG
-    omp_set_lock(&writelock);
-    printf("thread_num=%d, num_threads=%d\n", thread_num, num_threads);
-    printf("n_th_per_eta_bin=%d, n_eta_bin_per_th=%d\n", n_th_per_eta_bin, n_eta_bin_per_th);
-    printf("th_start_ebin=%d, th_end_ebin=%d\n", th_start_ebin, th_end_ebin);
-    printf("th_start_seed=%d, th_end_seed=%d, th_n_seeds=%d\n", th_start_seed, th_end_seed, th_n_seeds);
-    printf("\n");
-    omp_unset_lock(&writelock);
-#endif
+    dprintf("thread_num=%d, num_threads=%d\n", thread_num, num_threads);
+    dprintf("n_th_per_eta_bin=%d, n_eta_bin_per_th=%d\n", n_th_per_eta_bin, n_eta_bin_per_th);
+    dprintf("th_start_ebin=%d, th_end_ebin=%d\n", th_start_ebin, th_end_ebin);
+    dprintf("th_start_seed=%d, th_end_seed=%d, th_n_seeds=%d\n", th_start_seed, th_end_seed, th_n_seeds);
+    dprintf("\n");
   }
 };
 
@@ -453,11 +454,6 @@ void MkBuilder::FindTracks()
 {
   EventOfCombCandidates &event_of_comb_cands = m_event_tmp->m_event_of_comb_cands;
 
-  omp_lock_t writelock;
-#ifdef DEBUG
-  omp_init_lock(&writelock);
-#endif
-
   //the logic in OmpThreadData above is as follows:
   //- threads can be either over eta bins (a) or over seeds in one eta bin (b)
   //- for (a) we need the same number of eta bins in each thread
@@ -468,7 +464,7 @@ void MkBuilder::FindTracks()
   // number of threads to be set through omp_set_num_threads (see mkFit.cc)
 #pragma omp parallel
   {
-    OmpThreadData otd(writelock);
+    OmpThreadData otd;
 
     // loop over eta bins
     for (int ebin = otd.th_start_ebin; ebin < otd.th_end_ebin; ++ebin)
@@ -483,9 +479,7 @@ void MkBuilder::FindTracks()
       {
         BunchOfHits &bunch_of_hits = m_event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];
 
-#ifdef DEBUG
-        std::cout << "processing lay=" << ilay+1 << std::endl;
-#endif
+        dprint("processing lay=" << ilay+1);
 
         // prepare unrolled vector to loop over
         std::vector<std::pair<int,int> > seed_cand_idx;
@@ -523,9 +517,7 @@ void MkBuilder::FindTracks()
         {
           int end = std::min(itrack + NN, theEndCand);
 
-#ifdef DEBUG
-          std::cout << "processing track=" << itrack << std::endl;
-#endif
+          dprint("processing track=" << itrack);
 
           MkFitter *mkfp = m_mkfp_arr[omp_get_thread_num()];
 
@@ -539,19 +531,12 @@ void MkBuilder::FindTracks()
           //propagate to layer
           if (ilay > Config::nlayers_per_seed)
           {
-#ifdef DEBUG
-            std::cout << "propagate to lay=" << ilay+1 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
-                      << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
-#endif
+            dcall(pre_prop_print(ilay, mkfp));
             mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
-#ifdef DEBUG
-            std::cout << "propagate to lay=" << ilay+1 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
-#endif
+            dcall(post_prop_print(ilay, mkfp));
           }
 
-#ifdef DEBUG
-          std::cout << "now get hit range" << std::endl;
-#endif
+          dprint("now get hit range");
 
           mkfp->SelectHitRanges(bunch_of_hits, end - itrack);
 
@@ -559,9 +544,7 @@ void MkBuilder::FindTracks()
           //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
           //#endif
 
-#ifdef DEBUG
-          std::cout << "make new candidates" << std::endl;
-#endif
+          dprint("make new candidates");
 
           mkfp->FindCandidates(bunch_of_hits, tmp_candidates, otd.th_start_seed, end - itrack);
 
@@ -571,27 +554,18 @@ void MkBuilder::FindTracks()
         // FIXME: is there a reason why these are not vectorized????
         for (int is = 0; is < tmp_candidates.size(); ++is)
         {
-#ifdef DEBUG
-          std::cout << "dump seed n " << is << " with input candidates=" << tmp_candidates[is].size() << std::endl;
-#endif
+          dprint("dump seed n " << is << " with input candidates=" << tmp_candidates[is].size());
           std::sort(tmp_candidates[is].begin(), tmp_candidates[is].end(), sortCandByHitsChi2);
 
           if (tmp_candidates[is].size() > Config::maxCandsPerSeed)
           {
-#ifdef DEBUG
-            std::cout << "erase extra candidates" 
-                      << " tmp_candidates[is].size()=" << tmp_candidates[is].size()
-                      << " Config::maxCandsPerSeed=" << Config::maxCandsPerSeed
-                      << std::endl;
-            std::cout << "erase extra candidates" << std::endl;
-#endif
+            dprint("erase extra candidates" << " tmp_candidates[is].size()=" << tmp_candidates[is].size()
+                      << " Config::maxCandsPerSeed=" << Config::maxCandsPerSeed);
 
             tmp_candidates[is].erase(tmp_candidates[is].begin() + Config::maxCandsPerSeed,
                                      tmp_candidates[is].end());
           }
-#ifdef DEBUG
-          std::cout << "dump seed n " << is << " with output candidates=" << tmp_candidates[is].size() << std::endl;
-#endif
+          dprint("dump seed n " << is << " with output candidates=" << tmp_candidates[is].size());
         }
         //now swap with input candidates
         for (int is = 0; is < tmp_candidates.size(); ++is)
@@ -663,9 +637,7 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
   //loop over layers, starting from after the seeD
   for (int ilay = Config::nlayers_per_seed; ilay <= Config::nLayers; ++ilay)
   {
-#ifdef DEBUG
-    std::cout << "processing lay=" << ilay+1 << std::endl;
-#endif
+    dprint("processing lay=" << ilay+1);
 
     //prepare unrolled vector to loop over
 
@@ -698,14 +670,14 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
       const int end = std::min(itrack + NN, theEndCand);
 
 #ifdef DEBUG
-      std::cout << "processing track=" << itrack << std::endl;
-      printf("FTCE: start_seed=%d, n_seeds=%d, theEndCand=%d\n"
-             "      itrack=%d, end=%d, nn=%d, end_eq_tec=%d\n",
-             start_seed, n_seeds, theEndCand,
-             itrack, end, end-itrack, end == theEndCand);
-      printf("      ");
-      for (int i=itrack; i < end; ++i) printf("%d,%d  ", seed_cand_idx[i].first, seed_cand_idx[i].second);
-      printf("\n");
+      dprint("processing track=" << itrack);
+      dprintf("FTCE: start_seed=%d, n_seeds=%d, theEndCand=%d\n"
+              "      itrack=%d, end=%d, nn=%d, end_eq_tec=%d\n",
+              start_seed, n_seeds, theEndCand,
+              itrack, end, end-itrack, end == theEndCand);
+      dprintf("      ");
+      for (int i=itrack; i < end; ++i) dprintf("%d,%d  ", seed_cand_idx[i].first, seed_cand_idx[i].second);
+      dprintf("\n");
 #endif
 
       // mkfp->SetNhits(ilay == Config::nlayers_per_seed ? ilay : ilay + 1);
@@ -717,8 +689,8 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
 
 #ifdef DEBUG
       for (int i=itrack; i < end; ++i)
-        printf("  track %d, idx %d is from seed %d\n", i, i - itrack, mkfp->Label(i - itrack,0,0));
-      printf("\n");
+        dprintf("  track %d, idx %d is from seed %d\n", i, i - itrack, mkfp->Label(i - itrack,0,0));
+      dprintf("\n");
 #endif
 
       if (ilay > Config::nlayers_per_seed)
@@ -746,9 +718,7 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
         break;
       }
 
-#ifdef DEBUG
-      std::cout << "now get hit range" << std::endl;
-#endif
+      dprint("now get hit range");
 
       BunchOfHits &bunch_of_hits = m_event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];
 
@@ -758,9 +728,7 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
       //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
       //#endif
 
-#ifdef DEBUG
-      std::cout << "make new candidates" << std::endl;
-#endif
+      dprint("make new candidates");
 
       cloner.begin_iteration();
       mkfp->FindCandidatesMinimizeCopy(bunch_of_hits, cloner, start_seed, end - itrack);
@@ -794,11 +762,6 @@ void MkBuilder::FindTracksCloneEngine()
 
   EventOfCombCandidates &event_of_comb_cands = m_event_tmp->m_event_of_comb_cands;
 
-  omp_lock_t writelock;
-#ifdef DEBUG
-  omp_init_lock(&writelock);
-#endif
-
   //the logic in OmpThreadData above is as follows:
   //- threads can be either over eta bins (a) or over seeds in one eta bin (b)
   //- for (a) we need the same number of eta bins in each thread
@@ -809,7 +772,7 @@ void MkBuilder::FindTracksCloneEngine()
   // number of threads to be set through omp_set_num_threads (see mkFit.cc)
 #pragma omp parallel
   {
-    OmpThreadData otd(writelock);
+    OmpThreadData otd;
 
     CandCloner &cloner = * m_event_tmp->m_cand_cloners[otd.thread_num];
     cloner.PinMainThread();
@@ -863,14 +826,7 @@ void MkBuilder::fit_seeds_tbb()
   );
 
   //ok now, we should have all seeds fitted in recseeds
-#ifdef DEBUG
-  std::cout << "found total seeds=" << m_event->seedTracks_.size() << std::endl;
-  for (int iseed = 0; iseed < m_event->seedTracks_.size(); ++iseed)
-  {
-    Track& seed = m_event->seedTracks_[iseed];
-    std::cout << "MX - found seed with nHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.posR() << " pT=" << seed.pT() << std::endl;
-  }
-#endif
+  dcall(print_seeds(simtracks));
 }
 
 //------------------------------------------------------------------------------
