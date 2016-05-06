@@ -276,7 +276,8 @@ void test_standard()
     }
     else
     {
-      //Simulate() parallelism is via TBB
+      //Simulate() parallelism is via TBB, but comment out for now due to cost of
+      //task_scheduler_init
       //tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
 
       ev.Simulate();
