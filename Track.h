@@ -72,7 +72,7 @@ public:
   float invpT()  const {return sqrtf(getInvRad2(px(),py()));}
   float p()      const {return sqrtf(px()*px()+py()*py()+pz()*pz());}
 
-  // track state momentum errors //fixme these are all wrong now
+  // track state momentum errors
   float epxpx()   const {return sqrtf(errors.At(3,3));}
   float epypy()   const {return sqrtf(errors.At(4,4));}
   float epzpz()   const {return sqrtf(errors.At(5,5));}
