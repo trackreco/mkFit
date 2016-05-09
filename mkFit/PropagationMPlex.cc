@@ -410,12 +410,12 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
 
       float D = 0., cosa = 0., sina = 0., id = 0.;
       float cosPorT = 0., sinPorT = 0.;
-      if (Config::useTrigApprox) {
-	sincos4(phiin, sinPorT, cosPorT);
-      } else {
+      // if (Config::useTrigApprox) {
+      // 	sincos4(phiin, sinPorT, cosPorT);
+      // } else {
 	cosPorT=cos(phiin);
 	sinPorT=sin(phiin);
-      }
+      // }
       float pxin = cosPorT*pt;
       float pyin = sinPorT*pt;
 
@@ -507,12 +507,12 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
       errorProp(n,1,4) = k*(sinPorT*dadphi*cosa + cosPorT*dadphi*sina + sinPorT*cosa + cosPorT*sina - sinPorT)*pt;
       errorProp(n,1,5) = 0.f;
 
-      if (Config::useTrigApprox) {
-	sincos4(theta, sinPorT, cosPorT);
-      } else {
+      // if (Config::useTrigApprox) {
+      // 	sincos4(theta, sinPorT, cosPorT);
+      // } else {
 	cosPorT=cos(theta);
 	sinPorT=sin(theta);
-      }
+      // }
       //redefine sinPorT as 1./sinPorT to reduce the number of temporaries
       sinPorT = 1.f/sinPorT;
 

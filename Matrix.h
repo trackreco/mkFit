@@ -58,7 +58,7 @@ inline void sincos4(float x, float& sin, float& cos)
    // The *whole* fitting test ran like 2.5% slower on MIC, sigh.
 
    float x2 = x*x;
-   cos  = 1 - 0.5f*x2 + 0.04166667f*x2*x2;
+   cos  = 1.f - 0.5f*x2 + 0.04166667f*x2*x2;
    sin  = x - 0.16666667f*x*x2;
 }
 
