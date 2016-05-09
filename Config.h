@@ -90,7 +90,7 @@ namespace Config
   // Config for propagation
   constexpr int Niter = 5;
   constexpr float Bfield = 3.8112;
-  constexpr bool useTrigApprox = false;
+  constexpr bool useTrigApprox = true;
 
   // Config for seeding as well... needed bfield
   constexpr float maxCurvR = (100 * minSimPt) / (sol * Bfield); // in cm
