@@ -1,4 +1,5 @@
 #include "Propagation.h"
+//#define DEBUG
 #include "Debug.h"
 
 const double tolerance = 0.001;
@@ -78,8 +79,8 @@ struct HelixState {
     dTDdpy = 0.;
   }
 
-  void updateHelix(float distance, bool updateDeriv, bool dump = false);
-  void propagateErrors(const HelixState& in, float totalDistance, bool dump = false);
+  void updateHelix(float distance, bool updateDeriv, bool debug = false);
+  void propagateErrors(const HelixState& in, float totalDistance, bool debug = false);
 
   float x, y, z, px, py, pz;
   float k, pt, pt2, pt3, r0, curvature, ctgTheta;
@@ -142,8 +143,8 @@ void HelixState::updateHelix(float distance, bool updateDeriv, bool debug)
     dTDdpy -= r0inv*(x*dxdpy + y*dydpy);
   }
 
-    dprint(par.At(0) << " " << par.At(1) << " " << par.At(2) << std::endl
-        << par.At(3) << " " << par.At(4) << " " << par.At(5));
+  dprint(par.At(0) << " " << par.At(1) << " " << par.At(2) << std::endl
+      << par.At(3) << " " << par.At(4) << " " << par.At(5));
 }
 
 void HelixState::propagateErrors(const HelixState& in, float totalDistance, bool debug)
@@ -207,14 +208,10 @@ void HelixState::propagateErrors(const HelixState& in, float totalDistance, bool
 
   state.errors=ROOT::Math::Similarity(errorProp,state.errors);
 
-#ifdef DEBUG
-  if (debug) {
-    std::cout << "errorProp" << std::endl;
-    dumpMatrix(errorProp);
-    std::cout << "result.errors" << std::endl;
-    dumpMatrix(state.errors);
-  }
-#endif
+  dprint("errorProp");
+  dcall(dumpMatrix(errorProp));
+  dprint("result.errors");
+  dcall(dumpMatrix(state.errors));
 }
 
 // helix propagation in steps along helix trajectory, several versions
@@ -404,6 +401,7 @@ TrackState propagateHelixToR(TrackState inputState, float r) {
     if ( i == (Config::Niter-1) && std::abs(r-hsout.r0) > tolerance) {
 #ifdef DEBUG
       if (debug) { // common condition when fit fails to converge
+        dmutex_guard;
         std::cerr << __FILE__ << ":" << __LINE__ 
                   << ": failed to converge in propagateHelixToR() after " << (i+1) << " iterations, r = "
                   << r 
@@ -425,7 +423,7 @@ TrackState propagateHelixToR(TrackState inputState, float r) {
 //2. there are 2 numerical solutions, 3. need to propagate uncertainties throgh the 2nd order equation
 TrackState propagateHelixToR_test(TrackState& inputState, float r) {
 
-  bool dump = false;
+  bool debug = false;
 
   int charge = inputState.charge;
 
@@ -442,7 +440,7 @@ TrackState propagateHelixToR_test(TrackState& inputState, float r) {
   //p=0.3Br => r=p/(0.3*B)
   float k=charge*100./(-Config::sol*Config::Bfield);
   float curvature = pt*k;//in cm
-  if (dump) std::cout << "curvature=" << curvature << std::endl;
+  dprint("curvature=" << curvature);
   float ctgTheta=pzin/pt;
 
   float r0in = sqrt(xin*xin+yin*yin);
@@ -473,7 +471,7 @@ TrackState propagateHelixToR_test(TrackState& inputState, float r) {
   float aeq = k*k*(pt2+(pxin*yin-pyin*xin)/k);
   float xeq1 = (-beq + sqrt(beq*beq-4*aeq*ceq))/(2*aeq);
   float xeq2 = (-beq - sqrt(beq*beq-4*aeq*ceq))/(2*aeq);
-  if (dump) std::cout << "xeq1=" << xeq1 << " xeq2=" << xeq2 << std::endl;
+  dprint("xeq1=" << xeq1 << " xeq2=" << xeq2);
   //test//
 
   float totalAngPath=xeq1;
@@ -500,7 +498,7 @@ TrackState propagateHelixToR_test(TrackState& inputState, float r) {
   par.At(4) = pyin*cosTP+pxin*sinTP;
   par.At(5) = pzin;
 
-  if (dump) std::cout << "TD=" << TD << " TP=" << TP << " arrived at r=" << sqrt(par.At(0)*par.At(0)+par.At(1)*par.At(1)) << std::endl;
+  dprint("TD=" << TD << " TP=" << TP << " arrived at r=" << sqrt(par.At(0)*par.At(0)+par.At(1)*par.At(1)));
 
   float dCdpx = k*pxin/pt;
   float dCdpy = k*pyin/pt;
@@ -573,19 +571,15 @@ TrackState propagateHelixToR_test(TrackState& inputState, float r) {
   errorProp(4,3)=dpydpx;
   errorProp(4,4)=dpydpy;
 
-  if (dump) {
-    std::cout << "errorProp" << std::endl;
-    dumpMatrix(errorProp);
-  }
+  dprint("errorProp");
+  dcall(dumpMatrix(errorProp));
 
   TrackState result;
   result.parameters=par;
   result.errors=ROOT::Math::Similarity(errorProp,err);
   result.charge = charge;
-  if (dump) {
-    std::cout << "result.errors" << std::endl;
-    dumpMatrix(result.errors);
-  }
+  dprint("result.errors");
+  dcall(dumpMatrix(result.errors));
   return result;
 
 }
@@ -596,7 +590,7 @@ TrackState propagateHelixToR_test(TrackState& inputState, float r) {
 
 void propagateHelixToR_fewerTemps(TrackState& inputState, float r, TrackState& result)
 {
-   const bool dump = false;
+   const bool debug = false;
 
    float xin = inputState.parameters.At(0);
    float yin = inputState.parameters.At(1);
@@ -612,11 +606,11 @@ void propagateHelixToR_fewerTemps(TrackState& inputState, float r, TrackState& r
    SVector6& par = result.parameters;
    SMatrixSym66& err = result.errors;
 
+   dprint("attempt propagation from r=" << r0in << " to r=" << r << std::endl
+           << xin << " y=" << yin << " px=" << pxin << " py=" << pyin << " pz=" << pzin << " q=" << inputState.charge);
 #ifdef DEBUG
-   if (dump) std::cout << "attempt propagation from r=" << r0in << " to r=" << r << std::endl;
-   if (dump) std::cout << "x=" << xin << " y=" << yin << " px=" << pxin << " py=" << pyin << " pz=" << pzin << " q=" << inputState.charge << std::endl;
    if ((r0in-r)>=0) {
-      if (dump) std::cout << "target radius same or smaller than starting point, returning input" << std::endl;
+      dprint("target radius same or smaller than starting point, returning input");
       return;
    }
 #endif
@@ -628,7 +622,7 @@ void propagateHelixToR_fewerTemps(TrackState& inputState, float r, TrackState& r
    //p=0.3Br => r=p/(0.3*B)
    float k=inputState.charge*100./(-Config::sol*Config::Bfield);
    float invcurvature = 1./(pt*k);//in 1./cm
-   if (dump) std::cout << "curvature=" << 1./invcurvature << std::endl;
+   dprint("curvature=" << 1./invcurvature);
    float ctgTheta=pzin*ptinv;
    //variables to be updated at each iterations
    //derivatives initialized to value for first iteration, i.e. distance = r-r0in
@@ -649,33 +643,25 @@ void propagateHelixToR_fewerTemps(TrackState& inputState, float r, TrackState& r
  
    for (int i = 0; i < Config::Niter; ++i)
    {
-#ifdef DEBUG
-      if (dump) std::cout << "propagation iteration #" << i << std::endl;
-#endif
+      dprint("propagation iteration #" << i);
       float x = par.At(0);
       float y = par.At(1);
       float px = par.At(3);
       float py = par.At(4);
 
       float r0 = sqrt(par.At(0)*par.At(0)+par.At(1)*par.At(1));
+      dprint("r0=" << r0 << " pt=" << pt);
 #ifdef DEBUG
-      if (dump) std::cout << "r0=" << r0 << " pt=" << pt << std::endl;
-      if (dump) {
-         if (r==r0) {
-            std::cout << "distance = 0 at iteration=" << i << std::endl;
-            break;
-         }
+       if (r==r0) {
+          dprint("distance = 0 at iteration=" << i);
+          break;
       }
 #endif
       float distance = r-r0;
       totalDistance += distance;
-#ifdef DEBUG
-      if (dump) std::cout << "distance=" << distance << std::endl;
-#endif
+      dprint("distance=" << distance);
       float angPath = distance*invcurvature;
-#ifdef DEBUG
-      if (dump) std::cout << "angPath=" << angPath << std::endl;
-#endif
+      dprint("angPath=" << angPath);
       // cosAP=cos(angPath);
       // sinAP=sin(angPath);
       sincos4(angPath, sinAP, cosAP);
@@ -694,9 +680,7 @@ void propagateHelixToR_fewerTemps(TrackState& inputState, float r, TrackState& r
          //update derivatives on total distance for next step, where totalDistance+=r-r0
          //now r0 depends on px and py
          r0 = 1./r0;//WARNING, now r0 is r0inv (one less temporary)
-#ifdef DEBUG
-         if (dump) std::cout << "r0=" << 1./r0 << " r0inv=" << r0 << " pt=" << pt << std::endl;
-#endif
+         dprint("r0=" << 1./r0 << " r0inv=" << r0 << " pt=" << pt);
          //update derivative on D
          dAPdx  = -x*r0*invcurvature;
          dAPdy  = -y*r0*invcurvature;
@@ -721,18 +705,14 @@ void propagateHelixToR_fewerTemps(TrackState& inputState, float r, TrackState& r
          //dTDdpy -= r0*(x*dxdpy + y*(k*dydpy);
          dTDdpy -= r0*(x*(k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy)) + y*(k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy)));
       }
-#ifdef DEBUG
-      if (dump) std::cout << par.At(0) << " " << par.At(1) << " " << par.At(2) << std::endl;
-      if (dump) std::cout << par.At(3) << " " << par.At(4) << " " << par.At(5) << std::endl;
-#endif
+      dprint(par.At(0) << " " << par.At(1) << " " << par.At(2) << std::endl
+          << par.At(3) << " " << par.At(4) << " " << par.At(5));
    }
    float totalAngPath=totalDistance*invcurvature;
    float& TD=totalDistance;
    float& TP=totalAngPath;
    float& iC=invcurvature;
-#ifdef DEBUG
-   if (dump) std::cout << "TD=" << TD << " TP=" << TP << " arrived at r=" << sqrt(par.At(0)*par.At(0)+par.At(1)*par.At(1)) << std::endl;
-#endif
+   dprint("TD=" << TD << " TP=" << TP << " arrived at r=" << sqrt(par.At(0)*par.At(0)+par.At(1)*par.At(1)));
    float dCdpx = k*pxin*ptinv;
    float dCdpy = k*pyin*ptinv;
    float dTPdx = dTDdx*iC;
@@ -776,14 +756,10 @@ void propagateHelixToR_fewerTemps(TrackState& inputState, float r, TrackState& r
    errorProp(4,3) = +sinTP - dTPdpx*(pyin*sinTP - pxin*cosTP);//dpydpx;
    errorProp(4,4) = +cosTP - dTPdpy*(pyin*sinTP - pxin*cosTP);//dpydpy;
    result.errors=ROOT::Math::Similarity(errorProp,err);
-#ifdef DEBUG
-   if (dump) {
-      std::cout << "errorProp" << std::endl;
-      dumpMatrix(errorProp);
-      std::cout << "result.errors" << std::endl;
-      dumpMatrix(result.errors);
-   }
-#endif
+   dprint("errorProp");
+   dcall(dumpMatrix(errorProp));
+   dprint("result.errors");
+   dcall(dumpMatrix(result.errors));
    /*
      if (fabs(sqrt(par[0]*par[0]+par[1]*par[1])-r)>0.0001) {
      std::cout << "DID NOT GET TO R, dR=" << fabs(sqrt(par[0]*par[0]+par[1]*par[1])-r)
