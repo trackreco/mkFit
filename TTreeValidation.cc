@@ -98,13 +98,16 @@ void TTreeValidation::initializeDebugTree(){
   debugtree_->Branch("chi2",&chi2_debug_,"chi2[nlayers_debug_]/F");
 
   // MC
+  debugtree_->Branch("x_hit",&x_hit_debug_,"x_hit[nlayers_debug_]/F");
+  debugtree_->Branch("y_hit",&y_hit_debug_,"y_hit[nlayers_debug_]/F");
+  debugtree_->Branch("z_hit",&z_hit_debug_,"z_hit[nlayers_debug_]/F");
+  debugtree_->Branch("exx_hit",&exx_hit_debug_,"exx_hit[nlayers_debug_]/F");
+  debugtree_->Branch("eyy_hit",&eyy_hit_debug_,"eyy_hit[nlayers_debug_]/F");
+  debugtree_->Branch("ezz_hit",&ezz_hit_debug_,"ezz_hit[nlayers_debug_]/F");
+
   debugtree_->Branch("x_mc",&x_mc_debug_,"x_mc[nlayers_debug_]/F");
   debugtree_->Branch("y_mc",&y_mc_debug_,"y_mc[nlayers_debug_]/F");
   debugtree_->Branch("z_mc",&z_mc_debug_,"z_mc[nlayers_debug_]/F");
-  debugtree_->Branch("exx_mc",&exx_mc_debug_,"exx_mc[nlayers_debug_]/F");
-  debugtree_->Branch("eyy_mc",&eyy_mc_debug_,"eyy_mc[nlayers_debug_]/F");
-  debugtree_->Branch("ezz_mc",&ezz_mc_debug_,"ezz_mc[nlayers_debug_]/F");
-
   debugtree_->Branch("px_mc",&px_mc_debug_,"px_mc[nlayers_debug_]/F");
   debugtree_->Branch("py_mc",&py_mc_debug_,"py_mc[nlayers_debug_]/F");
   debugtree_->Branch("pz_mc",&pz_mc_debug_,"pz_mc[nlayers_debug_]/F");
@@ -199,6 +202,13 @@ void TTreeValidation::initializeDebugTree(){
   debugtree_->Branch("einvpt_up",&einvpt_up_debug_,"einvpt_up[nlayers_debug_]/F");
   debugtree_->Branch("theta_up",&theta_up_debug_,"theta_up[nlayers_debug_]/F");
   debugtree_->Branch("etheta_up",&etheta_up_debug_,"etheta_up[nlayers_debug_]/F");
+
+  debugtree_->Branch("etabin_hit",&ebhit_debug_,"etabin_hit[nlayers_debug_]/I");
+  debugtree_->Branch("etabinplus",&ebp_debug_,"etabinplus[nlayers_debug_]/I");
+  debugtree_->Branch("etabinminus",&ebm_debug_,"etabinminus[nlayers_debug_]/I");
+  debugtree_->Branch("phibin_hit",&pbhit_debug_,"phibin_hit[nlayers_debug_]/I");
+  debugtree_->Branch("phibinplus",&pbp_debug_,"phibinplus[nlayers_debug_]/I");
+  debugtree_->Branch("phibinminus",pbm_debug_,"phibinminus[nlayers_debug_]/I");
 }
 
 void TTreeValidation::initializeSeedInfoTree(){
@@ -768,8 +778,9 @@ void TTreeValidation::resetDebugTreeArrays(){
   for (int i = 0; i < Config::nLayers; i++){
     // reset MC info
     layer_mc_debug_[i]=-99;
+    x_hit_debug_[i]=-99;     y_hit_debug_[i]=-99;     z_hit_debug_[i]=-99; 
+    exx_hit_debug_[i]=-99;   eyy_hit_debug_[i]=-99;   ezz_hit_debug_[i]=-99;
     x_mc_debug_[i]=-99;     y_mc_debug_[i]=-99;     z_mc_debug_[i]=-99; 
-    exx_mc_debug_[i]=-99;   eyy_mc_debug_[i]=-99;   ezz_mc_debug_[i]=-99;
     px_mc_debug_[i]=-99;    py_mc_debug_[i]=-99;    pz_mc_debug_[i]=-99;
     pt_mc_debug_[i]=-99;    phi_mc_debug_[i]=-99;   eta_mc_debug_[i]=-99;
     invpt_mc_debug_[i]=-99; theta_mc_debug_[i]=-99;
@@ -799,6 +810,10 @@ void TTreeValidation::resetDebugTreeArrays(){
     ept_up_debug_[i]=-99;    ephi_up_debug_[i]=-99;   eeta_up_debug_[i]=-99;
     invpt_up_debug_[i] =-99; theta_up_debug_[i] =-99;
     einvpt_up_debug_[i]=-99; etheta_up_debug_[i]=-99;
+
+    // reset eta/phi bin info
+    ebhit_debug_[i] = -99; ebp_debug_[i] = -99; ebm_debug_[i] = -99;
+    pbhit_debug_[i] = -99; pbp_debug_[i] = -99; pbm_debug_[i] = -99;
   }
 }
 
@@ -832,14 +847,21 @@ void TTreeValidation::fillDebugTree(const Event& ev){
   for (int i = 0; i < simhits.size(); i++){ // assume one hit for layer for sim tracks...
     layer_mc_debug_[i] = i;
 
-    x_mc_debug_[i] = simhits[i].x();
-    y_mc_debug_[i] = simhits[i].y();
-    z_mc_debug_[i] = simhits[i].z();
-    exx_mc_debug_[i] = simhits[i].exx();
-    eyy_mc_debug_[i] = simhits[i].eyy();
-    ezz_mc_debug_[i] = simhits[i].ezz();
+    x_hit_debug_[i]   = simhits[i].x();
+    y_hit_debug_[i]   = simhits[i].y();
+    z_hit_debug_[i]   = simhits[i].z();
+    exx_hit_debug_[i] = simhits[i].exx();
+    eyy_hit_debug_[i] = simhits[i].eyy();
+    ezz_hit_debug_[i] = simhits[i].ezz();
+
+    // which eta/phi bin the hit belongs to
+    ebhit_debug_[i] = getEtaPartition(simhits[i].eta());
+    pbhit_debug_[i] = getPhiPartition(simhits[i].phi());
 
     const TrackState & mcstate = simTkTSVecMap_[mcID][i];
+    x_mc_debug_[i]   = mcstate.x();
+    y_mc_debug_[i]   = mcstate.y();
+    z_mc_debug_[i]   = mcstate.z();
     pt_mc_debug_[i]  = mcstate.pT();
     phi_mc_debug_[i] = mcstate.momPhi();
     eta_mc_debug_[i] = mcstate.momEta();
@@ -951,6 +973,24 @@ void TTreeValidation::fillDebugTree(const Event& ev){
     einvpt_up_debug_[layer] = upTS.einvpT();
     theta_up_debug_[layer]  = upTS.theta();
     etheta_up_debug_[layer] = upTS.etheta();
+  }
+
+  // see what it predicted! (reuse branchval)
+  for (TkIDToBVVMMIter seediter = seedToBranchValVecLayMapMap_.begin(); seediter != seedToBranchValVecLayMapMap_.end(); ++seediter){
+    for (BVVLMiter layiter = (*seediter).second.begin(); layiter != (*seediter).second.end(); ++layiter){
+      const auto& BranchValVec((*layiter).second);
+      const int cands = BranchValVec.size();
+      int layer = (*layiter).first; // first index here is layer
+      for (int cand = 0; cand < cands; cand++){ // loop over input candidates at this layer for this seed
+	const auto& BranchVal(BranchValVec[cand]); // grab the branch validation object
+	
+	ebp_debug_[layer]  = BranchVal.etaBinPlus;
+	ebm_debug_[layer]  = BranchVal.etaBinMinus;
+	pbp_debug_[layer]  = BranchVal.phiBinPlus;
+	pbm_debug_[layer]  = BranchVal.phiBinMinus;
+
+      }
+    }
   }
 
   // fill it once per track (i.e. once per track by definition)

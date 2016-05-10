@@ -188,12 +188,6 @@ int main(int argc, const char* argv[])
   tbb::task_scheduler_init tasks(nThread);
 #endif
 
-  if (Config::super_debug){
-    Config::nEvents = 100000;
-    Config::nTracks = 1;
-  }
-
-
   for (int evt=0; evt<Config::nEvents; ++evt) {
     Event ev(geom, val, evt, nThread);
     std::cout << "EVENT #"<< ev.evtID() << std::endl;
