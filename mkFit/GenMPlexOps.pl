@@ -6,6 +6,20 @@ use GenMul;
 use warnings;
 
 #------------------------------------------------------------------------------
+### simple general 3x3 matrix times 3 vector multiplication for CF MPlex
+
+$A = new GenMul::Matrix('name'=>'a', 'M'=>3, 'N'=>3);
+
+$B = new GenMul::Matrix('name'=>'b', 'M'=>3, 'N'=>1);
+
+$C = new GenMul::Matrix('name'=>'c', 'M'=>3, 'N'=>1);
+
+$m = new GenMul::Multiply;
+
+$m->dump_multiply_std_and_intrinsic("CFMatrix33Vector3.ah",
+                                    $A, $B, $C);
+
+#------------------------------------------------------------------------------
 ###updateParametersMPlex -- propagated errors in "polar" coordinates
 # propErr_pol = jac_pol * propErr * jac_polT
 
