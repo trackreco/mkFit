@@ -391,12 +391,12 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
       const float& r = msRad.ConstAt(n, 0, 0);
       float r0 = hipo(inPar.ConstAt(n, 0, 0), inPar.ConstAt(n, 1, 0));
 
-      if (fabs(r-r0)<0.0001f) {
-#ifdef DEBUG
-	std::cout << "distance less than 1mum, skip" << std::endl;
-#endif
-	continue;
-      }
+//       if (fabs(r-r0)<0.0001f) {
+// #ifdef DEBUG
+// 	std::cout << "distance less than 1mum, skip" << std::endl;
+// #endif
+// 	continue;
+//       }
 
       const float& xin   = inPar.ConstAt(n, 0, 0);
       const float& yin   = inPar.ConstAt(n, 1, 0);
@@ -409,13 +409,8 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
       const float pt = 1.f/ipt;
 
       float D = 0., cosa = 0., sina = 0., id = 0.;
-      float cosPorT = 0., sinPorT = 0.;
-      // if (Config::useTrigApprox) {
-      // 	sincos4(phiin, sinPorT, cosPorT);
-      // } else {
-	cosPorT=cos(phiin);
-	sinPorT=sin(phiin);
-      // }
+      //no trig approx here, phi can be large
+      float cosPorT = cos(phiin), sinPorT = sin(phiin);
       float pxin = cosPorT*pt;
       float pyin = sinPorT*pt;
 
@@ -445,31 +440,32 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
 	if (Config::useTrigApprox) {
 	  sincos4(id*ipt*kinv, sina, cosa);
 	} else {
-	  cosa=cos(id*ipt*kinv);
-	  sina=sin(id*ipt*kinv);
+          cosa=cos(id*ipt*kinv);
+          sina=sin(id*ipt*kinv);
 	}
 
 	//update derivatives on total distance
-	if (i+1 != Config::Niter && r0 > 0 && fabs((r-r0))>0.0001f) {
+	if (i+1 != Config::Niter) {
 
-	  float& x = outPar.At(n, 0, 0);
-	  float& y = outPar.At(n, 1, 0);
+          float x = outPar.At(n, 0, 0);
+          float y = outPar.At(n, 1, 0);
+          float oor0 = (r0>0.f && fabs(r-r0)<0.0001f) ? 1.f/r0 : 0.f;
 
-	  //redefine r0 as 1./r0 to reduce the number of temporaries
-	  r0 = 1.f/r0;
+          dadipt = id*kinv;
 
-	  dadx = -x*ipt*kinv*r0;
-	  dady = -y*ipt*kinv*r0;
-	  dadipt = id*kinv;
+          dadx = -x*ipt*kinv;
+          dady = -y*ipt*kinv;
 
-	  dDdx   -= ( x*(1.f + k*dadx*(pxin*cosa - pyin*sina)) + y*k*dadx*(pyin*cosa + pxin*sina) )*r0;
-	  dDdy   -= ( x*k*dady*(pxin*cosa - pyin*sina) + y*(1.f + k*dady*(pyin*cosa + pxin*sina)) )*r0;
-	  //now r0 depends on ipt and phi as well
-	  dDdipt -= k*( x*(pxin*dadipt*cosa*ipt - pyin*dadipt*sina*ipt - pyin*cosa - pxin*sina + pyin) +
-			y*(pyin*dadipt*cosa*ipt + pxin*dadipt*sina*ipt - pyin*sina + pxin*cosa - pxin))*pt*r0;
-	  dDdphi += k*( x*(pyin*sina - pxin + pxin*cosa) - y*(pxin*sina - pyin + pyin*cosa))*r0;
+          dadx *= oor0;
+          dady *= oor0;
 
-	}
+          dDdx   -= ( x*(1.f + k*dadx*(pxin*cosa - pyin*sina)) + y*k*dadx*(pyin*cosa + pxin*sina) )*oor0;
+          dDdy   -= ( x*k*dady*(pxin*cosa - pyin*sina) + y*(1.f + k*dady*(pyin*cosa + pxin*sina)) )*oor0;
+          //now r0 depends on ipt and phi as well
+          dDdipt -= k*( x*(pxin*dadipt*cosa*ipt - pyin*dadipt*sina*ipt - pyin*cosa - pxin*sina + pyin) +
+                        y*(pyin*dadipt*cosa*ipt + pxin*dadipt*sina*ipt - pyin*sina + pxin*cosa - pxin))*pt*oor0;
+          dDdphi += k*( x*(pyin*sina - pxin + pxin*cosa) - y*(pxin*sina - pyin + pyin*cosa))*oor0;
+        }
 
 	//update parameters
 	outPar.At(n, 0, 0) = outPar.At(n, 0, 0) + k*(pxin*sina - pyin*(1.f-cosa));
@@ -477,7 +473,6 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
 	const float pxinold = pxin;//copy before overwriting
 	pxin = pxin*cosa - pyin*sina;
 	pyin = pyin*cosa + pxinold*sina;
-
       }
 
       const float alpha  = D*ipt*kinv;
@@ -507,12 +502,9 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
       errorProp(n,1,4) = k*(sinPorT*dadphi*cosa + cosPorT*dadphi*sina + sinPorT*cosa + cosPorT*sina - sinPorT)*pt;
       errorProp(n,1,5) = 0.f;
 
-      // if (Config::useTrigApprox) {
-      // 	sincos4(theta, sinPorT, cosPorT);
-      // } else {
-	cosPorT=cos(theta);
-	sinPorT=sin(theta);
-      // }
+      //no trig approx here, theta can be large
+      cosPorT=cos(theta);
+      sinPorT=sin(theta);
       //redefine sinPorT as 1./sinPorT to reduce the number of temporaries
       sinPorT = 1.f/sinPorT;
 

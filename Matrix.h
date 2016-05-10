@@ -49,20 +49,20 @@ inline double dtime()
 
 inline float hipo(float x, float y)
 {
-   return sqrt(x*x + y*y);
+  return std::sqrt(x*x + y*y);
 }
 
-inline void sincos4(float x, float& sin, float& cos)
+inline void sincos4(const float x, float& sin, float& cos)
 {
    // Had this writen with explicit division by factorial.
    // The *whole* fitting test ran like 2.5% slower on MIC, sigh.
 
-   float x2 = x*x;
+   const float x2 = x*x;
    cos  = 1.f - 0.5f*x2 + 0.04166667f*x2*x2;
    sin  = x - 0.16666667f*x*x2;
 }
 
-inline float asintay(float x) {
+inline float asintay(const float x) {
   return x + 0.16666667f*x*x*x;
 }
 //==============================================================================
