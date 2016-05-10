@@ -30,45 +30,45 @@ public:
   float posEta() const {return getEta  (posR(),z());}
 
   // track state position errors
-  float exx()    const {return sqrtf(errors.At(0,0));}
-  float eyy()    const {return sqrtf(errors.At(1,1));}
-  float ezz()    const {return sqrtf(errors.At(2,2));}
-  float exy()    const {return sqrtf(errors.At(0,1));}
-  float exz()    const {return sqrtf(errors.At(0,2));}
-  float eyz()    const {return sqrtf(errors.At(1,2));}
+  float exx()    const {return std::sqrt(errors.At(0,0));}
+  float eyy()    const {return std::sqrt(errors.At(1,1));}
+  float ezz()    const {return std::sqrt(errors.At(2,2));}
+  float exy()    const {return std::sqrt(errors.At(0,1));}
+  float exz()    const {return std::sqrt(errors.At(0,2));}
+  float eyz()    const {return std::sqrt(errors.At(1,2));}
 
-  float eposR()   const {return sqrtf(getRadErr2(x(),y(),errors.At(0,0),errors.At(1,1),errors.At(0,1)));}
-  float eposPhi() const {return sqrtf(getPhiErr2(x(),y(),errors.At(0,0),errors.At(1,1),errors.At(0,1)));}
-  float eposEta() const {return sqrtf(getEtaErr2(x(),y(),z(),errors.At(0,0),errors.At(1,1),errors.At(2,2),
+  float eposR()   const {return std::sqrt(getRadErr2(x(),y(),errors.At(0,0),errors.At(1,1),errors.At(0,1)));}
+  float eposPhi() const {return std::sqrt(getPhiErr2(x(),y(),errors.At(0,0),errors.At(1,1),errors.At(0,1)));}
+  float eposEta() const {return std::sqrt(getEtaErr2(x(),y(),z(),errors.At(0,0),errors.At(1,1),errors.At(2,2),
 						 errors.At(0,1),errors.At(0,2),errors.At(1,2)));}
 
   // track state momentum
   float px()     const {return parameters.At(3);}
   float py()     const {return parameters.At(4);}
   float pz()     const {return parameters.At(5);}
-  float pT()     const {return sqrtf(getRad2(px(),py()));}
-  float p()      const {return sqrtf(px()*px()+py()*py()+pz()*pz());}
+  float pT()     const {return std::sqrt(getRad2(px(),py()));}
+  float p()      const {return std::sqrt(px()*px()+py()*py()+pz()*pz());}
   float momPhi() const {return       getPhi (px(),py());}
   float momEta() const {return       getEta (pT(),pz());}
 
   // track state momentum errors
-  float epxpx()   const {return sqrtf(errors.At(3,3));}
-  float epypy()   const {return sqrtf(errors.At(4,4));}
-  float epzpz()   const {return sqrtf(errors.At(5,5));}
-  float epxpy()   const {return sqrtf(errors.At(3,4));}
-  float epxpz()   const {return sqrtf(errors.At(3,5));}
-  float epypz()   const {return sqrtf(errors.At(4,5));}
+  float epxpx()   const {return std::sqrt(errors.At(3,3));}
+  float epypy()   const {return std::sqrt(errors.At(4,4));}
+  float epzpz()   const {return std::sqrt(errors.At(5,5));}
+  float epxpy()   const {return std::sqrt(errors.At(3,4));}
+  float epxpz()   const {return std::sqrt(errors.At(3,5));}
+  float epypz()   const {return std::sqrt(errors.At(4,5));}
 
-  float epT()     const {return sqrtf(getRadErr2(px(),py(),errors.At(3,3),errors.At(4,4),errors.At(3,4)));}
-  float emomPhi() const {return sqrtf(getPhiErr2(px(),py(),errors.At(3,3),errors.At(4,4),errors.At(3,4)));}
-  float emomEta() const {return sqrtf(getEtaErr2(px(),py(),pz(),errors.At(3,3),errors.At(4,4),errors.At(5,5),
+  float epT()     const {return std::sqrt(getRadErr2(px(),py(),errors.At(3,3),errors.At(4,4),errors.At(3,4)));}
+  float emomPhi() const {return std::sqrt(getPhiErr2(px(),py(),errors.At(3,3),errors.At(4,4),errors.At(3,4)));}
+  float emomEta() const {return std::sqrt(getEtaErr2(px(),py(),pz(),errors.At(3,3),errors.At(4,4),errors.At(5,5),
 						 errors.At(3,4),errors.At(3,5),errors.At(4,5)));}
 
   float theta()   const {return getTheta(pT(),pz());}
-  float invpT()   const {return sqrtf(getInvRad2(px(),py()));}
-  float etheta()  const {return sqrtf(getThetaErr2(px(),py(),pz(),errors.At(3,3),errors.At(4,4),errors.At(5,5),
+  float invpT()   const {return std::sqrt(getInvRad2(px(),py()));}
+  float etheta()  const {return std::sqrt(getThetaErr2(px(),py(),pz(),errors.At(3,3),errors.At(4,4),errors.At(5,5),
 						   errors.At(3,4),errors.At(3,5),errors.At(4,5)));}
-  float einvpT()  const {return sqrtf(getInvRadErr2(px(),py(),errors.At(3,3),errors.At(4,4),errors.At(3,4)));}
+  float einvpT()  const {return std::sqrt(getInvRadErr2(px(),py(),errors.At(3,3),errors.At(4,4),errors.At(3,4)));}
 };
 
 class Track
@@ -83,7 +83,7 @@ public:
   {
     for (int h = 0; h < nHits; ++h)
     {
-      addHitIdx(hitIdxArr[h],0.);
+      addHitIdx(hitIdxArr[h],0.0f);
     }
     for (int h = nHits; h < Config::nLayers; ++h){
       setHitIdx(h,-1);
@@ -128,16 +128,16 @@ public:
   float momEta() const { return getEta(state_.parameters[3],state_.parameters[4],state_.parameters[5]); }
 
   // track state momentum errors
-  float epx()     const { return sqrtf(state_.errors[3][3]);}
-  float epy()     const { return sqrtf(state_.errors[4][4]);}
-  float epz()     const { return sqrtf(state_.errors[5][5]);}
-  float epT()     const { return sqrtf(fabs(getRadErr2(state_.parameters[3],state_.parameters[4],
-						       state_.errors[3][3],state_.errors[4][4],state_.errors[3][4])));}
-  float emomPhi() const { return sqrtf(fabs(getPhiErr2(state_.parameters[3],state_.parameters[4],
-						       state_.errors[3][3],state_.errors[4][4],state_.errors[3][4])));}
-  float emomEta() const { return sqrtf(fabs(getEtaErr2(state_.parameters[3],state_.parameters[4],state_.parameters[5],
-						       state_.errors[3][3],state_.errors[4][4],state_.errors[5][5],state_.errors[3][4],
-						       state_.errors[3][5],state_.errors[4][5])));}
+  float epx()     const { return std::sqrt(state_.errors[3][3]);}
+  float epy()     const { return std::sqrt(state_.errors[4][4]);}
+  float epz()     const { return std::sqrt(state_.errors[5][5]);}
+  float epT()     const { return std::sqrt(std::abs(getRadErr2(state_.parameters[3],state_.parameters[4],
+						                                 state_.errors[3][3],state_.errors[4][4],state_.errors[3][4])));}
+  float emomPhi() const { return std::sqrt(std::abs(getPhiErr2(state_.parameters[3],state_.parameters[4],
+						                                 state_.errors[3][3],state_.errors[4][4],state_.errors[3][4])));}
+  float emomEta() const { return std::sqrt(std::abs(getEtaErr2(state_.parameters[3],state_.parameters[4],state_.parameters[5],
+						                                 state_.errors[3][3],state_.errors[4][4],state_.errors[5][5],state_.errors[3][4],
+						                                 state_.errors[3][5],state_.errors[4][5])));}
   
   //this function is very inefficient, use only for debug and validation!
   const HitVec hitsVector(const std::vector<HitVec>& globalHitVec) const 
@@ -145,7 +145,7 @@ public:
     HitVec hitsVec;
     for (int ihit = 0; ihit < Config::nLayers ; ++ihit){
       if (hitIdxArr_[ihit] >= 0){
-	hitsVec.push_back( globalHitVec[ihit][ hitIdxArr_[ihit] ] );
+        hitsVec.push_back( globalHitVec[ihit][ hitIdxArr_[ihit] ] );
       }
     }
     return hitsVec;
@@ -154,7 +154,7 @@ public:
   void addHitIdx(int hitIdx,float chi2)
   {
     hitIdxArr_[++hitIdxPos_] = hitIdx;
-    if (hitIdx >= 0) ++nGoodHitIdx_; chi2_+=chi2;
+    if (hitIdx >= 0) { ++nGoodHitIdx_; chi2_+=chi2; }
   }
 
   int getHitIdx(int posHitIdx) const
@@ -189,7 +189,7 @@ public:
     std::vector<int> layers;
     for (int ihit = 0; ihit <= hitIdxPos_ ; ++ihit){
       if (hitIdxArr_[ihit] >= 0) {
-	layers.push_back(ihit);
+        layers.push_back(ihit);
       }
     }
     return layers;
@@ -214,7 +214,7 @@ private:
 
 class TrackExtra {
 public:
- TrackExtra() : seedID_(std::numeric_limits<int>::max()) {}
+  TrackExtra() : seedID_(std::numeric_limits<int>::max()) {}
   TrackExtra(int seedID) : seedID_(seedID) {}
   int mcTrackID() const {return mcTrackID_;}
   int nHitsMatched() const {return nHitsMatched_;}
