@@ -11,4 +11,6 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp);
 
 double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& evtmp);
 
+double runBuildingTestPlexTbb(Event& ev, EventTmp& evtmp);
+
 #endif

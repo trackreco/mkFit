@@ -3,6 +3,7 @@
 #include "KalmanUtils.h"
 #include "Propagation.h"
 #include "ConformalUtils.h"
+//#define DEBUG
 #include "Debug.h"
 
 #ifdef TBB
@@ -81,17 +82,13 @@ void fitTrack(const Track & trk, const TrackExtra& trkextra, int itrack, Event& 
     }
 #endif
 
-#ifdef DEBUG
-    if (debug) {
-      std::cout << "processing hit: " << hit.mcHitID() << std::endl
-                << "hitR, propR, updR = " << hit.r() << ", " 
-                << Mag(propPos) << ", " << Mag(updPos) << std::endl << std::endl;
+    dprint("processing hit: " << hit.mcHitID() << std::endl
+              << "hitR, propR, updR = " << hit.r() << ", " 
+              << Mag(propPos) << ", " << Mag(updPos) << std::endl);
 
-      print("measState", measState);
-      print("propState", propState);
-      print("updatedState", updatedState);
-    }
-#endif
+    dcall(print("measState", measState));
+    dcall(print("propState", propState));
+    dcall(print("updatedState", updatedState));
     if (!propState.valid || !updatedState.valid) {
       dprint("Failed propagation " << "hitR, propR, updR = " << hit.r() << ", " << Mag(propPos) << ", " << Mag(updPos));
 #ifdef CHECKSTATEVALID

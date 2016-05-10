@@ -88,6 +88,10 @@ void TTreeValidation::initializeDebugTree(){
   debugtree_->Branch("phi_gen",&phi_gen_debug_,"phi_gen/F");
   debugtree_->Branch("eta_gen",&eta_gen_debug_,"eta_gen/F");
 
+  debugtree_->Branch("x_gen",&x_gen_debug_,"x_gen/F");
+  debugtree_->Branch("y_gen",&y_gen_debug_,"y_gen/F");
+  debugtree_->Branch("z_gen",&z_gen_debug_,"z_gen/F");
+
   debugtree_->Branch("layer_mc",&layer_mc_debug_,"layer_mc[nlayers_debug_]/I");
 
   debugtree_->Branch("layer_chi2",&layer_chi2_debug_,"layer_chi2[nlayers_debug_]/I");
@@ -819,6 +823,10 @@ void TTreeValidation::fillDebugTree(const Event& ev){
   pt_gen_debug_  = simtrack.pT(); 
   phi_gen_debug_ = simtrack.momPhi(); 
   eta_gen_debug_ = simtrack.momEta(); 
+
+  x_gen_debug_   = simtrack.x(); 
+  y_gen_debug_   = simtrack.y(); 
+  z_gen_debug_   = simtrack.z(); 
 
   auto& simhits = simtrack.hitsVector(ev.layerHits_);
   for (int i = 0; i < simhits.size(); i++){ // assume one hit for layer for sim tracks...

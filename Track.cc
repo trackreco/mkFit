@@ -1,4 +1,5 @@
 #include "Track.h"
+//#define DEBUG
 #include "Debug.h"
 
 void TrackState::convertFromCartesianToPolar() {

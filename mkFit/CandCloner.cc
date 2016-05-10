@@ -1,4 +1,6 @@
 #include "CandCloner.h"
+//#define DEBUG
+#include "Debug.h"
 
 namespace
 {
@@ -30,15 +32,14 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
 #ifdef DEBUG
     int th_start_seed = m_start_seed;
 
-    std::cout << "dump seed n " << is << " with input candidates=" << hitsForSeed.size() << std::endl;
+    dprint("dump seed n " << is << " with input candidates=" << hitsForSeed.size());
     for (int ih = 0; ih<hitsForSeed.size(); ih++)
     {
-      std::cout << "trkIdx=" << hitsForSeed[ih].trkIdx << " hitIdx=" << hitsForSeed[ih].hitIdx << " chi2=" <<  hitsForSeed[ih].chi2 << std::endl;
-      std::cout << "original pt=" << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].pT() << " " 
-                << "nTotalHits="  << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].nTotalHits() << " " 
-                << "nFoundHits="  << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].nFoundHits() << " " 
-                << "chi2="        << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].chi2() << " " 
-                << std::endl;
+      dprint("trkIdx=" << hitsForSeed[ih].trkIdx << " hitIdx=" << hitsForSeed[ih].hitIdx << " chi2=" <<  hitsForSeed[ih].chi2 << std::endl
+                << "original pt=" << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].pT() << " "
+                << "nTotalHits="  << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].nTotalHits() << " "
+                << "nFoundHits="  << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].nFoundHits() << " "
+                << "chi2="        << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].chi2());
     }
 #endif
 

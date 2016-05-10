@@ -128,6 +128,7 @@ public:
 
   int nlayers_debug_,event_debug_,nHits_debug_;
   float pt_gen_debug_,phi_gen_debug_,eta_gen_debug_;
+  float x_gen_debug_,y_gen_debug_,z_gen_debug_;
 
   // mc truth
   int mccharge_debug_;

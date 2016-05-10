@@ -30,6 +30,7 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, T
     else {
       updatedState = trk.state();
     }
+    if (Config::super_debug) { ev.validation_.collectSeedTkCFMapInfo(itrack,updatedState); }
 
     dprint("processing sim track # " << itrack << " par=" << trk.parameters());
     TSLayerPairVec updatedStates; // validation for position pulls
@@ -79,7 +80,7 @@ void buildSeedsByRZFirstRPhiSecond(TrackVec& evt_seed_tracks, TrackExtraVec& evt
   if (rz_path == 0) {
     for (int i = 0; i < evt_lay_hits[0].size(); i++){
       for (int j = 0; j < evt_lay_hits[2].size(); j++){
-	if ( abs(((3.*evt_lay_hits[0][i].z()-evt_lay_hits[2][j].z())/2.)) > (Config::seed_z0cut)) {continue;}
+	if ( fabs(((3.*evt_lay_hits[0][i].z()-evt_lay_hits[2][j].z())/2.)) > (Config::seed_z0cut)) {continue;}
 	const float z1 = (evt_lay_hits[0][i].z() + evt_lay_hits[2][j].z()) / 2.;
 	for (int k = 0; k < evt_lay_hits[1].size(); k++){
 	  if (fabs(z1-evt_lay_hits[1][k].z()) < Config::lay2Zcut) {
@@ -186,7 +187,7 @@ void buildSeedsByRoadTriplets(TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed
   if (debug){
     dprint("Hit Pairs");
     for(auto&& hitPair : hitPairs){
-      printf("ilay0: %1u ilay1: %1u  \n",
+      dprintf("ilay0: %1u ilay1: %1u  \n",
  	     ev.simHitsInfo_[evt_lay_hits[0][hitPair[0]].mcHitID()].mcTrackID(),
  	     ev.simHitsInfo_[evt_lay_hits[1][hitPair[1]].mcHitID()].mcTrackID()
 	     );
@@ -215,9 +216,9 @@ void buildSeedsByRoadTriplets(TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed
   if (debug){
     dprint("Hit Triplets");
     for(auto&& hitTriplet : hitTriplets){
-      printf("ilay0: %1u ilay1: %1u ilay2: %1u \n",
+      dprintf("ilay0: %1u ilay1: %1u ilay2: %1u \n",
  	     ev.simHitsInfo_[evt_lay_hits[0][hitTriplet[0]].mcHitID()].mcTrackID(),
- 	     ev.simHitsInfo_[evt_lay_hits[1][hitTriplet[1]].mcHitID()].mcTrackID()
+ 	     ev.simHitsInfo_[evt_lay_hits[1][hitTriplet[1]].mcHitID()].mcTrackID(),
  	     ev.simHitsInfo_[evt_lay_hits[2][hitTriplet[2]].mcHitID()].mcTrackID()
 	     );
     }
@@ -323,7 +324,7 @@ void buildHitTripletsCurve(const std::vector<HitVec>& evt_lay_hits, const BinInf
     const auto phiBinMinus = getPhiPartition(negPhi);
     const auto phiBinPlus  = getPhiPartition(posPhi);
 
-#ifdef DEBUG
+#ifdef BROKEN_DEBUG
     const float lay2phi = evt_lay_hits[2][ev.simTracks_[ev.simHitsInfo_[hit0.mcHitID()].mcTrackID()].getHitIdx(2)].phi();
     dprint("lay0 phi: " << hit0.phi() << " lay1 phi: " << hit1.phi() << std::endl <<
 	   "negPhi: " << negPhi << " lay2 phi: " << lay2phi << " posPhi: " << posPhi << std::endl <<

@@ -2,12 +2,11 @@
 
 sed -i 's/int nTracks = 20000/int nTracks = 1000000/g' Config.cc
 
-make clean
 make -j 8
 
 dir=/data/nfsmic/${USER}/tmp
 
-mkdir ${dir}
+mkdir -p ${dir}
 ./mkFit/mkFit --write --file-name simtracks_10x1M.bin
 mv simtracks_10x1M.bin ${dir}/
 
@@ -30,6 +29,5 @@ done
 sed -i 's/USE_INTRINSICS := -DMPT_SIZE=XX/# USE_INTRINSICS := -DMPT_SIZE=1/g' Makefile.config
 
 sed -i 's/int nTracks = 1000000/int nTracks = 20000/g' Config.cc
-
 make clean
 make -j 8

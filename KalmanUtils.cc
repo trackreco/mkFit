@@ -1,4 +1,5 @@
 #include "KalmanUtils.h"
+//#define DEBUG
 #include "Debug.h"
 
 static const SMatrix36 projMatrix  = ROOT::Math::SMatrixIdentity();
@@ -126,6 +127,7 @@ TrackState updateParameters(const TrackState& propagatedState, const Measurement
 
 #ifdef DEBUG
   if (debug) {
+    dmutex_guard;
     std::cout << "\n updateParameters \n" << std::endl << "propErr" << std::endl;
     dumpMatrix(propagatedState.errors);
     std::cout << "residual: " << res[0] << " " << res[1] << std::endl
