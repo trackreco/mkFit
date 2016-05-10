@@ -1,6 +1,7 @@
 #ifndef _conformalutils_
 #define _conformalutils_
 
+#include "Hit.h"
 #include "Track.h"
 #include "Matrix.h"
 
