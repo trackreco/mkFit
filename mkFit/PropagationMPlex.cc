@@ -263,18 +263,10 @@ void helixAtRFromIterativePolarFullJac(const MPlexLV& inPar, const MPlexQI& inCh
       errorPropTmp(n,4,4) = 1.f;
       errorPropTmp(n,5,5) = 1.f;
 
-      float /*alpha  = 0.,*/ cosa = 0., sina = 0., ialpha = 0.;
-      float cosP = 0., sinP = 0.;
-      float cosT = 0., sinT = 0.;
-      if (Config::useTrigApprox) {
-	sincos4(phiin, sinP, cosP);
-	sincos4(theta, sinT, cosT);
-      } else {
-	cosP=cos(phiin);
-	sinP=sin(phiin);
-	cosT=cos(theta);
-	sinT=sin(theta);
-      }
+      float cosa = 0., sina = 0., ialpha = 0.;
+      //no trig approx here, phi and theta can be large
+      float cosP = cos(phiin), sinP = sin(phiin);
+      float cosT = cos(theta), sinT = sin(theta);
       float pxin = cosP/ipt;
       float pyin = sinP/ipt;
       float dadx = 0., dady = 0., dadipt = 0.;
@@ -310,12 +302,9 @@ void helixAtRFromIterativePolarFullJac(const MPlexLV& inPar, const MPlexQI& inCh
 	pyin = pyin*cosa+pxinold*sina;
 
 	//need phi at origin, so this goes before redefining phi
-	if (Config::useTrigApprox) {
-	  sincos4(outPar.At(n, 4, 0), sinP, cosP);
-	} else {
-	  cosP=cos(outPar.At(n, 4, 0));
-	  sinP=sin(outPar.At(n, 4, 0));
-	}
+	//no trig approx here, phi can be large
+	cosP=cos(outPar.At(n, 4, 0));
+	sinP=sin(outPar.At(n, 4, 0));
 
 	outPar.At(n, 2, 0) = outPar.ConstAt(n, 2, 0) + k*ialpha*cosT/(ipt*sinT);
 	outPar.At(n, 3, 0) = ipt;
@@ -448,12 +437,20 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
           dadx *= oor0;
           dady *= oor0;
 
-          dDdx   -= ( x*(1.f + k*dadx*(pxin*cosa - pyin*sina)) + y*k*dadx*(pyin*cosa + pxin*sina) )*oor0;
-          dDdy   -= ( x*k*dady*(pxin*cosa - pyin*sina) + y*(1.f + k*dady*(pyin*cosa + pxin*sina)) )*oor0;
+	  float pxca = pxin*cosa;
+	  float pxsa = pxin*sina;
+	  float pyca = pyin*cosa;
+	  float pysa = pyin*sina;
+
+	  float tmp = k*dadx;
+          dDdx   -= ( x*(1.f + tmp*(pxca - pysa)) + y*tmp*(pyca + pxsa) )*oor0;
+	  tmp = k*dady;
+          dDdy   -= ( x*tmp*(pxca - pysa) + y*(1.f + tmp*(pyca + pxsa)) )*oor0;
           //now r0 depends on ipt and phi as well
-          dDdipt -= k*( x*(pxin*dadipt*cosa*ipt - pyin*dadipt*sina*ipt - pyin*cosa - pxin*sina + pyin) +
-                        y*(pyin*dadipt*cosa*ipt + pxin*dadipt*sina*ipt - pyin*sina + pxin*cosa - pxin))*pt*oor0;
-          dDdphi += k*( x*(pyin*sina - pxin + pxin*cosa) - y*(pxin*sina - pyin + pyin*cosa))*oor0;
+	  tmp = dadipt*ipt;
+          dDdipt -= k*( x*(pxca*tmp - pysa*tmp - pyca - pxsa + pyin) +
+                        y*(pyca*tmp + pxsa*tmp - pysa + pxca - pxin))*pt*oor0;
+          dDdphi += k*( x*(pysa - pxin + pxca) - y*(pxsa - pyin + pyca))*oor0;
         }
 
 	//update parameters
