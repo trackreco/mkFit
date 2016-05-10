@@ -21,7 +21,7 @@ void propagateLineToRMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
    for (int n = 0; n < N; ++n)
    {
 
-     const float cosA = (psPar[0 * N + n] * psPar[3 * N + n] + psPar[1 * N + n] * psPar[4 * N + n]) / ( sqrt( ( psPar[0 * N + n] * psPar[0 * N + n] + psPar[1 * N + n] * psPar[1 * N + n] ) * ( psPar[3 * N + n] * psPar[3 * N + n] + psPar[4 * N + n] * psPar[4 * N + n] ) ) );
+     const float cosA = (psPar[0 * N + n] * psPar[3 * N + n] + psPar[1 * N + n] * psPar[4 * N + n]) / ( std::sqrt( ( psPar[0 * N + n] * psPar[0 * N + n] + psPar[1 * N + n] * psPar[1 * N + n] ) * ( psPar[3 * N + n] * psPar[3 * N + n] + psPar[4 * N + n] * psPar[4 * N + n] ) ) );
      const float dr  = (hipo(msPar[0 * N + n], msPar[1 * N + n]) - hipo(psPar[0 * N + n], psPar[1 * N + n])) / cosA;
 
      dprint("propagateLineToRMPlex dr=" << dr);
@@ -246,16 +246,16 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	continue;
       }
       
-      float pt2    = pxin*pxin+pyin*pyin;
-      float pt     = sqrt(pt2);
-      float ptinv  = 1./pt;
-      float pt2inv = ptinv*ptinv;
+      const float pt2    = pxin*pxin+pyin*pyin;
+      const float pt     = std::sqrt(pt2);
+      const float ptinv  = 1.0f/pt;
+      const float pt2inv = ptinv*ptinv;
       //p=0.3Br => r=p/(0.3*B)
-      float k = inChg.ConstAt(n, 0, 0) * 100. / (-Config::sol*Config::Bfield);
-      float invcurvature = 1./(pt*k);//in 1./cm
-      float ctgTheta=pzin*ptinv;
+      const float k = inChg.ConstAt(n, 0, 0) * 100.0f / (-Config::sol*Config::Bfield);
+      const float invcurvature = 1.0f/(pt*k);//in 1./cm
+      const float ctgTheta=pzin*ptinv;
       
-      dprint("curvature=" << 1./invcurvature);
+      dprint("curvature=" << 1.0f/invcurvature);
       
       //variables to be updated at each iterations
       float totalDistance = 0;
@@ -271,10 +271,6 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       float py = 0.;
       float cosAP=0.;
       float sinAP=0.;
-      float dAPdx = 0.;
-      float dAPdy = 0.;
-      float dAPdpx = 0.;
-      float dAPdpy = 0.;
       // float dxdvar = 0.;
       // float dydvar = 0.;
       //5 iterations is a good starting point
@@ -309,8 +305,8 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	  if (Config::useTrigApprox) {
 	    sincos4((r-r0)*invcurvature, sinAP, cosAP);
 	  } else {
-	    cosAP=cos((r-r0)*invcurvature);
-	    sinAP=sin((r-r0)*invcurvature);
+	    cosAP=std::cos((r-r0)*invcurvature);
+	    sinAP=std::sin((r-r0)*invcurvature);
 	  }
 
 	  //helix propagation formulas
@@ -326,15 +322,15 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	  {
 	     //update derivatives on total distance for next step, where totalDistance+=r-r0
 	     //now r0 depends on px and py
-	     r0 = 1./r0;//WARNING, now r0 is r0inv (one less temporary)
+	     r0 = 1.0f/r0;//WARNING, now r0 is r0inv (one less temporary)
 
-	     dprint("r0=" << 1./r0 << " r0inv=" << r0 << " pt=" << pt);
+	     dprint("r0=" << 1.0f/r0 << " r0inv=" << r0 << " pt=" << pt);
 
 	     //update derivative on D
-	     dAPdx = -x*r0*invcurvature;
-	     dAPdy = -y*r0*invcurvature;
-	     dAPdpx = -(r-1./r0)*invcurvature*px*pt2inv;//weird, using r0 instead of 1./r0 improves things but it should be wrong since r0 in now r0inv
-	     dAPdpy = -(r-1./r0)*invcurvature*py*pt2inv;//weird, using r0 instead of 1./r0 improves things but it should be wrong since r0 in now r0inv
+	     const float dAPdx = -x*r0*invcurvature;
+	     const float dAPdy = -y*r0*invcurvature;
+	     const float dAPdpx = -(r-1.0f/r0)*invcurvature*px*pt2inv;//weird, using r0 instead of 1./r0 improves things but it should be wrong since r0 in now r0inv
+	     const float dAPdpy = -(r-1.0f/r0)*invcurvature*py*pt2inv;//weird, using r0 instead of 1./r0 improves things but it should be wrong since r0 in now r0inv
 	     //reduce temporary variables
 	     //dxdx = 1 + k*dAPdx*(px*cosAP - py*sinAP);
 	     //dydx = k*dAPdx*(py*cosAP + px*sinAP);
@@ -348,11 +344,11 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	     //dxdpx = k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx);
 	     //dydpx = k*(py*cosAP*dAPdpx + 1. - cosAP + px*sinAP*dAPdpx);
 	     //dTDdpx -= r0*(x*dxdpx + y*dydpx);
-	     dTDdpx -= r0*(x*(k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx)) + y*(k*(py*cosAP*dAPdpx + 1. - cosAP + px*sinAP*dAPdpx)));
+	     dTDdpx -= r0*(x*(k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx)) + y*(k*(py*cosAP*dAPdpx + 1.0f - cosAP + px*sinAP*dAPdpx)));
 	     //dxdpy = k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy);
 	     //dydpy = k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy);
 	     //dTDdpy -= r0*(x*dxdpy + y*(dydpy);
-	     dTDdpy -= r0*(x*(k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy)) + y*(k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy)));
+	     dTDdpy -= r0*(x*(k*(px*cosAP*dAPdpy - 1.0f + cosAP - py*sinAP*dAPdpy)) + y*(k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy)));
 
 	  }
 	  
@@ -362,20 +358,20 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	    << "r=" << sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << sqrt( outPar.At(n, 3, 0)*outPar.At(n, 3, 0) + outPar.At(n, 4, 0)*outPar.At(n, 4, 0) ));
 	}
       
-      float& TD=totalDistance;
-      float  TP=TD*invcurvature;//totalAngPath
+      const float& TD=totalDistance;
+      const float  TP=TD*invcurvature;//totalAngPath
       
       dprint("TD=" << TD << " TP=" << TP << " arrived at r=" << sqrt(outPar.At(n, 0, 0)*outPar.At(n, 0, 0)+outPar.At(n, 1, 0)*outPar.At(n, 1, 0)) << std::endl
         << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
         << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0));
 
-      float& iC=invcurvature;
-      float dCdpx = k*pxin*ptinv;
-      float dCdpy = k*pyin*ptinv;
-      float dTPdx = dTDdx*iC;
-      float dTPdy = dTDdy*iC;
-      float dTPdpx = (dTDdpx - TD*dCdpx*iC)*iC; // MT change: avoid division
-      float dTPdpy = (dTDdpy - TD*dCdpy*iC)*iC; // MT change: avoid division
+      const float& iC=invcurvature;
+      const float dCdpx = k*pxin*ptinv;
+      const float dCdpy = k*pyin*ptinv;
+      const float dTPdx = dTDdx*iC;
+      const float dTPdy = dTDdy*iC;
+      const float dTPdpx = (dTDdpx - TD*dCdpx*iC)*iC; // MT change: avoid division
+      const float dTPdpy = (dTDdpy - TD*dCdpy*iC)*iC; // MT change: avoid division
       
       float cosTP, sinTP;
       if (Config::useTrigApprox) {
@@ -398,28 +394,28 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	MPlexLL jacCurvProp(0);	
 
         const float& zin  = inPar.ConstAt(n, 2, 0);
-        float p2 = pt2 + pzin*pzin;
-        float p = sqrt(p2);
-        float p3 = p2*p;
-        float s = TD*p*ptinv;
-        int q = inChg.ConstAt(n, 0, 0);
+        const float p2 = pt2 + pzin*pzin;
+        const float p = std::sqrt(p2);
+        const float p3 = p2*p;
+        const float s = TD*p*ptinv;
+        const int q = inChg.ConstAt(n, 0, 0);
 	
-        float x  = outPar.ConstAt(n, 0, 0);
-        float y  = outPar.ConstAt(n, 1, 0);
-        float z  = outPar.ConstAt(n, 2, 0);
-        float px = outPar.ConstAt(n, 3, 0);
-        float py = outPar.ConstAt(n, 4, 0);
-        float pz = outPar.ConstAt(n, 5, 0);
+        const float x  = outPar.ConstAt(n, 0, 0);
+        const float y  = outPar.ConstAt(n, 1, 0);
+        const float z  = outPar.ConstAt(n, 2, 0);
+        const float px = outPar.ConstAt(n, 3, 0);
+        const float py = outPar.ConstAt(n, 4, 0);
+        const float pz = outPar.ConstAt(n, 5, 0);
         
-        float xtx = px/p;
-        float xty = py/p;
-        float xtz = pz/p;
-        float ytx = -py/pt;
-        float yty =  px/pt;
-        float ytz = 0.;
-        float ztx = xty*ytz - xtz*yty;
-        float zty = xtz*ytx - xtx*ytz;
-        float ztz = xtx*yty - xty*ytx;
+        const float xtx = px/p;
+        const float xty = py/p;
+        const float xtz = pz/p;
+        const float ytx = -py/pt;
+        const float yty =  px/pt;
+        const float ytz = 0.;
+        const float ztx = xty*ytz - xtz*yty;
+        const float zty = xtz*ytx - xtx*ytz;
+        const float ztz = xtx*yty - xty*ytx;
         rotateCartCu2Ca(n,0,0) = xtx;
         rotateCartCu2Ca(n,1,0) = xty;
         rotateCartCu2Ca(n,2,0) = xtz;
@@ -433,15 +429,15 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
         rotateCartCu2Ca(n,4,4) = 1.0;
         rotateCartCu2Ca(n,5,5) = 1.0;
 	
-        float xtxin = pxin/p;
-        float xtyin = pyin/p;
-        float xtzin = pzin/p;
-        float ytxin = -pyin/pt;
-        float ytyin =  pxin/pt;
-        float ytzin = 0.;
-        float ztxin = xtyin*ytzin - xtzin*ytyin;
-        float ztyin = xtzin*ytxin - xtxin*ytzin;
-        float ztzin = xtxin*ytyin - xtyin*ytxin;
+        const float xtxin = pxin/p;
+        const float xtyin = pyin/p;
+        const float xtzin = pzin/p;
+        const float ytxin = -pyin/pt;
+        const float ytyin =  pxin/pt;
+        const float ytzin = 0.;
+        const float ztxin = xtyin*ytzin - xtzin*ytyin;
+        const float ztyin = xtzin*ytxin - xtxin*ytzin;
+        const float ztzin = xtxin*ytyin - xtyin*ytxin;
         rotateCartCa2Cu(n,0,0) = xtxin;
         rotateCartCa2Cu(n,1,0) = ytxin;
         rotateCartCa2Cu(n,2,0) = ztxin;
@@ -500,10 +496,10 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
         }
 #endif
 	
-        float sinlambda = pz/p;//fixme check sign
-        float coslambda = pt/p;
-        float sinphi = py/pt;
-        float cosphi = px/pt;
+        const float sinlambda = pz/p;//fixme check sign
+        const float coslambda = pt/p;
+        const float sinphi = py/pt;
+        const float cosphi = px/pt;
 	
         dprint("q=" << q << " p2=" << p2 << " coslambda=" << coslambda << " cosphi=" << cosphi);
 	
@@ -533,55 +529,55 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 #endif
 
         // calculate transport matrix
-        float t11 = pxin/p; 
-        float t12 = pyin/p; 
-        float t13 = pzin/p;
-        float t21 = px/p; 
-        float t22 = py/p; 
-        float t23 = pz/p;
-        float cosl0 = pt/p; 
-        float cosl1 = p/pt;//fixme
+        const float t11 = pxin/p; 
+        const float t12 = pyin/p; 
+        const float t13 = pzin/p;
+        const float t21 = px/p; 
+        const float t22 = py/p; 
+        const float t23 = pz/p;
+        const float cosl0 = pt/p; 
+        const float cosl1 = p/pt;//fixme
         // define average magnetic field and gradient 
         // at initial point - inlike TRPRFN
         // GlobalVector hn = h.unit();
-        float qbp = q/p;
-        float qp = -3.8 * 2.99792458e-3f;
-        float qq = qp*qbp;
-        float theta = qq*s; 
-        float sint = sin(theta);
-        float cost = cos(theta);
-        float hn1 = 0; 
-        float hn2 = 0; 
-        float hn3 = 1.;
-        float dx1 = xin-x; 
-        float dx2 = yin-y; 
-        float dx3 = zin-z;
-        float gamma = hn1*t21 + hn2*t22 + hn3*t23;
-        float an1 = hn2*t23 - hn3*t22;
-        float an2 = hn3*t21 - hn1*t23;
-        float an3 = hn1*t22 - hn2*t21;
-        float au = 1./sqrt(t11*t11 + t12*t12);
-        float u11 = -au*t12; 
-        float u12 = au*t11;
-        float v11 = -t13*u12; 
-        float v12 = t13*u11; 
-        float v13 = t11*u12 - t12*u11;
-        au = 1./sqrt(t21*t21 + t22*t22);
-        float u21 = -au*t22; 
-        float u22 = au*t21;
-        float v21 = -t23*u22; 
-        float v22 = t23*u21; 
-        float v23 = t21*u22 - t22*u21;
+        const float qbp = q/p;
+        const float qp = -3.8f * 2.99792458e-3f;
+        const float qq = qp*qbp;
+        const float theta = qq*s; 
+        const float sint = std::sin(theta);
+        const float cost = std::cos(theta);
+        const float hn1 = 0; 
+        const float hn2 = 0; 
+        const float hn3 = 1.;
+        const float dx1 = xin-x; 
+        const float dx2 = yin-y; 
+        const float dx3 = zin-z;
+        const float gamma = hn1*t21 + hn2*t22 + hn3*t23;
+        const float an1 = hn2*t23 - hn3*t22;
+        const float an2 = hn3*t21 - hn1*t23;
+        const float an3 = hn1*t22 - hn2*t21;
+        const float au12 = 1.0f/std::sqrt(t11*t11 + t12*t12);
+        const float u11 = -au12*t12; 
+        const float u12 = au12*t11;
+        const float v11 = -t13*u12; 
+        const float v12 = t13*u11; 
+        const float v13 = t11*u12 - t12*u11;
+        const float au22 = 1.0f/std::sqrt(t21*t21 + t22*t22);
+        const float u21 = -au22*t22; 
+        const float u22 = au22*t21;
+        const float v21 = -t23*u22; 
+        const float v22 = t23*u21; 
+        const float v23 = t21*u22 - t22*u21;
         // now prepare the transport matrix
-        float anv = -(hn1*u21 + hn2*u22          );
-        float anu =  (hn1*v21 + hn2*v22 + hn3*v23);
-        float omcost = 1. - cost; float tmsint = theta - sint;
-        float hu1 =         - hn3*u12;
-        float hu2 = hn3*u11;
-        float hu3 = hn1*u12 - hn2*u11;  
-        float hv1 = hn2*v13 - hn3*v12;
-        float hv2 = hn3*v11 - hn1*v13;
-        float hv3 = hn1*v12 - hn2*v11;
+        const float anv = -(hn1*u21 + hn2*u22          );
+        const float anu =  (hn1*v21 + hn2*v22 + hn3*v23);
+        const float omcost = 1. - cost; const float tmsint = theta - sint;
+        const float hu1 =         - hn3*u12;
+        const float hu2 = hn3*u11;
+        const float hu3 = hn1*u12 - hn2*u11;  
+        const float hv1 = hn2*v13 - hn3*v12;
+        const float hv2 = hn3*v11 - hn1*v13;
+        const float hv3 = hn1*v12 - hn2*v11;
 
         jacCurvProp(n,0,0) = 1.;  for (auto i=1;i<5; ++i) jacCurvProp(n,0,i)=0.;  
         jacCurvProp(n,1,0) = -qp*anv*(t21*dx1 + t22*dx2 + t23*dx3);
@@ -622,35 +618,35 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
         jacCurvProp(n,2,3) = -qq*anu*(u11*t21 + u12*t22          )*cosl1;
         jacCurvProp(n,2,4) = -qq*anu*(v11*t21 + v12*t22 + v13*t23)*cosl1;
         //std::cout << "hn2=" << hn2 << " t13=" << t13 << " hn3=" << hn3 << " t12=" << t12 << std::endl;
-        float hp11 = hn2*t13 - hn3*t12;
-        float hp12 = hn3*t11 - hn1*t13;
-        float hp13 = hn1*t12 - hn2*t11;
-        float temp1 = hp11*u21 + hp12*u22;
+        const float hp11 = hn2*t13 - hn3*t12;
+        const float hp12 = hn3*t11 - hn1*t13;
+        const float hp13 = hn1*t12 - hn2*t11;
+        const float temp1 = hp11*u21 + hp12*u22;
         //std::cout << "hp11=" << hp11 << " u21=" << u21 << " hp12=" << hp12 << " u22=" << u22 << std::endl;
-        float s2 = s*s;
+        const float s2 = s*s;
         //std::cout << "qp=" << qp << " temp1=" << temp1 << " s2=" << s2 << std::endl;
-        float secondOrder41 = 0.5 * qp * temp1 * s2;
-        float ghnmp1 = gamma*hn1 - t11;
-        float ghnmp2 = gamma*hn2 - t12;
-        float ghnmp3 = gamma*hn3 - t13;
-        float temp2 = ghnmp1*u21 + ghnmp2*u22;
-        float s3 = s2 * s;
-        float s4 = s3 * s;
-        float h1 = 3.8 * 2.99792458e-3f;
-        float h2 = h1 * h1;
-        float h3 = h2 * h1;
-        float qbp2 = qbp * qbp;
+        const float secondOrder41 = 0.5f * qp * temp1 * s2;
+        const float ghnmp1 = gamma*hn1 - t11;
+        const float ghnmp2 = gamma*hn2 - t12;
+        const float ghnmp3 = gamma*hn3 - t13;
+        const float temp2 = ghnmp1*u21 + ghnmp2*u22;
+        const float s3 = s2 * s;
+        const float s4 = s3 * s;
+        const float h1 = 3.8f * 2.99792458e-3f;
+        const float h2 = h1 * h1;
+        const float h3 = h2 * h1;
+        const float qbp2 = qbp * qbp;
         //                           s*qp*s* (qp*s *qbp)
-        float thirdOrder41 = 1./3 * h2 * s3 * qbp * temp2;
+        const float thirdOrder41 = 1.0f/3.0f * h2 * s3 * qbp * temp2;
         //                           -qp * s * qbp  * above
-        float fourthOrder41 = 1./8 * h3 * s4 * qbp2 * temp1;
+        const float fourthOrder41 = 1.0f/8.0f * h3 * s4 * qbp2 * temp1;
         jacCurvProp(n,3,0) = secondOrder41 + (thirdOrder41 + fourthOrder41);
         // std::cout << "jacCurvProp(n,3,0)=" << jacCurvProp(n,3,0) << " secondOrder41=" << secondOrder41 << " thirdOrder41=" <<  thirdOrder41 << " fourthOrder41=" << fourthOrder41 << std::endl;
-        float temp3 = hp11*v21 + hp12*v22 + hp13*v23;
-        float secondOrder51 = 0.5 * qp * temp3 * s2;
-        float temp4 = ghnmp1*v21 + ghnmp2*v22 + ghnmp3*v23;
-        float thirdOrder51 = 1./3 * h2 * s3 * qbp * temp4;
-        float fourthOrder51 = 1./8 * h3 * s4 * qbp2 * temp3;
+        const float temp3 = hp11*v21 + hp12*v22 + hp13*v23;
+        const float secondOrder51 = 0.5f * qp * temp3 * s2;
+        const float temp4 = ghnmp1*v21 + ghnmp2*v22 + ghnmp3*v23;
+        const float thirdOrder51 = 1.0f/3.0f * h2 * s3 * qbp * temp4;
+        const float fourthOrder51 = 1.0f/8.0f * h3 * s4 * qbp2 * temp3;
         jacCurvProp(n,4,0) = secondOrder51 + (thirdOrder51 + fourthOrder51);
         jacCurvProp(n,3,1) = (sint*(v11*u21 + v12*u22          ) +
                               omcost*(hv1*u21 + hv2*u22          ) +
@@ -732,9 +728,8 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 
       } else if (Config::useSimpleJac) { 
 	//assume total path length s as given and with no uncertainty
-	float p = pt2 + pzin*pzin;
-	p = sqrt(p);
-	float s = TD*p*ptinv;
+	const float p = std::sqrt(pt2 + pzin*pzin);
+	const float s = TD*p*ptinv;
 	computeJacobianSimple(n, errorProp, k, TP, cosTP, sinTP);
       } else {
 	//now try to make full jacobian
@@ -828,94 +823,94 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
       // }
 #endif
 
-      if (fabs(rout-r0in)<0.0001) {
+      if (std::abs(rout-r0in)<0.0001) {
 	dprint("distance less than 1mum, skip");
 	computeJacobianSimple(n, errorProp, 1, 0, 1, 0);//get an identity matrix
 	continue;
       }
       
-      float pt2    = pxin*pxin+pyin*pyin;
-      float pt     = sqrt(pt2);
-      float ptinv  = 1./pt;
-      float pt2inv = ptinv*ptinv;
+      const float pt2    = pxin*pxin+pyin*pyin;
+      const float pt     = std::sqrt(pt2);
+      const float ptinv  = 1.0f/pt;
+      const float pt2inv = ptinv*ptinv;
       //p=0.3Br => r=p/(0.3*B)
-      float k = inChg.ConstAt(n, 0, 0) * 100. / (-Config::sol*Config::Bfield);
-      float curvature = pt*k;//in cm
-      float invcurvature = 1./(curvature);//in 1./cm
+      const float k = inChg.ConstAt(n, 0, 0) * 100. / (-Config::sol*Config::Bfield);
+      const float curvature = pt*k;//in cm
+      const float invcurvature = 1.0f/(curvature);//in 1./cm
       
       dprint("k=" << k << " curvature=" << curvature << " invcurvature=" << invcurvature);
       
       //coordinates of center of circle defined as helix projection on transverse plane 
-      float xc = xin - k*pyin;
-      float yc = yin + k*pxin;
-      float rc = sqrt(xc*xc+yc*yc);
+      const float xc = xin - k*pyin;
+      const float yc = yin + k*pxin;
+      const float rc = std::sqrt(xc*xc+yc*yc);
       
       float TP, x, y = 0.;
-      if (fabs(xc)>fabs(yc) || fabs(yc)>0.001) {
+      if (std::abs(xc)>std::abs(yc) || std::abs(yc)>0.001) {
 	//solve for x since yc!=0
-	float A = 1 + xc*xc/(yc*yc);
-	float B = -(rout*rout + rc*rc - curvature*curvature)*xc/(yc*yc);
-	float C = (rout*rout + rc*rc - curvature*curvature)*(rout*rout + rc*rc - curvature*curvature)/(4*yc*yc) - rout*rout;
+	const float A = 1 + xc*xc/(yc*yc);
+	const float B = -(rout*rout + rc*rc - curvature*curvature)*xc/(yc*yc);
+	const float C = (rout*rout + rc*rc - curvature*curvature)*(rout*rout + rc*rc - curvature*curvature)/(4*yc*yc) - rout*rout;
 	//first solution
-	float x_p = ( -B + sqrt(B*B - 4*A*C) ) / (2*A);
-	float y_p = -x_p*xc/yc + (rout*rout + rc*rc - curvature*curvature)/(2*yc);
-	float cosDelta_p = (pxin*(x_p-xin) + pyin*(y_p-yin))/(pt*sqrt((x_p-xin)*(x_p-xin)+(y_p-yin)*(y_p-yin)));
+	const float x_p = ( -B + std::sqrt(B*B - 4*A*C) ) / (2*A);
+	const float y_p = -x_p*xc/yc + (rout*rout + rc*rc - curvature*curvature)/(2*yc);
+	const float cosDelta_p = (pxin*(x_p-xin) + pyin*(y_p-yin))/(pt*std::sqrt((x_p-xin)*(x_p-xin)+(y_p-yin)*(y_p-yin)));
 	//second solution
-	float x_m = ( -B - sqrt(B*B - 4*A*C) ) / (2*A);
-	float y_m = -x_m*xc/yc + (rout*rout + rc*rc - curvature*curvature)/(2*yc);
-	float cosDelta_m = (pxin*(x_m-xin) + pyin*(y_m-yin))/(pt*sqrt((x_m-xin)*(x_m-xin)+(y_m-yin)*(y_m-yin)));
+	const float x_m = ( -B - std::sqrt(B*B - 4*A*C) ) / (2*A);
+	const float y_m = -x_m*xc/yc + (rout*rout + rc*rc - curvature*curvature)/(2*yc);
+	const float cosDelta_m = (pxin*(x_m-xin) + pyin*(y_m-yin))/(pt*std::sqrt((x_m-xin)*(x_m-xin)+(y_m-yin)*(y_m-yin)));
 	dprint("solve for x" << std::endl
 	  << "xc=" << xc << " yc=" << yc << " rc=" << rc << std::endl
 	  << "A=" << A << " B=" << B << " C=" << C << std::endl
 	  << "xp=" << x_p << " y_p=" << y_p << " cosDelta_p=" << cosDelta_p << std::endl
 	  << "xm=" << x_m << " y_m=" << y_m << " cosDelta_m=" << cosDelta_m);
-	float Sx = sqrt(B*B - 4*A*C);
+	const float Sx = std::sqrt(B*B - 4*A*C);
 	//arbitrate based on momentum and vector connecting the end points
 	if ( (rout>r0in) ? (cosDelta_p > cosDelta_m) : (cosDelta_p < cosDelta_m)) { 
-	  float chord_p = sqrt( (x_p-xin)*(x_p-xin) + (y_p-yin)*(y_p-yin) );
-	  float sinTPHalf_p = 0.5*chord_p*invcurvature;
-	  TP = 2*asin(sinTPHalf_p);
+	  const float chord_p = std::sqrt( (x_p-xin)*(x_p-xin) + (y_p-yin)*(y_p-yin) );
+	  const float sinTPHalf_p = 0.5f*chord_p*invcurvature;
+	  TP = 2*std::asin(sinTPHalf_p);
 	  x = x_p;
 	  y = y_p;
 	  dprint("pos solution" << std::endl << "chord_p=" << chord_p << " sinTPHalf_p=" << sinTPHalf_p << " TP=" << TP);
 	} else {
-	  float chord_m = sqrt( (x_m-xin)*(x_m-xin) + (y_m-yin)*(y_m-yin) );
-	  float sinTPHalf_m = 0.5*chord_m*invcurvature;
-	  TP = 2*asin(sinTPHalf_m);
+	  const float chord_m = sqrt( (x_m-xin)*(x_m-xin) + (y_m-yin)*(y_m-yin) );
+	  const float sinTPHalf_m = 0.5*chord_m*invcurvature;
+	  TP = 2*std::asin(sinTPHalf_m);
 	  x = x_m;
 	  y = y_m;
 	  dprint("neg solution" << std::endl << "chord_m=" << chord_m << " sinTPHalf_m=" << sinTPHalf_m << " TP=" << TP);
 	} 
       } else {
 	//solve for y since xc!=0
-	float A = 1 + yc*yc/(xc*xc);
-	float B = -(rout*rout + rc*rc - curvature*curvature)*yc/(xc*xc);
-	float C = (rout*rout + rc*rc - curvature*curvature)*(rout*rout + rc*rc - curvature*curvature)/(4*xc*xc) - rout*rout;
+	const float A = 1 + yc*yc/(xc*xc);
+	const float B = -(rout*rout + rc*rc - curvature*curvature)*yc/(xc*xc);
+	const float C = (rout*rout + rc*rc - curvature*curvature)*(rout*rout + rc*rc - curvature*curvature)/(4*xc*xc) - rout*rout;
 	//first solution
-	float y_p = ( -B + sqrt(B*B - 4*A*C) ) / (2*A);
-	float x_p = -y_p*yc/xc + (rout*rout + rc*rc - curvature*curvature)/(2*xc);
-	float cosDelta_p = (pxin*(x_p-xin) + pyin*(y_p-yin))/(pt*sqrt((x_p-xin)*(x_p-xin)+(y_p-yin)*(y_p-yin)));
+	const float y_p = ( -B + std::sqrt(B*B - 4*A*C) ) / (2*A);
+	const float x_p = -y_p*yc/xc + (rout*rout + rc*rc - curvature*curvature)/(2*xc);
+	const float cosDelta_p = (pxin*(x_p-xin) + pyin*(y_p-yin))/(pt*std::sqrt((x_p-xin)*(x_p-xin)+(y_p-yin)*(y_p-yin)));
 	//second solution
-	float y_m = ( -B - sqrt(B*B - 4*A*C) ) / (2*A);
-	float x_m = -y_m*yc/xc + (rout*rout + rc*rc - curvature*curvature)/(2*xc);
-	float cosDelta_m = (pxin*(x_m-xin) + pyin*(y_m-yin))/(pt*sqrt((x_m-xin)*(x_m-xin)+(y_m-yin)*(y_m-yin)));
+	const float y_m = ( -B - std::sqrt(B*B - 4*A*C) ) / (2*A);
+	const float x_m = -y_m*yc/xc + (rout*rout + rc*rc - curvature*curvature)/(2*xc);
+	const float cosDelta_m = (pxin*(x_m-xin) + pyin*(y_m-yin))/(pt*std::sqrt((x_m-xin)*(x_m-xin)+(y_m-yin)*(y_m-yin)));
 	dprint("solve for y" << std::endl
 	  << "xc=" << xc << " yc=" << yc << " rc=" << rc << std::endl
 	  << "A=" << A << " B=" << B << " C=" << C << std::endl
 	  << "xp=" << x_p << " y_p=" << y_p << " cosDelta_p=" << cosDelta_p << std::endl
 	  << "xm=" << x_m << " y_m=" << y_m << " cosDelta_m=" << cosDelta_m);
-	float Sx = sqrt(B*B - 4*A*C);
+	const float Sx = std::sqrt(B*B - 4*A*C);
 	//arbitrate based on momentum and vector connecting the end points
 	if ( (rout>r0in) ? (cosDelta_p > cosDelta_m) : (cosDelta_p < cosDelta_m)) { 
-	  float chord_p = sqrt( (x_p-xin)*(x_p-xin) + (y_p-yin)*(y_p-yin) );
-	  float sinTPHalf_p = 0.5*chord_p*invcurvature;
-	  TP = 2*asin(sinTPHalf_p);
+	  const float chord_p = std::sqrt( (x_p-xin)*(x_p-xin) + (y_p-yin)*(y_p-yin) );
+	  const float sinTPHalf_p = 0.5f*chord_p*invcurvature;
+	  TP = 2*std::asin(sinTPHalf_p);
 	  x = x_p;
 	  y = y_p;
 	} else {
-	  float chord_m = sqrt( (x_m-xin)*(x_m-xin) + (y_m-yin)*(y_m-yin) );
-	  float sinTPHalf_m = 0.5*chord_m*invcurvature;
-	  TP = 2*asin(sinTPHalf_m);
+	  const float chord_m = std::sqrt( (x_m-xin)*(x_m-xin) + (y_m-yin)*(y_m-yin) );
+	  const float sinTPHalf_m = 0.5f*chord_m*invcurvature;
+	  TP = 2*std::asin(sinTPHalf_m);
 	  x = x_m;
 	  y = y_m;
 	} 
@@ -930,10 +925,10 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
       }
 
       //correct if we got the wrong sign (fixme, find a better way to do it!)
-      if ( fabs((xin + k*(pxin*sinTP-pyin*(1-cosTP)))-x)>fabs((xin + k*(pxin*sin(-TP)-pyin*(1-cos(-TP))))-x) ) {
+      if ( std::abs((xin + k*(pxin*sinTP-pyin*(1-cosTP)))-x)>std::abs((xin + k*(pxin*std::sin(-TP)-pyin*(1-std::cos(-TP))))-x) ) {
       	   TP=-TP;
-      	   cosTP=cos(TP);
-      	   sinTP=sin(TP);
+      	   cosTP=std::cos(TP);
+      	   sinTP=std::sin(TP);
       	}
 
       //helix propagation formulas
@@ -950,9 +945,8 @@ void helixAtRFromIntersection(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
         << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0) << std::endl
         << "r=" << sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << sqrt( outPar.At(n, 3, 0)*outPar.At(n, 3, 0) + outPar.At(n, 4, 0)*outPar.At(n, 4, 0) ));
 
-      float p = pt2 + pzin*pzin;
-      p=sqrt(p);
-      float s = TP*curvature*p*ptinv;
+      const float p = std::sqrt(pt2 + pzin*pzin);
+      const float s = TP*curvature*p*ptinv;
       computeJacobianSimple(n, errorProp, k, TP, cosTP, sinTP);
 
 #ifdef DEBUG
@@ -976,23 +970,23 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, MPlexLS 
   for (int n = 0; n < NN; ++n)
     {
       float radL = hitsRl.ConstAt(n,0,0);
-      if (radL<0.0000000000001) continue;//ugly, please fixme
+      if (radL<0.0000000000001f) continue;//ugly, please fixme
       const float& x = outPar.ConstAt(n,0,0);
       const float& y = outPar.ConstAt(n,0,1);
       const float& px = outPar.ConstAt(n,0,3);
       const float& py = outPar.ConstAt(n,0,4);
       const float& pz = outPar.ConstAt(n,0,5);
-      float r = sqrt(x*x+y*y);
-      float pt = px*px + py*py;
-      float p2 = pt + pz*pz;
-      pt =sqrt(pt);
-      float p = sqrt(p2);
+      const float r = std::sqrt(x*x+y*y);
+      const float pt2 = px*px + py*py;
+      float p2 = pt2 + pz*pz;
+      const float pt =std::sqrt(pt2);
+      const float p = std::sqrt(p2);
       constexpr float mpi = 0.140; // m=140 MeV, pion
       constexpr float mpi2 = 0.140*0.140; // m=140 MeV, pion
-      float beta2 = p2/(p2+mpi2);
-      float beta = sqrt(beta2);
+      const float beta2 = p2/(p2+mpi2);
+      const float beta = std::sqrt(beta2);
       //radiation lenght, corrected for the crossing angle (cos alpha from dot product of radius vector and momentum)
-      float invCos = (p*r)/fabs(x*px+y*py);
+      const float invCos = (p*r)/std::abs(x*px+y*py);
       radL = radL * invCos; //fixme works only for barrel geom
       // multiple scattering
       // in a reference frame defined by the orthogonal unit vectors: u=(px/p,py/p,pz/p) v=(-py/pt,px/pt,0) s=(-pzpx/pt/p,-pzpy/pt/p,pt/p)
@@ -1003,9 +997,9 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, MPlexLS 
       // py' = py - (px*p*theta1 - pz*py*theta2)/pt;
       // pz' = pz + pt*theta2;
       // this actually changes |p| so that p'^2 = p^2(1+2thetaMSC^2) so we should renormalize everything but we neglect this effect here (we are just inflating uncertainties a bit)
-      float thetaMSC = 0.0136*sqrt(radL)*(1.+0.038*log(radL))/(beta*p);// eq 32.15
-      float thetaMSC2 = thetaMSC*thetaMSC;
-      float thetaMSC2overPt2 = thetaMSC2/(pt*pt);
+      const float thetaMSC = 0.0136*sqrt(radL)*(1.+0.038*log(radL))/(beta*p);// eq 32.15
+      const float thetaMSC2 = thetaMSC*thetaMSC;
+      const float thetaMSC2overPt2 = thetaMSC2/(pt*pt);
       outErr.At(n, 3, 3) += (py*py*p*p + pz*pz*px*px)*thetaMSC2overPt2;
       outErr.At(n, 4, 4) += (px*px*p*p + pz*pz*py*py)*thetaMSC2overPt2;
       outErr.At(n, 5, 5) += pt*pt*thetaMSC2;
@@ -1015,13 +1009,13 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, MPlexLS 
       // std::cout << "beta=" << beta << " p=" << p << std::endl;
       // std::cout << "multiple scattering thetaMSC=" << thetaMSC << " thetaMSC2=" << thetaMSC2 << " radL=" << radL << " cxx=" << (py*py*p*p + pz*pz*px*px)*thetaMSC2overPt2 << " cyy=" << (px*px*p*p + pz*pz*py*py)*thetaMSC2overPt2 << " czz=" << pt*pt*thetaMSC2 << std::endl;
       // energy loss
-      float gamma = 1./sqrt(1 - beta2);
-      float gamma2 = gamma*gamma;
+      const float gamma = 1.0f/std::sqrt(1 - beta2);
+      const float gamma2 = gamma*gamma;
       constexpr float me = 0.0005; // m=0.5 MeV, electron
-      float wmax = 2.*me*beta2*gamma2 / ( 1 + 2.*gamma*me/mpi + me*me/(mpi*mpi) );
+      const float wmax = 2.0f*me*beta2*gamma2 / ( 1 + 2.0f*gamma*me/mpi + me*me/(mpi*mpi) );
       constexpr float I = 16.0e-9 * 10.75;
-      float deltahalf = log(28.816e-9 * sqrt(2.33*0.498)/I) + log(beta*gamma) - 0.5;
-      float dEdx = hitsXi.ConstAt(n,0,0) * invCos * (0.5*log(2*me*beta2*gamma2*wmax/(I*I)) - beta2 - deltahalf) / beta2 ;
+      const float deltahalf = log(28.816e-9f * std::sqrt(2.33f*0.498f)/I) + std::log(beta*gamma) - 0.5f;
+      float dEdx = hitsXi.ConstAt(n,0,0) * invCos * (0.5f*std::log(2*me*beta2*gamma2*wmax/(I*I)) - beta2 - deltahalf) / beta2 ;
       dEdx = dEdx*2.;//xi in cmssw is defined with an extra factor 0.5 with respect to formula 27.1 in pdg
       // std::cout << "dEdx=" << dEdx << " delta=" << deltahalf << std::endl;
       float dP = dEdx/beta;

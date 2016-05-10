@@ -56,7 +56,7 @@ void conformalFitMPlex(bool fitting, const MPlexQI inChg,
 #pragma simd
   for (int n = 0; n < N; ++n) 
   {
-    initPhi.At(n, 0, 0) = fabs(getPhi(x.ConstAt(n, 0, 0), y.ConstAt(n, 0, 0)));
+    initPhi.At(n, 0, 0) = std::abs(getPhi(x.ConstAt(n, 0, 0), y.ConstAt(n, 0, 0)));
     xtou.At(n, 0, 0)    = ((initPhi.ConstAt(n, 0, 0) < Config::PIOver4 || initPhi.ConstAt(n, 0, 0) > Config::PI3Over4) ? 1 : 0);
   }
 
@@ -89,7 +89,7 @@ void conformalFitMPlex(bool fitting, const MPlexQI inChg,
   {
     for (int i = 0; i < 3; ++i) 
     {
-      A.At(n, i, 0) = 1.;
+      A.At(n, i, 0) = 1.0f;
       A.At(n, i, 1) = -u.ConstAt(n, i, 0);
       A.At(n, i, 2) = -u.ConstAt(n, i, 0)*u.ConstAt(n, i, 0);
       B.At(n, i, 0) = v.ConstAt(n, i, 0);
@@ -103,24 +103,27 @@ void conformalFitMPlex(bool fitting, const MPlexQI inChg,
 #pragma simd
   for (int n = 0; n < N; ++n) 
   {
-    b.At(n, 0, 0) = 1./(2.*C.ConstAt(n, 0, 0)); 
+    b.At(n, 0, 0) = 1.0f/(2.0f*C.ConstAt(n, 0, 0)); 
     a.At(n, 0, 0) = b.ConstAt(n, 0, 0)*C.ConstAt(n, 1, 0); 
   }  
 
   // do i really need all these temp mplexs????
-  MPlexQF vrx, vry, phi, pT, pT2, px, py, pz, pz2;
+  MPlexQF pT, pT2, px, py, pz, pz2;
   //#pragma simd
   for (int n = 0; n < N; ++n)
   {
-    vrx.At(n, 0, 0) = (xtou.ConstAt(n, 0, 0) ? x.ConstAt(n, 0, 0) - a.ConstAt(n, 0, 0) : x.ConstAt(n, 0, 0) - b.ConstAt(n, 0, 0));
-    vry.At(n, 0, 0) = (xtou.ConstAt(n, 0, 0) ? y.ConstAt(n, 0, 0) - b.ConstAt(n, 0, 0) : y.ConstAt(n, 0, 0) - a.ConstAt(n, 0, 0));
-    phi.At(n, 0, 0) = atan2(vrx.ConstAt(n, 0, 0),vry.ConstAt(n, 0, 0));
-    pT.At (n, 0, 0) = (-Config::sol*Config::Bfield)*hipo(vrx.ConstAt(n, 0, 0), vry.ConstAt(n, 0, 0)) / (inChg.ConstAt(n, 0, 0) * 100);
-    px.At (n, 0, 0) = fabs(pT.ConstAt(n, 0, 0) * cos(phi.ConstAt(n, 0, 0))) * ((x.ConstAt(n, 1, 0) - x.ConstAt(n, 0, 0))>0. ? 1. : -1.);
-    py.At (n, 0, 0) = fabs(pT.ConstAt(n, 0, 0) * sin(phi.ConstAt(n, 0, 0))) * ((y.ConstAt(n, 1, 0) - y.ConstAt(n, 0, 0))>0. ? 1. : -1.);
-    pz.At (n, 0, 0) = fabs((pT.ConstAt(n, 0, 0) * (z.ConstAt(n, 2, 0) - z.ConstAt(n, 0, 0))) / hipo((x.ConstAt(n, 2, 0) - x.ConstAt(n, 0, 0)), (y.ConstAt(n, 2, 0) - y.ConstAt(n, 0, 0)))) * ((z.ConstAt(n, 1, 0) - z.ConstAt(n, 0, 0)) > 0. ? 1. : -1.);
+    const float vrx = (xtou.ConstAt(n, 0, 0) ? x.ConstAt(n, 0, 0) - a.ConstAt(n, 0, 0) : x.ConstAt(n, 0, 0) - b.ConstAt(n, 0, 0));
+    const float vry = (xtou.ConstAt(n, 0, 0) ? y.ConstAt(n, 0, 0) - b.ConstAt(n, 0, 0) : y.ConstAt(n, 0, 0) - a.ConstAt(n, 0, 0));
+    const float invvrxy = 1.0f/std::sqrt(vrx*vrx + vry*vry);
+    const float cosphi = vry*invvrxy;
+    const float sinphi = vrx*invvrxy;
+    const float pT = (-Config::sol*Config::Bfield)*hipo(vrx, vry) / (inChg.ConstAt(n, 0, 0) * 100);
+    px.At (n, 0, 0) = std::copysign(pT * cosphi, x.ConstAt(n, 1, 0) - x.ConstAt(n, 0, 0));
+    py.At (n, 0, 0) = std::copysign(pT * sinphi, y.ConstAt(n, 1, 0) - y.ConstAt(n, 0, 0));
+    const float tantheta = hipo(x.ConstAt(n, 2, 0) - x.ConstAt(n, 0, 0), y.ConstAt(n, 2, 0) - y.ConstAt(n, 0, 0))/(z.ConstAt(n, 2, 0) - z.ConstAt(n, 0, 0));
+    pz.At (n, 0, 0) = std::copysign(pT / tantheta, z.ConstAt(n, 1, 0) - z.ConstAt(n, 0, 0));
 
-    pT2.At(n, 0, 0) = pT.ConstAt(n, 0, 0)*pT.ConstAt(n, 0, 0);
+    pT2.At(n, 0, 0) = pT*pT;
     pz2.At(n, 0, 0) = pz.ConstAt(n, 0, 0)*pz.ConstAt(n, 0, 0);
   }
 
@@ -130,9 +133,9 @@ void conformalFitMPlex(bool fitting, const MPlexQI inChg,
 #pragma simd
     for (int n = 0; n < N; ++n)
     {
-      px.At(n, 0, 0) *= -1.;
-      py.At(n, 0, 0) *= -1.;
-      pz.At(n, 0, 0) *= -1.;
+      px.At(n, 0, 0) *= -1.0f;
+      py.At(n, 0, 0) *= -1.0f;
+      pz.At(n, 0, 0) *= -1.0f;
     }
   }
 #endif

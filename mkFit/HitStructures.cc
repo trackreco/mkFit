@@ -21,7 +21,7 @@ void BunchOfHits::SortByPhiBuildPhiBins()
   int idx      =  0;
   for (int i = 0; i < m_fill_index; ++i)
   {
-    Hit &h = m_hits[i];
+    const Hit &h = m_hits[i];
 
     int bin = getPhiPartition(h.phi());
 

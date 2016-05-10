@@ -428,7 +428,7 @@ void ConvertToPolar(const MPlexLV& A, MPlexLV& B, MPlexLL& C)
     b[ 0*N+n] = a[ 0*N+n];
     b[ 1*N+n] = a[ 1*N+n];
     b[ 2*N+n] = a[ 2*N+n];
-    b[ 3*N+n] = 1./pt;
+    b[ 3*N+n] = 1.0f/pt;
     b[ 4*N+n] = getPhi(a[ 3*N+n], a[ 4*N+n]); //fixme: use trig approx
     b[ 5*N+n] = getTheta(pt, a[ 5*N+n]);
     //
@@ -532,7 +532,7 @@ void ConvertToCartesian(const MPlexLV& A, MPlexLV& B, MPlexLL& C)
     c[32*N+n] = 0.;
     c[33*N+n] = -cosT/(sinT*a[ 3*N+n]*a[ 3*N+n]);
     c[34*N+n] = 0.;
-    c[35*N+n] = -1./(sinT*sinT*a[ 3*N+n]);
+    c[35*N+n] = -1.0f/(sinT*sinT*a[ 3*N+n]);
   }
 }
 
