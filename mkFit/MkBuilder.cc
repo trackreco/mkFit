@@ -258,7 +258,7 @@ void MkBuilder::quality_print()
 // FindTracksBestHit
 //------------------------------------------------------------------------------
 
-void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
+void MkBuilder::find_tracks_load_seeds(EventOfCandidates& event_of_cands)
 {
   // partition recseeds into eta bins
   for (int iseed = 0; iseed < m_event->seedTracks_.size(); ++iseed)
@@ -273,7 +273,10 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
 
   //dump seeds
   dcall(print_seeds(event_of_cands));
+}
 
+void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
+{
   tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEtaBin),
     [&](const tbb::blocked_range<int>& ebins)
   {

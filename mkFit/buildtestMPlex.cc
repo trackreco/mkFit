@@ -78,6 +78,7 @@ double runBuildingTestPlexBestHit(Event& ev)
   builder.fit_seeds_tbb();
 
   EventOfCandidates event_of_cands;
+  builder.find_tracks_load_seeds(event_of_cands);
 
 #ifdef USE_VTUNE_PAUSE
   __itt_resume();
