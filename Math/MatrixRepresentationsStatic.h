@@ -252,6 +252,7 @@ namespace Math {
          return *this;
       }
       inline MatRepSym<T, D>& operator=(const MatRepSym& rhs) {
+         #pragma ivdep
          for(unsigned int i=0; i<kSize; ++i) fArray[i] = rhs.Array()[i];
          return *this;
       }
