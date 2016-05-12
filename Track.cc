@@ -81,14 +81,12 @@ SMatrix66 TrackState::jacobianCartesianToPolar(float px,float py,float pz) const
 // find the simtrack that provided the most hits
 void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo)
 {
-#ifdef DEBUG
-  const bool debug = g_dump;
-#endif
   std::vector<int> mctrack;
   auto hitIdx = trk.nTotalHits();
   for (int ihit = 0; ihit < hitIdx; ++ihit){
     if (trk.getHitIdx(ihit) >= 0) {
       auto mchitid = layerHits[ihit][trk.getHitIdx(ihit)].mcHitID();
+      dprint("trk.label()=" << trk.label() << " ihit=" << ihit << " trk.getHitIdx(ihit)=" << trk.getHitIdx(ihit) << " mchitid=" << mchitid << " globalHitInfo[mchitid].mcTrackID()=" << globalHitInfo[mchitid].mcTrackID());
       mctrack.push_back(globalHitInfo[mchitid].mcTrackID());
     }
   }

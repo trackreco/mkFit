@@ -327,6 +327,7 @@ void test_standard()
 
 #ifndef NO_ROOT
     make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
+#endif
     
   }
 #endif
