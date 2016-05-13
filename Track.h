@@ -3,6 +3,7 @@
 
 #include "Hit.h"
 #include "Matrix.h"
+#include "Config.h"
 #include <vector>
 
 typedef std::pair<int,int> SimTkIDInfo;
@@ -43,13 +44,33 @@ public:
 						 errors.At(0,1),errors.At(0,2),errors.At(1,2)));}
 
   // track state momentum
+#ifdef POLCOORD
+  float invpT()  const {return parameters.At(3);}
+  float momPhi() const {return parameters.At(4);}
+  float theta()  const {return parameters.At(5);}
+  float pT()     const {return fabs(1.f/parameters.At(3));}
+  float px()     const {return pT()*cos(parameters.At(4));}
+  float py()     const {return pT()*sin(parameters.At(4));}
+  float pz()     const {return pT()/tan(parameters.At(5));}
+  float momEta() const {return getEta (pT(),pz());}
+  float p()      const {return pT()/sin(parameters.At(5));}
+
+  float einvpT()  const {return sqrtf(errors.At(3,3));}
+  float emomPhi() const {return sqrtf(errors.At(4,4));}
+  float etheta()  const {return sqrtf(errors.At(5,5));}
+  float epT()     const {return sqrtf(errors.At(3,3))/(parameters.At(3)*parameters.At(3));}//fixme: double check
+  float emomEta() const {return sqrtf(errors.At(5,5))/sin(parameters.At(5));}//fixme: double check
+
+#else
   float px()     const {return parameters.At(3);}
   float py()     const {return parameters.At(4);}
   float pz()     const {return parameters.At(5);}
   float pT()     const {return sqrtf(getRad2(px(),py()));}
-  float p()      const {return sqrtf(px()*px()+py()*py()+pz()*pz());}
   float momPhi() const {return       getPhi (px(),py());}
   float momEta() const {return       getEta (pT(),pz());}
+  float theta()  const {return getTheta(pT(),pz());}
+  float invpT()  const {return sqrtf(getInvRad2(px(),py()));}
+  float p()      const {return sqrtf(px()*px()+py()*py()+pz()*pz());}
 
   // track state momentum errors
   float epxpx()   const {return sqrtf(errors.At(3,3));}
@@ -64,11 +85,16 @@ public:
   float emomEta() const {return sqrtf(getEtaErr2(px(),py(),pz(),errors.At(3,3),errors.At(4,4),errors.At(5,5),
 						 errors.At(3,4),errors.At(3,5),errors.At(4,5)));}
 
-  float theta()   const {return getTheta(pT(),pz());}
-  float invpT()   const {return sqrtf(getInvRad2(px(),py()));}
   float etheta()  const {return sqrtf(getThetaErr2(px(),py(),pz(),errors.At(3,3),errors.At(4,4),errors.At(5,5),
 						   errors.At(3,4),errors.At(3,5),errors.At(4,5)));}
   float einvpT()  const {return sqrtf(getInvRadErr2(px(),py(),errors.At(3,3),errors.At(4,4),errors.At(3,4)));}
+#endif
+
+  void convertFromCartesianToPolar();
+  void convertFromPolarToCartesian();
+  SMatrix66 jacobianPolarToCartesian(float invpt,float phi,float theta) const;
+  SMatrix66 jacobianCartesianToPolar(float px,float py,float pz) const;
+
 };
 
 class Track
@@ -120,24 +146,17 @@ public:
   float posPhi() const { return getPhi(state_.parameters[0],state_.parameters[1]); }
   float posEta() const { return getEta(state_.parameters[0],state_.parameters[1],state_.parameters[2]); }
 
-  float px()     const { return state_.parameters[3];}
-  float py()     const { return state_.parameters[4];}
-  float pz()     const { return state_.parameters[5];}
-  float pT()     const { return getHypot(state_.parameters[3],state_.parameters[4]); }
-  float momPhi() const { return getPhi(state_.parameters[3],state_.parameters[4]); }
-  float momEta() const { return getEta(state_.parameters[3],state_.parameters[4],state_.parameters[5]); }
+  float px()     const { return state_.px();}
+  float py()     const { return state_.py();}
+  float pz()     const { return state_.pz();}
+  float pT()     const { return state_.pT(); }
+  float momPhi() const { return state_.momPhi(); }
+  float momEta() const { return state_.momEta(); }
 
   // track state momentum errors
-  float epx()     const { return sqrtf(state_.errors[3][3]);}
-  float epy()     const { return sqrtf(state_.errors[4][4]);}
-  float epz()     const { return sqrtf(state_.errors[5][5]);}
-  float epT()     const { return sqrtf(fabs(getRadErr2(state_.parameters[3],state_.parameters[4],
-						       state_.errors[3][3],state_.errors[4][4],state_.errors[3][4])));}
-  float emomPhi() const { return sqrtf(fabs(getPhiErr2(state_.parameters[3],state_.parameters[4],
-						       state_.errors[3][3],state_.errors[4][4],state_.errors[3][4])));}
-  float emomEta() const { return sqrtf(fabs(getEtaErr2(state_.parameters[3],state_.parameters[4],state_.parameters[5],
-						       state_.errors[3][3],state_.errors[4][4],state_.errors[5][5],state_.errors[3][4],
-						       state_.errors[3][5],state_.errors[4][5])));}
+  float epT()     const { return state_.epT();}
+  float emomPhi() const { return state_.emomPhi();}
+  float emomEta() const { return state_.emomEta();}
   
   //this function is very inefficient, use only for debug and validation!
   const HitVec hitsVector(const std::vector<HitVec>& globalHitVec) const 
@@ -175,6 +194,12 @@ public:
 
   void setHitIdx(int posHitIdx, int newIdx) {
     hitIdxArr_[posHitIdx] = newIdx;
+  }
+
+  void setNGoodHitIdx() {
+    for (int i=0;i<= hitIdxPos_;i++) {
+      if (hitIdxArr_[i]>=0) nGoodHitIdx_++;
+    }
   }
 
   void resetHits()

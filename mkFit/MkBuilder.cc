@@ -211,6 +211,13 @@ void MkBuilder::quality_reset()
 
 void MkBuilder::quality_process(Track &tkcand)
 {
+
+  //begin: this does not work since the hit idxs after the seed refer to the bunch of hits and not to layerHits
+  //need to find a solution for this
+  // TrackExtra extra(tkcand.label());
+  // extra.setMCTrackIDInfo(tkcand, m_event->layerHits_, m_event->simHitsInfo_);
+  // int mctrk = extra.mcTrackID();
+  //end
   int mctrk = tkcand.label();
   if (mctrk < 0 || mctrk >= Config::nTracks)
   {
