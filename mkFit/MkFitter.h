@@ -62,6 +62,7 @@ public:
   //int getXHitEnd  (int arg0,int arg1,int arg2) { return XHitEnd  .At(arg0, arg1, arg2); }
 
   void InputTracksAndHits(const std::vector<Track>& tracks, const std::vector<HitVec>& layerHits, int beg, int end);
+  void SlurpInTracksAndHits(const std::vector<Track>&  tracks, const std::vector<HitVec>& layerHits, int beg, int end);
   void InputTracksAndHitIdx(const std::vector<Track>& tracks,
                             int beg, int end, bool inputProp);
   void InputTracksAndHitIdx(const std::vector<std::vector<Track> >& tracks, const std::vector<std::pair<int,int> >& idxs,

@@ -126,6 +126,8 @@ public:
    {
       for (int i = 0; i < kSize; ++i)
       {
+        // Next loop vectorizes with "#pragma ivdep", but it runs slower
+	// #pragma ivdep
         for (int j = 0; j < N; ++j)
         {
            fArray[i*N + j] = * (const T*) (arr + i*sizeof(T) + vi[j]);
