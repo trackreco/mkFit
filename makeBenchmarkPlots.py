@@ -77,7 +77,7 @@ for test in ['BH','CE','CEST','ST','TBBST','FIT']:
     nvu = '8int'
     if hORm == 'mic': nvu = '16int'
     thvals = [1,3,7,21]
-    if 'TBB' in test : thvals = [1,3,7,10,12,14,16,21]
+    if 'TBB' in test or 'BH' in test : thvals = [1,3,7,10,12,14,16,21]
     if hORm == 'mic': thvals = [1,3,7,21,42,63,84,105,126,147,168,189,210]
     g_TH = ROOT.TGraph(len(thvals))
     g_TH_speedup = ROOT.TGraph(len(thvals))
