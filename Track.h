@@ -71,7 +71,6 @@ public:
   float momEta() const {return       getEta (pT(),pz());}
   float theta()  const {return getTheta(pT(),pz());}
   float invpT()  const {return std::sqrt(getInvRad2(px(),py()));}
-  float p()      const {return std::sqrt(px()*px()+py()*py()+pz()*pz());}
 
   // track state momentum errors
   float epxpx()   const {return std::sqrt(errors.At(3,3));}
