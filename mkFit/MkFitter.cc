@@ -662,21 +662,35 @@ void MkFitter::SelectHitRanges(const BunchOfHits &bunch_of_hits, const int N_pro
                              dphidy*dphidy*(Err[iI].ConstAt(itrack, 1, 1) /*propState.errors.At(1,1)*/) +
                          2 * dphidx*dphidy*(Err[iI].ConstAt(itrack, 0, 1) /*propState.errors.At(0,1)*/);
 
-    const float dphi       = sqrtf(std::fabs(dphi2));//how come I get negative squared errors sometimes? MT -- how small?
+    const float dphi       = std::sqrt(std::abs(dphi2));//how come I get negative squared errors sometimes? MT -- how small?
     const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi, Config::minDPhi), Config::PI);
     //const float nSigmaDphi = Config::nSigma*dphi;
 
     float dPhiMargin = 0.;
     if (Config::useCMSGeom) {
       //now correct for bending and for layer thickness unsing linear approximation
+      const float deltaR = Config::cmsDeltaRad; //fixme! using constant value, to be taken from layer properties
+      const float radius = std::sqrt(px2py2);
+#ifdef POLCOORD
+      //here alpha is the difference between posPhi and momPhi
+      const float alpha = phi-Par[iP].ConstAt(itrack, 4, 0);
+      float cosA,sinA;
+      if (Config::useTrigApprox) {
+	sincos4(alpha, sinA, cosA);
+      } else {
+	cosA=cos(alpha);
+	sinA=sin(alpha);
+      }
+#else
       const float predpx = Par[iP].ConstAt(itrack, 3, 0);
       const float predpy = Par[iP].ConstAt(itrack, 4, 0);
-      const float deltaR = Config::cmsDeltaRad; //fixme! using constant vale, to be taken from layer properties
-      const float radius = std::sqrt(px2py2);
       const float pt     = std::sqrt(predpx*predpx + predpy*predpy);
-      const float cosTheta = ( predx*predpx + predy*predpy )/(pt*radius);
-      const float hipo = deltaR/cosTheta;
-      const float dist = std::sqrt(hipo*hipo - deltaR*deltaR);
+      //here alpha is the difference between posPhi and momPhi
+      const float cosA = ( predx*predpx + predy*predpy )/(pt*radius);
+      const float sinA = ( predy*predpx - predx*predpy )/(pt*radius);
+#endif
+      //take abs so that we always inflate the window
+      const float dist = std::abs(deltaR*sinA/cosA);
       dPhiMargin = dist/radius;
     }
     // #ifdef DEBUG

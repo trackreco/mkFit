@@ -5,6 +5,7 @@
 #include <string> // won't compile on clang gcc for mac OS w/o this!
 
 //#define PRINTOUTS_FOR_PLOTS
+#define POLCOORD
 
 namespace Config
 {
@@ -39,6 +40,7 @@ namespace Config
   constexpr float fEtaDet          = 1;  // 1 from chep
 
   constexpr float cmsAvgRads[10] = {4.42,7.31,10.17,25.65,33.81,41.89,49.67,60.95,69.11,78.19}; // cms average radii
+  //constexpr float cmsAvgRads[10] = {4.42,7.31,10.17,25.65,25.65,33.81,33.81,41.89,49.67,60.95}; // cms average radii, noMatch version
   constexpr float cmsDeltaRad = 2.5; //fixme! using constant 2.5 cm, to be taken from layer properties
 
   // config on Event
@@ -89,9 +91,6 @@ namespace Config
   // Config for propagation
   constexpr int Niter = 5;
   constexpr float Bfield = 3.8112;
-  constexpr bool doIterative = true;
-  constexpr bool useSimpleJac = false;//bad results
-  constexpr bool useCurvJac   = false;//not optimized, needs a manual change in PropagationMPlex.cc
   constexpr bool useTrigApprox = true;
 
   // Config for seeding as well... needed bfield

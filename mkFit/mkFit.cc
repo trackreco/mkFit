@@ -284,8 +284,9 @@ void test_standard()
     }
     else
     {
-      //Simulate() parallelism is via TBB
-      tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
+      //Simulate() parallelism is via TBB, but comment out for now due to cost of
+      //task_scheduler_init
+      //tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
 
       ev.Simulate();
       ev.resetLayerHitMap(true);
@@ -298,13 +299,9 @@ void test_standard()
     for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
     {
       t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
-
       t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev) : 0;
-
       t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlex(ev, ev_tmp) : 0;
-
       t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, ev_tmp) : 0;
-
       t_cur[4] = (g_run_build_all || g_run_build_tbb) ? runBuildingTestPlexTbb(ev, ev_tmp) : 0;
 
       for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
@@ -328,6 +325,7 @@ void test_standard()
 #ifndef NO_ROOT
     make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
 #endif
+    
   }
 #endif
   printf("\n");
@@ -344,6 +342,7 @@ void test_standard()
   {
     close_simtrack_file();
   }
+
 }
 
 //==============================================================================
