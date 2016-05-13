@@ -48,18 +48,18 @@ public:
   float invpT()  const {return parameters.At(3);}
   float momPhi() const {return parameters.At(4);}
   float theta()  const {return parameters.At(5);}
-  float pT()     const {return fabs(1.f/parameters.At(3));}
-  float px()     const {return pT()*cos(parameters.At(4));}
-  float py()     const {return pT()*sin(parameters.At(4));}
-  float pz()     const {return pT()/tan(parameters.At(5));}
+  float pT()     const {return std::abs(1.f/parameters.At(3));}
+  float px()     const {return pT()*std::cos(parameters.At(4));}
+  float py()     const {return pT()*std::sin(parameters.At(4));}
+  float pz()     const {return pT()/std::tan(parameters.At(5));}
   float momEta() const {return getEta (pT(),pz());}
-  float p()      const {return pT()/sin(parameters.At(5));}
+  float p()      const {return pT()/std::sin(parameters.At(5));}
 
-  float einvpT()  const {return sqrtf(errors.At(3,3));}
-  float emomPhi() const {return sqrtf(errors.At(4,4));}
-  float etheta()  const {return sqrtf(errors.At(5,5));}
-  float epT()     const {return sqrtf(errors.At(3,3))/(parameters.At(3)*parameters.At(3));}//fixme: double check
-  float emomEta() const {return sqrtf(errors.At(5,5))/sin(parameters.At(5));}//fixme: double check
+  float einvpT()  const {return std::sqrt(errors.At(3,3));}
+  float emomPhi() const {return std::sqrt(errors.At(4,4));}
+  float etheta()  const {return std::sqrt(errors.At(5,5));}
+  float epT()     const {return std::sqrt(errors.At(3,3))/(parameters.At(3)*parameters.At(3));}//fixme: double check
+  float emomEta() const {return std::sqrt(errors.At(5,5))/std::sin(parameters.At(5));}//fixme: double check
 
 #else
   float px()     const {return parameters.At(3);}
@@ -70,8 +70,8 @@ public:
   float momPhi() const {return       getPhi (px(),py());}
   float momEta() const {return       getEta (pT(),pz());}
   float theta()  const {return getTheta(pT(),pz());}
-  float invpT()  const {return sqrtf(getInvRad2(px(),py()));}
-  float p()      const {return sqrtf(px()*px()+py()*py()+pz()*pz());}
+  float invpT()  const {return std::sqrt(getInvRad2(px(),py()));}
+  float p()      const {return std::sqrt(px()*px()+py()*py()+pz()*pz());}
 
   // track state momentum errors
   float epxpx()   const {return std::sqrt(errors.At(3,3));}

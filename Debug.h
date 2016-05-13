@@ -1,6 +1,12 @@
 #ifndef _debug_
-#define _debug_
 #ifdef DEBUG
+#define _debug_
+
+#ifdef dprint
+#undef dprint
+#undef dcall
+#undef dprintf
+#endif
 /*
   Usage: DEBUG must be defined before this header file is included, typically
 

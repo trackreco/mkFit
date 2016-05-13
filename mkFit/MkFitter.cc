@@ -678,8 +678,8 @@ void MkFitter::SelectHitRanges(const BunchOfHits &bunch_of_hits, const int N_pro
       if (Config::useTrigApprox) {
 	sincos4(alpha, sinA, cosA);
       } else {
-	cosA=cos(alpha);
-	sinA=sin(alpha);
+	cosA=std::cos(alpha);
+	sinA=std::sin(alpha);
       }
 #else
       const float predpx = Par[iP].ConstAt(itrack, 3, 0);

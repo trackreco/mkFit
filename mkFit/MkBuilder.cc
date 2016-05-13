@@ -126,7 +126,7 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
   //unit test for eta partitioning
   for (int i = 0; i < 60; ++i)
   {
-    float eta = -1.5f + 0.05f*i;
+    const float eta = -1.5f + 0.05f*i;
     int b1, b2;
     int cnt = getBothEtaBins(eta, b1, b2);
     dprint("eta=" << eta << " bin=" << getEtaBin(eta) << " hb1=" << b1 << " hb2=" << b2);

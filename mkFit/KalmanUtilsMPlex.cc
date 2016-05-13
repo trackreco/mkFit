@@ -422,8 +422,8 @@ void ConvertToPolar(const MPlexLV& A, MPlexLV& B, MPlexLL& C)
 #pragma simd
   for (int n = 0; n < N; ++n)
   {
-    float pt = getHypot(a[ 3*N+n], a[ 4*N+n]);
-    float p2 = pt*pt + a[ 5*N+n]*a[ 5*N+n];
+    const float pt = getHypot(a[ 3*N+n], a[ 4*N+n]);
+    const float p2 = pt*pt + a[ 5*N+n]*a[ 5*N+n];
     //
     b[ 0*N+n] = a[ 0*N+n];
     b[ 1*N+n] = a[ 1*N+n];
@@ -485,10 +485,10 @@ void ConvertToCartesian(const MPlexLV& A, MPlexLV& B, MPlexLL& C)
 #pragma simd
   for (int n = 0; n < N; ++n)
   {
-    float cosP = cos(a[ 4*N+n]); //fixme: use trig approx
-    float sinP = sin(a[ 4*N+n]);
-    float cosT = cos(a[ 5*N+n]);
-    float sinT = sin(a[ 5*N+n]);
+    const float cosP = std::cos(a[ 4*N+n]); //fixme: use trig approx
+    const float sinP = std::sin(a[ 4*N+n]);
+    const float cosT = std::cos(a[ 5*N+n]);
+    const float sinT = std::sin(a[ 5*N+n]);
     //
     b[ 0*N+n] = a[ 0*N+n];
     b[ 1*N+n] = a[ 1*N+n];
@@ -817,7 +817,7 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
   MPlexQF rotT00;
   MPlexQF rotT01;
   for (int n = 0; n < NN; ++n) {
-    float r = hipo(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
+    const float r = hipo(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
     rotT00.At(n, 0, 0) = -(msPar.ConstAt(n, 1, 0)+propPar.ConstAt(n, 1, 0))/(2*r);
     rotT01.At(n, 0, 0) =  (msPar.ConstAt(n, 0, 0)+propPar.ConstAt(n, 0, 0))/(2*r);
   }
