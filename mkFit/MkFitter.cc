@@ -90,7 +90,7 @@ void MkFitter::SlurpInTracksAndHits(const std::vector<Track>&  tracks,
   // This might not be true for the last chunk!
   // assert(end - beg == NN);
 
-  Track &trk = tracks[beg];
+  const Track &trk = tracks[beg];
   const char *varr       = (char*) &trk;
   const int   off_error  = (char*) trk.errors().Array() - varr;
   const int   off_param  = (char*) trk.parameters().Array() - varr;
@@ -108,7 +108,7 @@ void MkFitter::SlurpInTracksAndHits(const std::vector<Track>&  tracks,
 #endif
   for (int i = beg; i < end; ++i) {
     itrack = i - beg;
-    Track &trk = tracks[i];
+    const Track &trk = tracks[i];
 
     Label(itrack, 0, 0) = trk.label();
 
