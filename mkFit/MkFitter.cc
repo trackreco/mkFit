@@ -81,6 +81,85 @@ void MkFitter::InputTracksAndHits(std::vector<Track>&  tracks,
   }
 }
 
+void MkFitter::SlurpInTracksAndHits(std::vector<Track>&  tracks,
+                                  std::vector<HitVec>& layerHits,
+                                  int beg, int end)
+{
+  // Assign track parameters to initial state and copy hit values in.
+
+  // This might not be true for the last chunk!
+  // assert(end - beg == NN);
+
+  Track &trk = tracks[beg];
+  const char *varr       = (char*) &trk;
+  const int   off_error  = (char*) trk.errors().Array() - varr;
+  const int   off_param  = (char*) trk.parameters().Array() - varr;
+
+  int idx[NN]      __attribute__((aligned(64)));
+  int itrack;
+
+#ifdef USE_CUDA
+  // This openmp loop brings some performances when using
+  // a single thread to fit all events.
+  // However, it is more advantageous to use the threads to
+  // parallelize over Events.
+  omp_set_num_threads(Config::numThreadsReorg);
+#pragma omp parallel for private(itrack)
+#endif
+  for (int i = beg; i < end; ++i) {
+    itrack = i - beg;
+    Track &trk = tracks[i];
+
+    Label(itrack, 0, 0) = trk.label();
+
+    idx[itrack] = (char*) &trk - varr;
+
+    Chg(itrack, 0, 0) = trk.charge();
+    Chi2(itrack, 0, 0) = trk.chi2();
+  }
+
+#ifdef MIC_INTRINSICS
+  __m512i vi      = _mm512_load_epi32(idx);
+  Err[iC].SlurpIn(varr + off_error, vi);
+  Par[iC].SlurpIn(varr + off_param, vi);
+#else
+  Err[iC].SlurpIn(varr + off_error, idx);
+  Par[iC].SlurpIn(varr + off_param, idx);
+#endif
+  
+// CopyIn seems fast enough, but indirections are quite slow.
+// For GPU computations, it has been moved in between kernels
+// in an attempt to overlap CPU and GPU computations.
+#ifndef USE_CUDA
+  for (int hi = 0; hi < Nhits; ++hi)
+  {
+    const int   hidx      = tracks[beg].getHitIdx(hi);
+    const Hit  &hit       = layerHits[hi][hidx];
+    const char *varr      = (char*) &hit;
+    const int   off_error = (char*) hit.errArray() - varr;
+    const int   off_param = (char*) hit.posArray() - varr;
+
+    for (int i = beg; i < end; ++i)
+    {
+      const int   hidx = tracks[i].getHitIdx(hi);
+      const Hit  &hit  = layerHits[hi][hidx];
+      itrack = i - beg;
+      idx[itrack] = (char*) &hit - varr;
+      HitsIdx[hi](itrack, 0, 0) = hidx;
+    }
+
+#ifdef MIC_INTRINSICS
+    __m512i vi      = _mm512_load_epi32(idx);
+    msErr[hi].SlurpIn(varr + off_error, vi);
+    msPar[hi].SlurpIn(varr + off_param, vi);
+#else
+    msErr[hi].SlurpIn(varr + off_error, idx);
+    msPar[hi].SlurpIn(varr + off_param, idx);
+#endif
+  }
+#endif
+}
+
 void MkFitter::InputTracksAndHitIdx(std::vector<Track>& tracks,
                                     int beg, int end,
                                     bool inputProp)

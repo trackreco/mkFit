@@ -178,6 +178,7 @@ public:
    {
       // Does *this = a - b;
 
+#pragma ivdep
       for (idx_t i = 0; i < kTotSize; ++i)
       {
          fArray[i] = a.fArray[i] - b.fArray[i];
