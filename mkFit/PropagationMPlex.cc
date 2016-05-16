@@ -681,7 +681,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
         << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
         << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0));
 
-      const float iC=invcurvature;
+      const float iC = invcurvature;
       const float dCdpx = k*pxin*ptinv;
       const float dCdpy = k*pyin*ptinv;
       const float dTPdx = dTDdx*iC;
@@ -817,11 +817,11 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, MPlexLS 
 #else
       float radL = hitsRl.ConstAt(n,0,0);
       if (radL<0.0000000000001f) continue;//ugly, please fixme
-      const float x = outPar.ConstAt(n,0,0);
-      const float y = outPar.ConstAt(n,0,1);
-      const float px = outPar.ConstAt(n,0,3);//FIXME FOR POLCOORD
-      const float py = outPar.ConstAt(n,0,4);
-      const float pz = outPar.ConstAt(n,0,5);
+      const float& x = outPar.ConstAt(n,0,0);
+      const float& y = outPar.ConstAt(n,0,1);
+      const float& px = outPar.ConstAt(n,0,3);//FIXME FOR POLCOORD
+      const float& py = outPar.ConstAt(n,0,4);
+      const float& pz = outPar.ConstAt(n,0,5);
       const float r = std::sqrt(x*x+y*y);
       float pt = px*px + py*py;
       float p2 = pt + pz*pz;
