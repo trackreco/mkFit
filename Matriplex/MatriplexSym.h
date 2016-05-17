@@ -68,6 +68,7 @@ public:
    T& At(idx_t n, idx_t i, idx_t j) { return fArray[Off(i * D + j) * N + n]; }
 
    T& operator()(idx_t n, idx_t i, idx_t j) { return At(n, i, j); }
+   const T& operator()(idx_t n, idx_t i, idx_t j) const { return ConstAt(n, i, j); }
 
    MatriplexSym& operator=(const MatriplexSym& m)
    {
@@ -154,7 +155,7 @@ public:
 
 #endif
 
-   void CopyOut(idx_t n, T *arr)
+   void CopyOut(idx_t n, T *arr) const
    {
       for (idx_t i = n; i < kTotSize; i += N)
       {

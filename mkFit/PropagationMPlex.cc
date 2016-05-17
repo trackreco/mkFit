@@ -21,7 +21,7 @@ void propagateLineToRMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
    for (int n = 0; n < N; ++n)
    {
 
-     const float cosA = (psPar[0 * N + n] * psPar[3 * N + n] + psPar[1 * N + n] * psPar[4 * N + n]) / ( sqrt( ( psPar[0 * N + n] * psPar[0 * N + n] + psPar[1 * N + n] * psPar[1 * N + n] ) * ( psPar[3 * N + n] * psPar[3 * N + n] + psPar[4 * N + n] * psPar[4 * N + n] ) ) );
+     const float cosA = (psPar[0 * N + n] * psPar[3 * N + n] + psPar[1 * N + n] * psPar[4 * N + n]) / ( std::sqrt( ( psPar[0 * N + n] * psPar[0 * N + n] + psPar[1 * N + n] * psPar[1 * N + n] ) * ( psPar[3 * N + n] * psPar[3 * N + n] + psPar[4 * N + n] * psPar[4 * N + n] ) ) );
      const float dr  = (hipo(msPar[0 * N + n], msPar[1 * N + n]) - hipo(psPar[0 * N + n], psPar[1 * N + n])) / cosA;
 
      dprint("propagateLineToRMPlex dr=" << dr);
@@ -241,21 +241,21 @@ void helixAtRFromIterativePolarFullJac(const MPlexLV& inPar, const MPlexQI& inCh
       errorProp(n,4,4) = 1.f;
       errorProp(n,5,5) = 1.f;
 
-      const float k  = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
-      const float& r = msRad.ConstAt(n, 0, 0);
+      const float k = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
+      const float r = msRad.ConstAt(n, 0, 0);
       float r0 = hipo(inPar.ConstAt(n, 0, 0), inPar.ConstAt(n, 1, 0));
 
-      if (fabs(r-r0)<0.0001f) {
+      if (std::abs(r-r0)<0.0001f) {
 	dprint("distance less than 1mum, skip");
 	continue;
       }
 
-      const float& xin   = inPar.ConstAt(n, 0, 0);
-      const float& yin   = inPar.ConstAt(n, 1, 0);
-      const float& zin   = inPar.ConstAt(n, 2, 0);
-      const float& ipt   = inPar.ConstAt(n, 3, 0);
-      const float& phiin = inPar.ConstAt(n, 4, 0);
-      const float& theta = inPar.ConstAt(n, 5, 0);
+      const float xin   = inPar.ConstAt(n, 0, 0);
+      const float yin   = inPar.ConstAt(n, 1, 0);
+      const float zin   = inPar.ConstAt(n, 2, 0);
+      const float ipt   = inPar.ConstAt(n, 3, 0);
+      const float phiin = inPar.ConstAt(n, 4, 0);
+      const float theta = inPar.ConstAt(n, 5, 0);
 
       //set those that are 1. before iterations
       errorPropTmp(n,2,2) = 1.f;
@@ -263,37 +263,36 @@ void helixAtRFromIterativePolarFullJac(const MPlexLV& inPar, const MPlexQI& inCh
       errorPropTmp(n,4,4) = 1.f;
       errorPropTmp(n,5,5) = 1.f;
 
-      float cosa = 0., sina = 0., ialpha = 0.;
+      float cosa = 0., sina = 0.;
       //no trig approx here, phi and theta can be large
-      float cosP = cos(phiin), sinP = sin(phiin);
-      float cosT = cos(theta), sinT = sin(theta);
+            float cosP = std::cos(phiin), sinP = std::sin(phiin);
+      const float cosT = std::cos(theta), sinT = std::sin(theta);
       float pxin = cosP/ipt;
       float pyin = sinP/ipt;
-      float dadx = 0., dady = 0., dadipt = 0.;
 
       for (unsigned int i=0;i<Config::Niter;++i) {
 
 #ifdef DEBUG
 	dprint(std::endl << "attempt propagation from r=" << r0 << " to r=" << r << std::endl
 	       << "x=" << outPar.At(n, 0, 0) << " y=" << outPar.At(n, 1, 0)  << " z=" << outPar.At(n, 2, 0)
-	       << " px=" << cos(phiin)/ipt << " py=" << sin(phiin)/ipt << " pz=" << 1.f/(ipt*tan(theta)) << " q=" << inChg.ConstAt(n, 0, 0) << std::endl);
+	       << " px=" << std::cos(phiin)/ipt << " py=" << std::sin(phiin)/ipt << " pz=" << 1.f/(ipt*tan(theta)) << " q=" << inChg.ConstAt(n, 0, 0) << std::endl);
 #endif
 
 	r0 = hipo(outPar.ConstAt(n, 0, 0), outPar.ConstAt(n, 1, 0));
-	ialpha = (r-r0)*ipt/k;
+	const float ialpha = (r-r0)*ipt/k;
 	//alpha+=ialpha;
 
 	if (Config::useTrigApprox) {
 	  sincos4(ialpha, sina, cosa);
 	} else {
-	  cosa=cos(ialpha);
-	  sina=sin(ialpha);
+	  cosa=std::cos(ialpha);
+	  sina=std::sin(ialpha);
 	}
 
 	//derivatives of alpha
-	dadx   = -outPar.At(n, 0, 0)*ipt/(k*r0);
-	dady   = -outPar.At(n, 1, 0)*ipt/(k*r0);
-	dadipt = (r-r0)/k;
+	const float dadx   = -outPar.At(n, 0, 0)*ipt/(k*r0);
+	const float dady   = -outPar.At(n, 1, 0)*ipt/(k*r0);
+	const float dadipt = (r-r0)/k;
 
 	outPar.At(n, 0, 0) = outPar.ConstAt(n, 0, 0) + k*(pxin*sina-pyin*(1.f-cosa));
 	outPar.At(n, 1, 0) = outPar.ConstAt(n, 1, 0) + k*(pyin*sina+pxin*(1.f-cosa));
@@ -303,8 +302,8 @@ void helixAtRFromIterativePolarFullJac(const MPlexLV& inPar, const MPlexQI& inCh
 
 	//need phi at origin, so this goes before redefining phi
 	//no trig approx here, phi can be large
-	cosP=cos(outPar.At(n, 4, 0));
-	sinP=sin(outPar.At(n, 4, 0));
+	cosP=std::cos(outPar.At(n, 4, 0));
+	sinP=std::sin(outPar.At(n, 4, 0));
 
 	outPar.At(n, 2, 0) = outPar.ConstAt(n, 2, 0) + k*ialpha*cosT/(ipt*sinT);
 	outPar.At(n, 3, 0) = ipt;
@@ -337,8 +336,8 @@ void helixAtRFromIterativePolarFullJac(const MPlexLV& inPar, const MPlexQI& inCh
 
       dprint("propagation end, dump parameters" << std::endl
 	     << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
-	     "mom = " << cos(outPar.At(n, 4, 0))/outPar.At(n, 3, 0) << " " << sin(outPar.At(n, 4, 0))/outPar.At(n, 3, 0) << " " << 1./(outPar.At(n, 3, 0)*tan(outPar.At(n, 5, 0)))
-	     "r=" << sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << 1./fabs(outPar.At(n, 3, 0)) << std::endl);
+	     "mom = " << std::cos(outPar.At(n, 4, 0))/outPar.At(n, 3, 0) << " " << std::sin(outPar.At(n, 4, 0))/outPar.At(n, 3, 0) << " " << 1./(outPar.At(n, 3, 0)*tan(outPar.At(n, 5, 0)))
+	     "r=" << std::sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << 1./std::abs(outPar.At(n, 3, 0)) << std::endl);
       
 #ifdef DEBUG
       {
@@ -371,28 +370,28 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
       errorProp(n,4,4) = 1.f;
       errorProp(n,5,5) = 1.f;
 
-      const float k  = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
-      const float& r = msRad.ConstAt(n, 0, 0);
+      const float k = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
+      const float r = msRad.ConstAt(n, 0, 0);
       float r0 = hipo(inPar.ConstAt(n, 0, 0), inPar.ConstAt(n, 1, 0));
 
-      // if (fabs(r-r0)<0.0001f) {
+      // if (std::abs(r-r0)<0.0001f) {
       // 	dprint("distance less than 1mum, skip");
       // 	continue;
       // }
 
-      const float& xin   = inPar.ConstAt(n, 0, 0);
-      const float& yin   = inPar.ConstAt(n, 1, 0);
-      const float& zin   = inPar.ConstAt(n, 2, 0);
-      const float& ipt   = inPar.ConstAt(n, 3, 0);
-      const float& phiin = inPar.ConstAt(n, 4, 0);
-      const float& theta = inPar.ConstAt(n, 5, 0);
+      const float xin   = inPar.ConstAt(n, 0, 0);
+      const float yin   = inPar.ConstAt(n, 1, 0);
+      const float zin   = inPar.ConstAt(n, 2, 0);
+      const float ipt   = inPar.ConstAt(n, 3, 0);
+      const float phiin = inPar.ConstAt(n, 4, 0);
+      const float theta = inPar.ConstAt(n, 5, 0);
 
       const float kinv  = 1.f/k;
       const float pt = 1.f/ipt;
 
       float D = 0., cosa = 0., sina = 0., id = 0.;
       //no trig approx here, phi can be large
-      float cosPorT = cos(phiin), sinPorT = sin(phiin);
+      float cosPorT = std::cos(phiin), sinPorT = std::sin(phiin);
       float pxin = cosPorT*pt;
       float pyin = sinPorT*pt;
 
@@ -401,10 +400,6 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
       float dDdy = r0>0.f ? -yin/r0 : 0.f;
       float dDdipt = 0.;
       float dDdphi = 0.;
-      //temporaries
-      float dadx = 0.;
-      float dady = 0.;
-      float dadipt = 0.;
 
       for (unsigned int i=0;i<Config::Niter;++i) {
 
@@ -418,29 +413,26 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
 	if (Config::useTrigApprox) {
 	  sincos4(id*ipt*kinv, sina, cosa);
 	} else {
-          cosa=cos(id*ipt*kinv);
-          sina=sin(id*ipt*kinv);
+          cosa=std::cos(id*ipt*kinv);
+          sina=std::sin(id*ipt*kinv);
 	}
 
 	//update derivatives on total distance
 	if (i+1 != Config::Niter) {
 
-          float x = outPar.At(n, 0, 0);
-          float y = outPar.At(n, 1, 0);
-          float oor0 = (r0>0.f && fabs(r-r0)<0.0001f) ? 1.f/r0 : 0.f;
+          const float x = outPar.At(n, 0, 0);
+          const float y = outPar.At(n, 1, 0);
+          const float oor0 = (r0>0.f && std::abs(r-r0)<0.0001f) ? 1.f/r0 : 0.f;
 
-          dadipt = id*kinv;
+          const float dadipt = id*kinv;
 
-          dadx = -x*ipt*kinv;
-          dady = -y*ipt*kinv;
+          const float dadx = -x*ipt*kinv*oor0;
+          const float dady = -y*ipt*kinv*oor0;
 
-          dadx *= oor0;
-          dady *= oor0;
-
-	  float pxca = pxin*cosa;
-	  float pxsa = pxin*sina;
-	  float pyca = pyin*cosa;
-	  float pysa = pyin*sina;
+	  const float pxca = pxin*cosa;
+	  const float pxsa = pxin*sina;
+	  const float pyca = pyin*cosa;
+	  const float pysa = pyin*sina;
 
 	  float tmp = k*dadx;
           dDdx   -= ( x*(1.f + tmp*(pxca - pysa)) + y*tmp*(pyca + pxsa) )*oor0;
@@ -462,16 +454,16 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
       }
 
       const float alpha  = D*ipt*kinv;
-      dadx   = dDdx*ipt*kinv;
-      dady   = dDdy*ipt*kinv;
-      dadipt = (ipt*dDdipt + D)*kinv;
+      const float dadx   = dDdx*ipt*kinv;
+      const float dady   = dDdy*ipt*kinv;
+      const float dadipt = (ipt*dDdipt + D)*kinv;
       const float dadphi = dDdphi*ipt*kinv;
 
       if (Config::useTrigApprox) {
 	sincos4(alpha, sina, cosa);
       } else {
-	cosa=cos(alpha);
-	sina=sin(alpha);
+	cosa=std::cos(alpha);
+	sina=std::sin(alpha);
       }
 
       errorProp(n,0,0) = 1.f+k*dadx*(cosPorT*cosa-sinPorT*sina)*pt;
@@ -481,7 +473,7 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
       errorProp(n,0,4) = k*(cosPorT*dadphi*cosa - sinPorT*dadphi*sina - sinPorT*sina + cosPorT*cosa - cosPorT)*pt;
       errorProp(n,0,5) = 0.f;
 
-      errorProp(n,1,0) =    k*dadx*(sinPorT*cosa+cosPorT*sina)*pt;
+      errorProp(n,1,0) =     k*dadx*(sinPorT*cosa+cosPorT*sina)*pt;
       errorProp(n,1,1) = 1.f+k*dady*(sinPorT*cosa+cosPorT*sina)*pt;
       errorProp(n,1,2) = 0.f;
       errorProp(n,1,3) = k*(sinPorT*(ipt*dadipt*cosa-sina)+cosPorT*(ipt*dadipt*sina-(1.f-cosa)))*pt*pt;
@@ -489,8 +481,8 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
       errorProp(n,1,5) = 0.f;
 
       //no trig approx here, theta can be large
-      cosPorT=cos(theta);
-      sinPorT=sin(theta);
+      cosPorT=std::cos(theta);
+      sinPorT=std::sin(theta);
       //redefine sinPorT as 1./sinPorT to reduce the number of temporaries
       sinPorT = 1.f/sinPorT;
 
@@ -532,8 +524,8 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
 
       dprint("propagation end, dump parameters" << std::endl
 	     << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
-	     "mom = " << cos(outPar.At(n, 4, 0))/outPar.At(n, 3, 0) << " " << sin(outPar.At(n, 4, 0))/outPar.At(n, 3, 0) << " " << 1./(outPar.At(n, 3, 0)*tan(outPar.At(n, 5, 0)))
-	     "r=" << sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << 1./fabs(outPar.At(n, 3, 0)) << std::endl);
+	     "mom = " << std::cos(outPar.At(n, 4, 0))/outPar.At(n, 3, 0) << " " << std::sin(outPar.At(n, 4, 0))/outPar.At(n, 3, 0) << " " << 1./(outPar.At(n, 3, 0)*tan(outPar.At(n, 5, 0)))
+	     "r=" << std::sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << 1./std::abs(outPar.At(n, 3, 0)) << std::endl);
       
 #ifdef DEBUG
       {
@@ -566,30 +558,30 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       errorProp(n,4,4) = 1.f;
       errorProp(n,5,5) = 1.f;
 
-      const float& xin  = inPar.ConstAt(n, 0, 0);
-      const float& yin  = inPar.ConstAt(n, 1, 0);
-      const float& pxin = inPar.ConstAt(n, 3, 0);
-      const float& pyin = inPar.ConstAt(n, 4, 0);
-      const float& pzin = inPar.ConstAt(n, 5, 0);
-      const float& r    = msRad.ConstAt(n, 0, 0);
+      const float xin  = inPar.ConstAt(n, 0, 0);
+      const float yin  = inPar.ConstAt(n, 1, 0);
+      const float pxin = inPar.ConstAt(n, 3, 0);
+      const float pyin = inPar.ConstAt(n, 4, 0);
+      const float pzin = inPar.ConstAt(n, 5, 0);
+      const float r    = msRad.ConstAt(n, 0, 0);
       float r0 = hipo(xin, yin);
       
       dprint(std::endl << "attempt propagation from r=" << r0 << " to r=" << r << std::endl
         << "x=" << xin << " y=" << yin  << " z=" << inPar.ConstAt(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pzin << " q=" << inChg.ConstAt(n, 0, 0));
 
-      if (fabs(r-r0)<0.0001f) {
+      if (std::abs(r-r0)<0.0001f) {
 	dprint("distance less than 1mum, skip");
 	continue;
       }
       
-      float pt2    = pxin*pxin+pyin*pyin;
-      float pt     = sqrt(pt2);
-      float ptinv  = 1.f/pt;
-      float pt2inv = ptinv*ptinv;
+      const float pt2    = pxin*pxin+pyin*pyin;
+      const float pt     = std::sqrt(pt2);
+      const float ptinv  = 1.f/pt;
+      const float pt2inv = ptinv*ptinv;
       //p=0.3Br => r=p/(0.3*B)
-      float k = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
-      float invcurvature = 1.f/(pt*k);//in 1./cm
-      float ctgTheta=pzin*ptinv;
+      const float k = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
+      const float invcurvature = 1.f/(pt*k);//in 1./cm
+      const float ctgTheta=pzin*ptinv;
       
       dprint("curvature=" << 1.f/invcurvature);
       
@@ -600,25 +592,14 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       float dTDdy = r0>0.f ? -yin/r0 : 0.f;
       float dTDdpx = 0.;
       float dTDdpy = 0.;
-      //temporaries used within the loop (declare here to reduce memory operations)
-      float x = 0.;
-      float y = 0.;
-      float px = 0.;
-      float py = 0.;
-      float cosAP=0.;
-      float sinAP=0.;
-      float dAPdx = 0.;
-      float dAPdy = 0.;
-      float dAPdpx = 0.;
-      float dAPdpy = 0.;
       for (unsigned int i=0;i<Config::Niter;++i)
 	{
 	  dprint("propagation iteration #" << i);
 	  
-	  x  = outPar.At(n, 0, 0);
-	  y  = outPar.At(n, 1, 0);
-	  px = outPar.At(n, 3, 0);
-	  py = outPar.At(n, 4, 0);
+	  const float x  = outPar.At(n, 0, 0);
+	  const float y  = outPar.At(n, 1, 0);
+	  const float px = outPar.At(n, 3, 0);
+	  const float py = outPar.At(n, 4, 0);
 	  r0 = hipo(outPar.At(n, 0, 0), outPar.At(n, 1, 0));
 	  
 	  dprint("r0=" << r0 << " pt=" << pt);
@@ -637,11 +618,12 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	  dprint("distance=" << (r-r0) << " angPath=" << (r-r0)*invcurvature);
 	  
 	  //float angPath = (r-r0)*invcurvature;
+          float cosAP, sinAP;
 	  if (Config::useTrigApprox) {
 	    sincos4((r-r0)*invcurvature, sinAP, cosAP);
 	  } else {
-	    cosAP=cos((r-r0)*invcurvature);
-	    sinAP=sin((r-r0)*invcurvature);
+	    cosAP=std::cos((r-r0)*invcurvature);
+	    sinAP=std::sin((r-r0)*invcurvature);
 	  }
 
 	  //helix propagation formulas
@@ -653,7 +635,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	  outPar.At(n, 4, 0) = py*cosAP+px*sinAP;
 	  //outPar.At(n, 5, 0) = pz; //take this out as it is redundant
 
-	  if (i+1 != Config::Niter && r0 > 0 && fabs((r-r0)*invcurvature)>0.000000001f)
+	  if (i+1 != Config::Niter && r0 > 0 && std::abs((r-r0)*invcurvature)>0.000000001f)
 	  {
 	     //update derivatives on total distance for next step, where totalDistance+=r-r0
 	     //now r0 depends on px and py
@@ -661,11 +643,11 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	     dprint("r0=" << 1.f/r0 << " r0inv=" << r0 << " pt=" << pt);
 
 	     //update derivative on D
-	     dAPdpx = -(r-r0)*invcurvature*px*pt2inv;//r0 is now 1./r0 (this could go above the redefinition of r0!)
-	     dAPdpy = -(r-r0)*invcurvature*py*pt2inv;
+	     const float dAPdpx = -(r-r0)*invcurvature*px*pt2inv;//r0 is now 1./r0 (this could go above the redefinition of r0!)
+	     const float dAPdpy = -(r-r0)*invcurvature*py*pt2inv;
 	     r0 = 1.f/r0;//WARNING, now r0 is r0inv (one less temporary)
-	     dAPdx = -x*r0*invcurvature;
-	     dAPdy = -y*r0*invcurvature;
+	     const float dAPdx = -x*r0*invcurvature;
+	     const float dAPdy = -y*r0*invcurvature;
 	     //reduce temporary variables
 	     //dxdx = 1 + k*dAPdx*(px*cosAP - py*sinAP);
 	     //dydx = k*dAPdx*(py*cosAP + px*sinAP);
@@ -689,23 +671,23 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	  dprint("iteration end, dump parameters" << std::endl
 		 << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
 		 << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0) << std::endl
-		 << "r=" << sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << sqrt( outPar.At(n, 3, 0)*outPar.At(n, 3, 0) + outPar.At(n, 4, 0)*outPar.At(n, 4, 0) ));
+		 << "r=" << std::sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << std::sqrt( outPar.At(n, 3, 0)*outPar.At(n, 3, 0) + outPar.At(n, 4, 0)*outPar.At(n, 4, 0) ));
 	}
       
-      float& TD=totalDistance;
-      float  TP=TD*invcurvature;//totalAngPath
+      const float TD=totalDistance;
+      const float TP=TD*invcurvature;//totalAngPath
       
-      dprint("TD=" << TD << " TP=" << TP << " arrived at r=" << sqrt(outPar.At(n, 0, 0)*outPar.At(n, 0, 0)+outPar.At(n, 1, 0)*outPar.At(n, 1, 0)) << std::endl
+      dprint("TD=" << TD << " TP=" << TP << " arrived at r=" << std::sqrt(outPar.At(n, 0, 0)*outPar.At(n, 0, 0)+outPar.At(n, 1, 0)*outPar.At(n, 1, 0)) << std::endl
         << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
         << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0));
 
-      float& iC=invcurvature;
-      float dCdpx = k*pxin*ptinv;
-      float dCdpy = k*pyin*ptinv;
-      float dTPdx = dTDdx*iC;
-      float dTPdy = dTDdy*iC;
-      float dTPdpx = (dTDdpx - TD*dCdpx*iC)*iC; // MT change: avoid division
-      float dTPdpy = (dTDdpy - TD*dCdpy*iC)*iC; // MT change: avoid division
+      const float iC = invcurvature;
+      const float dCdpx = k*pxin*ptinv;
+      const float dCdpy = k*pyin*ptinv;
+      const float dTPdx = dTDdx*iC;
+      const float dTPdy = dTDdy*iC;
+      const float dTPdpx = (dTDdpx - TD*dCdpx*iC)*iC; // MT change: avoid division
+      const float dTPdpy = (dTDdpy - TD*dCdpy*iC)*iC; // MT change: avoid division
 
       //std::cout << "dTPdx=" << dTPdx << " dTPdy=" << dTPdy << " dTPdpx=" << dTPdpx << " dTPdpy=" << dTPdpy << std::endl;
       
@@ -713,8 +695,8 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       if (Config::useTrigApprox) {
 	sincos4(TP, sinTP, cosTP);
       } else {
-	cosTP = cos(TP);
-	sinTP = sin(TP);
+	cosTP = std::cos(TP);
+	sinTP = std::sin(TP);
       }
 
       dprint("sinTP=" << sinTP << " cosTP=" << cosTP << " TD=" << TD);
@@ -733,19 +715,19 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       errorProp(n,0,1) = k*dTPdy*(pxin*cosTP - pyin*sinTP);	//dxdy;
       errorProp(n,0,2) = 0.;
       errorProp(n,0,3) = k*(sinTP + pxin*cosTP*dTPdpx - pyin*sinTP*dTPdpx); //dxdpx;
-      errorProp(n,0,4) = k*(pxin*cosTP*dTPdpy - 1. + cosTP - pyin*sinTP*dTPdpy);//dxdpy;
+      errorProp(n,0,4) = k*(pxin*cosTP*dTPdpy - 1.f + cosTP - pyin*sinTP*dTPdpy);//dxdpy;
       errorProp(n,0,5) = 0.;
       
       errorProp(n,1,0) = k*dTPdx*(pyin*cosTP + pxin*sinTP);	//dydx;
       errorProp(n,1,1) = 1 + k*dTPdy*(pyin*cosTP + pxin*sinTP);	//dydy;
       errorProp(n,1,2) = 0.;
-      errorProp(n,1,3) = k*(pyin*cosTP*dTPdpx + 1. - cosTP + pxin*sinTP*dTPdpx);//dydpx;
+      errorProp(n,1,3) = k*(pyin*cosTP*dTPdpx + 1.f - cosTP + pxin*sinTP*dTPdpx);//dydpx;
       errorProp(n,1,4) = k*(sinTP + pyin*cosTP*dTPdpy + pxin*sinTP*dTPdpy); //dydpy;
       errorProp(n,1,5) = 0.;
       
       errorProp(n,2,0) = k*pzin*dTPdx;	//dzdx;
       errorProp(n,2,1) = k*pzin*dTPdy;	//dzdy;
-      errorProp(n,2,2) = 1.;
+      errorProp(n,2,2) = 1.f;
       errorProp(n,2,3) = k*pzin*dTPdpx;//dzdpx;
       errorProp(n,2,4) = k*pzin*dTPdpy;//dzdpy;
       errorProp(n,2,5) = k*TP; //dzdpz;
@@ -769,7 +751,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       errorProp(n,5,2) = 0.;
       errorProp(n,5,3) = 0.;
       errorProp(n,5,4) = 0.;
-      errorProp(n,5,5) = 1.;
+      errorProp(n,5,5) = 1.f;
     }
 
 #ifdef DEBUG
@@ -794,41 +776,41 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, MPlexLS 
 #ifdef POLCOORD
 
       float radL = hitsRl.ConstAt(n,0,0);
-      if (radL<0.0000000000001) continue;//ugly, please fixme
-      const float& x = outPar.ConstAt(n,0,0);
-      const float& y = outPar.ConstAt(n,0,1);
-      const float& theta = outPar.ConstAt(n,0,5);
-      float r = sqrt(x*x+y*y);
-      float pt = 1.f/outPar.ConstAt(n,0,3);
+      if (radL<0.0000000000001f) continue;//ugly, please fixme
+      const float x = outPar.ConstAt(n,0,0);
+      const float y = outPar.ConstAt(n,0,1);
+      const float theta = outPar.ConstAt(n,0,5);
+      const float r = std::sqrt(x*x+y*y);
+      const float pt = 1.f/outPar.ConstAt(n,0,3);
       //trig approx for sin theta
-      float p = pt/(theta - 0.1666667f*theta*theta*theta);
-      float p2 = p*p;
+      const float p = pt/(theta - 0.1666667f*theta*theta*theta);
+      const float p2 = p*p;
       float cosPhi, sinPhi;
       sincos4(outPar.ConstAt(n,0,4), sinPhi, cosPhi);
       constexpr float mpi = 0.140; // m=140 MeV, pion
       constexpr float mpi2 = mpi*mpi; // m=140 MeV, pion
-      float beta2 = p2/(p2+mpi2);
-      float beta = sqrt(beta2);
+      const float beta2 = p2/(p2+mpi2);
+      const float beta = std::sqrt(beta2);
       //radiation lenght, corrected for the crossing angle (cos alpha from dot product of radius vector and momentum)
-      float invCos = (p*r)/fabs(x*pt*cosPhi+y*pt*sinPhi);
+      const float invCos = (p*r)/std::abs(x*pt*cosPhi+y*pt*sinPhi);
       radL = radL * invCos; //fixme works only for barrel geom
       // multiple scattering
       //vary independently phi and theta by the rms of the planar multiple scattering angle
-      float thetaMSC = 0.0136f*sqrt(radL)*(1.f+0.038f*log(radL))/(beta*p);// eq 32.15
-      float thetaMSC2 = thetaMSC*thetaMSC;
+      const float thetaMSC = 0.0136f*std::sqrt(radL)*(1.f+0.038f*std::log(radL))/(beta*p);// eq 32.15
+      const float thetaMSC2 = thetaMSC*thetaMSC;
       outErr.At(n, 4, 4) += thetaMSC2;
       outErr.At(n, 5, 5) += thetaMSC2;
       // energy loss
-      float gamma = 1.f/sqrt(1.f - beta2);
-      float gamma2 = gamma*gamma;
+      const float gamma = 1.f/std::sqrt(1.f - beta2);
+      const float gamma2 = gamma*gamma;
       constexpr float me = 0.0005; // m=0.5 MeV, electron
-      float wmax = 2.f*me*beta2*gamma2 / ( 1.f + 2.f*gamma*me/mpi + me*me/(mpi*mpi) );
+      const float wmax = 2.f*me*beta2*gamma2 / ( 1.f + 2.f*gamma*me/mpi + me*me/(mpi*mpi) );
       constexpr float I = 16.0e-9 * 10.75;
-      float deltahalf = log(28.816e-9f * sqrt(2.33f*0.498f)/I) + log(beta*gamma) - 0.5f;
-      float dEdx = hitsXi.ConstAt(n,0,0) * invCos * (0.5f*log(2.f*me*beta2*gamma2*wmax/(I*I)) - beta2 - deltahalf) / beta2 ;
-      dEdx = dEdx*2.;//xi in cmssw is defined with an extra factor 0.5 with respect to formula 27.1 in pdg
+      const float deltahalf = std::log(28.816e-9f * std::sqrt(2.33f*0.498f)/I) + std::log(beta*gamma) - 0.5f;
+      const float dEdx = 2.f*(hitsXi.ConstAt(n,0,0) * invCos * (0.5f*std::log(2.f*me*beta2*gamma2*wmax/(I*I)) - beta2 - deltahalf) / beta2) ;
+      // dEdx = dEdx*2.;//xi in cmssw is defined with an extra factor 0.5 with respect to formula 27.1 in pdg
       // std::cout << "dEdx=" << dEdx << " delta=" << deltahalf << std::endl;
-      float dP = dEdx/beta;
+      const float dP = dEdx/beta;
       outPar.At(n, 0, 3) = p/((p+dP)*pt);
       //assume 100% uncertainty
       outErr.At(n, 3, 3) += dP*dP/(p2*pt*pt);
@@ -840,17 +822,17 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, MPlexLS 
       const float& px = outPar.ConstAt(n,0,3);//FIXME FOR POLCOORD
       const float& py = outPar.ConstAt(n,0,4);
       const float& pz = outPar.ConstAt(n,0,5);
-      float r = sqrt(x*x+y*y);
+      const float r = std::sqrt(x*x+y*y);
       float pt = px*px + py*py;
       float p2 = pt + pz*pz;
-      pt =sqrt(pt);
-      float p = sqrt(p2);
+      pt = std::sqrt(pt);
+      const float p = std::sqrt(p2);
       constexpr float mpi = 0.140f; // m=140 MeV, pion
       constexpr float mpi2 = mpi*mpi; // m=140 MeV, pion
-      float beta2 = p2/(p2+mpi2);
-      float beta = sqrt(beta2);
+      const float beta2 = p2/(p2+mpi2);
+      const float beta = std::sqrt(beta2);
       //radiation lenght, corrected for the crossing angle (cos alpha from dot product of radius vector and momentum)
-      float invCos = (p*r)/fabs(x*px+y*py);
+      const float invCos = (p*r)/std::abs(x*px+y*py);
       radL = radL * invCos; //fixme works only for barrel geom
       // multiple scattering
       // in a reference frame defined by the orthogonal unit vectors: u=(px/p,py/p,pz/p) v=(-py/pt,px/pt,0) s=(-pzpx/pt/p,-pzpy/pt/p,pt/p)
@@ -861,9 +843,9 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, MPlexLS 
       // py' = py - (px*p*theta1 - pz*py*theta2)/pt;
       // pz' = pz + pt*theta2;
       // this actually changes |p| so that p'^2 = p^2(1+2thetaMSC^2) so we should renormalize everything but we neglect this effect here (we are just inflating uncertainties a bit)
-      float thetaMSC = 0.0136f*sqrt(radL)*(1.f+0.038f*log(radL))/(beta*p);// eq 32.15
-      float thetaMSC2 = thetaMSC*thetaMSC;
-      float thetaMSC2overPt2 = thetaMSC2/(pt*pt);
+      const float thetaMSC = 0.0136f*std::sqrt(radL)*(1.f+0.038f*std::log(radL))/(beta*p);// eq 32.15
+      const float thetaMSC2 = thetaMSC*thetaMSC;
+      const float thetaMSC2overPt2 = thetaMSC2/(pt*pt);
       outErr.At(n, 3, 3) += (py*py*p*p + pz*pz*px*px)*thetaMSC2overPt2;
       outErr.At(n, 4, 4) += (px*px*p*p + pz*pz*py*py)*thetaMSC2overPt2;
       outErr.At(n, 5, 5) += pt*pt*thetaMSC2;
@@ -873,14 +855,14 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, MPlexLS 
       // std::cout << "beta=" << beta << " p=" << p << std::endl;
       // std::cout << "multiple scattering thetaMSC=" << thetaMSC << " thetaMSC2=" << thetaMSC2 << " radL=" << radL << " cxx=" << (py*py*p*p + pz*pz*px*px)*thetaMSC2overPt2 << " cyy=" << (px*px*p*p + pz*pz*py*py)*thetaMSC2overPt2 << " czz=" << pt*pt*thetaMSC2 << std::endl;
       // energy loss
-      float gamma = 1.f/sqrt(1.f - beta2);
-      float gamma2 = gamma*gamma;
+      const float gamma = 1.f/std::sqrt(1.f - beta2);
+      const float gamma2 = gamma*gamma;
       constexpr float me = 0.0005; // m=0.5 MeV, electron
-      float wmax = 2.f*me*beta2*gamma2 / ( 1.f + 2.f*gamma*me/mpi + me*me/(mpi*mpi) );
+      const float wmax = 2.f*me*beta2*gamma2 / ( 1.f + 2.f*gamma*me/mpi + me*me/(mpi*mpi) );
       constexpr float I = 16.0e-9f * 10.75f;
-      float deltahalf = log(28.816e-9f * sqrt(2.33f*0.498f)/I) + log(beta*gamma) - 0.5f;
-      float dEdx = hitsXi.ConstAt(n,0,0) * invCos * (0.5f*log(2*me*beta2*gamma2*wmax/(I*I)) - beta2 - deltahalf) / beta2 ;
-      dEdx = dEdx*2.f;//xi in cmssw is defined with an extra factor 0.5 with respect to formula 27.1 in pdg
+      const float deltahalf = std::log(28.816e-9f * std::sqrt(2.33f*0.498f)/I) + std::log(beta*gamma) - 0.5f;
+      const float dEdx = 2.f*(hitsXi.ConstAt(n,0,0) * invCos * (0.5f*std::log(2*me*beta2*gamma2*wmax/(I*I)) - beta2 - deltahalf) / beta2) ;
+      //dEdx = dEdx*2.f;//xi in cmssw is defined with an extra factor 0.5 with respect to formula 27.1 in pdg
       // std::cout << "dEdx=" << dEdx << " delta=" << deltahalf << std::endl;
       float dP = dEdx/beta;
       outPar.At(n, 0, 3) -= dP*px/p;
@@ -981,8 +963,8 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 #endif
 
 #ifdef DEBUG
-   if (fabs(hipo(outPar.At(0,0,0), outPar.At(0,1,0))-hipo(msPar.ConstAt(0, 0, 0), msPar.ConstAt(0, 1, 0)))>0.0001) {
-     dprint("DID NOT GET TO R, dR=" << fabs(hipo(outPar.At(0,0,0), outPar.At(0,1,0))-hipo(msPar.ConstAt(0, 0, 0), msPar.ConstAt(0, 1, 0)))
+   if (std::abs(hipo(outPar.At(0,0,0), outPar.At(0,1,0))-hipo(msPar.ConstAt(0, 0, 0), msPar.ConstAt(0, 1, 0)))>0.0001) {
+     dprint("DID NOT GET TO R, dR=" << std::abs(hipo(outPar.At(0,0,0), outPar.At(0,1,0))-hipo(msPar.ConstAt(0, 0, 0), msPar.ConstAt(0, 1, 0)))
 	       << " r=" << hipo(msPar.ConstAt(0, 0, 0), msPar.ConstAt(0, 1, 0)) << " r0in=" << hipo(inPar.ConstAt(0,0,0), inPar.ConstAt(0,1,0)) << " rout=" << hipo(outPar.At(0,0,0), outPar.At(0,1,0)) << std::endl
          << "pt=" << hipo(inPar.ConstAt(0,3,0), inPar.ConstAt(0,4,0)) << " pz=" << inPar.ConstAt(0,5,0));
    }

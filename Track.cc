@@ -4,12 +4,12 @@
 
 void TrackState::convertFromCartesianToPolar() {
   //assume we are currently in cartesian coordinates and want to move to polar
-  float px = parameters.At(3);
-  float py = parameters.At(4);
-  float pz = parameters.At(5);
-  float pt = sqrtf(px*px+py*py);
-  float phi = getPhi(px,py);
-  float theta = getTheta(pt,pz);
+  const float px = parameters.At(3);
+  const float py = parameters.At(4);
+  const float pz = parameters.At(5);
+  const float pt = std::sqrt(px*px+py*py);
+  const float phi = getPhi(px,py);
+  const float theta = getTheta(pt,pz);
   parameters.At(3) = 1.f/pt;
   parameters.At(4) = phi;
   parameters.At(5) = theta;
@@ -19,19 +19,19 @@ void TrackState::convertFromCartesianToPolar() {
 
 void TrackState::convertFromPolarToCartesian() {
   //assume we are currently in polar coordinates and want to move to cartesian
-  float invpt = parameters.At(3);
-  float phi   = parameters.At(4);
-  float theta = parameters.At(5);
-  float pt = 1.f/invpt;
+  const float invpt = parameters.At(3);
+  const float phi   = parameters.At(4);
+  const float theta = parameters.At(5);
+  const float pt = 1.f/invpt;
   float cosP, sinP, cosT, sinT;
   if (Config::useTrigApprox) {
     sincos4(phi, sinP, cosP);
     sincos4(theta, sinT, cosT);
   } else {
-    cosP = cos(phi);
-    sinP = sin(phi);
-    cosT = cos(theta);
-    sinT = sin(theta);
+    cosP = std::cos(phi);
+    sinP = std::sin(phi);
+    cosT = std::cos(theta);
+    sinT = std::sin(theta);
   }
   parameters.At(3) = cosP*pt;
   parameters.At(4) = sinP*pt;
@@ -48,12 +48,12 @@ SMatrix66 TrackState::jacobianPolarToCartesian(float invpt,float phi,float theta
     sincos4(phi, sinP, cosP);
     sincos4(theta, sinT, cosT);
   } else {
-    cosP = cos(phi);
-    sinP = sin(phi);
-    cosT = cos(theta);
-    sinT = sin(theta);
+    cosP = std::cos(phi);
+    sinP = std::sin(phi);
+    cosT = std::cos(theta);
+    sinT = std::sin(theta);
   }
-  float pt = 1.f/invpt;
+  const float pt = 1.f/invpt;
   jac(3,3) = -cosP*pt*pt;
   jac(3,4) = -sinP*pt;
   jac(4,3) = -sinP*pt*pt;
@@ -66,8 +66,8 @@ SMatrix66 TrackState::jacobianPolarToCartesian(float invpt,float phi,float theta
 SMatrix66 TrackState::jacobianCartesianToPolar(float px,float py,float pz) const {
   //arguments are passed so that the function can be used both starting from polar and from cartesian
   SMatrix66 jac = ROOT::Math::SMatrixIdentity();
-  float pt = sqrtf(px*px+py*py);
-  float p2 = px*px+py*py+pz*pz;
+  const float pt = std::sqrt(px*px+py*py);
+  const float p2 = px*px+py*py+pz*pz;
   jac(3,3) = -px/(pt*pt*pt);
   jac(3,4) = -py/(pt*pt*pt);
   jac(4,3) = -py/(pt*pt);
