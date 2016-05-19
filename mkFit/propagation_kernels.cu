@@ -1,10 +1,30 @@
 #include "Config.h"
+#include "Debug.h"
 #include "propagation_kernels.h"
 #include <stdio.h>
 
-#define L 6
-#define LL 36
-#define LS 21
+constexpr int L = 6;
+constexpr int LL = 36;
+constexpr int LS = 21;
+
+template <typename T, int D1, int D2>
+struct GPlexReg {
+  __device__ T  operator[](int xx) const { return arr[xx]; }
+  __device__ T& operator[](int xx)       { return arr[xx]; }
+
+  __device__ T& operator()(int n, int i, int j)       { return arr[i*D2 + j]; }
+  __device__ T  operator()(int n, int i, int j) const { return arr[i*D2 + j]; }
+
+  __device__ void SetVal(T v)
+  {
+     for (int i = 0; i < D1; ++i)
+     {
+        arr[i] = v;
+     }
+  }
+
+  T arr[D1];
+};
 
 // values from 32 to 512 give good results.
 // 32 gives slightly better results (on a K40)
@@ -12,7 +32,7 @@
 #define MAX_BLOCKS_X 65535 // CUDA constraint
 
 __device__ float hipo(float x, float y) {
-  return sqrt(x*x + y*y);
+  return std::sqrt(x*x + y*y);
 }
 __device__ void sincos4(float x, float& sin, float& cos) {
    // Had this writen with explicit division by factorial.
@@ -91,213 +111,36 @@ __device__ void computeJacobianSimple(float *errorProp,
 
 /// Compute MsRad /////////////////////////////////////////////////////////////
 // Not passing msRad.stride, as QF == 1 (second dim f msRad)
-__device__ void computeMsRad_fn(const float* __restrict__ msPar,
-    size_t stride_msPar, float* msRad, int N, int n) {
+__device__ void computeMsRad_fn(const GPlex<float>& __restrict__ msPar,
+    float* msRad, int N, int n) {
   /*int n = threadIdx.x + blockIdx.x * blockDim.x;*/
   if (n < N) {
-    *msRad = hipo(msPar[n], msPar[n + stride_msPar]);
+    *msRad = hipo(msPar.ptr[n], msPar.ptr[n + msPar.stride]);
   }
 }
 
-__device__ 
-void helixAtRFromIterative_fn(float *inPar, size_t inPar_stride,
-    int *inChg, float *outPar, size_t outPar_stride, float msRad, 
-    float *errorProp_reg, int N, int n) {
+#include "PropagationMPlex.icc"
 
-  size_t opN = outPar_stride;
-  size_t ipN = inPar_stride;
+__device__ 
+void helixAtRFromIterative_fn(const GPlex<float>& inPar,
+    const GPlex<int>& inChg, GPlex<float>& outPar_global, const GPlexReg<float,1,1>& msRad, 
+    GPlexReg<float, LL, L>& errorProp, int N, int n) {
 
   /*int n = threadIdx.x + blockIdx.x * blockDim.x;*/
 
-  float outPar_reg[5];
+  GPlexReg<float, LL, 1> outPar;
 
   if (n < N) {
     for (int j = 0; j < 5; ++j) {
-      outPar_reg[j] = outPar[n+j*opN]; 
+      outPar[j] = outPar_global(n, j, 0);
     }
-    const float& xin = inPar[n + 0*ipN]; 
-    const float& yin = inPar[n + 1*ipN]; 
-    const float& pxin = inPar[n + 3*ipN]; 
-    const float& pyin = inPar[n + 4*ipN]; 
-    const float& pzin = inPar[n + 5*ipN]; 
-    const float& r = msRad; 
-    float r0 = hipo(xin, yin);
+    errorProp.SetVal(0);
 
-    if (fabs(r-r0)<0.0001) {
-      // get an identity matrix
-      computeJacobianSimple(errorProp_reg, 0, 1, 1, 1, 1, 1, 0, 1, 0, N);
-      return;  // continue;
-    }
-    float pt2    = pxin*pxin+pyin*pyin;
-    float pt     = sqrt(pt2);
-    float ptinv  = 1./pt;
-    float pt2inv = ptinv*ptinv;
-    //p=0.3Br => r=p/(0.3*B)
-    float k = inChg[n] * 100. / (-0.299792458*Config::Bfield);
-    float invcurvature = 1./(pt*k);//in 1./cm
-    float ctgTheta=pzin*ptinv;
+    helixAtRFromIterative_impl(inPar, inChg, outPar, msRad, errorProp, n);
 
-    //variables to be updated at each iterations
-    float totalDistance = 0;
-    //derivatives initialized to value for first iteration, i.e. distance = r-r0in
-    float dTDdx = r0>0. ? -xin/r0 : 0.;
-    float dTDdy = r0>0. ? -yin/r0 : 0.;
-    float dTDdpx = 0.;
-    float dTDdpy = 0.;
-    //temporaries used within the loop (declare here to reduce memory operations)
-    float x = 0.;
-    float y = 0.;
-    float px = 0.;
-    float py = 0.;
-    float cosAP=0.;
-    float sinAP=0.;
-    float dAPdx = 0.;
-    float dAPdy = 0.;
-    float dAPdpx = 0.;
-    float dAPdpy = 0.;
-    // float dxdvar = 0.;
-    // float dydvar = 0.;
-    //5 iterations is a good starting point
-    //const unsigned int Niter = 10;
-    // const unsigned int Niter = 5+std::round(r-r0)/2;
-    for (unsigned int iter=0; iter < Config::Niter; ++iter) {
-      x  = outPar_reg[0];
-      y  = outPar_reg[1];
-      px = outPar_reg[3];
-      py = outPar_reg[4];
-      r0 = hipo(outPar_reg[0], outPar_reg[1]);
-
-      totalDistance += (r-r0);
-      if (Config::useTrigApprox) {  // TODO: uncomment
-        sincos4((r-r0)*invcurvature, sinAP, cosAP);
-      } else {
-        cosAP=cos((r-r0)*invcurvature);
-        sinAP=sin((r-r0)*invcurvature);
-      }
-
-      //helix propagation formulas
-      //http://www.phys.ufl.edu/~avery/fitting/fitting4.pdf
-      outPar_reg[0] = outPar_reg[0] + k*(px*sinAP-py*(1-cosAP));
-      outPar_reg[1] = outPar_reg[1] + k*(py*sinAP+px*(1-cosAP));
-      outPar_reg[2] = outPar_reg[2] + (r-r0)*ctgTheta;
-      outPar_reg[3] = px*cosAP-py*sinAP;
-      outPar_reg[4] = py*cosAP+px*sinAP;
-      //outPar.At(n, 5, 0) = pz; //take this out as it is redundant
-
-      if (Config::useSimpleJac==0 && 
-          iter +1 != Config::Niter &&
-          r0 > 0 && fabs((r-r0)*invcurvature)>0.000000001) {
-        //update derivatives on total distance for next step, where totalDistance+=r-r0
-        //now r0 depends on px and py
-        r0 = 1./r0;//WARNING, now r0 is r0inv (one less temporary)
-
-        //update derivative on D
-        dAPdx = -x*r0*invcurvature;
-        dAPdy = -y*r0*invcurvature;
-        dAPdpx = -(r-1./r0)*invcurvature*px*pt2inv;//weird, using r0 instead of 1./r0 improves things but it should be wrong since r0 in now r0inv
-        dAPdpy = -(r-1./r0)*invcurvature*py*pt2inv;//weird, using r0 instead of 1./r0 improves things but it should be wrong since r0 in now r0inv
-        //reduce temporary variables
-        //dxdx = 1 + k*dAPdx*(px*cosAP - py*sinAP);
-        //dydx = k*dAPdx*(py*cosAP + px*sinAP);
-        //dTDdx -= r0*(x*dxdx + y*dydx);
-        dTDdx -= r0*(x*(1 + k*dAPdx*(px*cosAP - py*sinAP)) + y*(k*dAPdx*(py*cosAP + px*sinAP)));
-        //reuse same temporary variables
-        //dxdy = k*dAPdy*(px*cosAP - py*sinAP);
-        //dydy = 1 + k*dAPdy*(py*cosAP + px*sinAP);
-        //dTDdy -= r0*(x*dxdy + y*dydy);
-        dTDdy -= r0*(x*(k*dAPdy*(px*cosAP - py*sinAP)) + y*(1 + k*dAPdy*(py*cosAP + px*sinAP)));
-        //dxdpx = k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx);
-        //dydpx = k*(py*cosAP*dAPdpx + 1. - cosAP + px*sinAP*dAPdpx);
-        //dTDdpx -= r0*(x*dxdpx + y*dydpx);
-        dTDdpx -= r0*(x*(k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx)) + y*(k*(py*cosAP*dAPdpx + 1. - cosAP + px*sinAP*dAPdpx)));
-        //dxdpy = k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy);
-        //dydpy = k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy);
-        //dTDdpy -= r0*(x*dxdpy + y*(k*dydpy);
-        dTDdpy -= r0*(x*(k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy)) + y*(k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy)));
-
-      }
-      float& TD=totalDistance;
-      float  TP=TD*invcurvature;//totalAngPath
-      
-      float& iC=invcurvature;
-      float dCdpx = k*pxin*ptinv;
-      float dCdpy = k*pyin*ptinv;
-      float dTPdx = dTDdx*iC;
-      float dTPdy = dTDdy*iC;
-      float dTPdpx = (dTDdpx - TD*dCdpx*iC)*iC; // MT change: avoid division
-      float dTPdpy = (dTDdpy - TD*dCdpy*iC)*iC; // MT change: avoid division
-      
-      float cosTP, sinTP;
-      if (Config::useTrigApprox) {
-        sincos4(TP, sinTP, cosTP);
-      } else {
-        cosTP = cos(TP);
-        sinTP = sin(TP);
-      }
-
-      if (Config::useSimpleJac) { 
-        //assume total path length s as given and with no uncertainty
-        float p = pt2 + pzin*pzin;
-        p = sqrt(p);
-        float s = TD*p*ptinv;
-        computeJacobianSimple(errorProp_reg, s, k, p, pxin, pyin, pzin, TP, cosTP, sinTP, N);
-      } else {
-        //now try to make full jacobian
-        //derive these to compute jacobian
-        //x = xin + k*(pxin*sinTP-pyin*(1-cosTP));
-        //y = yin + k*(pyin*sinTP+pxin*(1-cosTP));
-        //z = zin + k*TP*pzin;
-        //px = pxin*cosTP-pyin*sinTP;
-        //py = pyin*cosTP+pxin*sinTP;
-        //pz = pzin;
-        //jacobian
-
-        errorProp_reg[(0*L + 0)] = 1 + k*dTPdx*(pxin*cosTP - pyin*sinTP);	//dxdx;
-        errorProp_reg[(0*L + 1)] = k*dTPdy*(pxin*cosTP - pyin*sinTP);	//dxdy;
-        errorProp_reg[(0*L + 2)] = 0.;
-        errorProp_reg[(0*L + 3)] = k*(sinTP + pxin*cosTP*dTPdpx - pyin*sinTP*dTPdpx); //dxdpx;
-        errorProp_reg[(0*L + 4)] = k*(pxin*cosTP*dTPdpy - 1. + cosTP - pyin*sinTP*dTPdpy);//dxdpy;
-        errorProp_reg[(0*L + 5)] = 0.;
-
-        errorProp_reg[(1*L + 0)] = k*dTPdx*(pyin*cosTP + pxin*sinTP);	//dydx;
-        errorProp_reg[(1*L + 1)] = 1 + k*dTPdy*(pyin*cosTP + pxin*sinTP);	//dydy;
-        errorProp_reg[(1*L + 2)] = 0.;
-        errorProp_reg[(1*L + 3)] = k*(pyin*cosTP*dTPdpx + 1. - cosTP + pxin*sinTP*dTPdpx);//dydpx;
-        errorProp_reg[(1*L + 4)] = k*(sinTP + pyin*cosTP*dTPdpy + pxin*sinTP*dTPdpy); //dydpy;
-        errorProp_reg[(1*L + 5)] = 0.;
-
-        errorProp_reg[(2*L + 0)] = k*pzin*dTPdx;	//dzdx;
-        errorProp_reg[(2*L + 1)] = k*pzin*dTPdy;	//dzdy;
-        errorProp_reg[(2*L + 2)] = 1.;
-        errorProp_reg[(2*L + 3)] = k*pzin*dTPdpx;//dzdpx;
-        errorProp_reg[(2*L + 4)] = k*pzin*dTPdpy;//dzdpy;
-        errorProp_reg[(2*L + 5)] = k*TP; //dzdpz;
-
-        errorProp_reg[(3*L + 0)] = -dTPdx*(pxin*sinTP + pyin*cosTP);	//dpxdx;
-        errorProp_reg[(3*L + 1)] = -dTPdy*(pxin*sinTP + pyin*cosTP);	//dpxdy;
-        errorProp_reg[(3*L + 2)] = 0.;
-        errorProp_reg[(3*L + 3)] = cosTP - dTPdpx*(pxin*sinTP + pyin*cosTP); //dpxdpx;
-        errorProp_reg[(3*L + 4)] = -sinTP - dTPdpy*(pxin*sinTP + pyin*cosTP);//dpxdpy;
-        errorProp_reg[(3*L + 5)] = 0.;
-
-        errorProp_reg[(4*L + 0)] = -dTPdx*(pyin*sinTP - pxin*cosTP); //dpydx;
-        errorProp_reg[(4*L + 1)] = -dTPdy*(pyin*sinTP - pxin*cosTP);	//dpydy;
-        errorProp_reg[(4*L + 2)] = 0.;
-        errorProp_reg[(4*L + 3)] = +sinTP - dTPdpx*(pyin*sinTP - pxin*cosTP);//dpydpx;
-        errorProp_reg[(4*L + 4)] = +cosTP - dTPdpy*(pyin*sinTP - pxin*cosTP);//dpydpy;
-        errorProp_reg[(4*L + 5)] = 0.;
-
-        errorProp_reg[(5*L + 0)] = 0.;
-        errorProp_reg[(5*L + 1)] = 0.;
-        errorProp_reg[(5*L + 2)] = 0.;
-        errorProp_reg[(5*L + 3)] = 0.;
-        errorProp_reg[(5*L + 4)] = 0.;
-        errorProp_reg[(5*L + 5)] = 1.;
-      }
-    }
     // Once computations are done. Get values from registers to global memory.
     for (int j = 0; j < 5; ++j) {
-      outPar[n + j*opN] = outPar_reg[j];
+      outPar_global(n, j, 0) = outPar[j];
     }
   }
 }
@@ -396,27 +239,23 @@ __device__ void similarity_fn(float* a, float *b, size_t stride_outErr,
 }
 
 __global__ void propagation_kernel(
-    const float* __restrict__ msPar, size_t stride_msPar, 
-    float *inPar, size_t inPar_stride, int *inChg,
-    float *outPar, size_t outPar_stride, float *errorProp,
-    size_t errorProp_stride, float *outErr, size_t outErr_stride, int N) {
+    GPlex<float> msPar,
+    GPlex<float> inPar, GPlex<int> inChg,
+    GPlex<float> outPar, GPlex<float> errorProp,
+    GPlex<float> outErr, int N) {
 
   int grid_width = blockDim.x * gridDim.x;
   int n = threadIdx.x + blockIdx.x * blockDim.x;
-  float msRad_reg;
+  GPlexReg<float,1,1> msRad_reg;
   // Using registers instead of shared memory is ~ 30% faster.
-  float errorProp_reg[LL];
+  GPlexReg<float, LL, L> errorProp_reg;
   // If there is more matrices than MAX_BLOCKS_X * BLOCK_SIZE_X 
   for (int z = 0; z < (N-1)/grid_width  +1; z++) {
     n += z*grid_width;
     if (n < N) {
-      computeMsRad_fn(msPar, stride_msPar, &msRad_reg, N, n);
-      if (Config::doIterative) {
-        helixAtRFromIterative_fn(inPar, inPar_stride,
-            inChg, outPar, outPar_stride, msRad_reg, 
-            errorProp_reg, N, n);
-      }
-      similarity_fn(errorProp_reg, outErr, outErr_stride, N, n);
+      computeMsRad_fn(msPar, msRad_reg.arr, N, n);
+      helixAtRFromIterative_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
+      similarity_fn(errorProp_reg.arr, outErr.ptr, outErr.stride, N, n);
     }
   }
 }
@@ -432,9 +271,5 @@ void propagation_wrapper(cudaStream_t& stream,
                        MAX_BLOCKS_X);
   dim3 grid(gridx, 1, 1);
   dim3 block(BLOCK_SIZE_X, 1, 1);
-  propagation_kernel <<<grid, block, 0, stream >>>
-    (msPar.ptr, msPar.stride,
-     inPar.ptr, inPar.stride, inChg.ptr,
-     outPar.ptr, outPar.stride, errorProp.ptr,
-     errorProp.stride, outErr.ptr, outErr.stride, N);
+  propagation_kernel <<<grid, block, 0, stream >>>(msPar, inPar, inChg, outPar, errorProp, outErr, N);
 }

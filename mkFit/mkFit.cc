@@ -21,6 +21,9 @@
 #include "FitterCU.h"
 #endif
 
+//#define DEBUG
+#include "Debug.h"
+
 #include <omp.h>
 
 #include <tbb/task_scheduler_init.h>
@@ -180,16 +183,16 @@ void test_standard()
   std::vector<Event> events;
   std::vector<Validation> validations(Config::nEvents);
 
+  events.reserve(Config::nEvents);
   // simulations are all performed before the fitting loop.
   // It is mandatory in order to see the benefits of running
   // multiple streams.
   for (int evt = 1; evt <= Config::nEvents; ++evt) {
     printf("Simulating event %d\n", evt);
-    Event ev(geom, val, evt);
-    ev.Simulate();
-    ev.resetLayerHitMap(true);
-    
-    events.push_back(ev);
+    events.emplace_back(geom, val, evt);
+    events.back().Simulate();
+    events.back().resetLayerHitMap(true);
+    dprint("Event #" << events.back().evtID() << " simtracks " << events.back().simTracks_.size() << " layerhits " << events.back().layerHits_.size());
   }
 
   // The first call to a GPU function always take a very long time.
@@ -238,22 +241,19 @@ void test_standard()
       printf("Processing event %d with thread %d\n", evt, idx);
       Event &ev = events[evt-1];
       std::vector<Track> plex_tracks_ev;
+      dprint("cuFitter thread " << thr_idx << " simTracks.size(): " << ev.simTracks_.size());
       plex_tracks_ev.resize(ev.simTracks_.size());
       double tmp = 0, tmp2bh = 0, tmp2 = 0, tmp2ce = 0;
 
       if (g_run_fit_std) tmp = runFittingTestPlexGPU(cuFitter, ev, plex_tracks_ev);
 
-      printf("Matriplex fit = %.5f  -------------------------------------", tmp);
+      printf("Matriplex fit = %.5f\n-------------------------------------", tmp);
       printf("\n");
       s_tmp    += tmp;
 #if 1  // 0 for timing, 1 for validation
-      // Validation crashes for multiple threads.
-      // It is something in relation to ROOT. Not sure what. 
-      if (omp_get_num_threads() <= 1) {
-        if (g_run_fit_std) {
-          std::string tree_name = "validation-plex-" + std::to_string(evt) + ".root";
-          make_validation_tree(tree_name.c_str(), ev.simTracks_, plex_tracks_ev);
-        }
+      if (g_run_fit_std) {
+        std::string tree_name = "validation-plex-" + std::to_string(evt) + ".root";
+        make_validation_tree(tree_name.c_str(), ev.simTracks_, plex_tracks_ev);
       }
 #endif
     }

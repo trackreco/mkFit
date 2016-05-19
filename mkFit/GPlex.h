@@ -16,6 +16,12 @@ struct GPlex {
   T* ptr;
   size_t pitch, stride, x, y;
 
+  __device__ T  operator[](int xx) const { return ptr[xx]; }
+  __device__ T& operator[](int xx)       { return ptr[xx]; }
+
+  __device__ T& operator()(int n, int i, int j)       { return ptr[n + i*stride]; }
+  __device__ T  operator()(int n, int i, int j) const { return ptr[n + i*stride]; }
+
   void allocate(size_t ntracks, size_t plex_size) {
     x = ntracks;
     y = plex_size;
