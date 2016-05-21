@@ -71,7 +71,7 @@ inline void sincos4(const float x, float& sin, float& cos)
   #ifdef __INTEL_COMPILER
     #define ASSUME_ALIGNED(a, b) __assume_aligned(a, b)
   #else
-    #define ASSUME_ALIGNED(a, b) __builtin_assume_aligned(a, b)
+    #define ASSUME_ALIGNED(a, b) a = __builtin_assume_aligned(a, b)
   #endif
 
   #include "Matriplex/MatriplexSym.h"

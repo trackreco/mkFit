@@ -542,17 +542,14 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
     }
 }
 
+//#pragma omp declare simd simdlen(NN) notinbranch linear(n)
 #include "PropagationMPlex.icc"
 
 void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar, const MPlexQF &msRad, MPlexLL& errorProp) {
-
   errorProp.SetVal(0);
 
-#pragma simd
-  for (int n = 0; n < NN; ++n)
-    {
-      helixAtRFromIterative_impl(inPar, inChg, outPar, msRad, errorProp, n);
-    }
+  //#pragma ivdep
+  helixAtRFromIterative_impl(inPar, inChg, outPar, msRad, errorProp, 0, NN);
 
 #ifdef DEBUG
   {
