@@ -136,7 +136,7 @@ void helixAtRFromIterative_fn(const GPlex<float>& inPar,
     }
     errorProp.SetVal(0);
 
-    helixAtRFromIterative_impl(inPar, inChg, outPar, msRad, errorProp, n, n);
+    helixAtRFromIterative_impl(inPar, inChg, outPar, msRad, errorProp, n, n+1);
 
     // Once computations are done. Get values from registers to global memory.
     for (int j = 0; j < 5; ++j) {
