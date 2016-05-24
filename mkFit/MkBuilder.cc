@@ -237,6 +237,7 @@ void MkBuilder::quality_process(Track &tkcand)
   float ptmc  = m_event->simTracks_[mctrk].pT() ;
   float pr    = pt / ptmc;
   int nfoundmc = m_event->simTracks_[mctrk].nFoundHits();
+  float chi2mc = m_event->simTracks_[mctrk].chi2();//this is actually the number of reco hits in cmssw
 
   ++m_cnt;
   if (pr > 0.9 && pr < 1.1) ++m_cnt1;
@@ -250,7 +251,7 @@ void MkBuilder::quality_process(Track &tkcand)
   }
 
 #if defined(DEBUG) || defined(PRINTOUTS_FOR_PLOTS)
-  std::cout << "MX - found track with nFoundHits=" << tkcand.nFoundHits() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << " nfoundmc=" << nfoundmc <<" lab="<< tkcand.label() <<std::endl;
+  std::cout << "MX - found track with nFoundHits=" << tkcand.nFoundHits() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << " nfoundmc=" << nfoundmc << " chi2mc=" << chi2mc <<" lab="<< tkcand.label() <<std::endl;
 #endif
 
 }

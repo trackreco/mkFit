@@ -93,7 +93,7 @@ void conformalFitMPlex(bool fitting, const MPlexQI inChg,
       A.At(n, i, 2) = -u.ConstAt(n, i, 0)*u.ConstAt(n, i, 0);
     }
   }
-  Matriplex::InvertCramer(A);  
+  //Matriplex::InvertCramer(A);  
   MPlexHV C; 
   CFMap(A, v, C);
   

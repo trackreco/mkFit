@@ -155,6 +155,7 @@ void test_standard()
   if (g_operation == "read")
   {
     Config::nEvents = open_simtrack_file();
+    //Config::nEvents = 10;
   }
 
   Geometry geom;

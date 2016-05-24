@@ -372,9 +372,9 @@ void Event::read_in(FILE *fp)
   }
 
   /*
-  printf("read %i tracks\n",nt);
+  printf("read %i simtracks\n",nt);
   for (int it = 0; it<nt; it++) {
-    printf("track with q=%i pT=%5.3f and nHits=%i\n",simTracks_[it].charge(),simTracks_[it].pT(),simTracks_[it].nTotalHits());
+    printf("simtrack with q=%i pT=%5.3f and nHits=%i\n",simTracks_[it].charge(),simTracks_[it].pT(),simTracks_[it].nTotalHits());
     for (int ih=0; ih<simTracks_[it].nTotalHits(); ++ih) {
       if (simTracks_[it].getHitIdx(ih)>=0)
 	printf("hit #%i idx=%i pos r=%5.3f\n",ih,simTracks_[it].getHitIdx(ih),layerHits_[ih][simTracks_[it].getHitIdx(ih)].r());
@@ -387,7 +387,7 @@ void Event::read_in(FILE *fp)
   for (int il = 0; il<nl; il++) {
     printf("read %i hits in layer %i\n",layerHits_[il].size(),il);
     for (int ih = 0; ih<layerHits_[il].size(); ih++) {
-      printf("hit with r=%5.3f x=%5.3f y=%5.3f z=%5.3f\n",layerHits_[il][ih].r(),layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z());
+      printf("hit with mcHitID=%i r=%5.3f x=%5.3f y=%5.3f z=%5.3f\n",layerHits_[il][ih].mcHitID(),layerHits_[il][ih].r(),layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z());
     }
   }
   */

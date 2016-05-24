@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <string> // won't compile on clang gcc for mac OS w/o this!
 
-//#define PRINTOUTS_FOR_PLOTS
+#define PRINTOUTS_FOR_PLOTS
 #define POLCOORD
 
 namespace Config
@@ -39,12 +39,12 @@ namespace Config
   constexpr float fOuterSensorSize = Config::fInnerSensorSize * 2.;
   constexpr float fEtaDet          = 1;  // 1 from chep
 
-  constexpr float cmsAvgRads[10] = {4.42,7.31,10.17,25.65,33.81,41.89,49.67,60.95,69.11,78.19}; // cms average radii
-  //constexpr float cmsAvgRads[10] = {4.42,7.31,10.17,25.65,25.65,33.81,33.81,41.89,49.67,60.95}; // cms average radii, noMatch version
+  //constexpr float cmsAvgRads[10] = {4.42,7.31,10.17,25.65,33.81,41.89,49.67,60.95,69.11,78.19}; // cms average radii
+  constexpr float cmsAvgRads[10] = {4.42,7.31,10.17,25.65,25.65,33.81,33.81,41.89,49.67,60.95}; // cms average radii, noMatch version
   constexpr float cmsDeltaRad = 2.5; //fixme! using constant 2.5 cm, to be taken from layer properties
 
   // config on Event
-  constexpr float chi2Cut = 15.;
+  constexpr float chi2Cut = 30.;//15.;
   constexpr float nSigma  = 3.;
   constexpr float minDPhi = 0.;
   constexpr float maxDPhi = Config::PI;
@@ -99,7 +99,7 @@ namespace Config
   // Config for Hit and BinInfoUtils
   constexpr int   nPhiPart   = 1260;
   constexpr float fPhiFactor = nPhiPart / TwoPI;
-  constexpr int   nEtaPart   = 11;
+  constexpr int   nEtaPart   = 1;//11;
   constexpr int   nEtaBin    = 2 * nEtaPart - 1;
 
   constexpr float        fEtaFull  = 2 * Config::fEtaDet;
@@ -177,7 +177,7 @@ namespace Config
     #elif defined USE_CUDA
       #define MPT_SIZE 10000
     #else
-      #define MPT_SIZE 8
+      #define MPT_SIZE 1
     #endif
   #endif
 
