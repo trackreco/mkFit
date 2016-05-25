@@ -21,8 +21,13 @@ namespace Config
   bool  clonerUseSingleThread  = false;
   int   finderReportBestOutOfN = 1;
 
+  int   numSeedsPerTask = 32;
+
   bool  useCMSGeom = false;
+  bool  readCmsswSeeds = false;
+
+  bool  cf_seeding  = false;
+  bool  cf_fitting  = false;
 
   bool  super_debug = false;
-  bool  cf_seeding  = false;
 }

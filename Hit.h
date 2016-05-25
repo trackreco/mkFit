@@ -8,10 +8,13 @@
 #include <atomic>
 #include <array>
 
+template<typename T> inline T sqr(T x) { return x*x; }
+template<typename T> inline T cube(T x) { return x*x*x; }
+
 // moved from config to here
 inline int getEtaBin(float eta)
 {
-  
+  if (std::isfinite(eta)==0) return -1;
   //in this case we are out of bounds
   //if (fabs(eta)>Config::fEtaDet) return -1;//remove this line, just return first or last bin
   
@@ -20,20 +23,21 @@ inline int getEtaBin(float eta)
   if (eta>(Config::fEtaDet-Config::lEtaBin)) return Config::nEtaBin-1;
   
   //now we can treat all bins as if they had same size
-  return int( (eta+Config::fEtaDet-Config::lEtaBin/2.)/Config::lEtaBin );
+  return int( (eta+Config::fEtaDet-Config::lEtaBin/2.0f)/Config::lEtaBin );
 }
 
 inline int getEtaBinExtendedEdge(float eta)
 {
+  if (std::isfinite(eta)==0) return -1;
   //in this case we are out of bounds
-  if (fabs(eta) > Config::fEtaDet + Config::lEtaPart) return -1;
+  if (std::abs(eta) > Config::fEtaDet + Config::lEtaPart) return -1;
   
   //first and last bin have extra width
   if (eta<(Config::lEtaBin-Config::fEtaDet)) return 0;
   if (eta>(Config::fEtaDet-Config::lEtaBin)) return Config::nEtaBin-1;
   
   //now we can treat all bins as if they had same size
-  return int( (eta+Config::fEtaDet-Config::lEtaBin/2.)/Config::lEtaBin );
+  return int( (eta+Config::fEtaDet-Config::lEtaBin/2.0f)/Config::lEtaBin );
 }
 
 inline int getBothEtaBins(float eta, int& b1, int& b2)
@@ -78,7 +82,7 @@ inline float getRad2(float x, float y){
 }
 
 inline float getInvRad2(float x, float y){
-  return 1./(x*x + y*y);
+  return 1.0f/(x*x + y*y);
 }
 
 inline float getPhi(float x, float y)
@@ -91,18 +95,18 @@ inline float getTheta(float r, float z){
 }
 
 inline float getEta(float r, float z) {
-  return -1. * log( tan(getTheta(r,z)/2.) );
+  return -1.0f * std::log( std::tan(getTheta(r,z)/2.) );
 }
 
 inline float getEta(float x, float y, float z)
 {
-  float theta = atan2( std::sqrt(x*x+y*y), z );
-  return -1. * log( tan(theta/2.) );
+  const float theta = std::atan2( std::sqrt(x*x+y*y), z );
+  return -1.0f * std::log( std::tan(theta/2.0f) );
 }
 
 inline float getHypot(float x, float y)
 {
-  return sqrtf(x*x + y*y);
+  return std::sqrt(x*x + y*y);
 }
 
 inline float getRadErr2(float x, float y, float exx, float eyy, float exy){
@@ -110,7 +114,7 @@ inline float getRadErr2(float x, float y, float exx, float eyy, float exy){
 }  
 
 inline float getInvRadErr2(float x, float y, float exx, float eyy, float exy){
-  return (x*x*exx + y*y*eyy + 2*x*y*exy) / std::pow(getRad2(x,y),3);
+  return (x*x*exx + y*y*eyy + 2*x*y*exy) / cube(getRad2(x,y));
 }  
 
 inline float getPhiErr2(float x, float y, float exx, float eyy, float exy){
@@ -123,7 +127,7 @@ inline float getPhiErr2(float x, float y, float exx, float eyy, float exy){
 
 inline float getThetaErr2(float x, float y, float z, float exx, float eyy, float ezz, float exy, float exz, float eyz){
   const float rad2     = getRad2(x,y);
-  const float rad      = sqrtf(rad2);
+  const float rad      = std::sqrt(rad2);
   const float hypot2   = rad2 + z*z;
   const float dthetadx = x*z/(rad*hypot2);
   const float dthetady = y*z/(rad*hypot2);
@@ -133,9 +137,9 @@ inline float getThetaErr2(float x, float y, float z, float exx, float eyy, float
 
 inline float getEtaErr2(float x, float y, float z, float exx, float eyy, float ezz, float exy, float exz, float eyz){
   const float rad2   = getRad2(x,y);
-  const float detadx = -x/(rad2*sqrtf(1+rad2/(z*z)));
-  const float detady = -y/(rad2*sqrtf(1+rad2/(z*z)));
-  const float detadz = 1.0/(z*sqrtf(1+rad2/(z*z)));
+  const float detadx = -x/(rad2*std::sqrt(1+rad2/(z*z)));
+  const float detady = -y/(rad2*std::sqrt(1+rad2/(z*z)));
+  const float detadz = 1.0f/(z*std::sqrt(1+rad2/(z*z)));
   return detadx*detadx*exx + detady*detady*eyy + detadz*detadz*ezz + 2*detadx*detady*exy + 2*detadx*detadz*exz + 2*detady*detadz*eyz;
 }
 
@@ -201,8 +205,8 @@ public:
   SVector6&     error_nc()      {return state_.err_;}
 
   float r() const {
-    return std::sqrt(state_.parameters().At(0)*state_.parameters().At(0) +
-                     state_.parameters().At(1)*state_.parameters().At(1));
+    return sqrtf(state_.parameters().At(0)*state_.parameters().At(0) +
+		 state_.parameters().At(1)*state_.parameters().At(1));
   }
   float x() const {
     return state_.parameters().At(0);

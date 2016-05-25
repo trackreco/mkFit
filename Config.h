@@ -5,18 +5,19 @@
 #include <string> // won't compile on clang gcc for mac OS w/o this!
 
 //#define PRINTOUTS_FOR_PLOTS
+//#define POLCOORD
 
 namespace Config
 {
   // super debug mode in SMatrix
   extern bool super_debug;
-  extern bool cf_seeding;
 
   // math general --> from namespace TMath
   constexpr float    PI    = 3.14159265358979323846;
   constexpr float TwoPI    = 6.28318530717958647692;
   constexpr float PIOver2  = Config::PI / 2.0;
   constexpr float PIOver4  = Config::PI / 4.0;
+  constexpr float PI3Over4 = 3.0 * Config::PI / 4.0;
   constexpr float InvPI    = 1.0 / Config::PI;
   constexpr float RadToDeg = 180.0 / Config::PI;
   constexpr float DegToRad = Config::PI / 180.0;
@@ -39,6 +40,7 @@ namespace Config
   constexpr float fEtaDet          = 1;  // 1 from chep
 
   constexpr float cmsAvgRads[10] = {4.42,7.31,10.17,25.65,33.81,41.89,49.67,60.95,69.11,78.19}; // cms average radii
+  //constexpr float cmsAvgRads[10] = {4.42,7.31,10.17,25.65,25.65,33.81,33.81,41.89,49.67,60.95}; // cms average radii, noMatch version
   constexpr float cmsDeltaRad = 2.5; //fixme! using constant 2.5 cm, to be taken from layer properties
 
   // config on Event
@@ -84,12 +86,11 @@ namespace Config
   constexpr float seed_z0cut   = beamspotZ * 3.0; // 3cm
   constexpr float lay2Zcut     = hitposerrZ * 3.6; // 3.6 mm --> to match efficiency from chi2cut
   constexpr float seed_d0cut   = 0.5; // 5mm
-  
+  extern bool cf_seeding;
+
   // Config for propagation
   constexpr int Niter = 5;
   constexpr float Bfield = 3.8112;
-  constexpr bool doIterative = true;
-  constexpr bool useSimpleJac = true;
   constexpr bool useTrigApprox = true;
 
   // Config for seeding as well... needed bfield
@@ -123,9 +124,12 @@ namespace Config
   constexpr float phierr049   = 0.0017; // 0.0017;
   constexpr float thetaerr049 = 0.0033; // 0.0031; 
   // parameters for layers 0,1,2 // --> ENDTOEND with "real seeding", fit is outward by definition, with poly geo
-  constexpr float ptinverr012 = 0.1234; // 0.1789;  -->old values from only MC seeds
-  constexpr float phierr012   = 0.0071; // 0170; 
-  constexpr float thetaerr012 = 0.0130; // 0.0137; 
+  constexpr float ptinverr012 = 0.12007; // 0.1789;  -->old values from only MC seeds
+  constexpr float phierr012   = 0.00646; // 0.0071 
+  constexpr float thetaerr012 = 0.01366; // 0.0130; 
+
+  // config on fitting
+  extern bool cf_fitting;
 
   // matrix config
   // XXXX MT this should be renamed, made constexpr
@@ -133,6 +137,7 @@ namespace Config
 #define MAX_HITS 10
 #endif
 
+  //fixme: these should not be constant and modified when nTracks is set from reading a file
   constexpr int maxHitsConsidered = 25;
   const     int maxHitsPerBunch   = std::max(100, nTracks * 12 / 10 / nEtaPart) + maxHitsConsidered;
 
@@ -154,7 +159,10 @@ namespace Config
   extern bool   clonerUseSingleThread;
   extern int    finderReportBestOutOfN;
 
+  extern int    numSeedsPerTask;
+
   extern bool   useCMSGeom;
+  extern bool   readCmsswSeeds;
 
   const std::string inputFile = "cmssw.simtracks.SingleMu1GeV.10k.new.txt";
   //const std::string inputFile = "cmssw.simtracks.SingleMu10GeV.10k.new.txt";
@@ -167,9 +175,9 @@ namespace Config
     #ifdef __MIC__
       #define MPT_SIZE 16
     #elif defined USE_CUDA
-      #define MPT_SIZE 8 // 20000
+      #define MPT_SIZE 8 
     #else
-      #define MPT_SIZE 8
+      #define MPT_SIZE 8 
     #endif
   #endif
 

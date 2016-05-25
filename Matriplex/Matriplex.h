@@ -49,6 +49,7 @@ public:
    T& At(idx_t n, idx_t i, idx_t j) { return fArray[(i * D2 + j) * N + n]; }
 
    T& operator()(idx_t n, idx_t i, idx_t j) { return fArray[(i * D2 + j) * N + n]; }
+   const T& operator()(idx_t n, idx_t i, idx_t j) const { return fArray[(i * D2 + j) * N + n]; }
 
    Matriplex& operator=(const Matriplex& m)
    {
@@ -125,6 +126,8 @@ public:
    {
       for (int i = 0; i < kSize; ++i)
       {
+        // Next loop vectorizes with "#pragma ivdep", but it runs slower
+	// #pragma ivdep
         for (int j = 0; j < N; ++j)
         {
            fArray[i*N + j] = * (const T*) (arr + i*sizeof(T) + vi[j]);
@@ -134,7 +137,7 @@ public:
 
 #endif
    
-   void CopyOut(idx_t n, T *arr)
+   void CopyOut(idx_t n, T *arr) const
    {
       for (idx_t i = n; i < kTotSize; i += N)
       {
@@ -204,9 +207,9 @@ struct MultiplyCls<T, 3, N>
                         const MPlex<T, 3, 3, N>& B,
                         MPlex<T, 3, 3, N>& C)
 {
-   const T *a = A.fArray; __assume_aligned(a, 64);
-   const T *b = B.fArray; __assume_aligned(b, 64);
-         T *c = C.fArray; __assume_aligned(c, 64);
+   const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
 #pragma simd
    for (idx_t n = 0; n < N; ++n)
@@ -231,9 +234,9 @@ struct MultiplyCls<T, 6, N>
                         const MPlex<T, 6, 6, N>& B,
                         MPlex<T, 6, 6, N>& C)
 {
-   const T *a = A.fArray; __assume_aligned(a, 64);
-   const T *b = B.fArray; __assume_aligned(b, 64);
-         T *c = C.fArray; __assume_aligned(c, 64);
+   const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 #pragma simd
    for (idx_t n = 0; n < N; ++n)
    {
@@ -309,7 +312,7 @@ struct CramerInverter<T, 2, N>
    {
       typedef T TT;
 
-      T *a = A.fArray; __assume_aligned(a, 64);
+      T *a = A.fArray; ASSUME_ALIGNED(a, 64);
 
 #pragma simd
       for (idx_t n = 0; n < N; ++n)
@@ -336,7 +339,7 @@ struct CramerInverter<T, 3, N>
    {
       typedef T TT;
 
-      T *a = A.fArray; __assume_aligned(a, 64);
+      T *a = A.fArray; ASSUME_ALIGNED(a, 64);
 
 #pragma simd
       for (idx_t n = 0; n < N; ++n)
@@ -405,7 +408,7 @@ struct CholeskyInverter<T, 3, N>
    {
       typedef T TT;
 
-      T *a = A.fArray; __assume_aligned(a, 64);
+      T *a = A.fArray; ASSUME_ALIGNED(a, 64);
 
 #pragma simd
       for (idx_t n = 0; n < N; ++n)

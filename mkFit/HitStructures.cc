@@ -10,6 +10,7 @@ void BunchOfHits::Reset()
   }
 
   m_fill_index = 0;
+  m_fill_index_old = 0;
 }
 
 void BunchOfHits::SortByPhiBuildPhiBins()
@@ -20,7 +21,7 @@ void BunchOfHits::SortByPhiBuildPhiBins()
   int idx      =  0;
   for (int i = 0; i < m_fill_index; ++i)
   {
-    Hit &h = m_hits[i];
+    const Hit &h = m_hits[i];
 
     int bin = getPhiPartition(h.phi());
 
@@ -51,7 +52,7 @@ void BunchOfHits::SortByPhiBuildPhiBins()
     //std::cout << "bin=" << b << " set to " << m_phi_bin_infos[b].first << "," << m_phi_bin_infos[b].second << std::endl;
   }
 
-  int m_fill_index_old = m_fill_index;
+  m_fill_index_old = m_fill_index;
   // Copy first g_MaxHitsConsidered to the end to simplify +/- pi break.
   for (int i = 0; i < Config::maxHitsConsidered && i < m_fill_index_old; ++i)
   {

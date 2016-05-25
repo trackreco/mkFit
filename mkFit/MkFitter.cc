@@ -3,6 +3,13 @@
 
 #include "PropagationMPlex.h"
 #include "KalmanUtilsMPlex.h"
+#include "ConformalUtilsMPlex.h"
+#ifdef USE_CUDA
+#include "FitterCU.h"
+#endif
+
+//#define DEBUG
+#include "Debug.h"
 
 #include <sstream>
 
@@ -27,8 +34,8 @@ void MkFitter::PrintPt(int idx)
 
 //==============================================================================
 
-void MkFitter::InputTracksAndHits(std::vector<Track>&  tracks,
-                                  std::vector<HitVec>& layerHits,
+void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
+                                  const std::vector<HitVec>& layerHits,
                                   int beg, int end)
 {
   // Assign track parameters to initial state and copy hit values in.
@@ -50,7 +57,7 @@ void MkFitter::InputTracksAndHits(std::vector<Track>&  tracks,
 #endif
   for (int i = beg; i < end; ++i) {
     itrack = i - beg;
-    Track &trk = tracks[i];
+    const Track &trk = tracks[i];
 
     Label(itrack, 0, 0) = trk.label();
 
@@ -79,7 +86,86 @@ void MkFitter::InputTracksAndHits(std::vector<Track>&  tracks,
   }
 }
 
-void MkFitter::InputTracksAndHitIdx(std::vector<Track>& tracks,
+void MkFitter::SlurpInTracksAndHits(const std::vector<Track>&  tracks,
+                                    const std::vector<HitVec>& layerHits,
+                                    int beg, int end)
+{
+  // Assign track parameters to initial state and copy hit values in.
+
+  // This might not be true for the last chunk!
+  // assert(end - beg == NN);
+
+  const Track &trk = tracks[beg];
+  const char *varr       = (char*) &trk;
+  const int   off_error  = (char*) trk.errors().Array() - varr;
+  const int   off_param  = (char*) trk.parameters().Array() - varr;
+
+  int idx[NN]      __attribute__((aligned(64)));
+  int itrack;
+
+#ifdef USE_CUDA
+  // This openmp loop brings some performances when using
+  // a single thread to fit all events.
+  // However, it is more advantageous to use the threads to
+  // parallelize over Events.
+  omp_set_num_threads(Config::numThreadsReorg);
+#pragma omp parallel for private(itrack)
+#endif
+  for (int i = beg; i < end; ++i) {
+    itrack = i - beg;
+    const Track &trk = tracks[i];
+
+    Label(itrack, 0, 0) = trk.label();
+
+    idx[itrack] = (char*) &trk - varr;
+
+    Chg(itrack, 0, 0) = trk.charge();
+    Chi2(itrack, 0, 0) = trk.chi2();
+  }
+
+#ifdef MIC_INTRINSICS
+  __m512i vi      = _mm512_load_epi32(idx);
+  Err[iC].SlurpIn(varr + off_error, vi);
+  Par[iC].SlurpIn(varr + off_param, vi);
+#else
+  Err[iC].SlurpIn(varr + off_error, idx);
+  Par[iC].SlurpIn(varr + off_param, idx);
+#endif
+  
+// CopyIn seems fast enough, but indirections are quite slow.
+// For GPU computations, it has been moved in between kernels
+// in an attempt to overlap CPU and GPU computations.
+#ifndef USE_CUDA
+  for (int hi = 0; hi < Nhits; ++hi)
+  {
+    const int   hidx      = tracks[beg].getHitIdx(hi);
+    const Hit  &hit       = layerHits[hi][hidx];
+    const char *varr      = (char*) &hit;
+    const int   off_error = (char*) hit.errArray() - varr;
+    const int   off_param = (char*) hit.posArray() - varr;
+
+    for (int i = beg; i < end; ++i)
+    {
+      const int   hidx = tracks[i].getHitIdx(hi);
+      const Hit  &hit  = layerHits[hi][hidx];
+      itrack = i - beg;
+      idx[itrack] = (char*) &hit - varr;
+      HitsIdx[hi](itrack, 0, 0) = hidx;
+    }
+
+#ifdef MIC_INTRINSICS
+    __m512i vi      = _mm512_load_epi32(idx);
+    msErr[hi].SlurpIn(varr + off_error, vi);
+    msPar[hi].SlurpIn(varr + off_param, vi);
+#else
+    msErr[hi].SlurpIn(varr + off_error, idx);
+    msPar[hi].SlurpIn(varr + off_param, idx);
+#endif
+  }
+#endif
+}
+
+void MkFitter::InputTracksAndHitIdx(const std::vector<Track>& tracks,
                                     int beg, int end,
                                     bool inputProp)
 {
@@ -94,7 +180,7 @@ void MkFitter::InputTracksAndHitIdx(std::vector<Track>& tracks,
   for (int i = beg; i < end; ++i, ++itrack)
   {
 
-    Track &trk = tracks[i];
+    const Track &trk = tracks[i];
 
     Label(itrack, 0, 0) = trk.label();
 
@@ -113,8 +199,8 @@ void MkFitter::InputTracksAndHitIdx(std::vector<Track>& tracks,
   }
 }
 
-void MkFitter::InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks,
-                                    std::vector<std::pair<int,int> >& idxs,
+void MkFitter::InputTracksAndHitIdx(const std::vector<std::vector<Track> >& tracks,
+                                    const std::vector<std::pair<int,int> >& idxs,
                                     int beg, int end, bool inputProp)
 {
   // Assign track parameters to initial state and copy hit values in.
@@ -127,7 +213,7 @@ void MkFitter::InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks,
   int itrack = 0;
   for (int i = beg; i < end; ++i, ++itrack)
   {
-    Track &trk = tracks[idxs[i].first][idxs[i].second];
+    const Track &trk = tracks[idxs[i].first][idxs[i].second];
 
     Label(itrack, 0, 0) = trk.label();
     SeedIdx(itrack, 0, 0) = idxs[i].first;
@@ -148,7 +234,7 @@ void MkFitter::InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks,
   }
 }
 
-int MkFitter::countValidHits(int itrack, int end_hit)
+int MkFitter::countValidHits(int itrack, int end_hit) const
 {
   int result = 0;
   for (int hi = 0; hi < end_hit; ++hi)
@@ -158,7 +244,7 @@ int MkFitter::countValidHits(int itrack, int end_hit)
   return result;
 }
 
-int MkFitter::countInvalidHits(int itrack, int end_hit)
+int MkFitter::countInvalidHits(int itrack, int end_hit) const
 {
   int result = 0;
   for (int hi = 0; hi < end_hit; ++hi)
@@ -169,7 +255,7 @@ int MkFitter::countInvalidHits(int itrack, int end_hit)
   return result;
 }
 
-void MkFitter::InputTracksOnly(std::vector<Track>& tracks, int beg, int end)
+void MkFitter::InputTracksOnly(const std::vector<Track>& tracks, int beg, int end)
 {
   // Assign track parameters to initial state, do NOT copy hit values.
   // Used for benchmarking the fitting with less "copy-in" load.
@@ -180,7 +266,7 @@ void MkFitter::InputTracksOnly(std::vector<Track>& tracks, int beg, int end)
   int itrack = 0;
   for (int i = beg; i < end; ++i, ++itrack)
   {
-    Track &trk = tracks[i];
+    const Track &trk = tracks[i];
 
     Err[iC].CopyIn(itrack, trk.errors().Array());
     Par[iC].CopyIn(itrack, trk.parameters().Array());
@@ -191,7 +277,7 @@ void MkFitter::InputTracksOnly(std::vector<Track>& tracks, int beg, int end)
   }
 }
 
-void MkFitter::InputHitsOnly(std::vector<Hit>& hits, int beg, int end)
+void MkFitter::InputHitsOnly(const std::vector<Hit>& hits, int beg, int end)
 {
   // Push hit values in.
 
@@ -201,12 +287,76 @@ void MkFitter::InputHitsOnly(std::vector<Hit>& hits, int beg, int end)
   int itrack = 0;
   for (int i = beg; i < end; ++i, ++itrack)
   {
-    Hit &hit = hits[itrack];
+    const Hit &hit = hits[itrack];
 
     msErr[Nhits].CopyIn(itrack, hit.errArray());
     msPar[Nhits].CopyIn(itrack, hit.posArray());
   }
   Nhits++;
+}
+
+void MkFitter::ConformalFitTracks(bool fitting, int beg, int end)
+{
+  // bool fitting to determine to use fitting CF error widths
+  // in reality, this is depedent on hits used to make pulls 
+  // could consider writing an array for widths for a given hit combo 
+  // to give precise widths --> then would drop boolean
+  // also used to determine which hits to use
+
+  int front,middle,back;
+  
+  // FIXME FITTING HITS --> assume one hit per layer and all layers found! BAD! Need vector of indices to do this right instead... 
+  // can always assume 0,1,2 for seeding --> triplets in forward direction
+#ifdef INWARDFIT
+  front  = (fitting ?  Config::nLayers-1    : 0); // i.e. would rather have true option not hardcoded... but set by ACTUAL last hit found
+  middle = (fitting ? (Config::nLayers-1)/2 : 1); // same with this one... would rather middle hit be in the middle!
+  back   = (fitting ? 0 : 2); 
+#else
+  front  = (fitting ? 0 : 0); 
+  middle = (fitting ? (Config::nLayers-1)/2 : 1); // ditto above
+  back   = (fitting ?  Config::nLayers-1    : 2); // yup...
+#endif
+
+#ifdef DEBUG
+  for (int n = 0; n < NN; ++n){
+    float px, py, pt, pz, phi, theta;
+    px = Par[iC].ConstAt(n, 3, 0); py = Par[iC].ConstAt(n, 4, 0);
+    pz = Par[iC].ConstAt(n, 5, 0); pt = hipo(px,py);
+    theta = getTheta(pt,pz);
+    phi   = getPhi(px,py);
+    int label = Label.ConstAt(n, 0, 0);
+    float z0, z1, z2;
+    float x0, x2, y0, y2;
+    x0 = msPar[0].ConstAt(n, 0, 0); x2 = msPar[2].ConstAt(n, 0, 0); y0 = msPar[0].ConstAt(n, 1, 0); y2 = msPar[2].ConstAt(n, 1, 0);  
+    z0 = msPar[0].ConstAt(n, 2, 0); z1 = msPar[1].ConstAt(n, 2, 0); z2 = msPar[2].ConstAt(n, 2, 0);  
+    float tantheta = std::sqrt(hipo(x0-x2,y0-y2))/(z2-z0);
+    printf("MC label: %i pt: %7.4f pz: % 8.4f theta: %6.4f tantheta: % 7.4f \n",label,pt,pz,theta,tantheta);
+    printf("             px: % 8.4f py: % 8.4f phi: % 7.4f \n");
+  }
+#endif
+
+  // write to iC --> next step will be a propagation no matter what
+  conformalFitMPlex(fitting, Chg, Err[iC], Par[iC], 
+		    msPar[front], msPar[middle], msPar[back]);
+
+#ifdef DEBUG
+  for (int n = 0; n < NN; ++n){
+    float px, py, pt, pz, phi, theta;
+    px = Par[iC].ConstAt(n, 3, 0); py = Par[iC].ConstAt(n, 4, 0); 
+    pz = Par[iC].ConstAt(n, 5, 0); pt = hipo(px,py);
+    theta = getTheta(pt,pz);
+    phi   = getPhi(px,py);
+    int label = Label.ConstAt(n, 0, 0);
+    float z0, z1, z2;
+    float x0, x2, y0, y2;
+    x0 = msPar[0].ConstAt(n, 0, 0); x2 = msPar[2].ConstAt(n, 0, 0); y0 = msPar[0].ConstAt(n, 1, 0); y2 = msPar[2].ConstAt(n, 1, 0);  
+    z0 = msPar[0].ConstAt(n, 2, 0); z1 = msPar[1].ConstAt(n, 2, 0); z2 = msPar[2].ConstAt(n, 2, 0);  
+    float tantheta = std::sqrt(hipo(x0-x2,y0-y2))/(z2-z0);
+    printf("CF label: %i pt: %7.4f pz: % 8.4f theta: %6.4f tantheta: % 7.4f \n",label,pt,pz,theta,tantheta);
+    printf("             px: % 8.4f py: % 8.4f phi: % 7.4f \n");
+  }
+#endif
+
 }
 
 void MkFitter::FitTracks()
@@ -228,7 +378,7 @@ void MkFitter::FitTracks()
   // XXXXX What's with chi2?
 }
 
-void MkFitter::OutputTracks(std::vector<Track>& tracks, int beg, int end, int iCP)
+void MkFitter::OutputTracks(std::vector<Track>& tracks, int beg, int end, int iCP) const
 {
   // Copies last track parameters (updated) into Track objects.
   // The tracks vector should be resized to allow direct copying.
@@ -248,7 +398,7 @@ void MkFitter::OutputTracks(std::vector<Track>& tracks, int beg, int end, int iC
 }
 
 void MkFitter::OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end,
-                                           bool outputProp)
+                                           bool outputProp) const
 {
   // Copies last track parameters (updated) into Track objects and up to Nhits.
   // The tracks vector should be resized to allow direct copying.
@@ -282,7 +432,7 @@ void MkFitter::PropagateTracksToR(float R, const int N_proc)
 }
 
 //fixme: do it properly with phi segmentation
-void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end)
+void MkFitter::AddBestHit(const std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end)
 {
 
   //fixme solve ambiguity NN vs beg-end
@@ -295,11 +445,9 @@ void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int firstHit, int lastHit,
   int ih = 0;
   for (int layhit = firstHit; layhit<lastHit; ++ih, ++layhit) {
 
-    Hit &hit = lay_hits[layhit];
-#ifdef DEBUG
-    std::cout << "consider hit #" << ih << " of " << lay_hits.size() << std::endl;
-    std::cout << "hit x=" << hit.position()[0] << " y=" << hit.position()[1] << std::endl;      
-#endif
+    const Hit &hit = lay_hits[layhit];
+    dprint("consider hit #" << ih << " of " << lay_hits.size() << std::endl
+          << "hit x=" << hit.position()[0] << " y=" << hit.position()[1]);
 
     //create a dummy matriplex with N times the same hit
     //fixme this is just because I'm lazy and do not want to rewrite the chi2 calculation for simple vectors mixed with matriplex
@@ -324,10 +472,8 @@ void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int firstHit, int lastHit,
 #pragma simd
     for (int i = beg; i < end; ++i, ++itrack)
     {
-      float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
-#ifdef DEBUG
-      std::cout << "chi2=" << chi2 << " minChi2[itrack]=" << minChi2[itrack] << std::endl;      
-#endif
+      const float chi2 = std::abs(outChi2[itrack]);//fixme negative chi2 sometimes...
+      dprint("chi2=" << chi2 << " minChi2[itrack]=" << minChi2[itrack]);
       if (chi2<minChi2[itrack]) 
       {
 	minChi2[itrack]=chi2;
@@ -346,14 +492,12 @@ void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int firstHit, int lastHit,
     //fixme decide what to do in case no hit found
     if (bestHit[itrack] >= 0)
     {
-      Hit   &hit  = lay_hits[ bestHit[itrack] ];
-      float &chi2 = minChi2[itrack];
+      const Hit &hit  = lay_hits[ bestHit[itrack] ];
+      const float chi2 = minChi2[itrack];
 
-#ifdef DEBUG
-      std::cout << "ADD BEST HIT FOR TRACK #" << i << std::endl;
-      std::cout << "prop x=" << Par[iP].ConstAt(itrack, 0, 0) << " y=" << Par[iP].ConstAt(itrack, 1, 0) << std::endl;      
-      std::cout << "copy in hit #" << bestHit[itrack] << " x=" << hit.position()[0] << " y=" << hit.position()[1] << std::endl;    
-#endif
+      dprint("ADD BEST HIT FOR TRACK #" << i << std::endl
+        << "prop x=" << Par[iP].ConstAt(itrack, 0, 0) << " y=" << Par[iP].ConstAt(itrack, 1, 0) << std::endl
+        << "copy in hit #" << bestHit[itrack] << " x=" << hit.position()[0] << " y=" << hit.position()[1]);
 
       msErr[Nhits].CopyIn(itrack, hit.errArray());
       msPar[Nhits].CopyIn(itrack, hit.posArray());
@@ -362,9 +506,7 @@ void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int firstHit, int lastHit,
     }
     else
     {
-#ifdef DEBUG
-      std::cout << "ADD FAKE HIT FOR TRACK #" << i << std::endl;
-#endif
+      dprint("ADD FAKE HIT FOR TRACK #" << i);
 
       msErr[Nhits].SetDiagonal3x3(itrack, 666);
       msPar[Nhits](itrack,0,0) = Par[iP](itrack,0,0);
@@ -377,15 +519,13 @@ void MkFitter::AddBestHit(std::vector<Hit>& lay_hits, int firstHit, int lastHit,
   }
 
   //now update the track parameters with this hit (note that some calculations are already done when computing chi2... not sure it's worth caching them?)
-#ifdef DEBUG
-  std::cout << "update parameters" << std::endl;
-#endif
+  dprint("update parameters");
   updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits],
 			Err[iC], Par[iC]);
 
 }
 
-void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end, std::vector<std::vector<Track> >& tmp_candidates, int offset)
+void MkFitter::FindCandidates(const std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end, std::vector<std::vector<Track> >& tmp_candidates, int offset)
 {
 
   //outer loop over hits, so that tracks can be vectorized
@@ -393,11 +533,9 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
   for ( ; ih<lastHit; ++ih)
   {
 
-    Hit &hit = lay_hits[ih];
-#ifdef DEBUG
-    std::cout << "consider hit #" << ih << " of " << lay_hits.size() << std::endl;
-    std::cout << "hit x=" << hit.position()[0] << " y=" << hit.position()[1] << std::endl;      
-#endif
+    const Hit &hit = lay_hits[ih];
+    dprint("consider hit #" << ih << " of " << lay_hits.size() << std::endl
+      << "hit x=" << hit.position()[0] << " y=" << hit.position()[1]);
 
     //create a dummy matriplex with N times the same hit
     //fixme this is just because I'm lazy and do not want to rewrite the chi2 calculation for simple vectors mixed with matriplex
@@ -422,10 +560,8 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
     itrack = 0;
     for (int i = beg; i < end; ++i, ++itrack)
       {
-	float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
-#ifdef DEBUG
-	std::cout << "chi2=" << chi2 << std::endl;
-#endif
+	const float chi2 = std::abs(outChi2[itrack]);//fixme negative chi2 sometimes...
+	dprint("chi2=" << chi2);
 	if (chi2<Config::chi2Cut)
 	  {
 	    oneCandPassCut = true;
@@ -437,27 +573,21 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
 
       updateParametersMPlex(Err[iP], Par[iP], Chg, msErr_oneHit, msPar_oneHit,
 			    Err[iC], Par[iC]);
-#ifdef DEBUG
-      std::cout << "update parameters" << std::endl;
-      std::cout << "propagated track parameters x=" << Par[iP].ConstAt(itrack, 0, 0) << " y=" << Par[iP].ConstAt(itrack, 1, 0) << std::endl;
-      std::cout << "               hit position x=" << msPar[iP].ConstAt(itrack, 0, 0) << " y=" << msPar[iP].ConstAt(itrack, 1, 0) << std::endl;
-      std::cout << "   updated track parameters x=" << Par[iC].ConstAt(itrack, 0, 0) << " y=" << Par[iC].ConstAt(itrack, 1, 0) << std::endl;
-#endif
+      dprint("update parameters" << std::endl
+        << "propagated track parameters x=" << Par[iP].ConstAt(itrack, 0, 0) << " y=" << Par[iP].ConstAt(itrack, 1, 0) << std::endl
+        << "               hit position x=" << msPar_oneHit.ConstAt(itrack, 0, 0) << " y=" << msPar_oneHit.ConstAt(itrack, 1, 0) << std::endl
+        << "   updated track parameters x=" << Par[iC].ConstAt(itrack, 0, 0) << " y=" << Par[iC].ConstAt(itrack, 1, 0));
 
       //create candidate with hit in case chi2<Config::chi2Cut
       itrack = 0;
       //fixme: please vectorize me... (not sure it's possible in this case)
       for (int i = beg; i < end; ++i, ++itrack)
 	{
-	  float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
-#ifdef DEBUG
-	  std::cout << "chi2=" << chi2 << std::endl;      
-#endif
+	  const float chi2 = std::abs(outChi2[itrack]);//fixme negative chi2 sometimes...
+	  dprint("chi2=" << chi2);
 	  if (chi2<Config::chi2Cut)
 	    {
-#ifdef DEBUG
-	      std::cout << "chi2 cut passed, creating new candidate" << std::endl;
-#endif
+	      dprint("chi2 cut passed, creating new candidate");
 	      //create a new candidate and fill the reccands_tmp vector
 	      Track newcand;
 	      newcand.resetHits();//probably not needed
@@ -467,18 +597,14 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
 		{
 		  newcand.addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);//this should be ok since we already set the chi2 above
 		}
-#ifdef DEBUG
-	      std::cout << "output new hit with x=" << hit.position()[0] << std::endl;
-#endif
+	      dprint("output new hit with x=" << hit.position()[0]);
 
 	      newcand.addHitIdx(ih,chi2);
 	      //set the track state to the updated parameters
 	      Err[iC].CopyOut(itrack, newcand.errors_nc().Array());
 	      Par[iC].CopyOut(itrack, newcand.parameters_nc().Array());
 	      
-#ifdef DEBUG
-	      std::cout << "updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << std::endl;
-#endif
+	      dprint("updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1]);
 	      
 	      tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
 	    }
@@ -510,8 +636,8 @@ void MkFitter::FindCandidates(std::vector<Hit>& lay_hits, int firstHit, int last
     }
 }
 
-void MkFitter::GetHitRange(std::vector<std::vector<BinInfo> >& segmentMapLay_, int beg, int end,
-                           int& firstHit, int& lastHit)
+void MkFitter::GetHitRange(const std::vector<std::vector<BinInfo> >& segmentMapLay_, int beg, int end,
+                           int& firstHit, int& lastHit) const
 {
 
     int itrack = 0;
@@ -523,8 +649,8 @@ void MkFitter::GetHitRange(std::vector<std::vector<BinInfo> >& segmentMapLay_, i
     float eta = getEta(eta_predx,eta_predy,eta_predz);
     //protect against anomalous eta (should go into getEtaPartition maybe?)
     // XXXX MT why is this check here ???
-    if (fabs(eta) > Config::fEtaDet)
-      eta = (eta>0 ? Config::fEtaDet*0.99 : -Config::fEtaDet*0.99);
+    if (std::abs(eta) > Config::fEtaDet)
+      eta = (eta>0 ? Config::fEtaDet*0.99f : -Config::fEtaDet*0.99f);
     int etabin = getEtaPartition(eta);
 
     //cannot be vectorized, I think
@@ -535,7 +661,7 @@ void MkFitter::GetHitRange(std::vector<std::vector<BinInfo> >& segmentMapLay_, i
         const float predy = Par[iP].ConstAt(itrack, 1, 0);
         const float predz = Par[iP].ConstAt(itrack, 2, 0);
 
-	float phi = getPhi(predx,predy);
+	const float phi = getPhi(predx,predy);
 
 	const float px2py2 = predx*predx+predy*predy; // predicted radius^2
 
@@ -545,8 +671,8 @@ void MkFitter::GetHitRange(std::vector<std::vector<BinInfo> >& segmentMapLay_, i
 	  dphidy*dphidy*(Err[iP].ConstAt(itrack, 1, 1) /*propState.errors.At(1,1)*/) +
 	  2*dphidx*dphidy*(Err[iP].ConstAt(itrack, 0, 1) /*propState.errors.At(0,1)*/);
   
-	const float dphi   =  sqrt(std::fabs(dphi2));//how come I get negative squared errors sometimes?
-	const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi,(float) Config::minDPhi), float(M_PI/1.));//fixme
+	const float dphi   =  std::sqrt(std::abs(dphi2));//how come I get negative squared errors sometimes?
+	const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi,(float) Config::minDPhi), float(M_PI/1.0f));//fixme
 	//const float nSigmaDphi = Config::nSigma*dphi;
 
 	//if (nSigmaDphi>0.3) std::cout << "window MX: " << predx << " " << predy << " " << predz << " " << Err[iP].ConstAt(itrack, 0, 0) << " " << Err[iP].ConstAt(itrack, 1, 1) << " " << Err[iP].ConstAt(itrack, 0, 1) << " " << nSigmaDphi << std::endl;
@@ -570,16 +696,12 @@ void MkFitter::GetHitRange(std::vector<std::vector<BinInfo> >& segmentMapLay_, i
 
 	//fixme: if more than one eta bin we are looping over a huge range (need to make sure we are in the same eta bin)
 
-#ifdef DEBUG
-	std::cout << "propagated track parameters eta=" << eta << " bin=" << etabin << " begin=" << binInfoMinus.first << " end=" << binInfoPlus.first+binInfoPlus.second << std::endl;
-#endif
+	dprint("propagated track parameters eta=" << eta << " bin=" << etabin << " begin=" << binInfoMinus.first << " end=" << binInfoPlus.first+binInfoPlus.second);
 	if (firstHit==-1 || binInfoMinus.first<firstHit) firstHit =  binInfoMinus.first;
 	if (lastHit==-1 || (binInfoPlus.first+binInfoPlus.second)>lastHit) lastHit = binInfoPlus.first+binInfoPlus.second;
       }
-#ifdef DEBUG
-    std::cout << "found range firstHit=" << firstHit << " lastHit=" << lastHit << std::endl;
-#endif
-}
+    dprint("found range firstHit=" << firstHit << " lastHit=" << lastHit);
+  }
 
 
 // ======================================================================================
@@ -588,7 +710,7 @@ void MkFitter::GetHitRange(std::vector<std::vector<BinInfo> >& segmentMapLay_, i
 
 //#define DEBUG
 
-void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
+void MkFitter::SelectHitRanges(const BunchOfHits &bunch_of_hits, const int N_proc)
 {
   // must store hit vector into a data member so it can be used in hit selection.
   // or ... can have it passed into other functions.
@@ -624,21 +746,35 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
                              dphidy*dphidy*(Err[iI].ConstAt(itrack, 1, 1) /*propState.errors.At(1,1)*/) +
                          2 * dphidx*dphidy*(Err[iI].ConstAt(itrack, 0, 1) /*propState.errors.At(0,1)*/);
 
-    const float dphi       = sqrtf(std::fabs(dphi2));//how come I get negative squared errors sometimes? MT -- how small?
+    const float dphi       = std::sqrt(std::abs(dphi2));//how come I get negative squared errors sometimes? MT -- how small?
     const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi, Config::minDPhi), Config::PI);
     //const float nSigmaDphi = Config::nSigma*dphi;
 
     float dPhiMargin = 0.;
     if (Config::useCMSGeom) {
       //now correct for bending and for layer thickness unsing linear approximation
+      const float deltaR = Config::cmsDeltaRad; //fixme! using constant value, to be taken from layer properties
+      const float radius = std::sqrt(px2py2);
+#ifdef POLCOORD
+      //here alpha is the difference between posPhi and momPhi
+      const float alpha = phi-Par[iP].ConstAt(itrack, 4, 0);
+      float cosA,sinA;
+      if (Config::useTrigApprox) {
+	sincos4(alpha, sinA, cosA);
+      } else {
+	cosA=std::cos(alpha);
+	sinA=std::sin(alpha);
+      }
+#else
       const float predpx = Par[iP].ConstAt(itrack, 3, 0);
       const float predpy = Par[iP].ConstAt(itrack, 4, 0);
-      float deltaR = Config::cmsDeltaRad; //fixme! using constant vale, to be taken from layer properties
-      float radius = sqrt(px2py2);
-      float pt     = sqrt(predpx*predpx + predpy*predpy);
-      float cosTheta = ( predx*predpx + predy*predpy )/(pt*radius);
-      float hipo = deltaR/cosTheta;
-      float dist = sqrt(hipo*hipo - deltaR*deltaR);
+      const float pt     = std::sqrt(predpx*predpx + predpy*predpy);
+      //here alpha is the difference between posPhi and momPhi
+      const float cosA = ( predx*predpx + predy*predpy )/(pt*radius);
+      const float sinA = ( predy*predpx - predx*predpy )/(pt*radius);
+#endif
+      //take abs so that we always inflate the window
+      const float dist = std::abs(deltaR*sinA/cosA);
       dPhiMargin = dist/radius;
     }
     // #ifdef DEBUG
@@ -717,8 +853,10 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
     XHitSize.At(itrack, 0, 0) = binInfoPlus .first + binInfoPlus.second - binInfoMinus.first;
     if (XHitSize.At(itrack, 0, 0) < 0)
     {
-      // XXX It would be nice to have BunchOfHits.m_n_real_hits.
-      XHitSize.At(itrack, 0, 0) += bunch_of_hits.m_fill_index - Config::maxHitsConsidered;
+#ifdef DEBUG
+      xout << "XHitSize=" << XHitSize.At(itrack, 0, 0) << "  bunch_of_hits.m_fill_index=" <<  bunch_of_hits.m_fill_index << " Config::maxHitsConsidered=" << Config::maxHitsConsidered << std::endl;
+#endif
+      XHitSize.At(itrack, 0, 0) += bunch_of_hits.m_fill_index_old;
     }
 
     // XXXX Hack to limit N_hits to maxHitsConsidered.
@@ -734,8 +872,10 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
 
 #ifdef DEBUG
     xout << "found range firstHit=" << XHitPos.At(itrack, 0, 0) << " size=" << XHitSize.At(itrack, 0, 0) << std::endl;
-    if (xout_dump)
-       std::cout << xout.str();
+    if (xout_dump) {
+      dmutex_guard;
+      std::cout << xout.str();
+    }
 #endif
 
   }
@@ -751,7 +891,7 @@ void MkFitter::SelectHitRanges(BunchOfHits &bunch_of_hits, const int N_proc)
 //#define NO_PREFETCH
 //#define NO_GATHER
 
-void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
+void MkFitter::AddBestHit(const BunchOfHits &bunch_of_hits)
 {
   //fixme solve ambiguity NN vs beg-end
   float minChi2[NN];
@@ -817,7 +957,7 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 #pragma simd
     for (int itrack = 0; itrack < NN; ++itrack)
     {
-      Hit &hit = bunch_of_hits.m_hits[XHitBegin.At(itrack, 0, 0) +
+      const Hit &hit = bunch_of_hits.m_hits[XHitBegin.At(itrack, 0, 0) +
                                       std::min(hit_cnt, XHitSize.At(itrack, 0, 0) - 1)]; //redo the last hit in case of overflow
       msErr[Nhits].CopyIn(itrack, hit.errArray());
       msPar[Nhits].CopyIn(itrack, hit.posArray());
@@ -845,7 +985,6 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
     msErr[Nhits].SlurpIn(varr + off_error, idx);
     msPar[Nhits].SlurpIn(varr + off_param, idx);
 #endif
-
 #endif //NO_GATHER
 
     //now compute the chi2 of track state vs hit
@@ -864,10 +1003,10 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 #pragma simd
     for (int itrack = 0; itrack < NN; ++itrack)
     {
-      float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
-#ifdef DEBUG
-      std::cout << "chi2=" << chi2 << " minChi2[itrack]=" << minChi2[itrack] << std::endl;      
-#endif
+      // make sure the hit was in the compatiblity window for the candidate
+      if (hit_cnt >= XHitSize.At(itrack, 0, 0)) continue;
+      const float chi2 = std::abs(outChi2[itrack]);//fixme negative chi2 sometimes...
+      dprint("chi2=" << chi2 << " minChi2[itrack]=" << minChi2[itrack]);
       if (chi2 < minChi2[itrack]) 
       {
         minChi2[itrack]=chi2;
@@ -889,14 +1028,12 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
     //fixme decide what to do in case no hit found
     if (bestHit[itrack] >= 0)
     {
-      Hit   &hit  = bunch_of_hits.m_hits[ XHitPos.At(itrack, 0, 0) + bestHit[itrack] ];
-      float &chi2 = minChi2[itrack];
+      const Hit &hit  = bunch_of_hits.m_hits[ XHitPos.At(itrack, 0, 0) + bestHit[itrack] ];
+      const float chi2 = minChi2[itrack];
 
-#ifdef DEBUG
-      std::cout << "ADD BEST HIT FOR TRACK #" << itrack << std::endl;
-      std::cout << "prop x=" << Par[iP].ConstAt(itrack, 0, 0) << " y=" << Par[iP].ConstAt(itrack, 1, 0) << std::endl;      
-      std::cout << "copy in hit #" << bestHit[itrack] << " x=" << hit.position()[0] << " y=" << hit.position()[1] << std::endl;    
-#endif
+      dprint("ADD BEST HIT FOR TRACK #" << itrack << std::endl
+        << "prop x=" << Par[iP].ConstAt(itrack, 0, 0) << " y=" << Par[iP].ConstAt(itrack, 1, 0) << std::endl
+        << "copy in hit #" << bestHit[itrack] << " x=" << hit.position()[0] << " y=" << hit.position()[1]);
 	  
       msErr[Nhits].CopyIn(itrack, hit.errArray());
       msPar[Nhits].CopyIn(itrack, hit.posArray());
@@ -905,9 +1042,7 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
     }
     else
     {
-#ifdef DEBUG
-      std::cout << "ADD FAKE HIT FOR TRACK #" << itrack << std::endl;
-#endif
+      dprint("ADD FAKE HIT FOR TRACK #" << itrack);
 
       msErr[Nhits].SetDiagonal3x3(itrack, 666);
       msPar[Nhits](itrack,0,0) = Par[iP](itrack,0,0);
@@ -920,10 +1055,7 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
   }
 
   //now update the track parameters with this hit (note that some calculations are already done when computing chi2... not sure it's worth caching them?)
-#ifdef DEBUG
-  std::cout << "update parameters" << std::endl;
-#endif
-
+  dprint("update parameters");
   updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits],
 			Err[iC], Par[iC]);
   //std::cout << "Par[iP](0,0,0)=" << Par[iP](0,0,0) << " Par[iC](0,0,0)=" << Par[iC](0,0,0)<< std::endl;
@@ -931,7 +1063,7 @@ void MkFitter::AddBestHit(BunchOfHits &bunch_of_hits)
 
 
 
-void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits,
+void MkFitter::FindCandidates(const BunchOfHits &bunch_of_hits,
                               std::vector<std::vector<Track> >& tmp_candidates,
                               const int offset, const int N_proc)
 {
@@ -1034,10 +1166,10 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits,
     bool oneCandPassCut = false;
     for (int itrack = 0; itrack < N_proc;++itrack)
       {
-	float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
-#ifdef DEBUG
-	std::cout << "chi2=" << chi2 << std::endl;
-#endif
+	// make sure the hit was in the compatiblity window for the candidate
+	if (hit_cnt >= XHitSize.At(itrack, 0, 0)) continue;
+	const float chi2 = std::abs(outChi2[itrack]);//fixme negative chi2 sometimes...
+	dprint("chi2=" << chi2);
 	if (chi2 < Config::chi2Cut)
 	  {
 	    oneCandPassCut = true;
@@ -1048,26 +1180,22 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits,
     if (oneCandPassCut)
     {
       updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits], Err[iC], Par[iC]);
-#ifdef DEBUG
-      std::cout << "update parameters" << std::endl;
-      std::cout << "propagated track parameters x=" << Par[iP].ConstAt(0, 0, 0) << " y=" << Par[iP].ConstAt(0, 1, 0) << std::endl;
-      std::cout << "               hit position x=" << msPar[iP].ConstAt(0, 0, 0) << " y=" << msPar[iP].ConstAt(0, 1, 0) << std::endl;
-      std::cout << "   updated track parameters x=" << Par[iC].ConstAt(0, 0, 0) << " y=" << Par[iC].ConstAt(0, 1, 0) << std::endl;
-#endif
+      dprint("update parameters" << std::endl
+        << "propagated track parameters x=" << Par[iP].ConstAt(0, 0, 0) << " y=" << Par[iP].ConstAt(0, 1, 0) << std::endl
+        << "               hit position x=" << msPar[Nhits].ConstAt(0, 0, 0) << " y=" << msPar[Nhits].ConstAt(0, 1, 0) << std::endl
+        << "   updated track parameters x=" << Par[iC].ConstAt(0, 0, 0) << " y=" << Par[iC].ConstAt(0, 1, 0));
 
       //create candidate with hit in case chi2<Config::chi2Cut
       //fixme: please vectorize me... (not sure it's possible in this case)
       for (int itrack = 0; itrack < N_proc; ++itrack)
 	{
-	  float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
-#ifdef DEBUG
-	  std::cout << "chi2=" << chi2 << std::endl;      
-#endif
+	  // make sure the hit was in the compatiblity window for the candidate
+	  if (hit_cnt >= XHitSize.At(itrack, 0, 0)) continue;
+	  const float chi2 = std::abs(outChi2[itrack]);//fixme negative chi2 sometimes...
+	  dprint("chi2=" << chi2);
 	  if (chi2<Config::chi2Cut)
 	    {
-#ifdef DEBUG
-	      std::cout << "chi2 cut passed, creating new candidate" << std::endl;
-#endif
+	      dprint("chi2 cut passed, creating new candidate");
 	      //create a new candidate and fill the reccands_tmp vector
 	      Track newcand;
 	      newcand.resetHits();//probably not needed
@@ -1083,9 +1211,7 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits,
 	      Err[iC].CopyOut(itrack, newcand.errors_nc().Array());
 	      Par[iC].CopyOut(itrack, newcand.parameters_nc().Array());
 
-#ifdef DEBUG
-	      std::cout << "updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << std::endl;
-#endif
+	      dprint("updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1]);
 
 	      tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
 	    }
@@ -1118,7 +1244,7 @@ void MkFitter::FindCandidates(BunchOfHits &bunch_of_hits,
 
 }
 
-void MkFitter::FindCandidatesMinimizeCopy(BunchOfHits &bunch_of_hits, CandCloner& cloner,
+void MkFitter::FindCandidatesMinimizeCopy(const BunchOfHits &bunch_of_hits, CandCloner& cloner,
                                           const int offset, const int N_proc)
 {
 
@@ -1229,10 +1355,8 @@ void MkFitter::FindCandidatesMinimizeCopy(BunchOfHits &bunch_of_hits, CandCloner
 	// make sure the hit was in the compatiblity window for the candidate
 	if (hit_cnt >= XHitSize.At(itrack, 0, 0)) continue;
 
-	float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
-#ifdef DEBUG
-	std::cout << "chi2=" << chi2 << " for trkIdx=" << itrack << std::endl;
-#endif
+	const float chi2 = std::abs(outChi2[itrack]);//fixme negative chi2 sometimes...
+	dprint("chi2=" << chi2 << " for trkIdx=" << itrack);
 	if (chi2 < Config::chi2Cut) 
 	  {
 	    IdxChi2List tmpList;
@@ -1242,9 +1366,7 @@ void MkFitter::FindCandidatesMinimizeCopy(BunchOfHits &bunch_of_hits, CandCloner
 	    tmpList.chi2   = Chi2(itrack, 0, 0) + chi2;
             cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
 	    // hitsToAdd[SeedIdx(itrack, 0, 0)-offset].push_back(tmpList);
-#ifdef DEBUG
-	    std::cout << "adding hit with hit_cnt=" << hit_cnt << " for trkIdx=" << tmpList.trkIdx << " orig Seed=" << Label(itrack, 0, 0) << std::endl;
-#endif
+	    dprint("adding hit with hit_cnt=" << hit_cnt << " for trkIdx=" << tmpList.trkIdx << " orig Seed=" << Label(itrack, 0, 0));
 	  }
       }
     
@@ -1254,9 +1376,7 @@ void MkFitter::FindCandidatesMinimizeCopy(BunchOfHits &bunch_of_hits, CandCloner
   //fixme: please vectorize me...
   for (int itrack = 0; itrack < N_proc; ++itrack)
     {
-#ifdef DEBUG
-      std::cout << "countInvalidHits(" << itrack << ")=" << countInvalidHits(itrack) << std::endl;
-#endif
+      dprint("countInvalidHits(" << itrack << ")=" << countInvalidHits(itrack));
 
       int hit_idx = countInvalidHits(itrack) < Config::maxHolesPerCand ? -1 : -2;
 
@@ -1267,16 +1387,14 @@ void MkFitter::FindCandidatesMinimizeCopy(BunchOfHits &bunch_of_hits, CandCloner
       tmpList.chi2   = Chi2(itrack, 0, 0);
       cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
       // hitsToAdd[SeedIdx(itrack, 0, 0)-offset].push_back(tmpList);
-#ifdef DEBUG
-      std::cout << "adding invalid hit" << std::endl;
-#endif
+      dprint("adding invalid hit");
     }
 }
 
 
 
-void MkFitter::InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks,
-                                    std::vector<std::pair<int,MkFitter::IdxChi2List> >& idxs,
+void MkFitter::InputTracksAndHitIdx(const std::vector<std::vector<Track> >& tracks,
+                                    const std::vector<std::pair<int,MkFitter::IdxChi2List> >& idxs,
                                     int beg, int end, bool inputProp)
 {
   // Assign track parameters to initial state and copy hit values in.
@@ -1290,7 +1408,7 @@ void MkFitter::InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks,
   for (int i = beg; i < end; ++i, ++itrack)
   {
 
-    Track &trk = tracks[idxs[i].first][idxs[i].second.trkIdx];
+    const Track &trk = tracks[idxs[i].first][idxs[i].second.trkIdx];
 
     Label(itrack, 0, 0) = trk.label();
     SeedIdx(itrack, 0, 0) = idxs[i].first;
@@ -1317,8 +1435,8 @@ void MkFitter::InputTracksAndHitIdx(std::vector<std::vector<Track> >& tracks,
   }
 }
 
-void MkFitter::UpdateWithHit(BunchOfHits &bunch_of_hits,
-                             std::vector<std::pair<int,IdxChi2List> >& idxs,
+void MkFitter::UpdateWithHit(const BunchOfHits &bunch_of_hits,
+                             const std::vector<std::pair<int,IdxChi2List> >& idxs,
                              std::vector<std::vector<Track> >& cands_for_next_lay,
                              int offset, int beg, int end)
 {
@@ -1327,7 +1445,7 @@ void MkFitter::UpdateWithHit(BunchOfHits &bunch_of_hits,
   for (int i = beg; i < end; ++i, ++itrack)
     {
       if (idxs[i].second.hitIdx < 0) continue;
-      Hit &hit = bunch_of_hits.m_hits[idxs[i].second.hitIdx];
+      const Hit &hit = bunch_of_hits.m_hits[idxs[i].second.hitIdx];
       msErr[Nhits].CopyIn(itrack, hit.errArray());
       msPar[Nhits].CopyIn(itrack, hit.posArray());
     }
@@ -1358,16 +1476,14 @@ void MkFitter::UpdateWithHit(BunchOfHits &bunch_of_hits,
 	Err[iC].CopyOut(itrack, newcand.errors_nc().Array());
 	Par[iC].CopyOut(itrack, newcand.parameters_nc().Array());
       }
-#ifdef DEBUG
-      std::cout << "updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << std::endl;
-#endif
+      dprint("updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1]);
 
       cands_for_next_lay[SeedIdx(itrack, 0, 0) - offset].push_back(newcand);
     }
 }
 
-void MkFitter::UpdateWithHit(BunchOfHits &bunch_of_hits,
-                             std::vector<std::pair<int,IdxChi2List> >& idxs,
+void MkFitter::UpdateWithHit(const BunchOfHits &bunch_of_hits,
+                             const std::vector<std::pair<int,IdxChi2List> >& idxs,
                              int beg, int end)
 {
   int itrack = 0;
@@ -1375,7 +1491,7 @@ void MkFitter::UpdateWithHit(BunchOfHits &bunch_of_hits,
   for (int i = beg; i < end; ++i, ++itrack)
     {
       if (idxs[i].second.hitIdx < 0) continue;
-      Hit &hit = bunch_of_hits.m_hits[idxs[i].second.hitIdx];
+      const Hit &hit = bunch_of_hits.m_hits[idxs[i].second.hitIdx];
       msErr[Nhits].CopyIn(itrack, hit.errArray());
       msPar[Nhits].CopyIn(itrack, hit.posArray());
     }
@@ -1391,7 +1507,7 @@ void MkFitter::UpdateWithHit(BunchOfHits &bunch_of_hits,
   for (int i = beg; i < end; ++i, ++itrack)
     {
       if (idxs[i].second.hitIdx < 0) {
-	float tmp[21] = {0.};
+	float tmp[21] = {0.0f};
 	Err[iP].CopyOut(itrack, tmp);
 	Err[iC].CopyIn(itrack, tmp);
 	Par[iP].CopyOut(itrack, tmp);
@@ -1401,7 +1517,7 @@ void MkFitter::UpdateWithHit(BunchOfHits &bunch_of_hits,
   
 }
 
-void MkFitter::UpdateWithLastHit(BunchOfHits &bunch_of_hits,
+void MkFitter::UpdateWithLastHit(const BunchOfHits &bunch_of_hits,
                                  int N_proc)
 {
   for (int i = 0; i < N_proc; ++i)
@@ -1410,7 +1526,7 @@ void MkFitter::UpdateWithLastHit(BunchOfHits &bunch_of_hits,
 
     if (hit_idx < 0) continue;
 
-    Hit &hit = bunch_of_hits.m_hits[hit_idx];
+    const Hit &hit = bunch_of_hits.m_hits[hit_idx];
 
     msErr[Nhits - 1].CopyIn(i, hit.errArray());
     msPar[Nhits - 1].CopyIn(i, hit.posArray());
@@ -1437,9 +1553,9 @@ void MkFitter::UpdateWithLastHit(BunchOfHits &bunch_of_hits,
 }
 
 
-void MkFitter::CopyOutClone(std::vector<std::pair<int,IdxChi2List> >& idxs,
+void MkFitter::CopyOutClone(const std::vector<std::pair<int,IdxChi2List> >& idxs,
 			    std::vector<std::vector<Track> >& cands_for_next_lay,
-			    int offset, int beg, int end, bool outputProp)
+			    int offset, int beg, int end, bool outputProp) const
 {
   const int iO = outputProp ? iP : iC;
 
@@ -1464,16 +1580,14 @@ void MkFitter::CopyOutClone(std::vector<std::pair<int,IdxChi2List> >& idxs,
       Err[iO].CopyOut(itrack, newcand.errors_nc().Array());
       Par[iO].CopyOut(itrack, newcand.parameters_nc().Array());
 
-#ifdef DEBUG
-      std::cout << "updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << std::endl;
-#endif
+      dprint("updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1]);
 
       cands_for_next_lay[SeedIdx(itrack, 0, 0) - offset].push_back(newcand);
     }
 }
 
 void MkFitter::CopyOutParErr(std::vector<std::vector<Track> >& seed_cand_vec,
-                             int N_proc, bool outputProp)
+                             int N_proc, bool outputProp) const
 {
   const int iO = outputProp ? iP : iC;
 
@@ -1486,12 +1600,10 @@ void MkFitter::CopyOutParErr(std::vector<std::vector<Track> >& seed_cand_vec,
     Err[iO].CopyOut(i, cand.errors_nc().Array());
     Par[iO].CopyOut(i, cand.parameters_nc().Array());
 
-#ifdef DEBUG
-    std::cout << "updated track parameters x=" << cand.parameters()[0]
+    dprint("updated track parameters x=" << cand.parameters()[0]
               << " y=" << cand.parameters()[1]
               << " z=" << cand.parameters()[2]
               << " posEta=" << cand.posEta()
-              << " etaBin=" << getEtaBin(cand.posEta()) << std::endl;
-#endif
+              << " etaBin=" << getEtaBin(cand.posEta()));
   }
 }

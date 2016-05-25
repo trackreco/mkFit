@@ -17,10 +17,18 @@
 #include "TTree.h"
 #endif
 
+//#define DEBUG
+#include <Debug.h>
+
 #include <omp.h>
 
 #include <iostream>
 #include <memory>
+#include <mutex>
+
+#if defined(USE_VTUNE_PAUSE)
+#include "ittnotify.h"
+#endif
 
 //==============================================================================
 
@@ -28,11 +36,15 @@ void make_validation_tree(const char         *fname,
                           std::vector<Track> &simtracks,
                           std::vector<Track> &rectracks)
 {
-#ifndef NO_ROOT
-
    assert(simtracks.size() == rectracks.size());
 
    float pt_mc, pt_fit, pt_err, chg;
+   int goodtrk = 0;
+
+#ifndef NO_ROOT
+   static std::mutex roolock;
+
+   std::lock_guard<std::mutex> rooguard(roolock);
 
    TFile *file = TFile::Open(fname, "recreate");
    TTree *tree = new TTree("T", "Validation Tree for simple Kalman fitter");;
@@ -41,6 +53,7 @@ void make_validation_tree(const char         *fname,
    tree->Branch("pt_fit", &pt_fit, "pt_fit");
    tree->Branch("pt_err", &pt_err, "pt_err");
    tree->Branch("chg",    &chg,    "chg");
+#endif
 
 #ifdef USE_CUDA
    std::vector<float> diff_vec;
@@ -60,12 +73,18 @@ void make_validation_tree(const char         *fname,
                     recerr[3][4]*recp[3]*recp[4] * 2) / pt_fit;
       chg = simtracks[i].charge();
 
+
+#ifndef NO_ROOT
       tree->Fill();
+#endif
 
 #ifdef USE_CUDA
       float diff = (pt_mc - pt_fit) / pt_err;
       if (std::abs(diff) < 5.0f) {
         diff_vec.push_back(diff);
+        ++goodtrk;
+      } else {
+        dprint("pt_mc, pt_fit, pt_err " << pt_mc << " " << pt_fit << " " << pt_err);
       }
 #endif
    }
@@ -81,10 +100,11 @@ void make_validation_tree(const char         *fname,
        std::accumulate(diff_vec.begin(), diff_vec.end(), 0.0)
        / diff_vec.size());
 
-   std::cerr << "Mean value for (pt_mc-pt_fit)/pt_err: " << mean
-            << " standard dev: " << stdev << std::endl;
+   std::cerr << goodtrk << " good tracks, mean pt pull: " << mean
+             << " standard dev: " << stdev << std::endl;
 #endif
 
+#ifndef NO_ROOT
    file->Write();
    file->Close();
    delete file;
@@ -122,6 +142,10 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 
    int theEnd = simtracks.size();
 
+#ifdef USE_VTUNE_PAUSE
+   __itt_resume();
+#endif
+
    double time = dtime();
 
 #pragma omp parallel for
@@ -131,8 +155,10 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 
       MkFitter *mkfp = mkfp_arr[omp_get_thread_num()];
 
-      mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
+      //mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
+      mkfp->SlurpInTracksAndHits(simtracks, ev.layerHits_, itrack, end);
 
+      if (Config::cf_fitting) mkfp->ConformalFitTracks(true, itrack, end);
       mkfp->FitTracks();
 
 #ifndef NO_ROOT
@@ -141,6 +167,10 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
    }
 
    time = dtime() - time;
+
+#ifdef USE_VTUNE_PAUSE
+   __itt_pause();
+#endif
 
    for (int i = 0; i < Config::numThreadsFinder; ++i)
    {
@@ -262,11 +292,11 @@ double runFittingTestPlexGPU(FitterCU<float> &cuFitter,
                          Nhits,
                          simtracks, itrack, end, ev.layerHits_);
 
-#ifndef NO_ROOT
+//#ifndef NO_ROOT
       double time_output = dtime();
       mkfp->OutputFittedTracks(rectracks, itrack, end);
       std::cerr << "Output time: " << (dtime() - time_output)*1e3 << std::endl;
-#endif
+//#endif
    }
 
    time = dtime() - time;

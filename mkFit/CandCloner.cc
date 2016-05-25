@@ -1,9 +1,11 @@
 #include "CandCloner.h"
+//#define DEBUG
+#include "Debug.h"
 
 namespace
 {
-bool sortCandListByHitsChi2(const MkFitter::IdxChi2List& cand1,
-                            const MkFitter::IdxChi2List& cand2)
+inline bool sortCandListByHitsChi2(const MkFitter::IdxChi2List& cand1,
+                                   const MkFitter::IdxChi2List& cand2)
 {
   if (cand1.nhits == cand2.nhits) return cand1.chi2 < cand2.chi2;
   return cand1.nhits > cand2.nhits;
@@ -30,15 +32,14 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
 #ifdef DEBUG
     int th_start_seed = m_start_seed;
 
-    std::cout << "dump seed n " << is << " with input candidates=" << hitsForSeed.size() << std::endl;
+    dprint("dump seed n " << is << " with input candidates=" << hitsForSeed.size());
     for (int ih = 0; ih<hitsForSeed.size(); ih++)
     {
-      std::cout << "trkIdx=" << hitsForSeed[ih].trkIdx << " hitIdx=" << hitsForSeed[ih].hitIdx << " chi2=" <<  hitsForSeed[ih].chi2 << std::endl;
-      std::cout << "original pt=" << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].pT() << " " 
-                << "nTotalHits="  << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].nTotalHits() << " " 
-                << "nFoundHits="  << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].nFoundHits() << " " 
-                << "chi2="        << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].chi2() << " " 
-                << std::endl;
+      dprint("trkIdx=" << hitsForSeed[ih].trkIdx << " hitIdx=" << hitsForSeed[ih].hitIdx << " chi2=" <<  hitsForSeed[ih].chi2 << std::endl
+                << "original pt=" << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].pT() << " "
+                << "nTotalHits="  << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].nTotalHits() << " "
+                << "nFoundHits="  << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].nFoundHits() << " "
+                << "chi2="        << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].chi2());
     }
 #endif
 
@@ -53,7 +54,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
 
       for (int ih = 0; ih < num_hits; ih++)
       {
-        MkFitter::IdxChi2List &h2a = hitsForSeed[ih];
+        const MkFitter::IdxChi2List &h2a = hitsForSeed[ih];
         cv.push_back( cands[ m_start_seed + is ][ h2a.trkIdx ] );
         cv.back().addHitIdx(h2a.hitIdx, 0);
         cv.back().setChi2(h2a.chi2);
@@ -62,7 +63,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
       // Copy the best -2 cands back to the current list.
       if (num_hits < Config::maxCandsPerSeed)
       {
-        std::vector<Track> &ov = cands[m_start_seed + is];
+        const std::vector<Track> &ov = cands[m_start_seed + is];
         int cur_m2 = 0;
         int max_m2 = ov.size();
         while (cur_m2 < max_m2 && ov[cur_m2].getLastHitIdx() != -2) ++cur_m2;

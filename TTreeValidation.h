@@ -128,12 +128,14 @@ public:
 
   int nlayers_debug_,event_debug_,nHits_debug_;
   float pt_gen_debug_,phi_gen_debug_,eta_gen_debug_;
+  float x_gen_debug_,y_gen_debug_,z_gen_debug_;
 
   // mc truth
   int mccharge_debug_;
   int layer_mc_debug_[Config::nLayers];
+  float x_hit_debug_[Config::nLayers],y_hit_debug_[Config::nLayers],z_hit_debug_[Config::nLayers];
+  float exx_hit_debug_[Config::nLayers],eyy_hit_debug_[Config::nLayers],ezz_hit_debug_[Config::nLayers];
   float x_mc_debug_[Config::nLayers],y_mc_debug_[Config::nLayers],z_mc_debug_[Config::nLayers];
-  float exx_mc_debug_[Config::nLayers],eyy_mc_debug_[Config::nLayers],ezz_mc_debug_[Config::nLayers];
   float px_mc_debug_[Config::nLayers],py_mc_debug_[Config::nLayers],pz_mc_debug_[Config::nLayers];
   float pt_mc_debug_[Config::nLayers],phi_mc_debug_[Config::nLayers],eta_mc_debug_[Config::nLayers];
   float invpt_mc_debug_[Config::nLayers],theta_mc_debug_[Config::nLayers];
@@ -172,7 +174,11 @@ public:
   float ept_up_debug_[Config::nLayers],ephi_up_debug_[Config::nLayers],eeta_up_debug_[Config::nLayers];
   float invpt_up_debug_[Config::nLayers],theta_up_debug_[Config::nLayers];
   float einvpt_up_debug_[Config::nLayers],etheta_up_debug_[Config::nLayers];
-  
+
+  // eta/phi bin info
+  int ebhit_debug_[Config::nLayers], ebp_debug_[Config::nLayers], ebm_debug_[Config::nLayers];
+  int pbhit_debug_[Config::nLayers], pbp_debug_[Config::nLayers], pbm_debug_[Config::nLayers];
+
   // seedinfo tree
   TTree* seedinfotree_;
   int evtID_seedinfo_;

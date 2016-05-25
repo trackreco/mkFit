@@ -13,12 +13,21 @@
 
 #include "Event.h"
 
+#ifndef NO_ROOT
+#include "TTreeValidation.h"
+#endif
+
 #ifdef USE_CUDA
 #include "FitterCU.h"
 #endif
 
 #include <cstdlib>
+//#define DEBUG
+#include "Debug.h"
+
 #include <omp.h>
+
+#include <tbb/task_scheduler_init.h>
 
 #if defined(USE_VTUNE_PAUSE)
 #include "ittnotify.h"
@@ -56,6 +65,7 @@ namespace
   bool  g_run_build_bh  = false;
   bool  g_run_build_std = false;
   bool  g_run_build_ce  = false;
+  bool  g_run_build_tbb = false;
 
   std::string g_operation = "simulate_and_process";;
   std::string g_file_name = "simtracks.bin";
@@ -135,8 +145,11 @@ void test_standard()
          MPT_SIZE, Config::numThreadsSimulation, Config::numThreadsFinder);
   printf("  sizeof(Track)=%zu, sizeof(Hit)=%zu, sizeof(SVector3)=%zu, sizeof(SMatrixSym33)=%zu, sizeof(MCHitInfo)=%zu\n",
          sizeof(Track), sizeof(Hit), sizeof(SVector3), sizeof(SMatrixSym33), sizeof(MCHitInfo));
-  if (Config::useCMSGeom) printf ("Using CMS-like geometry \n");
-  else printf ("Using 4-cm spacing geometry \n");
+  if (Config::useCMSGeom) {
+    printf ("Using CMS-like geometry ");
+    if (Config::readCmsswSeeds) printf ("with CMSSW seeds \n");
+    else printf ("with MC-truth seeds \n");
+  } else printf ("Using 4-cm spacing geometry \n");
 
   if (g_operation == "write") {
     generate_and_save_tracks();
@@ -150,10 +163,15 @@ void test_standard()
 
   Geometry geom;
   initGeom(geom);
+#ifdef NO_ROOT
   Validation val;
-
-  const int NT = 4;
+#else 
+  TTreeValidation val("valtree.root");
+#endif
+  
+  const int NT = 5;
   double t_sum[NT] = {0};
+  double t_skip[NT] = {0};
 
   EventTmp ev_tmp;
 
@@ -165,16 +183,16 @@ void test_standard()
   std::vector<Event> events;
   std::vector<Validation> validations(Config::nEvents);
 
+  events.reserve(Config::nEvents);
   // simulations are all performed before the fitting loop.
   // It is mandatory in order to see the benefits of running
   // multiple streams.
   for (int evt = 1; evt <= Config::nEvents; ++evt) {
     printf("Simulating event %d\n", evt);
-    Event ev(geom, val, evt);
-    ev.Simulate();
-    ev.resetLayerHitMap(true);
-    
-    events.push_back(ev);
+    events.emplace_back(geom, val, evt);
+    events.back().Simulate();
+    events.back().resetLayerHitMap(true);
+    dprint("Event #" << events.back().evtID() << " simtracks " << events.back().simTracks_.size() << " layerhits " << events.back().layerHits_.size());
   }
 
   // The first call to a GPU function always take a very long time.
@@ -205,6 +223,14 @@ void test_standard()
     std::exit(0);
   }
 #else
+  // MT: task_scheduler_init::automatic doesn't really work (segv!) + we don't
+  // know what to do for non-tbb cases.
+  // tbb::task_scheduler_init tbb_init(Config::numThreadsFinder != 0 ?
+  //                                   Config::numThreadsFinder :
+  //                                   tbb::task_scheduler_init::automatic);
+  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
+  omp_set_num_threads(Config::numThreadsFinder);
+
   for (int evt = 1; evt <= Config::nEvents; ++evt)
   {
     printf("\n");
@@ -216,17 +242,15 @@ void test_standard()
     {
       ev.read_in(g_file);
       ev.resetLayerHitMap(false);//hitIdx's in the sim tracks are already ok 
-
-      omp_set_num_threads(Config::numThreadsFinder);
     }
     else
     {
-      omp_set_num_threads(Config::numThreadsSimulation);
+      //Simulate() parallelism is via TBB, but comment out for now due to cost of
+      //task_scheduler_init
+      //tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
 
       ev.Simulate();
       ev.resetLayerHitMap(true);
-
-      omp_set_num_threads(Config::numThreadsFinder);
     }
 
     plex_tracks.resize(ev.simTracks_.size());
@@ -236,12 +260,10 @@ void test_standard()
     for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
     {
       t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
-
       t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev) : 0;
-
       t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlex(ev, ev_tmp) : 0;
-
       t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, ev_tmp) : 0;
+      t_cur[4] = (g_run_build_all || g_run_build_tbb) ? runBuildingTestPlexTbb(ev, ev_tmp) : 0;
 
       for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
 
@@ -255,10 +277,16 @@ void test_standard()
       printf("----------------------------------------------------------------\n");
     }
 
-    printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f\n",
-           t_best[0], t_best[1], t_best[2], t_best[3]);
+    printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
+           t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
 
-    for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
+    for (int i = 0; i < NT; ++i) t_sum[i] += t_cur[i];
+    if (evt > 1) for (int i = 0; i < NT; ++i) t_skip[i] += t_cur[i];
+
+#ifndef NO_ROOT
+    make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
+#endif
+    
   }
 #endif
   printf("\n");
@@ -266,17 +294,16 @@ void test_standard()
   printf("=== TOTAL for %d events\n", Config::nEvents);
   printf("================================================================\n");
 
-  printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f\n",
-         t_sum[0], t_sum[1], t_sum[2], t_sum[3]);
+  printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
+         t_sum[0], t_sum[1], t_sum[2], t_sum[3], t_sum[4]);
+  printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
+         t_skip[0], t_skip[1], t_skip[2], t_skip[3], t_skip[4]);
 
   if (g_operation == "read")
   {
     close_simtrack_file();
   }
 
-#ifndef NO_ROOT
-  make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
-#endif
 }
 
 //==============================================================================
@@ -336,9 +363,14 @@ int main(int argc, const char *argv[])
         "  --build-bh               run best-hit building test (def: run all building tests)\n"
         "  --build-std              run standard building test\n"
         "  --build-ce               run clone-engine building test\n"
+        "  --build-tbb              run tbb building test\n"
         "  --cloner-single-thread   do not spawn extra cloning thread (def: %s)\n"
+        "  --seeds-per-task         number of seeds to process in a tbb task (def: %d)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
 	"  --cms-geom               use cms-like geometry (def: %i)\n"
+	"  --cmssw-seeds            take seeds from CMSSW (def: %i)\n"
+	"  --cf-seeding             enable CF in seeding (def: %s)\n"
+	"  --cf-fitting             enable CF in fitting (def: %s)\n"
 	"  --write                  write simulation to file and exit\n"
 	"  --read                   read simulation from file\n"
 	"  --file-name              file name for write/read (def: %s)\n"
@@ -351,8 +383,12 @@ int main(int argc, const char *argv[])
         Config::nTracks,
         Config::numThreadsSimulation, Config::numThreadsFinder,
         Config::clonerUseSingleThread ? "true" : "false",
+        Config::numSeedsPerTask,
         Config::finderReportBestOutOfN,
 	Config::useCMSGeom,
+	Config::readCmsswSeeds,
+	Config::cf_seeding ? "true" : "false",
+	Config::cf_fitting ? "true" : "false",
 	g_file_name.c_str()
       );
       exit(0);
@@ -398,9 +434,18 @@ int main(int argc, const char *argv[])
     {
       g_run_build_all = false; g_run_build_ce = true;
     }
+    else if(*i == "--build-tbb")
+    {
+      g_run_build_all = false; g_run_build_tbb = true;
+    }
     else if(*i == "--cloner-single-thread")
     {
       Config::clonerUseSingleThread = true;
+    }
+    else if (*i == "--seeds-per-task")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::numSeedsPerTask = atoi(i->c_str());
     }
     else if(*i == "--best-out-of")
     {
@@ -410,6 +455,18 @@ int main(int argc, const char *argv[])
     else if(*i == "--cms-geom")
     {
       Config::useCMSGeom = true;
+    }
+    else if(*i == "--cmssw-seeds")
+    {
+      Config::readCmsswSeeds = true;
+    }
+    else if (*i == "--cf-seeding")
+    {
+      Config::cf_seeding = true;
+    }
+    else if (*i == "--cf-fitting")
+    {
+      Config::cf_fitting = true;
     }
     else if (*i == "--num-thr-ev")
     {

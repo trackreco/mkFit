@@ -7,7 +7,7 @@
 class UVector3 : public SVector3 {
   public:
   UVector3(float x, float y, float z) : SVector3(x, y, z) {}
-  UVector3() : SVector(0.,0.,0.) {}
+  UVector3() : SVector(0.0f,0.0f,0.0f) {}
   inline double Dot(const UVector3&) const;
   inline double Mag2() const;
   inline double Mag() const;

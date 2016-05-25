@@ -1,6 +1,7 @@
 #include <cmath>
 
 #include "Simulation.h"
+//#define DEBUG
 #include "Debug.h"
 
 //#define SOLID_SMEAR
@@ -262,6 +263,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
       UVector3 hit_point(hitX,hitY,hitZ);
       const auto theHitSolid = geom.InsideWhat(hit_point);
       if ( ! theHitSolid ) {
+        dmutex_guard;
         std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find solid AFTER scatter+smear." << std::endl;
         std::cerr << "itrack = " << itrack << ", ihit = " << ihit << ", r = " << sqrt(hitX*hitX + hitY*hitY) << ", r*4cm = " << 4*ihit << ", phi = " << getPhi(hitX,hitY) << std::endl;
         std::cerr << "initX = " << initX << ", initY = " << initY << ", initZ = " << initZ << std::endl;
@@ -319,8 +321,8 @@ void setupTrackFromTextFile(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
 
   //fixme: check also event count
 
-  const float hitposerrXY = 0.01;//assume 100mum uncertainty in xy coordinate
-  const float hitposerrZ = 0.1;//assume 1mm uncertainty in z coordinate
+  const float hitposerrXY = Config::hitposerrXY;
+  const float hitposerrZ = Config::hitposerrZ;
   const float hitposerrR = hitposerrXY/10.;
 
   const float varXY  = hitposerrXY*hitposerrXY;

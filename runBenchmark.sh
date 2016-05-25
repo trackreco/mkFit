@@ -1,17 +1,17 @@
 #! /bin/bash
 
-source ~matevz/root/bin/thisroot.sh 
+[ -z "$ROOTSYS" ] && source ~matevz/root/bin/thisroot.sh 
 
-source benchmark.sh
-source benchmark-fit.sh  
+./benchmark.sh
+./benchmark-fit.sh  
 
 python makeBenchmarkPlots.py host
 
 root -b -q -l makeBenchmarkPlots.C
 root -b -q -l makeBenchmarkPlotsFit.C
 
-source benchmark-mic.sh  
-source benchmark-mic-fit.sh  
+./benchmark-mic.sh  
+./benchmark-mic-fit.sh  
 
 python makeBenchmarkPlots.py mic
 
@@ -53,3 +53,11 @@ python makePlotsFromDump.py _mic_10x20k_ST_NVU16int_NTH210
 sed -i 's/\/\/TString test = "ST"/TString test = \"ST\"/g' makePlotsFromDump.C
 root -b -q -l makePlotsFromDump.C
 sed -i 's/TString test = "ST"/\/\/TString test = \"ST\"/g' makePlotsFromDump.C
+
+python makePlotsFromDump.py _host_10x20k_TBBST_NVU1_NTH1
+python makePlotsFromDump.py _host_10x20k_TBBST_NVU8int_NTH21
+python makePlotsFromDump.py _mic_10x20k_TBBST_NVU1_NTH1
+python makePlotsFromDump.py _mic_10x20k_TBBST_NVU16int_NTH210
+sed -i 's/\/\/TString test = "TBBST"/TString test = \"TBBST\"/g' makePlotsFromDump.C
+root -b -q -l makePlotsFromDump.C
+sed -i 's/TString test = "TBBST"/\/\/TString test = \"TBBST\"/g' makePlotsFromDump.C

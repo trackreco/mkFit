@@ -77,25 +77,25 @@ double runBuildingTestPlexBestHit(Event& ev)
   std::cout << "Building event...\n";
   builder.begin_event(&ev, 0, __func__);
 
-  double time = dtime();
+  builder.fit_seeds_tbb();
+
+  EventOfCandidates event_of_cands;
+  builder.find_tracks_load_seeds(event_of_cands);
 
 #ifdef USE_VTUNE_PAUSE
   __itt_resume();
 #endif
 
-  std::cout << "Fitting seeds...\n";
-  builder.fit_seeds();
-
-  EventOfCandidates event_of_cands;
+  double time = dtime();
 
   std::cout << "Finding best hits...\n";
   builder.FindTracksBestHit(event_of_cands);
 
+  time = dtime() - time;
+
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
 #endif
-
-   time = dtime() - time;
 
    builder.quality_reset();
 
@@ -123,29 +123,32 @@ double runBuildingTestPlexBestHit(Event& ev)
 
 double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
 {
+  EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
+  event_of_comb_cands.Reset();
+
   MkBuilder builder;
 
   builder.begin_event(&ev, &ev_tmp, __func__);
 
-  double time = dtime();
+  builder.fit_seeds();
+
+  builder.find_tracks_load_seeds();
 
 #ifdef USE_VTUNE_PAUSE
   __itt_resume();
 #endif
 
-  builder.fit_seeds();
+  double time = dtime();
 
   builder.FindTracks();
+
+  time = dtime() - time;
 
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
 #endif
 
-  time = dtime() - time;
-
   builder.quality_reset();
-
-  EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
 
   for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
   {
@@ -175,29 +178,87 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
 
 double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
 {
+  EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
+  event_of_comb_cands.Reset();
+
   MkBuilder builder;
 
   builder.begin_event(&ev, &ev_tmp, __func__);
 
-  double time = dtime();
+  builder.fit_seeds();
+
+  builder.find_tracks_load_seeds();
 
 #ifdef USE_VTUNE_PAUSE
   __itt_resume();
 #endif
 
-  builder.fit_seeds();
+  double time = dtime();
 
   builder.FindTracksCloneEngine();
+
+  time = dtime() - time;
 
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
 #endif
 
-  time = dtime() - time;
-
   builder.quality_reset();
 
+  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
+  {
+    EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
+
+    for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed++)
+    {
+      // take the first one!
+      if ( ! etabin_of_comb_candidates.m_candidates[iseed].empty())
+      {
+        builder.quality_process(etabin_of_comb_candidates.m_candidates[iseed].front());
+      }
+    }
+  }
+
+  builder.quality_print();
+
+  builder.end_event();
+
+  return time;
+}
+
+
+//==============================================================================
+// runBuildTestPlexCloneEngine
+//==============================================================================
+
+double runBuildingTestPlexTbb(Event& ev, EventTmp& ev_tmp)
+{
   EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
+  event_of_comb_cands.Reset();
+
+  MkBuilder builder;
+
+  builder.begin_event(&ev, &ev_tmp, __func__);
+
+  builder.fit_seeds_tbb();
+
+  builder.find_tracks_load_seeds();
+
+#ifdef USE_VTUNE_PAUSE
+  __itt_resume();
+#endif
+
+  double time = dtime();
+
+  builder.FindTracksCloneEngineTbb();
+
+  time = dtime() - time;
+
+#ifdef USE_VTUNE_PAUSE
+  __itt_pause();
+#endif
+
+  builder.quality_reset();
 
   for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
   {

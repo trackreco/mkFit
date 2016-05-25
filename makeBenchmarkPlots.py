@@ -10,11 +10,12 @@ if hORm!='host' and hORm!='mic': exit
 
 g = ROOT.TFile('benchmark_'+hORm+'.root',"recreate")
 
-for test in ['BH','CE','CEST','ST','FIT']:
+for test in ['BH','CE','CEST','ST','TBBST','FIT']:
     print test
     pos = 14
     ntks = '20k'
     if 'BH' in test: pos = 8
+    if 'TBB' in test: pos = 17
     if 'ST' == test: pos = 11
     if 'FIT' in test: 
         pos = 3
@@ -76,6 +77,7 @@ for test in ['BH','CE','CEST','ST','FIT']:
     nvu = '8int'
     if hORm == 'mic': nvu = '16int'
     thvals = [1,3,7,21]
+    if 'TBB' in test or 'BH' in test : thvals = [1,3,7,10,12,14,16,21]
     if hORm == 'mic': thvals = [1,3,7,21,42,63,84,105,126,147,168,189,210]
     g_TH = ROOT.TGraph(len(thvals))
     g_TH_speedup = ROOT.TGraph(len(thvals))

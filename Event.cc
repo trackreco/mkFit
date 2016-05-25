@@ -6,6 +6,8 @@
 #include "fittest.h"
 #include "BinInfoUtils.h"
 #include "ConformalUtils.h"
+
+//#define DEBUG
 #include "Debug.h"
 
 #ifdef TBB
@@ -99,6 +101,10 @@ void Event::Simulate()
       else setupTrackByToyMC(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs); 
       validation_.collectSimTkTSVecMapInfo(itrack,initialTSs); // save initial TS parameters
 
+#ifdef POLCOORD
+      float pt = sqrt(mom[0]*mom[0]+mom[1]*mom[1]);
+      mom=SVector3(1./pt,atan2(mom[1],mom[0]),atan2(pt,mom[2]));
+#endif
       simTracks_[itrack] = Track(q,pos,mom,covtrk,0.0f);
       auto& sim_track = simTracks_[itrack];
       sim_track.setLabel(itrack);
@@ -164,11 +170,11 @@ void Event::Segment()
           lastPhiIdxFound+=phiBinSize;
         }
 #ifdef DEBUG
-        if ((debug) && (phiBinSize !=0)) printf("ilayer: %1u etabin: %1u phibin: %2u first: %2u last: %2u \n", 
-                                                ilayer, etabin, phibin, 
-                                                segmentMap_[ilayer][etabin][phibin].first, 
-                                                segmentMap_[ilayer][etabin][phibin].second+segmentMap_[ilayer][etabin][phibin].first
-                                                );
+        if ((debug) && (phiBinSize !=0)) dprintf("ilayer: %1u etabin: %1u phibin: %2u first: %2u last: %2u \n", 
+                                                 ilayer, etabin, phibin, 
+                                                 segmentMap_[ilayer][etabin][phibin].first, 
+                                                 segmentMap_[ilayer][etabin][phibin].second+segmentMap_[ilayer][etabin][phibin].first
+                                                 );
 #endif
       } // end loop over storing phi index
     } // end loop over storing eta index
@@ -200,6 +206,7 @@ void Event::Segment()
 
 #ifdef DEBUG
   for (int ilayer = 0; ilayer < Config::nLayers; ilayer++) {
+    dmutex_guard;
     int etahitstotal = 0;
     for (int etabin = 0; etabin < Config::nEtaPart; etabin++){
       int etahits = segmentMap_[ilayer][etabin][Config::nPhiPart-1].first + segmentMap_[ilayer][etabin][Config::nPhiPart-1].second - segmentMap_[ilayer][etabin][0].first;
@@ -339,6 +346,7 @@ void Event::read_in(FILE *fp)
   fread(&nt, sizeof(int), 1, fp);
   simTracks_.resize(nt);
   fread(&simTracks_[0], sizeof(Track), nt, fp);
+  Config::nTracks = nt;
 
   int nl;
   fread(&nl, sizeof(int), 1, fp);
@@ -355,14 +363,26 @@ void Event::read_in(FILE *fp)
   simHitsInfo_.resize(nm);
   fread(&simHitsInfo_[0], sizeof(MCHitInfo), nm, fp);
 
+  if (Config::useCMSGeom) {
+    int ns;
+    fread(&ns, sizeof(int), 1, fp);
+    seedTracks_.resize(ns);
+    if (Config::readCmsswSeeds) fread(&seedTracks_[0], sizeof(Track), ns, fp);
+    else fseek(fp, sizeof(Track)*ns, SEEK_CUR);
+  }
+
   /*
   printf("read %i tracks\n",nt);
   for (int it = 0; it<nt; it++) {
-    printf("track with pT=%5.3f\n",simTracks_[it].pT());
+    printf("track with q=%i pT=%5.3f and nHits=%i\n",simTracks_[it].charge(),simTracks_[it].pT(),simTracks_[it].nTotalHits());
     for (int ih=0; ih<simTracks_[it].nTotalHits(); ++ih) {
-      printf("hit idx=%i\n", simTracks_[it].getHitIdx(ih));
+      if (simTracks_[it].getHitIdx(ih)>=0)
+	printf("hit #%i idx=%i pos r=%5.3f\n",ih,simTracks_[it].getHitIdx(ih),layerHits_[ih][simTracks_[it].getHitIdx(ih)].r());
+      else
+	printf("hit #%i idx=%i\n",ih,simTracks_[it].getHitIdx(ih));
     }
   }
+
   printf("read %i layers\n",nl);
   for (int il = 0; il<nl; il++) {
     printf("read %i hits in layer %i\n",layerHits_[il].size(),il);

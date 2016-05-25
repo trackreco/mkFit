@@ -12,6 +12,10 @@ typedef ROOT::Math::SMatrix<float,3> SMatrix33;
 typedef ROOT::Math::SMatrix<float,3,3,ROOT::Math::MatRepSym<float,3> >    SMatrixSym33;
 typedef ROOT::Math::SVector<float,3> SVector3;
 
+typedef ROOT::Math::SMatrix<float,2> SMatrix22;
+typedef ROOT::Math::SMatrix<float,2,2,ROOT::Math::MatRepSym<float,2> >    SMatrixSym22;
+typedef ROOT::Math::SVector<float,2> SVector2;
+
 typedef ROOT::Math::SMatrix<float,3,6> SMatrix36;
 typedef ROOT::Math::SMatrix<float,6,3> SMatrix63;
 
@@ -43,23 +47,26 @@ inline double dtime()
     return( tseconds );
 }
 
+#ifdef __CUDACC__
+__host__ __device__
+#endif
 inline float hipo(float x, float y)
 {
-   return sqrt(x*x + y*y);
+  return std::sqrt(x*x + y*y);
 }
 
-inline void sincos4(float x, float& sin, float& cos)
+#ifdef __CUDACC__
+__host__ __device__
+#endif
+inline void sincos4(const float x, float& sin, float& cos)
 {
    // Had this writen with explicit division by factorial.
    // The *whole* fitting test ran like 2.5% slower on MIC, sigh.
 
-   cos  = 1;
-   sin  = x;   x *= x * 0.5f;
-   cos -= x;   x *= x * 0.33333333f;
-   sin -= x;   x *= x * 0.25f;
-   cos += x;
+   const float x2 = x*x;
+   cos  = 1.f - 0.5f*x2 + 0.04166667f*x2*x2;
+   sin  = x - 0.16666667f*x*x2;
 }
-
 //==============================================================================
 
 // This ifdef needs to be changed to something like "use matriplex" and/or
@@ -70,7 +77,7 @@ inline void sincos4(float x, float& sin, float& cos)
   #ifdef __INTEL_COMPILER
     #define ASSUME_ALIGNED(a, b) __assume_aligned(a, b)
   #else
-    #define ASSUME_ALIGNED(a, b) __builtin_assume_aligned(a, b)
+    #define ASSUME_ALIGNED(a, b) a = static_cast<decltype(a)>(__builtin_assume_aligned(a, b))
   #endif
 
   #include "Matriplex/MatriplexSym.h"
@@ -88,7 +95,12 @@ inline void sincos4(float x, float& sin, float& cos)
   typedef Matriplex::Matriplex<float, HH,  1, NN>   MPlexHV;
   typedef Matriplex::MatriplexSym<float, HH,  NN>   MPlexHS;
 
+  typedef Matriplex::Matriplex<float, 2,  2, NN>    MPlex22;
+  typedef Matriplex::Matriplex<float, 2,  1, NN>    MPlex2V;
+  typedef Matriplex::MatriplexSym<float,  2, NN>    MPlex2S;
+
   typedef Matriplex::Matriplex<float, LL, HH, NN>   MPlexLH;
+  typedef Matriplex::Matriplex<float, HH, LL, NN>   MPlexHL;
 
   typedef Matriplex::Matriplex<float, 1, 1, NN>     MPlexQF;
   typedef Matriplex::Matriplex<int,   1, 1, NN>     MPlexQI;

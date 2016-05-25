@@ -1,5 +1,82 @@
 #include "Track.h"
+//#define DEBUG
 #include "Debug.h"
+
+void TrackState::convertFromCartesianToPolar() {
+  //assume we are currently in cartesian coordinates and want to move to polar
+  const float px = parameters.At(3);
+  const float py = parameters.At(4);
+  const float pz = parameters.At(5);
+  const float pt = std::sqrt(px*px+py*py);
+  const float phi = getPhi(px,py);
+  const float theta = getTheta(pt,pz);
+  parameters.At(3) = 1.f/pt;
+  parameters.At(4) = phi;
+  parameters.At(5) = theta;
+  SMatrix66 jac = jacobianCartesianToPolar(px,py,pz);
+  errors = ROOT::Math::Similarity(jac,errors);
+}
+
+void TrackState::convertFromPolarToCartesian() {
+  //assume we are currently in polar coordinates and want to move to cartesian
+  const float invpt = parameters.At(3);
+  const float phi   = parameters.At(4);
+  const float theta = parameters.At(5);
+  const float pt = 1.f/invpt;
+  float cosP, sinP, cosT, sinT;
+  if (Config::useTrigApprox) {
+    sincos4(phi, sinP, cosP);
+    sincos4(theta, sinT, cosT);
+  } else {
+    cosP = std::cos(phi);
+    sinP = std::sin(phi);
+    cosT = std::cos(theta);
+    sinT = std::sin(theta);
+  }
+  parameters.At(3) = cosP*pt;
+  parameters.At(4) = sinP*pt;
+  parameters.At(5) = cosT*pt/sinT;
+  SMatrix66 jac = jacobianPolarToCartesian(invpt, phi, theta);
+  errors = ROOT::Math::Similarity(jac,errors);
+}
+
+SMatrix66 TrackState::jacobianPolarToCartesian(float invpt,float phi,float theta) const {
+  //arguments are passed so that the function can be used both starting from polar and from cartesian
+  SMatrix66 jac = ROOT::Math::SMatrixIdentity();
+  float cosP, sinP, cosT, sinT;
+  if (Config::useTrigApprox) {
+    sincos4(phi, sinP, cosP);
+    sincos4(theta, sinT, cosT);
+  } else {
+    cosP = std::cos(phi);
+    sinP = std::sin(phi);
+    cosT = std::cos(theta);
+    sinT = std::sin(theta);
+  }
+  const float pt = 1.f/invpt;
+  jac(3,3) = -cosP*pt*pt;
+  jac(3,4) = -sinP*pt;
+  jac(4,3) = -sinP*pt*pt;
+  jac(4,4) =  cosP*pt;
+  jac(5,3) = -cosT*pt*pt/sinT;
+  jac(5,5) = -pt/(sinT*sinT);
+  return jac;
+}
+
+SMatrix66 TrackState::jacobianCartesianToPolar(float px,float py,float pz) const {
+  //arguments are passed so that the function can be used both starting from polar and from cartesian
+  SMatrix66 jac = ROOT::Math::SMatrixIdentity();
+  const float pt = std::sqrt(px*px+py*py);
+  const float p2 = px*px+py*py+pz*pz;
+  jac(3,3) = -px/(pt*pt*pt);
+  jac(3,4) = -py/(pt*pt*pt);
+  jac(4,3) = -py/(pt*pt);
+  jac(4,4) =  px/(pt*pt);
+  jac(5,3) =  px*pz/(pt*p2);
+  jac(5,4) =  py*pz/(pt*p2);
+  jac(5,5) = -pt/p2;
+  return jac;
+}
 
 // find the simtrack that provided the most hits
 void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo)
@@ -9,6 +86,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
   for (int ihit = 0; ihit < hitIdx; ++ihit){
     if (trk.getHitIdx(ihit) >= 0) {
       auto mchitid = layerHits[ihit][trk.getHitIdx(ihit)].mcHitID();
+      dprint("trk.label()=" << trk.label() << " ihit=" << ihit << " trk.getHitIdx(ihit)=" << trk.getHitIdx(ihit) << " mchitid=" << mchitid << " globalHitInfo[mchitid].mcTrackID()=" << globalHitInfo[mchitid].mcTrackID());
       mctrack.push_back(globalHitInfo[mchitid].mcTrackID());
     }
   }

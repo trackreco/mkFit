@@ -24,7 +24,7 @@
   g_FIT_VU->GetYaxis()->SetTitle("Time for "+ntrk+" tracks [s]");
   g_FIT_VU->GetYaxis()->SetTitleOffset(1.25);
   g_FIT_VU->GetXaxis()->SetRangeUser(1,maxvu);
-  g_FIT_VU->GetYaxis()->SetRangeUser(0,(isMic ? 45 : 8));
+  g_FIT_VU->GetYaxis()->SetRangeUser(0,(isMic ? 100 : 12));
   g_FIT_VU->SetLineWidth(2);
   g_FIT_VU->SetLineColor(kBlue);
   g_FIT_VU->SetMarkerStyle(kFullCircle);
@@ -68,7 +68,7 @@
   g_FIT_TH->GetYaxis()->SetTitle("Time for "+ntrk+" tracks [s]");
   g_FIT_TH->GetYaxis()->SetTitleOffset(1.25);
   g_FIT_TH->GetXaxis()->SetRangeUser(1,maxth);
-  g_FIT_TH->GetYaxis()->SetRangeUser((isMic ? 0.01 : 0),(isMic ? 10 : 2));
+  g_FIT_TH->GetYaxis()->SetRangeUser((isMic ? 0.01 : 0),(isMic ? 20 : 4));
   g_FIT_TH->SetLineWidth(2);
   g_FIT_TH->SetLineColor(kBlue);
   g_FIT_TH->SetMarkerStyle(kFullCircle);

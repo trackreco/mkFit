@@ -129,15 +129,13 @@ __device__ void multResidualsAdd_fn(
   /*int i = threadIdx.x;*/
   /*int n = threadIdx.x + blockIdx.x * blockDim.x;*/
 
-  float x0, x1, x2;
-
   /*for (int z = 0; z < (N-1)/gridDim.x  +1; z++) {*/
     /*n += z*gridDim.x;*/
      if (n < N) {
        // manually substract into local vars -- 3 of them
-       x0 = c[0 * cN + n] - b[0 * bN + n];
-       x1 = c[1 * cN + n] - b[1 * bN + n];
-       x2 = c[2 * cN + n] - b[2 * bN + n];
+       const float x0 = c[0 * cN + n] - b[0 * bN + n];
+       const float x1 = c[1 * cN + n] - b[1 * bN + n];
+       const float x2 = c[2 * cN + n] - b[2 * bN + n];
 
        // generate loop (can also write it manually this time, it's not much)
        // WARNING: highly numerically sensitive expressions.
