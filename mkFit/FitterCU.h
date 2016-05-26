@@ -62,9 +62,16 @@ class FitterCU {
 
   void propagationMerged();
   void kalmanUpdateMerged();
+  void kalmanUpdate_standalone(
+      const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+      const MPlexHS &msErr,  const MPlexHV& msPar,
+      MPlexLS &outErr,       MPlexLV& outPar);
 
-  void computeChi2gpu(const MPlexLS &psErr, MPlexHS &msErr,
-      MPlexHV& msPar, const MPlexLV& propPar, GPlexQF& d_outChi2, int NN);
+  void computeChi2gpu(const MPlexLS &psErr, const MPlexLV& propPar,
+    const MPlexQI &inChg, MPlexHS &msErr, MPlexHV& msPar,
+    BunchOfHitsCU &d_bunch, //MPlexQI &XHitPos, MPlexQI &XHitSize,
+    MPlexQF &Chi2, MPlexQI &HitsIdx,
+    int NN);
 
   void allocate_extra_addBestHit();
   void free_extra_addBestHit();

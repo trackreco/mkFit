@@ -59,6 +59,24 @@ void FitterCU<T>::kalmanUpdateMerged() {
 }
 
 template <typename T>
+void FitterCU<T>::kalmanUpdate_standalone(
+    const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+    const MPlexHS &msErr,  const MPlexHV& msPar,
+    MPlexLS &outErr,       MPlexLV& outPar)
+{
+  //d_Err_iP.copyAsyncFromHost(stream, psErr);
+  //d_msErr.copyAsyncFromHost(stream, msErr);
+  //d_par_iP.copyAsyncFromHost(stream, psPar);
+  //d_msPar.copyAsyncFromHost(stream, msPar);
+
+  kalmanUpdate_wrapper(stream, d_Err_iP, d_msErr,
+                       d_par_iP, d_msPar, d_par_iC, d_Err_iC, N);
+
+  //d_par_iC.copyAsyncToHost(stream, outPar);
+  //d_Err_iC.copyAsyncToHost(stream, outErr);
+}
+
+template <typename T>
 void FitterCU<T>::propagationMerged() {
   propagation_wrapper(stream, d_msPar, d_par_iC, d_inChg,
                       //d_par_iP, d_Err_iC, d_Err_iP, N); // TODO: Check outErr/errorProp
@@ -66,18 +84,83 @@ void FitterCU<T>::propagationMerged() {
 }
 
 template <typename T>
-void FitterCU<T>::computeChi2gpu(
-    const MPlexLS &psErr, MPlexHS &msErr,
-    MPlexHV& msPar, const MPlexLV& propPar, GPlexQF& d_outChi2, int NN) {
+void FitterCU<T>::computeChi2gpu(const MPlexLS &psErr, const MPlexLV& propPar,
+    const MPlexQI &inChg, MPlexHS &msErr, MPlexHV& msPar,
+    BunchOfHitsCU &d_bunch, //MPlexQI &XHitPos, MPlexQI &XHitSize,
+    MPlexQF &Chi2, MPlexQI &HitsIdx,
+    int NN) {
 
-  // TODO: add CMSGeom
-  if (Config::useCMSGeom) {
-    //propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar);
-    throw std::runtime_error("useCMSGeom not implemented yet for GPU");
-  } else {}
+  //float *d_minChi2;
+  //int *d_bestHit;
+  //cudaMalloc((void**)&d_minChi2, NN*sizeof(float));
+  //cudaMalloc((void**)&d_bestHit, NN*sizeof(int));
 
-  computeChi2_wrapper(stream, d_Err_iP, d_msErr, //d_resErr, 
-      d_msPar, d_par_iP, d_outChi2, N);
+  //cudaMemcpyAsync(d_minChi2, minChi2, NN*sizeof(float), cudaMemcpyHostToDevice, stream);
+  //cudaMemcpyAsync(d_bestHit, bestHit, NN*sizeof(int), cudaMemcpyHostToDevice, stream);
+
+  //cudaMemset(d_bestHit, -1, NN*sizeof(int));
+  //fill_array_cu(d_minChi2, NN, 15.f);
+
+  //d_Err_iP.copyAsyncFromHost(stream, psErr);
+  //d_par_iP.copyAsyncFromHost(stream, propPar);
+  //d_msErr.copyAsyncFromHost(stream, msErr);
+  //d_msPar.copyAsyncFromHost(stream, msPar);
+  //d_XHitPos.copyAsyncFromHost(stream, XHitPos);
+  //d_XHitSize.copyAsyncFromHost(stream, XHitSize);
+
+  //cudaMemcpy2DAsync(d_Chi2, NN*sizeof(float), Chi2.fArray, NN*sizeof(float), 
+               //NN*sizeof(float), 1, cudaMemcpyHostToDevice, stream);
+  //cudaMemcpy2DAsync(d_HitsIdx, NN*sizeof(int), HitsIdx.fArray, NN*sizeof(int), 
+               //NN*sizeof(int), 1, cudaMemcpyHostToDevice, stream);
+
+  //cudaStreamSynchronize(stream);
+  //cudaCheckError();
+
+  selectHitRanges_wrapper(stream, d_bunch, d_XHitPos, d_XHitSize, 
+      d_Err_iP, d_par_iP, N);
+
+  int maxSize2 = getMaxNumHits_wrapper(d_XHitSize, N);
+  bestHit_wrapper(stream, d_bunch, d_XHitPos,
+                  d_Err_iP, d_msErr, d_msPar, d_par_iP, d_outChi2,
+                  d_Chi2, d_HitsIdx,
+                  maxSize2, N);
+#if 0
+  for (int hit_cnt = 0; hit_cnt < maxSize2; ++hit_cnt)
+  {
+    // TODO: add CMSGeom
+    if (Config::useCMSGeom) {
+      //propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar);
+      throw std::runtime_error("useCMSGeom not implemented yet for GPU");
+    } else {}
+    HitToMs_wrapper(stream, d_msErr, d_msPar, d_bunch, d_XHitPos, hit_cnt, NN);
+
+    computeChi2_wrapper(stream, d_Err_iP, d_msErr, //d_resErr, 
+        d_msPar, d_par_iP, d_outChi2, NN);
+
+    getNewBestHitChi2_wrapper(stream, d_outChi2, d_minChi2, d_bestHit, hit_cnt, NN);
+
+    cudaStreamSynchronize(stream);
+    cudaCheckError();
+  }
+  updateTracksWithBestHit_wrapper(stream,
+    d_bunch, d_XHitPos, d_minChi2, d_bestHit, 
+    d_msErr, d_msPar, d_par_iP, d_Chi2, d_HitsIdx, N);
+#endif
+
+  //d_outChi2.copyAsyncToHost(stream, outChi2);
+  //cudaMemcpyAsync(minChi2, d_minChi2, NN*sizeof(float), cudaMemcpyDeviceToHost, stream);
+  //cudaMemcpyAsync(bestHit, d_bestHit, NN*sizeof(int), cudaMemcpyDeviceToHost, stream);
+
+  //cudaMemcpy2DAsync(Chi2.fArray, NN*sizeof(float), d_Chi2, NN*sizeof(float), 
+  //             NN*sizeof(float), 1, cudaMemcpyDeviceToHost, stream);
+  //cudaMemcpy2DAsync(HitsIdx.fArray, NN*sizeof(int), d_HitsIdx, NN*sizeof(int), 
+  //             NN*sizeof(int), 1, cudaMemcpyDeviceToHost, stream);
+
+  //cudaStreamSynchronize(stream);
+  //cudaCheckError();
+
+  //cudaFree(d_minChi2);
+  //cudaFree(d_bestHit);
 }
 
 // FIXME: Temporary. Separate allocations / transfers
@@ -112,7 +195,7 @@ void FitterCU<T>::prepare_addBestHit(
 
   createStream();
   cudaCheckError()
-
+#if 1
   // psErr -> d_Err_iP
   cudaMemcpy2DAsync(d_Err_iP.ptr, d_Err_iP.pitch, psErr.fArray, N*sizeof(T),
                N*sizeof(T), LS, cudaMemcpyHostToDevice, stream);
@@ -120,6 +203,7 @@ void FitterCU<T>::prepare_addBestHit(
   d_par_iP.copyAsyncFromHost(stream, propPar);
   //sendInChgToDevice(inChg);
   d_inChg.copyAsyncFromHost(stream, inChg);
+#endif
 }
 
 // TODO: Temporary. Separate allocations / transfers
@@ -128,6 +212,7 @@ void FitterCU<T>::finalize_addBestHit(
     MPlexHS &msErr, MPlexHV& msPar,
     MPlexLS &outErr, MPlexLV &outPar,
     MPlexQI &HitsIdx, MPlexQF &Chi2) {
+#if 1
   //getOutParFromDevice(outPar);  // <- d_par_iC
   d_par_iC.copyAsyncToHost(stream, outPar);
   //getOutErrFromDevice(outErr);  // <- d_Err_iC
@@ -141,7 +226,7 @@ void FitterCU<T>::finalize_addBestHit(
                N*sizeof(T), HS, cudaMemcpyDeviceToHost, stream);
   cudaMemcpyAsync(HitsIdx.fArray, d_HitsIdx, N*sizeof(int), cudaMemcpyDeviceToHost, stream);
   cudaMemcpyAsync(Chi2.fArray, d_Chi2, N*sizeof(float), cudaMemcpyDeviceToHost, stream);
-
+#endif
 
   destroyStream();
 }

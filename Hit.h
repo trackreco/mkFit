@@ -85,11 +85,17 @@ inline float getInvRad2(float x, float y){
   return 1.0f/(x*x + y*y);
 }
 
+#ifdef __CUDACC__
+__host__ __device__
+#endif
 inline float getPhi(float x, float y)
 {
   return std::atan2(y,x); 
 }
 
+#ifdef __CUDACC__
+__host__ __device__
+#endif
 inline float getTheta(float r, float z){
   return std::atan2(r,z);
 }

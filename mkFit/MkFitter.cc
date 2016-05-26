@@ -1607,3 +1607,122 @@ void MkFitter::CopyOutParErr(std::vector<std::vector<Track> >& seed_cand_vec,
               << " etaBin=" << getEtaBin(cand.posEta()));
   }
 }
+
+////////////////////////////////// //////////////////////////////////
+// Temporary
+#ifdef USE_CUDA
+void MkFitter::AddBestHit_gpu(const BunchOfHits &bunch_of_hits, FitterCU<float> &cuFitter,
+    BunchOfHitsCU &bunch_of_hits_cu)
+{
+#ifdef USE_CUDA
+    cuFitter.computeChi2gpu(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits],
+        bunch_of_hits_cu, // XHitPos, XHitSize,
+        Chi2, HitsIdx[Nhits], NN);
+    cuFitter.kalmanUpdate_standalone(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits],
+        Err[iC], Par[iC]);
+#else
+  //fixme solve ambiguity NN vs beg-end
+  float minChi2[NN];
+  std::fill_n(minChi2, NN, Config::chi2Cut);
+  int bestHit[NN];
+  std::fill_n(bestHit, NN, -1);
+
+
+  const char *varr      = (char*) bunch_of_hits.m_hits;
+
+  const int   off_error = (char*) bunch_of_hits.m_hits[0].errArray() - varr;
+  const int   off_param = (char*) bunch_of_hits.m_hits[0].posArray() - varr;
+
+  int idx[NN]      __attribute__((aligned(64)));
+  int idx_chew[NN] __attribute__((aligned(64)));
+
+  int maxSize = -1;
+
+  // Determine maximum number of hits for tracks in the collection.
+  // At the same time prefetch the first set of hits to L1 and the second one to L2.
+  for (int it = 0; it < NN; ++it)
+  {
+    int off = XHitPos.At(it, 0, 0) * sizeof(Hit);
+
+    idx[it]      = off;
+    idx_chew[it] = it*sizeof(Hit);
+
+    maxSize = std::max(maxSize, XHitSize.At(it, 0, 0));
+  }
+
+  // XXXX MT Uber hack to avoid tracks with like 300 hits to process.
+  //fixme this makes results dependent on vector unit size
+  maxSize = std::min(maxSize, Config::maxHitsConsidered);
+// Has basically no effect, it seems.
+//#pragma noprefetch
+  for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt, varr += sizeof(Hit))
+  {
+    //fixme what if size is zero???
+    msErr[Nhits].SlurpIn(varr + off_error, idx);
+    msPar[Nhits].SlurpIn(varr + off_param, idx);
+
+    //now compute the chi2 of track state vs hit
+    MPlexQF outChi2;
+    computeChi2MPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits], outChi2);
+    //update best hit in case chi2<minChi2
+#pragma simd
+    for (int itrack = 0; itrack < NN; ++itrack)
+    {
+      // make sure the hit was in the compatiblity window for the candidate
+      if (hit_cnt >= XHitSize.At(itrack, 0, 0)) continue;
+      const float chi2 = std::abs(outChi2[itrack]);//fixme negative chi2 sometimes...
+      dprint("chi2=" << chi2 << " minChi2[itrack]=" << minChi2[itrack]);
+      if (chi2 < minChi2[itrack]) 
+      {
+        minChi2[itrack]=chi2;
+        bestHit[itrack]=hit_cnt;
+      }
+    }
+  } // end loop over hits
+
+  //copy in MkFitter the hit with lowest chi2
+  for (int itrack = 0; itrack < NN; ++itrack)
+  {
+    _mm_prefetch((const char*) & bunch_of_hits.m_hits[XHitPos.At(itrack, 0, 0) + bestHit[itrack]], _MM_HINT_T0);
+  }
+
+#pragma simd
+  for (int itrack = 0; itrack < NN; ++itrack)
+  {
+    //fixme decide what to do in case no hit found
+    if (bestHit[itrack] >= 0)
+    {
+      const Hit &hit  = bunch_of_hits.m_hits[ XHitPos.At(itrack, 0, 0) + bestHit[itrack] ];
+      const float chi2 = minChi2[itrack];
+
+      dprint("ADD BEST HIT FOR TRACK #" << itrack << std::endl
+        << "prop x=" << Par[iP].ConstAt(itrack, 0, 0) << " y=" << Par[iP].ConstAt(itrack, 1, 0) << std::endl
+        << "copy in hit #" << bestHit[itrack] << " x=" << hit.position()[0] << " y=" << hit.position()[1]);
+	  
+      msErr[Nhits].CopyIn(itrack, hit.errArray());
+      msPar[Nhits].CopyIn(itrack, hit.posArray());
+      Chi2(itrack, 0, 0) += chi2;
+      HitsIdx[Nhits](itrack, 0, 0) = XHitPos.At(itrack, 0, 0) + bestHit[itrack];
+    }
+    else
+    {
+      dprint("ADD FAKE HIT FOR TRACK #" << itrack);
+
+      msErr[Nhits].SetDiagonal3x3(itrack, 666);
+      msPar[Nhits](itrack,0,0) = Par[iP](itrack,0,0);
+      msPar[Nhits](itrack,1,0) = Par[iP](itrack,1,0);
+      msPar[Nhits](itrack,2,0) = Par[iP](itrack,2,0);
+      HitsIdx[Nhits](itrack, 0, 0) = -1;
+
+      // Don't update chi2
+    }
+  }
+
+  //now update the track parameters with this hit (note that some calculations are already done when computing chi2... not sure it's worth caching them?)
+  dprint("update parameters");
+  updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits],
+      Err[iC], Par[iC]);
+  //std::cout << "Par[iP](0,0,0)=" << Par[iP](0,0,0) << " Par[iC](0,0,0)=" << Par[iC](0,0,0)<< std::endl;
+#endif
+}
+#endif

@@ -340,7 +340,36 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
 
             //make candidates with best hit
             dprint("make new candidates");
+#ifdef USE_CUDA
+            BunchOfHitsCU bunch_of_hits_cu;
+            bunch_of_hits_cu.copyBunchOfHitsFromCPU(bunch_of_hits);
+            bunch_of_hits_cu.allocatePhiBinInfos(bunch_of_hits.m_phi_bin_infos.size());
+            bunch_of_hits_cu.copyPhiBinInfosFromCPU(bunch_of_hits);
+
+            FitterCU<float> cuFitter(NN);
+            cuFitter.allocateDevice();
+            cuFitter.allocate_extra_addBestHit();
+            cuFitter.prepare_addBestHit(
+                mkfp->Err[mkfp->iP], mkfp->Par[mkfp->iP],
+                mkfp->Chg,
+                NN);
+
+            //mkfp->AddBestHit_gpu(bunch_of_hits, cuFitter, bunch_of_hits_cu);
+            cuFitter.addBestHit(bunch_of_hits_cu);
+
+            cuFitter.finalize_addBestHit(
+                mkfp->msErr[mkfp->Nhits], mkfp->msPar[mkfp->Nhits],
+                mkfp->Err[mkfp->iC], mkfp->Par[mkfp->iC],
+                mkfp->HitsIdx[mkfp->Nhits], mkfp-> Chi2);
+            cuFitter.free_extra_addBestHit();
+            cuFitter.freeDevice();
+
+            bunch_of_hits_cu.freePhiBinInfos();
+
             mkfp->AddBestHit(bunch_of_hits);
+#else
+            mkfp->AddBestHit(bunch_of_hits);
+#endif
             mkfp->SetNhits(ilay + 1);  //here again assuming one hit per layer (is this needed?)
 
             //propagate to layer

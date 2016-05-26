@@ -7,45 +7,10 @@ constexpr int L = 6;
 constexpr int LL2 = 36;
 constexpr int LS = 21;
 
-template <typename T, int D1, int D2>
-struct GPlexReg {
-  __device__ T  operator[](int xx) const { return arr[xx]; }
-  __device__ T& operator[](int xx)       { return arr[xx]; }
-
-  __device__ T& operator()(int n, int i, int j)       { return arr[i*D2 + j]; }
-  __device__ T  operator()(int n, int i, int j) const { return arr[i*D2 + j]; }
-
-  __device__ void SetVal(T v)
-  {
-     for (int i = 0; i < D1; ++i)
-     {
-        arr[i] = v;
-     }
-  }
-
-  T arr[D1];
-};
-
 // values from 32 to 512 give good results.
 // 32 gives slightly better results (on a K40)
-#define BLOCK_SIZE_X 32
-#define MAX_BLOCKS_X 65535 // CUDA constraint
-
-#if 0
-__device__ float hipo(float x, float y) {
-  return std::sqrt(x*x + y*y);
-}
-
-__device__ void sincos4_cu(float x, float& sin, float& cos) {
-   // Had this writen with explicit division by factorial.
-   // The *whole* fitting test ran like 2.5% slower on MIC, sigh.
-   cos  = 1;
-   sin  = x;   x *= x * 0.5f;
-   cos -= x;   x *= x * 0.33333333f;
-   sin -= x;   x *= x * 0.25f;
-   cos += x;
-}
-#endif
+constexpr int BLOCK_SIZE_X = 32;
+constexpr int MAX_BLOCKS_X = 65535; // CUDA constraint
 
 // computeJacobianSimple works on values that are in registers.
 // Registers are thread-private. Thus this function has no notion of
@@ -122,10 +87,10 @@ __device__ void assignMsRad_fn(const float r, float* msRad, int N, int n) {
 
 // Not passing msRad.stride, as QF == 1 (second dim f msRad)
 __device__ void computeMsRad_fn(const GPlexHV& __restrict__ msPar,
-    float* msRad, int N, int n) {
+    GPlexRegQF &msRad, int N, int n) {
   /*int n = threadIdx.x + blockIdx.x * blockDim.x;*/
   if (n < N) {
-    *msRad = hipo(msPar.ptr[n], msPar.ptr[n + msPar.stride]);
+    msRad(n, 0, 0) = hipo(msPar(n, 0, 0), msPar(n, 1, 0));
   }
 }
 
@@ -156,9 +121,9 @@ void helixAtRFromIterative_fn(const GPlexLV& inPar,
 }
 
 /// Similarity ////////////////////////////////////////////////////////////////
-__device__ void similarity_fn(float* a, float *b, size_t stride_outErr,
-    int N, int n) {
-  size_t bN = stride_outErr;
+__device__ void similarity_fn(GPlexRegLL &a, GPlexLS &b, int N, int n) {
+
+  size_t bN = b.stride;
   
   // Keep most values in registers.
   float b_reg[LL2];
@@ -257,9 +222,9 @@ __global__ void propagation_kernel(
 
   int grid_width = blockDim.x * gridDim.x;
   int n = threadIdx.x + blockIdx.x * blockDim.x;
-  GPlexReg<float,1,1> msRad_reg;
+  GPlexRegQF msRad_reg;
   // Using registers instead of shared memory is ~ 30% faster.
-  GPlexReg<float, LL2, L> errorProp_reg;
+  GPlexRegLL errorProp_reg;
   // If there is more matrices than MAX_BLOCKS_X * BLOCK_SIZE_X 
   for (int z = 0; z < (N-1)/grid_width  +1; z++) {
     n += z*grid_width;
@@ -276,9 +241,14 @@ __global__ void propagation_kernel(
       }
       similarity_fn(errorProp_reg, outErr, outErr_stride, N, n);
 #endif
-      computeMsRad_fn(msPar, msRad_reg.arr, N, n);
+      computeMsRad_fn(msPar, msRad_reg, N, n);
+#ifdef POLCOORD
+      // FIXME: port me
+      // helixAtRFromIterativePolar(inPar, inChg, outPar, msRad, errorProp);
+#else
       helixAtRFromIterative_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
-      similarity_fn(errorProp_reg.arr, outErr.ptr, outErr.stride, N, n);
+#endif
+      similarity_fn(errorProp_reg, outErr, N, n);
     }
   }
 }

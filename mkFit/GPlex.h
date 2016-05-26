@@ -75,4 +75,34 @@ using GPlexLH = GPlex<float, MPlexLH>;
 using GPlexQF = GPlex<float, MPlexQF>;
 using GPlexQI = GPlex<int, MPlexQI>;
 
+
+template <typename T, int D1, int D2>
+struct GPlexReg {
+  __device__ T  operator[](int xx) const { return arr[xx]; }
+  __device__ T& operator[](int xx)       { return arr[xx]; }
+
+  __device__ T& operator()(int n, int i, int j)       { return arr[i*D2 + j]; }
+  __device__ T  operator()(int n, int i, int j) const { return arr[i*D2 + j]; }
+
+  __device__ void SetVal(T v)
+  {
+     for (int i = 0; i < D1; ++i)
+     {
+        arr[i] = v;
+     }
+  }
+
+  T arr[D1];
+};
+
+using GPlexRegLL = GPlexReg<float, 36, 6>;
+using GPlexRegLH = GPlexReg<float, 18, 6>;
+using GPlexRegHH = GPlexReg<float, 9, 3>;
+using GPlexRegLV = GPlexReg<float, 6, 1>;
+using GPlexRegHS = GPlexReg<float, 6, 1>;
+using GPlexRegHV = GPlexReg<float, 3, 1>;
+using GPlexReg2V = GPlexReg<float, 2, 1>;
+using GPlexReg2S = GPlexReg<float, 3, 1>;
+using GPlexRegQF = GPlexReg<float, 1, 1>;
+
 #endif  // _GPLEX_H_

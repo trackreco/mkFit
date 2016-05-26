@@ -14,10 +14,15 @@ void reorganizeMs_wrapper(cudaStream_t& stream, GPlexQF& msPar,
     float *full_errArray, int *full_hitIdx, int hi, int maxHits,
     int N, int hs, int hv, int Nhits);
 
-__device__ void addIntoUpperLeft3x3_fn(const float* __restrict__ a, size_t aN, 
-                                       const float* __restrict__ b, size_t bN, 
-                                       float *c, const int N, int n);
+__device__ void addIntoUpperLeft3x3_fn(const GPlexLS __restrict__ &A,
+                                       const GPlexHS __restrict__ &B,
+                                       GPlexRegHS &c, const int N, int n);
+
+__device__ void subtractFirst3_fn(const GPlexHV __restrict__ &A,
+                                  const GPlexLV __restrict__ &B,
+                                  GPlexRegHV &C, const int N, int n);
 
 __device__ void invertCramerSym_fn(float *a);
+__device__ void invertCramerSym2x2_fn(GPlexReg2S &a);
 
 #endif  // _KALMAN_UPDATER_KERNELS_H_

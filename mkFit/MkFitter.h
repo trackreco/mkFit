@@ -9,6 +9,7 @@
 #include "BinInfoUtils.h"
 
 #include "FitterCU.h"
+#include "HitStructuresCU.h"
 
 //#define DEBUG 1
 
@@ -109,6 +110,10 @@ public:
 
   void SelectHitRanges(const BunchOfHits &bunch_of_hits, const int N_proc);
   void AddBestHit     (const BunchOfHits &bunch_of_hits);
+#ifdef USE_CUDA
+  void AddBestHit_gpu (const BunchOfHits &bunch_of_hits, FitterCU<float> &cuFitter,
+      BunchOfHitsCU &bunch_of_hits_cu);
+#endif
 
   void FindCandidates(const BunchOfHits &bunch_of_hits, std::vector<std::vector<Track> >& tmp_candidates,
                       const int offset, const int N_proc);
