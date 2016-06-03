@@ -32,21 +32,23 @@ namespace Config
   extern int nEvents;
 
   // config on main -- for geometry
-  constexpr int   nLayers   = 10;
+  constexpr int   nLayers   = 10; //cmssw tests: 13, 17
   constexpr float fRadialSpacing   = 4.;
   constexpr float fRadialExtent    = 0.01;
   constexpr float fInnerSensorSize = 5.0; // approximate sensor size in cm
   constexpr float fOuterSensorSize = Config::fInnerSensorSize * 2.;
-  constexpr float fEtaDet          = 1;  // 1 from chep
+  constexpr float fEtaDet          = 1;  //cmssw tests: 2
 
   //constexpr float cmsAvgRads[10] = {4.42,7.31,10.17,25.65,33.81,41.89,49.67,60.95,69.11,78.19}; // cms average radii
-  constexpr float cmsAvgRads[10] = {4.42,7.31,10.17,25.65,25.65,33.81,33.81,41.89,49.67,60.95}; // cms average radii, noMatch version
+  //constexpr float cmsAvgRads[13] = {4.42,7.31,10.17,25.58,33.98,41.79,49.78,60.78,69.2,77.96,86.80,96.53,108.00}; // cms average radii, noSplit version
+  //constexpr float cmsAvgRads[10] = {4.42,7.31,10.17,25.65,25.65,33.81,33.81,41.89,49.67,60.95}; // cms average radii, split version
+  constexpr float cmsAvgRads[17] = {4.42,7.31,10.17,25.58,25.58,33.98,33.98,41.79,49.78,60.57,61.00,69.41,68.98,77.96,86.80,96.53,108.00}; // cms average radii, split version
   constexpr float cmsDeltaRad = 2.5; //fixme! using constant 2.5 cm, to be taken from layer properties
 
   // config on Event
-  constexpr float chi2Cut = 30.;//15.;
+  constexpr float chi2Cut = 15.; //cmssw tests: 30.
   constexpr float nSigma  = 3.;
-  constexpr float minDPhi = 0.;
+  constexpr float minDPhi = 0.;  //cmssw tests: 0.02;
   constexpr float maxDPhi = Config::PI;
   constexpr float minDEta = 0.;
   constexpr float maxDEta = 1.0;
@@ -99,7 +101,7 @@ namespace Config
   // Config for Hit and BinInfoUtils
   constexpr int   nPhiPart   = 1260;
   constexpr float fPhiFactor = nPhiPart / TwoPI;
-  constexpr int   nEtaPart   = 1;//11;
+  constexpr int   nEtaPart   = 11; //cmssw tests: 1
   constexpr int   nEtaBin    = 2 * nEtaPart - 1;
 
   constexpr float        fEtaFull  = 2 * Config::fEtaDet;
@@ -131,17 +133,11 @@ namespace Config
   // config on fitting
   extern bool cf_fitting;
 
-  // matrix config
-  // XXXX MT this should be renamed, made constexpr
-#ifndef MAX_HITS
-#define MAX_HITS 10
-#endif
-
   //fixme: these should not be constant and modified when nTracks is set from reading a file
   constexpr int maxHitsConsidered = 25;
   const     int maxHitsPerBunch   = std::max(100, nTracks * 12 / 10 / nEtaPart) + maxHitsConsidered;
 
-  constexpr int maxCandsPerSeed   = 6;
+  constexpr int maxCandsPerSeed   = 6; //cmssw tests: 3
   constexpr int maxHolesPerCand   = 2;
   const     int maxCandsPerEtaBin = std::max(100, maxCandsPerSeed * nTracks / nEtaPart);
   // Effective eta bin is one half of nEtaPart -- so the above is twice the "average".

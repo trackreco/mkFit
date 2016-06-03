@@ -103,7 +103,7 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 
    std::vector<Track>& simtracks = ev.simTracks_;
 
-   const int Nhits = MAX_HITS;
+   const int Nhits = Config::nLayers;
    // XXX What if there's a missing / double layer?
    // Eventually, should sort track vector by number of hits!
    // And pass the number in on each "setup" call.

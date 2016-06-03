@@ -773,7 +773,7 @@ void MkFitter::SelectHitRanges(const BunchOfHits &bunch_of_hits, const int N_pro
       dPhiMargin = dist/radius;
     }
     // #ifdef DEBUG
-    //     std::cout << "dPhiMargin=" << dPhiMargin << std::endl;
+    //     std::cout << "nSigmaDphi=" << nSigmaDphi << " dPhiMargin=" << dPhiMargin << std::endl;
     // #endif
 
     //if (nSigmaDphi>0.3) 

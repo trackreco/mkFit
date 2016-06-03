@@ -196,6 +196,7 @@ public:
   }
 
   void setNGoodHitIdx() {
+    nGoodHitIdx_=0;
     for (int i=0;i<= hitIdxPos_;i++) {
       if (hitIdxArr_[i]>=0) nGoodHitIdx_++;
     }

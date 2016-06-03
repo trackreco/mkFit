@@ -21,13 +21,13 @@ struct MkFitter
 
   MPlexQF Chi2;
 
-  MPlexHS msErr[MAX_HITS];
-  MPlexHV msPar[MAX_HITS];
+  MPlexHS msErr[Config::nLayers];
+  MPlexHV msPar[Config::nLayers];
 
   MPlexQI Label;  //this is the seed index in global seed vector (for MC truth match)
   MPlexQI SeedIdx;//this is the seed index in local thread (for bookkeeping at thread level)
   MPlexQI CandIdx;//this is the candidate index for the given seed (for bookkeeping of clone engine)
-  MPlexQI HitsIdx[MAX_HITS];
+  MPlexQI HitsIdx[Config::nLayers];
 
   // Hold hit indices to explore at current layer.
   MPlexQI XHitPos;   // Should be pos (so can move it forward)

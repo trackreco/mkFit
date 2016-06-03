@@ -73,12 +73,13 @@ with open('log'+suffix+'.txt') as f:
             PT = line.split()[7].split('=')[1]
             h_MXPT.Fill(float(PT))
             PTMC = line.split()[8].split('=')[1]
-            h_MXPTm.Fill(float(PTMC))
-            h_MXPTr.Fill((float(PT)-float(PTMC))/float(PTMC))
             NHS = line.split()[9].split('=')[1]
             NHR = line.split()[10].split('=')[1]
-            h_NHDS.Fill(float(NH)-float(NHS))
-            h_NHDR.Fill(float(NH)-float(NHR))
+            if float(PTMC)>0.01 and float(NHS)>=3 and float(NHR)>=3:
+                h_MXPTm.Fill(float(PTMC))
+                h_MXPTr.Fill((float(PT)-float(PTMC))/float(PTMC))
+                h_NHDS.Fill(float(NH)-float(NHS))
+                h_NHDR.Fill(float(NH)-float(NHR))
         elif "MX - simtrack with nHits" in line:
             NH = line.split()[4].split('=')[1]
             h_SIMNH.Fill(float(NH))

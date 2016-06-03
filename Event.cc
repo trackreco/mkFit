@@ -43,6 +43,7 @@ void Event::resetLayerHitMap(bool resetSimHits) {
     for (int index = 0; index < layerHits_[ilayer].size(); ++index) {
       auto& hit = layerHits_[ilayer][index];
       assert(hit.mcHitID() >= 0); // tmp debug
+      assert(hit.mcHitID() < layerHitMap_.size());
       layerHitMap_[hit.mcHitID()] = HitID(ilayer, index);
     }
   }
@@ -374,7 +375,7 @@ void Event::read_in(FILE *fp)
   /*
   printf("read %i simtracks\n",nt);
   for (int it = 0; it<nt; it++) {
-    printf("simtrack with q=%i pT=%5.3f and nHits=%i\n",simTracks_[it].charge(),simTracks_[it].pT(),simTracks_[it].nTotalHits());
+    printf("simtrack with q=%i pT=%5.3f and nHits=%i\n",simTracks_[it].charge(),simTracks_[it].pT(),simTracks_[it].nFoundHits());
     for (int ih=0; ih<simTracks_[it].nTotalHits(); ++ih) {
       if (simTracks_[it].getHitIdx(ih)>=0)
 	printf("hit #%i idx=%i pos r=%5.3f\n",ih,simTracks_[it].getHitIdx(ih),layerHits_[ih][simTracks_[it].getHitIdx(ih)].r());
