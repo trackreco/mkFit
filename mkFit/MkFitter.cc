@@ -750,7 +750,7 @@ void MkFitter::SelectHitRanges(const BunchOfHits &bunch_of_hits, const int N_pro
       //now correct for bending and for layer thickness unsing linear approximation
       const float deltaR = Config::cmsDeltaRad; //fixme! using constant value, to be taken from layer properties
       const float radius = std::sqrt(px2py2);
-#ifdef POLCOORD
+#ifdef CCSCOORD
       //here alpha is the difference between posPhi and momPhi
       const float alpha = phi-Par[iP].ConstAt(itrack, 4, 0);
       float cosA,sinA;

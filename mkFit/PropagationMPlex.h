@@ -17,13 +17,13 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
 			          MPlexLS& outErr,       MPlexLV& outPar,
                             const int      N_proc);
 
-void helixAtRFromIterativePolarFullJac(const MPlexLV& inPar, const MPlexQI& inChg,
-				             MPlexLV& outPar, const MPlexQF &msRad,
-				             MPlexLL& errorProp);
+void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg,
+			                   MPlexLV& outPar, const MPlexQF &msRad,
+				           MPlexLL& errorProp);
 
-void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg,
-			              MPlexLV& outPar, const MPlexQF &msRad,
-			              MPlexLL& errorProp);
+void helixAtRFromIterativeCCS(const MPlexLV& inPar, const MPlexQI& inChg,
+			            MPlexLV& outPar, const MPlexQF &msRad,
+			            MPlexLL& errorProp);
 
 void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, 
 			         MPlexLV& outPar, const MPlexQF &msRad, 

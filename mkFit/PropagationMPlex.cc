@@ -223,7 +223,7 @@ void MultHelixPropTranspFull(const MPlexLL& A, const MPlexLL& B, MPlexLL& C)
 
 }
 
-void helixAtRFromIterativePolarFullJac(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar, const MPlexQF &msRad, MPlexLL& errorProp) {
+void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar, const MPlexQF &msRad, MPlexLL& errorProp) {
 
   errorProp.SetVal(0);
   MPlexLL errorPropTmp(0);//initialize to zero
@@ -354,7 +354,7 @@ void helixAtRFromIterativePolarFullJac(const MPlexLV& inPar, const MPlexQI& inCh
     }
 }
 
-void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar, const MPlexQF &msRad, MPlexLL& errorProp) {
+void helixAtRFromIterativeCCS(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar, const MPlexQF &msRad, MPlexLL& errorProp) {
 
   errorProp.SetVal(0);
 
@@ -773,7 +773,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, MPlexLS 
 #pragma simd
   for (int n = 0; n < NN; ++n)
     {
-#ifdef POLCOORD
+#ifdef CCSCOORD
 
       float radL = hitsRl.ConstAt(n,0,0);
       if (radL<0.0000000000001f) continue;//ugly, please fixme
@@ -818,7 +818,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, MPlexLS 
       if (radL<0.0000000000001f) continue;//ugly, please fixme
       const float& x = outPar.ConstAt(n,0,0);
       const float& y = outPar.ConstAt(n,0,1);
-      const float& px = outPar.ConstAt(n,0,3);//FIXME FOR POLCOORD
+      const float& px = outPar.ConstAt(n,0,3);//FIXME FOR CCSCOORD
       const float& py = outPar.ConstAt(n,0,4);
       const float& pz = outPar.ConstAt(n,0,5);
       const float r = std::sqrt(x*x+y*y);
@@ -909,8 +909,8 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
      // }
    }
 
-#ifdef POLCOORD
-   helixAtRFromIterativePolar(inPar, inChg, outPar, msRad, errorProp);
+#ifdef CCSCOORD
+   helixAtRFromIterativeCCS(inPar, inChg, outPar, msRad, errorProp);
 #else
    helixAtRFromIterative(inPar, inChg, outPar, msRad, errorProp);
 #endif
@@ -991,8 +991,8 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
      msRad.At(n, 0, 0) = r;
    }
 
-#ifdef POLCOORD
-   helixAtRFromIterativePolar(inPar, inChg, outPar, msRad, errorProp);
+#ifdef CCSCOORD
+   helixAtRFromIterativeCCS(inPar, inChg, outPar, msRad, errorProp);
 #else
    helixAtRFromIterative(inPar, inChg, outPar, msRad, errorProp);
 #endif
@@ -1012,7 +1012,7 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
    // Matriplex version of:
    // result.errors = ROOT::Math::Similarity(errorProp, outErr);
 
-   //MultHelixProp can be optimized for polar coordinates, see GenMPlexOps.pl
+   //MultHelixProp can be optimized for CCS coordinates, see GenMPlexOps.pl
    MPlexLL temp;
    MultHelixProp      (errorProp, outErr, temp);
    MultHelixPropTransp(errorProp, temp,   outErr);
