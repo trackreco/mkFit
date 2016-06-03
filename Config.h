@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <string> // won't compile on clang gcc for mac OS w/o this!
 
-#define PRINTOUTS_FOR_PLOTS
+//#define PRINTOUTS_FOR_PLOTS
 #define POLCOORD
 
 namespace Config
@@ -173,7 +173,7 @@ namespace Config
     #elif defined USE_CUDA
       #define MPT_SIZE 10000
     #else
-      #define MPT_SIZE 1
+      #define MPT_SIZE 8
     #endif
   #endif
 
