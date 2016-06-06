@@ -135,11 +135,12 @@ namespace Config
 
   //fixme: these should not be constant and modified when nTracks is set from reading a file
   constexpr int maxHitsConsidered = 25;
-  const     int maxHitsPerBunch   = std::max(100, nTracks * 12 / 10 / nEtaPart) + maxHitsConsidered;
+  extern    int maxHitsPerBunch;
 
   constexpr int maxCandsPerSeed   = 6; //cmssw tests: 3
   constexpr int maxHolesPerCand   = 2;
-  const     int maxCandsPerEtaBin = std::max(100, maxCandsPerSeed * nTracks / nEtaPart);
+  extern    int maxCandsPerEtaBin;
+
   // Effective eta bin is one half of nEtaPart -- so the above is twice the "average".
   // Note that last and first bin are 3/4 nEtaPart ... but can be made 1/4 by adding
   // additional bins on each end.
@@ -164,6 +165,8 @@ namespace Config
   //const std::string inputFile = "cmssw.simtracks.SingleMu10GeV.10k.new.txt";
   //const std::string inputFile = "cmssw.rectracks.SingleMu1GeV.10k.new.txt";
   //const std::string inputFile = "cmssw.rectracks.SingleMu10GeV.10k.new.txt";
+
+  void RecalculateDependentConstants();
 
 #ifdef USE_MATRIPLEX
 

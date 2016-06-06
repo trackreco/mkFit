@@ -10,7 +10,12 @@
 
 //#define DEBUG 1
 
+//#define USE_BOHS
+
 class CandCloner;
+
+const int MPlexHitIdxMax = 16;
+typedef Matriplex::Matriplex<int, MPlexHitIdxMax, 1, NN> MPlexHitIdx;
 
 struct MkFitter
 {
@@ -30,9 +35,9 @@ struct MkFitter
   MPlexQI HitsIdx[Config::nLayers];
 
   // Hold hit indices to explore at current layer.
-  MPlexQI XHitPos;   // Should be pos (so can move it forward)
-  MPlexQI XHitSize;  // Should be size (so i can reduce it)
-                     // with pos size could even handle phi wrap! XXXX do it
+  MPlexQI     XHitSize;
+  MPlexHitIdx XHitArr;
+
   // Indices into Err and Par arrays.
   // Thought I'll have to flip between them ...
   const int iC = 0; // current
@@ -58,8 +63,13 @@ public:
 
   void PrintPt(int idx);
 
-  //int getXHitBegin(int arg0,int arg1,int arg2) { return XHitBegin.At(arg0, arg1, arg2); }
-  //int getXHitEnd  (int arg0,int arg1,int arg2) { return XHitEnd  .At(arg0, arg1, arg2); }
+  float getPar(int itrack, int i, int par) const { return Par[i].ConstAt(itrack, 0, par); }
+  void  SetNhits(int newnhits) { Nhits=newnhits; }
+
+  int countValidHits  (int itrack, int end_hit) const;
+  int countInvalidHits(int itrack, int end_hit) const;
+  int countValidHits  (int itrack) const { return countValidHits  (itrack, Nhits); }
+  int countInvalidHits(int itrack) const { return countInvalidHits(itrack, Nhits); }
 
   void InputTracksAndHits(const std::vector<Track>& tracks, const std::vector<HitVec>& layerHits, int beg, int end);
   void SlurpInTracksAndHits(const std::vector<Track>&  tracks, const std::vector<HitVec>& layerHits, int beg, int end);
@@ -70,49 +80,29 @@ public:
   void InputTracksOnly   (const std::vector<Track>& tracks, int beg, int end);
   void InputHitsOnly(const std::vector<Hit>& hits, int beg, int end);
   void ConformalFitTracks(bool fitting, int beg, int end);
-  void FitTracks();
+  void FitTracks(const int N_proc);
 
   void OutputTracks(std::vector<Track>& tracks, int beg, int end, int iCP) const;
-  void OutputFittedTracks(std::vector<Track>& tracks, int beg, int end) const {
-    return OutputTracks(tracks,beg,end,iC);
-  }
-  void OutputPropagatedTracks(std::vector<Track>& tracks, int beg, int end) const {
-    return OutputTracks(tracks,beg,end,iP);
-  }
+
+  void OutputFittedTracks(std::vector<Track>& tracks, int beg, int end) const
+  { return OutputTracks(tracks,beg,end,iC); }
+
+  void OutputPropagatedTracks(std::vector<Track>& tracks, int beg, int end) const
+  { return OutputTracks(tracks,beg,end,iP); }
 
   void OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end, bool outputProp) const;
 
   void PropagateTracksToR(float R, const int N_proc);
 
-  void AddBestHit(const std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end);
+  void SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_proc, bool dump=false);
 
-  void GetHitRange(const std::vector<std::vector<BinInfo> >& segmentMapLay_, int beg, int end,
-                   int& firstHit, int& lastHit) const;
+  void AddBestHit      (const LayerOfHits &layer_of_hits, const int N_proc);
 
-  void FindCandidates(const std::vector<Hit>& lay_hits, int firstHit, int lastHit, int beg, int end, std::vector<std::vector<Track> >& tmp_candidates, int offset);
-
-  void SetNhits(int newnhits) { Nhits=newnhits; }
-
-  int countValidHits  (int itrack, int end_hit) const;
-  int countInvalidHits(int itrack, int end_hit) const;
-  int countValidHits  (int itrack) const { return countValidHits  (itrack, Nhits); }
-  int countInvalidHits(int itrack) const { return countInvalidHits(itrack, Nhits); }
-
-  float getPar(int itrack, int i, int par) const { return Par[i].ConstAt(itrack, 0, par); }
-
-
-  // ================================================================
-  // MT methods
-  // ================================================================
-
-  void SelectHitRanges(const BunchOfHits &bunch_of_hits, const int N_proc);
-  void AddBestHit     (const BunchOfHits &bunch_of_hits);
-
-  void FindCandidates(const BunchOfHits &bunch_of_hits, std::vector<std::vector<Track> >& tmp_candidates,
+  void FindCandidates(const LayerOfHits &layer_of_hits, std::vector<std::vector<Track> >& tmp_candidates,
                       const int offset, const int N_proc);
 
   // ================================================================
-  // Methods to be used with clone engine
+  // Methods used with clone engine
   // ================================================================
   //minimal set of information for bookkeping
   struct IdxChi2List
@@ -123,7 +113,7 @@ public:
     float chi2;//total chi2 (used for sorting)
   };
   //version of find candidates that does not cloning, just fills the IdxChi2List as output (to be then read by the clone engine)
-  void FindCandidatesMinimizeCopy(const BunchOfHits &bunch_of_hits, CandCloner& cloner,
+  void FindCandidatesMinimizeCopy(const LayerOfHits &layer_of_hits, CandCloner& cloner,
                                   const int offset, const int N_proc);
 
   //version of input tracks using IdxChi2List
@@ -131,21 +121,7 @@ public:
                             const std::vector<std::pair<int,IdxChi2List> >& idxs,
                             int beg, int end, bool inputProp = false);
 
-  //method used by the clone engine to do the actual cloning on the predefined candidate+hit
-  void UpdateWithHit(const BunchOfHits &bunch_of_hits,
-		     const std::vector<std::pair<int,IdxChi2List> >& idxs,
-		     std::vector<std::vector<Track> >& cands_for_next_lay,
-		     int offset, int beg, int end);
-
-  //method used by the clone engine to do the actual cloning on the predefined candidate+hit
-  void UpdateWithHit(const BunchOfHits &bunch_of_hits,
-                     const std::vector<std::pair<int,IdxChi2List> >& idxs,
-                     int beg, int end);
-
-  //method used by the clone engine update the track parameters based on the last hit index
-  //present in the track
-  void UpdateWithLastHit(const BunchOfHits &bunch_of_hits,
-                         int N_proc);
+  void UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc);
 
   //method used by the clone engine to do the actual cloning on the predefined candidate+hit
   void CopyOutClone(const std::vector<std::pair<int,IdxChi2List> >& idxs,

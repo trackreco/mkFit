@@ -6,11 +6,13 @@
 
 void propagateLineToRMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
                            const MPlexHS &msErr,  const MPlexHV& msPar,
-                                 MPlexLS &outErr,       MPlexLV& outPar);
+                                 MPlexLS &outErr,       MPlexLV& outPar,
+                           const int      N_proc);
 
 void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
                             const MPlexQI &inChg,  const MPlexHV& msPar,
-			          MPlexLS &outErr,       MPlexLV& outPar);
+			          MPlexLS &outErr,       MPlexLV& outPar,
+                            const int      N_proc);
 
 void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
                             const MPlexQI& inChg,  const float    r,
@@ -18,19 +20,23 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
                             const int      N_proc);
 
 void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg,
-			                   MPlexLV& outPar, const MPlexQF &msRad,
-				           MPlexLL& errorProp);
+                                           MPlexLV& outPar, const MPlexQF &msRad,
+                                           MPlexLL& errorProp,
+                                     const int      N_proc);
 
 void helixAtRFromIterativeCCS(const MPlexLV& inPar, const MPlexQI& inChg,
-			            MPlexLV& outPar, const MPlexQF &msRad,
-			            MPlexLL& errorProp);
+                                    MPlexLV& outPar, const MPlexQF &msRad,
+                                    MPlexLL& errorProp,
+                              const int      N_proc);
 
 void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, 
 			         MPlexLV& outPar, const MPlexQF &msRad, 
-			         MPlexLL& errorProp, bool useSimpleJac);
+			         MPlexLL& errorProp, bool useSimpleJac,
+                           const int      N_proc);
 
 void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, 
-                                MPlexLS &outErr, MPlexLV& outPar);
+                                MPlexLS &outErr, MPlexLV& outPar,
+                          const int      N_proc);
 
 inline float getRlVal(const float r, const float zin) {
   float z = std::abs(zin);
