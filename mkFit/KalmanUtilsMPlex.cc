@@ -644,7 +644,7 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   MPlexQF rotT00;
   MPlexQF rotT01;
 #pragma simd
-  for (int n = 0; n < N_proc; ++n) {
+  for (int n = 0; n < NN; ++n) {
     float r = hipo(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
     rotT00.At(n, 0, 0) = -(msPar.ConstAt(n, 1, 0)+propPar.ConstAt(n, 1, 0))/(2*r);
     rotT01.At(n, 0, 0) =  (msPar.ConstAt(n, 0, 0)+propPar.ConstAt(n, 0, 0))/(2*r);
@@ -811,7 +811,7 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
 
   MPlexQF rotT00;
   MPlexQF rotT01;
-  for (int n = 0; n < N_proc; ++n) {
+  for (int n = 0; n < NN; ++n) {
     const float r = hipo(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
     rotT00.At(n, 0, 0) = -(msPar.ConstAt(n, 1, 0)+propPar.ConstAt(n, 1, 0))/(2*r);
     rotT01.At(n, 0, 0) =  (msPar.ConstAt(n, 0, 0)+propPar.ConstAt(n, 0, 0))/(2*r);
