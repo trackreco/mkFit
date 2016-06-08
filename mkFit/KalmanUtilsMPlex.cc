@@ -1,5 +1,6 @@
 #include "KalmanUtilsMPlex.h"
 #include "PropagationMPlex.h"
+
 //#define DEBUG
 #include "Debug.h"
 
@@ -585,21 +586,16 @@ void ConvertToCartesian(const MPlexLV& A, MPlexLV& B, MPlexLL& C)
 // updateParametersMPlex
 //==============================================================================
 
-//#define DEBUG
-
 void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
                            const MPlexHS &msErr,  const MPlexHV& msPar,
-                                MPlexLS &outErr,       MPlexLV& outPar)
+                                 MPlexLS &outErr,       MPlexLV& outPar,
+                           const int      N_proc)
 {
   // const idx_t N = psErr.N;
   // Assert N-s of all parameters are the same.
 
   // Temporaries -- this is expensive -- should have them allocated outside and reused.
   // Can be passed in in a struct, see above.
-
-#ifdef DEBUG
-  const bool debug = g_dump;
-#endif
 
   // updateParametersContext ctx;
   //assert((long long)(&updateCtx.propErr.fArray[0]) % 64 == 0);
@@ -608,14 +604,14 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   MPlexLV propPar;
   // do a full propagation step to correct for residual distance from the hit radius - need the charge for this
   if (Config::useCMSGeom) {
-    propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar);
+    propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar, N_proc);
   } else {
     propErr = psErr;
     propPar = psPar;
   }
 
 #ifdef DEBUG
-  if (debug) {
+  {
     dmutex_guard;
     printf("propPar:\n");
     for (int i = 0; i < 6; ++i) { 
@@ -668,7 +664,7 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   ProjectResErrTransp(rotT00, rotT01, tempHH, resErr_loc);
 
 #ifdef DEBUG
-  if (debug) {
+  {
     dmutex_guard;
     printf("resErr:\n");
     for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
@@ -720,7 +716,7 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
 #endif
 
 #ifdef DEBUG
-  if (debug) {
+  {
     dmutex_guard;
     printf("res_glo:\n");
     for (int i = 0; i < 3; ++i) {
@@ -734,10 +730,12 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
     for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
         printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
     } printf("\n");
+#ifndef POLCOORD
     printf("jac_pol:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
         printf("%8f ", jac_pol.At(0,i,j)); printf("\n");
     } printf("\n");
+#endif
     printf("K:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 3; ++j)
         printf("%8f ", K.At(0,i,j)); printf("\n");
@@ -757,7 +755,8 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
 
 void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
                       const MPlexHS &msErr,  const MPlexHV& msPar,
-                            MPlexQF& outChi2)
+                            MPlexQF& outChi2,
+                      const int      N_proc)
 {
 
   // const idx_t N = psErr.N;
@@ -766,10 +765,6 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
   // Temporaries -- this is expensive -- should have them allocated outside and reused.
   // Can be passed in in a struct, see above.
 
-#ifdef DEBUG
-  const bool debug = g_dump;
-#endif
-
   // updateParametersContext ctx;
   //assert((long long)(&updateCtx.propErr.fArray[0]) % 64 == 0);
 
@@ -777,14 +772,14 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
   MPlexLV propPar;
   // do a full propagation step to correct for residual distance from the hit radius - need the charge for this
   if (Config::useCMSGeom) {
-    propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar);
+    propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar, N_proc);
   } else {
     propErr = psErr;
     propPar = psPar;
   }
 
 #ifdef DEBUG
-  if (debug) {
+  {
     dmutex_guard;
     printf("propPar:\n");
     for (int i = 0; i < 6; ++i) { 
@@ -836,7 +831,7 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
   ProjectResErrTransp(rotT00, rotT01, tempHH, resErr_loc);
 
 #ifdef DEBUG
-  if (debug) {
+  {
     dmutex_guard;
     printf("resErr_loc:\n");
     for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
@@ -852,15 +847,14 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
   Chi2Similarity(res_loc, resErr_loc, outChi2);
 
 #ifdef DEBUG
-  if (debug) {
+  {
     dmutex_guard;
     printf("resErr_loc (Inv):\n");
-    for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
+    for (int i = 0; i < 2; ++i) {
+      for (int j = 0; j < 2; ++j)
         printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
     } printf("\n");
-    printf("chi2:\n");
-        printf("%8f ", outChi2.At(0,0,0)); printf("\n");
-    } printf("\n");
+    printf("chi2: %8f\n", outChi2.At(0,0,0));
   }
 #endif
 

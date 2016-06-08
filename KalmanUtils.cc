@@ -10,9 +10,6 @@ static const SMatrix63 projMatrixT = ROOT::Math::Transpose(projMatrix);
 void updateParameters66(TrackState& propagatedState, MeasurementState& measurementState,
                         TrackState& result)
 {
-#ifdef DEBUG
-  const bool debug = g_dump;
-#endif
   SMatrixSym66& propErr = propagatedState.errors;
   SMatrixSym66 measErr;
   measErr.Place_at(measurementState.errors(),0,0);
@@ -44,10 +41,6 @@ void updateParameters66(TrackState& propagatedState, MeasurementState& measureme
 //see e.g. http://inspirehep.net/record/259509?ln=en
 TrackState updateParameters(const TrackState& propagatedState, const MeasurementState& measurementState)
 {
-#ifdef DEBUG
-  const bool debug = g_dump;
-#endif
-
   float r = getHypot(measurementState.pos_[0],measurementState.pos_[1]);
   SMatrix33 rot;
   rot[0][0] = -(measurementState.pos_[1]+propagatedState.parameters[1])/(2*r);
@@ -126,7 +119,7 @@ TrackState updateParameters(const TrackState& propagatedState, const Measurement
   }
 
 #ifdef DEBUG
-  if (debug) {
+  {
     dmutex_guard;
     std::cout << "\n updateParameters \n" << std::endl << "propErr" << std::endl;
     dumpMatrix(propagatedState.errors);
@@ -156,10 +149,8 @@ TrackState updateParameters(const TrackState& propagatedState, const Measurement
   return result;
 }
 
-float computeChi2(const TrackState& propagatedState, const MeasurementState& measurementState) {
-#ifdef DEBUG
-  const bool debug = g_dump;
-#endif
+float computeChi2(const TrackState& propagatedState, const MeasurementState& measurementState)
+{
   float r = getHypot(measurementState.pos_[0],measurementState.pos_[1]);
   //rotate to the tangent plane to the cylinder of radius r at the hit position
   SMatrix33 rot;
@@ -183,7 +174,7 @@ float computeChi2(const TrackState& propagatedState, const MeasurementState& mea
   SMatrixSym22 resErrInv = resErr.InverseFast(invFail);
   if (0 != invFail) {
     dprint(__FILE__ << ":" << __LINE__ << ": FAILED INVERSION");
-    return 9999.;;
+    return 9999.;
   }
   return ROOT::Math::Similarity(res,resErrInv);
 }

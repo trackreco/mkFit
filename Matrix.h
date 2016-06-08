@@ -109,9 +109,4 @@ extern std::default_random_engine            g_gen;
 extern std::normal_distribution<float>       g_gaus;
 extern std::uniform_real_distribution<float> g_unif;
 
-// All debug printouts are ifdefed with DEBUG
-// #define DEBUG
-
-extern bool g_dump;
-
 #endif
