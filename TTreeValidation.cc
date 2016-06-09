@@ -886,16 +886,9 @@ void TTreeValidation::fillDebugTree(const Event& ev){
   px_cf_debug_    = cfSeedTS.px();
   py_cf_debug_    = cfSeedTS.py();
   pz_cf_debug_    = cfSeedTS.pz();
-#ifdef POLCOORD
-  SMatrixSym66 cfSeed_cartErrs = cfSeedTS.cartesianErrors();
-  epxpx_cf_debug_ = cfSeed_cartErrs(3,3);
-  epypy_cf_debug_ = cfSeed_cartErrs(4,4);
-  epzpz_cf_debug_ = cfSeed_cartErrs(5,5);
-#else
   epxpx_cf_debug_ = cfSeedTS.epxpx();
   epypy_cf_debug_ = cfSeedTS.epypy();
   epzpz_cf_debug_ = cfSeedTS.epzpz();
-#endif
 
   pt_cf_debug_   = cfSeedTS.pT();
   phi_cf_debug_  = cfSeedTS.momPhi();
@@ -925,16 +918,9 @@ void TTreeValidation::fillDebugTree(const Event& ev){
     px_prop_debug_[layer]    = propTS.px();
     py_prop_debug_[layer]    = propTS.py();
     pz_prop_debug_[layer]    = propTS.pz();
-#ifdef POLCOORD
-    SMatrixSym66 prop_cartErrs = propTS.cartesianErrors();
-    epxpx_prop_debug_[layer] = prop_cartErrs(3,3);
-    epypy_prop_debug_[layer] = prop_cartErrs(4,4);
-    epzpz_prop_debug_[layer] = prop_cartErrs(5,5);
-#else
     epxpx_prop_debug_[layer] = propTS.epxpx();
     epypy_prop_debug_[layer] = propTS.epypy();
     epzpz_prop_debug_[layer] = propTS.epzpz();
-#endif
 
     pt_prop_debug_[layer]   = propTS.pT();
     phi_prop_debug_[layer]  = propTS.momPhi();
@@ -972,16 +958,9 @@ void TTreeValidation::fillDebugTree(const Event& ev){
     px_up_debug_[layer]    = upTS.px();
     py_up_debug_[layer]    = upTS.py();
     pz_up_debug_[layer]    = upTS.pz();
-#ifdef POLCOORD
-    SMatrixSym66 up_cartErrs = upTS.cartesianErrors();
-    epxpx_up_debug_[layer] = up_cartErrs(3,3);
-    epypy_up_debug_[layer] = up_cartErrs(4,4);
-    epzpz_up_debug_[layer] = up_cartErrs(5,5);
-#else
     epxpx_up_debug_[layer] = upTS.epxpx();
     epypy_up_debug_[layer] = upTS.epypy();
     epzpz_up_debug_[layer] = upTS.epzpz();
-#endif
 
     pt_up_debug_[layer]   = upTS.pT();
     phi_up_debug_[layer]  = upTS.momPhi();
@@ -1837,17 +1816,9 @@ void TTreeValidation::fillConformalTree(const Event& ev){
       px_seed_cf_ = cfSeedTS.px();
       py_seed_cf_ = cfSeedTS.py();
       pz_seed_cf_ = cfSeedTS.pz();
-
-#ifdef POLCOORD
-      SMatrixSym66 cfSeed_cartErrs = cfSeedTS.cartesianErrors();
-      epx_seed_cf_ = cfSeed_cartErrs(3,3);
-      epy_seed_cf_ = cfSeed_cartErrs(4,4);
-      epz_seed_cf_ = cfSeed_cartErrs(5,5);
-#else
       epx_seed_cf_ = cfSeedTS.epxpx();
       epy_seed_cf_ = cfSeedTS.epypy();
       epz_seed_cf_ = cfSeedTS.epzpz();
-#endif
 
       pt_seed_cf_    = cfSeedTS.pT();
       invpt_seed_cf_ = cfSeedTS.invpT();
@@ -1940,17 +1911,9 @@ void TTreeValidation::fillConformalTree(const Event& ev){
       px_fit_cf_ = cfFitTS.px();
       py_fit_cf_ = cfFitTS.py();
       pz_fit_cf_ = cfFitTS.pz();
-
-#ifdef POLCOORD
-      SMatrixSym66 cfFit_cartErrs = cfFitTS.cartesianErrors();
-      epx_fit_cf_ = cfFit_cartErrs(3,3);
-      epy_fit_cf_ = cfFit_cartErrs(4,4);
-      epz_fit_cf_ = cfFit_cartErrs(5,5);
-#else
       epx_fit_cf_ = cfFitTS.epxpx();
       epy_fit_cf_ = cfFitTS.epypy();
       epz_fit_cf_ = cfFitTS.epzpz();
-#endif
 
       pt_fit_cf_    = cfFitTS.pT();
       invpt_fit_cf_ = cfFitTS.invpT();
