@@ -120,6 +120,11 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
   m_event_tmp = ev_tmp;
 
   std::vector<Track>& simtracks = m_event->simTracks_;
+  // DDDD MT: debug seed fit divergence between host / mic.
+  // Use this once you know seed index + set debug in MkFitter.cc, PropagationXX.cc, KalmanUtils.cc
+  // Track xx = simtracks[2069];
+  // simtracks.clear();
+  // simtracks.push_back(xx);
 
   std::cout << "Building tracks with '" << build_type << "', total simtracks=" << simtracks.size() << std::endl;
 #ifdef DEBUG
@@ -146,13 +151,9 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
 
   m_event_of_hits.Reset();
 
-  //fill vector of hits in each layer (assuming there is one hit per layer in hits vector)
-  for (int ilay = 0; ilay<m_event->layerHits_.size();++ilay) 
+  for (int ilay = 0; ilay < m_event->layerHits_.size(); ++ilay)
   {
-    for (int ihit = 0; ihit<m_event->layerHits_[ilay].size();++ihit) 
-    {
-      m_event_of_hits.InsertHit(m_event->layerHits_[ilay][ihit],ilay);
-    }
+    m_event_of_hits.SuckInHits(m_event->layerHits_[ilay], ilay);
   }
 
 #ifdef DEBUG
@@ -168,8 +169,6 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
   }
 #endif
 
-  m_event_of_hits.SortByPhiBuildPhiBins();
-
   if (Config::readCmsswSeeds==false) m_event->seedTracks_.resize(simtracks.size());
 }
 
@@ -178,7 +177,7 @@ inline void MkBuilder::fit_one_seed_set(TrackVec& simtracks, int itrack, int end
   mkfp->SetNhits(3); //just to be sure (is this needed?)
   mkfp->InputTracksAndHits(simtracks, m_event->layerHits_, itrack, end);
   if (Config::cf_seeding) mkfp->ConformalFitTracks(false, itrack, end);
-  if (Config::readCmsswSeeds==false) mkfp->FitTracks();
+  if (Config::readCmsswSeeds==false) mkfp->FitTracks(end - itrack);
 
   const int ilay = 3; // layer 4
 
@@ -252,7 +251,9 @@ void MkBuilder::quality_process(Track &tkcand)
 #if defined(DEBUG) || defined(PRINTOUTS_FOR_PLOTS)
   std::cout << "MX - found track with nFoundHits=" << tkcand.nFoundHits() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << " nfoundmc=" << nfoundmc <<" lab="<< tkcand.label() <<std::endl;
 #endif
-
+  // DDDD MT: debug seed fit divergence between host / mic.
+  // Use this to compare track quality.
+  // printf("DDDD N_h=%d lab=%d\n", tkcand.nFoundHits(), tkcand.label());
 }
 
 void MkBuilder::quality_print()
@@ -309,7 +310,7 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
           //consider inverting loop order and make layer outer, need to trade off hit prefetching with copy-out of candidates
           for (int ilay = Config::nlayers_per_seed; ilay < Config::nLayers; ++ilay)
           {
-            BunchOfHits &bunch_of_hits = m_event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];
+            LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay];
 
             // XXX This should actually be done in some other thread for the next layer while
             // this thread is crunching the current one.
@@ -319,7 +320,7 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
             //   _mm_prefetch((char*) & bunch_of_hits.m_hits[i], _MM_HINT_T1);
             // }
 
-            mkfp->SelectHitRanges(bunch_of_hits, end - itrack);
+            mkfp->SelectHitIndices(layer_of_hits, end - itrack);
 
 // #ifdef PRINTOUTS_FOR_PLOTS
 // 	     std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
@@ -327,7 +328,7 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
 
             //make candidates with best hit
             dprint("make new candidates");
-            mkfp->AddBestHit(bunch_of_hits);
+            mkfp->AddBestHit(layer_of_hits, end - itrack);
             mkfp->SetNhits(ilay + 1);  //here again assuming one hit per layer (is this needed?)
 
             //propagate to layer
@@ -489,7 +490,7 @@ void MkBuilder::FindTracks()
       //loop over layers, starting from after the seed
       for (int ilay = Config::nlayers_per_seed; ilay < Config::nLayers; ++ilay)
       {
-        BunchOfHits &bunch_of_hits = m_event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];
+        LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay];
 
         dprint("processing lay=" << ilay+1);
 
@@ -549,14 +550,14 @@ void MkBuilder::FindTracks()
           }
 
           dprint("now get hit range");
-          mkfp->SelectHitRanges(bunch_of_hits, end - itrack);
+          mkfp->SelectHitIndices(layer_of_hits, end - itrack);
 
           //#ifdef PRINTOUTS_FOR_PLOTS
           //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
           //#endif
 
           dprint("make new candidates");
-          mkfp->FindCandidates(bunch_of_hits, tmp_candidates, otd.th_start_seed, end - itrack);
+          mkfp->FindCandidates(layer_of_hits, tmp_candidates, otd.th_start_seed, end - itrack);
 
         } //end of vectorized loop
 
@@ -703,11 +704,9 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
 
       if (ilay > Config::nlayers_per_seed)
       {
-        BunchOfHits &bunch_of_hits = m_event_of_hits.m_layers_of_hits[ilay - 1].m_bunches_of_hits[ebin];
+        LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay - 1];
 
-        // Update with hits from previous layer
-
-        mkfp->UpdateWithLastHit(bunch_of_hits, end - itrack);
+        mkfp->UpdateWithLastHit(layer_of_hits, end - itrack);
 
         if (ilay < Config::nLayers)
         {
@@ -727,9 +726,10 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
       }
 
       dprint("now get hit range");
-      BunchOfHits &bunch_of_hits = m_event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];
 
-      mkfp->SelectHitRanges(bunch_of_hits, end - itrack);
+      LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay];
+
+      mkfp->SelectHitIndices(layer_of_hits, end - itrack);
 
       //#ifdef PRINTOUTS_FOR_PLOTS
       //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
@@ -737,7 +737,9 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
 
       dprint("make new candidates");
       cloner.begin_iteration();
-      mkfp->FindCandidatesMinimizeCopy(bunch_of_hits, cloner, start_seed, end - itrack);
+
+      mkfp->FindCandidatesMinimizeCopy(layer_of_hits, cloner, start_seed, end - itrack);
+
       cloner.end_iteration();
     } //end of vectorized loop
 

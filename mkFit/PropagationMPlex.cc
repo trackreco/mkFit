@@ -11,20 +11,21 @@ using namespace Matriplex;
 
 void propagateLineToRMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
                            const MPlexHS &msErr,  const MPlexHV& msPar,
-                           MPlexLS &outErr,       MPlexLV& outPar)
+                                 MPlexLS &outErr,       MPlexLV& outPar,
+                           const int      N_proc)
 {
    // XXX Regenerate parts below with a script.
 
    const idx_t N  = NN;
 
 #pragma simd
-   for (int n = 0; n < N; ++n)
+   for (int n = 0; n < NN; ++n)
    {
 
      const float cosA = (psPar[0 * N + n] * psPar[3 * N + n] + psPar[1 * N + n] * psPar[4 * N + n]) / ( std::sqrt( ( psPar[0 * N + n] * psPar[0 * N + n] + psPar[1 * N + n] * psPar[1 * N + n] ) * ( psPar[3 * N + n] * psPar[3 * N + n] + psPar[4 * N + n] * psPar[4 * N + n] ) ) );
      const float dr  = (hipo(msPar[0 * N + n], msPar[1 * N + n]) - hipo(psPar[0 * N + n], psPar[1 * N + n])) / cosA;
 
-     dprint("propagateLineToRMPlex dr=" << dr);
+     dprint_np(n, "propagateLineToRMPlex dr=" << dr);
 
       const float pt  = hipo(psPar[3 * N + n], psPar[4 * N + n]);
       const float p   = dr / pt; // path
@@ -64,7 +65,7 @@ void propagateLineToRMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
         B.fArray[20 * N + n] = A.fArray[20 * N + n] + p * (A.fArray[17 * N + n] + A.fArray[17 * N + n]) + psq * A.fArray[5 * N + n];
       }
 
-      dprint("propagateLineToRMPlex arrive at r=" << hipo(outPar[0 * N + n], outPar[1 * N + n]));
+      dprint_np(n, "propagateLineToRMPlex arrive at r=" << hipo(outPar[0 * N + n], outPar[1 * N + n]));
    }
 }
 
@@ -156,7 +157,6 @@ inline void MultHelixPropTemp(const MPlexLL& A, const MPlexLL& B, MPlexLL& C, in
 // this version does not assume to know which elements are 0 or 1, so it does the full multiplication
 void MultHelixPropFull(const MPlexLL& A, const MPlexLS& B, MPlexLL& C)
 {
-
 #pragma simd
   for (int n = 0; n < NN; ++n)
     {
@@ -167,13 +167,11 @@ void MultHelixPropFull(const MPlexLL& A, const MPlexLS& B, MPlexLL& C)
 	}
       }
     }
-  
 }
 
 // this version does not assume to know which elements are 0 or 1, so it does the full multiplication
 void MultHelixPropFull(const MPlexLL& A, const MPlexLL& B, MPlexLL& C)
 {
-
 #pragma simd
   for (int n = 0; n < NN; ++n)
     {
@@ -184,13 +182,11 @@ void MultHelixPropFull(const MPlexLL& A, const MPlexLL& B, MPlexLL& C)
 	}
       }
     }
-  
 }
 
 // this version does not assume to know which elements are 0 or 1, so it does the full mupltiplication
 void MultHelixPropTranspFull(const MPlexLL& A, const MPlexLL& B, MPlexLS& C)
 {
-
 #pragma simd
   for (int n = 0; n < NN; ++n)
     {
@@ -201,13 +197,11 @@ void MultHelixPropTranspFull(const MPlexLL& A, const MPlexLL& B, MPlexLS& C)
 	}
       }
     }
-  
 }
 
 // this version does not assume to know which elements are 0 or 1, so it does the full mupltiplication
 void MultHelixPropTranspFull(const MPlexLL& A, const MPlexLL& B, MPlexLL& C)
 {
-
 #pragma simd
   for (int n = 0; n < NN; ++n)
     {
@@ -218,13 +212,14 @@ void MultHelixPropTranspFull(const MPlexLL& A, const MPlexLL& B, MPlexLL& C)
 	}
       }
     }
-  
 }
 
-}
+} // end unnamed namespace
 
-void helixAtRFromIterativePolarFullJac(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar, const MPlexQF &msRad, MPlexLL& errorProp) {
-
+void helixAtRFromIterativePolarFullJac(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
+                                       const MPlexQF &msRad,       MPlexLL& errorProp,
+                                       const int      N_proc)
+{
   errorProp.SetVal(0);
   MPlexLL errorPropTmp(0);//initialize to zero
   MPlexLL errorPropSwap(0);//initialize to zero
@@ -245,8 +240,8 @@ void helixAtRFromIterativePolarFullJac(const MPlexLV& inPar, const MPlexQI& inCh
       const float r = msRad.ConstAt(n, 0, 0);
       float r0 = hipo(inPar.ConstAt(n, 0, 0), inPar.ConstAt(n, 1, 0));
 
-      if (std::abs(r-r0)<0.0001f) {
-	dprint("distance less than 1mum, skip");
+      if (std::abs(r-r0) < 0.0001f) {
+	dprint_np(n, "distance less than 1mum, skip");
 	continue;
       }
 
@@ -270,13 +265,11 @@ void helixAtRFromIterativePolarFullJac(const MPlexLV& inPar, const MPlexQI& inCh
       float pxin = cosP/ipt;
       float pyin = sinP/ipt;
 
-      for (unsigned int i=0;i<Config::Niter;++i) {
-
-#ifdef DEBUG
-	dprint(std::endl << "attempt propagation from r=" << r0 << " to r=" << r << std::endl
+      for (int i = 0; i < Config::Niter; ++i)
+      {
+	dprint_np(n, std::endl << "attempt propagation from r=" << r0 << " to r=" << r << std::endl
 	       << "x=" << outPar.At(n, 0, 0) << " y=" << outPar.At(n, 1, 0)  << " z=" << outPar.At(n, 2, 0)
 	       << " px=" << std::cos(phiin)/ipt << " py=" << std::sin(phiin)/ipt << " pz=" << 1.f/(ipt*tan(theta)) << " q=" << inChg.ConstAt(n, 0, 0) << std::endl);
-#endif
 
 	r0 = hipo(outPar.ConstAt(n, 0, 0), outPar.ConstAt(n, 1, 0));
 	const float ialpha = (r-r0)*ipt/k;
@@ -331,18 +324,18 @@ void helixAtRFromIterativePolarFullJac(const MPlexLV& inPar, const MPlexQI& inCh
 
 	MultHelixPropTemp(errorProp,errorPropTmp,errorPropSwap,n);
 	errorProp = errorPropSwap;
-
       }
 
-      dprint("propagation end, dump parameters" << std::endl
+      dprint_np(n, "propagation end, dump parameters" << std::endl
 	     << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
-	     "mom = " << std::cos(outPar.At(n, 4, 0))/outPar.At(n, 3, 0) << " " << std::sin(outPar.At(n, 4, 0))/outPar.At(n, 3, 0) << " " << 1./(outPar.At(n, 3, 0)*tan(outPar.At(n, 5, 0)))
-	     "r=" << std::sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << 1./std::abs(outPar.At(n, 3, 0)) << std::endl);
+	     << "mom = " << std::cos(outPar.At(n, 4, 0))/outPar.At(n, 3, 0) << " " << std::sin(outPar.At(n, 4, 0))/outPar.At(n, 3, 0) << " " << 1./(outPar.At(n, 3, 0)*tan(outPar.At(n, 5, 0)))
+	     << " r=" << std::sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << 1./std::abs(outPar.At(n, 3, 0)) << std::endl);
       
 #ifdef DEBUG
+      if (n < N_proc)
       {
 	dmutex_guard;
-	std::cout << "jacobian" << std::endl;
+	std::cout << n << " jacobian" << std::endl;
 	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
 	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
 	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,2,0),errorProp(n,2,1),errorProp(n,2,2),errorProp(n,2,3),errorProp(n,2,4),errorProp(n,2,5));
@@ -354,14 +347,15 @@ void helixAtRFromIterativePolarFullJac(const MPlexLV& inPar, const MPlexQI& inCh
     }
 }
 
-void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar, const MPlexQF &msRad, MPlexLL& errorProp) {
-
+void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
+                                const MPlexQF &msRad, MPlexLL& errorProp,
+                                const int      N_proc)
+{
   errorProp.SetVal(0);
 
 #pragma simd
   for (int n = 0; n < NN; ++n)
     {
-
       //initialize erroProp to identity matrix
       errorProp(n,0,0) = 1.f;
       errorProp(n,1,1) = 1.f;
@@ -386,6 +380,15 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
       const float phiin = inPar.ConstAt(n, 4, 0);
       const float theta = inPar.ConstAt(n, 5, 0);
 
+      dprint_np(n, std::endl << "input parameters"
+            << " inPar.ConstAt(n, 0, 0)=" << std::setprecision(9) << inPar.ConstAt(n, 0, 0)
+            << " inPar.ConstAt(n, 1, 0)=" << std::setprecision(9) << inPar.ConstAt(n, 1, 0)
+            << " inPar.ConstAt(n, 2, 0)=" << std::setprecision(9) << inPar.ConstAt(n, 2, 0)
+            << " inPar.ConstAt(n, 3, 0)=" << std::setprecision(9) << inPar.ConstAt(n, 3, 0)
+            << " inPar.ConstAt(n, 4, 0)=" << std::setprecision(9) << inPar.ConstAt(n, 4, 0)
+            << " inPar.ConstAt(n, 5, 0)=" << std::setprecision(9) << inPar.ConstAt(n, 5, 0)
+            );
+
       const float kinv  = 1.f/k;
       const float pt = 1.f/ipt;
 
@@ -395,16 +398,20 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
       float pxin = cosPorT*pt;
       float pyin = sinPorT*pt;
 
+      dprint_np(n, std::endl << "k=" << std::setprecision(9) << k << " pxin=" << std::setprecision(9) << pxin << " pyin="
+             << std::setprecision(9) << pyin << " cosPorT=" << std::setprecision(9) << cosPorT
+             << " sinPorT=" << std::setprecision(9) << sinPorT << " pt=" << std::setprecision(9) << pt);
+
       //derivatives initialized to value for first iteration, i.e. distance = r-r0in
-      float dDdx = r0>0.f ? -xin/r0 : 0.f;
-      float dDdy = r0>0.f ? -yin/r0 : 0.f;
+      float dDdx = r0 > 0.f ? -xin/r0 : 0.f;
+      float dDdy = r0 > 0.f ? -yin/r0 : 0.f;
       float dDdipt = 0.;
       float dDdphi = 0.;
 
-      for (unsigned int i=0;i<Config::Niter;++i) {
-
-	dprint(std::endl << "attempt propagation from r=" << r0 << " to r=" << r << std::endl
-	       << "x=" << xin << " y=" << yin  << " z=" << inPar.ConstAt(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pzin << " q=" << inChg.ConstAt(n, 0, 0));
+      for (int i = 0; i < Config::Niter; ++i)
+      {
+	dprint_np(n, std::endl << "attempt propagation from r=" << r0 << " to r=" << r << std::endl
+	       << "x=" << xin << " y=" << yin  << " z=" << inPar.ConstAt(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pt*std::tan(theta) << " q=" << inChg.ConstAt(n, 0, 0));
 
 	//compute distance and path for the current iteration
 	r0 = hipo(outPar.At(n, 0, 0), outPar.At(n, 1, 0));
@@ -416,6 +423,9 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
           cosa=std::cos(id*ipt*kinv);
           sina=std::sin(id*ipt*kinv);
 	}
+
+        dprint_np(n, std::endl << "r=" << std::setprecision(9) << r << " r0=" << std::setprecision(9) << r0
+               << " id=" << std::setprecision(9) << id << " cosa=" << cosa << " sina=" << sina);
 
 	//update derivatives on total distance
 	if (i+1 != Config::Niter) {
@@ -451,6 +461,9 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
 	const float pxinold = pxin;//copy before overwriting
 	pxin = pxin*cosa - pyin*sina;
 	pyin = pyin*cosa + pxinold*sina;
+
+        dprint_np(n, std::endl << "outPar.At(n, 0, 0)=" << outPar.At(n, 0, 0) << " outPar.At(n, 1, 0)=" << outPar.At(n, 1, 0)
+               << " pxin=" << pxin << " pyin=" << pyin);
       }
 
       const float alpha  = D*ipt*kinv;
@@ -522,15 +535,15 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
       errorProp(n,5,4) = 0.f;
       errorProp(n,5,5) = 1.f;
 
-      dprint("propagation end, dump parameters" << std::endl
+      dprint_np(n, "propagation end, dump parameters" << std::endl
 	     << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
-	     "mom = " << std::cos(outPar.At(n, 4, 0))/outPar.At(n, 3, 0) << " " << std::sin(outPar.At(n, 4, 0))/outPar.At(n, 3, 0) << " " << 1./(outPar.At(n, 3, 0)*tan(outPar.At(n, 5, 0)))
-	     "r=" << std::sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << 1./std::abs(outPar.At(n, 3, 0)) << std::endl);
+	     << "mom = " << std::cos(outPar.At(n, 4, 0))/outPar.At(n, 3, 0) << " " << std::sin(outPar.At(n, 4, 0))/outPar.At(n, 3, 0) << " " << 1./(outPar.At(n, 3, 0)*tan(outPar.At(n, 5, 0)))
+	     << " r=" << std::sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << 1./std::abs(outPar.At(n, 3, 0)) << std::endl);
       
 #ifdef DEBUG
-      {
+      if (n < N_proc) {
 	dmutex_guard;
-	std::cout << "jacobian" << std::endl;
+	std::cout << n << ": jacobian" << std::endl;
 	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
 	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
 	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,2,0),errorProp(n,2,1),errorProp(n,2,2),errorProp(n,2,3),errorProp(n,2,4),errorProp(n,2,5));
@@ -542,8 +555,10 @@ void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPle
     }
 }
 
-void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar, const MPlexQF &msRad, MPlexLL& errorProp) {
-
+void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
+                           const MPlexQF &msRad, MPlexLL& errorProp,
+                           const int      N_proc)
+{
   errorProp.SetVal(0);
 
 #pragma simd
@@ -566,11 +581,11 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       const float r    = msRad.ConstAt(n, 0, 0);
       float r0 = hipo(xin, yin);
       
-      dprint(std::endl << "attempt propagation from r=" << r0 << " to r=" << r << std::endl
+      dprint_np(n, std::endl << "attempt propagation from r=" << r0 << " to r=" << r << std::endl
         << "x=" << xin << " y=" << yin  << " z=" << inPar.ConstAt(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pzin << " q=" << inChg.ConstAt(n, 0, 0));
 
       if (std::abs(r-r0)<0.0001f) {
-	dprint("distance less than 1mum, skip");
+	dprint_np(n, "distance less than 1mum, skip");
 	continue;
       }
       
@@ -583,7 +598,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       const float invcurvature = 1.f/(pt*k);//in 1./cm
       const float ctgTheta=pzin*ptinv;
       
-      dprint("curvature=" << 1.f/invcurvature);
+      dprint_np(n, "curvature=" << 1.f/invcurvature);
       
       //variables to be updated at each iterations
       float totalDistance = 0;
@@ -592,9 +607,9 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       float dTDdy = r0>0.f ? -yin/r0 : 0.f;
       float dTDdpx = 0.;
       float dTDdpy = 0.;
-      for (unsigned int i=0;i<Config::Niter;++i)
+      for (int i = 0; i < Config::Niter; ++i)
 	{
-	  dprint("propagation iteration #" << i);
+	  dprint_np(n, "propagation iteration #" << i);
 	  
 	  const float x  = outPar.At(n, 0, 0);
 	  const float y  = outPar.At(n, 1, 0);
@@ -602,20 +617,12 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	  const float py = outPar.At(n, 4, 0);
 	  r0 = hipo(outPar.At(n, 0, 0), outPar.At(n, 1, 0));
 	  
-	  dprint("r0=" << r0 << " pt=" << pt);
-#ifdef DEBUG
-	  // if (dump) {
-	  //    if (r==r0) {
-	  //       std::cout << "distance = 0 at iteration=" << i << std::endl;
-	  //       break;
-	  //    }
-	  // }
-#endif
+	  dprint_np(n, "r0=" << r0 << " pt=" << pt);
 	  
 	  //distance=r-r0;//remove temporary
 	  totalDistance+=(r-r0);
 	  
-	  dprint("distance=" << (r-r0) << " angPath=" << (r-r0)*invcurvature);
+	  dprint_np(n, "distance=" << (r-r0) << " angPath=" << (r-r0)*invcurvature);
 	  
 	  //float angPath = (r-r0)*invcurvature;
           float cosAP, sinAP;
@@ -640,7 +647,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	     //update derivatives on total distance for next step, where totalDistance+=r-r0
 	     //now r0 depends on px and py
 
-	     dprint("r0=" << 1.f/r0 << " r0inv=" << r0 << " pt=" << pt);
+	     dprint_np(n, "r0=" << 1.f/r0 << " r0inv=" << r0 << " pt=" << pt);
 
 	     //update derivative on D
 	     const float dAPdpx = -(r-r0)*invcurvature*px*pt2inv;//r0 is now 1./r0 (this could go above the redefinition of r0!)
@@ -668,7 +675,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	     dTDdpy -= r0*(x*(k*(px*cosAP*dAPdpy - 1.f + cosAP - py*sinAP*dAPdpy)) + y*(k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy)));
 
 	  }
-	  dprint("iteration end, dump parameters" << std::endl
+	  dprint_np(n, "iteration end, dump parameters" << std::endl
 		 << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
 		 << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0) << std::endl
 		 << "r=" << std::sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << std::sqrt( outPar.At(n, 3, 0)*outPar.At(n, 3, 0) + outPar.At(n, 4, 0)*outPar.At(n, 4, 0) ));
@@ -677,7 +684,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       const float TD=totalDistance;
       const float TP=TD*invcurvature;//totalAngPath
       
-      dprint("TD=" << TD << " TP=" << TP << " arrived at r=" << std::sqrt(outPar.At(n, 0, 0)*outPar.At(n, 0, 0)+outPar.At(n, 1, 0)*outPar.At(n, 1, 0)) << std::endl
+      dprint_np(n, "TD=" << TD << " TP=" << TP << " arrived at r=" << std::sqrt(outPar.At(n, 0, 0)*outPar.At(n, 0, 0)+outPar.At(n, 1, 0)*outPar.At(n, 1, 0)) << std::endl
         << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
         << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0));
 
@@ -699,7 +706,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
 	sinTP = std::sin(TP);
       }
 
-      dprint("sinTP=" << sinTP << " cosTP=" << cosTP << " TD=" << TD);
+      dprint_np(n, "sinTP=" << sinTP << " cosTP=" << cosTP << " TD=" << TD);
 
       //now try to make full jacobian
       //derive these to compute jacobian
@@ -752,24 +759,26 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       errorProp(n,5,3) = 0.;
       errorProp(n,5,4) = 0.;
       errorProp(n,5,5) = 1.f;
-    }
 
 #ifdef DEBUG
-  {
-    dmutex_guard;
-    std::cout << "jacobian iterative" << std::endl;
-    printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
-    printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
-    printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,2,0),errorProp(n,2,1),errorProp(n,2,2),errorProp(n,2,3),errorProp(n,2,4),errorProp(n,2,5));
-    printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,3,0),errorProp(n,3,1),errorProp(n,3,2),errorProp(n,3,3),errorProp(n,3,4),errorProp(n,3,5));
-    printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,4,0),errorProp(n,4,1),errorProp(n,4,2),errorProp(n,4,3),errorProp(n,4,4),errorProp(n,4,5));
-    printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,5,0),errorProp(n,5,1),errorProp(n,5,2),errorProp(n,5,3),errorProp(n,5,4),errorProp(n,5,5));
+      if (n < N_proc) {
+        dmutex_guard;
+        std::cout << n << ": jacobian iterative" << std::endl;
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,2,0),errorProp(n,2,1),errorProp(n,2,2),errorProp(n,2,3),errorProp(n,2,4),errorProp(n,2,5));
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,3,0),errorProp(n,3,1),errorProp(n,3,2),errorProp(n,3,3),errorProp(n,3,4),errorProp(n,3,5));
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,4,0),errorProp(n,4,1),errorProp(n,4,2),errorProp(n,4,3),errorProp(n,4,4),errorProp(n,4,5));
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,5,0),errorProp(n,5,1),errorProp(n,5,2),errorProp(n,5,3),errorProp(n,5,4),errorProp(n,5,5));
   }
 #endif
+    }
 }
 
-void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, MPlexLS &outErr, MPlexLV& outPar) {
-
+void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
+                                MPlexLS &outErr,       MPlexLV& outPar,
+                         const int      N_proc)
+{
 #pragma simd
   for (int n = 0; n < NN; ++n)
     {
@@ -885,12 +894,9 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, MPlexLS 
 
 void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
                             const MPlexQI &inChg,  const MPlexHV& msPar, 
-			          MPlexLS &outErr,       MPlexLV& outPar)
+			          MPlexLS &outErr,       MPlexLV& outPar,
+                            const int      N_proc)
 {
-#ifdef DEBUG
-  const bool debug = false;
-#endif
-
    const idx_t N  = NN;
 
    outErr = inErr;
@@ -902,7 +908,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    // MPlexQF hitsRl;
    // MPlexQF hitsXi;
 #pragma simd
-   for (int n = 0; n < N; ++n) {
+   for (int n = 0; n < NN; ++n) {
      msRad.At(n, 0, 0) = hipo(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
      // if (Config::useCMSGeom) {
      //   hitsRl.At(n, 0, 0) = getRlVal(msRad.ConstAt(n, 0, 0), outPar.ConstAt(n, 2, 0));
@@ -911,14 +917,14 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    }
 
 #ifdef POLCOORD
-   helixAtRFromIterativePolar(inPar, inChg, outPar, msRad, errorProp);
+   helixAtRFromIterativePolar(inPar, inChg, outPar, msRad, errorProp, N_proc);
 #else
-   helixAtRFromIterative(inPar, inChg, outPar, msRad, errorProp);
+   helixAtRFromIterative(inPar, inChg, outPar, msRad, errorProp, N_proc);
 #endif
 
 #ifdef DEBUG
-   if (debug) {
-     for (int kk = 0; kk < N; ++kk)
+   {
+     for (int kk = 0; kk < N_proc; ++kk)
      {
        dprintf("outErr before prop %d\n", kk);
        for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
@@ -946,8 +952,8 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 
    // This dump is now out of its place as similarity is done with matriplex ops.
 #ifdef DEBUG
-   if (debug) {
-     for (int kk = 0; kk < N; ++kk)
+   {
+     for (int kk = 0; kk < N_proc; ++kk)
      {
        dprintf("outErr %d\n", kk);
        for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
@@ -964,7 +970,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 
 #ifdef DEBUG
    if (std::abs(hipo(outPar.At(0,0,0), outPar.At(0,1,0))-hipo(msPar.ConstAt(0, 0, 0), msPar.ConstAt(0, 1, 0)))>0.0001) {
-     dprint("DID NOT GET TO R, dR=" << std::abs(hipo(outPar.At(0,0,0), outPar.At(0,1,0))-hipo(msPar.ConstAt(0, 0, 0), msPar.ConstAt(0, 1, 0)))
+     dprint_np(n, "DID NOT GET TO R, dR=" << std::abs(hipo(outPar.At(0,0,0), outPar.At(0,1,0))-hipo(msPar.ConstAt(0, 0, 0), msPar.ConstAt(0, 1, 0)))
 	       << " r=" << hipo(msPar.ConstAt(0, 0, 0), msPar.ConstAt(0, 1, 0)) << " r0in=" << hipo(inPar.ConstAt(0,0,0), inPar.ConstAt(0,1,0)) << " rout=" << hipo(outPar.At(0,0,0), outPar.At(0,1,0)) << std::endl
          << "pt=" << hipo(inPar.ConstAt(0,3,0), inPar.ConstAt(0,4,0)) << " pz=" << inPar.ConstAt(0,5,0));
    }
@@ -976,10 +982,6 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
 			    MPlexLS&       outErr, MPlexLV&       outPar,
                             const int      N_proc)
 {
-#ifdef DEBUG
-  const bool debug = false;
-#endif
-
    outErr = inErr;
    outPar = inPar;
 
@@ -988,14 +990,14 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
 
    MPlexQF msRad;
 #pragma simd
-   for (int n = 0; n < N_proc; ++n) {
+   for (int n = 0; n < NN; ++n) {
      msRad.At(n, 0, 0) = r;
    }
 
 #ifdef POLCOORD
-   helixAtRFromIterativePolar(inPar, inChg, outPar, msRad, errorProp);
+   helixAtRFromIterativePolar(inPar, inChg, outPar, msRad, errorProp, N_proc);
 #else
-   helixAtRFromIterative(inPar, inChg, outPar, msRad, errorProp);
+   helixAtRFromIterative(inPar, inChg, outPar, msRad, errorProp, N_proc);
 #endif
 
    //add multiple scattering uncertainty and energy loss (FIXME: in this way it is not applied in track fit)
@@ -1003,11 +1005,11 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
      MPlexQF hitsRl;
      MPlexQF hitsXi;
 #pragma simd
-     for (int n = 0; n < N_proc; ++n) {
+     for (int n = 0; n < NN; ++n) {
        hitsRl.At(n, 0, 0) = getRlVal(r, outPar.ConstAt(n, 2, 0));
        hitsXi.At(n, 0, 0) = getXiVal(r, outPar.ConstAt(n, 2, 0));
      }
-     applyMaterialEffects(hitsRl, hitsXi, outErr, outPar);
+     applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);
    }
 
    // Matriplex version of:
@@ -1017,7 +1019,7 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
    MPlexLL temp;
    MultHelixProp      (errorProp, outErr, temp);
    MultHelixPropTransp(errorProp, temp,   outErr);
-   
+
    // This dump is now out of its place as similarity is done with matriplex ops.
 #ifdef DEBUG
    if (debug) {
