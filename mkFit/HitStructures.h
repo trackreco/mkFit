@@ -48,10 +48,6 @@ inline bool sortTrksByPhiMT(const Track& t1, const Track& t2)
 
 //==============================================================================
 
-const float g_layer_zwidth[] = { 10, 14, 18, 23, 28, 32, 37, 42, 48, 52 };
-
-const float g_layer_dz[]     = { 0.6, 0.55, 0.5, 0.5, 0.45, 0.4, 0.4, 0.4, 0.35, 0.35 };
-
 // Use extra arrays to store phi and z of hits.
 // MT: This would in principle allow fast selection of good hits, if
 // we had good error estimates and reasonable *minimal* phi and z windows.
@@ -75,16 +71,9 @@ public:
   int   m_nz = 0;
   int   m_capacity = 0;
 
-  // This could be a parameter, layer dependent.
-  static constexpr int   m_nphi = 1024;
   // Testing bin filling
-  //  static constexpr int   m_nphi = 16;
-  static constexpr float m_fphi = m_nphi / Config::TwoPI;
+  static constexpr float m_fphi = Config::m_nphi / Config::TwoPI;
   static constexpr int   m_phi_mask = 0x3ff;
-
-  // As above
-  static constexpr float m_max_dz   = 1;
-  static constexpr float m_max_dphi = 0.02;
 
 protected:
   void alloc_hits(int size)
@@ -121,7 +110,7 @@ protected:
   {
     for (int zb = z_bin_1; zb < z_bin_2; ++zb)
     {
-      empty_phi_bins(zb, 0, m_nphi, hit_count);
+      empty_phi_bins(zb, 0, Config::m_nphi, hit_count);
     }
   }
 
@@ -170,7 +159,7 @@ public:
   {
     for (int i = 0; i < n_layers; ++i)
     {
-      m_layers_of_hits[i].SetupLayer(-g_layer_zwidth[i], g_layer_zwidth[i], g_layer_dz[i]);
+      m_layers_of_hits[i].SetupLayer(-Config::g_layer_zwidth[i], Config::g_layer_zwidth[i], Config::g_layer_dz[i]);
     }
   }
 

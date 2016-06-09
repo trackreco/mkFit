@@ -23,16 +23,10 @@ void TrackState::convertFromCCSToCartesian() {
   const float phi   = parameters.At(4);
   const float theta = parameters.At(5);
   const float pt = 1.f/invpt;
-  float cosP, sinP, cosT, sinT;
-  if (Config::useTrigApprox) {
-    sincos4(phi, sinP, cosP);
-    sincos4(theta, sinT, cosT);
-  } else {
-    cosP = std::cos(phi);
-    sinP = std::sin(phi);
-    cosT = std::cos(theta);
-    sinT = std::sin(theta);
-  }
+  float cosP = std::cos(phi);
+  float sinP = std::sin(phi);
+  float cosT = std::cos(theta);
+  float sinT = std::sin(theta);
   parameters.At(3) = cosP*pt;
   parameters.At(4) = sinP*pt;
   parameters.At(5) = cosT*pt/sinT;
@@ -43,16 +37,10 @@ void TrackState::convertFromCCSToCartesian() {
 SMatrix66 TrackState::jacobianCCSToCartesian(float invpt,float phi,float theta) const {
   //arguments are passed so that the function can be used both starting from ccs and from cartesian
   SMatrix66 jac = ROOT::Math::SMatrixIdentity();
-  float cosP, sinP, cosT, sinT;
-  if (Config::useTrigApprox) {
-    sincos4(phi, sinP, cosP);
-    sincos4(theta, sinT, cosT);
-  } else {
-    cosP = std::cos(phi);
-    sinP = std::sin(phi);
-    cosT = std::cos(theta);
-    sinT = std::sin(theta);
-  }
+  float cosP = std::cos(phi);
+  float sinP = std::sin(phi);
+  float cosT = std::cos(theta);
+  float sinT = std::sin(theta);
   const float pt = 1.f/invpt;
   jac(3,3) = -cosP*pt*pt;
   jac(3,4) = -sinP*pt;
