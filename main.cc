@@ -135,16 +135,30 @@ int main(int argc, const char* argv[])
       printf(
         "Usage: %s [options]\n"
         "Options:\n"
+	"  --num-events    <num>    number of events to run over (def: %d)\n"
+        "  --num-tracks    <num>    number of tracks to generate for each event (def: %d)\n"
 	"  --num-thr       <num>    number of threads used for TBB  (def: %d)\n"
 	"  --super-debug            bool to enable super debug mode (def: %s)\n"
 	"  --cf-seeding             bool to enable CF in MC seeding (def: %s)\n"
-        ,
+	,
         argv[0],
+	Config::nEvents,
+	Config::nTracks,
         nThread, 
 	(Config::super_debug ? "true" : "false"),
 	(Config::cf_seeding  ? "true" : "false")
       );
       exit(0);
+    }
+    else if (*i == "--num-events")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::nEvents = atoi(i->c_str());
+    }
+    else if (*i == "--num-tracks")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::nTracks = atoi(i->c_str());
     }
     else if (*i == "--num-thr")
     {
