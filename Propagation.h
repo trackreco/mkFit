@@ -18,14 +18,7 @@ TrackState propagateHelixToLayer(TrackState inputState, int layer, const Geometr
 // derivatives need to be updated at each iteration
 TrackState propagateHelixToR(TrackState inputState, float r);
 
-//test towards a helix propagation without iterative approach
-//version below solves the equation for the angular path at which x^2+y^2=r^2
-//problems: 1. need first order approximation of sin and cos, 
-//2. there are 2 numerical solutions, 3. need to propagate uncertainties throgh the 2nd order equation
-TrackState propagateHelixToR_test(TrackState& inputState, float r);
-
-// Version with fewer temporaries and Taylor expansion of sin/cos.
-// This was used to compare SMatrix / Matriplex performance.
-void propagateHelixToR_fewerTemps(TrackState& inputState, float r, TrackState& result);
+//
+TrackState propagateHelixToZ(TrackState inputState, float z);
 
 #endif
