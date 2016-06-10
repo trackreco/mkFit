@@ -179,7 +179,7 @@ void ProjectResErrTransp(const MPlexQF& A00,
 }
 
 inline
-void PolarErr(const MPlexLL& A, const MPlexLS& B, MPlexLL& C)
+void CCSErr(const MPlexLL& A, const MPlexLS& B, MPlexLL& C)
 {
   // C = A * B, C is 6x6, A is 6x6 , B is 6x6 sym
  
@@ -190,11 +190,11 @@ void PolarErr(const MPlexLL& A, const MPlexLS& B, MPlexLL& C)
   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
-#include "PolarErr.ah"
+#include "CCSErr.ah"
 }
 
 inline
-void PolarErrTransp(const MPlexLL& A, const MPlexLL& B, MPlexLS& C)
+void CCSErrTransp(const MPlexLL& A, const MPlexLL& B, MPlexLS& C)
 {
   // C = A * B, C is sym, A is 6x6 , B is 6x6
  
@@ -205,7 +205,7 @@ void PolarErrTransp(const MPlexLL& A, const MPlexLL& B, MPlexLS& C)
   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
-#include "PolarErrTransp.ah"
+#include "CCSErrTransp.ah"
 }
 
 inline
@@ -410,7 +410,7 @@ void KHC(const MPlexLL& A, const MPlexLS& B, MPlexLS& C)
 }
 
 inline
-void ConvertToPolar(const MPlexLV& A, MPlexLV& B, MPlexLL& C)
+void ConvertToCCS(const MPlexLV& A, MPlexLV& B, MPlexLL& C)
 {
  
   typedef float T;
@@ -676,43 +676,43 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   //invert the 2x2 matrix
   Matriplex::InvertCramerSym(resErr_loc);
 
-#ifndef POLCOORD
-  // Move to "polar" coordinates: (x,y,z,1/pT,phi,theta) [can we find a better name?]
+#ifndef CCSCOORD
+  // Move to CCS coordinates: (x,y,z,1/pT,phi,theta) [can we find a better name?]
 
-  MPlexLV propPar_pol;// propagated parameters in "polar" coordinates
-  MPlexLL jac_pol;    // jacobian from cartesian to "polar"
-  ConvertToPolar(propPar,propPar_pol,jac_pol);
+  MPlexLV propPar_ccs;// propagated parameters in CCS coordinates
+  MPlexLL jac_ccs;    // jacobian from cartesian to CCS
+  ConvertToCCS(propPar,propPar_ccs,jac_ccs);
 
   MPlexLL tempLL;
-  PolarErr      (jac_pol, propErr, tempLL);
-  PolarErrTransp(jac_pol, tempLL, propErr);// propErr is now propagated errors in "polar" coordinates
+  CCSErr      (jac_ccs, propErr, tempLL);
+  CCSErrTransp(jac_ccs, tempLL, propErr);// propErr is now propagated errors in CCS coordinates
 #endif
 
-  // Kalman update in "polar" coordinates
+  // Kalman update in CCS coordinates
 
   MPlexLH K;           // kalman gain, fixme should be L2
   KalmanHTG(rotT00, rotT01, resErr_loc, tempHH); // intermediate term to get kalman gain (H^T*G)
   KalmanGain(propErr, tempHH, K);
 
-#ifdef POLCOORD
-  MultResidualsAdd(K, propPar, res_loc, outPar);// propPar_pol is now the updated parameters in "polar" coordinates
+#ifdef CCSCOORD
+  MultResidualsAdd(K, propPar, res_loc, outPar);// propPar_ccs is now the updated parameters in CCS coordinates
   MPlexLL tempLL;
 #else
-  MultResidualsAdd(K, propPar_pol, res_loc, propPar_pol);// propPar_pol is now the updated parameters in "polar" coordinates
+  MultResidualsAdd(K, propPar_ccs, res_loc, propPar_ccs);// propPar_ccs is now the updated parameters in CCS coordinates
 #endif
 
 
   KHMult(K, rotT00, rotT01, tempLL);
   KHC(tempLL, propErr, outErr);
-  outErr.Subtract(propErr, outErr);// outErr is in "polar" coordinates now
+  outErr.Subtract(propErr, outErr);// outErr is in CCS coordinates now
 
-#ifndef POLCOORD
+#ifndef CCSCOORD
   // Go back to cartesian coordinates
 
-  // jac_pol is now the jacobian from "polar" to cartesian
-  ConvertToCartesian(propPar_pol, outPar, jac_pol);
-  CartesianErr      (jac_pol, outErr, tempLL);
-  CartesianErrTransp(jac_pol, tempLL, outErr);// outErr is in cartesian coordinates now
+  // jac_ccs is now the jacobian from CCS to cartesian
+  ConvertToCartesian(propPar_ccs, outPar, jac_ccs);
+  CartesianErr      (jac_ccs, outErr, tempLL);
+  CartesianErrTransp(jac_ccs, tempLL, outErr);// outErr is in cartesian coordinates now
 #endif
 
 #ifdef DEBUG
@@ -730,10 +730,10 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
     for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
         printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
     } printf("\n");
-#ifndef POLCOORD
-    printf("jac_pol:\n");
+#ifndef CCSCOORD
+    printf("jac_ccs:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", jac_pol.At(0,i,j)); printf("\n");
+        printf("%8f ", jac_ccs.At(0,i,j)); printf("\n");
     } printf("\n");
 #endif
     printf("K:\n");

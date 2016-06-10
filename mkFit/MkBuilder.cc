@@ -140,10 +140,10 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
   for (int itrack = 0; itrack < simtracks.size(); ++itrack)
   {
     Track track = simtracks[itrack];
-    if (track.label() != itrack)
-    {
-      dprintf("Bad label for simtrack %d -- %d\n", itrack, track.label());
-    }
+    //if (track.label() != itrack)
+    //{
+    //dprintf("Bad label for simtrack %d -- %d\n", itrack, track.label());
+    //}
     dprint("MX - simtrack with nHits=" << track.nFoundHits() << " chi2=" << track.chi2()
               << " pT=" << track.pT() <<" phi="<< track.momPhi() <<" eta=" << track.momEta());
   }
@@ -151,6 +151,7 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
 
   m_event_of_hits.Reset();
 
+  //fill vector of hits in each layer
   for (int ilay = 0; ilay < m_event->layerHits_.size(); ++ilay)
   {
     m_event_of_hits.SuckInHits(m_event->layerHits_[ilay], ilay);
@@ -159,15 +160,24 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
 #ifdef DEBUG
   for (int itrack = 0; itrack < simtracks.size(); ++itrack)
   {
-    for (int ilay = 0; ilay < simtracks[itrack].nTotalHits(); ++ilay)
+    for (int ihit = 0; ihit < simtracks[itrack].nFoundHits(); ++ihit)
     {
-      dprint("track #" << itrack << " lay=" << ilay+1
-	            << " hit pos=" << simtracks[itrack].hitsVector(m_event->layerHits_)[ilay].position()
-              << " phi=" << simtracks[itrack].hitsVector(m_event->layerHits_)[ilay].phi()
-              << " phiPart=" << getPhiPartition(simtracks[itrack].hitsVector(m_event->layerHits_)[ilay].phi()));
+      dprint("track #" << itrack << " hit #" << ihit+1
+	            << " hit pos=" << simtracks[itrack].hitsVector(m_event->layerHits_)[ihit].position()
+              << " phi=" << simtracks[itrack].hitsVector(m_event->layerHits_)[ihit].phi()
+              << " phiPart=" << getPhiPartition(simtracks[itrack].hitsVector(m_event->layerHits_)[ihit].phi()));
     }
   }
 #endif
+
+  // for (int l=0; l<m_event_of_hits.m_layers_of_hits.size(); ++l) {
+  //   for (int eb=0; eb<m_event_of_hits.m_layers_of_hits[l].m_bunches_of_hits.size(); ++eb) {
+  //     std::cout << "l=" << l << " eb=" << eb << " m_fill_index=" << m_event_of_hits.m_layers_of_hits[l].m_bunches_of_hits[eb].m_fill_index << " m_fill_index_old=" << m_event_of_hits.m_layers_of_hits[l].m_bunches_of_hits[eb].m_fill_index_old << std::endl;      
+  //     for (int pb=0; pb<m_event_of_hits.m_layers_of_hits[l].m_bunches_of_hits[eb].m_phi_bin_infos.size(); ++pb) {
+  //     	std::cout << "l=" << l << " eb=" << eb << " pb=" << pb << " first=" << m_event_of_hits.m_layers_of_hits[l].m_bunches_of_hits[eb].m_phi_bin_infos[pb].first << " second=" <<  m_event_of_hits.m_layers_of_hits[l].m_bunches_of_hits[eb].m_phi_bin_infos[pb].second << std::endl;
+  //     }
+  //   }
+  // }
 
   if (Config::readCmsswSeeds==false) m_event->seedTracks_.resize(simtracks.size());
 }
@@ -225,31 +235,36 @@ void MkBuilder::quality_process(Track &tkcand)
   // extra.setMCTrackIDInfo(tkcand, m_event->layerHits_, m_event->simHitsInfo_);
   // int mctrk = extra.mcTrackID();
   //end
+
+  float pt    = tkcand.pT();
+  float ptmc = 0., pr = 0., nfoundmc = 0., chi2mc = 0.;
+
   int mctrk = tkcand.label();
   if (mctrk < 0 || mctrk >= Config::nTracks)
   {
     ++m_cnt_nomc;
     // std::cout << "XX bad track idx " << mctrk << "\n";
-    return;
-  }
-  float pt    = tkcand.pT();
-  float ptmc  = m_event->simTracks_[mctrk].pT() ;
-  float pr    = pt / ptmc;
-  int nfoundmc = m_event->simTracks_[mctrk].nFoundHits();
+  } else {
 
-  ++m_cnt;
-  if (pr > 0.9 && pr < 1.1) ++m_cnt1;
-  if (pr > 0.8 && pr < 1.2) ++m_cnt2;
+    ptmc  = m_event->simTracks_[mctrk].pT() ;
+    pr    = pt / ptmc;
+    nfoundmc = m_event->simTracks_[mctrk].nFoundHits();
+    chi2mc = m_event->simTracks_[mctrk].chi2();//this is actually the number of reco hits in cmssw
 
-  if (tkcand.nFoundHits() >= 0.8f*nfoundmc)
-  {
-    ++m_cnt_8;
-    if (pr > 0.9 && pr < 1.1) ++m_cnt1_8;
-    if (pr > 0.8 && pr < 1.2) ++m_cnt2_8;
+    ++m_cnt;
+    if (pr > 0.9 && pr < 1.1) ++m_cnt1;
+    if (pr > 0.8 && pr < 1.2) ++m_cnt2;
+
+    if (tkcand.nFoundHits() >= 0.8f*nfoundmc)
+      {
+	++m_cnt_8;
+	if (pr > 0.9 && pr < 1.1) ++m_cnt1_8;
+	if (pr > 0.8 && pr < 1.2) ++m_cnt2_8;
+      }
   }
 
 #if defined(DEBUG) || defined(PRINTOUTS_FOR_PLOTS)
-  std::cout << "MX - found track with nFoundHits=" << tkcand.nFoundHits() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << " nfoundmc=" << nfoundmc <<" lab="<< tkcand.label() <<std::endl;
+  std::cout << "MX - found track with nFoundHits=" << tkcand.nFoundHits() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << " nfoundmc=" << nfoundmc << " chi2mc=" << chi2mc <<" lab="<< tkcand.label() <<std::endl;
 #endif
   // DDDD MT: debug seed fit divergence between host / mic.
   // Use this to compare track quality.
@@ -272,10 +287,10 @@ void MkBuilder::find_tracks_load_seeds(EventOfCandidates& event_of_cands)
   // partition recseeds into eta bins
   for (int iseed = 0; iseed < m_event->seedTracks_.size(); ++iseed)
   {
-    if (m_event->seedTracks_[iseed].label() != iseed)
-    {
-      printf("Bad label for recseed %d -- %d\n", iseed, m_event->seedTracks_[iseed].label());
-    }
+    //if (m_event->seedTracks_[iseed].label() != iseed)
+    //{
+    //printf("Bad label for recseed %d -- %d\n", iseed, m_event->seedTracks_[iseed].label());
+    //}
 
     event_of_cands.InsertCandidate(m_event->seedTracks_[iseed]);
   }
@@ -358,10 +373,10 @@ void MkBuilder::find_tracks_load_seeds()
 
   for (int iseed = 0; iseed < m_event->seedTracks_.size(); ++iseed)
   {
-    if (m_event->seedTracks_[iseed].label() != iseed)
-    {
-      printf("Bad label for recseed %d -- %d\n", iseed, m_event->seedTracks_[iseed].label());
-    }
+    //if (m_event->seedTracks_[iseed].label() != iseed)
+    //{
+    //printf("Bad label for recseed %d -- %d\n", iseed, m_event->seedTracks_[iseed].label());
+    //}
     event_of_comb_cands.InsertSeed(m_event->seedTracks_[iseed]);
   }
 

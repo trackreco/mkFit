@@ -216,9 +216,9 @@ void MultHelixPropTranspFull(const MPlexLL& A, const MPlexLL& B, MPlexLL& C)
 
 } // end unnamed namespace
 
-void helixAtRFromIterativePolarFullJac(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
-                                       const MPlexQF &msRad,       MPlexLL& errorProp,
-                                       const int      N_proc)
+void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
+                                     const MPlexQF &msRad,       MPlexLL& errorProp,
+                                     const int      N_proc)
 {
   errorProp.SetVal(0);
   MPlexLL errorPropTmp(0);//initialize to zero
@@ -347,9 +347,9 @@ void helixAtRFromIterativePolarFullJac(const MPlexLV& inPar, const MPlexQI& inCh
     }
 }
 
-void helixAtRFromIterativePolar(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
-                                const MPlexQF &msRad, MPlexLL& errorProp,
-                                const int      N_proc)
+void helixAtRFromIterativeCCS(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
+                              const MPlexQF &msRad, MPlexLL& errorProp,
+                              const int      N_proc)
 {
   errorProp.SetVal(0);
 
@@ -770,7 +770,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
         printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,3,0),errorProp(n,3,1),errorProp(n,3,2),errorProp(n,3,3),errorProp(n,3,4),errorProp(n,3,5));
         printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,4,0),errorProp(n,4,1),errorProp(n,4,2),errorProp(n,4,3),errorProp(n,4,4),errorProp(n,4,5));
         printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,5,0),errorProp(n,5,1),errorProp(n,5,2),errorProp(n,5,3),errorProp(n,5,4),errorProp(n,5,5));
-  }
+      }
 #endif
     }
 }
@@ -782,7 +782,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
 #pragma simd
   for (int n = 0; n < NN; ++n)
     {
-#ifdef POLCOORD
+#ifdef CCSCOORD
 
       float radL = hitsRl.ConstAt(n,0,0);
       if (radL<0.0000000000001f) continue;//ugly, please fixme
@@ -791,8 +791,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
       const float theta = outPar.ConstAt(n,0,5);
       const float r = std::sqrt(x*x+y*y);
       const float pt = 1.f/outPar.ConstAt(n,0,3);
-      //trig approx for sin theta
-      const float p = pt/(theta - 0.1666667f*theta*theta*theta);
+      const float p = pt/std::sin(theta);
       const float p2 = p*p;
       float cosPhi, sinPhi;
       sincos4(outPar.ConstAt(n,0,4), sinPhi, cosPhi);
@@ -828,7 +827,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
       if (radL<0.0000000000001f) continue;//ugly, please fixme
       const float& x = outPar.ConstAt(n,0,0);
       const float& y = outPar.ConstAt(n,0,1);
-      const float& px = outPar.ConstAt(n,0,3);//FIXME FOR POLCOORD
+      const float& px = outPar.ConstAt(n,0,3);//FIXME FOR CCSCOORD
       const float& py = outPar.ConstAt(n,0,4);
       const float& pz = outPar.ConstAt(n,0,5);
       const float r = std::sqrt(x*x+y*y);
@@ -916,8 +915,8 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
      // }
    }
 
-#ifdef POLCOORD
-   helixAtRFromIterativePolar(inPar, inChg, outPar, msRad, errorProp, N_proc);
+#ifdef CCSCOORD
+   helixAtRFromIterativeCCS(inPar, inChg, outPar, msRad, errorProp, N_proc);
 #else
    helixAtRFromIterative(inPar, inChg, outPar, msRad, errorProp, N_proc);
 #endif
@@ -994,8 +993,8 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
      msRad.At(n, 0, 0) = r;
    }
 
-#ifdef POLCOORD
-   helixAtRFromIterativePolar(inPar, inChg, outPar, msRad, errorProp, N_proc);
+#ifdef CCSCOORD
+   helixAtRFromIterativeCCS(inPar, inChg, outPar, msRad, errorProp, N_proc);
 #else
    helixAtRFromIterative(inPar, inChg, outPar, msRad, errorProp, N_proc);
 #endif
@@ -1015,7 +1014,7 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
    // Matriplex version of:
    // result.errors = ROOT::Math::Similarity(errorProp, outErr);
 
-   //MultHelixProp can be optimized for polar coordinates, see GenMPlexOps.pl
+   //MultHelixProp can be optimized for CCS coordinates, see GenMPlexOps.pl
    MPlexLL temp;
    MultHelixProp      (errorProp, outErr, temp);
    MultHelixPropTransp(errorProp, temp,   outErr);

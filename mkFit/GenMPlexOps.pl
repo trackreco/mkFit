@@ -20,11 +20,11 @@ $m->dump_multiply_std_and_intrinsic("CFMatrix33Vector3.ah",
                                     $A, $B, $C);
 
 #------------------------------------------------------------------------------
-###updateParametersMPlex -- propagated errors in "polar" coordinates
-# propErr_pol = jac_pol * propErr * jac_polT
+###updateParametersMPlex -- propagated errors in CCS coordinates
+# propErr_ccs = jac_ccs * propErr * jac_ccsT
 
-$jac_pol = new GenMul::Matrix('name'=>'a', 'M'=>6, 'N'=>6);
-$jac_pol->set_pattern(<<"FNORD");
+$jac_ccs = new GenMul::Matrix('name'=>'a', 'M'=>6, 'N'=>6);
+$jac_ccs->set_pattern(<<"FNORD");
 1 0 0 0 0 0
 0 1 0 0 0 0
 0 0 1 0 0 0
@@ -39,22 +39,22 @@ $temp   = new GenMul::Matrix('name'=>'c', 'M'=>6, 'N'=>6);
 
 $m = new GenMul::Multiply;
 
-$m->dump_multiply_std_and_intrinsic("PolarErr.ah",
-                                    $jac_pol, $propErr, $temp);
+$m->dump_multiply_std_and_intrinsic("CCSErr.ah",
+                                    $jac_ccs, $propErr, $temp);
 
-$jac_polT = new GenMul::MatrixTranspose($jac_pol);
-$propErr_pol = new GenMul::MatrixSym('name'=>'c', 'M'=>6, 'N'=>6);
+$jac_ccsT = new GenMul::MatrixTranspose($jac_ccs);
+$propErr_ccs = new GenMul::MatrixSym('name'=>'c', 'M'=>6, 'N'=>6);
 $temp  ->{name} = 'b';
 
-$m->dump_multiply_std_and_intrinsic("PolarErrTransp.ah",
-                                    $temp, $jac_polT, $propErr_pol);
+$m->dump_multiply_std_and_intrinsic("CCSErrTransp.ah",
+                                    $temp, $jac_ccsT, $propErr_ccs);
 
 #------------------------------------------------------------------------------
 ###updateParametersMPlex -- updated errors in cartesian coordinates
-# outErr = jac_back_pol * outErr_pol * jac_back_polT
+# outErr = jac_back_ccs * outErr_ccs * jac_back_ccsT
 
-$jac_back_pol = new GenMul::Matrix('name'=>'a', 'M'=>6, 'N'=>6);
-$jac_back_pol->set_pattern(<<"FNORD");
+$jac_back_ccs = new GenMul::Matrix('name'=>'a', 'M'=>6, 'N'=>6);
+$jac_back_ccs->set_pattern(<<"FNORD");
 1 0 0 0 0 0
 0 1 0 0 0 0
 0 0 1 0 0 0
@@ -63,21 +63,21 @@ $jac_back_pol->set_pattern(<<"FNORD");
 0 0 0 x 0 x
 FNORD
 
-$outErr_pol = new GenMul::MatrixSym('name'=>'b', 'M'=>6, 'N'=>6);
+$outErr_ccs = new GenMul::MatrixSym('name'=>'b', 'M'=>6, 'N'=>6);
 
 $temp   = new GenMul::Matrix('name'=>'c', 'M'=>6, 'N'=>6);
 
 $m = new GenMul::Multiply;
 
 $m->dump_multiply_std_and_intrinsic("CartesianErr.ah",
-                                    $jac_back_pol, $outErr_pol, $temp);
+                                    $jac_back_ccs, $outErr_ccs, $temp);
 
-$jac_back_polT = new GenMul::MatrixTranspose($jac_back_pol);
+$jac_back_ccsT = new GenMul::MatrixTranspose($jac_back_ccs);
 $outErr = new GenMul::MatrixSym('name'=>'c', 'M'=>6, 'N'=>6);
 $temp  ->{name} = 'b';
 
 $m->dump_multiply_std_and_intrinsic("CartesianErrTransp.ah",
-                                    $temp, $jac_back_polT, $outErr);
+                                    $temp, $jac_back_ccsT, $outErr);
 
 #------------------------------------------------------------------------------
 ###updateParametersMPlex -- first term to get kalman gain (H^T*G)
@@ -102,9 +102,9 @@ $m->dump_multiply_std_and_intrinsic("KalmanHTG.ah",
 
 #------------------------------------------------------------------------------
 ###updateParametersMPlex -- kalman gain
-# K = propErr_pol * resErrTmpLH
+# K = propErr_ccs * resErrTmpLH
 
-$propErr_pol = new GenMul::MatrixSym('name'=>'a', 'M'=>6, 'N'=>6);
+$propErr_ccs = new GenMul::MatrixSym('name'=>'a', 'M'=>6, 'N'=>6);
 
 $resErrTmpLH  = new GenMul::Matrix('name'=>'b', 'M'=>6, 'N'=>3);
 $resErrTmpLH->set_pattern(<<"FNORD");
@@ -121,7 +121,7 @@ $K   = new GenMul::Matrix('name'=>'c', 'M'=>6, 'N'=>3);
 $m = new GenMul::Multiply;
 
 $m->dump_multiply_std_and_intrinsic("KalmanGain.ah",
-                                    $propErr_pol, $resErrTmpLH, $K);
+                                    $propErr_ccs, $resErrTmpLH, $K);
 
 #------------------------------------------------------------------------------
 ###updateParametersMPlex -- KH
@@ -153,7 +153,7 @@ $m->dump_multiply_std_and_intrinsic("KH.ah",
 
 #------------------------------------------------------------------------------
 ###updateParametersMPlex -- KH * C
-# temp = KH * propErr_pol
+# temp = KH * propErr_ccs
 
 $KH   = new GenMul::Matrix('name'=>'a', 'M'=>6, 'N'=>6);
 $KH->set_pattern(<<"FNORD");
@@ -165,14 +165,14 @@ x x x 0 0 0
 x x x 0 0 0
 FNORD
 
-$propErr_pol = new GenMul::MatrixSym('name'=>'b', 'M'=>6, 'N'=>6);
+$propErr_ccs = new GenMul::MatrixSym('name'=>'b', 'M'=>6, 'N'=>6);
 
 $temp   = new GenMul::MatrixSym('name'=>'c', 'M'=>6, 'N'=>6);
 
 $m = new GenMul::Multiply;
 
 $m->dump_multiply_std_and_intrinsic("KHC.ah",
-                                    $KH, $propErr_pol, $temp);
+                                    $KH, $propErr_ccs, $temp);
 
 #------------------------------------------------------------------------------
 
@@ -220,7 +220,7 @@ x x 0 x x 0
 x x 0 x x 0
 0 0 0 0 0 1
 FNORD
-#switch to the one below when moving to polar coordinates only
+#switch to the one below when moving to CCS coordinates only
 #x x 0 x x 0
 #x x 0 x x 0
 #x x 1 x x x

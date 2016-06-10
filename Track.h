@@ -44,7 +44,7 @@ public:
 						 errors.At(0,1),errors.At(0,2),errors.At(1,2)));}
 
   // track state momentum
-#ifdef POLCOORD
+#ifdef CCSCOORD
   float invpT()  const {return parameters.At(3);}
   float momPhi() const {return parameters.At(4);}
   float theta()  const {return parameters.At(5);}
@@ -90,10 +90,10 @@ public:
   float einvpT()  const {return sqrtf(getInvRadErr2(px(),py(),errors.At(3,3),errors.At(4,4),errors.At(3,4)));}
 #endif
 
-  void convertFromCartesianToPolar();
-  void convertFromPolarToCartesian();
-  SMatrix66 jacobianPolarToCartesian(float invpt,float phi,float theta) const;
-  SMatrix66 jacobianCartesianToPolar(float px,float py,float pz) const;
+  void convertFromCartesianToCCS();
+  void convertFromCCSToCartesian();
+  SMatrix66 jacobianCCSToCartesian(float invpt,float phi,float theta) const;
+  SMatrix66 jacobianCartesianToCCS(float px,float py,float pz) const;
 };
 
 class Track
@@ -196,6 +196,7 @@ public:
   }
 
   void setNGoodHitIdx() {
+    nGoodHitIdx_=0;
     for (int i=0;i<= hitIdxPos_;i++) {
       if (hitIdxArr_[i]>=0) nGoodHitIdx_++;
     }

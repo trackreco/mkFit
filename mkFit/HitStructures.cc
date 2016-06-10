@@ -17,7 +17,7 @@ void LayerOfHits::SetupLayer(float zmin, float zmax, float dz)
   m_nz   = nmax - nmin;
 
   m_phi_bin_infos.resize(m_nz);
-  for (int i = 0; i < m_nz; ++i) m_phi_bin_infos[i].resize(m_nphi);
+  for (int i = 0; i < m_nz; ++i) m_phi_bin_infos[i].resize(Config::m_nphi);
 }
 
 void LayerOfHits::SuckInHits(const HitVec &hitv)
@@ -107,7 +107,7 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
     {
       set_phi_bin(curr_z_bin, curr_phi_bin, hit_count, hits_in_bin);
 
-      empty_phi_bins(curr_z_bin, curr_phi_bin + 1, m_nphi, hit_count);
+      empty_phi_bins(curr_z_bin, curr_phi_bin + 1, Config::m_nphi, hit_count);
 
       empty_z_bins(curr_z_bin + 1, ha[j].zbin, hit_count);
 
@@ -131,7 +131,7 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
 
   set_phi_bin(curr_z_bin, curr_phi_bin, hit_count, hits_in_bin);
 
-  empty_phi_bins(curr_z_bin, curr_phi_bin + 1, m_nphi, hit_count);
+  empty_phi_bins(curr_z_bin, curr_phi_bin + 1, Config::m_nphi, hit_count);
 
   empty_z_bins(curr_z_bin + 1, m_nz, hit_count);
 
@@ -175,8 +175,8 @@ int LayerOfHits::SelectHitIndices(float z, float phi, float dz, float dphi, bool
   //   printf("%5.2f %4d %4d\n", p, pb, pb & m_phi_mask);
   // }
 
-  if (std::abs(dz)   > m_max_dz)   dz   = m_max_dz;
-  if (std::abs(dphi) > m_max_dphi) dphi = m_max_dphi;
+  if (std::abs(dz)   > Config::m_max_dz)   dz   = Config::m_max_dz;
+  if (std::abs(dphi) > Config::m_max_dphi) dphi = Config::m_max_dphi;
 
   int zb1 = GetZBinChecked(z - dz);
   int zb2 = GetZBinChecked(z + dz) + 1;
@@ -231,7 +231,7 @@ void LayerOfHits::PrintBins()
   for (int zb = 0; zb < m_nz; ++zb)
   {
     printf("Z bin %d\n", zb);
-    for (int pb = 0; pb < m_nphi; ++pb)
+    for (int pb = 0; pb < Config::m_nphi; ++pb)
     {
       if (pb % 8 == 0)
         printf(" Phi %4d: ", pb);

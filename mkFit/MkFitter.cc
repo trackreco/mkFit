@@ -462,12 +462,15 @@ void MkFitter::SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_pr
 
       dphi = nSigmaPhi * std::sqrt(std::abs(dphi2));
 
+      if (std::abs(dphi)<Config::minDPhi) dphi = Config::minDPhi;
+      if (std::abs(dz)<Config::minDZ) dz = Config::minDZ;
+
       if (Config::useCMSGeom)
       {
         //now correct for bending and for layer thickness unsing linear approximation
         const float deltaR = Config::cmsDeltaRad; //fixme! using constant value, to be taken from layer properties
         const float r  = std::sqrt(r2);
-#ifdef POLCOORD
+#ifdef CCSCOORD
         //here alpha is the difference between posPhi and momPhi
         const float alpha = phi - Par[iP].ConstAt(itrack, 4, 0);
         float cosA, sinA;
@@ -487,15 +490,14 @@ void MkFitter::SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_pr
 #endif
         //take abs so that we always inflate the window
         const float dist = std::abs(deltaR*sinA/cosA);
-
         dphi += dist / r;
       }
     }
 
     const LayerOfHits &L = layer_of_hits;
 
-    if (std::abs(dz)   > L.m_max_dz)   dz   = L.m_max_dz;
-    if (std::abs(dphi) > L.m_max_dphi) dphi = L.m_max_dphi;
+    if (std::abs(dz)   > Config::m_max_dz)   dz   = Config::m_max_dz;
+    if (std::abs(dphi) > Config::m_max_dphi) dphi = Config::m_max_dphi;
 
     const int zb1 = L.GetZBinChecked(z - dz);
     const int zb2 = L.GetZBinChecked(z + dz) + 1;
