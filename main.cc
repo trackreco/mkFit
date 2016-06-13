@@ -11,6 +11,8 @@
 #include "Event.h"
 #include "TTreeValidation.h"
 
+#include "fittestEndcap.h"
+
 #ifdef TBB
 #include "tbb/task_scheduler_init.h"
 #endif
@@ -112,6 +114,9 @@ void next_arg_or_die(lStr_t& args, lStr_i& i, bool allow_single_minus=false)
 
 int main(int argc, const char* argv[])
 {
+
+  fittestEndcap();return 0;
+
 #ifdef TBB
   auto nThread(tbb::task_scheduler_init::default_num_threads());
 #else
