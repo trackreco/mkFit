@@ -91,8 +91,8 @@ namespace Config
   // Config for seeding
   constexpr int   nlayers_per_seed = 3;
   constexpr float chi2seedcut  = 9.0;
-  constexpr float lay12angdiff = 0.0634888; // analytically derived... depends on geometry of detector --> from mathematica ... d0 set to one sigma of getHypot(bsX,bsY)
-  constexpr float lay13angdiff = 0.11537;
+  constexpr float lay01angdiff = 0.0634888; // analytically derived... depends on geometry of detector --> from mathematica ... d0 set to one sigma of getHypot(bsX,bsY)
+  constexpr float lay02angdiff = 0.11537;
   constexpr float dEtaSeedTrip = 0.6; // for almost max efficiency --> empirically derived... depends on geometry of detector
   constexpr float dPhiSeedTrip = 0.0458712; // numerically+semianalytically derived... depends on geometry of detector
   constexpr float seed_z0cut   = beamspotZ * 3.0; // 3cm
@@ -137,8 +137,8 @@ namespace Config
   constexpr float thetaerr049 = 0.0033; // 0.0031; 
   // parameters for layers 0,1,2 // --> ENDTOEND with "real seeding", fit is outward by definition, with poly geo
   constexpr float ptinverr012 = 0.12007; // 0.1789;  -->old values from only MC seeds
-  constexpr float phierr012   = 0.00646; // 0.0071 
-  constexpr float thetaerr012 = 0.01366; // 0.0130; 
+  constexpr float phierr012   = 1.0; // found empirically 0.00646; // 0.0071 
+  constexpr float thetaerr012 = 0.2; // also found empirically 0.01366; // 0.0130; 
 
   // config on fitting
   extern bool cf_fitting;
