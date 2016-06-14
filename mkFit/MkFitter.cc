@@ -454,7 +454,7 @@ void MkFitter::SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_pr
       const float dphidx = -y/r2, dphidy = x/r2;
       const float dphi2  = dphidx * dphidx * Err[iI].ConstAt(itrack, 0, 0) +
                            dphidy * dphidy * Err[iI].ConstAt(itrack, 1, 1) +
-                       2 * dphidx * dphidy * Err[iI].ConstAt(itrack, 0, 0);
+                       2 * dphidx * dphidy * Err[iI].ConstAt(itrack, 0, 1);
 
 #ifdef HARD_CHECK
       assert(dphi2 >= 0);
