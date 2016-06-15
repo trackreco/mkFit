@@ -159,7 +159,7 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
       mkfp->SlurpInTracksAndHits(simtracks, ev.layerHits_, itrack, end);
 
       if (Config::cf_fitting) mkfp->ConformalFitTracks(true, itrack, end);
-      mkfp->FitTracks();
+      mkfp->FitTracks(end - itrack);
 
 #ifndef NO_ROOT
       mkfp->OutputFittedTracks(rectracks, itrack, end);

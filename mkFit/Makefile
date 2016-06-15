@@ -38,10 +38,11 @@ AUTO_TGTS := auto-genmplex
 default: ${AUTO_TGTS} ${EXES}
 
 clean:
-	rm -f ${EXES} *.d *.o *.om 
+	rm -f ${EXES} *.d *.o *.om Ice/*.d Ice/*.o Ice/*.om
+	rm -rf mkFit.dSYM
 
 distclean: clean
-	rm -f *.optrpt
+	rm -f *.optrpt Ice/*.optrpt
 	rm -f ${AUTO_TGTS} *.ah
 
 echo:
@@ -61,7 +62,7 @@ ABOVE_OBJS := $(patsubst %, ../%.o, Config Matrix Event Hit Track Propagation Ka
 ${ABOVE_OBJS}:
 	${MAKE} -C ..
 
-MKFSRCS := $(wildcard *.cc)
+MKFSRCS := $(wildcard *.cc) $(wildcard Ice/*.cc)
 MKFHDRS := $(wildcard *.h)
 
 MKFOBJS := $(MKFSRCS:.cc=.o)
@@ -98,6 +99,7 @@ endif
 mkFit: ${ALLOBJS}
 	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} ${ALLOBJS} -o $@ ${LDFLAGS_HOST} ${LDFLAGS_CU}
 
+ifdef WITH_ROOT
 fittestMPlex.o : CPPFLAGS += $(shell root-config --cflags)
 
 TFile.h: 
@@ -105,6 +107,7 @@ TFile.h:
 
 TTree.h: 
 	echo "Using dummy rule for TTree.h"
+endif
 
 ${MKFOBJS}: %.o: %.cc %.d
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<

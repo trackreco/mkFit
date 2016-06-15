@@ -75,6 +75,8 @@ using GPlexLH = GPlex<float, MPlexLH>;
 using GPlexQF = GPlex<float, MPlexQF>;
 using GPlexQI = GPlex<int, MPlexQI>;
 
+const int GPlexHitIdxMax = 16;  // FIXME: copied and past from MkFitter.h
+using GPlexHitIdx = GPlex<int, Matriplex::Matriplex<int, GPlexHitIdxMax, 1, MPT_SIZE>>;
 
 template <typename T, int D1, int D2>
 struct GPlexReg {

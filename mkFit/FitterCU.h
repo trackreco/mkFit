@@ -65,13 +65,23 @@ class FitterCU {
   void kalmanUpdate_standalone(
       const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
       const MPlexHS &msErr,  const MPlexHV& msPar,
-      MPlexLS &outErr,       MPlexLV& outPar);
+      MPlexLS &outErr,       MPlexLV& outPar, int N_proc);
 
+#if 1
+  void computeChi2gpu(const MPlexLS &psErr, const MPlexLV& propPar,
+    const MPlexQI &inChg, MPlexHS &msErr, MPlexHV& msPar,
+    float *minChi2, int *bestHit,
+    LayerOfHitsCU &d_layer, MPlexQI &XHitSize, Matriplex::Matriplex<int, 16, 1, MPT_SIZE> &XHitArr,
+    MPlexQF &Chi2, MPlexQI &HitsIdx, MPlexQF&outChi2, int maxSize,
+    int NN);
+#endif
+#if 0
   void computeChi2gpu(const MPlexLS &psErr, const MPlexLV& propPar,
     const MPlexQI &inChg, MPlexHS &msErr, MPlexHV& msPar,
     BunchOfHitsCU &d_bunch, //MPlexQI &XHitPos, MPlexQI &XHitSize,
     MPlexQF &Chi2, MPlexQI &HitsIdx,
     int NN);
+#endif
 
   void allocate_extra_addBestHit();
   void free_extra_addBestHit();
@@ -84,8 +94,11 @@ class FitterCU {
       MPlexHS &msErr, MPlexHV& msPar,
       MPlexLS &outErr, MPlexLV &outPar,
       MPlexQI &HitsIdx, MPlexQF &Chi2);
+  void setHitsIdxToZero();
 
-  void addBestHit(BunchOfHitsCU &bunch);
+#if 1
+  void addBestHit(LayerOfHitsCU &layer_of_hits_cu);
+#endif
 
   // fitting higher order methods
   void FitTracks(MPlexQI &Chg, MPlexLV& par_iC, MPlexLS& err_iC,
@@ -115,6 +128,8 @@ class FitterCU {
   
   GPlexQI d_XHitPos;  // QI : 1D arrary following itracks
   GPlexQI d_XHitSize;  // QI : " "
+  GPlexHitIdx d_XHitArr;
+
   GPlexQF d_outChi2;
   int *d_HitsIdx;
   float *d_Chi2;

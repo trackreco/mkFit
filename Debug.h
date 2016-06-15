@@ -44,8 +44,10 @@
 
 #define dmutex_guard std::lock_guard<std::mutex> dlock(debug_mutex)
 #define dprint(x) if (debug) { dmutex_guard; std::cout << x << std::endl; }
+#define dprint_np(n,x) if(debug && n < N_proc) { dmutex_guard; std::cout << n << ": " << x << std::endl; }
 #define dcall(x)  if (debug) { dmutex_guard; x; }
 #define dprintf(...) if (debug) { dmutex_guard; printf(__VA_ARGS__); }
+#define dprintf_np(n, ...) if (debug && n< N_proc) { dmutex_guard; std::cout << n << ": "; printf(__VA_ARGS__); }
 
 namespace { 
   bool debug = true; // default, can be overridden locally
@@ -90,7 +92,9 @@ static void print(std::string label, const MeasurementState& s)
 
 #else
 #define dprint(x) (void(0))
+#define dprint_np(n,x) (void(0))
 #define dcall(x) (void(0))
 #define dprintf(...) (void(0))
+#define dprintf_np(n,...) (void(0))
 #endif
 #endif

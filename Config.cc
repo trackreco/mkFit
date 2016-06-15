@@ -1,9 +1,13 @@
-// Include of Config.h not yet required
+#include "Config.h"
 
 namespace Config
 {
   int nTracks = 20000;
   int nEvents = 10;
+
+  // Dependent constants, assigned after processing of commandline options
+  int maxHitsPerBunch;
+  int maxCandsPerEtaBin;
 
   // Multi threading and Clone engine configuration
   int   numThreadsFinder = 1;
@@ -30,4 +34,10 @@ namespace Config
   bool  cf_fitting  = false;
 
   bool  super_debug = false;
+
+  void RecalculateDependentConstants()
+  {
+    maxCandsPerEtaBin = std::max(100, maxCandsPerSeed * nTracks / nEtaPart);
+    maxHitsPerBunch   = std::max(100, nTracks * 12 / 10 / nEtaPart) + maxHitsConsidered;
+  }
 }

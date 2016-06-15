@@ -175,7 +175,7 @@ void test_standard()
 
   EventTmp ev_tmp;
 
-#if USE_CUDA
+#if 0 //USE_CUDA
   // fittest time. Sum of all events. In case of multiple events
   // being run simultaneously in different streams this time will
   // be larger than the elapsed time.
@@ -499,6 +499,8 @@ int main(int argc, const char *argv[])
 
     mArgs.erase(start, ++i);
   }
+
+  Config::RecalculateDependentConstants();
 
   printf ("Running with n_threads=%d, cloner_single_thread=%d, best_out_of=%d\n",
           Config::numThreadsFinder, Config::clonerUseSingleThread, Config::finderReportBestOutOfN);

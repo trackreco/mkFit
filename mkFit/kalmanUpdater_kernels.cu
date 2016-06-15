@@ -609,7 +609,8 @@ __global__ void kalmanUpdate_kernel(
     KHC_fn(tempLL, propErr, outErr, n);
     /*outErr.Subtract(propErr, outErr);// outErr is in "polar" coordinates now*/
     subtract_matrix(propErr.ptr, propErr.stride, outErr.ptr, outErr.stride, 
-        propErr.ptr, propErr.stride, LS, n);
+        /*propErr.ptr, propErr.stride, LS, n);*/
+        outErr.ptr, outErr.stride, LS, n);
 
 #ifndef POLCOORD
     // Go back to cartesian coordinates
