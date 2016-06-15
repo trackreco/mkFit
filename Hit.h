@@ -256,6 +256,7 @@ public:
 
   int mcHitID() const { return mcHitID_; }
   int layer(const MCHitInfoVec& globalMCHitInfo) const { return globalMCHitInfo[mcHitID_].layer(); }
+  int mcTrackID(const MCHitInfoVec& globalMCHitInfo) const { return globalMCHitInfo[mcHitID_].mcTrackID(); }
   
 private:
   MeasurementState state_;

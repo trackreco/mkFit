@@ -94,6 +94,41 @@ static tick delta(timepoint& t0)
   return d;
 }
 
+// from mkFit
+namespace
+{
+  FILE *s_file = 0;
+  int   s_file_num_ev = 0;
+  int   s_file_cur_ev = 0;
+
+  std::string s_operation = "empty";
+  std::string s_file_name = "simtracks.bin";
+}
+
+// from mkFit
+int open_simtrack_file()
+{
+  s_file = fopen(s_file_name.c_str(), "r");
+
+  assert (s_file != 0);
+
+  fread(&s_file_num_ev, sizeof(int), 1, s_file);
+  s_file_cur_ev = 0;
+
+  printf("\nReading simulated tracks from \"%s\", %d events on file.\n\n",
+         s_file_name.c_str(), s_file_num_ev);
+
+  return s_file_num_ev;
+}
+
+void close_simtrack_file()
+{
+  fclose(s_file);
+  s_file = 0;
+  s_file_num_ev = 0;
+  s_file_cur_ev = 0;
+}
+
 // also from mkfit
 typedef std::list<std::string> lStr_t;
 typedef lStr_t::iterator       lStr_i;
@@ -140,6 +175,7 @@ int main(int argc, const char* argv[])
 	"  --num-thr       <num>    number of threads used for TBB  (def: %d)\n"
 	"  --super-debug            bool to enable super debug mode (def: %s)\n"
 	"  --cf-seeding             bool to enable CF in MC seeding (def: %s)\n"
+	"  --read                   read input simtracks file (def: false)\n"
 	,
         argv[0],
 	Config::nEvents,
@@ -175,6 +211,10 @@ int main(int argc, const char* argv[])
     {
       Config::cf_seeding = true;
     }
+    else if (*i == "--read")
+    {
+      s_operation = "read";
+    }
     else
     {
       fprintf(stderr, "Error: Unknown option/argument '%s'.\n", i->c_str());
@@ -207,11 +247,22 @@ int main(int argc, const char* argv[])
     std::cout << "EVENT #"<< ev.evtID() << std::endl;
 
     timepoint t0(now());
-    ev.Simulate();           ticks[0] += delta(t0);
+    if (s_operation != "read")
+    {
+      ev.Simulate();         
+    }
+    else {
+      Config::nEvents = open_simtrack_file();
+      ev.read_in(s_file);
+    }
+    /* simulate time */      ticks[0] += delta(t0);
     ev.Segment();            ticks[1] += delta(t0);
     ev.Seed();               ticks[2] += delta(t0);
     ev.Find();               ticks[3] += delta(t0);
-    if (!Config::super_debug) {ev.Fit();                ticks[4] += delta(t0);}
+    if (!Config::super_debug) 
+    {
+      ev.Fit();              ticks[4] += delta(t0);
+    }
     ev.Validate(ev.evtID()); ticks[5] += delta(t0);
 
     if (!Config::super_debug) {
@@ -226,6 +277,11 @@ int main(int argc, const char* argv[])
       std::cout << "Fit tracks" << std::endl;
       ev.PrintStats(ev.fitTracks_, ev.fitTracksExtra_);
     }
+  }
+
+  if (s_operation == "read")
+  {
+    close_simtrack_file();
   }
 
   std::vector<double> time(ticks.size());

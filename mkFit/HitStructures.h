@@ -139,7 +139,7 @@ public:
 
   void SuckInHits(const HitVec &hitv);
 
-  int  SelectHitIndices(float z, float phi, float dz, float dphi, bool dump=false);
+  void SelectHitIndices(float z, float phi, float dz, float dphi, std::vector<int>& idcs, bool isForSeeding=false, bool dump=false);
 
   void PrintBins();
 };

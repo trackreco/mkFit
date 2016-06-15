@@ -1,4 +1,5 @@
 #include "MkBuilder.h"
+#include "seedtestMPlex.h"
 
 #include "Event.h"
 #include "EventTmp.h"
@@ -179,13 +180,73 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
   //   }
   // }
 
-  if (Config::readCmsswSeeds==false) m_event->seedTracks_.resize(simtracks.size());
+  if (! (Config::readCmsswSeeds || Config::findSeeds)) m_event->seedTracks_ = m_event->simTracks_; // make seed tracks == simtracks if not using "realistic" seeding
 }
 
-inline void MkBuilder::fit_one_seed_set(TrackVec& simtracks, int itrack, int end, MkFitter *mkfp)
+void MkBuilder::find_seeds()
 {
-  mkfp->SetNhits(3); //just to be sure (is this needed?)
-  mkfp->InputTracksAndHits(simtracks, m_event->layerHits_, itrack, end);
+  findSeedsByRoadSearch(m_event->seedTracks_,m_event_of_hits.m_layers_of_hits,m_event);
+}
+
+void MkBuilder::map_seed_hits()
+{
+  HitIDVec seedLayersHitMap(m_event->simHitsInfo_.size());
+  for (int ilayer = 0; ilayer < Config::nlayers_per_seed; ++ilayer) {
+    const auto & lof_m_hits   = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
+    const auto lof_m_capacity = m_event_of_hits.m_layers_of_hits[ilayer].m_capacity;
+    for (int index = 0; index < lof_m_capacity; ++index) {
+      seedLayersHitMap[lof_m_hits[index].mcHitID()] = HitID(ilayer, index);
+    }
+  }
+  for (int ilayer = 0; ilayer < Config::nlayers_per_seed; ++ilayer) {
+    const auto & global_hit_vec = m_event->layerHits_[ilayer];
+    for (auto&& track : m_event->seedTracks_) {
+      auto hitidx = track.getHitIdx(ilayer);
+      if (hitidx!=-1) track.setHitIdx(ilayer, seedLayersHitMap[global_hit_vec[hitidx].mcHitID()].index);
+    }
+  }
+}
+
+void MkBuilder::remap_seed_hits()
+{
+  HitIDVec seedLayersHitMap(m_event->simHitsInfo_.size());
+  for (int ilayer = 0; ilayer < Config::nlayers_per_seed; ++ilayer) {
+    const auto & global_hit_vec = m_event->layerHits_[ilayer];
+    for (int index = 0; index < global_hit_vec.size(); ++index) {
+      seedLayersHitMap[global_hit_vec[index].mcHitID()] = HitID(ilayer, index);
+    }
+  }
+  for (int ilayer = 0; ilayer < Config::nlayers_per_seed; ++ilayer) {
+    const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
+    for (auto&& track : m_event->seedTracks_) {
+      auto hitidx = track.getHitIdx(ilayer);
+      if (hitidx!=-1) track.setHitIdx(ilayer, seedLayersHitMap[lof_m_hits[hitidx].mcHitID()].index);
+    }
+  }
+}
+
+void MkBuilder::remap_cand_hits()
+{
+  HitIDVec candLayersHitMap(m_event->simHitsInfo_.size());
+  for (int ilayer = Config::nlayers_per_seed; ilayer < m_event->layerHits_.size(); ++ilayer) {
+    const auto & global_hit_vec = m_event->layerHits_[ilayer];
+    for (int index = 0; index < global_hit_vec.size(); ++index) {
+      candLayersHitMap[global_hit_vec[index].mcHitID()] = HitID(ilayer, index);
+    }
+  }
+  for (int ilayer = Config::nlayers_per_seed; ilayer < Config::nLayers; ++ilayer) {
+    const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
+    for (auto&& track : m_event->candidateTracks_) {
+      auto hitidx = track.getHitIdx(ilayer);
+      if (hitidx!=-1) track.setHitIdx(ilayer, candLayersHitMap[lof_m_hits[hitidx].mcHitID()].index);
+    }
+  }
+}
+
+inline void MkBuilder::fit_one_seed_set(TrackVec& seedtracks, int itrack, int end, MkFitter *mkfp)
+{
+  mkfp->SetNhits(Config::nlayers_per_seed); //just to be sure (is this needed?)
+  mkfp->InputTracksAndHits(seedtracks, m_event_of_hits.m_layers_of_hits, itrack, end);
   if (Config::cf_seeding) mkfp->ConformalFitTracks(false, itrack, end);
   if (Config::readCmsswSeeds==false) mkfp->FitTracks(end - itrack);
 
@@ -200,18 +261,18 @@ inline void MkBuilder::fit_one_seed_set(TrackVec& simtracks, int itrack, int end
 
 void MkBuilder::fit_seeds()
 {
-  TrackVec& simtracks = (Config::readCmsswSeeds ? m_event->seedTracks_ : m_event->simTracks_);
-  int theEnd = simtracks.size();
+  TrackVec& seedtracks = m_event->seedTracks_;
+  int theEnd = seedtracks.size();
 
 #pragma omp parallel for
   for (int itrack = 0; itrack < theEnd; itrack += NN)
   {
     MkFitter *mkfp = m_mkfp_arr[omp_get_thread_num()];
-    fit_one_seed_set(simtracks, itrack, std::min(itrack + NN, theEnd), mkfp);
+    fit_one_seed_set(seedtracks, itrack, std::min(itrack + NN, theEnd), mkfp);
   }
 
   //ok now, we should have all seeds fitted in recseeds
-  dcall(print_seeds(simtracks));
+  dcall(print_seeds(seedtracks));
 }
 
 void MkBuilder::end_event()
@@ -221,6 +282,58 @@ void MkBuilder::end_event()
 
 //------------------------------------------------------------------------------
 
+void MkBuilder::quality_output_besthit(const EventOfCandidates& event_of_cands)
+{
+  quality_reset();
+
+  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
+  {
+    const EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin]; 
+      
+    for (int itrack = 0; itrack < etabin_of_candidates.m_fill_index; itrack++)
+    {
+      m_event->candidateTracks_.push_back(etabin_of_candidates.m_candidates[itrack]);
+    }
+  }
+
+  remap_cand_hits();
+
+  for (int itrack = 0; itrack < m_event->candidateTracks_.size(); itrack++)
+  {
+    quality_process(m_event->candidateTracks_[itrack]);
+  }
+  
+  quality_print();
+}
+
+void MkBuilder::quality_output()
+{
+  quality_reset();
+
+  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
+  {
+    const EtaBinOfCombCandidates &etabin_of_comb_candidates = m_event_tmp->m_event_of_comb_cands.m_etabins_of_comb_candidates[ebin]; 
+    
+    for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed++)
+    {
+      // take the first one!
+      if ( ! etabin_of_comb_candidates.m_candidates[iseed].empty())
+      {
+     	m_event->candidateTracks_.push_back(etabin_of_comb_candidates.m_candidates[iseed].front());
+      }
+    }
+  }
+
+  remap_cand_hits();
+
+  for (int iseed = 0; iseed < m_event->candidateTracks_.size(); iseed++)
+  {
+    quality_process(m_event->candidateTracks_[iseed]);
+  }
+
+  quality_print();
+}
+
 void MkBuilder::quality_reset()
 {
   m_cnt = m_cnt1 = m_cnt2 = m_cnt_8 = m_cnt1_8 = m_cnt2_8 = m_cnt_nomc = 0;
@@ -228,18 +341,13 @@ void MkBuilder::quality_reset()
 
 void MkBuilder::quality_process(Track &tkcand)
 {
-
-  //begin: this does not work since the hit idxs after the seed refer to the bunch of hits and not to layerHits
-  //need to find a solution for this
-  // TrackExtra extra(tkcand.label());
-  // extra.setMCTrackIDInfo(tkcand, m_event->layerHits_, m_event->simHitsInfo_);
-  // int mctrk = extra.mcTrackID();
-  //end
+  TrackExtra extra(tkcand.label());
+  extra.setMCTrackIDInfo(tkcand, m_event->layerHits_, m_event->simHitsInfo_);
+  int mctrk = extra.mcTrackID();
 
   float pt    = tkcand.pT();
   float ptmc = 0., pr = 0., nfoundmc = 0., chi2mc = 0.;
 
-  int mctrk = tkcand.label();
   if (mctrk < 0 || mctrk >= Config::nTracks)
   {
     ++m_cnt_nomc;
@@ -276,7 +384,6 @@ void MkBuilder::quality_print()
   std::cout << "found tracks=" << m_cnt   << "  in pT 10%=" << m_cnt1   << "  in pT 20%=" << m_cnt2   << "     no_mc_assoc="<< m_cnt_nomc <<std::endl;
   std::cout << "  nH >= 80% =" << m_cnt_8 << "  in pT 10%=" << m_cnt1_8 << "  in pT 20%=" << m_cnt2_8 << std::endl;
 }
-
 
 //------------------------------------------------------------------------------
 // FindTracksBestHit
@@ -823,9 +930,9 @@ void MkBuilder::FindTracksCloneEngine()
 
 void MkBuilder::fit_seeds_tbb()
 {
-  TrackVec& simtracks = (Config::readCmsswSeeds ? m_event->seedTracks_ : m_event->simTracks_);
+  TrackVec& seedtracks = m_event->seedTracks_;
 
-  int theEnd = simtracks.size();
+  int theEnd = seedtracks.size();
   int count = (theEnd + NN - 1)/NN;
 
   tbb::parallel_for(tbb::blocked_range<int>(0, count, std::max(1, Config::numSeedsPerTask/NN)),
@@ -834,13 +941,13 @@ void MkBuilder::fit_seeds_tbb()
       std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
       for (int it = i.begin(); it < i.end(); ++it)
       {
-        fit_one_seed_set(simtracks, it*NN, std::min((it+1)*NN, theEnd), mkfp.get());
+        fit_one_seed_set(seedtracks, it*NN, std::min((it+1)*NN, theEnd), mkfp.get());
       }
     }
   );
 
   //ok now, we should have all seeds fitted in recseeds
-  dcall(print_seeds(simtracks));
+  dcall(print_seeds(seedtracks));
 }
 
 //------------------------------------------------------------------------------

@@ -110,13 +110,20 @@ public:
 
   void begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type);
 
+  void find_seeds();
   void fit_seeds();
   void fit_seeds_tbb();
 
   void end_event();
-
+  
   // --------
 
+  void map_seed_hits(); // m_event->layerHits_ -> m_event_of_hits.m_layers_of_hits (seeds only)
+  void remap_seed_hits(); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_ (seeds only)
+  void remap_cand_hits(); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_ (cands only)
+
+  void quality_output_besthit(const EventOfCandidates& event_of_cands);
+  void quality_output();
   void quality_reset();
   void quality_process(Track& tkcand);
   void quality_print();

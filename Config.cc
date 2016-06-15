@@ -30,6 +30,7 @@ namespace Config
   bool  useCMSGeom = false;
   bool  readCmsswSeeds = false;
 
+  bool  findSeeds   = false;
   bool  cf_seeding  = false;
   bool  cf_fitting  = false;
 

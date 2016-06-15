@@ -1,4 +1,9 @@
 #include "ConformalUtilsMPlex.h"
+#include "Track.h"
+#include "Hit.h"
+
+#define DEBUG
+#include "Debug.h"
 
 inline
 void CFMap(const MPlexHH& A, const MPlexHV& B, MPlexHV& C)
@@ -21,10 +26,12 @@ void CFMap(const MPlexHH& A, const MPlexHV& B, MPlexHV& C)
 //M. Hansroul, H. Jeremie and D. Savard, NIM A 270 (1988) 498
 //http://www.sciencedirect.com/science/article/pii/016890028890722X
 
-void conformalFitMPlex(bool fitting, const MPlexQI inChg, 
+void conformalFitMPlex(bool fitting, MPlexQI seedID, const MPlexQI inChg, 
 		       MPlexLS& outErr, MPlexLV& outPar, 
 		       const MPlexHV& msPar0, const MPlexHV& msPar1, const MPlexHV& msPar2)
 {
+  bool debug(false);
+
   using idx_t = Matriplex::idx_t;
   const idx_t N = NN;
 
@@ -49,6 +56,63 @@ void conformalFitMPlex(bool fitting, const MPlexQI inChg,
     {
       r2.At(n, i, 0) = getRad2(x.ConstAt(n, i, 0), y.ConstAt(n, i, 0));
     }
+  }
+  
+  // code common to CCS and Cartesian factored out
+  // Start setting the output parameters
+#pragma simd
+  for (int n = 0; n < N; ++n)
+  {
+    outPar.At(n, 0, 0) = x.ConstAt(n, 0, 0);
+    outPar.At(n, 1, 0) = y.ConstAt(n, 0, 0);
+    outPar.At(n, 2, 0) = z.ConstAt(n, 0, 0);
+  }
+
+  // Use r-phi smearing to set initial error estimation for positions
+#pragma simd
+  for (int n = 0; n < N; ++n)
+  {
+    const float varPhi   = Config::varXY/r2.ConstAt(n, 0, 0);
+    const float invvarR2 = Config::varR/r2.ConstAt(n, 0, 0);
+
+    outErr.At(n, 0, 0) = x.ConstAt(n, 0, 0)*x.ConstAt(n, 0, 0)*invvarR2 + y.ConstAt(n, 0, 0)*y.ConstAt(n, 0, 0)*varPhi;
+    outErr.At(n, 0, 1) = x.ConstAt(n, 0, 0)*y.ConstAt(n, 0, 0)*(invvarR2 - varPhi);
+    outErr.At(n, 0, 2) = 0.;
+    outErr.At(n, 0, 3) = 0.;
+    outErr.At(n, 0, 4) = 0.;
+    outErr.At(n, 0, 5) = 0.;
+
+    outErr.At(n, 1, 0) = outErr.ConstAt(n, 0, 1);
+    outErr.At(n, 1, 1) = y.ConstAt(n, 0, 0)*y.ConstAt(n, 0, 0)*invvarR2 + x.ConstAt(n, 0, 0)*x.ConstAt(n, 0, 0)*varPhi;
+    outErr.At(n, 1, 2) = 0.;
+    outErr.At(n, 1, 3) = 0.;
+    outErr.At(n, 1, 4) = 0.;
+    outErr.At(n, 1, 5) = 0.;
+
+    outErr.At(n, 2, 0) = 0.;
+    outErr.At(n, 2, 1) = 0.;
+    outErr.At(n, 2, 2) = Config::varZ;
+    outErr.At(n, 2, 3) = 0.;
+    outErr.At(n, 2, 4) = 0.;
+    outErr.At(n, 2, 5) = 0.;
+
+    outErr.At(n, 3, 0) = 0.;
+    outErr.At(n, 3, 1) = 0.;
+    outErr.At(n, 3, 2) = 0.;
+    outErr.At(n, 3, 4) = 0.;
+    outErr.At(n, 3, 5) = 0.;
+
+    outErr.At(n, 4, 0) = 0.;
+    outErr.At(n, 4, 1) = 0.;
+    outErr.At(n, 4, 2) = 0.;
+    outErr.At(n, 4, 3) = 0.;
+    outErr.At(n, 4, 5) = 0.;
+
+    outErr.At(n, 5, 0) = 0.;
+    outErr.At(n, 5, 1) = 0.;
+    outErr.At(n, 5, 2) = 0.;
+    outErr.At(n, 5, 3) = 0.;
+    outErr.At(n, 5, 4) = 0.;
   }
   
   MPlexQF initPhi;
@@ -105,23 +169,50 @@ void conformalFitMPlex(bool fitting, const MPlexQI inChg,
     a.At(n, 0, 0) = b.ConstAt(n, 0, 0)*C.ConstAt(n, 1, 0); 
   }  
 
-  // do i really need all these temp mplexs????
-  MPlexQF pT, pT2, px, py, pz, pz2;
-  //#pragma simd
+  MPlexQF vrx, vry, pT, tantheta;
+#pragma simd
   for (int n = 0; n < N; ++n)
   {
-    const float vrx = (xtou.ConstAt(n, 0, 0) ? x.ConstAt(n, 0, 0) - a.ConstAt(n, 0, 0) : x.ConstAt(n, 0, 0) - b.ConstAt(n, 0, 0));
-    const float vry = (xtou.ConstAt(n, 0, 0) ? y.ConstAt(n, 0, 0) - b.ConstAt(n, 0, 0) : y.ConstAt(n, 0, 0) - a.ConstAt(n, 0, 0));
-    const float invvrxy = 1.0f/std::sqrt(vrx*vrx + vry*vry);
-    const float cosphi = vry*invvrxy;
-    const float sinphi = vrx*invvrxy;
-    const float pT = (-Config::sol*Config::Bfield)*hipo(vrx, vry) / (inChg.ConstAt(n, 0, 0) * 100);
-    px.At (n, 0, 0) = std::copysign(pT * cosphi, x.ConstAt(n, 1, 0) - x.ConstAt(n, 0, 0));
-    py.At (n, 0, 0) = std::copysign(pT * sinphi, y.ConstAt(n, 1, 0) - y.ConstAt(n, 0, 0));
-    const float tantheta = hipo(x.ConstAt(n, 2, 0) - x.ConstAt(n, 0, 0), y.ConstAt(n, 2, 0) - y.ConstAt(n, 0, 0))/(z.ConstAt(n, 2, 0) - z.ConstAt(n, 0, 0));
-    pz.At (n, 0, 0) = std::copysign(pT / tantheta, z.ConstAt(n, 1, 0) - z.ConstAt(n, 0, 0));
+    vrx.At(n, 0, 0) = (xtou.ConstAt(n, 0, 0) ? x.ConstAt(n, 0, 0) - a.ConstAt(n, 0, 0) : x.ConstAt(n, 0, 0) - b.ConstAt(n, 0, 0));
+    vry.At(n, 0, 0) = (xtou.ConstAt(n, 0, 0) ? y.ConstAt(n, 0, 0) - b.ConstAt(n, 0, 0) : y.ConstAt(n, 0, 0) - a.ConstAt(n, 0, 0));
+    pT.At (n, 0, 0) = (-Config::sol*Config::Bfield)*hipo(vrx.ConstAt(n, 0, 0), vry.ConstAt(n, 0, 0)) / (inChg.ConstAt(n, 0, 0) * 100);
+    tantheta.At(n, 0, 0) = hipo(x.ConstAt(n, 2, 0) - x.ConstAt(n, 0, 0), y.ConstAt(n, 2, 0) - y.ConstAt(n, 0, 0))/(z.ConstAt(n, 2, 0) - z.ConstAt(n, 0, 0));
+  }
 
-    pT2.At(n, 0, 0) = pT*pT;
+#ifdef CCSCOORD
+#pragma simd
+  for (int n = 0; n < N; ++n)
+  {
+    outPar.At(n, 3, 0) = 1.0f/pT.ConstAt(n, 0, 0);
+    outPar.At(n, 4, 0) = getPhi(vry.ConstAt(n, 0, 0),vrx.ConstAt(n, 0, 0));
+    outPar.At(n, 5, 0) = std::tan(tantheta.At(n, 0, 0));
+#ifdef INWARDFIT
+    if (fitting) outPar.At(n, 5, 0) *= -1.0f;
+#endif
+  }
+
+#pragma simd
+  for (int n = 0; n < N; ++n)
+  {
+    outErr.At(n, 3, 3) = (fitting ? Config::ptinverr049 * Config::ptinverr049 : Config::ptinverr012 * Config::ptinverr012);
+    outErr.At(n, 4, 4) = (fitting ? Config::phierr049   * Config::phierr049   : Config::phierr012   * Config::phierr012);
+    outErr.At(n, 5, 5) = (fitting ? Config::thetaerr049 * Config::thetaerr049 : Config::thetaerr012 * Config::thetaerr012);
+  }
+
+#else // cartesian coordinates
+  MPlexQF pT2, px, py, pz, pz2;
+#pragma simd
+  for (int n = 0; n < N; ++n)
+  {
+    const float invvrxy = 1.0f/std::sqrt(vrx.ConstAt(n, 0, 0)*vrx.ConstAt(n, 0, 0) + vry.ConstAt(n, 0, 0)*vry.ConstAt(n, 0, 0));
+    const float cosphi = vry.ConstAt(n, 0, 0)*invvrxy;
+    const float sinphi = vrx.ConstAt(n, 0, 0)*invvrxy;
+
+    px.At (n, 0, 0) = std::copysign(pT.ConstAt(n, 0, 0) * cosphi, x.ConstAt(n, 1, 0) - x.ConstAt(n, 0, 0));
+    py.At (n, 0, 0) = std::copysign(pT.ConstAt(n, 0, 0) * sinphi, y.ConstAt(n, 1, 0) - y.ConstAt(n, 0, 0));
+    pz.At (n, 0, 0) = std::copysign(pT.ConstAt(n, 0, 0) / tantheta.ConstAt(n, 0, 0), z.ConstAt(n, 1, 0) - z.ConstAt(n, 0, 0));
+
+    pT2.At(n, 0, 0) = pT.ConstAt(n, 0, 0)*pT.ConstAt(n, 0, 0);
     pz2.At(n, 0, 0) = pz.ConstAt(n, 0, 0)*pz.ConstAt(n, 0, 0);
   }
 
@@ -137,82 +228,53 @@ void conformalFitMPlex(bool fitting, const MPlexQI inChg,
     }
   }
 #endif
- 
- //  Start setting the output parameters
+
+  // output momenta + errors
 #pragma simd
   for (int n = 0; n < N; ++n)
   {
-    outPar.At(n, 0, 0) = x.ConstAt(n, 0, 0);
-    outPar.At(n, 1, 0) = y.ConstAt(n, 0, 0);
-    outPar.At(n, 2, 0) = z.ConstAt(n, 0, 0);
     outPar.At(n, 3, 0) = px.ConstAt(n, 0, 0);
     outPar.At(n, 4, 0) = py.ConstAt(n, 0, 0);
     outPar.At(n, 5, 0) = pz.ConstAt(n, 0, 0);
   }
 
-  // Use r-phi smearing to set initial error estimation
-  // uncertainties set by hand by making pulls width of 1.0 (extracted from residuals)
-  float ptinverr, phierr, thetaerr;
-  if (fitting)
-  {
-    ptinverr = Config::ptinverr049;
-    phierr   = Config::phierr049;
-    thetaerr = Config::thetaerr049;
-  }
-  else
-  {
-    ptinverr = Config::ptinverr012;
-    phierr   = Config::phierr012;
-    thetaerr = Config::thetaerr012;
-  }
-
+  const float varPtInv = (fitting ? Config::ptinverr049 * Config::ptinverr049 : Config::ptinverr012 * Config::ptinverr012);
+  const float varPhi   = (fitting ? Config::phierr049   * Config::phierr049   : Config::phierr012   * Config::phierr012);
+  const float varTheta = (fitting ? Config::thetaerr049 * Config::thetaerr049 : Config::thetaerr012 * Config::thetaerr012);
 #pragma simd
   for (int n = 0; n < N; ++n)
   {
-    const float varPt    = pT2.ConstAt(n, 0, 0)*ptinverr*ptinverr;
-    const float varPhi   = Config::varXY/r2.ConstAt(n, 0, 0);
-    const float invvarR2 = Config::varR/r2.ConstAt(n, 0, 0);
-    const float varTheta = ((pT2.ConstAt(n, 0, 0) + pz2.ConstAt(n, 0, 0))*(pT2.ConstAt(n, 0, 0) + pz2.ConstAt(n, 0, 0))) / pT2.ConstAt(n, 0, 0) * thetaerr * thetaerr;
-    outErr.At(n, 0, 0) = x.ConstAt(n, 0, 0)*x.ConstAt(n, 0, 0)*invvarR2 + y.ConstAt(n, 0, 0)*y.ConstAt(n, 0, 0)*varPhi;
-    outErr.At(n, 0, 1) = x.ConstAt(n, 0, 0)*y.ConstAt(n, 0, 0)*(invvarR2 - varPhi);
-    outErr.At(n, 0, 2) = 0.;
-    outErr.At(n, 0, 3) = 0.;
-    outErr.At(n, 0, 4) = 0.;
-    outErr.At(n, 0, 5) = 0.;
-
-    outErr.At(n, 1, 0) = outErr.ConstAt(n, 0, 1);
-    outErr.At(n, 1, 1) = y.ConstAt(n, 0, 0)*y.ConstAt(n, 0, 0)*invvarR2 + x.ConstAt(n, 0, 0)*x.ConstAt(n, 0, 0)*varPhi;
-    outErr.At(n, 1, 2) = 0.;
-    outErr.At(n, 1, 3) = 0.;
-    outErr.At(n, 1, 4) = 0.;
-    outErr.At(n, 1, 5) = 0.;
-
-    outErr.At(n, 2, 0) = 0.;
-    outErr.At(n, 2, 1) = 0.;
-    outErr.At(n, 2, 2) = Config::varZ;
-    outErr.At(n, 2, 3) = 0.;
-    outErr.At(n, 2, 4) = 0.;
-    outErr.At(n, 2, 5) = 0.;
-
-    outErr.At(n, 3, 0) = 0.;
-    outErr.At(n, 3, 1) = 0.;
-    outErr.At(n, 3, 2) = 0.;
-    outErr.At(n, 3, 3) = px.ConstAt(n, 0, 0)*px.ConstAt(n, 0, 0)*varPt + py.ConstAt(n, 0, 0)*py.ConstAt(n, 0, 0)*phierr*phierr;
-    outErr.At(n, 3, 4) = 0.;
-    outErr.At(n, 3, 5) = 0.;
-
-    outErr.At(n, 4, 0) = 0.;
-    outErr.At(n, 4, 1) = 0.;
-    outErr.At(n, 4, 2) = 0.;
-    outErr.At(n, 4, 3) = 0.;
-    outErr.At(n, 4, 4) = py.ConstAt(n, 0, 0)*py.ConstAt(n, 0, 0)*varPt + px.ConstAt(n, 0, 0)*px.ConstAt(n, 0, 0)*phierr*phierr;
-    outErr.At(n, 4, 5) = 0.;
-
-    outErr.At(n, 5, 0) = 0.;
-    outErr.At(n, 5, 1) = 0.;
-    outErr.At(n, 5, 2) = 0.;
-    outErr.At(n, 5, 3) = 0.;
-    outErr.At(n, 5, 4) = 0.;
-    outErr.At(n, 5, 5) = pz2.ConstAt(n, 0, 0)*varPt + varTheta;
+    const float varPt  = pT2.ConstAt(n, 0, 0)*varPtInv;
+    outErr.At(n, 3, 3) = px.ConstAt(n, 0, 0)*px.ConstAt(n, 0, 0)*varPt + py.ConstAt(n, 0, 0)*py.ConstAt(n, 0, 0)*varPhi;
+    outErr.At(n, 4, 4) = py.ConstAt(n, 0, 0)*py.ConstAt(n, 0, 0)*varPt + px.ConstAt(n, 0, 0)*px.ConstAt(n, 0, 0)*varPhi;
+    outErr.At(n, 5, 5) = pz2.ConstAt(n, 0, 0)*varPt + (((pT2.ConstAt(n, 0, 0) + pz2.ConstAt(n, 0, 0))*(pT2.ConstAt(n, 0, 0) + pz2.ConstAt(n, 0, 0))) / pT2.ConstAt(n, 0, 0)) * varTheta;
   }  
+#endif // cartesian output
+
+  if (debug) {
+    for (int n = 0; n < N; ++n) {
+      dprintf("afterCF seedID: %1u \n",
+	      seedID.ConstAt(n, 0, 0));
+      // do a dumb copy out
+      TrackState updatedState;
+      for (int i = 0; i < 6; i++){
+	updatedState.parameters[i] = outPar.ConstAt(n, i, 0);
+	for (int j = 0; j < 6; j++){
+	  updatedState.errors[i][j] = outErr.ConstAt(n, i, j);
+	}
+      }
+
+#ifdef CCSCOORD
+      dcall(print("CCS",updatedState));
+      updatedState.convertFromCCSToCartesian();
+      dcall(print("Pol",updatedState));
+#else
+      updatedState.convertFromCartesianToCCS();
+      dcall(print("CCS",updatedState));
+      updatedState.convertFromCCSToCartesian();
+      dcall(print("Pol",updatedState));
+#endif
+      dprint("--------------------------------");
+    }
+  }
 }

@@ -50,7 +50,7 @@
 #define dprintf_np(n, ...) if (debug && n< N_proc) { dmutex_guard; std::cout << n << ": "; printf(__VA_ARGS__); }
 
 namespace { 
-  bool debug = true; // default, can be overridden locally
+  bool debug = false; // default, can be overridden locally
   std::mutex debug_mutex;
 }
 

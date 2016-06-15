@@ -75,6 +75,9 @@ double runBuildingTestPlexBestHit(Event& ev)
 
   builder.begin_event(&ev, 0, __func__);
 
+  if   (Config::findSeeds) {builder.find_seeds();}
+  else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
+
   builder.fit_seeds_tbb();
 
   EventOfCandidates event_of_cands;
@@ -94,23 +97,11 @@ double runBuildingTestPlexBestHit(Event& ev)
   __itt_pause();
 #endif
 
-   builder.quality_reset();
-
-   for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
-   {
-     EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin]; 
-
-     for (int itrack = 0; itrack < etabin_of_candidates.m_fill_index; itrack++)
-     {
-       builder.quality_process(etabin_of_candidates.m_candidates[itrack]);
-     }
-   }
-
-   builder.quality_print();
-
-   builder.end_event();
-
-   return time;
+  builder.quality_output_besthit(event_of_cands);
+  
+  builder.end_event();
+  
+  return time;
 }
 
 
@@ -126,6 +117,9 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
   MkBuilder builder;
 
   builder.begin_event(&ev, &ev_tmp, __func__);
+
+  if   (Config::findSeeds) {builder.find_seeds();}
+  else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
 
   builder.fit_seeds();
 
@@ -144,24 +138,8 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
 #endif
-
-  builder.quality_reset();
-
-  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
-  {
-    EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
-
-    for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed++)
-    {
-      // take the first one!
-      if ( ! etabin_of_comb_candidates.m_candidates[iseed].empty())
-      {
-        builder.quality_process(etabin_of_comb_candidates.m_candidates[iseed].front());
-      }
-    }
-  }
-
-  builder.quality_print();
+  
+  builder.quality_output();
 
   builder.end_event();
 
@@ -182,6 +160,9 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
 
   builder.begin_event(&ev, &ev_tmp, __func__);
 
+  if   (Config::findSeeds) {builder.find_seeds();}
+  else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
+
   builder.fit_seeds();
 
   builder.find_tracks_load_seeds();
@@ -200,23 +181,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
   __itt_pause();
 #endif
 
-  builder.quality_reset();
-
-  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
-  {
-    EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
-
-    for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed++)
-    {
-      // take the first one!
-      if ( ! etabin_of_comb_candidates.m_candidates[iseed].empty())
-      {
-        builder.quality_process(etabin_of_comb_candidates.m_candidates[iseed].front());
-      }
-    }
-  }
-
-  builder.quality_print();
+  builder.quality_output();
 
   builder.end_event();
 
@@ -237,6 +202,9 @@ double runBuildingTestPlexTbb(Event& ev, EventTmp& ev_tmp)
 
   builder.begin_event(&ev, &ev_tmp, __func__);
 
+  if   (Config::findSeeds) {builder.find_seeds();}
+  else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
+
   builder.fit_seeds_tbb();
 
   builder.find_tracks_load_seeds();
@@ -255,23 +223,7 @@ double runBuildingTestPlexTbb(Event& ev, EventTmp& ev_tmp)
   __itt_pause();
 #endif
 
-  builder.quality_reset();
-
-  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
-  {
-    EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
-
-    for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed++)
-    {
-      // take the first one!
-      if ( ! etabin_of_comb_candidates.m_candidates[iseed].empty())
-      {
-        builder.quality_process(etabin_of_comb_candidates.m_candidates[iseed].front());
-      }
-    }
-  }
-
-  builder.quality_print();
+  builder.quality_output();
 
   builder.end_event();
 

@@ -45,6 +45,9 @@ clean: clean-local
 distclean: clean-local
 	-rm -f ${AUTO_TGTS}
 	-rm -f *.optrpt
+	-rm -f *.root
+	-rm -f *.png
+	-rm -f log*.txt
 	cd Matriplex && ${MAKE} distclean
 	cd mkFit     && ${MAKE} distclean
 
