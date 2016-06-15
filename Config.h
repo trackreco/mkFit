@@ -57,7 +57,7 @@ namespace Config
   // config on Event
   constexpr float chi2Cut = 15.;// default: 15.; cmssw tests: 30.
   constexpr float nSigma  = 3.;
-  constexpr float minDPhi = 0.;// default: 0.;  cmssw tests: 0.02;
+  constexpr float minDPhi = 0.;// default: 0.;  cmssw tests: 0.01;
   constexpr float maxDPhi = Config::PI;
   constexpr float minDEta = 0.;
   constexpr float maxDEta = 1.0;
