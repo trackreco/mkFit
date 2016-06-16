@@ -517,7 +517,7 @@ void MkFitter::SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_pr
     // const int pb2 = L.GetPhiBin(phi + dphi) + 2;
 
     if (dump)
-      printf("LayerOfHits::SelectHitIndices %6.3f %6.3f %6.4f %7.5f %3d %3d %4d %4d\n",
+      printf("LayerOfHits::SelectHitIndices %6.3f %6.3f %6.6f %7.5f %3d %3d %4d %4d\n",
              z, phi, dz, dphi, zb1, zb2, pb1, pb2);
 
     // MT: One could iterate in "spiral" order, to pick hits close to the center.

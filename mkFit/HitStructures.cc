@@ -187,7 +187,7 @@ int LayerOfHits::SelectHitIndices(float z, float phi, float dz, float dphi, bool
   // zb1 -= 2; if (zb < 0) zb = 0;
   // zb2 += 2; if (zb >= m_nz) zb = m_nz;
 
-  if (dump)
+  //if (dump)
     printf("LayerOfHits::SelectHitIndices %6.3f %6.3f %6.4f %7.5f %3d %3d %4d %4d\n",
            z, phi, dz, dphi, zb1, zb2, pb1, pb2);
 
@@ -202,6 +202,7 @@ int LayerOfHits::SelectHitIndices(float z, float phi, float dz, float dphi, bool
 
       for (int hi = m_phi_bin_infos[zi][pb].first; hi < m_phi_bin_infos[zi][pb].second; ++hi)
       {
+        printf("hi : %d\n", hi);
         // Here could enforce some furhter selection on hits
 #ifdef LOH_USE_PHI_Z_ARRAYS
         float ddz   = std::abs(z   - m_hit_zs[hi]);

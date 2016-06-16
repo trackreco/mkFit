@@ -30,9 +30,9 @@ void updateTracksWithBestHit_wrapper(cudaStream_t &stream,
 
 int getMaxNumHits_wrapper(GPlexQI d_XHitSize, int N);
 
-#if 0
+#if 1
 void bestHit_wrapper(cudaStream_t &stream,
-    BunchOfHitsCU &bunch, GPlexQI &XHitPos, 
+    LayerOfHitsCU &layer, GPlexQI &XHitSize, GPlexHitIdx &XHitArr,
     GPlexLS &propErr, GPlexHS &msErr, GPlexHV &msPar,
     GPlexLV &propPar, GPlexQF &outChi2,
     float *Chi2, int *HitsIdx,

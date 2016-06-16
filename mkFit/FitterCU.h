@@ -9,6 +9,8 @@
 #include "propagation_kernels.h"
 #include "kalmanUpdater_kernels.h"
 #include "computeChi2_kernels.h"
+#include "index_selection_kernels.h"
+
 #include "HitStructuresCU.h"
 #include "GPlex.h"
 
@@ -75,13 +77,6 @@ class FitterCU {
     MPlexQF &Chi2, MPlexQI &HitsIdx, MPlexQF&outChi2, int maxSize,
     int NN);
 #endif
-#if 0
-  void computeChi2gpu(const MPlexLS &psErr, const MPlexLV& propPar,
-    const MPlexQI &inChg, MPlexHS &msErr, MPlexHV& msPar,
-    BunchOfHitsCU &d_bunch, //MPlexQI &XHitPos, MPlexQI &XHitSize,
-    MPlexQF &Chi2, MPlexQI &HitsIdx,
-    int NN);
-#endif
 
   void allocate_extra_addBestHit();
   void free_extra_addBestHit();
@@ -89,16 +84,23 @@ class FitterCU {
   void prepare_addBestHit(
       const MPlexLS &psErr, const MPlexLV& propPar,
       const MPlexQI &inChg, 
+      MPlexQI &XHitSize, Matriplex::Matriplex<int, 16, 1, MPT_SIZE> &XHitArr,
       size_t NN);
   void finalize_addBestHit(
       MPlexHS &msErr, MPlexHV& msPar,
-      MPlexLS &outErr, MPlexLV &outPar,
+      MPlexLS& Err_iC, MPlexLV& Par_iC, 
+      MPlexLS& Err_iP, MPlexLV& Par_iP, 
       MPlexQI &HitsIdx, MPlexQF &Chi2);
   void setHitsIdxToZero();
 
 #if 1
-  void addBestHit(LayerOfHitsCU &layer_of_hits_cu);
+  void addBestHit(LayerOfHitsCU &layer_of_hits_cu, const int ilay, const float radius);
 #endif
+  void propagateTracksToR(float radius, int N);
+  void propagateTracksToR_standalone(float radius, int N,
+      MPlexLS& Err_iC, MPlexLV& par_iC, 
+      MPlexQI& inChg, 
+      MPlexLS& Err_iP, MPlexLV& Par_iP);
 
   // fitting higher order methods
   void FitTracks(MPlexQI &Chg, MPlexLV& par_iC, MPlexLS& err_iC,

@@ -299,6 +299,18 @@ void MkBuilder::find_tracks_load_seeds(EventOfCandidates& event_of_cands)
 
 void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
 {
+#ifdef USE_CUDA
+  EventOfHitsCU event_of_hits_cu;
+  event_of_hits_cu.allocGPU(m_event_of_hits);
+  event_of_hits_cu.copyFromCPU(m_event_of_hits);
+
+  //printf("cpu: %d  -- gpu %d\n", sizeof(LayerOfHits), sizeof(LayerOfHitsCU));
+  
+  LayerOfHits& l = m_event_of_hits.m_layers_of_hits[Config::nlayers_per_seed];
+  //printf("info %d\n", l.m_phi_bin_infos[0][10].first);
+  //printf("cpu: %f, %f, %f\n", l.m_zmin, l.m_zmax, l.m_fz);
+
+#endif
   tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEtaBin),
     [&](const tbb::blocked_range<int>& ebins)
   {
@@ -309,6 +321,11 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
         [&](const tbb::blocked_range<int>& tracks)
       {
         std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
+#ifdef USE_CUDA
+            FitterCU<float> cuFitter(NN);
+            cuFitter.allocateDevice();
+            cuFitter.allocate_extra_addBestHit();
+#endif
         
         for (int itrack = tracks.begin(); itrack < tracks.end(); itrack += NN) {
           int end = std::min(itrack + NN, tracks.end());
@@ -342,35 +359,26 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
             //make candidates with best hit
             dprint("make new candidates");
 #ifdef USE_CUDA
-            LayerOfHitsCU layer_of_hits_cu;
-            layer_of_hits_cu.alloc_hits(layer_of_hits.m_capacity);
-            layer_of_hits_cu.alloc_phi_bin_infos(layer_of_hits.m_nz, layer_of_hits.m_nphi);
-
-            layer_of_hits_cu.copyLayerOfHitsFromCPU(layer_of_hits);
-
-            FitterCU<float> cuFitter(NN);
-            cuFitter.allocateDevice();
-            cuFitter.allocate_extra_addBestHit();
+            cuFitter.setNumberTracks(end-itrack);
             cuFitter.prepare_addBestHit(
                 mkfp->Err[mkfp->iP], mkfp->Par[mkfp->iP],
-                mkfp->Chg,
+                mkfp->Chg, 
+                mkfp->XHitSize, mkfp ->XHitArr,
                 NN);
+            
+            LayerOfHitsCU& layer_of_hits_cu = event_of_hits_cu.m_layers_of_hits_alloc[ilay];
+            float radius = (ilay + 1 < Config::nLayers) ? m_event->geom_.Radius(ilay+1) : 0.0;
+            cuFitter.addBestHit(layer_of_hits_cu, ilay, radius); 
 
-            //cuFitter.addBestHit(layer_of_hits_cu);
-            mkfp->AddBestHit_gpu(layer_of_hits, cuFitter, layer_of_hits_cu, end-itrack);
+            cuFitter.finalize_addBestHit(
+                mkfp->msErr[mkfp->Nhits], mkfp->msPar[mkfp->Nhits],
+                mkfp->Err[mkfp->iC], mkfp->Par[mkfp->iC],
+                mkfp->Err[mkfp->iP], mkfp->Par[mkfp->iP],
+                mkfp->HitsIdx[mkfp->Nhits], mkfp-> Chi2);
 
-            //cuFitter.finalize_addBestHit(
-                //mkfp->msErr[mkfp->Nhits], mkfp->msPar[mkfp->Nhits],
-                //mkfp->Err[mkfp->iC], mkfp->Par[mkfp->iC],
-                //mkfp->HitsIdx[mkfp->Nhits], mkfp-> Chi2);
-            cuFitter.free_extra_addBestHit();
-            cuFitter.freeDevice();
-
-            layer_of_hits_cu.free_phi_bin_infos();
-            layer_of_hits_cu.free_hits();
+            mkfp->SetNhits(ilay + 1);  //here again assuming one hit per layer (is this needed?)
 #else
             mkfp->AddBestHit(layer_of_hits, end - itrack);
-#endif
             mkfp->SetNhits(ilay + 1);  //here again assuming one hit per layer (is this needed?)
 
             //propagate to layer
@@ -380,48 +388,23 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
               mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay+1), end - itrack);
               dcall(post_prop_print(ilay, mkfp.get()));
             }
+#endif
+            //exit(0);
 
           } // end of layer loop
           mkfp->OutputFittedTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end, true);
         }
+#ifdef USE_CUDA
+            cuFitter.free_extra_addBestHit();
+            cuFitter.freeDevice();
+#endif
       }); // end of seed loop
     }
   }); //end of parallel section over seeds
-}
-
-#if 0
-// FIXME: Removing BunchOfHits will yield a simpler data structure for the GPU, but for now it breaks everything
 #ifdef USE_CUDA
-            BunchOfHitsCU bunch_of_hits_cu;
-            bunch_of_hits_cu.copyBunchOfHitsFromCPU(bunch_of_hits);
-            bunch_of_hits_cu.allocatePhiBinInfos(bunch_of_hits.m_phi_bin_infos.size());
-            bunch_of_hits_cu.copyPhiBinInfosFromCPU(bunch_of_hits);
-
-            FitterCU<float> cuFitter(NN);
-            cuFitter.allocateDevice();
-            cuFitter.allocate_extra_addBestHit();
-            cuFitter.prepare_addBestHit(
-                mkfp->Err[mkfp->iP], mkfp->Par[mkfp->iP],
-                mkfp->Chg,
-                NN);
-
-            //mkfp->AddBestHit_gpu(bunch_of_hits, cuFitter, bunch_of_hits_cu);
-            cuFitter.addBestHit(bunch_of_hits_cu);
-
-            cuFitter.finalize_addBestHit(
-                mkfp->msErr[mkfp->Nhits], mkfp->msPar[mkfp->Nhits],
-                mkfp->Err[mkfp->iC], mkfp->Par[mkfp->iC],
-                mkfp->HitsIdx[mkfp->Nhits], mkfp-> Chi2);
-            cuFitter.free_extra_addBestHit();
-            cuFitter.freeDevice();
-
-            bunch_of_hits_cu.freePhiBinInfos();
-
-            mkfp->AddBestHit(bunch_of_hits);
-#else
-            mkfp->AddBestHit(bunch_of_hits);
+  event_of_hits_cu.deallocGPU();
 #endif
-#endif
+}
 
 
 //------------------------------------------------------------------------------
@@ -930,155 +913,3 @@ void MkBuilder::FindTracksCloneEngineTbb()
     }
   });
 }
-
-
-/////////////////////////////////////////////
-// Backup: conflicts with tbb. Do not know what is going wrong
-//         keep a version of the previous one calling gpu stuffs
-#if 0
-void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
-{
-#ifdef USE_CUDA  // FIXME: temporary; move to FitterCU
-        m_cuFitter_arr[omp_get_thread_num()]->allocate_extra_addBestHit();
-#endif
-
-  std::cout << "Finding best hits...\n";
-  // partition recseeds into eta bins
-  for (int iseed = 0; iseed < m_recseeds.size(); ++iseed)
-  {
-    if (m_recseeds[iseed].label() != iseed)
-    {
-      printf("Bad label for recseed %d -- %d\n", iseed, m_recseeds[iseed].label());
-    }
-
-    event_of_cands.InsertCandidate(m_recseeds[iseed]);
-  }
-
-  //dump seeds
-#ifdef DEBUG
-  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
-  {
-    EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin]; 
-
-    for (int iseed = 0; iseed < etabin_of_candidates.m_fill_index; iseed++)
-    {
-      Track& seed = etabin_of_candidates.m_candidates[iseed];
-      std::cout << "MX - found seed with nFoundHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() 
-                << " x=" << seed.position()[0] << " y=" << seed.position()[1] << " z=" << seed.position()[2] 
-                << " px=" << seed.momentum()[0] << " py=" << seed.momentum()[1] << " pz=" << seed.momentum()[2] 
-                << " pT=" << sqrt(seed.momentum()[0]*seed.momentum()[0]+seed.momentum()[1]*seed.momentum()[1]) 
-                << std::endl;
-    }
-  }
-#endif
-
-  //parallel section over seeds; num_threads can of course be smaller
-  int nseeds = m_recseeds.size();
-
-#pragma omp parallel for
-  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
-  {
-    // vectorized loop
-    EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin];
-
-    for (int itrack = 0; itrack < etabin_of_candidates.m_fill_index; itrack += NN)
-    {
-      int end = std::min(itrack + NN, etabin_of_candidates.m_fill_index);
-	 
-#ifdef DEBUG
-      std::cout << std::endl;
-      std::cout << "processing track=" << itrack << " etabin=" << ebin << " findex=" << etabin_of_candidates.m_fill_index << " thn=" << omp_get_thread_num() << std::endl;
-#endif
-
-      MkFitter *mkfp = m_mkfp_arr[omp_get_thread_num()];
-
-      mkfp->SetNhits(3);//just to be sure (is this needed?)
-
-      mkfp->InputTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end, true);
-
-      //ok now we start looping over layers
-      //loop over layers, starting from after the seed
-      //consider inverting loop order and make layer outer, need to trade off hit prefetching with copy-out of candidates
-      for (int ilay = Config::nlayers_per_seed; ilay < Config::nLayers; ++ilay)
-      {
-        BunchOfHits &bunch_of_hits = m_event_of_hits.m_layers_of_hits[ilay].m_bunches_of_hits[ebin];
-
-        // XXX This should actually be done in some other thread for the next layer while
-        // this thread is crunching the current one.
-        // For now it's done in MkFitter::AddBestHit(), two loops before the data is needed.
-        // for (int i = 0; i < bunch_of_hits.m_fill_index; ++i)
-        // {
-        //   _mm_prefetch((char*) & bunch_of_hits.m_hits[i], _MM_HINT_T1);
-        // }
-
-#ifdef USE_CUDA
-        FitterCU<float> *cuFitter = m_cuFitter_arr[omp_get_thread_num()];
-        cuFitter->prepare_addBestHit(
-            mkfp->Err[mkfp->iP], mkfp->Par[mkfp->iP],
-            mkfp->Chg,
-            NN);
-
-        BunchOfHitsCU bunch_of_hits_cu;
-        bunch_of_hits_cu.copyBunchOfHitsFromCPU(bunch_of_hits);
-        bunch_of_hits_cu.allocatePhiBinInfos(bunch_of_hits.m_phi_bin_infos.size());
-        bunch_of_hits_cu.copyPhiBinInfosFromCPU(bunch_of_hits);
-
-        cuFitter->addBestHit(bunch_of_hits_cu);
-
-        bunch_of_hits_cu.freePhiBinInfos();
-        cuFitter->finalize_addBestHit(
-            mkfp->msErr[mkfp->Nhits], mkfp->msPar[mkfp->Nhits],
-            mkfp->Err[mkfp->iC], mkfp->Par[mkfp->iC],
-            mkfp->HitsIdx[mkfp->Nhits], mkfp-> Chi2);
-
-        // ...
-        mkfp->SetNhits(ilay + 1);  //here again assuming one hit per layer (is this needed?)
-
-        if (ilay + 1 < Config::nLayers)
-        {
-          mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay+1), end - itrack);
-        }
-#else
-        mkfp->SelectHitRanges(bunch_of_hits, end - itrack);
-
-// #ifdef PRINTOUTS_FOR_PLOTS
-// 	     std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
-// #endif
-
-        //make candidates with best hit
-#ifdef DEBUG
-        std::cout << "make new candidates" << std::endl;
-#endif
-        mkfp->AddBestHit(bunch_of_hits);
-
-        mkfp->SetNhits(ilay + 1);  //here again assuming one hit per layer (is this needed?)
-
-        //propagate to layer
-        // This is sort of a silly fix as no-clone-engine code produces
-        // zero good tracks with propagate-at-the-end.
-        // But at least it doesn't crash with uncaught exception :)
-        if (ilay + 1 < Config::nLayers)
-        {
-#ifdef DEBUG
-          std::cout << "propagate to lay=" << ilay+2 << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)<< " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
-                    << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5) << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
-#endif
-          mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay+1), end - itrack);
-#ifdef DEBUG
-          std::cout << "propagate to lay=" << ilay+2 << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)<< " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
-#endif
-        }
-
-#endif  // USE_CUDA
-      } // end of layer loop
-
-      mkfp->OutputFittedTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end, true);
-
-    } // end of seed loop
-   } //end of parallel section over seeds
-#ifdef USE_CUDA  // FIXME: temporary; move to FitterCU
-        m_cuFitter_arr[omp_get_thread_num()]->free_extra_addBestHit();
-#endif
-
-}
-#endif

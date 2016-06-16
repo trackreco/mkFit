@@ -187,11 +187,7 @@ __device__ void SlurpInIdx_fn(GPlexObj to, // float *fArray, int stride, int kSi
   int j = threadIdx.x + blockDim.x * blockIdx.x;
   if (j<N) {
     for (int i = 0; i < to.kSize; ++i) { // plex_size
-      /*fArray[i*stride+ j] = * (const T*) (arr + i*sizeof(T) + off);*/
       to(j, i, 0) = * (decltype(to.ptr)) (arr + i*sizeof(decltype(*to.ptr)) + idx);
-      /*if (j == 2) {*/
-        /*printf("gpu -- %d : %d, %f\n", i, idx, to(j,i,0));*/
-      /*}*/
     }
   }
 }
@@ -264,7 +260,6 @@ __global__ void getNewBestHitChi2_kernel(
   int itrack = threadIdx.x + blockDim.x*blockIdx.x;
   if (itrack < N) {
     getNewBestHitChi2_fn(XHitSize, XHitArr, outChi2, minChi2[itrack], bestHit[itrack], hit_cnt, N);
-    /*printf("GPU [%d]  -- %d : %f\n", itrack, bestHit[itrack], minChi2[itrack]);*/
   }
 }
 
@@ -293,27 +288,18 @@ __device__ void updateTracksWithBestHit_fn(Hit *hits,
     float *Chi2, int *HitsIdx, int N) {
   int itrack = threadIdx.x + blockDim.x*blockIdx.x;
   if (itrack < N) {
-    /*printf("GPU [%d]  -- %d : %f\n", itrack, bestHit, minChi2);*/
     if (bestHit >= 0)
     {
       Hit   &hit  = hits[ bestHit ];
       float &chi2_local = minChi2;
 	  
-      /*msErr[Nhits].CopyIn(itrack, hit.errArray());*/
-      /*SlurpIn_fn<float>(msErr, msErr_stride, msErr_plex_size,
-        varr + (itrack*sizeof(Hit)) + off_error, XHitPos, N);*/
-      /*msPar[Nhits].CopyIn(itrack, hit.posArray());*/
-      /*SlurpIn_fn<float>(msPar, msPar_stride, msPar_plex_size,
-        varr + (itrack*sizeof(Hit)) + off_param, XHitPos, N);*/
       for (int i = 0; i < msErr.kSize; ++i) {
         msErr(itrack, i, 0) = hit.errArrayCU()[i];
       }
       for (int i = 0; i < msPar.kSize; ++i) {
         msPar(itrack, i, 0) = hit.posArrayCU()[i];
       }
-      /*Chi2(itrack, 0, 0) += chi2_local;*/
       Chi2[itrack] += chi2_local;
-      /*HitsIdx[Nhits](itrack, 0, 0) = XHitPos.At(itrack, 0, 0) + bestHit[itrack];*/
       HitsIdx[itrack] = bestHit;
     }
     else
@@ -326,18 +312,12 @@ __device__ void updateTracksWithBestHit_fn(Hit *hits,
       msErr(itrack, 4, 0) = 0;
       msErr(itrack, 5, 0) = 666;
 
-      /*msPar[Nhits](itrack,0,0) = Par[iP](itrack,0,0);*/
-      /*msPar[Nhits](itrack,1,0) = Par[iP](itrack,1,0);*/
-      /*msPar[Nhits](itrack,2,0) = Par[iP](itrack,2,0);*/
       for (int i = 0; i < msPar.kSize; ++i) {
         msPar(itrack, i, 0) = propPar(itrack, i, 0);
       }
-      /*HitsIdx[Nhits](itrack, 0, 0) = -1;*/
       HitsIdx[itrack] = -1;
-
       // Don't update chi2
     }
-    /*printf("GPU [%d]  -- %d : %f\n", itrack, HitsIdx[itrack], Chi2[itrack]);*/
   }
 }
 
@@ -374,24 +354,22 @@ int getMaxNumHits_wrapper(GPlexQI d_XHitSize, int N) {
 }
 
 __global__ void bestHit_kernel(
-    Hit *hits, GPlexQI XHitPos, 
+    Hit *hits, GPlexQI XHitSize, GPlexHitIdx XHitArr, 
     GPlexLS propErr, GPlexHS msErr, GPlexHV msPar,
     GPlexLV propPar, GPlexQF outChi2,
-    /*float* propErr, size_t propErr_stride,*/
-    /*float* msErr, size_t msErr_stride, size_t msErr_plex_size,*/
-    /*float *msPar, size_t msPar_stride, size_t msPar_plex_size,*/
-    /*float *propPar, size_t propPar_stride,*/
-    /*float *outChi2, size_t outChi2_stride,*/
     float *Chi2, int *HitsIdx,
     int maxSize, int N) {
 
-  /*int itrack = threadIdx.x + blockDim.x*blockIdx.x;*/
+  int itrack = threadIdx.x + blockDim.x*blockIdx.x;
   int bestHit_reg = -1;
   float minChi2_reg = 15.f;
 
+  if (itrack < N)
+    HitsIdx[itrack] = 0;
+
   for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
   {
-    /*HitToMs_fn(msErr, msPar, hits, XHitPos, hit_cnt, N);*/
+    HitToMs_fn(msErr, msPar, hits, XHitSize, XHitArr, HitsIdx, hit_cnt, N);
 #if 0
       // TODO: add CMSGeom
       if (Config::useCMSGeom) {
@@ -400,19 +378,19 @@ __global__ void bestHit_kernel(
       } else {}
 #endif
     computeChi2_fn(propErr, msErr, msPar, propPar, outChi2, N);
-    /*getNewBestHitChi2_fn(outChi2.ptr, minChi2_reg, bestHit_reg, hit_cnt, N);*/
+    getNewBestHitChi2_fn(XHitSize, XHitArr, outChi2.ptr, minChi2_reg, bestHit_reg, hit_cnt, N);
   }
-  /*updateTracksWithBestHit_fn*/
-      /*(hits, XHitPos,*/
-       /*minChi2_reg, bestHit_reg,*/
-       /*msErr, msPar, propPar,*/
-       /*Chi2, HitsIdx,*/
-       /*N);*/
+  updateTracksWithBestHit_fn
+      (hits, 
+       minChi2_reg, bestHit_reg,
+       msErr, msPar, propPar,
+       Chi2, HitsIdx,
+       N);
 }
 
-#if 0
+#if 1
 void bestHit_wrapper(cudaStream_t &stream,
-    BunchOfHitsCU &bunch, GPlexQI &XHitPos, 
+    LayerOfHitsCU &layer, GPlexQI &XHitSize,  GPlexHitIdx &XHitArr,
     GPlexLS &propErr, GPlexHS &msErr, GPlexHV &msPar,
     GPlexLV &propPar, GPlexQF &outChi2,
     float *Chi2, int *HitsIdx,
@@ -423,7 +401,7 @@ void bestHit_wrapper(cudaStream_t &stream,
   dim3 block(BLOCK_SIZE_X, 1, 1);
 
   bestHit_kernel <<< grid, block, 0, stream >>>
-    (bunch.m_hits, XHitPos,
+    (layer.m_hits, XHitSize, XHitArr,
      propErr, msErr, msPar, propPar, outChi2,
      /*propErr.ptr, propErr.stride,*/
      /*msErr.ptr, msErr.stride, msErr.kSize,*/
@@ -592,7 +570,7 @@ __global__ void selectHitRanges_kernel(Hit *hits,
 }
 
 #if 0
-void selectHitRanges_wrapper(cudaStream_t &stream, BunchOfHitsCU &bunch, 
+void selectHitRanges_wrapper(cudaStream_t &stream, LayerOfHitsCU &layer, 
     GPlexQI &XHitPos, GPlexQI &XHitSize,
     GPlexLS &Err, GPlexLV &Par,
     int N) {

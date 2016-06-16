@@ -12,6 +12,38 @@ constexpr int LS = 21;
 constexpr int BLOCK_SIZE_X = 32;
 constexpr int MAX_BLOCKS_X = 65535; // CUDA constraint
 
+__device__
+void MultHelixProp_fn(const GPlexRegLL& a, const GPlexLS& b, GPlexRegLL& c, int n)
+{
+   // C = A * B
+
+   typedef float T;
+   /*const idx_t N  = NN;*/
+
+   /*const T *a = A.fArray; ASSUME_ALIGNED(a, 64);*/
+   /*const T *b = B.fArray; ASSUME_ALIGNED(b, 64);*/
+         /*T *c = C.fArray; ASSUME_ALIGNED(c, 64);*/
+  /*float *a = A.ptr;*/
+  int aN = 1       ; int an = 0;  // Register array
+  int bN = b.stride; int bn = n;  // Global array
+  int cN = 1;        int cn = 0;
+
+#include "MultHelixProp.ah"
+}
+
+__device__
+void MultHelixPropTransp_fn(const GPlexRegLL& a, const GPlexRegLL& b, GPlexLS& c, int n)
+{
+   // C = B * AT;
+
+   typedef float T;
+  int aN = 1       ; int an = 0;  // Register array
+  int bN = 1       ; int bn = 0;  // Global array
+  int cN = c.stride; int cn = n;
+
+#include "MultHelixPropTransp.ah"
+}
+
 // computeJacobianSimple works on values that are in registers.
 // Registers are thread-private. Thus this function has no notion of
 // parallelism. It is ran serially by each calling thread.
@@ -100,8 +132,6 @@ __device__
 void helixAtRFromIterative_fn(const GPlexLV& inPar,
     const GPlexQI& inChg, GPlexLV& outPar_global, const GPlexReg<float,1,1>& msRad, 
     GPlexReg<float, LL2, L>& errorProp, int N, int n) {
-
-  /*int n = threadIdx.x + blockIdx.x * blockDim.x;*/
 
   GPlexReg<float, LL2, 1> outPar;
 
@@ -271,49 +301,104 @@ void propagation_wrapper(cudaStream_t& stream,
 // PropagationMPlex.cc:propagateHelixToRMPlex, second version with 7 arguments 
 // Imposes the radius
 __global__ void propagationForBuilding_kernel(
-    float r,
-    float *inPar, size_t inPar_stride, int *inChg,
-    float *outPar, size_t outPar_stride, float *errorProp,
-    size_t errorProp_stride, float *outErr, size_t outErr_stride, int N) {
-#if 0
+    const GPlexLS inErr, const GPlexLV inPar,
+    const GPlexQI inChg, const float radius,
+    GPlexLS outErr, GPlexLV outPar, 
+    const int N) {
+#if 1
   int grid_width = blockDim.x * gridDim.x;
   int n = threadIdx.x + blockIdx.x * blockDim.x;
-  float msRad_reg;
+
+  GPlexRegQF msRad_reg;
   // Using registers instead of shared memory is ~ 30% faster.
-  float errorProp_reg[LL2];
+  GPlexRegLL errorProp_reg;
   // If there is more matrices than MAX_BLOCKS_X * BLOCK_SIZE_X 
-  for (int z = 0; z < (N-1)/grid_width  +1; z++) {
-    n += z*grid_width;
+  /*for (int z = 0; z < (N-1)/grid_width  +1; z++) {*/
+    /*n += z*grid_width;*/
     if (n < N) {
-      assignMsRad_fn(r, &msRad_reg, N, n);
-      if (Config::doIterative) {
-        helixAtRFromIterative_fn(inPar, inPar_stride,
-            inChg, outPar, outPar_stride, msRad_reg, 
-            errorProp_reg, N, n);
-      } else {
-        // TODO: not ported for now. Assuming Config::doIterative
-        // helixAtRFromIntersection(inPar, inChg, outPar, msRad, errorProp);
+      
+      for (int i = 0; i < inErr.kSize; ++i) {
+        outErr[n + i*outErr.stride] = inErr[n + i*inErr.stride];
       }
-      similarity_fn(errorProp_reg, outErr, outErr_stride, N, n);
+      for (int i = 0; i < inPar.kSize; ++i) {
+        outPar[n + i*outPar.stride] = inPar[n + i*inPar.stride];
+      }
+      for (int i = 0; i < 36; ++i) {
+        errorProp_reg[i] = 0.0;
+      }
+     /*if (n == 0)*/
+     /*{*/
+       /*int kk = n;*/
+       /*printf("\n");*/
+       /*printf("outErrGPU %d\n", kk);*/
+       /*for (int i = 0; i < 1; ++i) { for (int j = 0; j < 1; ++j)*/
+           /*printf("%8f ", outErr(kk,i,j)); printf("\t");*/
+       /*} printf("\n");*/
+
+       /*printf("outParGPU %d\n", kk);*/
+       /*for (int i = 0; i < 1; ++i) {*/
+           /*printf("%8f ", outPar(kk,i,0)); printf("\t");*/
+       /*} printf("\n");*/
+     /*}*/
     }
-  }
+
+      /*assignMsRad_fn(radius, &msRad_reg, N, n);*/
+      msRad_reg(n, 0, 0) = radius;
+      /*if (n == 0) printf("gpu r = %f\n", radius);*/
+
+#ifdef POLCOORD
+      // TODO: port me
+      helixAtRFromIterativePolar(inPar, inChg, outPar, msRad, errorProp, N_proc);
+#else
+      helixAtRFromIterative_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
+#endif
+   /*if(n == 0) {*/
+     /*printf("errorProp\n");*/
+     /*for (int i = 0; i < 6; ++i) {*/
+       /*printf("%8f ", inPar(0,i,0)); printf("\t");*/
+     /*} printf("\n");*/
+     /*for (int i = 0; i < 6; ++i) {*/
+       /*printf("%8f ", outPar(0,i,0)); printf("\t");*/
+     /*} printf("\n");*/
+   /*}*/
+
+      // TODO: port me
+      /*if (Config::useCMSGeom) {*/
+        /*MPlexQF hitsRl;*/
+        /*MPlexQF hitsXi;*/
+        /*for (int n = 0; n < NN; ++n) {*/
+        /*hitsRl.At(n, 0, 0) = getRlVal(r, outPar.ConstAt(n, 2, 0));*/
+        /*hitsXi.At(n, 0, 0) = getXiVal(r, outPar.ConstAt(n, 2, 0));*/
+        /*}*/
+        /*applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);*/
+      /*}*/
+      /*similarity_fn(errorProp_reg, outErr, N, n);*/
+
+      // Matriplex version of:
+      // result.errors = ROOT::Math::Similarity(errorProp, outErr);
+
+      //MultHelixProp can be optimized for polar coordinates, see GenMPlexOps.pl
+      /*MPlexLL temp;*/
+      /*MultHelixProp      (errorProp, outErr, temp);*/
+      /*MultHelixPropTransp(errorProp, temp,   outErr);*/
+      GPlexRegLL temp;
+      MultHelixProp_fn      (errorProp_reg, outErr, temp, n);
+      MultHelixPropTransp_fn(errorProp_reg, temp,   outErr, n);
+
+  /*}*/
 #endif
 }
 
 void propagationForBuilding_wrapper(cudaStream_t& stream,
-    float radius,
-    GPlexLV& inPar, GPlexQI& inChg,
-    GPlexLV& outPar, GPlexLL& errorProp,
-    GPlexLS& outErr, 
+    const GPlexLS& inErr, const GPlexLV& inPar,
+    const GPlexQI& inChg, const float radius,
+    GPlexLS& outErr, GPlexLV& outPar, 
     const int N) {
   int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
                        MAX_BLOCKS_X);
   dim3 grid(gridx, 1, 1);
   dim3 block(BLOCK_SIZE_X, 1, 1);
   propagationForBuilding_kernel<<<grid, block, 0, stream >>>
-    (radius,
-     inPar.ptr, inPar.stride, inChg.ptr,
-     outPar.ptr, outPar.stride, errorProp.ptr,
-     errorProp.stride, outErr.ptr, outErr.stride, N);
+    (inErr, inPar, inChg, radius, outErr, outPar, N);
 }
 

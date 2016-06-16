@@ -23,6 +23,7 @@
 // In practice, The number of tracks (ntracks) is set to be MPT_SIZE
 template <typename T, typename M>
 struct GPlex { 
+  using value_type = T;
   T* ptr;
   size_t pitch, stride, N, kSize;
 

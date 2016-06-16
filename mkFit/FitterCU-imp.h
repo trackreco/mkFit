@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include "Config.h"
 
 template <typename T>
 void FitterCU<T>::setNumberTracks(idx_t Ntracks) {
@@ -107,8 +108,8 @@ void FitterCU<T>::computeChi2gpu(const MPlexLS &psErr, const MPlexLV& propPar,
   d_msErr.copyAsyncFromHost(stream, msErr);
   d_msPar.copyAsyncFromHost(stream, msPar);
   //d_XHitPos.copyAsyncFromHost(stream, XHitPos);
-  d_XHitSize.copyAsyncFromHost(stream, XHitSize);
-  d_XHitArr.copyAsyncFromHost(stream, XHitArr);
+  //d_XHitSize.copyAsyncFromHost(stream, XHitSize);
+  //d_XHitArr.copyAsyncFromHost(stream, XHitArr);
 
   //cudaMemcpy2DAsync(d_Chi2, NN*sizeof(float), Chi2.fArray, NN*sizeof(float), 
                //NN*sizeof(float), 1, cudaMemcpyHostToDevice, stream);
@@ -146,9 +147,9 @@ void FitterCU<T>::computeChi2gpu(const MPlexLS &psErr, const MPlexLV& propPar,
   updateTracksWithBestHit_wrapper(stream, d_layer, d_minChi2, d_bestHit, 
     d_msErr, d_msPar, d_par_iP, d_Chi2, d_HitsIdx, N);
 
-  d_outChi2.copyAsyncToHost(stream, outChi2);
-  cudaMemcpyAsync(minChi2, d_minChi2, NN*sizeof(float), cudaMemcpyDeviceToHost, stream);
-  cudaMemcpyAsync(bestHit, d_bestHit, NN*sizeof(int), cudaMemcpyDeviceToHost, stream);
+  //d_outChi2.copyAsyncToHost(stream, outChi2);
+  //cudaMemcpyAsync(minChi2, d_minChi2, NN*sizeof(float), cudaMemcpyDeviceToHost, stream);
+  //cudaMemcpyAsync(bestHit, d_bestHit, NN*sizeof(int), cudaMemcpyDeviceToHost, stream);
 
   cudaMemcpy2DAsync(Chi2.fArray, NN*sizeof(float), d_Chi2, NN*sizeof(float), 
                NN*sizeof(float), 1, cudaMemcpyDeviceToHost, stream);
@@ -170,88 +171,6 @@ void FitterCU<T>::computeChi2gpu(const MPlexLS &psErr, const MPlexLV& propPar,
 }
 #endif
 
-#if 0
-template <typename T>
-void FitterCU<T>::computeChi2gpu(const MPlexLS &psErr, const MPlexLV& propPar,
-    const MPlexQI &inChg, MPlexHS &msErr, MPlexHV& msPar,
-    BunchOfHitsCU &d_bunch, //MPlexQI &XHitPos, MPlexQI &XHitSize,
-    MPlexQF &Chi2, MPlexQI &HitsIdx,
-    int NN) {
-
-  //float *d_minChi2;
-  //int *d_bestHit;
-  //cudaMalloc((void**)&d_minChi2, NN*sizeof(float));
-  //cudaMalloc((void**)&d_bestHit, NN*sizeof(int));
-
-  //cudaMemcpyAsync(d_minChi2, minChi2, NN*sizeof(float), cudaMemcpyHostToDevice, stream);
-  //cudaMemcpyAsync(d_bestHit, bestHit, NN*sizeof(int), cudaMemcpyHostToDevice, stream);
-
-  //cudaMemset(d_bestHit, -1, NN*sizeof(int));
-  //fill_array_cu(d_minChi2, NN, 15.f);
-
-  //d_Err_iP.copyAsyncFromHost(stream, psErr);
-  //d_par_iP.copyAsyncFromHost(stream, propPar);
-  //d_msErr.copyAsyncFromHost(stream, msErr);
-  //d_msPar.copyAsyncFromHost(stream, msPar);
-  //d_XHitPos.copyAsyncFromHost(stream, XHitPos);
-  //d_XHitSize.copyAsyncFromHost(stream, XHitSize);
-
-  //cudaMemcpy2DAsync(d_Chi2, NN*sizeof(float), Chi2.fArray, NN*sizeof(float), 
-               //NN*sizeof(float), 1, cudaMemcpyHostToDevice, stream);
-  //cudaMemcpy2DAsync(d_HitsIdx, NN*sizeof(int), HitsIdx.fArray, NN*sizeof(int), 
-               //NN*sizeof(int), 1, cudaMemcpyHostToDevice, stream);
-
-  //cudaStreamSynchronize(stream);
-  //cudaCheckError();
-
-  selectHitRanges_wrapper(stream, d_bunch, d_XHitPos, d_XHitSize, 
-      d_Err_iP, d_par_iP, N);
-
-  int maxSize2 = getMaxNumHits_wrapper(d_XHitSize, N);
-  bestHit_wrapper(stream, d_bunch, d_XHitPos,
-                  d_Err_iP, d_msErr, d_msPar, d_par_iP, d_outChi2,
-                  d_Chi2, d_HitsIdx,
-                  maxSize2, N);
-#if 0
-  for (int hit_cnt = 0; hit_cnt < maxSize2; ++hit_cnt)
-  {
-    // TODO: add CMSGeom
-    if (Config::useCMSGeom) {
-      //propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar);
-      throw std::runtime_error("useCMSGeom not implemented yet for GPU");
-    } else {}
-    HitToMs_wrapper(stream, d_msErr, d_msPar, d_bunch, d_XHitPos, hit_cnt, NN);
-
-    computeChi2_wrapper(stream, d_Err_iP, d_msErr, //d_resErr, 
-        d_msPar, d_par_iP, d_outChi2, NN);
-
-    getNewBestHitChi2_wrapper(stream, d_outChi2, d_minChi2, d_bestHit, hit_cnt, NN);
-
-    cudaStreamSynchronize(stream);
-    cudaCheckError();
-  }
-  updateTracksWithBestHit_wrapper(stream,
-    d_bunch, d_XHitPos, d_minChi2, d_bestHit, 
-    d_msErr, d_msPar, d_par_iP, d_Chi2, d_HitsIdx, N);
-#endif
-
-  //d_outChi2.copyAsyncToHost(stream, outChi2);
-  //cudaMemcpyAsync(minChi2, d_minChi2, NN*sizeof(float), cudaMemcpyDeviceToHost, stream);
-  //cudaMemcpyAsync(bestHit, d_bestHit, NN*sizeof(int), cudaMemcpyDeviceToHost, stream);
-
-  //cudaMemcpy2DAsync(Chi2.fArray, NN*sizeof(float), d_Chi2, NN*sizeof(float), 
-  //             NN*sizeof(float), 1, cudaMemcpyDeviceToHost, stream);
-  //cudaMemcpy2DAsync(HitsIdx.fArray, NN*sizeof(int), d_HitsIdx, NN*sizeof(int), 
-  //             NN*sizeof(int), 1, cudaMemcpyDeviceToHost, stream);
-
-  //cudaStreamSynchronize(stream);
-  //cudaCheckError();
-
-  //cudaFree(d_minChi2);
-  //cudaFree(d_bestHit);
-}
-#endif
-
 // FIXME: Temporary. Separate allocations / transfers
 template <typename T>
 void FitterCU<T>::allocate_extra_addBestHit() {
@@ -267,12 +186,14 @@ void FitterCU<T>::allocate_extra_addBestHit() {
 
 template <typename T>
 void FitterCU<T>::free_extra_addBestHit() {
+  destroyStream();
+
   cudaFree(d_HitsIdx); cudaCheckError();
   cudaFree(d_Chi2); cudaCheckError();
 
-  d_XHitPos.free(); cudaCheckError();
-  d_XHitSize.free(); cudaCheckError();
   d_XHitArr.free(); cudaCheckError();
+  d_XHitSize.free(); cudaCheckError();
+  d_XHitPos.free(); cudaCheckError();
   d_outChi2.free(); cudaCheckError();
 }
 
@@ -280,7 +201,8 @@ void FitterCU<T>::free_extra_addBestHit() {
 template <typename T>
 void FitterCU<T>::prepare_addBestHit(
     const MPlexLS &psErr, const MPlexLV& propPar,
-    const MPlexQI &inChg, 
+    const MPlexQI &inChg,
+    MPlexQI &XHitSize, Matriplex::Matriplex<int, 16, 1, MPT_SIZE> &XHitArr,
     size_t NN) {
   setNumberTracks(NN);  // temporary: should be end - beg
 
@@ -288,12 +210,16 @@ void FitterCU<T>::prepare_addBestHit(
   cudaCheckError()
 #if 1
   // psErr -> d_Err_iP
-  cudaMemcpy2DAsync(d_Err_iP.ptr, d_Err_iP.pitch, psErr.fArray, N*sizeof(T),
-               N*sizeof(T), LS, cudaMemcpyHostToDevice, stream);
-  // sendOutParToDevice(propPar);  // d_par_iP
+  //cudaMemcpy2DAsync(d_Err_iP.ptr, d_Err_iP.pitch, psErr.fArray, N*sizeof(T),
+               //N*sizeof(T), LS, cudaMemcpyHostToDevice, stream);
+  d_Err_iP.copyAsyncFromHost(stream, psErr);
   d_par_iP.copyAsyncFromHost(stream, propPar);
-  //sendInChgToDevice(inChg);
   d_inChg.copyAsyncFromHost(stream, inChg);
+  
+  //cudaMemset2D(d_XHitSize.ptr, d_XHitSize.pitch,
+               //0, sizeof(int)*d_XHitSize.N, d_XHitSize.kSize);
+  //d_XHitSize.copyAsyncFromHost(stream, XHitSize);
+  //d_XHitArr.copyAsyncFromHost(stream, XHitArr);
 #endif
 }
 
@@ -301,25 +227,22 @@ void FitterCU<T>::prepare_addBestHit(
 template <typename T>
 void FitterCU<T>::finalize_addBestHit(
     MPlexHS &msErr, MPlexHV& msPar,
-    MPlexLS &outErr, MPlexLV &outPar,
+    MPlexLS& Err_iC, MPlexLV& Par_iC, 
+    MPlexLS& Err_iP, MPlexLV& Par_iP, 
     MPlexQI &HitsIdx, MPlexQF &Chi2) {
 #if 1
-  //getOutParFromDevice(outPar);  // <- d_par_iC
-  d_par_iC.copyAsyncToHost(stream, outPar);
-  //getOutErrFromDevice(outErr);  // <- d_Err_iC
-  d_Err_iC.copyAsyncToHost(stream, outErr);
+  d_par_iC.copyAsyncToHost(stream, Par_iC);
+  d_Err_iC.copyAsyncToHost(stream, Err_iC);
 
-  //
+  d_par_iP.copyAsyncToHost(stream, Par_iP);
+  d_Err_iP.copyAsyncToHost(stream, Err_iP);
+ 
   // Get msPar, msErr, chi2 and HitIdx out from the GPU to the CPU
-  cudaMemcpy2DAsync(msPar.fArray, N*sizeof(T), d_msPar.ptr, d_msPar.pitch, 
-               N*sizeof(T), HV, cudaMemcpyDeviceToHost, stream);
-  cudaMemcpy2DAsync(msErr.fArray, N*sizeof(T), d_msErr.ptr, d_msErr.pitch, 
-               N*sizeof(T), HS, cudaMemcpyDeviceToHost, stream);
+  d_msPar.copyAsyncToHost(stream, msPar);
+  d_msErr.copyAsyncToHost(stream, msErr);
   cudaMemcpyAsync(HitsIdx.fArray, d_HitsIdx, N*sizeof(int), cudaMemcpyDeviceToHost, stream);
   cudaMemcpyAsync(Chi2.fArray, d_Chi2, N*sizeof(float), cudaMemcpyDeviceToHost, stream);
 #endif
-
-  destroyStream();
 }
 
 template <typename T>
@@ -327,40 +250,51 @@ void FitterCU<T>::setHitsIdxToZero() {
   cudaMemset(d_HitsIdx, 0, Nalloc*sizeof(int));
 }
 
-#if 0
+#if 1
 template <typename T>
-void FitterCU<T>::addBestHit(LayerOfHitsCU &layer) {
+void FitterCU<T>::addBestHit(LayerOfHitsCU &layer, const int ilay, const float radius) {
 
-  selectHitRanges_wrapper(stream, layer, d_XHitPos, d_XHitSize, 
-      d_Err_iP, d_par_iP, N);
+  //selectHitRanges_wrapper(stream, layer, d_XHitPos, d_XHitSize, 
+      //d_Err_iP, d_par_iP, N);
+  selectHitIndices_wrapper(stream, 
+      layer, d_Err_iP, d_par_iP, 
+      d_XHitSize, d_XHitArr, N);
 
   // TODO: get this thing inside bestHit_kernel
   int maxSize = getMaxNumHits_wrapper(d_XHitSize, N);
+  cudaDeviceSynchronize(); cudaCheckError();
 
-  bestHit_wrapper(stream, bunch, d_XHitPos,
+  bestHit_wrapper(stream, layer, d_XHitSize, d_XHitArr,
                   d_Err_iP, d_msErr, d_msPar, d_par_iP, d_outChi2,
                   d_Chi2, d_HitsIdx,
                   maxSize, N);
-
-  // updateParametersMPlex
   kalmanUpdate_wrapper(stream, d_Err_iP, d_msErr,
                        d_par_iP, d_msPar, d_par_iC, d_Err_iC, N);
-  //updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits],
-	//    Err[iC], Par[iC]);
+  if (ilay + 1 < Config::nLayers) {
+    propagationForBuilding_wrapper(stream, d_Err_iC, d_par_iC, d_inChg, 
+        radius, d_Err_iP, d_par_iP, N); 
+  }
 }   
 #endif
 
-#if 0 
+#if 1
 template <typename T>
 void FitterCU<T>::propagateTracksToR(float radius, int N) {
-  //propagateHelixToRMPlex(Err[iC], Par[iC], Chg, R,
-                         //Err[iP], Par[iP], N_proc);
-  propagationForBuilding_wrapper(stream, radius,
-    d_par_iC, d_inChg, d_par_iP, d_errorProp, d_Err_iP, N);
-  //propagation_wrapper(stream, d_msPar, d_par_iC, d_inChg,
-  //                    d_par_iP, d_errorProp, d_Err_iP, N);
+  propagationForBuilding_wrapper(stream, d_Err_iC, d_par_iC, d_inChg, 
+                                 radius, d_Err_iP, d_par_iP, N); 
 }
 #endif
+
+template <typename T>
+void FitterCU<T>::propagateTracksToR_standalone(float radius, int N,
+    MPlexLS& Err_iC, MPlexLV& par_iC, MPlexQI& inChg, MPlexLS& Err_iP, MPlexLV& Par_iP) {
+  d_Err_iC.copyAsyncFromHost(stream, Err_iC);
+  d_par_iC.copyAsyncFromHost(stream, par_iC);
+  //propagationForBuilding_wrapper(stream, d_Err_iC, d_par_iC, d_inChg, 
+                                 //radius, d_Err_iP, d_par_iP, N); 
+  d_Err_iP.copyAsyncToHost(stream, Err_iP);
+  d_par_iP.copyAsyncToHost(stream, Par_iP);
+}
 
 template <typename T>
 void FitterCU<T>::FitTracks(MPlexQI &Chg, MPlexLV& par_iC, MPlexLS& err_iC,
@@ -379,11 +313,8 @@ void FitterCU<T>::FitTracks(MPlexQI &Chg, MPlexLV& par_iC, MPlexLS& err_iC,
 
   setNumberTracks(end-beg);
 
-  //sendInChgToDevice(Chg);
   d_inChg.copyAsyncFromHost(stream, Chg);
-  //sendInParToDevice(par_iC);
   d_par_iC.copyAsyncFromHost(stream, par_iC);
-  //sendInErrToDevice(err_iC);
   d_Err_iC.copyAsyncFromHost(stream, err_iC);
 
   cudaEventRecord(start, 0);
@@ -393,9 +324,7 @@ void FitterCU<T>::FitTracks(MPlexQI &Chg, MPlexLV& par_iC, MPlexLS& err_iC,
   {
     // Switch outPut and inPut parameters and errors
     // similar to iC <-> iP in the CPU code.
-    //setOutParFromInPar();
     d_par_iP.copyAsyncFromDevice(stream, d_par_iC); 
-    //setOutErrFromInErr(); // d_Err_iP
     d_Err_iP.copyAsyncFromDevice(stream, d_Err_iC);
     
     double time_input = dtime();
@@ -414,9 +343,7 @@ void FitterCU<T>::FitTracks(MPlexQI &Chg, MPlexLV& par_iC, MPlexLS& err_iC,
     }
     total_reorg += (dtime() - time_input)*1e3;
 
-    //sendMsParToDevice(msPar[hi]);
     d_msPar.copyAsyncFromHost(stream, msPar[hi]);
-    //sendMsErrToDevice(msErr[hi]);
     d_msErr.copyAsyncFromHost(stream, msErr[hi]);
 
     propagationMerged();
@@ -429,9 +356,7 @@ void FitterCU<T>::FitTracks(MPlexQI &Chg, MPlexLV& par_iC, MPlexLS& err_iC,
   std::cerr << "CUDA etime: " << etime << " ms.\n";
   std::cerr << "Total reorg: " << total_reorg << " ms.\n";
 
-  //getOutParFromDevice(par_iC);
   d_par_iC.copyAsyncToHost(stream, par_iC);
-  //getOutErrFromDevice(err_iC);
   d_Err_iC.copyAsyncToHost(stream, err_iC);
   
   cudaStreamSynchronize(stream);

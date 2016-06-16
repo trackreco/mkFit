@@ -592,6 +592,10 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       const float pzin = inPar.ConstAt(n, 5, 0);
       const float r    = msRad.ConstAt(n, 0, 0);
       float r0 = hipo(xin, yin);
+      //if (n==1) printf("cpu %f\n", r0);
+      //if (n==1) printf("cpu %f\n", xin);
+      //if (n==1) printf("cpu %f\n", yin);
+      //if (n==1) printf("cpu %f\n", r0);
       
       dprint_np(n, std::endl << "attempt propagation from r=" << r0 << " to r=" << r << std::endl
         << "x=" << xin << " y=" << yin  << " z=" << inPar.ConstAt(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pzin << " q=" << inChg.ConstAt(n, 0, 0));
@@ -996,6 +1000,19 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
 {
    outErr = inErr;
    outPar = inPar;
+     //int kk = 0;
+     //{
+       //printf("\n");
+       //printf("outErr %d\n", kk);
+       //for (int i = 0; i < 1; ++i) { for (int j = 0; j < 1; ++j)
+           //printf("%8f ", outErr.At(kk,i,j)); printf("\t");
+       //} printf("\n");
+
+       //printf("outPar %d\n", kk);
+       //for (int i = 0; i < 1; ++i) {
+           //printf("%8f ", outPar.At(kk,i,0)); printf("\t");
+       //} printf("\n");
+     //}
 
    MPlexLL errorProp;
 
@@ -1004,13 +1021,18 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
 #pragma simd
    for (int n = 0; n < NN; ++n) {
      msRad.At(n, 0, 0) = r;
+      //if (n == 0) printf("cpu r = %f\n", r);
    }
+
 
 #ifdef POLCOORD
    helixAtRFromIterativePolar(inPar, inChg, outPar, msRad, errorProp, N_proc);
 #else
    helixAtRFromIterative(inPar, inChg, outPar, msRad, errorProp, N_proc);
 #endif
+     //for (int i = 0; i < 6; ++i) {
+       //printf("%8f ", inPar.ConstAt(0,i,0)); printf("\t");
+     //} printf("\n");
 
    //add multiple scattering uncertainty and energy loss (FIXME: in this way it is not applied in track fit)
    if (Config::useCMSGeom) {
@@ -1033,22 +1055,11 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
    MultHelixPropTransp(errorProp, temp,   outErr);
 
    // This dump is now out of its place as similarity is done with matriplex ops.
-#ifdef DEBUG
-   if (debug) {
-     for (int kk = 0; kk < N_proc; ++kk)
-     {
-       dprintf("outErr %d\n", kk);
-       for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-           dprintf("%8f ", outErr.At(kk,i,j)); printf("\n");
-       } dprintf("\n");
-
-       dprintf("outPar %d\n", kk);
-       for (int i = 0; i < 6; ++i) {
-           dprintf("%8f ", outPar.At(kk,i,0)); printf("\n");
-       } dprintf("\n");
-     }
-   }
-#endif
+//#ifdef DEBUG
+   //if (debug) {
+     //for (int kk = 0; kk < N_proc; ++kk)
+   //}
+//#endif
 
    /*
      if (fabs(sqrt(outPar[0]*outPar[0]+outPar[1]*outPar[1])-r)>0.0001) {
