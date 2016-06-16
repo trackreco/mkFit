@@ -13,6 +13,7 @@ void   make_validation_tree(const char         *fname,
                             std::vector<Track> &rectracks);
 
 double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks);
+double runFittingTestPlexTBB(Event& ev, std::vector<Track>& rectracks);
 
 #ifdef USE_CUDA
 double runFittingTestPlexGPU(FitterCU<float> &cuFitter, Event& ev, std::vector<Track>& rectracks);

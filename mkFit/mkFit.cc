@@ -10,6 +10,7 @@
 #include "Timing.h"
 
 #include <limits>
+#include <list>
 
 #include "Event.h"
 
@@ -186,11 +187,9 @@ void test_standard()
   // multiple streams.
   for (int evt = 1; evt <= Config::nEvents; ++evt) {
     printf("Simulating event %d\n", evt);
-    Event ev(geom, val, evt);
-    ev.Simulate();
-    ev.resetLayerHitMap(true);
-    
-    events.push_back(ev);
+    events.emplace_back(geom, val, evt);
+    events.back().Simulate();
+    events.back().resetLayerHitMap(true);
   }
 
   // The first call to a GPU function always take a very long time.
@@ -301,7 +300,7 @@ void test_standard()
 
     for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
     {
-      t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
+      t_cur[0] = (g_run_fit_std) ? runFittingTestPlexTBB(ev, plex_tracks) : 0;
       t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev) : 0;
       t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlex(ev, ev_tmp) : 0;
       t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, ev_tmp) : 0;
@@ -322,13 +321,10 @@ void test_standard()
     printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
            t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
 
-    for (int i = 0; i < NT; ++i) t_sum[i] += t_cur[i];
-    if (evt > 1) for (int i = 0; i < NT; ++i) t_skip[i] += t_cur[i];
+    for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
+    if (evt > 1) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
 
-#ifndef NO_ROOT
     make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
-#endif
-    
   }
 #endif
   printf("\n");
