@@ -172,9 +172,9 @@ namespace
   {
     Pool<MkFitter>   m_fitters;
 
-    ExecutionContext()
+    void populate(int n_thr)
     {
-      m_fitters.populate(Config::numThreadsFinder);
+      m_fitters.populate(n_thr - m_fitters.size());
     }
   };
 
@@ -184,7 +184,7 @@ namespace
 
 double runFittingTestPlexTBB(Event& ev, std::vector<Track>& rectracks)
 {
-
+   g_exe_ctx.populate(Config::numThreadsFinder);
    std::vector<Track>& simtracks = ev.simTracks_;
 
    const int Nhits = Config::nLayers;
@@ -211,14 +211,16 @@ double runFittingTestPlexTBB(Event& ev, std::vector<Track>& rectracks)
      for (int it = i.begin(); it < i.end(); ++it)
      {
         int itrack = it*NN;
-        int end = std::min(itrack + NN, theEnd);
-
-        //mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
-        mkfp->SlurpInTracksAndHits(simtracks, ev.layerHits_, itrack, end);
+        int end = itrack + NN;
+        if (theEnd < end) {
+          end = theEnd;
+          mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
+        } else {
+          mkfp->SlurpInTracksAndHits(simtracks, ev.layerHits_, itrack, end); // only safe for a full matriplex
+        }
 
         if (Config::cf_fitting) mkfp->ConformalFitTracks(true, itrack, end);
         mkfp->FitTracks(end - itrack);
-
         mkfp->OutputFittedTracks(rectracks, itrack, end);
      }
    });

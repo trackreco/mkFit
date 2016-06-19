@@ -13,6 +13,8 @@ struct Pool
 
   tbb::concurrent_queue<TT*> m_stack;
 
+  size_t size() { return m_stack.unsafe_size(); }
+
   void populate(int threads = Config::numThreadsFinder)
   {
     for (int i = 0; i < threads; ++i)

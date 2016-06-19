@@ -324,7 +324,7 @@ void test_standard()
     for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
     if (evt > 1) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
 
-    make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
+    if (g_run_fit_std) make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
   }
 #endif
   printf("\n");

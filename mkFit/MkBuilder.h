@@ -21,10 +21,10 @@ struct ExecutionContext
   Pool<CandCloner> m_cloners;
   Pool<MkFitter>   m_fitters;
 
-  ExecutionContext()
+  void populate(int n_thr)
   {
-    m_cloners.populate();
-    m_fitters.populate();
+    m_cloners.populate(n_thr - m_cloners.size());
+    m_fitters.populate(n_thr - m_fitters.size());
   }
 };
 
