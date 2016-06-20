@@ -101,70 +101,6 @@ void make_validation_tree(const char         *fname,
 // runFittingTestPlex
 //==============================================================================
 
-double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
-{
-
-   std::vector<Track>& simtracks = ev.simTracks_;
-
-   const int Nhits = Config::nLayers;
-   // XXX What if there's a missing / double layer?
-   // Eventually, should sort track vector by number of hits!
-   // And pass the number in on each "setup" call.
-   // Reserves should be made for maximum possible number (but this is just
-   // measurments errors, params).
-
-   // NOTE: MkFitter *MUST* be on heap, not on stack!
-   // Standard operator new screws up alignment of ALL MPlex memebrs of MkFitter,
-   // even if one adds attr(aligned(64)) thingy to every possible place.
-
-   // MkFitter *mkfp = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Nhits);
-
-   std::vector<MkFitter*> mkfp_arr(Config::numThreadsFinder);
-
-   for (int i = 0; i < Config::numThreadsFinder; ++i)
-   {
-     mkfp_arr[i] = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Nhits);
-   }
-
-   int theEnd = simtracks.size();
-
-#ifdef USE_VTUNE_PAUSE
-   __itt_resume();
-#endif
-
-   double time = dtime();
-
-#pragma omp parallel for
-   for (int itrack = 0; itrack < theEnd; itrack += NN)
-   {
-      int end = std::min(itrack + NN, theEnd);
-
-      MkFitter *mkfp = mkfp_arr[omp_get_thread_num()];
-
-      //mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
-      mkfp->SlurpInTracksAndHits(simtracks, ev.layerHits_, itrack, end);
-
-      if (Config::cf_fitting) mkfp->ConformalFitTracks(true, itrack, end);
-      mkfp->FitTracks(end - itrack);
-
-      mkfp->OutputFittedTracks(rectracks, itrack, end);
-   }
-
-   time = dtime() - time;
-
-#ifdef USE_VTUNE_PAUSE
-   __itt_pause();
-#endif
-
-   for (int i = 0; i < Config::numThreadsFinder; ++i)
-   {
-     _mm_free(mkfp_arr[i]);
-   }
-   //_mm_free(mkfp);
-
-   return time;
-}
-
 #include "Pool.h"
 namespace
 {
@@ -182,7 +118,7 @@ namespace
   auto retfitr = [](MkFitter*   mkfp  ) { g_exe_ctx.m_fitters.ReturnToPool(mkfp);   };
 }
 
-double runFittingTestPlexTBB(Event& ev, std::vector<Track>& rectracks)
+double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 {
    g_exe_ctx.populate(Config::numThreadsFinder);
    std::vector<Track>& simtracks = ev.simTracks_;

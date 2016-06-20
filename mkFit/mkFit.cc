@@ -300,7 +300,7 @@ void test_standard()
 
     for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
     {
-      t_cur[0] = (g_run_fit_std) ? runFittingTestPlexTBB(ev, plex_tracks) : 0;
+      t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
       t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev) : 0;
       t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlex(ev, ev_tmp) : 0;
       t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, ev_tmp) : 0;
