@@ -220,9 +220,9 @@ void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg,
                                      const MPlexQF &msRad,       MPlexLL& errorProp,
                                      const int      N_proc)
 {
-  errorProp.SetVal(0);
-  MPlexLL errorPropTmp(0);//initialize to zero
-  MPlexLL errorPropSwap(0);//initialize to zero
+  errorProp.SetVal(0.f);
+  MPlexLL errorPropTmp(0.f);//initialize to zero
+  MPlexLL errorPropSwap(0.f);//initialize to zero
 
 #pragma simd
   for (int n = 0; n < NN; ++n)
@@ -351,7 +351,7 @@ void helixAtRFromIterativeCCS(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
                               const MPlexQF &msRad, MPlexLL& errorProp,
                               const int      N_proc)
 {
-  errorProp.SetVal(0);
+  errorProp.SetVal(0.f);
 
 #pragma simd
   for (int n = 0; n < NN; ++n)
@@ -559,7 +559,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
                            const MPlexQF &msRad, MPlexLL& errorProp,
                            const int      N_proc)
 {
-  errorProp.SetVal(0);
+  errorProp.SetVal(0.f);
 
 #pragma simd
   for (int n = 0; n < NN; ++n)
@@ -1044,4 +1044,190 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
      std::cout << "pt=" << pt << " pz=" << inPar.At(n, 2) << std::endl;
      }
    */
+}
+
+void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
+                            const MPlexQI &inChg,  const MPlexHV& msPar,
+			          MPlexLS &outErr,       MPlexLV& outPar,
+                            const int      N_proc)
+{
+   const idx_t N  = NN;
+
+   outErr = inErr;
+   outPar = inPar;
+
+   MPlexLL errorProp;
+
+   MPlexQF msZ;
+   // MPlexQF hitsRl;
+   // MPlexQF hitsXi;
+#pragma simd
+   for (int n = 0; n < NN; ++n) {
+     msZ.At(n, 0, 0) = msPar.ConstAt(n, 2, 0);
+     // if (Config::useCMSGeom) {
+     //   hitsRl.At(n, 0, 0) = getRlVal(msRad.ConstAt(n, 0, 0), outPar.ConstAt(n, 2, 0));
+     //   hitsXi.At(n, 0, 0) = getXiVal(msRad.ConstAt(n, 0, 0), outPar.ConstAt(n, 2, 0));
+     // }
+   }
+
+   helixAtZ(inPar, inChg, outPar, msZ, errorProp, N_proc);
+
+#ifdef DEBUG
+   {
+     for (int kk = 0; kk < N_proc; ++kk)
+     {
+       dprintf("outErr before prop %d\n", kk);
+       for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+           dprintf("%8f ", outErr.At(kk,i,j)); printf("\n");
+       } dprintf("\n");
+
+       dprintf("errorProp %d\n", kk);
+       for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+           dprintf("%8f ", errorProp.At(kk,i,j)); printf("\n");
+       } dprintf("\n");
+
+     }
+   }
+#endif
+
+   // Matriplex version of:
+   // result.errors = ROOT::Math::Similarity(errorProp, outErr);
+   MPlexLL temp;
+   MultHelixProp      (errorProp, outErr, temp);
+   MultHelixPropTransp(errorProp, temp,   outErr);
+
+   // if (Config::useCMSGeom) {
+   //   applyMaterialEffects(hitsRl, hitsXi, outErr, outPar);
+   // }
+
+   // This dump is now out of its place as similarity is done with matriplex ops.
+#ifdef DEBUG
+   {
+     for (int kk = 0; kk < N_proc; ++kk)
+     {
+       dprintf("outErr %d\n", kk);
+       for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+           dprintf("%8f ", outErr.At(kk,i,j)); printf("\n");
+       } dprintf("\n");
+
+       dprintf("outPar %d\n", kk);
+       for (int i = 0; i < 6; ++i) {
+           dprintf("%8f ", outPar.At(kk,i,0)); printf("\n");
+       } dprintf("\n");
+     }
+   }
+#endif
+
+#ifdef DEBUG
+   if (std::abs(outPar.At(0,2,0)-msPar.ConstAt(0, 2, 0))>0.0001) {
+     dprint_np(n, "DID NOT GET TO Z, dZ=" << std::abs(outPar.At(0,2,0)-msPar.ConstAt(0, 2, 0))
+	       << " z=" << msPar.ConstAt(0, 2, 0) << " zin=" << inPar.ConstAt(0,2,0) << " zout=" << outPar.At(0,2,0) << std::endl
+         << "pt=" << hipo(inPar.ConstAt(0,3,0), inPar.ConstAt(0,4,0)) << " pz=" << inPar.ConstAt(0,5,0));
+   }
+#endif
+}
+
+
+void helixAtZ(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
+	      const MPlexQF &msZ, MPlexLL& errorProp,
+	      const int      N_proc)
+{
+  errorProp.SetVal(0.f);
+
+#pragma simd
+  for (int n = 0; n < NN; ++n)
+    {
+      //initialize erroProp to identity matrix
+      errorProp(n,0,0) = 1.f;
+      errorProp(n,1,1) = 1.f;
+      errorProp(n,2,2) = 1.f;
+      errorProp(n,3,3) = 1.f;
+      errorProp(n,4,4) = 1.f;
+      errorProp(n,5,5) = 1.f;
+
+      const float k = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
+      const float zout = msZ.ConstAt(n, 0, 0);
+
+      const float xin   = inPar.ConstAt(n, 0, 0);
+      const float yin   = inPar.ConstAt(n, 1, 0);
+      const float zin   = inPar.ConstAt(n, 2, 0);
+      const float ipt   = inPar.ConstAt(n, 3, 0);
+      const float phiin = inPar.ConstAt(n, 4, 0);
+      const float theta = inPar.ConstAt(n, 5, 0);
+
+      dprint_np(n, std::endl << "input parameters"
+            << " inPar.ConstAt(n, 0, 0)=" << std::setprecision(9) << inPar.ConstAt(n, 0, 0)
+            << " inPar.ConstAt(n, 1, 0)=" << std::setprecision(9) << inPar.ConstAt(n, 1, 0)
+            << " inPar.ConstAt(n, 2, 0)=" << std::setprecision(9) << inPar.ConstAt(n, 2, 0)
+            << " inPar.ConstAt(n, 3, 0)=" << std::setprecision(9) << inPar.ConstAt(n, 3, 0)
+            << " inPar.ConstAt(n, 4, 0)=" << std::setprecision(9) << inPar.ConstAt(n, 4, 0)
+            << " inPar.ConstAt(n, 5, 0)=" << std::setprecision(9) << inPar.ConstAt(n, 5, 0)
+            );
+
+      const float kinv  = 1.f/k;
+      const float pt = 1.f/ipt;
+
+      float D = 0., cosa = 0., sina = 0., id = 0.;
+      //no trig approx here, phi can be large
+      float cosP = std::cos(phiin), sinP = std::sin(phiin);
+      float cosT = std::cos(theta), sinT = std::sin(theta);
+      const float pxin = cosP*pt;
+      const float pyin = sinP*pt;
+
+      //fixme, make this printout useful for propagation to z
+      dprint_np(n, std::endl << "k=" << std::setprecision(9) << k << " pxin=" << std::setprecision(9) << pxin << " pyin="
+             << std::setprecision(9) << pyin << " cosP=" << std::setprecision(9) << cosP
+             << " sinP=" << std::setprecision(9) << sinP << " pt=" << std::setprecision(9) << pt);
+
+      const float deltaZ = zout - zin;
+      const float alpha  = deltaZ*sinT*ipt/(cosT*k);
+
+      if (Config::useTrigApprox) {
+	sincos4(alpha, sina, cosa);
+      } else {
+	cosa=std::cos(alpha);
+	sina=std::sin(alpha);
+      }
+
+      //update parameters
+      outPar.At(n, 0, 0) = outPar.At(n, 0, 0) + k*(pxin*sina - pyin*(1.f-cosa));
+      outPar.At(n, 1, 0) = outPar.At(n, 1, 0) + k*(pyin*sina + pxin*(1.f-cosa));
+      outPar.At(n, 2, 0) = zout;
+      outPar.At(n, 4, 0) = phiin+alpha;
+
+      dprint_np(n, std::endl << "outPar.At(n, 0, 0)=" << outPar.At(n, 0, 0) << " outPar.At(n, 1, 0)=" << outPar.At(n, 1, 0)
+		<< " pxin=" << pxin << " pyin=" << pyin);
+
+      errorProp(n,0,2) = cosP*sinT*(sinP*cosa*sin(cosP*sina) - cosa)/cosT;
+      errorProp(n,0,3) = cosP*sinT*deltaZ*cosa*( 1.f - sinP*sin(cosP*sina) )/(cosT*ipt) - k*(cosP*sina - sinP*(1.f-cos(cosP*sina)))/(ipt*ipt);
+      errorProp(n,0,4) = (k/ipt)*( -sinP*sina + sinP*sinP*sina*sin(cosP*sina) - cosP*(1.f - cos(cosP*sina) ) );
+      errorProp(n,0,5) = cosP*deltaZ*cosa*( 1.f - sinP*sin(cosP*sina) )/(cosT*cosT);
+
+      errorProp(n,1,2) = cosa*sinT*(cosP*cosP*sin(cosP*sina) - sinP)/cosT;
+      errorProp(n,1,3) = sinT*deltaZ*cosa*( cosP*cosP*sin(cosP*sina) + sinP )/(cosT*ipt) - k*(sinP*sina + cosP*(1.f-cos(cosP*sina)))/(ipt*ipt);
+      errorProp(n,1,4) = (k/ipt)*( -sinP*(1.f - cos(cosP*sina)) - sinP*cosP*sina*sin(cosP*sina) + cosP*sina );
+      errorProp(n,1,5) = deltaZ*cosa*( cosP*cosP*sin(cosP*sina) + sinP )/(cosT*cosT);
+
+      errorProp(n,4,2) = -ipt*sinT/(cosT*k);
+      errorProp(n,4,3) = sinT*deltaZ/(cosT*k);
+      errorProp(n,4,5) = ipt*deltaZ/(cosT*cosT*k);
+
+      dprint_np(n, "propagation end, dump parameters" << std::endl
+	     << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
+	     << "mom = " << std::cos(outPar.At(n, 4, 0))/outPar.At(n, 3, 0) << " " << std::sin(outPar.At(n, 4, 0))/outPar.At(n, 3, 0) << " " << 1./(outPar.At(n, 3, 0)*tan(outPar.At(n, 5, 0)))
+	     << " r=" << std::sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) << " pT=" << 1./std::abs(outPar.At(n, 3, 0)) << std::endl);
+
+#ifdef DEBUG
+      if (n < N_proc) {
+	dmutex_guard;
+	std::cout << n << ": jacobian" << std::endl;
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,2,0),errorProp(n,2,1),errorProp(n,2,2),errorProp(n,2,3),errorProp(n,2,4),errorProp(n,2,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,3,0),errorProp(n,3,1),errorProp(n,3,2),errorProp(n,3,3),errorProp(n,3,4),errorProp(n,3,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,4,0),errorProp(n,4,1),errorProp(n,4,2),errorProp(n,4,3),errorProp(n,4,4),errorProp(n,4,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,5,0),errorProp(n,5,1),errorProp(n,5,2),errorProp(n,5,3),errorProp(n,5,4),errorProp(n,5,5));
+      }
+#endif
+    }
 }

@@ -41,6 +41,39 @@ void MultResidualsAdd(const MPlexLH& A,
    }
 }
 
+inline
+void MultResidualsAdd(const MPlexL2& A,
+		      const MPlexLV& B,
+		      const MPlex2V& C,
+		            MPlexLV& D)
+{
+   // outPar = psPar + kalmanGain*(dPar)
+   //   D    =   B         A         C
+   // where right half of kalman gain is 0
+
+   // XXX Regenerate with a script.
+
+   typedef float T;
+   const idx_t N = NN;
+
+   const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+   const T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+         T *d = D.fArray; ASSUME_ALIGNED(d, 64);
+
+#pragma simd
+   for (idx_t n = 0; n < N; ++n)
+   {
+      // generate loop (can also write it manually this time, it's not much)
+      d[0 * N + n] = b[0 * N + n] + a[ 0 * N + n] * c[0 * N + n] + a[ 1 * N + n] * c[1 * N + n];
+      d[1 * N + n] = b[1 * N + n] + a[ 2 * N + n] * c[0 * N + n] + a[ 3 * N + n] * c[1 * N + n];
+      d[2 * N + n] = b[2 * N + n] + a[ 4 * N + n] * c[0 * N + n] + a[ 5 * N + n] * c[1 * N + n];
+      d[3 * N + n] = b[3 * N + n] + a[ 6 * N + n] * c[0 * N + n] + a[ 7 * N + n] * c[1 * N + n];
+      d[4 * N + n] = b[4 * N + n] + a[ 8 * N + n] * c[0 * N + n] + a[ 9 * N + n] * c[1 * N + n];
+      d[5 * N + n] = b[5 * N + n] + a[10 * N + n] * c[0 * N + n] + a[11 * N + n] * c[1 * N + n];
+   }
+}
+
 //------------------------------------------------------------------------------
 
 inline
@@ -93,6 +126,27 @@ void AddIntoUpperLeft3x3(const MPlexLS& A, const MPlexHS& B, MPlexHS& C)
    }
 }
 
+inline
+void AddIntoUpperLeft2x2(const MPlexLS& A, const MPlexHS& B, MPlex2S& C)
+{
+   // The rest of matrix is left untouched.
+
+   typedef float T;
+   const idx_t N = NN;
+
+   const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+
+#pragma simd
+   for (idx_t n = 0; n < N; ++n)
+   {
+      c[0*N+n] = a[0*N+n] + b[0*N+n];
+      c[1*N+n] = a[1*N+n] + b[1*N+n];
+      c[2*N+n] = a[2*N+n] + b[2*N+n];
+   }
+}
+
 //------------------------------------------------------------------------------
 
 inline
@@ -113,6 +167,26 @@ void SubtractFirst3(const MPlexHV& A, const MPlexLV& B, MPlexHV& C)
       c[0*N+n] = a[0*N+n] - b[0*N+n];
       c[1*N+n] = a[1*N+n] - b[1*N+n];
       c[2*N+n] = a[2*N+n] - b[2*N+n];
+   }
+}
+
+inline
+void SubtractFirst2(const MPlexHV& A, const MPlexLV& B, MPlex2V& C)
+{
+   // The rest of matrix is left untouched.
+
+   typedef float T;
+   const idx_t N = NN;
+
+   const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+
+#pragma simd
+   for (idx_t n = 0; n < N; ++n)
+   {
+      c[0*N+n] = a[0*N+n] - b[0*N+n];
+      c[1*N+n] = a[1*N+n] - b[1*N+n];
    }
 }
 
@@ -302,11 +376,11 @@ void KalmanHTG(const MPlexQF& A00,
 inline
 void KalmanGain(const MPlexLS& A, const MPlexHH& B, MPlexLH& C)
 {
-  // C = A * B, C is 6x3, A is 6x6 sym , B is 6x3
- 
+  // C = A * B, C is 6x3, A is 6x6 sym , B is 3x3
+
   typedef float T;
   const idx_t N = NN;
-  
+
   const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
@@ -333,6 +407,20 @@ void KalmanGain(const MPlexLS& A, const MPlexHH& B, MPlexLH& C)
       c[16*N+n] = a[15*N+n]*b[ 1*N+n] + a[16*N+n]*b[ 4*N+n] + a[17*N+n]*b[ 7*N+n];
       c[17*N+n] = 0;
    }
+}
+
+void KalmanGain(const MPlexLS& A, const MPlex2S& B, MPlexL2& C)
+{
+  // C = A * B, C is 6x2, A is 6x6 sym , B is 2x2
+
+  typedef float T;
+  const idx_t N = NN;
+
+  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+
+#include "KalmanGain62.ah"
 }
 
 inline
@@ -398,6 +486,21 @@ inline
 void KHC(const MPlexLL& A, const MPlexLS& B, MPlexLS& C)
 {
   // C = A * B, C is 6x6, A is 6x6 , B is 6x6 sym
+
+  typedef float T;
+  const idx_t N = NN;
+
+  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+
+#include "KHC.ah"
+}
+
+inline
+void KHC(const MPlexL2& A, const MPlexLS& B, MPlexLS& C)
+{
+  // C = A * B, C is 6x6 sym, A is 6x2 , B is 6x6 sym
  
   typedef float T;
   const idx_t N = NN;
@@ -406,7 +509,7 @@ void KHC(const MPlexLL& A, const MPlexLS& B, MPlexLS& C)
   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
-#include "KHC.ah"
+#include "K62HC.ah"
 }
 
 inline
@@ -677,7 +780,7 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   Matriplex::InvertCramerSym(resErr_loc);
 
 #ifndef CCSCOORD
-  // Move to CCS coordinates: (x,y,z,1/pT,phi,theta) [can we find a better name?]
+  // Move to CCS coordinates: (x,y,z,1/pT,phi,theta)
 
   MPlexLV propPar_ccs;// propagated parameters in CCS coordinates
   MPlexLL jac_ccs;    // jacobian from cartesian to CCS
@@ -845,6 +948,193 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
 
   //compute chi2
   Chi2Similarity(res_loc, resErr_loc, outChi2);
+
+#ifdef DEBUG
+  {
+    dmutex_guard;
+    printf("resErr_loc (Inv):\n");
+    for (int i = 0; i < 2; ++i) {
+      for (int j = 0; j < 2; ++j)
+        printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
+    } printf("\n");
+    printf("chi2: %8f\n", outChi2.At(0,0,0));
+  }
+#endif
+
+}
+
+
+
+
+
+void updateParametersEndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+				 const MPlexHS &msErr,  const MPlexHV& msPar,
+                                       MPlexLS &outErr,       MPlexLV& outPar,
+				 const int      N_proc)
+{
+  // const idx_t N = psErr.N;
+  // Assert N-s of all parameters are the same.
+
+  // Temporaries -- this is expensive -- should have them allocated outside and reused.
+  // Can be passed in in a struct, see above.
+
+  // updateParametersContext ctx;
+  //assert((long long)(&updateCtx.propErr.fArray[0]) % 64 == 0);
+
+  MPlexLS propErr;
+  MPlexLV propPar;
+  // do a full propagation step to correct for residual distance from the hit radius - need the charge for this
+  if (Config::useCMSGeom) {
+    propagateHelixToZMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar, N_proc);
+  } else {
+    propErr = psErr;
+    propPar = psPar;
+  }
+
+#ifdef DEBUG
+  {
+    dmutex_guard;
+    printf("propPar:\n");
+    for (int i = 0; i < 6; ++i) {
+      printf("%8f ", propPar.ConstAt(0,0,i)); printf("\n");
+    } printf("\n");
+    printf("msPar:\n");
+    for (int i = 0; i < 3; ++i) {
+      printf("%8f ", msPar.ConstAt(0,0,i)); printf("\n");
+    } printf("\n");
+    printf("propErr:\n");
+    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+        printf("%8f ", propErr.At(0,i,j)); printf("\n");
+    } printf("\n");
+    printf("msErr:\n");
+    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+        printf("%8f ", msErr.ConstAt(0,i,j)); printf("\n");
+    } printf("\n");
+  }
+#endif
+
+  MPlex2V res;
+  SubtractFirst2(msPar, propPar, res);
+
+  MPlex2S resErr;
+  AddIntoUpperLeft2x2(propErr, msErr, resErr);
+
+#ifdef DEBUG
+  {
+    dmutex_guard;
+    printf("resErr:\n");
+    for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
+        printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
+    } printf("\n");
+  }
+#endif
+
+  //invert the 2x2 matrix
+  Matriplex::InvertCramerSym(resErr);
+
+  MPlexL2 K;
+  KalmanGain(propErr, resErr, K);
+
+  MultResidualsAdd(K, propPar, res, outPar);
+
+  KHC(K, propErr, outErr);
+  outErr.Subtract(propErr, outErr);
+
+#ifdef DEBUG
+  {
+    dmutex_guard;
+    printf("res:\n");
+    for (int i = 0; i < 2; ++i) {
+        printf("%8f ", res.At(0,i,0));
+    } printf("\n");
+    printf("resErr (Inv):\n");
+    for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
+        printf("%8f ", resErr.At(0,i,j)); printf("\n");
+    } printf("\n");
+    printf("K:\n");
+    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 3; ++j)
+        printf("%8f ", K.At(0,i,j)); printf("\n");
+    } printf("\n");
+    printf("outPar:\n");
+    for (int i = 0; i < 6; ++i) {
+      printf("%8f  ", outPar.At(0,i,0));
+    } printf("\n");
+    printf("outErr:\n");
+    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+        printf("%8f ", outErr.At(0,i,j)); printf("\n");
+    } printf("\n");
+  }
+#endif
+}
+
+void computeChi2EndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+			    const MPlexHS &msErr,  const MPlexHV& msPar,
+                                  MPlexQF& outChi2,
+			    const int      N_proc)
+{
+
+  // const idx_t N = psErr.N;
+  // Assert N-s of all parameters are the same.
+
+  // Temporaries -- this is expensive -- should have them allocated outside and reused.
+  // Can be passed in in a struct, see above.
+
+  // updateParametersContext ctx;
+  //assert((long long)(&updateCtx.propErr.fArray[0]) % 64 == 0);
+
+  MPlexLS propErr;
+  MPlexLV propPar;
+  // do a full propagation step to correct for residual distance from the hit radius - need the charge for this
+  if (Config::useCMSGeom) {
+    propagateHelixToZMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar, N_proc);
+  } else {
+    propErr = psErr;
+    propPar = psPar;
+  }
+
+#ifdef DEBUG
+  {
+    dmutex_guard;
+    printf("propPar:\n");
+    for (int i = 0; i < 6; ++i) {
+      printf("%8f ", propPar.ConstAt(0,0,i)); printf("\n");
+    } printf("\n");
+    printf("msPar:\n");
+    for (int i = 0; i < 3; ++i) {
+      printf("%8f ", msPar.ConstAt(0,0,i)); printf("\n");
+    } printf("\n");
+    printf("propErr:\n");
+    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+        printf("%8f ", propErr.At(0,i,j)); printf("\n");
+    } printf("\n");
+    printf("msErr:\n");
+    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+        printf("%8f ", msErr.ConstAt(0,i,j)); printf("\n");
+    } printf("\n");
+  }
+#endif
+
+  MPlex2V res;
+  SubtractFirst2(msPar, propPar, res);
+
+  MPlex2S resErr;
+  AddIntoUpperLeft2x2(propErr, msErr, resErr);
+
+#ifdef DEBUG
+  {
+    dmutex_guard;
+    printf("resErr:\n");
+    for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
+        printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
+    } printf("\n");
+  }
+#endif
+
+  //invert the 2x2 matrix
+  Matriplex::InvertCramerSym(resErr);
+
+  //compute chi2
+  Chi2Similarity(res, resErr, outChi2);
 
 #ifdef DEBUG
   {

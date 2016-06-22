@@ -122,6 +122,22 @@ $m = new GenMul::Multiply;
 
 $m->dump_multiply_std_and_intrinsic("KalmanGain.ah",
                                     $propErr_ccs, $resErrTmpLH, $K);
+#------------------------------------------------------------------------------
+###updateParametersMPlex -- kalman gain
+# K = propErr * resErr2x2
+
+$propErr = new GenMul::MatrixSym('name'=>'a', 'M'=>6, 'N'=>6);
+
+$resErr2x2  = new GenMul::MatrixSym('name'=>'b', 'M'=>2, 'N'=>2);
+
+$K   = new GenMul::Matrix('name'=>'c', 'M'=>6, 'N'=>2);
+
+{
+  my $m_kg = new GenMul::Multiply('no_size_check' => 1);
+
+  $m_kg->dump_multiply_std_and_intrinsic("KalmanGain62.ah",
+					 $propErr, $resErr2x2, $K);
+}
 
 #------------------------------------------------------------------------------
 ###updateParametersMPlex -- KH
@@ -173,6 +189,32 @@ $m = new GenMul::Multiply;
 
 $m->dump_multiply_std_and_intrinsic("KHC.ah",
                                     $KH, $propErr_ccs, $temp);
+
+#------------------------------------------------------------------------------
+
+###updateParametersMPlex -- KH * C with K dim 6x2 and H is 2x2 identity
+# temp = KH * propErr
+
+$KH   = new GenMul::Matrix('name'=>'a', 'M'=>6, 'N'=>2);
+$KH->set_pattern(<<"FNORD");
+x x
+x x
+0 0
+0 0
+0 0
+0 0
+FNORD
+
+$propErr = new GenMul::MatrixSym('name'=>'b', 'M'=>6, 'N'=>6);
+
+$temp   = new GenMul::MatrixSym('name'=>'c', 'M'=>6, 'N'=>6);
+
+{
+  my $m_kg = new GenMul::Multiply('no_size_check' => 1);
+
+  $m_kg->dump_multiply_std_and_intrinsic("K62HC.ah",
+				      $KH, $propErr, $temp);
+}
 
 #------------------------------------------------------------------------------
 

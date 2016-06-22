@@ -34,6 +34,16 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg,
 			         MPlexLL& errorProp, bool useSimpleJac,
                            const int      N_proc);
 
+void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
+                            const MPlexQI &inChg,  const MPlexHV& msPar,
+			          MPlexLS &outErr,       MPlexLV& outPar,
+                            const int      N_proc);
+
+void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg,
+	            MPlexLV& outPar, const MPlexQF &msZ,
+	            MPlexLL& errorProp,
+	      const int      N_proc);
+
 void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, 
                                 MPlexLS &outErr, MPlexLV& outPar,
                           const int      N_proc);

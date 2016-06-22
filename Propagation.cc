@@ -428,16 +428,21 @@ TrackState propagateHelixToZ(TrackState inputState, float zout) {
   const float phi   = inputState.momPhi();
   const float theta = inputState.theta();
 
-  const float angPath = (zout - z)*sin(theta)*invpT/(cos(theta)*k);
+  const float cosT = std::cos(theta);
+  const float sinT = std::sin(theta);
 
-  const float cosAP = cos(angPath);
-  const float sinAP = sin(angPath);
+  const float cosP = std::cos(phi);
+  const float sinP = std::sin(phi);
 
-  const float cosP = cos(phi);
-  const float sinP = sin(phi);
+  const float angPath = (zout - z)*sinT*invpT/(cosT*k);
 
-  const float cosT = cos(theta);
-  const float sinT = sin(theta);
+  float cosAP, sinAP;
+  if (Config::useTrigApprox) {
+    sincos4(angPath, sinAP, cosAP);
+  } else {
+    cosAP=std::cos(angPath);
+    sinAP=std::sin(angPath);
+  }
 
   result.parameters[0] = inputState.x() + k*(inputState.px()*sinAP-inputState.py()*(1.f-cosAP));
   result.parameters[1] = inputState.y() + k*(inputState.py()*sinAP+inputState.px()*(1.f-cosAP));
