@@ -1,6 +1,8 @@
 #ifndef _fittestEndcap_
 #define _fittestEndcap_
 
-void fittestEndcap();
+class Event;
+
+void fittestEndcap(Event& ev);
 
 #endif

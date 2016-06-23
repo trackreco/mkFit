@@ -99,12 +99,16 @@ void Event::Simulate()
       int q=0;//set it in setup function
       // do the simulation
       if (Config::useCMSGeom) setupTrackFromTextFile(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs);
+      else if (Config::endcapTest) setupTrackByToyMCEndcap(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs);
       else setupTrackByToyMC(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs); 
       validation_.collectSimTkTSVecMapInfo(itrack,initialTSs); // save initial TS parameters
 
 #ifdef CCSCOORD
-      float pt = sqrt(mom[0]*mom[0]+mom[1]*mom[1]);
-      mom=SVector3(1./pt,atan2(mom[1],mom[0]),atan2(pt,mom[2]));
+      // setupTrackByToyMCEndcap is already in CCS coord, no need to convert
+      if (Config::endcapTest==false) {
+	float pt = sqrt(mom[0]*mom[0]+mom[1]*mom[1]);
+	mom=SVector3(1./pt,atan2(mom[1],mom[0]),atan2(pt,mom[2]));
+      }
 #endif
       simTracks_[itrack] = Track(q,pos,mom,covtrk,0.0f);
       auto& sim_track = simTracks_[itrack];

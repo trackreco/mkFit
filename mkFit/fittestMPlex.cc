@@ -138,8 +138,8 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 
       MkFitter *mkfp = mkfp_arr[omp_get_thread_num()];
 
-      //mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
-      mkfp->SlurpInTracksAndHits(simtracks, ev.layerHits_, itrack, end);
+      if (Config::endcapTest) mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
+      else mkfp->SlurpInTracksAndHits(simtracks, ev.layerHits_, itrack, end); //fixme, why this one crashes for endcap?
 
       if (Config::cf_fitting) mkfp->ConformalFitTracks(true, itrack, end);
       mkfp->FitTracks(end - itrack);
@@ -160,6 +160,11 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
      _mm_free(mkfp_arr[i]);
    }
    //_mm_free(mkfp);
+
+   // for (int itrack = 0; itrack < theEnd; itrack++)
+   // {
+   //   std::cout << rectracks[itrack].pT() << std::endl;
+   // }
 
    return time;
 }

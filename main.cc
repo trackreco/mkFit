@@ -115,8 +115,6 @@ void next_arg_or_die(lStr_t& args, lStr_i& i, bool allow_single_minus=false)
 int main(int argc, const char* argv[])
 {
 
-  fittestEndcap();return 0;
-
 #ifdef TBB
   auto nThread(tbb::task_scheduler_init::default_num_threads());
 #else
@@ -140,16 +138,32 @@ int main(int argc, const char* argv[])
       printf(
         "Usage: %s [options]\n"
         "Options:\n"
+        "  --num-events    <num>    number of events to run over (def: %d)\n"
+        "  --num-tracks    <num>    number of tracks to generate for each event (def: %d)\n"
 	"  --num-thr       <num>    number of threads used for TBB  (def: %d)\n"
 	"  --super-debug            bool to enable super debug mode (def: %s)\n"
 	"  --cf-seeding             bool to enable CF in MC seeding (def: %s)\n"
+	"  --endcap-test            test endcap tracking (def: %i)\n"
         ,
         argv[0],
+        Config::nEvents,
+        Config::nTracks,
         nThread, 
 	(Config::super_debug ? "true" : "false"),
-	(Config::cf_seeding  ? "true" : "false")
+	(Config::cf_seeding  ? "true" : "false"),
+	Config::endcapTest
       );
       exit(0);
+    }
+    else if (*i == "--num-events")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::nEvents = atoi(i->c_str());
+    }
+    else if (*i == "--num-tracks")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::nTracks = atoi(i->c_str());
     }
     else if (*i == "--num-thr")
     {
@@ -166,6 +180,10 @@ int main(int argc, const char* argv[])
     {
       Config::cf_seeding = true;
     }
+    else if (*i == "--endcap-test")
+    {
+      Config::endcapTest = true;
+    }
     else
     {
       fprintf(stderr, "Error: Unknown option/argument '%s'.\n", i->c_str());
@@ -181,6 +199,16 @@ int main(int argc, const char* argv[])
 #else
   TTreeValidation val("valtree.root");
 #endif
+
+  if (Config::endcapTest) {
+    //make it standalone for now
+    for (int evt=0; evt<Config::nEvents; ++evt) {
+      Event ev(geom, val, evt, nThread);
+      ev.simHitsInfo_.resize(Config::nTotHit * Config::nTracks);
+      fittestEndcap(ev);
+    }
+    return 0;
+  }
 
   for ( int i = 0; i < Config::nLayers; ++i ) {
     std::cout << "Layer = " << i << ", Radius = " << geom.Radius(i) << std::endl;

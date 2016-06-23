@@ -364,11 +364,20 @@ void MkFitter::FitTracks(const int N_proc)
     // propagateLineToRMPlex(Err[iC], Par[iC], msErr[hi], msPar[hi],
     //                       Err[iP], Par[iP]);
 
-    propagateHelixToRMPlex(Err[iC], Par[iC], Chg, msPar[hi],
-                           Err[iP], Par[iP], N_proc);
+    if (Config::endcapTest) {
+      propagateHelixToZMPlex(Err[iC], Par[iC], Chg, msPar[hi],
+			     Err[iP], Par[iP], N_proc);
 
-    updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[hi], msPar[hi],
-                          Err[iC], Par[iC], N_proc);
+      updateParametersEndcapMPlex(Err[iP], Par[iP], Chg, msErr[hi], msPar[hi],
+				  Err[iC], Par[iC], N_proc);
+
+    } else {
+      propagateHelixToRMPlex(Err[iC], Par[iC], Chg, msPar[hi],
+			     Err[iP], Par[iP], N_proc);
+
+      updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[hi], msPar[hi],
+			    Err[iC], Par[iC], N_proc);
+    }
   }
   // XXXXX What's with chi2?
 }

@@ -145,7 +145,9 @@ void test_standard()
     printf ("Using CMS-like geometry ");
     if (Config::readCmsswSeeds) printf ("with CMSSW seeds \n");
     else printf ("with MC-truth seeds \n");
-  } else printf ("Using 4-cm spacing geometry \n");
+  } else if (Config::endcapTest) {
+    printf ("Test tracking in endcap, disks spacing 5 cm \n");
+  } else printf ("Using 4-cm spacing barrel geometry \n");
 
   if (g_operation == "write") {
     generate_and_save_tracks();
@@ -411,6 +413,7 @@ int main(int argc, const char *argv[])
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
 	"  --cms-geom               use cms-like geometry (def: %i)\n"
 	"  --cmssw-seeds            take seeds from CMSSW (def: %i)\n"
+	"  --endcap-test            test endcap tracking (def: %i)\n"
 	"  --cf-seeding             enable CF in seeding (def: %s)\n"
 	"  --cf-fitting             enable CF in fitting (def: %s)\n"
 	"  --write                  write simulation to file and exit\n"
@@ -429,6 +432,7 @@ int main(int argc, const char *argv[])
         Config::finderReportBestOutOfN,
 	Config::useCMSGeom,
 	Config::readCmsswSeeds,
+	Config::endcapTest,
 	Config::cf_seeding ? "true" : "false",
 	Config::cf_fitting ? "true" : "false",
 	g_file_name.c_str()
@@ -501,6 +505,10 @@ int main(int argc, const char *argv[])
     else if(*i == "--cmssw-seeds")
     {
       Config::readCmsswSeeds = true;
+    }
+    else if(*i == "--endcap-test")
+    {
+      Config::endcapTest = true;
     }
     else if (*i == "--cf-seeding")
     {
