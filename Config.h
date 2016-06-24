@@ -135,6 +135,7 @@ namespace Config
 
   // Config for Conformal fitter --> these change depending on inward/outward, which tracks used (MC vs reco), geometry, layers used, track params generated...
   // parameters for layers 0,4,9 
+  constexpr float blowupfit = 10.0;
   constexpr float ptinverr049 = 0.0078; // 0.0075; // errors used for MC only fit, straight from sim tracks, outward with simple geometry
   constexpr float phierr049   = 0.0017; // 0.0017;
   constexpr float thetaerr049 = 0.0033; // 0.0031; 

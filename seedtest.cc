@@ -31,7 +31,8 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, T
 
     TrackState updatedState;
     if (Config::cf_seeding) {
-      conformalFit(ev.layerHits_[0][trk.getHitIdx(0)],ev.layerHits_[1][trk.getHitIdx(1)],ev.layerHits_[2][trk.getHitIdx(2)],trk.charge(),updatedState,false); 
+      conformalFit(ev.layerHits_[0][trk.getHitIdx(0)],ev.layerHits_[1][trk.getHitIdx(1)],ev.layerHits_[2][trk.getHitIdx(2)],updatedState,false); 
+      updatedState.charge = trk.charge();
     }
     else {
       updatedState = trk.state();
@@ -562,7 +563,8 @@ void buildSeedsFromTriplets(const std::vector<HitVec>& evt_lay_hits, const Tripl
     int charge = getCharge(evt_lay_hits[0][hit_triplet[0]],evt_lay_hits[1][hit_triplet[1]],evt_lay_hits[2][hit_triplet[2]]);
 
     TrackState updatedState;
-    conformalFit(evt_lay_hits[0][hit_triplet[0]],evt_lay_hits[1][hit_triplet[1]],evt_lay_hits[2][hit_triplet[2]],charge,updatedState,false); 
+    conformalFit(evt_lay_hits[0][hit_triplet[0]],evt_lay_hits[1][hit_triplet[1]],evt_lay_hits[2][hit_triplet[2]],updatedState,false); 
+    updatedState.charge = charge;
 
     // CF is bad at getting a good pT estimate, phi and theta are fine
     // "best case" config found in other studies is to set TS by hand:
@@ -611,7 +613,8 @@ void fitSeeds(const std::vector<HitVec>& evt_lay_hits, TrackVec& evt_seed_tracks
     const int seedID = seed.label(); // label == seedID!
     
     // first do CF Fit
-    conformalFit(evt_lay_hits[0][seed.getHitIdx(0)],evt_lay_hits[1][seed.getHitIdx(1)],evt_lay_hits[2][seed.getHitIdx(2)],seed.charge(),updatedState,false); 
+    conformalFit(evt_lay_hits[0][seed.getHitIdx(0)],evt_lay_hits[1][seed.getHitIdx(1)],evt_lay_hits[2][seed.getHitIdx(2)],updatedState,false); 
+    updatedState.charge = seed.charge();
     ev.validation_.collectSeedTkCFMapInfo(seedID,updatedState);
 
     TSLayerPairVec updatedStates; // validation for position pulls
@@ -640,4 +643,3 @@ void fitSeeds(const std::vector<HitVec>& evt_lay_hits, TrackVec& evt_seed_tracks
     seed.setState(updatedState);
   }
 }
-

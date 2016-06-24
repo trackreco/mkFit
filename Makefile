@@ -48,6 +48,7 @@ distclean: clean-local
 	-rm -f *.root
 	-rm -f *.png
 	-rm -f log*.txt
+	-rm -f *.bin
 	cd Matriplex && ${MAKE} distclean
 	cd mkFit     && ${MAKE} distclean
 

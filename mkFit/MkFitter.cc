@@ -360,8 +360,40 @@ void MkFitter::ConformalFitTracks(bool fitting, int beg, int end)
 #endif
 
   // write to iC --> next step will be a propagation no matter what
-  conformalFitMPlex(fitting, Label, Chg, Err[iC], Par[iC], 
+  conformalFitMPlex(fitting, Label, Err[iC], Par[iC], 
 		    msPar[front], msPar[middle], msPar[back]);
+
+  // need to set most off-diagonal elements in unc. to zero, inflate all other elements;
+  if (fitting) 
+  { 
+#pragma simd
+    for (int n = 0; n < N; ++n)
+    {
+      Err[iC].At(n, 0, 0) = Err[iC].ConstAt(n, 0, 0) * Config::blowupfit; 
+      Err[iC].At(n, 0, 1) = Err[iC].ConstAt(n, 0, 1) * Config::blowupfit; 
+      Err[iC].At(n, 1, 0) = Err[iC].ConstAt(n, 1, 0) * Config::blowupfit; 
+      Err[iC].At(n, 1, 1) = Err[iC].ConstAt(n, 1, 1) * Config::blowupfit; 
+      Err[iC].At(n, 2, 2) = Err[iC].ConstAt(n, 2, 2) * Config::blowupfit;
+      Err[iC].At(n, 3, 3) = Err[iC].ConstAt(n, 3, 3) * Config::blowupfit;
+      Err[iC].At(n, 4, 4) = Err[iC].ConstAt(n, 4, 4) * Config::blowupfit;
+      Err[iC].At(n, 5, 5) = Err[iC].ConstAt(n, 5, 5) * Config::blowupfit;
+      
+      Err[iC].At(n, 0, 2) = 0.0f; Err[iC].At(n, 0, 3) = 0.0f; 
+      Err[iC].At(n, 0, 4) = 0.0f; Err[iC].At(n, 0, 5) = 0.0f;
+      Err[iC].At(n, 1, 2) = 0.0f; Err[iC].At(n, 1, 3) = 0.0f; 
+      Err[iC].At(n, 1, 4) = 0.0f; Err[iC].At(n, 1, 5) = 0.0f;      
+      Err[iC].At(n, 2, 0) = 0.0f; Err[iC].At(n, 2, 1) = 0.0f;
+      Err[iC].At(n, 2, 3) = 0.0f; Err[iC].At(n, 2, 4) = 0.0f; 
+      Err[iC].At(n, 2, 5) = 0.0f; Err[iC].At(n, 3, 0) = 0.0f; 
+      Err[iC].At(n, 3, 1) = 0.0f; Err[iC].At(n, 3, 2) = 0.0f;
+      Err[iC].At(n, 3, 4) = 0.0f; Err[iC].At(n, 3, 5) = 0.0f;
+      Err[iC].At(n, 4, 0) = 0.0f; Err[iC].At(n, 4, 1) = 0.0f; 
+      Err[iC].At(n, 4, 2) = 0.0f; Err[iC].At(n, 4, 3) = 0.0f; 
+      Err[iC].At(n, 4, 5) = 0.0f; Err[iC].At(n, 5, 0) = 0.0f; 
+      Err[iC].At(n, 5, 1) = 0.0f; Err[iC].At(n, 5, 2) = 0.0f;
+      Err[iC].At(n, 5, 3) = 0.0f; Err[iC].At(n, 5, 4) = 0.0f;
+    }
+  }
 }
 
 void MkFitter::FitTracks(const int N_proc)

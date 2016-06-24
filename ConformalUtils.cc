@@ -3,7 +3,7 @@
 //M. Hansroul, H. Jeremie and D. Savard, NIM A 270 (1988) 498
 //http://www.sciencedirect.com/science/article/pii/016890028890722X
 
-void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge, TrackState& fitStateHit0, bool fiterrs) {
+void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, TrackState& fitStateHit0, bool fiterrs) {
 
   // store hit info
   float x[3],y[3],z[3];
@@ -74,31 +74,29 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
 
   const float vrx = (xtou ? x[0]-a : x[0]-b);
   const float vry = (xtou ? y[0]-b : y[0]-a);
+  const float R   = std::sqrt(getRad2(vrx,vry));
 
-  const float R   = sqrtf(getRad2(vrx,vry));
-  //float e=b*b*b*C[2]/(R*R*R);
-  const float k   = charge*100./(-Config::sol*Config::Bfield);
+  // constant used throughout
+  const float k   = (Config::sol*Config::Bfield)/100.0f;
   // compute pt
-  const float pt  = R/k;
-  // compute phi
-  const float phi = getPhi(vry,vrx);
-  //compute theta
-  const float tantheta = sqrtf(getRad2((x[0]-x[2]),(y[0]-y[2])))/(z[2]-z[0]);
+  const float pt  = R*k;
 
+  // compute px,py,pz
+  float px = std::copysign( k*vry , (x[2]-x[0]) );
+  float py = std::copysign( k*vrx , (y[2]-y[0]) );
+  float pz = (pt * (z[2]-z[0])) / std::sqrt(getRad2((x[2]-x[0]) , (y[2]-y[0])));
+  
 #ifdef CCSCOORD
   fitStateHit0.parameters[3] = 1.0f/pt;
-  fitStateHit0.parameters[4] = phi;
-  fitStateHit0.parameters[5] = std::tan(tantheta);
-#ifdef INWARDFIT
-  if (fiterrs) fitStateHit0.parameters[5] *= -1.0f; // tangent is an odd function, so tan(pt/pz) when inward is tan(pt/-pz)= -tan(pt/pz)
+  fitStateHit0.parameters[4] = getPhi(px,py);
+  fitStateHit0.parameters[5] = getTheta(pt,pz);
+#ifdef INWARDFIT                                      
+  if (fiterrs) fitStateHit0.parameters[5] *= -1.0f; // arctangent is an odd function, so atan(pt/pz) when inward is tan(pt/-pz)= -tan(pt/pz), phi is px and py! so does not matter
 #endif
   fitStateHit0.errors[3][3] = (fiterrs ? Config::ptinverr049 * Config::ptinverr049 : Config::ptinverr012 * Config::ptinverr012);
   fitStateHit0.errors[4][4] = (fiterrs ? Config::phierr049   * Config::phierr049   : Config::phierr012   * Config::phierr012);
   fitStateHit0.errors[5][5] = (fiterrs ? Config::thetaerr049 * Config::thetaerr049 : Config::thetaerr012 * Config::thetaerr012);
 #else
-  float px = fabs(pt*cos(phi))*((x[1]-x[0])>0. ? 1. : -1.);
-  float py = fabs(pt*sin(phi))*((y[1]-y[0])>0. ? 1. : -1.);
-  float pz = fabs(pt/tantheta)*((z[1]-z[0])>0. ? 1. : -1.);
 #ifdef INWARDFIT
   if (fiterrs) { // need conformal fit on seeds to be forward!
     px*=-1.;
@@ -123,7 +121,4 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, int charge,
   fitStateHit0.errors[4][4] = py*py*varPt + px*px*varPhi;
   fitStateHit0.errors[5][5] = pz2  *varPt + ((pz2+pt2)*(pz2+pz2)/pt2)*varTheta;
 #endif // cartesian coords
-
-  fitStateHit0.charge = charge; //taken from slopes!
-  //dumpMatrix(fitStateHit0.errors);
 }

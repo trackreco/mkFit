@@ -2,7 +2,7 @@
 #include "Track.h"
 #include "Hit.h"
 
-#define DEBUG
+//#define DEBUG
 #include "Debug.h"
 
 inline
@@ -26,8 +26,7 @@ void CFMap(const MPlexHH& A, const MPlexHV& B, MPlexHV& C)
 //M. Hansroul, H. Jeremie and D. Savard, NIM A 270 (1988) 498
 //http://www.sciencedirect.com/science/article/pii/016890028890722X
 
-void conformalFitMPlex(bool fitting, MPlexQI seedID, const MPlexQI inChg, 
-		       MPlexLS& outErr, MPlexLV& outPar, 
+void conformalFitMPlex(bool fitting, MPlexQI seedID, MPlexLS& outErr, MPlexLV& outPar, 
 		       const MPlexHV& msPar0, const MPlexHV& msPar1, const MPlexHV& msPar2)
 {
   bool debug(false);
@@ -68,7 +67,8 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, const MPlexQI inChg,
     outPar.At(n, 2, 0) = z.ConstAt(n, 0, 0);
   }
 
-  // Use r-phi smearing to set initial error estimation for positions
+  // Use r-phi smearing to set initial error estimation for positions 
+  // trackStates already initialized to identity for seeding ... don't store off-diag 0's, zero's for fitting set outside CF
 #pragma simd
   for (int n = 0; n < N; ++n)
   {
@@ -77,42 +77,11 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, const MPlexQI inChg,
 
     outErr.At(n, 0, 0) = x.ConstAt(n, 0, 0)*x.ConstAt(n, 0, 0)*invvarR2 + y.ConstAt(n, 0, 0)*y.ConstAt(n, 0, 0)*varPhi;
     outErr.At(n, 0, 1) = x.ConstAt(n, 0, 0)*y.ConstAt(n, 0, 0)*(invvarR2 - varPhi);
-    outErr.At(n, 0, 2) = 0.;
-    outErr.At(n, 0, 3) = 0.;
-    outErr.At(n, 0, 4) = 0.;
-    outErr.At(n, 0, 5) = 0.;
 
     outErr.At(n, 1, 0) = outErr.ConstAt(n, 0, 1);
     outErr.At(n, 1, 1) = y.ConstAt(n, 0, 0)*y.ConstAt(n, 0, 0)*invvarR2 + x.ConstAt(n, 0, 0)*x.ConstAt(n, 0, 0)*varPhi;
-    outErr.At(n, 1, 2) = 0.;
-    outErr.At(n, 1, 3) = 0.;
-    outErr.At(n, 1, 4) = 0.;
-    outErr.At(n, 1, 5) = 0.;
 
-    outErr.At(n, 2, 0) = 0.;
-    outErr.At(n, 2, 1) = 0.;
     outErr.At(n, 2, 2) = Config::varZ;
-    outErr.At(n, 2, 3) = 0.;
-    outErr.At(n, 2, 4) = 0.;
-    outErr.At(n, 2, 5) = 0.;
-
-    outErr.At(n, 3, 0) = 0.;
-    outErr.At(n, 3, 1) = 0.;
-    outErr.At(n, 3, 2) = 0.;
-    outErr.At(n, 3, 4) = 0.;
-    outErr.At(n, 3, 5) = 0.;
-
-    outErr.At(n, 4, 0) = 0.;
-    outErr.At(n, 4, 1) = 0.;
-    outErr.At(n, 4, 2) = 0.;
-    outErr.At(n, 4, 3) = 0.;
-    outErr.At(n, 4, 5) = 0.;
-
-    outErr.At(n, 5, 0) = 0.;
-    outErr.At(n, 5, 1) = 0.;
-    outErr.At(n, 5, 2) = 0.;
-    outErr.At(n, 5, 3) = 0.;
-    outErr.At(n, 5, 4) = 0.;
   }
   
   MPlexQF initPhi;
@@ -168,15 +137,20 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, const MPlexQI inChg,
     b.At(n, 0, 0) = 1.0f/(2.0f*C.ConstAt(n, 0, 0)); 
     a.At(n, 0, 0) = b.ConstAt(n, 0, 0)*C.ConstAt(n, 1, 0); 
   }  
+  
+  // constant used throughtout
+  const float k = (Config::sol*Config::Bfield)/100.0f;
 
-  MPlexQF vrx, vry, pT, tantheta;
+  MPlexQF vrx, vry, pT, px, py, pz;
 #pragma simd
   for (int n = 0; n < N; ++n)
   {
     vrx.At(n, 0, 0) = (xtou.ConstAt(n, 0, 0) ? x.ConstAt(n, 0, 0) - a.ConstAt(n, 0, 0) : x.ConstAt(n, 0, 0) - b.ConstAt(n, 0, 0));
     vry.At(n, 0, 0) = (xtou.ConstAt(n, 0, 0) ? y.ConstAt(n, 0, 0) - b.ConstAt(n, 0, 0) : y.ConstAt(n, 0, 0) - a.ConstAt(n, 0, 0));
-    pT.At (n, 0, 0) = (-Config::sol*Config::Bfield)*hipo(vrx.ConstAt(n, 0, 0), vry.ConstAt(n, 0, 0)) / (inChg.ConstAt(n, 0, 0) * 100);
-    tantheta.At(n, 0, 0) = hipo(x.ConstAt(n, 2, 0) - x.ConstAt(n, 0, 0), y.ConstAt(n, 2, 0) - y.ConstAt(n, 0, 0))/(z.ConstAt(n, 2, 0) - z.ConstAt(n, 0, 0));
+    pT.At (n, 0, 0) = k*hipo(vrx.ConstAt(n, 0, 0), vry.ConstAt(n, 0, 0));
+    px.At (n, 0, 0) = std::copysign( k*vry.ConstAt(n, 0, 0) , x.ConstAt(n, 2, 0) - x.ConstAt(n, 0, 0));
+    py.At (n, 0, 0) = std::copysign( k*vrx.ConstAt(n, 0, 0) , y.ConstAt(n, 2, 0) - y.ConstAt(n, 0, 0));
+    pz.At (n, 0, 0) = (pT.ConstAt(n, 0, 0) * (z.ConstAt(n, 2, 0) - z.ConstAt(n, 0, 0))) / hipo((x.ConstAt(n, 2, 0)-x.ConstAt(n, 0, 0)),(y.ConstAt(n, 2, 0)-y.ConstAt(n, 0, 0)),););
   }
 
 #ifdef CCSCOORD
@@ -184,9 +158,9 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, const MPlexQI inChg,
   for (int n = 0; n < N; ++n)
   {
     outPar.At(n, 3, 0) = 1.0f/pT.ConstAt(n, 0, 0);
-    outPar.At(n, 4, 0) = getPhi(vry.ConstAt(n, 0, 0),vrx.ConstAt(n, 0, 0));
-    outPar.At(n, 5, 0) = std::tan(tantheta.At(n, 0, 0));
-#ifdef INWARDFIT
+    outPar.At(n, 4, 0) = getPhi(px.ConstAt(n, 0, 0),py.ConstAt(n, 0, 0));
+    outPar.At(n, 5, 0) = getTheta(pT.ConstAt(n, 0, 0),pz.ConstAt(n, 0, 0));
+#ifdef INWARDFIT // arctan is odd, so pz -> -pz means theta -> -theta
     if (fitting) outPar.At(n, 5, 0) *= -1.0f;
 #endif
   }
@@ -200,21 +174,6 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, const MPlexQI inChg,
   }
 
 #else // cartesian coordinates
-  MPlexQF pT2, px, py, pz, pz2;
-#pragma simd
-  for (int n = 0; n < N; ++n)
-  {
-    const float invvrxy = 1.0f/std::sqrt(vrx.ConstAt(n, 0, 0)*vrx.ConstAt(n, 0, 0) + vry.ConstAt(n, 0, 0)*vry.ConstAt(n, 0, 0));
-    const float cosphi = vry.ConstAt(n, 0, 0)*invvrxy;
-    const float sinphi = vrx.ConstAt(n, 0, 0)*invvrxy;
-
-    px.At (n, 0, 0) = std::copysign(pT.ConstAt(n, 0, 0) * cosphi, x.ConstAt(n, 1, 0) - x.ConstAt(n, 0, 0));
-    py.At (n, 0, 0) = std::copysign(pT.ConstAt(n, 0, 0) * sinphi, y.ConstAt(n, 1, 0) - y.ConstAt(n, 0, 0));
-    pz.At (n, 0, 0) = std::copysign(pT.ConstAt(n, 0, 0) / tantheta.ConstAt(n, 0, 0), z.ConstAt(n, 1, 0) - z.ConstAt(n, 0, 0));
-
-    pT2.At(n, 0, 0) = pT.ConstAt(n, 0, 0)*pT.ConstAt(n, 0, 0);
-    pz2.At(n, 0, 0) = pz.ConstAt(n, 0, 0)*pz.ConstAt(n, 0, 0);
-  }
 
 #ifdef INWARDFIT
   if (fitting)
@@ -228,7 +187,6 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, const MPlexQI inChg,
     }
   }
 #endif
-
   // output momenta + errors
 #pragma simd
   for (int n = 0; n < N; ++n)
@@ -244,10 +202,12 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, const MPlexQI inChg,
 #pragma simd
   for (int n = 0; n < N; ++n)
   {
-    const float varPt  = pT2.ConstAt(n, 0, 0)*varPtInv;
+    const float pT2 = pT.ConstAt(n, 0, 0)*pT.ConstAt(n, 0, 0);
+    const float pz2 = pz.ConstAt(n, 0, 0)*pz.ConstAt(n, 0, 0);
+    const float varPt  = pT2*varPtInv;
     outErr.At(n, 3, 3) = px.ConstAt(n, 0, 0)*px.ConstAt(n, 0, 0)*varPt + py.ConstAt(n, 0, 0)*py.ConstAt(n, 0, 0)*varPhi;
     outErr.At(n, 4, 4) = py.ConstAt(n, 0, 0)*py.ConstAt(n, 0, 0)*varPt + px.ConstAt(n, 0, 0)*px.ConstAt(n, 0, 0)*varPhi;
-    outErr.At(n, 5, 5) = pz2.ConstAt(n, 0, 0)*varPt + (((pT2.ConstAt(n, 0, 0) + pz2.ConstAt(n, 0, 0))*(pT2.ConstAt(n, 0, 0) + pz2.ConstAt(n, 0, 0))) / pT2.ConstAt(n, 0, 0)) * varTheta;
+    outErr.At(n, 5, 5) = pz2*varPt + ((pT2 + pz2)*(pT2 + pz2) / pT2) * varTheta;
   }  
 #endif // cartesian output
 

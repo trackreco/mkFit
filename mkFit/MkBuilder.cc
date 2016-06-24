@@ -189,12 +189,11 @@ void MkBuilder::find_seeds()
 }
 
 void MkBuilder::map_seed_hits()
-{
+{ // map seed hit indices from global m_event->layerHits_[i] to hit indices in structure m_event_of_hits.m_layers_of_hits[i].m_hits
   HitIDVec seedLayersHitMap(m_event->simHitsInfo_.size());
   for (int ilayer = 0; ilayer < Config::nlayers_per_seed; ++ilayer) {
     const auto & lof_m_hits   = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
-    const auto lof_m_capacity = m_event_of_hits.m_layers_of_hits[ilayer].m_capacity;
-    for (int index = 0; index < lof_m_capacity; ++index) {
+    for (int index = 0; index < Config::nTracks; ++index) { // assume one hit per layer per track ...
       seedLayersHitMap[lof_m_hits[index].mcHitID()] = HitID(ilayer, index);
     }
   }
@@ -202,13 +201,13 @@ void MkBuilder::map_seed_hits()
     const auto & global_hit_vec = m_event->layerHits_[ilayer];
     for (auto&& track : m_event->seedTracks_) {
       auto hitidx = track.getHitIdx(ilayer);
-      if (hitidx!=-1) track.setHitIdx(ilayer, seedLayersHitMap[global_hit_vec[hitidx].mcHitID()].index);
+      if (hitidx>=0) track.setHitIdx(ilayer, seedLayersHitMap[global_hit_vec[hitidx].mcHitID()].index);
     }
   }
 }
 
 void MkBuilder::remap_seed_hits()
-{
+{ // map seed hit indices from hit indices in structure m_event_of_hits.m_layers_of_hits[i].m_hits to global m_event->layerHits_[i]
   HitIDVec seedLayersHitMap(m_event->simHitsInfo_.size());
   for (int ilayer = 0; ilayer < Config::nlayers_per_seed; ++ilayer) {
     const auto & global_hit_vec = m_event->layerHits_[ilayer];
@@ -220,25 +219,25 @@ void MkBuilder::remap_seed_hits()
     const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
     for (auto&& track : m_event->seedTracks_) {
       auto hitidx = track.getHitIdx(ilayer);
-      if (hitidx!=-1) track.setHitIdx(ilayer, seedLayersHitMap[lof_m_hits[hitidx].mcHitID()].index);
+      if (hitidx>=0) track.setHitIdx(ilayer, seedLayersHitMap[lof_m_hits[hitidx].mcHitID()].index);
     }
   }
 }
 
 void MkBuilder::remap_cand_hits()
-{
+{ // map cand hit indices from hit indices in structure m_event_of_hits.m_layers_of_hits[i].m_hits to global m_event->layerHits_[i]
   HitIDVec candLayersHitMap(m_event->simHitsInfo_.size());
-  for (int ilayer = Config::nlayers_per_seed; ilayer < m_event->layerHits_.size(); ++ilayer) {
+  for (int ilayer = 0; ilayer < Config::nLayers; ++ilayer) {
     const auto & global_hit_vec = m_event->layerHits_[ilayer];
     for (int index = 0; index < global_hit_vec.size(); ++index) {
       candLayersHitMap[global_hit_vec[index].mcHitID()] = HitID(ilayer, index);
     }
   }
-  for (int ilayer = Config::nlayers_per_seed; ilayer < Config::nLayers; ++ilayer) {
+  for (int ilayer = 0; ilayer < Config::nLayers; ++ilayer) {
     const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
     for (auto&& track : m_event->candidateTracks_) {
       auto hitidx = track.getHitIdx(ilayer);
-      if (hitidx!=-1) track.setHitIdx(ilayer, candLayersHitMap[lof_m_hits[hitidx].mcHitID()].index);
+      if (hitidx>=0) track.setHitIdx(ilayer, candLayersHitMap[lof_m_hits[hitidx].mcHitID()].index);
     }
   }
 }
