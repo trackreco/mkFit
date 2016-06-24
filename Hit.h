@@ -143,6 +143,27 @@ inline float getEtaErr2(float x, float y, float z, float exx, float eyy, float e
   return detadx*detadx*exx + detady*detady*eyy + detadz*detadz*ezz + 2*detadx*detady*exy + 2*detadx*detadz*exz + 2*detady*detadz*eyz;
 }
 
+inline float getPxPxErr2(float ipt, float phi, float vipt, float vphi){ // ipt = 1/pT, v = variance
+  const float iipt2 = 1.0f/(ipt*ipt); //iipt = 1/(1/pT) = pT
+  const float cosP  = std::cos(phi);   
+  const float sinP  = std::sin(phi);
+  return iipt2*(iipt2*cosP*cosP*vipt + sinP*sinP*vphi);
+}
+
+inline float getPyPyErr2(float ipt, float phi, float vipt, float vphi){ // ipt = 1/pT, v = variance
+  const float iipt2 = 1.0f/(ipt*ipt); //iipt = 1/(1/pT) = pT
+  const float cosP  = std::cos(phi);   
+  const float sinP  = std::sin(phi);
+  return iipt2*(iipt2*sinP*sinP*vipt + cosP*cosP*vphi);
+}
+
+inline float getPzPzErr2(float ipt, float theta, float vipt, float vtheta){ // ipt = 1/pT, v = variance
+  const float iipt2 = 1.0f/(ipt*ipt); //iipt = 1/(1/pT) = pT
+  const float cotT  = 1.0f/std::tan(theta);   
+  const float cscT  = 1.0f/std::sin(theta);
+  return iipt2*(iipt2*cotT*cotT*vipt + cscT*cscT*cscT*cscT*vtheta);
+}
+
 struct MCHitInfo
 {
   MCHitInfo() {}

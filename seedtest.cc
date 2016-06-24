@@ -58,7 +58,7 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, T
     }
     ev.validation_.collectSeedTkTSLayerPairVecMapInfo(itrack,updatedStates); // use to collect position pull info
 
-    Track seed(updatedState,0.,itrack,Config::nlayers_per_seed,seedhits);//fixme chi2 (could use sumchi2)
+    Track seed(updatedState,0.0f,itrack,Config::nlayers_per_seed,seedhits);//fixme chi2 (could use sumchi2)
     dprint("created seed track # " << itrack << " par=" << seed.parameters());
     evt_seed_tracks.push_back(seed);
     evt_seed_extras.emplace_back(itrack); 
@@ -80,10 +80,10 @@ void buildSeedsByRZFirstRPhiSecond(TrackVec& evt_seed_tracks, TrackExtraVec& evt
   if (rz_path == 0) {
     for (int i = 0; i < evt_lay_hits[0].size(); i++){
       for (int j = 0; j < evt_lay_hits[2].size(); j++){
-	if ( fabs(((3.*evt_lay_hits[0][i].z()-evt_lay_hits[2][j].z())/2.)) > (Config::seed_z0cut)) {continue;}
+	if ( std::abs(((3.*evt_lay_hits[0][i].z()-evt_lay_hits[2][j].z())/2.)) > (Config::seed_z0cut)) {continue;}
 	const float z1 = (evt_lay_hits[0][i].z() + evt_lay_hits[2][j].z()) / 2.;
 	for (int k = 0; k < evt_lay_hits[1].size(); k++){
-	  if (fabs(z1-evt_lay_hits[1][k].z()) < Config::lay2Zcut) {
+	  if (std::abs(z1-evt_lay_hits[1][k].z()) < Config::lay2Zcut) {
 	    TripletIdx triplet = {i,k,j};
 	    hitTriplets.push_back(triplet);
 	  }
@@ -98,10 +98,10 @@ void buildSeedsByRZFirstRPhiSecond(TrackVec& evt_seed_tracks, TrackExtraVec& evt
       for (int j = 0; j < evt_lay_hits[2].size(); j++){
 	const float z2 = evt_lay_hits[2][j].z();
 	const float r2 = evt_lay_hits[2][j].r();
-	if (fabs(predz(z0,r0,z2,r2,0.)) > (Config::seed_z0cut)) {continue;}
+	if (std::abs(predz(z0,r0,z2,r2,0.0f)) > (Config::seed_z0cut)) {continue;}
 	const float z1 = predz(z0,r0,z2,r2,Config::fRadialSpacing*2.);
 	for (int k = 0; k < evt_lay_hits[1].size(); k++) {
-	  if (fabs(z1-evt_lay_hits[1][k].z()) < Config::lay2Zcut) { // five sigma inclusion
+	  if (std::abs(z1-evt_lay_hits[1][k].z()) < Config::lay2Zcut) { // five sigma inclusion
 	    TripletIdx triplet = {i,k,j};
 	    hitTriplets.push_back(triplet);
 	  }
@@ -120,7 +120,7 @@ void buildSeedsByRZFirstRPhiSecond(TrackVec& evt_seed_tracks, TrackExtraVec& evt
       for (auto&& j : cand_lay2_indices){
 	const float z2 = evt_lay_hits[2][j].z();
 	const float r2 = evt_lay_hits[2][j].r();
-	if (fabs(predz(z0,r0,z2,r2,0.)) > (Config::seed_z0cut)) {continue;}
+	if (std::abs(predz(z0,r0,z2,r2,0.0f)) > (Config::seed_z0cut)) {continue;}
 	const float z1 = predz(z0,r0,z2,r2,Config::fRadialSpacing*2.);
 	// since 95% of 2nd layer hits are within eta partition of pred, use just that one bin
 	const int etabin  = getEtaPartition(getEta(Config::fRadialSpacing*2.,z1));
@@ -128,7 +128,7 @@ void buildSeedsByRZFirstRPhiSecond(TrackVec& evt_seed_tracks, TrackExtraVec& evt
 	const int etabinP = (etabin+1)<Config::nEtaPart?etabin+1:etabin; 
 	std::vector<int> cand_lay1_indices = getCandHitIndices(etabinM,etabinP,0,Config::nPhiPart-1,segmentMap[1]);
 	for (auto&& k : cand_lay1_indices){
-	  if (fabs(z1-evt_lay_hits[1][k].z()) < Config::lay2Zcut) { // five sigma inclusion
+	  if (std::abs(z1-evt_lay_hits[1][k].z()) < Config::lay2Zcut) { // five sigma inclusion
 	    TripletIdx triplet = {i,k,j};
 	    hitTriplets.push_back(triplet);
 	  }
@@ -151,27 +151,6 @@ void buildSeedsByRZFirstRPhiSecond(TrackVec& evt_seed_tracks, TrackExtraVec& evt
 
   // turn triplets into track seeds by performing CF + KF fit  
   // buildSeedsFromTriplets(evt_lay_hits,filteredTriplets,evt_seed_tracks,evt_seed_extras,ev); 
-}
-
-void filterHitTripletsByCircleParams(const std::vector<HitVec>& evt_lay_hits, const TripletIdxVec& hit_triplets, TripletIdxVec& filtered_triplets){
-  for (auto&& hit_triplet : hit_triplets){
-    const float x0 = evt_lay_hits[0][hit_triplet[0]].x();
-    const float y0 = evt_lay_hits[0][hit_triplet[0]].y();
-    const float x1 = evt_lay_hits[1][hit_triplet[1]].x();
-    const float y1 = evt_lay_hits[1][hit_triplet[1]].y();
-    const float x2 = evt_lay_hits[2][hit_triplet[2]].x();
-    const float y2 = evt_lay_hits[2][hit_triplet[2]].y();
-
-    // now fit a circle, extract pT and d0 from center and radius
-    const float mr = (y1-y0)/(x1-x0);
-    const float mt = (y2-y1)/(x2-x1);
-    const float a  = (mr*mt*(y2-y0) + mr*(x1+x2) - mt*(x0+x1))/(2.*(mr-mt));
-    const float b  = -1.*(a-(x0+x1)/2.)/mr + (y0+y1)/2.;
-    const float r  = getHypot(x0-a,y0-b);
-    if ((r >= Config::maxCurvR) && (fabs(getHypot(a,b)-r) <= Config::seed_d0cut)) {
-      filtered_triplets.push_back(hit_triplet);
-    } // d0 cut 5mm, pT cut 0.5 GeV (radius of 0.5 GeV track)
-  }
 }
 
 void buildSeedsByRoadTriplets(TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_extras, 
@@ -237,9 +216,105 @@ void buildSeedsByRoadTriplets(TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed
   buildSeedsFromTriplets(evt_lay_hits,filteredTriplets,evt_seed_tracks,evt_seed_extras,ev);
 }
 
+void buildSeedsByRoadSearch(TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_extras, 
+			    const std::vector<HitVec>& evt_lay_hits, const BinInfoMap& segmentMap, Event& ev){
+  // use this to initialize tracks
+  const TrackState dummystate;
+
+  const float lay2_r    = Config::fRadialSpacing * 3.0; // average third layer radius
+  const float maxCurvR2 = Config::maxCurvR * Config::maxCurvR;
+
+  int seedID = 0;
+  for (int ihit1 = 0; ihit1 < evt_lay_hits[1].size(); ++ihit1) { // 0 = first layer, 1 = second layer, 2 = third layer
+    const Hit & hit1     = evt_lay_hits[1][ihit1];
+    const float hit1_z   = evt_lay_hits[1][ihit1].z();
+    const float hit1_phi = evt_lay_hits[1][ihit1].phi();
+
+    const auto lay0_etaBinM = getEtaPartition(getEta(Config::fRadialSpacing,(hit1_z-Config::seed_z0cut)/2.));
+    const auto lay0_etaBinP = getEtaPartition(getEta(Config::fRadialSpacing,(hit1_z+Config::seed_z0cut)/2.));
+    const auto lay0_phiBinM = getPhiPartition(normalizedPhi(hit1_phi - Config::lay01angdiff));
+    const auto lay0_phiBinP = getPhiPartition(normalizedPhi(hit1_phi + Config::lay01angdiff));
+
+    std::vector<int> cand_hit0_indices = getCandHitIndices(lay0_etaBinM,lay0_etaBinP,lay0_phiBinM,lay0_phiBinP,segmentMap[0]);
+    for (auto&& ihit0 : cand_hit0_indices){
+
+      const Hit & hit0     = evt_lay_hits[0][ihit0];
+      const float hit0_z   = hit0.z();
+      const float hit0_x   = hit0.x(); 
+      const float hit0_y   = hit0.y();
+      const float hit1_x   = hit1.x(); 
+      const float hit1_y   = hit1.y();
+      const float hit01_r2 = getRad2(hit0_x-hit1_x,hit0_y-hit1_y);
+
+      const float quad = std::sqrt((4*maxCurvR2 - hit01_r2) / hit01_r2);
+    
+      // center of negative curved track
+      const float aneg = 0.5*((hit0_x+hit1_x)-(hit0_y-hit1_y)*quad);
+      const float bneg = 0.5*((hit0_y+hit1_y)+(hit0_x-hit1_x)*quad);
+
+      // negative points of intersection with third layer
+      float lay2_negx = 0.0f, lay2_negy = 0.0f;
+      intersectThirdLayer(aneg,bneg,hit1_x,hit1_y,lay2_negx,lay2_negy);
+
+      // center of positive curved track
+      const float apos = 0.5*((hit0_x+hit1_x)+(hit0_y-hit1_y)*quad);
+      const float bpos = 0.5*((hit0_y+hit1_y)-(hit0_x-hit1_x)*quad);
+      
+      // positive points of intersection with third layer
+      float lay2_posx = 0.0f, lay2_posy = 0.0f;
+      intersectThirdLayer(apos,bpos,hit1_x,hit1_y,lay2_posx,lay2_posy);
+
+      const float lay2_z = 2*hit1_z-hit0_z; // for dz displacements -- straight line window
+      const auto  lay2_etaBinM = getEtaPartition(getEta(lay2_r,lay2_z)-Config::dEtaSeedTrip);
+      const auto  lay2_etaBinP = getEtaPartition(getEta(lay2_r,lay2_z)+Config::dEtaSeedTrip);
+      const auto  lay2_phiBinM = getPhiPartition(getPhi(lay2_negx,lay2_negy));
+      const auto  lay2_phiBinP = getPhiPartition(getPhi(lay2_posx,lay2_posy));
+      
+      std::vector<int> cand_hit2_indices = getCandHitIndices(lay2_etaBinM,lay2_etaBinP,lay2_phiBinM,lay2_phiBinP,segmentMap[2]);
+      for (auto&& ihit2 : cand_hit2_indices){ // loop over candidate second layer hits
+	const Hit & hit2 = evt_lay_hits[2][ihit2];
+
+	const float lay1_predz = (hit0_z + hit2.z()) / 2.;
+	// filter by residual of second layer hit
+	if (std::abs(lay1_predz-hit1_z) > Config::lay2Zcut) continue;
+
+	const float hit2_x = hit2.x();
+	const float hit2_y = hit2.y();
+
+	// now fit a circle, extract pT and d0 from center and radius
+	const float mr = (hit1_y-hit0_y)/(hit1_x-hit0_x);
+	const float mt = (hit2_y-hit1_y)/(hit2_x-hit1_x);
+	const float a  = (mr*mt*(hit2_y-hit0_y) + mr*(hit1_x+hit2_x) - mt*(hit0_x+hit1_x))/(2.*(mr-mt));
+	const float b  = -1.*(a-(hit0_x+hit1_x)/2.)/mr + (hit0_y+hit1_y)/2.;
+	const float r  = getHypot(hit0_x-a,hit0_y-b);
+
+	// filter by d0 cut 5mm, pT cut 0.5 GeV (radius of 0.5 GeV track)
+	if ((r < Config::maxCurvR) || (std::abs(getHypot(a,b)-r) > Config::seed_d0cut)) continue; 
+	
+	// create a track object
+	int hitIndices[3] = {ihit0,ihit1,ihit2};
+	Track seed(dummystate,0.0f,seedID,Config::nlayers_per_seed,hitIndices); // argh! super not type-safe with dummystate
+
+	// estimate and set the charge
+	seed.setCharge(getCharge(hit0,hit1,hit2));
+
+	// save the track and track extra
+	evt_seed_tracks.push_back(seed);
+	evt_seed_extras.emplace_back(seedID);
+
+	// increment dummy counter for seedID
+	seedID++; 
+      } // end loop over third layer matches
+    } // end loop over first layer matches
+  } // end loop over second layer hits
+
+  // now do conformal fit + KF fit
+  fitSeeds(evt_lay_hits,evt_seed_tracks,ev);
+}
+
 void buildHitPairs(const std::vector<HitVec>& evt_lay_hits, const BinInfoLayerMap& segLayMap, PairIdxVec& hit_pairs){
   // use only average radius of inner radius for calculation
-  // lay12angdiff is a parameter for phi search window derived numerically from Mathematica... see one of my old talks
+  // lay01angdiff is a parameter for phi search window derived numerically from Mathematica... see one of my old talks
 
   for (unsigned int ihit=0;ihit<evt_lay_hits[1].size();++ihit) { // 1 = second layer
     const float outerhitz = evt_lay_hits[1][ihit].z(); // remember, layer[0] is first layer! --> second layer = [1]
@@ -252,8 +327,8 @@ void buildHitPairs(const std::vector<HitVec>& evt_lay_hits, const BinInfoLayerMa
     const auto etaBinMinus = 0;
     const auto etaBinPlus  = 0;
 #endif
-    const auto phiBinMinus = getPhiPartition(normalizedPhi(outerphi - Config::lay12angdiff));
-    const auto phiBinPlus  = getPhiPartition(normalizedPhi(outerphi + Config::lay12angdiff));
+    const auto phiBinMinus = getPhiPartition(normalizedPhi(outerphi - Config::lay01angdiff));
+    const auto phiBinPlus  = getPhiPartition(normalizedPhi(outerphi + Config::lay01angdiff));
 
     std::vector<int> cand_hit_indices = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
     for (auto&& cand_hit_idx : cand_hit_indices){
@@ -285,7 +360,7 @@ void buildHitTripletsCurve(const std::vector<HitVec>& evt_lay_hits, const BinInf
     // rotate both sets of points, figure out which is the "less"er 
     // use getCandHitIndices (will handle phi-wrapping)
 
-    const float quad = sqrtf((4*maxCurvR2 - diffx2 -diffy2) / (diffx2 + diffy2));
+    const float quad = std::sqrt((4*maxCurvR2 - diffx2 -diffy2) / (diffx2 + diffy2));
 
     // center of positive curved track
     const float apos = 0.5*((x0+x1)+(y0-y1)*quad);
@@ -304,12 +379,12 @@ void buildHitTripletsCurve(const std::vector<HitVec>& evt_lay_hits, const BinInf
     }
 
     // positive points of intersection with third layer
-    float posx2 = 0., posy2 = 0;
+    float posx2 = 0.0f, posy2 = 0;
     intersectThirdLayer(apos,bpos,x1,y1,posx2,posy2);
     const float posPhi = getPhi(posx2,posy2);
 
     // negative points of intersection with third layer
-    float negx2 = 0., negy2 = 0;
+    float negx2 = 0.0f, negy2 = 0;
     intersectThirdLayer(aneg,bneg,x1,y1,negx2,negy2);
     const float negPhi = getPhi(negx2,negy2);
 
@@ -347,7 +422,7 @@ void intersectThirdLayer(const float a, const float b, const float x1, const flo
   const float lay3rad2  = (Config::fRadialSpacing*Config::fRadialSpacing)*9.0; // average third radius squared
   const float maxCurvR2 = Config::maxCurvR * Config::maxCurvR;
 
-  const float quad = sqrtf( 2*maxCurvR2*(a2b2+lay3rad2) - (a2b2-lay3rad2)*(a2b2-lay3rad2) - maxCurvR2*maxCurvR2 );
+  const float quad = std::sqrt( 2*maxCurvR2*(a2b2+lay3rad2) - (a2b2-lay3rad2)*(a2b2-lay3rad2) - maxCurvR2*maxCurvR2 );
   const float pos[2] = { (a2*a + a*(b2+lay3rad2-maxCurvR2) - b*quad)/ a2b2 , (b2*b + b*(a2+lay3rad2-maxCurvR2) + a*quad)/ a2b2 };
   const float neg[2] = { (a2*a + a*(b2+lay3rad2-maxCurvR2) + b*quad)/ a2b2 , (b2*b + b*(a2+lay3rad2-maxCurvR2) - a*quad)/ a2b2 };
 
@@ -379,8 +454,8 @@ void buildHitTripletsApproxWindow(const std::vector<HitVec>& evt_lay_hits, const
     const auto etaBinPlus  = 0;
 #endif    
     const float linePhi = getPhi(hit1.position()[0] - hit0.position()[0], hit1.position()[1] - hit0.position()[1]);
-    float thirdPhiMinus = 0.0;
-    float thirdPhiPlus  = 0.0;  
+    float thirdPhiMinus = 0.0f;
+    float thirdPhiPlus  = 0.0f;  
     if (hit0.phi() < hit1.phi()){
       thirdPhiMinus = normalizedPhi(linePhi - Config::dPhiSeedTrip);
       thirdPhiPlus  = normalizedPhi(linePhi);
@@ -403,11 +478,32 @@ void buildHitTripletsApproxWindow(const std::vector<HitVec>& evt_lay_hits, const
   }
 }
 
+void filterHitTripletsByCircleParams(const std::vector<HitVec>& evt_lay_hits, const TripletIdxVec& hit_triplets, TripletIdxVec& filtered_triplets){
+  for (auto&& hit_triplet : hit_triplets){
+    const float x0 = evt_lay_hits[0][hit_triplet[0]].x();
+    const float y0 = evt_lay_hits[0][hit_triplet[0]].y();
+    const float x1 = evt_lay_hits[1][hit_triplet[1]].x();
+    const float y1 = evt_lay_hits[1][hit_triplet[1]].y();
+    const float x2 = evt_lay_hits[2][hit_triplet[2]].x();
+    const float y2 = evt_lay_hits[2][hit_triplet[2]].y();
+
+    // now fit a circle, extract pT and d0 from center and radius
+    const float mr = (y1-y0)/(x1-x0);
+    const float mt = (y2-y1)/(x2-x1);
+    const float a  = (mr*mt*(y2-y0) + mr*(x1+x2) - mt*(x0+x1))/(2.*(mr-mt));
+    const float b  = -1.*(a-(x0+x1)/2.)/mr + (y0+y1)/2.;
+    const float r  = getHypot(x0-a,y0-b);
+    if ((r >= Config::maxCurvR) && (std::abs(getHypot(a,b)-r) <= Config::seed_d0cut)) {
+      filtered_triplets.push_back(hit_triplet);
+    } // d0 cut 5mm, pT cut 0.5 GeV (radius of 0.5 GeV track)
+  }
+}
+
 void filterHitTripletsBySecondLayerZResidual(const std::vector<HitVec>& evt_lay_hits, const TripletIdxVec& hit_triplets, TripletIdxVec& filtered_triplets){
   for (auto&& hit_triplet : hit_triplets){
     //    const float z1 = predz(evt_lay_hits[0][hit_triplet[0]].z(),evt_lay_hits[0][hit_triplet[0]].r(),evt_lay_hits[2][hit_triplet[2]].z(),evt_lay_hits[2][hit_triplet[2]].r(),Config::fRadialSpacing*2.);
     const float z1 = (evt_lay_hits[0][hit_triplet[0]].z() + evt_lay_hits[2][hit_triplet[2]].z()) / 2.;
-    if (fabs(z1-evt_lay_hits[1][hit_triplet[1]].z()) < Config::lay2Zcut) { // three sigma inclusion
+    if (std::abs(z1-evt_lay_hits[1][hit_triplet[1]].z()) < Config::lay2Zcut) { // three sigma inclusion
       filtered_triplets.push_back(hit_triplet);
     }
   }
@@ -497,6 +593,45 @@ void buildSeedsFromTriplets(const std::vector<HitVec>& evt_lay_hits, const Tripl
     evt_seed_tracks.push_back(seed);
     evt_seed_extras.emplace_back(seedID);
     seedID++; // increment dummy counter for seedID
+  }
+}
+
+void fitSeeds(const std::vector<HitVec>& evt_lay_hits, TrackVec& evt_seed_tracks, Event& ev){
+  // copy+paste code to fit needs here...
+
+  for(auto&& seed : evt_seed_tracks) {
+    // state to save to track
+    TrackState updatedState;
+    const int seedID = seed.label(); // label == seedID!
+    
+    // first do CF Fit
+    conformalFit(evt_lay_hits[0][seed.getHitIdx(0)],evt_lay_hits[1][seed.getHitIdx(1)],evt_lay_hits[2][seed.getHitIdx(2)],seed.charge(),updatedState,false); 
+    ev.validation_.collectSeedTkCFMapInfo(seedID,updatedState);
+
+    TSLayerPairVec updatedStates; // validation for position pulls
+    float sumchi2 = 0.0f; // chi2 to save
+    for (auto ilayer = 0; ilayer < Config::nlayers_per_seed; ++ilayer) {
+      const Hit& seed_hit = evt_lay_hits[ilayer][seed.getHitIdx(ilayer)];
+      TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
+      if (Config::super_debug) { ev.validation_.collectPropTSLayerVecInfo(ilayer,propState); }
+#ifdef CHECKSTATEVALID
+      if (!propState.valid) {
+        break;
+      }
+#endif
+      MeasurementState measState = seed_hit.measurementState();
+      const float chi2 = computeChi2(propState,measState);
+      sumchi2 += chi2;// --> could use this to make the chi2
+      if (Config::super_debug) { ev.validation_.collectChi2LayerVecInfo(ilayer,chi2); } 
+      updatedState = updateParameters(propState, measState);
+      if (Config::super_debug) { ev.validation_.collectUpTSLayerVecInfo(ilayer,updatedState); }
+      updatedStates.push_back(std::make_pair(ilayer,updatedState)); // validation
+    }
+    ev.validation_.collectSeedTkTSLayerPairVecMapInfo(seedID,updatedStates); // use to collect position pull info
+    
+    // make sure to set chi2 and track state of KF fit!
+    seed.setChi2(sumchi2);
+    seed.setState(updatedState);
   }
 }
 
