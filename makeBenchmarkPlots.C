@@ -1,8 +1,6 @@
-void makeBenchmarkPlots()
+void makeBenchmarkPlots(bool isMic = false, bool isCMSSW = false)
 {
 
-  bool isMic = false;
-  
   TString hORm = "host";
   if (isMic) hORm = "mic";
 
@@ -25,6 +23,7 @@ void makeBenchmarkPlots()
   g_BH_VU->SetTitle("Vectorization benchmark on "+label);
   g_BH_VU->GetXaxis()->SetTitle("Vector Width");
   g_BH_VU->GetYaxis()->SetTitle("Time for 10 events x 20k tracks [s]");
+  if (isCMSSW) g_BH_VU->GetYaxis()->SetTitle("Time for 100 TTbarPU35 events [s]");
   g_BH_VU->GetXaxis()->SetRangeUser(1,maxvu);
   g_BH_VU->GetYaxis()->SetRangeUser(0,20);
   if (isMic) g_BH_VU->GetYaxis()->SetRangeUser(0,200);
@@ -63,7 +62,8 @@ void makeBenchmarkPlots()
   leg_VU->Draw();
   c1.SetGridy();
   c1.Update();
-  c1.SaveAs(hORm+"_vu_time.png");
+  if (isCMSSW) c1.SaveAs("cmssw_"+hORm+"_vu_time.png");
+  else c1.SaveAs(hORm+"_vu_time.png");
   } {
   TCanvas c2;
   TGraph* g_BH_VU_speedup = (TGraph*) f->Get("g_BH_VU_speedup");
@@ -113,7 +113,8 @@ void makeBenchmarkPlots()
   leg_VU_speedup->Draw();
   c2.SetGridy();
   c2.Update();
-  c2.SaveAs(hORm+"_vu_speedup.png");
+  if (isCMSSW) c2.SaveAs("cmssw_"+hORm+"_vu_speedup.png");
+  else c2.SaveAs(hORm+"_vu_speedup.png");
   } {
   TCanvas c3;
   TGraph* g_BH_TH = (TGraph*) f->Get("g_BH_TH");
@@ -124,6 +125,7 @@ void makeBenchmarkPlots()
   g_BH_TH->SetTitle("Parallelization benchmark on "+label);
   g_BH_TH->GetXaxis()->SetTitle("Number of Threads");
   g_BH_TH->GetYaxis()->SetTitle("Time for 10 events x 20k tracks [s]");
+  if (isCMSSW) g_BH_TH->GetYaxis()->SetTitle("Time for 100 TTbarPU35 events [s]");
   g_BH_TH->GetXaxis()->SetRangeUser(1,maxth);
   g_BH_TH->GetYaxis()->SetRangeUser(0,10);
   if (isMic) g_BH_TH->GetYaxis()->SetRangeUser(0.1,100);
@@ -163,7 +165,8 @@ void makeBenchmarkPlots()
   c3.SetGridy();
   if (isMic) c3.SetLogy();
   c3.Update();
-  c3.SaveAs(hORm+"_th_time.png");
+  if (isCMSSW) c3.SaveAs("cmssw_"+hORm+"_th_time.png");
+  else c3.SaveAs(hORm+"_th_time.png");
   } {
   TCanvas c4;
   TGraph* g_BH_TH_speedup = (TGraph*) f->Get("g_BH_TH_speedup");
@@ -213,6 +216,7 @@ void makeBenchmarkPlots()
   leg_TH_speedup->Draw();
   c4.SetGridy();
   c4.Update();
-  c4.SaveAs(hORm+"_th_speedup.png");
+  if (isCMSSW) c4.SaveAs("cmssw_"+hORm+"_th_speedup.png");
+  else c4.SaveAs(hORm+"_th_speedup.png");
   }
 }
