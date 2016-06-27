@@ -12,7 +12,7 @@ mv simtracks_10x1M.bin ${dir}/
 
 for nth in 1 3 7 21
 do
-echo nth=${nth}
+echo "host" nth=${nth} "FIT"
 ./mkFit/mkFit --read --file-name ${dir}/simtracks_10x1M.bin --fit-std-only --num-thr ${nth} >& log_host_10x1M_FIT_NVU8int_NTH${nth}.txt
 done
 
@@ -22,7 +22,7 @@ do
 sed -i "s/MPT_SIZE=XX/MPT_SIZE=${nvu}/g" Makefile.config
 make clean
 make -j 8
-echo nvu=${nvu}
+echo "host" nvu=${nvu} "FIT"
 ./mkFit/mkFit --read --file-name ${dir}/simtracks_10x1M.bin --fit-std-only --num-thr 1 >& log_host_10x1M_FIT_NVU${nvu}_NTH1.txt
 sed -i "s/MPT_SIZE=${nvu}/MPT_SIZE=XX/g" Makefile.config
 done

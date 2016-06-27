@@ -150,7 +150,7 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, MPlexLS& outErr, MPlexLV& o
     pT.At (n, 0, 0) = k*hipo(vrx.ConstAt(n, 0, 0), vry.ConstAt(n, 0, 0));
     px.At (n, 0, 0) = std::copysign( k*vry.ConstAt(n, 0, 0) , x.ConstAt(n, 2, 0) - x.ConstAt(n, 0, 0));
     py.At (n, 0, 0) = std::copysign( k*vrx.ConstAt(n, 0, 0) , y.ConstAt(n, 2, 0) - y.ConstAt(n, 0, 0));
-    pz.At (n, 0, 0) = (pT.ConstAt(n, 0, 0) * (z.ConstAt(n, 2, 0) - z.ConstAt(n, 0, 0))) / hipo((x.ConstAt(n, 2, 0)-x.ConstAt(n, 0, 0)),(y.ConstAt(n, 2, 0)-y.ConstAt(n, 0, 0)),););
+    pz.At (n, 0, 0) = (pT.ConstAt(n, 0, 0) * (z.ConstAt(n, 2, 0) - z.ConstAt(n, 0, 0))) / hipo((x.ConstAt(n, 2, 0)-x.ConstAt(n, 0, 0)),(y.ConstAt(n, 2, 0)-y.ConstAt(n, 0, 0)));
   }
 
 #ifdef CCSCOORD

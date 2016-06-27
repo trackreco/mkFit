@@ -366,6 +366,8 @@ void MkFitter::ConformalFitTracks(bool fitting, int beg, int end)
   // need to set most off-diagonal elements in unc. to zero, inflate all other elements;
   if (fitting) 
   { 
+  using idx_t = Matriplex::idx_t;
+  const idx_t N = NN;
 #pragma simd
     for (int n = 0; n < N; ++n)
     {

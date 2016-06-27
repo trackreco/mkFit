@@ -80,6 +80,7 @@ protected:
   {
     m_hits = (Hit*) _mm_malloc(sizeof(Hit) * size, 64);
     m_capacity = size;
+    for (int ihit = 0; ihit < m_capacity; ihit++){m_hits[ihit] = Hit();} 
 #ifdef LOH_USE_PHI_Z_ARRAYS
     m_hit_phis.resize(size);
     m_hit_zs  .resize(size);

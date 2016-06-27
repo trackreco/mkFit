@@ -77,6 +77,7 @@ void Event::Simulate()
   for (auto&& l : layerHits_) {
     l.resize(Config::nTracks);  // thread safety
   }
+  simTrackStates_.resize(Config::nTracks);
 
 #ifdef TBB
   parallel_for( tbb::blocked_range<size_t>(0, Config::nTracks, 100), 
@@ -100,12 +101,18 @@ void Event::Simulate()
       // do the simulation
       if (Config::useCMSGeom) setupTrackFromTextFile(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs);
       else setupTrackByToyMC(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs); 
-      validation_.collectSimTkTSVecMapInfo(itrack,initialTSs); // save initial TS parameters
 
 #ifdef CCSCOORD
       float pt = sqrt(mom[0]*mom[0]+mom[1]*mom[1]);
       mom=SVector3(1./pt,atan2(mom[1],mom[0]),atan2(pt,mom[2]));
+      for (int its = 0; its < initialTSs.size(); its++){
+	initialTSs[its].convertFromCartesianToCCS();
+      }
 #endif
+      // uber ugly way of getting around read-in / write-out of objects needed for validation
+      if (Config::normal_val) {simTrackStates_[itrack] = initialTSs;}
+      validation_.collectSimTkTSVecMapInfo(itrack,initialTSs); // save initial TS parameters in validation object ... just a copy of the above line
+
       simTracks_[itrack] = Track(q,pos,mom,covtrk,0.0f);
       auto& sim_track = simTracks_[itrack];
       sim_track.setLabel(itrack);
@@ -260,17 +267,20 @@ void Event::Fit()
 
 void Event::Validate(int ievt){
   // KM: Config tree just filled once... in main.cc
-  if (!Config::super_debug){ // regular validation
+  if (Config::normal_val) {
     validation_.makeSimTkToRecoTksMaps(*this);
     validation_.makeSeedTkToRecoTkMaps(*this);
-    validation_.fillSegmentTree(segmentMap_,ievt);
-    validation_.fillBranchTree(ievt);
     validation_.fillEfficiencyTree(*this);
     validation_.fillFakeRateTree(*this);
-    validation_.fillGeometryTree(*this);
-    validation_.fillConformalTree(*this);
+    if (Config::full_val) {
+      validation_.fillSegmentTree(segmentMap_,ievt);
+      validation_.fillBranchTree(ievt);
+      validation_.fillGeometryTree(*this);
+      validation_.fillConformalTree(*this);
+    }
   }
-  else{ // super debug mode
+
+  if (Config::super_debug) { // super debug mode
     validation_.fillDebugTree(*this);
   }
 }
@@ -308,6 +318,14 @@ void Event::write_out(FILE *fp)
   int nt = simTracks_.size();
   fwrite(&nt, sizeof(int), 1, fp);
   fwrite(&simTracks_[0], sizeof(Track), nt, fp);
+
+  if (Config::normal_val) {
+    for (int it = 0; it<nt; ++it) {
+      int nts = simTrackStates_[it].size();
+      fwrite(&nts, sizeof(int), 1, fp);
+      fwrite(&simTrackStates_[it][0], sizeof(TrackState), nts, fp);
+    }
+  }
 
   int nl = layerHits_.size();
   fwrite(&nl, sizeof(int), 1, fp);
@@ -349,6 +367,21 @@ void Event::read_in(FILE *fp)
   simTracks_.resize(nt);
   fread(&simTracks_[0], sizeof(Track), nt, fp);
   Config::nTracks = nt;
+
+  if (Config::normal_val) {
+    simTrackStates_.resize(nt);
+    for (int it = 0; it<nt; ++it) {
+      int nts;
+      fread(&nts, sizeof(int), 1, fp);
+      simTrackStates_[it].resize(nts);
+      fread(&simTrackStates_[it][0], sizeof(TrackState), nts, fp);
+    }
+    // now do the validation copying... ugh
+    for (int imc = 0; imc < nt; ++imc) {
+      validation_.collectSimTkTSVecMapInfo(imc,simTrackStates_[imc]); 
+    }
+    simTrackStates_.clear();
+  }
 
   int nl;
   fread(&nl, sizeof(int), 1, fp);

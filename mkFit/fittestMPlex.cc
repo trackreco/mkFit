@@ -16,6 +16,7 @@
 #ifndef NO_ROOT
 #include "TFile.h"
 #include "TTree.h"
+#include <mutex>
 #endif
 
 #include <tbb/tbb.h>

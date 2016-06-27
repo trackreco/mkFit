@@ -96,9 +96,10 @@ double runBuildingTestPlexBestHit(Event& ev)
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
 #endif
-
-  builder.quality_output_besthit(event_of_cands);
   
+  if   (!Config::normal_val) {builder.quality_output_besthit(event_of_cands);}
+  else                       {builder.root_val_besthit(event_of_cands);}
+
   builder.end_event();
   
   return time;
@@ -139,7 +140,8 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
   __itt_pause();
 #endif
   
-  builder.quality_output();
+  if   (!Config::normal_val) {builder.quality_output();}
+  else                       {builder.root_val();}
 
   builder.end_event();
 
@@ -181,7 +183,8 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
   __itt_pause();
 #endif
 
-  builder.quality_output();
+  if   (!Config::normal_val) {builder.quality_output();}
+  else                       {builder.root_val();}
 
   builder.end_event();
 
@@ -190,7 +193,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
 
 
 //==============================================================================
-// runBuildTestPlexCloneEngine
+// runBuildTestPlexCloneEngineTbb
 //==============================================================================
 
 double runBuildingTestPlexTbb(Event& ev, EventTmp& ev_tmp)
@@ -223,7 +226,8 @@ double runBuildingTestPlexTbb(Event& ev, EventTmp& ev_tmp)
   __itt_pause();
 #endif
 
-  builder.quality_output();
+  if   (!Config::normal_val) {builder.quality_output();}
+  else                       {builder.root_val();}
 
   builder.end_event();
 

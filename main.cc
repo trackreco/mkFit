@@ -174,6 +174,8 @@ int main(int argc, const char* argv[])
         "  --num-tracks    <num>    number of tracks to generate for each event (def: %d)\n"
 	"  --num-thr       <num>    number of threads used for TBB  (def: %d)\n"
 	"  --super-debug            bool to enable super debug mode (def: %s)\n"
+	"  --normal-val             bool to enable normal validation (eff, FR, DR) (def: %s)\n"
+	"  --full-val               bool to enable more validation in SMatrix (def: %s)\n"
 	"  --cf-seeding             bool to enable CF in MC seeding (def: %s)\n"
 	"  --read                   read input simtracks file (def: false)\n"
 	,
@@ -182,6 +184,8 @@ int main(int argc, const char* argv[])
 	Config::nTracks,
         nThread, 
 	(Config::super_debug ? "true" : "false"),
+	(Config::normal_val  ? "true" : "false"),
+	(Config::full_val    ? "true" : "false"),
 	(Config::cf_seeding  ? "true" : "false")
       );
       exit(0);
@@ -206,6 +210,21 @@ int main(int argc, const char* argv[])
       Config::super_debug = true;
       Config::nTracks     = 1;
       Config::nEvents     = 100000;
+
+      Config::normal_val = false;
+      Config::full_val   = false;
+    }
+    else if (*i == "--normal-val")
+    {
+      Config::super_debug = false;
+      Config::normal_val  = true;
+      Config::full_val    = false;
+    }
+    else if (*i == "--full-val")
+    {
+      Config::super_debug = false;
+      Config::normal_val  = true;
+      Config::full_val    = true;
     }
     else if (*i == "--cf-seeding")
     {
@@ -242,6 +261,11 @@ int main(int argc, const char* argv[])
   tbb::task_scheduler_init tasks(nThread);
 #endif
 
+  if (s_operation == "read")
+  {
+    Config::nEvents = open_simtrack_file();
+  }	
+
   for (int evt=0; evt<Config::nEvents; ++evt) {
     Event ev(geom, val, evt, nThread);
     std::cout << "EVENT #"<< ev.evtID() << std::endl;
@@ -252,7 +276,6 @@ int main(int argc, const char* argv[])
       ev.Simulate();         
     }
     else {
-      Config::nEvents = open_simtrack_file();
       ev.read_in(s_file);
     }
     /* simulate time */      ticks[0] += delta(t0);
@@ -284,12 +307,13 @@ int main(int argc, const char* argv[])
     close_simtrack_file();
   }
 
-  std::vector<double> time(ticks.size());
+  std::vector<float> time(ticks.size());
   for (unsigned int i = 0; i < ticks.size(); ++i){
     time[i]=ticks[i].count();
   }
 
-  val.fillConfigTree(time);
+  val.fillConfigTree();
+  if (Config::full_val) val.fillTimeTree(time);
   val.saveTTrees(); 
 
   std::cout << "Ticks ";

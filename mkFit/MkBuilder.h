@@ -79,6 +79,13 @@ public:
   void quality_process(Track& tkcand);
   void quality_print();
 
+  void quality_store_tracks_besthit(const EventOfCandidates& event_of_cands);
+  void quality_store_tracks();
+
+  void root_val_besthit(const EventOfCandidates& event_of_cands);
+  void root_val();
+  void init_track_extras();
+
   // --------
 
   // Common foos for FindTracks() / FindTracksCloneEngine() ???

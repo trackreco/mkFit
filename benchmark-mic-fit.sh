@@ -13,7 +13,7 @@ mv simtracks_10x1M.bin ${dir}/
 
 for nth in 1 3 7 21 42 63 84 105 126 147 168 189 210
 do
-echo nth=${nth}
+echo "mic" nth=${nth} "FIT"
 ssh mic0 ./mkFit-mic --read --file-name ${micdir}/simtracks_10x1M.bin --fit-std-only --num-thr ${nth} >& log_mic_10x1M_FIT_NVU16int_NTH${nth}.txt
 done
 
@@ -23,7 +23,7 @@ do
 sed -i "s/MPT_SIZE=XX/MPT_SIZE=${nvu}/g" Makefile.config
 make clean
 make -j 8
-echo nvu=${nvu}
+echo "mic" nvu=${nvu} "FIT"
 ssh mic0 ./mkFit-mic --read --file-name ${micdir}/simtracks_10x1M.bin --fit-std-only --num-thr 1 >& log_mic_10x1M_FIT_NVU${nvu}_NTH1.txt
 sed -i "s/MPT_SIZE=${nvu}/MPT_SIZE=XX/g" Makefile.config
 done
