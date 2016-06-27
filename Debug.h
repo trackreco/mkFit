@@ -4,8 +4,10 @@
 
 #ifdef dprint
 #undef dprint
+#undef dprint_np
 #undef dcall
 #undef dprintf
+#undef dprintf_np
 #endif
 /*
   Usage: DEBUG must be defined before this header file is included, typically
