@@ -301,6 +301,8 @@ void MkBuilder::find_tracks_load_seeds(EventOfCandidates& event_of_cands)
 
 void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
 {
+  g_exe_ctx.populate(Config::numThreadsFinder);
+
   tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEtaBin),
     [&](const tbb::blocked_range<int>& ebins)
   {
@@ -823,6 +825,7 @@ void MkBuilder::FindTracksCloneEngine()
 
 void MkBuilder::fit_seeds_tbb()
 {
+  g_exe_ctx.populate(Config::numThreadsFinder);
   TrackVec& simtracks = (Config::readCmsswSeeds ? m_event->seedTracks_ : m_event->simTracks_);
 
   int theEnd = simtracks.size();
@@ -849,6 +852,7 @@ void MkBuilder::fit_seeds_tbb()
 
 void MkBuilder::FindTracksCloneEngineTbb()
 {
+  g_exe_ctx.populate(Config::numThreadsFinder);
   EventOfCombCandidates &event_of_comb_cands = m_event_tmp->m_event_of_comb_cands;
 
   tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEtaBin),
@@ -857,7 +861,9 @@ void MkBuilder::FindTracksCloneEngineTbb()
     for (int ebin = ebins.begin(); ebin != ebins.end(); ++ebin) {
       EtaBinOfCombCandidates& etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
 
-      tbb::parallel_for(tbb::blocked_range<int>(0,etabin_of_comb_candidates.m_fill_index,Config::numSeedsPerTask), 
+      int adaptiveSPT = Config::nEtaBin*etabin_of_comb_candidates.m_fill_index/Config::numThreadsFinder/2 + 1;
+      dprint("adaptiveSPT " << adaptiveSPT << " fill " << etabin_of_comb_candidates.m_fill_index);
+      tbb::parallel_for(tbb::blocked_range<int>(0, etabin_of_comb_candidates.m_fill_index, std::min(Config::numSeedsPerTask, adaptiveSPT)), 
         [&](const tbb::blocked_range<int>& seeds)
       {
         std::unique_ptr<CandCloner, decltype(retcand)> cloner(g_exe_ctx.m_cloners.GetFromPool(), retcand);

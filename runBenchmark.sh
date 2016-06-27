@@ -23,7 +23,7 @@ python makeBenchmarkPlots.py mic
 root -b -q -l makeBenchmarkPlots.C\(1\)
 root -b -q -l makeBenchmarkPlotsFit.C\(1\)
 
-./benchmark-mic-cmssw.sh
+./benchmark-cmssw-mic.sh
 
 python makeBenchmarkPlots.py mic cmssw
 root -b -q -l makeBenchmarkPlots.C\(1,1\)
