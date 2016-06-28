@@ -298,6 +298,7 @@ void test_standard()
          t_sum[0], t_sum[1], t_sum[2], t_sum[3], t_sum[4]);
   printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
          t_skip[0], t_skip[1], t_skip[2], t_skip[3], t_skip[4]);
+  //fflush(stdout);
 
   if (g_operation == "read")
   {

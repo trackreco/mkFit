@@ -99,10 +99,6 @@ public:
 
   void SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_proc, bool dump=false);
 
-#ifdef USE_CUDA
-  void AddBestHit_gpu (const LayerOfHits &layer_of_hits, FitterCU<float> &cuFitter,
-                       LayerOfHitsCU &layer_of_hits_cu, const int N_proc);
-#endif
   void AddBestHit      (const LayerOfHits &layer_of_hits, const int N_proc);
 
   void FindCandidates(const LayerOfHits &layer_of_hits, std::vector<std::vector<Track> >& tmp_candidates,

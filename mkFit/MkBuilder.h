@@ -137,6 +137,11 @@ public:
   // --------
 
   void FindTracksBestHit(EventOfCandidates& event_of_cands);
+#ifdef USE_CUDA
+  void FindTracksBestHit_GPU(EventOfCandidates& event_of_cands);
+  const Event* get_event() const { return m_event; }
+  const EventOfHits& get_event_of_hits() const { return m_event_of_hits; }
+#endif
   void FindTracks();
   void FindTracksCloneEngine();
   void FindTracksCloneEngineTbb();

@@ -1,37 +1,20 @@
 #include "index_selection_kernels.h"
 #include "Config.h"
 #include "HitStructures.h"
+#include "gpu_utils.h"
 
 #include "stdio.h"
 
 #define BLOCK_SIZE_X 32
-#define MAX_BLOCKS_X 65535 // CUDA constraint
 
 constexpr bool tmp_useCMSGeom = false;
 
-#if 0
-__device__ 
-int GetZBin(float z, const float m_zmin, const float m_fz) {
-  return (z - m_zmin) * m_fz;
-}
-
-__device__
-int GetZBinChecked(float z, const float m_zmin, const float m_fz, const int m_nz) { 
-  int zb = GetZBin(z); 
-  if (zb < 0) zb = 0; else if (zb >= m_nz) zb = m_nz - 1; return zb; 
-}
-#endif
-
-__global__ void selectHitIndices_kernel(LayerOfHitsCU layer_of_hits,
-    GPlexLS Err, GPlexLV Par, GPlexQI XHitSize, GPlexHitIdx XHitArr, int N) {
+__device__ void selectHitIndices_fn(const LayerOfHitsCU &layer_of_hits,
+    const GPlexLS &Err, const GPlexLV &Par, GPlexQI &XHitSize, 
+    GPlexHitIdx &XHitArr, const int N) {
   int itrack = threadIdx.x + blockDim.x*blockIdx.x;
-  /*if (itrack == 0) {*/
+
   if (itrack < N) {
-    /*printf("info %d\n", layer_of_hits.m_phi_bin_infos[10].first);*/
-    /*LayerOfHitsCU& l = layer_of_hits;*/
-    /*printf("gpu: %f, %f, %f\n", l.m_zmin, l.m_zmax, l.m_fz);*/
-  /*}*/
-  /*if (itrack < N) {*/
     bool dump = false;
     const float nSigmaPhi = 3;
     const float nSigmaZ   = 3;
@@ -116,13 +99,6 @@ __global__ void selectHitIndices_kernel(LayerOfHitsCU layer_of_hits,
       printf("LayerOfHitsCU::SelectHitIndices %6.3f %6.3f %6.6f %7.5f %3d %3d %4d %4d\n",
              z, phi, dz, dphi, zb1, zb2, pb1, pb2);
 
-    /*if (itrack == 0) {*/
-      /*int i1 = L.m_phi_bin_infos[zb1*L.m_nphi + (pb1 & L.m_phi_mask)].first;*/
-      /*int i2 = L.m_phi_bin_infos[zb1*L.m_nphi + (pb1 & L.m_phi_mask)].second;*/
-
-      /*printf("gpu: %d, %d\n", i1, i2);*/
-    /*}*/
-
     // MT: One could iterate in "spiral" order, to pick hits close to the center.
     // http://stackoverflow.com/questions/398299/looping-in-a-spiral
     // This would then work best with relatively small bin sizes.
@@ -178,27 +154,21 @@ __global__ void selectHitIndices_kernel(LayerOfHitsCU layer_of_hits,
 #endif  // 0
       }
     }
-    /*if (itrack == 0)*/
-    /*{*/
-      /*if (XHitSize[itrack] != xhitsize_tmp) {*/
-        /*printf("%d fromCPU %d  --fromGPU %d\n", itrack, xhitsize_tmp, XHitSize[itrack]);*/
-        /*int i1 = L.m_phi_bin_infos[zb1*L.m_nphi + (pb1 & L.m_phi_mask)].first;*/
-        /*int i2 = L.m_phi_bin_infos[zb1*L.m_nphi + (pb1 & L.m_phi_mask)].second;*/
-
-        /*printf("gpu: %d, %d\n", i1, i2);*/
-      /*}*/
-    /*}*/
   }
 }
 
-void selectHitIndices_wrapper(cudaStream_t& stream,
-    LayerOfHitsCU& layer_of_hits, GPlexLS& Err, GPlexLV& Par, 
-    GPlexQI& XHitSize, GPlexHitIdx& XHitArr, int N) {
+__global__ void selectHitIndices_kernel(const LayerOfHitsCU layer_of_hits,
+    const GPlexLS Err, const GPlexLV Par, GPlexQI XHitSize, GPlexHitIdx XHitArr, const int N) {
+  selectHitIndices_fn(layer_of_hits, Err, Par, XHitSize, XHitArr, N);
+}
+
+void selectHitIndices_wrapper(const cudaStream_t& stream,
+    const LayerOfHitsCU& layer_of_hits, const GPlexLS& Err, const GPlexLV& Par, 
+    GPlexQI& XHitSize, GPlexHitIdx& XHitArr, const int N) {
   int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
-                       MAX_BLOCKS_X);
+                       max_blocks_x);
   dim3 grid(gridx, 1, 1);
   dim3 block(BLOCK_SIZE_X, 1, 1);
-  /*printf("Before kernel %d \n", N);*/
   selectHitIndices_kernel <<< grid, block, 0, stream >>>
     (layer_of_hits, Err, Par, XHitSize, XHitArr, N);
 }

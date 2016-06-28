@@ -4,8 +4,12 @@
 #include "HitStructuresCU.h"
 #include "GPlex.h"
 
-void selectHitIndices_wrapper(cudaStream_t& stream,
-    LayerOfHitsCU& layer_of_hits, GPlexLS& Err, GPlexLV& Par, 
-    GPlexQI& XHitSize, GPlexHitIdx& XHitArr, int N);
+void selectHitIndices_wrapper(const cudaStream_t& stream,
+    const LayerOfHitsCU& layer_of_hits, const GPlexLS& Err, const GPlexLV& Par, 
+    GPlexQI& XHitSize, GPlexHitIdx& XHitArr, const int N);
+
+__device__ void selectHitIndices_fn(const LayerOfHitsCU &layer_of_hits,
+    const GPlexLS &Err, const GPlexLV &Par, GPlexQI &XHitSize,
+    GPlexHitIdx &XHitArr, const int N);
 
 #endif  // _INDEX_SELECTION_KERNELS_H_

@@ -109,6 +109,11 @@ TTree.h:
 	echo "Using dummy rule for TTree.h"
 endif
 
+ifdef CUBROOT
+cub/util_debug.cuh:
+	echo "Using dummy rule for cub/util_debug.cuh"
+endif
+
 ${MKFOBJS}: %.o: %.cc %.d
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<
 

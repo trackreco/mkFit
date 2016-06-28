@@ -2,6 +2,7 @@
 #include "Debug.h"
 #include "propagation_kernels.h"
 #include <stdio.h>
+#include "gpu_utils.h"
 
 constexpr int L = 6;
 constexpr int LL2 = 36;
@@ -10,10 +11,9 @@ constexpr int LS = 21;
 // values from 32 to 512 give good results.
 // 32 gives slightly better results (on a K40)
 constexpr int BLOCK_SIZE_X = 32;
-constexpr int MAX_BLOCKS_X = 65535; // CUDA constraint
 
 __device__
-void MultHelixProp_fn(const GPlexRegLL& a, const GPlexLS& b, GPlexRegLL& c, int n)
+void MultHelixProp_fn(const GPlexRegLL& a, const GPlexLS& b, GPlexRegLL& c, const int n)
 {
    // C = A * B
 
@@ -32,7 +32,7 @@ void MultHelixProp_fn(const GPlexRegLL& a, const GPlexLS& b, GPlexRegLL& c, int 
 }
 
 __device__
-void MultHelixPropTransp_fn(const GPlexRegLL& a, const GPlexRegLL& b, GPlexLS& c, int n)
+void MultHelixPropTransp_fn(const GPlexRegLL& a, const GPlexRegLL& b, GPlexLS& c, const int n)
 {
    // C = B * AT;
 
@@ -48,8 +48,8 @@ void MultHelixPropTransp_fn(const GPlexRegLL& a, const GPlexRegLL& b, GPlexLS& c
 // Registers are thread-private. Thus this function has no notion of
 // parallelism. It is ran serially by each calling thread.
 __device__ void computeJacobianSimple(float *errorProp,
-    float s, float k, float p, float pxin, float pyin, float pzin, 
-    float TP, float cosTP, float sinTP, int N) {
+    const float s, const float k, const float p, const float pxin, const float pyin, const float pzin, 
+    const float TP, const float cosTP, const float sinTP, const int N) {
 
   // std::cout << "total path s=" << s << std::endl;
   // TD = s*pt/p;
@@ -110,7 +110,7 @@ __device__ void computeJacobianSimple(float *errorProp,
 }
 
 /// Compute MsRad /////////////////////////////////////////////////////////////
-__device__ void assignMsRad_fn(const float r, float* msRad, int N, int n) {
+__device__ void assignMsRad_fn(const float r, float* msRad, const int N, const int n) {
   /*int n = threadIdx.x + blockIdx.x * blockDim.x;*/
   if (n < N) {
     *msRad = r;
@@ -119,7 +119,7 @@ __device__ void assignMsRad_fn(const float r, float* msRad, int N, int n) {
 
 // Not passing msRad.stride, as QF == 1 (second dim f msRad)
 __device__ void computeMsRad_fn(const GPlexHV& __restrict__ msPar,
-    GPlexRegQF &msRad, int N, int n) {
+    GPlexRegQF &msRad, const int N, const int n) {
   /*int n = threadIdx.x + blockIdx.x * blockDim.x;*/
   if (n < N) {
     msRad(n, 0, 0) = hipo(msPar(n, 0, 0), msPar(n, 1, 0));
@@ -131,7 +131,7 @@ __device__ void computeMsRad_fn(const GPlexHV& __restrict__ msPar,
 __device__ 
 void helixAtRFromIterative_fn(const GPlexLV& inPar,
     const GPlexQI& inChg, GPlexLV& outPar_global, const GPlexReg<float,1,1>& msRad, 
-    GPlexReg<float, LL2, L>& errorProp, int N, int n) {
+    GPlexReg<float, LL2, L>& errorProp, const int N, const int n) {
 
   GPlexReg<float, LL2, 1> outPar;
 
@@ -255,7 +255,7 @@ __global__ void propagation_kernel(
   GPlexRegQF msRad_reg;
   // Using registers instead of shared memory is ~ 30% faster.
   GPlexRegLL errorProp_reg;
-  // If there is more matrices than MAX_BLOCKS_X * BLOCK_SIZE_X 
+  // If there is more matrices than max_blocks_x * BLOCK_SIZE_X 
   for (int z = 0; z < (N-1)/grid_width  +1; z++) {
     n += z*grid_width;
     if (n < N) {
@@ -284,14 +284,14 @@ __global__ void propagation_kernel(
 }
 
 
-void propagation_wrapper(cudaStream_t& stream,
+void propagation_wrapper(const cudaStream_t& stream,
     GPlexHV& msPar,
     GPlexLV& inPar, GPlexQI& inChg,
     GPlexLV& outPar, GPlexLL& errorProp,
     GPlexLS& outErr, 
     const int N) {
   int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
-                       MAX_BLOCKS_X);
+                       max_blocks_x);
   dim3 grid(gridx, 1, 1);
   dim3 block(BLOCK_SIZE_X, 1, 1);
   propagation_kernel <<<grid, block, 0, stream >>>(msPar, inPar, inChg, outPar, errorProp, outErr, N);
@@ -300,10 +300,10 @@ void propagation_wrapper(cudaStream_t& stream,
 
 // PropagationMPlex.cc:propagateHelixToRMPlex, second version with 7 arguments 
 // Imposes the radius
-__global__ void propagationForBuilding_kernel(
-    const GPlexLS inErr, const GPlexLV inPar,
-    const GPlexQI inChg, const float radius,
-    GPlexLS outErr, GPlexLV outPar, 
+__device__ void propagationForBuilding_fn(
+    const GPlexLS &inErr, const GPlexLV &inPar,
+    const GPlexQI &inChg, const float radius,
+    GPlexLS &outErr, GPlexLV &outPar, 
     const int N) {
 #if 1
   int grid_width = blockDim.x * gridDim.x;
@@ -312,7 +312,7 @@ __global__ void propagationForBuilding_kernel(
   GPlexRegQF msRad_reg;
   // Using registers instead of shared memory is ~ 30% faster.
   GPlexRegLL errorProp_reg;
-  // If there is more matrices than MAX_BLOCKS_X * BLOCK_SIZE_X 
+  // If there is more matrices than max_blocks_x * BLOCK_SIZE_X 
   /*for (int z = 0; z < (N-1)/grid_width  +1; z++) {*/
     /*n += z*grid_width;*/
     if (n < N) {
@@ -326,20 +326,6 @@ __global__ void propagationForBuilding_kernel(
       for (int i = 0; i < 36; ++i) {
         errorProp_reg[i] = 0.0;
       }
-     /*if (n == 0)*/
-     /*{*/
-       /*int kk = n;*/
-       /*printf("\n");*/
-       /*printf("outErrGPU %d\n", kk);*/
-       /*for (int i = 0; i < 1; ++i) { for (int j = 0; j < 1; ++j)*/
-           /*printf("%8f ", outErr(kk,i,j)); printf("\t");*/
-       /*} printf("\n");*/
-
-       /*printf("outParGPU %d\n", kk);*/
-       /*for (int i = 0; i < 1; ++i) {*/
-           /*printf("%8f ", outPar(kk,i,0)); printf("\t");*/
-       /*} printf("\n");*/
-     /*}*/
     }
 
       /*assignMsRad_fn(radius, &msRad_reg, N, n);*/
@@ -352,16 +338,6 @@ __global__ void propagationForBuilding_kernel(
 #else
       helixAtRFromIterative_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
 #endif
-   /*if(n == 0) {*/
-     /*printf("errorProp\n");*/
-     /*for (int i = 0; i < 6; ++i) {*/
-       /*printf("%8f ", inPar(0,i,0)); printf("\t");*/
-     /*} printf("\n");*/
-     /*for (int i = 0; i < 6; ++i) {*/
-       /*printf("%8f ", outPar(0,i,0)); printf("\t");*/
-     /*} printf("\n");*/
-   /*}*/
-
       // TODO: port me
       /*if (Config::useCMSGeom) {*/
         /*MPlexQF hitsRl;*/
@@ -389,13 +365,21 @@ __global__ void propagationForBuilding_kernel(
 #endif
 }
 
-void propagationForBuilding_wrapper(cudaStream_t& stream,
+__global__ void propagationForBuilding_kernel(
+    const GPlexLS inErr, const GPlexLV inPar,
+    const GPlexQI inChg, const float radius,
+    GPlexLS outErr, GPlexLV outPar, 
+    const int N) {
+  propagationForBuilding_fn( inErr, inPar, inChg, radius, outErr, outPar, N);
+}
+
+void propagationForBuilding_wrapper(const cudaStream_t& stream,
     const GPlexLS& inErr, const GPlexLV& inPar,
     const GPlexQI& inChg, const float radius,
     GPlexLS& outErr, GPlexLV& outPar, 
     const int N) {
   int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
-                       MAX_BLOCKS_X);
+                       max_blocks_x);
   dim3 grid(gridx, 1, 1);
   dim3 block(BLOCK_SIZE_X, 1, 1);
   propagationForBuilding_kernel<<<grid, block, 0, stream >>>

@@ -8,6 +8,7 @@
 
 #include "MkBuilder.h"
 #include "FitterCU.h"
+#include "BuilderCU.h"
 
 #include <omp.h>
 
@@ -74,7 +75,7 @@ double runBuildingTestPlexBestHit(Event& ev)
 {
   MkBuilder builder;
 
-  std::cout << "Building event...\n";
+  std::cerr << "Building event...\n";
   builder.begin_event(&ev, 0, __func__);
 
   builder.fit_seeds_tbb();
@@ -86,10 +87,20 @@ double runBuildingTestPlexBestHit(Event& ev)
   __itt_resume();
 #endif
 
+#if USE_CUDA
+  BuilderCU builder_cu(builder.get_event_of_hits(), builder.get_event(),
+                       event_of_cands);
+#endif
+
   double time = dtime();
 
   std::cout << "Finding best hits...\n";
+#if USE_CUDA
+  builder_cu.FindTracksBestHit(event_of_cands);
+  //builder.FindTracksBestHit_GPU(event_of_cands);
+#else
   builder.FindTracksBestHit(event_of_cands);
+#endif
 
   time = dtime() - time;
 

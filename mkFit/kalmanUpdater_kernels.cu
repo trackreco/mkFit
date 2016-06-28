@@ -2,6 +2,7 @@
 #include "Hit.h"
 #include "kalmanUpdater_kernels.h"
 #include "computeChi2_kernels.h"
+#include "gpu_utils.h"
 
 // TODO: Clean all the hard-coded #define
 #define LS 21
@@ -10,7 +11,6 @@
 #define HV 3
 
 #define BLOCK_SIZE_X 32
-#define MAX_BLOCKS_X 65535 // CUDA constraint
 
 /*__device__ float getPhi_fn2(float x, float y)*/
 /*{*/
@@ -21,22 +21,24 @@
   /*return atan2(r,z);*/
 /*}*/
 
-__device__ void subtract_matrix(const float *a, int aN, const float *b, int bN, 
-    float *c, int cN, int size, int n) {
+__device__ void subtract_matrix(const float *a, const int aN, 
+                                const float *b, const int bN, 
+                                      float *c, const int cN,
+                                const int size, const int n) {
   for (int i = 0; i < size; ++i) {
     c[i*cN + n] = a[i*aN + n] - b[i*bN + n];
     
   }
 }
 
-__device__ float getHypot_fn(float x, float y)
+__device__ float getHypot_fn(const float x, const float y)
 {
   return sqrt(x*x + y*y);
 }
 
 __device__
-void KalmanHTG_fn(float a00, float a01,
-	       const GPlexReg2S &b, GPlexRegHH &c)
+void KalmanHTG_fn(const float a00, const float a01,
+                  const GPlexReg2S &b, GPlexRegHH &c)
 {
 
    // HTG  = rot * res_loc
@@ -55,7 +57,7 @@ void KalmanHTG_fn(float a00, float a01,
 }
 
 __device__
-void KalmanGain_fn(const GPlexLS &A, GPlexRegHH &b, GPlexRegLH &c, int n)
+void KalmanGain_fn(const GPlexLS &A, const GPlexRegHH &b, GPlexRegLH &c, const int n)
 {
   // C = A * B, C is 6x3, A is 6x6 sym , B is 6x3
   using T = float;
@@ -69,9 +71,9 @@ void KalmanGain_fn(const GPlexLS &A, GPlexRegHH &b, GPlexRegLH &c, int n)
 
 __device__
 void KHMult_fn(const GPlexRegLH &a, 
-	    const float b00,
-	    const float b01,
-      GPlexRegLL &c)
+               const float b00,
+               const float b01,
+               GPlexRegLL &c)
 {
       c[ 0] = a[ 0]*b00;
       c[ 1] = a[ 0]*b01;
@@ -112,7 +114,7 @@ void KHMult_fn(const GPlexRegLH &a,
 }
 
 __device__
-void KHC_fn(const GPlexRegLL &a, const GPlexLS &B, GPlexLS &C, int n)
+void KHC_fn(const GPlexRegLL &a, const GPlexLS &B, GPlexLS &C, const int n)
 {
   // C = A * B, C is 6x6, A is 6x6 , B is 6x6 sym
   using T = float;
@@ -124,7 +126,7 @@ void KHC_fn(const GPlexRegLL &a, const GPlexLS &B, GPlexLS &C, int n)
 
 // 
 __device__
-void ConvertToPolar_fn(const GPlexLV &a, GPlexRegLV &b, GPlexRegLL &c, int n)
+void ConvertToPolar_fn(const GPlexLV &a, GPlexRegLV &b, GPlexRegLL &c, const int n)
 {
   int aN = a.stride; 
   typedef float T;
@@ -177,7 +179,7 @@ void ConvertToPolar_fn(const GPlexLV &a, GPlexRegLV &b, GPlexRegLL &c, int n)
 }
 
 __device__
-void PolarErr_fn(const GPlexRegLL &a, const float *b, int bN, GPlexRegLL &c, int n)
+void PolarErr_fn(const GPlexRegLL &a, const float *b, int bN, GPlexRegLL &c, const int n)
 {
   // C = A * B, C is 6x6, A is 6x6 , B is 6x6 sym
  
@@ -190,7 +192,7 @@ void PolarErr_fn(const GPlexRegLL &a, const float *b, int bN, GPlexRegLL &c, int
 }
 
 __device__
-void PolarErrTransp_fn(const GPlexRegLL &a, const GPlexRegLL &b, GPlexLS &C, int n)
+void PolarErrTransp_fn(const GPlexRegLL &a, const GPlexRegLL &b, GPlexLS &C, const int n)
 {
   // C = A * B, C is sym, A is 6x6 , B is 6x6
   using T = float;
@@ -201,7 +203,7 @@ void PolarErrTransp_fn(const GPlexRegLL &a, const GPlexRegLL &b, GPlexLS &C, int
 }
 
 __device__
-void ConvertToCartesian_fn(const GPlexRegLV &a, float *b, int bN, GPlexRegLL &c, int n)
+void ConvertToCartesian_fn(const GPlexRegLV &a, float *b, int bN, GPlexRegLL &c, const int n)
 {
     const float cosP = std::cos(a[ 4]); //fixme: use trig approx
     const float sinP = std::sin(a[ 4]);
@@ -254,7 +256,7 @@ void ConvertToCartesian_fn(const GPlexRegLV &a, float *b, int bN, GPlexRegLL &c,
 }
 
 __device__
-void CartesianErr_fn(const GPlexRegLL &a, const float *b, int bN, GPlexRegLL &c, int n)
+void CartesianErr_fn(const GPlexRegLL &a, const float *b, const int bN, GPlexRegLL &c, const int n)
 {
   // C = A * B, C is 6x6, A is 6x6 , B is 6x6 sym
   int aN = 1; int an = 0;
@@ -265,7 +267,7 @@ void CartesianErr_fn(const GPlexRegLL &a, const float *b, int bN, GPlexRegLL &c,
 }
 
 __device__
-void CartesianErrTransp_fn(const GPlexRegLL &a, const GPlexRegLL &b, GPlexLS &C, int n)
+void CartesianErrTransp_fn(const GPlexRegLL &a, const GPlexRegLL &b, GPlexLS &C, const int n)
 {
   // C = A * B, C is sym, A is 6x6 , B is 6x6
   using T = float;
@@ -280,8 +282,8 @@ void CartesianErrTransp_fn(const GPlexRegLL &a, const GPlexRegLL &b, GPlexLS &C,
 /// MultKalmanGain ////////////////////////////////////////////////////////////
 
 __device__ void upParam_MultKalmanGain_fn(
-    const float* __restrict__ a, size_t aN,
-    float* b_reg, float *c, int N, int n) {
+    const float* __restrict__ a, const size_t aN,
+    const float* b_reg, float *c, const int N, const int n) {
   // const T* __restrict__ tells the compiler that it can uses the read-only
   // cache, without worrying about coherency.
   // c -> kalmanGain, in register
@@ -396,7 +398,7 @@ __device__ void subtractFirst3_fn(const GPlexHV __restrict__ &A,
 /// AddIntoUpperLeft3x3  //////////////////////////////////////////////////////
 __device__ void addIntoUpperLeft3x3_fn(const GPlexLS __restrict__ &A,
                                        const GPlexHS __restrict__ &B,
-                                       GPlexRegHS &C, const int N, int n) {
+                                       GPlexRegHS &C, const int N, const int n) {
   using T = float;
   const T *a = A.ptr;  int aN = A.stride;
   const T *b = B.ptr;  int bN = B.stride;
@@ -416,10 +418,11 @@ __device__ void addIntoUpperLeft3x3_fn(const GPlexLS __restrict__ &A,
 
 /// MultResidualsAdd //////////////////////////////////////////////////////////
 __device__ void multResidualsAdd_fn(
-    float* reg_a,
-    const float* __restrict__ b, size_t bN,
-    const float* __restrict__ c, size_t cN,
-    float *d, size_t dN, int N, int n) {
+    const float* reg_a,
+    const float* __restrict__ b, const size_t bN,
+    const float* __restrict__ c, const size_t cN,
+          float *d,              const size_t dN, 
+    const int N, const int n) {
   // a -> kalmanGain
 
   /*int i = threadIdx.x;*/
@@ -473,18 +476,18 @@ void MultResidualsAdd_all_reg(const GPlexRegLH &a,
 
 /// KalmanGain_x_propErr //////////////////////////////////////////////////////
 __device__ void kalmanGain_x_propErr_fn(
-    float* d_kalmanGain,
-    const float* __restrict__ d_propErr, size_t stride_propErr,
-    float *d_outErr, size_t stride_outErr, const int N, int n) {
+    const float* d_kalmanGain,
+    const float* __restrict__ d_propErr, const size_t stride_propErr,
+    float *d_outErr, const size_t stride_outErr, const int N, const int n) {
   // a = d_kalmanGain,  b = d_propErr, c = outErrTemp
   // c = b - a*b
-  float *a = d_kalmanGain;
+  const float *a = d_kalmanGain;
   const float *b = d_propErr;
   float *c = d_outErr;
 
   /*size_t aN = stride_kalmanGain;*/
-  size_t bN = stride_propErr;
-  size_t cN = stride_outErr;
+  const size_t bN = stride_propErr;
+  const size_t cN = stride_outErr;
 
   register float reg_c[LS];
 
@@ -524,10 +527,10 @@ __device__ void kalmanGain_x_propErr_fn(
    }
 }
 
-__global__ void kalmanUpdate_kernel(
-    GPlexLS propErr, const GPlexHS __restrict__ msErr,
-    const GPlexLV __restrict__ par_iP, const GPlexHV __restrict__ msPar,
-    GPlexLV par_iC, GPlexLS outErr, const int N) {
+__device__ void kalmanUpdate_fn(
+    GPlexLS &propErr, const GPlexHS __restrict__ &msErr,
+    const GPlexLV __restrict__ &par_iP, const GPlexHV __restrict__ &msPar,
+    GPlexLV &par_iC, GPlexLS &outErr, const int N) {
   int grid_width = blockDim.x * gridDim.x;
   // Note: similar results with propErr kept in registers.
   //       It is read-only so using the read-only cache yields more flexibility
@@ -538,7 +541,7 @@ __global__ void kalmanUpdate_kernel(
   GPlexRegHS resErr_reg;
   /*float kalmanGain_reg[LH];*/
 
-  // If there is more matrices than MAX_BLOCKS_X * BLOCK_SIZE_X 
+  // If there is more matrices than max_blocks_x * BLOCK_SIZE_X 
   for (int z = 0; z < (N-1)/grid_width  +1; z++) {
     /*n += z*gridDim.x;*/
     n += z*grid_width;
@@ -635,13 +638,20 @@ __global__ void kalmanUpdate_kernel(
   }
 }
 
-void kalmanUpdate_wrapper(cudaStream_t& stream,
-    GPlexLS& d_propErr, GPlexHS& d_msErr,
-    GPlexLV& d_par_iP, GPlexHV& d_msPar,
+__global__ void kalmanUpdate_kernel(
+    GPlexLS propErr, const GPlexHS __restrict__ msErr,
+    const GPlexLV __restrict__ par_iP, const GPlexHV __restrict__ msPar,
+    GPlexLV par_iC, GPlexLS outErr, const int N) {
+  kalmanUpdate_fn( propErr, msErr, par_iP, msPar, par_iC, outErr, N);
+}
+
+void kalmanUpdate_wrapper(const cudaStream_t& stream,
+    GPlexLS& d_propErr, const GPlexHS& d_msErr,
+    GPlexLV& d_par_iP, const GPlexHV& d_msPar,
     GPlexLV& d_par_iC, GPlexLS& d_outErr,
     const int N) {
   int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
-                       MAX_BLOCKS_X);
+                       max_blocks_x);
   dim3 grid(gridx, 1, 1);
   dim3 block(BLOCK_SIZE_X, 1, 1);
   kalmanUpdate_kernel <<<grid, block, 0, stream >>>

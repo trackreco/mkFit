@@ -3,14 +3,7 @@
 
 #include "HitStructures.h"
 #include "Config.h"
-
-#define cudaCheckError() {                                          \
-  cudaError_t e=cudaGetLastError();                                 \
-  if(e!=cudaSuccess) {                                              \
-    printf("Cuda failure %s:%d: '%s'\n",__FILE__,__LINE__,cudaGetErrorString(e));           \
-    exit(0); \
-  }                                                                 \
-}
+#include "gpu_utils.h"
 
 template <typename T1, typename T2>
 struct PairCU {
@@ -43,29 +36,40 @@ class LayerOfHitsCU {
   LayerOfHitsCU() {};
   ~LayerOfHitsCU() {};
 
-  void alloc_hits(int size);
+  void alloc_hits(const int size);
   void free_hits();
 
-  void alloc_phi_bin_infos(int nz, int nphi);
+  void alloc_phi_bin_infos(const int nz, const int nphi);
   void free_phi_bin_infos();
 
-  void copyLayerOfHitsFromCPU(LayerOfHits &layer);
+  void copyLayerOfHitsFromCPU(const LayerOfHits &layer,
+                              const cudaStream_t &stream=0);
 
 #ifdef __CUDACC__
   __device__
 #endif
-  int   GetZBin(float z)    const { return (z - m_zmin) * m_fz; }
+  int GetZBin(const float z)    const { return (z - m_zmin) * m_fz; }
     
 #ifdef __CUDACC__
   __device__
 #endif
-  int   GetZBinChecked(float z) const { int zb = GetZBin(z); if (zb < 0) zb = 0; else if (zb >= m_nz) zb = m_nz - 1; return zb; }
+  int GetZBinChecked(float z) const {
+    int zb = GetZBin(z);
+    if (zb < 0) { 
+      zb = 0;
+    } else {
+      if (zb >= m_nz) zb = m_nz - 1;
+    }
+    return zb; 
+  }
 
   // if you don't pass phi in (-pi, +pi), mask away the upper bits using m_phi_mask
 #ifdef __CUDACC__
   __device__
 #endif
-  int   GetPhiBin(float phi) const { return floorf(m_fphi * (phi + Config::PI)); }
+  int   GetPhiBin(float phi) const {
+    return floorf(m_fphi * (phi + Config::PI)); 
+  }
 };
 
 
@@ -81,9 +85,49 @@ public:
   
   EventOfHitsCU() : m_n_layers{} {};
 
-  void allocGPU(EventOfHits &event_of_hits);
+  void allocGPU(const EventOfHits &event_of_hits);
   void deallocGPU();
-  void copyFromCPU(EventOfHits& event_of_hits);
+  void copyFromCPU(const EventOfHits& event_of_hits,
+                   const cudaStream_t &stream=0);
+};
+
+// ============================================================================
+
+class EtaBinOfCandidatesCU 
+{
+public:
+  Track *m_candidates;
+  
+  int m_real_size;
+  int m_fill_index;
+
+  void alloc_tracks(const int ntracks);
+  void free_tracks();
+
+  void copyFromCPU(const EtaBinOfCandidates &eta_bin,
+                   const cudaStream_t &stream=0);
+  void copyToCPU(EtaBinOfCandidates &eta_bin,
+                  const cudaStream_t &stream=0) const;
+};
+
+
+class EventOfCandidatesCU 
+{
+public:
+  EtaBinOfCandidatesCU *m_etabins_of_candidates;  // device array
+  int m_n_etabins;
+  
+  // Host array. For allocation and transfer purposes
+  EtaBinOfCandidatesCU *m_etabins_of_candidates_alloc;
+
+  EventOfCandidatesCU() : m_n_etabins{} {};
+
+  void allocGPU(const EventOfCandidates &event_of_cands);
+  void deallocGPU();
+  void copyFromCPU(const EventOfCandidates &event_of_cands,
+                   const cudaStream_t &stream=0);
+  void copyToCPU(EventOfCandidates &event_of_cands,
+                 const cudaStream_t &stream=0) const;
 };
 
 #endif  // _HIT_STRUCTURES_H_
