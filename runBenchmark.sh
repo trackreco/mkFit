@@ -10,6 +10,10 @@ python makeBenchmarkPlots.py host
 root -b -q -l makeBenchmarkPlots.C
 root -b -q -l makeBenchmarkPlotsFit.C
 
+./benchmark-fit-endcap.sh
+python makeBenchmarkPlots.py host_endcap
+root -b -q -l makeBenchmarkPlotsFit.C\(0,1\)
+
 ./benchmark-cmssw.sh
 
 python makeBenchmarkPlots.py host cmssw
