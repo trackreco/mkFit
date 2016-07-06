@@ -375,9 +375,9 @@ void setupTrackByToyMCEndcap(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
       int simLayer = id;//fixme take from geom
 
       if (pz>0.)
-	tmpState = propagateHelixToZ(tmpState, 5.f*(id+1));
+	tmpState = propagateHelixToZ(tmpState, 10.f*(id+1));
       else
-	tmpState = propagateHelixToZ(tmpState, -5.f*(id+1));
+	tmpState = propagateHelixToZ(tmpState, -10.f*(id+1));
 
       SVector3 intersection = tmpState.position();
 
@@ -414,7 +414,6 @@ void setupTrackByToyMCEndcap(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
 	     << "ihit: " << id << " layer: " << simLayer << " counts: " << layer_counts[simLayer]);
 
       ++layer_counts[simLayer]; // count the number of times passed into layer
-
     }
 }
 

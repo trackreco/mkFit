@@ -368,12 +368,18 @@ void Event::read_in(FILE *fp)
   simHitsInfo_.resize(nm);
   fread(&simHitsInfo_[0], sizeof(MCHitInfo), nm, fp);
 
-  if (Config::useCMSGeom) {
+  if (Config::useCMSGeom || Config::readCmsswSeeds) {
     int ns;
     fread(&ns, sizeof(int), 1, fp);
     seedTracks_.resize(ns);
     if (Config::readCmsswSeeds) fread(&seedTracks_[0], sizeof(Track), ns, fp);
     else fseek(fp, sizeof(Track)*ns, SEEK_CUR);
+    /*
+    printf("read %i seedtracks\n",nt);
+    for (int it = 0; it<ns; it++) {
+      printf("seedtrack with q=%i pT=%5.3f nHits=%i and label=%i\n",seedTracks_[it].charge(),seedTracks_[it].pT(),seedTracks_[it].nFoundHits(),seedTracks_[it].label());
+    }
+    */
   }
 
   /*
@@ -395,5 +401,6 @@ void Event::read_in(FILE *fp)
       printf("hit with mcHitID=%i r=%5.3f x=%5.3f y=%5.3f z=%5.3f\n",layerHits_[il][ih].mcHitID(),layerHits_[il][ih].r(),layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z());
     }
   }
+  printf("read event done\n",nl);
   */
 }
