@@ -19,6 +19,9 @@ typedef ROOT::Math::SVector<float,2> SVector2;
 typedef ROOT::Math::SMatrix<float,3,6> SMatrix36;
 typedef ROOT::Math::SMatrix<float,6,3> SMatrix63;
 
+typedef ROOT::Math::SMatrix<float,2,6> SMatrix26;
+typedef ROOT::Math::SMatrix<float,6,2> SMatrix62;
+
 // should work with any SMatrix
 template<typename Matrix>
 void dumpMatrix(Matrix m)
