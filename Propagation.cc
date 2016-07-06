@@ -424,7 +424,7 @@ TrackState propagateHelixToZ(TrackState inputState, float zout) {
   const float k = inputState.charge*100.f/(-Config::sol*Config::Bfield);
 
   const float z = inputState.z();
-  const float invpT = inputState.invpT();
+  const float ipT = inputState.invpT();
   const float phi   = inputState.momPhi();
   const float theta = inputState.theta();
 
@@ -434,65 +434,58 @@ TrackState propagateHelixToZ(TrackState inputState, float zout) {
   const float cosP = std::cos(phi);
   const float sinP = std::sin(phi);
 
-  const float angPath = (zout - z)*sinT*invpT/(cosT*k);
+  const float s = (zout - z)/cosT;
+  const float angPath = s*sinT*ipT/k;
 
-  float cosAP, sinAP;
+  float cosA, sinA;
   if (Config::useTrigApprox) {
-    sincos4(angPath, sinAP, cosAP);
+    sincos4(angPath, sinA, cosA);
   } else {
-    cosAP=std::cos(angPath);
-    sinAP=std::sin(angPath);
+    cosA=std::cos(angPath);
+    sinA=std::sin(angPath);
   }
 
-  result.parameters[0] = inputState.x() + k*(inputState.px()*sinAP-inputState.py()*(1.f-cosAP));
-  result.parameters[1] = inputState.y() + k*(inputState.py()*sinAP+inputState.px()*(1.f-cosAP));
+  result.parameters[0] = inputState.x() + k*(inputState.px()*sinA-inputState.py()*(1.f-cosA));
+  result.parameters[1] = inputState.y() + k*(inputState.py()*sinA+inputState.px()*(1.f-cosA));
   result.parameters[2] = zout;
   result.parameters[4] = phi+angPath;
 
-  SMatrix66 jac;
-  jac.At(0,0) = 1.f;
-  jac.At(0,1) = 0.f;
-  jac.At(0,2) = cosP*sinT*(sinP*cosAP*sin(cosP*sinAP) - cosAP)/cosT;
-  jac.At(0,3) = cosP*sinT*(zout - z)*cosAP*( 1.f - sinP*sin(cosP*sinAP) )/(cosT*invpT) - k*(cosP*sinAP - sinP*(1.f-cos(cosP*sinAP)))/(invpT*invpT);
-  jac.At(0,4) = (k/invpT)*( -sinP*sinAP + sinP*sinP*sinAP*sin(cosP*sinAP) - cosP*(1.f - cos(cosP*sinAP) ) );
-  jac.At(0,5) = cosP*(zout - z)*cosAP*( 1.f - sinP*sin(cosP*sinAP) )/(cosT*cosT);
-
-  jac.At(0,1) = 0.f;
-  jac.At(1,1) = 1.f;
-  jac.At(1,2) = cosAP*sinT*(cosP*cosP*sin(cosP*sinAP) - sinP)/cosT;
-  jac.At(1,3) = sinT*(zout - z)*cosAP*( cosP*cosP*sin(cosP*sinAP) + sinP )/(cosT*invpT) - k*(sinP*sinAP + cosP*(1.f-cos(cosP*sinAP)))/(invpT*invpT);
-  jac.At(1,4) = (k/invpT)*( -sinP*(1.f - cos(cosP*sinAP)) - sinP*cosP*sinAP*sin(cosP*sinAP) + cosP*sinAP );
-  jac.At(1,5) = (zout - z)*cosAP*( cosP*cosP*sin(cosP*sinAP) + sinP )/(cosT*cosT);
-
-  jac.At(2,0) = 0.f;
-  jac.At(2,1) = 0.f;
+  SMatrix66 jac = ROOT::Math::SMatrixIdentity();
+  jac.At(0,2) = cosP*sinT*(sinP*cosA*sin(cosP*sinA) - cosA)/cosT;
+  jac.At(0,3) = cosP*sinT*(zout - z)*cosA*( 1.f - sinP*sin(cosP*sinA) )/(cosT*ipT) - k*(cosP*sinA - sinP*(1.f-cos(cosP*sinA)))/(ipT*ipT);
+  jac.At(0,4) = (k/ipT)*( -sinP*sinA + sinP*sinP*sinA*sin(cosP*sinA) - cosP*(1.f - cos(cosP*sinA) ) );
+  jac.At(0,5) = cosP*(zout - z)*cosA*( 1.f - sinP*sin(cosP*sinA) )/(cosT*cosT);
+  jac.At(1,2) = cosA*sinT*(cosP*cosP*sin(cosP*sinA) - sinP)/cosT;
+  jac.At(1,3) = sinT*(zout - z)*cosA*( cosP*cosP*sin(cosP*sinA) + sinP )/(cosT*ipT) - k*(sinP*sinA + cosP*(1.f-cos(cosP*sinA)))/(ipT*ipT);
+  jac.At(1,4) = (k/ipT)*( -sinP*(1.f - cos(cosP*sinA)) - sinP*cosP*sinA*sin(cosP*sinA) + cosP*sinA );
+  jac.At(1,5) = (zout - z)*cosA*( cosP*cosP*sin(cosP*sinA) + sinP )/(cosT*cosT);
   jac.At(2,2) = 0.f;
-  jac.At(2,3) = 0.f;
-  jac.At(2,4) = 0.f;
-  jac.At(2,5) = 0.f;
-
-  jac.At(3,0) = 0.f;
-  jac.At(3,1) = 0.f;
-  jac.At(3,2) = 0.f;
-  jac.At(3,3) = 1.f;
-  jac.At(3,4) = 0.f;
-  jac.At(3,5) = 0.f;
-
-  jac.At(4,0) = 0.f;
-  jac.At(4,1) = 0.f;
-  jac.At(4,2) = -invpT*sinT/(cosT*k);
+  jac.At(4,2) = -ipT*sinT/(cosT*k);
   jac.At(4,3) = sinT*(zout - z)/(cosT*k);
-  jac.At(4,4) = 1.f;
-  jac.At(4,5) = invpT*(zout - z)/(cosT*cosT*k);
-
-  jac.At(5,0) = 0.f;
-  jac.At(5,1) = 0.f;
-  jac.At(5,2) = 0.f;
-  jac.At(5,3) = 0.f;
-  jac.At(5,4) = 0.f;
-  jac.At(5,5) = 1.f;
-
+  jac.At(4,5) = ipT*(zout - z)/(cosT*cosT*k);
   result.errors=ROOT::Math::Similarity(jac,result.errors);
+
+  // alternative version as proposed in http://www.phys.ufl.edu/~avery/fitting/transport.pdf, section IV (this could also be tested for propagation to radius)
+  // const float dAdipT = s*sinT/k;
+  // const float dAdT   = s*cosT*ipT/k;
+  // SMatrix66 jac_pars = ROOT::Math::SMatrixIdentity();
+  // jac_pars.At(0,3) = k*(ipT*cosP*dAdipT*cosA - ipT*sinP*dAdipT*sinA - sinP*cosA - cosP*sinA + sinP)/(ipT*ipT);
+  // jac_pars.At(0,4) = - k*( sinP*sinA + cosP*(1.f-cosA) )/ipT;
+  // jac_pars.At(0,5) =  k*( cosP*cosA - sinP*sinA )*dAdT/ipT;
+  // jac_pars.At(1,3) = k*(ipT*cosP*dAdipT*sinA + ipT*sinP*dAdipT*cosA - sinP*sinA - cosP*(1.f-cosA))/(ipT*ipT);
+  // jac_pars.At(1,4) = k*( cosP*sinA - sinP*(1.f-cosA) )/ipT;
+  // jac_pars.At(1,5) = k*( sinP*cosA + cosP*sinA )*dAdT/ipT;
+  // jac_pars.At(2,5) = -s*sinT;
+  // jac_pars.At(4,3) = dAdipT;
+  // jac_pars.At(4,5) = dAdT;
+  // SMatrix66 jac_path = ROOT::Math::SMatrixIdentity();
+  // const float cosP1 = std::cos(result.parameters[4]);
+  // const float sinP1 = std::sin(result.parameters[4]);
+  // jac_path.At(0,2) = -cosP1*sinT/cosT;
+  // jac_path.At(1,2) = -sinP1*sinT/cosT;
+  // jac_path.At(2,2) = 0.f;
+  // jac_path.At(4,2) = -sinT*ipT/(k*cosT);
+  // result.errors=ROOT::Math::Similarity(jac_path,ROOT::Math::Similarity(jac_pars,result.errors));
 
   return result;
 }

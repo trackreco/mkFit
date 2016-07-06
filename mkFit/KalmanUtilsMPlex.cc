@@ -994,6 +994,7 @@ void updateParametersEndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, co
 #ifdef DEBUG
   {
     dmutex_guard;
+  printf("updateParametersEndcapMPlex\n");
     printf("propPar:\n");
     for (int i = 0; i < 6; ++i) {
       printf("%8f ", propPar.ConstAt(0,0,i)); printf("\n");
@@ -1007,7 +1008,7 @@ void updateParametersEndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, co
         printf("%8f ", propErr.At(0,i,j)); printf("\n");
     } printf("\n");
     printf("msErr:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+    for (int i = 0; i < 3; ++i) { for (int j = 0; j < 3; ++j)
         printf("%8f ", msErr.ConstAt(0,i,j)); printf("\n");
     } printf("\n");
   }
@@ -1024,7 +1025,7 @@ void updateParametersEndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, co
     dmutex_guard;
     printf("resErr:\n");
     for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
-        printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
+        printf("%8f ", resErr.At(0,i,j)); printf("\n");
     } printf("\n");
   }
 #endif
@@ -1038,6 +1039,16 @@ void updateParametersEndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, co
   MultResidualsAdd(K, propPar, res, outPar);
 
   KHC(K, propErr, outErr);
+
+#ifdef DEBUG
+  {
+    printf("outErr before subtract:\n");
+    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+	printf("%8f ", outErr.At(0,i,j)); printf("\n");
+    } printf("\n");
+  }
+#endif
+
   outErr.Subtract(propErr, outErr);
 
 #ifdef DEBUG
@@ -1052,7 +1063,7 @@ void updateParametersEndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, co
         printf("%8f ", resErr.At(0,i,j)); printf("\n");
     } printf("\n");
     printf("K:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 3; ++j)
+    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 2; ++j)
         printf("%8f ", K.At(0,i,j)); printf("\n");
     } printf("\n");
     printf("outPar:\n");
@@ -1072,7 +1083,6 @@ void computeChi2EndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const M
                                   MPlexQF& outChi2,
 			    const int      N_proc)
 {
-
   // const idx_t N = psErr.N;
   // Assert N-s of all parameters are the same.
 
@@ -1095,6 +1105,7 @@ void computeChi2EndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const M
 #ifdef DEBUG
   {
     dmutex_guard;
+    printf("computeChi2EndcapMPlex\n");
     printf("propPar:\n");
     for (int i = 0; i < 6; ++i) {
       printf("%8f ", propPar.ConstAt(0,0,i)); printf("\n");
@@ -1108,7 +1119,7 @@ void computeChi2EndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const M
         printf("%8f ", propErr.At(0,i,j)); printf("\n");
     } printf("\n");
     printf("msErr:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+    for (int i = 0; i < 3; ++i) { for (int j = 0; j < 3; ++j)
         printf("%8f ", msErr.ConstAt(0,i,j)); printf("\n");
     } printf("\n");
   }
@@ -1123,9 +1134,13 @@ void computeChi2EndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const M
 #ifdef DEBUG
   {
     dmutex_guard;
+    printf("res:\n");
+    for (int i = 0; i < 2; ++i) {
+        printf("%8f ", res.At(0,0,i)); printf("\n");
+    } printf("\n");
     printf("resErr:\n");
     for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
-        printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
+        printf("%8f ", resErr.At(0,i,j)); printf("\n");
     } printf("\n");
   }
 #endif
@@ -1142,7 +1157,7 @@ void computeChi2EndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const M
     printf("resErr_loc (Inv):\n");
     for (int i = 0; i < 2; ++i) {
       for (int j = 0; j < 2; ++j)
-        printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
+        printf("%8f ", resErr.At(0,i,j)); printf("\n");
     } printf("\n");
     printf("chi2: %8f\n", outChi2.At(0,0,0));
   }

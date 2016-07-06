@@ -192,17 +192,17 @@ $m->dump_multiply_std_and_intrinsic("KHC.ah",
 
 #------------------------------------------------------------------------------
 
-###updateParametersMPlex -- KH * C with K dim 6x2 and H is 2x2 identity
+###updateParametersMPlex -- KH * C with KH=K dim 6x2
 # temp = KH * propErr
 
 $KH   = new GenMul::Matrix('name'=>'a', 'M'=>6, 'N'=>2);
 $KH->set_pattern(<<"FNORD");
 x x
 x x
-0 0
-0 0
-0 0
-0 0
+x x
+x x
+x x
+x x
 FNORD
 
 $propErr = new GenMul::MatrixSym('name'=>'b', 'M'=>6, 'N'=>6);
@@ -296,6 +296,32 @@ $outErr->{name} = 'c';
 $m->dump_multiply_std_and_intrinsic("MultHelixPropTransp.ah",
                                     $temp, $errPropT, $outErr);
 
+#######################################
+###          ENDCAP version         ###
+#######################################
+
+$errProp->set_pattern(<<"FNORD");
+1 0 x x x x
+0 1 x x x x
+0 0 0 0 0 0
+0 0 0 1 0 0
+0 0 x x 1 x
+0 0 0 0 0 1
+FNORD
+
+$temp  ->{name} = 'c';
+$outErr->{name} = 'b';
+
+$errPropT = new GenMul::MatrixTranspose($errProp);
+$m->dump_multiply_std_and_intrinsic("MultHelixPropEndcap.ah",
+                                    $errProp, $outErr, $temp);
+
+$temp  ->{name} = 'b';
+$outErr->{name} = 'c';
+
+### XXX fix this ... in accordance with what is in Propagation.cc
+$m->dump_multiply_std_and_intrinsic("MultHelixPropTranspEndcap.ah",
+                                    $temp, $errPropT, $outErr);
 
 
 ##############################
