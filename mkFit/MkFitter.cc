@@ -290,6 +290,60 @@ void MkFitter::InputHitsOnly(const std::vector<Hit>& hits, int beg, int end)
   Nhits++;
 }
 
+
+void MkFitter::InputSeedsTracksAndHits(const std::vector<Track>&  seeds,
+				       const std::vector<Track>&  tracks,
+				       const std::vector<HitVec>& layerHits,
+				       int beg, int end)
+{
+  // Assign track parameters to initial state and copy hit values in.
+
+  // This might not be true for the last chunk!
+  // assert(end - beg == NN);
+
+  int itrack;
+#ifdef USE_CUDA
+  // This openmp loop brings some performances when using
+  // a single thread to fit all events.
+  // However, it is more advantageous to use the threads to
+  // parallelize over Events.
+  omp_set_num_threads(Config::numThreadsReorg);
+#pragma omp parallel for private(itrack)
+#endif
+  for (int i = beg; i < end; ++i) {
+    itrack = i - beg;
+
+    const Track &see = seeds[i];
+
+    Label(itrack, 0, 0) = see.label();
+    if (see.label()<0) continue;
+
+    Err[iC].CopyIn(itrack, see.errors().Array());
+    Par[iC].CopyIn(itrack, see.parameters().Array());
+
+    Chg(itrack, 0, 0) = see.charge();
+    Chi2(itrack, 0, 0) = see.chi2();
+
+    const Track &trk = tracks[see.label()];
+
+// CopyIn seems fast enough, but indirections are quite slow.
+// For GPU computations, it has been moved in between kernels
+// in an attempt to overlap CPU and GPU computations.
+#ifndef USE_CUDA
+    for (int hi = 0; hi < Nhits; ++hi)
+    {
+      const int hidx = trk.getHitIdx(hi);
+      HitsIdx[hi](itrack, 0, 0) = hidx;
+      if (hidx<0) continue;//fixme, check if this is harmless
+      const Hit &hit = layerHits[hi][hidx];
+
+      msErr[hi].CopyIn(itrack, hit.errArray());
+      msPar[hi].CopyIn(itrack, hit.posArray());
+    }
+#endif
+  }
+}
+
 void MkFitter::ConformalFitTracks(bool fitting, int beg, int end)
 {
   // bool fitting to determine to use fitting CF error widths
@@ -364,22 +418,67 @@ void MkFitter::FitTracks(const int N_proc)
     // propagateLineToRMPlex(Err[iC], Par[iC], msErr[hi], msPar[hi],
     //                       Err[iP], Par[iP]);
 
-    if (Config::endcapTest) {
+    propagateHelixToRMPlex(Err[iC], Par[iC], Chg, msPar[hi],
+                           Err[iP], Par[iP], N_proc);
+
+    updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[hi], msPar[hi],
+                          Err[iC], Par[iC], N_proc);
+  }
+  // XXXXX What's with chi2?
+}
+
+void MkFitter::FitTracksTestEndcap(const int N_proc, const Event* ev)
+{
+
+  if (countValidHits(0)<8) return;
+  if (Label.ConstAt(0, 0, 0)<0) return;
+
+  float ptin = 1./Par[iC].ConstAt(0, 0, 3);
+
+  float chi2 = 0.;
+  int hitcount = 0;
+  for (int hi = 0; hi < Nhits; ++hi)
+    {
+
+      //if starting from seed, skip seed hits in fit (note there are only two hits in seeds since pxb1 is removed upfront, at least for now)
+      if (Config::readCmsswSeeds && hi<2) continue;
+      if (HitsIdx[hi].ConstAt(0, 0, 0)<0) continue;
+
+      dprint("hit #" << hi << " hit  pos=" << msPar[hi].ConstAt(0, 0, 0) << ", " <<  msPar[hi].ConstAt(0, 0, 1) << ", " <<  msPar[hi].ConstAt(0, 0, 2));
+
       propagateHelixToZMPlex(Err[iC], Par[iC], Chg, msPar[hi],
 			     Err[iP], Par[iP], N_proc);
+
+      dprint("hit #" << hi << " prop par=" << Par[iP].ConstAt(0, 0, 0) << ", " <<  Par[iP].ConstAt(0, 0, 1) << ", " <<  Par[iP].ConstAt(0, 0, 2)  << ", "
+	     << Par[iP].ConstAt(0, 0, 3) << ", " <<  Par[iP].ConstAt(0, 0, 4) << ", " <<  Par[iP].ConstAt(0, 0, 5)
+	     << " p=(" << cos(Par[iP].ConstAt(0, 0, 4))/Par[iP].ConstAt(0, 0, 3) << ", " << sin(Par[iP].ConstAt(0, 0, 4))/Par[iP].ConstAt(0, 0, 3)
+	     << ", " << 1./(tan(Par[iP].ConstAt(0, 0, 5))*Par[iP].ConstAt(0, 0, 3)) << ")" );
+
+      computeChi2EndcapMPlex(Err[iP], Par[iP], Chg, msErr[hi], msPar[hi],
+			     Chi2,N_proc);
+
+      dprint("hit chi2: " << Chi2.At(0, 0, 0));
+      //if (Chi2.At(0, 0, 0)>30.) continue;
+      chi2+=Chi2.At(0, 0, 0);
 
       updateParametersEndcapMPlex(Err[iP], Par[iP], Chg, msErr[hi], msPar[hi],
 				  Err[iC], Par[iC], N_proc);
 
-    } else {
-      propagateHelixToRMPlex(Err[iC], Par[iC], Chg, msPar[hi],
-			     Err[iP], Par[iP], N_proc);
-
-      updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[hi], msPar[hi],
-			    Err[iC], Par[iC], N_proc);
+      dprint("hit #" << hi << " upda par=" << Par[iC].ConstAt(0, 0, 0) << ", " <<  Par[iC].ConstAt(0, 0, 1) << ", " <<  Par[iC].ConstAt(0, 0, 2)  << ", "
+	     << Par[iC].ConstAt(0, 0, 3) << ", " <<  Par[iC].ConstAt(0, 0, 4) << ", " <<  Par[iC].ConstAt(0, 0, 5)
+	     << " p=(" << cos(Par[iC].ConstAt(0, 0, 4))/Par[iC].ConstAt(0, 0, 3) << ", " << sin(Par[iC].ConstAt(0, 0, 4))/Par[iC].ConstAt(0, 0, 3)
+	     << ", " << 1./(tan(Par[iC].ConstAt(0, 0, 5))*Par[iC].ConstAt(0, 0, 3)) << ")" );
+      hitcount++;
     }
+
+  if ((1./Par[iC].ConstAt(0, 0, 3))<0. || chi2<0 || chi2>1000.) {
+    printf("ANOMALY pt=%6.1f chi2=%6.1f seed pt=%6.1f q=%2i sim pt=%6.1f q=%2i flip=%2i \n",1./Par[iC].ConstAt(0, 0, 3),chi2,ptin,Chg.ConstAt(0, 0, 0),
+	   ev->simTracks_[Label.ConstAt(0, 0, 0)].pT(),ev->simTracks_[Label.ConstAt(0, 0, 0)].charge(),std::abs(Chg.ConstAt(0, 0, 0)-ev->simTracks_[Label.ConstAt(0, 0, 0)].charge())/2);
   }
-  // XXXXX What's with chi2?
+
+  std::cout << "found track with pt: " << 1./Par[iC].ConstAt(0, 0, 3) << " chi2: " << chi2
+	    << " delta(pT)/sim_pT: " << ((1./Par[iC].ConstAt(0, 0, 3))-ev->simTracks_[Label.ConstAt(0, 0, 0)].pT())/ev->simTracks_[Label.ConstAt(0, 0, 0)].pT()
+	    << " fitted hits: " << hitcount<< std::endl;
 }
 
 void MkFitter::OutputTracks(std::vector<Track>& tracks, int beg, int end, int iCP) const

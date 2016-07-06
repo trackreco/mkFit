@@ -1090,7 +1090,7 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 #pragma simd
    for (int n = 0; n < NN; ++n) {
      msZ.At(n, 0, 0) = msPar.ConstAt(n, 2, 0);
-     if (Config::useCMSGeom) {
+     if (Config::useCMSGeom || Config::readCmsswSeeds) {
        msRad.At(n, 0, 0) = hipo(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
        hitsRl.At(n, 0, 0) = getRlVal(msRad.ConstAt(n, 0, 0), msPar.ConstAt(n, 2, 0));
        hitsXi.At(n, 0, 0) = getXiVal(msRad.ConstAt(n, 0, 0), msPar.ConstAt(n, 2, 0));
@@ -1123,7 +1123,7 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    MultHelixPropEndcap      (errorProp, outErr, temp);
    MultHelixPropTranspEndcap(errorProp, temp,   outErr);
 
-   if (Config::useCMSGeom) {//fixme
+   if (Config::useCMSGeom || Config::readCmsswSeeds) {
      applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);
    }
 

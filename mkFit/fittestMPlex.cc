@@ -123,7 +123,7 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
      mkfp_arr[i] = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Nhits);
    }
 
-   int theEnd = simtracks.size();
+   int theEnd = ( (Config::endcapTest && Config::readCmsswSeeds) ? ev.seedTracks_.size() : simtracks.size());
 
 #ifdef USE_VTUNE_PAUSE
    __itt_resume();
@@ -138,11 +138,19 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 
       MkFitter *mkfp = mkfp_arr[omp_get_thread_num()];
 
-      if (Config::endcapTest) mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
-      else mkfp->SlurpInTracksAndHits(simtracks, ev.layerHits_, itrack, end); //fixme, why this one crashes for endcap?
+      if (Config::endcapTest) {
+	if (Config::readCmsswSeeds) {
+	  mkfp->InputSeedsTracksAndHits(ev.seedTracks_,simtracks, ev.layerHits_, itrack, end);
+	} else {
+	  mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
+	}
+	mkfp->FitTracksTestEndcap(end - itrack, &ev);
+      } else {
+	mkfp->SlurpInTracksAndHits(simtracks, ev.layerHits_, itrack, end); //fixme, why this one crashes for endcap?
 
-      if (Config::cf_fitting) mkfp->ConformalFitTracks(true, itrack, end);
-      mkfp->FitTracks(end - itrack);
+	if (Config::cf_fitting) mkfp->ConformalFitTracks(true, itrack, end);
+	mkfp->FitTracks(end - itrack);
+      }
 
 #ifndef NO_ROOT
       mkfp->OutputFittedTracks(rectracks, itrack, end);
