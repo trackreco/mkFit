@@ -58,8 +58,12 @@ public:
   float einvpT()  const {return std::sqrt(errors.At(3,3));}
   float emomPhi() const {return std::sqrt(errors.At(4,4));}
   float etheta()  const {return std::sqrt(errors.At(5,5));}
-  float epT()     const {return std::sqrt(errors.At(3,3))/(parameters.At(3)*parameters.At(3));}//fixme: double check
-  float emomEta() const {return std::sqrt(errors.At(5,5))/std::sin(parameters.At(5));}//fixme: double check
+  float epT()     const {return std::sqrt(errors.At(3,3))/(parameters.At(3)*parameters.At(3));}
+  float emomEta() const {return std::sqrt(errors.At(5,5))/std::sin(parameters.At(5));}
+  float epxpx()   const {return std::sqrt(getPxPxErr2(invpT(),momPhi(),errors.At(3,3),errors.At(4,4)));}
+  float epypy()   const {return std::sqrt(getPyPyErr2(invpT(),momPhi(),errors.At(3,3),errors.At(4,4)));}
+  float epzpz()   const {return std::sqrt(getPyPyErr2(invpT(),theta(),errors.At(3,3),errors.At(5,5)));}
+  // special note: KPM --> do not need cross terms in jacobian anymore, don't store them in validation anyways
 
 #else
   float px()     const {return parameters.At(3);}

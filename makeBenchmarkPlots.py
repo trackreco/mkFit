@@ -2,35 +2,46 @@ import os.path, glob, sys
 import ROOT
 import array
 
-if len(sys.argv)!=2: exit
+if len(sys.argv)<2 or len(sys.argv)>3: exit
 
 hORm = sys.argv[1]
 
-if hORm!='host' and hORm!='mic': exit
+isCMSSW = False
+if len(sys.argv)>2:
+    if sys.argv[2]=="cmssw": isCMSSW=True
+    else: exit
+
+if hORm!='host' and hORm!='host_endcap' and hORm!='mic' and hORm!='mic_endcap': exit
 
 g = ROOT.TFile('benchmark_'+hORm+'.root',"recreate")
 
 for test in ['BH','CE','CEST','ST','TBBST','FIT']:
+    if isCMSSW and test=='FIT': continue
+    if 'endcap' in hORm and 'FIT' not in test: continue
     print test
     pos = 14
-    ntks = '20k'
+    ntks = '10x20k'
+    nevt = 10.
+    if isCMSSW:
+        ntks = '100xTTbarPU35'
+        nevt = 100.
     if 'BH' in test: pos = 8
     if 'TBB' in test: pos = 17
     if 'ST' == test: pos = 11
     if 'FIT' in test: 
         pos = 3
-        ntks = '1M'
+        ntks = '10x1M'
     g_VU = ROOT.TGraph(4)
     g_VU_speedup = ROOT.TGraph(4)
     point = 0
     vuvals = ['1','2','4','8']
-    if hORm == 'mic': 
+    if 'mic' in hORm: 
         vuvals.append('16')
         vuvals.append('16int')
     else:
         vuvals.append('8int')
     for vu in vuvals:
-        os.system('grep Matriplex log_'+hORm+'_10x'+ntks+'_'+test+'_NVU'+vu+'_NTH1.txt >& log_'+hORm+'_10x'+ntks+'_'+test+'_VU.txt')
+        os.system('grep Matriplex log_'+hORm+'_'+ntks+'_'+test+'_NVU'+vu+'_NTH1.txt >& log_'+hORm+'_'+ntks+'_'+test+'_VU.txt')
         if vu == '16int':
             xval = 16.0
         elif vu == '8int':
@@ -39,7 +50,7 @@ for test in ['BH','CE','CEST','ST','TBBST','FIT']:
             xval = float(vu)
         yval = 0.
         firstFound = False
-        with open('log_'+hORm+'_10x'+ntks+'_'+test+'_VU.txt') as f:
+        with open('log_'+hORm+'_'+ntks+'_'+test+'_VU.txt') as f:
             for line in f:
                 if 'Matriplex' not in line: continue
                 if 'Total' in line: continue
@@ -54,7 +65,7 @@ for test in ['BH','CE','CEST','ST','TBBST','FIT']:
                         firstFound = True
                         continue
                     yval = yval+float(lsplit[pos])
-        if 'FIT' not in test: yval = 10.*yval/9.
+        if 'FIT' not in test: yval = nevt*yval/(nevt-1.)
         print xval, yval
         g_VU.SetPoint(point,xval,yval)
         point = point+1
@@ -75,18 +86,18 @@ for test in ['BH','CE','CEST','ST','TBBST','FIT']:
 
     point = 0
     nvu = '8int'
-    if hORm == 'mic': nvu = '16int'
+    if 'mic' in hORm: nvu = '16int'
     thvals = [1,3,7,21]
     if 'TBB' in test or 'BH' in test : thvals = [1,3,7,10,12,14,16,21]
-    if hORm == 'mic': thvals = [1,3,7,21,42,63,84,105,126,147,168,189,210]
+    if 'mic' in hORm: thvals = [1,3,7,21,42,63,84,105,126,147,168,189,210]
     g_TH = ROOT.TGraph(len(thvals))
     g_TH_speedup = ROOT.TGraph(len(thvals))
     for th in thvals:
-        os.system('grep Matriplex log_'+hORm+'_10x'+ntks+'_'+test+'_NVU'+nvu+'_NTH'+str(th)+'.txt >& log_'+hORm+'_10x'+ntks+'_'+test+'_TH.txt')
+        os.system('grep Matriplex log_'+hORm+'_'+ntks+'_'+test+'_NVU'+nvu+'_NTH'+str(th)+'.txt >& log_'+hORm+'_'+ntks+'_'+test+'_TH.txt')
         xval = float(th)
         yval = 0.
         firstFound = False
-        with open('log_'+hORm+'_10x'+ntks+'_'+test+'_TH.txt') as f:
+        with open('log_'+hORm+'_'+ntks+'_'+test+'_TH.txt') as f:
             for line in f:
                 if 'Matriplex' not in line: continue
                 if 'Total' in line: continue
@@ -101,7 +112,7 @@ for test in ['BH','CE','CEST','ST','TBBST','FIT']:
                         firstFound = True
                         continue
                     yval = yval+float(lsplit[pos])
-        if 'FIT' not in test: yval = 10.*yval/9.
+        if 'FIT' not in test: yval = nevt*yval/(nevt-1.)
         print xval, yval
         g_TH.SetPoint(point,xval,yval)
         point = point+1

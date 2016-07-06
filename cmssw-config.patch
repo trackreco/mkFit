@@ -49,8 +49,8 @@ index 7e67414..241fa70 100644
 -  constexpr float chi2Cut = 15.;// default: 15.; cmssw tests: 30.
 +  constexpr float chi2Cut = 30.;// default: 15.; cmssw tests: 30.
    constexpr float nSigma  = 3.;
--  constexpr float minDPhi = 0.;// default: 0.;  cmssw tests: 0.02;
-+  constexpr float minDPhi = 0.02;// default: 0.;  cmssw tests: 0.02;
+-  constexpr float minDPhi = 0.;// default: 0.;  cmssw tests: 0.01;
++  constexpr float minDPhi = 0.01;// default: 0.;  cmssw tests: 0.01;
    constexpr float maxDPhi = Config::PI;
    constexpr float minDEta = 0.;
    constexpr float maxDEta = 1.0;
