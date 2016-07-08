@@ -96,9 +96,13 @@ public:
 
   void PropagateTracksToR(float R, const int N_proc);
 
+  void PropagateTracksToZ(float Z, const int N_proc);
+
   void SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_proc, bool dump=false);
+  void SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits, const int N_proc, bool dump=false);
 
   void AddBestHit      (const LayerOfHits &layer_of_hits, const int N_proc);
+  void AddBestHitEndcap(const LayerOfHits &layer_of_hits, const int N_proc);
 
   void FindCandidates(const LayerOfHits &layer_of_hits, std::vector<std::vector<Track> >& tmp_candidates,
                       const int offset, const int N_proc);

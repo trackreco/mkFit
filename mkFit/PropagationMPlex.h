@@ -39,6 +39,11 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 			          MPlexLS &outErr,       MPlexLV& outPar,
                             const int      N_proc);
 
+void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
+                            const MPlexQI &inChg,  const float    z,
+			          MPlexLS &outErr,       MPlexLV& outPar,
+                            const int      N_proc);
+
 void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg,
 	            MPlexLV& outPar, const MPlexQF &msZ,
 	            MPlexLL& errorProp,

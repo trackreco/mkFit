@@ -73,7 +73,8 @@ double runBuildingTestPlexBestHit(Event& ev)
 {
   MkBuilder builder;
 
-  builder.begin_event(&ev, 0, __func__);
+  if (Config::endcapTest) builder.begin_event_endcap(&ev, 0, __func__);
+  else builder.begin_event(&ev, 0, __func__);
 
   builder.fit_seeds_tbb();
 
@@ -86,7 +87,8 @@ double runBuildingTestPlexBestHit(Event& ev)
 
   double time = dtime();
 
-  builder.FindTracksBestHit(event_of_cands);
+  if (Config::endcapTest) builder.FindTracksBestHitEndcap(event_of_cands);
+  else builder.FindTracksBestHit(event_of_cands);
 
   time = dtime() - time;
 

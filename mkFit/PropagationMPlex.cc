@@ -1084,20 +1084,105 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    MPlexLL errorProp;
 
    MPlexQF msZ;
-   MPlexQF msRad;
-   MPlexQF hitsRl;
-   MPlexQF hitsXi;
+   // MPlexQF msRad;
+   // MPlexQF hitsRl;
+   // MPlexQF hitsXi;
 #pragma simd
    for (int n = 0; n < NN; ++n) {
      msZ.At(n, 0, 0) = msPar.ConstAt(n, 2, 0);
-     if (Config::useCMSGeom || Config::readCmsswSeeds) {
-       msRad.At(n, 0, 0) = hipo(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
-       hitsRl.At(n, 0, 0) = getRlVal(msRad.ConstAt(n, 0, 0), msPar.ConstAt(n, 2, 0));
-       hitsXi.At(n, 0, 0) = getXiVal(msRad.ConstAt(n, 0, 0), msPar.ConstAt(n, 2, 0));
-     }
+     // if (Config::useCMSGeom || Config::readCmsswSeeds) {
+     //   msRad.At(n, 0, 0) = hipo(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
+     //   hitsRl.At(n, 0, 0) = getRlVal(msRad.ConstAt(n, 0, 0), msPar.ConstAt(n, 2, 0));
+     //   hitsXi.At(n, 0, 0) = getXiVal(msRad.ConstAt(n, 0, 0), msPar.ConstAt(n, 2, 0));
+     // }
    }
 
    helixAtZ(inPar, inChg, outPar, msZ, errorProp, N_proc);
+
+#ifdef DEBUG
+   {
+     for (int kk = 0; kk < N_proc; ++kk)
+     {
+       dprintf("inErr %d\n", kk);
+       for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+           dprintf("%8f ", inErr.ConstAt(kk,i,j)); printf("\n");
+       } dprintf("\n");
+
+       dprintf("errorProp %d\n", kk);
+       for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+           dprintf("%8f ", errorProp.At(kk,i,j)); printf("\n");
+       } dprintf("\n");
+
+     }
+   }
+#endif
+
+   // Matriplex version of:
+   // result.errors = ROOT::Math::Similarity(errorProp, outErr);
+   MPlexLL temp;
+   MultHelixPropEndcap      (errorProp, outErr, temp);
+   MultHelixPropTranspEndcap(errorProp, temp,   outErr);
+
+   // if (Config::useCMSGeom || Config::readCmsswSeeds) {
+   //   applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);
+   // }
+
+   // This dump is now out of its place as similarity is done with matriplex ops.
+#ifdef DEBUG
+   {
+     for (int kk = 0; kk < N_proc; ++kk)
+     {
+       dprintf("outErr %d\n", kk);
+       for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+           dprintf("%8f ", outErr.At(kk,i,j)); printf("\n");
+       } dprintf("\n");
+
+       dprintf("outPar %d\n", kk);
+       for (int i = 0; i < 6; ++i) {
+           dprintf("%8f ", outPar.At(kk,i,0)); printf("\n");
+       } dprintf("\n");
+       if (std::abs(outPar.At(kk,2,0)-msPar.ConstAt(kk, 2, 0))>0.0001) {
+	 dprint_np(kk, "DID NOT GET TO Z, dZ=" << std::abs(outPar.At(kk,2,0)-msPar.ConstAt(kk, 2, 0))
+		   << " z=" << msPar.ConstAt(kk, 2, 0) << " zin=" << inPar.ConstAt(kk,2,0) << " zout=" << outPar.At(kk,2,0) << std::endl
+		   << "pt=" << hipo(inPar.ConstAt(kk,3,0), inPar.ConstAt(kk,4,0)) << " pz=" << inPar.ConstAt(kk,5,0));
+       }
+     }
+   }
+#endif
+}
+
+
+void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
+                            const MPlexQI &inChg,  const float z,
+			          MPlexLS &outErr,       MPlexLV& outPar,
+                            const int      N_proc)
+{
+   const idx_t N  = NN;
+
+   outErr = inErr;
+   outPar = inPar;
+
+   MPlexLL errorProp;
+
+   MPlexQF msZ;
+#pragma simd
+   for (int n = 0; n < NN; ++n) {
+     msZ.At(n, 0, 0) = (inPar.ConstAt(n, 2, 0) > 0) ? z : -z;
+   }
+
+   helixAtZ(inPar, inChg, outPar, msZ, errorProp, N_proc);
+
+     MPlexQF msRad;
+     MPlexQF hitsRl;
+     MPlexQF hitsXi;
+     if (Config::useCMSGeom || Config::readCmsswSeeds) {
+#pragma simd
+       for (int n = 0; n < NN; ++n) {
+	 msRad.At(n, 0, 0) = hipo(outPar.ConstAt(n, 0, 0), outPar.ConstAt(n, 1, 0));
+	 hitsRl.At(n, 0, 0) = getRlVal(msRad.ConstAt(n, 0, 0), z);
+	 hitsXi.At(n, 0, 0) = getXiVal(msRad.ConstAt(n, 0, 0), z);
+       }
+     }
 
 #ifdef DEBUG
    {

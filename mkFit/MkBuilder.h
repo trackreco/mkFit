@@ -91,6 +91,7 @@ class MkBuilder
 {
 private:
   void fit_one_seed_set(TrackVec& simtracks, int itrack, int end, MkFitter *mkfp);
+  void fit_one_seed_set_endcap(TrackVec& simtracks, int itrack, int end, MkFitter *mkfp);
 
   Event         *m_event;
   EventTmp      *m_event_tmp;
@@ -109,6 +110,7 @@ public:
   // --------
 
   void begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type);
+  void begin_event_endcap(Event* ev, EventTmp* ev_tmp, const char* build_type);
 
   void fit_seeds();
   void fit_seeds_tbb();
@@ -133,6 +135,7 @@ public:
   // --------
 
   void FindTracksBestHit(EventOfCandidates& event_of_cands);
+  void FindTracksBestHitEndcap(EventOfCandidates& event_of_cands);
   void FindTracks();
   void FindTracksCloneEngine();
   void FindTracksCloneEngineTbb();

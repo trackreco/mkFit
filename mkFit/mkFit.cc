@@ -42,10 +42,18 @@ void initGeom(Geometry& geom)
   // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
   float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
   for (int l = 0; l < Config::nLayers; l++) {
-    float r = Config::useCMSGeom ? Config::cmsAvgRads[l] : (l+1)*Config::fRadialSpacing;
-    VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent);
-    float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
-    geom.AddLayer(utub, r, z);
+    if (Config::endcapTest) {
+      float z = Config::useCMSGeom ? Config::cmsAvgZs[l] : (l+1)*10.;//Config::fLongitSpacing
+      float rmin = Config::useCMSGeom ? Config::cmsDiskMinRs[l] : 0;
+      float rmax = Config::useCMSGeom ? Config::cmsDiskMaxRs[l] : 0;
+      VUSolid* utub = new VUSolid(rmin, rmax);
+      geom.AddLayer(utub, rmin, z);
+    } else {
+      float r = Config::useCMSGeom ? Config::cmsAvgRads[l] : (l+1)*Config::fRadialSpacing;
+      VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent);
+      float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
+      geom.AddLayer(utub, r, z);
+    }
   }
 }
 

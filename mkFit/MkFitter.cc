@@ -94,9 +94,11 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
       const int hidx = trk.getHitIdx(hi);
       const Hit &hit = layerHits[hi][hidx];
 
+      HitsIdx[hi](itrack, 0, 0) = hidx;
+      if (hidx<0) continue;
+
       msErr[hi].CopyIn(itrack, hit.errArray());
       msPar[hi].CopyIn(itrack, hit.posArray());
-      HitsIdx[hi](itrack, 0, 0) = hidx;
     }
 #endif
   }
@@ -533,7 +535,6 @@ void MkFitter::PropagateTracksToR(float R, const int N_proc)
     propagateHelixToRMPlex(Err[iC], Par[iC], Chg, R,
                            Err[iP], Par[iP], N_proc);
 }
-
 
 void MkFitter::SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_proc, bool dump)
 {
@@ -1288,4 +1289,321 @@ void MkFitter::CopyOutParErr(std::vector<std::vector<Track> >& seed_cand_vec,
               << " posEta=" << cand.posEta()
               << " etaBin=" << getEtaBin(cand.posEta()));
   }
+}
+
+
+
+//-----------------------------------------------------------------------------------------//
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
+//-----------------------------------------------------------------------------------------//
+// Endcap section: duplicate functions for now, cleanup and merge once strategy sorted out //
+//-----------------------------------------------------------------------------------------//
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
+//-----------------------------------------------------------------------------------------//
+
+void MkFitter::PropagateTracksToZ(float Z, const int N_proc)
+{
+    propagateHelixToZMPlex(Err[iC], Par[iC], Chg, Z,
+                           Err[iP], Par[iP], N_proc);
+}
+
+void MkFitter::SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits, const int N_proc, bool dump)
+{
+  const int   iI = iP;
+  const float nSigmaPhi = 3;
+  const float nSigmaR   = 3;
+
+  //dump = true;
+
+  // Vectorizing this makes it run slower!
+  //#pragma ivdep
+  //#pragma simd
+  for (int itrack = 0; itrack < N_proc; ++itrack)
+  {
+    XHitSize[itrack] = 0;
+
+    float r, phi, dr, dphi;
+    {
+      const float x = Par[iI].ConstAt(itrack, 0, 0);
+      const float y = Par[iI].ConstAt(itrack, 1, 0);
+
+      const float r2 = x*x + y*y;
+      r  = std::sqrt(r2);
+
+      phi = getPhi(x, y);
+      dr  = nSigmaR*(x*x*Err[iI].ConstAt(itrack, 0, 0) + y*y*Err[iI].ConstAt(itrack, 1, 1) + 2*x*y*Err[iI].ConstAt(itrack, 0, 1))/r2;
+
+      const float dphidx = -y/r2, dphidy = x/r2;
+      const float dphi2  = dphidx * dphidx * Err[iI].ConstAt(itrack, 0, 0) +
+                           dphidy * dphidy * Err[iI].ConstAt(itrack, 1, 1) +
+                       2 * dphidx * dphidy * Err[iI].ConstAt(itrack, 0, 1);
+
+#ifdef HARD_CHECK
+      assert(dphi2 >= 0);
+#endif
+
+      dphi = nSigmaPhi * std::sqrt(std::abs(dphi2));
+
+      if (std::abs(dphi)<Config::minDPhi) dphi = Config::minDPhi;
+//       if (std::abs(dz)<Config::minDZ) dz = Config::minDZ;
+
+      if (Config::useCMSGeom)
+      {
+        //now correct for bending and for layer thickness unsing linear approximation
+        const float deltaZ = 5; //fixme! using constant value, to be taken from layer properties
+#ifdef CCSCOORD
+	float cosT = std::cos(Par[iI].ConstAt(itrack, 5, 0));
+	float sinT = std::sin(Par[iI].ConstAt(itrack, 5, 0));
+	//here alpha is the helix angular path corresponding to deltaZ
+	const float k = Chg.ConstAt(itrack, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
+	const float alpha  = deltaZ*sinT*Par[iI].ConstAt(itrack, 3, 0)/(cosT*k);
+#else
+	assert(0);
+#endif
+        dphi += std::abs(alpha);
+      }
+    }
+
+    const LayerOfHits &L = layer_of_hits;
+
+    // if (std::abs(dz)   > Config::m_max_dz)   dz   = Config::m_max_dz;
+    if (std::abs(dphi) > Config::m_max_dphi) dphi = Config::m_max_dphi;
+
+    const int rb1 = L.GetRBinChecked(r - dr);
+    const int rb2 = L.GetRBinChecked(r + dr) + 1;
+    const int pb1 = L.GetPhiBin(phi - dphi);
+    const int pb2 = L.GetPhiBin(phi + dphi) + 1;
+    // MT: The extra phi bins give us ~1.5% more good tracks at expense of 10% runtime.
+    // const int pb1 = L.GetPhiBin(phi - dphi) - 1;
+    // const int pb2 = L.GetPhiBin(phi + dphi) + 2;
+
+    if (dump)
+      printf("LayerOfHits::SelectHitIndices %6.3f %6.3f %6.4f %7.5f %3d %3d %4d %4d\n",
+             r, phi, dr, dphi, rb1, rb2, pb1, pb2);
+
+    // MT: One could iterate in "spiral" order, to pick hits close to the center.
+    // http://stackoverflow.com/questions/398299/looping-in-a-spiral
+    // This would then work best with relatively small bin sizes.
+    // Or, set them up so I can always take 3x3 array around the intersection.
+
+    for (int ri = rb1; ri < rb2; ++ri)
+    {
+      for (int pi = pb1; pi < pb2; ++pi)
+      {
+        const int pb = pi & L.m_phi_mask;
+
+        // MT: The following line is the biggest hog (4% total run time).
+        // This comes from cache misses, I presume.
+        // It might make sense to make first loop to extract bin indices
+        // and issue prefetches at the same time.
+        // Then enter vectorized loop to actually collect the hits in proper order.
+
+        for (int hi = L.m_phi_bin_infos[ri][pb].first; hi < L.m_phi_bin_infos[ri][pb].second; ++hi)
+        {
+          // MT: Access into m_hit_zs and m_hit_phis is 1% run-time each.
+
+#ifdef LOH_USE_PHI_Z_ARRAYS
+          float ddz   = std::abs(z   - L.m_hit_zs[hi]);
+          float ddphi = std::abs(phi - L.m_hit_phis[hi]);
+          if (ddphi > Config::PI) ddphi = Config::TwoPI - ddphi;
+
+          if (dump)
+            printf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
+                   ri, pi, pb, hi,
+                   L.m_hit_zs[hi], L.m_hit_phis[hi], ddz, ddphi,
+                   (ddz < dz && ddphi < dphi) ? "PASS" : "FAIL");
+
+          // MT: Commenting this check out gives full efficiency ...
+          //     and means our error estimations are wrong!
+          // Avi says we should have *minimal* search windows per layer.
+          // Also ... if bins are sufficiently small, we do not need the extra
+          // checks, see above.
+          // if (ddz < dz && ddphi < dphi && XHitSize[itrack] < MPlexHitIdxMax)
+#endif
+          // MT: The following check also makes more sense with spiral traversal,
+          // we'd be taking in closest hits first.
+          if (XHitSize[itrack] < MPlexHitIdxMax)
+          {
+            XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
+          }
+        }
+      }
+    }
+  }
+}
+void MkFitter::AddBestHitEndcap(const LayerOfHits &layer_of_hits, const int N_proc)
+{
+  float minChi2[NN];
+  int   bestHit[NN];
+  // MT: fill_n gave me crap on MIC, NN=8,16, doing in maxSize search below.
+  // Must be a compiler issue.
+  // std::fill_n(minChi2, NN, Config::chi2Cut);
+  // std::fill_n(bestHit, NN, -1);
+
+  const char *varr      = (char*) layer_of_hits.m_hits;
+
+  const int   off_error = (char*) layer_of_hits.m_hits[0].errArray() - varr;
+  const int   off_param = (char*) layer_of_hits.m_hits[0].posArray() - varr;
+
+  int idx[NN]      __attribute__((aligned(64)));
+
+  int maxSize = 0;
+
+  // Determine maximum number of hits for tracks in the collection.
+  // At the same time prefetch the first set of hits to L1 and the second one to L2.
+  for (int it = 0; it < NN; ++it)
+  {
+    if (it < N_proc)
+    {
+      if (XHitSize[it] > 0)
+      {
+#ifndef NO_PREFETCH
+        _mm_prefetch(varr + XHitArr.At(it, 0, 0) * sizeof(Hit), _MM_HINT_T0);
+	if (XHitSize[it] > 1)
+	{
+	  _mm_prefetch(varr + XHitArr.At(it, 1, 0) * sizeof(Hit), _MM_HINT_T1);
+        }
+#endif
+        maxSize = std::max(maxSize, XHitSize[it]);
+      }
+    }
+
+    idx[it]     = 0;
+    bestHit[it] = -1;
+    minChi2[it] = Config::chi2Cut;
+  }
+
+// Has basically no effect, it seems.
+//#pragma noprefetch
+  for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
+  {
+    //fixme what if size is zero???
+
+#pragma simd
+    for (int itrack = 0; itrack < N_proc; ++itrack)
+    {
+      if (hit_cnt < XHitSize[itrack])
+      {
+        idx[itrack] = XHitArr.At(itrack, hit_cnt, 0) * sizeof(Hit);
+      }
+    }
+#if defined(MIC_INTRINSICS)
+    __m512i vi = _mm512_load_epi32(idx);
+#endif
+
+#ifndef NO_PREFETCH
+    // Prefetch to L2 the hits we'll process after two loops iterations.
+    // Ideally this would be initiated before coming here, for whole bunch_of_hits.m_hits vector.
+    for (int itrack = 0; itrack < N_proc; ++itrack)
+    {
+      if (hit_cnt + 2 < XHitSize[itrack])
+      {
+        _mm_prefetch(varr + XHitArr.At(itrack, hit_cnt+2, 0)*sizeof(Hit), _MM_HINT_T1);
+      }
+    }
+#endif
+
+#ifdef NO_GATHER
+
+#pragma simd
+    for (int itrack = 0; itrack < N_proc; ++itrack)
+    {
+      if (hit_cnt < XHitSize[itrack])
+      {
+        const Hit &hit = layer_of_hits.m_hits[XHitArr.At(itrack, hit_cnt, 0)];
+        msErr[Nhits].CopyIn(itrack, hit.errArray());
+        msPar[Nhits].CopyIn(itrack, hit.posArray());
+      }
+    }
+
+#else //NO_GATHER
+
+#if defined(MIC_INTRINSICS)
+    msErr[Nhits].SlurpIn(varr + off_error, vi);
+    msPar[Nhits].SlurpIn(varr + off_param, vi);
+#else
+    msErr[Nhits].SlurpIn(varr + off_error, idx);
+    msPar[Nhits].SlurpIn(varr + off_param, idx);
+#endif
+#endif //NO_GATHER
+
+    //now compute the chi2 of track state vs hit
+    MPlexQF outChi2;
+    computeChi2EndcapMPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits], outChi2, N_proc);
+
+#ifndef NO_PREFETCH
+    // Prefetch to L1 the hits we'll process in the next loop iteration.
+    for (int itrack = 0; itrack < N_proc; ++itrack)
+    {
+      if (hit_cnt + 1 < XHitSize[itrack])
+      {
+        _mm_prefetch(varr + XHitArr.At(itrack, hit_cnt+1, 0)*sizeof(Hit), _MM_HINT_T0);
+      }
+    }
+#endif
+
+    //update best hit in case chi2<minChi2
+#pragma simd
+    for (int itrack = 0; itrack < N_proc; ++itrack)
+    {
+      if (hit_cnt < XHitSize[itrack])
+      {
+        const float chi2 = std::abs(outChi2[itrack]);//fixme negative chi2 sometimes...
+        dprint("chi2=" << chi2 << " minChi2[itrack]=" << minChi2[itrack]);
+        if (chi2 < minChi2[itrack])
+        {
+          minChi2[itrack] = chi2;
+          bestHit[itrack] = XHitArr.At(itrack, hit_cnt, 0);
+        }
+      }
+    }
+  } // end loop over hits
+
+  //copy in MkFitter the hit with lowest chi2
+  for (int itrack = 0; itrack < N_proc; ++itrack)
+  {
+    if (bestHit[itrack] >= 0)
+    {
+      _mm_prefetch( (const char*) & layer_of_hits.m_hits[ bestHit[itrack] ], _MM_HINT_T0);
+    }
+  }
+
+#pragma simd
+  for (int itrack = 0; itrack < N_proc; ++itrack)
+  {
+    //fixme decide what to do in case no hit found
+    if (bestHit[itrack] >= 0)
+    {
+      const Hit &hit  = layer_of_hits.m_hits[ bestHit[itrack] ];
+      const float chi2 = minChi2[itrack];
+
+      dprint("ADD BEST HIT FOR TRACK #" << itrack << std::endl
+        << "prop x=" << Par[iP].ConstAt(itrack, 0, 0) << " y=" << Par[iP].ConstAt(itrack, 1, 0) << std::endl
+        << "copy in hit #" << bestHit[itrack] << " x=" << hit.position()[0] << " y=" << hit.position()[1]);
+
+      msErr[Nhits].CopyIn(itrack, hit.errArray());
+      msPar[Nhits].CopyIn(itrack, hit.posArray());
+      Chi2(itrack, 0, 0) += chi2;
+      HitsIdx[Nhits](itrack, 0, 0) = bestHit[itrack];
+    }
+    else
+    {
+      dprint("ADD FAKE HIT FOR TRACK #" << itrack);
+
+      msErr[Nhits].SetDiagonal3x3(itrack, 666);
+      msPar[Nhits](itrack,0,0) = Par[iP](itrack,0,0);
+      msPar[Nhits](itrack,1,0) = Par[iP](itrack,1,0);
+      msPar[Nhits](itrack,2,0) = Par[iP](itrack,2,0);
+      HitsIdx[Nhits](itrack, 0, 0) = -1;
+
+      // Don't update chi2
+    }
+  }
+
+  //now update the track parameters with this hit (note that some calculations are already done when computing chi2... not sure it's worth caching them?)
+  dprint("update parameters");
+  updateParametersEndcapMPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits],
+			      Err[iC], Par[iC], N_proc);
+
+  //std::cout << "Par[iP](0,0,0)=" << Par[iP](0,0,0) << " Par[iC](0,0,0)=" << Par[iC](0,0,0)<< std::endl;
 }

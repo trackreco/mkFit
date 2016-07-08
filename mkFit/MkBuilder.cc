@@ -834,7 +834,8 @@ void MkBuilder::fit_seeds_tbb()
       std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
       for (int it = i.begin(); it < i.end(); ++it)
       {
-        fit_one_seed_set(simtracks, it*NN, std::min((it+1)*NN, theEnd), mkfp.get());
+        if (Config::endcapTest) fit_one_seed_set_endcap(simtracks, it*NN, std::min((it+1)*NN, theEnd), mkfp.get());
+	else fit_one_seed_set(simtracks, it*NN, std::min((it+1)*NN, theEnd), mkfp.get());
       }
     }
   );
@@ -868,4 +869,124 @@ void MkBuilder::FindTracksCloneEngineTbb()
       });
     }
   });
+}
+
+
+//-----------------------------------------------------------------------------------------//
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
+//-----------------------------------------------------------------------------------------//
+// Endcap section: duplicate functions for now, cleanup and merge once strategy sorted out //
+//-----------------------------------------------------------------------------------------//
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
+//-----------------------------------------------------------------------------------------//
+
+void MkBuilder::begin_event_endcap(Event* ev, EventTmp* ev_tmp, const char* build_type)
+{
+
+  m_event     = ev;
+  m_event_tmp = ev_tmp;
+
+  std::vector<Track>& simtracks = m_event->simTracks_;
+
+  dprint("Building tracks with '" << build_type << "', total simtracks=" << simtracks.size());
+
+  m_event_of_hits.Reset();
+
+  //fill vector of hits in each layer
+  for (int ilay = 0; ilay < m_event->layerHits_.size(); ++ilay)
+  {
+    dprintf("Suck in Hits for layer %i with AvgZ=%5.1f rMin=%5.1f rMax=%5.1f",ilay,Config::cmsAvgZs[ilay],Config::cmsDiskMinRs[ilay],Config::cmsDiskMaxRs[ilay]);
+    m_event_of_hits.SuckInHitsEndcap(m_event->layerHits_[ilay], ilay);
+  }
+
+  for (int l=0; l<m_event_of_hits.m_layers_of_hits.size(); ++l) {
+    for (int ih=0; ih<m_event_of_hits.m_layers_of_hits[l].m_capacity; ++ih) {
+      dprint("disk=" << l << " ih=" << ih << " z=" << m_event_of_hits.m_layers_of_hits[l].m_hits[ih].z() << " r=" << m_event_of_hits.m_layers_of_hits[l].m_hits[ih].r()
+		<< " rbin=" << m_event_of_hits.m_layers_of_hits[l].GetRBinChecked(m_event_of_hits.m_layers_of_hits[l].m_hits[ih].r())
+	        << " phibin=" << m_event_of_hits.m_layers_of_hits[l].GetPhiBin(m_event_of_hits.m_layers_of_hits[l].m_hits[ih].phi()));
+    }
+  }
+
+  if (Config::readCmsswSeeds==false) m_event->seedTracks_.resize(simtracks.size());
+}
+
+
+inline void MkBuilder::fit_one_seed_set_endcap(TrackVec& simtracks, int itrack, int end, MkFitter *mkfp)
+{
+  mkfp->SetNhits(2); //note this is 2 instead of 3 since we ignore PXB1
+  mkfp->InputTracksAndHits(simtracks, m_event->layerHits_, itrack, end);
+  if (Config::cf_seeding) mkfp->ConformalFitTracks(false, itrack, end);
+  if (Config::readCmsswSeeds==false) mkfp->FitTracks(end - itrack);
+
+  const int ilay = 2; // layer 3, we ignore PXB1
+
+  dcall(pre_prop_print(ilay, mkfp));
+  mkfp->PropagateTracksToZ(m_event->geom_.zPlane(ilay), end - itrack);
+  dcall(post_prop_print(ilay, mkfp));
+
+  mkfp->OutputFittedTracksAndHitIdx(m_event->seedTracks_, itrack, end, true);
+}
+
+void MkBuilder::FindTracksBestHitEndcap(EventOfCandidates& event_of_cands)
+{
+  tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEtaBin),
+    [&](const tbb::blocked_range<int>& ebins)
+  {
+    for (int ebin = ebins.begin(); ebin != ebins.end(); ++ebin) {
+      EtaBinOfCandidates& etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin];
+
+      tbb::parallel_for(tbb::blocked_range<int>(0,etabin_of_candidates.m_fill_index,Config::numSeedsPerTask),
+        [&](const tbb::blocked_range<int>& tracks)
+      {
+        std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
+
+        for (int itrack = tracks.begin(); itrack < tracks.end(); itrack += NN) {
+          int end = std::min(itrack + NN, tracks.end());
+
+          dprint(std::endl << "processing track=" << itrack << " etabin=" << ebin << " findex=" << etabin_of_candidates.m_fill_index);
+
+          mkfp->SetNhits(2);//just to be sure (is this needed?)
+          mkfp->InputTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end, true);
+
+          //ok now we start looping over layers
+          //loop over layers, starting from after the seed
+          //consider inverting loop order and make layer outer, need to trade off hit prefetching with copy-out of candidates
+          for (int ilay = 2; ilay < Config::nLayers; ++ilay)
+          {
+	    dprintf("processing layer %i\n",ilay);
+            LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay];
+
+            // XXX This should actually be done in some other thread for the next layer while
+            // this thread is crunching the current one.
+            // For now it's done in MkFitter::AddBestHit(), two loops before the data is needed.
+            // for (int i = 0; i < bunch_of_hits.m_fill_index; ++i)
+            // {
+            //   _mm_prefetch((char*) & bunch_of_hits.m_hits[i], _MM_HINT_T1);
+            // }
+
+            mkfp->SelectHitIndicesEndcap(layer_of_hits, end - itrack);
+
+// #ifdef PRINTOUTS_FOR_PLOTS
+// 	     std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
+// #endif
+
+            //make candidates with best hit
+            dprint("make new candidates");
+            mkfp->AddBestHitEndcap(layer_of_hits, end - itrack);
+            mkfp->SetNhits(ilay + 1);  //here again assuming one hit per layer (is this needed?)
+
+            //propagate to layer
+            if (ilay + 1 < Config::nLayers)
+            {
+              dcall(pre_prop_print(ilay, mkfp.get()));
+              mkfp->PropagateTracksToZ(m_event->geom_.zPlane(ilay+1), end - itrack);
+              dcall(post_prop_print(ilay, mkfp.get()));
+            }
+
+          } // end of layer loop
+          mkfp->OutputFittedTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end, true);
+        }
+      }); // end of seed loop
+    }
+  }); //end of parallel section over seeds
 }
