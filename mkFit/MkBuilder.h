@@ -137,6 +137,7 @@ public:
   void FindTracksBestHit(EventOfCandidates& event_of_cands);
   void FindTracksBestHitEndcap(EventOfCandidates& event_of_cands);
   void FindTracks();
+  void FindTracksEndcap();
   void FindTracksCloneEngine();
   void FindTracksCloneEngineTbb();
 };

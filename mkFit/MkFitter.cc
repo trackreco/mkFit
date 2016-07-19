@@ -1588,13 +1588,27 @@ void MkFitter::AddBestHitEndcap(const LayerOfHits &layer_of_hits, const int N_pr
     }
     else
     {
-      dprint("ADD FAKE HIT FOR TRACK #" << itrack);
+
+      bool withinBounds = true;
+      float r2 = Par[iP](itrack,0,0)*Par[iP](itrack,0,0)+Par[iP](itrack,1,0)*Par[iP](itrack,1,0);
+      if ( r2<(Config::cmsDiskMinRs[Nhits]*Config::cmsDiskMinRs[Nhits]) ||
+	   r2>(Config::cmsDiskMaxRs[Nhits]*Config::cmsDiskMaxRs[Nhits]) ||
+	   r2>(Config::cmsDiskMinRsHole[Nhits]*Config::cmsDiskMinRsHole[Nhits]) ||
+	   r2<(Config::cmsDiskMaxRsHole[Nhits]*Config::cmsDiskMaxRsHole[Nhits]) ) withinBounds = false;
+
+#ifdef DEBUG
+      r2= std::sqrt(r2);
+#endif
+      dprint("ADD FAKE HIT FOR TRACK #" << itrack << " withinBounds=" << withinBounds << " r=" << r2
+	     << " minR=" << Config::cmsDiskMinRs[Nhits] << " maxR=" << Config::cmsDiskMaxRs[Nhits]
+	     << " minRHole=" << Config::cmsDiskMinRsHole[Nhits] << " maxRHole=" << Config::cmsDiskMaxRsHole[Nhits]);
 
       msErr[Nhits].SetDiagonal3x3(itrack, 666);
       msPar[Nhits](itrack,0,0) = Par[iP](itrack,0,0);
       msPar[Nhits](itrack,1,0) = Par[iP](itrack,1,0);
       msPar[Nhits](itrack,2,0) = Par[iP](itrack,2,0);
-      HitsIdx[Nhits](itrack, 0, 0) = -1;
+      //-3 means we did not expect any hit since we are out of bounds, so it does not count in countInvalidHits
+      HitsIdx[Nhits](itrack, 0, 0) = withinBounds ? -1 : -3;
 
       // Don't update chi2
     }
@@ -1606,4 +1620,178 @@ void MkFitter::AddBestHitEndcap(const LayerOfHits &layer_of_hits, const int N_pr
 			      Err[iC], Par[iC], N_proc);
 
   //std::cout << "Par[iP](0,0,0)=" << Par[iP](0,0,0) << " Par[iC](0,0,0)=" << Par[iC](0,0,0)<< std::endl;
+}
+
+void MkFitter::FindCandidatesEndcap(const LayerOfHits &layer_of_hits,
+				    std::vector<std::vector<Track> >& tmp_candidates,
+				    const int offset, const int N_proc)
+{
+  const char *varr      = (char*) layer_of_hits.m_hits;
+
+  const int   off_error = (char*) layer_of_hits.m_hits[0].errArray() - varr;
+  const int   off_param = (char*) layer_of_hits.m_hits[0].posArray() - varr;
+
+  int idx[NN]      __attribute__((aligned(64)));
+
+  int maxSize = 0;
+
+  // Determine maximum number of hits for tracks in the collection.
+  // At the same time prefetch the first set of hits to L1 and the second one to L2.
+  for (int it = 0; it < NN; ++it)
+  {
+    if (it < N_proc)
+    {
+      if (XHitSize[it] > 0)
+      {
+        _mm_prefetch(varr + XHitArr.At(it, 0, 0) * sizeof(Hit), _MM_HINT_T0);
+        if (XHitSize[it] > 1)
+        {
+          _mm_prefetch(varr + XHitArr.At(it, 1, 0) * sizeof(Hit), _MM_HINT_T1);
+        }
+        maxSize = std::max(maxSize, XHitSize[it]);
+      }
+    }
+
+    idx[it] = 0;
+  }
+
+  // Has basically no effect, it seems.
+  //#pragma noprefetch
+  for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
+  {
+#pragma simd
+    for (int itrack = 0; itrack < N_proc; ++itrack)
+    {
+      if (hit_cnt < XHitSize[itrack])
+      {
+        idx[itrack] = XHitArr.At(itrack, hit_cnt, 0) * sizeof(Hit);
+      }
+    }
+#if defined(MIC_INTRINSICS)
+    __m512i vi = _mm512_load_epi32(idx);
+#endif
+
+    // Prefetch to L2 the hits we'll (probably) process after two loops iterations.
+    // Ideally this would be initiated before coming here, for whole bunch_of_hits.m_hits vector.
+    for (int itrack = 0; itrack < N_proc; ++itrack)
+    {
+      if (hit_cnt + 2 < XHitSize[itrack])
+      {
+        _mm_prefetch(varr + XHitArr.At(itrack, hit_cnt+2, 0)*sizeof(Hit), _MM_HINT_T1);
+      }
+    }
+
+#if defined(MIC_INTRINSICS)
+    msErr[Nhits].SlurpIn(varr + off_error, vi);
+    msPar[Nhits].SlurpIn(varr + off_param, vi);
+#else
+    msErr[Nhits].SlurpIn(varr + off_error, idx);
+    msPar[Nhits].SlurpIn(varr + off_param, idx);
+#endif
+
+    //now compute the chi2 of track state vs hit
+    MPlexQF outChi2;
+    computeChi2EndcapMPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits], outChi2, N_proc);
+
+    // Prefetch to L1 the hits we'll (probably) process in the next loop iteration.
+    for (int itrack = 0; itrack < N_proc; ++itrack)
+    {
+      if (hit_cnt + 1 < XHitSize[itrack])
+      {
+        _mm_prefetch(varr + XHitArr.At(itrack, hit_cnt+1, 0)*sizeof(Hit), _MM_HINT_T0);
+      }
+    }
+
+    //now update the track parameters with this hit (note that some calculations are already done when computing chi2, to be optimized)
+    //this is not needed for candidates the hit is not added to, but it's vectorized so doing it serially below should take the same time
+    //still it's a waste of time in case the hit is not added to any of the candidates, so check beforehand that at least one cand needs update
+    bool oneCandPassCut = false;
+    for (int itrack = 0; itrack < N_proc; ++itrack)
+    {
+      if (hit_cnt < XHitSize[itrack])
+      {
+	const float chi2 = std::abs(outChi2[itrack]);//fixme negative chi2 sometimes...
+	dprint("chi2=" << chi2);
+	if (chi2 < Config::chi2Cut)
+        {
+          oneCandPassCut = true;
+          break;
+        }
+      }
+    }
+
+    if (oneCandPassCut)
+    {
+      updateParametersEndcapMPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits], Err[iC], Par[iC], N_proc);
+      dprint("update parameters" << std::endl
+             << "propagated track parameters x=" << Par[iP].ConstAt(0, 0, 0) << " y=" << Par[iP].ConstAt(0, 1, 0) << std::endl
+             << "               hit position x=" << msPar[Nhits].ConstAt(0, 0, 0) << " y=" << msPar[Nhits].ConstAt(0, 1, 0) << std::endl
+             << "   updated track parameters x=" << Par[iC].ConstAt(0, 0, 0) << " y=" << Par[iC].ConstAt(0, 1, 0));
+
+      //create candidate with hit in case chi2<Config::chi2Cut
+      //fixme: please vectorize me... (not sure it's possible in this case)
+      for (int itrack = 0; itrack < N_proc; ++itrack)
+      {
+        if (hit_cnt < XHitSize[itrack])
+        {
+	  const float chi2 = std::abs(outChi2[itrack]);//fixme negative chi2 sometimes...
+	  dprint("chi2=" << chi2);
+	  if (chi2 < Config::chi2Cut)
+          {
+            dprint("chi2 cut passed, creating new candidate");
+            //create a new candidate and fill the reccands_tmp vector
+            Track newcand;
+            newcand.resetHits();//probably not needed
+            newcand.setCharge(Chg(itrack, 0, 0));
+            newcand.setChi2(Chi2(itrack, 0, 0));
+            for (int hi = 0; hi < Nhits; ++hi)
+            {
+              newcand.addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);//this should be ok since we already set the chi2 above
+            }
+            newcand.addHitIdx(XHitArr.At(itrack, hit_cnt, 0), chi2);
+            newcand.setLabel(Label(itrack, 0, 0));
+            //set the track state to the updated parameters
+            Err[iC].CopyOut(itrack, newcand.errors_nc().Array());
+            Par[iC].CopyOut(itrack, newcand.parameters_nc().Array());
+
+            dprint("updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1]);
+
+            tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
+          }
+	}
+      }
+    }//end if (oneCandPassCut)
+
+  }//end loop over hits
+
+  //now add invalid hit
+  //fixme: please vectorize me...
+  for (int itrack = 0; itrack < N_proc; ++itrack)
+  {
+    int hit_idx = countInvalidHits(itrack) < Config::maxHolesPerCand ? -1 : -2;
+
+    bool withinBounds = true;
+    float r2 = Par[iP](itrack,0,0)*Par[iP](itrack,0,0)+Par[iP](itrack,1,0)*Par[iP](itrack,1,0);
+    if ( r2<(Config::cmsDiskMinRs[Nhits]*Config::cmsDiskMinRs[Nhits]) ||
+	 r2>(Config::cmsDiskMaxRs[Nhits]*Config::cmsDiskMaxRs[Nhits]) ||
+	 r2>(Config::cmsDiskMinRsHole[Nhits]*Config::cmsDiskMinRsHole[Nhits]) ||
+	 r2<(Config::cmsDiskMaxRsHole[Nhits]*Config::cmsDiskMaxRsHole[Nhits]) ) withinBounds = false;
+    //-3 means we did not expect any hit since we are out of bounds, so it does not count in countInvalidHits
+    if (withinBounds==false) hit_idx = -3;
+
+    Track newcand;
+    newcand.resetHits();//probably not needed
+    newcand.setCharge(Chg(itrack, 0, 0));
+    newcand.setChi2(Chi2(itrack, 0, 0));
+    for (int hi = 0; hi < Nhits; ++hi)
+    {
+      newcand.addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);//this should be ok since we already set the chi2 above
+    }
+    newcand.addHitIdx(hit_idx, 0.);
+    newcand.setLabel(Label(itrack, 0, 0));
+    //set the track state to the propagated parameters
+    Err[iP].CopyOut(itrack, newcand.errors_nc().Array());
+    Par[iP].CopyOut(itrack, newcand.parameters_nc().Array());
+    tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
+  }
 }

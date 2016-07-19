@@ -127,7 +127,8 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
 
   MkBuilder builder;
 
-  builder.begin_event(&ev, &ev_tmp, __func__);
+  if (Config::endcapTest) builder.begin_event_endcap(&ev, &ev_tmp, __func__);
+  else builder.begin_event(&ev, &ev_tmp, __func__);
 
   builder.fit_seeds();
 
@@ -139,7 +140,8 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
 
   double time = dtime();
 
-  builder.FindTracks();
+  if (Config::endcapTest) builder.FindTracksEndcap();
+  else builder.FindTracks();
 
   time = dtime() - time;
 

@@ -106,6 +106,8 @@ public:
 
   void FindCandidates(const LayerOfHits &layer_of_hits, std::vector<std::vector<Track> >& tmp_candidates,
                       const int offset, const int N_proc);
+  void FindCandidatesEndcap(const LayerOfHits &layer_of_hits, std::vector<std::vector<Track> >& tmp_candidates,
+			    const int offset, const int N_proc);
 
   // ================================================================
   // Methods used with clone engine

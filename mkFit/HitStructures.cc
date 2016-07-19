@@ -325,7 +325,7 @@ void LayerOfHits::SuckInHitsEndcap(const HitVec &hitv)
 
 
     if (hitv[j].r()>m_rmax || hitv[j].r()<m_rmin) {
-      std::cout << "WARNING: hit outsed r boundary of disk, please fixme (find a way to account for outer stereo rings in TEC)" << std::endl;
+      std::cout << "WARNING: hit outsed r boundary of disk, please fixme" << std::endl;
       m_capacity--;
       continue;
     }
