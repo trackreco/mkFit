@@ -594,8 +594,8 @@ void MkFitter::SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_pr
         const float py = Par[iP].ConstAt(itrack, 4, 0);
         const float pt = std::sqrt(px*px + py*py);
         //here alpha is the difference between posPhi and momPhi
-        const float cosA = ( x*px + dy*py ) / (pt*r);
-        const float sinA = ( y*px - dx*py ) / (pt*r);
+        const float cosA = ( x*px + y*py ) / (pt*r);
+        const float sinA = ( y*px - x*py ) / (pt*r);
 #endif
         //take abs so that we always inflate the window
         const float dist = std::abs(deltaR*sinA/cosA);
