@@ -500,7 +500,7 @@ void MkBuilderEndcap::find_tracks_in_layers_endcap(EtaBinOfCombCandidates &etabi
         {
           // Propagate to this layer
 
-          mkfp->PropagateTracksToZ(m_event->geom_.Radius(ilay), end - itrack);
+          mkfp->PropagateTracksToZ(m_event->geom_.zPlane(ilay), end - itrack);
         }
 
         // copy_out track params, errors only (hit-idcs and chi2 already updated)
