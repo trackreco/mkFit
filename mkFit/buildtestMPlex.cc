@@ -7,12 +7,15 @@
 #include "BinInfoUtils.h"
 
 #include "MkBuilder.h"
+#include "MkBuilderEndcap.h"
 
 #include <omp.h>
 
 #if defined(USE_VTUNE_PAUSE)
 #include "ittnotify.h"
 #endif
+
+#include <memory>
 
 inline bool sortByHitsChi2(const std::pair<Track, TrackState>& cand1,
                            const std::pair<Track, TrackState>& cand2)
@@ -64,6 +67,14 @@ inline bool sortByZ(const Hit& hit1, const Hit& hit2)
   return hit1.z() < hit2.z();
 }
 
+namespace
+{
+  MkBuilder* make_builder()
+  {
+    if (Config::endcapTest) return new MkBuilderEndcap;
+    else                    return new MkBuilder;
+  }
+}
 
 //==============================================================================
 // runBuildTestPlexBestHit
@@ -71,10 +82,10 @@ inline bool sortByZ(const Hit& hit1, const Hit& hit2)
 
 double runBuildingTestPlexBestHit(Event& ev)
 {
-  MkBuilder builder;
+  std::unique_ptr<MkBuilder> builder_ptr(make_builder());
+  MkBuilder &builder = * builder_ptr.get();
 
-  if (Config::endcapTest) builder.begin_event_endcap(&ev, 0, __func__);
-  else builder.begin_event(&ev, 0, __func__);
+  builder.begin_event(&ev, 0, __func__);
 
   builder.fit_seeds_tbb();
 
@@ -87,8 +98,7 @@ double runBuildingTestPlexBestHit(Event& ev)
 
   double time = dtime();
 
-  if (Config::endcapTest) builder.FindTracksBestHitEndcap(event_of_cands);
-  else builder.FindTracksBestHit(event_of_cands);
+  builder.FindTracksBestHit(event_of_cands);
 
   time = dtime() - time;
 
@@ -125,10 +135,10 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
   EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
   event_of_comb_cands.Reset();
 
-  MkBuilder builder;
+  std::unique_ptr<MkBuilder> builder_ptr(make_builder());
+  MkBuilder &builder = * builder_ptr.get();
 
-  if (Config::endcapTest) builder.begin_event_endcap(&ev, &ev_tmp, __func__);
-  else builder.begin_event(&ev, &ev_tmp, __func__);
+  builder.begin_event(&ev, &ev_tmp, __func__);
 
   builder.fit_seeds();
 
@@ -140,8 +150,7 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
 
   double time = dtime();
 
-  if (Config::endcapTest) builder.FindTracksEndcap();
-  else builder.FindTracks();
+  builder.FindTracks();
 
   time = dtime() - time;
 
@@ -182,7 +191,8 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
   EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
   event_of_comb_cands.Reset();
 
-  MkBuilder builder;
+  std::unique_ptr<MkBuilder> builder_ptr(make_builder());
+  MkBuilder &builder = * builder_ptr.get();
 
   builder.begin_event(&ev, &ev_tmp, __func__);
 
@@ -237,7 +247,8 @@ double runBuildingTestPlexTbb(Event& ev, EventTmp& ev_tmp)
   EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
   event_of_comb_cands.Reset();
 
-  MkBuilder builder;
+  std::unique_ptr<MkBuilder> builder_ptr(make_builder());
+  MkBuilder &builder = * builder_ptr.get();
 
   builder.begin_event(&ev, &ev_tmp, __func__);
 

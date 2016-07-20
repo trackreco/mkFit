@@ -123,6 +123,8 @@ public:
   //version of find candidates that does not cloning, just fills the IdxChi2List as output (to be then read by the clone engine)
   void FindCandidatesMinimizeCopy(const LayerOfHits &layer_of_hits, CandCloner& cloner,
                                   const int offset, const int N_proc);
+  void FindCandidatesMinimizeCopyEndcap(const LayerOfHits &layer_of_hits, CandCloner& cloner,
+                                        const int offset, const int N_proc);
 
   //version of input tracks using IdxChi2List
   void InputTracksAndHitIdx(const std::vector<std::vector<Track> >& tracks,
@@ -130,6 +132,7 @@ public:
                             int beg, int end, bool inputProp = false);
 
   void UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc);
+  void UpdateWithLastHitEndcap(const LayerOfHits &layer_of_hits, int N_proc);
 
   //method used by the clone engine to do the actual cloning on the predefined candidate+hit
   void CopyOutClone(const std::vector<std::pair<int,IdxChi2List> >& idxs,

@@ -1235,6 +1235,39 @@ void MkFitter::UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc)
   }
 }
 
+void MkFitter::UpdateWithLastHitEndcap(const LayerOfHits &layer_of_hits, int N_proc)
+{
+  for (int i = 0; i < N_proc; ++i)
+  {
+    int hit_idx = HitsIdx[Nhits - 1](i, 0, 0);
+
+    if (hit_idx < 0) continue;
+
+    Hit &hit = layer_of_hits.m_hits[hit_idx];
+
+    msErr[Nhits - 1].CopyIn(i, hit.errArray());
+    msPar[Nhits - 1].CopyIn(i, hit.posArray());
+  }
+
+  updateParametersEndcapMPlex(Err[iP], Par[iP], Chg, msErr[Nhits-1], msPar[Nhits-1], Err[iC], Par[iC], N_proc);
+
+  //now that we have moved propagation at the end of the sequence we lost the handle of
+  //using the propagated parameters instead of the updated for the missing hit case.
+  //so we need to replace by hand the updated with the propagated
+  //there may be a better way to restore this...
+
+  for (int i = 0; i < N_proc; ++i)
+  {
+    if (HitsIdx[Nhits - 1](i, 0, 0) < 0)
+    {
+      float tmp[21];
+      Err[iP].CopyOut(i, tmp);
+      Err[iC].CopyIn(i, tmp);
+      Par[iP].CopyOut(i, tmp);
+      Par[iC].CopyIn(i, tmp);
+    }
+  }
+}
 
 void MkFitter::CopyOutClone(const std::vector<std::pair<int,IdxChi2List> >& idxs,
 			    std::vector<std::vector<Track> >& cands_for_next_lay,
@@ -1431,6 +1464,7 @@ void MkFitter::SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits, const in
     }
   }
 }
+
 void MkFitter::AddBestHitEndcap(const LayerOfHits &layer_of_hits, const int N_proc)
 {
   float minChi2[NN];
@@ -1794,4 +1828,147 @@ void MkFitter::FindCandidatesEndcap(const LayerOfHits &layer_of_hits,
     Par[iP].CopyOut(itrack, newcand.parameters_nc().Array());
     tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
   }
+}
+
+
+void MkFitter::FindCandidatesMinimizeCopyEndcap(const LayerOfHits &layer_of_hits, CandCloner& cloner,
+                                                const int offset, const int N_proc)
+{
+  const char *varr      = (char*) layer_of_hits.m_hits;
+
+  const int   off_error = (char*) layer_of_hits.m_hits[0].errArray() - varr;
+  const int   off_param = (char*) layer_of_hits.m_hits[0].posArray() - varr;
+
+  int idx[NN]      __attribute__((aligned(64)));
+
+  int maxSize = 0;
+
+  // Determine maximum number of hits for tracks in the collection.
+  // At the same time prefetch the first set of hits to L1 and the second one to L2.
+#pragma simd
+  for (int it = 0; it < NN; ++it)
+  {
+    if (it < N_proc)
+    {
+      if (XHitSize[it] > 0)
+      {
+        _mm_prefetch(varr + XHitArr.At(it, 0, 0) * sizeof(Hit), _MM_HINT_T0);
+        if (XHitSize[it] > 1)
+        {
+          _mm_prefetch(varr + XHitArr.At(it, 1, 0) * sizeof(Hit), _MM_HINT_T1);
+        }
+        maxSize = std::max(maxSize, XHitSize[it]);
+      }
+    }
+
+    idx[it] = 0;
+  }
+  // XXXX MT FIXME: use masks to filter out SlurpIns
+
+// Has basically no effect, it seems.
+//#pragma noprefetch
+  for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
+  {
+#pragma simd
+    for (int itrack = 0; itrack < N_proc; ++itrack)
+    {
+      if (hit_cnt < XHitSize[itrack])
+      {
+        idx[itrack] = XHitArr.At(itrack, hit_cnt, 0) * sizeof(Hit);
+      }
+    }
+#if defined(MIC_INTRINSICS)
+    __m512i vi = _mm512_load_epi32(idx);
+#endif
+
+    // Prefetch to L2 the hits we'll (probably) process after two loops iterations.
+    // Ideally this would be initiated before coming here, for whole bunch_of_hits.m_hits vector.
+    for (int itrack = 0; itrack < N_proc; ++itrack)
+    {
+      if (hit_cnt + 2 < XHitSize[itrack])
+      {
+        _mm_prefetch(varr + XHitArr.At(itrack, hit_cnt+2, 0)*sizeof(Hit), _MM_HINT_T1);
+      }
+    }
+
+#if defined(MIC_INTRINSICS)
+    msErr[Nhits].SlurpIn(varr + off_error, vi);
+    msPar[Nhits].SlurpIn(varr + off_param, vi);
+#else
+    msErr[Nhits].SlurpIn(varr + off_error, idx);
+    msPar[Nhits].SlurpIn(varr + off_param, idx);
+#endif
+
+    //now compute the chi2 of track state vs hit
+    MPlexQF outChi2;
+    computeChi2EndcapMPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits], outChi2, N_proc);
+
+    // Prefetch to L1 the hits we'll (probably) process in the next loop iteration.
+    for (int itrack = 0; itrack < N_proc; ++itrack)
+    {
+      if (hit_cnt + 1 < XHitSize[itrack])
+      {
+        _mm_prefetch(varr + XHitArr.At(itrack, hit_cnt+1, 0)*sizeof(Hit), _MM_HINT_T0);
+      }
+    }
+
+#pragma simd // DOES NOT VECTORIZE AS IT IS NOW
+    for (int itrack = 0; itrack < N_proc; ++itrack)
+    {
+      // make sure the hit was in the compatiblity window for the candidate
+
+      if (hit_cnt < XHitSize[itrack])
+      {
+        float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
+#ifdef DEBUG
+        std::cout << "chi2=" << chi2 << " for trkIdx=" << itrack << std::endl;
+#endif
+        if (chi2 < Config::chi2Cut)
+        {
+          IdxChi2List tmpList;
+          tmpList.trkIdx = CandIdx(itrack, 0, 0);
+          tmpList.hitIdx = XHitArr.At(itrack, hit_cnt, 0);
+          tmpList.nhits  = countValidHits(itrack) + 1;
+          tmpList.chi2   = Chi2(itrack, 0, 0) + chi2;
+          cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
+          // hitsToAdd[SeedIdx(itrack, 0, 0)-offset].push_back(tmpList);
+#ifdef DEBUG
+          std::cout << "adding hit with hit_cnt=" << hit_cnt << " for trkIdx=" << tmpList.trkIdx << " orig Seed=" << Label(itrack, 0, 0) << std::endl;
+#endif
+        }
+      }
+    }
+
+  }//end loop over hits
+
+  //now add invalid hit
+  //fixme: please vectorize me...
+  for (int itrack = 0; itrack < N_proc; ++itrack)
+    {
+#ifdef DEBUG
+      std::cout << "countInvalidHits(" << itrack << ")=" << countInvalidHits(itrack) << std::endl;
+#endif
+
+      int hit_idx = countInvalidHits(itrack) < Config::maxHolesPerCand ? -1 : -2;
+
+      bool withinBounds = true;
+      float r2 = Par[iP](itrack,0,0)*Par[iP](itrack,0,0)+Par[iP](itrack,1,0)*Par[iP](itrack,1,0);
+      if ( r2<(Config::cmsDiskMinRs[Nhits]*Config::cmsDiskMinRs[Nhits]) ||
+           r2>(Config::cmsDiskMaxRs[Nhits]*Config::cmsDiskMaxRs[Nhits]) ||
+           r2>(Config::cmsDiskMinRsHole[Nhits]*Config::cmsDiskMinRsHole[Nhits]) ||
+           r2<(Config::cmsDiskMaxRsHole[Nhits]*Config::cmsDiskMaxRsHole[Nhits]) ) withinBounds = false;
+      //-3 means we did not expect any hit since we are out of bounds, so it does not count in countInvalidHits
+      if (withinBounds==false) hit_idx = -3;
+
+      IdxChi2List tmpList;
+      tmpList.trkIdx = CandIdx(itrack, 0, 0);
+      tmpList.hitIdx = hit_idx;
+      tmpList.nhits  = countValidHits(itrack);
+      tmpList.chi2   = Chi2(itrack, 0, 0);
+      cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
+      // hitsToAdd[SeedIdx(itrack, 0, 0)-offset].push_back(tmpList);
+#ifdef DEBUG
+      std::cout << "adding invalid hit" << std::endl;
+#endif
+    }
 }
