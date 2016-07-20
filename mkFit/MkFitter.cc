@@ -989,7 +989,7 @@ void MkFitter::FindCandidates(const LayerOfHits &layer_of_hits,
             Err[iC].CopyOut(itrack, newcand.errors_nc().Array());
             Par[iC].CopyOut(itrack, newcand.parameters_nc().Array());
 
-            dprint("updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1]);
+            dprint("updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << " z=" << newcand.parameters()[2] << " pt=" << 1./newcand.parameters()[3]);
 
             tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
           }
@@ -1316,9 +1316,10 @@ void MkFitter::CopyOutParErr(std::vector<std::vector<Track> >& seed_cand_vec,
     Err[iO].CopyOut(i, cand.errors_nc().Array());
     Par[iO].CopyOut(i, cand.parameters_nc().Array());
 
-    dprint("updated track parameters x=" << cand.parameters()[0]
+    dprint((outputProp?"propagated":"updated") << " track parameters x=" << cand.parameters()[0]
               << " y=" << cand.parameters()[1]
               << " z=" << cand.parameters()[2]
+              << " pt=" << 1./cand.parameters()[3]
               << " posEta=" << cand.posEta()
               << " etaBin=" << getEtaBin(cand.posEta()));
   }
@@ -1758,9 +1759,9 @@ void MkFitter::FindCandidatesEndcap(const LayerOfHits &layer_of_hits,
     {
       updateParametersEndcapMPlex(Err[iP], Par[iP], Chg, msErr[Nhits], msPar[Nhits], Err[iC], Par[iC], N_proc);
       dprint("update parameters" << std::endl
-             << "propagated track parameters x=" << Par[iP].ConstAt(0, 0, 0) << " y=" << Par[iP].ConstAt(0, 1, 0) << std::endl
+             << "propagated track parameters x=" << Par[iP].ConstAt(0, 0, 0) << " y=" << Par[iP].ConstAt(0, 1, 0) << " z=" << Par[iP].ConstAt(0, 2, 0) << " pt=" << 1./Par[iP].ConstAt(0, 3, 0) << std::endl
              << "               hit position x=" << msPar[Nhits].ConstAt(0, 0, 0) << " y=" << msPar[Nhits].ConstAt(0, 1, 0) << std::endl
-             << "   updated track parameters x=" << Par[iC].ConstAt(0, 0, 0) << " y=" << Par[iC].ConstAt(0, 1, 0));
+             << "   updated track parameters x=" << Par[iC].ConstAt(0, 0, 0) << " y=" << Par[iC].ConstAt(0, 1, 0) << " z=" << Par[iC].ConstAt(0, 2, 0) << " pt=" << 1./Par[iC].ConstAt(0, 3, 0));
 
       //create candidate with hit in case chi2<Config::chi2Cut
       //fixme: please vectorize me... (not sure it's possible in this case)
@@ -1788,7 +1789,7 @@ void MkFitter::FindCandidatesEndcap(const LayerOfHits &layer_of_hits,
             Err[iC].CopyOut(itrack, newcand.errors_nc().Array());
             Par[iC].CopyOut(itrack, newcand.parameters_nc().Array());
 
-            dprint("updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1]);
+            dprint("updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << " z=" << newcand.parameters()[2] << " pt=" << 1./newcand.parameters()[3]);
 
             tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
           }

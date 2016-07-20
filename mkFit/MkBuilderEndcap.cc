@@ -26,7 +26,11 @@ namespace {
               << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)
               << " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
               << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5)
+#ifdef CCSCOORD
+              << " pT=" << 1./mkfp->getPar(0, 0, 3) << std::endl;
+#else
               << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
+#endif
   }
 
   void post_prop_print(int ilay, MkFitter* mkfp) {
@@ -501,17 +505,24 @@ void MkBuilderEndcap::find_tracks_in_layers_endcap(EtaBinOfCombCandidates &etabi
           // Propagate to this layer
 
           mkfp->PropagateTracksToZ(m_event->geom_.zPlane(ilay), end - itrack);
+
+	  // copy_out the propagated track params, errors only (hit-idcs and chi2 already updated)
+	  mkfp->CopyOutParErr(etabin_of_comb_candidates.m_candidates,
+			      end - itrack, true);
         }
-
-        // copy_out track params, errors only (hit-idcs and chi2 already updated)
-        mkfp->CopyOutParErr(etabin_of_comb_candidates.m_candidates,
-                            end - itrack, true);
+	else {
+	  // copy_out the updated track params, errors only (hit-idcs and chi2 already updated)
+	  mkfp->CopyOutParErr(etabin_of_comb_candidates.m_candidates,
+			      end - itrack, false);
+	  continue;
+	}
       }
 
-      if (ilay == Config::nLayers)
-      {
-        break;
-      }
+      // if (ilay == Config::nLayers)
+      // {
+      // 	continue;
+      //   //break;
+      // }
 
       dprint("now get hit range");
 
