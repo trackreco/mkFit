@@ -473,14 +473,14 @@ void MkFitter::FitTracksTestEndcap(const int N_proc, const Event* ev)
       hitcount++;
     }
 
-  if ((1./Par[iC].ConstAt(0, 0, 3))<0. || chi2<0 || chi2>1000.) {
-    printf("ANOMALY pt=%6.1f chi2=%6.1f seed pt=%6.1f q=%2i sim pt=%6.1f q=%2i flip=%2i \n",1./Par[iC].ConstAt(0, 0, 3),chi2,ptin,Chg.ConstAt(0, 0, 0),
-	   ev->simTracks_[Label.ConstAt(0, 0, 0)].pT(),ev->simTracks_[Label.ConstAt(0, 0, 0)].charge(),std::abs(Chg.ConstAt(0, 0, 0)-ev->simTracks_[Label.ConstAt(0, 0, 0)].charge())/2);
-  }
+  // if ((1./Par[iC].ConstAt(0, 0, 3))<0. || chi2<0 || chi2>1000.) {
+  //   printf("ANOMALY pt=%6.1f chi2=%6.1f seed pt=%6.1f q=%2i sim pt=%6.1f q=%2i flip=%2i \n",1./Par[iC].ConstAt(0, 0, 3),chi2,ptin,Chg.ConstAt(0, 0, 0),
+  // 	   ev->simTracks_[Label.ConstAt(0, 0, 0)].pT(),ev->simTracks_[Label.ConstAt(0, 0, 0)].charge(),std::abs(Chg.ConstAt(0, 0, 0)-ev->simTracks_[Label.ConstAt(0, 0, 0)].charge())/2);
+  // }
 
-  std::cout << "found track with pt: " << 1./Par[iC].ConstAt(0, 0, 3) << " chi2: " << chi2
-	    << " delta(pT)/sim_pT: " << ((1./Par[iC].ConstAt(0, 0, 3))-ev->simTracks_[Label.ConstAt(0, 0, 0)].pT())/ev->simTracks_[Label.ConstAt(0, 0, 0)].pT()
-	    << " fitted hits: " << hitcount<< std::endl;
+  // std::cout << "found track with pt: " << 1./Par[iC].ConstAt(0, 0, 3) << " chi2: " << chi2
+  // 	    << " delta(pT)/sim_pT: " << ((1./Par[iC].ConstAt(0, 0, 3))-ev->simTracks_[Label.ConstAt(0, 0, 0)].pT())/ev->simTracks_[Label.ConstAt(0, 0, 0)].pT()
+  // 	    << " fitted hits: " << hitcount<< std::endl;
 }
 
 void MkFitter::OutputTracks(std::vector<Track>& tracks, int beg, int end, int iCP) const
