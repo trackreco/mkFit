@@ -17,7 +17,7 @@ g = ROOT.TFile('benchmark_'+hORm+'.root',"recreate")
 
 for test in ['BH','CE','CEST','ST','TBBST','FIT']:
     if isCMSSW and test=='FIT': continue
-    if 'endcap' in hORm and 'FIT' not in test: continue
+    if 'endcap' in hORm and not isCMSSW and 'FIT' not in test: continue
     print test
     pos = 14
     ntks = '10x20k'
