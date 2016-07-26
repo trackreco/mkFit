@@ -659,6 +659,7 @@ void TTreeValidation::alignTrackExtra(TrackVec& evt_tracks, TrackExtraVec& evt_e
 }
 
 void TTreeValidation::collectSimTkTSVecMapInfo(int mcTrackID, const TSVec& initTSs){
+  std::lock_guard<std::mutex> locker(glock_);
   simTkTSVecMap_[mcTrackID] = initTSs;
 }
 
