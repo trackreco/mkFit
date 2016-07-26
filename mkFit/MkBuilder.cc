@@ -183,9 +183,50 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
   if (! (Config::readCmsswSeeds || Config::findSeeds)) m_event->seedTracks_ = m_event->simTracks_; // make seed tracks == simtracks if not using "realistic" seeding
 }
 
-void MkBuilder::find_seeds()
+int MkBuilder::find_seeds()
 {
-  findSeedsByRoadSearch(m_event->seedTracks_,m_event_of_hits.m_layers_of_hits,m_event);
+  bool debug(false);
+
+  TripletIdxConVec seed_idcs;
+
+  double time = dtime();
+  findSeedsByRoadSearch(seed_idcs,m_event_of_hits.m_layers_of_hits,m_event->layerHits_[1].size(),m_event);
+  time = dtime() - time;
+
+  // use this to initialize tracks
+  const Hit * lay0hits = m_event_of_hits.m_layers_of_hits[0].m_hits;
+  const Hit * lay1hits = m_event_of_hits.m_layers_of_hits[1].m_hits;
+  const Hit * lay2hits = m_event_of_hits.m_layers_of_hits[2].m_hits;
+
+  // make seed tracks
+  TrackVec & seedtracks = m_event->seedTracks_;
+  seedtracks.resize(seed_idcs.size());
+  for (int iseed = 0; iseed < seedtracks.size(); iseed++)
+  {
+    auto & seedtrack = seedtracks[iseed];
+    seedtrack.setLabel(iseed);
+
+    // use to set charge
+    const Hit & hit0 = lay0hits[seed_idcs[iseed][0]];
+    const Hit & hit1 = lay1hits[seed_idcs[iseed][1]];
+    const Hit & hit2 = lay2hits[seed_idcs[iseed][2]];
+
+    seedtrack.setCharge(calculateCharge(hit0,hit1,hit2));
+
+    for (int ihit = 0; ihit < Config::nlayers_per_seed; ihit++)
+    {
+      seedtrack.addHitIdx(seed_idcs[iseed][ihit],0.0f);
+    }
+
+    for (int ihit = Config::nlayers_per_seed; ihit < Config::nLayers; ihit++)
+    {
+      seedtrack.setHitIdx(ihit,-1);
+    }
+    
+    dprint("iseed: " << iseed << " mcids: " << hit0.mcTrackID(m_event->simHitsInfo_) << " " <<
+	   hit1.mcTrackID(m_event->simHitsInfo_) << " " << hit1.mcTrackID(m_event->simHitsInfo_));
+  }
+  return time;
 }
 
 ////////////////////////////////
@@ -380,7 +421,7 @@ void MkBuilder::quality_store_tracks_besthit(const EventOfCandidates& event_of_c
 
 void MkBuilder::quality_store_tracks()
 {
- for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
+  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
   {
     const EtaBinOfCombCandidates &etabin_of_comb_candidates = m_event_tmp->m_event_of_comb_cands.m_etabins_of_comb_candidates[ebin]; 
     
@@ -456,7 +497,7 @@ void MkBuilder::root_val_besthit(const EventOfCandidates& event_of_cands)
   m_event->fitTracks_ = m_event->candidateTracks_; // fixme: hack for now. eventually fitting will be including end-to-end
   init_track_extras();
 
-  m_event->Validate(m_event->evtID());
+  m_event->Validate();
 }
 
 void MkBuilder::root_val()
@@ -469,22 +510,34 @@ void MkBuilder::root_val()
   m_event->fitTracks_ = m_event->candidateTracks_; // fixme: hack for now. eventually fitting will be including end-to-end
   init_track_extras();
 
-  m_event->Validate(m_event->evtID());
+  m_event->Validate();
 }
 
 void MkBuilder::init_track_extras()
 {
-  const TrackVec& simtracks = m_event->simTracks_; TrackExtraVec & simtrackextras = m_event->simTracksExtra_;
-  for (int i = 0; i < simtracks.size(); i++){simtrackextras.emplace_back(simtracks[i].label());}
+  TrackVec      & seedtracks      = m_event->seedTracks_; 
+  TrackExtraVec & seedtrackextras = m_event->seedTracksExtra_;
+  for (int i = 0; i < seedtracks.size(); i++)
+  {
+    seedtrackextras.emplace_back(seedtracks[i].label());
+  }
+  m_event->validation_.alignTrackExtra(seedtracks,seedtrackextras);
 
-  const TrackVec& seedtracks = m_event->seedTracks_; TrackExtraVec & seedtrackextras = m_event->seedTracksExtra_;
-  for (int i = 0; i < seedtracks.size(); i++){seedtrackextras.emplace_back(seedtracks[i].label());}
-
-  const TrackVec& candidatetracks = m_event->candidateTracks_; TrackExtraVec & candidatetrackextras = m_event->candidateTracksExtra_;
-  for (int i = 0; i < candidatetracks.size(); i++){candidatetrackextras.emplace_back(candidatetracks[i].label());}
-
-  const TrackVec& fittracks = m_event->fitTracks_; TrackExtraVec & fittrackextras = m_event->fitTracksExtra_;
-  for (int i = 0; i < fittracks.size(); i++){fittrackextras.emplace_back(fittracks[i].label());}
+  TrackVec      & candidatetracks      = m_event->candidateTracks_;
+  TrackExtraVec & candidatetrackextras = m_event->candidateTracksExtra_;
+  for (int i = 0; i < candidatetracks.size(); i++)
+  {
+    candidatetrackextras.emplace_back(candidatetracks[i].label());
+  }
+  m_event->validation_.alignTrackExtra(candidatetracks,candidatetrackextras);
+  
+  TrackVec      & fittracks      = m_event->fitTracks_;
+  TrackExtraVec & fittrackextras = m_event->fitTracksExtra_;
+  for (int i = 0; i < fittracks.size(); i++)
+  {
+    fittrackextras.emplace_back(fittracks[i].label());
+  }
+  m_event->validation_.alignTrackExtra(fittracks,fittrackextras);
 }
 
 //------------------------------------------------------------------------------

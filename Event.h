@@ -23,7 +23,7 @@ public:
   void Seed();
   void Find();
   void Fit();
-  void Validate(int);
+  void Validate();
   void PrintStats(const TrackVec&, TrackExtraVec&);
   
   int evtID() const {return evtID_;}

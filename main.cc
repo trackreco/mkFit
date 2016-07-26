@@ -278,15 +278,15 @@ int main(int argc, const char* argv[])
     else {
       ev.read_in(s_file);
     }
-    /* simulate time */      ticks[0] += delta(t0);
-    ev.Segment();            ticks[1] += delta(t0);
-    ev.Seed();               ticks[2] += delta(t0);
-    ev.Find();               ticks[3] += delta(t0);
+ /*simulate time*/ ticks[0] += delta(t0);
+    ev.Segment();  ticks[1] += delta(t0);
+    ev.Seed();     ticks[2] += delta(t0);
+    ev.Find();     ticks[3] += delta(t0);
     if (!Config::super_debug) 
     {
-      ev.Fit();              ticks[4] += delta(t0);
+      ev.Fit();    ticks[4] += delta(t0);
     }
-    ev.Validate(ev.evtID()); ticks[5] += delta(t0);
+    ev.Validate(); ticks[5] += delta(t0);
 
     if (!Config::super_debug) {
       std::cout << "sim: " << ev.simTracks_.size() << " seed: " << ev.seedTracks_.size() << " found: " 

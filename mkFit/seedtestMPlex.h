@@ -5,6 +5,6 @@
 #include "Track.h"
 #include "HitStructures.h"
 
-void findSeedsByRoadSearch(TrackVec& evt_seed_tracks, std::vector<LayerOfHits>& evt_lay_hits, Event *& ev);
+void findSeedsByRoadSearch(TripletIdxConVec & seed_idcs, std::vector<LayerOfHits>& evt_lay_hits, int lay1_size, Event *& ev);
 
 #endif

@@ -61,7 +61,7 @@ public:
 
   void begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type);
 
-  void find_seeds();
+  int  find_seeds();
   void fit_seeds();
   void fit_seeds_tbb();
 

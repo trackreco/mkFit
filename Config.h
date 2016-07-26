@@ -176,6 +176,9 @@ namespace Config
 
   extern int    numSeedsPerTask;
 
+  // number of layer1 hits for finding seeds per task
+  extern int    numHitsPerTask;
+  
   extern bool   useCMSGeom;
   extern bool   readCmsswSeeds;
 

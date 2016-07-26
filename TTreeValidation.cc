@@ -659,6 +659,7 @@ void TTreeValidation::alignTrackExtra(TrackVec& evt_tracks, TrackExtraVec& evt_e
 }
 
 void TTreeValidation::collectSimTkTSVecMapInfo(int mcTrackID, const TSVec& initTSs){
+  std::lock_guard<std::mutex> locker(glock_);
   simTkTSVecMap_[mcTrackID] = initTSs;
 }
 
@@ -743,32 +744,52 @@ void TTreeValidation::resetDebugVectors(){
   upTSLayerPairVec_.clear();   // used exclusively for debugtree (updated states)
 }
 
-void TTreeValidation::makeSimTkToRecoTksMaps(Event& ev){
+void TTreeValidation::setTrackExtras(Event& ev)
+{
   std::lock_guard<std::mutex> locker(glock_);
-  // set mcTkIDs... and sort by each (simTracks set in order by default!)
-  mapSimTkToRecoTks(ev.seedTracks_,ev.seedTracksExtra_,ev.layerHits_,ev.simHitsInfo_,simToSeedMap_);
-  mapSimTkToRecoTks(ev.candidateTracks_,ev.candidateTracksExtra_,ev.layerHits_,ev.simHitsInfo_,simToBuildMap_);
-  mapSimTkToRecoTks(ev.fitTracks_,ev.fitTracksExtra_,ev.layerHits_,ev.simHitsInfo_,simToFitMap_);
+  // set mcTkIDs
+  setTrackCollectionExtras(ev.seedTracks_,ev.seedTracksExtra_,ev.layerHits_,ev.simHitsInfo_);
+  setTrackCollectionExtras(ev.candidateTracks_,ev.candidateTracksExtra_,ev.layerHits_,ev.simHitsInfo_);
+  setTrackCollectionExtras(ev.fitTracks_,ev.fitTracksExtra_,ev.layerHits_,ev.simHitsInfo_);
 }
 
-void TTreeValidation::mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, const std::vector<HitVec>& layerHits, 
-					const MCHitInfoVec& mcHitInfo, TkIDToTkIDVecMap& simTkMap){
+void TTreeValidation::setTrackCollectionExtras(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, 
+					       const std::vector<HitVec>& layerHits, const MCHitInfoVec& mcHitInfo)
+{
   for (auto itrack = 0; itrack < evt_tracks.size(); ++itrack){
     auto&& track(evt_tracks[itrack]);
     auto&& extra(evt_extras[itrack]);
     extra.setMCTrackIDInfo(track, layerHits, mcHitInfo);
+  }
+}
+
+void TTreeValidation::makeSimTkToRecoTksMaps(Event& ev)
+{
+  std::lock_guard<std::mutex> locker(glock_);
+  // map sim track ids to reco labels sort by each (simTracks set in order by default!)
+  mapSimTkToRecoTks(ev.seedTracks_,ev.seedTracksExtra_,simToSeedMap_);
+  mapSimTkToRecoTks(ev.candidateTracks_,ev.candidateTracksExtra_,simToBuildMap_);
+  mapSimTkToRecoTks(ev.fitTracks_,ev.fitTracksExtra_,simToFitMap_);
+}
+
+void TTreeValidation::mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, TkIDToTkIDVecMap& simTkMap)
+{
+
+  for (auto itrack = 0; itrack < evt_tracks.size(); ++itrack){
+    auto&& track(evt_tracks[itrack]);
+    auto&& extra(evt_extras[itrack]);
     if (extra.mcTrackID() != 999999){ // skip fakes, don't store them at all in sim map
       simTkMap[extra.mcTrackID()].push_back(track.label()); // store vector of reco tk labels, mapped to the sim track label (i.e. mcTrackID)
     }
   }
-
+  
   for (auto&& simTkMatches : simTkMap){
     if (simTkMatches.second.size() < 2) { // no duplicates
       auto& extra(evt_extras[simTkMatches.second[0]]);
       extra.setMCDuplicateInfo(0,bool(false));
     }
     else{ // sort duplicates (ghosts) to keep best one --> most hits, lowest chi2
-
+      
       // really should sort on indices with a reduced data structure... this is a hack way to do this for now...
       // e.g. std::tuple<int, int, float>, (label, nHits, chi2)
       TrackVec tmpMatches;
@@ -777,7 +798,7 @@ void TTreeValidation::mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVe
       }
       std::sort(tmpMatches.begin(), tmpMatches.end(), sortByHitsChi2); // sort the tracks
       for (auto itrack = 0; itrack < tmpMatches.size(); itrack++){ // loop over sorted tracks, now make the vector of sorted labels match
- 	simTkMatches.second[itrack] = tmpMatches[itrack].label();
+	simTkMatches.second[itrack] = tmpMatches[itrack].label();
       }
       
       int duplicateID = 0;
@@ -790,15 +811,16 @@ void TTreeValidation::mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVe
   }
 }
 
-void TTreeValidation::makeSeedTkToRecoTkMaps(Event& ev){
+void TTreeValidation::makeSeedTkToRecoTkMaps(Event& ev)
+{
   std::lock_guard<std::mutex> locker(glock_); 
-
   // map seed to reco tracks --> seed track collection assumed to map to itself, unless we make some cuts
   mapSeedTkToRecoTk(ev.candidateTracks_,ev.candidateTracksExtra_,seedToBuildMap_);
   mapSeedTkToRecoTk(ev.fitTracks_,ev.fitTracksExtra_,seedToFitMap_);
 }
 
-void TTreeValidation::mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackExtraVec& evt_extras, TkIDToTkIDMap& seedTkMap){
+void TTreeValidation::mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackExtraVec& evt_extras, TkIDToTkIDMap& seedTkMap)
+{
   for (auto&& track : evt_tracks){
     seedTkMap[evt_extras[track.label()].seedID()] = track.label();
   }
@@ -808,8 +830,8 @@ void TTreeValidation::resetDebugTreeArrays(){
   for (int i = 0; i < Config::nLayers; i++){
     // reset MC info
     layer_mc_debug_[i]=-99;
-    x_hit_debug_[i]=-99;     y_hit_debug_[i]=-99;     z_hit_debug_[i]=-99; 
-    exx_hit_debug_[i]=-99;   eyy_hit_debug_[i]=-99;   ezz_hit_debug_[i]=-99;
+    x_hit_debug_[i]=-99;    y_hit_debug_[i]=-99;    z_hit_debug_[i]=-99; 
+    exx_hit_debug_[i]=-99;  eyy_hit_debug_[i]=-99;  ezz_hit_debug_[i]=-99;
     x_mc_debug_[i]=-99;     y_mc_debug_[i]=-99;     z_mc_debug_[i]=-99; 
     px_mc_debug_[i]=-99;    py_mc_debug_[i]=-99;    pz_mc_debug_[i]=-99;
     pt_mc_debug_[i]=-99;    phi_mc_debug_[i]=-99;   eta_mc_debug_[i]=-99;
@@ -1526,7 +1548,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
       mcID_build_FR_  = buildextra.mcTrackID();
       if (mcID_build_FR_ != 999999){ // build track matched to seed and sim 
 	mcmask_build_FR_ = 1; // matched track to sim
-	
+
 	const int layer = buildtrack.foundLayers().back(); // last layer fit ended up on
 	const TrackState & initLayTS = simTkTSVecMap_[mcID_build_FR_][layer]; //--> can do this as all sim tracks pass through each layer once, and are stored in order... will need to fix this once we have loopers/overlaps
 	
@@ -1610,7 +1632,6 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
       mcID_fit_FR_  = fitextra.mcTrackID();
       if (mcID_fit_FR_ != 999999){ // fit track matched to seed and sim 
 	mcmask_fit_FR_ = 1; // matched track to sim
-
 #ifdef INWARDFIT
 	const int layer = fittrack.foundLayers().front(); // last layer fiting ended up on
 #else
@@ -1673,7 +1694,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
       duplmask_fit_FR_   = -1;
       iTkMatches_fit_FR_ = -100;
     }
-        
+
     fakeratetree_->Fill(); // fill once per seed!
   }// end of seed to seed loop
 }

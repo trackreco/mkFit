@@ -26,6 +26,9 @@ namespace Config
   int   finderReportBestOutOfN = 1;
 
   int   numSeedsPerTask = 32;
+  
+  // number of hits per task for finding seeds
+  int   numHitsPerTask = 32;
 
   bool  useCMSGeom = false;
   bool  readCmsswSeeds = false;

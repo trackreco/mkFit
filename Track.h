@@ -9,6 +9,16 @@
 typedef std::pair<int,int> SimTkIDInfo;
 typedef std::vector<int> HitIdxVec;
 
+inline int calculateCharge(const Hit & hit0, const Hit & hit1, const Hit & hit2){
+  return ((hit2.y()-hit0.y())*(hit2.x()-hit1.x())>(hit2.y()-hit1.y())*(hit2.x()-hit0.x())?1:-1);
+}
+
+inline int calculateCharge(const float hit0_x, const float hit0_y,
+			   const float hit1_x, const float hit1_y,
+			   const float hit2_x, const float hit2_y){
+  return ((hit2_y-hit0_y)*(hit2_x-hit1_x)>(hit2_y-hit1_y)*(hit2_x-hit0_x)?1:-1);
+}
+
 struct TrackState //  possible to add same accessors as track? 
 {
 public:
@@ -121,6 +131,7 @@ public:
   
   Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, float chi2) :
     state_(charge, position, momentum, errors), chi2_(chi2) {}
+
   ~Track(){}
 
   const SVector6&     parameters() const {return state_.parameters;}
@@ -171,6 +182,21 @@ public:
       }
     }
     return hitsVec;
+  }
+
+  void mcHitIDsVec(const std::vector<HitVec>& globalHitVec, const MCHitInfoVec& globalMCHitInfo, std::vector<int>& mcHitIDs) const
+  {
+    for (int ihit = 0; ihit <= hitIdxPos_; ++ihit){
+      if ((hitIdxArr_[ihit] >= 0) && (hitIdxArr_[ihit] < globalHitVec[ihit].size()))
+      {
+        mcHitIDs.push_back(globalHitVec[ihit][hitIdxArr_[ihit]].mcTrackID(globalMCHitInfo));
+	//globalMCHitInfo[globalHitVec[ihit][hitIdxArr_[ihit]].mcHitID()].mcTrackID());
+      }
+      else 
+      {
+	mcHitIDs.push_back(hitIdxArr_[ihit]);
+      }
+    }
   }
 
   void addHitIdx(int hitIdx,float chi2)

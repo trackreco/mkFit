@@ -409,6 +409,7 @@ int main(int argc, const char *argv[])
 	"  --cms-geom               use cms-like geometry (def: %i)\n"
 	"  --cmssw-seeds            take seeds from CMSSW (def: %i)\n"
 	"  --find-seeds             run road search seeding [CF enabled by default] (def: %s)\n"
+	"  --hits-per-task <num>    number of layer1 hits per task in finding seeds (def: %i)\n"
 	"  --cf-seeding             enable CF in seeding (def: %s)\n"
 	"  --cf-fitting             enable CF in fitting (def: %s)\n"
 	"  --normal-val             enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
@@ -429,6 +430,7 @@ int main(int argc, const char *argv[])
 	Config::useCMSGeom,
 	Config::readCmsswSeeds,
 	Config::findSeeds ? "true" : "false",
+	Config::numHitsPerTask,
 	Config::cf_seeding ? "true" : "false",
 	Config::cf_fitting ? "true" : "false",
 	Config::normal_val ? "true" : "false",
@@ -506,6 +508,11 @@ int main(int argc, const char *argv[])
     else if(*i == "--find-seeds")
     {
       Config::findSeeds = true; Config::cf_seeding = true;
+    }
+    else if (*i == "--hits-per-task")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::numHitsPerTask = atoi(i->c_str());
     }
     else if (*i == "--cf-seeding")
     {
