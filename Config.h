@@ -33,16 +33,23 @@ namespace Config
   extern int nEvents;
 
   // config on main -- for geometry
-  constexpr int   nLayers   = 10; // default: 10; cmssw tests: 13, 17
+  constexpr int   nLayers   = 10; // default: 10; cmssw tests: 13, 17, 26 (for endcap)
   constexpr float fRadialSpacing   = 4.;
   constexpr float fRadialExtent    = 0.01;
   constexpr float fInnerSensorSize = 5.0; // approximate sensor size in cm
   constexpr float fOuterSensorSize = Config::fInnerSensorSize * 2.;
-  constexpr float fEtaDet          = 1; // default: 1; cmssw tests: 2
+  constexpr float fEtaDet          = 1; // default: 1; cmssw tests: 2, 2.5
 
   //constexpr float cmsAvgRads[13] = {4.42,7.31,10.17,25.58,33.98,41.79,49.78,60.78,69.2,77.96,86.80,96.53,108.00}; // cms average radii, noSplit version
   constexpr float cmsAvgRads[17] = {4.42,7.31,10.17,25.58,25.58,33.98,33.98,41.79,49.78,60.57,61.00,69.41,68.98,77.96,86.80,96.53,108.00}; // cms average radii, split version
   constexpr float cmsDeltaRad = 2.5; //fixme! using constant 2.5 cm, to be taken from layer properties
+
+  constexpr float cmsAvgZs[26]         = {35.5,48.5,79.8,79.8,92.6,92.6,105.6,105.6,131.3,131.3,145.3,145.3,159.3,159.3,173.9,173.9,187.8,187.8,205.4,205.4,224.0,224.0,244.4,244.4,266.3,266.3}; // cms average z
+  constexpr float cmsDiskMinRs[26]     = { 5.7, 5.7,23.1,22.8,23.1,22.8, 23.1, 22.8, 23.3, 23.0, 23.3, 23.0, 23.3, 23.0, 31.6, 34.4, 31.6, 34.4, 31.6, 34.4, 59.9, 38.8, 59.9, 38.8, 59.9, 49.9};
+  constexpr float cmsDiskMaxRs[26]     = {14.7,14.7,50.8,42.0,50.8,42.0, 50.8, 42.0, 76.1,110.0, 76.1,110.0, 76.1,110.0, 75.9,109.7, 75.9,109.7, 75.9,109.7, 75.9,109.4, 75.9,109.4, 75.9,109.4};
+  constexpr float cmsDiskMinRsHole[26] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  0.0,  0.0, 42.0,  0.0, 42.0,  0.0, 42.0,  0.0, 42.1,  0.0, 42.1,  0.0, 42.1,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0};
+  constexpr float cmsDiskMaxRsHole[26] = {999.,999.,999.,999.,999.,999., 999., 999., 59.9, 999., 59.9, 999., 59.9, 999., 59.7, 999., 59.7, 999., 59.7, 999., 999., 999., 999., 999., 999., 999.};
+  const     float g_disk_dr[]        = {   1,   1,  20,  20,  20,  20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20};
 
   const float g_layer_zwidth[] = { 10, 14, 18, 23, 28, 32, 37, 42, 48, 52 }; //default
   const float g_layer_dz[]     = { 0.6, 0.55, 0.5, 0.5, 0.45, 0.4, 0.4, 0.4, 0.35, 0.35 }; //default
@@ -178,6 +185,8 @@ namespace Config
 
   extern bool   useCMSGeom;
   extern bool   readCmsswSeeds;
+
+  extern bool   endcapTest;
 
   const std::string inputFile = "cmssw.simtracks.SingleMu1GeV.10k.new.txt";
   //const std::string inputFile = "cmssw.simtracks.SingleMu10GeV.10k.new.txt";

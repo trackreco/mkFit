@@ -11,6 +11,8 @@
 #include "Event.h"
 #include "TTreeValidation.h"
 
+#include "fittestEndcap.h"
+
 #ifdef TBB
 #include "tbb/task_scheduler_init.h"
 #endif
@@ -147,6 +149,7 @@ void next_arg_or_die(lStr_t& args, lStr_i& i, bool allow_single_minus=false)
 
 int main(int argc, const char* argv[])
 {
+
 #ifdef TBB
   auto nThread(tbb::task_scheduler_init::default_num_threads());
 #else
@@ -170,7 +173,7 @@ int main(int argc, const char* argv[])
       printf(
         "Usage: %s [options]\n"
         "Options:\n"
-	"  --num-events    <num>    number of events to run over (def: %d)\n"
+        "  --num-events    <num>    number of events to run over (def: %d)\n"
         "  --num-tracks    <num>    number of tracks to generate for each event (def: %d)\n"
 	"  --num-thr       <num>    number of threads used for TBB  (def: %d)\n"
 	"  --super-debug            bool to enable super debug mode (def: %s)\n"
@@ -178,15 +181,21 @@ int main(int argc, const char* argv[])
 	"  --full-val               bool to enable more validation in SMatrix (def: %s)\n"
 	"  --cf-seeding             bool to enable CF in MC seeding (def: %s)\n"
 	"  --read                   read input simtracks file (def: false)\n"
-	,
+	"  --file-name              file name for write/read (def: %s)\n"
+	"  --cmssw-seeds            take seeds from CMSSW (def: %i)\n"
+	"  --endcap-test            test endcap tracking (def: %i)\n"
+        ,
         argv[0],
-	Config::nEvents,
-	Config::nTracks,
+        Config::nEvents,
+        Config::nTracks,
         nThread, 
 	(Config::super_debug ? "true" : "false"),
 	(Config::normal_val  ? "true" : "false"),
 	(Config::full_val    ? "true" : "false"),
-	(Config::cf_seeding  ? "true" : "false")
+	(Config::cf_seeding  ? "true" : "false"),
+	s_file_name.c_str(),
+	Config::readCmsswSeeds,
+	Config::endcapTest
       );
       exit(0);
     }
@@ -234,6 +243,19 @@ int main(int argc, const char* argv[])
     {
       s_operation = "read";
     }
+    else if (*i == "--file-name")
+    {
+      next_arg_or_die(mArgs, i);
+      s_file_name = *i;
+    }
+    else if(*i == "--cmssw-seeds")
+    {
+      Config::readCmsswSeeds = true;
+    }
+    else if (*i == "--endcap-test")
+    {
+      Config::endcapTest = true;
+    }
     else
     {
       fprintf(stderr, "Error: Unknown option/argument '%s'.\n", i->c_str());
@@ -264,7 +286,7 @@ int main(int argc, const char* argv[])
   if (s_operation == "read")
   {
     Config::nEvents = open_simtrack_file();
-  }	
+  }
 
   for (int evt=0; evt<Config::nEvents; ++evt) {
     Event ev(geom, val, evt, nThread);
@@ -273,11 +295,20 @@ int main(int argc, const char* argv[])
     timepoint t0(now());
     if (s_operation != "read")
     {
-      ev.Simulate();         
+      if (!Config::endcapTest) ev.Simulate();
     }
     else {
       ev.read_in(s_file);
     }
+
+    if (Config::endcapTest) {
+      //make it standalone for now
+      MCHitInfo::mcHitIDCounter_ = 0;
+      ev.simHitsInfo_.resize(Config::nTotHit * Config::nTracks);
+      fittestEndcap(ev);
+      continue;;
+    }
+
     /* simulate time */      ticks[0] += delta(t0);
     ev.Segment();            ticks[1] += delta(t0);
     ev.Seed();               ticks[2] += delta(t0);
@@ -307,7 +338,7 @@ int main(int argc, const char* argv[])
     close_simtrack_file();
   }
 
-  std::vector<float> time(ticks.size());
+  std::vector<double> time(ticks.size());
   for (unsigned int i = 0; i < ticks.size(); ++i){
     time[i]=ticks[i].count();
   }

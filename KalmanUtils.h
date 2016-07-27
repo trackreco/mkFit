@@ -10,4 +10,7 @@ float computeChi2(const TrackState& propagatedState, const MeasurementState& mea
 void updateParameters66(TrackState& propagatedState, MeasurementState& measurementState, TrackState& result);
 TrackState updateParameters(const TrackState& propagatedState, const MeasurementState& measurementState);
 
+TrackState updateParametersEndcap(const TrackState& propagatedState, const MeasurementState& measurementState);
+float computeChi2Endcap(const TrackState& propagatedState, const MeasurementState& measurementState);
+
 #endif

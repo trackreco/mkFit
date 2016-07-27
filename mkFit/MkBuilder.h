@@ -28,6 +28,7 @@ struct ExecutionContext
   }
 };
 
+extern ExecutionContext g_exe_ctx;
 
 //==============================================================================
 // The usual
@@ -40,7 +41,7 @@ class MkFitter;
 
 class MkBuilder
 {
-private:
+protected:
   void fit_one_seed_set(TrackVec& simtracks, int itrack, int end, MkFitter *mkfp);
 
   Event         *m_event;
@@ -59,11 +60,11 @@ public:
 
   // --------
 
-  void begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type);
+  virtual void begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type);
 
   void find_seeds();
-  void fit_seeds();
-  void fit_seeds_tbb();
+  virtual void fit_seeds();
+  virtual void fit_seeds_tbb();
 
   void end_event();
   
@@ -97,10 +98,10 @@ public:
 
   // --------
 
-  void FindTracksBestHit(EventOfCandidates& event_of_cands);
-  void FindTracks();
-  void FindTracksCloneEngine();
-  void FindTracksCloneEngineTbb();
+  virtual void FindTracksBestHit(EventOfCandidates& event_of_cands);
+  virtual void FindTracks();
+  virtual void FindTracksCloneEngine();
+  virtual void FindTracksCloneEngineTbb();
 };
 
 #endif

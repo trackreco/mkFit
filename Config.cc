@@ -31,6 +31,8 @@ namespace Config
   bool  readCmsswSeeds = false;
 
   bool  findSeeds   = false;
+  bool  endcapTest = false;
+
   bool  cf_seeding  = false;
   bool  cf_fitting  = false;
 

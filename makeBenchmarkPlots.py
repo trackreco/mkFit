@@ -11,12 +11,13 @@ if len(sys.argv)>2:
     if sys.argv[2]=="cmssw": isCMSSW=True
     else: exit
 
-if hORm!='host' and hORm!='mic': exit
+if hORm!='host' and hORm!='host_endcap' and hORm!='mic' and hORm!='mic_endcap': exit
 
 g = ROOT.TFile('benchmark_'+hORm+'.root',"recreate")
 
 for test in ['BH','CE','CEST','ST','TBBST','FIT']:
     if isCMSSW and test=='FIT': continue
+    if 'endcap' in hORm and not isCMSSW and 'FIT' not in test: continue
     print test
     pos = 14
     ntks = '10x20k'
@@ -34,7 +35,7 @@ for test in ['BH','CE','CEST','ST','TBBST','FIT']:
     g_VU_speedup = ROOT.TGraph(4)
     point = 0
     vuvals = ['1','2','4','8']
-    if hORm == 'mic': 
+    if 'mic' in hORm: 
         vuvals.append('16')
         vuvals.append('16int')
     else:
@@ -85,10 +86,10 @@ for test in ['BH','CE','CEST','ST','TBBST','FIT']:
 
     point = 0
     nvu = '8int'
-    if hORm == 'mic': nvu = '16int'
+    if 'mic' in hORm: nvu = '16int'
     thvals = [1,3,7,21]
     if 'TBB' in test or 'BH' in test : thvals = [1,3,7,10,12,14,16,21]
-    if hORm == 'mic': thvals = [1,3,7,21,42,63,84,105,126,147,168,189,210]
+    if 'mic' in hORm: thvals = [1,3,7,21,42,63,84,105,126,147,168,189,210]
     g_TH = ROOT.TGraph(len(thvals))
     g_TH_speedup = ROOT.TGraph(len(thvals))
     for th in thvals:

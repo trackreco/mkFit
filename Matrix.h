@@ -19,6 +19,9 @@ typedef ROOT::Math::SVector<float,2> SVector2;
 typedef ROOT::Math::SMatrix<float,3,6> SMatrix36;
 typedef ROOT::Math::SMatrix<float,6,3> SMatrix63;
 
+typedef ROOT::Math::SMatrix<float,2,6> SMatrix26;
+typedef ROOT::Math::SMatrix<float,6,2> SMatrix62;
+
 // should work with any SMatrix
 template<typename Matrix>
 void dumpMatrix(Matrix m)
@@ -95,6 +98,8 @@ inline void sincos4(const float x, float& sin, float& cos)
 
   typedef Matriplex::Matriplex<float, LL, HH, NN>   MPlexLH;
   typedef Matriplex::Matriplex<float, HH, LL, NN>   MPlexHL;
+
+  typedef Matriplex::Matriplex<float, LL,  2, NN>   MPlexL2;
 
   typedef Matriplex::Matriplex<float, 1, 1, NN>     MPlexQF;
   typedef Matriplex::Matriplex<int,   1, 1, NN>     MPlexQI;
