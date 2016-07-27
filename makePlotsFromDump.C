@@ -1,4 +1,4 @@
-void makePlotsFromDump(TString test, bool isCMSSW = false)
+void makePlotsFromDump(TString test, bool isCMSSW = false, bool isEndcap = false)
 {
 
   gStyle->SetOptStat("m");
@@ -8,6 +8,7 @@ void makePlotsFromDump(TString test, bool isCMSSW = false)
 
   TString events = "10x20k";
   if (isCMSSW) events = "100xTTbarPU35";
+  if (isCMSSW && isEndcap) events = "endcap_100xTTbarPU35";
 
   TFile* f1 = TFile::Open("test_host_"+events+"_"+test+"_NVU1_NTH1.root");
   TH1F* h1 = (TH1F*) f1->Get("h_MXNH");

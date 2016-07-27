@@ -43,10 +43,18 @@ void initGeom(Geometry& geom)
   // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
   float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
   for (int l = 0; l < Config::nLayers; l++) {
-    float r = Config::useCMSGeom ? Config::cmsAvgRads[l] : (l+1)*Config::fRadialSpacing;
-    VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent);
-    float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
-    geom.AddLayer(utub, r, z);
+    if (Config::endcapTest) {
+      float z = Config::useCMSGeom ? Config::cmsAvgZs[l] : (l+1)*10.;//Config::fLongitSpacing
+      float rmin = Config::useCMSGeom ? Config::cmsDiskMinRs[l] : 0;
+      float rmax = Config::useCMSGeom ? Config::cmsDiskMaxRs[l] : 0;
+      VUSolid* utub = new VUSolid(rmin, rmax);
+      geom.AddLayer(utub, rmin, z);
+    } else {
+      float r = Config::useCMSGeom ? Config::cmsAvgRads[l] : (l+1)*Config::fRadialSpacing;
+      VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent);
+      float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
+      geom.AddLayer(utub, r, z);
+    }
   }
 }
 
@@ -146,7 +154,9 @@ void test_standard()
     printf ("Using CMS-like geometry ");
     if (Config::readCmsswSeeds) printf ("with CMSSW seeds \n");
     else printf ("with MC-truth seeds \n");
-  } else printf ("Using 4-cm spacing geometry \n");
+  } else if (Config::endcapTest) {
+    printf ("Test tracking in endcap, disks spacing 5 cm \n");
+  } else printf ("Using 4-cm spacing barrel geometry \n");
 
   if (g_operation == "write") {
     generate_and_save_tracks();
@@ -407,6 +417,7 @@ int main(int argc, const char *argv[])
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
 	"  --cms-geom               use cms-like geometry (def: %i)\n"
 	"  --cmssw-seeds            take seeds from CMSSW (def: %i)\n"
+	"  --endcap-test            test endcap tracking (def: %i)\n"
 	"  --cf-seeding             enable CF in seeding (def: %s)\n"
 	"  --cf-fitting             enable CF in fitting (def: %s)\n"
 	"  --write                  write simulation to file and exit\n"
@@ -425,6 +436,7 @@ int main(int argc, const char *argv[])
         Config::finderReportBestOutOfN,
 	Config::useCMSGeom,
 	Config::readCmsswSeeds,
+	Config::endcapTest,
 	Config::cf_seeding ? "true" : "false",
 	Config::cf_fitting ? "true" : "false",
 	g_file_name.c_str()
@@ -497,6 +509,10 @@ int main(int argc, const char *argv[])
     else if(*i == "--cmssw-seeds")
     {
       Config::readCmsswSeeds = true;
+    }
+    else if(*i == "--endcap-test")
+    {
+      Config::endcapTest = true;
     }
     else if (*i == "--cf-seeding")
     {

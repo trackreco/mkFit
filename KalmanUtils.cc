@@ -178,3 +178,55 @@ float computeChi2(const TrackState& propagatedState, const MeasurementState& mea
   }
   return ROOT::Math::Similarity(res,resErrInv);
 }
+
+TrackState updateParametersEndcap(const TrackState& propagatedState, const MeasurementState& measurementState)
+{
+  TrackState result = propagatedState;
+
+  const SMatrixSym66& propErr = propagatedState.errors;
+  const SMatrixSym33 herr = measurementState.errors();
+  const SVector3& hpos = measurementState.parameters();
+
+  SMatrixSym22 resErr = herr.Sub<SMatrixSym22>(0,0)+propErr.Sub<SMatrixSym22>(0,0);
+
+  int invFail(0);
+  SMatrixSym22 resErrInv22 = resErr.InverseFast(invFail);
+  if (0 != invFail) {
+    dprint(__FILE__ << ":" << __LINE__ << ": FAILED INVERSION");
+    return propagatedState;
+  }
+
+  SVector2 res2 = SVector2(hpos.At(0)-propagatedState.x(),
+			   hpos.At(1)-propagatedState.y());
+    
+  SMatrix62 projMatrixT_zp;
+  projMatrixT_zp(0,0) = 1.;
+  projMatrixT_zp(1,1) = 1.;
+
+  SMatrix62 K = propErr*projMatrixT_zp*resErrInv22;
+
+  result.parameters = propagatedState.parameters + K*res2;
+
+  result.errors = propErr - ROOT::Math::SimilarityT(propErr,ROOT::Math::Similarity(projMatrixT_zp,resErrInv22));
+
+  return result;
+}
+
+float computeChi2Endcap(const TrackState& propagatedState, const MeasurementState& measurementState)
+{
+
+  const SMatrixSym66& propErr = propagatedState.errors;
+  const SMatrixSym33 herr = measurementState.errors();
+  const SVector3& hpos = measurementState.parameters();
+
+  SMatrixSym22 resErr = herr.Sub<SMatrixSym22>(0,0)+propErr.Sub<SMatrixSym22>(0,0);
+
+  int invFail(0);
+  SMatrixSym22 resErrInv = resErr.InverseFast(invFail);
+  if (0 != invFail) {
+    dprint(__FILE__ << ":" << __LINE__ << ": FAILED INVERSION");
+    return 9999.;
+  }
+  const SVector2 res(hpos.At(0)-propagatedState.x(), hpos.At(1)-propagatedState.y());
+  return ROOT::Math::Similarity(res,resErrInv);
+}
