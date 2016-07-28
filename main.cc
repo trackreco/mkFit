@@ -303,7 +303,7 @@ int main(int argc, const char* argv[])
 
     if (Config::endcapTest) {
       //make it standalone for now
-      MCHitInfo::mcHitIDCounter_ = 0;
+      MCHitInfo::reset();
       ev.simHitsInfo_.resize(Config::nTotHit * Config::nTracks);
       fittestEndcap(ev);
       continue;;

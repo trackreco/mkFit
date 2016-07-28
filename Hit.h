@@ -177,6 +177,7 @@ struct MCHitInfo
   
   int mcTrackID() const { return mcTrackID_; } 
   int layer()     const { return layer_; } 
+  static void reset();
   static std::atomic<int> mcHitIDCounter_;
 };
 typedef std::vector<MCHitInfo> MCHitInfoVec;
