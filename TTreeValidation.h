@@ -95,7 +95,7 @@ public:
   void fillGeometryTree(const Event& ev) override;
   void fillConformalTree(const Event& ev) override;
   void fillConfigTree() override;
-  void fillTimeTree(const std::vector<float>& ticks) override;
+  void fillTimeTree(const std::vector<double>& ticks) override;
 
   void saveTTrees() override;
 

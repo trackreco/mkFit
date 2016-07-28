@@ -131,7 +131,7 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
    // Reserves should be made for maximum possible number (but this is just
    // measurments errors, params).
 
-   int theEnd = simtracks.size();
+   int theEnd = ( (Config::endcapTest && Config::readCmsswSeeds) ? ev.seedTracks_.size() : simtracks.size());
    int count = (theEnd + NN - 1)/NN;
 
 #ifdef USE_VTUNE_PAUSE
@@ -149,16 +149,26 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
      {
         int itrack = it*NN;
         int end = itrack + NN;
-        if (theEnd < end) {
-          end = theEnd;
-          mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
-        } else {
-          mkfp->SlurpInTracksAndHits(simtracks, ev.layerHits_, itrack, end); // only safe for a full matriplex
-        }
-
-        if (Config::cf_fitting) mkfp->ConformalFitTracks(true, itrack, end);
-        mkfp->FitTracks(end - itrack);
-        mkfp->OutputFittedTracks(rectracks, itrack, end);
+	if (Config::endcapTest) { 
+	  //fixme, check usage of SlurpInTracksAndHits for endcapTest
+	  if (Config::readCmsswSeeds) {
+	    mkfp->InputSeedsTracksAndHits(ev.seedTracks_,simtracks, ev.layerHits_, itrack, end);
+	  } else {
+	    mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
+	  }
+	  mkfp->FitTracksTestEndcap(end - itrack, &ev);
+	} else {
+	  if (theEnd < end) {
+	    end = theEnd;
+	    mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
+	  } else {
+	    mkfp->SlurpInTracksAndHits(simtracks, ev.layerHits_, itrack, end); // only safe for a full matriplex
+	  }
+	  
+	  if (Config::cf_fitting) mkfp->ConformalFitTracks(true, itrack, end);
+	  mkfp->FitTracks(end - itrack);
+	}
+	mkfp->OutputFittedTracks(rectracks, itrack, end);
      }
    });
 

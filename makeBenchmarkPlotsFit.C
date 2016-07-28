@@ -1,4 +1,4 @@
-void makeBenchmarkPlotsFit(bool isMic = false)
+void makeBenchmarkPlotsFit(bool isMic = false, bool isEndcap = false)
 {
   
   TString hORm = "host";
@@ -6,6 +6,11 @@ void makeBenchmarkPlotsFit(bool isMic = false)
 
   TString label = "Xeon";
   if (isMic) label+=" Phi";
+
+  if (isEndcap) {
+    hORm+="_endcap";
+    label+=" (endcap)";
+  }
 
   TString ntrk = "1M";
 

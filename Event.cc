@@ -100,13 +100,17 @@ void Event::Simulate()
       int q=0;//set it in setup function
       // do the simulation
       if (Config::useCMSGeom) setupTrackFromTextFile(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs);
+      else if (Config::endcapTest) setupTrackByToyMCEndcap(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs);
       else setupTrackByToyMC(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs); 
 
 #ifdef CCSCOORD
-      float pt = sqrt(mom[0]*mom[0]+mom[1]*mom[1]);
-      mom=SVector3(1./pt,atan2(mom[1],mom[0]),atan2(pt,mom[2]));
-      for (int its = 0; its < initialTSs.size(); its++){
-	initialTSs[its].convertFromCartesianToCCS();
+      // setupTrackByToyMCEndcap is already in CCS coord, no need to convert
+      if (Config::endcapTest==false) {
+	float pt = sqrt(mom[0]*mom[0]+mom[1]*mom[1]);
+	mom=SVector3(1./pt,atan2(mom[1],mom[0]),atan2(pt,mom[2]));
+	for (int its = 0; its < initialTSs.size(); its++){
+	  initialTSs[its].convertFromCartesianToCCS();
+	}
       }
 #endif
       // uber ugly way of getting around read-in / write-out of objects needed for validation
@@ -399,12 +403,18 @@ void Event::read_in(FILE *fp)
   simHitsInfo_.resize(nm);
   fread(&simHitsInfo_[0], sizeof(MCHitInfo), nm, fp);
 
-  if (Config::useCMSGeom) {
+  if (Config::useCMSGeom || Config::readCmsswSeeds) {
     int ns;
     fread(&ns, sizeof(int), 1, fp);
     seedTracks_.resize(ns);
     if (Config::readCmsswSeeds) fread(&seedTracks_[0], sizeof(Track), ns, fp);
     else fseek(fp, sizeof(Track)*ns, SEEK_CUR);
+    /*
+    printf("read %i seedtracks\n",nt);
+    for (int it = 0; it<ns; it++) {
+      printf("seedtrack with q=%i pT=%5.3f nHits=%i and label=%i\n",seedTracks_[it].charge(),seedTracks_[it].pT(),seedTracks_[it].nFoundHits(),seedTracks_[it].label());
+    }
+    */
   }
 
   /*
@@ -426,5 +436,6 @@ void Event::read_in(FILE *fp)
       printf("hit with mcHitID=%i r=%5.3f x=%5.3f y=%5.3f z=%5.3f\n",layerHits_[il][ih].mcHitID(),layerHits_[il][ih].r(),layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z());
     }
   }
+  printf("read event done\n",nl);
   */
 }

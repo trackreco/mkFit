@@ -1,4 +1,4 @@
-void makeBenchmarkPlots(bool isMic = false, bool isCMSSW = false)
+void makeBenchmarkPlots(bool isMic = false, bool isCMSSW = false, bool isEndcap = false)
 {
 
   TString hORm = "host";
@@ -6,6 +6,11 @@ void makeBenchmarkPlots(bool isMic = false, bool isCMSSW = false)
 
   TString label = "Xeon";
   if (isMic) label+=" Phi";
+
+  if (isEndcap) {
+    hORm+="_endcap";
+    label+=" (endcap)";
+  }
 
   float maxvu = 8;
   if (isMic) maxvu = 16;
@@ -27,6 +32,7 @@ void makeBenchmarkPlots(bool isMic = false, bool isCMSSW = false)
   g_BH_VU->GetXaxis()->SetRangeUser(1,maxvu);
   g_BH_VU->GetYaxis()->SetRangeUser(0,20);
   if (isMic) g_BH_VU->GetYaxis()->SetRangeUser(0,200);
+  if (isEndcap) g_BH_VU->GetYaxis()->SetRangeUser(0,60);
   g_BH_VU->SetLineWidth(2);
   g_CE_VU->SetLineWidth(2);
   g_CEST_VU->SetLineWidth(2);
@@ -129,6 +135,7 @@ void makeBenchmarkPlots(bool isMic = false, bool isCMSSW = false)
   g_BH_TH->GetXaxis()->SetRangeUser(1,maxth);
   g_BH_TH->GetYaxis()->SetRangeUser(0,10);
   if (isMic) g_BH_TH->GetYaxis()->SetRangeUser(0.1,100);
+  if (isEndcap) g_BH_TH->GetYaxis()->SetRangeUser(0.1,40);
   g_BH_TH->SetLineWidth(2);
   g_CE_TH->SetLineWidth(2);
   g_CEST_TH->SetLineWidth(2);

@@ -38,7 +38,7 @@ public:
   virtual void fillGeometryTree(const Event&) {}
   virtual void fillConformalTree(const Event&) {}
   virtual void fillConfigTree() {}
-  virtual void fillTimeTree(const std::vector<float> &) {}
+  virtual void fillTimeTree(const std::vector<double> &) {}
 
   virtual void saveTTrees() {}
 };

@@ -76,6 +76,13 @@ public:
   int   m_nz = 0;
   int   m_capacity = 0;
 
+  //fixme, these are copies of the ones above, need to merge with a more generic name
+  float m_rmin, m_rmax, m_fr;
+  int   m_nr = 0;
+#ifdef LOH_USE_PHI_Z_ARRAYS
+  std::vector<float>        m_hit_rs;
+#endif
+
   // Testing bin filling
   static constexpr float m_fphi = Config::m_nphi / Config::TwoPI;
   static constexpr int   m_phi_mask = 0x3ff;
@@ -89,6 +96,7 @@ protected:
 #ifdef LOH_USE_PHI_Z_ARRAYS
     m_hit_phis.resize(size);
     m_hit_zs  .resize(size);
+    m_hit_rs  .resize(size);
 #endif
   }
 
@@ -120,6 +128,14 @@ protected:
     }
   }
 
+  void empty_r_bins(int r_bin_1, int r_bin_2, int hit_count)
+  {
+    for (int rb = r_bin_1; rb < r_bin_2; ++rb)
+    {
+      empty_phi_bins(rb, 0, Config::m_nphi, hit_count);
+    }
+  }
+
 public:
   LayerOfHits() {}
 
@@ -132,11 +148,17 @@ public:
 
   void SetupLayer(float zmin, float zmax, float dz);
 
+  void SetupDisk(float rmin, float rmax, float dr);
+
   float NormalizeZ(float z) const { if (z < m_zmin) return m_zmin; if (z > m_zmax) return m_zmax; return z; }
 
   int   GetZBin(float z)    const { return (z - m_zmin) * m_fz; }
 
   int   GetZBinChecked(float z) const { int zb = GetZBin(z); if (zb < 0) zb = 0; else if (zb >= m_nz) zb = m_nz - 1; return zb; }
+
+  int   GetRBin(float r)    const { return (r - m_rmin) * m_fr; }
+
+  int   GetRBinChecked(float r) const { int rb = GetRBin(r); if (rb < 0) rb = 0; else if (rb >= m_nr) rb = m_nr - 1; return rb; }
 
   // if you don't pass phi in (-pi, +pi), mask away the upper bits using m_phi_mask
   int   GetPhiBin(float phi) const { return std::floor(m_fphi * (phi + Config::PI)); }
@@ -144,6 +166,7 @@ public:
   const vecPhiBinInfo_t& GetVecPhiBinInfo(float z) const { return m_phi_bin_infos[GetZBin(z)]; }
 
   void SuckInHits(const HitVec &hitv);
+  void SuckInHitsEndcap(const HitVec &hitv);
 
   void SelectHitIndices(float z, float phi, float dz, float dphi, std::vector<int>& idcs, bool isForSeeding=false, bool dump=false);
 
@@ -165,7 +188,8 @@ public:
   {
     for (int i = 0; i < n_layers; ++i)
     {
-      m_layers_of_hits[i].SetupLayer(-Config::g_layer_zwidth[i], Config::g_layer_zwidth[i], Config::g_layer_dz[i]);
+      if (Config::endcapTest) m_layers_of_hits[i].SetupDisk(Config::cmsDiskMinRs[i], Config::cmsDiskMaxRs[i], Config::g_disk_dr[i]);
+      else m_layers_of_hits[i].SetupLayer(-Config::g_layer_zwidth[i], Config::g_layer_zwidth[i], Config::g_layer_dz[i]);
     }
   }
 
@@ -180,6 +204,11 @@ public:
   void SuckInHits(const HitVec &hitv, int layer)
   {
     m_layers_of_hits[layer].SuckInHits(hitv);
+  }
+
+  void SuckInHitsEndcap(const HitVec &hitv, int layer)
+  {
+    m_layers_of_hits[layer].SuckInHitsEndcap(hitv);
   }
 };
 

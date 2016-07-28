@@ -6,15 +6,18 @@
 
 #include "MkFitter.h"
 
+#include "OmpThreadData.h"
+
 //#define DEBUG
 #include "Debug.h"
 
 #include <omp.h>
 #include <tbb/tbb.h>
 
+ExecutionContext g_exe_ctx;
+
 namespace
 {
-  ExecutionContext g_exe_ctx;
   auto retcand = [](CandCloner* cloner) { g_exe_ctx.m_cloners.ReturnToPool(cloner); };
   auto retfitr = [](MkFitter*   mkfp  ) { g_exe_ctx.m_fitters.ReturnToPool(mkfp);   };
 }
@@ -26,7 +29,11 @@ namespace {
               << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)
               << " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
               << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5)
+#ifdef CCSCOORD
+              << " pT=" << 1./mkfp->getPar(0, 0, 3) << std::endl;
+#else
               << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
+#endif
   }
 
   void post_prop_print(int ilay, MkFitter* mkfp) {
@@ -648,95 +655,6 @@ void MkBuilder::find_tracks_load_seeds()
   dcall(print_seeds(event_of_comb_cands));
 }
 
-struct OmpThreadData
-{
-  // thread, eta bin data
-
-  int thread_num;
-  int num_threads;
-
-  int n_th_per_eta_bin;
-  int n_eta_bin_per_th;
-
-  int th_start_ebin, th_end_ebin;
-
-  // seed range data
-
-  int th_start_seed, th_end_seed;
-  int th_n_seeds;
-
-  // ----------------------------------------------------------------
-
-  OmpThreadData()
-  {
-    thread_num  = omp_get_thread_num();
-    num_threads = omp_get_num_threads();
-
-#ifdef DEBUG
-    if (thread_num == 0)
-    {
-      dprintf("Main parallel section, num threads = %d\n", num_threads);
-    }
-#endif
-
-    n_th_per_eta_bin = num_threads / Config::nEtaBin;
-    n_eta_bin_per_th = Config::nEtaBin / num_threads;
-
-    th_start_ebin = -1;
-    th_end_ebin   = -1;
-
-    if (n_th_per_eta_bin >= 1)
-    {
-      // case (b): there is only one eta bin per thread (i.e. >1 thread per eta bin), we'll split seeds in different threads below
-      th_start_ebin = thread_num / n_th_per_eta_bin;
-      th_end_ebin = th_start_ebin + 1;
-    }
-    else
-    {
-      //case (a): define first and last eta bin for this thread
-      int ebin_idx_in_th = thread_num * n_eta_bin_per_th;
-      th_start_ebin = ebin_idx_in_th;
-      th_end_ebin   = th_start_ebin + n_eta_bin_per_th;       
-    }
-
-#ifdef DEBUG
-    if (n_th_per_eta_bin >= 1) {
-      dprint("th_start_ebin-a="  << thread_num * n_eta_bin_per_th
-            << " th_end_ebin-a=" << thread_num * n_eta_bin_per_th + n_eta_bin_per_th
-            << " th_start_ebin-b=" << thread_num/n_th_per_eta_bin << " th_end_ebin-b=" << thread_num/n_th_per_eta_bin+1);
-    } else {
-      dprint("th_start_ebin-a=" << thread_num * n_eta_bin_per_th << " th_end_ebin-a=" << thread_num * n_eta_bin_per_th + n_eta_bin_per_th);
-    }
-#endif
-  }
-
-  void calculate_seed_ranges(int n_seed)
-  {
-    th_start_seed = -1;
-    th_end_seed   = -1;
-
-    if (th_end_ebin == th_start_ebin + 1)
-    {
-      // case (b): define first and last seed in this eta bin for this thread
-      int th_idx_in_ebin = thread_num % n_th_per_eta_bin;
-      th_start_seed = th_idx_in_ebin * n_seed / n_th_per_eta_bin;
-      th_end_seed   = std::min( (th_idx_in_ebin + 1) * n_seed / n_th_per_eta_bin, n_seed );
-    }
-    else
-    {
-      // case (a): we process >= 1 full eta bins in this thread, se we need to loop over all seeds in each eta bin
-      th_start_seed = 0;
-      th_end_seed   = n_seed;
-    }
-    th_n_seeds = th_end_seed - th_start_seed;
-
-    dprintf("thread_num=%d, num_threads=%d\n", thread_num, num_threads);
-    dprintf("n_th_per_eta_bin=%d, n_eta_bin_per_th=%d\n", n_th_per_eta_bin, n_eta_bin_per_th);
-    dprintf("th_start_ebin=%d, th_end_ebin=%d\n", th_start_ebin, th_end_ebin);
-    dprintf("th_start_seed=%d, th_end_seed=%d, th_n_seeds=%d\n", th_start_seed, th_end_seed, th_n_seeds);
-    dprintf("\n");
-  }
-};
 
 //------------------------------------------------------------------------------
 // FindTracks
@@ -867,8 +785,9 @@ void MkBuilder::FindTracks()
             if (num_hits < Config::maxCandsPerSeed)
             {
               std::vector<Track> &ov = etabin_of_comb_candidates.m_candidates[otd.th_start_seed+is];
+              const int max_m2 = ov.size();
+
               int cur_m2 = 0;
-              int max_m2 = ov.size();
               while (cur_m2 < max_m2 && ov[cur_m2].getLastHitIdx() != -2) ++cur_m2;
               while (cur_m2 < max_m2 && num_hits < Config::maxCandsPerSeed)
               {
@@ -992,17 +911,23 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
           // Propagate to this layer
 
           mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
-        }
 
-        // copy_out track params, errors only (hit-idcs and chi2 already updated)
-        mkfp->CopyOutParErr(etabin_of_comb_candidates.m_candidates,
-                            end - itrack, true);
+	  // copy_out the propagated track params, errors only (hit-idcs and chi2 already updated)
+	  mkfp->CopyOutParErr(etabin_of_comb_candidates.m_candidates,
+			      end - itrack, true);
+	} 
+	else {
+	  // copy_out the updated track params, errors only (hit-idcs and chi2 already updated)
+	  mkfp->CopyOutParErr(etabin_of_comb_candidates.m_candidates,
+			      end - itrack, false);
+	  continue;
+	}
       }
 
-      if (ilay == Config::nLayers)
-      {
-        break;
-      }
+      // if (ilay == Config::nLayers)
+      // {
+      //   break;
+      // }
 
       dprint("now get hit range");
 

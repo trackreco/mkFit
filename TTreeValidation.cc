@@ -2069,7 +2069,7 @@ void TTreeValidation::fillConfigTree(){
   configtree_->Fill();
 }
 
-void TTreeValidation::fillTimeTree(const std::vector<float>& ticks){
+void TTreeValidation::fillTimeTree(const std::vector<double>& ticks){
   simtime_   = ticks[0];
   segtime_   = ticks[1];
   seedtime_  = ticks[2];

@@ -7,12 +7,15 @@
 #include "BinInfoUtils.h"
 
 #include "MkBuilder.h"
+#include "MkBuilderEndcap.h"
 
 #include <omp.h>
 
 #if defined(USE_VTUNE_PAUSE)
 #include "ittnotify.h"
 #endif
+
+#include <memory>
 
 inline bool sortByHitsChi2(const std::pair<Track, TrackState>& cand1,
                            const std::pair<Track, TrackState>& cand2)
@@ -64,6 +67,14 @@ inline bool sortByZ(const Hit& hit1, const Hit& hit2)
   return hit1.z() < hit2.z();
 }
 
+namespace
+{
+  MkBuilder* make_builder()
+  {
+    if (Config::endcapTest) return new MkBuilderEndcap;
+    else                    return new MkBuilder;
+  }
+}
 
 //==============================================================================
 // runBuildTestPlexBestHit
@@ -71,7 +82,8 @@ inline bool sortByZ(const Hit& hit1, const Hit& hit2)
 
 double runBuildingTestPlexBestHit(Event& ev)
 {
-  MkBuilder builder;
+  std::unique_ptr<MkBuilder> builder_ptr(make_builder());
+  MkBuilder &builder = * builder_ptr.get();
 
   builder.begin_event(&ev, 0, __func__);
 
@@ -115,7 +127,8 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
   EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
   event_of_comb_cands.Reset();
 
-  MkBuilder builder;
+  std::unique_ptr<MkBuilder> builder_ptr(make_builder());
+  MkBuilder &builder = * builder_ptr.get();
 
   builder.begin_event(&ev, &ev_tmp, __func__);
 
@@ -158,7 +171,8 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
   EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
   event_of_comb_cands.Reset();
 
-  MkBuilder builder;
+  std::unique_ptr<MkBuilder> builder_ptr(make_builder());
+  MkBuilder &builder = * builder_ptr.get();
 
   builder.begin_event(&ev, &ev_tmp, __func__);
 
@@ -201,7 +215,8 @@ double runBuildingTestPlexTbb(Event& ev, EventTmp& ev_tmp)
   EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
   event_of_comb_cands.Reset();
 
-  MkBuilder builder;
+  std::unique_ptr<MkBuilder> builder_ptr(make_builder());
+  MkBuilder &builder = * builder_ptr.get();
 
   builder.begin_event(&ev, &ev_tmp, __func__);
 
