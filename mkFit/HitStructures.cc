@@ -164,7 +164,7 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
   // }
 }
 
-int LayerOfHits::SelectHitIndices(float z, float phi, float dz, float dphi, bool dump)
+void LayerOfHits::SelectHitIndices(float z, float phi, float dz, float dphi, std::vector<int>& idcs, bool isForSeeding, bool dump)
 {
   // Sanitizes z, dz and dphi. phi is expected to be in -pi, pi.
 
@@ -175,9 +175,11 @@ int LayerOfHits::SelectHitIndices(float z, float phi, float dz, float dphi, bool
   //   printf("%5.2f %4d %4d\n", p, pb, pb & m_phi_mask);
   // }
 
-  if (std::abs(dz)   > Config::m_max_dz)   dz   = Config::m_max_dz;
-  if (std::abs(dphi) > Config::m_max_dphi) dphi = Config::m_max_dphi;
-
+  if (!isForSeeding) { // seeding has set cuts for dz and dphi
+    if (std::abs(dz)   > Config::m_max_dz)   dz   = Config::m_max_dz;
+    if (std::abs(dphi) > Config::m_max_dphi) dphi = Config::m_max_dphi;
+  }
+  
   int zb1 = GetZBinChecked(z - dz);
   int zb2 = GetZBinChecked(z + dz) + 1;
   int pb1 = GetPhiBin(phi - dphi);
@@ -191,9 +193,7 @@ int LayerOfHits::SelectHitIndices(float z, float phi, float dz, float dphi, bool
     printf("LayerOfHits::SelectHitIndices %6.3f %6.3f %6.4f %7.5f %3d %3d %4d %4d\n",
            z, phi, dz, dphi, zb1, zb2, pb1, pb2);
 
-  // This should be input argument, well ... it will be Matriplex op, or sth.
-  std::vector<int> idcs;
-
+  // This should be input argument, well ... it will be Matriplex op, or sth. // KPM -- it is now! used for seeding
   for (int zi = zb1; zi < zb2; ++zi)
   {
     for (int pi = pb1; pi < pb2; ++pi)
@@ -222,8 +222,6 @@ int LayerOfHits::SelectHitIndices(float z, float phi, float dz, float dphi, bool
       }
     }
   }
-
-  return idcs.size();
 }
 
 void LayerOfHits::PrintBins()

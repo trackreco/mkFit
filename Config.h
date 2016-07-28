@@ -2,6 +2,7 @@
 #define _config_
 
 #include <algorithm>
+#include <cmath>
 #include <string> // won't compile on clang gcc for mac OS w/o this!
 
 //#define PRINTOUTS_FOR_PLOTS
@@ -15,12 +16,12 @@ namespace Config
   // math general --> from namespace TMath
   constexpr float    PI    = 3.14159265358979323846;
   constexpr float TwoPI    = 6.28318530717958647692;
-  constexpr float PIOver2  = Config::PI / 2.0;
-  constexpr float PIOver4  = Config::PI / 4.0;
-  constexpr float PI3Over4 = 3.0 * Config::PI / 4.0;
-  constexpr float InvPI    = 1.0 / Config::PI;
-  constexpr float RadToDeg = 180.0 / Config::PI;
-  constexpr float DegToRad = Config::PI / 180.0;
+  constexpr float PIOver2  = Config::PI / 2.0f;
+  constexpr float PIOver4  = Config::PI / 4.0f;
+  constexpr float PI3Over4 = 3.0f * Config::PI / 4.0f;
+  constexpr float InvPI    = 1.0f / Config::PI;
+  constexpr float RadToDeg = 180.0f / Config::PI;
+  constexpr float DegToRad = Config::PI / 180.0f;
   constexpr double Sqrt2   = 1.4142135623730950488016887242097;
   constexpr float sol      = 0.299792458; // speed of light in nm/s
 
@@ -83,7 +84,7 @@ namespace Config
 
   constexpr float hitposerrXY = 0.01; // resolution is 100um in xy --> more realistic scenario is 0.003
   constexpr float hitposerrZ  = 0.1; // resolution is 1mm in z
-  constexpr float hitposerrR  = Config::hitposerrXY / 10.;
+  constexpr float hitposerrR  = Config::hitposerrXY / 10.0f;
   constexpr float varXY       = Config::hitposerrXY * Config::hitposerrXY;
   constexpr float varZ        = Config::hitposerrZ  * Config::hitposerrZ;
   constexpr float varR        = Config::hitposerrR  * Config::hitposerrR;
@@ -100,12 +101,14 @@ namespace Config
   constexpr float chi2seedcut  = 9.0;
   constexpr float lay01angdiff = 0.0634888; // analytically derived... depends on geometry of detector --> from mathematica ... d0 set to one sigma of getHypot(bsX,bsY)
   constexpr float lay02angdiff = 0.11537;
-  constexpr float dEtaSeedTrip = 0.6; // for almost max efficiency --> empirically derived... depends on geometry of detector
+  constexpr float dEtaSeedTrip = 0.06; // for almost max efficiency --> empirically derived... depends on geometry of detector
   constexpr float dPhiSeedTrip = 0.0458712; // numerically+semianalytically derived... depends on geometry of detector
-  constexpr float seed_z0cut   = beamspotZ * 3.0; // 3cm
-  constexpr float lay2Zcut     = hitposerrZ * 3.6; // 3.6 mm --> to match efficiency from chi2cut
-  constexpr float seed_d0cut   = 0.5; // 5mm
+  static const float seed_z2cut= (nlayers_per_seed * fRadialSpacing) / std::tan(2.0f*std::atan(std::exp(-1.0f*dEtaSeedTrip)));
+  constexpr float seed_z0cut   = beamspotZ * 3.0f; // 3cm
+  constexpr float seed_z1cut   = hitposerrZ * 3.6f; // 3.6 mm --> to match efficiency from chi2cut
+  constexpr float seed_d0cut   = 0.5f; // 5mm
   extern bool cf_seeding;
+  extern bool findSeeds;
 
   // Config for propagation
   constexpr int Niter = 5;
@@ -139,6 +142,7 @@ namespace Config
 
   // Config for Conformal fitter --> these change depending on inward/outward, which tracks used (MC vs reco), geometry, layers used, track params generated...
   // parameters for layers 0,4,9 
+  constexpr float blowupfit = 10.0;
   constexpr float ptinverr049 = 0.0078; // 0.0075; // errors used for MC only fit, straight from sim tracks, outward with simple geometry
   constexpr float phierr049   = 0.0017; // 0.0017;
   constexpr float thetaerr049 = 0.0033; // 0.0031; 
@@ -157,6 +161,10 @@ namespace Config
   constexpr int maxCandsPerSeed   = 6; //default: 6; cmssw tests: 3
   constexpr int maxHolesPerCand   = 2;
   extern    int maxCandsPerEtaBin;
+
+  // config on validation
+  extern bool normal_val;
+  extern bool full_val;
 
   // Effective eta bin is one half of nEtaPart -- so the above is twice the "average".
   // Note that last and first bin are 3/4 nEtaPart ... but can be made 1/4 by adding

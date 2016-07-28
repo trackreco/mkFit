@@ -41,8 +41,9 @@ void fitTrack(const Track & trk, const TrackExtra& trkextra, int itrack, Event& 
 #else
   const Hit& hit3 = evt_lay_hits[trkLayers.back()][trk.getHitIdx(trkLayers.back())];
 #endif
-  conformalFit(hit1,hit2,hit3,trk.charge(),cfitStateHit0,fiterrs); // last bool denotes use cf derived errors for fitting
+  conformalFit(hit1,hit2,hit3,cfitStateHit0,fiterrs); // last bool denotes use cf derived errors for fitting
   TrackState updatedState = cfitStateHit0;
+  updatedState.charge = trk.charge();
   ev.validation_.collectFitTkCFMapInfo(seedID,cfitStateHit0); // pass along all info and map it to a given seed
 #else 
   TrackState updatedState = trk.state();
@@ -50,7 +51,7 @@ void fitTrack(const Track & trk, const TrackExtra& trkextra, int itrack, Event& 
 #endif 
 
 #if defined(ENDTOEND) || defined(CONFORMAL)
-  updatedState.errors*=10;//not needed when fitting straight from simulation
+  updatedState.errors*=Config::blowupfit;//not needed when fitting straight from simulation
   dcall(print("conformalState", updatedState));
 #endif //ENDTOEND
 

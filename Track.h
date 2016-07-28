@@ -224,7 +224,6 @@ public:
     }
     return layers;
   }
-
   void setCharge(int chg)  {state_.charge=chg;}
   void setChi2(float chi2) {chi2_=chi2;}
   void setLabel(int lbl)   {label_=lbl;}
@@ -266,6 +265,16 @@ private:
 typedef std::vector<TrackExtra> TrackExtraVec;
 typedef std::vector<Track> TrackVec;
 typedef std::vector<TrackState> TSVec;
+typedef std::vector<TSVec>      TkIDToTSVecVec;
 typedef std::vector<std::pair<int, TrackState> > TSLayerPairVec;
 typedef std::vector<std::pair<int, float> > FltLayerPairVec; // used exclusively for debugtree
+
+#include <unordered_map>
+// Map typedefs needed for mapping different sets of tracks to another
+typedef std::unordered_map<int,int>               TkIDToTkIDMap;
+typedef std::unordered_map<int,std::vector<int> > TkIDToTkIDVecMap;
+typedef std::unordered_map<int,TrackState>        TkIDToTSMap;   
+typedef std::unordered_map<int,TSVec>             TkIDToTSVecMap;
+typedef std::unordered_map<int,TSLayerPairVec>    TkIDToTSLayerPairVecMap;
+
 #endif

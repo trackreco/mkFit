@@ -54,7 +54,7 @@ public:
   void PlotCFResidual();
   void PlotCFResolutionPull();
 
-  void PrintTotals();
+  void PrintTotals(bool fullVal);
 
   void MakeSubDirectory(const TString subdirname);
 

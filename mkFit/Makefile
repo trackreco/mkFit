@@ -11,7 +11,7 @@ include ../Makefile.config
 CPPEXTRA := -I.. ${USER_CPPFLAGS} ${DEFS}
 LDEXTRA  := -ltbb ${USER_LDFLAGS}
 
-CPPFLAGS += ${CPPEXTRA}
+CPPFLAGS := ${CPPEXTRA} ${CPPFLAGS}
 CXXFLAGS += ${USER_CXXFLAGS}
 LDFLAGS  += ${LDEXTRA}
 
@@ -57,7 +57,7 @@ echo:
 ################################################################
 
 # Should be a lib, really
-ABOVE_OBJS := $(patsubst %, ../%.o, Config Matrix Event Hit Track Propagation KalmanUtils Simulation Geometry SimpleGeom fittest buildtest ConformalUtils seedtest BinInfoUtils)
+ABOVE_OBJS := $(patsubst %, ../%.o, Config Matrix Event Hit Track Propagation KalmanUtils Simulation Geometry SimpleGeom fittest buildtest ConformalUtils seedtest BinInfoUtils TTreeValidation)
 
 ${ABOVE_OBJS}:
 	${MAKE} -C ..

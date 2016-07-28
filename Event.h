@@ -13,8 +13,8 @@ struct HitID {
   int layer;
   int index;
 };
-typedef std::vector<HitID> HitIDVec;
 
+typedef std::vector<HitID> HitIDVec;
 class Event {
 public:
   Event(const Geometry& g, Validation& v, int evtID, int threads = 1);
@@ -49,6 +49,9 @@ public:
   // phi-eta partitioning map: vector of vector of vectors of std::pairs. 
   // vec[nLayers][nEtaBins][nPhiBins]
   BinInfoMap segmentMap_;
+
+  // used in normal validation --> only used on read-in / write-out (REALLY UGLY)
+  TkIDToTSVecVec simTrackStates_;
 };
 
 typedef std::vector<Event> EventVec;

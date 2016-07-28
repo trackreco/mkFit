@@ -11,6 +11,12 @@ inline int getCharge(const Hit & hit0, const Hit & hit1, const Hit & hit2){
   return ((hit2.y()-hit0.y())*(hit2.x()-hit1.x())>(hit2.y()-hit1.y())*(hit2.x()-hit0.x())?1:-1);
 }
 
+inline int getCharge(const float hit0_x, const float hit0_y,
+		     const float hit1_x, const float hit1_y,
+		     const float hit2_x, const float hit2_y){
+  return ((hit2_y-hit0_y)*(hit2_x-hit1_x)>(hit2_y-hit1_y)*(hit2_x-hit0_x)?1:-1);
+}
+
 inline float predz(const float z0, const float r0, const float z2, const float r2, const float predr) {
   return (predr-r0)*(z2-z0) / (r2-r0) + z0;
 }
@@ -25,7 +31,8 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, T
 
     TrackState updatedState;
     if (Config::cf_seeding) {
-      conformalFit(ev.layerHits_[0][trk.getHitIdx(0)],ev.layerHits_[1][trk.getHitIdx(1)],ev.layerHits_[2][trk.getHitIdx(2)],trk.charge(),updatedState,false); 
+      conformalFit(ev.layerHits_[0][trk.getHitIdx(0)],ev.layerHits_[1][trk.getHitIdx(1)],ev.layerHits_[2][trk.getHitIdx(2)],updatedState,false); 
+      updatedState.charge = trk.charge();
     }
     else {
       updatedState = trk.state();
@@ -83,7 +90,7 @@ void buildSeedsByRZFirstRPhiSecond(TrackVec& evt_seed_tracks, TrackExtraVec& evt
 	if ( std::abs(((3.*evt_lay_hits[0][i].z()-evt_lay_hits[2][j].z())/2.)) > (Config::seed_z0cut)) {continue;}
 	const float z1 = (evt_lay_hits[0][i].z() + evt_lay_hits[2][j].z()) / 2.;
 	for (int k = 0; k < evt_lay_hits[1].size(); k++){
-	  if (std::abs(z1-evt_lay_hits[1][k].z()) < Config::lay2Zcut) {
+	  if (std::abs(z1-evt_lay_hits[1][k].z()) < Config::seed_z1cut) {
 	    TripletIdx triplet = {i,k,j};
 	    hitTriplets.push_back(triplet);
 	  }
@@ -101,7 +108,7 @@ void buildSeedsByRZFirstRPhiSecond(TrackVec& evt_seed_tracks, TrackExtraVec& evt
 	if (std::abs(predz(z0,r0,z2,r2,0.0f)) > (Config::seed_z0cut)) {continue;}
 	const float z1 = predz(z0,r0,z2,r2,Config::fRadialSpacing*2.);
 	for (int k = 0; k < evt_lay_hits[1].size(); k++) {
-	  if (std::abs(z1-evt_lay_hits[1][k].z()) < Config::lay2Zcut) { // five sigma inclusion
+	  if (std::abs(z1-evt_lay_hits[1][k].z()) < Config::seed_z1cut) { // five sigma inclusion
 	    TripletIdx triplet = {i,k,j};
 	    hitTriplets.push_back(triplet);
 	  }
@@ -128,7 +135,7 @@ void buildSeedsByRZFirstRPhiSecond(TrackVec& evt_seed_tracks, TrackExtraVec& evt
 	const int etabinP = (etabin+1)<Config::nEtaPart?etabin+1:etabin; 
 	std::vector<int> cand_lay1_indices = getCandHitIndices(etabinM,etabinP,0,Config::nPhiPart-1,segmentMap[1]);
 	for (auto&& k : cand_lay1_indices){
-	  if (std::abs(z1-evt_lay_hits[1][k].z()) < Config::lay2Zcut) { // five sigma inclusion
+	  if (std::abs(z1-evt_lay_hits[1][k].z()) < Config::seed_z1cut) { // five sigma inclusion
 	    TripletIdx triplet = {i,k,j};
 	    hitTriplets.push_back(triplet);
 	  }
@@ -276,7 +283,7 @@ void buildSeedsByRoadSearch(TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_e
 
 	const float lay1_predz = (hit0_z + hit2.z()) / 2.;
 	// filter by residual of second layer hit
-	if (std::abs(lay1_predz-hit1_z) > Config::lay2Zcut) continue;
+	if (std::abs(lay1_predz-hit1_z) > Config::seed_z1cut) continue;
 
 	const float hit2_x = hit2.x();
 	const float hit2_y = hit2.y();
@@ -417,23 +424,23 @@ void buildHitTripletsCurve(const std::vector<HitVec>& evt_lay_hits, const BinInf
   }
 }
 
-void intersectThirdLayer(const float a, const float b, const float x1, const float y1, float& x2, float& y2){
+void intersectThirdLayer(const float a, const float b, const float hit1_x, const float hit1_y, float& lay2_x, float& lay2_y){
   const float a2 = a*a; const float b2 = b*b; const float a2b2 = a2+b2;
-  const float lay3rad2  = (Config::fRadialSpacing*Config::fRadialSpacing)*9.0; // average third radius squared
+  const float lay2rad2  = (Config::fRadialSpacing*Config::fRadialSpacing)*9.0f; // average third radius squared
   const float maxCurvR2 = Config::maxCurvR * Config::maxCurvR;
 
-  const float quad = std::sqrt( 2*maxCurvR2*(a2b2+lay3rad2) - (a2b2-lay3rad2)*(a2b2-lay3rad2) - maxCurvR2*maxCurvR2 );
-  const float pos[2] = { (a2*a + a*(b2+lay3rad2-maxCurvR2) - b*quad)/ a2b2 , (b2*b + b*(a2+lay3rad2-maxCurvR2) + a*quad)/ a2b2 };
-  const float neg[2] = { (a2*a + a*(b2+lay3rad2-maxCurvR2) + b*quad)/ a2b2 , (b2*b + b*(a2+lay3rad2-maxCurvR2) - a*quad)/ a2b2 };
+  const float quad = std::sqrt( 2.0f*maxCurvR2*(a2b2+lay2rad2) - (a2b2-lay2rad2)*(a2b2-lay2rad2) - maxCurvR2*maxCurvR2 );
+  const float pos[2] = { (a2*a + a*(b2+lay2rad2-maxCurvR2) - b*quad)/ a2b2 , (b2*b + b*(a2+lay2rad2-maxCurvR2) + a*quad)/ a2b2 };
+  const float neg[2] = { (a2*a + a*(b2+lay2rad2-maxCurvR2) + b*quad)/ a2b2 , (b2*b + b*(a2+lay2rad2-maxCurvR2) - a*quad)/ a2b2 };
 
   // since we have two intersection points, arbitrate which one is closer to layer2 hit
-  if (getHypot(pos[0]-x1,pos[1]-y1)<getHypot(neg[0]-x1,neg[1]-y1)) {
-    x2 = pos[0];
-    y2 = pos[1];
+  if (getHypot(pos[0]-hit1_x,pos[1]-hit1_y)<getHypot(neg[0]-hit1_x,neg[1]-hit1_y)) {
+    lay2_x = pos[0];
+    lay2_y = pos[1];
   }
   else {
-    x2 = neg[0];
-    y2 = neg[1];
+    lay2_x = neg[0];
+    lay2_y = neg[1];
   }
 }
 
@@ -503,7 +510,7 @@ void filterHitTripletsBySecondLayerZResidual(const std::vector<HitVec>& evt_lay_
   for (auto&& hit_triplet : hit_triplets){
     //    const float z1 = predz(evt_lay_hits[0][hit_triplet[0]].z(),evt_lay_hits[0][hit_triplet[0]].r(),evt_lay_hits[2][hit_triplet[2]].z(),evt_lay_hits[2][hit_triplet[2]].r(),Config::fRadialSpacing*2.);
     const float z1 = (evt_lay_hits[0][hit_triplet[0]].z() + evt_lay_hits[2][hit_triplet[2]].z()) / 2.;
-    if (std::abs(z1-evt_lay_hits[1][hit_triplet[1]].z()) < Config::lay2Zcut) { // three sigma inclusion
+    if (std::abs(z1-evt_lay_hits[1][hit_triplet[1]].z()) < Config::seed_z1cut) { // three sigma inclusion
       filtered_triplets.push_back(hit_triplet);
     }
   }
@@ -556,7 +563,8 @@ void buildSeedsFromTriplets(const std::vector<HitVec>& evt_lay_hits, const Tripl
     int charge = getCharge(evt_lay_hits[0][hit_triplet[0]],evt_lay_hits[1][hit_triplet[1]],evt_lay_hits[2][hit_triplet[2]]);
 
     TrackState updatedState;
-    conformalFit(evt_lay_hits[0][hit_triplet[0]],evt_lay_hits[1][hit_triplet[1]],evt_lay_hits[2][hit_triplet[2]],charge,updatedState,false); 
+    conformalFit(evt_lay_hits[0][hit_triplet[0]],evt_lay_hits[1][hit_triplet[1]],evt_lay_hits[2][hit_triplet[2]],updatedState,false); 
+    updatedState.charge = charge;
 
     // CF is bad at getting a good pT estimate, phi and theta are fine
     // "best case" config found in other studies is to set TS by hand:
@@ -605,7 +613,8 @@ void fitSeeds(const std::vector<HitVec>& evt_lay_hits, TrackVec& evt_seed_tracks
     const int seedID = seed.label(); // label == seedID!
     
     // first do CF Fit
-    conformalFit(evt_lay_hits[0][seed.getHitIdx(0)],evt_lay_hits[1][seed.getHitIdx(1)],evt_lay_hits[2][seed.getHitIdx(2)],seed.charge(),updatedState,false); 
+    conformalFit(evt_lay_hits[0][seed.getHitIdx(0)],evt_lay_hits[1][seed.getHitIdx(1)],evt_lay_hits[2][seed.getHitIdx(2)],updatedState,false); 
+    updatedState.charge = seed.charge();
     ev.validation_.collectSeedTkCFMapInfo(seedID,updatedState);
 
     TSLayerPairVec updatedStates; // validation for position pulls
@@ -634,4 +643,3 @@ void fitSeeds(const std::vector<HitVec>& evt_lay_hits, TrackVec& evt_seed_tracks
     seed.setState(updatedState);
   }
 }
-

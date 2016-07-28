@@ -104,6 +104,53 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
   }
 }
 
+void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
+                                  const std::vector<LayerOfHits>& layerHits,
+                                  int beg, int end)
+{
+  // Assign track parameters to initial state and copy hit values in.
+
+  // This might not be true for the last chunk!
+  // assert(end - beg == NN);
+
+  int itrack;
+#ifdef USE_CUDA
+  // This openmp loop brings some performances when using
+  // a single thread to fit all events.
+  // However, it is more advantageous to use the threads to
+  // parallelize over Events.
+  omp_set_num_threads(Config::numThreadsReorg);
+#pragma omp parallel for private(itrack)
+#endif
+  for (int i = beg; i < end; ++i) {
+    itrack = i - beg;
+    const Track &trk = tracks[i];
+
+    Label(itrack, 0, 0) = trk.label();
+
+    Err[iC].CopyIn(itrack, trk.errors().Array());
+    Par[iC].CopyIn(itrack, trk.parameters().Array());
+
+    Chg(itrack, 0, 0) = trk.charge();
+    Chi2(itrack, 0, 0) = trk.chi2();
+
+// CopyIn seems fast enough, but indirections are quite slow.
+// For GPU computations, it has been moved in between kernels
+// in an attempt to overlap CPU and GPU computations.
+#ifndef USE_CUDA
+    for (int hi = 0; hi < Nhits; ++hi)
+    {
+      const int hidx = trk.getHitIdx(hi);
+      const Hit &hit = layerHits[hi].m_hits[hidx];
+
+      msErr[hi].CopyIn(itrack, hit.errArray());
+      msPar[hi].CopyIn(itrack, hit.posArray());
+      HitsIdx[hi](itrack, 0, 0) = hidx;
+    }
+#endif
+  }
+}
+
 void MkFitter::SlurpInTracksAndHits(const std::vector<Track>&  tracks,
                                     const std::vector<HitVec>& layerHits,
                                     int beg, int end)
@@ -368,46 +415,43 @@ void MkFitter::ConformalFitTracks(bool fitting, int beg, int end)
   back   = (fitting ?  Config::nLayers-1    : 2); // yup...
 #endif
 
-#ifdef DEBUG
-  for (int n = 0; n < NN; ++n){
-    float px, py, pt, pz, phi, theta;
-    px = Par[iC].ConstAt(n, 3, 0); py = Par[iC].ConstAt(n, 4, 0);
-    pz = Par[iC].ConstAt(n, 5, 0); pt = hipo(px,py);
-    theta = getTheta(pt,pz);
-    phi   = getPhi(px,py);
-    int label = Label.ConstAt(n, 0, 0);
-    float z0, z1, z2;
-    float x0, x2, y0, y2;
-    x0 = msPar[0].ConstAt(n, 0, 0); x2 = msPar[2].ConstAt(n, 0, 0); y0 = msPar[0].ConstAt(n, 1, 0); y2 = msPar[2].ConstAt(n, 1, 0);  
-    z0 = msPar[0].ConstAt(n, 2, 0); z1 = msPar[1].ConstAt(n, 2, 0); z2 = msPar[2].ConstAt(n, 2, 0);  
-    float tantheta = std::sqrt(hipo(x0-x2,y0-y2))/(z2-z0);
-    printf("MC label: %i pt: %7.4f pz: % 8.4f theta: %6.4f tantheta: % 7.4f \n",label,pt,pz,theta,tantheta);
-    printf("             px: % 8.4f py: % 8.4f phi: % 7.4f \n",px,py,phi);
-  }
-#endif
-
   // write to iC --> next step will be a propagation no matter what
-  conformalFitMPlex(fitting, Chg, Err[iC], Par[iC], 
+  conformalFitMPlex(fitting, Label, Err[iC], Par[iC], 
 		    msPar[front], msPar[middle], msPar[back]);
 
-#ifdef DEBUG
-  for (int n = 0; n < NN; ++n){
-    float px, py, pt, pz, phi, theta;
-    px = Par[iC].ConstAt(n, 3, 0); py = Par[iC].ConstAt(n, 4, 0); 
-    pz = Par[iC].ConstAt(n, 5, 0); pt = hipo(px,py);
-    theta = getTheta(pt,pz);
-    phi   = getPhi(px,py);
-    int label = Label.ConstAt(n, 0, 0);
-    float z0, z1, z2;
-    float x0, x2, y0, y2;
-    x0 = msPar[0].ConstAt(n, 0, 0); x2 = msPar[2].ConstAt(n, 0, 0); y0 = msPar[0].ConstAt(n, 1, 0); y2 = msPar[2].ConstAt(n, 1, 0);  
-    z0 = msPar[0].ConstAt(n, 2, 0); z1 = msPar[1].ConstAt(n, 2, 0); z2 = msPar[2].ConstAt(n, 2, 0);  
-    float tantheta = std::sqrt(hipo(x0-x2,y0-y2))/(z2-z0);
-    printf("CF label: %i pt: %7.4f pz: % 8.4f theta: %6.4f tantheta: % 7.4f \n",label,pt,pz,theta,tantheta);
-    printf("             px: % 8.4f py: % 8.4f phi: % 7.4f \n",px,py,phi);
+  // need to set most off-diagonal elements in unc. to zero, inflate all other elements;
+  if (fitting) 
+  { 
+  using idx_t = Matriplex::idx_t;
+  const idx_t N = NN;
+#pragma simd
+    for (int n = 0; n < N; ++n)
+    {
+      Err[iC].At(n, 0, 0) = Err[iC].ConstAt(n, 0, 0) * Config::blowupfit; 
+      Err[iC].At(n, 0, 1) = Err[iC].ConstAt(n, 0, 1) * Config::blowupfit; 
+      Err[iC].At(n, 1, 0) = Err[iC].ConstAt(n, 1, 0) * Config::blowupfit; 
+      Err[iC].At(n, 1, 1) = Err[iC].ConstAt(n, 1, 1) * Config::blowupfit; 
+      Err[iC].At(n, 2, 2) = Err[iC].ConstAt(n, 2, 2) * Config::blowupfit;
+      Err[iC].At(n, 3, 3) = Err[iC].ConstAt(n, 3, 3) * Config::blowupfit;
+      Err[iC].At(n, 4, 4) = Err[iC].ConstAt(n, 4, 4) * Config::blowupfit;
+      Err[iC].At(n, 5, 5) = Err[iC].ConstAt(n, 5, 5) * Config::blowupfit;
+      
+      Err[iC].At(n, 0, 2) = 0.0f; Err[iC].At(n, 0, 3) = 0.0f; 
+      Err[iC].At(n, 0, 4) = 0.0f; Err[iC].At(n, 0, 5) = 0.0f;
+      Err[iC].At(n, 1, 2) = 0.0f; Err[iC].At(n, 1, 3) = 0.0f; 
+      Err[iC].At(n, 1, 4) = 0.0f; Err[iC].At(n, 1, 5) = 0.0f;      
+      Err[iC].At(n, 2, 0) = 0.0f; Err[iC].At(n, 2, 1) = 0.0f;
+      Err[iC].At(n, 2, 3) = 0.0f; Err[iC].At(n, 2, 4) = 0.0f; 
+      Err[iC].At(n, 2, 5) = 0.0f; Err[iC].At(n, 3, 0) = 0.0f; 
+      Err[iC].At(n, 3, 1) = 0.0f; Err[iC].At(n, 3, 2) = 0.0f;
+      Err[iC].At(n, 3, 4) = 0.0f; Err[iC].At(n, 3, 5) = 0.0f;
+      Err[iC].At(n, 4, 0) = 0.0f; Err[iC].At(n, 4, 1) = 0.0f; 
+      Err[iC].At(n, 4, 2) = 0.0f; Err[iC].At(n, 4, 3) = 0.0f; 
+      Err[iC].At(n, 4, 5) = 0.0f; Err[iC].At(n, 5, 0) = 0.0f; 
+      Err[iC].At(n, 5, 1) = 0.0f; Err[iC].At(n, 5, 2) = 0.0f;
+      Err[iC].At(n, 5, 3) = 0.0f; Err[iC].At(n, 5, 4) = 0.0f;
+    }
   }
-#endif
-
 }
 
 void MkFitter::FitTracks(const int N_proc)

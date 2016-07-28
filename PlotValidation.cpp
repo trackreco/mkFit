@@ -66,7 +66,6 @@ void PlotValidation::Validation(Bool_t fullVal, Bool_t mvInput){
   PlotValidation::PlotFakeRate();
   PlotValidation::PlotDuplicateRate();
   PlotValidation::PlotNHits(); 
-  PlotValidation::PlotTiming();
   PlotValidation::PlotMomResolutionPull();
 
   if (fullVal) {
@@ -76,9 +75,10 @@ void PlotValidation::Validation(Bool_t fullVal, Bool_t mvInput){
     PlotValidation::PlotPosResolutionPull(); 
     PlotValidation::PlotCFResidual();
     PlotValidation::PlotCFResolutionPull();
+    PlotValidation::PlotTiming(); // currently only smatrix timing... could adapt to matriplex
   }
 
-  PlotValidation::PrintTotals();
+  PlotValidation::PrintTotals(fullVal);
   
   if (mvInput) {
     PlotValidation::MoveInput();
@@ -512,7 +512,7 @@ void PlotValidation::PlotNHits(){
 
 void PlotValidation::PlotTiming(){
   // get input tree
-  TTree * configtree = (TTree*)fInRoot->Get("configtree");
+  TTree * timetree = (TTree*)fInRoot->Get("timetree");
 
   // labels for histos (x-axis)
   TStrVec stime = {"Simulate","Segment","Seed","Build","Fit","Validate"};
@@ -548,13 +548,13 @@ void PlotValidation::PlotTiming(){
   }
   
   Float_t simtime = 0., segtime = 0., seedtime = 0., buildtime = 0., fittime = 0., hlvtime = 0.;
-  configtree->SetBranchAddress("simtime",&simtime);
-  configtree->SetBranchAddress("segtime",&segtime);
-  configtree->SetBranchAddress("seedtime",&seedtime);
-  configtree->SetBranchAddress("buildtime",&buildtime);
-  configtree->SetBranchAddress("fittime",&fittime);
-  configtree->SetBranchAddress("hlvtime",&hlvtime);
-  configtree->GetEntry(0);
+  timetree->SetBranchAddress("simtime",&simtime);
+  timetree->SetBranchAddress("segtime",&segtime);
+  timetree->SetBranchAddress("seedtime",&seedtime);
+  timetree->SetBranchAddress("buildtime",&buildtime);
+  timetree->SetBranchAddress("fittime",&fittime);
+  timetree->SetBranchAddress("hlvtime",&hlvtime);
+  timetree->GetEntry(0);
   
   // fill histos
   tottime->SetBinContent(1,simtime);
@@ -579,7 +579,7 @@ void PlotValidation::PlotTiming(){
   delete tottime;
   delete rectime;
   
-  delete configtree;
+  delete timetree;
 }
 
 void PlotValidation::PlotMomResolutionPull(){
@@ -1763,7 +1763,7 @@ void PlotValidation::PlotCFResolutionPull(){
   delete cftree;
 }
 
-void PlotValidation::PrintTotals(){
+void PlotValidation::PrintTotals(bool fullVal){
   // want to print out totals of nHits, fraction of Hits shared, efficiency, fake rate, duplicate rate of seeds, build, fit
   // --> numer/denom plots for phi, know it will be in the bounds.  
 
@@ -1814,41 +1814,51 @@ void PlotValidation::PrintTotals(){
   // timing dump
   TTree * configtree = (TTree*)fInRoot->Get("configtree");
   Int_t  Ntracks = 0, Nevents = 0, nEtaPart = 0, nPhiPart = 0;
-  Float_t simtime = 0., segtime = 0., seedtime = 0., buildtime = 0., fittime = 0., hlvtime = 0.;
   configtree->SetBranchAddress("Nevents",&Nevents);
   configtree->SetBranchAddress("Ntracks",&Ntracks);
   configtree->SetBranchAddress("nEtaPart",&nEtaPart);
   configtree->SetBranchAddress("nPhiPart",&nPhiPart);
-  configtree->SetBranchAddress("simtime",&simtime);
-  configtree->SetBranchAddress("segtime",&segtime);
-  configtree->SetBranchAddress("seedtime",&seedtime);
-  configtree->SetBranchAddress("buildtime",&buildtime);
-  configtree->SetBranchAddress("fittime",&fittime);
-  configtree->SetBranchAddress("hlvtime",&hlvtime);
   configtree->GetEntry(0);
+
+  TTree * timetree;
+  Float_t simtime = 0., segtime = 0., seedtime = 0., buildtime = 0., fittime = 0., hlvtime = 0.;
+  if (fullVal) {
+    timetree = (TTree*)fInRoot->Get("timetree"); 
+    timetree->SetBranchAddress("simtime",&simtime);
+    timetree->SetBranchAddress("segtime",&segtime);
+    timetree->SetBranchAddress("seedtime",&seedtime);
+    timetree->SetBranchAddress("buildtime",&buildtime);
+    timetree->SetBranchAddress("fittime",&fittime);
+    timetree->SetBranchAddress("hlvtime",&hlvtime);
+    timetree->GetEntry(0);
+  }
   
   std::cout << "--------Track Reconstruction Summary--------" << std::endl;
   std::cout << "nEvents: "  << Nevents  << " nTracks/evt: " << Ntracks  << std::endl;
   std::cout << "nEtaPart: " << nEtaPart << " nPhiPart: "    << nPhiPart << std::endl;
   std::cout << "++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-  std::cout << "Simulation time: " << simtime   << std::endl;
-  std::cout << "Segmenting time: " << segtime   << std::endl;
-  std::cout << "Seeding time:    " << seedtime  << std::endl;
-  std::cout << "Building time:   " << buildtime << std::endl;
-  std::cout << "Fitting time:    " << fittime   << std::endl;
-  std::cout << "Validation time: " << hlvtime   << std::endl;
+  if (fullVal) {
+    std::cout << "Simulation time: " << simtime   << std::endl;
+    std::cout << "Segmenting time: " << segtime   << std::endl;
+    std::cout << "Seeding time:    " << seedtime  << std::endl;
+    std::cout << "Building time:   " << buildtime << std::endl;
+    std::cout << "Fitting time:    " << fittime   << std::endl;
+    std::cout << "Validation time: " << hlvtime   << std::endl;
+  }
   std::cout << std::endl;
 
   totalsout << "--------Track Reconstruction Summary--------" << std::endl;
   totalsout << "nEvents: "  << Nevents  << " nTracks/evt: " << Ntracks  << std::endl;
   totalsout << "nEtaPart: " << nEtaPart << " nPhiPart: "    << nPhiPart << std::endl;
   totalsout << "++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-  totalsout << "Simulation time: " << simtime   << std::endl;
-  totalsout << "Segmenting time: " << segtime   << std::endl;
-  totalsout << "Seeding time:    " << seedtime  << std::endl;
-  totalsout << "Building time:   " << buildtime << std::endl;
-  totalsout << "Fitting time:    " << fittime   << std::endl;
-  totalsout << "Validation time: " << hlvtime   << std::endl;
+  if (fullVal) {
+    totalsout << "Simulation time: " << simtime   << std::endl;
+    totalsout << "Segmenting time: " << segtime   << std::endl;
+    totalsout << "Seeding time:    " << seedtime  << std::endl;
+    totalsout << "Building time:   " << buildtime << std::endl;
+    totalsout << "Fitting time:    " << fittime   << std::endl;
+    totalsout << "Validation time: " << hlvtime   << std::endl;
+  }
   totalsout << std::endl;
 
   for (UInt_t j = 0; j < trks.size(); j++) {
@@ -1900,6 +1910,11 @@ void PlotValidation::PrintTotals(){
     totalsout << std::endl << std::endl;
   }
   totalsout.close();
+
+  delete configtree;
+  if (fullVal) {
+    delete timetree;
+  }
 }
 
 void PlotValidation::MakeSubDirectory(const TString subdirname){

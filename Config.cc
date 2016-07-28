@@ -30,12 +30,15 @@ namespace Config
   bool  useCMSGeom = false;
   bool  readCmsswSeeds = false;
 
-  bool endcapTest = false;
+  bool  findSeeds   = false;
+  bool  endcapTest = false;
 
   bool  cf_seeding  = false;
   bool  cf_fitting  = false;
 
   bool  super_debug = false;
+  bool  normal_val  = false;
+  bool  full_val    = false;
 
   void RecalculateDependentConstants()
   {

@@ -54,20 +54,45 @@ TTreeValidation::TTreeValidation(std::string fileName)
   gROOT->ProcessLine("#include <vector>");
   f_ = TFile::Open(fileName.c_str(), "recreate");
 
-  if (!Config::super_debug) { // regular validation
-    initializeSeedInfoTree();
-    initializeSeedTree();
-    initializeSegmentTree();
-    initializeBranchTree();
+  if (Config::normal_val) { // regular validation
     initializeEfficiencyTree();
     initializeFakeRateTree();  
-    initializeGeometryTree();
-    initializeConformalTree();
+    if (Config::full_val) { 
+      initializeGeometryTree();
+      initializeConformalTree();
+      initializeSeedInfoTree();
+      initializeSeedTree();
+      initializeSegmentTree();
+      initializeBranchTree();
+      initializeTimeTree();
+    }
   }
-  else {
+  if (Config::super_debug) {
     initializeDebugTree();
   }
   initializeConfigTree();
+}
+
+TTreeValidation::~TTreeValidation()
+{
+  if (Config::normal_val) {
+    delete efftree_;
+    delete fakeratetree_;
+    if (Config::full_val) {
+      delete geotree_;
+      delete cftree_;
+      delete seedinfotree_;
+      delete seedtree_;
+      delete segtree_;
+      delete tree_br_;
+      delete timetree_;
+    }
+  }
+  if (Config::super_debug) {
+    delete debugtree_;
+  }
+  delete configtree_;
+  delete f_;
 }
 
 void TTreeValidation::initializeDebugTree(){
@@ -255,16 +280,16 @@ void TTreeValidation::initializeBranchTree(){
   tree_br_->Branch("layer",&layer_);
   tree_br_->Branch("cands",&cands_);
 
-  tree_br_->Branch("candEtaPhiBins",&candEtaPhiBins_);
-  tree_br_->Branch("candHits",&candHits_);
-  tree_br_->Branch("candBranches",&candBranches_);
+  tree_br_->Branch("candEtaPhiBins","std::vector<int>",&candEtaPhiBins_);
+  tree_br_->Branch("candHits","std::vector<int>",&candHits_);
+  tree_br_->Branch("candBranches","std::vector<int>",&candBranches_);
   
   tree_br_->Branch("uniqueEtaPhiBins",&uniqueEtaPhiBins_);
   tree_br_->Branch("uniqueHits",&uniqueHits_);
   tree_br_->Branch("uniqueBranches",&uniqueBranches_);
       
-  tree_br_->Branch("candnSigmaDeta",&candnSigmaDeta_);
-  tree_br_->Branch("candnSigmaDphi",&candnSigmaDphi_);
+  tree_br_->Branch("candnSigmaDeta","std::vector<float>",&candnSigmaDeta_);
+  tree_br_->Branch("candnSigmaDphi","std::vector<float>",&candnSigmaDphi_);
 }
 
 void TTreeValidation::initializeEfficiencyTree(){  
@@ -449,27 +474,27 @@ void TTreeValidation::initializeGeometryTree(){
   geotree_->Branch("z_mc_gen_vrx",&z_mc_gen_vrx_geo_);
   
   // Full reco hits (vector) from simulation
-  geotree_->Branch("x_mc_reco_hit",&x_mc_reco_hit_geo_);
-  geotree_->Branch("y_mc_reco_hit",&y_mc_reco_hit_geo_);
-  geotree_->Branch("z_mc_reco_hit",&z_mc_reco_hit_geo_);
+  geotree_->Branch("x_mc_reco_hit","std::vector<float>",&x_mc_reco_hit_geo_);
+  geotree_->Branch("y_mc_reco_hit","std::vector<float>",&y_mc_reco_hit_geo_);
+  geotree_->Branch("z_mc_reco_hit","std::vector<float>",&z_mc_reco_hit_geo_);
   
   // Position pull info from reco tracks
-  geotree_->Branch("layers_seed",&layers_seed_geo_);
-  geotree_->Branch("layers_fit",&layers_fit_geo_);
+  geotree_->Branch("layers_seed","std::vector<int>",&layers_seed_geo_);
+  geotree_->Branch("layers_fit","std::vector<int>",&layers_fit_geo_);
 
-  geotree_->Branch("x_lay_seed",&x_lay_seed_geo_);
-  geotree_->Branch("y_lay_seed",&y_lay_seed_geo_);
-  geotree_->Branch("z_lay_seed",&z_lay_seed_geo_);
-  geotree_->Branch("ex_lay_seed",&ex_lay_seed_geo_);
-  geotree_->Branch("ey_lay_seed",&ey_lay_seed_geo_);
-  geotree_->Branch("ez_lay_seed",&ez_lay_seed_geo_);
+  geotree_->Branch("x_lay_seed","std::vector<float>",&x_lay_seed_geo_);
+  geotree_->Branch("y_lay_seed","std::vector<float>",&y_lay_seed_geo_);
+  geotree_->Branch("z_lay_seed","std::vector<float>",&z_lay_seed_geo_);
+  geotree_->Branch("ex_lay_seed","std::vector<float>",&ex_lay_seed_geo_);
+  geotree_->Branch("ey_lay_seed","std::vector<float>",&ey_lay_seed_geo_);
+  geotree_->Branch("ez_lay_seed","std::vector<float>",&ez_lay_seed_geo_);
 
-  geotree_->Branch("x_lay_fit",&x_lay_fit_geo_);
-  geotree_->Branch("y_lay_fit",&y_lay_fit_geo_);
-  geotree_->Branch("z_lay_fit",&z_lay_fit_geo_);
-  geotree_->Branch("ex_lay_fit",&ex_lay_fit_geo_);
-  geotree_->Branch("ey_lay_fit",&ey_lay_fit_geo_);
-  geotree_->Branch("ez_lay_fit",&ez_lay_fit_geo_);
+  geotree_->Branch("x_lay_fit","std::vector<float>",&x_lay_fit_geo_);
+  geotree_->Branch("y_lay_fit","std::vector<float>",&y_lay_fit_geo_);
+  geotree_->Branch("z_lay_fit","std::vector<float>",&z_lay_fit_geo_);
+  geotree_->Branch("ex_lay_fit","std::vector<float>",&ex_lay_fit_geo_);
+  geotree_->Branch("ey_lay_fit","std::vector<float>",&ey_lay_fit_geo_);
+  geotree_->Branch("ez_lay_fit","std::vector<float>",&ez_lay_fit_geo_);
 }
 
 void TTreeValidation::initializeConformalTree(){
@@ -557,12 +582,6 @@ void TTreeValidation::initializeConformalTree(){
 void TTreeValidation::initializeConfigTree(){
   // include config ++ real seeding parameters ...
   configtree_ = new TTree("configtree","configtree");
-  configtree_->Branch("simtime",&simtime_);
-  configtree_->Branch("segtime",&segtime_);
-  configtree_->Branch("seedtime",&seedtime_);
-  configtree_->Branch("buildtime",&buildtime_);
-  configtree_->Branch("fittime",&fittime_);
-  configtree_->Branch("hlvtime",&hlvtime_);
 
   configtree_->Branch("Ntracks",&Ntracks_);
   configtree_->Branch("Nevents",&Nevents_);
@@ -611,6 +630,17 @@ void TTreeValidation::initializeConfigTree(){
   configtree_->Branch("thetaerr012",&thetaerr012_);
 }
 
+void TTreeValidation::initializeTimeTree(){
+  timetree_ = new TTree("timetree","timetree");
+  
+  timetree_->Branch("simtime",&simtime_);
+  timetree_->Branch("segtime",&segtime_);
+  timetree_->Branch("seedtime",&seedtime_);
+  timetree_->Branch("buildtime",&buildtime_);
+  timetree_->Branch("fittime",&fittime_);
+  timetree_->Branch("hlvtime",&hlvtime_);
+}
+
 void TTreeValidation::alignTrackExtra(TrackVec& evt_tracks, TrackExtraVec& evt_extras){
   TrackExtraVec trackExtra_tmp;
 
@@ -629,6 +659,7 @@ void TTreeValidation::alignTrackExtra(TrackVec& evt_tracks, TrackExtraVec& evt_e
 }
 
 void TTreeValidation::collectSimTkTSVecMapInfo(int mcTrackID, const TSVec& initTSs){
+  std::lock_guard<std::mutex> locker(glock_);
   simTkTSVecMap_[mcTrackID] = initTSs;
 }
 
@@ -1969,14 +2000,7 @@ void TTreeValidation::fillConformalTree(const Event& ev){
   }
 }
 
-void TTreeValidation::fillConfigTree(const std::vector<double>& ticks){
-  simtime_   = ticks[0];
-  segtime_   = ticks[1];
-  seedtime_  = ticks[2];
-  buildtime_ = ticks[3];
-  fittime_   = ticks[4];
-  hlvtime_   = ticks[5];
-
+void TTreeValidation::fillConfigTree(){
   Ntracks_ = Config::nTracks;
   Nevents_ = Config::nEvents;
 
@@ -2025,11 +2049,21 @@ void TTreeValidation::fillConfigTree(const std::vector<double>& ticks){
   configtree_->Fill();
 }
 
+void TTreeValidation::fillTimeTree(const std::vector<double>& ticks){
+  simtime_   = ticks[0];
+  segtime_   = ticks[1];
+  seedtime_  = ticks[2];
+  buildtime_ = ticks[3];
+  fittime_   = ticks[4];
+  hlvtime_   = ticks[5];
+  
+  timetree_->Fill();
+}
+
 void TTreeValidation::saveTTrees() {  
   std::lock_guard<std::mutex> locker(glock_); 
   f_->cd();
   f_->Write();
-  f_->Close();
 }             
 
 #endif

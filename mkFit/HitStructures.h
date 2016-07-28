@@ -87,6 +87,7 @@ protected:
   {
     m_hits = (Hit*) _mm_malloc(sizeof(Hit) * size, 64);
     m_capacity = size;
+    for (int ihit = 0; ihit < m_capacity; ihit++){m_hits[ihit] = Hit();} 
 #ifdef LOH_USE_PHI_Z_ARRAYS
     m_hit_phis.resize(size);
     m_hit_zs  .resize(size);
@@ -162,7 +163,7 @@ public:
   void SuckInHits(const HitVec &hitv);
   void SuckInHitsEndcap(const HitVec &hitv);
 
-  int  SelectHitIndices(float z, float phi, float dz, float dphi, bool dump=false);
+  void SelectHitIndices(float z, float phi, float dz, float dphi, std::vector<int>& idcs, bool isForSeeding=false, bool dump=false);
 
   void PrintBins();
 };
