@@ -8,8 +8,8 @@
 // --> nTkMatches_[reco] == -99, no reco to sim match {eff only}
 
 // excluding position variables, as position could be -99!
-// --> reco var == -99, "unassociated" reco to sim track, mcTrackID == 999999 [possible mcmask_[reco] == 0; possible duplmask_[reco] == 2] {eff only}
-// --> sim  var == -99, "unassociated" reco to sim track, mcTrackID == 999999 [possible mcmask_[reco] == 0; possible duplmask_[reco] == 2] {FR only}
+// --> reco var == -99, "unassociated" reco to sim track, mcTrackID == -1 [possible mcmask_[reco] == 0; possible duplmask_[reco] == 2] {eff only}
+// --> sim  var == -99, "unassociated" reco to sim track, mcTrackID == -1 [possible mcmask_[reco] == 0; possible duplmask_[reco] == 2] {FR only}
 // --> reco/sim var == -100, "no matching seed to build/fit" track, fill all reco/sim variables -100 [possible mcmask_[reco] == -1, possible duplmask_[reco] == -1] {FR only}
 
 // --> seedmask_[reco] == 1, matching seed to reco/fit track [possible mcmask_[reco] == 0,1; possible duplmask_[reco] == 0,1,2] {FR only}
@@ -778,7 +778,7 @@ void TTreeValidation::mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVe
   for (auto itrack = 0; itrack < evt_tracks.size(); ++itrack){
     auto&& track(evt_tracks[itrack]);
     auto&& extra(evt_extras[itrack]);
-    if (extra.mcTrackID() != 999999){ // skip fakes, don't store them at all in sim map
+    if (extra.mcTrackID() >= 0){ // skip fakes, don't store them at all in sim map
       simTkMap[extra.mcTrackID()].push_back(track.label()); // store vector of reco tk labels, mapped to the sim track label (i.e. mcTrackID)
     }
   }
@@ -1493,7 +1493,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
 
     // sim info for seed track
     mcID_seed_FR_ = seedextra.mcTrackID();
-    if (mcID_seed_FR_ != 999999){ // store sim info at that final layer!!! --> gen info stored only in eff tree
+    if (mcID_seed_FR_ >= 0){ // store sim info at that final layer!!! --> gen info stored only in eff tree
       mcmask_seed_FR_ = 1; // matched track to sim
 
       const int layer = seedtrack.foundLayers().back(); // last layer fit ended up on
@@ -1546,7 +1546,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
 
       // sim info for build track
       mcID_build_FR_  = buildextra.mcTrackID();
-      if (mcID_build_FR_ != 999999){ // build track matched to seed and sim 
+      if (mcID_build_FR_ >= 0){ // build track matched to seed and sim 
 	mcmask_build_FR_ = 1; // matched track to sim
 
 	const int layer = buildtrack.foundLayers().back(); // last layer fit ended up on
@@ -1630,7 +1630,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
 
       // sim info for fit track
       mcID_fit_FR_  = fitextra.mcTrackID();
-      if (mcID_fit_FR_ != 999999){ // fit track matched to seed and sim 
+      if (mcID_fit_FR_ >= 0){ // fit track matched to seed and sim 
 	mcmask_fit_FR_ = 1; // matched track to sim
 #ifdef INWARDFIT
 	const int layer = fittrack.foundLayers().front(); // last layer fiting ended up on

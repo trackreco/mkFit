@@ -91,10 +91,10 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
   if (4*mcount > 3*trk.nFoundHits()){ // if more, matched track --> set id info
     mcTrackID_    = mtrk;
     nHitsMatched_ = mcount;
-  } else { // fake track, id = 999 999
-    mcTrackID_    = 999999;
+  } else { // fake track, id = -1
+    mcTrackID_    = -1;
     nHitsMatched_ = mcount;
   }
   dprint("Track " << trk.label() << " best mc track " << mtrk << " count " << mcount << "/" << trk.nFoundHits());
-  // need to include protection against zero size tracks --> need ID other than 999999
+  // need to include protection against zero size tracks --> need ID other than -1
 }

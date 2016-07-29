@@ -275,7 +275,6 @@ public:
   int nHitsMatched() const {return nHitsMatched_;}
   int seedID() const {return seedID_;}
   bool isDuplicate() const {return isDuplicate_;}
-  bool isMissed() const {return 999999 == mcTrackID_;}
   int duplicateID() const {return duplicateID_;}
   void setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo);
   void setMCDuplicateInfo(int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
