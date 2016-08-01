@@ -46,7 +46,6 @@ void findSeedsByRoadSearch(TripletIdxConVec & seed_idcs, std::vector<LayerOfHits
 
 	std::vector<int> cand_hit0_indices; // pass by reference
 	lay0_hits.SelectHitIndices(hit1_z/2.0f,hit1.phi(),Config::seed_z0cut/2.0f,Config::lay01angdiff,cand_hit0_indices,true,false);
-#pragma simd
 	// loop over first layer hits
 	for (auto&& ihit0 : cand_hit0_indices)
 	{
@@ -84,7 +83,9 @@ void findSeedsByRoadSearch(TripletIdxConVec & seed_idcs, std::vector<LayerOfHits
 	  dprint(" ihit0: " << ihit0 << " mcTrackID: " << hit0.mcTrackID(ev->simHitsInfo_) << " phi: " << hit0.phi() << " z: " << hit0.z());
 	  dprint("  predphi: " << (lay2_posphi+lay2_negphi)/2.0f << "+/-" << (lay2_posphi-lay2_negphi)/2.0f << " predz: " << 2.0f*hit1_z-hit0_z << "+/-" << Config::seed_z2cut << std::endl);
 
-	  // loop over candidate second layer hits
+	  // loop over candidate third layer hits
+	  //temp_thr_seed_idcs.reserve(temp_thr_seed_idcs.size()+cand_hit2_indices.size());
+#pragma simd
 	  for (auto&& ihit2 : cand_hit2_indices)
 	  {
 	    const Hit & hit2 = lay2_hits.m_hits[ihit2];
@@ -111,9 +112,6 @@ void findSeedsByRoadSearch(TripletIdxConVec & seed_idcs, std::vector<LayerOfHits
 	  } // end loop over third layer matches
 	} // end loop over first layer matches
       } // end chunk of hits for parallel for
-      for (auto&& seed : temp_thr_seed_idcs)
-      {
-	seed_idcs.emplace_back(seed);
-      }
-  }); // end paralell for loop over second layer hits
+      seed_idcs.grow_by(temp_thr_seed_idcs.begin(), temp_thr_seed_idcs.end());
+  }); // end parallel for loop over second layer hits
 }
