@@ -7,8 +7,10 @@
 #include "BinInfoUtils.h"
 
 #include "MkBuilder.h"
+#ifdef USE_CUDA
 #include "FitterCU.h"
 #include "BuilderCU.h"
+#endif
 
 #include <omp.h>
 

@@ -3,8 +3,10 @@
 
 #include <vector>
 
+#ifdef USE_CUDA
 #include "HitStructures.h"
 #include "FitterCU.h"
+#endif
 
 
 //------------------------------------------------------------------------------

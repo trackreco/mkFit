@@ -19,6 +19,7 @@
 
 #ifdef USE_CUDA
 #include "FitterCU.h"
+#include "gpu_utils.h"
 #endif
 
 #include <cstdlib>

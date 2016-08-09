@@ -49,9 +49,10 @@ __device__ void SlurpOutIdx_fn(GPlexObj from, // float *fArray, int stride, int 
 __device__ void HitToMs_fn(GPlexHS &msErr, GPlexHV &msPar,
                            Hit *hits, const GPlexQI &XHitSize, 
                            const GPlexHitIdx &XHitArr, 
-                           GPlexQI &HitsIdx, const int hit_cnt, const int N) {
+                           GPlexQI &HitsIdx, const int hit_cnt, 
+                           const int itrack, const int N) {
   /*int j = threadIdx.x + blockDim.x*blockIdx.x;*/
-  int itrack = threadIdx.x + blockDim.x * blockIdx.x;
+  //int itrack = threadIdx.x + blockDim.x * blockIdx.x;
   if (itrack < N) {
 
     const char *varr      = (char*) hits;
@@ -69,8 +70,8 @@ __device__ void HitToMs_fn(GPlexHS &msErr, GPlexHV &msPar,
 __global__ void HitToMs_kernel(GPlexHS msErr, GPlexHV msPar, Hit *hits,
                                const GPlexQI XHitSize, const GPlexHitIdx XHitArr,
                                GPlexQI HitsIdx, const int hit_cnt, const int N) {
-
-    HitToMs_fn(msErr, msPar, hits, XHitSize, XHitArr, HitsIdx, hit_cnt, N);
+  int itrack = threadIdx.x + blockDim.x * blockIdx.x;
+  HitToMs_fn(msErr, msPar, hits, XHitSize, XHitArr, HitsIdx, hit_cnt, itrack, N);
 }
 
 void HitToMs_wrapper(const cudaStream_t& stream,
@@ -91,8 +92,9 @@ __device__ void InputTracksCU_fn (Track *tracks,
                                   GPlexLS &Err_iP, GPlexLV &Par_iP,
                                   GPlexQI &Chg, GPlexQF &Chi2,
                                   GPlexQI &Label, GPlexQI *HitsIdx,
-                                  const int beg, const int end, const int N) {
-  int itrack = threadIdx.x + blockDim.x*blockIdx.x;
+                                  const int beg, const int end, 
+                                  const int itrack, const int N) {
+  //int itrack = threadIdx.x + blockDim.x*blockIdx.x;
 
   if (itrack < (end-beg) && itrack < N) {
     Track &trk = tracks[beg];
@@ -120,7 +122,8 @@ __global__ void InputTracksCU_kernel(Track *tracks,
                                      GPlexQI Chg, GPlexQF Chi2, GPlexQI Label,
                                      GPlexQI *HitsIdx,
                                      int beg, int end, int N) {
-  InputTracksCU_fn(tracks, Err_iP, Par_iP, Chg, Chi2, Label, HitsIdx, beg, end, N);
+  int itrack = threadIdx.x + blockDim.x*blockIdx.x;
+  InputTracksCU_fn(tracks, Err_iP, Par_iP, Chg, Chi2, Label, HitsIdx, beg, end, itrack, N);
 }
 
 
@@ -145,8 +148,9 @@ __device__ void OutputTracksCU_fn(Track *tracks,
                                   const GPlexLS &Err_iP, const GPlexLV &Par_iP,
                                   const GPlexQI &Chg, const GPlexQF &Chi2,
                                   const GPlexQI &Label, const GPlexQI *HitsIdx,
-                                  const int beg, const int end, const int N) {
-  int itrack = threadIdx.x + blockDim.x*blockIdx.x;
+                                  const int beg, const int end, 
+                                  const int itrack, const int N) {
+  //int itrack = threadIdx.x + blockDim.x*blockIdx.x;
 
   if (itrack < (end-beg) && itrack < N) {
     Track &trk = tracks[beg];
@@ -164,14 +168,11 @@ __device__ void OutputTracksCU_fn(Track *tracks,
     tracks[i].setChi2(Chi2(itrack, 0, 0));
     tracks[i].setLabel(Label(itrack, 0, 0));
 
-    // FIXME: Config::nLayers -> NHits
-    //        Needs to find a way to get the NHits
-    //        either store it as a class member, or pass it as an argument
     tracks[i].resetHits();
     /*int nGoodItIdx = 0;*/
     for (int hi = 0; hi < Config::nLayers; ++hi) {
       tracks[i].addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);
-      // We probably use registers instead of going for class members:
+      // FIXME: We probably want to use registers instead of going for class members:
       /*int hit_idx = HitsIdx[hi](itrack, 0, 0);*/
       /*tracks[i].setHitIdx(hi, hit_idx);*/
       /*if (hit_idx >= 0) {*/
@@ -188,7 +189,8 @@ __global__ void OutputTracksCU_kernel(Track *tracks,
                                      GPlexQI Chg, GPlexQF Chi2, GPlexQI Label,
                                      GPlexQI *HitsIdx,
                                      int beg, int end, int N) {
-  OutputTracksCU_fn(tracks, Err_iP, Par_iP, Chg, Chi2, Label, HitsIdx, beg, end, N);
+  int itrack = threadIdx.x + blockDim.x*blockIdx.x;
+  OutputTracksCU_fn(tracks, Err_iP, Par_iP, Chg, Chi2, Label, HitsIdx, beg, end, itrack, N);
 }
 
 

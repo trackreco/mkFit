@@ -11,8 +11,8 @@ constexpr bool tmp_useCMSGeom = false;
 
 __device__ void selectHitIndices_fn(const LayerOfHitsCU &layer_of_hits,
     const GPlexLS &Err, const GPlexLV &Par, GPlexQI &XHitSize, 
-    GPlexHitIdx &XHitArr, const int N) {
-  int itrack = threadIdx.x + blockDim.x*blockIdx.x;
+    GPlexHitIdx &XHitArr, const int itrack, const int N) {
+  //int itrack = threadIdx.x + blockDim.x*blockIdx.x;
 
   if (itrack < N) {
     bool dump = false;
@@ -159,7 +159,8 @@ __device__ void selectHitIndices_fn(const LayerOfHitsCU &layer_of_hits,
 
 __global__ void selectHitIndices_kernel(const LayerOfHitsCU layer_of_hits,
     const GPlexLS Err, const GPlexLV Par, GPlexQI XHitSize, GPlexHitIdx XHitArr, const int N) {
-  selectHitIndices_fn(layer_of_hits, Err, Par, XHitSize, XHitArr, N);
+  int itrack = threadIdx.x + blockDim.x*blockIdx.x;
+  selectHitIndices_fn(layer_of_hits, Err, Par, XHitSize, XHitArr, itrack, N);
 }
 
 void selectHitIndices_wrapper(const cudaStream_t& stream,

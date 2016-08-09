@@ -143,9 +143,9 @@ __device__ void bestHit_fn(
     const GPlexLS &propErr, GPlexHS &msErr, GPlexHV &msPar,
     const GPlexLV &propPar, GPlexQF &outChi2,
     GPlexQF &Chi2, GPlexQI &HitsIdx,
-    const int maxSize, const int N) {
+    const int maxSize, const int itrack, const int N) {
 
-  int itrack = threadIdx.x + blockDim.x*blockIdx.x;
+  /*int itrack = threadIdx.x + blockDim.x*blockIdx.x;*/
   int bestHit_reg = -1;
   float minChi2_reg = 15.f;
 
@@ -154,7 +154,7 @@ __device__ void bestHit_fn(
 
   for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
   {
-    HitToMs_fn(msErr, msPar, hits, XHitSize, XHitArr, HitsIdx, hit_cnt, N);
+    HitToMs_fn(msErr, msPar, hits, XHitSize, XHitArr, HitsIdx, hit_cnt, itrack, N);
 #if 0
       // TODO: add CMSGeom
       if (Config::useCMSGeom) {
@@ -162,7 +162,7 @@ __device__ void bestHit_fn(
         throw std::runtime_error("useCMSGeom not implemented yet for GPU");
       } else {}
 #endif
-    computeChi2_fn(propErr, msErr, msPar, propPar, outChi2, N);
+    computeChi2_fn(propErr, msErr, msPar, propPar, outChi2, itrack, N);
     getNewBestHitChi2_fn(XHitSize, XHitArr, outChi2.ptr, minChi2_reg, bestHit_reg, hit_cnt, N);
   }
   updateTracksWithBestHit_fn
@@ -180,11 +180,12 @@ __global__ void bestHit_kernel(
     const GPlexLV propPar, GPlexQF outChi2,
     GPlexQF Chi2, GPlexQI HitsIdx,
     const int maxSize, const int N) {
+  int itrack = threadIdx.x + blockDim.x*blockIdx.x;
   bestHit_fn(hits, XHitSize, XHitArr, 
     propErr, msErr, msPar,
     propPar, outChi2,
     Chi2, HitsIdx,
-    maxSize, N);
+    maxSize, itrack, N);
 }
 
 
@@ -223,14 +224,17 @@ __global__ void findBestHit_kernel(LayerOfHitsCU *layers,
                                    GPlexQI inChg, GPlexQI Label, GeometryCU geom, 
                                    int *maxSize, int gplex_size) {
   for (int ebin = 0; ebin != Config::nEtaBin; ++ebin) {
-    for (int itrack = 0; itrack < etabin_of_cands[ebin].m_fill_index; itrack += gplex_size) {
-      int end = min(itrack + gplex_size, etabin_of_cands[ebin].m_fill_index);
-      int N = end - itrack; 
+    for (int beg = 0; beg < etabin_of_cands[ebin].m_fill_index; beg += gplex_size) {
+      int end = min(beg + gplex_size, etabin_of_cands[ebin].m_fill_index);
+      int N = end - beg; 
 
-      if (threadIdx.x + blockDim.x * blockIdx.x < N) {
+      int tidx = threadIdx.x + blockDim.x*blockIdx.x;
+      int itrack = beg + tidx;
+
+      if (itrack < end) {
 
         InputTracksCU_fn(etabin_of_cands[ebin].m_candidates, Err_iP, Par_iP,
-            inChg, Chi2, Label, HitsIdx_arr, itrack, end, N);
+            inChg, Chi2, Label, HitsIdx_arr, beg, end, tidx, N);
 
         for (int ilay = Config::nlayers_per_seed; ilay < Config::nLayers; ++ilay)
         {
@@ -244,23 +248,21 @@ __global__ void findBestHit_kernel(LayerOfHitsCU *layers,
           LayerOfHitsCU &layer = layers[ilay];
 
           int maxSize_block;
-          selectHitIndices_fn(layer, Err_iP, Par_iP, XHitSize, XHitArr, N);
+          selectHitIndices_fn(layer, Err_iP, Par_iP, XHitSize, XHitArr, tidx, N);
           // FIXME: Is reduction over block enough, or do we need device-wise reduction
           reduceMax_fn<int, BLOCK_THREADS, 1, cub::BLOCK_REDUCE_WARP_REDUCTIONS>
             (XHitSize.ptr, XHitSize.N, &maxSize_block);
           bestHit_fn(layer.m_hits, XHitSize, XHitArr, 
-              Err_iP, msErr, msPar,
-              Par_iP, outChi2,
-              Chi2, HitsIdx,
-              maxSize_block, N);
-          kalmanUpdate_fn( Err_iP, msErr, Par_iP, msPar, Par_iC, Err_iC, N);
+                     Err_iP, msErr, msPar, Par_iP, outChi2,
+                     Chi2, HitsIdx, maxSize_block, tidx, N);
+          kalmanUpdate_fn( Err_iP, msErr, Par_iP, msPar, Par_iC, Err_iC, tidx, N);
           if (ilay+1 < Config::nLayers) {
             float radius = radii[ilay+1];
-            propagationForBuilding_fn(Err_iC, Par_iC, inChg, radius, Err_iP, Par_iP, N);
+            propagationForBuilding_fn(Err_iC, Par_iC, inChg, radius, Err_iP, Par_iP, tidx, N);
           }
         }
         OutputTracksCU_fn(etabin_of_cands[ebin].m_candidates, 
-            Err_iP, Par_iP, inChg, Chi2, Label, HitsIdx_arr, itrack, end, N);
+            Err_iP, Par_iP, inChg, Chi2, Label, HitsIdx_arr, beg, end, tidx, N);
       }
     }
   }

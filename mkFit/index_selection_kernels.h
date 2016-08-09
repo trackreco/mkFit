@@ -10,6 +10,6 @@ void selectHitIndices_wrapper(const cudaStream_t& stream,
 
 __device__ void selectHitIndices_fn(const LayerOfHitsCU &layer_of_hits,
     const GPlexLS &Err, const GPlexLV &Par, GPlexQI &XHitSize,
-    GPlexHitIdx &XHitArr, const int N);
+    GPlexHitIdx &XHitArr, const int itrack, const int N);
 
 #endif  // _INDEX_SELECTION_KERNELS_H_

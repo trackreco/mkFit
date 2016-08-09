@@ -7,7 +7,8 @@
 
 
 __device__ void computeChi2_fn(const GPlexLS &propErr, const GPlexHS &msErr,
-    const GPlexHV &msPar, const GPlexLV &propPar, GPlexQF &outChi2, const int N);
+    const GPlexHV &msPar, const GPlexLV &propPar, GPlexQF &outChi2, 
+    const int itrack, const int N);
 
 
 void computeChi2_wrapper(cudaStream_t &stream, 

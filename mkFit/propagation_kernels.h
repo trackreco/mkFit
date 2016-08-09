@@ -20,6 +20,6 @@ __device__ void propagationForBuilding_fn(
     const GPlexLS &inErr, const GPlexLV &inPar,
     const GPlexQI &inChg, const float radius,
     GPlexLS &outErr, GPlexLV &outPar, 
-    const int N);
+    const int n, const int N);
 
 #endif  // _PROPAGATION_KERNELS_H_

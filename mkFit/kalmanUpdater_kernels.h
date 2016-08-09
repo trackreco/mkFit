@@ -22,7 +22,7 @@ __global__ void kalmanUpdate_kernel(
 __device__ void kalmanUpdate_fn(
     GPlexLS &propErr, const GPlexHS __restrict__ &msErr,
     const GPlexLV __restrict__ &par_iP, const GPlexHV __restrict__ &msPar,
-    GPlexLV &par_iC, GPlexLS &outErr, const int N);
+    GPlexLV &par_iC, GPlexLS &outErr, const int itrack, const int N);
 
 __device__ void addIntoUpperLeft3x3_fn(const GPlexLS __restrict__ &A,
                                        const GPlexHS __restrict__ &B,

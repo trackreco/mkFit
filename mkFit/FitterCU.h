@@ -32,8 +32,6 @@ constexpr int LH = 18;
 
 using idx_t = Matriplex::idx_t;
 
-void separate_first_call_for_meaningful_profiling_numbers();
-
 template <typename T>
 class FitterCU {
  public:

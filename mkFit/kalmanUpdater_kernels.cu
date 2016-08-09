@@ -530,54 +530,49 @@ __device__ void kalmanGain_x_propErr_fn(
 __device__ void kalmanUpdate_fn(
     GPlexLS &propErr, const GPlexHS __restrict__ &msErr,
     const GPlexLV __restrict__ &par_iP, const GPlexHV __restrict__ &msPar,
-    GPlexLV &par_iC, GPlexLS &outErr, const int N) {
-  int grid_width = blockDim.x * gridDim.x;
+    GPlexLV &par_iC, GPlexLS &outErr, const int n, const int N) {
   // Note: similar results with propErr kept in registers.
   //       It is read-only so using the read-only cache yields more flexibility
   //       wrt block size without increasing the pressure on registers to much.
-  int n = threadIdx.x + blockIdx.x * blockDim.x;
   // There is no need to keep resErr and kalmanGain as global memory arrays.
   /*float resErr_reg[HS];*/
   GPlexRegHS resErr_reg;
   /*float kalmanGain_reg[LH];*/
 
   // If there is more matrices than max_blocks_x * BLOCK_SIZE_X 
-  for (int z = 0; z < (N-1)/grid_width  +1; z++) {
-    /*n += z*gridDim.x;*/
-    n += z*grid_width;
-    if (n < N) {
-      for (int j = 0; j < HS; ++j) {
-        resErr_reg[j] = 0; //resErr[j*resErr_stride + n];
-      }
+  if (n < N) {
+    for (int j = 0; j < HS; ++j) {
+      resErr_reg[j] = 0; //resErr[j*resErr_stride + n];
+    }
 
-      // FIXME: Add useCMSGeom -> port propagateHelixToRMPlex
+    // FIXME: Add useCMSGeom -> port propagateHelixToRMPlex
 #if 0
-      if (Config::useCMSGeom) {
-        propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar);
-      } else {
-        propErr = psErr;
-        propPar = psPar;
-      }
+    if (Config::useCMSGeom) {
+      propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar);
+    } else {
+      propErr = psErr;
+      propPar = psPar;
+    }
 #endif
-      float rotT00;
-      float rotT01;
-      const float r = hipo(msPar(n, 0, 0), msPar(n, 1, 0));
-      rotT00 = -(msPar(n, 1, 0) + par_iP(n, 1, 0))/(2*r);
-      rotT01 =  (msPar(n, 0, 0) + par_iP(n, 0, 0))/(2*r);
+    float rotT00;
+    float rotT01;
+    const float r = hipo(msPar(n, 0, 0), msPar(n, 1, 0));
+    rotT00 = -(msPar(n, 1, 0) + par_iP(n, 1, 0))/(2*r);
+    rotT01 =  (msPar(n, 0, 0) + par_iP(n, 0, 0))/(2*r);
 
-      GPlexRegHV res_glo;
-      subtractFirst3_fn(msPar, par_iP, res_glo, N, n);
+    GPlexRegHV res_glo;
+    subtractFirst3_fn(msPar, par_iP, res_glo, N, n);
 
-      addIntoUpperLeft3x3_fn(propErr, msErr, resErr_reg, N, n);
-      GPlexReg2V res_loc;   //position residual in local coordinates
-      RotateResidulsOnTangentPlane_fn(rotT00,rotT01,res_glo,res_loc);
-      GPlexReg2S resErr_loc; // 2x2 sym
-      GPlexRegHH tempHH;  // 3*3 sym
-      ProjectResErr_fn  (rotT00, rotT01, resErr_reg, tempHH);
-      ProjectResErrTransp_fn(rotT00, rotT01, tempHH, resErr_loc);
+    addIntoUpperLeft3x3_fn(propErr, msErr, resErr_reg, N, n);
+    GPlexReg2V res_loc;   //position residual in local coordinates
+    RotateResidulsOnTangentPlane_fn(rotT00,rotT01,res_glo,res_loc);
+    GPlexReg2S resErr_loc; // 2x2 sym
+    GPlexRegHH tempHH;  // 3*3 sym
+    ProjectResErr_fn  (rotT00, rotT01, resErr_reg, tempHH);
+    ProjectResErrTransp_fn(rotT00, rotT01, tempHH, resErr_loc);
 
-      /*invertCramerSym_fn(resErr_reg);*/
-      invertCramerSym2x2_fn(resErr_loc);
+    /*invertCramerSym_fn(resErr_reg);*/
+    invertCramerSym2x2_fn(resErr_loc);
 #ifndef POLCOORD
     // Move to "polar" coordinates: (x,y,z,1/pT,phi,theta) [can we find a better name?]
 
@@ -613,7 +608,7 @@ __device__ void kalmanUpdate_fn(
     /*outErr.Subtract(propErr, outErr);// outErr is in "polar" coordinates now*/
     subtract_matrix(propErr.ptr, propErr.stride, outErr.ptr, outErr.stride, 
         /*propErr.ptr, propErr.stride, LS, n);*/
-        outErr.ptr, outErr.stride, LS, n);
+      outErr.ptr, outErr.stride, LS, n);
 
 #ifndef POLCOORD
     // Go back to cartesian coordinates
@@ -625,16 +620,15 @@ __device__ void kalmanUpdate_fn(
     CartesianErrTransp_fn(jac_pol, tempLL, outErr, n);// outErr is in cartesian coordinates now
 #endif
 #if 0
-      upParam_MultKalmanGain_fn(propErr, propErr_stride,
-          resErr_reg, kalmanGain_reg, N, n);             
-      multResidualsAdd_fn(kalmanGain_reg, par_iP, par_iP_stride, 
-          msPar, msPar_stride, par_iC, par_iC_stride, N, n);
+    upParam_MultKalmanGain_fn(propErr, propErr_stride,
+        resErr_reg, kalmanGain_reg, N, n);             
+    multResidualsAdd_fn(kalmanGain_reg, par_iP, par_iP_stride, 
+        msPar, msPar_stride, par_iC, par_iC_stride, N, n);
 
-      kalmanGain_x_propErr_fn(kalmanGain_reg,
-          propErr, propErr_stride,
-          outErr, outErr_stride, N, n);
+    kalmanGain_x_propErr_fn(kalmanGain_reg,
+        propErr, propErr_stride,
+        outErr, outErr_stride, N, n);
 #endif
-    }
   }
 }
 
@@ -642,7 +636,13 @@ __global__ void kalmanUpdate_kernel(
     GPlexLS propErr, const GPlexHS __restrict__ msErr,
     const GPlexLV __restrict__ par_iP, const GPlexHV __restrict__ msPar,
     GPlexLV par_iC, GPlexLS outErr, const int N) {
-  kalmanUpdate_fn( propErr, msErr, par_iP, msPar, par_iC, outErr, N);
+  int grid_width = blockDim.x * gridDim.x;
+  int n = threadIdx.x + blockIdx.x * blockDim.x;
+
+  for (int z = 0; z < (N-1)/grid_width  +1; z++) {
+    n += z*grid_width;
+    kalmanUpdate_fn(propErr, msErr, par_iP, msPar, par_iC, outErr, n, N);
+  }
 }
 
 void kalmanUpdate_wrapper(const cudaStream_t& stream,
@@ -658,8 +658,3 @@ void kalmanUpdate_wrapper(const cudaStream_t& stream,
       (d_propErr, d_msErr, d_par_iP, d_msPar, d_par_iC, d_outErr, N);
 }
 
-// Should probably not be in this file, but creating a file for
-// this oneliner seems overkill.
-void separate_first_call_for_meaningful_profiling_numbers() {
-  cudaDeviceSynchronize();
-}

@@ -15,9 +15,10 @@
 __device__ void chi2Similarity_fn(
     const GPlexReg2V &a,
     const GPlexReg2S &c, // in registers
-    float *d, const size_t dN) {
+    float *d, const size_t dN,
+    const int n) {
 
-  int n = threadIdx.x + blockIdx.x * blockDim.x;
+  //int n = threadIdx.x + blockIdx.x * blockDim.x;
 
   // manually subrtact into local vars -- 3 of them
   /*float x0 = a[0 * aN + n] - b[0 * aN + n];*/
@@ -78,47 +79,41 @@ __device__ void ProjectResErrTransp_fn(const float a00,
 
 __device__ void computeChi2_fn(
     const GPlexLS &propErr, const GPlexHS &msErr, const GPlexHV &msPar,
-    const GPlexLV &propPar, GPlexQF &outChi2, const int N) {
-  int grid_width = blockDim.x * gridDim.x;
-  int n = threadIdx.x + blockIdx.x * blockDim.x;
+    const GPlexLV &propPar, GPlexQF &outChi2, const int n, const int N) {
+  //int n = threadIdx.x + blockIdx.x * blockDim.x;
   /*float resErr_reg[HS]; // ~ resErr_glo*/
   GPlexRegHS resErr_reg;
 
-  for (int z = 0; z < (N-1)/grid_width  +1; z++) {
-    n += z*grid_width;
+  if (n < N) {
+    // coordinate change
+    float rotT00;
+    float rotT01;
+    const float r = hipo(msPar(n, 0, 0), msPar(n, 1, 0));
+    rotT00 = -(msPar(n, 1, 0) + propPar(n, 1, 0))/(2*r);
+    rotT01 =  (msPar(n, 0, 0) + propPar(n, 0, 0))/(2*r);
 
-    if (n < N) {
+    /*float res_glo[HV];*/
+    GPlexRegHV res_glo;
+    subtractFirst3_fn(msPar, propPar, res_glo, N, n);
 
-      // coordinate change
-      float rotT00;
-      float rotT01;
-      const float r = hipo(msPar(n, 0, 0), msPar(n, 1, 0));
-      rotT00 = -(msPar(n, 1, 0) + propPar(n, 1, 0))/(2*r);
-      rotT01 =  (msPar(n, 0, 0) + propPar(n, 0, 0))/(2*r);
-
-      /*float res_glo[HV];*/
-      GPlexRegHV res_glo;
-      subtractFirst3_fn(msPar, propPar, res_glo, N, n);
-
-      for (int j = 0; j < HS; ++j) {
-        resErr_reg[j] = 0; //resErr[j*resErr_stride + n];
-      }
-      addIntoUpperLeft3x3_fn(propErr, msErr, resErr_reg, N, n);
-
-      GPlexReg2V res_loc;   //position residual in local coordinates
-      RotateResidulsOnTangentPlane_fn(rotT00,rotT01,res_glo,res_loc);
-      /*MPlex2S resErr_loc;//covariance sum in local position coordinates*/
-      /*MPlexHH tempHH;*/
-      GPlexReg2S resErr_loc; // 2x2 sym
-      GPlexRegHH tempHH;  // 3*3 sym
-      ProjectResErr_fn  (rotT00, rotT01, resErr_reg, tempHH);
-      ProjectResErrTransp_fn(rotT00, rotT01, tempHH, resErr_loc);
-
-      /*invertCramerSym_fn(resErr_reg);*/
-      invertCramerSym2x2_fn(resErr_loc);
-
-      chi2Similarity_fn(res_loc, resErr_loc, outChi2.ptr, outChi2.stride);
+    for (int j = 0; j < HS; ++j) {
+      resErr_reg[j] = 0; //resErr[j*resErr_stride + n];
     }
+    addIntoUpperLeft3x3_fn(propErr, msErr, resErr_reg, N, n);
+
+    GPlexReg2V res_loc;   //position residual in local coordinates
+    RotateResidulsOnTangentPlane_fn(rotT00,rotT01,res_glo,res_loc);
+    /*MPlex2S resErr_loc;//covariance sum in local position coordinates*/
+    /*MPlexHH tempHH;*/
+    GPlexReg2S resErr_loc; // 2x2 sym
+    GPlexRegHH tempHH;  // 3*3 sym
+    ProjectResErr_fn  (rotT00, rotT01, resErr_reg, tempHH);
+    ProjectResErrTransp_fn(rotT00, rotT01, tempHH, resErr_loc);
+
+    /*invertCramerSym_fn(resErr_reg);*/
+    invertCramerSym2x2_fn(resErr_loc);
+
+    chi2Similarity_fn(res_loc, resErr_loc, outChi2.ptr, outChi2.stride, n);
   }
 }
 
@@ -126,11 +121,14 @@ __device__ void computeChi2_fn(
 __global__ void computeChi2_kernel(
     const GPlexLS propErr, const GPlexHS msErr, const GPlexHV msPar, 
     const GPlexLV propPar, GPlexQF outChi2, const int N) {
+  int grid_width = blockDim.x * gridDim.x;
   int itrack = threadIdx.x + blockDim.x*blockIdx.x;
-  if (itrack < N) {
-    computeChi2_fn
-      (propErr, msErr, msPar, propPar,
-       outChi2, N);
+  for (int z = 0; z < (N-1)/grid_width  +1; z++) {
+    itrack += z*grid_width;
+
+    if (itrack < N) {
+      computeChi2_fn (propErr, msErr, msPar, propPar, outChi2, itrack, N);
+    }
   }
 }
 

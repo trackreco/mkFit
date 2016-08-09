@@ -9,13 +9,22 @@
 #include "Event.h"
 
 
+// FIXME: Design Issue
+//        What to do, allocation in ctor, free in dtor?
+//            not exception-safe
+//            but manage mem 
+//        or in separate function?
 class BuilderCU
 {
 public:
+  BuilderCU();
   BuilderCU(const EventOfHits& event_of_hits, const Event* event,
             const EventOfCandidates& event_of_cands);
   ~BuilderCU();
 
+  void setUp(const EventOfHits& event_of_hits, const Event* event,
+             const EventOfCandidates& event_of_cands);
+  void tearDown();
   void FindTracksBestHit(EventOfCandidates& event_of_cands);
 private:
   FitterCU<float> *cuFitter;

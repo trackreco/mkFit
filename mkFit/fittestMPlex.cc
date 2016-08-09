@@ -245,7 +245,7 @@ void runAllEventsFittingTestPlexGPU(std::vector<Event>& events)
     }
     cuFitter.freeDevice();
   }
-  std::cerr << "###### Total GPU time: " << dtime() - total_gpu_time << " ######\n";
+  std::cerr << "###### [Fitting] Total GPU time: " << dtime() - total_gpu_time << " ######\n";
 }
 
 

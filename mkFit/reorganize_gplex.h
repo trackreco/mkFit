@@ -8,7 +8,8 @@
 __device__ void HitToMs_fn(GPlexHS &msErr, GPlexHV &msPar,
                            Hit *hits, const GPlexQI &XHitSize,
                            const GPlexHitIdx &XHitArr, 
-                           GPlexQI &HitsIdx, const int hit_cnt, const int N);
+                           GPlexQI &HitsIdx, const int hit_cnt,
+                           const int itrack, const int N);
 
 __global__ void HitToMs_kernel(GPlexHS msErr, GPlexHV msPar, Hit *hits, 
                                const GPlexQI XHitSize, const GPlexHitIdx XHitArr, 
@@ -23,13 +24,15 @@ __device__ void InputTracksCU_fn(Track *tracks,
                                  GPlexLS &Err_iP, GPlexLV &Par_iP,
                                  GPlexQI &Chg, GPlexQF &Chi2,
                                  GPlexQI &Label, GPlexQI *HitsIdx,
-                                 const int beg, const int end, const int N);
+                                 const int beg, const int end,
+                                 const int itrack, const int N);
 
 __device__ void OutputTracksCU_fn(Track *tracks, 
                                   const GPlexLS &Err_iP, const GPlexLV &Par_iP,
                                   const GPlexQI &Chg, const GPlexQF &Chi2,
                                   const GPlexQI &Label, const GPlexQI *HitsIdx,
-                                  const int beg, const int end, const int N);
+                                  const int beg, const int end, 
+                                  const int itrack, const int N);
 
 void InputTracksCU_wrapper(const cudaStream_t &stream, 
                            const EtaBinOfCandidatesCU &etaBin,

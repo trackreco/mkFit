@@ -48,7 +48,8 @@ void MultHelixPropTransp_fn(const GPlexRegLL& a, const GPlexRegLL& b, GPlexLS& c
 // Registers are thread-private. Thus this function has no notion of
 // parallelism. It is ran serially by each calling thread.
 __device__ void computeJacobianSimple(float *errorProp,
-    const float s, const float k, const float p, const float pxin, const float pyin, const float pzin, 
+    const float s, const float k, const float p, 
+    const float pxin, const float pyin, const float pzin, 
     const float TP, const float cosTP, const float sinTP, const int N) {
 
   // std::cout << "total path s=" << s << std::endl;
@@ -304,64 +305,58 @@ __device__ void propagationForBuilding_fn(
     const GPlexLS &inErr, const GPlexLV &inPar,
     const GPlexQI &inChg, const float radius,
     GPlexLS &outErr, GPlexLV &outPar, 
-    const int N) {
+    const int n, const int N) {
 #if 1
-  int grid_width = blockDim.x * gridDim.x;
-  int n = threadIdx.x + blockIdx.x * blockDim.x;
-
   GPlexRegQF msRad_reg;
   // Using registers instead of shared memory is ~ 30% faster.
   GPlexRegLL errorProp_reg;
   // If there is more matrices than max_blocks_x * BLOCK_SIZE_X 
-  /*for (int z = 0; z < (N-1)/grid_width  +1; z++) {*/
-    /*n += z*grid_width;*/
-    if (n < N) {
-      
-      for (int i = 0; i < inErr.kSize; ++i) {
-        outErr[n + i*outErr.stride] = inErr[n + i*inErr.stride];
-      }
-      for (int i = 0; i < inPar.kSize; ++i) {
-        outPar[n + i*outPar.stride] = inPar[n + i*inPar.stride];
-      }
-      for (int i = 0; i < 36; ++i) {
-        errorProp_reg[i] = 0.0;
-      }
+  if (n < N) {
+
+    for (int i = 0; i < inErr.kSize; ++i) {
+      outErr[n + i*outErr.stride] = inErr[n + i*inErr.stride];
+    }
+    for (int i = 0; i < inPar.kSize; ++i) {
+      outPar[n + i*outPar.stride] = inPar[n + i*inPar.stride];
+    }
+    for (int i = 0; i < 36; ++i) {
+      errorProp_reg[i] = 0.0;
     }
 
-      /*assignMsRad_fn(radius, &msRad_reg, N, n);*/
-      msRad_reg(n, 0, 0) = radius;
-      /*if (n == 0) printf("gpu r = %f\n", radius);*/
+    /*assignMsRad_fn(radius, &msRad_reg, N, n);*/
+    msRad_reg(n, 0, 0) = radius;
+    /*if (n == 0) printf("gpu r = %f\n", radius);*/
 
 #ifdef POLCOORD
-      // TODO: port me
-      helixAtRFromIterativePolar(inPar, inChg, outPar, msRad, errorProp, N_proc);
+    // TODO: port me
+    helixAtRFromIterativePolar(inPar, inChg, outPar, msRad, errorProp, N_proc);
 #else
-      helixAtRFromIterative_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
+    helixAtRFromIterative_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
 #endif
-      // TODO: port me
-      /*if (Config::useCMSGeom) {*/
-        /*MPlexQF hitsRl;*/
-        /*MPlexQF hitsXi;*/
-        /*for (int n = 0; n < NN; ++n) {*/
-        /*hitsRl.At(n, 0, 0) = getRlVal(r, outPar.ConstAt(n, 2, 0));*/
-        /*hitsXi.At(n, 0, 0) = getXiVal(r, outPar.ConstAt(n, 2, 0));*/
-        /*}*/
-        /*applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);*/
-      /*}*/
-      /*similarity_fn(errorProp_reg, outErr, N, n);*/
+    // TODO: port me
+    /*if (Config::useCMSGeom) {*/
+    /*MPlexQF hitsRl;*/
+    /*MPlexQF hitsXi;*/
+    /*for (int n = 0; n < NN; ++n) {*/
+    /*hitsRl.At(n, 0, 0) = getRlVal(r, outPar.ConstAt(n, 2, 0));*/
+    /*hitsXi.At(n, 0, 0) = getXiVal(r, outPar.ConstAt(n, 2, 0));*/
+    /*}*/
+    /*applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);*/
+    /*}*/
+    /*similarity_fn(errorProp_reg, outErr, N, n);*/
 
-      // Matriplex version of:
-      // result.errors = ROOT::Math::Similarity(errorProp, outErr);
+    // Matriplex version of:
+    // result.errors = ROOT::Math::Similarity(errorProp, outErr);
 
-      //MultHelixProp can be optimized for polar coordinates, see GenMPlexOps.pl
-      /*MPlexLL temp;*/
-      /*MultHelixProp      (errorProp, outErr, temp);*/
-      /*MultHelixPropTransp(errorProp, temp,   outErr);*/
-      GPlexRegLL temp;
-      MultHelixProp_fn      (errorProp_reg, outErr, temp, n);
-      MultHelixPropTransp_fn(errorProp_reg, temp,   outErr, n);
+    //MultHelixProp can be optimized for polar coordinates, see GenMPlexOps.pl
+    /*MPlexLL temp;*/
+    /*MultHelixProp      (errorProp, outErr, temp);*/
+    /*MultHelixPropTransp(errorProp, temp,   outErr);*/
+    GPlexRegLL temp;
+    MultHelixProp_fn      (errorProp_reg, outErr, temp, n);
+    MultHelixPropTransp_fn(errorProp_reg, temp,   outErr, n);
 
-  /*}*/
+  }
 #endif
 }
 
@@ -370,7 +365,13 @@ __global__ void propagationForBuilding_kernel(
     const GPlexQI inChg, const float radius,
     GPlexLS outErr, GPlexLV outPar, 
     const int N) {
-  propagationForBuilding_fn( inErr, inPar, inChg, radius, outErr, outPar, N);
+  int grid_width = blockDim.x * gridDim.x;
+  int n = threadIdx.x + blockIdx.x * blockDim.x;
+
+  for (int z = 0; z < (N-1)/grid_width  +1; z++) {
+    n += z*grid_width;
+    propagationForBuilding_fn( inErr, inPar, inChg, radius, outErr, outPar, n, N);
+  }
 }
 
 void propagationForBuilding_wrapper(const cudaStream_t& stream,

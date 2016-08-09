@@ -241,9 +241,9 @@ namespace Math {
      inline T* Array() { return fArray; }
 
      inline const T* Array() const { return fArray; }
-//#ifdef USE_CUDA
+#ifdef __CUDACC__
      T* ArrayCU();
-//#endif
+#endif
 
       /**
          assignment : only symmetric to symmetric allowed

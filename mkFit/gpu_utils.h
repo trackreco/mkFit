@@ -19,4 +19,9 @@
 // Maximum number of blocks in the X direction of the thread grid.
 constexpr int max_blocks_x = 1 << 15;
 
+// The first call to a CUDA API function takes the initialization hit.
+void separate_first_call_for_meaningful_profiling_numbers();
+
+void sync_gpu();
+
 #endif /* ifndef GPU_UTILS_H */

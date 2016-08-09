@@ -272,9 +272,9 @@ public:
    const T* Array() const;
    /// return pointer to internal array
    T* Array();
-//#ifdef USE_CUDA
+#ifdef __CUDACC__
    T* ArrayCU();
-//#endif
+#endif
 
    /** @name --- STL-like interface --- 
        The iterators access the matrix element in the order how they are 
