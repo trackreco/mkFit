@@ -73,6 +73,7 @@ public:
   void map_seed_hits(); // m_event->layerHits_ -> m_event_of_hits.m_layers_of_hits (seeds only)
   void remap_seed_hits(); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_ (seeds only)
   void remap_cand_hits(); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_ (cands only)
+  void align_simtracks(); // simtrack labels get screwed up in endcap tests
 
   void quality_output_besthit(const EventOfCandidates& event_of_cands);
   void quality_output();

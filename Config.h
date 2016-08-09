@@ -97,7 +97,7 @@ namespace Config
   //const     float xr = std::sqrt(Config::beamspotX*Config::beamspotX + Config::beamspotY*Config::beamspotY); 
 
   // Config for seeding
-  constexpr int   nlayers_per_seed = 3;
+  extern    int   nlayers_per_seed;
   constexpr float chi2seedcut  = 9.0;
   constexpr float lay01angdiff = 0.0634888; // analytically derived... depends on geometry of detector --> from mathematica ... d0 set to one sigma of getHypot(bsX,bsY)
   constexpr float lay02angdiff = 0.11537;

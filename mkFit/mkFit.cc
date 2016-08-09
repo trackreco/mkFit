@@ -528,7 +528,7 @@ int main(int argc, const char *argv[])
     }
     else if(*i == "--endcap-test")
     {
-      Config::endcapTest = true;
+      Config::endcapTest = true; Config::nlayers_per_seed = 2; // default is 3 for barrel
     }
     else if (*i == "--cf-seeding")
     {

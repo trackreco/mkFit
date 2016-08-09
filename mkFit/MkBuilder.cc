@@ -337,6 +337,17 @@ void MkBuilder::remap_cand_hits()
   }
 }
 
+void MkBuilder::align_simtracks()
+{
+  if (Config::readCmsswSeeds && Config::endcapTest) 
+  {
+    for (int itrack = 0; itrack < m_event->simTracks_.size(); itrack++)
+    {
+      m_event->simTracks_[itrack].setLabel(itrack);
+    }
+  }
+}
+
 inline void MkBuilder::fit_one_seed_set(TrackVec& seedtracks, int itrack, int end, MkFitter *mkfp)
 {
   mkfp->SetNhits(Config::nlayers_per_seed); //just to be sure (is this needed?)
@@ -384,6 +395,8 @@ void MkBuilder::quality_output_besthit(const EventOfCandidates& event_of_cands)
   
   remap_cand_hits();
 
+  align_simtracks();
+
   for (int itrack = 0; itrack < m_event->candidateTracks_.size(); itrack++)
   {
     quality_process(m_event->candidateTracks_[itrack]);
@@ -399,6 +412,8 @@ void MkBuilder::quality_output()
   quality_store_tracks();
 
   remap_cand_hits();
+
+  align_simtracks();
 
   for (int iseed = 0; iseed < m_event->candidateTracks_.size(); iseed++)
   {
@@ -452,7 +467,7 @@ void MkBuilder::quality_process(Track &tkcand)
   float pt    = tkcand.pT();
   float ptmc = 0., pr = 0., nfoundmc = 0., chi2mc = 0.;
 
-  if (mctrk < 0 || mctrk >= m_event->simTracks_.size())
+  if (mctrk < 0 || mctrk >= Config::nTracks)
   {
     ++m_cnt_nomc;
     // std::cout << "XX bad track idx " << mctrk << "\n";
@@ -502,6 +517,7 @@ void MkBuilder::root_val_besthit(const EventOfCandidates& event_of_cands)
   quality_store_tracks_besthit(event_of_cands);
   remap_cand_hits();
   m_event->fitTracks_ = m_event->candidateTracks_; // fixme: hack for now. eventually fitting will be including end-to-end
+  align_simtracks();
   init_track_extras();
 
   m_event->Validate();
@@ -515,6 +531,7 @@ void MkBuilder::root_val()
   quality_store_tracks();
   remap_cand_hits();
   m_event->fitTracks_ = m_event->candidateTracks_; // fixme: hack for now. eventually fitting will be including end-to-end
+  align_simtracks();
   init_track_extras();
 
   m_event->Validate();

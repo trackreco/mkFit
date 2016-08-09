@@ -130,13 +130,13 @@ void MkBuilderEndcap::begin_event(Event* ev, EventTmp* ev_tmp, const char* build
     }
   }
 
-  if (Config::readCmsswSeeds==false) m_event->seedTracks_.resize(simtracks.size());
+  if (Config::readCmsswSeeds==false) m_event->seedTracks_ = m_event->simTracks_;
 }
 
-inline void MkBuilderEndcap::fit_one_seed_set_endcap(TrackVec& simtracks, int itrack, int end, MkFitter *mkfp)
+inline void MkBuilderEndcap::fit_one_seed_set_endcap(TrackVec& seedtracks, int itrack, int end, MkFitter *mkfp)
 {
-  mkfp->SetNhits(2); //note this is 2 instead of 3 since we ignore PXB1
-  mkfp->InputTracksAndHits(simtracks, m_event->layerHits_, itrack, end);
+  mkfp->SetNhits(Config::nlayers_per_seed); //note this is 2 instead of 3 since we ignore PXB1
+  mkfp->InputTracksAndHits(seedtracks, m_event->layerHits_, itrack, end);
   if (Config::cf_seeding) mkfp->ConformalFitTracks(false, itrack, end);
   if (Config::readCmsswSeeds==false) mkfp->FitTracks(end - itrack);
 
@@ -151,26 +151,26 @@ inline void MkBuilderEndcap::fit_one_seed_set_endcap(TrackVec& simtracks, int it
 
 void MkBuilderEndcap::fit_seeds()
 {
-  TrackVec& simtracks = (Config::readCmsswSeeds ? m_event->seedTracks_ : m_event->simTracks_);
-  int theEnd = simtracks.size();
+  TrackVec& seedtracks = m_event->seedTracks_;
+  int theEnd = seedtracks.size();
 
 #pragma omp parallel for
   for (int itrack = 0; itrack < theEnd; itrack += NN)
   {
     MkFitter *mkfp = m_mkfp_arr[omp_get_thread_num()];
 
-    fit_one_seed_set_endcap(simtracks, itrack, std::min(itrack + NN, theEnd), mkfp);
+    fit_one_seed_set_endcap(seedtracks, itrack, std::min(itrack + NN, theEnd), mkfp);
   }
 
   //ok now, we should have all seeds fitted in recseeds
-  dcall(print_seeds(simtracks));
+  dcall(print_seeds(seedtracks));
 }
 
 void MkBuilderEndcap::fit_seeds_tbb()
 {
-  TrackVec& simtracks = (Config::readCmsswSeeds ? m_event->seedTracks_ : m_event->simTracks_);
+  TrackVec& seedtracks = m_event->seedTracks_;
 
-  int theEnd = simtracks.size();
+  int theEnd = seedtracks.size();
   int count = (theEnd + NN - 1)/NN;
 
   tbb::parallel_for(tbb::blocked_range<int>(0, count, std::max(1, Config::numSeedsPerTask/NN)),
@@ -179,13 +179,13 @@ void MkBuilderEndcap::fit_seeds_tbb()
       std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
       for (int it = i.begin(); it < i.end(); ++it)
       {
-        fit_one_seed_set_endcap(simtracks, it*NN, std::min((it+1)*NN, theEnd), mkfp.get());
+        fit_one_seed_set_endcap(seedtracks, it*NN, std::min((it+1)*NN, theEnd), mkfp.get());
       }
     }
   );
 
   //ok now, we should have all seeds fitted in recseeds
-  dcall(print_seeds(simtracks));
+  dcall(print_seeds(seedtracks));
 }
 
 //------------------------------------------------------------------------------
@@ -210,13 +210,13 @@ void MkBuilderEndcap::FindTracksBestHit(EventOfCandidates& event_of_cands)
 
           dprint(std::endl << "processing track=" << itrack << " etabin=" << ebin << " findex=" << etabin_of_candidates.m_fill_index);
 
-          mkfp->SetNhits(2);//just to be sure (is this needed?)
+          mkfp->SetNhits(Config::nlayers_per_seed);//just to be sure (is this needed?)
           mkfp->InputTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end, true);
 
           //ok now we start looping over layers
           //loop over layers, starting from after the seed
           //consider inverting loop order and make layer outer, need to trade off hit prefetching with copy-out of candidates
-          for (int ilay = 2; ilay < Config::nLayers; ++ilay)
+          for (int ilay = Config::nlayers_per_seed; ilay < Config::nLayers; ++ilay)
           {
 	    dprintf("processing layer %i\n",ilay);
             LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay];
@@ -281,7 +281,7 @@ void MkBuilderEndcap::FindTracks()
 
       //ok now we start looping over layers
       //loop over layers, starting from after the seed
-      for (int ilay = 2; ilay < Config::nLayers; ++ilay)// layer 3, we ignore PXB1
+      for (int ilay = Config::nlayers_per_seed; ilay < Config::nLayers; ++ilay)// layer 3, we ignore PXB1
       {
         LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay];
 
@@ -332,10 +332,10 @@ void MkBuilderEndcap::FindTracks()
           //fixme find a way to deal only with the candidates needed in this thread
           mkfp->InputTracksAndHitIdx(etabin_of_comb_candidates.m_candidates,
                                      seed_cand_idx, itrack, end,
-                                     ilay == 2);
+                                     ilay == Config::nlayers_per_seed);
 
           //propagate to layer
-          if (ilay > 2)
+          if (ilay > Config::nlayers_per_seed)
           {
             dcall(pre_prop_print(ilay, mkfp));
             mkfp->PropagateTracksToZ(m_event->geom_.zPlane(ilay), end - itrack);
@@ -437,7 +437,7 @@ void MkBuilderEndcap::find_tracks_in_layers_endcap(EtaBinOfCombCandidates &etabi
   cloner.begin_eta_bin(&etabin_of_comb_candidates, start_seed, n_seeds);
 
   //loop over layers, starting from after the seeD
-  for (int ilay = 2 /* MTXXXX Config::nlayers_per_seed */; ilay <= Config::nLayers; ++ilay)
+  for (int ilay = Config::nlayers_per_seed /* MTXXXX Config::nlayers_per_seed */; ilay <= Config::nLayers; ++ilay)
   {
     dprint("processing lay=" << ilay+1);
 
@@ -494,7 +494,7 @@ void MkBuilderEndcap::find_tracks_in_layers_endcap(EtaBinOfCombCandidates &etabi
       dprintf("\n");
 #endif
 
-      if (ilay > 2 /* MTXXXX Config::nlayers_per_seed*/)
+      if (ilay > Config::nlayers_per_seed /* MTXXXX Config::nlayers_per_seed*/)
       {
         LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay - 1];
 
