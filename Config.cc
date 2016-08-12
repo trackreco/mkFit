@@ -25,7 +25,11 @@ namespace Config
   bool  clonerUseSingleThread  = false;
   int   finderReportBestOutOfN = 1;
 
+  int   nlayers_per_seed = 3; // default is 3 for barrel seeding --> will need a new variable once we move to endcap seeding
   int   numSeedsPerTask = 32;
+  
+  // number of hits per task for finding seeds
+  int   numHitsPerTask = 32;
 
   bool  useCMSGeom = false;
   bool  readCmsswSeeds = false;

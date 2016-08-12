@@ -81,7 +81,16 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
   }
   std::sort(mctrack.begin(), mctrack.end()); // ensures all elements are checked properly
 
-  auto mtrk(mctrack[0]), mcount(0), m(mctrack[0]), c(0);
+  auto mcount(0), c(0);
+
+  // protection against zero size tracks
+  if (mctrack.empty()) {
+    mcTrackID_    = -2;
+    nHitsMatched_ = 0;
+    return;
+  }
+
+  auto mtrk(mctrack[0]), m(mctrack[0]);
 
   for (auto i : mctrack) {
     if (i == m) { ++c; } else { c = 1; }
@@ -91,10 +100,9 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
   if (4*mcount > 3*trk.nFoundHits()){ // if more, matched track --> set id info
     mcTrackID_    = mtrk;
     nHitsMatched_ = mcount;
-  } else { // fake track, id = 999 999
-    mcTrackID_    = 999999;
+  } else { // fake track, id = -1
+    mcTrackID_    = -1;
     nHitsMatched_ = mcount;
   }
   dprint("Track " << trk.label() << " best mc track " << mtrk << " count " << mcount << "/" << trk.nFoundHits());
-  // need to include protection against zero size tracks --> need ID other than 999999
 }

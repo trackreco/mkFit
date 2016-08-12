@@ -75,9 +75,13 @@ public:
   void resetValidationMaps() override;
   void resetDebugVectors() override;
   void resetDebugTreeArrays();
+
+  void setTrackExtras(Event& ev) override;
+  void setTrackCollectionExtras(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, 
+				const std::vector<HitVec>& layerHits, const MCHitInfoVec& mcHitInfo);
+
   void makeSimTkToRecoTksMaps(Event& ev) override;
-  void mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extra, const std::vector<HitVec>& layerHits, 
-			 const MCHitInfoVec&, TkIDToTkIDVecMap& simTkMap);
+  void mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, TkIDToTkIDVecMap& simTkMap);
   void makeSeedTkToRecoTkMaps(Event& ev) override;
   void mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackExtraVec& evt_extras, TkIDToTkIDMap& seedTkMap);
 

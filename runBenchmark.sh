@@ -34,9 +34,9 @@ root -b -q -l makeBenchmarkPlotsFit.C\(1,1\)
 python makeBenchmarkPlots.py mic cmssw
 root -b -q -l makeBenchmarkPlots.C\(1,1\)
 
-./benchmark-cmssw-endcap-mic.sh
-python makeBenchmarkPlots.py mic_endcap cmssw
-root -b -q -l makeBenchmarkPlots.C\(1,1,1\)
+# ./benchmark-cmssw-endcap-mic.sh
+# python makeBenchmarkPlots.py mic_endcap cmssw
+# root -b -q -l makeBenchmarkPlots.C\(1,1,1\)
 
 for test in BH CE CEST ST TBBST; do
     python makePlotsFromDump.py _host_10x20k_${test}_NVU1_NTH1

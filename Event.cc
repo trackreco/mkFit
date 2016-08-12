@@ -269,16 +269,17 @@ void Event::Fit()
 #endif
 }
 
-void Event::Validate(int ievt){
+void Event::Validate(){
   // KM: Config tree just filled once... in main.cc
   if (Config::normal_val) {
+    validation_.setTrackExtras(*this);
     validation_.makeSimTkToRecoTksMaps(*this);
     validation_.makeSeedTkToRecoTkMaps(*this);
     validation_.fillEfficiencyTree(*this);
     validation_.fillFakeRateTree(*this);
     if (Config::full_val) {
-      validation_.fillSegmentTree(segmentMap_,ievt);
-      validation_.fillBranchTree(ievt);
+      validation_.fillSegmentTree(segmentMap_,evtID_);
+      validation_.fillBranchTree(evtID_);
       validation_.fillGeometryTree(*this);
       validation_.fillConformalTree(*this);
     }
@@ -296,7 +297,7 @@ void Event::PrintStats(const TrackVec& trks, TrackExtraVec& trkextras)
   for (auto&& trk : trks) {
     auto&& extra = trkextras[trk.label()];
     extra.setMCTrackIDInfo(trk, layerHits_, simHitsInfo_);
-    if (extra.isMissed()) {
+    if (extra.mcTrackID() < 0) {
       ++miss;
     } else {
       auto&& mctrk = simTracks_[extra.mcTrackID()];

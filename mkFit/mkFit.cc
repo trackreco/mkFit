@@ -419,6 +419,7 @@ int main(int argc, const char *argv[])
 	"  --cms-geom               use cms-like geometry (def: %i)\n"
 	"  --cmssw-seeds            take seeds from CMSSW (def: %i)\n"
 	"  --find-seeds             run road search seeding [CF enabled by default] (def: %s)\n"
+	"  --hits-per-task <num>    number of layer1 hits per task in finding seeds (def: %i)\n"
 	"  --endcap-test            test endcap tracking (def: %i)\n"
 	"  --cf-seeding             enable CF in seeding (def: %s)\n"
 	"  --cf-fitting             enable CF in fitting (def: %s)\n"
@@ -440,6 +441,7 @@ int main(int argc, const char *argv[])
 	Config::useCMSGeom,
 	Config::readCmsswSeeds,
 	Config::findSeeds ? "true" : "false",
+	Config::numHitsPerTask,
 	Config::endcapTest,
 	Config::cf_seeding ? "true" : "false",
 	Config::cf_fitting ? "true" : "false",
@@ -519,9 +521,14 @@ int main(int argc, const char *argv[])
     {
       Config::findSeeds = true; Config::cf_seeding = true;
     }
+    else if (*i == "--hits-per-task")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::numHitsPerTask = atoi(i->c_str());
+    }
     else if(*i == "--endcap-test")
     {
-      Config::endcapTest = true;
+      Config::endcapTest = true; Config::nlayers_per_seed = 2; // default is 3 for barrel
     }
     else if (*i == "--cf-seeding")
     {

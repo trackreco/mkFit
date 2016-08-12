@@ -7,16 +7,6 @@
 //#define DEBUG
 #include "Debug.h"
 
-inline int getCharge(const Hit & hit0, const Hit & hit1, const Hit & hit2){
-  return ((hit2.y()-hit0.y())*(hit2.x()-hit1.x())>(hit2.y()-hit1.y())*(hit2.x()-hit0.x())?1:-1);
-}
-
-inline int getCharge(const float hit0_x, const float hit0_y,
-		     const float hit1_x, const float hit1_y,
-		     const float hit2_x, const float hit2_y){
-  return ((hit2_y-hit0_y)*(hit2_x-hit1_x)>(hit2_y-hit1_y)*(hit2_x-hit0_x)?1:-1);
-}
-
 inline float predz(const float z0, const float r0, const float z2, const float r2, const float predr) {
   return (predr-r0)*(z2-z0) / (r2-r0) + z0;
 }
@@ -303,7 +293,7 @@ void buildSeedsByRoadSearch(TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_e
 	Track seed(dummystate,0.0f,seedID,Config::nlayers_per_seed,hitIndices); // argh! super not type-safe with dummystate
 
 	// estimate and set the charge
-	seed.setCharge(getCharge(hit0,hit1,hit2));
+	seed.setCharge(calculateCharge(hit0,hit1,hit2));
 
 	// save the track and track extra
 	evt_seed_tracks.push_back(seed);
@@ -560,7 +550,7 @@ void buildSeedsFromTriplets(const std::vector<HitVec>& evt_lay_hits, const Tripl
   // now perform kalman fit on seeds --> first need initial parameters --> get from Conformal fitter!
   unsigned int seedID = 0;
   for(auto&& hit_triplet : filtered_triplets){
-    int charge = getCharge(evt_lay_hits[0][hit_triplet[0]],evt_lay_hits[1][hit_triplet[1]],evt_lay_hits[2][hit_triplet[2]]);
+    int charge = calculateCharge(evt_lay_hits[0][hit_triplet[0]],evt_lay_hits[1][hit_triplet[1]],evt_lay_hits[2][hit_triplet[2]]);
 
     TrackState updatedState;
     conformalFit(evt_lay_hits[0][hit_triplet[0]],evt_lay_hits[1][hit_triplet[1]],evt_lay_hits[2][hit_triplet[2]],updatedState,false); 

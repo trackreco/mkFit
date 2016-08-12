@@ -1890,8 +1890,8 @@ void PlotValidation::PrintTotals(bool fullVal){
     totalsout << std::endl << "Rates for " << strks[j].Data() << " Tracks" << std::endl;
     totalsout << "==========================================" << std::endl;
     for (UInt_t r = 0; r < rates.size(); r++) {
-      Int_t numerIntegral = numerPhiPlot[j][r]->Integral();
-      Int_t denomIntegral = denomPhiPlot[j][r]->Integral();
+      Int_t numerIntegral = numerPhiPlot[j][r]->Integral(0,numerPhiPlot[j][r]->GetNbinsX()+1);
+      Int_t denomIntegral = denomPhiPlot[j][r]->Integral(0,denomPhiPlot[j][r]->GetNbinsX()+1);
       Float_t ratetotal   = Float_t(numerIntegral) / Float_t(denomIntegral);
     
       std::cout << snumer[r].Data() << ": " << numerIntegral << std::endl;

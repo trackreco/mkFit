@@ -7,6 +7,11 @@
 //#define DEBUG
 #include "Debug.h"
 
+#include <array>
+#include <tbb/tbb.h>
+
+typedef tbb::concurrent_vector<TripletIdx> TripletIdxConVec;
+
 // for each layer
 //   Config::nEtaBin vectors of hits, resized to large enough N
 //   filled with corresponding hits
