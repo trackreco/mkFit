@@ -5,6 +5,9 @@
 #include "Hit.h"
 #include "HitStructuresCU.h"
 
+__device__ float *get_posArray(Hit &hit);
+__device__ float *get_errArray(Hit &hit);
+
 __device__ void HitToMs_fn(GPlexHS &msErr, GPlexHV &msPar,
                            Hit *hits, const GPlexQI &XHitSize,
                            const GPlexHitIdx &XHitArr, 

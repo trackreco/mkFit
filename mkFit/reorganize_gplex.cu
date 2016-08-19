@@ -6,6 +6,12 @@
 #include "Track.h"
 #include "gpu_utils.h"
 
+__device__ float *get_posArray(Hit &hit) {
+    return hit.posArrayCU();
+}
+__device__ float *get_errArray(Hit &hit) {
+    return hit.errArrayCU();
+}
 
 template <typename GPlexObj>
 __device__ void SlurpIn_fn(GPlexObj to, // float *fArray, int stride, int kSize, 

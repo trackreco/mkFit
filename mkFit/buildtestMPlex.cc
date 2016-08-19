@@ -10,6 +10,7 @@
 #ifdef USE_CUDA
 #include "FitterCU.h"
 #include "BuilderCU.h"
+#include "check_gpu_hit_structures.h"
 #endif
 
 #include <omp.h>
@@ -90,6 +91,7 @@ double runBuildingTestPlexBestHit(Event& ev)
 #endif
 
 #if USE_CUDA
+  check_event_of_hits_gpu(builder.get_event_of_hits());
   BuilderCU builder_cu(builder.get_event_of_hits(), builder.get_event(),
                        event_of_cands);
 #endif
