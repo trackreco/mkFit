@@ -418,23 +418,25 @@ __device__ void addIntoUpperLeft3x3_fn(const GPlexLS __restrict__ &A,
 
 /// MultResidualsAdd //////////////////////////////////////////////////////////
 __device__ void multResidualsAdd_fn(
-    const float* reg_a,
-    const float* __restrict__ b, const size_t bN,
-    const float* __restrict__ c, const size_t cN,
-          float *d,              const size_t dN, 
+    const GPlexRegLH &reg_a,
+    const GPlexLV __restrict__ &B, 
+    const GPlexReg2V &c,
+          GPlexLV &D,
     const int N, const int n) {
   // a -> kalmanGain
 
-  /*int i = threadIdx.x;*/
-  /*int n = threadIdx.x + blockIdx.x * blockDim.x;*/
+  using T = float;
+  const T *b = B.ptr;  int bN = B.stride;
+        T *d = D.ptr;  int dN = D.stride;
 
-  /*for (int z = 0; z < (N-1)/gridDim.x  +1; z++) {*/
-    /*n += z*gridDim.x;*/
      if (n < N) {
+       // TODO: This has changed with the introduction of polar coordiantes
+       //       (x0, x1, x2) are not used anymore (see commented values)
+       //       Clean this function's code, once it is better understood.
        // manually substract into local vars -- 3 of them
-       const float x0 = c[0 * cN + n] - b[0 * bN + n];
-       const float x1 = c[1 * cN + n] - b[1 * bN + n];
-       const float x2 = c[2 * cN + n] - b[2 * bN + n];
+       const float x0 = c[0]; // - b[0 * bN + n];
+       const float x1 = c[1]; //- b[1 * bN + n];
+       const float x2 = 0; //c[2] - b[2 * bN + n];
 
        // generate loop (can also write it manually this time, it's not much)
        // WARNING: highly numerically sensitive expressions.
@@ -596,7 +598,8 @@ __device__ void kalmanUpdate_fn(
 
 #ifdef POLCOORD
     // FIXME: assuming no polcoord for now
-    MultResidualsAdd(K.arr, propPar, res_loc, outPar);// propPar_pol is now the updated parameters in "polar" coordinates
+    //MultResidualsAdd(K.arr, propPar, res_loc, outPar);// propPar_pol is now the updated parameters in "polar" coordinates
+    multResidualsAdd_fn(K, par_iP, res_loc, par_iC, N, n);// propPar_pol is now the updated parameters in "polar" coordinates
     GPlexRegLL tempLL;
 #else
     /*MultResidualsAdd(K, propPar_pol, res_loc, propPar_pol);// propPar_pol is now the updated parameters in "polar" coordinates*/

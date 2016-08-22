@@ -127,6 +127,216 @@ __device__ void computeMsRad_fn(const GPlexHV& __restrict__ msPar,
   }
 }
 
+__device__ void helixAtRFromIterativePolar_fn(const GPlexLV& inPar, 
+    const GPlexQI& inChg, GPlexLV& outPar, const GPlexReg<float, 1, 1>& msRad, 
+    GPlexReg<float, LL2, L>& errorProp, const int N, const int n)
+{
+  errorProp.SetVal(0);
+
+#pragma simd
+  //for (int n = 0; n < NN; ++n)
+  if (n < N) 
+    {
+      //initialize erroProp to identity matrix
+      errorProp(n,0,0) = 1.f;
+      errorProp(n,1,1) = 1.f;
+      errorProp(n,2,2) = 1.f;
+      errorProp(n,3,3) = 1.f;
+      errorProp(n,4,4) = 1.f;
+      errorProp(n,5,5) = 1.f;
+
+      const float k = inChg(n, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
+      const float r = msRad(n, 0, 0);
+      float r0 = hipo(inPar(n, 0, 0), inPar(n, 1, 0));
+
+      // if (std::abs(r-r0)<0.0001f) {
+      // 	dprint("distance less than 1mum, skip");
+      // 	continue;
+      // }
+
+      const float xin   = inPar(n, 0, 0);
+      const float yin   = inPar(n, 1, 0);
+      const float zin   = inPar(n, 2, 0);
+      const float ipt   = inPar(n, 3, 0);
+      const float phiin = inPar(n, 4, 0);
+      const float theta = inPar(n, 5, 0);
+
+      dprint_np(n, std::endl << "input parameters"
+            << " inPar(n, 0, 0)=" << std::setprecision(9) << inPar(n, 0, 0)
+            << " inPar(n, 1, 0)=" << std::setprecision(9) << inPar(n, 1, 0)
+            << " inPar(n, 2, 0)=" << std::setprecision(9) << inPar(n, 2, 0)
+            << " inPar(n, 3, 0)=" << std::setprecision(9) << inPar(n, 3, 0)
+            << " inPar(n, 4, 0)=" << std::setprecision(9) << inPar(n, 4, 0)
+            << " inPar(n, 5, 0)=" << std::setprecision(9) << inPar(n, 5, 0)
+            );
+
+      const float kinv  = 1.f/k;
+      const float pt = 1.f/ipt;
+
+      float D = 0., cosa = 0., sina = 0., id = 0.;
+      //no trig approx here, phi can be large
+      float cosPorT = std::cos(phiin), sinPorT = std::sin(phiin);
+      float pxin = cosPorT*pt;
+      float pyin = sinPorT*pt;
+
+      dprint_np(n, std::endl << "k=" << std::setprecision(9) << k << " pxin=" << std::setprecision(9) << pxin << " pyin="
+             << std::setprecision(9) << pyin << " cosPorT=" << std::setprecision(9) << cosPorT
+             << " sinPorT=" << std::setprecision(9) << sinPorT << " pt=" << std::setprecision(9) << pt);
+
+      //derivatives initialized to value for first iteration, i.e. distance = r-r0in
+      float dDdx = r0 > 0.f ? -xin/r0 : 0.f;
+      float dDdy = r0 > 0.f ? -yin/r0 : 0.f;
+      float dDdipt = 0.;
+      float dDdphi = 0.;
+
+      for (int i = 0; i < Config::Niter; ++i)
+      {
+	dprint_np(n, std::endl << "attempt propagation from r=" << r0 << " to r=" << r << std::endl
+	       << "x=" << xin << " y=" << yin  << " z=" << inPar(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pt*std::tan(theta) << " q=" << inChg(n, 0, 0));
+
+	//compute distance and path for the current iteration
+	r0 = hipo(outPar(n, 0, 0), outPar(n, 1, 0));
+	id = (r-r0);
+	D+=id;
+	if (Config::useTrigApprox) {
+	  sincos4(id*ipt*kinv, sina, cosa);
+	} else {
+          cosa=std::cos(id*ipt*kinv);
+          sina=std::sin(id*ipt*kinv);
+	}
+
+        dprint_np(n, std::endl << "r=" << std::setprecision(9) << r << " r0=" << std::setprecision(9) << r0
+               << " id=" << std::setprecision(9) << id << " cosa=" << cosa << " sina=" << sina);
+
+	//update derivatives on total distance
+	if (i+1 != Config::Niter) {
+
+          const float x = outPar(n, 0, 0);
+          const float y = outPar(n, 1, 0);
+          const float oor0 = (r0>0.f && std::abs(r-r0)<0.0001f) ? 1.f/r0 : 0.f;
+
+          const float dadipt = id*kinv;
+
+          const float dadx = -x*ipt*kinv*oor0;
+          const float dady = -y*ipt*kinv*oor0;
+
+	  const float pxca = pxin*cosa;
+	  const float pxsa = pxin*sina;
+	  const float pyca = pyin*cosa;
+	  const float pysa = pyin*sina;
+
+	  float tmp = k*dadx;
+          dDdx   -= ( x*(1.f + tmp*(pxca - pysa)) + y*tmp*(pyca + pxsa) )*oor0;
+	  tmp = k*dady;
+          dDdy   -= ( x*tmp*(pxca - pysa) + y*(1.f + tmp*(pyca + pxsa)) )*oor0;
+          //now r0 depends on ipt and phi as well
+	  tmp = dadipt*ipt;
+          dDdipt -= k*( x*(pxca*tmp - pysa*tmp - pyca - pxsa + pyin) +
+                        y*(pyca*tmp + pxsa*tmp - pysa + pxca - pxin))*pt*oor0;
+          dDdphi += k*( x*(pysa - pxin + pxca) - y*(pxsa - pyin + pyca))*oor0;
+        }
+
+	//update parameters
+	outPar(n, 0, 0) = outPar(n, 0, 0) + k*(pxin*sina - pyin*(1.f-cosa));
+	outPar(n, 1, 0) = outPar(n, 1, 0) + k*(pyin*sina + pxin*(1.f-cosa));
+	const float pxinold = pxin;//copy before overwriting
+	pxin = pxin*cosa - pyin*sina;
+	pyin = pyin*cosa + pxinold*sina;
+
+        dprint_np(n, std::endl << "outPar(n, 0, 0)=" << outPar(n, 0, 0) << " outPar(n, 1, 0)=" << outPar(n, 1, 0)
+               << " pxin=" << pxin << " pyin=" << pyin);
+      }
+
+      const float alpha  = D*ipt*kinv;
+      const float dadx   = dDdx*ipt*kinv;
+      const float dady   = dDdy*ipt*kinv;
+      const float dadipt = (ipt*dDdipt + D)*kinv;
+      const float dadphi = dDdphi*ipt*kinv;
+
+      if (Config::useTrigApprox) {
+	sincos4(alpha, sina, cosa);
+      } else {
+	cosa=std::cos(alpha);
+	sina=std::sin(alpha);
+      }
+
+      errorProp(n,0,0) = 1.f+k*dadx*(cosPorT*cosa-sinPorT*sina)*pt;
+      errorProp(n,0,1) =     k*dady*(cosPorT*cosa-sinPorT*sina)*pt;
+      errorProp(n,0,2) = 0.f;
+      errorProp(n,0,3) = k*(cosPorT*(ipt*dadipt*cosa-sina)+sinPorT*((1.f-cosa)-ipt*dadipt*sina))*pt*pt;
+      errorProp(n,0,4) = k*(cosPorT*dadphi*cosa - sinPorT*dadphi*sina - sinPorT*sina + cosPorT*cosa - cosPorT)*pt;
+      errorProp(n,0,5) = 0.f;
+
+      errorProp(n,1,0) =     k*dadx*(sinPorT*cosa+cosPorT*sina)*pt;
+      errorProp(n,1,1) = 1.f+k*dady*(sinPorT*cosa+cosPorT*sina)*pt;
+      errorProp(n,1,2) = 0.f;
+      errorProp(n,1,3) = k*(sinPorT*(ipt*dadipt*cosa-sina)+cosPorT*(ipt*dadipt*sina-(1.f-cosa)))*pt*pt;
+      errorProp(n,1,4) = k*(sinPorT*dadphi*cosa + cosPorT*dadphi*sina + sinPorT*cosa + cosPorT*sina - sinPorT)*pt;
+      errorProp(n,1,5) = 0.f;
+
+      //no trig approx here, theta can be large
+      cosPorT=std::cos(theta);
+      sinPorT=std::sin(theta);
+      //redefine sinPorT as 1./sinPorT to reduce the number of temporaries
+      sinPorT = 1.f/sinPorT;
+
+      outPar(n, 2, 0) = inPar(n, 2, 0) + k*alpha*cosPorT*pt*sinPorT;
+
+      errorProp(n,2,0) = k*cosPorT*dadx*pt*sinPorT;
+      errorProp(n,2,1) = k*cosPorT*dady*pt*sinPorT;
+      errorProp(n,2,2) = 1.f;
+      errorProp(n,2,3) = k*cosPorT*(ipt*dadipt-alpha)*pt*pt*sinPorT;
+      errorProp(n,2,4) = k*dadphi*cosPorT*pt*sinPorT;
+      errorProp(n,2,5) =-k*alpha*pt*sinPorT*sinPorT;
+
+      outPar(n, 3, 0) = ipt;
+
+      errorProp(n,3,0) = 0.f;
+      errorProp(n,3,1) = 0.f;
+      errorProp(n,3,2) = 0.f;
+      errorProp(n,3,3) = 1.f;
+      errorProp(n,3,4) = 0.f;
+      errorProp(n,3,5) = 0.f;
+
+      outPar(n, 4, 0) = inPar(n, 4, 0)+alpha;
+
+      errorProp(n,4,0) = dadx;
+      errorProp(n,4,1) = dady;
+      errorProp(n,4,2) = 0.f;
+      errorProp(n,4,3) = dadipt;
+      errorProp(n,4,4) = 1.f+dadphi;
+      errorProp(n,4,5) = 0.f;
+
+      outPar(n, 5, 0) = theta;
+
+      errorProp(n,5,0) = 0.f;
+      errorProp(n,5,1) = 0.f;
+      errorProp(n,5,2) = 0.f;
+      errorProp(n,5,3) = 0.f;
+      errorProp(n,5,4) = 0.f;
+      errorProp(n,5,5) = 1.f;
+
+      dprint_np(n, "propagation end, dump parameters" << std::endl
+	     << "pos = " << outPar(n, 0, 0) << " " << outPar(n, 1, 0) << " " << outPar(n, 2, 0) << std::endl
+	     << "mom = " << std::cos(outPar(n, 4, 0))/outPar(n, 3, 0) << " " << std::sin(outPar(n, 4, 0))/outPar(n, 3, 0) << " " << 1./(outPar(n, 3, 0)*tan(outPar(n, 5, 0)))
+	     << " r=" << std::sqrt( outPar(n, 0, 0)*outPar(n, 0, 0) + outPar(n, 1, 0)*outPar(n, 1, 0) ) << " pT=" << 1./std::abs(outPar(n, 3, 0)) << std::endl);
+      
+#ifdef DEBUG
+      if (n < N_proc) {
+	dmutex_guard;
+	std::cout << n << ": jacobian" << std::endl;
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,2,0),errorProp(n,2,1),errorProp(n,2,2),errorProp(n,2,3),errorProp(n,2,4),errorProp(n,2,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,3,0),errorProp(n,3,1),errorProp(n,3,2),errorProp(n,3,3),errorProp(n,3,4),errorProp(n,3,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,4,0),errorProp(n,4,1),errorProp(n,4,2),errorProp(n,4,3),errorProp(n,4,4),errorProp(n,4,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,5,0),errorProp(n,5,1),errorProp(n,5,2),errorProp(n,5,3),errorProp(n,5,4),errorProp(n,5,5));
+      }
+#endif
+    }
+}
+
+
 #include "PropagationMPlex.icc"
 
 __device__ 
@@ -276,6 +486,7 @@ __global__ void propagation_kernel(
 #ifdef POLCOORD
       // FIXME: port me
       // helixAtRFromIterativePolar(inPar, inChg, outPar, msRad, errorProp);
+    helixAtRFromIterativePolar_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
 #else
       helixAtRFromIterative_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
 #endif
@@ -329,7 +540,8 @@ __device__ void propagationForBuilding_fn(
 
 #ifdef POLCOORD
     // TODO: port me
-    helixAtRFromIterativePolar(inPar, inChg, outPar, msRad, errorProp, N_proc);
+    //helixAtRFromIterativePolar(inPar, inChg, outPar, msRad, errorProp, N_proc);
+    helixAtRFromIterativePolar_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
 #else
     helixAtRFromIterative_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
 #endif
