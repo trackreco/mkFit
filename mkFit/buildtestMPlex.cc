@@ -7,17 +7,22 @@
 #include "BinInfoUtils.h"
 
 #include "MkBuilder.h"
+
 #ifdef USE_CUDA
 #include "FitterCU.h"
 #include "BuilderCU.h"
 #include "check_gpu_hit_structures.h"
 #endif
 
+#include "MkBuilderEndcap.h"
+
 #include <omp.h>
 
 #if defined(USE_VTUNE_PAUSE)
 #include "ittnotify.h"
 #endif
+
+#include <memory>
 
 inline bool sortByHitsChi2(const std::pair<Track, TrackState>& cand1,
                            const std::pair<Track, TrackState>& cand2)
@@ -69,6 +74,14 @@ inline bool sortByZ(const Hit& hit1, const Hit& hit2)
   return hit1.z() < hit2.z();
 }
 
+namespace
+{
+  MkBuilder* make_builder()
+  {
+    if (Config::endcapTest) return new MkBuilderEndcap;
+    else                    return new MkBuilder;
+  }
+}
 
 //==============================================================================
 // runBuildTestPlexBestHit
@@ -76,15 +89,20 @@ inline bool sortByZ(const Hit& hit1, const Hit& hit2)
 
 double runBuildingTestPlexBestHit(Event& ev)
 {
-  MkBuilder builder;
+  std::unique_ptr<MkBuilder> builder_ptr(make_builder());
+  MkBuilder &builder = * builder_ptr.get();
 
   std::cerr << "Building event...\n";
   builder.begin_event(&ev, 0, __func__);
+
+  if   (Config::findSeeds) {builder.find_seeds();}
+  else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
 
   builder.fit_seeds_tbb();
 
   EventOfCandidates event_of_cands;
   builder.find_tracks_load_seeds(event_of_cands);
+  builder.quality_output_besthit(event_of_cands);
 
 #ifdef USE_VTUNE_PAUSE
   __itt_resume();
@@ -92,14 +110,15 @@ double runBuildingTestPlexBestHit(Event& ev)
 
 #if USE_CUDA
   check_event_of_hits_gpu(builder.get_event_of_hits());
+  check_event_of_cands_gpu(event_of_cands);
   BuilderCU builder_cu(builder.get_event_of_hits(), builder.get_event(),
                        event_of_cands);
 #endif
 
   double time = dtime();
 
-  std::cout << "Finding best hits...\n";
 #if USE_CUDA
+  std::cout << "Finding best hits...\n";
   builder_cu.FindTracksBestHit(event_of_cands);
   //builder.FindTracksBestHit_GPU(event_of_cands);
 #else
@@ -111,24 +130,16 @@ double runBuildingTestPlexBestHit(Event& ev)
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
 #endif
+  
+  if   (!Config::normal_val) {
+    builder.quality_output_besthit(event_of_cands);
+  } else {
+    builder.root_val_besthit(event_of_cands);
+  }
 
-   builder.quality_reset();
-
-   for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
-   {
-     EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin]; 
-
-     for (int itrack = 0; itrack < etabin_of_candidates.m_fill_index; itrack++)
-     {
-       builder.quality_process(etabin_of_candidates.m_candidates[itrack]);
-     }
-   }
-
-   builder.quality_print();
-
-   builder.end_event();
-
-   return time;
+  builder.end_event();
+  
+  return time;
 }
 
 
@@ -141,9 +152,13 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
   EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
   event_of_comb_cands.Reset();
 
-  MkBuilder builder;
+  std::unique_ptr<MkBuilder> builder_ptr(make_builder());
+  MkBuilder &builder = * builder_ptr.get();
 
   builder.begin_event(&ev, &ev_tmp, __func__);
+
+  if   (Config::findSeeds) {builder.find_seeds();}
+  else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
 
   builder.fit_seeds();
 
@@ -162,24 +177,9 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
 #endif
-
-  builder.quality_reset();
-
-  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
-  {
-    EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
-
-    for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed++)
-    {
-      // take the first one!
-      if ( ! etabin_of_comb_candidates.m_candidates[iseed].empty())
-      {
-        builder.quality_process(etabin_of_comb_candidates.m_candidates[iseed].front());
-      }
-    }
-  }
-
-  builder.quality_print();
+  
+  if   (!Config::normal_val) {builder.quality_output();}
+  else                       {builder.root_val();}
 
   builder.end_event();
 
@@ -196,9 +196,13 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
   EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
   event_of_comb_cands.Reset();
 
-  MkBuilder builder;
+  std::unique_ptr<MkBuilder> builder_ptr(make_builder());
+  MkBuilder &builder = * builder_ptr.get();
 
   builder.begin_event(&ev, &ev_tmp, __func__);
+
+  if   (Config::findSeeds) {builder.find_seeds();}
+  else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
 
   builder.fit_seeds();
 
@@ -218,23 +222,8 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
   __itt_pause();
 #endif
 
-  builder.quality_reset();
-
-  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
-  {
-    EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
-
-    for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed++)
-    {
-      // take the first one!
-      if ( ! etabin_of_comb_candidates.m_candidates[iseed].empty())
-      {
-        builder.quality_process(etabin_of_comb_candidates.m_candidates[iseed].front());
-      }
-    }
-  }
-
-  builder.quality_print();
+  if   (!Config::normal_val) {builder.quality_output();}
+  else                       {builder.root_val();}
 
   builder.end_event();
 
@@ -243,7 +232,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
 
 
 //==============================================================================
-// runBuildTestPlexCloneEngine
+// runBuildTestPlexCloneEngineTbb
 //==============================================================================
 
 double runBuildingTestPlexTbb(Event& ev, EventTmp& ev_tmp)
@@ -251,9 +240,13 @@ double runBuildingTestPlexTbb(Event& ev, EventTmp& ev_tmp)
   EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
   event_of_comb_cands.Reset();
 
-  MkBuilder builder;
+  std::unique_ptr<MkBuilder> builder_ptr(make_builder());
+  MkBuilder &builder = * builder_ptr.get();
 
   builder.begin_event(&ev, &ev_tmp, __func__);
+
+  if   (Config::findSeeds) {builder.find_seeds();}
+  else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
 
   builder.fit_seeds_tbb();
 
@@ -273,23 +266,8 @@ double runBuildingTestPlexTbb(Event& ev, EventTmp& ev_tmp)
   __itt_pause();
 #endif
 
-  builder.quality_reset();
-
-  for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
-  {
-    EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
-
-    for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed++)
-    {
-      // take the first one!
-      if ( ! etabin_of_comb_candidates.m_candidates[iseed].empty())
-      {
-        builder.quality_process(etabin_of_comb_candidates.m_candidates[iseed].front());
-      }
-    }
-  }
-
-  builder.quality_print();
+  if   (!Config::normal_val) {builder.quality_output();}
+  else                       {builder.root_val();}
 
   builder.end_event();
 

@@ -14,72 +14,24 @@
 #include "MkFitter.h"
 #include "CandCloner.h"
 
-#include "tbb/concurrent_queue.h"
 #include <functional>
 #include <mutex>
 
-template <typename TT>
-struct Pool
-{
-  typedef std::function<TT*()>     CFoo_t;
-  typedef std::function<void(TT*)> DFoo_t;
-
-  CFoo_t m_create_foo  = []()     { return new (_mm_malloc(sizeof(TT), 64)) TT; };
-  DFoo_t m_destroy_foo = [](TT* x){ _mm_free(x); };
-
-  tbb::concurrent_queue<TT*> m_stack;
-
-  void populate()
-  {
-    for (int i = 0; i < Config::numThreadsFinder; ++i)
-    {
-      m_stack.push(m_create_foo());
-    }
-  }
-
-  Pool() {}
-  Pool(CFoo_t cf, DFoo_t df) : m_create_foo(cf), m_destroy_foo(df) {}
-
-  ~Pool()
-  {
-    TT *x;
-    while (m_stack.try_pop(x))
-    {
-      m_destroy_foo(x);
-    }
-  }
-
-  void SetCFoo(CFoo_t cf) { m_create_foo  = cf; }
-  void SetDFoo(DFoo_t df) { m_destroy_foo = df; }
-
-  TT* GetFromPool()
-  {
-    TT *x;
-    if (m_stack.try_pop(x)) {
-      return x;
-    } else {
-      return m_create_foo();
-    }
-  }
-
-  void ReturnToPool(TT *x)
-  {
-    m_stack.push(x);
-  }
-};
+#include "Pool.h"
 
 struct ExecutionContext
 {
   Pool<CandCloner> m_cloners;
   Pool<MkFitter>   m_fitters;
 
-  ExecutionContext()
+  void populate(int n_thr)
   {
-    m_cloners.populate();
-    m_fitters.populate();
+    m_cloners.populate(n_thr - m_cloners.size());
+    m_fitters.populate(n_thr - m_fitters.size());
   }
 };
 
+extern ExecutionContext g_exe_ctx;
 
 //==============================================================================
 // The usual
@@ -92,7 +44,7 @@ class MkFitter;
 
 class MkBuilder
 {
-private:
+protected:
   void fit_one_seed_set(TrackVec& simtracks, int itrack, int end, MkFitter *mkfp);
 
   Event         *m_event;
@@ -114,18 +66,33 @@ public:
 
   // --------
 
-  void begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type);
+  virtual void begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type);
 
-  void fit_seeds();
-  void fit_seeds_tbb();
+  int find_seeds();
+  virtual void fit_seeds();
+  virtual void fit_seeds_tbb();
 
   void end_event();
-
+  
   // --------
 
+  void map_seed_hits(); // m_event->layerHits_ -> m_event_of_hits.m_layers_of_hits (seeds only)
+  void remap_seed_hits(); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_ (seeds only)
+  void remap_cand_hits(); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_ (cands only)
+  void align_simtracks(); // simtrack labels get screwed up in endcap tests
+
+  void quality_output_besthit(const EventOfCandidates& event_of_cands);
+  void quality_output();
   void quality_reset();
   void quality_process(Track& tkcand);
   void quality_print();
+
+  void quality_store_tracks_besthit(const EventOfCandidates& event_of_cands);
+  void quality_store_tracks();
+
+  void root_val_besthit(const EventOfCandidates& event_of_cands);
+  void root_val();
+  void init_track_extras();
 
   // --------
 
@@ -138,15 +105,15 @@ public:
 
   // --------
 
-  void FindTracksBestHit(EventOfCandidates& event_of_cands);
+  virtual void FindTracksBestHit(EventOfCandidates& event_of_cands);
+  virtual void FindTracks();
+  virtual void FindTracksCloneEngine();
+  virtual void FindTracksCloneEngineTbb();
 #ifdef USE_CUDA
   void FindTracksBestHit_GPU(EventOfCandidates& event_of_cands);
   const Event* get_event() const { return m_event; }
   const EventOfHits& get_event_of_hits() const { return m_event_of_hits; }
 #endif
-  void FindTracks();
-  void FindTracksCloneEngine();
-  void FindTracksCloneEngineTbb();
 };
 
 #endif

@@ -1,9 +1,11 @@
 #include "check_gpu_hit_structures.h"
 
 /*#include "reorganize_gplex.cu"*/
+#include "Hit.h"
 #include "HitStructures.h"
 #include "HitStructuresCU.h"
 #include "reorganize_gplex.h"
+#include "gpu_utils.h"
 
 #include <iostream>
 
@@ -64,8 +66,10 @@ void check_event_of_hits_gpu(const EventOfHits& event_of_hits)
   cudaMemcpy(pos, d_pos, pos_size*sizeof(float), cudaMemcpyDeviceToHost);
   cudaMemcpy(err, d_err, err_size*sizeof(float), cudaMemcpyDeviceToHost);
 
+  //std::cerr << "pos ......................\n";
   compare_carrays(event_of_hits.m_layers_of_hits[ilay].m_hits[hit_idx].posArray(),
                   pos, 1e-3, pos_size);
+  //std::cerr << "err ......................\n";
   compare_carrays(event_of_hits.m_layers_of_hits[ilay].m_hits[hit_idx].errArray(),
                   err, 1e-3, err_size);
 
@@ -73,4 +77,71 @@ void check_event_of_hits_gpu(const EventOfHits& event_of_hits)
   cudaFree(d_err);
 
   event_of_hits_cu.deallocGPU();
+}
+
+
+__global__ void get_cand_pos_and_err(EtaBinOfCandidatesCU *etabin_of_cands,
+    const int ebin, const int itrack, float *pos, float *err,
+    const int pos_size, const int err_size)
+{
+  if (threadIdx.x + blockDim.x * blockIdx.x == 0) {
+    Track &track = etabin_of_cands[ebin].m_candidates[itrack];
+    float *posArray = get_posArray(track);
+    float *errArray = get_errArray(track);
+
+    for (int i = 0; i < pos_size; ++i) {
+      pos[i] = posArray[i];
+    }
+    for (int i = 0; i < err_size; ++i) {
+      err[i] = errArray[i];
+    }
+  }
+}
+
+
+void check_event_of_cands_gpu(const EventOfCandidates& event_of_cands)
+{
+  EventOfCandidatesCU event_of_cands_cu;
+  event_of_cands_cu.allocGPU(event_of_cands);
+  event_of_cands_cu.copyFromCPU(event_of_cands);
+
+  constexpr int pos_size = 6;
+  constexpr int err_size = 21;
+
+  float *d_pos, *d_err;
+  float pos[pos_size], err[err_size];
+
+  cudaMalloc((void**)&d_pos, pos_size*sizeof(float));
+  cudaMalloc((void**)&d_err, err_size*sizeof(float));
+
+  dim3 grid(1, 1, 1);
+  dim3 block(1, 1, 1);
+
+  int etabin = std::min(2, Config::nEtaBin-1);
+  int itrack = 3;
+
+  get_cand_pos_and_err <<< grid, block >>>
+      (event_of_cands_cu.m_etabins_of_candidates,
+       etabin, itrack, d_pos, d_err, pos_size, err_size);
+  cudaCheckErrorSync();
+
+  cudaMemcpy(pos, d_pos, pos_size*sizeof(float), cudaMemcpyDeviceToHost);
+  cudaCheckErrorSync();
+  cudaMemcpy(err, d_err, err_size*sizeof(float), cudaMemcpyDeviceToHost);
+  cudaCheckErrorSync();
+  
+  /*std::cerr << "pos ......................\n";*/
+  compare_carrays(event_of_cands.m_etabins_of_candidates[etabin].m_candidates[itrack].posArray(),
+                  pos, 1e-3, pos_size);
+  /*std::cerr << "err ......................\n";*/
+  compare_carrays(event_of_cands.m_etabins_of_candidates[etabin].m_candidates[itrack].errArray(),
+                  err, 1e-3, err_size);
+
+  cudaFree(d_pos);
+  cudaFree(d_err);
+
+  //event_of_cands_cu.copyToCPU(event_of_cands);
+  event_of_cands_cu.deallocGPU();
+
+  cudaCheckErrorSync();
 }

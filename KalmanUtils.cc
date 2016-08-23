@@ -71,45 +71,45 @@ TrackState updateParameters(const TrackState& propagatedState, const Measurement
   resErrInv[1][1] = resErrInv22[1][1];
   resErrInv[1][0] = resErrInv22[1][0];
 
-  SVector6 pred_pol = propagatedState.parameters;
-  pred_pol[3] = 1./propagatedState.pT();
-  pred_pol[4] = propagatedState.momPhi();
-  pred_pol[5] = propagatedState.theta();
-  SMatrix66 jac_pol = ROOT::Math::SMatrixIdentity();
-  jac_pol[3][3] = -propagatedState.px()/pow(propagatedState.pT(),3);
-  jac_pol[3][4] = -propagatedState.py()/pow(propagatedState.pT(),3);
-  jac_pol[4][3] = -propagatedState.py()/pow(propagatedState.pT(),2);
-  jac_pol[4][4] =  propagatedState.px()/pow(propagatedState.pT(),2);
-  jac_pol[5][3] =  propagatedState.px()*propagatedState.pz()/(propagatedState.pT()*pow(propagatedState.p(),2));
-  jac_pol[5][4] =  propagatedState.py()*propagatedState.pz()/(propagatedState.pT()*pow(propagatedState.p(),2));
-  jac_pol[5][5] = -propagatedState.pT()/pow(propagatedState.p(),2);
-  SMatrixSym66 pred_err_pol = ROOT::Math::Similarity(jac_pol,propagatedState.errors);
-  SVector6 up_pars_pol =  pred_pol + pred_err_pol*projMatrixT*rot*resErrInv*res;
+  SVector6 pred_ccs = propagatedState.parameters;
+  pred_ccs[3] = 1./propagatedState.pT();
+  pred_ccs[4] = propagatedState.momPhi();
+  pred_ccs[5] = propagatedState.theta();
+  SMatrix66 jac_ccs = ROOT::Math::SMatrixIdentity();
+  jac_ccs[3][3] = -propagatedState.px()/pow(propagatedState.pT(),3);
+  jac_ccs[3][4] = -propagatedState.py()/pow(propagatedState.pT(),3);
+  jac_ccs[4][3] = -propagatedState.py()/pow(propagatedState.pT(),2);
+  jac_ccs[4][4] =  propagatedState.px()/pow(propagatedState.pT(),2);
+  jac_ccs[5][3] =  propagatedState.px()*propagatedState.pz()/(propagatedState.pT()*pow(propagatedState.p(),2));
+  jac_ccs[5][4] =  propagatedState.py()*propagatedState.pz()/(propagatedState.pT()*pow(propagatedState.p(),2));
+  jac_ccs[5][5] = -propagatedState.pT()/pow(propagatedState.p(),2);
+  SMatrixSym66 pred_err_ccs = ROOT::Math::Similarity(jac_ccs,propagatedState.errors);
+  SVector6 up_pars_ccs =  pred_ccs + pred_err_ccs*projMatrixT*rot*resErrInv*res;
 
   SMatrixSym66 I66 = ROOT::Math::SMatrixIdentity();
   SMatrix36 H = rotT*projMatrix;
-  SMatrix63 K = pred_err_pol*ROOT::Math::Transpose(H)*resErrInv;
+  SMatrix63 K = pred_err_ccs*ROOT::Math::Transpose(H)*resErrInv;
   SMatrixSym33 locErrMeas = ROOT::Math::SimilarityT(rot,measurementState.errors());
   locErrMeas[2][0] = 0;
   locErrMeas[2][1] = 0;
   locErrMeas[2][2] = 0;
   locErrMeas[1][2] = 0;
   locErrMeas[0][2] = 0;
-  SMatrixSym66 up_errs_pol = ROOT::Math::Similarity(I66-K*H,pred_err_pol) + ROOT::Math::Similarity(K,locErrMeas);
-  SMatrix66 jac_back_pol = ROOT::Math::SMatrixIdentity();
-  jac_back_pol[3][3] = -cos(up_pars_pol[4])/pow(up_pars_pol[3],2);
-  jac_back_pol[3][4] = -sin(up_pars_pol[4])/up_pars_pol[3];
-  jac_back_pol[4][3] = -sin(up_pars_pol[4])/pow(up_pars_pol[3],2);
-  jac_back_pol[4][4] =  cos(up_pars_pol[4])/up_pars_pol[3];
-  jac_back_pol[5][3] = -cos(up_pars_pol[5])/(sin(up_pars_pol[5])*pow(up_pars_pol[3],2));
-  jac_back_pol[5][5] = -1./(pow(sin(up_pars_pol[5]),2)*up_pars_pol[3]);
+  SMatrixSym66 up_errs_ccs = ROOT::Math::Similarity(I66-K*H,pred_err_ccs) + ROOT::Math::Similarity(K,locErrMeas);
+  SMatrix66 jac_back_ccs = ROOT::Math::SMatrixIdentity();
+  jac_back_ccs[3][3] = -cos(up_pars_ccs[4])/pow(up_pars_ccs[3],2);
+  jac_back_ccs[3][4] = -sin(up_pars_ccs[4])/up_pars_ccs[3];
+  jac_back_ccs[4][3] = -sin(up_pars_ccs[4])/pow(up_pars_ccs[3],2);
+  jac_back_ccs[4][4] =  cos(up_pars_ccs[4])/up_pars_ccs[3];
+  jac_back_ccs[5][3] = -cos(up_pars_ccs[5])/(sin(up_pars_ccs[5])*pow(up_pars_ccs[3],2));
+  jac_back_ccs[5][5] = -1./(pow(sin(up_pars_ccs[5]),2)*up_pars_ccs[3]);
 
   TrackState result;
-  result.parameters = up_pars_pol;
-  result.parameters[3] = cos(up_pars_pol[4])/up_pars_pol[3];
-  result.parameters[4] = sin(up_pars_pol[4])/up_pars_pol[3];
-  result.parameters[5] = cos(up_pars_pol[5])/(sin(up_pars_pol[5])*up_pars_pol[3]);
-  result.errors = ROOT::Math::Similarity(jac_back_pol,up_errs_pol);
+  result.parameters = up_pars_ccs;
+  result.parameters[3] = cos(up_pars_ccs[4])/up_pars_ccs[3];
+  result.parameters[4] = sin(up_pars_ccs[4])/up_pars_ccs[3];
+  result.parameters[5] = cos(up_pars_ccs[5])/(sin(up_pars_ccs[5])*up_pars_ccs[3]);
+  result.errors = ROOT::Math::Similarity(jac_back_ccs,up_errs_ccs);
   result.charge = propagatedState.charge;
   result.valid = propagatedState.valid;
 
@@ -128,10 +128,10 @@ TrackState updateParameters(const TrackState& propagatedState, const Measurement
     dumpMatrix(resErr22);
     std::cout << "resErrInv22" << std::endl;
     dumpMatrix(resErrInv22);
-    std::cout << "jac_pol" << std::endl;
-    dumpMatrix(jac_pol);
-    std::cout << "pred_err_pol" << std::endl;
-    dumpMatrix(pred_err_pol);
+    std::cout << "jac_ccs" << std::endl;
+    dumpMatrix(jac_ccs);
+    std::cout << "pred_err_ccs" << std::endl;
+    dumpMatrix(pred_err_ccs);
     std::cout << "K" << std::endl;
     dumpMatrix(K);
     std::cout << "H" << std::endl;
@@ -176,5 +176,57 @@ float computeChi2(const TrackState& propagatedState, const MeasurementState& mea
     dprint(__FILE__ << ":" << __LINE__ << ": FAILED INVERSION");
     return 9999.;
   }
+  return ROOT::Math::Similarity(res,resErrInv);
+}
+
+TrackState updateParametersEndcap(const TrackState& propagatedState, const MeasurementState& measurementState)
+{
+  TrackState result = propagatedState;
+
+  const SMatrixSym66& propErr = propagatedState.errors;
+  const SMatrixSym33 herr = measurementState.errors();
+  const SVector3& hpos = measurementState.parameters();
+
+  SMatrixSym22 resErr = herr.Sub<SMatrixSym22>(0,0)+propErr.Sub<SMatrixSym22>(0,0);
+
+  int invFail(0);
+  SMatrixSym22 resErrInv22 = resErr.InverseFast(invFail);
+  if (0 != invFail) {
+    dprint(__FILE__ << ":" << __LINE__ << ": FAILED INVERSION");
+    return propagatedState;
+  }
+
+  SVector2 res2 = SVector2(hpos.At(0)-propagatedState.x(),
+			   hpos.At(1)-propagatedState.y());
+    
+  SMatrix62 projMatrixT_zp;
+  projMatrixT_zp(0,0) = 1.;
+  projMatrixT_zp(1,1) = 1.;
+
+  SMatrix62 K = propErr*projMatrixT_zp*resErrInv22;
+
+  result.parameters = propagatedState.parameters + K*res2;
+
+  result.errors = propErr - ROOT::Math::SimilarityT(propErr,ROOT::Math::Similarity(projMatrixT_zp,resErrInv22));
+
+  return result;
+}
+
+float computeChi2Endcap(const TrackState& propagatedState, const MeasurementState& measurementState)
+{
+
+  const SMatrixSym66& propErr = propagatedState.errors;
+  const SMatrixSym33 herr = measurementState.errors();
+  const SVector3& hpos = measurementState.parameters();
+
+  SMatrixSym22 resErr = herr.Sub<SMatrixSym22>(0,0)+propErr.Sub<SMatrixSym22>(0,0);
+
+  int invFail(0);
+  SMatrixSym22 resErrInv = resErr.InverseFast(invFail);
+  if (0 != invFail) {
+    dprint(__FILE__ << ":" << __LINE__ << ": FAILED INVERSION");
+    return 9999.;
+  }
+  const SVector2 res(hpos.At(0)-propagatedState.x(), hpos.At(1)-propagatedState.y());
   return ROOT::Math::Similarity(res,resErrInv);
 }

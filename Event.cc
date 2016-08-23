@@ -43,6 +43,7 @@ void Event::resetLayerHitMap(bool resetSimHits) {
     for (int index = 0; index < layerHits_[ilayer].size(); ++index) {
       auto& hit = layerHits_[ilayer][index];
       assert(hit.mcHitID() >= 0); // tmp debug
+      assert(hit.mcHitID() < layerHitMap_.size());
       layerHitMap_[hit.mcHitID()] = HitID(ilayer, index);
     }
   }
@@ -76,6 +77,7 @@ void Event::Simulate()
   for (auto&& l : layerHits_) {
     l.resize(Config::nTracks);  // thread safety
   }
+  simTrackStates_.resize(Config::nTracks);
 
 #ifdef TBB
   parallel_for( tbb::blocked_range<size_t>(0, Config::nTracks, 100), 
@@ -98,13 +100,23 @@ void Event::Simulate()
       int q=0;//set it in setup function
       // do the simulation
       if (Config::useCMSGeom) setupTrackFromTextFile(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs);
+      else if (Config::endcapTest) setupTrackByToyMCEndcap(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs);
       else setupTrackByToyMC(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs); 
-      validation_.collectSimTkTSVecMapInfo(itrack,initialTSs); // save initial TS parameters
 
-#ifdef POLCOORD
-      float pt = sqrt(mom[0]*mom[0]+mom[1]*mom[1]);
-      mom=SVector3(1./pt,atan2(mom[1],mom[0]),atan2(pt,mom[2]));
+#ifdef CCSCOORD
+      // setupTrackByToyMCEndcap is already in CCS coord, no need to convert
+      if (Config::endcapTest==false) {
+	float pt = sqrt(mom[0]*mom[0]+mom[1]*mom[1]);
+	mom=SVector3(1./pt,atan2(mom[1],mom[0]),atan2(pt,mom[2]));
+	for (int its = 0; its < initialTSs.size(); its++){
+	  initialTSs[its].convertFromCartesianToCCS();
+	}
+      }
 #endif
+      // uber ugly way of getting around read-in / write-out of objects needed for validation
+      if (Config::normal_val) {simTrackStates_[itrack] = initialTSs;}
+      validation_.collectSimTkTSVecMapInfo(itrack,initialTSs); // save initial TS parameters in validation object ... just a copy of the above line
+
       simTracks_[itrack] = Track(q,pos,mom,covtrk,0.0f);
       auto& sim_track = simTracks_[itrack];
       sim_track.setLabel(itrack);
@@ -226,7 +238,8 @@ void Event::Segment()
   void Event::Seed()
 {
 #ifdef ENDTOEND
-  buildSeedsByRoadTriplets(seedTracks_,seedTracksExtra_,layerHits_,segmentMap_,*this);
+  buildSeedsByRoadSearch(seedTracks_,seedTracksExtra_,layerHits_,segmentMap_,*this);
+  //  buildSeedsByRoadTriplets(seedTracks_,seedTracksExtra_,layerHits_,segmentMap_,*this);
   //buildSeedsByRZFirstRPhiSecond(seedTracks_,seedTracksExtra_,layerHits_,segmentMap_,*this);
 #else
   buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
@@ -256,19 +269,23 @@ void Event::Fit()
 #endif
 }
 
-void Event::Validate(int ievt){
+void Event::Validate(){
   // KM: Config tree just filled once... in main.cc
-  if (!Config::super_debug){ // regular validation
+  if (Config::normal_val) {
+    validation_.setTrackExtras(*this);
     validation_.makeSimTkToRecoTksMaps(*this);
     validation_.makeSeedTkToRecoTkMaps(*this);
-    validation_.fillSegmentTree(segmentMap_,ievt);
-    validation_.fillBranchTree(ievt);
     validation_.fillEfficiencyTree(*this);
     validation_.fillFakeRateTree(*this);
-    validation_.fillGeometryTree(*this);
-    validation_.fillConformalTree(*this);
+    if (Config::full_val) {
+      validation_.fillSegmentTree(segmentMap_,evtID_);
+      validation_.fillBranchTree(evtID_);
+      validation_.fillGeometryTree(*this);
+      validation_.fillConformalTree(*this);
+    }
   }
-  else{ // super debug mode
+
+  if (Config::super_debug) { // super debug mode
     validation_.fillDebugTree(*this);
   }
 }
@@ -280,7 +297,7 @@ void Event::PrintStats(const TrackVec& trks, TrackExtraVec& trkextras)
   for (auto&& trk : trks) {
     auto&& extra = trkextras[trk.label()];
     extra.setMCTrackIDInfo(trk, layerHits_, simHitsInfo_);
-    if (extra.isMissed()) {
+    if (extra.mcTrackID() < 0) {
       ++miss;
     } else {
       auto&& mctrk = simTracks_[extra.mcTrackID()];
@@ -306,6 +323,14 @@ void Event::write_out(FILE *fp)
   int nt = simTracks_.size();
   fwrite(&nt, sizeof(int), 1, fp);
   fwrite(&simTracks_[0], sizeof(Track), nt, fp);
+
+  if (Config::normal_val) {
+    for (int it = 0; it<nt; ++it) {
+      int nts = simTrackStates_[it].size();
+      fwrite(&nts, sizeof(int), 1, fp);
+      fwrite(&simTrackStates_[it][0], sizeof(TrackState), nts, fp);
+    }
+  }
 
   int nl = layerHits_.size();
   fwrite(&nl, sizeof(int), 1, fp);
@@ -348,6 +373,21 @@ void Event::read_in(FILE *fp)
   fread(&simTracks_[0], sizeof(Track), nt, fp);
   Config::nTracks = nt;
 
+  if (Config::normal_val) {
+    simTrackStates_.resize(nt);
+    for (int it = 0; it<nt; ++it) {
+      int nts;
+      fread(&nts, sizeof(int), 1, fp);
+      simTrackStates_[it].resize(nts);
+      fread(&simTrackStates_[it][0], sizeof(TrackState), nts, fp);
+    }
+    // now do the validation copying... ugh
+    for (int imc = 0; imc < nt; ++imc) {
+      validation_.collectSimTkTSVecMapInfo(imc,simTrackStates_[imc]); 
+    }
+    simTrackStates_.clear();
+  }
+
   int nl;
   fread(&nl, sizeof(int), 1, fp);
   layerHits_.resize(nl);
@@ -363,18 +403,24 @@ void Event::read_in(FILE *fp)
   simHitsInfo_.resize(nm);
   fread(&simHitsInfo_[0], sizeof(MCHitInfo), nm, fp);
 
-  if (Config::useCMSGeom) {
+  if (Config::useCMSGeom || Config::readCmsswSeeds) {
     int ns;
     fread(&ns, sizeof(int), 1, fp);
     seedTracks_.resize(ns);
     if (Config::readCmsswSeeds) fread(&seedTracks_[0], sizeof(Track), ns, fp);
     else fseek(fp, sizeof(Track)*ns, SEEK_CUR);
+    /*
+    printf("read %i seedtracks\n",nt);
+    for (int it = 0; it<ns; it++) {
+      printf("seedtrack with q=%i pT=%5.3f nHits=%i and label=%i\n",seedTracks_[it].charge(),seedTracks_[it].pT(),seedTracks_[it].nFoundHits(),seedTracks_[it].label());
+    }
+    */
   }
 
   /*
-  printf("read %i tracks\n",nt);
+  printf("read %i simtracks\n",nt);
   for (int it = 0; it<nt; it++) {
-    printf("track with q=%i pT=%5.3f and nHits=%i\n",simTracks_[it].charge(),simTracks_[it].pT(),simTracks_[it].nTotalHits());
+    printf("simtrack with q=%i pT=%5.3f and nHits=%i\n",simTracks_[it].charge(),simTracks_[it].pT(),simTracks_[it].nFoundHits());
     for (int ih=0; ih<simTracks_[it].nTotalHits(); ++ih) {
       if (simTracks_[it].getHitIdx(ih)>=0)
 	printf("hit #%i idx=%i pos r=%5.3f\n",ih,simTracks_[it].getHitIdx(ih),layerHits_[ih][simTracks_[it].getHitIdx(ih)].r());
@@ -387,8 +433,9 @@ void Event::read_in(FILE *fp)
   for (int il = 0; il<nl; il++) {
     printf("read %i hits in layer %i\n",layerHits_[il].size(),il);
     for (int ih = 0; ih<layerHits_[il].size(); ih++) {
-      printf("hit with r=%5.3f x=%5.3f y=%5.3f z=%5.3f\n",layerHits_[il][ih].r(),layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z());
+      printf("hit with mcHitID=%i r=%5.3f x=%5.3f y=%5.3f z=%5.3f\n",layerHits_[il][ih].mcHitID(),layerHits_[il][ih].r(),layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z());
     }
   }
+  printf("read event done\n",nl);
   */
 }

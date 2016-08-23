@@ -7,6 +7,11 @@
 //#define DEBUG
 #include "Debug.h"
 
+#include <array>
+#include <tbb/tbb.h>
+
+typedef tbb::concurrent_vector<TripletIdx> TripletIdxConVec;
+
 // for each layer
 //   Config::nEtaBin vectors of hits, resized to large enough N
 //   filled with corresponding hits
@@ -48,10 +53,6 @@ inline bool sortTrksByPhiMT(const Track& t1, const Track& t2)
 
 //==============================================================================
 
-const float g_layer_zwidth[] = { 10, 14, 18, 23, 28, 32, 37, 42, 48, 52 };
-
-const float g_layer_dz[]     = { 0.6, 0.55, 0.5, 0.5, 0.45, 0.4, 0.4, 0.4, 0.35, 0.35 };
-
 // Use extra arrays to store phi and z of hits.
 // MT: This would in principle allow fast selection of good hits, if
 // we had good error estimates and reasonable *minimal* phi and z windows.
@@ -75,25 +76,27 @@ public:
   int   m_nz = 0;
   int   m_capacity = 0;
 
-  // This could be a parameter, layer dependent.
-  static constexpr int   m_nphi = 1024;
-  // Testing bin filling
-  //  static constexpr int   m_nphi = 16;
-  static constexpr float m_fphi = m_nphi / Config::TwoPI;
-  static constexpr int   m_phi_mask = 0x3ff;
+  //fixme, these are copies of the ones above, need to merge with a more generic name
+  float m_rmin, m_rmax, m_fr;
+  int   m_nr = 0;
+#ifdef LOH_USE_PHI_Z_ARRAYS
+  std::vector<float>        m_hit_rs;
+#endif
 
-  // As above
-  static constexpr float m_max_dz   = 1;
-  static constexpr float m_max_dphi = 0.02;
+  // Testing bin filling
+  static constexpr float m_fphi = Config::m_nphi / Config::TwoPI;
+  static constexpr int   m_phi_mask = 0x3ff;
 
 protected:
   void alloc_hits(int size)
   {
     m_hits = (Hit*) _mm_malloc(sizeof(Hit) * size, 64);
     m_capacity = size;
+    for (int ihit = 0; ihit < m_capacity; ihit++){m_hits[ihit] = Hit();} 
 #ifdef LOH_USE_PHI_Z_ARRAYS
     m_hit_phis.resize(size);
     m_hit_zs  .resize(size);
+    m_hit_rs  .resize(size);
 #endif
   }
 
@@ -121,7 +124,15 @@ protected:
   {
     for (int zb = z_bin_1; zb < z_bin_2; ++zb)
     {
-      empty_phi_bins(zb, 0, m_nphi, hit_count);
+      empty_phi_bins(zb, 0, Config::m_nphi, hit_count);
+    }
+  }
+
+  void empty_r_bins(int r_bin_1, int r_bin_2, int hit_count)
+  {
+    for (int rb = r_bin_1; rb < r_bin_2; ++rb)
+    {
+      empty_phi_bins(rb, 0, Config::m_nphi, hit_count);
     }
   }
 
@@ -137,11 +148,17 @@ public:
 
   void SetupLayer(float zmin, float zmax, float dz);
 
+  void SetupDisk(float rmin, float rmax, float dr);
+
   float NormalizeZ(float z) const { if (z < m_zmin) return m_zmin; if (z > m_zmax) return m_zmax; return z; }
 
   int   GetZBin(float z)    const { return (z - m_zmin) * m_fz; }
 
   int   GetZBinChecked(float z) const { int zb = GetZBin(z); if (zb < 0) zb = 0; else if (zb >= m_nz) zb = m_nz - 1; return zb; }
+
+  int   GetRBin(float r)    const { return (r - m_rmin) * m_fr; }
+
+  int   GetRBinChecked(float r) const { int rb = GetRBin(r); if (rb < 0) rb = 0; else if (rb >= m_nr) rb = m_nr - 1; return rb; }
 
   // if you don't pass phi in (-pi, +pi), mask away the upper bits using m_phi_mask
   int   GetPhiBin(float phi) const { return std::floor(m_fphi * (phi + Config::PI)); }
@@ -149,8 +166,9 @@ public:
   const vecPhiBinInfo_t& GetVecPhiBinInfo(float z) const { return m_phi_bin_infos[GetZBin(z)]; }
 
   void SuckInHits(const HitVec &hitv);
+  void SuckInHitsEndcap(const HitVec &hitv);
 
-  int  SelectHitIndices(float z, float phi, float dz, float dphi, bool dump=false);
+  void SelectHitIndices(float z, float phi, float dz, float dphi, std::vector<int>& idcs, bool isForSeeding=false, bool dump=false);
 
   void PrintBins();
 };
@@ -170,7 +188,8 @@ public:
   {
     for (int i = 0; i < n_layers; ++i)
     {
-      m_layers_of_hits[i].SetupLayer(-g_layer_zwidth[i], g_layer_zwidth[i], g_layer_dz[i]);
+      if (Config::endcapTest) m_layers_of_hits[i].SetupDisk(Config::cmsDiskMinRs[i], Config::cmsDiskMaxRs[i], Config::g_disk_dr[i]);
+      else m_layers_of_hits[i].SetupLayer(-Config::g_layer_zwidth[i], Config::g_layer_zwidth[i], Config::g_layer_dz[i]);
     }
   }
 
@@ -185,6 +204,11 @@ public:
   void SuckInHits(const HitVec &hitv, int layer)
   {
     m_layers_of_hits[layer].SuckInHits(hitv);
+  }
+
+  void SuckInHitsEndcap(const HitVec &hitv, int layer)
+  {
+    m_layers_of_hits[layer].SuckInHitsEndcap(hitv);
   }
 };
 

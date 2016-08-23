@@ -40,17 +40,11 @@ typedef std::unordered_map<int, BranchValVecLayMap> TkIDToBranchValVecLayMapMap;
 typedef TkIDToBranchValVecLayMapMap::iterator TkIDToBVVMMIter;
 typedef BranchValVecLayMap::iterator BVVLMiter;
 
-// Map typedefs needed for mapping different sets of tracks to another
-typedef std::unordered_map<int,int>               TkIDToTkIDMap;
-typedef std::unordered_map<int,std::vector<int> > TkIDToTkIDVecMap;
-typedef std::unordered_map<int,TrackState>        TkIDToTSMap;   
-typedef std::unordered_map<int,TSVec>             TkIDToTSVecMap;
-typedef std::unordered_map<int,TSLayerPairVec>    TkIDToTSLayerPairVecMap;
-
 class TTreeValidation : public Validation {
 public:
   TTreeValidation(std::string fileName);
-
+  ~TTreeValidation();
+  
   void initializeDebugTree();
   void initializeSeedInfoTree();
   void initializeSeedTree();
@@ -61,6 +55,7 @@ public:
   void initializeGeometryTree();
   void initializeConformalTree();
   void initializeConfigTree();
+  void initializeTimeTree();
   
   void alignTrackExtra(TrackVec& evt_tracks, TrackExtraVec& evt_extra) override;
 
@@ -80,9 +75,13 @@ public:
   void resetValidationMaps() override;
   void resetDebugVectors() override;
   void resetDebugTreeArrays();
+
+  void setTrackExtras(Event& ev) override;
+  void setTrackCollectionExtras(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, 
+				const std::vector<HitVec>& layerHits, const MCHitInfoVec& mcHitInfo);
+
   void makeSimTkToRecoTksMaps(Event& ev) override;
-  void mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extra, const std::vector<HitVec>& layerHits, 
-			 const MCHitInfoVec&, TkIDToTkIDVecMap& simTkMap);
+  void mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, TkIDToTkIDVecMap& simTkMap);
   void makeSeedTkToRecoTkMaps(Event& ev) override;
   void mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackExtraVec& evt_extras, TkIDToTkIDMap& seedTkMap);
 
@@ -95,7 +94,8 @@ public:
   void fillFakeRateTree(const Event& ev) override;
   void fillGeometryTree(const Event& ev) override;
   void fillConformalTree(const Event& ev) override;
-  void fillConfigTree(const std::vector<double>& ticks) override;
+  void fillConfigTree() override;
+  void fillTimeTree(const std::vector<double>& ticks) override;
 
   void saveTTrees() override;
 
@@ -300,7 +300,6 @@ public:
 
   // Configuration tree
   TTree* configtree_;
-  float simtime_=0.,segtime_=0.,seedtime_=0.,buildtime_=0.,fittime_=0.,hlvtime_=0.;
   int   Ntracks_=0,Nevents_=0;
   int   nLayers_=0;
   float fRadialSpacing_=0.,fRadialExtent_=0.,fInnerSensorSize_=0.,fOuterSensorSize_=0.;
@@ -314,6 +313,10 @@ public:
   float varXY_=0.,varZ_=0.;
   int   nTotHit_=0;
   float ptinverr049_=0.,phierr049_=0.,thetaerr049_=0.,ptinverr012_=0.,phierr012_=0.,thetaerr012_=0.;
+
+  // Time tree (smatrix only at the moment)
+  TTree* timetree_;
+  float simtime_=0.,segtime_=0.,seedtime_=0.,buildtime_=0.,fittime_=0.,hlvtime_=0.;
 
   std::mutex glock_;
 };

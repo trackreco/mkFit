@@ -2,10 +2,11 @@
 #define _config_
 
 #include <algorithm>
+#include <cmath>
 #include <string> // won't compile on clang gcc for mac OS w/o this!
 
 //#define PRINTOUTS_FOR_PLOTS
-#define POLCOORD
+#define CCSCOORD
 
 namespace Config
 {
@@ -15,12 +16,12 @@ namespace Config
   // math general --> from namespace TMath
   constexpr float    PI    = 3.14159265358979323846;
   constexpr float TwoPI    = 6.28318530717958647692;
-  constexpr float PIOver2  = Config::PI / 2.0;
-  constexpr float PIOver4  = Config::PI / 4.0;
-  constexpr float PI3Over4 = 3.0 * Config::PI / 4.0;
-  constexpr float InvPI    = 1.0 / Config::PI;
-  constexpr float RadToDeg = 180.0 / Config::PI;
-  constexpr float DegToRad = Config::PI / 180.0;
+  constexpr float PIOver2  = Config::PI / 2.0f;
+  constexpr float PIOver4  = Config::PI / 4.0f;
+  constexpr float PI3Over4 = 3.0f * Config::PI / 4.0f;
+  constexpr float InvPI    = 1.0f / Config::PI;
+  constexpr float RadToDeg = 180.0f / Config::PI;
+  constexpr float DegToRad = Config::PI / 180.0f;
   constexpr double Sqrt2   = 1.4142135623730950488016887242097;
   constexpr float sol      = 0.299792458; // speed of light in nm/s
 
@@ -32,24 +33,43 @@ namespace Config
   extern int nEvents;
 
   // config on main -- for geometry
-  constexpr int   nLayers   = 10;
+  constexpr int   nLayers   = 10; // default: 10; cmssw tests: 13, 17, 26 (for endcap)
   constexpr float fRadialSpacing   = 4.;
   constexpr float fRadialExtent    = 0.01;
   constexpr float fInnerSensorSize = 5.0; // approximate sensor size in cm
   constexpr float fOuterSensorSize = Config::fInnerSensorSize * 2.;
-  constexpr float fEtaDet          = 1;  // 1 from chep
+  constexpr float fEtaDet          = 1; // default: 1; cmssw tests: 2, 2.5
 
-  constexpr float cmsAvgRads[10] = {4.42,7.31,10.17,25.65,33.81,41.89,49.67,60.95,69.11,78.19}; // cms average radii
-  //constexpr float cmsAvgRads[10] = {4.42,7.31,10.17,25.65,25.65,33.81,33.81,41.89,49.67,60.95}; // cms average radii, noMatch version
+  //constexpr float cmsAvgRads[13] = {4.42,7.31,10.17,25.58,33.98,41.79,49.78,60.78,69.2,77.96,86.80,96.53,108.00}; // cms average radii, noSplit version
+  constexpr float cmsAvgRads[17] = {4.42,7.31,10.17,25.58,25.58,33.98,33.98,41.79,49.78,60.57,61.00,69.41,68.98,77.96,86.80,96.53,108.00}; // cms average radii, split version
   constexpr float cmsDeltaRad = 2.5; //fixme! using constant 2.5 cm, to be taken from layer properties
 
+  constexpr float cmsAvgZs[26]         = {35.5,48.5,79.8,79.8,92.6,92.6,105.6,105.6,131.3,131.3,145.3,145.3,159.3,159.3,173.9,173.9,187.8,187.8,205.4,205.4,224.0,224.0,244.4,244.4,266.3,266.3}; // cms average z
+  constexpr float cmsDiskMinRs[26]     = { 5.7, 5.7,23.1,22.8,23.1,22.8, 23.1, 22.8, 23.3, 23.0, 23.3, 23.0, 23.3, 23.0, 31.6, 34.4, 31.6, 34.4, 31.6, 34.4, 59.9, 38.8, 59.9, 38.8, 59.9, 49.9};
+  constexpr float cmsDiskMaxRs[26]     = {14.7,14.7,50.8,42.0,50.8,42.0, 50.8, 42.0, 76.1,110.0, 76.1,110.0, 76.1,110.0, 75.9,109.7, 75.9,109.7, 75.9,109.7, 75.9,109.4, 75.9,109.4, 75.9,109.4};
+  constexpr float cmsDiskMinRsHole[26] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  0.0,  0.0, 42.0,  0.0, 42.0,  0.0, 42.0,  0.0, 42.1,  0.0, 42.1,  0.0, 42.1,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0};
+  constexpr float cmsDiskMaxRsHole[26] = {999.,999.,999.,999.,999.,999., 999., 999., 59.9, 999., 59.9, 999., 59.9, 999., 59.7, 999., 59.7, 999., 59.7, 999., 999., 999., 999., 999., 999., 999.};
+  const     float g_disk_dr[]        = {   1,   1,  20,  20,  20,  20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20};
+
+  const float g_layer_zwidth[] = { 10, 14, 18, 23, 28, 32, 37, 42, 48, 52 }; //default
+  const float g_layer_dz[]     = { 0.6, 0.55, 0.5, 0.5, 0.45, 0.4, 0.4, 0.4, 0.35, 0.35 }; //default
+
+  /* const float g_layer_zwidth[] = { 30, 30, 30, 70, 70, 70, 70, 70, 70, 110, 110, 110, 110, 110, 110, 110, 110 }; //cmssw tests */
+  /* const float g_layer_dz[] = { 1, 1, 1, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20 }; //cmssw tests */
+
+  // These could be parameters, layer dependent.
+  static constexpr int   m_nphi = 1024;
+  static constexpr float m_max_dz   = 1; // default: 1; cmssw tests: 20
+  static constexpr float m_max_dphi = 0.02; // default: 0.02; cmssw tests: 0.2
+
   // config on Event
-  constexpr float chi2Cut = 15.;
+  constexpr float chi2Cut = 15.;// default: 15.; cmssw tests: 30.
   constexpr float nSigma  = 3.;
-  constexpr float minDPhi = 0.;
+  constexpr float minDPhi = 0.;// default: 0.;  cmssw tests: 0.01;
   constexpr float maxDPhi = Config::PI;
   constexpr float minDEta = 0.;
   constexpr float maxDEta = 1.0;
+  constexpr float minDZ = 0.; // default: 0.; cmssw tests: 10.;
 
   // Configuration for simulation info
   //CMS beam spot width 25um in xy and 5cm in z 
@@ -64,7 +84,7 @@ namespace Config
 
   constexpr float hitposerrXY = 0.01; // resolution is 100um in xy --> more realistic scenario is 0.003
   constexpr float hitposerrZ  = 0.1; // resolution is 1mm in z
-  constexpr float hitposerrR  = Config::hitposerrXY / 10.;
+  constexpr float hitposerrR  = Config::hitposerrXY / 10.0f;
   constexpr float varXY       = Config::hitposerrXY * Config::hitposerrXY;
   constexpr float varZ        = Config::hitposerrZ  * Config::hitposerrZ;
   constexpr float varR        = Config::hitposerrR  * Config::hitposerrR;
@@ -77,16 +97,18 @@ namespace Config
   //const     float xr = std::sqrt(Config::beamspotX*Config::beamspotX + Config::beamspotY*Config::beamspotY); 
 
   // Config for seeding
-  constexpr int   nlayers_per_seed = 3;
+  extern    int   nlayers_per_seed;
   constexpr float chi2seedcut  = 9.0;
-  constexpr float lay12angdiff = 0.0634888; // analytically derived... depends on geometry of detector --> from mathematica ... d0 set to one sigma of getHypot(bsX,bsY)
-  constexpr float lay13angdiff = 0.11537;
-  constexpr float dEtaSeedTrip = 0.6; // for almost max efficiency --> empirically derived... depends on geometry of detector
+  constexpr float lay01angdiff = 0.0634888; // analytically derived... depends on geometry of detector --> from mathematica ... d0 set to one sigma of getHypot(bsX,bsY)
+  constexpr float lay02angdiff = 0.11537;
+  constexpr float dEtaSeedTrip = 0.06; // for almost max efficiency --> empirically derived... depends on geometry of detector
   constexpr float dPhiSeedTrip = 0.0458712; // numerically+semianalytically derived... depends on geometry of detector
-  constexpr float seed_z0cut   = beamspotZ * 3.0; // 3cm
-  constexpr float lay2Zcut     = hitposerrZ * 3.6; // 3.6 mm --> to match efficiency from chi2cut
-  constexpr float seed_d0cut   = 0.5; // 5mm
+  static const float seed_z2cut= (nlayers_per_seed * fRadialSpacing) / std::tan(2.0f*std::atan(std::exp(-1.0f*dEtaSeedTrip)));
+  constexpr float seed_z0cut   = beamspotZ * 3.0f; // 3cm
+  constexpr float seed_z1cut   = hitposerrZ * 3.6f; // 3.6 mm --> to match efficiency from chi2cut
+  constexpr float seed_d0cut   = 0.5f; // 5mm
   extern bool cf_seeding;
+  extern bool findSeeds;
 
   // Config for propagation
   constexpr int Niter = 5;
@@ -121,30 +143,29 @@ namespace Config
 
   // Config for Conformal fitter --> these change depending on inward/outward, which tracks used (MC vs reco), geometry, layers used, track params generated...
   // parameters for layers 0,4,9 
+  constexpr float blowupfit = 10.0;
   constexpr float ptinverr049 = 0.0078; // 0.0075; // errors used for MC only fit, straight from sim tracks, outward with simple geometry
   constexpr float phierr049   = 0.0017; // 0.0017;
   constexpr float thetaerr049 = 0.0033; // 0.0031; 
   // parameters for layers 0,1,2 // --> ENDTOEND with "real seeding", fit is outward by definition, with poly geo
   constexpr float ptinverr012 = 0.12007; // 0.1789;  -->old values from only MC seeds
-  constexpr float phierr012   = 0.00646; // 0.0071 
-  constexpr float thetaerr012 = 0.01366; // 0.0130; 
+  constexpr float phierr012   = 1.0; // found empirically 0.00646; // 0.0071 
+  constexpr float thetaerr012 = 0.2; // also found empirically 0.01366; // 0.0130; 
 
   // config on fitting
   extern bool cf_fitting;
-
-  // matrix config
-  // XXXX MT this should be renamed, made constexpr
-#ifndef MAX_HITS
-#define MAX_HITS 10
-#endif
 
   //fixme: these should not be constant and modified when nTracks is set from reading a file
   constexpr int maxHitsConsidered = 25;
   extern    int maxHitsPerBunch;
 
-  constexpr int maxCandsPerSeed   = 6;
+  constexpr int maxCandsPerSeed   = 6; //default: 6; cmssw tests: 3
   constexpr int maxHolesPerCand   = 2;
   extern    int maxCandsPerEtaBin;
+
+  // config on validation
+  extern bool normal_val;
+  extern bool full_val;
 
   // Effective eta bin is one half of nEtaPart -- so the above is twice the "average".
   // Note that last and first bin are 3/4 nEtaPart ... but can be made 1/4 by adding
@@ -163,8 +184,13 @@ namespace Config
 
   extern int    numSeedsPerTask;
 
+  // number of layer1 hits for finding seeds per task
+  extern int    numHitsPerTask;
+  
   extern bool   useCMSGeom;
   extern bool   readCmsswSeeds;
+
+  extern bool   endcapTest;
 
   const std::string inputFile = "cmssw.simtracks.SingleMu1GeV.10k.new.txt";
   //const std::string inputFile = "cmssw.simtracks.SingleMu10GeV.10k.new.txt";

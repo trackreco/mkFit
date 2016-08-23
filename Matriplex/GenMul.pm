@@ -177,6 +177,7 @@ use Carp;
 
 # Offsets converting from full matrix indices to symmetric ones:
 my @Offs;
+@Offs[2] = [ 0, 1, 1, 2 ];
 @Offs[3] = [ 0, 1, 3, 1, 2, 4, 3, 4, 5 ];
 @Offs[4] = [ 0, 1, 3, 6, 1, 2, 4, 7, 3, 4, 5, 8, 6, 7, 8, 9 ];
 @Offs[5] = [ 0, 1, 3, 6, 10, 1, 2, 4, 7, 11, 3, 4, 5, 8, 12, 6, 7, 8, 9, 13, 10, 11, 12, 13, 14 ];

@@ -21,17 +21,21 @@ class LayerOfHitsCU {
   float m_zmin, m_zmax, m_fz;
   int m_nz = 0;
   int m_capacity = 0;
-  //
+ 
+  //fixme, these are copies of the ones above, need to merge with a more generic name
+  float m_rmin, m_rmax, m_fr;
+  int   m_nr = 0;
+
   // This could be a parameter, layer dependent.
-  static constexpr int   m_nphi = 1024;
+  //static constexpr int   m_nphi = 1024;
   // Testing bin filling
   //  static constexpr int   m_nphi = 16;
-  static constexpr float m_fphi = m_nphi / Config::TwoPI;
+  static constexpr float m_fphi = Config::m_nphi / Config::TwoPI;
   static constexpr int   m_phi_mask = 0x3ff;
 
   // As above
-  static constexpr float m_max_dz   = 1;
-  static constexpr float m_max_dphi = 0.02;
+  //static constexpr float m_max_dz   = 1;
+  //static constexpr float m_max_dphi = 0.02;
 
   LayerOfHitsCU() {};
   ~LayerOfHitsCU() {};

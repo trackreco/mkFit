@@ -32,22 +32,18 @@ void fitTrack(const Track & trk, const TrackExtra& trkextra, int itrack, Event& 
 #define CONFORMAL
 #ifdef CONFORMAL
   const bool fiterrs  = true;
-  //fit is problematic in case of very short lever arm
-  // hits from track foundLayers(): 0, size()/2, size()-1.
-  // i.e. outward: front(), size()/2, back()  of foundLayers()
-  // i.e. inward:  back(),  size()/2, front() of foundLayers()
-  // for 10 hits outward this 0,  5, 10; for 9 hits this is 0, 4, 9; for 3 hits this is 0, 1, 2.
-  // for 10 hits inward  this 10, 4, 0;  for 9 hits this is 9, 4, 0; for 3 hits this is 2, 1, 0.
 
+  // hits from track foundLayers(): 0, size()/2, size()-1.
+  auto middlelayer = trkLayers[trkLayers.size()/2];
+  const Hit& hit2 = evt_lay_hits[middlelayer][trk.getHitIdx(middlelayer)];
 #ifdef INWARDFIT
-  const Hit& hit2 = evt_lay_hits[trkLayers.size()/2][trk.getHitIdx(trkLayers.size()/2)];
   const Hit& hit3 = evt_lay_hits[trkLayers.front()][trk.getHitIdx(trkLayers.front())];
 #else
-  const Hit& hit2 = evt_lay_hits[trkLayers.size()/2][trk.getHitIdx(trkLayers.size()/2)];
   const Hit& hit3 = evt_lay_hits[trkLayers.back()][trk.getHitIdx(trkLayers.back())];
 #endif
-  conformalFit(hit1,hit2,hit3,trk.charge(),cfitStateHit0,fiterrs); // last bool denotes use cf derived errors for fitting
+  conformalFit(hit1,hit2,hit3,cfitStateHit0,fiterrs); // last bool denotes use cf derived errors for fitting
   TrackState updatedState = cfitStateHit0;
+  updatedState.charge = trk.charge();
   ev.validation_.collectFitTkCFMapInfo(seedID,cfitStateHit0); // pass along all info and map it to a given seed
 #else 
   TrackState updatedState = trk.state();
@@ -55,7 +51,8 @@ void fitTrack(const Track & trk, const TrackExtra& trkextra, int itrack, Event& 
 #endif 
 
 #if defined(ENDTOEND) || defined(CONFORMAL)
-  updatedState.errors*=10;//not needed when fitting straight from simulation
+  updatedState.errors*=Config::blowupfit;//not needed when fitting straight from simulation
+  dcall(print("conformalState", updatedState));
 #endif //ENDTOEND
 
   TSLayerPairVec updatedStates; // need this for position pulls --> can ifdef out for performance tests? --> assume one hit per layer

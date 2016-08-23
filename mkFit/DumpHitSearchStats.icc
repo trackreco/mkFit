@@ -23,14 +23,16 @@
 
         float px = std::min(1000.f, MKFPAR(3)), py = std::min(1000.f, MKFPAR(4));
 
-        int nshi = m_event_of_hits.m_layers_of_hits[ilay].SelectHitIndices(z, phi, Dz, Dphi);
+	std::vector<int> indices;
+	m_event_of_hits.m_layers_of_hits[ilay].SelectHitIndices(z, phi, Dz, Dphi, indices, false); 
+        int nshi = indices.size();
 
         // Dump for 
         // printf("Select hits: %2d %2d\n", MKFP(XHitSize), nshi);
         // if (MKFP(XHitSize) != nshi)
         // {
         //   // printf("Select hits: %2d %2d\n", MKFP(XHitSize), nshi);
-        //   m_event_of_hits.m_layers_of_hits[ilay].SelectHitIndices(z, phi, Dz, Dphi, true);
+        //   m_event_of_hits.m_layers_of_hits[ilay].SelectHitIndices(z, phi, Dz, Dphi, indices, false, true);
         //   printf("\n");
         // }
 

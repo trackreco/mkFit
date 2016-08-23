@@ -10,6 +10,7 @@
 #include "Timing.h"
 
 #include <limits>
+#include <list>
 
 #include "Event.h"
 
@@ -46,11 +47,19 @@ void initGeom(Geometry& geom)
   // are added starting from the center
   // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
   float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
-  for (int l = 0; l < 10; l++) {
-    float r = Config::useCMSGeom ? Config::cmsAvgRads[l] : (l+1)*Config::fRadialSpacing;
-    VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent);
-    float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
-    geom.AddLayer(utub, r, z);
+  for (int l = 0; l < Config::nLayers; l++) {
+    if (Config::endcapTest) {
+      float z = Config::useCMSGeom ? Config::cmsAvgZs[l] : (l+1)*10.;//Config::fLongitSpacing
+      float rmin = Config::useCMSGeom ? Config::cmsDiskMinRs[l] : 0;
+      float rmax = Config::useCMSGeom ? Config::cmsDiskMaxRs[l] : 0;
+      VUSolid* utub = new VUSolid(rmin, rmax);
+      geom.AddLayer(utub, rmin, z);
+    } else {
+      float r = Config::useCMSGeom ? Config::cmsAvgRads[l] : (l+1)*Config::fRadialSpacing;
+      VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent);
+      float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
+      geom.AddLayer(utub, r, z);
+    }
   }
 }
 
@@ -150,7 +159,9 @@ void test_standard()
     printf ("Using CMS-like geometry ");
     if (Config::readCmsswSeeds) printf ("with CMSSW seeds \n");
     else printf ("with MC-truth seeds \n");
-  } else printf ("Using 4-cm spacing geometry \n");
+  } else if (Config::endcapTest) {
+    printf ("Test tracking in endcap, disks spacing 5 cm \n");
+  } else printf ("Using 4-cm spacing barrel geometry \n");
 
   if (g_operation == "write") {
     generate_and_save_tracks();
@@ -160,6 +171,7 @@ void test_standard()
   if (g_operation == "read")
   {
     Config::nEvents = open_simtrack_file();
+    //Config::nEvents = 10;
   }
 
   Geometry geom;
@@ -254,6 +266,8 @@ void test_standard()
       ev.resetLayerHitMap(true);
     }
 
+    // if (evt!=2985) continue;
+
     plex_tracks.resize(ev.simTracks_.size());
 
     double t_best[NT] = {0}, t_cur[NT];
@@ -281,13 +295,10 @@ void test_standard()
     printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
            t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
 
-    for (int i = 0; i < NT; ++i) t_sum[i] += t_cur[i];
-    if (evt > 1) for (int i = 0; i < NT; ++i) t_skip[i] += t_cur[i];
+    for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
+    if (evt > 1) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
 
-#ifndef NO_ROOT
-    make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
-#endif
-    
+    if (g_run_fit_std) make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
   }
 #endif
   printf("\n");
@@ -306,6 +317,7 @@ void test_standard()
     close_simtrack_file();
   }
 
+  val.saveTTrees();
 }
 
 //==============================================================================
@@ -371,8 +383,12 @@ int main(int argc, const char *argv[])
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
 	"  --cms-geom               use cms-like geometry (def: %i)\n"
 	"  --cmssw-seeds            take seeds from CMSSW (def: %i)\n"
+	"  --find-seeds             run road search seeding [CF enabled by default] (def: %s)\n"
+	"  --hits-per-task <num>    number of layer1 hits per task in finding seeds (def: %i)\n"
+	"  --endcap-test            test endcap tracking (def: %i)\n"
 	"  --cf-seeding             enable CF in seeding (def: %s)\n"
 	"  --cf-fitting             enable CF in fitting (def: %s)\n"
+	"  --normal-val             enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
 	"  --write                  write simulation to file and exit\n"
 	"  --read                   read simulation from file\n"
 	"  --file-name              file name for write/read (def: %s)\n"
@@ -389,8 +405,12 @@ int main(int argc, const char *argv[])
         Config::finderReportBestOutOfN,
 	Config::useCMSGeom,
 	Config::readCmsswSeeds,
+	Config::findSeeds ? "true" : "false",
+	Config::numHitsPerTask,
+	Config::endcapTest,
 	Config::cf_seeding ? "true" : "false",
 	Config::cf_fitting ? "true" : "false",
+	Config::normal_val ? "true" : "false",
 	g_file_name.c_str()
       );
       exit(0);
@@ -462,6 +482,19 @@ int main(int argc, const char *argv[])
     {
       Config::readCmsswSeeds = true;
     }
+    else if(*i == "--find-seeds")
+    {
+      Config::findSeeds = true; Config::cf_seeding = true;
+    }
+    else if (*i == "--hits-per-task")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::numHitsPerTask = atoi(i->c_str());
+    }
+    else if(*i == "--endcap-test")
+    {
+      Config::endcapTest = true; Config::nlayers_per_seed = 2; // default is 3 for barrel
+    }
     else if (*i == "--cf-seeding")
     {
       Config::cf_seeding = true;
@@ -469,6 +502,10 @@ int main(int argc, const char *argv[])
     else if (*i == "--cf-fitting")
     {
       Config::cf_fitting = true;
+    }
+    else if (*i == "--normal-val")
+    {
+      Config::super_debug = false; Config::normal_val = true; Config::full_val = false;
     }
     else if (*i == "--num-thr-ev")
     {

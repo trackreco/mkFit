@@ -36,14 +36,14 @@ void FitterCU<T>::allocateDevice() {
   d_inChg.allocate(Nalloc, QI);
   d_errorProp.allocate(Nalloc, LL);
 
-  cudaMalloc((void**)&d_msPar_arr, MAX_HITS * sizeof(GPlexHV));
-  cudaMalloc((void**)&d_msErr_arr, MAX_HITS * sizeof(GPlexHS));
-  for (int hi = 0; hi < MAX_HITS; ++hi) {
+  cudaMalloc((void**)&d_msPar_arr, Config::nLayers * sizeof(GPlexHV));
+  cudaMalloc((void**)&d_msErr_arr, Config::nLayers * sizeof(GPlexHS));
+  for (int hi = 0; hi < Config::nLayers; ++hi) {
     d_msPar[hi].allocate(Nalloc, HV);
     d_msErr[hi].allocate(Nalloc, HS);
   }
-  cudaMemcpy(d_msPar_arr, d_msPar, MAX_HITS*sizeof(GPlexHV), cudaMemcpyHostToDevice);
-  cudaMemcpy(d_msErr_arr, d_msErr, MAX_HITS*sizeof(GPlexHS), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_msPar_arr, d_msPar, Config::nLayers*sizeof(GPlexHV), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_msErr_arr, d_msErr, Config::nLayers*sizeof(GPlexHS), cudaMemcpyHostToDevice);
   cudaMalloc((void**)&d_maxSize, sizeof(int));  //  global maximum
   cudaCheckError();
 }
@@ -56,7 +56,7 @@ void FitterCU<T>::freeDevice() {
   d_errorProp.free();
   d_Err_iP.free();
   d_Err_iC.free();
-  for (int hi = 0; hi < MAX_HITS; ++hi) {
+  for (int hi = 0; hi < Config::nLayers; ++hi) {
     d_msPar[hi].free();
     d_msErr[hi].free();
   }
@@ -105,11 +105,11 @@ void FitterCU<T>::allocate_extra_addBestHit() {
   d_XHitPos.allocate(Nalloc, QI);
   d_XHitSize.allocate(Nalloc, QI);
   d_XHitArr.allocate(Nalloc, GPlexHitIdxMax);
-  cudaMalloc((void**)&d_HitsIdx_arr, MAX_HITS * sizeof(GPlexQI));
-  for (int hi = 0; hi < MAX_HITS; ++hi) {
+  cudaMalloc((void**)&d_HitsIdx_arr, Config::nLayers * sizeof(GPlexQI));
+  for (int hi = 0; hi < Config::nLayers; ++hi) {
     d_HitsIdx[hi].allocate(Nalloc, QI);
   }
-  cudaMemcpy(d_HitsIdx_arr, d_HitsIdx, MAX_HITS*sizeof(GPlexQI), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_HitsIdx_arr, d_HitsIdx, Config::nLayers*sizeof(GPlexQI), cudaMemcpyHostToDevice);
   d_Chi2.allocate(Nalloc, QF);
   d_Label.allocate(Nalloc, QI);
   cudaCheckError();
@@ -117,7 +117,7 @@ void FitterCU<T>::allocate_extra_addBestHit() {
 
 template <typename T>
 void FitterCU<T>::free_extra_addBestHit() {
-  for (int hi = 0; hi < MAX_HITS; ++hi) {
+  for (int hi = 0; hi < Config::nLayers; ++hi) {
     d_HitsIdx[hi].free(); cudaCheckError();
   }
   cudaFree(d_HitsIdx_arr);

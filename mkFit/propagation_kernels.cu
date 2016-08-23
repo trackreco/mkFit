@@ -483,7 +483,7 @@ __global__ void propagation_kernel(
       similarity_fn(errorProp_reg, outErr, outErr_stride, N, n);
 #endif
       computeMsRad_fn(msPar, msRad_reg, N, n);
-#ifdef POLCOORD
+#ifdef CCSCOORD
       // FIXME: port me
       // helixAtRFromIterativePolar(inPar, inChg, outPar, msRad, errorProp);
     helixAtRFromIterativePolar_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
@@ -538,7 +538,7 @@ __device__ void propagationForBuilding_fn(
     msRad_reg(n, 0, 0) = radius;
     /*if (n == 0) printf("gpu r = %f\n", radius);*/
 
-#ifdef POLCOORD
+#ifdef CCSCOORD
     // TODO: port me
     //helixAtRFromIterativePolar(inPar, inChg, outPar, msRad, errorProp, N_proc);
     helixAtRFromIterativePolar_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);

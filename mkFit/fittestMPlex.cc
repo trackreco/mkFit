@@ -5,6 +5,8 @@
 #include "Propagation.h"
 #include "Simulation.h"
 #include "Geometry.h"
+//#define DEBUG
+#include <Debug.h>
 
 #include "MkFitter.h"
 #if USE_CUDA
@@ -15,11 +17,10 @@
 #ifndef NO_ROOT
 #include "TFile.h"
 #include "TTree.h"
+#include <mutex>
 #endif
 
-//#define DEBUG
-#include <Debug.h>
-
+#include <tbb/tbb.h>
 #include <omp.h>
 
 #include <iostream>
@@ -55,40 +56,29 @@ void make_validation_tree(const char         *fname,
    tree->Branch("chg",    &chg,    "chg");
 #endif
 
-#ifdef USE_CUDA
    std::vector<float> diff_vec;
-#endif
 
    const int NT = simtracks.size();
    for (int i = 0; i < NT; ++i)
    {
-      SVector6     &simp   = simtracks[i].parameters_nc();
-      SVector6     &recp   = rectracks[i].parameters_nc();
-      SMatrixSym66 &recerr = rectracks[i].errors_nc();
-
-      pt_mc  = sqrt(simp[3]*simp[3] + simp[4]*simp[4]);
-      pt_fit = sqrt(recp[3]*recp[3] + recp[4]*recp[4]);
-      pt_err = sqrt(recerr[3][3]*recp[3]*recp[3] +
-                    recerr[4][4]*recp[4]*recp[4] +
-                    recerr[3][4]*recp[3]*recp[4] * 2) / pt_fit;
+      pt_mc  = simtracks[i].pT();
+      pt_fit = rectracks[i].pT();
+      pt_err = rectracks[i].epT() / pt_fit;
       chg = simtracks[i].charge();
-
 
 #ifndef NO_ROOT
       tree->Fill();
 #endif
 
-#ifdef USE_CUDA
-      float diff = (pt_mc - pt_fit) / pt_err;
-      if (std::abs(diff) < 5.0f) {
+      float pr = pt_fit/pt_mc;
+      float diff = (pt_mc/pt_fit - 1) / pt_err;
+      if (pr > 0.8 && pr < 1.2 && std::isfinite(diff)) {
         diff_vec.push_back(diff);
         ++goodtrk;
       } else {
-        dprint("pt_mc, pt_fit, pt_err " << pt_mc << " " << pt_fit << " " << pt_err);
+        dprint("pt_mc, pt_fit, pt_err, ratio, diff " << pt_mc << " " << pt_fit << " " << pt_err << " " << pt_fit/pt_mc << " " << diff);
       }
-#endif
    }
-#ifdef USE_CUDA
    float mean = std::accumulate(diff_vec.begin(), diff_vec.end(), 0.0)
               / diff_vec.size();
 
@@ -102,7 +92,6 @@ void make_validation_tree(const char         *fname,
 
    std::cerr << goodtrk << " good tracks, mean pt pull: " << mean
              << " standard dev: " << stdev << std::endl;
-#endif
 
 #ifndef NO_ROOT
    file->Write();
@@ -115,32 +104,37 @@ void make_validation_tree(const char         *fname,
 // runFittingTestPlex
 //==============================================================================
 
+#include "Pool.h"
+namespace
+{
+  struct ExecutionContext
+  {
+    Pool<MkFitter>   m_fitters;
+
+    void populate(int n_thr)
+    {
+      m_fitters.populate(n_thr - m_fitters.size());
+    }
+  };
+
+  ExecutionContext g_exe_ctx;
+  auto retfitr = [](MkFitter*   mkfp  ) { g_exe_ctx.m_fitters.ReturnToPool(mkfp);   };
+}
+
 double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 {
-
+   g_exe_ctx.populate(Config::numThreadsFinder);
    std::vector<Track>& simtracks = ev.simTracks_;
 
-   const int Nhits = MAX_HITS;
+   const int Nhits = Config::nLayers;
    // XXX What if there's a missing / double layer?
    // Eventually, should sort track vector by number of hits!
    // And pass the number in on each "setup" call.
    // Reserves should be made for maximum possible number (but this is just
    // measurments errors, params).
 
-   // NOTE: MkFitter *MUST* be on heap, not on stack!
-   // Standard operator new screws up alignment of ALL MPlex memebrs of MkFitter,
-   // even if one adds attr(aligned(64)) thingy to every possible place.
-
-   // MkFitter *mkfp = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Nhits);
-
-   std::vector<MkFitter*> mkfp_arr(Config::numThreadsFinder);
-
-   for (int i = 0; i < Config::numThreadsFinder; ++i)
-   {
-     mkfp_arr[i] = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Nhits);
-   }
-
-   int theEnd = simtracks.size();
+   int theEnd = ( (Config::endcapTest && Config::readCmsswSeeds) ? ev.seedTracks_.size() : simtracks.size());
+   int count = (theEnd + NN - 1)/NN;
 
 #ifdef USE_VTUNE_PAUSE
    __itt_resume();
@@ -148,35 +142,43 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 
    double time = dtime();
 
-#pragma omp parallel for
-   for (int itrack = 0; itrack < theEnd; itrack += NN)
+   tbb::parallel_for(tbb::blocked_range<int>(0, count, std::max(1, Config::numSeedsPerTask/NN)),
+     [&](const tbb::blocked_range<int>& i)
    {
-      int end = std::min(itrack + NN, theEnd);
-
-      MkFitter *mkfp = mkfp_arr[omp_get_thread_num()];
-
-      //mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
-      mkfp->SlurpInTracksAndHits(simtracks, ev.layerHits_, itrack, end);
-
-      if (Config::cf_fitting) mkfp->ConformalFitTracks(true, itrack, end);
-      mkfp->FitTracks(end - itrack);
-
-#ifndef NO_ROOT
-      mkfp->OutputFittedTracks(rectracks, itrack, end);
-#endif
-   }
+     std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
+     mkfp->SetNhits(Nhits);
+     for (int it = i.begin(); it < i.end(); ++it)
+     {
+        int itrack = it*NN;
+        int end = itrack + NN;
+	if (Config::endcapTest) { 
+	  //fixme, check usage of SlurpInTracksAndHits for endcapTest
+	  if (Config::readCmsswSeeds) {
+	    mkfp->InputSeedsTracksAndHits(ev.seedTracks_,simtracks, ev.layerHits_, itrack, end);
+	  } else {
+	    mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
+	  }
+	  mkfp->FitTracksTestEndcap(end - itrack, &ev);
+	} else {
+	  if (theEnd < end) {
+	    end = theEnd;
+	    mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
+	  } else {
+	    mkfp->SlurpInTracksAndHits(simtracks, ev.layerHits_, itrack, end); // only safe for a full matriplex
+	  }
+	  
+	  if (Config::cf_fitting) mkfp->ConformalFitTracks(true, itrack, end);
+	  mkfp->FitTracks(end - itrack);
+	}
+	mkfp->OutputFittedTracks(rectracks, itrack, end);
+     }
+   });
 
    time = dtime() - time;
 
 #ifdef USE_VTUNE_PAUSE
    __itt_pause();
 #endif
-
-   for (int i = 0; i < Config::numThreadsFinder; ++i)
-   {
-     _mm_free(mkfp_arr[i]);
-   }
-   //_mm_free(mkfp);
 
    return time;
 }
@@ -255,7 +257,7 @@ double runFittingTestPlexGPU(FitterCU<float> &cuFitter,
 
    std::vector<Track>& simtracks = ev.simTracks_;
 
-   const int Nhits = MAX_HITS;
+   const int Nhits = Config::nLayers;
    // XXX What if there's a missing / double layer?
    // Eventually, should sort track vector by number of hits!
    // And pass the number in on each "setup" call.
@@ -292,11 +294,9 @@ double runFittingTestPlexGPU(FitterCU<float> &cuFitter,
                          Nhits,
                          simtracks, itrack, end, ev.layerHits_);
 
-//#ifndef NO_ROOT
       double time_output = dtime();
       mkfp->OutputFittedTracks(rectracks, itrack, end);
       std::cerr << "Output time: " << (dtime() - time_output)*1e3 << std::endl;
-//#endif
    }
 
    time = dtime() - time;

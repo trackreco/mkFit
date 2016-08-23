@@ -9,6 +9,16 @@
 typedef std::pair<int,int> SimTkIDInfo;
 typedef std::vector<int> HitIdxVec;
 
+inline int calculateCharge(const Hit & hit0, const Hit & hit1, const Hit & hit2){
+  return ((hit2.y()-hit0.y())*(hit2.x()-hit1.x())>(hit2.y()-hit1.y())*(hit2.x()-hit0.x())?1:-1);
+}
+
+inline int calculateCharge(const float hit0_x, const float hit0_y,
+			   const float hit1_x, const float hit1_y,
+			   const float hit2_x, const float hit2_y){
+  return ((hit2_y-hit0_y)*(hit2_x-hit1_x)>(hit2_y-hit1_y)*(hit2_x-hit0_x)?1:-1);
+}
+
 struct TrackState //  possible to add same accessors as track? 
 {
 public:
@@ -44,7 +54,7 @@ public:
 						 errors.At(0,1),errors.At(0,2),errors.At(1,2)));}
 
   // track state momentum
-#ifdef POLCOORD
+#ifdef CCSCOORD
   float invpT()  const {return parameters.At(3);}
   float momPhi() const {return parameters.At(4);}
   float theta()  const {return parameters.At(5);}
@@ -58,8 +68,12 @@ public:
   float einvpT()  const {return std::sqrt(errors.At(3,3));}
   float emomPhi() const {return std::sqrt(errors.At(4,4));}
   float etheta()  const {return std::sqrt(errors.At(5,5));}
-  float epT()     const {return std::sqrt(errors.At(3,3))/(parameters.At(3)*parameters.At(3));}//fixme: double check
-  float emomEta() const {return std::sqrt(errors.At(5,5))/std::sin(parameters.At(5));}//fixme: double check
+  float epT()     const {return std::sqrt(errors.At(3,3))/(parameters.At(3)*parameters.At(3));}
+  float emomEta() const {return std::sqrt(errors.At(5,5))/std::sin(parameters.At(5));}
+  float epxpx()   const {return std::sqrt(getPxPxErr2(invpT(),momPhi(),errors.At(3,3),errors.At(4,4)));}
+  float epypy()   const {return std::sqrt(getPyPyErr2(invpT(),momPhi(),errors.At(3,3),errors.At(4,4)));}
+  float epzpz()   const {return std::sqrt(getPyPyErr2(invpT(),theta(),errors.At(3,3),errors.At(5,5)));}
+  // special note: KPM --> do not need cross terms in jacobian anymore, don't store them in validation anyways
 
 #else
   float px()     const {return parameters.At(3);}
@@ -90,10 +104,10 @@ public:
   float einvpT()  const {return sqrtf(getInvRadErr2(px(),py(),errors.At(3,3),errors.At(4,4),errors.At(3,4)));}
 #endif
 
-  void convertFromCartesianToPolar();
-  void convertFromPolarToCartesian();
-  SMatrix66 jacobianPolarToCartesian(float invpt,float phi,float theta) const;
-  SMatrix66 jacobianCartesianToPolar(float px,float py,float pz) const;
+  void convertFromCartesianToCCS();
+  void convertFromCCSToCartesian();
+  SMatrix66 jacobianCCSToCartesian(float invpt,float phi,float theta) const;
+  SMatrix66 jacobianCartesianToCCS(float px,float py,float pz) const;
 };
 
 class Track
@@ -117,6 +131,7 @@ public:
   
   Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, float chi2) :
     state_(charge, position, momentum, errors), chi2_(chi2) {}
+
   ~Track(){}
 
   const SVector6&     parameters() const {return state_.parameters;}
@@ -163,6 +178,7 @@ public:
   float py()     const { return state_.py();}
   float pz()     const { return state_.pz();}
   float pT()     const { return state_.pT(); }
+  float p()     const { return state_.p(); }
   float momPhi() const { return state_.momPhi(); }
   float momEta() const { return state_.momEta(); }
 
@@ -181,6 +197,21 @@ public:
       }
     }
     return hitsVec;
+  }
+
+  void mcHitIDsVec(const std::vector<HitVec>& globalHitVec, const MCHitInfoVec& globalMCHitInfo, std::vector<int>& mcHitIDs) const
+  {
+    for (int ihit = 0; ihit <= hitIdxPos_; ++ihit){
+      if ((hitIdxArr_[ihit] >= 0) && (hitIdxArr_[ihit] < globalHitVec[ihit].size()))
+      {
+        mcHitIDs.push_back(globalHitVec[ihit][hitIdxArr_[ihit]].mcTrackID(globalMCHitInfo));
+	//globalMCHitInfo[globalHitVec[ihit][hitIdxArr_[ihit]].mcHitID()].mcTrackID());
+      }
+      else 
+      {
+	mcHitIDs.push_back(hitIdxArr_[ihit]);
+      }
+    }
   }
 
 #if __CUDACC__
@@ -219,6 +250,7 @@ public:
   }
 
   void setNGoodHitIdx() {
+    nGoodHitIdx_=0;
     for (int i=0;i<= hitIdxPos_;i++) {
       if (hitIdxArr_[i]>=0) nGoodHitIdx_++;
     }
@@ -286,7 +318,6 @@ public:
   int nHitsMatched() const {return nHitsMatched_;}
   int seedID() const {return seedID_;}
   bool isDuplicate() const {return isDuplicate_;}
-  bool isMissed() const {return 999999 == mcTrackID_;}
   int duplicateID() const {return duplicateID_;}
   void setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo);
   void setMCDuplicateInfo(int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
@@ -302,6 +333,16 @@ private:
 typedef std::vector<TrackExtra> TrackExtraVec;
 typedef std::vector<Track> TrackVec;
 typedef std::vector<TrackState> TSVec;
+typedef std::vector<TSVec>      TkIDToTSVecVec;
 typedef std::vector<std::pair<int, TrackState> > TSLayerPairVec;
 typedef std::vector<std::pair<int, float> > FltLayerPairVec; // used exclusively for debugtree
+
+#include <unordered_map>
+// Map typedefs needed for mapping different sets of tracks to another
+typedef std::unordered_map<int,int>               TkIDToTkIDMap;
+typedef std::unordered_map<int,std::vector<int> > TkIDToTkIDVecMap;
+typedef std::unordered_map<int,TrackState>        TkIDToTSMap;   
+typedef std::unordered_map<int,TSVec>             TkIDToTSVecMap;
+typedef std::unordered_map<int,TSLayerPairVec>    TkIDToTSLayerPairVecMap;
+
 #endif

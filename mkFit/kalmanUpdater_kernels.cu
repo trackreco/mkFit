@@ -188,7 +188,7 @@ void PolarErr_fn(const GPlexRegLL &a, const float *b, int bN, GPlexRegLL &c, con
   int aN = 1; int an = 0;  // Register array
               int bn = n;  // Global array
   int cN = 1; int cn = 0;
-#include "PolarErr.ah"
+#include "CCSErr.ah"
 }
 
 __device__
@@ -199,7 +199,7 @@ void PolarErrTransp_fn(const GPlexRegLL &a, const GPlexRegLL &b, GPlexLS &C, con
                  int aN = 1;         int an = 0;
                  int bN = 1;         int bn = 0;
   T *c = C.ptr;  int cN = C.stride;  int cn = n;
-#include "PolarErrTransp.ah"
+#include "CCSErrTransp.ah"
 }
 
 __device__
@@ -575,7 +575,7 @@ __device__ void kalmanUpdate_fn(
 
     /*invertCramerSym_fn(resErr_reg);*/
     invertCramerSym2x2_fn(resErr_loc);
-#ifndef POLCOORD
+#ifndef CCSCOORD
     // Move to "polar" coordinates: (x,y,z,1/pT,phi,theta) [can we find a better name?]
 
     /*MPlexLV propPar_pol;// propagated parameters in "polar" coordinates*/
@@ -596,7 +596,7 @@ __device__ void kalmanUpdate_fn(
     KalmanHTG_fn(rotT00, rotT01, resErr_loc, tempHH);
     KalmanGain_fn(propErr, tempHH, K, n);
 
-#ifdef POLCOORD
+#ifdef CCSCOORD
     // FIXME: assuming no polcoord for now
     //MultResidualsAdd(K.arr, propPar, res_loc, outPar);// propPar_pol is now the updated parameters in "polar" coordinates
     multResidualsAdd_fn(K, par_iP, res_loc, par_iC, N, n);// propPar_pol is now the updated parameters in "polar" coordinates
@@ -613,7 +613,7 @@ __device__ void kalmanUpdate_fn(
         /*propErr.ptr, propErr.stride, LS, n);*/
       outErr.ptr, outErr.stride, LS, n);
 
-#ifndef POLCOORD
+#ifndef CCSCOORD
     // Go back to cartesian coordinates
 
     // jac_pol is now the jacobian from "polar" to cartesian

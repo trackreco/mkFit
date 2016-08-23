@@ -40,7 +40,7 @@ __device__ void selectHitIndices_fn(const LayerOfHitsCU &layer_of_hits,
                        /*2 * dphidx * dphidy * Err(itrack, 0, 0);*/
       const float dphi2  = dphidx * dphidx * Err[0*Err.stride + itrack] +
                            dphidy * dphidy * Err[2*Err.stride + itrack] +
-                       2 * dphidx * dphidy * Err[0*Err.stride + itrack];
+                       2 * dphidx * dphidy * Err[1*Err.stride + itrack];
 
 #ifdef HARD_CHECK
       assert(dphi2 >= 0);
@@ -53,7 +53,7 @@ __device__ void selectHitIndices_fn(const LayerOfHitsCU &layer_of_hits,
         //now correct for bending and for layer thickness unsing linear approximation
         const float deltaR = Config::cmsDeltaRad; //fixme! using constant value, to be taken from layer properties
         const float r  = sqrt(r2);
-#ifdef POLCOORD
+#ifdef CCSCOORD
         //here alpha is the difference between posPhi and momPhi
         const float alpha = phi - Par(itrack, 4, 0);
         float cosA, sinA;
@@ -84,8 +84,8 @@ __device__ void selectHitIndices_fn(const LayerOfHitsCU &layer_of_hits,
 
     const LayerOfHitsCU &L = layer_of_hits;
 
-    if (fabs(dz)   > L.m_max_dz)   dz   = L.m_max_dz;
-    if (fabs(dphi) > L.m_max_dphi) dphi = L.m_max_dphi;
+    if (fabs(dz)   > Config::m_max_dz)   dz   = Config::m_max_dz;
+    if (fabs(dphi) > Config::m_max_dphi) dphi = Config::m_max_dphi;
 
     const int zb1 = L.GetZBinChecked(z - dz);
     const int zb2 = L.GetZBinChecked(z + dz) + 1;
@@ -117,7 +117,8 @@ __device__ void selectHitIndices_fn(const LayerOfHitsCU &layer_of_hits,
 
 #if 1
         /*for (int hi = L.m_phi_bin_infos[zi][pb].first; hi < L.m_phi_bin_infos[zi][pb].second; ++hi)*/
-        for (int hi = L.m_phi_bin_infos[zi*L.m_nphi + pb].first; hi < L.m_phi_bin_infos[zi*L.m_nphi + pb].second; ++hi)
+        for (int hi = L.m_phi_bin_infos[zi*Config::m_nphi + pb].first; 
+                 hi < L.m_phi_bin_infos[zi*Config::m_nphi + pb].second; ++hi)
         {
           // MT: Access into m_hit_zs and m_hit_phis is 1% run-time each.
 

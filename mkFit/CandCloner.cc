@@ -64,8 +64,9 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
       if (num_hits < Config::maxCandsPerSeed)
       {
         const std::vector<Track> &ov = cands[m_start_seed + is];
+        const int max_m2 = ov.size();
+
         int cur_m2 = 0;
-        int max_m2 = ov.size();
         while (cur_m2 < max_m2 && ov[cur_m2].getLastHitIdx() != -2) ++cur_m2;
         while (cur_m2 < max_m2 && num_hits < Config::maxCandsPerSeed)
         {

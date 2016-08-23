@@ -35,8 +35,8 @@ void LayerOfHitsCU::copyLayerOfHitsFromCPU(const LayerOfHits &layer,
   // FIXME: copy other values
   // TODO: probably quite inefficient:
   for (int i = 0; i < m_nz; ++i) {
-    cudaMemcpyAsync(m_phi_bin_infos + i*m_nphi, &(layer.m_phi_bin_infos[i][0]), 
-                    sizeof(PairIntsCU)*m_nphi, cudaMemcpyHostToDevice, stream);
+    cudaMemcpyAsync(m_phi_bin_infos + i*Config::m_nphi, &(layer.m_phi_bin_infos[i][0]), 
+                    sizeof(PairIntsCU)*Config::m_nphi, cudaMemcpyHostToDevice, stream);
     /*cudaCheckError();*/
   }
 }
@@ -55,7 +55,7 @@ void EventOfHitsCU::allocGPU(const EventOfHits &event_of_hits) {
     m_layers_of_hits_alloc[i].alloc_hits(event_of_hits.m_layers_of_hits[i].m_capacity);
     m_layers_of_hits_alloc[i].alloc_phi_bin_infos(
         event_of_hits.m_layers_of_hits[i].m_nz, 
-        event_of_hits.m_layers_of_hits[i].m_nphi);
+        Config::m_nphi);
   }
   /*cudaCheckError();*/
 }

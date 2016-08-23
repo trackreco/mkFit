@@ -31,13 +31,13 @@ struct MkFitter
 
   MPlexQF Chi2;
 
-  MPlexHS msErr[MAX_HITS];
-  MPlexHV msPar[MAX_HITS];
+  MPlexHS msErr[Config::nLayers];
+  MPlexHV msPar[Config::nLayers];
 
   MPlexQI Label;  //this is the seed index in global seed vector (for MC truth match)
   MPlexQI SeedIdx;//this is the seed index in local thread (for bookkeeping at thread level)
   MPlexQI CandIdx;//this is the candidate index for the given seed (for bookkeeping of clone engine)
-  MPlexQI HitsIdx[MAX_HITS];
+  MPlexQI HitsIdx[Config::nLayers];
 
   // Hold hit indices to explore at current layer.
   MPlexQI     XHitSize;
@@ -77,6 +77,7 @@ public:
   int countInvalidHits(int itrack) const { return countInvalidHits(itrack, Nhits); }
 
   void InputTracksAndHits(const std::vector<Track>& tracks, const std::vector<HitVec>& layerHits, int beg, int end);
+  void InputTracksAndHits(const std::vector<Track>& tracks, const std::vector<LayerOfHits>& layerHits, int beg, int end);
   void SlurpInTracksAndHits(const std::vector<Track>&  tracks, const std::vector<HitVec>& layerHits, int beg, int end);
   void InputTracksAndHitIdx(const std::vector<Track>& tracks,
                             int beg, int end, bool inputProp);
@@ -84,8 +85,10 @@ public:
                             int beg, int end, bool inputProp);
   void InputTracksOnly   (const std::vector<Track>& tracks, int beg, int end);
   void InputHitsOnly(const std::vector<Hit>& hits, int beg, int end);
+  void InputSeedsTracksAndHits(const std::vector<Track>& seeds, const std::vector<Track>& tracks, const std::vector<HitVec>& layerHits, int beg, int end);
   void ConformalFitTracks(bool fitting, int beg, int end);
   void FitTracks(const int N_proc);
+  void FitTracksTestEndcap(const int N_proc, const Event* ev);
 
   void OutputTracks(std::vector<Track>& tracks, int beg, int end, int iCP) const;
 
@@ -99,12 +102,18 @@ public:
 
   void PropagateTracksToR(float R, const int N_proc);
 
+  void PropagateTracksToZ(float Z, const int N_proc);
+
   void SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_proc, bool dump=false);
+  void SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits, const int N_proc, bool dump=false);
 
   void AddBestHit      (const LayerOfHits &layer_of_hits, const int N_proc);
+  void AddBestHitEndcap(const LayerOfHits &layer_of_hits, const int N_proc);
 
   void FindCandidates(const LayerOfHits &layer_of_hits, std::vector<std::vector<Track> >& tmp_candidates,
                       const int offset, const int N_proc);
+  void FindCandidatesEndcap(const LayerOfHits &layer_of_hits, std::vector<std::vector<Track> >& tmp_candidates,
+			    const int offset, const int N_proc);
 
   // ================================================================
   // Methods used with clone engine
@@ -120,6 +129,8 @@ public:
   //version of find candidates that does not cloning, just fills the IdxChi2List as output (to be then read by the clone engine)
   void FindCandidatesMinimizeCopy(const LayerOfHits &layer_of_hits, CandCloner& cloner,
                                   const int offset, const int N_proc);
+  void FindCandidatesMinimizeCopyEndcap(const LayerOfHits &layer_of_hits, CandCloner& cloner,
+                                        const int offset, const int N_proc);
 
   //version of input tracks using IdxChi2List
   void InputTracksAndHitIdx(const std::vector<std::vector<Track> >& tracks,
@@ -127,6 +138,7 @@ public:
                             int beg, int end, bool inputProp = false);
 
   void UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc);
+  void UpdateWithLastHitEndcap(const LayerOfHits &layer_of_hits, int N_proc);
 
   //method used by the clone engine to do the actual cloning on the predefined candidate+hit
   void CopyOutClone(const std::vector<std::pair<int,IdxChi2List> >& idxs,

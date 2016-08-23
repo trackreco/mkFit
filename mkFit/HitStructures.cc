@@ -17,7 +17,7 @@ void LayerOfHits::SetupLayer(float zmin, float zmax, float dz)
   m_nz   = nmax - nmin;
 
   m_phi_bin_infos.resize(m_nz);
-  for (int i = 0; i < m_nz; ++i) m_phi_bin_infos[i].resize(m_nphi);
+  for (int i = 0; i < m_nz; ++i) m_phi_bin_infos[i].resize(Config::m_nphi);
 }
 
 void LayerOfHits::SuckInHits(const HitVec &hitv)
@@ -74,7 +74,7 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
       HitInfo &hi = ha[i];
       hi.phi  = h.phi();
       hi.z    = h.z();
-      hi.zbin = (hi.z - m_zmin) * m_fz;
+      hi.zbin = std::min(static_cast<int>((hi.z - m_zmin) * m_fz), m_nz-1);
       m_hit_phis[i] = hi.phi + 6.3f * (hi.zbin - nzh);
       ++zc[hi.zbin];
       ++i;
@@ -107,7 +107,7 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
     {
       set_phi_bin(curr_z_bin, curr_phi_bin, hit_count, hits_in_bin);
 
-      empty_phi_bins(curr_z_bin, curr_phi_bin + 1, m_nphi, hit_count);
+      empty_phi_bins(curr_z_bin, curr_phi_bin + 1, Config::m_nphi, hit_count);
 
       empty_z_bins(curr_z_bin + 1, ha[j].zbin, hit_count);
 
@@ -131,7 +131,7 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
 
   set_phi_bin(curr_z_bin, curr_phi_bin, hit_count, hits_in_bin);
 
-  empty_phi_bins(curr_z_bin, curr_phi_bin + 1, m_nphi, hit_count);
+  empty_phi_bins(curr_z_bin, curr_phi_bin + 1, Config::m_nphi, hit_count);
 
   empty_z_bins(curr_z_bin + 1, m_nz, hit_count);
 
@@ -164,7 +164,7 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
   // }
 }
 
-int LayerOfHits::SelectHitIndices(float z, float phi, float dz, float dphi, bool dump)
+void LayerOfHits::SelectHitIndices(float z, float phi, float dz, float dphi, std::vector<int>& idcs, bool isForSeeding, bool dump)
 {
   // Sanitizes z, dz and dphi. phi is expected to be in -pi, pi.
 
@@ -175,9 +175,11 @@ int LayerOfHits::SelectHitIndices(float z, float phi, float dz, float dphi, bool
   //   printf("%5.2f %4d %4d\n", p, pb, pb & m_phi_mask);
   // }
 
-  if (std::abs(dz)   > m_max_dz)   dz   = m_max_dz;
-  if (std::abs(dphi) > m_max_dphi) dphi = m_max_dphi;
-
+  if (!isForSeeding) { // seeding has set cuts for dz and dphi
+    if (std::abs(dz)   > Config::m_max_dz)   dz   = Config::m_max_dz;
+    if (std::abs(dphi) > Config::m_max_dphi) dphi = Config::m_max_dphi;
+  }
+  
   int zb1 = GetZBinChecked(z - dz);
   int zb2 = GetZBinChecked(z + dz) + 1;
   int pb1 = GetPhiBin(phi - dphi);
@@ -191,9 +193,7 @@ int LayerOfHits::SelectHitIndices(float z, float phi, float dz, float dphi, bool
     printf("LayerOfHits::SelectHitIndices %6.3f %6.3f %6.4f %7.5f %3d %3d %4d %4d\n",
            z, phi, dz, dphi, zb1, zb2, pb1, pb2);
 
-  // This should be input argument, well ... it will be Matriplex op, or sth.
-  std::vector<int> idcs;
-
+  // This should be input argument, well ... it will be Matriplex op, or sth. // KPM -- it is now! used for seeding
   for (int zi = zb1; zi < zb2; ++zi)
   {
     for (int pi = pb1; pi < pb2; ++pi)
@@ -223,8 +223,6 @@ int LayerOfHits::SelectHitIndices(float z, float phi, float dz, float dphi, bool
       }
     }
   }
-
-  return idcs.size();
 }
 
 void LayerOfHits::PrintBins()
@@ -232,7 +230,7 @@ void LayerOfHits::PrintBins()
   for (int zb = 0; zb < m_nz; ++zb)
   {
     printf("Z bin %d\n", zb);
-    for (int pb = 0; pb < m_nphi; ++pb)
+    for (int pb = 0; pb < Config::m_nphi; ++pb)
     {
       if (pb % 8 == 0)
         printf(" Phi %4d: ", pb);
@@ -241,4 +239,136 @@ void LayerOfHits::PrintBins()
              ((pb + 1) % 8 == 0) ? "\n" : "");
     }
   }
+}
+
+
+//-----------------------------------------------------------------------------------------//
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
+//-----------------------------------------------------------------------------------------//
+// Endcap section: duplicate functions for now, cleanup and merge once strategy sorted out //
+//-----------------------------------------------------------------------------------------//
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
+//-----------------------------------------------------------------------------------------//
+
+void LayerOfHits::SetupDisk(float rmin, float rmax, float dr)
+{
+  // XXXX MT: Could have n_phi bins per layer, too.
+
+  assert (m_nr == 0 && "SetupDisk() already called.");
+
+  float nmin = std::floor(rmin / dr);
+  float nmax = std::ceil (rmax / dr);
+  m_rmin = dr * nmin;
+  m_rmax = dr * nmax;
+  m_fr = 1.0f / dr; // rbin = (rhit - m_rmin) * m_fr;
+  m_nr   = nmax - nmin;
+
+  //printf("rmin=%6f rmax=%6f dr=%6f m_nr=%i\n",rmin,rmax,dr,m_nr);
+
+  m_phi_bin_infos.resize(m_nr);
+  for (int i = 0; i < m_nr; ++i) m_phi_bin_infos[i].resize(Config::m_nphi);
+}
+
+void LayerOfHits::SuckInHitsEndcap(const HitVec &hitv)
+{
+
+  assert (m_nr > 0 && "SetupDisk() was not called.");
+
+  const int size = hitv.size();
+
+  if (m_capacity < size)
+  {
+    free_hits();
+    alloc_hits(1.02 * size);
+  }
+
+#ifndef LOH_USE_PHI_Z_ARRAYS
+  std::vector<float>        m_hit_phis(size);
+#endif
+
+  struct HitInfo
+  {
+    float phi;
+    float r;
+    int   rbin;
+  };
+
+  std::vector<HitInfo> ha(size);
+  std::vector<int>     rc(m_nr, 0);
+  int nrh = m_nr / 2;
+  {
+    int i = 0;
+    for (auto const &h : hitv)
+    {
+      HitInfo &hi = ha[i];
+      hi.phi  = h.phi();
+      hi.r    = h.r();
+      hi.rbin = (hi.r - m_rmin) * m_fr;
+      m_hit_phis[i] = hi.phi + 6.3f * (hi.rbin - nrh);
+      ++rc[hi.rbin];
+      ++i;
+    }
+  }
+
+  RadixSort sort;
+  sort.Sort(&m_hit_phis[0], size);
+
+  int curr_r_bin   = 0;
+  int curr_phi_bin = 0;
+  int hits_in_bin  = 0;
+  int hit_count    = 0;
+
+  for (int i = 0; i < size; ++i)
+  {
+    int j = sort.GetRanks()[i];
+
+
+    if (hitv[j].r()>m_rmax || hitv[j].r()<m_rmin) {
+      std::cout << "WARNING: hit outsed r boundary of disk, please fixme" << std::endl;
+      m_capacity--;
+      continue;
+    }
+
+    // Could fix the mis-sorts. Set ha size to size + 1 and fake last entry to avoid ifs.
+
+    memcpy(&m_hits[i], &hitv[j], sizeof(Hit));
+#ifdef LOH_USE_PHI_Z_ARRAYS
+    m_hit_phis[i] = ha[j].phi;
+    m_hit_rs  [i] = ha[j].r;
+#endif
+
+    // Fill the bin info
+
+    if (ha[j].rbin != curr_r_bin)
+    {
+      set_phi_bin(curr_r_bin, curr_phi_bin, hit_count, hits_in_bin);
+
+      empty_phi_bins(curr_r_bin, curr_phi_bin + 1, Config::m_nphi, hit_count);
+
+      empty_r_bins(curr_r_bin + 1, ha[j].rbin, hit_count);
+
+      curr_r_bin = ha[j].rbin;
+      curr_phi_bin = 0;
+    }
+
+    int phi_bin = GetPhiBin(ha[j].phi);
+
+    if (phi_bin > curr_phi_bin)
+    {
+      set_phi_bin(curr_r_bin, curr_phi_bin, hit_count, hits_in_bin);
+
+      empty_phi_bins(curr_r_bin, curr_phi_bin + 1, phi_bin, hit_count);
+
+      curr_phi_bin = phi_bin;
+    }
+
+    ++hits_in_bin;
+  }
+
+  set_phi_bin(curr_r_bin, curr_phi_bin, hit_count, hits_in_bin);
+
+  empty_phi_bins(curr_r_bin, curr_phi_bin + 1, Config::m_nphi, hit_count);
+
+  empty_r_bins(curr_r_bin + 1, m_nr, hit_count);
+
 }

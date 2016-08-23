@@ -24,4 +24,14 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
                             MPlexQF& outChi2,
                       const int      N_proc);
 
+void updateParametersEndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+				 const MPlexHS &msErr,  const MPlexHV& msPar,
+                                       MPlexLS &outErr,       MPlexLV& outPar,
+				 const int      N_proc);
+
+void computeChi2EndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+			    const MPlexHS &msErr,  const MPlexHV& msPar,
+                                  MPlexQF& outChi2,
+			    const int      N_proc);
+
 #endif

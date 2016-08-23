@@ -16,10 +16,19 @@ h_MX6 = ROOT.TH1F("h_MX6", "h_MX6", 300, 0, 300)
 h_MX9 = ROOT.TH1F("h_MX9", "h_MX9", 300, 0, 300)
 
 h_MXNH  = ROOT.TH1F("h_MXNH", "h_MXNH", 11, 0, 11)
+h_MXNH.GetXaxis().SetTitle("nHits_{found}")
 h_MXC2  = ROOT.TH1F("h_MXC2", "h_MXC2", 40, 0, 20)
 h_MXPT  = ROOT.TH1F("h_MXPT", "h_MXPT", 20, 0, 20)
+h_MXPT.GetXaxis().SetTitle("p_{T}^{rec}")
 h_MXPTm = ROOT.TH1F("h_MXPTm", "h_MXPTm", 20, 0, 20)
-h_MXPTr = ROOT.TH1F("h_MXPTr", "h_MXPTr", 40, -2, 2)
+h_MXPTm.GetXaxis().SetTitle("p_{T}^{sim}")
+h_MXPTr = ROOT.TH1F("h_MXPTr", "h_MXPTr", 40, -0.4, 0.4)
+h_MXPTr.GetXaxis().SetTitle("(p_{T}^{rec}-p_{T}^{sim})/p_{T}^{sim}")
+
+h_NHDS  = ROOT.TH1F("h_NHDS", "h_NHDS", 15, -7.5, 7.5)
+h_NHDS.GetXaxis().SetTitle("nHits_{found}-nHits_{sim}")
+h_NHDR  = ROOT.TH1F("h_NHDR", "h_NHDR", 15, -7.5, 7.5)
+h_NHDR.GetXaxis().SetTitle("nHits_{found}-nHits_{cmssw}")
 
 # simtrack only validation
 h_SIMNH  = ROOT.TH1F("h_SIMNH", "h_SIMNH", 11, 0, 11)
@@ -61,12 +70,16 @@ with open('log'+suffix+'.txt') as f:
             h_MXNH.Fill(float(NH))
             C2 = line.split()[6].split('=')[1]
             h_MXC2.Fill(float(C2)/(3.*(float(NH)-3.)-5.))
-            if (float(NH)>9):
-                PT = line.split()[7].split('=')[1]
-                h_MXPT.Fill(float(PT))
-                PTMC = line.split()[8].split('=')[1]
+            PT = line.split()[7].split('=')[1]
+            h_MXPT.Fill(float(PT))
+            PTMC = line.split()[8].split('=')[1]
+            NHS = line.split()[9].split('=')[1]
+            NHR = line.split()[10].split('=')[1]
+            if float(PTMC)>0.01 and float(NHS)>=3 and float(NHR)>=3:
                 h_MXPTm.Fill(float(PTMC))
                 h_MXPTr.Fill((float(PT)-float(PTMC))/float(PTMC))
+                h_NHDS.Fill(float(NH)-float(NHS))
+                h_NHDR.Fill(float(NH)-float(NHR))
         elif "MX - simtrack with nHits" in line:
             NH = line.split()[4].split('=')[1]
             h_SIMNH.Fill(float(NH))
@@ -92,27 +105,29 @@ with open('log'+suffix+'.txt') as f:
             PT = line.split()[10].split('=')[1]
             h_SEEDPT.Fill(float(PT))
 
-h_SM3.Draw()
-h_MX3.Draw()
-h_SM6.Draw()
-h_MX6.Draw()
-h_SM9.Draw()
-h_MX9.Draw()
-h_MXNH.Draw()
-h_MXC2.Draw()
-h_MXPT.Draw()
-h_MXPTm.Draw()
-h_MXPTr.Draw()
-h_SIMNH.Draw()
-h_SIMC2.Draw()
-h_SIMPT.Draw()
-h_SIMPHI.Draw()
-h_SIMETA.Draw()
-h_SEEDNH.Draw()
-h_SEEDC2.Draw()
-h_SEEDPOSETA.Draw()
-h_SEEDPOSPHI.Draw()
-h_SEEDPOSR.Draw()
-h_SEEDPT.Draw()
+#h_SM3.Draw()
+#h_MX3.Draw()
+#h_SM6.Draw()
+#h_MX6.Draw()
+#h_SM9.Draw()
+#h_MX9.Draw()
+#h_MXNH.Draw()
+#h_NHDS.Draw()
+#h_NHDR.Draw()
+#h_MXC2.Draw()
+#h_MXPT.Draw()
+#h_MXPTm.Draw()
+#h_MXPTr.Draw()
+#h_SIMNH.Draw()
+#h_SIMC2.Draw()
+#h_SIMPT.Draw()
+#h_SIMPHI.Draw()
+#h_SIMETA.Draw()
+#h_SEEDNH.Draw()
+#h_SEEDC2.Draw()
+#h_SEEDPOSETA.Draw()
+#h_SEEDPOSPHI.Draw()
+#h_SEEDPOSR.Draw()
+#h_SEEDPT.Draw()
 g.Write()
 g.Close()

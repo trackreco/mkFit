@@ -25,19 +25,28 @@ namespace Config
   bool  clonerUseSingleThread  = false;
   int   finderReportBestOutOfN = 1;
 
+  int   nlayers_per_seed = 3; // default is 3 for barrel seeding --> will need a new variable once we move to endcap seeding
   int   numSeedsPerTask = 32;
+  
+  // number of hits per task for finding seeds
+  int   numHitsPerTask = 32;
 
   bool  useCMSGeom = false;
   bool  readCmsswSeeds = false;
+
+  bool  findSeeds   = false;
+  bool  endcapTest = false;
 
   bool  cf_seeding  = false;
   bool  cf_fitting  = false;
 
   bool  super_debug = false;
+  bool  normal_val  = false;
+  bool  full_val    = false;
 
   void RecalculateDependentConstants()
   {
-    maxCandsPerEtaBin = std::max(100, maxCandsPerSeed * nTracks / nEtaPart);
+    maxCandsPerEtaBin = std::max(100, maxCandsPerSeed * (nTracks+100) / nEtaPart);
     maxHitsPerBunch   = std::max(100, nTracks * 12 / 10 / nEtaPart) + maxHitsConsidered;
   }
 }

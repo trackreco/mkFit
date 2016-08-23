@@ -11,8 +11,6 @@ public:
 
   virtual void resetValidationMaps() {}
   virtual void resetDebugVectors() {}
-  virtual void makeSimTkToRecoTksMaps(Event&) {}
-  virtual void makeSeedTkToRecoTkMaps(Event&) {}
 
   virtual void collectSimTkTSVecMapInfo(int, const TSVec&) {}
   virtual void collectSeedTkCFMapInfo(int, const TrackState&) {}
@@ -26,9 +24,12 @@ public:
   virtual void collectChi2LayerVecInfo(int, float) {} // exclusively for debugtree
   virtual void collectUpTSLayerVecInfo(int, const TrackState&) {} // exclusively for debugtree
 
+  virtual void setTrackExtras(Event& ev) {}
+  virtual void makeSimTkToRecoTksMaps(Event&) {}
+  virtual void makeSeedTkToRecoTkMaps(Event&) {}
+
   virtual void fillSeedInfoTree(const TripletIdxVec&, const Event&) {}
   virtual void fillSeedTree(const TripletIdxVec&, const TripletIdxVec&, const Event&) {}
-
   virtual void fillDebugTree(const Event&) {}
   virtual void fillSegmentTree(const BinInfoMap&, int) {}
   virtual void fillBranchTree(int) {}
@@ -36,7 +37,8 @@ public:
   virtual void fillFakeRateTree(const Event&) {}
   virtual void fillGeometryTree(const Event&) {}
   virtual void fillConformalTree(const Event&) {}
-  virtual void fillConfigTree(const std::vector<double> &) {}
+  virtual void fillConfigTree() {}
+  virtual void fillTimeTree(const std::vector<double> &) {}
 
   virtual void saveTTrees() {}
 };

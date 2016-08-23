@@ -121,9 +121,9 @@ class FitterCU {
   GPlexLL d_errorProp;  // LL
 
   GPlexHV *d_msPar_arr;  // completely on the GPU
-  GPlexHV d_msPar[MAX_HITS];  // on the CPU, with arrays on the GPU
+  GPlexHV d_msPar[Config::nLayers];  // on the CPU, with arrays on the GPU
   GPlexHS *d_msErr_arr;
-  GPlexHS d_msErr[MAX_HITS];
+  GPlexHS d_msErr[Config::nLayers];
   
   GPlexQI d_XHitPos;  // QI : 1D arrary following itracks
   GPlexQI d_XHitSize;  // QI : " "
@@ -131,7 +131,7 @@ class FitterCU {
 
   GPlexQF d_outChi2;
   GPlexQI *d_HitsIdx_arr;
-  GPlexQI d_HitsIdx[MAX_HITS];
+  GPlexQI d_HitsIdx[Config::nLayers];
   GPlexQF d_Chi2;
   GPlexQI d_Label;
 

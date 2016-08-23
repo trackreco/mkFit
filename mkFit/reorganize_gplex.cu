@@ -13,6 +13,13 @@ __device__ float *get_errArray(Hit &hit) {
     return hit.errArrayCU();
 }
 
+__device__ float *get_posArray(Track &track) {
+    return track.posArrayCU();
+}
+__device__ float *get_errArray(Track &track) {
+    return track.errArrayCU();
+}
+
 template <typename GPlexObj>
 __device__ void SlurpIn_fn(GPlexObj to, // float *fArray, int stride, int kSize, 
                            const char *arr, const int *vi, const int N) {

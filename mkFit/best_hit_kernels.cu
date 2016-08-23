@@ -147,7 +147,7 @@ __device__ void bestHit_fn(
 
   /*int itrack = threadIdx.x + blockDim.x*blockIdx.x;*/
   int bestHit_reg = -1;
-  float minChi2_reg = 15.f;
+  float minChi2_reg = Config::chi2Cut;
 
   if (itrack < N)
     HitsIdx[itrack] = 0;
@@ -222,7 +222,8 @@ __global__ void findBestHit_kernel(LayerOfHitsCU *layers,
                                    GPlexQF outChi2,
                                    GPlexQF Chi2, GPlexQI *HitsIdx_arr,
                                    GPlexQI inChg, GPlexQI Label, GeometryCU geom, 
-                                   int *maxSize, int gplex_size) {
+                                   int *maxSize, int gplex_size,
+                                   const int nlayers_per_seed) {
   for (int ebin = 0; ebin != Config::nEtaBin; ++ebin) {
     for (int beg = 0; beg < etabin_of_cands[ebin].m_fill_index; beg += gplex_size) {
       int end = min(beg + gplex_size, etabin_of_cands[ebin].m_fill_index);
@@ -236,7 +237,7 @@ __global__ void findBestHit_kernel(LayerOfHitsCU *layers,
         InputTracksCU_fn(etabin_of_cands[ebin].m_candidates, Err_iP, Par_iP,
             inChg, Chi2, Label, HitsIdx_arr, beg, end, tidx, N);
 
-        for (int ilay = Config::nlayers_per_seed; ilay < Config::nLayers; ++ilay)
+        for (int ilay = nlayers_per_seed; ilay < Config::nLayers; ++ilay)
         {
           int hit_idx = ilay;
           GPlexHS &msErr = msErr_arr[hit_idx];
@@ -299,5 +300,6 @@ void findBestHit_wrapper(cudaStream_t &stream,
   findBestHit_kernel<BLOCK_SIZE_X> <<< grid, block, 0, stream >>>
     (layers, event_of_cands_cu.m_etabins_of_candidates,
      XHitSize, XHitArr, Err_iP, Par_iP, msErr, msPar,
-     Err_iC, Par_iC, outChi2, Chi2, HitsIdx, inChg, Label, geom, maxSize, N);
+     Err_iC, Par_iC, outChi2, Chi2, HitsIdx, inChg, Label, geom, maxSize, N,
+     Config::nlayers_per_seed);
 }
