@@ -37,7 +37,7 @@ BuilderCU::~BuilderCU() {
 void BuilderCU::setUp(const EventOfHits& event_of_hits, const Event* event,
                       const EventOfCandidates& event_of_cands)
 {
-  int gplex_size = 1 << 14;
+  int gplex_size = 1 << 15;
   cuFitter = new FitterCU<float> (gplex_size);
   cuFitter->allocateDevice();
   cuFitter->allocate_extra_addBestHit();

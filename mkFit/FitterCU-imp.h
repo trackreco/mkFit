@@ -2,6 +2,7 @@
 #include "Config.h"
 #include "GeometryCU.h"
 #include "reorganize_gplex.h"
+#include "fittracks_kernels.h"
 
 template <typename T>
 void FitterCU<T>::setNumberTracks(const idx_t Ntracks) {
@@ -94,7 +95,6 @@ void FitterCU<T>::kalmanUpdate_standalone(
 template <typename T>
 void FitterCU<T>::propagationMerged(const int hit_idx) {
   propagation_wrapper(stream, d_msPar[hit_idx], d_par_iC, d_inChg,
-                      //d_par_iP, d_Err_iC, d_Err_iP, N); // TODO: Check outErr/errorProp
                       d_par_iP, d_errorProp, d_Err_iP, N);
 }
 
@@ -238,15 +238,18 @@ void FitterCU<T>::FitTracks(MPlexQI &Chg, MPlexLV& par_iC, MPlexLS& err_iC,
     d_msPar[hi].copyAsyncFromHost(stream, msPar[hi]);
     d_msErr[hi].copyAsyncFromHost(stream, msErr[hi]);
 
-    propagationMerged(hi);
-    kalmanUpdateMerged(hi);
+    //propagationMerged(hi);
+    //kalmanUpdateMerged(hi);
+    fittracks_wrapper(stream, d_Err_iP, d_par_iP, d_msErr, d_msPar,
+                      d_Err_iC, d_par_iC, d_errorProp, d_inChg,
+                      hi, N);
   }
   cudaEventRecord(stop, 0);
   cudaEventSynchronize(stop);
 
   cudaEventElapsedTime(&etime, start, stop);
-  std::cerr << "CUDA etime: " << etime << " ms.\n";
-  std::cerr << "Total reorg: " << total_reorg << " ms.\n";
+  //std::cerr << "CUDA etime: " << etime << " ms.\n";
+  //std::cerr << "Total reorg: " << total_reorg << " ms.\n";
 
   d_par_iC.copyAsyncToHost(stream, par_iC);
   d_Err_iC.copyAsyncToHost(stream, err_iC);

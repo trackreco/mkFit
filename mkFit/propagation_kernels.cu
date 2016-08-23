@@ -454,44 +454,53 @@ __device__ void similarity_fn(GPlexRegLL &a, GPlexLS &b, int N, int n) {
   }
 }
 
-// PropagationMPlex.cc:propagateHelixToRMPlex, first version with 6 arguments 
-__global__ void propagation_kernel(
-    GPlexHV msPar,
-    GPlexLV inPar, GPlexQI inChg,
-    GPlexLV outPar, GPlexLL errorProp,
-    GPlexLS outErr, int N) {
 
-  int grid_width = blockDim.x * gridDim.x;
-  int n = threadIdx.x + blockIdx.x * blockDim.x;
+// PropagationMPlex.cc:propagateHelixToRMPlex, first version with 6 arguments 
+__device__ void propagation_fn(
+    GPlexHV &msPar,
+    GPlexLV &inPar, GPlexQI &inChg,
+    GPlexLV &outPar, GPlexLL &errorProp,
+    GPlexLS &outErr, int n, int N) {
+
   GPlexRegQF msRad_reg;
   // Using registers instead of shared memory is ~ 30% faster.
   GPlexRegLL errorProp_reg;
   // If there is more matrices than max_blocks_x * BLOCK_SIZE_X 
-  for (int z = 0; z < (N-1)/grid_width  +1; z++) {
-    n += z*grid_width;
-    if (n < N) {
+  if (n < N) {
 #if 0
-      computeMsRad_fn(msPar, stride_msPar, &msRad_reg, N, n);
-      if (Config::doIterative) {
-        helixAtRFromIterative_fn(inPar, inPar_stride,
-            inChg, outPar, outPar_stride, msRad_reg, 
-            errorProp_reg, N, n);
-      } else {
-        // TODO: not ported for now. Assuming Config::doIterative
-        // helixAtRFromIntersection(inPar, inChg, outPar, msRad, errorProp);
-      }
-      similarity_fn(errorProp_reg, outErr, outErr_stride, N, n);
+    computeMsRad_fn(msPar, stride_msPar, &msRad_reg, N, n);
+    if (Config::doIterative) {
+      helixAtRFromIterative_fn(inPar, inPar_stride,
+          inChg, outPar, outPar_stride, msRad_reg, 
+          errorProp_reg, N, n);
+    } else {
+      // TODO: not ported for now. Assuming Config::doIterative
+      // helixAtRFromIntersection(inPar, inChg, outPar, msRad, errorProp);
+    }
+    similarity_fn(errorProp_reg, outErr, outErr_stride, N, n);
 #endif
-      computeMsRad_fn(msPar, msRad_reg, N, n);
+    computeMsRad_fn(msPar, msRad_reg, N, n);
 #ifdef CCSCOORD
-      // FIXME: port me
-      // helixAtRFromIterativePolar(inPar, inChg, outPar, msRad, errorProp);
     helixAtRFromIterativePolar_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
 #else
-      helixAtRFromIterative_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
+    helixAtRFromIterative_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
 #endif
-      similarity_fn(errorProp_reg, outErr, N, n);
-    }
+    similarity_fn(errorProp_reg, outErr, N, n);
+  }
+}
+
+
+__global__ void propagation_kernel(
+    GPlexHV msPar,
+    GPlexLV inPar, GPlexQI inChg,
+    GPlexLV outPar, GPlexLL errorProp,
+    GPlexLS outErr, int N)
+{
+  int grid_width = blockDim.x * gridDim.x;
+  int n = threadIdx.x + blockIdx.x * blockDim.x;
+  for (int z = 0; z < (N-1)/grid_width  +1; z++) {
+    n += z*grid_width;
+    propagation_fn(msPar, inPar, inChg, outPar, errorProp, outErr, n, N);
   }
 }
 
@@ -539,8 +548,6 @@ __device__ void propagationForBuilding_fn(
     /*if (n == 0) printf("gpu r = %f\n", radius);*/
 
 #ifdef CCSCOORD
-    // TODO: port me
-    //helixAtRFromIterativePolar(inPar, inChg, outPar, msRad, errorProp, N_proc);
     helixAtRFromIterativePolar_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
 #else
     helixAtRFromIterative_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);

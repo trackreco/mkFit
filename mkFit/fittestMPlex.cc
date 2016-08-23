@@ -296,7 +296,7 @@ double runFittingTestPlexGPU(FitterCU<float> &cuFitter,
 
       double time_output = dtime();
       mkfp->OutputFittedTracks(rectracks, itrack, end);
-      std::cerr << "Output time: " << (dtime() - time_output)*1e3 << std::endl;
+      //std::cerr << "Output time: " << (dtime() - time_output)*1e3 << std::endl;
    }
 
    time = dtime() - time;
