@@ -48,6 +48,7 @@ class LayerOfHitsCU {
 
   void copyLayerOfHitsFromCPU(const LayerOfHits &layer,
                               const cudaStream_t &stream=0);
+  void copyFromCPU(const HitVec hits, const cudaStream_t &stream=0);
 
 #ifdef __CUDACC__
   __device__
@@ -90,8 +91,11 @@ public:
   EventOfHitsCU() : m_n_layers{} {};
 
   void allocGPU(const EventOfHits &event_of_hits);
+  void allocGPU(const std::vector<HitVec> &layerHits);
   void deallocGPU();
   void copyFromCPU(const EventOfHits& event_of_hits,
+                   const cudaStream_t &stream=0);
+  void copyFromCPU(const std::vector<HitVec> &layerHits,
                    const cudaStream_t &stream=0);
 };
 

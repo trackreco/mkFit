@@ -6,11 +6,6 @@
 
 #include "MkFitter.h"
 
-#ifdef USE_CUDA
-#include "FitterCU.h"
-#include "GeometryCU.h"
-#endif
-
 #include "OmpThreadData.h"
 
 //#define DEBUG
@@ -108,17 +103,10 @@ MkBuilder::MkBuilder() :
   m_event_of_hits(Config::nLayers)
 {
   m_mkfp_arr.resize(Config::numThreadsFinder);
-#ifdef USE_CUDA
-  m_cuFitter_arr.resize(Config::numThreadsFinder);
-#endif
 
   for (int i = 0; i < Config::numThreadsFinder; ++i)
   {
     m_mkfp_arr[i] = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(0);
-#ifdef USE_CUDA
-    m_cuFitter_arr[i] = new FitterCU<float>(NN);
-    m_cuFitter_arr[i]->allocateDevice();
-#endif
   }
 }
 
@@ -127,9 +115,6 @@ MkBuilder::~MkBuilder()
    for (int i = 0; i < Config::numThreadsFinder; ++i)
    {
      _mm_free(m_mkfp_arr[i]);
-#ifdef USE_CUDA
-     m_cuFitter_arr[i]->freeDevice();
-#endif
    }
 }
 
@@ -664,68 +649,6 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
     }
   }); //end of parallel section over seeds
 }
-
-#ifdef USE_CUDA
-void MkBuilder::FindTracksBestHit_GPU(EventOfCandidates& event_of_cands)
-{
-  EventOfHitsCU event_of_hits_cu;
-  event_of_hits_cu.allocGPU(m_event_of_hits);
-  event_of_hits_cu.copyFromCPU(m_event_of_hits);
-
-  LayerOfHits& l = m_event_of_hits.m_layers_of_hits[Config::nlayers_per_seed];
-
-  MkFitter* mkfp = m_mkfp_arr[0];
-
-  int gplex_size = 1 << 12;
-  FitterCU<float> cuFitter(gplex_size);
-  cuFitter.allocateDevice();
-  cuFitter.allocate_extra_addBestHit();
-  cuFitter.createStream();
-  cuFitter.setNumberTracks(gplex_size);
-
-  std::vector<float> radii (Config::nLayers);
-  for (int ilay = Config::nlayers_per_seed; ilay < Config::nLayers; ++ilay) {
-    radii[ilay] = m_event->geom_.Radius(ilay);
-  }
-  GeometryCU geom_cu;
-  geom_cu.allocate();
-  geom_cu.getRadiiFromCPU(&radii[0]);
-
-  EventOfCandidatesCU event_of_cands_cu;
-  event_of_cands_cu.allocGPU(event_of_cands);
-  event_of_cands_cu.copyFromCPU(event_of_cands);
-
-  //for (int ebin = 0; ebin != Config::nEtaBin; ++ebin) {
-    //EtaBinOfCandidates& etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin];
-
-    //EtaBinOfCandidatesCU &etabin_of_cand_cu = event_of_cands_cu.m_etabins_of_candidates_alloc[ebin];
-
-    // FIXME: Do we actually need this loop, if FitterCU is as wide as etabin
-    //for (int itrack = 0; itrack < etabin_of_candidates.m_fill_index; itrack += NN) {
-      //int end = std::min(itrack + NN, etabin_of_candidates.m_fill_index);
-
-      //cuFitter.setNumberTracks(end-itrack);
-      //cuFitter.InputTracksAndHitIdx(etabin_of_cand_cu, itrack, end, true);
-
-      cuFitter.addBestHit(event_of_hits_cu, geom_cu, event_of_cands_cu);
-
-
-      //cuFitter.OutputTracksAndHitIdx(etabin_of_cand_cu, itrack, end, true);
-    //}
-  //}
-
-  event_of_cands_cu.copyToCPU(event_of_cands);
-  event_of_cands_cu.deallocGPU();
-
-  geom_cu.deallocate();
-  cuFitter.destroyStream();
-  cuFitter.free_extra_addBestHit();
-  cuFitter.freeDevice();
-  event_of_hits_cu.deallocGPU();
-
-  mkfp->SetNhits(Config::nLayers);
-}
-#endif
 
 
 //------------------------------------------------------------------------------

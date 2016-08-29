@@ -45,6 +45,7 @@ class FitterCU {
   void destroyStream();
   cudaStream_t& get_stream() { return stream; }
 
+  int get_Nalloc() const { return Nalloc; }
   void setNumberTracks(const idx_t Ntracks);
 
   void propagationMerged(const int hit_idx);
@@ -94,10 +95,9 @@ class FitterCU {
       MPlexLS& Err_iP, MPlexLV& Par_iP);
 
   // fitting higher order methods
-  void FitTracks(MPlexQI &Chg, MPlexLV& par_iC, MPlexLS& err_iC,
-                 MPlexHV* msPar, MPlexHS* msErr, int Nhits,
-                 std::vector<Track> &tracks, int beg, int end,
-                 std::vector<HitVec> &layerHits);
+  void FitTracks(Track *tracks_cu, int num_tracks,
+                 EventOfHitsCU &events_of_hits_cu,
+                 int NHits);
   void InputTracksAndHitIdx(const EtaBinOfCandidatesCU &etaBin,
                    const int beg, const int end, const bool inputProp);
   void OutputTracksAndHitIdx(EtaBinOfCandidatesCU &etaBin,

@@ -457,16 +457,25 @@ __device__ void similarity_fn(GPlexRegLL &a, GPlexLS &b, int N, int n) {
 
 // PropagationMPlex.cc:propagateHelixToRMPlex, first version with 6 arguments 
 __device__ void propagation_fn(
-    GPlexHV &msPar,
-    GPlexLV &inPar, GPlexQI &inChg,
-    GPlexLV &outPar, GPlexLL &errorProp,
-    GPlexLS &outErr, int n, int N) {
+    GPlexLS &inErr, GPlexLV &inPar, 
+    GPlexQI &inChg, GPlexHV &msPar,
+    GPlexLS &outErr, GPlexLV &outPar,
+    int n, int N) {
 
   GPlexRegQF msRad_reg;
   // Using registers instead of shared memory is ~ 30% faster.
   GPlexRegLL errorProp_reg;
   // If there is more matrices than max_blocks_x * BLOCK_SIZE_X 
   if (n < N) {
+    for (int i = 0; i < inErr.kSize; ++i) {
+      outErr[n + i*outErr.stride] = inErr[n + i*inErr.stride];
+    }
+    for (int i = 0; i < inPar.kSize; ++i) {
+      outPar[n + i*outPar.stride] = inPar[n + i*inPar.stride];
+    }
+    for (int i = 0; i < 36; ++i) {
+      errorProp_reg[i] = 0.0;
+    }
 #if 0
     computeMsRad_fn(msPar, stride_msPar, &msRad_reg, N, n);
     if (Config::doIterative) {
@@ -485,37 +494,42 @@ __device__ void propagation_fn(
 #else
     helixAtRFromIterative_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
 #endif
-    similarity_fn(errorProp_reg, outErr, N, n);
+    /*similarity_fn(errorProp_reg, outErr, N, n);*/
+    GPlexRegLL temp;
+    MultHelixProp_fn      (errorProp_reg, outErr, temp, n);
+    MultHelixPropTransp_fn(errorProp_reg, temp,   outErr, n);
   }
 }
 
 
 __global__ void propagation_kernel(
+    GPlexLS inErr,
     GPlexHV msPar,
     GPlexLV inPar, GPlexQI inChg,
-    GPlexLV outPar, GPlexLL errorProp,
+    GPlexLV outPar,
     GPlexLS outErr, int N)
 {
   int grid_width = blockDim.x * gridDim.x;
   int n = threadIdx.x + blockIdx.x * blockDim.x;
   for (int z = 0; z < (N-1)/grid_width  +1; z++) {
     n += z*grid_width;
-    propagation_fn(msPar, inPar, inChg, outPar, errorProp, outErr, n, N);
+    propagation_fn(inErr, inPar, inChg, msPar, outErr, outPar, n, N);
   }
 }
 
 
 void propagation_wrapper(const cudaStream_t& stream,
-    GPlexHV& msPar,
+    GPlexHV& msPar, GPlexLS& inErr,
     GPlexLV& inPar, GPlexQI& inChg,
-    GPlexLV& outPar, GPlexLL& errorProp,
+    GPlexLV& outPar,
     GPlexLS& outErr, 
     const int N) {
   int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
                        max_blocks_x);
   dim3 grid(gridx, 1, 1);
   dim3 block(BLOCK_SIZE_X, 1, 1);
-  propagation_kernel <<<grid, block, 0, stream >>>(msPar, inPar, inChg, outPar, errorProp, outErr, N);
+  propagation_kernel <<<grid, block, 0, stream >>>
+    (inErr, msPar, inPar, inChg, outPar, outErr, N);
 }
 
 

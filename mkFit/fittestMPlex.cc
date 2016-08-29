@@ -203,6 +203,7 @@ void runAllEventsFittingTestPlexGPU(std::vector<Event>& events)
     cuFitter.freeDevice();
   }
 #endif
+  separate_first_call_for_meaningful_profiling_numbers();
 
   // Reorgnanization (copyIn) can eventually be multithreaded.
   omp_set_nested(1);
@@ -216,8 +217,10 @@ void runAllEventsFittingTestPlexGPU(std::vector<Event>& events)
 
   // FitterCU is declared here to share allocations and deallocations
   // between the multiple events processed by a single thread.
-  FitterCU<float> cuFitter(NN);
+  int gplex_size = 10000;
+  FitterCU<float> cuFitter(gplex_size);
   cuFitter.allocateDevice();
+  cuFitter.allocate_extra_addBestHit();
 
     for (int evt = thr_idx+1; evt <= Config::nEvents; evt+= numThreadsEvents) {
       int idx = thr_idx;
@@ -238,13 +241,14 @@ void runAllEventsFittingTestPlexGPU(std::vector<Event>& events)
       // Validation crashes for multiple threads.
       // It is something in relation to ROOT. Not sure what. 
       if (omp_get_num_threads() <= 1) {
-        if (g_run_fit_std) {
+        //if (g_run_fit_std) {
           std::string tree_name = "validation-plex-" + std::to_string(evt) + ".root";
           make_validation_tree(tree_name.c_str(), ev.simTracks_, plex_tracks_ev);
-        }
+        //}
       }
 #endif
     }
+    cuFitter.free_extra_addBestHit();
     cuFitter.freeDevice();
   }
   std::cerr << "###### [Fitting] Total GPU time: " << dtime() - total_gpu_time << " ######\n";
@@ -254,55 +258,33 @@ void runAllEventsFittingTestPlexGPU(std::vector<Event>& events)
 double runFittingTestPlexGPU(FitterCU<float> &cuFitter, 
     Event& ev, std::vector<Track>& rectracks)
 {
+  std::vector<Track>& simtracks = ev.simTracks_;
 
-   std::vector<Track>& simtracks = ev.simTracks_;
+  cuFitter.createStream();
 
-   const int Nhits = Config::nLayers;
-   // XXX What if there's a missing / double layer?
-   // Eventually, should sort track vector by number of hits!
-   // And pass the number in on each "setup" call.
-   // Reserves should be made for maximum possible number (but this is just
-   // measurments errors, params).
+  Track *tracks_cu;
+  cudaMalloc((void**)&tracks_cu, simtracks.size()*sizeof(Track));
+  cudaMemcpyAsync(tracks_cu, &simtracks[0], simtracks.size()*sizeof(Track),
+                  cudaMemcpyHostToDevice, cuFitter.get_stream());
 
-   // NOTE: MkFitter *MUST* be on heap, not on stack!
-   // Standard operator new screws up alignment of ALL MPlex memebrs of MkFitter,
-   // even if one adds attr(aligned(64)) thingy to every possible place.
+  EventOfHitsCU events_of_hits_cu;
+  events_of_hits_cu.allocGPU(ev.layerHits_);
+  events_of_hits_cu.copyFromCPU(ev.layerHits_, cuFitter.get_stream());
 
-   // MkFitter *mkfp = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Nhits);
+  double time = dtime();
 
-   MkFitter* mkfp_arr = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Nhits);
+  cuFitter.FitTracks(tracks_cu, simtracks.size(), events_of_hits_cu, Config::nLayers);
 
-   int theEnd = simtracks.size();
-   double time = dtime();
-   int Nstride = NN;
+  cudaMemcpy(&rectracks[0], tracks_cu, simtracks.size()*sizeof(Track), cudaMemcpyDeviceToHost);
 
-   for (int itrack = 0; itrack < theEnd; itrack += Nstride)
-   {
-      int end = std::min(itrack + Nstride, theEnd);
+  time = dtime() - time;
 
-      MkFitter *mkfp = mkfp_arr;
 
-      //double time_input = dtime();
-      mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
-      //std::cerr << "Input time: " << (dtime() - time_input)*1e3 << std::endl;
+  events_of_hits_cu.deallocGPU();
+  cudaFree(tracks_cu);
 
-      cuFitter.FitTracks(mkfp->Chg,
-                         mkfp->GetPar0(),
-                         mkfp->GetErr0(),
-                         mkfp->msPar,
-                         mkfp->msErr,
-                         Nhits,
-                         simtracks, itrack, end, ev.layerHits_);
+  cuFitter.destroyStream();
 
-      double time_output = dtime();
-      mkfp->OutputFittedTracks(rectracks, itrack, end);
-      //std::cerr << "Output time: " << (dtime() - time_output)*1e3 << std::endl;
-   }
-
-   time = dtime() - time;
-
-   _mm_free(mkfp_arr);
-
-   return time;
+  return time;
 }
 #endif

@@ -21,15 +21,6 @@ BuilderCU::BuilderCU(const EventOfHits& event_of_hits, const Event* event,
 
 
 BuilderCU::~BuilderCU() {
-  /*event_of_cands_cu.deallocGPU();*/
-
-  /*geom_cu.deallocate();*/
-  /*event_of_hits_cu.deallocGPU();*/
-
-  /*cuFitter->destroyStream();*/
-  /*cuFitter->free_extra_addBestHit();*/
-  /*cuFitter->freeDevice();*/
-  /*delete cuFitter;*/
   tearDown();
 }
 
@@ -37,7 +28,7 @@ BuilderCU::~BuilderCU() {
 void BuilderCU::setUp(const EventOfHits& event_of_hits, const Event* event,
                       const EventOfCandidates& event_of_cands)
 {
-  int gplex_size = 1 << 15;
+  int gplex_size = 1 << 14;
   cuFitter = new FitterCU<float> (gplex_size);
   cuFitter->allocateDevice();
   cuFitter->allocate_extra_addBestHit();
@@ -79,7 +70,7 @@ void BuilderCU::FindTracksBestHit(EventOfCandidates& event_of_cands)
 
   event_of_cands_cu.copyToCPU(event_of_cands, cuFitter->get_stream());
   cudaStreamSynchronize(cuFitter->get_stream());
-  cudaCheckError();
+  //cudaCheckError();
 
   /*size_t free_mem, total_mem;*/
   /*cudaMemGetInfo(&free_mem, &total_mem);*/

@@ -3,12 +3,6 @@
 
 #include <vector>
 
-#ifdef USE_CUDA
-#include "HitStructures.h"
-#include "FitterCU.h"
-#endif
-
-
 //------------------------------------------------------------------------------
 
 #include "MkFitter.h"
@@ -52,9 +46,6 @@ protected:
   EventOfHits    m_event_of_hits;
 
   std::vector<MkFitter*> m_mkfp_arr;
-#ifdef USE_CUDA
-  std::vector<FitterCU<float>*> m_cuFitter_arr;
-#endif
 
   int m_cnt=0, m_cnt1=0, m_cnt2=0, m_cnt_8=0, m_cnt1_8=0, m_cnt2_8=0, m_cnt_nomc=0;
 
@@ -110,7 +101,6 @@ public:
   virtual void FindTracksCloneEngine();
   virtual void FindTracksCloneEngineTbb();
 #ifdef USE_CUDA
-  void FindTracksBestHit_GPU(EventOfCandidates& event_of_cands);
   const Event* get_event() const { return m_event; }
   const EventOfHits& get_event_of_hits() const { return m_event_of_hits; }
 #endif

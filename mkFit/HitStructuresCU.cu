@@ -41,6 +41,12 @@ void LayerOfHitsCU::copyLayerOfHitsFromCPU(const LayerOfHits &layer,
   }
 }
 
+void LayerOfHitsCU::copyFromCPU(const HitVec hits, const cudaStream_t &stream)
+{
+  cudaMemcpyAsync(m_hits, &hits[0], sizeof(Hit)*hits.size(),
+                  cudaMemcpyHostToDevice, stream);
+}
+
 void EventOfHitsCU::allocGPU(const EventOfHits &event_of_hits) {
   m_n_layers = event_of_hits.m_n_layers;
   // Allocate GPU array. 
@@ -56,6 +62,25 @@ void EventOfHitsCU::allocGPU(const EventOfHits &event_of_hits) {
     m_layers_of_hits_alloc[i].alloc_phi_bin_infos(
         event_of_hits.m_layers_of_hits[i].m_nz, 
         Config::m_nphi);
+  }
+  /*cudaCheckError();*/
+}
+
+void EventOfHitsCU::allocGPU(const std::vector<HitVec> &layerHits)
+{
+  m_n_layers = layerHits.size();
+  // Allocate GPU array. 
+  // Members's address  of array's elements are in the GPU space
+  cudaMalloc((void**)&m_layers_of_hits, m_n_layers*sizeof(LayerOfHitsCU));
+  cudaCheckError();
+  // Allocate CPU array. 
+  // Members's address  of array's elements are in the CPU space
+  // This allows to call allocate for each array's element.
+  m_layers_of_hits_alloc = new LayerOfHitsCU[m_n_layers];
+  for (int i = 0; i < m_n_layers; ++i) {
+    m_layers_of_hits_alloc[i].alloc_hits(layerHits[i].size());
+    // no phi_bin_infos -- free-d later
+    m_layers_of_hits_alloc[i].alloc_phi_bin_infos(1, 1);
   }
   /*cudaCheckError();*/
 }
@@ -83,6 +108,18 @@ void EventOfHitsCU::copyFromCPU(const EventOfHits& event_of_hits,
                   cudaMemcpyHostToDevice, stream);
   /*cudaCheckError();*/
 }
+
+
+void EventOfHitsCU::copyFromCPU(const std::vector<HitVec> &layerHits,
+                                const cudaStream_t &stream) {
+  for (int i = 0; i < layerHits.size(); i++) {
+    m_layers_of_hits_alloc[i].copyFromCPU(layerHits[i]);
+  }
+  cudaMemcpyAsync(m_layers_of_hits, m_layers_of_hits_alloc, 
+                  m_n_layers*sizeof(LayerOfHitsCU), 
+                  cudaMemcpyHostToDevice, stream);
+}
+
 
 // ============================================================================
 

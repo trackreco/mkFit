@@ -188,7 +188,11 @@ void test_standard()
 
   EventTmp ev_tmp;
 
-#if 0 //USE_CUDA
+#if USE_CUDA
+  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
+  //tbb::task_scheduler_init tbb_init(tbb::task_scheduler_init::automatic);
+  
+  //omp_set_num_threads(Config::numThreadsFinder);
   // fittest time. Sum of all events. In case of multiple events
   // being run simultaneously in different streams this time will
   // be larger than the elapsed time.
@@ -219,21 +223,10 @@ void test_standard()
 
   if (g_run_fit_std) runAllEventsFittingTestPlexGPU(events);
 
-  for (int evt = 1; evt <= Config::nEvents; ++evt)
-  {
-    printf("\n");
-    printf("Processing event %d\n", evt);
-
-    Event& ev = events[evt-1];
-
-    //plex_tracks.resize(ev.simTracks_.size());
-    omp_set_num_threads(Config::numThreadsFinder);
-
-    if (g_run_build_bh) {
-      double my_time = runBuildingTestPlexBestHit(ev);
-      std::cout << "BestHit -- GPU: " << my_time << std::endl;
-    }
-    std::exit(0);
+  if (g_run_build_all || g_run_build_bh) {
+    double total_best_hit_time = 0.;
+    total_best_hit_time = runAllBuildingTestPlexBestHitGPU(events);
+    std::cout << "Total best hit time (GPU): " << total_best_hit_time << std::endl;
   }
 #else
   // MT: task_scheduler_init::automatic doesn't really work (segv!) + we don't

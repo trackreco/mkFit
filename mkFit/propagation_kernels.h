@@ -3,16 +3,10 @@
 
 #include "GPlex.h"
 
-__device__ void propagation_fn(
-    GPlexHV &msPar,
-    GPlexLV &inPar, GPlexQI &inChg,
-    GPlexLV &outPar, GPlexLL &errorProp,
-    GPlexLS &outErr, int n, int N);
-
 void propagation_wrapper(const cudaStream_t& stream,
-    GPlexHV& msPar,
+    GPlexHV& msPar, GPlexLS& inErr,
     GPlexLV& inPar, GPlexQI& inChg,
-    GPlexLV& outPar, GPlexLL& errorProp,
+    GPlexLV& outPar,
     GPlexLS& outErr, 
     const int N);
 
@@ -23,10 +17,10 @@ void propagationForBuilding_wrapper(const cudaStream_t& stream,
     const int N);
 
 __device__ void propagation_fn(
-    GPlexHV &msPar,
-    GPlexLV &inPar, GPlexQI &inChg,
-    GPlexLV &outPar, GPlexLL &errorProp,
-    GPlexLS &outErr, int n, int N);
+    GPlexLS &inErr, GPlexLV &inPar, 
+    GPlexQI &inChg, GPlexHV &msPar,
+    GPlexLS &outErr, GPlexLV &outPar,
+    int n, int N);
 
 __device__ void propagationForBuilding_fn(
     const GPlexLS &inErr, const GPlexLV &inPar,
