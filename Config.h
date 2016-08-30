@@ -201,7 +201,7 @@ namespace Config
 #ifdef USE_MATRIPLEX
 
   #ifndef MPT_SIZE
-    #ifdef __MIC__
+    #if defined(__MIC__) || defined(__AVX512F__)
       #define MPT_SIZE 16
     #elif defined USE_CUDA
       #define MPT_SIZE 10000

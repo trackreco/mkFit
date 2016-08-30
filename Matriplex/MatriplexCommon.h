@@ -22,7 +22,7 @@
 
   #endif
 
-  #if defined(__MIC__)
+  #if defined(__MIC__) || defined(__AVX512F__)
 
     typedef __m512 IntrVec_t;
     #define MPLEX_INTRINSICS_WIDTH_BYTES  64

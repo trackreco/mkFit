@@ -21,9 +21,24 @@ const int DIM =  3;
 const int DOM =  6;
 
 #ifdef MPLEX_INTRINSICS
+# if defined(__MIC__) || defined(__AVX512F__)
+#   warning "MPLEX_INTRINSICS CMP_EPS = 2e-7 --> 3e-7"
+const float CMP_EPS = 3e-7;
+# elif defined(__AVX__)
+#   warning "MPLEX_INTRINSICS CMP_EPS = 2e-7 --> 5e-7"
+const float CMP_EPS = 5e-7;
+# else
+#   warning "MPLEX_INTRINSICS CMP_EPS = 2e-7"
 const float CMP_EPS = 2e-7;
+# endif
 #else
+# if defined(__MIC__) || defined(__AVX512F__)
+#   warning "NO MPLEX_INTRINSICS CMP_EPS = 4e-7"
 const float CMP_EPS = 4e-7;
+# else
+#   warning "NO MPLEX_INTRINSICS CMP_EPS = 4e-7 --> 5e-7"
+const float CMP_EPS = 5e-7;
+# endif
 #endif
 
 typedef ROOT::Math::SMatrix<float, DIM, DOM>                                     SMatX;
