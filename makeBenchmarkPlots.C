@@ -1,11 +1,13 @@
-void makeBenchmarkPlots(bool isMic = false, bool isCMSSW = false, bool isEndcap = false)
+void makeBenchmarkPlots(bool isMic    = false, bool isCMSSW = false,
+                        bool isEndcap = false, bool isKNL   = false)
 {
-
   TString hORm = "host";
   if (isMic) hORm = "mic";
+  if (isKNL) hORm = "knl";
 
   TString label = "Xeon";
   if (isMic) label+=" Phi";
+  if (isKNL) label = "KNL";
 
   if (isEndcap) {
     hORm+="_endcap";
@@ -13,9 +15,10 @@ void makeBenchmarkPlots(bool isMic = false, bool isCMSSW = false, bool isEndcap 
   }
 
   float maxvu = 8;
-  if (isMic) maxvu = 16;
+  if (isMic || isKNL) maxvu = 16;
   float maxth = 21;
   if (isMic) maxth = 210;
+  if (isKNL) maxth = 252;
 
   TFile* f = TFile::Open("benchmark_"+hORm+".root");
   {
@@ -31,7 +34,7 @@ void makeBenchmarkPlots(bool isMic = false, bool isCMSSW = false, bool isEndcap 
   if (isCMSSW) g_BH_VU->GetYaxis()->SetTitle("Time for 100 TTbarPU35 events [s]");
   g_BH_VU->GetXaxis()->SetRangeUser(1,maxvu);
   g_BH_VU->GetYaxis()->SetRangeUser(0,20);
-  if (isMic) g_BH_VU->GetYaxis()->SetRangeUser(0,200);
+  if (isMic || isKNL) g_BH_VU->GetYaxis()->SetRangeUser(0,200);
   if (isEndcap) g_BH_VU->GetYaxis()->SetRangeUser(0,60);
   g_BH_VU->SetLineWidth(2);
   g_CE_VU->SetLineWidth(2);
@@ -134,7 +137,7 @@ void makeBenchmarkPlots(bool isMic = false, bool isCMSSW = false, bool isEndcap 
   if (isCMSSW) g_BH_TH->GetYaxis()->SetTitle("Time for 100 TTbarPU35 events [s]");
   g_BH_TH->GetXaxis()->SetRangeUser(1,maxth);
   g_BH_TH->GetYaxis()->SetRangeUser(0,10);
-  if (isMic) g_BH_TH->GetYaxis()->SetRangeUser(0.1,100);
+  if (isMic || isKNL) g_BH_TH->GetYaxis()->SetRangeUser(0.1,100);
   if (isEndcap) g_BH_TH->GetYaxis()->SetRangeUser(0.1,40);
   g_BH_TH->SetLineWidth(2);
   g_CE_TH->SetLineWidth(2);
@@ -170,7 +173,7 @@ void makeBenchmarkPlots(bool isMic = false, bool isCMSSW = false, bool isEndcap 
   leg_TH->AddEntry(g_TBBST_TH,"TBB-SameThread","LP");
   leg_TH->Draw();
   c3.SetGridy();
-  if (isMic) c3.SetLogy();
+  if (isMic || isKNL) c3.SetLogy();
   c3.Update();
   if (isCMSSW) c3.SaveAs("cmssw_"+hORm+"_th_time.png");
   else c3.SaveAs(hORm+"_th_time.png");

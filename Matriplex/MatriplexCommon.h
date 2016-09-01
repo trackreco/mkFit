@@ -16,7 +16,7 @@
 
 #if defined(MPLEX_USE_INTRINSICS)
 
-  #if defined(__MIC__) || defined(__AVX__)
+  #if defined(__MIC__) || defined(__AVX__) || defined(__AVX512F__)
 
     #define MPLEX_INTRINSICS
 

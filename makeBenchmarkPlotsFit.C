@@ -1,11 +1,13 @@
-void makeBenchmarkPlotsFit(bool isMic = false, bool isEndcap = false)
+void makeBenchmarkPlotsFit(bool isMic = false, bool isEndcap = false,
+                           bool isKNL = false)
 {
-  
   TString hORm = "host";
   if (isMic) hORm = "mic";
+  if (isKNL) hORm = "knl";
 
   TString label = "Xeon";
   if (isMic) label+=" Phi";
+  if (isKNL) label = "KNL";
 
   if (isEndcap) {
     hORm+="_endcap";
@@ -15,9 +17,10 @@ void makeBenchmarkPlotsFit(bool isMic = false, bool isEndcap = false)
   TString ntrk = "1M";
 
   float maxvu = 8;
-  if (isMic) maxvu = 16;
+  if (isMic || isKNL) maxvu = 16;
   float maxth = 21;
   if (isMic) maxth = 210;
+  if (isKNL) maxth = 252;
 
   TFile* f = TFile::Open("benchmark_"+hORm+".root");
 
@@ -28,7 +31,7 @@ void makeBenchmarkPlotsFit(bool isMic = false, bool isEndcap = false)
   g_FIT_VU->GetYaxis()->SetTitle("Time for "+ntrk+" tracks [s]");
   g_FIT_VU->GetYaxis()->SetTitleOffset(1.25);
   g_FIT_VU->GetXaxis()->SetRangeUser(1,maxvu);
-  g_FIT_VU->GetYaxis()->SetRangeUser(0,(isMic ? 100 : 12));
+  g_FIT_VU->GetYaxis()->SetRangeUser(0,(isMic || isKNL ? 100 : 12));
   g_FIT_VU->SetLineWidth(2);
   g_FIT_VU->SetLineColor(kBlue);
   g_FIT_VU->SetMarkerStyle(kFullCircle);
@@ -65,14 +68,14 @@ void makeBenchmarkPlotsFit(bool isMic = false, bool isEndcap = false)
   c2.SaveAs(hORm+"_vu_fitspeedup.png");
 
   TCanvas c3;
-  if (isMic) c3.SetLogy();
+  if (isMic || isKNL) c3.SetLogy();
   TGraph* g_FIT_TH = (TGraph*) f->Get("g_FIT_TH");
   g_FIT_TH->SetTitle("Parallelization benchmark on "+label);
   g_FIT_TH->GetXaxis()->SetTitle("Number of Threads");
   g_FIT_TH->GetYaxis()->SetTitle("Time for "+ntrk+" tracks [s]");
   g_FIT_TH->GetYaxis()->SetTitleOffset(1.25);
   g_FIT_TH->GetXaxis()->SetRangeUser(1,maxth);
-  g_FIT_TH->GetYaxis()->SetRangeUser((isMic ? 0.01 : 0),(isMic ? 20 : 4));
+  g_FIT_TH->GetYaxis()->SetRangeUser((isMic || isKNL ? 0.01 : 0),(isMic || isKNL ? 20 : 4));
   g_FIT_TH->SetLineWidth(2);
   g_FIT_TH->SetLineColor(kBlue);
   g_FIT_TH->SetMarkerStyle(kFullCircle);
