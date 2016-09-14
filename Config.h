@@ -121,8 +121,7 @@ namespace Config
   // Config for Hit and BinInfoUtils
   constexpr int   nPhiPart   = 1260;
   constexpr float fPhiFactor = nPhiPart / TwoPI;
-  //constexpr int   nEtaPart   = 11;
-  constexpr int   nEtaPart   = 1;
+  constexpr int   nEtaPart   = 11;  // 1 is better for GPU best_hit
   constexpr int   nEtaBin    = 2 * nEtaPart - 1;
 
   constexpr float        fEtaFull  = 2 * Config::fEtaDet;
