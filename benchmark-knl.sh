@@ -12,6 +12,7 @@ make -j 64
 # mv simtracks_10x20k.bin ${dir}/
 
 BEXE="./mkFit/mkFit --read --file-name simtracks_10x20k.bin"
+# BEXE="numactl -m 1 ./mkFit/mkFit --read --file-name simtracks_10x20k.bin"
 
 for nth in 1 3 7 21 42 63 84 105 126 147 168 189 210 231 252
 do
