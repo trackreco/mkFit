@@ -10,6 +10,7 @@
 
 #include "MkFitter.h"
 #if USE_CUDA
+#include "fittestMPlex.h"
 #include "FitterCU.h"
 #endif
 
@@ -24,6 +25,7 @@
 
 #include <iostream>
 #include <memory>
+#include <mutex>
 
 #if defined(USE_VTUNE_PAUSE)
 #include "ittnotify.h"
@@ -182,58 +184,107 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 }
 
 #ifdef USE_CUDA
+void runAllEventsFittingTestPlexGPU(std::vector<Event>& events)
+{
+  double s_tmp = 0.0;
+#if 0
+  In principle, the warmup loop should not be required.
+  The separate_first_call_for_meaningful_profiling_numbers() function
+  should be enough.
+  // Warmup loop
+  for (int i = 0; i < 1; ++i) {
+    FitterCU<float> cuFitter(NN);
+    cuFitter.allocateDevice();
+    Event &ev = events[0];
+    std::vector<Track> plex_tracks_ev;
+    plex_tracks_ev.resize(ev.simTracks_.size());
+
+    if (g_run_fit_std) runFittingTestPlexGPU(cuFitter, ev, plex_tracks_ev);
+    cuFitter.freeDevice();
+  }
+#endif
+  separate_first_call_for_meaningful_profiling_numbers();
+
+  // Reorgnanization (copyIn) can eventually be multithreaded.
+  omp_set_nested(1);
+      
+  omp_set_num_threads(Config::numThreadsEvents);
+  double total_gpu_time = dtime();
+#pragma omp parallel reduction(+:s_tmp)
+  {
+  int numThreadsEvents = omp_get_num_threads();
+  int thr_idx = omp_get_thread_num();
+
+  // FitterCU is declared here to share allocations and deallocations
+  // between the multiple events processed by a single thread.
+  int gplex_size = 10000;
+  FitterCU<float> cuFitter(gplex_size);
+  cuFitter.allocateDevice();
+  cuFitter.allocate_extra_addBestHit();
+
+    for (int evt = thr_idx+1; evt <= Config::nEvents; evt+= numThreadsEvents) {
+      int idx = thr_idx;
+      printf("==============================================================\n");
+      printf("Processing event %d with thread %d\n", evt, idx);
+      Event &ev = events[evt-1];
+      std::vector<Track> plex_tracks_ev;
+      plex_tracks_ev.resize(ev.simTracks_.size());
+      double tmp = 0, tmp2bh = 0, tmp2 = 0, tmp2ce = 0;
+
+      //if (g_run_fit_std) tmp = runFittingTestPlexGPU(cuFitter, ev, plex_tracks_ev);
+      runFittingTestPlexGPU(cuFitter, ev, plex_tracks_ev);
+
+      printf("Matriplex fit = %.5f  -------------------------------------", tmp);
+      printf("\n");
+      s_tmp    += tmp;
+#if 0  // 0 for timing, 1 for validation
+      // Validation crashes for multiple threads.
+      // It is something in relation to ROOT. Not sure what. 
+      if (omp_get_num_threads() <= 1) {
+        //if (g_run_fit_std) {
+          std::string tree_name = "validation-plex-" + std::to_string(evt) + ".root";
+          make_validation_tree(tree_name.c_str(), ev.simTracks_, plex_tracks_ev);
+        //}
+      }
+#endif
+    }
+    cuFitter.free_extra_addBestHit();
+    cuFitter.freeDevice();
+  }
+  std::cerr << "###### [Fitting] Total GPU time: " << dtime() - total_gpu_time << " ######\n";
+}
+
+
 double runFittingTestPlexGPU(FitterCU<float> &cuFitter, 
     Event& ev, std::vector<Track>& rectracks)
 {
+  std::vector<Track>& simtracks = ev.simTracks_;
 
-   std::vector<Track>& simtracks = ev.simTracks_;
+  cuFitter.createStream();
 
-   const int Nhits = MAX_HITS;
-   // XXX What if there's a missing / double layer?
-   // Eventually, should sort track vector by number of hits!
-   // And pass the number in on each "setup" call.
-   // Reserves should be made for maximum possible number (but this is just
-   // measurments errors, params).
+  Track *tracks_cu;
+  cudaMalloc((void**)&tracks_cu, simtracks.size()*sizeof(Track));
+  cudaMemcpyAsync(tracks_cu, &simtracks[0], simtracks.size()*sizeof(Track),
+                  cudaMemcpyHostToDevice, cuFitter.get_stream());
 
-   // NOTE: MkFitter *MUST* be on heap, not on stack!
-   // Standard operator new screws up alignment of ALL MPlex memebrs of MkFitter,
-   // even if one adds attr(aligned(64)) thingy to every possible place.
+  EventOfHitsCU events_of_hits_cu;
+  events_of_hits_cu.allocGPU(ev.layerHits_);
+  events_of_hits_cu.copyFromCPU(ev.layerHits_, cuFitter.get_stream());
 
-   // MkFitter *mkfp = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Nhits);
+  double time = dtime();
 
-   MkFitter* mkfp_arr = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(Nhits);
+  cuFitter.FitTracks(tracks_cu, simtracks.size(), events_of_hits_cu, Config::nLayers);
 
-   int theEnd = simtracks.size();
-   double time = dtime();
-   int Nstride = NN;
+  cudaMemcpy(&rectracks[0], tracks_cu, simtracks.size()*sizeof(Track), cudaMemcpyDeviceToHost);
 
-   for (int itrack = 0; itrack < theEnd; itrack += Nstride)
-   {
-      int end = std::min(itrack + Nstride, theEnd);
+  time = dtime() - time;
 
-      MkFitter *mkfp = mkfp_arr;
 
-      //double time_input = dtime();
-      mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
-      //std::cerr << "Input time: " << (dtime() - time_input)*1e3 << std::endl;
+  events_of_hits_cu.deallocGPU();
+  cudaFree(tracks_cu);
 
-      cuFitter.FitTracks(mkfp->Chg,
-                         mkfp->GetPar0(),
-                         mkfp->GetErr0(),
-                         mkfp->msPar,
-                         mkfp->msErr,
-                         Nhits,
-                         simtracks, itrack, end, ev.layerHits_);
+  cuFitter.destroyStream();
 
-      double time_output = dtime();
-      mkfp->OutputFittedTracks(rectracks, itrack, end);
-      std::cerr << "Output time: " << (dtime() - time_output)*1e3 << std::endl;
-   }
-
-   time = dtime() - time;
-
-   _mm_free(mkfp_arr);
-
-   return time;
+  return time;
 }
 #endif

@@ -2,47 +2,35 @@
 #define _PROPAGATOR_CU_H_
 
 #include <cuda_runtime.h>
+
+#include "Matrix.h"
+
+#include "HitStructuresCU.h"
+#include "GPlex.h"
+#include "GeometryCU.h"
+#include "gpu_utils.h"
+
+#include "propagation_kernels.h"
+#include "kalmanUpdater_kernels.h"
+#include "computeChi2_kernels.h"
+#include "index_selection_kernels.h"
+#include "best_hit_kernels.h"
+
 #include <omp.h>
 #include <stdexcept>
 
-#include "Matrix.h"
-#include "propagation_kernels.h"
-#include "kalmanUpdater_kernels.h"
-#include "GPlex.h"
-
-#define LV 6
-#define QI 1
-#define QF 1
+constexpr int LV = 6;
+constexpr int QI = 1;
+constexpr int QF = 1;
 #define LL 36
-#define LS 21
-#define HV 3
-#define HS 6
-#define LH 18
+constexpr int LS = 21;
+constexpr int HV = 3;
+constexpr int HS = 6;
+constexpr int LH = 18;
 
-#define BLOCK_SIZE_X 16
-#define MAX_BLOCKS_X 65535 // CUDA constraint
+#define BLOCK_SIZE_X 256
 
 using idx_t = Matriplex::idx_t;
-
-// Macro for checking cuda errors following a cuda launch or api call
-// This comes from Jeff Larkins (NVIDIA)
-#define cudaCheckError() {                                          \
-  cudaError_t e=cudaGetLastError();                                 \
-  if(e!=cudaSuccess) {                                              \
-    printf("Cuda failure %s:%d: '%s'\n",__FILE__,__LINE__,cudaGetErrorString(e));           \
-    exit(0); \
-  }                                                                 \
-}
-#if 0
-#define cudaCheckErrorSync() {                                      \
-  cudaDeviceSynchronize();                                          \
-  cudaCheckError();                                                 \
-}
-#else
-#define cudaCheckErrorSync() {}
-#endif
-
-void separate_first_call_for_meaningful_profiling_numbers();
 
 template <typename T>
 class FitterCU {
@@ -55,54 +43,100 @@ class FitterCU {
 
   void createStream();
   void destroyStream();
+  cudaStream_t& get_stream() { return stream; }
 
-  void setNumberTracks(idx_t Ntracks);
+  int get_Nalloc() const { return Nalloc; }
+  void setNumberTracks(const idx_t Ntracks);
 
-  void sendInParToDevice(const MPlexLV& inPar);
-  void sendInErrToDevice(const MPlexLS& inErr);
-  void sendInChgToDevice(const MPlexQI& inChg);
-  void sendMsRadToDevice(const MPlexQF& msRad);
-  void sendOutParToDevice(const MPlexLV& outPar);
-  void sendOutErrToDevice(const MPlexLS& outErr);
-  void sendMsParToDevice(const MPlexHV& msPar);
-  
-  void getErrorPropFromDevice(MPlexLL& errorProp);
-  void getMsRadFromDevice(MPlexQF& msRad);
+  void propagationMerged(const int hit_idx);
+  void kalmanUpdateMerged(const int hit_idx);
+  void kalmanUpdate_standalone(
+      const MPlexLS &psErr, const MPlexLV& psPar, const MPlexQI &inChg,
+      const MPlexHS &msErr, const MPlexHV& msPar,
+      MPlexLS &outErr, MPlexLV& outPar,
+      const int hit_idx, const int N_proc);
 
-  void setOutParFromInPar();
-  void setOutErrFromInErr();
+#if 0
+  void computeChi2gpu(const MPlexLS &psErr, const MPlexLV& propPar,
+    const MPlexQI &inChg, MPlexHS &msErr, MPlexHV& msPar,
+    float *minChi2, int *bestHit,
+    LayerOfHitsCU &d_layer, MPlexQI &XHitSize, Matriplex::Matriplex<int, 16, 1, MPT_SIZE> &XHitArr,
+    MPlexQF &Chi2, MPlexQI &HitsIdx, MPlexQF&outChi2, int maxSize, int hit_idx,
+    int NN);
+#endif
 
-  // updater specfic transfers.
-  void sendMsErrToDevice(const MPlexHS& msErr);
-  void getOutParFromDevice(MPlexLV& outPar);
-  void getOutErrFromDevice(MPlexLS& outErr);
+  void allocate_extra_addBestHit();
+  void free_extra_addBestHit();
 
-  void propagationMerged();
-  void kalmanUpdateMerged();
+#if 0
+  void prepare_addBestHit();
+      //const MPlexLS &psErr, const MPlexLV& propPar,
+      //const MPlexQI &inChg, 
+      //MPlexQI &XHitSize, Matriplex::Matriplex<int, 16, 1, MPT_SIZE> &XHitArr,
+      //size_t NN);
+  void finalize_addBestHit(
+      MPlexHS *msErr, MPlexHV* msPar,
+      MPlexLS& Err_iP, MPlexLV& Par_iP, 
+      MPlexQI *HitsIdx,
+      MPlexQI &Label,
+      int start_idx, int end_idx);
+#endif
+  void setHitsIdxToZero(const int hit_idx);
+
+#if 1
+  //void addBestHit(EventOfHitsCU& event, const int ilay, const float *radii, int hit_idx);
+  void addBestHit(EventOfHitsCU& event, GeometryCU &geom_cu,
+                  EventOfCandidatesCU &event_of_cands_cu);
+#endif
+  void propagateTracksToR(const float radius, const int N);
+  void propagateTracksToR_standalone(const float radius, const int N,
+      const MPlexLS& Err_iC, const MPlexLV& par_iC, 
+      const MPlexQI& inChg, 
+      MPlexLS& Err_iP, MPlexLV& Par_iP);
 
   // fitting higher order methods
-  void FitTracks(MPlexQI &Chg, MPlexLV& par_iC, MPlexLS& err_iC,
-                 MPlexHV* msPar, MPlexHS* msErr, int Nhits,
-                 std::vector<Track> &tracks, int beg, int end,
-                 std::vector<HitVec> &layerHits);
+  void FitTracks(Track *tracks_cu, int num_tracks,
+                 EventOfHitsCU &events_of_hits_cu,
+                 int NHits);
+  void InputTracksAndHitIdx(const EtaBinOfCandidatesCU &etaBin,
+                   const int beg, const int end, const bool inputProp);
+  void OutputTracksAndHitIdx(EtaBinOfCandidatesCU &etaBin,
+                    const int beg, const int end, const bool outputProp);
 
  private:
   // N is the actual size, Nalloc should be >= N, as it is intended
   // to allocated arrays that can be used for several sets of tracks.
   idx_t Nalloc;
   idx_t N;
-  /* data */
-  GPlex<T> d_par_iC;  // LV
-  GPlex<int> d_inChg;  // QI
-  GPlex<T> d_par_iP; // LV
-  GPlex<T> d_msRad;  // QF
-  GPlex<T> d_errorProp;  // LL
-  GPlex<T> d_Err_iP;
-  GPlex<T> d_msPar;
 
-  GPlex<T> d_outErr;
-  GPlex<T> d_msErr;
+  /* data */
+  GPlexLV d_par_iP; // LV
+  GPlexLV d_par_iC; // LV
+
+  GPlexLS d_Err_iP; // LS
+  GPlexLS d_Err_iC; // LS
+
+  GPlexQI d_inChg;  // QI
+  GPlexQF d_msRad;  // QF
+  GPlexLL d_errorProp;  // LL
+
+  GPlexHV *d_msPar_arr;  // completely on the GPU
+  GPlexHV d_msPar[Config::nLayers];  // on the CPU, with arrays on the GPU
+  GPlexHS *d_msErr_arr;
+  GPlexHS d_msErr[Config::nLayers];
   
+  GPlexQI d_XHitPos;  // QI : 1D arrary following itracks
+  GPlexQI d_XHitSize;  // QI : " "
+  GPlexHitIdx d_XHitArr;
+
+  GPlexQF d_outChi2;
+  GPlexQI *d_HitsIdx_arr;
+  GPlexQI d_HitsIdx[Config::nLayers];
+  GPlexQF d_Chi2;
+  GPlexQI d_Label;
+
+  int *d_maxSize;  // max number of tracks for AddBestHit
+
   // everything run in a stream so multiple instance of FitterCU can
   // run concurrently on the GPU.
   cudaStream_t stream;

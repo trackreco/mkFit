@@ -532,6 +532,75 @@ sub multiply_standard
 
 # ----------------------------------------------------------------------
 
+sub generate_addend_gpu
+{
+  my ($S, $x, $y) = @_;
+
+  return undef if $S->{$x}{pat} eq '0' or  $S->{$y}{pat} eq '0';
+  return "1"   if $S->{$x}{pat} eq '1' and $S->{$y}{pat} eq '1';
+
+  my $xstr = sprintf "$S->{$x}{mat}{name}\[%2d*$S->{$x}{mat}{name}N+$S->{$x}{mat}{name}n]", $S->{$x}{idx};
+  my $ystr = sprintf "$S->{$y}{mat}{name}\[%2d*$S->{$y}{mat}{name}N+$S->{$y}{mat}{name}n]", $S->{$y}{idx};
+
+  return $xstr if $S->{$y}{pat} eq '1';
+  return $ystr if $S->{$x}{pat} eq '1';
+
+  return "${xstr}*${ystr}";
+}
+
+sub multiply_gpu
+{
+  # Standard mutiplication - outputs unrolled C code, one line
+  # per target matrix element.
+  # Arguments: a, b, c   -- all GenMul::MBase with right dimensions.
+  # Does:      c = a * b
+
+  check_multiply_arguments(@_);
+
+  my ($S, $a, $b, $c) = @_;
+
+  my $is_c_symmetric = $c->isa("GenMul::MatrixSym");
+
+  # With no_size_check matrices do not have to be compatible.
+  my $k_max = $a->{N} <= $b->{M} ? $a->{N} : $b->{M};
+
+  for (my $i = 0; $i < $c->{M}; ++$i)
+  {
+    my $j_max = $is_c_symmetric ?  $i + 1 : $c->{N};
+
+    for (my $j = 0; $j < $j_max; ++$j)
+    {
+      my $x = $c->idx($i, $j);
+
+      printf "$S->{prefix}$c->{name}\[%2d*$c->{name}N+$c->{name}n\] = ", $x;
+
+      my @sum;
+
+      for (my $k = 0; $k < $k_max; ++$k)
+      {
+        $S->generate_indices_and_patterns_for_multiplication($i, $j, $k);
+
+        my $addend = $S->generate_addend_gpu('a', 'b');
+
+        push @sum, $addend if defined $addend;
+      }
+      if (@sum)
+      {
+        print join(" + ", @sum), ";";
+      }
+      else
+      {
+        print "0;"
+      }
+      print "\n";
+    }
+  }
+
+  $S->delete_temporaries();
+}
+
+# ----------------------------------------------------------------------
+
 sub load_if_needed
 {
   my ($S, $x) = @_;
@@ -709,6 +778,7 @@ sub dump_multiply_std_and_intrinsic
   }
 
   print <<"FNORD";
+#ifndef __CUDACC__
 #ifdef MPLEX_INTRINSICS
 
    for (int n = 0; n < N; n += MPLEX_INTRINSICS_WIDTH_BYTES / sizeof(T))
@@ -732,6 +802,11 @@ FNORD
   print <<"FNORD";
    }
 #endif
+#else  // __CUDACC__
+FNORD
+  $S->multiply_gpu($a, $b, $c);
+  print <<"FNORD";
+#endif  // __CUDACC__
 FNORD
 
   

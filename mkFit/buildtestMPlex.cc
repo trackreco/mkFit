@@ -7,6 +7,13 @@
 #include "BinInfoUtils.h"
 
 #include "MkBuilder.h"
+
+#ifdef USE_CUDA
+#include "FitterCU.h"
+#include "BuilderCU.h"
+#include "check_gpu_hit_structures.h"
+#endif
+
 #include "MkBuilderEndcap.h"
 
 #include <omp.h>
@@ -99,9 +106,20 @@ double runBuildingTestPlexBestHit(Event& ev)
   __itt_resume();
 #endif
 
+#if USE_CUDA
+  //check_event_of_hits_gpu(builder.get_event_of_hits());
+  //check_event_of_cands_gpu(event_of_cands);
+  BuilderCU builder_cu(builder.get_event_of_hits(), builder.get_event(),
+                       event_of_cands);
+#endif
+
   double time = dtime();
 
+#if USE_CUDA
+  builder_cu.FindTracksBestHit(event_of_cands);
+#else
   builder.FindTracksBestHit(event_of_cands);
+#endif
 
   time = dtime() - time;
 
@@ -109,8 +127,11 @@ double runBuildingTestPlexBestHit(Event& ev)
   __itt_pause();
 #endif
   
-  if   (!Config::normal_val) {builder.quality_output_besthit(event_of_cands);}
-  else                       {builder.root_val_besthit(event_of_cands);}
+  if   (!Config::normal_val) {
+    builder.quality_output_besthit(event_of_cands);
+  } else {
+    builder.root_val_besthit(event_of_cands);
+  }
 
   builder.end_event();
   
@@ -248,3 +269,69 @@ double runBuildingTestPlexTbb(Event& ev, EventTmp& ev_tmp)
 
   return time;
 }
+
+
+//==============================================================================
+// runAllBuildTestPlexBestHitGPU
+//==============================================================================
+
+#if USE_CUDA
+double runAllBuildingTestPlexBestHitGPU(std::vector<Event> &events)
+{
+
+  int num_builders = events.size();
+  std::vector<std::unique_ptr<MkBuilder>> builder_ptrs(num_builders);
+  std::vector<EventOfCandidates> event_of_cands_vec(num_builders);
+  std::vector<BuilderCU> builder_cu_vec(num_builders);
+
+  for (int i = 0; i < builder_ptrs.size(); ++i) {
+    Event &ev = events[i];
+    builder_ptrs[i] = std::unique_ptr<MkBuilder> (make_builder());
+
+    MkBuilder &builder = * builder_ptrs[i].get();
+
+    builder.begin_event(&ev, 0, __func__);
+
+    if   (Config::findSeeds) {builder.find_seeds();}
+    else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
+
+    builder.fit_seeds_tbb();
+
+    EventOfCandidates &event_of_cands = event_of_cands_vec[i];
+    builder.find_tracks_load_seeds(event_of_cands);
+
+    BuilderCU &builder_cu = builder_cu_vec[i];
+    builder_cu.setUp(builder.get_event_of_hits(), builder.get_event(),
+                         event_of_cands);
+  }
+
+  //omp_set_num_threads(Config::numThreadsEvents);
+  //std::cerr << "num threads "<< omp_get_num_threads() << std::endl;
+//#pragma omp parallel for reduction(+:total_time)
+  //for (int i = 0; i < builder_ptrs.size(); ++i) {
+  double time = dtime();
+  tbb::parallel_for(size_t(0), builder_ptrs.size(), [&](size_t i) {
+    EventOfCandidates &event_of_cands = event_of_cands_vec[i];
+    BuilderCU &builder_cu = builder_cu_vec[i];
+    MkBuilder &builder = * builder_ptrs[i].get();
+
+    builder_cu.FindTracksBestHit(event_of_cands);
+  });
+  time = dtime() - time;
+
+  for (int i = 0; i < builder_ptrs.size(); ++i) {
+    EventOfCandidates &event_of_cands = event_of_cands_vec[i];
+    BuilderCU &builder_cu = builder_cu_vec[i];
+    MkBuilder &builder = * builder_ptrs[i].get();
+    if   (!Config::normal_val) {
+      builder.quality_output_besthit(event_of_cands);
+    } else {
+      builder.root_val_besthit(event_of_cands);
+    }
+
+    builder.end_event();
+  }
+  
+  return time;
+}
+#endif

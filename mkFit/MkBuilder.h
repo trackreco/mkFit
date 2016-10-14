@@ -3,9 +3,6 @@
 
 #include <vector>
 
-#include "HitStructures.h"
-
-
 //------------------------------------------------------------------------------
 
 #include "MkFitter.h"
@@ -103,6 +100,10 @@ public:
   virtual void FindTracks();
   virtual void FindTracksCloneEngine();
   virtual void FindTracksCloneEngineTbb();
+#ifdef USE_CUDA
+  const Event* get_event() const { return m_event; }
+  const EventOfHits& get_event_of_hits() const { return m_event_of_hits; }
+#endif
 };
 
 #endif

@@ -583,6 +583,18 @@ void helixAtRFromIterativeCCS(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
     }
 }
 
+#if 0
+// FIXME: Do not destroy improvements from the devel branch.
+//        Dan's shared .icc proof of concept should be bring back once everything is cleanly merged.
+//#pragma omp declare simd simdlen(NN) notinbranch linear(n)
+#include "PropagationMPlex.icc"
+
+void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar, const MPlexQF &msRad, MPlexLL& errorProp) {
+  errorProp.SetVal(0);
+
+  //#pragma ivdep
+  helixAtRFromIterative_impl(inPar, inChg, outPar, msRad, errorProp, 0, NN);
+#endif
 void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
                            const MPlexQF &msRad, MPlexLL& errorProp,
                            const int      N_proc)
@@ -921,7 +933,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
 
 void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
                             const MPlexQI &inChg,  const MPlexHV& msPar, 
-			          MPlexLS &outErr,       MPlexLV& outPar,
+                            MPlexLS &outErr,       MPlexLV& outPar,
                             const int      N_proc)
 {
    const idx_t N  = NN;
@@ -1003,7 +1015,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 
 void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
                             const MPlexQI& inChg,  const float    r,
-			    MPlexLS&       outErr, MPlexLV&       outPar,
+                            MPlexLS&       outErr, MPlexLV&       outPar,
                             const int      N_proc)
 {
    outErr = inErr;

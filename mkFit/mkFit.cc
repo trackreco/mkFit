@@ -20,7 +20,12 @@
 
 #ifdef USE_CUDA
 #include "FitterCU.h"
+#include "gpu_utils.h"
 #endif
+
+#include <cstdlib>
+//#define DEBUG
+#include "Debug.h"
 
 #include <omp.h>
 
@@ -184,14 +189,18 @@ void test_standard()
   EventTmp ev_tmp;
 
 #if USE_CUDA
+  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
+  //tbb::task_scheduler_init tbb_init(tbb::task_scheduler_init::automatic);
+  
+  //omp_set_num_threads(Config::numThreadsFinder);
   // fittest time. Sum of all events. In case of multiple events
   // being run simultaneously in different streams this time will
   // be larger than the elapsed time.
-  double s_tmp = 0.0;
 
   std::vector<Event> events;
   std::vector<Validation> validations(Config::nEvents);
 
+  events.reserve(Config::nEvents);
   // simulations are all performed before the fitting loop.
   // It is mandatory in order to see the benefits of running
   // multiple streams.
@@ -200,6 +209,7 @@ void test_standard()
     events.emplace_back(geom, val, evt);
     events.back().Simulate();
     events.back().resetLayerHitMap(true);
+    dprint("Event #" << events.back().evtID() << " simtracks " << events.back().simTracks_.size() << " layerhits " << events.back().layerHits_.size());
   }
 
   // The first call to a GPU function always take a very long time.
@@ -210,67 +220,14 @@ void test_standard()
   // tell you how much time is spend running cudaDeviceSynchronize(),
   // use another function). 
   separate_first_call_for_meaningful_profiling_numbers();
-#if 0
-  In principle, the warmup loop should not be required.
-  The separate_first_call_for_meaningful_profiling_numbers() function
-  should be enough.
-  // Warmup loop
-  for (int i = 0; i < 1; ++i) {
-    FitterCU<float> cuFitter(NN);
-    cuFitter.allocateDevice();
-    Event &ev = events[0];
-    std::vector<Track> plex_tracks_ev;
-    plex_tracks_ev.resize(ev.simTracks_.size());
 
-    if (g_run_fit_std) runFittingTestPlexGPU(cuFitter, ev, plex_tracks_ev);
-    cuFitter.freeDevice();
+  if (g_run_fit_std) runAllEventsFittingTestPlexGPU(events);
+
+  if (g_run_build_all || g_run_build_bh) {
+    double total_best_hit_time = 0.;
+    total_best_hit_time = runAllBuildingTestPlexBestHitGPU(events);
+    std::cout << "Total best hit time (GPU): " << total_best_hit_time << std::endl;
   }
-#endif
-
-  // Reorgnanization (copyIn) can eventually be multithreaded.
-  omp_set_nested(1);
-      
-  omp_set_num_threads(Config::numThreadsEvents);
-  double total_gpu_time = dtime();
-#pragma omp parallel reduction(+:s_tmp)
-  {
-  int numThreadsEvents = omp_get_num_threads();
-  int thr_idx = omp_get_thread_num();
-
-  // FitterCU is declared here to share allocations and deallocations
-  // between the multiple events processed by a single thread.
-  FitterCU<float> cuFitter(NN);
-  cuFitter.allocateDevice();
-
-    for (int evt = thr_idx+1; evt <= Config::nEvents; evt+= numThreadsEvents) {
-      int idx = thr_idx;
-      printf("==============================================================\n");
-      printf("Processing event %d with thread %d\n", evt, idx);
-      Event &ev = events[evt-1];
-      std::vector<Track> plex_tracks_ev;
-      plex_tracks_ev.resize(ev.simTracks_.size());
-      double tmp = 0, tmp2bh = 0, tmp2 = 0, tmp2ce = 0;
-
-      if (g_run_fit_std) tmp = runFittingTestPlexGPU(cuFitter, ev, plex_tracks_ev);
-
-      printf("Matriplex fit = %.5f  -------------------------------------", tmp);
-      printf("\n");
-      s_tmp    += tmp;
-#if 1  // 0 for timing, 1 for validation
-      // Validation crashes for multiple threads.
-      // It is something in relation to ROOT. Not sure what. 
-      if (omp_get_num_threads() <= 1) {
-        if (g_run_fit_std) {
-          std::string tree_name = "validation-plex-" + std::to_string(evt) + ".root";
-          make_validation_tree(tree_name.c_str(), ev.simTracks_, plex_tracks_ev);
-        }
-      }
-#endif
-    }
-    cuFitter.freeDevice();
-  }
-  std::cerr << "###### Total GPU time: " << dtime() - total_gpu_time << " ######\n";
-
 #else
   // MT: task_scheduler_init::automatic doesn't really work (segv!) + we don't
   // know what to do for non-tbb cases.
@@ -310,7 +267,14 @@ void test_standard()
 
     for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
     {
+#ifndef USE_CUDA
       t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
+#else
+      FitterCU<float> cuFitter(NN);
+      cuFitter.allocateDevice();
+      t_cur[0] = (g_run_fit_std) ? runFittingTestPlexGPU(cuFitter, ev, plex_tracks) : 0;
+      cuFitter.freeDevice();
+#endif
       t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev) : 0;
       t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlex(ev, ev_tmp) : 0;
       t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, ev_tmp) : 0;
@@ -346,6 +310,7 @@ void test_standard()
          t_sum[0], t_sum[1], t_sum[2], t_sum[3], t_sum[4]);
   printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
          t_skip[0], t_skip[1], t_skip[2], t_skip[3], t_skip[4]);
+  //fflush(stdout);
 
   if (g_operation == "read")
   {

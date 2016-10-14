@@ -50,11 +50,17 @@ inline double dtime()
     return( tseconds );
 }
 
+#ifdef __CUDACC__
+__host__ __device__
+#endif
 inline float hipo(float x, float y)
 {
   return std::sqrt(x*x + y*y);
 }
 
+#ifdef __CUDACC__
+__host__ __device__
+#endif
 inline void sincos4(const float x, float& sin, float& cos)
 {
    // Had this writen with explicit division by factorial.
@@ -74,7 +80,7 @@ inline void sincos4(const float x, float& sin, float& cos)
   #ifdef __INTEL_COMPILER
     #define ASSUME_ALIGNED(a, b) __assume_aligned(a, b)
   #else
-    #define ASSUME_ALIGNED(a, b) __builtin_assume_aligned(a, b)
+    #define ASSUME_ALIGNED(a, b) a = static_cast<decltype(a)>(__builtin_assume_aligned(a, b))
   #endif
 
   #include "Matriplex/MatriplexSym.h"

@@ -121,7 +121,7 @@ namespace Config
   // Config for Hit and BinInfoUtils
   constexpr int   nPhiPart   = 1260;
   constexpr float fPhiFactor = nPhiPart / TwoPI;
-  constexpr int   nEtaPart   = 11;
+  constexpr int   nEtaPart   = 11;  // 1 is better for GPU best_hit
   constexpr int   nEtaBin    = 2 * nEtaPart - 1;
 
   constexpr float        fEtaFull  = 2 * Config::fEtaDet;
@@ -204,7 +204,7 @@ namespace Config
     #ifdef __MIC__
       #define MPT_SIZE 16
     #elif defined USE_CUDA
-      #define MPT_SIZE 10000
+      #define MPT_SIZE 8
     #else
       #define MPT_SIZE 8
     #endif
