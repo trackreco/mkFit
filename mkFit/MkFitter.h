@@ -84,6 +84,10 @@ public:
   void InputTracksAndHitIdx(const std::vector<std::vector<Track> >& tracks, const std::vector<std::pair<int,int> >& idxs,
                             int beg, int end, bool inputProp);
   void InputSeedsTracksAndHits(const std::vector<Track>& seeds, const std::vector<Track>& tracks, const std::vector<HitVec>& layerHits, int beg, int end);
+
+  void InputTracksForFit(const std::vector<Track>&  tracks, int beg, int end);
+  void FitTracksWithInterSlurp(const std::vector<HitVec>& layersohits, int N_proc);
+
   void ConformalFitTracks(bool fitting, int beg, int end);
   void FitTracks(const int N_proc, const Event * ev, const bool useParamBfield = false);
   void FitTracksTestEndcap(const int N_proc, const Event* ev, const bool useParamBfield = false);

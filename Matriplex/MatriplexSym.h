@@ -85,16 +85,19 @@ public:
 
 #if defined(MIC_INTRINSICS)
 
-   void SlurpIn(const char *arr, __m512i& vi)
+   void SlurpIn(const char *arr, __m512i& vi, const int N_proc = N)
    {
       //_mm512_prefetch_i32gather_ps(vi, arr, 1, _MM_HINT_T0);
+
+      const __m512    src = { 0 };
+      const __mmask16 k = N_proc == N ? -1 : (1 << N_proc) - 1;
 
       for (int i = 0; i < kSize; ++i, arr += sizeof(T))
       {
          //_mm512_prefetch_i32gather_ps(vi, arr+2, 1, _MM_HINT_NTA);
 
-         __m512 reg = _mm512_i32gather_ps(vi, arr, 1);
-         _mm512_store_ps(&fArray[i*N], reg);
+         __m512 reg = _mm512_mask_i32gather_ps(src, k, vi, arr, 1);
+         _mm512_mask_store_ps(&fArray[i*N], k, reg);
       }
    }
 
@@ -142,14 +145,28 @@ public:
 
 #else
 
-   void SlurpIn(const char *arr, int vi[N])
+   void SlurpIn(const char *arr, int vi[N], const int N_proc = N)
    {
-      for (int i = 0; i < kSize; ++i)
+      // Separate N_proc == N case (gains about 7% in fit test).
+      if (N_proc == N)
       {
-        for (int j = 0; j < N; ++j)
-        {
-           fArray[i*N + j] = * (const T*) (arr + i*sizeof(T) + vi[j]);
-        }
+         for (int i = 0; i < kSize; ++i)
+         {
+            for (int j = 0; j < N; ++j)
+            {
+               fArray[i*N + j] = * (const T*) (arr + i*sizeof(T) + vi[j]);
+            }
+         }
+      }
+      else
+      {
+         for (int i = 0; i < kSize; ++i)
+         {
+            for (int j = 0; j < N_proc; ++j)
+            {
+               fArray[i*N + j] = * (const T*) (arr + i*sizeof(T) + vi[j]);
+            }
+         }
       }
    }
 

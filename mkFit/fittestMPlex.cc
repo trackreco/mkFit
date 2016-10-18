@@ -148,9 +148,10 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
      mkfp->SetNhits(Nhits);
      for (int it = i.begin(); it < i.end(); ++it)
      {
-        int itrack = it*NN;
-        int end = itrack + NN;
-	if (Config::endcapTest) { 
+        int itrack = it * NN;
+        int end    = itrack + NN;
+	if (Config::endcapTest)
+        {
 	  //fixme, check usage of SlurpInTracksAndHits for endcapTest
 	  if (Config::readCmsswSeeds) {
 	    mkfp->InputSeedsTracksAndHits(ev.seedTracks_,simtracks, ev.layerHits_, itrack, end);
@@ -159,6 +160,12 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 	  }
 	  mkfp->FitTracksTestEndcap(end - itrack, &ev, true);
 	} else {
+	  mkfp->FitTracksTestEndcap(end - itrack, &ev);
+	}
+        else
+        {
+        /*
+         * MT, trying to slurp and fit at the same time ...
 	  if (theEnd < end) {
 	    end = theEnd;
 	    mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
@@ -168,7 +175,16 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 	  
 	  if (Config::cf_fitting) mkfp->ConformalFitTracks(true, itrack, end);
 	  mkfp->FitTracks(end - itrack, &ev, true);
+        */
+
+          mkfp->InputTracksForFit(simtracks, itrack, end);
+
+          // XXXX MT - for this need 3 points in ... right
+	  // XXXX if (Config::cf_fitting) mkfp->ConformalFitTracks(true, itrack, end);
+
+          mkfp->FitTracksWithInterSlurp(ev.layerHits_, end - itrack);
 	}
+
 	mkfp->OutputFittedTracks(rectracks, itrack, end);
      }
    });

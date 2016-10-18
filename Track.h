@@ -226,6 +226,8 @@ public:
     return hitIdxArr_[hitIdxPos_];
   }
 
+  const int* getHitIdxArray() const { return hitIdxArr_; }
+
   void fillEmptyLayers() {
     for (int h = hitIdxPos_+1; h < Config::nLayers; h++){
       setHitIdx(h,-1);

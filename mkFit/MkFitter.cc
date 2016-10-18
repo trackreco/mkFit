@@ -64,7 +64,7 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
   // This might not be true for the last chunk!
   // assert(end - beg == NN);
 
-  int itrack;
+  int itrack = 0;
 
 // FIXME: uncomment when track building is ported to GPU.
 #if USE_CUDA_NOT_YET
@@ -76,17 +76,16 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
   omp_set_num_threads(Config::numThreadsReorg);
 #pragma omp parallel for private(itrack)
 #endif
-  for (int i = beg; i < end; ++i) {
-    itrack = i - beg;
+  for (int i = beg; i < end; ++i, ++itrack)
+  {
     const Track &trk = tracks[i];
-
-    Label(itrack, 0, 0) = trk.label();
 
     Err[iC].CopyIn(itrack, trk.errors().Array());
     Par[iC].CopyIn(itrack, trk.parameters().Array());
 
-    Chg(itrack, 0, 0) = trk.charge();
-    Chi2(itrack, 0, 0) = trk.chi2();
+    Chg(itrack, 0, 0)   = trk.charge();
+    Chi2(itrack, 0, 0)  = trk.chi2();
+    Label(itrack, 0, 0) = trk.label();
 
 // CopyIn seems fast enough, but indirections are quite slow.
 // For GPU computations, it has been moved in between kernels
@@ -253,24 +252,18 @@ void MkFitter::InputTracksAndHitIdx(const std::vector<Track>& tracks,
   int itrack = 0;
   for (int i = beg; i < end; ++i, ++itrack)
   {
-
     const Track &trk = tracks[i];
-
-    Label(itrack, 0, 0) = trk.label();
 
     Err[iI].CopyIn(itrack, trk.errors().Array());
     Par[iI].CopyIn(itrack, trk.parameters().Array());
 
-    Chg (itrack, 0, 0) = trk.charge();
-    Chi2(itrack, 0, 0) = trk.chi2();
+    Chg (itrack, 0, 0)  = trk.charge();
+    Chi2(itrack, 0, 0)  = trk.chi2();
+    Label(itrack, 0, 0) = trk.label();
 
     for (int hi = 0; hi < Nhits; ++hi)
     {
-      // MPBL: It does not seem that these values are that dummies
-      //       Not transfering them to the GPU reduces the number of
-      //       nFoundHits in the printouts.
-      HitsIdx[hi](itrack, 0, 0) = trk.getHitIdx(hi);//dummy value for now
-
+      HitsIdx[hi](itrack, 0, 0) = trk.getHitIdx(hi);
     }
   }
 }
@@ -364,6 +357,103 @@ void MkFitter::InputSeedsTracksAndHits(const std::vector<Track>&  seeds,
 #endif
   }
 }
+
+//------------------------------------------------------------------------------
+// Fitting with interleaved hit loading
+//------------------------------------------------------------------------------
+
+void MkFitter::InputTracksForFit(const std::vector<Track>& tracks,
+                                 int beg, int end)
+{
+  // Loads track parameters and hit indices.
+
+  const int   N_proc     = end - beg;
+  const Track &trk0      = tracks[beg];
+  const char *varr       = (char*) &trk0;
+  const int   off_error  = (char*) trk0.errors().Array() - varr;
+  const int   off_param  = (char*) trk0.parameters().Array() - varr;
+  const int   off_hitidx = (char*) trk0.getHitIdxArray() - varr;
+
+  int idx[NN]      __attribute__((aligned(64)));
+
+  int itrack = 0;
+
+  for (int i = beg; i < end; ++i, ++itrack)
+  {
+    const Track &trk = tracks[i];
+
+    Chg(itrack, 0, 0)   = trk.charge();
+    Chi2(itrack, 0, 0)  = trk.chi2();
+    Label(itrack, 0, 0) = trk.label();
+
+    idx[itrack] = (char*) &trk - varr;
+  }
+
+  // for ( ; itrack < NN; ++itrack)  {  idx[itrack] = idx[0];  }
+
+#ifdef MIC_INTRINSICS
+  __m512i vi      = _mm512_load_epi32(idx);
+  Err[iC].SlurpIn(varr + off_error, vi, N_proc);
+  Par[iC].SlurpIn(varr + off_param, vi, N_proc);
+  for (int ll = 0; ll < Config::nLayers; ++ll)
+  {
+    HitsIdx[ll].SlurpIn(varr + off_hitidx + sizeof(int)*ll, vi, N_proc);
+  }
+#else
+  Err[iC].SlurpIn(varr + off_error, idx, N_proc);
+  Par[iC].SlurpIn(varr + off_param, idx, N_proc);
+  for (int ll = 0; ll < Config::nLayers; ++ll)
+  {
+    HitsIdx[ll].SlurpIn(varr + off_hitidx + sizeof(int)*ll, idx, N_proc);
+  }
+#endif
+}
+
+void MkFitter::FitTracksWithInterSlurp(const std::vector<HitVec>& layersohits,
+                                       const int N_proc)
+{
+  // Loops over layers and:
+  // a) slurps in hit parameters;
+  // b) propagates and updates tracks
+
+  int idx[NN]      __attribute__((aligned(64)));
+
+  for (int layer = 0; layer < Nhits; ++layer)
+  {
+    const Hit  &hit0      = layersohits[layer][0];
+    const char *varr      = (char*) &hit0;
+    const int   off_param = (char*) hit0.posArray() - varr;
+    const int   off_error = (char*) hit0.errArray() - varr;
+
+    for (int i = 0; i < N_proc; ++i)
+    {
+      const int  hidx = HitsIdx[layer](i, 0, 0);
+
+      idx[i] = (char*) & layersohits[layer][hidx] - varr;
+    }
+
+    // for (int i = N_proc; i < NN; ++i)  {  idx[i] = idx[0];  }
+
+#ifdef MIC_INTRINSICS
+    __m512i vi      = _mm512_load_epi32(idx);
+    msPar[0].SlurpIn(varr + off_param, vi, N_proc);
+    msErr[0].SlurpIn(varr + off_error, vi, N_proc);
+#else
+    msPar[0].SlurpIn(varr + off_param, idx, N_proc);
+    msErr[0].SlurpIn(varr + off_error, idx, N_proc);
+#endif
+
+    propagateHelixToRMPlex(Err[iC], Par[iC], Chg, msPar[0],
+                           Err[iP], Par[iP], N_proc);
+
+    updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[0], msPar[0],
+                          Err[iC], Par[iC], N_proc);
+  }
+}
+
+//==============================================================================
+// Fitting functions
+//==============================================================================
 
 void MkFitter::ConformalFitTracks(bool fitting, int beg, int end)
 {
