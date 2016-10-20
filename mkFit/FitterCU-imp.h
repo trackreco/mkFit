@@ -30,20 +30,20 @@ void FitterCU<T>::destroyStream() {
 
 template <typename T>
 void FitterCU<T>::allocateDevice() {
-  d_par_iP.allocate(Nalloc, LV);
-  d_par_iC.allocate(Nalloc, LV);
+  d_par_iP.allocate(Nalloc);
+  d_par_iC.allocate(Nalloc);
 
-  d_Err_iP.allocate(Nalloc, LS);
-  d_Err_iC.allocate(Nalloc, LS);
+  d_Err_iP.allocate(Nalloc);
+  d_Err_iC.allocate(Nalloc);
 
-  d_inChg.allocate(Nalloc, QI);
-  d_errorProp.allocate(Nalloc, LL);
+  d_inChg.allocate(Nalloc);
+  d_errorProp.allocate(Nalloc);
 
   cudaMalloc((void**)&d_msPar_arr, Config::nLayers * sizeof(GPlexHV));
   cudaMalloc((void**)&d_msErr_arr, Config::nLayers * sizeof(GPlexHS));
   for (int hi = 0; hi < Config::nLayers; ++hi) {
-    d_msPar[hi].allocate(Nalloc, HV);
-    d_msErr[hi].allocate(Nalloc, HS);
+    d_msPar[hi].allocate(Nalloc);
+    d_msErr[hi].allocate(Nalloc);
   }
   cudaMemcpy(d_msPar_arr, d_msPar, Config::nLayers*sizeof(GPlexHV), cudaMemcpyHostToDevice);
   cudaMemcpy(d_msErr_arr, d_msErr, Config::nLayers*sizeof(GPlexHS), cudaMemcpyHostToDevice);
@@ -103,17 +103,17 @@ void FitterCU<T>::propagationMerged(const int hit_idx) {
 // FIXME: Temporary. Separate allocations / transfers
 template <typename T>
 void FitterCU<T>::allocate_extra_addBestHit() {
-  d_outChi2.allocate(Nalloc, QF);
-  d_XHitPos.allocate(Nalloc, QI);
-  d_XHitSize.allocate(Nalloc, QI);
-  d_XHitArr.allocate(Nalloc, GPlexHitIdxMax);
+  d_outChi2.allocate(Nalloc);
+  d_XHitPos.allocate(Nalloc);
+  d_XHitSize.allocate(Nalloc);
+  d_XHitArr.allocate(Nalloc);
   cudaMalloc((void**)&d_HitsIdx_arr, Config::nLayers * sizeof(GPlexQI));
   for (int hi = 0; hi < Config::nLayers; ++hi) {
-    d_HitsIdx[hi].allocate(Nalloc, QI);
+    d_HitsIdx[hi].allocate(Nalloc);
   }
   cudaMemcpy(d_HitsIdx_arr, d_HitsIdx, Config::nLayers*sizeof(GPlexQI), cudaMemcpyHostToDevice);
-  d_Chi2.allocate(Nalloc, QF);
-  d_Label.allocate(Nalloc, QI);
+  d_Chi2.allocate(Nalloc);
+  d_Label.allocate(Nalloc);
   cudaCheckError();
 }
 
@@ -184,8 +184,7 @@ void FitterCU<T>::propagateTracksToR_standalone(const float radius, const int N,
     MPlexLS& Err_iP, MPlexLV& Par_iP) {
   d_Err_iC.copyAsyncFromHost(stream, Err_iC);
   d_par_iC.copyAsyncFromHost(stream, par_iC);
-  //propagationForBuilding_wrapper(stream, d_Err_iC, d_par_iC, d_inChg, 
-                                 //radius, d_Err_iP, d_par_iP, N); 
+  propagateTracksToR(radius, N);
   d_Err_iP.copyAsyncToHost(stream, Err_iP);
   d_par_iP.copyAsyncToHost(stream, Par_iP);
 }

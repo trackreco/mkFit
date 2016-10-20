@@ -21,13 +21,13 @@ void HitToMs_wrapper(cudaStream_t& stream,
     GPlexHitIdx &XHitArr, GPlexQI &HitsIdx, int hit_cnt, int N);
 #endif
 
-__device__ void RotateResidulsOnTangentPlane_fn(const float r00, 
-    const float r01, const GPlexRegHV &a, GPlexReg2V &b);
+__device__ void RotateResidulsOnTangentPlane_fn(const GPlexRegQF& r00, 
+    const GPlexRegQF& r01, const GPlexRegHV &a, GPlexReg2V &b);
 
-__device__ void ProjectResErr_fn(const float a00, const float a01,
+__device__ void ProjectResErr_fn(const GPlexRegQF& a00, const GPlexRegQF& a01,
                                  const GPlexRegHS &b, GPlexRegHH &c);
 
-__device__ void ProjectResErrTransp_fn(const float a00, const float a01, 
+__device__ void ProjectResErrTransp_fn(const GPlexRegQF& a00, const GPlexRegQF& a01, 
                                        const GPlexRegHH &b, GPlexReg2S &c);
 
 #endif

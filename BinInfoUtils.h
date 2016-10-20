@@ -12,27 +12,21 @@ typedef std::pair<int, int>                 BinInfo;
 typedef std::vector<std::vector<BinInfo>>   BinInfoLayerMap;
 typedef std::vector<BinInfoLayerMap>        BinInfoMap;
 
-#ifdef __CUDACC__
-__host__ __device__
-#endif
+CUDA_CALLABLE
 inline float downPhi(float phi)
 {
   while (phi >= Config::PI) {phi-=Config::TwoPI;}
   return phi;
 }
 	
-#ifdef __CUDACC__
-__host__ __device__
-#endif
+CUDA_CALLABLE
 inline float upPhi(float phi)
 {
   while (phi <= -Config::PI) {phi+=Config::TwoPI;}
   return phi;
 }
 
-#ifdef __CUDACC__
-__host__ __device__
-#endif
+CUDA_CALLABLE
 inline float normalizedPhi(float phi)
 {
   //  return std::fmod(phi, (float) Config::PI); // return phi +pi out of phase for |phi| beyond boundary! 
@@ -40,9 +34,7 @@ inline float normalizedPhi(float phi)
   return phi;
 }
 
-#ifdef __CUDACC__
-__host__ __device__
-#endif
+CUDA_CALLABLE
 inline int getPhiPartition(float phi)
 {
   //assume phi is between -PI and PI
