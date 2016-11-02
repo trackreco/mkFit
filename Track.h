@@ -140,6 +140,11 @@ public:
 
   const float* posArray() const {return state_.parameters.Array();}
   const float* errArray() const {return state_.errors.Array();}
+//#ifdef USE_CUDA
+#if __CUDACC__
+  __device__ float* posArrayCU();
+  __device__ float* errArrayCU();
+#endif
 
   // Non-const versions needed for CopyOut of Matriplex.
   SVector6&     parameters_nc() {return state_.parameters;}
@@ -149,8 +154,17 @@ public:
   SVector3 position() const {return SVector3(state_.parameters[0],state_.parameters[1],state_.parameters[2]);}
   SVector3 momentum() const {return SVector3(state_.parameters[3],state_.parameters[4],state_.parameters[5]);}
 
+#if __CUDACC__
+  __host__ __device__
+#endif
   int      charge() const {return state_.charge;}
+#if __CUDACC__
+  __host__ __device__
+#endif
   float    chi2()   const {return chi2_;}
+#if __CUDACC__
+  __host__ __device__
+#endif
   int      label()  const {return label_;}
 
   float x()      const { return state_.parameters[0];}
@@ -200,12 +214,18 @@ public:
     }
   }
 
+#if __CUDACC__
+  __host__ __device__
+#endif
   void addHitIdx(int hitIdx,float chi2)
   {
     hitIdxArr_[++hitIdxPos_] = hitIdx;
     if (hitIdx >= 0) { ++nGoodHitIdx_; chi2_+=chi2; }
   }
 
+#if __CUDACC__
+  __host__ __device__
+#endif
   int getHitIdx(int posHitIdx) const
   {
     return hitIdxArr_[posHitIdx];
@@ -222,6 +242,9 @@ public:
     }
   }
 
+#if __CUDACC__
+  __host__ __device__
+#endif
   void setHitIdx(int posHitIdx, int newIdx) {
     hitIdxArr_[posHitIdx] = newIdx;
   }
@@ -233,6 +256,16 @@ public:
     }
   }
 
+#if __CUDACC__
+  __host__ __device__
+#endif
+  void setNGoodHitIdx(int nHits) {
+    nGoodHitIdx_ = nHits;
+  }
+
+#if __CUDACC__
+  __host__ __device__
+#endif
   void resetHits()
   {
     hitIdxPos_   = -1;
@@ -250,8 +283,18 @@ public:
     }
     return layers;
   }
+
+#if __CUDACC__
+  __host__ __device__
+#endif
   void setCharge(int chg)  {state_.charge=chg;}
+#if __CUDACC__
+  __host__ __device__
+#endif
   void setChi2(float chi2) {chi2_=chi2;}
+#if __CUDACC__
+  __host__ __device__
+#endif
   void setLabel(int lbl)   {label_=lbl;}
 
   void setState(const TrackState& newState) {state_=newState;}

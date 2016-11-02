@@ -1,35 +1,56 @@
 #include "Config.h"
+#include "Debug.h"
 #include "propagation_kernels.h"
 #include <stdio.h>
+#include "gpu_utils.h"
 
-#define L 6
-#define LL 36
-#define LS 21
+constexpr int L = 6;
+constexpr int LL2 = 36;
+constexpr int LS = 21;
 
 // values from 32 to 512 give good results.
 // 32 gives slightly better results (on a K40)
-#define BLOCK_SIZE_X 32
-#define MAX_BLOCKS_X 65535 // CUDA constraint
+constexpr int BLOCK_SIZE_X = 32;
 
-__device__ float hipo(float x, float y) {
-  return sqrt(x*x + y*y);
+__device__
+void MultHelixProp_fn(const GPlexRegLL& a, const GPlexLS& b, GPlexRegLL& c, const int n)
+{
+   // C = A * B
+
+   typedef float T;
+   /*const idx_t N  = NN;*/
+
+   /*const T *a = A.fArray; ASSUME_ALIGNED(a, 64);*/
+   /*const T *b = B.fArray; ASSUME_ALIGNED(b, 64);*/
+         /*T *c = C.fArray; ASSUME_ALIGNED(c, 64);*/
+  /*float *a = A.ptr;*/
+  int aN = 1       ; int an = 0;  // Register array
+  int bN = b.stride; int bn = n;  // Global array
+  int cN = 1;        int cn = 0;
+
+#include "MultHelixProp.ah"
 }
-__device__ void sincos4(float x, float& sin, float& cos) {
-   // Had this writen with explicit division by factorial.
-   // The *whole* fitting test ran like 2.5% slower on MIC, sigh.
-   cos  = 1;
-   sin  = x;   x *= x * 0.5f;
-   cos -= x;   x *= x * 0.33333333f;
-   sin -= x;   x *= x * 0.25f;
-   cos += x;
+
+__device__
+void MultHelixPropTransp_fn(const GPlexRegLL& a, const GPlexRegLL& b, GPlexLS& c, const int n)
+{
+   // C = B * AT;
+
+   typedef float T;
+  int aN = 1       ; int an = 0;  // Register array
+  int bN = 1       ; int bn = 0;  // Global array
+  int cN = c.stride; int cn = n;
+
+#include "MultHelixPropTransp.ah"
 }
 
 // computeJacobianSimple works on values that are in registers.
 // Registers are thread-private. Thus this function has no notion of
 // parallelism. It is ran serially by each calling thread.
 __device__ void computeJacobianSimple(float *errorProp,
-    float s, float k, float p, float pxin, float pyin, float pzin, 
-    float TP, float cosTP, float sinTP, int N) {
+    const float s, const float k, const float p, 
+    const float pxin, const float pyin, const float pzin, 
+    const float TP, const float cosTP, const float sinTP, const int N) {
 
   // std::cout << "total path s=" << s << std::endl;
   // TD = s*pt/p;
@@ -90,225 +111,263 @@ __device__ void computeJacobianSimple(float *errorProp,
 }
 
 /// Compute MsRad /////////////////////////////////////////////////////////////
-// Not passing msRad.stride, as QF == 1 (second dim f msRad)
-__device__ void computeMsRad_fn(const float* __restrict__ msPar,
-    size_t stride_msPar, float* msRad, int N, int n) {
+__device__ void assignMsRad_fn(const float r, float* msRad, const int N, const int n) {
   /*int n = threadIdx.x + blockIdx.x * blockDim.x;*/
   if (n < N) {
-    *msRad = hipo(msPar[n], msPar[n + stride_msPar]);
+    *msRad = r;
   }
 }
 
-__device__ 
-void helixAtRFromIterative_fn(float *inPar, size_t inPar_stride,
-    int *inChg, float *outPar, size_t outPar_stride, float msRad, 
-    float *errorProp_reg, int N, int n) {
-
-  size_t opN = outPar_stride;
-  size_t ipN = inPar_stride;
-
+// Not passing msRad.stride, as QF == 1 (second dim f msRad)
+__device__ void computeMsRad_fn(const GPlexHV& __restrict__ msPar,
+    GPlexRegQF &msRad, const int N, const int n) {
   /*int n = threadIdx.x + blockIdx.x * blockDim.x;*/
+  if (n < N) {
+    msRad(n, 0, 0) = hipo(msPar(n, 0, 0), msPar(n, 1, 0));
+  }
+}
 
-  float outPar_reg[5];
+__device__ void helixAtRFromIterativePolar_fn(const GPlexLV& inPar, 
+    const GPlexQI& inChg, GPlexLV& outPar, const GPlexReg<float, 1, 1>& msRad, 
+    GPlexReg<float, LL2, L>& errorProp, const int N, const int n)
+{
+  errorProp.SetVal(0);
+
+#pragma simd
+  //for (int n = 0; n < NN; ++n)
+  if (n < N) 
+    {
+      //initialize erroProp to identity matrix
+      errorProp(n,0,0) = 1.f;
+      errorProp(n,1,1) = 1.f;
+      errorProp(n,2,2) = 1.f;
+      errorProp(n,3,3) = 1.f;
+      errorProp(n,4,4) = 1.f;
+      errorProp(n,5,5) = 1.f;
+
+      const float k = inChg(n, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
+      const float r = msRad(n, 0, 0);
+      float r0 = hipo(inPar(n, 0, 0), inPar(n, 1, 0));
+
+      // if (std::abs(r-r0)<0.0001f) {
+      // 	dprint("distance less than 1mum, skip");
+      // 	continue;
+      // }
+
+      const float xin   = inPar(n, 0, 0);
+      const float yin   = inPar(n, 1, 0);
+      const float zin   = inPar(n, 2, 0);
+      const float ipt   = inPar(n, 3, 0);
+      const float phiin = inPar(n, 4, 0);
+      const float theta = inPar(n, 5, 0);
+
+      dprint_np(n, std::endl << "input parameters"
+            << " inPar(n, 0, 0)=" << std::setprecision(9) << inPar(n, 0, 0)
+            << " inPar(n, 1, 0)=" << std::setprecision(9) << inPar(n, 1, 0)
+            << " inPar(n, 2, 0)=" << std::setprecision(9) << inPar(n, 2, 0)
+            << " inPar(n, 3, 0)=" << std::setprecision(9) << inPar(n, 3, 0)
+            << " inPar(n, 4, 0)=" << std::setprecision(9) << inPar(n, 4, 0)
+            << " inPar(n, 5, 0)=" << std::setprecision(9) << inPar(n, 5, 0)
+            );
+
+      const float kinv  = 1.f/k;
+      const float pt = 1.f/ipt;
+
+      float D = 0., cosa = 0., sina = 0., id = 0.;
+      //no trig approx here, phi can be large
+      float cosPorT = std::cos(phiin), sinPorT = std::sin(phiin);
+      float pxin = cosPorT*pt;
+      float pyin = sinPorT*pt;
+
+      dprint_np(n, std::endl << "k=" << std::setprecision(9) << k << " pxin=" << std::setprecision(9) << pxin << " pyin="
+             << std::setprecision(9) << pyin << " cosPorT=" << std::setprecision(9) << cosPorT
+             << " sinPorT=" << std::setprecision(9) << sinPorT << " pt=" << std::setprecision(9) << pt);
+
+      //derivatives initialized to value for first iteration, i.e. distance = r-r0in
+      float dDdx = r0 > 0.f ? -xin/r0 : 0.f;
+      float dDdy = r0 > 0.f ? -yin/r0 : 0.f;
+      float dDdipt = 0.;
+      float dDdphi = 0.;
+
+      for (int i = 0; i < Config::Niter; ++i)
+      {
+	dprint_np(n, std::endl << "attempt propagation from r=" << r0 << " to r=" << r << std::endl
+	       << "x=" << xin << " y=" << yin  << " z=" << inPar(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pt*std::tan(theta) << " q=" << inChg(n, 0, 0));
+
+	//compute distance and path for the current iteration
+	r0 = hipo(outPar(n, 0, 0), outPar(n, 1, 0));
+	id = (r-r0);
+	D+=id;
+	if (Config::useTrigApprox) {
+	  sincos4(id*ipt*kinv, sina, cosa);
+	} else {
+          cosa=std::cos(id*ipt*kinv);
+          sina=std::sin(id*ipt*kinv);
+	}
+
+        dprint_np(n, std::endl << "r=" << std::setprecision(9) << r << " r0=" << std::setprecision(9) << r0
+               << " id=" << std::setprecision(9) << id << " cosa=" << cosa << " sina=" << sina);
+
+	//update derivatives on total distance
+	if (i+1 != Config::Niter) {
+
+          const float x = outPar(n, 0, 0);
+          const float y = outPar(n, 1, 0);
+          const float oor0 = (r0>0.f && std::abs(r-r0)<0.0001f) ? 1.f/r0 : 0.f;
+
+          const float dadipt = id*kinv;
+
+          const float dadx = -x*ipt*kinv*oor0;
+          const float dady = -y*ipt*kinv*oor0;
+
+	  const float pxca = pxin*cosa;
+	  const float pxsa = pxin*sina;
+	  const float pyca = pyin*cosa;
+	  const float pysa = pyin*sina;
+
+	  float tmp = k*dadx;
+          dDdx   -= ( x*(1.f + tmp*(pxca - pysa)) + y*tmp*(pyca + pxsa) )*oor0;
+	  tmp = k*dady;
+          dDdy   -= ( x*tmp*(pxca - pysa) + y*(1.f + tmp*(pyca + pxsa)) )*oor0;
+          //now r0 depends on ipt and phi as well
+	  tmp = dadipt*ipt;
+          dDdipt -= k*( x*(pxca*tmp - pysa*tmp - pyca - pxsa + pyin) +
+                        y*(pyca*tmp + pxsa*tmp - pysa + pxca - pxin))*pt*oor0;
+          dDdphi += k*( x*(pysa - pxin + pxca) - y*(pxsa - pyin + pyca))*oor0;
+        }
+
+	//update parameters
+	outPar(n, 0, 0) = outPar(n, 0, 0) + k*(pxin*sina - pyin*(1.f-cosa));
+	outPar(n, 1, 0) = outPar(n, 1, 0) + k*(pyin*sina + pxin*(1.f-cosa));
+	const float pxinold = pxin;//copy before overwriting
+	pxin = pxin*cosa - pyin*sina;
+	pyin = pyin*cosa + pxinold*sina;
+
+        dprint_np(n, std::endl << "outPar(n, 0, 0)=" << outPar(n, 0, 0) << " outPar(n, 1, 0)=" << outPar(n, 1, 0)
+               << " pxin=" << pxin << " pyin=" << pyin);
+      }
+
+      const float alpha  = D*ipt*kinv;
+      const float dadx   = dDdx*ipt*kinv;
+      const float dady   = dDdy*ipt*kinv;
+      const float dadipt = (ipt*dDdipt + D)*kinv;
+      const float dadphi = dDdphi*ipt*kinv;
+
+      if (Config::useTrigApprox) {
+	sincos4(alpha, sina, cosa);
+      } else {
+	cosa=std::cos(alpha);
+	sina=std::sin(alpha);
+      }
+
+      errorProp(n,0,0) = 1.f+k*dadx*(cosPorT*cosa-sinPorT*sina)*pt;
+      errorProp(n,0,1) =     k*dady*(cosPorT*cosa-sinPorT*sina)*pt;
+      errorProp(n,0,2) = 0.f;
+      errorProp(n,0,3) = k*(cosPorT*(ipt*dadipt*cosa-sina)+sinPorT*((1.f-cosa)-ipt*dadipt*sina))*pt*pt;
+      errorProp(n,0,4) = k*(cosPorT*dadphi*cosa - sinPorT*dadphi*sina - sinPorT*sina + cosPorT*cosa - cosPorT)*pt;
+      errorProp(n,0,5) = 0.f;
+
+      errorProp(n,1,0) =     k*dadx*(sinPorT*cosa+cosPorT*sina)*pt;
+      errorProp(n,1,1) = 1.f+k*dady*(sinPorT*cosa+cosPorT*sina)*pt;
+      errorProp(n,1,2) = 0.f;
+      errorProp(n,1,3) = k*(sinPorT*(ipt*dadipt*cosa-sina)+cosPorT*(ipt*dadipt*sina-(1.f-cosa)))*pt*pt;
+      errorProp(n,1,4) = k*(sinPorT*dadphi*cosa + cosPorT*dadphi*sina + sinPorT*cosa + cosPorT*sina - sinPorT)*pt;
+      errorProp(n,1,5) = 0.f;
+
+      //no trig approx here, theta can be large
+      cosPorT=std::cos(theta);
+      sinPorT=std::sin(theta);
+      //redefine sinPorT as 1./sinPorT to reduce the number of temporaries
+      sinPorT = 1.f/sinPorT;
+
+      outPar(n, 2, 0) = inPar(n, 2, 0) + k*alpha*cosPorT*pt*sinPorT;
+
+      errorProp(n,2,0) = k*cosPorT*dadx*pt*sinPorT;
+      errorProp(n,2,1) = k*cosPorT*dady*pt*sinPorT;
+      errorProp(n,2,2) = 1.f;
+      errorProp(n,2,3) = k*cosPorT*(ipt*dadipt-alpha)*pt*pt*sinPorT;
+      errorProp(n,2,4) = k*dadphi*cosPorT*pt*sinPorT;
+      errorProp(n,2,5) =-k*alpha*pt*sinPorT*sinPorT;
+
+      outPar(n, 3, 0) = ipt;
+
+      errorProp(n,3,0) = 0.f;
+      errorProp(n,3,1) = 0.f;
+      errorProp(n,3,2) = 0.f;
+      errorProp(n,3,3) = 1.f;
+      errorProp(n,3,4) = 0.f;
+      errorProp(n,3,5) = 0.f;
+
+      outPar(n, 4, 0) = inPar(n, 4, 0)+alpha;
+
+      errorProp(n,4,0) = dadx;
+      errorProp(n,4,1) = dady;
+      errorProp(n,4,2) = 0.f;
+      errorProp(n,4,3) = dadipt;
+      errorProp(n,4,4) = 1.f+dadphi;
+      errorProp(n,4,5) = 0.f;
+
+      outPar(n, 5, 0) = theta;
+
+      errorProp(n,5,0) = 0.f;
+      errorProp(n,5,1) = 0.f;
+      errorProp(n,5,2) = 0.f;
+      errorProp(n,5,3) = 0.f;
+      errorProp(n,5,4) = 0.f;
+      errorProp(n,5,5) = 1.f;
+
+      dprint_np(n, "propagation end, dump parameters" << std::endl
+	     << "pos = " << outPar(n, 0, 0) << " " << outPar(n, 1, 0) << " " << outPar(n, 2, 0) << std::endl
+	     << "mom = " << std::cos(outPar(n, 4, 0))/outPar(n, 3, 0) << " " << std::sin(outPar(n, 4, 0))/outPar(n, 3, 0) << " " << 1./(outPar(n, 3, 0)*tan(outPar(n, 5, 0)))
+	     << " r=" << std::sqrt( outPar(n, 0, 0)*outPar(n, 0, 0) + outPar(n, 1, 0)*outPar(n, 1, 0) ) << " pT=" << 1./std::abs(outPar(n, 3, 0)) << std::endl);
+      
+#ifdef DEBUG
+      if (n < N_proc) {
+	dmutex_guard;
+	std::cout << n << ": jacobian" << std::endl;
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,2,0),errorProp(n,2,1),errorProp(n,2,2),errorProp(n,2,3),errorProp(n,2,4),errorProp(n,2,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,3,0),errorProp(n,3,1),errorProp(n,3,2),errorProp(n,3,3),errorProp(n,3,4),errorProp(n,3,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,4,0),errorProp(n,4,1),errorProp(n,4,2),errorProp(n,4,3),errorProp(n,4,4),errorProp(n,4,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,5,0),errorProp(n,5,1),errorProp(n,5,2),errorProp(n,5,3),errorProp(n,5,4),errorProp(n,5,5));
+      }
+#endif
+    }
+}
+
+
+#include "PropagationMPlex.icc"
+
+__device__ 
+void helixAtRFromIterative_fn(const GPlexLV& inPar,
+    const GPlexQI& inChg, GPlexLV& outPar_global, const GPlexReg<float,1,1>& msRad, 
+    GPlexReg<float, LL2, L>& errorProp, const int N, const int n) {
+
+  GPlexReg<float, LL2, 1> outPar;
 
   if (n < N) {
     for (int j = 0; j < 5; ++j) {
-      outPar_reg[j] = outPar[n+j*opN]; 
+      outPar[j] = outPar_global(n, j, 0);
     }
-    const float& xin = inPar[n + 0*ipN]; 
-    const float& yin = inPar[n + 1*ipN]; 
-    const float& pxin = inPar[n + 3*ipN]; 
-    const float& pyin = inPar[n + 4*ipN]; 
-    const float& pzin = inPar[n + 5*ipN]; 
-    const float& r = msRad; 
-    float r0 = hipo(xin, yin);
+    errorProp.SetVal(0);
 
-    if (fabs(r-r0)<0.0001) {
-      // get an identity matrix
-      computeJacobianSimple(errorProp_reg, 0, 1, 1, 1, 1, 1, 0, 1, 0, N);
-      return;  // continue;
-    }
-    float pt2    = pxin*pxin+pyin*pyin;
-    float pt     = sqrt(pt2);
-    float ptinv  = 1./pt;
-    float pt2inv = ptinv*ptinv;
-    //p=0.3Br => r=p/(0.3*B)
-    float k = inChg[n] * 100. / (-0.299792458*Config::Bfield);
-    float invcurvature = 1./(pt*k);//in 1./cm
-    float ctgTheta=pzin*ptinv;
+    helixAtRFromIterative_impl(inPar, inChg, outPar, msRad, errorProp, n, n+1);
 
-    //variables to be updated at each iterations
-    float totalDistance = 0;
-    //derivatives initialized to value for first iteration, i.e. distance = r-r0in
-    float dTDdx = r0>0. ? -xin/r0 : 0.;
-    float dTDdy = r0>0. ? -yin/r0 : 0.;
-    float dTDdpx = 0.;
-    float dTDdpy = 0.;
-    //temporaries used within the loop (declare here to reduce memory operations)
-    float x = 0.;
-    float y = 0.;
-    float px = 0.;
-    float py = 0.;
-    float cosAP=0.;
-    float sinAP=0.;
-    float dAPdx = 0.;
-    float dAPdy = 0.;
-    float dAPdpx = 0.;
-    float dAPdpy = 0.;
-    // float dxdvar = 0.;
-    // float dydvar = 0.;
-    //5 iterations is a good starting point
-    //const unsigned int Niter = 10;
-    // const unsigned int Niter = 5+std::round(r-r0)/2;
-    for (unsigned int iter=0; iter < Config::Niter; ++iter) {
-      x  = outPar_reg[0];
-      y  = outPar_reg[1];
-      px = outPar_reg[3];
-      py = outPar_reg[4];
-      r0 = hipo(outPar_reg[0], outPar_reg[1]);
-
-      totalDistance += (r-r0);
-      if (Config::useTrigApprox) {  // TODO: uncomment
-        sincos4((r-r0)*invcurvature, sinAP, cosAP);
-      } else {
-        cosAP=cos((r-r0)*invcurvature);
-        sinAP=sin((r-r0)*invcurvature);
-      }
-
-      //helix propagation formulas
-      //http://www.phys.ufl.edu/~avery/fitting/fitting4.pdf
-      outPar_reg[0] = outPar_reg[0] + k*(px*sinAP-py*(1-cosAP));
-      outPar_reg[1] = outPar_reg[1] + k*(py*sinAP+px*(1-cosAP));
-      outPar_reg[2] = outPar_reg[2] + (r-r0)*ctgTheta;
-      outPar_reg[3] = px*cosAP-py*sinAP;
-      outPar_reg[4] = py*cosAP+px*sinAP;
-      //outPar.At(n, 5, 0) = pz; //take this out as it is redundant
-
-      if (Config::useSimpleJac==0 && 
-          iter +1 != Config::Niter &&
-          r0 > 0 && fabs((r-r0)*invcurvature)>0.000000001) {
-        //update derivatives on total distance for next step, where totalDistance+=r-r0
-        //now r0 depends on px and py
-        r0 = 1./r0;//WARNING, now r0 is r0inv (one less temporary)
-
-        //update derivative on D
-        dAPdx = -x*r0*invcurvature;
-        dAPdy = -y*r0*invcurvature;
-        dAPdpx = -(r-1./r0)*invcurvature*px*pt2inv;//weird, using r0 instead of 1./r0 improves things but it should be wrong since r0 in now r0inv
-        dAPdpy = -(r-1./r0)*invcurvature*py*pt2inv;//weird, using r0 instead of 1./r0 improves things but it should be wrong since r0 in now r0inv
-        //reduce temporary variables
-        //dxdx = 1 + k*dAPdx*(px*cosAP - py*sinAP);
-        //dydx = k*dAPdx*(py*cosAP + px*sinAP);
-        //dTDdx -= r0*(x*dxdx + y*dydx);
-        dTDdx -= r0*(x*(1 + k*dAPdx*(px*cosAP - py*sinAP)) + y*(k*dAPdx*(py*cosAP + px*sinAP)));
-        //reuse same temporary variables
-        //dxdy = k*dAPdy*(px*cosAP - py*sinAP);
-        //dydy = 1 + k*dAPdy*(py*cosAP + px*sinAP);
-        //dTDdy -= r0*(x*dxdy + y*dydy);
-        dTDdy -= r0*(x*(k*dAPdy*(px*cosAP - py*sinAP)) + y*(1 + k*dAPdy*(py*cosAP + px*sinAP)));
-        //dxdpx = k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx);
-        //dydpx = k*(py*cosAP*dAPdpx + 1. - cosAP + px*sinAP*dAPdpx);
-        //dTDdpx -= r0*(x*dxdpx + y*dydpx);
-        dTDdpx -= r0*(x*(k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx)) + y*(k*(py*cosAP*dAPdpx + 1. - cosAP + px*sinAP*dAPdpx)));
-        //dxdpy = k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy);
-        //dydpy = k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy);
-        //dTDdpy -= r0*(x*dxdpy + y*(k*dydpy);
-        dTDdpy -= r0*(x*(k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy)) + y*(k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy)));
-
-      }
-      float& TD=totalDistance;
-      float  TP=TD*invcurvature;//totalAngPath
-      
-      float& iC=invcurvature;
-      float dCdpx = k*pxin*ptinv;
-      float dCdpy = k*pyin*ptinv;
-      float dTPdx = dTDdx*iC;
-      float dTPdy = dTDdy*iC;
-      float dTPdpx = (dTDdpx - TD*dCdpx*iC)*iC; // MT change: avoid division
-      float dTPdpy = (dTDdpy - TD*dCdpy*iC)*iC; // MT change: avoid division
-      
-      float cosTP, sinTP;
-      if (Config::useTrigApprox) {
-        sincos4(TP, sinTP, cosTP);
-      } else {
-        cosTP = cos(TP);
-        sinTP = sin(TP);
-      }
-
-      if (Config::useSimpleJac) { 
-        //assume total path length s as given and with no uncertainty
-        float p = pt2 + pzin*pzin;
-        p = sqrt(p);
-        float s = TD*p*ptinv;
-        computeJacobianSimple(errorProp_reg, s, k, p, pxin, pyin, pzin, TP, cosTP, sinTP, N);
-      } else {
-        //now try to make full jacobian
-        //derive these to compute jacobian
-        //x = xin + k*(pxin*sinTP-pyin*(1-cosTP));
-        //y = yin + k*(pyin*sinTP+pxin*(1-cosTP));
-        //z = zin + k*TP*pzin;
-        //px = pxin*cosTP-pyin*sinTP;
-        //py = pyin*cosTP+pxin*sinTP;
-        //pz = pzin;
-        //jacobian
-
-        errorProp_reg[(0*L + 0)] = 1 + k*dTPdx*(pxin*cosTP - pyin*sinTP);	//dxdx;
-        errorProp_reg[(0*L + 1)] = k*dTPdy*(pxin*cosTP - pyin*sinTP);	//dxdy;
-        errorProp_reg[(0*L + 2)] = 0.;
-        errorProp_reg[(0*L + 3)] = k*(sinTP + pxin*cosTP*dTPdpx - pyin*sinTP*dTPdpx); //dxdpx;
-        errorProp_reg[(0*L + 4)] = k*(pxin*cosTP*dTPdpy - 1. + cosTP - pyin*sinTP*dTPdpy);//dxdpy;
-        errorProp_reg[(0*L + 5)] = 0.;
-
-        errorProp_reg[(1*L + 0)] = k*dTPdx*(pyin*cosTP + pxin*sinTP);	//dydx;
-        errorProp_reg[(1*L + 1)] = 1 + k*dTPdy*(pyin*cosTP + pxin*sinTP);	//dydy;
-        errorProp_reg[(1*L + 2)] = 0.;
-        errorProp_reg[(1*L + 3)] = k*(pyin*cosTP*dTPdpx + 1. - cosTP + pxin*sinTP*dTPdpx);//dydpx;
-        errorProp_reg[(1*L + 4)] = k*(sinTP + pyin*cosTP*dTPdpy + pxin*sinTP*dTPdpy); //dydpy;
-        errorProp_reg[(1*L + 5)] = 0.;
-
-        errorProp_reg[(2*L + 0)] = k*pzin*dTPdx;	//dzdx;
-        errorProp_reg[(2*L + 1)] = k*pzin*dTPdy;	//dzdy;
-        errorProp_reg[(2*L + 2)] = 1.;
-        errorProp_reg[(2*L + 3)] = k*pzin*dTPdpx;//dzdpx;
-        errorProp_reg[(2*L + 4)] = k*pzin*dTPdpy;//dzdpy;
-        errorProp_reg[(2*L + 5)] = k*TP; //dzdpz;
-
-        errorProp_reg[(3*L + 0)] = -dTPdx*(pxin*sinTP + pyin*cosTP);	//dpxdx;
-        errorProp_reg[(3*L + 1)] = -dTPdy*(pxin*sinTP + pyin*cosTP);	//dpxdy;
-        errorProp_reg[(3*L + 2)] = 0.;
-        errorProp_reg[(3*L + 3)] = cosTP - dTPdpx*(pxin*sinTP + pyin*cosTP); //dpxdpx;
-        errorProp_reg[(3*L + 4)] = -sinTP - dTPdpy*(pxin*sinTP + pyin*cosTP);//dpxdpy;
-        errorProp_reg[(3*L + 5)] = 0.;
-
-        errorProp_reg[(4*L + 0)] = -dTPdx*(pyin*sinTP - pxin*cosTP); //dpydx;
-        errorProp_reg[(4*L + 1)] = -dTPdy*(pyin*sinTP - pxin*cosTP);	//dpydy;
-        errorProp_reg[(4*L + 2)] = 0.;
-        errorProp_reg[(4*L + 3)] = +sinTP - dTPdpx*(pyin*sinTP - pxin*cosTP);//dpydpx;
-        errorProp_reg[(4*L + 4)] = +cosTP - dTPdpy*(pyin*sinTP - pxin*cosTP);//dpydpy;
-        errorProp_reg[(4*L + 5)] = 0.;
-
-        errorProp_reg[(5*L + 0)] = 0.;
-        errorProp_reg[(5*L + 1)] = 0.;
-        errorProp_reg[(5*L + 2)] = 0.;
-        errorProp_reg[(5*L + 3)] = 0.;
-        errorProp_reg[(5*L + 4)] = 0.;
-        errorProp_reg[(5*L + 5)] = 1.;
-      }
-    }
     // Once computations are done. Get values from registers to global memory.
     for (int j = 0; j < 5; ++j) {
-      outPar[n + j*opN] = outPar_reg[j];
+      outPar_global(n, j, 0) = outPar[j];
     }
   }
 }
 
 /// Similarity ////////////////////////////////////////////////////////////////
-__device__ void similarity_fn(float* a, float *b, size_t stride_outErr,
-    int N, int n) {
-  size_t bN = stride_outErr;
+__device__ void similarity_fn(GPlexRegLL &a, GPlexLS &b, int N, int n) {
+
+  size_t bN = b.stride;
   
   // Keep most values in registers.
-  float b_reg[LL];
+  float b_reg[LL2];
   // To avoid using too many registers, tmp[] as a limited size and is reused.
   float tmp[6];
 
@@ -395,46 +454,169 @@ __device__ void similarity_fn(float* a, float *b, size_t stride_outErr,
   }
 }
 
-__global__ void propagation_kernel(
-    const float* __restrict__ msPar, size_t stride_msPar, 
-    float *inPar, size_t inPar_stride, int *inChg,
-    float *outPar, size_t outPar_stride, float *errorProp,
-    size_t errorProp_stride, float *outErr, size_t outErr_stride, int N) {
 
-  int grid_width = blockDim.x * gridDim.x;
-  int n = threadIdx.x + blockIdx.x * blockDim.x;
-  float msRad_reg;
+// PropagationMPlex.cc:propagateHelixToRMPlex, first version with 6 arguments 
+__device__ void propagation_fn(
+    GPlexLS &inErr, GPlexLV &inPar, 
+    GPlexQI &inChg, GPlexHV &msPar,
+    GPlexLS &outErr, GPlexLV &outPar,
+    int n, int N) {
+
+  GPlexRegQF msRad_reg;
   // Using registers instead of shared memory is ~ 30% faster.
-  float errorProp_reg[LL];
-  // If there is more matrices than MAX_BLOCKS_X * BLOCK_SIZE_X 
-  for (int z = 0; z < (N-1)/grid_width  +1; z++) {
-    n += z*grid_width;
-    if (n < N) {
-      computeMsRad_fn(msPar, stride_msPar, &msRad_reg, N, n);
-      if (Config::doIterative) {
-        helixAtRFromIterative_fn(inPar, inPar_stride,
-            inChg, outPar, outPar_stride, msRad_reg, 
-            errorProp_reg, N, n);
-      }
-      similarity_fn(errorProp_reg, outErr, outErr_stride, N, n);
+  GPlexRegLL errorProp_reg;
+  // If there is more matrices than max_blocks_x * BLOCK_SIZE_X 
+  if (n < N) {
+    for (int i = 0; i < inErr.kSize; ++i) {
+      outErr[n + i*outErr.stride] = inErr[n + i*inErr.stride];
     }
+    for (int i = 0; i < inPar.kSize; ++i) {
+      outPar[n + i*outPar.stride] = inPar[n + i*inPar.stride];
+    }
+    for (int i = 0; i < 36; ++i) {
+      errorProp_reg[i] = 0.0;
+    }
+#if 0
+    computeMsRad_fn(msPar, stride_msPar, &msRad_reg, N, n);
+    if (Config::doIterative) {
+      helixAtRFromIterative_fn(inPar, inPar_stride,
+          inChg, outPar, outPar_stride, msRad_reg, 
+          errorProp_reg, N, n);
+    } else {
+      // TODO: not ported for now. Assuming Config::doIterative
+      // helixAtRFromIntersection(inPar, inChg, outPar, msRad, errorProp);
+    }
+    similarity_fn(errorProp_reg, outErr, outErr_stride, N, n);
+#endif
+    computeMsRad_fn(msPar, msRad_reg, N, n);
+#ifdef CCSCOORD
+    helixAtRFromIterativePolar_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
+#else
+    helixAtRFromIterative_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
+#endif
+    /*similarity_fn(errorProp_reg, outErr, N, n);*/
+    GPlexRegLL temp;
+    MultHelixProp_fn      (errorProp_reg, outErr, temp, n);
+    MultHelixPropTransp_fn(errorProp_reg, temp,   outErr, n);
   }
 }
 
 
-void propagation_wrapper(cudaStream_t& stream,
-    GPlex<float>& msPar,
-    GPlex<float>& inPar, GPlex<int>& inChg,
-    GPlex<float>& outPar, GPlex<float>& errorProp,
-    GPlex<float>& outErr, 
+__global__ void propagation_kernel(
+    GPlexLS inErr,
+    GPlexHV msPar,
+    GPlexLV inPar, GPlexQI inChg,
+    GPlexLV outPar,
+    GPlexLS outErr, int N)
+{
+  int grid_width = blockDim.x * gridDim.x;
+  int n = threadIdx.x + blockIdx.x * blockDim.x;
+  for (int z = 0; z < (N-1)/grid_width  +1; z++) {
+    n += z*grid_width;
+    propagation_fn(inErr, inPar, inChg, msPar, outErr, outPar, n, N);
+  }
+}
+
+
+void propagation_wrapper(const cudaStream_t& stream,
+    GPlexHV& msPar, GPlexLS& inErr,
+    GPlexLV& inPar, GPlexQI& inChg,
+    GPlexLV& outPar,
+    GPlexLS& outErr, 
     const int N) {
   int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
-                       MAX_BLOCKS_X);
+                       max_blocks_x);
   dim3 grid(gridx, 1, 1);
   dim3 block(BLOCK_SIZE_X, 1, 1);
   propagation_kernel <<<grid, block, 0, stream >>>
-    (msPar.ptr, msPar.stride,
-     inPar.ptr, inPar.stride, inChg.ptr,
-     outPar.ptr, outPar.stride, errorProp.ptr,
-     errorProp.stride, outErr.ptr, outErr.stride, N);
+    (inErr, msPar, inPar, inChg, outPar, outErr, N);
 }
+
+
+// PropagationMPlex.cc:propagateHelixToRMPlex, second version with 7 arguments 
+// Imposes the radius
+__device__ void propagationForBuilding_fn(
+    const GPlexLS &inErr, const GPlexLV &inPar,
+    const GPlexQI &inChg, const float radius,
+    GPlexLS &outErr, GPlexLV &outPar, 
+    const int n, const int N) {
+#if 1
+  GPlexRegQF msRad_reg;
+  // Using registers instead of shared memory is ~ 30% faster.
+  GPlexRegLL errorProp_reg;
+  // If there is more matrices than max_blocks_x * BLOCK_SIZE_X 
+  if (n < N) {
+
+    for (int i = 0; i < inErr.kSize; ++i) {
+      outErr[n + i*outErr.stride] = inErr[n + i*inErr.stride];
+    }
+    for (int i = 0; i < inPar.kSize; ++i) {
+      outPar[n + i*outPar.stride] = inPar[n + i*inPar.stride];
+    }
+    for (int i = 0; i < 36; ++i) {
+      errorProp_reg[i] = 0.0;
+    }
+
+    /*assignMsRad_fn(radius, &msRad_reg, N, n);*/
+    msRad_reg(n, 0, 0) = radius;
+    /*if (n == 0) printf("gpu r = %f\n", radius);*/
+
+#ifdef CCSCOORD
+    helixAtRFromIterativePolar_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
+#else
+    helixAtRFromIterative_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
+#endif
+    // TODO: port me
+    /*if (Config::useCMSGeom) {*/
+    /*MPlexQF hitsRl;*/
+    /*MPlexQF hitsXi;*/
+    /*for (int n = 0; n < NN; ++n) {*/
+    /*hitsRl.At(n, 0, 0) = getRlVal(r, outPar.ConstAt(n, 2, 0));*/
+    /*hitsXi.At(n, 0, 0) = getXiVal(r, outPar.ConstAt(n, 2, 0));*/
+    /*}*/
+    /*applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);*/
+    /*}*/
+    /*similarity_fn(errorProp_reg, outErr, N, n);*/
+
+    // Matriplex version of:
+    // result.errors = ROOT::Math::Similarity(errorProp, outErr);
+
+    //MultHelixProp can be optimized for polar coordinates, see GenMPlexOps.pl
+    /*MPlexLL temp;*/
+    /*MultHelixProp      (errorProp, outErr, temp);*/
+    /*MultHelixPropTransp(errorProp, temp,   outErr);*/
+    GPlexRegLL temp;
+    MultHelixProp_fn      (errorProp_reg, outErr, temp, n);
+    MultHelixPropTransp_fn(errorProp_reg, temp,   outErr, n);
+
+  }
+#endif
+}
+
+__global__ void propagationForBuilding_kernel(
+    const GPlexLS inErr, const GPlexLV inPar,
+    const GPlexQI inChg, const float radius,
+    GPlexLS outErr, GPlexLV outPar, 
+    const int N) {
+  int grid_width = blockDim.x * gridDim.x;
+  int n = threadIdx.x + blockIdx.x * blockDim.x;
+
+  for (int z = 0; z < (N-1)/grid_width  +1; z++) {
+    n += z*grid_width;
+    propagationForBuilding_fn( inErr, inPar, inChg, radius, outErr, outPar, n, N);
+  }
+}
+
+void propagationForBuilding_wrapper(const cudaStream_t& stream,
+    const GPlexLS& inErr, const GPlexLV& inPar,
+    const GPlexQI& inChg, const float radius,
+    GPlexLS& outErr, GPlexLV& outPar, 
+    const int N) {
+  int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
+                       max_blocks_x);
+  dim3 grid(gridx, 1, 1);
+  dim3 block(BLOCK_SIZE_X, 1, 1);
+  propagationForBuilding_kernel<<<grid, block, 0, stream >>>
+    (inErr, inPar, inChg, radius, outErr, outPar, N);
+}
+

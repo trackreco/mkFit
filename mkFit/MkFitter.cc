@@ -5,7 +5,7 @@
 #include "KalmanUtilsMPlex.h"
 #include "ConformalUtilsMPlex.h"
 #ifdef USE_CUDA
-#include "FitterCU.h"
+//#include "FitterCU.h"
 #endif
 
 //#define DEBUG
@@ -65,7 +65,10 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
   // assert(end - beg == NN);
 
   int itrack;
-#ifdef USE_CUDA
+
+// FIXME: uncomment when track building is ported to GPU.
+#if 0
+//#ifdef USE_CUDA
   // This openmp loop brings some performances when using
   // a single thread to fit all events.
   // However, it is more advantageous to use the threads to
@@ -88,7 +91,9 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
 // CopyIn seems fast enough, but indirections are quite slow.
 // For GPU computations, it has been moved in between kernels
 // in an attempt to overlap CPU and GPU computations.
-#ifndef USE_CUDA
+// FIXME: uncomment when track building is ported to GPU.
+#if 1
+//#ifndef USE_CUDA
     for (int hi = 0; hi < Nhits; ++hi)
     {
       const int hidx = trk.getHitIdx(hi);
@@ -114,7 +119,8 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
   // assert(end - beg == NN);
 
   int itrack;
-#ifdef USE_CUDA
+//#ifdef USE_CUDA
+#if 0
   // This openmp loop brings some performances when using
   // a single thread to fit all events.
   // However, it is more advantageous to use the threads to
@@ -137,7 +143,8 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
 // CopyIn seems fast enough, but indirections are quite slow.
 // For GPU computations, it has been moved in between kernels
 // in an attempt to overlap CPU and GPU computations.
-#ifndef USE_CUDA
+//#ifndef USE_CUDA
+#if 1
     for (int hi = 0; hi < Nhits; ++hi)
     {
       const int hidx = trk.getHitIdx(hi);
@@ -168,7 +175,8 @@ void MkFitter::SlurpInTracksAndHits(const std::vector<Track>&  tracks,
   int idx[NN]      __attribute__((aligned(64)));
   int itrack;
 
-#ifdef USE_CUDA
+//#ifdef USE_CUDA
+#if 0
   // This openmp loop brings some performances when using
   // a single thread to fit all events.
   // However, it is more advantageous to use the threads to
@@ -200,7 +208,8 @@ void MkFitter::SlurpInTracksAndHits(const std::vector<Track>&  tracks,
 // CopyIn seems fast enough, but indirections are quite slow.
 // For GPU computations, it has been moved in between kernels
 // in an attempt to overlap CPU and GPU computations.
-#ifndef USE_CUDA
+//#ifndef USE_CUDA
+#if 1
   for (int hi = 0; hi < Nhits; ++hi)
   {
     const int   hidx      = tracks[beg].getHitIdx(hi);
@@ -257,7 +266,9 @@ void MkFitter::InputTracksAndHitIdx(const std::vector<Track>& tracks,
 
     for (int hi = 0; hi < Nhits; ++hi)
     {
-
+      // MPBL: It does not seem that these values are that dummies
+      //       Not transfering them to the GPU reduces the number of
+      //       nFoundHits in the printouts.
       HitsIdx[hi](itrack, 0, 0) = trk.getHitIdx(hi);//dummy value for now
 
     }
@@ -351,7 +362,8 @@ void MkFitter::InputSeedsTracksAndHits(const std::vector<Track>&  seeds,
   // assert(end - beg == NN);
 
   int itrack;
-#ifdef USE_CUDA
+//#ifdef USE_CUDA
+#if 0
   // This openmp loop brings some performances when using
   // a single thread to fit all events.
   // However, it is more advantageous to use the threads to
@@ -378,7 +390,8 @@ void MkFitter::InputSeedsTracksAndHits(const std::vector<Track>&  seeds,
 // CopyIn seems fast enough, but indirections are quite slow.
 // For GPU computations, it has been moved in between kernels
 // in an attempt to overlap CPU and GPU computations.
-#ifndef USE_CUDA
+//#ifndef USE_CUDA
+#if 1
     for (int hi = 0; hi < Nhits; ++hi)
     {
       const int hidx = trk.getHitIdx(hi);
@@ -661,7 +674,7 @@ void MkFitter::SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_pr
     // const int pb2 = L.GetPhiBin(phi + dphi) + 2;
 
     if (dump)
-      printf("LayerOfHits::SelectHitIndices %6.3f %6.3f %6.4f %7.5f %3d %3d %4d %4d\n",
+      printf("LayerOfHits::SelectHitIndices %6.3f %6.3f %6.6f %7.5f %3d %3d %4d %4d\n",
              z, phi, dz, dphi, zb1, zb2, pb1, pb2);
 
     // MT: One could iterate in "spiral" order, to pick hits close to the center.

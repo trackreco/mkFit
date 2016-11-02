@@ -855,7 +855,6 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
 #endif
 }
 
-
 void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
                       const MPlexHS &msErr,  const MPlexHV& msPar,
                             MPlexQF& outChi2,

@@ -8,6 +8,11 @@
 #include "HitStructures.h"
 #include "BinInfoUtils.h"
 
+#if USE_CUDA
+#include "FitterCU.h"
+#include "HitStructuresCU.h"
+#endif
+
 //#define DEBUG 1
 
 //#define USE_BOHS

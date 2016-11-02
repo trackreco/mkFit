@@ -131,6 +131,9 @@ public:
         for (int j = 0; j < N; ++j)
         {
            fArray[i*N + j] = * (const T*) (arr + i*sizeof(T) + vi[j]);
+           //if(j==2) {
+             //printf("cpu -- %d : %d,  %f\n", i, vi[j], fArray[i*N+j]);
+           //}
         }
       }
    }
