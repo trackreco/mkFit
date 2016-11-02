@@ -377,7 +377,7 @@ void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg,
 
 void helixAtRFromIterativeCCS(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
                               const MPlexQF &msRad, MPlexLL& errorProp,
-                              const int      N_proc)
+                              const int      N_proc, const bool useParamBfield)
 {
   errorProp.SetVal(0.f);
 
@@ -391,11 +391,11 @@ void helixAtRFromIterativeCCS(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
       errorProp(n,3,3) = 1.f;
       errorProp(n,4,4) = 1.f;
       errorProp(n,5,5) = 1.f;
-
-      const float k = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
-      const float r = msRad.ConstAt(n, 0, 0);
+      
       float r0 = hipo(inPar.ConstAt(n, 0, 0), inPar.ConstAt(n, 1, 0));
-
+      const float k = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*(useParamBfield?Config::BfieldFromZR(inPar.ConstAt(n,2,0),r0):Config::Bfield));
+      const float r = msRad.ConstAt(n, 0, 0);
+     
       // if (std::abs(r-r0)<0.0001f) {
       // 	dprint("distance less than 1mum, skip");
       // 	continue;
@@ -585,7 +585,7 @@ void helixAtRFromIterativeCCS(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
 
 void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
                            const MPlexQF &msRad, MPlexLL& errorProp,
-                           const int      N_proc)
+                           const int      N_proc, const bool useParamBfield)
 {
   errorProp.SetVal(0.f);
 
@@ -622,7 +622,7 @@ void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& 
       const float ptinv  = 1.f/pt;
       const float pt2inv = ptinv*ptinv;
       //p=0.3Br => r=p/(0.3*B)
-      const float k = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
+      const float k = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*(useParamBfield?Config::BfieldFromZR(inPar.ConstAt(n,2,0),r0):Config::Bfield));
       const float invcurvature = 1.f/(pt*k);//in 1./cm
       const float ctgTheta=pzin*ptinv;
       
@@ -922,7 +922,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
 void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
                             const MPlexQI &inChg,  const MPlexHV& msPar, 
 			          MPlexLS &outErr,       MPlexLV& outPar,
-                            const int      N_proc)
+                            const int      N_proc, const bool useParamBfield)
 {
    const idx_t N  = NN;
 
@@ -944,9 +944,9 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    }
 
 #ifdef CCSCOORD
-   helixAtRFromIterativeCCS(inPar, inChg, outPar, msRad, errorProp, N_proc);
+   helixAtRFromIterativeCCS(inPar, inChg, outPar, msRad, errorProp, N_proc, useParamBfield);
 #else
-   helixAtRFromIterative(inPar, inChg, outPar, msRad, errorProp, N_proc);
+   helixAtRFromIterative(inPar, inChg, outPar, msRad, errorProp, N_proc, useParamBfield);
 #endif
 
 #ifdef DEBUG
@@ -1074,7 +1074,7 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
 void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
                             const MPlexQI &inChg,  const MPlexHV& msPar,
 			          MPlexLS &outErr,       MPlexLV& outPar,
-                            const int      N_proc)
+                            const int      N_proc, const bool useParamBfield)
 {
    const idx_t N  = NN;
 
@@ -1097,7 +1097,7 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
      // }
    }
 
-   helixAtZ(inPar, inChg, outPar, msZ, errorProp, N_proc);
+   helixAtZ(inPar, inChg, outPar, msZ, errorProp, N_proc, useParamBfield);
 
 #ifdef DEBUG
    {
@@ -1239,7 +1239,7 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 
 void helixAtZ(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
 	      const MPlexQF &msZ, MPlexLL& errorProp,
-	      const int      N_proc)
+	      const int      N_proc, const bool useParamBfield)
 {
   errorProp.SetVal(0.f);
 
@@ -1253,7 +1253,6 @@ void helixAtZ(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
       errorProp(n,4,4) = 1.f;
       errorProp(n,5,5) = 1.f;
 
-      const float k = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
       const float zout = msZ.ConstAt(n, 0, 0);
 
       const float xin   = inPar.ConstAt(n, 0, 0);
@@ -1262,6 +1261,8 @@ void helixAtZ(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
       const float ipt   = inPar.ConstAt(n, 3, 0);
       const float phiin = inPar.ConstAt(n, 4, 0);
       const float theta = inPar.ConstAt(n, 5, 0);
+
+      const float k = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*(useParamBfield?Config::BfieldFromZR(zin,hipo(inPar.ConstAt(n,0,0),inPar.ConstAt(n,1,0))):Config::Bfield));
 
       dprint_np(n, std::endl << "input parameters"
             << " inPar.ConstAt(n, 0, 0)=" << std::setprecision(9) << inPar.ConstAt(n, 0, 0)

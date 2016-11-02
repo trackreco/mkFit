@@ -454,7 +454,7 @@ void MkFitter::ConformalFitTracks(bool fitting, int beg, int end)
   }
 }
 
-void MkFitter::FitTracks(const int N_proc)
+void MkFitter::FitTracks(const int N_proc, const bool useParamBfield)
 {
   // Fitting loop.
 
@@ -465,7 +465,7 @@ void MkFitter::FitTracks(const int N_proc)
     //                       Err[iP], Par[iP]);
 
     propagateHelixToRMPlex(Err[iC], Par[iC], Chg, msPar[hi],
-                           Err[iP], Par[iP], N_proc);
+                           Err[iP], Par[iP], N_proc, useParamBfield);
 
     updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[hi], msPar[hi],
                           Err[iC], Par[iC], N_proc);
@@ -473,7 +473,7 @@ void MkFitter::FitTracks(const int N_proc)
   // XXXXX What's with chi2?
 }
 
-void MkFitter::FitTracksTestEndcap(const int N_proc, const Event* ev)
+void MkFitter::FitTracksTestEndcap(const int N_proc, const Event* ev, const bool useParamBfield)
 {
 
   if (countValidHits(0)<8) return;
@@ -493,7 +493,7 @@ void MkFitter::FitTracksTestEndcap(const int N_proc, const Event* ev)
       dprint("hit #" << hi << " hit  pos=" << msPar[hi].ConstAt(0, 0, 0) << ", " <<  msPar[hi].ConstAt(0, 0, 1) << ", " <<  msPar[hi].ConstAt(0, 0, 2));
 
       propagateHelixToZMPlex(Err[iC], Par[iC], Chg, msPar[hi],
-			     Err[iP], Par[iP], N_proc);
+			     Err[iP], Par[iP], N_proc, useParamBfield);
 
       dprint("hit #" << hi << " prop par=" << Par[iP].ConstAt(0, 0, 0) << ", " <<  Par[iP].ConstAt(0, 0, 1) << ", " <<  Par[iP].ConstAt(0, 0, 2)  << ", "
 	     << Par[iP].ConstAt(0, 0, 3) << ", " <<  Par[iP].ConstAt(0, 0, 4) << ", " <<  Par[iP].ConstAt(0, 0, 5)

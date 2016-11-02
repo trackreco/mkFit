@@ -156,7 +156,7 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 	  } else {
 	    mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
 	  }
-	  mkfp->FitTracksTestEndcap(end - itrack, &ev);
+	  mkfp->FitTracksTestEndcap(end - itrack, &ev, true);
 	} else {
 	  if (theEnd < end) {
 	    end = theEnd;
@@ -166,7 +166,7 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 	  }
 	  
 	  if (Config::cf_fitting) mkfp->ConformalFitTracks(true, itrack, end);
-	  mkfp->FitTracks(end - itrack);
+	  mkfp->FitTracks(end - itrack, true);
 	}
 	mkfp->OutputFittedTracks(rectracks, itrack, end);
      }
