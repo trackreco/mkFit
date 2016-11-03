@@ -29,6 +29,8 @@ public:
   int evtID() const {return evtID_;}
   void resetLayerHitMap(bool resetSimHits);
 
+  int nextMCHitID() { return mcHitIDCounter_++; }
+
   void write_out(FILE *fp);
   void read_in(FILE *fp);
 
@@ -38,6 +40,7 @@ public:
   int evtID_;
  public:
   int threads_;
+  std::atomic<int> mcHitIDCounter_;
   std::vector<HitVec> layerHits_;
   MCHitInfoVec simHitsInfo_;
   HitIDVec layerHitMap_; // indexed same as simHitsInfo_, maps to layer & hit

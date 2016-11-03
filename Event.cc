@@ -14,6 +14,8 @@
 #include "tbb/tbb.h"
 #endif
 
+#include <mutex>
+
 inline bool sortByPhi(const Hit& hit1, const Hit& hit2)
 {
   return hit1.phi()<hit2.phi();
@@ -57,7 +59,7 @@ void Event::resetLayerHitMap(bool resetSimHits) {
   }
 }
 
-Event::Event(const Geometry& g, Validation& v, int evtID, int threads) : geom_(g), validation_(v), evtID_(evtID), threads_(threads)
+Event::Event(const Geometry& g, Validation& v, int evtID, int threads) : geom_(g), validation_(v), evtID_(evtID), threads_(threads), mcHitIDCounter_(0)
 {
   layerHits_.resize(Config::nLayers);
   segmentMap_.resize(Config::nLayers);
@@ -70,7 +72,7 @@ Event::Event(const Geometry& g, Validation& v, int evtID, int threads) : geom_(g
 
 void Event::Simulate()
 {
-  MCHitInfo::mcHitIDCounter_ = 0;
+  mcHitIDCounter_ = 0;
 
   simTracks_.resize(Config::nTracks);
   simHitsInfo_.resize(Config::nTotHit * Config::nTracks);
@@ -99,9 +101,9 @@ void Event::Simulate()
 
       int q=0;//set it in setup function
       // do the simulation
-      if (Config::useCMSGeom) setupTrackFromTextFile(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs);
-      else if (Config::endcapTest) setupTrackByToyMCEndcap(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs);
-      else setupTrackByToyMC(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs); 
+      if (Config::useCMSGeom) setupTrackFromTextFile(pos,mom,covtrk,hits,*this,itrack,q,tmpgeom,initialTSs);
+      else if (Config::endcapTest) setupTrackByToyMCEndcap(pos,mom,covtrk,hits,*this,itrack,q,tmpgeom,initialTSs);
+      else setupTrackByToyMC(pos,mom,covtrk,hits,*this,itrack,q,tmpgeom,initialTSs); 
 
 #ifdef CCSCOORD
       // setupTrackByToyMCEndcap is already in CCS coord, no need to convert
@@ -366,6 +368,8 @@ void Event::write_out(FILE *fp)
 
 void Event::read_in(FILE *fp)
 {
+  static std::mutex readmutex;
+  std::lock_guard<std::mutex> readlock(readmutex);
 
   int nt;
   fread(&nt, sizeof(int), 1, fp);

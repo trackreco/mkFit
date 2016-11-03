@@ -1065,7 +1065,7 @@ void MkBuilder::FindTracksCloneEngineTbb()
     for (int ebin = ebins.begin(); ebin != ebins.end(); ++ebin) {
       EtaBinOfCombCandidates& etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
 
-      int adaptiveSPT = Config::nEtaBin*etabin_of_comb_candidates.m_fill_index/Config::numThreadsFinder/2 + 1;
+      int adaptiveSPT = Config::numThreadsEvents*Config::nEtaBin*etabin_of_comb_candidates.m_fill_index/Config::numThreadsFinder/2 + 1;
       dprint("adaptiveSPT " << adaptiveSPT << " fill " << etabin_of_comb_candidates.m_fill_index);
       tbb::parallel_for(tbb::blocked_range<int>(0, etabin_of_comb_candidates.m_fill_index, std::min(Config::numSeedsPerTask, adaptiveSPT)), 
         [&](const tbb::blocked_range<int>& seeds)

@@ -173,8 +173,8 @@ inline float getPzPzErr2(float ipt, float theta, float vipt, float vtheta){ // i
 struct MCHitInfo
 {
   MCHitInfo() {}
-  MCHitInfo(int track, int layer, int ithlayerhit)
-    : mcTrackID_(track), layer_(layer), ithLayerHit_(ithlayerhit), mcHitID_(mcHitIDCounter_.fetch_add(1)) {}
+  MCHitInfo(int track, int layer, int ithlayerhit, int mcHitID)
+    : mcTrackID_(track), layer_(layer), ithLayerHit_(ithlayerhit), mcHitID_(mcHitID) {}
 
   int mcTrackID_;
   int layer_;
@@ -184,7 +184,6 @@ struct MCHitInfo
   int mcTrackID() const { return mcTrackID_; } 
   int layer()     const { return layer_; } 
   static void reset();
-  static std::atomic<int> mcHitIDCounter_;
 };
 typedef std::vector<MCHitInfo> MCHitInfoVec;
 

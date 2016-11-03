@@ -11,6 +11,7 @@
 
 #include <limits>
 #include <list>
+#include <mutex>
 
 #include "Event.h"
 
@@ -24,7 +25,7 @@
 #endif
 
 #include <cstdlib>
-//#define DEBUG
+#define DEBUG
 #include "Debug.h"
 
 #include <omp.h>
@@ -36,8 +37,6 @@
 #endif
 
 //==============================================================================
-
-std::vector<Track> plex_tracks;
 
 void initGeom(Geometry& geom)
 {
@@ -186,8 +185,6 @@ void test_standard()
   double t_sum[NT] = {0};
   double t_skip[NT] = {0};
 
-  EventTmp ev_tmp;
-
 #if USE_CUDA
   tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
   //tbb::task_scheduler_init tbb_init(tbb::task_scheduler_init::automatic);
@@ -234,72 +231,89 @@ void test_standard()
   // tbb::task_scheduler_init tbb_init(Config::numThreadsFinder != 0 ?
   //                                   Config::numThreadsFinder :
   //                                   tbb::task_scheduler_init::automatic);
-  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
+  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder*Config::numThreadsEvents);
   omp_set_num_threads(Config::numThreadsFinder);
 
-  for (int evt = 1; evt <= Config::nEvents; ++evt)
+  std::mutex statsmutex;
+
+  dprint("parallel_for step size " << (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents);
+  dprint("asdf");
+
+  tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEvents, (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents),
+    [&](const tbb::blocked_range<int>& evts)
   {
-    printf("\n");
-    printf("Processing event %d\n", evt);
+    EventTmp ev_tmp;
+    std::vector<Track> plex_tracks;
 
-    Event ev(geom, val, evt);
-
-    if (g_operation == "read")
+    for (int evt = evts.begin()+1; evt <= evts.end(); ++evt)
     {
-      ev.read_in(g_file);
-      ev.resetLayerHitMap(false);//hitIdx's in the sim tracks are already ok 
-    }
-    else
-    {
-      //Simulate() parallelism is via TBB, but comment out for now due to cost of
-      //task_scheduler_init
-      //tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
-
-      ev.Simulate();
-      ev.resetLayerHitMap(true);
-    }
-
-    // if (evt!=2985) continue;
-
-    plex_tracks.resize(ev.simTracks_.size());
-
-    double t_best[NT] = {0}, t_cur[NT];
-
-    for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
-    {
-#ifndef USE_CUDA
-      t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
-#else
-      FitterCU<float> cuFitter(NN);
-      cuFitter.allocateDevice();
-      t_cur[0] = (g_run_fit_std) ? runFittingTestPlexGPU(cuFitter, ev, plex_tracks) : 0;
-      cuFitter.freeDevice();
-#endif
-      t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev) : 0;
-      t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlex(ev, ev_tmp) : 0;
-      t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, ev_tmp) : 0;
-      t_cur[4] = (g_run_build_all || g_run_build_tbb) ? runBuildingTestPlexTbb(ev, ev_tmp) : 0;
-
-      for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
-
-      if (Config::finderReportBestOutOfN > 1)
       {
-        printf("----------------------------------------------------------------\n");
-        printf("Best-of-times:");
-        for (int i = 0; i < NT; ++i) printf("  %.5f/%.5f", t_cur[i], t_best[i]);
+        std::lock_guard<std::mutex> statslock(statsmutex);
         printf("\n");
+        printf("Processing event %d\n", evt);
       }
-      printf("----------------------------------------------------------------\n");
+
+      Event ev(geom, val, evt);
+
+      if (g_operation == "read")
+      {
+        ev.read_in(g_file);
+        ev.resetLayerHitMap(false);//hitIdx's in the sim tracks are already ok 
+      }
+      else
+      {
+        //Simulate() parallelism is via TBB, but comment out for now due to cost of
+        //task_scheduler_init
+        //tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
+
+        ev.Simulate();
+        ev.resetLayerHitMap(true);
+      }
+
+      // if (evt!=2985) continue;
+
+      plex_tracks.resize(ev.simTracks_.size());
+
+      double t_best[NT] = {0}, t_cur[NT];
+
+      for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
+      {
+  #ifndef USE_CUDA
+        t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
+  #else
+        FitterCU<float> cuFitter(NN);
+        cuFitter.allocateDevice();
+        t_cur[0] = (g_run_fit_std) ? runFittingTestPlexGPU(cuFitter, ev, plex_tracks) : 0;
+        cuFitter.freeDevice();
+  #endif
+        t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev) : 0;
+        t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlex(ev, ev_tmp) : 0;
+        t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, ev_tmp) : 0;
+        t_cur[4] = (g_run_build_all || g_run_build_tbb) ? runBuildingTestPlexTbb(ev, ev_tmp) : 0;
+
+        for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
+
+        if (Config::finderReportBestOutOfN > 1)
+        {
+          std::lock_guard<std::mutex> statslock(statsmutex);
+          printf("----------------------------------------------------------------\n");
+          printf("Best-of-times:");
+          for (int i = 0; i < NT; ++i) printf("  %.5f/%.5f", t_cur[i], t_best[i]);
+          printf("\n");
+        }
+        printf("----------------------------------------------------------------\n");
+      }
+
+      std::lock_guard<std::mutex> statslock(statsmutex);
+      printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
+             t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
+
+      for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
+      if (evt > 1) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
+
+      if (g_run_fit_std) make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
     }
-
-    printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
-           t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
-
-    for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
-    if (evt > 1) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
-
-    if (g_run_fit_std) make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
-  }
+  });
 #endif
   printf("\n");
   printf("================================================================\n");
@@ -372,6 +386,7 @@ int main(int argc, const char *argv[])
         "  --num-thr-sim   <num>    number of threads for simulation (def: %d)\n"
         "  --num-thr       <num>    number of threads for track finding (def: %d)\n"
         "                           extra cloning thread is spawned for each of them\n"
+        "  --num-thr-ev    <num>    number of threads to run the event loop\n"
         "  --fit-std                run standard fitting test (def: false)\n"
         "  --fit-std-only           run only standard fitting test (def: false)\n"
         "  --build-bh               run best-hit building test (def: run all building tests)\n"
@@ -393,7 +408,6 @@ int main(int argc, const char *argv[])
 	"  --read                   read simulation from file\n"
 	"  --file-name              file name for write/read (def: %s)\n"
         "GPU specific options: \n"
-        "  --num-thr-ev    <num>    number of threads to run the event loop\n"
         "  --num-thr-reorg <num>    number of threads to run the hits reorganization\n"
         ,
         argv[0],

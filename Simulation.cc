@@ -1,6 +1,7 @@
 #include <cmath>
 
 #include "Simulation.h"
+#include "Event.h"
 //#define DEBUG
 #include "Debug.h"
 
@@ -8,9 +9,10 @@
 #define SCATTER_XYZ
 
 void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
-                       HitVec& hits, MCHitInfoVec& initialhitinfo, int itrack,
+                       HitVec& hits, Event& ev, int itrack,
                        int& charge, const Geometry& geom, TSVec & initTSs)
 {
+  MCHitInfoVec& initialhitinfo(ev.simHitsInfo_);
 
 #ifdef DEBUG
   bool debug = true;
@@ -297,7 +299,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
         << "cov(0,1): " << covXYZ(0,1) << " cov(1,0): " << covXYZ(1,0) << std::endl);
 #endif
 
-    MCHitInfo hitinfo(itrack, simLayer, layer_counts[simLayer]);
+    MCHitInfo hitinfo(itrack, simLayer, layer_counts[simLayer], ev.nextMCHitID());
     initialhitinfo[hitinfo.mcHitID_] = hitinfo;
     hits.emplace_back(x1,covXYZ,hitinfo.mcHitID_);
     tmpState = propState;
@@ -311,9 +313,10 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
 }
 
 void setupTrackByToyMCEndcap(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
-			     HitVec& hits, MCHitInfoVec& initialhitinfo, int itrack,
+			     HitVec& hits, Event& ev, int itrack,
 			     int& charge, const Geometry& geom, TSVec & initTSs)
 {
+    MCHitInfoVec& initialhitinfo(ev.simHitsInfo_);
 
     float pt = Config::minSimPt+g_unif(g_gen)*(Config::maxSimPt-Config::minSimPt);
     pos = SVector3(Config::beamspotX*g_gaus(g_gen), Config::beamspotY*g_gaus(g_gen), Config::beamspotZ*g_gaus(g_gen));
@@ -406,7 +409,7 @@ void setupTrackByToyMCEndcap(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
       dprint("simulate hit with x=" << hitpos[0] << " y=" << hitpos[1] << " z=" << hitpos[2]
 	     << " r=" << hitRad << " phi=" << hitPhi << std::endl);
 
-      MCHitInfo hitinfo(itrack, simLayer, layer_counts[simLayer]);
+      MCHitInfo hitinfo(itrack, simLayer, layer_counts[simLayer], ev.nextMCHitID());
       initialhitinfo[hitinfo.mcHitID_] = hitinfo;
       hits.emplace_back(hitpos,covXYZ,hitinfo.mcHitID_);
 
@@ -422,9 +425,10 @@ void setupTrackByToyMCEndcap(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
 #include <sstream>
 
 void setupTrackFromTextFile(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, 
-			    HitVec& hits, MCHitInfoVec& initialhitinfo, int itrack,
+			    HitVec& hits, Event& ev, int itrack,
 			    int& charge, const Geometry& geom, TSVec & initTSs)
 {
+  MCHitInfoVec& initialhitinfo(ev.simHitsInfo_);
 
   //fixme: check also event count
 
@@ -535,7 +539,7 @@ void setupTrackFromTextFile(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
       covXYZ(1,0) = covXYZ(0,1);
       covXYZ(2,2) = varZ;
     
-      MCHitInfo hitinfo(itrack, simLayer, layer_counts[simLayer]);
+      MCHitInfo hitinfo(itrack, simLayer, layer_counts[simLayer], ev.nextMCHitID());
       initialhitinfo[hitinfo.mcHitID_] = hitinfo;
       hits.emplace_back(x1,covXYZ,hitinfo.mcHitID_);
 
@@ -567,7 +571,7 @@ void setupTrackFromTextFile(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
       covXYZ(2,0) = hitZX;
       covXYZ(0,2) = covXYZ(2,0);
     
-      MCHitInfo hitinfo(itrack, simLayer, layer_counts[simLayer]);
+      MCHitInfo hitinfo(itrack, simLayer, layer_counts[simLayer], ev.nextMCHitID());
       initialhitinfo[hitinfo.mcHitID_] = hitinfo;
       hits.emplace_back(x1,covXYZ,hitinfo.mcHitID_);
 
