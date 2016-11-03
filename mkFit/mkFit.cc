@@ -11,7 +11,6 @@
 
 #include <limits>
 #include <list>
-#include <mutex>
 
 #include "Event.h"
 
@@ -25,7 +24,7 @@
 #endif
 
 #include <cstdlib>
-#define DEBUG
+//#define DEBUG
 #include "Debug.h"
 
 #include <omp.h>
@@ -231,13 +230,10 @@ void test_standard()
   // tbb::task_scheduler_init tbb_init(Config::numThreadsFinder != 0 ?
   //                                   Config::numThreadsFinder :
   //                                   tbb::task_scheduler_init::automatic);
-  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder*Config::numThreadsEvents);
+  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
   omp_set_num_threads(Config::numThreadsFinder);
 
-  std::mutex statsmutex;
-
   dprint("parallel_for step size " << (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents);
-  dprint("asdf");
 
   tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEvents, (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents),
     [&](const tbb::blocked_range<int>& evts)
@@ -248,7 +244,7 @@ void test_standard()
     for (int evt = evts.begin()+1; evt <= evts.end(); ++evt)
     {
       {
-        std::lock_guard<std::mutex> statslock(statsmutex);
+        std::lock_guard<std::mutex> printlock(Event::printmutex);
         printf("\n");
         printf("Processing event %d\n", evt);
       }
@@ -295,7 +291,7 @@ void test_standard()
 
         if (Config::finderReportBestOutOfN > 1)
         {
-          std::lock_guard<std::mutex> statslock(statsmutex);
+          std::lock_guard<std::mutex> printlock(Event::printmutex);
           printf("----------------------------------------------------------------\n");
           printf("Best-of-times:");
           for (int i = 0; i < NT; ++i) printf("  %.5f/%.5f", t_cur[i], t_best[i]);
@@ -304,7 +300,7 @@ void test_standard()
         printf("----------------------------------------------------------------\n");
       }
 
-      std::lock_guard<std::mutex> statslock(statsmutex);
+      std::lock_guard<std::mutex> printlock(Event::printmutex);
       printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
              t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
 

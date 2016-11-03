@@ -7,6 +7,8 @@
 #include "BinInfoUtils.h"
 #include "Config.h"
 
+#include <mutex>
+
 struct HitID {
   HitID() : layer(-1), index(-1) {}
   HitID(int l, int i) : layer(l), index(i) {}
@@ -55,6 +57,7 @@ public:
 
   // used in normal validation --> only used on read-in / write-out (REALLY UGLY)
   TkIDToTSVecVec simTrackStates_;
+  static std::mutex printmutex;
 };
 
 typedef std::vector<Event> EventVec;
