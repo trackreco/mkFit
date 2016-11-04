@@ -104,6 +104,10 @@ inline float getEta(float r, float z) {
   return -1.0f * std::log( std::tan(getTheta(r,z)/2.) );
 }
 
+inline float getEta(float theta){
+  return -1.0f * std::log( std::tan(theta/2.) );
+}
+
 inline float getEta(float x, float y, float z)
 {
   const float theta = std::atan2( std::sqrt(x*x+y*y), z );
@@ -259,6 +263,13 @@ public:
   }
   float eta() const {
     return getEta(state_.parameters().At(0), state_.parameters().At(1), state_.parameters().At(2));
+  }
+  float ephi() const {
+    return getPhiErr2(x(), y(), exx(), eyy(), state_.errors().At(0,1));
+  }
+  float eeta() const {
+    return getEtaErr2(x(), y(), z(), exx(), eyy(), ezz(), 
+		      state_.errors().At(0,1), state_.errors().At(0,2), state_.errors().At(1,2));
   }
 
   const MeasurementState& measurementState() const {

@@ -5,6 +5,22 @@
 
 class Event;
 
+// Fit Validation objects -- mplex only
+struct FitVal
+{
+public:
+  FitVal() {}
+  FitVal(float ppz, float eppz, float ppphi, float eppphi, 
+	 float upt, float eupt, float umphi, float eumphi, float umeta, float eumeta) :
+  ppz(ppz), eppz(eppz), ppphi(ppphi), eppphi(eppphi), upt(upt), eupt(eupt), umphi(umphi), eumphi(eumphi), umeta(umeta), eumeta(eumeta) {}
+
+  // first p or u = propagated or updated
+  // middle: p or m/nothing = position or momentum
+  // begining: e = error (already sqrt)
+  float ppz, eppz, ppphi, eppphi;
+  float upt, eupt, umphi, eumphi, umeta, eumeta;
+};
+
 class Validation {
 public:
   virtual void alignTrackExtra(TrackVec&, TrackExtraVec&) {}
@@ -19,6 +35,8 @@ public:
 				    int, const std::vector<int>&, const std::vector<int>&) {}
   virtual void collectFitTkCFMapInfo(int, const TrackState&) {}
   virtual void collectFitTkTSLayerPairVecMapInfo(int, const TSLayerPairVec&) {}
+
+  virtual void collectFitInfo(const FitVal&, int, int) {}
 
   virtual void collectPropTSLayerVecInfo(int, const TrackState&) {} // exclusively for debugtree
   virtual void collectChi2LayerVecInfo(int, float) {} // exclusively for debugtree
@@ -39,6 +57,7 @@ public:
   virtual void fillConformalTree(const Event&) {}
   virtual void fillConfigTree() {}
   virtual void fillTimeTree(const std::vector<double> &) {}
+  virtual void fillFitTree(const Event&) {}
 
   virtual void saveTTrees() {}
 };

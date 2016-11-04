@@ -87,8 +87,10 @@ public:
   void InputHitsOnly(const std::vector<Hit>& hits, int beg, int end);
   void InputSeedsTracksAndHits(const std::vector<Track>& seeds, const std::vector<Track>& tracks, const std::vector<HitVec>& layerHits, int beg, int end);
   void ConformalFitTracks(bool fitting, int beg, int end);
-  void FitTracks(const int N_proc, const bool useParamBfield = false);
+  void FitTracks(const int N_proc, const Event * ev, const bool useParamBfield = false);
   void FitTracksTestEndcap(const int N_proc, const Event* ev, const bool useParamBfield = false);
+
+  void CollectFitValidation(const int hi, const int N_proc, const Event * ev) const;
 
   void OutputTracks(std::vector<Track>& tracks, int beg, int end, int iCP) const;
 

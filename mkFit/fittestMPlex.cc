@@ -168,7 +168,7 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 	  }
 	  
 	  if (Config::cf_fitting) mkfp->ConformalFitTracks(true, itrack, end);
-	  mkfp->FitTracks(end - itrack, true);
+	  mkfp->FitTracks(end - itrack, &ev, true);
 	}
 	mkfp->OutputFittedTracks(rectracks, itrack, end);
      }
@@ -179,6 +179,8 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 #ifdef USE_VTUNE_PAUSE
    __itt_pause();
 #endif
+
+   if (Config::fit_val) ev.Validate();
 
    return time;
 }
