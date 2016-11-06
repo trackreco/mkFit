@@ -500,7 +500,7 @@ void MkFitter::CollectFitValidation(const int hi, const int N_proc, const Event 
       getPhi(Par[iP].ConstAt(n,0,0),Par[iP].ConstAt(n,1,0)),
       std::sqrt(getPhiErr2(Par[iP](n,0,0),Par[iP](n,1,0),Err[iP](n,0,0),Err[iP](n,1,1),Err[iP](n,0,1))),
       upt,
-      std::sqrt(Err[iC](n,3,3)*upt*upt),
+      std::sqrt(Err[iC](n,3,3))*upt*upt,
       Par[iC](n,4,0),
       std::sqrt(Err[iC](n,4,4)),
       getEta(Par[iC](n,5,0)),
