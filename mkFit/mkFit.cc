@@ -246,6 +246,7 @@ void test_standard()
 
     for (int evt = evts.begin()+1; evt <= evts.end(); ++evt)
     {
+      if (!Config::silent)
       {
         std::lock_guard<std::mutex> printlock(Event::printmutex);
         printf("\n");
@@ -269,8 +270,6 @@ void test_standard()
         ev.resetLayerHitMap(true);
       }
 
-      // if (evt!=2985) continue;
-
       plex_tracks.resize(ev.simTracks_.size());
 
       double t_best[NT] = {0}, t_cur[NT];
@@ -292,7 +291,7 @@ void test_standard()
 
         for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
 
-        if (Config::finderReportBestOutOfN > 1)
+        if (Config::finderReportBestOutOfN > 1 && !Config::silent)
         {
           std::lock_guard<std::mutex> printlock(Event::printmutex);
           printf("----------------------------------------------------------------\n");
@@ -303,10 +302,13 @@ void test_standard()
         printf("----------------------------------------------------------------\n");
       }
 
-      std::lock_guard<std::mutex> printlock(Event::printmutex);
-      printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
-             t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
+      if (!Config::silent) {
+        std::lock_guard<std::mutex> printlock(Event::printmutex);
+        printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
+               t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
+      }
 
+      // not protected by a mutex, may be inacccurate for multiple events in flight
       for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
       if (evt > 1) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
 
@@ -399,17 +401,18 @@ int main(int argc, const char *argv[])
         "  --cloner-single-thread   do not spawn extra cloning thread (def: %s)\n"
         "  --seeds-per-task         number of seeds to process in a tbb task (def: %d)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
-	"  --cms-geom               use cms-like geometry (def: %i)\n"
-	"  --cmssw-seeds            take seeds from CMSSW (def: %i)\n"
-	"  --find-seeds             run road search seeding [CF enabled by default] (def: %s)\n"
-	"  --hits-per-task <num>    number of layer1 hits per task in finding seeds (def: %i)\n"
-	"  --endcap-test            test endcap tracking (def: %i)\n"
-	"  --cf-seeding             enable CF in seeding (def: %s)\n"
-	"  --cf-fitting             enable CF in fitting (def: %s)\n"
-	"  --normal-val             enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
-	"  --write                  write simulation to file and exit\n"
-	"  --read                   read simulation from file\n"
-	"  --file-name              file name for write/read (def: %s)\n"
+        "  --cms-geom               use cms-like geometry (def: %i)\n"
+        "  --cmssw-seeds            take seeds from CMSSW (def: %i)\n"
+        "  --find-seeds             run road search seeding [CF enabled by default] (def: %s)\n"
+        "  --hits-per-task <num>    number of layer1 hits per task in finding seeds (def: %i)\n"
+        "  --endcap-test            test endcap tracking (def: %i)\n"
+        "  --cf-seeding             enable CF in seeding (def: %s)\n"
+        "  --cf-fitting             enable CF in fitting (def: %s)\n"
+        "  --normal-val             enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
+        "  --silent                 suppress printouts inside event loop (def: %s)\n"
+        "  --write                  write simulation to file and exit\n"
+        "  --read                   read simulation from file\n"
+        "  --file-name              file name for write/read (def: %s)\n"
         "GPU specific options: \n"
         "  --num-thr-reorg <num>    number of threads to run the hits reorganization\n"
         ,
@@ -428,6 +431,7 @@ int main(int argc, const char *argv[])
 	Config::cf_seeding ? "true" : "false",
 	Config::cf_fitting ? "true" : "false",
 	Config::normal_val ? "true" : "false",
+  Config::silent ? "true" : "false",
 	g_file_name.c_str()
       );
       exit(0);
@@ -546,6 +550,10 @@ int main(int argc, const char *argv[])
     {
       next_arg_or_die(mArgs, i);
       g_file_name = *i;
+    }
+    else if(*i == "--silent")
+    {
+      Config::silent = true;
     }
     else
     {

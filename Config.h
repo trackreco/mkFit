@@ -191,6 +191,8 @@ namespace Config
 
   extern bool   endcapTest;
 
+  extern bool   silent;
+
   const std::string inputFile = "cmssw.simtracks.SingleMu1GeV.10k.new.txt";
   //const std::string inputFile = "cmssw.simtracks.SingleMu10GeV.10k.new.txt";
   //const std::string inputFile = "cmssw.rectracks.SingleMu1GeV.10k.new.txt";

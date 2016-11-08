@@ -491,8 +491,10 @@ void MkBuilder::quality_process(Track &tkcand)
   }
 
 #if defined(DEBUG) || defined(PRINTOUTS_FOR_PLOTS)
-  std::lock_guard<std::mutex> printlock(Event::printmutex);
-  std::cout << "MX - found track with nFoundHits=" << tkcand.nFoundHits() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << " nfoundmc=" << nfoundmc << " chi2mc=" << chi2mc <<" lab="<< tkcand.label() <<std::endl;
+  if (!Config::silent) {
+    std::lock_guard<std::mutex> printlock(Event::printmutex);
+    std::cout << "MX - found track with nFoundHits=" << tkcand.nFoundHits() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << " nfoundmc=" << nfoundmc << " chi2mc=" << chi2mc <<" lab="<< tkcand.label() <<std::endl;
+  }
 #endif
   // DDDD MT: debug seed fit divergence between host / mic.
   // Use this to compare track quality.
@@ -501,9 +503,11 @@ void MkBuilder::quality_process(Track &tkcand)
 
 void MkBuilder::quality_print()
 {
-  std::lock_guard<std::mutex> printlock(Event::printmutex);
-  std::cout << "found tracks=" << m_cnt   << "  in pT 10%=" << m_cnt1   << "  in pT 20%=" << m_cnt2   << "     no_mc_assoc="<< m_cnt_nomc <<std::endl;
-  std::cout << "  nH >= 80% =" << m_cnt_8 << "  in pT 10%=" << m_cnt1_8 << "  in pT 20%=" << m_cnt2_8 << std::endl;
+  if (!Config::silent) {
+    std::lock_guard<std::mutex> printlock(Event::printmutex);
+    std::cout << "found tracks=" << m_cnt   << "  in pT 10%=" << m_cnt1   << "  in pT 20%=" << m_cnt2   << "     no_mc_assoc="<< m_cnt_nomc <<std::endl;
+    std::cout << "  nH >= 80% =" << m_cnt_8 << "  in pT 10%=" << m_cnt1_8 << "  in pT 20%=" << m_cnt2_8 << std::endl;
+  }
 }
 
 //------------------------------------------------------------------------------
