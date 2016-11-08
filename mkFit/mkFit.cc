@@ -291,15 +291,17 @@ void test_standard()
 
         for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
 
-        if (Config::finderReportBestOutOfN > 1 && !Config::silent)
-        {
+        if (!Config::silent) {
           std::lock_guard<std::mutex> printlock(Event::printmutex);
+          if (Config::finderReportBestOutOfN > 1)
+          {
+            printf("----------------------------------------------------------------\n");
+            printf("Best-of-times:");
+            for (int i = 0; i < NT; ++i) printf("  %.5f/%.5f", t_cur[i], t_best[i]);
+            printf("\n");
+          }
           printf("----------------------------------------------------------------\n");
-          printf("Best-of-times:");
-          for (int i = 0; i < NT; ++i) printf("  %.5f/%.5f", t_cur[i], t_best[i]);
-          printf("\n");
         }
-        printf("----------------------------------------------------------------\n");
       }
 
       if (!Config::silent) {

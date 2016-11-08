@@ -134,7 +134,9 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
   // simtracks.clear();
   // simtracks.push_back(xx);
 
-  std::cout << "Building tracks with '" << build_type << "', total simtracks=" << simtracks.size() << std::endl;
+  if (!Config::silent) {
+    std::cout << "Building tracks with '" << build_type << "', total simtracks=" << simtracks.size() << std::endl;
+  }
 #ifdef DEBUG
   //unit test for eta partitioning
   for (int i = 0; i < 60; ++i)
