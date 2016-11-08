@@ -183,6 +183,7 @@ void test_standard()
   const int NT = 5;
   double t_sum[NT] = {0};
   double t_skip[NT] = {0};
+  double time = dtime();
 
 #if USE_CUDA
   tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
@@ -234,6 +235,8 @@ void test_standard()
   omp_set_num_threads(Config::numThreadsFinder);
 
   dprint("parallel_for step size " << (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents);
+
+  time = dtime();
 
   tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEvents, (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents),
     [&](const tbb::blocked_range<int>& evts)
@@ -310,7 +313,10 @@ void test_standard()
       if (g_run_fit_std) make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
     }
   });
+
 #endif
+  time = dtime() - time;
+
   printf("\n");
   printf("================================================================\n");
   printf("=== TOTAL for %d events\n", Config::nEvents);
@@ -320,6 +326,7 @@ void test_standard()
          t_sum[0], t_sum[1], t_sum[2], t_sum[3], t_sum[4]);
   printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
          t_skip[0], t_skip[1], t_skip[2], t_skip[3], t_skip[4]);
+  printf("Total event loop time %.5f\n", time);
   //fflush(stdout);
 
   if (g_operation == "read")
