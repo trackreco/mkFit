@@ -70,10 +70,30 @@ Event::Event(const Geometry& g, Validation& v, int evtID, int threads) : geom_(g
   }
 }
 
-void Event::Simulate()
+void Event::Reset(int evtID)
 {
+  evtID_ = evtID;
   mcHitIDCounter_ = 0;
 
+  for (auto&& l : layerHits_) { l.clear(); }
+  for (auto&& l : segmentMap_) { l.clear(); }
+
+  simHitsInfo_.clear();
+  layerHitMap_.clear();
+  simTracks_.clear();
+  seedTracks_.clear();
+  candidateTracks_.clear();
+  fitTracks_.clear();
+  simTrackStates_.clear();
+
+  validation_.resetValidationMaps(); // need to reset maps for every event.
+  if (Config::super_debug) {
+    validation_.resetDebugVectors(); // need to reset vectors for every event.
+  }
+}
+
+void Event::Simulate()
+{
   simTracks_.resize(Config::nTracks);
   simHitsInfo_.resize(Config::nTotHit * Config::nTracks);
   for (auto&& l : layerHits_) {

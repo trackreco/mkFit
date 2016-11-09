@@ -238,22 +238,25 @@ void test_standard()
 
   time = dtime();
 
+  std::atomic<int> nevt{1};
+
   tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEvents, (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents),
     [&](const tbb::blocked_range<int>& evts)
   {
     EventTmp ev_tmp;
     std::vector<Track> plex_tracks;
+    Event ev(geom, val, nevt);
 
-    for (int evt = evts.begin()+1; evt <= evts.end(); ++evt)
+    for (int evt = evts.begin(); evt < evts.end(); ++evt)
     {
+      ev.Reset(nevt++);
+
       if (!Config::silent)
       {
         std::lock_guard<std::mutex> printlock(Event::printmutex);
         printf("\n");
-        printf("Processing event %d\n", evt);
+        printf("Processing event %d\n", ev.evtID());
       }
-
-      Event ev(geom, val, evt);
 
       if (g_operation == "read")
       {
@@ -312,7 +315,7 @@ void test_standard()
 
       // not protected by a mutex, may be inacccurate for multiple events in flight
       for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
-      if (evt > 1) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
+      if (evt > 0) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
 
       if (g_run_fit_std) make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
     }

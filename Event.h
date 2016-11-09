@@ -20,6 +20,7 @@ typedef std::vector<HitID> HitIDVec;
 class Event {
 public:
   Event(const Geometry& g, Validation& v, int evtID, int threads = 1);
+  void Reset(int evtID);
   void Simulate();
   void Segment();
   void Seed();
