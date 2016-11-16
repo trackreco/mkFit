@@ -33,27 +33,40 @@ void makePlotsFromDump(TString test, bool isCMSSW = false, bool isEndcap = false
   h2->SetMarkerColor(kBlue);
   h2->DrawNormalized("Psame");
 
-  TFile* f3 = TFile::Open("test_mic_"+events+"_"+test+"_NVU1_NTH1.root");
-  TH1F* h3 = (TH1F*) f3->Get("h_MXNH");
-  h3->SetMarkerStyle(kOpenSquare);
-  h3->SetMarkerColor(kRed);
-  h3->DrawNormalized("Psame");
-
-  TFile* f4 = TFile::Open("test_mic_"+events+"_"+test+"_NVU16int_NTH210.root");
-  TH1F* h4 = (TH1F*) f4->Get("h_MXNH");
-  h4->SetMarkerStyle(kOpenTriangleUp);
-  h4->SetMarkerColor(kMagenta);
-  h4->DrawNormalized("Psame");
-
+  if (!isCMSSW && !isEndcap)
+  {
+    TFile* f3 = TFile::Open("test_mic_"+events+"_"+test+"_NVU1_NTH1.root");
+    TH1F* h3 = (TH1F*) f3->Get("h_MXNH");
+    h3->SetMarkerStyle(kOpenSquare);
+    h3->SetMarkerColor(kRed);
+    h3->DrawNormalized("Psame");
+    
+    TFile* f4 = TFile::Open("test_mic_"+events+"_"+test+"_NVU16int_NTH210.root");
+    TH1F* h4 = (TH1F*) f4->Get("h_MXNH");
+    h4->SetMarkerStyle(kOpenTriangleUp);
+    h4->SetMarkerColor(kMagenta);
+    h4->DrawNormalized("Psame");
+  }
+  
   TLegend* leg = new TLegend(0.20,0.55,0.60,0.85);
   leg->SetBorderSize(0);
   leg->AddEntry(h1,"host NVU1 NTH1","L");
   leg->AddEntry(h2,"host NVU8 NTH21","LP");
-  leg->AddEntry(h3,"mic NVU1 NTH1","LP");
-  leg->AddEntry(h4,"mic NVU16int NTH210","LP");
+  if (!isCMSSW && !isEndcap) 
+  {
+    leg->AddEntry(h3,"mic NVU1 NTH1","LP");
+    leg->AddEntry(h4,"mic NVU16int NTH210","LP");
+  }
   leg->Draw();
 
-  if (isCMSSW) c1.SaveAs("cmssw_nHits_"+test+".png");
-  else c1.SaveAs("nHits_"+test+".png");
-
+  if (!isEndcap)
+  {
+    if (isCMSSW) c1.SaveAs("cmssw_nHits_"+test+".png");
+    else c1.SaveAs("nHits_"+test+".png");
+  }
+  else
+  {
+    if (isCMSSW) c1.SaveAs("cmssw_nHits_"+test+"_endcap.png");
+    else c1.SaveAs("nHits_"+test+"_endcap.png");
+  }
 }

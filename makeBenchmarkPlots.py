@@ -15,7 +15,7 @@ if hORm!='host' and hORm!='host_endcap' and hORm!='mic' and hORm!='mic_endcap': 
 
 g = ROOT.TFile('benchmark_'+hORm+'.root',"recreate")
 
-for test in ['BH','CE','CEST','ST','TBBST','FIT']:
+for test in ['BH','TBBST','FIT']:
     if isCMSSW and test=='FIT': continue
     if 'endcap' in hORm and not isCMSSW and 'FIT' not in test: continue
     print test
@@ -26,8 +26,7 @@ for test in ['BH','CE','CEST','ST','TBBST','FIT']:
         ntks = '100xTTbarPU35'
         nevt = 100.
     if 'BH' in test: pos = 8
-    if 'TBB' in test: pos = 17
-    if 'ST' == test: pos = 11
+    if 'TBBST' in test: pos = 11
     if 'FIT' in test: 
         pos = 3
         ntks = '10x1M'
@@ -88,7 +87,7 @@ for test in ['BH','CE','CEST','ST','TBBST','FIT']:
     nvu = '8int'
     if 'mic' in hORm: nvu = '16int'
     thvals = [1,3,7,21]
-    if 'TBB' in test or 'BH' in test : thvals = [1,3,7,10,12,14,16,21]
+    if 'TBBST' in test or 'BH' in test : thvals = [1,3,7,10,12,14,16,21]
     if 'mic' in hORm: thvals = [1,3,7,21,42,63,84,105,126,147,168,189,210]
     g_TH = ROOT.TGraph(len(thvals))
     g_TH_speedup = ROOT.TGraph(len(thvals))

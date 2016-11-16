@@ -60,7 +60,6 @@ public:
   virtual void begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type);
 
   int find_seeds();
-  virtual void fit_seeds();
   virtual void fit_seeds_tbb();
 
   void end_event();
@@ -97,8 +96,6 @@ public:
   // --------
 
   virtual void FindTracksBestHit(EventOfCandidates& event_of_cands);
-  virtual void FindTracks();
-  virtual void FindTracksCloneEngine();
   virtual void FindTracksCloneEngineTbb();
 #ifdef USE_CUDA
   const Event* get_event() const { return m_event; }

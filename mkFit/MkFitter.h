@@ -83,8 +83,6 @@ public:
                             int beg, int end, bool inputProp);
   void InputTracksAndHitIdx(const std::vector<std::vector<Track> >& tracks, const std::vector<std::pair<int,int> >& idxs,
                             int beg, int end, bool inputProp);
-  void InputTracksOnly   (const std::vector<Track>& tracks, int beg, int end);
-  void InputHitsOnly(const std::vector<Hit>& hits, int beg, int end);
   void InputSeedsTracksAndHits(const std::vector<Track>& seeds, const std::vector<Track>& tracks, const std::vector<HitVec>& layerHits, int beg, int end);
   void ConformalFitTracks(bool fitting, int beg, int end);
   void FitTracks(const int N_proc, const Event * ev, const bool useParamBfield = false);
@@ -112,11 +110,6 @@ public:
   void AddBestHit      (const LayerOfHits &layer_of_hits, const int N_proc);
   void AddBestHitEndcap(const LayerOfHits &layer_of_hits, const int N_proc);
 
-  void FindCandidates(const LayerOfHits &layer_of_hits, std::vector<std::vector<Track> >& tmp_candidates,
-                      const int offset, const int N_proc);
-  void FindCandidatesEndcap(const LayerOfHits &layer_of_hits, std::vector<std::vector<Track> >& tmp_candidates,
-			    const int offset, const int N_proc);
-
   // ================================================================
   // Methods used with clone engine
   // ================================================================
@@ -141,11 +134,6 @@ public:
 
   void UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc);
   void UpdateWithLastHitEndcap(const LayerOfHits &layer_of_hits, int N_proc);
-
-  //method used by the clone engine to do the actual cloning on the predefined candidate+hit
-  void CopyOutClone(const std::vector<std::pair<int,IdxChi2List> >& idxs,
-		    std::vector<std::vector<Track> >& cands_for_next_lay,
-		    int offset, int beg, int end, bool outputProp) const;
 
   void CopyOutParErr(std::vector<std::vector<Track> >& seed_cand_vec,
                      int N_proc, bool outputProp) const;

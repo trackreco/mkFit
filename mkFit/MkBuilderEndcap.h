@@ -21,12 +21,9 @@ public:
 
   void begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type) override;
 
-  void fit_seeds()     override;
   void fit_seeds_tbb() override;
 
   void FindTracksBestHit(EventOfCandidates& event_of_cands) override;
-  void FindTracks()               override;
-  void FindTracksCloneEngine()    override;
   void FindTracksCloneEngineTbb() override;
 };
 
