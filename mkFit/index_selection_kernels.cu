@@ -115,7 +115,6 @@ __device__ void selectHitIndices_fn(const LayerOfHitsCU &layer_of_hits,
         // and issue prefetches at the same time.
         // Then enter vectorized loop to actually collect the hits in proper order.
 
-#if 1
         /*for (int hi = L.m_phi_bin_infos[zi][pb].first; hi < L.m_phi_bin_infos[zi][pb].second; ++hi)*/
         for (int hi = L.m_phi_bin_infos[zi*Config::m_nphi + pb].first; 
                  hi < L.m_phi_bin_infos[zi*Config::m_nphi + pb].second; ++hi)
@@ -152,7 +151,6 @@ __device__ void selectHitIndices_fn(const LayerOfHitsCU &layer_of_hits,
             XHitArr(itrack, XHitSize[itrack]++, 0) = hi;
           }
         }
-#endif  // 0
       }
     }
   }

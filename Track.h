@@ -154,17 +154,11 @@ public:
   SVector3 position() const {return SVector3(state_.parameters[0],state_.parameters[1],state_.parameters[2]);}
   SVector3 momentum() const {return SVector3(state_.parameters[3],state_.parameters[4],state_.parameters[5]);}
 
-#if __CUDACC__
-  __host__ __device__
-#endif
+  CUDA_CALLABLE
   int      charge() const {return state_.charge;}
-#if __CUDACC__
-  __host__ __device__
-#endif
+  CUDA_CALLABLE
   float    chi2()   const {return chi2_;}
-#if __CUDACC__
-  __host__ __device__
-#endif
+  CUDA_CALLABLE
   int      label()  const {return label_;}
 
   float x()      const { return state_.parameters[0];}
@@ -214,18 +208,14 @@ public:
     }
   }
 
-#if __CUDACC__
-  __host__ __device__
-#endif
+  CUDA_CALLABLE
   void addHitIdx(int hitIdx,float chi2)
   {
     hitIdxArr_[++hitIdxPos_] = hitIdx;
     if (hitIdx >= 0) { ++nGoodHitIdx_; chi2_+=chi2; }
   }
 
-#if __CUDACC__
-  __host__ __device__
-#endif
+  CUDA_CALLABLE
   int getHitIdx(int posHitIdx) const
   {
     return hitIdxArr_[posHitIdx];
@@ -242,9 +232,7 @@ public:
     }
   }
 
-#if __CUDACC__
-  __host__ __device__
-#endif
+  CUDA_CALLABLE
   void setHitIdx(int posHitIdx, int newIdx) {
     hitIdxArr_[posHitIdx] = newIdx;
   }
@@ -256,16 +244,12 @@ public:
     }
   }
 
-#if __CUDACC__
-  __host__ __device__
-#endif
+  CUDA_CALLABLE
   void setNGoodHitIdx(int nHits) {
     nGoodHitIdx_ = nHits;
   }
 
-#if __CUDACC__
-  __host__ __device__
-#endif
+  CUDA_CALLABLE
   void resetHits()
   {
     hitIdxPos_   = -1;
@@ -284,17 +268,11 @@ public:
     return layers;
   }
 
-#if __CUDACC__
-  __host__ __device__
-#endif
+  CUDA_CALLABLE
   void setCharge(int chg)  {state_.charge=chg;}
-#if __CUDACC__
-  __host__ __device__
-#endif
+  CUDA_CALLABLE
   void setChi2(float chi2) {chi2_=chi2;}
-#if __CUDACC__
-  __host__ __device__
-#endif
+  CUDA_CALLABLE
   void setLabel(int lbl)   {label_=lbl;}
 
   void setState(const TrackState& newState) {state_=newState;}
