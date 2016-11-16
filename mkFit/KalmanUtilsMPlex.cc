@@ -4,6 +4,8 @@
 //#define DEBUG
 #include "Debug.h"
 
+#include "KalmanUtilsMPlex.icc"
+
 namespace
 {
   using idx_t = Matriplex::idx_t;
@@ -20,25 +22,7 @@ void MultResidualsAdd(const MPlexLH& A,
 
    // XXX Regenerate with a script.
 
-   typedef float T;
-   const idx_t N = NN;
-
-   const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
-   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
-   const T *c = C.fArray; ASSUME_ALIGNED(c, 64);
-         T *d = D.fArray; ASSUME_ALIGNED(d, 64);
-
-#pragma simd
-   for (idx_t n = 0; n < N; ++n)
-   {
-      // generate loop (can also write it manually this time, it's not much)
-      d[0 * N + n] = b[0 * N + n] + a[ 0 * N + n] * c[0 * N + n] + a[ 1 * N + n] * c[1 * N + n];
-      d[1 * N + n] = b[1 * N + n] + a[ 3 * N + n] * c[0 * N + n] + a[ 4 * N + n] * c[1 * N + n];
-      d[2 * N + n] = b[2 * N + n] + a[ 6 * N + n] * c[0 * N + n] + a[ 7 * N + n] * c[1 * N + n];
-      d[3 * N + n] = b[3 * N + n] + a[ 9 * N + n] * c[0 * N + n] + a[10 * N + n] * c[1 * N + n];
-      d[4 * N + n] = b[4 * N + n] + a[12 * N + n] * c[0 * N + n] + a[13 * N + n] * c[1 * N + n];
-      d[5 * N + n] = b[5 * N + n] + a[15 * N + n] * c[0 * N + n] + a[16 * N + n] * c[1 * N + n];
-   }
+   MultResidualsAdd_imp(A, B, C, D, 0, NN);
 }
 
 inline
@@ -96,7 +80,9 @@ void Chi2Similarity(const MPlex2V& A,//resPar
    for (idx_t n = 0; n < N; ++n)
    {
       // generate loop (can also write it manually this time, it's not much)
-      d[0 * N + n] =    c[0 * N + n]*a[0 * N + n]*a[0 * N + n] + c[2 * N + n]*a[1 * N + n]*a[1 * N + n] + 2*( c[1 * N + n]*a[1 * N + n]*a[0 * N + n]);
+      d[0 * N + n] = c[0 * N + n]*a[0 * N + n]*a[0 * N + n]
+                   + c[2 * N + n]*a[1 * N + n]*a[1 * N + n] 
+               + 2*( c[1 * N + n]*a[1 * N + n]*a[0 * N + n]);
    }
 }
 
@@ -318,7 +304,8 @@ void RotateResidulsOnTangentPlane(const MPlexQF& R00,//r00
 				  const MPlexHV& A  ,//res_glo
 				        MPlex2V& B  )//res_loc
 {
-
+  RotateResidulsOnTangentPlane_impl(R00, R01, A, B, 0, NN);
+#if 0
    // res_loc = rotT * res_glo
    //   B     =  R   *    A   
 
@@ -336,6 +323,7 @@ void RotateResidulsOnTangentPlane(const MPlexQF& R00,//r00
       b[0 * N + n] =  r00[0 * N + n]*a[0 * N + n] + r01[0 * N + n]*a[1 * N + n];
       b[1 * N + n] =  a[2 * N + n];
    }
+#endif
 }
 
 inline
@@ -430,55 +418,7 @@ void KHMult(const MPlexLH& A,
 	          MPlexLL& C)
 {
   // C = A * B, C is 6x6, A is 6x3 , B is 3x6
- 
-  typedef float T;
-  const idx_t N = NN;
-  
-  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
-  const T *b00 = B00.fArray; ASSUME_ALIGNED(b00, 64);
-  const T *b01 = B01.fArray; ASSUME_ALIGNED(b01, 64);
-        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
-
-#pragma simd
-   for (int n = 0; n < N; ++n)
-   {
-      c[ 0*N+n] = a[ 0*N+n]*b00[n];
-      c[ 1*N+n] = a[ 0*N+n]*b01[n];
-      c[ 2*N+n] = a[ 1*N+n];
-      c[ 3*N+n] = 0;
-      c[ 4*N+n] = 0;
-      c[ 5*N+n] = 0;
-      c[ 6*N+n] = a[ 3*N+n]*b00[n];
-      c[ 7*N+n] = a[ 3*N+n]*b01[n];
-      c[ 8*N+n] = a[ 4*N+n];
-      c[ 9*N+n] = 0;
-      c[10*N+n] = 0;
-      c[11*N+n] = 0;
-      c[12*N+n] = a[ 6*N+n]*b00[n];
-      c[13*N+n] = a[ 6*N+n]*b01[n];
-      c[14*N+n] = a[ 7*N+n];
-      c[15*N+n] = 0;
-      c[16*N+n] = 0;
-      c[17*N+n] = 0;
-      c[18*N+n] = a[ 9*N+n]*b00[n];
-      c[19*N+n] = a[ 9*N+n]*b01[n];
-      c[20*N+n] = a[10*N+n];
-      c[21*N+n] = 0;
-      c[22*N+n] = 0;
-      c[23*N+n] = 0;
-      c[24*N+n] = a[12*N+n]*b00[n];
-      c[25*N+n] = a[12*N+n]*b01[n];
-      c[26*N+n] = a[13*N+n];
-      c[27*N+n] = 0;
-      c[28*N+n] = 0;
-      c[29*N+n] = 0;
-      c[30*N+n] = a[15*N+n]*b00[n];
-      c[31*N+n] = a[15*N+n]*b01[n];
-      c[32*N+n] = a[16*N+n];
-      c[33*N+n] = 0;
-      c[34*N+n] = 0;
-      c[35*N+n] = 0;
-   }
+  KHMult_imp(A, B00, B01, C, 0, NN);
 }
 
 
@@ -515,129 +455,13 @@ void KHC(const MPlexL2& A, const MPlexLS& B, MPlexLS& C)
 inline
 void ConvertToCCS(const MPlexLV& A, MPlexLV& B, MPlexLL& C)
 {
- 
-  typedef float T;
-  const idx_t N = NN;
-  
-  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
-        T *b = B.fArray; ASSUME_ALIGNED(b, 64);
-        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
-
-#pragma simd
-  for (int n = 0; n < N; ++n)
-  {
-    const float pt = getHypot(a[ 3*N+n], a[ 4*N+n]);
-    const float p2 = pt*pt + a[ 5*N+n]*a[ 5*N+n];
-    //
-    b[ 0*N+n] = a[ 0*N+n];
-    b[ 1*N+n] = a[ 1*N+n];
-    b[ 2*N+n] = a[ 2*N+n];
-    b[ 3*N+n] = 1.0f/pt;
-    b[ 4*N+n] = getPhi(a[ 3*N+n], a[ 4*N+n]); //fixme: use trig approx
-    b[ 5*N+n] = getTheta(pt, a[ 5*N+n]);
-    //
-    c[ 0*N+n] = 1.;
-    c[ 1*N+n] = 0.;
-    c[ 2*N+n] = 0.;
-    c[ 3*N+n] = 0.;
-    c[ 4*N+n] = 0.;
-    c[ 5*N+n] = 0.;
-    c[ 6*N+n] = 0.;
-    c[ 7*N+n] = 1.;
-    c[ 8*N+n] = 0.;
-    c[ 9*N+n] = 0.;
-    c[10*N+n] = 0.;
-    c[11*N+n] = 0.;
-    c[12*N+n] = 0.;
-    c[13*N+n] = 0.;
-    c[14*N+n] = 1.;
-    c[15*N+n] = 0.;
-    c[16*N+n] = 0.;
-    c[17*N+n] = 0.;
-    c[18*N+n] = 0.;
-    c[19*N+n] = 0.;
-    c[20*N+n] = 0.;
-    c[21*N+n] = -a[ 3*N+n]/(pt*pt*pt);
-    c[22*N+n] = -a[ 4*N+n]/(pt*pt*pt);
-    c[23*N+n] = 0.;
-    c[24*N+n] = 0.;
-    c[25*N+n] = 0.;
-    c[26*N+n] = 0.;
-    c[27*N+n] = -a[ 4*N+n]/(pt*pt);
-    c[28*N+n] =  a[ 3*N+n]/(pt*pt);
-    c[29*N+n] = 0.;
-    c[30*N+n] = 0.;
-    c[31*N+n] = 0.;
-    c[32*N+n] = 0.;
-    c[33*N+n] =  a[ 3*N+n]*a[ 5*N+n]/(pt*p2);
-    c[34*N+n] =  a[ 4*N+n]*a[ 5*N+n]/(pt*p2);
-    c[35*N+n] = -pt/p2;
-  }
+  ConvertToCCS_imp(A, B, C, 0, NN);
 }
 
 inline
 void ConvertToCartesian(const MPlexLV& A, MPlexLV& B, MPlexLL& C)
 {
- 
-  typedef float T;
-  const idx_t N = NN;
-  
-  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
-        T *b = B.fArray; ASSUME_ALIGNED(b, 64);
-        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
-
-#pragma simd
-  for (int n = 0; n < N; ++n)
-  {
-    const float cosP = std::cos(a[ 4*N+n]); //fixme: use trig approx
-    const float sinP = std::sin(a[ 4*N+n]);
-    const float cosT = std::cos(a[ 5*N+n]);
-    const float sinT = std::sin(a[ 5*N+n]);
-    //
-    b[ 0*N+n] = a[ 0*N+n];
-    b[ 1*N+n] = a[ 1*N+n];
-    b[ 2*N+n] = a[ 2*N+n];
-    b[ 3*N+n] = cosP/a[ 3*N+n];
-    b[ 4*N+n] = sinP/a[ 3*N+n];
-    b[ 5*N+n] = cosT/(sinT*a[ 3*N+n]);
-    //
-    c[ 0*N+n] = 1.;
-    c[ 1*N+n] = 0.;
-    c[ 2*N+n] = 0.;
-    c[ 3*N+n] = 0.;
-    c[ 4*N+n] = 0.;
-    c[ 5*N+n] = 0.;
-    c[ 6*N+n] = 0.;
-    c[ 7*N+n] = 1.;
-    c[ 8*N+n] = 0.;
-    c[ 9*N+n] = 0.;
-    c[10*N+n] = 0.;
-    c[11*N+n] = 0.;
-    c[12*N+n] = 0.;
-    c[13*N+n] = 0.;
-    c[14*N+n] = 1.;
-    c[15*N+n] = 0.;
-    c[16*N+n] = 0.;
-    c[17*N+n] = 0.;
-    c[18*N+n] = 0.;
-    c[19*N+n] = 0.;
-    c[20*N+n] = 0.;
-    c[21*N+n] = -cosP/(a[ 3*N+n]*a[ 3*N+n]);
-    c[22*N+n] = -sinP/a[ 3*N+n];
-    c[23*N+n] = 0.;
-    c[24*N+n] = 0.;
-    c[25*N+n] = 0.;
-    c[26*N+n] = 0.;
-    c[27*N+n] = -sinP/(a[ 3*N+n]*a[ 3*N+n]);
-    c[28*N+n] =  cosP/a[ 3*N+n];
-    c[29*N+n] = 0.;
-    c[30*N+n] = 0.;
-    c[31*N+n] = 0.;
-    c[32*N+n] = 0.;
-    c[33*N+n] = -cosT/(sinT*a[ 3*N+n]*a[ 3*N+n]);
-    c[34*N+n] = 0.;
-    c[35*N+n] = -1.0f/(sinT*sinT*a[ 3*N+n]);
-  }
+  ConvertToCartesian_imp(A, B, C, 0, NN); 
 }
 
 

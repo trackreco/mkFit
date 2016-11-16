@@ -25,7 +25,6 @@
 
 #include <iostream>
 #include <memory>
-#include <mutex>
 
 #if defined(USE_VTUNE_PAUSE)
 #include "ittnotify.h"

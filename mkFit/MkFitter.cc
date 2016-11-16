@@ -67,7 +67,7 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
   int itrack;
 
 // FIXME: uncomment when track building is ported to GPU.
-#if 0
+#if USE_CUDA_NOT_YET
 //#ifdef USE_CUDA
   // This openmp loop brings some performances when using
   // a single thread to fit all events.

@@ -81,7 +81,7 @@ LDFLAGS_CU := -lcudart
 # -- Works only for CUDA_VERSION >= 5
 # TODO: Clean the "-I.. -std=c++11"
 ${CU_OBJS}: %.o: %.cu
-	${NV} --device-c -o $@ $< -I.. -std=c++11 -DUSE_MATRIPLEX
+	${NV} --device-c -o $@ $< -I.. -std=c++11 -DUSE_MATRIPLEX -Wno-deprecated-gpu-targets
 
 CU_LINK := cu_link.o
 ${CU_LINK}: ${CU_OBJS}

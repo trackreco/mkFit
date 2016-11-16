@@ -1,6 +1,5 @@
 #include "check_gpu_hit_structures.h"
 
-/*#include "reorganize_gplex.cu"*/
 #include "Hit.h"
 #include "HitStructures.h"
 #include "HitStructuresCU.h"

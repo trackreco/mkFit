@@ -28,8 +28,7 @@ __device__ void SlurpIn_fn(GPlexObj to, // float *fArray, int stride, int kSize,
     const int *XHitPos = vi;
     const int off = XHitPos[j] * sizeof(Hit);
     for (int i = 0; i < to.kSize; ++i) { // plex_size
-      /*fArray[i*stride+ j] = * (const T*) (arr + i*sizeof(T) + off);*/
-      to(j, i, 0) = * (decltype(to.ptr)) (arr + i*sizeof(decltype(*to.ptr)) + off);
+      to[j + to.stride*i] = * (decltype(to.ptr)) (arr + i*sizeof(decltype(*to.ptr)) + off);
     }
   }
 }
@@ -41,7 +40,7 @@ __device__ void SlurpInIdx_fn(GPlexObj to,
   int j = threadIdx.x + blockDim.x * blockIdx.x;
   if (j<N) {
     for (int i = 0; i < to.kSize; ++i) { // plex_size
-      to(j, i, 0) = * (decltype(to.ptr)) (arr + i*sizeof(decltype(*to.ptr)) + idx);
+      to[j + to.stride*i] = * (decltype(to.ptr)) (arr + i*sizeof(decltype(*to.ptr)) + idx);
     }
   }
 }
@@ -53,7 +52,7 @@ __device__ void SlurpOutIdx_fn(GPlexObj from, // float *fArray, int stride, int 
   int j = threadIdx.x + blockDim.x * blockIdx.x;
   if (j<N) {
     for (int i = 0; i < from.kSize; ++i) { // plex_size
-      * (decltype(from.ptr)) (arr + i*sizeof(decltype(*from.ptr)) + idx) = from(j, i , 0);
+      * (decltype(from.ptr)) (arr + i*sizeof(decltype(*from.ptr)) + idx) = from[j + from.stride*i];
     }
   }
 }
@@ -64,8 +63,6 @@ __device__ void HitToMs_fn(GPlexHS &msErr, GPlexHV &msPar,
                            const GPlexHitIdx &XHitArr, 
                            GPlexQI &HitsIdx, const int hit_cnt, 
                            const int itrack, const int N) {
-  /*int j = threadIdx.x + blockDim.x*blockIdx.x;*/
-  //int itrack = threadIdx.x + blockDim.x * blockIdx.x;
   if (itrack < N) {
 
     const char *varr      = (char*) hits;
@@ -80,12 +77,14 @@ __device__ void HitToMs_fn(GPlexHS &msErr, GPlexHV &msPar,
   }
 }
 
+
 __global__ void HitToMs_kernel(GPlexHS msErr, GPlexHV msPar, Hit *hits,
                                const GPlexQI XHitSize, const GPlexHitIdx XHitArr,
                                GPlexQI HitsIdx, const int hit_cnt, const int N) {
   int itrack = threadIdx.x + blockDim.x * blockIdx.x;
   HitToMs_fn(msErr, msPar, hits, XHitSize, XHitArr, HitsIdx, hit_cnt, itrack, N);
 }
+
 
 void HitToMs_wrapper(const cudaStream_t& stream,
                      GPlexHS &msErr, GPlexHV &msPar, LayerOfHitsCU &layer, 
@@ -107,8 +106,6 @@ __device__ void InputTracksCU_fn (Track *tracks,
                                   GPlexQI &Label, GPlexQI *HitsIdx,
                                   const int beg, const int end, 
                                   const int itrack, const int N) {
-  //int itrack = threadIdx.x + blockDim.x*blockIdx.x;
-
   if (itrack < (end-beg) && itrack < N) {
     Track &trk = tracks[beg];
     const char *varr       = (char*) &trk;
@@ -165,8 +162,6 @@ __device__ void InputTracksAndHitsCU_fn (Track *tracks, LayerOfHitsCU *layerHits
                                          GPlexQI &Label, GPlexQI *HitsIdx,
                                          const int beg, const int end, 
                                          const int itrack, const int N) {
-  //int itrack = threadIdx.x + blockDim.x*blockIdx.x;
-
   if (itrack < (end-beg) && itrack < N) {
     Track &trk = tracks[beg];
     const char *varr       = (char*) &trk;
@@ -239,8 +234,6 @@ __device__ void OutputTracksCU_fn(Track *tracks,
                                   const int beg, const int end, 
                                   const int itrack, const int N,
                                   const bool update_hit_idx) {
-  //int itrack = threadIdx.x + blockDim.x*blockIdx.x;
-
   if (itrack < (end-beg) && itrack < N) {
     Track &trk = tracks[beg];
     const char *varr       = (char*) &trk;

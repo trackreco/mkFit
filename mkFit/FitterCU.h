@@ -19,15 +19,6 @@
 #include <omp.h>
 #include <stdexcept>
 
-constexpr int LV = 6;
-constexpr int QI = 1;
-constexpr int QF = 1;
-#define LL 36
-constexpr int LS = 21;
-constexpr int HV = 3;
-constexpr int HS = 6;
-constexpr int LH = 18;
-
 #define BLOCK_SIZE_X 256
 
 using idx_t = Matriplex::idx_t;
@@ -56,38 +47,13 @@ class FitterCU {
       MPlexLS &outErr, MPlexLV& outPar,
       const int hit_idx, const int N_proc);
 
-#if 0
-  void computeChi2gpu(const MPlexLS &psErr, const MPlexLV& propPar,
-    const MPlexQI &inChg, MPlexHS &msErr, MPlexHV& msPar,
-    float *minChi2, int *bestHit,
-    LayerOfHitsCU &d_layer, MPlexQI &XHitSize, Matriplex::Matriplex<int, 16, 1, MPT_SIZE> &XHitArr,
-    MPlexQF &Chi2, MPlexQI &HitsIdx, MPlexQF&outChi2, int maxSize, int hit_idx,
-    int NN);
-#endif
-
   void allocate_extra_addBestHit();
   void free_extra_addBestHit();
-
-#if 0
-  void prepare_addBestHit();
-      //const MPlexLS &psErr, const MPlexLV& propPar,
-      //const MPlexQI &inChg, 
-      //MPlexQI &XHitSize, Matriplex::Matriplex<int, 16, 1, MPT_SIZE> &XHitArr,
-      //size_t NN);
-  void finalize_addBestHit(
-      MPlexHS *msErr, MPlexHV* msPar,
-      MPlexLS& Err_iP, MPlexLV& Par_iP, 
-      MPlexQI *HitsIdx,
-      MPlexQI &Label,
-      int start_idx, int end_idx);
-#endif
   void setHitsIdxToZero(const int hit_idx);
 
-#if 1
-  //void addBestHit(EventOfHitsCU& event, const int ilay, const float *radii, int hit_idx);
   void addBestHit(EventOfHitsCU& event, GeometryCU &geom_cu,
                   EventOfCandidatesCU &event_of_cands_cu);
-#endif
+
   void propagateTracksToR(const float radius, const int N);
   void propagateTracksToR_standalone(const float radius, const int N,
       const MPlexLS& Err_iC, const MPlexLV& par_iC, 
