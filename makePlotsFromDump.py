@@ -15,7 +15,7 @@ h_MX3 = ROOT.TH1F("h_MX3", "h_MX3", 300, 0, 300)
 h_MX6 = ROOT.TH1F("h_MX6", "h_MX6", 300, 0, 300)
 h_MX9 = ROOT.TH1F("h_MX9", "h_MX9", 300, 0, 300)
 
-h_MXNH  = ROOT.TH1F("h_MXNH", "h_MXNH", 11, 0, 11)
+h_MXNH  = ROOT.TH1F("h_MXNH", "h_MXNH", 21, 0, 21)
 h_MXNH.GetXaxis().SetTitle("nHits_{found}")
 h_MXC2  = ROOT.TH1F("h_MXC2", "h_MXC2", 40, 0, 20)
 h_MXPT  = ROOT.TH1F("h_MXPT", "h_MXPT", 20, 0, 20)
@@ -31,14 +31,14 @@ h_NHDR  = ROOT.TH1F("h_NHDR", "h_NHDR", 15, -7.5, 7.5)
 h_NHDR.GetXaxis().SetTitle("nHits_{found}-nHits_{cmssw}")
 
 # simtrack only validation
-h_SIMNH  = ROOT.TH1F("h_SIMNH", "h_SIMNH", 11, 0, 11)
+h_SIMNH  = ROOT.TH1F("h_SIMNH", "h_SIMNH", 21, 0, 21)
 h_SIMC2  = ROOT.TH1F("h_SIMC2", "h_SIMC2", 40, 0, 20)
 h_SIMPT  = ROOT.TH1F("h_SIMPT", "h_SIMPT", 20, 0, 20)
 h_SIMPHI = ROOT.TH1F("h_SIMPHI", "h_SIMPHI", 32, -3.2, 3.2)
 h_SIMETA = ROOT.TH1F("h_SIMETA", "h_SIMETA", 20, -2, 2)
 
 # recseed only validation
-h_SEEDNH     = ROOT.TH1F("h_SEEDNH", "h_SEEDNH", 11, 0, 11)
+h_SEEDNH     = ROOT.TH1F("h_SEEDNH", "h_SEEDNH", 21, 0, 21)
 h_SEEDC2     = ROOT.TH1F("h_SEEDC2", "h_SEEDC2", 40, 0, 20)
 h_SEEDPOSETA = ROOT.TH1F("h_SEEDPOSETA", "h_SEEDPOSETA", 20, -2, 2)
 h_SEEDPOSPHI = ROOT.TH1F("h_SEEDPOSPHI", "h_SEEDPOSPHI", 32, -3.2, 3.2)

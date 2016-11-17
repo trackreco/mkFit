@@ -1,14 +1,5 @@
 --- Config.h	2016-07-22 11:40:00.387121414 +0200
 +++ Config.h.endcap	2016-07-22 11:22:32.813538713 +0200
-@@ -4,7 +4,7 @@
- #include <algorithm>
- #include <string> // won't compile on clang gcc for mac OS w/o this!
- 
--//#define PRINTOUTS_FOR_PLOTS
-+#define PRINTOUTS_FOR_PLOTS
- #define CCSCOORD
- 
- namespace Config
 @@ -32,12 +32,12 @@
    extern int nEvents;
  

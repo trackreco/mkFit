@@ -69,11 +69,11 @@ namespace
   int   g_file_num_ev = 0;
   int   g_file_cur_ev = 0;
 
-  bool  g_run_fit_std   = false;
+  bool  g_run_fit_std    = false;
 
-  bool  g_run_build_all = true;
-  bool  g_run_build_bh  = false;
-  bool  g_run_build_tbb = false;
+  bool  g_run_build_all  = true;
+  bool  g_run_build_bh   = false;
+  bool  g_run_build_comb = false;
 
   std::string g_operation = "simulate_and_process";;
   std::string g_file_name = "simtracks.bin";
@@ -95,11 +95,11 @@ void generate_and_save_tracks()
 
   printf("writing %i events\n",Nevents);
 
+  tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
+
   for (int evt = 0; evt < Nevents; ++evt)
   {
     Event ev(geom, val, evt);
-
-    omp_set_num_threads(Config::numThreadsSimulation);
 
     ev.Simulate();
     ev.resetLayerHitMap(true);
@@ -273,8 +273,8 @@ void test_standard()
       t_cur[0] = (g_run_fit_std) ? runFittingTestPlexGPU(cuFitter, ev, plex_tracks) : 0;
       cuFitter.freeDevice();
 #endif
-      t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev) : 0;
-      t_cur[2] = (g_run_build_all || g_run_build_tbb) ? runBuildingTestPlexTbb(ev, ev_tmp) : 0;
+      t_cur[1] = (g_run_build_all || g_run_build_bh)   ? runBuildingTestPlexBestHit(ev) : 0;
+      t_cur[2] = (g_run_build_all || g_run_build_comb) ? runBuildingTestPlexTbb(ev, ev_tmp) : 0;
 
       for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
 
@@ -288,7 +288,7 @@ void test_standard()
       printf("----------------------------------------------------------------\n");
     }
 
-    printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  TBBMX = %.5f\n",
+    printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  COMBMX = %.5f\n",
            t_best[0], t_best[1], t_best[2]);
 
     for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
@@ -302,9 +302,9 @@ void test_standard()
   printf("=== TOTAL for %d events\n", Config::nEvents);
   printf("================================================================\n");
 
-  printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  TBBMX = %.5f\n",
+  printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  COMBMX = %.5f\n",
          t_sum[0], t_sum[1], t_sum[2]);
-  printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  TBBMX = %.5f\n",
+  printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  COMBMX = %.5f\n",
          t_skip[0], t_skip[1], t_skip[2]);
   //fflush(stdout);
 
@@ -370,8 +370,8 @@ int main(int argc, const char *argv[])
         "                           extra cloning thread is spawned for each of them\n"
         "  --fit-std                run standard fitting test (def: false)\n"
         "  --fit-std-only           run only standard fitting test (def: false)\n"
-        "  --build-bh               run best-hit building test (def: run all building tests)\n"
-        "  --build-tbb              run tbb building test\n"
+        "  --build-bh               run best-hit building test (def: false)\n"
+        "  --build-comb             run combinatorial building test (def: false)\n"
         "  --cloner-single-thread   do not spawn extra cloning thread (def: %s)\n"
         "  --seeds-per-task         number of seeds to process in a tbb task (def: %d)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
@@ -438,15 +438,15 @@ int main(int argc, const char *argv[])
     else if(*i == "--fit-std-only")
     {
       g_run_fit_std = true;
-      g_run_build_all = false; g_run_build_bh = false;
+      g_run_build_all = false; g_run_build_bh = false; g_run_build_comb = false;
     }
     else if(*i == "--build-bh")
     {
       g_run_build_all = false; g_run_build_bh = true;
     }
-    else if(*i == "--build-tbb")
+    else if(*i == "--build-comb")
     {
-      g_run_build_all = false; g_run_build_tbb = true;
+      g_run_build_all = false; g_run_build_comb = true;
     }
     else if(*i == "--cloner-single-thread")
     {

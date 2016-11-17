@@ -1,17 +1,18 @@
 #include "PlotValidation.hh"
 #include "TLegend.h"
 
-PlotValidation::PlotValidation(TString inName, TString outName, TString outType){
-
+PlotValidation::PlotValidation(TString inName, TString outName, 
+			       Bool_t mvInput, Bool_t fullval, 
+			       Bool_t saveAs, TString outType)
+  : fInName(inName), fOutName(outName), 
+    fMvInput(mvInput), fFullVal(fullval),
+    fSaveAs(saveAs), fOutType(outType)
+{
   // ++++ Get Root File ++++ //
 
-  fInName = inName;
   fInRoot = TFile::Open(Form("%s",fInName.Data()));
 
   // ++++ Define Output Parameters, Make Directory/File ++++ //
-
-  fOutName = outName;
-  fOutType = outType;
   
   // make output directory
   FileStat_t dummyFileStat;
@@ -61,14 +62,14 @@ PlotValidation::~PlotValidation(){
   delete fTH2Canv;
 }
 
-void PlotValidation::Validation(Bool_t fullVal, Bool_t mvInput){
+void PlotValidation::Validation(){
   PlotValidation::PlotEfficiency(); 
   PlotValidation::PlotFakeRate();
   PlotValidation::PlotDuplicateRate();
   PlotValidation::PlotNHits(); 
   PlotValidation::PlotMomResolutionPull();
 
-  if (fullVal) {
+  if (fFullVal) {
     PlotValidation::PlotSegment();
     PlotValidation::PlotBranching();
     PlotValidation::PlotSimGeo();  
@@ -78,9 +79,9 @@ void PlotValidation::Validation(Bool_t fullVal, Bool_t mvInput){
     PlotValidation::PlotTiming(); // currently only smatrix timing... could adapt to matriplex
   }
 
-  PlotValidation::PrintTotals(fullVal);
+  PlotValidation::PrintTotals();
   
-  if (mvInput) {
+  if (fMvInput) {
     PlotValidation::MoveInput();
   }
 }
@@ -385,7 +386,7 @@ void PlotValidation::PlotDuplicateRate(){
   // Draw, divide, and save DR plots
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
-      PlotValidation::ComputeRatioPlot(varsNumerPlot[i][j],varsDenomPlot[i][j],varsDRPlot[i][j]);
+      PlotValidation::ComputeRatioPlot(varsNumerPlot[i][j],varsDenomPlot[i][j],varsDRPlot[i][j],true);
       PlotValidation::WriteTH1FPlot(subdir,varsNumerPlot[i][j]);
       PlotValidation::WriteTH1FPlot(subdir,varsDenomPlot[i][j]);
       PlotValidation::DrawWriteSaveTH1FPlot(subdir,varsDRPlot[i][j],subdirname,Form("%s_DR_%s",vars[i].Data(),trks[j].Data()),zeroSupLin);
@@ -1763,7 +1764,7 @@ void PlotValidation::PlotCFResolutionPull(){
   delete cftree;
 }
 
-void PlotValidation::PrintTotals(bool fullVal){
+void PlotValidation::PrintTotals(){
   // want to print out totals of nHits, fraction of Hits shared, efficiency, fake rate, duplicate rate of seeds, build, fit
   // --> numer/denom plots for phi, know it will be in the bounds.  
 
@@ -1822,7 +1823,7 @@ void PlotValidation::PrintTotals(bool fullVal){
 
   TTree * timetree;
   Float_t simtime = 0., segtime = 0., seedtime = 0., buildtime = 0., fittime = 0., hlvtime = 0.;
-  if (fullVal) {
+  if (fFullVal) {
     timetree = (TTree*)fInRoot->Get("timetree"); 
     timetree->SetBranchAddress("simtime",&simtime);
     timetree->SetBranchAddress("segtime",&segtime);
@@ -1837,7 +1838,7 @@ void PlotValidation::PrintTotals(bool fullVal){
   std::cout << "nEvents: "  << Nevents  << " nTracks/evt: " << Ntracks  << std::endl;
   std::cout << "nEtaPart: " << nEtaPart << " nPhiPart: "    << nPhiPart << std::endl;
   std::cout << "++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-  if (fullVal) {
+  if (fFullVal) {
     std::cout << "Simulation time: " << simtime   << std::endl;
     std::cout << "Segmenting time: " << segtime   << std::endl;
     std::cout << "Seeding time:    " << seedtime  << std::endl;
@@ -1851,7 +1852,7 @@ void PlotValidation::PrintTotals(bool fullVal){
   totalsout << "nEvents: "  << Nevents  << " nTracks/evt: " << Ntracks  << std::endl;
   totalsout << "nEtaPart: " << nEtaPart << " nPhiPart: "    << nPhiPart << std::endl;
   totalsout << "++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-  if (fullVal) {
+  if (fFullVal) {
     totalsout << "Simulation time: " << simtime   << std::endl;
     totalsout << "Segmenting time: " << segtime   << std::endl;
     totalsout << "Seeding time:    " << seedtime  << std::endl;
@@ -1912,7 +1913,7 @@ void PlotValidation::PrintTotals(bool fullVal){
   totalsout.close();
 
   delete configtree;
-  if (fullVal) {
+  if (fFullVal) {
     delete timetree;
   }
 }
@@ -1956,13 +1957,15 @@ void PlotValidation::ZeroSuppressPlot(TH1F *& hist){
   }
 }
 
-void PlotValidation::ComputeRatioPlot(const TH1F * numer, const TH1F * denom, TH1F *& ratioPlot){
+void PlotValidation::ComputeRatioPlot(const TH1F * numer, const TH1F * denom, TH1F *& ratioPlot, Bool_t subone){
   Double_t value = 0;
   Double_t err   = 0;
   for (Int_t bin = 1; bin <= ratioPlot->GetNbinsX(); bin++){
     if (denom->GetBinContent(bin)!=0){
       value = numer->GetBinContent(bin) / denom->GetBinContent(bin); // currently implement same method for FR and Eff (minimize mask calls)
       
+      if (subone) value -= 1.0;
+
       // Binonimal errors for both
       err = sqrt( value*(1.0-value)/denom->GetBinContent(bin) );
 
@@ -1983,7 +1986,7 @@ void PlotValidation::DrawWriteSaveTH2FPlot(TDirectory *& subdir, TH2F *& hist, c
   hist->Draw("colz");  
   subdir->cd();
   hist->Write();
-  fTH2Canv->SaveAs(Form("%s/%s/%s.png",fOutName.Data(),subdirname.Data(),plotName.Data()));  
+  if (fSaveAs) fTH2Canv->SaveAs(Form("%s/%s/%s.png",fOutName.Data(),subdirname.Data(),plotName.Data()));  
 }
 
 void PlotValidation::WriteTH1FPlot(TDirectory *& subdir, TH1F *& hist){
@@ -1999,14 +2002,14 @@ void PlotValidation::DrawWriteSaveTH1FPlot(TDirectory *& subdir, TH1F *& hist, c
 
   // first save log
   fTH1Canv->SetLogy(1);
-  fTH1Canv->SaveAs(Form("%s/%s/log/%s.%s",fOutName.Data(),subdirname.Data(),plotName.Data(),fOutType.Data()));  
+  if (fSaveAs) fTH1Canv->SaveAs(Form("%s/%s/log/%s.%s",fOutName.Data(),subdirname.Data(),plotName.Data(),fOutType.Data()));  
 
   // second save linear (check to zero suppress)
   if (zeroSupLin) {
     PlotValidation::ZeroSuppressPlot(hist);
   }
   fTH1Canv->SetLogy(0);
-  fTH1Canv->SaveAs(Form("%s/%s/lin/%s.%s",fOutName.Data(),subdirname.Data(),plotName.Data(),fOutType.Data()));  
+  if (fSaveAs) fTH1Canv->SaveAs(Form("%s/%s/lin/%s.%s",fOutName.Data(),subdirname.Data(),plotName.Data(),fOutType.Data()));  
 }
 
 void PlotValidation::DrawWriteFitSaveTH1FPlot(TDirectory *& subdir, TH1F *& hist, const TString subdirname, const TString plotName, const Float_t fitRange){ // separate method for fitting pulls/res, do not want gaus line in root file
@@ -2018,11 +2021,11 @@ void PlotValidation::DrawWriteFitSaveTH1FPlot(TDirectory *& subdir, TH1F *& hist
   
   // first save log
   fTH1Canv->SetLogy(1);
-  fTH1Canv->SaveAs(Form("%s/%s/log/%s.%s",fOutName.Data(),subdirname.Data(),plotName.Data(),fOutType.Data()));  
+  if (fSaveAs) fTH1Canv->SaveAs(Form("%s/%s/log/%s.%s",fOutName.Data(),subdirname.Data(),plotName.Data(),fOutType.Data()));  
 
   // second save linear
   fTH1Canv->SetLogy(0);
-  fTH1Canv->SaveAs(Form("%s/%s/lin/%s.%s",fOutName.Data(),subdirname.Data(),plotName.Data(),fOutType.Data()));  
+  if (fSaveAs) fTH1Canv->SaveAs(Form("%s/%s/lin/%s.%s",fOutName.Data(),subdirname.Data(),plotName.Data(),fOutType.Data()));  
 }
 
 void PlotValidation::MoveInput(){
