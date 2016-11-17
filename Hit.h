@@ -97,11 +97,11 @@ inline float getTheta(float r, float z){
 }
 
 inline float getEta(float r, float z) {
-  return -1.0f * std::log( std::tan(getTheta(r,z)/2.) );
+  return -1.0f * std::log( std::tan(getTheta(r,z)/2.0f) );
 }
 
 inline float getEta(float theta){
-  return -1.0f * std::log( std::tan(theta/2.) );
+  return -1.0f * std::log( std::tan(theta/2.0f) );
 }
 
 inline float getEta(float x, float y, float z)
@@ -116,11 +116,11 @@ inline float getHypot(float x, float y)
 }
 
 inline float getRadErr2(float x, float y, float exx, float eyy, float exy){
-  return (x*x*exx + y*y*eyy + 2*x*y*exy) / getRad2(x,y);
+  return (x*x*exx + y*y*eyy + 2.0f*x*y*exy) / getRad2(x,y);
 }  
 
 inline float getInvRadErr2(float x, float y, float exx, float eyy, float exy){
-  return (x*x*exx + y*y*eyy + 2*x*y*exy) / cube(getRad2(x,y));
+  return (x*x*exx + y*y*eyy + 2.0f*x*y*exy) / cube(getRad2(x,y));
 }  
 
 inline float getPhiErr2(float x, float y, float exx, float eyy, float exy){
@@ -128,7 +128,7 @@ inline float getPhiErr2(float x, float y, float exx, float eyy, float exy){
   //  const float dphidx = -y/rad2;
   //  const float dphidy =  x/rad2;
   //  return dphidx*dphidx*exx + dphidy*dphidy*eyy + 2*dphidx*dphidy*exy;
-  return (y*y*exx + x*x*eyy - 2*x*y*exy)/(rad2*rad2);
+  return (y*y*exx + x*x*eyy - 2.0f*x*y*exy)/(rad2*rad2);
 }
 
 inline float getThetaErr2(float x, float y, float z, float exx, float eyy, float ezz, float exy, float exz, float eyz){
@@ -138,7 +138,7 @@ inline float getThetaErr2(float x, float y, float z, float exx, float eyy, float
   const float dthetadx = x*z/(rad*hypot2);
   const float dthetady = y*z/(rad*hypot2);
   const float dthetadz = -rad/hypot2;
-  return dthetadx*dthetadx*exx + dthetady*dthetady*eyy + dthetadz*dthetadz*ezz + 2*dthetadx*dthetady*exy + 2*dthetadx*dthetadz*exz + 2*dthetady*dthetadz*eyz;
+  return dthetadx*dthetadx*exx + dthetady*dthetady*eyy + dthetadz*dthetadz*ezz + 2.0f*dthetadx*dthetady*exy + 2.0f*dthetadx*dthetadz*exz + 2.0f*dthetady*dthetadz*eyz;
 }
 
 inline float getEtaErr2(float x, float y, float z, float exx, float eyy, float ezz, float exy, float exz, float eyz){
@@ -146,7 +146,7 @@ inline float getEtaErr2(float x, float y, float z, float exx, float eyy, float e
   const float detadx = -x/(rad2*std::sqrt(1+rad2/(z*z)));
   const float detady = -y/(rad2*std::sqrt(1+rad2/(z*z)));
   const float detadz = 1.0f/(z*std::sqrt(1+rad2/(z*z)));
-  return detadx*detadx*exx + detady*detady*eyy + detadz*detadz*ezz + 2*detadx*detady*exy + 2*detadx*detadz*exz + 2*detady*detadz*eyz;
+  return detadx*detadx*exx + detady*detady*eyy + detadz*detadz*ezz + 2.0f*detadx*detady*exy + 2.0f*detadx*detadz*exz + 2.0f*detady*detadz*eyz;
 }
 
 inline float getPxPxErr2(float ipt, float phi, float vipt, float vphi){ // ipt = 1/pT, v = variance

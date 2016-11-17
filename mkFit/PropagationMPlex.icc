@@ -46,7 +46,7 @@ static inline void helixAtRFromIterative_impl(const Tf& __restrict__ inPar,
       const float ptinv  = 1.f/pt;
       const float pt2inv = ptinv*ptinv;
       //p=0.3Br => r=p/(0.3*B)
-      const float k = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*(useParamBfield?Config::BfieldFromZR(inPar.ConstAt(n,2,0),r0):Config::Bfield));    
+      const float k = inChg(n, 0, 0) * 100.f / (-Config::sol*(useParamBfield?Config::BfieldFromZR(inPar(n,2,0),r0):Config::Bfield));    
       const float invcurvature = 1.f/(pt*k);//in 1./cm
       const float ctgTheta=pzin*ptinv;
       
@@ -254,7 +254,7 @@ static inline void helixAtRFromIterativeCCS_impl(const Tf& __restrict__ inPar,
       errorProp(n,5,5) = 1.f;
 
       float r0 = hipo(inPar(n, 0, 0), inPar(n, 1, 0));
-      const float k = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*(useParamBfield?Config::BfieldFromZR(inPar.ConstAt(n,2,0),r0):Config::Bfield)); 
+      const float k = inChg(n, 0, 0) * 100.f / (-Config::sol*(useParamBfield?Config::BfieldFromZR(inPar(n,2,0),r0):Config::Bfield)); 
       const float r = msRad(n, 0, 0);
 
       // if (std::abs(r-r0)<0.0001f) {
