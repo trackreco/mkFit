@@ -2,7 +2,7 @@
 
 make -j 12
 
-dir=/data/nfsmic/${USER}/tmp
+dir=/data/nfsmic/kmcdermo/toymc
 mkdir -p ${dir}
 
 # Building test: Barrel
@@ -33,7 +33,7 @@ make -j 12
 if [ ! -f ${dir}/simtracks_barrel_10x10k_val.bin ]; then
     echo "++++Generating 10k tracks/event * 10 events for ToyMC barrel-only validation tests++++"
     sed -i 's/#WITH_ROOT := yes/WITH_ROOT := yes/g' Makefile.config
-    ./mkFit/mkFit --num-thr-sim 1 --normal-val --num-events 10 --num-events 10000 --write --file-name simtracks_barrel_10x10k_val.bin
+    ./mkFit/mkFit --num-thr-sim 1 --normal-val --num-events 10 --num-tracks 10000 --write --file-name simtracks_barrel_10x10k_val.bin
     mv simtracks_barrel_10x10k_val.bin ${dir}/
     sed -i 's/WITH_ROOT := yes/#WITH_ROOT := yes/g' Makefile.config
 fi

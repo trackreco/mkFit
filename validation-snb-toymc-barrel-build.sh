@@ -4,7 +4,7 @@ sed -i 's/#WITH_ROOT := yes/WITH_ROOT := yes/g' Makefile.config
 
 make -j 12
 
-dir=/data/nfsmic/${USER}/tmp
+dir=/data/nfsmic/kmcdermo/toymc
 
 echo "snb toymc BH (barrel): validation [nTH:24, nVU:8]"
 ./mkFit/mkFit --normal-val --read --file-name ${dir}/simtracks_barrel_10x10k_val.bin --build-bh   --num-thr 24 >& log_snb_10x10k_BH_NVU8int_NTH24_val.txt

@@ -242,7 +242,7 @@ int MkBuilder::find_seeds()
   return time;
 }
 
-void MkBuilder::fit_seeds_tbb()
+void MkBuilder::fit_seeds()
 {
   g_exe_ctx.populate(Config::numThreadsFinder);
   TrackVec& seedtracks = m_event->seedTracks_;
@@ -307,10 +307,10 @@ W/ ROOT uses the TTreValidation class which needs seedTracks_, candidateTracks_,
 The fitTracks_ collection for now is just a copy of candidateTracks_ (eventually may have cuts and things that affect which tracks to fit).
 So... need to "remap" seedTracks_ hits from LOH to GLH with remap_seed_hits().
 And also copy in tracks from EtaBin* to candidateTracks_, and then remap hits from LOH to GLH with quality_store_tracks() and remap_cand_hits().
-W/ ROOT uses root_val_besthit() for BH, and root_val() for non-BH.
+W/ ROOT uses root_val_BH for BH, and root_val_COMB() for non-BH.
 
 W/O ROOT is a bit simpler... as we only need to do the copy out tracks from EtaBin* and then remap just candidateTracks_.
-This uses quality_output() or quality_output_besthit()
+This uses quality_output_COMB() or quality_output_BH()
 
 N.B.1 Since fittestMPlex at the moment is not "end-to-end" with candidate tracks, we can still use the GLH version of InputTracksAndHits()
 
@@ -401,11 +401,11 @@ void MkBuilder::align_simtracks()
 // Non-ROOT validation
 //------------------------------------------------------------------------------
 
-void MkBuilder::quality_output_besthit(const EventOfCandidates& event_of_cands)
+void MkBuilder::quality_output_BH(const EventOfCandidates& event_of_cands)
 {
   quality_reset();
 
-  quality_store_tracks_besthit(event_of_cands);
+  quality_store_tracks_BH(event_of_cands);
   
   remap_cand_hits();
 
@@ -419,11 +419,11 @@ void MkBuilder::quality_output_besthit(const EventOfCandidates& event_of_cands)
   quality_print();
 }
 
-void MkBuilder::quality_output()
+void MkBuilder::quality_output_COMB()
 {
   quality_reset();
 
-  quality_store_tracks();
+  quality_store_tracks_COMB();
 
   remap_cand_hits();
 
@@ -442,7 +442,7 @@ void MkBuilder::quality_reset()
   m_cnt = m_cnt1 = m_cnt2 = m_cnt_8 = m_cnt1_8 = m_cnt2_8 = m_cnt_nomc = 0;
 }
 
-void MkBuilder::quality_store_tracks_besthit(const EventOfCandidates& event_of_cands)
+void MkBuilder::quality_store_tracks_BH(const EventOfCandidates& event_of_cands)
 {
   for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
   {
@@ -455,7 +455,7 @@ void MkBuilder::quality_store_tracks_besthit(const EventOfCandidates& event_of_c
   }
 }
 
-void MkBuilder::quality_store_tracks()
+void MkBuilder::quality_store_tracks_COMB()
 {
   for (int ebin = 0; ebin < Config::nEtaBin; ++ebin)
   {
@@ -522,13 +522,13 @@ void MkBuilder::quality_print()
 // Root validation
 //------------------------------------------------------------------------------
 
-void MkBuilder::root_val_besthit(const EventOfCandidates& event_of_cands)
+void MkBuilder::root_val_BH(const EventOfCandidates& event_of_cands)
 {
   // remap seed tracks
   remap_seed_hits();
 
   // get the tracks ready for validation
-  quality_store_tracks_besthit(event_of_cands);
+  quality_store_tracks_BH(event_of_cands);
   remap_cand_hits();
   m_event->fitTracks_ = m_event->candidateTracks_; // fixme: hack for now. eventually fitting will be including end-to-end
   align_simtracks();
@@ -537,12 +537,12 @@ void MkBuilder::root_val_besthit(const EventOfCandidates& event_of_cands)
   m_event->Validate();
 }
 
-void MkBuilder::root_val()
+void MkBuilder::root_val_COMB()
 {
   remap_seed_hits(); // prepare seed tracks for validation
 
   // get the tracks ready for validation
-  quality_store_tracks();
+  quality_store_tracks_COMB();
   remap_cand_hits();
   m_event->fitTracks_ = m_event->candidateTracks_; // fixme: hack for now. eventually fitting will be including end-to-end
   align_simtracks();
@@ -665,7 +665,7 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
 }
 
 //------------------------------------------------------------------------------
-// FindTracksCloneEngine 
+// FindTracksCombinatorial: CloneEngine TBB
 //------------------------------------------------------------------------------
 
 void MkBuilder::find_tracks_load_seeds()
@@ -685,7 +685,7 @@ void MkBuilder::find_tracks_load_seeds()
   dcall(print_seeds(event_of_comb_cands));
 }
 
-void MkBuilder::FindTracksCloneEngineTbb()
+void MkBuilder::FindTracksCombinatorial()
 {
   g_exe_ctx.populate(Config::numThreadsFinder);
   EventOfCombCandidates &event_of_comb_cands = m_event_tmp->m_event_of_comb_cands;

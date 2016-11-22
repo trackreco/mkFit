@@ -60,7 +60,7 @@ public:
   virtual void begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type);
 
   int find_seeds();
-  virtual void fit_seeds_tbb();
+  virtual void fit_seeds();
 
   void end_event();
   
@@ -71,22 +71,20 @@ public:
   void remap_cand_hits(); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_ (cands only)
   void align_simtracks(); // simtrack labels get screwed up in endcap tests
 
-  void quality_output_besthit(const EventOfCandidates& event_of_cands);
-  void quality_output();
+  void quality_output_BH(const EventOfCandidates& event_of_cands);
+  void quality_output_COMB();
   void quality_reset();
   void quality_process(Track& tkcand);
   void quality_print();
 
-  void quality_store_tracks_besthit(const EventOfCandidates& event_of_cands);
-  void quality_store_tracks();
+  void quality_store_tracks_BH(const EventOfCandidates& event_of_cands);
+  void quality_store_tracks_COMB();
 
-  void root_val_besthit(const EventOfCandidates& event_of_cands);
-  void root_val();
+  void root_val_BH(const EventOfCandidates& event_of_cands);
+  void root_val_COMB();
   void init_track_extras();
 
   // --------
-
-  // Common foos for FindTracks() / FindTracksCloneEngine() ???
 
   void find_tracks_load_seeds(EventOfCandidates& event_of_cands); // for FindTracksBestHit
   void find_tracks_load_seeds();
@@ -96,7 +94,7 @@ public:
   // --------
 
   virtual void FindTracksBestHit(EventOfCandidates& event_of_cands);
-  virtual void FindTracksCloneEngineTbb();
+  virtual void FindTracksCombinatorial();
 #ifdef USE_CUDA
   const Event* get_event() const { return m_event; }
   const EventOfHits& get_event_of_hits() const { return m_event_of_hits; }

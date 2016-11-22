@@ -274,7 +274,7 @@ void test_standard()
       cuFitter.freeDevice();
 #endif
       t_cur[1] = (g_run_build_all || g_run_build_bh)   ? runBuildingTestPlexBestHit(ev) : 0;
-      t_cur[2] = (g_run_build_all || g_run_build_comb) ? runBuildingTestPlexTbb(ev, ev_tmp) : 0;
+      t_cur[2] = (g_run_build_all || g_run_build_comb) ? runBuildingTestPlexCombinatorial(ev, ev_tmp) : 0;
 
       for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
 

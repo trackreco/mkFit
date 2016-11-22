@@ -146,7 +146,7 @@ inline void MkBuilderEndcap::fit_one_seed_set_endcap(TrackVec& seedtracks, int i
   mkfp->OutputFittedTracksAndHitIdx(m_event->seedTracks_, itrack, end, true);
 }
 
-void MkBuilderEndcap::fit_seeds_tbb()
+void MkBuilderEndcap::fit_seeds()
 {
   TrackVec& seedtracks = m_event->seedTracks_;
 
@@ -237,10 +237,10 @@ void MkBuilderEndcap::FindTracksBestHit(EventOfCandidates& event_of_cands)
 }
 
 //------------------------------------------------------------------------------
-// FindTracksCloneEngine
+// FindTracksCombinatorial: CloneEngine TBB
 //------------------------------------------------------------------------------
 
-void MkBuilderEndcap::FindTracksCloneEngineTbb()
+void MkBuilderEndcap::FindTracksCombinatorial()
 {
   EventOfCombCandidates &event_of_comb_cands = m_event_tmp->m_event_of_comb_cands;
 

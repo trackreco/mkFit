@@ -2,7 +2,7 @@
 
 make -j 12
 
-dir=/data/nfsmic/${USER}/tmp
+dir=/data/nfsmic/kmcdermo/toymc
 
 for nth in 1 2 4 6 8 12 16 20 24
 do

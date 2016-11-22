@@ -57,3 +57,5 @@ done
 root -b -q -l runValidation.C\(\"_BH\"\)
 root -b -q -l runValidation.C\(\"_COMB\"\)
 root -b -q -l makeValidation.C
+
+make distclean

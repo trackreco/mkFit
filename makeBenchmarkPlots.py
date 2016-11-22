@@ -1,6 +1,7 @@
 import os.path, glob, sys
 import ROOT
 import array
+import math
 
 if len(sys.argv)<2 or len(sys.argv)>3: exit
 
@@ -47,16 +48,17 @@ for test in ['BH','COMB','FIT']:
 
     #Vectorization time    
     print "Vectorization"
-    g_VU = ROOT.TGraph(4)
-    g_VU_speedup = ROOT.TGraph(4)
+    g_VU = ROOT.TGraphErrors(len(vuvals))
+    g_VU_speedup = ROOT.TGraphErrors(len(vuvals))
     point = 0
     for vu in vuvals:
         if    vu == '16int': xval = 16.0
         elif  vu == '8int' : xval = 8.0
         else               : xval = float(vu)
-        yval = 0.
+        yvals = array.array('d');
         firstFound = False
-        
+
+        # Read in times from log files, store into yvals
         os.system('grep Matriplex log_'+hORm+'_'+ntks+'_'+test+'_NVU'+vu+'_NTH'+nth+'.txt >& log_'+hORm+'_'+ntks+'_'+test+'_VU.txt')
         with open('log_'+hORm+'_'+ntks+'_'+test+'_VU.txt') as f:
             for line in f:
@@ -66,11 +68,22 @@ for test in ['BH','COMB','FIT']:
                 if not firstFound:
                     firstFound = True
                     continue
-                yval = yval+float(lsplit[pos])
-        
-        yval = nevt*yval/(nevt-1.)
-        print xval, yval
-        g_VU.SetPoint(point,xval,yval)
+                yvals.append(float(lsplit[pos]))
+
+        # Compute mean and uncertainty on mean
+        sum = 0.;
+        for yval in range(0,len(yvals)):
+            sum = sum + yvals[yval]
+        mean = sum/len(yvals)
+        emean = 0.;
+        for yval in range(0,len(yvals)):
+            emean = emean + ((yvals[yval] - mean) * (yvals[yval] - mean))
+        emean = math.sqrt(emean / (len(yvals) - 1))
+        emean = emean/math.sqrt(len(yvals))
+
+        print xval,mean,'+/-',emean
+        g_VU.SetPoint(point,xval,mean)
+        g_VU.SetPointError(point,0,emean)
         point = point+1
     g_VU.Write("g_"+test+"_VU")
 
@@ -99,12 +112,12 @@ for test in ['BH','COMB','FIT']:
     
     # Parallelization time
     print "Parallelization"
-    g_TH = ROOT.TGraph(len(thvals))
-    g_TH_speedup = ROOT.TGraph(len(thvals))
+    g_TH = ROOT.TGraphErrors(len(thvals))
+    g_TH_speedup = ROOT.TGraphErrors(len(thvals))
     point = 0
     for th in thvals:
         xval = float(th)
-        yval = 0.
+        yvals = array.array('d');
         firstFound = False
 
         os.system('grep Matriplex log_'+hORm+'_'+ntks+'_'+test+'_NVU'+nvu+'_NTH'+str(th)+'.txt >& log_'+hORm+'_'+ntks+'_'+test+'_TH.txt')
@@ -116,11 +129,22 @@ for test in ['BH','COMB','FIT']:
                 if not firstFound:
                     firstFound = True
                     continue
-                yval = yval+float(lsplit[pos])
+                yvals.append(float(lsplit[pos]))
+        
+        # Compute mean and uncertainty on mean
+        sum = 0.;
+        for yval in range(0,len(yvals)):
+            sum = sum + yvals[yval]
+        mean = sum/len(yvals)
+        emean = 0.;
+        for yval in range(0,len(yvals)):
+            emean = emean + ((yvals[yval] - mean) * (yvals[yval] - mean))
+        emean = math.sqrt(emean / (len(yvals) - 1))
+        emean = emean/math.sqrt(len(yvals))
 
-        yval = nevt*yval/(nevt-1.)
-        print xval, yval
-        g_TH.SetPoint(point,xval,yval)
+        print xval,mean,'+/-',emean
+        g_TH.SetPoint(point,xval,mean)
+        g_TH.SetPointError(point,0,emean)
         point = point+1
     g_TH.Write("g_"+test+"_TH")
 
