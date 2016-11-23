@@ -40,6 +40,10 @@ typedef std::unordered_map<int, BranchValVecLayMap> TkIDToBranchValVecLayMapMap;
 typedef TkIDToBranchValVecLayMapMap::iterator TkIDToBVVMMIter;
 typedef BranchValVecLayMap::iterator BVVLMiter;
 
+// FitVal defined in Validation.h
+typedef std::map<int, FitVal> FitValLayMap;
+typedef std::unordered_map<int, FitValLayMap> TkIDtoFitValLayMapMap;
+
 class TTreeValidation : public Validation {
 public:
   TTreeValidation(std::string fileName);
@@ -56,6 +60,7 @@ public:
   void initializeConformalTree();
   void initializeConfigTree();
   void initializeTimeTree();
+  void initializeFitTree();
   
   void alignTrackExtra(TrackVec& evt_tracks, TrackExtraVec& evt_extra) override;
 
@@ -68,6 +73,7 @@ public:
                             const std::vector<int>& cand_hit_indices, const std::vector<int>& cand_hits_branches) override;
   void collectFitTkCFMapInfo(int seedID, const TrackState& cfitStateHit0) override;
   void collectFitTkTSLayerPairVecMapInfo(int seedID, const TSLayerPairVec& updatedStates) override;
+  void collectFitInfo(const FitVal& tmpfitval, int tkid, int layer) override;
   void collectPropTSLayerVecInfo(int layer, const TrackState& propTS) override;
   void collectChi2LayerVecInfo(int layer, float chi2) override;
   void collectUpTSLayerVecInfo(int layer, const TrackState& upTS) override;
@@ -75,6 +81,7 @@ public:
   void resetValidationMaps() override;
   void resetDebugVectors() override;
   void resetDebugTreeArrays();
+  void resetFitBranches();
 
   void setTrackExtras(Event& ev) override;
   void setTrackCollectionExtras(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, 
@@ -96,6 +103,7 @@ public:
   void fillConformalTree(const Event& ev) override;
   void fillConfigTree() override;
   void fillTimeTree(const std::vector<double>& ticks) override;
+  void fillFitTree(const Event& ev) override;
 
   void saveTTrees() override;
 
@@ -113,6 +121,8 @@ public:
   TkIDToTSVecMap simTkTSVecMap_; // used for pulls (map all sim track TS to sim ID) ... also used in super debug mode
   TkIDToTSMap seedTkCFMap_; // map CF TS to seedID of seed track ... also used in super debug mode
   TkIDToTSMap fitTkCFMap_; // map CF TS to seedID of fit track
+
+  TkIDtoFitValLayMapMap fitValTkMapMap_; // map used for fit validation in mplex
 
   // Sim to Reco Maps
   TkIDToTkIDVecMap simToSeedMap_;
@@ -317,6 +327,17 @@ public:
   // Time tree (smatrix only at the moment)
   TTree* timetree_;
   float simtime_=0.,segtime_=0.,seedtime_=0.,buildtime_=0.,fittime_=0.,hlvtime_=0.;
+
+  // Fit tree (for fine tuning z-phi windows and such --> MPlex Only
+  TTree* fittree_;
+  int   nlayers_fit_=0,tkid_fit_=0,evtid_fit_=0;
+  float z_prop_fit_[Config::nLayers],ez_prop_fit_[Config::nLayers];
+  float z_hit_fit_[Config::nLayers],ez_hit_fit_[Config::nLayers],z_sim_fit_[Config::nLayers],ez_sim_fit_[Config::nLayers];
+  float pphi_prop_fit_[Config::nLayers],epphi_prop_fit_[Config::nLayers];
+  float pphi_hit_fit_[Config::nLayers],epphi_hit_fit_[Config::nLayers],pphi_sim_fit_[Config::nLayers],epphi_sim_fit_[Config::nLayers];
+  float pt_up_fit_[Config::nLayers],ept_up_fit_[Config::nLayers],pt_sim_fit_[Config::nLayers],ept_sim_fit_[Config::nLayers];
+  float mphi_up_fit_[Config::nLayers],emphi_up_fit_[Config::nLayers],mphi_sim_fit_[Config::nLayers],emphi_sim_fit_[Config::nLayers];
+  float meta_up_fit_[Config::nLayers],emeta_up_fit_[Config::nLayers],meta_sim_fit_[Config::nLayers],emeta_sim_fit_[Config::nLayers];
 
   std::mutex glock_;
 };

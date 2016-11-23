@@ -47,7 +47,6 @@ void fitTrack(const Track & trk, const TrackExtra& trkextra, int itrack, Event& 
   ev.validation_.collectFitTkCFMapInfo(seedID,cfitStateHit0); // pass along all info and map it to a given seed
 #else 
   TrackState updatedState = trk.state();
-  updatedState = propagateHelixToR(updatedState,hit1.r()); // see first ifdef on INWARDFIT
 #endif 
 
 #if defined(ENDTOEND) || defined(CONFORMAL)
@@ -66,7 +65,7 @@ void fitTrack(const Track & trk, const TrackExtra& trkextra, int itrack, Event& 
     const Hit& hit = evt_lay_hits[trkLayers[i]][trk.getHitIdx(trkLayers[i])];
     MeasurementState measState = hit.measurementState();
  
-    TrackState propState = propagateHelixToR(updatedState, hit.r());
+    TrackState propState = propagateHelixToR(updatedState, hit.r(), true);
     updatedState = updateParameters(propState, measState);
 
     SVector3 propPos(propState.parameters[0],propState.parameters[1],propState.parameters[2]);

@@ -467,7 +467,7 @@ void MkFitter::ConformalFitTracks(bool fitting, int beg, int end)
   }
 }
 
-void MkFitter::FitTracks(const int N_proc)
+void MkFitter::FitTracks(const int N_proc, const Event * ev, const bool useParamBfield)
 {
   // Fitting loop.
 
@@ -478,15 +478,40 @@ void MkFitter::FitTracks(const int N_proc)
     //                       Err[iP], Par[iP]);
 
     propagateHelixToRMPlex(Err[iC], Par[iC], Chg, msPar[hi],
-                           Err[iP], Par[iP], N_proc);
+                           Err[iP], Par[iP], N_proc, useParamBfield);
 
     updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[hi], msPar[hi],
                           Err[iC], Par[iC], N_proc);
+
+    if (Config::fit_val) MkFitter::CollectFitValidation(hi,N_proc,ev);
   }
   // XXXXX What's with chi2?
 }
 
-void MkFitter::FitTracksTestEndcap(const int N_proc, const Event* ev)
+void MkFitter::CollectFitValidation(const int hi, const int N_proc, const Event * ev) const
+{
+  for (int n = 0; n < N_proc; ++n)
+  {
+    const float upt = 1.f/Par[iC](n,3,0);
+    const FitVal tmpfitval
+    {
+      Par[iP].ConstAt(n,2,0),
+      std::sqrt(Err[iP].ConstAt(n,2,2)),
+      getPhi(Par[iP].ConstAt(n,0,0),Par[iP].ConstAt(n,1,0)),
+      std::sqrt(getPhiErr2(Par[iP](n,0,0),Par[iP](n,1,0),Err[iP](n,0,0),Err[iP](n,1,1),Err[iP](n,0,1))),
+      upt,
+      std::sqrt(Err[iC](n,3,3))*upt*upt,
+      Par[iC](n,4,0),
+      std::sqrt(Err[iC](n,4,4)),
+      getEta(Par[iC](n,5,0)),
+      std::sqrt(Err[iC](n,5,5)/std::sin(Par[iC](n,5,0)))
+    };
+    
+    ev->validation_.collectFitInfo(tmpfitval,Label(n,0,0),hi);
+  }
+}
+
+void MkFitter::FitTracksTestEndcap(const int N_proc, const Event* ev, const bool useParamBfield)
 {
 
   if (countValidHits(0)<8) return;
@@ -506,7 +531,7 @@ void MkFitter::FitTracksTestEndcap(const int N_proc, const Event* ev)
       dprint("hit #" << hi << " hit  pos=" << msPar[hi].ConstAt(0, 0, 0) << ", " <<  msPar[hi].ConstAt(0, 0, 1) << ", " <<  msPar[hi].ConstAt(0, 0, 2));
 
       propagateHelixToZMPlex(Err[iC], Par[iC], Chg, msPar[hi],
-			     Err[iP], Par[iP], N_proc);
+			     Err[iP], Par[iP], N_proc, useParamBfield);
 
       dprint("hit #" << hi << " prop par=" << Par[iP].ConstAt(0, 0, 0) << ", " <<  Par[iP].ConstAt(0, 0, 1) << ", " <<  Par[iP].ConstAt(0, 0, 2)  << ", "
 	     << Par[iP].ConstAt(0, 0, 3) << ", " <<  Par[iP].ConstAt(0, 0, 4) << ", " <<  Par[iP].ConstAt(0, 0, 5)

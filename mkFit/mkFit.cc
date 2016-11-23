@@ -389,6 +389,7 @@ int main(int argc, const char *argv[])
 	"  --cf-seeding             enable CF in seeding (def: %s)\n"
 	"  --cf-fitting             enable CF in fitting (def: %s)\n"
 	"  --normal-val             enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
+	"  --fit-val                enable ROOT based validation for fitting (def: %s)\n"
 	"  --write                  write simulation to file and exit\n"
 	"  --read                   read simulation from file\n"
 	"  --file-name              file name for write/read (def: %s)\n"
@@ -411,6 +412,7 @@ int main(int argc, const char *argv[])
 	Config::cf_seeding ? "true" : "false",
 	Config::cf_fitting ? "true" : "false",
 	Config::normal_val ? "true" : "false",
+	Config::fit_val    ? "true" : "false",
 	g_file_name.c_str()
       );
       exit(0);
@@ -505,7 +507,11 @@ int main(int argc, const char *argv[])
     }
     else if (*i == "--normal-val")
     {
-      Config::super_debug = false; Config::normal_val = true; Config::full_val = false;
+      Config::super_debug = false; Config::normal_val = true; Config::full_val = false; Config::fit_val = false;
+    }
+    else if (*i == "--fit-val")
+    {
+      Config::super_debug = false; Config::normal_val = false; Config::full_val = false; Config::fit_val = true;
     }
     else if (*i == "--num-thr-ev")
     {

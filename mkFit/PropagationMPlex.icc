@@ -12,7 +12,8 @@ static inline void helixAtRFromIterative_impl(const Tf& __restrict__ inPar,
                                               const Tf11& __restrict__ msRad, 
                                               TfLLL& __restrict__ errorProp,
                                               const int nmin, const int nmax,
-                                              const int N_proc)
+                                              const int N_proc, 
+					      const bool useParamBfield)
 {
 #pragma simd
   for (int n = nmin; n < nmax; ++n) {
@@ -30,7 +31,7 @@ static inline void helixAtRFromIterative_impl(const Tf& __restrict__ inPar,
       const float pyin = inPar(n, 4, 0);
       const float pzin = inPar(n, 5, 0);
       const float r    = msRad(n, 0, 0);
-      float r0 = hipo(xin, yin);
+      float r0 = hipo(xin,yin);
       
       dprint_np(n, std::endl << "attempt propagation from r=" << r0 << " to r=" << r << std::endl
         << "x=" << xin << " y=" << yin  << " z=" << inPar(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pzin << " q=" << inChg(n, 0, 0));
@@ -45,7 +46,7 @@ static inline void helixAtRFromIterative_impl(const Tf& __restrict__ inPar,
       const float ptinv  = 1.f/pt;
       const float pt2inv = ptinv*ptinv;
       //p=0.3Br => r=p/(0.3*B)
-      const float k = inChg(n, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
+      const float k = inChg(n, 0, 0) * 100.f / (-Config::sol*(useParamBfield?Config::BfieldFromZR(inPar(n,2,0),r0):Config::Bfield));    
       const float invcurvature = 1.f/(pt*k);//in 1./cm
       const float ctgTheta=pzin*ptinv;
       
@@ -238,7 +239,8 @@ static inline void helixAtRFromIterativeCCS_impl(const Tf& __restrict__ inPar,
                                                  const Tf11& __restrict__ msRad, 
                                                  TfLLL& __restrict__ errorProp,
                                                  const int nmin, const int nmax,
-                                                 const int N_proc)
+                                                 const int N_proc,
+						 const bool useParamBfield) 
 {
 #pragma simd
   for (int n = nmin; n < nmax; ++n)
@@ -251,9 +253,9 @@ static inline void helixAtRFromIterativeCCS_impl(const Tf& __restrict__ inPar,
       errorProp(n,4,4) = 1.f;
       errorProp(n,5,5) = 1.f;
 
-      const float k = inChg(n, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
-      const float r = msRad(n, 0, 0);
       float r0 = hipo(inPar(n, 0, 0), inPar(n, 1, 0));
+      const float k = inChg(n, 0, 0) * 100.f / (-Config::sol*(useParamBfield?Config::BfieldFromZR(inPar(n,2,0),r0):Config::Bfield)); 
+      const float r = msRad(n, 0, 0);
 
       // if (std::abs(r-r0)<0.0001f) {
       // 	dprint("distance less than 1mum, skip");

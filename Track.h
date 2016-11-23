@@ -62,7 +62,7 @@ public:
   float px()     const {return pT()*std::cos(parameters.At(4));}
   float py()     const {return pT()*std::sin(parameters.At(4));}
   float pz()     const {return pT()/std::tan(parameters.At(5));}
-  float momEta() const {return getEta (pT(),pz());}
+  float momEta() const {return getEta (theta());}
   float p()      const {return pT()/std::sin(parameters.At(5));}
 
   float einvpT()  const {return std::sqrt(errors.At(3,3));}

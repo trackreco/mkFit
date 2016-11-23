@@ -43,6 +43,7 @@ namespace Config
   bool  super_debug = false;
   bool  normal_val  = false;
   bool  full_val    = false;
+  bool  fit_val     = false;
 
   void RecalculateDependentConstants()
   {

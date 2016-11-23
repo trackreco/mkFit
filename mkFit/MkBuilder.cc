@@ -353,7 +353,7 @@ inline void MkBuilder::fit_one_seed_set(TrackVec& seedtracks, int itrack, int en
   mkfp->SetNhits(Config::nlayers_per_seed); //just to be sure (is this needed?)
   mkfp->InputTracksAndHits(seedtracks, m_event_of_hits.m_layers_of_hits, itrack, end);
   if (Config::cf_seeding) mkfp->ConformalFitTracks(false, itrack, end);
-  if (Config::readCmsswSeeds==false) mkfp->FitTracks(end - itrack);
+  if (Config::readCmsswSeeds==false) mkfp->FitTracks(end - itrack, m_event);
 
   const int ilay = 3; // layer 4
 

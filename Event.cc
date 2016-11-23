@@ -114,7 +114,7 @@ void Event::Simulate()
       }
 #endif
       // uber ugly way of getting around read-in / write-out of objects needed for validation
-      if (Config::normal_val) {simTrackStates_[itrack] = initialTSs;}
+      if (Config::normal_val || Config::fit_val) {simTrackStates_[itrack] = initialTSs;}
       validation_.collectSimTkTSVecMapInfo(itrack,initialTSs); // save initial TS parameters in validation object ... just a copy of the above line
 
       simTracks_[itrack] = Track(q,pos,mom,covtrk,0.0f);
@@ -288,6 +288,10 @@ void Event::Validate(){
   if (Config::super_debug) { // super debug mode
     validation_.fillDebugTree(*this);
   }
+
+  if (Config::fit_val) { // fit val for z-phi tuning
+    validation_.fillFitTree(*this);
+  }
 }
 
 void Event::PrintStats(const TrackVec& trks, TrackExtraVec& trkextras)
@@ -324,7 +328,7 @@ void Event::write_out(FILE *fp)
   fwrite(&nt, sizeof(int), 1, fp);
   fwrite(&simTracks_[0], sizeof(Track), nt, fp);
 
-  if (Config::normal_val) {
+  if (Config::normal_val || Config::fit_val) {
     for (int it = 0; it<nt; ++it) {
       int nts = simTrackStates_[it].size();
       fwrite(&nts, sizeof(int), 1, fp);
@@ -373,7 +377,7 @@ void Event::read_in(FILE *fp)
   fread(&simTracks_[0], sizeof(Track), nt, fp);
   Config::nTracks = nt;
 
-  if (Config::normal_val) {
+  if (Config::normal_val || Config::fit_val) {
     simTrackStates_.resize(nt);
     for (int it = 0; it<nt; ++it) {
       int nts;
