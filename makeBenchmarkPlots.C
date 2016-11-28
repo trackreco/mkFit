@@ -17,7 +17,7 @@ void makeBenchmarkPlots(bool isMic = false, bool isCMSSW = false, bool isEndcap 
   TGraphErrors* g_BH_VU   = (TGraphErrors*) f->Get("g_BH_VU");
   TGraphErrors* g_COMB_VU = (TGraphErrors*) f->Get("g_COMB_VU");
   g_BH_VU->SetTitle(track+" Vectorization Benchmark on "+label+" [nTH="+nth+"]");
-  g_BH_VU->GetXaxis()->SetTitle("Vector Width");
+  g_BH_VU->GetXaxis()->SetTitle("Matriplex Vector Width [floats]");
   g_BH_VU->GetYaxis()->SetTitle("Average Time per Event [s]");
   g_BH_VU->GetXaxis()->SetRangeUser(1,maxvu);
   g_BH_VU->GetYaxis()->SetRangeUser(0, (isMic? 3.0 : 0.5));
@@ -47,7 +47,7 @@ void makeBenchmarkPlots(bool isMic = false, bool isCMSSW = false, bool isEndcap 
   TGraphErrors* g_BH_VU_speedup   = (TGraphErrors*) f->Get("g_BH_VU_speedup");
   TGraphErrors* g_COMB_VU_speedup = (TGraphErrors*) f->Get("g_COMB_VU_speedup");
   g_BH_VU_speedup->SetTitle(track+" Vectorization Speedup on "+label+" [nTH="+nth+"]");
-  g_BH_VU_speedup->GetXaxis()->SetTitle("Vector Width");
+  g_BH_VU_speedup->GetXaxis()->SetTitle("Matriplex Vector Width [floats]");
   g_BH_VU_speedup->GetYaxis()->SetTitle("Speedup");
   g_BH_VU_speedup->GetXaxis()->SetRangeUser(1,maxvu);
   g_BH_VU_speedup->GetYaxis()->SetRangeUser(0,maxvu);
@@ -107,7 +107,7 @@ void makeBenchmarkPlots(bool isMic = false, bool isCMSSW = false, bool isEndcap 
   TCanvas c4;
   TGraphErrors* g_BH_TH_speedup   = (TGraphErrors*) f->Get("g_BH_TH_speedup");
   TGraphErrors* g_COMB_TH_speedup = (TGraphErrors*) f->Get("g_COMB_TH_speedup");
-  g_BH_TH_speedup->SetTitle(track+" Parallelization speedup on "+label+" [nVU="+nvu+"]");
+  g_BH_TH_speedup->SetTitle(track+" Parallelization Speedup on "+label+" [nVU="+nvu+"]");
   g_BH_TH_speedup->GetXaxis()->SetTitle("Number of Threads");
   g_BH_TH_speedup->GetYaxis()->SetTitle("Speedup");
   g_BH_TH_speedup->GetXaxis()->SetRangeUser(1,maxth);

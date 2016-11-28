@@ -15,7 +15,7 @@ void makeBenchmarkPlotsFit(bool isMic = false, bool isEndcap = false)
   TCanvas c1;
   TGraphErrors* g_FIT_VU = (TGraphErrors*) f->Get("g_FIT_VU");
   g_FIT_VU->SetTitle("ToyMC 10k Tracks/Event Vectorization Benchmark on "+label+" [nTH="+nth+"]");
-  g_FIT_VU->GetXaxis()->SetTitle("Vector Width");
+  g_FIT_VU->GetXaxis()->SetTitle("Matriplex Vector Width [floats]");
   g_FIT_VU->GetYaxis()->SetTitle("Average Time per Event [s]");
   g_FIT_VU->GetYaxis()->SetTitleOffset(1.25);
   g_FIT_VU->GetXaxis()->SetRangeUser(1,maxvu);
@@ -37,7 +37,7 @@ void makeBenchmarkPlotsFit(bool isMic = false, bool isEndcap = false)
   TCanvas c2;
   TGraphErrors* g_FIT_VU_speedup = (TGraphErrors*) f->Get("g_FIT_VU_speedup");
   g_FIT_VU_speedup->SetTitle("ToyMC 10k Tracks/Event Vectorization Speedup on "+label+" [nTH="+nth+"]");
-  g_FIT_VU_speedup->GetXaxis()->SetTitle("Vector Width");
+  g_FIT_VU_speedup->GetXaxis()->SetTitle("Matriplex Vector Width [floats]");
   g_FIT_VU_speedup->GetYaxis()->SetTitle("Speedup");
   g_FIT_VU_speedup->GetXaxis()->SetRangeUser(1,maxvu);
   g_FIT_VU_speedup->GetYaxis()->SetRangeUser(0,maxvu);
