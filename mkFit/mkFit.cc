@@ -95,11 +95,11 @@ void generate_and_save_tracks()
 
   printf("writing %i events\n",Nevents);
 
+  tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
+
   for (int evt = 0; evt < Nevents; ++evt)
   {
     Event ev(geom, val, evt);
-
-    omp_set_num_threads(Config::numThreadsSimulation);
 
     ev.Simulate();
     ev.resetLayerHitMap(true);

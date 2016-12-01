@@ -74,7 +74,7 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
       HitInfo &hi = ha[i];
       hi.phi  = h.phi();
       hi.z    = h.z();
-      hi.zbin = std::min(static_cast<int>((hi.z - m_zmin) * m_fz), m_nz-1);
+      hi.zbin = std::max(std::min(static_cast<int>((hi.z - m_zmin) * m_fz), m_nz-1), 0);
       m_hit_phis[i] = hi.phi + 6.3f * (hi.zbin - nzh);
       ++zc[hi.zbin];
       ++i;
