@@ -65,7 +65,7 @@ namespace
 {
   FILE *g_file = 0;
   int   g_file_num_ev = 0;
-  int   g_file_cur_ev = 0;
+  std::atomic<int>   g_file_cur_ev{0};
 
   bool  g_run_fit_std   = false;
 
@@ -239,6 +239,7 @@ void test_standard()
   time = dtime();
 
   std::atomic<int> nevt{1};
+  std::atomic<int> seedstot{0}, simtrackstot{0};
 
   tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEvents, (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents),
     [&](const tbb::blocked_range<int>& evts)
@@ -246,6 +247,7 @@ void test_standard()
     EventTmp ev_tmp;
     std::vector<Track> plex_tracks;
     Event ev(geom, val, nevt);
+    FILE* fp = fopen(g_file_name.c_str(), "r");
 
     for (int evt = evts.begin(); evt < evts.end(); ++evt)
     {
@@ -260,7 +262,7 @@ void test_standard()
 
       if (g_operation == "read")
       {
-        ev.read_in(g_file);
+        ev.read_in(fp);
         ev.resetLayerHitMap(false);//hitIdx's in the sim tracks are already ok 
       }
       else
@@ -276,6 +278,8 @@ void test_standard()
       plex_tracks.resize(ev.simTracks_.size());
 
       double t_best[NT] = {0}, t_cur[NT];
+      simtrackstot += ev.simTracks_.size();
+      seedstot += ev.seedTracks_.size();
 
       for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
       {
@@ -313,7 +317,8 @@ void test_standard()
                t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
       }
 
-      // not protected by a mutex, may be inacccurate for multiple events in flight
+      // not protected by a mutex, may be inacccurate for multiple events in flight;
+      // probably should convert to a scaled long so can use std::atomic<Integral>
       for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
       if (evt > 0) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
 
@@ -333,7 +338,7 @@ void test_standard()
          t_sum[0], t_sum[1], t_sum[2], t_sum[3], t_sum[4]);
   printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
          t_skip[0], t_skip[1], t_skip[2], t_skip[3], t_skip[4]);
-  printf("Total event loop time %.5f\n", time);
+  printf("Total event loop time %.5f simtracks %d seedtracks %d\n", time, simtrackstot.load(), seedstot.load());
   //fflush(stdout);
 
   if (g_operation == "read")

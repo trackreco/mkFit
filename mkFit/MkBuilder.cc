@@ -162,10 +162,14 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
   m_event_of_hits.Reset();
 
   //fill vector of hits in each layer
-  for (int ilay = 0; ilay < m_event->layerHits_.size(); ++ilay)
+  tbb::parallel_for(tbb::blocked_range<int>(0, m_event->layerHits_.size()),
+    [&](const tbb::blocked_range<int>& layers)
   {
-    m_event_of_hits.SuckInHits(m_event->layerHits_[ilay], ilay);
-  }
+    for (int ilay = layers.begin(); ilay < layers.end(); ++ilay)
+    {
+      m_event_of_hits.SuckInHits(m_event->layerHits_[ilay], ilay);
+    }
+  });
 
 #ifdef DEBUG
   for (int itrack = 0; itrack < simtracks.size(); ++itrack)

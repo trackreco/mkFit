@@ -341,31 +341,46 @@ void Event::PrintStats(const TrackVec& trks, TrackExtraVec& trkextras)
  
 void Event::write_out(FILE *fp) 
 {
+  static std::mutex writemutex;
+  std::lock_guard<std::mutex> writelock(writemutex);
+
+  auto start = ftell(fp);
+  int evsize = sizeof(int);
+  fwrite(&evsize, sizeof(int), 1, fp); // this will be overwritten at the end
 
   int nt = simTracks_.size();
   fwrite(&nt, sizeof(int), 1, fp);
   fwrite(&simTracks_[0], sizeof(Track), nt, fp);
+  evsize += sizeof(int) + nt*sizeof(Track);
 
   if (Config::normal_val) {
     for (int it = 0; it<nt; ++it) {
       int nts = simTrackStates_[it].size();
       fwrite(&nts, sizeof(int), 1, fp);
       fwrite(&simTrackStates_[it][0], sizeof(TrackState), nts, fp);
+      evsize += sizeof(int) + nts*sizeof(TrackState);
     }
   }
 
   int nl = layerHits_.size();
   fwrite(&nl, sizeof(int), 1, fp);
+  evsize += sizeof(int);
   for (int il = 0; il<nl; ++il) {
     int nh = layerHits_[il].size();
     fwrite(&nh, sizeof(int), 1, fp);
     fwrite(&layerHits_[il][0], sizeof(Hit), nh, fp);
+    evsize += sizeof(int) + nh*sizeof(Hit);
   }
 
   int nm = simHitsInfo_.size();
   fwrite(&nm, sizeof(int), 1, fp);
   fwrite(&simHitsInfo_[0], sizeof(MCHitInfo), nm, fp);
+  evsize += sizeof(int) + nm*sizeof(MCHitInfo);
 
+  fseek(fp, start, SEEK_SET);
+  fwrite(&evsize, sizeof(int), 1, fp);
+  fseek(fp, 0, SEEK_END);
+  
   //layerHitMap_ is recreated afterwards
 
   /*
@@ -388,8 +403,17 @@ void Event::write_out(FILE *fp)
 
 void Event::read_in(FILE *fp)
 {
-  static std::mutex readmutex;
-  std::lock_guard<std::mutex> readlock(readmutex);
+  static long pos = sizeof(int); // header size
+  int evsize;
+
+  {
+    static std::mutex readmutex;
+    std::lock_guard<std::mutex> readlock(readmutex);
+
+    fseek(fp, pos, SEEK_SET);
+    fread(&evsize, sizeof(int), 1, fp);
+    pos += evsize;
+  }
 
   int nt;
   fread(&nt, sizeof(int), 1, fp);
