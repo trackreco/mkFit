@@ -16,14 +16,15 @@ if hORm!='snb' and hORm!='snb_endcap' and hORm!='knc' and hORm!='knc_endcap': ex
 
 g = ROOT.TFile('benchmark_'+hORm+'.root',"recreate")
 
-for test in ['BH','COMB','FIT']:
+for test in ['BH','STD','CE','FIT']:
     if isCMSSW and test=='FIT': continue
     if 'endcap' in hORm and not isCMSSW and 'FIT' not in test: continue
     print test
 
     if 'FIT'  in test: pos = 3  
     if 'BH'   in test: pos = 8  
-    if 'COMB' in test: pos = 11 
+    if 'STD'  in test: pos = 11  
+    if 'CE'   in test: pos = 14 
 
     if isCMSSW:
         ntks = '100xTTbarPU35'

@@ -94,7 +94,8 @@ public:
   // --------
 
   virtual void FindTracksBestHit(EventOfCandidates& event_of_cands);
-  virtual void FindTracksCombinatorial();
+  virtual void FindTracksStandard();
+  virtual void FindTracksCloneEngine();
 #ifdef USE_CUDA
   const Event* get_event() const { return m_event; }
   const EventOfHits& get_event_of_hits() const { return m_event_of_hits; }

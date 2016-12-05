@@ -36,7 +36,7 @@ python makeBenchmarkPlots.py knc cmssw
 root -b -q -l makeBenchmarkPlots.C\(1,1\)
 
 ##### nHits plots #####
-for test in BH COMB; do
+for test in BH CE; do # add in STD once standard building converted to TBB
     echo "Making nHits plots for ToyMC barrel:" ${test}
     python makePlotsFromDump.py _snb_20x10k_${test}_NVU1_NTH1
     python makePlotsFromDump.py _snb_20x10k_${test}_NVU8int_NTH24
@@ -55,7 +55,8 @@ done
 ##### Validation tests #####
 ./validation-snb-toymc-barrel-build.sh
 root -b -q -l runValidation.C\(\"_BH\"\)
-root -b -q -l runValidation.C\(\"_COMB\"\)
+#root -b -q -l runValidation.C\(\"_STD\"\)
+root -b -q -l runValidation.C\(\"_CE\"\)
 root -b -q -l makeValidation.C
 
 make distclean

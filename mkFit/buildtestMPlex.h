@@ -7,7 +7,9 @@
 
 double runBuildingTestPlexBestHit(Event& ev);
 
-double runBuildingTestPlexCombinatorial(Event& ev, EventTmp& evtmp);
+double runBuildingTestPlexStandard(Event& ev, EventTmp& evtmp);
+
+double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& evtmp);
 
 #if USE_CUDA
 double runAllBuildingTestPlexBestHitGPU(std::vector<Event> &events);

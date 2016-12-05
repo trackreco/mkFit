@@ -139,10 +139,10 @@ double runBuildingTestPlexBestHit(Event& ev)
 }
 
 //==============================================================================
-// runBuildTestPlex Combinatorial: CloneEngine TBB
+// runBuildTestPlex Combinatorial: Standard TBB
 //==============================================================================
 
-double runBuildingTestPlexCombinatorial(Event& ev, EventTmp& ev_tmp)
+double runBuildingTestPlexStandard(Event& ev, EventTmp& ev_tmp)
 {
   EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
   event_of_comb_cands.Reset();
@@ -165,7 +165,50 @@ double runBuildingTestPlexCombinatorial(Event& ev, EventTmp& ev_tmp)
 
   double time = dtime();
 
-  builder.FindTracksCombinatorial();
+  builder.FindTracksStandard();
+
+  time = dtime() - time;
+
+#ifdef USE_VTUNE_PAUSE
+  __itt_pause();
+#endif
+
+  if   (!Config::normal_val) {builder.quality_output_COMB();}
+  else                       {builder.root_val_COMB();}
+
+  builder.end_event();
+
+  return time;
+}
+
+//==============================================================================
+// runBuildTestPlex Combinatorial: CloneEngine TBB
+//==============================================================================
+
+double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
+{
+  EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
+  event_of_comb_cands.Reset();
+
+  std::unique_ptr<MkBuilder> builder_ptr(make_builder());
+  MkBuilder &builder = * builder_ptr.get();
+
+  builder.begin_event(&ev, &ev_tmp, __func__);
+
+  if   (Config::findSeeds) {builder.find_seeds();}
+  else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
+
+  builder.fit_seeds();
+
+  builder.find_tracks_load_seeds();
+
+#ifdef USE_VTUNE_PAUSE
+  __itt_resume();
+#endif
+
+  double time = dtime();
+
+  builder.FindTracksCloneEngine();
 
   time = dtime() - time;
 

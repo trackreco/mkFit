@@ -24,7 +24,8 @@ public:
   void fit_seeds() override;
 
   void FindTracksBestHit(EventOfCandidates& event_of_cands) override;
-  void FindTracksCombinatorial() override;
+  void FindTracksStandard() override;
+  void FindTracksCloneEngine() override;
 };
 
 #endif
