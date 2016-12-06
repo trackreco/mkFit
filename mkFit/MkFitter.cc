@@ -1044,9 +1044,18 @@ void MkFitter::FindCandidates(const LayerOfHits &layer_of_hits,
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
     int hit_idx = countInvalidHits(itrack) < Config::maxHolesPerCand ? -1 : -2;
-    
     Track newcand;
     newcand.resetHits();//probably not needed
+    newcand.setCharge(Chg(itrack, 0, 0));
+    newcand.setChi2(Chi2(itrack, 0, 0));
+    for (int hi = 0; hi < Nhits; ++hi)
+    {
+      newcand.addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);//this should be ok since we already set the chi2 above
+    }
+    newcand.addHitIdx(hit_idx, 0.);
+    newcand.setLabel(Label(itrack, 0, 0));
+    //set the track state to the propagated parameters
+    Err[iP].CopyOut(itrack, newcand.errors_nc().Array());
     Par[iP].CopyOut(itrack, newcand.parameters_nc().Array());
     tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
   }

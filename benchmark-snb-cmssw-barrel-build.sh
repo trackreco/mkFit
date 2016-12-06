@@ -9,12 +9,12 @@ dir=/data/nfsmic/cerati/
 
 for nth in 1 2 4 6 8 12 16 20 24
 do
-    echo "snb cmssw" nth=${nth} "BH (barrel)"
-    ./mkFit/mkFit --read --file-name ${dir}/cmssw_100xTTbarPU35_polar_split_mock_noFWD.bin --cms-geom --cmssw-seeds --build-bh  --num-thr ${nth} >& log_snb_100xTTbarPU35_BH_NVU8int_NTH${nth}.txt
-    echo "snb cmssw" nth=${nth} "STD (barrel)"
-    ./mkFit/mkFit --read --file-name ${dir}/cmssw_100xTTbarPU35_polar_split_mock_noFWD.bin --cms-geom --cmssw-seeds --build-std --num-thr ${nth} >& log_snb_100xTTbarPU35_STD_NVU8int_NTH${nth}.txt
-    echo "snb cmssw" nth=${nth} "CE (barrel)"
-    ./mkFit/mkFit --read --file-name ${dir}/cmssw_100xTTbarPU35_polar_split_mock_noFWD.bin --cms-geom --cmssw-seeds --build-ce  --num-thr ${nth} --cloner-single-thread >& log_snb_100xTTbarPU35_CE_NVU8int_NTH${nth}.txt
+    echo "SNB CMSSW" nth=${nth} "BH (Barrel)"
+    ./mkFit/mkFit --read --file-name ${dir}/cmssw_100xTTbarPU35_polar_split_mock_noFWD.bin --cms-geom --cmssw-seeds --build-bh  --num-thr ${nth} >& log_SNB_CMSSW_Barrel_BH_NVU8int_NTH${nth}.txt
+    echo "SNB CMSSW" nth=${nth} "STD (Barrel)"
+    ./mkFit/mkFit --read --file-name ${dir}/cmssw_100xTTbarPU35_polar_split_mock_noFWD.bin --cms-geom --cmssw-seeds --build-std --num-thr ${nth} >& log_SNB_CMSSW_Barrel_STD_NVU8int_NTH${nth}.txt
+    echo "SNB CMSSW" nth=${nth} "CE (Barrel)"
+    ./mkFit/mkFit --read --file-name ${dir}/cmssw_100xTTbarPU35_polar_split_mock_noFWD.bin --cms-geom --cmssw-seeds --build-ce  --num-thr ${nth} --cloner-single-thread >& log_SNB_CMSSW_Barrel_CE_NVU8int_NTH${nth}.txt
 done
 
 sed -i 's/# USE_INTRINSICS := -DMPT_SIZE=1/USE_INTRINSICS := -DMPT_SIZE=XX/g' Makefile.config
@@ -24,12 +24,12 @@ do
     make clean
     make -j 12
 
-    echo "snb cmssw" nvu=${nvu} "BH (barrel)"
-    ./mkFit/mkFit --read --file-name ${dir}/cmssw_100xTTbarPU35_polar_split_mock_noFWD.bin --cms-geom --cmssw-seeds --build-bh  --num-thr 1 >& log_snb_100xTTbarPU35_BH_NVU${nvu}_NTH1.txt
-    echo "snb cmssw" nvu=${nvu} "STD (barrel)"
-    ./mkFit/mkFit --read --file-name ${dir}/cmssw_100xTTbarPU35_polar_split_mock_noFWD.bin --cms-geom --cmssw-seeds --build-std --num-thr 1 >& log_snb_100xTTbarPU35_STD_NVU${nvu}_NTH1.txt
-    echo "snb cmssw" nvu=${nvu} "CE (barrel)"
-    ./mkFit/mkFit --read --file-name ${dir}/cmssw_100xTTbarPU35_polar_split_mock_noFWD.bin --cms-geom --cmssw-seeds --build-ce  --num-thr 1 --cloner-single-thread >& log_snb_100xTTbarPU35_CE_NVU${nvu}_NTH1.txt
+    echo "SNB CMSSW" nvu=${nvu} "BH (Barrel)"
+    ./mkFit/mkFit --read --file-name ${dir}/cmssw_100xTTbarPU35_polar_split_mock_noFWD.bin --cms-geom --cmssw-seeds --build-bh  --num-thr 1 >& log_SNB_CMSSW_Barrel_BH_NVU${nvu}_NTH1.txt
+    echo "SNB CMSSW" nvu=${nvu} "STD (Barrel)"
+    ./mkFit/mkFit --read --file-name ${dir}/cmssw_100xTTbarPU35_polar_split_mock_noFWD.bin --cms-geom --cmssw-seeds --build-std --num-thr 1 >& log_SNB_CMSSW_Barrel_STD_NVU${nvu}_NTH1.txt
+    echo "SNB CMSSW" nvu=${nvu} "CE (Barrel)"
+    ./mkFit/mkFit --read --file-name ${dir}/cmssw_100xTTbarPU35_polar_split_mock_noFWD.bin --cms-geom --cmssw-seeds --build-ce  --num-thr 1 --cloner-single-thread >& log_SNB_CMSSW_Barrel_CE_NVU${nvu}_NTH1.txt
 
     sed -i "s/MPT_SIZE=${nvu}/MPT_SIZE=XX/g" Makefile.config
 done

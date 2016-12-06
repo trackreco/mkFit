@@ -23,7 +23,7 @@ PlotValidation::PlotValidation(TString inName, TString outName,
   }
 
   // make output root file
-  fOutRoot = new TFile(Form("%s/%s.root",fOutName.Data(),fOutName.Data()), "RECREATE");
+  fOutRoot = new TFile(Form("%s/plots.root",fOutName.Data()), "RECREATE");
 
   // General style
   gROOT->Reset();
@@ -127,15 +127,15 @@ void PlotValidation::PlotEfficiency(){
   for (UInt_t i = 0; i < vars.size(); i++){
     for (UInt_t j = 0; j < trks.size(); j++){
       // Numerator
-      varsNumerPlot[i][j] = new TH1F(Form("h_sim_%s_numer_%s_eff",vars[i].Data(),trks[j].Data()),Form("%s Track vs MC %s (Numer) Eff",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
+      varsNumerPlot[i][j] = new TH1F(Form("h_sim_%s_numer_%s_EFF",vars[i].Data(),trks[j].Data()),Form("%s Track vs MC %s (Numer) Eff",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
       varsNumerPlot[i][j]->GetXaxis()->SetTitle(Form("%s%s",svars[i].Data(),sunits[i].Data()));
       varsNumerPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
       // Denominator
-      varsDenomPlot[i][j] = new TH1F(Form("h_sim_%s_denom_%s_eff",vars[i].Data(),trks[j].Data()),Form("%s Track vs MC %s (Denom) Eff",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
+      varsDenomPlot[i][j] = new TH1F(Form("h_sim_%s_denom_%s_EFF",vars[i].Data(),trks[j].Data()),Form("%s Track vs MC %s (Denom) Eff",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
       varsDenomPlot[i][j]->GetXaxis()->SetTitle(Form("%s%s",svars[i].Data(),sunits[i].Data()));
       varsDenomPlot[i][j]->GetYaxis()->SetTitle("nTracks");    
       // Effiency
-      varsEffPlot[i][j] = new TH1F(Form("h_sim_%s_eff_%s_eff",vars[i].Data(),trks[j].Data()),Form("%s Track Effiency vs MC %s",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
+      varsEffPlot[i][j] = new TH1F(Form("h_sim_%s_EFF_%s_EFF",vars[i].Data(),trks[j].Data()),Form("%s Track Effiency vs MC %s",strks[j].Data(),svars[i].Data()),nBins[i],xlow[i],xhigh[i]);
       varsEffPlot[i][j]->GetXaxis()->SetTitle(Form("%s%s",svars[i].Data(),sunits[i].Data()));
       varsEffPlot[i][j]->GetYaxis()->SetTitle("Efficiency");    
     }
@@ -175,7 +175,7 @@ void PlotValidation::PlotEfficiency(){
       PlotValidation::ComputeRatioPlot(varsNumerPlot[i][j],varsDenomPlot[i][j],varsEffPlot[i][j]);
       PlotValidation::WriteTH1FPlot(subdir,varsNumerPlot[i][j]);
       PlotValidation::WriteTH1FPlot(subdir,varsDenomPlot[i][j]);
-      PlotValidation::DrawWriteSaveTH1FPlot(subdir,varsEffPlot[i][j],subdirname,Form("%s_eff_%s",vars[i].Data(),trks[j].Data()),zeroSupLin);
+      PlotValidation::DrawWriteSaveTH1FPlot(subdir,varsEffPlot[i][j],subdirname,Form("%s_EFF_%s",vars[i].Data(),trks[j].Data()),zeroSupLin);
       delete varsNumerPlot[i][j];
       delete varsDenomPlot[i][j];
       delete varsEffPlot[i][j];
@@ -1770,7 +1770,7 @@ void PlotValidation::PrintTotals(){
 
   TStrVec trks   = {"seed","build","fit"};
   TStrVec strks  = {"Seed","Build","Fit"};
-  TStrVec rates  = {"eff","FR","DR"};
+  TStrVec rates  = {"EFF","FR","DR"};
   TStrVec srates = {"Efficiency","Fake Rate","Duplicate Rate"};
   TStrVec rateSD = {"efficiency","fakerate","duplicaterate"};
   TStrVec snumer = {"Sim Tracks Matched","Unmatched Reco Tracks","n Times Sim Tracks Matched"};

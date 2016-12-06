@@ -1,29 +1,37 @@
 void makeBenchmarkPlots(bool isMic = false, bool isCMSSW = false, bool isEndcap = false)
 {
-  TString track = isCMSSW?"TTBarPU35 Events":"ToyMC 10k Tracks/Event";
-  TString hORm  = isMic?"knc":"snb"; // host == Xeon SNB, mic == Xeon Phi KNC
-  TString label = isMic?"KNC":"SNB";
-          label+= isEndcap?" (Endcap)":" (Barrel)";
-  float maxth   = isMic?240:24;
-  float maxvu   = isMic?16:8;
-  TString nth   = "1"; // isMic?"60":"12"; // for multithreaded VU tests
-  TString nvu   = Form("%i",int(maxvu));
+  TString hORm   = isMic?"KNC":"SNB"; // host == Xeon SNB, mic == Xeon Phi KNC
+  TString sample = isCMSSW?"CMSSW":"ToyMC";
+  TString region = isEndcap?"Endcap":"Barrel";
+  TString events = isCMSSW?"TTBarPU35 Events":"ToyMC 10k Tracks/Event";
 
-  if (isEndcap) {hORm+="_endcap";}
+  float maxth = isMic?240:24;
+  float maxvu = isMic?16:8;
+  TString nth = "1"; // isMic?"60":"12"; // for multithreaded VU tests
+  TString nvu = Form("%i",int(maxvu));
 
-  TFile* f = TFile::Open("benchmark_"+hORm+".root");
-  {
+  TFile* f = TFile::Open("benchmark_"+hORm+"_"+sample+"_"+region+".root");
+
+  // Vectorization Benchmark
   TCanvas c1;
+  c1.cd();
   TGraphErrors* g_BH_VU  = (TGraphErrors*) f->Get("g_BH_VU");
   TGraphErrors* g_STD_VU = (TGraphErrors*) f->Get("g_STD_VU");
   TGraphErrors* g_CE_VU  = (TGraphErrors*) f->Get("g_CE_VU");
-  g_BH_VU->SetTitle(track+" Vectorization Benchmark on "+label+" [nTH="+nth+"]");
+  g_BH_VU->SetTitle(events+" Vectorization Benchmark on "+hORm+" ("+region+") [nTH="+nth+"]");
   g_BH_VU->GetXaxis()->SetTitle("Matriplex Vector Width [floats]");
   g_BH_VU->GetYaxis()->SetTitle("Average Time per Event [s]");
   g_BH_VU->GetXaxis()->SetRangeUser(1,maxvu);
-  g_BH_VU->GetYaxis()->SetRangeUser(0, (isMic? 3.0 : 0.5));
-  if (isCMSSW)  g_BH_VU->GetYaxis()->SetRangeUser(0, (isMic? 1.0 : 0.18));
-  if (isEndcap) g_BH_VU->GetYaxis()->SetRangeUser(0,60);
+  if (isCMSSW)  
+  {
+    if (isEndcap) g_BH_VU->GetYaxis()->SetRangeUser(0,0.5);
+    else          g_BH_VU->GetYaxis()->SetRangeUser(0, (isMic? 1.1 : 0.18));
+  }
+  else // ToyMC
+  {
+    if (isEndcap) g_BH_VU->GetYaxis()->SetRangeUser(0,60);
+    else          g_BH_VU->GetYaxis()->SetRangeUser(0, (isMic? 3.0 : 0.5));
+  }
   g_BH_VU->SetLineWidth(2);
   g_STD_VU->SetLineWidth(2);
   g_CE_VU->SetLineWidth(2);
@@ -47,14 +55,15 @@ void makeBenchmarkPlots(bool isMic = false, bool isCMSSW = false, bool isEndcap 
   leg_VU->Draw();
   c1.SetGridy();
   c1.Update();
-  if (isCMSSW) c1.SaveAs("cmssw_"+hORm+"_vu_time.png");
-  else c1.SaveAs(hORm+"_vu_time.png");
-  } {
+  c1.SaveAs(hORm+"_"+sample+"_"+region+"_vu_time.png");
+  
+  // Vectorization Speedup
   TCanvas c2;
+  c2.cd();
   TGraphErrors* g_BH_VU_speedup  = (TGraphErrors*) f->Get("g_BH_VU_speedup");
   TGraphErrors* g_STD_VU_speedup = (TGraphErrors*) f->Get("g_STD_VU_speedup");
   TGraphErrors* g_CE_VU_speedup  = (TGraphErrors*) f->Get("g_CE_VU_speedup");
-  g_BH_VU_speedup->SetTitle(track+" Vectorization Speedup on "+label+" [nTH="+nth+"]");
+  g_BH_VU_speedup->SetTitle(events+" Vectorization Speedup on "+hORm+" ("+region+") [nTH="+nth+"]");
   g_BH_VU_speedup->GetXaxis()->SetTitle("Matriplex Vector Width [floats]");
   g_BH_VU_speedup->GetYaxis()->SetTitle("Speedup");
   g_BH_VU_speedup->GetXaxis()->SetRangeUser(1,maxvu);
@@ -84,20 +93,28 @@ void makeBenchmarkPlots(bool isMic = false, bool isCMSSW = false, bool isEndcap 
   leg_VU_speedup->Draw();
   c2.SetGridy();
   c2.Update();
-  if (isCMSSW) c2.SaveAs("cmssw_"+hORm+"_vu_speedup.png");
-  else c2.SaveAs(hORm+"_vu_speedup.png");
-  } {
-  TCanvas c3;
+  c2.SaveAs(hORm+"_"+sample+"_"+region+"_vu_speedup.png");
+
+  // Parallelization Benchmark
+  TCanvas c3; 
+  c3.cd();
   TGraphErrors* g_BH_TH  = (TGraphErrors*) f->Get("g_BH_TH");
   TGraphErrors* g_STD_TH = (TGraphErrors*) f->Get("g_STD_TH");
   TGraphErrors* g_CE_TH  = (TGraphErrors*) f->Get("g_CE_TH");
-  g_BH_TH->SetTitle(track+" Parallelization Benchmark on "+label+" [nVU="+nvu+"]");
+  g_BH_TH->SetTitle(events+" Parallelization Benchmark on "+hORm+" ("+region+") [nVU="+nvu+"]");
   g_BH_TH->GetXaxis()->SetTitle("Number of Threads");
   g_BH_TH->GetYaxis()->SetTitle("Average Time per Event [s]");
   g_BH_TH->GetXaxis()->SetRangeUser(1,maxth);
-  g_BH_TH->GetYaxis()->SetRangeUser(isMic?0.001:0.001,isMic?2.1:0.5);
-  if (isCMSSW)  g_BH_TH->GetYaxis()->SetRangeUser(isMic?0.003:0.0008,isMic?0.3:0.08);
-  if (isEndcap) g_BH_TH->GetYaxis()->SetRangeUser(0.1,40);
+  if (isCMSSW)  
+  {
+    if (isEndcap) g_BH_TH->GetYaxis()->SetRangeUser(0.003,0.3);
+    else          g_BH_TH->GetYaxis()->SetRangeUser(isMic?0.003:0.0008,isMic?0.4:0.08);
+  }
+  else
+  {
+    if (isEndcap) g_BH_TH->GetYaxis()->SetRangeUser(0.1,40);
+    else          g_BH_TH->GetYaxis()->SetRangeUser(isMic?0.001:0.001,isMic?2.1:0.5);
+  }
   g_BH_TH->SetLineWidth(2);
   g_STD_TH->SetLineWidth(2);
   g_CE_TH->SetLineWidth(2);
@@ -122,14 +139,15 @@ void makeBenchmarkPlots(bool isMic = false, bool isCMSSW = false, bool isEndcap 
   c3.SetGridy();
   c3.SetLogy();
   c3.Update();
-  if (isCMSSW) c3.SaveAs("cmssw_"+hORm+"_th_time.png");
-  else c3.SaveAs(hORm+"_th_time.png");
-  } {
+  c3.SaveAs(hORm+"_"+sample+"_"+region+"_th_time.png");
+  
+  // Parallelization Speedup
   TCanvas c4;
+  c4.cd();
   TGraphErrors* g_BH_TH_speedup  = (TGraphErrors*) f->Get("g_BH_TH_speedup");
   TGraphErrors* g_STD_TH_speedup = (TGraphErrors*) f->Get("g_STD_TH_speedup");
   TGraphErrors* g_CE_TH_speedup  = (TGraphErrors*) f->Get("g_CE_TH_speedup");
-  g_BH_TH_speedup->SetTitle(track+" Parallelization Speedup on "+label+" [nVU="+nvu+"]");
+  g_BH_TH_speedup->SetTitle(events+" Parallelization Speedup on "+hORm+" ("+region+") [nVU="+nvu+"]");
   g_BH_TH_speedup->GetXaxis()->SetTitle("Number of Threads");
   g_BH_TH_speedup->GetYaxis()->SetTitle("Speedup");
   g_BH_TH_speedup->GetXaxis()->SetRangeUser(1,maxth);
@@ -159,7 +177,6 @@ void makeBenchmarkPlots(bool isMic = false, bool isCMSSW = false, bool isEndcap 
   leg_TH_speedup->Draw();
   c4.SetGridy();
   c4.Update();
-  if (isCMSSW) c4.SaveAs("cmssw_"+hORm+"_th_speedup.png");
-  else c4.SaveAs(hORm+"_th_speedup.png");
-  }
+  c4.SaveAs(hORm+"_"+sample+"_"+region+"_th_speedup.png");
 }
+

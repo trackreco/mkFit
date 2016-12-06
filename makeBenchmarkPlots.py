@@ -3,43 +3,35 @@ import ROOT
 import array
 import math
 
-if len(sys.argv)<2 or len(sys.argv)>3: exit
+if len(sys.argv)!=4: exit
 
-hORm = sys.argv[1]
+hORm   = sys.argv[1] # host == Xeon SNB, mic == Xeon Phi KNC
+sample = sys.argv[2] # toymc or cmssw
+region = sys.argv[3] # barrel or endcap
 
-isCMSSW = False
-if len(sys.argv)>2:
-    if sys.argv[2]=="cmssw": isCMSSW=True
-    else: exit
-
-if hORm!='snb' and hORm!='snb_endcap' and hORm!='knc' and hORm!='knc_endcap': exit
-
-g = ROOT.TFile('benchmark_'+hORm+'.root',"recreate")
+g = ROOT.TFile('benchmark_'+hORm+'_'+sample+'_'+region+'.root',"recreate")
 
 for test in ['BH','STD','CE','FIT']:
-    if isCMSSW and test=='FIT': continue
-    if 'endcap' in hORm and not isCMSSW and 'FIT' not in test: continue
-    print test
+    if sample == 'CMSSW' and test == 'FIT' : continue
+    if region == 'Endcap' and not sample == 'CMSSW' and not test == 'FIT' : continue
+    print hORm,sample,region,test
 
-    if 'FIT'  in test: pos = 3  
-    if 'BH'   in test: pos = 8  
-    if 'STD'  in test: pos = 11  
-    if 'CE'   in test: pos = 14 
+    if test == 'FIT' : pos = 3  
+    if test == 'BH'  : pos = 8  
+    if test == 'STD' : pos = 11  
+    if test == 'CE'  : pos = 14 
 
-    if isCMSSW:
-        ntks = '100xTTbarPU35'
+    if sample == 'CMSSW' :
         nevt = 100.
     else :
-        if test=='FIT' :
-            ntks = '1kx10k'
+        if test == 'FIT' :
             nevt = 1000.
         else :
-            ntks = '20x10k' 
             nevt = 20.
 
     # Vectorization data points
     vuvals = ['1','2','4','8']
-    if 'knc' in hORm: 
+    if hORm == 'KNC' : 
         nth = '1'
         vuvals.append('16')
         vuvals.append('16int')
@@ -60,8 +52,8 @@ for test in ['BH','STD','CE','FIT']:
         firstFound = False
 
         # Read in times from log files, store into yvals
-        os.system('grep Matriplex log_'+hORm+'_'+ntks+'_'+test+'_NVU'+vu+'_NTH'+nth+'.txt >& log_'+hORm+'_'+ntks+'_'+test+'_VU.txt')
-        with open('log_'+hORm+'_'+ntks+'_'+test+'_VU.txt') as f:
+        os.system('grep Matriplex log_'+hORm+'_'+sample+'_'+region+'_'+test+'_NVU'+vu+'_NTH'+nth+'.txt >& log_'+hORm+'_'+sample+'_'+region+'_'+test+'_VU.txt')
+        with open('log_'+hORm+'_'+sample+'_'+region+'_'+test+'_VU.txt') as f:
             for line in f:
                 if 'Matriplex' not in line: continue
                 if 'Total' in line: continue
@@ -104,7 +96,7 @@ for test in ['BH','STD','CE','FIT']:
     g_VU_speedup.Write("g_"+test+"_VU_speedup")
 
     # Parallelization datapoints
-    if 'knc' in hORm: 
+    if hORm == 'KNC' :
         nvu = '16int'
         thvals = [1,2,4,8,15,30,60,90,120,150,180,210,240]
     else :
@@ -121,8 +113,8 @@ for test in ['BH','STD','CE','FIT']:
         yvals = array.array('d');
         firstFound = False
 
-        os.system('grep Matriplex log_'+hORm+'_'+ntks+'_'+test+'_NVU'+nvu+'_NTH'+str(th)+'.txt >& log_'+hORm+'_'+ntks+'_'+test+'_TH.txt')
-        with open('log_'+hORm+'_'+ntks+'_'+test+'_TH.txt') as f:
+        os.system('grep Matriplex log_'+hORm+'_'+sample+'_'+region+'_'+test+'_NVU'+nvu+'_NTH'+str(th)+'.txt >& log_'+hORm+'_'+sample+'_'+region+'_'+test+'_TH.txt')
+        with open('log_'+hORm+'_'+sample+'_'+region+'_'+test+'_TH.txt') as f:
             for line in f:
                 if 'Matriplex' not in line: continue
                 if 'Total' in line: continue

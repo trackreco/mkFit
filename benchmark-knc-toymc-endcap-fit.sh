@@ -6,8 +6,8 @@ micdir=/nfsmic/kmcdermo/toymc
 
 for nth in 1 2 4 8 15 30 60 90 120 150 180 210 240
 do
-    echo "knc toymc" nth=${nth} "FIT (endcap)"
-    ssh mic0 ./mkFit-mic  --endcap-test --read --file-name ${micdir}/simtracks_endcap_1kx10k.bin --fit-std-only --num-thr ${nth} >& log_knc_endcap_1kx10k_FIT_NVU16int_NTH${nth}.txt
+    echo "KNC ToyMC" nth=${nth} "FIT (Endcap)"
+    ssh mic0 ./mkFit-mic --endcap-test --read --file-name ${micdir}/simtracks_endcap_1kx10k.bin --fit-std-only --num-thr ${nth} >& log_KNC_ToyMC_Endcap_FIT_NVU16int_NTH${nth}.txt
 done
 
 sed -i 's/# USE_INTRINSICS := -DMPT_SIZE=1/USE_INTRINSICS := -DMPT_SIZE=XX/g' Makefile.config
@@ -17,8 +17,8 @@ do
     make clean
     make -j 12
 
-    echo "knc toymc" nvu=${nvu} "FIT (endcap)"
-    ssh mic0 ./mkFit-mic --endcap-test --read --file-name ${micdir}/simtracks_endcap_1kx10k.bin --fit-std-only --num-thr 1 >& log_knc_endcap_1kx10k_FIT_NVU${nvu}_NTH1.txt
+    echo "KNC ToyMC" nvu=${nvu} "FIT (Endcap)"
+    ssh mic0 ./mkFit-mic --endcap-test --read --file-name ${micdir}/simtracks_endcap_1kx10k.bin --fit-std-only --num-thr 1 >& log_KNC_ToyMC_Endcap_FIT_NVU${nvu}_NTH1.txt
 
     sed -i "s/MPT_SIZE=${nvu}/MPT_SIZE=XX/g" Makefile.config
 done
