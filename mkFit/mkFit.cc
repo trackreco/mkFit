@@ -260,15 +260,16 @@ void test_standard()
     evs[i].reset(new Event(geom, val, 0));
     fps[i].reset(fopen(g_file_name.c_str(), "r"));
   }
-  std::atomic<int> ev_thread_counter{0};
 
   time = dtime();
 
-  tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEvents, (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents),
-    [&](const tbb::blocked_range<int>& evts)
+  int events_per_thread = (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents;
+  tbb::parallel_for(tbb::blocked_range<int>(0, Config::numThreadsEvents, 1),
+    [&](const tbb::blocked_range<int>& threads)
   {
-    int thisthread = ev_thread_counter++;
-    dprint("thisthread " << thisthread << " events " << Config::nEvents << " event threads " << Config::numThreadsEvents);
+    int thisthread = threads.begin();
+
+    assert(threads.begin() == threads.end()-1);
     assert(thisthread < Config::numThreadsEvents);
 
     std::vector<Track> plex_tracks;
@@ -277,7 +278,13 @@ void test_standard()
     MkBuilder& mkb = *mkbs[thisthread].get();
     FILE* fp = fps[thisthread].get();
 
-    for (int evt = evts.begin(); evt < evts.end(); ++evt)
+    int evstart = thisthread*events_per_thread;
+    int evend = std::min(Config::nEvents, evstart+events_per_thread);
+
+    dprint("thisthread " << thisthread << " events " << Config::nEvents << " events/thread " << events_per_thread
+                         << " range " << evstart << ":" << evend);
+ 
+   for (int evt = evstart; evt < evend; ++evt)
     {
       ev.Reset(nevt++);
 
@@ -352,7 +359,7 @@ void test_standard()
 
       if (g_run_fit_std) make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
     }
-  });
+  }, tbb::simple_partitioner());
 
 #endif
   time = dtime() - time;
