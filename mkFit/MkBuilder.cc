@@ -1,4 +1,5 @@
 #include "MkBuilder.h"
+#include "MkBuilderEndcap.h"
 #include "seedtestMPlex.h"
 
 #include "Event.h"
@@ -20,6 +21,12 @@ namespace
 {
   auto retcand = [](CandCloner* cloner) { g_exe_ctx.m_cloners.ReturnToPool(cloner); };
   auto retfitr = [](MkFitter*   mkfp  ) { g_exe_ctx.m_fitters.ReturnToPool(mkfp);   };
+}
+
+MkBuilder* MkBuilder::make_builder()
+{
+  if (Config::endcapTest) return new MkBuilderEndcap;
+  else                    return new MkBuilder;
 }
 
 #ifdef DEBUG

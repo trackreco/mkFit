@@ -5,13 +5,12 @@
 #include "EventTmp.h"
 #include "Track.h"
 
-double runBuildingTestPlexBestHit(Event& ev);
+class MkBuilder;
 
-double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp);
-
-double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& evtmp);
-
-double runBuildingTestPlexTbb(Event& ev, EventTmp& evtmp);
+double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder);
+double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp, MkBuilder& builder);
+double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& evtmp, MkBuilder& builder);
+double runBuildingTestPlexTbb(Event& ev, EventTmp& evtmp, MkBuilder& builder);
 
 #if USE_CUDA
 double runAllBuildingTestPlexBestHitGPU(std::vector<Event> &events);

@@ -3,6 +3,7 @@
 #include "fittestMPlex.h"
 #include "buildtestMPlex.h"
 
+#include "MkBuilder.h"
 #include "MkFitter.h"
 
 #include "Config.h"
@@ -236,18 +237,45 @@ void test_standard()
 
   dprint("parallel_for step size " << (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents);
 
-  time = dtime();
-
   std::atomic<int> nevt{1};
   std::atomic<int> seedstot{0}, simtrackstot{0};
+
+  class FileHolder {
+  public:
+    FileHolder() : fp_(nullptr) {}
+    ~FileHolder() { if (fp_) { fclose(fp_); fp_ = nullptr; }}
+    void reset(FILE* fp) { if (fp_) fclose (fp_); fp_ = fp; }
+    FILE* get() { return fp_; }
+  private:
+    FILE* fp_;
+  };
+
+  std::vector<std::unique_ptr<Event>> evs(Config::numThreadsEvents);
+  std::vector<EventTmp> ev_tmps(Config::numThreadsEvents);
+  std::vector<std::unique_ptr<MkBuilder>> mkbs(Config::numThreadsEvents);
+  std::vector<FileHolder> fps(Config::numThreadsEvents);
+
+  time = dtime();
+
+  for (int i = 0; i < Config::numThreadsEvents; ++i) {
+    mkbs[i].reset(MkBuilder::make_builder());
+    evs[i].reset(new Event(geom, val, 0));
+    fps[i].reset(fopen(g_file_name.c_str(), "r"));
+  }
+  std::atomic<int> ev_thread_counter{0};
 
   tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEvents, (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents),
     [&](const tbb::blocked_range<int>& evts)
   {
-    EventTmp ev_tmp;
+    int thisthread = ev_thread_counter++;
+    dprint("thisthread " << thisthread << " events " << Config::nEvents << " event threads " << Config::numThreadsEvents);
+    assert(thisthread < Config::numThreadsEvents);
+
     std::vector<Track> plex_tracks;
-    Event ev(geom, val, nevt);
-    FILE* fp = fopen(g_file_name.c_str(), "r");
+    EventTmp& ev_tmp = ev_tmps[thisthread];
+    Event& ev = *evs[thisthread].get();
+    MkBuilder& mkb = *mkbs[thisthread].get();
+    FILE* fp = fps[thisthread].get();
 
     for (int evt = evts.begin(); evt < evts.end(); ++evt)
     {
@@ -291,10 +319,10 @@ void test_standard()
         t_cur[0] = (g_run_fit_std) ? runFittingTestPlexGPU(cuFitter, ev, plex_tracks) : 0;
         cuFitter.freeDevice();
   #endif
-        t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev) : 0;
-        t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlex(ev, ev_tmp) : 0;
-        t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, ev_tmp) : 0;
-        t_cur[4] = (g_run_build_all || g_run_build_tbb) ? runBuildingTestPlexTbb(ev, ev_tmp) : 0;
+        t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev, mkb) : 0;
+        t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlex(ev, ev_tmp, mkb) : 0;
+        t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, ev_tmp, mkb) : 0;
+        t_cur[4] = (g_run_build_all || g_run_build_tbb) ? runBuildingTestPlexTbb(ev, ev_tmp, mkb) : 0;
 
         for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
 

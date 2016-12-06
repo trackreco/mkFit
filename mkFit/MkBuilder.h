@@ -57,6 +57,8 @@ public:
 
   // --------
 
+  static MkBuilder* make_builder();
+
   virtual void begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type);
 
   int find_seeds();

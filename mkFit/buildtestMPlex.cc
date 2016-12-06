@@ -14,8 +14,6 @@
 #include "check_gpu_hit_structures.h"
 #endif
 
-#include "MkBuilderEndcap.h"
-
 #include <omp.h>
 
 #if defined(USE_VTUNE_PAUSE)
@@ -74,24 +72,12 @@ inline bool sortByZ(const Hit& hit1, const Hit& hit2)
   return hit1.z() < hit2.z();
 }
 
-namespace
-{
-  MkBuilder* make_builder()
-  {
-    if (Config::endcapTest) return new MkBuilderEndcap;
-    else                    return new MkBuilder;
-  }
-}
-
 //==============================================================================
 // runBuildTestPlexBestHit
 //==============================================================================
 
-double runBuildingTestPlexBestHit(Event& ev)
+double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
 {
-  std::unique_ptr<MkBuilder> builder_ptr(make_builder());
-  MkBuilder &builder = * builder_ptr.get();
-
   builder.begin_event(&ev, 0, __func__);
 
   if   (Config::findSeeds) {builder.find_seeds();}
@@ -143,13 +129,10 @@ double runBuildingTestPlexBestHit(Event& ev)
 // runBuildTestPlex
 //==============================================================================
 
-double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
+double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp, MkBuilder& builder)
 {
   EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
   event_of_comb_cands.Reset();
-
-  std::unique_ptr<MkBuilder> builder_ptr(make_builder());
-  MkBuilder &builder = * builder_ptr.get();
 
   builder.begin_event(&ev, &ev_tmp, __func__);
 
@@ -188,13 +171,10 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp)
 // runBuildTestPlexCloneEngine
 //==============================================================================
 
-double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
+double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp, MkBuilder& builder)
 {
   EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
   event_of_comb_cands.Reset();
-
-  std::unique_ptr<MkBuilder> builder_ptr(make_builder());
-  MkBuilder &builder = * builder_ptr.get();
 
   builder.begin_event(&ev, &ev_tmp, __func__);
 
@@ -233,13 +213,10 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
 // runBuildTestPlexCloneEngineTbb
 //==============================================================================
 
-double runBuildingTestPlexTbb(Event& ev, EventTmp& ev_tmp)
+double runBuildingTestPlexTbb(Event& ev, EventTmp& ev_tmp, MkBuilder& builder)
 {
   EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
   event_of_comb_cands.Reset();
-
-  std::unique_ptr<MkBuilder> builder_ptr(make_builder());
-  MkBuilder &builder = * builder_ptr.get();
 
   builder.begin_event(&ev, &ev_tmp, __func__);
 
@@ -289,7 +266,7 @@ double runAllBuildingTestPlexBestHitGPU(std::vector<Event> &events)
 
   for (int i = 0; i < builder_ptrs.size(); ++i) {
     Event &ev = events[i];
-    builder_ptrs[i] = std::unique_ptr<MkBuilder> (make_builder());
+    builder_ptrs[i] = std::unique_ptr<MkBuilder> (MkBuilder::make_builder());
 
     MkBuilder &builder = * builder_ptrs[i].get();
 
