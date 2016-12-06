@@ -255,14 +255,14 @@ void test_standard()
   std::vector<std::unique_ptr<MkBuilder>> mkbs(Config::numThreadsEvents);
   std::vector<FileHolder> fps(Config::numThreadsEvents);
 
-  time = dtime();
-
   for (int i = 0; i < Config::numThreadsEvents; ++i) {
     mkbs[i].reset(MkBuilder::make_builder());
     evs[i].reset(new Event(geom, val, 0));
     fps[i].reset(fopen(g_file_name.c_str(), "r"));
   }
   std::atomic<int> ev_thread_counter{0};
+
+  time = dtime();
 
   tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEvents, (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents),
     [&](const tbb::blocked_range<int>& evts)
