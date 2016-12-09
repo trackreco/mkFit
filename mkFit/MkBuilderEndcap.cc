@@ -5,12 +5,9 @@
 
 #include "MkFitter.h"
 
-#include "OmpThreadData.h"
-
 //#define DEBUG
 #include "Debug.h"
 
-#include <omp.h>
 #include <tbb/tbb.h>
 
 namespace
@@ -152,23 +149,6 @@ inline void MkBuilderEndcap::fit_one_seed_set_endcap(TrackVec& seedtracks, int i
 void MkBuilderEndcap::fit_seeds()
 {
   TrackVec& seedtracks = m_event->seedTracks_;
-  int theEnd = seedtracks.size();
-
-#pragma omp parallel for
-  for (int itrack = 0; itrack < theEnd; itrack += NN)
-  {
-    MkFitter *mkfp = m_mkfp_arr[omp_get_thread_num()];
-
-    fit_one_seed_set_endcap(seedtracks, itrack, std::min(itrack + NN, theEnd), mkfp);
-  }
-
-  //ok now, we should have all seeds fitted in recseeds
-  dcall(print_seeds(seedtracks));
-}
-
-void MkBuilderEndcap::fit_seeds_tbb()
-{
-  TrackVec& seedtracks = m_event->seedTracks_;
 
   int theEnd = seedtracks.size();
   int count = (theEnd + NN - 1)/NN;
@@ -189,7 +169,7 @@ void MkBuilderEndcap::fit_seeds_tbb()
 }
 
 //------------------------------------------------------------------------------
-// FindTracks & FindTracksCloneEngine common functions
+// FindTracksBestHit: TBB Endcap
 //------------------------------------------------------------------------------
 
 void MkBuilderEndcap::FindTracksBestHit(EventOfCandidates& event_of_cands)
@@ -256,175 +236,185 @@ void MkBuilderEndcap::FindTracksBestHit(EventOfCandidates& event_of_cands)
   }); //end of parallel section over seeds
 }
 
-void MkBuilderEndcap::FindTracks()
+//------------------------------------------------------------------------------
+// FindTracksCombinatorial: Standard TBB
+//------------------------------------------------------------------------------
+
+void MkBuilderEndcap::FindTracksStandard()
 {
   EventOfCombCandidates &event_of_comb_cands = m_event_tmp->m_event_of_comb_cands;
 
-  //the logic in OmpThreadData above is as follows:
-  //- threads can be either over eta bins (a) or over seeds in one eta bin (b)
-  //- for (a) we need the same number of eta bins in each thread
-  //- for (b) we need the same number of threads in each eta bin
-  assert( (Config::nEtaBin % Config::numThreadsFinder == 0) || (Config::numThreadsFinder % Config::nEtaBin == 0) );
-
-  // parallel section over seeds
-  // number of threads to be set through omp_set_num_threads (see mkFit.cc)
-#pragma omp parallel
+  tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEtaBin),
+    [&](const tbb::blocked_range<int>& ebins)
   {
-    OmpThreadData otd;
-
-    // loop over eta bins
-    for (int ebin = otd.th_start_ebin; ebin < otd.th_end_ebin; ++ebin)
-    {
-      EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
-
-      otd.calculate_seed_ranges(etabin_of_comb_candidates.m_fill_index);
-
-      //ok now we start looping over layers
-      //loop over layers, starting from after the seed
-      for (int ilay = Config::nlayers_per_seed; ilay < Config::nLayers; ++ilay)// layer 3, we ignore PXB1
+    for (int ebin = ebins.begin(); ebin != ebins.end(); ++ebin) {
+      EtaBinOfCombCandidates& etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
+      
+      tbb::parallel_for(tbb::blocked_range<int>(0,etabin_of_comb_candidates.m_fill_index,Config::numSeedsPerTask), 
+        [&](const tbb::blocked_range<int>& seeds)
       {
-        LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay];
+	const int start_seed = seeds.begin();
+	const int end_seed   = seeds.end();
+	const int nseeds     = end_seed - start_seed;
 
-        dprint("processing lay=" << ilay+1);
-
-        // prepare unrolled vector to loop over
-        std::vector<std::pair<int,int> > seed_cand_idx;
-
-        for (int iseed = otd.th_start_seed; iseed != otd.th_end_seed; ++iseed)
+	//ok now we start looping over layers
+	//loop over layers, starting from after the seed
+	for (int ilay = Config::nlayers_per_seed; ilay < Config::nLayers; ++ilay)// layer 3, we ignore PXB1
         {
-          std::vector<Track> &scands = etabin_of_comb_candidates.m_candidates[iseed];
-          for (int ic = 0; ic < scands.size(); ++ic)
-          {
-            if (scands[ic].getLastHitIdx() != -2) //only if last hit is -2 we do not move forward (i.e -3 is good!)
-            {
-              seed_cand_idx.push_back(std::pair<int,int>(iseed,ic));
-            }
-          }
-        }
-        int theEndCand = seed_cand_idx.size();
+	  LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay];
+	
+	  dprint("processing lay=" << ilay+1);
+	  
+	  // prepare unrolled vector to loop over
+	  std::vector<std::pair<int,int> > seed_cand_idx;
+	
+	  for (int iseed = start_seed; iseed != end_seed; ++iseed)
+	  {
+	    std::vector<Track> &scands = etabin_of_comb_candidates.m_candidates[iseed];
+	    for (int ic = 0; ic < scands.size(); ++ic)
+	    {
+	      if (scands[ic].getLastHitIdx() != -2) //only if last hit is -2 we do not move forward (i.e -3 is good!)
+	      {
+		seed_cand_idx.push_back(std::pair<int,int>(iseed,ic));
+	      }
+	    }
+	  }
+	  int theEndCand = seed_cand_idx.size();
+	
+	  // don't bother messing with the clone engine if there are no candidates
+	  // (actually it crashes, so this protection is needed)
+	  // XXXX MT ??? How does this happen ???
+	  if (theEndCand == 0) continue;
+	
+	  std::vector<std::vector<Track>> tmp_candidates(nseeds);
+	  for (int iseed = 0; iseed < tmp_candidates.size(); ++iseed)
+	  {
+	    // XXXX MT: Tried adding 25 to reserve below as I was seeing some
+	    // time spent in push_back ... but it didn't really help.
+	    // We need to optimize this by throwing away and replacing the worst
+	    // candidate once a better one arrives. This will also avoid sorting.
+	    tmp_candidates[iseed].reserve(2*Config::maxCandsPerSeed);//factor 2 seems reasonable to start with
+	  }
 
-        // don't bother messing with the clone engine if there are no candidates
-        // (actually it crashes, so this protection is needed)
-        // XXXX MT ??? How does this happen ???
-        if (theEndCand == 0) continue;
+	  //vectorized loop
+	  for (int itrack = 0; itrack < theEndCand; itrack += NN)
+   	  {
+	    int end = std::min(itrack + NN, theEndCand);
+	  
+	    dprint("processing track=" << itrack);
+	  
+	    std::unique_ptr<MkFitter,   decltype(retfitr)> mkfp  (g_exe_ctx.m_fitters.GetFromPool(), retfitr);
+	  
+	    mkfp->SetNhits(ilay);//here again assuming one hit per layer
+	  
+	    //fixme find a way to deal only with the candidates needed in this thread
+	    mkfp->InputTracksAndHitIdx(etabin_of_comb_candidates.m_candidates,
+				       seed_cand_idx, itrack, end,
+				       ilay == Config::nlayers_per_seed);
 
-        std::vector<std::vector<Track>> tmp_candidates(otd.th_n_seeds);
-        for (int iseed = 0; iseed < tmp_candidates.size(); ++iseed)
-        {
-          // XXXX MT: Tried adding 25 to reserve below as I was seeing some
-          // time spent in push_back ... but it didn't really help.
-          // We need to optimize this by throwing away and replacing the worst
-          // candidate once a better one arrives. This will also avoid sorting.
-          tmp_candidates[iseed].reserve(2*Config::maxCandsPerSeed);//factor 2 seems reasonable to start with
-        }
+	    //propagate to layer
+	    if (ilay > Config::nlayers_per_seed)
+  	    {
+	      dcall(pre_prop_print(ilay, mkfp));
+	      mkfp->PropagateTracksToZ(m_event->geom_.zPlane(ilay), end - itrack);
+	      dcall(post_prop_print(ilay, mkfp));
+	    }
 
-        //vectorized loop
-        for (int itrack = 0; itrack < theEndCand; itrack += NN)
-        {
-          int end = std::min(itrack + NN, theEndCand);
+	    dprint("now get hit range");
+	    mkfp->SelectHitIndicesEndcap(layer_of_hits, end - itrack);
 
-          dprint("processing track=" << itrack);
+	    //#ifdef PRINTOUTS_FOR_PLOTS
+	    //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
+	    //#endif
+	  
+	    dprint("make new candidates");
+	    mkfp->FindCandidatesEndcap(layer_of_hits, tmp_candidates, start_seed, end - itrack);
+	  
+	  } //end of vectorized loop
 
-          MkFitter *mkfp = m_mkfp_arr[omp_get_thread_num()];
+	  // clean exceeding candidates per seed
+	  // FIXME: is there a reason why these are not vectorized????
+	  for (int is = 0; is < tmp_candidates.size(); ++is)
+  	  {
+	    dprint("dump seed n " << is << " with input candidates=" << tmp_candidates[is].size());
+	    std::sort(tmp_candidates[is].begin(), tmp_candidates[is].end(), sortCandByHitsChi2);
+	  
+	    if (tmp_candidates[is].size() > Config::maxCandsPerSeed)
+	    {
+	      dprint("erase extra candidates" << " tmp_candidates[is].size()=" << tmp_candidates[is].size()
+		     << " Config::maxCandsPerSeed=" << Config::maxCandsPerSeed);
+	      tmp_candidates[is].erase(tmp_candidates[is].begin() + Config::maxCandsPerSeed,
+				       tmp_candidates[is].end());
+	    }
+	    dprint("dump seed n " << is << " with output candidates=" << tmp_candidates[is].size());
+	  }
+	  //now swap with input candidates
+	  for (int is = 0; is < tmp_candidates.size(); ++is)
+	  {
+	    if (tmp_candidates[is].size() > 0)
+	    {
+	      // Copy the best -2 cands back to the current list.
+	      int num_hits = tmp_candidates[is].size();
+	    
+	      if (num_hits < Config::maxCandsPerSeed)
+	      {
+		std::vector<Track> &ov = etabin_of_comb_candidates.m_candidates[start_seed+is];
+		int cur_m2 = 0;
+		int max_m2 = ov.size();
+		while (cur_m2 < max_m2 && ov[cur_m2].getLastHitIdx() != -2) ++cur_m2;
+		while (cur_m2 < max_m2 && num_hits < Config::maxCandsPerSeed)
+	        {
+		  tmp_candidates[is].push_back( ov[cur_m2++] );
+		  ++num_hits;
+		}
+	      }
+	    
+	      etabin_of_comb_candidates.m_candidates[start_seed+is].swap(tmp_candidates[is]);
+	      tmp_candidates[is].clear();
+	    }
+	  }
+	  
+	} // end of layer loop
 
-          mkfp->SetNhits(ilay);//here again assuming one hit per layer
+	// final sorting
+	int nCandsBeforeEnd = 0;
+	for (int iseed = start_seed; iseed < end_seed; ++iseed)
+	{
+	  std::vector<Track>& finalcands = etabin_of_comb_candidates.m_candidates[iseed];
+	  if (finalcands.size() == 0) continue;
+	  std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
+	}
+      }); // end parallel-for loop over blocked range of seeds
+    } // end of loop over chunk of eta bins within block
+  }); // end parallel-for loop over eta bins
+} 
 
-          //fixme find a way to deal only with the candidates needed in this thread
-          mkfp->InputTracksAndHitIdx(etabin_of_comb_candidates.m_candidates,
-                                     seed_cand_idx, itrack, end,
-                                     ilay == Config::nlayers_per_seed);
+//------------------------------------------------------------------------------
+// FindTracksCombinatorial: CloneEngine TBB
+//------------------------------------------------------------------------------
 
-          //propagate to layer
-          if (ilay > Config::nlayers_per_seed)
-          {
-            dcall(pre_prop_print(ilay, mkfp));
-            mkfp->PropagateTracksToZ(m_event->geom_.zPlane(ilay), end - itrack);
-            dcall(post_prop_print(ilay, mkfp));
-          }
+void MkBuilderEndcap::FindTracksCloneEngine()
+{
+  EventOfCombCandidates &event_of_comb_cands = m_event_tmp->m_event_of_comb_cands;
 
-          dprint("now get hit range");
-          mkfp->SelectHitIndicesEndcap(layer_of_hits, end - itrack);
+  tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEtaBin),
+    [&](const tbb::blocked_range<int>& ebins)
+  {
+    for (int ebin = ebins.begin(); ebin != ebins.end(); ++ebin) {
+      EtaBinOfCombCandidates& etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
 
-          //#ifdef PRINTOUTS_FOR_PLOTS
-          //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
-          //#endif
-
-          dprint("make new candidates");
-          mkfp->FindCandidatesEndcap(layer_of_hits, tmp_candidates, otd.th_start_seed, end - itrack);
-
-        } //end of vectorized loop
-
-        // clean exceeding candidates per seed
-        // FIXME: is there a reason why these are not vectorized????
-        for (int is = 0; is < tmp_candidates.size(); ++is)
-        {
-          dprint("dump seed n " << is << " with input candidates=" << tmp_candidates[is].size());
-          std::sort(tmp_candidates[is].begin(), tmp_candidates[is].end(), sortCandByHitsChi2);
-
-          if (tmp_candidates[is].size() > Config::maxCandsPerSeed)
-          {
-            dprint("erase extra candidates" << " tmp_candidates[is].size()=" << tmp_candidates[is].size()
-                      << " Config::maxCandsPerSeed=" << Config::maxCandsPerSeed);
-            tmp_candidates[is].erase(tmp_candidates[is].begin() + Config::maxCandsPerSeed,
-                                     tmp_candidates[is].end());
-          }
-          dprint("dump seed n " << is << " with output candidates=" << tmp_candidates[is].size());
-        }
-        //now swap with input candidates
-        for (int is = 0; is < tmp_candidates.size(); ++is)
-        {
-          if (tmp_candidates[is].size() > 0)
-          {
-            // Copy the best -2 cands back to the current list.
-            int num_hits = tmp_candidates[is].size();
-
-            if (num_hits < Config::maxCandsPerSeed)
-            {
-              std::vector<Track> &ov = etabin_of_comb_candidates.m_candidates[otd.th_start_seed+is];
-              int cur_m2 = 0;
-              int max_m2 = ov.size();
-              while (cur_m2 < max_m2 && ov[cur_m2].getLastHitIdx() != -2) ++cur_m2;
-              while (cur_m2 < max_m2 && num_hits < Config::maxCandsPerSeed)
-              {
-                tmp_candidates[is].push_back( ov[cur_m2++] );
-                ++num_hits;
-              }
-            }
-
-            etabin_of_comb_candidates.m_candidates[otd.th_start_seed+is].swap(tmp_candidates[is]);
-            tmp_candidates[is].clear();
-          }
-          // else
-          // {
-          //   // MT: make sure we have all cands with last hit idx == -2 at this point
-          //
-          //   for (auto &cand : etabin_of_comb_candidates.m_candidates[otd.th_start_seed+is])
-          //   {
-          //     assert(cand.getLastHitIdx() == -2);
-          //   }
-          // }
-
-        }
-
-      } // end of layer loop
-
-      // final sorting
-      int nCandsBeforeEnd = 0;
-      for (int iseed = otd.th_start_seed; iseed < otd.th_end_seed; ++iseed)
+      tbb::parallel_for(tbb::blocked_range<int>(0,etabin_of_comb_candidates.m_fill_index,Config::numSeedsPerTask), 
+        [&](const tbb::blocked_range<int>& seeds)
       {
-        std::vector<Track>& finalcands = etabin_of_comb_candidates.m_candidates[iseed];
-        if (finalcands.size() == 0) continue;
-        std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
-      }
+        std::unique_ptr<CandCloner, decltype(retcand)> cloner(g_exe_ctx.m_cloners.GetFromPool(), retcand);
+        std::unique_ptr<MkFitter,   decltype(retfitr)> mkfp  (g_exe_ctx.m_fitters.GetFromPool(), retfitr);
 
-    } // end of loop over eta bins
-
-  } // end of parallel section over seeds
+        // loop over layers
+        find_tracks_in_layers_endcap(etabin_of_comb_candidates, *cloner, mkfp.get(), seeds.begin(), seeds.end(), ebin);
+      });
+    }
+  });
 }
-
-//------------------------------------------------------------------------------
-// FindTracksCloneEngine
-//------------------------------------------------------------------------------
 
 void MkBuilderEndcap::find_tracks_in_layers_endcap(EtaBinOfCombCandidates &etabin_of_comb_candidates, CandCloner &cloner,
                                                    MkFitter *mkfp, int start_seed, int end_seed, int ebin)
@@ -560,74 +550,4 @@ void MkBuilderEndcap::find_tracks_in_layers_endcap(EtaBinOfCombCandidates &etabi
     if (finalcands.size() == 0) continue;
     std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
   }
-}
-
-
-void MkBuilderEndcap::FindTracksCloneEngine()
-{
-  m_event_tmp->AssureCandClonersExist(Config::numThreadsFinder);
-
-  EventOfCombCandidates &event_of_comb_cands = m_event_tmp->m_event_of_comb_cands;
-
-  //the logic in OmpThreadData above is as follows:
-  //- threads can be either over eta bins (a) or over seeds in one eta bin (b)
-  //- for (a) we need the same number of eta bins in each thread
-  //- for (b) we need the same number of threads in each eta bin
-  assert( (Config::nEtaBin % Config::numThreadsFinder == 0) || (Config::numThreadsFinder % Config::nEtaBin == 0) );
-
-  // parallel section over seeds
-  // number of threads to be set through omp_set_num_threads (see mkFit.cc)
-#pragma omp parallel
-  {
-    OmpThreadData otd;
-
-    CandCloner &cloner = * m_event_tmp->m_cand_cloners[otd.thread_num];
-    cloner.PinMainThread();
-
-    // loop over eta bins
-    for (int ebin = otd.th_start_ebin; ebin < otd.th_end_ebin; ++ebin)
-    {
-      EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
-
-      otd.calculate_seed_ranges(etabin_of_comb_candidates.m_fill_index);
-
-      //loop over layers
-      find_tracks_in_layers_endcap(etabin_of_comb_candidates, cloner, m_mkfp_arr[omp_get_thread_num()],
-                                   otd.th_start_seed, otd.th_end_seed, ebin);
-
-    } // end of loop over eta bins
-
-  } // end of parallel section over seeds
-}
-
-
-//==============================================================================
-// TBB section
-//==============================================================================
-
-//------------------------------------------------------------------------------
-// FindTracksCloneEngineTbb
-//------------------------------------------------------------------------------
-
-void MkBuilderEndcap::FindTracksCloneEngineTbb()
-{
-  EventOfCombCandidates &event_of_comb_cands = m_event_tmp->m_event_of_comb_cands;
-
-  tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEtaBin),
-    [&](const tbb::blocked_range<int>& ebins)
-  {
-    for (int ebin = ebins.begin(); ebin != ebins.end(); ++ebin) {
-      EtaBinOfCombCandidates& etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
-
-      tbb::parallel_for(tbb::blocked_range<int>(0,etabin_of_comb_candidates.m_fill_index,Config::numSeedsPerTask), 
-        [&](const tbb::blocked_range<int>& seeds)
-      {
-        std::unique_ptr<CandCloner, decltype(retcand)> cloner(g_exe_ctx.m_cloners.GetFromPool(), retcand);
-        std::unique_ptr<MkFitter,   decltype(retfitr)> mkfp  (g_exe_ctx.m_fitters.GetFromPool(), retfitr);
-
-        // loop over layers
-        find_tracks_in_layers_endcap(etabin_of_comb_candidates, *cloner, mkfp.get(), seeds.begin(), seeds.end(), ebin);
-      });
-    }
-  });
 }

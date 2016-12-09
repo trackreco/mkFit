@@ -36,9 +36,11 @@ typedef std::vector<TString> TStrVec;
 class PlotValidation
 {
 public:
-  PlotValidation(TString inName, TString outName, TString outType);
+  PlotValidation(TString inName, TString outName, 
+		 Bool_t mvInput, Bool_t fullVal,
+		 Bool_t saveAs, TString outType);
   ~PlotValidation();
-  void Validation(Bool_t fullVal = false, Bool_t mvInput = false);
+  void Validation();
 
   void PlotEfficiency();
   void PlotFakeRate();
@@ -54,14 +56,14 @@ public:
   void PlotCFResidual();
   void PlotCFResolutionPull();
 
-  void PrintTotals(bool fullVal);
+  void PrintTotals();
 
   void MakeSubDirectory(const TString subdirname);
 
   void ComputeResidual      (const Float_t mcvar_val, const Float_t recovar_val, Float_t & var_out);
   void ComputeResolutionPull(const Float_t mcvar_val, const Float_t recovar_val, const Float_t recovar_err, FltVec & var_out);
 
-  void ComputeRatioPlot(const TH1F * numer, const TH1F * denom, TH1F *& ratioPlot);
+  void ComputeRatioPlot(const TH1F * numer, const TH1F * denom, TH1F *& ratioPlot, Bool_t subone = false);
 
   void ZeroSuppressPlot(TH1F *& histo);
 
@@ -77,6 +79,9 @@ public:
 private:
   TString fInName;
   TFile * fInRoot;
+  Bool_t  fMvInput;
+  Bool_t  fFullVal;
+  Bool_t  fSaveAs;
   TString fOutType;
   TString fOutName;
   TFile * fOutRoot;

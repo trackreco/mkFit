@@ -2,8 +2,8 @@
 
 namespace Config
 {
-  int nTracks = 20000;
-  int nEvents = 10;
+  int nTracks = 10000;
+  int nEvents = 20;
 
   // Dependent constants, assigned after processing of commandline options
   int maxHitsPerBunch;

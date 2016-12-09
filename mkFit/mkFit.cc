@@ -75,7 +75,6 @@ namespace
   bool  g_run_build_bh  = false;
   bool  g_run_build_std = false;
   bool  g_run_build_ce  = false;
-  bool  g_run_build_tbb = false;
 
   std::string g_operation = "simulate_and_process";;
   std::string g_file_name = "simtracks.bin";
@@ -97,11 +96,11 @@ void generate_and_save_tracks()
 
   printf("writing %i events\n",Nevents);
 
+  tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
+
   for (int evt = 0; evt < Nevents; ++evt)
   {
     Event ev(geom, val, evt);
-
-    omp_set_num_threads(Config::numThreadsSimulation);
 
     ev.Simulate();
     ev.resetLayerHitMap(true);
@@ -182,7 +181,7 @@ void test_standard()
   TTreeValidation val("valtree.root");
 #endif
   
-  const int NT = 5;
+  const int NT = 4;
   double t_sum[NT] = {0};
   double t_skip[NT] = {0};
 
@@ -276,9 +275,8 @@ void test_standard()
       cuFitter.freeDevice();
 #endif
       t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev) : 0;
-      t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlex(ev, ev_tmp) : 0;
+      t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, ev_tmp) : 0;
       t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, ev_tmp) : 0;
-      t_cur[4] = (g_run_build_all || g_run_build_tbb) ? runBuildingTestPlexTbb(ev, ev_tmp) : 0;
 
       for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
 
@@ -292,8 +290,8 @@ void test_standard()
       printf("----------------------------------------------------------------\n");
     }
 
-    printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
-           t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
+    printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
+           t_best[0], t_best[1], t_best[2], t_best[3]);
 
     for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
     if (evt > 1) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
@@ -306,10 +304,10 @@ void test_standard()
   printf("=== TOTAL for %d events\n", Config::nEvents);
   printf("================================================================\n");
 
-  printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
-         t_sum[0], t_sum[1], t_sum[2], t_sum[3], t_sum[4]);
-  printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
-         t_skip[0], t_skip[1], t_skip[2], t_skip[3], t_skip[4]);
+  printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
+         t_sum[0], t_sum[1], t_sum[2], t_sum[3]);
+  printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
+         t_skip[0], t_skip[1], t_skip[2], t_skip[3]);
   //fflush(stdout);
 
   if (g_operation == "read")
@@ -374,10 +372,9 @@ int main(int argc, const char *argv[])
         "                           extra cloning thread is spawned for each of them\n"
         "  --fit-std                run standard fitting test (def: false)\n"
         "  --fit-std-only           run only standard fitting test (def: false)\n"
-        "  --build-bh               run best-hit building test (def: run all building tests)\n"
-        "  --build-std              run standard building test\n"
-        "  --build-ce               run clone-engine building test\n"
-        "  --build-tbb              run tbb building test\n"
+        "  --build-bh               run best-hit building test (def: false)\n"
+        "  --build-std              run standard combinatorial building test (def: false)\n"
+        "  --build-ce               run clone engine combinatorial building test (def: false)\n"
         "  --cloner-single-thread   do not spawn extra cloning thread (def: %s)\n"
         "  --seeds-per-task         number of seeds to process in a tbb task (def: %d)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
@@ -448,19 +445,15 @@ int main(int argc, const char *argv[])
     }
     else if(*i == "--build-bh")
     {
-      g_run_build_all = false; g_run_build_bh = true;
+      g_run_build_all = false; g_run_build_bh = true; g_run_build_std = false; g_run_build_ce = false;
     }
     else if(*i == "--build-std")
     {
-      g_run_build_all = false; g_run_build_std = true;
+      g_run_build_all = false; g_run_build_bh = false; g_run_build_std = true; g_run_build_ce = false;
     }
     else if(*i == "--build-ce")
     {
-      g_run_build_all = false; g_run_build_ce = true;
-    }
-    else if(*i == "--build-tbb")
-    {
-      g_run_build_all = false; g_run_build_tbb = true;
+      g_run_build_all = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = true;
     }
     else if(*i == "--cloner-single-thread")
     {
