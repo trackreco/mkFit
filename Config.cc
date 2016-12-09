@@ -31,6 +31,10 @@ namespace Config
   // number of hits per task for finding seeds
   int   numHitsPerTask = 32;
 
+  // material effects
+  float RlgridME[Config::nBinsZME][Config::nBinsRME];
+  float XigridME[Config::nBinsZME][Config::nBinsRME];
+
   bool  useCMSGeom = false;
   bool  readCmsswSeeds = false;
 

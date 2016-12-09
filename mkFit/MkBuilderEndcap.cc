@@ -133,11 +133,11 @@ void MkBuilderEndcap::begin_event(Event* ev, EventTmp* ev_tmp, const char* build
 inline void MkBuilderEndcap::fit_one_seed_set_endcap(TrackVec& seedtracks, int itrack, int end, MkFitter *mkfp)
 {
   mkfp->SetNhits(Config::nlayers_per_seed); //note this is 2 instead of 3 since we ignore PXB1
-  mkfp->InputTracksAndHits(seedtracks, m_event->layerHits_, itrack, end);
+  mkfp->InputTracksAndHits(seedtracks, m_event_of_hits.m_layers_of_hits, itrack, end);
   if (Config::cf_seeding) mkfp->ConformalFitTracks(false, itrack, end);
   if (Config::readCmsswSeeds==false) mkfp->FitTracks(end - itrack, m_event);
 
-  const int ilay = 2; // layer 3, we ignore PXB1
+  const int ilay = Config::nlayers_per_seed; // layer 3, we ignore PXB1
 
   dcall(pre_prop_print(ilay, mkfp));
   mkfp->PropagateTracksToZ(m_event->geom_.zPlane(ilay), end - itrack);

@@ -1,3 +1,4 @@
+#include "MaterialEffects.h"
 #include "PropagationMPlex.h"
 
 //#define DEBUG
@@ -527,15 +528,9 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    MPlexLL errorProp;
 
    MPlexQF msRad;
-   // MPlexQF hitsRl;
-   // MPlexQF hitsXi;
 #pragma simd
    for (int n = 0; n < NN; ++n) {
      msRad.At(n, 0, 0) = hipo(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
-     // if (Config::useCMSGeom) {
-     //   hitsRl.At(n, 0, 0) = getRlVal(msRad.ConstAt(n, 0, 0), outPar.ConstAt(n, 2, 0));
-     //   hitsXi.At(n, 0, 0) = getXiVal(msRad.ConstAt(n, 0, 0), outPar.ConstAt(n, 2, 0));
-     // }
    }
 
 #ifdef CCSCOORD
@@ -561,16 +556,28 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
      }
    }
 #endif
+   
+   if (Config::useCMSGeom && useParamBfield) // useParamBfield is proxy for fittest 
+   {
+     MPlexQF hitsRl;
+     MPlexQF hitsXi;
+#pragma simd
+     for (int n = 0; n < NN; ++n) 
+     {
+       const int zbin = getZbinME(msPar(n, 2, 0));
+       const int rbin = getRbinME(msRad(n, 0, 0));
+       
+       hitsRl(n, 0, 0) = (zbin>=0 && zbin<Config::nBinsZME) ? getRlVal(zbin,rbin) : 0.f; // protect against crazy propagations
+       hitsXi(n, 0, 0) = (zbin>=0 && zbin<Config::nBinsZME) ? getXiVal(zbin,rbin) : 0.f; // protect against crazy propagations
+     }
+     applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);
+   }
 
    // Matriplex version of:
    // result.errors = ROOT::Math::Similarity(errorProp, outErr);
    MPlexLL temp;
    MultHelixProp      (errorProp, outErr, temp);
    MultHelixPropTransp(errorProp, temp,   outErr);
-
-   // if (Config::useCMSGeom) {
-   //   applyMaterialEffects(hitsRl, hitsXi, outErr, outPar);
-   // }
 
    // This dump is now out of its place as similarity is done with matriplex ops.
 #ifdef DEBUG
@@ -606,7 +613,6 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
 
    MPlexLL errorProp;
 
-
    MPlexQF msRad;
 #pragma simd
    for (int n = 0; n < NN; ++n) {
@@ -620,13 +626,19 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
 #endif
 
    //add multiple scattering uncertainty and energy loss (FIXME: in this way it is not applied in track fit)
-   if (Config::useCMSGeom) {
+   if (Config::useCMSGeom) 
+   {
      MPlexQF hitsRl;
      MPlexQF hitsXi;
+     
 #pragma simd
-     for (int n = 0; n < NN; ++n) {
-       hitsRl.At(n, 0, 0) = getRlVal(r, outPar.ConstAt(n, 2, 0));
-       hitsXi.At(n, 0, 0) = getXiVal(r, outPar.ConstAt(n, 2, 0));
+     for (int n = 0; n < N_proc; ++n) 
+     {    
+       const int zbin = getZbinME(outPar(n, 2, 0));
+       const int rbin = getRbinME(r);
+
+       hitsRl(n, 0, 0) = (zbin>=0 && zbin<Config::nBinsZME) ? getRlVal(zbin,rbin) : 0.f; // protect against crazy propagations
+       hitsXi(n, 0, 0) = (zbin>=0 && zbin<Config::nBinsZME) ? getXiVal(zbin,rbin) : 0.f; // protect against crazy propagations
      }
      applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);
    }
@@ -679,17 +691,9 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    MPlexLL errorProp;
 
    MPlexQF msZ;
-   // MPlexQF msRad;
-   // MPlexQF hitsRl;
-   // MPlexQF hitsXi;
 #pragma simd
    for (int n = 0; n < NN; ++n) {
      msZ.At(n, 0, 0) = msPar.ConstAt(n, 2, 0);
-     // if (Config::useCMSGeom || Config::readCmsswSeeds) {
-     //   msRad.At(n, 0, 0) = hipo(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
-     //   hitsRl.At(n, 0, 0) = getRlVal(msRad.ConstAt(n, 0, 0), msPar.ConstAt(n, 2, 0));
-     //   hitsXi.At(n, 0, 0) = getXiVal(msRad.ConstAt(n, 0, 0), msPar.ConstAt(n, 2, 0));
-     // }
    }
 
    helixAtZ(inPar, inChg, outPar, msZ, errorProp, N_proc, useParamBfield);
@@ -712,15 +716,27 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    }
 #endif
 
+   if (Config::useCMSGeom && useParamBfield) // param bfield only used in fitting
+   {
+     MPlexQF hitsRl;
+     MPlexQF hitsXi;
+#pragma simd
+     for (int n = 0; n < NN; ++n) 
+     {
+       const int zbin = getZbinME(msZ(n, 0, 0));
+       const int rbin = getRbinME(hipo(msPar(n, 0, 0), msPar(n, 1, 0)));
+       
+       hitsRl(n, 0, 0) = (rbin>=0 && rbin<Config::nBinsRME) ? getRlVal(zbin,rbin) : 0.f; // protect against crazy propagations
+       hitsXi(n, 0, 0) = (rbin>=0 && rbin<Config::nBinsRME) ? getXiVal(zbin,rbin) : 0.f; // protect against crazy propagations
+     }
+     applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);
+   }
+
    // Matriplex version of:
    // result.errors = ROOT::Math::Similarity(errorProp, outErr);
    MPlexLL temp;
    MultHelixPropEndcap      (errorProp, outErr, temp);
    MultHelixPropTranspEndcap(errorProp, temp,   outErr);
-
-   // if (Config::useCMSGeom || Config::readCmsswSeeds) {
-   //   applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);
-   // }
 
    // This dump is now out of its place as similarity is done with matriplex ops.
 #ifdef DEBUG
@@ -767,18 +783,6 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 
    helixAtZ(inPar, inChg, outPar, msZ, errorProp, N_proc);
 
-     MPlexQF msRad;
-     MPlexQF hitsRl;
-     MPlexQF hitsXi;
-     if (Config::useCMSGeom || Config::readCmsswSeeds) {
-#pragma simd
-       for (int n = 0; n < NN; ++n) {
-	 msRad.At(n, 0, 0) = hipo(outPar.ConstAt(n, 0, 0), outPar.ConstAt(n, 1, 0));
-	 hitsRl.At(n, 0, 0) = getRlVal(msRad.ConstAt(n, 0, 0), z);
-	 hitsXi.At(n, 0, 0) = getXiVal(msRad.ConstAt(n, 0, 0), z);
-       }
-     }
-
 #ifdef DEBUG
    {
      for (int kk = 0; kk < N_proc; ++kk)
@@ -797,15 +801,27 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    }
 #endif
 
+   if (Config::useCMSGeom) 
+   {
+     MPlexQF hitsRl;
+     MPlexQF hitsXi;
+#pragma simd
+     for (int n = 0; n < N_proc; ++n) 
+     {
+       const int zbin = getZbinME(z);
+       const int rbin = getRbinME(hipo(outPar(n, 0, 0), outPar(n, 1, 0)));
+
+       hitsRl(n, 0, 0) = (rbin>=0 && rbin<Config::nBinsRME) ? getRlVal(zbin,rbin) : 0.f; // protect against crazy propagations
+       hitsXi(n, 0, 0) = (rbin>=0 && rbin<Config::nBinsRME) ? getXiVal(zbin,rbin) : 0.f; // protect against crazy propagations
+     }
+     applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);
+   }
+
    // Matriplex version of:
    // result.errors = ROOT::Math::Similarity(errorProp, outErr);
    MPlexLL temp;
    MultHelixPropEndcap      (errorProp, outErr, temp);
    MultHelixPropTranspEndcap(errorProp, temp,   outErr);
-
-   if (Config::useCMSGeom || Config::readCmsswSeeds) {
-     applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);
-   }
 
    // This dump is now out of its place as similarity is done with matriplex ops.
 #ifdef DEBUG
@@ -821,9 +837,9 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
        for (int i = 0; i < 6; ++i) {
            dprintf("%8f ", outPar.At(kk,i,0)); printf("\n");
        } dprintf("\n");
-       if (std::abs(outPar.At(kk,2,0)-msPar.ConstAt(kk, 2, 0))>0.0001) {
-	 dprint_np(kk, "DID NOT GET TO Z, dZ=" << std::abs(outPar.At(kk,2,0)-msPar.ConstAt(kk, 2, 0))
-		   << " z=" << msPar.ConstAt(kk, 2, 0) << " zin=" << inPar.ConstAt(kk,2,0) << " zout=" << outPar.At(kk,2,0) << std::endl
+       if (std::abs(outPar.At(kk,2,0)-inPar.ConstAt(kk, 2, 0))>0.0001) {
+	 dprint_np(kk, "DID NOT GET TO Z, dZ=" << std::abs(outPar.At(kk,2,0)-inPar.ConstAt(kk, 2, 0))
+		   << " z=" << msZ.ConstAt(kk, 2, 0) << " zin=" << inPar.ConstAt(kk,2,0) << " zout=" << outPar.At(kk,2,0) << std::endl
 		   << "pt=" << hipo(inPar.ConstAt(kk,3,0), inPar.ConstAt(kk,4,0)) << " pz=" << inPar.ConstAt(kk,5,0));
        }
      }

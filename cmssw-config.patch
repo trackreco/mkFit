@@ -1,5 +1,5 @@
---- Config.h	2016-11-22 14:09:37.000000000 +0100
-+++ Config.h.cmssw	2016-11-24 01:13:10.000000000 +0100
+--- Config.h	2016-11-22 08:06:15.949356629 -0800
++++ Config.h.cmssw	2016-11-22 08:18:55.500627875 -0800
 @@ -33,12 +33,12 @@
    extern int nEvents;
  
@@ -15,7 +15,7 @@
  
    //constexpr float cmsAvgRads[13] = {4.42,7.31,10.17,25.58,33.98,41.79,49.78,60.78,69.2,77.96,86.80,96.53,108.00}; // cms average radii, noSplit version
    constexpr float cmsAvgRads[17] = {4.42,7.31,10.17,25.58,25.58,33.98,33.98,41.79,49.78,60.57,61.00,69.41,68.98,77.96,86.80,96.53,108.00}; // cms average radii, split version
-@@ -51,25 +51,25 @@
+@@ -51,11 +51,11 @@
    constexpr float cmsDiskMaxRsHole[26] = {999.,999.,999.,999.,999.,999., 999., 999., 59.9, 999., 59.9, 999., 59.9, 999., 59.7, 999., 59.7, 999., 59.7, 999., 999., 999., 999., 999., 999., 999.};
    const     float g_disk_dr[]        = {   1,   1,  20,  20,  20,  20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20};
  
@@ -28,6 +28,10 @@
 -  /* const float g_layer_dz[] = { 1, 1, 1, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20 }; //cmssw tests */
 +  const float g_layer_zwidth[] = { 30, 30, 30, 70, 70, 70, 70, 70, 70, 110, 110, 110, 110, 110, 110, 110, 110 }; //cmssw tests
 +  const float g_layer_dz[] = { 1, 1, 1, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20 }; //cmssw tests
+ 
+   // config for material effects in cmssw
+   constexpr float rangeZME = 300.;
+@@ -102,17 +102,17 @@
  
    // These could be parameters, layer dependent.
    static constexpr int   m_nphi = 1024;

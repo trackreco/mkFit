@@ -272,7 +272,7 @@ inline void MkBuilder::fit_one_seed_set(TrackVec& seedtracks, int itrack, int en
   if (Config::cf_seeding) mkfp->ConformalFitTracks(false, itrack, end);
   if (Config::readCmsswSeeds==false) mkfp->FitTracks(end - itrack, m_event);
 
-  const int ilay = 3; // layer 4
+  const int ilay = Config::nlayers_per_seed; // layer 4
 
   dcall(pre_prop_print(ilay, mkfp));
   mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);

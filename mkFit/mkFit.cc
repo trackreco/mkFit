@@ -14,6 +14,8 @@
 
 #include "Event.h"
 
+#include "MaterialEffects.h"
+
 #ifndef NO_ROOT
 #include "TTreeValidation.h"
 #endif
@@ -175,6 +177,7 @@ void test_standard()
 
   Geometry geom;
   initGeom(geom);
+  if (Config::useCMSGeom) fillZRgridME();
 #ifdef NO_ROOT
   Validation val;
 #else 
