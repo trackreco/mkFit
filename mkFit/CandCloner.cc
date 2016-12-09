@@ -89,22 +89,3 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
     // }
   }
 }
-
-void CandCloner::DoWork(CandClonerWork_t work)
-{
-  int beg     = work.first;
-  int the_end = work.second;
-
-  // printf("CandCloner::DoWork working on beg=%d to the_end=%d\n", beg, the_end);
-
-  while (beg != the_end)
-  {
-    int end = std::min(beg + s_max_seed_range, the_end);
-
-    // printf("CandCloner::DoWork processing %4d -> %4d\n", beg, end);
-
-    ProcessSeedRange(beg, end);
-
-    beg = end;
-  }
-}

@@ -97,7 +97,7 @@ public:
     if (proc_n >= s_max_seed_range)
     {
       // Round to multiple of s_max_seed_range.
-      signal_work_to_st((m_idx_max / s_max_seed_range) * s_max_seed_range);
+      DoWork((m_idx_max / s_max_seed_range) * s_max_seed_range);
     }
   }
 
@@ -105,7 +105,7 @@ public:
   {
     if (m_n_seeds > m_idx_max_prev)
     {
-      signal_work_to_st(m_n_seeds);
+      DoWork(m_n_seeds);
     }
 
     for (int i = 0; i < m_n_seeds; ++i)
@@ -129,11 +129,25 @@ public:
 #endif
   }
 
-  void signal_work_to_st(int idx)
+  void DoWork(int idx)
   {
-    // printf("CandCloner::signal_work_to_st assigning work from seed %d to %d\n", m_idx_max_prev, idx);
+    // printf("CandCloner::DoWork assigning work from seed %d to %d\n", m_idx_max_prev, idx);
 
-    DoWork(std::make_pair(m_idx_max_prev, idx));
+    int beg     = m_idx_max_prev;
+    int the_end = idx;
+
+    // printf("CandCloner::DoWork working on beg=%d to the_end=%d\n", beg, the_end);
+
+    while (beg != the_end)
+    {
+      int end = std::min(beg + s_max_seed_range, the_end);
+
+      // printf("CandCloner::DoWork processing %4d -> %4d\n", beg, end);
+
+      ProcessSeedRange(beg, end);
+
+      beg = end;
+    }
 
     m_idx_max_prev = idx;
   }
@@ -141,8 +155,6 @@ public:
   // ----------------------------------------------------------------
 
   void ProcessSeedRange(int is_beg, int is_end);
-
-  void DoWork(CandClonerWork_t work);
 
   // ----------------------------------------------------------------
 
