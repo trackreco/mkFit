@@ -13,7 +13,7 @@ do
     echo "SNB ToyMC" nth=${nth} "STD (Barrel)"
     ./mkFit/mkFit --read --file-name ${dir}/simtracks_barrel_20x10k.bin --build-std --num-thr ${nth} >& log_SNB_ToyMC_Barrel_STD_NVU8int_NTH${nth}.txt
     echo "SNB ToyMC" nth=${nth} "CE (Barrel)"
-    ./mkFit/mkFit --read --file-name ${dir}/simtracks_barrel_20x10k.bin --build-ce  --num-thr ${nth} --cloner-single-thread >& log_SNB_ToyMC_Barrel_CE_NVU8int_NTH${nth}.txt
+    ./mkFit/mkFit --read --file-name ${dir}/simtracks_barrel_20x10k.bin --build-ce  --num-thr ${nth} >& log_SNB_ToyMC_Barrel_CE_NVU8int_NTH${nth}.txt
 done
 
 sed -i 's/# USE_INTRINSICS := -DMPT_SIZE=1/USE_INTRINSICS := -DMPT_SIZE=XX/g' Makefile.config
@@ -28,7 +28,7 @@ do
     echo "SNB ToyMC" nvu=${nvu} "STD (Barrel)"
     ./mkFit/mkFit --read --file-name ${dir}/simtracks_barrel_20x10k.bin --build-std --num-thr 1 >& log_SNB_ToyMC_Barrel_STD_NVU${nvu}_NTH1.txt
     echo "SNB ToyMC" nvu=${nvu} "CE (Barrel)"
-    ./mkFit/mkFit --read --file-name ${dir}/simtracks_barrel_20x10k.bin --build-ce  --num-thr 1 --cloner-single-thread >& log_SNB_ToyMC_Barrel_CE_NVU${nvu}_NTH1.txt
+    ./mkFit/mkFit --read --file-name ${dir}/simtracks_barrel_20x10k.bin --build-ce  --num-thr 1 >& log_SNB_ToyMC_Barrel_CE_NVU${nvu}_NTH1.txt
 
     sed -i "s/MPT_SIZE=${nvu}/MPT_SIZE=XX/g" Makefile.config
 done

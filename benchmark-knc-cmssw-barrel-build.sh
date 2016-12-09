@@ -14,7 +14,7 @@ do
     echo "KNC CMSSW" nth=${nth} "STD (Barrel)"
     ssh mic0 ./mkFit-mic --read --file-name ${dir}/cmssw_100xTTbarPU35_polar_split_mock_noFWD.bin --cms-geom --cmssw-seeds --build-std --seeds-per-task 32 --num-thr ${nth} >& log_KNC_CMSSW_Barrel_STD_NVU16int_NTH${nth}.txt
     echo "KNC CMSSW" nth=${nth} "CE (Barrel)"
-    ssh mic0 ./mkFit-mic --read --file-name ${dir}/cmssw_100xTTbarPU35_polar_split_mock_noFWD.bin --cms-geom --cmssw-seeds --build-ce  --seeds-per-task 32 --num-thr ${nth} --cloner-single-thread >& log_KNC_CMSSW_Barrel_CE_NVU16int_NTH${nth}.txt
+    ssh mic0 ./mkFit-mic --read --file-name ${dir}/cmssw_100xTTbarPU35_polar_split_mock_noFWD.bin --cms-geom --cmssw-seeds --build-ce  --seeds-per-task 32 --num-thr ${nth} >& log_KNC_CMSSW_Barrel_CE_NVU16int_NTH${nth}.txt
 done
 
 sed -i 's/# USE_INTRINSICS := -DMPT_SIZE=1/USE_INTRINSICS := -DMPT_SIZE=XX/g' Makefile.config
@@ -29,7 +29,7 @@ do
     echo "KNC CMSSW" nvu=${nvu} "STD (Barrel)"
     ssh mic0 ./mkFit-mic --read --file-name ${dir}/cmssw_100xTTbarPU35_polar_split_mock_noFWD.bin --cms-geom --cmssw-seeds --build-std --seeds-per-task 32 --num-thr 1 >& log_KNC_CMSSW_Barrel_STD_NVU${nvu}_NTH1.txt
     echo "KNC CMSSW" nvu=${nvu} "CE (Barrel)"
-    ssh mic0 ./mkFit-mic --read --file-name ${dir}/cmssw_100xTTbarPU35_polar_split_mock_noFWD.bin --cms-geom --cmssw-seeds --build-ce  --seeds-per-task 32 --num-thr 1 --cloner-single-thread >& log_KNC_CMSSW_Barrel_CE_NVU${nvu}_NTH1.txt
+    ssh mic0 ./mkFit-mic --read --file-name ${dir}/cmssw_100xTTbarPU35_polar_split_mock_noFWD.bin --cms-geom --cmssw-seeds --build-ce  --seeds-per-task 32 --num-thr 1 >& log_KNC_CMSSW_Barrel_CE_NVU${nvu}_NTH1.txt
 
     sed -i "s/MPT_SIZE=${nvu}/MPT_SIZE=XX/g" Makefile.config
 done

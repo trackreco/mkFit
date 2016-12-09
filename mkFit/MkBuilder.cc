@@ -106,20 +106,10 @@ MkBuilder::MkBuilder() :
   m_event_tmp(0),
   m_event_of_hits(Config::nLayers)
 {
-  m_mkfp_arr.resize(Config::numThreadsFinder);
-
-  for (int i = 0; i < Config::numThreadsFinder; ++i)
-  {
-    m_mkfp_arr[i] = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(0);
-  }
 }
 
 MkBuilder::~MkBuilder()
 {
-   for (int i = 0; i < Config::numThreadsFinder; ++i)
-   {
-     _mm_free(m_mkfp_arr[i]);
-   }
 }
 
 //------------------------------------------------------------------------------

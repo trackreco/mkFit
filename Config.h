@@ -185,7 +185,6 @@ namespace Config
   extern int    numThreadsEvents;
   extern int    numThreadsReorg;
 
-  extern bool   clonerUseSingleThread;
   extern int    finderReportBestOutOfN;
 
   extern int    numSeedsPerTask;

@@ -45,8 +45,6 @@ protected:
   EventTmp      *m_event_tmp;
   EventOfHits    m_event_of_hits;
 
-  std::vector<MkFitter*> m_mkfp_arr;
-
   int m_cnt=0, m_cnt1=0, m_cnt2=0, m_cnt_8=0, m_cnt1_8=0, m_cnt2_8=0, m_cnt_nomc=0;
 
 public:

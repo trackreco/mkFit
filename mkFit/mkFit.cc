@@ -437,7 +437,6 @@ int main(int argc, const char *argv[])
         "  --build-bh               run best-hit building test (def: false)\n"
         "  --build-std              run standard combinatorial building test (def: false)\n"
         "  --build-ce               run clone engine combinatorial building test (def: false)\n"
-        "  --cloner-single-thread   do not spawn extra cloning thread (def: %s)\n"
         "  --seeds-per-task         number of seeds to process in a tbb task (def: %d)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
         "  --cms-geom               use cms-like geometry (def: %i)\n"
@@ -460,7 +459,6 @@ int main(int argc, const char *argv[])
         Config::nEvents,
         Config::nTracks,
         Config::numThreadsSimulation, Config::numThreadsFinder,
-        Config::clonerUseSingleThread ? "true" : "false",
         Config::numSeedsPerTask,
         Config::finderReportBestOutOfN,
       	Config::useCMSGeom,
@@ -517,10 +515,6 @@ int main(int argc, const char *argv[])
     else if(*i == "--build-ce")
     {
       g_run_build_all = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = true;
-    }
-    else if(*i == "--cloner-single-thread")
-    {
-      Config::clonerUseSingleThread = true;
     }
     else if (*i == "--seeds-per-task")
     {
@@ -607,8 +601,8 @@ int main(int argc, const char *argv[])
 
   Config::RecalculateDependentConstants();
 
-  printf ("Running with n_threads=%d, cloner_single_thread=%d, best_out_of=%d\n",
-          Config::numThreadsFinder, Config::clonerUseSingleThread, Config::finderReportBestOutOfN);
+  printf ("Running with n_threads=%d, best_out_of=%d\n",
+          Config::numThreadsFinder, Config::finderReportBestOutOfN);
 
   test_standard();
 
