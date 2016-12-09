@@ -81,8 +81,6 @@ void generate_and_save_tracks()
 {
   FILE *fp = fopen(g_file_name.c_str(), "w");
 
-  int Ntracks = Config::nTracks;
-
   int Nevents = Config::nEvents;
 
   Geometry geom;

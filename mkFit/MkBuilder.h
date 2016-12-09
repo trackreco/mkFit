@@ -34,8 +34,6 @@ extern ExecutionContext g_exe_ctx;
 class Event;
 class EventTmp;
 
-class MkFitter;
-
 class MkBuilder
 {
 protected:

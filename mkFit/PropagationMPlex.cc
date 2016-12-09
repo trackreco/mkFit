@@ -182,6 +182,7 @@ inline void MultHelixPropTemp(const MPlexLL& A, const MPlexLL& B, MPlexLL& C, in
   c[35*N+n] = a[32*N+n]*b[17*N+n] + a[35*N+n];
 }
 
+#ifdef UNUSED
 // this version does not assume to know which elements are 0 or 1, so it does the full multiplication
 void MultHelixPropFull(const MPlexLL& A, const MPlexLS& B, MPlexLL& C)
 {
@@ -241,7 +242,7 @@ void MultHelixPropTranspFull(const MPlexLL& A, const MPlexLL& B, MPlexLL& C)
       }
     }
 }
-
+#endif
 } // end unnamed namespace
 
 void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
@@ -273,9 +274,6 @@ void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg,
 	continue;
       }
 
-      const float xin   = inPar.ConstAt(n, 0, 0);
-      const float yin   = inPar.ConstAt(n, 1, 0);
-      const float zin   = inPar.ConstAt(n, 2, 0);
       const float ipt   = inPar.ConstAt(n, 3, 0);
       const float phiin = inPar.ConstAt(n, 4, 0);
       const float theta = inPar.ConstAt(n, 5, 0);
@@ -409,10 +407,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
 
       float radL = hitsRl.ConstAt(n,0,0);
       if (radL<0.0000000000001f) continue;//ugly, please fixme
-      const float x = outPar.ConstAt(n,0,0);
-      const float y = outPar.ConstAt(n,0,1);
       const float theta = outPar.ConstAt(n,0,5);
-      const float r = std::sqrt(x*x+y*y);
       const float pt = 1.f/outPar.ConstAt(n,0,3);
       const float p = pt/std::sin(theta);
       const float p2 = p*p;
@@ -448,11 +443,11 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
 #else
       float radL = hitsRl.ConstAt(n,0,0);
       if (radL<0.0000000000001f) continue;//ugly, please fixme
-      const float& x = outPar.ConstAt(n,0,0);
-      const float& y = outPar.ConstAt(n,0,1);
-      const float& px = outPar.ConstAt(n,0,3);
-      const float& py = outPar.ConstAt(n,0,4);
-      const float& pz = outPar.ConstAt(n,0,5);
+      const float x = outPar.ConstAt(n,0,0);
+      const float y = outPar.ConstAt(n,0,1);
+      const float px = outPar.ConstAt(n,0,3);
+      const float py = outPar.ConstAt(n,0,4);
+      const float pz = outPar.ConstAt(n,0,5);
       const float r = std::sqrt(x*x+y*y);
       float pt = px*px + py*py;
       float p2 = pt + pz*pz;
@@ -519,8 +514,6 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 			          MPlexLS &outErr,       MPlexLV& outPar,
                             const int      N_proc, const bool useParamBfield)
 {
-   const idx_t N  = NN;
-
    outErr = inErr;
    outPar = inPar;
 
@@ -671,8 +664,6 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 			          MPlexLS &outErr,       MPlexLV& outPar,
                             const int      N_proc, const bool useParamBfield)
 {
-   const idx_t N  = NN;
-
    outErr = inErr;
    outPar = inPar;
 
@@ -752,8 +743,6 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 			          MPlexLS &outErr,       MPlexLV& outPar,
                             const int      N_proc)
 {
-   const idx_t N  = NN;
-
    outErr = inErr;
    outPar = inPar;
 
@@ -850,8 +839,6 @@ void helixAtZ(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
 
       const float zout = msZ.ConstAt(n, 0, 0);
 
-      const float xin   = inPar.ConstAt(n, 0, 0);
-      const float yin   = inPar.ConstAt(n, 1, 0);
       const float zin   = inPar.ConstAt(n, 2, 0);
       const float ipt   = inPar.ConstAt(n, 3, 0);
       const float phiin = inPar.ConstAt(n, 4, 0);
@@ -868,10 +855,9 @@ void helixAtZ(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
             << " inPar.ConstAt(n, 5, 0)=" << std::setprecision(9) << inPar.ConstAt(n, 5, 0)
             );
 
-      const float kinv  = 1.f/k;
       const float pt = 1.f/ipt;
 
-      float D = 0., cosa = 0., sina = 0., id = 0.;
+      float cosa = 0., sina = 0.;
       //no trig approx here, phi can be large
       float cosP = std::cos(phiin), sinP = std::sin(phiin);
       float cosT = std::cos(theta), sinT = std::sin(theta);

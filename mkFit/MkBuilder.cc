@@ -201,8 +201,9 @@ void MkBuilder::end_event()
 
 int MkBuilder::find_seeds()
 {
+#ifdef DEBUG
   bool debug(false);
-
+#endif
   TripletIdxConVec seed_idcs;
 
   double time = dtime();
@@ -371,7 +372,6 @@ void MkBuilder::remap_cand_hits()
   HitIDVec candLayersHitMap(m_event->simHitsInfo_.size());
   for (int ilayer = 0; ilayer < Config::nLayers; ++ilayer) {
     const auto & global_hit_vec = m_event->layerHits_[ilayer];
-    const auto   size = global_hit_vec.size();
     for (int index = 0; index < global_hit_vec.size(); ++index) {
       candLayersHitMap[global_hit_vec[index].mcHitID()] = HitID(ilayer, index);
     }
@@ -838,7 +838,6 @@ void MkBuilder::FindTracksStandard()
 	} // end of layer loop
 	
 	// final sorting
-	int nCandsBeforeEnd = 0;
 	for (int iseed = start_seed; iseed < end_seed; ++iseed)
 	{
 	  std::vector<Track>& finalcands = etabin_of_comb_candidates.m_candidates[iseed];
@@ -1006,7 +1005,6 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
   cloner.end_eta_bin();
 
   // final sorting
-  int nCandsBeforeEnd = 0;
   for (int iseed = start_seed; iseed < end_seed; ++iseed)
   {
     std::vector<Track>& finalcands = etabin_of_comb_candidates.m_candidates[iseed];

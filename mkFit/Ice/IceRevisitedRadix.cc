@@ -173,7 +173,7 @@ To do:
  *	Constructor.
  */
 //----------------------------------------------------------------------
-RadixSort::RadixSort() : mRanks(0), mRanks2(0), mCurrentSize(0), mTotalCalls(0), mNbHits(0)
+RadixSort::RadixSort() : mCurrentSize(0), mRanks(0), mRanks2(0), mTotalCalls(0), mNbHits(0)
 {
 #ifndef RADIX_LOCAL_RAM
   // Allocate input-independent ram

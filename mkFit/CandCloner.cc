@@ -18,9 +18,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
 {
   // Process new hits for a range of seeds.
 
-  const int is_num = is_end - is_beg;
-
-  // printf("CandCloner::ProcessSeedRange is_beg=%d, is_end=%d, is_num=%d\n", is_beg, is_end, is_num);
+  // printf("CandCloner::ProcessSeedRange is_beg=%d, is_end=%d\n", is_beg, is_end);
 
   //1) sort the candidates
   for (int is = is_beg; is < is_end; ++is)

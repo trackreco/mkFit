@@ -1,9 +1,6 @@
 #ifndef _eventtmp_h_
 
 #include "HitStructures.h"
-#include "MkFitter.h"
-
-class MkFitter;
 
 class EventTmp
 {

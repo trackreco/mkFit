@@ -26,8 +26,9 @@ inline void intersectThirdLayer(const float a, const float b, const float hit1_x
 
 void findSeedsByRoadSearch(TripletIdxConVec & seed_idcs, std::vector<LayerOfHits>& evt_lay_hits, int lay1_size, Event *& ev)
 {
+#ifdef DEBUG
   bool debug(false);
-
+#endif
   // 0 = first layer, 1 = second layer, 2 = third layer
   const LayerOfHits& lay1_hits = evt_lay_hits[1];
   LayerOfHits& lay0_hits = evt_lay_hits[0];

@@ -443,7 +443,6 @@ void setupTrackFromTextFile(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
   for (int ilayer=0;ilayer<Config::nLayers;++ilayer){
     layer_counts[ilayer]=0;
   }
-  int nTotHit = Config::nLayers; // can tune this number!
   // to include loopers, and would rather add a break on the code if layer ten exceeded
   // if block BREAK if hit.Layer == theGeom->CountLayers() 
   // else --> if (NMAX TO LOOPER (maybe same as 10?) {break;} else {continue;}

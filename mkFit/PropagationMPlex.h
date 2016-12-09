@@ -30,8 +30,8 @@ void helixAtRFromIterativeCCS(const MPlexLV& inPar, const MPlexQI& inChg,
                               const int      N_proc, const bool useParamBfield = false);
 
 void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, 
-			         MPlexLV& outPar, const MPlexQF &msRad, 
-			         MPlexLL& errorProp, bool useSimpleJac,
+                                 MPlexLV& outPar, const MPlexQF &msRad, 
+                                 MPlexLL& errorProp,
                            const int      N_proc, const bool useParamBfield = false);
 
 void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
