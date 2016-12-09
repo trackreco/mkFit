@@ -14,8 +14,6 @@
 #include "check_gpu_hit_structures.h"
 #endif
 
-#include <omp.h>
-
 #if defined(USE_VTUNE_PAUSE)
 #include "ittnotify.h"
 #endif
@@ -83,7 +81,7 @@ double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
   if   (Config::findSeeds) {builder.find_seeds();}
   else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
 
-  builder.fit_seeds_tbb();
+  builder.fit_seeds();
 
   EventOfCandidates event_of_cands;
   builder.find_tracks_load_seeds(event_of_cands);
@@ -113,10 +111,10 @@ double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
   __itt_pause();
 #endif
   
-  if (!Config::normal_val) {
-    if (!Config::silent) builder.quality_output_besthit(event_of_cands);
+  if   (!Config::normal_val) {
+    if (!Config::silent) builder.quality_output_BH(event_of_cands);
   } else {
-    builder.root_val_besthit(event_of_cands);
+    builder.root_val_BH(event_of_cands);
   }
 
   builder.end_event();
@@ -124,12 +122,11 @@ double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
   return time;
 }
 
-
 //==============================================================================
-// runBuildTestPlex
+// runBuildTestPlex Combinatorial: Standard TBB
 //==============================================================================
 
-double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp, MkBuilder& builder)
+double runBuildingTestPlexStandard(Event& ev, EventTmp& ev_tmp, MkBuilder& builder)
 {
   EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
   event_of_comb_cands.Reset();
@@ -149,7 +146,7 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp, MkBuilder& builder)
 
   double time = dtime();
 
-  builder.FindTracks();
+  builder.FindTracksStandard();
 
   time = dtime() - time;
 
@@ -158,17 +155,16 @@ double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp, MkBuilder& builder)
 #endif
   
   if (!Config::normal_val) {
-    if (!Config::silent) builder.quality_output();
-  } else {builder.root_val();}
+    if (!Config::silent) builder.quality_output_COMB();
+  } else {builder.root_val_COMB();}
 
   builder.end_event();
 
   return time;
 }
 
-
 //==============================================================================
-// runBuildTestPlexCloneEngine
+// runBuildTestPlex Combinatorial: CloneEngine TBB
 //==============================================================================
 
 double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp, MkBuilder& builder)
@@ -200,56 +196,13 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp, MkBuilder& bu
 #endif
 
   if (!Config::normal_val) {
-    if (!Config::silent) builder.quality_output();
-  } else {builder.root_val();}
+    if (!Config::silent) builder.quality_output_COMB();
+  } else {builder.root_val_COMB();}
 
   builder.end_event();
 
   return time;
 }
-
-
-//==============================================================================
-// runBuildTestPlexCloneEngineTbb
-//==============================================================================
-
-double runBuildingTestPlexTbb(Event& ev, EventTmp& ev_tmp, MkBuilder& builder)
-{
-  EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
-  event_of_comb_cands.Reset();
-
-  builder.begin_event(&ev, &ev_tmp, __func__);
-
-  if   (Config::findSeeds) {builder.find_seeds();}
-  else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
-
-  builder.fit_seeds_tbb();
-
-  builder.find_tracks_load_seeds();
-
-#ifdef USE_VTUNE_PAUSE
-  __itt_resume();
-#endif
-
-  double time = dtime();
-
-  builder.FindTracksCloneEngineTbb();
-
-  time = dtime() - time;
-
-#ifdef USE_VTUNE_PAUSE
-  __itt_pause();
-#endif
-
-  if (!Config::normal_val) {
-    if (!Config::silent) builder.quality_output();
-  } else {builder.root_val();}
-
-  builder.end_event();
-
-  return time;
-}
-
 
 //==============================================================================
 // runAllBuildTestPlexBestHitGPU
@@ -275,7 +228,7 @@ double runAllBuildingTestPlexBestHitGPU(std::vector<Event> &events)
     if   (Config::findSeeds) {builder.find_seeds();}
     else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
 
-    builder.fit_seeds_tbb();
+    builder.fit_seeds();
 
     EventOfCandidates &event_of_cands = event_of_cands_vec[i];
     builder.find_tracks_load_seeds(event_of_cands);
@@ -304,9 +257,9 @@ double runAllBuildingTestPlexBestHitGPU(std::vector<Event> &events)
     BuilderCU &builder_cu = builder_cu_vec[i];
     MkBuilder &builder = * builder_ptrs[i].get();
     if (!Config::normal_val) {
-      if (!Config::silent) builder.quality_output_besthit(event_of_cands);
+      if (!Config::silent) builder.quality_output_BH(event_of_cands);
     } else {
-      builder.root_val_besthit(event_of_cands);
+      builder.root_val_BH(event_of_cands);
     }
 
     builder.end_event();

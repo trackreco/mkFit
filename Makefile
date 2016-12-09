@@ -35,7 +35,7 @@ include ${DEPS}
 endif
 
 clean-local:
-	-rm -f ${EXES} *.d *.o *.om
+	-rm -f ${EXES} *.d *.o *.om *.so
 	-rm -rf main.dSYM
 	-rm -rf USolids-{host,mic}
 

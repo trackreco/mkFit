@@ -75,7 +75,8 @@ __device__ void updateTracksWithBestHit_fn(Hit *hits,
       const float &chi2_local = minChi2;
 	  
       for (int i = 0; i < msErr.kSize; ++i) {
-        msErr(itrack, i, 0) = hit.errArrayCU()[i];
+        //msErr(itrack, i, 0) = hit.errArrayCU()[i];
+        msErr[itrack + i*msErr.stride] = hit.errArrayCU()[i];
       }
       for (int i = 0; i < msPar.kSize; ++i) {
         msPar(itrack, i, 0) = hit.posArrayCU()[i];
@@ -86,12 +87,19 @@ __device__ void updateTracksWithBestHit_fn(Hit *hits,
     else
     {
       /*msErr[Nhits].SetDiagonal3x3(itrack, 666);*/
-      msErr(itrack, 0, 0) = 666;
-      msErr(itrack, 1, 0) = 0;
-      msErr(itrack, 2, 0) = 666;
-      msErr(itrack, 3, 0) = 0;
-      msErr(itrack, 4, 0) = 0;
-      msErr(itrack, 5, 0) = 666;
+      // TODO use () operator
+      //msErr(itrack, 0, 0) = 666;
+      //msErr(itrack, 1, 0) = 0;
+      //msErr(itrack, 2, 0) = 666;
+      //msErr(itrack, 3, 0) = 0;
+      //msErr(itrack, 4, 0) = 0;
+      //msErr(itrack, 5, 0) = 666;
+      msErr[itrack+ 0*msErr.stride] = 666;
+      msErr[itrack+ 1*msErr.stride] = 0;
+      msErr[itrack+ 2*msErr.stride] = 666;
+      msErr[itrack+ 3*msErr.stride] = 0;
+      msErr[itrack+ 4*msErr.stride] = 0;
+      msErr[itrack+ 5*msErr.stride] = 666;
 
       for (int i = 0; i < msPar.kSize; ++i) {
         msPar(itrack, i, 0) = propPar(itrack, i, 0);

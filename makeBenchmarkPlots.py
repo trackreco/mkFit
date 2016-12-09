@@ -1,74 +1,86 @@
 import os.path, glob, sys
 import ROOT
 import array
+import math
 
-if len(sys.argv)<2 or len(sys.argv)>3: exit
+if len(sys.argv)!=4: exit
 
-hORm = sys.argv[1]
+hORm   = sys.argv[1] # host == Xeon SNB, mic == Xeon Phi KNC
+sample = sys.argv[2] # toymc or cmssw
+region = sys.argv[3] # barrel or endcap
 
-isCMSSW = False
-if len(sys.argv)>2:
-    if sys.argv[2]=="cmssw": isCMSSW=True
-    else: exit
+g = ROOT.TFile('benchmark_'+hORm+'_'+sample+'_'+region+'.root',"recreate")
 
-if hORm!='host' and hORm!='host_endcap' and hORm!='mic' and hORm!='mic_endcap': exit
+for test in ['BH','STD','CE','FIT']:
+    if sample == 'CMSSW' and test == 'FIT' : continue
+    if region == 'Endcap' and not sample == 'CMSSW' and not test == 'FIT' : continue
+    print hORm,sample,region,test
 
-g = ROOT.TFile('benchmark_'+hORm+'.root',"recreate")
+    if test == 'FIT' : pos = 3  
+    if test == 'BH'  : pos = 8  
+    if test == 'STD' : pos = 11  
+    if test == 'CE'  : pos = 14 
 
-for test in ['BH','CE','CEST','ST','TBBST','FIT']:
-    if isCMSSW and test=='FIT': continue
-    if 'endcap' in hORm and not isCMSSW and 'FIT' not in test: continue
-    print test
-    pos = 14
-    ntks = '10x20k'
-    nevt = 10.
-    if isCMSSW:
-        ntks = '100xTTbarPU35'
+    if sample == 'CMSSW' :
         nevt = 100.
-    if 'BH' in test: pos = 8
-    if 'TBB' in test: pos = 17
-    if 'ST' == test: pos = 11
-    if 'FIT' in test: 
-        pos = 3
-        ntks = '10x1M'
-    g_VU = ROOT.TGraph(4)
-    g_VU_speedup = ROOT.TGraph(4)
-    point = 0
+    else :
+        if test == 'FIT' :
+            nevt = 1000.
+        else :
+            nevt = 20.
+
+    # Vectorization data points
     vuvals = ['1','2','4','8']
-    if 'mic' in hORm: 
+    if hORm == 'KNC' : 
+        nth = '1'
         vuvals.append('16')
         vuvals.append('16int')
     else:
+        nth = '1'
         vuvals.append('8int')
+
+    #Vectorization time    
+    print "Vectorization"
+    g_VU = ROOT.TGraphErrors(len(vuvals))
+    g_VU_speedup = ROOT.TGraphErrors(len(vuvals))
+    point = 0
     for vu in vuvals:
-        os.system('grep Matriplex log_'+hORm+'_'+ntks+'_'+test+'_NVU'+vu+'_NTH1.txt >& log_'+hORm+'_'+ntks+'_'+test+'_VU.txt')
-        if vu == '16int':
-            xval = 16.0
-        elif vu == '8int':
-            xval = 8.0
-        else:
-            xval = float(vu)
-        yval = 0.
+        if    vu == '16int': xval = 16.0
+        elif  vu == '8int' : xval = 8.0
+        else               : xval = float(vu)
+        yvals = array.array('d');
         firstFound = False
-        with open('log_'+hORm+'_'+ntks+'_'+test+'_VU.txt') as f:
+
+        # Read in times from log files, store into yvals
+        os.system('grep Matriplex log_'+hORm+'_'+sample+'_'+region+'_'+test+'_NVU'+vu+'_NTH'+nth+'.txt >& log_'+hORm+'_'+sample+'_'+region+'_'+test+'_VU.txt')
+        with open('log_'+hORm+'_'+sample+'_'+region+'_'+test+'_VU.txt') as f:
             for line in f:
                 if 'Matriplex' not in line: continue
                 if 'Total' in line: continue
                 lsplit = line.split()
-                if 'FIT' in test: 
-                    tmp = float(lsplit[pos])
-                    if firstFound is False or tmp<yval: yval=tmp
-                    if not firstFound:
-                        firstFound = True
-                else:
-                    if not firstFound:
-                        firstFound = True
-                        continue
-                    yval = yval+float(lsplit[pos])
-        if 'FIT' not in test: yval = nevt*yval/(nevt-1.)
-        print xval, yval
-        g_VU.SetPoint(point,xval,yval)
+                if not firstFound:
+                    firstFound = True
+                    continue
+                yvals.append(float(lsplit[pos]))
+
+        # Compute mean and uncertainty on mean
+        sum = 0.;
+        for yval in range(0,len(yvals)):
+            sum = sum + yvals[yval]
+        mean = sum/len(yvals)
+        emean = 0.;
+        for yval in range(0,len(yvals)):
+            emean = emean + ((yvals[yval] - mean) * (yvals[yval] - mean))
+        emean = math.sqrt(emean / (len(yvals) - 1))
+        emean = emean/math.sqrt(len(yvals))
+
+        print xval,mean,'+/-',emean
+        g_VU.SetPoint(point,xval,mean)
+        g_VU.SetPointError(point,0,emean)
         point = point+1
+    g_VU.Write("g_"+test+"_VU")
+
+    # Vectorization speedup
     x0 = array.array('d',[0])
     y0 = array.array('d',[0])
     g_VU.GetPoint(0,x0,y0)
@@ -81,41 +93,55 @@ for test in ['BH','CE','CEST','ST','TBBST','FIT']:
         if yval[0]>0.: speedup = y0[0]/yval[0]
         g_VU_speedup.SetPoint(point,xval[0],speedup)
         point = point+1
-    g_VU.Write("g_"+test+"_VU")
     g_VU_speedup.Write("g_"+test+"_VU_speedup")
 
+    # Parallelization datapoints
+    if hORm == 'KNC' :
+        nvu = '16int'
+        thvals = [1,2,4,8,15,30,60,90,120,150,180,210,240]
+    else :
+        nvu = '8int'
+        thvals = [1,2,4,6,8,12,16,20,24]
+    
+    # Parallelization time
+    print "Parallelization"
+    g_TH = ROOT.TGraphErrors(len(thvals))
+    g_TH_speedup = ROOT.TGraphErrors(len(thvals))
     point = 0
-    nvu = '8int'
-    if 'mic' in hORm: nvu = '16int'
-    thvals = [1,3,7,21]
-    if 'TBB' in test or 'BH' in test : thvals = [1,3,7,10,12,14,16,21]
-    if 'mic' in hORm: thvals = [1,3,7,21,42,63,84,105,126,147,168,189,210]
-    g_TH = ROOT.TGraph(len(thvals))
-    g_TH_speedup = ROOT.TGraph(len(thvals))
     for th in thvals:
-        os.system('grep Matriplex log_'+hORm+'_'+ntks+'_'+test+'_NVU'+nvu+'_NTH'+str(th)+'.txt >& log_'+hORm+'_'+ntks+'_'+test+'_TH.txt')
         xval = float(th)
-        yval = 0.
+        yvals = array.array('d');
         firstFound = False
-        with open('log_'+hORm+'_'+ntks+'_'+test+'_TH.txt') as f:
+
+        os.system('grep Matriplex log_'+hORm+'_'+sample+'_'+region+'_'+test+'_NVU'+nvu+'_NTH'+str(th)+'.txt >& log_'+hORm+'_'+sample+'_'+region+'_'+test+'_TH.txt')
+        with open('log_'+hORm+'_'+sample+'_'+region+'_'+test+'_TH.txt') as f:
             for line in f:
                 if 'Matriplex' not in line: continue
                 if 'Total' in line: continue
                 lsplit = line.split()
-                if 'FIT' in test: 
-                    tmp = float(lsplit[pos])
-                    if firstFound is False or tmp<yval: yval=tmp
-                    if not firstFound:
-                        firstFound = True
-                else:
-                    if not firstFound:
-                        firstFound = True
-                        continue
-                    yval = yval+float(lsplit[pos])
-        if 'FIT' not in test: yval = nevt*yval/(nevt-1.)
-        print xval, yval
-        g_TH.SetPoint(point,xval,yval)
+                if not firstFound:
+                    firstFound = True
+                    continue
+                yvals.append(float(lsplit[pos]))
+        
+        # Compute mean and uncertainty on mean
+        sum = 0.;
+        for yval in range(0,len(yvals)):
+            sum = sum + yvals[yval]
+        mean = sum/len(yvals)
+        emean = 0.;
+        for yval in range(0,len(yvals)):
+            emean = emean + ((yvals[yval] - mean) * (yvals[yval] - mean))
+        emean = math.sqrt(emean / (len(yvals) - 1))
+        emean = emean/math.sqrt(len(yvals))
+
+        print xval,mean,'+/-',emean
+        g_TH.SetPoint(point,xval,mean)
+        g_TH.SetPointError(point,0,emean)
         point = point+1
+    g_TH.Write("g_"+test+"_TH")
+
+    # Parallelization speedup
     x0 = array.array('d',[0])
     y0 = array.array('d',[0])
     g_TH.GetPoint(0,x0,y0)
@@ -128,7 +154,6 @@ for test in ['BH','CE','CEST','ST','TBBST','FIT']:
         if yval[0]>0.: speedup = y0[0]/yval[0]
         g_TH_speedup.SetPoint(point,xval[0],speedup)
         point = point+1
-    g_TH.Write("g_"+test+"_TH")
     g_TH_speedup.Write("g_"+test+"_TH_speedup")
 
 g.Write()

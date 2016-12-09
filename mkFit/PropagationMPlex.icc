@@ -1,148 +1,162 @@
+///////////////////////////////////////////////////////////////////////////////
+/// helixAtRFromIterative_impl
+///////////////////////////////////////////////////////////////////////////////
+
 template<typename Tf, typename Ti, typename TfLL1, typename Tf11, typename TfLLL>
 #ifdef __CUDACC__
 __device__
 #endif
-static inline void helixAtRFromIterative_impl(const Tf& __restrict__ inPar,  const   Ti& __restrict__ inChg, 
-                                                 TfLL1& __restrict__ outPar, const Tf11& __restrict__ msRad, 
-                                                 TfLLL& __restrict__ errorProp, int nmin, int nmax)
+static inline void helixAtRFromIterative_impl(const Tf& __restrict__ inPar, 
+                                              const   Ti& __restrict__ inChg, 
+                                              TfLL1& __restrict__ outPar,
+                                              const Tf11& __restrict__ msRad, 
+                                              TfLLL& __restrict__ errorProp,
+                                              const int nmin, const int nmax,
+                                              const int N_proc, 
+					      const bool useParamBfield)
 {
 #pragma simd
   for (int n = nmin; n < nmax; ++n) {
-    //initialize erroProp to identity matrix
-    errorProp(n,0,0) = 1.f;
-    errorProp(n,1,1) = 1.f;
-    errorProp(n,2,2) = 1.f;
-    errorProp(n,3,3) = 1.f;
-    errorProp(n,4,4) = 1.f;
-    errorProp(n,5,5) = 1.f;
+      //initialize erroProp to identity matrix
+      errorProp(n,0,0) = 1.f;
+      errorProp(n,1,1) = 1.f;
+      errorProp(n,2,2) = 1.f;
+      errorProp(n,3,3) = 1.f;
+      errorProp(n,4,4) = 1.f;
+      errorProp(n,5,5) = 1.f;
 
-    const float xin  = inPar(n, 0, 0);
-    const float yin  = inPar(n, 1, 0);
-    const float pxin = inPar(n, 3, 0);
-    const float pyin = inPar(n, 4, 0);
-    const float pzin = inPar(n, 5, 0);
-    const float r    = msRad(n, 0, 0); 
-    float r0 = hipo(xin, yin);
+      const float xin  = inPar(n, 0, 0);
+      const float yin  = inPar(n, 1, 0);
+      const float pxin = inPar(n, 3, 0);
+      const float pyin = inPar(n, 4, 0);
+      const float pzin = inPar(n, 5, 0);
+      const float r    = msRad(n, 0, 0);
+      float r0 = hipo(xin,yin);
+      
+      dprint_np(n, std::endl << "attempt propagation from r=" << r0 << " to r=" << r << std::endl
+        << "x=" << xin << " y=" << yin  << " z=" << inPar(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pzin << " q=" << inChg(n, 0, 0));
 
-    dprint(std::endl << "attempt propagation from r=" << r0 << " to r=" << r << std::endl
-      << "x=" << xin << " y=" << yin  << " z=" << inPar.ConstAt(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pzin << " q=" << inChg.ConstAt(n, 0, 0));
-
-    if (std::abs(r-r0)<0.0001f) {
-    	dprint("distance less than 1mum, skip");
-      continue;
-    }
-    const float pt2    = pxin*pxin+pyin*pyin;
-    const float pt     = std::sqrt(pt2);
-    const float ptinv  = 1.f/pt;
-    const float pt2inv = ptinv*ptinv;
-    //p=0.3Br => r=p/(0.3*B)
-    const float k = inChg(n, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
-    const float invcurvature = 1.f/(pt*k);//in 1./cm
-    const float ctgTheta=pzin*ptinv;
-
-    //variables to be updated at each iterations
-    float totalDistance = 0;
-    //derivatives initialized to value for first iteration, i.e. distance = r-r0in
-    float dTDdx = r0>0.0f ? -xin/r0 : 0.0f;
-    float dTDdy = r0>0.0f ? -yin/r0 : 0.0f;
-    float dTDdpx = 0.f;
-    float dTDdpy = 0.f;
-    //5 iterations is a good starting point
-    //const unsigned int Niter = 10;
-    // const unsigned int Niter = 5+std::round(r-r0)/2;
-#pragma ivdep
-    for (unsigned int iter=0; iter < Config::Niter; ++iter) {
-
-  	  dprint("propagation iteration #" << i);
-  	  const float x  = outPar(n, 0, 0);
-  	  const float y  = outPar(n, 1, 0);
-  	  const float px = outPar(n, 3, 0);
-  	  const float py = outPar(n, 4, 0);
-      r0 = hipo(x, y);
-
-  	  dprint("r0=" << r0 << " pt=" << pt);
-
-      totalDistance += (r-r0);
-  	  dprint("distance=" << (r-r0) << " angPath=" << (r-r0)*invcurvature);
-
-      float cosAP, sinAP;
-      if (Config::useTrigApprox) {  // TODO: uncomment
-        sincos4((r-r0)*invcurvature, sinAP, cosAP);
-      } else {
-        cosAP=std::cos((r-r0)*invcurvature);
-        sinAP=std::sin((r-r0)*invcurvature);
+      if (std::abs(r-r0)<0.0001f) {
+	dprint_np(n, "distance less than 1mum, skip");
+	continue;
       }
+      
+      const float pt2    = pxin*pxin+pyin*pyin;
+      const float pt     = std::sqrt(pt2);
+      const float ptinv  = 1.f/pt;
+      const float pt2inv = ptinv*ptinv;
+      //p=0.3Br => r=p/(0.3*B)
+      const float k = inChg(n, 0, 0) * 100.f / (-Config::sol*(useParamBfield?Config::BfieldFromZR(inPar(n,2,0),r0):Config::Bfield));    
+      const float invcurvature = 1.f/(pt*k);//in 1./cm
+      const float ctgTheta=pzin*ptinv;
+      
+      dprint_np(n, "curvature=" << 1.f/invcurvature);
+      
+      //variables to be updated at each iterations
+      float totalDistance = 0;
+      //derivatives initialized to value for first iteration, i.e. distance = r-r0in
+      float dTDdx = r0>0.f ? -xin/r0 : 0.f;
+      float dTDdy = r0>0.f ? -yin/r0 : 0.f;
+      float dTDdpx = 0.;
+      float dTDdpy = 0.;
+      for (int i = 0; i < Config::Niter; ++i)
+	{
+	  dprint_np(n, "propagation iteration #" << i);
+	  
+	  const float x  = outPar(n, 0, 0);
+	  const float y  = outPar(n, 1, 0);
+	  const float px = outPar(n, 3, 0);
+	  const float py = outPar(n, 4, 0);
+	  r0 = hipo(outPar(n, 0, 0), outPar(n, 1, 0));
+	  
+	  dprint_np(n, "r0=" << r0 << " pt=" << pt);
+	  
+	  //distance=r-r0;//remove temporary
+	  totalDistance+=(r-r0);
+	  
+	  dprint_np(n, "distance=" << (r-r0) << " angPath=" << (r-r0)*invcurvature);
+	  
+	  //float angPath = (r-r0)*invcurvature;
+          float cosAP, sinAP;
+	  if (Config::useTrigApprox) {
+	    sincos4((r-r0)*invcurvature, sinAP, cosAP);
+	  } else {
+	    cosAP=std::cos((r-r0)*invcurvature);
+	    sinAP=std::sin((r-r0)*invcurvature);
+	  }
 
-      //helix propagation formulas
-      //http://www.phys.ufl.edu/~avery/fitting/fitting4.pdf
-  	  outPar(n, 0, 0) = outPar(n, 0, 0) + k*(px*sinAP-py*(1-cosAP));
-  	  outPar(n, 1, 0) = outPar(n, 1, 0) + k*(py*sinAP+px*(1-cosAP));
-  	  outPar(n, 2, 0) = outPar(n, 2, 0) + (r-r0)*ctgTheta;
-  	  outPar(n, 3, 0) = px*cosAP-py*sinAP;
-  	  outPar(n, 4, 0) = py*cosAP+px*sinAP;
-      //outPar(n, 5, 0) = pz; //take this out as it is redundant
+	  //helix propagation formulas
+	  //http://www.phys.ufl.edu/~avery/fitting/fitting4.pdf
+	  outPar(n, 0, 0) = outPar(n, 0, 0) + k*(px*sinAP-py*(1-cosAP));
+	  outPar(n, 1, 0) = outPar(n, 1, 0) + k*(py*sinAP+px*(1-cosAP));
+	  outPar(n, 2, 0) = outPar(n, 2, 0) + (r-r0)*ctgTheta;
+	  outPar(n, 3, 0) = px*cosAP-py*sinAP;
+	  outPar(n, 4, 0) = py*cosAP+px*sinAP;
+	  //outPar(n, 5, 0) = pz; //take this out as it is redundant
 
-  	  if (iter+1 != Config::Niter && r0 > 0 && std::abs((r-r0)*invcurvature)>0.000000001f)
-  	  {
-  	     //update derivatives on total distance for next step, where totalDistance+=r-r0
-  	     //now r0 depends on px and py
+	  if (i+1 != Config::Niter && r0 > 0 && std::abs((r-r0)*invcurvature)>0.000000001f)
+	  {
+	     //update derivatives on total distance for next step, where totalDistance+=r-r0
+	     //now r0 depends on px and py
 
-  	     dprint("r0=" << 1.f/r0 << " r0inv=" << r0 << " pt=" << pt);
+	     dprint_np(n, "r0=" << 1.f/r0 << " r0inv=" << r0 << " pt=" << pt);
 
-  	     //update derivative on D
-  	     const float dAPdpx = -(r-r0)*invcurvature*px*pt2inv;//r0 is now 1./r0 (this could go above the redefinition of r0!)
-  	     const float dAPdpy = -(r-r0)*invcurvature*py*pt2inv;
-  	     r0 = 1.f/r0;//WARNING, now r0 is r0inv (one less temporary)
-  	     const float dAPdx = -x*r0*invcurvature;
-  	     const float dAPdy = -y*r0*invcurvature;
-  	     //reduce temporary variables
-  	     //dxdx = 1 + k*dAPdx*(px*cosAP - py*sinAP);
-  	     //dydx = k*dAPdx*(py*cosAP + px*sinAP);
-  	     //dTDdx -= r0*(x*dxdx + y*dydx);
-  	     dTDdx -= r0*(x*(1.f + k*dAPdx*(px*cosAP - py*sinAP)) + y*(k*dAPdx*(py*cosAP + px*sinAP)));
-  	     //reuse same temporary variables
-  	     //dxdy = k*dAPdy*(px*cosAP - py*sinAP);
-  	     //dydy = 1 + k*dAPdy*(py*cosAP + px*sinAP);
-  	     //dTDdy -= r0*(x*dxdy + y*dydy);
-  	     dTDdy -= r0*(x*(k*dAPdy*(px*cosAP - py*sinAP)) + y*(1.f + k*dAPdy*(py*cosAP + px*sinAP)));
-  	     //dxdpx = k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx);
-  	     //dydpx = k*(py*cosAP*dAPdpx + 1. - cosAP + px*sinAP*dAPdpx);
-  	     //dTDdpx -= r0*(x*dxdpx + y*dydpx);
-  	     dTDdpx -= r0*(x*(k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx)) + y*(k*(py*cosAP*dAPdpx + 1.f - cosAP + px*sinAP*dAPdpx)));
-  	     //dxdpy = k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy);
-  	     //dydpy = k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy);
-  	     //dTDdpy -= r0*(x*dxdpy + y*(dydpy);
-  	     dTDdpy -= r0*(x*(k*(px*cosAP*dAPdpy - 1.f + cosAP - py*sinAP*dAPdpy)) + y*(k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy)));
+	     //update derivative on D
+	     const float dAPdpx = -(r-r0)*invcurvature*px*pt2inv;//r0 is now 1./r0 (this could go above the redefinition of r0!)
+	     const float dAPdpy = -(r-r0)*invcurvature*py*pt2inv;
+	     r0 = 1.f/r0;//WARNING, now r0 is r0inv (one less temporary)
+	     const float dAPdx = -x*r0*invcurvature;
+	     const float dAPdy = -y*r0*invcurvature;
+	     //reduce temporary variables
+	     //dxdx = 1 + k*dAPdx*(px*cosAP - py*sinAP);
+	     //dydx = k*dAPdx*(py*cosAP + px*sinAP);
+	     //dTDdx -= r0*(x*dxdx + y*dydx);
+	     dTDdx -= r0*(x*(1.f + k*dAPdx*(px*cosAP - py*sinAP)) + y*(k*dAPdx*(py*cosAP + px*sinAP)));
+	     //reuse same temporary variables
+	     //dxdy = k*dAPdy*(px*cosAP - py*sinAP);
+	     //dydy = 1 + k*dAPdy*(py*cosAP + px*sinAP);
+	     //dTDdy -= r0*(x*dxdy + y*dydy);
+	     dTDdy -= r0*(x*(k*dAPdy*(px*cosAP - py*sinAP)) + y*(1.f + k*dAPdy*(py*cosAP + px*sinAP)));
+	     //dxdpx = k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx);
+	     //dydpx = k*(py*cosAP*dAPdpx + 1. - cosAP + px*sinAP*dAPdpx);
+	     //dTDdpx -= r0*(x*dxdpx + y*dydpx);
+	     dTDdpx -= r0*(x*(k*(sinAP + px*cosAP*dAPdpx - py*sinAP*dAPdpx)) + y*(k*(py*cosAP*dAPdpx + 1.f - cosAP + px*sinAP*dAPdpx)));
+	     //dxdpy = k*(px*cosAP*dAPdpy - 1. + cosAP - py*sinAP*dAPdpy);
+	     //dydpy = k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy);
+	     //dTDdpy -= r0*(x*dxdpy + y*(dydpy);
+	     dTDdpy -= r0*(x*(k*(px*cosAP*dAPdpy - 1.f + cosAP - py*sinAP*dAPdpy)) + y*(k*(sinAP + py*cosAP*dAPdpy + px*sinAP*dAPdpy)));
 
-  	  }
-  	  dprint("iteration end, dump parameters" << std::endl
-  		 << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
-  		 << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0) << std::endl
-  		 << "r=" << std::sqrt( outPar.At(n, 0, 0)*outPar.At(n, 0, 0) + outPar.At(n, 1, 0)*outPar.At(n, 1, 0) ) 
-       << " pT=" << std::sqrt( outPar.At(n, 3, 0)*outPar.At(n, 3, 0) + outPar.At(n, 4, 0)*outPar.At(n, 4, 0) ));
+	  }
+	  dprint_np(n, "iteration end, dump parameters" << std::endl
+		 << "pos = " << outPar(n, 0, 0) << " " << outPar(n, 1, 0) << " " << outPar(n, 2, 0) << std::endl
+		 << "mom = " << outPar(n, 3, 0) << " " << outPar(n, 4, 0) << " " << outPar(n, 5, 0) << std::endl
+		 << "r=" << std::sqrt( outPar(n, 0, 0)*outPar(n, 0, 0) + outPar(n, 1, 0)*outPar(n, 1, 0) ) << " pT=" << std::sqrt( outPar(n, 3, 0)*outPar(n, 3, 0) + outPar(n, 4, 0)*outPar(n, 4, 0) ));
+	}
+      
       const float TD=totalDistance;
       const float TP=TD*invcurvature;//totalAngPath
-    
-      dprint("TD=" << TD << " TP=" << TP << " arrived at r=" << std::sqrt(outPar.At(n, 0, 0)*outPar.At(n, 0, 0)+outPar.At(n, 1, 0)*outPar.At(n, 1, 0))
-        << std::endl
-        << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
-        << "mom = " << outPar.At(n, 3, 0) << " " << outPar.At(n, 4, 0) << " " << outPar.At(n, 5, 0));
+      
+      dprint_np(n, "TD=" << TD << " TP=" << TP << " arrived at r=" << std::sqrt(outPar(n, 0, 0)*outPar(n, 0, 0)+outPar(n, 1, 0)*outPar(n, 1, 0)) << std::endl
+        << "pos = " << outPar(n, 0, 0) << " " << outPar(n, 1, 0) << " " << outPar(n, 2, 0) << std::endl
+        << "mom = " << outPar(n, 3, 0) << " " << outPar(n, 4, 0) << " " << outPar(n, 5, 0));
 
-      const float iC=invcurvature;
+      const float iC = invcurvature;
       const float dCdpx = k*pxin*ptinv;
       const float dCdpy = k*pyin*ptinv;
       const float dTPdx = dTDdx*iC;
       const float dTPdy = dTDdy*iC;
       const float dTPdpx = (dTDdpx - TD*dCdpx*iC)*iC; // MT change: avoid division
       const float dTPdpy = (dTDdpy - TD*dCdpy*iC)*iC; // MT change: avoid division
-    
+
       float cosTP, sinTP;
       if (Config::useTrigApprox) {
-        sincos4(TP, sinTP, cosTP);
+	sincos4(TP, sinTP, cosTP);
       } else {
-        cosTP = std::cos(TP);
-        sinTP = std::sin(TP);
+	cosTP = std::cos(TP);
+	sinTP = std::sin(TP);
       }
+
+      dprint_np(n, "sinTP=" << sinTP << " cosTP=" << cosTP << " TD=" << TD);
 
       //now try to make full jacobian
       //derive these to compute jacobian
@@ -153,48 +167,279 @@ static inline void helixAtRFromIterative_impl(const Tf& __restrict__ inPar,  con
       //py = pyin*cosTP+pxin*sinTP;
       //pz = pzin;
       //jacobian
-
+      
       errorProp(n,0,0) = 1 + k*dTPdx*(pxin*cosTP - pyin*sinTP);	//dxdx;
       errorProp(n,0,1) = k*dTPdy*(pxin*cosTP - pyin*sinTP);	//dxdy;
       errorProp(n,0,2) = 0.;
       errorProp(n,0,3) = k*(sinTP + pxin*cosTP*dTPdpx - pyin*sinTP*dTPdpx); //dxdpx;
       errorProp(n,0,4) = k*(pxin*cosTP*dTPdpy - 1.f + cosTP - pyin*sinTP*dTPdpy);//dxdpy;
       errorProp(n,0,5) = 0.;
-    
+      
       errorProp(n,1,0) = k*dTPdx*(pyin*cosTP + pxin*sinTP);	//dydx;
       errorProp(n,1,1) = 1 + k*dTPdy*(pyin*cosTP + pxin*sinTP);	//dydy;
       errorProp(n,1,2) = 0.;
       errorProp(n,1,3) = k*(pyin*cosTP*dTPdpx + 1.f - cosTP + pxin*sinTP*dTPdpx);//dydpx;
       errorProp(n,1,4) = k*(sinTP + pyin*cosTP*dTPdpy + pxin*sinTP*dTPdpy); //dydpy;
       errorProp(n,1,5) = 0.;
-    
+      
       errorProp(n,2,0) = k*pzin*dTPdx;	//dzdx;
       errorProp(n,2,1) = k*pzin*dTPdy;	//dzdy;
       errorProp(n,2,2) = 1.f;
       errorProp(n,2,3) = k*pzin*dTPdpx;//dzdpx;
       errorProp(n,2,4) = k*pzin*dTPdpy;//dzdpy;
       errorProp(n,2,5) = k*TP; //dzdpz;
-    
+      
       errorProp(n,3,0) = -dTPdx*(pxin*sinTP + pyin*cosTP);	//dpxdx;
       errorProp(n,3,1) = -dTPdy*(pxin*sinTP + pyin*cosTP);	//dpxdy;
       errorProp(n,3,2) = 0.;
       errorProp(n,3,3) = cosTP - dTPdpx*(pxin*sinTP + pyin*cosTP); //dpxdpx;
       errorProp(n,3,4) = -sinTP - dTPdpy*(pxin*sinTP + pyin*cosTP);//dpxdpy;
       errorProp(n,3,5) = 0.;
-    
+      
       errorProp(n,4,0) = -dTPdx*(pyin*sinTP - pxin*cosTP); //dpydx;
       errorProp(n,4,1) = -dTPdy*(pyin*sinTP - pxin*cosTP);	//dpydy;
       errorProp(n,4,2) = 0.;
       errorProp(n,4,3) = +sinTP - dTPdpx*(pyin*sinTP - pxin*cosTP);//dpydpx;
       errorProp(n,4,4) = +cosTP - dTPdpy*(pyin*sinTP - pxin*cosTP);//dpydpy;
       errorProp(n,4,5) = 0.;
-    
+      
       errorProp(n,5,0) = 0.;
       errorProp(n,5,1) = 0.;
       errorProp(n,5,2) = 0.;
       errorProp(n,5,3) = 0.;
       errorProp(n,5,4) = 0.;
       errorProp(n,5,5) = 1.f;
-    }
+
+#ifdef DEBUG
+      if (n < N_proc) {
+        dmutex_guard;
+        std::cout << n << ": jacobian iterative" << std::endl;
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,2,0),errorProp(n,2,1),errorProp(n,2,2),errorProp(n,2,3),errorProp(n,2,4),errorProp(n,2,5));
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,3,0),errorProp(n,3,1),errorProp(n,3,2),errorProp(n,3,3),errorProp(n,3,4),errorProp(n,3,5));
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,4,0),errorProp(n,4,1),errorProp(n,4,2),errorProp(n,4,3),errorProp(n,4,4),errorProp(n,4,5));
+        printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,5,0),errorProp(n,5,1),errorProp(n,5,2),errorProp(n,5,3),errorProp(n,5,4),errorProp(n,5,5));
+      }
+#endif
   }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+/// helixAtRFromIterativeCCS_impl
+///////////////////////////////////////////////////////////////////////////////
+
+template<typename Tf, typename Ti, typename TfLL1, typename Tf11, typename TfLLL>
+#ifdef __CUDACC__
+__device__
+#endif
+static inline void helixAtRFromIterativeCCS_impl(const Tf& __restrict__ inPar, 
+                                                 const   Ti& __restrict__ inChg, 
+                                                 TfLL1& __restrict__ outPar,
+                                                 const Tf11& __restrict__ msRad, 
+                                                 TfLLL& __restrict__ errorProp,
+                                                 const int nmin, const int nmax,
+                                                 const int N_proc,
+						 const bool useParamBfield) 
+{
+#pragma simd
+  for (int n = nmin; n < nmax; ++n)
+    {
+      //initialize erroProp to identity matrix
+      errorProp(n,0,0) = 1.f;
+      errorProp(n,1,1) = 1.f;
+      errorProp(n,2,2) = 1.f;
+      errorProp(n,3,3) = 1.f;
+      errorProp(n,4,4) = 1.f;
+      errorProp(n,5,5) = 1.f;
+
+      float r0 = hipo(inPar(n, 0, 0), inPar(n, 1, 0));
+      const float k = inChg(n, 0, 0) * 100.f / (-Config::sol*(useParamBfield?Config::BfieldFromZR(inPar(n,2,0),r0):Config::Bfield)); 
+      const float r = msRad(n, 0, 0);
+
+      // if (std::abs(r-r0)<0.0001f) {
+      // 	dprint("distance less than 1mum, skip");
+      // 	continue;
+      // }
+
+      const float xin   = inPar(n, 0, 0);
+      const float yin   = inPar(n, 1, 0);
+      const float zin   = inPar(n, 2, 0);
+      const float ipt   = inPar(n, 3, 0);
+      const float phiin = inPar(n, 4, 0);
+      const float theta = inPar(n, 5, 0);
+
+      dprint_np(n, std::endl << "input parameters"
+            << " inPar(n, 0, 0)=" << std::setprecision(9) << inPar(n, 0, 0)
+            << " inPar(n, 1, 0)=" << std::setprecision(9) << inPar(n, 1, 0)
+            << " inPar(n, 2, 0)=" << std::setprecision(9) << inPar(n, 2, 0)
+            << " inPar(n, 3, 0)=" << std::setprecision(9) << inPar(n, 3, 0)
+            << " inPar(n, 4, 0)=" << std::setprecision(9) << inPar(n, 4, 0)
+            << " inPar(n, 5, 0)=" << std::setprecision(9) << inPar(n, 5, 0)
+            );
+
+      const float kinv  = 1.f/k;
+      const float pt = 1.f/ipt;
+
+      float D = 0., cosa = 0., sina = 0., id = 0.;
+      //no trig approx here, phi can be large
+      float cosPorT = std::cos(phiin), sinPorT = std::sin(phiin);
+      float pxin = cosPorT*pt;
+      float pyin = sinPorT*pt;
+
+      dprint_np(n, std::endl << "k=" << std::setprecision(9) << k << " pxin=" << std::setprecision(9) << pxin << " pyin="
+             << std::setprecision(9) << pyin << " cosPorT=" << std::setprecision(9) << cosPorT
+             << " sinPorT=" << std::setprecision(9) << sinPorT << " pt=" << std::setprecision(9) << pt);
+
+      //derivatives initialized to value for first iteration, i.e. distance = r-r0in
+      float dDdx = r0 > 0.f ? -xin/r0 : 0.f;
+      float dDdy = r0 > 0.f ? -yin/r0 : 0.f;
+      float dDdipt = 0.;
+      float dDdphi = 0.;
+
+      for (int i = 0; i < Config::Niter; ++i)
+      {
+        dprint_np(n, std::endl << "attempt propagation from r=" << r0 << " to r=" << r << std::endl
+            << "x=" << xin << " y=" << yin  << " z=" << inPar(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pt*std::tan(theta) << " q=" << inChg(n, 0, 0));
+
+        //compute distance and path for the current iteration
+        r0 = hipo(outPar(n, 0, 0), outPar(n, 1, 0));
+        id = (r-r0);
+        D+=id;
+        if (Config::useTrigApprox) {
+          sincos4(id*ipt*kinv, sina, cosa);
+        } else {
+          cosa=std::cos(id*ipt*kinv);
+          sina=std::sin(id*ipt*kinv);
+        }
+
+        dprint_np(n, std::endl << "r=" << std::setprecision(9) << r << " r0=" << std::setprecision(9) << r0
+               << " id=" << std::setprecision(9) << id << " cosa=" << cosa << " sina=" << sina);
+
+        //update derivatives on total distance
+        if (i+1 != Config::Niter) {
+
+          const float x = outPar(n, 0, 0);
+          const float y = outPar(n, 1, 0);
+          const float oor0 = (r0>0.f && std::abs(r-r0)<0.0001f) ? 1.f/r0 : 0.f;
+
+          const float dadipt = id*kinv;
+
+          const float dadx = -x*ipt*kinv*oor0;
+          const float dady = -y*ipt*kinv*oor0;
+
+          const float pxca = pxin*cosa;
+          const float pxsa = pxin*sina;
+          const float pyca = pyin*cosa;
+          const float pysa = pyin*sina;
+
+          float tmp = k*dadx;
+                dDdx   -= ( x*(1.f + tmp*(pxca - pysa)) + y*tmp*(pyca + pxsa) )*oor0;
+          tmp = k*dady;
+                dDdy   -= ( x*tmp*(pxca - pysa) + y*(1.f + tmp*(pyca + pxsa)) )*oor0;
+                //now r0 depends on ipt and phi as well
+          tmp = dadipt*ipt;
+                dDdipt -= k*( x*(pxca*tmp - pysa*tmp - pyca - pxsa + pyin) +
+                              y*(pyca*tmp + pxsa*tmp - pysa + pxca - pxin))*pt*oor0;
+                dDdphi += k*( x*(pysa - pxin + pxca) - y*(pxsa - pyin + pyca))*oor0;
+        }
+
+        //update parameters
+        outPar(n, 0, 0) = outPar(n, 0, 0) + k*(pxin*sina - pyin*(1.f-cosa));
+        outPar(n, 1, 0) = outPar(n, 1, 0) + k*(pyin*sina + pxin*(1.f-cosa));
+        const float pxinold = pxin;//copy before overwriting
+        pxin = pxin*cosa - pyin*sina;
+        pyin = pyin*cosa + pxinold*sina;
+
+        dprint_np(n, std::endl << "outPar(n, 0, 0)=" << outPar(n, 0, 0) << " outPar(n, 1, 0)=" << outPar(n, 1, 0)
+               << " pxin=" << pxin << " pyin=" << pyin);
+      }
+
+      const float alpha  = D*ipt*kinv;
+      const float dadx   = dDdx*ipt*kinv;
+      const float dady   = dDdy*ipt*kinv;
+      const float dadipt = (ipt*dDdipt + D)*kinv;
+      const float dadphi = dDdphi*ipt*kinv;
+
+      if (Config::useTrigApprox) {
+        sincos4(alpha, sina, cosa);
+      } else {
+        cosa=std::cos(alpha);
+        sina=std::sin(alpha);
+      }
+
+      errorProp(n,0,0) = 1.f+k*dadx*(cosPorT*cosa-sinPorT*sina)*pt;
+      errorProp(n,0,1) =     k*dady*(cosPorT*cosa-sinPorT*sina)*pt;
+      errorProp(n,0,2) = 0.f;
+      errorProp(n,0,3) = k*(cosPorT*(ipt*dadipt*cosa-sina)+sinPorT*((1.f-cosa)-ipt*dadipt*sina))*pt*pt;
+      errorProp(n,0,4) = k*(cosPorT*dadphi*cosa - sinPorT*dadphi*sina - sinPorT*sina + cosPorT*cosa - cosPorT)*pt;
+      errorProp(n,0,5) = 0.f;
+
+      errorProp(n,1,0) =     k*dadx*(sinPorT*cosa+cosPorT*sina)*pt;
+      errorProp(n,1,1) = 1.f+k*dady*(sinPorT*cosa+cosPorT*sina)*pt;
+      errorProp(n,1,2) = 0.f;
+      errorProp(n,1,3) = k*(sinPorT*(ipt*dadipt*cosa-sina)+cosPorT*(ipt*dadipt*sina-(1.f-cosa)))*pt*pt;
+      errorProp(n,1,4) = k*(sinPorT*dadphi*cosa + cosPorT*dadphi*sina + sinPorT*cosa + cosPorT*sina - sinPorT)*pt;
+      errorProp(n,1,5) = 0.f;
+
+      //no trig approx here, theta can be large
+      cosPorT=std::cos(theta);
+      sinPorT=std::sin(theta);
+      //redefine sinPorT as 1./sinPorT to reduce the number of temporaries
+      sinPorT = 1.f/sinPorT;
+
+      outPar(n, 2, 0) = inPar(n, 2, 0) + k*alpha*cosPorT*pt*sinPorT;
+
+      errorProp(n,2,0) = k*cosPorT*dadx*pt*sinPorT;
+      errorProp(n,2,1) = k*cosPorT*dady*pt*sinPorT;
+      errorProp(n,2,2) = 1.f;
+      errorProp(n,2,3) = k*cosPorT*(ipt*dadipt-alpha)*pt*pt*sinPorT;
+      errorProp(n,2,4) = k*dadphi*cosPorT*pt*sinPorT;
+      errorProp(n,2,5) =-k*alpha*pt*sinPorT*sinPorT;
+
+      outPar(n, 3, 0) = ipt;
+
+      errorProp(n,3,0) = 0.f;
+      errorProp(n,3,1) = 0.f;
+      errorProp(n,3,2) = 0.f;
+      errorProp(n,3,3) = 1.f;
+      errorProp(n,3,4) = 0.f;
+      errorProp(n,3,5) = 0.f;
+
+      outPar(n, 4, 0) = inPar(n, 4, 0)+alpha;
+
+      errorProp(n,4,0) = dadx;
+      errorProp(n,4,1) = dady;
+      errorProp(n,4,2) = 0.f;
+      errorProp(n,4,3) = dadipt;
+      errorProp(n,4,4) = 1.f+dadphi;
+      errorProp(n,4,5) = 0.f;
+
+      outPar(n, 5, 0) = theta;
+
+      errorProp(n,5,0) = 0.f;
+      errorProp(n,5,1) = 0.f;
+      errorProp(n,5,2) = 0.f;
+      errorProp(n,5,3) = 0.f;
+      errorProp(n,5,4) = 0.f;
+      errorProp(n,5,5) = 1.f;
+
+      dprint_np(n, "propagation end, dump parameters" << std::endl
+	     << "pos = " << outPar(n, 0, 0) << " " << outPar(n, 1, 0) << " " << outPar(n, 2, 0) << std::endl
+	     << "mom = " << std::cos(outPar(n, 4, 0))/outPar(n, 3, 0) << " " << std::sin(outPar(n, 4, 0))/outPar(n, 3, 0) << " " << 1./(outPar(n, 3, 0)*tan(outPar(n, 5, 0)))
+	     << " r=" << std::sqrt( outPar(n, 0, 0)*outPar(n, 0, 0) + outPar(n, 1, 0)*outPar(n, 1, 0) ) << " pT=" << 1./std::abs(outPar(n, 3, 0)) << std::endl);
+      
+#ifdef DEBUG
+      if (n < N_proc) {
+	dmutex_guard;
+	std::cout << n << ": jacobian" << std::endl;
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,0,0),errorProp(n,0,1),errorProp(n,0,2),errorProp(n,0,3),errorProp(n,0,4),errorProp(n,0,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,1,0),errorProp(n,1,1),errorProp(n,1,2),errorProp(n,1,3),errorProp(n,1,4),errorProp(n,1,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,2,0),errorProp(n,2,1),errorProp(n,2,2),errorProp(n,2,3),errorProp(n,2,4),errorProp(n,2,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,3,0),errorProp(n,3,1),errorProp(n,3,2),errorProp(n,3,3),errorProp(n,3,4),errorProp(n,3,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,4,0),errorProp(n,4,1),errorProp(n,4,2),errorProp(n,4,3),errorProp(n,4,4),errorProp(n,4,5));
+	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,5,0),errorProp(n,5,1),errorProp(n,5,2),errorProp(n,5,3),errorProp(n,5,4),errorProp(n,5,5));
+      }
+#endif
+    }
 }

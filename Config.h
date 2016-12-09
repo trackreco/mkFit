@@ -112,9 +112,15 @@ namespace Config
 
   // Config for propagation
   constexpr int Niter = 5;
-  constexpr float Bfield = 3.8112;
   constexpr bool useTrigApprox = true;
 
+  // Config for Bfield
+  constexpr float Bfield = 3.8112;
+  constexpr float mag_c1 = 3.8114;
+  constexpr float mag_b0 = -3.94991e-06;
+  constexpr float mag_b1 = 7.53701e-06;
+  constexpr float mag_a  = 2.43878e-11;
+  
   // Config for seeding as well... needed bfield
   constexpr float maxCurvR = (100 * minSimPt) / (sol * Bfield); // in cm
 
@@ -165,6 +171,7 @@ namespace Config
   // config on validation
   extern bool normal_val;
   extern bool full_val;
+  extern bool fit_val;
 
   // Effective eta bin is one half of nEtaPart -- so the above is twice the "average".
   // Note that last and first bin are 3/4 nEtaPart ... but can be made 1/4 by adding
@@ -199,6 +206,11 @@ namespace Config
   //const std::string inputFile = "cmssw.rectracks.SingleMu10GeV.10k.new.txt";
 
   void RecalculateDependentConstants();
+  
+  inline float BfieldFromZR(const float z, const float r)
+  {
+    return (Config::mag_b0*z*z + Config::mag_b1*z + Config::mag_c1)*(Config::mag_a*r*r + 1.f);
+  }
 
 #ifdef USE_MATRIPLEX
 
@@ -216,6 +228,12 @@ namespace Config
   #define THREAD_BINDING spread
   #endif
 
+#endif
+
+#if defined(__CUDACC__)
+  #define CUDA_CALLABLE __host__ __device__
+#else
+  #define CUDA_CALLABLE 
 #endif
 };
 

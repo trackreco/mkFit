@@ -8,9 +8,8 @@
 class MkBuilder;
 
 double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder);
-double runBuildingTestPlex(Event& ev, EventTmp& ev_tmp, MkBuilder& builder);
+double runBuildingTestPlexStandard(Event& ev, EventTmp& ev_tmp, MkBuilder& builder);
 double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& evtmp, MkBuilder& builder);
-double runBuildingTestPlexTbb(Event& ev, EventTmp& evtmp, MkBuilder& builder);
 
 #if USE_CUDA
 double runAllBuildingTestPlexBestHitGPU(std::vector<Event> &events);

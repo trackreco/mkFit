@@ -89,7 +89,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
 
   for (int ihit=0;ihit<Config::nTotHit;++ihit) {  // go to first layer in radius using propagation.h
     //TrackState propState = propagateHelixToR(tmpState,4.*float(ihit+1));//radius of 4*ihit
-    auto propState = propagateHelixToNextSolid(tmpState,geom);
+    auto propState = propagateHelixToNextSolid(tmpState,geom,true);
 
     float initX   = propState.parameters.At(0);
     float initY   = propState.parameters.At(1);
@@ -378,9 +378,9 @@ void setupTrackByToyMCEndcap(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
       int simLayer = id;//fixme take from geom
 
       if (pz>0.)
-	tmpState = propagateHelixToZ(tmpState, 10.f*(id+1));
+	tmpState = propagateHelixToZ(tmpState, 10.f*(id+1), true);
       else
-	tmpState = propagateHelixToZ(tmpState, -10.f*(id+1));
+	tmpState = propagateHelixToZ(tmpState, -10.f*(id+1), true);
 
       SVector3 intersection = tmpState.position();
 

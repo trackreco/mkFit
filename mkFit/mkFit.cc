@@ -28,8 +28,6 @@
 //#define DEBUG
 #include "Debug.h"
 
-#include <omp.h>
-
 #include <tbb/task_scheduler_init.h>
 
 #if defined(USE_VTUNE_PAUSE)
@@ -74,7 +72,6 @@ namespace
   bool  g_run_build_bh  = false;
   bool  g_run_build_std = false;
   bool  g_run_build_ce  = false;
-  bool  g_run_build_tbb = false;
 
   std::string g_operation = "simulate_and_process";;
   std::string g_file_name = "simtracks.bin";
@@ -181,7 +178,7 @@ void test_standard()
   TTreeValidation val("valtree.root");
 #endif
   
-  const int NT = 5;
+  const int NT = 4;
   double t_sum[NT] = {0};
   double t_skip[NT] = {0};
   double time = dtime();
@@ -233,7 +230,6 @@ void test_standard()
   //                                   Config::numThreadsFinder :
   //                                   tbb::task_scheduler_init::automatic);
   tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
-  omp_set_num_threads(Config::numThreadsFinder);
 
   dprint("parallel_for step size " << (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents);
 
@@ -327,9 +323,8 @@ void test_standard()
         cuFitter.freeDevice();
   #endif
         t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev, mkb) : 0;
-        t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlex(ev, ev_tmp, mkb) : 0;
+        t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, ev_tmp, mkb) : 0;
         t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, ev_tmp, mkb) : 0;
-        t_cur[4] = (g_run_build_all || g_run_build_tbb) ? runBuildingTestPlexTbb(ev, ev_tmp, mkb) : 0;
 
         for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
 
@@ -348,8 +343,8 @@ void test_standard()
 
       if (!Config::silent) {
         std::lock_guard<std::mutex> printlock(Event::printmutex);
-        printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
-               t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
+        printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
+               t_best[0], t_best[1], t_best[2], t_best[3]);
       }
 
       // not protected by a mutex, may be inacccurate for multiple events in flight;
@@ -369,10 +364,10 @@ void test_standard()
   printf("=== TOTAL for %d events\n", Config::nEvents);
   printf("================================================================\n");
 
-  printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
-         t_sum[0], t_sum[1], t_sum[2], t_sum[3], t_sum[4]);
-  printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  MX = %.5f  CEMX = %.5f  TBBMX = %.5f\n",
-         t_skip[0], t_skip[1], t_skip[2], t_skip[3], t_skip[4]);
+  printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
+         t_sum[0], t_sum[1], t_sum[2], t_sum[3]);
+  printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
+         t_skip[0], t_skip[1], t_skip[2], t_skip[3]);
   printf("Total event loop time %.5f simtracks %d seedtracks %d\n", time, simtrackstot.load(), seedstot.load());
   //fflush(stdout);
 
@@ -439,10 +434,9 @@ int main(int argc, const char *argv[])
         "  --num-thr-ev    <num>    number of threads to run the event loop\n"
         "  --fit-std                run standard fitting test (def: false)\n"
         "  --fit-std-only           run only standard fitting test (def: false)\n"
-        "  --build-bh               run best-hit building test (def: run all building tests)\n"
-        "  --build-std              run standard building test\n"
-        "  --build-ce               run clone-engine building test\n"
-        "  --build-tbb              run tbb building test\n"
+        "  --build-bh               run best-hit building test (def: false)\n"
+        "  --build-std              run standard combinatorial building test (def: false)\n"
+        "  --build-ce               run clone engine combinatorial building test (def: false)\n"
         "  --cloner-single-thread   do not spawn extra cloning thread (def: %s)\n"
         "  --seeds-per-task         number of seeds to process in a tbb task (def: %d)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
@@ -454,6 +448,7 @@ int main(int argc, const char *argv[])
         "  --cf-seeding             enable CF in seeding (def: %s)\n"
         "  --cf-fitting             enable CF in fitting (def: %s)\n"
         "  --normal-val             enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
+      	"  --fit-val                enable ROOT based validation for fitting (def: %s)\n"
         "  --silent                 suppress printouts inside event loop (def: %s)\n"
         "  --write                  write simulation to file and exit\n"
         "  --read                   read simulation from file\n"
@@ -468,16 +463,17 @@ int main(int argc, const char *argv[])
         Config::clonerUseSingleThread ? "true" : "false",
         Config::numSeedsPerTask,
         Config::finderReportBestOutOfN,
-	Config::useCMSGeom,
-	Config::readCmsswSeeds,
-	Config::findSeeds ? "true" : "false",
-	Config::numHitsPerTask,
-	Config::endcapTest,
-	Config::cf_seeding ? "true" : "false",
-	Config::cf_fitting ? "true" : "false",
-	Config::normal_val ? "true" : "false",
-  Config::silent ? "true" : "false",
-	g_file_name.c_str()
+      	Config::useCMSGeom,
+      	Config::readCmsswSeeds,
+      	Config::findSeeds ? "true" : "false",
+      	Config::numHitsPerTask,
+      	Config::endcapTest,
+      	Config::cf_seeding ? "true" : "false",
+      	Config::cf_fitting ? "true" : "false",
+      	Config::normal_val ? "true" : "false",
+      	Config::fit_val    ? "true" : "false",
+        Config::silent ? "true" : "false",
+      	g_file_name.c_str()
       );
       exit(0);
     }
@@ -512,19 +508,15 @@ int main(int argc, const char *argv[])
     }
     else if(*i == "--build-bh")
     {
-      g_run_build_all = false; g_run_build_bh = true;
+      g_run_build_all = false; g_run_build_bh = true; g_run_build_std = false; g_run_build_ce = false;
     }
     else if(*i == "--build-std")
     {
-      g_run_build_all = false; g_run_build_std = true;
+      g_run_build_all = false; g_run_build_bh = false; g_run_build_std = true; g_run_build_ce = false;
     }
     else if(*i == "--build-ce")
     {
-      g_run_build_all = false; g_run_build_ce = true;
-    }
-    else if(*i == "--build-tbb")
-    {
-      g_run_build_all = false; g_run_build_tbb = true;
+      g_run_build_all = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = true;
     }
     else if(*i == "--cloner-single-thread")
     {
@@ -571,7 +563,11 @@ int main(int argc, const char *argv[])
     }
     else if (*i == "--normal-val")
     {
-      Config::super_debug = false; Config::normal_val = true; Config::full_val = false;
+      Config::super_debug = false; Config::normal_val = true; Config::full_val = false; Config::fit_val = false;
+    }
+    else if (*i == "--fit-val")
+    {
+      Config::super_debug = false; Config::normal_val = false; Config::full_val = false; Config::fit_val = true;
     }
     else if (*i == "--num-thr-ev")
     {

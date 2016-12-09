@@ -71,8 +71,4 @@ void BuilderCU::FindTracksBestHit(EventOfCandidates& event_of_cands)
   event_of_cands_cu.copyToCPU(event_of_cands, cuFitter->get_stream());
   cudaStreamSynchronize(cuFitter->get_stream());
   //cudaCheckError();
-
-  /*size_t free_mem, total_mem;*/
-  /*cudaMemGetInfo(&free_mem, &total_mem);*/
-  /*fprintf(stderr, "Free: %d\n", free_mem);*/
 }
