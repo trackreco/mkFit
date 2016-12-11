@@ -381,6 +381,13 @@ void Event::write_out(FILE *fp)
   fwrite(&simHitsInfo_[0], sizeof(MCHitInfo), nm, fp);
   evsize += sizeof(int) + nm*sizeof(MCHitInfo);
 
+  if (Config::useCMSGeom || Config::readCmsswSeeds) {
+    int ns = seedTracks_.size();
+    fwrite(&ns, sizeof(int), 1, fp);
+    fwrite(&seedTracks_[0], sizeof(Track), ns, fp);
+    evsize += sizeof(int) + ns*sizeof(Track);
+  }
+
   fseek(fp, start, SEEK_SET);
   fwrite(&evsize, sizeof(int), 1, fp);
   fseek(fp, 0, SEEK_END);
