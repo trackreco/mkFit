@@ -13,6 +13,7 @@
 #include <limits>
 #include <list>
 #include <sstream>
+#include <memory>
 
 #include "Event.h"
 
@@ -220,13 +221,11 @@ void test_standard()
   std::atomic<int> nevt{1};
   std::atomic<int> seedstot{0}, simtrackstot{0};
 
-  auto closefile = [](FILE* fp) { fclose(fp); };
-
   std::vector<EventTmp> ev_tmps(Config::numThreadsEvents);
   std::vector<std::unique_ptr<Event>> evs(Config::numThreadsEvents);
   std::vector<std::unique_ptr<Validation>> vals(Config::numThreadsEvents);
   std::vector<std::unique_ptr<MkBuilder>> mkbs(Config::numThreadsEvents);
-  std::vector<std::unique_ptr<FILE, decltype(closefile)>> fps;
+  std::vector<std::shared_ptr<FILE>> fps;
   fps.reserve(Config::numThreadsEvents);
 
   const std::string valfile("valtree_");
@@ -237,7 +236,7 @@ void test_standard()
     vals[i].reset(Validation::make_validation(valfile + serial.str() + ".root"));
     mkbs[i].reset(MkBuilder::make_builder());
     evs[i].reset(new Event(geom, *vals[i], 0));
-    fps.emplace_back(fopen(g_file_name.c_str(), "r"), closefile);
+    fps.emplace_back(fopen(g_file_name.c_str(), "r"), [](FILE* fp) { fclose(fp); });
   }
 
   tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);

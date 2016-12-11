@@ -6,6 +6,7 @@
 #include <sstream>
 #include <chrono>
 #include <list>
+#include <memory>
 
 #include "Matrix.h"
 #include "Event.h"

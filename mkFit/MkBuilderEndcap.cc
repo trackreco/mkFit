@@ -1,3 +1,5 @@
+#include <memory>
+
 #include "MkBuilderEndcap.h"
 
 #include "Event.h"

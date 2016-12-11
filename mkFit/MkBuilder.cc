@@ -1,3 +1,5 @@
+#include <memory>
+
 #include "MkBuilder.h"
 #include "MkBuilderEndcap.h"
 #include "seedtestMPlex.h"
