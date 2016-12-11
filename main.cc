@@ -9,7 +9,7 @@
 
 #include "Matrix.h"
 #include "Event.h"
-#include "TTreeValidation.h"
+#include "Validation.h"
 
 #include "fittestEndcap.h"
 
@@ -266,11 +266,7 @@ int main(int argc, const char* argv[])
 
   Geometry geom;
   initGeom(geom);
-#if defined(NO_ROOT)
-  Validation val;
-#else
-  TTreeValidation val("valtree.root");
-#endif
+  std::unique_ptr<Validation> val(Validation::make_validation("valtree.root"));
 
   for ( int i = 0; i < Config::nLayers; ++i ) {
     std::cout << "Layer = " << i << ", Radius = " << geom.Radius(i) << std::endl;
@@ -289,7 +285,7 @@ int main(int argc, const char* argv[])
   }
 
   for (int evt=0; evt<Config::nEvents; ++evt) {
-    Event ev(geom, val, evt, nThread);
+    Event ev(geom, *val, evt, nThread);
     std::cout << "EVENT #"<< ev.evtID() << std::endl;
 
     timepoint t0(now());
@@ -344,9 +340,9 @@ int main(int argc, const char* argv[])
     time[i]=ticks[i].count();
   }
 
-  val.fillConfigTree();
-  if (Config::full_val) val.fillTimeTree(time);
-  val.saveTTrees(); 
+  val->fillConfigTree();
+  if (Config::full_val) val->fillTimeTree(time);
+  val->saveTTrees(); 
 
   std::cout << "Ticks ";
   for (auto&& tt : time) {

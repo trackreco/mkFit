@@ -12,11 +12,12 @@
 
 #include <limits>
 #include <list>
+#include <sstream>
 
 #include "Event.h"
 
 #ifndef NO_ROOT
-#include "TTreeValidation.h"
+#include "Validation.h"
 #endif
 
 #ifdef USE_CUDA
@@ -85,7 +86,7 @@ void generate_and_save_tracks()
 
   Geometry geom;
   initGeom(geom);
-  Validation val;
+  std::unique_ptr<Validation> val(Validation::make_validation("empty.root"));
 
   fwrite(&Nevents, sizeof(int), 1, fp);
 
@@ -93,10 +94,10 @@ void generate_and_save_tracks()
 
   tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
 
+  Event ev(geom, *val, 0);
   for (int evt = 0; evt < Nevents; ++evt)
   {
-    Event ev(geom, val, evt);
-
+    ev.Reset(evt);
     ev.Simulate();
     ev.resetLayerHitMap(true);
 
@@ -165,16 +166,10 @@ void test_standard()
   if (g_operation == "read")
   {
     Config::nEvents = open_simtrack_file();
-    //Config::nEvents = 10;
   }
 
   Geometry geom;
   initGeom(geom);
-#ifdef NO_ROOT
-  Validation val;
-#else 
-  TTreeValidation val("valtree.root");
-#endif
   
   const int NT = 4;
   double t_sum[NT] = {0};
@@ -222,38 +217,32 @@ void test_standard()
     std::cout << "Total best hit time (GPU): " << total_best_hit_time << std::endl;
   }
 #else
-  // MT: task_scheduler_init::automatic doesn't really work (segv!) + we don't
-  // know what to do for non-tbb cases.
-  // tbb::task_scheduler_init tbb_init(Config::numThreadsFinder != 0 ?
-  //                                   Config::numThreadsFinder :
-  //                                   tbb::task_scheduler_init::automatic);
-  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
-
-  dprint("parallel_for step size " << (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents);
-
   std::atomic<int> nevt{1};
   std::atomic<int> seedstot{0}, simtrackstot{0};
 
-  class FileHolder {
-  public:
-    FileHolder() : fp_(nullptr) {}
-    ~FileHolder() { if (fp_) { fclose(fp_); fp_ = nullptr; }}
-    void reset(FILE* fp) { if (fp_) fclose (fp_); fp_ = fp; }
-    FILE* get() { return fp_; }
-  private:
-    FILE* fp_;
-  };
+  auto closefile = [](FILE* fp) { fclose(fp); };
 
-  std::vector<std::unique_ptr<Event>> evs(Config::numThreadsEvents);
   std::vector<EventTmp> ev_tmps(Config::numThreadsEvents);
+  std::vector<std::unique_ptr<Event>> evs(Config::numThreadsEvents);
+  std::vector<std::unique_ptr<Validation>> vals(Config::numThreadsEvents);
   std::vector<std::unique_ptr<MkBuilder>> mkbs(Config::numThreadsEvents);
-  std::vector<FileHolder> fps(Config::numThreadsEvents);
+  std::vector<std::unique_ptr<FILE, decltype(closefile)>> fps;
+  fps.reserve(Config::numThreadsEvents);
+
+  const std::string valfile("valtree_");
 
   for (int i = 0; i < Config::numThreadsEvents; ++i) {
+    std::ostringstream serial;
+    serial << i;
+    vals[i].reset(Validation::make_validation(valfile + serial.str() + ".root"));
     mkbs[i].reset(MkBuilder::make_builder());
-    evs[i].reset(new Event(geom, val, 0));
-    fps[i].reset(fopen(g_file_name.c_str(), "r"));
+    evs[i].reset(new Event(geom, *vals[i], 0));
+    fps.emplace_back(fopen(g_file_name.c_str(), "r"), closefile);
   }
+
+  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
+
+  dprint("parallel_for step size " << (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents);
 
   time = dtime();
 
@@ -263,14 +252,13 @@ void test_standard()
   {
     int thisthread = threads.begin();
 
-    assert(threads.begin() == threads.end()-1);
-    assert(thisthread < Config::numThreadsEvents);
+    assert(threads.begin() == threads.end()-1 && thisthread < Config::numThreadsEvents);
 
     std::vector<Track> plex_tracks;
-    EventTmp& ev_tmp = ev_tmps[thisthread];
-    Event& ev = *evs[thisthread].get();
-    MkBuilder& mkb = *mkbs[thisthread].get();
-    FILE* fp = fps[thisthread].get();
+    auto& ev_tmp = ev_tmps[thisthread];
+    auto& ev = *evs[thisthread].get();
+    auto& mkb = *mkbs[thisthread].get();
+    auto  fp = fps[thisthread].get();
 
     int evstart = thisthread*events_per_thread;
     int evend = std::min(Config::nEvents, evstart+events_per_thread);
@@ -296,10 +284,6 @@ void test_standard()
       }
       else
       {
-        //Simulate() parallelism is via TBB, but comment out for now due to cost of
-        //task_scheduler_init
-        //tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
-
         ev.Simulate();
         ev.resetLayerHitMap(true);
       }
@@ -374,7 +358,9 @@ void test_standard()
     close_simtrack_file();
   }
 
-  val.saveTTrees();
+  for (auto& val : vals) {
+    val->saveTTrees();
+  }
 }
 
 //==============================================================================

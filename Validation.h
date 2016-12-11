@@ -60,6 +60,10 @@ public:
   virtual void fillFitTree(const Event&) {}
 
   virtual void saveTTrees() {}
+
+  static Validation* make_validation(const std::string&);
+protected:
+  Validation();
 };
 
 #endif
