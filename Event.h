@@ -35,7 +35,7 @@ public:
   int nextMCHitID() { return mcHitIDCounter_++; }
 
   void write_out(FILE *fp);
-  void read_in(FILE *fp);
+  void read_in(FILE *fp, int version = Config::FileVersion);
 
   const Geometry& geom_;
   Validation& validation_;

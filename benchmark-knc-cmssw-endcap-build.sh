@@ -5,7 +5,7 @@ patch < cmssw-endcap-config.patch
 
 make -j 12
 
-dir=/nfsmic/cerati/
+dir=/nfsmic/${CMSMCUSER:-cerati}/
 
 for nth in 1 2 4 8 15 30 60 90 120 150 180 210 240
 do

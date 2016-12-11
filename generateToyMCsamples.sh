@@ -2,7 +2,7 @@
 
 make -j 12
 
-dir=/data/nfsmic/kmcdermo/toymc
+dir=/data/nfsmic/${TOYMCUSER:-kmcdermo}/toymc
 mkdir -p ${dir}
 
 # Building test: Barrel

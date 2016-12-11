@@ -405,12 +405,12 @@ void Event::write_out(FILE *fp)
   */
 }
 
-void Event::read_in(FILE *fp)
+void Event::read_in(FILE *fp, int version)
 {
   static long pos = sizeof(int); // header size
   int evsize;
 
-  {
+  if (version > 0) {
     static std::mutex readmutex;
     std::lock_guard<std::mutex> readlock(readmutex);
 

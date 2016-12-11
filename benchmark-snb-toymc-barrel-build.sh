@@ -4,7 +4,7 @@ sed -i 's/\/\/\#define PRINTOUTS_FOR_PLOTS/\#define PRINTOUTS_FOR_PLOTS/g' Confi
 
 make -j 12
 
-dir=/data/nfsmic/kmcdermo/toymc
+dir=/data/nfsmic/${TOYMCUSER:-kmcdermo}/toymc
 
 for nth in 1 2 4 6 8 12 16 20 24
 do 

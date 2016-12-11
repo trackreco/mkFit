@@ -77,6 +77,34 @@ namespace
 
   std::string g_operation = "simulate_and_process";;
   std::string g_file_name = "simtracks.bin";
+  std::string g_input_file = "";
+  int g_input_version = Config::FileVersion;
+}
+
+void read_and_save_tracks()
+{
+  FILE *ofp = fopen(g_file_name.c_str(), "w");
+  FILE *ifp = fopen(g_input_file.c_str(), "r");
+
+  fread(&g_file_num_ev, sizeof(int), 1, ifp);
+  fwrite(&g_file_num_ev, sizeof(int), 1, ofp);
+
+  Geometry geom;
+  initGeom(geom);
+  std::unique_ptr<Validation> val(Validation::make_validation("empty.root"));
+
+  printf("writing %i events\n",g_file_num_ev);
+
+  Event ev(geom, *val, 0);
+  for (int evt = 0; evt < g_file_num_ev; ++evt)
+  {
+    ev.Reset(evt);
+    ev.read_in(ifp, g_input_version);
+    ev.write_out(ofp);
+  }
+
+  fclose(ifp);
+  fclose(ofp);
 }
 
 void generate_and_save_tracks()
@@ -164,9 +192,15 @@ void test_standard()
     return;
   }
 
+  if (g_operation == "convert") {
+    read_and_save_tracks();
+    return;
+  }
+
   if (g_operation == "read")
   {
     Config::nEvents = open_simtrack_file();
+    assert(g_input_version > 0 || 1 == Config::numThreadsEvents);
   }
 
   Geometry geom;
@@ -228,11 +262,11 @@ void test_standard()
   std::vector<std::shared_ptr<FILE>> fps;
   fps.reserve(Config::numThreadsEvents);
 
-  const std::string valfile("valtree_");
+  const std::string valfile("valtree");
 
   for (int i = 0; i < Config::numThreadsEvents; ++i) {
     std::ostringstream serial;
-    serial << i;
+    if (Config::numThreadsEvents > 1) { serial << "_" << i; }
     vals[i].reset(Validation::make_validation(valfile + serial.str() + ".root"));
     mkbs[i].reset(MkBuilder::make_builder());
     evs[i].reset(new Event(geom, *vals[i], 0));
@@ -258,6 +292,7 @@ void test_standard()
     auto& ev = *evs[thisthread].get();
     auto& mkb = *mkbs[thisthread].get();
     auto  fp = fps[thisthread].get();
+    if (g_input_version == 0) fseek(fp, sizeof(int), SEEK_SET);
 
     int evstart = thisthread*events_per_thread;
     int evend = std::min(Config::nEvents, evstart+events_per_thread);
@@ -278,7 +313,7 @@ void test_standard()
 
       if (g_operation == "read")
       {
-        ev.read_in(fp);
+        ev.read_in(fp, g_input_version);
         ev.resetLayerHitMap(false);//hitIdx's in the sim tracks are already ok 
       }
       else
@@ -435,6 +470,8 @@ int main(int argc, const char *argv[])
         "  --write                  write simulation to file and exit\n"
         "  --read                   read simulation from file\n"
         "  --file-name              file name for write/read (def: %s)\n"
+        "  --input-file             file name for reading when converting formats (def: %s)\n"
+        "  --input-version          version for reading when converting formats (def: %d)\n"
         "GPU specific options: \n"
         "  --num-thr-reorg <num>    number of threads to run the hits reorganization\n"
         ,
@@ -454,7 +491,9 @@ int main(int argc, const char *argv[])
       	Config::normal_val ? "true" : "false",
       	Config::fit_val    ? "true" : "false",
         Config::silent ? "true" : "false",
-      	g_file_name.c_str()
+      	g_file_name.c_str(),
+      	g_input_file.c_str(),
+        g_input_version
       );
       exit(0);
     }
@@ -568,6 +607,17 @@ int main(int argc, const char *argv[])
     {
       next_arg_or_die(mArgs, i);
       g_file_name = *i;
+    }
+    else if(*i == "--input-file")
+    {
+      next_arg_or_die(mArgs, i);
+      g_operation = "convert";
+      g_input_file = *i;
+    }
+    else if (*i == "--input-version")
+    {
+      next_arg_or_die(mArgs, i);
+      g_input_version = atoi(i->c_str());
     }
     else if(*i == "--silent")
     {
