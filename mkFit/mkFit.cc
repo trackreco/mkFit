@@ -270,7 +270,9 @@ void test_standard()
     vals[i].reset(Validation::make_validation(valfile + serial.str() + ".root"));
     mkbs[i].reset(MkBuilder::make_builder());
     evs[i].reset(new Event(geom, *vals[i], 0));
-    fps.emplace_back(fopen(g_file_name.c_str(), "r"), [](FILE* fp) { fclose(fp); });
+    if (g_operation == "read") {
+      fps.emplace_back(fopen(g_file_name.c_str(), "r"), [](FILE* fp) { if (fp) fclose(fp); });
+    }
   }
 
   tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
