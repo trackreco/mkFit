@@ -67,7 +67,9 @@ __device__ void helixAtRFromIterativeCCS_fn(const GPlexLV& inPar,
     }
     errorProp.SetVal(0);
 
-    helixAtRFromIterativeCCS_impl(inPar, inChg, outPar, msRad, errorProp, n, n+1, -1);
+    // FIXME: Pass a sensible value for the last argument (instead of false)
+    //        Added to keep compiling ater PR 65
+    helixAtRFromIterativeCCS_impl(inPar, inChg, outPar, msRad, errorProp, n, n+1, -1, false);
 
     // Once computations are done. Get values from registers to global memory.
     for (int j = 0; j < 5; ++j) {
@@ -90,7 +92,9 @@ void helixAtRFromIterative_fn(const GPlexLV& inPar,
     }
     errorProp.SetVal(0);
 
-    helixAtRFromIterative_impl(inPar, inChg, outPar, msRad, errorProp, n, n+1, -1);
+    // FIXME: Pass a sensible value for the last argument (instead of false)
+    //        Added to keep compiling ater PR 65
+    helixAtRFromIterative_impl(inPar, inChg, outPar, msRad, errorProp, n, n+1, -1, false);
 
     // Once computations are done. Get values from registers to global memory.
     for (int j = 0; j < 5; ++j) {

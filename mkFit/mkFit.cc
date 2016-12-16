@@ -211,7 +211,7 @@ void test_standard()
   double t_skip[NT] = {0};
   double time = dtime();
 
-#if USE_CUDA
+#if USE_CUDA_OLD
   tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
   //tbb::task_scheduler_init tbb_init(tbb::task_scheduler_init::automatic);
   

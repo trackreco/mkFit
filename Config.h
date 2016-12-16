@@ -8,6 +8,12 @@
 //#define PRINTOUTS_FOR_PLOTS
 #define CCSCOORD
 
+#if defined(__CUDACC__)
+  #define CUDA_CALLABLE __host__ __device__
+#else
+  #define CUDA_CALLABLE 
+#endif
+
 namespace Config
 {
   // super debug mode in SMatrix
@@ -209,6 +215,7 @@ namespace Config
 
   void RecalculateDependentConstants();
   
+  CUDA_CALLABLE
   inline float BfieldFromZR(const float z, const float r)
   {
     return (Config::mag_b0*z*z + Config::mag_b1*z + Config::mag_c1)*(Config::mag_a*r*r + 1.f);
@@ -232,11 +239,6 @@ namespace Config
 
 #endif
 
-#if defined(__CUDACC__)
-  #define CUDA_CALLABLE __host__ __device__
-#else
-  #define CUDA_CALLABLE 
-#endif
 };
 
 #endif 
