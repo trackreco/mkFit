@@ -215,6 +215,9 @@ namespace Math {
 
    public:
 
+#if __CUDACC__
+   __host__ __device__
+#endif
     /* constexpr */ inline MatRepSym(){}
 
     typedef T  value_type;
@@ -238,8 +241,13 @@ namespace Math {
        return fArray[off(i)];
      }
 
+#if __CUDACC__
+   __host__ __device__
+#endif
      inline T* Array() { return fArray; }
-
+#if __CUDACC__
+   __host__ __device__
+#endif
      inline const T* Array() const { return fArray; }
 #ifdef __CUDACC__
      T* ArrayCU();
@@ -254,6 +262,10 @@ namespace Math {
                       Cannot_assign_general_to_symmetric_matrix_representation);
          return *this;
       }
+
+#if __CUDACC__
+   __host__ __device__
+#endif
       inline MatRepSym<T, D>& operator=(const MatRepSym& rhs) {
          #pragma ivdep
          for(unsigned int i=0; i<kSize; ++i) fArray[i] = rhs.Array()[i];

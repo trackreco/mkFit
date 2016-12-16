@@ -56,7 +56,7 @@ __device__ void computeMsRad_fn(const GPlexHV& __restrict__ msPar,
 
 __device__ void helixAtRFromIterativeCCS_fn(const GPlexLV& inPar, 
     const GPlexQI& inChg, GPlexLV& outPar_global, const GPlexRegQF& msRad, 
-    GPlexRegLL& errorProp, const int N, const int n)
+    GPlexRegLL& errorProp,const bool useParamBfield, const int N, const int n)
 {
 
   GPlexRegLV outPar;
@@ -67,9 +67,7 @@ __device__ void helixAtRFromIterativeCCS_fn(const GPlexLV& inPar,
     }
     errorProp.SetVal(0);
 
-    // FIXME: Pass a sensible value for the last argument (instead of false)
-    //        Added to keep compiling ater PR 65
-    helixAtRFromIterativeCCS_impl(inPar, inChg, outPar, msRad, errorProp, n, n+1, -1, false);
+    helixAtRFromIterativeCCS_impl(inPar, inChg, outPar, msRad, errorProp, n, n+1, -1, useParamBfield);
 
     // Once computations are done. Get values from registers to global memory.
     for (int j = 0; j < 5; ++j) {
@@ -201,6 +199,7 @@ __device__ void propagation_fn(
     GPlexLS &inErr, GPlexLV &inPar, 
     GPlexQI &inChg, GPlexHV &msPar,
     GPlexLS &outErr, GPlexLV &outPar,
+    const bool useParamBfield,
     int n, int N) {
 
   GPlexRegQF msRad_reg;
@@ -219,7 +218,7 @@ __device__ void propagation_fn(
     }
     computeMsRad_fn(msPar, msRad_reg, N, n);
 #ifdef CCSCOORD
-    helixAtRFromIterativeCCS_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
+    helixAtRFromIterativeCCS_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, useParamBfield, N, n);
 #else
     helixAtRFromIterative_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
 #endif
@@ -235,13 +234,15 @@ __global__ void propagation_kernel(
     GPlexHV msPar,
     GPlexLV inPar, GPlexQI inChg,
     GPlexLV outPar,
-    GPlexLS outErr, int N)
+    GPlexLS outErr, 
+    const bool useParamBfield,
+    int N)
 {
   int grid_width = blockDim.x * gridDim.x;
   int n = threadIdx.x + blockIdx.x * blockDim.x;
   for (int z = 0; z < (N-1)/grid_width  +1; z++) {
     n += z*grid_width;
-    propagation_fn(inErr, inPar, inChg, msPar, outErr, outPar, n, N);
+    propagation_fn(inErr, inPar, inChg, msPar, outErr, outPar, useParamBfield, n, N);
   }
 }
 
@@ -251,13 +252,14 @@ void propagation_wrapper(const cudaStream_t& stream,
     GPlexLV& inPar, GPlexQI& inChg,
     GPlexLV& outPar,
     GPlexLS& outErr, 
+    const bool useParamBfield,
     const int N) {
   int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
                        max_blocks_x);
   dim3 grid(gridx, 1, 1);
   dim3 block(BLOCK_SIZE_X, 1, 1);
   propagation_kernel <<<grid, block, 0, stream >>>
-    (inErr, msPar, inPar, inChg, outPar, outErr, N);
+    (inErr, msPar, inPar, inChg, outPar, outErr, useParamBfield, N);
 }
 
 
@@ -287,7 +289,8 @@ __device__ void propagationForBuilding_fn(
     msRad_reg(n, 0, 0) = radius;
 
 #ifdef CCSCOORD
-    helixAtRFromIterativeCCS_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
+    bool useParamBfield = false;  // The propagation with radius as an arg do not use this parameter
+    helixAtRFromIterativeCCS_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, useParamBfield, N, n);
 #else
     helixAtRFromIterative_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
 #endif

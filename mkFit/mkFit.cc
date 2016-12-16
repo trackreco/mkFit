@@ -23,6 +23,7 @@
 
 #ifdef USE_CUDA
 #include "FitterCU.h"
+#include "BuilderCU.h"
 #include "gpu_utils.h"
 #endif
 
@@ -262,6 +263,13 @@ void test_standard()
   std::vector<std::shared_ptr<FILE>> fps;
   fps.reserve(Config::numThreadsEvents);
 
+#if USE_CUDA
+  separate_first_call_for_meaningful_profiling_numbers();
+
+  std::vector<std::unique_ptr<FitterCU<float>>> cuFitters(Config::numThreadsEvents);
+  std::vector<std::unique_ptr<BuilderCU>> cuBuilders(Config::numThreadsEvents);
+#endif
+
   const std::string valfile("valtree");
 
   for (int i = 0; i < Config::numThreadsEvents; ++i) {
@@ -273,6 +281,18 @@ void test_standard()
     if (g_operation == "read") {
       fps.emplace_back(fopen(g_file_name.c_str(), "r"), [](FILE* fp) { if (fp) fclose(fp); });
     }
+#if USE_CUDA
+    constexpr int gplex_width = 10000;
+    cuFitters[i].reset(new FitterCU<float>(gplex_width));
+    cuFitters[i].get()->allocateDevice();
+    cuFitters[i].get()->allocate_extra_addBestHit();
+    cuFitters[i].get()->allocate_extra_combinatorial();
+    cuFitters[i].get()->createStream();
+    cuFitters[i].get()->setNumberTracks(gplex_width);
+
+    cuBuilders[i].reset(new BuilderCU(cuFitters[i].get()));
+    cuBuilders[i].get()->allocateGeometry(geom);
+#endif
   }
 
   tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
@@ -298,6 +318,11 @@ void test_standard()
 
     int evstart = thisthread*events_per_thread;
     int evend = std::min(Config::nEvents, evstart+events_per_thread);
+
+#if USE_CUDA
+    auto& cuFitter = *cuFitters[thisthread].get();
+    auto& cuBuilder = *cuBuilders[thisthread].get();
+#endif
 
     dprint("thisthread " << thisthread << " events " << Config::nEvents << " events/thread " << events_per_thread
                          << " range " << evstart << ":" << evend);
@@ -334,15 +359,14 @@ void test_standard()
       {
   #ifndef USE_CUDA
         t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
-  #else
-        FitterCU<float> cuFitter(NN);
-        cuFitter.allocateDevice();
-        t_cur[0] = (g_run_fit_std) ? runFittingTestPlexGPU(cuFitter, ev, plex_tracks) : 0;
-        cuFitter.freeDevice();
-  #endif
         t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev, mkb) : 0;
-        t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, ev_tmp, mkb) : 0;
         t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, ev_tmp, mkb) : 0;
+  #else
+        t_cur[0] = (g_run_fit_std) ? runFittingTestPlexGPU(cuFitter, ev, plex_tracks) : 0;
+        t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHitGPU(ev, mkb, cuBuilder) : 0;
+        t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngineGPU(ev, ev_tmp, mkb, cuBuilder) : 0;
+  #endif
+        t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, ev_tmp, mkb) : 0;
 
         for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
 
@@ -397,6 +421,14 @@ void test_standard()
   for (auto& val : vals) {
     val->saveTTrees();
   }
+#if USE_CUDA
+  for (int i = 0; i < Config::numThreadsEvents; ++i) {
+    cuFitters[i].get()->freeDevice();
+    cuFitters[i].get()->free_extra_addBestHit();
+    cuFitters[i].get()->free_extra_combinatorial();
+    cuFitters[i].get()->destroyStream();
+  }
+#endif
 }
 
 //==============================================================================

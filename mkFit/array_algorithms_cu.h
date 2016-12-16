@@ -2,7 +2,7 @@
 #define ARRAY_ALGORITHMS_CU_H 
 
 #include <cub/cub.cuh>
-#include "atomic_utils.h"
+//#include "atomic_utils.h"
 #include "gpu_utils.h"
 
 template <typename T,
@@ -55,5 +55,29 @@ void max_element_wrapper(T *d_v, int num_elems, T *d_max) {
   reduceMax_kernel<T, BLOCK_THREADS, ITEMS_PER_THREAD, cub::BLOCK_REDUCE_RAKING>
        <<< grid, block >>>
        (d_v, num_elems, d_max);
+}
+
+template <typename T,
+          int BLOCK_THREADS,
+          int ITEMS_PER_THREAD,
+          cub::BlockReduceAlgorithm ALGORITHM>
+__device__ void reduceMaxPartial_fn(const T *d_in, const int start_idx,
+    const int in_size, T *d_max) {
+  // Specialize BlockReduce type for our thread block
+  typedef cub::BlockReduce<T, BLOCK_THREADS, ALGORITHM> BlockReduceT;
+  // Shared memory
+  __shared__ typename BlockReduceT::TempStorage temp_storage;
+
+  int i = threadIdx.x;
+  if (i < in_size) {
+    // Per-thread tile data
+    T data[ITEMS_PER_THREAD];
+    cub::LoadDirectStriped<BLOCK_THREADS>(threadIdx.x, 
+                                          d_in + start_idx,
+                                          data);
+    // Compute sum for a single thread block
+    T aggregate = BlockReduceT(temp_storage).Reduce(data, cub::Max());
+    *d_max = aggregate;
+  }
 }
 #endif /* ifndef ARRAY_ALGORITHMS_CU_H */

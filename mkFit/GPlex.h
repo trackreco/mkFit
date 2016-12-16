@@ -102,6 +102,7 @@ using GPlexLH = GPlex<MPlexLH>;
 
 using GPlexQF = GPlex<MPlexQF>;
 using GPlexQI = GPlex<MPlexQI>;
+using GPlexQB = GPlex<MPlexQB>;
 
 const int GPlexHitIdxMax = 16;  // FIXME: copied and past from MkFitter.h
 using GPlexHitIdx = GPlex<Matriplex::Matriplex<int, GPlexHitIdxMax, 1, MPT_SIZE>>;

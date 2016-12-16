@@ -10,6 +10,7 @@ __global__ void fittracks_kernel(
       GPlexHV *msPar_arr, GPlexHS *msErr_arr,
       GPlexLV par_iC, GPlexLS Err_iC,
       GPlexLL errorProp, GPlexQI inChg,
+      const bool useParamBfield,
       const int Nhits, int N)
 {
   int grid_width = blockDim.x * gridDim.x;
@@ -21,7 +22,7 @@ __global__ void fittracks_kernel(
     for (int z = 0; z < (N-1)/grid_width  +1; z++) {
       n += z*grid_width;
 
-      propagation_fn(Err_iC, par_iC, inChg, msPar, Err_iP, par_iP, n, N);
+      propagation_fn(Err_iC, par_iC, inChg, msPar, Err_iP, par_iP, useParamBfield, n, N);
       kalmanUpdate_fn(Err_iP, msErr, par_iP, msPar, par_iC, Err_iC, n, N);
     }
   }
@@ -32,6 +33,7 @@ void fittracks_wrapper(cudaStream_t &stream,
                        GPlexHS *msErr_arr, GPlexHV *msPar_arr,
                        GPlexLS &Err_iC, GPlexLV &par_iC,
                        GPlexLL &errorProp, GPlexQI &inChg,
+                       const bool useParamBfield,
                        const int Nhits, const int N)
 {
   int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
@@ -44,5 +46,6 @@ void fittracks_wrapper(cudaStream_t &stream,
        msPar_arr, msErr_arr,
        par_iC, Err_iC,
        errorProp, inChg, 
+       useParamBfield,
        Nhits, N);
 }

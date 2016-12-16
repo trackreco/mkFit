@@ -261,7 +261,7 @@ double runFittingTestPlexGPU(FitterCU<float> &cuFitter,
 {
   std::vector<Track>& simtracks = ev.simTracks_;
 
-  cuFitter.createStream();
+  //cuFitter.createStream();
 
   Track *tracks_cu;
   cudaMalloc((void**)&tracks_cu, simtracks.size()*sizeof(Track));
@@ -274,7 +274,7 @@ double runFittingTestPlexGPU(FitterCU<float> &cuFitter,
 
   double time = dtime();
 
-  cuFitter.FitTracks(tracks_cu, simtracks.size(), events_of_hits_cu, Config::nLayers);
+  cuFitter.FitTracks(tracks_cu, simtracks.size(), events_of_hits_cu, Config::nLayers, true);
 
   cudaMemcpy(&rectracks[0], tracks_cu, simtracks.size()*sizeof(Track), cudaMemcpyDeviceToHost);
 
@@ -284,7 +284,7 @@ double runFittingTestPlexGPU(FitterCU<float> &cuFitter,
   events_of_hits_cu.deallocGPU();
   cudaFree(tracks_cu);
 
-  cuFitter.destroyStream();
+  //cuFitter.destroyStream();
 
   return time;
 }

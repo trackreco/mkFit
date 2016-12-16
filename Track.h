@@ -22,6 +22,7 @@ inline int calculateCharge(const float hit0_x, const float hit0_y,
 struct TrackState //  possible to add same accessors as track? 
 {
 public:
+  CUDA_CALLABLE
   TrackState() : valid(true) {}
   TrackState(int charge, const SVector3& pos, const SVector3& mom, const SMatrixSym66& err) :
     parameters(SVector6(pos.At(0),pos.At(1),pos.At(2),mom.At(0),mom.At(1),mom.At(2))),
@@ -113,8 +114,10 @@ public:
 class Track
 {
 public:
+  CUDA_CALLABLE
   Track() {}
 
+  CUDA_CALLABLE
   Track(const TrackState& state, float chi2, int label, int nHits, const int* hitIdxArr) :
     state_(state),
     chi2_(chi2),
@@ -132,6 +135,7 @@ public:
   Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, float chi2) :
     state_(charge, position, momentum, errors), chi2_(chi2) {}
 
+  CUDA_CALLABLE
   ~Track(){}
 
   const SVector6&     parameters() const {return state_.parameters;}
@@ -209,10 +213,13 @@ public:
   }
 
   CUDA_CALLABLE
-  void addHitIdx(int hitIdx,float chi2)
+  void addHitIdx(int hitIdx,float chi2, int thread_idx = 0)
   {
-    hitIdxArr_[++hitIdxPos_] = hitIdx;
-    if (hitIdx >= 0) { ++nGoodHitIdx_; chi2_+=chi2; }
+    hitIdxPos_++;
+    hitIdxArr_[hitIdxPos_] = hitIdx;
+    if (hitIdx >= 0) { 
+      ++nGoodHitIdx_; chi2_+=chi2;
+    }
   }
 
   CUDA_CALLABLE
@@ -221,6 +228,7 @@ public:
     return hitIdxArr_[posHitIdx];
   }
 
+  CUDA_CALLABLE
   int getLastHitIdx() const
   {
     return hitIdxArr_[hitIdxPos_];
@@ -255,7 +263,9 @@ public:
     hitIdxPos_   = -1;
     nGoodHitIdx_ = 0;
   }
+  CUDA_CALLABLE
   int  nFoundHits() const { return nGoodHitIdx_; }
+  CUDA_CALLABLE
   int  nTotalHits() const { return hitIdxPos_+1; }
   
   const std::vector<int> foundLayers() const { 
@@ -274,12 +284,14 @@ public:
   void setChi2(float chi2) {chi2_=chi2;}
   CUDA_CALLABLE
   void setLabel(int lbl)   {label_=lbl;}
-
+  CUDA_CALLABLE
   void setState(const TrackState& newState) {state_=newState;}
 
+  CUDA_CALLABLE
   Track clone() const { return Track(state_,chi2_,label_,nTotalHits(),hitIdxArr_); }
 
-private:
+//private:
+public:  // FIXME: remove and write proper accessors
   TrackState state_;
   float chi2_ = 0.;
   int   hitIdxArr_[Config::nLayers];

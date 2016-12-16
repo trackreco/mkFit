@@ -8,6 +8,7 @@ void fittracks_wrapper(cudaStream_t &stream,
                        GPlexHS *msErr, GPlexHV *msPar,
                        GPlexLS &Err_iC, GPlexLV &par_iC,
                        GPlexLL &errorProp, GPlexQI &inChg,
+                       const bool useParamBfield,
                        const int hit_idx, const int N);
 
 #endif /* end of include guard: FITTRACKS_KERNELS_H_G3FDJYTX */

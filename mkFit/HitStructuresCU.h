@@ -15,12 +15,16 @@ using PairIntsCU = PairCU<int, int>;
 
 class LayerOfHitsCU {
  public:
-  Hit *m_hits;
-  PairIntsCU *m_phi_bin_infos;
+  Hit *m_hits = nullptr;
+  PairIntsCU *m_phi_bin_infos = nullptr;
 
   float m_zmin, m_zmax, m_fz;
   int m_nz = 0;
   int m_capacity = 0;
+  
+  int m_capacity_alloc = 0;
+  int m_nz_alloc = 0;
+  int m_nphi_alloc = 0;
  
   //fixme, these are copies of the ones above, need to merge with a more generic name
   float m_rmin, m_rmax, m_fr;
@@ -40,10 +44,10 @@ class LayerOfHitsCU {
   LayerOfHitsCU() {};
   ~LayerOfHitsCU() {};
 
-  void alloc_hits(const int size);
+  void alloc_hits(const int size, const float factor=1.f);  // factor: how much larger is the alloc
   void free_hits();
 
-  void alloc_phi_bin_infos(const int nz, const int nphi);
+  void alloc_phi_bin_infos(const int nz, const int nphi, const float factor=1.f);
   void free_phi_bin_infos();
 
   void copyLayerOfHitsFromCPU(const LayerOfHits &layer,
@@ -81,16 +85,18 @@ class LayerOfHitsCU {
 class EventOfHitsCU 
 {
 public:
-  LayerOfHitsCU *m_layers_of_hits;  // the real stuff: on GPU
-  int            m_n_layers;
+  LayerOfHitsCU *m_layers_of_hits = nullptr;  // the real stuff: on GPU
+  int            m_n_layers = 0;
 
   // The following array is to be able to allocate GPU arrays from
   // the CPU and then copy the address of the GPU ptr to the GPU structure
-  LayerOfHitsCU *m_layers_of_hits_alloc;
+  LayerOfHitsCU *m_layers_of_hits_alloc = nullptr;
   
   EventOfHitsCU() : m_n_layers{} {};
 
-  void allocGPU(const EventOfHits &event_of_hits);
+  void allocGPU(const EventOfHits &event_of_hits, const float factor=1.f);
+  void reallocGPU(const EventOfHits &event_of_hits);
+
   void allocGPU(const std::vector<HitVec> &layerHits);
   void deallocGPU();
   void copyFromCPU(const EventOfHits& event_of_hits,
@@ -135,6 +141,57 @@ public:
   void copyFromCPU(const EventOfCandidates &event_of_cands,
                    const cudaStream_t &stream=0);
   void copyToCPU(EventOfCandidates &event_of_cands,
+                 const cudaStream_t &stream=0) const;
+};
+
+// ============================================================================
+
+class EtaBinOfCombCandidatesCU
+{
+public:
+  // CPU code: std::vector<std::vector<Track> > m_candidates;
+  // GPU code: Array [maxCandsPerSeed*numSeedPerEtaBin]
+  //      -> We don't actually care about numSeedPerEtaBin, it's all known
+  //      from the CPU side, use EtaBinOfCombCandidates.m_fill_index
+  //      or EtaBinOfCombCandidates.m_real_size
+  // More trouble to come: We cannot do the same as for EtaBinOfCandidatesCU
+  // for copying from host mem to dev. mem. The non contiguous host mem
+  // for m_candidates forces a loop over the seeds.
+  Track *m_candidates = nullptr;
+  int *m_ntracks_per_seed = nullptr;  // array of m_candidates[i].size()
+
+  int m_real_size = 0;
+  int m_fill_index = 0;
+  int m_nseed = 0;
+  int m_nseed_alloc = 0;
+
+  void allocate(const int nseed, const int factor=1.f);
+  void free();
+
+  void copyFromCPU(const EtaBinOfCombCandidates& eta_bin,
+                   const cudaStream_t& stream=0);
+  void copyToCPU(EtaBinOfCombCandidates& eta_bin,
+                 const cudaStream_t& stream=0) const;
+};
+
+
+// TODO: The comb and non-comb version are quite similar: refactor?
+class EventOfCombCandidatesCU
+{
+public:
+  EtaBinOfCombCandidatesCU* m_etabins_of_comb_candidates = nullptr;
+  int m_n_etabins = 0;
+
+  // Host array. For allocation and transfer purposes
+  EtaBinOfCombCandidatesCU *m_etabins_of_comb_candidates_alloc = nullptr;
+
+  EventOfCombCandidatesCU() : m_n_etabins{} {};
+
+  void allocate(const EventOfCombCandidates &event_of_cands, const float factor=1.f);
+  void free();
+  void copyFromCPU(const EventOfCombCandidates &event_of_cands,
+                   const cudaStream_t &stream=0);
+  void copyToCPU(EventOfCombCandidates &event_of_cands,
                  const cudaStream_t &stream=0) const;
 };
 

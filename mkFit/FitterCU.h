@@ -49,6 +49,8 @@ class FitterCU {
 
   void allocate_extra_addBestHit();
   void free_extra_addBestHit();
+  void allocate_extra_combinatorial();
+  void free_extra_combinatorial();
   void setHitsIdxToZero(const int hit_idx);
 
   void addBestHit(EventOfHitsCU& event, GeometryCU &geom_cu,
@@ -63,12 +65,38 @@ class FitterCU {
   // fitting higher order methods
   void FitTracks(Track *tracks_cu, int num_tracks,
                  EventOfHitsCU &events_of_hits_cu,
-                 int NHits);
+                 int Nhits, const bool useParamBfield=false);
   void InputTracksAndHitIdx(const EtaBinOfCandidatesCU &etaBin,
                    const int beg, const int end, const bool inputProp);
   void OutputTracksAndHitIdx(EtaBinOfCandidatesCU &etaBin,
                     const int beg, const int end, const bool outputProp);
 
+  void InputTracksAndHitIdxComb(const EtaBinOfCombCandidatesCU &etaBin,
+      const int Nhits, const int beg, const int end, const bool inputProp);
+
+  //====================
+  // TEMP FCT; copy stuffs
+  //====================
+  void UpdateWithLastHit(LayerOfHitsCU& layer, int ilay, int N);
+  void GetHitFromLayer_standalone(LayerOfHitsCU& layer_cu,
+    MPlexQI& HitsIdx, MPlexHV& msPar, MPlexHS& msErr, int hit_idx, int N);
+  void UpdateMissingHits_standalone(
+      MPlexLS& Err_iP, MPlexLV& Par_iP, 
+      MPlexLS& Err_iC, MPlexLV& Par_iC, 
+      MPlexQI& HitsIdx, 
+      int hit_idx, int N);
+  void UpdateWithLastHit_standalone(
+      LayerOfHitsCU& layer_cu, MPlexQI& HitsIdx, 
+      MPlexLS &Err_iP, MPlexLV& Par_iP, MPlexQI &inChg,
+      MPlexHV& msPar, MPlexHS& msErr, 
+      MPlexLS &Err_iC, MPlexLV& Par_iC,
+      int Nhits, int N_proc);
+
+  void FindTracksInLayers(LayerOfHitsCU *layers, 
+                          EventOfCombCandidatesCU& event_of_cands_cu,
+                          GeometryCU &geom);
+  
+  //====================
  private:
   // N is the actual size, Nalloc should be >= N, as it is intended
   // to allocated arrays that can be used for several sets of tracks.
@@ -100,6 +128,11 @@ class FitterCU {
   GPlexQI d_HitsIdx[Config::nLayers];
   GPlexQF d_Chi2;
   GPlexQI d_Label;
+
+  GPlexQI d_SeedIdx;
+  GPlexQI d_CandIdx;
+
+  GPlexQB d_Valid;
 
   int *d_maxSize;  // max number of tracks for AddBestHit
 

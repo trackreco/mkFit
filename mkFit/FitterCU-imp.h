@@ -3,8 +3,85 @@
 #include "GeometryCU.h"
 #include "reorganize_gplex.h"
 #include "fittracks_kernels.h"
+#include "build_tracks_kernels.h"
+
+#include "clone_engine_kernels.h"
 
 #include "Track.h"
+
+template <typename T>
+void FitterCU<T>::FindTracksInLayers(LayerOfHitsCU *layers, 
+                                     EventOfCombCandidatesCU& event_of_cands_cu,
+                                     GeometryCU &geom)
+{
+  findInLayers_wrapper(stream, layers, event_of_cands_cu,
+                       d_XHitSize, d_XHitArr, d_Err_iP, d_par_iP,
+                       d_msErr_arr, d_msPar_arr, d_Err_iC, d_par_iC,
+                       d_outChi2, d_Chi2, d_HitsIdx_arr, d_inChg, d_Label,
+                       d_SeedIdx, d_CandIdx, d_Valid, geom, d_maxSize, N);
+}
+
+template <typename T>
+void FitterCU<T>::UpdateWithLastHit(LayerOfHitsCU& layer, int ilay, int N)
+{
+  UpdateWithLastHit_wrapper(stream, layer, d_HitsIdx[ilay],
+     d_msPar[ilay], d_msErr[ilay], d_par_iP, d_Err_iP, d_par_iC, d_Err_iC, N); 
+}
+
+template <typename T>
+void FitterCU<T>::UpdateWithLastHit_standalone(
+    LayerOfHitsCU& layer_cu, MPlexQI& HitsIdx, 
+    MPlexLS &Err_iP, MPlexLV& Par_iP, MPlexQI &Chg,
+    MPlexHV& msPar, MPlexHS& msErr, 
+    MPlexLS &Err_iC, MPlexLV& Par_iC,
+    int Nhits, int N_proc)
+{
+  d_HitsIdx[Nhits-1].copyAsyncFromHost(stream, HitsIdx);
+  d_Err_iP.copyAsyncFromHost(stream, Err_iP);
+  d_par_iP.copyAsyncFromHost(stream, Par_iP);
+  d_msErr[Nhits-1].copyAsyncFromHost(stream, msErr);
+  d_msPar[Nhits-1].copyAsyncFromHost(stream, msPar);
+
+  UpdateWithLastHit_wrapper(stream, layer_cu, d_HitsIdx[Nhits-1],
+     d_msPar[Nhits-1], d_msErr[Nhits-1], d_par_iP, d_Err_iP, d_par_iC, d_Err_iC, N_proc); 
+
+  d_par_iC.copyAsyncToHost(stream, Par_iC);
+  d_Err_iC.copyAsyncToHost(stream, Err_iC);
+  d_msErr[Nhits-1].copyAsyncToHost(stream, msErr);
+  d_msPar[Nhits-1].copyAsyncToHost(stream, msPar);
+
+  cudaStreamSynchronize(stream);
+}
+template <typename T>
+void FitterCU<T>::GetHitFromLayer_standalone(LayerOfHitsCU& layer_cu,
+    MPlexQI& HitsIdx, MPlexHV& msPar, MPlexHS& msErr, int hit_idx, int N)
+{
+  d_HitsIdx[hit_idx].copyAsyncFromHost(stream, HitsIdx);
+
+  getHitFromLayer_wrappper(stream, layer_cu, d_HitsIdx[hit_idx], 
+      d_msPar[hit_idx], d_msErr[hit_idx], N);
+
+  d_msErr[hit_idx].copyAsyncToHost(stream, msErr);
+  d_msPar[hit_idx].copyAsyncToHost(stream, msPar);
+}
+template <typename T>
+void FitterCU<T>::UpdateMissingHits_standalone(
+    MPlexLS& Err_iP, MPlexLV& Par_iP, 
+    MPlexLS& Err_iC, MPlexLV& Par_iC, 
+    MPlexQI& HitsIdx, 
+    int hit_idx, int N)
+{
+  d_HitsIdx[hit_idx].copyAsyncFromHost(stream, HitsIdx);
+  d_Err_iP.copyAsyncFromHost(stream, Err_iP);
+  d_par_iP.copyAsyncFromHost(stream, Par_iP);
+
+  UpdateMissingHits_wrapper(stream, d_HitsIdx[hit_idx],
+      d_par_iP, d_Err_iP, d_par_iC, d_Err_iC, N);
+
+  d_Err_iC.copyAsyncToHost(stream, Err_iC);
+  d_par_iC.copyAsyncToHost(stream, Par_iC);
+  cudaStreamSynchronize(stream);
+}
 
 template <typename T>
 void FitterCU<T>::setNumberTracks(const idx_t Ntracks) {
@@ -97,7 +174,7 @@ void FitterCU<T>::kalmanUpdate_standalone(
 template <typename T>
 void FitterCU<T>::propagationMerged(const int hit_idx) {
   propagation_wrapper(stream, d_msPar[hit_idx], d_Err_iC, d_par_iC, d_inChg,
-                      d_par_iP, d_Err_iP, N);
+                      d_par_iP, d_Err_iP, false, N);
 }
 
 // FIXME: Temporary. Separate allocations / transfers
@@ -131,6 +208,23 @@ void FitterCU<T>::free_extra_addBestHit() {
   d_XHitPos.free(); cudaCheckError();
   d_outChi2.free(); cudaCheckError();
 }
+
+
+template <typename T>
+void FitterCU<T>::allocate_extra_combinatorial() {
+  d_SeedIdx.allocate(Nalloc);
+  d_CandIdx.allocate(Nalloc);
+  d_Valid.allocate(Nalloc);
+}
+
+
+template <typename T>
+void FitterCU<T>::free_extra_combinatorial() {
+  d_SeedIdx.free();
+  d_CandIdx.free();
+  d_Valid.free();
+}
+
 
 template <typename T>
 void FitterCU<T>::setHitsIdxToZero(const int hit_idx) {
@@ -171,6 +265,21 @@ void FitterCU<T>::OutputTracksAndHitIdx(EtaBinOfCandidatesCU &etaBin,
 
 
 template <typename T>
+void FitterCU<T>::InputTracksAndHitIdxComb(const EtaBinOfCombCandidatesCU &etaBin,
+      const int Nhits, const int beg, const int end, const bool inputProp) {
+  InputTracksAndHitIdxComb_wrapper(stream, 
+                                   etaBin,
+                                   d_Err_iP, d_par_iP,
+                                   d_inChg, d_Chi2,
+                                   d_Label, d_HitsIdx,
+                                   d_SeedIdx, d_CandIdx,
+                                   d_Valid, Nhits,
+                                   beg, end, 
+                                   inputProp, N);
+}
+
+
+template <typename T>
 void FitterCU<T>::propagateTracksToR(const float radius, const int N) {
   propagationForBuilding_wrapper(stream, d_Err_iC, d_par_iC, d_inChg, 
                                  radius, d_Err_iP, d_par_iP, N); 
@@ -180,19 +289,23 @@ void FitterCU<T>::propagateTracksToR(const float radius, const int N) {
 #if 1
 template <typename T>
 void FitterCU<T>::propagateTracksToR_standalone(const float radius, const int N,
-    const MPlexLS& Err_iC, const MPlexLV& par_iC, const MPlexQI& inChg, 
+    const MPlexLS& Err_iC, const MPlexLV& Par_iC, const MPlexQI& inChg, 
     MPlexLS& Err_iP, MPlexLV& Par_iP) {
   d_Err_iC.copyAsyncFromHost(stream, Err_iC);
-  d_par_iC.copyAsyncFromHost(stream, par_iC);
+  d_par_iC.copyAsyncFromHost(stream, Par_iC);
+  d_inChg.copyAsyncFromHost(stream, inChg);
+
   propagateTracksToR(radius, N);
+
   d_Err_iP.copyAsyncToHost(stream, Err_iP);
   d_par_iP.copyAsyncToHost(stream, Par_iP);
+  cudaStreamSynchronize(stream);
 }
 
 template <typename T>
 void FitterCU<T>::FitTracks(Track *tracks_cu, int num_tracks,
                             EventOfHitsCU &events_of_hits_cu,
-                            int Nhits)
+                            int Nhits, const bool useParamBfield)
 {
   float etime;
   cudaEvent_t start, stop;
@@ -213,7 +326,7 @@ void FitterCU<T>::FitTracks(Track *tracks_cu, int num_tracks,
                                  d_inChg, d_Chi2, d_Label,
                                  d_HitsIdx_arr, beg, end, false, N);
     fittracks_wrapper(stream, d_Err_iP, d_par_iP, d_msErr_arr, d_msPar_arr,
-                      d_Err_iC, d_par_iC, d_errorProp, d_inChg,
+                      d_Err_iC, d_par_iC, d_errorProp, d_inChg, useParamBfield,
                       Nhits, N);
     OutputFittedTracksCU_wrapper(stream, tracks_cu, 
                                  d_Err_iC, d_par_iC,
