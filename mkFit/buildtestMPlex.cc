@@ -14,10 +14,6 @@
 #include "check_gpu_hit_structures.h"
 #endif
 
-#include "MkBuilderEndcap.h"
-
-#include <omp.h>
-
 #if defined(USE_VTUNE_PAUSE)
 #include "ittnotify.h"
 #endif
@@ -74,24 +70,12 @@ inline bool sortByZ(const Hit& hit1, const Hit& hit2)
   return hit1.z() < hit2.z();
 }
 
-namespace
-{
-  MkBuilder* make_builder()
-  {
-    if (Config::endcapTest) return new MkBuilderEndcap;
-    else                    return new MkBuilder;
-  }
-}
-
 //==============================================================================
 // runBuildTestPlexBestHit
 //==============================================================================
 
-double runBuildingTestPlexBestHit(Event& ev)
+double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
 {
-  std::unique_ptr<MkBuilder> builder_ptr(make_builder());
-  MkBuilder &builder = * builder_ptr.get();
-
   builder.begin_event(&ev, 0, __func__);
 
   if   (Config::findSeeds) {builder.find_seeds();}
@@ -128,7 +112,7 @@ double runBuildingTestPlexBestHit(Event& ev)
 #endif
   
   if   (!Config::normal_val) {
-    builder.quality_output_BH(event_of_cands);
+    if (!Config::silent) builder.quality_output_BH(event_of_cands);
   } else {
     builder.root_val_BH(event_of_cands);
   }
@@ -142,13 +126,10 @@ double runBuildingTestPlexBestHit(Event& ev)
 // runBuildTestPlex Combinatorial: Standard TBB
 //==============================================================================
 
-double runBuildingTestPlexStandard(Event& ev, EventTmp& ev_tmp)
+double runBuildingTestPlexStandard(Event& ev, EventTmp& ev_tmp, MkBuilder& builder)
 {
   EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
   event_of_comb_cands.Reset();
-
-  std::unique_ptr<MkBuilder> builder_ptr(make_builder());
-  MkBuilder &builder = * builder_ptr.get();
 
   builder.begin_event(&ev, &ev_tmp, __func__);
 
@@ -172,9 +153,10 @@ double runBuildingTestPlexStandard(Event& ev, EventTmp& ev_tmp)
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
 #endif
-
-  if   (!Config::normal_val) {builder.quality_output_COMB();}
-  else                       {builder.root_val_COMB();}
+  
+  if (!Config::normal_val) {
+    if (!Config::silent) builder.quality_output_COMB();
+  } else {builder.root_val_COMB();}
 
   builder.end_event();
 
@@ -185,13 +167,10 @@ double runBuildingTestPlexStandard(Event& ev, EventTmp& ev_tmp)
 // runBuildTestPlex Combinatorial: CloneEngine TBB
 //==============================================================================
 
-double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
+double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp, MkBuilder& builder)
 {
   EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
   event_of_comb_cands.Reset();
-
-  std::unique_ptr<MkBuilder> builder_ptr(make_builder());
-  MkBuilder &builder = * builder_ptr.get();
 
   builder.begin_event(&ev, &ev_tmp, __func__);
 
@@ -216,14 +195,14 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp)
   __itt_pause();
 #endif
 
-  if   (!Config::normal_val) {builder.quality_output_COMB();}
-  else                       {builder.root_val_COMB();}
+  if (!Config::normal_val) {
+    if (!Config::silent) builder.quality_output_COMB();
+  } else {builder.root_val_COMB();}
 
   builder.end_event();
 
   return time;
 }
-
 
 //==============================================================================
 // runAllBuildTestPlexBestHitGPU
@@ -240,7 +219,7 @@ double runAllBuildingTestPlexBestHitGPU(std::vector<Event> &events)
 
   for (int i = 0; i < builder_ptrs.size(); ++i) {
     Event &ev = events[i];
-    builder_ptrs[i] = std::unique_ptr<MkBuilder> (make_builder());
+    builder_ptrs[i] = std::unique_ptr<MkBuilder> (MkBuilder::make_builder());
 
     MkBuilder &builder = * builder_ptrs[i].get();
 
@@ -277,8 +256,8 @@ double runAllBuildingTestPlexBestHitGPU(std::vector<Event> &events)
     EventOfCandidates &event_of_cands = event_of_cands_vec[i];
     BuilderCU &builder_cu = builder_cu_vec[i];
     MkBuilder &builder = * builder_ptrs[i].get();
-    if   (!Config::normal_val) {
-      builder.quality_output_BH(event_of_cands);
+    if (!Config::normal_val) {
+      if (!Config::silent) builder.quality_output_BH(event_of_cands);
     } else {
       builder.root_val_BH(event_of_cands);
     }

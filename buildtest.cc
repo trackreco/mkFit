@@ -147,7 +147,6 @@ void buildTracksByLayers(Event& ev)
     parallel_for( tbb::blocked_range<size_t>(0, evt_seeds.size()), 
         [&](const tbb::blocked_range<size_t>& seediter) {
       for (auto iseed = seediter.begin(); iseed != seediter.end(); ++iseed) {
-        const auto& seed(evt_seeds[iseed]);
         auto&& candidates(track_candidates[iseed]);
         processCandidates(ev, candidates, ilay, evt_seeds_extra[iseed].seedID(), debug);
       }

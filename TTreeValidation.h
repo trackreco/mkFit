@@ -280,8 +280,8 @@ public:
   // Geometry Tree 
   TTree* geotree_;  
   int   evtID_geo_=0,mcID_geo_=0;
-  int   mcmask_seed_geo_=0,mcmask_build_geo_=0,mcmask_fit_geo_=0;
-  int   seedID_seed_geo_=0,seedID_build_geo_=0,seedID_fit_geo_=0;
+  int   mcmask_seed_geo_=0,mcmask_fit_geo_=0; // mcmask_build_geo_=0
+  int   seedID_seed_geo_=0,seedID_fit_geo_=0; // seedID_build_geo_=0
 
   float x_mc_gen_vrx_geo_=0.,y_mc_gen_vrx_geo_=0.,z_mc_gen_vrx_geo_=0.;
   std::vector<int>   layers_seed_geo_,layers_fit_geo_;
@@ -292,8 +292,8 @@ public:
   // Conformal Tree 
   TTree* cftree_;  
   int   evtID_cf_=0,mcID_cf_=0;
-  int   mcmask_seed_cf_=0,mcmask_build_cf_=0,mcmask_fit_cf_=0;
-  int   seedID_seed_cf_=0,seedID_build_cf_=0,seedID_fit_cf_=0;
+  int   mcmask_seed_cf_=0,mcmask_fit_cf_=0; // mcmask_build_cf_=0
+  int   seedID_seed_cf_=0,seedID_fit_cf_=0; // seedID_build_cf_=0
 
   float x_mc_seed_cf_=0.,y_mc_seed_cf_=0.,z_mc_seed_cf_=0.,x_mc_fit_cf_=0.,y_mc_fit_cf_=0.,z_mc_fit_cf_=0.;
   float x_seed_cf_=0.,y_seed_cf_=0.,z_seed_cf_=0.,x_fit_cf_=0.,y_fit_cf_=0.,z_fit_cf_=0.;

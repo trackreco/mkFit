@@ -1,4 +1,7 @@
+#include <memory>
+
 #include "MkBuilder.h"
+#include "MkBuilderEndcap.h"
 #include "seedtestMPlex.h"
 
 #include "Event.h"
@@ -17,6 +20,12 @@ namespace
 {
   auto retcand = [](CandCloner* cloner) { g_exe_ctx.m_cloners.ReturnToPool(cloner); };
   auto retfitr = [](MkFitter*   mkfp  ) { g_exe_ctx.m_fitters.ReturnToPool(mkfp);   };
+}
+
+MkBuilder* MkBuilder::make_builder()
+{
+  if (Config::endcapTest) return new MkBuilderEndcap;
+  else                    return new MkBuilder;
 }
 
 #ifdef DEBUG
@@ -99,20 +108,10 @@ MkBuilder::MkBuilder() :
   m_event_tmp(0),
   m_event_of_hits(Config::nLayers)
 {
-  m_mkfp_arr.resize(Config::numThreadsFinder);
-
-  for (int i = 0; i < Config::numThreadsFinder; ++i)
-  {
-    m_mkfp_arr[i] = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(0);
-  }
 }
 
 MkBuilder::~MkBuilder()
 {
-   for (int i = 0; i < Config::numThreadsFinder; ++i)
-   {
-     _mm_free(m_mkfp_arr[i]);
-   }
 }
 
 //------------------------------------------------------------------------------
@@ -131,7 +130,9 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
   // simtracks.clear();
   // simtracks.push_back(xx);
 
-  std::cout << "Building tracks with '" << build_type << "', total simtracks=" << simtracks.size() << std::endl;
+  if (!Config::silent) {
+    std::cout << "Building tracks with '" << build_type << "', total simtracks=" << simtracks.size() << std::endl;
+  }
 #ifdef DEBUG
   //unit test for eta partitioning
   for (int i = 0; i < 60; ++i)
@@ -157,10 +158,14 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
   m_event_of_hits.Reset();
 
   //fill vector of hits in each layer
-  for (int ilay = 0; ilay < m_event->layerHits_.size(); ++ilay)
+  tbb::parallel_for(tbb::blocked_range<int>(0, m_event->layerHits_.size()),
+    [&](const tbb::blocked_range<int>& layers)
   {
-    m_event_of_hits.SuckInHits(m_event->layerHits_[ilay], ilay);
-  }
+    for (int ilay = layers.begin(); ilay < layers.end(); ++ilay)
+    {
+      m_event_of_hits.SuckInHits(m_event->layerHits_[ilay], ilay);
+    }
+  });
 
 #ifdef DEBUG
   for (int itrack = 0; itrack < simtracks.size(); ++itrack)
@@ -198,8 +203,9 @@ void MkBuilder::end_event()
 
 int MkBuilder::find_seeds()
 {
+#ifdef DEBUG
   bool debug(false);
-
+#endif
   TripletIdxConVec seed_idcs;
 
   double time = dtime();
@@ -368,7 +374,6 @@ void MkBuilder::remap_cand_hits()
   HitIDVec candLayersHitMap(m_event->simHitsInfo_.size());
   for (int ilayer = 0; ilayer < Config::nLayers; ++ilayer) {
     const auto & global_hit_vec = m_event->layerHits_[ilayer];
-    const auto   size = global_hit_vec.size();
     for (int index = 0; index < global_hit_vec.size(); ++index) {
       candLayersHitMap[global_hit_vec[index].mcHitID()] = HitID(ilayer, index);
     }
@@ -505,7 +510,10 @@ void MkBuilder::quality_process(Track &tkcand)
   }
 
 #if defined(DEBUG) || defined(PRINTOUTS_FOR_PLOTS)
-  std::cout << "MX - found track with nFoundHits=" << tkcand.nFoundHits() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << " nfoundmc=" << nfoundmc << " chi2mc=" << chi2mc <<" lab="<< tkcand.label() <<std::endl;
+  if (!Config::silent) {
+    std::lock_guard<std::mutex> printlock(Event::printmutex);
+    std::cout << "MX - found track with nFoundHits=" << tkcand.nFoundHits() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << " nfoundmc=" << nfoundmc << " chi2mc=" << chi2mc <<" lab="<< tkcand.label() <<std::endl;
+  }
 #endif
   // DDDD MT: debug seed fit divergence between host / mic.
   // Use this to compare track quality.
@@ -514,8 +522,11 @@ void MkBuilder::quality_process(Track &tkcand)
 
 void MkBuilder::quality_print()
 {
-  std::cout << "found tracks=" << m_cnt   << "  in pT 10%=" << m_cnt1   << "  in pT 20%=" << m_cnt2   << "     no_mc_assoc="<< m_cnt_nomc <<std::endl;
-  std::cout << "  nH >= 80% =" << m_cnt_8 << "  in pT 10%=" << m_cnt1_8 << "  in pT 20%=" << m_cnt2_8 << std::endl;
+  if (!Config::silent) {
+    std::lock_guard<std::mutex> printlock(Event::printmutex);
+    std::cout << "found tracks=" << m_cnt   << "  in pT 10%=" << m_cnt1   << "  in pT 20%=" << m_cnt2   << "     no_mc_assoc="<< m_cnt_nomc <<std::endl;
+    std::cout << "  nH >= 80% =" << m_cnt_8 << "  in pT 10%=" << m_cnt1_8 << "  in pT 20%=" << m_cnt2_8 << std::endl;
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -829,7 +840,6 @@ void MkBuilder::FindTracksStandard()
 	} // end of layer loop
 	
 	// final sorting
-	int nCandsBeforeEnd = 0;
 	for (int iseed = start_seed; iseed < end_seed; ++iseed)
 	{
 	  std::vector<Track>& finalcands = etabin_of_comb_candidates.m_candidates[iseed];
@@ -997,7 +1007,6 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
   cloner.end_eta_bin();
 
   // final sorting
-  int nCandsBeforeEnd = 0;
   for (int iseed = start_seed; iseed < end_seed; ++iseed)
   {
     std::vector<Track>& finalcands = etabin_of_comb_candidates.m_candidates[iseed];

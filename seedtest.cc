@@ -12,12 +12,14 @@ inline float predz(const float z0, const float r0, const float z2, const float r
 }
 
 void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_extras, Event& ev){
+#ifdef DEBUG
   bool debug(true);
+#endif
 
   for (int itrack=0;itrack<evt_sim_tracks.size();++itrack) {
     const Track& trk = evt_sim_tracks[itrack];
     int   seedhits[Config::nLayers];
-    float sumchi2 = 0;
+    //float sumchi2 = 0;
 
     TrackState updatedState;
     if (Config::cf_seeding) {
@@ -152,7 +154,9 @@ void buildSeedsByRZFirstRPhiSecond(TrackVec& evt_seed_tracks, TrackExtraVec& evt
 
 void buildSeedsByRoadTriplets(TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_extras, 
 			      const std::vector<HitVec>& evt_lay_hits, const BinInfoMap& segmentMap, Event& ev){
+#ifdef DEBUG
   bool debug(false);
+#endif
   bool curve=true; // choose between two ways to get from pairs to triplets -- true is closer to CMSSW
   // first will be pairs, then triplets, then filtered chi2 triplets, then Conf fit, then KF fit
 

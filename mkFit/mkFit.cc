@@ -3,6 +3,7 @@
 #include "fittestMPlex.h"
 #include "buildtestMPlex.h"
 
+#include "MkBuilder.h"
 #include "MkFitter.h"
 
 #include "Config.h"
@@ -11,11 +12,13 @@
 
 #include <limits>
 #include <list>
+#include <sstream>
+#include <memory>
 
 #include "Event.h"
 
 #ifndef NO_ROOT
-#include "TTreeValidation.h"
+#include "Validation.h"
 #endif
 
 #ifdef USE_CUDA
@@ -27,8 +30,6 @@
 //#define DEBUG
 #include "Debug.h"
 
-#include <omp.h>
-
 #include <tbb/task_scheduler_init.h>
 
 #if defined(USE_VTUNE_PAUSE)
@@ -36,8 +37,6 @@
 #endif
 
 //==============================================================================
-
-std::vector<Track> plex_tracks;
 
 void initGeom(Geometry& geom)
 {
@@ -67,7 +66,7 @@ namespace
 {
   FILE *g_file = 0;
   int   g_file_num_ev = 0;
-  int   g_file_cur_ev = 0;
+  std::atomic<int>   g_file_cur_ev{0};
 
   bool  g_run_fit_std   = false;
 
@@ -78,19 +77,45 @@ namespace
 
   std::string g_operation = "simulate_and_process";;
   std::string g_file_name = "simtracks.bin";
+  std::string g_input_file = "";
+  int g_input_version = Config::FileVersion;
+}
+
+void read_and_save_tracks()
+{
+  FILE *ofp = fopen(g_file_name.c_str(), "w");
+  FILE *ifp = fopen(g_input_file.c_str(), "r");
+
+  fread(&g_file_num_ev, sizeof(int), 1, ifp);
+  fwrite(&g_file_num_ev, sizeof(int), 1, ofp);
+
+  Geometry geom;
+  initGeom(geom);
+  std::unique_ptr<Validation> val(Validation::make_validation("empty.root"));
+
+  printf("writing %i events\n",g_file_num_ev);
+
+  Event ev(geom, *val, 0);
+  for (int evt = 0; evt < g_file_num_ev; ++evt)
+  {
+    ev.Reset(evt);
+    ev.read_in(ifp, g_input_version);
+    ev.write_out(ofp);
+  }
+
+  fclose(ifp);
+  fclose(ofp);
 }
 
 void generate_and_save_tracks()
 {
   FILE *fp = fopen(g_file_name.c_str(), "w");
 
-  int Ntracks = Config::nTracks;
-
   int Nevents = Config::nEvents;
 
   Geometry geom;
   initGeom(geom);
-  Validation val;
+  std::unique_ptr<Validation> val(Validation::make_validation("empty.root"));
 
   fwrite(&Nevents, sizeof(int), 1, fp);
 
@@ -98,10 +123,10 @@ void generate_and_save_tracks()
 
   tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
 
+  Event ev(geom, *val, 0);
   for (int evt = 0; evt < Nevents; ++evt)
   {
-    Event ev(geom, val, evt);
-
+    ev.Reset(evt);
     ev.Simulate();
     ev.resetLayerHitMap(true);
 
@@ -167,25 +192,24 @@ void test_standard()
     return;
   }
 
+  if (g_operation == "convert") {
+    read_and_save_tracks();
+    return;
+  }
+
   if (g_operation == "read")
   {
     Config::nEvents = open_simtrack_file();
-    //Config::nEvents = 10;
+    assert(g_input_version > 0 || 1 == Config::numThreadsEvents);
   }
 
   Geometry geom;
   initGeom(geom);
-#ifdef NO_ROOT
-  Validation val;
-#else 
-  TTreeValidation val("valtree.root");
-#endif
   
   const int NT = 4;
   double t_sum[NT] = {0};
   double t_skip[NT] = {0};
-
-  EventTmp ev_tmp;
+  double time = dtime();
 
 #if USE_CUDA
   tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
@@ -228,77 +252,131 @@ void test_standard()
     std::cout << "Total best hit time (GPU): " << total_best_hit_time << std::endl;
   }
 #else
-  // MT: task_scheduler_init::automatic doesn't really work (segv!) + we don't
-  // know what to do for non-tbb cases.
-  // tbb::task_scheduler_init tbb_init(Config::numThreadsFinder != 0 ?
-  //                                   Config::numThreadsFinder :
-  //                                   tbb::task_scheduler_init::automatic);
-  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
-  omp_set_num_threads(Config::numThreadsFinder);
+  std::atomic<int> nevt{1};
+  std::atomic<int> seedstot{0}, simtrackstot{0};
 
-  for (int evt = 1; evt <= Config::nEvents; ++evt)
-  {
-    printf("\n");
-    printf("Processing event %d\n", evt);
+  std::vector<EventTmp> ev_tmps(Config::numThreadsEvents);
+  std::vector<std::unique_ptr<Event>> evs(Config::numThreadsEvents);
+  std::vector<std::unique_ptr<Validation>> vals(Config::numThreadsEvents);
+  std::vector<std::unique_ptr<MkBuilder>> mkbs(Config::numThreadsEvents);
+  std::vector<std::shared_ptr<FILE>> fps;
+  fps.reserve(Config::numThreadsEvents);
 
-    Event ev(geom, val, evt);
+  const std::string valfile("valtree");
 
-    if (g_operation == "read")
-    {
-      ev.read_in(g_file);
-      ev.resetLayerHitMap(false);//hitIdx's in the sim tracks are already ok 
+  for (int i = 0; i < Config::numThreadsEvents; ++i) {
+    std::ostringstream serial;
+    if (Config::numThreadsEvents > 1) { serial << "_" << i; }
+    vals[i].reset(Validation::make_validation(valfile + serial.str() + ".root"));
+    mkbs[i].reset(MkBuilder::make_builder());
+    evs[i].reset(new Event(geom, *vals[i], 0));
+    if (g_operation == "read") {
+      fps.emplace_back(fopen(g_file_name.c_str(), "r"), [](FILE* fp) { if (fp) fclose(fp); });
     }
-    else
-    {
-      //Simulate() parallelism is via TBB, but comment out for now due to cost of
-      //task_scheduler_init
-      //tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
-
-      ev.Simulate();
-      ev.resetLayerHitMap(true);
-    }
-
-    // if (evt!=2985) continue;
-
-    plex_tracks.resize(ev.simTracks_.size());
-
-    double t_best[NT] = {0}, t_cur[NT];
-
-    for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
-    {
-#ifndef USE_CUDA
-      t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
-#else
-      FitterCU<float> cuFitter(NN);
-      cuFitter.allocateDevice();
-      t_cur[0] = (g_run_fit_std) ? runFittingTestPlexGPU(cuFitter, ev, plex_tracks) : 0;
-      cuFitter.freeDevice();
-#endif
-      t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev) : 0;
-      t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, ev_tmp) : 0;
-      t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, ev_tmp) : 0;
-
-      for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
-
-      if (Config::finderReportBestOutOfN > 1)
-      {
-        printf("----------------------------------------------------------------\n");
-        printf("Best-of-times:");
-        for (int i = 0; i < NT; ++i) printf("  %.5f/%.5f", t_cur[i], t_best[i]);
-        printf("\n");
-      }
-      printf("----------------------------------------------------------------\n");
-    }
-
-    printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
-           t_best[0], t_best[1], t_best[2], t_best[3]);
-
-    for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
-    if (evt > 1) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
-
-    if (g_run_fit_std) make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
   }
+
+  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
+
+  dprint("parallel_for step size " << (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents);
+
+  time = dtime();
+
+  int events_per_thread = (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents;
+  tbb::parallel_for(tbb::blocked_range<int>(0, Config::numThreadsEvents, 1),
+    [&](const tbb::blocked_range<int>& threads)
+  {
+    int thisthread = threads.begin();
+
+    assert(threads.begin() == threads.end()-1 && thisthread < Config::numThreadsEvents);
+
+    std::vector<Track> plex_tracks;
+    auto& ev_tmp = ev_tmps[thisthread];
+    auto& ev = *evs[thisthread].get();
+    auto& mkb = *mkbs[thisthread].get();
+    auto  fp = fps[thisthread].get();
+    if (g_input_version == 0) fseek(fp, sizeof(int), SEEK_SET);
+
+    int evstart = thisthread*events_per_thread;
+    int evend = std::min(Config::nEvents, evstart+events_per_thread);
+
+    dprint("thisthread " << thisthread << " events " << Config::nEvents << " events/thread " << events_per_thread
+                         << " range " << evstart << ":" << evend);
+ 
+   for (int evt = evstart; evt < evend; ++evt)
+    {
+      ev.Reset(nevt++);
+
+      if (!Config::silent)
+      {
+        std::lock_guard<std::mutex> printlock(Event::printmutex);
+        printf("\n");
+        printf("Processing event %d\n", ev.evtID());
+      }
+
+      if (g_operation == "read")
+      {
+        ev.read_in(fp, g_input_version);
+        ev.resetLayerHitMap(false);//hitIdx's in the sim tracks are already ok 
+      }
+      else
+      {
+        ev.Simulate();
+        ev.resetLayerHitMap(true);
+      }
+
+      plex_tracks.resize(ev.simTracks_.size());
+
+      double t_best[NT] = {0}, t_cur[NT];
+      simtrackstot += ev.simTracks_.size();
+      seedstot += ev.seedTracks_.size();
+
+      for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
+      {
+  #ifndef USE_CUDA
+        t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
+  #else
+        FitterCU<float> cuFitter(NN);
+        cuFitter.allocateDevice();
+        t_cur[0] = (g_run_fit_std) ? runFittingTestPlexGPU(cuFitter, ev, plex_tracks) : 0;
+        cuFitter.freeDevice();
+  #endif
+        t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev, mkb) : 0;
+        t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, ev_tmp, mkb) : 0;
+        t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, ev_tmp, mkb) : 0;
+
+        for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
+
+        if (!Config::silent) {
+          std::lock_guard<std::mutex> printlock(Event::printmutex);
+          if (Config::finderReportBestOutOfN > 1)
+          {
+            printf("----------------------------------------------------------------\n");
+            printf("Best-of-times:");
+            for (int i = 0; i < NT; ++i) printf("  %.5f/%.5f", t_cur[i], t_best[i]);
+            printf("\n");
+          }
+          printf("----------------------------------------------------------------\n");
+        }
+      }
+
+      if (!Config::silent) {
+        std::lock_guard<std::mutex> printlock(Event::printmutex);
+        printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
+               t_best[0], t_best[1], t_best[2], t_best[3]);
+      }
+
+      // not protected by a mutex, may be inacccurate for multiple events in flight;
+      // probably should convert to a scaled long so can use std::atomic<Integral>
+      for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
+      if (evt > 0) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
+
+      if (g_run_fit_std) make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
+    }
+  }, tbb::simple_partitioner());
+
 #endif
+  time = dtime() - time;
+
   printf("\n");
   printf("================================================================\n");
   printf("=== TOTAL for %d events\n", Config::nEvents);
@@ -308,6 +386,7 @@ void test_standard()
          t_sum[0], t_sum[1], t_sum[2], t_sum[3]);
   printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
          t_skip[0], t_skip[1], t_skip[2], t_skip[3]);
+  printf("Total event loop time %.5f simtracks %d seedtracks %d\n", time, simtrackstot.load(), seedstot.load());
   //fflush(stdout);
 
   if (g_operation == "read")
@@ -315,7 +394,9 @@ void test_standard()
     close_simtrack_file();
   }
 
-  val.saveTTrees();
+  for (auto& val : vals) {
+    val->saveTTrees();
+  }
 }
 
 //==============================================================================
@@ -370,47 +451,51 @@ int main(int argc, const char *argv[])
         "  --num-thr-sim   <num>    number of threads for simulation (def: %d)\n"
         "  --num-thr       <num>    number of threads for track finding (def: %d)\n"
         "                           extra cloning thread is spawned for each of them\n"
+        "  --num-thr-ev    <num>    number of threads to run the event loop\n"
         "  --fit-std                run standard fitting test (def: false)\n"
         "  --fit-std-only           run only standard fitting test (def: false)\n"
         "  --build-bh               run best-hit building test (def: false)\n"
         "  --build-std              run standard combinatorial building test (def: false)\n"
         "  --build-ce               run clone engine combinatorial building test (def: false)\n"
-        "  --cloner-single-thread   do not spawn extra cloning thread (def: %s)\n"
         "  --seeds-per-task         number of seeds to process in a tbb task (def: %d)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
-	"  --cms-geom               use cms-like geometry (def: %i)\n"
-	"  --cmssw-seeds            take seeds from CMSSW (def: %i)\n"
-	"  --find-seeds             run road search seeding [CF enabled by default] (def: %s)\n"
-	"  --hits-per-task <num>    number of layer1 hits per task in finding seeds (def: %i)\n"
-	"  --endcap-test            test endcap tracking (def: %i)\n"
-	"  --cf-seeding             enable CF in seeding (def: %s)\n"
-	"  --cf-fitting             enable CF in fitting (def: %s)\n"
-	"  --normal-val             enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
-	"  --fit-val                enable ROOT based validation for fitting (def: %s)\n"
-	"  --write                  write simulation to file and exit\n"
-	"  --read                   read simulation from file\n"
-	"  --file-name              file name for write/read (def: %s)\n"
+        "  --cms-geom               use cms-like geometry (def: %i)\n"
+        "  --cmssw-seeds            take seeds from CMSSW (def: %i)\n"
+        "  --find-seeds             run road search seeding [CF enabled by default] (def: %s)\n"
+        "  --hits-per-task <num>    number of layer1 hits per task in finding seeds (def: %i)\n"
+        "  --endcap-test            test endcap tracking (def: %i)\n"
+        "  --cf-seeding             enable CF in seeding (def: %s)\n"
+        "  --cf-fitting             enable CF in fitting (def: %s)\n"
+        "  --normal-val             enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
+      	"  --fit-val                enable ROOT based validation for fitting (def: %s)\n"
+        "  --silent                 suppress printouts inside event loop (def: %s)\n"
+        "  --write                  write simulation to file and exit\n"
+        "  --read                   read simulation from file\n"
+        "  --file-name              file name for write/read (def: %s)\n"
+        "  --input-file             file name for reading when converting formats (def: %s)\n"
+        "  --input-version          version for reading when converting formats (def: %d)\n"
         "GPU specific options: \n"
-        "  --num-thr-ev    <num>    number of threads to run the event loop\n"
         "  --num-thr-reorg <num>    number of threads to run the hits reorganization\n"
         ,
         argv[0],
         Config::nEvents,
         Config::nTracks,
         Config::numThreadsSimulation, Config::numThreadsFinder,
-        Config::clonerUseSingleThread ? "true" : "false",
         Config::numSeedsPerTask,
         Config::finderReportBestOutOfN,
-	Config::useCMSGeom,
-	Config::readCmsswSeeds,
-	Config::findSeeds ? "true" : "false",
-	Config::numHitsPerTask,
-	Config::endcapTest,
-	Config::cf_seeding ? "true" : "false",
-	Config::cf_fitting ? "true" : "false",
-	Config::normal_val ? "true" : "false",
-	Config::fit_val    ? "true" : "false",
-	g_file_name.c_str()
+      	Config::useCMSGeom,
+      	Config::readCmsswSeeds,
+      	Config::findSeeds ? "true" : "false",
+      	Config::numHitsPerTask,
+      	Config::endcapTest,
+      	Config::cf_seeding ? "true" : "false",
+      	Config::cf_fitting ? "true" : "false",
+      	Config::normal_val ? "true" : "false",
+      	Config::fit_val    ? "true" : "false",
+        Config::silent ? "true" : "false",
+      	g_file_name.c_str(),
+      	g_input_file.c_str(),
+        g_input_version
       );
       exit(0);
     }
@@ -454,10 +539,6 @@ int main(int argc, const char *argv[])
     else if(*i == "--build-ce")
     {
       g_run_build_all = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = true;
-    }
-    else if(*i == "--cloner-single-thread")
-    {
-      Config::clonerUseSingleThread = true;
     }
     else if (*i == "--seeds-per-task")
     {
@@ -529,6 +610,21 @@ int main(int argc, const char *argv[])
       next_arg_or_die(mArgs, i);
       g_file_name = *i;
     }
+    else if(*i == "--input-file")
+    {
+      next_arg_or_die(mArgs, i);
+      g_operation = "convert";
+      g_input_file = *i;
+    }
+    else if (*i == "--input-version")
+    {
+      next_arg_or_die(mArgs, i);
+      g_input_version = atoi(i->c_str());
+    }
+    else if(*i == "--silent")
+    {
+      Config::silent = true;
+    }
     else
     {
       fprintf(stderr, "Error: Unknown option/argument '%s'.\n", i->c_str());
@@ -540,8 +636,8 @@ int main(int argc, const char *argv[])
 
   Config::RecalculateDependentConstants();
 
-  printf ("Running with n_threads=%d, cloner_single_thread=%d, best_out_of=%d\n",
-          Config::numThreadsFinder, Config::clonerUseSingleThread, Config::finderReportBestOutOfN);
+  printf ("Running with n_threads=%d, best_out_of=%d\n",
+          Config::numThreadsFinder, Config::finderReportBestOutOfN);
 
   test_standard();
 

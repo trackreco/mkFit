@@ -2,6 +2,10 @@
 
 [ -z "$ROOTSYS" ] && source ~matevz/root/bin/thisroot.sh
 
+# tmp(?) due to file format changes
+export TOYMCUSER=dsr
+export CMSMCUSER=dsr
+
 ##### Generate toyMC samples first #####
 ./generateToyMCsamples.sh
 

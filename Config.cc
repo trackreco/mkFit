@@ -22,7 +22,6 @@ namespace Config
   int   numThreadsSimulation = 12;
 #endif
 
-  bool  clonerUseSingleThread  = false;
   int   finderReportBestOutOfN = 1;
 
   int   nlayers_per_seed = 3; // default is 3 for barrel seeding --> will need a new variable once we move to endcap seeding
@@ -36,6 +35,8 @@ namespace Config
 
   bool  findSeeds   = false;
   bool  endcapTest = false;
+
+  bool  silent      = false;
 
   bool  cf_seeding  = false;
   bool  cf_fitting  = false;
