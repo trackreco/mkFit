@@ -14,6 +14,8 @@
 #include "tbb/tbb.h"
 #endif
 
+std::mutex Event::printmutex;
+
 inline bool sortByPhi(const Hit& hit1, const Hit& hit2)
 {
   return hit1.phi()<hit2.phi();
@@ -57,7 +59,7 @@ void Event::resetLayerHitMap(bool resetSimHits) {
   }
 }
 
-Event::Event(const Geometry& g, Validation& v, int evtID, int threads) : geom_(g), validation_(v), evtID_(evtID), threads_(threads)
+Event::Event(const Geometry& g, Validation& v, int evtID, int threads) : geom_(g), validation_(v), evtID_(evtID), threads_(threads), mcHitIDCounter_(0)
 {
   layerHits_.resize(Config::nLayers);
   segmentMap_.resize(Config::nLayers);
@@ -68,10 +70,30 @@ Event::Event(const Geometry& g, Validation& v, int evtID, int threads) : geom_(g
   }
 }
 
+void Event::Reset(int evtID)
+{
+  evtID_ = evtID;
+  mcHitIDCounter_ = 0;
+
+  for (auto&& l : layerHits_) { l.clear(); }
+  for (auto&& l : segmentMap_) { l.clear(); }
+
+  simHitsInfo_.clear();
+  layerHitMap_.clear();
+  simTracks_.clear();
+  seedTracks_.clear();
+  candidateTracks_.clear();
+  fitTracks_.clear();
+  simTrackStates_.clear();
+
+  validation_.resetValidationMaps(); // need to reset maps for every event.
+  if (Config::super_debug) {
+    validation_.resetDebugVectors(); // need to reset vectors for every event.
+  }
+}
+
 void Event::Simulate()
 {
-  MCHitInfo::mcHitIDCounter_ = 0;
-
   simTracks_.resize(Config::nTracks);
   simHitsInfo_.resize(Config::nTotHit * Config::nTracks);
   for (auto&& l : layerHits_) {
@@ -99,9 +121,9 @@ void Event::Simulate()
 
       int q=0;//set it in setup function
       // do the simulation
-      if (Config::useCMSGeom) setupTrackFromTextFile(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs);
-      else if (Config::endcapTest) setupTrackByToyMCEndcap(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs);
-      else setupTrackByToyMC(pos,mom,covtrk,hits,simHitsInfo_,itrack,q,tmpgeom,initialTSs); 
+      if (Config::useCMSGeom) setupTrackFromTextFile(pos,mom,covtrk,hits,*this,itrack,q,tmpgeom,initialTSs);
+      else if (Config::endcapTest) setupTrackByToyMCEndcap(pos,mom,covtrk,hits,*this,itrack,q,tmpgeom,initialTSs);
+      else setupTrackByToyMC(pos,mom,covtrk,hits,*this,itrack,q,tmpgeom,initialTSs); 
 
 #ifdef CCSCOORD
       // setupTrackByToyMCEndcap is already in CCS coord, no need to convert
@@ -323,31 +345,53 @@ void Event::PrintStats(const TrackVec& trks, TrackExtraVec& trkextras)
  
 void Event::write_out(FILE *fp) 
 {
+  static std::mutex writemutex;
+  std::lock_guard<std::mutex> writelock(writemutex);
+
+  auto start = ftell(fp);
+  int evsize = sizeof(int);
+  fwrite(&evsize, sizeof(int), 1, fp); // this will be overwritten at the end
 
   int nt = simTracks_.size();
   fwrite(&nt, sizeof(int), 1, fp);
   fwrite(&simTracks_[0], sizeof(Track), nt, fp);
+  evsize += sizeof(int) + nt*sizeof(Track);
 
   if (Config::normal_val || Config::fit_val) {
     for (int it = 0; it<nt; ++it) {
       int nts = simTrackStates_[it].size();
       fwrite(&nts, sizeof(int), 1, fp);
       fwrite(&simTrackStates_[it][0], sizeof(TrackState), nts, fp);
+      evsize += sizeof(int) + nts*sizeof(TrackState);
     }
   }
 
   int nl = layerHits_.size();
   fwrite(&nl, sizeof(int), 1, fp);
+  evsize += sizeof(int);
   for (int il = 0; il<nl; ++il) {
     int nh = layerHits_[il].size();
     fwrite(&nh, sizeof(int), 1, fp);
     fwrite(&layerHits_[il][0], sizeof(Hit), nh, fp);
+    evsize += sizeof(int) + nh*sizeof(Hit);
   }
 
   int nm = simHitsInfo_.size();
   fwrite(&nm, sizeof(int), 1, fp);
   fwrite(&simHitsInfo_[0], sizeof(MCHitInfo), nm, fp);
+  evsize += sizeof(int) + nm*sizeof(MCHitInfo);
 
+  if (Config::useCMSGeom || Config::readCmsswSeeds) {
+    int ns = seedTracks_.size();
+    fwrite(&ns, sizeof(int), 1, fp);
+    fwrite(&seedTracks_[0], sizeof(Track), ns, fp);
+    evsize += sizeof(int) + ns*sizeof(Track);
+  }
+
+  fseek(fp, start, SEEK_SET);
+  fwrite(&evsize, sizeof(int), 1, fp);
+  fseek(fp, 0, SEEK_END);
+  
   //layerHitMap_ is recreated afterwards
 
   /*
@@ -368,8 +412,19 @@ void Event::write_out(FILE *fp)
   */
 }
 
-void Event::read_in(FILE *fp)
+void Event::read_in(FILE *fp, int version)
 {
+  static long pos = sizeof(int); // header size
+  int evsize;
+
+  if (version > 0) {
+    static std::mutex readmutex;
+    std::lock_guard<std::mutex> readlock(readmutex);
+
+    fseek(fp, pos, SEEK_SET);
+    fread(&evsize, sizeof(int), 1, fp);
+    pos += evsize;
+  }
 
   int nt;
   fread(&nt, sizeof(int), 1, fp);

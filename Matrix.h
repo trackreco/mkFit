@@ -81,10 +81,10 @@ inline void sincos4(const float x, float& sin, float& cos)
 
   #include "Matriplex/MatriplexSym.h"
 
-  const Matriplex::idx_t NN =  MPT_SIZE; // "Length" of MPlex.
+  constexpr Matriplex::idx_t NN =  MPT_SIZE; // "Length" of MPlex.
 
-  const Matriplex::idx_t LL =  6; // Dimension of large/long  MPlex entities
-  const Matriplex::idx_t HH =  3; // Dimension of small/short MPlex entities
+  constexpr Matriplex::idx_t LL =  6; // Dimension of large/long  MPlex entities
+  constexpr Matriplex::idx_t HH =  3; // Dimension of small/short MPlex entities
 
   typedef Matriplex::Matriplex<float, LL, LL, NN>   MPlexLL;
   typedef Matriplex::Matriplex<float, LL,  1, NN>   MPlexLV;

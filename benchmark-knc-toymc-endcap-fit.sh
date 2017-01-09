@@ -2,7 +2,7 @@
 
 make -j 12
 
-micdir=/nfsmic/kmcdermo/toymc
+micdir=/nfsmic/${TOYMCUSER:-kmcdermo}/toymc
 
 for nth in 1 2 4 8 15 30 60 90 120 150 180 210 240
 do

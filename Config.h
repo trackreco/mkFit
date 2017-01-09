@@ -13,6 +13,9 @@ namespace Config
   // super debug mode in SMatrix
   extern bool super_debug;
 
+  // default file version
+  constexpr int FileVersion = 1;
+
   // math general --> from namespace TMath
   constexpr float    PI    = 3.14159265358979323846;
   constexpr float TwoPI    = 6.28318530717958647692;
@@ -228,7 +231,6 @@ namespace Config
   extern int    numThreadsEvents;
   extern int    numThreadsReorg;
 
-  extern bool   clonerUseSingleThread;
   extern int    finderReportBestOutOfN;
 
   extern int    numSeedsPerTask;
@@ -240,6 +242,8 @@ namespace Config
   extern bool   readCmsswSeeds;
 
   extern bool   endcapTest;
+
+  extern bool   silent;
 
   const std::string inputFile = "cmssw.simtracks.SingleMu1GeV.10k.new.txt";
   //const std::string inputFile = "cmssw.simtracks.SingleMu10GeV.10k.new.txt";

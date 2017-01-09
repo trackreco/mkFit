@@ -12,6 +12,7 @@
 #if USE_CUDA
 #include "fittestMPlex.h"
 #include "FitterCU.h"
+#include <omp.h>
 #endif
 
 #ifndef NO_ROOT
@@ -21,7 +22,6 @@
 #endif
 
 #include <tbb/tbb.h>
-#include <omp.h>
 
 #include <iostream>
 #include <memory>

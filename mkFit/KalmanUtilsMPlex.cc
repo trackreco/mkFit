@@ -238,6 +238,7 @@ void ProjectResErrTransp(const MPlexQF& A00,
    }
 }
 
+#ifndef CCSCOORD
 inline
 void CCSErr(const MPlexLL& A, const MPlexLS& B, MPlexLL& C)
 {
@@ -297,6 +298,7 @@ void CartesianErrTransp(const MPlexLL& A, const MPlexLL& B, MPlexLS& C)
 
 #include "CartesianErrTransp.ah"
 }
+#endif
 
 inline
 void RotateResidulsOnTangentPlane(const MPlexQF& R00,//r00
@@ -452,6 +454,7 @@ void KHC(const MPlexL2& A, const MPlexLS& B, MPlexLS& C)
 #include "K62HC.ah"
 }
 
+#ifndef CCSCOORD
 inline
 void ConvertToCCS(const MPlexLV& A, MPlexLV& B, MPlexLL& C)
 {
@@ -463,7 +466,7 @@ void ConvertToCartesian(const MPlexLV& A, MPlexLV& B, MPlexLL& C)
 {
   ConvertToCartesian_imp(A, B, C, 0, NN); 
 }
-
+#endif
 
 // //Warning: MultFull is not vectorized, use only for testing!
 // template<typename T1, typename T2, typename T3>

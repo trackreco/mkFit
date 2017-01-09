@@ -1,7 +1,7 @@
 #ifndef HitStructures_H
 #define HitStructures_H
 
-#include "Config.h"
+#include "../Config.h"
 #include "Hit.h"
 #include "Track.h"
 //#define DEBUG

@@ -20,7 +20,7 @@ void fittestEndcap(Event& ev) {
       TSVec  initialTSs;
       int q=0;//set it in setup function
       // do the simulation
-      setupTrackByToyMCEndcap(pos,mom,covtrk,hits,ev.simHitsInfo_,itrack,q,ev.geom_,initialTSs);
+      setupTrackByToyMCEndcap(pos,mom,covtrk,hits,ev,itrack,q,ev.geom_,initialTSs);
 
       Track track(q,pos,mom,covtrk,0.0f);
       ev.simTracks_.push_back(track);

@@ -57,7 +57,7 @@ echo:
 ################################################################
 
 # Should be a lib, really
-ABOVE_OBJS := $(patsubst %, ../%.o, Config Matrix Event Hit Track Propagation KalmanUtils Simulation Geometry SimpleGeom fittest buildtest ConformalUtils seedtest BinInfoUtils TTreeValidation)
+ABOVE_OBJS := $(patsubst %, ../%.o, Config Matrix Event Hit Track Propagation KalmanUtils Simulation Geometry SimpleGeom fittest buildtest ConformalUtils seedtest BinInfoUtils TTreeValidation Validation)
 
 ${ABOVE_OBJS}:
 	${MAKE} -C ..

@@ -476,7 +476,7 @@ void MkFitter::FitTracksTestEndcap(const int N_proc, const Event* ev, const bool
   if (countValidHits(0)<8) return;
   if (Label.ConstAt(0, 0, 0)<0) return;
 
-  float ptin = 1./Par[iC].ConstAt(0, 0, 3);
+  //float ptin = 1./Par[iC].ConstAt(0, 0, 3);
 
   float chi2 = 0.;
   int hitcount = 0;
@@ -1562,18 +1562,18 @@ void MkFitter::SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits, const in
 
       if (Config::useCMSGeom)
       {
+#ifdef CCSCOORD
         //now correct for bending and for layer thickness unsing linear approximation
         const float deltaZ = 5; //fixme! using constant value, to be taken from layer properties
-#ifdef CCSCOORD
-	float cosT = std::cos(Par[iI].ConstAt(itrack, 5, 0));
-	float sinT = std::sin(Par[iI].ConstAt(itrack, 5, 0));
-	//here alpha is the helix angular path corresponding to deltaZ
-	const float k = Chg.ConstAt(itrack, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
-	const float alpha  = deltaZ*sinT*Par[iI].ConstAt(itrack, 3, 0)/(cosT*k);
-#else
-	assert(0);
-#endif
+        float cosT = std::cos(Par[iI].ConstAt(itrack, 5, 0));
+        float sinT = std::sin(Par[iI].ConstAt(itrack, 5, 0));
+        //here alpha is the helix angular path corresponding to deltaZ
+        const float k = Chg.ConstAt(itrack, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
+        const float alpha  = deltaZ*sinT*Par[iI].ConstAt(itrack, 3, 0)/(cosT*k);
         dphi += std::abs(alpha);
+#else
+        assert(0);
+#endif
       }
     }
 

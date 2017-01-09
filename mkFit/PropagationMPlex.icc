@@ -264,7 +264,6 @@ static inline void helixAtRFromIterativeCCS_impl(const Tf& __restrict__ inPar,
 
       const float xin   = inPar(n, 0, 0);
       const float yin   = inPar(n, 1, 0);
-      const float zin   = inPar(n, 2, 0);
       const float ipt   = inPar(n, 3, 0);
       const float phiin = inPar(n, 4, 0);
       const float theta = inPar(n, 5, 0);

@@ -1,3 +1,5 @@
+#include <memory>
+
 #include "MkBuilderEndcap.h"
 
 #include "Event.h"
@@ -106,9 +108,7 @@ void MkBuilderEndcap::begin_event(Event* ev, EventTmp* ev_tmp, const char* build
   m_event     = ev;
   m_event_tmp = ev_tmp;
 
-  std::vector<Track>& simtracks = m_event->simTracks_;
-
-  dprint("Building tracks with '" << build_type << "', total simtracks=" << simtracks.size());
+  dprint("Building tracks with '" << build_type << "', total simtracks=" << m_event->simTracks_.size());
 
   m_event_of_hits.Reset();
 
@@ -377,7 +377,6 @@ void MkBuilderEndcap::FindTracksStandard()
 	} // end of layer loop
 
 	// final sorting
-	int nCandsBeforeEnd = 0;
 	for (int iseed = start_seed; iseed < end_seed; ++iseed)
 	{
 	  std::vector<Track>& finalcands = etabin_of_comb_candidates.m_candidates[iseed];
@@ -543,7 +542,6 @@ void MkBuilderEndcap::find_tracks_in_layers_endcap(EtaBinOfCombCandidates &etabi
   cloner.end_eta_bin();
 
   // final sorting
-  int nCandsBeforeEnd = 0;
   for (int iseed = start_seed; iseed < end_seed; ++iseed)
   {
     std::vector<Track>& finalcands = etabin_of_comb_candidates.m_candidates[iseed];

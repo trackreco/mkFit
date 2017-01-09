@@ -7,6 +7,8 @@
 #include "BinInfoUtils.h"
 #include "Config.h"
 
+#include <mutex>
+
 struct HitID {
   HitID() : layer(-1), index(-1) {}
   HitID(int l, int i) : layer(l), index(i) {}
@@ -18,6 +20,7 @@ typedef std::vector<HitID> HitIDVec;
 class Event {
 public:
   Event(const Geometry& g, Validation& v, int evtID, int threads = 1);
+  void Reset(int evtID);
   void Simulate();
   void Segment();
   void Seed();
@@ -29,8 +32,10 @@ public:
   int evtID() const {return evtID_;}
   void resetLayerHitMap(bool resetSimHits);
 
+  int nextMCHitID() { return mcHitIDCounter_++; }
+
   void write_out(FILE *fp);
-  void read_in(FILE *fp);
+  void read_in(FILE *fp, int version = Config::FileVersion);
 
   const Geometry& geom_;
   Validation& validation_;
@@ -38,6 +43,7 @@ public:
   int evtID_;
  public:
   int threads_;
+  std::atomic<int> mcHitIDCounter_;
   std::vector<HitVec> layerHits_;
   MCHitInfoVec simHitsInfo_;
   HitIDVec layerHitMap_; // indexed same as simHitsInfo_, maps to layer & hit
@@ -52,6 +58,7 @@ public:
 
   // used in normal validation --> only used on read-in / write-out (REALLY UGLY)
   TkIDToTSVecVec simTrackStates_;
+  static std::mutex printmutex;
 };
 
 typedef std::vector<Event> EventVec;

@@ -1976,7 +1976,7 @@ void TTreeValidation::fillConformalTree(const Event& ev){
   auto& evt_seed_extras  = ev.seedTracksExtra_;
   auto& evt_fit_tracks   = ev.fitTracks_;
   auto& evt_fit_extras   = ev.fitTracksExtra_;
-  auto& evt_lay_hits     = ev.layerHits_;
+  //auto& evt_lay_hits     = ev.layerHits_;
 
   for (auto&& simtrack : evt_sim_tracks){
     evtID_cf_ = ievt;

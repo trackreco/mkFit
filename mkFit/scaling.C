@@ -16,9 +16,9 @@ const char *names[]  =
 };
 
 // Run as:
-// for n in 1 3 7 21; do ./mkFit --cloner-single-thread --best-out-of 5 --num-threads $n | grep 'MX =' | tail -n 1; done
+// for n in 1 3 7 21; do ./mkFit --best-out-of 5 --num-threads $n | grep 'MX =' | tail -n 1; done
 // - mkFit-mic for mic;
-// - take out --cloner-single-thread for cloning in a special thread;
+// - take out for cloning in a special thread;
 // - for extra thread placememnt on mic recompile after changing EventTmp ctor.
 
 //------------------------------------------------------------------------------
