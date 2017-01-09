@@ -62,7 +62,8 @@ public:
   virtual void saveTTrees() {}
 
   static Validation* make_validation(const std::string&);
-protected:
+// Kevin ... review this, please:
+//protected:
   Validation();
 };
 
