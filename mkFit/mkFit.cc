@@ -17,6 +17,8 @@
 
 #include "Event.h"
 
+#include "MaterialEffects.h"
+
 #ifndef NO_ROOT
 #include "Validation.h"
 #endif
@@ -205,7 +207,14 @@ void test_standard()
 
   Geometry geom;
   initGeom(geom);
-  
+
+  if (Config::useCMSGeom) fillZRgridME();
+#ifdef NO_ROOT
+  Validation val;
+#else 
+  TTreeValidation val("valtree.root");
+#endif
+
   const int NT = 4;
   double t_sum[NT] = {0};
   double t_skip[NT] = {0};
