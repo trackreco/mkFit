@@ -209,11 +209,6 @@ void test_standard()
   initGeom(geom);
 
   if (Config::useCMSGeom) fillZRgridME();
-#ifdef NO_ROOT
-  Validation val;
-#else 
-  TTreeValidation val("valtree.root");
-#endif
 
   const int NT = 4;
   double t_sum[NT] = {0};
