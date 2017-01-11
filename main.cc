@@ -75,7 +75,7 @@ void initGeom(Geometry& geom)
   for (int l = 0; l < Config::nLayers; l++) {
     float r = (l+1)*Config::fRadialSpacing;
     float z = r / std::tan(2.0*std::atan(std::exp(-Config::fEtaDet))); // calculate z extent based on eta, r
-    VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent);
+    VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent, -z, z);
     geom.AddLayer(utub, r, z);
   }
 }

@@ -10,6 +10,12 @@
 #include "SimpleGeom.h"
 #endif
 
+// XXXX MT: What it the purpose of zPlanes?
+// I guess this is half-baked and we actually need two add layer
+// methods, like AddBarellLayer(), AddEndcapLayer().
+// And probably something even more descriptive, so we can also
+// build navigation LUTs (or something).
+
 class Geometry {
 public:
   ~Geometry() { for (auto& s : solids_) { delete s; }}

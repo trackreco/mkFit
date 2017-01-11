@@ -25,8 +25,9 @@ namespace Config
   constexpr float InvPI    = 1.0f / Config::PI;
   constexpr float RadToDeg = 180.0f / Config::PI;
   constexpr float DegToRad = Config::PI / 180.0f;
-  constexpr double Sqrt2   = 1.4142135623730950488016887242097;
   constexpr float sol      = 0.299792458; // speed of light in nm/s
+  constexpr double Sqrt2   = 1.4142135623730950488016887242097;
+  constexpr double OOSqrt2 = 1.0 / Config::Sqrt2;
 
   // general parameters of matrices
   constexpr int nParams = 6;
