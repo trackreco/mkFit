@@ -17,7 +17,9 @@ struct HitID {
 };
 
 typedef std::vector<HitID> HitIDVec;
-class Event {
+
+class Event
+{
 public:
   Event(const Geometry& g, Validation& v, int evtID, int threads = 1);
   void Reset(int evtID);
@@ -43,6 +45,7 @@ public:
   int evtID_;
  public:
   int threads_;
+  std::mutex       mcGatherMutex_;
   std::atomic<int> mcHitIDCounter_;
   std::vector<HitVec> layerHits_;
   MCHitInfoVec simHitsInfo_;

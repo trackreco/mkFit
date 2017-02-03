@@ -106,3 +106,30 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
   }
   dprint("Track " << trk.label() << " best mc track " << mtrk << " count " << mcount << "/" << trk.nFoundHits());
 }
+
+//==============================================================================
+
+void print(const TrackState& s)
+{
+  std::cout << " x:  " << s.parameters[0] 
+            << " y:  " << s.parameters[1]
+            << " z:  " << s.parameters[2] << std::endl
+            << " px: " << s.parameters[3]
+            << " py: " << s.parameters[4]
+            << " pz: " << s.parameters[5] << std::endl
+            << "valid: " << s.valid << " errors: " << std::endl;
+  dumpMatrix(s.errors);
+  std::cout << std::endl;
+}
+
+void print(std::string label, int itrack, const Track& trk)
+{
+  std::cout << std::endl << label << ": " << itrack << " hits: " << trk.nFoundHits() << " State" << std::endl;
+  print(trk.state());
+}
+
+void print(std::string label, const TrackState& s)
+{
+  std::cout << label << std::endl;
+  print(s);
+}

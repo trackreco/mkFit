@@ -285,4 +285,7 @@ typedef std::array<int,2>    PairIdx;
 typedef std::vector<PairIdx> PairIdxVec;
 typedef std::array<int,3>       TripletIdx;
 typedef std::vector<TripletIdx> TripletIdxVec;
+
+void print(std::string label, const MeasurementState& s);
+
 #endif

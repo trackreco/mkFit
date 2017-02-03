@@ -1,6 +1,9 @@
 #ifndef _config_
 #define _config_
 
+// Cram this in here for now ...
+#include "TrackerInfo.h"
+
 #include <algorithm>
 #include <cmath>
 #include <string> // won't compile on clang gcc for mac OS w/o this!
@@ -10,6 +13,8 @@
 
 namespace Config
 {
+  extern TrackerInfo TrkInfo;
+
   // super debug mode in SMatrix
   extern bool super_debug;
 
@@ -38,6 +43,21 @@ namespace Config
 
   // config on main -- for geometry
   constexpr int   nLayers   = 10; // default: 10; cmssw tests: 13, 17, 26 (for endcap)
+
+  // New layer constants for common barrel / endcap. I'd prefer those to go
+  // into some geometry definition "plugin" -- they belong more into some Geom
+  // namespace, too.
+  // XXXX This needs to be generalized for other geometries !
+  // TrackerInfo more or less has all this information (or could have it).
+  constexpr int   nTotalLayers   = 28;
+  constexpr int   nMaxTrkLayers  = 19; // Assuming hitting every barrel / endcap edge
+  constexpr int   nBarrelLayers  = 10;
+  constexpr int    BarrelLayer0  =  0;
+  constexpr int   nECapLayers    =  9;
+  constexpr int    ECapPosLayer0 = 10;
+  constexpr int    ECapNegLayer0 = 19;
+  // min/max etas or thetas for EC-, T-, B, T+, EC+
+
   constexpr float fRadialSpacing   = 4.;
   constexpr float fRadialExtent    = 0.01;
   constexpr float fInnerSensorSize = 5.0; // approximate sensor size in cm
@@ -124,10 +144,11 @@ namespace Config
   constexpr float beamspotY = 0.1;
   constexpr float beamspotZ = 1.0;
   
-  constexpr float minSimPt = 0.5;
+  constexpr float minSimPt = 1;  // 0.5;
   constexpr float maxSimPt = 10.;
 
-  constexpr float maxEta   = 1.0;
+  constexpr float minSimEta = 0.0; // XXMT4K Added min, too.
+  constexpr float maxSimEta = 2.4; // Should both become config vars?
 
   constexpr float hitposerrXY = 0.01; // resolution is 100um in xy --> more realistic scenario is 0.003
   constexpr float hitposerrZ  = 0.1; // resolution is 1mm in z
@@ -136,7 +157,10 @@ namespace Config
   constexpr float varZ        = Config::hitposerrZ  * Config::hitposerrZ;
   constexpr float varR        = Config::hitposerrR  * Config::hitposerrR;
 
-  constexpr int nTotHit = Config::nLayers; // for now one hit per layer for sim
+  // XXMT4K OK ... what do we do with this guy? MaxTotHit / AvgTotHit ... ?
+  // For now setting it to nMaxTrkLayers which is too big ... but it seems to be
+  // only used for vector::reserve() ...
+  constexpr int nTotHit = Config::nMaxTrkLayers; // for now one hit per layer for sim
 
   // scattering simulation
   constexpr float X0 = 9.370; // cm, from http://pdg.lbl.gov/2014/AtomicNuclearProperties/HTML/silicon_Si.html // Pb = 0.5612 cm
@@ -158,7 +182,8 @@ namespace Config
   extern bool findSeeds;
 
   // Config for propagation
-  constexpr int Niter = 5;
+  constexpr int Niter    =  5;
+  constexpr int NiterSim = 10; // Can make more steps due to near volume misses.
   constexpr bool useTrigApprox = true;
 
   // Config for Bfield

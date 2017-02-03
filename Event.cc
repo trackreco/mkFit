@@ -59,11 +59,14 @@ void Event::resetLayerHitMap(bool resetSimHits) {
   }
 }
 
-Event::Event(const Geometry& g, Validation& v, int evtID, int threads) : geom_(g), validation_(v), evtID_(evtID), threads_(threads), mcHitIDCounter_(0)
+Event::Event(const Geometry& g, Validation& v, int evtID, int threads) :
+  geom_(g), validation_(v),
+  evtID_(evtID), threads_(threads), mcHitIDCounter_(0)
 {
-  layerHits_.resize(Config::nLayers);
-  segmentMap_.resize(Config::nLayers);
+  layerHits_.resize(Config::nTotalLayers);
+  segmentMap_.resize(Config::nTotalLayers);
 
+  // XXMT4K
   validation_.resetValidationMaps(); // need to reset maps for every event.
   if (Config::super_debug) {
     validation_.resetDebugVectors(); // need to reset vectors for every event.
@@ -95,9 +98,14 @@ void Event::Reset(int evtID)
 void Event::Simulate()
 {
   simTracks_.resize(Config::nTracks);
-  simHitsInfo_.resize(Config::nTotHit * Config::nTracks);
+  simHitsInfo_.clear();
+  simHitsInfo_.reserve(Config::nTotHit * Config::nTracks);
+
   for (auto&& l : layerHits_) {
-    l.resize(Config::nTracks);  // thread safety
+    // XXMT4K can not assume each track will have hits in every layer ...
+    // WAS: l.resize(Config::nTracks);  // thread safety
+    l.clear();
+    l.reserve(Config::nTracks);
   }
   simTrackStates_.resize(Config::nTracks);
 
@@ -116,6 +124,7 @@ void Event::Simulate()
       SVector3 mom;
       SMatrixSym66 covtrk;
       HitVec hits;
+      MCHitInfoVec hitinfos;
       TSVec  initialTSs;
       // int starting_layer  = 0; --> for displaced tracks, may want to consider running a separate Simulate() block with extra parameters
 
@@ -123,7 +132,13 @@ void Event::Simulate()
       // do the simulation
       if (Config::useCMSGeom) setupTrackFromTextFile(pos,mom,covtrk,hits,*this,itrack,q,tmpgeom,initialTSs);
       else if (Config::endcapTest) setupTrackByToyMCEndcap(pos,mom,covtrk,hits,*this,itrack,q,tmpgeom,initialTSs);
-      else setupTrackByToyMC(pos,mom,covtrk,hits,*this,itrack,q,tmpgeom,initialTSs); 
+      else setupTrackByToyMC(pos,mom,covtrk,hits,hitinfos,*this,itrack,q,tmpgeom,initialTSs); 
+
+      // XXMT4K What genius set up separate setupTrackByToyMC / setupTrackByToyMCEndcap?
+      // setupTrackByToyMCEndcap does not have scattering and who knows what else.
+      // In the original commit Giuseppe he only did fittest ... strangle ... etc ...
+      // I'll just review/fix setupTrackByToyMC() for now (so Config::endcapTest = false).
+      // See also ifdef just below:
 
 #ifdef CCSCOORD
       // setupTrackByToyMCEndcap is already in CCS coord, no need to convert
@@ -135,6 +150,10 @@ void Event::Simulate()
 	}
       }
 #endif
+      // XXMT4K: From here on we can always have overlapping cache lines.
+      // I'm putting in a mutex for now ...
+      std::lock_guard<std::mutex> lock(mcGatherMutex_);
+
       // uber ugly way of getting around read-in / write-out of objects needed for validation
       if (Config::normal_val || Config::fit_val) {simTrackStates_[itrack] = initialTSs;}
       validation_.collectSimTkTSVecMapInfo(itrack,initialTSs); // save initial TS parameters in validation object ... just a copy of the above line
@@ -142,16 +161,32 @@ void Event::Simulate()
       simTracks_[itrack] = Track(q,pos,mom,covtrk,0.0f);
       auto& sim_track = simTracks_[itrack];
       sim_track.setLabel(itrack);
-      for (int ilay = 0; ilay < hits.size(); ++ilay) {
-        sim_track.addHitIdx(hits[ilay].mcHitID(),0.0f); // set to the correct hit index after sorting
-        layerHits_[ilay][itrack] = hits[ilay];  // thread safety
+
+      // XXMT4K My attempt at rewriting the code below - not all layers are traversed with endcap.
+      // Note ... this still asusmes single hit per layer, right?
+      // What is the comment about thread safety??? The final index is on itrack and this will clash due to cache-line overlaps.
+      assert(hits.size() == hitinfos.size());
+      for (int i = 0; i < hits.size(); ++i)
+      {
+        sim_track.addHitIdx(hits[i].mcHitID(), 0.0f); // set to the correct hit index after sorting
+        layerHits_[hitinfos[i].layer_].emplace_back(hits[i]);
+        simHitsInfo_.emplace_back(hitinfos[i]);
       }
+      // for (int ilay = 0; ilay < hits.size(); ++ilay) {
+      //   sim_track.addHitIdx(hits[ilay].mcHitID(),0.0f); // set to the correct hit index after sorting
+      //   layerHits_[ilay][itrack] = hits[ilay];  // thread safety
+      // }
     }
 #ifdef TBB
   });
 #endif
+
+  std::sort(simHitsInfo_.begin(),   simHitsInfo_.end(),
+            [](const MCHitInfo& a, const MCHitInfo& b)
+            { return a.mcHitID_ < b.mcHitID_; });
 }
 
+// XXMT4K What does this do? Needs change?
 void Event::Segment()
 {
 #ifdef DEBUG
@@ -257,7 +292,7 @@ void Event::Segment()
   resetLayerHitMap(true);
 }
 
-  void Event::Seed()
+void Event::Seed()
 {
 #ifdef ENDTOEND
   buildSeedsByRoadSearch(seedTracks_,seedTracksExtra_,layerHits_,segmentMap_,*this);
@@ -291,7 +326,8 @@ void Event::Fit()
 #endif
 }
 
-void Event::Validate(){
+void Event::Validate()
+{
   // KM: Config tree just filled once... in main.cc
   if (Config::normal_val) {
     validation_.setTrackExtras(*this);

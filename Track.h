@@ -4,10 +4,11 @@
 #include "Hit.h"
 #include "Matrix.h"
 #include "Config.h"
+
 #include <vector>
 
 typedef std::pair<int,int> SimTkIDInfo;
-typedef std::vector<int> HitIdxVec;
+typedef std::vector<int>   HitIdxVec;
 
 inline int calculateCharge(const Hit & hit0, const Hit & hit1, const Hit & hit2){
   return ((hit2.y()-hit0.y())*(hit2.x()-hit1.x())>(hit2.y()-hit1.y())*(hit2.x()-hit0.x())?1:-1);
@@ -284,7 +285,7 @@ public:
 private:
   TrackState state_;
   float chi2_ = 0.;
-  int   hitIdxArr_[Config::nLayers];
+  int   hitIdxArr_[Config::nTotHit];
   int   hitIdxPos_ = -1;
   int   nGoodHitIdx_ =  0;
   int   label_       = -1;
@@ -324,5 +325,9 @@ typedef std::unordered_map<int,std::vector<int> > TkIDToTkIDVecMap;
 typedef std::unordered_map<int,TrackState>        TkIDToTSMap;   
 typedef std::unordered_map<int,TSVec>             TkIDToTSVecMap;
 typedef std::unordered_map<int,TSLayerPairVec>    TkIDToTSLayerPairVecMap;
+
+void print(const TrackState& s);
+void print(std::string label, int itrack, const Track& trk);
+void print(std::string label, const TrackState& s);
 
 #endif

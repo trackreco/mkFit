@@ -43,8 +43,13 @@ TrackState propagateLineToR(const TrackState& inputState, float r) {
   return result;
 }
 
-struct HelixState {
-  HelixState(TrackState& s, const bool useParamBfield = false) : state(s) {
+//==============================================================================
+
+struct HelixState
+{
+  HelixState(TrackState& s, const bool useParamBfield = false) :
+    state(s)
+  {
     setCoords(s.parameters);
     setHelixPar(s,useParamBfield);
   }
@@ -68,13 +73,13 @@ struct HelixState {
 
     //p=0.3Br => r=p/(0.3*B)
     k = charge*100./(-Config::sol*(useParamBfield?Config::BfieldFromZR(z,r0):Config::Bfield));
-    curvature = pt*k; //in cm
-    ctgTheta=pz/pt;
+    curvature = pt * k; //in cm
+    ctgTheta  = pz / pt;
 
     //variables to be updated at each iterations
     //derivatives initialized to value for first iteration, i.e. distance = r-r0in
-    dTDdx = r0>0. ? -x/r0 : 0.;
-    dTDdy = r0>0. ? -y/r0 : 0.;
+    dTDdx = r0 > 0. ? -x/r0 : 0.;
+    dTDdy = r0 > 0. ? -y/r0 : 0.;
     dTDdpx = 0.;
     dTDdpy = 0.;
   }
@@ -93,7 +98,10 @@ struct HelixState {
 
 void HelixState::updateHelix(float distance, bool updateDeriv, bool debug)
 {
+  // NOTE: Distance is sort-of radial distance (cord length, not curve).
+
   const float angPath = distance/curvature;
+
   dprint("angPath=" << angPath);
   const float cosAP = cos(angPath);
   const float sinAP = sin(angPath);
@@ -115,8 +123,8 @@ void HelixState::updateHelix(float distance, bool updateDeriv, bool debug)
       << " py: " << py*cosAP+px*sinAP
       << " pz: " << pz);
   
-  if (updateDeriv) {
-
+  if (updateDeriv)
+  {
     //update derivatives on total distance for next step, where totalDistance+=r-r0
     //now r0 depends on px and py
     const float r0inv = 1./r0;
@@ -143,31 +151,33 @@ void HelixState::updateHelix(float distance, bool updateDeriv, bool debug)
     dTDdpy -= r0inv*(x*dxdpy + y*dydpy);
   }
 
-  dprint(par.At(0) << " " << par.At(1) << " " << par.At(2) << std::endl
+  dprint(par.At(0) << " " << par.At(1) << " " << par.At(2) << "; r = " << std::hypot(par.At(0), par.At(1)) << std::endl
       << par.At(3) << " " << par.At(4) << " " << par.At(5));
 }
 
 void HelixState::propagateErrors(const HelixState& in, float totalDistance, bool debug)
 {
-  const float TD=totalDistance;
-  const float TP=totalDistance/curvature;
-  const float C=curvature;
+  // NOTE: Distance is sort-of radial distance (cord length, not curve).
+
+  const float TD = totalDistance;
+  const float TP = totalDistance/curvature;
+  const float C  = curvature;
 
 #ifdef DEBUG
   SVector6& par = state.parameters;
   dprint("TD=" << TD << " TP=" << TP << " arrived at r=" << sqrt(par.At(0)*par.At(0)+par.At(1)*par.At(1)));
 #endif
 
-  const float dCdpx = k*in.px/pt;
-  const float dCdpy = k*in.py/pt;
+  const float dCdpx  = k*in.px/pt;
+  const float dCdpy  = k*in.py/pt;
 
-  const float dTPdx = dTDdx/C;
-  const float dTPdy = dTDdy/C;
+  const float dTPdx  =  dTDdx/C;
+  const float dTPdy  =  dTDdy/C;
   const float dTPdpx = (dTDdpx*C - TD*dCdpx)/(C*C);
   const float dTPdpy = (dTDdpy*C - TD*dCdpy)/(C*C);
 
-  const float cosTP = cos(TP);
-  const float sinTP = sin(TP);
+  const float cosTP  = cos(TP);
+  const float sinTP  = sin(TP);
 
   //derive these to compute jacobian
   //x = xin + k*(pxin*sinTP-pyin*(1-cosTP));
@@ -214,14 +224,19 @@ void HelixState::propagateErrors(const HelixState& in, float totalDistance, bool
   dcall(dumpMatrix(state.errors));
 }
 
+//==============================================================================
+
 // helix propagation in steps along helix trajectory, several versions
 // for track with pT>=1 GeV this converges to the correct path lenght in <5 iterations
 // derivatives need to be updated at each iteration
 
 // Propagate to the next obj
 // each step travels for a path length equal to the safe step between the current position and the nearest object.
-TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom, const bool useParamBfield) {
-  bool debug = false;
+
+TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom,
+                                     const bool useParamBfield)
+{
+  bool debug = true;
 
   const HelixState hsin(inputState,useParamBfield);
   TrackState result(inputState);
@@ -238,9 +253,10 @@ TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom
   auto startSolid = geom.InsideWhat(UVector3(hsin.x,hsin.y,hsin.z));
 
   // have we scattered out of the solid?
-  if (hsin.r0 > 1.0 && !startSolid) {
+  if (hsin.r0 > 1.0 && ! startSolid)
+  {
     UVector3 here(hsin.x,hsin.y,hsin.z);
-    for ( int i = 0; i < Config::nLayers; ++i ) {
+    for ( int i = 0; i < Config::nTotalLayers; ++i ) {
       auto d = geom.Layer(i)->SafetyFromOutside(here, true);
       if (d < tolerance) {
         startSolid = geom.Layer(i);
@@ -256,16 +272,44 @@ TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom
     }
   }
 
+  // previous closest distance and solid
+  double prev_distance;
+  int    prev_solid;
+  int    skip_solid = geom.LayerOfSolid(startSolid);
 
-  for (unsigned int i=0;i<Config::Niter;++i) {
+  for (int i=0; i<Config::NiterSim; ++i)
+  {
     dprint("propagation iteration #" << i);
-    const float distance = std::max(geom.SafetyFromOutside(UVector3(hsout.x,hsout.y,hsout.z),true), tolerance);
+  redo_safety:
+    int    solid;
+    double distance = geom.SafetyFromOutside2(UVector3(hsout.x,hsout.y,hsout.z),
+                                              hsout.ctgTheta, skip_solid, solid, true);
+
+    distance = std::max(distance,
+                        geom.Layer(solid)->is_barrel_ ?
+                        tolerance : tolerance / std::abs(hsout.ctgTheta));
+
+    if (i > 0)
+    {
+      if (solid == prev_solid)
+      {
+        if (distance > prev_distance)
+        {
+          skip_solid = solid;
+          dprint("  repropagating with skipped layer " << solid);
+          goto redo_safety;
+        }
+      }
+    }
+    prev_distance = distance;
+    prev_solid    = solid;
+
     totalDistance += distance;
 
     dprint("r0=" << hsout.r0 << " pt=" << hsout.pt << std::endl
                  << "distance=" << distance);
 
-    const bool updateDeriv = i+1!=Config::Niter && hsout.r0>0.;
+    const bool updateDeriv = (i+1 != Config::NiterSim && hsout.r0 > 0.);
     hsout.updateHelix(distance, updateDeriv, debug);
     hsout.setCoords(hsout.state.parameters);
 
@@ -276,7 +320,7 @@ TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom
       break;
     }
 
-    if ( i == (Config::Niter-1) ) {
+    if ( i == (Config::NiterSim - 1) ) {
       std::cerr << __FILE__ << ":" << __LINE__ 
                 << ": failed to converge in propagateHelixToNextSolid() after " << (i+1) << " iterations, "
                 << distance 
@@ -289,6 +333,10 @@ TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom
   hsout.propagateErrors(hsin, totalDistance, debug);
   return hsout.state;
 }
+
+//==============================================================================
+
+// XXMT4K The following is only used in buildtest.cc, maybe obsolete?
 
 // Propagate to the next obj
 // each step travels for a path length equal to the safe step between the current position and the nearest object.

@@ -8,7 +8,8 @@
 
 class Event;
 
-void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVec& hits, Event& ev, 
+void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
+                       HitVec& hits, MCHitInfoVec& hitinfos, Event& ev, 
 		       int itrack, int& charge, const Geometry&, TSVec& initTSs);
 
 void setupTrackByToyMCEndcap(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk, HitVec& hits, Event& ev,

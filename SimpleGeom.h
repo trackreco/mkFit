@@ -55,8 +55,10 @@ class VUSolid
 public:
   enum EnumInside { eInside=0, eSurface=1, eOutside=2 }; 
 
-  VUSolid(double rin, double rout, double zmin, double zmax) :
-     rin_(rin), rout_(rout), zmin_(zmin), zmax_(zmax)
+  VUSolid(double rin, double rout, double zmin, double zmax,
+          bool is_barrel, bool is_outer) :
+    rin_(rin), rout_(rout), zmin_(zmin), zmax_(zmax),
+    is_barrel_(is_barrel), is_outer_(is_outer)
   {}
 
   EnumInside Inside (const UVector3 &aPoint) const;
@@ -64,10 +66,12 @@ public:
   double SafetyFromOutside(const UVector3 &aPoint, bool aAccurate=false) const;
   bool   Normal(const UVector3& aPoint, UVector3 &aNormal) const;
 
-  VUSolid* Clone() const {return new VUSolid(rin_, rout_, zmin_, zmax_);}
+  VUSolid* Clone() const {return new VUSolid(rin_, rout_, zmin_, zmax_, is_barrel_, is_outer_);}
 
-  double rin_, rout_;
+  double rin_,  rout_;
   double zmin_, zmax_;
+  bool   is_barrel_;
+  bool   is_outer_;
 };
 
 #endif

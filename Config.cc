@@ -2,6 +2,8 @@
 
 namespace Config
 {
+  TrackerInfo TrkInfo;
+
   int nTracks = 10000;
   int nEvents = 20;
 

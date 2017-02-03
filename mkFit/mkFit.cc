@@ -19,6 +19,8 @@
 
 #include "MaterialEffects.h"
 
+#include "CylCowWLids.h"
+
 #ifndef NO_ROOT
 #include "Validation.h"
 #endif
@@ -47,26 +49,41 @@ void initGeom(Geometry& geom)
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
   // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
-  float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
-  for (int l = 0; l < Config::nLayers; l++)
+
+  if ( ! Config::endcapTest && ! Config::useCMSGeom)
   {
-    if (Config::endcapTest)
+    // This is the new standalone case -- Cylindrical Cow with Lids
+    Create_TrackerInfo(Config::TrkInfo);
+#ifndef WITH_USOLIDS
+    geom.BuildFromTrackerInfo(Config::TrkInfo);
+#else
+    fprintf(stderr, "Cylindrical Cow with Lids only supported for SimpleGeometry.\n");
+    exit(1);
+#endif
+  }
+  else
+  {
+    float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
+    for (int l = 0; l < Config::nLayers; l++)
     {
-      float z = Config::useCMSGeom ? Config::cmsAvgZs[l] : (l+1)*10.;//Config::fLongitSpacing
-      float rmin = Config::useCMSGeom ? Config::cmsDiskMinRs[l] : 0;
-      float rmax = Config::useCMSGeom ? Config::cmsDiskMaxRs[l] : 0;
-      // XXXX MT: Do we need endcap layer "thickness" for cmssw at all? Use something.
-      // Do we even need geometry for cmssw?
-      float dz = 0.5;
-      VUSolid* utub = new VUSolid(rmin, rmax, z - dz, z + dz);
-      geom.AddLayer(utub, rmin, z);
-    }
-    else
-    {
-      float r = Config::useCMSGeom ? Config::cmsAvgRads[l] : (l+1)*Config::fRadialSpacing;
-      float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
-      VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent, -z, z);
-      geom.AddLayer(utub, r, z);
+      if (Config::endcapTest)
+      {
+        float z = Config::useCMSGeom ? Config::cmsAvgZs[l] : (l+1)*10.;//Config::fLongitSpacing
+        float rmin = Config::useCMSGeom ? Config::cmsDiskMinRs[l] : 0;
+        float rmax = Config::useCMSGeom ? Config::cmsDiskMaxRs[l] : 0;
+        // XXXX MT: Do we need endcap layer "thickness" for cmssw at all? Use equiv of fRadialExtent.
+        // Do we even need geometry for cmssw?
+        float dz = 0.005;
+        VUSolid* utub = new VUSolid(rmin, rmax, z - dz, z + dz, false, l + 1 == Config::nLayers);
+        geom.AddLayer(utub, rmin, z);
+      }
+      else
+      {
+        float r = Config::useCMSGeom ? Config::cmsAvgRads[l] : (l+1)*Config::fRadialSpacing;
+        float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
+        VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent, -z, z, true, l + 1 == Config::nLayers);
+        geom.AddLayer(utub, r, z);
+      }
     }
   }
 }
