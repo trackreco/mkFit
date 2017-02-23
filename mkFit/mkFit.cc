@@ -207,11 +207,11 @@ void test_standard()
          sizeof(Track), sizeof(Hit), sizeof(SVector3), sizeof(SMatrixSym33), sizeof(MCHitInfo));
   if (Config::useCMSGeom) {
     printf ("Using CMS-like geometry ");
-    if (Config::readCmsswSeeds) printf ("with CMSSW seeds \n");
+    if (Config::readCmsswSeeds) printf ("with CMSSW seeds\n");
     else printf ("with MC-truth seeds \n");
   } else if (Config::endcapTest) {
-    printf ("Test tracking in endcap, disks spacing 5 cm \n");
-  } else printf ("Using 4-cm spacing barrel geometry \n");
+    printf ("Test tracking in endcap, disks spacing 5 cm\n");
+  } else printf ("Using Cylindrical Cow with Lids, |eta| < 2.4\n");
 
   if (g_operation == "write") {
     generate_and_save_tracks();

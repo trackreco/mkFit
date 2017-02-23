@@ -1,12 +1,31 @@
 #include "CylCowWLids.h"
 
-#include "Config.h"
 #include "TrackerInfo.h"
 
 #include <cmath>
 
 namespace
 {
+  float getTheta(float r, float z)
+  {
+    return std::atan2(r,z);
+  }
+
+  float getEta(float r, float z)
+  {
+    return -1.0f * std::log( std::tan(getTheta(r,z)/2.0f) );
+  }
+
+  float getEta(float theta)
+  {
+    return -1.0f * std::log( std::tan(theta/2.0f) );
+  }
+
+  float getTgTheta(float eta)
+  {
+    return std::tan(2.0*std::atan(std::exp(-eta)));
+  }
+
   class CylCowWLidsCreator
   {
     TrackerInfo &m_trkinfo;
@@ -16,26 +35,6 @@ namespace
     int          m_n_barrel   = 10;
     int          m_n_endcap   =  9;
     int          m_first_ecap = 10;
-
-    inline float getTheta(float r, float z)
-    {
-      return std::atan2(r,z);
-    }
-
-    inline float getEta(float r, float z)
-    {
-      return -1.0f * std::log( std::tan(getTheta(r,z)/2.0f) );
-    }
-
-    inline float getEta(float theta)
-    {
-      return -1.0f * std::log( std::tan(theta/2.0f) );
-    }
-
-    inline float getTgTheta(float eta)
-    {
-      return std::tan(2.0*std::atan(std::exp(-eta)));
-    }
 
     //------------------------------------------------------------------------------
 
@@ -121,7 +120,10 @@ namespace
 
     void FillTrackerInfo()
     {
+      // Actual coverage for tracks with z = 3cm is 2.4
       float full_eta = 2.5;
+      float full_eta_pix_0 = 2.55; // To account for BS z-spread
+      float full_eta_ec_in[] = { 0, 2.525, 2.515 };
 
       float pix_0  =  4, pix_sep   = 6;
       float pix_z0 = 24, pix_zgrow = 6;
@@ -141,7 +143,7 @@ namespace
       for (int i = 0; i <  9; ++i) m_trkinfo.new_ecap_pos_layer();
       for (int i = 0; i <  9; ++i) m_trkinfo.new_ecap_neg_layer();
       
-      add_barrel_r_eta(0, pix_0, full_eta);
+      add_barrel_r_eta(0, pix_0, full_eta_pix_0);
 
       add_barrel_r_z  (1, pix_0 + 1 * pix_sep, pix_z0 + 1 * pix_zgrow);
       add_barrel_r_z  (2, pix_0 + 2 * pix_sep, pix_z0 + 2 * pix_zgrow);
@@ -156,7 +158,7 @@ namespace
         add_endcap(9 + i,
                    pix_0  + i * pix_sep   + pix_ec_rextra,
                    pix_z0 + i * pix_zgrow + pix_ec_zgap,
-                   full_eta);
+                   full_eta_ec_in[i]);
       }
       for (int i = 0; i < 7; ++i)
       {
@@ -172,15 +174,20 @@ namespace
 
 //==============================================================================
 
-void Create_TrackerInfo(TrackerInfo& ti)
+void Create_TrackerInfo(TrackerInfo& ti, bool verbose)
 {
   CylCowWLidsCreator creator(ti);
 
   creator.FillTrackerInfo();
 
-  printf("==========================================================================================\n");
+  if (verbose) {
+    printf("==========================================================================================\n");
+  }
   printf("CylCowWLids -- Create_TrackerInfo finished\n");
-  printf("==========================================================================================\n");
-  for (auto &i : ti.m_layers)  i.print_layer();
-  printf("==========================================================================================\n");
+
+  if (verbose) {
+    printf("==========================================================================================\n");
+    for (auto &i : ti.m_layers)  i.print_layer();
+    printf("==========================================================================================\n");
+  }
 }

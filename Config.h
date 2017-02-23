@@ -2,7 +2,7 @@
 #define _config_
 
 // Cram this in here for now ...
-#include "TrackerInfo.h"
+class TrackerInfo;
 
 #include <algorithm>
 #include <cmath>
@@ -148,7 +148,7 @@ namespace Config
   constexpr float maxSimPt = 10.;
 
   constexpr float minSimEta = 0.0; // XXMT4K Added min, too.
-  constexpr float maxSimEta = 2.4; // Should both become config vars?
+  constexpr float maxSimEta = 0.9;//2.4; // Should both become config vars?
 
   constexpr float hitposerrXY = 0.01; // resolution is 100um in xy --> more realistic scenario is 0.003
   constexpr float hitposerrZ  = 0.1; // resolution is 1mm in z

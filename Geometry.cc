@@ -107,6 +107,8 @@ Geometry Geometry::clone() const
 
 //==============================================================================
 
+#include "TrackerInfo.h"
+
 void Geometry::BuildFromTrackerInfo(const TrackerInfo& tracker_info)
 {
 #ifndef WITH_USOLIDS

@@ -6,6 +6,7 @@
 
 #include "Event.h"
 #include "EventTmp.h"
+#include "TrackerInfo.h"
 
 #include "MkFitter.h"
 
@@ -106,7 +107,8 @@ namespace
 MkBuilder::MkBuilder() :
   m_event(0),
   m_event_tmp(0),
-  m_event_of_hits(Config::nLayers)
+  // XXMT WAS m_event_of_hits(Config::nLayers)
+  m_event_of_hits(Config::TrkInfo)
 {
 }
 
@@ -163,7 +165,7 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
   {
     for (int ilay = layers.begin(); ilay < layers.end(); ++ilay)
     {
-      m_event_of_hits.SuckInHits(m_event->layerHits_[ilay], ilay);
+      m_event_of_hits.SuckInHits(ilay, m_event->layerHits_[ilay]);
     }
   });
 
@@ -623,9 +625,11 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
       tbb::parallel_for(tbb::blocked_range<int>(0,etabin_of_candidates.m_fill_index,Config::numSeedsPerTask), 
         [&](const tbb::blocked_range<int>& tracks)
       {
+        TrackerInfo &trk_info = Config::TrkInfo;
         std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
         
-        for (int itrack = tracks.begin(); itrack < tracks.end(); itrack += NN) {
+        for (int itrack = tracks.begin(); itrack < tracks.end(); itrack += NN)
+        {
           int end = std::min(itrack + NN, tracks.end());
 
           dprint(std::endl << "processing track=" << itrack << " etabin=" << ebin << " findex=" << etabin_of_candidates.m_fill_index);
@@ -633,12 +637,13 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
           mkfp->SetNhits(3);//just to be sure (is this needed?)
           mkfp->InputTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end, true);
 
-          //ok now we start looping over layers
-          //loop over layers, starting from after the seed
-          //consider inverting loop order and make layer outer, need to trade off hit prefetching with copy-out of candidates
-          for (int ilay = Config::nlayers_per_seed; ilay < Config::nLayers; ++ilay)
+          // Loop over layers, starting from after the seed.
+          // Consider inverting loop order and make layer outer, need to
+          // trade off hit prefetching with copy-out of candidates.
+          for (int ilay = trk_info.m_barrel[ Config::nlayers_per_seed ]; ; )
           {
             LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay];
+            LayerInfo   &layer_info    = trk_info.m_layers[ilay];
 
             // XXX This should actually be done in some other thread for the next layer while
             // this thread is crunching the current one.
@@ -660,13 +665,20 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
             mkfp->SetNhits(ilay + 1);  //here again assuming one hit per layer (is this needed?)
 
             //propagate to layer
-            if (ilay + 1 < Config::nLayers)
+            if ( ! layer_info.m_is_outer)
             {
               dcall(pre_prop_print(ilay, mkfp.get()));
-              mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay+1), end - itrack);
+
+              mkfp->PropagateTracksToR(trk_info.m_layers[layer_info.m_next_barrel].m_rin, end - itrack);
+
               dcall(post_prop_print(ilay, mkfp.get()));
             }
+            else
+            {
+              break;
+            }
 
+            ilay = layer_info.m_next_barrel;
           } // end of layer loop
           mkfp->OutputFittedTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end, true);
         }
@@ -718,18 +730,21 @@ void MkBuilder::FindTracksStandard()
       tbb::parallel_for(tbb::blocked_range<int>(0, etabin_of_comb_candidates.m_fill_index, std::min(Config::numSeedsPerTask, adaptiveSPT)), 
 	[&](const tbb::blocked_range<int>& seeds)
       {
+        TrackerInfo &trk_info = Config::TrkInfo;
+
 	const int start_seed = seeds.begin();
 	const int end_seed   = seeds.end();
 	const int nseeds     = end_seed - start_seed;
 
-	//ok now we start looping over layers
-	//loop over layers, starting from after the seed
-	for (int ilay = Config::nlayers_per_seed; ilay < Config::nLayers; ++ilay)
+        // Loop over layers, starting from after the seed.
+        bool is_first_layer = true;
+        for (int ilay = trk_info.m_barrel[ Config::nlayers_per_seed ]; ; )
 	{
+	  dprint("processing lay=" << ilay);
+	
 	  LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay];
-	
-	  dprint("processing lay=" << ilay+1);
-	
+          LayerInfo   &layer_info    = trk_info.m_layers[ilay];
+
 	  // prepare unrolled vector to loop over
 	  std::vector<std::pair<int,int> > seed_cand_idx;
 	
@@ -772,26 +787,25 @@ void MkBuilder::FindTracksStandard()
 	    //fixme find a way to deal only with the candidates needed in this thread
 	    mkfp->InputTracksAndHitIdx(etabin_of_comb_candidates.m_candidates,
 				       seed_cand_idx, itrack, end,
-				       ilay == Config::nlayers_per_seed);
+				       is_first_layer);
 
 	    //propagate to layer
-	    if (ilay > Config::nlayers_per_seed)
+	    if ( ! is_first_layer)
 	    {
-	      dcall(pre_prop_print(ilay, mkfp));
-	      mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
-	      dcall(post_prop_print(ilay, mkfp));
+	      dcall(pre_prop_print(ilay, mkfp.get()));
+	      mkfp->PropagateTracksToR(layer_info.m_rin, end - itrack);
+	      dcall(post_prop_print(ilay, mkfp.get()));
 	    }
 
 	    dprint("now get hit range");
 	    mkfp->SelectHitIndices(layer_of_hits, end - itrack);
-	  
+
 	  //#ifdef PRINTOUTS_FOR_PLOTS
 	  //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
 	  //#endif
-	    
+
 	    dprint("make new candidates");
 	    mkfp->FindCandidates(layer_of_hits, tmp_candidates, start_seed, end - itrack);
-	  
 	  } //end of vectorized loop
 
 	  // clean exceeding candidates per seed
@@ -836,8 +850,15 @@ void MkBuilder::FindTracksStandard()
 	      tmp_candidates[is].clear();
 	    }
 	  }
-	  
-	} // end of layer loop
+
+          if (layer_info.m_is_outer)
+          {
+            break;
+          }
+
+	  is_first_layer = false;
+          ilay = layer_info.m_next_barrel;
+        } // end of layer loop
 	
 	// final sorting
 	for (int iseed = start_seed; iseed < end_seed; ++iseed)
@@ -884,17 +905,23 @@ void MkBuilder::FindTracksCloneEngine()
 void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_candidates, CandCloner &cloner,
                                       MkFitter *mkfp, int start_seed, int end_seed, int ebin)
 {
-  auto n_seeds = end_seed - start_seed;
+  TrackerInfo &trk_info = Config::TrkInfo;
+  const int n_seeds = end_seed - start_seed;
 
   std::vector<std::pair<int,int>> seed_cand_idx;
   seed_cand_idx.reserve(n_seeds * Config::maxCandsPerSeed);
 
   cloner.begin_eta_bin(&etabin_of_comb_candidates, start_seed, n_seeds);
 
-  //loop over layers, starting from after the seeD
-  for (int ilay = Config::nlayers_per_seed; ilay <= Config::nLayers; ++ilay)
+  // Loop over layers, starting from after the seed.
+  // Note that we do a final pass with ilay = -1 to update parameters
+  // and output final tracks. prev_ilay == -1 serves as is_first_layer.
+  int prev_ilay = -1;
+  for (int ilay = trk_info.m_barrel[ Config::nlayers_per_seed ]; ; )
   {
-    dprint("processing lay=" << ilay+1);
+    dprint("processing lay=" << ilay);
+
+    LayerInfo &layer_info = trk_info.m_layers[ilay];
 
     //prepare unrolled vector to loop over
     for (int iseed = start_seed; iseed != end_seed; ++iseed)
@@ -915,7 +942,7 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
     // XXXX MT ??? How does this happen ???
     if (theEndCand == 0) continue;
 
-    if (ilay < Config::nLayers)
+    if (ilay >= 0)
     {
       cloner.begin_layer(ilay);
     }
@@ -936,8 +963,9 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
       dprintf("\n");
 #endif
 
-      // mkfp->SetNhits(ilay == Config::nlayers_per_seed ? ilay : ilay + 1);
-      mkfp->SetNhits(ilay);
+      mkfp->SetNhits(ilay >= 0 ? ilay : prev_ilay + 1); // XXXXMT HAKAHAKA
+      // mkfp->SetNhits(ilay); // XXXXMT -- also elsewhere in building
+      // XXXXMT should realy be increase N - hits !!!!
 
       mkfp->InputTracksAndHitIdx(etabin_of_comb_candidates.m_candidates,
                                  seed_cand_idx, itrack, end,
@@ -949,23 +977,24 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
       dprintf("\n");
 #endif
 
-      if (ilay > Config::nlayers_per_seed)
+      if (prev_ilay >= 0)
       {
-        LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay - 1];
+        LayerOfHits &prev_layer_of_hits = m_event_of_hits.m_layers_of_hits[prev_ilay];
 
-        mkfp->UpdateWithLastHit(layer_of_hits, end - itrack);
+        mkfp->UpdateWithLastHit(prev_layer_of_hits, end - itrack);
 
-        if (ilay < Config::nLayers)
+        if (ilay >= 0)
         {
           // Propagate to this layer
 
-          mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
+          mkfp->PropagateTracksToR(layer_info.m_rin, end - itrack);
 
 	  // copy_out the propagated track params, errors only (hit-idcs and chi2 already updated)
 	  mkfp->CopyOutParErr(etabin_of_comb_candidates.m_candidates,
 			      end - itrack, true);
 	} 
-	else {
+	else
+        {
 	  // copy_out the updated track params, errors only (hit-idcs and chi2 already updated)
 	  mkfp->CopyOutParErr(etabin_of_comb_candidates.m_candidates,
 			      end - itrack, false);
@@ -996,12 +1025,18 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
       cloner.end_iteration();
     } //end of vectorized loop
 
-    if (ilay < Config::nLayers)
+    if (ilay >= 0)
     {
       cloner.end_layer();
     }
+    else
+    {
+      break;
+    }
     seed_cand_idx.clear();
 
+    prev_ilay = ilay;
+    ilay      = layer_info.m_next_barrel;
   } // end of layer loop
 
   cloner.end_eta_bin();

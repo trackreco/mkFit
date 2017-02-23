@@ -111,7 +111,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
 
 void print(const TrackState& s)
 {
-  std::cout << " x:  " << s.parameters[0] 
+  std::cout << " x:  " << s.parameters[0]
             << " y:  " << s.parameters[1]
             << " z:  " << s.parameters[2] << std::endl
             << " px: " << s.parameters[3]

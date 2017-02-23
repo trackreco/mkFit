@@ -1,52 +1,48 @@
 #########
-Work plan
+Full detector tracking
 #########
 
-1. MkFitter::FindCandidatesMinimizeCopy() -- see comment XXXX MT FIXME in the
-   middle of index vector initialization loops.
-   In short - it's about supporting partial SlurpIn and masked intrinsics.
+0. Open issues:
+  a. Storing of hit indices into Track
+     Also -- MkFitter and arrays of full hits.
+     There is this mkfp->SetNhits() in every building layer loop.
+  b. Last seed layer should somhow be known to building functions.
 
-   Matriplex could have a MAX_N member that would be used for non-vectorized
-   code. I'm not super sure about that -- if we limit the loading of data and
-   then never read out the parts that were not used it costs us nothing (or
-   little) to do operations on whole vectors.
+1. Best-hit on x-1-10000-brl.raw
 
-2. Fix access of hits out of bunch_of_hits in FindCandidatesMinimizeCopy().
-   When we determine phi range for each track, this can oveflow over the end
-   of the array.
-   - Replace XHitBegin/XHitEnd with XHitPos/XHitSize
-   - Calculate them properly including phi wrap in SelectHitRanges()
-   - In FindCandidatesMinimizeCopy() wrap back the index vector.
+BEFORE:
+Building tracks with 'runBuildingTestPlexBestHit', total simtracks=10000
+found tracks=9215  in pT 10%=9163  in pT 20%=9195     no_mc_assoc=785
+  nH >= 80% =9111  in pT 10%=9106  in pT 20%=9111
 
-   Or, alternatively, copy a couple of front hits to the back.
-   Ouch, this is not so trivial, need to fix overrrun in the other direction,
-   too! Heh, I could always copy the last couple of hits to the front :)
-   No ... the first solution is fine!
+AFTER:
+Building tracks with 'runBuildingTestPlexBestHit', total simtracks=10000
+found tracks=9215  in pT 10%=9165  in pT 20%=9194     no_mc_assoc=785
+  nH >= 80% =9115  in pT 10%=9110  in pT 20%=9115
 
-   Note --- there is also the maxSize there counter + a hack limiting it to 25
-   there. We should also fix this properly, either by restricting the number
-   of phi bins or by killing the candidates whose errors get too big.
+2. Std
 
-3. Hand-made multi-threading for eta bins.
+BEFORE:
+Building tracks with 'runBuildingTestPlexStandard', total simtracks=10000
+found tracks=9977  in pT 10%=9969  in pT 20%=9974     no_mc_assoc=23
+  nH >= 80% =9972  in pT 10%=9968  in pT 20%=9971
 
-   Later, multi-threading over multiple events to fill all slots and to not
-   stall waiting for threads that take longer to process.
+AFTER:
+Building tracks with 'runBuildingTestPlexStandard', total simtracks=10000
+found tracks=9977  in pT 10%=9969  in pT 20%=9974     no_mc_assoc=23
+  nH >= 80% =9972  in pT 10%=9968  in pT 20%=9971
 
-   Note, current simulation produces higher occupancy at higher eta.
+3. Clone engine:
 
-   Once we have endcaps, the transition region will also become more
-   expensive.
+BEFORE:
+Building tracks with 'runBuildingTestPlexCloneEngine', total simtracks=10000
+found tracks=9977  in pT 10%=9969  in pT 20%=9974     no_mc_assoc=23
+  nH >= 80% =9972  in pT 10%=9968  in pT 20%=9971
 
-4. Attempt number two at prefetching in a service thread.
-
-5. Make MkFitter use a single array of hits, copy in as they are needed.
-   Now we have a fixed set of 10 hits ... this was done for final fitting so
-   we could copy in all the hits in the beginning.
-   Or, if it turns out this makes sense for fitting, separate MkFitter and
-   MkBuilder, optionally using a common MkBase.
-
-6. Implement write/read events for the new event/track/hit format.
-   Started doing this on glut.
+AFTER:
+Building tracks with 'runBuildingTestPlexCloneEngine', total simtracks=10000
+found tracks=9977  in pT 10%=9969  in pT 20%=9974     no_mc_assoc=23
+  nH >= 80% =9972  in pT 10%=9968  in pT 20%=9971
 
 
 #########

@@ -41,9 +41,11 @@ public:
 
   const Geometry& geom_;
   Validation& validation_;
- private:
+
+private:
   int evtID_;
- public:
+
+public:
   int threads_;
   std::mutex       mcGatherMutex_;
   std::atomic<int> mcHitIDCounter_;

@@ -115,8 +115,9 @@ void MkBuilderEndcap::begin_event(Event* ev, EventTmp* ev_tmp, const char* build
   //fill vector of hits in each layer
   for (int ilay = 0; ilay < m_event->layerHits_.size(); ++ilay)
   {
-    dprintf("Suck in Hits for layer %i with AvgZ=%5.1f rMin=%5.1f rMax=%5.1f",ilay,Config::cmsAvgZs[ilay],Config::cmsDiskMinRs[ilay],Config::cmsDiskMaxRs[ilay]);
-    m_event_of_hits.SuckInHitsEndcap(m_event->layerHits_[ilay], ilay);
+     // XXXX MT hackout
+     //dprintf("Suck in Hits for layer %i with AvgZ=%5.1f rMin=%5.1f rMax=%5.1f",ilay,Config::cmsAvgZs[ilay],Config::cmsDiskMinRs[ilay],Config::cmsDiskMaxRs[ilay]);
+     //m_event_of_hits.SuckInHitsEndcap(ilay, m_event->layerHits_[ilay]);
   }
 
   for (int l=0; l<m_event_of_hits.m_layers_of_hits.size(); ++l) {

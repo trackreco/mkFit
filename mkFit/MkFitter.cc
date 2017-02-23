@@ -702,8 +702,9 @@ void MkFitter::SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_pr
 
       dphi = nSigmaPhi * std::sqrt(std::abs(dphi2));
 
-      if (std::abs(dphi)<Config::minDPhi) dphi = Config::minDPhi;
-      if (std::abs(dz)<Config::minDZ) dz = Config::minDZ;
+      // XXXX MT: Where has this come from ... ???
+      if (std::abs(dphi) < Config::minDPhi) dphi = Config::minDPhi;
+      if (std::abs(dz)   < Config::minDZ)   dz   = Config::minDZ;
 
       if (Config::useCMSGeom)
       {
@@ -739,8 +740,8 @@ void MkFitter::SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_pr
     if (std::abs(dz)   > Config::m_max_dz)   dz   = Config::m_max_dz;
     if (std::abs(dphi) > Config::m_max_dphi) dphi = Config::m_max_dphi;
 
-    const int zb1 = L.GetZBinChecked(z - dz);
-    const int zb2 = L.GetZBinChecked(z + dz) + 1;
+    const int zb1 = L.GetQBinChecked(z - dz);
+    const int zb2 = L.GetQBinChecked(z + dz) + 1;
     const int pb1 = L.GetPhiBin(phi - dphi);
     const int pb2 = L.GetPhiBin(phi + dphi) + 1;
     // MT: The extra phi bins give us ~1.5% more good tracks at expense of 10% runtime.
@@ -1610,7 +1611,8 @@ void MkFitter::PropagateTracksToZ(float Z, const int N_proc)
                            Err[iP], Par[iP], N_proc);
 }
 
-void MkFitter::SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits, const int N_proc, bool dump)
+void MkFitter::SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits,
+                                      const int N_proc, bool dump)
 {
   const int   iI = iP;
   const float nSigmaPhi = 3;
@@ -1672,8 +1674,8 @@ void MkFitter::SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits, const in
     // if (std::abs(dz)   > Config::m_max_dz)   dz   = Config::m_max_dz;
     if (std::abs(dphi) > Config::m_max_dphi) dphi = Config::m_max_dphi;
 
-    const int rb1 = L.GetRBinChecked(r - dr);
-    const int rb2 = L.GetRBinChecked(r + dr) + 1;
+    const int rb1 = L.GetQBinChecked(r - dr);
+    const int rb2 = L.GetQBinChecked(r + dr) + 1;
     const int pb1 = L.GetPhiBin(phi - dphi);
     const int pb2 = L.GetPhiBin(phi + dphi) + 1;
     // MT: The extra phi bins give us ~1.5% more good tracks at expense of 10% runtime.

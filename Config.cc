@@ -1,5 +1,7 @@
 #include "Config.h"
 
+#include "TrackerInfo.h"
+
 namespace Config
 {
   TrackerInfo TrkInfo;
