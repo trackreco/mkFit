@@ -6,7 +6,6 @@
 #include "KalmanUtils.h"
 
 #include "HitStructures.h"
-#include "BinInfoUtils.h"
 
 #if USE_CUDA
 #include "FitterCU.h"
@@ -20,7 +19,8 @@
 class CandCloner;
 
 const int MPlexHitIdxMax = 16;
-typedef Matriplex::Matriplex<int, MPlexHitIdxMax, 1, NN> MPlexHitIdx;
+using MPlexHitIdx = Matriplex::Matriplex<int, MPlexHitIdxMax, 1, NN>;
+using MPlexQHoT   = Matriplex::Matriplex<HitOnTrack, 1, 1, NN>;
 
 struct MkFitter
 {
@@ -31,13 +31,14 @@ struct MkFitter
 
   MPlexQF Chi2;
 
-  MPlexHS msErr[Config::nLayers];
-  MPlexHV msPar[Config::nLayers];
+  MPlexHS msErr[Config::nMaxTrkHits];
+  MPlexHV msPar[Config::nMaxTrkHits];
 
   MPlexQI Label;  //this is the seed index in global seed vector (for MC truth match)
   MPlexQI SeedIdx;//this is the seed index in local thread (for bookkeeping at thread level)
   MPlexQI CandIdx;//this is the candidate index for the given seed (for bookkeeping of clone engine)
-  MPlexQI HitsIdx[Config::nLayers];
+
+  MPlexQHoT   HoTArr[Config::nMaxTrkHits];
 
   // Hold hit indices to explore at current layer.
   MPlexQI     XHitSize;
@@ -78,7 +79,7 @@ public:
 
   void InputTracksAndHits(const std::vector<Track>& tracks, const std::vector<HitVec>& layerHits, int beg, int end);
   void InputTracksAndHits(const std::vector<Track>& tracks, const std::vector<LayerOfHits>& layerHits, int beg, int end);
-  void SlurpInTracksAndHits(const std::vector<Track>&  tracks, const std::vector<HitVec>& layerHits, int beg, int end);
+  void SlurpInTracksAndHits(const std::vector<Track>& tracks, const std::vector<HitVec>& layerHits, int beg, int end);
   void InputTracksAndHitIdx(const std::vector<Track>& tracks,
                             int beg, int end, bool inputProp);
   void InputTracksAndHitIdx(const std::vector<std::vector<Track> >& tracks, const std::vector<std::pair<int,int> >& idxs,

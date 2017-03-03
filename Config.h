@@ -50,13 +50,9 @@ namespace Config
   // XXXX This needs to be generalized for other geometries !
   // TrackerInfo more or less has all this information (or could have it).
   constexpr int   nTotalLayers   = 28;
-  constexpr int   nMaxTrkLayers  = 19; // Assuming hitting every barrel / endcap edge
-  constexpr int   nBarrelLayers  = 10;
-  constexpr int    BarrelLayer0  =  0;
-  constexpr int   nECapLayers    =  9;
-  constexpr int    ECapPosLayer0 = 10;
-  constexpr int    ECapNegLayer0 = 19;
-  // min/max etas or thetas for EC-, T-, B, T+, EC+
+  constexpr int   nMaxSimHits    = 19; // Assuming dual hit on every barrel / endcap edge
+  constexpr int   nMaxRecHits    = 10; // Assuming single hit on each layer
+  constexpr int   nMaxTrkHits    = nMaxSimHits; // Used for array sizes in MkFitter and Track
 
   constexpr float fRadialSpacing   = 4.;
   constexpr float fRadialExtent    = 0.01;
@@ -147,8 +143,11 @@ namespace Config
   constexpr float minSimPt = 1;  // 0.5;
   constexpr float maxSimPt = 10.;
 
-  constexpr float minSimEta = 0.0; // XXMT4K Added min, too.
-  constexpr float maxSimEta = 0.9;//2.4; // Should both become config vars?
+  //constexpr float minSimEta = 0.0; // XXMT4K Added min, too.
+  //constexpr float maxSimEta = 0.9;//2.4; // Should both become config vars?
+  // ECAP TEST pz > 0 only -- commented out 50% pz sign flip in Simulation!!!!
+  constexpr float minSimEta = 1.4;
+  constexpr float maxSimEta = 2.4;
 
   constexpr float hitposerrXY = 0.01; // resolution is 100um in xy --> more realistic scenario is 0.003
   constexpr float hitposerrZ  = 0.1; // resolution is 1mm in z
@@ -160,7 +159,7 @@ namespace Config
   // XXMT4K OK ... what do we do with this guy? MaxTotHit / AvgTotHit ... ?
   // For now setting it to nMaxTrkLayers which is too big ... but it seems to be
   // only used for vector::reserve() ...
-  constexpr int nTotHit = Config::nMaxTrkLayers; // for now one hit per layer for sim
+  constexpr int nTotHit = Config::nMaxSimHits; // for now one hit per layer for sim
 
   // scattering simulation
   constexpr float X0 = 9.370; // cm, from http://pdg.lbl.gov/2014/AtomicNuclearProperties/HTML/silicon_Si.html // Pb = 0.5612 cm

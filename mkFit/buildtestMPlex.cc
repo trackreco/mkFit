@@ -4,7 +4,6 @@
 #include "KalmanUtils.h"
 #include "Propagation.h"
 #include "Simulation.h"
-#include "BinInfoUtils.h"
 
 #include "MkBuilder.h"
 

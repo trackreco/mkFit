@@ -5,7 +5,6 @@
 #include "seedtest.h"
 #include "buildtest.h"
 #include "fittest.h"
-#include "BinInfoUtils.h"
 #include "ConformalUtils.h"
 
 //#define DEBUG
@@ -50,11 +49,13 @@ void Event::resetLayerHitMap(bool resetSimHits) {
       layerHitMap_[hit.mcHitID()] = HitID(ilayer, index);
     }
   }
+  // XXXMT4K is this still necessary? Or maybe I scrwed up by doing the mapping below ...
   if (resetSimHits) {
     for (auto&& track : simTracks_) {
       for (int il = 0; il < track.nTotalHits(); ++il) {
-        assert(layerHitMap_[track.getHitIdx(il)].index >= 0); // tmp debug
-        track.setHitIdx(il, layerHitMap_[track.getHitIdx(il)].index);
+        HitID &hid = layerHitMap_[track.getHitIdx(il)];
+        assert(hid.index >= 0); // tmp debug
+        track.setHitIdx(il, hid.index, hid.layer);
       }
     }
   }
@@ -169,7 +170,8 @@ void Event::Simulate()
       assert(hits.size() == hitinfos.size());
       for (int i = 0; i < hits.size(); ++i)
       {
-        sim_track.addHitIdx(hits[i].mcHitID(), 0.0f); // set to the correct hit index after sorting
+        // set to the correct hit index after sorting
+        sim_track.addHitIdx(hits[i].mcHitID(), -128, 0.0f);
         layerHits_[hitinfos[i].layer_].emplace_back(hits[i]);
         simHitsInfo_.emplace_back(hitinfos[i]);
       }
@@ -524,7 +526,7 @@ void Event::read_in(FILE *fp, int version)
 	printf("hit #%i idx=%i\n",ih,simTracks_[it].getHitIdx(ih));
     }
   }
-
+  */
   printf("read %i layers\n",nl);
   for (int il = 0; il<nl; il++) {
     printf("read %i hits in layer %i\n",layerHits_[il].size(),il);
@@ -533,5 +535,4 @@ void Event::read_in(FILE *fp, int version)
     }
   }
   printf("read event done\n",nl);
-  */
 }

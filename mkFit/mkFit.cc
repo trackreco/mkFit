@@ -188,18 +188,6 @@ void close_simtrack_file()
 
 void test_standard()
 {
-  // ---- MT test eta bins
-  // int nb, b1, b2;
-  // for (float eta = -1.2; eta <= 1.2; eta += 0.01)
-  // {
-  //   nb = getBothEtaBins(eta, b1, b2);
-  //   printf("eta=%6.2f  bin=%3d  bin1=%3d  bin2=%3d nb=%d\n",
-  //          eta, getEtaBin(eta), b1, b2, nb);
-  // }
-
-  // return;
-  // ---- end MT test
-
   printf("Running test_standard(), operation=\"%s\"\n", g_operation.c_str());
   printf("  vusize=%d, num_th_sim=%d, num_th_finder=%d\n",
          MPT_SIZE, Config::numThreadsSimulation, Config::numThreadsFinder);

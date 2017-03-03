@@ -54,7 +54,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
       {
         const MkFitter::IdxChi2List &h2a = hitsForSeed[ih];
         cv.push_back( cands[ m_start_seed + is ][ h2a.trkIdx ] );
-        cv.back().addHitIdx(h2a.hitIdx, 0);
+        cv.back().addHitIdx(h2a.hitIdx, m_layer, 0);
         cv.back().setChi2(h2a.chi2);
       }
 

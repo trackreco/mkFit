@@ -1,5 +1,5 @@
 #include "Propagation.h"
-//#define DEBUG
+#define DEBUG
 #include "Debug.h"
 
 const double tolerance = 0.001;
@@ -249,7 +249,7 @@ TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom
 #endif
   dprint("curvature=" << hsin.curvature);
 
-  float totalDistance = 0;
+  double totalDistance = 0;
   auto startSolid = geom.InsideWhat(UVector3(hsin.x,hsin.y,hsin.z));
 
   // have we scattered out of the solid?
@@ -277,7 +277,7 @@ TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom
   int    prev_solid;
   int    skip_solid = geom.LayerOfSolid(startSolid);
 
-  for (int i=0; i<Config::NiterSim; ++i)
+  for (int i = 0; i < Config::NiterSim; ++i)
   {
     dprint("propagation iteration #" << i);
   redo_safety:
@@ -316,7 +316,7 @@ TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom
     auto currentSolid = geom.InsideWhat(UVector3(hsout.x,hsout.y,hsout.z));
       dprint("Current solid = " << currentSolid);
     if (currentSolid && currentSolid != startSolid) {
-      dprint("Inside next solid");
+      dprint("Inside next solid, layer=" << geom.LayerOfSolid(currentSolid));
       break;
     }
 
@@ -340,8 +340,9 @@ TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom
 
 // Propagate to the next obj
 // each step travels for a path length equal to the safe step between the current position and the nearest object.
-TrackState propagateHelixToLayer(TrackState inputState, int layer, const Geometry& geom, const bool useParamBfield) {
-  bool debug = false;
+TrackState propagateHelixToLayer(TrackState inputState, int layer, const Geometry& geom, const bool useParamBfield)
+{
+  bool debug = true;
 
   const VUSolid* target = geom.Layer(layer);
 
@@ -401,7 +402,8 @@ TrackState propagateHelixToLayer(TrackState inputState, int layer, const Geometr
 // each step travels for a path lenght equal to delta r between the current position and the target radius. 
 // for track with pT>=1 GeV this converges to the correct path lenght in <5 iterations
 // derivatives need to be updated at each iteration
-TrackState propagateHelixToR(TrackState inputState, float r, const bool useParamBfield) {
+TrackState propagateHelixToR(TrackState inputState, float r, const bool useParamBfield)
+{
   bool debug = false;
 
   const HelixState hsin(inputState,useParamBfield);

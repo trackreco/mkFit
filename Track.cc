@@ -71,11 +71,14 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
 {
   std::vector<int> mctrack;
   auto hitIdx = trk.nTotalHits();
-  for (int ihit = 0; ihit < hitIdx; ++ihit){
+  for (int ihit = 0; ihit < hitIdx; ++ihit) {
     auto hitidx = trk.getHitIdx(ihit);
-    if ((hitidx >= 0) && (hitidx < layerHits[ihit].size())) {
-      auto mchitid = layerHits[ihit][hitidx].mcHitID();
-      dprint("trk.label()=" << trk.label() << " ihit=" << ihit << " trk.getHitIdx(ihit)=" << trk.getHitIdx(ihit) << " mchitid=" << mchitid << " globalHitInfo[mchitid].mcTrackID()=" << globalHitInfo[mchitid].mcTrackID());
+    auto hitlyr = trk.getHitLyr(ihit);
+    if ((hitidx >= 0) && (hitidx < layerHits[hitlyr].size())) {
+      auto mchitid = layerHits[hitlyr][hitidx].mcHitID();
+      dprint("trk.label()=" << trk.label() << " ihit=" << ihit
+             << " trk.getHitIdx(ihit)=" << hitidx << "trk.getHitLyr(ihit)" << hitlyr
+             << " mchitid=" << mchitid << " globalHitInfo[mchitid].mcTrackID()=" << globalHitInfo[mchitid].mcTrackID());
       mctrack.push_back(globalHitInfo[mchitid].mcTrackID());
     }
   }

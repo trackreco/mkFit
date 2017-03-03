@@ -11,7 +11,11 @@ inline float predz(const float z0, const float r0, const float z2, const float r
   return (predr-r0)*(z2-z0) / (r2-r0) + z0;
 }
 
-void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_extras, Event& ev){
+void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_extras, Event& ev)
+{
+  fprintf(stderr, "__FILE__::__LINE__ Needs fixing for B/E support, search for XXMT4K\n");
+  exit(1);
+
 #ifdef DEBUG
   bool debug(true);
 #endif
@@ -57,9 +61,10 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, T
     }
     ev.validation_.collectSeedTkTSLayerPairVecMapInfo(itrack,updatedStates); // use to collect position pull info
 
-    Track seed(updatedState,0.0f,itrack,Config::nlayers_per_seed,seedhits);//fixme chi2 (could use sumchi2)
-    dprint("created seed track # " << itrack << " par=" << seed.parameters());
-    evt_seed_tracks.push_back(seed);
+    // XXMT4K: Here will need layer indices, too now.
+    // XX Track seed(updatedState,0.0f,itrack,Config::nlayers_per_seed,seedhits);//fixme chi2 (could use sumchi2)
+    // XX dprint("created seed track # " << itrack << " par=" << seed.parameters());
+    // XX evt_seed_tracks.push_back(seed);
     evt_seed_extras.emplace_back(itrack); 
   }
 }
@@ -218,7 +223,11 @@ void buildSeedsByRoadTriplets(TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed
 }
 
 void buildSeedsByRoadSearch(TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_extras, 
-			    const std::vector<HitVec>& evt_lay_hits, const BinInfoMap& segmentMap, Event& ev){
+			    const std::vector<HitVec>& evt_lay_hits, const BinInfoMap& segmentMap, Event& ev)
+{
+  fprintf(stderr, "__FILE__::__LINE__ Needs fixing for B/E support, search for XXMT4K\n");
+  exit(1);
+
   // use this to initialize tracks
   const TrackState dummystate;
 
@@ -294,13 +303,14 @@ void buildSeedsByRoadSearch(TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_e
 	
 	// create a track object
 	int hitIndices[3] = {ihit0,ihit1,ihit2};
-	Track seed(dummystate,0.0f,seedID,Config::nlayers_per_seed,hitIndices); // argh! super not type-safe with dummystate
+        // XXMT4K: Here will need layer indices, too now.
+	// XX Track seed(dummystate,0.0f,seedID,Config::nlayers_per_seed,hitIndices); // argh! super not type-safe with dummystate
 
 	// estimate and set the charge
-	seed.setCharge(calculateCharge(hit0,hit1,hit2));
+	// XX seed.setCharge(calculateCharge(hit0,hit1,hit2));
 
 	// save the track and track extra
-	evt_seed_tracks.push_back(seed);
+	// XX evt_seed_tracks.push_back(seed);
 	evt_seed_extras.emplace_back(seedID);
 
 	// increment dummy counter for seedID
@@ -550,7 +560,11 @@ void filterHitTripletsByRZChi2(const std::vector<HitVec>& evt_lay_hits, const Tr
 }
 
 void buildSeedsFromTriplets(const std::vector<HitVec>& evt_lay_hits, const TripletIdxVec& filtered_triplets, 
-			    TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_extras, Event& ev){
+			    TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_extras, Event& ev)
+{
+  fprintf(stderr, "__FILE__::__LINE__ Needs fixing for B/E support, search for XXMT4K\n");
+  exit(1);
+
   // now perform kalman fit on seeds --> first need initial parameters --> get from Conformal fitter!
   unsigned int seedID = 0;
   for(auto&& hit_triplet : filtered_triplets){
@@ -571,7 +585,8 @@ void buildSeedsFromTriplets(const std::vector<HitVec>& evt_lay_hits, const Tripl
 
     TSLayerPairVec updatedStates; // validation for position pulls
     float sumchi2 = 0;
-    for (auto ilayer=0;ilayer<Config::nlayers_per_seed;++ilayer) {
+    for (auto ilayer = 0; ilayer < Config::nlayers_per_seed; ++ilayer)
+    {
       const Hit& seed_hit = evt_lay_hits[ilayer][hit_triplet[ilayer]];
       TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
       if (Config::super_debug) { ev.validation_.collectPropTSLayerVecInfo(ilayer,propState); }
@@ -591,8 +606,9 @@ void buildSeedsFromTriplets(const std::vector<HitVec>& evt_lay_hits, const Tripl
     ev.validation_.collectSeedTkTSLayerPairVecMapInfo(seedID,updatedStates); // use to collect position pull info
 
     int hitIndices[3] = {hit_triplet[0],hit_triplet[1],hit_triplet[2]};
-    Track seed(updatedState,sumchi2,seedID,Config::nlayers_per_seed,hitIndices);//fixme chi2
-    evt_seed_tracks.push_back(seed);
+    // XXMT4K: Here will need layer indices, too now.
+    // XX Track seed(updatedState, sumchi2, seedID, Config::nlayers_per_seed, hitIndices);//fixme chi2
+    // XX evt_seed_tracks.push_back(seed);
     evt_seed_extras.emplace_back(seedID);
     seedID++; // increment dummy counter for seedID
   }

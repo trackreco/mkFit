@@ -116,20 +116,21 @@ class Track
 public:
   Track() {}
 
-  Track(const TrackState& state, float chi2, int label, int nHits, const int* hitIdxArr) :
+  Track(const TrackState& state, float chi2, int label, int nHits, const HitOnTrack* hits) :
     state_(state),
     chi2_(chi2),
     label_(label)
   {
     for (int h = 0; h < nHits; ++h)
     {
-      addHitIdx(hitIdxArr[h],0.0f);
+      addHitIdx(hits[h].index, hits[h].layer, 0.0f);
     }
-    for (int h = nHits; h < Config::nLayers; ++h){
-      setHitIdx(h,-1);
+    for (int h = nHits; h < Config::nMaxTrkHits; ++h)
+    {
+      setHitIdx(h, -1, -1);
     }
   }
-  
+
   Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, float chi2) :
     state_(charge, position, momentum, errors), chi2_(chi2) {}
 
@@ -172,8 +173,8 @@ public:
   float px()     const { return state_.px();}
   float py()     const { return state_.py();}
   float pz()     const { return state_.pz();}
-  float pT()     const { return state_.pT(); }
-  float p()     const { return state_.p(); }
+  float pT()     const { return state_.pT();}
+  float p()      const { return state_.p(); }
   float momPhi() const { return state_.momPhi(); }
   float momEta() const { return state_.momEta(); }
 
@@ -186,9 +187,10 @@ public:
   const HitVec hitsVector(const std::vector<HitVec>& globalHitVec) const 
   {
     HitVec hitsVec;
-    for (int ihit = 0; ihit < Config::nLayers ; ++ihit){
-      if (hitIdxArr_[ihit] >= 0){
-        hitsVec.push_back( globalHitVec[ihit][ hitIdxArr_[ihit] ] );
+    for (int ihit = 0; ihit < Config::nMaxTrkHits; ++ihit) {
+      const HitOnTrack &hot = hitsOnTrk_[ihit];
+      if (hot.index >= 0) {
+        hitsVec.push_back( globalHitVec[hot.layer][hot.index] );
       }
     }
     return hitsVec;
@@ -196,54 +198,71 @@ public:
 
   void mcHitIDsVec(const std::vector<HitVec>& globalHitVec, const MCHitInfoVec& globalMCHitInfo, std::vector<int>& mcHitIDs) const
   {
-    for (int ihit = 0; ihit <= hitIdxPos_; ++ihit){
-      if ((hitIdxArr_[ihit] >= 0) && (hitIdxArr_[ihit] < globalHitVec[ihit].size()))
+    for (int ihit = 0; ihit <= hitIdxPos_; ++ihit) {
+      const HitOnTrack &hot = hitsOnTrk_[ihit];
+      if ((hot.index >= 0) && (hot.index < globalHitVec[hot.layer].size()))
       {
-        mcHitIDs.push_back(globalHitVec[ihit][hitIdxArr_[ihit]].mcTrackID(globalMCHitInfo));
-	//globalMCHitInfo[globalHitVec[ihit][hitIdxArr_[ihit]].mcHitID()].mcTrackID());
+        mcHitIDs.push_back(globalHitVec[hot.layer][hot.index].mcTrackID(globalMCHitInfo));
+	//globalMCHitInfo[globalHitVec[hot.layer][hot.index].mcHitID()].mcTrackID());
       }
       else 
       {
-	mcHitIDs.push_back(hitIdxArr_[ihit]);
+	mcHitIDs.push_back(hot.index);
       }
     }
   }
 
   CUDA_CALLABLE
-  void addHitIdx(int hitIdx,float chi2)
+  void addHitIdx(int hitIdx, int hitLyr, float chi2)
   {
-    hitIdxArr_[++hitIdxPos_] = hitIdx;
+    hitsOnTrk_[++hitIdxPos_] = { hitIdx, hitLyr };
     if (hitIdx >= 0) { ++nGoodHitIdx_; chi2_+=chi2; }
   }
+
+  void addHitIdx(const HitOnTrack &hot, float chi2)
+  {
+    hitsOnTrk_[++hitIdxPos_] = hot;
+    if (hot.index >= 0) { ++nGoodHitIdx_; chi2_+=chi2; }
+  }
+
+  HitOnTrack getHitOnTrack(int posHitIdx) const { return hitsOnTrk_[posHitIdx]; }
 
   CUDA_CALLABLE
   int getHitIdx(int posHitIdx) const
   {
-    return hitIdxArr_[posHitIdx];
+    return hitsOnTrk_[posHitIdx].index;
+  }
+  int getHitLyr(int posHitIdx) const
+  {
+    return hitsOnTrk_[posHitIdx].layer;
   }
 
   int getLastHitIdx() const
   {
-    return hitIdxArr_[hitIdxPos_];
+    return hitsOnTrk_[hitIdxPos_].index;
+  }
+  int getLastHitLayer() const
+  {
+    return hitsOnTrk_[hitIdxPos_].layer;
   }
 
-  const int* getHitIdxArray() const { return hitIdxArr_; }
+  const HitOnTrack* getHitsOnTrackArray() const { return hitsOnTrk_; }
 
   void fillEmptyLayers() {
-    for (int h = hitIdxPos_+1; h < Config::nLayers; h++){
-      setHitIdx(h,-1);
+    for (int h = hitIdxPos_ + 1; h < Config::nMaxTrkHits; h++) {
+      setHitIdx(h, -1, -1);
     }
   }
 
   CUDA_CALLABLE
-  void setHitIdx(int posHitIdx, int newIdx) {
-    hitIdxArr_[posHitIdx] = newIdx;
+  void setHitIdx(int posHitIdx, int newIdx, int newLyr) {
+    hitsOnTrk_[posHitIdx] = { newIdx, newLyr };
   }
 
   void setNGoodHitIdx() {
     nGoodHitIdx_=0;
-    for (int i=0;i<= hitIdxPos_;i++) {
-      if (hitIdxArr_[i]>=0) nGoodHitIdx_++;
+    for (int i = 0; i <= hitIdxPos_; i++) {
+      if (hitsOnTrk_[i].index >= 0) nGoodHitIdx_++;
     }
   }
 
@@ -264,8 +283,8 @@ public:
   const std::vector<int> foundLayers() const { 
     std::vector<int> layers;
     for (int ihit = 0; ihit <= hitIdxPos_ ; ++ihit){
-      if (hitIdxArr_[ihit] >= 0) {
-        layers.push_back(ihit);
+      if (hitsOnTrk_[ihit].index >= 0) {
+        layers.push_back( hitsOnTrk_[ihit].layer );
       }
     }
     return layers;
@@ -280,18 +299,19 @@ public:
 
   void setState(const TrackState& newState) {state_=newState;}
 
-  Track clone() const { return Track(state_,chi2_,label_,nTotalHits(),hitIdxArr_); }
+  Track clone() const { return Track(state_,chi2_,label_,nTotalHits(),hitsOnTrk_); }
 
 private:
-  TrackState state_;
-  float chi2_ = 0.;
-  int   hitIdxArr_[Config::nTotHit];
-  int   hitIdxPos_ = -1;
-  int   nGoodHitIdx_ =  0;
-  int   label_       = -1;
+  TrackState    state_;
+  HitOnTrack    hitsOnTrk_[Config::nMaxTrkHits];
+  float         chi2_ = 0.;
+  int           hitIdxPos_   = -1;
+  int           nGoodHitIdx_ =  0;
+  int           label_       = -1;
 };
 
-class TrackExtra {
+class TrackExtra
+{
 public:
   TrackExtra() : seedID_(std::numeric_limits<int>::max()) {}
   TrackExtra(int seedID) : seedID_(seedID) {}
@@ -302,6 +322,7 @@ public:
   int duplicateID() const {return duplicateID_;}
   void setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo);
   void setMCDuplicateInfo(int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
+
 private:
   friend class Track;
   int mcTrackID_;

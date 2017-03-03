@@ -4,6 +4,7 @@
 
 #include "Event.h"
 #include "EventTmp.h"
+#include "TrackerInfo.h"
 
 #include "MkFitter.h"
 
@@ -138,10 +139,13 @@ inline void MkBuilderEndcap::fit_one_seed_set_endcap(TrackVec& seedtracks, int i
   if (Config::cf_seeding) mkfp->ConformalFitTracks(false, itrack, end);
   if (Config::readCmsswSeeds==false) mkfp->FitTracks(end - itrack, m_event);
 
-  const int ilay = Config::nlayers_per_seed; // layer 3, we ignore PXB1
+  // OLD GC: const int ilay = Config::nlayers_per_seed; // layer 3, we ignore PXB1
+  TrackerInfo &trk_info = Config::TrkInfo;
+  int last_seed_layer = seedtracks[itrack].getLastHitLayer();
+  int ilay            = trk_info.m_layers[ last_seed_layer ].m_next_ecap_pos; // XXXXMT pos/neg
 
   dcall(pre_prop_print(ilay, mkfp));
-  mkfp->PropagateTracksToZ(m_event->geom_.zPlane(ilay), end - itrack);
+  mkfp->PropagateTracksToZ(trk_info.m_layers[ilay].m_zmin, end - itrack); //XXXXMT zmin/zmax
   dcall(post_prop_print(ilay, mkfp));
 
   mkfp->OutputFittedTracksAndHitIdx(m_event->seedTracks_, itrack, end, true);
@@ -178,29 +182,36 @@ void MkBuilderEndcap::FindTracksBestHit(EventOfCandidates& event_of_cands)
   tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEtaBin),
     [&](const tbb::blocked_range<int>& ebins)
   {
-    for (int ebin = ebins.begin(); ebin != ebins.end(); ++ebin) {
+    for (int ebin = ebins.begin(); ebin != ebins.end(); ++ebin)
+    {
       EtaBinOfCandidates& etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin];
 
       tbb::parallel_for(tbb::blocked_range<int>(0,etabin_of_candidates.m_fill_index,Config::numSeedsPerTask),
         [&](const tbb::blocked_range<int>& tracks)
       {
+        TrackerInfo &trk_info = Config::TrkInfo;
         std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
 
-        for (int itrack = tracks.begin(); itrack < tracks.end(); itrack += NN) {
+        int last_seed_layer = etabin_of_candidates.m_candidates[ tracks.begin() ].getLastHitLayer();
+        int first_layer     = trk_info.m_layers[ last_seed_layer ].m_next_ecap_pos; // XXXXMT
+
+        for (int itrack = tracks.begin(); itrack < tracks.end(); itrack += NN)
+        {
           int end = std::min(itrack + NN, tracks.end());
 
           dprint(std::endl << "processing track=" << itrack << " etabin=" << ebin << " findex=" << etabin_of_candidates.m_fill_index);
 
-          mkfp->SetNhits(Config::nlayers_per_seed);//just to be sure (is this needed?)
+          mkfp->SetNhits(Config::nlayers_per_seed); // Could also count hits in first seed
           mkfp->InputTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end, true);
 
           //ok now we start looping over layers
           //loop over layers, starting from after the seed
           //consider inverting loop order and make layer outer, need to trade off hit prefetching with copy-out of candidates
-          for (int ilay = Config::nlayers_per_seed; ilay < Config::nLayers; ++ilay)
+          for (int ilay = first_layer; ; )
           {
 	    dprintf("processing layer %i\n",ilay);
             LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay];
+            LayerInfo   &layer_info    = trk_info.m_layers[ilay];
 
             // XXX This should actually be done in some other thread for the next layer while
             // this thread is crunching the current one.
@@ -222,13 +233,23 @@ void MkBuilderEndcap::FindTracksBestHit(EventOfCandidates& event_of_cands)
             mkfp->SetNhits(ilay + 1);  //here again assuming one hit per layer (is this needed?)
 
             //propagate to layer
-            if (ilay + 1 < Config::nLayers)
+            if ( ! layer_info.m_is_outer)
             {
               dcall(pre_prop_print(ilay, mkfp.get()));
-              mkfp->PropagateTracksToZ(m_event->geom_.zPlane(ilay+1), end - itrack);
+
+              //mkfp->PropagateTracksToZ(m_event->geom_.zPlane(ilay+1), end - itrack);
+
+              // XXXXMT ecap_pos / neg, zmin / zmax
+              mkfp->PropagateTracksToR(trk_info.m_layers[layer_info.m_next_ecap_pos].m_zmin, end - itrack);
+
               dcall(post_prop_print(ilay, mkfp.get()));
             }
+            else
+            {
+              break;
+            }
 
+            ilay = layer_info.m_next_ecap_pos; // XXXXMT
           } // end of layer loop
           mkfp->OutputFittedTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end, true);
         }

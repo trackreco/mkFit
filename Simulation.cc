@@ -44,7 +44,8 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
 
   float eta = Config::minSimEta + (Config::maxSimEta - Config::minSimEta) * g_unif(g_gen);
   float pz  = pt*(1./(std::tan(2*std::atan(std::exp(-eta)))));
-  if (g_unif(g_gen) > 0.5) pz *= -1.;
+  // XXXXMT Commented this out to get ecap_pos only !!!!
+  //if (g_unif(g_gen) > 0.5) pz *= -1.;
   dprint("pz="<<pz<<", eta="<<eta);
 #else
   // generate flat in pz

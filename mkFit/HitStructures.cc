@@ -1,15 +1,16 @@
 #include "HitStructures.h"
-#include "BinInfoUtils.h"
+
 #include "TrackerInfo.h"
 
 #include "Ice/IceRevisitedRadix.h"
 
-void LayerOfHits::SetupLayer(float qmin, float qmax, float dq, bool is_barrel)
+void LayerOfHits::SetupLayer(float qmin, float qmax, float dq, int layer, bool is_barrel)
 {
   // XXXX MT: Could have n_phi bins per layer, too.
 
   assert (m_nq == 0 && "SetupLayer() already called.");
 
+  m_layer_id  = layer;
   m_is_barrel = is_barrel;
 
   // Realign qmin/max on "global" dq boundaries.
@@ -294,13 +295,15 @@ EventOfHits::EventOfHits(TrackerInfo &trk_inf) :
     {
       // printf("EventOfHits::EventOfHits setting up layer %2d as barrel\n", li.m_layer_id);
 
-      m_layers_of_hits[li.m_layer_id].SetupLayer(li.m_zmin, li.m_zmax, bin_width, li.m_is_barrel);
+      m_layers_of_hits[li.m_layer_id].SetupLayer(li.m_zmin, li.m_zmax, bin_width,
+                                                 li.m_layer_id, li.m_is_barrel);
     }
     else
     {
       // printf("EventOfHits::EventOfHits setting up layer %2d as endcap\n", li.m_layer_id);
 
-      m_layers_of_hits[li.m_layer_id].SetupLayer(li.m_rin, li.m_rout, bin_width, li.m_is_barrel);
+      m_layers_of_hits[li.m_layer_id].SetupLayer(li.m_rin, li.m_rout, bin_width,
+                                                 li.m_layer_id, li.m_is_barrel);
     }
   }
 }

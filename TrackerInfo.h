@@ -55,6 +55,8 @@ public:
   std::vector<int>       m_ecap_pos;
   std::vector<int>       m_ecap_neg;
 
+  float       m_eta_trans_beg, m_eta_trans_end, m_eta_max;
+
   LayerInfo & new_barrel_layer()   { m_barrel  .push_back( new_layer() ); return m_layers.back(); }
   LayerInfo & new_ecap_pos_layer() { m_ecap_pos.push_back( new_layer() ); return m_layers.back(); }
   LayerInfo & new_ecap_neg_layer() { m_ecap_neg.push_back( new_layer() ); return m_layers.back(); }

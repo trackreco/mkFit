@@ -61,8 +61,6 @@ public:
   {
     m_layer = lay;
 
-    // m_fitter->SetNhits(m_layer);//here again assuming one hit per layer
-
     m_idx_max      = 0;
     m_idx_max_prev = 0;
 
@@ -164,8 +162,6 @@ public:
   std::vector<std::vector<MkFitter::IdxChi2List>> m_hits_to_add;
 
   EtaBinOfCombCandidates *mp_etabin_of_comb_candidates;
-
-  // MkFitter               *m_fitter;
 
 #if defined(CC_TIME_ETA) or defined(CC_TIME_LAYER)
   double    t_eta, t_lay;

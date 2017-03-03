@@ -17,7 +17,8 @@ class TrackerInfo;
 //
 // Run root test/CylCowWLids.C to get a plot and dumps of
 // edge coordinates and etas.
-
+//
+// Eta partitions for B / T / EC
 
 // This could be translated into plugin
 

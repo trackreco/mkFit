@@ -37,7 +37,7 @@ int MkFitter::countValidHits(int itrack, int end_hit) const
   int result = 0;
   for (int hi = 0; hi < end_hit; ++hi)
     {
-      if (HitsIdx[hi](itrack, 0, 0) >= 0) result++;
+      if (HoTArr[hi](itrack, 0, 0).index >= 0) result++;
     }
   return result;
 }
@@ -48,7 +48,7 @@ int MkFitter::countInvalidHits(int itrack, int end_hit) const
   for (int hi = 0; hi < end_hit; ++hi)
     {
       // XXXX MT: Should also count -2 hits as invalid?
-      if (HitsIdx[hi](itrack, 0, 0) == -1) result++;
+      if (HoTArr[hi](itrack, 0, 0).index == -1) result++;
     }
   return result;
 }
@@ -95,12 +95,12 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
 //#ifndef USE_CUDA
     for (int hi = 0; hi < Nhits; ++hi)
     {
+      HoTArr[hi](itrack, 0, 0) = trk.getHitOnTrack(hi);
+
       const int hidx = trk.getHitIdx(hi);
+      if (hidx < 0) continue;
+
       const Hit &hit = layerHits[hi][hidx];
-
-      HitsIdx[hi](itrack, 0, 0) = hidx;
-      if (hidx<0) continue;
-
       msErr[hi].CopyIn(itrack, hit.errArray());
       msPar[hi].CopyIn(itrack, hit.posArray());
     }
@@ -151,7 +151,8 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
 
       msErr[hi].CopyIn(itrack, hit.errArray());
       msPar[hi].CopyIn(itrack, hit.posArray());
-      HitsIdx[hi](itrack, 0, 0) = hidx;
+
+      HoTArr[hi](itrack, 0, 0) = trk.getHitOnTrack(hi);
     }
 #endif
   }
@@ -223,7 +224,7 @@ void MkFitter::SlurpInTracksAndHits(const std::vector<Track>&  tracks,
       const Hit  &hit  = layerHits[hi][hidx];
       itrack = i - beg;
       idx[itrack] = (char*) &hit - varr;
-      HitsIdx[hi](itrack, 0, 0) = hidx;
+      HoTArr[hi](itrack, 0, 0) = tracks[i].getHitOnTrack(hi);
     }
 
 #ifdef MIC_INTRINSICS
@@ -263,7 +264,7 @@ void MkFitter::InputTracksAndHitIdx(const std::vector<Track>& tracks,
 
     for (int hi = 0; hi < Nhits; ++hi)
     {
-      HitsIdx[hi](itrack, 0, 0) = trk.getHitIdx(hi);
+      HoTArr[hi](itrack, 0, 0) = trk.getHitOnTrack(hi);
     }
   }
 }
@@ -296,9 +297,7 @@ void MkFitter::InputTracksAndHitIdx(const std::vector<std::vector<Track> >& trac
 
     for (int hi = 0; hi < Nhits; ++hi)
     {
-
-      HitsIdx[hi](itrack, 0, 0) = trk.getHitIdx(hi);//dummy value for now
-
+      HoTArr[hi](itrack, 0, 0) = trk.getHitOnTrack(hi);
     }
   }
 }
@@ -346,11 +345,12 @@ void MkFitter::InputSeedsTracksAndHits(const std::vector<Track>&  seeds,
 #if 1
     for (int hi = 0; hi < Nhits; ++hi)
     {
-      const int hidx = trk.getHitIdx(hi);
-      HitsIdx[hi](itrack, 0, 0) = hidx;
-      if (hidx<0) continue;//fixme, check if this is harmless
-      const Hit &hit = layerHits[hi][hidx];
+      HoTArr[hi](itrack, 0, 0) = trk.getHitOnTrack(hi);
 
+      const int hidx = trk.getHitIdx(hi);
+      if (hidx < 0) continue; //fixme, check if this is harmless
+
+      const Hit &hit = layerHits[hi][hidx];
       msErr[hi].CopyIn(itrack, hit.errArray());
       msPar[hi].CopyIn(itrack, hit.posArray());
     }
@@ -367,12 +367,16 @@ void MkFitter::InputTracksForFit(const std::vector<Track>& tracks,
 {
   // Loads track parameters and hit indices.
 
+  // XXXXMT4K has Config::nLayers: How many hits do we read in?
+  // Check for max? Expect an argument?
+  // What to do with invalid hits? Skip?
+
   const int   N_proc     = end - beg;
   const Track &trk0      = tracks[beg];
   const char *varr       = (char*) &trk0;
   const int   off_error  = (char*) trk0.errors().Array() - varr;
   const int   off_param  = (char*) trk0.parameters().Array() - varr;
-  const int   off_hitidx = (char*) trk0.getHitIdxArray() - varr;
+  const int   off_hitidx = (char*) trk0.getHitsOnTrackArray() - varr;
 
   int idx[NN]      __attribute__((aligned(64)));
 
@@ -397,14 +401,14 @@ void MkFitter::InputTracksForFit(const std::vector<Track>& tracks,
   Par[iC].SlurpIn(varr + off_param, vi, N_proc);
   for (int ll = 0; ll < Config::nLayers; ++ll)
   {
-    HitsIdx[ll].SlurpIn(varr + off_hitidx + sizeof(int)*ll, vi, N_proc);
+    HoTArr[ll].SlurpIn(varr + off_hitidx + sizeof(int)*ll, vi, N_proc);
   }
 #else
   Err[iC].SlurpIn(varr + off_error, idx, N_proc);
   Par[iC].SlurpIn(varr + off_param, idx, N_proc);
   for (int ll = 0; ll < Config::nLayers; ++ll)
   {
-    HitsIdx[ll].SlurpIn(varr + off_hitidx + sizeof(int)*ll, idx, N_proc);
+    HoTArr[ll].SlurpIn(varr + off_hitidx + sizeof(int)*ll, idx, N_proc);
   }
 #endif
 }
@@ -418,18 +422,24 @@ void MkFitter::FitTracksWithInterSlurp(const std::vector<HitVec>& layersohits,
 
   int idx[NN]      __attribute__((aligned(64)));
 
-  for (int layer = 0; layer < Nhits; ++layer)
+  for (int ii = 0; ii < Nhits; ++ii)
   {
-    const Hit  &hit0      = layersohits[layer][0];
+    const Hit  &hit0      = layersohits[ii][0];
     const char *varr      = (char*) &hit0;
     const int   off_param = (char*) hit0.posArray() - varr;
     const int   off_error = (char*) hit0.errArray() - varr;
 
     for (int i = 0; i < N_proc; ++i)
     {
-      const int  hidx = HitsIdx[layer](i, 0, 0);
+      const int hidx = HoTArr[ii](i, 0, 0).index;
+      const int hlyr = HoTArr[ii](i, 0, 0).layer;
 
-      idx[i] = (char*) & layersohits[layer][hidx] - varr;
+      // XXXXMT4K What to do with hidx < 0 ????
+      // This could solve the unbalanced fit.
+      // Or, if the hidx is the "universal" missing hit, it could just work.
+      // Say, hidx = 0 ... grr ... but then we don't know it is missing.
+
+      idx[i] = (char*) & layersohits[hlyr][hidx] - varr;
     }
 
     // for (int i = N_proc; i < NN; ++i)  {  idx[i] = idx[0];  }
@@ -574,8 +584,8 @@ void MkFitter::FitTracksTestEndcap(const int N_proc, const Event* ev, const bool
     {
 
       //if starting from seed, skip seed hits in fit (note there are only two hits in seeds since pxb1 is removed upfront, at least for now)
-      if (Config::readCmsswSeeds && hi<2) continue;
-      if (HitsIdx[hi].ConstAt(0, 0, 0)<0) continue;
+      if (Config::readCmsswSeeds && hi < 2) continue;
+      if (HoTArr[hi].ConstAt(0, 0, 0).index < 0) continue;
 
       dprint("hit #" << hi << " hit  pos=" << msPar[hi].ConstAt(0, 0, 0) << ", " <<  msPar[hi].ConstAt(0, 0, 1) << ", " <<  msPar[hi].ConstAt(0, 0, 2));
 
@@ -656,7 +666,7 @@ void MkFitter::OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, 
     tracks[i].resetHits();
     for (int hi = 0; hi < Nhits; ++hi)
     {
-      tracks[i].addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);
+      tracks[i].addHitIdx(HoTArr[hi](itrack, 0, 0), 0.);
     }
   }
 }
@@ -963,7 +973,7 @@ void MkFitter::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc)
       msErr[Nhits].CopyIn(itrack, hit.errArray());
       msPar[Nhits].CopyIn(itrack, hit.posArray());
       Chi2(itrack, 0, 0) += chi2;
-      HitsIdx[Nhits](itrack, 0, 0) = bestHit[itrack];
+      HoTArr[Nhits](itrack, 0, 0) = { bestHit[itrack], layer_of_hits.m_layer_id };
     }
     else
     {
@@ -973,7 +983,7 @@ void MkFitter::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc)
       msPar[Nhits](itrack,0,0) = Par[iP](itrack,0,0);
       msPar[Nhits](itrack,1,0) = Par[iP](itrack,1,0);
       msPar[Nhits](itrack,2,0) = Par[iP](itrack,2,0);
-      HitsIdx[Nhits](itrack, 0, 0) = -1;
+      HoTArr[Nhits](itrack, 0, 0) = { -1, layer_of_hits.m_layer_id };
 
       // Don't update chi2
     }
@@ -1112,9 +1122,9 @@ void MkFitter::FindCandidates(const LayerOfHits &layer_of_hits,
 	    newcand.setChi2(Chi2(itrack, 0, 0));
 	    for (int hi = 0; hi < Nhits; ++hi)
 	    {
-	      newcand.addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);//this should be ok since we already set the chi2 above
+	      newcand.addHitIdx(HoTArr[hi](itrack, 0, 0),0.);//this should be ok since we already set the chi2 above
 	    }
-	    newcand.addHitIdx(XHitArr.At(itrack, hit_cnt, 0), chi2);
+	    newcand.addHitIdx(XHitArr.At(itrack, hit_cnt, 0), layer_of_hits.m_layer_id, chi2);
 	    newcand.setLabel(Label(itrack, 0, 0));
 	    //set the track state to the updated parameters
 	    Err[iC].CopyOut(itrack, newcand.errors_nc().Array());
@@ -1141,9 +1151,9 @@ void MkFitter::FindCandidates(const LayerOfHits &layer_of_hits,
     newcand.setChi2(Chi2(itrack, 0, 0));
     for (int hi = 0; hi < Nhits; ++hi)
     {
-      newcand.addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);//this should be ok since we already set the chi2 above
+      newcand.addHitIdx(HoTArr[hi](itrack, 0, 0),0.);//this should be ok since we already set the chi2 above
     }
-    newcand.addHitIdx(hit_idx, 0.);
+    newcand.addHitIdx(hit_idx, layer_of_hits.m_layer_id, 0.);
     newcand.setLabel(Label(itrack, 0, 0));
     //set the track state to the propagated parameters
     Err[iP].CopyOut(itrack, newcand.errors_nc().Array());
@@ -1276,9 +1286,9 @@ void MkFitter::FindCandidatesEndcap(const LayerOfHits &layer_of_hits,
 	    newcand.setChi2(Chi2(itrack, 0, 0));
 	    for (int hi = 0; hi < Nhits; ++hi)
 	    {
-	      newcand.addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);//this should be ok since we already set the chi2 above
+	      newcand.addHitIdx(HoTArr[hi](itrack, 0, 0), 0.);//this should be ok since we already set the chi2 above
 	    }
-	    newcand.addHitIdx(XHitArr.At(itrack, hit_cnt, 0), chi2);
+	    newcand.addHitIdx(XHitArr.At(itrack, hit_cnt, 0), layer_of_hits.m_layer_id, chi2);
 	    newcand.setLabel(Label(itrack, 0, 0));
 	    //set the track state to the updated parameters
 	    Err[iC].CopyOut(itrack, newcand.errors_nc().Array());
@@ -1300,6 +1310,7 @@ void MkFitter::FindCandidatesEndcap(const LayerOfHits &layer_of_hits,
   {
     int hit_idx = countInvalidHits(itrack) < Config::maxHolesPerCand ? -1 : -2;
     
+    // XXXXMT4K Grrrr ... this is cmssw specific, sigh
     bool withinBounds = true;
     float r2 = Par[iP](itrack,0,0)*Par[iP](itrack,0,0)+Par[iP](itrack,1,0)*Par[iP](itrack,1,0);
     if ( r2<(Config::cmsDiskMinRs[Nhits]*Config::cmsDiskMinRs[Nhits]) ||
@@ -1315,14 +1326,14 @@ void MkFitter::FindCandidatesEndcap(const LayerOfHits &layer_of_hits,
     newcand.setChi2(Chi2(itrack, 0, 0));
     for (int hi = 0; hi < Nhits; ++hi)
     {
-      newcand.addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);//this should be ok since we already set the chi2 above
+      newcand.addHitIdx(HoTArr[hi](itrack, 0, 0), 0.);//this should be ok since we already set the chi2 above
     }
-    newcand.addHitIdx(hit_idx, 0.);
+    newcand.addHitIdx(hit_idx, layer_of_hits.m_layer_id, 0.);
     newcand.setLabel(Label(itrack, 0, 0));
-      //set the track state to the propagated parameters
+    // set the track state to the propagated parameters
     Err[iP].CopyOut(itrack, newcand.errors_nc().Array());
     Par[iP].CopyOut(itrack, newcand.parameters_nc().Array());
-    tmp_candidates[SeedIdx(itrack, 0, 0)-offset].push_back(newcand);
+    tmp_candidates[SeedIdx(itrack, 0, 0) - offset].push_back(newcand);
   }
 }
 
@@ -1498,7 +1509,7 @@ void MkFitter::InputTracksAndHitIdx(const std::vector<std::vector<Track> >& trac
 
     for (int hi = 0; hi < Nhits; ++hi)
     {
-      HitsIdx[hi](itrack, 0, 0) = trk.getHitIdx(hi);//dummy value for now
+      HoTArr[hi](itrack, 0, 0) = trk.getHitOnTrack(hi);
     }
   }
 }
@@ -1506,9 +1517,11 @@ void MkFitter::InputTracksAndHitIdx(const std::vector<std::vector<Track> >& trac
 
 void MkFitter::UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc)
 {
+  // layer_of_hits is for previous layer!
+
   for (int i = 0; i < N_proc; ++i)
   {
-    int hit_idx = HitsIdx[Nhits - 1](i, 0, 0);
+    int hit_idx = HoTArr[Nhits - 1](i, 0, 0).index;
 
     if (hit_idx < 0) continue;
 
@@ -1527,7 +1540,7 @@ void MkFitter::UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc)
 
   for (int i = 0; i < N_proc; ++i)
   {
-    if (HitsIdx[Nhits - 1](i, 0, 0) < 0)
+    if (HoTArr[Nhits - 1](i, 0, 0).index < 0)
     {
       float tmp[21];
       Err[iP].CopyOut(i, tmp);
@@ -1542,7 +1555,7 @@ void MkFitter::UpdateWithLastHitEndcap(const LayerOfHits &layer_of_hits, int N_p
 {
   for (int i = 0; i < N_proc; ++i)
   {
-    int hit_idx = HitsIdx[Nhits - 1](i, 0, 0);
+    int hit_idx = HoTArr[Nhits - 1](i, 0, 0).index;
 
     if (hit_idx < 0) continue;
 
@@ -1561,7 +1574,7 @@ void MkFitter::UpdateWithLastHitEndcap(const LayerOfHits &layer_of_hits, int N_p
 
   for (int i = 0; i < N_proc; ++i)
   {
-    if (HitsIdx[Nhits - 1](i, 0, 0) < 0)
+    if (HoTArr[Nhits - 1](i, 0, 0).index < 0)
     {
       float tmp[21];
       Err[iP].CopyOut(i, tmp);
@@ -1590,8 +1603,7 @@ void MkFitter::CopyOutParErr(std::vector<std::vector<Track> >& seed_cand_vec,
               << " y=" << cand.parameters()[1]
               << " z=" << cand.parameters()[2]
               << " pt=" << 1./cand.parameters()[3]
-              << " posEta=" << cand.posEta()
-              << " etaBin=" << getEtaBin(cand.posEta()));
+              << " posEta=" << cand.posEta());
   }
 }
 
@@ -1890,7 +1902,7 @@ void MkFitter::AddBestHitEndcap(const LayerOfHits &layer_of_hits, const int N_pr
       msErr[Nhits].CopyIn(itrack, hit.errArray());
       msPar[Nhits].CopyIn(itrack, hit.posArray());
       Chi2(itrack, 0, 0) += chi2;
-      HitsIdx[Nhits](itrack, 0, 0) = bestHit[itrack];
+      HoTArr[Nhits](itrack, 0, 0) = { bestHit[itrack], layer_of_hits.m_layer_id };
     }
     else
     {
@@ -1914,7 +1926,7 @@ void MkFitter::AddBestHitEndcap(const LayerOfHits &layer_of_hits, const int N_pr
       msPar[Nhits](itrack,1,0) = Par[iP](itrack,1,0);
       msPar[Nhits](itrack,2,0) = Par[iP](itrack,2,0);
       //-3 means we did not expect any hit since we are out of bounds, so it does not count in countInvalidHits
-      HitsIdx[Nhits](itrack, 0, 0) = withinBounds ? -1 : -3;
+      HoTArr[Nhits](itrack, 0, 0) = { withinBounds ? -1 : -3, layer_of_hits.m_layer_id };
 
       // Don't update chi2
     }

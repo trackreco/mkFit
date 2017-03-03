@@ -1,7 +1,6 @@
 #include "buildtest.h"
 #include "KalmanUtils.h"
 #include "Propagation.h"
-#include "BinInfoUtils.h"
 #include "Event.h"
 //#define DEBUG
 #include "Debug.h"
@@ -270,7 +269,7 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
         const TrackState tmpUpdatedState = updateParameters(propState, hitMeas);
 	if (Config::super_debug) { ev.validation_.collectUpTSLayerVecInfo(ilayer,tmpUpdatedState); }
         Track tmpCand = tkcand.clone();
-        tmpCand.addHitIdx(cand_hit_idx,chi2);
+        tmpCand.addHitIdx(cand_hit_idx, ilayer, chi2);
         tmpCand.setState(tmpUpdatedState);
         tmp_candidates.push_back(tmpCand);
         branch_hit_indices.push_back(cand_hit_idx); // validation
@@ -281,7 +280,7 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   if (tkcand.nFoundHits()==ilayer && !Config::super_debug) {//only if this is the first missing hit and also not in super debug mode
     dprint("adding candidate with no hit");
     Track tmpCand = tkcand.clone();
-    tmpCand.addHitIdx(-1,0.0f);
+    tmpCand.addHitIdx(-1, ilayer, 0.0f);
     tmp_candidates.push_back(tmpCand);  // fix this once moving to fix indices
     branch_hit_indices.push_back(Config::nTracks); // since tracks go from 0-Config::nTracks -1, the ghost index is just the one beyond
   }

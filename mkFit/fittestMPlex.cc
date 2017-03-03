@@ -159,8 +159,6 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 	    mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
 	  }
 	  mkfp->FitTracksTestEndcap(end - itrack, &ev, true);
-	} else {
-	  mkfp->FitTracksTestEndcap(end - itrack, &ev);
 	}
         else
         {

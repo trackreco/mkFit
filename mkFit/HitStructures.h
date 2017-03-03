@@ -78,6 +78,7 @@ public:
   float m_qmin, m_qmax, m_fq;
   int   m_nq = 0;
   int   m_capacity = 0;
+  int   m_layer_id = -1;
   bool  m_is_barrel;
 
   // Testing bin filling
@@ -134,7 +135,7 @@ public:
 
   void  Reset() {}
 
-  void  SetupLayer(float qmin, float qmax, float dq, bool is_barrel);
+  void  SetupLayer(float qmin, float qmax, float dq, int layer, bool is_barrel);
 
   float NormalizeQ(float q) const { if (q < m_qmin) return m_qmin; if (q > m_qmax) return m_qmax; return q; }
 
@@ -323,6 +324,9 @@ public:
   std::vector<EtaBinOfCombCandidates> m_etabins_of_comb_candidates;
 
 public:
+  // XXXXMT Do I need something like:
+  // EventOfCombCandidates(int nb, float eta_trans_beg, float eta_trans_end, float eta_max) :
+
   EventOfCombCandidates() :
     m_etabins_of_comb_candidates(Config::nEtaBin)
   {}

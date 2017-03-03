@@ -136,14 +136,6 @@ void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
     std::cout << "Building tracks with '" << build_type << "', total simtracks=" << simtracks.size() << std::endl;
   }
 #ifdef DEBUG
-  //unit test for eta partitioning
-  for (int i = 0; i < 60; ++i)
-  {
-    const float eta = -1.5f + 0.05f*i;
-    int b1, b2;
-    int cnt = getBothEtaBins(eta, b1, b2);
-    dprint("eta=" << eta << " bin=" << getEtaBin(eta) << " hb1=" << b1 << " hb2=" << b2);
-  }
   //dump sim tracks
   for (int itrack = 0; itrack < simtracks.size(); ++itrack)
   {
@@ -205,6 +197,9 @@ void MkBuilder::end_event()
 
 int MkBuilder::find_seeds()
 {
+  fprintf(stderr, "__FILE__::__LINE__ Needs fixing for B/E support, search for XXMT4K\n");
+  exit(1);
+
 #ifdef DEBUG
   bool debug(false);
 #endif
@@ -215,6 +210,9 @@ int MkBuilder::find_seeds()
   time = dtime() - time;
 
   // use this to initialize tracks
+  // XXMT4K  ... configurable input layers ... or hardcode something else for endcap.
+  // Could come from TrackerInfo ...
+  // But what about transition ... TrackerInfo as well or arbitrary combination of B/E seed layers ????
   const Hit * lay0hits = m_event_of_hits.m_layers_of_hits[0].m_hits;
   const Hit * lay1hits = m_event_of_hits.m_layers_of_hits[1].m_hits;
   const Hit * lay2hits = m_event_of_hits.m_layers_of_hits[2].m_hits;
@@ -236,12 +234,13 @@ int MkBuilder::find_seeds()
 
     for (int ihit = 0; ihit < Config::nlayers_per_seed; ihit++)
     {
-      seedtrack.addHitIdx(seed_idcs[iseed][ihit],0.0f);
+      // XXMT4K  - ihit to layer[ihit]
+      seedtrack.addHitIdx(seed_idcs[iseed][ihit], ihit, 0.0f);
     }
 
     for (int ihit = Config::nlayers_per_seed; ihit < Config::nLayers; ihit++)
     {
-      seedtrack.setHitIdx(ihit,-1);
+      seedtrack.setHitIdx(ihit, -1, -1);
     }
     
     dprint("iseed: " << iseed << " mcids: " << hit0.mcTrackID(m_event->simHitsInfo_) << " " <<
@@ -259,11 +258,22 @@ void MkBuilder::fit_seeds()
   int count = (theEnd + NN - 1)/NN;
 
   tbb::parallel_for(tbb::blocked_range<int>(0, count, std::max(1, Config::numSeedsPerTask/NN)),
-    [&](const tbb::blocked_range<int>& i) {
+    [&](const tbb::blocked_range<int>& i)
+    {
+      printf("Seed info pos(  x       y       z        r;     eta    phi)   mom(  pt      pz;     eta    phi)\n");
 
       std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
       for (int it = i.begin(); it < i.end(); ++it)
       {
+        // MT dump seed so i see if etas are about right
+        for (int i = it*NN; i < std::min((it+1)*NN, theEnd); ++i)
+        {
+          auto &t = seedtracks[i];
+          printf("Seed %4d pos(%+7.3f %+7.3f %+7.3f; %+7.3f %+6.3f %+6.3f) mom(%+7.3f %+7.3f; %+6.3f %+6.3f)\n",
+                 i, t.x(), t.y(), t.z(), t.posR(), t.posEta(), t.posPhi(),
+                 t.pT(), t.pz(), t.momEta(), t.momPhi());
+        }
+
         fit_one_seed_set(seedtracks, it*NN, std::min((it+1)*NN, theEnd), mkfp.get());
       }
     }
@@ -280,8 +290,9 @@ inline void MkBuilder::fit_one_seed_set(TrackVec& seedtracks, int itrack, int en
   if (Config::cf_seeding) mkfp->ConformalFitTracks(false, itrack, end);
   if (Config::readCmsswSeeds==false) mkfp->FitTracks(end - itrack, m_event);
 
-  const int ilay = Config::nlayers_per_seed; // layer 4
+  const int ilay = Config::nlayers_per_seed; // layer 4; XXXXMT
 
+  // XXMT need different propagate for endcap ... well ... to be seen.
   dcall(pre_prop_print(ilay, mkfp));
   mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
   dcall(post_prop_print(ilay, mkfp));
@@ -326,7 +337,14 @@ N.B.2 Since we inflate LOH by 2% more than GLH, hit indices in building only go 
 */
 
 void MkBuilder::map_seed_hits()
-{ // map seed hit indices from global m_event->layerHits_[i] to hit indices in structure m_event_of_hits.m_layers_of_hits[i].m_hits
+{
+  // map seed hit indices from global m_event->layerHits_[i] to hit indices in
+  // structure m_event_of_hits.m_layers_of_hits[i].m_hits
+
+  // XXMT4K what does this actually do?
+  // I'm beginning to get the impression that some remapping can be removed
+  // now that we have HitOnTrack { index, layer };
+
   HitIDVec seedLayersHitMap(m_event->simHitsInfo_.size());
   for (int ilayer = 0; ilayer < Config::nlayers_per_seed; ++ilayer) {
     const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
@@ -342,14 +360,21 @@ void MkBuilder::map_seed_hits()
       auto hitidx = track.getHitIdx(ilayer);
       if ((hitidx>=0) && (hitidx<size)) 
       {
-	track.setHitIdx(ilayer, seedLayersHitMap[global_hit_vec[hitidx].mcHitID()].index);
+        // XXMT4K ilayer -> something else ....
+	track.setHitIdx(ilayer, seedLayersHitMap[global_hit_vec[hitidx].mcHitID()].index, ilayer);
       }
     }
   }
 }
 
 void MkBuilder::remap_seed_hits()
-{ // map seed hit indices from hit indices in structure m_event_of_hits.m_layers_of_hits[i].m_hits to global m_event->layerHits_[i]
+{
+  // map seed hit indices from hit indices in structure
+  // m_event_of_hits.m_layers_of_hits[i].m_hits to global
+  // m_event->layerHits_[i]
+
+  // XXMT4K as above
+
   HitIDVec seedLayersHitMap(m_event->simHitsInfo_.size());
   for (int ilayer = 0; ilayer < Config::nlayers_per_seed; ++ilayer) {
     const auto & global_hit_vec = m_event->layerHits_[ilayer];
@@ -365,14 +390,21 @@ void MkBuilder::remap_seed_hits()
       auto hitidx = track.getHitIdx(ilayer);
       if ((hitidx>=0) && (hitidx<size))
       { 
-	track.setHitIdx(ilayer, seedLayersHitMap[lof_m_hits[hitidx].mcHitID()].index);
+        // XXMT4K ilayer -> something else ....
+	track.setHitIdx(ilayer, seedLayersHitMap[lof_m_hits[hitidx].mcHitID()].index, ilayer);
       }
     }
   }
 }
 
 void MkBuilder::remap_cand_hits()
-{ // map cand hit indices from hit indices in structure m_event_of_hits.m_layers_of_hits[i].m_hits to global m_event->layerHits_[i]
+{
+  // map cand hit indices from hit indices in structure
+  // m_event_of_hits.m_layers_of_hits[i].m_hits to global
+  // m_event->layerHits_[i]
+
+  // XXMT4K as above
+
   HitIDVec candLayersHitMap(m_event->simHitsInfo_.size());
   for (int ilayer = 0; ilayer < Config::nLayers; ++ilayer) {
     const auto & global_hit_vec = m_event->layerHits_[ilayer];
@@ -387,7 +419,8 @@ void MkBuilder::remap_cand_hits()
       auto hitidx = track.getHitIdx(ilayer);
       if ((hitidx>=0) && (hitidx<size)) 
       {	
-	track.setHitIdx(ilayer, candLayersHitMap[lof_m_hits[hitidx].mcHitID()].index);
+        // XXMT4K ilayer -> something else ....
+	track.setHitIdx(ilayer, candLayersHitMap[lof_m_hits[hitidx].mcHitID()].index, ilayer);
       }
     }
   }
@@ -619,7 +652,8 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
   tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEtaBin),
     [&](const tbb::blocked_range<int>& ebins)
   {
-    for (int ebin = ebins.begin(); ebin != ebins.end(); ++ebin) {
+    for (int ebin = ebins.begin(); ebin != ebins.end(); ++ebin)
+    {
       EtaBinOfCandidates& etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin];
 
       tbb::parallel_for(tbb::blocked_range<int>(0,etabin_of_candidates.m_fill_index,Config::numSeedsPerTask), 
@@ -627,7 +661,13 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
       {
         TrackerInfo &trk_info = Config::TrkInfo;
         std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
-        
+
+        int last_seed_layer = etabin_of_candidates.m_candidates[ tracks.begin() ].getLastHitLayer();
+        int first_layer     = trk_info.m_layers[ last_seed_layer ].m_next_barrel;
+
+        printf("FindTracksBestHit Last seed layer = %d, First layer (eta_bin n tracks=%d) = %d\n",
+               last_seed_layer, etabin_of_candidates.m_fill_index, first_layer);
+
         for (int itrack = tracks.begin(); itrack < tracks.end(); itrack += NN)
         {
           int end = std::min(itrack + NN, tracks.end());
@@ -640,7 +680,7 @@ void MkBuilder::FindTracksBestHit(EventOfCandidates& event_of_cands)
           // Loop over layers, starting from after the seed.
           // Consider inverting loop order and make layer outer, need to
           // trade off hit prefetching with copy-out of candidates.
-          for (int ilay = trk_info.m_barrel[ Config::nlayers_per_seed ]; ; )
+          for (int ilay = first_layer; ; )
           {
             LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay];
             LayerInfo   &layer_info    = trk_info.m_layers[ilay];
