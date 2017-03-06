@@ -63,32 +63,24 @@ double Geometry::SafetyFromOutside ( const UVector3 &aPoint, bool aAccurate) con
   return small;
 }
 
-double Geometry::SafetyFromOutside2(const UVector3 &aPoint, double ctgTheta,
-                                    int skip_layer, int &layer, bool aAccurate) const
+double Geometry::SafetyFromOutsideDr(const UVector3 &aPoint, double ooaCtgTheta,
+                                     int skip_layer, int &layer, bool aAccurate) const
 {
-  bool debug = true;
+  bool debug = false;
 
   double small = 1e10;
 
-  dprintf("Geometry::SafetyFromOutside2 r=%f, z=%f\n", aPoint.Perp(), aPoint.Z());
+  dprintf("Geometry::SafetyFromOutsideDr r=%f, z=%f\n", aPoint.Perp(), aPoint.Z());
   int ii = 0;
   layer = -1;
   for (auto i = solids_.begin(); i != solids_.end(); ++i, ++ii)
   {
     if (ii != skip_layer && (*i)->Inside(aPoint) == VUSolid::eOutside)
     {
-      double next = (*i)->SafetyFromOutside(aPoint, aAccurate);
-      if ( ! (*i)->is_barrel_)
-      {
-        double fnext = next;
-        next /= std::abs(ctgTheta);
-        if (next < 15)  dprintf("    Radial distance to %2d = %4.5f (not ecap corrected %4.5f)\n", ii, next, fnext);
-      }
-      else
-      {
-        if (next < 15)  dprintf("    Radial distance to %2d = %4.5f\n", ii, next);
-      }
-
+      double next = (*i)->SafetyFromOutsideDr(aPoint, ooaCtgTheta, aAccurate);
+#ifdef DEBUG
+      if (next < 15)  dprintf("    Radial distance to %2d = %4.5f\n", ii, next);
+#endif
       if (next < small) { small = next; layer = ii; }
     }
   }

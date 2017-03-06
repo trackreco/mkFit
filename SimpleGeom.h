@@ -64,6 +64,7 @@ public:
   EnumInside Inside (const UVector3 &aPoint) const;
   double SafetyFromInside (const UVector3 &aPoint, bool aAccurate=false) const;
   double SafetyFromOutside(const UVector3 &aPoint, bool aAccurate=false) const;
+  double SafetyFromOutsideDr(const UVector3 &aPoint, double ooaCtgTheta, bool aAccurate=false) const;
   bool   Normal(const UVector3& aPoint, UVector3 &aNormal) const;
 
   VUSolid* Clone() const {return new VUSolid(rin_, rout_, zmin_, zmax_, is_barrel_, is_outer_);}

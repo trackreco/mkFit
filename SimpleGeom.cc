@@ -21,7 +21,6 @@ double VUSolid::SafetyFromInside (const UVector3 &aPoint, bool) const
     if (zmin_ < z && z < zmax_)
     {
       double dr = std::min(r - rin_, rout_ - r);
-      // XXXX return std::hypot(dr, std::min(z - zmin_, zmax_ - z));
       return std::max(dr, std::min(z - zmin_, zmax_ - z));
     }
   }
@@ -39,6 +38,19 @@ double VUSolid::SafetyFromOutside(const UVector3 &aPoint, bool) const
   else                dz = 0;
   // XXXX return std::hypot(dr, dz);
   return std::max(dr, dz);
+}
+
+double VUSolid::SafetyFromOutsideDr(const UVector3 &aPoint, double ooaCtgTheta, bool) const
+{
+  double r = aPoint.Perp(), z = aPoint.Z(), dr, dz;
+  if      (r < rin_)  dr = rin_ - r;
+  else if (r > rout_) dr = r - rout_;
+  else                dr = 0;
+  if      (z < zmin_) dz = zmin_ - z;
+  else if (z > zmax_) dz = z - zmax_;
+  else                dz = 0;
+
+  return std::max(dr, dz * ooaCtgTheta);
 }
 
 bool VUSolid::Normal(const UVector3& aPoint, UVector3 &aNormal) const

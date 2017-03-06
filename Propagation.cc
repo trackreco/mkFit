@@ -1,5 +1,5 @@
 #include "Propagation.h"
-#define DEBUG
+//#define DEBUG
 #include "Debug.h"
 
 const double tolerance = 0.001;
@@ -256,7 +256,8 @@ TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom
   if (hsin.r0 > 1.0 && ! startSolid)
   {
     UVector3 here(hsin.x,hsin.y,hsin.z);
-    for ( int i = 0; i < Config::nTotalLayers; ++i ) {
+    for ( int i = 0; i < Config::nTotalLayers; ++i )
+    {
       auto d = geom.Layer(i)->SafetyFromOutside(here, true);
       if (d < tolerance) {
         startSolid = geom.Layer(i);
@@ -277,17 +278,19 @@ TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom
   int    prev_solid;
   int    skip_solid = geom.LayerOfSolid(startSolid);
 
+  const double ooaCtgTheta = 1.0 / std::abs(hsout.ctgTheta);
+
   for (int i = 0; i < Config::NiterSim; ++i)
   {
     dprint("propagation iteration #" << i);
   redo_safety:
     int    solid;
-    double distance = geom.SafetyFromOutside2(UVector3(hsout.x,hsout.y,hsout.z),
-                                              hsout.ctgTheta, skip_solid, solid, true);
+    double distance = geom.SafetyFromOutsideDr(UVector3(hsout.x,hsout.y,hsout.z),
+                                               ooaCtgTheta, skip_solid, solid, true);
 
     distance = std::max(distance,
                         geom.Layer(solid)->is_barrel_ ?
-                        tolerance : tolerance / std::abs(hsout.ctgTheta));
+                        tolerance : tolerance * ooaCtgTheta);
 
     if (i > 0)
     {

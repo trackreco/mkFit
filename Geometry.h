@@ -34,9 +34,9 @@ public:
   VUSolid::EnumInside Inside (const UVector3 &aPoint) const;
   int LayerIndex(const UVector3 &aPoint) const;
   const VUSolid* InsideWhat(const UVector3 &aPoint) const;
-  double  SafetyFromInside  ( const UVector3 &aPoint, bool aAccurate=false) const;
-  double  SafetyFromOutside ( const UVector3 &aPoint, bool aAccurate=false) const;
-  double  SafetyFromOutside2( const UVector3 &aPoint, double ctgTheta, int skip_layer, int &layer, bool aAccurate=false) const;
+  double  SafetyFromInside   ( const UVector3 &aPoint, bool aAccurate=false) const;
+  double  SafetyFromOutside  ( const UVector3 &aPoint, bool aAccurate=false) const;
+  double  SafetyFromOutsideDr( const UVector3 &aPoint, double ooaCtgTheta, int skip_layer, int &layer, bool aAccurate=false) const;
   Geometry clone() const;
 
   void BuildFromTrackerInfo(const TrackerInfo& tracker_info);
