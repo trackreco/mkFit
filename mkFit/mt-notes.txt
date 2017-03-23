@@ -1,4 +1,20 @@
 #########
+Notes for Kevin
+#########
+
+In general, search for XXMT4K.
+
+Thing that is probably most urgent is Validation + some issues with Simulation
+and Seeding.
+
+Remapping funcs after finding commented out in:
+  MkBuilder::quality_output_BH()
+  MkBuilder::quality_output_COMB()
+
+What is needed for validation?
+
+
+#########
 Full detector tracking
 #########
 
