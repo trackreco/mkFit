@@ -108,7 +108,7 @@ void Geometry::BuildFromTrackerInfo(const TrackerInfo& tracker_info)
   {
     VUSolid* utub = new VUSolid(li.m_rin,  li.m_rout,
                                 li.m_zmin, li.m_zmax,
-                                li.m_is_barrel, li.m_is_outer);
+                                li.is_barrel(), li.m_is_outer);
     AddLayer(utub, li.r_mean(), li.z_mean());
   }
 #else

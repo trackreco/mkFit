@@ -7,11 +7,17 @@
 
 #include "MkFitter.h"
 #include "CandCloner.h"
+#include "SteeringParams.h"
 
 #include <functional>
 #include <mutex>
 
 #include "Pool.h"
+
+class TrackerInfo;
+class LayerInfo;
+
+//------------------------------------------------------------------------------
 
 struct ExecutionContext
 {
@@ -37,13 +43,17 @@ class EventTmp;
 class MkBuilder
 {
 protected:
-  void fit_one_seed_set(TrackVec& simtracks, int itrack, int end, MkFitter *mkfp);
+  void fit_one_seed_set(TrackVec& simtracks, int itrack, int end, MkFitter *mkfp,
+                        const bool is_brl[], const SteeringParams &st_par);
 
   Event         *m_event;
   EventTmp      *m_event_tmp;
   EventOfHits    m_event_of_hits;
 
   int m_cnt=0, m_cnt1=0, m_cnt2=0, m_cnt_8=0, m_cnt1_8=0, m_cnt2_8=0, m_cnt_nomc=0;
+
+  SteeringParams   m_steering_params[5];
+  std::vector<int> m_brl_ecp_regions;
 
 public:
   typedef std::vector<std::pair<int,int>> CandIdx_t;
@@ -69,29 +79,29 @@ public:
   void remap_cand_hits(); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_ (cands only)
   void align_simtracks(); // simtrack labels get screwed up in endcap tests
 
-  void quality_output_BH(const EventOfCandidates& event_of_cands);
+  void quality_output_BH();
   void quality_output_COMB();
   void quality_reset();
   void quality_process(Track& tkcand);
   void quality_print();
 
-  void quality_store_tracks_BH(const EventOfCandidates& event_of_cands);
   void quality_store_tracks_COMB();
 
-  void root_val_BH(const EventOfCandidates& event_of_cands);
+  void root_val_BH();
   void root_val_COMB();
   void init_track_extras();
 
   // --------
 
-  void find_tracks_load_seeds(EventOfCandidates& event_of_cands); // for FindTracksBestHit
+  void find_tracks_load_seeds_BH(); // for FindTracksBestHit
   void find_tracks_load_seeds();
-  void find_tracks_in_layers(EtaBinOfCombCandidates &eb_of_cc, CandCloner &cloner, MkFitter *mkfp,
+  void find_tracks_in_layers(EtaRegionOfCombCandidates &comb_candidates,
+                             CandCloner &cloner, MkFitter *mkfp,
                              int start_seed, int end_seed, int ebin);
 
   // --------
 
-  virtual void FindTracksBestHit(EventOfCandidates& event_of_cands);
+  virtual void FindTracksBestHit();
   virtual void FindTracksStandard();
   virtual void FindTracksCloneEngine();
 #ifdef USE_CUDA

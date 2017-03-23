@@ -1,6 +1,6 @@
 #include "HitStructures.h"
 
-#include "TrackerInfo.h"
+#include "Event.h"
 
 #include "Ice/IceRevisitedRadix.h"
 
@@ -104,11 +104,16 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
     int j = sort.GetRanks()[i];
 
     // XXXX MT: Endcap has special check - try to get rid of this!
+    // Also, WTF ... this brings in holes as pos i is not filled.
+    // If this stays I need i_offset variable.
     if ( ! m_is_barrel && (hitv[j].r() > m_qmax || hitv[j].r() < m_qmin))
     {
-      std::cout << "WARNING: hit outsed r boundary of disk, please fixme" << std::endl;
-      m_capacity--;
-      continue;
+      printf("LayerOfHits::SuckInHits WARNING hit out of r boundary of disk\n"
+             "  layer %d hit %d hit_r %f limits (%f, %f)\n",
+             m_layer_id, j, hitv[j].r(), m_qmin, m_qmax);
+      // Figure out of this needs to stay ... and fix it
+      // --m_size;
+      // continue;
     }
 
     // Could fix the mis-sorts. Set ha size to size + 1 and fake last entry to avoid ifs.
@@ -291,19 +296,19 @@ EventOfHits::EventOfHits(TrackerInfo &trk_inf) :
 
     float bin_width = 1.0f;
 
-    if (li.m_is_barrel)
+    if (li.is_barrel())
     {
       // printf("EventOfHits::EventOfHits setting up layer %2d as barrel\n", li.m_layer_id);
 
       m_layers_of_hits[li.m_layer_id].SetupLayer(li.m_zmin, li.m_zmax, bin_width,
-                                                 li.m_layer_id, li.m_is_barrel);
+                                                 li.m_layer_id, true);
     }
     else
     {
       // printf("EventOfHits::EventOfHits setting up layer %2d as endcap\n", li.m_layer_id);
 
       m_layers_of_hits[li.m_layer_id].SetupLayer(li.m_rin, li.m_rout, bin_width,
-                                                 li.m_layer_id, li.m_is_barrel);
+                                                 li.m_layer_id, false);
     }
   }
 }

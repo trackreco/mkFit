@@ -9,7 +9,7 @@ class MkBuilderEndcap : public MkBuilder
 protected:
   void fit_one_seed_set_endcap(TrackVec& simtracks, int itrack, int end, MkFitter *mkfp);
 
-  void find_tracks_in_layers_endcap(EtaBinOfCombCandidates &eb_of_cc, CandCloner &cloner, MkFitter *mkfp,
+  void find_tracks_in_layers_endcap(EtaRegionOfCombCandidates &comb_cands, CandCloner &cloner, MkFitter *mkfp,
                                     int start_seed, int end_seed, int ebin);
 
 public:
@@ -23,7 +23,7 @@ public:
 
   void fit_seeds() override;
 
-  void FindTracksBestHit(EventOfCandidates& event_of_cands) override;
+  void FindTracksBestHit(EventOfCandidates& event_of_cands);
   void FindTracksStandard() override;
   void FindTracksCloneEngine() override;
 };

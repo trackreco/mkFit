@@ -1,5 +1,6 @@
 #include <cmath>
 
+#include "TrackerInfo.h"
 #include "Simulation.h"
 #include "Event.h"
 //#define DEBUG
@@ -32,8 +33,8 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
   float px = pt * cos(phi);
   float py = pt * sin(phi);
 
-  if (g_unif(g_gen)>0.5) px*=-1.;
-  if (g_unif(g_gen)>0.5) py*=-1.;
+  if (g_unif(g_gen) > 0.5) px*=-1.;
+  if (g_unif(g_gen) > 0.5) py*=-1.;
 
   dprint("phi= " << phi << std::endl);
 
@@ -41,8 +42,13 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
   // Should we just remove the flat pz option? Or fix it ...
 #ifdef GENFLATETA
   // this generates flat in eta
-
+roll_eta_dice:
   float eta = Config::minSimEta + (Config::maxSimEta - Config::minSimEta) * g_unif(g_gen);
+
+  // XXMT Hardhack ... exclude transition region eta
+  if (Config::TrkInfo.is_transition(eta))
+    goto roll_eta_dice;
+
   float pz  = pt*(1./(std::tan(2*std::atan(std::exp(-eta)))));
   // XXXXMT Commented this out to get ecap_pos only !!!!
   //if (g_unif(g_gen) > 0.5) pz *= -1.;
@@ -126,6 +132,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
 
       continue;
     }
+    bool is_barrel = theInitSolid->is_barrel_;
 
 #ifdef SCATTERING
     // PW START
@@ -234,9 +241,19 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
     float hitPhi  = ((Config::hitposerrXY/scatteredRad)*g_gaus(g_gen))+scatteredPhi; // smear in phi after scatter
     float hitRad  = (Config::hitposerrR)*g_gaus(g_gen)+scatteredRad; // smear in rad after scatter
 #else // no Scattering --> use this position for smearing
-    float hitZ    = Config::hitposerrZ*g_gaus(g_gen)+initZ;
-    float hitPhi  = ((Config::hitposerrXY/initRad)*g_gaus(g_gen))+initPhi;
-    float hitRad  = (Config::hitposerrR)*g_gaus(g_gen)+initRad;
+    // XXMT4K - reuse Config z/r for endcaps in longitudinal/perpendicular sense;
+    // XY is still good? Argh ... too late to think.
+    // Similar hack below for variance ...
+    float poserr_Z = is_barrel ? Config::hitposerrZ : Config::hitposerrR;
+    float poserr_R = is_barrel ? Config::hitposerrR : Config::hitposerrZ;
+
+    float hitZ    = poserr_Z * g_gaus(g_gen) + initZ;
+    float hitRad  = poserr_R * g_gaus(g_gen) + initRad;
+    float hitPhi  = ((Config::hitposerrXY/initRad) * g_gaus(g_gen)) + initPhi;
+    // OLD CODE:
+    // float hitZ    = Config::hitposerrZ*g_gaus(g_gen)+initZ;
+    // float hitPhi  = ((Config::hitposerrXY/initRad)*g_gaus(g_gen))+initPhi;
+    // float hitRad  = (Config::hitposerrR)*g_gaus(g_gen)+initRad;
 #endif // SCATTERING
     initTSs.push_back(propState); // if no scattering, will just parameters from prop to next layer
 
@@ -301,11 +318,23 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
     // covXYZ(1,0)  = covXYZ(0,1)    
     covXYZ(2,2) = Config::varZ;
 #else //  SOLID_SMEAR --> covariance for pure cylindrical geometry with smearing
-    covXYZ(0,0) = hitX*hitX*Config::varR/hitRad2 + hitY*hitY*varPhi;
-    covXYZ(1,1) = hitX*hitX*varPhi + hitY*hitY*Config::varR/hitRad2;
-    covXYZ(2,2) = Config::varZ;
-    covXYZ(0,1) = hitX*hitY*(Config::varR/hitRad2 - varPhi);
-    covXYZ(1,0) = covXYZ(0,1);
+    // XXMT4K - continuation of z/r hack.
+    // Still unsure if there is more interplay between varXY and varR ...
+    float var_R = is_barrel ? Config::varR : Config::varZ;
+    float var_Z = is_barrel ? Config::varZ : Config::varR;
+
+    covXYZ(0,0) = hitX*hitX * var_R / hitRad2 + hitY*hitY*varPhi;
+    covXYZ(1,1) = hitX*hitX * varPhi + hitY*hitY * var_R / hitRad2;
+    covXYZ(2,2) = var_Z;
+    covXYZ(0,1) = hitX*hitY*(var_R / hitRad2 - varPhi);
+    covXYZ(1,0) = covXYZ(0,1); // MT: this should be redundant, it's a Sym matrix type.
+
+    // OLD CODE:
+    // covXYZ(0,0) = hitX*hitX*Config::varR/hitRad2 + hitY*hitY*varPhi;
+    // covXYZ(1,1) = hitX*hitX*varPhi + hitY*hitY*Config::varR/hitRad2;
+    // covXYZ(2,2) = Config::varZ;
+    // covXYZ(0,1) = hitX*hitY*(Config::varR/hitRad2 - varPhi);
+    // covXYZ(1,0) = covXYZ(0,1); // MT: this should be redundant, it's a Sym matrix type.
 
     dprint("initPhi: " << initPhi << " hitPhi: " << hitPhi << " initRad: " << initRad  << " hitRad: " << hitRad << std::endl
         << "initX: " << initX << " hitX: " << hitX << " initY: " << initY << " hitY: " << hitY << " initZ: " << initZ << " hitZ: " << hitZ << std::endl 
@@ -314,7 +343,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
 #endif
 
     MCHitInfo hitinfo(itrack, simLayer, layer_counts[simLayer], ev.nextMCHitID());
-    hits.emplace_back(x1,covXYZ,hitinfo.mcHitID_);
+    hits.emplace_back(x1, covXYZ, hitinfo.mcHitID_);
     hitinfos.emplace_back(hitinfo);
 
     tmpState = propState;

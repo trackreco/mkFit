@@ -306,19 +306,20 @@ void test_standard()
     assert(threads.begin() == threads.end()-1 && thisthread < Config::numThreadsEvents);
 
     std::vector<Track> plex_tracks;
-    auto& ev_tmp = ev_tmps[thisthread];
-    auto& ev = *evs[thisthread].get();
-    auto& mkb = *mkbs[thisthread].get();
-    auto  fp = fps[thisthread].get();
+    auto& ev_tmp =  ev_tmps[thisthread];
+    auto& ev     = *evs[thisthread].get();
+    auto& mkb    = *mkbs[thisthread].get();
+    auto  fp     =  fps[thisthread].get();
+
     if (g_input_version == 0) fseek(fp, sizeof(int), SEEK_SET);
 
     int evstart = thisthread*events_per_thread;
-    int evend = std::min(Config::nEvents, evstart+events_per_thread);
+    int evend   = std::min(Config::nEvents, evstart+events_per_thread);
 
     dprint("thisthread " << thisthread << " events " << Config::nEvents << " events/thread " << events_per_thread
                          << " range " << evstart << ":" << evend);
  
-   for (int evt = evstart; evt < evend; ++evt)
+    for (int evt = evstart; evt < evend; ++evt)
     {
       ev.Reset(nevt++);
 
@@ -344,7 +345,7 @@ void test_standard()
 
       double t_best[NT] = {0}, t_cur[NT];
       simtrackstot += ev.simTracks_.size();
-      seedstot += ev.seedTracks_.size();
+      seedstot     += ev.seedTracks_.size();
 
       for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
       {

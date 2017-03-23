@@ -62,7 +62,7 @@ namespace {
   void print_seeds(const EventOfCandidates& event_of_cands) {
     for (int ebin = 0; ebin < Config::nEtaBin; ++ebin) {
       const EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin]; 
-      for (int iseed = 0; iseed < etabin_of_candidates.m_fill_index; iseed++) {
+      for (int iseed = 0; iseed < etabin_of_candidates.m_size; iseed++) {
         print_seed2(etabin_of_candidates.m_candidates[iseed]);
       }
     }
@@ -71,7 +71,7 @@ namespace {
   void print_seeds(const EventOfCombCandidates& event_of_comb_cands) {
     for (int ebin = 0; ebin < Config::nEtaBin; ++ebin) {
       const EtaBinOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin]; 
-      for (int iseed = 0; iseed < etabin_of_comb_candidates.m_fill_index; iseed++) {
+      for (int iseed = 0; iseed < etabin_of_comb_candidates.m_size; iseed++) {
         print_seed2(etabin_of_comb_candidates.m_candidates[iseed].front());
       }
     }
@@ -141,7 +141,7 @@ inline void MkBuilderEndcap::fit_one_seed_set_endcap(TrackVec& seedtracks, int i
 
   // OLD GC: const int ilay = Config::nlayers_per_seed; // layer 3, we ignore PXB1
   TrackerInfo &trk_info = Config::TrkInfo;
-  int last_seed_layer = seedtracks[itrack].getLastHitLayer();
+  int last_seed_layer = seedtracks[itrack].getLastHitLyr();
   int ilay            = trk_info.m_layers[ last_seed_layer ].m_next_ecap_pos; // XXXXMT pos/neg
 
   dcall(pre_prop_print(ilay, mkfp));
@@ -186,20 +186,20 @@ void MkBuilderEndcap::FindTracksBestHit(EventOfCandidates& event_of_cands)
     {
       EtaBinOfCandidates& etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin];
 
-      tbb::parallel_for(tbb::blocked_range<int>(0,etabin_of_candidates.m_fill_index,Config::numSeedsPerTask),
+      tbb::parallel_for(tbb::blocked_range<int>(0,etabin_of_candidates.m_size,Config::numSeedsPerTask),
         [&](const tbb::blocked_range<int>& tracks)
       {
         TrackerInfo &trk_info = Config::TrkInfo;
         std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
 
-        int last_seed_layer = etabin_of_candidates.m_candidates[ tracks.begin() ].getLastHitLayer();
+        int last_seed_layer = etabin_of_candidates.m_candidates[ tracks.begin() ].getLastHitLyr();
         int first_layer     = trk_info.m_layers[ last_seed_layer ].m_next_ecap_pos; // XXXXMT
 
         for (int itrack = tracks.begin(); itrack < tracks.end(); itrack += NN)
         {
           int end = std::min(itrack + NN, tracks.end());
 
-          dprint(std::endl << "processing track=" << itrack << " etabin=" << ebin << " findex=" << etabin_of_candidates.m_fill_index);
+          dprint(std::endl << "processing track=" << itrack << " etabin=" << ebin << " findex=" << etabin_of_candidates.m_size);
 
           mkfp->SetNhits(Config::nlayers_per_seed); // Could also count hits in first seed
           mkfp->InputTracksAndHitIdx(etabin_of_candidates.m_candidates, itrack, end, true);
@@ -216,7 +216,7 @@ void MkBuilderEndcap::FindTracksBestHit(EventOfCandidates& event_of_cands)
             // XXX This should actually be done in some other thread for the next layer while
             // this thread is crunching the current one.
             // For now it's done in MkFitter::AddBestHit(), two loops before the data is needed.
-            // for (int i = 0; i < bunch_of_hits.m_fill_index; ++i)
+            // for (int i = 0; i < bunch_of_hits.m_size; ++i)
             // {
             //   _mm_prefetch((char*) & bunch_of_hits.m_hits[i], _MM_HINT_T1);
             // }
@@ -266,13 +266,13 @@ void MkBuilderEndcap::FindTracksStandard()
 {
   EventOfCombCandidates &event_of_comb_cands = m_event_tmp->m_event_of_comb_cands;
 
-  tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEtaBin),
+  tbb::parallel_for(tbb::blocked_range<int>(0, TrackerInfo::Reg_Count),
     [&](const tbb::blocked_range<int>& ebins)
   {
     for (int ebin = ebins.begin(); ebin != ebins.end(); ++ebin) {
-      EtaBinOfCombCandidates& etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
+      EtaRegionOfCombCandidates& etabin_of_comb_candidates = event_of_comb_cands.m_regions_of_comb_candidates[ebin];
       
-      tbb::parallel_for(tbb::blocked_range<int>(0,etabin_of_comb_candidates.m_fill_index,Config::numSeedsPerTask), 
+      tbb::parallel_for(tbb::blocked_range<int>(0,etabin_of_comb_candidates.m_size,Config::numSeedsPerTask),
         [&](const tbb::blocked_range<int>& seeds)
       {
 	const int start_seed = seeds.begin();
@@ -418,13 +418,13 @@ void MkBuilderEndcap::FindTracksCloneEngine()
 {
   EventOfCombCandidates &event_of_comb_cands = m_event_tmp->m_event_of_comb_cands;
 
-  tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEtaBin),
+  tbb::parallel_for(tbb::blocked_range<int>(0, TrackerInfo::Reg_Count),
     [&](const tbb::blocked_range<int>& ebins)
   {
     for (int ebin = ebins.begin(); ebin != ebins.end(); ++ebin) {
-      EtaBinOfCombCandidates& etabin_of_comb_candidates = event_of_comb_cands.m_etabins_of_comb_candidates[ebin];
+      EtaRegionOfCombCandidates& etabin_of_comb_candidates = event_of_comb_cands.m_regions_of_comb_candidates[ebin];
 
-      tbb::parallel_for(tbb::blocked_range<int>(0,etabin_of_comb_candidates.m_fill_index,Config::numSeedsPerTask), 
+      tbb::parallel_for(tbb::blocked_range<int>(0,etabin_of_comb_candidates.m_size,Config::numSeedsPerTask),
         [&](const tbb::blocked_range<int>& seeds)
       {
         std::unique_ptr<CandCloner, decltype(retcand)> cloner(g_exe_ctx.m_cloners.GetFromPool(), retcand);
@@ -437,7 +437,7 @@ void MkBuilderEndcap::FindTracksCloneEngine()
   });
 }
 
-void MkBuilderEndcap::find_tracks_in_layers_endcap(EtaBinOfCombCandidates &etabin_of_comb_candidates, CandCloner &cloner,
+void MkBuilderEndcap::find_tracks_in_layers_endcap(EtaRegionOfCombCandidates &etabin_of_comb_candidates, CandCloner &cloner,
                                                    MkFitter *mkfp, int start_seed, int end_seed, int ebin)
 {
   auto n_seeds = end_seed - start_seed;

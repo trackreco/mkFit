@@ -92,6 +92,7 @@ public:
   void ConformalFitTracks(bool fitting, int beg, int end);
   void FitTracks(const int N_proc, const Event * ev, const bool useParamBfield = false);
   void FitTracksTestEndcap(const int N_proc, const Event* ev, const bool useParamBfield = false);
+  void FitTracksSteered(const bool is_barrel[], const int N_proc, const Event * ev, const bool useParamBfield = false);
 
   void CollectFitValidation(const int hi, const int N_proc, const Event * ev) const;
 

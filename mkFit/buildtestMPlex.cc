@@ -82,8 +82,8 @@ double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
 
   builder.fit_seeds();
 
-  EventOfCandidates event_of_cands;
-  builder.find_tracks_load_seeds(event_of_cands);
+  // EventOfCandidates event_of_cands;
+  builder.find_tracks_load_seeds_BH();
 
 #ifdef USE_VTUNE_PAUSE
   __itt_resume();
@@ -101,7 +101,7 @@ double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
 #if USE_CUDA
   builder_cu.FindTracksBestHit(event_of_cands);
 #else
-  builder.FindTracksBestHit(event_of_cands);
+  builder.FindTracksBestHit();
 #endif
 
   time = dtime() - time;
@@ -111,9 +111,9 @@ double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
 #endif
   
   if   (!Config::normal_val) {
-    if (!Config::silent) builder.quality_output_BH(event_of_cands);
+    if (!Config::silent) builder.quality_output_BH();
   } else {
-    builder.root_val_BH(event_of_cands);
+    builder.root_val_BH();
   }
 
   builder.end_event();
@@ -127,9 +127,6 @@ double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
 
 double runBuildingTestPlexStandard(Event& ev, EventTmp& ev_tmp, MkBuilder& builder)
 {
-  EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
-  event_of_comb_cands.Reset();
-
   builder.begin_event(&ev, &ev_tmp, __func__);
 
   if   (Config::findSeeds) {builder.find_seeds();}
@@ -152,7 +149,7 @@ double runBuildingTestPlexStandard(Event& ev, EventTmp& ev_tmp, MkBuilder& build
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
 #endif
-  
+
   if (!Config::normal_val) {
     if (!Config::silent) builder.quality_output_COMB();
   } else {builder.root_val_COMB();}
@@ -168,9 +165,6 @@ double runBuildingTestPlexStandard(Event& ev, EventTmp& ev_tmp, MkBuilder& build
 
 double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp, MkBuilder& builder)
 {
-  EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
-  event_of_comb_cands.Reset();
-
   builder.begin_event(&ev, &ev_tmp, __func__);
 
   if   (Config::findSeeds) {builder.find_seeds();}

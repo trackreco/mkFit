@@ -57,6 +57,10 @@ public:
   // validation sets these, so needs to be mutable
   mutable TrackExtraVec simTracksExtra_, seedTracksExtra_, candidateTracksExtra_, fitTracksExtra_;
 
+  // XXXXMT: Preliminary ... separators into seed/candidate arrays.
+  // There should be a better way of doing that.
+  int seedEtaSeparators_[5];
+
   // phi-eta partitioning map: vector of vector of vectors of std::pairs. 
   // vec[nLayers][nEtaBins][nPhiBins]
   BinInfoMap segmentMap_;

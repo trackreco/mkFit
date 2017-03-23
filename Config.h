@@ -135,23 +135,23 @@ namespace Config
   constexpr float minDZ = 0.; // default: 0.; cmssw tests: 10.;
 
   // Configuration for simulation info
-  //CMS beam spot width 25um in xy and 5cm in z 
+  // CMS beam spot width 25um in xy and 5cm in z
   constexpr float beamspotX = 0.1;
   constexpr float beamspotY = 0.1;
   constexpr float beamspotZ = 1.0;
-  
-  constexpr float minSimPt = 1;  // 0.5;
+
+  // XXMT4K minPt was 0.5. Figure out what is the new limit for 90cm or be
+  // more flexible about finding fewer hits. Or postprocess looper candidates.
+  constexpr float minSimPt = 1;
   constexpr float maxSimPt = 10.;
 
-  //constexpr float minSimEta = 0.0; // XXMT4K Added min, too.
-  //constexpr float maxSimEta = 0.9;//2.4; // Should both become config vars?
-  // ECAP TEST pz > 0 only -- commented out 50% pz sign flip in Simulation!!!!
-  constexpr float minSimEta = 1.4;
-  constexpr float maxSimEta = 2.4;
+  // XXMT Hardhack -- transition region excluded in Simulation::setupTrackByToyMC()
+  constexpr float minSimEta = -2.4;
+  constexpr float maxSimEta =  2.4;
 
   constexpr float hitposerrXY = 0.01; // resolution is 100um in xy --> more realistic scenario is 0.003
-  constexpr float hitposerrZ  = 0.1; // resolution is 1mm in z
-  constexpr float hitposerrR  = Config::hitposerrXY / 10.0f;
+  constexpr float hitposerrZ  = 0.1;  // resolution is 1mm in z
+  constexpr float hitposerrR  = Config::hitposerrXY / 10.0f; // XXMT4K ??? I don't get this ...
   constexpr float varXY       = Config::hitposerrXY * Config::hitposerrXY;
   constexpr float varZ        = Config::hitposerrZ  * Config::hitposerrZ;
   constexpr float varR        = Config::hitposerrR  * Config::hitposerrR;
@@ -168,6 +168,7 @@ namespace Config
 
   // Config for seeding
   extern    int   nlayers_per_seed;
+  constexpr int   nlayers_per_seed_max = 3; // Needed for allocation of arrays on stack.
   constexpr float chi2seedcut  = 9.0;
   constexpr float lay01angdiff = 0.0634888; // analytically derived... depends on geometry of detector --> from mathematica ... d0 set to one sigma of getHypot(bsX,bsY)
   constexpr float lay02angdiff = 0.11537;

@@ -767,7 +767,9 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    MPlexQF msZ;
 #pragma simd
    for (int n = 0; n < NN; ++n) {
-     msZ.At(n, 0, 0) = (inPar.ConstAt(n, 2, 0) > 0) ? z : -z;
+     // XXXXMT4G
+     // msZ.At(n, 0, 0) = (inPar.ConstAt(n, 2, 0) > 0) ? z : -z;
+     msZ.At(n, 0, 0) = z;
    }
 
    helixAtZ(inPar, inChg, outPar, msZ, errorProp, N_proc);
@@ -826,10 +828,13 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
        for (int i = 0; i < 6; ++i) {
            dprintf("%8f ", outPar.At(kk,i,0)); printf("\n");
        } dprintf("\n");
-       if (std::abs(outPar.At(kk,2,0)-inPar.ConstAt(kk, 2, 0))>0.0001) {
-	 dprint_np(kk, "DID NOT GET TO Z, dZ=" << std::abs(outPar.At(kk,2,0)-inPar.ConstAt(kk, 2, 0))
-		   << " z=" << msZ.ConstAt(kk, 2, 0) << " zin=" << inPar.ConstAt(kk,2,0) << " zout=" << outPar.At(kk,2,0) << std::endl
-		   << "pt=" << hipo(inPar.ConstAt(kk,3,0), inPar.ConstAt(kk,4,0)) << " pz=" << inPar.ConstAt(kk,5,0));
+       // XXXXMT4G
+       // if (std::abs(outPar.At(kk,2,0) - inPar.ConstAt(kk, 2, 0))>0.0001) {
+       //    dprint_np(kk, "DID NOT GET TO Z, dZ=" << std::abs(outPar.At(kk,2,0)-inPar.ConstAt(kk, 2, 0))
+       if (std::abs(outPar.At(kk,2,0) - z) > 0.0001) {
+	 dprint_np(kk, "DID NOT GET TO Z, dZ=" << std::abs(outPar.At(kk,2,0) - z)
+		   << " z=" << msZ.ConstAt(kk, 2, 0) << " zin=" << inPar.ConstAt(kk,2,0) << " zout=" << outPar.At(kk,2,0)
+		   << "\n    pt=" << hipo(inPar.ConstAt(kk,3,0), inPar.ConstAt(kk,4,0)) << " pz=" << inPar.ConstAt(kk,5,0));
        }
      }
    }

@@ -147,7 +147,8 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
     for (int hi = 0; hi < Nhits; ++hi)
     {
       const int hidx = trk.getHitIdx(hi);
-      const Hit &hit = layerHits[hi].m_hits[hidx];
+      const int hlyr = trk.getHitLyr(hi);
+      const Hit &hit = layerHits[hlyr].m_hits[hidx];
 
       msErr[hi].CopyIn(itrack, hit.errArray());
       msPar[hi].CopyIn(itrack, hit.posArray());
@@ -572,9 +573,9 @@ void MkFitter::CollectFitValidation(const int hi, const int N_proc, const Event 
 
 void MkFitter::FitTracksTestEndcap(const int N_proc, const Event* ev, const bool useParamBfield)
 {
-
-  if (countValidHits(0)<8) return;
-  if (Label.ConstAt(0, 0, 0)<0) return;
+  // XXXXMT4G
+  //if (countValidHits(0)<8) return;
+  //if (Label.ConstAt(0, 0, 0)<0) return;
 
   //float ptin = 1./Par[iC].ConstAt(0, 0, 3);
 
@@ -624,6 +625,40 @@ void MkFitter::FitTracksTestEndcap(const int N_proc, const Event* ev, const bool
   // 	    << " fitted hits: " << hitcount<< std::endl;
 }
 
+void MkFitter::FitTracksSteered(const bool is_barrel[], const int N_proc, const Event * ev, const bool useParamBfield)
+{
+  // Fitting loop.
+
+  dprintf("MkFitter::FitTracksSteered %d %d %d\n", is_barrel[0], is_barrel[1], is_barrel[2]);
+
+  for (int hi = 0; hi < Nhits; ++hi)
+  {
+    // Note, charge is not passed (line propagation).
+    // propagateLineToRMPlex(Err[iC], Par[iC], msErr[hi], msPar[hi],
+    //                       Err[iP], Par[iP]);
+
+    if (is_barrel[hi])
+    {
+      propagateHelixToRMPlex(Err[iC], Par[iC], Chg, msPar[hi],
+                             Err[iP], Par[iP], N_proc, useParamBfield);
+
+      updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[hi], msPar[hi],
+                            Err[iC], Par[iC], N_proc);
+    }
+    else
+    {
+      propagateHelixToZMPlex(Err[iC], Par[iC], Chg, msPar[hi],
+			     Err[iP], Par[iP], N_proc, useParamBfield);
+
+      updateParametersEndcapMPlex(Err[iP], Par[iP], Chg, msErr[hi], msPar[hi],
+				  Err[iC], Par[iC], N_proc);
+    }
+
+    if (Config::fit_val) MkFitter::CollectFitValidation(hi,N_proc,ev);
+  }
+  // XXXXX What's with chi2?
+}
+
 void MkFitter::OutputTracks(std::vector<Track>& tracks, int beg, int end, int iCP) const
 {
   // Copies last track parameters (updated) into Track objects.
@@ -660,8 +695,6 @@ void MkFitter::OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, 
     tracks[i].setCharge(Chg(itrack, 0, 0));
     tracks[i].setChi2(Chi2(itrack, 0, 0));
     tracks[i].setLabel(Label(itrack, 0, 0));
-
-    // XXXXX chi2 is not set (also not in SMatrix fit, it seems)
 
     tracks[i].resetHits();
     for (int hi = 0; hi < Nhits; ++hi)
@@ -783,15 +816,15 @@ void MkFitter::SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_pr
         {
           // MT: Access into m_hit_zs and m_hit_phis is 1% run-time each.
 
-#ifdef LOH_USE_PHI_Z_ARRAYS
-          float ddz   = std::abs(z   - L.m_hit_zs[hi]);
+#ifdef LOH_USE_PHI_Q_ARRAYS
+          float ddz   = std::abs(z   - L.m_hit_qs[hi]);
           float ddphi = std::abs(phi - L.m_hit_phis[hi]);
           if (ddphi > Config::PI) ddphi = Config::TwoPI - ddphi;
 
           if (dump)
             printf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
                    zi, pi, pb, hi,
-                   L.m_hit_zs[hi], L.m_hit_phis[hi], ddz, ddphi,
+                   L.m_hit_qs[hi], L.m_hit_phis[hi], ddz, ddphi,
                    (ddz < dz && ddphi < dphi) ? "PASS" : "FAIL");
 
           // MT: Commenting this check out gives full efficiency ...
@@ -1619,13 +1652,16 @@ void MkFitter::CopyOutParErr(std::vector<std::vector<Track> >& seed_cand_vec,
 
 void MkFitter::PropagateTracksToZ(float Z, const int N_proc)
 {
-    propagateHelixToZMPlex(Err[iC], Par[iC], Chg, Z,
-                           Err[iP], Par[iP], N_proc);
+  // printf("MkFitter::PropagateTracksToZ z=%f\n", Z);
+  propagateHelixToZMPlex(Err[iC], Par[iC], Chg, Z,
+                         Err[iP], Par[iP], N_proc);
 }
 
 void MkFitter::SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits,
                                       const int N_proc, bool dump)
 {
+  // debug = 1;
+
   const int   iI = iP;
   const float nSigmaPhi = 3;
   const float nSigmaR   = 3;
@@ -1661,7 +1697,7 @@ void MkFitter::SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits,
 
       dphi = nSigmaPhi * std::sqrt(std::abs(dphi2));
 
-      if (std::abs(dphi)<Config::minDPhi) dphi = Config::minDPhi;
+      // XXXXMT4K if (std::abs(dphi) < Config::minDPhi) dphi = Config::minDPhi;
 //       if (std::abs(dz)<Config::minDZ) dz = Config::minDZ;
 
       if (Config::useCMSGeom)
@@ -1684,7 +1720,7 @@ void MkFitter::SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits,
     const LayerOfHits &L = layer_of_hits;
 
     // if (std::abs(dz)   > Config::m_max_dz)   dz   = Config::m_max_dz;
-    if (std::abs(dphi) > Config::m_max_dphi) dphi = Config::m_max_dphi;
+    // XXXXMT4K if (std::abs(dphi) > Config::m_max_dphi) dphi = Config::m_max_dphi;
 
     const int rb1 = L.GetQBinChecked(r - dr);
     const int rb2 = L.GetQBinChecked(r + dr) + 1;
@@ -1695,7 +1731,7 @@ void MkFitter::SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits,
     // const int pb2 = L.GetPhiBin(phi + dphi) + 2;
 
     if (dump)
-      printf("LayerOfHits::SelectHitIndices %6.3f %6.3f %6.4f %7.5f %3d %3d %4d %4d\n",
+      printf("LayerOfHits::SelectHitIndicesEndcap %6.3f %6.3f %6.4f %7.5f %3d %3d %4d %4d\n",
              r, phi, dr, dphi, rb1, rb2, pb1, pb2);
 
     // MT: One could iterate in "spiral" order, to pick hits close to the center.
@@ -1719,16 +1755,16 @@ void MkFitter::SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits,
         {
           // MT: Access into m_hit_zs and m_hit_phis is 1% run-time each.
 
-#ifdef LOH_USE_PHI_Z_ARRAYS
-          float ddz   = std::abs(z   - L.m_hit_zs[hi]);
+#ifdef LOH_USE_PHI_Q_ARRAYS
+          float ddr   = std::abs(r   - L.m_hit_qs[hi]);
           float ddphi = std::abs(phi - L.m_hit_phis[hi]);
           if (ddphi > Config::PI) ddphi = Config::TwoPI - ddphi;
 
           if (dump)
             printf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
                    ri, pi, pb, hi,
-                   L.m_hit_zs[hi], L.m_hit_phis[hi], ddz, ddphi,
-                   (ddz < dz && ddphi < dphi) ? "PASS" : "FAIL");
+                   L.m_hit_qs[hi], L.m_hit_phis[hi], ddr, ddphi,
+                   (ddr < dr && ddphi < dphi) ? "PASS" : "FAIL");
 
           // MT: Commenting this check out gives full efficiency ...
           //     and means our error estimations are wrong!
@@ -1751,6 +1787,8 @@ void MkFitter::SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits,
 
 void MkFitter::AddBestHitEndcap(const LayerOfHits &layer_of_hits, const int N_proc)
 {
+  // debug = true;
+
   float minChi2[NN];
   int   bestHit[NN];
   // MT: fill_n gave me crap on MIC, NN=8,16, doing in maxSize search below.
@@ -1892,7 +1930,7 @@ void MkFitter::AddBestHitEndcap(const LayerOfHits &layer_of_hits, const int N_pr
     //fixme decide what to do in case no hit found
     if (bestHit[itrack] >= 0)
     {
-      const Hit &hit  = layer_of_hits.m_hits[ bestHit[itrack] ];
+      const Hit  &hit  = layer_of_hits.m_hits[ bestHit[itrack] ];
       const float chi2 = minChi2[itrack];
 
       dprint("ADD BEST HIT FOR TRACK #" << itrack << std::endl
@@ -1909,10 +1947,11 @@ void MkFitter::AddBestHitEndcap(const LayerOfHits &layer_of_hits, const int N_pr
 
       bool withinBounds = true;
       float r2 = Par[iP](itrack,0,0)*Par[iP](itrack,0,0)+Par[iP](itrack,1,0)*Par[iP](itrack,1,0);
-      if ( r2<(Config::cmsDiskMinRs[Nhits]*Config::cmsDiskMinRs[Nhits]) ||
-	   r2>(Config::cmsDiskMaxRs[Nhits]*Config::cmsDiskMaxRs[Nhits]) ||
-	   r2>(Config::cmsDiskMinRsHole[Nhits]*Config::cmsDiskMinRsHole[Nhits]) ||
-	   r2<(Config::cmsDiskMaxRsHole[Nhits]*Config::cmsDiskMaxRsHole[Nhits]) ) withinBounds = false;
+      // XXXXMT4G
+      // if ( r2<(Config::cmsDiskMinRs[Nhits]*Config::cmsDiskMinRs[Nhits]) ||
+      //      r2>(Config::cmsDiskMaxRs[Nhits]*Config::cmsDiskMaxRs[Nhits]) ||
+      //      r2>(Config::cmsDiskMinRsHole[Nhits]*Config::cmsDiskMinRsHole[Nhits]) ||
+      //      r2<(Config::cmsDiskMaxRsHole[Nhits]*Config::cmsDiskMaxRsHole[Nhits]) ) withinBounds = false;
 
 #ifdef DEBUG
       r2= std::sqrt(r2);

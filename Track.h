@@ -127,7 +127,7 @@ public:
     }
     for (int h = nHits; h < Config::nMaxTrkHits; ++h)
     {
-      setHitIdx(h, -1, -1);
+      setHitIdxLyr(h, -1, -1);
     }
   }
 
@@ -241,7 +241,7 @@ public:
   {
     return hitsOnTrk_[hitIdxPos_].index;
   }
-  int getLastHitLayer() const
+  int getLastHitLyr() const
   {
     return hitsOnTrk_[hitIdxPos_].layer;
   }
@@ -250,12 +250,17 @@ public:
 
   void fillEmptyLayers() {
     for (int h = hitIdxPos_ + 1; h < Config::nMaxTrkHits; h++) {
-      setHitIdx(h, -1, -1);
+      setHitIdxLyr(h, -1, -1);
     }
   }
 
   CUDA_CALLABLE
-  void setHitIdx(int posHitIdx, int newIdx, int newLyr) {
+  void setHitIdx(int posHitIdx, int newIdx) {
+    hitsOnTrk_[posHitIdx].index = newIdx;
+  }
+
+  CUDA_CALLABLE
+  void setHitIdxLyr(int posHitIdx, int newIdx, int newLyr) {
     hitsOnTrk_[posHitIdx] = { newIdx, newLyr };
   }
 

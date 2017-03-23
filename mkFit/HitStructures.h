@@ -4,6 +4,7 @@
 #include "../Config.h"
 #include "Hit.h"
 #include "Track.h"
+#include "TrackerInfo.h"
 //#define DEBUG
 #include "Debug.h"
 
@@ -60,7 +61,7 @@ inline bool sortTrksByPhiMT(const Track& t1, const Track& t2)
 // and could help us reduce the number of hits we need to process with bigger
 // potential gains.
 
-// #define LOH_USE_PHI_Q_ARRAYS
+#define LOH_USE_PHI_Q_ARRAYS
 
 // Note: the same code is used for barrel and endcap. In barrel the longitudinal
 // bins are in Z and in endcap they are in R -- here this coordinate is called Q
@@ -193,32 +194,32 @@ class EtaBinOfCandidates
 public:
   std::vector<Track> m_candidates;
 
-  int     m_real_size;
-  int     m_fill_index;
+  int     m_capacity;
+  int     m_size;
 
 public:
   EtaBinOfCandidates() :
-    m_candidates (Config::maxCandsPerEtaBin),
-    m_real_size  (Config::maxCandsPerEtaBin),
-    m_fill_index (0)
+    m_candidates(Config::maxCandsPerEtaBin),
+    m_capacity  (Config::maxCandsPerEtaBin),
+    m_size      (0)
   {}
 
   void Reset()
   {
-    m_fill_index = 0;
+    m_size = 0;
   }
 
   void InsertTrack(const Track& track)
   {
-    assert (m_fill_index < m_real_size); // or something
+    assert (m_size < m_capacity); // or something
 
-    m_candidates[m_fill_index] = track;
-    ++m_fill_index;
+    m_candidates[m_size] = track;
+    ++m_size;
   }
 
   void SortByPhi()
   {
-    std::sort(m_candidates.begin(), m_candidates.begin() + m_fill_index, sortTrksByPhiMT);
+    std::sort(m_candidates.begin(), m_candidates.begin() + m_size, sortTrksByPhiMT);
   }
 };
 
@@ -262,100 +263,93 @@ public:
 };
 
 
-
 //-------------------------------------------------------
 // for combinatorial version, switch to vector of vectors
 //-------------------------------------------------------
 
-class EtaBinOfCombCandidates
+class EtaRegionOfCombCandidates
 {
 public:
   std::vector<std::vector<Track> > m_candidates;
 
-  //these refer to seeds
-  int     m_real_size;
-  int     m_fill_index;
+  int     m_capacity;
+  int     m_size;
+  int     m_region;
 
 public:
-  EtaBinOfCombCandidates() :
-    m_candidates (Config::maxCandsPerEtaBin / Config::maxCandsPerSeed),
-    m_real_size  (Config::maxCandsPerEtaBin / Config::maxCandsPerSeed),
-    m_fill_index (0)
+  EtaRegionOfCombCandidates(int size=0) :
+    m_candidates(),
+    m_capacity  (0),
+    m_size      (0),
+    m_region    (-1)
   {
-    for (int s=0;s<m_real_size;++s)
-    {
-      m_candidates[s].reserve(Config::maxCandsPerSeed);//we should never exceed this
-    }
+    Reset(size);
   }
 
-  void Reset()
+  void Reset(int new_capacity)
   {
-    m_fill_index = 0;
-    for (int s=0;s<m_real_size;++s)
+    for (int s = 0; s < m_size; ++s)
     {
       m_candidates[s].clear();
     }
+
+    if (new_capacity > m_capacity)
+    {
+      m_candidates.resize(new_capacity);
+
+      for (int s = m_capacity; s < new_capacity; ++s)
+      {
+        m_candidates[s].reserve(Config::maxCandsPerSeed);//we should never exceed this
+      }
+
+      m_capacity = new_capacity;
+    }
+
+    m_size = 0;
   }
+
+  std::vector<Track>& operator[](int i) { return m_candidates[i]; }
 
   void InsertSeed(const Track& seed)
   {
-    assert (m_fill_index < m_real_size); // or something
+    assert (m_size < m_capacity);
 
-    m_candidates[m_fill_index].push_back(seed);
-    ++m_fill_index;
+    m_candidates[m_size].emplace_back(seed);
+    ++m_size;
   }
 
   void InsertTrack(const Track& track, int seed_index)
   {
-    assert (seed_index <= m_fill_index); // or something
+    assert (seed_index < m_size);
 
     m_candidates[seed_index].push_back(track);
   }
 
   /* void SortByPhi() */
   /* { */
-  /*   std::sort(m_candidates.begin(), m_candidates.begin() + m_fill_index, sortTrksByPhiMT); */
+  /*   std::sort(m_candidates.begin(), m_candidates.begin() + m_size, sortTrksByPhiMT); */
   /* } */
 };
 
 class EventOfCombCandidates
 {
 public:
-  std::vector<EtaBinOfCombCandidates> m_etabins_of_comb_candidates;
+  std::vector<EtaRegionOfCombCandidates> m_regions_of_comb_candidates;
 
 public:
-  // XXXXMT Do I need something like:
-  // EventOfCombCandidates(int nb, float eta_trans_beg, float eta_trans_end, float eta_max) :
-
   EventOfCombCandidates() :
-    m_etabins_of_comb_candidates(Config::nEtaBin)
-  {}
-
-  void Reset()
+    m_regions_of_comb_candidates(TrackerInfo::Reg_Count)
   {
-    for (auto &i : m_etabins_of_comb_candidates)
+    for (int i = TrackerInfo::Reg_Begin; i < TrackerInfo::Reg_End; ++i)
     {
-      i.Reset();
+      m_regions_of_comb_candidates[i].m_region = i;
     }
   }
 
-  void InsertSeed(const Track& seed)
-  {
-    int bin = getEtaBin(seed.posEta());
-    if ( bin != -1 )
-    {
-      m_etabins_of_comb_candidates[bin].InsertSeed(seed);
-    } 
-#ifdef DEBUG
-    else { dprint("excluding seed with r=" << seed.posR() << " etaBin=" << bin); };
-#endif
-  }
+  std::vector<EtaRegionOfCombCandidates>::iterator begin() { return m_regions_of_comb_candidates.begin(); }
+  std::vector<EtaRegionOfCombCandidates>::iterator end()   { return m_regions_of_comb_candidates.end(); }
 
-  void InsertCandidate(const Track& track, int seed_index)
-  {
-    int bin = getEtaBin(track.posEta());
-    m_etabins_of_comb_candidates[bin].InsertTrack(track,seed_index);
-  }
+  EtaRegionOfCombCandidates& operator[](int i) { return m_regions_of_comb_candidates[i]; }
 
 };
 

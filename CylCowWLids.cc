@@ -44,6 +44,8 @@ namespace
 
       LayerInfo & li  = m_trkinfo.m_layers[lid];
 
+      li.m_layer_type = LayerInfo::Barrel;
+
       li.m_rin  = r - m_det_half_thickness;
       li.m_rout = r + m_det_half_thickness;
       li.m_zmin = -z;
@@ -53,7 +55,10 @@ namespace
       li.m_next_ecap_pos = lid < 9 ? lid + 1 +  9 : -1;
       li.m_next_ecap_neg = lid < 9 ? lid + 1 + 18 : -1;
 
-      li.m_is_barrel = true;
+      li.m_sibl_barrel   = -1;
+      li.m_sibl_ecap_pos = lid > 0 ? lid +  9 : -1;
+      li.m_sibl_ecap_neg = lid > 0 ? lid + 18 : -1;
+
       li.m_is_outer  = (lid == 9);
     }
 
@@ -80,6 +85,8 @@ namespace
       {
         LayerInfo & li  = m_trkinfo.m_layers[lid];
 
+        li.m_layer_type = LayerInfo::EndCapPos;
+
         li.m_rin  = r_end;
         li.m_rout = r;
         li.m_zmin = z - m_det_half_thickness;
@@ -89,12 +96,17 @@ namespace
         li.m_next_ecap_pos = lid < 18 ? lid + 1 : -1;
         li.m_next_ecap_neg = -1;
 
-        li.m_is_barrel = false;
+        li.m_sibl_barrel   = lid - 9;
+        li.m_sibl_ecap_pos = -1;
+        li.m_sibl_ecap_neg = -1;
+
         li.m_is_outer  = (lid == 18);
       }
       {
         lid += 9;
         LayerInfo & li  = m_trkinfo.m_layers[lid];
+
+        li.m_layer_type = LayerInfo::EndCapNeg;
 
         li.m_rin  = r_end;
         li.m_rout = r;
@@ -105,7 +117,10 @@ namespace
         li.m_next_ecap_pos = -1;
         li.m_next_ecap_neg = lid < 27 ? lid + 1 : -1;
 
-        li.m_is_barrel = false;
+        li.m_sibl_barrel   = lid - 18;
+        li.m_sibl_ecap_pos = -1;
+        li.m_sibl_ecap_neg = -1;
+
         li.m_is_outer  = (lid == 27);
       }
     }
@@ -120,6 +135,11 @@ namespace
 
     void FillTrackerInfo()
     {
+      // XXXXXXMT: Hack smaller transition region.
+      // Need better estimate for seeds?
+      // m_trkinfo.set_eta_regions(1.15, 1.4, 2.4);
+      m_trkinfo.set_eta_regions(1.1, 1.3, 2.4);
+
       // Actual coverage for tracks with z = 3cm is 2.4
       float full_eta = 2.5;
       float full_eta_pix_0 = 2.55; // To account for BS z-spread

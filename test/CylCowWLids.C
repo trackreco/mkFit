@@ -12,7 +12,7 @@ TrackerInfo g_tracker_info;
 void print_etas(LayerInfo &li, float dz)
 {
   float r, z;
-  if (li.m_is_barrel)
+  if (li.is_barrel())
   {
     r = li.r_mean();
     z = li.m_zmax;
@@ -24,7 +24,7 @@ void print_etas(LayerInfo &li, float dz)
   printf("%2d %6.4f %6.4f %6.4f", li.m_layer_id,
          getEta(r, z - dz), getEta(r, z), getEta(r, z + dz));
 
-  if ( ! li.m_is_barrel)
+  if ( ! li.is_barrel())
   {
     r = li.m_rin;
 

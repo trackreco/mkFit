@@ -55,7 +55,7 @@ void Event::resetLayerHitMap(bool resetSimHits) {
       for (int il = 0; il < track.nTotalHits(); ++il) {
         HitID &hid = layerHitMap_[track.getHitIdx(il)];
         assert(hid.index >= 0); // tmp debug
-        track.setHitIdx(il, hid.index, hid.layer);
+        track.setHitIdxLyr(il, hid.index, hid.layer);
       }
     }
   }
@@ -471,9 +471,10 @@ void Event::read_in(FILE *fp, int version)
   fread(&simTracks_[0], sizeof(Track), nt, fp);
   Config::nTracks = nt;
 
-  if (Config::normal_val || Config::fit_val) {
+  if (Config::normal_val || Config::fit_val)
+  {
     simTrackStates_.resize(nt);
-    for (int it = 0; it<nt; ++it) {
+    for (int it = 0; it < nt; ++it) {
       int nts;
       fread(&nts, sizeof(int), 1, fp);
       simTrackStates_[it].resize(nts);
@@ -515,24 +516,31 @@ void Event::read_in(FILE *fp, int version)
     */
   }
 
-  /*
+  /* */
   printf("read %i simtracks\n",nt);
+  /*
   for (int it = 0; it<nt; it++) {
-    printf("simtrack with q=%i pT=%5.3f and nHits=%i\n",simTracks_[it].charge(),simTracks_[it].pT(),simTracks_[it].nFoundHits());
+    printf("simtrack %d with q=%i pT=%5.3f eta=%6.3f and nHits=%i\n",it,simTracks_[it].charge(),simTracks_[it].pT(),simTracks_[it].momEta(),simTracks_[it].nFoundHits());
     for (int ih=0; ih<simTracks_[it].nTotalHits(); ++ih) {
-      if (simTracks_[it].getHitIdx(ih)>=0)
-	printf("hit #%i idx=%i pos r=%5.3f\n",ih,simTracks_[it].getHitIdx(ih),layerHits_[ih][simTracks_[it].getHitIdx(ih)].r());
+      int lyr = simTracks_[it].getHitLyr(ih);
+      int idx = simTracks_[it].getHitIdx(ih);
+      if (idx >= 0)
+	printf("  hit #%i lyr=%d idx=%i pos r=%5.3f z=%6.3f\n",
+               ih, lyr, idx, layerHits_[lyr][idx].r(), layerHits_[lyr][idx].z());
       else
-	printf("hit #%i idx=%i\n",ih,simTracks_[it].getHitIdx(ih));
+	printf("  hit #%i idx=%i\n",ih,simTracks_[it].getHitIdx(ih));
     }
   }
-  */
   printf("read %i layers\n",nl);
+  int total_hits = 0;
   for (int il = 0; il<nl; il++) {
     printf("read %i hits in layer %i\n",layerHits_[il].size(),il);
+    total_hits += layerHits_[il].size();
     for (int ih = 0; ih<layerHits_[il].size(); ih++) {
-      printf("hit with mcHitID=%i r=%5.3f x=%5.3f y=%5.3f z=%5.3f\n",layerHits_[il][ih].mcHitID(),layerHits_[il][ih].r(),layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z());
+      printf("  hit with mcHitID=%i r=%5.3f x=%5.3f y=%5.3f z=%5.3f\n",layerHits_[il][ih].mcHitID(),layerHits_[il][ih].r(),layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z());
     }
   }
+  printf("total_hits = %d\n", total_hits);
+  */
   printf("read event done\n",nl);
 }
