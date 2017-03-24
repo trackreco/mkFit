@@ -1032,7 +1032,7 @@ void MkFitter::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc)
 
 
 void MkFitter::FindCandidates(const LayerOfHits &layer_of_hits,
-                              std::vector<std::vector<Track> >& tmp_candidates,
+                              std::vector<std::vector<Track>>& tmp_candidates,
                               const int offset, const int N_proc)
 {
   const char *varr      = (char*) layer_of_hits.m_hits;
@@ -1196,7 +1196,7 @@ void MkFitter::FindCandidates(const LayerOfHits &layer_of_hits,
 }
 
 void MkFitter::FindCandidatesEndcap(const LayerOfHits &layer_of_hits,
-				    std::vector<std::vector<Track> >& tmp_candidates,
+				    std::vector<std::vector<Track>>& tmp_candidates,
 				    const int offset, const int N_proc)
 {
   const char *varr      = (char*) layer_of_hits.m_hits;
@@ -1343,7 +1343,8 @@ void MkFitter::FindCandidatesEndcap(const LayerOfHits &layer_of_hits,
   {
     int hit_idx = countInvalidHits(itrack) < Config::maxHolesPerCand ? -1 : -2;
     
-    // XXXXMT4K Grrrr ... this is cmssw specific, sigh
+    // XXXXMT4CMS Grrrr ... this is cmssw specific, sigh
+    /*
     bool withinBounds = true;
     float r2 = Par[iP](itrack,0,0)*Par[iP](itrack,0,0)+Par[iP](itrack,1,0)*Par[iP](itrack,1,0);
     if ( r2<(Config::cmsDiskMinRs[Nhits]*Config::cmsDiskMinRs[Nhits]) ||
@@ -1352,6 +1353,7 @@ void MkFitter::FindCandidatesEndcap(const LayerOfHits &layer_of_hits,
 	 r2<(Config::cmsDiskMaxRsHole[Nhits]*Config::cmsDiskMaxRsHole[Nhits]) ) withinBounds = false;
     //-3 means we did not expect any hit since we are out of bounds, so it does not count in countInvalidHits
     if (withinBounds==false) hit_idx = -3;
+    */
 
     Track newcand;
     newcand.resetHits();//probably not needed
@@ -1947,11 +1949,13 @@ void MkFitter::AddBestHitEndcap(const LayerOfHits &layer_of_hits, const int N_pr
 
       bool withinBounds = true;
       float r2 = Par[iP](itrack,0,0)*Par[iP](itrack,0,0)+Par[iP](itrack,1,0)*Par[iP](itrack,1,0);
-      // XXXXMT4G
-      // if ( r2<(Config::cmsDiskMinRs[Nhits]*Config::cmsDiskMinRs[Nhits]) ||
-      //      r2>(Config::cmsDiskMaxRs[Nhits]*Config::cmsDiskMaxRs[Nhits]) ||
-      //      r2>(Config::cmsDiskMinRsHole[Nhits]*Config::cmsDiskMinRsHole[Nhits]) ||
-      //      r2<(Config::cmsDiskMaxRsHole[Nhits]*Config::cmsDiskMaxRsHole[Nhits]) ) withinBounds = false;
+      // XXXXMT4CMS Grrrr ... this is cmssw specific, sigh
+      /*
+      if ( r2<(Config::cmsDiskMinRs[Nhits]*Config::cmsDiskMinRs[Nhits]) ||
+           r2>(Config::cmsDiskMaxRs[Nhits]*Config::cmsDiskMaxRs[Nhits]) ||
+           r2>(Config::cmsDiskMinRsHole[Nhits]*Config::cmsDiskMinRsHole[Nhits]) ||
+           r2<(Config::cmsDiskMaxRsHole[Nhits]*Config::cmsDiskMaxRsHole[Nhits]) ) withinBounds = false;
+      */
 
 #ifdef DEBUG
       r2= std::sqrt(r2);
@@ -2101,12 +2105,15 @@ void MkFitter::FindCandidatesMinimizeCopyEndcap(const LayerOfHits &layer_of_hits
 
       bool withinBounds = true;
       float r2 = Par[iP](itrack,0,0)*Par[iP](itrack,0,0)+Par[iP](itrack,1,0)*Par[iP](itrack,1,0);
+      // XXXXMT4CMS Grrrr ... this is cmssw specific, sigh
+      /*
       if ( r2<(Config::cmsDiskMinRs[Nhits]*Config::cmsDiskMinRs[Nhits]) ||
            r2>(Config::cmsDiskMaxRs[Nhits]*Config::cmsDiskMaxRs[Nhits]) ||
            r2>(Config::cmsDiskMinRsHole[Nhits]*Config::cmsDiskMinRsHole[Nhits]) ||
            r2<(Config::cmsDiskMaxRsHole[Nhits]*Config::cmsDiskMaxRsHole[Nhits]) ) withinBounds = false;
       //-3 means we did not expect any hit since we are out of bounds, so it does not count in countInvalidHits
       if (withinBounds==false) hit_idx = -3;
+      */
 
       IdxChi2List tmpList;
       tmpList.trkIdx = CandIdx(itrack, 0, 0);

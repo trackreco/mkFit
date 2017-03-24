@@ -116,9 +116,9 @@ public:
   void AddBestHit      (const LayerOfHits &layer_of_hits, const int N_proc);
   void AddBestHitEndcap(const LayerOfHits &layer_of_hits, const int N_proc);
 
-  void FindCandidates(const LayerOfHits &layer_of_hits, std::vector<std::vector<Track> >& tmp_candidates,
+  void FindCandidates(const LayerOfHits &layer_of_hits, std::vector<std::vector<Track>>& tmp_candidates,
 		      const int offset, const int N_proc);
-  void FindCandidatesEndcap(const LayerOfHits &layer_of_hits, std::vector<std::vector<Track> >& tmp_candidates,
+  void FindCandidatesEndcap(const LayerOfHits &layer_of_hits, std::vector<std::vector<Track>>& tmp_candidates,
 			    const int offset, const int N_proc);
   // ================================================================
   // Methods used with clone engine

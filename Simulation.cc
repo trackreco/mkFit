@@ -45,8 +45,8 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
 roll_eta_dice:
   float eta = Config::minSimEta + (Config::maxSimEta - Config::minSimEta) * g_unif(g_gen);
 
-  // XXMT Hardhack ... exclude transition region eta
-  if (Config::TrkInfo.is_transition(eta))
+  // XXXXMT Hardhack ... exclude transition region eta
+  if (Config::TrkInfo.is_transition(eta, 0.1f))
     goto roll_eta_dice;
 
   float pz  = pt*(1./(std::tan(2*std::atan(std::exp(-eta)))));

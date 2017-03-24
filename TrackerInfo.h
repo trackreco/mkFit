@@ -82,9 +82,9 @@ public:
     return std::abs(eta) < m_eta_trans_beg;
   }
 
-  bool is_transition(float eta) const
+  bool is_transition(float eta, float safety = 0) const
   {
-    return std::abs(eta) >= m_eta_trans_beg && std::abs(eta) <= m_eta_trans_end;
+    return std::abs(eta) >= m_eta_trans_beg - safety && std::abs(eta) <= m_eta_trans_end + safety;
   }
 
   bool is_endcap(float eta) const

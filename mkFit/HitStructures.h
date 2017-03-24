@@ -349,7 +349,8 @@ public:
   std::vector<EtaRegionOfCombCandidates>::iterator begin() { return m_regions_of_comb_candidates.begin(); }
   std::vector<EtaRegionOfCombCandidates>::iterator end()   { return m_regions_of_comb_candidates.end(); }
 
-  EtaRegionOfCombCandidates& operator[](int i) { return m_regions_of_comb_candidates[i]; }
+        EtaRegionOfCombCandidates& operator[](int i)       { return m_regions_of_comb_candidates[i]; }
+  const EtaRegionOfCombCandidates& operator[](int i) const { return m_regions_of_comb_candidates[i]; }
 
 };
 

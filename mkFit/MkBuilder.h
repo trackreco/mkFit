@@ -97,7 +97,7 @@ public:
   void find_tracks_load_seeds();
   void find_tracks_in_layers(EtaRegionOfCombCandidates &comb_candidates,
                              CandCloner &cloner, MkFitter *mkfp,
-                             int start_seed, int end_seed, int ebin);
+                             int start_seed, int end_seed, int region);
 
   // --------
 

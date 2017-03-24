@@ -148,6 +148,9 @@ namespace Config
   // XXMT Hardhack -- transition region excluded in Simulation::setupTrackByToyMC()
   constexpr float minSimEta = -2.4;
   constexpr float maxSimEta =  2.4;
+  // For testing separate EC-/BRL/EC+; -2.3--1.5 / -0.9-0.9 / 1.5-2.3
+  //constexpr float minSimEta =  -0.9;
+  //constexpr float maxSimEta =   0.9;
 
   constexpr float hitposerrXY = 0.01; // resolution is 100um in xy --> more realistic scenario is 0.003
   constexpr float hitposerrZ  = 0.1;  // resolution is 1mm in z
