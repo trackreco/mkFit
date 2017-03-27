@@ -1,6 +1,11 @@
-void makeBenchmarkPlotsFit(bool isMic = false, bool isEndcap = false)
+void makeBenchmarkPlotsFit(bool isKNC = false, bool isEndcap = false,
+                           bool isKNL = false)
 {
-  TString hORm   = isMic?"KNC":"SNB";
+  TString hORm    = "SNB";
+  if (isKNC) hORm = "KNC";
+  if (isKNL) hORm = "KNL";
+  bool isMic = isKNC || isKNL;
+
   TString region = isEndcap?"Endcap":"Barrel";
 
   float maxth = isMic?240:24;

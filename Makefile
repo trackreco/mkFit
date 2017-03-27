@@ -4,7 +4,7 @@ TGTS := main
 
 EXES := ${TGTS}
 
-ifeq (${CXX},icc)
+ifdef KNC_BUILD
   EXES   += $(addsuffix -mic, ${TGTS})
 endif
 
@@ -58,7 +58,8 @@ ${LIBUSOLIDS} : USolids/CMakeLists.txt
 	-mkdir USolids-host
 	cd USolids-host && cmake ${CMAKEFLAGS} ../USolids && make
 
-ifeq ($(CXX),icc)
+
+ifdef KNC_BUILD
 
 OBJS_MIC := $(OBJS:.o=.om)
 
@@ -74,3 +75,7 @@ ${OBJS_MIC}: %.om: %.cc
 	${CXX} ${CPPFLAGS_NO_ROOT} ${CXXFLAGS} ${VEC_MIC} -c -o $@ $<
 
 endif
+
+
+echo:
+	-echo CXX = ${CXX}
