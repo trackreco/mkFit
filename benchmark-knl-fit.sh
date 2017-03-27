@@ -11,7 +11,9 @@ make -j 8
 #./mkFit/mkFit --write --file-name simtracks_1kx10k.bin
 # mv simtracks_10x1M.bin ${dir}/
 
-BEXE="./mkFit/mkFit --read --file-name simtracks_1kxx10k.bin"
+. data-dir-location.sh
+
+BEXE="./mkFit/mkFit --read --file-name ${dir}/simtracks_barrel_1kxx10k.bin"
 # BEXE="numactl -m 1 ./mkFit/mkFit --read --file-name simtracks_10x1M.bin"
 
 LOG_BASE=log_KNL_ToyMC_Barrel
