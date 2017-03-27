@@ -3,7 +3,7 @@
 
 # Run where root exists
 
-python makeBenchmarkPlots.py knl
+python makeBenchmarkPlots.py KNL
 
 root -b -q -l makeBenchmarkPlots.C\(0,0,0,1\)
 root -b -q -l makeBenchmarkPlotsFit.C\(0,0,1\)

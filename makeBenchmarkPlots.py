@@ -31,7 +31,7 @@ for test in ['BH','STD','CE','FIT']:
 
     # Vectorization data points
     vuvals = ['1','2','4','8']
-    if 'KNC' in hORm or 'KNL' in hORm: 
+    if hORm == 'KNC' or hORm == 'KNL':
         nth = '1'
         vuvals.append('16')
         vuvals.append('16int')
