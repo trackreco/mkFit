@@ -695,7 +695,7 @@ void MkBuilder::remap_seed_hits()
   // In principle could have a list of seed layers (from outside (seed maker) or TrackerInfo).
   int max_layer = Config::nTotalLayers;
 
-  for (int ilayer = 0; max_layer < Config::nlayers_per_seed; ++ilayer)
+  for (int ilayer = 0; ilayer < max_layer; ++ilayer)
   {
     const auto & global_hit_vec = m_event->layerHits_[ilayer];
     const auto   size = global_hit_vec.size();

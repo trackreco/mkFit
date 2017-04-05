@@ -2,6 +2,37 @@
 Notes for Kevin
 #########
 
+// Dump sim tracks + hits
+  for (auto & t : m_event->simTracks_)
+  {
+    printf("%2d (%2d): ", t.label(), t.nFoundHits());
+
+    for (int i = 0; i < t.nFoundHits(); ++i)
+    {
+      int idx = t.getHitIdx(i);
+      int lyr = t.getHitLyr(i);
+
+      printf("%4d", idx >= 0 ? m_event->layerHits_[lyr][idx].mcHitID() : -1);
+    }
+    printf("\n");
+  }
+
+// Dump cands + hits (would need to build map label to index to
+// get it properly sorted)
+  for (auto & t : m_event->candidateTracks_)
+  {
+    printf("%2d (%2d): ", t.label(), t.nFoundHits());
+
+    for (int i = 0; i < t.nFoundHits(); ++i)
+    {
+      int idx = t.getHitIdx(i);
+      int lyr = t.getHitLyr(i);
+
+      printf("%4d", idx >= 0 ? m_event->layerHits_[lyr][idx].mcHitID() : -1);
+    }
+    printf("\n");
+  }
+
 In general, search for XXMT4K.
 
 Thing that is probably most urgent is Validation + some issues with Simulation

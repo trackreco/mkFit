@@ -37,7 +37,8 @@ inline bool sortByZ(const Hit& hit1, const Hit& hit2){
 }
 #endif
 
-void Event::resetLayerHitMap(bool resetSimHits) {
+void Event::resetLayerHitMap(bool resetSimHits)
+{
   //gc: not sure what is being done here
   layerHitMap_.clear();
   layerHitMap_.resize(simHitsInfo_.size());
@@ -49,11 +50,11 @@ void Event::resetLayerHitMap(bool resetSimHits) {
       layerHitMap_[hit.mcHitID()] = HitID(ilayer, index);
     }
   }
-  // XXXMT4K is this still necessary? Or maybe I scrwed up by doing the mapping below ...
+  // XXXMT4K is this still necessary? Or maybe I screwed up by doing the mapping below ...
   if (resetSimHits) {
     for (auto&& track : simTracks_) {
       for (int il = 0; il < track.nTotalHits(); ++il) {
-        HitID &hid = layerHitMap_[track.getHitIdx(il)];
+        HitID &hid = layerHitMap_[track.getHitIdx(il)]; // XXXXMT4k This looks wrong
         assert(hid.index >= 0); // tmp debug
         track.setHitIdxLyr(il, hid.index, hid.layer);
       }
