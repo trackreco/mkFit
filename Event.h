@@ -9,6 +9,8 @@
 
 #include <mutex>
 
+// XXMT4K XXMT4D Is HitID and Event::layerHitMap_ still needed?
+
 struct HitID {
   HitID() : layer(-1), index(-1) {}
   HitID(int l, int i) : layer(l), index(i) {}

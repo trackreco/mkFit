@@ -681,24 +681,6 @@ void MkBuilder::map_seed_hits()
       }
     }
   }
-  // XXXXMT4K: Old code ...
-  /*
-  for (int ilayer = 0; ilayer < max_layer; ++ilayer)
-  {
-    const auto & global_hit_vec = m_event->layerHits_[ilayer];
-    const auto   size = m_event->layerHits_[ilayer].size();
-    for (auto&& track : m_event->seedTracks_) {
-      auto hitidx = track.getHitIdx(ilayer);
-      if ((hitidx >= 0) && (hitidx < size))
-      {
-        // XXMT4K ilayer -> something else. Even better, change loop order.
-        // Seed tracks only have seed hits, so iterate over them.
-
-	track.setHitIdxLyr(ilayer, seedLayersHitMap[global_hit_vec[hitidx].mcHitID()].index, ilayer);
-      }
-    }
-  }
-  */
 }
 
 void MkBuilder::remap_seed_hits()
@@ -707,25 +689,33 @@ void MkBuilder::remap_seed_hits()
   // m_event_of_hits.m_layers_of_hits[i].m_hits to global
   // m_event->layerHits_[i]
 
-  // XXXXMT4K as above
-
   HitIDVec seedLayersHitMap(m_event->simHitsInfo_.size());
-  for (int ilayer = 0; ilayer < Config::nlayers_per_seed; ++ilayer) {
+
+  // XXMT4K: This was: Config::nlayers_per_seed, now not that simple.
+  // In principle could have a list of seed layers (from outside (seed maker) or TrackerInfo).
+  int max_layer = Config::nTotalLayers;
+
+  for (int ilayer = 0; max_layer < Config::nlayers_per_seed; ++ilayer)
+  {
     const auto & global_hit_vec = m_event->layerHits_[ilayer];
     const auto   size = global_hit_vec.size();
-    for (int index = 0; index < size; ++index) {
+    for (int index = 0; index < size; ++index)
+    {
       seedLayersHitMap[global_hit_vec[index].mcHitID()] = HitID(ilayer, index);
     }
   }
-  for (int ilayer = 0; ilayer < Config::nlayers_per_seed; ++ilayer) {
-    const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
-    const auto   size = m_event->layerHits_[ilayer].size();
-    for (auto&& track : m_event->seedTracks_) {
-      auto hitidx = track.getHitIdx(ilayer);
-      if ((hitidx>=0) && (hitidx<size))
-      { 
-        // XXMT4K ilayer -> something else ....
-	track.setHitIdxLyr(ilayer, seedLayersHitMap[lof_m_hits[hitidx].mcHitID()].index, ilayer);
+
+  for (auto&& track : m_event->seedTracks_)
+  {
+    for (int i = 0; i < track.nTotalHits(); ++i)
+    {
+      int hitidx = track.getHitIdx(i);
+      int hitlyr = track.getHitLyr(i);
+      if (hitidx >= 0)
+      {
+        const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[hitlyr].m_hits;
+
+        track.setHitIdx(i, seedLayersHitMap[lof_m_hits[hitidx].mcHitID()].index);
       }
     }
   }
@@ -737,24 +727,31 @@ void MkBuilder::remap_cand_hits()
   // m_event_of_hits.m_layers_of_hits[i].m_hits to global
   // m_event->layerHits_[i]
 
-  // XXXXMT4K as above
-
   HitIDVec candLayersHitMap(m_event->simHitsInfo_.size());
-  for (int ilayer = 0; ilayer < Config::nLayers; ++ilayer) {
+
+  int max_layer = Config::nTotalLayers;
+
+  for (int ilayer = 0; ilayer < max_layer; ++ilayer)
+  {
     const auto & global_hit_vec = m_event->layerHits_[ilayer];
-    for (int index = 0; index < global_hit_vec.size(); ++index) {
+    const auto   size = global_hit_vec.size();
+    for (int index = 0; index < size; ++index)
+    {
       candLayersHitMap[global_hit_vec[index].mcHitID()] = HitID(ilayer, index);
     }
   }
-  for (int ilayer = 0; ilayer < Config::nLayers; ++ilayer) {
-    const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
-    const auto   size = m_event->layerHits_[ilayer].size();
-    for (auto&& track : m_event->candidateTracks_) {
-      auto hitidx = track.getHitIdx(ilayer);
-      if ((hitidx>=0) && (hitidx<size)) 
-      {	
-        // XXMT4K ilayer -> something else ....
-	track.setHitIdxLyr(ilayer, candLayersHitMap[lof_m_hits[hitidx].mcHitID()].index, ilayer);
+
+  for (auto&& track : m_event->candidateTracks_)
+  {
+    for (int i = 0; i < track.nTotalHits(); ++i)
+    {
+      int hitidx = track.getHitIdx(i);
+      int hitlyr = track.getHitLyr(i);
+      if (hitidx >= 0)
+      {
+        const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[hitlyr].m_hits;
+
+        track.setHitIdx(i, candLayersHitMap[lof_m_hits[hitidx].mcHitID()].index);
       }
     }
   }
@@ -762,6 +759,8 @@ void MkBuilder::remap_cand_hits()
 
 void MkBuilder::align_simtracks()
 {
+  // XXXXMT : Does this change with the new format?
+
   if (Config::readCmsswSeeds && Config::endcapTest) 
   {
     for (int itrack = 0; itrack < m_event->simTracks_.size(); itrack++)
@@ -779,11 +778,9 @@ void MkBuilder::quality_output_BH()
 {
   quality_reset();
 
-  // XXXXMT4K
+  remap_cand_hits();
 
-  // remap_cand_hits();
-
-  // align_simtracks();
+  align_simtracks();
 
   for (int i = 0; i < m_event->candidateTracks_.size(); i++)
   {
@@ -799,11 +796,9 @@ void MkBuilder::quality_output_COMB()
 
   quality_store_tracks_COMB();
 
-  // XXXXMT4K
+  remap_cand_hits();
 
-  // remap_cand_hits();
-
-  // align_simtracks();
+  align_simtracks();
 
   for (int i = 0; i < m_event->candidateTracks_.size(); i++)
   {
