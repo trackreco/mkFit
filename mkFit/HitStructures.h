@@ -267,21 +267,19 @@ public:
 // for combinatorial version, switch to vector of vectors
 //-------------------------------------------------------
 
-class EtaRegionOfCombCandidates
+class EventOfCombCandidates
 {
 public:
   std::vector<std::vector<Track> > m_candidates;
 
   int     m_capacity;
   int     m_size;
-  int     m_region;
 
 public:
-  EtaRegionOfCombCandidates(int size=0) :
+  EventOfCombCandidates(int size=0) :
     m_candidates(),
     m_capacity  (0),
-    m_size      (0),
-    m_region    (-1)
+    m_size      (0)
   {
     Reset(size);
   }
@@ -324,34 +322,6 @@ public:
 
     m_candidates[seed_index].push_back(track);
   }
-
-  /* void SortByPhi() */
-  /* { */
-  /*   std::sort(m_candidates.begin(), m_candidates.begin() + m_size, sortTrksByPhiMT); */
-  /* } */
-};
-
-class EventOfCombCandidates
-{
-public:
-  std::vector<EtaRegionOfCombCandidates> m_regions_of_comb_candidates;
-
-public:
-  EventOfCombCandidates() :
-    m_regions_of_comb_candidates(TrackerInfo::Reg_Count)
-  {
-    for (int i = TrackerInfo::Reg_Begin; i < TrackerInfo::Reg_End; ++i)
-    {
-      m_regions_of_comb_candidates[i].m_region = i;
-    }
-  }
-
-  std::vector<EtaRegionOfCombCandidates>::iterator begin() { return m_regions_of_comb_candidates.begin(); }
-  std::vector<EtaRegionOfCombCandidates>::iterator end()   { return m_regions_of_comb_candidates.end(); }
-
-        EtaRegionOfCombCandidates& operator[](int i)       { return m_regions_of_comb_candidates[i]; }
-  const EtaRegionOfCombCandidates& operator[](int i) const { return m_regions_of_comb_candidates[i]; }
-
 };
 
 #endif

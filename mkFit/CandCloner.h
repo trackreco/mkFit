@@ -38,9 +38,9 @@ public:
   {
   }
 
-  void begin_eta_bin(EtaRegionOfCombCandidates * er_o_ccs, int start_seed, int n_seeds)
+  void begin_eta_bin(EventOfCombCandidates * e_o_ccs, int start_seed, int n_seeds)
   {
-    mp_region_of_comb_candidates = er_o_ccs;
+    mp_event_of_comb_candidates = e_o_ccs;
     m_start_seed = start_seed;
     m_n_seeds    = n_seeds;
     m_hits_to_add.resize(n_seeds);
@@ -161,7 +161,7 @@ public:
   int  m_idx_max, m_idx_max_prev;
   std::vector<std::vector<MkFitter::IdxChi2List>> m_hits_to_add;
 
-  EtaRegionOfCombCandidates *mp_region_of_comb_candidates;
+  EventOfCombCandidates *mp_event_of_comb_candidates;
 
 #if defined(CC_TIME_ETA) or defined(CC_TIME_LAYER)
   double    t_eta, t_lay;

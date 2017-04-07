@@ -271,7 +271,6 @@ void test_standard()
   std::atomic<int> nevt{1};
   std::atomic<int> seedstot{0}, simtrackstot{0};
 
-  std::vector<EventTmp> ev_tmps(Config::numThreadsEvents);
   std::vector<std::unique_ptr<Event>> evs(Config::numThreadsEvents);
   std::vector<std::unique_ptr<Validation>> vals(Config::numThreadsEvents);
   std::vector<std::unique_ptr<MkBuilder>> mkbs(Config::numThreadsEvents);
@@ -306,7 +305,6 @@ void test_standard()
     assert(threads.begin() == threads.end()-1 && thisthread < Config::numThreadsEvents);
 
     std::vector<Track> plex_tracks;
-    auto& ev_tmp =  ev_tmps[thisthread];
     auto& ev     = *evs[thisthread].get();
     auto& mkb    = *mkbs[thisthread].get();
     auto  fp     =  fps[thisthread].get();
@@ -358,8 +356,8 @@ void test_standard()
         cuFitter.freeDevice();
   #endif
         t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev, mkb) : 0;
-        t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, ev_tmp, mkb) : 0;
-        t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, ev_tmp, mkb) : 0;
+        t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, mkb) : 0;
+        t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, mkb) : 0;
 
         for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
 

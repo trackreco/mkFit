@@ -1,16 +1,14 @@
 #include <memory>
 
 #include "MkBuilder.h"
-#include "MkBuilderEndcap.h"
 #include "seedtestMPlex.h"
 
 #include "Event.h"
-#include "EventTmp.h"
 #include "TrackerInfo.h"
 
 #include "MkFitter.h"
 
-#define DEBUG
+//#define DEBUG
 #include "Debug.h"
 
 #include "Ice/IceRevisitedRadix.h"
@@ -35,6 +33,11 @@ namespace
 
     RangeOfSeedIndices(int rb, int re) :
       m_rng_beg(rb), m_rng_end(re)
+    {
+      reset();
+    }
+
+    void reset()
     {
       m_end = m_rng_beg;
       next_chunk();
@@ -67,7 +70,13 @@ namespace
 
     int count() const { return m_reg_end - m_reg_beg; }
 
-    tbb::blocked_range<int> tbb_blk_rng() const
+    tbb::blocked_range<int> tbb_blk_rng_std(int thr_hint=-1) const
+    {
+      if (thr_hint < 0) thr_hint = Config::numSeedsPerTask;
+      return tbb::blocked_range<int>(m_reg_beg, m_reg_end, thr_hint);
+    }
+
+    tbb::blocked_range<int> tbb_blk_rng_vec() const
     {
       return tbb::blocked_range<int>(0, m_vec_cnt, std::max(1, Config::numSeedsPerTask / NN));
     }
@@ -82,8 +91,7 @@ namespace
 
 MkBuilder* MkBuilder::make_builder()
 {
-  if (Config::endcapTest) return new MkBuilderEndcap;
-  else                    return new MkBuilder;
+  return new MkBuilder;
 }
 
 #ifdef DEBUG
@@ -136,11 +144,9 @@ namespace {
   }
 
   void print_seeds(const EventOfCombCandidates& event_of_comb_cands) {
-    for (int ebin = 0; ebin < TrackerInfo::Reg_Count; ++ebin) {
-      const EtaRegionOfCombCandidates &etabin_of_comb_candidates = event_of_comb_cands[ebin];
-      for (int iseed = 0; iseed < etabin_of_comb_candidates.m_size; iseed++) {
-        print_seed2(etabin_of_comb_candidates.m_candidates[iseed].front());
-      }
+    for (int iseed = 0; iseed < event_of_comb_cands.m_size; iseed++)
+    {
+      print_seed2(event_of_comb_cands.m_candidates[iseed].front());
     }
   }
 }
@@ -164,8 +170,6 @@ namespace
 
 MkBuilder::MkBuilder() :
   m_event(0),
-  m_event_tmp(0),
-  // XXMT WAS m_event_of_hits(Config::nLayers)
   m_event_of_hits(Config::TrkInfo)
 {
   const TrackerInfo &ti = Config::TrkInfo;
@@ -228,10 +232,9 @@ MkBuilder::~MkBuilder()
 // Common functions
 //------------------------------------------------------------------------------
 
-void MkBuilder::begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type)
+void MkBuilder::begin_event(Event* ev, const char* build_type)
 {
   m_event     = ev;
-  m_event_tmp = ev_tmp;
 
   std::vector<Track>& simtracks = m_event->simTracks_;
   // DDDD MT: debug seed fit divergence between host / mic.
@@ -510,7 +513,7 @@ void MkBuilder::fit_seeds()
 
     RegionOfSeedIndices rosi(m_event, reg);
 
-    tbb::parallel_for(rosi.tbb_blk_rng(),
+    tbb::parallel_for(rosi.tbb_blk_rng_vec(),
       [&](const tbb::blocked_range<int>& blk_rng)
     {
       // printf("TBB seeding krappe -- range = %d to %d - extent = %d ==> %d to %d - extent %d\n",
@@ -815,17 +818,14 @@ void MkBuilder::quality_reset()
 
 void MkBuilder::quality_store_tracks_COMB()
 {
-  for (int reg = 0; reg < TrackerInfo::Reg_Count; ++reg)
-  {
-    const EtaRegionOfCombCandidates &comb_candidates = m_event_tmp->m_event_of_comb_cands[reg]; 
+  const EventOfCombCandidates &eoccs = m_event_of_comb_cands; 
     
-    for (int i = 0; i < comb_candidates.m_size; i++)
+  for (int i = 0; i < eoccs.m_size; i++)
+  {
+    // take the first one!
+    if ( ! eoccs.m_candidates[i].empty())
     {
-      // take the first one!
-      if ( ! comb_candidates.m_candidates[i].empty())
-      {
-     	m_event->candidateTracks_.push_back(comb_candidates.m_candidates[i].front());
-      }
+      m_event->candidateTracks_.push_back(eoccs.m_candidates[i].front());
     }
   }
 }
@@ -871,9 +871,6 @@ void MkBuilder::quality_process(Track &tkcand)
     std::cout << "MX - found track with nFoundHits=" << tkcand.nFoundHits() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << " nfoundmc=" << nfoundmc << " chi2mc=" << chi2mc <<" lab="<< tkcand.label() <<std::endl;
   }
 #endif
-  // DDDD MT: debug seed fit divergence between host / mic.
-  // Use this to compare track quality.
-  // printf("DDDD N_h=%d lab=%d\n", tkcand.nFoundHits(), tkcand.label());
 }
 
 void MkBuilder::quality_print()
@@ -966,17 +963,17 @@ void MkBuilder::FindTracksBestHit()
   TrackVec &cands = m_event->candidateTracks_;
 
   tbb::parallel_for_each(m_brl_ecp_regions.begin(), m_brl_ecp_regions.end(),
-    [&](int reg)
+    [&](int region)
   {
     // XXXXXX endcap only ...
-    // if (reg != TrackerInfo::Reg_Endcap_Neg && reg != TrackerInfo::Reg_Endcap_Pos)
+    // if (region != TrackerInfo::Reg_Endcap_Neg && region != TrackerInfo::Reg_Endcap_Pos)
     //   continue;
 
-    const SteeringParams &st_par = m_steering_params[reg];
+    const SteeringParams &st_par = m_steering_params[region];
 
-    const RegionOfSeedIndices rosi(m_event, reg);
+    const RegionOfSeedIndices rosi(m_event, region);
 
-    tbb::parallel_for(rosi.tbb_blk_rng(),
+    tbb::parallel_for(rosi.tbb_blk_rng_vec(),
       [&](const tbb::blocked_range<int>& blk_rng)
     {
       std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
@@ -1055,18 +1052,15 @@ void MkBuilder::FindTracksBestHit()
 
 void MkBuilder::find_tracks_load_seeds()
 {
-  EventOfCombCandidates &eoccs = m_event_tmp->m_event_of_comb_cands;
+  // Assumes seeds are sorter according to m_regions_of_comb_candidates
 
-  for (int r = TrackerInfo::Reg_Endcap_Neg; r < TrackerInfo::Reg_Count; ++r)
+  EventOfCombCandidates &eoccs = m_event_of_comb_cands;
+
+  eoccs.Reset(m_event->seedTracks_.size());
+
+  for (auto &t : m_event->seedTracks_)
   {
-    const RegionOfSeedIndices rosi(m_event, r);
-
-    eoccs.m_regions_of_comb_candidates[r].Reset(rosi.count());
-
-    for (int i = rosi.m_reg_beg; i < rosi.m_reg_end; ++i)
-    {
-      eoccs.m_regions_of_comb_candidates[r].InsertSeed(m_event->seedTracks_[i]);
-    }
+    eoccs.InsertSeed(t);
   }
 
   //dump seeds
@@ -1081,19 +1075,20 @@ void MkBuilder::FindTracksStandard()
 {
   g_exe_ctx.populate(Config::numThreadsFinder);
 
-  EventOfCombCandidates &eoccs = m_event_tmp->m_event_of_comb_cands;
+  EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
-  tbb::parallel_for_each(eoccs.begin(), eoccs.end(),
-    [&](EtaRegionOfCombCandidates& comb_cands)
+  tbb::parallel_for_each(m_brl_ecp_regions.begin(), m_brl_ecp_regions.end(),
+    [&](int region)
   {
-    const SteeringParams &st_par = m_steering_params[comb_cands.m_region];
+    const SteeringParams &st_par = m_steering_params[region];
 
-    int adaptiveSPT = TrackerInfo::Reg_Count * comb_cands.m_size / Config::numThreadsFinder / 2 + 1;
+    const RegionOfSeedIndices rosi(m_event, region);
 
-    dprint("adaptiveSPT " << adaptiveSPT << " fill " << comb_cands.m_size);
+    int adaptiveSPT = eoccs.m_size / Config::numThreadsFinder / 2 + 1;
+    dprint("adaptiveSPT " << adaptiveSPT << " fill " << eoccs.m_size);
 
     // loop over seeds
-    tbb::parallel_for(tbb::blocked_range<int>(0, comb_cands.m_size, std::min(Config::numSeedsPerTask, adaptiveSPT)),
+    tbb::parallel_for(rosi.tbb_blk_rng_std(/*adaptiveSPT*/),
       [&](const tbb::blocked_range<int>& seeds)
     {
       std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
@@ -1120,7 +1115,7 @@ void MkBuilder::FindTracksStandard()
 	
         for (int iseed = start_seed; iseed < end_seed; ++iseed)
         {
-          std::vector<Track> &scands = comb_cands[iseed];
+          std::vector<Track> &scands = eoccs[iseed];
           for (int ic = 0; ic < scands.size(); ++ic)
           {
             if (scands[ic].getLastHitIdx() >= -1)
@@ -1153,7 +1148,7 @@ void MkBuilder::FindTracksStandard()
           mkfp->SetNhits(n_hits); //here again assuming one hit per layer
 
           //fixme find a way to deal only with the candidates needed in this thread
-          mkfp->InputTracksAndHitIdx(comb_cands.m_candidates,
+          mkfp->InputTracksAndHitIdx(eoccs.m_candidates,
                                      seed_cand_idx, itrack, end,
                                      is_first_layer);
 
@@ -1205,7 +1200,7 @@ void MkBuilder::FindTracksStandard()
 	    
             if (num_hits < Config::maxCandsPerSeed)
             {
-              std::vector<Track> &ov = comb_cands[start_seed+is];
+              std::vector<Track> &ov = eoccs[start_seed+is];
               const int max_m2 = ov.size();
 	      
               int cur_m2 = 0;
@@ -1217,7 +1212,7 @@ void MkBuilder::FindTracksStandard()
               }
             }
 
-            comb_cands[start_seed+is].swap(tmp_cands[is]);
+            eoccs[start_seed+is].swap(tmp_cands[is]);
             tmp_cands[is].clear();
           }
         }
@@ -1235,7 +1230,7 @@ void MkBuilder::FindTracksStandard()
 	// final sorting
       for (int iseed = start_seed; iseed < end_seed; ++iseed)
       {
-        std::vector<Track>& finalcands = comb_cands[iseed];
+        std::vector<Track>& finalcands = eoccs[iseed];
         if (finalcands.size() == 0) continue;
         std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
       }
@@ -1251,39 +1246,41 @@ void MkBuilder::FindTracksCloneEngine()
 {
   g_exe_ctx.populate(Config::numThreadsFinder);
 
-  EventOfCombCandidates &eoccs = m_event_tmp->m_event_of_comb_cands;
+  EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
-  tbb::parallel_for_each(eoccs.begin(), eoccs.end(),
-    [&](EtaRegionOfCombCandidates& comb_cands)
+  tbb::parallel_for_each(m_brl_ecp_regions.begin(), m_brl_ecp_regions.end(),
+    [&](int region)
   {
-    int adaptiveSPT = TrackerInfo::Reg_Count * comb_cands.m_size / Config::numThreadsFinder / 2 + 1;
+    int adaptiveSPT = eoccs.m_size / Config::numThreadsFinder / 2 + 1;
+    dprint("adaptiveSPT " << adaptiveSPT << " fill " << eoccs.m_size);
 
-    dprint("adaptiveSPT " << adaptiveSPT << " fill " << comb_cands.m_size);
+    const RegionOfSeedIndices rosi(m_event, region);
 
-    tbb::parallel_for(tbb::blocked_range<int>(0, comb_cands.m_size, std::min(Config::numSeedsPerTask, adaptiveSPT)),
+    tbb::parallel_for(rosi.tbb_blk_rng_std(/*adaptiveSPT*/),
       [&](const tbb::blocked_range<int>& seeds)
     {
       std::unique_ptr<CandCloner, decltype(retcand)> cloner(g_exe_ctx.m_cloners.GetFromPool(), retcand);
       std::unique_ptr<MkFitter,   decltype(retfitr)> mkfp  (g_exe_ctx.m_fitters.GetFromPool(), retfitr);
 
       // loop over layers
-      find_tracks_in_layers(comb_cands, *cloner, mkfp.get(), seeds.begin(), seeds.end(), comb_cands.m_region);
+      find_tracks_in_layers(*cloner, mkfp.get(), seeds.begin(), seeds.end(), region);
     });
   });
 }
 
-void MkBuilder::find_tracks_in_layers(EtaRegionOfCombCandidates &comb_cands, CandCloner &cloner,
-                                      MkFitter *mkfp, int start_seed, int end_seed, int region)
+void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfp,
+                                      int start_seed, int end_seed, int region)
 {
-  const SteeringParams &st_par   = m_steering_params[region];
-  const TrackerInfo    &trk_info = Config::TrkInfo;
+  EventOfCombCandidates &eoccs    = m_event_of_comb_cands;
+  const SteeringParams  &st_par   = m_steering_params[region];
+  const TrackerInfo     &trk_info = Config::TrkInfo;
 
   const int n_seeds = end_seed - start_seed;
 
   std::vector<std::pair<int,int>> seed_cand_idx;
   seed_cand_idx.reserve(n_seeds * Config::maxCandsPerSeed);
 
-  cloner.begin_eta_bin(&comb_cands, start_seed, n_seeds);
+  cloner.begin_eta_bin(&eoccs, start_seed, n_seeds);
 
   // Loop over layers, starting from after the seed.
   // Note that we do a final pass with ilay = -1 to update parameters
@@ -1298,12 +1295,12 @@ void MkBuilder::find_tracks_in_layers(EtaRegionOfCombCandidates &comb_cands, Can
     const LayerInfo &layer_info = trk_info.m_layers[ilay];
 
     //prepare unrolled vector to loop over
-    for (int iseed = start_seed; iseed != end_seed; ++iseed)
+    for (int iseed = start_seed; iseed < end_seed; ++iseed)
     {
-      std::vector<Track> &scands = comb_cands.m_candidates[iseed];
+      std::vector<Track> &scands = eoccs.m_candidates[iseed];
       for (int ic = 0; ic < scands.size(); ++ic)
       {
-        if (scands[ic].getLastHitIdx() >= -1)
+        if (scands[ic].getLastHitIdx() >= -1) // XXXXXXMT4MT what is -2, -3 now?
         {
           seed_cand_idx.push_back(std::pair<int,int>(iseed,ic));
         }
@@ -1339,7 +1336,7 @@ void MkBuilder::find_tracks_in_layers(EtaRegionOfCombCandidates &comb_cands, Can
 
       mkfp->SetNhits(n_hits);
 
-      mkfp->InputTracksAndHitIdx(comb_cands.m_candidates,
+      mkfp->InputTracksAndHitIdx(eoccs.m_candidates,
                                  seed_cand_idx, itrack, end,
                                  true);
 
@@ -1362,13 +1359,13 @@ void MkBuilder::find_tracks_in_layers(EtaRegionOfCombCandidates &comb_cands, Can
           (mkfp->*st_par.propagate_foo)(layer_info.*st_par.prop_to_pos_doo, end - itrack);
 
 	  // copy_out the propagated track params, errors only (hit-idcs and chi2 already updated)
-	  mkfp->CopyOutParErr(comb_cands.m_candidates,
+	  mkfp->CopyOutParErr(eoccs.m_candidates,
 			      end - itrack, true);
 	} 
 	else
         {
 	  // copy_out the updated track params, errors only (hit-idcs and chi2 already updated)
-	  mkfp->CopyOutParErr(comb_cands.m_candidates,
+	  mkfp->CopyOutParErr(eoccs.m_candidates,
 			      end - itrack, false);
 	  continue;
 	}
@@ -1417,7 +1414,7 @@ void MkBuilder::find_tracks_in_layers(EtaRegionOfCombCandidates &comb_cands, Can
   // final sorting
   for (int iseed = start_seed; iseed < end_seed; ++iseed)
   {
-    std::vector<Track>& finalcands = comb_cands.m_candidates[iseed];
+    std::vector<Track>& finalcands = eoccs.m_candidates[iseed];
     if (finalcands.size() == 0) continue;
     std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
   }

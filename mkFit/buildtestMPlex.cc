@@ -75,7 +75,7 @@ inline bool sortByZ(const Hit& hit1, const Hit& hit2)
 
 double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
 {
-  builder.begin_event(&ev, 0, __func__);
+  builder.begin_event(&ev, __func__);
 
   if   (Config::findSeeds) {builder.find_seeds();}
   else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
@@ -125,9 +125,9 @@ double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
 // runBuildTestPlex Combinatorial: Standard TBB
 //==============================================================================
 
-double runBuildingTestPlexStandard(Event& ev, EventTmp& ev_tmp, MkBuilder& builder)
+double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
 {
-  builder.begin_event(&ev, &ev_tmp, __func__);
+  builder.begin_event(&ev, __func__);
 
   if   (Config::findSeeds) {builder.find_seeds();}
   else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
@@ -163,9 +163,9 @@ double runBuildingTestPlexStandard(Event& ev, EventTmp& ev_tmp, MkBuilder& build
 // runBuildTestPlex Combinatorial: CloneEngine TBB
 //==============================================================================
 
-double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp, MkBuilder& builder)
+double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
 {
-  builder.begin_event(&ev, &ev_tmp, __func__);
+  builder.begin_event(&ev, __func__);
 
   if   (Config::findSeeds) {builder.find_seeds();}
   else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit

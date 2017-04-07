@@ -38,7 +38,6 @@ extern ExecutionContext g_exe_ctx;
 //==============================================================================
 
 class Event;
-class EventTmp;
 
 class MkBuilder
 {
@@ -46,9 +45,9 @@ protected:
   void fit_one_seed_set(TrackVec& simtracks, int itrack, int end, MkFitter *mkfp,
                         const bool is_brl[], const SteeringParams &st_par);
 
-  Event         *m_event;
-  EventTmp      *m_event_tmp;
-  EventOfHits    m_event_of_hits;
+  Event                 *m_event;
+  EventOfHits            m_event_of_hits;
+  EventOfCombCandidates  m_event_of_comb_cands;
 
   int m_cnt=0, m_cnt1=0, m_cnt2=0, m_cnt_8=0, m_cnt1_8=0, m_cnt2_8=0, m_cnt_nomc=0;
 
@@ -65,7 +64,7 @@ public:
 
   static MkBuilder* make_builder();
 
-  virtual void begin_event(Event* ev, EventTmp* ev_tmp, const char* build_type);
+  virtual void begin_event(Event* ev, const char* build_type);
 
   int find_seeds();
   virtual void fit_seeds();
@@ -95,8 +94,7 @@ public:
 
   void find_tracks_load_seeds_BH(); // for FindTracksBestHit
   void find_tracks_load_seeds();
-  void find_tracks_in_layers(EtaRegionOfCombCandidates &comb_candidates,
-                             CandCloner &cloner, MkFitter *mkfp,
+  void find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfp,
                              int start_seed, int end_seed, int region);
 
   // --------
