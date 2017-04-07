@@ -599,17 +599,7 @@ inline void MkBuilder::fit_one_seed_set(TrackVec& seedtracks, int itrack, int en
     mkfp->FitTracksSteered(is_brl, end - itrack, m_event);
   }
 
-  const TrackerInfo &trk_info = Config::TrkInfo;
-
-  const int ilay = st_par.first_finding_layer;
-
-  dcall(pre_prop_print(ilay, mkfp));
-
-  (mkfp->*st_par.propagate_foo)(trk_info.m_layers[ilay].*st_par.prop_to_pos_doo, end - itrack);
-
-  dcall(post_prop_print(ilay, mkfp));
-
-  mkfp->OutputFittedTracksAndHitIdx(m_event->seedTracks_, itrack, end, true);
+  mkfp->OutputFittedTracksAndHitIdx(m_event->seedTracks_, itrack, end, false);
 }
 
 //------------------------------------------------------------------------------
@@ -988,7 +978,7 @@ void MkBuilder::FindTracksBestHit()
 
         int n_hits = Config::nlayers_per_seed;
         mkfp->SetNhits(n_hits);
-        mkfp->InputTracksAndHitIdx(cands, rng.m_beg, rng.m_end, true);
+        mkfp->InputTracksAndHitIdx(cands, rng.m_beg, rng.m_end, false);
 
         // Loop over layers, starting from after the seed.
         // Consider inverting loop order and make layer outer, need to
@@ -1006,6 +996,12 @@ void MkBuilder::FindTracksBestHit()
           //   _mm_prefetch((char*) & bunch_of_hits.m_hits[i], _MM_HINT_T1);
           // }
 
+          dcall(pre_prop_print(next_layer, mkfp.get()));
+
+          (mkfp.get()->*st_par.propagate_foo)(trk_info.m_layers[ilay].*st_par.prop_to_pos_doo, rng.n_proc());
+
+          dcall(post_prop_print(next_layer, mkfp.get()));
+
           (mkfp.get()->*st_par.select_hits_foo)(layer_of_hits, rng.n_proc(), false);
 
 // #ifdef PRINTOUTS_FOR_PLOTS
@@ -1019,26 +1015,15 @@ void MkBuilder::FindTracksBestHit()
 
           mkfp->SetNhits(++n_hits);
 
-          int next_layer = layer_info.*st_par.next_layer_doo;
-
-          // propagate to layer
-          if ( ! layer_info.m_is_outer)
-          {
-            dcall(pre_prop_print(next_layer, mkfp.get()));
-
-            (mkfp.get()->*st_par.propagate_foo)(trk_info.m_layers[next_layer].*st_par.prop_to_pos_doo, rng.n_proc());
-
-            dcall(post_prop_print(next_layer, mkfp.get()));
-          }
-          else
+          if (layer_info.m_is_outer)
           {
             break;
           }
 
-          ilay = next_layer;
+          ilay = layer_info.*st_par.next_layer_doo;
         } // end of layer loop
 
-        mkfp->OutputFittedTracksAndHitIdx(cands, rng.m_beg, rng.m_end, true);
+        mkfp->OutputFittedTracksAndHitIdx(cands, rng.m_beg, rng.m_end, false);
 
         ++rng;
       } // end of loop over candidates in a tbb chunk
@@ -1101,7 +1086,6 @@ void MkBuilder::FindTracksStandard()
 
       // Loop over layers, starting from after the seed.
       int  n_hits = Config::nlayers_per_seed;
-      bool is_first_layer = true;
 
       for (int ilay = st_par.first_finding_layer; ; )
       {
@@ -1150,17 +1134,14 @@ void MkBuilder::FindTracksStandard()
           //fixme find a way to deal only with the candidates needed in this thread
           mkfp->InputTracksAndHitIdx(eoccs.m_candidates,
                                      seed_cand_idx, itrack, end,
-                                     is_first_layer);
+                                     false);
 
           //propagate to layer
-          if ( ! is_first_layer)
-          {
-            dcall(pre_prop_print(ilay, mkfp.get()));
+          dcall(pre_prop_print(ilay, mkfp.get()));
 
-            (mkfp.get()->*st_par.propagate_foo)(layer_info.*st_par.prop_to_pos_doo, end - itrack);
+          (mkfp.get()->*st_par.propagate_foo)(layer_info.*st_par.prop_to_pos_doo, end - itrack);
 
-            dcall(post_prop_print(ilay, mkfp.get()));
-          }
+          dcall(post_prop_print(ilay, mkfp.get()));
 
           dprint("now get hit range");
           (mkfp.get()->*st_par.select_hits_foo)(layer_of_hits, end - itrack, false);
@@ -1223,7 +1204,6 @@ void MkBuilder::FindTracksStandard()
         }
 
         ++n_hits;
-        is_first_layer = false;
         ilay = layer_info.*st_par.next_layer_doo;
       } // end of layer loop
 	
@@ -1336,45 +1316,33 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfp,
 
       mkfp->SetNhits(n_hits);
 
-      mkfp->InputTracksAndHitIdx(eoccs.m_candidates,
-                                 seed_cand_idx, itrack, end,
-                                 true);
+      mkfp->InputTracksAndHitIdx(eoccs.m_candidates, seed_cand_idx,
+                                 itrack, end, prev_ilay >= 0);
 
 #ifdef DEBUG
       for (int i=itrack; i < end; ++i)
         dprintf("  track %d, idx %d is from seed %d\n", i, i - itrack, mkfp->Label(i - itrack,0,0));
       dprintf("\n");
 #endif
-
       if (prev_ilay >= 0)
       {
         const LayerOfHits &prev_layer_of_hits = m_event_of_hits.m_layers_of_hits[prev_ilay];
 
         (mkfp->*st_par.update_with_last_hit_foo)(prev_layer_of_hits, end - itrack);
-
-        if (ilay >= 0)
-        {
-          // Propagate to this layer
-
-          (mkfp->*st_par.propagate_foo)(layer_info.*st_par.prop_to_pos_doo, end - itrack);
-
-	  // copy_out the propagated track params, errors only (hit-idcs and chi2 already updated)
-	  mkfp->CopyOutParErr(eoccs.m_candidates,
-			      end - itrack, true);
-	} 
-	else
-        {
-	  // copy_out the updated track params, errors only (hit-idcs and chi2 already updated)
-	  mkfp->CopyOutParErr(eoccs.m_candidates,
-			      end - itrack, false);
-	  continue;
-	}
       }
-
-      // if (ilay == Config::nLayers)
-      // {
-      //   break;
-      // }
+      if (ilay >= 0)
+      {
+        // propagate to current layer
+        (mkfp->*st_par.propagate_foo)(layer_info.*st_par.prop_to_pos_doo, end - itrack);
+        // copy_out the propagated track params, errors only (hit-idcs and chi2 already updated)
+        mkfp->CopyOutParErr(eoccs.m_candidates, end - itrack, true);
+      }
+      else
+      {
+        // copy_out the updated track params, errors only (hit-idcs and chi2 already updated)
+        mkfp->CopyOutParErr(eoccs.m_candidates, end - itrack, false);
+        continue;
+      }
 
       dprint("now get hit range");
 
