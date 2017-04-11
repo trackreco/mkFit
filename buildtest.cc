@@ -185,13 +185,11 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   dprint("processing candidate with nHits=" << tkcand.nFoundHits());
 #ifdef LINEARINTERP
   TrackState propState = propagateHelixToR(updatedState,ev.geom_.Radius(ilayer));
-  if (Config::super_debug) { ev.validation_.collectPropTSLayerVecInfo(ilayer,propState); }
 #else
 #ifdef TBB
 #error "Invalid combination of options (thread safety)"
 #endif
   TrackState propState = propagateHelixToLayer(updatedState,ilayer,ev.geom_);
-  if (Config::super_debug) { ev.validation_.collectPropTSLayerVecInfo(ilayer,propState); }
 #endif // LINEARINTERP
 #ifdef CHECKSTATEVALID
   if (!propState.valid) {
@@ -260,14 +258,12 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
 #endif
       dprint(propState.position() - hitMeas.parameters());
       const float chi2 = computeChi2(propState,hitMeas);
-      if (Config::super_debug) { ev.validation_.collectChi2LayerVecInfo(ilayer,chi2); }
       dprint("found hit with index: " << cand_hit_idx << " from sim track " 
 	     << ev.simHitsInfo_[evt_lay_hits[ilayer][cand_hit_idx].mcHitID()].mcTrackID()
 	     << " chi2=" << chi2 << std::endl);
     
       if ((chi2<Config::chi2Cut)&&(chi2>0.)) {//fixme 
         const TrackState tmpUpdatedState = updateParameters(propState, hitMeas);
-	if (Config::super_debug) { ev.validation_.collectUpTSLayerVecInfo(ilayer,tmpUpdatedState); }
         Track tmpCand = tkcand.clone();
         tmpCand.addHitIdx(cand_hit_idx, ilayer, chi2);
         tmpCand.setState(tmpUpdatedState);
@@ -277,13 +273,11 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
     }//end of consider hits on layer loop
 
   //add also the candidate for no hit found
-  if (tkcand.nFoundHits()==ilayer && !Config::super_debug) {//only if this is the first missing hit and also not in super debug mode
+  if (tkcand.nFoundHits()==ilayer) {//only if this is the first missing hit
     dprint("adding candidate with no hit");
     Track tmpCand = tkcand.clone();
     tmpCand.addHitIdx(-1, ilayer, 0.0f);
     tmp_candidates.push_back(tmpCand);  // fix this once moving to fix indices
     branch_hit_indices.push_back(Config::nTracks); // since tracks go from 0-Config::nTracks -1, the ghost index is just the one beyond
   }
-  ev.validation_.collectBranchingInfo(seedID,ilayer,nSigmaDeta,etaBinMinus,etaBinPlus,
-                                      nSigmaDphi,phiBinMinus,phiBinPlus,cand_hit_indices,branch_hit_indices);
 }

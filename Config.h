@@ -15,9 +15,6 @@ namespace Config
 {
   extern TrackerInfo TrkInfo;
 
-  // super debug mode in SMatrix
-  extern bool super_debug;
-
   // default file version
   constexpr int FileVersion = 1;
 
@@ -244,8 +241,7 @@ namespace Config
   extern    int maxCandsPerEtaBin;
 
   // config on validation
-  extern bool normal_val;
-  extern bool full_val;
+  extern bool root_val;
   extern bool fit_val;
 
   // Effective eta bin is one half of nEtaPart -- so the above is twice the "average".

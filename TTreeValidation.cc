@@ -54,21 +54,10 @@ TTreeValidation::TTreeValidation(std::string fileName)
   gROOT->ProcessLine("#include <vector>");
   f_ = TFile::Open(fileName.c_str(), "recreate");
 
-  if (Config::normal_val) { // regular validation
+  if (Config::root_val) 
+  { 
     initializeEfficiencyTree();
     initializeFakeRateTree();  
-    if (Config::full_val) { 
-      initializeGeometryTree();
-      initializeConformalTree();
-      initializeSeedInfoTree();
-      initializeSeedTree();
-      initializeSegmentTree();
-      initializeBranchTree();
-      initializeTimeTree();
-    }
-  }
-  if (Config::super_debug) {
-    initializeDebugTree();
   }
   if (Config::fit_val) {
     initializeFitTree();
@@ -78,227 +67,21 @@ TTreeValidation::TTreeValidation(std::string fileName)
 
 TTreeValidation::~TTreeValidation()
 {
-  if (Config::normal_val) {
+  if (Config::root_val) 
+  {
     delete efftree_;
     delete fakeratetree_;
-    if (Config::full_val) {
-      delete geotree_;
-      delete cftree_;
-      delete seedinfotree_;
-      delete seedtree_;
-      delete segtree_;
-      delete tree_br_;
-      delete timetree_;
-    }
   }
-  if (Config::super_debug) {
-    delete debugtree_;
-  }
-  if (Config::fit_val) {
+  if (Config::fit_val) 
+  {
     delete fittree_;
   }
   delete configtree_;
   delete f_;
 }
 
-void TTreeValidation::initializeDebugTree(){
-  nlayers_debug_ = Config::nLayers;
-
-  // debug tree(lots and lots of variables)
-  debugtree_ = new TTree("debugtree","debugtree");
-
-  debugtree_->Branch("nlayers",&nlayers_debug_,"nlayers_debug_/I");
-
-  debugtree_->Branch("recocharge",&recocharge_debug_,"recocharge/I");
-  debugtree_->Branch("mccharge",&mccharge_debug_,"mccharge/I");
-
-  debugtree_->Branch("event",&event_debug_,"event/I");
-  debugtree_->Branch("nHits",&nHits_debug_,"nHits/I");
-
-  debugtree_->Branch("pt_gen",&pt_gen_debug_,"pt_gen/F");
-  debugtree_->Branch("phi_gen",&phi_gen_debug_,"phi_gen/F");
-  debugtree_->Branch("eta_gen",&eta_gen_debug_,"eta_gen/F");
-
-  debugtree_->Branch("x_gen",&x_gen_debug_,"x_gen/F");
-  debugtree_->Branch("y_gen",&y_gen_debug_,"y_gen/F");
-  debugtree_->Branch("z_gen",&z_gen_debug_,"z_gen/F");
-
-  debugtree_->Branch("layer_mc",&layer_mc_debug_,"layer_mc[nlayers_debug_]/I");
-
-  debugtree_->Branch("layer_chi2",&layer_chi2_debug_,"layer_chi2[nlayers_debug_]/I");
-  debugtree_->Branch("chi2",&chi2_debug_,"chi2[nlayers_debug_]/F");
-
-  // MC
-  debugtree_->Branch("x_hit",&x_hit_debug_,"x_hit[nlayers_debug_]/F");
-  debugtree_->Branch("y_hit",&y_hit_debug_,"y_hit[nlayers_debug_]/F");
-  debugtree_->Branch("z_hit",&z_hit_debug_,"z_hit[nlayers_debug_]/F");
-  debugtree_->Branch("exx_hit",&exx_hit_debug_,"exx_hit[nlayers_debug_]/F");
-  debugtree_->Branch("eyy_hit",&eyy_hit_debug_,"eyy_hit[nlayers_debug_]/F");
-  debugtree_->Branch("ezz_hit",&ezz_hit_debug_,"ezz_hit[nlayers_debug_]/F");
-
-  debugtree_->Branch("x_mc",&x_mc_debug_,"x_mc[nlayers_debug_]/F");
-  debugtree_->Branch("y_mc",&y_mc_debug_,"y_mc[nlayers_debug_]/F");
-  debugtree_->Branch("z_mc",&z_mc_debug_,"z_mc[nlayers_debug_]/F");
-  debugtree_->Branch("px_mc",&px_mc_debug_,"px_mc[nlayers_debug_]/F");
-  debugtree_->Branch("py_mc",&py_mc_debug_,"py_mc[nlayers_debug_]/F");
-  debugtree_->Branch("pz_mc",&pz_mc_debug_,"pz_mc[nlayers_debug_]/F");
-
-  debugtree_->Branch("pt_mc",&pt_mc_debug_,"pt_mc[nlayers_debug_]/F");
-  debugtree_->Branch("phi_mc",&phi_mc_debug_,"phi_mc[nlayers_debug_]/F");
-  debugtree_->Branch("eta_mc",&eta_mc_debug_,"eta_mc[nlayers_debug_]/F");
-  debugtree_->Branch("invpt_mc",&invpt_mc_debug_,"invpt_mc[nlayers_debug_]/F");
-  debugtree_->Branch("theta_mc",&theta_mc_debug_,"theta_mc[nlayers_debug_]/F");
-
-  // conformal
-  debugtree_->Branch("x_cf",&x_cf_debug_,"x_cf/F");
-  debugtree_->Branch("y_cf",&y_cf_debug_,"y_cf/F");
-  debugtree_->Branch("z_cf",&z_cf_debug_,"z_cf/F");
-  debugtree_->Branch("exx_cf",&exx_cf_debug_,"exx_cf/F");
-  debugtree_->Branch("eyy_cf",&eyy_cf_debug_,"eyy_cf/F");
-  debugtree_->Branch("ezz_cf",&ezz_cf_debug_,"ezz_cf/F");
-
-  debugtree_->Branch("px_cf",&px_cf_debug_,"px_cf/F");
-  debugtree_->Branch("py_cf",&py_cf_debug_,"py_cf/F");
-  debugtree_->Branch("pz_cf",&pz_cf_debug_,"pz_cf/F");
-  debugtree_->Branch("epxpx_cf",&epxpx_cf_debug_,"epxpx_cf/F");
-  debugtree_->Branch("epypy_cf",&epypy_cf_debug_,"epypy_cf/F");
-  debugtree_->Branch("epzpz_cf",&epzpz_cf_debug_,"epzpz_cf/F");
-
-  debugtree_->Branch("pt_cf",&pt_cf_debug_,"pt_cf/F");
-  debugtree_->Branch("phi_cf",&phi_cf_debug_,"phi_cf/F");
-  debugtree_->Branch("eta_cf",&eta_cf_debug_,"eta_cf/F");
-  debugtree_->Branch("ept_cf",&ept_cf_debug_,"ept_cf/F");
-  debugtree_->Branch("ephi_cf",&ephi_cf_debug_,"ephi_cf/F");
-  debugtree_->Branch("eeta_cf",&eeta_cf_debug_,"eeta_cf/F");
-
-  debugtree_->Branch("invpt_cf",&invpt_cf_debug_,"invpt_cf/F");
-  debugtree_->Branch("einvpt_cf",&einvpt_cf_debug_,"einvpt_cf/F");
-  debugtree_->Branch("theta_cf",&theta_cf_debug_,"theta_cf/F");
-  debugtree_->Branch("etheta_cf",&etheta_cf_debug_,"etheta_cf/F");
-
-  // prop
-  debugtree_->Branch("layer_prop",&layer_prop_debug_,"layer_prop[nlayers_debug_]/I");
-
-  debugtree_->Branch("x_prop",&x_prop_debug_,"x_prop[nlayers_debug_]/F");
-  debugtree_->Branch("y_prop",&y_prop_debug_,"y_prop[nlayers_debug_]/F");
-  debugtree_->Branch("z_prop",&z_prop_debug_,"z_prop[nlayers_debug_]/F");
-  debugtree_->Branch("exx_prop",&exx_prop_debug_,"exx_prop[nlayers_debug_]/F");
-  debugtree_->Branch("eyy_prop",&eyy_prop_debug_,"eyy_prop[nlayers_debug_]/F");
-  debugtree_->Branch("ezz_prop",&ezz_prop_debug_,"ezz_prop[nlayers_debug_]/F");
-
-  debugtree_->Branch("px_prop",&px_prop_debug_,"px_prop[nlayers_debug_]/F");
-  debugtree_->Branch("py_prop",&py_prop_debug_,"py_prop[nlayers_debug_]/F");
-  debugtree_->Branch("pz_prop",&pz_prop_debug_,"pz_prop[nlayers_debug_]/F");
-  debugtree_->Branch("epxpx_prop",&epxpx_prop_debug_,"epxpx_prop[nlayers_debug_]/F");
-  debugtree_->Branch("epypy_prop",&epypy_prop_debug_,"epypy_prop[nlayers_debug_]/F");
-  debugtree_->Branch("epzpz_prop",&epzpz_prop_debug_,"epzpz_prop[nlayers_debug_]/F");
-
-  debugtree_->Branch("pt_prop",&pt_prop_debug_,"pt_prop[nlayers_debug_]/F");
-  debugtree_->Branch("phi_prop",&phi_prop_debug_,"phi_prop[nlayers_debug_]/F");
-  debugtree_->Branch("eta_prop",&eta_prop_debug_,"eta_prop[nlayers_debug_]/F");
-  debugtree_->Branch("ept_prop",&ept_prop_debug_,"ept_prop[nlayers_debug_]/F");
-  debugtree_->Branch("ephi_prop",&ephi_prop_debug_,"ephi_prop[nlayers_debug_]/F");
-  debugtree_->Branch("eeta_prop",&eeta_prop_debug_,"eeta_prop[nlayers_debug_]/F");
-
-  debugtree_->Branch("invpt_prop",&invpt_prop_debug_,"invpt_prop[nlayers_debug_]/F");
-  debugtree_->Branch("einvpt_prop",&einvpt_prop_debug_,"einvpt_prop[nlayers_debug_]/F");
-  debugtree_->Branch("theta_prop",&theta_prop_debug_,"theta_prop[nlayers_debug_]/F");
-  debugtree_->Branch("etheta_prop",&etheta_prop_debug_,"etheta_prop[nlayers_debug_]/F");
-
-  //update
-  debugtree_->Branch("layer_up",&layer_up_debug_,"layer_up[nlayers_debug_]/I");
-
-  debugtree_->Branch("x_up",&x_up_debug_,"x_up[nlayers_debug_]/F");
-  debugtree_->Branch("y_up",&y_up_debug_,"y_up[nlayers_debug_]/F");
-  debugtree_->Branch("z_up",&z_up_debug_,"z_up[nlayers_debug_]/F");
-  debugtree_->Branch("exx_up",&exx_up_debug_,"exx_up[nlayers_debug_]/F");
-  debugtree_->Branch("eyy_up",&eyy_up_debug_,"eyy_up[nlayers_debug_]/F");
-  debugtree_->Branch("ezz_up",&ezz_up_debug_,"ezz_up[nlayers_debug_]/F");
-
-  debugtree_->Branch("px_up",&px_up_debug_,"px_up[nlayers_debug_]/F");
-  debugtree_->Branch("py_up",&py_up_debug_,"py_up[nlayers_debug_]/F");
-  debugtree_->Branch("pz_up",&pz_up_debug_,"pz_up[nlayers_debug_]/F");
-  debugtree_->Branch("epxpx_up",&epxpx_up_debug_,"epxpx_up[nlayers_debug_]/F");
-  debugtree_->Branch("epypy_up",&epypy_up_debug_,"epypy_up[nlayers_debug_]/F");
-  debugtree_->Branch("epzpz_up",&epzpz_up_debug_,"epzpz_up[nlayers_debug_]/F");
-
-  debugtree_->Branch("pt_up",&pt_up_debug_,"pt_up[nlayers_debug_]/F");
-  debugtree_->Branch("phi_up",&phi_up_debug_,"phi_up[nlayers_debug_]/F");
-  debugtree_->Branch("eta_up",&eta_up_debug_,"eta_up[nlayers_debug_]/F");
-  debugtree_->Branch("ept_up",&ept_up_debug_,"ept_up[nlayers_debug_]/F");
-  debugtree_->Branch("ephi_up",&ephi_up_debug_,"ephi_up[nlayers_debug_]/F");
-  debugtree_->Branch("eeta_up",&eeta_up_debug_,"eeta_up[nlayers_debug_]/F");
-
-  debugtree_->Branch("invpt_up",&invpt_up_debug_,"invpt_up[nlayers_debug_]/F");
-  debugtree_->Branch("einvpt_up",&einvpt_up_debug_,"einvpt_up[nlayers_debug_]/F");
-  debugtree_->Branch("theta_up",&theta_up_debug_,"theta_up[nlayers_debug_]/F");
-  debugtree_->Branch("etheta_up",&etheta_up_debug_,"etheta_up[nlayers_debug_]/F");
-
-  debugtree_->Branch("etabin_hit",&ebhit_debug_,"etabin_hit[nlayers_debug_]/I");
-  debugtree_->Branch("etabinplus",&ebp_debug_,"etabinplus[nlayers_debug_]/I");
-  debugtree_->Branch("etabinminus",&ebm_debug_,"etabinminus[nlayers_debug_]/I");
-  debugtree_->Branch("phibin_hit",&pbhit_debug_,"phibin_hit[nlayers_debug_]/I");
-  debugtree_->Branch("phibinplus",&pbp_debug_,"phibinplus[nlayers_debug_]/I");
-  debugtree_->Branch("phibinminus",pbm_debug_,"phibinminus[nlayers_debug_]/I");
-}
-
-void TTreeValidation::initializeSeedInfoTree(){
-  // seed validation
-  seedinfotree_ = new TTree("seedinfotree","seedinfotree");
-  seedinfotree_->Branch("evtID",&evtID_seedinfo_);
-  seedinfotree_->Branch("mcID",&mcID_seedinfo_);
-  seedinfotree_->Branch("pt_gen",&pt_gen_seedinfo_);
-  seedinfotree_->Branch("eta_gen",&eta_gen_seedinfo_);
-  seedinfotree_->Branch("phi_gen",&phi_gen_seedinfo_);
-  seedinfotree_->Branch("a",&a);
-  seedinfotree_->Branch("b",&b);
-  seedinfotree_->Branch("r",&r);
-  seedinfotree_->Branch("d0",&d0);
-  seedinfotree_->Branch("pass",&pass);
-}
-
-void TTreeValidation::initializeSeedTree(){
-  // seed validation
-  seedtree_ = new TTree("seedtree","seedtree");
-  seedtree_->Branch("evtID",&evtID_seed_);
-  seedtree_->Branch("nTkAll",&nTkAll_);
-  seedtree_->Branch("nTkAllMC",&nTkAllMC_);
-  seedtree_->Branch("nTkCut",&nTkCut_);
-  seedtree_->Branch("nTkCutMC",&nTkCutMC_);
-}
-
-void TTreeValidation::initializeSegmentTree(){
-  // segment validation
-  segtree_ = new TTree("segtree","segtree");
-  segtree_->Branch("evtID",&evtID_seg_);
-  segtree_->Branch("layer",&layer_seg_);
-  segtree_->Branch("etabin",&etabin_seg_);
-  segtree_->Branch("phibin",&phibin_seg_);
-  segtree_->Branch("nHits",&nHits_seg_);
-}
-
-void TTreeValidation::initializeBranchTree(){
-  // build validation
-  tree_br_ = new TTree("tree_br","tree_br");
-  tree_br_->Branch("evtID",&evtID_br_);
-  tree_br_->Branch("seedID",&seedID_br_);
-
-  tree_br_->Branch("layer",&layer_);
-  tree_br_->Branch("cands",&cands_);
-
-  tree_br_->Branch("candEtaPhiBins","std::vector<int>",&candEtaPhiBins_);
-  tree_br_->Branch("candHits","std::vector<int>",&candHits_);
-  tree_br_->Branch("candBranches","std::vector<int>",&candBranches_);
-  
-  tree_br_->Branch("uniqueEtaPhiBins",&uniqueEtaPhiBins_);
-  tree_br_->Branch("uniqueHits",&uniqueHits_);
-  tree_br_->Branch("uniqueBranches",&uniqueBranches_);
-      
-  tree_br_->Branch("candnSigmaDeta","std::vector<float>",&candnSigmaDeta_);
-  tree_br_->Branch("candnSigmaDphi","std::vector<float>",&candnSigmaDphi_);
-}
-
-void TTreeValidation::initializeEfficiencyTree(){  
+void TTreeValidation::initializeEfficiencyTree()
+{  
   // efficiency validation
   efftree_ = new TTree("efftree","efftree");
   efftree_->Branch("evtID",&evtID_eff_);
@@ -377,7 +160,8 @@ void TTreeValidation::initializeEfficiencyTree(){
   efftree_->Branch("nTkMatches_fit",&nTkMatches_fit_eff_);
 }
 
-void TTreeValidation::initializeFakeRateTree(){
+void TTreeValidation::initializeFakeRateTree()
+{
   // fake rate validation
   fakeratetree_ = new TTree("fakeratetree","fakeratetree");
 
@@ -463,129 +247,8 @@ void TTreeValidation::initializeFakeRateTree(){
   fakeratetree_->Branch("iTkMatches_fit",&iTkMatches_fit_FR_);
 }
 
-void TTreeValidation::initializeGeometryTree(){
-  // Geometry validation
-  geotree_ = new TTree("geotree","geotree");
-
-  geotree_->Branch("evtID",&evtID_geo_);
-  geotree_->Branch("mcID",&mcID_geo_);
-  geotree_->Branch("seedID_seed",&seedID_seed_geo_);
-  geotree_->Branch("seedID_fit",&seedID_fit_geo_);
-  geotree_->Branch("mcmask_seed",&mcmask_seed_geo_);
-  geotree_->Branch("mcmask_fit",&mcmask_fit_geo_);
-
-  // Generated vertex of MC tracks  
-  geotree_->Branch("x_mc_gen_vrx",&x_mc_gen_vrx_geo_);
-  geotree_->Branch("y_mc_gen_vrx",&y_mc_gen_vrx_geo_);
-  geotree_->Branch("z_mc_gen_vrx",&z_mc_gen_vrx_geo_);
-  
-  // Full reco hits (vector) from simulation
-  geotree_->Branch("x_mc_reco_hit","std::vector<float>",&x_mc_reco_hit_geo_);
-  geotree_->Branch("y_mc_reco_hit","std::vector<float>",&y_mc_reco_hit_geo_);
-  geotree_->Branch("z_mc_reco_hit","std::vector<float>",&z_mc_reco_hit_geo_);
-  
-  // Position pull info from reco tracks
-  geotree_->Branch("layers_seed","std::vector<int>",&layers_seed_geo_);
-  geotree_->Branch("layers_fit","std::vector<int>",&layers_fit_geo_);
-
-  geotree_->Branch("x_lay_seed","std::vector<float>",&x_lay_seed_geo_);
-  geotree_->Branch("y_lay_seed","std::vector<float>",&y_lay_seed_geo_);
-  geotree_->Branch("z_lay_seed","std::vector<float>",&z_lay_seed_geo_);
-  geotree_->Branch("ex_lay_seed","std::vector<float>",&ex_lay_seed_geo_);
-  geotree_->Branch("ey_lay_seed","std::vector<float>",&ey_lay_seed_geo_);
-  geotree_->Branch("ez_lay_seed","std::vector<float>",&ez_lay_seed_geo_);
-
-  geotree_->Branch("x_lay_fit","std::vector<float>",&x_lay_fit_geo_);
-  geotree_->Branch("y_lay_fit","std::vector<float>",&y_lay_fit_geo_);
-  geotree_->Branch("z_lay_fit","std::vector<float>",&z_lay_fit_geo_);
-  geotree_->Branch("ex_lay_fit","std::vector<float>",&ex_lay_fit_geo_);
-  geotree_->Branch("ey_lay_fit","std::vector<float>",&ey_lay_fit_geo_);
-  geotree_->Branch("ez_lay_fit","std::vector<float>",&ez_lay_fit_geo_);
-}
-
-void TTreeValidation::initializeConformalTree(){
-  // Conformal Fit validation
-  cftree_ = new TTree("cftree","cftree");
-
-  cftree_->Branch("evtID",&evtID_cf_);
-  cftree_->Branch("mcID",&mcID_cf_);
-  cftree_->Branch("seedID_seed",&seedID_seed_cf_);
-  cftree_->Branch("seedID_fit",&seedID_fit_cf_);
-  cftree_->Branch("mcmask_seed",&mcmask_seed_cf_);
-  cftree_->Branch("mcmask_fit",&mcmask_fit_cf_);
-
-  cftree_->Branch("x_mc_cf_seed",&x_mc_seed_cf_);
-  cftree_->Branch("x_cf_seed",&x_seed_cf_);
-  cftree_->Branch("ex_cf_seed",&ex_seed_cf_);
-  cftree_->Branch("x_mc_cf_fit",&x_mc_fit_cf_);
-  cftree_->Branch("x_cf_fit",&x_fit_cf_);
-  cftree_->Branch("ex_cf_fit",&ex_fit_cf_);
-
-  cftree_->Branch("y_mc_cf_seed",&y_mc_seed_cf_);
-  cftree_->Branch("y_cf_seed",&y_seed_cf_);
-  cftree_->Branch("ey_cf_seed",&ey_seed_cf_);
-  cftree_->Branch("y_mc_cf_fit",&y_mc_fit_cf_);
-  cftree_->Branch("y_cf_fit",&y_fit_cf_);
-  cftree_->Branch("ey_cf_fit",&ey_fit_cf_);
-
-  cftree_->Branch("z_mc_cf_seed",&z_mc_seed_cf_);
-  cftree_->Branch("z_cf_seed",&z_seed_cf_);
-  cftree_->Branch("ez_cf_seed",&ez_seed_cf_);
-  cftree_->Branch("z_mc_cf_fit",&z_mc_fit_cf_);
-  cftree_->Branch("z_cf_fit",&z_fit_cf_);
-  cftree_->Branch("ez_cf_fit",&ez_fit_cf_);
-
-  cftree_->Branch("px_mc_cf_seed",&px_mc_seed_cf_);
-  cftree_->Branch("px_cf_seed",&px_seed_cf_);
-  cftree_->Branch("epx_cf_seed",&epx_seed_cf_);
-  cftree_->Branch("px_mc_cf_fit",&px_mc_fit_cf_);
-  cftree_->Branch("px_cf_fit",&px_fit_cf_);
-  cftree_->Branch("epx_cf_fit",&epx_fit_cf_);
-
-  cftree_->Branch("py_mc_cf_seed",&py_mc_seed_cf_);
-  cftree_->Branch("py_cf_seed",&py_seed_cf_);
-  cftree_->Branch("epy_cf_seed",&epy_seed_cf_);
-  cftree_->Branch("py_mc_cf_fit",&py_mc_fit_cf_);
-  cftree_->Branch("py_cf_fit",&py_fit_cf_);
-  cftree_->Branch("epy_cf_fit",&epy_fit_cf_);
-
-  cftree_->Branch("pz_mc_cf_seed",&pz_mc_seed_cf_);
-  cftree_->Branch("pz_cf_seed",&pz_seed_cf_);
-  cftree_->Branch("epz_cf_seed",&epz_seed_cf_);
-  cftree_->Branch("pz_mc_cf_fit",&pz_mc_fit_cf_);
-  cftree_->Branch("pz_cf_fit",&pz_fit_cf_);
-  cftree_->Branch("epz_cf_fit",&epz_fit_cf_);
-
-  cftree_->Branch("pt_mc_cf_seed",&pt_mc_seed_cf_);
-  cftree_->Branch("pt_cf_seed",&pt_seed_cf_);
-  cftree_->Branch("ept_cf_seed",&ept_seed_cf_);
-  cftree_->Branch("pt_mc_cf_fit",&pt_mc_fit_cf_);
-  cftree_->Branch("pt_cf_fit",&pt_fit_cf_);
-  cftree_->Branch("ept_cf_fit",&ept_fit_cf_);
-
-  cftree_->Branch("invpt_mc_cf_seed",&invpt_mc_seed_cf_);
-  cftree_->Branch("invpt_cf_seed",&invpt_seed_cf_);
-  cftree_->Branch("einvpt_cf_seed",&einvpt_seed_cf_);
-  cftree_->Branch("invpt_mc_cf_fit",&invpt_mc_fit_cf_);
-  cftree_->Branch("invpt_cf_fit",&invpt_fit_cf_);
-  cftree_->Branch("einvpt_cf_fit",&einvpt_fit_cf_);
-
-  cftree_->Branch("phi_mc_cf_seed",&phi_mc_seed_cf_);
-  cftree_->Branch("phi_cf_seed",&phi_seed_cf_);
-  cftree_->Branch("ephi_cf_seed",&ephi_seed_cf_);
-  cftree_->Branch("phi_mc_cf_fit",&phi_mc_fit_cf_);
-  cftree_->Branch("phi_cf_fit",&phi_fit_cf_);
-  cftree_->Branch("ephi_cf_fit",&ephi_fit_cf_);
-  
-  cftree_->Branch("theta_mc_cf_seed",&theta_mc_seed_cf_);
-  cftree_->Branch("theta_cf_seed",&theta_seed_cf_);
-  cftree_->Branch("etheta_cf_seed",&etheta_seed_cf_);
-  cftree_->Branch("theta_mc_cf_fit",&theta_mc_fit_cf_);
-  cftree_->Branch("theta_cf_fit",&theta_fit_cf_);
-  cftree_->Branch("etheta_cf_fit",&etheta_fit_cf_);
-}
-
-void TTreeValidation::initializeConfigTree(){
+void TTreeValidation::initializeConfigTree()
+{
   // include config ++ real seeding parameters ...
   configtree_ = new TTree("configtree","configtree");
 
@@ -636,58 +299,48 @@ void TTreeValidation::initializeConfigTree(){
   configtree_->Branch("thetaerr012",&thetaerr012_);
 }
 
-void TTreeValidation::initializeTimeTree(){
-  timetree_ = new TTree("timetree","timetree");
-  
-  timetree_->Branch("simtime",&simtime_);
-  timetree_->Branch("segtime",&segtime_);
-  timetree_->Branch("seedtime",&seedtime_);
-  timetree_->Branch("buildtime",&buildtime_);
-  timetree_->Branch("fittime",&fittime_);
-  timetree_->Branch("hlvtime",&hlvtime_);
-}
-
 void TTreeValidation::initializeFitTree()
 {
-  nlayers_fit_ = Config::nLayers;
+  ntotallayers_fit_ = Config::nTotalLayers;
   
   fittree_ = new TTree("fittree","fittree");
 
-  fittree_->Branch("nlayers",&nlayers_fit_,"nlayers_fit_/I");
+  fittree_->Branch("ntotallayers",&ntotallayers_fit_,"ntotallayers_fit_/I");
   fittree_->Branch("tkid",&tkid_fit_,"tkid_fit_/I");
   fittree_->Branch("evtid",&evtid_fit_,"evtid_fit_/I");
 
-  fittree_->Branch("z_prop",&z_prop_fit_,"z_prop_fit_[nlayers_fit_]/F");
-  fittree_->Branch("ez_prop",&ez_prop_fit_,"ez_prop_fit_[nlayers_fit_]/F");
-  fittree_->Branch("z_hit",&z_hit_fit_,"z_hit_fit_[nlayers_fit_]/F");
-  fittree_->Branch("ez_hit",&ez_hit_fit_,"ez_hit_fit_[nlayers_fit_]/F");
-  fittree_->Branch("z_sim",&z_sim_fit_,"z_sim_fit_[nlayers_fit_]/F");
-  fittree_->Branch("ez_sim",&ez_sim_fit_,"ez_sim_fit_[nlayers_fit_]/F");
+  fittree_->Branch("z_prop",&z_prop_fit_,"z_prop_fit_[ntotallayers_fit_]/F");
+  fittree_->Branch("ez_prop",&ez_prop_fit_,"ez_prop_fit_[ntotallayers_fit_]/F");
+  fittree_->Branch("z_hit",&z_hit_fit_,"z_hit_fit_[ntotallayers_fit_]/F");
+  fittree_->Branch("ez_hit",&ez_hit_fit_,"ez_hit_fit_[ntotallayers_fit_]/F");
+  fittree_->Branch("z_sim",&z_sim_fit_,"z_sim_fit_[ntotallayers_fit_]/F");
+  fittree_->Branch("ez_sim",&ez_sim_fit_,"ez_sim_fit_[ntotallayers_fit_]/F");
 
-  fittree_->Branch("pphi_prop",&pphi_prop_fit_,"pphi_prop_fit_[nlayers_fit_]/F");
-  fittree_->Branch("epphi_prop",&epphi_prop_fit_,"epphi_prop_fit_[nlayers_fit_]/F");
-  fittree_->Branch("pphi_hit",&pphi_hit_fit_,"pphi_hit_fit_[nlayers_fit_]/F");
-  fittree_->Branch("epphi_hit",&epphi_hit_fit_,"epphi_hit_fit_[nlayers_fit_]/F");
-  fittree_->Branch("pphi_sim",&pphi_sim_fit_,"pphi_sim_fit_[nlayers_fit_]/F");
-  fittree_->Branch("epphi_sim",&epphi_sim_fit_,"epphi_sim_fit_[nlayers_fit_]/F");
+  fittree_->Branch("pphi_prop",&pphi_prop_fit_,"pphi_prop_fit_[ntotallayers_fit_]/F");
+  fittree_->Branch("epphi_prop",&epphi_prop_fit_,"epphi_prop_fit_[ntotallayers_fit_]/F");
+  fittree_->Branch("pphi_hit",&pphi_hit_fit_,"pphi_hit_fit_[ntotallayers_fit_]/F");
+  fittree_->Branch("epphi_hit",&epphi_hit_fit_,"epphi_hit_fit_[ntotallayers_fit_]/F");
+  fittree_->Branch("pphi_sim",&pphi_sim_fit_,"pphi_sim_fit_[ntotallayers_fit_]/F");
+  fittree_->Branch("epphi_sim",&epphi_sim_fit_,"epphi_sim_fit_[ntotallayers_fit_]/F");
 
-  fittree_->Branch("pt_up",&pt_up_fit_,"pt_up_fit_[nlayers_fit_]/F");
-  fittree_->Branch("ept_up",&ept_up_fit_,"ept_up_fit_[nlayers_fit_]/F");
-  fittree_->Branch("pt_sim",&pt_sim_fit_,"pt_sim_fit_[nlayers_fit_]/F");
-  fittree_->Branch("ept_sim",&ept_sim_fit_,"ept_sim_fit_[nlayers_fit_]/F");
+  fittree_->Branch("pt_up",&pt_up_fit_,"pt_up_fit_[ntotallayers_fit_]/F");
+  fittree_->Branch("ept_up",&ept_up_fit_,"ept_up_fit_[ntotallayers_fit_]/F");
+  fittree_->Branch("pt_sim",&pt_sim_fit_,"pt_sim_fit_[ntotallayers_fit_]/F");
+  fittree_->Branch("ept_sim",&ept_sim_fit_,"ept_sim_fit_[ntotallayers_fit_]/F");
 
-  fittree_->Branch("mphi_up",&mphi_up_fit_,"mphi_up_fit_[nlayers_fit_]/F");
-  fittree_->Branch("emphi_up",&emphi_up_fit_,"emphi_up_fit_[nlayers_fit_]/F");
-  fittree_->Branch("mphi_sim",&mphi_sim_fit_,"mphi_sim_fit_[nlayers_fit_]/F");
-  fittree_->Branch("emphi_sim",&emphi_sim_fit_,"emphi_sim_fit_[nlayers_fit_]/F");
+  fittree_->Branch("mphi_up",&mphi_up_fit_,"mphi_up_fit_[ntotallayers_fit_]/F");
+  fittree_->Branch("emphi_up",&emphi_up_fit_,"emphi_up_fit_[ntotallayers_fit_]/F");
+  fittree_->Branch("mphi_sim",&mphi_sim_fit_,"mphi_sim_fit_[ntotallayers_fit_]/F");
+  fittree_->Branch("emphi_sim",&emphi_sim_fit_,"emphi_sim_fit_[ntotallayers_fit_]/F");
 
-  fittree_->Branch("meta_up",&meta_up_fit_,"meta_up_fit_[nlayers_fit_]/F");
-  fittree_->Branch("emeta_up",&emeta_up_fit_,"emeta_up_fit_[nlayers_fit_]/F");
-  fittree_->Branch("meta_sim",&meta_sim_fit_,"meta_sim_fit_[nlayers_fit_]/F");
-  fittree_->Branch("emeta_sim",&emeta_sim_fit_,"emeta_sim_fit_[nlayers_fit_]/F");
+  fittree_->Branch("meta_up",&meta_up_fit_,"meta_up_fit_[ntotallayers_fit_]/F");
+  fittree_->Branch("emeta_up",&emeta_up_fit_,"emeta_up_fit_[ntotallayers_fit_]/F");
+  fittree_->Branch("meta_sim",&meta_sim_fit_,"meta_sim_fit_[ntotallayers_fit_]/F");
+  fittree_->Branch("emeta_sim",&emeta_sim_fit_,"emeta_sim_fit_[ntotallayers_fit_]/F");
 }
 
-void TTreeValidation::alignTrackExtra(TrackVec& evt_tracks, TrackExtraVec& evt_extras){
+void TTreeValidation::alignTrackExtra(TrackVec& evt_tracks, TrackExtraVec& evt_extras)
+{
   TrackExtraVec trackExtra_tmp;
 
   // align temporary tkExVec with new track collection ordering
@@ -704,55 +357,10 @@ void TTreeValidation::alignTrackExtra(TrackVec& evt_tracks, TrackExtraVec& evt_e
   }
 }
 
-void TTreeValidation::collectSimTkTSVecMapInfo(int mcTrackID, const TSVec& initTSs){
+void TTreeValidation::collectSimTkTSVecMapInfo(int mcTrackID, const TSVec& initTSs)
+{
   std::lock_guard<std::mutex> locker(glock_);
   simTkTSVecMap_[mcTrackID] = initTSs;
-}
-
-void TTreeValidation::collectSeedTkCFMapInfo(int seedID, const TrackState& cfitStateHit0){
-  seedTkCFMap_[seedID] = cfitStateHit0;
-}
-
-void TTreeValidation::collectSeedTkTSLayerPairVecMapInfo(int seedID, const TSLayerPairVec& updatedStates){
-  seedTkTSLayerPairVecMap_[seedID] = updatedStates;
-}
-
-void TTreeValidation::collectBranchingInfo(int seedID, int ilayer, 
-					   float nSigmaDeta, float etaBinMinus, int etaBinPlus, 
-					   float nSigmaDphi, int phiBinMinus, int phiBinPlus, 
-					   const std::vector<int>& cand_hit_indices, const std::vector<int>& branch_hit_indices){
-  
-  BranchVal tmpBranchVal;
-  tmpBranchVal.nSigmaDeta  = nSigmaDeta;
-  tmpBranchVal.etaBinMinus = etaBinMinus;
-  tmpBranchVal.etaBinPlus  = etaBinPlus;
-  tmpBranchVal.nSigmaDphi  = nSigmaDphi;
-  tmpBranchVal.phiBinMinus = phiBinMinus;
-  tmpBranchVal.phiBinPlus  = phiBinPlus;
-  tmpBranchVal.cand_hit_indices   = cand_hit_indices;
-  tmpBranchVal.branch_hit_indices = branch_hit_indices; // size of vector formerly known as just "branches"
-  
-  seedToBranchValVecLayMapMap_[seedID][ilayer].push_back(tmpBranchVal);
-}
-
-void TTreeValidation::collectFitTkCFMapInfo(int seedID, const TrackState& cfitStateHit0){
-  fitTkCFMap_[seedID] = cfitStateHit0;
-}
-
-void TTreeValidation::collectFitTkTSLayerPairVecMapInfo(int seedID, const TSLayerPairVec& updatedStates){
-  fitTkTSLayerPairVecMap_[seedID] = updatedStates;
-}
-
-void TTreeValidation::collectPropTSLayerVecInfo(int layer, const TrackState& propTS){
-  propTSLayerPairVec_.push_back(std::make_pair(layer,propTS)); 
-}
-
-void TTreeValidation::collectChi2LayerVecInfo(int layer, float chi2){
-  chi2LayerPairVec_.push_back(std::make_pair(layer,chi2)); 
-}
-
-void TTreeValidation::collectUpTSLayerVecInfo(int layer, const TrackState& upTS){
-  upTSLayerPairVec_.push_back(std::make_pair(layer,upTS)); 
 }
 
 void TTreeValidation::collectFitInfo(const FitVal & tmpfitval, int tkid, int layer)
@@ -762,22 +370,12 @@ void TTreeValidation::collectFitInfo(const FitVal & tmpfitval, int tkid, int lay
   fitValTkMapMap_[tkid][layer] = tmpfitval;
 }
 
-void TTreeValidation::resetValidationMaps(){
+void TTreeValidation::resetValidationMaps()
+{
   std::lock_guard<std::mutex> locker(glock_);
   
   // reset map of sim tracks to MC track states (pre-smearing)
   simTkTSVecMap_.clear(); 
-
-  // reset map of reco tracks to Conformal Fit track states 
-  seedTkCFMap_.clear();
-  fitTkCFMap_.clear(); 
-
-  // reset map of reco tracks to updated layer track states and bool pairs
-  seedTkTSLayerPairVecMap_.clear();
-  fitTkTSLayerPairVecMap_.clear();
-
-  // reset branching map
-  seedToBranchValVecLayMapMap_.clear();
 
   // reset fit validation map
   fitValTkMapMap_.clear();
@@ -792,14 +390,6 @@ void TTreeValidation::resetValidationMaps(){
   seedToFitMap_.clear();
 }
 
-void TTreeValidation::resetDebugVectors(){
-  std::lock_guard<std::mutex> locker(glock_);
-  
-  propTSLayerPairVec_.clear(); // used exclusively for debugtree (prop states)
-  chi2LayerPairVec_.clear();   // used exclusively for debugtree 
-  upTSLayerPairVec_.clear();   // used exclusively for debugtree (updated states)
-}
-
 void TTreeValidation::setTrackExtras(Event& ev)
 {
   std::lock_guard<std::mutex> locker(glock_);
@@ -812,7 +402,8 @@ void TTreeValidation::setTrackExtras(Event& ev)
 void TTreeValidation::setTrackCollectionExtras(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, 
 					       const std::vector<HitVec>& layerHits, const MCHitInfoVec& mcHitInfo)
 {
-  for (auto itrack = 0; itrack < evt_tracks.size(); ++itrack){
+  for (auto itrack = 0; itrack < evt_tracks.size(); ++itrack)
+  {
     auto&& track(evt_tracks[itrack]);
     auto&& extra(evt_extras[itrack]);
     extra.setMCTrackIDInfo(track, layerHits, mcHitInfo);
@@ -830,8 +421,8 @@ void TTreeValidation::makeSimTkToRecoTksMaps(Event& ev)
 
 void TTreeValidation::mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, TkIDToTkIDVecMap& simTkMap)
 {
-
-  for (auto itrack = 0; itrack < evt_tracks.size(); ++itrack){
+  for (auto itrack = 0; itrack < evt_tracks.size(); ++itrack)
+  {
     auto&& track(evt_tracks[itrack]);
     auto&& extra(evt_extras[itrack]);
     if (extra.mcTrackID() >= 0){ // skip fakes, don't store them at all in sim map
@@ -839,26 +430,31 @@ void TTreeValidation::mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVe
     }
   }
   
-  for (auto&& simTkMatches : simTkMap){
-    if (simTkMatches.second.size() < 2) { // no duplicates
+  for (auto&& simTkMatches : simTkMap)
+  {
+    if (simTkMatches.second.size() < 2) // no duplicates
+    {
       auto& extra(evt_extras[simTkMatches.second[0]]);
       extra.setMCDuplicateInfo(0,bool(false));
     }
-    else{ // sort duplicates (ghosts) to keep best one --> most hits, lowest chi2
-      
+    else // sort duplicates (ghosts) to keep best one --> most hits, lowest chi2
+    {  
       // really should sort on indices with a reduced data structure... this is a hack way to do this for now...
       // e.g. std::tuple<int, int, float>, (label, nHits, chi2)
       TrackVec tmpMatches;
-      for (auto&& label : simTkMatches.second) { // loop over vector of reco track labels, push back the track with each label 
+      for (auto&& label : simTkMatches.second) // loop over vector of reco track labels, push back the track with each label 
+      {
 	tmpMatches.push_back(evt_tracks[label]);
       }
       std::sort(tmpMatches.begin(), tmpMatches.end(), sortByHitsChi2); // sort the tracks
-      for (auto itrack = 0; itrack < tmpMatches.size(); itrack++){ // loop over sorted tracks, now make the vector of sorted labels match
+      for (auto itrack = 0; itrack < tmpMatches.size(); itrack++) // loop over sorted tracks, now make the vector of sorted labels match
+      {
 	simTkMatches.second[itrack] = tmpMatches[itrack].label();
       }
       
       int duplicateID = 0;
-      for (auto&& label : simTkMatches.second){ // loop over vector of reco tracsk 
+      for (auto&& label : simTkMatches.second) // loop over vector of reco tracsk 
+      {
         auto& extra(evt_extras[label]);
         extra.setMCDuplicateInfo(duplicateID,bool(true));
         duplicateID++; // used in fake rate trees!
@@ -877,434 +473,15 @@ void TTreeValidation::makeSeedTkToRecoTkMaps(Event& ev)
 
 void TTreeValidation::mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackExtraVec& evt_extras, TkIDToTkIDMap& seedTkMap)
 {
-  for (auto&& track : evt_tracks){
+  for (auto&& track : evt_tracks)
+  {
     seedTkMap[evt_extras[track.label()].seedID()] = track.label();
   }
 }
 
-void TTreeValidation::resetDebugTreeArrays(){
-  for (int i = 0; i < Config::nLayers; i++){
-    // reset MC info
-    layer_mc_debug_[i]=-99;
-    x_hit_debug_[i]=-99;    y_hit_debug_[i]=-99;    z_hit_debug_[i]=-99; 
-    exx_hit_debug_[i]=-99;  eyy_hit_debug_[i]=-99;  ezz_hit_debug_[i]=-99;
-    x_mc_debug_[i]=-99;     y_mc_debug_[i]=-99;     z_mc_debug_[i]=-99; 
-    px_mc_debug_[i]=-99;    py_mc_debug_[i]=-99;    pz_mc_debug_[i]=-99;
-    pt_mc_debug_[i]=-99;    phi_mc_debug_[i]=-99;   eta_mc_debug_[i]=-99;
-    invpt_mc_debug_[i]=-99; theta_mc_debug_[i]=-99;
-
-    // reset prop info
-    layer_prop_debug_[i]=-99;
-    x_prop_debug_[i]=-99;      y_prop_debug_[i]=-99;      z_prop_debug_[i]=-99;
-    exx_prop_debug_[i]=-99;    eyy_prop_debug_[i]=-99;    ezz_prop_debug_[i]=-99;
-    px_prop_debug_[i]=-99;     py_prop_debug_[i]=-99;     pz_prop_debug_[i]=-99;
-    epxpx_prop_debug_[i]=-99;  epypy_prop_debug_[i]=-99;  epzpz_prop_debug_[i]=-99;
-    pt_prop_debug_[i]=-99;     phi_prop_debug_[i]=-99;    eta_prop_debug_[i]=-99;
-    ept_prop_debug_[i]=-99;    ephi_prop_debug_[i]=-99;   eeta_prop_debug_[i]=-99;
-    invpt_prop_debug_[i] =-99; theta_prop_debug_[i] =-99;
-    einvpt_prop_debug_[i]=-99; etheta_prop_debug_[i]=-99;
-
-    // reset chi2
-    layer_chi2_debug_[i]=-99;
-    chi2_debug_[i]=-99;
-
-    // reset update info
-    layer_up_debug_[i]=99;
-    x_up_debug_[i]=-99;      y_up_debug_[i]=-99;      z_up_debug_[i]=-99;
-    exx_up_debug_[i]=-99;    eyy_up_debug_[i]=-99;    ezz_up_debug_[i]=-99;
-    px_up_debug_[i]=-99;     py_up_debug_[i]=-99;     pz_up_debug_[i]=-99;
-    epxpx_up_debug_[i]=-99;  epypy_up_debug_[i]=-99;  epzpz_up_debug_[i]=-99;
-    pt_up_debug_[i]=-99;     phi_up_debug_[i]=-99;    eta_up_debug_[i]=-99;
-    ept_up_debug_[i]=-99;    ephi_up_debug_[i]=-99;   eeta_up_debug_[i]=-99;
-    invpt_up_debug_[i] =-99; theta_up_debug_[i] =-99;
-    einvpt_up_debug_[i]=-99; etheta_up_debug_[i]=-99;
-
-    // reset eta/phi bin info
-    ebhit_debug_[i] = -99; ebp_debug_[i] = -99; ebm_debug_[i] = -99;
-    pbhit_debug_[i] = -99; pbp_debug_[i] = -99; pbm_debug_[i] = -99;
-  }
-}
-
-void TTreeValidation::fillDebugTree(const Event& ev){
-  std::lock_guard<std::mutex> locker(glock_);
-  resetDebugTreeArrays();
-  
-  auto& simtrack   = ev.simTracks_[0];       // since it is the only one!
-  auto& seedtrack  = ev.seedTracks_[0];      // since it is the only one! 
-  auto& buildtrack = ev.candidateTracks_[0]; // since it is the only one! 
-
-  int mcID   = simtrack.label();
-  int seedID = ev.seedTracksExtra_[seedtrack.label()].seedID(); 
-
-  event_debug_ = ev.evtID();
-  nHits_debug_ = buildtrack.nFoundHits();
-
-  recocharge_debug_ = seedtrack.charge(); 
-  mccharge_debug_   = simtrack.charge();
-
-  // Set MC First
-  pt_gen_debug_  = simtrack.pT(); 
-  phi_gen_debug_ = simtrack.momPhi(); 
-  eta_gen_debug_ = simtrack.momEta(); 
-
-  x_gen_debug_   = simtrack.x(); 
-  y_gen_debug_   = simtrack.y(); 
-  z_gen_debug_   = simtrack.z(); 
-
-  auto& simhits = simtrack.hitsVector(ev.layerHits_);
-  for (int i = 0; i < simhits.size(); i++){ // assume one hit for layer for sim tracks...
-    layer_mc_debug_[i] = i;
-
-    x_hit_debug_[i]   = simhits[i].x();
-    y_hit_debug_[i]   = simhits[i].y();
-    z_hit_debug_[i]   = simhits[i].z();
-    exx_hit_debug_[i] = simhits[i].exx();
-    eyy_hit_debug_[i] = simhits[i].eyy();
-    ezz_hit_debug_[i] = simhits[i].ezz();
-
-    // which eta/phi bin the hit belongs to
-    ebhit_debug_[i] = getEtaPartition(simhits[i].eta());
-    pbhit_debug_[i] = getPhiPartition(simhits[i].phi());
-
-    const TrackState & mcstate = simTkTSVecMap_[mcID][i];
-    x_mc_debug_[i]   = mcstate.x();
-    y_mc_debug_[i]   = mcstate.y();
-    z_mc_debug_[i]   = mcstate.z();
-    pt_mc_debug_[i]  = mcstate.pT();
-    phi_mc_debug_[i] = mcstate.momPhi();
-    eta_mc_debug_[i] = mcstate.momEta();
-
-    px_mc_debug_[i]  = mcstate.px();
-    py_mc_debug_[i]  = mcstate.py();
-    pz_mc_debug_[i]  = mcstate.pz();
-      
-    invpt_mc_debug_[i] = mcstate.invpT();
-    theta_mc_debug_[i] = mcstate.theta();
-  }
-
-  // CF next
-  const TrackState & cfSeedTS = seedTkCFMap_[seedID];
-  x_cf_debug_   = cfSeedTS.x();
-  y_cf_debug_   = cfSeedTS.y();
-  z_cf_debug_   = cfSeedTS.z();
-  exx_cf_debug_ = cfSeedTS.exx();
-  eyy_cf_debug_ = cfSeedTS.eyy();
-  ezz_cf_debug_ = cfSeedTS.ezz();
-
-  px_cf_debug_    = cfSeedTS.px();
-  py_cf_debug_    = cfSeedTS.py();
-  pz_cf_debug_    = cfSeedTS.pz();
-  epxpx_cf_debug_ = cfSeedTS.epxpx();
-  epypy_cf_debug_ = cfSeedTS.epypy();
-  epzpz_cf_debug_ = cfSeedTS.epzpz();
-
-  pt_cf_debug_   = cfSeedTS.pT();
-  phi_cf_debug_  = cfSeedTS.momPhi();
-  eta_cf_debug_  = cfSeedTS.momEta();
-  ept_cf_debug_  = cfSeedTS.epT();
-  ephi_cf_debug_ = cfSeedTS.emomPhi();
-  eeta_cf_debug_ = cfSeedTS.emomEta();
-
-  invpt_cf_debug_  = cfSeedTS.invpT();
-  einvpt_cf_debug_ = cfSeedTS.einvpT();
-  theta_cf_debug_  = cfSeedTS.theta();
-  etheta_cf_debug_ = cfSeedTS.etheta();
-
-  // prop states
-  for (int i = 0; i < propTSLayerPairVec_.size(); i++){
-    int layer = propTSLayerPairVec_[i].first; 
-    layer_prop_debug_[layer] = layer;
-	
-    const TrackState & propTS = propTSLayerPairVec_[i].second;
-    x_prop_debug_[layer]   = propTS.x();
-    y_prop_debug_[layer]   = propTS.y();
-    z_prop_debug_[layer]   = propTS.z();
-    exx_prop_debug_[layer] = propTS.exx();
-    eyy_prop_debug_[layer] = propTS.eyy();
-    ezz_prop_debug_[layer] = propTS.ezz();
-
-    px_prop_debug_[layer]    = propTS.px();
-    py_prop_debug_[layer]    = propTS.py();
-    pz_prop_debug_[layer]    = propTS.pz();
-    epxpx_prop_debug_[layer] = propTS.epxpx();
-    epypy_prop_debug_[layer] = propTS.epypy();
-    epzpz_prop_debug_[layer] = propTS.epzpz();
-
-    pt_prop_debug_[layer]   = propTS.pT();
-    phi_prop_debug_[layer]  = propTS.momPhi();
-    eta_prop_debug_[layer]  = propTS.momEta();
-    ept_prop_debug_[layer]  = propTS.epT();
-    ephi_prop_debug_[layer] = propTS.emomPhi();
-    eeta_prop_debug_[layer] = propTS.emomEta();
-
-    invpt_prop_debug_[layer]  = propTS.invpT();
-    einvpt_prop_debug_[layer] = propTS.einvpT();
-    theta_prop_debug_[layer]  = propTS.theta();
-    etheta_prop_debug_[layer] = propTS.etheta();
-  }
-    
-  // do the chi2
-  for (int i = 0; i < chi2LayerPairVec_.size(); i++){
-    int layer = chi2LayerPairVec_[i].first; 
-    layer_chi2_debug_[layer] = layer;
-    chi2_debug_[layer]       = chi2LayerPairVec_[i].second; 
-  }
-
-  // updated states 
-  for (int i = 0; i < upTSLayerPairVec_.size(); i++){
-    int layer = upTSLayerPairVec_[i].first; 
-    layer_up_debug_[layer] = layer;
-	
-    const TrackState & upTS = upTSLayerPairVec_[i].second;
-    x_up_debug_[layer]   = upTS.x();
-    y_up_debug_[layer]   = upTS.y();
-    z_up_debug_[layer]   = upTS.z();
-    exx_up_debug_[layer] = upTS.exx();
-    eyy_up_debug_[layer] = upTS.eyy();
-    ezz_up_debug_[layer] = upTS.ezz();
-
-    px_up_debug_[layer]    = upTS.px();
-    py_up_debug_[layer]    = upTS.py();
-    pz_up_debug_[layer]    = upTS.pz();
-    epxpx_up_debug_[layer] = upTS.epxpx();
-    epypy_up_debug_[layer] = upTS.epypy();
-    epzpz_up_debug_[layer] = upTS.epzpz();
-
-    pt_up_debug_[layer]   = upTS.pT();
-    phi_up_debug_[layer]  = upTS.momPhi();
-    eta_up_debug_[layer]  = upTS.momEta();
-    ept_up_debug_[layer]  = upTS.epT();
-    ephi_up_debug_[layer] = upTS.emomPhi();
-    eeta_up_debug_[layer] = upTS.emomEta();
-
-    invpt_up_debug_[layer]  = upTS.invpT();
-    einvpt_up_debug_[layer] = upTS.einvpT();
-    theta_up_debug_[layer]  = upTS.theta();
-    etheta_up_debug_[layer] = upTS.etheta();
-  }
-
-  // see what it predicted! (reuse branchval)
-  for (TkIDToBVVMMIter seediter = seedToBranchValVecLayMapMap_.begin(); seediter != seedToBranchValVecLayMapMap_.end(); ++seediter){
-    for (BVVLMiter layiter = (*seediter).second.begin(); layiter != (*seediter).second.end(); ++layiter){
-      const auto& BranchValVec((*layiter).second);
-      const int cands = BranchValVec.size();
-      int layer = (*layiter).first; // first index here is layer
-      for (int cand = 0; cand < cands; cand++){ // loop over input candidates at this layer for this seed
-	const auto& BranchVal(BranchValVec[cand]); // grab the branch validation object
-	
-	ebp_debug_[layer]  = BranchVal.etaBinPlus;
-	ebm_debug_[layer]  = BranchVal.etaBinMinus;
-	pbp_debug_[layer]  = BranchVal.phiBinPlus;
-	pbm_debug_[layer]  = BranchVal.phiBinMinus;
-
-      }
-    }
-  }
-
-  // fill it once per track (i.e. once per track by definition)
-  debugtree_->Fill();
-}
-
-void TTreeValidation::fillSegmentTree(const BinInfoMap& segmentMap, int evtID){
-  std::lock_guard<std::mutex> locker(glock_);
-
-  evtID_seg_ = evtID;
-  for (int i = 0; i < Config::nLayers; i++) {
-    layer_seg_ = i;
-    for (int j = 0; j < Config::nEtaPart; j++) {
-      etabin_seg_ = j;
-      for (int k = 0; k < Config::nPhiPart; k++) {
-	phibin_seg_ = k;
-	nHits_seg_  = segmentMap[i][j][k].second;
-
-	segtree_->Fill();
-      }
-    }
-  }
-}
-
-void TTreeValidation::fillSeedInfoTree(const TripletIdxVec& hit_triplets, const Event& ev) {
-  evtID_seedinfo_ = ev.evtID();
-
-  const auto & evt_lay_hits = ev.layerHits_;
-
-  for (auto&& hitTriplet : hit_triplets) {
-    mcID_seedinfo_    = ev.simHitsInfo_[evt_lay_hits[0][hitTriplet[0]].mcHitID()].mcTrackID();
-    if (  ev.simHitsInfo_[evt_lay_hits[1][hitTriplet[1]].mcHitID()].mcTrackID() == mcID_seedinfo_){
-      if (ev.simHitsInfo_[evt_lay_hits[2][hitTriplet[2]].mcHitID()].mcTrackID() == mcID_seedinfo_){
-	pt_gen_seedinfo_  = ev.simTracks_[mcID_seedinfo_].pT();
-	eta_gen_seedinfo_ = ev.simTracks_[mcID_seedinfo_].momEta();
-	phi_gen_seedinfo_ = ev.simTracks_[mcID_seedinfo_].momPhi();
-
-	const float x0 = evt_lay_hits[0][hitTriplet[0]].x();
-	const float y0 = evt_lay_hits[0][hitTriplet[0]].y();
-	const float x1 = evt_lay_hits[1][hitTriplet[1]].x();
-	const float y1 = evt_lay_hits[1][hitTriplet[1]].y();
-	const float x2 = evt_lay_hits[2][hitTriplet[2]].x();
-	const float y2 = evt_lay_hits[2][hitTriplet[2]].y();
-
-	// now fit a circle, extract pT and d0 from center and radius
-	const float mr = (y1-y0)/(x1-x0);
-	const float mt = (y2-y1)/(x2-x1);
-
-	a  = (mr*mt*(y2-y0) + mr*(x1+x2) - mt*(x0+x1))/(2.*(mr-mt));
-        b  = -1.*(a-(x0+x1)/2.)/mr + (y0+y1)/2.;
-	r  = getHypot(x0-a,y0-b);
-	d0 = getHypot(a,b)-r;
-	pass = false;
-	if ((r >= Config::maxCurvR) && (fabs(d0) <= 0.1)) {
-	  pass = true;
-	} // d0 cut 1mm, pT cut 0.5 GeV
-
-	seedinfotree_->Fill();
-      }
-    }
-  }
-}
-
-void TTreeValidation::fillSeedTree(const TripletIdxVec& hit_triplets, const TripletIdxVec& filtered_triplets, const Event& ev) {
-  evtID_seed_ = ev.evtID();
-  const auto & evt_lay_hits = ev.layerHits_;
-
-  int correct_all = 0;
-  for (auto&& hitTriplet : hit_triplets){
-    if (  ev.simHitsInfo_[evt_lay_hits[0][hitTriplet[0]].mcHitID()].mcTrackID() == ev.simHitsInfo_[evt_lay_hits[1][hitTriplet[1]].mcHitID()].mcTrackID()){
-      if (ev.simHitsInfo_[evt_lay_hits[2][hitTriplet[2]].mcHitID()].mcTrackID() == ev.simHitsInfo_[evt_lay_hits[1][hitTriplet[1]].mcHitID()].mcTrackID()){
-	correct_all++;
-      }
-    }
-  }
-  nTkAll_   = hit_triplets.size();
-  nTkAllMC_ = correct_all; 
-
-  int correct_cut = 0;
-  for (auto&& hitTriplet : filtered_triplets){
-    if (  ev.simHitsInfo_[evt_lay_hits[0][hitTriplet[0]].mcHitID()].mcTrackID() == ev.simHitsInfo_[evt_lay_hits[1][hitTriplet[1]].mcHitID()].mcTrackID()){
-      if (ev.simHitsInfo_[evt_lay_hits[2][hitTriplet[2]].mcHitID()].mcTrackID() == ev.simHitsInfo_[evt_lay_hits[1][hitTriplet[1]].mcHitID()].mcTrackID()){
-	correct_cut++;
-      }
-    }
-  }
-  nTkCut_   = filtered_triplets.size();
-  nTkCutMC_ = correct_cut; 
-
-  seedtree_->Fill();
-}
-
-void TTreeValidation::fillBranchTree(int evtID)
-{
-  std::lock_guard<std::mutex> locker(glock_);
-  
-  evtID_br_  = evtID;
-  for (TkIDToBVVMMIter seediter = seedToBranchValVecLayMapMap_.begin(); seediter != seedToBranchValVecLayMapMap_.end(); ++seediter){
-    seedID_br_ = (*seediter).first;
-    for (BVVLMiter layiter = (*seediter).second.begin(); layiter != (*seediter).second.end(); ++layiter){
-      const auto& BranchValVec((*layiter).second);
-      const int cands = BranchValVec.size();
-      layer_  = (*layiter).first; // first index here is layer
-
-      // clear vectors before filling
-      candEtaPhiBins_.clear();
-      candHits_.clear();
-      candBranches_.clear();
-      candnSigmaDeta_.clear();
-      candnSigmaDphi_.clear();
-        
-      // totals
-      std::vector<int> candEtaPhiBins(cands);
-      std::vector<int> candHits(cands);
-      std::vector<int> candBranches(cands);
-
-      // unique hits, etaphibins, branches...
-      std::unordered_map<int, bool> uniqueEtaPhiBins; // once a bin, branch, hit is used, set to true to count it only once. take size of map as "uniques"
-      std::unordered_map<int, bool> uniqueHits;
-      std::unordered_map<int, bool> uniqueBranches;
-  
-      // nSigmaDeta/phi vec
-      std::vector<float> candnSigmaDeta(cands);
-      std::vector<float> candnSigmaDphi(cands);
-
-      for (int cand = 0; cand < cands; cand++){ // loop over input candidates at this layer for this seed
-	const auto& BranchVal(BranchValVec[cand]); // grab the branch validation object
-
-	////////////////////////////////////
-	//  EtaPhiBins Explored Counting  //
-	////////////////////////////////////
-	
-	// set values for total etaphibins explored per candidate, also unique ones for all candidates
-	if (BranchVal.phiBinPlus >= BranchVal.phiBinMinus){ // count the number of eta/phi bins explored if no phi wrapping
-	  candEtaPhiBins[cand] = (BranchVal.etaBinPlus-BranchVal.etaBinMinus+1)*(BranchVal.phiBinPlus-BranchVal.phiBinMinus+1); // total etaphibins for this candidate
-
-	  // no phi wrap to count uniques
-	  for (int ibin = BranchVal.phiBinMinus; ibin <= BranchVal.phiBinPlus; ibin++){
-	    uniqueEtaPhiBins[ibin] = true;
-	  }
-	}
-	else{ // if phi wrapping, count need to do this obnoxious counting
-	  candEtaPhiBins[cand] = (BranchVal.etaBinPlus-BranchVal.etaBinMinus+1)*(Config::nPhiPart-BranchVal.phiBinMinus+BranchVal.phiBinPlus+1); // total etaphibins for this candidate with phi wrapping
-
-	  // use phi wrapping to count uniques
-	  for (int ibin = BranchVal.phiBinMinus; ibin < Config::nPhiPart; ibin++){
-	    uniqueEtaPhiBins[ibin] = true;
-	  }
-	  for (int ibin = 0; ibin <= BranchVal.phiBinPlus; ibin++){
-	    uniqueEtaPhiBins[ibin] = true;
-	  }
-	}
-	
-	//////////////////////////////
-	//  Hits Explored Counting  //
-	//////////////////////////////
-
-	candHits[cand] = BranchVal.cand_hit_indices.size(); // set value of nHits explored per input cand for this seed+layer
-	for (auto&& cand_hit_idx : BranchVal.cand_hit_indices){ // save unique hits 
-	  uniqueHits[cand_hit_idx] = true;
-	}
-
-	/////////////////////////////////
-	//  Branches Created Counting  //
-	/////////////////////////////////
-
-	candBranches[cand] = BranchVal.branch_hit_indices.size(); // set values for total branches created per input candidate before chi2 max cand cleaning (for this seed+layer)
-	for (auto&& branch_hit_idx : BranchVal.branch_hit_indices){ // save unique branches --> only consider adding one ghost temp per input?
-	  uniqueBranches[branch_hit_idx] = true;
-	}
-
-	// store the parameters for width of eta/phi windows for this input candidates building
-
-	candnSigmaDeta[cand] = BranchVal.nSigmaDeta;
-	candnSigmaDphi[cand] = BranchVal.nSigmaDphi;
-      } // end loop over input candidates for given seed/layer
-    
-      // fill the rest of the tree after identifying uniques
-
-      cands_  = cands;
-      
-      // will use these to create total plots (once summed by looping over the vectors), and make per input candidate by looping over these vectors individually
-      
-      candEtaPhiBins_ = candEtaPhiBins;
-      candHits_       = candHits;
-      candBranches_   = candBranches;
-
-      // will use this directly to make unique plots by just taking the size of these unordered maps with "trues"
-
-      uniqueEtaPhiBins_ = uniqueEtaPhiBins.size();
-      uniqueHits_       = uniqueHits.size();
-      uniqueBranches_   = uniqueBranches.size();
-      
-      // will normalize to equal area, loop over vectors to plot directly
-
-      candnSigmaDeta_ = candnSigmaDeta;
-      candnSigmaDphi_ = candnSigmaDphi;
-    
-      tree_br_->Fill();  // fill once per layer per seed
-    } // end loop over layers
-  } // end loop over seeds
-}
-
 void TTreeValidation::resetFitBranches()
 {
-  for(int ilayer = 0; ilayer < Config::nLayers; ++ilayer)
+  for(int ilayer = 0; ilayer < Config::nTotalLayers; ++ilayer)
   {
     z_prop_fit_[ilayer]  = -1000.f;
     ez_prop_fit_[ilayer] = -1000.f;
@@ -1355,7 +532,7 @@ void TTreeValidation::fillFitTree(const Event& ev)
     const auto& initTSs  = simTkTSVecMap_[tkid_fit_];
     auto& fitvalmap = fitvalmapmap.second;
 
-    for(int ilayer = 0; ilayer < Config::nLayers; ++ilayer)
+    for(int ilayer = 0; ilayer < Config::nTotalLayers; ++ilayer)
     {
       if (fitvalmap.count(ilayer))
       {
@@ -1397,7 +574,8 @@ void TTreeValidation::fillFitTree(const Event& ev)
   }
 }
 
-void TTreeValidation::fillEfficiencyTree(const Event& ev){
+void TTreeValidation::fillEfficiencyTree(const Event& ev)
+{
   std::lock_guard<std::mutex> locker(glock_);
 
   auto ievt = ev.evtID();
@@ -1409,7 +587,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev){
   auto& evt_fit_tracks   = ev.fitTracks_;
   auto& evt_fit_extras   = ev.fitTracksExtra_;
 
-  for (auto&& simtrack : evt_sim_tracks){
+  for (auto&& simtrack : evt_sim_tracks)
+  {
     evtID_eff_ = ievt;
     mcID_eff_  = simtrack.label();
 
@@ -1420,7 +599,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev){
     nHits_mc_eff_   = simtrack.nFoundHits(); // could be that the sim track skips layers!
 
     // matched seed track
-    if (simToSeedMap_.count(mcID_eff_)){ // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToSeedMap_[matched SimID][first element in vector]
+    if (simToSeedMap_.count(mcID_eff_)) // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToSeedMap_[matched SimID][first element in vector]
+    {
       auto& seedtrack = evt_seed_tracks[simToSeedMap_[mcID_eff_][0]]; // returns seedTrack best matched to sim track
       auto& seedextra = evt_seed_extras[seedtrack.label()]; // returns track extra best aligned with seed track
       mcmask_seed_eff_ = 1; // quick logic for matched
@@ -1453,7 +633,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev){
       duplmask_seed_eff_   = seedextra.isDuplicate(); 
       nTkMatches_seed_eff_ = simToSeedMap_[mcID_eff_].size(); // n reco matches to this sim track.
     }
-    else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
+    else // unmatched simTracks ... put -99 for all reco values to denote unmatched
+    {
       mcmask_seed_eff_  = 0; // quick logic for not matched
       
       seedID_seed_eff_ = -99;
@@ -1481,7 +662,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev){
     }
 
     // matched build track
-    if (simToBuildMap_.count(mcID_eff_)){ // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToBuildMap_[matched SimID][first element in vector]
+    if (simToBuildMap_.count(mcID_eff_)) // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToBuildMap_[matched SimID][first element in vector]
+    {
       auto& buildtrack = evt_build_tracks[simToBuildMap_[mcID_eff_][0]]; // returns buildTrack best matched to sim track
       auto& buildextra = evt_build_extras[buildtrack.label()]; // returns track extra best aligned with build track
       mcmask_build_eff_ = 1; // quick logic for matched
@@ -1513,7 +695,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev){
       duplmask_build_eff_   = buildextra.isDuplicate(); 
       nTkMatches_build_eff_ = simToBuildMap_[mcID_eff_].size(); // n reco matches to this sim track.
     }
-    else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
+    else // unmatched simTracks ... put -99 for all reco values to denote unmatched
+    {
       mcmask_build_eff_  = 0; // quick logic for not matched
 
       seedID_build_eff_ = -99;
@@ -1541,7 +724,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev){
     }
     
     // matched fit track
-    if (simToFitMap_.count(mcID_eff_)){ // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToFitMap_[matched SimID][first element in vector]
+    if (simToFitMap_.count(mcID_eff_)) // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToFitMap_[matched SimID][first element in vector]
+    {
       auto& fittrack = evt_fit_tracks[simToFitMap_[mcID_eff_][0]]; // returns fitTrack best matched to sim track
       auto& fitextra = evt_fit_extras[fittrack.label()]; // returns track extra best aligned with fit track
       mcmask_fit_eff_ = 1; // quick logic for matched
@@ -1579,7 +763,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev){
       duplmask_fit_eff_   = fitextra.isDuplicate(); 
       nTkMatches_fit_eff_ = simToFitMap_[mcID_eff_].size(); // n reco matches to this sim track.
     }
-    else{ // unmatched simTracks ... put -99 for all reco values to denote unmatched
+    else // unmatched simTracks ... put -99 for all reco values to denote unmatched
+    {
       mcmask_fit_eff_  = 0; // quick logic for not matched
 
       seedID_fit_eff_ = -99;
@@ -1610,7 +795,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev){
   }
 }
 
-void TTreeValidation::fillFakeRateTree(const Event& ev){
+void TTreeValidation::fillFakeRateTree(const Event& ev)
+{
   std::lock_guard<std::mutex> locker(glock_);
 
   auto ievt = ev.evtID();
@@ -1621,7 +807,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
   auto& evt_fit_tracks   = ev.fitTracks_;
   auto& evt_fit_extras   = ev.fitTracksExtra_;
   
-  for (auto&& seedtrack : evt_seed_tracks){
+  for (auto&& seedtrack : evt_seed_tracks)
+  { 
     evtID_FR_       = ievt;
     auto& seedextra = evt_seed_extras[seedtrack.label()];
     seedID_FR_      = seedextra.seedID();
@@ -1644,7 +831,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
 
     // sim info for seed track
     mcID_seed_FR_ = seedextra.mcTrackID();
-    if (mcID_seed_FR_ >= 0){ // store sim info at that final layer!!! --> gen info stored only in eff tree
+    if (mcID_seed_FR_ >= 0) // store sim info at that final layer!!! --> gen info stored only in eff tree
+    {
       mcmask_seed_FR_ = 1; // matched track to sim
 
       const int layer = seedtrack.foundLayers().back(); // last layer fit ended up on
@@ -1660,7 +848,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
       duplmask_seed_FR_   = seedextra.isDuplicate();
       iTkMatches_seed_FR_ = seedextra.duplicateID(); // ith duplicate seed track, i = 0 "best" match, i > 0 "still matched, real reco, not as good as i-1 track"      
     }
-    else{
+    else
+    {
       mcmask_seed_FR_ = 0;   // fake track (unmatched track)
           
       // -99 for all sim info for reco tracks not associated to reco tracks
@@ -1676,7 +865,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
     //==========================//
     
     // fill build information if track still alive
-    if (seedToBuildMap_.count(seedID_FR_)){
+    if (seedToBuildMap_.count(seedID_FR_))
+    {
       seedmask_build_FR_ = 1; // quick logic
 
       auto& buildtrack = evt_build_tracks[seedToBuildMap_[seedID_FR_]];
@@ -1697,7 +887,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
 
       // sim info for build track
       mcID_build_FR_  = buildextra.mcTrackID();
-      if (mcID_build_FR_ >= 0){ // build track matched to seed and sim 
+      if (mcID_build_FR_ >= 0) // build track matched to seed and sim 
+      {
 	mcmask_build_FR_ = 1; // matched track to sim
 
 	const int layer = buildtrack.foundLayers().back(); // last layer fit ended up on
@@ -1713,7 +904,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
 	duplmask_build_FR_   = buildextra.isDuplicate();
 	iTkMatches_build_FR_ = buildextra.duplicateID(); // ith duplicate build track, i = 0 "best" match, i > 0 "still matched, real reco, not as good as i-1 track"      
       }
-      else{ // build track matched only to seed not to sim
+      else // build track matched only to seed not to sim
+      {
 	mcmask_build_FR_ = 0;   // fake track (unmatched track)
 	
 	// -99 for all sim info for reco tracks not associated to reco tracks
@@ -1727,7 +919,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
       } // matched seed to build, not build to sim
     }
 
-    else { // seed has no matching build track (therefore no matching sim to build track)
+    else  // seed has no matching build track (therefore no matching sim to build track)
+    { 
       seedmask_build_FR_ = 0; // quick logic
 
       // -100 for all reco info as no actual build track for this seed
@@ -1760,7 +953,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
     }
 
     //============================// fit tracks
-    if (seedToFitMap_.count(seedID_FR_)){
+    if (seedToFitMap_.count(seedID_FR_))
+    {
       seedmask_fit_FR_ = 1; // quick logic
 
       auto& fittrack = evt_fit_tracks[seedToFitMap_[seedID_FR_]];
@@ -1781,7 +975,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
 
       // sim info for fit track
       mcID_fit_FR_  = fitextra.mcTrackID();
-      if (mcID_fit_FR_ >= 0){ // fit track matched to seed and sim 
+      if (mcID_fit_FR_ >= 0) // fit track matched to seed and sim 
+      {
 	mcmask_fit_FR_ = 1; // matched track to sim
 #ifdef INWARDFIT
 	const int layer = fittrack.foundLayers().front(); // last layer fiting ended up on
@@ -1800,7 +995,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
 	duplmask_fit_FR_   = fitextra.isDuplicate();
 	iTkMatches_fit_FR_ = fitextra.duplicateID(); // ith duplicate fit track, i = 0 "best" match, i > 0 "still matched, real reco, not as good as i-1 track"
       }
-      else{ // fit track matched only to seed not to sim
+      else // fit track matched only to seed not to sim
+      {
 	mcmask_fit_FR_ = 0;   // fake track (unmatched track)
 	
 	// -99 for all sim info for reco tracks not associated to reco tracks
@@ -1814,7 +1010,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
       } // matched seed to fit, not fit to sim
     }
 
-    else { // seed has no matching fit track (therefore no matching sim to fit track)
+    else // seed has no matching fit track (therefore no matching sim to fit track)
+    {
       seedmask_fit_FR_ = 0; // quick logic
 
       // -100 for all reco info as no actual fit track for this seed
@@ -1850,328 +1047,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev){
   }// end of seed to seed loop
 }
 
-void TTreeValidation::fillGeometryTree(const Event& ev){
-  std::lock_guard<std::mutex> locker(glock_);
-
-  auto ievt = ev.evtID();
-  auto& evt_sim_tracks   = ev.simTracks_;
-  auto& evt_seed_tracks  = ev.seedTracks_;
-  auto& evt_seed_extras  = ev.seedTracksExtra_;
-  auto& evt_fit_tracks   = ev.fitTracks_;
-  auto& evt_fit_extras   = ev.fitTracksExtra_;
-  auto& evt_lay_hits     = ev.layerHits_;
-
-  for (auto&& simtrack : evt_sim_tracks){
-    evtID_geo_ = ievt;
-    mcID_geo_  = simtrack.label();
-
-    // for Beamspot plots
-    x_mc_gen_vrx_geo_ = simtrack.x();
-    y_mc_gen_vrx_geo_ = simtrack.y();
-    z_mc_gen_vrx_geo_ = simtrack.z();
-
-    // clear for detector sim plots
-    x_mc_reco_hit_geo_.clear();
-    y_mc_reco_hit_geo_.clear();
-    z_mc_reco_hit_geo_.clear();
-    for (auto&& simhit : simtrack.hitsVector(evt_lay_hits)){ // assume one hit per layer
-      x_mc_reco_hit_geo_.push_back(simhit.x());
-      y_mc_reco_hit_geo_.push_back(simhit.y());
-      z_mc_reco_hit_geo_.push_back(simhit.z());
-    }
-
-    // clear vectors for position pulls
-    layers_seed_geo_.clear();
-    x_lay_seed_geo_.clear();
-    y_lay_seed_geo_.clear();
-    z_lay_seed_geo_.clear();
-    ex_lay_seed_geo_.clear();
-    ey_lay_seed_geo_.clear();
-    ez_lay_seed_geo_.clear();
-
-    layers_fit_geo_.clear();
-    x_lay_fit_geo_.clear();
-    y_lay_fit_geo_.clear();
-    z_lay_fit_geo_.clear();
-    ex_lay_fit_geo_.clear();
-    ey_lay_fit_geo_.clear();
-    ez_lay_fit_geo_.clear();
-
-    // matched seed track
-    if (simToSeedMap_.count(mcID_geo_)){ // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToSeedMap_[matched SimID][first element in vector]
-      auto& seedtrack = evt_seed_tracks[simToSeedMap_[mcID_geo_][0]]; // returns seedTrack best matched to sim track
-      auto& seedextra = evt_seed_extras[seedtrack.label()]; // returns track extra best aligned with seed track
-      mcmask_seed_geo_ = 1; // quick logic for matched
-
-      seedID_seed_geo_ = seedextra.seedID(); 
-
-      // position pull info
-      const TSLayerPairVec & seedTSLayerPairVec = seedTkTSLayerPairVecMap_[seedID_seed_geo_];
-      for (int ilay = 0; ilay < seedTSLayerPairVec.size(); ilay++){ // loop over layers present in pair vector
-	layers_seed_geo_.push_back(seedTSLayerPairVec[ilay].first); // want to push back the ACTUAL layers stored, not the index of the loop!
-	
-	x_lay_seed_geo_.push_back(seedTSLayerPairVec[ilay].second.x()); // therefore, trackstate filled in sync with the layer it was saved on for the vector
-	y_lay_seed_geo_.push_back(seedTSLayerPairVec[ilay].second.y());
-	z_lay_seed_geo_.push_back(seedTSLayerPairVec[ilay].second.z());
-	
-	ex_lay_seed_geo_.push_back(seedTSLayerPairVec[ilay].second.exx());
-	ey_lay_seed_geo_.push_back(seedTSLayerPairVec[ilay].second.eyy());
-	ez_lay_seed_geo_.push_back(seedTSLayerPairVec[ilay].second.ezz());
-      }
-    }
-    else{ // unmatched sim track for any seed track
-      layers_seed_geo_.push_back(-1); // mask per layer
-      
-      x_lay_seed_geo_.push_back(-2000);
-      y_lay_seed_geo_.push_back(-2000);
-      z_lay_seed_geo_.push_back(-2000);
-      
-      ex_lay_seed_geo_.push_back(-2000);
-      ey_lay_seed_geo_.push_back(-2000);
-      ez_lay_seed_geo_.push_back(-2000);
-    }
-
-    if (simToFitMap_.count(mcID_geo_)){ // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToFitMap_[matched SimID][first element in vector]
-      auto& fittrack = evt_fit_tracks[simToFitMap_[mcID_geo_][0]]; // returns fitTrack best matched to sim track
-      auto& fitextra = evt_fit_extras[fittrack.label()]; // returns track extra best aligned with fit track
-      mcmask_fit_geo_ = 1; // quick logic for matched
-
-      seedID_fit_geo_ = fitextra.seedID(); 
-
-      // position pull info
-      const TSLayerPairVec & fitTSLayerPairVec = fitTkTSLayerPairVecMap_[seedID_fit_geo_];
-      for (int ilay = 0; ilay < fitTSLayerPairVec.size(); ilay++){ // loop over layers present in pair vector
-	layers_fit_geo_.push_back(fitTSLayerPairVec[ilay].first); // want to push back the ACTUAL layers stored, not the index of the loop!
-	
-	x_lay_fit_geo_.push_back(fitTSLayerPairVec[ilay].second.x()); // therefore, trackstate filled in sync with the layer it was saved on for the vector
-	y_lay_fit_geo_.push_back(fitTSLayerPairVec[ilay].second.y());
-	z_lay_fit_geo_.push_back(fitTSLayerPairVec[ilay].second.z());
-	
-	ex_lay_fit_geo_.push_back(fitTSLayerPairVec[ilay].second.exx());
-	ey_lay_fit_geo_.push_back(fitTSLayerPairVec[ilay].second.eyy());
-	ez_lay_fit_geo_.push_back(fitTSLayerPairVec[ilay].second.ezz());
-      }
-    }
-    else{
-      layers_fit_geo_.push_back(-1); // mask per layer
-      
-      x_lay_fit_geo_.push_back(-2000);
-      y_lay_fit_geo_.push_back(-2000);
-      z_lay_fit_geo_.push_back(-2000);
-      
-      ex_lay_fit_geo_.push_back(-2000);
-      ey_lay_fit_geo_.push_back(-2000);
-      ez_lay_fit_geo_.push_back(-2000);
-    }
-    geotree_->Fill(); // fill once per sim track
-  }
-}
-
-void TTreeValidation::fillConformalTree(const Event& ev){
-  std::lock_guard<std::mutex> locker(glock_);
-
-  auto ievt = ev.evtID();
-  auto& evt_sim_tracks   = ev.simTracks_;
-  auto& evt_seed_tracks  = ev.seedTracks_;
-  auto& evt_seed_extras  = ev.seedTracksExtra_;
-  auto& evt_fit_tracks   = ev.fitTracks_;
-  auto& evt_fit_extras   = ev.fitTracksExtra_;
-  //auto& evt_lay_hits     = ev.layerHits_;
-
-  for (auto&& simtrack : evt_sim_tracks){
-    evtID_cf_ = ievt;
-    mcID_cf_  = simtrack.label();
-
-    if (simToSeedMap_.count(mcID_cf_)){ // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToSeedMap_[matched SimID][first element in vector]
-      auto& seedtrack = evt_seed_tracks[simToSeedMap_[mcID_cf_][0]]; // returns seedTrack best matched to sim track
-      auto& seedextra = evt_seed_extras[seedtrack.label()]; // returns track extra best aligned with seed track
-      mcmask_seed_cf_ = 1; // quick logic for matched
-
-      seedID_seed_cf_ = seedextra.seedID(); 
-
-      // Conformal fit stuff to match how it was done before
-      const int cflayer = seedtrack.foundLayers().front(); //  layer for which cf parameters are calculated with respect to (either first or last layer of track!)
-      const TrackState & cfInitLayTS = simTkTSVecMap_[mcID_cf_][cflayer]; //--> can do this as all sim tracks pass through each layer once, and are stored in order... will need to fix this once we have loopers/overlaps
-      x_mc_seed_cf_ = cfInitLayTS.x();
-      y_mc_seed_cf_ = cfInitLayTS.y();
-      z_mc_seed_cf_ = cfInitLayTS.z();
-
-      px_mc_seed_cf_ = cfInitLayTS.px();
-      py_mc_seed_cf_ = cfInitLayTS.py();
-      pz_mc_seed_cf_ = cfInitLayTS.pz();
-
-      pt_mc_seed_cf_    = cfInitLayTS.pT();
-      invpt_mc_seed_cf_ = cfInitLayTS.invpT();
-      phi_mc_seed_cf_   = cfInitLayTS.momPhi();
-      theta_mc_seed_cf_ = cfInitLayTS.theta();
-
-      const TrackState & cfSeedTS = seedTkCFMap_[seedID_seed_cf_];
-
-      x_seed_cf_ = cfSeedTS.x();
-      y_seed_cf_ = cfSeedTS.y();
-      z_seed_cf_ = cfSeedTS.z();
-      
-      ex_seed_cf_ = cfSeedTS.exx();
-      ey_seed_cf_ = cfSeedTS.eyy();
-      ez_seed_cf_ = cfSeedTS.ezz();
-
-      px_seed_cf_ = cfSeedTS.px();
-      py_seed_cf_ = cfSeedTS.py();
-      pz_seed_cf_ = cfSeedTS.pz();
-      epx_seed_cf_ = cfSeedTS.epxpx();
-      epy_seed_cf_ = cfSeedTS.epypy();
-      epz_seed_cf_ = cfSeedTS.epzpz();
-
-      pt_seed_cf_    = cfSeedTS.pT();
-      invpt_seed_cf_ = cfSeedTS.invpT();
-      phi_seed_cf_   = cfSeedTS.momPhi();
-      theta_seed_cf_ = cfSeedTS.theta();
-
-      ept_seed_cf_    = cfSeedTS.epT();
-      einvpt_seed_cf_ = cfSeedTS.einvpT();
-      ephi_seed_cf_   = cfSeedTS.emomPhi();
-      etheta_seed_cf_ = cfSeedTS.etheta();
-    }
-    else{ // no matched seed form sim
-      x_mc_seed_cf_ = -2000;
-      y_mc_seed_cf_ = -2000;
-      z_mc_seed_cf_ = -2000;
-
-      px_mc_seed_cf_ = -99;
-      py_mc_seed_cf_ = -99;
-      pz_mc_seed_cf_ = -99;
-
-      pt_mc_seed_cf_    = -99;
-      invpt_mc_seed_cf_ = -99;
-      phi_mc_seed_cf_   = -99;
-      theta_mc_seed_cf_ = -99;
-
-      x_seed_cf_ = -2000;
-      y_seed_cf_ = -2000;
-      z_seed_cf_ = -2000;
-      
-      ex_seed_cf_ = -2000;
-      ey_seed_cf_ = -2000;
-      ez_seed_cf_ = -2000;
-
-      px_seed_cf_ = -99;
-      py_seed_cf_ = -99;
-      pz_seed_cf_ = -99;
-
-      epx_seed_cf_ = -99;
-      epy_seed_cf_ = -99;
-      epz_seed_cf_ = -99;
-
-      pt_seed_cf_    = -99;
-      invpt_seed_cf_ = -99;
-      phi_seed_cf_   = -99;
-      theta_seed_cf_ = -99;
-
-      ept_seed_cf_    = -99;
-      einvpt_seed_cf_ = -99;
-      ephi_seed_cf_   = -99;
-      etheta_seed_cf_ = -99;
-    }
-
-    if (simToFitMap_.count(mcID_cf_)){ // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToFitMap_[matched SimID][first element in vector]
-      auto& fittrack = evt_fit_tracks[simToFitMap_[mcID_cf_][0]]; // returns fitTrack best matched to sim track
-      auto& fitextra = evt_fit_extras[fittrack.label()]; // returns track extra best aligned with fit track
-      mcmask_fit_cf_ = 1; // quick logic for matched
-
-      seedID_fit_cf_ = fitextra.seedID(); 
-
-      // Conformal fit stuff to match how it was done before
-#ifdef INWARDFIT
-      const int cflayer = fittrack.foundLayers().back(); // last layer fit ended up on
-#else
-      const int cflayer = fittrack.foundLayers().front(); // last layer fit ended up on
-#endif
-      const TrackState & cfInitLayTS = simTkTSVecMap_[mcID_cf_][cflayer]; //--> can do this as all sim tracks pass through each layer once, and are stored in order... will need to fix this once we have loopers/overlaps
-      x_mc_fit_cf_ = cfInitLayTS.x();
-      y_mc_fit_cf_ = cfInitLayTS.y();
-      z_mc_fit_cf_ = cfInitLayTS.z();
-
-      px_mc_fit_cf_ = cfInitLayTS.px();
-      py_mc_fit_cf_ = cfInitLayTS.py();
-      pz_mc_fit_cf_ = cfInitLayTS.pz();
-
-      pt_mc_fit_cf_    = cfInitLayTS.pT();
-      invpt_mc_fit_cf_ = cfInitLayTS.invpT();
-      phi_mc_fit_cf_   = cfInitLayTS.momPhi();
-      theta_mc_fit_cf_ = cfInitLayTS.theta();
-
-      const TrackState & cfFitTS = fitTkCFMap_[seedID_fit_cf_];
-
-      x_fit_cf_ = cfFitTS.x();
-      y_fit_cf_ = cfFitTS.y();
-      z_fit_cf_ = cfFitTS.z();
-      
-      ex_fit_cf_ = cfFitTS.exx();
-      ey_fit_cf_ = cfFitTS.eyy();
-      ez_fit_cf_ = cfFitTS.ezz();
-
-      px_fit_cf_ = cfFitTS.px();
-      py_fit_cf_ = cfFitTS.py();
-      pz_fit_cf_ = cfFitTS.pz();
-      epx_fit_cf_ = cfFitTS.epxpx();
-      epy_fit_cf_ = cfFitTS.epypy();
-      epz_fit_cf_ = cfFitTS.epzpz();
-
-      pt_fit_cf_    = cfFitTS.pT();
-      invpt_fit_cf_ = cfFitTS.invpT();
-      phi_fit_cf_   = cfFitTS.momPhi();
-      theta_fit_cf_ = cfFitTS.theta();
-
-      ept_fit_cf_    = cfFitTS.epT();
-      einvpt_fit_cf_ = cfFitTS.einvpT();
-      ephi_fit_cf_   = cfFitTS.emomPhi();
-      etheta_fit_cf_ = cfFitTS.etheta();
-    }
-    else{ // no matched fit form sim
-      x_mc_fit_cf_ = -2000;
-      y_mc_fit_cf_ = -2000;
-      z_mc_fit_cf_ = -2000;
-
-      px_mc_fit_cf_ = -99;
-      py_mc_fit_cf_ = -99;
-      pz_mc_fit_cf_ = -99;
-
-      pt_mc_fit_cf_    = -99;
-      invpt_mc_fit_cf_ = -99;
-      phi_mc_fit_cf_   = -99;
-      theta_mc_fit_cf_ = -99;
-
-      x_fit_cf_ = -2000;
-      y_fit_cf_ = -2000;
-      z_fit_cf_ = -2000;
-      
-      ex_fit_cf_ = -2000;
-      ey_fit_cf_ = -2000;
-      ez_fit_cf_ = -2000;
-
-      px_fit_cf_ = -99;
-      py_fit_cf_ = -99;
-      pz_fit_cf_ = -99;
-
-      epx_fit_cf_ = -99;
-      epy_fit_cf_ = -99;
-      epz_fit_cf_ = -99;
-
-      pt_fit_cf_    = -99;
-      invpt_fit_cf_ = -99;
-      phi_fit_cf_   = -99;
-      theta_fit_cf_ = -99;
-
-      ept_fit_cf_    = -99;
-      einvpt_fit_cf_ = -99;
-      ephi_fit_cf_   = -99;
-      etheta_fit_cf_ = -99;
-    }
-    cftree_->Fill();
-  }
-}
-
-void TTreeValidation::fillConfigTree(){
+void TTreeValidation::fillConfigTree()
+{
   Ntracks_ = Config::nTracks;
   Nevents_ = Config::nEvents;
 
@@ -2220,18 +1097,8 @@ void TTreeValidation::fillConfigTree(){
   configtree_->Fill();
 }
 
-void TTreeValidation::fillTimeTree(const std::vector<double>& ticks){
-  simtime_   = ticks[0];
-  segtime_   = ticks[1];
-  seedtime_  = ticks[2];
-  buildtime_ = ticks[3];
-  fittime_   = ticks[4];
-  hlvtime_   = ticks[5];
-  
-  timetree_->Fill();
-}
-
-void TTreeValidation::saveTTrees() {  
+void TTreeValidation::saveTTrees() 
+{  
   std::lock_guard<std::mutex> locker(glock_); 
   f_->cd();
   f_->Write();

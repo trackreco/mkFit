@@ -384,8 +384,6 @@ void test_standard()
       // probably should convert to a scaled long so can use std::atomic<Integral>
       for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
       if (evt > 0) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
-
-      if (g_run_fit_std) make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
     }
   }, tbb::simple_partitioner());
 
@@ -481,7 +479,7 @@ int main(int argc, const char *argv[])
         "  --endcap-test            test endcap tracking (def: %i)\n"
         "  --cf-seeding             enable CF in seeding (def: %s)\n"
         "  --cf-fitting             enable CF in fitting (def: %s)\n"
-        "  --normal-val             enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
+        "  --root-val               enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
       	"  --fit-val                enable ROOT based validation for fitting (def: %s)\n"
         "  --silent                 suppress printouts inside event loop (def: %s)\n"
         "  --write                  write simulation to file and exit\n"
@@ -505,7 +503,7 @@ int main(int argc, const char *argv[])
       	Config::endcapTest,
       	Config::cf_seeding ? "true" : "false",
       	Config::cf_fitting ? "true" : "false",
-      	Config::normal_val ? "true" : "false",
+      	Config::root_val   ? "true" : "false",
       	Config::fit_val    ? "true" : "false",
         Config::silent ? "true" : "false",
       	g_file_name.c_str(),
@@ -594,13 +592,13 @@ int main(int argc, const char *argv[])
     {
       Config::cf_fitting = true;
     }
-    else if (*i == "--normal-val")
+    else if (*i == "--root-val")
     {
-      Config::super_debug = false; Config::normal_val = true; Config::full_val = false; Config::fit_val = false;
+      Config::root_val = true; Config::fit_val = false;
     }
     else if (*i == "--fit-val")
     {
-      Config::super_debug = false; Config::normal_val = false; Config::full_val = false; Config::fit_val = true;
+      Config::root_val = false; Config::fit_val = true;
     }
     else if (*i == "--num-thr-ev")
     {

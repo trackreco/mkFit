@@ -31,75 +31,6 @@
 #endif
 
 //==============================================================================
-
-void make_validation_tree(const char         *fname,
-                          std::vector<Track> &simtracks,
-                          std::vector<Track> &rectracks)
-{
-   assert(simtracks.size() == rectracks.size());
-
-   float pt_mc, pt_fit, pt_err, chg;
-   int goodtrk = 0;
-
-#ifndef NO_ROOT
-   static std::mutex roolock;
-
-   std::lock_guard<std::mutex> rooguard(roolock);
-
-   TFile *file = TFile::Open(fname, "recreate");
-   TTree *tree = new TTree("T", "Validation Tree for simple Kalman fitter");;
-
-   tree->Branch("pt_mc",  &pt_mc,  "pt_mc");
-   tree->Branch("pt_fit", &pt_fit, "pt_fit");
-   tree->Branch("pt_err", &pt_err, "pt_err");
-   tree->Branch("chg",    &chg,    "chg");
-#endif
-
-   std::vector<float> diff_vec;
-
-   const int NT = simtracks.size();
-   for (int i = 0; i < NT; ++i)
-   {
-      pt_mc  = simtracks[i].pT();
-      pt_fit = rectracks[i].pT();
-      pt_err = rectracks[i].epT() / pt_fit;
-      chg = simtracks[i].charge();
-
-#ifndef NO_ROOT
-      tree->Fill();
-#endif
-
-      float pr = pt_fit/pt_mc;
-      float diff = (pt_mc/pt_fit - 1) / pt_err;
-      if (pr > 0.8 && pr < 1.2 && std::isfinite(diff)) {
-        diff_vec.push_back(diff);
-        ++goodtrk;
-      } else {
-        dprint("pt_mc, pt_fit, pt_err, ratio, diff " << pt_mc << " " << pt_fit << " " << pt_err << " " << pt_fit/pt_mc << " " << diff);
-      }
-   }
-   float mean = std::accumulate(diff_vec.begin(), diff_vec.end(), 0.0)
-              / diff_vec.size();
-
-   std::transform(diff_vec.begin(), diff_vec.end(), 
-                  diff_vec.begin(),  // in-place
-                  [mean](float x) {return (x-mean)*(x-mean);});
-                  
-   float stdev = std::sqrt(
-       std::accumulate(diff_vec.begin(), diff_vec.end(), 0.0)
-       / diff_vec.size());
-
-   std::cerr << goodtrk << " good tracks, mean pt pull: " << mean
-             << " standard dev: " << stdev << std::endl;
-
-#ifndef NO_ROOT
-   file->Write();
-   file->Close();
-   delete file;
-#endif
-}
-
-//==============================================================================
 // runFittingTestPlex
 //==============================================================================
 
@@ -258,7 +189,6 @@ void runAllEventsFittingTestPlexGPU(std::vector<Event>& events)
       if (omp_get_num_threads() <= 1) {
         //if (g_run_fit_std) {
           std::string tree_name = "validation-plex-" + std::to_string(evt) + ".root";
-          make_validation_tree(tree_name.c_str(), ev.simTracks_, plex_tracks_ev);
         //}
       }
 #endif

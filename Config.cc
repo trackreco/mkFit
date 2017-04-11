@@ -49,9 +49,7 @@ namespace Config
   bool  cf_seeding  = false;
   bool  cf_fitting  = false;
 
-  bool  super_debug = false;
-  bool  normal_val  = false;
-  bool  full_val    = false;
+  bool  root_val    = false;
   bool  fit_val     = false;
 
   void RecalculateDependentConstants()

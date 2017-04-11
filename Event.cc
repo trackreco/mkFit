@@ -69,11 +69,7 @@ Event::Event(const Geometry& g, Validation& v, int evtID, int threads) :
   layerHits_.resize(Config::nTotalLayers);
   segmentMap_.resize(Config::nTotalLayers);
 
-  // XXMT4K
   validation_.resetValidationMaps(); // need to reset maps for every event.
-  if (Config::super_debug) {
-    validation_.resetDebugVectors(); // need to reset vectors for every event.
-  }
 }
 
 void Event::Reset(int evtID)
@@ -93,9 +89,6 @@ void Event::Reset(int evtID)
   simTrackStates_.clear();
 
   validation_.resetValidationMaps(); // need to reset maps for every event.
-  if (Config::super_debug) {
-    validation_.resetDebugVectors(); // need to reset vectors for every event.
-  }
 }
 
 void Event::Simulate()
@@ -158,7 +151,7 @@ void Event::Simulate()
       std::lock_guard<std::mutex> lock(mcGatherMutex_);
 
       // uber ugly way of getting around read-in / write-out of objects needed for validation
-      if (Config::normal_val || Config::fit_val) {simTrackStates_[itrack] = initialTSs;}
+      if (Config::root_val || Config::fit_val) {simTrackStates_[itrack] = initialTSs;}
       validation_.collectSimTkTSVecMapInfo(itrack,initialTSs); // save initial TS parameters in validation object ... just a copy of the above line
 
       simTracks_[itrack] = Track(q,pos,mom,covtrk,0.0f);
@@ -333,22 +326,12 @@ void Event::Fit()
 void Event::Validate()
 {
   // KM: Config tree just filled once... in main.cc
-  if (Config::normal_val) {
+  if (Config::root_val) {
     validation_.setTrackExtras(*this);
     validation_.makeSimTkToRecoTksMaps(*this);
     validation_.makeSeedTkToRecoTkMaps(*this);
     validation_.fillEfficiencyTree(*this);
     validation_.fillFakeRateTree(*this);
-    if (Config::full_val) {
-      validation_.fillSegmentTree(segmentMap_,evtID_);
-      validation_.fillBranchTree(evtID_);
-      validation_.fillGeometryTree(*this);
-      validation_.fillConformalTree(*this);
-    }
-  }
-
-  if (Config::super_debug) { // super debug mode
-    validation_.fillDebugTree(*this);
   }
 
   if (Config::fit_val) { // fit val for z-phi tuning
@@ -397,7 +380,7 @@ void Event::write_out(FILE *fp)
   fwrite(&simTracks_[0], sizeof(Track), nt, fp);
   evsize += sizeof(int) + nt*sizeof(Track);
 
-  if (Config::normal_val || Config::fit_val) {
+  if (Config::root_val || Config::fit_val) {
     for (int it = 0; it<nt; ++it) {
       int nts = simTrackStates_[it].size();
       fwrite(&nts, sizeof(int), 1, fp);
@@ -472,7 +455,7 @@ void Event::read_in(FILE *fp, int version)
   fread(&simTracks_[0], sizeof(Track), nt, fp);
   Config::nTracks = nt;
 
-  if (Config::normal_val || Config::fit_val)
+  if (Config::root_val || Config::fit_val)
   {
     simTrackStates_.resize(nt);
     for (int it = 0; it < nt; ++it) {

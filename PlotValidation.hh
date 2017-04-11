@@ -37,8 +37,7 @@ class PlotValidation
 {
 public:
   PlotValidation(TString inName, TString outName, 
-		 Bool_t mvInput, Bool_t fullVal,
-		 Bool_t saveAs, TString outType);
+		 Bool_t mvInput, Bool_t saveAs, TString outType);
   ~PlotValidation();
   void Validation();
 
@@ -46,15 +45,7 @@ public:
   void PlotFakeRate();
   void PlotDuplicateRate();
   void PlotNHits();
-  void PlotTiming();
   void PlotMomResolutionPull();
-
-  void PlotSegment();
-  void PlotBranching();
-  void PlotSimGeo();
-  void PlotPosResolutionPull();
-  void PlotCFResidual();
-  void PlotCFResolutionPull();
 
   void PrintTotals();
 
@@ -80,7 +71,6 @@ private:
   TString fInName;
   TFile * fInRoot;
   Bool_t  fMvInput;
-  Bool_t  fFullVal;
   Bool_t  fSaveAs;
   TString fOutType;
   TString fOutName;
