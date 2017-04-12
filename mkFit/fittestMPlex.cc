@@ -67,6 +67,7 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
    int count = (theEnd + NN - 1)/NN;
 
 #ifdef USE_VTUNE_PAUSE
+   __SSC_MARK(0x111);  // use this to resume Intel SDE at the same point
    __itt_resume();
 #endif
 
@@ -122,6 +123,7 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 
 #ifdef USE_VTUNE_PAUSE
    __itt_pause();
+   __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
 
    if (Config::fit_val) ev.Validate();
