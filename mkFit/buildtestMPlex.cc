@@ -110,7 +110,7 @@ double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
   __itt_pause();
 #endif
   
-  if   (!Config::normal_val) {
+  if   (!Config::root_val) {
     if (!Config::silent) builder.quality_output_BH();
   } else {
     builder.root_val_BH();
@@ -150,7 +150,7 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
   __itt_pause();
 #endif
 
-  if (!Config::normal_val) {
+  if (!Config::root_val) {
     if (!Config::silent) builder.quality_output_COMB();
   } else {builder.root_val_COMB();}
 
@@ -188,7 +188,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
   __itt_pause();
 #endif
 
-  if (!Config::normal_val) {
+  if (!Config::root_val) {
     if (!Config::silent) builder.quality_output_COMB();
   } else {builder.root_val_COMB();}
 
@@ -249,7 +249,7 @@ double runAllBuildingTestPlexBestHitGPU(std::vector<Event> &events)
     EventOfCandidates &event_of_cands = event_of_cands_vec[i];
     BuilderCU &builder_cu = builder_cu_vec[i];
     MkBuilder &builder = * builder_ptrs[i].get();
-    if (!Config::normal_val) {
+    if (!Config::root_val) {
       if (!Config::silent) builder.quality_output_BH(event_of_cands);
     } else {
       builder.root_val_BH(event_of_cands);

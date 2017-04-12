@@ -177,9 +177,7 @@ int main(int argc, const char* argv[])
         "  --num-events    <num>    number of events to run over (def: %d)\n"
         "  --num-tracks    <num>    number of tracks to generate for each event (def: %d)\n"
 	"  --num-thr       <num>    number of threads used for TBB  (def: %d)\n"
-	"  --super-debug            bool to enable super debug mode (def: %s)\n"
-	"  --normal-val             bool to enable normal validation (eff, FR, DR) (def: %s)\n"
-	"  --full-val               bool to enable more validation in SMatrix (def: %s)\n"
+	"  --root-val               bool to enable normal validation (eff, FR, DR) (def: %s)\n"
 	"  --cf-seeding             bool to enable CF in MC seeding (def: %s)\n"
 	"  --read                   read input simtracks file (def: false)\n"
 	"  --file-name              file name for write/read (def: %s)\n"
@@ -190,10 +188,8 @@ int main(int argc, const char* argv[])
         Config::nEvents,
         Config::nTracks,
         nThread, 
-	(Config::super_debug ? "true" : "false"),
-	(Config::normal_val  ? "true" : "false"),
-	(Config::full_val    ? "true" : "false"),
-	(Config::cf_seeding  ? "true" : "false"),
+	(Config::root_val ? "true" : "false"),
+	(Config::cf_seeding ? "true" : "false"),
 	s_file_name.c_str(),
 	Config::readCmsswSeeds,
 	Config::endcapTest
@@ -215,26 +211,9 @@ int main(int argc, const char* argv[])
       next_arg_or_die(mArgs, i);
       nThread = atoi(i->c_str());
     }
-    else if (*i == "--super-debug")
+    else if (*i == "--root-val")
     {
-      Config::super_debug = true;
-      Config::nTracks     = 1;
-      Config::nEvents     = 100000;
-
-      Config::normal_val = false;
-      Config::full_val   = false;
-    }
-    else if (*i == "--normal-val")
-    {
-      Config::super_debug = false;
-      Config::normal_val  = true;
-      Config::full_val    = false;
-    }
-    else if (*i == "--full-val")
-    {
-      Config::super_debug = false;
-      Config::normal_val  = true;
-      Config::full_val    = true;
+      Config::root_val  = true;
     }
     else if (*i == "--cf-seeding")
     {
@@ -310,25 +289,19 @@ int main(int argc, const char* argv[])
     ev.Segment();  ticks[1] += delta(t0);
     ev.Seed();     ticks[2] += delta(t0);
     ev.Find();     ticks[3] += delta(t0);
-
-    if (!Config::super_debug) 
-    {
-      ev.Fit();    ticks[4] += delta(t0);
-    }
+    ev.Fit();      ticks[4] += delta(t0);
     ev.Validate(); ticks[5] += delta(t0);
 
-    if (!Config::super_debug) {
-      std::cout << "sim: " << ev.simTracks_.size() << " seed: " << ev.seedTracks_.size() << " found: " 
-		<< ev.candidateTracks_.size() << " fit: " << ev.fitTracks_.size() << std::endl;
-      tracks[0] += ev.simTracks_.size();
-      tracks[1] += ev.seedTracks_.size();
-      tracks[2] += ev.candidateTracks_.size();
-      tracks[3] += ev.fitTracks_.size();
-      std::cout << "Built tracks" << std::endl;
-      ev.PrintStats(ev.candidateTracks_, ev.candidateTracksExtra_);
-      std::cout << "Fit tracks" << std::endl;
-      ev.PrintStats(ev.fitTracks_, ev.fitTracksExtra_);
-    }
+    std::cout << "sim: " << ev.simTracks_.size() << " seed: " << ev.seedTracks_.size() << " found: " 
+	      << ev.candidateTracks_.size() << " fit: " << ev.fitTracks_.size() << std::endl;
+    tracks[0] += ev.simTracks_.size();
+    tracks[1] += ev.seedTracks_.size();
+    tracks[2] += ev.candidateTracks_.size();
+    tracks[3] += ev.fitTracks_.size();
+    std::cout << "Built tracks" << std::endl;
+    ev.PrintStats(ev.candidateTracks_, ev.candidateTracksExtra_);
+    std::cout << "Fit tracks" << std::endl;
+    ev.PrintStats(ev.fitTracks_, ev.fitTracksExtra_);
   }
 
   if (s_operation == "read")
@@ -342,7 +315,6 @@ int main(int argc, const char* argv[])
   }
 
   val->fillConfigTree();
-  if (Config::full_val) val->fillTimeTree(time);
   val->saveTTrees(); 
 
   std::cout << "Ticks ";

@@ -8,10 +8,6 @@
 #include "FitterCU.h"
 #endif
 
-void   make_validation_tree(const char         *fname,
-                            std::vector<Track> &simtracks,
-                            std::vector<Track> &rectracks);
-
 double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks);
 
 #ifdef USE_CUDA
