@@ -1,18 +1,23 @@
-void makeBenchmarkPlots(bool isMic = false, bool isCMSSW = false, bool isEndcap = false)
+void makeBenchmarkPlots(bool isKNC    = false, bool isCMSSW = false,
+                        bool isEndcap = false, bool isKNL   = false)
 {
-  TString hORm   = isMic?"KNC":"SNB"; // host == Xeon SNB, mic == Xeon Phi KNC
+  TString hORm    = "SNB";
+  if (isKNC) hORm = "KNC";
+  if (isKNL) hORm = "KNL";
+  bool isMic = isKNC || isKNL;
+
   TString sample = isCMSSW?"CMSSW":"ToyMC";
   TString region = isEndcap?"Endcap":"Barrel";
   TString events = isCMSSW?"TTBarPU35 Events":"ToyMC 10k Tracks/Event";
 
-  float maxth = isMic?240:24;
-  float maxvu = isMic?16:8;
-  TString nth = "1"; // isMic?"60":"12"; // for multithreaded VU tests
+  float maxvu = isMic ?  16 :  8;
+  float maxth = isMic ? 240 : 24;
+
+  TString nth = "1"; // isKNC?"60":"12"; // for multithreaded VU tests
   TString nvu = Form("%i",int(maxvu));
 
   TFile* f = TFile::Open("benchmark_"+hORm+"_"+sample+"_"+region+".root");
 
-  // Vectorization Benchmark
   TCanvas c1;
   c1.cd();
   TGraphErrors* g_BH_VU  = (TGraphErrors*) f->Get("g_BH_VU");

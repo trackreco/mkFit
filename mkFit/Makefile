@@ -18,17 +18,17 @@ LDFLAGS  += ${LDEXTRA}
 CPPFLAGS_NO_ROOT += ${CPPEXTRA}
 LDFLAGS_NO_ROOT  += ${LDEXTRA}
 
-.PHONY: all clean distclean echo
-
-all: default
-
 TGTS     := mkFit
 
 EXES     := ${TGTS}
 
-ifeq (${CXX},icc)
+ifdef KNC_BUILD
   EXES   += $(addsuffix -mic, ${TGTS})
 endif
+
+.PHONY: all clean distclean echo
+
+all: default
 
 auto-genmplex: GenMPlexOps.pl
 	./GenMPlexOps.pl && touch $@
@@ -119,7 +119,7 @@ ${MKFOBJS}: %.o: %.cc %.d
 
 ### MIC build, icc only
 
-ifeq ($(CXX),icc)
+ifdef KNC_BUILD
 
 MKFOBJS_MIC := $(MKFOBJS:.o=.om)
 
