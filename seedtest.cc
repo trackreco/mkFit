@@ -314,13 +314,8 @@ void buildHitPairs(const std::vector<HitVec>& evt_lay_hits, const BinInfoLayerMa
     const float outerhitz = evt_lay_hits[1][ihit].z(); // remember, layer[0] is first layer! --> second layer = [1]
     const float outerphi  = evt_lay_hits[1][ihit].phi();
 
-#ifdef ETASEG   // z cut is the largest killer... up to 3 sigma is probably best
     const auto etaBinMinus = getEtaPartition(getEta(Config::fRadialSpacing,(outerhitz-Config::seed_z0cut)/2.));
     const auto etaBinPlus  = getEtaPartition(getEta(Config::fRadialSpacing,(outerhitz+Config::seed_z0cut)/2.));
-#else
-    const auto etaBinMinus = 0;
-    const auto etaBinPlus  = 0;
-#endif
     const auto phiBinMinus = getPhiPartition(normalizedPhi(outerphi - Config::lay01angdiff));
     const auto phiBinPlus  = getPhiPartition(normalizedPhi(outerphi + Config::lay01angdiff));
 
@@ -382,23 +377,11 @@ void buildHitTripletsCurve(const std::vector<HitVec>& evt_lay_hits, const BinInf
     intersectThirdLayer(aneg,bneg,x1,y1,negx2,negy2);
     const float negPhi = getPhi(negx2,negy2);
 
-#ifdef ETASEG
     const float thirdZline = 2*hit1.z()-hit0.z(); // for dz displacements -- straight line window
     const auto etaBinMinus = getEtaPartition(getEta(lay3rad,thirdZline)-Config::dEtaSeedTrip);
     const auto etaBinPlus  = getEtaPartition(getEta(lay3rad,thirdZline)+Config::dEtaSeedTrip);
-#else
-    const auto etaBinMinus = 0;
-    const auto etaBinPlus  = 0;
-#endif    
     const auto phiBinMinus = getPhiPartition(negPhi);
     const auto phiBinPlus  = getPhiPartition(posPhi);
-
-#ifdef BROKEN_DEBUG
-    const float lay2phi = evt_lay_hits[2][ev.simTracks_[ev.simHitsInfo_[hit0.mcHitID()].mcTrackID()].getHitIdx(2)].phi();
-    dprint("lay0 phi: " << hit0.phi() << " lay1 phi: " << hit1.phi() << std::endl <<
-	   "negPhi: " << negPhi << " lay2 phi: " << lay2phi << " posPhi: " << posPhi << std::endl <<
-	   "binM: " << phiBinMinus << " phi2Bin: " << getPhiPartition(lay2phi) << " binP: " << phiBinPlus << std::endl);
-#endif
 
     std::vector<int> cand_hit_indices = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
     for (auto&& cand_hit_idx : cand_hit_indices){
@@ -439,14 +422,10 @@ void buildHitTripletsApproxWindow(const std::vector<HitVec>& evt_lay_hits, const
     const Hit& hit0 = evt_lay_hits[0][hit_pair[0]];
     const Hit& hit1 = evt_lay_hits[1][hit_pair[1]];
 
-#ifdef ETASEG
     const float thirdZline = 2*hit1.z()-hit0.z(); // for dz displacements -- straight line window
     const auto etaBinMinus = getEtaPartition(getEta(thirdRad,thirdZline)-Config::dEtaSeedTrip);
     const auto etaBinPlus  = getEtaPartition(getEta(thirdRad,thirdZline)+Config::dEtaSeedTrip);
-#else
-    const auto etaBinMinus = 0;
-    const auto etaBinPlus  = 0;
-#endif    
+
     const float linePhi = getPhi(hit1.position()[0] - hit0.position()[0], hit1.position()[1] - hit0.position()[1]);
     float thirdPhiMinus = 0.0f;
     float thirdPhiPlus  = 0.0f;  

@@ -16,9 +16,9 @@ public:
   void Reset(int evtID);
   void RemapHits(TrackVec & tracks);
   void Simulate();
-  void Segment();
-  void Seed();
-  void Find();
+  void Segment(BinInfoMap & segmentMap);
+  void Seed(const BinInfoMap & segmentMap);
+  void Find(const BinInfoMap & segmentMap);
   void Fit();
   void Validate();
   void PrintStats(const TrackVec&, TrackExtraVec&);
@@ -51,10 +51,6 @@ public:
   // XXXXMT: Preliminary ... separators into seed/candidate arrays.
   // There should be a better way of doing that.
   int seedEtaSeparators_[5];
-
-  // phi-eta partitioning map: vector of vector of vectors of std::pairs. 
-  // vec[nLayers][nEtaBins][nPhiBins]
-  BinInfoMap segmentMap_;
 
   TSVec simTrackStates_;
   static std::mutex printmutex;
