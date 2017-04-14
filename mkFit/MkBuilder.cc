@@ -643,7 +643,7 @@ void MkBuilder::map_seed_hits()
   // map seed hit indices from global m_event->layerHits_[i] to hit indices in
   // structure m_event_of_hits.m_layers_of_hits[i].m_hits
 
-  HitIDVec seedLayersHitMap(m_event->simHitsInfo_.size());
+  std::unordered_map<int,int> seedHitMap;
 
   // XXMT4K: This was: Config::nlayers_per_seed, now not that simple.
   // In principle could have a list of seed layers (from outside (seed maker) or TrackerInfo).
@@ -656,7 +656,7 @@ void MkBuilder::map_seed_hits()
 
     for (int index = 0; index < size; ++index)
     {
-      seedLayersHitMap[lof_m_hits[index].mcHitID()] = HitID(ilayer, index);
+      seedHitMap[lof_m_hits[index].mcHitID()] = index;
     }
   }
 
@@ -670,7 +670,7 @@ void MkBuilder::map_seed_hits()
       {
         const auto & global_hit_vec = m_event->layerHits_[hitlyr];
 
-        track.setHitIdx(i, seedLayersHitMap[global_hit_vec[hitidx].mcHitID()].index);
+        track.setHitIdx(i, seedHitMap[global_hit_vec[hitidx].mcHitID()]);
       }
     }
   }
@@ -682,7 +682,7 @@ void MkBuilder::remap_seed_hits()
   // m_event_of_hits.m_layers_of_hits[i].m_hits to global
   // m_event->layerHits_[i]
 
-  HitIDVec seedLayersHitMap(m_event->simHitsInfo_.size());
+  std::unordered_map<int,int> seedHitMap;
 
   // XXMT4K: This was: Config::nlayers_per_seed, now not that simple.
   // In principle could have a list of seed layers (from outside (seed maker) or TrackerInfo).
@@ -694,7 +694,7 @@ void MkBuilder::remap_seed_hits()
     const auto   size = global_hit_vec.size();
     for (int index = 0; index < size; ++index)
     {
-      seedLayersHitMap[global_hit_vec[index].mcHitID()] = HitID(ilayer, index);
+      seedHitMap[global_hit_vec[index].mcHitID()] = index;
     }
   }
 
@@ -708,7 +708,7 @@ void MkBuilder::remap_seed_hits()
       {
         const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[hitlyr].m_hits;
 
-        track.setHitIdx(i, seedLayersHitMap[lof_m_hits[hitidx].mcHitID()].index);
+        track.setHitIdx(i, seedHitMap[lof_m_hits[hitidx].mcHitID()]);
       }
     }
   }
@@ -720,7 +720,7 @@ void MkBuilder::remap_cand_hits()
   // m_event_of_hits.m_layers_of_hits[i].m_hits to global
   // m_event->layerHits_[i]
 
-  HitIDVec candLayersHitMap(m_event->simHitsInfo_.size());
+  std::unordered_map<int,int> candHitMap;
 
   int max_layer = Config::nTotalLayers;
 
@@ -730,7 +730,7 @@ void MkBuilder::remap_cand_hits()
     const auto   size = global_hit_vec.size();
     for (int index = 0; index < size; ++index)
     {
-      candLayersHitMap[global_hit_vec[index].mcHitID()] = HitID(ilayer, index);
+      candHitMap[global_hit_vec[index].mcHitID()] = index;
     }
   }
 
@@ -744,7 +744,7 @@ void MkBuilder::remap_cand_hits()
       {
         const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[hitlyr].m_hits;
 
-        track.setHitIdx(i, candLayersHitMap[lof_m_hits[hitidx].mcHitID()].index);
+        track.setHitIdx(i, candHitMap[lof_m_hits[hitidx].mcHitID()]);
       }
     }
   }

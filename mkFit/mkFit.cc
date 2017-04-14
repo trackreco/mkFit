@@ -154,7 +154,24 @@ void generate_and_save_tracks()
   {
     ev.Reset(evt);
     ev.Simulate();
-    ev.resetLayerHitMap(true);
+
+#ifdef DEBUG
+    for (int itrack = 0; itrack < ev.simTracks_.size(); itrack++)
+    {
+      const auto& track = ev.simTracks_[itrack];
+      int mcTrackId = track.label();
+      dprint("track: " << mcTrackId << " (" << itrack << ")");
+      for (int ihit = 0; ihit < track.nTotalHits(); ihit++)
+      {
+	int idx = track.getHitIdx(ihit); int lyr = track.getHitLyr(ihit);
+	int mcHitID = ev.layerHits_[lyr][idx].mcHitID(); int mcTrackID = ev.simHitsInfo_[mcHitID].mcTrackID();
+	float tsr = ev.simTrackStates_[mcHitID].posR();	float hitr = ev.layerHits_[lyr][idx].r();
+	float tsz = ev.simTrackStates_[mcHitID].z();    float hitz = ev.layerHits_[lyr][idx].z();
+	dprint("       " << mcTrackID << " (mcHitID: " << mcHitID << " ihit: " << ihit << " idx: " << idx << " lyr: "
+	       << lyr << " tsr: " << tsr << " hitr: " << hitr << " tsz: " << tsz << " hitz: " << hitz << ")");
+      }
+    }
+#endif
 
     ev.write_out(fp);
   }
@@ -247,7 +264,6 @@ void test_standard()
     printf("Simulating event %d\n", evt);
     events.emplace_back(geom, val, evt);
     events.back().Simulate();
-    events.back().resetLayerHitMap(true);
     dprint("Event #" << events.back().evtID() << " simtracks " << events.back().simTracks_.size() << " layerhits " << events.back().layerHits_.size());
   }
 
@@ -331,12 +347,10 @@ void test_standard()
       if (g_operation == "read")
       {
         ev.read_in(fp, g_input_version);
-        ev.resetLayerHitMap(false);//hitIdx's in the sim tracks are already ok 
       }
       else
       {
         ev.Simulate();
-        ev.resetLayerHitMap(true);
       }
 
       plex_tracks.resize(ev.simTracks_.size());

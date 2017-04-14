@@ -28,7 +28,6 @@ public:
   virtual void resetValidationMaps() {}
   virtual void resetDebugVectors() {}
 
-  virtual void collectSimTkTSVecMapInfo(int, const TSVec&) {}
   virtual void collectFitInfo(const FitVal&, int, int) {}
 
   virtual void setTrackExtras(Event& ev) {}

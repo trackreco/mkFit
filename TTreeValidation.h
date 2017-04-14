@@ -32,7 +32,6 @@ public:
   
   void alignTrackExtra(TrackVec& evt_tracks, TrackExtraVec& evt_extra) override;
 
-  void collectSimTkTSVecMapInfo(int mcTrackID, const TSVec& initTSs) override;
   void collectFitInfo(const FitVal& tmpfitval, int tkid, int layer) override;
 
   void resetValidationMaps() override;
@@ -47,6 +46,8 @@ public:
   void makeSeedTkToRecoTkMaps(Event& ev) override;
   void mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackExtraVec& evt_extras, TkIDToTkIDMap& seedTkMap);
 
+  int getLastGoodHit(const int trackMCHitID, const int mcTrackID, const Event& ev);
+
   void fillEfficiencyTree(const Event& ev) override;
   void fillFakeRateTree(const Event& ev) override;
   void fillConfigTree() override;
@@ -57,7 +58,6 @@ public:
  private:
   TFile* f_; // output file!
   
-  TkIDToTSVecMap simTkTSVecMap_; // used for pulls (map all sim track TS to sim ID) ... also used in super debug mode
   TkIDtoFitValLayMapMap fitValTkMapMap_; // map used for fit validation in mplex
 
   // Sim to Reco Maps
