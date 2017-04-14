@@ -246,6 +246,32 @@ public:
     return hitsOnTrk_[hitIdxPos_].layer;
   }
 
+  int getLastGoodHitIdx() const
+  {
+    return hitsOnTrk_[nGoodHitIdx_-1].index;
+  }
+  int getLastGoodHitLyr() const
+  {
+    return hitsOnTrk_[nGoodHitIdx_-1].layer;
+  }
+  int getLastGoodMCHitID(const std::vector<HitVec>& globalHitVec) const
+  {
+    return globalHitVec[hitsOnTrk_[nGoodHitIdx_-1].layer][hitsOnTrk_[nGoodHitIdx_-1].index].mcHitID();
+  }
+  int getMCHitIDFromLayer(const std::vector<HitVec>& globalHitVec, int layer) const
+  {
+    int mcHitID = -1;
+    for (int ihit = 0; ihit <= hitIdxPos_; ++ihit) 
+    {
+      if (hitsOnTrk_[ihit].layer == layer) 
+      {
+	mcHitID = globalHitVec[hitsOnTrk_[ihit].layer][hitsOnTrk_[ihit].index].mcHitID(); 
+	break;
+      }
+    }
+    return mcHitID;
+  }
+
   const HitOnTrack* getHitsOnTrackArray() const { return hitsOnTrk_; }
 
   void fillEmptyLayers() {
@@ -349,7 +375,6 @@ typedef std::vector<std::pair<int, float> > FltLayerPairVec; // used exclusively
 typedef std::unordered_map<int,int>               TkIDToTkIDMap;
 typedef std::unordered_map<int,std::vector<int> > TkIDToTkIDVecMap;
 typedef std::unordered_map<int,TrackState>        TkIDToTSMap;   
-typedef std::unordered_map<int,TSVec>             TkIDToTSVecMap;
 typedef std::unordered_map<int,TSLayerPairVec>    TkIDToTSLayerPairVecMap;
 
 void print(const TrackState& s);

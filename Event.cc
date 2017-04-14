@@ -37,31 +37,6 @@ inline bool sortByZ(const Hit& hit1, const Hit& hit2){
 }
 #endif
 
-void Event::resetLayerHitMap(bool resetSimHits)
-{
-  //gc: not sure what is being done here
-  layerHitMap_.clear();
-  layerHitMap_.resize(simHitsInfo_.size());
-  for (int ilayer = 0; ilayer < layerHits_.size(); ++ilayer) {
-    for (int index = 0; index < layerHits_[ilayer].size(); ++index) {
-      auto& hit = layerHits_[ilayer][index];
-      assert(hit.mcHitID() >= 0); // tmp debug
-      assert(hit.mcHitID() < layerHitMap_.size());
-      layerHitMap_[hit.mcHitID()] = HitID(ilayer, index);
-    }
-  }
-  // XXXMT4K is this still necessary? Or maybe I screwed up by doing the mapping below ...
-  if (resetSimHits) {
-    for (auto&& track : simTracks_) {
-      for (int il = 0; il < track.nTotalHits(); ++il) {
-        HitID &hid = layerHitMap_[track.getHitIdx(il)]; // XXXXMT4k This looks wrong
-        assert(hid.index >= 0); // tmp debug
-        track.setHitIdxLyr(il, hid.index, hid.layer);
-      }
-    }
-  }
-}
-
 Event::Event(const Geometry& g, Validation& v, int evtID, int threads) :
   geom_(g), validation_(v),
   evtID_(evtID), threads_(threads), mcHitIDCounter_(0)
@@ -81,29 +56,56 @@ void Event::Reset(int evtID)
   for (auto&& l : segmentMap_) { l.clear(); }
 
   simHitsInfo_.clear();
-  layerHitMap_.clear();
-  simTracks_.clear();
-  seedTracks_.clear();
-  candidateTracks_.clear();
-  fitTracks_.clear();
   simTrackStates_.clear();
+  simTracks_.clear();
+  simTracksExtra_.clear();
+  seedTracks_.clear();
+  seedTracksExtra_.clear();
+  candidateTracks_.clear();
+  candidateTracksExtra_.clear();
+  fitTracks_.clear();
+  fitTracksExtra_.clear();
 
   validation_.resetValidationMaps(); // need to reset maps for every event.
+}
+
+void Event::RemapHits(TrackVec & tracks)
+{
+  std::unordered_map<int,int> simHitMap;
+  int max_layer = Config::nTotalLayers;
+  for (int ilayer = 0; ilayer < max_layer; ++ilayer)
+  {
+    const auto & hit_vec = layerHits_[ilayer];
+    const auto   size = hit_vec.size();
+    for (int index = 0; index < size; ++index)
+    {
+      simHitMap[hit_vec[index].mcHitID()] = index;
+    }
+  }
+  for (auto&& track : tracks)
+  {
+    for (int i = 0; i < track.nTotalHits(); ++i)
+    {
+      int hitidx = track.getHitIdx(i);
+      int hitlyr = track.getHitLyr(i);
+      if (hitidx >= 0)
+      {
+        track.setHitIdx(i, simHitMap[layerHits_[hitlyr][hitidx].mcHitID()]);
+      }
+    }
+  }
 }
 
 void Event::Simulate()
 {
   simTracks_.resize(Config::nTracks);
-  simHitsInfo_.clear();
   simHitsInfo_.reserve(Config::nTotHit * Config::nTracks);
+  simTrackStates_.reserve(Config::nTotHit * Config::nTracks);
 
   for (auto&& l : layerHits_) {
-    // XXMT4K can not assume each track will have hits in every layer ...
-    // WAS: l.resize(Config::nTracks);  // thread safety
     l.clear();
     l.reserve(Config::nTracks);
   }
-  simTrackStates_.resize(Config::nTracks);
 
 #ifdef TBB
   parallel_for( tbb::blocked_range<size_t>(0, Config::nTracks, 100), 
@@ -146,44 +148,54 @@ void Event::Simulate()
 	}
       }
 #endif
-      // XXMT4K: From here on we can always have overlapping cache lines.
-      // I'm putting in a mutex for now ...
+      // MT: I'm putting in a mutex for now ...
       std::lock_guard<std::mutex> lock(mcGatherMutex_);
-
-      // uber ugly way of getting around read-in / write-out of objects needed for validation
-      if (Config::root_val || Config::fit_val) {simTrackStates_[itrack] = initialTSs;}
-      validation_.collectSimTkTSVecMapInfo(itrack,initialTSs); // save initial TS parameters in validation object ... just a copy of the above line
 
       simTracks_[itrack] = Track(q,pos,mom,covtrk,0.0f);
       auto& sim_track = simTracks_[itrack];
       sim_track.setLabel(itrack);
 
-      // XXMT4K My attempt at rewriting the code below - not all layers are traversed with endcap.
-      // Note ... this still asusmes single hit per layer, right?
-      // What is the comment about thread safety??? The final index is on itrack and this will clash due to cache-line overlaps.
+      // XXKM4MT
+      // Sorta assumes one hit per layer -- could just make this 2X nMaxSimHits inside track object (without loopers)
+      // This really would only matter for validation and seeding...
+      // Could imagine making an inherited class for sim tracks that keeps tracks overlaps
       assert(hits.size() == hitinfos.size());
       for (int i = 0; i < hits.size(); ++i)
       {
         // set to the correct hit index after sorting
-        sim_track.addHitIdx(hits[i].mcHitID(), -128, 0.0f);
+        sim_track.addHitIdx(layerHits_[hitinfos[i].layer_].size(), hitinfos[i].layer_, 0.0f);
         layerHits_[hitinfos[i].layer_].emplace_back(hits[i]);
+
         simHitsInfo_.emplace_back(hitinfos[i]);
+	if (Config::root_val || Config::fit_val) 
+        {
+	  simTrackStates_.emplace_back(initialTSs[i]);
+	}
       }
-      // for (int ilay = 0; ilay < hits.size(); ++ilay) {
-      //   sim_track.addHitIdx(hits[ilay].mcHitID(),0.0f); // set to the correct hit index after sorting
-      //   layerHits_[ilay][itrack] = hits[ilay];  // thread safety
-      // }
     }
 #ifdef TBB
   });
 #endif
 
+  // do some work to ensure everything is aligned after multithreading 	
+  std::unordered_map<int,int> mcHitIDMap;
+  for (int ihit = 0; ihit < simHitsInfo_.size(); ihit++)
+  {
+    mcHitIDMap[simHitsInfo_[ihit].mcHitID()] = ihit;
+  }
+
   std::sort(simHitsInfo_.begin(),   simHitsInfo_.end(),
-            [](const MCHitInfo& a, const MCHitInfo& b)
-            { return a.mcHitID_ < b.mcHitID_; });
+	    [](const MCHitInfo& a, const MCHitInfo& b)
+	    { return a.mcHitID() < b.mcHitID(); });
+		
+  TSVec tmpTSVec(simTrackStates_.size());
+  for (int its = 0; its < simTrackStates_.size(); its++)
+  {
+    tmpTSVec[its] = simTrackStates_[mcHitIDMap[its]];
+  }
+  simTrackStates_ = tmpTSVec;
 }
 
-// XXMT4K What does this do? Needs change?
 void Event::Segment()
 {
 #ifdef DEBUG
@@ -286,7 +298,9 @@ void Event::Segment()
     std::cout << "layer: " << ilayer << " totalhits: " << etahitstotal << std::endl;
   }
 #endif
-  resetLayerHitMap(true);
+
+  // need to reset simtrack hit indices after sorting!
+  RemapHits(simTracks_);
 }
 
 void Event::Seed()
@@ -381,12 +395,10 @@ void Event::write_out(FILE *fp)
   evsize += sizeof(int) + nt*sizeof(Track);
 
   if (Config::root_val || Config::fit_val) {
-    for (int it = 0; it<nt; ++it) {
-      int nts = simTrackStates_[it].size();
-      fwrite(&nts, sizeof(int), 1, fp);
-      fwrite(&simTrackStates_[it][0], sizeof(TrackState), nts, fp);
-      evsize += sizeof(int) + nts*sizeof(TrackState);
-    }
+    int nts = simTrackStates_.size();
+    fwrite(&nts, sizeof(int), 1, fp);
+    fwrite(&simTrackStates_[0], sizeof(TrackState), nts, fp);
+    evsize += sizeof(int) + nts*sizeof(TrackState);
   }
 
   int nl = layerHits_.size();
@@ -457,18 +469,10 @@ void Event::read_in(FILE *fp, int version)
 
   if (Config::root_val || Config::fit_val)
   {
-    simTrackStates_.resize(nt);
-    for (int it = 0; it < nt; ++it) {
-      int nts;
-      fread(&nts, sizeof(int), 1, fp);
-      simTrackStates_[it].resize(nts);
-      fread(&simTrackStates_[it][0], sizeof(TrackState), nts, fp);
-    }
-    // now do the validation copying... ugh
-    for (int imc = 0; imc < nt; ++imc) {
-      validation_.collectSimTkTSVecMapInfo(imc,simTrackStates_[imc]); 
-    }
-    simTrackStates_.clear();
+    int nts; 
+    fread(&nts, sizeof(int), 1, fp);
+    simTrackStates_.resize(nts);
+    fread(&simTrackStates_[0], sizeof(TrackState), nts, fp);
   }
 
   int nl;
@@ -526,5 +530,5 @@ void Event::read_in(FILE *fp, int version)
   }
   printf("total_hits = %d\n", total_hits);
   */
-  printf("read event done\n",nl);
+  printf("read event done\n");
 }

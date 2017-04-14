@@ -86,6 +86,7 @@ double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
   builder.find_tracks_load_seeds_BH();
 
 #ifdef USE_VTUNE_PAUSE
+  __SSC_MARK(0x111);  // use this to resume Intel SDE at the same point
   __itt_resume();
 #endif
 
@@ -108,6 +109,7 @@ double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
 
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
+  __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
   
   if   (!Config::root_val) {
@@ -137,6 +139,7 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
   builder.find_tracks_load_seeds();
 
 #ifdef USE_VTUNE_PAUSE
+  __SSC_MARK(0x111);  // use this to resume Intel SDE at the same point
   __itt_resume();
 #endif
 
@@ -148,6 +151,7 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
 
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
+  __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
 
   if (!Config::root_val) {
@@ -175,6 +179,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
   builder.find_tracks_load_seeds();
 
 #ifdef USE_VTUNE_PAUSE
+  __SSC_MARK(0x111);  // use this to resume Intel SDE at the same point
   __itt_resume();
 #endif
 
@@ -186,6 +191,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
 
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
+  __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
 
   if (!Config::root_val) {

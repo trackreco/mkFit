@@ -146,6 +146,7 @@ struct MCHitInfo
   
   int mcTrackID() const { return mcTrackID_; } 
   int layer()     const { return layer_; } 
+  int mcHitID()   const { return mcHitID_; }
   static void reset();
 };
 typedef std::vector<MCHitInfo> MCHitInfoVec;

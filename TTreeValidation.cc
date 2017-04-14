@@ -11,6 +11,7 @@
 // --> reco var == -99, "unassociated" reco to sim track, mcTrackID == -1 [possible mcmask_[reco] == 0; possible duplmask_[reco] == 2] {eff only}
 // --> sim  var == -99, "unassociated" reco to sim track, mcTrackID == -1 [possible mcmask_[reco] == 0; possible duplmask_[reco] == 2] {FR only}
 // --> reco/sim var == -100, "no matching seed to build/fit" track, fill all reco/sim variables -100 [possible mcmask_[reco] == -1, possible duplmask_[reco] == -1] {FR only}
+// --> sim  var == -101, reco track is "associated" to sim track, however, sim track does have a hit on the layer the reco track is on
 
 // --> seedmask_[reco] == 1, matching seed to reco/fit track [possible mcmask_[reco] == 0,1; possible duplmask_[reco] == 0,1,2] {FR only}
 // --> seedmask_[reco] == 0, no matching seed to reco/fit track [possible mcmask_[reco] == -1; possible duplmask_[reco] == -1] {FR only}
@@ -59,7 +60,8 @@ TTreeValidation::TTreeValidation(std::string fileName)
     initializeEfficiencyTree();
     initializeFakeRateTree();  
   }
-  if (Config::fit_val) {
+  if (Config::fit_val) 
+  {
     initializeFitTree();
   }
   initializeConfigTree();
@@ -341,26 +343,22 @@ void TTreeValidation::initializeFitTree()
 
 void TTreeValidation::alignTrackExtra(TrackVec& evt_tracks, TrackExtraVec& evt_extras)
 {
-  TrackExtraVec trackExtra_tmp;
+  TrackExtraVec trackExtra_tmp(evt_tracks.size());
 
   // align temporary tkExVec with new track collection ordering
-  for (auto&& track : evt_tracks){ 
-    trackExtra_tmp.push_back(evt_extras[track.label()]); // label is old seedID!
+  for (int itrack = 0; itrack < evt_tracks.size(); itrack++)
+  { 
+    trackExtra_tmp[itrack] = evt_extras[evt_tracks[itrack].label()]; // label is old seedID!
   }
 
   // now copy the temporary back in the old one
   evt_extras = trackExtra_tmp;
   
   // redo track labels to match index in vector
-  for (int i = 0; i < evt_tracks.size(); i++){
-    evt_tracks[i].setLabel(i);
+  for (int itrack = 0; itrack < evt_tracks.size(); itrack++)
+  {
+    evt_tracks[itrack].setLabel(itrack);
   }
-}
-
-void TTreeValidation::collectSimTkTSVecMapInfo(int mcTrackID, const TSVec& initTSs)
-{
-  std::lock_guard<std::mutex> locker(glock_);
-  simTkTSVecMap_[mcTrackID] = initTSs;
 }
 
 void TTreeValidation::collectFitInfo(const FitVal & tmpfitval, int tkid, int layer)
@@ -373,10 +371,6 @@ void TTreeValidation::collectFitInfo(const FitVal & tmpfitval, int tkid, int lay
 void TTreeValidation::resetValidationMaps()
 {
   std::lock_guard<std::mutex> locker(glock_);
-  
-  // reset map of sim tracks to MC track states (pre-smearing)
-  simTkTSVecMap_.clear(); 
-
   // reset fit validation map
   fitValTkMapMap_.clear();
   
@@ -479,6 +473,20 @@ void TTreeValidation::mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackE
   }
 }
 
+int TTreeValidation::getLastGoodHit(const int trackMCHitID, const int mcTrackID, const Event& ev)
+{
+  int mcHitID = -1;
+  if (ev.simHitsInfo_[trackMCHitID].mcTrackID() == mcTrackID)
+  {
+    mcHitID = trackMCHitID;
+  }
+  else
+  {
+    mcHitID = ev.simTracks_[mcTrackID].getMCHitIDFromLayer(ev.layerHits_,ev.simHitsInfo_[trackMCHitID].layer());
+  }
+  return mcHitID;
+}
+
 void TTreeValidation::resetFitBranches()
 {
   for(int ilayer = 0; ilayer < Config::nTotalLayers; ++ilayer)
@@ -519,9 +527,10 @@ void TTreeValidation::fillFitTree(const Event& ev)
   std::lock_guard<std::mutex> locker(glock_); 
 
   evtid_fit_ = ev.evtID();
-  const auto& simtracks  = ev.simTracks_;
-  const auto& layerhits  = ev.layerHits_;
-
+  const auto& simtracks = ev.simTracks_;
+  const auto& layerhits = ev.layerHits_;
+  const auto& simtrackstates = ev.simTrackStates_;
+  
   for(auto&& fitvalmapmap : fitValTkMapMap_)
   {
     resetFitBranches();
@@ -529,16 +538,14 @@ void TTreeValidation::fillFitTree(const Event& ev)
     tkid_fit_ = fitvalmapmap.first; // seed id (label) is the same as the mcID
     
     const auto& simtrack = simtracks[tkid_fit_];
-    const auto& initTSs  = simTkTSVecMap_[tkid_fit_];
-    auto& fitvalmap = fitvalmapmap.second;
-
+    const auto& fitvalmap = fitvalmapmap.second;
     for(int ilayer = 0; ilayer < Config::nTotalLayers; ++ilayer)
     {
       if (fitvalmap.count(ilayer))
       {
 	const auto& hit    = layerhits[ilayer][simtrack.getHitIdx(ilayer)];
-	const auto& initTS = initTSs[ilayer];
-	const auto& fitval = fitvalmap[ilayer];
+	const auto& initTS = simtrackstates.at(hit.mcHitID());
+	const auto& fitval = fitvalmap.at(ilayer);
 	
 	z_hit_fit_[ilayer]   = hit.z();
 	ez_hit_fit_[ilayer]  = std::sqrt(hit.ezz());
@@ -586,6 +593,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
   auto& evt_build_extras = ev.candidateTracksExtra_;
   auto& evt_fit_tracks   = ev.fitTracks_;
   auto& evt_fit_extras   = ev.fitTracksExtra_;
+  auto& evt_layer_hits   = ev.layerHits_;
+  const auto& evt_sim_trackstates = ev.simTrackStates_;
 
   for (auto&& simtrack : evt_sim_tracks)
   {
@@ -608,12 +617,25 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       seedID_seed_eff_ = seedextra.seedID(); 
 
       // use this to access correct sim track layer params
-      const int layer = seedtrack.foundLayers().back(); // last layer seed ended up on
-      const TrackState & initLayTS = simTkTSVecMap_[mcID_eff_][layer]; //--> can do this as all sim tracks pass through each layer once, and are stored in order... will need to fix this once we have loopers/overlaps
+      const int mcHitID = getLastGoodHit(seedtrack.getLastGoodMCHitID(evt_layer_hits),mcID_eff_,ev);
+      if (mcHitID >= 0)
+      {
+	const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
 
-      pt_mc_seed_eff_  = initLayTS.pT();
-      phi_mc_seed_eff_ = initLayTS.momPhi();
-      eta_mc_seed_eff_ = initLayTS.momEta();
+	pt_mc_seed_eff_  = initLayTS.pT();
+	phi_mc_seed_eff_ = initLayTS.momPhi();
+	eta_mc_seed_eff_ = initLayTS.momEta();
+	
+	helixchi2_seed_eff_ = computeHelixChi2(initLayTS.parameters,seedtrack.parameters(),seedtrack.errors());
+      }	
+      else
+      {
+	pt_mc_seed_eff_  = -101;
+	phi_mc_seed_eff_ = -101;
+	eta_mc_seed_eff_ = -101;
+
+	helixchi2_seed_eff_ = -101;
+      }
 
       pt_seed_eff_   = seedtrack.pT();
       ept_seed_eff_  = seedtrack.epT();
@@ -628,7 +650,6 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       fracHitsMatched_seed_eff_ = float(nHitsMatched_seed_eff_) / float(nHits_seed_eff_);
 
       hitchi2_seed_eff_   = seedtrack.chi2(); // currently not being used
-      helixchi2_seed_eff_ = computeHelixChi2(initLayTS.parameters,seedtrack.parameters(),seedtrack.errors());
 
       duplmask_seed_eff_   = seedextra.isDuplicate(); 
       nTkMatches_seed_eff_ = simToSeedMap_[mcID_eff_].size(); // n reco matches to this sim track.
@@ -671,12 +692,25 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       seedID_build_eff_ = buildextra.seedID(); 
 
       // use this to access correct sim track layer params
-      const int layer = buildtrack.foundLayers().back(); // last layer build ended up on
-      const TrackState & initLayTS = simTkTSVecMap_[mcID_eff_][layer]; //--> can do this as all sim tracks pass through each layer once, and are stored in order... will need to fix this once we have loopers/overlaps
+      const int mcHitID = getLastGoodHit(buildtrack.getLastGoodMCHitID(evt_layer_hits),mcID_eff_,ev);
+      if (mcHitID >= 0)
+      {
+	const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
 
-      pt_mc_build_eff_  = initLayTS.pT();
-      phi_mc_build_eff_ = initLayTS.momPhi();
-      eta_mc_build_eff_ = initLayTS.momEta();
+	pt_mc_build_eff_  = initLayTS.pT();
+	phi_mc_build_eff_ = initLayTS.momPhi();
+	eta_mc_build_eff_ = initLayTS.momEta();
+
+	helixchi2_build_eff_ = computeHelixChi2(initLayTS.parameters,buildtrack.parameters(),buildtrack.errors());
+      }	
+      else
+      {
+	pt_mc_build_eff_  = -101;
+	phi_mc_build_eff_ = -101;
+	eta_mc_build_eff_ = -101;
+
+	helixchi2_build_eff_ = -101;
+      }
 
       pt_build_eff_   = buildtrack.pT();
       ept_build_eff_  = buildtrack.epT();
@@ -690,7 +724,6 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       fracHitsMatched_build_eff_ = float(nHitsMatched_build_eff_) / float(nHits_build_eff_);
 
       hitchi2_build_eff_   = buildtrack.chi2(); 
-      helixchi2_build_eff_ = computeHelixChi2(initLayTS.parameters,buildtrack.parameters(),buildtrack.errors());
 
       duplmask_build_eff_   = buildextra.isDuplicate(); 
       nTkMatches_build_eff_ = simToBuildMap_[mcID_eff_].size(); // n reco matches to this sim track.
@@ -733,18 +766,26 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       seedID_fit_eff_ = fitextra.seedID(); 
 
       // use this to access correct sim track layer params
+      const int mcHitID = getLastGoodHit(fittrack.getLastGoodMCHitID(evt_layer_hits),mcID_eff_,ev);
+      if (mcHitID >= 0)
+      {
+	const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
 
-#ifdef INWARDFIT
-      const int layer = fittrack.foundLayers().front(); // last layer fit ended up on
-#else
-      const int layer = fittrack.foundLayers().back(); // last layer fit ended up on
-#endif
-      const TrackState & initLayTS = simTkTSVecMap_[mcID_eff_][layer]; //--> can do this as all sim tracks pass through each layer once, and are stored in order... will need to fix this once we have loopers/overlaps
+	pt_mc_fit_eff_  = initLayTS.pT();
+	phi_mc_fit_eff_ = initLayTS.momPhi();
+	eta_mc_fit_eff_ = initLayTS.momEta();
 
-      pt_mc_fit_eff_  = initLayTS.pT();
-      phi_mc_fit_eff_ = initLayTS.momPhi();
-      eta_mc_fit_eff_ = initLayTS.momEta();
+	helixchi2_fit_eff_ = computeHelixChi2(initLayTS.parameters,fittrack.parameters(),fittrack.errors());
+      }	
+      else
+      {
+	pt_mc_fit_eff_  = -101;
+	phi_mc_fit_eff_ = -101;
+	eta_mc_fit_eff_ = -101;
 
+	helixchi2_fit_eff_ = -101;
+      }
+      
       pt_fit_eff_   = fittrack.pT();
       ept_fit_eff_  = fittrack.epT();
       phi_fit_eff_  = fittrack.momPhi();
@@ -758,7 +799,6 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       fracHitsMatched_fit_eff_ = float(nHitsMatched_fit_eff_) / float(nHits_fit_eff_);
 
       hitchi2_fit_eff_   = -10; //fittrack.chi2(); // currently not being used
-      helixchi2_fit_eff_ = computeHelixChi2(initLayTS.parameters,fittrack.parameters(),fittrack.errors());
 
       duplmask_fit_eff_   = fitextra.isDuplicate(); 
       nTkMatches_fit_eff_ = simToFitMap_[mcID_eff_].size(); // n reco matches to this sim track.
@@ -800,13 +840,16 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
   std::lock_guard<std::mutex> locker(glock_);
 
   auto ievt = ev.evtID();
+  auto& evt_sim_tracks   = ev.simTracks_;
   auto& evt_seed_tracks  = ev.seedTracks_;
   auto& evt_seed_extras  = ev.seedTracksExtra_;
   auto& evt_build_tracks = ev.candidateTracks_;
   auto& evt_build_extras = ev.candidateTracksExtra_;
   auto& evt_fit_tracks   = ev.fitTracks_;
   auto& evt_fit_extras   = ev.fitTracksExtra_;
-  
+  auto& evt_layer_hits   = ev.layerHits_;
+  auto& evt_sim_trackstates = ev.simTrackStates_;
+
   for (auto&& seedtrack : evt_seed_tracks)
   { 
     evtID_FR_       = ievt;
@@ -833,17 +876,29 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     mcID_seed_FR_ = seedextra.mcTrackID();
     if (mcID_seed_FR_ >= 0) // store sim info at that final layer!!! --> gen info stored only in eff tree
     {
+      auto& simtrack = evt_sim_tracks[mcID_seed_FR_];
       mcmask_seed_FR_ = 1; // matched track to sim
 
-      const int layer = seedtrack.foundLayers().back(); // last layer fit ended up on
-      const TrackState & initLayTS = simTkTSVecMap_[mcID_seed_FR_][layer]; //--> can do this as all sim tracks pass through each layer once, and are stored in order... will need to fix this once we have loopers/overlaps
+      const int mcHitID = getLastGoodHit(seedtrack.getLastGoodMCHitID(evt_layer_hits),mcID_seed_FR_,ev);
+      if (mcHitID >= 0)
+      {
+	const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
+	pt_mc_seed_FR_  = initLayTS.pT();
+	phi_mc_seed_FR_ = initLayTS.momPhi();
+	eta_mc_seed_FR_ = initLayTS.momEta();
 
-      pt_mc_seed_FR_    = initLayTS.pT();
-      phi_mc_seed_FR_   = initLayTS.momPhi();
-      eta_mc_seed_FR_   = initLayTS.momEta();
-      nHits_mc_seed_FR_ = simTkTSVecMap_[mcID_seed_FR_].size();
+	helixchi2_seed_FR_ = computeHelixChi2(initLayTS.parameters,seedtrack.parameters(),seedtrack.errors());
+      }	
+      else
+      {
+	pt_mc_seed_FR_  = -101;
+	phi_mc_seed_FR_ = -101;
+	eta_mc_seed_FR_ = -101;
 
-      helixchi2_seed_FR_ = computeHelixChi2(initLayTS.parameters,seedtrack.parameters(),seedtrack.errors());
+	helixchi2_seed_FR_ = -101;
+      }
+
+      nHits_mc_seed_FR_ = simtrack.nFoundHits();
 
       duplmask_seed_FR_   = seedextra.isDuplicate();
       iTkMatches_seed_FR_ = seedextra.duplicateID(); // ith duplicate seed track, i = 0 "best" match, i > 0 "still matched, real reco, not as good as i-1 track"      
@@ -889,18 +944,30 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       mcID_build_FR_  = buildextra.mcTrackID();
       if (mcID_build_FR_ >= 0) // build track matched to seed and sim 
       {
+	auto& simtrack = evt_sim_tracks[mcID_build_FR_];
 	mcmask_build_FR_ = 1; // matched track to sim
 
-	const int layer = buildtrack.foundLayers().back(); // last layer fit ended up on
-	const TrackState & initLayTS = simTkTSVecMap_[mcID_build_FR_][layer]; //--> can do this as all sim tracks pass through each layer once, and are stored in order... will need to fix this once we have loopers/overlaps
-	
-	pt_mc_build_FR_    = initLayTS.pT();
-	phi_mc_build_FR_   = initLayTS.momPhi();
-	eta_mc_build_FR_   = initLayTS.momEta();
-	nHits_mc_build_FR_ = simTkTSVecMap_[mcID_build_FR_].size();
-	
-	helixchi2_build_FR_ = computeHelixChi2(initLayTS.parameters,buildtrack.parameters(),buildtrack.errors());
+	const int mcHitID = getLastGoodHit(buildtrack.getLastGoodMCHitID(evt_layer_hits),mcID_build_FR_,ev);
+	if (mcHitID >= 0)
+        {
+	  const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
+	  pt_mc_build_FR_  = initLayTS.pT();
+	  phi_mc_build_FR_ = initLayTS.momPhi();
+	  eta_mc_build_FR_ = initLayTS.momEta();
+	  
+	  helixchi2_build_FR_ = computeHelixChi2(initLayTS.parameters,buildtrack.parameters(),buildtrack.errors());
+	}	
+	else
+        {
+	  pt_mc_build_FR_  = -101;
+	  phi_mc_build_FR_ = -101;
+	  eta_mc_build_FR_ = -101;
+	  
+	  helixchi2_build_FR_ = -101;
+	}
 
+	nHits_mc_build_FR_ = simtrack.nFoundHits();
+	
 	duplmask_build_FR_   = buildextra.isDuplicate();
 	iTkMatches_build_FR_ = buildextra.duplicateID(); // ith duplicate build track, i = 0 "best" match, i > 0 "still matched, real reco, not as good as i-1 track"      
       }
@@ -955,6 +1022,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     //============================// fit tracks
     if (seedToFitMap_.count(seedID_FR_))
     {
+      auto& simtrack = evt_sim_tracks[mcID_fit_FR_];
       seedmask_fit_FR_ = 1; // quick logic
 
       auto& fittrack = evt_fit_tracks[seedToFitMap_[seedID_FR_]];
@@ -978,19 +1046,27 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       if (mcID_fit_FR_ >= 0) // fit track matched to seed and sim 
       {
 	mcmask_fit_FR_ = 1; // matched track to sim
-#ifdef INWARDFIT
-	const int layer = fittrack.foundLayers().front(); // last layer fiting ended up on
-#else
-	const int layer = fittrack.foundLayers().back(); // last layer fiting ended up on
-#endif
-	const TrackState & initLayTS = simTkTSVecMap_[mcID_fit_FR_][layer]; //--> can do this as all sim tracks pass through each layer once, and are stored in order... will need to fix this once we have loopers/overlaps
-   
-	pt_mc_fit_FR_    = initLayTS.pT(); // again, pt of mc truth at the layer the seed ends
-	phi_mc_fit_FR_   = initLayTS.momPhi();
-	eta_mc_fit_FR_   = initLayTS.momEta();
-	nHits_mc_fit_FR_ = simTkTSVecMap_[mcID_fit_FR_].size();
 
-	helixchi2_fit_FR_ = computeHelixChi2(initLayTS.parameters,fittrack.parameters(),fittrack.errors());
+	const int mcHitID = getLastGoodHit(fittrack.getLastGoodMCHitID(evt_layer_hits),mcID_fit_FR_,ev); // only works for outward fit for now
+	if (mcHitID >= 0)
+        {
+	  const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
+	  pt_mc_fit_FR_  = initLayTS.pT();
+	  phi_mc_fit_FR_ = initLayTS.momPhi();
+	  eta_mc_fit_FR_ = initLayTS.momEta();
+	  
+	  helixchi2_fit_FR_ = computeHelixChi2(initLayTS.parameters,fittrack.parameters(),fittrack.errors());
+	}	
+	else
+        {
+	  pt_mc_fit_FR_  = -101;
+	  phi_mc_fit_FR_ = -101;
+	  eta_mc_fit_FR_ = -101;
+	  
+	  helixchi2_fit_FR_ = -101;
+	}
+
+	nHits_mc_fit_FR_ = simtrack.nFoundHits();
 
 	duplmask_fit_FR_   = fitextra.isDuplicate();
 	iTkMatches_fit_FR_ = fitextra.duplicateID(); // ith duplicate fit track, i = 0 "best" match, i > 0 "still matched, real reco, not as good as i-1 track"

@@ -38,9 +38,6 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
 
   dprint("phi= " << phi << std::endl);
 
-  // XXMT4K GENFLATETA is the default in Makefile.config
-  // Should we just remove the flat pz option? Or fix it ...
-#ifdef GENFLATETA
   // this generates flat in eta
 roll_eta_dice:
   float eta = Config::minSimEta + (Config::maxSimEta - Config::minSimEta) * g_unif(g_gen);
@@ -53,12 +50,6 @@ roll_eta_dice:
   // XXXXMT Commented this out to get ecap_pos only !!!!
   //if (g_unif(g_gen) > 0.5) pz *= -1.;
   dprint("pz="<<pz<<", eta="<<eta);
-#else
-  // generate flat in pz
-
-  // XXMT4K WTF is 2.3 coming from? What do we do here?
-  float pz = pt*(2.3*(g_unif(g_gen) - 0.5)); //so that we have -X < eta < X
-#endif
   mom=SVector3(px,py,pz);
   covtrk=ROOT::Math::SMatrixIdentity();
   //initial covariance can be tricky
@@ -89,12 +80,7 @@ roll_eta_dice:
   {
     layer_counts[ilayer] = 0;
   }
-
-  // to include loopers would rather add a break on the code if nLayers
-  // if block BREAK if hit.Layer == theGeom->CountLayers() 
-  // else --> if (NMAX TO LOOPER (maybe same as 10?) {break;} else {continue;}
-
-  int simLayer = -1; // use to keep track where hit lies on, will proceed monotonically increasing without loopers/overlaps
+  int simLayer = -1;
 
   hits.reserve(Config::nTotHit);
   initTSs.reserve(Config::nTotHit);
@@ -255,7 +241,6 @@ roll_eta_dice:
     // float hitPhi  = ((Config::hitposerrXY/initRad)*g_gaus(g_gen))+initPhi;
     // float hitRad  = (Config::hitposerrR)*g_gaus(g_gen)+initRad;
 #endif // SCATTERING
-    initTSs.push_back(propState); // if no scattering, will just parameters from prop to next layer
 
 #ifdef SOLID_SMEAR
     UVector3 scattered_point(scatteredX,scatteredY,scatteredZ);
@@ -345,6 +330,8 @@ roll_eta_dice:
     MCHitInfo hitinfo(itrack, simLayer, layer_counts[simLayer], ev.nextMCHitID());
     hits.emplace_back(x1, covXYZ, hitinfo.mcHitID_);
     hitinfos.emplace_back(hitinfo);
+
+    initTSs.emplace_back(propState); // if no scattering, will just parameters from prop to next layer
 
     tmpState = propState;
 

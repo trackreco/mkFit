@@ -9,22 +9,12 @@
 
 #include <mutex>
 
-// XXMT4K XXMT4D Is HitID and Event::layerHitMap_ still needed?
-
-struct HitID {
-  HitID() : layer(-1), index(-1) {}
-  HitID(int l, int i) : layer(l), index(i) {}
-  int layer;
-  int index;
-};
-
-typedef std::vector<HitID> HitIDVec;
-
 class Event
 {
 public:
   Event(const Geometry& g, Validation& v, int evtID, int threads = 1);
   void Reset(int evtID);
+  void RemapHits(TrackVec & tracks);
   void Simulate();
   void Segment();
   void Seed();
@@ -53,7 +43,6 @@ public:
   std::atomic<int> mcHitIDCounter_;
   std::vector<HitVec> layerHits_;
   MCHitInfoVec simHitsInfo_;
-  HitIDVec layerHitMap_; // indexed same as simHitsInfo_, maps to layer & hit
 
   TrackVec simTracks_, seedTracks_, candidateTracks_, fitTracks_;
   // validation sets these, so needs to be mutable
@@ -67,8 +56,7 @@ public:
   // vec[nLayers][nEtaBins][nPhiBins]
   BinInfoMap segmentMap_;
 
-  // used in normal validation --> only used on read-in / write-out (REALLY UGLY)
-  TkIDToTSVecVec simTrackStates_;
+  TSVec simTrackStates_;
   static std::mutex printmutex;
 };
 
