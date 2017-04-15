@@ -26,7 +26,6 @@ static bool tracksByPhi(const Track& t1, const Track& t2)
   return t1.posPhi()<t2.posPhi();
 }
 
-#ifdef ETASEG
 inline bool sortByEta(const Hit& hit1, const Hit& hit2){
   return hit1.eta()<hit2.eta();
 }
@@ -35,14 +34,12 @@ inline bool sortByEta(const Hit& hit1, const Hit& hit2){
 inline bool sortByZ(const Hit& hit1, const Hit& hit2){
   return hit1.z()<hit2.z();
 }
-#endif
 
 Event::Event(const Geometry& g, Validation& v, int evtID, int threads) :
   geom_(g), validation_(v),
   evtID_(evtID), threads_(threads), mcHitIDCounter_(0)
 {
   layerHits_.resize(Config::nTotalLayers);
-  segmentMap_.resize(Config::nTotalLayers);
 
   validation_.resetValidationMaps(); // need to reset maps for every event.
 }
@@ -53,7 +50,6 @@ void Event::Reset(int evtID)
   mcHitIDCounter_ = 0;
 
   for (auto&& l : layerHits_) { l.clear(); }
-  for (auto&& l : segmentMap_) { l.clear(); }
 
   simHitsInfo_.clear();
   simTrackStates_.clear();
@@ -196,17 +192,18 @@ void Event::Simulate()
   simTrackStates_ = tmpTSVec;
 }
 
-void Event::Segment()
+void Event::Segment(BinInfoMap & segmentMap)
 {
 #ifdef DEBUG
   bool debug=true;
 #endif
+  segmentMap.resize(Config::nTotalLayers);
+
   //sort in phi and dump hits per layer, fill phi partitioning
   for (int ilayer=0; ilayer<layerHits_.size(); ++ilayer) {
     dprint("Hits in layer=" << ilayer);
     
-#ifdef ETASEG
-    segmentMap_[ilayer].resize(Config::nEtaPart);    
+    segmentMap[ilayer].resize(Config::nEtaPart);    
     // eta first then phi
     std::sort(layerHits_[ilayer].begin(), layerHits_[ilayer].end(), sortByZ);
     std::vector<int> lay_eta_bin_count(Config::nEtaPart);
@@ -243,43 +240,19 @@ void Event::Segment()
         int firstPhiBinIdx = lastPhiIdxFound+1;
         int phiBinSize = lay_eta_phi_bin_count[phibin];
         BinInfo phiBinInfo(firstPhiBinIdx,phiBinSize);
-        segmentMap_[ilayer][etabin].push_back(phiBinInfo);
+        segmentMap[ilayer][etabin].push_back(phiBinInfo);
         if (phiBinSize>0){
           lastPhiIdxFound+=phiBinSize;
         }
 #ifdef DEBUG
         if ((debug) && (phiBinSize !=0)) dprintf("ilayer: %1u etabin: %1u phibin: %2u first: %2u last: %2u \n", 
                                                  ilayer, etabin, phibin, 
-                                                 segmentMap_[ilayer][etabin][phibin].first, 
-                                                 segmentMap_[ilayer][etabin][phibin].second+segmentMap_[ilayer][etabin][phibin].first
+                                                 segmentMap[ilayer][etabin][phibin].first, 
+                                                 segmentMap[ilayer][etabin][phibin].second+segmentMap[ilayer][etabin][phibin].first
                                                  );
 #endif
       } // end loop over storing phi index
     } // end loop over storing eta index
-#else
-    segmentMap_[ilayer].resize(1);    // only one eta bin for special case, avoid ifdefs
-    std::sort(layerHits_[ilayer].begin(), layerHits_[ilayer].end(), sortByPhi);
-    std::vector<int> lay_phi_bin_count(Config::nPhiPart);//should it be 63? - yes!
-    for (int ihit=0;ihit<layerHits_[ilayer].size();++ihit) {
-      dprint("hit r/phi/eta : " << layerHits_[ilayer][ihit].r() << " "
-                                << layerHits_[ilayer][ihit].phi() << " " << layerHits_[ilayer][ihit].eta());
-
-      int phibin = getPhiPartition(layerHits_[ilayer][ihit].phi());
-      lay_phi_bin_count[phibin]++;
-    }
-
-    //now set index and size in partitioning map
-    int lastIdxFound = -1;
-    for (int bin=0; bin<Config::nPhiPart; ++bin) {
-      int binSize = lay_phi_bin_count[bin];
-      int firstBinIdx = lastIdxFound+1;
-      BinInfo binInfo(firstBinIdx, binSize);
-      segmentMap_[ilayer][0].push_back(binInfo); // [0] bin is just the only eta bin ... reduce ifdefs
-      if (binSize>0){
-        lastIdxFound+=binSize;
-      }
-    }
-#endif
   } // end loop over layers
 
 #ifdef DEBUG
@@ -287,12 +260,12 @@ void Event::Segment()
     dmutex_guard;
     int etahitstotal = 0;
     for (int etabin = 0; etabin < Config::nEtaPart; etabin++){
-      int etahits = segmentMap_[ilayer][etabin][Config::nPhiPart-1].first + segmentMap_[ilayer][etabin][Config::nPhiPart-1].second - segmentMap_[ilayer][etabin][0].first;
+      int etahits = segmentMap[ilayer][etabin][Config::nPhiPart-1].first + segmentMap[ilayer][etabin][Config::nPhiPart-1].second - segmentMap[ilayer][etabin][0].first;
       std::cout << "etabin: " << etabin << " hits in bin: " << etahits << std::endl;
       etahitstotal += etahits;
 
       for (int phibin = 0; phibin < Config::nPhiPart; phibin++){
-	//	if (segmentMap_[ilayer][etabin][phibin].second > 3) {std::cout << "   phibin: " << phibin << " hits: " << segmentMap_[ilayer][etabin][phibin].second << std::endl;}
+	//	if (segmentMap[ilayer][etabin][phibin].second > 3) {std::cout << "   phibin: " << phibin << " hits: " << segmentMap[ilayer][etabin][phibin].second << std::endl;}
       }
     }
     std::cout << "layer: " << ilayer << " totalhits: " << etahitstotal << std::endl;
@@ -303,12 +276,12 @@ void Event::Segment()
   RemapHits(simTracks_);
 }
 
-void Event::Seed()
+void Event::Seed(const BinInfoMap & segmentMap)
 {
 #ifdef ENDTOEND
-  buildSeedsByRoadSearch(seedTracks_,seedTracksExtra_,layerHits_,segmentMap_,*this);
-  //  buildSeedsByRoadTriplets(seedTracks_,seedTracksExtra_,layerHits_,segmentMap_,*this);
-  //buildSeedsByRZFirstRPhiSecond(seedTracks_,seedTracksExtra_,layerHits_,segmentMap_,*this);
+  buildSeedsByRoadSearch(seedTracks_,seedTracksExtra_,layerHits_,segmentMap,*this);
+  //  buildSeedsByRoadTriplets(seedTracks_,seedTracksExtra_,layerHits_,segmentMap,*this);
+  //buildSeedsByRZFirstRPhiSecond(seedTracks_,seedTracksExtra_,layerHits_,segmentMap,*this);
 #else
   buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
   simTracksExtra_ = seedTracksExtra_;
@@ -317,10 +290,10 @@ void Event::Seed()
   validation_.alignTrackExtra(seedTracks_,seedTracksExtra_);   // if we sort here, also have to sort seedTracksExtra and redo labels.
 }
 
-void Event::Find()
+void Event::Find(const BinInfoMap & segmentMap)
 {
-  buildTracksBySeeds(*this);
-  //  buildTracksByLayers(*this);
+  buildTracksBySeeds(segmentMap,*this);
+  //  buildTracksByLayers(segmentMap,*this);
 
   // From CHEP-2015
   // buildTestSerial(*this, Config::nlayers_per_seed, Config::maxCandsPerSeed, Config::chi2Cut, Config::nSigma, Config::minDPhi);
