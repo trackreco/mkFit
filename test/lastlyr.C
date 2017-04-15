@@ -15,9 +15,9 @@ void lastlyr()
   Int_t   mc_lyr    = 0; TBranch * b_mc_lyr    = 0; tree->SetBranchAddress("lastlyr_mc",&mc_lyr,&b_mc_lyr);
   Int_t   build_lyr = 0; TBranch * b_build_lyr = 0; tree->SetBranchAddress("lastlyr_build",&build_lyr,&b_build_lyr);
     
-  TH1F * h_bl = new TH1F("h_bl","MC Last Layer - Reco Last Layer",10,0,10); 
-  TH1F * h_em = new TH1F("h_em","MC Last Layer - Reco Last Layer",10,0,10);
-  TH1F * h_ep = new TH1F("h_ep","MC Last Layer - Reco Last Layer",10,0,10);
+  TH1F * h_bl = new TH1F("h_bl","MC Last Layer - Reco Last Layer",10,0,10); h_bl->Sumw2();
+  TH1F * h_em = new TH1F("h_em","MC Last Layer - Reco Last Layer",10,0,10); h_em->Sumw2();
+  TH1F * h_ep = new TH1F("h_ep","MC Last Layer - Reco Last Layer",10,0,10); h_ep->Sumw2();
 
   h_bl->SetLineColor(kRed);
   h_em->SetLineColor(kBlue);
@@ -52,7 +52,11 @@ void lastlyr()
     }
   }
 
-  TCanvas * canv = new TCanvas(); canv->cd();
+  h_bl->Scale(1.0/h_bl->Integral());
+  h_em->Scale(1.0/h_em->Integral());
+  h_ep->Scale(1.0/h_ep->Integral());
+
+  TCanvas * canv = new TCanvas(); canv->cd(); canv->SetLogy();
   h_bl->Draw("epl");
   h_em->Draw("same epl");
   h_ep->Draw("same epl");
