@@ -77,7 +77,7 @@ public:
 
   // for efficiency and duplicate rate plots
   float pt_mc_gen_eff_=0.,phi_mc_gen_eff_=0.,eta_mc_gen_eff_=0.;
-  int   nHits_mc_eff_=0;
+  int   nHits_mc_eff_=0,lastlyr_mc_eff_=0;
 
   // for track resolutions / pulls
   float pt_mc_seed_eff_=0.,pt_mc_build_eff_=0.,pt_mc_fit_eff_=0.;
@@ -91,6 +91,7 @@ public:
   int   nHits_seed_eff_=0,nHits_build_eff_=0,nHits_fit_eff_=0;
   int   nHitsMatched_seed_eff_=0,nHitsMatched_build_eff_=0,nHitsMatched_fit_eff_=0;
   float fracHitsMatched_seed_eff_=0,fracHitsMatched_build_eff_=0,fracHitsMatched_fit_eff_=0;
+  int   lastlyr_seed_eff_=0,lastlyr_build_eff_=0,lastlyr_fit_eff_=0;
 
   // chi2 of tracks
   float hitchi2_seed_eff_=0.,hitchi2_build_eff_=0.,hitchi2_fit_eff_=0.;
@@ -115,12 +116,14 @@ public:
   int   nHits_seed_FR_=0,nHits_build_FR_=0,nHits_fit_FR_=0;
   int   nHitsMatched_seed_FR_=0,nHitsMatched_build_FR_=0,nHitsMatched_fit_FR_=0;
   float fracHitsMatched_seed_FR_=0,fracHitsMatched_build_FR_=0,fracHitsMatched_fit_FR_=0;
+  int   lastlyr_seed_FR_=0,lastlyr_build_FR_=0,lastlyr_fit_FR_=0;
 
   float hitchi2_seed_FR_=0.,hitchi2_build_FR_=0.,hitchi2_fit_FR_=0.;
  
   int   mcID_seed_FR_=0,mcID_build_FR_=0,mcID_fit_FR_=0;
   int   mcmask_seed_FR_=0,mcmask_build_FR_=0,mcmask_fit_FR_=0;
   int   nHits_mc_seed_FR_=0,nHits_mc_build_FR_=0,nHits_mc_fit_FR_=0;
+  int   lastlyr_mc_seed_FR_=0,lastlyr_mc_build_FR_=0,lastlyr_mc_fit_FR_=0;
 
   float helixchi2_seed_FR_=0.,helixchi2_build_FR_=0.,helixchi2_fit_FR_=0.;
 
