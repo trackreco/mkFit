@@ -1280,7 +1280,20 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfp,
       std::vector<Track> &scands = eoccs.m_candidates[iseed];
       for (int ic = 0; ic < scands.size(); ++ic)
       {
-        if (scands[ic].getLastHitIdx() >= -1) // XXXXXXMT4MT what is -2, -3 now?
+        // XXXXXXMT4MT what is -2, -3 now?
+        // My understanding:
+        // -1 missing hit
+        // -2 missing hit - stopped tracking
+        // -3 missing hit due to detector geometry
+        // So -3 should also be taken -- but it only applies to CMS which is
+        // currently not used.
+        //
+        // TODO:
+        // 1. Renumber so stopped track is the most negative number.
+        //    Can leave some room for future missing-hit-types.
+        // 2. Document these cases somewhere, have NAMES or constants or an enum.
+        // 3. Make sure they are used consistently everywhere.
+        if (scands[ic].getLastHitIdx() >= -1)
         {
           seed_cand_idx.push_back(std::pair<int,int>(iseed,ic));
         }
@@ -1290,8 +1303,11 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfp,
 
     // don't bother messing with the clone engine if there are no candidates
     // (actually it crashes, so this protection is needed)
-    // XXXX MT ??? How does this happen ???
-    if (theEndCand == 0) continue;
+
+    if (theEndCand == 0) {
+      if (ilay < 0) break;
+      else          continue;
+    }
 
     if (ilay >= 0)
     {
