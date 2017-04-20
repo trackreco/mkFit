@@ -38,8 +38,9 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
 
   dprint("phi= " << phi << std::endl);
 
-  // this generates flat in eta
 roll_eta_dice:
+
+  // this generates flat in eta
   float eta = Config::minSimEta + (Config::maxSimEta - Config::minSimEta) * g_unif(g_gen);
 
   // XXXXMT Hardhack ... exclude transition region eta
@@ -119,6 +120,8 @@ roll_eta_dice:
       continue;
     }
     bool is_barrel = theInitSolid->is_barrel_;
+
+scatter_and_smear:
 
 #ifdef SCATTERING
     // PW START
@@ -293,7 +296,6 @@ roll_eta_dice:
     }
 #endif
 
-    SVector3 x1(hitX,hitY,hitZ);
     SMatrixSym33 covXYZ = ROOT::Math::SMatrixIdentity();
 
 #ifdef SOLID_SMEAR
@@ -326,6 +328,20 @@ roll_eta_dice:
         << "cov(0,0): " << covXYZ(0,0) << " cov(1,1): " << covXYZ(1,1) << " Config::varZ: " << Config::varZ << " cov(2,2): " << covXYZ(2,2) << std::endl 
         << "cov(0,1): " << covXYZ(0,1) << " cov(1,0): " << covXYZ(1,0) << std::endl);
 #endif
+
+    UVector3 x1(hitX,hitY,hitZ);
+
+    // XXXXMT4K Are we introducing bias here?
+    // 1. I understand smearing needs to change position ... but I do not understand
+    // why multiple scattering needs to. Why doesn't it just change momentum?
+    // 2. Almost all hits are produced withing epsilon of the entry face. should
+    // we try to move it towards the center of the detector?
+
+    if (theInitSolid->Inside(x1) == VUSolid::eOutside)
+    {
+      dprintf("re-scattering/smearing after hit got placed outside of layer %d\n", simLayer);
+      goto scatter_and_smear;
+    }
 
     MCHitInfo hitinfo(itrack, simLayer, layer_counts[simLayer], ev.nextMCHitID());
     hits.emplace_back(x1, covXYZ, hitinfo.mcHitID_);
