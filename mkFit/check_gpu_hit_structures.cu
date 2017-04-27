@@ -41,8 +41,8 @@ void compare_carrays(const float *h_a, const float *d_a,
 void check_event_of_hits_gpu(const EventOfHits& event_of_hits)
 {
   EventOfHitsCU event_of_hits_cu;
-  event_of_hits_cu.allocGPU(event_of_hits);
-  event_of_hits_cu.copyFromCPU(event_of_hits);
+  event_of_hits_cu.reserve_layers(event_of_hits);
+  event_of_hits_cu.copyFromCPU(event_of_hits, 0);
 
   constexpr int pos_size = 3;
   constexpr int err_size = 6;
@@ -60,7 +60,7 @@ void check_event_of_hits_gpu(const EventOfHits& event_of_hits)
   int hit_idx = 3;
 
   get_hit_pos_and_err <<< grid, block >>>
-    (event_of_hits_cu.m_layers_of_hits, ilay, hit_idx, d_pos, d_err, pos_size, err_size);
+    (event_of_hits_cu.m_layers_of_hits.data(), ilay, hit_idx, d_pos, d_err, pos_size, err_size);
 
   cudaMemcpy(pos, d_pos, pos_size*sizeof(float), cudaMemcpyDeviceToHost);
   cudaMemcpy(err, d_err, err_size*sizeof(float), cudaMemcpyDeviceToHost);
@@ -74,8 +74,6 @@ void check_event_of_hits_gpu(const EventOfHits& event_of_hits)
 
   cudaFree(d_pos);
   cudaFree(d_err);
-
-  event_of_hits_cu.deallocGPU();
 }
 
 

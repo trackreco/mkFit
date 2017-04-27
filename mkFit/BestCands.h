@@ -3,7 +3,7 @@
 
 #include "Config.h"
 
-#include <stdio.h>
+#include <cstdio>
 #include <limits>
 
 namespace CandsGPU 

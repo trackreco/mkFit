@@ -7,14 +7,7 @@
 #include "reorganize_gplex.h"
 #include "build_tracks_kernels.h"
 #include "array_algorithms_cu.h"
-/*#include "kalmanUpdater_kernels.h"*/
 #include "propagation_kernels.h"
-
-/*#include <thrust/device_vector.h>*/
-/*#include <thrust/fill.h>*/
-/*#include <thrust/reduce.h>*/
-/*#include <thrust/functional.h>*/
-
 
 constexpr int BLOCK_SIZE_X = 256;
 
@@ -53,7 +46,6 @@ __device__ void findCandidates_fn(const int ilay,
     CandsGPU::BestCands<Config::maxCandsPerSeed, BLOCK_SIZE_X>& cand_list)
 {
   // Note: cand_list is initially filled with sentinels
-  // TODO: Should we pass it as an argument?
   int itrack_block = threadIdx.x;  // for SM arrays
   int iseed_block = itrack_block / Config::maxCandsPerSeed;
   int icand_block = itrack_block % Config::maxCandsPerSeed;
@@ -100,57 +92,11 @@ __device__ void findCandidates_fn(const int ilay,
   // At this point, each track has the best candidates organized in a stack
   //__syncthreads(); no need for that, sync hapeen in merge
   // sorting garbbage is fine (i.e. threads with no valid tracks to start with)
-  /*if (iseed_block >= 42 || icand_block >= 6) {*/
-    /*printf("itrack %d, wrong candlist idx %d %d\n",itrack, iseed_block, icand_block);*/
-  /*}*/
   cand_list.merge_cands_for_seed(iseed_block, icand_block);
   // At this point, iseed has the best overall candidates
   // This cand_list is the output of the function. Used to update the
   // EtaBinOfCombCandidatesCU.
 }
-
-
-#if 0
-// No need for that
-__device__ void addShortTracks(
-    BestCands<Config::maxCandsPerSeed, BLOCK_SIZE_X>& cand_list,
-    EtaBinOfCombCandidatesCU& etabin_of_cands, int itrack_plex)
-{
-  int itrack_block = threadIdx.x;  // for SM arrays
-  int iseed_block = itrack_block / Config::maxCandsPerSeed;
-  int icand_block = itrack_block % Config::maxCandsPerSeed;
-  
-  if (icand_block) return; 
-
-  // Find where to start copying short tracks
-  int cur_sentinel = 0;
-  while (cur_sentinel < Config::maxCandsPerSeed &&
-         cand_list.get_nhits(iseed_block, cur_sentinel))
-  {
-    cur_sentinel++;
-  }
-  int cur_m2 = 0;
-
-  int iseed_event = ???;
-  Track* tracks = &EtaBinOfCombCandidatesCU.m_candidates[
-                          iseed_event*Config::maxCandsPerSeed];
-  int max_m2 = EtaBinOfCombCandidatesCU.m_ntracks_per_seed[
-                          iseed_event*Config::maxCandsPerSeed];
-  while (cur_m2 < max_m2 && tracks[cur_m2].getLastHitIdx() != -2) ++cur_m2;
-  while (cur_m2 < max_m2 && cur_sentinel < Config::maxCandsPerSeed)
-  {
-    cand_list.trkIdx[cur_sentinel++][cur_m2++]; 
-  }
-  // Here the cand_list is, for instance
-  // threadidx ->  0  1  2  3  4  5    Only first column matters
-  // cands:     0  G  -  -  -  -  -     G: good stuff. found hit
-  //            1  G  -  -             -2: short tracks
-  //            2  G  -                 S: Sentinel, not enough G and -2
-  //            3 -2  -
-  //            4 -2  -
-  //            5  S  -
-} 
-#endif
 
 
 __device__ void updateCandsWithInfo(Track *candidates, int *ntracks_per_seed,
@@ -197,9 +143,9 @@ __device__ void updateCandsWithInfo(Track *candidates, int *ntracks_per_seed,
 }
 
  
-__global__ void findInLayers_kernel(LayerOfHitsCU *layers,  // event_idx
-    EventOfCombCandidatesCU event_of_cands, 
-    GPlexQI XHitSize, GPlexHitIdx XHitArr,  // plex_idx
+__global__ void findInLayers_kernel(LayerOfHitsCU *layers, 
+    EtaBinOfCombCandidatesCU* etabins_of_comb_candidates, 
+    GPlexQI XHitSize, GPlexHitIdx XHitArr,  
     GPlexLS Err_iP, GPlexLV Par_iP, 
     GPlexHS *msErr_arr, GPlexHV *msPar_arr,
     GPlexLS Err_iC, GPlexLV Par_iC,
@@ -214,7 +160,7 @@ __global__ void findInLayers_kernel(LayerOfHitsCU *layers,  // event_idx
   constexpr int max_cands_per_block = (BLOCK_SIZE_X / Config::maxCandsPerSeed) * Config::maxCandsPerSeed;
 
   for (int ebin = 0; ebin < Config::nEtaBin; ebin++) {
-    EtaBinOfCombCandidatesCU& etabin_of_cands = event_of_cands.m_etabins_of_comb_candidates[ebin];
+    EtaBinOfCombCandidatesCU& etabin_of_cands = etabins_of_comb_candidates[ebin];
     int nseed = etabin_of_cands.m_nseed;
     if (nseed == 0) continue;
 
@@ -249,8 +195,8 @@ __global__ void findInLayers_kernel(LayerOfHitsCU *layers,  // event_idx
       //       enlarge the number of candidates for each seed.
       if (itrack_block < max_cands_per_block && itrack_plex < N) {
           for (int ilay = nlayers_per_seed; ilay <= Config::nLayers; ++ilay) {
-            Track *tracks = etabin_of_cands.m_candidates;
-            int *tracks_per_seed = etabin_of_cands.m_ntracks_per_seed;
+            Track *tracks = etabin_of_cands.m_candidates.data();
+            int *tracks_per_seed = etabin_of_cands.m_ntracks_per_seed.data();
 
             int Nhits = ilay;
             InputTracksAndHitIdxComb_fn(tracks, tracks_per_seed, 
@@ -294,7 +240,7 @@ __global__ void findInLayers_kernel(LayerOfHitsCU *layers,  // event_idx
             cand_list.reset(itrack_block);  // fill with sentinels TODO check if off guard
 
             findCandidates_fn(ilay,
-                layers[ilay].m_hits, XHitSize, XHitArr,
+                layers[ilay].m_hits.data(), XHitSize, XHitArr,
                 Err_iP, msErr_arr[ilay], msPar_arr[ilay], Par_iP, 
                 outChi2, Chi2, HitsIdx_arr,
                 SeedIdx, CandIdx, Valid,
@@ -368,7 +314,7 @@ void findInLayers_wrapper(cudaStream_t &stream,
 
   findInLayers_kernel <<<grid, block, 0, stream>>>
       (layers, 
-       event_of_cands_cu, 
+       event_of_cands_cu.m_etabins_of_comb_candidates.data(),
        XHitSize, XHitArr, Err_iP, Par_iP, msErr, msPar,
        Err_iC, Par_iC, outChi2, Chi2, HitsIdx_arr, inChg, Label, 
        SeedIdx, CandIdx, Valid, geom, maxSize, N, Config::nlayers_per_seed);

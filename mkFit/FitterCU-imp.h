@@ -234,7 +234,7 @@ void FitterCU<T>::setHitsIdxToZero(const int hit_idx) {
 template <typename T>
 void FitterCU<T>::addBestHit(EventOfHitsCU &event, GeometryCU &geom_cu,
                              EventOfCandidatesCU &event_of_cands_cu) {
-    findBestHit_wrapper(stream, event.m_layers_of_hits, 
+    findBestHit_wrapper(stream, event.m_layers_of_hits.data(),
                         event_of_cands_cu,
                         d_XHitSize, d_XHitArr,
                         d_Err_iP, d_par_iP, 

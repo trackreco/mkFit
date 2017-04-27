@@ -133,7 +133,7 @@ void updateTracksWithBestHit_wrapper(const cudaStream_t &stream,
   dim3 grid(gridx, 1, 1);
   dim3 block(BLOCK_SIZE_X, 1, 1);
   updateTracksWithBestHit_kernel <<< grid, block, 0, stream >>>
-      (layer.m_hits, minChi2, best_hit, msErr, msPar, propPar, Chi2, HitsIdx, N);
+      (layer.m_hits.data(), minChi2, best_hit, msErr, msPar, propPar, Chi2, HitsIdx, N);
 }
 
 
@@ -209,7 +209,7 @@ void bestHit_wrapper(const cudaStream_t &stream,
   dim3 block(BLOCK_SIZE_X, 1, 1);
 
   bestHit_kernel <<< grid, block, 0, stream >>>
-    (layer.m_hits, XHitSize, XHitArr,
+    (layer.m_hits.data(), XHitSize, XHitArr,
      propErr, msErr, msPar, propPar, outChi2,
      /*propErr.ptr, propErr.stride,*/
      /*msErr.ptr, msErr.stride, msErr.kSize,*/
@@ -261,7 +261,7 @@ __global__ void findBestHit_kernel(LayerOfHitsCU *layers,
           // FIXME: Is reduction over block enough, or do we need device-wise reduction
           reduceMax_fn<int, BLOCK_THREADS, 1, cub::BLOCK_REDUCE_WARP_REDUCTIONS>
             (XHitSize.ptr, XHitSize.N, &maxSize_block);
-          bestHit_fn(layer.m_hits, XHitSize, XHitArr, 
+          bestHit_fn(layer.m_hits.data(), XHitSize, XHitArr,
                      Err_iP, msErr, msPar, Par_iP, outChi2,
                      Chi2, HitsIdx, maxSize_block, tidx, N);
           kalmanUpdate_fn( Err_iP, msErr, Par_iP, msPar, Par_iC, Err_iC, tidx, N);

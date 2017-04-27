@@ -21,3 +21,4 @@ mkFit/auto-matriplex
 .*swp
 .*swo
 slurm-[0-9]*.out
+/.ptp-sync/

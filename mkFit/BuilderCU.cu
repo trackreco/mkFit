@@ -37,8 +37,6 @@ void BuilderCU::tearDownFitter()
 
 BuilderCU::~BuilderCU() {
   geom_cu.deallocate();
-  event_of_hits_cu.deallocGPU();
-  event_of_comb_cands_cu.free();
 }
 
 
@@ -56,22 +54,21 @@ void BuilderCU::allocateGeometry(const Geometry& geom)
 void BuilderCU::setUpBH(const EventOfHits& event_of_hits, const Event* event,
                       const EventOfCandidates& event_of_cands)
 {
-  event_of_hits_cu.allocGPU(event_of_hits, 2.f);
-  event_of_hits_cu.copyFromCPU(event_of_hits);
+  event_of_hits_cu.reserve_layers(event_of_hits, 2.f);
+  event_of_hits_cu.copyFromCPU(event_of_hits, cuFitter->get_stream());
   event_of_cands_cu.allocGPU(event_of_cands);
 }
 
 
 void BuilderCU::tearDownBH() {
   event_of_cands_cu.deallocGPU();
-  /*event_of_hits_cu.deallocGPU();*/
 }
 
 
 void BuilderCU::allocateCE(const EventOfHits& event_of_hits, const Event* event,
                            const EventOfCombCandidates& event_of_cands)
 {
-  event_of_hits_cu.allocGPU(event_of_hits, 2.f);
+  event_of_hits_cu.reserve_layers(event_of_hits, 2.f);
   event_of_comb_cands_cu.allocate(event_of_cands);
 }
 
@@ -79,7 +76,7 @@ void BuilderCU::allocateCE(const EventOfHits& event_of_hits, const Event* event,
 void BuilderCU::setUpCE(const EventOfHits& event_of_hits, const Event* event,
                       const EventOfCombCandidates& event_of_cands)
 {
-  event_of_hits_cu.copyFromCPU(event_of_hits);
+  event_of_hits_cu.copyFromCPU(event_of_hits, cuFitter->get_stream());
 }
 
 
@@ -105,7 +102,7 @@ void BuilderCU::FindTracksCloneEngine(EventOfCombCandidates& event_of_comb_cands
 {
   event_of_comb_cands_cu.copyFromCPU(event_of_comb_cands, cuFitter->get_stream());
 
-  cuFitter->FindTracksInLayers(event_of_hits_cu.m_layers_of_hits,
+  cuFitter->FindTracksInLayers(event_of_hits_cu.m_layers_of_hits.data(),
                                event_of_comb_cands_cu, geom_cu);
 
   event_of_comb_cands_cu.copyToCPU(event_of_comb_cands, cuFitter->get_stream());

@@ -1,8 +1,12 @@
 #ifndef _HIT_STRUCTURES_H_
 #define _HIT_STRUCTURES_H_
 
-#include "HitStructures.h"
 #include "Config.h"
+#include "HitStructures.h"
+
+#include "device_vector.h"
+#include "device_bundle.h"
+#include "device_array_view.h"
 #include "gpu_utils.h"
 
 template <typename T1, typename T2>
@@ -15,10 +19,10 @@ using PairIntsCU = PairCU<int, int>;
 
 class LayerOfHitsCU {
  public:
-  Hit *m_hits = nullptr;
-  PairIntsCU *m_phi_bin_infos = nullptr;
+  DeviceArrayView<Hit> m_hits;
+  DeviceArrayView<PairIntsCU> m_phi_bin_infos;
 
-  float m_zmin, m_zmax, m_fz;
+  float m_zmin = 0, m_zmax, m_fz = 0;
   int m_nz = 0;
   int m_capacity = 0;
   
@@ -41,18 +45,7 @@ class LayerOfHitsCU {
   //static constexpr float m_max_dz   = 1;
   //static constexpr float m_max_dphi = 0.02;
 
-  LayerOfHitsCU() {};
-  ~LayerOfHitsCU() {};
-
-  void alloc_hits(const int size, const float factor=1.f);  // factor: how much larger is the alloc
-  void free_hits();
-
-  void alloc_phi_bin_infos(const int nz, const int nphi, const float factor=1.f);
-  void free_phi_bin_infos();
-
-  void copyLayerOfHitsFromCPU(const LayerOfHits &layer,
-                              const cudaStream_t &stream=0);
-  void copyFromCPU(const HitVec hits, const cudaStream_t &stream=0);
+  void copy_layer_values(const LayerOfHits &layer);
 
 #ifdef __CUDACC__
   __device__
@@ -85,24 +78,41 @@ class LayerOfHitsCU {
 class EventOfHitsCU 
 {
 public:
-  LayerOfHitsCU *m_layers_of_hits = nullptr;  // the real stuff: on GPU
+  DeviceVector<LayerOfHitsCU> m_layers_of_hits;
   int            m_n_layers = 0;
 
   // The following array is to be able to allocate GPU arrays from
   // the CPU and then copy the address of the GPU ptr to the GPU structure
-  LayerOfHitsCU *m_layers_of_hits_alloc = nullptr;
+  std::vector<LayerOfHitsCU> m_layers_of_hits_alloc;
   
   EventOfHitsCU() : m_n_layers{} {};
 
-  void allocGPU(const EventOfHits &event_of_hits, const float factor=1.f);
-  void reallocGPU(const EventOfHits &event_of_hits);
-
-  void allocGPU(const std::vector<HitVec> &layerHits);
-  void deallocGPU();
+  void reserve_layers(const EventOfHits &event_of_hits, float factor=1.f);
+  void reserve_layers(const std::vector<HitVec> &layerHits);  // fittest
   void copyFromCPU(const EventOfHits& event_of_hits,
-                   const cudaStream_t &stream=0);
+                   const cudaStream_t &stream);
   void copyFromCPU(const std::vector<HitVec> &layerHits,
-                   const cudaStream_t &stream=0);
+                   const cudaStream_t &stream);
+
+private:
+  void prepare_all_host_hits(const EventOfHits &event_of_hits);
+  void prepare_all_host_bins(const EventOfHits &event_of_hits);
+
+  void reserve_all_hits(const EventOfHits &event_of_hits, float factor);
+  void reserve_all_hits(const std::vector<HitVec> &layers_of_hits, float factor);
+  void reserve_all_phi_bins(const EventOfHits &event_of_hits, float factor);
+
+  void set_layer_hit_views(const EventOfHits& event_of_hits, float factor);
+  void set_layer_bin_views(const EventOfHits& event_of_hits, float factor);
+
+  // Large 'arrays' to help with data transfers -- Fortran 77's style.
+  // The whole trick is to flatten the memory layout to minimize the number of transfers
+  // Where we move host data to be consecutive (with padding)
+  std::vector<PhiBinInfo_t> all_host_bins;
+  std::vector<Hit> all_host_hits;
+  // Where we store device data. Layers are pointers to parts of the array
+  DeviceBundle<Hit> all_hits;
+  DeviceBundle<PairIntsCU> all_phi_bin_infos;
 };
 
 // ============================================================================
@@ -119,22 +129,24 @@ public:
   void free_tracks();
 
   void copyFromCPU(const EtaBinOfCandidates &eta_bin,
-                   const cudaStream_t &stream=0);
+                   const cudaStream_t &stream);
   void copyToCPU(EtaBinOfCandidates &eta_bin,
-                  const cudaStream_t &stream=0) const;
+                  const cudaStream_t &stream) const;
 };
 
 
 class EventOfCandidatesCU 
 {
 public:
-  EtaBinOfCandidatesCU *m_etabins_of_candidates;  // device array
   int m_n_etabins;
+  EtaBinOfCandidatesCU *m_etabins_of_candidates;  // device array
   
   // Host array. For allocation and transfer purposes
   EtaBinOfCandidatesCU *m_etabins_of_candidates_alloc;
 
-  EventOfCandidatesCU() : m_n_etabins{} {};
+  EventOfCandidatesCU() : m_n_etabins{},
+                          m_etabins_of_candidates{nullptr},
+                          m_etabins_of_candidates_alloc{nullptr} {}
 
   void allocGPU(const EventOfCandidates &event_of_cands);
   void deallocGPU();
@@ -157,8 +169,8 @@ public:
   // More trouble to come: We cannot do the same as for EtaBinOfCandidatesCU
   // for copying from host mem to dev. mem. The non contiguous host mem
   // for m_candidates forces a loop over the seeds.
-  Track *m_candidates = nullptr;
-  int *m_ntracks_per_seed = nullptr;  // array of m_candidates[i].size()
+  DeviceVector<Track> m_candidates;
+  DeviceVector<int> m_ntracks_per_seed;  // array of m_candidates[i].size()
 
   int m_real_size = 0;
   int m_fill_index = 0;
@@ -166,12 +178,10 @@ public:
   int m_nseed_alloc = 0;
 
   void allocate(const int nseed, const int factor=1.f);
-  void free();
-
   void copyFromCPU(const EtaBinOfCombCandidates& eta_bin,
-                   const cudaStream_t& stream=0);
+                   const cudaStream_t& stream);
   void copyToCPU(EtaBinOfCombCandidates& eta_bin,
-                 const cudaStream_t& stream=0) const;
+                 const cudaStream_t& stream) const;
 };
 
 
@@ -179,20 +189,19 @@ public:
 class EventOfCombCandidatesCU
 {
 public:
-  EtaBinOfCombCandidatesCU* m_etabins_of_comb_candidates = nullptr;
+  DeviceVector<EtaBinOfCombCandidatesCU> m_etabins_of_comb_candidates;
   int m_n_etabins = 0;
 
   // Host array. For allocation and transfer purposes
-  EtaBinOfCombCandidatesCU *m_etabins_of_comb_candidates_alloc = nullptr;
+  std::vector<EtaBinOfCombCandidatesCU> m_etabins_of_comb_candidates_alloc;
 
   EventOfCombCandidatesCU() : m_n_etabins{} {};
 
   void allocate(const EventOfCombCandidates &event_of_cands, const float factor=1.f);
-  void free();
   void copyFromCPU(const EventOfCombCandidates &event_of_cands,
-                   const cudaStream_t &stream=0);
+                   const cudaStream_t &stream);
   void copyToCPU(EventOfCombCandidates &event_of_cands,
-                 const cudaStream_t &stream=0) const;
+                 const cudaStream_t &stream) const;
 };
 
 #endif  // _HIT_STRUCTURES_H_

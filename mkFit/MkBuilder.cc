@@ -14,10 +14,6 @@
 
 #include <tbb/tbb.h>
 
-#ifdef USE_CUDA
-#include "FitterCU.h"
-#endif
-
 ExecutionContext g_exe_ctx;
 
 namespace
@@ -864,50 +860,6 @@ void MkBuilder::FindTracksCloneEngine()
   g_exe_ctx.populate(Config::numThreadsFinder);
   EventOfCombCandidates &event_of_comb_cands = m_event_tmp->m_event_of_comb_cands;
 
-#if USE_CUDA
-  int max_nseeds = 0;
-  for (auto& x: event_of_comb_cands.m_etabins_of_comb_candidates) {
-    max_nseeds = max_nseeds > x.m_fill_index ? max_nseeds : x.m_fill_index;
-  }
-  int gplex_size = max_nseeds * Config::maxCandsPerSeed / 2;
-  FitterCU<float> cuFitter(gplex_size);
-  cuFitter.allocateDevice();
-  cuFitter.allocate_extra_addBestHit();
-  cuFitter.allocate_extra_combinatorial();
-  cuFitter.createStream();
-
-  GeometryCU geom_cu;
-  geom_cu.allocate();
-  std::vector<float> radii (Config::nLayers);
-  for (int ilay = Config::nlayers_per_seed; ilay < Config::nLayers; ++ilay) {
-    radii[ilay] = m_event->geom_.Radius(ilay);
-  }
-  geom_cu.getRadiiFromCPU(&radii[0]);
-
-  EventOfHitsCU event_of_hits_cu;
-  event_of_hits_cu.allocGPU(m_event_of_hits);
-  event_of_hits_cu.copyFromCPU(m_event_of_hits, cuFitter.get_stream());
-
-  EventOfCombCandidatesCU event_of_comb_cands_cu;
-  event_of_comb_cands_cu.allocate(event_of_comb_cands);
-  event_of_comb_cands_cu.copyFromCPU(event_of_comb_cands, cuFitter.get_stream());
-  cuFitter.setNumberTracks(gplex_size);
-
-  cuFitter.FindTracksInLayers(event_of_hits_cu.m_layers_of_hits,
-                              event_of_comb_cands_cu, geom_cu);
-
-  event_of_comb_cands_cu.copyToCPU(event_of_comb_cands, cuFitter.get_stream());
-  event_of_comb_cands_cu.free();
-  geom_cu.deallocate();
-  event_of_hits_cu.deallocGPU();
-
-  cuFitter.free_extra_combinatorial();
-  cuFitter.free_extra_addBestHit();
-  cuFitter.freeDevice(); 
-  cuFitter.destroyStream();
-
-#else
-
   tbb::parallel_for(tbb::blocked_range<int>(0, Config::nEtaBin),
     [&](const tbb::blocked_range<int>& ebins)
   {
@@ -927,7 +879,6 @@ void MkBuilder::FindTracksCloneEngine()
       });
     }
   });
-#endif
 }
 
 void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_candidates, CandCloner &cloner,

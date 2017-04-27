@@ -109,7 +109,7 @@ void HitToMs_wrapper(const cudaStream_t& stream,
   dim3 grid(gridx, 1, 1);
   dim3 block(BLOCK_SIZE_X, 1, 1);
   HitToMs_kernel <<< grid, block, 0 , stream >>>
-    (msErr, msPar, layer.m_hits, XHitSize, XHitArr, HitsIdx, hit_cnt, N);
+    (msErr, msPar, layer.m_hits.data(), XHitSize, XHitArr, HitsIdx, hit_cnt, N);
   /*cudaDeviceSynchronize();*/
 }
 
@@ -233,7 +233,7 @@ void InputTracksAndHitsCU_wrapper(const cudaStream_t &stream,
   dim3 block(BLOCK_SIZE_X, 1, 1);
 
   InputTracksAndHitsCU_kernel <<< grid, block, 0, stream >>>
-    (tracks, event_of_hits.m_layers_of_hits, 
+    (tracks, event_of_hits.m_layers_of_hits.data(),
      Err_iP, Par_iP, 
      msErr_arr, msPar_arr, 
      Chg, Chi2, Label, HitsIdx,
@@ -434,7 +434,7 @@ void InputTracksAndHitIdxComb_wrapper(const cudaStream_t &stream,
   dim3 block(BLOCK_SIZE_X, 1, 1);
 
   InputTracksAndHitIdxComb_kernel<<< grid, block, 0, stream >>>
-    (etaBin.m_candidates, etaBin.m_ntracks_per_seed, 
+    (etaBin.m_candidates.data(), etaBin.m_ntracks_per_seed.data(),
      Err_iP, Par_iP, 
      Chg, Chi2, Label, HitsIdx,
      SeedIdx, CandIdx, Valid, Nhits,
