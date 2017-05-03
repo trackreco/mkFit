@@ -129,33 +129,34 @@ int main() {
   FILE * fp;
   fp = fopen (outfilename.Data(), "wb");
 
-  int evt;
-  t->SetBranchAddress("evt",&evt);
+  int event;
+  t->SetBranchAddress("event",&event);
 
   //sim tracks
   std::vector<float>* sim_eta = 0;
   std::vector<float>* sim_px = 0;
   std::vector<float>* sim_py = 0;
   std::vector<float>* sim_pz = 0;
-  std::vector<float>* sim_prodx = 0;
-  std::vector<float>* sim_prody = 0;
-  std::vector<float>* sim_prodz = 0;
+  std::vector<int>*   sim_parentVtxIdx = 0;
   std::vector<int>*   sim_q = 0;
-  std::vector<std::vector<int> >* sim_pixelIdx = 0;
-  std::vector<std::vector<int> >* sim_stripIdx = 0;
   std::vector<int>*   sim_trkIdx = 0;
   t->SetBranchAddress("sim_eta",&sim_eta);
   t->SetBranchAddress("sim_px",&sim_px);
   t->SetBranchAddress("sim_py",&sim_py);
   t->SetBranchAddress("sim_pz",&sim_pz);
-  t->SetBranchAddress("sim_prodx",&sim_prodx);
-  t->SetBranchAddress("sim_prody",&sim_prody);
-  t->SetBranchAddress("sim_prodz",&sim_prodz);
+  t->SetBranchAddress("sim_parentVtxIdx",&sim_parentVtxIdx);
   t->SetBranchAddress("sim_q",&sim_q);
-  t->SetBranchAddress("sim_pixelIdx",&sim_pixelIdx);
-  t->SetBranchAddress("sim_stripIdx",&sim_stripIdx);
   t->SetBranchAddress("sim_trkIdx",&sim_trkIdx);
 
+  //simvtx
+  std::vector<float>* simvtx_x;
+  std::vector<float>* simvtx_y;
+  std::vector<float>* simvtx_z;
+  t->SetBranchAddress("simvtx_x"       , &simvtx_x);
+  t->SetBranchAddress("simvtx_y"       , &simvtx_y);
+  t->SetBranchAddress("simvtx_z"       , &simvtx_z);
+
+  
   //rec tracks
   std::vector<int>*   trk_nValid = 0;
   std::vector<int>*   trk_nInvalid = 0;
@@ -355,17 +356,25 @@ int main() {
 
     t->GetEntry(i);
 
-    cout << "edm event=" << evt << endl;
+    cout << "edm event=" << event << endl;
 
-    if (sim_q->size()==0) {
+
+    auto nSims = sim_q->size();
+    if (nSims==0) {
       cout << "branches not loaded" << endl; exit(1);
     }
-    
+
     vector<Track> simTracks_;
     vector<int> simTrackIdx_(sim_q->size(),-1);//keep track of original index in ntuple
     vector<int> seedSimIdx(see_x->size(),-1);
     for (int isim = 0; isim < sim_q->size(); ++isim) {
 
+      //load sim production vertex data
+      auto iVtx = sim_parentVtxIdx->at(isim);
+      constexpr float largeValF = 9999.f;
+      float sim_prodx = iVtx >= 0 ? simvtx_x->at(iVtx) : largeValF;
+      float sim_prody = iVtx >= 0 ? simvtx_y->at(iVtx) : largeValF;
+      float sim_prodz = iVtx >= 0 ? simvtx_z->at(iVtx) : largeValF;
       //if (fabs(sim_eta->at(isim))>0.8) continue;
 
       int trkIdx = sim_trkIdx->at(isim);
@@ -397,14 +406,14 @@ int main() {
 	for (int i=0;i<nTotalLayers;i++) if (hitlay[i]>0) nlay++;
       }
 
-      //cout << Form("track q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) nlay=%i",sim_q->at(isim),sim_px->at(isim),sim_py->at(isim),sim_pz->at(isim),sim_prodx->at(isim),sim_prody->at(isim),sim_prodz->at(isim),nlay) << endl;
+      //cout << Form("track q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) nlay=%i",sim_q->at(isim),sim_px->at(isim),sim_py->at(isim),sim_pz->at(isim),sim_prodx,sim_prody,sim_prodz,nlay) << endl;
 
-      SVector3 pos(sim_prodx->at(isim),sim_prody->at(isim),sim_prodz->at(isim));
+      SVector3 pos(sim_prodx,sim_prody,sim_prodz);
       SVector3 mom(sim_px->at(isim),sim_py->at(isim),sim_pz->at(isim));
       SMatrixSym66 err;
-      err.At(0,0) = sim_prodx->at(isim)*sim_prodx->at(isim);
-      err.At(1,1) = sim_prody->at(isim)*sim_prody->at(isim);
-      err.At(2,2) = sim_prodz->at(isim)*sim_prodz->at(isim);
+      err.At(0,0) = sim_prodx*sim_prodx;
+      err.At(1,1) = sim_prody*sim_prody;
+      err.At(2,2) = sim_prodz*sim_prodz;
       err.At(3,3) = sim_px->at(isim)*sim_px->at(isim);
       err.At(4,4) = sim_py->at(isim)*sim_py->at(isim);
       err.At(5,5) = sim_pz->at(isim)*sim_pz->at(isim);
