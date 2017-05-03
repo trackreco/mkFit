@@ -2,103 +2,127 @@
 #include "TFile.h"
 #include "TTree.h"
 
-struct LayerNumberConverter {
+enum struct TkLayout {phase0 = 0, phase1 = 1};
+
+class LayerNumberConverter {
 public:
-  LayerNumberConverter() {}
-  int convertLayerNumber(int cmsswdet, int cmsswlay, bool useMatched, int isStereo) {
-    if (cmsswdet==2 || cmsswdet==4 || cmsswdet==6) return -1;
-    if (cmsswdet==1) return cmsswlay-1;
+  LayerNumberConverter(TkLayout layout) : lo_(layout) {}
+  unsigned int nLayers() const {
+    if (lo_ == TkLayout::phase0) return 69;
+    if (lo_ == TkLayout::phase1) return 72;
+    return 10;
+  }
+  int convertLayerNumber(int det, int lay, bool useMatched, int isStereo, bool posZ) const {
+    if (det == 1 || det == 3 || det == 5){
+      return convertBarrelLayerNumber(det, lay, useMatched, isStereo);
+    } else {
+      int disk = convertDiskNumber(det, lay, useMatched, isStereo);
+      if (disk < 0) return -1;
+
+      int lOffset = 0;
+      if (lo_ == TkLayout::phase1) lOffset = 1;
+      disk += 17+lOffset;
+      if (! posZ) disk += 25+2*lOffset;
+    }
+    return -1;
+  }
+  
+  int convertBarrelLayerNumber(int cmsswdet, int cmsswlay, bool useMatched, int isStereo) const {
+    int lOffset = 0;
+    if (lo_ == TkLayout::phase1) lOffset = 1;
+    if (cmsswdet==2 || cmsswdet==4 || cmsswdet==6) return -1;//FPIX, TID, TEC
+    if (cmsswdet==1) return cmsswlay-1;//BPIX
     if (useMatched) {
-      if (cmsswdet==3 && cmsswlay==1 && isStereo==-1) return 3;
-      if (cmsswdet==3 && cmsswlay==2 && isStereo==-1) return 4;
-      if (cmsswdet==3 && cmsswlay==3 && isStereo==0 ) return 5;
-      if (cmsswdet==3 && cmsswlay==4 && isStereo==0 ) return 6;
-      if (cmsswdet==5 && cmsswlay==1 && isStereo==-1) return 7;
-      if (cmsswdet==5 && cmsswlay==2 && isStereo==-1) return 8;
-      if (cmsswdet==5 && cmsswlay==3 && isStereo==0 ) return 9;
-      if (cmsswdet==5 && cmsswlay==4 && isStereo==0 ) return 10;
-      if (cmsswdet==5 && cmsswlay==5 && isStereo==0 ) return 11;
-      if (cmsswdet==5 && cmsswlay==6 && isStereo==0 ) return 12;
+      //TIB
+      if (cmsswdet==3 && cmsswlay==1 && isStereo==-1) return 3+lOffset;
+      if (cmsswdet==3 && cmsswlay==2 && isStereo==-1) return 4+lOffset;
+      if (cmsswdet==3 && cmsswlay==3 && isStereo==0 ) return 5+lOffset;
+      if (cmsswdet==3 && cmsswlay==4 && isStereo==0 ) return 6+lOffset;
+      //TOB
+      if (cmsswdet==5 && cmsswlay==1 && isStereo==-1) return 7+lOffset;
+      if (cmsswdet==5 && cmsswlay==2 && isStereo==-1) return 8+lOffset;
+      if (cmsswdet==5 && cmsswlay==3 && isStereo==0 ) return 9+lOffset;
+      if (cmsswdet==5 && cmsswlay==4 && isStereo==0 ) return 10+lOffset;
+      if (cmsswdet==5 && cmsswlay==5 && isStereo==0 ) return 11+lOffset;
+      if (cmsswdet==5 && cmsswlay==6 && isStereo==0 ) return 12+lOffset;
       return -1;
     } else {
-      if (cmsswdet==3 && cmsswlay==1 && isStereo==0) return 3;
-      if (cmsswdet==3 && cmsswlay==1 && isStereo==1) return 4;
-      if (cmsswdet==3 && cmsswlay==2 && isStereo==0) return 5;
-      if (cmsswdet==3 && cmsswlay==2 && isStereo==1) return 6;
-      if (cmsswdet==3 && cmsswlay==3 && isStereo==0) return 7;
-      if (cmsswdet==3 && cmsswlay==4 && isStereo==0) return 8;
-      if (cmsswdet==5 && cmsswlay==1 && isStereo==1) return 9;
-      if (cmsswdet==5 && cmsswlay==1 && isStereo==0) return 10;
-      if (cmsswdet==5 && cmsswlay==2 && isStereo==1) return 11;
-      if (cmsswdet==5 && cmsswlay==2 && isStereo==0) return 12;
-      if (cmsswdet==5 && cmsswlay==3 && isStereo==0) return 13;
-      if (cmsswdet==5 && cmsswlay==4 && isStereo==0) return 14;
-      if (cmsswdet==5 && cmsswlay==5 && isStereo==0) return 15;
-      if (cmsswdet==5 && cmsswlay==6 && isStereo==0) return 16;
+      //TIB
+      if (cmsswdet==3 && cmsswlay==1 && isStereo==0) return 3+lOffset;
+      if (cmsswdet==3 && cmsswlay==1 && isStereo==1) return 4+lOffset;
+      if (cmsswdet==3 && cmsswlay==2 && isStereo==0) return 5+lOffset;
+      if (cmsswdet==3 && cmsswlay==2 && isStereo==1) return 6+lOffset;
+      if (cmsswdet==3 && cmsswlay==3 && isStereo==0) return 7+lOffset;
+      if (cmsswdet==3 && cmsswlay==4 && isStereo==0) return 8+lOffset;
+      //TOB
+      if (cmsswdet==5 && cmsswlay==1 && isStereo==1) return 9+lOffset;
+      if (cmsswdet==5 && cmsswlay==1 && isStereo==0) return 10+lOffset;
+      if (cmsswdet==5 && cmsswlay==2 && isStereo==1) return 11+lOffset;
+      if (cmsswdet==5 && cmsswlay==2 && isStereo==0) return 12+lOffset;
+      if (cmsswdet==5 && cmsswlay==3 && isStereo==0) return 13+lOffset;
+      if (cmsswdet==5 && cmsswlay==4 && isStereo==0) return 14+lOffset;
+      if (cmsswdet==5 && cmsswlay==5 && isStereo==0) return 15+lOffset;
+      if (cmsswdet==5 && cmsswlay==6 && isStereo==0) return 16+lOffset;
       return -1;
     }
   }  
-  int convertDiskNumber(int cmsswdet, int cmsswdisk, bool useMatched, int isStereo) {
-    if (cmsswdet==1 || cmsswdet==3 || cmsswdet==5) return -1;
-    if (cmsswdet==2) return cmsswdisk-1;
+  int convertDiskNumber(int cmsswdet, int cmsswdisk, bool useMatched, int isStereo) const {
+    if (cmsswdet==1 || cmsswdet==3 || cmsswdet==5) return -1;//BPIX, TIB, TOB
+    if (cmsswdet==2) return cmsswdisk-1;//FPIX
+    int lOffset = 0;
+    if (lo_ == TkLayout::phase1) lOffset = 1;
     if (useMatched) {
       return -1;
     } else {
-      if (cmsswdet==4 && cmsswdisk==1 && isStereo==0) return 2;
-      if (cmsswdet==4 && cmsswdisk==1 && isStereo==1) return 3;
-      if (cmsswdet==4 && cmsswdisk==2 && isStereo==0) return 4;
-      if (cmsswdet==4 && cmsswdisk==2 && isStereo==1) return 5;
-      if (cmsswdet==4 && cmsswdisk==3 && isStereo==0) return 6;
-      if (cmsswdet==4 && cmsswdisk==3 && isStereo==1) return 7;
-      if (cmsswdet==6 && cmsswdisk==1 && isStereo==1) return 8;
-      if (cmsswdet==6 && cmsswdisk==1 && isStereo==0) return 9;
-      if (cmsswdet==6 && cmsswdisk==2 && isStereo==1) return 10;
-      if (cmsswdet==6 && cmsswdisk==2 && isStereo==0) return 11;
-      if (cmsswdet==6 && cmsswdisk==3 && isStereo==1) return 12;
-      if (cmsswdet==6 && cmsswdisk==3 && isStereo==0) return 13;
-      if (cmsswdet==6 && cmsswdisk==4 && isStereo==1) return 14;
-      if (cmsswdet==6 && cmsswdisk==4 && isStereo==0) return 15;
-      if (cmsswdet==6 && cmsswdisk==5 && isStereo==1) return 16;
-      if (cmsswdet==6 && cmsswdisk==5 && isStereo==0) return 17;
-      if (cmsswdet==6 && cmsswdisk==6 && isStereo==1) return 18;
-      if (cmsswdet==6 && cmsswdisk==6 && isStereo==0) return 19;
-      if (cmsswdet==6 && cmsswdisk==7 && isStereo==1) return 20;
-      if (cmsswdet==6 && cmsswdisk==7 && isStereo==0) return 21;
-      if (cmsswdet==6 && cmsswdisk==8 && isStereo==1) return 22;
-      if (cmsswdet==6 && cmsswdisk==8 && isStereo==0) return 23;
-      if (cmsswdet==6 && cmsswdisk==9 && isStereo==1) return 24;
-      if (cmsswdet==6 && cmsswdisk==9 && isStereo==0) return 25;
+      //TID
+      if (cmsswdet==4 && cmsswdisk==1 && isStereo==0) return 2+lOffset;
+      if (cmsswdet==4 && cmsswdisk==1 && isStereo==1) return 3+lOffset;
+      if (cmsswdet==4 && cmsswdisk==2 && isStereo==0) return 4+lOffset;
+      if (cmsswdet==4 && cmsswdisk==2 && isStereo==1) return 5+lOffset;
+      if (cmsswdet==4 && cmsswdisk==3 && isStereo==0) return 6+lOffset;
+      if (cmsswdet==4 && cmsswdisk==3 && isStereo==1) return 7+lOffset;
+      //TEC
+      if (cmsswdet==6 && cmsswdisk==1 && isStereo==1) return 8+lOffset;
+      if (cmsswdet==6 && cmsswdisk==1 && isStereo==0) return 9+lOffset;
+      if (cmsswdet==6 && cmsswdisk==2 && isStereo==1) return 10+lOffset;
+      if (cmsswdet==6 && cmsswdisk==2 && isStereo==0) return 11+lOffset;
+      if (cmsswdet==6 && cmsswdisk==3 && isStereo==1) return 12+lOffset;
+      if (cmsswdet==6 && cmsswdisk==3 && isStereo==0) return 13+lOffset;
+      if (cmsswdet==6 && cmsswdisk==4 && isStereo==1) return 14+lOffset;
+      if (cmsswdet==6 && cmsswdisk==4 && isStereo==0) return 15+lOffset;
+      if (cmsswdet==6 && cmsswdisk==5 && isStereo==1) return 16+lOffset;
+      if (cmsswdet==6 && cmsswdisk==5 && isStereo==0) return 17+lOffset;
+      if (cmsswdet==6 && cmsswdisk==6 && isStereo==1) return 18+lOffset;
+      if (cmsswdet==6 && cmsswdisk==6 && isStereo==0) return 19+lOffset;
+      if (cmsswdet==6 && cmsswdisk==7 && isStereo==1) return 20+lOffset;
+      if (cmsswdet==6 && cmsswdisk==7 && isStereo==0) return 21+lOffset;
+      if (cmsswdet==6 && cmsswdisk==8 && isStereo==1) return 22+lOffset;
+      if (cmsswdet==6 && cmsswdisk==8 && isStereo==0) return 23+lOffset;
+      if (cmsswdet==6 && cmsswdisk==9 && isStereo==1) return 24+lOffset;
+      if (cmsswdet==6 && cmsswdisk==9 && isStereo==0) return 25+lOffset;
       return -1;
     }
   }
+  TkLayout lo_;
 };
 
 bool useMatched = false;
-bool doEndcap = true;//otherwise do barrel, both at the same time not supported for now
 
 int main() {
 
   using namespace std;
 
-  LayerNumberConverter lnc;
+  LayerNumberConverter lnc(TkLayout::phase1);
+  const unsigned int nTotalLayers = lnc.nLayers();
 
   long long maxevt = 0;
 
   int nstot = 0;
-  int nhitstot[Config::nTotalLayers];
-  std::fill_n(nhitstot, Config::nTotalLayers, 0);
+  std::vector<int> nhitstot(nTotalLayers, 0);
 
   TString outfilename = "";
 
-  // TFile* f = TFile::Open("./ntuple_test_1GeV_10k_split.root"); maxevt = 3000;outfilename = "cmssw_3kxSingleMu1GeV_split_endcap.bin";
-  TFile* f = TFile::Open("./ntuple_test_10GeV_10k_split.root"); maxevt = 3000;outfilename = "cmssw_3kxSingleMu10GeV_split_endcap.bin";
-  //TFile* f = TFile::Open("./ntuple_test_1GeV_10k.root");
-  // TFile* f = TFile::Open(useMatched ? "./ntuple_test_1GeV_10k_noSplit_mock_noFWD.root" : "./ntuple_test_1GeV_10k_split_mock_noFWD.root");maxevt = 3000;outfilename = (useMatched ? "cmssw_3kxSingleMu1GeV_polar_noSplit_mock_noFWD.bin" : "cmssw_3kxSingleMu1GeV_polar_split_mock_noFWD.bin");
-  // TFile* f = TFile::Open(useMatched ? "./ntuple_test_10GeV_10k_noSplit_mock_noFWD.root" : "./ntuple_test_10GeV_10k_split_mock_noFWD.root");maxevt = 3000;outfilename = (useMatched ? "cmssw_3kxSingleMu10GeV_polar_noSplit_mock_noFWD.bin" : "cmssw_3kxSingleMu10GeV_polar_split_mock_noFWD.bin");
-  // TFile* f = TFile::Open("./ntuple_test_ZTT_split_mock_noFWD.root");assert(useMatched==false);maxevt = 500;outfilename = "cmssw_500xZTT_polar_split_mock_noFWD.bin";
-  // TFile* f = TFile::Open("./ntuple_test_TTbar_split_mock_noFWD.root");assert(useMatched==false);maxevt = 500;outfilename = "cmssw_500xTTbar_polar_split_mock_noFWD.bin";
-  // TFile* f = TFile::Open("./ntuple_test_TTbarPU10_split_mock_noFWD.root");assert(useMatched==false);maxevt = 100;outfilename = "cmssw_100xTTbarPU10_polar_split_mock_noFWD.bin";
-  // TFile* f = TFile::Open("./ntuple_test_TTbarPU35_split_mock_noFWD.root");assert(useMatched==false);maxevt = 100;outfilename = "cmssw_100xTTbarPU35_polar_split_mock_noFWD.bin";
+  TFile* f = TFile::Open("./ntuple_input.root"); maxevt = 3000;outfilename = "cmssw_output.bin";
   
   TTree* t = (TTree*) f->Get("trkTree/tree");
 
@@ -348,40 +372,29 @@ int main() {
       //if (trkIdx<0) continue;
 
       int nlay = 0;
-      int hitlay[Config::nTotalLayers];
-      std::fill_n(hitlay, Config::nTotalLayers, 0);
+      std::vector<int> hitlay(nTotalLayers, 0);
       if (trkIdx>=0) {
 	for (int ihit = 0; ihit < trk_pixelIdx->at(trkIdx).size(); ++ihit) {
 	  int ipix = trk_pixelIdx->at(trkIdx).at(ihit);
 	  if (ipix<0) continue;
-	  if (doEndcap) {
-	    int cmsswdisk = lnc.convertDiskNumber((pix_isBarrel->at(ipix)?1:2),pix_lay->at(ipix),useMatched,-1);
-	    if (cmsswdisk>=0 && cmsswdisk<Config::nTotalLayers) hitlay[cmsswdisk]++;
-	  } else {
-	    int cmsswlay = lnc.convertLayerNumber((pix_isBarrel->at(ipix)?1:2),pix_lay->at(ipix),useMatched,-1);
-	    if (cmsswlay>=0 && cmsswlay<Config::nTotalLayers) hitlay[cmsswlay]++;
-	  }
+	  int cmsswlay = lnc.convertLayerNumber((pix_isBarrel->at(ipix)?1:2),pix_lay->at(ipix),useMatched,-1,pix_z->at(ipix)>0);
+	  if (cmsswlay>=0 && cmsswlay<nTotalLayers) hitlay[cmsswlay]++;
 	}
 	if (useMatched) {
 	  for (int ihit = 0; ihit < trk_gluedIdx->at(trkIdx).size(); ++ihit) {
 	    int iglu = trk_gluedIdx->at(trkIdx).at(ihit);
 	    if (iglu<0) continue;
-	    int cmsswlay = lnc.convertLayerNumber(glu_det->at(iglu),glu_lay->at(iglu),useMatched,-1);
-	    if (cmsswlay>=0 && cmsswlay<Config::nTotalLayers) hitlay[cmsswlay]++;
+	    int cmsswlay = lnc.convertLayerNumber(glu_det->at(iglu),glu_lay->at(iglu),useMatched,-1,glu_z->at(iglu)>0);
+	    if (cmsswlay>=0 && cmsswlay<nTotalLayers) hitlay[cmsswlay]++;
 	  }
 	}
 	for (int ihit = 0; ihit < trk_stripIdx->at(trkIdx).size(); ++ihit) {
 	  int istr = trk_stripIdx->at(trkIdx).at(ihit);
 	  if (istr<0) continue;
-	  if (doEndcap) {
-	    int cmsswdisk = lnc.convertDiskNumber(str_det->at(istr),str_lay->at(istr),useMatched,str_isStereo->at(istr));
-	    if (cmsswdisk>=0 && cmsswdisk<Config::nTotalLayers) hitlay[cmsswdisk]++;
-	  } else {
-	    int cmsswlay = lnc.convertLayerNumber(str_det->at(istr),str_lay->at(istr),useMatched,str_isStereo->at(istr));
-	    if (cmsswlay>=0 && cmsswlay<Config::nTotalLayers) hitlay[cmsswlay]++;
-	  }
+	  int cmsswlay = lnc.convertLayerNumber(str_det->at(istr),str_lay->at(istr),useMatched,str_isStereo->at(istr),str_z->at(istr)>0);
+	  if (cmsswlay>=0 && cmsswlay<nTotalLayers) hitlay[cmsswlay]++;
 	}
-	for (int i=0;i<Config::nTotalLayers;i++) if (hitlay[i]>0) nlay++;
+	for (int i=0;i<nTotalLayers;i++) if (hitlay[i]>0) nlay++;
       }
 
       //cout << Form("track q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) nlay=%i",sim_q->at(isim),sim_px->at(isim),sim_py->at(isim),sim_pz->at(isim),sim_prodx->at(isim),sim_prody->at(isim),sim_prodz->at(isim),nlay) << endl;
@@ -465,16 +478,10 @@ int main() {
     vector<vector<Hit> > layerHits_;
     vector<MCHitInfo> simHitsInfo_;
     int totHits = 0;
-    layerHits_.resize(Config::nTotalLayers);
+    layerHits_.resize(nTotalLayers);
     for (int ipix = 0; ipix < pix_lay->size(); ++ipix) {
       int ilay = -1;
-      if (doEndcap) {
-	if (pix_isBarrel->at(ipix)==1) continue;
-	ilay = lnc.convertDiskNumber((pix_isBarrel->at(ipix)?1:2),pix_lay->at(ipix),useMatched,-1);
-      } else {
-	if (pix_isBarrel->at(ipix)==0) continue;
-	ilay = lnc.convertLayerNumber((pix_isBarrel->at(ipix)?1:2),pix_lay->at(ipix),useMatched,-1);
-      }
+      ilay = lnc.convertLayerNumber((pix_isBarrel->at(ipix)?1:2),pix_lay->at(ipix),useMatched,-1,pix_z->at(ipix)>0);
       if (ilay<0) continue;
       int simTkIdx = -1;
       if (pix_simTrkIdx->at(ipix)>=0) simTkIdx = simTrackIdx_[pix_simTrkIdx->at(ipix)];
@@ -504,7 +511,7 @@ int main() {
 	if (glu_isBarrel->at(iglu)==0) continue;
 	int simTkIdx = -1;
 	if (str_simTrkIdx->at(glu_monoIdx->at(iglu))>=0 /*|| str_simTrkIdx->at(glu_stereoIdx->at(iglu))>=0*/) simTkIdx = simTrackIdx_[str_simTrkIdx->at(glu_monoIdx->at(iglu))];
-	int ilay = lnc.convertLayerNumber(glu_det->at(iglu),glu_lay->at(iglu),useMatched,-1);
+	int ilay = lnc.convertLayerNumber(glu_det->at(iglu),glu_lay->at(iglu),useMatched,-1,glu_z->at(iglu)>0);
 	//cout << ilay << " " << str_simTrkIdx->at(glu_monoIdx->at(iglu)) << " " << str_process->at(glu_monoIdx->at(iglu)) << " " << str_simTrkIdx->at(glu_stereoIdx->at(iglu)) << " " << str_process->at(glu_stereoIdx->at(iglu)) << endl;
 	// cout << Form("glu lay=%i det=%i bar=%i x=(%6.3f, %6.3f, %6.3f)",ilay+1,glu_det->at(iglu),glu_isBarrel->at(iglu),glu_x->at(iglu),glu_y->at(iglu),glu_z->at(iglu)) << endl;
 	SVector3 pos(glu_x->at(iglu),glu_y->at(iglu),glu_z->at(iglu));
@@ -528,15 +535,9 @@ int main() {
     strIdx.resize(str_lay->size());
     for (int istr = 0; istr < str_lay->size(); ++istr) {
       int ilay = -1;
-      if (doEndcap) {
-	if (str_isBarrel->at(istr)==1) continue;
-	ilay = lnc.convertDiskNumber(str_det->at(istr),str_lay->at(istr),useMatched,str_isStereo->at(istr));
-      } else {
-	if (str_isBarrel->at(istr)==0) continue;
-	ilay = lnc.convertLayerNumber(str_det->at(istr),str_lay->at(istr),useMatched,str_isStereo->at(istr));
-	if (useMatched && str_isStereo->at(istr)) continue;
-      }
-      if (ilay==-1 || ilay>=Config::nTotalLayers) continue;
+      ilay = lnc.convertLayerNumber(str_det->at(istr),str_lay->at(istr),useMatched,str_isStereo->at(istr),str_z->at(istr)>0);
+      if (useMatched && str_isBarrel->at(istr)==1 && str_isStereo->at(istr)) continue;
+      if (ilay==-1) continue;
       int simTkIdx = -1;
       if (str_simTrkIdx->at(istr)>=0) simTkIdx = simTrackIdx_[str_simTrkIdx->at(istr)];
       //if (str_onTrack->at(istr)==0) continue;//do not consider hits that are not on track!
@@ -598,7 +599,7 @@ int main() {
 
     for (int i=0;i<nt;++i) {
       printf("sim track id=%i q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) pT=%7.4f nTotal=%i nFound=%i \n",i,simTracks_[i].charge(),simTracks_[i].px(),simTracks_[i].py(),simTracks_[i].pz(),simTracks_[i].x(),simTracks_[i].y(),simTracks_[i].z(),sqrt(pow(simTracks_[i].px(),2)+pow(simTracks_[i].py(),2)),simTracks_[i].nTotalHits(),simTracks_[i].nFoundHits());
-      for (int ih=0;ih<Config::nTotalLayers;++ih) printf("track #%i hit #%i idx=%i\n",i,ih,simTracks_[i].getHitIdx(ih));
+      for (int ih=0;ih<simTracks_[i].nTotalHits();++ih) printf("track #%i hit #%i idx=%i\n",i,ih,simTracks_[i].getHitIdx(ih));
     }
 
 
@@ -616,7 +617,7 @@ int main() {
   printf("\n saved %lli events\n",savedEvents);
 
   printf("number of seeds %f\n",float(nstot)/float(savedEvents));
-  for (int il=0;il<Config::nTotalLayers;++il)
+  for (int il=0;il<nhitstot.size();++il)
     printf("number of hits in layer %i = %f\n",il,float(nhitstot[il])/float(savedEvents));
 
 }
