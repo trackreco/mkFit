@@ -38,8 +38,6 @@ public:
   void resetFitBranches();
 
   void setTrackExtras(Event& ev) override;
-  void setTrackCollectionExtras(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, 
-				const std::vector<HitVec>& layerHits, const MCHitInfoVec& mcHitInfo);
 
   void makeSimTkToRecoTksMaps(Event& ev) override;
   void mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, TkIDToTkIDVecMap& simTkMap);
@@ -76,8 +74,14 @@ public:
   int   seedID_seed_eff_=0,seedID_build_eff_=0,seedID_fit_eff_=0;
 
   // for efficiency and duplicate rate plots
+  float x_mc_gen_eff_=0.,y_mc_gen_eff_=0.,z_mc_gen_eff_=0.;
   float pt_mc_gen_eff_=0.,phi_mc_gen_eff_=0.,eta_mc_gen_eff_=0.;
   int   nHits_mc_eff_=0,lastlyr_mc_eff_=0;
+
+  // for getting last hit positions track ended up on
+  float xhit_seed_eff_=0.,xhit_build_eff_=0.,xhit_fit_eff_=0.;
+  float yhit_seed_eff_=0.,yhit_build_eff_=0.,yhit_fit_eff_=0.;
+  float zhit_seed_eff_=0.,zhit_build_eff_=0.,zhit_fit_eff_=0.;
 
   // for track resolutions / pulls
   float pt_mc_seed_eff_=0.,pt_mc_build_eff_=0.,pt_mc_fit_eff_=0.;
@@ -106,6 +110,13 @@ public:
   int   evtID_FR_=0,seedID_FR_=0;
 
   int   seedmask_seed_FR_=0,seedmask_build_FR_=0,seedmask_fit_FR_=0;
+
+  // for getting last hit positions track ended up on
+  float xhit_seed_FR_=0.,xhit_build_FR_=0.,xhit_fit_FR_=0.;
+  float yhit_seed_FR_=0.,yhit_build_FR_=0.,yhit_fit_FR_=0.;
+  float zhit_seed_FR_=0.,zhit_build_FR_=0.,zhit_fit_FR_=0.;
+
+  // track state info
   float pt_mc_seed_FR_=0.,pt_mc_build_FR_=0.,pt_mc_fit_FR_=0.;
   float pt_seed_FR_=0.,pt_build_FR_=0.,pt_fit_FR_=0.,ept_seed_FR_=0.,ept_build_FR_=0.,ept_fit_FR_=0.;
   float phi_mc_seed_FR_=0.,phi_mc_build_FR_=0.,phi_mc_fit_FR_=0.;

@@ -422,6 +422,7 @@ void test_standard()
   }
 
   for (auto& val : vals) {
+    val->fillConfigTree();
     val->saveTTrees();
   }
 }
@@ -495,6 +496,7 @@ int main(int argc, const char *argv[])
         "  --cf-fitting             enable CF in fitting (def: %s)\n"
         "  --root-val               enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
       	"  --fit-val                enable ROOT based validation for fitting (def: %s)\n"
+	"  --short-fakes            include short reco tracks into FR (def: %s)\n"
         "  --silent                 suppress printouts inside event loop (def: %s)\n"
         "  --write                  write simulation to file and exit\n"
         "  --read                   read simulation from file\n"
@@ -519,6 +521,7 @@ int main(int argc, const char *argv[])
       	Config::cf_fitting ? "true" : "false",
       	Config::root_val   ? "true" : "false",
       	Config::fit_val    ? "true" : "false",
+      	Config::shortFakes ? "true" : "false",
         Config::silent ? "true" : "false",
       	g_file_name.c_str(),
       	g_input_file.c_str(),
@@ -613,6 +616,10 @@ int main(int argc, const char *argv[])
     else if (*i == "--fit-val")
     {
       Config::root_val = false; Config::fit_val = true;
+    }
+    else if (*i == "--short-fakes")
+    {
+      Config::shortFakes = true;
     }
     else if (*i == "--num-thr-ev")
     {

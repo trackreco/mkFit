@@ -41,16 +41,17 @@ namespace Config
   bool  useCMSGeom = false;
   bool  readCmsswSeeds = false;
 
-  bool  findSeeds   = false;
+  bool  findSeeds  = false;
   bool  endcapTest = false;
 
-  bool  silent      = false;
+  bool  silent     = false;
 
-  bool  cf_seeding  = false;
-  bool  cf_fitting  = false;
+  bool  cf_seeding = false;
+  bool  cf_fitting = false;
 
-  bool  root_val    = false;
-  bool  fit_val     = false;
+  bool  root_val   = false;
+  bool  fit_val    = false;
+  bool  shortFakes = false;
 
   void RecalculateDependentConstants()
   {

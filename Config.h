@@ -241,8 +241,11 @@ namespace Config
   extern    int maxCandsPerEtaBin;
 
   // config on validation
+  constexpr float nMinSimHitsFrac = 0.7;
+  constexpr int nMinFoundHits = 7; 
   extern bool root_val;
   extern bool fit_val;
+  extern bool shortFakes;
 
   // Effective eta bin is one half of nEtaPart -- so the above is twice the "average".
   // Note that last and first bin are 3/4 nEtaPart ... but can be made 1/4 by adding

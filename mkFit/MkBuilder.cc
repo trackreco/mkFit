@@ -822,12 +822,12 @@ void MkBuilder::quality_store_tracks_COMB()
 
 void MkBuilder::quality_process(Track &tkcand)
 {
-  // XXXXMT4K
-  // TrackExtra extra(tkcand.label());
-  // extra.setMCTrackIDInfo(tkcand, m_event->layerHits_, m_event->simHitsInfo_);
-  // int mctrk = extra.mcTrackID();
+  TrackExtra extra(tkcand.label());
+  if (Config::useCMSGeom || Config::findSeeds) {extra.setMCTrackIDInfo(tkcand, m_event->layerHits_, m_event->simHitsInfo_, m_event->simTracks_);}
+  else {extra.setMCTrackIDInfoByLabel(tkcand, m_event->layerHits_, m_event->simHitsInfo_, m_event->simTracks_[tkcand.label()]);}
+  int mctrk = extra.mcTrackID();
 
-  int mctrk = tkcand.label();
+  //  int mctrk = tkcand.label(); // assumes 100% "efficiency"
 
   float pt    = tkcand.pT();
   float ptmc = 0., pr = 0., nfoundmc = 0., chi2mc = 0.;
