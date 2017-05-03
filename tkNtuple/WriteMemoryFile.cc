@@ -4,6 +4,17 @@
 
 enum struct TkLayout {phase0 = 0, phase1 = 1};
 
+//check if this is the same as in the release
+enum class HitType {
+  Pixel = 0,
+  Strip = 1,
+  Glued = 2,
+  Invalid = 3,
+  Phase2OT = 4,
+  Unknown = 99
+};
+
+
 class LayerNumberConverter {
 public:
   LayerNumberConverter(TkLayout layout) : lo_(layout) {}
@@ -158,20 +169,16 @@ int main() {
 
   
   //rec tracks
-  std::vector<int>*   trk_nValid = 0;
-  std::vector<int>*   trk_nInvalid = 0;
-  std::vector<int>*   trk_nLay = 0;
-  std::vector<int>*   trk_seedIdx = 0;
-  std::vector<std::vector<int> >* trk_pixelIdx = 0;
-  std::vector<std::vector<int> >* trk_stripIdx = 0;
-  std::vector<std::vector<int> >* trk_gluedIdx = 0;
-  t->SetBranchAddress("trk_nValid",&trk_nValid);
-  t->SetBranchAddress("trk_nInvalid",&trk_nInvalid);
-  t->SetBranchAddress("trk_nLay",&trk_nLay);
-  t->SetBranchAddress("trk_seedIdx",&trk_seedIdx);
-  t->SetBranchAddress("trk_pixelIdx",&trk_pixelIdx);
-  t->SetBranchAddress("trk_stripIdx",&trk_stripIdx);
-  t->SetBranchAddress("trk_gluedIdx",&trk_gluedIdx);
+  std::vector<unsigned int>*      trk_nValid = 0;
+  std::vector<unsigned int>*      trk_nInvalid = 0;
+  std::vector<int>*               trk_seedIdx = 0;
+  std::vector<std::vector<int> >* trk_hitIdx = 0;
+  std::vector<std::vector<int> >* trk_hitType = 0;
+  t->SetBranchAddress("trk_nValid",   &trk_nValid);
+  t->SetBranchAddress("trk_nInvalid", &trk_nInvalid);
+  t->SetBranchAddress("trk_seedIdx",  &trk_seedIdx);
+  t->SetBranchAddress("trk_hitIdx",   &trk_hitIdx);
+  t->SetBranchAddress("trk_hitType",  &trk_hitType);
 
   //seeds
   std::vector<float>*   see_x = 0;
@@ -240,7 +247,7 @@ int main() {
   t->SetBranchAddress("see_pixelIdx",&see_pixelIdx);
 
   //pixel hits
-  vector<int>*    pix_isBarrel = 0;
+  vector<int>*    pix_det = 0;
   vector<int>*    pix_lay = 0;
   vector<int>*    pix_simTrkIdx = 0;
   vector<int>*    pix_particle = 0;
@@ -256,7 +263,7 @@ int main() {
   vector<float>*  pix_yz = 0;
   vector<float>*  pix_zz = 0;
   vector<float>*  pix_zx = 0;
-  t->SetBranchAddress("pix_isBarrel",&pix_isBarrel);
+  t->SetBranchAddress("pix_det",&pix_det);
   t->SetBranchAddress("pix_lay",&pix_lay);
   t->SetBranchAddress("pix_simTrkIdx",&pix_simTrkIdx);
   t->SetBranchAddress("pix_particle",&pix_particle);
@@ -387,26 +394,41 @@ int main() {
       int nlay = 0;
       if (trkIdx>=0) {	
 	std::vector<int> hitlay(nTotalLayers, 0);
-	for (int ihit = 0; ihit < trk_pixelIdx->at(trkIdx).size(); ++ihit) {
-	  int ipix = trk_pixelIdx->at(trkIdx).at(ihit);
-	  if (ipix<0) continue;
-	  int cmsswlay = lnc.convertLayerNumber((pix_isBarrel->at(ipix)?1:2),pix_lay->at(ipix),useMatched,-1,pix_z->at(ipix)>0);
-	  if (cmsswlay>=0 && cmsswlay<nTotalLayers) hitlay[cmsswlay]++;
-	}
-	if (useMatched) {
-	  for (int ihit = 0; ihit < trk_gluedIdx->at(trkIdx).size(); ++ihit) {
-	    int iglu = trk_gluedIdx->at(trkIdx).at(ihit);
-	    if (iglu<0) continue;
-	    int cmsswlay = lnc.convertLayerNumber(glu_det->at(iglu),glu_lay->at(iglu),useMatched,-1,glu_z->at(iglu)>0);
-	    if (cmsswlay>=0 && cmsswlay<nTotalLayers) hitlay[cmsswlay]++;
+	auto const& hits = trk_hitIdx->at(trkIdx);
+	auto const& hitTypes = trk_hitType->at(trkIdx);
+	auto nHits = hits.size();
+	for (auto ihit = 0U; ihit< nHits; ++ihit){
+	  auto ihIdx = hits[ihit];
+	  auto const ihType = HitType(hitTypes[ihit]);
+	  
+	  switch (ihType){
+	  case HitType::Pixel:{
+	    int ipix = ihIdx;
+	    if (ipix<0) continue;
+	    int cmsswlay = lnc.convertLayerNumber(pix_det->at(ipix),pix_lay->at(ipix),useMatched,-1,pix_z->at(ipix)>0);
+	    if (cmsswlay>=0 && cmsswlay<nTotalLayers) hitlay[cmsswlay]++;	    
+	    break;
 	  }
-	}
-	for (int ihit = 0; ihit < trk_stripIdx->at(trkIdx).size(); ++ihit) {
-	  int istr = trk_stripIdx->at(trkIdx).at(ihit);
-	  if (istr<0) continue;
-	  int cmsswlay = lnc.convertLayerNumber(str_det->at(istr),str_lay->at(istr),useMatched,str_isStereo->at(istr),str_z->at(istr)>0);
-	  if (cmsswlay>=0 && cmsswlay<nTotalLayers) hitlay[cmsswlay]++;
-	}
+	  case HitType::Strip:{
+	    int istr = ihIdx;
+	    if (istr<0) continue;
+	    int cmsswlay = lnc.convertLayerNumber(str_det->at(istr),str_lay->at(istr),useMatched,str_isStereo->at(istr),str_z->at(istr)>0);
+	    if (cmsswlay>=0 && cmsswlay<nTotalLayers) hitlay[cmsswlay]++;	    
+	    break;
+	  }
+	  case HitType::Glued:{
+	    if (useMatched) {
+		int iglu = ihIdx;
+		if (iglu<0) continue;
+		int cmsswlay = lnc.convertLayerNumber(glu_det->at(iglu),glu_lay->at(iglu),useMatched,-1,glu_z->at(iglu)>0);
+		if (cmsswlay>=0 && cmsswlay<nTotalLayers) hitlay[cmsswlay]++;
+	    }	    
+	    break;
+	  }
+	  case HitType::Invalid: break;//FIXME. Skip, really?
+	  default: throw std::logic_error("Track type can not be handled");
+	  }//hit type
+	}//hits on track
 	for (int i=0;i<nTotalLayers;i++) if (hitlay[i]>0) nlay++;
       }//count nlay layers on matching reco track
 
@@ -494,11 +516,11 @@ int main() {
     layerHits_.resize(nTotalLayers);
     for (int ipix = 0; ipix < pix_lay->size(); ++ipix) {
       int ilay = -1;
-      ilay = lnc.convertLayerNumber((pix_isBarrel->at(ipix)?1:2),pix_lay->at(ipix),useMatched,-1,pix_z->at(ipix)>0);
+      ilay = lnc.convertLayerNumber(pix_det->at(ipix),pix_lay->at(ipix),useMatched,-1,pix_z->at(ipix)>0);
       if (ilay<0) continue;
       int simTkIdx = -1;
       if (pix_simTrkIdx->at(ipix)>=0) simTkIdx = simTrackIdx_[pix_simTrkIdx->at(ipix)];
-      //cout << Form("pix lay=%i bar=%i x=(%6.3f, %6.3f, %6.3f)",ilay+1,pix_isBarrel->at(ipix),pix_x->at(ipix),pix_y->at(ipix),pix_z->at(ipix)) << endl;
+      //cout << Form("pix lay=%i det=%i x=(%6.3f, %6.3f, %6.3f)",ilay+1,pix_det->at(ipix),pix_x->at(ipix),pix_y->at(ipix),pix_z->at(ipix)) << endl;
       SVector3 pos(pix_x->at(ipix),pix_y->at(ipix),pix_z->at(ipix));
       SMatrixSym33 err;
       err.At(0,0) = pix_xx->at(ipix);
