@@ -494,10 +494,10 @@ int main() {
       err.At(0,1) = pix_xy->at(ipix);
       err.At(0,2) = pix_zx->at(ipix);
       err.At(1,2) = pix_yz->at(ipix);
-      if (simTkIdx>=0) simTracks_[simTkIdx].setHitIdx(ilay, layerHits_[ilay].size());
+      if (simTkIdx>=0) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, -1);//chi2 -1 to self-check (sim init chi2=nhits)
       for (int is=0;is<pixHitSeedIdx[ipix].size();is++) {
 	//cout << "xxx ipix=" << ipix << " seed=" << pixHitSeedIdx[ipix][is] << endl;
-      	seedTracks_[pixHitSeedIdx[ipix][is]].setHitIdx(ilay, layerHits_[ilay].size());
+      	seedTracks_[pixHitSeedIdx[ipix][is]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
       }
       Hit hit(pos, err, totHits);
       layerHits_[ilay].push_back(hit);
@@ -522,7 +522,7 @@ int main() {
 	err.At(0,1) = glu_xy->at(iglu);
 	err.At(0,2) = glu_zx->at(iglu);
 	err.At(1,2) = glu_yz->at(iglu);	
-	if (simTkIdx>=0) simTracks_[simTkIdx].setHitIdx(ilay, layerHits_[ilay].size());
+	if (simTkIdx>=0) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, -1);//chi2 -1 to self-check (sim init chi2=nhits)
 	Hit hit(pos, err, totHits);
 	layerHits_[ilay].push_back(hit);
 	MCHitInfo hitInfo(simTkIdx, ilay, layerHits_[ilay].size()-1, totHits);
@@ -550,7 +550,7 @@ int main() {
       err.At(0,1) = str_xy->at(istr);
       err.At(0,2) = str_zx->at(istr);
       err.At(1,2) = str_yz->at(istr);
-      if (simTkIdx>=0) simTracks_[simTkIdx].setHitIdx(ilay, layerHits_[ilay].size());
+      if (simTkIdx>=0) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, -1);//chi2 -1 to self-check (sim init chi2=nhits)
       Hit hit(pos, err, totHits);
       layerHits_[ilay].push_back(hit);
       MCHitInfo hitInfo(simTkIdx, ilay, layerHits_[ilay].size()-1, totHits);
