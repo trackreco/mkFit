@@ -139,7 +139,7 @@ int main() {
   std::vector<float>* sim_pz = 0;
   std::vector<int>*   sim_parentVtxIdx = 0;
   std::vector<int>*   sim_q = 0;
-  std::vector<int>*   sim_trkIdx = 0;
+  std::vector<std::vector<int> >*   sim_trkIdx = 0;
   t->SetBranchAddress("sim_eta",&sim_eta);
   t->SetBranchAddress("sim_px",&sim_px);
   t->SetBranchAddress("sim_py",&sim_py);
@@ -377,12 +377,16 @@ int main() {
       float sim_prodz = iVtx >= 0 ? simvtx_z->at(iVtx) : largeValF;
       //if (fabs(sim_eta->at(isim))>0.8) continue;
 
-      int trkIdx = sim_trkIdx->at(isim);
+      vector<int> const& trkIdxV = sim_trkIdx->at(isim);
       //if (trkIdx<0) continue;
 
+      //FIXME: CHECK IF THE LOOP AND BEST SELECTION IS NEEDED.
+      //Pick the first
+      const int trkIdx = trkIdxV.empty() ? -1 : trkIdxV[0];
+
       int nlay = 0;
-      std::vector<int> hitlay(nTotalLayers, 0);
-      if (trkIdx>=0) {
+      if (trkIdx>=0) {	
+	std::vector<int> hitlay(nTotalLayers, 0);
 	for (int ihit = 0; ihit < trk_pixelIdx->at(trkIdx).size(); ++ihit) {
 	  int ipix = trk_pixelIdx->at(trkIdx).at(ihit);
 	  if (ipix<0) continue;
@@ -404,7 +408,7 @@ int main() {
 	  if (cmsswlay>=0 && cmsswlay<nTotalLayers) hitlay[cmsswlay]++;
 	}
 	for (int i=0;i<nTotalLayers;i++) if (hitlay[i]>0) nlay++;
-      }
+      }//count nlay layers on matching reco track
 
       //cout << Form("track q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) nlay=%i",sim_q->at(isim),sim_px->at(isim),sim_py->at(isim),sim_pz->at(isim),sim_prodx,sim_prody,sim_prodz,nlay) << endl;
 
