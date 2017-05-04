@@ -14,6 +14,24 @@ enum class HitType {
   Unknown = 99
 };
 
+/// track algorithm; partial copy from TrackBase.h
+enum class TrackAlgorithm {
+  undefAlgorithm = 0,
+  ctf = 1, 
+  duplicateMerge = 2,
+  cosmics = 3,
+  initialStep = 4,
+  lowPtTripletStep = 5,
+  pixelPairStep = 6,
+  detachedTripletStep = 7,
+  mixedTripletStep = 8,
+  pixelLessStep = 9,
+  tobTecStep = 10,
+  jetCoreRegionalStep = 11,
+  conversionStep = 12,
+  muonSeededStepInOut = 13,
+  muonSeededStepOutIn = 14
+};
 
 class LayerNumberConverter {
 public:
@@ -181,70 +199,72 @@ int main() {
   t->SetBranchAddress("trk_hitType",  &trk_hitType);
 
   //seeds
-  std::vector<float>*   see_x = 0;
-  std::vector<float>*   see_y = 0;
-  std::vector<float>*   see_z = 0;
-  std::vector<float>*   see_px = 0;
-  std::vector<float>*   see_py = 0;
-  std::vector<float>*   see_pz = 0;
-  std::vector<float>*   see_eta= 0;
-  std::vector<float>*   see_pt = 0;
-  std::vector<float>*   see_cov00 = 0;
-  std::vector<float>*   see_cov01 = 0;
-  std::vector<float>*   see_cov02 = 0;
-  std::vector<float>*   see_cov03 = 0;
-  std::vector<float>*   see_cov04 = 0;
-  std::vector<float>*   see_cov05 = 0;
-  std::vector<float>*   see_cov11 = 0;
-  std::vector<float>*   see_cov12 = 0;
-  std::vector<float>*   see_cov13 = 0;
-  std::vector<float>*   see_cov14 = 0;
-  std::vector<float>*   see_cov15 = 0;
-  std::vector<float>*   see_cov22 = 0;
-  std::vector<float>*   see_cov23 = 0;
-  std::vector<float>*   see_cov24 = 0;
-  std::vector<float>*   see_cov25 = 0;
-  std::vector<float>*   see_cov33 = 0;
-  std::vector<float>*   see_cov34 = 0;
-  std::vector<float>*   see_cov35 = 0;
-  std::vector<float>*   see_cov44 = 0;
-  std::vector<float>*   see_cov45 = 0;
-  std::vector<float>*   see_cov55 = 0;
+  std::vector<float>*   see_stateTrajGlbX = 0;
+  std::vector<float>*   see_stateTrajGlbY = 0;
+  std::vector<float>*   see_stateTrajGlbZ = 0;
+  std::vector<float>*   see_stateTrajGlbPx = 0;
+  std::vector<float>*   see_stateTrajGlbPy = 0;
+  std::vector<float>*   see_stateTrajGlbPz = 0;
+  std::vector<float>*   see_eta= 0;//PCA parameters
+  std::vector<float>*   see_pt = 0;//PCA parameters
+  std::vector<float>*   see_stateCcov00 = 0;
+  std::vector<float>*   see_stateCcov01 = 0;
+  std::vector<float>*   see_stateCcov02 = 0;
+  std::vector<float>*   see_stateCcov03 = 0;
+  std::vector<float>*   see_stateCcov04 = 0;
+  std::vector<float>*   see_stateCcov05 = 0;
+  std::vector<float>*   see_stateCcov11 = 0;
+  std::vector<float>*   see_stateCcov12 = 0;
+  std::vector<float>*   see_stateCcov13 = 0;
+  std::vector<float>*   see_stateCcov14 = 0;
+  std::vector<float>*   see_stateCcov15 = 0;
+  std::vector<float>*   see_stateCcov22 = 0;
+  std::vector<float>*   see_stateCcov23 = 0;
+  std::vector<float>*   see_stateCcov24 = 0;
+  std::vector<float>*   see_stateCcov25 = 0;
+  std::vector<float>*   see_stateCcov33 = 0;
+  std::vector<float>*   see_stateCcov34 = 0;
+  std::vector<float>*   see_stateCcov35 = 0;
+  std::vector<float>*   see_stateCcov44 = 0;
+  std::vector<float>*   see_stateCcov45 = 0;
+  std::vector<float>*   see_stateCcov55 = 0;
   std::vector<int>*     see_q = 0;
-  std::vector<int>*     see_algo = 0;
-  std::vector<std::vector<int> >* see_pixelIdx = 0;
-  t->SetBranchAddress("see_x",&see_x);
-  t->SetBranchAddress("see_y",&see_y);
-  t->SetBranchAddress("see_z",&see_z);
-  t->SetBranchAddress("see_px",&see_px);
-  t->SetBranchAddress("see_py",&see_py);
-  t->SetBranchAddress("see_pz",&see_pz);
+  std::vector<unsigned int>*     see_algo = 0;
+  std::vector<std::vector<int> >* see_hitIdx = 0;
+  std::vector<std::vector<int> >* see_hitType = 0;
+  t->SetBranchAddress("see_stateTrajGlbX",&see_stateTrajGlbX);
+  t->SetBranchAddress("see_stateTrajGlbY",&see_stateTrajGlbY);
+  t->SetBranchAddress("see_stateTrajGlbZ",&see_stateTrajGlbZ);
+  t->SetBranchAddress("see_stateTrajGlbPx",&see_stateTrajGlbPx);
+  t->SetBranchAddress("see_stateTrajGlbPy",&see_stateTrajGlbPy);
+  t->SetBranchAddress("see_stateTrajGlbPz",&see_stateTrajGlbPz);
   t->SetBranchAddress("see_eta",&see_eta);
   t->SetBranchAddress("see_pt",&see_pt);
-  t->SetBranchAddress("see_cov00",&see_cov00);
-  t->SetBranchAddress("see_cov01",&see_cov01);
-  t->SetBranchAddress("see_cov02",&see_cov02);
-  t->SetBranchAddress("see_cov03",&see_cov03);
-  t->SetBranchAddress("see_cov04",&see_cov04);
-  t->SetBranchAddress("see_cov05",&see_cov05);
-  t->SetBranchAddress("see_cov11",&see_cov11);
-  t->SetBranchAddress("see_cov12",&see_cov12);
-  t->SetBranchAddress("see_cov13",&see_cov13);
-  t->SetBranchAddress("see_cov14",&see_cov14);
-  t->SetBranchAddress("see_cov15",&see_cov15);
-  t->SetBranchAddress("see_cov22",&see_cov22);
-  t->SetBranchAddress("see_cov23",&see_cov23);
-  t->SetBranchAddress("see_cov24",&see_cov24);
-  t->SetBranchAddress("see_cov25",&see_cov25);
-  t->SetBranchAddress("see_cov33",&see_cov33);
-  t->SetBranchAddress("see_cov34",&see_cov34);
-  t->SetBranchAddress("see_cov35",&see_cov35);
-  t->SetBranchAddress("see_cov44",&see_cov44);
-  t->SetBranchAddress("see_cov45",&see_cov45);
-  t->SetBranchAddress("see_cov55",&see_cov55);
+  t->SetBranchAddress("see_stateCcov00",&see_stateCcov00);
+  t->SetBranchAddress("see_stateCcov01",&see_stateCcov01);
+  t->SetBranchAddress("see_stateCcov02",&see_stateCcov02);
+  t->SetBranchAddress("see_stateCcov03",&see_stateCcov03);
+  t->SetBranchAddress("see_stateCcov04",&see_stateCcov04);
+  t->SetBranchAddress("see_stateCcov05",&see_stateCcov05);
+  t->SetBranchAddress("see_stateCcov11",&see_stateCcov11);
+  t->SetBranchAddress("see_stateCcov12",&see_stateCcov12);
+  t->SetBranchAddress("see_stateCcov13",&see_stateCcov13);
+  t->SetBranchAddress("see_stateCcov14",&see_stateCcov14);
+  t->SetBranchAddress("see_stateCcov15",&see_stateCcov15);
+  t->SetBranchAddress("see_stateCcov22",&see_stateCcov22);
+  t->SetBranchAddress("see_stateCcov23",&see_stateCcov23);
+  t->SetBranchAddress("see_stateCcov24",&see_stateCcov24);
+  t->SetBranchAddress("see_stateCcov25",&see_stateCcov25);
+  t->SetBranchAddress("see_stateCcov33",&see_stateCcov33);
+  t->SetBranchAddress("see_stateCcov34",&see_stateCcov34);
+  t->SetBranchAddress("see_stateCcov35",&see_stateCcov35);
+  t->SetBranchAddress("see_stateCcov44",&see_stateCcov44);
+  t->SetBranchAddress("see_stateCcov45",&see_stateCcov45);
+  t->SetBranchAddress("see_stateCcov55",&see_stateCcov55);
   t->SetBranchAddress("see_q",&see_q);
   t->SetBranchAddress("see_algo",&see_algo);
-  t->SetBranchAddress("see_pixelIdx",&see_pixelIdx);
+  t->SetBranchAddress("see_hitIdx",&see_hitIdx);
+  t->SetBranchAddress("see_hitType",&see_hitType);
 
   //pixel hits
   vector<int>*    pix_det = 0;
@@ -373,7 +393,7 @@ int main() {
 
     vector<Track> simTracks_;
     vector<int> simTrackIdx_(sim_q->size(),-1);//keep track of original index in ntuple
-    vector<int> seedSimIdx(see_x->size(),-1);
+    vector<int> seedSimIdx(see_q->size(),-1);
     for (int isim = 0; isim < sim_q->size(); ++isim) {
 
       //load sim production vertex data
@@ -452,7 +472,8 @@ int main() {
       Track track(state, float(nlay), isim, 0, nullptr);//store number of reco hits in place of track chi2; fill hits later
       if (trkIdx>=0) {
 	int seedIdx = trk_seedIdx->at(trkIdx);
-	if (see_pixelIdx->at(seedIdx).size()!=0) {
+	auto const& shTypes = see_hitType->at(seedIdx);
+	if (std::count(shTypes.begin(), shTypes.end(), int(HitType::Pixel)) > 0) {
 	  seedSimIdx[seedIdx] = simTracks_.size();
 	}
       }
@@ -465,33 +486,33 @@ int main() {
 
     vector<Track> seedTracks_;
     vector<vector<int> > pixHitSeedIdx(pix_lay->size());
-    for (int is = 0; is<see_x->size(); ++is) {
-      if (see_algo->at(is)!=4) continue;//select seed in acceptance
+    for (int is = 0; is<see_q->size(); ++is) {
+      if (TrackAlgorithm(see_algo->at(is))!=TrackAlgorithm::initialStep) continue;//select seed in acceptance
       //if (see_pt->at(is)<0.5 || fabs(see_eta->at(is))>0.8) continue;//select seed in acceptance
-      SVector3 pos = SVector3(see_x->at(is),see_y->at(is),see_z->at(is));
-      SVector3 mom = SVector3(see_px->at(is),see_py->at(is),see_pz->at(is));
+      SVector3 pos = SVector3(see_stateTrajGlbX->at(is),see_stateTrajGlbY->at(is),see_stateTrajGlbZ->at(is));
+      SVector3 mom = SVector3(see_stateTrajGlbPx->at(is),see_stateTrajGlbPy->at(is),see_stateTrajGlbPz->at(is));
       SMatrixSym66 err;
-      err.At(0,0) = see_cov00->at(is);
-      err.At(0,1) = see_cov01->at(is);
-      err.At(0,2) = see_cov02->at(is);
-      err.At(0,3) = see_cov03->at(is);
-      err.At(0,4) = see_cov04->at(is);
-      err.At(0,5) = see_cov05->at(is);
-      err.At(1,1) = see_cov11->at(is);
-      err.At(1,2) = see_cov12->at(is);
-      err.At(1,3) = see_cov13->at(is);
-      err.At(1,4) = see_cov14->at(is);
-      err.At(1,5) = see_cov15->at(is);
-      err.At(2,2) = see_cov22->at(is);
-      err.At(2,3) = see_cov23->at(is);
-      err.At(2,4) = see_cov24->at(is);
-      err.At(2,5) = see_cov25->at(is);
-      err.At(3,3) = see_cov33->at(is);
-      err.At(3,4) = see_cov34->at(is);
-      err.At(3,5) = see_cov35->at(is);
-      err.At(4,4) = see_cov44->at(is);
-      err.At(4,5) = see_cov45->at(is);
-      err.At(5,5) = see_cov55->at(is);
+      err.At(0,0) = see_stateCcov00->at(is);
+      err.At(0,1) = see_stateCcov01->at(is);
+      err.At(0,2) = see_stateCcov02->at(is);
+      err.At(0,3) = see_stateCcov03->at(is);
+      err.At(0,4) = see_stateCcov04->at(is);
+      err.At(0,5) = see_stateCcov05->at(is);
+      err.At(1,1) = see_stateCcov11->at(is);
+      err.At(1,2) = see_stateCcov12->at(is);
+      err.At(1,3) = see_stateCcov13->at(is);
+      err.At(1,4) = see_stateCcov14->at(is);
+      err.At(1,5) = see_stateCcov15->at(is);
+      err.At(2,2) = see_stateCcov22->at(is);
+      err.At(2,3) = see_stateCcov23->at(is);
+      err.At(2,4) = see_stateCcov24->at(is);
+      err.At(2,5) = see_stateCcov25->at(is);
+      err.At(3,3) = see_stateCcov33->at(is);
+      err.At(3,4) = see_stateCcov34->at(is);
+      err.At(3,5) = see_stateCcov35->at(is);
+      err.At(4,4) = see_stateCcov44->at(is);
+      err.At(4,5) = see_stateCcov45->at(is);
+      err.At(5,5) = see_stateCcov55->at(is);
       TrackState state(see_q->at(is), pos, mom, err);
 #ifdef CCSCOORD
       //begin test CCS coordinates
@@ -499,9 +520,12 @@ int main() {
       //end test CCS coordinates
 #endif
       Track track(state, 0, seedSimIdx[is], 0, nullptr);
-      if (see_pixelIdx->at(is).size()!=3) continue;//only seeds with 3 pixel hits
-      for (int ip=0; ip<see_pixelIdx->at(is).size(); ip++) {
-	unsigned int ipix = see_pixelIdx->at(is)[ip];
+      auto const& shTypes = see_hitType->at(is);
+      auto const& shIdxs = see_hitIdx->at(is);
+      if (! (TrackAlgorithm(see_algo->at(is))!= TrackAlgorithm::initialStep
+	     && std::count(shTypes.begin(), shTypes.end(), int(HitType::Pixel))>=3)) continue;//check algo and nhits
+      for (int ip=0; ip<shTypes.size(); ip++) {
+	unsigned int ipix = shIdxs[ip];
 	//cout << "ipix=" << ipix << " seed=" << seedTracks_.size() << endl;
 	pixHitSeedIdx[ipix].push_back(seedTracks_.size());
       }
