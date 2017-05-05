@@ -1,6 +1,8 @@
-#include "Track.h"
 #include "TFile.h"
 #include "TTree.h"
+
+#include <iostream>
+#include "Track.h"
 
 enum struct TkLayout {phase0 = 0, phase1 = 1};
 
@@ -76,6 +78,7 @@ public:
       if (cmsswdet==5 && cmsswlay==6 && isStereo==0 ) return 12+lOffset;
       return -1;
     } else {
+      //FIXME: OLD stereo/mono layer is used here
       //TIB
       if (cmsswdet==3 && cmsswlay==1 && isStereo==0) return 3+lOffset;
       if (cmsswdet==3 && cmsswlay==1 && isStereo==1) return 4+lOffset;
@@ -151,16 +154,16 @@ int main() {
 
   TString outfilename = "";
 
-  TFile* f = TFile::Open("./ntuple_input.root"); maxevt = 3000;outfilename = "cmssw_output.bin";
+  TFile* f = TFile::Open("./ntuple_input.root"); maxevt = 1;outfilename = "cmssw_output.bin";
   
-  TTree* t = (TTree*) f->Get("trkTree/tree");
+  TTree* t = (TTree*) f->Get("trackingNtuple/tree");
 
   FILE * fp;
   fp = fopen (outfilename.Data(), "wb");
 
-  int event;
+  unsigned long long event;
   t->SetBranchAddress("event",&event);
-
+  
   //sim tracks
   std::vector<float>* sim_eta = 0;
   std::vector<float>* sim_px = 0;
@@ -168,14 +171,15 @@ int main() {
   std::vector<float>* sim_pz = 0;
   std::vector<int>*   sim_parentVtxIdx = 0;
   std::vector<int>*   sim_q = 0;
-  std::vector<std::vector<int> >*   sim_trkIdx = 0;
   t->SetBranchAddress("sim_eta",&sim_eta);
   t->SetBranchAddress("sim_px",&sim_px);
   t->SetBranchAddress("sim_py",&sim_py);
   t->SetBranchAddress("sim_pz",&sim_pz);
   t->SetBranchAddress("sim_parentVtxIdx",&sim_parentVtxIdx);
   t->SetBranchAddress("sim_q",&sim_q);
-  t->SetBranchAddress("sim_trkIdx",&sim_trkIdx);
+
+  std::vector<vector<int> >*   sim_trkIdx = 0;
+  t->SetBranchAddress("sim_trkIdx", &sim_trkIdx);
 
   //simvtx
   std::vector<float>* simvtx_x;
@@ -185,18 +189,31 @@ int main() {
   t->SetBranchAddress("simvtx_y"       , &simvtx_y);
   t->SetBranchAddress("simvtx_z"       , &simvtx_z);
 
+
+  //simhit
+  std::vector<short>* simhit_process;
+  std::vector<int>* simhit_simTrkIdx;
+  std::vector<float>* simhit_px;
+  std::vector<float>* simhit_py;
+  std::vector<float>* simhit_pz;
+  t->SetBranchAddress("simhit_process",   &simhit_process);
+  t->SetBranchAddress("simhit_simTrkIdx", &simhit_simTrkIdx);
+  t->SetBranchAddress("simhit_px",        &simhit_px);
+  t->SetBranchAddress("simhit_py",        &simhit_py);
+  t->SetBranchAddress("simhit_pz",        &simhit_pz);
   
   //rec tracks
   std::vector<unsigned int>*      trk_nValid = 0;
   std::vector<unsigned int>*      trk_nInvalid = 0;
   std::vector<int>*               trk_seedIdx = 0;
-  std::vector<std::vector<int> >* trk_hitIdx = 0;
-  std::vector<std::vector<int> >* trk_hitType = 0;
   t->SetBranchAddress("trk_nValid",   &trk_nValid);
   t->SetBranchAddress("trk_nInvalid", &trk_nInvalid);
   t->SetBranchAddress("trk_seedIdx",  &trk_seedIdx);
-  t->SetBranchAddress("trk_hitIdx",   &trk_hitIdx);
-  t->SetBranchAddress("trk_hitType",  &trk_hitType);
+
+  std::vector<std::vector<int> >* trk_hitIdx = 0;
+  t->SetBranchAddress("trk_hitIdx", &trk_hitIdx);
+  std::vector<std::vector<int> >* trk_hitType = 0;
+  t->SetBranchAddress("trk_hitType", &trk_hitType);
 
   //seeds
   std::vector<float>*   see_stateTrajGlbX = 0;
@@ -230,8 +247,6 @@ int main() {
   std::vector<float>*   see_stateCcov55 = 0;
   std::vector<int>*     see_q = 0;
   std::vector<unsigned int>*     see_algo = 0;
-  std::vector<std::vector<int> >* see_hitIdx = 0;
-  std::vector<std::vector<int> >* see_hitType = 0;
   t->SetBranchAddress("see_stateTrajGlbX",&see_stateTrajGlbX);
   t->SetBranchAddress("see_stateTrajGlbY",&see_stateTrajGlbY);
   t->SetBranchAddress("see_stateTrajGlbZ",&see_stateTrajGlbZ);
@@ -263,17 +278,15 @@ int main() {
   t->SetBranchAddress("see_stateCcov55",&see_stateCcov55);
   t->SetBranchAddress("see_q",&see_q);
   t->SetBranchAddress("see_algo",&see_algo);
-  t->SetBranchAddress("see_hitIdx",&see_hitIdx);
-  t->SetBranchAddress("see_hitType",&see_hitType);
+
+  std::vector<std::vector<int> >* see_hitIdx = 0;
+  t->SetBranchAddress("see_hitIdx", &see_hitIdx);
+  std::vector<std::vector<int> >* see_hitType = 0;
+  t->SetBranchAddress("see_hitType", &see_hitType);
 
   //pixel hits
-  vector<int>*    pix_det = 0;
-  vector<int>*    pix_lay = 0;
-  vector<int>*    pix_simTrkIdx = 0;
-  vector<int>*    pix_particle = 0;
-  vector<int>*    pix_process = 0;
-  vector<int>*    pix_posFromTrack = 0;
-  vector<int>*    pix_onTrack = 0;
+  vector<unsigned short>*    pix_det = 0;
+  vector<unsigned short>*    pix_lay = 0;
   vector<float>*  pix_x = 0;
   vector<float>*  pix_y = 0;
   vector<float>*  pix_z = 0;
@@ -285,11 +298,6 @@ int main() {
   vector<float>*  pix_zx = 0;
   t->SetBranchAddress("pix_det",&pix_det);
   t->SetBranchAddress("pix_lay",&pix_lay);
-  t->SetBranchAddress("pix_simTrkIdx",&pix_simTrkIdx);
-  t->SetBranchAddress("pix_particle",&pix_particle);
-  t->SetBranchAddress("pix_process",&pix_process);
-  t->SetBranchAddress("pix_posFromTrack",&pix_posFromTrack);
-  t->SetBranchAddress("pix_onTrack",&pix_onTrack);
   t->SetBranchAddress("pix_x",&pix_x);
   t->SetBranchAddress("pix_y",&pix_y);
   t->SetBranchAddress("pix_z",&pix_z);
@@ -300,14 +308,15 @@ int main() {
   t->SetBranchAddress("pix_zz",&pix_zz);
   t->SetBranchAddress("pix_zx",&pix_zx);
 
+  vector<vector<int> >*    pix_simHitIdx = 0;
+  t->SetBranchAddress("pix_simHitIdx", &pix_simHitIdx);
+
   //strip hits
+  vector<short>*  glu_isBarrel = 0;
+  vector<unsigned int>*    glu_det = 0;
+  vector<unsigned int>*    glu_lay = 0;
   vector<int>*    glu_monoIdx = 0;
   vector<int>*    glu_stereoIdx = 0;
-  vector<int>*    glu_isBarrel = 0;
-  vector<int>*    glu_lay = 0;
-  vector<int>*    glu_det = 0;
-  vector<int>*    glu_posFromTrack = 0;
-  vector<int>*    glu_onTrack = 0;
   vector<float>*  glu_x = 0;
   vector<float>*  glu_y = 0;
   vector<float>*  glu_z = 0;
@@ -318,13 +327,11 @@ int main() {
   vector<float>*  glu_zz = 0;
   vector<float>*  glu_zx = 0;
   if (useMatched) {
+    t->SetBranchAddress("glu_isBarrel",&glu_isBarrel);
+    t->SetBranchAddress("glu_det",&glu_det);
+    t->SetBranchAddress("glu_lay",&glu_lay);
     t->SetBranchAddress("glu_monoIdx",&glu_monoIdx);
     t->SetBranchAddress("glu_stereoIdx",&glu_stereoIdx);
-    t->SetBranchAddress("glu_isBarrel",&glu_isBarrel);
-    t->SetBranchAddress("glu_lay",&glu_lay);
-    t->SetBranchAddress("glu_det",&glu_det);
-    t->SetBranchAddress("glu_posFromTrack",&glu_posFromTrack);
-    t->SetBranchAddress("glu_onTrack",&glu_onTrack);
     t->SetBranchAddress("glu_x",&glu_x);
     t->SetBranchAddress("glu_y",&glu_y);
     t->SetBranchAddress("glu_z",&glu_z);
@@ -335,15 +342,11 @@ int main() {
     t->SetBranchAddress("glu_zz",&glu_zz);
     t->SetBranchAddress("glu_zx",&glu_zx);
   }
-  vector<int>*    str_isBarrel = 0;
-  vector<int>*    str_isStereo = 0;
-  vector<int>*    str_lay = 0;
-  vector<int>*    str_det = 0;
-  vector<int>*    str_simTrkIdx = 0;
-  vector<int>*    str_particle = 0;
-  vector<int>*    str_process = 0;
-  vector<int>*    str_posFromTrack = 0;
-  vector<int>*    str_onTrack = 0;
+
+  vector<short>*    str_isBarrel = 0;
+  vector<short>*    str_isStereo = 0;
+  vector<unsigned int>*    str_det = 0;
+  vector<unsigned int>*    str_lay = 0;
   vector<float>*  str_x = 0;
   vector<float>*  str_y = 0;
   vector<float>*  str_z = 0;
@@ -357,11 +360,6 @@ int main() {
   t->SetBranchAddress("str_isStereo",&str_isStereo);
   t->SetBranchAddress("str_lay",&str_lay);
   t->SetBranchAddress("str_det",&str_det);
-  t->SetBranchAddress("str_simTrkIdx",&str_simTrkIdx);
-  t->SetBranchAddress("str_particle",&str_particle);
-  t->SetBranchAddress("str_process",&str_process);
-  t->SetBranchAddress("str_posFromTrack",&str_posFromTrack);
-  t->SetBranchAddress("str_onTrack",&str_onTrack);
   t->SetBranchAddress("str_x",&str_x);
   t->SetBranchAddress("str_y",&str_y);
   t->SetBranchAddress("str_z",&str_z);
@@ -371,13 +369,17 @@ int main() {
   t->SetBranchAddress("str_yz",&str_yz);
   t->SetBranchAddress("str_zz",&str_zz);
   t->SetBranchAddress("str_zx",&str_zx);
+  
+  vector<vector<int> >*    str_simHitIdx = 0;
+  t->SetBranchAddress("str_simHitIdx", &str_simHitIdx);
+
 
   fwrite(&maxevt, sizeof(int), 1, fp);
 
-  long long totentries = t->GetEntriesFast();
+  long long totentries = t->GetEntries();
 
   long long savedEvents = 0;
-  for (long long i = 0; savedEvents < maxevt && i<totentries; ++i) {
+  for (long long i = 0; savedEvents < maxevt && i<totentries && i<maxevt; ++i) {
 
     cout << "process entry i=" << i << " out of " << totentries << ", saved so far " << savedEvents << ", with max=" << maxevt << endl;
 
@@ -385,16 +387,17 @@ int main() {
 
     cout << "edm event=" << event << endl;
 
-
     auto nSims = sim_q->size();
     if (nSims==0) {
       cout << "branches not loaded" << endl; exit(1);
     }
-
+    std::cout<<__FILE__<<" "<<__LINE__<<" nSims "<<nSims<<std::endl;
+    
     vector<Track> simTracks_;
     vector<int> simTrackIdx_(sim_q->size(),-1);//keep track of original index in ntuple
     vector<int> seedSimIdx(see_q->size(),-1);
     for (int isim = 0; isim < sim_q->size(); ++isim) {
+      std::cout<<__FILE__<<" "<<__LINE__<<" iSim "<<isim<<std::endl;
 
       //load sim production vertex data
       auto iVtx = sim_parentVtxIdx->at(isim);
@@ -405,12 +408,12 @@ int main() {
       //if (fabs(sim_eta->at(isim))>0.8) continue;
 
       vector<int> const& trkIdxV = sim_trkIdx->at(isim);
+      
       //if (trkIdx<0) continue;
-
       //FIXME: CHECK IF THE LOOP AND BEST SELECTION IS NEEDED.
       //Pick the first
       const int trkIdx = trkIdxV.empty() ? -1 : trkIdxV[0];
-
+      
       int nlay = 0;
       if (trkIdx>=0) {	
 	std::vector<int> hitlay(nTotalLayers, 0);
@@ -454,6 +457,7 @@ int main() {
 
       //cout << Form("track q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) nlay=%i",sim_q->at(isim),sim_px->at(isim),sim_py->at(isim),sim_pz->at(isim),sim_prodx,sim_prody,sim_prodz,nlay) << endl;
 
+      
       SVector3 pos(sim_prodx,sim_prody,sim_prodz);
       SVector3 mom(sim_px->at(isim),sim_py->at(isim),sim_pz->at(isim));
       SMatrixSym66 err;
@@ -478,15 +482,19 @@ int main() {
 	}
       }
       simTrackIdx_[isim] = simTracks_.size();
-      simTracks_.push_back(track);      
+      simTracks_.push_back(track);  
+         
     }
 
     if (simTracks_.size()==0) continue;
     //if (simTracks_.size()<2) continue;
 
+    
     vector<Track> seedTracks_;
     vector<vector<int> > pixHitSeedIdx(pix_lay->size());
+    std::cout<<__FILE__<<" "<<__LINE__<<" n see "<<see_q->size()<<std::endl;
     for (int is = 0; is<see_q->size(); ++is) {
+      std::cout<<__FILE__<<" "<<__LINE__<<" see "<<is<<" algo "<<see_algo->at(is)<<std::endl;
       if (TrackAlgorithm(see_algo->at(is))!=TrackAlgorithm::initialStep) continue;//select seed in acceptance
       //if (see_pt->at(is)<0.5 || fabs(see_eta->at(is))>0.8) continue;//select seed in acceptance
       SVector3 pos = SVector3(see_stateTrajGlbX->at(is),see_stateTrajGlbY->at(is),see_stateTrajGlbZ->at(is));
@@ -522,8 +530,9 @@ int main() {
       Track track(state, 0, seedSimIdx[is], 0, nullptr);
       auto const& shTypes = see_hitType->at(is);
       auto const& shIdxs = see_hitIdx->at(is);
-      if (! (TrackAlgorithm(see_algo->at(is))!= TrackAlgorithm::initialStep
+      if (! (TrackAlgorithm(see_algo->at(is))== TrackAlgorithm::initialStep
 	     && std::count(shTypes.begin(), shTypes.end(), int(HitType::Pixel))>=3)) continue;//check algo and nhits
+      std::cout<<__FILE__<<" "<<__LINE__<<" see "<<is<<" algo OK and nHit OK "<<std::endl;
       for (int ip=0; ip<shTypes.size(); ip++) {
 	unsigned int ipix = shIdxs[ip];
 	//cout << "ipix=" << ipix << " seed=" << seedTracks_.size() << endl;
@@ -532,18 +541,24 @@ int main() {
       seedTracks_.push_back(track);
     }
 
+    std::cout<<__FILE__<<" "<<__LINE__<<" seedTracks "<<seedTracks_.size()<<std::endl;
     if (seedTracks_.size()==0) continue;
 
     vector<vector<Hit> > layerHits_;
     vector<MCHitInfo> simHitsInfo_;
     int totHits = 0;
     layerHits_.resize(nTotalLayers);
+    std::cout<<__FILE__<<" "<<__LINE__<<" n pix "<<pix_lay->size()<<std::endl;
     for (int ipix = 0; ipix < pix_lay->size(); ++ipix) {
       int ilay = -1;
       ilay = lnc.convertLayerNumber(pix_det->at(ipix),pix_lay->at(ipix),useMatched,-1,pix_z->at(ipix)>0);
       if (ilay<0) continue;
       int simTkIdx = -1;
-      if (pix_simTrkIdx->at(ipix)>=0) simTkIdx = simTrackIdx_[pix_simTrkIdx->at(ipix)];
+      auto const& pixSimHits = pix_simHitIdx->at(ipix);
+      if (!pixSimHits.empty()){
+	//FIXME: need to improve consistency instead of just using first available
+	simTkIdx = simTrackIdx_[simhit_simTrkIdx->at(pixSimHits[0])];
+      }
       //cout << Form("pix lay=%i det=%i x=(%6.3f, %6.3f, %6.3f)",ilay+1,pix_det->at(ipix),pix_x->at(ipix),pix_y->at(ipix),pix_z->at(ipix)) << endl;
       SVector3 pos(pix_x->at(ipix),pix_y->at(ipix),pix_z->at(ipix));
       SMatrixSym33 err;
@@ -564,14 +579,24 @@ int main() {
       simHitsInfo_.push_back(hitInfo);
       totHits++;
     }
+    std::cout<<__FILE__<<" "<<__LINE__<<" pix loop OK: now totHits "<<totHits<<std::endl;
 
     if (useMatched) {
       for (int iglu = 0; iglu < glu_lay->size(); ++iglu) {
 	if (glu_isBarrel->at(iglu)==0) continue;
 	int simTkIdx = -1;
-	if (str_simTrkIdx->at(glu_monoIdx->at(iglu))>=0 /*|| str_simTrkIdx->at(glu_stereoIdx->at(iglu))>=0*/) simTkIdx = simTrackIdx_[str_simTrkIdx->at(glu_monoIdx->at(iglu))];
+	auto const& strMSimHits = str_simHitIdx->at(glu_monoIdx->at(iglu));
+	int strMSimHit_simTrkIdx = -1;
+	int strMSimHit_process = -1;
+	auto const& strSSimHits = str_simHitIdx->at(glu_stereoIdx->at(iglu));
+	if (!strMSimHits.empty() /*|| !strSSimHits.empty() */){
+	  //FIXME: need to improve consistency instead of just using first available
+	  strMSimHit_simTrkIdx = simhit_simTrkIdx->at(strMSimHits[0]);
+	  strMSimHit_process = simhit_process->at(strMSimHits[0]);
+	  simTkIdx = simTrackIdx_[strMSimHit_simTrkIdx];
+	}
 	int ilay = lnc.convertLayerNumber(glu_det->at(iglu),glu_lay->at(iglu),useMatched,-1,glu_z->at(iglu)>0);
-	//cout << ilay << " " << str_simTrkIdx->at(glu_monoIdx->at(iglu)) << " " << str_process->at(glu_monoIdx->at(iglu)) << " " << str_simTrkIdx->at(glu_stereoIdx->at(iglu)) << " " << str_process->at(glu_stereoIdx->at(iglu)) << endl;
+	//cout << ilay << " " << strMSimHit_simTrkIdx << " " << strMSimHit_process << " " << strSSimHit_simTrkIdx << " " << strSSimHit_process << endl;
 	// cout << Form("glu lay=%i det=%i bar=%i x=(%6.3f, %6.3f, %6.3f)",ilay+1,glu_det->at(iglu),glu_isBarrel->at(iglu),glu_x->at(iglu),glu_y->at(iglu),glu_z->at(iglu)) << endl;
 	SVector3 pos(glu_x->at(iglu),glu_y->at(iglu),glu_z->at(iglu));
 	SMatrixSym33 err;
@@ -592,15 +617,30 @@ int main() {
 
     vector<int> strIdx;
     strIdx.resize(str_lay->size());
+    std::cout<<__FILE__<<" "<<__LINE__<<" n str "<<str_lay->size()<<std::endl;
     for (int istr = 0; istr < str_lay->size(); ++istr) {
+      std::cout<<__FILE__<<" "<<__LINE__<<" i str "<<istr<<std::endl;
       int ilay = -1;
       ilay = lnc.convertLayerNumber(str_det->at(istr),str_lay->at(istr),useMatched,str_isStereo->at(istr),str_z->at(istr)>0);
       if (useMatched && str_isBarrel->at(istr)==1 && str_isStereo->at(istr)) continue;
       if (ilay==-1) continue;
       int simTkIdx = -1;
-      if (str_simTrkIdx->at(istr)>=0) simTkIdx = simTrackIdx_[str_simTrkIdx->at(istr)];
+      int strSimHit_simTrkIdx = -1;
+      int strSimHit_process = -1;
+      auto const& strSimHits = str_simHitIdx->at(istr);
+
+      if (!strSimHits.empty()){
+	//FIXME: need to improve consistency instead of just using first available
+	strSimHit_simTrkIdx = simhit_simTrkIdx->at(strSimHits[0]);
+	std::cout<<__FILE__<<" "<<__LINE__<<" simTrk "<<strSimHit_simTrkIdx<<std::endl;
+	strSimHit_process = simhit_process->at(strSimHits[0]);
+	std::cout<<__FILE__<<" "<<__LINE__<<" process "<<strSimHit_process<<std::endl;
+	simTkIdx = simTrackIdx_[strSimHit_simTrkIdx];
+	std::cout<<__FILE__<<" "<<__LINE__<<" simTkIdx "<<simTkIdx<<std::endl;
+      }
       //if (str_onTrack->at(istr)==0) continue;//do not consider hits that are not on track!
-      //cout << Form("str lay=%i istr=%i tridx=%i bar=%i x=(%6.3f, %6.3f, %6.3f) r=%6.3f proc=%i part=%i onTrk=%i isStereo=%i",ilay+1,istr,str_simTrkIdx->at(istr),str_isBarrel->at(istr),str_x->at(istr),str_y->at(istr),str_z->at(istr),sqrt(pow(str_x->at(istr),2)+pow(str_y->at(istr),2)),str_process->at(istr),str_particle->at(istr),str_onTrack->at(istr),str_isStereo->at(istr)) << endl;
+      //cout << Form("str lay=%i istr=%i tridx=%i bar=%i x=(%6.3f, %6.3f, %6.3f) r=%6.3f proc=%i part=%i onTrk=%i isStereo=%i",ilay+1,istr,strSimHit_simTrkIdx,str_isBarrel->at(istr),str_x->at(istr),str_y->at(istr),str_z->at(istr),sqrt(pow(str_x->at(istr),2)+pow(str_y->at(istr),2)),strSimHit_process->at(istr),str_particle->at(istr),str_onTrack->at(istr),str_isStereo->at(istr)) << endl;
+      std::cout<<__FILE__<<" "<<__LINE__<<" fill in lay "<<ilay<<std::endl;
       SVector3 pos(str_x->at(istr),str_y->at(istr),str_z->at(istr));
       SMatrixSym33 err;
       err.At(0,0) = str_xx->at(istr);
@@ -609,19 +649,26 @@ int main() {
       err.At(0,1) = str_xy->at(istr);
       err.At(0,2) = str_zx->at(istr);
       err.At(1,2) = str_yz->at(istr);
-      if (simTkIdx>=0) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
+      std::cout<<__FILE__<<" "<<__LINE__<<" got pos and err "<<" fill simTracks_ "<<simTkIdx<<" of "<<simTracks_.size()<<std::endl;
+      if (simTkIdx>=0){
+	std::cout<<__FILE__<<" "<<__LINE__<<" add hits; size now "<<simTracks_[simTkIdx].nTotalHits()<<std::endl;
+	simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
+	std::cout<<__FILE__<<" "<<__LINE__<<" hit added "<<std::endl;
+      }
       Hit hit(pos, err, totHits);
       layerHits_[ilay].push_back(hit);
       MCHitInfo hitInfo(simTkIdx, ilay, layerHits_[ilay].size()-1, totHits);
       simHitsInfo_.push_back(hitInfo);
       totHits++;
     }
+    std::cout<<__FILE__<<" "<<__LINE__<<" str loop OK: now totHits "<<totHits<<std::endl;
 
     // bool allTracksAllHits = true;
     for (int i=0;i<simTracks_.size();++i) {
       simTracks_[i].setNGoodHitIdx();
       // if (simTracks_[i].nFoundHits()!=Config::nTotalLayers) allTracksAllHits = false;
     }
+    std::cout<<__FILE__<<" "<<__LINE__<<" simTracks_ loop OK: now "<<simTracks_.size()<<std::endl;
     // if (!allTracksAllHits) continue;
 
     int nt = simTracks_.size();
@@ -658,7 +705,15 @@ int main() {
 
     for (int i=0;i<nt;++i) {
       printf("sim track id=%i q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) pT=%7.4f nTotal=%i nFound=%i \n",i,simTracks_[i].charge(),simTracks_[i].px(),simTracks_[i].py(),simTracks_[i].pz(),simTracks_[i].x(),simTracks_[i].y(),simTracks_[i].z(),sqrt(pow(simTracks_[i].px(),2)+pow(simTracks_[i].py(),2)),simTracks_[i].nTotalHits(),simTracks_[i].nFoundHits());
-      for (int ih=0;ih<simTracks_[i].nTotalHits();++ih) printf("track #%i hit #%i idx=%i\n",i,ih,simTracks_[i].getHitIdx(ih));
+      for (int ih=0;ih<simTracks_[i].nTotalHits();++ih){
+	int hidx = simTracks_[i].getHitIdx(ih);
+	int hlay = simTracks_[i].getHitLyr(ih);
+	float hx = layerHits_[hlay][hidx].x();
+	float hy = layerHits_[hlay][hidx].y();
+	float hz = layerHits_[hlay][hidx].z();
+	printf("track #%4i hit #%2i idx=%4i lay=%2i x=(% 8.3f, % 8.3f, % 8.3f) r=%8.3f\n",
+	       i,ih,hidx,hlay,hx,hy,hz, sqrt(hx*hx+hy*hy));
+      }
     }
 
 
