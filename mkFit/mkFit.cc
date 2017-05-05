@@ -19,8 +19,6 @@
 
 #include "MaterialEffects.h"
 
-#include "CylCowWLids.h"
-
 #ifndef NO_ROOT
 #include "Validation.h"
 #endif
@@ -50,10 +48,13 @@ void initGeom(Geometry& geom)
   // are added starting from the center
   // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
 
+  TrackerInfo::ExecTrackerInfoCreatorPlugin(Config::geomPlugin, Config::TrkInfo);
+
+  /*
   if ( ! Config::endcapTest && ! Config::useCMSGeom)
   {
     // This is the new standalone case -- Cylindrical Cow with Lids
-    Create_TrackerInfo(Config::TrkInfo);
+    //Create_TrackerInfo(Config::TrkInfo);
 #ifndef WITH_USOLIDS
     geom.BuildFromTrackerInfo(Config::TrkInfo);
 #else
@@ -86,6 +87,7 @@ void initGeom(Geometry& geom)
       }
     }
   }
+  */
 }
 
 namespace
@@ -210,6 +212,8 @@ void test_standard()
          MPT_SIZE, Config::numThreadsSimulation, Config::numThreadsFinder);
   printf("  sizeof(Track)=%zu, sizeof(Hit)=%zu, sizeof(SVector3)=%zu, sizeof(SMatrixSym33)=%zu, sizeof(MCHitInfo)=%zu\n",
          sizeof(Track), sizeof(Hit), sizeof(SVector3), sizeof(SMatrixSym33), sizeof(MCHitInfo));
+
+  // XXXX MT to revisit ...
   if (Config::useCMSGeom) {
     printf ("Using CMS-like geometry ");
     if (Config::readCmsswSeeds) printf ("with CMSSW seeds\n");
@@ -217,6 +221,9 @@ void test_standard()
   } else if (Config::endcapTest) {
     printf ("Test tracking in endcap, disks spacing 5 cm\n");
   } else printf ("Using Cylindrical Cow with Lids, |eta| < 2.4\n");
+
+  Geometry geom;
+  initGeom(geom);
 
   if (g_operation == "write") {
     generate_and_save_tracks();
@@ -233,9 +240,6 @@ void test_standard()
     Config::nEvents = open_simtrack_file();
     assert(g_input_version > 0 || 1 == Config::numThreadsEvents);
   }
-
-  Geometry geom;
-  initGeom(geom);
 
   if (Config::useCMSGeom) fillZRgridME();
 
@@ -473,6 +477,7 @@ int main(int argc, const char *argv[])
       printf(
         "Usage: %s [options]\n"
         "Options:\n"
+        "  --geom          <str>    geometry plugin to use (def: %s)\n"
         "  --num-events    <num>    number of events to run over (def: %d)\n"
         "  --num-tracks    <num>    number of tracks to generate for each event (def: %d)\n"
         "  --num-thr-sim   <num>    number of threads for simulation (def: %d)\n"
@@ -481,6 +486,7 @@ int main(int argc, const char *argv[])
         "  --num-thr-ev    <num>    number of threads to run the event loop\n"
         "  --fit-std                run standard fitting test (def: false)\n"
         "  --fit-std-only           run only standard fitting test (def: false)\n"
+        "  --chi2cut       <num>    chi2 cut used in building test (def: %.1f)\n"
         "  --build-bh               run best-hit building test (def: false)\n"
         "  --build-std              run standard combinatorial building test (def: false)\n"
         "  --build-ce               run clone engine combinatorial building test (def: false)\n"
@@ -505,9 +511,11 @@ int main(int argc, const char *argv[])
         "  --num-thr-reorg <num>    number of threads to run the hits reorganization\n"
         ,
         argv[0],
+        Config::geomPlugin.c_str(),
         Config::nEvents,
         Config::nTracks,
         Config::numThreadsSimulation, Config::numThreadsFinder,
+        Config::chi2Cut,
         Config::numSeedsPerTask,
         Config::finderReportBestOutOfN,
       	Config::useCMSGeom,
@@ -525,6 +533,11 @@ int main(int argc, const char *argv[])
         g_input_version
       );
       exit(0);
+    }
+    else if (*i == "--geom")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::geomPlugin = *i;
     }
     else if (*i == "--num-events")
     {
@@ -554,6 +567,11 @@ int main(int argc, const char *argv[])
     {
       g_run_fit_std = true;
       g_run_build_all = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = false;
+    }
+    else if (*i == "--chi2cut")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::chi2Cut = atof(i->c_str());
     }
     else if(*i == "--build-bh")
     {

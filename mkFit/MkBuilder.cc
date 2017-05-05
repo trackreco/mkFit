@@ -177,7 +177,6 @@ MkBuilder::MkBuilder() :
   m_steering_params[TrackerInfo::Reg_Endcap_Neg] =
     {
       21,
-      &LayerInfo::m_zmax,
       &LayerInfo::m_next_ecap_neg,
       &MkFitter::PropagateTracksToZ,
       &MkFitter::SelectHitIndicesEndcap,
@@ -192,7 +191,6 @@ MkBuilder::MkBuilder() :
   m_steering_params[TrackerInfo::Reg_Barrel] =
     {
       3,
-      &LayerInfo::m_rin,
       &LayerInfo::m_next_barrel,
       &MkFitter::PropagateTracksToR,
       &MkFitter::SelectHitIndices,
@@ -207,7 +205,6 @@ MkBuilder::MkBuilder() :
   m_steering_params[TrackerInfo::Reg_Endcap_Pos] =
     {
       12,
-      &LayerInfo::m_zmin,
       &LayerInfo::m_next_ecap_pos,
       &MkFitter::PropagateTracksToZ,
       &MkFitter::SelectHitIndicesEndcap,
@@ -998,7 +995,7 @@ void MkBuilder::FindTracksBestHit()
 
           dcall(pre_prop_print(next_layer, mkfp.get()));
 
-          (mkfp.get()->*st_par.propagate_foo)(trk_info.m_layers[ilay].*st_par.prop_to_pos_doo, rng.n_proc());
+          (mkfp.get()->*st_par.propagate_foo)(trk_info.m_layers[ilay].m_propagate_to, rng.n_proc());
 
           dcall(post_prop_print(next_layer, mkfp.get()));
 
@@ -1139,7 +1136,7 @@ void MkBuilder::FindTracksStandard()
           //propagate to layer
           dcall(pre_prop_print(ilay, mkfp.get()));
 
-          (mkfp.get()->*st_par.propagate_foo)(layer_info.*st_par.prop_to_pos_doo, end - itrack);
+          (mkfp.get()->*st_par.propagate_foo)(layer_info.m_propagate_to, end - itrack);
 
           dcall(post_prop_print(ilay, mkfp.get()));
 
@@ -1349,7 +1346,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfp,
       if (ilay >= 0)
       {
         // propagate to current layer
-        (mkfp->*st_par.propagate_foo)(layer_info.*st_par.prop_to_pos_doo, end - itrack);
+        (mkfp->*st_par.propagate_foo)(layer_info.m_propagate_to, end - itrack);
         // copy_out the propagated track params, errors only (hit-idcs and chi2 already updated)
         mkfp->CopyOutParErr(eoccs.m_candidates, end - itrack, true);
       }

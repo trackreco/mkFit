@@ -61,7 +61,7 @@ inline bool sortTrksByPhiMT(const Track& t1, const Track& t2)
 // and could help us reduce the number of hits we need to process with bigger
 // potential gains.
 
-#define LOH_USE_PHI_Q_ARRAYS
+// #define LOH_USE_PHI_Q_ARRAYS
 
 // Note: the same code is used for barrel and endcap. In barrel the longitudinal
 // bins are in Z and in endcap they are in R -- here this coordinate is called Q
@@ -69,6 +69,7 @@ inline bool sortTrksByPhiMT(const Track& t1, const Track& t2)
 class LayerOfHits
 {
 public:
+  const LayerInfo          *m_layer_info = 0;
   Hit                      *m_hits = 0;
   vecvecPhiBinInfo_t        m_phi_bin_infos;
 #ifdef LOH_USE_PHI_Q_ARRAYS
@@ -79,14 +80,23 @@ public:
   float m_qmin, m_qmax, m_fq;
   int   m_nq = 0;
   int   m_capacity = 0;
-  int   m_layer_id = -1;
-  bool  m_is_barrel;
+
+  int   layer_id()  const { return m_layer_info->m_layer_id;  }
+  bool  is_barrel() const { return m_layer_info->is_barrel(); }
+
+  float min_dphi() const { return m_layer_info->m_select_min_dphi; }
+  float max_dphi() const { return m_layer_info->m_select_max_dphi; }
+  float min_dq()   const { return m_layer_info->m_select_min_dq;   }
+  float max_dq()   const { return m_layer_info->m_select_max_dq;   }
 
   // Testing bin filling
   static constexpr float m_fphi     = Config::m_nphi / Config::TwoPI;
   static constexpr int   m_phi_mask = 0x3ff;
 
 protected:
+
+  void setup_bins(float qmin, float qmax, float dq);
+
   void alloc_hits(int size)
   {
     m_hits = (Hit*) _mm_malloc(sizeof(Hit) * size, 64);
@@ -134,9 +144,9 @@ public:
     free_hits();
   }
 
-  void  Reset() {}
+  void  SetupLayer(const LayerInfo &li);
 
-  void  SetupLayer(float qmin, float qmax, float dq, int layer, bool is_barrel);
+  void  Reset() {}
 
   float NormalizeQ(float q) const { if (q < m_qmin) return m_qmin; if (q > m_qmax) return m_qmax; return q; }
 
@@ -149,11 +159,11 @@ public:
 
   const vecPhiBinInfo_t& GetVecPhiBinInfo(float q) const { return m_phi_bin_infos[GetQBin(q)]; }
 
-  void SuckInHits(const HitVec &hitv);
+  void  SuckInHits(const HitVec &hitv);
 
-  void SelectHitIndices(float q, float phi, float dq, float dphi, std::vector<int>& idcs, bool isForSeeding=false, bool dump=false);
+  void  SelectHitIndices(float q, float phi, float dq, float dphi, std::vector<int>& idcs, bool isForSeeding=false, bool dump=false);
 
-  void PrintBins();
+  void  PrintBins();
 };
 
 //==============================================================================
@@ -165,7 +175,6 @@ public:
   int                      m_n_layers;
 
 public:
-  EventOfHits(int n_layers);
   EventOfHits(TrackerInfo &trk_inf);
 
   void Reset()

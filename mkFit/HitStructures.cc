@@ -4,31 +4,45 @@
 
 #include "Ice/IceRevisitedRadix.h"
 
-void LayerOfHits::SetupLayer(float qmin, float qmax, float dq, int layer, bool is_barrel)
+void LayerOfHits::setup_bins(float qmin, float qmax, float dq)
 {
+  // Define layer with min/max and number of bins along q.
+
   // XXXX MT: Could have n_phi bins per layer, too.
 
-  assert (m_nq == 0 && "SetupLayer() already called.");
-
-  m_layer_id  = layer;
-  m_is_barrel = is_barrel;
-
-  // Realign qmin/max on "global" dq boundaries.
-  // This might not be the best strategy, esp. for large bins.
-  // Could have instead:
-  // a) extra space on each side;
-  // b) pass in number of bins.
-
-  float nmin = std::floor(qmin / dq);
-  float nmax = std::ceil (qmax / dq);
-  m_qmin = dq * nmin;
-  m_qmax = dq * nmax;
-  m_fq   = 1.0f / dq; // qbin = (q_hit - m_qmin) * m_fq;
-  m_nq   = nmax - nmin;
+  if (dq < 0)
+  {
+    m_nq = (int) -dq;
+    m_qmin = qmin;
+    m_qmax = qmax;
+  }
+  else
+  {
+    float extent = qmax - qmin;
+    m_nq = std::ceil(extent / dq);
+    float extra  = 0.5f * (m_nq * dq - extent);
+    m_qmin = qmin - extra;
+    m_qmax = qmax + extra;
+  }
+  m_fq = m_nq / (qmax - qmin); // qbin = (q_hit - m_qmin) * m_fq;
 
   m_phi_bin_infos.resize(m_nq);
   for (int i = 0; i < m_nq; ++i) m_phi_bin_infos[i].resize(Config::m_nphi);
 }
+
+void LayerOfHits::SetupLayer(const LayerInfo &li)
+{
+  // Note, LayerInfo::m_q_bin ==>  > 0 - bin width, < 0 - number of bins
+
+  assert (m_layer_info == nullptr && "SetupLayer() already called.");
+
+  m_layer_info = &li;
+
+  if (is_barrel()) setup_bins(li.m_zmin, li.m_zmax, li.m_q_bin);
+  else             setup_bins(li.m_rin,  li.m_rout, li.m_q_bin);
+}
+
+//==============================================================================
 
 void LayerOfHits::SuckInHits(const HitVec &hitv)
 {
@@ -55,7 +69,8 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
 
   assert (m_nq > 0 && "SetupLayer() was not called.");
 
-  const int size = hitv.size();
+  const int  size   = hitv.size();
+  const bool is_brl = is_barrel();
 
   if (m_capacity < size)
   {
@@ -83,7 +98,7 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
     {
       HitInfo &hi = ha[i];
       hi.phi  = h.phi();
-      hi.q    = m_is_barrel ? h.z() : h.r();
+      hi.q    = is_brl ? h.z() : h.r();
       hi.qbin = std::max(std::min(static_cast<int>((hi.q - m_qmin) * m_fq), m_nq - 1), 0);
       m_hit_phis[i] = hi.phi + 6.3f * (hi.qbin - nqh);
       ++qc[hi.qbin];
@@ -106,11 +121,11 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
     // XXXX MT: Endcap has special check - try to get rid of this!
     // Also, WTF ... this brings in holes as pos i is not filled.
     // If this stays I need i_offset variable.
-    if ( ! m_is_barrel && (hitv[j].r() > m_qmax || hitv[j].r() < m_qmin))
+    if ( ! is_brl && (hitv[j].r() > m_qmax || hitv[j].r() < m_qmin))
     {
       printf("LayerOfHits::SuckInHits WARNING hit out of r boundary of disk\n"
              "  layer %d hit %d hit_r %f limits (%f, %f)\n",
-             m_layer_id, j, hitv[j].r(), m_qmin, m_qmax);
+             layer_id(), j, hitv[j].r(), m_qmin, m_qmax);
       // Figure out of this needs to stay ... and fix it
       // --m_size;
       // continue;
@@ -200,10 +215,9 @@ void LayerOfHits::SelectHitIndices(float q, float phi, float dq, float dphi, std
 
   if ( ! isForSeeding) // seeding has set cuts for dq and dphi
   {
-    // XXXX MT: Here I reuse Config::m_max_dz also for endcap ... those will become
-    // layer dependant and get stored in TrackerInfo (or copied into LayerOfHits).
-    if (std::abs(dq)   > Config::m_max_dz)   dq   = Config::m_max_dz;
-    if (std::abs(dphi) > Config::m_max_dphi) dphi = Config::m_max_dphi;
+    // XXXX MT: min search windows not enforced here.
+    dq   = std::min(std::abs(dq),   max_dq());
+    dphi = std::min(std::abs(dphi), max_dphi());
   }
   
   int qb1 = GetQBinChecked(q - dq);
@@ -254,7 +268,7 @@ void LayerOfHits::PrintBins()
 {
   for (int qb = 0; qb < m_nq; ++qb)
   {
-    printf("%c bin %d\n", m_is_barrel ? 'Z' : 'R', qb);
+    printf("%c bin %d\n", is_barrel() ? 'Z' : 'R', qb);
     for (int pb = 0; pb < Config::m_nphi; ++pb)
     {
       if (pb % 8 == 0)
@@ -271,44 +285,12 @@ void LayerOfHits::PrintBins()
 // EventOfHits
 //==============================================================================
 
-EventOfHits::EventOfHits(int n_layers) :
-  m_layers_of_hits(n_layers),
-  m_n_layers(n_layers)
-{
-  for (int i = 0; i < n_layers; ++i)
-  {
-    assert("Butchering out old setup via Config ... for cyl-cow and cms." && 0);
-    //if (Config::endcapTest) m_layers_of_hits[i].SetupDisk(Config::cmsDiskMinRs[i], Config::cmsDiskMaxRs[i], Config::g_disk_dr[i]);
-    //else m_layers_of_hits[i].SetupLayer(-Config::g_layer_zwidth[i], Config::g_layer_zwidth[i], Config::g_layer_dz[i]);
-  }
-}
-
 EventOfHits::EventOfHits(TrackerInfo &trk_inf) :
   m_layers_of_hits(trk_inf.m_layers.size()),
   m_n_layers(trk_inf.m_layers.size())
 {
   for (auto &li : trk_inf.m_layers)
   {
-    // XXXX MT bin width has to come from somewhere ... had arrays in Config.
-    // This is also different for strip detectors + the hack
-    // with mono / stereo regions in CMS endcap layers.
-    // I'm just hardocding this to 1 cm for now ...
-
-    float bin_width = 1.0f;
-
-    if (li.is_barrel())
-    {
-      // printf("EventOfHits::EventOfHits setting up layer %2d as barrel\n", li.m_layer_id);
-
-      m_layers_of_hits[li.m_layer_id].SetupLayer(li.m_zmin, li.m_zmax, bin_width,
-                                                 li.m_layer_id, true);
-    }
-    else
-    {
-      // printf("EventOfHits::EventOfHits setting up layer %2d as endcap\n", li.m_layer_id);
-
-      m_layers_of_hits[li.m_layer_id].SetupLayer(li.m_rin, li.m_rout, bin_width,
-                                                 li.m_layer_id, false);
-    }
+    m_layers_of_hits[li.m_layer_id].SetupLayer(li);
   }
 }

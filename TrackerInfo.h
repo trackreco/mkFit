@@ -1,6 +1,7 @@
 #ifndef TRACKERINFO_H
 #define TRACKERINFO_H
 
+#include <string>
 #include <vector>
 
 #include <cmath>
@@ -15,20 +16,31 @@ public:
   LayerType_e   m_layer_type;
 
   float         m_rin, m_rout, m_zmin, m_zmax;
+  float         m_propagate_to;
 
   int           m_next_barrel, m_next_ecap_pos, m_next_ecap_neg;
   int           m_sibl_barrel, m_sibl_ecap_pos, m_sibl_ecap_neg;
 
   bool          m_is_outer;
 
+  // Selection limits
+  float         m_q_bin; // > 0 - bin width, < 0 - number of bins
+  float         m_select_min_dphi, m_select_max_dphi;
+  float         m_select_min_dq,   m_select_max_dq;
+
   // Additional stuff needed?
   // * pixel / strip, mono / stereo
-  // * resolutions
+  // * resolutions, min/max search windows
+  // * holes in coverage
   // * functions / lambdas for deciding / calculating stuff
   // * ...
   // * pointers to hit containers
 
-  LayerInfo(int lid) : m_layer_id(lid) {}
+  LayerInfo(int lid) : m_layer_id(lid) { m_sibl_barrel, m_sibl_ecap_pos, m_sibl_ecap_neg = -1; }
+
+  void  set_limits(float r1, float r2, float z1, float z2);
+  void  set_next_layers(int nb, int nep, int nen);
+  void  set_selection_limits(float p1, float p2, float q1, float q2);
 
   float r_mean()    const { return (m_rin  + m_rout) / 2; }
   float z_mean()    const { return (m_zmin + m_zmax) / 2; }
@@ -43,6 +55,8 @@ public:
             is_barrel(), m_is_outer);
   }
 };
+
+//==============================================================================
 
 class TrackerInfo
 {
@@ -110,6 +124,10 @@ public:
     if (l <= m_ecap_pos.back()) return Reg_Endcap_Pos;
     return Reg_Endcap_Neg;
   }
+
+  static void ExecTrackerInfoCreatorPlugin(const std::string& base, TrackerInfo &ti, bool verbose=false);
 };
+
+typedef void (*TrackerInfoCreator_foo)(TrackerInfo&, bool verbose);
 
 #endif

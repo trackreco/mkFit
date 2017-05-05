@@ -20,6 +20,8 @@ CMSSW -> TrackerInfo layer numbering
 CMSSW uses detector (1 - 6) / layer numbering, our code uses a single layer
 index.
 
+stereo = simhit_detId & 3; 0 - single layer, 1 - stereo, 2 - dual layer
+
 *** 1. PIXB, 4 layers
 1 -> 0
 2 -> 1

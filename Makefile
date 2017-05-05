@@ -1,21 +1,26 @@
 include Makefile.config
 
-TGTS := main
+LIB_CORE     := libMicCore.so
+LIB_CORE_MIC := libMicCore-mic.so
 
-EXES := ${TGTS}
+
+TGTS := ${LIB_CORE} main
 
 ifeq (${CXX},icc)
-  EXES   += $(addsuffix -mic, ${TGTS})
+  TGTS += ${LIB_CORE_MIC} main-mic
 endif
 
 .PHONY: all clean distclean
 
-all: ${EXES}
+all: ${TGTS}
+	cd Geoms && ${MAKE}
 	cd mkFit && ${MAKE}
 
 SRCS := $(wildcard *.cc)
 OBJS := $(SRCS:.cc=.o)
 DEPS := $(SRCS:.cc=.d)
+
+CORE_OBJS := $(filter-out main.o, ${OBJS})
 
 AUTO_TGTS :=
 
@@ -35,7 +40,7 @@ include ${DEPS}
 endif
 
 clean-local:
-	-rm -f ${EXES} *.d *.o *.om *.so
+	-rm -f ${TGTS} *.d *.o *.om *.so
 	-rm -rf main.dSYM
 	-rm -rf USolids-{host,mic}
 
@@ -48,8 +53,11 @@ distclean: clean-local
 	cd Matriplex && ${MAKE} distclean
 	cd mkFit     && ${MAKE} distclean
 
-main: ${AUTO_TGTS} ${OBJS} ${LIBUSOLIDS}
-	${CXX} ${CXXFLAGS} ${VEC_HOST} -o $@ ${OBJS} ${LIBUSOLIDS} ${LDFLAGS}
+${LIB_CORE}: ${CORE_OBJS}
+	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} ${CORE_OBJS} -shared -o $@ ${LDFLAGS_HOST} ${LDFLAGS_CU}
+
+main: ${AUTO_TGTS} ${LIB_CORE} main.o ${LIBUSOLIDS}
+	${CXX} ${CXXFLAGS} ${VEC_HOST} -o $@ main.o ${LIBUSOLIDS} ${LDFLAGS} -L. -lMicCore -Wl,-rpath=.
 
 ${OBJS}: %.o: %.cc %.d
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<
@@ -60,11 +68,14 @@ ${LIBUSOLIDS} : USolids/CMakeLists.txt
 
 ifeq ($(CXX),icc)
 
-OBJS_MIC := $(OBJS:.o=.om)
+OBJS_MIC      := $(OBJS:.o=.om)
+CORE_OBJS_MIC := $(CORE_OBJS:.o=.om
 
-main-mic: ${AUTO_TGTS} ${OBJS_MIC} ${LIBUSOLIDS_MIC}
-	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} -o $@ ${OBJS_MIC} ${LIBUSOLIDS_MIC}
-	scp $@ mic0:
+${LIB_CORE_MIC}: ${CORE_OBJS_MIC}
+	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} ${CORE_OBJS_MIC} -shared -o $@ ${LDFLAGS_MIC}
+
+main-mic: ${AUTO_TGTS} ${LIB_CORE_MIC} ${LIBUSOLIDS_MIC}
+	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} -o $@ main.om ${LIBUSOLIDS_MIC}  ${LDFLAGS_MIC} -L. -lMicCore -Wl,-rpath=.
 
 ${LIBUSOLIDS_MIC} : USolids/CMakeLists.txt
 	-mkdir USolids-mic

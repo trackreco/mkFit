@@ -1,6 +1,23 @@
-#include "CylCowWLids.h"
+//---------------------------
+// Cylindrical Cow with Lids
+//---------------------------
+//
+// Intended coverage: |eta| < 2.4 with D_z_beam_spot = +-3 cm (3 sigma)
+// B-layer extends to 2.55.
+// Layers 1 and 2 have somewhat longer barrels. It is assumed
+// those will be needed / used for seed finding.
+//
+// Layers 3 - 9:
+//   Barrel:     0.0 - 1.0
+//   Transition: 1.0 - 1.4
+//   Endcap:     1.4 - 2.4
+//
+// Run root test/CylCowWLids.C to get a plot and dumps of
+// edge coordinates and etas.
+//
+// Eta partitions for B / T / EC
 
-#include "TrackerInfo.h"
+#include "../TrackerInfo.h"
 
 #include <cmath>
 
@@ -46,10 +63,8 @@ namespace
 
       li.m_layer_type = LayerInfo::Barrel;
 
-      li.m_rin  = r - m_det_half_thickness;
-      li.m_rout = r + m_det_half_thickness;
-      li.m_zmin = -z;
-      li.m_zmax =  z;
+      li.set_limits(r - m_det_half_thickness, r + m_det_half_thickness, -z, z);
+      li.m_propagate_to  = li.m_rin;
 
       li.m_next_barrel   = lid < 9 ? lid + 1 : -1;
       li.m_next_ecap_pos = lid < 9 ? lid + 1 +  9 : -1;
@@ -60,6 +75,9 @@ namespace
       li.m_sibl_ecap_neg = lid > 0 ? lid + 18 : -1;
 
       li.m_is_outer  = (lid == 9);
+
+      li.m_q_bin = 2.0;
+      li.set_selection_limits(0.01, 0.05, 1.0, 2.0);
     }
 
     void add_barrel_r_eta(int lid, float r, float eta)
@@ -87,10 +105,8 @@ namespace
 
         li.m_layer_type = LayerInfo::EndCapPos;
 
-        li.m_rin  = r_end;
-        li.m_rout = r;
-        li.m_zmin = z - m_det_half_thickness;
-        li.m_zmax = z + m_det_half_thickness;
+        li.set_limits(r_end, r, z - m_det_half_thickness, z + m_det_half_thickness);
+        li.m_propagate_to  = li.m_zmin;
 
         li.m_next_barrel   = lid < 18 ? lid - 10 + 2 : -1;
         li.m_next_ecap_pos = lid < 18 ? lid + 1 : -1;
@@ -101,6 +117,9 @@ namespace
         li.m_sibl_ecap_neg = -1;
 
         li.m_is_outer  = (lid == 18);
+
+        li.m_q_bin = 1.5;
+        li.set_selection_limits(0.01, 0.05, 1.0, 2.0);
       }
       {
         lid += 9;
@@ -108,10 +127,8 @@ namespace
 
         li.m_layer_type = LayerInfo::EndCapNeg;
 
-        li.m_rin  = r_end;
-        li.m_rout = r;
-        li.m_zmin = -z - m_det_half_thickness;
-        li.m_zmax = -z + m_det_half_thickness;
+        li.set_limits(r_end, r, -z - m_det_half_thickness, -z + m_det_half_thickness);
+        li.m_propagate_to  = li.m_zmax;
 
         li.m_next_barrel   = lid < 27 ? lid - 19 + 2 : -1;
         li.m_next_ecap_pos = -1;
@@ -122,6 +139,9 @@ namespace
         li.m_sibl_ecap_neg = -1;
 
         li.m_is_outer  = (lid == 27);
+
+        li.m_q_bin = 1.5;
+        li.set_selection_limits(0.01, 0.05, 1.0, 2.0);
       }
     }
 
@@ -190,24 +210,27 @@ namespace
       // + endcap disks at -z
     }
   };
+
+  //============================================================================
+
+  void Create_CylCowWLids(TrackerInfo& ti, bool verbose)
+  {
+    CylCowWLidsCreator creator(ti);
+
+    creator.FillTrackerInfo();
+
+    if (verbose) {
+      printf("==========================================================================================\n");
+    }
+    printf("Create_CylCowWLids -- creation complete\n");
+
+    if (verbose) {
+      printf("==========================================================================================\n");
+      for (auto &i : ti.m_layers)  i.print_layer();
+      printf("==========================================================================================\n");
+    }
+  }
+
 }
 
-//==============================================================================
-
-void Create_TrackerInfo(TrackerInfo& ti, bool verbose)
-{
-  CylCowWLidsCreator creator(ti);
-
-  creator.FillTrackerInfo();
-
-  if (verbose) {
-    printf("==========================================================================================\n");
-  }
-  printf("CylCowWLids -- Create_TrackerInfo finished\n");
-
-  if (verbose) {
-    printf("==========================================================================================\n");
-    for (auto &i : ti.m_layers)  i.print_layer();
-    printf("==========================================================================================\n");
-  }
-}
+void* TrackerInfoCrator_ptr = (void*) Create_CylCowWLids;
