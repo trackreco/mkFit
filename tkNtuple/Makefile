@@ -1,3 +1,4 @@
+include ../Makefile.config
 
 .PHONY: all clean distclean echo
 
@@ -15,14 +16,14 @@ CXXFLAGS += ${USER_CXXFLAGS}
 LDFLAGS  += $(shell root-config --ldflags --cflags --libs) ${LDEXTRA}
 
 
-TGTS     := writeMemoryFile
+TGTS     := writeMemoryFile libDicts.so
 
 EXES     := ${TGTS}
 
 default: ${EXES}
 
 clean:
-	rm -f ${EXES} *.d *.o *.om
+	rm -f ${EXES} *.d *.o *.om *.so *Dict.* *.pcm
 	rm -rf writeMemoryFile.dSYM
 
 distclean: clean
@@ -49,12 +50,18 @@ SRCS := $(wildcard *.cc)
 HDRS := $(wildcard *.h)
 
 OBJS := $(SRCS:.cc=.o)
+OBJS := $(filter-out DictsDict.o, $(OBJS))
 
 ALLOBJS := ${OBJS} ${ABOVE_OBJS}
 
+libDicts.so: DictsDict.cc
+	${CXX} $(LDFLAGS) -Wno-deprecated -shared DictsDict.cc -o $@
 
-writeMemoryFile: ${OBJS}
-	${CXX} ${CXXFLAGS} ${LDFLAGS} ${ALLOBJS} -o $@
+DictsDict.cc:
+	@rootcint -v3 -f DictsDict.cc -c -p  DictsLinkDef.h
+
+writeMemoryFile: ${OBJS} libDicts.so
+	${CXX} ${CXXFLAGS} ${LDFLAGS} ${ALLOBJS} -L./ -lDicts -o $@
 
 
 ${OBJS}: %.o: %.cc
