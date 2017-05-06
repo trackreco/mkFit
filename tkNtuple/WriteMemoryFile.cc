@@ -154,7 +154,7 @@ int main() {
 
   TString outfilename = "";
 
-  TFile* f = TFile::Open("./ntuple_input.root"); maxevt = 1;outfilename = "cmssw_output.bin";
+  TFile* f = TFile::Open("./ntuple_input.root"); maxevt = 1000;outfilename = "cmssw_output.bin";
   
   TTree* t = (TTree*) f->Get("trackingNtuple/tree");
 
@@ -192,16 +192,23 @@ int main() {
 
   //simhit
   std::vector<short>* simhit_process;
+  std::vector<int>* simhit_particle;
   std::vector<int>* simhit_simTrkIdx;
   std::vector<float>* simhit_px;
   std::vector<float>* simhit_py;
   std::vector<float>* simhit_pz;
   t->SetBranchAddress("simhit_process",   &simhit_process);
+  t->SetBranchAddress("simhit_particle",   &simhit_particle);
   t->SetBranchAddress("simhit_simTrkIdx", &simhit_simTrkIdx);
   t->SetBranchAddress("simhit_px",        &simhit_px);
   t->SetBranchAddress("simhit_py",        &simhit_py);
   t->SetBranchAddress("simhit_pz",        &simhit_pz);
-  
+
+  std::vector<std::vector<int> >* simhit_hitIdx = 0;
+  t->SetBranchAddress("simhit_hitIdx", &simhit_hitIdx);
+  std::vector<std::vector<int> >* simhit_hitType = 0;
+  t->SetBranchAddress("simhit_hitType", &simhit_hitType);
+
   //rec tracks
   std::vector<unsigned int>*      trk_nValid = 0;
   std::vector<unsigned int>*      trk_nInvalid = 0;
@@ -310,6 +317,8 @@ int main() {
 
   vector<vector<int> >*    pix_simHitIdx = 0;
   t->SetBranchAddress("pix_simHitIdx", &pix_simHitIdx);
+  vector<vector<float> >*    pix_chargeFraction = 0;
+  t->SetBranchAddress("pix_chargeFraction", &pix_chargeFraction);
 
   //strip hits
   vector<short>*  glu_isBarrel = 0;
@@ -347,6 +356,7 @@ int main() {
   vector<short>*    str_isStereo = 0;
   vector<unsigned int>*    str_det = 0;
   vector<unsigned int>*    str_lay = 0;
+  vector<unsigned int>*    str_simType = 0;
   vector<float>*  str_x = 0;
   vector<float>*  str_y = 0;
   vector<float>*  str_z = 0;
@@ -358,8 +368,9 @@ int main() {
   vector<float>*  str_zx = 0;
   t->SetBranchAddress("str_isBarrel",&str_isBarrel);
   t->SetBranchAddress("str_isStereo",&str_isStereo);
-  t->SetBranchAddress("str_lay",&str_lay);
   t->SetBranchAddress("str_det",&str_det);
+  t->SetBranchAddress("str_lay",&str_lay);
+  t->SetBranchAddress("str_simType",&str_simType);
   t->SetBranchAddress("str_x",&str_x);
   t->SetBranchAddress("str_y",&str_y);
   t->SetBranchAddress("str_z",&str_z);
@@ -372,6 +383,8 @@ int main() {
   
   vector<vector<int> >*    str_simHitIdx = 0;
   t->SetBranchAddress("str_simHitIdx", &str_simHitIdx);
+  vector<vector<float> >*    str_chargeFraction = 0;
+  t->SetBranchAddress("str_chargeFraction", &str_chargeFraction);
 
 
   fwrite(&maxevt, sizeof(int), 1, fp);
@@ -397,7 +410,6 @@ int main() {
     vector<int> simTrackIdx_(sim_q->size(),-1);//keep track of original index in ntuple
     vector<int> seedSimIdx(see_q->size(),-1);
     for (int isim = 0; isim < sim_q->size(); ++isim) {
-      std::cout<<__FILE__<<" "<<__LINE__<<" iSim "<<isim<<std::endl;
 
       //load sim production vertex data
       auto iVtx = sim_parentVtxIdx->at(isim);
@@ -492,9 +504,7 @@ int main() {
     
     vector<Track> seedTracks_;
     vector<vector<int> > pixHitSeedIdx(pix_lay->size());
-    std::cout<<__FILE__<<" "<<__LINE__<<" n see "<<see_q->size()<<std::endl;
     for (int is = 0; is<see_q->size(); ++is) {
-      std::cout<<__FILE__<<" "<<__LINE__<<" see "<<is<<" algo "<<see_algo->at(is)<<std::endl;
       if (TrackAlgorithm(see_algo->at(is))!=TrackAlgorithm::initialStep) continue;//select seed in acceptance
       //if (see_pt->at(is)<0.5 || fabs(see_eta->at(is))>0.8) continue;//select seed in acceptance
       SVector3 pos = SVector3(see_stateTrajGlbX->at(is),see_stateTrajGlbY->at(is),see_stateTrajGlbZ->at(is));
@@ -532,7 +542,6 @@ int main() {
       auto const& shIdxs = see_hitIdx->at(is);
       if (! (TrackAlgorithm(see_algo->at(is))== TrackAlgorithm::initialStep
 	     && std::count(shTypes.begin(), shTypes.end(), int(HitType::Pixel))>=3)) continue;//check algo and nhits
-      std::cout<<__FILE__<<" "<<__LINE__<<" see "<<is<<" algo OK and nHit OK "<<std::endl;
       for (int ip=0; ip<shTypes.size(); ip++) {
 	unsigned int ipix = shIdxs[ip];
 	//cout << "ipix=" << ipix << " seed=" << seedTracks_.size() << endl;
@@ -541,24 +550,91 @@ int main() {
       seedTracks_.push_back(track);
     }
 
-    std::cout<<__FILE__<<" "<<__LINE__<<" seedTracks "<<seedTracks_.size()<<std::endl;
     if (seedTracks_.size()==0) continue;
 
+    //find best matching tkIdx from a list of simhits indices
+    auto bestTkIdx = [&](std::vector<int> const& shs, std::vector<float> const& shfs, int rhIdx, HitType rhType){
+      //assume that all simhits are associated
+      int ibest = -1;
+      int shbest = -1;
+      float hpbest = -1;
+      float tpbest = -1;
+      float hfbest = -1;
+      
+      float maxfrac = -1;
+      int ish = -1;
+      int nshs = shs.size();
+      for (auto const sh : shs){
+	ish++;
+	auto tkidx = simhit_simTrkIdx->at(sh);
+	//use only sh with available TP
+	if (tkidx < 0) continue;
+	
+	auto hpx = simhit_px->at(sh);
+	auto hpy = simhit_py->at(sh);
+	auto hpz = simhit_pz->at(sh);
+	auto hp = sqrt(hpx*hpx + hpy*hpy + hpz*hpz);
+
+	//look only at hits with p> 50 MeV
+	if (hp < 0.05f) continue;
+	
+	auto tpx = sim_px->at(tkidx);
+	auto tpy = sim_py->at(tkidx);
+	auto tpz = sim_pz->at(tkidx);
+	auto tp = sqrt(tpx*tpx + tpy*tpy + tpz*tpz);
+
+	//take only hits with hp> 0.5*tp
+	if (hp < 0.5*tp) continue;
+
+	//pick tkidx corresponding to max hp/tp; .. this is probably redundant
+	if (maxfrac < hp/tp){
+	  maxfrac = hp/tp;
+	  ibest = tkidx;
+	  shbest = sh;
+	  hpbest = hp;
+	  tpbest = tp;
+	  hfbest = shfs[ish];
+	}
+	
+      }
+
+      //arbitration: a rechit with one matching sim is matched to sim if it's the first
+      //FIXME: SOME BETTER SELECTION CAN BE DONE (it will require some more correlated knowledge)
+      if (nshs == 1 && ibest >= 0){
+	auto const& srhIdxV = simhit_hitIdx->at(shbest);
+	auto const& srhTypeV = simhit_hitType->at(shbest);
+	int ih = -1;
+	for (auto itype : srhTypeV){
+	  ih++;
+	  if (HitType(itype) == rhType && srhIdxV[ih] != rhIdx){
+	    ibest = -1;
+	    break;
+	  }
+	}
+      }
+      
+      // if (ibest >= 0) std::cout<<" best tkIdx "<<ibest<<" for sh "<<shbest<<" out of "<<shs.size()
+      // 			       <<" hp "<<hpbest
+      // 			       <<" chF "<<hfbest
+      // 			       <<" tp "<<tpbest
+      // 			       <<" process "<<simhit_process->at(shbest)
+      // 			       <<" particle "<<simhit_particle->at(shbest)			
+      // 			       <<std::endl;
+      return ibest;
+    };
+
+
+    
     vector<vector<Hit> > layerHits_;
     vector<MCHitInfo> simHitsInfo_;
     int totHits = 0;
     layerHits_.resize(nTotalLayers);
-    std::cout<<__FILE__<<" "<<__LINE__<<" n pix "<<pix_lay->size()<<std::endl;
     for (int ipix = 0; ipix < pix_lay->size(); ++ipix) {
       int ilay = -1;
       ilay = lnc.convertLayerNumber(pix_det->at(ipix),pix_lay->at(ipix),useMatched,-1,pix_z->at(ipix)>0);
       if (ilay<0) continue;
-      int simTkIdx = -1;
-      auto const& pixSimHits = pix_simHitIdx->at(ipix);
-      if (!pixSimHits.empty()){
-	//FIXME: need to improve consistency instead of just using first available
-	simTkIdx = simTrackIdx_[simhit_simTrkIdx->at(pixSimHits[0])];
-      }
+      int simTkIdx = bestTkIdx(pix_simHitIdx->at(ipix), pix_chargeFraction->at(ipix), ipix, HitType::Pixel);
+
       //cout << Form("pix lay=%i det=%i x=(%6.3f, %6.3f, %6.3f)",ilay+1,pix_det->at(ipix),pix_x->at(ipix),pix_y->at(ipix),pix_z->at(ipix)) << endl;
       SVector3 pos(pix_x->at(ipix),pix_y->at(ipix),pix_z->at(ipix));
       SMatrixSym33 err;
@@ -568,7 +644,11 @@ int main() {
       err.At(0,1) = pix_xy->at(ipix);
       err.At(0,2) = pix_zx->at(ipix);
       err.At(1,2) = pix_yz->at(ipix);
-      if (simTkIdx>=0) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
+      if (simTkIdx>=0){
+	int nhits = simTracks_[simTkIdx].nTotalHits();
+	if (nhits < Config::nMaxSimHits) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
+	else cout<<"SKIP: Tried to add pix hit to track with "<<nhits<<" hits "<<std::endl;
+      }
       for (int is=0;is<pixHitSeedIdx[ipix].size();is++) {
 	//cout << "xxx ipix=" << ipix << " seed=" << pixHitSeedIdx[ipix][is] << endl;
       	seedTracks_[pixHitSeedIdx[ipix][is]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
@@ -579,24 +659,14 @@ int main() {
       simHitsInfo_.push_back(hitInfo);
       totHits++;
     }
-    std::cout<<__FILE__<<" "<<__LINE__<<" pix loop OK: now totHits "<<totHits<<std::endl;
 
     if (useMatched) {
       for (int iglu = 0; iglu < glu_lay->size(); ++iglu) {
 	if (glu_isBarrel->at(iglu)==0) continue;
-	int simTkIdx = -1;
-	auto const& strMSimHits = str_simHitIdx->at(glu_monoIdx->at(iglu));
-	int strMSimHit_simTrkIdx = -1;
-	int strMSimHit_process = -1;
-	auto const& strSSimHits = str_simHitIdx->at(glu_stereoIdx->at(iglu));
-	if (!strMSimHits.empty() /*|| !strSSimHits.empty() */){
-	  //FIXME: need to improve consistency instead of just using first available
-	  strMSimHit_simTrkIdx = simhit_simTrkIdx->at(strMSimHits[0]);
-	  strMSimHit_process = simhit_process->at(strMSimHits[0]);
-	  simTkIdx = simTrackIdx_[strMSimHit_simTrkIdx];
-	}
+	int igluMono = glu_monoIdx->at(iglu);
+	int simTkIdx = bestTkIdx(str_simHitIdx->at(igluMono), str_chargeFraction->at(igluMono),
+				 igluMono, HitType::Strip);
 	int ilay = lnc.convertLayerNumber(glu_det->at(iglu),glu_lay->at(iglu),useMatched,-1,glu_z->at(iglu)>0);
-	//cout << ilay << " " << strMSimHit_simTrkIdx << " " << strMSimHit_process << " " << strSSimHit_simTrkIdx << " " << strSSimHit_process << endl;
 	// cout << Form("glu lay=%i det=%i bar=%i x=(%6.3f, %6.3f, %6.3f)",ilay+1,glu_det->at(iglu),glu_isBarrel->at(iglu),glu_x->at(iglu),glu_y->at(iglu),glu_z->at(iglu)) << endl;
 	SVector3 pos(glu_x->at(iglu),glu_y->at(iglu),glu_z->at(iglu));
 	SMatrixSym33 err;
@@ -606,7 +676,11 @@ int main() {
 	err.At(0,1) = glu_xy->at(iglu);
 	err.At(0,2) = glu_zx->at(iglu);
 	err.At(1,2) = glu_yz->at(iglu);	
-	if (simTkIdx>=0) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
+	if (simTkIdx>=0){
+	  int nhits = simTracks_[simTkIdx].nTotalHits();
+	  if (nhits < Config::nMaxSimHits) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
+	  else cout<<"SKIP: Tried to add glu hit to track with "<<nhits<<" hits "<<std::endl;
+	}
 	Hit hit(pos, err, totHits);
 	layerHits_[ilay].push_back(hit);
 	MCHitInfo hitInfo(simTkIdx, ilay, layerHits_[ilay].size()-1, totHits);
@@ -617,30 +691,14 @@ int main() {
 
     vector<int> strIdx;
     strIdx.resize(str_lay->size());
-    std::cout<<__FILE__<<" "<<__LINE__<<" n str "<<str_lay->size()<<std::endl;
     for (int istr = 0; istr < str_lay->size(); ++istr) {
-      std::cout<<__FILE__<<" "<<__LINE__<<" i str "<<istr<<std::endl;
       int ilay = -1;
       ilay = lnc.convertLayerNumber(str_det->at(istr),str_lay->at(istr),useMatched,str_isStereo->at(istr),str_z->at(istr)>0);
       if (useMatched && str_isBarrel->at(istr)==1 && str_isStereo->at(istr)) continue;
       if (ilay==-1) continue;
-      int simTkIdx = -1;
-      int strSimHit_simTrkIdx = -1;
-      int strSimHit_process = -1;
-      auto const& strSimHits = str_simHitIdx->at(istr);
+      int simTkIdx = bestTkIdx(str_simHitIdx->at(istr), str_chargeFraction->at(istr), istr, HitType::Strip);
 
-      if (!strSimHits.empty()){
-	//FIXME: need to improve consistency instead of just using first available
-	strSimHit_simTrkIdx = simhit_simTrkIdx->at(strSimHits[0]);
-	std::cout<<__FILE__<<" "<<__LINE__<<" simTrk "<<strSimHit_simTrkIdx<<std::endl;
-	strSimHit_process = simhit_process->at(strSimHits[0]);
-	std::cout<<__FILE__<<" "<<__LINE__<<" process "<<strSimHit_process<<std::endl;
-	simTkIdx = simTrackIdx_[strSimHit_simTrkIdx];
-	std::cout<<__FILE__<<" "<<__LINE__<<" simTkIdx "<<simTkIdx<<std::endl;
-      }
       //if (str_onTrack->at(istr)==0) continue;//do not consider hits that are not on track!
-      //cout << Form("str lay=%i istr=%i tridx=%i bar=%i x=(%6.3f, %6.3f, %6.3f) r=%6.3f proc=%i part=%i onTrk=%i isStereo=%i",ilay+1,istr,strSimHit_simTrkIdx,str_isBarrel->at(istr),str_x->at(istr),str_y->at(istr),str_z->at(istr),sqrt(pow(str_x->at(istr),2)+pow(str_y->at(istr),2)),strSimHit_process->at(istr),str_particle->at(istr),str_onTrack->at(istr),str_isStereo->at(istr)) << endl;
-      std::cout<<__FILE__<<" "<<__LINE__<<" fill in lay "<<ilay<<std::endl;
       SVector3 pos(str_x->at(istr),str_y->at(istr),str_z->at(istr));
       SMatrixSym33 err;
       err.At(0,0) = str_xx->at(istr);
@@ -649,11 +707,10 @@ int main() {
       err.At(0,1) = str_xy->at(istr);
       err.At(0,2) = str_zx->at(istr);
       err.At(1,2) = str_yz->at(istr);
-      std::cout<<__FILE__<<" "<<__LINE__<<" got pos and err "<<" fill simTracks_ "<<simTkIdx<<" of "<<simTracks_.size()<<std::endl;
       if (simTkIdx>=0){
-	std::cout<<__FILE__<<" "<<__LINE__<<" add hits; size now "<<simTracks_[simTkIdx].nTotalHits()<<std::endl;
-	simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
-	std::cout<<__FILE__<<" "<<__LINE__<<" hit added "<<std::endl;
+	int nhits = simTracks_[simTkIdx].nTotalHits();
+	if (nhits < Config::nMaxSimHits) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
+	else cout<<"SKIP: Tried to add str hit to track with "<<nhits<<" hits "<<std::endl;	
       }
       Hit hit(pos, err, totHits);
       layerHits_[ilay].push_back(hit);
@@ -661,14 +718,12 @@ int main() {
       simHitsInfo_.push_back(hitInfo);
       totHits++;
     }
-    std::cout<<__FILE__<<" "<<__LINE__<<" str loop OK: now totHits "<<totHits<<std::endl;
 
     // bool allTracksAllHits = true;
     for (int i=0;i<simTracks_.size();++i) {
       simTracks_[i].setNGoodHitIdx();
       // if (simTracks_[i].nFoundHits()!=Config::nTotalLayers) allTracksAllHits = false;
     }
-    std::cout<<__FILE__<<" "<<__LINE__<<" simTracks_ loop OK: now "<<simTracks_.size()<<std::endl;
     // if (!allTracksAllHits) continue;
 
     int nt = simTracks_.size();
@@ -704,7 +759,8 @@ int main() {
     }
 
     for (int i=0;i<nt;++i) {
-      printf("sim track id=%i q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) pT=%7.4f nTotal=%i nFound=%i \n",i,simTracks_[i].charge(),simTracks_[i].px(),simTracks_[i].py(),simTracks_[i].pz(),simTracks_[i].x(),simTracks_[i].y(),simTracks_[i].z(),sqrt(pow(simTracks_[i].px(),2)+pow(simTracks_[i].py(),2)),simTracks_[i].nTotalHits(),simTracks_[i].nFoundHits());
+      float spt = sqrt(pow(simTracks_[i].px(),2)+pow(simTracks_[i].py(),2));
+      printf("sim track id=%i q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) pT=%7.4f nTotal=%i nFound=%i \n",i,simTracks_[i].charge(),simTracks_[i].px(),simTracks_[i].py(),simTracks_[i].pz(),simTracks_[i].x(),simTracks_[i].y(),simTracks_[i].z(),spt,simTracks_[i].nTotalHits(),simTracks_[i].nFoundHits());
       for (int ih=0;ih<simTracks_[i].nTotalHits();++ih){
 	int hidx = simTracks_[i].getHitIdx(ih);
 	int hlay = simTracks_[i].getHitLyr(ih);
