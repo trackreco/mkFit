@@ -54,6 +54,7 @@ public:
       if (lo_ == TkLayout::phase1) lOffset = 1;
       disk += 17+lOffset;
       if (! posZ) disk += 25+2*lOffset;
+      return disk;
     }
     return -1;
   }
