@@ -47,7 +47,7 @@ namespace Config
   // XXXX This needs to be generalized for other geometries !
   // TrackerInfo more or less has all this information (or could have it).
   constexpr int   nTotalLayers   = 28;
-  constexpr int   nMaxSimHits    = 42; // Assuming dual hit on every barrel / endcap edge
+  constexpr int   nMaxSimHits    = 28; // Assuming dual hit on every barrel / endcap edge
   constexpr int   nMaxRecHits    = 10; // Assuming single hit on each layer
   constexpr int   nMaxTrkHits    = nMaxSimHits; // Used for array sizes in MkFitter and Track
 
