@@ -761,7 +761,8 @@ int main() {
     for (int i=0;i<nt;++i) {
       float spt = sqrt(pow(simTracks_[i].px(),2)+pow(simTracks_[i].py(),2));
       printf("sim track id=%i q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) pT=%7.4f nTotal=%i nFound=%i \n",i,simTracks_[i].charge(),simTracks_[i].px(),simTracks_[i].py(),simTracks_[i].pz(),simTracks_[i].x(),simTracks_[i].y(),simTracks_[i].z(),spt,simTracks_[i].nTotalHits(),simTracks_[i].nFoundHits());
-      for (int ih=0;ih<simTracks_[i].nTotalHits();++ih){
+      int nh = simTracks_[i].nTotalHits();
+      for (int ih=0;ih<nh;++ih){
 	int hidx = simTracks_[i].getHitIdx(ih);
 	int hlay = simTracks_[i].getHitLyr(ih);
 	float hx = layerHits_[hlay][hidx].x();
@@ -775,7 +776,8 @@ int main() {
 
     for (int i=0;i<ns;++i) {
       printf("seed id=%i label=%i q=%2i pT=%6.3f p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f)\n",i,seedTracks_[i].label(),seedTracks_[i].charge(),seedTracks_[i].pT(),seedTracks_[i].px(),seedTracks_[i].py(),seedTracks_[i].pz(),seedTracks_[i].x(),seedTracks_[i].y(),seedTracks_[i].z());
-      for (int ih=0;ih<3;++ih) printf("seed #%i hit #%i idx=%i\n",i,ih,seedTracks_[i].getHitIdx(ih));
+      int nh = seedTracks_[i].nTotalHits();
+      for (int ih=0;ih<nh;++ih) printf("seed #%i hit #%i idx=%i\n",i,ih,seedTracks_[i].getHitIdx(ih));
     }
 
     savedEvents++;
