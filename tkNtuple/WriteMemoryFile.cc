@@ -78,7 +78,6 @@ public:
       if (cmsswdet==5 && cmsswlay==6 && isStereo==0 ) return 12+lOffset;
       return -1;
     } else {
-      //FIXME: OLD stereo/mono layer is used here
       //TIB
       if (cmsswdet==3 && cmsswlay==1 && isStereo==0) return 3+lOffset;
       if (cmsswdet==3 && cmsswlay==1 && isStereo==1) return 4+lOffset;
@@ -87,10 +86,10 @@ public:
       if (cmsswdet==3 && cmsswlay==3 && isStereo==0) return 7+lOffset;
       if (cmsswdet==3 && cmsswlay==4 && isStereo==0) return 8+lOffset;
       //TOB
-      if (cmsswdet==5 && cmsswlay==1 && isStereo==1) return 9+lOffset;
-      if (cmsswdet==5 && cmsswlay==1 && isStereo==0) return 10+lOffset;
-      if (cmsswdet==5 && cmsswlay==2 && isStereo==1) return 11+lOffset;
-      if (cmsswdet==5 && cmsswlay==2 && isStereo==0) return 12+lOffset;
+      if (cmsswdet==5 && cmsswlay==1 && isStereo==0) return 9+lOffset;
+      if (cmsswdet==5 && cmsswlay==1 && isStereo==1) return 10+lOffset;
+      if (cmsswdet==5 && cmsswlay==2 && isStereo==0) return 11+lOffset;
+      if (cmsswdet==5 && cmsswlay==2 && isStereo==1) return 12+lOffset;
       if (cmsswdet==5 && cmsswlay==3 && isStereo==0) return 13+lOffset;
       if (cmsswdet==5 && cmsswlay==4 && isStereo==0) return 14+lOffset;
       if (cmsswdet==5 && cmsswlay==5 && isStereo==0) return 15+lOffset;
@@ -114,24 +113,24 @@ public:
       if (cmsswdet==4 && cmsswdisk==3 && isStereo==0) return 6+lOffset;
       if (cmsswdet==4 && cmsswdisk==3 && isStereo==1) return 7+lOffset;
       //TEC
-      if (cmsswdet==6 && cmsswdisk==1 && isStereo==1) return 8+lOffset;
-      if (cmsswdet==6 && cmsswdisk==1 && isStereo==0) return 9+lOffset;
-      if (cmsswdet==6 && cmsswdisk==2 && isStereo==1) return 10+lOffset;
-      if (cmsswdet==6 && cmsswdisk==2 && isStereo==0) return 11+lOffset;
-      if (cmsswdet==6 && cmsswdisk==3 && isStereo==1) return 12+lOffset;
-      if (cmsswdet==6 && cmsswdisk==3 && isStereo==0) return 13+lOffset;
-      if (cmsswdet==6 && cmsswdisk==4 && isStereo==1) return 14+lOffset;
-      if (cmsswdet==6 && cmsswdisk==4 && isStereo==0) return 15+lOffset;
-      if (cmsswdet==6 && cmsswdisk==5 && isStereo==1) return 16+lOffset;
-      if (cmsswdet==6 && cmsswdisk==5 && isStereo==0) return 17+lOffset;
-      if (cmsswdet==6 && cmsswdisk==6 && isStereo==1) return 18+lOffset;
-      if (cmsswdet==6 && cmsswdisk==6 && isStereo==0) return 19+lOffset;
-      if (cmsswdet==6 && cmsswdisk==7 && isStereo==1) return 20+lOffset;
-      if (cmsswdet==6 && cmsswdisk==7 && isStereo==0) return 21+lOffset;
-      if (cmsswdet==6 && cmsswdisk==8 && isStereo==1) return 22+lOffset;
-      if (cmsswdet==6 && cmsswdisk==8 && isStereo==0) return 23+lOffset;
-      if (cmsswdet==6 && cmsswdisk==9 && isStereo==1) return 24+lOffset;
-      if (cmsswdet==6 && cmsswdisk==9 && isStereo==0) return 25+lOffset;
+      if (cmsswdet==6 && cmsswdisk==1 && isStereo==0) return 8+lOffset;
+      if (cmsswdet==6 && cmsswdisk==1 && isStereo==1) return 9+lOffset;
+      if (cmsswdet==6 && cmsswdisk==2 && isStereo==0) return 10+lOffset;
+      if (cmsswdet==6 && cmsswdisk==2 && isStereo==1) return 11+lOffset;
+      if (cmsswdet==6 && cmsswdisk==3 && isStereo==0) return 12+lOffset;
+      if (cmsswdet==6 && cmsswdisk==3 && isStereo==1) return 13+lOffset;
+      if (cmsswdet==6 && cmsswdisk==4 && isStereo==0) return 14+lOffset;
+      if (cmsswdet==6 && cmsswdisk==4 && isStereo==1) return 15+lOffset;
+      if (cmsswdet==6 && cmsswdisk==5 && isStereo==0) return 16+lOffset;
+      if (cmsswdet==6 && cmsswdisk==5 && isStereo==1) return 17+lOffset;
+      if (cmsswdet==6 && cmsswdisk==6 && isStereo==0) return 18+lOffset;
+      if (cmsswdet==6 && cmsswdisk==6 && isStereo==1) return 19+lOffset;
+      if (cmsswdet==6 && cmsswdisk==7 && isStereo==0) return 20+lOffset;
+      if (cmsswdet==6 && cmsswdisk==7 && isStereo==1) return 21+lOffset;
+      if (cmsswdet==6 && cmsswdisk==8 && isStereo==0) return 22+lOffset;
+      if (cmsswdet==6 && cmsswdisk==8 && isStereo==1) return 23+lOffset;
+      if (cmsswdet==6 && cmsswdisk==9 && isStereo==0) return 24+lOffset;
+      if (cmsswdet==6 && cmsswdisk==9 && isStereo==1) return 25+lOffset;
       return -1;
     }
   }
