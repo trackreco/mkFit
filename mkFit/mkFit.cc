@@ -50,6 +50,13 @@ void initGeom(Geometry& geom)
 
   TrackerInfo::ExecTrackerInfoCreatorPlugin(Config::geomPlugin, Config::TrkInfo);
 
+#ifndef WITH_USOLIDS
+    geom.BuildFromTrackerInfo(Config::TrkInfo);
+#else
+    fprintf(stderr, "TrackerInfo only supports SimpleGeometry, not USolids.\n");
+    exit(1);
+#endif
+
   /*
   if ( ! Config::endcapTest && ! Config::useCMSGeom)
   {
@@ -222,9 +229,6 @@ void test_standard()
     printf ("Test tracking in endcap, disks spacing 5 cm\n");
   } else printf ("Using Cylindrical Cow with Lids, |eta| < 2.4\n");
 
-  Geometry geom;
-  initGeom(geom);
-
   if (g_operation == "write") {
     generate_and_save_tracks();
     return;
@@ -234,6 +238,9 @@ void test_standard()
     read_and_save_tracks();
     return;
   }
+
+  Geometry geom;
+  initGeom(geom);
 
   if (g_operation == "read")
   {

@@ -28,9 +28,15 @@ all: ${TGTS}
 %.so: %.o
 	${CXX} -shared -o $@ $<
 
+%.om: %.cc
+	${CXX} ${CPPFLAGS_NO_ROOT} ${CXXFLAGS} ${VEC_MIC} -c -o $@ $<
+
+%-mic.so: %.om
+	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_MIC} -shared -o $@ $<
+
 ifeq ($(filter clean distclean, ${MAKECMDGOALS}),)
 include ${DEPS}
 endif
 
 clean:
-	rm -f *.so *.o *.d
+	rm -f *.so *.o *.om *.d *.optrpt

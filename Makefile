@@ -69,13 +69,13 @@ ${LIBUSOLIDS} : USolids/CMakeLists.txt
 ifeq ($(CXX),icc)
 
 OBJS_MIC      := $(OBJS:.o=.om)
-CORE_OBJS_MIC := $(CORE_OBJS:.o=.om
+CORE_OBJS_MIC := $(CORE_OBJS:.o=.om)
 
 ${LIB_CORE_MIC}: ${CORE_OBJS_MIC}
 	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} ${CORE_OBJS_MIC} -shared -o $@ ${LDFLAGS_MIC}
 
-main-mic: ${AUTO_TGTS} ${LIB_CORE_MIC} ${LIBUSOLIDS_MIC}
-	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} -o $@ main.om ${LIBUSOLIDS_MIC}  ${LDFLAGS_MIC} -L. -lMicCore -Wl,-rpath=.
+main-mic: ${AUTO_TGTS} ${LIB_CORE_MIC} main.om ${LIBUSOLIDS_MIC}
+	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} -o $@ main.om ${LIBUSOLIDS_MIC} ${LDFLAGS_MIC} -L. -lMicCore-mic -Wl,-rpath=.
 
 ${LIBUSOLIDS_MIC} : USolids/CMakeLists.txt
 	-mkdir USolids-mic

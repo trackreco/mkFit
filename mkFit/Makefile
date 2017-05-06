@@ -118,7 +118,7 @@ MKFOBJS_MIC := $(MKFOBJS:.o=.om)
 ALLOBJS_MIC := $(ALLOBJS:.o=.om) 
 
 mkFit-mic: ${ALLOBJS_MIC}
-	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} ${ALLOBJS_MIC} -o $@ ${LDFLAGS_MIC} -L.. -lMicCore -Wl,-rpath=..
+	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} ${ALLOBJS_MIC} -o $@ ${LDFLAGS_MIC} -L.. -lMicCore-mic -Wl,-rpath=..
 
 ${MKFOBJS_MIC}: %.om: %.cc %.d
 	${CXX} ${CPPFLAGS_NO_ROOT} ${CXXFLAGS} ${VEC_MIC} -c -o $@ $<
