@@ -123,10 +123,6 @@ void print_trk_info()
   OOO = fopen("CMS-2017.cc", "w");
   // OOO = stdout;
 
-  PRN("#include \"../Config.h\"");
-  PRN("#include \"../TrackerInfo.h\"");
-  NLN;
-
   PRN("void Create_TrackerInfo(TrackerInfo& ti, bool verbose)");
   SCOPE_BEG;
 

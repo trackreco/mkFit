@@ -1,6 +1,3 @@
-#include "../Config.h"
-#include "../TrackerInfo.h"
-
 void Create_TrackerInfo(TrackerInfo& ti, bool verbose)
 {
   Config::chi2Cut = 30.0;
