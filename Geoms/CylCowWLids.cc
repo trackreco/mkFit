@@ -159,6 +159,7 @@ namespace
       // Need better estimate for seeds?
       // m_trkinfo.set_eta_regions(1.15, 1.4, 2.4);
       m_trkinfo.set_eta_regions(1.1, 1.3, 2.4);
+      m_trkinfo.create_layers(10, 9, 9);
 
       // Actual coverage for tracks with z = 3cm is 2.4
       float full_eta = 2.5;
@@ -179,10 +180,6 @@ namespace
       float sct_ec_zgap   = 4;
       float sct_ec_rextra = 4;
 
-      for (int i = 0; i < 10; ++i) m_trkinfo.new_barrel_layer();
-      for (int i = 0; i <  9; ++i) m_trkinfo.new_ecap_pos_layer();
-      for (int i = 0; i <  9; ++i) m_trkinfo.new_ecap_neg_layer();
-      
       add_barrel_r_eta(0, pix_0, full_eta_pix_0);
 
       add_barrel_r_z  (1, pix_0 + 1 * pix_sep, pix_z0 + 1 * pix_zgrow);

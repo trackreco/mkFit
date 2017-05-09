@@ -120,19 +120,11 @@ void add_ecap(int &lid, int det, int lay, bool is_pix,
 
 void print_trk_info()
 {
-  OOO = fopen("CMS-2017.cc", "w");
+  OOO = fopen("../CMS-2017.acc", "w");
   // OOO = stdout;
 
-  PRN("void Create_TrackerInfo(TrackerInfo& ti, bool verbose)");
+  PRN("void Create_CMS_2017_AutoGen(TrackerInfo& ti)");
   SCOPE_BEG;
-
-  PRN("Config::chi2Cut = 30.0;");
-  NLN;
-
-  PRN("for (int i =  0; i < 18; ++i) ti.new_barrel_layer();");
-  PRN("for (int i = 18; i < 45; ++i) ti.new_ecap_pos_layer();");
-  PRN("for (int i = 45; i < 72; ++i) ti.new_ecap_neg_layer();");
-  NLN;
 
   int lid = 0;
 
@@ -198,17 +190,6 @@ void print_trk_info()
   add_ecap(lid, 6, 9, false, -1);
   add_ecap(lid, 6, 9, false, -1);
   NLN;
-
-  PRN("if (verbose) { printf(\"==========================================================================================\\n\"); }");
-
-  PRN("printf(\"CMS-2017 -- Create_TrackerInfo finished\\n\");");
-
-  PRN("if (verbose)");
-  SCOPE_BEG;
-  PRN("printf(\"==========================================================================================\\n\");");
-  PRN("for (auto &i : ti.m_layers)  i.print_layer();");
-  PRN("printf(\"==========================================================================================\\n\");");
-  SCOPE_END;
 
   SCOPE_END;
 

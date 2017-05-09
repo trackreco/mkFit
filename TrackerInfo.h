@@ -10,18 +10,18 @@
 class LayerInfo
 {
 public:
-  enum  LayerType_e { Barrel = 0, EndCapPos = 1, EndCapNeg = 2 };
+  enum  LayerType_e { Undef = -1, Barrel = 0, EndCapPos = 1, EndCapNeg = 2 };
 
-  int           m_layer_id;
-  LayerType_e   m_layer_type;
+  int           m_layer_id   = -1;
+  LayerType_e   m_layer_type = Undef;
 
   float         m_rin, m_rout, m_zmin, m_zmax;
   float         m_propagate_to;
 
-  int           m_next_barrel, m_next_ecap_pos, m_next_ecap_neg;
-  int           m_sibl_barrel, m_sibl_ecap_pos, m_sibl_ecap_neg;
+  int           m_next_barrel = -1, m_next_ecap_pos = -1, m_next_ecap_neg = -1;
+  int           m_sibl_barrel = -1, m_sibl_ecap_pos = -1, m_sibl_ecap_neg = -1;
 
-  bool          m_is_outer;
+  bool          m_is_outer = false;
 
   // Selection limits
   float         m_q_bin; // > 0 - bin width, < 0 - number of bins
@@ -36,7 +36,7 @@ public:
   // * ...
   // * pointers to hit containers
 
-  LayerInfo(int lid) : m_layer_id(lid) { m_sibl_barrel, m_sibl_ecap_pos, m_sibl_ecap_neg = -1; }
+  LayerInfo(int lid) : m_layer_id(lid) {}
 
   void  set_limits(float r1, float r2, float z1, float z2);
   void  set_next_layers(int nb, int nep, int nen);
@@ -61,12 +61,7 @@ public:
 class TrackerInfo
 {
 private:
-  int new_layer()
-  {
-    int l = (int) m_layers.size();
-    m_layers.push_back(LayerInfo(l));
-    return l;
-  }
+  int new_layer();
 
 public:
   enum AbsEtaRegion_e { AbsReg_Outside = -1, AbsReg_Barrel = 0, AbsReg_Transition = 1, AbsReg_Endcap = 2 };
@@ -82,12 +77,13 @@ public:
 
   float  m_eta_trans_beg, m_eta_trans_end, m_eta_ecap_end;
 
-  void set_eta_regions(float tr_beg, float tr_end, float ec_end)
-  { m_eta_trans_beg = tr_beg; m_eta_trans_end = tr_end; m_eta_ecap_end = ec_end; }
+  void set_eta_regions(float tr_beg, float tr_end, float ec_end);
 
-  LayerInfo & new_barrel_layer()   { m_barrel  .push_back( new_layer() ); return m_layers.back(); }
-  LayerInfo & new_ecap_pos_layer() { m_ecap_pos.push_back( new_layer() ); return m_layers.back(); }
-  LayerInfo & new_ecap_neg_layer() { m_ecap_neg.push_back( new_layer() ); return m_layers.back(); }
+  void        reserve_layers(int n_brl, int n_ec_pos, int n_ec_neg);
+  void        create_layers (int n_brl, int n_ec_pos, int n_ec_neg);
+  LayerInfo & new_barrel_layer();
+  LayerInfo & new_ecap_pos_layer();
+  LayerInfo & new_ecap_neg_layer();
 
   bool are_layers_siblings(int l1, int l2) const;
 

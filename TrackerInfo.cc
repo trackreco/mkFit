@@ -21,6 +21,56 @@ void LayerInfo::set_selection_limits(float p1, float p2, float q1, float q2)
 
 //==============================================================================
 
+void TrackerInfo::set_eta_regions(float tr_beg, float tr_end, float ec_end)
+{
+  m_eta_trans_beg = tr_beg;
+  m_eta_trans_end = tr_end;
+  m_eta_ecap_end = ec_end;
+}
+
+void TrackerInfo::reserve_layers(int n_brl, int n_ec_pos, int n_ec_neg)
+{
+  m_layers.reserve(n_brl + n_ec_pos + n_ec_neg);
+  m_barrel.reserve(n_brl);
+  m_ecap_pos.reserve(n_ec_pos);
+  m_ecap_neg.reserve(n_ec_neg);
+}
+
+void TrackerInfo::create_layers(int n_brl, int n_ec_pos, int n_ec_neg)
+{
+  reserve_layers(n_brl, n_ec_pos, n_ec_neg);
+  for (int i = 0; i < n_brl;    ++i) new_barrel_layer();
+  for (int i = 0; i < n_ec_pos; ++i) new_ecap_pos_layer();
+  for (int i = 0; i < n_ec_neg; ++i) new_ecap_neg_layer();
+}
+
+int TrackerInfo::new_layer()
+{
+  int l = (int) m_layers.size();
+  m_layers.emplace_back(LayerInfo(l));
+  return l;
+}
+
+LayerInfo& TrackerInfo::new_barrel_layer()
+{
+  m_barrel.push_back( new_layer() );
+  return m_layers.back();
+}
+
+LayerInfo& TrackerInfo::new_ecap_pos_layer()
+{
+  m_ecap_pos.push_back( new_layer() );
+  return m_layers.back();
+}
+
+LayerInfo& TrackerInfo::new_ecap_neg_layer()
+{
+  m_ecap_neg.push_back( new_layer() );
+  return m_layers.back();
+}
+
+//------------------------------------------------------------------------------
+
 bool TrackerInfo::are_layers_siblings(int l1, int l2) const
 {
   assert(l1 < m_layers.size() && l2 < m_layers.size());

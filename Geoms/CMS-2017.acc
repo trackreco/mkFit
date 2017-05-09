@@ -1,11 +1,5 @@
-void Create_TrackerInfo(TrackerInfo& ti, bool verbose)
+void Create_CMS_2017_AutoGen(TrackerInfo& ti)
 {
-  Config::chi2Cut = 30.0;
-
-  for (int i =  0; i < 18; ++i) ti.new_barrel_layer();
-  for (int i = 18; i < 45; ++i) ti.new_ecap_pos_layer();
-  for (int i = 45; i < 72; ++i) ti.new_ecap_neg_layer();
-
   // PIXB
 
   {
@@ -762,12 +756,4 @@ void Create_TrackerInfo(TrackerInfo& ti, bool verbose)
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
   }
 
-  if (verbose) { printf("==========================================================================================\n"); }
-  printf("CMS-2017 -- Create_TrackerInfo finished\n");
-  if (verbose)
-  {
-    printf("==========================================================================================\n");
-    for (auto &i : ti.m_layers)  i.print_layer();
-    printf("==========================================================================================\n");
-  }
 }
