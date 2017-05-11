@@ -19,8 +19,6 @@
 
 #include "MaterialEffects.h"
 
-#include "CylCowWLids.h"
-
 #ifndef NO_ROOT
 #include "Validation.h"
 #endif
@@ -50,10 +48,20 @@ void initGeom(Geometry& geom)
   // are added starting from the center
   // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
 
+  TrackerInfo::ExecTrackerInfoCreatorPlugin(Config::geomPlugin, Config::TrkInfo);
+
+#ifndef WITH_USOLIDS
+    geom.BuildFromTrackerInfo(Config::TrkInfo);
+#else
+    fprintf(stderr, "TrackerInfo only supports SimpleGeometry, not USolids.\n");
+    exit(1);
+#endif
+
+  /*
   if ( ! Config::endcapTest && ! Config::useCMSGeom)
   {
     // This is the new standalone case -- Cylindrical Cow with Lids
-    Create_TrackerInfo(Config::TrkInfo);
+    //Create_TrackerInfo(Config::TrkInfo);
 #ifndef WITH_USOLIDS
     geom.BuildFromTrackerInfo(Config::TrkInfo);
 #else
@@ -86,6 +94,7 @@ void initGeom(Geometry& geom)
       }
     }
   }
+  */
 }
 
 namespace
@@ -105,6 +114,8 @@ namespace
   std::string g_file_name = "simtracks.bin";
   std::string g_input_file = "";
   int g_input_version = Config::FileVersion;
+
+  const char* b2a(bool b) { return b ? "true" : "false"; }
 }
 
 void read_and_save_tracks()
@@ -210,13 +221,10 @@ void test_standard()
          MPT_SIZE, Config::numThreadsSimulation, Config::numThreadsFinder);
   printf("  sizeof(Track)=%zu, sizeof(Hit)=%zu, sizeof(SVector3)=%zu, sizeof(SMatrixSym33)=%zu, sizeof(MCHitInfo)=%zu\n",
          sizeof(Track), sizeof(Hit), sizeof(SVector3), sizeof(SMatrixSym33), sizeof(MCHitInfo));
-  if (Config::useCMSGeom) {
-    printf ("Using CMS-like geometry ");
-    if (Config::readCmsswSeeds) printf ("with CMSSW seeds\n");
-    else printf ("with MC-truth seeds \n");
-  } else if (Config::endcapTest) {
-    printf ("Test tracking in endcap, disks spacing 5 cm\n");
-  } else printf ("Using Cylindrical Cow with Lids, |eta| < 2.4\n");
+
+  if (Config::useCMSGeom)     printf ("- using CMS-like geometry\n");
+  if (Config::readCmsswSeeds) printf ("- reading seeds from file\n");
+  if (Config::endcapTest)     printf ("- endcap test enabled (to be nixed)\n");
 
   if (g_operation == "write") {
     generate_and_save_tracks();
@@ -228,14 +236,17 @@ void test_standard()
     return;
   }
 
-  if (g_operation == "read")
-  {
-    Config::nEvents = open_simtrack_file();
-    assert(g_input_version > 0 || 1 == Config::numThreadsEvents);
-  }
-
   Geometry geom;
   initGeom(geom);
+
+  if (g_operation == "read")
+  {
+    int evs_in_file = open_simtrack_file();
+    if (Config::nEvents == -1)
+      Config::nEvents = evs_in_file;
+
+    assert(g_input_version > 0 || 1 == Config::numThreadsEvents);
+  }
 
   if (Config::useCMSGeom) fillZRgridME();
 
@@ -474,24 +485,24 @@ int main(int argc, const char *argv[])
       printf(
         "Usage: %s [options]\n"
         "Options:\n"
+        "  --geom          <str>    geometry plugin to use (def: %s)\n"
         "  --num-events    <num>    number of events to run over (def: %d)\n"
         "  --num-tracks    <num>    number of tracks to generate for each event (def: %d)\n"
         "  --num-thr-sim   <num>    number of threads for simulation (def: %d)\n"
         "  --num-thr       <num>    number of threads for track finding (def: %d)\n"
-        "                           extra cloning thread is spawned for each of them\n"
         "  --num-thr-ev    <num>    number of threads to run the event loop\n"
         "  --fit-std                run standard fitting test (def: false)\n"
         "  --fit-std-only           run only standard fitting test (def: false)\n"
+        "  --chi2cut       <num>    chi2 cut used in building test (def: %.1f)\n"
         "  --build-bh               run best-hit building test (def: false)\n"
         "  --build-std              run standard combinatorial building test (def: false)\n"
         "  --build-ce               run clone engine combinatorial building test (def: false)\n"
         "  --seeds-per-task         number of seeds to process in a tbb task (def: %d)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
-        "  --cms-geom               use cms-like geometry (def: %i)\n"
-        "  --cmssw-seeds            take seeds from CMSSW (def: %i)\n"
+        "  --cmssw-seeds            take seeds from CMSSW (def: %s)\n"
         "  --find-seeds             run road search seeding [CF enabled by default] (def: %s)\n"
         "  --hits-per-task <num>    number of layer1 hits per task in finding seeds (def: %i)\n"
-        "  --endcap-test            test endcap tracking (def: %i)\n"
+        "  --endcap-test            test endcap tracking (def: %s)\n"
         "  --cf-seeding             enable CF in seeding (def: %s)\n"
         "  --cf-fitting             enable CF in fitting (def: %s)\n"
         "  --root-val               enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
@@ -507,27 +518,33 @@ int main(int argc, const char *argv[])
         "  --num-thr-reorg <num>    number of threads to run the hits reorganization\n"
         ,
         argv[0],
+        Config::geomPlugin.c_str(),
         Config::nEvents,
         Config::nTracks,
         Config::numThreadsSimulation, Config::numThreadsFinder,
+        Config::chi2Cut,
         Config::numSeedsPerTask,
         Config::finderReportBestOutOfN,
-      	Config::useCMSGeom,
-      	Config::readCmsswSeeds,
-      	Config::findSeeds ? "true" : "false",
+        b2a(Config::readCmsswSeeds),
+        b2a(Config::findSeeds),
       	Config::numHitsPerTask,
-      	Config::endcapTest,
-      	Config::cf_seeding ? "true" : "false",
-      	Config::cf_fitting ? "true" : "false",
-      	Config::root_val   ? "true" : "false",
-      	Config::fit_val    ? "true" : "false",
-      	Config::shortFakes ? "true" : "false",
-        Config::silent ? "true" : "false",
+        b2a(Config::endcapTest),
+        b2a(Config::cf_seeding),
+        b2a(Config::cf_fitting),
+        b2a(Config::root_val),
+        b2a(Config::fit_val),
+	b2a(Config::shortFakes),
+        b2a(Config::silent),
       	g_file_name.c_str(),
       	g_input_file.c_str(),
         g_input_version
       );
       exit(0);
+    }
+    else if (*i == "--geom")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::geomPlugin = *i;
     }
     else if (*i == "--num-events")
     {
@@ -558,6 +575,11 @@ int main(int argc, const char *argv[])
       g_run_fit_std = true;
       g_run_build_all = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = false;
     }
+    else if (*i == "--chi2cut")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::chi2Cut = atof(i->c_str());
+    }
     else if(*i == "--build-bh")
     {
       g_run_build_all = false; g_run_build_bh = true; g_run_build_std = false; g_run_build_ce = false;
@@ -579,10 +601,6 @@ int main(int argc, const char *argv[])
     {
       next_arg_or_die(mArgs, i);
       Config::finderReportBestOutOfN = atoi(i->c_str());
-    }
-    else if(*i == "--cms-geom")
-    {
-      Config::useCMSGeom = true;
     }
     else if(*i == "--cmssw-seeds")
     {
@@ -638,6 +656,7 @@ int main(int argc, const char *argv[])
     else if(*i == "--read")
     {
       g_operation = "read";
+      Config::nEvents = -1;
     }
     else if(*i == "--file-name")
     {

@@ -712,6 +712,7 @@ void MkFitter::PropagateTracksToR(float R, const int N_proc)
 
 void MkFitter::SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_proc, bool dump)
 {
+  const LayerOfHits &L = layer_of_hits;
   const int   iI = iP;
   const float nSigmaPhi = 3;
   const float nSigmaZ   = 3;
@@ -745,9 +746,8 @@ void MkFitter::SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_pr
 
       dphi = nSigmaPhi * std::sqrt(std::abs(dphi2));
 
-      // XXXX MT: Where has this come from ... ???
-      if (std::abs(dphi) < Config::minDPhi) dphi = Config::minDPhi;
-      if (std::abs(dz)   < Config::minDZ)   dz   = Config::minDZ;
+      dphi = std::max(std::abs(dphi), L.min_dphi());
+      dz   = std::max(std::abs(dz),   L.min_dq());
 
       if (Config::useCMSGeom)
       {
@@ -778,10 +778,8 @@ void MkFitter::SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_pr
       }
     }
 
-    const LayerOfHits &L = layer_of_hits;
-
-    if (std::abs(dz)   > Config::m_max_dz)   dz   = Config::m_max_dz;
-    if (std::abs(dphi) > Config::m_max_dphi) dphi = Config::m_max_dphi;
+    dphi = std::min(std::abs(dphi), L.max_dphi());
+    dz   = std::min(std::abs(dz),   L.max_dq());
 
     const int zb1 = L.GetQBinChecked(z - dz);
     const int zb2 = L.GetQBinChecked(z + dz) + 1;
@@ -1006,7 +1004,7 @@ void MkFitter::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc)
       msErr[Nhits].CopyIn(itrack, hit.errArray());
       msPar[Nhits].CopyIn(itrack, hit.posArray());
       Chi2(itrack, 0, 0) += chi2;
-      HoTArr[Nhits](itrack, 0, 0) = { bestHit[itrack], layer_of_hits.m_layer_id };
+      HoTArr[Nhits](itrack, 0, 0) = { bestHit[itrack], layer_of_hits.layer_id() };
     }
     else
     {
@@ -1016,7 +1014,7 @@ void MkFitter::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc)
       msPar[Nhits](itrack,0,0) = Par[iP](itrack,0,0);
       msPar[Nhits](itrack,1,0) = Par[iP](itrack,1,0);
       msPar[Nhits](itrack,2,0) = Par[iP](itrack,2,0);
-      HoTArr[Nhits](itrack, 0, 0) = { -1, layer_of_hits.m_layer_id };
+      HoTArr[Nhits](itrack, 0, 0) = { -1, layer_of_hits.layer_id() };
 
       // Don't update chi2
     }
@@ -1157,7 +1155,7 @@ void MkFitter::FindCandidates(const LayerOfHits &layer_of_hits,
 	    {
 	      newcand.addHitIdx(HoTArr[hi](itrack, 0, 0),0.);//this should be ok since we already set the chi2 above
 	    }
-	    newcand.addHitIdx(XHitArr.At(itrack, hit_cnt, 0), layer_of_hits.m_layer_id, chi2);
+	    newcand.addHitIdx(XHitArr.At(itrack, hit_cnt, 0), layer_of_hits.layer_id(), chi2);
 	    newcand.setLabel(Label(itrack, 0, 0));
 	    //set the track state to the updated parameters
 	    Err[iC].CopyOut(itrack, newcand.errors_nc().Array());
@@ -1186,7 +1184,7 @@ void MkFitter::FindCandidates(const LayerOfHits &layer_of_hits,
     {
       newcand.addHitIdx(HoTArr[hi](itrack, 0, 0),0.);//this should be ok since we already set the chi2 above
     }
-    newcand.addHitIdx(hit_idx, layer_of_hits.m_layer_id, 0.);
+    newcand.addHitIdx(hit_idx, layer_of_hits.layer_id(), 0.);
     newcand.setLabel(Label(itrack, 0, 0));
     //set the track state to the propagated parameters
     Err[iP].CopyOut(itrack, newcand.errors_nc().Array());
@@ -1321,7 +1319,7 @@ void MkFitter::FindCandidatesEndcap(const LayerOfHits &layer_of_hits,
 	    {
 	      newcand.addHitIdx(HoTArr[hi](itrack, 0, 0), 0.);//this should be ok since we already set the chi2 above
 	    }
-	    newcand.addHitIdx(XHitArr.At(itrack, hit_cnt, 0), layer_of_hits.m_layer_id, chi2);
+	    newcand.addHitIdx(XHitArr.At(itrack, hit_cnt, 0), layer_of_hits.layer_id(), chi2);
 	    newcand.setLabel(Label(itrack, 0, 0));
 	    //set the track state to the updated parameters
 	    Err[iC].CopyOut(itrack, newcand.errors_nc().Array());
@@ -1363,7 +1361,7 @@ void MkFitter::FindCandidatesEndcap(const LayerOfHits &layer_of_hits,
     {
       newcand.addHitIdx(HoTArr[hi](itrack, 0, 0), 0.);//this should be ok since we already set the chi2 above
     }
-    newcand.addHitIdx(hit_idx, layer_of_hits.m_layer_id, 0.);
+    newcand.addHitIdx(hit_idx, layer_of_hits.layer_id(), 0.);
     newcand.setLabel(Label(itrack, 0, 0));
     // set the track state to the propagated parameters
     Err[iP].CopyOut(itrack, newcand.errors_nc().Array());
@@ -1663,7 +1661,7 @@ void MkFitter::SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits,
                                       const int N_proc, bool dump)
 {
   // debug = 1;
-
+  const LayerOfHits &L = layer_of_hits;
   const int   iI = iP;
   const float nSigmaPhi = 3;
   const float nSigmaR   = 3;
@@ -1699,8 +1697,8 @@ void MkFitter::SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits,
 
       dphi = nSigmaPhi * std::sqrt(std::abs(dphi2));
 
-      // XXXXMT4K if (std::abs(dphi) < Config::minDPhi) dphi = Config::minDPhi;
-//       if (std::abs(dz)<Config::minDZ) dz = Config::minDZ;
+      dphi = std::max(std::abs(dphi), L.min_dphi());
+      dr   = std::max(std::abs(dr),   L.min_dq());
 
       if (Config::useCMSGeom)
       {
@@ -1719,10 +1717,8 @@ void MkFitter::SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits,
       }
     }
 
-    const LayerOfHits &L = layer_of_hits;
-
-    // if (std::abs(dz)   > Config::m_max_dz)   dz   = Config::m_max_dz;
-    // XXXXMT4K if (std::abs(dphi) > Config::m_max_dphi) dphi = Config::m_max_dphi;
+    dphi = std::min(std::abs(dphi), L.max_dphi());
+    dr   = std::min(std::abs(dr),   L.max_dq());
 
     const int rb1 = L.GetQBinChecked(r - dr);
     const int rb2 = L.GetQBinChecked(r + dr) + 1;
@@ -1942,7 +1938,7 @@ void MkFitter::AddBestHitEndcap(const LayerOfHits &layer_of_hits, const int N_pr
       msErr[Nhits].CopyIn(itrack, hit.errArray());
       msPar[Nhits].CopyIn(itrack, hit.posArray());
       Chi2(itrack, 0, 0) += chi2;
-      HoTArr[Nhits](itrack, 0, 0) = { bestHit[itrack], layer_of_hits.m_layer_id };
+      HoTArr[Nhits](itrack, 0, 0) = { bestHit[itrack], layer_of_hits.layer_id() };
     }
     else
     {
@@ -1969,7 +1965,7 @@ void MkFitter::AddBestHitEndcap(const LayerOfHits &layer_of_hits, const int N_pr
       msPar[Nhits](itrack,1,0) = Par[iP](itrack,1,0);
       msPar[Nhits](itrack,2,0) = Par[iP](itrack,2,0);
       //-3 means we did not expect any hit since we are out of bounds, so it does not count in countInvalidHits
-      HoTArr[Nhits](itrack, 0, 0) = { withinBounds ? -1 : -3, layer_of_hits.m_layer_id };
+      HoTArr[Nhits](itrack, 0, 0) = { withinBounds ? -1 : -3, layer_of_hits.layer_id() };
 
       // Don't update chi2
     }

@@ -407,7 +407,7 @@ void Event::write_out(FILE *fp)
   for (int it = 0; it<nt; it++) {
     printf("track with pT=%5.3f\n",simTracks_[it].pT());
     for (int ih=0; ih<simTracks_[it].nTotalHits(); ++ih) {
-      printf("hit idx=%i\n", simTracks_[it].getHitIdx(ih));
+      printf("hit lyr:%2d idx=%i\n", simTracks_[it].getHitLyr(ih), simTracks_[it].getHitIdx(ih));
     }
   }
   printf("write %i layers\n",nl);

@@ -9,6 +9,8 @@ namespace Config
   int nTracks = 10000;
   int nEvents = 20;
 
+  std::string geomPlugin = "CylCowWLids";
+
   // Dependent constants, assigned after processing of commandline options
   int maxHitsPerBunch;
   int maxCandsPerEtaBin;
@@ -37,6 +39,8 @@ namespace Config
   // material effects
   float RlgridME[Config::nBinsZME][Config::nBinsRME];
   float XigridME[Config::nBinsZME][Config::nBinsRME];
+
+  float chi2Cut = 15.;
 
   bool  useCMSGeom = false;
   bool  readCmsswSeeds = false;

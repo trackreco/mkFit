@@ -8,7 +8,6 @@ class CandCloner;
 struct SteeringParams
 {
   int   first_finding_layer;  // layer to consider first
-  float LayerInfo::*prop_to_pos_doo;
   int   LayerInfo::*next_layer_doo;
   void (MkFitter::*propagate_foo)   (float, const int);
   void (MkFitter::*select_hits_foo) (const LayerOfHits &, const int, bool);
@@ -20,7 +19,6 @@ struct SteeringParams
   SteeringParams() {}
 
   SteeringParams(int   ffl,
-                 float LayerInfo::*ptp_d,
                  int   LayerInfo::*nl_d,
                  void (MkFitter::*p_f)  (float, const int),
                  void (MkFitter::*sh_f) (const LayerOfHits &, const int, bool),
@@ -29,7 +27,6 @@ struct SteeringParams
                  void (MkFitter::*fc_f)(const LayerOfHits &, std::vector<std::vector<Track>> &, const int, const int),
                  void (MkFitter::*fcmc_f)(const LayerOfHits &, CandCloner &, const int, const int)) :
     first_finding_layer(ffl),
-    prop_to_pos_doo(ptp_d),
     next_layer_doo(nl_d),
     propagate_foo(p_f),
     select_hits_foo(sh_f),
