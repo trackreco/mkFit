@@ -420,6 +420,12 @@ void Event::write_out(FILE *fp)
   */
 }
 
+// #define DUMP_SEEDS
+// #define DUMP_SEED_HITS
+// #define DUMP_TRACKS
+// #define DUMP_TRACK_HITS
+// #define DUMP_LAYER_HITS
+
 void Event::read_in(FILE *fp, int version)
 {
   static long pos = sizeof(int); // header size
@@ -469,39 +475,62 @@ void Event::read_in(FILE *fp, int version)
     seedTracks_.resize(ns);
     if (Config::readCmsswSeeds) fread(&seedTracks_[0], sizeof(Track), ns, fp);
     else fseek(fp, sizeof(Track)*ns, SEEK_CUR);
-    /*
-    printf("read %i seedtracks\n",nt);
-    for (int it = 0; it<ns; it++) {
-      printf("seedtrack with q=%i pT=%5.3f nHits=%i and label=%i\n",seedTracks_[it].charge(),seedTracks_[it].pT(),seedTracks_[it].nFoundHits(),seedTracks_[it].label());
+#ifdef DUMP_SEEDS
+    printf("Read %i seedtracks\n", ns);
+    for (int it = 0; it < ns; it++)
+    {
+      printf("  q=%+i pT=%6.3f nHits=%i label=% i\n",seedTracks_[it].charge(),seedTracks_[it].pT(),seedTracks_[it].nFoundHits(),seedTracks_[it].label());
+#ifdef DUMP_SEED_HITS
+      for (int ih = 0; ih < seedTracks_[it].nTotalHits(); ++ih)
+      {
+        int lyr = seedTracks_[it].getHitLyr(ih);
+        int idx = seedTracks_[it].getHitIdx(ih);
+        if (idx >= 0)
+          printf("    hit %2d lyr=%d idx=%i pos r=%5.3f z=%6.3f\n",
+                 ih, lyr, idx, layerHits_[lyr][idx].r(), layerHits_[lyr][idx].z());
+        else
+          printf("    hit %2d idx=%i\n",ih,seedTracks_[it].getHitIdx(ih));
+
+      }
+#endif
     }
-    */
+#endif
   }
 
-  /* */
-  printf("read %i simtracks\n",nt);
-  /*
-  for (int it = 0; it<nt; it++) {
-    printf("simtrack %d with q=%i pT=%5.3f eta=%6.3f and nHits=%i\n",it,simTracks_[it].charge(),simTracks_[it].pT(),simTracks_[it].momEta(),simTracks_[it].nFoundHits());
-    for (int ih=0; ih<simTracks_[it].nTotalHits(); ++ih) {
+  printf("Read %i simtracks\n",nt);
+#ifdef DUMP_TRACKS
+  for (int it = 0; it < nt; it++)
+  {
+    printf("  %i with q=%+i pT=%5.3f eta=%6.3f nHits=%i\n",it,simTracks_[it].charge(),simTracks_[it].pT(),simTracks_[it].momEta(),simTracks_[it].nFoundHits());
+#ifdef DUMP_TRACK_HITS
+    for (int ih = 0; ih < simTracks_[it].nTotalHits(); ++ih)
+    {
       int lyr = simTracks_[it].getHitLyr(ih);
       int idx = simTracks_[it].getHitIdx(ih);
       if (idx >= 0)
-	printf("  hit #%i lyr=%d idx=%i pos r=%5.3f z=%6.3f\n",
+	printf("    hit %2d lyr=%d idx=%i pos r=%5.3f z=%6.3f\n",
                ih, lyr, idx, layerHits_[lyr][idx].r(), layerHits_[lyr][idx].z());
       else
-	printf("  hit #%i idx=%i\n",ih,simTracks_[it].getHitIdx(ih));
+	printf("    hit %2d idx=%i\n",ih,simTracks_[it].getHitIdx(ih));
     }
+#endif
   }
-  printf("read %i layers\n",nl);
+#endif
+#ifdef DUMP_LAYER_HITS
+  printf("Read %i layers\n",nl);
   int total_hits = 0;
-  for (int il = 0; il<nl; il++) {
-    printf("read %i hits in layer %i\n",layerHits_[il].size(),il);
+  for (int il = 0; il < nl; il++)
+  {
+    if (layerHits_[il].empty()) continue;
+
+    printf("Read %i hits in layer %i\n",layerHits_[il].size(),il);
     total_hits += layerHits_[il].size();
-    for (int ih = 0; ih<layerHits_[il].size(); ih++) {
+    for (int ih = 0; ih < layerHits_[il].size(); ih++)
+    {
       printf("  hit with mcHitID=%i r=%5.3f x=%5.3f y=%5.3f z=%5.3f\n",layerHits_[il][ih].mcHitID(),layerHits_[il][ih].r(),layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z());
     }
   }
-  printf("total_hits = %d\n", total_hits);
-  */
-  printf("read event done\n");
+  printf("Total hits in all layers = %d\n", total_hits);
+#endif
+  printf("Read event done\n");
 }

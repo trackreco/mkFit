@@ -290,10 +290,73 @@ void MkBuilder::begin_event(Event* ev, const char* build_type)
   //     }
   //   }
   // }
+}
 
-  if ( ! (Config::readCmsswSeeds || Config::findSeeds))
+void MkBuilder::end_event()
+{
+  m_event = 0;
+}
+
+
+//------------------------------------------------------------------------------
+// Seeding functions: importing, finding and fitting
+//------------------------------------------------------------------------------
+
+namespace
+{
+  void sort_seeds(Event* ev, TrackVec& tv, RadixSort& rs, std::vector<float>& etas)
   {
-    // debug=true;
+    const int size = tv.size();
+
+    for (int i = 0; i < 5; ++i) ev->seedEtaSeparators_[i] = 0;
+
+    etas.resize(size);
+    for (int i = 0; i < size; ++i)
+    {
+      //float eta = tv[i].momEta();
+
+      HitOnTrack hot = tv[i].getHitOnTrack(Config::nlayers_per_seed - 1);
+      float      eta = ev->layerHits_[hot.layer][hot.index].eta();
+
+      etas[i] = eta;
+      ++ev->seedEtaSeparators_[ Config::TrkInfo.find_eta_region(eta) ];
+    }
+
+    rs.Sort(&etas[0], size);
+  }
+}
+
+void MkBuilder::import_seeds()
+{
+  // debug=true;
+
+  TrackerInfo       &trk_info = Config::TrkInfo;
+  RadixSort          sort;
+  std::vector<float> etas;
+
+  TrackVec &seeds = m_event->seedTracks_;
+
+  if (Config::readCmsswSeeds)
+  {
+    TrackVec orig_seeds;
+    orig_seeds.swap(seeds);
+
+    sort_seeds(m_event, orig_seeds, sort, etas);
+
+    const int size = orig_seeds.size();
+    seeds.reserve(size);
+
+    for (int i = 0; i < size; ++i)
+    {
+      seeds.emplace_back( orig_seeds[ sort.GetRanks()[i] ] );
+    }
+
+    dprintf("MkBuilder::import_seeds Finished seed import, ec- = %d, t- = %d, brl = %d, t+ = %d, ec+ = %d\n",
+           m_event->seedEtaSeparators_[0], m_event->seedEtaSeparators_[1], m_event->seedEtaSeparators_[2], m_event->seedEtaSeparators_[3], m_event->seedEtaSeparators_[4]);
+  }
+  else
+  {
+    // Import from simtrack snatching first Config::nlayers_per_seed hits
 
     // XXMT
     // Reduce number of hits, pick endcap over barrel when both are available.
@@ -307,35 +370,17 @@ void MkBuilder::begin_event(Event* ev, const char* build_type)
     // make seed tracks == simtracks if not using "realistic" seeding
     // m_event->seedTracks_ = m_event->simTracks_;
 
-    TrackerInfo &trk_info = Config::TrkInfo;
+    TrackVec &sims = m_event->simTracks_;
 
-    m_event->seedTracks_.reserve( m_event->simTracks_.size() );
+    sort_seeds(m_event, sims, sort, etas);
 
-    const int size = m_event->simTracks_.size();
-
-    // Loop over input sim-tracks, collect etas (and other relevant info) for sorting.
-    // After that we will make another pass and place seeds on their proper locations.
-    std::vector<float> etas(size);
-    for (int i = 0; i < 5; ++i) m_event->seedEtaSeparators_[i] = 0;
-
-    for (int i = 0; i < size; ++i)
-    {
-      //float eta = m_event->simTracks_[i].momEta();
-
-      HitOnTrack hot = m_event->simTracks_[i].getHitOnTrack(Config::nlayers_per_seed - 1);
-      float eta = m_event->layerHits_[hot.layer][hot.index].eta();
-
-      etas[i] = eta;
-      ++m_event->seedEtaSeparators_[ trk_info.find_eta_region(eta) ];
-    }
-
-    RadixSort sort;
-    sort.Sort(&etas[0], size);
+    const int size = sims.size();
+    seeds.reserve(size);
 
     for (int i = 0; i < size; ++i)
     {
       const int    j   = sort.GetRanks()[i];
-      const Track &src = m_event->simTracks_ [j];
+      const Track &src = sims[j];
 
       dprintf("MkBuilder::begin_event converting sim track %d into seed position %d, eta=%.3f\n",
              j, i, etas[j]);
@@ -372,7 +417,7 @@ const HitOnTrack *hots = src.getHitsOnTrackArray();
         ++h;
       }
 
-      m_event->seedTracks_.emplace_back( Track(src.state(), 0, src.label(), Config::nlayers_per_seed, new_hots) );
+      seeds.emplace_back( Track(src.state(), 0, src.label(), Config::nlayers_per_seed, new_hots) );
 
       Track &dst = m_event->seedTracks_.back();
       dprintf("  Seed nh=%d, last_lay=%d, last_idx=%d\n",
@@ -380,27 +425,18 @@ const HitOnTrack *hots = src.getHitsOnTrackArray();
       // dprintf("  "); for (int i=0; i<dst.nTotalHits();++i) printf(" (%d/%d)", dst.getHitIdx(i), dst.getHitLyr(i)); printf("\n");
     }
 
-    dprintf("MkBuilder::begin_event Finished sim-track to seed, ec- = %d, t- = %d, brl = %d, t+ = %d, ec+ = %d\n",
+    dprintf("MkBuilder::import_seeds Finished sim-track to seed, ec- = %d, t- = %d, brl = %d, t+ = %d, ec+ = %d\n",
            m_event->seedEtaSeparators_[0], m_event->seedEtaSeparators_[1], m_event->seedEtaSeparators_[2], m_event->seedEtaSeparators_[3], m_event->seedEtaSeparators_[4]);
+  }
 
-    // Sum region counts up to contain actual separator indices:
-    for (int i = TrackerInfo::Reg_Transition_Neg; i < TrackerInfo::Reg_Count; ++i)
-    {
-      m_event->seedEtaSeparators_[i] += m_event->seedEtaSeparators_[i - 1];
-    }
+  // Sum region counts up to contain actual separator indices:
+  for (int i = TrackerInfo::Reg_Transition_Neg; i < TrackerInfo::Reg_Count; ++i)
+  {
+    m_event->seedEtaSeparators_[i] += m_event->seedEtaSeparators_[i - 1];
   }
 }
 
-void MkBuilder::end_event()
-{
-  m_event = 0;
-}
-
-//------------------------------------------------------------------------------
-// Seeding functions: finding and fitting
-//------------------------------------------------------------------------------
-
-int MkBuilder::find_seeds()
+void MkBuilder::find_seeds()
 {
   fprintf(stderr, "__FILE__::__LINE__ Needs fixing for B/E support, search for XXMT4K\n");
   exit(1);
@@ -410,9 +446,9 @@ int MkBuilder::find_seeds()
 #endif
   TripletIdxConVec seed_idcs;
 
-  double time = dtime();
+  //double time = dtime();
   findSeedsByRoadSearch(seed_idcs,m_event_of_hits.m_layers_of_hits,m_event->layerHits_[1].size(),m_event);
-  time = dtime() - time;
+  //time = dtime() - time;
 
   // use this to initialize tracks
   // XXMT4K  ... configurable input layers ... or hardcode something else for endcap.
@@ -451,7 +487,6 @@ int MkBuilder::find_seeds()
     dprint("iseed: " << iseed << " mcids: " << hit0.mcTrackID(m_event->simHitsInfo_) << " " <<
 	   hit1.mcTrackID(m_event->simHitsInfo_) << " " << hit1.mcTrackID(m_event->simHitsInfo_));
   }
-  return time;
 }
 
 namespace
@@ -930,6 +965,26 @@ void MkBuilder::init_track_extras()
 }
 
 //------------------------------------------------------------------------------
+// PrepareSeeds
+//------------------------------------------------------------------------------
+
+void MkBuilder::PrepareSeeds()
+{
+  if (Config::findSeeds)
+  {
+    find_seeds();
+  }
+  else
+  {
+    import_seeds();
+    // all simulated seeds need to have hit indices line up in LOH for seed fit
+    map_seed_hits();
+  }
+
+  fit_seeds();
+}
+
+//------------------------------------------------------------------------------
 // FindTracksBestHit
 //------------------------------------------------------------------------------
 
@@ -994,7 +1049,7 @@ void MkBuilder::FindTracksBestHit()
           //   _mm_prefetch((char*) & bunch_of_hits.m_hits[i], _MM_HINT_T1);
           // }
 
-	  dcall(pre_prop_print(ilay, mkfp.get()));
+          dcall(pre_prop_print(ilay, mkfp.get()));
 
           (mkfp.get()->*st_par.propagate_foo)(trk_info.m_layers[ilay].m_propagate_to, rng.n_proc());
 

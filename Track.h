@@ -216,48 +216,42 @@ public:
   void addHitIdx(int hitIdx, int hitLyr, float chi2)
   {
     hitsOnTrk_[++hitIdxPos_] = { hitIdx, hitLyr };
-    if (hitIdx >= 0) { ++nGoodHitIdx_; chi2_+=chi2; }
+    if (hitIdx >= 0) { ++nGoodHits_; chi2_+=chi2; }
   }
 
   void addHitIdx(const HitOnTrack &hot, float chi2)
   {
     hitsOnTrk_[++hitIdxPos_] = hot;
-    if (hot.index >= 0) { ++nGoodHitIdx_; chi2_+=chi2; }
+    if (hot.index >= 0) { ++nGoodHits_; chi2_+=chi2; }
   }
 
   HitOnTrack getHitOnTrack(int posHitIdx) const { return hitsOnTrk_[posHitIdx]; }
 
   CUDA_CALLABLE
-  int getHitIdx(int posHitIdx) const
+  int getHitIdx(int posHitIdx) const { return hitsOnTrk_[posHitIdx].index; }
+  int getHitLyr(int posHitIdx) const { return hitsOnTrk_[posHitIdx].layer; }
+
+  HitOnTrack getLastHitOnTrack() const { return hitsOnTrk_[hitIdxPos_]; }
+  int        getLastHitIdx()     const { return hitsOnTrk_[hitIdxPos_].index;  }
+  int        getLastHitLyr()     const { return hitsOnTrk_[hitIdxPos_].layer;  }
+
+  int getLastGoodHitPos() const
   {
-    return hitsOnTrk_[posHitIdx].index;
-  }
-  int getHitLyr(int posHitIdx) const
-  {
-    return hitsOnTrk_[posHitIdx].layer;
+    int hi = hitIdxPos_;
+    while (hitsOnTrk_[hi].index < 0) --hi;
+    return hi;
   }
 
-  int getLastHitIdx() const
-  {
-    return hitsOnTrk_[hitIdxPos_].index;
-  }
-  int getLastHitLyr() const
-  {
-    return hitsOnTrk_[hitIdxPos_].layer;
-  }
+  HitOnTrack getLastGoodHitOnTrack() const { return hitsOnTrk_[getLastGoodHitPos()]; }
+  int        getLastGoodHitIdx()     const { return hitsOnTrk_[getLastGoodHitPos()].index; }
+  int        getLastGoodHitLyr()     const { return hitsOnTrk_[getLastGoodHitPos()].layer; }
 
-  int getLastGoodHitIdx() const
-  {
-    return hitsOnTrk_[nGoodHitIdx_-1].index;
-  }
-  int getLastGoodHitLyr() const
-  {
-    return hitsOnTrk_[nGoodHitIdx_-1].layer;
-  }
   int getLastGoodMCHitID(const std::vector<HitVec>& globalHitVec) const
   {
-    return globalHitVec[hitsOnTrk_[nGoodHitIdx_-1].layer][hitsOnTrk_[nGoodHitIdx_-1].index].mcHitID();
+    HitOnTrack hot = getLastGoodHitOnTrack();
+    return globalHitVec[hot.layer][hot.index].mcHitID();
   }
+
   int getMCHitIDFromLayer(const std::vector<HitVec>& globalHitVec, int layer) const
   {
     int mcHitID = -1;
@@ -290,25 +284,25 @@ public:
     hitsOnTrk_[posHitIdx] = { newIdx, newLyr };
   }
 
-  void setNGoodHitIdx() {
-    nGoodHitIdx_=0;
+  void setNGoodHits() {
+    nGoodHits_=0;
     for (int i = 0; i <= hitIdxPos_; i++) {
-      if (hitsOnTrk_[i].index >= 0) nGoodHitIdx_++;
+      if (hitsOnTrk_[i].index >= 0) nGoodHits_++;
     }
   }
 
   CUDA_CALLABLE
-  void setNGoodHitIdx(int nHits) {
-    nGoodHitIdx_ = nHits;
+  void setNGoodHits(int nHits) {
+    nGoodHits_ = nHits;
   }
 
   CUDA_CALLABLE
   void resetHits()
   {
     hitIdxPos_   = -1;
-    nGoodHitIdx_ = 0;
+    nGoodHits_ = 0;
   }
-  int  nFoundHits() const { return nGoodHitIdx_; }
+  int  nFoundHits() const { return nGoodHits_; }
   int  nTotalHits() const { return hitIdxPos_+1; }
   
   const std::vector<int> foundLayers() const { 
@@ -335,10 +329,10 @@ public:
 private:
   TrackState    state_;
   HitOnTrack    hitsOnTrk_[Config::nMaxTrkHits];
-  float         chi2_ = 0.;
-  int           hitIdxPos_   = -1;
-  int           nGoodHitIdx_ =  0;
-  int           label_       = -1;
+  float         chi2_      =  0.;
+  int           hitIdxPos_ = -1;
+  int           nGoodHits_ =  0;
+  int           label_     = -1;
 };
 
 typedef std::vector<Track> TrackVec;
