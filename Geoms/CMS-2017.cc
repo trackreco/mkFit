@@ -11,8 +11,9 @@ namespace
 
   void Create_CMS_2017(TrackerInfo& ti, bool verbose)
   {
-    Config::useCMSGeom = true;
-    Config::chi2Cut    = 30.0;
+    Config::useCMSGeom       = true;
+    Config::nlayers_per_seed = 4;
+    Config::chi2Cut          = 30.0;
 
     ti.set_eta_regions(0.9, 1.7, 2.45);
     ti.create_layers(18, 27, 27);

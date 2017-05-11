@@ -64,13 +64,13 @@ public:
 
   static MkBuilder* make_builder();
 
-  virtual void begin_event(Event* ev, const char* build_type);
-
-  int find_seeds();
-  virtual void fit_seeds();
-
+  void begin_event(Event* ev, const char* build_type);
   void end_event();
-  
+
+  void import_seeds();
+  void find_seeds();
+  void fit_seeds();
+
   // --------
 
   void map_seed_hits(); // m_event->layerHits_ -> m_event_of_hits.m_layers_of_hits (seeds only)
@@ -99,9 +99,12 @@ public:
 
   // --------
 
-  virtual void FindTracksBestHit();
-  virtual void FindTracksStandard();
-  virtual void FindTracksCloneEngine();
+  void PrepareSeeds();
+
+  void FindTracksBestHit();
+  void FindTracksStandard();
+  void FindTracksCloneEngine();
+
 #ifdef USE_CUDA
   const Event* get_event() const { return m_event; }
   const EventOfHits& get_event_of_hits() const { return m_event_of_hits; }
