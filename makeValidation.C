@@ -8,7 +8,7 @@
 
 #include <vector>
 
-void makeValidation(TString label)
+void makeValidation(TString label = "")
 {
   gStyle->SetOptStat(0);
 

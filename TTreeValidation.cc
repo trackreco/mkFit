@@ -950,15 +950,11 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
   auto& evt_layer_hits   = ev.layerHits_;
   auto& evt_sim_trackstates = ev.simTrackStates_;
 
-  std::cout << ievt << std::endl;
-
   for (auto&& seedtrack : evt_seed_tracks)
   { 
     evtID_FR_       = ievt;
     auto& seedextra = evt_seed_extras[seedtrack.label()];
     seedID_FR_      = seedextra.seedID();
-
-    std::cout << "  " << seedID_FR_ << std::endl;
 
     // seed info
     seedmask_seed_FR_ = 1; // automatically set to 1, because at the moment no cuts on seeds after conformal+KF fit.  seed triplets filtered by RZ chi2 before fitting. 
@@ -1001,16 +997,11 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       }
     }
     
-    std::cout << "    " << mcID_seed_FR_ << " " << mcmask_seed_FR_ << std::endl;
-
     if (mcmask_seed_FR_ == 1) // matched track to sim
     {
       auto& simtrack = evt_sim_tracks[mcID_seed_FR_];
 
-
-
       const int mcHitID = TTreeValidation::getLastGoodHit(seedtrack.getLastGoodMCHitID(evt_layer_hits),mcID_seed_FR_,ev);
-      std::cout << "----" << mcHitID << std::endl;
       if (mcHitID >= 0)
       {
 	const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
@@ -1055,31 +1046,14 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     {
       seedmask_build_FR_ = 1; // quick logic
 
-    std::cout << " here a " << std::endl; 
-    
-
-
       auto& buildtrack = evt_build_tracks[seedToBuildMap_[seedID_FR_]];
       auto& buildextra = evt_build_extras[buildtrack.label()];
-
-      std::cout << " here b:  " << buildtrack.getLastGoodHitLyr() << " " << buildtrack.getLastGoodHitIdx() << std::endl; 
-      if (seedID_FR_ == 5645)
-      {
-	for (int i = 0; i < Config::nMaxTrkHits; i++)
-	{
-	  std::cout << buildtrack.getHitLyr(i) << " " << buildtrack.getHitIdx(i) << std::endl;
-	}
-	    
-
-      }
 
       // last hit info
       const Hit& lasthit = evt_layer_hits[buildtrack.getLastGoodHitLyr()][buildtrack.getLastGoodHitIdx()];
       xhit_build_FR_ = lasthit.x(); 
       yhit_build_FR_ = lasthit.y(); 
       zhit_build_FR_ = lasthit.z(); 
-
-    std::cout << " here c " << std::endl; 
 
       pt_build_FR_   = buildtrack.pT();
       ept_build_FR_  = buildtrack.epT();
@@ -1112,8 +1086,6 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	  mcmask_build_FR_ = (mcID_build_FR_ == -1 ? 0 : -1); // mask == -1 for mcID == -2,-3,-4,-5
 	}
       }
-
-      std::cout << "    " << mcID_build_FR_ << " " << mcmask_build_FR_ << std::endl;
 
       if (mcmask_build_FR_ == 1) // build track matched to seed and sim 
       {
@@ -1243,8 +1215,6 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	  mcmask_fit_FR_ = (mcID_fit_FR_ == -1 ? 0 : -1); // mask == -1 for mcID == -2,-3,-4,-5
 	}
       }
-
-      std::cout << "    " << mcID_fit_FR_ << " " << mcmask_fit_FR_ << std::endl;
 
       if (mcmask_fit_FR_ == 1) // fit track matched to seed and sim 
       {
