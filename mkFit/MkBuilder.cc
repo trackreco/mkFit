@@ -823,8 +823,9 @@ void MkBuilder::quality_store_tracks_COMB()
 void MkBuilder::quality_process(Track &tkcand)
 {
   TrackExtra extra(tkcand.label());
-  if (Config::useCMSGeom || Config::findSeeds) {extra.setMCTrackIDInfo(tkcand, m_event->layerHits_, m_event->simHitsInfo_, m_event->simTracks_);}
-  else {extra.setMCTrackIDInfoByLabel(tkcand, m_event->layerHits_, m_event->simHitsInfo_, m_event->simTracks_[tkcand.label()]);}
+  
+  if (Config::useCMSGeom || Config::findSeeds) {extra.setMCTrackIDInfo(tkcand, m_event->layerHits_, m_event->simHitsInfo_, m_event->simTracks_,false);}
+  else {extra.setMCTrackIDInfoByLabel(tkcand, m_event->layerHits_, m_event->simHitsInfo_);}
   int mctrk = extra.mcTrackID();
 
   //  int mctrk = tkcand.label(); // assumes 100% "efficiency"
@@ -996,11 +997,11 @@ void MkBuilder::FindTracksBestHit()
           //   _mm_prefetch((char*) & bunch_of_hits.m_hits[i], _MM_HINT_T1);
           // }
 
-          dcall(pre_prop_print(next_layer, mkfp.get()));
+	  dcall(pre_prop_print(ilay, mkfp.get()));
 
           (mkfp.get()->*st_par.propagate_foo)(trk_info.m_layers[ilay].*st_par.prop_to_pos_doo, rng.n_proc());
 
-          dcall(post_prop_print(next_layer, mkfp.get()));
+          dcall(post_prop_print(ilay, mkfp.get()));
 
           (mkfp.get()->*st_par.select_hits_foo)(layer_of_hits, rng.n_proc(), false);
 

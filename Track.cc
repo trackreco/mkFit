@@ -75,9 +75,13 @@ SMatrix66 TrackState::jacobianCartesianToCCS(float px,float py,float pz) const {
 // ID == -5 : reco track somehow has zero hits... unclear what to do with these... ---> CMSSW OR REAL SEEDS ONLY
 
 // More stringent requirement for matching --> used only for simtrack pure seeds
-void TrackExtra::setMCTrackIDInfoByLabel(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo, const Track& simtrack)
+void TrackExtra::setMCTrackIDInfoByLabel(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo)
 {
-  const int label = simtrack.label();
+  // In this routine, we know that seedtracks == simtracks
+  // and as such seedtrack.label() == simtrack.label()
+  // assume each seed track has a hit on the very first layer!
+  const int label  = globalHitInfo[layerHits[trk.getHitLyr(0)][trk.getHitIdx(0)].mcHitID()].mcTrackID();
+
   int nHitsMatched = 0;
   // count hits matched to simtrack after the seed : will need to modify the start of this loop! XXKM4MT
   for (int ihit = Config::nlayers_per_seed; ihit < trk.nTotalHits(); ++ihit) 
@@ -88,8 +92,8 @@ void TrackExtra::setMCTrackIDInfoByLabel(const Track& trk, const std::vector<Hit
     {
       const int mchitid = layerHits[hitlyr][hitidx].mcHitID();
       dprint("trk.label()=" << trk.label() << " simtrack.label()= " << label << " ihit=" << ihit
-             << " trk.getHitIdx(ihit)=" << hitidx << "trk.getHitLyr(ihit)" << hitlyr
-             << " mchitid=" << mchitid << " globalHitInfo[mchitid].mcTrackID()=" << globalHitInfo[mchitid].mcTrackID());
+	     << " trk.getHitIdx(ihit)=" << hitidx << " trk.getHitLyr(ihit)" << hitlyr
+	     << " mchitid=" << mchitid << " globalHitInfo[mchitid].mcTrackID()=" << globalHitInfo[mchitid].mcTrackID());
       if (globalHitInfo[mchitid].mcTrackID() == label) nHitsMatched++;
     }
   }
@@ -125,7 +129,7 @@ void TrackExtra::setMCTrackIDInfoByLabel(const Track& trk, const std::vector<Hit
 }
 
 // Generic 75% reco to sim matching --> for seeding or CMSSW-like building
-void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo, const TrackVec& simtracks)
+void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo, const TrackVec& simtracks, const bool isSeed)
 {
   std::vector<int> mcTrackIDs;
   for (int ihit = 0; ihit < trk.nTotalHits(); ++ihit) 
@@ -158,11 +162,15 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
     // 75% matching criterion 
     if (4*mccount >= 3*trk.nFoundHits()) 
     { 
-      const int nMinSimHits = simtracks[mcTrackID].nFoundHits() * Config::nMinSimHitsFrac;
-      const int minFoundHits = ((nMinSimHits >= Config::nMinFoundHits) ? Config::nMinFoundHits : nMinSimHits);
-
-      if (trk.nFoundHits() >= minFoundHits) mcTrackID_ = mcTrackID;
-      else                                  mcTrackID_ = -2;
+      if (isSeed) mcTrackID_ = mcTrackID; 
+      else
+      {
+	const int nMinSimHits = simtracks[mcTrackID].nFoundHits() * Config::nMinSimHitsFrac;
+	const int minFoundHits = ((nMinSimHits >= Config::nMinFoundHits) ? Config::nMinFoundHits : nMinSimHits);
+	
+	if (trk.nFoundHits() >= minFoundHits) mcTrackID_ = mcTrackID;
+	else                                  mcTrackID_ = -2;
+      }
     }
     else mcTrackID_ = -1;
     
