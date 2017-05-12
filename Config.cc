@@ -53,9 +53,9 @@ namespace Config
   bool  cf_seeding = false;
   bool  cf_fitting = false;
 
-  bool  root_val   = false;
-  bool  fit_val    = false;
-  bool  shortFakes = false;
+  bool  root_val = false;
+  bool  fit_val  = false;
+  bool  inclusiveShorts = false;
 
   void RecalculateDependentConstants()
   {

@@ -220,7 +220,6 @@ void PlotValidation::PlotFakeRate()
   }
 
   IntVec mcmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
-  IntVec seedmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
   
   // Create FR plots
   TH1FRefVecVec varsNumerPlot(vars.size());
@@ -269,10 +268,7 @@ void PlotValidation::PlotFakeRate()
   for (UInt_t j = 0; j < trks.size(); j++) // loop over trks index
   {
     mcmask_trk[j] = 0;
-    seedmask_trk[j] = 0;
-    
     fakeratetree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
-    fakeratetree->SetBranchAddress(Form("seedmask_%s",trks[j].Data()),&(seedmask_trk[j]));
   }
 
   // Fill histos, compute fake rate from tree branches 
@@ -283,7 +279,7 @@ void PlotValidation::PlotFakeRate()
     {
       for (UInt_t j = 0; j < trks.size(); j++) // loop over trks index
       {	
-	if (mcmask_trk[j] != -1) 
+	if (mcmask_trk[j] != -1) // can include masks of 1,0,2
 	{
 	  varsDenomPlot[i][j]->Fill(recovars_val[i][j]); // all reco tracks fill denom
 	  if (mcmask_trk[j] == 0) // only completely unassociated reco tracks enter FR
@@ -509,7 +505,7 @@ void PlotValidation::PlotNHits()
       {
 	if (c == 0) // all reco
 	{
-	  if (seedmask_trk[j] == 1) // includes all the short tracks, too
+	  if (seedmask_trk[j] == 1) // includes all the short tracks, too (including zero size tracks!!!)
 	  {
 	    nHitsPlot[j][c]->Fill(nHits_trk[j]);
 	    fracHitsMatchedPlot[j][c]->Fill(fracHitsMatched_trk[j]);
