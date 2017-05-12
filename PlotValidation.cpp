@@ -64,6 +64,7 @@ PlotValidation::~PlotValidation()
 void PlotValidation::Validation()
 {
   PlotValidation::PlotEfficiency(); 
+  PlotValidation::PlotInefficiencyVsGeom();
   PlotValidation::PlotFakeRate();
   PlotValidation::PlotDuplicateRate();
   PlotValidation::PlotNHits(); 
@@ -95,7 +96,7 @@ void PlotValidation::PlotEfficiency()
   TStrVec vars  = {"pt","eta","phi"};
   TStrVec svars = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
   TStrVec sunits= {" [GeV/c]","",""}; // units --> labels for histograms for given variable
-  IntVec nBins = {60,60,80};
+  IntVec  nBins = {60,60,80};
   FltVec  xlow  = {0,-3,-4};
   FltVec  xhigh = {15,3,4};  
 
@@ -187,6 +188,137 @@ void PlotValidation::PlotEfficiency()
   delete efftree;
 }
 
+void PlotValidation::PlotInefficiencyVsGeom()
+{
+  // Get tree
+  TTree * efftree  = (TTree*)fInRoot->Get("efftree");
+
+  // make output subdirectory and subdir in ROOT file, and cd to it.
+  TString subdirname = "inefficiency"; 
+  PlotValidation::MakeSubDirectory(subdirname);
+  PlotValidation::MakeSubDirectory(Form("%s/lin",subdirname.Data()));
+  PlotValidation::MakeSubDirectory(Form("%s/log",subdirname.Data()));
+  TDirectory * subdir = fOutRoot->mkdir(subdirname.Data());
+  subdir->cd();
+
+  //Declare strings for branches and plots
+  Bool_t  zeroSupLin = true;
+  TStrVec vars  = {"pt","eta","phi"};
+  TStrVec svars = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
+  TStrVec sunits= {" [GeV/c]","",""}; // units --> labels for histograms for given variable
+  IntVec  nBins = {60,60,80};
+  FltVec  xlow  = {0,-3,-4};
+  FltVec  xhigh = {15,3,4};  
+
+  TStrVec regs  = {"barrel","endcap"};
+  TStrVec sregs = {"Barrel","Endcap"};
+
+  TStrVec trks  = {"seed","build","fit"};
+  TStrVec strks = {"Seed","Build","Fit"}; // strk --> labels for histograms for given track type
+
+  // Floats/Ints to be filled for trees
+  FltVec mcvars_val(vars.size()); // first index is var. only for mc values! so no extra index 
+  IntVec mcmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
+  
+  // Create plots
+  std::vector<TH1FRefVecVec> varsNumerPlot(regs.size());
+  std::vector<TH1FRefVecVec> varsDenomPlot(regs.size());
+  std::vector<TH1FRefVecVec> varsEffPlot(regs.size());
+  for (UInt_t h = 0; h < regs.size(); h++)
+  {
+    varsNumerPlot[h].resize(vars.size());
+    varsDenomPlot[h].resize(vars.size());
+    varsEffPlot[h].resize(vars.size());
+    for (UInt_t i = 0; i < vars.size(); i++)
+    {
+      varsNumerPlot[h][i].resize(trks.size());
+      varsDenomPlot[h][i].resize(trks.size());
+      varsEffPlot[h][i].resize(trks.size());
+    }  
+  }
+
+  for (UInt_t h = 0; h < regs.size(); h++)
+  {
+    for (UInt_t i = 0; i < vars.size(); i++)
+    {
+      for (UInt_t j = 0; j < trks.size(); j++)
+      {
+	// Numerator
+	varsNumerPlot[h][i][j] = new TH1F(Form("h_sim_%s_numer_%s_%s_INEFF_%s",vars[i].Data(),regs[h].Data(),trks[j].Data(),regs[h].Data()),Form("%s Track vs MC %s (Numer) Ineff %s",strks[j].Data(),svars[i].Data(),sregs[h].Data()),nBins[i],xlow[i],xhigh[i]);
+	varsNumerPlot[h][i][j]->GetXaxis()->SetTitle(Form("%s%s",svars[i].Data(),sunits[i].Data()));
+	varsNumerPlot[h][i][j]->GetYaxis()->SetTitle("nTracks");    
+	// Denominator
+	varsDenomPlot[h][i][j] = new TH1F(Form("h_sim_%s_denom_%s_%s_INEFF_%s",vars[i].Data(),regs[h].Data(),trks[j].Data(),regs[h].Data()),Form("%s Track vs MC %s (Denom) Ineff %s",strks[j].Data(),svars[i].Data(),sregs[h].Data()),nBins[i],xlow[i],xhigh[i]);
+	varsDenomPlot[h][i][j]->GetXaxis()->SetTitle(Form("%s%s",svars[i].Data(),sunits[i].Data()));
+	varsDenomPlot[h][i][j]->GetYaxis()->SetTitle("nTracks");    
+	// Efficiency
+	varsEffPlot[h][i][j] = new TH1F(Form("h_sim_%s_INEFF_%s_%s_INEFF_%s",vars[i].Data(),regs[h].Data(),trks[j].Data(),regs[h].Data()),Form("%s Track Inefficiency vs MC %s %s",strks[j].Data(),svars[i].Data(),sregs[h].Data()),nBins[i],xlow[i],xhigh[i]);
+	varsEffPlot[h][i][j]->GetXaxis()->SetTitle(Form("%s%s",svars[i].Data(),sunits[i].Data()));
+	varsEffPlot[h][i][j]->GetYaxis()->SetTitle("Inefficiency");    
+      }
+    }
+  }
+
+  //Initialize var_val/err arrays, SetBranchAddress
+  for (UInt_t i = 0; i < vars.size(); i++) // loop over trks index
+  {
+    // initialize var
+    mcvars_val[i] = 0.;
+    
+    //Set var+trk branch
+    efftree->SetBranchAddress(Form("%s_mc_gen",vars[i].Data()),&(mcvars_val[i]));
+  }
+  
+  //Initialize masks, set branch addresses  
+  for (UInt_t j = 0; j < trks.size(); j++) // loop over trks index
+  {
+    mcmask_trk[j] = 0;
+    efftree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
+  }
+
+  // Fill histos, compute eff from tree branches 
+  for (Int_t k = 0; k < efftree->GetEntries(); k++)
+  {
+    efftree->GetEntry(k);
+    for (UInt_t h = 0; h < regs.size(); h++)
+    {
+      if (h == 0 && std::abs(mcvars_val[1]) > 1.f) continue; // barrel only
+      if (h == 1 && std::abs(mcvars_val[1]) < 1.f) continue; // endcap only
+      
+      for (UInt_t i = 0; i < vars.size(); i++)  // loop over vars index
+      {
+	for (UInt_t j = 0; j < trks.size(); j++) // loop over trks index
+        {
+	  varsDenomPlot[h][i][j]->Fill(mcvars_val[i]);
+	  if (mcmask_trk[j] == 0) // must be associated
+	  {
+	    varsNumerPlot[h][i][j]->Fill(mcvars_val[i]);
+	  } // must be a matched track for efficiency
+	} // end loop over trks
+      } // end loop over vars
+    } // end loop over regions
+  } // end loop over entry in tree
+
+  // Draw, divide, and save efficiency plots
+  for (UInt_t h = 0; h < regs.size(); h++)
+  {
+    for (UInt_t i = 0; i < vars.size(); i++)
+    {
+      for (UInt_t j = 0; j < trks.size(); j++)
+      {
+	PlotValidation::ComputeRatioPlot(varsNumerPlot[h][i][j],varsDenomPlot[h][i][j],varsEffPlot[h][i][j]);
+	PlotValidation::WriteTH1FPlot(subdir,varsNumerPlot[h][i][j]);
+	PlotValidation::WriteTH1FPlot(subdir,varsDenomPlot[h][i][j]);
+	PlotValidation::DrawWriteSaveTH1FPlot(subdir,varsEffPlot[h][i][j],subdirname,Form("%s_INEFF_%s_%s",vars[i].Data(),trks[j].Data(),regs[h].Data()),zeroSupLin);
+	delete varsNumerPlot[h][i][j];
+	delete varsDenomPlot[h][i][j];
+	delete varsEffPlot[h][i][j];
+      }
+    }  
+  }
+  delete efftree;
+}
+
 void PlotValidation::PlotFakeRate()
 {
   // Get tree
@@ -205,7 +337,7 @@ void PlotValidation::PlotFakeRate()
   TStrVec vars  = {"pt","eta","phi"};
   TStrVec svars = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
   TStrVec sunits= {" [GeV/c]","",""}; // units --> labels for histograms for given variable
-  IntVec nBins = {60,60,80};
+  IntVec  nBins = {60,60,80};
   FltVec  xlow  = {0,-3,-4};
   FltVec  xhigh = {15,3,4};  
 
@@ -325,7 +457,7 @@ void PlotValidation::PlotDuplicateRate(){
   TStrVec vars  = {"pt","eta","phi"};
   TStrVec svars = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
   TStrVec sunits= {" [GeV/c]","",""}; // units --> labels for histograms for given variable
-  IntVec nBins = {60,60,80};
+  IntVec  nBins = {60,60,80};
   FltVec  xlow  = {0,-3,-4};
   FltVec  xhigh = {15,3,4};  
 
@@ -573,11 +705,11 @@ void PlotValidation::PlotMomResolutionPull()
   TStrVec evars     = {"ept","eeta","ephi"};
   TStrVec svars     = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
   TStrVec sunits    = {" [GeV/c]","",""}; // units --> labels for histograms for given variable
-  IntVec nBinsRes  = {100,100,100};
+  IntVec  nBinsRes  = {100,100,100};
   FltVec  xlowRes   = {-0.5,-0.5,-0.5};
   FltVec  xhighRes  = {0.5,0.5,0.5};  
   FltVec  gausRes   = {0.3,0.3,0.3}; // symmetric bounds for gaussian fit
-  IntVec nBinsPull = {100,100,100};
+  IntVec  nBinsPull = {100,100,100};
   FltVec  xlowPull  = {-5,-5,-5};
   FltVec  xhighPull = {5,5,5};  
   FltVec  gausPull  = {3,3,3}; // symmetric bounds for gaussian fit
@@ -793,8 +925,8 @@ void PlotValidation::PrintTotals()
     totalsout << "==========================================" << std::endl;
     for (UInt_t r = 0; r < rates.size(); r++) 
     {
-      Int_t numerIntegral = numerPhiPlot[j][r]->Integral(0,numerPhiPlot[j][r]->GetNbinsX()+1);
-      Int_t denomIntegral = denomPhiPlot[j][r]->Integral(0,denomPhiPlot[j][r]->GetNbinsX()+1);
+      Int_t numerIntegral = numerPhiPlot[j][r]->GetEntries();
+      Int_t denomIntegral = denomPhiPlot[j][r]->GetEntries();
       Float_t ratetotal   = Float_t(numerIntegral) / Float_t(denomIntegral);
     
       std::cout << snumer[r].Data() << ": " << numerIntegral << std::endl;

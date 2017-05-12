@@ -18,14 +18,20 @@ void makeValidation(TString label = "")
 
   std::vector<TString> dirs; 
   dirs.push_back("efficiency");
+  dirs.push_back("inefficiency");
+  dirs.push_back("inefficiency");
   dirs.push_back("fakerate");
   dirs.push_back("duplicaterate");
   std::vector<TString> sORr;
+  sORr.push_back("sim");
+  sORr.push_back("sim");
   sORr.push_back("sim");
   sORr.push_back("reco");
   sORr.push_back("sim");
   std::vector<TString> rates;
   rates.push_back("EFF");
+  rates.push_back("INEFF_barrel");
+  rates.push_back("INEFF_endcap");
   rates.push_back("FR");
   rates.push_back("DR");
   std::vector<TString> vars;
@@ -51,7 +57,8 @@ void makeValidation(TString label = "")
       h_std->SetMarkerColor(kGreen+1);
       h_ce ->SetMarkerColor(kRed);
 
-      h_bh  ->GetYaxis()->SetRangeUser(0.0,1.05);
+      if (!rates[i].Contains("INEFF",TString::kExact)) h_bh->GetYaxis()->SetRangeUser(0.0,0.05);
+      else h_bh->GetYaxis()->SetRangeUser(0.0,0.1);
 
       h_bh ->Draw("lep");
       h_std->Draw("lep same");

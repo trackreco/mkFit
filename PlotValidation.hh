@@ -42,6 +42,7 @@ public:
   void Validation();
 
   void PlotEfficiency();
+  void PlotInefficiencyVsGeom();
   void PlotFakeRate();
   void PlotDuplicateRate();
   void PlotNHits();
