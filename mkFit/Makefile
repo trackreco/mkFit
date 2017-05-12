@@ -89,7 +89,7 @@ include ${MKFDEPS}
 endif
 
 mkFit: ${ALLOBJS}
-	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} ${ALLOBJS} -o $@ ${LDFLAGS_HOST} ${LDFLAGS_CU} -L.. -lMicCore -Wl,-rpath=..
+	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} ${ALLOBJS} -o $@ ${LDFLAGS_HOST} ${LDFLAGS_CU} -L.. -lMicCore -Wl,-rpath=..,-rpath=.
 
 ifdef WITH_ROOT
 fittestMPlex.o : CPPFLAGS += $(shell root-config --cflags)
@@ -118,7 +118,7 @@ MKFOBJS_MIC := $(MKFOBJS:.o=.om)
 ALLOBJS_MIC := $(ALLOBJS:.o=.om) 
 
 mkFit-mic: ${ALLOBJS_MIC}
-	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} ${ALLOBJS_MIC} -o $@ ${LDFLAGS_MIC} -L.. -lMicCore-mic -Wl,-rpath=..
+	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} ${ALLOBJS_MIC} -o $@ ${LDFLAGS_MIC} -L.. -lMicCore-mic -Wl,-rpath=..,-rpath=.
 
 ${MKFOBJS_MIC}: %.om: %.cc %.d
 	${CXX} ${CPPFLAGS_NO_ROOT} ${CXXFLAGS} ${VEC_MIC} -c -o $@ $<
