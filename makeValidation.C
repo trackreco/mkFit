@@ -57,7 +57,7 @@ void makeValidation(TString label = "")
       h_std->SetMarkerColor(kGreen+1);
       h_ce ->SetMarkerColor(kRed);
 
-      if (!rates[i].Contains("INEFF",TString::kExact)) h_bh->GetYaxis()->SetRangeUser(0.0,0.05);
+      if (!rates[i].Contains("INEFF",TString::kExact)) h_bh->GetYaxis()->SetRangeUser(0.0,1.05);
       else h_bh->GetYaxis()->SetRangeUser(0.0,0.1);
 
       h_bh ->Draw("lep");
