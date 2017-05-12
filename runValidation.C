@@ -16,7 +16,7 @@ void runValidation(TString test = "", Bool_t mvInput = true,
 {
   setupcpp11(); //  use this to get PlotValidation to compile ... phiphi ROOT build has ACLiC with C++98!
 
-  gROOT->LoadMacro("PlotValidation.cpp++g");
+  gROOT->LoadMacro("PlotValidation.cpp+g");
 
   // PlotValidation arguments
   // First is additional input name of root file

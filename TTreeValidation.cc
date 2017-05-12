@@ -1,31 +1,44 @@
+// mcTrackID assignments in Track.cc
+// Efficiency
+//   numerator:   sim tracks with at least one reco track with mcTrackID >= 0 (mcmask == 1)
+//   denominator: all sim tracks
+// Fake Rate (with only long reco tracks: Config::inclusiveShorts == false)
+//   numerator:   reco tracks with mcTrackID == -1 (mcmask == 0)
+//   denominator: reco tracks with mcTrackID >= 0 || == -1 (mcmask == 1,0,2)
+// Fake Rate (with all reco tracks: Config::inclusiveShorts == true)
+//   numerator:   reco tracks with mcTrackID == -1, == -3 (mcmask == 0)
+//   denominator: reco tracks with mcTrackID >= 0 || == -1 || == -2 || == -3 || == -4 (mcmask == 1,0,2)
+
 // N.B. Mask assignments
-// --> mcmask_[reco] == 1, "associated" reco to sim track [possible duplmask_[reco] == 1,0] {eff and FR}
-// --> mcmask_[reco] == 0, "unassociated" reco to sim track. by definition no duplicates (no reco to associate to sim tracks!) [possible duplmask_[reco] == 2 {eff and FR}]
-// --> mcmask_[reco] == -1, "no matching seed to build/fit" track, therefore no build/fit track to match sim! [possible duplmask_[reco] == -1] {FR only} 
+// --> mcmask_[reco] == 1,"associated" reco to sim track [possible duplmask_[reco] == 1,0] {eff and FR}
+// --> mcmask_[reco] == 0,"unassociated" reco to sim track. by definition no duplicates (no reco to associate to sim tracks!) [possible duplmask_[reco] == 2 {eff and FR}]
+// --> mcmask_[reco] == -1, reco track excluded from denominator (and therefore numerator) of FR [possible duplmask_[reco] == -1] {FR only} 
+// --> mcmask_[reco] == 2, reco track included in demoninator of FR, but will not enter numerator: for short "matched" tracks of mcTrackID == -2,-4 {FR only}
 
 // --> nTkMatches_[reco] > 1,   n reco tracks associated to the same sim track ID {eff only}
 // --> nTkMatches_[reco] == 1,  1 reco track associated to single sim track ID {eff only}
 // --> nTkMatches_[reco] == -99, no reco to sim match {eff only}
 
 // excluding position variables, as position could be -99!
-// --> reco var == -99, "unassociated" reco to sim track, mcTrackID == -1 [possible mcmask_[reco] == 0; possible duplmask_[reco] == 2] {eff only}
-// --> sim  var == -99, "unassociated" reco to sim track, mcTrackID == -1 [possible mcmask_[reco] == 0; possible duplmask_[reco] == 2] {FR only}
+// --> reco var == -99, "unassociated" reco to sim track [possible mcmask_[reco] == 0,-1,2; possible duplmask_[reco] == 2] {eff only}
+// --> sim  var == -99, "unassociated" reco to sim track [possible mcmask_[reco] == 0,-1,2; possible duplmask_[reco] == 2] {FR only}
 // --> reco/sim var == -100, "no matching seed to build/fit" track, fill all reco/sim variables -100 [possible mcmask_[reco] == -1, possible duplmask_[reco] == -1] {FR only}
 // --> sim  var == -101, reco track is "associated" to sim track, however, sim track does have a hit on the layer the reco track is on
 
-// --> seedmask_[reco] == 1, matching seed to reco/fit track [possible mcmask_[reco] == 0,1; possible duplmask_[reco] == 0,1,2] {FR only}
+// --> seedmask_[reco] == 1, matching seed to reco/fit track [possible mcmask_[reco] == 0,1,2; possible duplmask_[reco] == 0,1,2] {FR only}
 // --> seedmask_[reco] == 0, no matching seed to reco/fit track [possible mcmask_[reco] == -1; possible duplmask_[reco] == -1] {FR only}
 
 // --> duplmask_[reco] == 0, only "associated" reco to sim track [possible mcmask_[reco] == 1] {eff and FR}
 // --> duplmask_[reco] == 1, more than one "associated" reco to sim track [possible mcmask_[reco] == 1] {eff and FR}
-// --> duplmask_[reco] == 2, no "associated" reco to sim track [possible mcmask_[reco] == 0] {eff and FR}
+// --> duplmask_[reco] == 2, no "associated" reco to sim track [possible mcmask_[reco] == 0,-1,2] {eff and FR}
 // --> duplmask_[reco] == -1, no matching built/fit track for given seed [possible mcmask_[reco] == -1] {FR only}
 
 // --> reco var == -10, variable not yet implemented for given track object
 
 // position reco variables
 // --> layers_[reco]    ==  -1, reco unassociated to sim tk {eff only}
-// --> reco pos+err var == -2000, reco tk is unassociated to sim tk, just filled once {eff only}
+// --> reco pos+err var == -2000, reco tk is unassociated to sim tk {eff only}
+// --> reco pos+err var == -3000, reco tk is unassociated to seed tk {FR only}
 
 #include "TTreeValidation.h"
 #include "Event.h"
@@ -57,14 +70,14 @@ TTreeValidation::TTreeValidation(std::string fileName)
 
   if (Config::root_val) 
   { 
-    initializeEfficiencyTree();
-    initializeFakeRateTree();  
+    TTreeValidation::initializeEfficiencyTree();
+    TTreeValidation::initializeFakeRateTree();  
   }
   if (Config::fit_val) 
   {
-    initializeFitTree();
+    TTreeValidation::initializeFitTree();
   }
-  initializeConfigTree();
+  TTreeValidation::initializeConfigTree();
 }
 
 TTreeValidation::~TTreeValidation()
@@ -96,6 +109,10 @@ void TTreeValidation::initializeEfficiencyTree()
   efftree_->Branch("seedID_build",&seedID_build_eff_);
   efftree_->Branch("seedID_fit",&seedID_fit_eff_);
 
+  efftree_->Branch("x_mc_gen",&x_mc_gen_eff_);
+  efftree_->Branch("y_mc_gen",&y_mc_gen_eff_);
+  efftree_->Branch("z_mc_gen",&z_mc_gen_eff_);
+
   efftree_->Branch("pt_mc_gen",&pt_mc_gen_eff_);
   efftree_->Branch("phi_mc_gen",&phi_mc_gen_eff_);
   efftree_->Branch("eta_mc_gen",&eta_mc_gen_eff_);
@@ -103,6 +120,18 @@ void TTreeValidation::initializeEfficiencyTree()
   efftree_->Branch("mcmask_seed",&mcmask_seed_eff_);
   efftree_->Branch("mcmask_build",&mcmask_build_eff_);
   efftree_->Branch("mcmask_fit",&mcmask_fit_eff_);
+
+  efftree_->Branch("xhit_seed",&xhit_seed_eff_);
+  efftree_->Branch("xhit_build",&xhit_build_eff_);
+  efftree_->Branch("xhit_fit",&xhit_fit_eff_);
+
+  efftree_->Branch("yhit_seed",&yhit_seed_eff_);
+  efftree_->Branch("yhit_build",&yhit_build_eff_);
+  efftree_->Branch("yhit_fit",&yhit_fit_eff_);
+
+  efftree_->Branch("zhit_seed",&zhit_seed_eff_);
+  efftree_->Branch("zhit_build",&zhit_build_eff_);
+  efftree_->Branch("zhit_fit",&zhit_fit_eff_);
 
   efftree_->Branch("pt_mc_seed",&pt_mc_seed_eff_);
   efftree_->Branch("pt_seed",&pt_seed_eff_);
@@ -178,6 +207,18 @@ void TTreeValidation::initializeFakeRateTree()
   fakeratetree_->Branch("seedmask_seed",&seedmask_seed_FR_);
   fakeratetree_->Branch("seedmask_build",&seedmask_build_FR_);
   fakeratetree_->Branch("seedmask_fit",&seedmask_fit_FR_);
+
+  fakeratetree_->Branch("xhit_seed",&xhit_seed_FR_);
+  fakeratetree_->Branch("xhit_build",&xhit_build_FR_);
+  fakeratetree_->Branch("xhit_fit",&xhit_fit_FR_);
+
+  fakeratetree_->Branch("yhit_seed",&yhit_seed_FR_);
+  fakeratetree_->Branch("yhit_build",&yhit_build_FR_);
+  fakeratetree_->Branch("yhit_fit",&yhit_fit_FR_);
+
+  fakeratetree_->Branch("zhit_seed",&zhit_seed_FR_);
+  fakeratetree_->Branch("zhit_build",&zhit_build_FR_);
+  fakeratetree_->Branch("zhit_fit",&zhit_fit_FR_);
 
   fakeratetree_->Branch("pt_seed",&pt_seed_FR_);
   fakeratetree_->Branch("ept_seed",&ept_seed_FR_);
@@ -400,20 +441,31 @@ void TTreeValidation::resetValidationMaps()
 void TTreeValidation::setTrackExtras(Event& ev)
 {
   std::lock_guard<std::mutex> locker(glock_);
-  // set mcTkIDs
-  setTrackCollectionExtras(ev.seedTracks_,ev.seedTracksExtra_,ev.layerHits_,ev.simHitsInfo_);
-  setTrackCollectionExtras(ev.candidateTracks_,ev.candidateTracksExtra_,ev.layerHits_,ev.simHitsInfo_);
-  setTrackCollectionExtras(ev.fitTracks_,ev.fitTracksExtra_,ev.layerHits_,ev.simHitsInfo_);
-}
 
-void TTreeValidation::setTrackCollectionExtras(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, 
-					       const std::vector<HitVec>& layerHits, const MCHitInfoVec& mcHitInfo)
-{
-  for (auto itrack = 0; itrack < evt_tracks.size(); ++itrack)
+  // set mcTrackID for seed tracks
+  for (int itrack = 0; itrack < ev.seedTracks_.size(); itrack++)
   {
-    auto&& track(evt_tracks[itrack]);
-    auto&& extra(evt_extras[itrack]);
-    extra.setMCTrackIDInfo(track, layerHits, mcHitInfo);
+    auto&& track(ev.seedTracks_[itrack]);
+    auto&& extra(ev.seedTracksExtra_[itrack]);
+    extra.setMCTrackIDInfo(track, ev.layerHits_, ev.simHitsInfo_, ev.simTracks_, true); // otherwise seeds are completely unmatched in ToyMC Sim Seeds
+  }
+
+  // set mcTrackID for built tracks
+  for (int itrack = 0; itrack < ev.candidateTracks_.size(); itrack++)
+  {
+    auto&& track(ev.candidateTracks_[itrack]);
+    auto&& extra(ev.candidateTracksExtra_[itrack]);
+    if (Config::useCMSGeom || Config::findSeeds) {extra.setMCTrackIDInfo(track, ev.layerHits_, ev.simHitsInfo_, ev.simTracks_, false);}
+    else {extra.setMCTrackIDInfoByLabel(track, ev.layerHits_, ev.simHitsInfo_);}
+  }
+  
+  // set mcTrackID for fit tracks
+  for (int itrack = 0; itrack < ev.fitTracks_.size(); itrack++)
+  {
+    auto&& track(ev.fitTracks_[itrack]);
+    auto&& extra(ev.fitTracksExtra_[itrack]);
+    if (Config::useCMSGeom || Config::findSeeds) {extra.setMCTrackIDInfo(track, ev.layerHits_, ev.simHitsInfo_, ev.simTracks_, false);}
+    else {extra.setMCTrackIDInfoByLabel(track, ev.layerHits_, ev.simHitsInfo_);}
   }
 }
 
@@ -421,9 +473,9 @@ void TTreeValidation::makeSimTkToRecoTksMaps(Event& ev)
 {
   std::lock_guard<std::mutex> locker(glock_);
   // map sim track ids to reco labels sort by each (simTracks set in order by default!)
-  mapSimTkToRecoTks(ev.seedTracks_,ev.seedTracksExtra_,simToSeedMap_);
-  mapSimTkToRecoTks(ev.candidateTracks_,ev.candidateTracksExtra_,simToBuildMap_);
-  mapSimTkToRecoTks(ev.fitTracks_,ev.fitTracksExtra_,simToFitMap_);
+  TTreeValidation::mapSimTkToRecoTks(ev.seedTracks_,ev.seedTracksExtra_,simToSeedMap_);
+  TTreeValidation::mapSimTkToRecoTks(ev.candidateTracks_,ev.candidateTracksExtra_,simToBuildMap_);
+  TTreeValidation::mapSimTkToRecoTks(ev.fitTracks_,ev.fitTracksExtra_,simToFitMap_);
 }
 
 void TTreeValidation::mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, TkIDToTkIDVecMap& simTkMap)
@@ -432,7 +484,8 @@ void TTreeValidation::mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVe
   {
     auto&& track(evt_tracks[itrack]);
     auto&& extra(evt_extras[itrack]);
-    if (extra.mcTrackID() >= 0){ // skip fakes, don't store them at all in sim map
+    if (extra.mcTrackID() >= 0) // skip fakes, don't store them at all in sim map
+    {
       simTkMap[extra.mcTrackID()].push_back(track.label()); // store vector of reco tk labels, mapped to the sim track label (i.e. mcTrackID)
     }
   }
@@ -474,8 +527,8 @@ void TTreeValidation::makeSeedTkToRecoTkMaps(Event& ev)
 {
   std::lock_guard<std::mutex> locker(glock_); 
   // map seed to reco tracks --> seed track collection assumed to map to itself, unless we make some cuts
-  mapSeedTkToRecoTk(ev.candidateTracks_,ev.candidateTracksExtra_,seedToBuildMap_);
-  mapSeedTkToRecoTk(ev.fitTracks_,ev.fitTracksExtra_,seedToFitMap_);
+  TTreeValidation::mapSeedTkToRecoTk(ev.candidateTracks_,ev.candidateTracksExtra_,seedToBuildMap_);
+  TTreeValidation::mapSeedTkToRecoTk(ev.fitTracks_,ev.fitTracksExtra_,seedToFitMap_);
 }
 
 void TTreeValidation::mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackExtraVec& evt_extras, TkIDToTkIDMap& seedTkMap)
@@ -546,7 +599,7 @@ void TTreeValidation::fillFitTree(const Event& ev)
   
   for(auto&& fitvalmapmap : fitValTkMapMap_)
   {
-    resetFitBranches();
+    TTreeValidation::resetFitBranches();
     
     tkid_fit_ = fitvalmapmap.first; // seed id (label) is the same as the mcID
     
@@ -615,6 +668,10 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     mcID_eff_  = simtrack.label();
 
     // generated values
+    x_mc_gen_eff_ = simtrack.x();
+    y_mc_gen_eff_ = simtrack.y();
+    z_mc_gen_eff_ = simtrack.z();
+
     pt_mc_gen_eff_  = simtrack.pT(); 
     phi_mc_gen_eff_ = simtrack.momPhi();
     eta_mc_gen_eff_ = simtrack.momEta();
@@ -631,7 +688,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       seedID_seed_eff_ = seedextra.seedID(); 
 
       // use this to access correct sim track layer params
-      const int mcHitID = getLastGoodHit(seedtrack.getLastGoodMCHitID(evt_layer_hits),mcID_eff_,ev);
+      const int mcHitID = TTreeValidation::getLastGoodHit(seedtrack.getLastGoodMCHitID(evt_layer_hits),mcID_eff_,ev);
       if (mcHitID >= 0)
       {
 	const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
@@ -639,7 +696,6 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 	pt_mc_seed_eff_  = initLayTS.pT();
 	phi_mc_seed_eff_ = initLayTS.momPhi();
 	eta_mc_seed_eff_ = initLayTS.momEta();
-	
 	helixchi2_seed_eff_ = computeHelixChi2(initLayTS.parameters,seedtrack.parameters(),seedtrack.errors());
       }	
       else
@@ -647,9 +703,14 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 	pt_mc_seed_eff_  = -101;
 	phi_mc_seed_eff_ = -101;
 	eta_mc_seed_eff_ = -101;
-
 	helixchi2_seed_eff_ = -101;
       }
+
+      // last hit info
+      const Hit& lasthit = evt_layer_hits[seedtrack.getLastGoodHitLyr()][seedtrack.getLastGoodHitIdx()];
+      xhit_seed_eff_ = lasthit.x(); 
+      yhit_seed_eff_ = lasthit.y(); 
+      zhit_seed_eff_ = lasthit.z(); 
 
       pt_seed_eff_   = seedtrack.pT();
       ept_seed_eff_  = seedtrack.epT();
@@ -661,7 +722,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       // rest of mc info
       nHits_seed_eff_           = seedtrack.nFoundHits();
       nHitsMatched_seed_eff_    = seedextra.nHitsMatched();
-      fracHitsMatched_seed_eff_ = float(nHitsMatched_seed_eff_) / float(nHits_seed_eff_);
+      fracHitsMatched_seed_eff_ = seedextra.fracHitsMatched();
       lastlyr_seed_eff_         = seedtrack.getLastGoodHitLyr();
 
       hitchi2_seed_eff_ = seedtrack.chi2(); // currently not being used
@@ -678,6 +739,11 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       pt_mc_seed_eff_  = -99;
       phi_mc_seed_eff_ = -99;
       eta_mc_seed_eff_ = -99;
+      helixchi2_seed_eff_ = -99;
+
+      xhit_seed_eff_ = -2000;
+      yhit_seed_eff_ = -2000;
+      zhit_seed_eff_ = -2000;
 
       pt_seed_eff_   = -99;
       ept_seed_eff_  = -99;
@@ -692,7 +758,6 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       lastlyr_seed_eff_         = -99;
  
       hitchi2_seed_eff_   = -99;
-      helixchi2_seed_eff_ = -99;
       
       duplmask_seed_eff_   = 2; // mask means unmatched sim track
       nTkMatches_seed_eff_ = -99; // unmatched
@@ -708,7 +773,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       seedID_build_eff_ = buildextra.seedID(); 
 
       // use this to access correct sim track layer params
-      const int mcHitID = getLastGoodHit(buildtrack.getLastGoodMCHitID(evt_layer_hits),mcID_eff_,ev);
+      const int mcHitID = TTreeValidation::getLastGoodHit(buildtrack.getLastGoodMCHitID(evt_layer_hits),mcID_eff_,ev);
       if (mcHitID >= 0)
       {
 	const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
@@ -716,7 +781,6 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 	pt_mc_build_eff_  = initLayTS.pT();
 	phi_mc_build_eff_ = initLayTS.momPhi();
 	eta_mc_build_eff_ = initLayTS.momEta();
-
 	helixchi2_build_eff_ = computeHelixChi2(initLayTS.parameters,buildtrack.parameters(),buildtrack.errors());
       }	
       else
@@ -724,9 +788,14 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 	pt_mc_build_eff_  = -101;
 	phi_mc_build_eff_ = -101;
 	eta_mc_build_eff_ = -101;
-
 	helixchi2_build_eff_ = -101;
       }
+
+      // last hit info
+      const Hit& lasthit = evt_layer_hits[buildtrack.getLastGoodHitLyr()][buildtrack.getLastGoodHitIdx()];
+      xhit_build_eff_ = lasthit.x(); 
+      yhit_build_eff_ = lasthit.y(); 
+      zhit_build_eff_ = lasthit.z(); 
 
       pt_build_eff_   = buildtrack.pT();
       ept_build_eff_  = buildtrack.epT();
@@ -737,7 +806,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       
       nHits_build_eff_           = buildtrack.nFoundHits();
       nHitsMatched_build_eff_    = buildextra.nHitsMatched();
-      fracHitsMatched_build_eff_ = float(nHitsMatched_build_eff_) / float(nHits_build_eff_);
+      fracHitsMatched_build_eff_ = buildextra.fracHitsMatched();
       lastlyr_build_eff_         = buildtrack.getLastGoodHitLyr();
 
       hitchi2_build_eff_ = buildtrack.chi2(); 
@@ -754,6 +823,11 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       pt_mc_build_eff_  = -99;
       phi_mc_build_eff_ = -99;
       eta_mc_build_eff_ = -99;
+      helixchi2_build_eff_ = -99;
+
+      xhit_build_eff_ = -2000;
+      yhit_build_eff_ = -2000;
+      zhit_build_eff_ = -2000;
 
       pt_build_eff_   = -99;
       ept_build_eff_  = -99;
@@ -768,7 +842,6 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       lastlyr_build_eff_         = -99;
 
       hitchi2_build_eff_   = -99;
-      helixchi2_build_eff_ = -99;
       
       duplmask_build_eff_   = 2; // mask means unmatched sim track
       nTkMatches_build_eff_ = -99; // unmatched
@@ -784,7 +857,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       seedID_fit_eff_ = fitextra.seedID(); 
 
       // use this to access correct sim track layer params
-      const int mcHitID = getLastGoodHit(fittrack.getLastGoodMCHitID(evt_layer_hits),mcID_eff_,ev);
+      const int mcHitID = TTreeValidation::getLastGoodHit(fittrack.getLastGoodMCHitID(evt_layer_hits),mcID_eff_,ev);
       if (mcHitID >= 0)
       {
 	const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
@@ -792,7 +865,6 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 	pt_mc_fit_eff_  = initLayTS.pT();
 	phi_mc_fit_eff_ = initLayTS.momPhi();
 	eta_mc_fit_eff_ = initLayTS.momEta();
-
 	helixchi2_fit_eff_ = computeHelixChi2(initLayTS.parameters,fittrack.parameters(),fittrack.errors());
       }	
       else
@@ -800,10 +872,15 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 	pt_mc_fit_eff_  = -101;
 	phi_mc_fit_eff_ = -101;
 	eta_mc_fit_eff_ = -101;
-
 	helixchi2_fit_eff_ = -101;
       }
       
+      // last hit info
+      const Hit& lasthit = evt_layer_hits[fittrack.getLastGoodHitLyr()][fittrack.getLastGoodHitIdx()];
+      xhit_fit_eff_ = lasthit.x(); 
+      yhit_fit_eff_ = lasthit.y(); 
+      zhit_fit_eff_ = lasthit.z(); 
+
       pt_fit_eff_   = fittrack.pT();
       ept_fit_eff_  = fittrack.epT();
       phi_fit_eff_  = fittrack.momPhi();
@@ -814,7 +891,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       // rest of mc info
       nHits_fit_eff_           = fittrack.nFoundHits();
       nHitsMatched_fit_eff_    = fitextra.nHitsMatched();
-      fracHitsMatched_fit_eff_ = float(nHitsMatched_fit_eff_) / float(nHits_fit_eff_);
+      fracHitsMatched_fit_eff_ = fitextra.fracHitsMatched();
       lastlyr_fit_eff_         = fittrack.getLastGoodHitLyr();
 
       hitchi2_fit_eff_ = -10; //fittrack.chi2(); // currently not being used
@@ -831,6 +908,11 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       pt_mc_fit_eff_  = -99;
       phi_mc_fit_eff_ = -99;
       eta_mc_fit_eff_ = -99;
+      helixchi2_fit_eff_ = -99;
+
+      xhit_fit_eff_ = -2000;
+      yhit_fit_eff_ = -2000;
+      zhit_fit_eff_ = -2000;
 
       pt_fit_eff_   = -99;
       ept_fit_eff_  = -99;
@@ -845,7 +927,6 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       lastlyr_fit_eff_         = -99;
 
       hitchi2_fit_eff_   = -99;
-      helixchi2_fit_eff_ = -99;
       
       duplmask_fit_eff_   = 2; // mask means unmatched sim track
       nTkMatches_fit_eff_ = -99; // unmatched
@@ -860,7 +941,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
   std::lock_guard<std::mutex> locker(glock_);
 
   auto ievt = ev.evtID();
-  auto& evt_sim_tracks   = ev.simTracks_;
+  auto& evt_sim_tracks   = ev.simTracks_; // store sim info at that final layer!!! --> gen info stored only in eff tree
   auto& evt_seed_tracks  = ev.seedTracks_;
   auto& evt_seed_extras  = ev.seedTracksExtra_;
   auto& evt_build_tracks = ev.candidateTracks_;
@@ -879,6 +960,12 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     // seed info
     seedmask_seed_FR_ = 1; // automatically set to 1, because at the moment no cuts on seeds after conformal+KF fit.  seed triplets filtered by RZ chi2 before fitting. 
 
+    // last hit info
+    const Hit& lasthit = evt_layer_hits[seedtrack.getLastGoodHitLyr()][seedtrack.getLastGoodHitIdx()];
+    xhit_seed_FR_ = lasthit.x(); 
+    yhit_seed_FR_ = lasthit.y(); 
+    zhit_seed_FR_ = lasthit.z(); 
+    
     pt_seed_FR_   = seedtrack.pT();
     ept_seed_FR_  = seedtrack.epT();
     phi_seed_FR_  = seedtrack.momPhi();
@@ -888,26 +975,42 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 
     nHits_seed_FR_           = seedtrack.nFoundHits();
     nHitsMatched_seed_FR_    = seedextra.nHitsMatched();
-    fracHitsMatched_seed_FR_ = float(nHitsMatched_seed_FR_) / float(nHits_seed_FR_);
+    fracHitsMatched_seed_FR_ = seedextra.fracHitsMatched();
     lastlyr_seed_FR_         = seedtrack.getLastGoodHitLyr();
 
     hitchi2_seed_FR_ = seedtrack.chi2(); //--> not currently used
 
     // sim info for seed track
     mcID_seed_FR_ = seedextra.mcTrackID();
-    if (mcID_seed_FR_ >= 0) // store sim info at that final layer!!! --> gen info stored only in eff tree
+    if (mcID_seed_FR_ >= 0) // seed track matched to seed and sim 
+    {
+      mcmask_seed_FR_ = 1; // matched track to sim
+    }
+    else 
+    {
+      if (Config::inclusiveShorts) 
+      {
+	if      (mcID_seed_FR_ == -1 || mcID_seed_FR_ == -3) mcmask_seed_FR_ = 0;
+	else if (mcID_seed_FR_ == -2 || mcID_seed_FR_ == -4) mcmask_seed_FR_ = 2; 
+	else                                                 mcmask_seed_FR_ = -1; // mcID == -5
+      }
+      else 
+      {
+	mcmask_seed_FR_ = (mcID_seed_FR_ == -1 ? 0 : -1); // mask == -1 for mcID == -2,-3,-4,-5
+      }
+    }
+    
+    if (mcmask_seed_FR_ == 1) // matched track to sim
     {
       auto& simtrack = evt_sim_tracks[mcID_seed_FR_];
-      mcmask_seed_FR_ = 1; // matched track to sim
 
-      const int mcHitID = getLastGoodHit(seedtrack.getLastGoodMCHitID(evt_layer_hits),mcID_seed_FR_,ev);
+      const int mcHitID = TTreeValidation::getLastGoodHit(seedtrack.getLastGoodMCHitID(evt_layer_hits),mcID_seed_FR_,ev);
       if (mcHitID >= 0)
       {
 	const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
 	pt_mc_seed_FR_  = initLayTS.pT();
 	phi_mc_seed_FR_ = initLayTS.momPhi();
 	eta_mc_seed_FR_ = initLayTS.momEta();
-
 	helixchi2_seed_FR_ = computeHelixChi2(initLayTS.parameters,seedtrack.parameters(),seedtrack.errors());
       }	
       else
@@ -915,7 +1018,6 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	pt_mc_seed_FR_  = -101;
 	phi_mc_seed_FR_ = -101;
 	eta_mc_seed_FR_ = -101;
-
 	helixchi2_seed_FR_ = -101;
       }
 
@@ -927,12 +1029,12 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     }
     else
     {
-      mcmask_seed_FR_ = 0;   // fake track (unmatched track)
-          
       // -99 for all sim info for reco tracks not associated to reco tracks
       pt_mc_seed_FR_  = -99;
       phi_mc_seed_FR_ = -99;
       eta_mc_seed_FR_ = -99;
+      helixchi2_seed_FR_ = -99;
+      
       nHits_mc_seed_FR_ = -99;
       lastlyr_mc_seed_FR_ = -99;
 
@@ -941,7 +1043,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     }
 
     //==========================//
-    
+
     // fill build information if track still alive
     if (seedToBuildMap_.count(seedID_FR_))
     {
@@ -949,6 +1051,12 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 
       auto& buildtrack = evt_build_tracks[seedToBuildMap_[seedID_FR_]];
       auto& buildextra = evt_build_extras[buildtrack.label()];
+
+      // last hit info
+      const Hit& lasthit = evt_layer_hits[buildtrack.getLastGoodHitLyr()][buildtrack.getLastGoodHitIdx()];
+      xhit_build_FR_ = lasthit.x(); 
+      yhit_build_FR_ = lasthit.y(); 
+      zhit_build_FR_ = lasthit.z(); 
 
       pt_build_FR_   = buildtrack.pT();
       ept_build_FR_  = buildtrack.epT();
@@ -959,7 +1067,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 
       nHits_build_FR_           = buildtrack.nFoundHits();
       nHitsMatched_build_FR_    = buildextra.nHitsMatched();
-      fracHitsMatched_build_FR_ = float(nHitsMatched_build_FR_) / float(nHits_build_FR_);
+      fracHitsMatched_build_FR_ = buildextra.fracHitsMatched();
       lastlyr_build_FR_         = buildtrack.getLastGoodHitLyr();
 
       hitchi2_build_FR_ = buildtrack.chi2();
@@ -968,25 +1076,40 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       mcID_build_FR_  = buildextra.mcTrackID();
       if (mcID_build_FR_ >= 0) // build track matched to seed and sim 
       {
-	auto& simtrack = evt_sim_tracks[mcID_build_FR_];
 	mcmask_build_FR_ = 1; // matched track to sim
+      }
+      else 
+      {
+	if (Config::inclusiveShorts) 
+	{
+	  if      (mcID_build_FR_ == -1 || mcID_build_FR_ == -3) mcmask_build_FR_ = 0;
+	  else if (mcID_build_FR_ == -2 || mcID_build_FR_ == -4) mcmask_build_FR_ = 2; 
+	  else                                                   mcmask_build_FR_ = -1; // mcID == -5
+	}
+	else 
+	{
+	  mcmask_build_FR_ = (mcID_build_FR_ == -1 ? 0 : -1); // mask == -1 for mcID == -2,-3,-4,-5
+	}
+      }
 
-	const int mcHitID = getLastGoodHit(buildtrack.getLastGoodMCHitID(evt_layer_hits),mcID_build_FR_,ev);
+      if (mcmask_build_FR_ == 1) // build track matched to seed and sim 
+      {
+	auto& simtrack = evt_sim_tracks[mcID_build_FR_];
+
+	const int mcHitID = TTreeValidation::getLastGoodHit(buildtrack.getLastGoodMCHitID(evt_layer_hits),mcID_build_FR_,ev);
 	if (mcHitID >= 0)
         {
 	  const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
 	  pt_mc_build_FR_  = initLayTS.pT();
 	  phi_mc_build_FR_ = initLayTS.momPhi();
 	  eta_mc_build_FR_ = initLayTS.momEta();
-	  
 	  helixchi2_build_FR_ = computeHelixChi2(initLayTS.parameters,buildtrack.parameters(),buildtrack.errors());
 	}	
-	else
+	else 
         {
 	  pt_mc_build_FR_  = -101;
 	  phi_mc_build_FR_ = -101;
 	  eta_mc_build_FR_ = -101;
-	  
 	  helixchi2_build_FR_ = -101;
 	}
 
@@ -998,12 +1121,12 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       }
       else // build track matched only to seed not to sim
       {
-	mcmask_build_FR_ = 0;   // fake track (unmatched track)
-	
 	// -99 for all sim info for reco tracks not associated to reco tracks
 	pt_mc_build_FR_  = -99;
 	phi_mc_build_FR_ = -99;
 	eta_mc_build_FR_ = -99;
+	helixchi2_build_FR_ = -99;
+
 	nHits_mc_build_FR_ = -99;
 	lastlyr_mc_build_FR_ = -99;
 
@@ -1015,6 +1138,11 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     else  // seed has no matching build track (therefore no matching sim to build track)
     { 
       seedmask_build_FR_ = 0; // quick logic
+
+      // -3000 for position info if no build track for seed
+      xhit_build_FR_ = -3000;
+      yhit_build_FR_ = -3000;
+      zhit_build_FR_ = -3000;
 
       // -100 for all reco info as no actual build track for this seed
       pt_build_FR_   = -100;
@@ -1038,10 +1166,10 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       pt_mc_build_FR_  = -100;
       phi_mc_build_FR_ = -100;
       eta_mc_build_FR_ = -100;
+      helixchi2_build_FR_ = -100;
+
       nHits_mc_build_FR_ = -100;
       lastlyr_mc_build_FR_ = -100;
-
-      helixchi2_build_FR_ = -100;
 
       duplmask_build_FR_   = -1;
       iTkMatches_build_FR_ = -100;
@@ -1050,11 +1178,16 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     //============================// fit tracks
     if (seedToFitMap_.count(seedID_FR_))
     {
-      auto& simtrack = evt_sim_tracks[mcID_fit_FR_];
       seedmask_fit_FR_ = 1; // quick logic
 
       auto& fittrack = evt_fit_tracks[seedToFitMap_[seedID_FR_]];
       auto& fitextra = evt_fit_extras[fittrack.label()];
+
+      // last hit info
+      const Hit& lasthit = evt_layer_hits[fittrack.getLastGoodHitLyr()][fittrack.getLastGoodHitIdx()];
+      xhit_fit_FR_ = lasthit.x(); 
+      yhit_fit_FR_ = lasthit.y(); 
+      zhit_fit_FR_ = lasthit.z(); 
 
       pt_fit_FR_   = fittrack.pT();
       ept_fit_FR_  = fittrack.epT();
@@ -1065,7 +1198,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 
       nHits_fit_FR_           = fittrack.nFoundHits();
       nHitsMatched_fit_FR_    = fitextra.nHitsMatched();
-      fracHitsMatched_fit_FR_ = float(nHitsMatched_fit_FR_) / float(nHits_fit_FR_);
+      fracHitsMatched_fit_FR_ = fitextra.fracHitsMatched();
       lastlyr_fit_FR_         = fittrack.getLastGoodHitLyr();
 
       hitchi2_fit_FR_ = -10; //fittrack.chi2() --> currently not used
@@ -1075,15 +1208,32 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       if (mcID_fit_FR_ >= 0) // fit track matched to seed and sim 
       {
 	mcmask_fit_FR_ = 1; // matched track to sim
+      }
+      else 
+      {
+	if (Config::inclusiveShorts) 
+	{
+	  if      (mcID_fit_FR_ == -1 || mcID_fit_FR_ == -3) mcmask_fit_FR_ = 0;
+	  else if (mcID_fit_FR_ == -2 || mcID_fit_FR_ == -4) mcmask_fit_FR_ = 2; 
+	  else                                               mcmask_fit_FR_ = -1; // mcID == -5
+	}
+	else 
+	{
+	  mcmask_fit_FR_ = (mcID_fit_FR_ == -1 ? 0 : -1); // mask == -1 for mcID == -2,-3,-4,-5
+	}
+      }
 
-	const int mcHitID = getLastGoodHit(fittrack.getLastGoodMCHitID(evt_layer_hits),mcID_fit_FR_,ev); // only works for outward fit for now
+      if (mcmask_fit_FR_ == 1) // fit track matched to seed and sim 
+      {
+	auto& simtrack = evt_sim_tracks[mcID_fit_FR_];
+      
+	const int mcHitID = TTreeValidation::getLastGoodHit(fittrack.getLastGoodMCHitID(evt_layer_hits),mcID_fit_FR_,ev); // only works for outward fit for now
 	if (mcHitID >= 0)
         {
 	  const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
 	  pt_mc_fit_FR_  = initLayTS.pT();
 	  phi_mc_fit_FR_ = initLayTS.momPhi();
 	  eta_mc_fit_FR_ = initLayTS.momEta();
-	  
 	  helixchi2_fit_FR_ = computeHelixChi2(initLayTS.parameters,fittrack.parameters(),fittrack.errors());
 	}	
 	else
@@ -1091,7 +1241,6 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	  pt_mc_fit_FR_  = -101;
 	  phi_mc_fit_FR_ = -101;
 	  eta_mc_fit_FR_ = -101;
-	  
 	  helixchi2_fit_FR_ = -101;
 	}
 
@@ -1103,12 +1252,12 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       }
       else // fit track matched only to seed not to sim
       {
-	mcmask_fit_FR_ = 0;   // fake track (unmatched track)
-	
 	// -99 for all sim info for reco tracks not associated to reco tracks
 	pt_mc_fit_FR_  = -99;
 	phi_mc_fit_FR_ = -99;
 	eta_mc_fit_FR_ = -99;
+	helixchi2_fit_FR_ = -99;
+	
 	nHits_mc_fit_FR_ = -99;
 	lastlyr_mc_fit_FR_ = -99;
 
@@ -1120,6 +1269,11 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     else // seed has no matching fit track (therefore no matching sim to fit track)
     {
       seedmask_fit_FR_ = 0; // quick logic
+
+      // -3000 for position info if no fit track for seed
+      xhit_fit_FR_ = -3000;
+      yhit_fit_FR_ = -3000;
+      zhit_fit_FR_ = -3000;
 
       // -100 for all reco info as no actual fit track for this seed
       pt_fit_FR_   = -100;
@@ -1143,10 +1297,10 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       pt_mc_fit_FR_  = -100;
       phi_mc_fit_FR_ = -100;
       eta_mc_fit_FR_ = -100;
+      helixchi2_fit_FR_ = -100;
+
       nHits_mc_fit_FR_ = -100;
       lastlyr_mc_fit_FR_ = -100;
-
-      helixchi2_fit_FR_ = -100;
 
       duplmask_fit_FR_   = -1;
       iTkMatches_fit_FR_ = -100;

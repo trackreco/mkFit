@@ -335,6 +335,8 @@ private:
   int           label_     = -1;
 };
 
+typedef std::vector<Track> TrackVec;
+
 class TrackExtra
 {
 public:
@@ -342,23 +344,25 @@ public:
   TrackExtra(int seedID) : seedID_(seedID) {}
   int mcTrackID() const {return mcTrackID_;}
   int nHitsMatched() const {return nHitsMatched_;}
+  float fracHitsMatched() const {return fracHitsMatched_;}
   int seedID() const {return seedID_;}
   bool isDuplicate() const {return isDuplicate_;}
   int duplicateID() const {return duplicateID_;}
-  void setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo);
+  void setMCTrackIDInfoByLabel(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo);
+  void setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo, const TrackVec& simtracks, const bool isSeed);
   void setMCDuplicateInfo(int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
 
 private:
   friend class Track;
   int mcTrackID_;
   int nHitsMatched_;
+  float fracHitsMatched_;
   int seedID_;
   int duplicateID_;
   bool isDuplicate_;
 };
 
 typedef std::vector<TrackExtra> TrackExtraVec;
-typedef std::vector<Track> TrackVec;
 typedef std::vector<TrackState> TSVec;
 typedef std::vector<TSVec>      TkIDToTSVecVec;
 typedef std::vector<std::pair<int, TrackState> > TSLayerPairVec;

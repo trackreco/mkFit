@@ -179,6 +179,7 @@ int main(int argc, const char* argv[])
         "  --num-tracks    <num>    number of tracks to generate for each event (def: %d)\n"
 	"  --num-thr       <num>    number of threads used for TBB  (def: %d)\n"
 	"  --root-val               bool to enable normal validation (eff, FR, DR) (def: %s)\n"
+	"  --inc-shorts             include short reco tracks into FR (def: %s)\n"
 	"  --cf-seeding             bool to enable CF in MC seeding (def: %s)\n"
 	"  --read                   read input simtracks file (def: false)\n"
 	"  --file-name              file name for write/read (def: %s)\n"
@@ -190,6 +191,7 @@ int main(int argc, const char* argv[])
         Config::nTracks,
         nThread, 
 	(Config::root_val ? "true" : "false"),
+      	(Config::inclusiveShorts ? "true" : "false"),
 	(Config::cf_seeding ? "true" : "false"),
 	s_file_name.c_str(),
 	Config::readCmsswSeeds,
@@ -214,7 +216,11 @@ int main(int argc, const char* argv[])
     }
     else if (*i == "--root-val")
     {
-      Config::root_val  = true;
+      Config::root_val = true; Config::fit_val = false;
+    }
+    else if (*i == "--inc-shorts")
+    {
+      Config::inclusiveShorts = true;
     }
     else if (*i == "--cf-seeding")
     {
