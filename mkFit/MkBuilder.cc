@@ -1354,13 +1354,14 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfp,
     }
     const int theEndCand = seed_cand_idx.size();
 
-    // don't bother messing with the clone engine if there are no candidates
-    // (actually it crashes, so this protection is needed)
+    // Don't bother messing with the clone engine if there are no candidates
+    // (actually it crashes, so this protection is needed).
+    // If there are no cands on this iteration, there won't be any later on either,
+    // by the construction of the seed_cand_idx vector.
+    // XXXXMT There might be cases in endcap where all tracks will miss the
+    // next layer, but only relevant if we do geometric selection before.
 
-    if (theEndCand == 0) {
-      if (ilay < 0) break;
-      else          continue;
-    }
+    if (theEndCand == 0) break;
 
     if (ilay >= 0)
     {
