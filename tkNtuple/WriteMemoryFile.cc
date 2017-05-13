@@ -194,12 +194,18 @@ int main() {
   std::vector<short>* simhit_process;
   std::vector<int>* simhit_particle;
   std::vector<int>* simhit_simTrkIdx;
+  std::vector<float>* simhit_x;
+  std::vector<float>* simhit_y;
+  std::vector<float>* simhit_z;
   std::vector<float>* simhit_px;
   std::vector<float>* simhit_py;
   std::vector<float>* simhit_pz;
   t->SetBranchAddress("simhit_process",   &simhit_process);
   t->SetBranchAddress("simhit_particle",   &simhit_particle);
   t->SetBranchAddress("simhit_simTrkIdx", &simhit_simTrkIdx);
+  t->SetBranchAddress("simhit_x",        &simhit_x);
+  t->SetBranchAddress("simhit_y",        &simhit_y);
+  t->SetBranchAddress("simhit_z",        &simhit_z);
   t->SetBranchAddress("simhit_px",        &simhit_px);
   t->SetBranchAddress("simhit_py",        &simhit_py);
   t->SetBranchAddress("simhit_pz",        &simhit_pz);
@@ -613,13 +619,19 @@ int main() {
 	}
       }
       
-      // if (ibest >= 0) std::cout<<" best tkIdx "<<ibest<<" for sh "<<shbest<<" out of "<<shs.size()
-      // 			       <<" hp "<<hpbest
-      // 			       <<" chF "<<hfbest
-      // 			       <<" tp "<<tpbest
-      // 			       <<" process "<<simhit_process->at(shbest)
-      // 			       <<" particle "<<simhit_particle->at(shbest)			
-      // 			       <<std::endl;
+      if (ibest >= 0 && false){
+	std::cout<<" best tkIdx "<<ibest<<" rh "<<rhIdx <<" for sh "<<shbest<<" out of "<<shs.size()
+	<<" hp "<<hpbest
+	<<" chF "<<hfbest
+	<<" tp "<<tpbest
+	<<" process "<<simhit_process->at(shbest)
+	<<" particle "<<simhit_particle->at(shbest)			
+	<<std::endl;
+	if (rhType == HitType::Strip){
+	  std::cout<<"    sh "<<simhit_x->at(shbest)<<", "<<simhit_y->at(shbest)<<", "<<simhit_z->at(shbest)
+		   <<"  rh "<<str_x->at(rhIdx)<<", "<<str_y->at(rhIdx)<<", "<<str_z->at(rhIdx) <<std::endl;
+	}
+      }
       return ibest;
     };
 
