@@ -30,11 +30,11 @@ make clean
 make -j 12
 
 # Validation tests: Barrel
-if [ ! -f ${dir}/simtracks_barrel_10x10k_val.bin ]; then
-    echo "++++Generating 10k tracks/event * 10 events for ToyMC barrel-only validation tests++++"
+if [ ! -f ${dir}/simtracks_fulldet_400x2p5k_val.bin ]; then
+    echo "++++Generating 2.5k tracks/event * 400 events for ToyMC barrel-only validation tests++++"
     sed -i 's/#WITH_ROOT := yes/WITH_ROOT := yes/g' Makefile.config
-    ./mkFit/mkFit --num-thr-sim 1 --root-val --num-events 10 --num-tracks 10000 --write --file-name simtracks_barrel_10x10k_val.bin
-    mv simtracks_barrel_10x10k_val.bin ${dir}/
+    ./mkFit/mkFit --num-thr-sim 12 --root-val --num-events 400 --num-tracks 2500 --write --file-name simtracks_fulldet_400x2p5k_val.bin
+    mv simtracks_fulldet_400x2p5k_val.bin ${dir}/
     sed -i 's/WITH_ROOT := yes/#WITH_ROOT := yes/g' Makefile.config
 fi
 
