@@ -70,10 +70,10 @@ for test in BH STD CE; do
 done
 
 ##### Validation tests #####
-./validation-snb-toymc-barrel-build.sh
+./validation-snb-toymc-fulldet-build.sh
 for test in BH STD CE; do
-    root -b -q -l runValidation.C\(\"_SNB_ToyMC_Barrel_${test}\"\)
+    root -b -q -l runValidation.C\(\"_SNB_ToyMC_FullDet_${test}\"\)
 done
-root -b -q -l makeValidation.C\(\"SNB_ToyMC_Barrel\"\)
+root -b -q -l makeValidation.C\(\"SNB_ToyMC_FullDet\"\)
 
 make distclean

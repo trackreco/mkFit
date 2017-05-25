@@ -63,12 +63,19 @@ PlotValidation::~PlotValidation()
 
 void PlotValidation::Validation()
 {
-  PlotValidation::PlotEfficiency(); 
+  std::cout << "Computing Efficiency ..." << std::endl;
+  PlotValidation::PlotEfficiency();
+  std::cout << "Computing Inefficiency split in barrel and endcap..." << std::endl;
   PlotValidation::PlotInefficiencyVsGeom();
+  std::cout << "Computing Fake Rate ..." << std::endl;
   PlotValidation::PlotFakeRate();
+  std::cout << "Computing Duplicate Rate ..." << std::endl;
   PlotValidation::PlotDuplicateRate();
+  std::cout << "Computing <nHits/track> ..." << std::endl;
   PlotValidation::PlotNHits(); 
+  std::cout << "Computing Momentum Pulls ..." << std::endl;
   PlotValidation::PlotMomResolutionPull();
+  std::cout << "Printing Totals ..." << std::endl;
   PlotValidation::PrintTotals();
   if (fMvInput) 
   {
