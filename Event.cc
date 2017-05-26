@@ -472,11 +472,18 @@ void Event::read_in(FILE *fp, int version)
   if (Config::useCMSGeom || Config::readCmsswSeeds) {
     int ns;
     fread(&ns, sizeof(int), 1, fp);
-    seedTracks_.resize(ns);
-    if (Config::readCmsswSeeds) fread(&seedTracks_[0], sizeof(Track), ns, fp);
-    else fseek(fp, sizeof(Track)*ns, SEEK_CUR);
+    if (Config::readCmsswSeeds)
+    {
+      seedTracks_.resize(ns);
+      fread(&seedTracks_[0], sizeof(Track), ns, fp);
+    }
+    else
+    {
+      fseek(fp, sizeof(Track)*ns, SEEK_CUR);
+      ns = -ns;
+    }
 #ifdef DUMP_SEEDS
-    printf("Read %i seedtracks\n", ns);
+    printf("Read %i seedtracks (neg value means actual reading was skipped)\n", ns);
     for (int it = 0; it < ns; it++)
     {
       printf("  q=%+i pT=%6.3f nHits=%i label=% i\n",seedTracks_[it].charge(),seedTracks_[it].pT(),seedTracks_[it].nFoundHits(),seedTracks_[it].label());
@@ -486,8 +493,12 @@ void Event::read_in(FILE *fp, int version)
         int lyr = seedTracks_[it].getHitLyr(ih);
         int idx = seedTracks_[it].getHitIdx(ih);
         if (idx >= 0)
-          printf("    hit %2d lyr=%d idx=%i pos r=%5.3f z=%6.3f\n",
-                 ih, lyr, idx, layerHits_[lyr][idx].r(), layerHits_[lyr][idx].z());
+        {
+          const Hit &hit = layerHits_[lyr][idx];
+          printf("    hit %2d lyr=%3d idx=%4d pos r=%7.3f z=% 8.3f   mc_hit=%3d mc_trk=%3d\n",
+                 ih, lyr, idx, layerHits_[lyr][idx].r(), layerHits_[lyr][idx].z(),
+                 hit.mcHitID(), hit.mcTrackID(simHitsInfo_));
+        }
         else
           printf("    hit %2d idx=%i\n",ih,seedTracks_[it].getHitIdx(ih));
 
@@ -501,17 +512,23 @@ void Event::read_in(FILE *fp, int version)
 #ifdef DUMP_TRACKS
   for (int it = 0; it < nt; it++)
   {
-    printf("  %i with q=%+i pT=%5.3f eta=%6.3f nHits=%i\n",it,simTracks_[it].charge(),simTracks_[it].pT(),simTracks_[it].momEta(),simTracks_[it].nFoundHits());
+    const Track &t = simTracks_[it];
+    printf("  %i with q=%+i pT=%7.3f eta=% 7.3f nHits=%2d  label=%4d\n",
+           it, t.charge(), t.pT(), t.momEta(), t.nFoundHits(), t.label());
 #ifdef DUMP_TRACK_HITS
-    for (int ih = 0; ih < simTracks_[it].nTotalHits(); ++ih)
+    for (int ih = 0; ih < t.nTotalHits(); ++ih)
     {
-      int lyr = simTracks_[it].getHitLyr(ih);
-      int idx = simTracks_[it].getHitIdx(ih);
+      int lyr = t.getHitLyr(ih);
+      int idx = t.getHitIdx(ih);
       if (idx >= 0)
-	printf("    hit %2d lyr=%d idx=%i pos r=%5.3f z=%6.3f\n",
-               ih, lyr, idx, layerHits_[lyr][idx].r(), layerHits_[lyr][idx].z());
+      {
+        const Hit &hit = layerHits_[lyr][idx];
+	printf("    hit %2d lyr=%2d idx=%3d pos r=%7.3f z=% 8.3f   mc_hit=%3d mc_trk=%3d\n",
+               ih, lyr, idx, layerHits_[lyr][idx].r(), layerHits_[lyr][idx].z(),
+               hit.mcHitID(), hit.mcTrackID(simHitsInfo_));
+      }
       else
-	printf("    hit %2d idx=%i\n",ih,simTracks_[it].getHitIdx(ih));
+	printf("    hit %2d idx=%i\n", ih, t.getHitIdx(ih));
     }
 #endif
   }
@@ -527,10 +544,86 @@ void Event::read_in(FILE *fp, int version)
     total_hits += layerHits_[il].size();
     for (int ih = 0; ih < layerHits_[il].size(); ih++)
     {
-      printf("  hit with mcHitID=%i r=%5.3f x=%5.3f y=%5.3f z=%5.3f\n",layerHits_[il][ih].mcHitID(),layerHits_[il][ih].r(),layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z());
+      printf("  hit with mcHitID=%i r=%5.3f x=%5.3f y=%5.3f z=%5.3f\n",
+             layerHits_[il][ih].mcHitID(), layerHits_[il][ih].r(),
+             layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z());
     }
   }
   printf("Total hits in all layers = %d\n", total_hits);
 #endif
   printf("Read event done\n");
+}
+
+void Event::clean_cms_simtracks()
+{
+  // Sim tracks from cmssw have the following issues:
+  // - hits are not sorted by layer;
+  // - there are tracks with too low number of hits, even 0.
+
+  TrackVec orig;
+  simTracks_.swap(orig);
+  int osize = orig.size();
+  simTracks_.reserve(orig.size());
+
+  for (int i = 0; i < osize; ++i)
+  {
+    Track    &src = orig[i];
+    const int nh  = src.nFoundHits();
+    if (nh < Config::nlayers_per_seed)
+    {
+      dprintf("Dropping simtrack %d, nhits=%d\n", i, nh);
+      continue;
+    }
+    dprintf("Accepting simtrack %d, nhits=%d\n", i, nh);
+
+    // initialize original index locations
+    std::vector<int> idx(nh);
+    std::iota(idx.begin(), idx.end(), 0);
+
+    // sort indexes based on comparing values in v
+    std::sort(idx.begin(), idx.end(),
+              [&](int i1, int i2) { return src.getHitLyr(i1) < src.getHitLyr(i2); });
+    // XXXX plus secondary sort by radius;
+
+    simTracks_.emplace_back( Track(src.state(), 0, src.label(), 0, nullptr) );
+    Track &dst = simTracks_.back();
+
+    for (int h = 0; h < nh; ++h)
+    {
+      // XXXX Should also check if it's the same layer as before?
+      dprintf("  adding hit %d which was %d, layer %d\n", h, idx[h], src.getHitLyr(idx[h]));
+      dst.addHitIdx(src.getHitOnTrack(idx[h]), 0.0f);
+    }
+  }
+}
+
+void Event::print_tracks(const TrackVec& tracks, bool print_hits) const
+{
+  const int nt = tracks.size();
+
+  printf("Event::print_tracks printing %d tracks %s hits:\n", nt, (print_hits ? "with" : "without"));
+  for (int it = 0; it < nt; it++)
+  {
+    const Track &t = tracks[it];
+    printf("  %i with q=%+i pT=%7.3f eta=% 7.3f nHits=%2d  label=%4d\n",
+           it, t.charge(), t.pT(), t.momEta(), t.nFoundHits(), t.label());
+
+    if (print_hits)
+    {
+      for (int ih = 0; ih < t.nTotalHits(); ++ih)
+      {
+        int lyr = t.getHitLyr(ih);
+        int idx = t.getHitIdx(ih);
+        if (idx >= 0)
+        {
+          const Hit &hit = layerHits_[lyr][idx];
+          printf("    hit %2d lyr=%2d idx=%3d pos r=%7.3f z=% 8.3f   mc_hit=%3d mc_trk=%3d\n",
+                 ih, lyr, idx, layerHits_[lyr][idx].r(), layerHits_[lyr][idx].z(),
+                 hit.mcHitID(), hit.mcTrackID(simHitsInfo_));
+        }
+        else
+          printf("    hit %2d idx=%i\n", ih, t.getHitIdx(ih));
+      }
+    }
+  }
 }

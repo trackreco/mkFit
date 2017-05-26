@@ -1,3 +1,10 @@
+Test samples on desire:
+
+./mkFit --read --file-name /bar/mic/mu_brl-1000-10.bin-3 --build-ce --geom CMS-2017 --input-version 0 --cmssw-seeds
+./mkFit --read --file-name /bar/mic/mu_ecp-1000-10.bin-3 --build-ce --geom CMS-2017 --input-version 0 --cmssw-seeds --num-events 990
+./mkFit --read --file-name /bar/mic/mu_ecn-1000-10.bin-3 --build-ce --geom CMS-2017 --input-version 0 --cmssw-seeds --num-events 990
+
+
 #########
 Notes for Kevin
 #########

@@ -23,13 +23,16 @@ public:
   void Validate();
   void PrintStats(const TrackVec&, TrackExtraVec&);
   
-  int evtID() const {return evtID_;}
+  int  evtID() const {return evtID_;}
   void resetLayerHitMap(bool resetSimHits);
 
   int nextMCHitID() { return mcHitIDCounter_++; }
 
   void write_out(FILE *fp);
   void read_in(FILE *fp, int version = Config::FileVersion);
+
+  void clean_cms_simtracks();
+  void print_tracks(const TrackVec& tracks, bool print_hits) const;
 
   const Geometry& geom_;
   Validation& validation_;
@@ -48,9 +51,10 @@ public:
   // validation sets these, so needs to be mutable
   mutable TrackExtraVec simTracksExtra_, seedTracksExtra_, candidateTracksExtra_, fitTracksExtra_;
 
-  // XXXXMT: Preliminary ... separators into seed/candidate arrays.
-  // There should be a better way of doing that.
+  // XXXXMT: Preliminary. Separators into seed/candidate arrays.
+  // This will have to be extended for multi-pass tracking.
   int seedEtaSeparators_[5];
+  int seedMinLastLayer_[5];
 
   TSVec simTrackStates_;
   static std::mutex printmutex;

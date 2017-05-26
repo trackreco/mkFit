@@ -224,7 +224,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_layer_type = LayerInfo::EndCapNeg;
     li.set_limits(4.590, 16.090, -35.200, -29.440);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(4, 46, -1);
+    li.set_next_layers(4, -1, 46);
     li.m_is_outer = false;
     li.m_q_bin = 1.000;
     li.set_selection_limits(0.01, 0.05, 0.8, 1.6);
@@ -244,7 +244,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_layer_type = LayerInfo::EndCapNeg;
     li.set_limits(4.590, 16.090, -42.700, -36.940);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(4, 47, -1);
+    li.set_next_layers(4, -1, 47);
     li.m_is_outer = false;
     li.m_q_bin = 1.000;
     li.set_selection_limits(0.01, 0.05, 0.8, 1.6);
@@ -264,7 +264,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_layer_type = LayerInfo::EndCapNeg;
     li.set_limits(4.590, 16.090, -52.210, -46.450);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(4, 48, -1);
+    li.set_next_layers(4, -1, 48);
     li.m_is_outer = false;
     li.m_q_bin = 1.000;
     li.set_selection_limits(0.01, 0.05, 0.8, 1.6);
@@ -287,7 +287,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_layer_type = LayerInfo::EndCapNeg;
     li.set_limits(22.980, 50.440, -84.050, -74.350);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(10, 49, -1);
+    li.set_next_layers(10, -1, 49);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
@@ -295,7 +295,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
   {
     LayerInfo & li  = ti.m_layers[22];
     li.m_layer_type = LayerInfo::EndCapPos;
-    li.set_limits(22.980, 50.440, 74.350, 84.050);
+    li.set_limits(22.800, 42.000, 74.350, 84.050);
     li.m_propagate_to = li.z_mean();
     li.set_next_layers(10, 23, -1);
     li.m_is_outer = false;
@@ -305,9 +305,9 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
   {
     LayerInfo & li  = ti.m_layers[49];
     li.m_layer_type = LayerInfo::EndCapNeg;
-    li.set_limits(22.980, 50.440, -84.050, -74.350);
+    li.set_limits(22.800, 42.000, -84.050, -74.350);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(10, 50, -1);
+    li.set_next_layers(10, -1, 50);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
@@ -327,7 +327,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_layer_type = LayerInfo::EndCapNeg;
     li.set_limits(22.980, 50.440, -97.000, -87.300);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(10, 51, -1);
+    li.set_next_layers(10, -1, 51);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
@@ -335,7 +335,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
   {
     LayerInfo & li  = ti.m_layers[24];
     li.m_layer_type = LayerInfo::EndCapPos;
-    li.set_limits(22.980, 50.440, 87.300, 97.000);
+    li.set_limits(22.800, 42.000, 87.300, 97.000);
     li.m_propagate_to = li.z_mean();
     li.set_next_layers(10, 25, -1);
     li.m_is_outer = false;
@@ -345,9 +345,9 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
   {
     LayerInfo & li  = ti.m_layers[51];
     li.m_layer_type = LayerInfo::EndCapNeg;
-    li.set_limits(22.980, 50.440, -97.000, -87.300);
+    li.set_limits(22.800, 42.000, -97.000, -87.300);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(10, 52, -1);
+    li.set_next_layers(10, -1, 52);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
@@ -367,7 +367,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_layer_type = LayerInfo::EndCapNeg;
     li.set_limits(22.980, 50.440, -109.950, -100.250);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(10, 53, -1);
+    li.set_next_layers(10, -1, 53);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
@@ -375,7 +375,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
   {
     LayerInfo & li  = ti.m_layers[26];
     li.m_layer_type = LayerInfo::EndCapPos;
-    li.set_limits(22.980, 50.440, 100.250, 109.950);
+    li.set_limits(22.800, 42.000, 100.250, 109.950);
     li.m_propagate_to = li.z_mean();
     li.set_next_layers(10, 27, -1);
     li.m_is_outer = false;
@@ -385,9 +385,9 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
   {
     LayerInfo & li  = ti.m_layers[53];
     li.m_layer_type = LayerInfo::EndCapNeg;
-    li.set_limits(22.980, 50.440, -109.950, -100.250);
+    li.set_limits(22.800, 42.000, -109.950, -100.250);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(10, 54, -1);
+    li.set_next_layers(10, -1, 54);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
@@ -410,7 +410,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_layer_type = LayerInfo::EndCapNeg;
     li.set_limits(23.360, 109.400, -137.390, -126.380);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(-1, 55, -1);
+    li.set_next_layers(-1, -1, 55);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
@@ -418,22 +418,24 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
   {
     LayerInfo & li  = ti.m_layers[28];
     li.m_layer_type = LayerInfo::EndCapPos;
-    li.set_limits(23.370, 109.390, 126.380, 137.390);
+    li.set_limits(23.300, 76.100, 126.380, 137.390);
     li.m_propagate_to = li.z_mean();
     li.set_next_layers(-1, 29, -1);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
+    li.set_r_hole_range(42.000, 59.900);
   }
   {
     LayerInfo & li  = ti.m_layers[55];
     li.m_layer_type = LayerInfo::EndCapNeg;
-    li.set_limits(23.360, 109.400, -137.390, -126.380);
+    li.set_limits(23.300, 76.100, -137.390, -126.380);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(-1, 56, -1);
+    li.set_next_layers(-1, -1, 56);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
+    li.set_r_hole_range(42.000, 59.900);
   }
   {
     LayerInfo & li  = ti.m_layers[29];
@@ -450,7 +452,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_layer_type = LayerInfo::EndCapNeg;
     li.set_limits(23.360, 109.390, -151.420, -140.380);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(-1, 57, -1);
+    li.set_next_layers(-1, -1, 57);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
@@ -458,22 +460,24 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
   {
     LayerInfo & li  = ti.m_layers[30];
     li.m_layer_type = LayerInfo::EndCapPos;
-    li.set_limits(23.360, 109.410, 140.380, 151.390);
+    li.set_limits(23.300, 76.100, 140.380, 151.390);
     li.m_propagate_to = li.z_mean();
     li.set_next_layers(-1, 31, -1);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
+    li.set_r_hole_range(42.000, 59.900);
   }
   {
     LayerInfo & li  = ti.m_layers[57];
     li.m_layer_type = LayerInfo::EndCapNeg;
-    li.set_limits(23.360, 109.390, -151.420, -140.380);
+    li.set_limits(23.300, 76.100, -151.420, -140.380);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(-1, 58, -1);
+    li.set_next_layers(-1, -1, 58);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
+    li.set_r_hole_range(42.000, 59.900);
   }
   {
     LayerInfo & li  = ti.m_layers[31];
@@ -490,7 +494,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_layer_type = LayerInfo::EndCapNeg;
     li.set_limits(23.360, 109.390, -165.390, -154.380);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(-1, 59, -1);
+    li.set_next_layers(-1, -1, 59);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
@@ -498,22 +502,24 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
   {
     LayerInfo & li  = ti.m_layers[32];
     li.m_layer_type = LayerInfo::EndCapPos;
-    li.set_limits(23.360, 109.390, 154.380, 165.390);
+    li.set_limits(23.300, 76.100, 154.380, 165.390);
     li.m_propagate_to = li.z_mean();
     li.set_next_layers(-1, 33, -1);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
+    li.set_r_hole_range(42.000, 59.900);
   }
   {
     LayerInfo & li  = ti.m_layers[59];
     li.m_layer_type = LayerInfo::EndCapNeg;
-    li.set_limits(23.360, 109.390, -165.390, -154.380);
+    li.set_limits(23.300, 76.100, -165.390, -154.380);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(-1, 60, -1);
+    li.set_next_layers(-1, -1, 60);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
+    li.set_r_hole_range(42.000, 59.900);
   }
   {
     LayerInfo & li  = ti.m_layers[33];
@@ -530,7 +536,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_layer_type = LayerInfo::EndCapNeg;
     li.set_limits(32.110, 109.390, -179.390, -168.380);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(-1, 61, -1);
+    li.set_next_layers(-1, -1, 61);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
@@ -538,22 +544,24 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
   {
     LayerInfo & li  = ti.m_layers[34];
     li.m_layer_type = LayerInfo::EndCapPos;
-    li.set_limits(32.110, 109.400, 168.380, 179.380);
+    li.set_limits(31.600, 75.900, 168.380, 179.380);
     li.m_propagate_to = li.z_mean();
     li.set_next_layers(-1, 35, -1);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
+    li.set_r_hole_range(42.100, 59.700);
   }
   {
     LayerInfo & li  = ti.m_layers[61];
     li.m_layer_type = LayerInfo::EndCapNeg;
-    li.set_limits(32.110, 109.390, -179.390, -168.380);
+    li.set_limits(31.600, 75.900, -179.390, -168.380);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(-1, 62, -1);
+    li.set_next_layers(-1, -1, 62);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
+    li.set_r_hole_range(42.100, 59.700);
   }
   {
     LayerInfo & li  = ti.m_layers[35];
@@ -570,7 +578,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_layer_type = LayerInfo::EndCapNeg;
     li.set_limits(32.110, 109.390, -193.380, -182.380);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(-1, 63, -1);
+    li.set_next_layers(-1, -1, 63);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
@@ -578,22 +586,24 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
   {
     LayerInfo & li  = ti.m_layers[36];
     li.m_layer_type = LayerInfo::EndCapPos;
-    li.set_limits(32.110, 109.390, 182.370, 193.390);
+    li.set_limits(31.600, 75.900, 182.370, 193.390);
     li.m_propagate_to = li.z_mean();
     li.set_next_layers(-1, 37, -1);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
+    li.set_r_hole_range(42.100, 59.700);
   }
   {
     LayerInfo & li  = ti.m_layers[63];
     li.m_layer_type = LayerInfo::EndCapNeg;
-    li.set_limits(32.110, 109.390, -193.380, -182.380);
+    li.set_limits(31.600, 75.900, -193.380, -182.380);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(-1, 64, -1);
+    li.set_next_layers(-1, -1, 64);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
+    li.set_r_hole_range(42.100, 59.700);
   }
   {
     LayerInfo & li  = ti.m_layers[37];
@@ -610,7 +620,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_layer_type = LayerInfo::EndCapNeg;
     li.set_limits(32.110, 109.390, -210.880, -199.870);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(-1, 65, -1);
+    li.set_next_layers(-1, -1, 65);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
@@ -618,22 +628,24 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
   {
     LayerInfo & li  = ti.m_layers[38];
     li.m_layer_type = LayerInfo::EndCapPos;
-    li.set_limits(32.110, 109.390, 199.870, 210.880);
+    li.set_limits(31.600, 75.900, 199.870, 210.880);
     li.m_propagate_to = li.z_mean();
     li.set_next_layers(-1, 39, -1);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
+    li.set_r_hole_range(42.100, 59.700);
   }
   {
     LayerInfo & li  = ti.m_layers[65];
     li.m_layer_type = LayerInfo::EndCapNeg;
-    li.set_limits(32.110, 109.390, -210.880, -199.870);
+    li.set_limits(31.600, 75.900, -210.880, -199.870);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(-1, 66, -1);
+    li.set_next_layers(-1, -1, 66);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
+    li.set_r_hole_range(42.100, 59.700);
   }
   {
     LayerInfo & li  = ti.m_layers[39];
@@ -650,7 +662,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_layer_type = LayerInfo::EndCapNeg;
     li.set_limits(39.200, 109.390, -229.860, -218.870);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(-1, 67, -1);
+    li.set_next_layers(-1, -1, 67);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
@@ -658,7 +670,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
   {
     LayerInfo & li  = ti.m_layers[40];
     li.m_layer_type = LayerInfo::EndCapPos;
-    li.set_limits(39.200, 109.390, 218.870, 229.860);
+    li.set_limits(59.900, 75.900, 218.870, 229.860);
     li.m_propagate_to = li.z_mean();
     li.set_next_layers(-1, 41, -1);
     li.m_is_outer = false;
@@ -668,9 +680,9 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
   {
     LayerInfo & li  = ti.m_layers[67];
     li.m_layer_type = LayerInfo::EndCapNeg;
-    li.set_limits(39.200, 109.390, -229.860, -218.870);
+    li.set_limits(59.900, 75.900, -229.860, -218.870);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(-1, 68, -1);
+    li.set_next_layers(-1, -1, 68);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
@@ -690,7 +702,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_layer_type = LayerInfo::EndCapNeg;
     li.set_limits(39.200, 109.400, -250.360, -239.370);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(-1, 69, -1);
+    li.set_next_layers(-1, -1, 69);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
@@ -698,7 +710,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
   {
     LayerInfo & li  = ti.m_layers[42];
     li.m_layer_type = LayerInfo::EndCapPos;
-    li.set_limits(39.200, 109.400, 239.370, 250.360);
+    li.set_limits(59.900, 75.900, 239.370, 250.360);
     li.m_propagate_to = li.z_mean();
     li.set_next_layers(-1, 43, -1);
     li.m_is_outer = false;
@@ -708,9 +720,9 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
   {
     LayerInfo & li  = ti.m_layers[69];
     li.m_layer_type = LayerInfo::EndCapNeg;
-    li.set_limits(39.200, 109.400, -250.360, -239.370);
+    li.set_limits(59.900, 75.900, -250.360, -239.370);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(-1, 70, -1);
+    li.set_next_layers(-1, -1, 70);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
@@ -730,7 +742,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_layer_type = LayerInfo::EndCapNeg;
     li.set_limits(50.410, 109.390, -271.880, -260.870);
     li.m_propagate_to = li.z_mean();
-    li.set_next_layers(-1, 71, -1);
+    li.set_next_layers(-1, -1, 71);
     li.m_is_outer = false;
     li.m_q_bin = 20.000;
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
@@ -738,7 +750,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
   {
     LayerInfo & li  = ti.m_layers[44];
     li.m_layer_type = LayerInfo::EndCapPos;
-    li.set_limits(50.410, 109.400, 260.870, 271.870);
+    li.set_limits(59.900, 75.900, 260.870, 271.870);
     li.m_propagate_to = li.z_mean();
     li.set_next_layers(-1, -1, -1);
     li.m_is_outer = true;
@@ -748,7 +760,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
   {
     LayerInfo & li  = ti.m_layers[71];
     li.m_layer_type = LayerInfo::EndCapNeg;
-    li.set_limits(50.410, 109.390, -271.880, -260.870);
+    li.set_limits(59.900, 75.900, -271.880, -260.870);
     li.m_propagate_to = li.z_mean();
     li.set_next_layers(-1, -1, -1);
     li.m_is_outer = true;

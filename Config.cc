@@ -9,11 +9,14 @@ namespace Config
   int nTracks = 10000;
   int nEvents = 20;
 
+  int nTotalLayers = -1;
+
   std::string geomPlugin = "CylCowWLids";
 
-  // Dependent constants, assigned after processing of commandline options
-  int maxHitsPerBunch;
-  int maxCandsPerEtaBin;
+  int maxCandsPerSeed  = 6; // cmssw tests: 6 (GC had 3) \_ set from geom plugin
+  int maxHolesPerCand  = 2; // cmssw tests: 12           /
+
+  int maxCandsPerEtaBin; // Recalculated after config is read ... should be removed.
 
   // Multi threading and Clone engine configuration
   int   numThreadsFinder = 1;
@@ -30,7 +33,7 @@ namespace Config
 
   int   finderReportBestOutOfN = 1;
 
-  int   nlayers_per_seed = 3; // default is 3 for barrel seeding --> will need a new variable once we move to endcap seeding
+  int   nlayers_per_seed = 3; // can be overriden from Geom plugin; a very confusing variable :)
   int   numSeedsPerTask = 32;
   
   // number of hits per task for finding seeds
@@ -60,6 +63,5 @@ namespace Config
   void RecalculateDependentConstants()
   {
     maxCandsPerEtaBin = std::max(100, maxCandsPerSeed * (nTracks+100) / nEtaPart);
-    maxHitsPerBunch   = std::max(100, nTracks * 12 / 10 / nEtaPart) + maxHitsConsidered;
   }
 }

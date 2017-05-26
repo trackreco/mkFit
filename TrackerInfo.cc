@@ -19,13 +19,21 @@ void LayerInfo::set_selection_limits(float p1, float p2, float q1, float q2)
   m_select_min_dq   = q1; m_select_max_dq   = q2;
 }
 
+void LayerInfo::set_r_hole_range(float rh1, float rh2)
+{
+  m_has_r_range_hole = true;
+  m_hole_r2_min = rh1 * rh1;
+  m_hole_r2_max = rh2 * rh2;
+}
+
 //==============================================================================
 
-void TrackerInfo::set_eta_regions(float tr_beg, float tr_end, float ec_end)
+void TrackerInfo::set_eta_regions(float tr_beg, float tr_end, float ec_end, bool has_sibl_lyrs)
 {
   m_eta_trans_beg = tr_beg;
   m_eta_trans_end = tr_end;
-  m_eta_ecap_end = ec_end;
+  m_eta_ecap_end  = ec_end;
+  m_has_sibling_layers = has_sibl_lyrs;
 }
 
 void TrackerInfo::reserve_layers(int n_brl, int n_ec_pos, int n_ec_neg)
@@ -76,6 +84,9 @@ bool TrackerInfo::are_layers_siblings(int l1, int l2) const
   assert(l1 < m_layers.size() && l2 < m_layers.size());
 
   const LayerInfo &i1 = m_layers[l1];
+  const LayerInfo &i2 = m_layers[l2];
+
+  if ( ! m_has_sibling_layers || i1.m_layer_type == i2.m_layer_type) return false;
 
   if (i1.m_layer_type == LayerInfo::Barrel)
     return l2 == i1.m_sibl_ecap_pos || l2 == i1.m_sibl_ecap_neg;

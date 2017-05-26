@@ -125,10 +125,11 @@ public:
     {
       addHitIdx(hits[h].index, hits[h].layer, 0.0f);
     }
-    for (int h = nHits; h < Config::nMaxTrkHits; ++h)
-    {
-      setHitIdxLyr(h, -1, -1);
-    }
+    // XXXXMT Trying to take this out ... HOTs beyond the end should not be used.
+    // for (int h = nHits; h < Config::nMaxTrkHits; ++h)
+    // {
+    //   setHitIdxLyr(h, -1, -1);
+    // }
   }
 
   Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, float chi2) :
@@ -215,12 +216,16 @@ public:
   CUDA_CALLABLE
   void addHitIdx(int hitIdx, int hitLyr, float chi2)
   {
+    if (hitIdxPos_ >= Config::nMaxTrkHits - 1) return;
+
     hitsOnTrk_[++hitIdxPos_] = { hitIdx, hitLyr };
     if (hitIdx >= 0) { ++nGoodHits_; chi2_+=chi2; }
   }
 
   void addHitIdx(const HitOnTrack &hot, float chi2)
   {
+    if (hitIdxPos_ >= Config::nMaxTrkHits - 1) return;
+
     hitsOnTrk_[++hitIdxPos_] = hot;
     if (hot.index >= 0) { ++nGoodHits_; chi2_+=chi2; }
   }
@@ -299,8 +304,8 @@ public:
   CUDA_CALLABLE
   void resetHits()
   {
-    hitIdxPos_   = -1;
-    nGoodHits_ = 0;
+    hitIdxPos_ = -1;
+    nGoodHits_ =  0;
   }
   int  nFoundHits() const { return nGoodHits_; }
   int  nTotalHits() const { return hitIdxPos_+1; }
@@ -342,24 +347,27 @@ class TrackExtra
 public:
   TrackExtra() : seedID_(std::numeric_limits<int>::max()) {}
   TrackExtra(int seedID) : seedID_(seedID) {}
-  int mcTrackID() const {return mcTrackID_;}
-  int nHitsMatched() const {return nHitsMatched_;}
-  float fracHitsMatched() const {return fracHitsMatched_;}
-  int seedID() const {return seedID_;}
-  bool isDuplicate() const {return isDuplicate_;}
-  int duplicateID() const {return duplicateID_;}
+
   void setMCTrackIDInfoByLabel(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo);
   void setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo, const TrackVec& simtracks, const bool isSeed);
-  void setMCDuplicateInfo(int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
+
+  int   mcTrackID() const {return mcTrackID_;}
+  int   nHitsMatched() const {return nHitsMatched_;}
+  float fracHitsMatched() const {return fracHitsMatched_;}
+  int   seedID() const {return seedID_;}
+  bool  isDuplicate() const {return isDuplicate_;}
+  int   duplicateID() const {return duplicateID_;}
+  void  setMCDuplicateInfo(int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
 
 private:
   friend class Track;
-  int mcTrackID_;
-  int nHitsMatched_;
+
+  int   mcTrackID_;
+  int   nHitsMatched_;
   float fracHitsMatched_;
-  int seedID_;
-  int duplicateID_;
-  bool isDuplicate_;
+  int   seedID_;
+  int   duplicateID_;
+  bool  isDuplicate_;
 };
 
 typedef std::vector<TrackExtra> TrackExtraVec;

@@ -48,7 +48,7 @@ namespace Config
   // namespace, too.
   // XXXX This needs to be generalized for other geometries !
   // TrackerInfo more or less has all this information (or could have it).
-  constexpr int   nTotalLayers   = 28;
+  extern    int   nTotalLayers;        // To be set by geometry plugin.
   constexpr int   nMaxSimHits    = 28; // Assuming dual hit on every barrel / endcap edge
   constexpr int   nMaxRecHits    = 10; // Assuming single hit on each layer
   constexpr int   nMaxTrkHits    = nMaxSimHits; // Used for array sizes in MkFitter and Track
@@ -152,7 +152,7 @@ namespace Config
   //const     float xr = std::sqrt(Config::beamspotX*Config::beamspotX + Config::beamspotY*Config::beamspotY); 
 
   // Config for seeding
-  extern    int   nlayers_per_seed;
+  extern    int   nlayers_per_seed;         // default: 3, cms sets from geom plugin
   constexpr int   nlayers_per_seed_max = 4; // Needed for allocation of arrays on stack.
   constexpr float chi2seedcut  = 9.0;
   constexpr float lay01angdiff = 0.0634888; // analytically derived... depends on geometry of detector --> from mathematica ... d0 set to one sigma of getHypot(bsX,bsY)
@@ -219,10 +219,9 @@ namespace Config
 
   //fixme: these should not be constant and modified when nTracks is set from reading a file
   constexpr int maxHitsConsidered = 25;
-  extern    int maxHitsPerBunch;
 
-  constexpr int maxCandsPerSeed   = 6; //default: 6; cmssw tests: 3
-  constexpr int maxHolesPerCand   = 2;
+  extern    int maxCandsPerSeed; // default: 6; cms: 6  (GC had 3)
+  extern    int maxHolesPerCand; // default: 2; cms  12 (should be reduced)
   extern    int maxCandsPerEtaBin;
 
   // config on validation

@@ -17,6 +17,7 @@
 //
 // Eta partitions for B / T / EC
 
+#include "../Config.h"
 #include "../TrackerInfo.h"
 
 #include <cmath>
@@ -158,7 +159,7 @@ namespace
       // XXXXXXMT: Hack smaller transition region.
       // Need better estimate for seeds?
       // m_trkinfo.set_eta_regions(1.15, 1.4, 2.4);
-      m_trkinfo.set_eta_regions(1.1, 1.3, 2.4);
+      m_trkinfo.set_eta_regions(1.1, 1.3, 2.4, true);
       m_trkinfo.create_layers(10, 9, 9);
 
       // Actual coverage for tracks with z = 3cm is 2.4
@@ -212,6 +213,8 @@ namespace
 
   void Create_CylCowWLids(TrackerInfo& ti, bool verbose)
   {
+    Config::nTotalLayers     = 10 + 2 * 9;
+
     CylCowWLidsCreator creator(ti);
 
     creator.FillTrackerInfo();

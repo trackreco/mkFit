@@ -9,6 +9,9 @@
 
 class LayerInfo
 {
+private:
+  bool  is_in_r2_hole(float r2) const { return r2 > m_hole_r2_min && r2 < m_hole_r2_max; }
+
 public:
   enum  LayerType_e { Undef = -1, Barrel = 0, EndCapPos = 1, EndCapNeg = 2 };
 
@@ -21,7 +24,9 @@ public:
   int           m_next_barrel = -1, m_next_ecap_pos = -1, m_next_ecap_neg = -1;
   int           m_sibl_barrel = -1, m_sibl_ecap_pos = -1, m_sibl_ecap_neg = -1;
 
-  bool          m_is_outer = false;
+  bool          m_is_outer         = false;
+  bool          m_has_r_range_hole = false;
+  float         m_hole_r2_min, m_hole_r2_max; // This could be turned into std::function when needed.
 
   // Selection limits
   float         m_q_bin; // > 0 - bin width, < 0 - number of bins
@@ -41,11 +46,15 @@ public:
   void  set_limits(float r1, float r2, float z1, float z2);
   void  set_next_layers(int nb, int nep, int nen);
   void  set_selection_limits(float p1, float p2, float q1, float q2);
+  void  set_r_hole_range(float rh1, float rh2);
 
   float r_mean()    const { return (m_rin  + m_rout) / 2; }
   float z_mean()    const { return (m_zmin + m_zmax) / 2; }
 
   bool  is_barrel() const { return m_layer_type == Barrel; }
+
+  bool  is_in_rsqr_hole(float r2)       const { return m_has_r_range_hole ? is_in_r2_hole(r2) : false; }
+  bool  is_in_xy_hole(float x, float y) const { return m_has_r_range_hole ? is_in_r2_hole(x*x + y*y): false; }
 
   void  print_layer()
   {
@@ -76,9 +85,10 @@ public:
   std::vector<int>       m_ecap_neg;
 
   float  m_eta_trans_beg, m_eta_trans_end, m_eta_ecap_end;
+  bool   m_has_sibling_layers;
 
-  void set_eta_regions(float tr_beg, float tr_end, float ec_end);
-
+  void        set_eta_regions(float tr_beg, float tr_end, float ec_end,
+                              bool has_sibl_lyrs);
   void        reserve_layers(int n_brl, int n_ec_pos, int n_ec_neg);
   void        create_layers (int n_brl, int n_ec_pos, int n_ec_neg);
   LayerInfo & new_barrel_layer();

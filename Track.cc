@@ -1,4 +1,5 @@
 #include "Track.h"
+
 //#define DEBUG
 #include "Debug.h"
 
@@ -131,6 +132,10 @@ void TrackExtra::setMCTrackIDInfoByLabel(const Track& trk, const std::vector<Hit
 // Generic 75% reco to sim matching --> for seeding or CMSSW-like building
 void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo, const TrackVec& simtracks, const bool isSeed)
 {
+  bool debug = true;
+
+  dprintf("TrackExtra::setMCTrackIDInfo for track with label %d, total hits %d, found hits %d\n",
+          trk.label(), trk.nTotalHits(), trk.nFoundHits());
   std::vector<int> mcTrackIDs;
   for (int ihit = 0; ihit < trk.nTotalHits(); ++ihit) 
   {
@@ -139,30 +144,42 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
     if ((hitidx >= 0) && (hitidx < layerHits[hitlyr].size())) // make sure it is a real hit
     {
       const int mchitid = layerHits[hitlyr][hitidx].mcHitID();
-      dprint("trk.label()=" << trk.label() << " ihit=" << ihit
-             << " trk.getHitIdx(ihit)=" << hitidx << "trk.getHitLyr(ihit)" << hitlyr
-             << " mchitid=" << mchitid << " globalHitInfo[mchitid].mcTrackID()=" << globalHitInfo[mchitid].mcTrackID());
+      dprintf("  ihit=%3d   trk.hit_idx=%4d  trk.hit_lyr=%2d   mchitid=%4d  mctrkid=%3d\n",
+              ihit, hitidx, hitlyr, mchitid, globalHitInfo[mchitid].mcTrackID());
       mcTrackIDs.push_back(globalHitInfo[mchitid].mcTrackID());
+    }
+    else
+    {
+      dprintf("  ihit=%3d   trk.hit_idx=%4d  trk.hit_lyr=%2d\n", ihit, hitidx, hitlyr);
     }
   }
 
+  int mccount = 0;
   if (!mcTrackIDs.empty()) // protection against zero size tracks
   {
     // sorted list ensures that mcTrackIDs are counted properly
     std::sort(mcTrackIDs.begin(), mcTrackIDs.end()); 
-    int mccount = 0, tmpcount = 0;
-    int mcTrackID(mcTrackIDs[0]);
 
-    for (int imcTrackID : mcTrackIDs) 
+    int mcTrackID = -5;
+    int n_ids = mcTrackIDs.size();
+    int i = 0;
+    while (i < n_ids)
     {
-      if (imcTrackID == mcTrackID) { ++tmpcount; } else { tmpcount = 1; }
-      if (tmpcount >= mccount) { mcTrackID = imcTrackID; mccount = tmpcount; }
+      int j = i + 1; while (j < n_ids && mcTrackIDs[j] == mcTrackIDs[i]) ++j;
+
+      int n = j - i;
+      if (mcTrackIDs[i] >= 0 && n > mccount)
+      {
+        mcTrackID = mcTrackIDs[i];
+        mccount   = n;
+      }
+      i = j;
     }
 
     // 75% matching criterion 
     if (4*mccount >= 3*trk.nFoundHits()) 
-    { 
-      if (isSeed) mcTrackID_ = mcTrackID; 
+    {
+      if (isSeed) mcTrackID_ = mcTrackID;
       else
       {
 	const int nMinSimHits = simtracks[mcTrackID].nFoundHits() * Config::nMinSimHitsFrac;
@@ -185,7 +202,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
     fracHitsMatched_ = 0.f;
   }
 
-  dprint("Track " << trk.label() << " best mc track " << mcTrackID << " count " << mccount << "/" << trk.nFoundHits());
+  dprint("Track " << trk.label() << " best mc track " << mcTrackID_ << " count " << mccount << "/" << trk.nFoundHits());
 }
 
 //==============================================================================

@@ -187,7 +187,9 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
 
   if (!Config::root_val) {
     if (!Config::silent) builder.quality_output_COMB();
-  } else {builder.root_val_COMB();}
+  } else {
+    builder.root_val_COMB();
+  }
 
   builder.end_event();
 

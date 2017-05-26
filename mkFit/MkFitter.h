@@ -30,6 +30,7 @@ struct MkFitter
   MPlexQI Chg;
 
   MPlexQF Chi2;
+  MPlexQF OutChi2;
 
   MPlexHS msErr[Config::nMaxTrkHits];
   MPlexHV msPar[Config::nMaxTrkHits];
@@ -54,12 +55,6 @@ struct MkFitter
 public:
   MkFitter() : Nhits(0)
   {}
-  MkFitter(int n_hits) : Nhits(n_hits)
-  {
-    // XXXX Eventually dynamically allocate measurement arrays.
-    // XXXX std::vector is no good, not aligned!
-    // XXXX Hmmh, should really copy them in layer by layer.
-  }
 
   // Copy-in timing tests.
   MPlexLS& GetErr0() { return Err[0]; }
@@ -70,7 +65,7 @@ public:
   void PrintPt(int idx);
 
   float getPar(int itrack, int i, int par) const { return Par[i].ConstAt(itrack, 0, par); }
-  void  SetNhits(int newnhits) { Nhits=newnhits; }
+  void  SetNhits(int newnhits) { Nhits = std::min(newnhits, Config::nMaxTrkHits - 1); }
 
   int countValidHits  (int itrack, int end_hit) const;
   int countInvalidHits(int itrack, int end_hit) const;

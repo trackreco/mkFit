@@ -76,7 +76,7 @@ roll_eta_dice:
 
   // useful info for loopers/overlaps
 
-  int layer_counts[Config::nTotalLayers];
+  std::vector<int> layer_counts(Config::nTotalLayers);
   for (int ilayer = 0; ilayer < Config::nTotalLayers; ++ilayer)
   {
     layer_counts[ilayer] = 0;

@@ -259,7 +259,8 @@ void MkBuilder::begin_event(Event* ev, const char* build_type)
 
   m_event_of_hits.Reset();
 
-  //fill vector of hits in each layer
+  // fill vector of hits in each layer
+  // XXXXMT: Does it really makes sense to multi-thread this?
   tbb::parallel_for(tbb::blocked_range<int>(0, m_event->layerHits_.size()),
     [&](const tbb::blocked_range<int>& layers)
   {
@@ -302,132 +303,138 @@ void MkBuilder::end_event()
 // Seeding functions: importing, finding and fitting
 //------------------------------------------------------------------------------
 
-namespace
+void MkBuilder::create_seeds_from_sim_tracks()
 {
-  void sort_seeds(Event* ev, TrackVec& tv, RadixSort& rs, std::vector<float>& etas)
+  // Import from simtrack snatching first Config::nlayers_per_seed hits.
+  //
+  // Reduce number of hits, pick endcap over barrel when both are available.
+  //   This is done by assumin endcap hit is after the barrel, no checks.
+
+  // bool debug = true;
+
+  TrackerInfo &trk_info = Config::TrkInfo;
+  TrackVec    &sims     = m_event->simTracks_;
+  TrackVec    &seeds    = m_event->seedTracks_;
+
+  const int size = sims.size();
+  seeds.clear();       // Needed when reading from file and then recreating from sim.
+  seeds.reserve(size);
+
+  dprintf("MkBuilder::create_seeds_from_sim_tracks processing %d simtracks.", size);
+
+  for (int i = 0; i < size; ++i)
   {
-    const int size = tv.size();
+    const Track &src = sims[i];
 
-    for (int i = 0; i < 5; ++i) ev->seedEtaSeparators_[i] = 0;
+    int h_sel = 0, h = 0;
+    const HitOnTrack *hots = src.getHitsOnTrackArray();
+    HitOnTrack  new_hots[ Config::nlayers_per_seed_max ];
 
-    etas.resize(size);
-    for (int i = 0; i < size; ++i)
+    // Exit condition -- need to check one more hit after Config::nlayers_per_seed
+    // good hits are found.
+    bool last_hit_check = false;
+
+    while ( ! last_hit_check && h < src.nTotalHits())
     {
-      //float eta = tv[i].momEta();
+      assert (hots[h].index >= 0 && "Expecting input sim tracks (or seeds later) to not have holes");
 
-      HitOnTrack hot = tv[i].getHitOnTrack(Config::nlayers_per_seed - 1);
-      float      eta = ev->layerHits_[hot.layer][hot.index].eta();
+      if (h_sel == Config::nlayers_per_seed) last_hit_check = true;
 
-      etas[i] = eta;
-      ++ev->seedEtaSeparators_[ Config::TrkInfo.find_eta_region(eta) ];
+      // Check if hit is on a sibling layer given the previous one.
+      if (h_sel > 0 && trk_info.are_layers_siblings(new_hots[h_sel - 1].layer, hots[h].layer))
+      {
+        dprintf("    Sibling layers %d %d ... overwriting with new one\n",
+                new_hots[h_sel - 1].layer, hots[h].layer);
+
+        new_hots[h_sel - 1] = hots[h];
+      }
+      // Drop further hits on the same layer. It seems hard to select the best one (in any way).
+      else if (h_sel > 0 && new_hots[h_sel - 1].layer == hots[h].layer)
+      {
+        dprintf("    Hits on the same layer %d ... keeping the first one\n", hots[h].layer);
+      }
+      else if ( ! last_hit_check)
+      {
+        new_hots[h_sel++] = hots[h];
+      }
+
+      ++h;
     }
 
-    rs.Sort(&etas[0], size);
+    seeds.emplace_back( Track(src.state(), 0, src.label(), h_sel, new_hots) );
+
+    Track &dst = seeds.back();
+    dprintf("  Seed nh=%d, last_lay=%d, last_idx=%d\n",
+            dst.nTotalHits(), dst.getLastHitLyr(), dst.getLastHitIdx());
+    // dprintf("  "); for (int i=0; i<dst.nTotalHits();++i) printf(" (%d/%d)", dst.getHitIdx(i), dst.getHitLyr(i)); printf("\n");
   }
+
+  dprintf("MkBuilder::create_seeds_from_sim_tracks finished processing of %d seeds.\n", size);
 }
 
 void MkBuilder::import_seeds()
 {
-  // debug=true;
+  // Seeds are sorted by eta and counts for each eta region are
+  // stored into Event::seedEtaSeparators_.
 
-  TrackerInfo       &trk_info = Config::TrkInfo;
-  RadixSort          sort;
-  std::vector<float> etas;
+  bool debug = true;
 
-  TrackVec &seeds = m_event->seedTracks_;
-
-  if (Config::readCmsswSeeds)
   {
-    TrackVec orig_seeds;
-    orig_seeds.swap(seeds);
+    printf("***\n*** MkBuilder::import_seeds REMOVING SEEDS WITH BAD LABEL. This is a development hack. ***\n***\n");
 
-    sort_seeds(m_event, orig_seeds, sort, etas);
-
-    const int size = orig_seeds.size();
-    seeds.reserve(size);
-
-    for (int i = 0; i < size; ++i)
-    {
-      seeds.emplace_back( orig_seeds[ sort.GetRanks()[i] ] );
+    if (true) {
+      TrackVec buf; m_event->seedTracks_.swap(buf);
+      std::copy_if(buf.begin(), buf.end(), std::back_inserter(m_event->seedTracks_), [](const Track& t){ return t.label() >= 0; });
     }
-
-    dprintf("MkBuilder::import_seeds Finished seed import, ec- = %d, t- = %d, brl = %d, t+ = %d, ec+ = %d\n",
-           m_event->seedEtaSeparators_[0], m_event->seedEtaSeparators_[1], m_event->seedEtaSeparators_[2], m_event->seedEtaSeparators_[3], m_event->seedEtaSeparators_[4]);
   }
-  else
+
+  TrackerInfo &trk_info = Config::TrkInfo;
+  TrackVec    &seeds    = m_event->seedTracks_;
+  const int    size     = seeds.size();
+
+  for (int i = 0; i < 5; ++i)
   {
-    // Import from simtrack snatching first Config::nlayers_per_seed hits
-
-    // XXMT
-    // Reduce number of hits, pick endcap over barrel when both are available.
-    //   This is done by assumin endcap hit is after the barrel, no checks.
-    // Further, seeds are sorted by eta and counts for each eta region are
-    // stored into Event::seedEtaSeparators_.
-    //
-    // Seed fitting could change this eta ...
-
-    // ORIGINAL IMPLEMENTATION WAS:
-    // make seed tracks == simtracks if not using "realistic" seeding
-    // m_event->seedTracks_ = m_event->simTracks_;
-
-    TrackVec &sims = m_event->simTracks_;
-
-    sort_seeds(m_event, sims, sort, etas);
-
-    const int size = sims.size();
-    seeds.reserve(size);
-
-    for (int i = 0; i < size; ++i)
-    {
-      const int    j   = sort.GetRanks()[i];
-      const Track &src = sims[j];
-
-      dprintf("MkBuilder::begin_event converting sim track %d into seed position %d, eta=%.3f\n",
-             j, i, etas[j]);
-
-      int h_sel = 0, h = 0;
-const HitOnTrack *hots = src.getHitsOnTrackArray();
-      HitOnTrack  new_hots[ Config::nlayers_per_seed_max ];
-
-      // Exit condition -- need to check one more hit after Config::nlayers_per_seed
-      // good hits are found.
-      bool last_hit_check = false;
-
-      while ( ! last_hit_check && h < src.nTotalHits())
-      {
-        assert (hots[h].index >= 0 && "Expecting input sim tracks (or seeds later) to not have holes");
-
-        if (h_sel == Config::nlayers_per_seed) last_hit_check = true;
-
-        // Check if hit is on a sibling layer given the previous one. Barrel ignored.
-        if (h_sel > 0 && ! trk_info.is_barrel(etas[j]) &&
-            trk_info.are_layers_siblings(new_hots[h_sel - 1].layer, hots[h].layer))
-        {
-          dprintf("    Sibling layers %d %d ... overwriting with new one\n",
-                  new_hots[h_sel - 1].layer, hots[h].layer);
-
-
-          new_hots[h_sel - 1] = hots[h];
-        }
-        else if ( ! last_hit_check)
-        {
-          new_hots[h_sel++] = hots[h];
-        }
-
-        ++h;
-      }
-
-      seeds.emplace_back( Track(src.state(), 0, src.label(), Config::nlayers_per_seed, new_hots) );
-
-      Track &dst = m_event->seedTracks_.back();
-      dprintf("  Seed nh=%d, last_lay=%d, last_idx=%d\n",
-             dst.nTotalHits(), dst.getLastHitLyr(), dst.getLastHitIdx());
-      // dprintf("  "); for (int i=0; i<dst.nTotalHits();++i) printf(" (%d/%d)", dst.getHitIdx(i), dst.getHitLyr(i)); printf("\n");
-    }
-
-    dprintf("MkBuilder::import_seeds Finished sim-track to seed, ec- = %d, t- = %d, brl = %d, t+ = %d, ec+ = %d\n",
-           m_event->seedEtaSeparators_[0], m_event->seedEtaSeparators_[1], m_event->seedEtaSeparators_[2], m_event->seedEtaSeparators_[3], m_event->seedEtaSeparators_[4]);
+    m_event->seedEtaSeparators_[i] = 0;
+    m_event->seedMinLastLayer_ [i] = 9999;
   }
+
+  std::vector<float> etas(size);
+  for (int i = 0; i < size; ++i)
+  {
+    //float eta = seeds[i].momEta();
+
+    HitOnTrack hot = seeds[i].getLastHitOnTrack();
+    float      eta = m_event->layerHits_[hot.layer][hot.index].eta();
+
+    etas[i] = eta;
+    TrackerInfo::EtaRegion reg = Config::TrkInfo.find_eta_region(eta);
+    ++m_event->seedEtaSeparators_[reg];
+    m_event->seedMinLastLayer_[reg] = std::min(m_event->seedMinLastLayer_[reg], hot.layer);
+  }
+  for (int i = 0; i < 5; ++i)
+  {
+    if (m_event->seedMinLastLayer_[i] == 9999) m_event->seedMinLastLayer_[i] = -1;
+  }
+
+  RadixSort rs;
+  rs.Sort(&etas[0], size);
+
+  TrackVec orig_seeds;
+  orig_seeds.swap(seeds);
+  seeds.reserve(size);
+  for (int i = 0; i < size; ++i)
+  {
+    seeds.emplace_back( orig_seeds[ rs.GetRanks()[i] ] );
+  }
+
+  dprintf("MkBuilder::import_seeds finished import of %d seeds (last seeding layer):\n"
+          "  ec- = %d(%d), t- = %d(%d), brl = %d(%d), t+ = %d(%d), ec+ = %d(%d).\n",
+          size,
+          m_event->seedEtaSeparators_[0], m_event->seedMinLastLayer_[0],
+          m_event->seedEtaSeparators_[1], m_event->seedMinLastLayer_[1],
+          m_event->seedEtaSeparators_[2], m_event->seedMinLastLayer_[2],
+          m_event->seedEtaSeparators_[3], m_event->seedMinLastLayer_[3],
+          m_event->seedEtaSeparators_[4], m_event->seedMinLastLayer_[4]);
 
   // Sum region counts up to contain actual separator indices:
   for (int i = TrackerInfo::Reg_Transition_Neg; i < TrackerInfo::Reg_Count; ++i)
@@ -856,8 +863,14 @@ void MkBuilder::quality_process(Track &tkcand)
 {
   TrackExtra extra(tkcand.label());
   
-  if (Config::useCMSGeom || Config::findSeeds) {extra.setMCTrackIDInfo(tkcand, m_event->layerHits_, m_event->simHitsInfo_, m_event->simTracks_,false);}
-  else {extra.setMCTrackIDInfoByLabel(tkcand, m_event->layerHits_, m_event->simHitsInfo_);}
+  if (Config::useCMSGeom || Config::findSeeds)
+  {
+    extra.setMCTrackIDInfo(tkcand, m_event->layerHits_, m_event->simHitsInfo_, m_event->simTracks_, false);
+  }
+  else
+  {
+    extra.setMCTrackIDInfoByLabel(tkcand, m_event->layerHits_, m_event->simHitsInfo_);
+  }
   int mctrk = extra.mcTrackID();
 
   //  int mctrk = tkcand.label(); // assumes 100% "efficiency"
@@ -869,8 +882,9 @@ void MkBuilder::quality_process(Track &tkcand)
   {
     ++m_cnt_nomc;
     std::cout << "XX bad track idx " << mctrk << ", orig label was " << tkcand.label() << "\n";
-  } else {
-
+  }
+  else
+  {
     ptmc  = m_event->simTracks_[mctrk].pT() ;
     pr    = pt / ptmc;
     nfoundmc = m_event->simTracks_[mctrk].nFoundHits();
@@ -881,15 +895,16 @@ void MkBuilder::quality_process(Track &tkcand)
     if (pr > 0.8 && pr < 1.2) ++m_cnt2;
 
     if (tkcand.nFoundHits() >= 0.8f*nfoundmc)
-      {
-	++m_cnt_8;
-	if (pr > 0.9 && pr < 1.1) ++m_cnt1_8;
-	if (pr > 0.8 && pr < 1.2) ++m_cnt2_8;
-      }
+    {
+      ++m_cnt_8;
+      if (pr > 0.9 && pr < 1.1) ++m_cnt1_8;
+      if (pr > 0.8 && pr < 1.2) ++m_cnt2_8;
+    }
   }
 
 #if defined(DEBUG) || defined(PRINTOUTS_FOR_PLOTS)
-  if (!Config::silent) {
+  if (!Config::silent)
+  {
     std::lock_guard<std::mutex> printlock(Event::printmutex);
     std::cout << "MX - found track with nFoundHits=" << tkcand.nFoundHits() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << " nfoundmc=" << nfoundmc << " chi2mc=" << chi2mc <<" lab="<< tkcand.label() <<std::endl;
   }
@@ -973,11 +988,26 @@ void MkBuilder::PrepareSeeds()
   if (Config::findSeeds)
   {
     find_seeds();
+    // XXXMT4K Those should be either sorted or sort should be called afterwards.
+    // Note, sort also fills out some arrays in event.
   }
   else
   {
+    if ( ! Config::readCmsswSeeds)
+    {
+      if (Config::useCMSGeom)
+      {
+        m_event->clean_cms_simtracks();
+      }
+      create_seeds_from_sim_tracks();
+    }
     import_seeds();
-    // all simulated seeds need to have hit indices line up in LOH for seed fit
+
+    // printf("\n* Seeds after import / cleaning:\n");
+    // m_event->print_tracks(m_event->seedTracks_, true);
+    // printf("\n");
+
+    // For now, all simulated seeds need to have hit indices line up in LOH for seed fit
     map_seed_hits();
   }
 
@@ -1008,9 +1038,10 @@ void MkBuilder::FindTracksBestHit()
   tbb::parallel_for_each(m_brl_ecp_regions.begin(), m_brl_ecp_regions.end(),
     [&](int region)
   {
-    // XXXXXX endcap only ...
+    // XXXXXX Select endcap / barrel only ...
     // if (region != TrackerInfo::Reg_Endcap_Neg && region != TrackerInfo::Reg_Endcap_Pos)
-    //   continue;
+    // if (region != TrackerInfo::Reg_Barrel)
+    //   return;
 
     const SteeringParams &st_par = m_steering_params[region];
 
@@ -1277,6 +1308,8 @@ void MkBuilder::FindTracksStandard()
 
 void MkBuilder::FindTracksCloneEngine()
 {
+  // debug = true;
+
   g_exe_ctx.populate(Config::numThreadsFinder);
 
   EventOfCombCandidates &eoccs = m_event_of_comb_cands;
@@ -1299,6 +1332,8 @@ void MkBuilder::FindTracksCloneEngine()
       find_tracks_in_layers(*cloner, mkfp.get(), seeds.begin(), seeds.end(), region);
     });
   });
+
+  // debug = false;
 }
 
 void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfp,
@@ -1321,9 +1356,15 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfp,
   int prev_ilay = -1;
   int n_hits = Config::nlayers_per_seed;
 
-  for (int ilay = st_par.first_finding_layer; ; )
+  int last_seed_layer = m_event->seedMinLastLayer_[region];
+  int first_layer = trk_info.m_layers[last_seed_layer].*st_par.next_layer_doo;
+
+  dprintf("\nMkBuilder::find_tracks_in_layers region=%d, last_seed_layer=%d, first_layer=%d\n",
+          region, last_seed_layer, first_layer);
+
+  for (int ilay = first_layer; ; )
   {
-    dprint("processing lay=" << ilay);
+    dprint("\n* Processing lay=" << ilay);
 
     const LayerInfo &layer_info = trk_info.m_layers[ilay];
 
@@ -1346,7 +1387,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfp,
         //    Can leave some room for future missing-hit-types.
         // 2. Document these cases somewhere, have NAMES or constants or an enum.
         // 3. Make sure they are used consistently everywhere.
-        if (scands[ic].getLastHitIdx() >= -1)
+        if (scands[ic].getLastHitIdx() != -2 && scands[ic].getLastHitLyr() < ilay)
         {
           seed_cand_idx.push_back(std::pair<int,int>(iseed,ic));
         }
