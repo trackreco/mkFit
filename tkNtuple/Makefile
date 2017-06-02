@@ -1,5 +1,8 @@
 include ../Makefile.config
 
+# Overide debug settings
+# OPT := -O0 -g
+
 .PHONY: all clean distclean echo
 
 ifndef ROOTSYS
@@ -12,8 +15,8 @@ CPPEXTRA := -I.. ${USER_CPPFLAGS} ${DEFS}
 LDEXTRA  := ${USER_LDFLAGS}
 
 CPPFLAGS := $(shell root-config --cflags) ${CPPEXTRA} ${CPPFLAGS}
-CXXFLAGS += ${USER_CXXFLAGS}
-LDFLAGS  += $(shell root-config --ldflags --cflags --libs) ${LDEXTRA}
+CXXFLAGS += -fPIC ${USER_CXXFLAGS}
+LDFLAGS  += -fPIC $(shell root-config --ldflags --cflags --libs) ${LDEXTRA}
 
 
 TGTS     := writeMemoryFile libDicts.so
@@ -40,12 +43,6 @@ echo:
 
 ################################################################
 
-# Should be a lib, really
-ABOVE_OBJS := $(patsubst %, ../%.o, Config Matrix Hit Track )
-
-${ABOVE_OBJS}:
-	${MAKE} -C ..
-
 SRCS := $(wildcard *.cc)
 HDRS := $(wildcard *.h)
 
@@ -57,11 +54,11 @@ ALLOBJS := ${OBJS} ${ABOVE_OBJS}
 libDicts.so: DictsDict.cc
 	${CXX} $(LDFLAGS) -Wno-deprecated -shared DictsDict.cc -o $@
 
-DictsDict.cc:
-	@rootcint -v3 -f DictsDict.cc -c -p  DictsLinkDef.h
+DictsDict.cc: DictsLinkDef.h
+	@rootcint -v3 -f $@ -c -p $<
 
 writeMemoryFile: ${OBJS} libDicts.so
-	${CXX} ${CXXFLAGS} ${LDFLAGS} ${ALLOBJS} -L./ -lDicts -o $@
+	${CXX} ${CXXFLAGS} ${LDFLAGS} ${ALLOBJS} -L. -lDicts -L.. -lMicCore -Wl,-rpath=..,-rpath=. -o $@
 
 
 ${OBJS}: %.o: %.cc

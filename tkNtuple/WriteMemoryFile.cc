@@ -2,7 +2,9 @@
 #include "TTree.h"
 
 #include <iostream>
-#include "Track.h"
+#include "Event.h"
+
+constexpr int VERBOSE = 1;
 
 enum struct TkLayout {phase0 = 0, phase1 = 1};
 
@@ -140,26 +142,34 @@ public:
 
 bool useMatched = false;
 
-int main() {
+int main(int argc, char *argv[])
+{
+  if (argc != 3)
+  {
+    fprintf(stderr, "Usage: %s <tracking-ntuple.root> <mic-datafile.bin>\n", argv[0]);
+    exit(1);
+  }
 
   using namespace std;
 
   LayerNumberConverter lnc(TkLayout::phase1);
   const unsigned int nTotalLayers = lnc.nLayers();
+  Config::nTotalLayers = lnc.nLayers();
 
   long long maxevt = 0;
 
   int nstot = 0;
   std::vector<int> nhitstot(nTotalLayers, 0);
 
-  TString outfilename = "";
-
-  TFile* f = TFile::Open("./ntuple_input.root"); maxevt = 1000;outfilename = "cmssw_output.bin";
+  TFile* f = TFile::Open(argv[1]);
+  if (f == 0)
+  {
+    fprintf(stderr, "Failed opening input root file '%s'\n", argv[1]);
+    exit(1);
+  }
+  maxevt = 1000;
   
   TTree* t = (TTree*) f->Get("trackingNtuple/tree");
-
-  FILE * fp;
-  fp = fopen (outfilename.Data(), "wb");
 
   unsigned long long event;
   t->SetBranchAddress("event",&event);
@@ -392,13 +402,17 @@ int main() {
   vector<vector<float> >*    str_chargeFraction = 0;
   t->SetBranchAddress("str_chargeFraction", &str_chargeFraction);
 
-
-  fwrite(&maxevt, sizeof(int), 1, fp);
-
   long long totentries = t->GetEntries();
-
   long long savedEvents = 0;
-  for (long long i = 0; savedEvents < maxevt && i<totentries && i<maxevt; ++i) {
+
+  DataFile data_file;
+  data_file.OpenWrite(std::string(argv[2]), std::min(maxevt, totentries));
+
+  Event EE(0);
+
+  for (long long i = 0; savedEvents < maxevt && i<totentries && i<maxevt; ++i)
+  {
+    EE.Reset(i);
 
     cout << "process entry i=" << i << " out of " << totentries << ", saved so far " << savedEvents << ", with max=" << maxevt << endl;
 
@@ -412,7 +426,7 @@ int main() {
     }
     std::cout<<__FILE__<<" "<<__LINE__<<" nSims "<<nSims<<std::endl;
     
-    vector<Track> simTracks_;
+    vector<Track> &simTracks_ = EE.simTracks_;
     vector<int> simTrackIdx_(sim_q->size(),-1);//keep track of original index in ntuple
     vector<int> seedSimIdx(see_q->size(),-1);
     for (int isim = 0; isim < sim_q->size(); ++isim) {
@@ -443,31 +457,31 @@ int main() {
 	  auto const ihType = HitType(hitTypes[ihit]);
 	  
 	  switch (ihType){
-	  case HitType::Pixel:{
-	    int ipix = ihIdx;
-	    if (ipix<0) continue;
-	    int cmsswlay = lnc.convertLayerNumber(pix_det->at(ipix),pix_lay->at(ipix),useMatched,-1,pix_z->at(ipix)>0);
-	    if (cmsswlay>=0 && cmsswlay<nTotalLayers) hitlay[cmsswlay]++;	    
-	    break;
-	  }
-	  case HitType::Strip:{
-	    int istr = ihIdx;
-	    if (istr<0) continue;
-	    int cmsswlay = lnc.convertLayerNumber(str_det->at(istr),str_lay->at(istr),useMatched,str_isStereo->at(istr),str_z->at(istr)>0);
-	    if (cmsswlay>=0 && cmsswlay<nTotalLayers) hitlay[cmsswlay]++;	    
-	    break;
-	  }
-	  case HitType::Glued:{
-	    if (useMatched) {
+            case HitType::Pixel:{
+              int ipix = ihIdx;
+              if (ipix<0) continue;
+              int cmsswlay = lnc.convertLayerNumber(pix_det->at(ipix),pix_lay->at(ipix),useMatched,-1,pix_z->at(ipix)>0);
+              if (cmsswlay>=0 && cmsswlay<nTotalLayers) hitlay[cmsswlay]++;	    
+              break;
+            }
+            case HitType::Strip:{
+              int istr = ihIdx;
+              if (istr<0) continue;
+              int cmsswlay = lnc.convertLayerNumber(str_det->at(istr),str_lay->at(istr),useMatched,str_isStereo->at(istr),str_z->at(istr)>0);
+              if (cmsswlay>=0 && cmsswlay<nTotalLayers) hitlay[cmsswlay]++;	    
+              break;
+            }
+            case HitType::Glued:{
+              if (useMatched) {
 		int iglu = ihIdx;
 		if (iglu<0) continue;
 		int cmsswlay = lnc.convertLayerNumber(glu_det->at(iglu),glu_lay->at(iglu),useMatched,-1,glu_z->at(iglu)>0);
 		if (cmsswlay>=0 && cmsswlay<nTotalLayers) hitlay[cmsswlay]++;
-	    }	    
-	    break;
-	  }
-	  case HitType::Invalid: break;//FIXME. Skip, really?
-	  default: throw std::logic_error("Track type can not be handled");
+              }	    
+              break;
+            }
+            case HitType::Invalid: break;//FIXME. Skip, really?
+            default: throw std::logic_error("Track type can not be handled");
 	  }//hit type
 	}//hits on track
 	for (int i=0;i<nTotalLayers;i++) if (hitlay[i]>0) nlay++;
@@ -508,7 +522,7 @@ int main() {
     //if (simTracks_.size()<2) continue;
 
     
-    vector<Track> seedTracks_;
+    vector<Track> &seedTracks_ = EE.seedTracks_;
     vector<vector<int> > pixHitSeedIdx(pix_lay->size());
     for (int is = 0; is<see_q->size(); ++is) {
       if (TrackAlgorithm(see_algo->at(is))!=TrackAlgorithm::initialStep) continue;//select seed in acceptance
@@ -637,8 +651,8 @@ int main() {
 
 
     
-    vector<vector<Hit> > layerHits_;
-    vector<MCHitInfo> simHitsInfo_;
+    vector<vector<Hit> > &layerHits_   = EE.layerHits_;
+    vector<MCHitInfo>    &simHitsInfo_ = EE.simHitsInfo_;
     int totHits = 0;
     layerHits_.resize(nTotalLayers);
     for (int ipix = 0; ipix < pix_lay->size(); ++ipix) {
@@ -733,71 +747,66 @@ int main() {
 
     // bool allTracksAllHits = true;
     for (int i=0;i<simTracks_.size();++i) {
-      simTracks_[i].setNGoodHitIdx();
+      simTracks_[i].setNGoodHits();
       // if (simTracks_[i].nFoundHits()!=Config::nTotalLayers) allTracksAllHits = false;
     }
     // if (!allTracksAllHits) continue;
 
-    int nt = simTracks_.size();
-    fwrite(&nt, sizeof(int), 1, fp);
-    fwrite(&simTracks_[0], sizeof(Track), nt, fp);
+    if (VERBOSE)
+    {
+      int nt = simTracks_.size();
+
+      printf("number of simTracks %i\n",nt);
+
+      int nl = layerHits_.size();
+      for (int il = 0; il<nl; ++il) {
+        int nh = layerHits_[il].size();
+        nhitstot[il]+=nh;
+      }
     
-    printf("number of simTracks %i\n",nt);
+      int nm = simHitsInfo_.size();
 
-    int nl = layerHits_.size();
-    fwrite(&nl, sizeof(int), 1, fp);
-    for (int il = 0; il<nl; ++il) {
-      int nh = layerHits_[il].size();
-      fwrite(&nh, sizeof(int), 1, fp);
-      fwrite(&layerHits_[il][0], sizeof(Hit), nh, fp);
-      nhitstot[il]+=nh;
-    }
-    
-    int nm = simHitsInfo_.size();
-    fwrite(&nm, sizeof(int), 1, fp);
-    fwrite(&simHitsInfo_[0], sizeof(MCHitInfo), nm, fp);
+      int ns = seedTracks_.size();
+      nstot+=ns;
 
-    int ns = seedTracks_.size();
-    fwrite(&ns, sizeof(int), 1, fp);
-    fwrite(&seedTracks_[0], sizeof(Track), ns, fp);
-    nstot+=ns;
+      printf("\n");
+      for (int il = 0; il<nl; ++il) {
+        int nh = layerHits_[il].size();
+        for (int ih=0; ih<nh; ++ih ) {
+          printf("lay=%i idx=%i mcid=%i x=(%6.3f, %6.3f, %6.3f) r=%6.3f\n",il+1,ih,layerHits_[il][ih].mcHitID(),layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z(),sqrt(pow(layerHits_[il][ih].x(),2)+pow(layerHits_[il][ih].y(),2)));
+        }
+      }
 
-    printf("\n");
-    for (int il = 0; il<nl; ++il) {
-      int nh = layerHits_[il].size();
-      for (int ih=0; ih<nh; ++ih ) {
-	printf("lay=%i idx=%i mcid=%i x=(%6.3f, %6.3f, %6.3f) r=%6.3f\n",il+1,ih,layerHits_[il][ih].mcHitID(),layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z(),sqrt(pow(layerHits_[il][ih].x(),2)+pow(layerHits_[il][ih].y(),2)));
+      for (int i=0;i<nt;++i) {
+        float spt = sqrt(pow(simTracks_[i].px(),2)+pow(simTracks_[i].py(),2));
+        printf("sim track id=%i q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) pT=%7.4f nTotal=%i nFound=%i \n",i,simTracks_[i].charge(),simTracks_[i].px(),simTracks_[i].py(),simTracks_[i].pz(),simTracks_[i].x(),simTracks_[i].y(),simTracks_[i].z(),spt,simTracks_[i].nTotalHits(),simTracks_[i].nFoundHits());
+        int nh = simTracks_[i].nTotalHits();
+        for (int ih=0;ih<nh;++ih){
+          int hidx = simTracks_[i].getHitIdx(ih);
+          int hlay = simTracks_[i].getHitLyr(ih);
+          float hx = layerHits_[hlay][hidx].x();
+          float hy = layerHits_[hlay][hidx].y();
+          float hz = layerHits_[hlay][hidx].z();
+          printf("track #%4i hit #%2i idx=%4i lay=%2i x=(% 8.3f, % 8.3f, % 8.3f) r=%8.3f\n",
+                 i,ih,hidx,hlay,hx,hy,hz, sqrt(hx*hx+hy*hy));
+        }
+      }
+
+      for (int i=0;i<ns;++i) {
+        printf("seed id=%i label=%i q=%2i pT=%6.3f p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f)\n",i,seedTracks_[i].label(),seedTracks_[i].charge(),seedTracks_[i].pT(),seedTracks_[i].px(),seedTracks_[i].py(),seedTracks_[i].pz(),seedTracks_[i].x(),seedTracks_[i].y(),seedTracks_[i].z());
+        int nh = seedTracks_[i].nTotalHits();
+        for (int ih=0;ih<nh;++ih) printf("seed #%i hit #%i idx=%i\n",i,ih,seedTracks_[i].getHitIdx(ih));
       }
     }
 
-    for (int i=0;i<nt;++i) {
-      float spt = sqrt(pow(simTracks_[i].px(),2)+pow(simTracks_[i].py(),2));
-      printf("sim track id=%i q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) pT=%7.4f nTotal=%i nFound=%i \n",i,simTracks_[i].charge(),simTracks_[i].px(),simTracks_[i].py(),simTracks_[i].pz(),simTracks_[i].x(),simTracks_[i].y(),simTracks_[i].z(),spt,simTracks_[i].nTotalHits(),simTracks_[i].nFoundHits());
-      int nh = simTracks_[i].nTotalHits();
-      for (int ih=0;ih<nh;++ih){
-	int hidx = simTracks_[i].getHitIdx(ih);
-	int hlay = simTracks_[i].getHitLyr(ih);
-	float hx = layerHits_[hlay][hidx].x();
-	float hy = layerHits_[hlay][hidx].y();
-	float hz = layerHits_[hlay][hidx].z();
-	printf("track #%4i hit #%2i idx=%4i lay=%2i x=(% 8.3f, % 8.3f, % 8.3f) r=%8.3f\n",
-	       i,ih,hidx,hlay,hx,hy,hz, sqrt(hx*hx+hy*hy));
-      }
-    }
-
-
-    for (int i=0;i<ns;++i) {
-      printf("seed id=%i label=%i q=%2i pT=%6.3f p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f)\n",i,seedTracks_[i].label(),seedTracks_[i].charge(),seedTracks_[i].pT(),seedTracks_[i].px(),seedTracks_[i].py(),seedTracks_[i].pz(),seedTracks_[i].x(),seedTracks_[i].y(),seedTracks_[i].z());
-      int nh = seedTracks_[i].nTotalHits();
-      for (int ih=0;ih<nh;++ih) printf("seed #%i hit #%i idx=%i\n",i,ih,seedTracks_[i].getHitIdx(ih));
-    }
+    EE.write_out(data_file);
 
     savedEvents++;
     printf("end of event %lli\n",savedEvents);
   }
 
   printf("closing\n");
-  fclose (fp);
+  data_file.Close();
   printf("\n saved %lli events\n",savedEvents);
 
   printf("number of seeds %f\n",float(nstot)/float(savedEvents));
