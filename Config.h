@@ -37,10 +37,12 @@ namespace Config
   // config on main + mkFit
   extern int nTracks; //defined in Config.cc by default or when reading events from file
   extern int nEvents;
+  // XXXXMT: nTracks should be thrown out ... SMatrix and Event allocate some arrays on this
+  // which can be wrong for real data or in multi-event environment
 
   extern std::string geomPlugin;
 
-  // config on main -- for geometry
+  // config on main -- for geometry; XXXXMT to be thrown out, too
   constexpr int   nLayers   = 10; // default: 10; cmssw tests: 13, 17, 26 (for endcap)
 
   // New layer constants for common barrel / endcap. I'd prefer those to go
@@ -49,8 +51,7 @@ namespace Config
   // XXXX This needs to be generalized for other geometries !
   // TrackerInfo more or less has all this information (or could have it).
   extern    int   nTotalLayers;        // To be set by geometry plugin.
-  constexpr int   nMaxSimHits    = 28; // Assuming dual hit on every barrel / endcap edge
-  constexpr int   nMaxRecHits    = 10; // Assuming single hit on each layer
+  constexpr int   nMaxSimHits    = 32; // Assuming dual hit on every barrel / endcap edge -> used in tkNtuple
   constexpr int   nMaxTrkHits    = nMaxSimHits; // Used for array sizes in MkFitter and Track
 
   constexpr float fRadialSpacing   = 4.;

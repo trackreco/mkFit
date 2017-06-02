@@ -9,10 +9,14 @@
 
 #include <mutex>
 
+class DataFile;
+
 class Event
 {
 public:
+  explicit Event(int evtID);
   Event(const Geometry& g, Validation& v, int evtID, int threads = 1);
+
   void Reset(int evtID);
   void RemapHits(TrackVec & tracks);
   void Simulate();
@@ -28,8 +32,8 @@ public:
 
   int nextMCHitID() { return mcHitIDCounter_++; }
 
-  void write_out(FILE *fp);
-  void read_in(FILE *fp, int version = Config::FileVersion);
+  void write_out(DataFile &data_file);
+  void read_in  (DataFile &data_file);
 
   void clean_cms_simtracks();
   void print_tracks(const TrackVec& tracks, bool print_hits) const;
@@ -38,7 +42,7 @@ public:
   Validation& validation_;
 
 private:
-  int evtID_;
+  int  evtID_;
 
 public:
   int threads_;
@@ -61,5 +65,33 @@ public:
 };
 
 typedef std::vector<Event> EventVec;
+
+
+struct DataFileHeader
+{
+  int f_magic          = 0xBEEF;
+  int f_format_version = 2;
+  int f_sizeof_track   = sizeof(Track);
+  int f_n_max_trk_hits = Config::nMaxTrkHits;
+  int f_n_layers       = -1;
+  int f_n_events       = -1;
+
+  DataFileHeader()
+  {
+    f_n_layers = Config::nTotalLayers;
+  }
+};
+
+struct DataFile
+{
+  FILE *f_fp       =  0;
+
+  DataFileHeader f_header;
+
+  int  OpenRead (const std::string& fname, bool set_n_layers = false);
+  void OpenWrite(const std::string& fname, int nev);
+
+  void Close();
+};
 
 #endif

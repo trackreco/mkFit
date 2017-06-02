@@ -99,10 +99,6 @@ void initGeom(Geometry& geom)
 
 namespace
 {
-  FILE *g_file = 0;
-  int   g_file_num_ev = 0;
-  std::atomic<int>   g_file_cur_ev{0};
-
   bool  g_run_fit_std   = false;
 
   bool  g_run_build_all = true;
@@ -113,50 +109,48 @@ namespace
   std::string g_operation = "simulate_and_process";;
   std::string g_file_name = "simtracks.bin";
   std::string g_input_file = "";
-  int g_input_version = Config::FileVersion;
 
   const char* b2a(bool b) { return b ? "true" : "false"; }
 }
 
+//==============================================================================
+
 void read_and_save_tracks()
 {
-  FILE *ofp = fopen(g_file_name.c_str(), "w");
-  FILE *ifp = fopen(g_input_file.c_str(), "r");
+  DataFile in;
+  const int Nevents = in.OpenRead(g_input_file, true);
 
-  fread(&g_file_num_ev, sizeof(int), 1, ifp);
-  fwrite(&g_file_num_ev, sizeof(int), 1, ofp);
+  DataFile out;
+  out.OpenWrite(g_file_name, Nevents);
 
-  Geometry geom;
-  initGeom(geom);
-  std::unique_ptr<Validation> val(Validation::make_validation("empty.root"));
+  printf("writing %i events\n", Nevents);
 
-  printf("writing %i events\n",g_file_num_ev);
-
-  Event ev(geom, *val, 0);
-  for (int evt = 0; evt < g_file_num_ev; ++evt)
+  Event ev(0);
+  for (int evt = 0; evt < Nevents; ++evt)
   {
     ev.Reset(evt);
-    ev.read_in(ifp, g_input_version);
-    ev.write_out(ofp);
+    ev.read_in(in);
+    ev.write_out(out);
   }
 
-  fclose(ifp);
-  fclose(ofp);
+  out.Close();
+  in .Close();
 }
+
+//==============================================================================
 
 void generate_and_save_tracks()
 {
-  FILE *fp = fopen(g_file_name.c_str(), "w");
-
-  int Nevents = Config::nEvents;
+  const int Nevents = Config::nEvents;
 
   Geometry geom;
   initGeom(geom);
   std::unique_ptr<Validation> val(Validation::make_validation("empty.root"));
 
-  fwrite(&Nevents, sizeof(int), 1, fp);
+  DataFile data_file;
+  data_file.OpenWrite(g_file_name, Nevents);
 
-  printf("writing %i events\n",Nevents);
+  printf("writing %i events\n", Nevents);
 
   tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
 
@@ -184,35 +178,13 @@ void generate_and_save_tracks()
     }
 #endif
 
-    ev.write_out(fp);
+    ev.write_out(data_file);
   }
 
-  fclose(fp);
+  data_file.Close();
 }
 
-
-int open_simtrack_file()
-{
-  g_file = fopen(g_file_name.c_str(), "r");
-
-  assert (g_file != 0);
-
-  fread(&g_file_num_ev, sizeof(int), 1, g_file);
-  g_file_cur_ev = 0;
-
-  printf("\nReading simulated tracks from \"%s\", %d events on file.\n\n",
-         g_file_name.c_str(), g_file_num_ev);
-
-  return g_file_num_ev;
-}
-
-void close_simtrack_file()
-{
-  fclose(g_file);
-  g_file = 0;
-  g_file_num_ev = 0;
-  g_file_cur_ev = 0;
-}
+//==============================================================================
 
 void test_standard()
 {
@@ -239,13 +211,12 @@ void test_standard()
   Geometry geom;
   initGeom(geom);
 
+  DataFile data_file;
   if (g_operation == "read")
   {
-    int evs_in_file = open_simtrack_file();
+    int evs_in_file = data_file.OpenRead(g_file_name);
     if (Config::nEvents == -1)
       Config::nEvents = evs_in_file;
-
-    assert(g_input_version > 0 || 1 == Config::numThreadsEvents);
   }
 
   if (Config::useCMSGeom) fillZRgridME();
@@ -336,14 +307,12 @@ void test_standard()
     auto& mkb    = *mkbs[thisthread].get();
     auto  fp     =  fps[thisthread].get();
 
-    if (g_input_version == 0) fseek(fp, sizeof(int), SEEK_SET);
-
     int evstart = thisthread*events_per_thread;
     int evend   = std::min(Config::nEvents, evstart+events_per_thread);
 
     dprint("thisthread " << thisthread << " events " << Config::nEvents << " events/thread " << events_per_thread
                          << " range " << evstart << ":" << evend);
- 
+
     for (int evt = evstart; evt < evend; ++evt)
     {
       ev.Reset(nevt++);
@@ -357,7 +326,7 @@ void test_standard()
 
       if (g_operation == "read")
       {
-        ev.read_in(fp, g_input_version);
+        ev.read_in(data_file);
       }
       else
       {
@@ -429,7 +398,7 @@ void test_standard()
 
   if (g_operation == "read")
   {
-    close_simtrack_file();
+    data_file.Close();
   }
 
   for (auto& val : vals) {
@@ -438,6 +407,8 @@ void test_standard()
   }
 }
 
+//==============================================================================
+// Command line argument parsing
 //==============================================================================
 
 typedef std::list<std::string> lStr_t;
@@ -461,6 +432,8 @@ void next_arg_or_die(lStr_t& args, lStr_i& i, bool allow_single_minus=false)
   i = j;
 }
 
+//==============================================================================
+// main
 //==============================================================================
 
 int main(int argc, const char *argv[])
@@ -513,7 +486,6 @@ int main(int argc, const char *argv[])
         "  --read                   read simulation from file\n"
         "  --file-name              file name for write/read (def: %s)\n"
         "  --input-file             file name for reading when converting formats (def: %s)\n"
-        "  --input-version          version for reading when converting formats (def: %d)\n"
         "GPU specific options: \n"
         "  --num-thr-reorg <num>    number of threads to run the hits reorganization\n"
         ,
@@ -536,8 +508,7 @@ int main(int argc, const char *argv[])
 	b2a(Config::inclusiveShorts),
         b2a(Config::silent),
       	g_file_name.c_str(),
-      	g_input_file.c_str(),
-        g_input_version
+      	g_input_file.c_str()
       );
       exit(0);
     }
@@ -668,11 +639,6 @@ int main(int argc, const char *argv[])
       next_arg_or_die(mArgs, i);
       g_operation = "convert";
       g_input_file = *i;
-    }
-    else if (*i == "--input-version")
-    {
-      next_arg_or_die(mArgs, i);
-      g_input_version = atoi(i->c_str());
     }
     else if(*i == "--silent")
     {

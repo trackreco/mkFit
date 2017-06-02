@@ -379,6 +379,7 @@ void MkBuilder::import_seeds()
 
   bool debug = true;
 
+  if (Config::readCmsswSeeds)
   {
     printf("***\n*** MkBuilder::import_seeds REMOVING SEEDS WITH BAD LABEL. This is a development hack. ***\n***\n");
 
@@ -878,7 +879,7 @@ void MkBuilder::quality_process(Track &tkcand)
   float pt    = tkcand.pT();
   float ptmc = 0., pr = 0., nfoundmc = 0., chi2mc = 0.;
 
-  if (mctrk < 0 || mctrk >= Config::nTracks)
+  if (mctrk < 0 || mctrk >= m_event->simTracks_.size())
   {
     ++m_cnt_nomc;
     std::cout << "XX bad track idx " << mctrk << ", orig label was " << tkcand.label() << "\n";

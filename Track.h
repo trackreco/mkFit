@@ -333,11 +333,11 @@ public:
 
 private:
   TrackState    state_;
-  HitOnTrack    hitsOnTrk_[Config::nMaxTrkHits];
   float         chi2_      =  0.;
   int           hitIdxPos_ = -1;
   int           nGoodHits_ =  0;
   int           label_     = -1;
+  HitOnTrack    hitsOnTrk_[Config::nMaxTrkHits];
 };
 
 typedef std::vector<Track> TrackVec;

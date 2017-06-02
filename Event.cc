@@ -35,6 +35,19 @@ inline bool sortByZ(const Hit& hit1, const Hit& hit2){
   return hit1.z()<hit2.z();
 }
 
+namespace
+{
+  Geometry dummyGeometry;
+  std::unique_ptr<Validation> dummyValidation( Validation::make_validation("dummy") );
+}
+
+Event::Event(int evtID) :
+  geom_(dummyGeometry), validation_(*dummyValidation),
+  evtID_(evtID), threads_(1), mcHitIDCounter_(0)
+{
+  layerHits_.resize(Config::nTotalLayers);
+}
+
 Event::Event(const Geometry& g, Validation& v, int evtID, int threads) :
   geom_(g), validation_(v),
   evtID_(evtID), threads_(threads), mcHitIDCounter_(0)
@@ -353,8 +366,10 @@ void Event::PrintStats(const TrackVec& trks, TrackExtraVec& trkextras)
             << "  nH >= 8   =" << hit8    << "  in pT 10%=" << h8_10    << "  in pT 20%=" << h8_20    << std::endl;
 }
  
-void Event::write_out(FILE *fp) 
+void Event::write_out(DataFile &data_file)
 {
+  FILE *fp = data_file.f_fp;
+
   static std::mutex writemutex;
   std::lock_guard<std::mutex> writelock(writemutex);
 
@@ -426,12 +441,14 @@ void Event::write_out(FILE *fp)
 // #define DUMP_TRACK_HITS
 // #define DUMP_LAYER_HITS
 
-void Event::read_in(FILE *fp, int version)
+void Event::read_in(DataFile &data_file)
 {
-  static long pos = sizeof(int); // header size
+  FILE *fp = data_file.f_fp;
+
+  static long pos = sizeof(DataFileHeader);
   int evsize;
 
-  if (version > 0) {
+  {
     static std::mutex readmutex;
     std::lock_guard<std::mutex> readlock(readmutex);
 
@@ -443,7 +460,10 @@ void Event::read_in(FILE *fp, int version)
   int nt;
   fread(&nt, sizeof(int), 1, fp);
   simTracks_.resize(nt);
-  fread(&simTracks_[0], sizeof(Track), nt, fp);
+  for (int i = 0; i < nt; ++i)
+  {
+    fread(&simTracks_[i], data_file.f_header.f_sizeof_track, 1, fp);
+  }
   Config::nTracks = nt;
 
   if (Config::root_val || Config::fit_val)
@@ -475,11 +495,14 @@ void Event::read_in(FILE *fp, int version)
     if (Config::readCmsswSeeds)
     {
       seedTracks_.resize(ns);
-      fread(&seedTracks_[0], sizeof(Track), ns, fp);
+      for (int i = 0; i < ns; ++i)
+      {
+        fread(&seedTracks_[i], data_file.f_header.f_sizeof_track, 1, fp);
+      }
     }
     else
     {
-      fseek(fp, sizeof(Track)*ns, SEEK_CUR);
+      fseek(fp, ns * data_file.f_header.f_sizeof_track, SEEK_CUR);
       ns = -ns;
     }
 #ifdef DUMP_SEEDS
@@ -626,4 +649,69 @@ void Event::print_tracks(const TrackVec& tracks, bool print_hits) const
       }
     }
   }
+}
+
+
+//==============================================================================
+// DataFile
+//==============================================================================
+
+int DataFile::OpenRead(const std::string& fname, bool set_n_layers)
+{
+  constexpr int min_ver = 2;
+  constexpr int max_ver = 2;
+
+  f_fp = fopen(fname.c_str(), "r");
+  assert (f_fp != 0 || "Opening of input file failed.");
+
+  fread(&f_header, sizeof(DataFileHeader), 1, f_fp);
+
+  if (f_header.f_magic != 0xBEEF)
+  {
+    fprintf(stderr, "Incompatible input file (wrong magick).\n");
+    exit(1);
+  }
+  if (f_header.f_format_version < min_ver || f_header.f_format_version > max_ver)
+  {
+    fprintf(stderr, "Unsupported file version %d. Supported versions are %d to %d.\n",
+            f_header.f_format_version, min_ver, max_ver);
+    exit(1);
+  }
+  if (f_header.f_n_max_trk_hits > Config::nMaxTrkHits)
+  {
+    fprintf(stderr, "Number of hits-on-track on file (%d) larger than current Config::nMaxTrkHits (%d).\n",
+            f_header.f_n_max_trk_hits, Config::nMaxTrkHits);
+    exit(1);
+  }
+  if (set_n_layers)
+  {
+    Config::nTotalLayers = f_header.f_n_layers;
+  }
+  else if (f_header.f_n_layers != Config::nTotalLayers)
+  {
+    fprintf(stderr, "Number of layers on file (%d) is different from current Config::nTotalLayers (%d).\n",
+            f_header.f_n_layers, Config::nTotalLayers);
+    exit(1);
+  }
+
+  printf("Opened file '%s', format version %d, n_max_trk_hits %d, n_layers %d, n_events %d\n",
+         fname.c_str(), f_header.f_format_version, f_header.f_n_max_trk_hits, f_header.f_n_layers, f_header.f_n_events);
+
+  return f_header.f_n_events;
+}
+
+void DataFile::OpenWrite(const std::string& fname, int nev)
+{
+  f_fp = fopen(fname.c_str(), "w");
+
+  f_header.f_n_events = nev;
+
+  fwrite(&f_header, sizeof(DataFileHeader), 1, f_fp);
+}
+
+void DataFile::Close()
+{
+  fclose(f_fp);
+  f_fp = 0;
+  f_header = DataFileHeader();
 }

@@ -101,36 +101,8 @@ static tick delta(timepoint& t0)
 // from mkFit
 namespace
 {
-  FILE *s_file = 0;
-  int   s_file_num_ev = 0;
-  int   s_file_cur_ev = 0;
-
   std::string s_operation = "empty";
   std::string s_file_name = "simtracks.bin";
-}
-
-// from mkFit
-int open_simtrack_file()
-{
-  s_file = fopen(s_file_name.c_str(), "r");
-
-  assert (s_file != 0);
-
-  fread(&s_file_num_ev, sizeof(int), 1, s_file);
-  s_file_cur_ev = 0;
-
-  printf("\nReading simulated tracks from \"%s\", %d events on file.\n\n",
-         s_file_name.c_str(), s_file_num_ev);
-
-  return s_file_num_ev;
-}
-
-void close_simtrack_file()
-{
-  fclose(s_file);
-  s_file = 0;
-  s_file_num_ev = 0;
-  s_file_cur_ev = 0;
 }
 
 // also from mkfit
@@ -266,9 +238,10 @@ int main(int argc, const char* argv[])
   tbb::task_scheduler_init tasks(nThread);
 #endif
 
+  DataFile data_file;
   if (s_operation == "read")
   {
-    Config::nEvents = open_simtrack_file();
+    Config::nEvents = data_file.OpenRead(s_file_name);
   }
 
   for (int evt=0; evt<Config::nEvents; ++evt) {
@@ -281,7 +254,7 @@ int main(int argc, const char* argv[])
       if (!Config::endcapTest) ev.Simulate();
     }
     else {
-      ev.read_in(s_file);
+      ev.read_in(data_file);
     }
 
     if (Config::endcapTest) {
@@ -317,7 +290,7 @@ int main(int argc, const char* argv[])
 
   if (s_operation == "read")
   {
-    close_simtrack_file();
+    data_file.Close();
   }
 
   std::vector<double> time(ticks.size());
