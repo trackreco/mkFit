@@ -229,7 +229,7 @@ void test_standard()
 #if USE_CUDA
   tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
   //tbb::task_scheduler_init tbb_init(tbb::task_scheduler_init::automatic);
-  
+
   //omp_set_num_threads(Config::numThreadsFinder);
   // fittest time. Sum of all events. In case of multiple events
   // being run simultaneously in different streams this time will
@@ -255,7 +255,7 @@ void test_standard()
   // CUDA function. These function can be changed to another one
   // if it becomes important to time (e.g. if you want the profiler to
   // tell you how much time is spend running cudaDeviceSynchronize(),
-  // use another function). 
+  // use another function).
   separate_first_call_for_meaningful_profiling_numbers();
 
   if (g_run_fit_std) runAllEventsFittingTestPlexGPU(events);
@@ -480,7 +480,7 @@ int main(int argc, const char *argv[])
         "  --cf-fitting             enable CF in fitting (def: %s)\n"
         "  --root-val               enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
       	"  --fit-val                enable ROOT based validation for fitting (def: %s)\n"
-	"  --inc-shorts             include short reco tracks into FR (def: %s)\n"
+        "  --inc-shorts             include short reco tracks into FR (def: %s)\n"
         "  --silent                 suppress printouts inside event loop (def: %s)\n"
         "  --write                  write simulation to file and exit\n"
         "  --read                   read simulation from file\n"
