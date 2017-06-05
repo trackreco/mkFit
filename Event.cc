@@ -382,7 +382,7 @@ void Event::write_out(DataFile &data_file)
   fwrite(&simTracks_[0], sizeof(Track), nt, fp);
   evsize += sizeof(int) + nt*sizeof(Track);
 
-  if (Config::root_val || Config::fit_val) {
+  if (data_file.HasSimTrackStates()) {
     int nts = simTrackStates_.size();
     fwrite(&nts, sizeof(int), 1, fp);
     fwrite(&simTrackStates_[0], sizeof(TrackState), nts, fp);
@@ -404,7 +404,7 @@ void Event::write_out(DataFile &data_file)
   fwrite(&simHitsInfo_[0], sizeof(MCHitInfo), nm, fp);
   evsize += sizeof(int) + nm*sizeof(MCHitInfo);
 
-  if (Config::useCMSGeom || Config::readCmsswSeeds) {
+  if (data_file.HasSeeds()) {
     int ns = seedTracks_.size();
     fwrite(&ns, sizeof(int), 1, fp);
     fwrite(&seedTracks_[0], sizeof(Track), ns, fp);
@@ -466,7 +466,7 @@ void Event::read_in(DataFile &data_file)
   }
   Config::nTracks = nt;
 
-  if (Config::root_val || Config::fit_val)
+  if (data_file.HasSimTrackStates())
   {
     int nts; 
     fread(&nts, sizeof(int), 1, fp);
@@ -489,7 +489,7 @@ void Event::read_in(DataFile &data_file)
   simHitsInfo_.resize(nm);
   fread(&simHitsInfo_[0], sizeof(MCHitInfo), nm, fp);
 
-  if (Config::useCMSGeom || Config::readCmsswSeeds) {
+  if (data_file.HasSeeds()) {
     int ns;
     fread(&ns, sizeof(int), 1, fp);
     if (Config::readCmsswSeeds)
@@ -696,15 +696,24 @@ int DataFile::OpenRead(const std::string& fname, bool set_n_layers)
 
   printf("Opened file '%s', format version %d, n_max_trk_hits %d, n_layers %d, n_events %d\n",
          fname.c_str(), f_header.f_format_version, f_header.f_n_max_trk_hits, f_header.f_n_layers, f_header.f_n_events);
+  if (f_header.f_extra_sections)
+  {
+    printf("  Extra sections:");
+    if (f_header.f_extra_sections & ES_SimTrackStates) printf(" SimTrackStates");
+    if (f_header.f_extra_sections & ES_Seeds)          printf(" Seeds");
+    printf("\n");
+  }
 
   return f_header.f_n_events;
 }
 
-void DataFile::OpenWrite(const std::string& fname, int nev)
+void DataFile::OpenWrite(const std::string& fname, int nev, int extra_sections)
 {
   f_fp = fopen(fname.c_str(), "w");
 
   f_header.f_n_events = nev;
+
+  f_header.f_extra_sections = extra_sections;
 
   fwrite(&f_header, sizeof(DataFileHeader), 1, f_fp);
 }

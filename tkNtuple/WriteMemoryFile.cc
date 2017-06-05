@@ -406,7 +406,7 @@ int main(int argc, char *argv[])
   long long savedEvents = 0;
 
   DataFile data_file;
-  data_file.OpenWrite(std::string(argv[2]), std::min(maxevt, totentries));
+  data_file.OpenWrite(std::string(argv[2]), std::min(maxevt, totentries), DataFile::ES_Seeds);
 
   Event EE(0);
 

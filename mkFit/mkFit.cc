@@ -147,8 +147,14 @@ void generate_and_save_tracks()
   initGeom(geom);
   std::unique_ptr<Validation> val(Validation::make_validation("empty.root"));
 
+  int extra_sections = 0;
+  if (Config::root_val || Config::fit_val)
+  {
+    extra_sections |= DataFile::ES_SimTrackStates;
+  }
+
   DataFile data_file;
-  data_file.OpenWrite(g_file_name, Nevents);
+  data_file.OpenWrite(g_file_name, Nevents, extra_sections);
 
   printf("writing %i events\n", Nevents);
 

@@ -76,6 +76,8 @@ struct DataFileHeader
   int f_n_layers       = -1;
   int f_n_events       = -1;
 
+  int f_extra_sections = 0;
+
   DataFileHeader()
   {
     f_n_layers = Config::nTotalLayers;
@@ -84,12 +86,21 @@ struct DataFileHeader
 
 struct DataFile
 {
+  enum ExtraSection
+  {
+    ES_SimTrackStates = 0x1,
+    ES_Seeds          = 0x2
+  };
+
   FILE *f_fp       =  0;
 
   DataFileHeader f_header;
 
+  bool HasSimTrackStates() const { return f_header.f_extra_sections & ES_SimTrackStates; }
+  bool HasSeeds()          const { return f_header.f_extra_sections & ES_Seeds; }
+
   int  OpenRead (const std::string& fname, bool set_n_layers = false);
-  void OpenWrite(const std::string& fname, int nev);
+  void OpenWrite(const std::string& fname, int nev, int extra_sections=0);
 
   void Close();
 };
