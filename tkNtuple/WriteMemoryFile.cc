@@ -4,7 +4,7 @@
 #include <iostream>
 #include "Event.h"
 
-constexpr int VERBOSE = 1;
+constexpr int VERBOSE = 0;
 
 enum struct TkLayout {phase0 = 0, phase1 = 1};
 
@@ -192,24 +192,24 @@ int main(int argc, char *argv[])
   t->SetBranchAddress("sim_trkIdx", &sim_trkIdx);
 
   //simvtx
-  std::vector<float>* simvtx_x;
-  std::vector<float>* simvtx_y;
-  std::vector<float>* simvtx_z;
+  std::vector<float>* simvtx_x = 0;
+  std::vector<float>* simvtx_y = 0;
+  std::vector<float>* simvtx_z = 0;
   t->SetBranchAddress("simvtx_x"       , &simvtx_x);
   t->SetBranchAddress("simvtx_y"       , &simvtx_y);
   t->SetBranchAddress("simvtx_z"       , &simvtx_z);
 
 
   //simhit
-  std::vector<short>* simhit_process;
-  std::vector<int>* simhit_particle;
-  std::vector<int>* simhit_simTrkIdx;
-  std::vector<float>* simhit_x;
-  std::vector<float>* simhit_y;
-  std::vector<float>* simhit_z;
-  std::vector<float>* simhit_px;
-  std::vector<float>* simhit_py;
-  std::vector<float>* simhit_pz;
+  std::vector<short>* simhit_process = 0;
+  std::vector<int>* simhit_particle = 0;
+  std::vector<int>* simhit_simTrkIdx = 0;
+  std::vector<float>* simhit_x = 0;
+  std::vector<float>* simhit_y = 0;
+  std::vector<float>* simhit_z = 0;
+  std::vector<float>* simhit_px = 0;
+  std::vector<float>* simhit_py = 0;
+  std::vector<float>* simhit_pz = 0;
   t->SetBranchAddress("simhit_process",   &simhit_process);
   t->SetBranchAddress("simhit_particle",   &simhit_particle);
   t->SetBranchAddress("simhit_simTrkIdx", &simhit_simTrkIdx);
@@ -409,6 +409,8 @@ int main(int argc, char *argv[])
   data_file.OpenWrite(std::string(argv[2]), std::min(maxevt, totentries));
 
   Event EE(0);
+
+  // gDebug = 8;
 
   for (long long i = 0; savedEvents < maxevt && i<totentries && i<maxevt; ++i)
   {
@@ -752,6 +754,13 @@ int main(int argc, char *argv[])
     }
     // if (!allTracksAllHits) continue;
 
+    // Seed % hit statistics
+    nstot += seedTracks_.size();
+    for (int il = 0; il<layerHits_.size(); ++il) {
+      int nh = layerHits_[il].size();
+      nhitstot[il]+=nh;
+    }
+
     if (VERBOSE)
     {
       int nt = simTracks_.size();
@@ -759,15 +768,10 @@ int main(int argc, char *argv[])
       printf("number of simTracks %i\n",nt);
 
       int nl = layerHits_.size();
-      for (int il = 0; il<nl; ++il) {
-        int nh = layerHits_[il].size();
-        nhitstot[il]+=nh;
-      }
     
       int nm = simHitsInfo_.size();
 
       int ns = seedTracks_.size();
-      nstot+=ns;
 
       printf("\n");
       for (int il = 0; il<nl; ++il) {
@@ -805,12 +809,11 @@ int main(int argc, char *argv[])
     printf("end of event %lli\n",savedEvents);
   }
 
-  printf("closing\n");
   data_file.Close();
-  printf("\n saved %lli events\n",savedEvents);
+  printf("\nSaved %lli events\n\n",savedEvents);
 
-  printf("number of seeds %f\n",float(nstot)/float(savedEvents));
+  printf("Average number of seeds per event %f\n",float(nstot)/float(savedEvents));
   for (int il=0;il<nhitstot.size();++il)
-    printf("number of hits in layer %i = %f\n",il,float(nhitstot[il])/float(savedEvents));
+    printf("Average number of hits in layer %3i = %7.2f\n", il, float(nhitstot[il])/float(savedEvents));
 
 }

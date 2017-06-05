@@ -1,27 +1,22 @@
-include ../Makefile.config
+ifndef ROOTSYS
+$(error ROOTSYS is not set. Please set ROOT environment properly)
+endif
 
-# Overide debug settings
-# OPT := -O0 -g
+include ../Makefile.config
 
 .PHONY: all clean distclean echo
 
-ifndef ROOTSYS
-all:
-	@echo "ROOTSYS is not set. Please set ROOT environment properly"; echo
-else
 all: default
 
 CPPEXTRA := -I.. ${USER_CPPFLAGS} ${DEFS}
 LDEXTRA  := ${USER_LDFLAGS}
 
-CPPFLAGS := $(shell root-config --cflags) ${CPPEXTRA} ${CPPFLAGS}
-CXXFLAGS += -fPIC ${USER_CXXFLAGS}
-LDFLAGS  += -fPIC $(shell root-config --ldflags --cflags --libs) ${LDEXTRA}
+CPPFLAGS := -I${ROOTSYS}/include ${CPPEXTRA} ${CPPFLAGS}
+CXXFLAGS += ${USER_CXXFLAGS}
+LDFLAGS  += -L${ROOTSYS}/lib -lCore -lRIO -lTree -lMathCore ${LDEXTRA}
 
 
-TGTS     := writeMemoryFile libDicts.so
-
-EXES     := ${TGTS}
+EXES     := writeMemoryFile
 
 default: ${EXES}
 
@@ -43,25 +38,18 @@ echo:
 
 ################################################################
 
-SRCS := $(wildcard *.cc)
-HDRS := $(wildcard *.h)
+SRCS := WriteMemoryFile.cc
 
 OBJS := $(SRCS:.cc=.o)
-OBJS := $(filter-out DictsDict.o, $(OBJS))
 
-ALLOBJS := ${OBJS} ${ABOVE_OBJS}
-
-libDicts.so: DictsDict.cc
-	${CXX} $(LDFLAGS) -Wno-deprecated -shared DictsDict.cc -o $@
+#libDicts.so: DictsDict.o
+#	${CXX} ${CXXFLAGS} ${LDFLAGS} $< -shared -o $@ ${LDFLAGS_HOST}
 
 DictsDict.cc: DictsLinkDef.h
-	@rootcint -v3 -f $@ -c -p $<
+	rootcint -v3 -f $@ -c -p $<
 
-writeMemoryFile: ${OBJS} libDicts.so
-	${CXX} ${CXXFLAGS} ${LDFLAGS} ${ALLOBJS} -L. -lDicts -L.. -lMicCore -Wl,-rpath=..,-rpath=. -o $@
+writeMemoryFile: ${OBJS} DictsDict.o
+	${CXX} ${CXXFLAGS} ${LDFLAGS} $^ -L.. -lMicCore -Wl,-rpath=..,-rpath=. -o $@
 
-
-${OBJS}: %.o: %.cc
+%.o: %.cc
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} -c -o $@ $<
-endif
-
