@@ -5,7 +5,7 @@ import math
 
 if len(sys.argv)!=4: exit
 
-hORm   = sys.argv[1] # host == Xeon SNB, mic == Xeon Phi KNC
+hORm   = sys.argv[1] # host == Xeon SNB, KNC, KNL
 sample = sys.argv[2] # toymc or cmssw
 region = sys.argv[3] # barrel or endcap
 
@@ -31,7 +31,7 @@ for test in ['BH','STD','CE','FIT']:
 
     # Vectorization data points
     vuvals = ['1','2','4','8']
-    if hORm == 'KNC' : 
+    if hORm == 'KNC' or hORm == 'KNL':
         nth = '1'
         vuvals.append('16')
         vuvals.append('16int')
@@ -96,7 +96,7 @@ for test in ['BH','STD','CE','FIT']:
     g_VU_speedup.Write("g_"+test+"_VU_speedup")
 
     # Parallelization datapoints
-    if hORm == 'KNC' :
+    if hORm == 'KNC' or hORm == 'KNL':
         nvu = '16int'
         thvals = [1,2,4,8,15,30,60,90,120,150,180,210,240]
     else :

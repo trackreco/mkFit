@@ -1,5 +1,5 @@
---- Config.h	2016-11-22 14:09:37.000000000 +0100
-+++ Config.h.endcap	2016-11-24 01:08:17.000000000 +0100
+--- Config.h	2016-11-22 08:29:27.332787245 -0800
++++ Config.h.cmssw.endcap	2016-11-22 08:37:33.009820187 -0800
 @@ -33,12 +33,12 @@
    extern int nEvents;
  
@@ -15,7 +15,7 @@
  
    //constexpr float cmsAvgRads[13] = {4.42,7.31,10.17,25.58,33.98,41.79,49.78,60.78,69.2,77.96,86.80,96.53,108.00}; // cms average radii, noSplit version
    constexpr float cmsAvgRads[17] = {4.42,7.31,10.17,25.58,25.58,33.98,33.98,41.79,49.78,60.57,61.00,69.41,68.98,77.96,86.80,96.53,108.00}; // cms average radii, split version
-@@ -63,9 +63,9 @@
+@@ -106,9 +106,9 @@
    static constexpr float m_max_dphi = 0.02; // default: 0.02; cmssw tests: 0.2
  
    // config on Event

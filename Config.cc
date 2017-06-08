@@ -16,7 +16,7 @@ namespace Config
   int   numThreadsEvents = 1;
   int   numThreadsReorg = 1;
 
-#ifdef __MIC__
+#if defined(__MIC__) || defined(__AVX512F__)
   int   numThreadsSimulation = 60;
 #else
   int   numThreadsSimulation = 12;
@@ -29,6 +29,10 @@ namespace Config
   
   // number of hits per task for finding seeds
   int   numHitsPerTask = 32;
+
+  // material effects
+  float RlgridME[Config::nBinsZME][Config::nBinsRME];
+  float XigridME[Config::nBinsZME][Config::nBinsRME];
 
   bool  useCMSGeom = false;
   bool  readCmsswSeeds = false;

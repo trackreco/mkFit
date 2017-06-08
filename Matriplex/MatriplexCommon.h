@@ -16,13 +16,13 @@
 
 #if defined(MPLEX_USE_INTRINSICS)
 
-  #if defined(__MIC__) || defined(__AVX__)
+  #if defined(__MIC__) || defined(__AVX__) || defined(__AVX512F__)
 
     #define MPLEX_INTRINSICS
 
   #endif
 
-  #if defined(__MIC__)
+  #if defined(__MIC__) || defined(__AVX512F__)
 
     typedef __m512 IntrVec_t;
     #define MPLEX_INTRINSICS_WIDTH_BYTES  64
