@@ -5,8 +5,9 @@
 
 //------------------------------------------------------------------------------
 
-#include "MkFitter.h"
 #include "CandCloner.h"
+#include "MkFitter.h"
+#include "MkFinder.h"
 #include "SteeringParams.h"
 
 #include <functional>
@@ -23,11 +24,13 @@ struct ExecutionContext
 {
   Pool<CandCloner> m_cloners;
   Pool<MkFitter>   m_fitters;
+  Pool<MkFinder>   m_finders;
 
   void populate(int n_thr)
   {
     m_cloners.populate(n_thr - m_cloners.size());
     m_fitters.populate(n_thr - m_fitters.size());
+    m_finders.populate(n_thr - m_finders.size());
   }
 };
 
@@ -42,7 +45,7 @@ class Event;
 class MkBuilder
 {
 protected:
-  void fit_one_seed_set(TrackVec& simtracks, int itrack, int end, MkFitter *mkfp,
+  void fit_one_seed_set(TrackVec& simtracks, int itrack, int end, MkFitter *mkfttr,
                         const bool is_brl[], const SteeringParams &st_par);
 
   Event                 *m_event;
@@ -95,7 +98,7 @@ public:
 
   void find_tracks_load_seeds_BH(); // for FindTracksBestHit
   void find_tracks_load_seeds();
-  void find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfp,
+  void find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfndr,
                              int start_seed, int end_seed, int region);
 
   // --------

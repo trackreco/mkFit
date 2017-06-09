@@ -749,7 +749,7 @@ int main(int argc, char *argv[])
 
     // bool allTracksAllHits = true;
     for (int i=0;i<simTracks_.size();++i) {
-      simTracks_[i].setNGoodHits();
+      simTracks_[i].setNFoundHits();
       // if (simTracks_[i].nFoundHits()!=Config::nTotalLayers) allTracksAllHits = false;
     }
     // if (!allTracksAllHits) continue;

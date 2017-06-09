@@ -81,8 +81,9 @@ public:
   int   m_nq = 0;
   int   m_capacity = 0;
 
-  int   layer_id()  const { return m_layer_info->m_layer_id;  }
-  bool  is_barrel() const { return m_layer_info->is_barrel(); }
+  int   layer_id()  const { return m_layer_info->m_layer_id;    }
+  bool  is_barrel() const { return m_layer_info->is_barrel();   }
+  bool  is_endcap() const { return ! m_layer_info->is_barrel(); }
 
   float min_dphi() const { return m_layer_info->m_select_min_dphi; }
   float max_dphi() const { return m_layer_info->m_select_max_dphi; }

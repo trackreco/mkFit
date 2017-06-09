@@ -1,8 +1,9 @@
 #ifndef MkFitter_h
 #define MkFitter_h
 
+#include "MkBase.h"
+
 #include "Event.h"
-#include "Matrix.h"
 #include "KalmanUtils.h"
 
 #include "HitStructures.h"
@@ -22,15 +23,9 @@ const int MPlexHitIdxMax = 16;
 using MPlexHitIdx = Matriplex::Matriplex<int, MPlexHitIdxMax, 1, NN>;
 using MPlexQHoT   = Matriplex::Matriplex<HitOnTrack, 1, 1, NN>;
 
-struct MkFitter
+struct MkFitter : public MkBase
 {
-  MPlexLS Err[2];
-  MPlexLV Par[2];
-
-  MPlexQI Chg;
-
   MPlexQF Chi2;
-  MPlexQF OutChi2;
 
   MPlexHS msErr[Config::nMaxTrkHits];
   MPlexHV msPar[Config::nMaxTrkHits];
@@ -44,11 +39,6 @@ struct MkFitter
   // Hold hit indices to explore at current layer.
   MPlexQI     XHitSize;
   MPlexHitIdx XHitArr;
-
-  // Indices into Err and Par arrays.
-  // Thought I'll have to flip between them ...
-  const int iC = 0; // current
-  const int iP = 1; // propagated
 
   int Nhits;
 
@@ -100,10 +90,6 @@ public:
   { return OutputTracks(tracks,beg,end,iP); }
 
   void OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end, bool outputProp) const;
-
-  void PropagateTracksToR(float R, const int N_proc);
-
-  void PropagateTracksToZ(float Z, const int N_proc);
 
   void SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_proc, bool dump=false);
   void SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits, const int N_proc, bool dump=false);

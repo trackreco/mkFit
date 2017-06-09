@@ -6,8 +6,6 @@
 #include "Event.h"
 #include "TrackerInfo.h"
 
-#include "MkFitter.h"
-
 //#define DEBUG
 #include "Debug.h"
 
@@ -19,10 +17,15 @@ ExecutionContext g_exe_ctx;
 
 //------------------------------------------------------------------------------
 
+#define CLONER(_n_) std::unique_ptr<CandCloner, decltype(retcand)> _n_(g_exe_ctx.m_cloners.GetFromPool(), retcand)
+#define FITTER(_n_) std::unique_ptr<MkFitter,   decltype(retfitr)> _n_(g_exe_ctx.m_fitters.GetFromPool(), retfitr)
+#define FINDER(_n_) std::unique_ptr<MkFinder,   decltype(retfndr)> _n_(g_exe_ctx.m_finders.GetFromPool(), retfndr)
+
 namespace
 {
   auto retcand = [](CandCloner* cloner) { g_exe_ctx.m_cloners.ReturnToPool(cloner); };
-  auto retfitr = [](MkFitter*   mkfp  ) { g_exe_ctx.m_fitters.ReturnToPool(mkfp);   };
+  auto retfitr = [](MkFitter*   mkfttr) { g_exe_ctx.m_fitters.ReturnToPool(mkfttr); };
+  auto retfndr = [](MkFinder*   mkfndr) { g_exe_ctx.m_finders.ReturnToPool(mkfndr); };
 
 
   // Range of indices processed within one iteration of a TBB parallel_for.
@@ -96,22 +99,22 @@ MkBuilder* MkBuilder::make_builder()
 
 #ifdef DEBUG
 namespace {
-  void pre_prop_print(int ilay, MkFitter* mkfp) {
+  void pre_prop_print(int ilay, MkFitter* mkfttr) {
     std::cout << "propagate to lay=" << ilay
-              << " start from x=" << mkfp->getPar(0, 0, 0) << " y=" << mkfp->getPar(0, 0, 1) << " z=" << mkfp->getPar(0, 0, 2)
-              << " r=" << getHypot(mkfp->getPar(0, 0, 0), mkfp->getPar(0, 0, 1))
-              << " px=" << mkfp->getPar(0, 0, 3) << " py=" << mkfp->getPar(0, 0, 4) << " pz=" << mkfp->getPar(0, 0, 5)
+              << " start from x=" << mkfttr->getPar(0, 0, 0) << " y=" << mkfttr->getPar(0, 0, 1) << " z=" << mkfttr->getPar(0, 0, 2)
+              << " r=" << getHypot(mkfttr->getPar(0, 0, 0), mkfttr->getPar(0, 0, 1))
+              << " px=" << mkfttr->getPar(0, 0, 3) << " py=" << mkfttr->getPar(0, 0, 4) << " pz=" << mkfttr->getPar(0, 0, 5)
 #ifdef CCSCOORD
-              << " pT=" << 1./mkfp->getPar(0, 0, 3) << std::endl;
+              << " pT=" << 1./mkfttr->getPar(0, 0, 3) << std::endl;
 #else
-              << " pT=" << getHypot(mkfp->getPar(0, 0, 3), mkfp->getPar(0, 0, 4)) << std::endl;
+              << " pT=" << getHypot(mkfttr->getPar(0, 0, 3), mkfttr->getPar(0, 0, 4)) << std::endl;
 #endif
   }
 
-  void post_prop_print(int ilay, MkFitter* mkfp) {
+  void post_prop_print(int ilay, MkFitter* mkfttr) {
     std::cout << "propagate to lay=" << ilay
-              << " arrive at x=" << mkfp->getPar(0, 1, 0) << " y=" << mkfp->getPar(0, 1, 1) << " z=" << mkfp->getPar(0, 1, 2)
-              << " r=" << getHypot(mkfp->getPar(0, 1, 0), mkfp->getPar(0, 1, 1)) << std::endl;
+              << " arrive at x=" << mkfttr->getPar(0, 1, 0) << " y=" << mkfttr->getPar(0, 1, 1) << " z=" << mkfttr->getPar(0, 1, 2)
+              << " r=" << getHypot(mkfttr->getPar(0, 1, 0), mkfttr->getPar(0, 1, 1)) << std::endl;
   }
 
   void print_seed(const Track& seed) {
@@ -168,6 +171,8 @@ namespace
 // Constructor and destructor
 //------------------------------------------------------------------------------
 
+#include "KalmanUtilsMPlex.h"
+
 MkBuilder::MkBuilder() :
   m_event(0),
   m_event_of_hits(Config::TrkInfo)
@@ -176,9 +181,12 @@ MkBuilder::MkBuilder() :
 
   m_steering_params[TrackerInfo::Reg_Endcap_Neg] =
     {
+      computeChi2EndcapMPlex,
+      updateParametersEndcapMPlex,
+      &MkFinder::SelectHitIndicesEndcap,
       21,
       &LayerInfo::m_next_ecap_neg,
-      &MkFitter::PropagateTracksToZ,
+      &MkBase::PropagateTracksToZ,
       &MkFitter::SelectHitIndicesEndcap,
       &MkFitter::AddBestHitEndcap,
       &MkFitter::UpdateWithLastHitEndcap,
@@ -190,9 +198,12 @@ MkBuilder::MkBuilder() :
 
   m_steering_params[TrackerInfo::Reg_Barrel] =
     {
+      computeChi2MPlex,
+      updateParametersMPlex,
+      &MkFinder::SelectHitIndices,
       3,
       &LayerInfo::m_next_barrel,
-      &MkFitter::PropagateTracksToR,
+      &MkBase::PropagateTracksToR,
       &MkFitter::SelectHitIndices,
       &MkFitter::AddBestHit,
       &MkFitter::UpdateWithLastHit,
@@ -204,9 +215,12 @@ MkBuilder::MkBuilder() :
 
   m_steering_params[TrackerInfo::Reg_Endcap_Pos] =
     {
+      computeChi2EndcapMPlex,
+      updateParametersEndcapMPlex,
+      &MkFinder::SelectHitIndicesEndcap,
       12,
       &LayerInfo::m_next_ecap_pos,
-      &MkFitter::PropagateTracksToZ,
+      &MkBase::PropagateTracksToZ,
       &MkFitter::SelectHitIndicesEndcap,
       &MkFitter::AddBestHitEndcap,
       &MkFitter::UpdateWithLastHitEndcap,
@@ -561,7 +575,7 @@ void MkBuilder::fit_seeds()
 
       // printf("Seed info pos(  x       y       z        r;     eta    phi)   mom(  pt      pz;     eta    phi)\n");
 
-      std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
+      FITTER( mkfttr );
 
       RangeOfSeedIndices rng = rosi.seed_rng(blk_rng);
 
@@ -608,14 +622,14 @@ void MkBuilder::fit_seeds()
           {
             dprintf("Breaking seed range due to different layer signature at %d (%d, %d)\n", i, rng.m_beg, rng.m_end);
 
-            fit_one_seed_set(seedtracks, rng.m_beg, i, mkfp.get(), is_brl, m_steering_params[reg]);
+            fit_one_seed_set(seedtracks, rng.m_beg, i, mkfttr.get(), is_brl, m_steering_params[reg]);
 
             rng.m_beg = i;
             goto layer_sig_change;
           }
         }
 
-        fit_one_seed_set(seedtracks, rng.m_beg, rng.m_end, mkfp.get(), is_brl, m_steering_params[reg]);
+        fit_one_seed_set(seedtracks, rng.m_beg, rng.m_end, mkfttr.get(), is_brl, m_steering_params[reg]);
 
         ++rng;
       }
@@ -624,22 +638,22 @@ void MkBuilder::fit_seeds()
 }
 
 inline void MkBuilder::fit_one_seed_set(TrackVec& seedtracks, int itrack, int end,
-                                        MkFitter *mkfp, const bool is_brl[],
+                                        MkFitter *mkfttr, const bool is_brl[],
                                         const SteeringParams &st_par)
 {
   //debug=true;
 
-  mkfp->SetNhits(Config::nlayers_per_seed);
-  mkfp->InputTracksAndHits(seedtracks, m_event_of_hits.m_layers_of_hits, itrack, end);
+  mkfttr->SetNhits(Config::nlayers_per_seed);
+  mkfttr->InputTracksAndHits(seedtracks, m_event_of_hits.m_layers_of_hits, itrack, end);
 
-  if (Config::cf_seeding) mkfp->ConformalFitTracks(false, itrack, end);
+  if (Config::cf_seeding) mkfttr->ConformalFitTracks(false, itrack, end);
 
   if (Config::readCmsswSeeds == false)
   {
-    mkfp->FitTracksSteered(is_brl, end - itrack, m_event);
+    mkfttr->FitTracksSteered(is_brl, end - itrack, m_event);
   }
 
-  mkfp->OutputFittedTracksAndHitIdx(m_event->seedTracks_, itrack, end, false);
+  mkfttr->OutputFittedTracksAndHitIdx(m_event->seedTracks_, itrack, end, false);
 }
 
 //------------------------------------------------------------------------------
@@ -1051,7 +1065,7 @@ void MkBuilder::FindTracksBestHit()
     tbb::parallel_for(rosi.tbb_blk_rng_vec(),
       [&](const tbb::blocked_range<int>& blk_rng)
     {
-      std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
+      FINDER( mkfndr );
 
       const TrackerInfo &trk_info = Config::TrkInfo;
 
@@ -1061,9 +1075,7 @@ void MkBuilder::FindTracksBestHit()
       {
         dprint(std::endl << "processing track=" << rng.m_beg << ", label=" <<cands[rng.m_beg].label());
 
-        int n_hits = Config::nlayers_per_seed;
-        mkfp->SetNhits(n_hits);
-        mkfp->InputTracksAndHitIdx(cands, rng.m_beg, rng.m_end, false);
+        mkfndr->InputTracksAndHitIdx(cands, rng.m_beg, rng.m_end, false);
 
         // Loop over layers, starting from after the seed.
         // Consider inverting loop order and make layer outer, need to
@@ -1075,30 +1087,28 @@ void MkBuilder::FindTracksBestHit()
 
           // XXX This should actually be done in some other thread for the next layer while
           // this thread is crunching the current one.
-          // For now it's done in MkFitter::AddBestHit(), two loops before the data is needed.
+          // For now it's done in MkFinder::AddBestHit(), two loops before the data is needed.
           // for (int i = 0; i < bunch_of_hits.m_size; ++i)
           // {
           //   _mm_prefetch((char*) & bunch_of_hits.m_hits[i], _MM_HINT_T1);
           // }
 
-          dcall(pre_prop_print(ilay, mkfp.get()));
+          dcall(pre_prop_print(ilay, mkfndr.get()));
 
-          (mkfp.get()->*st_par.propagate_foo)(trk_info.m_layers[ilay].m_propagate_to, rng.n_proc());
+          (mkfndr.get()->*st_par.propagate_foo)(trk_info.m_layers[ilay].m_propagate_to, rng.n_proc());
 
-          dcall(post_prop_print(ilay, mkfp.get()));
+          dcall(post_prop_print(ilay, mkfndr.get()));
 
-          (mkfp.get()->*st_par.select_hits_foo)(layer_of_hits, rng.n_proc(), false);
+          (mkfndr.get()->*st_par.select_hit_idcs_foo)(layer_of_hits, rng.n_proc(), false);
 
 // #ifdef PRINTOUTS_FOR_PLOTS
-// 	     std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
+// 	     std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
 // #endif
 
           // make candidates with best hit
           dprint("make new candidates");
 
-          (mkfp.get()->*st_par.add_best_hit_foo)(layer_of_hits, rng.n_proc());
-
-          mkfp->SetNhits(++n_hits);
+          mkfndr->AddBestHit(layer_of_hits, rng.n_proc(), st_par);
 
           if (layer_info.m_is_outer)
           {
@@ -1108,7 +1118,7 @@ void MkBuilder::FindTracksBestHit()
           ilay = layer_info.*st_par.next_layer_doo;
         } // end of layer loop
 
-        mkfp->OutputFittedTracksAndHitIdx(cands, rng.m_beg, rng.m_end, false);
+        mkfndr->OutputTracksAndHitIdx(cands, rng.m_beg, rng.m_end, false);
 
         ++rng;
       } // end of loop over candidates in a tbb chunk
@@ -1161,7 +1171,7 @@ void MkBuilder::FindTracksStandard()
     tbb::parallel_for(rosi.tbb_blk_rng_std(/*adaptiveSPT*/),
       [&](const tbb::blocked_range<int>& seeds)
     {
-      std::unique_ptr<MkFitter, decltype(retfitr)> mkfp(g_exe_ctx.m_fitters.GetFromPool(), retfitr);
+      FITTER( mkfndr );
 
       const TrackerInfo &trk_info = Config::TrkInfo;
 
@@ -1214,29 +1224,29 @@ void MkBuilder::FindTracksStandard()
 
           dprint("processing track=" << itrack);
 
-          mkfp->SetNhits(n_hits); //here again assuming one hit per layer
+          mkfndr->SetNhits(n_hits); //here again assuming one hit per layer
 
           //fixme find a way to deal only with the candidates needed in this thread
-          mkfp->InputTracksAndHitIdx(eoccs.m_candidates,
+          mkfndr->InputTracksAndHitIdx(eoccs.m_candidates,
                                      seed_cand_idx, itrack, end,
                                      false);
 
           //propagate to layer
-          dcall(pre_prop_print(ilay, mkfp.get()));
+          dcall(pre_prop_print(ilay, mkfndr.get()));
 
-          (mkfp.get()->*st_par.propagate_foo)(layer_info.m_propagate_to, end - itrack);
+          (mkfndr.get()->*st_par.propagate_foo)(layer_info.m_propagate_to, end - itrack);
 
-          dcall(post_prop_print(ilay, mkfp.get()));
+          dcall(post_prop_print(ilay, mkfndr.get()));
 
           dprint("now get hit range");
-          (mkfp.get()->*st_par.select_hits_foo)(layer_of_hits, end - itrack, false);
+          (mkfndr.get()->*st_par.select_hits_foo)(layer_of_hits, end - itrack, false);
 
 	  //#ifdef PRINTOUTS_FOR_PLOTS
-	  //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
+	  //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
 	  //#endif
 
           dprint("make new candidates");
-          (mkfp.get()->*st_par.find_cands_foo)(layer_of_hits, tmp_cands, start_seed, end - itrack);
+          (mkfndr.get()->*st_par.find_cands_foo)(layer_of_hits, tmp_cands, start_seed, end - itrack);
           
         } //end of vectorized loop
 
@@ -1326,18 +1336,18 @@ void MkBuilder::FindTracksCloneEngine()
     tbb::parallel_for(rosi.tbb_blk_rng_std(/*adaptiveSPT*/),
       [&](const tbb::blocked_range<int>& seeds)
     {
-      std::unique_ptr<CandCloner, decltype(retcand)> cloner(g_exe_ctx.m_cloners.GetFromPool(), retcand);
-      std::unique_ptr<MkFitter,   decltype(retfitr)> mkfp  (g_exe_ctx.m_fitters.GetFromPool(), retfitr);
+      CLONER( cloner );
+      FITTER( mkfndr );
 
       // loop over layers
-      find_tracks_in_layers(*cloner, mkfp.get(), seeds.begin(), seeds.end(), region);
+      find_tracks_in_layers(*cloner, mkfndr.get(), seeds.begin(), seeds.end(), region);
     });
   });
 
   // debug = false;
 }
 
-void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfp,
+void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfndr,
                                       int start_seed, int end_seed, int region)
 {
   EventOfCombCandidates &eoccs    = m_event_of_comb_cands;
@@ -1426,33 +1436,34 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfp,
       dprintf("\n");
 #endif
 
-      mkfp->SetNhits(n_hits);
+      // YYYYYY
+      mkfndr->SetNhits(n_hits);
 
-      mkfp->InputTracksAndHitIdx(eoccs.m_candidates, seed_cand_idx,
+      mkfndr->InputTracksAndHitIdx(eoccs.m_candidates, seed_cand_idx,
                                  itrack, end, prev_ilay >= 0);
 
 #ifdef DEBUG
       for (int i=itrack; i < end; ++i)
-        dprintf("  track %d, idx %d is from seed %d\n", i, i - itrack, mkfp->Label(i - itrack,0,0));
+        dprintf("  track %d, idx %d is from seed %d\n", i, i - itrack, mkfndr->Label(i - itrack,0,0));
       dprintf("\n");
 #endif
       if (prev_ilay >= 0)
       {
         const LayerOfHits &prev_layer_of_hits = m_event_of_hits.m_layers_of_hits[prev_ilay];
 
-        (mkfp->*st_par.update_with_last_hit_foo)(prev_layer_of_hits, end - itrack);
+        (mkfndr->*st_par.update_with_last_hit_foo)(prev_layer_of_hits, end - itrack);
       }
       if (ilay >= 0)
       {
         // propagate to current layer
-        (mkfp->*st_par.propagate_foo)(layer_info.m_propagate_to, end - itrack);
+        (mkfndr->*st_par.propagate_foo)(layer_info.m_propagate_to, end - itrack);
         // copy_out the propagated track params, errors only (hit-idcs and chi2 already updated)
-        mkfp->CopyOutParErr(eoccs.m_candidates, end - itrack, true);
+        mkfndr->CopyOutParErr(eoccs.m_candidates, end - itrack, true);
       }
       else
       {
         // copy_out the updated track params, errors only (hit-idcs and chi2 already updated)
-        mkfp->CopyOutParErr(eoccs.m_candidates, end - itrack, false);
+        mkfndr->CopyOutParErr(eoccs.m_candidates, end - itrack, false);
         continue;
       }
 
@@ -1460,16 +1471,16 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfp,
 
       const LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay];
 
-      (mkfp->*st_par.select_hits_foo)(layer_of_hits, end - itrack, false);
+      (mkfndr->*st_par.select_hits_foo)(layer_of_hits, end - itrack, false);
 
       //#ifdef PRINTOUTS_FOR_PLOTS
-      //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfp->getXHitEnd(0, 0, 0)-mkfp->getXHitBegin(0, 0, 0) << std::endl;
+      //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
       //#endif
 
       dprint("make new candidates");
       cloner.begin_iteration();
 
-      (mkfp->*st_par.find_cands_min_copy_foo)(layer_of_hits, cloner, start_seed, end - itrack);
+      (mkfndr->*st_par.find_cands_min_copy_foo)(layer_of_hits, cloner, start_seed, end - itrack);
 
       cloner.end_iteration();
     } //end of vectorized loop

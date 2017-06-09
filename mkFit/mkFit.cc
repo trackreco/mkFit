@@ -275,10 +275,10 @@ void test_standard()
   std::atomic<int> nevt{1};
   std::atomic<int> seedstot{0}, simtrackstot{0};
 
-  std::vector<std::unique_ptr<Event>> evs(Config::numThreadsEvents);
+  std::vector<std::unique_ptr<Event>>      evs(Config::numThreadsEvents);
   std::vector<std::unique_ptr<Validation>> vals(Config::numThreadsEvents);
-  std::vector<std::unique_ptr<MkBuilder>> mkbs(Config::numThreadsEvents);
-  std::vector<std::shared_ptr<FILE>> fps;
+  std::vector<std::unique_ptr<MkBuilder>>  mkbs(Config::numThreadsEvents);
+  std::vector<std::shared_ptr<FILE>>       fps;
   fps.reserve(Config::numThreadsEvents);
 
   const std::string valfile("valtree");

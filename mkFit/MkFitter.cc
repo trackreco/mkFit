@@ -1,7 +1,7 @@
 #include "MkFitter.h"
+
 #include "CandCloner.h"
 
-#include "PropagationMPlex.h"
 #include "KalmanUtilsMPlex.h"
 #include "ConformalUtilsMPlex.h"
 #ifdef USE_CUDA
@@ -314,16 +314,8 @@ void MkFitter::InputSeedsTracksAndHits(const std::vector<Track>&  seeds,
   // assert(end - beg == NN);
 
   int itrack;
-//#ifdef USE_CUDA
-#if 0
-  // This openmp loop brings some performances when using
-  // a single thread to fit all events.
-  // However, it is more advantageous to use the threads to
-  // parallelize over Events.
-  omp_set_num_threads(Config::numThreadsReorg);
-#pragma omp parallel for private(itrack)
-#endif
-  for (int i = beg; i < end; ++i) {
+  for (int i = beg; i < end; ++i)
+  {
     itrack = i - beg;
 
     const Track &see = seeds[i];
@@ -704,12 +696,6 @@ void MkFitter::OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, 
   }
 }
 
-void MkFitter::PropagateTracksToR(float R, const int N_proc)
-{
-    propagateHelixToRMPlex(Err[iC], Par[iC], Chg, R,
-                           Err[iP], Par[iP], N_proc);
-}
-
 void MkFitter::SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_proc, bool dump)
 {
   const LayerOfHits &L = layer_of_hits;
@@ -853,6 +839,8 @@ void MkFitter::SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_pr
 
 void MkFitter::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc)
 {
+  // debug = true;
+
   float minChi2[NN];
   int   bestHit[NN];
   // MT: fill_n gave me crap on MIC, NN=8,16, doing in maxSize search below.
@@ -1633,33 +1621,16 @@ void MkFitter::CopyOutParErr(std::vector<std::vector<Track> >& seed_cand_vec,
   }
 }
 
-
-
-//-----------------------------------------------------------------------------------------//
-//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
-//-----------------------------------------------------------------------------------------//
-// Endcap section: duplicate functions for now, cleanup and merge once strategy sorted out //
-//-----------------------------------------------------------------------------------------//
-//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
-//-----------------------------------------------------------------------------------------//
-
-void MkFitter::PropagateTracksToZ(float Z, const int N_proc)
-{
-  // printf("MkFitter::PropagateTracksToZ z=%f\n", Z);
-  propagateHelixToZMPlex(Err[iC], Par[iC], Chg, Z,
-                         Err[iP], Par[iP], N_proc);
-}
-
 void MkFitter::SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits,
                                       const int N_proc, bool dump)
 {
   // debug = 1;
+  // dump = true;
+
   const LayerOfHits &L = layer_of_hits;
   const int   iI = iP;
   const float nSigmaPhi = 3;
   const float nSigmaR   = 3;
-
-  //dump = true;
 
   // Vectorizing this makes it run slower!
   //#pragma ivdep

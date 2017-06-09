@@ -676,7 +676,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     phi_mc_gen_eff_ = simtrack.momPhi();
     eta_mc_gen_eff_ = simtrack.momEta();
     nHits_mc_eff_   = simtrack.nFoundHits(); // could be that the sim track skips layers!
-    lastlyr_mc_eff_ = simtrack.getLastGoodHitLyr();
+    lastlyr_mc_eff_ = simtrack.getLastFoundHitLyr();
 
     // matched seed track
     if (simToSeedMap_.count(mcID_eff_)) // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToSeedMap_[matched SimID][first element in vector]
@@ -707,7 +707,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       }
 
       // last hit info
-      const Hit& lasthit = evt_layer_hits[seedtrack.getLastGoodHitLyr()][seedtrack.getLastGoodHitIdx()];
+      const Hit& lasthit = evt_layer_hits[seedtrack.getLastFoundHitLyr()][seedtrack.getLastFoundHitIdx()];
       xhit_seed_eff_ = lasthit.x(); 
       yhit_seed_eff_ = lasthit.y(); 
       zhit_seed_eff_ = lasthit.z(); 
@@ -723,7 +723,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       nHits_seed_eff_           = seedtrack.nFoundHits();
       nHitsMatched_seed_eff_    = seedextra.nHitsMatched();
       fracHitsMatched_seed_eff_ = seedextra.fracHitsMatched();
-      lastlyr_seed_eff_         = seedtrack.getLastGoodHitLyr();
+      lastlyr_seed_eff_         = seedtrack.getLastFoundHitLyr();
 
       hitchi2_seed_eff_ = seedtrack.chi2(); // currently not being used
 
@@ -773,7 +773,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       seedID_build_eff_ = buildextra.seedID(); 
 
       // use this to access correct sim track layer params
-      const int mcHitID = TTreeValidation::getLastGoodHit(buildtrack.getLastGoodMCHitID(evt_layer_hits),mcID_eff_,ev);
+      const int mcHitID = TTreeValidation::getLastFoundHit(buildtrack.getLastGoodMCHitID(evt_layer_hits),mcID_eff_,ev);
       if (mcHitID >= 0)
       {
 	const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
@@ -792,7 +792,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       }
 
       // last hit info
-      const Hit& lasthit = evt_layer_hits[buildtrack.getLastGoodHitLyr()][buildtrack.getLastGoodHitIdx()];
+      const Hit& lasthit = evt_layer_hits[buildtrack.getLastFoundHitLyr()][buildtrack.getLastFoundHitIdx()];
       xhit_build_eff_ = lasthit.x(); 
       yhit_build_eff_ = lasthit.y(); 
       zhit_build_eff_ = lasthit.z(); 
@@ -807,7 +807,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       nHits_build_eff_           = buildtrack.nFoundHits();
       nHitsMatched_build_eff_    = buildextra.nHitsMatched();
       fracHitsMatched_build_eff_ = buildextra.fracHitsMatched();
-      lastlyr_build_eff_         = buildtrack.getLastGoodHitLyr();
+      lastlyr_build_eff_         = buildtrack.getLastFoundHitLyr();
 
       hitchi2_build_eff_ = buildtrack.chi2(); 
 
@@ -876,7 +876,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       }
       
       // last hit info
-      const Hit& lasthit = evt_layer_hits[fittrack.getLastGoodHitLyr()][fittrack.getLastGoodHitIdx()];
+      const Hit& lasthit = evt_layer_hits[fittrack.getLastFoundHitLyr()][fittrack.getLastFoundHitIdx()];
       xhit_fit_eff_ = lasthit.x(); 
       yhit_fit_eff_ = lasthit.y(); 
       zhit_fit_eff_ = lasthit.z(); 
@@ -892,7 +892,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       nHits_fit_eff_           = fittrack.nFoundHits();
       nHitsMatched_fit_eff_    = fitextra.nHitsMatched();
       fracHitsMatched_fit_eff_ = fitextra.fracHitsMatched();
-      lastlyr_fit_eff_         = fittrack.getLastGoodHitLyr();
+      lastlyr_fit_eff_         = fittrack.getLastFoundHitLyr();
 
       hitchi2_fit_eff_ = -10; //fittrack.chi2(); // currently not being used
 
@@ -961,7 +961,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     seedmask_seed_FR_ = 1; // automatically set to 1, because at the moment no cuts on seeds after conformal+KF fit.  seed triplets filtered by RZ chi2 before fitting. 
 
     // last hit info
-    const Hit& lasthit = evt_layer_hits[seedtrack.getLastGoodHitLyr()][seedtrack.getLastGoodHitIdx()];
+    const Hit& lasthit = evt_layer_hits[seedtrack.getLastFoundHitLyr()][seedtrack.getLastFoundHitIdx()];
     xhit_seed_FR_ = lasthit.x(); 
     yhit_seed_FR_ = lasthit.y(); 
     zhit_seed_FR_ = lasthit.z(); 
@@ -976,7 +976,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     nHits_seed_FR_           = seedtrack.nFoundHits();
     nHitsMatched_seed_FR_    = seedextra.nHitsMatched();
     fracHitsMatched_seed_FR_ = seedextra.fracHitsMatched();
-    lastlyr_seed_FR_         = seedtrack.getLastGoodHitLyr();
+    lastlyr_seed_FR_         = seedtrack.getLastFoundHitLyr();
 
     hitchi2_seed_FR_ = seedtrack.chi2(); //--> not currently used
 
@@ -1022,7 +1022,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       }
 
       nHits_mc_seed_FR_   = simtrack.nFoundHits();
-      lastlyr_mc_seed_FR_ = simtrack.getLastGoodHitLyr();
+      lastlyr_mc_seed_FR_ = simtrack.getLastFoundHitLyr();
 
       duplmask_seed_FR_   = seedextra.isDuplicate();
       iTkMatches_seed_FR_ = seedextra.duplicateID(); // ith duplicate seed track, i = 0 "best" match, i > 0 "still matched, real reco, not as good as i-1 track"      
@@ -1053,7 +1053,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       auto& buildextra = evt_build_extras[buildtrack.label()];
 
       // last hit info
-      const Hit& lasthit = evt_layer_hits[buildtrack.getLastGoodHitLyr()][buildtrack.getLastGoodHitIdx()];
+      const Hit& lasthit = evt_layer_hits[buildtrack.getLastFoundHitLyr()][buildtrack.getLastFoundHitIdx()];
       xhit_build_FR_ = lasthit.x(); 
       yhit_build_FR_ = lasthit.y(); 
       zhit_build_FR_ = lasthit.z(); 
@@ -1068,7 +1068,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       nHits_build_FR_           = buildtrack.nFoundHits();
       nHitsMatched_build_FR_    = buildextra.nHitsMatched();
       fracHitsMatched_build_FR_ = buildextra.fracHitsMatched();
-      lastlyr_build_FR_         = buildtrack.getLastGoodHitLyr();
+      lastlyr_build_FR_         = buildtrack.getLastFoundHitLyr();
 
       hitchi2_build_FR_ = buildtrack.chi2();
 
@@ -1114,7 +1114,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	}
 
 	nHits_mc_build_FR_   = simtrack.nFoundHits();
-	lastlyr_mc_build_FR_ = simtrack.getLastGoodHitLyr();
+	lastlyr_mc_build_FR_ = simtrack.getLastFoundHitLyr();
 
 	duplmask_build_FR_   = buildextra.isDuplicate();
 	iTkMatches_build_FR_ = buildextra.duplicateID(); // ith duplicate build track, i = 0 "best" match, i > 0 "still matched, real reco, not as good as i-1 track"      
@@ -1184,7 +1184,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       auto& fitextra = evt_fit_extras[fittrack.label()];
 
       // last hit info
-      const Hit& lasthit = evt_layer_hits[fittrack.getLastGoodHitLyr()][fittrack.getLastGoodHitIdx()];
+      const Hit& lasthit = evt_layer_hits[fittrack.getLastFoundHitLyr()][fittrack.getLastFoundHitIdx()];
       xhit_fit_FR_ = lasthit.x(); 
       yhit_fit_FR_ = lasthit.y(); 
       zhit_fit_FR_ = lasthit.z(); 
@@ -1199,7 +1199,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       nHits_fit_FR_           = fittrack.nFoundHits();
       nHitsMatched_fit_FR_    = fitextra.nHitsMatched();
       fracHitsMatched_fit_FR_ = fitextra.fracHitsMatched();
-      lastlyr_fit_FR_         = fittrack.getLastGoodHitLyr();
+      lastlyr_fit_FR_         = fittrack.getLastFoundHitLyr();
 
       hitchi2_fit_FR_ = -10; //fittrack.chi2() --> currently not used
 
@@ -1245,7 +1245,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	}
 
 	nHits_mc_fit_FR_   = simtrack.nFoundHits();
-	lastlyr_mc_fit_FR_ = simtrack.getLastGoodHitLyr();
+	lastlyr_mc_fit_FR_ = simtrack.getLastFoundHitLyr();
 
 	duplmask_fit_FR_   = fitextra.isDuplicate();
 	iTkMatches_fit_FR_ = fitextra.duplicateID(); // ith duplicate fit track, i = 0 "best" match, i > 0 "still matched, real reco, not as good as i-1 track"
