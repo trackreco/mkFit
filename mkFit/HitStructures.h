@@ -61,7 +61,7 @@ inline bool sortTrksByPhiMT(const Track& t1, const Track& t2)
 // and could help us reduce the number of hits we need to process with bigger
 // potential gains.
 
-// #define LOH_USE_PHI_Q_ARRAYS
+#define LOH_USE_PHI_Q_ARRAYS
 
 // Note: the same code is used for barrel and endcap. In barrel the longitudinal
 // bins are in Z and in endcap they are in R -- here this coordinate is called Q

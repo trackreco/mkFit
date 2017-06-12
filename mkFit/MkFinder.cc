@@ -92,11 +92,8 @@ void MkFinder::OutputTracksAndHitIdx(std::vector<Track>& tracks,
 
 
 //==============================================================================
-// SelectHitIndices / SelectHitIndicesEndcap
+// SelectHitIndices
 //==============================================================================
-// Those are harder to merge as we use z in barrel and r in endcap.
-// Probably could separate out common part and have two functions that return
-// q of the hit.
 
 void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
                                 const int N_proc, bool dump)
@@ -108,6 +105,11 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
   const int   iI = iP;
   const float nSigmaPhi = 3;
   const float nSigmaZ   = 3;
+  const float nSigmaR   = 3;
+
+  if (dump)
+    printf("LayerOfHits::SelectHitIndices %s layer=%d N_proc=%d\n",
+           L.is_barrel() ? "barrel" : "endcap", L.layer_id(), N_proc);
 
   // Vectorizing this makes it run slower!
   //#pragma ivdep
@@ -116,35 +118,37 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
   {
     XHitSize[itrack] = 0;
 
-    float z, phi, dz, dphi;
-    {
-      const float x = Par[iI].ConstAt(itrack, 0, 0);
-      const float y = Par[iI].ConstAt(itrack, 1, 0);
+    const float x = Par[iI].ConstAt(itrack, 0, 0);
+    const float y = Par[iI].ConstAt(itrack, 1, 0);
 
-      const float r2 = x*x + y*y;
-
-      z   = Par[iI].ConstAt(itrack, 2, 0);
-      phi = getPhi(x, y);
-      dz  = nSigmaZ * std::sqrt(Err[iI].ConstAt(itrack, 2, 2));
-
-      const float dphidx = -y/r2, dphidy = x/r2;
-      const float dphi2  = dphidx * dphidx * Err[iI].ConstAt(itrack, 0, 0) +
-                           dphidy * dphidy * Err[iI].ConstAt(itrack, 1, 1) +
-                       2 * dphidx * dphidy * Err[iI].ConstAt(itrack, 0, 1);
-
+    const float r2     = x*x + y*y;
+    const float dphidx = -y/r2, dphidy = x/r2;
+    const float dphi2  = dphidx * dphidx * Err[iI].ConstAt(itrack, 0, 0) +
+      dphidy * dphidy * Err[iI].ConstAt(itrack, 1, 1) +
+      2 * dphidx * dphidy * Err[iI].ConstAt(itrack, 0, 1);
 #ifdef HARD_CHECK
-      assert(dphi2 >= 0);
+    assert(dphi2 >= 0);
 #endif
 
-      dphi = nSigmaPhi * std::sqrt(std::abs(dphi2));
+    float q, dq, phi, dphi;
 
-      dphi = std::max(std::abs(dphi), L.min_dphi());
-      dz   = std::max(std::abs(dz),   L.min_dq());
+    phi  = getPhi(x, y);
+    dphi = nSigmaPhi * std::sqrt(std::abs(dphi2));
+    dphi = std::max(std::abs(dphi), L.min_dphi());
+
+    if (L.is_barrel())
+    {
+      float z  = Par[iI].ConstAt(itrack, 2, 0);
+      float dz = nSigmaZ * std::sqrt(Err[iI].ConstAt(itrack, 2, 2));
+
+      dz = std::max(std::abs(dz),   L.min_dq());
 
       if (Config::useCMSGeom)
       {
         //now correct for bending and for layer thickness unsing linear approximation
-        const float deltaR = Config::cmsDeltaRad; //fixme! using constant value, to be taken from layer properties
+        //fixme! using constant value, to be taken from layer properties
+        //XXXXMT4GC should we also increase dz?
+        const float deltaR = Config::cmsDeltaRad;
         const float r  = std::sqrt(r2);
 #ifdef CCSCOORD
         //here alpha is the difference between posPhi and momPhi
@@ -168,122 +172,24 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
         const float dist = std::abs(deltaR*sinA/cosA);
         dphi += dist / r;
       }
+
+      q =  z;
+      dq = dz;
     }
-
-    dphi = std::min(std::abs(dphi), L.max_dphi());
-    dz   = std::min(std::abs(dz),   L.max_dq());
-
-    const int zb1 = L.GetQBinChecked(z - dz);
-    const int zb2 = L.GetQBinChecked(z + dz) + 1;
-    const int pb1 = L.GetPhiBin(phi - dphi);
-    const int pb2 = L.GetPhiBin(phi + dphi) + 1;
-    // MT: The extra phi bins give us ~1.5% more good tracks at expense of 10% runtime.
-    // const int pb1 = L.GetPhiBin(phi - dphi) - 1;
-    // const int pb2 = L.GetPhiBin(phi + dphi) + 2;
-
-    if (dump)
-      printf("LayerOfHits::SelectHitIndices %6.3f %6.3f %6.6f %7.5f %3d %3d %4d %4d\n",
-             z, phi, dz, dphi, zb1, zb2, pb1, pb2);
-
-    // MT: One could iterate in "spiral" order, to pick hits close to the center.
-    // http://stackoverflow.com/questions/398299/looping-in-a-spiral
-    // This would then work best with relatively small bin sizes.
-    // Or, set them up so I can always take 3x3 array around the intersection.
-
-    for (int zi = zb1; zi < zb2; ++zi)
+    else // endcap
     {
-      for (int pi = pb1; pi < pb2; ++pi)
-      {
-        const int pb = pi & L.m_phi_mask;
+      float  r = std::sqrt(r2);
+      float dr = nSigmaR*(x*x*Err[iI].ConstAt(itrack, 0, 0) + y*y*Err[iI].ConstAt(itrack, 1, 1) + 2*x*y*Err[iI].ConstAt(itrack, 0, 1))/r2;
 
-        // MT: The following line is the biggest hog (4% total run time).
-        // This comes from cache misses, I presume.
-        // It might make sense to make first loop to extract bin indices
-        // and issue prefetches at the same time.
-        // Then enter vectorized loop to actually collect the hits in proper order.
-
-        for (int hi = L.m_phi_bin_infos[zi][pb].first; hi < L.m_phi_bin_infos[zi][pb].second; ++hi)
-        {
-          // MT: Access into m_hit_zs and m_hit_phis is 1% run-time each.
-
-#ifdef LOH_USE_PHI_Q_ARRAYS
-          float ddz   = std::abs(z   - L.m_hit_qs[hi]);
-          float ddphi = std::abs(phi - L.m_hit_phis[hi]);
-          if (ddphi > Config::PI) ddphi = Config::TwoPI - ddphi;
-
-          if (dump)
-            printf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
-                   zi, pi, pb, hi,
-                   L.m_hit_qs[hi], L.m_hit_phis[hi], ddz, ddphi,
-                   (ddz < dz && ddphi < dphi) ? "PASS" : "FAIL");
-
-          // MT: Commenting this check out gives full efficiency ...
-          //     and means our error estimations are wrong!
-          // Avi says we should have *minimal* search windows per layer.
-          // Also ... if bins are sufficiently small, we do not need the extra
-          // checks, see above.
-          // if (ddz < dz && ddphi < dphi && XHitSize[itrack] < MPlexHitIdxMax)
-#endif
-          // MT: The following check also makes more sense with spiral traversal,
-          // we'd be taking in closest hits first.
-          if (XHitSize[itrack] < MPlexHitIdxMax)
-          {
-            XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
-          }
-        }
-      }
-    }
-  }
-}
-
-void MkFinder::SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits,
-                                      const int N_proc, bool dump)
-{
-  // debug = 1;
-  // dump = true;
-
-  const LayerOfHits &L = layer_of_hits;
-  const int   iI = iP;
-  const float nSigmaPhi = 3;
-  const float nSigmaR   = 3;
-
-  // Vectorizing this makes it run slower!
-  //#pragma ivdep
-  //#pragma simd
-  for (int itrack = 0; itrack < N_proc; ++itrack)
-  {
-    XHitSize[itrack] = 0;
-
-    float r, phi, dr, dphi;
-    {
-      const float x = Par[iI].ConstAt(itrack, 0, 0);
-      const float y = Par[iI].ConstAt(itrack, 1, 0);
-
-      const float r2 = x*x + y*y;
-      r  = std::sqrt(r2);
-
-      phi = getPhi(x, y);
-      dr  = nSigmaR*(x*x*Err[iI].ConstAt(itrack, 0, 0) + y*y*Err[iI].ConstAt(itrack, 1, 1) + 2*x*y*Err[iI].ConstAt(itrack, 0, 1))/r2;
-
-      const float dphidx = -y/r2, dphidy = x/r2;
-      const float dphi2  = dphidx * dphidx * Err[iI].ConstAt(itrack, 0, 0) +
-                           dphidy * dphidy * Err[iI].ConstAt(itrack, 1, 1) +
-                       2 * dphidx * dphidy * Err[iI].ConstAt(itrack, 0, 1);
-
-#ifdef HARD_CHECK
-      assert(dphi2 >= 0);
-#endif
-
-      dphi = nSigmaPhi * std::sqrt(std::abs(dphi2));
-
-      dphi = std::max(std::abs(dphi), L.min_dphi());
-      dr   = std::max(std::abs(dr),   L.min_dq());
+      dr = std::max(std::abs(dr), L.min_dq());
 
       if (Config::useCMSGeom)
       {
 #ifdef CCSCOORD
         //now correct for bending and for layer thickness unsing linear approximation
-        const float deltaZ = 5; //fixme! using constant value, to be taken from layer properties
+        //fixme! using constant value, to be taken from layer properties
+        //XXXXMT4GC should we also increase dr?
+        const float deltaZ = 5;
         float cosT = std::cos(Par[iI].ConstAt(itrack, 5, 0));
         float sinT = std::sin(Par[iI].ConstAt(itrack, 5, 0));
         //here alpha is the helix angular path corresponding to deltaZ
@@ -294,13 +200,16 @@ void MkFinder::SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits,
         assert(0);
 #endif
       }
+
+      q =  r;
+      dq = dr;
     }
 
     dphi = std::min(std::abs(dphi), L.max_dphi());
-    dr   = std::min(std::abs(dr),   L.max_dq());
+    dq   = std::min(std::abs(dq),   L.max_dq());
 
-    const int rb1 = L.GetQBinChecked(r - dr);
-    const int rb2 = L.GetQBinChecked(r + dr) + 1;
+    const int qb1 = L.GetQBinChecked(q - dq);
+    const int qb2 = L.GetQBinChecked(q + dq) + 1;
     const int pb1 = L.GetPhiBin(phi - dphi);
     const int pb2 = L.GetPhiBin(phi + dphi) + 1;
     // MT: The extra phi bins give us ~1.5% more good tracks at expense of 10% runtime.
@@ -308,15 +217,15 @@ void MkFinder::SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits,
     // const int pb2 = L.GetPhiBin(phi + dphi) + 2;
 
     if (dump)
-      printf("LayerOfHits::SelectHitIndicesEndcap %6.3f %6.3f %6.4f %7.5f %3d %3d %4d %4d\n",
-             r, phi, dr, dphi, rb1, rb2, pb1, pb2);
+      printf("  %2d: %6.3f %6.3f %6.6f %7.5f %3d %3d %4d %4d\n",
+             itrack, q, phi, dq, dphi, qb1, qb2, pb1, pb2);
 
     // MT: One could iterate in "spiral" order, to pick hits close to the center.
     // http://stackoverflow.com/questions/398299/looping-in-a-spiral
     // This would then work best with relatively small bin sizes.
     // Or, set them up so I can always take 3x3 array around the intersection.
 
-    for (int ri = rb1; ri < rb2; ++ri)
+    for (int qi = qb1; qi < qb2; ++qi)
     {
       for (int pi = pb1; pi < pb2; ++pi)
       {
@@ -328,20 +237,20 @@ void MkFinder::SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits,
         // and issue prefetches at the same time.
         // Then enter vectorized loop to actually collect the hits in proper order.
 
-        for (int hi = L.m_phi_bin_infos[ri][pb].first; hi < L.m_phi_bin_infos[ri][pb].second; ++hi)
+        for (int hi = L.m_phi_bin_infos[qi][pb].first; hi < L.m_phi_bin_infos[qi][pb].second; ++hi)
         {
           // MT: Access into m_hit_zs and m_hit_phis is 1% run-time each.
 
 #ifdef LOH_USE_PHI_Q_ARRAYS
-          float ddr   = std::abs(r   - L.m_hit_qs[hi]);
+          float ddq   = std::abs(q   - L.m_hit_qs[hi]);
           float ddphi = std::abs(phi - L.m_hit_phis[hi]);
           if (ddphi > Config::PI) ddphi = Config::TwoPI - ddphi;
 
           if (dump)
             printf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
-                   ri, pi, pb, hi,
-                   L.m_hit_qs[hi], L.m_hit_phis[hi], ddr, ddphi,
-                   (ddr < dr && ddphi < dphi) ? "PASS" : "FAIL");
+                   qi, pi, pb, hi,
+                   L.m_hit_qs[hi], L.m_hit_phis[hi], ddq, ddphi,
+                   (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
 
           // MT: Commenting this check out gives full efficiency ...
           //     and means our error estimations are wrong!
@@ -541,7 +450,9 @@ void MkFinder::AddBestHit(const LayerOfHits    &layer_of_hits, const int N_proc,
       dprint("ADD FAKE HIT FOR TRACK #" << itrack << " withinBounds=" << (fake_hit_idx != -3) << " r=" << std::hypot(Par[iP](itrack,0,0), Par[iP](itrack,1,0)));
 
       msErr.SetDiagonal3x3(itrack, 666);
-      msPar.SetVal(0);
+      msPar(itrack,0,0) = Par[iP](itrack,0,0);
+      msPar(itrack,1,0) = Par[iP](itrack,1,0);
+      msPar(itrack,2,0) = Par[iP](itrack,2,0);
       // Don't update chi2
 
       add_hit(itrack, fake_hit_idx, layer_of_hits.layer_id());

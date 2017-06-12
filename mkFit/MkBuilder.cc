@@ -98,23 +98,24 @@ MkBuilder* MkBuilder::make_builder()
 }
 
 #ifdef DEBUG
-namespace {
-  void pre_prop_print(int ilay, MkFitter* mkfttr) {
+namespace
+{
+  void pre_prop_print(int ilay, MkBase* fir) {
     std::cout << "propagate to lay=" << ilay
-              << " start from x=" << mkfttr->getPar(0, 0, 0) << " y=" << mkfttr->getPar(0, 0, 1) << " z=" << mkfttr->getPar(0, 0, 2)
-              << " r=" << getHypot(mkfttr->getPar(0, 0, 0), mkfttr->getPar(0, 0, 1))
-              << " px=" << mkfttr->getPar(0, 0, 3) << " py=" << mkfttr->getPar(0, 0, 4) << " pz=" << mkfttr->getPar(0, 0, 5)
+              << " start from x=" << fir->getPar(0, 0, 0) << " y=" << fir->getPar(0, 0, 1) << " z=" << fir->getPar(0, 0, 2)
+              << " r=" << getHypot(fir->getPar(0, 0, 0), fir->getPar(0, 0, 1))
+              << " px=" << fir->getPar(0, 0, 3) << " py=" << fir->getPar(0, 0, 4) << " pz=" << fir->getPar(0, 0, 5)
 #ifdef CCSCOORD
-              << " pT=" << 1./mkfttr->getPar(0, 0, 3) << std::endl;
+              << " pT=" << 1./fir->getPar(0, 0, 3) << std::endl;
 #else
-              << " pT=" << getHypot(mkfttr->getPar(0, 0, 3), mkfttr->getPar(0, 0, 4)) << std::endl;
+              << " pT=" << getHypot(fir->getPar(0, 0, 3), fir->getPar(0, 0, 4)) << std::endl;
 #endif
   }
 
-  void post_prop_print(int ilay, MkFitter* mkfttr) {
+  void post_prop_print(int ilay, MkBase* fir) {
     std::cout << "propagate to lay=" << ilay
-              << " arrive at x=" << mkfttr->getPar(0, 1, 0) << " y=" << mkfttr->getPar(0, 1, 1) << " z=" << mkfttr->getPar(0, 1, 2)
-              << " r=" << getHypot(mkfttr->getPar(0, 1, 0), mkfttr->getPar(0, 1, 1)) << std::endl;
+              << " arrive at x=" << fir->getPar(0, 1, 0) << " y=" << fir->getPar(0, 1, 1) << " z=" << fir->getPar(0, 1, 2)
+              << " r=" << getHypot(fir->getPar(0, 1, 0), fir->getPar(0, 1, 1)) << std::endl;
   }
 
   void print_seed(const Track& seed) {
@@ -183,7 +184,6 @@ MkBuilder::MkBuilder() :
     {
       computeChi2EndcapMPlex,
       updateParametersEndcapMPlex,
-      &MkFinder::SelectHitIndicesEndcap,
       21,
       &LayerInfo::m_next_ecap_neg,
       &MkBase::PropagateTracksToZ,
@@ -200,7 +200,6 @@ MkBuilder::MkBuilder() :
     {
       computeChi2MPlex,
       updateParametersMPlex,
-      &MkFinder::SelectHitIndices,
       3,
       &LayerInfo::m_next_barrel,
       &MkBase::PropagateTracksToR,
@@ -217,7 +216,6 @@ MkBuilder::MkBuilder() :
     {
       computeChi2EndcapMPlex,
       updateParametersEndcapMPlex,
-      &MkFinder::SelectHitIndicesEndcap,
       12,
       &LayerInfo::m_next_ecap_pos,
       &MkBase::PropagateTracksToZ,
@@ -1058,16 +1056,19 @@ void MkBuilder::FindTracksBestHit()
     // if (region != TrackerInfo::Reg_Barrel)
     //   return;
 
-    const SteeringParams &st_par = m_steering_params[region];
+    const SteeringParams &st_par   = m_steering_params[region];
+    const TrackerInfo    &trk_info = Config::TrkInfo;
 
     const RegionOfSeedIndices rosi(m_event, region);
+
+    // XXXXMT to be done on bunch basis, requires equalization or multi-pass
+    int last_seed_layer = m_event->seedMinLastLayer_[region];
+    int first_layer = trk_info.m_layers[last_seed_layer].*st_par.next_layer_doo;
 
     tbb::parallel_for(rosi.tbb_blk_rng_vec(),
       [&](const tbb::blocked_range<int>& blk_rng)
     {
       FINDER( mkfndr );
-
-      const TrackerInfo &trk_info = Config::TrkInfo;
 
       RangeOfSeedIndices rng = rosi.seed_rng(blk_rng);
 
@@ -1080,8 +1081,9 @@ void MkBuilder::FindTracksBestHit()
         // Loop over layers, starting from after the seed.
         // Consider inverting loop order and make layer outer, need to
         // trade off hit prefetching with copy-out of candidates.
-        for (int ilay = st_par.first_finding_layer; ; )
+        for (int ilay = first_layer; ; )
         {
+          dprint("at layer " << ilay);
           const LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay];
           const LayerInfo   &layer_info    = trk_info.m_layers[ilay];
 
@@ -1099,7 +1101,7 @@ void MkBuilder::FindTracksBestHit()
 
           dcall(post_prop_print(ilay, mkfndr.get()));
 
-          (mkfndr.get()->*st_par.select_hit_idcs_foo)(layer_of_hits, rng.n_proc(), false);
+          mkfndr->SelectHitIndices(layer_of_hits, rng.n_proc(), false);
 
 // #ifdef PRINTOUTS_FOR_PLOTS
 // 	     std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;

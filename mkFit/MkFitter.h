@@ -54,7 +54,6 @@ public:
 
   void PrintPt(int idx);
 
-  float getPar(int itrack, int i, int par) const { return Par[i].ConstAt(itrack, 0, par); }
   void  SetNhits(int newnhits) { Nhits = std::min(newnhits, Config::nMaxTrkHits - 1); }
 
   int countValidHits  (int itrack, int end_hit) const;

@@ -20,7 +20,6 @@ struct SteeringParams
 {
   void (*compute_chi2_foo) (COMPUTE_CHI2_ARGS);
   void (*update_param_foo) (UPDATE_PARAM_ARGS);
-  void (MkFinder::*select_hit_idcs_foo) (const LayerOfHits &, const int, bool);
 
   int   first_finding_layer;  // layer to consider first .. to be thrown out XXXX
 
@@ -39,7 +38,6 @@ struct SteeringParams
 
   SteeringParams(void (*cch2_f)(COMPUTE_CHI2_ARGS),
                  void (*updp_f)(UPDATE_PARAM_ARGS),
-                 void (MkFinder::*shi_f) (const LayerOfHits &, const int, bool),
                  int   ffl,
                  int   LayerInfo::*nl_d,
                  void (MkBase::*p_f)     (float, const int),
@@ -50,7 +48,6 @@ struct SteeringParams
                  void (MkFitter::*fcmc_f)(const LayerOfHits &, CandCloner &, const int, const int)) :
     compute_chi2_foo(cch2_f),
     update_param_foo(updp_f),
-    select_hit_idcs_foo(shi_f),
     first_finding_layer(ffl),
     next_layer_doo(nl_d),
     propagate_foo(p_f),

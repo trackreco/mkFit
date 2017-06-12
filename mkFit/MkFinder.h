@@ -90,7 +90,6 @@ public:
   //----------------------------------------------------------------------------
 
   void SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_proc, bool dump=false);
-  void SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits, const int N_proc, bool dump=false);
 
   void AddBestHit(const LayerOfHits    &layer_of_hits, const int N_proc,
                   const SteeringParams &st_par);

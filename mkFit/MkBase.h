@@ -15,6 +15,8 @@ struct MkBase
   static constexpr int iC = 0; // current
   static constexpr int iP = 1; // propagated
 
+  float getPar(int itrack, int i, int par) const { return Par[i].ConstAt(itrack, 0, par); }
+
   //----------------------------------------------------------------------------
 
   MkBase() {}
