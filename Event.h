@@ -30,7 +30,7 @@ public:
   int  evtID() const {return evtID_;}
   void resetLayerHitMap(bool resetSimHits);
 
-  int nextMCHitID() { return mcHitIDCounter_++; }
+  int  nextMCHitID() { return mcHitIDCounter_++; }
 
   void write_out(DataFile &data_file);
   void read_in  (DataFile &data_file);
@@ -59,6 +59,7 @@ public:
   // This will have to be extended for multi-pass tracking.
   int seedEtaSeparators_[5];
   int seedMinLastLayer_[5];
+  int seedMaxLastLayer_[5];
 
   TSVec simTrackStates_;
   static std::mutex printmutex;

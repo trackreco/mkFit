@@ -22,10 +22,26 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<Track>& tracks,
 
   const int iI = inputProp ? iP : iC;
 
-  int itrack = 0;
-  for (int i = beg; i < end; ++i, ++itrack)
+  for (int i = beg, imp = 0; i < end; ++i, ++imp)
   {
-    copy_in(tracks[i], itrack, iI);
+    copy_in(tracks[i], imp, iI);
+  }
+}
+
+void MkFinder::InputTracksAndHitIdx(const std::vector<Track>& tracks,
+                                    const std::vector<int>  & idxs,
+                                    int beg, int end, bool inputProp, int mp_offset)
+{
+  // Assign track parameters to initial state and copy hit values in.
+
+  // This might not be true for the last chunk!
+  // assert(end - beg == NN);
+
+  const int iI = inputProp ? iP : iC;
+
+  for (int i = beg, imp = mp_offset; i < end; ++i, ++imp)
+  {
+    copy_in(tracks[idxs[i]], imp, iI);
   }
 }
 
@@ -40,15 +56,14 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<std::vector<Track> >& trac
 
   const int iI = inputProp ? iP : iC;
 
-  int itrack = 0;
-  for (int i = beg; i < end; ++i, ++itrack)
+  for (int i = beg, imp = 0; i < end; ++i, ++imp)
   {
     const Track &trk = tracks[idxs[i].first][idxs[i].second];
 
-    copy_in(trk, itrack, iI);
+    copy_in(trk, imp, iI);
 
-    SeedIdx(itrack, 0, 0) = idxs[i].first;
-    CandIdx(itrack, 0, 0) = idxs[i].second;
+    SeedIdx(imp, 0, 0) = idxs[i].first;
+    CandIdx(imp, 0, 0) = idxs[i].second;
   }
 }
 
@@ -63,15 +78,14 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<std::vector<Track> >& trac
 
   const int iI = inputProp ? iP : iC;
 
-  int itrack = 0;
-  for (int i = beg; i < end; ++i, ++itrack)
+  for (int i = beg, imp = 0; i < end; ++i, ++imp)
   {
     const Track &trk = tracks[idxs[i].first][idxs[i].second.trkIdx];
 
-    copy_in(trk, itrack, iI);
+    copy_in(trk, imp, iI);
 
-    SeedIdx(itrack, 0, 0) = idxs[i].first;
-    CandIdx(itrack, 0, 0) = idxs[i].second.trkIdx;
+    SeedIdx(imp, 0, 0) = idxs[i].first;
+    CandIdx(imp, 0, 0) = idxs[i].second.trkIdx;
   }
 }
 
@@ -83,10 +97,24 @@ void MkFinder::OutputTracksAndHitIdx(std::vector<Track>& tracks,
 
   const int iO = outputProp ? iP : iC;
 
-  int itrack = 0;
-  for (int i = beg; i < end; ++i, ++itrack)
+  for (int i = beg, imp = 0; i < end; ++i, ++imp)
   {
-    copy_out(tracks[i], itrack, iO);
+    copy_out(tracks[i], imp, iO);
+  }
+}
+
+void MkFinder::OutputTracksAndHitIdx(std::vector<Track>& tracks,
+                                     const std::vector<int>& idxs,
+                                     int beg, int end, bool outputProp) const
+{
+  // Copies requested track parameters into Track objects.
+  // The tracks vector should be resized to allow direct copying.
+
+  const int iO = outputProp ? iP : iC;
+
+  for (int i = beg, imp = 0; i < end; ++i, ++imp)
+  {
+    copy_out(tracks[idxs[i]], imp, iO);
   }
 }
 
@@ -271,9 +299,13 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
   }
 }
 
+
 //==============================================================================
 // AddBestHit
 //==============================================================================
+
+//#define NO_PREFETCH
+//#define NO_GATHER
 
 void MkFinder::AddBestHit(const LayerOfHits    &layer_of_hits, const int N_proc,
                           const SteeringParams &st_par)

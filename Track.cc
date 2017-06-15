@@ -182,6 +182,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
       if (isSeed) mcTrackID_ = mcTrackID;
       else
       {
+        // XXXXMT4K Requires Track::nFoundUniqueLayerHits() or Track::nFoundLayers()
 	const int nMinSimHits = simtracks[mcTrackID].nFoundHits() * Config::nMinSimHitsFrac;
 	const int minFoundHits = ((nMinSimHits >= Config::nMinFoundHits) ? Config::nMinFoundHits : nMinSimHits);
 	

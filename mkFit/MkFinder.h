@@ -76,15 +76,24 @@ public:
 
   void InputTracksAndHitIdx(const std::vector<Track>& tracks,
                             int beg, int end, bool inputProp);
-  void InputTracksAndHitIdx(const std::vector<std::vector<Track> >& tracks,
-                            const std::vector<std::pair<int,int> >& idxs,
+
+  void InputTracksAndHitIdx(const std::vector<Track>& tracks,
+                            const std::vector<int>  &   idxs,
+                            int beg, int end, bool inputProp, int mp_offset);
+
+  void InputTracksAndHitIdx(const std::vector<std::vector<Track>>& tracks,
+                            const std::vector<std::pair<int,int>>& idxs,
                             int beg, int end, bool inputProp);
 
-  void InputTracksAndHitIdx(const std::vector<std::vector<Track> >& tracks,
-                            const std::vector<std::pair<int,IdxChi2List> >& idxs,
+  void InputTracksAndHitIdx(const std::vector<std::vector<Track>>& tracks,
+                            const std::vector<std::pair<int,IdxChi2List>>& idxs,
                             int beg, int end, bool inputProp);
 
   void OutputTracksAndHitIdx(std::vector<Track>& tracks,
+                             int beg, int end, bool outputProp) const;
+
+  void OutputTracksAndHitIdx(std::vector<Track>& tracks,
+                             const std::vector<int>& idxs,
                              int beg, int end, bool outputProp) const;
 
   //----------------------------------------------------------------------------
