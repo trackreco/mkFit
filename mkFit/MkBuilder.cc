@@ -189,7 +189,6 @@ MkBuilder::MkBuilder() :
       &MkBase::PropagateTracksToZ,
       &MkFitter::SelectHitIndicesEndcap,
       &MkFitter::UpdateWithLastHitEndcap,
-      &MkFitter::FindCandidatesEndcap,
       &MkFitter::FindCandidatesMinimizeCopyEndcap
     };
 
@@ -204,7 +203,6 @@ MkBuilder::MkBuilder() :
       &MkBase::PropagateTracksToR,
       &MkFitter::SelectHitIndices,
       &MkFitter::UpdateWithLastHit,
-      &MkFitter::FindCandidates,
       &MkFitter::FindCandidatesMinimizeCopy
     };
 
@@ -219,7 +217,6 @@ MkBuilder::MkBuilder() :
       &MkBase::PropagateTracksToZ,
       &MkFitter::SelectHitIndicesEndcap,
       &MkFitter::UpdateWithLastHitEndcap,
-      &MkFitter::FindCandidatesEndcap,
       &MkFitter::FindCandidatesMinimizeCopyEndcap
     };
 
@@ -1188,9 +1185,13 @@ void MkBuilder::FindTracksStandard()
   tbb::parallel_for_each(m_brl_ecp_regions.begin(), m_brl_ecp_regions.end(),
     [&](int region)
   {
-    const SteeringParams &st_par = m_steering_params[region];
+    const SteeringParams &st_par   = m_steering_params[region];
+    const TrackerInfo    &trk_info = Config::TrkInfo;
 
     const RegionOfSeedIndices rosi(m_event, region);
+
+    const int last_seed_layer = m_event->seedMinLastLayer_[region];
+    const int first_layer     = trk_info.m_layers[last_seed_layer].*st_par.next_layer_doo;
 
     int adaptiveSPT = eoccs.m_size / Config::numThreadsFinder / 2 + 1;
     dprint("adaptiveSPT " << adaptiveSPT << " fill " << eoccs.m_size);
@@ -1199,18 +1200,23 @@ void MkBuilder::FindTracksStandard()
     tbb::parallel_for(rosi.tbb_blk_rng_std(/*adaptiveSPT*/),
       [&](const tbb::blocked_range<int>& seeds)
     {
-      FITTER( mkfndr );
-
-      const TrackerInfo &trk_info = Config::TrkInfo;
+      FINDER( mkfndr );
 
       const int start_seed = seeds.begin();
       const int end_seed   = seeds.end();
-      const int nseeds     = end_seed - start_seed;
+      const int n_seeds    = end_seed - start_seed;
+
+      std::vector<std::vector<Track>> tmp_cands(n_seeds);
+      for (int iseed = 0; iseed < tmp_cands.size(); ++iseed)
+      {
+        tmp_cands[iseed].reserve(2*Config::maxCandsPerSeed);//factor 2 seems reasonable to start with
+      }
+
+      std::vector<std::pair<int,int>> seed_cand_idx;
+      seed_cand_idx.reserve(n_seeds * Config::maxCandsPerSeed);
 
       // Loop over layers, starting from after the seed.
-      int  n_hits = Config::nlayers_per_seed;
-
-      for (int ilay = st_par.first_finding_layer; ; )
+      for (int ilay = first_layer; ; )
       {
         dprint("processing lay=" << ilay);
 	
@@ -1218,14 +1224,12 @@ void MkBuilder::FindTracksStandard()
         const LayerInfo   &layer_info    = trk_info.m_layers[ilay];
 
         // prepare unrolled vector to loop over
-        std::vector<std::pair<int,int> > seed_cand_idx;
-
         for (int iseed = start_seed; iseed < end_seed; ++iseed)
         {
           std::vector<Track> &scands = eoccs[iseed];
           for (int ic = 0; ic < scands.size(); ++ic)
           {
-            if (scands[ic].getLastHitIdx() >= -1)
+            if (scands[ic].getLastHitIdx() != -2 && scands[ic].getLastHitLyr() < ilay)
             {
               seed_cand_idx.push_back(std::pair<int,int>(iseed,ic));
             }
@@ -1233,26 +1237,14 @@ void MkBuilder::FindTracksStandard()
         }
         int theEndCand = seed_cand_idx.size();
 
-        if (theEndCand == 0) continue;
+        if (theEndCand == 0) goto next_layer;
 
-        std::vector<std::vector<Track>> tmp_cands(nseeds);
-        for (int iseed = 0; iseed < tmp_cands.size(); ++iseed)
-        {
-          // XXXX MT: Tried adding 25 to reserve below as I was seeing some
-          // time spent in push_back ... but it didn't really help.
-          // We need to optimize this by throwing away and replacing the worst
-          // candidate once a better one arrives. This will also avoid sorting.
-          tmp_cands[iseed].reserve(2*Config::maxCandsPerSeed);//factor 2 seems reasonable to start with
-        }
-
-        //vectorized loop
+        // vectorized loop
         for (int itrack = 0; itrack < theEndCand; itrack += NN)
         {
           int end = std::min(itrack + NN, theEndCand);
 
           dprint("processing track=" << itrack);
-
-          mkfndr->SetNhits(n_hits); //here again assuming one hit per layer
 
           //fixme find a way to deal only with the candidates needed in this thread
           mkfndr->InputTracksAndHitIdx(eoccs.m_candidates,
@@ -1267,20 +1259,20 @@ void MkBuilder::FindTracksStandard()
           dcall(post_prop_print(ilay, mkfndr.get()));
 
           dprint("now get hit range");
-          (mkfndr.get()->*st_par.select_hits_foo)(layer_of_hits, end - itrack, false);
+          mkfndr->SelectHitIndices(layer_of_hits, end - itrack, false);
 
 	  //#ifdef PRINTOUTS_FOR_PLOTS
 	  //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
 	  //#endif
 
           dprint("make new candidates");
-          (mkfndr.get()->*st_par.find_cands_foo)(layer_of_hits, tmp_cands, start_seed, end - itrack);
-          
+          mkfndr->FindCandidates(layer_of_hits, tmp_cands, start_seed, end - itrack, st_par);
+
         } //end of vectorized loop
 
 	// clean exceeding candidates per seed
         // FIXME: is there a reason why these are not vectorized????
-        for (int is = 0; is < tmp_cands.size(); ++is)
+        for (int is = 0; is < n_seeds; ++is)
         {
           dprint("dump seed n " << is << " with input candidates=" << tmp_cands[is].size());
           std::sort(tmp_cands[is].begin(), tmp_cands[is].end(), sortCandByHitsChi2);
@@ -1295,25 +1287,24 @@ void MkBuilder::FindTracksStandard()
           dprint("dump seed n " << is << " with output candidates=" << tmp_cands[is].size());
         }
         // now swap with input candidates
-        for (int is = 0; is < tmp_cands.size(); ++is)
+        for (int is = 0; is < n_seeds; ++is)
         {
           if (tmp_cands[is].size() > 0)
           {
             // Copy the best -2 cands back to the current list.
-            int num_hits = tmp_cands[is].size();
+            int num_cands = tmp_cands[is].size();
 
-            // XXXXMT This looks BAD
-            if (num_hits < Config::maxCandsPerSeed)
+            if (num_cands < Config::maxCandsPerSeed)
             {
-              std::vector<Track> &ov = eoccs[start_seed+is];
+              std::vector<Track> &ov = eoccs[start_seed + is];
               const int max_m2 = ov.size();
-	      
+
               int cur_m2 = 0;
               while (cur_m2 < max_m2 && ov[cur_m2].getLastHitIdx() != -2) ++cur_m2;
-              while (cur_m2 < max_m2 && num_hits < Config::maxCandsPerSeed)
+              while (cur_m2 < max_m2 && num_cands < Config::maxCandsPerSeed)
               {
                 tmp_cands[is].push_back( ov[cur_m2++] );
-                ++num_hits;
+                ++num_cands;
               }
             }
 
@@ -1321,13 +1312,15 @@ void MkBuilder::FindTracksStandard()
             tmp_cands[is].clear();
           }
         }
+        seed_cand_idx.clear();
+
+      next_layer:
 
         if (layer_info.m_is_outer)
         {
           break;
         }
 
-        ++n_hits;
         ilay = layer_info.*st_par.next_layer_doo;
       } // end of layer loop
 

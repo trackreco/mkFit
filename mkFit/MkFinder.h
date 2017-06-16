@@ -105,15 +105,16 @@ public:
 
   //----------------------------------------------------------------------------
 
-  void FindCandidates(const LayerOfHits &layer_of_hits, std::vector<std::vector<Track>>& tmp_candidates,
-		      const int offset, const int N_proc);
-  void FindCandidatesEndcap(const LayerOfHits &layer_of_hits, std::vector<std::vector<Track>>& tmp_candidates,
-			    const int offset, const int N_proc);
+  void FindCandidates(const LayerOfHits &layer_of_hits,
+                      std::vector<std::vector<Track>>& tmp_candidates,
+		      const int offset, const int N_proc,
+                      const SteeringParams &st_par);
 
   //----------------------------------------------------------------------------
 
   void FindCandidatesMinimizeCopy(const LayerOfHits &layer_of_hits, CandCloner& cloner,
-                                  const int offset, const int N_proc);
+                                  const int offset, const int N_proc,
+                                  const SteeringParams &st_par);
   void FindCandidatesMinimizeCopyEndcap(const LayerOfHits &layer_of_hits, CandCloner& cloner,
                                         const int offset, const int N_proc);
 
@@ -152,7 +153,7 @@ private:
 
     trk.setNTotalHits(NHits     (mslot, 0, 0));
     trk.setNFoundHits(NFoundHits(mslot, 0, 0));
-    std::copy(HoTArrs[mslot], HoTArrs[mslot + 1], trk.BeginHitsOnTrack_nc());
+    std::copy(HoTArrs[mslot], & HoTArrs[mslot][NHits(mslot, 0, 0)], trk.BeginHitsOnTrack_nc());
   }
 
   void add_hit(const int mslot, int index, int layer)

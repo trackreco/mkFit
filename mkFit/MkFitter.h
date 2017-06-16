@@ -93,10 +93,6 @@ public:
   void SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_proc, bool dump=false);
   void SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits, const int N_proc, bool dump=false);
 
-  void FindCandidates(const LayerOfHits &layer_of_hits, std::vector<std::vector<Track>>& tmp_candidates,
-		      const int offset, const int N_proc);
-  void FindCandidatesEndcap(const LayerOfHits &layer_of_hits, std::vector<std::vector<Track>>& tmp_candidates,
-			    const int offset, const int N_proc);
   // ================================================================
   // Methods used with clone engine
   // ================================================================
