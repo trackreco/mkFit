@@ -179,7 +179,7 @@ namespace Config
   // Config for Hit and BinInfoUtils
   constexpr int   nPhiPart   = 1260;
   constexpr float fPhiFactor = nPhiPart / TwoPI;
-  constexpr int   nEtaPart   = 11;  // 1 is better for GPU best_hit
+  constexpr int   nEtaPart   = 1;  // 1 is better for GPU best_hit
   constexpr int   nEtaBin    = 2 * nEtaPart - 1;
 
   constexpr float        fEtaFull  = 2 * Config::fEtaDet;
@@ -216,7 +216,7 @@ namespace Config
   constexpr int maxHitsConsidered = 25;
   extern    int maxHitsPerBunch;
 
-  constexpr int maxCandsPerSeed   = 6; //default: 6; cmssw tests: 3; divisor of 32 for gpu
+  constexpr int maxCandsPerSeed   = 8; //default: 6; cmssw tests: 3; divisor of 32 for gpu
   constexpr int maxHolesPerCand   = 2;
   extern    int maxCandsPerEtaBin;
 

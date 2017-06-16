@@ -213,13 +213,10 @@ public:
   }
 
   CUDA_CALLABLE
-  void addHitIdx(int hitIdx,float chi2, int thread_idx = 0)
+  void addHitIdx(int hitIdx,float chi2)
   {
-    hitIdxPos_++;
-    hitIdxArr_[hitIdxPos_] = hitIdx;
-    if (hitIdx >= 0) { 
-      ++nGoodHitIdx_; chi2_+=chi2;
-    }
+    hitIdxArr_[++hitIdxPos_] = hitIdx;
+    if (hitIdx >= 0) { ++nGoodHitIdx_; chi2_+=chi2; }
   }
 
   CUDA_CALLABLE
