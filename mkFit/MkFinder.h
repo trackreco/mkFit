@@ -112,14 +112,12 @@ public:
 
   //----------------------------------------------------------------------------
 
-  void FindCandidatesMinimizeCopy(const LayerOfHits &layer_of_hits, CandCloner& cloner,
-                                  const int offset, const int N_proc,
-                                  const SteeringParams &st_par);
-  void FindCandidatesMinimizeCopyEndcap(const LayerOfHits &layer_of_hits, CandCloner& cloner,
-                                        const int offset, const int N_proc);
+  void FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandCloner& cloner,
+                                 const int offset, const int N_proc,
+                                 const SteeringParams &st_par);
 
-  void UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc);
-  void UpdateWithLastHitEndcap(const LayerOfHits &layer_of_hits, int N_proc);
+  void UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc,
+                         const SteeringParams &st_par);
 
   void CopyOutParErr(std::vector<std::vector<Track> >& seed_cand_vec,
                      int N_proc, bool outputProp) const;
@@ -161,6 +159,11 @@ private:
     HoTArrs[mslot][NHits(mslot, 0, 0)] = { index, layer };
     ++NHits(mslot, 0, 0);
     if (index >= 0) ++NFoundHits(mslot, 0, 0);
+  }
+
+  int num_invalid_hits(const int mslot) const
+  {
+    return NHits(mslot,0,0) - NFoundHits(mslot,0,0);
   }
 };
 

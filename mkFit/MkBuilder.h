@@ -98,7 +98,9 @@ public:
 
   void find_tracks_load_seeds_BH(); // for FindTracksBestHit
   void find_tracks_load_seeds();
-  void find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfndr,
+  int  find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & seed_cand_vec,
+                                     int start_seed, int end_seed, int layer);
+  void find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
                              int start_seed, int end_seed, int region);
 
   // --------

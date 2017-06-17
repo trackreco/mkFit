@@ -184,12 +184,8 @@ MkBuilder::MkBuilder() :
     {
       computeChi2EndcapMPlex,
       updateParametersEndcapMPlex,
-      21,
       &LayerInfo::m_next_ecap_neg,
       &MkBase::PropagateTracksToZ,
-      &MkFitter::SelectHitIndicesEndcap,
-      &MkFitter::UpdateWithLastHitEndcap,
-      &MkFitter::FindCandidatesMinimizeCopyEndcap
     };
 
   //m_steering_params[TrackerInfo::Reg_Transition_Neg] = { };
@@ -198,12 +194,8 @@ MkBuilder::MkBuilder() :
     {
       computeChi2MPlex,
       updateParametersMPlex,
-      3,
       &LayerInfo::m_next_barrel,
       &MkBase::PropagateTracksToR,
-      &MkFitter::SelectHitIndices,
-      &MkFitter::UpdateWithLastHit,
-      &MkFitter::FindCandidatesMinimizeCopy
     };
 
   //m_steering_params[TrackerInfo::Reg_Transition_Pos] = { };
@@ -212,12 +204,8 @@ MkBuilder::MkBuilder() :
     {
       computeChi2EndcapMPlex,
       updateParametersEndcapMPlex,
-      12,
       &LayerInfo::m_next_ecap_pos,
       &MkBase::PropagateTracksToZ,
-      &MkFitter::SelectHitIndicesEndcap,
-      &MkFitter::UpdateWithLastHitEndcap,
-      &MkFitter::FindCandidatesMinimizeCopyEndcap
     };
 
   // XXMT4D Changing this order might
@@ -1172,6 +1160,26 @@ void MkBuilder::find_tracks_load_seeds()
   dcall(print_seeds(eoccs));
 }
 
+int MkBuilder::find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & seed_cand_vec,
+                                             int start_seed, int end_seed, int layer)
+{
+  seed_cand_vec.clear();
+
+  for (int iseed = start_seed; iseed < end_seed; ++iseed)
+  {
+    std::vector<Track> &scands = m_event_of_comb_cands[iseed];
+    for (int ic = 0; ic < scands.size(); ++ic)
+    {
+      if (scands[ic].getLastHitIdx() != -2 && scands[ic].getLastHitLyr() < layer)
+      {
+        seed_cand_vec.push_back(std::pair<int,int>(iseed,ic));
+      }
+    }
+  }
+
+  return seed_cand_vec.size();
+}
+
 //------------------------------------------------------------------------------
 // FindTracksCombinatorial: Standard TBB
 //------------------------------------------------------------------------------
@@ -1223,19 +1231,7 @@ void MkBuilder::FindTracksStandard()
         const LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay];
         const LayerInfo   &layer_info    = trk_info.m_layers[ilay];
 
-        // prepare unrolled vector to loop over
-        for (int iseed = start_seed; iseed < end_seed; ++iseed)
-        {
-          std::vector<Track> &scands = eoccs[iseed];
-          for (int ic = 0; ic < scands.size(); ++ic)
-          {
-            if (scands[ic].getLastHitIdx() != -2 && scands[ic].getLastHitLyr() < ilay)
-            {
-              seed_cand_idx.push_back(std::pair<int,int>(iseed,ic));
-            }
-          }
-        }
-        int theEndCand = seed_cand_idx.size();
+        int theEndCand = find_tracks_unroll_candidates(seed_cand_idx, start_seed, end_seed, ilay);
 
         if (theEndCand == 0) goto next_layer;
 
@@ -1312,7 +1308,6 @@ void MkBuilder::FindTracksStandard()
             tmp_cands[is].clear();
           }
         }
-        seed_cand_idx.clear();
 
       next_layer:
 
@@ -1359,7 +1354,7 @@ void MkBuilder::FindTracksCloneEngine()
       [&](const tbb::blocked_range<int>& seeds)
     {
       CLONER( cloner );
-      FITTER( mkfndr );
+      FINDER( mkfndr );
 
       // loop over layers
       find_tracks_in_layers(*cloner, mkfndr.get(), seeds.begin(), seeds.end(), region);
@@ -1369,9 +1364,11 @@ void MkBuilder::FindTracksCloneEngine()
   // debug = false;
 }
 
-void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfndr,
+void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
                                       int start_seed, int end_seed, int region)
 {
+  // int debug = 1;
+
   EventOfCombCandidates &eoccs    = m_event_of_comb_cands;
   const SteeringParams  &st_par   = m_steering_params[region];
   const TrackerInfo     &trk_info = Config::TrkInfo;
@@ -1387,7 +1384,6 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfndr,
   // Note that we do a final pass with ilay = -1 to update parameters
   // and output final tracks. prev_ilay == -1 serves as is_first_layer.
   int prev_ilay = -1;
-  int n_hits = Config::nlayers_per_seed;
 
   int last_seed_layer = m_event->seedMinLastLayer_[region];
   int first_layer = trk_info.m_layers[last_seed_layer].*st_par.next_layer_doo;
@@ -1401,32 +1397,9 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfndr,
 
     const LayerInfo &layer_info = trk_info.m_layers[ilay];
 
-    //prepare unrolled vector to loop over
-    for (int iseed = start_seed; iseed < end_seed; ++iseed)
-    {
-      std::vector<Track> &scands = eoccs.m_candidates[iseed];
-      for (int ic = 0; ic < scands.size(); ++ic)
-      {
-        // XXXXXXMT4MT what is -2, -3 now?
-        // My understanding:
-        // -1 missing hit
-        // -2 missing hit - stopped tracking
-        // -3 missing hit due to detector geometry
-        // So -3 should also be taken -- but it only applies to CMS which is
-        // currently not used.
-        //
-        // TODO:
-        // 1. Renumber so stopped track is the most negative number.
-        //    Can leave some room for future missing-hit-types.
-        // 2. Document these cases somewhere, have NAMES or constants or an enum.
-        // 3. Make sure they are used consistently everywhere.
-        if (scands[ic].getLastHitIdx() != -2 && scands[ic].getLastHitLyr() < ilay)
-        {
-          seed_cand_idx.push_back(std::pair<int,int>(iseed,ic));
-        }
-      }
-    }
-    const int theEndCand = seed_cand_idx.size();
+    const int theEndCand = find_tracks_unroll_candidates(seed_cand_idx, start_seed, end_seed, ilay);
+
+    dprintf("  Number of candidates to process: %d\n", theEndCand);
 
     // Don't bother messing with the clone engine if there are no candidates
     // (actually it crashes, so this protection is needed).
@@ -1435,7 +1408,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfndr,
     // XXXXMT There might be cases in endcap where all tracks will miss the
     // next layer, but only relevant if we do geometric selection before.
 
-    if (theEndCand == 0) break;
+    if (theEndCand == 0 && ilay != -1) goto next_layer;
 
     if (ilay >= 0)
     {
@@ -1458,9 +1431,6 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfndr,
       dprintf("\n");
 #endif
 
-      // YYYYYY
-      mkfndr->SetNhits(n_hits);
-
       mkfndr->InputTracksAndHitIdx(eoccs.m_candidates, seed_cand_idx,
                                  itrack, end, prev_ilay >= 0);
 
@@ -1473,7 +1443,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfndr,
       {
         const LayerOfHits &prev_layer_of_hits = m_event_of_hits.m_layers_of_hits[prev_ilay];
 
-        (mkfndr->*st_par.update_with_last_hit_foo)(prev_layer_of_hits, end - itrack);
+        mkfndr->UpdateWithLastHit(prev_layer_of_hits, end - itrack, st_par);
       }
       if (ilay >= 0)
       {
@@ -1493,7 +1463,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfndr,
 
       const LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay];
 
-      (mkfndr->*st_par.select_hits_foo)(layer_of_hits, end - itrack, false);
+      mkfndr->SelectHitIndices(layer_of_hits, end - itrack, false);
 
       //#ifdef PRINTOUTS_FOR_PLOTS
       //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
@@ -1502,7 +1472,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfndr,
       dprint("make new candidates");
       cloner.begin_iteration();
 
-      (mkfndr->*st_par.find_cands_min_copy_foo)(layer_of_hits, cloner, start_seed, end - itrack);
+      mkfndr->FindCandidatesCloneEngine(layer_of_hits, cloner, start_seed, end - itrack, st_par);
 
       cloner.end_iteration();
     } //end of vectorized loop
@@ -1515,11 +1485,11 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFitter *mkfndr,
     {
       break;
     }
-    seed_cand_idx.clear();
 
-    ++n_hits;
     prev_ilay = ilay;
-    ilay      = layer_info.*st_par.next_layer_doo;
+
+  next_layer:
+    ilay = layer_info.*st_par.next_layer_doo;
   } // end of layer loop
 
   cloner.end_eta_bin();

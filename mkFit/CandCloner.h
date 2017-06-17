@@ -1,9 +1,11 @@
 #ifndef CandCloner_h
 #define CandCloner_h
 
-#include "MkFitter.h"
+#include "MkFinder.h"
 
 #include <vector>
+
+class EventOfCombCandidates;
 
 //#define CC_TIME_LAYER
 //#define CC_TIME_ETA
@@ -25,8 +27,6 @@ private:
 public:
   CandCloner()
   {
-    // m_fitter = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(0);
-
     t_cands_for_next_lay.resize(s_max_seed_range);
     for (int iseed = 0; iseed < s_max_seed_range; ++iseed)
     {
@@ -74,7 +74,7 @@ public:
     // Do nothing, "secondary" state vars updated when work completed/assigned.
   }
 
-  void add_cand(int idx, const MkFitter::IdxChi2List& cand_info)
+  void add_cand(int idx, const MkFinder::IdxChi2List& cand_info)
   {
     m_hits_to_add[idx].push_back(cand_info);
 
@@ -159,7 +159,7 @@ public:
   // eventually, protected or private
 
   int  m_idx_max, m_idx_max_prev;
-  std::vector<std::vector<MkFitter::IdxChi2List>> m_hits_to_add;
+  std::vector<std::vector<MkFinder::IdxChi2List>> m_hits_to_add;
 
   EventOfCombCandidates *mp_event_of_comb_candidates;
 

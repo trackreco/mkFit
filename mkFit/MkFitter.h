@@ -90,36 +90,6 @@ public:
 
   void OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end, bool outputProp) const;
 
-  void SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_proc, bool dump=false);
-  void SelectHitIndicesEndcap(const LayerOfHits &layer_of_hits, const int N_proc, bool dump=false);
-
-  // ================================================================
-  // Methods used with clone engine
-  // ================================================================
-  //minimal set of information for bookkeping
-  struct IdxChi2List
-  {
-    int   trkIdx;//candidate index
-    int   hitIdx;//hit index
-    int   nhits; //number of hits (used for sorting)
-    float chi2;//total chi2 (used for sorting)
-  };
-  //version of find candidates that does not cloning, just fills the IdxChi2List as output (to be then read by the clone engine)
-  void FindCandidatesMinimizeCopy(const LayerOfHits &layer_of_hits, CandCloner& cloner,
-                                  const int offset, const int N_proc);
-  void FindCandidatesMinimizeCopyEndcap(const LayerOfHits &layer_of_hits, CandCloner& cloner,
-                                        const int offset, const int N_proc);
-
-  //version of input tracks using IdxChi2List
-  void InputTracksAndHitIdx(const std::vector<std::vector<Track> >& tracks,
-                            const std::vector<std::pair<int,IdxChi2List> >& idxs,
-                            int beg, int end, bool inputProp = false);
-
-  void UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc);
-  void UpdateWithLastHitEndcap(const LayerOfHits &layer_of_hits, int N_proc);
-
-  void CopyOutParErr(std::vector<std::vector<Track> >& seed_cand_vec,
-                     int N_proc, bool outputProp) const;
 };
 
 #endif

@@ -1,11 +1,14 @@
 #include "CandCloner.h"
+
+#include "HitStructures.h"
+
 //#define DEBUG
 #include "Debug.h"
 
 namespace
 {
-inline bool sortCandListByHitsChi2(const MkFitter::IdxChi2List& cand1,
-                                   const MkFitter::IdxChi2List& cand2)
+inline bool sortCandListByHitsChi2(const MkFinder::IdxChi2List& cand1,
+                                   const MkFinder::IdxChi2List& cand2)
 {
   if (cand1.nhits == cand2.nhits) return cand1.chi2 < cand2.chi2;
   return cand1.nhits > cand2.nhits;
@@ -23,7 +26,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
   //1) sort the candidates
   for (int is = is_beg; is < is_end; ++is)
   {
-    std::vector<MkFitter::IdxChi2List>& hitsForSeed = m_hits_to_add[is];
+    std::vector<MkFinder::IdxChi2List>& hitsForSeed = m_hits_to_add[is];
 
     std::vector<std::vector<Track>> &cands = mp_event_of_comb_candidates->m_candidates;
 
@@ -52,7 +55,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
 
       for (int ih = 0; ih < num_hits; ih++)
       {
-        const MkFitter::IdxChi2List &h2a = hitsForSeed[ih];
+        const MkFinder::IdxChi2List &h2a = hitsForSeed[ih];
         cv.push_back( cands[ m_start_seed + is ][ h2a.trkIdx ] );
         cv.back().addHitIdx(h2a.hitIdx, m_layer, 0);
         cv.back().setChi2(h2a.chi2);
