@@ -14,6 +14,8 @@
 #include "tbb/tbb.h"
 #endif
 
+#include <memory>
+
 std::mutex Event::printmutex;
 
 inline bool sortByPhi(const Hit& hit1, const Hit& hit2)
