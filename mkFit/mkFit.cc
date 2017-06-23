@@ -99,6 +99,7 @@ void initGeom(Geometry& geom)
 
 namespace
 {
+  int   g_start_event   = 1;
   bool  g_run_fit_std   = false;
 
   bool  g_run_build_all = true;
@@ -220,9 +221,23 @@ void test_standard()
   DataFile data_file;
   if (g_operation == "read")
   {
-    int evs_in_file = data_file.OpenRead(g_file_name);
+    int evs_in_file   = data_file.OpenRead(g_file_name);
+    int evs_available = evs_in_file - g_start_event + 1;
     if (Config::nEvents == -1)
-      Config::nEvents = evs_in_file;
+    {
+      Config::nEvents = evs_available;
+    }
+    else if (Config::nEvents > evs_available)
+    {
+      printf("Requested number of events %d, only %d available.\n",
+             Config::nEvents, evs_available);
+      Config::nEvents = evs_available;
+    }
+
+    if (g_start_event > 1)
+    {
+      data_file.SkipNEvents(g_start_event - 1);
+    }
   }
 
   if (Config::useCMSGeom) fillZRgridME();
@@ -272,7 +287,7 @@ void test_standard()
     std::cout << "Total best hit time (GPU): " << total_best_hit_time << std::endl;
   }
 #else
-  std::atomic<int> nevt{1};
+  std::atomic<int> nevt{g_start_event};
   std::atomic<int> seedstot{0}, simtrackstot{0};
 
   std::vector<std::unique_ptr<Event>>      evs(Config::numThreadsEvents);
@@ -332,7 +347,7 @@ void test_standard()
 
       if (g_operation == "read")
       {
-        ev.read_in(data_file);
+        ev.read_in(data_file, fp);
       }
       else
       {
@@ -490,6 +505,7 @@ int main(int argc, const char *argv[])
         "  --silent                 suppress printouts inside event loop (def: %s)\n"
         "  --write                  write simulation to file and exit\n"
         "  --read                   read simulation from file\n"
+        "  --skip-events   <num>    number of events to skip when reading from a file (def: %d)\n"
         "  --file-name              file name for write/read (def: %s)\n"
         "  --input-file             file name for reading when converting formats (def: %s)\n"
         "GPU specific options: \n"
@@ -513,6 +529,7 @@ int main(int argc, const char *argv[])
         b2a(Config::fit_val),
 	b2a(Config::inclusiveShorts),
         b2a(Config::silent),
+        g_start_event,
       	g_file_name.c_str(),
       	g_input_file.c_str()
       );
@@ -634,6 +651,11 @@ int main(int argc, const char *argv[])
     {
       g_operation = "read";
       Config::nEvents = -1;
+    }
+    else if (*i == "--start-event")
+    {
+      next_arg_or_die(mArgs, i);
+      g_start_event = atoi(i->c_str());
     }
     else if(*i == "--file-name")
     {

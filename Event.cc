@@ -441,21 +441,11 @@ void Event::write_out(DataFile &data_file)
 // #define DUMP_TRACK_HITS
 // #define DUMP_LAYER_HITS
 
-void Event::read_in(DataFile &data_file)
+void Event::read_in(DataFile &data_file, FILE *in_fp)
 {
-  FILE *fp = data_file.f_fp;
+  FILE *fp = in_fp ? in_fp : data_file.f_fp;
 
-  static long pos = sizeof(DataFileHeader);
-  int evsize;
-
-  {
-    static std::mutex readmutex;
-    std::lock_guard<std::mutex> readlock(readmutex);
-
-    fseek(fp, pos, SEEK_SET);
-    fread(&evsize, sizeof(int), 1, fp);
-    pos += evsize;
-  }
+  int evsize = data_file.AdvancePosToNextEvent(fp);
 
   int nt;
   fread(&nt, sizeof(int), 1, fp);
@@ -716,6 +706,33 @@ void DataFile::OpenWrite(const std::string& fname, int nev, int extra_sections)
   f_header.f_extra_sections = extra_sections;
 
   fwrite(&f_header, sizeof(DataFileHeader), 1, f_fp);
+}
+
+int DataFile::AdvancePosToNextEvent(FILE *fp)
+{
+  int evsize;
+
+  std::lock_guard<std::mutex> readlock(f_next_ev_mutex);
+
+  fseek(fp, f_pos, SEEK_SET);
+  fread(&evsize, sizeof(int), 1, fp);
+  f_pos += evsize;
+
+  return evsize;
+}
+
+void DataFile::SkipNEvents(int n_to_skip)
+{
+  int evsize;
+
+  std::lock_guard<std::mutex> readlock(f_next_ev_mutex);
+
+  while (n_to_skip-- > 0)
+  {
+    fseek(f_fp, f_pos, SEEK_SET);
+    fread(&evsize, sizeof(int), 1, f_fp);
+    f_pos += evsize;
+  }
 }
 
 void DataFile::Close()

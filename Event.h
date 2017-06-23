@@ -33,7 +33,7 @@ public:
   int  nextMCHitID() { return mcHitIDCounter_++; }
 
   void write_out(DataFile &data_file);
-  void read_in  (DataFile &data_file);
+  void read_in  (DataFile &data_file, FILE *in_fp=0);
 
   void clean_cms_simtracks();
   void print_tracks(const TrackVec& tracks, bool print_hits) const;
@@ -93,15 +93,24 @@ struct DataFile
     ES_Seeds          = 0x2
   };
 
-  FILE *f_fp       =  0;
+  FILE *f_fp  =  0;
+  long  f_pos =  sizeof(DataFileHeader);
 
   DataFileHeader f_header;
+
+  std::mutex     f_next_ev_mutex;
+
+  // ----------------------------------------------------------------
 
   bool HasSimTrackStates() const { return f_header.f_extra_sections & ES_SimTrackStates; }
   bool HasSeeds()          const { return f_header.f_extra_sections & ES_Seeds; }
 
   int  OpenRead (const std::string& fname, bool set_n_layers = false);
   void OpenWrite(const std::string& fname, int nev, int extra_sections=0);
+
+  int  AdvancePosToNextEvent(FILE *fp);
+
+  void SkipNEvents(int n_to_skip);
 
   void Close();
 };
