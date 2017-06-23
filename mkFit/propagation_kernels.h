@@ -8,6 +8,7 @@ void propagation_wrapper(const cudaStream_t& stream,
     GPlexLV& inPar, GPlexQI& inChg,
     GPlexLV& outPar,
     GPlexLS& outErr, 
+    const bool useParamBfield,
     const int N);
 
 void propagationForBuilding_wrapper(const cudaStream_t& stream,
@@ -20,6 +21,7 @@ __device__ void propagation_fn(
     GPlexLS &inErr, GPlexLV &inPar, 
     GPlexQI &inChg, GPlexHV &msPar,
     GPlexLS &outErr, GPlexLV &outPar,
+    const bool useParamBfield,
     int n, int N);
 
 __device__ void propagationForBuilding_fn(

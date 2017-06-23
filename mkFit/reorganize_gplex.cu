@@ -40,7 +40,8 @@ __device__ void SlurpInIdx_fn(GPlexObj to,
   int j = threadIdx.x + blockDim.x * blockIdx.x;
   if (j<N) {
     for (int i = 0; i < to.kSize; ++i) { // plex_size
-      to[j + to.stride*i] = * (decltype(to.ptr)) (arr + i*sizeof(decltype(*to.ptr)) + idx);
+      auto tmp = * (decltype(to.ptr)) (arr + i*sizeof(decltype(*to.ptr)) + idx);
+      to[j + to.stride*i] = tmp;
     }
   }
 }
@@ -57,6 +58,19 @@ __device__ void SlurpOutIdx_fn(GPlexObj from, // float *fArray, int stride, int 
   }
 }
 
+
+__device__
+void GetHitErr(GPlexHS& msErr, const char* array, const int beg, const int end)
+{
+      SlurpInIdx_fn(msErr, array, beg, end);
+}
+
+
+__device__
+void GetHitPar(GPlexHV& msPar, const char* array, const int beg, const int end)
+{
+      SlurpInIdx_fn(msPar, array, beg, end);
+}
 
 __device__ void HitToMs_fn(GPlexHS &msErr, GPlexHV &msPar,
                            Hit *hits, const GPlexQI &XHitSize, 
@@ -95,8 +109,8 @@ void HitToMs_wrapper(const cudaStream_t& stream,
   dim3 grid(gridx, 1, 1);
   dim3 block(BLOCK_SIZE_X, 1, 1);
   HitToMs_kernel <<< grid, block, 0 , stream >>>
-    (msErr, msPar, layer.m_hits, XHitSize, XHitArr, HitsIdx, hit_cnt, N);
-  cudaDeviceSynchronize();
+    (msErr, msPar, layer.m_hits.data(), XHitSize, XHitArr, HitsIdx, hit_cnt, N);
+  /*cudaDeviceSynchronize();*/
 }
 
 
@@ -219,11 +233,29 @@ void InputTracksAndHitsCU_wrapper(const cudaStream_t &stream,
   dim3 block(BLOCK_SIZE_X, 1, 1);
 
   InputTracksAndHitsCU_kernel <<< grid, block, 0, stream >>>
-    (tracks, event_of_hits.m_layers_of_hits, 
+    (tracks, event_of_hits.m_layers_of_hits.data(),
      Err_iP, Par_iP, 
      msErr_arr, msPar_arr, 
      Chg, Chi2, Label, HitsIdx,
      beg, end, N);
+}
+
+
+__device__ void OutputParErrCU_fn(Track *tracks, 
+                                  const GPlexLS &Err, const GPlexLV &Par,
+                                  const int beg, const int end, 
+                                  const int itrack_plex, const int N) {
+  Track &trk = tracks[beg];
+  const char *varr       = (char*) &trk;
+  int   off_error = (char*) trk.errArrayCU() - varr;
+  int   off_param = (char*) trk.posArrayCU() - varr;
+
+  int i= itrack_plex + beg;
+  const Track &trk_i = tracks[i];
+  int idx = (char*) &trk_i - varr;
+
+  SlurpOutIdx_fn(Err, varr + off_error, idx, N);
+  SlurpOutIdx_fn(Par, varr + off_param, idx, N);
 }
 
 
@@ -308,4 +340,103 @@ void OutputFittedTracksCU_wrapper(const cudaStream_t &stream,
 
   OutputTracksCU_kernel <<< grid, block, 0, stream >>>
     (tracks_cu, Err_iP, Par_iP, Chg, Chi2, Label, nullptr, beg, end, N, false);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// m_tracks_per_seed: play the same role than seed_cand_idx in the cpu code
+__device__ void InputTracksAndHitIdxComb_fn(Track *tracks, int *m_tracks_per_seed,
+                                            GPlexLS &Err_iP, GPlexLV &Par_iP,
+                                            GPlexQI &Chg, GPlexQF &Chi2,
+                                            GPlexQI &Label, GPlexQI *HitsIdx,
+                                            GPlexQI &SeedIdx, GPlexQI &CandIdx,
+                                            GPlexQB &Valid,
+                                            const int Nhits,
+                                            const int beg, const int end, 
+                                            const int itrack_plex, const int N)
+{
+  if (itrack_plex < N) {
+    int itrack_ev = beg + itrack_plex;
+
+    // TODO:: make sure that the width of the FitterCU is a multiple of
+    //        Config::maxCandsPerSeed;
+    int iseed_ev = itrack_ev / Config::maxCandsPerSeed;
+    int icand_ev = itrack_ev % Config::maxCandsPerSeed;
+    // | o : o : x : x : x |
+    //  iseed
+    //  <----> m_tracks_per_seed[iseed]
+    //  <------------------> maxCandsPerSeed
+    Valid(itrack_plex, 0, 0) = icand_ev < m_tracks_per_seed[iseed_ev]
+                             && m_tracks_per_seed[iseed_ev] != 0;
+    if (!Valid(itrack_plex, 0, 0)) {
+      return;
+    }
+
+    Track &trk = tracks[beg];
+    const char *varr       = (char*) &trk;
+    int   off_error = (char*) trk.errArrayCU() - varr;
+    int   off_param = (char*) trk.posArrayCU() - varr;
+
+    int i= itrack_plex + beg;  // TODO: i == itrack_ev
+    const Track &trk_i = tracks[i];
+    int idx = (char*) &trk_i - varr;
+
+    Label(itrack_plex, 0, 0) = tracks[i].label();
+    SeedIdx(itrack_plex, 0, 0) = iseed_ev; 
+    CandIdx(itrack_plex, 0, 0) = icand_ev;
+
+    SlurpInIdx_fn(Err_iP, varr + off_error, idx, N);
+    SlurpInIdx_fn(Par_iP, varr + off_param, idx, N);
+
+    Chg(itrack_plex, 0, 0) = tracks[i].charge();
+    Chi2(itrack_plex, 0, 0) = tracks[i].chi2();
+    // Note Config::nLayers -- not suitable for building
+    for (int hi = 0; hi < Nhits; ++hi) {
+      HitsIdx[hi][itrack_plex] = tracks[i].getHitIdx(hi); 
+
+      int hit_idx = HitsIdx[hi][itrack_plex];
+    }
+  }
+}
+
+__global__ 
+void InputTracksAndHitIdxComb_kernel(Track *tracks, int *m_tracks_per_seed,
+                                     GPlexLS Err_iP, GPlexLV Par_iP,
+                                     GPlexQI Chg, GPlexQF Chi2,
+                                     GPlexQI Label, GPlexQI *HitsIdx,
+                                     GPlexQI SeedIdx, GPlexQI CandIdx,
+                                     GPlexQB Valid, const int Nhits,
+                                     const int beg, const int end, 
+                                     const int N)
+{
+  int itrack = threadIdx.x + blockDim.x*blockIdx.x;
+  InputTracksAndHitIdxComb_fn(tracks, m_tracks_per_seed, 
+                              Err_iP, Par_iP,
+                              Chg, Chi2, Label, HitsIdx, 
+                              SeedIdx, CandIdx, Valid, Nhits ,
+                              beg, end, itrack, N);
+}
+
+void InputTracksAndHitIdxComb_wrapper(const cudaStream_t &stream, 
+                                      const EtaBinOfCombCandidatesCU &etaBin,
+                                     GPlexLS &Err_iP, GPlexLV &Par_iP,
+                                     GPlexQI &Chg, GPlexQF &Chi2, 
+                                     GPlexQI &Label, GPlexQI *HitsIdx,
+                                     GPlexQI &SeedIdx, GPlexQI &CandIdx,
+                                     GPlexQB &Valid, const int Nhits,
+                                     const int beg, const int end,
+                                     const bool inputProp, int N) {
+  int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,
+                       max_blocks_x);
+  dim3 grid(gridx, 1, 1);
+  dim3 block(BLOCK_SIZE_X, 1, 1);
+
+  InputTracksAndHitIdxComb_kernel<<< grid, block, 0, stream >>>
+    (etaBin.m_candidates.data(), etaBin.m_ntracks_per_seed.data(),
+     Err_iP, Par_iP, 
+     Chg, Chi2, Label, HitsIdx,
+     SeedIdx, CandIdx, Valid, Nhits,
+     beg, end, N);
 }

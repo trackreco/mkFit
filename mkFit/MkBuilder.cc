@@ -938,7 +938,6 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
 
       // mkfp->SetNhits(ilay == Config::nlayers_per_seed ? ilay : ilay + 1);
       mkfp->SetNhits(ilay);
-
       mkfp->InputTracksAndHitIdx(etabin_of_comb_candidates.m_candidates,
                                  seed_cand_idx, itrack, end,
                                  true);
@@ -952,25 +951,26 @@ void MkBuilder::find_tracks_in_layers(EtaBinOfCombCandidates &etabin_of_comb_can
       if (ilay > Config::nlayers_per_seed)
       {
         LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay - 1];
-
         mkfp->UpdateWithLastHit(layer_of_hits, end - itrack);
+        // TODO: Check that: tmp arguments while porting? 
+        //mkfp->UpdateWithLastHit(layer_of_hits, end - itrack, cuFitter,
+            //event_of_hits_cu.m_layers_of_hits[ilay-1]);
 
         if (ilay < Config::nLayers)
         {
           // Propagate to this layer
-
           mkfp->PropagateTracksToR(m_event->geom_.Radius(ilay), end - itrack);
 
-	  // copy_out the propagated track params, errors only (hit-idcs and chi2 already updated)
-	  mkfp->CopyOutParErr(etabin_of_comb_candidates.m_candidates,
-			      end - itrack, true);
-	} 
-	else {
-	  // copy_out the updated track params, errors only (hit-idcs and chi2 already updated)
-	  mkfp->CopyOutParErr(etabin_of_comb_candidates.m_candidates,
-			      end - itrack, false);
-	  continue;
-	}
+          // copy_out the propagated track params, errors only (hit-idcs and chi2 already updated)
+          mkfp->CopyOutParErr(etabin_of_comb_candidates.m_candidates,
+              end - itrack, true);
+        } 
+        else {
+          // copy_out the updated track params, errors only (hit-idcs and chi2 already updated)
+          mkfp->CopyOutParErr(etabin_of_comb_candidates.m_candidates,
+              end - itrack, false);
+          continue;
+        }
       }
 
       // if (ilay == Config::nLayers)

@@ -4,19 +4,23 @@
 #include "gpu_utils.h"
 
 struct GeometryCU {
-  float *radii;
+  float *radii = nullptr;
 
   void allocate() {
-    cudaMalloc((void**)&radii, Config::nLayers * sizeof(float));
-    cudaCheckError();
+    if (radii == nullptr)
+      cudaMalloc((void**)&radii, Config::nLayers * sizeof(float));
+    //cudaCheckError();
   }
   void deallocate() {
-    cudaFree(radii);
-    cudaCheckError();
+    if (radii != nullptr) {
+      cudaFree(radii);
+      cudaCheckError();
+      radii = nullptr;
+    }
   }
   void getRadiiFromCPU(const float *h_radii) {
     cudaMemcpy(radii, h_radii, Config::nLayers * sizeof(float), cudaMemcpyHostToDevice);
-    cudaCheckError();
+    //cudaCheckError();
   }
 };
 

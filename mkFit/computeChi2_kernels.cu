@@ -4,7 +4,7 @@
 #include "kalmanUpdater_kernels.h"
 #include "gpu_utils.h"
 
-#include <stdio.h>
+#include <cstdio>
 
 #define L 6
 #define HS 6

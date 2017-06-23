@@ -33,6 +33,11 @@ __device__ void InputTracksCU_fn(Track *tracks,
                                  const int beg, const int end,
                                  const int itrack, const int N);
 
+__device__ void OutputParErrCU_fn(Track *tracks, 
+                                  const GPlexLS &Err, const GPlexLV &Par,
+                                  const int beg, const int end, 
+                                  const int itrack, const int N);
+
 __device__ void OutputTracksCU_fn(Track *tracks, 
                                   const GPlexLS &Err_iP, const GPlexLV &Par_iP,
                                   const GPlexQI &Chg, const GPlexQF &Chi2,
@@ -57,6 +62,16 @@ void InputTracksAndHitsCU_wrapper(const cudaStream_t &stream,
                                   const int beg, const int end,
                                   const bool inputProp, int N);
 
+void InputTracksAndHitIdxComb_wrapper(const cudaStream_t &stream, 
+                                      const EtaBinOfCombCandidatesCU &etaBin,
+                                      GPlexLS &Err_iP, GPlexLV &Par_iP,
+                                      GPlexQI &Chg, GPlexQF &Chi2,
+                                      GPlexQI &Label, GPlexQI *HitsIdx,
+                                      GPlexQI &SeedIdx, GPlexQI &CandIdx,
+                                      GPlexQB &Valid, const int Nhits,
+                                      const int beg, const int end, 
+                                      const bool inputProp, int N);
+
 void OutputTracksCU_wrapper(const cudaStream_t &stream,
                             EtaBinOfCandidatesCU &etaBin,
                             GPlexLS &Err_iP, GPlexLV &Par_iP,
@@ -70,5 +85,21 @@ void OutputFittedTracksCU_wrapper(const cudaStream_t &stream,
                                   GPlexLS &Err_iP, GPlexLV &Par_iP,
                                   GPlexQI &Chg, GPlexQF &Chi2, GPlexQI &Label,
                                   const int beg, const int end, int N);
+
+__device__
+void GetHitErr(GPlexHS& msErr, const char* array, const int beg, const int end);
+__device__
+void GetHitPar(GPlexHV& msPar, const char* array, const int beg, const int end);
+
+
+__device__ void InputTracksAndHitIdxComb_fn(Track *tracks, int *m_tracks_per_seed,
+                                            GPlexLS &Err_iP, GPlexLV &Par_iP,
+                                            GPlexQI &Chg, GPlexQF &Chi2,
+                                            GPlexQI &Label, GPlexQI *HitsIdx,
+                                            GPlexQI &SeedIdx, GPlexQI &CandIdx,
+                                            GPlexQB &Valid,
+                                            const int Nhits,
+                                            const int beg, const int end, 
+                                            const int itrack, const int N);
 
 #endif  // REORGANIZE_GPLEX_H

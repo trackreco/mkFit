@@ -8,6 +8,12 @@
 //#define PRINTOUTS_FOR_PLOTS
 #define CCSCOORD
 
+#if defined(__CUDACC__)
+  #define CUDA_CALLABLE __host__ __device__
+#else
+  #define CUDA_CALLABLE 
+#endif
+
 namespace Config
 {
   // super debug mode in SMatrix
@@ -210,7 +216,7 @@ namespace Config
   constexpr int maxHitsConsidered = 25;
   extern    int maxHitsPerBunch;
 
-  constexpr int maxCandsPerSeed   = 6; //default: 6; cmssw tests: 3
+  constexpr int maxCandsPerSeed   = 6; //default: 6; cmssw tests: 3; divisor of 32 for gpu
   constexpr int maxHolesPerCand   = 2;
   extern    int maxCandsPerEtaBin;
 
@@ -252,6 +258,7 @@ namespace Config
 
   void RecalculateDependentConstants();
   
+  CUDA_CALLABLE
   inline float BfieldFromZR(const float z, const float r)
   {
     return (Config::mag_b0*z*z + Config::mag_b1*z + Config::mag_c1)*(Config::mag_a*r*r + 1.f);
@@ -275,11 +282,6 @@ namespace Config
 
 #endif
 
-#if defined(__CUDACC__)
-  #define CUDA_CALLABLE __host__ __device__
-#else
-  #define CUDA_CALLABLE 
-#endif
 };
 
 #endif 

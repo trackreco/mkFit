@@ -106,6 +106,8 @@ inline void sincos4(const float x, float& sin, float& cos)
   typedef Matriplex::Matriplex<float, 1, 1, NN>     MPlexQF;
   typedef Matriplex::Matriplex<int,   1, 1, NN>     MPlexQI;
 
+  typedef Matriplex::Matriplex<bool,  1, 1, NN>     MPlexQB;
+
 #endif
 
 //==============================================================================
