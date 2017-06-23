@@ -355,6 +355,13 @@ void MkBuilder::create_seeds_from_sim_tracks()
       ++h;
     }
 
+    if (h_sel < Config::nlayers_per_seed)
+    {
+      printf("MkBuilder::create_seeds_from_sim_tracks simtrack %d only yielded %d hits. Skipping ...\n",
+             src.label(), h_sel);
+      continue;
+    }
+
     seeds.emplace_back( Track(src.state(), 0, src.label(), h_sel, new_hots) );
 
     Track &dst = seeds.back();
