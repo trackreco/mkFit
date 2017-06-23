@@ -140,10 +140,14 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     printf("LayerOfHits::SelectHitIndices %s layer=%d N_proc=%d\n",
            L.is_barrel() ? "barrel" : "endcap", L.layer_id(), N_proc);
 
-  // Vectorizing this makes it run slower!
+  float dqv[NN], dphiv[NN], qv[NN], phiv[NN];
+  int qb1v[NN], qb2v[NN], pb1v[NN], pb2v[NN];
+
+
+  // Pull out the part of the loop that vectorizes
   //#pragma ivdep
-  //#pragma simd
-  for (int itrack = 0; itrack < N_proc; ++itrack)
+#pragma simd
+  for (int itrack = 0; itrack < NN; ++itrack)
   {
     XHitSize[itrack] = 0;
 
@@ -237,13 +241,35 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     dphi = std::min(std::abs(dphi), L.max_dphi());
     dq   = std::min(std::abs(dq),   L.max_dq());
 
-    const int qb1 = L.GetQBinChecked(q - dq);
-    const int qb2 = L.GetQBinChecked(q + dq) + 1;
-    const int pb1 = L.GetPhiBin(phi - dphi);
-    const int pb2 = L.GetPhiBin(phi + dphi) + 1;
+    qv[itrack] = q;
+    phiv[itrack] = phi;
+    dphiv[itrack] = dphi;
+    dqv[itrack]   = dq;
+
+    qb1v[itrack] = L.GetQBinChecked(q - dq);
+    qb2v[itrack] = L.GetQBinChecked(q + dq) + 1;
+    pb1v[itrack] = L.GetPhiBin(phi - dphi);
+    pb2v[itrack] = L.GetPhiBin(phi + dphi) + 1;
     // MT: The extra phi bins give us ~1.5% more good tracks at expense of 10% runtime.
     // const int pb1 = L.GetPhiBin(phi - dphi) - 1;
     // const int pb2 = L.GetPhiBin(phi + dphi) + 2;
+  }
+
+  // Vectorizing this makes it run slower!
+  //#pragma ivdep
+  //#pragma simd
+  for (int itrack = 0; itrack < N_proc; ++itrack)
+  {
+    const float q = qv[itrack];
+    const float phi = phiv[itrack];
+
+    const float dphi = dphiv[itrack];
+    const float dq   = dqv[itrack];
+
+    const int qb1 = qb1v[itrack];
+    const int qb2 = qb2v[itrack];
+    const int pb1 = pb1v[itrack];
+    const int pb2 = pb2v[itrack];
 
     if (dump)
       printf("  %2d: %6.3f %6.3f %6.6f %7.5f %3d %3d %4d %4d\n",
