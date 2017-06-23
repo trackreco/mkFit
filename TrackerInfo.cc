@@ -135,7 +135,12 @@ void TrackerInfo::ExecTrackerInfoCreatorPlugin(const std::string& base, TrackerI
       TrackerInfoCreator_foo foo = (TrackerInfoCreator_foo)(*p2f);
       foo(ti, verbose);
 
-      dlclose(h);
+      // XXXXMT4Dan
+      // With dlclose I saw (rarely) valgrind errors saying
+      // Invalid read of size 4
+      //     at 0x4119F7: is_barrel (TrackerInfo.h:54)
+      // Commenting it out for now.
+      // dlclose(h);
       return;
     }
 
