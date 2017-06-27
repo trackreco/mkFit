@@ -35,7 +35,7 @@ public:
   void write_out(DataFile &data_file);
   void read_in  (DataFile &data_file, FILE *in_fp=0);
 
-  void clean_cms_simtracks();
+  int  clean_cms_simtracks();
   void print_tracks(const TrackVec& tracks, bool print_hits) const;
 
   const Geometry& geom_;

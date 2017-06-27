@@ -995,16 +995,12 @@ void MkBuilder::PrepareSeeds()
   {
     find_seeds();
     // XXXMT4K Those should be either sorted or sort should be called afterwards.
-    // Note, sort also fills out some arrays in event.
+    // Note, sort also fills out some eta region info arrays in Event.
   }
   else
   {
     if ( ! Config::readCmsswSeeds)
     {
-      if (Config::useCMSGeom)
-      {
-        m_event->clean_cms_simtracks();
-      }
       create_seeds_from_sim_tracks();
     }
     import_seeds();

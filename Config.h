@@ -225,6 +225,10 @@ namespace Config
   extern    int maxHolesPerCand; // default: 2; cms  12 (should be reduced)
   extern    int maxCandsPerEtaBin;
 
+  // Selection of simtracks from CMSSW. Used in Event::clean_cms_simtracks().
+  constexpr int   cmsSimSelMinLayers = 8;
+  constexpr float cmsSimSelMinPt     = 0.5;
+
   // config on validation
   constexpr float nMinSimHitsFrac = 0.7;
   constexpr int nMinFoundHits = 7; 
@@ -232,11 +236,7 @@ namespace Config
   extern bool fit_val;
   extern bool inclusiveShorts;
 
-  // Effective eta bin is one half of nEtaPart -- so the above is twice the "average".
-  // Note that last and first bin are 3/4 nEtaPart ... but can be made 1/4 by adding
-  // additional bins on each end.
-
-  // XXX std::min/max have constexpr versions in c++-14.
+  // Threading
   extern int    numThreadsFinder;
   extern int    numThreadsSimulation;
 

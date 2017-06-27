@@ -523,8 +523,8 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
 #endif
   }
 
-  printf("Read %i simtracks\n",nt);
 #ifdef DUMP_TRACKS
+  printf("Read %i simtracks\n", nt);
   for (int it = 0; it < nt; it++)
   {
     const Track &t = simTracks_[it];
@@ -566,30 +566,43 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
   }
   printf("Total hits in all layers = %d\n", total_hits);
 #endif
-  printf("Read event done\n");
+
+  // This could be conditional: if (Config::useCMSGeom)
+  int nt_acc = clean_cms_simtracks();
+
+  printf("Read complete %d simtracks accepted (%d on file).\n", nt_acc, nt);
 }
 
-void Event::clean_cms_simtracks()
+int Event::clean_cms_simtracks()
 {
   // Sim tracks from cmssw have the following issues:
   // - hits are not sorted by layer;
-  // - there are tracks with too low number of hits, even 0.
+  // - there are tracks with too low number of hits, even 0;
+  // - even with enough hits, there can be too few layers (esp. in endcap);
+  // - tracks from secondaries can have extremely low pT.
+  // Possible further checks:
+  // - make sure enough hits exist in seeding layers.
+  //
+  // Returns number of passed simtracks.
 
   TrackVec orig;
   simTracks_.swap(orig);
   int osize = orig.size();
   simTracks_.reserve(orig.size());
 
+  dprintf("Event::clean_cms_simtracks processing %d simtracks.\n", osize);
+
   for (int i = 0; i < osize; ++i)
   {
     Track    &src = orig[i];
     const int nh  = src.nFoundHits();
-    if (nh < Config::nlayers_per_seed)
+
+    // Basic checks. More after hit sorting.
+    if (nh < Config::cmsSimSelMinLayers || src.pT() < Config::cmsSimSelMinPt)
     {
-      dprintf("Dropping simtrack %d, nhits=%d\n", i, nh);
+      dprintf("Dropping simtrack %d, nhits=%d, pT=%f\n", i, nh, src.pT());
       continue;
     }
-    dprintf("Accepting simtrack %d, nhits=%d\n", i, nh);
 
     // initialize original index locations
     std::vector<int> idx(nh);
@@ -598,18 +611,35 @@ void Event::clean_cms_simtracks()
     // sort indexes based on comparing values in v
     std::sort(idx.begin(), idx.end(),
               [&](int i1, int i2) { return src.getHitLyr(i1) < src.getHitLyr(i2); });
-    // XXXX plus secondary sort by radius;
+    // XXXX Add secondary sort on radius? Need to access hits ...
 
-    simTracks_.emplace_back( Track(src.state(), 0, src.label(), 0, nullptr) );
-    Track &dst = simTracks_.back();
+    Track dst(src.state(), 0, src.label(), 0, nullptr);
 
+    int lyr_cnt  =  0;
+    int prev_lyr = -1;
     for (int h = 0; h < nh; ++h)
     {
-      // XXXX Should also check if it's the same layer as before?
-      dprintf("  adding hit %d which was %d, layer %d\n", h, idx[h], src.getHitLyr(idx[h]));
+      int h_lyr = src.getHitLyr(idx[h]);
+      dprintf("  adding hit %d which was %d, layer %d\n", h, idx[h], h_lyr);
       dst.addHitIdx(src.getHitOnTrack(idx[h]), 0.0f);
+      if (h_lyr >= 0 && h_lyr != prev_lyr)
+      {
+        ++lyr_cnt;
+        prev_lyr = h_lyr;
+      }
     }
+
+    if (nh < Config::cmsSimSelMinLayers && src.pT() < Config::cmsSimSelMinPt)
+    {
+      dprintf("Dropping simtrack %d, n_layers=%d\n", i, lyr_cnt);
+      continue;
+    }
+    dprintf("Accepting simtrack %d, n_hits=%d, n_layers=%d\n", i, nh, lyr_cnt);
+
+    simTracks_.emplace_back(dst);
   }
+
+  return simTracks_.size();
 }
 
 void Event::print_tracks(const TrackVec& tracks, bool print_hits) const
