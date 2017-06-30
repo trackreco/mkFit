@@ -463,6 +463,8 @@ int main(int argc, const char *argv[])
   __itt_pause();
 #endif
 
+  assert (sizeof(Track::Status) == 4 && "To make sure this is true for icc and gcc<6 when mixing bools/ints in bitfields.");
+
   lStr_t mArgs;
   for (int i = 1; i < argc; ++i)
   {

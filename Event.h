@@ -71,7 +71,7 @@ typedef std::vector<Event> EventVec;
 struct DataFileHeader
 {
   int f_magic          = 0xBEEF;
-  int f_format_version = 2;
+  int f_format_version = 3;
   int f_sizeof_track   = sizeof(Track);
   int f_n_max_trk_hits = Config::nMaxTrkHits;
   int f_n_layers       = -1;

@@ -320,6 +320,8 @@ void MkBuilder::create_seeds_from_sim_tracks()
   {
     const Track &src = sims[i];
 
+    if (src.isNotFindable()) continue;
+
     int h_sel = 0, h = 0;
     const HitOnTrack *hots = src.getHitsOnTrackArray();
     HitOnTrack  new_hots[ Config::nlayers_per_seed_max ];
@@ -1001,11 +1003,19 @@ void MkBuilder::PrepareSeeds()
   {
     if ( ! Config::readCmsswSeeds)
     {
+      if (Config::useCMSGeom)
+      {
+        m_event->clean_cms_simtracks();
+
+        // printf("\n* Simtracks after cleaning:\n");
+        // m_event->print_tracks(m_event->simTracks_, true);
+        // printf("\n");
+      }
       create_seeds_from_sim_tracks();
     }
     import_seeds();
 
-    // printf("\n* Seeds after import / cleaning:\n");
+    // printf("\n* Seeds after import:\n");
     // m_event->print_tracks(m_event->seedTracks_, true);
     // printf("\n");
 

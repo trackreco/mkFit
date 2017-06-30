@@ -3,6 +3,10 @@
 //#define DEBUG
 #include "Debug.h"
 
+//==============================================================================
+// TrackState
+//==============================================================================
+
 void TrackState::convertFromCartesianToCCS() {
   //assume we are currently in cartesian coordinates and want to move to ccs
   const float px = parameters.At(3);
@@ -66,6 +70,21 @@ SMatrix66 TrackState::jacobianCartesianToCCS(float px,float py,float pz) const {
   jac(5,5) = -pt/p2;
   return jac;
 }
+
+
+//==============================================================================
+// Track
+//==============================================================================
+
+void Track::sortHitsByLayer()
+{
+  std::sort(& hitsOnTrk_[0], & hitsOnTrk_[lastHitIdx_ + 1],
+            [&](HitOnTrack h1, HitOnTrack h2) { return h1.layer < h2.layer; });
+}
+
+//==============================================================================
+// TrackExtra
+//==============================================================================
 
 // mcTrackID assignments 
 // ID >=  0 : reco track matched to sim track (n eligible found reco hits matching single sim track above some threshold, and n eligible found reco hits above some threshold) 

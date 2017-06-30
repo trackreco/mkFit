@@ -567,10 +567,7 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
   printf("Total hits in all layers = %d\n", total_hits);
 #endif
 
-  // This could be conditional: if (Config::useCMSGeom)
-  int nt_acc = clean_cms_simtracks();
-
-  printf("Read complete %d simtracks accepted (%d on file).\n", nt_acc, nt);
+  printf("Read complete, %d simtracks on file.\n", nt);
 }
 
 int Event::clean_cms_simtracks()
@@ -583,45 +580,27 @@ int Event::clean_cms_simtracks()
   // Possible further checks:
   // - make sure enough hits exist in seeding layers.
   //
+  // What is done:
+  // 1. Hits are sorted by layer;
+  // 2. Non-findable tracks are marked with Track::Status::not_findable flag.
+  //
   // Returns number of passed simtracks.
 
-  TrackVec orig;
-  simTracks_.swap(orig);
-  int osize = orig.size();
-  simTracks_.reserve(orig.size());
+  dprintf("Event::clean_cms_simtracks processing %d simtracks.\n", simTracks_.size());
 
-  dprintf("Event::clean_cms_simtracks processing %d simtracks.\n", osize);
+  int n_acc = 0;
 
-  for (int i = 0; i < osize; ++i)
+  for (Track & t : simTracks_)
   {
-    Track    &src = orig[i];
-    const int nh  = src.nFoundHits();
+    const int nh  = t.nFoundHits();
 
-    // Basic checks. More after hit sorting.
-    if (nh < Config::cmsSimSelMinLayers || src.pT() < Config::cmsSimSelMinPt)
-    {
-      dprintf("Dropping simtrack %d, nhits=%d, pT=%f\n", i, nh, src.pT());
-      continue;
-    }
-
-    // initialize original index locations
-    std::vector<int> idx(nh);
-    std::iota(idx.begin(), idx.end(), 0);
-
-    // sort indexes based on comparing values in v
-    std::sort(idx.begin(), idx.end(),
-              [&](int i1, int i2) { return src.getHitLyr(i1) < src.getHitLyr(i2); });
-    // XXXX Add secondary sort on radius? Need to access hits ...
-
-    Track dst(src.state(), 0, src.label(), 0, nullptr);
+    t.sortHitsByLayer();
 
     int lyr_cnt  =  0;
     int prev_lyr = -1;
     for (int h = 0; h < nh; ++h)
     {
-      int h_lyr = src.getHitLyr(idx[h]);
-      dprintf("  adding hit %d which was %d, layer %d\n", h, idx[h], h_lyr);
-      dst.addHitIdx(src.getHitOnTrack(idx[h]), 0.0f);
+      int h_lyr = t.getHitLyr(h);
       if (h_lyr >= 0 && h_lyr != prev_lyr)
       {
         ++lyr_cnt;
@@ -629,17 +608,19 @@ int Event::clean_cms_simtracks()
       }
     }
 
-    if (nh < Config::cmsSimSelMinLayers && src.pT() < Config::cmsSimSelMinPt)
+    if (lyr_cnt < Config::cmsSimSelMinLayers || t.pT() < Config::cmsSimSelMinPt)
     {
-      dprintf("Dropping simtrack %d, n_layers=%d\n", i, lyr_cnt);
-      continue;
+      dprintf("Rejecting simtrack %d, n_hits=%d, n_layers=%d, pT=%f\n", i, nh, lyr_cnt, t.pT());
+      t.setNotFindable();
     }
-    dprintf("Accepting simtrack %d, n_hits=%d, n_layers=%d\n", i, nh, lyr_cnt);
-
-    simTracks_.emplace_back(dst);
+    else
+    {
+      dprintf("Accepting simtrack %d, n_hits=%d, n_layers=%d, pT=%f\n", i, nh, lyr_cnt, t.pT());
+      ++n_acc;
+    }
   }
 
-  return simTracks_.size();
+  return n_acc;
 }
 
 void Event::print_tracks(const TrackVec& tracks, bool print_hits) const
@@ -650,8 +631,8 @@ void Event::print_tracks(const TrackVec& tracks, bool print_hits) const
   for (int it = 0; it < nt; it++)
   {
     const Track &t = tracks[it];
-    printf("  %i with q=%+i pT=%7.3f eta=% 7.3f nHits=%2d  label=%4d\n",
-           it, t.charge(), t.pT(), t.momEta(), t.nFoundHits(), t.label());
+    printf("  %i with q=%+i pT=%7.3f eta=% 7.3f nHits=%2d  label=%4d findable=%d\n",
+           it, t.charge(), t.pT(), t.momEta(), t.nFoundHits(), t.label(), t.isFindable());
 
     if (print_hits)
     {
@@ -680,8 +661,8 @@ void Event::print_tracks(const TrackVec& tracks, bool print_hits) const
 
 int DataFile::OpenRead(const std::string& fname, bool set_n_layers)
 {
-  constexpr int min_ver = 2;
-  constexpr int max_ver = 2;
+  constexpr int min_ver = 3;
+  constexpr int max_ver = 3;
 
   f_fp = fopen(fname.c_str(), "r");
   assert (f_fp != 0 || "Opening of input file failed.");
@@ -695,7 +676,7 @@ int DataFile::OpenRead(const std::string& fname, bool set_n_layers)
   }
   if (f_header.f_format_version < min_ver || f_header.f_format_version > max_ver)
   {
-    fprintf(stderr, "Unsupported file version %d. Supported versions are %d to %d.\n",
+    fprintf(stderr, "Unsupported file version %d. Supported versions are from %d to %d.\n",
             f_header.f_format_version, min_ver, max_ver);
     exit(1);
   }

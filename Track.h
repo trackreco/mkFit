@@ -111,6 +111,7 @@ public:
   SMatrix66 jacobianCartesianToCCS(float px,float py,float pz) const;
 };
 
+
 class Track
 {
 public:
@@ -272,6 +273,8 @@ public:
 
   HitOnTrack* BeginHitsOnTrack_nc() { return hitsOnTrk_; }
 
+  void sortHitsByLayer();
+
   void fillEmptyLayers() {
     for (int h = lastHitIdx_ + 1; h < Config::nMaxTrkHits; h++) {
       setHitIdxLyr(h, -1, -1);
@@ -327,11 +330,53 @@ public:
 
   Track clone() const { return Track(state_,chi2_,label_,nTotalHits(),hitsOnTrk_); }
 
+  struct Status
+  {
+    union
+    {
+      struct
+      {
+        // Set to true for short, low-pt CMS tracks. They do not generate mc seeds and
+        // do not enter the efficiency denominator.
+        bool not_findable : 1;
+
+        // Set to true when number of holes would exceed an external limit, Config::maxHolesPerCand.
+        // XXXXMT Not used yet, -3 last hit idx is still used! Need to add it to MkFi**r classes.
+        bool stopped : 1;
+
+        // The rest, testing if mixing int and uint is ok.
+        int  _some_free_bits_ : 13;
+        uint _more_free_bits_ : 17;
+      };
+
+      uint _raw_;
+    };
+
+    Status() : _raw_(0) {}
+  };
+
+  Status  getStatus() const  { return  status_; }
+  // Maybe needed for MkFi**r copy in / out
+  // Status& refStatus() { return  status_; }
+  // Status* ptrStatus() { return &status_; }
+  // uint    rawStatus() const { return  status_._raw_; }
+  // void    setRawStatus(uint rs) { status_._raw_ = rs; }
+
+  bool isFindable()    const { return ! status_.not_findable; }
+  bool isNotFindable() const { return   status_.not_findable; }
+  void setNotFindable()      { status_.not_findable = true; }
+
+  // To be used later
+  // bool isStopped() const { return status_.stopped; }
+  // void setStopped()      { status_.stopped = true; }
+
 private:
+
   TrackState    state_;
   float         chi2_       =  0.;
-  int           lastHitIdx_ = -1;
-  int           nFoundHits_ =  0;
+  short int     lastHitIdx_ = -1;
+  short int     nFoundHits_ =  0;
+  Status        status_;
   int           label_      = -1;
   HitOnTrack    hitsOnTrk_[Config::nMaxTrkHits];
 };
