@@ -112,8 +112,8 @@ void TrackExtra::setMCTrackIDInfoByLabel(const Track& trk, const std::vector<Hit
     // Modify mcTrackID based on nMinHits 
     if (nCandHits < (Config::nMinFoundHits-Config::nlayers_per_seed))
     {
-      if (mcTrackID_ = label) mcTrackID_ = -2;
-      else                    mcTrackID_ = -3;
+      if (mcTrackID_ == label) mcTrackID_ = -2;
+      else                     mcTrackID_ = -3;
     }
 
     nHitsMatched_ = nHitsMatched; // nHitsMatched + Config::nlayers_per_seed

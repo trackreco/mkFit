@@ -75,6 +75,7 @@ TTreeValidation::TTreeValidation(std::string fileName)
   }
   if (Config::fit_val) 
   {
+    for (int i = 0; i < nfvs_; ++i) fvs_[i].resize(Config::nTotalLayers);
     TTreeValidation::initializeFitTree();
   }
   TTreeValidation::initializeConfigTree();
@@ -539,7 +540,7 @@ void TTreeValidation::mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackE
   }
 }
 
-int TTreeValidation::getLastGoodHit(const int trackMCHitID, const int mcTrackID, const Event& ev)
+int TTreeValidation::getLastFoundHit(const int trackMCHitID, const int mcTrackID, const Event& ev)
 {
   int mcHitID = -1;
   if (ev.simHitsInfo_[trackMCHitID].mcTrackID() == mcTrackID)
@@ -662,6 +663,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
   auto& evt_layer_hits   = ev.layerHits_;
   const auto& evt_sim_trackstates = ev.simTrackStates_;
 
+  const bool useSimTSInfo = (evt_sim_trackstates.size() > 0);
+
   for (auto&& simtrack : evt_sim_tracks)
   {
     evtID_eff_ = ievt;
@@ -688,8 +691,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       seedID_seed_eff_ = seedextra.seedID(); 
 
       // use this to access correct sim track layer params
-      const int mcHitID = TTreeValidation::getLastGoodHit(seedtrack.getLastGoodMCHitID(evt_layer_hits),mcID_eff_,ev);
-      if (mcHitID >= 0)
+      const int mcHitID = TTreeValidation::getLastFoundHit(seedtrack.getLastFoundMCHitID(evt_layer_hits),mcID_eff_,ev);
+      if (mcHitID >= 0 && useSimTSInfo)
       {
 	const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
 
@@ -773,8 +776,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       seedID_build_eff_ = buildextra.seedID(); 
 
       // use this to access correct sim track layer params
-      const int mcHitID = TTreeValidation::getLastFoundHit(buildtrack.getLastGoodMCHitID(evt_layer_hits),mcID_eff_,ev);
-      if (mcHitID >= 0)
+      const int mcHitID = TTreeValidation::getLastFoundHit(buildtrack.getLastFoundMCHitID(evt_layer_hits),mcID_eff_,ev);
+      if (mcHitID >= 0 && useSimTSInfo)
       {
 	const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
 
@@ -857,8 +860,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       seedID_fit_eff_ = fitextra.seedID(); 
 
       // use this to access correct sim track layer params
-      const int mcHitID = TTreeValidation::getLastGoodHit(fittrack.getLastGoodMCHitID(evt_layer_hits),mcID_eff_,ev);
-      if (mcHitID >= 0)
+      const int mcHitID = TTreeValidation::getLastFoundHit(fittrack.getLastFoundMCHitID(evt_layer_hits),mcID_eff_,ev);
+      if (mcHitID >= 0 && useSimTSInfo)
       {
 	const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
 
@@ -951,6 +954,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
   auto& evt_layer_hits   = ev.layerHits_;
   auto& evt_sim_trackstates = ev.simTrackStates_;
 
+  const bool useSimTSInfo = (evt_sim_trackstates.size() > 0);
+
   for (auto&& seedtrack : evt_seed_tracks)
   { 
     evtID_FR_       = ievt;
@@ -1004,8 +1009,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     {
       auto& simtrack = evt_sim_tracks[mcID_seed_FR_];
 
-      const int mcHitID = TTreeValidation::getLastGoodHit(seedtrack.getLastGoodMCHitID(evt_layer_hits),mcID_seed_FR_,ev);
-      if (mcHitID >= 0)
+      const int mcHitID = TTreeValidation::getLastFoundHit(seedtrack.getLastFoundMCHitID(evt_layer_hits),mcID_seed_FR_,ev);
+      if (mcHitID >= 0 && useSimTSInfo)
       {
 	const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
 	pt_mc_seed_FR_  = initLayTS.pT();
@@ -1022,6 +1027,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       }
 
       nHits_mc_seed_FR_   = simtrack.nFoundHits();
+
       lastlyr_mc_seed_FR_ = simtrack.getLastFoundHitLyr();
 
       duplmask_seed_FR_   = seedextra.isDuplicate();
@@ -1096,8 +1102,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       {
 	auto& simtrack = evt_sim_tracks[mcID_build_FR_];
 
-	const int mcHitID = TTreeValidation::getLastGoodHit(buildtrack.getLastGoodMCHitID(evt_layer_hits),mcID_build_FR_,ev);
-	if (mcHitID >= 0)
+	const int mcHitID = TTreeValidation::getLastFoundHit(buildtrack.getLastFoundMCHitID(evt_layer_hits),mcID_build_FR_,ev);
+	if (mcHitID >= 0 && useSimTSInfo)
         {
 	  const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
 	  pt_mc_build_FR_  = initLayTS.pT();
@@ -1227,8 +1233,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       {
 	auto& simtrack = evt_sim_tracks[mcID_fit_FR_];
       
-	const int mcHitID = TTreeValidation::getLastGoodHit(fittrack.getLastGoodMCHitID(evt_layer_hits),mcID_fit_FR_,ev); // only works for outward fit for now
-	if (mcHitID >= 0)
+	const int mcHitID = TTreeValidation::getLastFoundHit(fittrack.getLastFoundMCHitID(evt_layer_hits),mcID_fit_FR_,ev); // only works for outward fit for now
+	if (mcHitID >= 0 && useSimTSInfo)
         {
 	  const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
 	  pt_mc_fit_FR_  = initLayTS.pT();

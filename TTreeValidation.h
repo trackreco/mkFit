@@ -44,7 +44,7 @@ public:
   void makeSeedTkToRecoTkMaps(Event& ev) override;
   void mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackExtraVec& evt_extras, TkIDToTkIDMap& seedTkMap);
 
-  int getLastGoodHit(const int trackMCHitID, const int mcTrackID, const Event& ev);
+  int getLastFoundHit(const int trackMCHitID, const int mcTrackID, const Event& ev);
 
   void fillEfficiencyTree(const Event& ev) override;
   void fillFakeRateTree(const Event& ev) override;
@@ -160,13 +160,18 @@ public:
   // Fit tree (for fine tuning z-phi windows and such --> MPlex Only
   TTree* fittree_;
   int   ntotallayers_fit_=0,tkid_fit_=0,evtid_fit_=0;
-  float z_prop_fit_[Config::nTotalLayers],ez_prop_fit_[Config::nTotalLayers];
-  float z_hit_fit_[Config::nTotalLayers],ez_hit_fit_[Config::nTotalLayers],z_sim_fit_[Config::nTotalLayers],ez_sim_fit_[Config::nTotalLayers];
-  float pphi_prop_fit_[Config::nTotalLayers],epphi_prop_fit_[Config::nTotalLayers];
-  float pphi_hit_fit_[Config::nTotalLayers],epphi_hit_fit_[Config::nTotalLayers],pphi_sim_fit_[Config::nTotalLayers],epphi_sim_fit_[Config::nTotalLayers];
-  float pt_up_fit_[Config::nTotalLayers],ept_up_fit_[Config::nTotalLayers],pt_sim_fit_[Config::nTotalLayers],ept_sim_fit_[Config::nTotalLayers];
-  float mphi_up_fit_[Config::nTotalLayers],emphi_up_fit_[Config::nTotalLayers],mphi_sim_fit_[Config::nTotalLayers],emphi_sim_fit_[Config::nTotalLayers];
-  float meta_up_fit_[Config::nTotalLayers],emeta_up_fit_[Config::nTotalLayers],meta_sim_fit_[Config::nTotalLayers],emeta_sim_fit_[Config::nTotalLayers];
+
+  static const int   nfvs_ = 24;
+  std::vector<float> fvs_[nfvs_];
+
+  // perl -pe 'BEGIN{$i=0} while (s/\(Config::nTotalLayers\)/ = fvs_[$i]/){++$i}' xxin
+  std::vector<float> &z_prop_fit_ = fvs_[0],&ez_prop_fit_ = fvs_[1];
+  std::vector<float> &z_hit_fit_ = fvs_[2],&ez_hit_fit_ = fvs_[3],&z_sim_fit_ = fvs_[4],&ez_sim_fit_ = fvs_[5];
+  std::vector<float> &pphi_prop_fit_ = fvs_[6],&epphi_prop_fit_ = fvs_[7];
+  std::vector<float> &pphi_hit_fit_ = fvs_[8],&epphi_hit_fit_ = fvs_[9],&pphi_sim_fit_ = fvs_[10],&epphi_sim_fit_ = fvs_[11];
+  std::vector<float> &pt_up_fit_ = fvs_[12],&ept_up_fit_ = fvs_[13],&pt_sim_fit_ = fvs_[14],&ept_sim_fit_ = fvs_[15];
+  std::vector<float> &mphi_up_fit_ = fvs_[16],&emphi_up_fit_ = fvs_[17],&mphi_sim_fit_ = fvs_[18],&emphi_sim_fit_ = fvs_[19];
+  std::vector<float> &meta_up_fit_ = fvs_[20],&emeta_up_fit_ = fvs_[21],&meta_sim_fit_ = fvs_[22],&emeta_sim_fit_ = fvs_[23];
 
   std::mutex glock_;
 };
