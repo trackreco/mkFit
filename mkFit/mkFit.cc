@@ -507,7 +507,7 @@ int main(int argc, const char *argv[])
         "  --silent                 suppress printouts inside event loop (def: %s)\n"
         "  --write                  write simulation to file and exit\n"
         "  --read                   read simulation from file\n"
-        "  --skip-events   <num>    number of events to skip when reading from a file (def: %d)\n"
+        "  --start-event   <num>    event number to start at when reading from a file (def: %d)\n"
         "  --file-name              file name for write/read (def: %s)\n"
         "  --input-file             file name for reading when converting formats (def: %s)\n"
         "GPU specific options: \n"

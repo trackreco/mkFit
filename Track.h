@@ -247,7 +247,7 @@ public:
   int        getLastFoundHitIdx()     const { return hitsOnTrk_[getLastFoundHitPos()].index; }
   int        getLastFoundHitLyr()     const { return hitsOnTrk_[getLastFoundHitPos()].layer; }
 
-  int getLastGoodMCHitID(const std::vector<HitVec>& globalHitVec) const
+  int getLastFoundMCHitID(const std::vector<HitVec>& globalHitVec) const
   {
     HitOnTrack hot = getLastFoundHitOnTrack();
     return globalHitVec[hot.layer][hot.index].mcHitID();
