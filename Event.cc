@@ -595,18 +595,8 @@ int Event::clean_cms_simtracks()
     const int nh  = t.nFoundHits();
 
     t.sortHitsByLayer();
-
-    int lyr_cnt  =  0;
-    int prev_lyr = -1;
-    for (int h = 0; h < nh; ++h)
-    {
-      int h_lyr = t.getHitLyr(h);
-      if (h_lyr >= 0 && h_lyr != prev_lyr)
-      {
-        ++lyr_cnt;
-        prev_lyr = h_lyr;
-      }
-    }
+    
+    const int lyr_cnt = t.nUniqueLayers();
 
     if (lyr_cnt < Config::cmsSimSelMinLayers || t.pT() < Config::cmsSimSelMinPt)
     {

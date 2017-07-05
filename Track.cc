@@ -156,6 +156,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
   dprintf("TrackExtra::setMCTrackIDInfo for track with label %d, total hits %d, found hits %d\n",
           trk.label(), trk.nTotalHits(), trk.nFoundHits());
   std::vector<int> mcTrackIDs;
+
   for (int ihit = 0; ihit < trk.nTotalHits(); ++ihit) 
   {
     const int hitidx = trk.getHitIdx(ihit);
@@ -201,8 +202,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
       if (isSeed) mcTrackID_ = mcTrackID;
       else
       {
-        // XXXXMT4K Requires Track::nFoundUniqueLayerHits() or Track::nFoundLayers()
-	const int nMinSimHits = simtracks[mcTrackID].nFoundHits() * Config::nMinSimHitsFrac;
+	const int nMinSimHits = simtracks[mcTrackID].nUniqueLayers() * Config::nMinSimHitsFrac;
 	const int minFoundHits = ((nMinSimHits >= Config::nMinFoundHits) ? Config::nMinFoundHits : nMinSimHits);
 	
 	if (trk.nFoundHits() >= minFoundHits) mcTrackID_ = mcTrackID;
