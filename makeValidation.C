@@ -59,7 +59,7 @@ void makeValidation(TString label = "")
       g_ce ->SetMarkerColor(kRed);
 
       if (!rates[i].Contains("ineff",TString::kExact)) g_bh->GetYaxis()->SetRangeUser(0.0,1.05);
-      else g_bh->GetYaxis()->SetRangeUser(0.0,0.1);
+      else g_bh->GetYaxis()->SetRangeUser(0.0,0.25);
 
       g_bh ->Draw("APZ");
       g_std->Draw("PZ same");
