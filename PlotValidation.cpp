@@ -150,7 +150,10 @@ void PlotValidation::PlotEfficiency()
     {
       for (UInt_t j = 0; j < trks.size(); j++) // loop over trks index
       {
-	varsEff[i][j]->Fill((mcmask_trk[j]==1),mcvars_val[i]); // mc track must be associated to enter numerator
+	if (mcmask_trk[j] != -1)
+	{
+	  varsEff[i][j]->Fill((mcmask_trk[j]==1),mcvars_val[i]); // mc track must be associated to enter numerator
+	}
       } // end loop over trks
     } // end loop over vars
   } // end loop over entry in tree
@@ -247,7 +250,10 @@ void PlotValidation::PlotInefficiencyVsGeom()
       {
 	for (UInt_t j = 0; j < trks.size(); j++) // loop over trks index
         {
-	  varsIneff[h][i][j]->Fill((mcmask_trk[j] == 0),mcvars_val[i]); // mc track must be UNassociated to enter numerator
+	  if (mcmask_trk[j] != -1)
+	  {
+	    varsIneff[h][i][j]->Fill((mcmask_trk[j] == 0),mcvars_val[i]); // mc track must be UNassociated to enter numerator
+	  }
 	} // end loop over trks
       } // end loop over vars
     } // end loop over regions
