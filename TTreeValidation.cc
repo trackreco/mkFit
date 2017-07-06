@@ -1,7 +1,7 @@
 // mcTrackID assignments in Track.cc
 // Efficiency
 //   numerator:   sim tracks with at least one reco track with mcTrackID >= 0 (mcmask == 1)
-//   denominator: all sim tracks
+//   denominator: all findable sim tracks (mcmask = 0 || == 1)
 // Fake Rate (with only long reco tracks: Config::inclusiveShorts == false)
 //   numerator:   reco tracks with mcTrackID == -1 (mcmask == 0)
 //   denominator: reco tracks with mcTrackID >= 0 || == -1 (mcmask == 1,0,2)
@@ -12,7 +12,7 @@
 // N.B. Mask assignments
 // --> mcmask_[reco] == 1,"associated" reco to sim track [possible duplmask_[reco] == 1,0] {eff and FR}
 // --> mcmask_[reco] == 0,"unassociated" reco to sim track. by definition no duplicates (no reco to associate to sim tracks!) [possible duplmask_[reco] == 2 {eff and FR}]
-// --> mcmask_[reco] == -1, reco track excluded from denominator (and therefore numerator) of FR [possible duplmask_[reco] == -1] {FR only} 
+// --> mcmask_[reco] == -1, sim or reco track excluded from denominator (and therefore numerator) [possible duplmask_[reco] == -1] {eff and FR}
 // --> mcmask_[reco] == 2, reco track included in demoninator of FR, but will not enter numerator: for short "matched" tracks of mcTrackID == -2,-4 {FR only}
 
 // --> nTkMatches_[reco] > 1,   n reco tracks associated to the same sim track ID {eff only}
@@ -735,7 +735,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     }
     else // unmatched simTracks ... put -99 for all reco values to denote unmatched
     {
-      mcmask_seed_eff_ = 0; // quick logic for not matched
+      mcmask_seed_eff_ = (simtrack.isFindable() ? 0 : -1); // quick logic for not matched
       
       seedID_seed_eff_ = -99;
       
@@ -819,7 +819,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     }
     else // unmatched simTracks ... put -99 for all reco values to denote unmatched
     {
-      mcmask_build_eff_ = 0; // quick logic for not matched
+      mcmask_build_eff_ = (simtrack.isFindable() ? 0 : -1); // quick logic for not matched
 
       seedID_build_eff_ = -99;
 
@@ -904,7 +904,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     }
     else // unmatched simTracks ... put -99 for all reco values to denote unmatched
     {
-      mcmask_fit_eff_ = 0; // quick logic for not matched
+      mcmask_fit_eff_ = (simtrack.isFindable() ? 0 : -1); // quick logic for not matched
 
       seedID_fit_eff_ = -99;
 
