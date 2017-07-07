@@ -2,6 +2,8 @@ ifndef ROOTSYS
 $(error ROOTSYS is not set. Please set ROOT environment properly)
 endif
 
+WITH_ROOT:=yes
+
 include ../Makefile.config
 
 .PHONY: all clean distclean echo
