@@ -71,9 +71,6 @@ done
 
 ##### Validation tests #####
 ./validation-snb-toymc-fulldet-build.sh
-for test in BH STD CE; do
-    root -b -q -l runValidation.C\(\"_SNB_ToyMC_FullDet_${test}\"\)
-done
-root -b -q -l makeValidation.C\(\"SNB_ToyMC_FullDet\"\)
+./validation-snb-cmssw-fulldet-build.sh
 
 make distclean

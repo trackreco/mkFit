@@ -18,4 +18,10 @@ mv valtree.root valtree_SNB_ToyMC_FullDet_CE.root
 
 sed -i 's/WITH_ROOT := yes/#WITH_ROOT := yes/g' Makefile.config
 
+for build in BH STD CE
+do
+    root -b -q -l runValidation.C\(\"_SNB_ToyMC_FullDet_${build}\"\)
+done
+root -b -q -l makeValidation.C\(\"SNB_ToyMC_FullDet\"\)
+
 make clean
