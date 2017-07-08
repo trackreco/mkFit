@@ -360,8 +360,10 @@ public:
         // XXXXMT Not used yet, -3 last hit idx is still used! Need to add it to MkFi**r classes.
         bool stopped : 1;
 
+        // Production type (most useful for sim tracks): 0, 1, 2, 3 for unset, signal, in-time PU, oot PU
+        uint prod_type : 2;
         // The rest, testing if mixing int and uint is ok.
-        int  _some_free_bits_ : 13;
+        int  _some_free_bits_ : 11;
         uint _more_free_bits_ : 17;
       };
 
@@ -381,6 +383,10 @@ public:
   bool isFindable()    const { return ! status_.not_findable; }
   bool isNotFindable() const { return   status_.not_findable; }
   void setNotFindable()      { status_.not_findable = true; }
+
+  enum class ProdType { NotSet = 0, Signal = 1, InTimePU = 2, OutOfTimePU = 3};
+  ProdType prodType()  const { return ProdType(status_.prod_type); }
+  void setProdType(ProdType ptyp) { status_.prod_type = uint(ptyp); }
 
   // To be used later
   // bool isStopped() const { return status_.stopped; }
