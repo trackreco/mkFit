@@ -165,7 +165,7 @@ void printHelp(const char* av0){
 	 "  --output         <str>    output file\n"
 	 "  --verbosity      <num>    print details (0 quiet, 1 print counts, 2 print all; def: 0)\n"
 	 "  --clean-sim-tracks        apply sim track cleaning (def: no cleaning)\n"
-	 "  --keep-empty-sim-tracks   keep event with empty [cleaned] sim tracks (def: skip events with 0 simtracks)\n"
+	 "  --write-all-events        write all events (def: skip events with 0 simtracks or seeds)\n"
 	 , av0);
 }
 
@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
   std::string outputFileName;
 
   bool cleanSimTracks = false;
-  bool keepEmptySimTracks = false;
+  bool writeAllEvents = false;
   int verbosity = 0;
 
   lStr_t mArgs;
@@ -216,9 +216,9 @@ int main(int argc, char *argv[])
 	{
 	  cleanSimTracks = true;
 	}
-      else if (*i == "--keep-empty-sim-tracks")
+      else if (*i == "--write-all-events")
 	{
-	  keepEmptySimTracks = true;
+	  writeAllEvents = true;
 	}
       else
 	{
@@ -727,7 +727,7 @@ int main(int argc, char *argv[])
       
     }
 
-    if (simTracks_.empty() and not keepEmptySimTracks) continue;
+    if (simTracks_.empty() and not writeAllEvents) continue;
     
     vector<Track> &seedTracks_ = EE.seedTracks_;
     vector<vector<int> > pixHitSeedIdx(pix_lay->size());
@@ -777,7 +777,7 @@ int main(int argc, char *argv[])
       seedTracks_.push_back(track);
     }
 
-    if (seedTracks_.size()==0) continue;
+    if (seedTracks_.empty() and not writeAllEvents) continue;
 
 
     
@@ -945,7 +945,7 @@ int main(int argc, char *argv[])
     printf("end of event %lli\n",savedEvents);
   }
 
-  data_file.Close();
+  data_file.CloseWrite(savedEvents);
   printf("\nSaved %lli events\n\n",savedEvents);
 
   printf("Average number of seeds per event %f\n",float(nstot)/float(savedEvents));
