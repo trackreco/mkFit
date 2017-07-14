@@ -253,6 +253,7 @@ namespace Config
   
   extern bool   useCMSGeom;
   extern bool   readCmsswSeeds;
+  extern bool   readExtRecTracks;
 
   extern bool   endcapTest;
 

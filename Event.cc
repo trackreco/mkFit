@@ -76,6 +76,8 @@ void Event::Reset(int evtID)
   candidateTracksExtra_.clear();
   fitTracks_.clear();
   fitTracksExtra_.clear();
+  extRecTracks_.clear();
+  extRecTracksExtra_.clear();
 
   validation_.resetValidationMaps(); // need to reset maps for every event.
 }
@@ -413,6 +415,13 @@ void Event::write_out(DataFile &data_file)
     evsize += sizeof(int) + ns*sizeof(Track);
   }
 
+  if (data_file.HasExtRecTracks()) {
+    int nert = extRecTracks_.size();
+    fwrite(&nert, sizeof(int), 1, fp);
+    fwrite(&extRecTracks_[0], sizeof(Track), nert, fp);
+    evsize += sizeof(int) + nert*sizeof(Track);
+  }
+
   fseek(fp, start, SEEK_SET);
   fwrite(&evsize, sizeof(int), 1, fp);
   fseek(fp, 0, SEEK_END);
@@ -521,6 +530,25 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
 #endif
     }
 #endif
+  }
+
+  if (data_file.HasExtRecTracks())
+  {
+    int nert;
+    fread(&nert, sizeof(int), 1, fp);
+    if (Config::readExtRecTracks)
+    {
+      extRecTracks_.resize(nert);
+      for (int i = 0; i < nert; ++i)
+      {
+        fread(&extRecTracks_[i], data_file.f_header.f_sizeof_track, 1, fp);
+      }
+    }
+    else
+    {
+      fseek(fp, nert * data_file.f_header.f_sizeof_track, SEEK_CUR);
+      nert = -nert;
+    }
   }
 
 #ifdef DUMP_TRACKS
@@ -694,7 +722,20 @@ int DataFile::OpenRead(const std::string& fname, bool set_n_layers)
     printf("  Extra sections:");
     if (f_header.f_extra_sections & ES_SimTrackStates) printf(" SimTrackStates");
     if (f_header.f_extra_sections & ES_Seeds)          printf(" Seeds");
+    if (f_header.f_extra_sections & ES_ExtRecTracks)   printf(" ExtRecTracks");
     printf("\n");
+  }
+
+  if (Config::readCmsswSeeds && ! data_file.HasSeeds()) {
+    fprintf(stderr, "Reading of CmsswSeeds requested but data not available on file.\n",
+            f_header.f_n_layers, Config::nTotalLayers);
+    exit(1);
+  }
+
+  if (Config::readExtRecTracks && ! data_file.HasExtRecTracks()) {
+    fprintf(stderr, "Reading of ExtRecTracks requested but data not available on file.\n",
+            f_header.f_n_layers, Config::nTotalLayers);
+    exit(1);
   }
 
   return f_header.f_n_events;

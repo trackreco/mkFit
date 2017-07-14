@@ -495,6 +495,7 @@ int main(int argc, const char *argv[])
         "  --build-ce               run clone engine combinatorial building test (def: false)\n"
         "  --seeds-per-task         number of seeds to process in a tbb task (def: %d)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
+        "  --ext-rec-tracks         read external rec trakcs if available (def: %s)\n"
         "  --cmssw-seeds            take seeds from CMSSW (def: %s)\n"
         "  --find-seeds             run road search seeding [CF enabled by default] (def: %s)\n"
         "  --hits-per-task <num>    number of layer1 hits per task in finding seeds (def: %i)\n"
@@ -597,6 +598,10 @@ int main(int argc, const char *argv[])
     {
       next_arg_or_die(mArgs, i);
       Config::finderReportBestOutOfN = atoi(i->c_str());
+    }
+    else if(*i == "--ext-rec-tracks")
+    {
+      Config::readExtRecTracks = true;
     }
     else if(*i == "--cmssw-seeds")
     {
