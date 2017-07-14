@@ -1,3 +1,6 @@
+#ifndef PlotValidation_hh
+#define PlotValidation_hh
+
 #include "TFile.h"
 #include "TEfficiency.h"
 #include "TH1F.h"
@@ -92,3 +95,5 @@ private:
   std::vector<Color_t> fColors;
   UInt_t fColorSize;
 };
+
+#endif
