@@ -1,3 +1,5 @@
+#include "PlotValidation.hh"
+
 void setupcpp11()
 { // customize ACLiC's behavior ...
   TString o;
