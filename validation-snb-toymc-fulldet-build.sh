@@ -4,7 +4,7 @@ sed -i 's/#WITH_ROOT := yes/WITH_ROOT := yes/g' Makefile.config
 
 make -j 12
 
-dir=/data/nfsmic/${TOYMCUSER:-kmcdermo}/toymc
+dir=/data/nfsmic/scratch/toymc
 
 echo "SNB ToyMC BH (FullDet): validation [nTH:24, nVU:8]"
 ./mkFit/mkFit --root-val --read --file-name ${dir}/simtracks_fulldet_400x2p5k_val.bin --build-bh  --num-thr 24 >& log_SNB_ToyMC_FullDet_BH_NVU8int_NTH24_val.txt
