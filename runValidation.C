@@ -1,4 +1,6 @@
+#if  !defined(__CINT__)
 #include "PlotValidation.hh"
+#endif
 
 void setupcpp11()
 { // customize ACLiC's behavior ...
