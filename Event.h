@@ -117,6 +117,7 @@ struct DataFile
   void SkipNEvents(int n_to_skip);
 
   void Close();
+  void CloseWrite(int n_written); //override nevents in the header and close
 };
 
 #endif

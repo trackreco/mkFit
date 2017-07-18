@@ -6,6 +6,7 @@
 #include "TGraphAsymmErrors.h"
 #include "TCanvas.h"
 #include "TLegend.h"
+#include "TAxis.h"
 
 #include <vector>
 
