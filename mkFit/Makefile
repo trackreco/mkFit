@@ -89,7 +89,7 @@ include ${MKFDEPS}
 endif
 
 mkFit: ${ALLOBJS}
-	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} ${ALLOBJS} -o $@ ${LDFLAGS_HOST} ${LDFLAGS_CU} -L.. -lMicCore -Wl,-rpath=..,-rpath=.
+	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} ${ALLOBJS} -o $@ ${LDFLAGS_HOST} ${LDFLAGS_CU} -L.. -lMicCore -Wl,-rpath,..,-rpath,.
 
 ifdef WITH_ROOT
 fittestMPlex.o : CPPFLAGS += $(shell root-config --cflags)

@@ -26,7 +26,7 @@ all: ${TGTS}
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<
 
 %.so: %.o
-	${CXX} -shared -o $@ $<
+	${CXX} -shared -L.. -lMicCore -o $@ $<
 
 %.om: %.cc
 	${CXX} ${CPPFLAGS_NO_ROOT} ${CXXFLAGS} ${VEC_MIC} -c -o $@ $<

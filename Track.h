@@ -361,13 +361,14 @@ public:
         bool stopped : 1;
 
         // Production type (most useful for sim tracks): 0, 1, 2, 3 for unset, signal, in-time PU, oot PU
-        uint prod_type : 2;
-        // The rest, testing if mixing int and uint is ok.
-        int  _some_free_bits_ : 11;
-        uint _more_free_bits_ : 17;
+        unsigned int prod_type : 2;
+
+        // The rest, testing if mixing int and unsigned int is ok.
+        int          _some_free_bits_ : 11;
+        unsigned int _more_free_bits_ : 17;
       };
 
-      uint _raw_;
+      unsigned int _raw_;
     };
 
     Status() : _raw_(0) {}
@@ -377,8 +378,8 @@ public:
   // Maybe needed for MkFi**r copy in / out
   // Status& refStatus() { return  status_; }
   // Status* ptrStatus() { return &status_; }
-  // uint    rawStatus() const { return  status_._raw_; }
-  // void    setRawStatus(uint rs) { status_._raw_ = rs; }
+  // unsigned int rawStatus() const { return  status_._raw_; }
+  // void         setRawStatus(unsigned int rs) { status_._raw_ = rs; }
 
   bool isFindable()    const { return ! status_.not_findable; }
   bool isNotFindable() const { return   status_.not_findable; }
