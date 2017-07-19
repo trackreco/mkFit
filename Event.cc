@@ -786,12 +786,11 @@ void DataFile::Close()
   f_header = DataFileHeader();
 }
 
- void DataFile::CloseWrite(int n_written){
-   fseek(f_fp, 0, SEEK_SET);
-   DataFileHeader a_header;
-   fread(&a_header, sizeof(DataFileHeader), 1, f_fp);
-
-   a_header.f_n_events = n_written;
-   fwrite(&a_header, sizeof(DataFileHeader), 1, f_fp);
-   Close();
- }
+void DataFile::CloseWrite(int n_written){
+  if (f_header.f_n_events != n_written){
+    fseek(f_fp, 0, SEEK_SET);
+    f_header.f_n_events = n_written;
+    fwrite(&f_header, sizeof(DataFileHeader), 1, f_fp);
+  }
+  Close();
+}
