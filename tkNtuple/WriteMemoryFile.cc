@@ -166,6 +166,7 @@ void printHelp(const char* av0){
 	 "  --verbosity      <num>    print details (0 quiet, 1 print counts, 2 print all; def: 0)\n"
 	 "  --clean-sim-tracks        apply sim track cleaning (def: no cleaning)\n"
 	 "  --write-all-events        write all events (def: skip events with 0 simtracks or seeds)\n"
+	 "  --write-rec-tracks        write rec tracks (def: not written)\n"
 	 , av0);
 }
 
@@ -178,6 +179,8 @@ int main(int argc, char *argv[])
 
   bool cleanSimTracks = false;
   bool writeAllEvents = false;
+  bool writeRecTracks = false;
+
   int verbosity = 0;
 
   lStr_t mArgs;
@@ -219,6 +222,10 @@ int main(int argc, char *argv[])
       else if (*i == "--write-all-events")
 	{
 	  writeAllEvents = true;
+	}
+      else if (*i == "--write-rec-tracks")
+	{
+	  writeRecTracks = true;
 	}
       else
 	{
@@ -318,12 +325,48 @@ int main(int argc, char *argv[])
   t->SetBranchAddress("simhit_hitType", &simhit_hitType);
 
   //rec tracks
-  std::vector<unsigned int>*      trk_nValid = 0;
-  std::vector<unsigned int>*      trk_nInvalid = 0;
-  std::vector<int>*               trk_seedIdx = 0;
+  std::vector<int>*                trk_q = 0;
+  std::vector<unsigned int>*       trk_nValid = 0;
+  std::vector<unsigned int>*       trk_nInvalid = 0;
+  std::vector<int>*                trk_seedIdx = 0;
+  std::vector<unsigned long long>* trk_algoMask = 0;
+  std::vector<unsigned int>*       trk_algo = 0   ;
+  std::vector<unsigned int>*       trk_originalAlgo = 0;
+  std::vector<float>*              trk_nChi2 = 0;
+  std::vector<float>*              trk_px = 0;
+  std::vector<float>*              trk_py = 0;
+  std::vector<float>*              trk_pz = 0;
+  std::vector<float>*              trk_pt = 0;
+  std::vector<float>*              trk_phi = 0;
+  std::vector<float>*              trk_refpoint_x = 0;
+  std::vector<float>*              trk_refpoint_y = 0;
+  std::vector<float>*              trk_refpoint_z = 0;
+  std::vector<float>*              trk_dxyErr = 0;
+  std::vector<float>*              trk_dzErr = 0;
+  std::vector<float>*              trk_ptErr = 0;
+  std::vector<float>*              trk_phiErr = 0;
+  std::vector<float>*              trk_lambdaErr = 0;
+  t->SetBranchAddress("trk_q",   &trk_q);
   t->SetBranchAddress("trk_nValid",   &trk_nValid);
   t->SetBranchAddress("trk_nInvalid", &trk_nInvalid);
   t->SetBranchAddress("trk_seedIdx",  &trk_seedIdx);
+  t->SetBranchAddress("trk_algoMask", &trk_algoMask);
+  t->SetBranchAddress("trk_algo", &trk_algo);
+  t->SetBranchAddress("trk_originalAlgo", &trk_originalAlgo);
+  t->SetBranchAddress("trk_nChi2", &trk_nChi2);
+  t->SetBranchAddress("trk_px", &trk_px);
+  t->SetBranchAddress("trk_py", &trk_py);
+  t->SetBranchAddress("trk_pz", &trk_pz);
+  t->SetBranchAddress("trk_pt", &trk_pt);
+  t->SetBranchAddress("trk_phi", &trk_phi);
+  t->SetBranchAddress("trk_refpoint_x", &trk_refpoint_x);
+  t->SetBranchAddress("trk_refpoint_y", &trk_refpoint_y);
+  t->SetBranchAddress("trk_refpoint_z", &trk_refpoint_z);
+  t->SetBranchAddress("trk_dxyErr", &trk_dxyErr);
+  t->SetBranchAddress("trk_dzErr", &trk_dzErr);
+  t->SetBranchAddress("trk_ptErr", &trk_ptErr);
+  t->SetBranchAddress("trk_phiErr", &trk_phiErr);
+  t->SetBranchAddress("trk_lambdaErr", &trk_lambdaErr);
 
   std::vector<std::vector<int> >* trk_hitIdx = 0;
   t->SetBranchAddress("trk_hitIdx", &trk_hitIdx);
@@ -443,22 +486,20 @@ int main(int argc, char *argv[])
   vector<float>*  glu_yz = 0;
   vector<float>*  glu_zz = 0;
   vector<float>*  glu_zx = 0;
-  if (useMatched) {
-    t->SetBranchAddress("glu_isBarrel",&glu_isBarrel);
-    t->SetBranchAddress("glu_det",&glu_det);
-    t->SetBranchAddress("glu_lay",&glu_lay);
-    t->SetBranchAddress("glu_monoIdx",&glu_monoIdx);
-    t->SetBranchAddress("glu_stereoIdx",&glu_stereoIdx);
-    t->SetBranchAddress("glu_x",&glu_x);
-    t->SetBranchAddress("glu_y",&glu_y);
-    t->SetBranchAddress("glu_z",&glu_z);
-    t->SetBranchAddress("glu_xx",&glu_xx);
-    t->SetBranchAddress("glu_xy",&glu_xy);
-    t->SetBranchAddress("glu_yy",&glu_yy);
-    t->SetBranchAddress("glu_yz",&glu_yz);
-    t->SetBranchAddress("glu_zz",&glu_zz);
-    t->SetBranchAddress("glu_zx",&glu_zx);
-  }
+  t->SetBranchAddress("glu_isBarrel",&glu_isBarrel);
+  t->SetBranchAddress("glu_det",&glu_det);
+  t->SetBranchAddress("glu_lay",&glu_lay);
+  t->SetBranchAddress("glu_monoIdx",&glu_monoIdx);
+  t->SetBranchAddress("glu_stereoIdx",&glu_stereoIdx);
+  t->SetBranchAddress("glu_x",&glu_x);
+  t->SetBranchAddress("glu_y",&glu_y);
+  t->SetBranchAddress("glu_z",&glu_z);
+  t->SetBranchAddress("glu_xx",&glu_xx);
+  t->SetBranchAddress("glu_xy",&glu_xy);
+  t->SetBranchAddress("glu_yy",&glu_yy);
+  t->SetBranchAddress("glu_yz",&glu_yz);
+  t->SetBranchAddress("glu_zz",&glu_zz);
+  t->SetBranchAddress("glu_zx",&glu_zx);
 
   vector<short>*    str_isBarrel = 0;
   vector<short>*    str_isStereo = 0;
@@ -498,7 +539,9 @@ int main(int argc, char *argv[])
   long long savedEvents = 0;
 
   DataFile data_file;
-  data_file.OpenWrite(outputFileName, std::min(maxevt, totentries), DataFile::ES_Seeds);
+  int outOptions = DataFile::ES_Seeds;
+  if (writeRecTracks) outOptions |= DataFile::ES_ExtRecTracks;
+  data_file.OpenWrite(outputFileName, std::min(maxevt, totentries), outOptions);
 
   Event EE(0);
 
@@ -518,7 +561,11 @@ int main(int argc, char *argv[])
     if (nSims==0) {
       cout << "branches not loaded" << endl; exit(1);
     }
-    if (verbosity>0) std::cout<<__FILE__<<" "<<__LINE__<<" nSims "<<nSims<<std::endl;
+    if (verbosity>0) std::cout<<__FILE__<<" "<<__LINE__
+			      <<" nSims "<<nSims
+			      <<" nSeeds "<<see_q->size()
+			      <<" nRecT "<<trk_q->size()
+			      <<std::endl;
 
     //find best matching tkIdx from a list of simhits indices
     auto bestTkIdx = [&](std::vector<int> const& shs, std::vector<float> const& shfs, int rhIdx, HitType rhType){
@@ -779,6 +826,84 @@ int main(int argc, char *argv[])
 
     if (seedTracks_.empty() and not writeAllEvents) continue;
 
+    vector<Track> &extRecTracks_ = EE.extRecTracks_;
+    vector<vector<int> > pixHitRecIdx(pix_lay->size());
+    vector<vector<int> > strHitRecIdx(str_lay->size());
+    vector<vector<int> > gluHitRecIdx(glu_lay->size());
+    for (int ir = 0; ir<trk_q->size(); ++ir) {
+      if ((trk_algoMask->at(ir) & (1 << int(TrackAlgorithm::initialStep))) == 0){//check the origin; redundant for initialStep ntuples
+	if (verbosity > 1){
+	  std::cout<<"track "<<ir<<" failed algo selection for "<< int(TrackAlgorithm::initialStep) <<": mask "<<trk_algoMask->at(ir)
+		   <<" origAlgo "<<trk_originalAlgo->at(ir)<<" algo "<<trk_algo->at(ir)
+		   <<std::endl;
+	}
+	continue;
+      }
+      SVector3 pos = SVector3(trk_refpoint_x->at(ir), trk_refpoint_y->at(ir), trk_refpoint_z->at(ir));
+      SVector3 mom = SVector3(trk_px->at(ir), trk_py->at(ir), trk_pz->at(ir));
+      SMatrixSym66 err;
+      /*	
+	vx = -dxy*sin(phi) - pt*cos(phi)/p*pz/p*dz;
+	vy =  dxy*cos(phi) - pt*sin(phi)/p*pz/p*dz;
+	vz = dz*pt*pt/p/p;
+	//partial: ignores cross-terms
+	c(vx,vx) = c(dxy,dxy)*sin(phi)*sin(phi) + c(dz,dz)*pow(pt*cos(phi)/p*pz/p ,2);
+	c(vx,vy) = -c(dxy,dxy)*cos(phi)*sin(phi) + c(dz,dz)*cos(phi)*sin(phi)*pow(pt/p*pz/p, 2);
+	c(vy,vy) = c(dxy,dxy)*cos(phi)*cos(phi) + c(dz,dz)*pow(pt*sin(phi)/p*pz/p ,2);
+	c(vx,vz) = -c(dz,dz)*pt*pt/p/p*pt/p*pz/p*cos(phi);
+	c(vy,vz) = -c(dz,dz)*pt*pt/p/p*pt/p*pz/p*sin(phi);
+	c(vz,vz) = c(dz,dz)*pow(pt*pt/p/p, 2);
+      */
+      float pt = trk_pt->at(ir);
+      float pz = trk_pz->at(ir);
+      float p2 = pt*pt + pz*pz;
+      float sP = sin(trk_phi->at(ir));
+      float cP = cos(trk_phi->at(ir));
+      err.At(0,0) = std::pow(trk_dxyErr->at(ir), 2)*sP*sP + std::pow(trk_dzErr->at(ir)*(pt*pz/p2), 2)*cP*cP;
+      err.At(0,1) = -std::pow(trk_dxyErr->at(ir), 2)*cP*sP + std::pow(trk_dzErr->at(ir)*(pt*pz/p2), 2)*cP*sP;
+      err.At(1,1) = std::pow(trk_dxyErr->at(ir), 2)*cP*cP + std::pow(trk_dzErr->at(ir)*(pt*pz/p2), 2)*sP*sP;
+      err.At(0,2) = -std::pow(trk_dzErr->at(ir)*(pt*pz/p2), 2)*cP*pt/pz;
+      err.At(1,2) = -std::pow(trk_dzErr->at(ir)*(pt*pz/p2), 2)*sP*pt/pz;
+      err.At(2,2) = std::pow(trk_dzErr->at(ir)*(pt*pt/p2), 2);
+      err.At(3,3) = std::pow(trk_ptErr->at(ir)/pt/pt, 2);
+      err.At(4,4) = std::pow(trk_phiErr->at(ir), 2);
+      err.At(5,5) = std::pow(trk_lambdaErr->at(ir), 2);
+      TrackState state(trk_q->at(ir), pos, mom, err);
+#ifndef CCSCOORD
+      //begin test CCS coordinates
+      state.convertFromCCSToCartesian();
+      //end test CCS coordinates
+#endif
+      Track track(state, trk_nChi2->at(ir), trk_seedIdx->at(ir), 0, nullptr);//hits are filled later
+      auto const& hTypes = trk_hitType->at(ir);
+      auto const& hIdxs =  trk_hitIdx->at(ir);
+      for (int ip=0; ip<hTypes.size(); ip++) {
+	unsigned int hidx = hIdxs[ip];
+	switch( HitType(hTypes[ip]) ) {
+	  case HitType::Pixel:{
+	    //cout << "pix=" << hidx << " track=" << extRecTracks_.size() << endl;
+	    pixHitRecIdx[hidx].push_back(extRecTracks_.size());
+	    break;
+	  }
+	  case HitType::Strip:{
+	    //cout << "pix=" << hidx << " track=" << extRecTracks_.size() << endl;
+	    strHitRecIdx[hidx].push_back(extRecTracks_.size());
+	    break;
+	  }
+	  case HitType::Glued:{
+	    if (not useMatched ) throw std::logic_error("Tracks have glued hits, but matchedHit load is not configured");
+	    //cout << "pix=" << hidx << " track=" << extRecTracks_.size() << endl;
+	    gluHitRecIdx[hidx].push_back(extRecTracks_.size());
+	    break;
+	  }
+	  case HitType::Invalid: break;//FIXME. Skip, really?
+	  default: throw std::logic_error("Track hit type can not be handled");
+	}//switch( HitType
+      }
+      extRecTracks_.push_back(track);
+    }
+
+
 
     
     vector<vector<Hit> > &layerHits_   = EE.layerHits_;
@@ -810,6 +935,10 @@ int main(int argc, char *argv[])
 	//cout << "xxx ipix=" << ipix << " seed=" << pixHitSeedIdx[ipix][is] << endl;
       	seedTracks_[pixHitSeedIdx[ipix][is]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
       }
+      for (int ir=0;ir<pixHitRecIdx[ipix].size();ir++) {
+	//cout << "xxx ipix=" << ipix << " recTrack=" << pixHitRecIdx[ipix][ir] << endl;
+      	extRecTracks_[pixHitRecIdx[ipix][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
+      }
       Hit hit(pos, err, totHits);
       layerHits_[ilay].push_back(hit);
       MCHitInfo hitInfo(simTkIdx, ilay, layerHits_[ilay].size()-1, totHits);
@@ -839,6 +968,10 @@ int main(int argc, char *argv[])
 	  if (nhits < Config::nMaxSimHits) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
 	  else cout<<"SKIP: Tried to add glu hit to track with "<<nhits<<" hits "<<std::endl;
 	}
+	for (int ir=0;ir<gluHitRecIdx[iglu].size();ir++) {
+	  //cout << "xxx iglu=" << iglu << " recTrack=" << gluHitRecIdx[iglu][ir] << endl;
+	  extRecTracks_[gluHitRecIdx[iglu][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
+	}	
 	Hit hit(pos, err, totHits);
 	layerHits_[ilay].push_back(hit);
 	MCHitInfo hitInfo(simTkIdx, ilay, layerHits_[ilay].size()-1, totHits);
@@ -871,6 +1004,10 @@ int main(int argc, char *argv[])
 	if (nhits < Config::nMaxSimHits) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
 	else cout<<"SKIP: Tried to add str hit to track with "<<nhits<<" hits "<<std::endl;	
       }
+      for (int ir=0;ir<strHitRecIdx[istr].size();ir++) {
+	//cout << "xxx istr=" << istr << " recTrack=" << strHitRecIdx[istr][ir] << endl;
+	extRecTracks_[strHitRecIdx[istr][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
+      }
       Hit hit(pos, err, totHits);
       layerHits_[ilay].push_back(hit);
       MCHitInfo hitInfo(simTkIdx, ilay, layerHits_[ilay].size()-1, totHits);
@@ -902,10 +1039,13 @@ int main(int argc, char *argv[])
 
       int ns = seedTracks_.size();
 
+      int nr = extRecTracks_.size();
+
       printf("number of simTracks %i\n",nt);
       printf("number of layerHits %i\n",nl);
       printf("number of simHitsInfo %i\n",nm);
       printf("number of seedTracks %i\n",ns);
+      printf("number of recTracks %i\n",nr);
 
       if (verbosity>1) {
 	printf("\n");
@@ -918,7 +1058,9 @@ int main(int argc, char *argv[])
 
 	for (int i=0;i<nt;++i) {
 	  float spt = sqrt(pow(simTracks_[i].px(),2)+pow(simTracks_[i].py(),2));
-	  printf("sim track id=%i q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) pT=%7.4f nTotal=%i nFound=%i \n",i,simTracks_[i].charge(),simTracks_[i].px(),simTracks_[i].py(),simTracks_[i].pz(),simTracks_[i].x(),simTracks_[i].y(),simTracks_[i].z(),spt,simTracks_[i].nTotalHits(),simTracks_[i].nFoundHits());
+	  printf("sim track id=%i q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) pT=%7.4f nTotal=%i nFound=%i \n",i,
+		 simTracks_[i].charge(),simTracks_[i].px(),simTracks_[i].py(),simTracks_[i].pz(),simTracks_[i].x(),simTracks_[i].y(),simTracks_[i].z(),spt,
+		 simTracks_[i].nTotalHits(),simTracks_[i].nFoundHits());
 	  int nh = simTracks_[i].nTotalHits();
 	  for (int ih=0;ih<nh;++ih){
 	    int hidx = simTracks_[i].getHitIdx(ih);
@@ -932,11 +1074,31 @@ int main(int argc, char *argv[])
 	}
 	
 	for (int i=0;i<ns;++i) {
-	  printf("seed id=%i label=%i q=%2i pT=%6.3f p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f)\n",i,seedTracks_[i].label(),seedTracks_[i].charge(),seedTracks_[i].pT(),seedTracks_[i].px(),seedTracks_[i].py(),seedTracks_[i].pz(),seedTracks_[i].x(),seedTracks_[i].y(),seedTracks_[i].z());
+	  printf("seed id=%i label=%i q=%2i pT=%6.3f p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f)\n",i,
+		 seedTracks_[i].label(),seedTracks_[i].charge(),seedTracks_[i].pT(),seedTracks_[i].px(),seedTracks_[i].py(),seedTracks_[i].pz(),seedTracks_[i].x(),seedTracks_[i].y(),seedTracks_[i].z());
 	  int nh = seedTracks_[i].nTotalHits();
 	  for (int ih=0;ih<nh;++ih) printf("seed #%i hit #%i idx=%i\n",i,ih,seedTracks_[i].getHitIdx(ih));
 	}
 
+	if (writeRecTracks){
+	  for (int i=0;i<nr;++i) {
+	    float spt = sqrt(pow(extRecTracks_[i].px(),2)+pow(extRecTracks_[i].py(),2));
+	    printf("rec track id=%i label%i chi2=%6.3f q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) pT=%7.4f nTotal=%i nFound=%i \n",i, extRecTracks_[i].label(), extRecTracks_[i].chi2(),
+		   extRecTracks_[i].charge(),extRecTracks_[i].px(),extRecTracks_[i].py(),extRecTracks_[i].pz(),extRecTracks_[i].x(),extRecTracks_[i].y(),extRecTracks_[i].z(),spt,
+		   extRecTracks_[i].nTotalHits(),extRecTracks_[i].nFoundHits());
+	    int nh = extRecTracks_[i].nTotalHits();
+	    for (int ih=0;ih<nh;++ih){
+	      int hidx = extRecTracks_[i].getHitIdx(ih);
+	      int hlay = extRecTracks_[i].getHitLyr(ih);
+	      float hx = layerHits_[hlay][hidx].x();
+	      float hy = layerHits_[hlay][hidx].y();
+	      float hz = layerHits_[hlay][hidx].z();
+	      printf("track #%4i hit #%2i idx=%4i lay=%2i x=(% 8.3f, % 8.3f, % 8.3f) r=%8.3f\n",
+		     i,ih,hidx,hlay,hx,hy,hz, sqrt(hx*hx+hy*hy));
+	    }
+	  }
+	}//if (writeRecTracks){
+	
       }//verbosity>1
     }//verbosity>0
     EE.write_out(data_file);
