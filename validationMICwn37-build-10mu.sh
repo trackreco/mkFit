@@ -4,11 +4,11 @@ sed -i 's/#WITH_ROOT := yes/WITH_ROOT := yes/g' Makefile.config
 
 make -j 12
 
-ecn2=/store/disk00/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep/10muEta-24to-17Pt1to10/memoryFile.fv3.071417.bin
-ecn1=/store/disk00/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep/10muEta-175to-055Pt1to10/memoryFile.fv3.071417.bin
-brl=/store/disk00/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep/10muEtaLT06Pt1to10/memoryFile.fv3.071417.bin
-ecp1=/store/disk00/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep/10muEta055to175Pt1to10/memoryFile.fv3.071417.bin
-ecp2=/store/disk00/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep/10muEta17to24Pt1to10/memoryFile.fv3.071417.bin
+ecn2=/store/disk00/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep/10muEta-24to-17Pt1to10/memoryFile.fv3.recT.071817.bin
+ecn1=/store/disk00/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep/10muEta-175to-055Pt1to10/memoryFile.fv3.recT.071817.bin
+brl=/store/disk00/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep/10muEtaLT06Pt1to10/memoryFile.fv3.recT.071817.bin
+ecp1=/store/disk00/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep/10muEta055to175Pt1to10/memoryFile.fv3.recT.071817.bin
+ecp2=/store/disk00/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep/10muEta17to24Pt1to10/memoryFile.fv3.recT.071817.bin
 
 
 ## ECN2 ##
