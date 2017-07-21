@@ -617,9 +617,10 @@ int Event::clean_cms_simtracks()
   dprintf("Event::clean_cms_simtracks processing %d simtracks.\n", simTracks_.size());
 
   int n_acc = 0;
-
+  int i = -1;//wrap in ifdef DEBUG?
   for (Track & t : simTracks_)
   {
+    i++;
     const int nh  = t.nFoundHits();
 
     t.sortHitsByLayer();

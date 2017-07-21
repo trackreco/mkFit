@@ -810,7 +810,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
 #ifdef DEBUG
-    std::cout << "countInvalidHits(" << itrack << ")=" << countInvalidHits(itrack) << std::endl;
+    std::cout << "num_invalid_hits(" << itrack << ")=" << num_invalid_hits(itrack) << std::endl;
 #endif
 
     int fake_hit_idx = num_invalid_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
