@@ -1,8 +1,6 @@
 #! /bin/bash
 
-sed -i 's/#WITH_ROOT := yes/WITH_ROOT := yes/g' Makefile.config
-
-make -j 12
+make -j 12 WITH_ROOT=yes
 
 ECN2=/store/disk00/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep/10muEta-24to-17Pt1to10/memoryFile.fv3.recT.071817.bin
 ECN1=/store/disk00/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep/10muEta-175to-055Pt1to10/memoryFile.fv3.recT.071817.bin
@@ -32,8 +30,6 @@ for section in ECN2 ECN1 BRL ECP1 ECP2; do
     ./mkFit/mkFit --geom CMS-2017 --root-val --read --file-name ${!section} --build-ce --cmssw-seeds --num-thr 8 >& log_SNB_CMSSW_see_${section}_CE_NVU8int_NTH8_val.txt
     mv valtree.root valtree_SNB_CMSSW_see_${section}_CE.root
 done
-
-sed -i 's/WITH_ROOT := yes/#WITH_ROOT := yes/g' Makefile.config
 
 make clean
 
