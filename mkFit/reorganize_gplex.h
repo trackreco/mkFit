@@ -102,4 +102,22 @@ __device__ void InputTracksAndHitIdxComb_fn(Track *tracks, int *m_tracks_per_see
                                             const int beg, const int end, 
                                             const int itrack, const int N);
 
+__device__ void InputTracksAndHitIdxComb_fn_seed(Track *tracks, int *m_tracks_per_seed,
+                                            GPlexLS &Err_iP, GPlexLV &Par_iP,
+                                            GPlexQI &Chg, GPlexQF &Chi2,
+                                            GPlexQI &Label, GPlexQI *HitsIdx,
+                                            GPlexQI &SeedIdx, GPlexQI &CandIdx,
+                                            GPlexQB &Valid,
+                                            const int Nhits,
+                                            const int iseed_ev, 
+                                            const int icand_ev,
+                                            const int iseed_plex,
+                                            const int N);
+
+__device__ void OutputParErrCU_fn_seed(Track *tracks, 
+                                  const GPlexLS &Err, const GPlexLV &Par,
+                                  const int iseed_ev,
+                                  const int icand_ev,
+                                  int N);
+
 #endif  // REORGANIZE_GPLEX_H

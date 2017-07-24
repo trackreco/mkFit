@@ -113,7 +113,6 @@ void EventOfHitsCU::reserve_layers(const std::vector<HitVec> &layerHits)
   m_n_layers = layerHits.size();
   // Allocate GPU array.
   // Members's address  of array's elements are in the GPU space
-//  cudaMalloc((void**)&m_layers_of_hits, m_n_layers*sizeof(LayerOfHitsCU));
   m_layers_of_hits.reserve(m_n_layers);
   // Allocate CPU array. 
   // Members's address  of array's elements are in the CPU space
@@ -164,8 +163,6 @@ void EventOfHitsCU::copyFromCPU(const EventOfHits& event_of_hits,
   for (int i = 0; i < event_of_hits.m_n_layers; i++) {
     m_layers_of_hits_alloc[i].copy_layer_values(event_of_hits.m_layers_of_hits[i]);
   }
-
-  // TODO: Can be optimized: if neither all_hits and all_phi_bin have been resized.
   m_layers_of_hits.resize(m_n_layers);
   m_layers_of_hits.copy_from_cpu(m_layers_of_hits_alloc.data(), stream);
 }
@@ -203,7 +200,6 @@ void EtaBinOfCandidatesCU::alloc_tracks(const int ntracks) {
 
 void EtaBinOfCandidatesCU::free_tracks() {
   cudaFree(m_candidates);
-  /*cudaCheckError();*/
   m_real_size = 0;
   m_fill_index = 0;
 }

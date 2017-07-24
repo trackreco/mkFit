@@ -144,7 +144,6 @@ public:
 
   const float* posArray() const {return state_.parameters.Array();}
   const float* errArray() const {return state_.errors.Array();}
-//#ifdef USE_CUDA
 #if __CUDACC__
   __device__ float* posArrayCU();
   __device__ float* errArrayCU();
@@ -287,8 +286,7 @@ public:
   CUDA_CALLABLE
   Track clone() const { return Track(state_,chi2_,label_,nTotalHits(),hitIdxArr_); }
 
-//private:
-public:  // FIXME: remove and write proper accessors
+private:
   TrackState state_;
   float chi2_ = 0.;
   int   hitIdxArr_[Config::nLayers];

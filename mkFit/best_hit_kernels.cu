@@ -39,7 +39,8 @@ __global__ void getNewBestHitChi2_kernel(
     int *bestHit, const int hit_cnt, const int N) {
   int itrack = threadIdx.x + blockDim.x*blockIdx.x;
   if (itrack < N) {
-    getNewBestHitChi2_fn(XHitSize, XHitArr, outChi2, minChi2[itrack], bestHit[itrack], hit_cnt, N);
+    getNewBestHitChi2_fn(XHitSize, XHitArr, outChi2, 
+        minChi2[itrack], bestHit[itrack], hit_cnt, N);
   }
 }
 
@@ -75,7 +76,6 @@ __device__ void updateTracksWithBestHit_fn(Hit *hits,
       const float &chi2_local = minChi2;
 	  
       for (int i = 0; i < msErr.kSize; ++i) {
-        //msErr(itrack, i, 0) = hit.errArrayCU()[i];
         msErr[itrack + i*msErr.stride] = hit.errArrayCU()[i];
       }
       for (int i = 0; i < msPar.kSize; ++i) {
@@ -86,14 +86,6 @@ __device__ void updateTracksWithBestHit_fn(Hit *hits,
     }
     else
     {
-      /*msErr[Nhits].SetDiagonal3x3(itrack, 666);*/
-      // TODO use () operator
-      //msErr(itrack, 0, 0) = 666;
-      //msErr(itrack, 1, 0) = 0;
-      //msErr(itrack, 2, 0) = 666;
-      //msErr(itrack, 3, 0) = 0;
-      //msErr(itrack, 4, 0) = 0;
-      //msErr(itrack, 5, 0) = 666;
       msErr[itrack+ 0*msErr.stride] = 666;
       msErr[itrack+ 1*msErr.stride] = 0;
       msErr[itrack+ 2*msErr.stride] = 666;
@@ -211,10 +203,6 @@ void bestHit_wrapper(const cudaStream_t &stream,
   bestHit_kernel <<< grid, block, 0, stream >>>
     (layer.m_hits.data(), XHitSize, XHitArr,
      propErr, msErr, msPar, propPar, outChi2,
-     /*propErr.ptr, propErr.stride,*/
-     /*msErr.ptr, msErr.stride, msErr.kSize,*/
-     /*msPar.ptr, msPar.stride, msPar.kSize,*/
-     /*outChi2.ptr, outChi2.stride,*/
      Chi2, HitsIdx,
      maxSize, N);
 }
@@ -258,7 +246,6 @@ __global__ void findBestHit_kernel(LayerOfHitsCU *layers,
 
           int maxSize_block;
           selectHitIndices_fn(layer, Err_iP, Par_iP, XHitSize, XHitArr, tidx, N);
-          // FIXME: Is reduction over block enough, or do we need device-wise reduction
           reduceMax_fn<int, BLOCK_THREADS, 1, cub::BLOCK_REDUCE_WARP_REDUCTIONS>
             (XHitSize.ptr, XHitSize.N, &maxSize_block);
           bestHit_fn(layer.m_hits.data(), XHitSize, XHitArr,
@@ -290,8 +277,6 @@ void findBestHit_wrapper(cudaStream_t &stream,
     GPlexQI &inChg, GPlexQI &Label,
     GeometryCU &geom, 
     int *maxSize, int N) {
-  /*int gridx = std::min((N-1)/BLOCK_SIZE_X + 1,*/
-                       /*max_blocks_x);*/
   int gridx = (N-1)/BLOCK_SIZE_X + 1;
   dim3 grid(gridx, 1, 1);
   dim3 block(BLOCK_SIZE_X, 1, 1);

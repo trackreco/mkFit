@@ -6,19 +6,26 @@
 #include "Track.h"
 #include "gpu_utils.h"
 
+
 __device__ float *get_posArray(Hit &hit) {
     return hit.posArrayCU();
 }
+
+
 __device__ float *get_errArray(Hit &hit) {
     return hit.errArrayCU();
 }
 
+
 __device__ float *get_posArray(Track &track) {
     return track.posArrayCU();
 }
+
+
 __device__ float *get_errArray(Track &track) {
     return track.errArrayCU();
 }
+
 
 template <typename GPlexObj>
 __device__ void SlurpIn_fn(GPlexObj to, // float *fArray, int stride, int kSize, 
@@ -28,7 +35,7 @@ __device__ void SlurpIn_fn(GPlexObj to, // float *fArray, int stride, int kSize,
     const int *XHitPos = vi;
     const int off = XHitPos[j] * sizeof(Hit);
     for (int i = 0; i < to.kSize; ++i) { // plex_size
-      to[j + to.stride*i] = * (decltype(to.ptr)) (arr + i*sizeof(decltype(*to.ptr)) + off);
+      to[j + to.stride*i] = *(decltype(to.ptr)) (arr + i*sizeof(decltype(*to.ptr)) + off);
     }
   }
 }
@@ -40,7 +47,7 @@ __device__ void SlurpInIdx_fn(GPlexObj to,
   int j = threadIdx.x + blockDim.x * blockIdx.x;
   if (j<N) {
     for (int i = 0; i < to.kSize; ++i) { // plex_size
-      auto tmp = * (decltype(to.ptr)) (arr + i*sizeof(decltype(*to.ptr)) + idx);
+      auto tmp = *(decltype(to.ptr)) (arr + i*sizeof(decltype(*to.ptr)) + idx);
       to[j + to.stride*i] = tmp;
     }
   }
@@ -258,6 +265,24 @@ __device__ void OutputParErrCU_fn(Track *tracks,
   SlurpOutIdx_fn(Par, varr + off_param, idx, N);
 }
 
+__device__ void OutputParErrCU_fn_seed(Track *tracks, 
+                                  const GPlexLS &Err, const GPlexLV &Par,
+                                  const int iseed_ev,
+                                  const int icand_ev,
+                                  int N) {
+  Track &trk = tracks[0];
+  const char *varr       = (char*) &trk;
+  int   off_error = (char*) trk.errArrayCU() - varr;
+  int   off_param = (char*) trk.posArrayCU() - varr;
+
+  int i= iseed_ev * Config::maxCandsPerSeed + icand_ev;
+  const Track &trk_i = tracks[i];
+  int idx = (char*) &trk_i - varr;
+
+  SlurpOutIdx_fn(Err, varr + off_error, idx, N);
+  SlurpOutIdx_fn(Par, varr + off_param, idx, N);
+}
+
 
 __device__ void OutputTracksCU_fn(Track *tracks, 
                                   const GPlexLS &Err_iP, const GPlexLV &Par_iP,
@@ -287,7 +312,7 @@ __device__ void OutputTracksCU_fn(Track *tracks,
       /*int nGoodItIdx = 0;*/
       for (int hi = 0; hi < Config::nLayers; ++hi) {
         tracks[i].addHitIdx(HitsIdx[hi](itrack, 0, 0),0.);
-        // FIXME: We probably want to use registers instead of going for class members:
+        // FIXME: We probably want to use registers instead of going for gmem class members:
         /*int hit_idx = HitsIdx[hi](itrack, 0, 0);*/
         /*tracks[i].setHitIdx(hi, hit_idx);*/
         /*if (hit_idx >= 0) {*/
@@ -439,4 +464,47 @@ void InputTracksAndHitIdxComb_wrapper(const cudaStream_t &stream,
      Chg, Chi2, Label, HitsIdx,
      SeedIdx, CandIdx, Valid, Nhits,
      beg, end, N);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+__device__ void InputTracksAndHitIdxComb_fn_seed(Track *tracks, int *m_tracks_per_seed,
+                                            GPlexLS &Err_iP, GPlexLV &Par_iP,
+                                            GPlexQI &Chg, GPlexQF &Chi2,
+                                            GPlexQI &Label, GPlexQI *HitsIdx,
+                                            GPlexQI &SeedIdx, GPlexQI &CandIdx,
+                                            GPlexQB &Valid,
+                                            const int Nhits,
+                                            const int iseed_ev, 
+                                            const int icand_ev,
+                                            const int iseed_plex,
+                                            const int N)
+{
+  if (iseed_plex < N) {
+    // seed-based algorithm do not depend on Valid
+    Valid(iseed_plex, 0, 0) = 1;
+
+    Track &trk = tracks[0];
+    const char *varr       = (char*) &trk;
+    int   off_error = (char*) trk.errArrayCU() - varr;
+    int   off_param = (char*) trk.posArrayCU() - varr;
+    
+    int i = iseed_ev * Config::maxCandsPerSeed + icand_ev;
+    const Track &trk_i = tracks[i];
+    int idx = (char*) &trk_i - varr;
+
+    Label(iseed_plex, 0, 0) = tracks[i].label();
+    SeedIdx(iseed_plex, 0, 0) = iseed_ev; 
+    CandIdx(iseed_plex, 0, 0) = icand_ev;
+
+    SlurpInIdx_fn(Err_iP, varr + off_error, idx, N);
+    SlurpInIdx_fn(Par_iP, varr + off_param, idx, N);
+
+    Chg(iseed_plex, 0, 0) = tracks[i].charge();
+    Chi2(iseed_plex, 0, 0) = tracks[i].chi2();
+    // Note Config::nLayers -- not suitable for building
+    for (int hi = 0; hi < Nhits; ++hi) {
+      HitsIdx[hi][iseed_plex] = tracks[i].getHitIdx(hi); 
+    }
+  }
 }

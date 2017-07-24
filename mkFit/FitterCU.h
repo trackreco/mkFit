@@ -94,7 +94,7 @@ class FitterCU {
 
   void FindTracksInLayers(LayerOfHitsCU *layers, 
                           EventOfCombCandidatesCU& event_of_cands_cu,
-                          GeometryCU &geom);
+                          GeometryCU &geom, bool seed_based=false);
   
   //====================
  private:

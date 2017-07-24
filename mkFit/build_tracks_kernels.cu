@@ -14,11 +14,6 @@ __device__ void getHitFromLayer_fn(LayerOfHitsCU& layer_of_hits,
   if (itrack_plex < N)
   {
     int hit_idx = HitsIdx[itrack_plex];
-    // TODO: probably good to get this kind of checks in Debug mode
-    /*if (hit_idx > layer_of_hits.m_capacity) {*/
-      /*printf("wrong idx[%d] : %d capacity %d\n",*/
-          /*i, hit_idx, layer_of_hits.m_capacity);*/
-    /*}*/
     if (hit_idx >= 0)
     {
       Hit &hit = layer_of_hits.m_hits[hit_idx];
@@ -67,6 +62,7 @@ __device__ void updateMissingHits_fn(GPlexQI& HitsIdx,
   }
 }
 
+
 __global__ void updateMissingHits_kernel(GPlexQI HitsIdx, 
     GPlexLV Par_iP, GPlexLS Err_iP,
     GPlexLV Par_iC, GPlexLS Err_iC, int N)
@@ -74,6 +70,7 @@ __global__ void updateMissingHits_kernel(GPlexQI HitsIdx,
   int i = threadIdx.x + blockDim.x * blockIdx.x;
   updateMissingHits_fn(HitsIdx, Par_iP, Err_iP, Par_iC, Err_iC, i, N);
 }
+
 
 void UpdateMissingHits_wrapper(
     const cudaStream_t& stream, GPlexQI& HitsIdx, 
@@ -103,6 +100,7 @@ void UpdateWithLastHit_fn(
   updateMissingHits_fn(HitsIdx, Par_iP, Err_iP, Par_iC, Err_iC, itrack_plex, N);
 }
 
+
 __global__
 void UpdateWithLastHit_kernel(
     LayerOfHitsCU& layer_of_hits, GPlexQI HitsIdx, 
@@ -115,6 +113,7 @@ void UpdateWithLastHit_kernel(
   UpdateWithLastHit_fn(layer_of_hits, HitsIdx, msPar, msErr, 
                        Par_iP, Err_iP, Par_iC, Err_iC, i, N);
 }
+
 
 void UpdateWithLastHit_wrapper(
     const cudaStream_t& stream,
@@ -132,6 +131,7 @@ void UpdateWithLastHit_wrapper(
     (layer_cu, HitsIdx, msPar, msErr,
      Par_iP, Err_iP, Par_iC, Err_iC, N);
 }
+
 
 #if 0
 __device__ void findCandidates_fn(

@@ -6,19 +6,24 @@
 #include "build_tracks_kernels.h"
 
 #include "clone_engine_kernels.h"
+#include "clone_engine_kernels_seed.h"
 
 #include "Track.h"
 
 template <typename T>
 void FitterCU<T>::FindTracksInLayers(LayerOfHitsCU *layers, 
                                      EventOfCombCandidatesCU& event_of_cands_cu,
-                                     GeometryCU &geom)
+                                     GeometryCU &geom, bool seed_based)
 {
-  findInLayers_wrapper(stream, layers, event_of_cands_cu,
-                       d_XHitSize, d_XHitArr, d_Err_iP, d_par_iP,
-                       d_msErr_arr, d_msPar_arr, d_Err_iC, d_par_iC,
-                       d_outChi2, d_Chi2, d_HitsIdx_arr, d_inChg, d_Label,
-                       d_SeedIdx, d_CandIdx, d_Valid, geom, d_maxSize, N);
+  auto f = seed_based ? findInLayers_wrapper_seed : findInLayers_wrapper;
+
+  //findInLayers_wrapper(stream, layers, event_of_cands_cu,
+  //findInLayers_wrapper_seed(stream, layers, event_of_cands_cu,
+  f (stream, layers, event_of_cands_cu,
+     d_XHitSize, d_XHitArr, d_Err_iP, d_par_iP,
+     d_msErr_arr, d_msPar_arr, d_Err_iC, d_par_iC,
+     d_outChi2, d_Chi2, d_HitsIdx_arr, d_inChg, d_Label,
+     d_SeedIdx, d_CandIdx, d_Valid, geom, d_maxSize, N);
 }
 
 template <typename T>
