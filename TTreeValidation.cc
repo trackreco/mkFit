@@ -46,22 +46,6 @@
 #include "Propagation.h"
 #ifndef NO_ROOT
 
-inline bool sortByHitsChi2(const Track & cand1, const Track & cand2)
-{
-  if (cand1.nFoundHits()==cand2.nFoundHits()) return cand1.chi2()<cand2.chi2();
-  return cand1.nFoundHits()>cand2.nFoundHits();
-}
-
-inline float computeHelixChi2(const SVector6& simParams, const SVector6& recoParams, const SMatrixSym66& recoErrs)
-{ 
-  float chi2 = 0;
-  for(auto i = 0; i < Config::nParams; i++){
-    float delta = simParams.At(i) - recoParams.At(i);
-    chi2 += (delta*delta) / recoErrs.At(i,i);
-  }
-  return chi2 / (Config::nParams - 1);
-}
-
 TTreeValidation::TTreeValidation(std::string fileName)
 {
   std::lock_guard<std::mutex> locker(glock_);
@@ -396,19 +380,23 @@ void TTreeValidation::initializeFitTree()
   fittree_->Branch("emeta_sim",&emeta_sim_fit_,"emeta_sim_fit_[ntotallayers_fit_]/F");
 }
 
-void TTreeValidation::alignTrackExtra(TrackVec& evt_tracks, TrackExtraVec& evt_extras)
+void TTreeValidation::alignTracks(TrackVec& evt_tracks, TrackExtraVec& evt_extras, bool alignExtra)
 {
-  TrackExtraVec trackExtra_tmp(evt_tracks.size());
+  // redo trackExtras first if necessary
+  if (alignExtra)
+  {
+    TrackExtraVec trackExtra_tmp(evt_tracks.size());
 
-  // align temporary tkExVec with new track collection ordering
-  for (int itrack = 0; itrack < evt_tracks.size(); itrack++)
-  { 
-    trackExtra_tmp[itrack] = evt_extras[evt_tracks[itrack].label()]; // label is old seedID!
-  }
+    // align temporary tkExVec with new track collection ordering
+    for (int itrack = 0; itrack < evt_tracks.size(); itrack++)
+    { 
+      trackExtra_tmp[itrack] = evt_extras[evt_tracks[itrack].label()]; // label is old seedID!
+    }
+    
+    // now copy the temporary back in the old one
+    evt_extras = trackExtra_tmp;
+  }  
 
-  // now copy the temporary back in the old one
-  evt_extras = trackExtra_tmp;
-  
   // redo track labels to match index in vector
   for (int itrack = 0; itrack < evt_tracks.size(); itrack++)
   {

@@ -304,7 +304,7 @@ void Event::Seed(const BinInfoMap & segmentMap)
   simTracksExtra_ = seedTracksExtra_;
 #endif
   std::sort(seedTracks_.begin(), seedTracks_.end(), tracksByPhi);
-  validation_.alignTrackExtra(seedTracks_,seedTracksExtra_);   // if we sort here, also have to sort seedTracksExtra and redo labels.
+  validation_.alignTracks(seedTracks_,seedTracksExtra_,true);   // if we sort here, also have to sort seedTracksExtra and redo labels.
 }
 
 void Event::Find(const BinInfoMap & segmentMap)
