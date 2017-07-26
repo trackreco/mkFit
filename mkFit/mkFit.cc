@@ -486,7 +486,7 @@ int main(int argc, const char *argv[])
         "  --num-tracks    <num>    number of tracks to generate for each event (def: %d)\n"
         "  --num-thr-sim   <num>    number of threads for simulation (def: %d)\n"
         "  --num-thr       <num>    number of threads for track finding (def: %d)\n"
-        "  --num-thr-ev    <num>    number of threads to run the event loop\n"
+        "  --num-thr-ev    <num>    number of threads to run the event loop (def: %d)\n"
         "  --fit-std                run standard fitting test (def: false)\n"
         "  --fit-std-only           run only standard fitting test (def: false)\n"
         "  --chi2cut       <num>    chi2 cut used in building test (def: %.1f)\n"
@@ -512,16 +512,17 @@ int main(int argc, const char *argv[])
         "  --file-name              file name for write/read (def: %s)\n"
         "  --input-file             file name for reading when converting formats (def: %s)\n"
         "GPU specific options: \n"
-        "  --num-thr-reorg <num>    number of threads to run the hits reorganization\n"
+        "  --num-thr-reorg <num>    number of threads to run the hits reorganization (def: %d)\n"
         ,
         argv[0],
         Config::geomPlugin.c_str(),
         Config::nEvents,
         Config::nTracks,
-        Config::numThreadsSimulation, Config::numThreadsFinder,
+        Config::numThreadsSimulation, Config::numThreadsFinder, Config::numThreadsEvents,
         Config::chi2Cut,
         Config::numSeedsPerTask,
         Config::finderReportBestOutOfN,
+	b2a(Config::readExtRecTracks),
         b2a(Config::readCmsswSeeds),
         b2a(Config::findSeeds),
       	Config::numHitsPerTask,
@@ -534,7 +535,8 @@ int main(int argc, const char *argv[])
         b2a(Config::silent),
         g_start_event,
       	g_file_name.c_str(),
-      	g_input_file.c_str()
+      	g_input_file.c_str(),
+	Config::numThreadsReorg
       );
       exit(0);
     }

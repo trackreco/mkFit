@@ -728,14 +728,12 @@ int DataFile::OpenRead(const std::string& fname, bool set_n_layers)
   }
 
   if (Config::readCmsswSeeds && ! HasSeeds()) {
-    fprintf(stderr, "Reading of CmsswSeeds requested but data not available on file.\n",
-            f_header.f_n_layers, Config::nTotalLayers);
+    fprintf(stderr, "Reading of CmsswSeeds requested but data not available on file.\n");
     exit(1);
   }
 
   if (Config::readExtRecTracks && ! HasExtRecTracks()) {
-    fprintf(stderr, "Reading of ExtRecTracks requested but data not available on file.\n",
-            f_header.f_n_layers, Config::nTotalLayers);
+    fprintf(stderr, "Reading of ExtRecTracks requested but data not available on file.\n");
     exit(1);
   }
 
