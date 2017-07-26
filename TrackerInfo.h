@@ -114,8 +114,8 @@ public:
 
   EtaRegion find_eta_region(float eta) const
   {
-    if      (eta < -m_eta_trans_beg) return Reg_Endcap_Neg;
-    else if (eta < -m_eta_trans_end) return Reg_Transition_Neg;
+    if      (eta < -m_eta_trans_end) return Reg_Endcap_Neg;
+    else if (eta < -m_eta_trans_beg) return Reg_Transition_Neg;
     else if (eta <  m_eta_trans_beg) return Reg_Barrel;
     else if (eta <  m_eta_trans_end) return Reg_Transition_Pos;
     else                             return Reg_Endcap_Pos;
