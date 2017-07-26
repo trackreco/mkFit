@@ -40,3 +40,5 @@ endif
 
 clean:
 	rm -f *.so *.o *.om *.d *.optrpt
+
+distclean: clean
