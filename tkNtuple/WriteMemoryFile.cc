@@ -726,7 +726,9 @@ int main(int argc, char *argv[])
       state.convertFromCartesianToCCS();
       //end test CCS coordinates
 #endif
-      Track track(state, float(nlay), isim, 0, nullptr);//store number of reco hits in place of track chi2; fill hits later
+      //create track: store number of reco hits in place of track chi2; fill hits later
+      //              set label to be its own index in the output file
+      Track track(state, float(nlay), simTracks_.size(), 0, nullptr);
       if (sim_bunchCrossing->at(isim) == 0){//in time
 	if (sim_event->at(isim) == 0) track.setProdType(Track::ProdType::Signal);
 	else track.setProdType(Track::ProdType::InTimePU);
