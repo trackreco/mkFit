@@ -444,7 +444,7 @@ void TTreeValidation::setTrackExtras(Event& ev)
   {
     auto&& track(ev.candidateTracks_[itrack]);
     auto&& extra(ev.candidateTracksExtra_[itrack]);
-    if (Config::useCMSGeom || Config::findSeeds) {extra.setMCTrackIDInfo(track, ev.layerHits_, ev.simHitsInfo_, ev.simTracks_, false);}
+    if (Config::readCmsswSeeds || Config::findSeeds) {extra.setMCTrackIDInfo(track, ev.layerHits_, ev.simHitsInfo_, ev.simTracks_, false);}
     else {extra.setMCTrackIDInfoByLabel(track, ev.layerHits_, ev.simHitsInfo_);}
   }
   
@@ -453,7 +453,7 @@ void TTreeValidation::setTrackExtras(Event& ev)
   {
     auto&& track(ev.fitTracks_[itrack]);
     auto&& extra(ev.fitTracksExtra_[itrack]);
-    if (Config::useCMSGeom || Config::findSeeds) {extra.setMCTrackIDInfo(track, ev.layerHits_, ev.simHitsInfo_, ev.simTracks_, false);}
+    if (Config::readCmsswSeeds || Config::findSeeds) {extra.setMCTrackIDInfo(track, ev.layerHits_, ev.simHitsInfo_, ev.simTracks_, false);}
     else {extra.setMCTrackIDInfoByLabel(track, ev.layerHits_, ev.simHitsInfo_);}
   }
 }

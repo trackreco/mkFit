@@ -1,64 +1,60 @@
 #! /bin/bash
 
-sed -i 's/#WITH_ROOT := yes/WITH_ROOT := yes/g' Makefile.config
+make distclean
+make -j 12 WITH_ROOT=yes
 
-make -j 12
+dir=/data/nfsmic/slava77/samples/2017/pass-4874f28/initialStep
+file=memoryFile.fv3.recT.072617.bin
 
-dir=/data/nfsmic/scratch/10mu-new
+ECN2=${dir}/10muEta-24to-17Pt1to10/${file}
+ECN1=${dir}/10muEta-175to-055Pt1to10/${file}
+BRL=${dir}/10muEtaLT06Pt1to10/${file}
+ECP1=${dir}/10muEta055to175Pt1to10/${file}
+ECP2=${dir}/10muEta17to24Pt1to10/${file}
 
-## ECN ##
-echo "SNB CMSSW BH (ECN): validation [nTH:24, nVU:8]"
-./mkFit/mkFit --geom CMS-2017 --root-val --read --file-name ${dir}/mu_ecn-1000-10.bin-5 --build-bh  --num-thr 24 >& log_SNB_CMSSW_ECN_BH_NVU8int_NTH24_val.txt
-mv valtree.root valtree_SNB_CMSSW_ECN_BH.root
-echo "SNB CMSSW STD (ECN): validation [nTH:24, nVU:8]"
-./mkFit/mkFit --geom CMS-2017 --root-val --read --file-name ${dir}/mu_ecn-1000-10.bin-5 --build-std --num-thr 24 >& log_SNB_CMSSW_ECN_STD_NVU8int_NTH24_val.txt
-mv valtree.root valtree_SNB_CMSSW_ECN_STD.root
-echo "SNB CMSSW CE (ECN): validation [nTH:24, nVU:8]"
-./mkFit/mkFit --geom CMS-2017 --root-val --read --file-name ${dir}/mu_ecn-1000-10.bin-5 --build-ce  --num-thr 24 >& log_SNB_CMSSW_ECN_CE_NVU8int_NTH24_val.txt
-mv valtree.root valtree_SNB_CMSSW_ECN_CE.root
+base=SNB_CMSSW_10mu
 
-## BRL ##
-echo "SNB CMSSW BH (BRL): validation [nTH:24, nVU:8]"
-./mkFit/mkFit --geom CMS-2017 --root-val --read --file-name ${dir}/mu_brl-1000-10.bin-5 --build-bh  --num-thr 24 >& log_SNB_CMSSW_BRL_BH_NVU8int_NTH24_val.txt
-mv valtree.root valtree_SNB_CMSSW_BRL_BH.root
-echo "SNB CMSSW STD (BRL): validation [nTH:24, nVU:8]"
-./mkFit/mkFit --geom CMS-2017 --root-val --read --file-name ${dir}/mu_brl-1000-10.bin-5 --build-std --num-thr 24 >& log_SNB_CMSSW_BRL_STD_NVU8int_NTH24_val.txt
-mv valtree.root valtree_SNB_CMSSW_BRL_STD.root
-echo "SNB CMSSW CE (BRL): validation [nTH:24, nVU:8]"
-./mkFit/mkFit --geom CMS-2017 --root-val --read --file-name ${dir}/mu_brl-1000-10.bin-5 --build-ce  --num-thr 24 >& log_SNB_CMSSW_BRL_CE_NVU8int_NTH24_val.txt
-mv valtree.root valtree_SNB_CMSSW_BRL_CE.root
-
-## ECP ##
-echo "SNB CMSSW BH (ECP): validation [nTH:24, nVU:8]"
-./mkFit/mkFit --geom CMS-2017 --root-val --read --file-name ${dir}/mu_ecp-1000-10.bin-5 --build-bh  --num-thr 24 >& log_SNB_CMSSW_ECP_BH_NVU8int_NTH24_val.txt
-mv valtree.root valtree_SNB_CMSSW_ECP_BH.root
-echo "SNB CMSSW STD (ECP): validation [nTH:24, nVU:8]"
-./mkFit/mkFit --geom CMS-2017 --root-val --read --file-name ${dir}/mu_ecp-1000-10.bin-5 --build-std --num-thr 24 >& log_SNB_CMSSW_ECP_STD_NVU8int_NTH24_val.txt
-mv valtree.root valtree_SNB_CMSSW_ECP_STD.root
-echo "SNB CMSSW CE (ECP): validation [nTH:24, nVU:8]"
-./mkFit/mkFit --geom CMS-2017 --root-val --read --file-name ${dir}/mu_ecp-1000-10.bin-5 --build-ce  --num-thr 24 >& log_SNB_CMSSW_ECP_CE_NVU8int_NTH24_val.txt
-mv valtree.root valtree_SNB_CMSSW_ECP_CE.root
-
-sed -i 's/WITH_ROOT := yes/#WITH_ROOT := yes/g' Makefile.config
+for sV in "SimSeed " "CMSSeed --cmssw-seeds"
+do echo $sV | while read -r sN sO
+    do
+	for section in ECN2 ECN1 BRL ECP1 ECP2 
+	do
+	    for bV in "BH bh" "STD std" "CE ce"
+	    do echo $bV | while read -r bN bO
+		do
+		    oBase=${base}_${sN}_${section}_${bN}
+		    echo "${oBase}: validation [nTH:24, nVU:8]"
+		    ./mkFit/mkFit ${sO} --geom CMS-2017 --root-val --read --file-name ${!section} --build-${bO} ${sO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_val.txt
+		    mv valtree.root valtree_${oBase}.root
+		done
+	    done
+	done
+    done
+done
 
 make clean
 
-for section in ECN BRL ECP
+for seed in SimSeed CMSSeed
 do
+    for section in ECN2 ECN1 BRL ECP1 ECP2
+    do
+	oBase=${base}_${seed}_${section}
+	for build in BH STD CE
+	do
+	    root -b -q -l runValidation.C\(\"_${oBase}_${build}\"\)
+	done
+	root -b -q -l makeValidation.C\(\"${oBase}\"\)
+    done
+
     for build in BH STD CE
     do
-	root -b -q -l runValidation.C\(\"_SNB_CMSSW_${section}_${build}\"\)
+	oBase=${base}_${seed}
+	fBase=valtree_${oBase}
+	dBase=validation_${oBase}
+	hadd ${fBase}_FullDet_${build}.root `for section in ECN2 ECN1 BRL ECP1 ECP2; do echo -n ${dBase}_${section}_${build}/${fBase}_${section}_${build}.root" "; done`
+	root -b -q -l runValidation.C\(\"_${oBase}_FullDet_${build}\"\)
     done
-    root -b -q -l makeValidation.C\(\"SNB_CMSSW_${section}\"\)
+    root -b -q -l makeValidation.C\(\"${oBase}_FullDet\"\)
 done
-
-for build in BH STD CE
-do
-    hadd valtree_SNB_CMSSW_FullDet_${build}.root validation_SNB_CMSSW_ECN_${build}/valtree_SNB_CMSSW_ECN_${build}.root validation_SNB_CMSSW_BRL_${build}/valtree_SNB_CMSSW_BRL_${build}.root validation_SNB_CMSSW_ECP_${build}/valtree_SNB_CMSSW_ECP_${build}.root
-
-    root -b -q -l runValidation.C\(\"_SNB_CMSSW_FullDet_${build}\"\)
-done
-
-root -b -q -l makeValidation.C\(\"SNB_CMSSW_FullDet\"\)
 
 make distclean
