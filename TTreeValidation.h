@@ -30,7 +30,7 @@ public:
   void initializeConfigTree();
   void initializeFitTree();
   
-  void alignTrackExtra(TrackVec& evt_tracks, TrackExtraVec& evt_extra) override;
+  void alignTracks(TrackVec& evt_tracks, TrackExtraVec& evt_extra, bool alignExtra) override;
 
   void collectFitInfo(const FitVal& tmpfitval, int tkid, int layer) override;
 

@@ -796,19 +796,6 @@ void MkBuilder::remap_cand_hits()
   }
 }
 
-void MkBuilder::align_simtracks()
-{
-  // XXXXMT : Does this change with the new format?
-
-  if (Config::readCmsswSeeds && Config::endcapTest) 
-  {
-    for (int itrack = 0; itrack < m_event->simTracks_.size(); itrack++)
-    {
-      m_event->simTracks_[itrack].setLabel(itrack);
-    }
-  }
-}
-
 //------------------------------------------------------------------------------
 // Non-ROOT validation
 //------------------------------------------------------------------------------
@@ -818,8 +805,6 @@ void MkBuilder::quality_output_BH()
   quality_reset();
 
   remap_cand_hits();
-
-  align_simtracks();
 
   for (int i = 0; i < m_event->candidateTracks_.size(); i++)
   {
@@ -836,8 +821,6 @@ void MkBuilder::quality_output_COMB()
   quality_store_tracks_COMB();
 
   remap_cand_hits();
-
-  align_simtracks();
 
   for (int i = 0; i < m_event->candidateTracks_.size(); i++)
   {
@@ -940,8 +923,8 @@ void MkBuilder::root_val_BH()
   // get the tracks ready for validation
   remap_cand_hits();
   m_event->fitTracks_ = m_event->candidateTracks_; // fixme: hack for now. eventually fitting will be including end-to-end
-  align_simtracks();
   init_track_extras();
+  align_recotracks();
 
   m_event->Validate();
 }
@@ -954,37 +937,35 @@ void MkBuilder::root_val_COMB()
   quality_store_tracks_COMB();
   remap_cand_hits();
   m_event->fitTracks_ = m_event->candidateTracks_; // fixme: hack for now. eventually fitting will be including end-to-end
-  align_simtracks();
   init_track_extras();
+  align_recotracks();
 
   m_event->Validate();
 }
 
 void MkBuilder::init_track_extras()
 {
-  TrackVec      & seedtracks      = m_event->seedTracks_; 
-  TrackExtraVec & seedtrackextras = m_event->seedTracksExtra_;
-  for (int i = 0; i < seedtracks.size(); i++)
+  for (int i = 0; i < m_event->seedTracks_.size(); i++)
   {
-    seedtrackextras.emplace_back(seedtracks[i].label());
+    m_event->seedTracksExtra_.emplace_back(m_event->seedTracks_[i].label());
   }
-  m_event->validation_.alignTrackExtra(seedtracks,seedtrackextras);
 
-  TrackVec      & candidatetracks      = m_event->candidateTracks_;
-  TrackExtraVec & candidatetrackextras = m_event->candidateTracksExtra_;
-  for (int i = 0; i < candidatetracks.size(); i++)
+  for (int i = 0; i < m_event->candidateTracks_.size(); i++)
   {
-    candidatetrackextras.emplace_back(candidatetracks[i].label());
+    m_event->candidateTracksExtra_.emplace_back(m_event->candidateTracks_[i].label());
   }
-  m_event->validation_.alignTrackExtra(candidatetracks,candidatetrackextras);
-  
-  TrackVec      & fittracks      = m_event->fitTracks_;
-  TrackExtraVec & fittrackextras = m_event->fitTracksExtra_;
-  for (int i = 0; i < fittracks.size(); i++)
+
+  for (int i = 0; i < m_event->fitTracks_.size(); i++)
   {
-    fittrackextras.emplace_back(fittracks[i].label());
+    m_event->fitTracksExtra_.emplace_back(m_event->fitTracks_[i].label());
   }
-  m_event->validation_.alignTrackExtra(fittracks,fittrackextras);
+}
+
+void MkBuilder::align_recotracks()
+{
+  m_event->validation_.alignTracks(m_event->seedTracks_,m_event->seedTracksExtra_,false);
+  m_event->validation_.alignTracks(m_event->candidateTracks_,m_event->candidateTracksExtra_,false);
+  m_event->validation_.alignTracks(m_event->fitTracks_,m_event->fitTracksExtra_,false);
 }
 
 //------------------------------------------------------------------------------

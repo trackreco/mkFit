@@ -27,12 +27,6 @@ typedef candvec::const_iterator canditer;
 
 void extendCandidate(const BinInfoMap & segmentMap, const Event& ev, const cand_t& cand, candvec& tmp_candidates, int ilay, int seedID, bool debug);
 
-inline bool sortByHitsChi2(const cand_t& cand1, const cand_t& cand2)
-{
-  if (cand1.nFoundHits()==cand2.nFoundHits()) return cand1.chi2()<cand2.chi2();
-  return cand1.nFoundHits()>cand2.nFoundHits();
-}
-
 void processCandidates(const BinInfoMap & segmentMap, Event& ev, candvec& candidates, int ilay, int seedID, const bool debug)
 {
   auto& evt_track_candidates(ev.candidateTracks_);

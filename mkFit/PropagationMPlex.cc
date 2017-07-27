@@ -566,6 +566,8 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
      applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);
    }
 
+   squashPhiMPlex(outPar,N_proc); // ensure phi is between |pi|
+
    // Matriplex version of:
    // result.errors = ROOT::Math::Similarity(errorProp, outErr);
    MPlexLL temp;
@@ -635,6 +637,8 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
      }
      applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);
    }
+
+   squashPhiMPlex(outPar,N_proc); // ensure phi is between |pi|
 
    // Matriplex version of:
    // result.errors = ROOT::Math::Similarity(errorProp, outErr);
@@ -723,6 +727,8 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
      applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);
    }
 
+   squashPhiMPlex(outPar,N_proc); // ensure phi is between |pi|
+
    // Matriplex version of:
    // result.errors = ROOT::Math::Similarity(errorProp, outErr);
    MPlexLL temp;
@@ -807,6 +813,8 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
      }
      applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);
    }
+
+   squashPhiMPlex(outPar,N_proc); // ensure phi is between |pi|
 
    // Matriplex version of:
    // result.errors = ROOT::Math::Similarity(errorProp, outErr);

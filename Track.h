@@ -407,6 +407,29 @@ private:
 typedef std::vector<Track>    TrackVec;
 typedef std::vector<TrackVec> TrackVecVec;
 
+inline bool sortByHitsChi2(const Track & cand1, const Track & cand2)
+{
+  if (cand1.nFoundHits()==cand2.nFoundHits()) return cand1.chi2()<cand2.chi2();
+  return cand1.nFoundHits()>cand2.nFoundHits();
+}
+
+template <class V>
+inline void squashPhiGeneral(V& params)
+{
+  const int i = params.kSize-2; // phi index
+  params[i] -= floor(0.5f*Config::InvPI*(params[i]+Config::PI)) * Config::TwoPI;
+}
+
+template <class V, class M> 
+inline float computeHelixChi2(const V& simParams, const V& recoParams, const M& recoErrs)
+{ 
+  int invFail(0);
+  const M recoErrsI = recoErrs.InverseFast(invFail);
+  V diffParams = recoParams - simParams;
+  squashPhiGeneral(diffParams);
+  return ROOT::Math::Dot(diffParams*recoErrsI,diffParams) / (diffParams.kSize - 1);
+}
+
 class TrackExtra
 {
 public:
