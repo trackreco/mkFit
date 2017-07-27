@@ -338,6 +338,7 @@ int main(int argc, char *argv[])
   std::vector<float>*              trk_pz = 0;
   std::vector<float>*              trk_pt = 0;
   std::vector<float>*              trk_phi = 0;
+  std::vector<float>*              trk_lambda = 0;
   std::vector<float>*              trk_refpoint_x = 0;
   std::vector<float>*              trk_refpoint_y = 0;
   std::vector<float>*              trk_refpoint_z = 0;
@@ -359,6 +360,7 @@ int main(int argc, char *argv[])
   t->SetBranchAddress("trk_pz", &trk_pz);
   t->SetBranchAddress("trk_pt", &trk_pt);
   t->SetBranchAddress("trk_phi", &trk_phi);
+  t->SetBranchAddress("trk_lambda", &trk_lambda);
   t->SetBranchAddress("trk_refpoint_x", &trk_refpoint_x);
   t->SetBranchAddress("trk_refpoint_y", &trk_refpoint_y);
   t->SetBranchAddress("trk_refpoint_z", &trk_refpoint_z);
@@ -724,7 +726,9 @@ int main(int argc, char *argv[])
       state.convertFromCartesianToCCS();
       //end test CCS coordinates
 #endif
-      Track track(state, float(nlay), isim, 0, nullptr);//store number of reco hits in place of track chi2; fill hits later
+      //create track: store number of reco hits in place of track chi2; fill hits later
+      //              set label to be its own index in the output file
+      Track track(state, float(nlay), simTracks_.size(), 0, nullptr);
       if (sim_bunchCrossing->at(isim) == 0){//in time
 	if (sim_event->at(isim) == 0) track.setProdType(Track::ProdType::Signal);
 	else track.setProdType(Track::ProdType::InTimePU);
@@ -839,8 +843,7 @@ int main(int argc, char *argv[])
 	}
 	continue;
       }
-      SVector3 pos = SVector3(trk_refpoint_x->at(ir), trk_refpoint_y->at(ir), trk_refpoint_z->at(ir));
-      SVector3 mom = SVector3(trk_px->at(ir), trk_py->at(ir), trk_pz->at(ir));
+      //fill the state in CCS upfront
       SMatrixSym66 err;
       /*	
 	vx = -dxy*sin(phi) - pt*cos(phi)/p*pz/p*dz;
@@ -857,17 +860,23 @@ int main(int argc, char *argv[])
       float pt = trk_pt->at(ir);
       float pz = trk_pz->at(ir);
       float p2 = pt*pt + pz*pz;
-      float sP = sin(trk_phi->at(ir));
-      float cP = cos(trk_phi->at(ir));
-      err.At(0,0) = std::pow(trk_dxyErr->at(ir), 2)*sP*sP + std::pow(trk_dzErr->at(ir)*(pt*pz/p2), 2)*cP*cP;
-      err.At(0,1) = -std::pow(trk_dxyErr->at(ir), 2)*cP*sP + std::pow(trk_dzErr->at(ir)*(pt*pz/p2), 2)*cP*sP;
-      err.At(1,1) = std::pow(trk_dxyErr->at(ir), 2)*cP*cP + std::pow(trk_dzErr->at(ir)*(pt*pz/p2), 2)*sP*sP;
-      err.At(0,2) = -std::pow(trk_dzErr->at(ir)*(pt*pz/p2), 2)*cP*pt/pz;
-      err.At(1,2) = -std::pow(trk_dzErr->at(ir)*(pt*pz/p2), 2)*sP*pt/pz;
-      err.At(2,2) = std::pow(trk_dzErr->at(ir)*(pt*pt/p2), 2);
+      float phi = trk_phi->at(ir);
+      float sP = sin(phi);
+      float cP = cos(phi);
+      float dxyErr2 = trk_dxyErr->at(ir); dxyErr2 *= dxyErr2;
+      float dzErr2 = trk_dzErr->at(ir); dzErr2 *= dzErr2;
+      float dzErrF2 = trk_dzErr->at(ir)*(pt*pz/p2); dzErr2 *= dzErr2;
+      err.At(0,0) =  dxyErr2 *sP*sP + dzErrF2 *cP*cP;
+      err.At(0,1) = -dxyErr2 *cP*sP + dzErrF2 *cP*sP;
+      err.At(1,1) =  dxyErr2 *cP*cP + dzErrF2 *sP*sP;
+      err.At(0,2) = -dzErrF2*cP*pt/pz;
+      err.At(1,2) = -dzErrF2*sP*pt/pz;
+      err.At(2,2) =  dzErr2*std::pow((pt*pt/p2), 2);
       err.At(3,3) = std::pow(trk_ptErr->at(ir)/pt/pt, 2);
       err.At(4,4) = std::pow(trk_phiErr->at(ir), 2);
       err.At(5,5) = std::pow(trk_lambdaErr->at(ir), 2);
+      SVector3 pos = SVector3(trk_refpoint_x->at(ir), trk_refpoint_y->at(ir), trk_refpoint_z->at(ir));
+      SVector3 mom = SVector3(1.f/pt, phi, M_PI_2 - trk_lambda->at(ir));
       TrackState state(trk_q->at(ir), pos, mom, err);
 #ifndef CCSCOORD
       //begin test CCS coordinates
@@ -1083,7 +1092,8 @@ int main(int argc, char *argv[])
 	if (writeRecTracks){
 	  for (int i=0;i<nr;++i) {
 	    float spt = sqrt(pow(extRecTracks_[i].px(),2)+pow(extRecTracks_[i].py(),2));
-	    printf("rec track id=%i label%i chi2=%6.3f q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) pT=%7.4f nTotal=%i nFound=%i \n",i, extRecTracks_[i].label(), extRecTracks_[i].chi2(),
+	    printf("rec track id=%i label%i chi2=%6.3f q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) pT=%7.4f nTotal=%i nFound=%i \n",
+		   i, extRecTracks_[i].label(), extRecTracks_[i].chi2(),
 		   extRecTracks_[i].charge(),extRecTracks_[i].px(),extRecTracks_[i].py(),extRecTracks_[i].pz(),extRecTracks_[i].x(),extRecTracks_[i].y(),extRecTracks_[i].z(),spt,
 		   extRecTracks_[i].nTotalHits(),extRecTracks_[i].nFoundHits());
 	    int nh = extRecTracks_[i].nTotalHits();
