@@ -6,9 +6,11 @@
 #include "Config.h"
 
 #include <vector>
+#include <map>
 
 typedef std::pair<int,int> SimTkIDInfo;
 typedef std::vector<int>   HitIdxVec;
+typedef std::map<int,std::vector<int> > HitLayerMap;
 
 inline int calculateCharge(const Hit & hit0, const Hit & hit1, const Hit & hit2){
   return ((hit2.y()-hit0.y())*(hit2.x()-hit1.x())>(hit2.y()-hit1.y())*(hit2.x()-hit0.x())?1:-1);
@@ -19,6 +21,26 @@ inline int calculateCharge(const float hit0_x, const float hit0_y,
 			   const float hit2_x, const float hit2_y){
   return ((hit2_y-hit0_y)*(hit2_x-hit1_x)>(hit2_y-hit1_y)*(hit2_x-hit0_x)?1:-1);
 }
+
+struct ReducedTrack // used for cmssw reco track validation
+{
+public:
+  ReducedTrack() {}
+  ReducedTrack(const int label, const SVector2 & params, const float phi, const HitLayerMap & hitmap) :
+  label_(label), parameters_(params), phi_(phi), hitLayerMap_(hitmap) {}
+  ~ReducedTrack() {}
+
+        int           label()       const {return label_;}
+  const SVector2&     parameters()  const {return parameters_;}
+        float         momPhi()      const {return phi_;}
+  const HitLayerMap&  hitLayerMap() const {return hitLayerMap_;}
+
+  int label_;
+  SVector2 parameters_;
+  float phi_;
+  HitLayerMap hitLayerMap_;
+};
+typedef std::vector<ReducedTrack> RedTrackVec;
 
 struct TrackState //  possible to add same accessors as track? 
 {
@@ -179,6 +201,9 @@ public:
   float epT()     const { return state_.epT();}
   float emomPhi() const { return state_.emomPhi();}
   float emomEta() const { return state_.emomEta();}
+
+  // used for swimming cmssw rec tracks to mkFit position
+  float swimPhiToR(const float x, const float y) const;
   
   //this function is very inefficient, use only for debug and validation!
   const HitVec hitsVector(const std::vector<HitVec>& globalHitVec) const 
@@ -413,21 +438,26 @@ inline bool sortByHitsChi2(const Track & cand1, const Track & cand2)
   return cand1.nFoundHits()>cand2.nFoundHits();
 }
 
-template <class V>
-inline void squashPhiGeneral(V& params)
+template <typename Vector>
+inline void squashPhiGeneral(Vector& v)
 {
-  const int i = params.kSize-2; // phi index
-  params[i] -= floor(0.5f*Config::InvPI*(params[i]+Config::PI)) * Config::TwoPI;
+  const int i = v.kSize-2; // phi index
+  v[i] = squashPhiGeneral(v[i]);
 }
 
-template <class V, class M> 
-inline float computeHelixChi2(const V& simParams, const V& recoParams, const M& recoErrs)
+//https://github.com/cms-sw/cmssw/blob/09c3fce6626f70fd04223e7dacebf0b485f73f54/SimTracker/TrackAssociatorProducers/plugins/getChi2.cc#L23
+template <typename Vector, typename Matrix> 
+float computeHelixChi2(const Vector& simV, const Vector& recoV, const Matrix& recoM, const bool diagOnly = false)
 { 
+  Vector diffV = recoV - simV;
+  if (diffV.kSize > 2) squashPhiGeneral(diffV);
+
+  Matrix recoM_tmp = recoM;
+  if (diagOnly) diagonalOnly(recoM_tmp);
   int invFail(0);
-  const M recoErrsI = recoErrs.InverseFast(invFail);
-  V diffParams = recoParams - simParams;
-  squashPhiGeneral(diffParams);
-  return ROOT::Math::Dot(diffParams*recoErrsI,diffParams) / (diffParams.kSize - 1);
+  const Matrix recoMI = recoM_tmp.InverseFast(invFail);
+
+  return ROOT::Math::Dot(diffV*recoMI,diffV)/(diffV.kSize-1);
 }
 
 class TrackExtra
@@ -438,14 +468,18 @@ public:
 
   void setMCTrackIDInfoByLabel(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo);
   void setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo, const TrackVec& simtracks, const bool isSeed);
+  void setCMSSWTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const TrackVec& cmsswtracks, const RedTrackVec& redcmsswtracks);
 
   int   mcTrackID() const {return mcTrackID_;}
   int   nHitsMatched() const {return nHitsMatched_;}
   float fracHitsMatched() const {return fracHitsMatched_;}
+  int   nLayersMatched() const {return nLayersMatched_;}
+  float fracLayersMatched() const {return fracLayersMatched_;}
   int   seedID() const {return seedID_;}
   bool  isDuplicate() const {return isDuplicate_;}
   int   duplicateID() const {return duplicateID_;}
   void  setMCDuplicateInfo(int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
+  int   cmsswTrackID() const {return cmsswTrackID_;}
 
 private:
   friend class Track;
@@ -453,9 +487,12 @@ private:
   int   mcTrackID_;
   int   nHitsMatched_;
   float fracHitsMatched_;
+  int   nLayersMatched_;
+  float fracLayersMatched_;
   int   seedID_;
   int   duplicateID_;
   bool  isDuplicate_;
+  int   cmsswTrackID_;
 };
 
 typedef std::vector<TrackExtra> TrackExtraVec;

@@ -28,6 +28,8 @@ public:
   void initializeEfficiencyTree();
   void initializeFakeRateTree();  
   void initializeConfigTree();
+  void initializeCMSSWEfficiencyTree();
+  void initializeCMSSWFakeRateTree();
   void initializeFitTree();
   
   void alignTracks(TrackVec& evt_tracks, TrackExtraVec& evt_extra, bool alignExtra) override;
@@ -43,12 +45,15 @@ public:
   void mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, TkIDToTkIDVecMap& simTkMap);
   void makeSeedTkToRecoTkMaps(Event& ev) override;
   void mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackExtraVec& evt_extras, TkIDToTkIDMap& seedTkMap);
+  void makeCMSSWTkToRecoTksMap(Event& ev) override;
 
   int getLastFoundHit(const int trackMCHitID, const int mcTrackID, const Event& ev);
 
   void fillEfficiencyTree(const Event& ev) override;
   void fillFakeRateTree(const Event& ev) override;
   void fillConfigTree() override;
+  void fillCMSSWEfficiencyTree(const Event& ev) override;
+  void fillCMSSWFakeRateTree(const Event& ev) override;
   void fillFitTree(const Event& ev) override;
 
   void saveTTrees() override;
@@ -156,6 +161,12 @@ public:
   float varXY_=0.,varZ_=0.;
   int   nTotHit_=0;
   float ptinverr049_=0.,phierr049_=0.,thetaerr049_=0.,ptinverr012_=0.,phierr012_=0.,thetaerr012_=0.;
+
+  // CMSSW Efficiency tree
+  TTree* cmsswefftree_;
+
+  // CMSSW FakeRate tree
+  TTree* cmsswfrtree_;
 
   // Fit tree (for fine tuning z-phi windows and such --> MPlex Only
   TTree* fittree_;

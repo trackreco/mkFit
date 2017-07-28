@@ -57,6 +57,11 @@ TTreeValidation::TTreeValidation(std::string fileName)
     TTreeValidation::initializeEfficiencyTree();
     TTreeValidation::initializeFakeRateTree();  
   }
+  if (Config::cmssw_val)
+  {
+    TTreeValidation::initializeCMSSWEfficiencyTree();
+    TTreeValidation::initializeCMSSWFakeRateTree();
+  }
   if (Config::fit_val) 
   {
     for (int i = 0; i < nfvs_; ++i) fvs_[i].resize(Config::nTotalLayers);
@@ -71,6 +76,11 @@ TTreeValidation::~TTreeValidation()
   {
     delete efftree_;
     delete fakeratetree_;
+  }
+  if (Config::cmssw_val)
+  {
+    delete cmsswefftree_;
+    delete cmsswfrtree_;
   }
   if (Config::fit_val) 
   {
@@ -340,6 +350,18 @@ void TTreeValidation::initializeConfigTree()
   configtree_->Branch("thetaerr012",&thetaerr012_);
 }
 
+void TTreeValidation::initializeCMSSWEfficiencyTree()
+{  
+  // cmssw reco track efficiency validation
+  cmsswefftree_ = new TTree("cmsswefftree","cmsswefftree");
+}
+
+void TTreeValidation::initializeCMSSWFakeRateTree()
+{  
+  // cmssw reco track efficiency validation
+  cmsswfrtree_ = new TTree("cmsswfrtree","cmsswfrtree");
+}
+
 void TTreeValidation::initializeFitTree()
 {
   ntotallayers_fit_ = Config::nTotalLayers;
@@ -431,30 +453,66 @@ void TTreeValidation::setTrackExtras(Event& ev)
 {
   std::lock_guard<std::mutex> locker(glock_);
 
-  // set mcTrackID for seed tracks
-  for (int itrack = 0; itrack < ev.seedTracks_.size(); itrack++)
+  if (Config::root_val)
   {
-    auto&& track(ev.seedTracks_[itrack]);
-    auto&& extra(ev.seedTracksExtra_[itrack]);
-    extra.setMCTrackIDInfo(track, ev.layerHits_, ev.simHitsInfo_, ev.simTracks_, true); // otherwise seeds are completely unmatched in ToyMC Sim Seeds
+    // set mcTrackID for seed tracks
+    for (int itrack = 0; itrack < ev.seedTracks_.size(); itrack++)
+    {
+      auto&& track(ev.seedTracks_[itrack]);
+      auto&& extra(ev.seedTracksExtra_[itrack]);
+      extra.setMCTrackIDInfo(track, ev.layerHits_, ev.simHitsInfo_, ev.simTracks_, true); // otherwise seeds are completely unmatched in ToyMC Sim Seeds
+    }
+    
+    // set mcTrackID for built tracks
+    for (int itrack = 0; itrack < ev.candidateTracks_.size(); itrack++)
+    {
+      auto&& track(ev.candidateTracks_[itrack]);
+      auto&& extra(ev.candidateTracksExtra_[itrack]);
+      if (Config::readCmsswSeeds || Config::findSeeds) {extra.setMCTrackIDInfo(track, ev.layerHits_, ev.simHitsInfo_, ev.simTracks_, false);}
+      else {extra.setMCTrackIDInfoByLabel(track, ev.layerHits_, ev.simHitsInfo_);}
+    }
+  
+    // set mcTrackID for fit tracks
+    for (int itrack = 0; itrack < ev.fitTracks_.size(); itrack++)
+    {
+      auto&& track(ev.fitTracks_[itrack]);
+      auto&& extra(ev.fitTracksExtra_[itrack]);
+      if (Config::readCmsswSeeds || Config::findSeeds) {extra.setMCTrackIDInfo(track, ev.layerHits_, ev.simHitsInfo_, ev.simTracks_, false);}
+      else {extra.setMCTrackIDInfoByLabel(track, ev.layerHits_, ev.simHitsInfo_);}
+    }
   }
 
-  // set mcTrackID for built tracks
-  for (int itrack = 0; itrack < ev.candidateTracks_.size(); itrack++)
-  {
-    auto&& track(ev.candidateTracks_[itrack]);
-    auto&& extra(ev.candidateTracksExtra_[itrack]);
-    if (Config::readCmsswSeeds || Config::findSeeds) {extra.setMCTrackIDInfo(track, ev.layerHits_, ev.simHitsInfo_, ev.simTracks_, false);}
-    else {extra.setMCTrackIDInfoByLabel(track, ev.layerHits_, ev.simHitsInfo_);}
-  }
-  
-  // set mcTrackID for fit tracks
-  for (int itrack = 0; itrack < ev.fitTracks_.size(); itrack++)
-  {
-    auto&& track(ev.fitTracks_[itrack]);
-    auto&& extra(ev.fitTracksExtra_[itrack]);
-    if (Config::readCmsswSeeds || Config::findSeeds) {extra.setMCTrackIDInfo(track, ev.layerHits_, ev.simHitsInfo_, ev.simTracks_, false);}
-    else {extra.setMCTrackIDInfoByLabel(track, ev.layerHits_, ev.simHitsInfo_);}
+  if (Config::cmssw_val)
+  {    
+    RedTrackVec reducedCMSSW(ev.extRecTracks_.size()); // use 2D chi2 for now, so might as well make use of this object for now
+    for (int itrack = 0; itrack < ev.extRecTracks_.size(); itrack++)
+    {
+      const auto & cmsswtrack = ev.extRecTracks_[itrack];
+      const SVector6 & params = cmsswtrack.parameters();
+      SVector2 tmpv;
+      tmpv[0] = params[3];
+      tmpv[1] = params[5];
+
+      HitLayerMap tmpmap;
+      for (int ihit = 0; ihit < cmsswtrack.nTotalHits(); ihit++)
+      {
+	const int lyr = cmsswtrack.getHitLyr(ihit);
+	const int idx = cmsswtrack.getHitIdx(ihit);
+
+	if (idx >= 0) tmpmap[lyr].push_back(idx);
+      }
+
+      // index inside object is label (as cmsswtracks are now aligned)
+      reducedCMSSW[itrack] = ReducedTrack(cmsswtrack.label(),tmpv,cmsswtrack.momPhi(),tmpmap);
+    }
+
+    // set cmsswTrackID for built tracks
+    for (int itrack = 0; itrack < ev.candidateTracks_.size(); itrack++)
+    {
+      auto&& track(ev.candidateTracks_[itrack]);
+      auto&& extra(ev.candidateTracksExtra_[itrack]);
+      extra.setCMSSWTrackIDInfo(track, ev.layerHits_, ev.extRecTracks_,reducedCMSSW);
+    }
   }
 }
 
@@ -526,6 +584,15 @@ void TTreeValidation::mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackE
   {
     seedTkMap[evt_extras[track.label()].seedID()] = track.label();
   }
+}
+
+void TTreeValidation::makeCMSSWTkToRecoTksMap(Event& ev)
+{
+  int nmatched = 0;
+  for (auto&& trk : ev.candidateTracks_) 
+    if (ev.candidateTracksExtra_[trk.label()].cmsswTrackID() != -1) nmatched++;
+  
+  std::cout << "Matched: " << nmatched << " / " << ev.candidateTracks_.size() << std::endl;
 }
 
 int TTreeValidation::getLastFoundHit(const int trackMCHitID, const int mcTrackID, const Event& ev)
@@ -1352,6 +1419,14 @@ void TTreeValidation::fillConfigTree()
   thetaerr012_ = Config::thetaerr012;
 
   configtree_->Fill();
+}
+
+void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
+{
+}
+
+void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
+{
 }
 
 void TTreeValidation::saveTTrees() 

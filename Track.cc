@@ -82,6 +82,13 @@ void Track::sortHitsByLayer()
             [&](HitOnTrack h1, HitOnTrack h2) { return h1.layer < h2.layer; });
 }
 
+float Track::swimPhiToR(const float x0, const float y0) const
+{
+  const float dR = getHypot(x()-x0,y()-y0); 
+  const float dPhi = 2.f*std::asin(dR/176.f/pT()*charge());
+  return squashPhiGeneral(momPhi()-dPhi);
+}
+
 //==============================================================================
 // TrackExtra
 //==============================================================================
@@ -223,6 +230,61 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
   }
 
   dprint("Track " << trk.label() << " best mc track " << mcTrackID_ << " count " << mccount << "/" << trk.nFoundHits());
+}
+
+void TrackExtra::setCMSSWTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const TrackVec& cmsswtracks, const RedTrackVec& redcmsswtracks)
+{
+  const SVector6 & trkParams = trk.parameters();
+  const SMatrixSym66 & trkErrs = trk.errors();
+
+  // temps needed for chi2
+  SVector2 trkParamsR;
+  trkParamsR[0] = trkParams[3];
+  trkParamsR[1] = trkParams[5];
+    
+  SMatrixSym22 trkErrsR;
+  trkErrsR[0][0] = trkErrs[3][3];
+  trkErrsR[1][1] = trkErrs[5][5];
+  trkErrsR[0][1] = trkErrs[3][5];
+  trkErrsR[1][0] = trkErrs[5][3];
+
+  std::vector<int> cands;
+  for (auto&& redcmsswtrack : redcmsswtracks)
+  {
+    const float chi2 = computeHelixChi2(redcmsswtrack.parameters(),trkParamsR,trkErrsR,false);
+    if (chi2 < Config::minCMSSWMatchChi2) cands.push_back(redcmsswtrack.label());
+  }
+
+  int best = -1;
+  float bestdPhi = Config::minCMSSWMatchdPhi;
+  for (auto cand : cands) // loop over possible cmssw tracks
+  {
+    const auto & cmsswtrack = cmsswtracks[cand];
+    const float diffPhi = std::abs(squashPhiGeneral(cmsswtrack.swimPhiToR(trk.x(),trk.y())-trk.momPhi()));
+    if (diffPhi < bestdPhi) // check for best matched track by phi
+    {
+      if (Config::applyCMSSWHitMatch) // check for nMatchedHits if applied
+      {
+	const HitLayerMap & hitLayerMap = redcmsswtracks[cand].hitLayerMap();
+	int matched = 0;
+	for (int ihit = Config::nlayers_per_seed; ihit < trk.nTotalHits(); ihit++) // loop over mkfit track hits
+	{
+	  const int lyr = trk.getHitLyr(ihit);
+	  const int idx = trk.getHitIdx(ihit);
+	  
+	  if (idx < 0 || !hitLayerMap.count(lyr)) continue; // skip if bad index or cmssw track does not have that layer
+	  for (auto cidx : hitLayerMap.at(lyr)) // loop over hits in layer for the cmssw track
+	  {
+	    if (cidx == idx) {matched++; break;} 
+	  }
+	}
+	if (matched < Config::nCMSSWMatchHits) continue;
+      }
+      bestdPhi = diffPhi; best = cand;
+    }
+  }
+
+  cmsswTrackID_ = best;
 }
 
 //==============================================================================

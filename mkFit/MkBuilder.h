@@ -80,7 +80,6 @@ public:
   void map_seed_hits(); // m_event->layerHits_ -> m_event_of_hits.m_layers_of_hits (seeds only)
   void remap_seed_hits(); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_ (seeds only)
   void remap_cand_hits(); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_ (cands only)
-  void align_recotracks(); // ensure that all track collections have labels equal to index inside vector
 
   void quality_output_BH();
   void quality_output_COMB();
@@ -92,7 +91,11 @@ public:
 
   void root_val_BH();
   void root_val_COMB();
+  void cmssw_val_BH();
+  void cmssw_val_COMB();
   void init_track_extras();
+  void align_recotracks(); // ensure that all track collections have labels equal to index inside vector
+  void prep_cmsswtracks(); // ensure that cmssw rec tracks have the right labels and extras are good
 
   // --------
 

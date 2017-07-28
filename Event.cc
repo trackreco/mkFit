@@ -329,13 +329,21 @@ void Event::Fit()
 
 void Event::Validate()
 {
-  // KM: Config tree just filled once... in main.cc
+  // standard eff/fr/dr validation
   if (Config::root_val) {
     validation_.setTrackExtras(*this);
     validation_.makeSimTkToRecoTksMaps(*this);
     validation_.makeSeedTkToRecoTkMaps(*this);
     validation_.fillEfficiencyTree(*this);
     validation_.fillFakeRateTree(*this);
+  }
+
+  // special cmssw to mkfit validation
+  if (Config::cmssw_val) {
+    validation_.setTrackExtras(*this);
+    validation_.makeCMSSWTkToRecoTksMap(*this);
+    validation_.fillCMSSWEfficiencyTree(*this);
+    validation_.fillCMSSWFakeRateTree(*this);
   }
 
   if (Config::fit_val) { // fit val for z-phi tuning

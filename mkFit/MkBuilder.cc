@@ -943,6 +943,18 @@ void MkBuilder::root_val_COMB()
   m_event->Validate();
 }
 
+void MkBuilder::cmssw_val_BH()
+{
+  prep_cmsswtracks();
+  root_val_BH();
+}
+
+void MkBuilder::cmssw_val_COMB()
+{
+  prep_cmsswtracks();
+  root_val_COMB();
+}
+
 void MkBuilder::init_track_extras()
 {
   for (int i = 0; i < m_event->seedTracks_.size(); i++)
@@ -966,6 +978,17 @@ void MkBuilder::align_recotracks()
   m_event->validation_.alignTracks(m_event->seedTracks_,m_event->seedTracksExtra_,false);
   m_event->validation_.alignTracks(m_event->candidateTracks_,m_event->candidateTracksExtra_,false);
   m_event->validation_.alignTracks(m_event->fitTracks_,m_event->fitTracksExtra_,false);
+}
+
+void MkBuilder::prep_cmsswtracks()
+{
+  for (int i = 0; i < m_event->extRecTracks_.size(); i++)
+  {
+    m_event->extRecTracks_[i].sortHitsByLayer();
+    m_event->extRecTracksExtra_.emplace_back(m_event->extRecTracks_[i].label());
+  }
+  
+  m_event->validation_.alignTracks(m_event->extRecTracks_,m_event->extRecTracksExtra_,false);
 }
 
 //------------------------------------------------------------------------------

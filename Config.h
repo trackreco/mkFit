@@ -232,9 +232,14 @@ namespace Config
   // config on validation
   constexpr float nMinSimHitsFrac = 0.7;
   constexpr int nMinFoundHits = 7; 
+  constexpr float minCMSSWMatchChi2 = 50;
+  constexpr float minCMSSWMatchdPhi = 0.03;
+  constexpr int   nCMSSWMatchHits = 7;
   extern bool root_val;
+  extern bool cmssw_val;
   extern bool fit_val;
   extern bool inclusiveShorts;
+  extern bool applyCMSSWHitMatch;
 
   // Threading
   extern int    numThreadsFinder;

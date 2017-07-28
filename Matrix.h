@@ -34,6 +34,15 @@ void dumpMatrix(Matrix m)
   }
 }
 
+template <typename Matrix>
+inline void diagonalOnly(Matrix& m)
+{
+  for (int r=0; r<m.kRows; r++) {
+    for (int c=0; c<m.kCols; c++) {
+      if (r!=c) m[r][c] = 0.f;
+    }
+  }
+}
 
 //==============================================================================
 
