@@ -312,10 +312,10 @@ public:
   {
     int lyr_cnt  =  0;
     int prev_lyr = -1;
-    for (int ihit = 0; ihit < lastHitIdx_ ; ++ihit)
+    for (int ihit = 0; ihit <= lastHitIdx_ ; ++ihit)
     {
       int h_lyr = hitsOnTrk_[ihit].layer;
-      if (h_lyr >= 0 && h_lyr != prev_lyr)
+      if (h_lyr >= 0 && hitsOnTrk_[ihit].index >= 0 && h_lyr != prev_lyr)
       {
         ++lyr_cnt;
         prev_lyr = h_lyr;
