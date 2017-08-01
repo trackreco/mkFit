@@ -853,7 +853,7 @@ void MkBuilder::quality_process(Track &tkcand)
 {
   TrackExtra extra(tkcand.label());
   
-  if (Config::useCMSGeom || Config::findSeeds)
+  if (Config::readCmsswSeeds || Config::findSeeds)
   {
     extra.setMCTrackIDInfo(tkcand, m_event->layerHits_, m_event->simHitsInfo_, m_event->simTracks_, false);
   }
@@ -877,8 +877,8 @@ void MkBuilder::quality_process(Track &tkcand)
   {
     ptmc  = m_event->simTracks_[mctrk].pT() ;
     pr    = pt / ptmc;
-    // XXXXMT4K Requires Track::nFoundUniqueLayerHits() or Track::nFoundLayers()
-    nfoundmc = m_event->simTracks_[mctrk].nFoundHits();
+    m_event->simTracks_[mctrck].sortHitsByLayer();
+    nfoundmc = m_event->simTracks_[mctrk].nUniqueLayers();
     chi2mc = m_event->simTracks_[mctrk].chi2();//this is actually the number of reco hits in cmssw
 
     ++m_cnt;
