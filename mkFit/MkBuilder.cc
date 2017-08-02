@@ -877,7 +877,7 @@ void MkBuilder::quality_process(Track &tkcand)
   {
     ptmc  = m_event->simTracks_[mctrk].pT() ;
     pr    = pt / ptmc;
-    m_event->simTracks_[mctrck].sortHitsByLayer();
+    m_event->simTracks_[mctrk].sortHitsByLayer();
     nfoundmc = m_event->simTracks_[mctrk].nUniqueLayers();
     chi2mc = m_event->simTracks_[mctrk].chi2();//this is actually the number of reco hits in cmssw
 
