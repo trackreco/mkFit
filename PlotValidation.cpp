@@ -277,7 +277,7 @@ void PlotValidation::PlotInefficiencyVsGeom()
 void PlotValidation::PlotFakeRate()
 {
   // Get tree
-  TTree * fakeratetree  = (TTree*)fInRoot->Get("fakeratetree");
+  TTree * frtree  = (TTree*)fInRoot->Get("frtree");
 
   // make output subdirectory and subdir in ROOT file, and cd to it.
   TString subdirname = "fakerate"; 
@@ -331,7 +331,7 @@ void PlotValidation::PlotFakeRate()
       recovars_val[i][j] = 0.;
     
       //Set var+trk branch
-      fakeratetree->SetBranchAddress(Form("%s_%s",vars[i].Data(),trks[j].Data()),&(recovars_val[i][j]));
+      frtree->SetBranchAddress(Form("%s_%s",vars[i].Data(),trks[j].Data()),&(recovars_val[i][j]));
     }
   }
   
@@ -339,13 +339,13 @@ void PlotValidation::PlotFakeRate()
   for (UInt_t j = 0; j < trks.size(); j++) // loop over trks index
   {
     mcmask_trk[j] = 0;
-    fakeratetree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
+    frtree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
   }
 
   // Fill histos, compute fake rate from tree branches 
-  for (Int_t k = 0; k < fakeratetree->GetEntries(); k++)
+  for (Int_t k = 0; k < frtree->GetEntries(); k++)
   {
-    fakeratetree->GetEntry(k);
+    frtree->GetEntry(k);
     for (UInt_t i = 0; i < vars.size(); i++)  // loop over vars index
     {
       for (UInt_t j = 0; j < trks.size(); j++) // loop over trks index
@@ -367,7 +367,7 @@ void PlotValidation::PlotFakeRate()
       delete varsFR[i][j];
     }
   }  
-  delete fakeratetree;
+  delete frtree;
 }
 
 void PlotValidation::PlotDuplicateRate()
@@ -471,7 +471,7 @@ void PlotValidation::PlotDuplicateRate()
 void PlotValidation::PlotNHits()
 {
   // Get tree --> can do this all with fake rate tree
-  TTree * fakeratetree = (TTree*)fInRoot->Get("fakeratetree");
+  TTree * frtree = (TTree*)fInRoot->Get("frtree");
 
   // make output subdirectory and subdir in ROOT file, and cd to it.
   TString subdirname = "nHits"; 
@@ -531,17 +531,17 @@ void PlotValidation::PlotNHits()
     nHits_trk[j]           = 0;
     fracHitsMatched_trk[j] = 0;
 
-    fakeratetree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
-    fakeratetree->SetBranchAddress(Form("seedmask_%s",trks[j].Data()),&(seedmask_trk[j]));
-    fakeratetree->SetBranchAddress(Form("iTkMatches_%s",trks[j].Data()),&(iTkMatches_trk[j]));
-    fakeratetree->SetBranchAddress(Form("nHits_%s",trks[j].Data()),&(nHits_trk[j]));
-    fakeratetree->SetBranchAddress(Form("fracHitsMatched_%s",trks[j].Data()),&(fracHitsMatched_trk[j]));
+    frtree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
+    frtree->SetBranchAddress(Form("seedmask_%s",trks[j].Data()),&(seedmask_trk[j]));
+    frtree->SetBranchAddress(Form("iTkMatches_%s",trks[j].Data()),&(iTkMatches_trk[j]));
+    frtree->SetBranchAddress(Form("nHits_%s",trks[j].Data()),&(nHits_trk[j]));
+    frtree->SetBranchAddress(Form("fracHitsMatched_%s",trks[j].Data()),&(fracHitsMatched_trk[j]));
   }
 
   // Fill histos, compute res/pull from tree branches 
-  for (Int_t k = 0; k < fakeratetree->GetEntries(); k++)
+  for (Int_t k = 0; k < frtree->GetEntries(); k++)
   {
-    fakeratetree->GetEntry(k);
+    frtree->GetEntry(k);
     for (UInt_t j = 0; j < trks.size(); j++) // loop over trks index
     {
       for (UInt_t c = 0; c < coll.size(); c++) // loop over trk collection type
@@ -595,7 +595,7 @@ void PlotValidation::PlotNHits()
     }
   }  
     
-  delete fakeratetree;
+  delete frtree;
 }
 
 void PlotValidation::PlotMomResolutionPull()

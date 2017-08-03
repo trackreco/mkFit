@@ -75,7 +75,7 @@ TTreeValidation::~TTreeValidation()
   if (Config::root_val) 
   {
     delete efftree_;
-    delete fakeratetree_;
+    delete frtree_;
   }
   if (Config::cmssw_val)
   {
@@ -194,108 +194,108 @@ void TTreeValidation::initializeEfficiencyTree()
 void TTreeValidation::initializeFakeRateTree()
 {
   // fake rate validation
-  fakeratetree_ = new TTree("fakeratetree","fakeratetree");
+  frtree_ = new TTree("frtree","frtree");
 
-  fakeratetree_->Branch("evtID",&evtID_FR_);
-  fakeratetree_->Branch("seedID",&seedID_FR_);
+  frtree_->Branch("evtID",&evtID_FR_);
+  frtree_->Branch("seedID",&seedID_FR_);
 
-  fakeratetree_->Branch("seedmask_seed",&seedmask_seed_FR_);
-  fakeratetree_->Branch("seedmask_build",&seedmask_build_FR_);
-  fakeratetree_->Branch("seedmask_fit",&seedmask_fit_FR_);
+  frtree_->Branch("seedmask_seed",&seedmask_seed_FR_);
+  frtree_->Branch("seedmask_build",&seedmask_build_FR_);
+  frtree_->Branch("seedmask_fit",&seedmask_fit_FR_);
 
-  fakeratetree_->Branch("xhit_seed",&xhit_seed_FR_);
-  fakeratetree_->Branch("xhit_build",&xhit_build_FR_);
-  fakeratetree_->Branch("xhit_fit",&xhit_fit_FR_);
+  frtree_->Branch("xhit_seed",&xhit_seed_FR_);
+  frtree_->Branch("xhit_build",&xhit_build_FR_);
+  frtree_->Branch("xhit_fit",&xhit_fit_FR_);
 
-  fakeratetree_->Branch("yhit_seed",&yhit_seed_FR_);
-  fakeratetree_->Branch("yhit_build",&yhit_build_FR_);
-  fakeratetree_->Branch("yhit_fit",&yhit_fit_FR_);
+  frtree_->Branch("yhit_seed",&yhit_seed_FR_);
+  frtree_->Branch("yhit_build",&yhit_build_FR_);
+  frtree_->Branch("yhit_fit",&yhit_fit_FR_);
 
-  fakeratetree_->Branch("zhit_seed",&zhit_seed_FR_);
-  fakeratetree_->Branch("zhit_build",&zhit_build_FR_);
-  fakeratetree_->Branch("zhit_fit",&zhit_fit_FR_);
+  frtree_->Branch("zhit_seed",&zhit_seed_FR_);
+  frtree_->Branch("zhit_build",&zhit_build_FR_);
+  frtree_->Branch("zhit_fit",&zhit_fit_FR_);
 
-  fakeratetree_->Branch("pt_seed",&pt_seed_FR_);
-  fakeratetree_->Branch("ept_seed",&ept_seed_FR_);
-  fakeratetree_->Branch("pt_build",&pt_build_FR_);
-  fakeratetree_->Branch("ept_build",&ept_build_FR_);
-  fakeratetree_->Branch("pt_fit",&pt_fit_FR_);
-  fakeratetree_->Branch("ept_fit",&ept_fit_FR_);
+  frtree_->Branch("pt_seed",&pt_seed_FR_);
+  frtree_->Branch("ept_seed",&ept_seed_FR_);
+  frtree_->Branch("pt_build",&pt_build_FR_);
+  frtree_->Branch("ept_build",&ept_build_FR_);
+  frtree_->Branch("pt_fit",&pt_fit_FR_);
+  frtree_->Branch("ept_fit",&ept_fit_FR_);
 
-  fakeratetree_->Branch("phi_seed",&phi_seed_FR_);
-  fakeratetree_->Branch("ephi_seed",&ephi_seed_FR_);
-  fakeratetree_->Branch("phi_build",&phi_build_FR_);
-  fakeratetree_->Branch("ephi_build",&ephi_build_FR_);
-  fakeratetree_->Branch("phi_fit",&phi_fit_FR_);
-  fakeratetree_->Branch("ephi_fit",&ephi_fit_FR_);
+  frtree_->Branch("phi_seed",&phi_seed_FR_);
+  frtree_->Branch("ephi_seed",&ephi_seed_FR_);
+  frtree_->Branch("phi_build",&phi_build_FR_);
+  frtree_->Branch("ephi_build",&ephi_build_FR_);
+  frtree_->Branch("phi_fit",&phi_fit_FR_);
+  frtree_->Branch("ephi_fit",&ephi_fit_FR_);
 
-  fakeratetree_->Branch("eta_seed",&eta_seed_FR_);
-  fakeratetree_->Branch("eeta_seed",&eeta_seed_FR_);
-  fakeratetree_->Branch("eta_build",&eta_build_FR_);
-  fakeratetree_->Branch("eeta_build",&eeta_build_FR_);
-  fakeratetree_->Branch("eta_fit",&eta_fit_FR_);
-  fakeratetree_->Branch("eeta_fit",&eeta_fit_FR_);
+  frtree_->Branch("eta_seed",&eta_seed_FR_);
+  frtree_->Branch("eeta_seed",&eeta_seed_FR_);
+  frtree_->Branch("eta_build",&eta_build_FR_);
+  frtree_->Branch("eeta_build",&eeta_build_FR_);
+  frtree_->Branch("eta_fit",&eta_fit_FR_);
+  frtree_->Branch("eeta_fit",&eeta_fit_FR_);
 
-  fakeratetree_->Branch("nHits_seed",&nHits_seed_FR_);
-  fakeratetree_->Branch("nHits_build",&nHits_build_FR_);
-  fakeratetree_->Branch("nHits_fit",&nHits_fit_FR_);
+  frtree_->Branch("nHits_seed",&nHits_seed_FR_);
+  frtree_->Branch("nHits_build",&nHits_build_FR_);
+  frtree_->Branch("nHits_fit",&nHits_fit_FR_);
 
-  fakeratetree_->Branch("nHitsMatched_seed",&nHitsMatched_seed_FR_);
-  fakeratetree_->Branch("nHitsMatched_build",&nHitsMatched_build_FR_);
-  fakeratetree_->Branch("nHitsMatched_fit",&nHitsMatched_fit_FR_);
+  frtree_->Branch("nHitsMatched_seed",&nHitsMatched_seed_FR_);
+  frtree_->Branch("nHitsMatched_build",&nHitsMatched_build_FR_);
+  frtree_->Branch("nHitsMatched_fit",&nHitsMatched_fit_FR_);
 
-  fakeratetree_->Branch("fracHitsMatched_seed",&fracHitsMatched_seed_FR_);
-  fakeratetree_->Branch("fracHitsMatched_build",&fracHitsMatched_build_FR_);
-  fakeratetree_->Branch("fracHitsMatched_fit",&fracHitsMatched_fit_FR_);
+  frtree_->Branch("fracHitsMatched_seed",&fracHitsMatched_seed_FR_);
+  frtree_->Branch("fracHitsMatched_build",&fracHitsMatched_build_FR_);
+  frtree_->Branch("fracHitsMatched_fit",&fracHitsMatched_fit_FR_);
 
-  fakeratetree_->Branch("lastlyr_seed",&lastlyr_seed_FR_);
-  fakeratetree_->Branch("lastlyr_build",&lastlyr_build_FR_);
-  fakeratetree_->Branch("lastlyr_fit",&lastlyr_fit_FR_);
+  frtree_->Branch("lastlyr_seed",&lastlyr_seed_FR_);
+  frtree_->Branch("lastlyr_build",&lastlyr_build_FR_);
+  frtree_->Branch("lastlyr_fit",&lastlyr_fit_FR_);
 
-  fakeratetree_->Branch("hitchi2_seed",&hitchi2_seed_FR_);
-  fakeratetree_->Branch("hitchi2_build",&hitchi2_build_FR_);
-  fakeratetree_->Branch("hitchi2_fit",&hitchi2_fit_FR_);
+  frtree_->Branch("hitchi2_seed",&hitchi2_seed_FR_);
+  frtree_->Branch("hitchi2_build",&hitchi2_build_FR_);
+  frtree_->Branch("hitchi2_fit",&hitchi2_fit_FR_);
 
   // sim info of seed,build,fit tracks
-  fakeratetree_->Branch("mcID_seed",&mcID_seed_FR_);
-  fakeratetree_->Branch("mcID_build",&mcID_build_FR_);
-  fakeratetree_->Branch("mcID_fit",&mcID_fit_FR_);
+  frtree_->Branch("mcID_seed",&mcID_seed_FR_);
+  frtree_->Branch("mcID_build",&mcID_build_FR_);
+  frtree_->Branch("mcID_fit",&mcID_fit_FR_);
   
-  fakeratetree_->Branch("mcmask_seed",&mcmask_seed_FR_);
-  fakeratetree_->Branch("mcmask_build",&mcmask_build_FR_);
-  fakeratetree_->Branch("mcmask_fit",&mcmask_fit_FR_);
+  frtree_->Branch("mcmask_seed",&mcmask_seed_FR_);
+  frtree_->Branch("mcmask_build",&mcmask_build_FR_);
+  frtree_->Branch("mcmask_fit",&mcmask_fit_FR_);
 
-  fakeratetree_->Branch("pt_mc_seed",&pt_mc_seed_FR_);
-  fakeratetree_->Branch("pt_mc_build",&pt_mc_build_FR_);
-  fakeratetree_->Branch("pt_mc_fit",&pt_mc_fit_FR_);
+  frtree_->Branch("pt_mc_seed",&pt_mc_seed_FR_);
+  frtree_->Branch("pt_mc_build",&pt_mc_build_FR_);
+  frtree_->Branch("pt_mc_fit",&pt_mc_fit_FR_);
 
-  fakeratetree_->Branch("phi_mc_seed",&phi_mc_seed_FR_);
-  fakeratetree_->Branch("phi_mc_build",&phi_mc_build_FR_);
-  fakeratetree_->Branch("phi_mc_fit",&phi_mc_fit_FR_);
+  frtree_->Branch("phi_mc_seed",&phi_mc_seed_FR_);
+  frtree_->Branch("phi_mc_build",&phi_mc_build_FR_);
+  frtree_->Branch("phi_mc_fit",&phi_mc_fit_FR_);
 
-  fakeratetree_->Branch("eta_mc_seed",&eta_mc_seed_FR_);
-  fakeratetree_->Branch("eta_mc_build",&eta_mc_build_FR_);
-  fakeratetree_->Branch("eta_mc_fit",&eta_mc_fit_FR_);
+  frtree_->Branch("eta_mc_seed",&eta_mc_seed_FR_);
+  frtree_->Branch("eta_mc_build",&eta_mc_build_FR_);
+  frtree_->Branch("eta_mc_fit",&eta_mc_fit_FR_);
 
-  fakeratetree_->Branch("nHits_mc_seed",&nHits_mc_seed_FR_);
-  fakeratetree_->Branch("nHits_mc_build",&nHits_mc_build_FR_);
-  fakeratetree_->Branch("nHits_mc_fit",&nHits_mc_fit_FR_);
+  frtree_->Branch("nHits_mc_seed",&nHits_mc_seed_FR_);
+  frtree_->Branch("nHits_mc_build",&nHits_mc_build_FR_);
+  frtree_->Branch("nHits_mc_fit",&nHits_mc_fit_FR_);
 
-  fakeratetree_->Branch("lastlyr_mc_seed",&lastlyr_mc_seed_FR_);
-  fakeratetree_->Branch("lastlyr_mc_build",&lastlyr_mc_build_FR_);
-  fakeratetree_->Branch("lastlyr_mc_fit",&lastlyr_mc_fit_FR_);
+  frtree_->Branch("lastlyr_mc_seed",&lastlyr_mc_seed_FR_);
+  frtree_->Branch("lastlyr_mc_build",&lastlyr_mc_build_FR_);
+  frtree_->Branch("lastlyr_mc_fit",&lastlyr_mc_fit_FR_);
 
-  fakeratetree_->Branch("helixchi2_seed",&helixchi2_seed_FR_);
-  fakeratetree_->Branch("helixchi2_build",&helixchi2_build_FR_);
-  fakeratetree_->Branch("helixchi2_fit",&helixchi2_fit_FR_);
+  frtree_->Branch("helixchi2_seed",&helixchi2_seed_FR_);
+  frtree_->Branch("helixchi2_build",&helixchi2_build_FR_);
+  frtree_->Branch("helixchi2_fit",&helixchi2_fit_FR_);
 
-  fakeratetree_->Branch("duplmask_seed",&duplmask_seed_FR_);
-  fakeratetree_->Branch("duplmask_build",&duplmask_build_FR_);
-  fakeratetree_->Branch("duplmask_fit",&duplmask_fit_FR_);
+  frtree_->Branch("duplmask_seed",&duplmask_seed_FR_);
+  frtree_->Branch("duplmask_build",&duplmask_build_FR_);
+  frtree_->Branch("duplmask_fit",&duplmask_fit_FR_);
 
-  fakeratetree_->Branch("iTkMatches_seed",&iTkMatches_seed_FR_);
-  fakeratetree_->Branch("iTkMatches_build",&iTkMatches_build_FR_);
-  fakeratetree_->Branch("iTkMatches_fit",&iTkMatches_fit_FR_);
+  frtree_->Branch("iTkMatches_seed",&iTkMatches_seed_FR_);
+  frtree_->Branch("iTkMatches_build",&iTkMatches_build_FR_);
+  frtree_->Branch("iTkMatches_fit",&iTkMatches_fit_FR_);
 }
 
 void TTreeValidation::initializeConfigTree()
@@ -1367,7 +1367,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       iTkMatches_fit_FR_ = -100;
     }
 
-    fakeratetree_->Fill(); // fill once per seed!
+    frtree_->Fill(); // fill once per seed!
   }// end of seed to seed loop
 }
 

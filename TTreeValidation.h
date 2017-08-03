@@ -111,7 +111,7 @@ public:
   int   nTkMatches_seed_eff_=0,nTkMatches_build_eff_=0,nTkMatches_fit_eff_=0;
 
   // Fake Rate tree and variables
-  TTree* fakeratetree_;
+  TTree* frtree_;
   int   evtID_FR_=0,seedID_FR_=0;
 
   int   seedmask_seed_FR_=0,seedmask_build_FR_=0,seedmask_fit_FR_=0;
