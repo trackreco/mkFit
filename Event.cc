@@ -711,13 +711,13 @@ TrackVec Event::clean_cms_seedtracks(double maxDR, int minNHits)
 	thisDXY*=-1;
       
       double oldPhi1 = track_first.momPhi();
-      double oldPhi2 = track_second.monPhi();
+      double oldPhi2 = track_second.momPhi();
 
       double newPhi1 = oldPhi1-thisDXY/87.6/track_first.pT()*track_first.charge();
       double newPhi2 = oldPhi2+thisDXY/87.6/track_second.pT()*track_second.charge();
 
       double Eta1 = track_first.momEta();
-      double Eta2 = track_second.monEta();
+      double Eta2 = track_second.momEta();
       
       double deta = fabs(Eta1-Eta2);
       
