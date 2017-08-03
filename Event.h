@@ -36,7 +36,7 @@ public:
   void read_in  (DataFile &data_file, FILE *in_fp=0);
 
   int  clean_cms_simtracks();
-  TrackVec clean_cms_seedtracks(double maxDR=0.005, int minNHits=4);
+  TrackVec clean_cms_seedtracks();
   void print_tracks(const TrackVec& tracks, bool print_hits) const;
 
   const Geometry& geom_;

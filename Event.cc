@@ -679,8 +679,11 @@ void Event::print_tracks(const TrackVec& tracks, bool print_hits) const
   }
 }
 
-TrackVec Event::clean_cms_seedtracks(double maxDR, int minNHits)
+TrackVec Event::clean_cms_seedtracks()
 {
+
+  double maxDR = Config::maxDR_seedclean;
+  int minNHits = Config::minNHits_seedclean;
 
   int ns = seedTracks_.size();
 
@@ -713,8 +716,8 @@ TrackVec Event::clean_cms_seedtracks(double maxDR, int minNHits)
       double oldPhi1 = track_first.momPhi();
       double oldPhi2 = track_second.momPhi();
 
-      double newPhi1 = oldPhi1-thisDXY/87.6/track_first.pT()*track_first.charge();
-      double newPhi2 = oldPhi2+thisDXY/87.6/track_second.pT()*track_second.charge();
+      double newPhi1 = oldPhi1-thisDXY/(Config::track1GeVradius)/track_first.pT()*track_first.charge();
+      double newPhi2 = oldPhi2+thisDXY/(Config::track1GeVradius)/track_second.pT()*track_second.charge();
 
       double Eta1 = track_first.momEta();
       double Eta2 = track_second.momEta();

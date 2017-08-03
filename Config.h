@@ -236,6 +236,11 @@ namespace Config
   extern bool fit_val;
   extern bool inclusiveShorts;
 
+  // config on seed cleaning
+  constexpr double maxDR_seedclean = 0.005;
+  constexpr int minNHits_seedclean = 4;
+  constexpr double track1GeVradius = 87.6; // = 1/(c*B)
+
   // Threading
   extern int    numThreadsFinder;
   extern int    numThreadsSimulation;
