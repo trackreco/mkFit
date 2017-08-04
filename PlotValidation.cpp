@@ -1,9 +1,8 @@
 #include "PlotValidation.hh"
-#include "TLegend.h"
 
-PlotValidation::PlotValidation(TString inName, TString outName, 
+PlotValidation::PlotValidation(TString inName, TString outName, Bool_t computePulls, Bool_t cmsswComp,
 			       Bool_t mvInput, Bool_t saveAs, TString outType)
-  : fInName(inName), fOutName(outName), 
+  : fInName(inName), fOutName(outName), fComputePulls(computePulls), fCmsswComp(cmsswComp),
     fMvInput(mvInput), fSaveAs(saveAs), fOutType(outType)
 {
   // ++++ Get Root File ++++ //
@@ -65,18 +64,28 @@ void PlotValidation::Validation()
 {
   std::cout << "Computing Efficiency ..." << std::endl;
   PlotValidation::PlotEfficiency();
+  
   std::cout << "Computing Inefficiency split in barrel and endcap..." << std::endl;
   PlotValidation::PlotInefficiencyVsGeom();
+  
   std::cout << "Computing Fake Rate ..." << std::endl;
   PlotValidation::PlotFakeRate();
+  
   std::cout << "Computing Duplicate Rate ..." << std::endl;
   PlotValidation::PlotDuplicateRate();
+  
   std::cout << "Computing <nHits/track> ..." << std::endl;
   PlotValidation::PlotNHits(); 
-  std::cout << "Computing Momentum Pulls ..." << std::endl;
-  PlotValidation::PlotMomResolutionPull();
+  
+  if (fComputePulls)
+  {
+    std::cout << "Computing Momentum Pulls ..." << std::endl;
+    PlotValidation::PlotMomResolutionPull();
+  }
+  
   std::cout << "Printing Totals ..." << std::endl;
   PlotValidation::PrintTotals();
+  
   if (fMvInput) 
   {
     PlotValidation::MoveInput();
@@ -86,10 +95,11 @@ void PlotValidation::Validation()
 void PlotValidation::PlotEfficiency()
 {
   // Get tree
-  TTree * efftree  = (TTree*)fInRoot->Get("efftree");
+  TTree * efftree = (TTree*)fInRoot->Get((fCmsswComp?"cmsswefftree":"efftree"));
 
   // make output subdirectory and subdir in ROOT file, and cd to it.
   TString subdirname = "efficiency"; 
+  if (fCmsswComp) subdirname+="_cmssw";
   PlotValidation::MakeSubDirectory(subdirname);
   PlotValidation::MakeSubDirectory(Form("%s/lin",subdirname.Data()));
   PlotValidation::MakeSubDirectory(Form("%s/log",subdirname.Data()));
@@ -97,15 +107,15 @@ void PlotValidation::PlotEfficiency()
   subdir->cd();
 
   //Declare strings for branches and plots
-  TStrVec vars  = {"pt","eta","phi"};
-  TStrVec svars = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
-  TStrVec sunits= {" [GeV/c]","",""}; // units --> labels for histograms for given variable
-  IntVec  nBins = {60,60,80};
-  FltVec  xlow  = {0,-3,-4};
-  FltVec  xhigh = {15,3,4};  
+  const TStrVec vars  = {"pt","eta","phi"};
+  const TStrVec svars = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
+  const TStrVec sunits= {" [GeV/c]","",""}; // units --> labels for histograms for given variable
+  const IntVec  nBins = {60,60,80};
+  const FltVec  xlow  = {0,-3,-4};
+  const FltVec  xhigh = {15,3,4};  
 
-  TStrVec trks  = {"seed","build","fit"};
-  TStrVec strks = {"Seed","Build","Fit"}; // strk --> labels for histograms for given track type
+  const TStrVec trks  = (fCmsswComp ? TStrVec{"build"} : TStrVec{"seed","build","fit"});
+  const TStrVec strks = (fCmsswComp ? TStrVec{"Build"} : TStrVec{"Seed","Build","Fit"}); // strk --> labels for histograms for given track type
 
   // Floats/Ints to be filled for trees
   FltVec mcvars_val(vars.size()); // first index is var. only for mc values! so no extra index 
@@ -118,9 +128,9 @@ void PlotValidation::PlotEfficiency()
     varsEff[i].resize(trks.size());
     for (UInt_t j = 0; j < trks.size(); j++)
     {
-      varsEff[i][j] = new TEfficiency(Form("eff_sim_%s_%s",vars[i].Data(),trks[j].Data()),
-				      Form("%s Track Efficiency vs MC %s;%s%s;Efficiency",
-					   strks[j].Data(),svars[i].Data(),svars[i].Data(),sunits[i].Data()),
+      varsEff[i][j] = new TEfficiency(Form("eff_%s_%s_%s",(fCmsswComp?"cmssw":"sim"),vars[i].Data(),trks[j].Data()),
+				      Form("%s Track Efficiency vs %s %s;%s;Efficiency",
+					   strks[j].Data(),(fCmsswComp?"CMSSW Reco":"MC"),svars[i].Data(),svars[i].Data(),sunits[i].Data()),
 				      nBins[i],xlow[i],xhigh[i]);
     }
   }
@@ -132,14 +142,14 @@ void PlotValidation::PlotEfficiency()
     mcvars_val[i] = 0.;
     
     //Set var+trk branch
-    efftree->SetBranchAddress(Form("%s_mc_gen",vars[i].Data()),&(mcvars_val[i]));
+    efftree->SetBranchAddress(Form("%s_%s",vars[i].Data(),(fCmsswComp?"cmssw":"mc_gen")),&(mcvars_val[i]));
   }
   
   //Initialize masks, set branch addresses  
   for (UInt_t j = 0; j < trks.size(); j++) // loop over trks index
   {
     mcmask_trk[j] = 0;
-    efftree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
+    efftree->SetBranchAddress(Form("%smask_%s",(fCmsswComp?"cmssw":"mc"),trks[j].Data()),&(mcmask_trk[j]));
   }
 
   // Fill histos, compute eff from tree branches 
@@ -173,10 +183,11 @@ void PlotValidation::PlotEfficiency()
 void PlotValidation::PlotInefficiencyVsGeom()
 {
   // Get tree
-  TTree * efftree  = (TTree*)fInRoot->Get("efftree");
+  TTree * efftree = (TTree*)fInRoot->Get((fCmsswComp?"cmsswefftree":"efftree"));
 
   // make output subdirectory and subdir in ROOT file, and cd to it.
   TString subdirname = "inefficiency"; 
+  if (fCmsswComp) subdirname+="_cmssw";
   PlotValidation::MakeSubDirectory(subdirname);
   PlotValidation::MakeSubDirectory(Form("%s/lin",subdirname.Data()));
   PlotValidation::MakeSubDirectory(Form("%s/log",subdirname.Data()));
@@ -184,18 +195,18 @@ void PlotValidation::PlotInefficiencyVsGeom()
   subdir->cd();
 
   //Declare strings for branches and plots
-  TStrVec vars  = {"pt","eta","phi"};
-  TStrVec svars = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
-  TStrVec sunits= {" [GeV/c]","",""}; // units --> labels for histograms for given variable
-  IntVec  nBins = {60,60,80};
-  FltVec  xlow  = {0,-3,-4};
-  FltVec  xhigh = {15,3,4};  
+  const TStrVec vars  = {"pt","eta","phi"};
+  const TStrVec svars = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
+  const TStrVec sunits= {" [GeV/c]","",""}; // units --> labels for histograms for given variable
+  const IntVec  nBins = {60,60,80};
+  const FltVec  xlow  = {0,-3,-4};
+  const FltVec  xhigh = {15,3,4};  
 
-  TStrVec regs  = {"barrel","endcap"};
-  TStrVec sregs = {"Barrel","Endcap"};
+  const TStrVec regs  = {"barrel","endcap"};
+  const TStrVec sregs = {"Barrel","Endcap"};
 
-  TStrVec trks  = {"seed","build","fit"};
-  TStrVec strks = {"Seed","Build","Fit"}; // strk --> labels for histograms for given track type
+  const TStrVec trks  = (fCmsswComp ? TStrVec{"build"} : TStrVec{"seed","build","fit"});
+  const TStrVec strks = (fCmsswComp ? TStrVec{"Build"} : TStrVec{"Seed","Build","Fit"}); // strk --> labels for histograms for given track type
 
   // Floats/Ints to be filled for trees
   FltVec mcvars_val(vars.size()); // first index is var. only for mc values! so no extra index 
@@ -212,9 +223,9 @@ void PlotValidation::PlotInefficiencyVsGeom()
       for (UInt_t j = 0; j < trks.size(); j++)
       {
 	// Efficiency
-	varsIneff[h][i][j] = new TEfficiency(Form("ineff_%s_sim_%s_%s",regs[h].Data(),vars[i].Data(),trks[j].Data()),
-					     Form("%s Track Inefficiency vs MC %s %s;%s%s;Inefficiency",
-						  strks[j].Data(),svars[i].Data(),sregs[h].Data(),svars[i].Data(),sunits[i].Data()),
+	varsIneff[h][i][j] = new TEfficiency(Form("ineff_%s_%s_%s_%s",regs[h].Data(),(fCmsswComp?"cmssw":"sim"),vars[i].Data(),trks[j].Data()),
+					     Form("%s Track Inefficiency vs %s %s %s;%s%s;Inefficiency",
+						  strks[j].Data(),(fCmsswComp?"CMSSW Reco":"MC"),svars[i].Data(),sregs[h].Data(),svars[i].Data(),sunits[i].Data()),
 					     nBins[i],xlow[i],xhigh[i]);
       }
     }
@@ -227,14 +238,14 @@ void PlotValidation::PlotInefficiencyVsGeom()
     mcvars_val[i] = 0.;
     
     //Set var+trk branch
-    efftree->SetBranchAddress(Form("%s_mc_gen",vars[i].Data()),&(mcvars_val[i]));
+    efftree->SetBranchAddress(Form("%s_%s",vars[i].Data(),(fCmsswComp?"cmssw":"mc_gen")),&(mcvars_val[i]));
   }
   
   //Initialize masks, set branch addresses  
   for (UInt_t j = 0; j < trks.size(); j++) // loop over trks index
   {
     mcmask_trk[j] = 0;
-    efftree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
+    efftree->SetBranchAddress(Form("%smask_%s",(fCmsswComp?"cmssw":"mc"),trks[j].Data()),&(mcmask_trk[j]));
   }
 
   // Fill histos, compute eff from tree branches 
@@ -277,10 +288,11 @@ void PlotValidation::PlotInefficiencyVsGeom()
 void PlotValidation::PlotFakeRate()
 {
   // Get tree
-  TTree * frtree  = (TTree*)fInRoot->Get("frtree");
+  TTree * frtree = (TTree*)fInRoot->Get((fCmsswComp?"cmsswfrtree":"frtree"));
 
   // make output subdirectory and subdir in ROOT file, and cd to it.
   TString subdirname = "fakerate"; 
+  if (fCmsswComp) subdirname+="_cmssw";
   PlotValidation::MakeSubDirectory(subdirname);
   PlotValidation::MakeSubDirectory(Form("%s/lin",subdirname.Data()));
   PlotValidation::MakeSubDirectory(Form("%s/log",subdirname.Data()));
@@ -288,15 +300,15 @@ void PlotValidation::PlotFakeRate()
   subdir->cd();
 
   //Declare strings for branches and plots
-  TStrVec vars  = {"pt","eta","phi"};
-  TStrVec svars = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
-  TStrVec sunits= {" [GeV/c]","",""}; // units --> labels for histograms for given variable
-  IntVec  nBins = {60,60,80};
-  FltVec  xlow  = {0,-3,-4};
-  FltVec  xhigh = {15,3,4};  
+  const TStrVec vars  = {"pt","eta","phi"};
+  const TStrVec svars = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
+  const TStrVec sunits= {" [GeV/c]","",""}; // units --> labels for histograms for given variable
+  const IntVec  nBins = {60,60,80};
+  const FltVec  xlow  = {0,-3,-4};
+  const FltVec  xhigh = {15,3,4};  
 
-  TStrVec trks  = {"seed","build","fit"};
-  TStrVec strks = {"Seed","Build","Fit"}; // strk --> labels for histograms for given track type
+  const TStrVec trks  = (fCmsswComp ? TStrVec{"build"} : TStrVec{"seed","build","fit"});
+  const TStrVec strks = (fCmsswComp ? TStrVec{"Build"} : TStrVec{"Seed","Build","Fit"}); // strk --> labels for histograms for given track type
 
   // Floats/Ints to be filled for trees
   FltVecVec recovars_val(vars.size()); // first index is var, second is type of track
@@ -339,7 +351,7 @@ void PlotValidation::PlotFakeRate()
   for (UInt_t j = 0; j < trks.size(); j++) // loop over trks index
   {
     mcmask_trk[j] = 0;
-    frtree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
+    frtree->SetBranchAddress(Form("%smask_%s",(fCmsswComp?"cmssw":"mc"),trks[j].Data()),&(mcmask_trk[j]));
   }
 
   // Fill histos, compute fake rate from tree branches 
@@ -373,10 +385,11 @@ void PlotValidation::PlotFakeRate()
 void PlotValidation::PlotDuplicateRate()
 {
   // Get tree
-  TTree * efftree  = (TTree*)fInRoot->Get("efftree");
+  TTree * efftree = (TTree*)fInRoot->Get((fCmsswComp?"cmsswefftree":"efftree"));
 
   // make output subdirectory and subdir in ROOT file, and cd to it.
-  TString subdirname = "duplicaterate"; 
+  TString subdirname = "duplicaterate";
+  if (fCmsswComp) subdirname+="_cmssw"; 
   PlotValidation::MakeSubDirectory(subdirname);
   PlotValidation::MakeSubDirectory(Form("%s/lin",subdirname.Data()));
   PlotValidation::MakeSubDirectory(Form("%s/log",subdirname.Data()));
@@ -384,15 +397,15 @@ void PlotValidation::PlotDuplicateRate()
   subdir->cd();
 
   //Declare strings for branches and plots
-  TStrVec vars  = {"pt","eta","phi"};
-  TStrVec svars = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
-  TStrVec sunits= {" [GeV/c]","",""}; // units --> labels for histograms for given variable
-  IntVec  nBins = {60,60,80};
-  FltVec  xlow  = {0,-3,-4};
-  FltVec  xhigh = {15,3,4};  
+  const TStrVec vars  = {"pt","eta","phi"};
+  const TStrVec svars = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
+  const TStrVec sunits= {" [GeV/c]","",""}; // units --> labels for histograms for given variable
+  const IntVec  nBins = {60,60,80};
+  const FltVec  xlow  = {0,-3,-4};
+  const FltVec  xhigh = {15,3,4};  
 
-  TStrVec trks  = {"seed","build","fit"};
-  TStrVec strks = {"Seed","Build","Fit"}; // strk --> labels for histograms for given track type
+  const TStrVec trks  = (fCmsswComp ? TStrVec{"build"} : TStrVec{"seed","build","fit"});
+  const TStrVec strks = (fCmsswComp ? TStrVec{"Build"} : TStrVec{"Seed","Build","Fit"}); // strk --> labels for histograms for given track type
 
   // Floats/Ints to be filled for trees
   FltVec mcvars_val(vars.size()); // first index is var. only for mc values! so no extra index 
@@ -407,9 +420,9 @@ void PlotValidation::PlotDuplicateRate()
     for (UInt_t j = 0; j < trks.size(); j++)
     {
       // Duplicate Rate
-      varsDR[i][j] = new TEfficiency(Form("dr_sim_%s_%s",vars[i].Data(),trks[j].Data()),
-				     Form("%s Track Duplicate Rate vs MC %s;%s%s;Duplicate Rate",
-					  strks[j].Data(),svars[i].Data(),svars[i].Data(),sunits[i].Data()),
+      varsDR[i][j] = new TEfficiency(Form("dr_%s_%s_%s",(fCmsswComp?"cmssw":"sim"),vars[i].Data(),trks[j].Data()),
+				     Form("%s Track Duplicate Rate vs %s %s;%s%s;Duplicate Rate",
+					  strks[j].Data(),(fCmsswComp?"CMSSW":"MC"),svars[i].Data(),svars[i].Data(),sunits[i].Data()),
 				     nBins[i],xlow[i],xhigh[i]);
     }
   }
@@ -421,7 +434,7 @@ void PlotValidation::PlotDuplicateRate()
     mcvars_val[i] = 0.;
     
     //Set var+trk branch
-    efftree->SetBranchAddress(Form("%s_mc_gen",vars[i].Data()),&(mcvars_val[i]));
+    efftree->SetBranchAddress(Form("%s_%s",vars[i].Data(),(fCmsswComp?"cmssw":"mc_gen")),&(mcvars_val[i]));
   }
 
   //Initialize masks, set branch addresses  
@@ -430,7 +443,7 @@ void PlotValidation::PlotDuplicateRate()
     mcmask_trk[j] = 0;
     nTkMatches_trk[j] = 0;
     
-    efftree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
+    efftree->SetBranchAddress(Form("%smask_%s",(fCmsswComp?"cmssw":"mc"),trks[j].Data()),&(mcmask_trk[j]));
     efftree->SetBranchAddress(Form("nTkMatches_%s",trks[j].Data()),&(nTkMatches_trk[j]));
   }
 
@@ -461,7 +474,7 @@ void PlotValidation::PlotDuplicateRate()
   {
     for (UInt_t j = 0; j < trks.size(); j++)
     {
-      PlotValidation::DrawWriteSaveTEffPlot(subdir,varsDR[i][j],subdirname,Form("fr_%s_%s",vars[i].Data(),trks[j].Data()));
+      PlotValidation::DrawWriteSaveTEffPlot(subdir,varsDR[i][j],subdirname,Form("dr_%s_%s",vars[i].Data(),trks[j].Data()));
       delete varsDR[i][j];
     }
   }  
@@ -471,10 +484,11 @@ void PlotValidation::PlotDuplicateRate()
 void PlotValidation::PlotNHits()
 {
   // Get tree --> can do this all with fake rate tree
-  TTree * frtree = (TTree*)fInRoot->Get("frtree");
+  TTree * frtree = (TTree*)fInRoot->Get((fCmsswComp?"cmsswfrtree":"frtree"));
 
   // make output subdirectory and subdir in ROOT file, and cd to it.
   TString subdirname = "nHits"; 
+  if (fCmsswComp) subdirname+="_cmssw";
   PlotValidation::MakeSubDirectory(subdirname);
   PlotValidation::MakeSubDirectory(Form("%s/lin",subdirname.Data()));
   PlotValidation::MakeSubDirectory(Form("%s/log",subdirname.Data()));
@@ -482,10 +496,10 @@ void PlotValidation::PlotNHits()
   subdir->cd();
 
   //Declare strings for branches and plots
-  TStrVec trks  = {"seed","build","fit"};
-  TStrVec strks = {"Seed","Build","Fit"}; // strk --> labels for histograms for given track type
-  TStrVec coll  = {"allreco","fake","allmatch","bestmatch"};
-  TStrVec scoll = {"All Reco","Fake","All Match","Best Match"};
+  const TStrVec trks  = (fCmsswComp ? TStrVec{"build"} : TStrVec{"seed","build","fit"});
+  const TStrVec strks = (fCmsswComp ? TStrVec{"Build"} : TStrVec{"Seed","Build","Fit"}); // strk --> labels for histograms
+  const TStrVec coll  = {"allreco","fake","allmatch","bestmatch"};
+  const TStrVec scoll = {"All Reco","Fake","All Match","Best Match"};
 
   // Floats/Ints to be filled for trees
   IntVec nHits_trk(trks.size());
@@ -493,7 +507,6 @@ void PlotValidation::PlotNHits()
   
   // masks
   IntVec mcmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
-  IntVec seedmask_trk(trks.size()); // need to know if reco track associated to a seed track
   IntVec iTkMatches_trk(trks.size()); 
   
   // Create plots
@@ -526,13 +539,11 @@ void PlotValidation::PlotNHits()
   for (UInt_t j = 0; j < trks.size(); j++) // loop over trks index
   {
     mcmask_trk[j]          = 0;
-    seedmask_trk[j]        = 0;
     iTkMatches_trk[j]      = 0;
     nHits_trk[j]           = 0;
     fracHitsMatched_trk[j] = 0;
 
-    frtree->SetBranchAddress(Form("mcmask_%s",trks[j].Data()),&(mcmask_trk[j]));
-    frtree->SetBranchAddress(Form("seedmask_%s",trks[j].Data()),&(seedmask_trk[j]));
+    frtree->SetBranchAddress(Form("%smask_%s",(fCmsswComp?"cmssw":"mc"),trks[j].Data()),&(mcmask_trk[j]));
     frtree->SetBranchAddress(Form("iTkMatches_%s",trks[j].Data()),&(iTkMatches_trk[j]));
     frtree->SetBranchAddress(Form("nHits_%s",trks[j].Data()),&(nHits_trk[j]));
     frtree->SetBranchAddress(Form("fracHitsMatched_%s",trks[j].Data()),&(fracHitsMatched_trk[j]));
@@ -548,15 +559,12 @@ void PlotValidation::PlotNHits()
       {
 	if (c == 0) // all reco
 	{
-	  if (seedmask_trk[j] == 1) // includes all the short tracks, too (including zero size tracks!!!)
-	  {
-	    nHitsPlot[j][c]->Fill(nHits_trk[j]);
-	    fracHitsMatchedPlot[j][c]->Fill(fracHitsMatched_trk[j]);
-	  }
+	  nHitsPlot[j][c]->Fill(nHits_trk[j]);
+	  fracHitsMatchedPlot[j][c]->Fill(fracHitsMatched_trk[j]);
 	}
 	else if (c == 1) // all fakes 
 	{
-	  if ((seedmask_trk[j] == 1) && (mcmask_trk[j] == 0)) 
+	  if (mcmask_trk[j] == 0)
           { 
 	    nHitsPlot[j][c]->Fill(nHits_trk[j]);
 	    fracHitsMatchedPlot[j][c]->Fill(fracHitsMatched_trk[j]);
@@ -564,7 +572,7 @@ void PlotValidation::PlotNHits()
 	}
 	else if (c == 2) // all matches  
 	{
-	  if ((seedmask_trk[j] == 1) && (mcmask_trk[j] == 1)) 
+	  if (mcmask_trk[j] == 1)
           {
 	    nHitsPlot[j][c]->Fill(nHits_trk[j]);
 	    fracHitsMatchedPlot[j][c]->Fill(fracHitsMatched_trk[j]);
@@ -572,7 +580,7 @@ void PlotValidation::PlotNHits()
 	}
 	else if (c == 3) // best matches only	  
 	{
-	  if ((seedmask_trk[j] == 1) && (mcmask_trk[j] == 1) && (iTkMatches_trk[j] == 0)) 
+	  if ((mcmask_trk[j] == 1) && (iTkMatches_trk[j] == 0)) 
 	  {
 	    nHitsPlot[j][c]->Fill(nHits_trk[j]);
 	    fracHitsMatchedPlot[j][c]->Fill(fracHitsMatched_trk[j]);
@@ -601,10 +609,11 @@ void PlotValidation::PlotNHits()
 void PlotValidation::PlotMomResolutionPull()
 {
   // Get tree
-  TTree * efftree  = (TTree*)fInRoot->Get("efftree");
+  TTree * efftree = (TTree*)fInRoot->Get("efftree");
 
   // make  output subdirectory and subdir in ROOT file, and cd to it.
   TString subdirname = "momentum_resolutionpull"; 
+  if (fCmsswComp) subdirname+="_cmssw";
   PlotValidation::MakeSubDirectory(subdirname);
   PlotValidation::MakeSubDirectory(Form("%s/lin",subdirname.Data()));
   PlotValidation::MakeSubDirectory(Form("%s/log",subdirname.Data()));
@@ -612,21 +621,21 @@ void PlotValidation::PlotMomResolutionPull()
   subdir->cd();
 
   //Declare strings for branches and plots
-  TStrVec vars      = {"pt","eta","phi"};
-  TStrVec evars     = {"ept","eeta","ephi"};
-  TStrVec svars     = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
-  TStrVec sunits    = {" [GeV/c]","",""}; // units --> labels for histograms for given variable
-  IntVec  nBinsRes  = {100,100,100};
-  FltVec  xlowRes   = {-0.5,-0.5,-0.5};
-  FltVec  xhighRes  = {0.5,0.5,0.5};  
-  FltVec  gausRes   = {0.3,0.3,0.3}; // symmetric bounds for gaussian fit
-  IntVec  nBinsPull = {100,100,100};
-  FltVec  xlowPull  = {-5,-5,-5};
-  FltVec  xhighPull = {5,5,5};  
-  FltVec  gausPull  = {3,3,3}; // symmetric bounds for gaussian fit
+  const TStrVec vars      = {"pt","eta","phi"};
+  const TStrVec evars     = {"ept","eeta","ephi"};
+  const TStrVec svars     = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
+  const TStrVec sunits    = {" [GeV/c]","",""}; // units --> labels for histograms for given variable
+  const IntVec  nBinsRes  = {100,100,100};
+  const FltVec  xlowRes   = {-0.5,-0.5,-0.5};
+  const FltVec  xhighRes  = {0.5,0.5,0.5};  
+  const FltVec  gausRes   = {0.3,0.3,0.3}; // symmetric bounds for gaussian fit
+  const IntVec  nBinsPull = {100,100,100};
+  const FltVec  xlowPull  = {-5,-5,-5};
+  const FltVec  xhighPull = {5,5,5};  
+  const FltVec  gausPull  = {3,3,3}; // symmetric bounds for gaussian fit
 
-  TStrVec trks      = {"seed","build","fit"};
-  TStrVec strks     = {"Seed","Build","Fit"}; // strk --> labels for histograms for given track type
+  const TStrVec trks  = {"seed","build","fit"};
+  const TStrVec strks = {"Seed","Build","Fit"}; // strk --> labels for histograms for given track type
 
   // Floats/Ints to be filled for trees
   FltVecVec mcvars_val(vars.size());
@@ -735,14 +744,14 @@ void PlotValidation::PrintTotals()
   // want to print out totals of nHits, fraction of Hits shared, efficiency, fake rate, duplicate rate of seeds, build, fit
   // --> numer/denom plots for phi, know it will be in the bounds.  
 
-  TStrVec trks   = {"seed","build","fit"};
-  TStrVec strks  = {"Seed","Build","Fit"};
-  TStrVec rates  = {"eff","fr","dr"};
-  TStrVec srates = {"Efficiency","Fake Rate","Duplicate Rate"};
-  TStrVec rateSD = {"efficiency","fakerate","duplicaterate"};
-  TStrVec snumer = {"Sim Tracks Matched","Unmatched Reco Tracks","Sim Tracks Matched (nTimes>1)"};
-  TStrVec sdenom = {"Eligible Sim Tracks","Eligible Reco Tracks","Eligible Sim Tracks"};
-  TStrVec types  = {"sim","reco","sim"}; // types will be same size as rates!
+  const TStrVec trks   = (fCmsswComp ? TStrVec{"build"} : TStrVec{"seed","build","fit"});
+  const TStrVec strks  = (fCmsswComp ? TStrVec{"Build"} : TStrVec{"Seed","Build","Fit"}); // strk --> labels for histograms for given track type
+  const TStrVec rates  = {"eff","fr","dr"};
+  const TStrVec srates = {"Efficiency","Fake Rate","Duplicate Rate"};
+  const TStrVec rateSD = {"efficiency","fakerate","duplicaterate"};
+  const TStrVec snumer = {Form("%s Tracks Matched",(fCmsswComp?"CMSSW":"Sim")),"Unmatched Reco Tracks",Form("%s Tracks Matched (nTimes>1)",(fCmsswComp?"CMSSW":"Sim"))};
+  const TStrVec sdenom = {Form("Eligible %s Tracks",(fCmsswComp?"CMSSW":"Sim")),"Eligible Reco Tracks",Form("Eligible %s Tracks",(fCmsswComp?"CMSSW":"Sim"))};
+  const TStrVec types  = (fCmsswComp ? TStrVec{"cmssw","reco","cmssw"} : TStrVec{"sim","reco","sim"}); // types will be same size as rates!
   
   TEffRefVecVec phiRate(trks.size());
   for (UInt_t j = 0; j < trks.size(); j++) 
@@ -750,13 +759,13 @@ void PlotValidation::PrintTotals()
     phiRate[j].resize(rates.size());
     for (UInt_t r = 0; r < rates.size(); r++) 
     {
-      phiRate[j][r] = (TEfficiency*) fOutRoot->Get(Form("%s/%s_%s_phi_%s",rateSD[r].Data(),rates[r].Data(),types[r].Data(),trks[j].Data()));
+      phiRate[j][r] = (TEfficiency*) fOutRoot->Get(Form("%s%s/%s_%s_phi_%s",rateSD[r].Data(),(fCmsswComp?"_cmssw":""),rates[r].Data(),types[r].Data(),trks[j].Data()));
     }
   }
 
   // want nHits plots for all types of tracks
-  TStrVec coll  = {"allreco","fake","bestmatch"};
-  TStrVec scoll = {"All Reco","Fake","Best Match"};
+  const TStrVec coll  = {"allreco","fake","bestmatch"};
+  const TStrVec scoll = {"All Reco","Fake","Best Match"};
 
   TH1FRefVecVec nHitsPlot(trks.size());
   TH1FRefVecVec fracHitsMatchedPlot(trks.size());
@@ -770,27 +779,38 @@ void PlotValidation::PrintTotals()
   {
     for (UInt_t c = 0; c < coll.size(); c++) 
     {
-      nHitsPlot[j][c] = (TH1F*) fOutRoot->Get(Form("nHits/h_nHits_%s_%s",coll[c].Data(),trks[j].Data()));
-      fracHitsMatchedPlot[j][c] = (TH1F*) fOutRoot->Get(Form("nHits/h_fracHitsMatched_%s_%s",coll[c].Data(),trks[j].Data()));
+      nHitsPlot[j][c] = (TH1F*) fOutRoot->Get(Form("nHits%s/h_nHits_%s_%s",(fCmsswComp?"_cmssw":""),coll[c].Data(),trks[j].Data()));
+      fracHitsMatchedPlot[j][c] = (TH1F*) fOutRoot->Get(Form("nHits%s/h_fracHitsMatched_%s_%s",(fCmsswComp?"_cmssw":""),coll[c].Data(),trks[j].Data()));
     }
   }
   
-  ofstream totalsout;
-  totalsout.open(Form("%s/totals_%s.txt",fOutName.Data(),fOutName.Data()));
+  TString outfilename = Form("%s/totals_%s",fOutName.Data(),fOutName.Data());
+  if (fCmsswComp) outfilename += "_cmssw";
+  outfilename += ".txt";
+  std::ofstream totalsout;
+  totalsout.open(outfilename.Data());
 
-  TTree * configtree = (TTree*)fInRoot->Get("configtree");
-  Int_t  Ntracks = 0, Nevents = 0;
-  configtree->SetBranchAddress("Nevents",&Nevents);
-  configtree->SetBranchAddress("Ntracks",&Ntracks);
-  configtree->GetEntry(0);
+  TTree * efftree = (TTree*)fInRoot->Get((fCmsswComp?"cmsswefftree":"efftree"));
+  TTree * frtree  = (TTree*)fInRoot->Get((fCmsswComp?"cmsswfrtree":"frtree"));
+  Int_t Nevents = 0;
+  Int_t evtID = 0; efftree->SetBranchAddress("evtID",&evtID);
+  for (Int_t i = 0; i < efftree->GetEntries(); i++)
+  {
+    efftree->GetEntry(i); 
+    if (evtID > Nevents) Nevents = evtID;
+  }
+  const Int_t   NtracksMC   = efftree->GetEntries(); 
+  const Float_t ntkspevMC   = Float_t(NtracksMC) / Float_t(Nevents); 
+  const Int_t   NtracksReco = frtree->GetEntries();
+  const Float_t ntkspevReco = Float_t(NtracksReco) / Float_t(Nevents); 
 
   std::cout << "--------Track Reconstruction Summary--------" << std::endl;
-  std::cout << "nEvents: "  << Nevents  << " nTracks/evt: " << Ntracks  << std::endl;
+  std::cout << "nEvents: " << Nevents << Form(" n%sTracks/evt: ",(fCmsswComp?"CMSSW":"MC"))  << ntkspevMC << " nRecoTracks/evt: "  << ntkspevReco << std::endl;
   std::cout << "++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
   std::cout << std::endl;
 
   totalsout << "--------Track Reconstruction Summary--------" << std::endl;
-  totalsout << "nEvents: "  << Nevents  << " nTracks/evt: " << Ntracks  << std::endl;
+  totalsout << "nEvents: " << Nevents << Form(" n%sTracks/evt: ",(fCmsswComp?"CMSSW":"MC"))  << ntkspevMC << " nRecoTracks/evt: "  << ntkspevReco << std::endl;
   totalsout << "++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
   totalsout << std::endl;
 
@@ -850,7 +870,9 @@ void PlotValidation::PrintTotals()
   }
   totalsout.close();
 
-  delete configtree;
+
+  delete frtree;
+  delete efftree;
 }
 
 void PlotValidation::MakeSubDirectory(const TString subdirname)

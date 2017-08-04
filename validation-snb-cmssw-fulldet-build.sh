@@ -1,6 +1,5 @@
 #! /bin/bash
 
-make distclean
 make -j 12 WITH_ROOT=yes
 
 dir=/data/nfsmic/slava77/samples/2017/pass-4874f28/initialStep
@@ -24,7 +23,7 @@ do echo $sV | while read -r sN sO
 		do
 		    oBase=${base}_${sN}_${section}_${bN}
 		    echo "${oBase}: validation [nTH:24, nVU:8]"
-		    ./mkFit/mkFit ${sO} --geom CMS-2017 --root-val --read --file-name ${!section} --build-${bO} ${sO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_val.txt
+		    ./mkFit/mkFit ${sO} --geom CMS-2017 --root-val --read --file-name ${!section} --build-${bO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_val.txt
 		    mv valtree.root valtree_${oBase}.root
 		done
 	    done
