@@ -635,7 +635,7 @@ int Event::clean_cms_simtracks()
     
     const int lyr_cnt = t.nUniqueLayers();
 
-    if (lyr_cnt < Config::cmsSimSelMinLayers || t.pT() < Config::cmsSimSelMinPt)
+    if (lyr_cnt < Config::cmsSelMinLayers || t.pT() < Config::cmsSelMinPt)
     {
       dprintf("Rejecting simtrack %d, n_hits=%d, n_layers=%d, pT=%f\n", i, nh, lyr_cnt, t.pT());
       t.setNotFindable();

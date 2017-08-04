@@ -110,11 +110,11 @@ double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
 #endif
   
   if   (!Config::root_val && !Config::cmssw_val) {
-    if (!Config::silent) builder.quality_output_BH();
+    if (!Config::silent) builder.quality_output();
   } else if (Config::root_val) {
-    builder.root_val_BH();
+    builder.root_val();
   } else if (Config::cmssw_val) {
-    builder.cmssw_val_BH();
+    builder.cmssw_val();
   }
 
   builder.end_event();
@@ -150,12 +150,16 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
   __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
 
-  if   (!Config::root_val && !Config::cmssw_val) {
-    if (!Config::silent) builder.quality_output_COMB();
-  } else if (Config::root_val) { 
-    builder.root_val_COMB();
-  } else if (Config::cmssw_val) {
-    builder.cmssw_val_COMB();
+  if (!Config::silent)
+  {
+    builder.quality_store_tracks();
+    if (!Config::root_val && !Config::cmssw_val) {
+      builder.quality_output();
+    } else if (Config::root_val) { 
+      builder.root_val();
+    } else if (Config::cmssw_val) {
+      builder.cmssw_val();
+    }
   }
 
   builder.end_event();
@@ -191,12 +195,16 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
   __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
 
-  if   (!Config::root_val && !Config::cmssw_val) {
-    if (!Config::silent) builder.quality_output_COMB();
-  } else if (Config::root_val) { 
-    builder.root_val_COMB();
-  } else if (Config::cmssw_val) {
-    builder.cmssw_val_COMB();
+  if (!Config::silent)
+  {
+    builder.quality_store_tracks();
+    if (!Config::root_val && !Config::cmssw_val) {
+      builder.quality_output();
+    } else if (Config::root_val) { 
+      builder.root_val();
+    } else if (Config::cmssw_val) {
+      builder.cmssw_val();
+    }
   }
 
   builder.end_event();
@@ -257,9 +265,9 @@ double runAllBuildingTestPlexBestHitGPU(std::vector<Event> &events)
     BuilderCU &builder_cu = builder_cu_vec[i];
     MkBuilder &builder = * builder_ptrs[i].get();
     if   (!Config::root_val && !Config::cmssw_val) {
-      if (!Config::silent) builder.quality_output_BH(event_of_cands);
+      if (!Config::silent) builder.quality_output();
     } else if (Config::root_val) {
-      builder.root_val_BH(event_of_cands);
+      builder.root_val();
     }
 
     builder.end_event();

@@ -800,25 +800,9 @@ void MkBuilder::remap_cand_hits()
 // Non-ROOT validation
 //------------------------------------------------------------------------------
 
-void MkBuilder::quality_output_BH()
+void MkBuilder::quality_output()
 {
   quality_reset();
-
-  remap_cand_hits();
-
-  for (int i = 0; i < m_event->candidateTracks_.size(); i++)
-  {
-    quality_process(m_event->candidateTracks_[i]);
-  }
-
-  quality_print();
-}
-
-void MkBuilder::quality_output_COMB()
-{
-  quality_reset();
-
-  quality_store_tracks_COMB();
 
   remap_cand_hits();
 
@@ -835,7 +819,7 @@ void MkBuilder::quality_reset()
   m_cnt = m_cnt1 = m_cnt2 = m_cnt_8 = m_cnt1_8 = m_cnt2_8 = m_cnt_nomc = 0;
 }
 
-void MkBuilder::quality_store_tracks_COMB()
+void MkBuilder::quality_store_tracks()
 {
   const EventOfCombCandidates &eoccs = m_event_of_comb_cands; 
     
@@ -915,7 +899,7 @@ void MkBuilder::quality_print()
 // Root validation
 //------------------------------------------------------------------------------
 
-void MkBuilder::root_val_BH()
+void MkBuilder::root_val()
 {
   // remap seed tracks
   remap_seed_hits();
@@ -923,72 +907,52 @@ void MkBuilder::root_val_BH()
   // get the tracks ready for validation
   remap_cand_hits();
   m_event->fitTracks_ = m_event->candidateTracks_; // fixme: hack for now. eventually fitting will be including end-to-end
-  init_track_extras();
-  align_recotracks();
+  prep_recotracks();
+  if (Config::readCmsswSeeds) m_event->clean_cms_simtracks();
 
   m_event->Validate();
 }
 
-void MkBuilder::root_val_COMB()
+void MkBuilder::cmssw_val()
 {
-  remap_seed_hits(); // prepare seed tracks for validation
-
   // get the tracks ready for validation
-  quality_store_tracks_COMB();
   remap_cand_hits();
-  m_event->fitTracks_ = m_event->candidateTracks_; // fixme: hack for now. eventually fitting will be including end-to-end
-  init_track_extras();
-  align_recotracks();
+  prep_recotracks();
 
+  prep_cmsswtracks();
   m_event->Validate();
 }
 
-void MkBuilder::cmssw_val_BH()
+void MkBuilder::prep_recotracks()
 {
-  prep_cmsswtracks();
-  root_val_BH();
-}
-
-void MkBuilder::cmssw_val_COMB()
-{
-  prep_cmsswtracks();
-  root_val_COMB();
-}
-
-void MkBuilder::init_track_extras()
-{
-  for (int i = 0; i < m_event->seedTracks_.size(); i++)
+  prep_tracks(m_event->candidateTracks_,m_event->candidateTracksExtra_);
+  if (Config::root_val)
   {
-    m_event->seedTracksExtra_.emplace_back(m_event->seedTracks_[i].label());
+    prep_tracks(m_event->seedTracks_,m_event->seedTracksExtra_);
+    prep_tracks(m_event->fitTracks_,m_event->fitTracksExtra_);
   }
-
-  for (int i = 0; i < m_event->candidateTracks_.size(); i++)
-  {
-    m_event->candidateTracksExtra_.emplace_back(m_event->candidateTracks_[i].label());
-  }
-
-  for (int i = 0; i < m_event->fitTracks_.size(); i++)
-  {
-    m_event->fitTracksExtra_.emplace_back(m_event->fitTracks_[i].label());
-  }
-}
-
-void MkBuilder::align_recotracks()
-{
-  m_event->validation_.alignTracks(m_event->seedTracks_,m_event->seedTracksExtra_,false);
-  m_event->validation_.alignTracks(m_event->candidateTracks_,m_event->candidateTracksExtra_,false);
-  m_event->validation_.alignTracks(m_event->fitTracks_,m_event->fitTracksExtra_,false);
 }
 
 void MkBuilder::prep_cmsswtracks()
 {
-  for (int i = 0; i < m_event->extRecTracks_.size(); i++)
+  prep_tracks(m_event->extRecTracks_,m_event->extRecTracksExtra_);
+
+  // mark cmsswtracks as unfindable if too short
+  for (auto&& cmsswtrack : m_event->extRecTracks_)
   {
-    m_event->extRecTracks_[i].sortHitsByLayer();
-    m_event->extRecTracksExtra_.emplace_back(m_event->extRecTracks_[i].label());
+    const int nlyr = cmsswtrack.nUniqueLayers();
+    if (nlyr < Config::cmsSelMinLayers || cmsswtrack.pT() < Config::cmsSelMinPt) cmsswtrack.setNotFindable();
   }
-  
-  m_event->validation_.alignTracks(m_event->extRecTracks_,m_event->extRecTracksExtra_,false);
+}
+
+void MkBuilder::prep_tracks(TrackVec& tracks, TrackExtraVec& extras)
+{
+  for (int i = 0; i < tracks.size(); i++)
+  {
+    tracks[i].sortHitsByLayer();
+    extras.emplace_back(tracks[i].label());
+  }
+  m_event->validation_.alignTracks(tracks,extras,false);
 }
 
 //------------------------------------------------------------------------------

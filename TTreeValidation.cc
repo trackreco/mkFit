@@ -4,10 +4,10 @@
 //   denominator: all findable sim tracks (mcmask = 0 || == 1)
 // Fake Rate (with only long reco tracks: Config::inclusiveShorts == false)
 //   numerator:   reco tracks with mcTrackID == -1 (mcmask == 0)
-//   denominator: reco tracks with mcTrackID >= 0 || == -1 (mcmask == 1,0,2)
+//   denominator: reco tracks with mcTrackID >= 0 || == -1 || == -6 (mcmask == 1,0,2)
 // Fake Rate (with all reco tracks: Config::inclusiveShorts == true)
 //   numerator:   reco tracks with mcTrackID == -1, == -3 (mcmask == 0)
-//   denominator: reco tracks with mcTrackID >= 0 || == -1 || == -2 || == -3 || == -4 (mcmask == 1,0,2)
+//   denominator: reco tracks with mcTrackID >= 0 || == -1 || == -2 || == -3 || == -4 || == -6 || == -7 (mcmask == 1,0,2)
 
 // N.B. Mask assignments
 // --> mcmask_[reco] == 1,"associated" reco to sim track [possible duplmask_[reco] == 1,0] {eff and FR}
@@ -354,12 +354,97 @@ void TTreeValidation::initializeCMSSWEfficiencyTree()
 {  
   // cmssw reco track efficiency validation
   cmsswefftree_ = new TTree("cmsswefftree","cmsswefftree");
+  cmsswefftree_->Branch("evtID",&evtID_ceff_);
+  cmsswefftree_->Branch("cmsswID",&cmsswID_ceff_);
+  cmsswefftree_->Branch("cmsswmask_build",&cmsswmask_build_ceff_);
+  cmsswefftree_->Branch("seedID_cmssw",&seedID_cmssw_ceff_);
+  cmsswefftree_->Branch("seedID_build",&seedID_build_ceff_);
+
+  cmsswefftree_->Branch("x_cmssw",&x_cmssw_ceff_);
+  cmsswefftree_->Branch("y_cmssw",&y_cmssw_ceff_);
+  cmsswefftree_->Branch("z_cmssw",&z_cmssw_ceff_);
+
+  cmsswefftree_->Branch("pt_cmssw",&pt_cmssw_ceff_);
+  cmsswefftree_->Branch("phi_cmssw",&phi_cmssw_ceff_);
+  cmsswefftree_->Branch("eta_cmssw",&eta_cmssw_ceff_);
+
+  cmsswefftree_->Branch("nHits_cmssw",&nHits_cmssw_ceff_);
+  cmsswefftree_->Branch("nLayers_cmssw",&nLayers_cmssw_ceff_);
+  cmsswefftree_->Branch("lastlyr_cmssw",&lastlyr_cmssw_ceff_);
+
+  cmsswefftree_->Branch("pt_build",&pt_build_ceff_);
+  cmsswefftree_->Branch("ept_build",&ept_build_ceff_);
+  cmsswefftree_->Branch("phi_build",&phi_build_ceff_);
+  cmsswefftree_->Branch("ephi_build",&ephi_build_ceff_);
+  cmsswefftree_->Branch("eta_build",&eta_build_ceff_);
+  cmsswefftree_->Branch("eeta_build",&eeta_build_ceff_);
+
+  cmsswefftree_->Branch("nHits_build",&nHits_build_ceff_);
+  cmsswefftree_->Branch("nLayers_build",&nLayers_build_ceff_);
+  cmsswefftree_->Branch("nHitsMatched_build",&nHitsMatched_build_ceff_);
+  cmsswefftree_->Branch("fracHitsMatched_build",&fracHitsMatched_build_ceff_);
+  cmsswefftree_->Branch("lastlyr_build",&lastlyr_build_ceff_);
+
+  cmsswefftree_->Branch("xhit_build",&xhit_build_ceff_);
+  cmsswefftree_->Branch("yhit_build",&yhit_build_ceff_);
+  cmsswefftree_->Branch("zhit_build",&zhit_build_ceff_);
+
+  cmsswefftree_->Branch("hitchi2_build",&hitchi2_build_ceff_);
+  cmsswefftree_->Branch("helixchi2_build",&helixchi2_build_ceff_);
+  cmsswefftree_->Branch("phi_cmssw_build",&phi_cmssw_build_ceff_);
+
+  cmsswefftree_->Branch("duplmask_build",&duplmask_build_ceff_);
+  cmsswefftree_->Branch("nTkMatches_build",&nTkMatches_build_ceff_);
 }
 
 void TTreeValidation::initializeCMSSWFakeRateTree()
 {  
   // cmssw reco track efficiency validation
   cmsswfrtree_ = new TTree("cmsswfrtree","cmsswfrtree");
+
+  cmsswfrtree_->Branch("evtID",&evtID_cFR_);
+  cmsswfrtree_->Branch("label_build",&label_build_cFR_);
+  cmsswfrtree_->Branch("cmsswID_build",&cmsswID_build_cFR_);
+  cmsswfrtree_->Branch("cmsswmask_build",&cmsswmask_build_cFR_);
+  cmsswfrtree_->Branch("seedID_cmssw",&seedID_cmssw_cFR_);
+  cmsswfrtree_->Branch("seedID_build",&seedID_build_cFR_);
+
+  cmsswfrtree_->Branch("pt_build",&pt_build_cFR_);
+  cmsswfrtree_->Branch("ept_build",&ept_build_cFR_);
+  cmsswfrtree_->Branch("phi_build",&phi_build_cFR_);
+  cmsswfrtree_->Branch("ephi_build",&ephi_build_cFR_);
+  cmsswfrtree_->Branch("eta_build",&eta_build_cFR_);
+  cmsswfrtree_->Branch("eeta_build",&eeta_build_cFR_);
+
+  cmsswfrtree_->Branch("nHits_build",&nHits_build_cFR_);
+  cmsswfrtree_->Branch("nLayers_build",&nLayers_build_cFR_);
+  cmsswfrtree_->Branch("nHitsMatched_build",&nHitsMatched_build_cFR_);
+  cmsswfrtree_->Branch("fracHitsMatched_build",&fracHitsMatched_build_cFR_);
+  cmsswfrtree_->Branch("lastlyr_build",&lastlyr_build_cFR_);
+
+  cmsswfrtree_->Branch("xhit_build",&xhit_build_cFR_);
+  cmsswfrtree_->Branch("yhit_build",&yhit_build_cFR_);
+  cmsswfrtree_->Branch("zhit_build",&zhit_build_cFR_);
+
+  cmsswfrtree_->Branch("hitchi2_build",&hitchi2_build_cFR_);
+  cmsswfrtree_->Branch("helixchi2_build",&helixchi2_build_cFR_);
+
+  cmsswfrtree_->Branch("duplmask_build",&duplmask_build_cFR_);
+  cmsswfrtree_->Branch("iTkMatches_build",&iTkMatches_build_cFR_);
+
+  cmsswfrtree_->Branch("x_cmssw",&x_cmssw_cFR_);
+  cmsswfrtree_->Branch("y_cmssw",&y_cmssw_cFR_);
+  cmsswfrtree_->Branch("z_cmssw",&z_cmssw_cFR_);
+
+  cmsswfrtree_->Branch("pt_cmssw",&pt_cmssw_cFR_);
+  cmsswfrtree_->Branch("phi_cmssw",&phi_cmssw_cFR_);
+  cmsswfrtree_->Branch("eta_cmssw",&eta_cmssw_cFR_);
+
+  cmsswfrtree_->Branch("nHits_cmssw",&nHits_cmssw_cFR_);
+  cmsswfrtree_->Branch("nLayers_cmssw",&nLayers_cmssw_cFR_);
+  cmsswfrtree_->Branch("lastlyr_cmssw",&lastlyr_cmssw_cFR_);
+
+  cmsswfrtree_->Branch("phi_cmssw_build",&phi_cmssw_build_cFR_);
 }
 
 void TTreeValidation::initializeFitTree()
@@ -447,6 +532,9 @@ void TTreeValidation::resetValidationMaps()
   // reset map of seed tracks to reco tracks
   seedToBuildMap_.clear();
   seedToFitMap_.clear();
+
+  // reest map of cmssw tracks to reco tracks
+  cmsswToBuildMap_.clear();
 }
 
 void TTreeValidation::setTrackExtras(Event& ev)
@@ -489,9 +577,7 @@ void TTreeValidation::setTrackExtras(Event& ev)
     {
       const auto & cmsswtrack = ev.extRecTracks_[itrack];
       const SVector6 & params = cmsswtrack.parameters();
-      SVector2 tmpv;
-      tmpv[0] = params[3];
-      tmpv[1] = params[5];
+      SVector2 tmpv(params[3],params[5]);
 
       HitLayerMap tmpmap;
       for (int ihit = 0; ihit < cmsswtrack.nTotalHits(); ihit++)
@@ -520,50 +606,60 @@ void TTreeValidation::makeSimTkToRecoTksMaps(Event& ev)
 {
   std::lock_guard<std::mutex> locker(glock_);
   // map sim track ids to reco labels sort by each (simTracks set in order by default!)
-  TTreeValidation::mapSimTkToRecoTks(ev.seedTracks_,ev.seedTracksExtra_,simToSeedMap_);
-  TTreeValidation::mapSimTkToRecoTks(ev.candidateTracks_,ev.candidateTracksExtra_,simToBuildMap_);
-  TTreeValidation::mapSimTkToRecoTks(ev.fitTracks_,ev.fitTracksExtra_,simToFitMap_);
+  TTreeValidation::mapRefTkToRecoTks(ev.seedTracks_,ev.seedTracksExtra_,simToSeedMap_);
+  TTreeValidation::mapRefTkToRecoTks(ev.candidateTracks_,ev.candidateTracksExtra_,simToBuildMap_);
+  TTreeValidation::mapRefTkToRecoTks(ev.fitTracks_,ev.fitTracksExtra_,simToFitMap_);
 }
 
-void TTreeValidation::mapSimTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, TkIDToTkIDVecMap& simTkMap)
+void TTreeValidation::mapRefTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, TkIDToTkIDVecMap& refTkMap)
 {
   for (auto itrack = 0; itrack < evt_tracks.size(); ++itrack)
   {
     auto&& track(evt_tracks[itrack]);
     auto&& extra(evt_extras[itrack]);
-    if (extra.mcTrackID() >= 0) // skip fakes, don't store them at all in sim map
+    if (Config::root_val)
     {
-      simTkMap[extra.mcTrackID()].push_back(track.label()); // store vector of reco tk labels, mapped to the sim track label (i.e. mcTrackID)
+      if (extra.mcTrackID() >= 0) // skip fakes, don't store them at all in sim map
+      {
+	refTkMap[extra.mcTrackID()].push_back(track.label()); // store vector of reco tk labels, mapped to the sim track label (i.e. mcTrackID)
+      }
+    }
+    if (Config::cmssw_val)
+    {
+      if (extra.cmsswTrackID() >= 0) // skip fakes, don't store them at all in cmssw map
+      {
+	refTkMap[extra.cmsswTrackID()].push_back(track.label()); // store vector of reco tk labels, mapped to the cmssw track label (i.e. cmsswTrackID)
+      }
     }
   }
   
-  for (auto&& simTkMatches : simTkMap)
+  for (auto&& refTkMatches : refTkMap)
   {
-    if (simTkMatches.second.size() < 2) // no duplicates
+    if (refTkMatches.second.size() < 2) // no duplicates
     {
-      auto& extra(evt_extras[simTkMatches.second[0]]);
-      extra.setMCDuplicateInfo(0,bool(false));
+      auto& extra(evt_extras[refTkMatches.second[0]]);
+      extra.setDuplicateInfo(0,bool(false));
     }
     else // sort duplicates (ghosts) to keep best one --> most hits, lowest chi2
     {  
       // really should sort on indices with a reduced data structure... this is a hack way to do this for now...
       // e.g. std::tuple<int, int, float>, (label, nHits, chi2)
       TrackVec tmpMatches;
-      for (auto&& label : simTkMatches.second) // loop over vector of reco track labels, push back the track with each label 
+      for (auto&& label : refTkMatches.second) // loop over vector of reco track labels, push back the track with each label 
       {
 	tmpMatches.push_back(evt_tracks[label]);
       }
       std::sort(tmpMatches.begin(), tmpMatches.end(), sortByHitsChi2); // sort the tracks
       for (auto itrack = 0; itrack < tmpMatches.size(); itrack++) // loop over sorted tracks, now make the vector of sorted labels match
       {
-	simTkMatches.second[itrack] = tmpMatches[itrack].label();
+	refTkMatches.second[itrack] = tmpMatches[itrack].label();
       }
       
       int duplicateID = 0;
-      for (auto&& label : simTkMatches.second) // loop over vector of reco tracsk 
+      for (auto&& label : refTkMatches.second) // loop over vector of reco tracsk 
       {
         auto& extra(evt_extras[label]);
-        extra.setMCDuplicateInfo(duplicateID,bool(true));
+        extra.setDuplicateInfo(duplicateID,bool(true));
         duplicateID++; // used in fake rate trees!
       } 
     }
@@ -588,11 +684,9 @@ void TTreeValidation::mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackE
 
 void TTreeValidation::makeCMSSWTkToRecoTksMap(Event& ev)
 {
-  int nmatched = 0;
-  for (auto&& trk : ev.candidateTracks_) 
-    if (ev.candidateTracksExtra_[trk.label()].cmsswTrackID() != -1) nmatched++;
-  
-  std::cout << "Matched: " << nmatched << " / " << ev.candidateTracks_.size() << std::endl;
+  std::lock_guard<std::mutex> locker(glock_);
+  // can reuse this function
+  TTreeValidation::mapRefTkToRecoTks(ev.candidateTracks_,ev.candidateTracksExtra_,cmsswToBuildMap_);
 }
 
 int TTreeValidation::getLastFoundHit(const int trackMCHitID, const int mcTrackID, const Event& ev)
@@ -737,7 +831,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     lastlyr_mc_eff_ = simtrack.getLastFoundHitLyr();
 
     // matched seed track
-    if (simToSeedMap_.count(mcID_eff_)) // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToSeedMap_[matched SimID][first element in vector]
+    if (simToSeedMap_.count(mcID_eff_) && simtrack.isFindable()) // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToSeedMap_[matched SimID][first element in vector]
     {
       auto& seedtrack = evt_seed_tracks[simToSeedMap_[mcID_eff_][0]]; // returns seedTrack best matched to sim track
       auto& seedextra = evt_seed_extras[seedtrack.label()]; // returns track extra best aligned with seed track
@@ -822,7 +916,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     }
 
     // matched build track
-    if (simToBuildMap_.count(mcID_eff_)) // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToBuildMap_[matched SimID][first element in vector]
+    if (simToBuildMap_.count(mcID_eff_) && simtrack.isFindable()) // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToBuildMap_[matched SimID][first element in vector]
     {
       auto& buildtrack = evt_build_tracks[simToBuildMap_[mcID_eff_][0]]; // returns buildTrack best matched to sim track
       auto& buildextra = evt_build_extras[buildtrack.label()]; // returns track extra best aligned with build track
@@ -906,7 +1000,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     }
     
     // matched fit track
-    if (simToFitMap_.count(mcID_eff_)) // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToFitMap_[matched SimID][first element in vector]
+    if (simToFitMap_.count(mcID_eff_) && simtrack.isFindable()) // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToFitMap_[matched SimID][first element in vector]
     {
       auto& fittrack = evt_fit_tracks[simToFitMap_[mcID_eff_][0]]; // returns fitTrack best matched to sim track
       auto& fitextra = evt_fit_extras[fittrack.label()]; // returns track extra best aligned with fit track
@@ -1051,12 +1145,15 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       if (Config::inclusiveShorts) 
       {
 	if      (mcID_seed_FR_ == -1 || mcID_seed_FR_ == -3) mcmask_seed_FR_ = 0;
-	else if (mcID_seed_FR_ == -2 || mcID_seed_FR_ == -4) mcmask_seed_FR_ = 2; 
+	else if (mcID_seed_FR_ == -2 || mcID_seed_FR_ == -4 ||
+		 mcID_seed_FR_ == -6 || mcID_seed_FR_ == -7) mcmask_seed_FR_ = 2; 
 	else                                                 mcmask_seed_FR_ = -1; // mcID == -5
       }
       else 
       {
-	mcmask_seed_FR_ = (mcID_seed_FR_ == -1 ? 0 : -1); // mask == -1 for mcID == -2,-3,-4,-5
+	if      (mcID_seed_FR_ == -1) mcmask_seed_FR_ = 0;
+	else if (mcID_seed_FR_ == -6) mcmask_seed_FR_ = 2;
+	else                          mcmask_seed_FR_ = -1; // mcID == -2,-3,-4,-5,-7
       }
     }
     
@@ -1142,14 +1239,17 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       else 
       {
 	if (Config::inclusiveShorts) 
-	{
+        {
 	  if      (mcID_build_FR_ == -1 || mcID_build_FR_ == -3) mcmask_build_FR_ = 0;
-	  else if (mcID_build_FR_ == -2 || mcID_build_FR_ == -4) mcmask_build_FR_ = 2; 
+	  else if (mcID_build_FR_ == -2 || mcID_build_FR_ == -4 ||
+		   mcID_build_FR_ == -6 || mcID_build_FR_ == -7) mcmask_build_FR_ = 2; 
 	  else                                                   mcmask_build_FR_ = -1; // mcID == -5
 	}
 	else 
-	{
-	  mcmask_build_FR_ = (mcID_build_FR_ == -1 ? 0 : -1); // mask == -1 for mcID == -2,-3,-4,-5
+        {
+	  if      (mcID_build_FR_ == -1) mcmask_build_FR_ = 0;
+	  else if (mcID_build_FR_ == -6) mcmask_build_FR_ = 2;
+	  else                           mcmask_build_FR_ = -1; // mcID == -2,-3,-4,-5,-7
 	}
       }
 
@@ -1273,14 +1373,17 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       else 
       {
 	if (Config::inclusiveShorts) 
-	{
+        {
 	  if      (mcID_fit_FR_ == -1 || mcID_fit_FR_ == -3) mcmask_fit_FR_ = 0;
-	  else if (mcID_fit_FR_ == -2 || mcID_fit_FR_ == -4) mcmask_fit_FR_ = 2; 
+	  else if (mcID_fit_FR_ == -2 || mcID_fit_FR_ == -4 ||
+		   mcID_fit_FR_ == -6 || mcID_fit_FR_ == -7) mcmask_fit_FR_ = 2; 
 	  else                                               mcmask_fit_FR_ = -1; // mcID == -5
 	}
 	else 
-	{
-	  mcmask_fit_FR_ = (mcID_fit_FR_ == -1 ? 0 : -1); // mask == -1 for mcID == -2,-3,-4,-5
+        {
+	  if      (mcID_fit_FR_ == -1) mcmask_fit_FR_ = 0;
+	  else if (mcID_fit_FR_ == -6) mcmask_fit_FR_ = 2;
+	  else                         mcmask_fit_FR_ = -1; // mcID == -2,-3,-4,-5,-7
 	}
       }
 
@@ -1423,10 +1526,224 @@ void TTreeValidation::fillConfigTree()
 
 void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
 {
+  std::lock_guard<std::mutex> locker(glock_);
+
+  auto ievt = ev.evtID();
+  auto& evt_cmssw_tracks = ev.extRecTracks_;
+  auto& evt_cmssw_extras = ev.extRecTracksExtra_;
+  auto& evt_build_tracks = ev.candidateTracks_;
+  auto& evt_build_extras = ev.candidateTracksExtra_;
+  auto& evt_layer_hits   = ev.layerHits_;
+
+  for (auto&& cmsswtrack : evt_cmssw_tracks)
+  {
+    const auto& cmsswextra = evt_cmssw_extras[cmsswtrack.label()];
+    
+    evtID_ceff_        = ievt;
+    cmsswID_ceff_      = cmsswtrack.label();
+    seedID_cmssw_ceff_ = cmsswextra.seedID();
+
+    // PCA parameters
+    x_cmssw_ceff_ = cmsswtrack.x();
+    y_cmssw_ceff_ = cmsswtrack.y();
+    z_cmssw_ceff_ = cmsswtrack.z();
+
+    pt_cmssw_ceff_  = cmsswtrack.pT(); 
+    phi_cmssw_ceff_ = cmsswtrack.momPhi();
+    eta_cmssw_ceff_ = cmsswtrack.momEta();
+
+    nHits_cmssw_ceff_   = cmsswtrack.nFoundHits(); 
+    nLayers_cmssw_ceff_ = cmsswtrack.nUniqueLayers();
+    lastlyr_cmssw_ceff_ = cmsswtrack.getLastFoundHitLyr();
+
+    // matched build track
+    if (cmsswToBuildMap_.count(cmsswID_ceff_) && cmsswtrack.isFindable()) // recoToCmssw match : save best match --> most hits, lowest chi2, i.e. cmsswToBuildMap_[matched CmsswID][first element in vector]
+    {
+      const auto& buildtrack = evt_build_tracks[cmsswToBuildMap_[cmsswID_ceff_][0]]; // returns buildTrack best matched to cmssw track
+      const auto& buildextra = evt_build_extras[buildtrack.label()]; // returns track extra best aligned with build track
+      cmsswmask_build_ceff_ = 1; // quick logic for matched
+
+      seedID_build_ceff_ = buildextra.seedID(); 
+
+      // track parameters
+      pt_build_ceff_   = buildtrack.pT();
+      ept_build_ceff_  = buildtrack.epT();
+      phi_build_ceff_  = buildtrack.momPhi();
+      ephi_build_ceff_ = buildtrack.emomPhi();
+      eta_build_ceff_  = buildtrack.momEta();
+      eeta_build_ceff_ = buildtrack.emomEta();
+
+      // hit/layer info
+      nHits_build_ceff_           = buildtrack.nFoundHits();
+      nLayers_build_ceff_         = buildtrack.nUniqueLayers();
+      nHitsMatched_build_ceff_    = buildextra.nHitsMatched();
+      fracHitsMatched_build_ceff_ = buildextra.fracHitsMatched();
+      lastlyr_build_ceff_         = buildtrack.getLastFoundHitLyr();
+
+      // hit info
+      const Hit& lasthit = evt_layer_hits[buildtrack.getLastFoundHitLyr()][buildtrack.getLastFoundHitIdx()];
+      xhit_build_ceff_ = lasthit.x(); 
+      yhit_build_ceff_ = lasthit.y(); 
+      zhit_build_ceff_ = lasthit.z(); 
+
+      // chi2 info
+      hitchi2_build_ceff_ = buildtrack.chi2(); 
+      helixchi2_build_ceff_ = buildextra.helixChi2();
+
+      // swim phi
+      phi_cmssw_build_ceff_ = squashPhiGeneral(cmsswtrack.swimPhiToR(buildtrack.x(),buildtrack.y()));
+
+      // duplicate info
+      duplmask_build_ceff_   = buildextra.isDuplicate(); 
+      nTkMatches_build_ceff_ = cmsswToBuildMap_[cmsswID_ceff_].size(); // n reco matches to this cmssw track.
+    }
+    else // unmatched cmsswtracks ... put -99 for all reco values to denote unmatched
+    {
+      cmsswmask_build_ceff_ = (cmsswtrack.isFindable() ? 0 : -1); // quick logic for not matched
+      
+      seedID_build_ceff_ = -99;
+
+      pt_build_ceff_   = -99;
+      ept_build_ceff_  = -99;
+      phi_build_ceff_  = -99;
+      ephi_build_ceff_ = -99;
+      eta_build_ceff_  = -99;
+      eeta_build_ceff_ = -99;
+
+      nHits_build_ceff_           = -99;
+      nLayers_build_ceff_         = -99;
+      nHitsMatched_build_ceff_    = -99;
+      fracHitsMatched_build_ceff_ = -99;
+      lastlyr_build_ceff_         = -99;
+ 
+      xhit_build_ceff_ = -2000;
+      yhit_build_ceff_ = -2000;
+      zhit_build_ceff_ = -2000;
+
+      hitchi2_build_ceff_   = -99;
+      helixchi2_build_ceff_ = -99;
+      
+      phi_cmssw_build_ceff_ = -99;
+
+      duplmask_build_ceff_   = 2; // mask means unmatched cmssw track
+      nTkMatches_build_ceff_ = -99; // unmatched
+    }
+    cmsswefftree_->Fill();
+  } 
 }
 
 void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
 {
+  std::lock_guard<std::mutex> locker(glock_);
+
+  auto ievt = ev.evtID();
+  auto& evt_cmssw_tracks = ev.extRecTracks_;
+  auto& evt_cmssw_extras = ev.extRecTracksExtra_;
+  auto& evt_build_tracks = ev.candidateTracks_;
+  auto& evt_build_extras = ev.candidateTracksExtra_;
+  auto& evt_layer_hits   = ev.layerHits_;
+
+  for (auto&& buildtrack : evt_build_tracks)
+  {
+    const auto& buildextra = evt_build_extras[buildtrack.label()];
+    
+    evtID_cFR_        = ievt;
+    label_build_cFR_  = buildtrack.label(); 
+    seedID_build_cFR_ = buildextra.seedID(); 
+
+    // track parameters
+    pt_build_cFR_   = buildtrack.pT();
+    ept_build_cFR_  = buildtrack.epT();
+    phi_build_cFR_  = buildtrack.momPhi();
+    ephi_build_cFR_ = buildtrack.emomPhi();
+    eta_build_cFR_  = buildtrack.momEta();
+    eeta_build_cFR_ = buildtrack.emomEta();
+    
+    // hit/layer info
+    nHits_build_cFR_           = buildtrack.nFoundHits();
+    nLayers_build_cFR_         = buildtrack.nUniqueLayers();
+    nHitsMatched_build_cFR_    = buildextra.nHitsMatched();
+    fracHitsMatched_build_cFR_ = buildextra.fracHitsMatched();
+    lastlyr_build_cFR_         = buildtrack.getLastFoundHitLyr();
+    
+    // hit info
+    const Hit& lasthit = evt_layer_hits[buildtrack.getLastFoundHitLyr()][buildtrack.getLastFoundHitIdx()];
+    xhit_build_cFR_ = lasthit.x(); 
+    yhit_build_cFR_ = lasthit.y(); 
+    zhit_build_cFR_ = lasthit.z(); 
+
+    // chi2 info
+    hitchi2_build_cFR_ = buildtrack.chi2(); 
+    helixchi2_build_cFR_ = buildextra.helixChi2();
+    
+    // duplicate info
+    duplmask_build_cFR_   = buildextra.isDuplicate(); 
+    iTkMatches_build_cFR_ = buildextra.duplicateID();
+
+    // cmssw match?
+    cmsswID_build_cFR_ = buildextra.cmsswTrackID();
+    if (cmsswID_build_cFR_ >= 0) // matched track to cmssw 
+    {
+      cmsswmask_build_cFR_ = 1; 
+    }
+    else 
+    {
+      if (Config::inclusiveShorts) 
+      {
+	if      (cmsswID_build_cFR_ == -1 || cmsswID_build_cFR_ == -3)                             cmsswmask_build_cFR_ = 0;
+	else if (cmsswID_build_cFR_ == -2 || cmsswID_build_cFR_ == -6 || cmsswID_build_cFR_ == -7) cmsswmask_build_cFR_ = 2; 
+	else    std::cerr << "Somehow got a bad cmsswID: " << cmsswID_build_cFR_ << " trackID: " << label_build_cFR_ << std::endl;
+      }
+      else 
+      {
+	if      (cmsswID_build_cFR_ == -1) cmsswmask_build_cFR_ = 0;
+	else if (cmsswID_build_cFR_ == -6) cmsswmask_build_cFR_ = 2;
+	else                               cmsswmask_build_cFR_ = -1; // cmsswID == -2,-3,-7
+      }
+    }
+    
+    if (cmsswmask_build_cFR_ == 1) // matched track to cmssw
+    {
+      const auto& cmsswtrack = evt_cmssw_tracks[cmsswID_build_cFR_];
+      const auto& cmsswextra = evt_cmssw_extras[cmsswtrack.label()];
+      seedID_cmssw_cFR_ = cmsswextra.seedID();
+
+      // PCA parameters
+      x_cmssw_cFR_ = cmsswtrack.x();
+      y_cmssw_cFR_ = cmsswtrack.y();
+      z_cmssw_cFR_ = cmsswtrack.z();
+      
+      pt_cmssw_cFR_  = cmsswtrack.pT(); 
+      phi_cmssw_cFR_ = cmsswtrack.momPhi();
+      eta_cmssw_cFR_ = cmsswtrack.momEta();
+
+      nHits_cmssw_cFR_   = cmsswtrack.nFoundHits(); 
+      nLayers_cmssw_cFR_ = cmsswtrack.nUniqueLayers();
+      lastlyr_cmssw_cFR_ = cmsswtrack.getLastFoundHitLyr();
+      
+      // swim phi
+      phi_cmssw_build_cFR_ = squashPhiGeneral(cmsswtrack.swimPhiToR(buildtrack.x(),buildtrack.y()));
+    }
+    else // unmatched cmsswtracks ... put -99 for all reco values to denote unmatched
+    {
+      seedID_cmssw_cFR_ = -99;
+
+      x_cmssw_cFR_ = -2000;
+      y_cmssw_cFR_ = -2000;
+      z_cmssw_cFR_ = -2000;
+
+      pt_cmssw_cFR_  = -99;
+      phi_cmssw_cFR_ = -99;
+      eta_cmssw_cFR_ = -99;
+
+      nHits_cmssw_cFR_   = -99;
+      nLayers_cmssw_cFR_ = -99;
+      lastlyr_cmssw_cFR_ = -99;
+
+      phi_cmssw_build_cFR_ = -99;
+    }
+    cmsswfrtree_->Fill();
+  } 
 }
 
 void TTreeValidation::saveTTrees() 

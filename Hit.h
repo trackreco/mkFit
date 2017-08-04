@@ -13,7 +13,7 @@ template<typename T> inline T cube(T x) { return x*x*x; }
 
 inline float squashPhiGeneral(float phi)
 {
-  return phi - floor(0.5f*Config::InvPI*(phi+Config::PI)) * Config::TwoPI;
+  return phi - floor(0.5*Config::InvPI*(phi+Config::PI)) * Config::TwoPI;
 }
 
 // moved from config to here

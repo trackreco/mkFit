@@ -473,13 +473,12 @@ public:
   int   mcTrackID() const {return mcTrackID_;}
   int   nHitsMatched() const {return nHitsMatched_;}
   float fracHitsMatched() const {return fracHitsMatched_;}
-  int   nLayersMatched() const {return nLayersMatched_;}
-  float fracLayersMatched() const {return fracLayersMatched_;}
   int   seedID() const {return seedID_;}
   bool  isDuplicate() const {return isDuplicate_;}
   int   duplicateID() const {return duplicateID_;}
-  void  setMCDuplicateInfo(int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
+  void  setDuplicateInfo(int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
   int   cmsswTrackID() const {return cmsswTrackID_;}
+  float helixChi2() const {return helixChi2_;}
 
 private:
   friend class Track;
@@ -487,12 +486,11 @@ private:
   int   mcTrackID_;
   int   nHitsMatched_;
   float fracHitsMatched_;
-  int   nLayersMatched_;
-  float fracLayersMatched_;
   int   seedID_;
   int   duplicateID_;
   bool  isDuplicate_;
   int   cmsswTrackID_;
+  float helixChi2_;
 };
 
 typedef std::vector<TrackExtra> TrackExtraVec;
