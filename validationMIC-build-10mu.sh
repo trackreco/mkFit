@@ -2,11 +2,12 @@
 
 make -j 12 WITH_ROOT=yes
 
-ECN2=/store/disk00/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep/10muEta-24to-17Pt1to10/memoryFile.fv3.recT.072617.bin
-ECN1=/store/disk00/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep/10muEta-175to-055Pt1to10/memoryFile.fv3.recT.072617.bin
-BRL=/store/disk00/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep/10muEtaLT06Pt1to10/memoryFile.fv3.recT.072617.bin
-ECP1=/store/disk00/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep/10muEta055to175Pt1to10/memoryFile.fv3.recT.072617.bin
-ECP2=/store/disk00/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep/10muEta17to24Pt1to10/memoryFile.fv3.recT.072617.bin
+[ -e "$BIN_DATA_PATH" ] || BIN_DATA_PATH=/store/disk00/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep
+ECN2=${BIN_DATA_PATH}/10muEta-24to-17Pt1to10/memoryFile.fv3.recT.072617.bin
+ECN1=${BIN_DATA_PATH}/10muEta-175to-055Pt1to10/memoryFile.fv3.recT.072617.bin
+BRL=${BIN_DATA_PATH}/10muEtaLT06Pt1to10/memoryFile.fv3.recT.072617.bin
+ECP1=${BIN_DATA_PATH}/10muEta055to175Pt1to10/memoryFile.fv3.recT.072617.bin
+ECP2=${BIN_DATA_PATH}/10muEta17to24Pt1to10/memoryFile.fv3.recT.072617.bin
 
 base=SNB_CMSSW_10mu
 
