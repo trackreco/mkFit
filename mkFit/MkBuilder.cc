@@ -384,12 +384,14 @@ void MkBuilder::import_seeds()
 
   if (Config::readCmsswSeeds)
   {
+#ifndef CLEAN_SEEDS
     printf("***\n*** MkBuilder::import_seeds REMOVING SEEDS WITH BAD LABEL. This is a development hack. ***\n***\n");
 
     if (true) {
       TrackVec buf; m_event->seedTracks_.swap(buf);
       std::copy_if(buf.begin(), buf.end(), std::back_inserter(m_event->seedTracks_), [](const Track& t){ return t.label() >= 0; });
     }
+#endif
   }
 
   TrackerInfo &trk_info = Config::TrkInfo;
