@@ -451,6 +451,7 @@ void Event::write_out(DataFile &data_file)
 // #define DUMP_TRACKS
 // #define DUMP_TRACK_HITS
 // #define DUMP_LAYER_HITS
+// #define CLEAN_SEEDS
 
 void Event::read_in(DataFile &data_file, FILE *in_fp)
 {
@@ -506,6 +507,11 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
       fseek(fp, ns * data_file.f_header.f_sizeof_track, SEEK_CUR);
       ns = -ns;
     }
+#ifdef CLEAN_SEEDS
+    TrackVec mySeedTracks = clean_cms_seedtracks();
+    seedTracks_ = mySeedTracks;
+    ns = seedTracks_.size();
+#endif
 #ifdef DUMP_SEEDS
     printf("Read %i seedtracks (neg value means actual reading was skipped)\n", ns);
     for (int it = 0; it < ns; it++)
@@ -673,6 +679,76 @@ void Event::print_tracks(const TrackVec& tracks, bool print_hits) const
   }
 }
 
+TrackVec Event::clean_cms_seedtracks()
+{
+
+  double maxDR = Config::maxDR_seedclean;
+  int minNHits = Config::minNHits_seedclean;
+
+  int ns = seedTracks_.size();
+
+  TrackVec cleanSeedTracks;
+  std::vector<bool> writetrack;
+  for(int ts=0; ts<ns; ts++)
+    writetrack.push_back(true);
+
+  for(int ts=0; ts<ns; ts++){
+
+    if(seedTracks_[ts].nFoundHits() < minNHits)
+      continue;
+
+    Track & track_first = seedTracks_[ts];
+
+    for (int tss=0; tss<ns; tss++){
+
+      if (seedTracks_[tss].nFoundHits() < minNHits) continue;
+      if (ts==tss) continue;
+
+      Track & track_second = seedTracks_[tss];
+
+      double thisDXY = 0.5*sqrt( (track_first.x()-track_second.x())*(track_first.x()-track_second.x()) + (track_first.y()-track_second.y())*(track_first.y()-track_second.y()) );
+      double pos_first = sqrt(track_first.x()*track_first.x() + track_first.y()*track_first.y());
+      double pos_second = sqrt(track_second.x()*track_second.x() + track_second.y()*track_second.y());
+
+      if( pos_second > pos_first )
+	thisDXY*=-1;
+      
+      double oldPhi1 = track_first.momPhi();
+      double oldPhi2 = track_second.momPhi();
+
+      double newPhi1 = oldPhi1-thisDXY/(Config::track1GeVradius)/track_first.pT()*track_first.charge();
+      double newPhi2 = oldPhi2+thisDXY/(Config::track1GeVradius)/track_second.pT()*track_second.charge();
+
+      double Eta1 = track_first.momEta();
+      double Eta2 = track_second.momEta();
+      
+      double deta = fabs(Eta1-Eta2);
+      
+      double dphi = newPhi1-newPhi2;
+      if(dphi>=Config::PI) dphi-=Config::TwoPI;
+      else if(dphi<-Config::PI) dphi+=Config::TwoPI;
+      
+      double dr = sqrt(deta*deta+dphi*dphi);
+
+      if (dr < maxDR)
+	writetrack[tss]=false;
+    
+    }
+   
+
+    if(writetrack[ts]==true)
+      cleanSeedTracks.push_back(seedTracks_[ts]);
+      
+  }
+  
+#ifdef DEBUG
+  printf("Number of seeds: %d --> %d\n", ns, cleanSeedTracks.size());
+#endif
+
+  return cleanSeedTracks;
+
+}
+
 
 //==============================================================================
 // DataFile
@@ -793,3 +869,4 @@ void DataFile::CloseWrite(int n_written){
   }
   Close();
 }
+
