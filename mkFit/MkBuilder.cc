@@ -873,7 +873,7 @@ void MkBuilder::quality_process(Track &tkcand)
   if (mctrk < 0 || mctrk >= m_event->simTracks_.size())
   {
     ++m_cnt_nomc;
-    std::cout << "XX bad track idx " << mctrk << ", orig label was " << tkcand.label() << "\n";
+    dprint("XX bad track idx " << mctrk << ", orig label was " << tkcand.label());
   }
   else
   {
