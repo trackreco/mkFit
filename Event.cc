@@ -692,45 +692,62 @@ int Event::clean_cms_seedtracks()
 
   const float invR1GeV = 1.f/Config::track1GeVradius;
 
+  std::vector<int>    nHits(ns);
+  std::vector<float>  oldPhi(ns);
+  std::vector<float>  pos2(ns);
+  std::vector<float>  eta(ns);
+  std::vector<float>  invptq(ns);
+  std::vector<float>  x(ns);
+  std::vector<float>  y(ns);
+
+  for(int ts=0; ts<ns; ts++){
+    const Track & tk = seedTracks_[ts];
+    nHits[ts] = tk.nFoundHits();
+    oldPhi[ts] = tk.momPhi();
+    pos2[ts] = std::pow(tk.x(), 2) + std::pow(tk.y(), 2);
+    eta[ts] = tk.momEta();
+    invptq[ts] = tk.charge()*tk.invpT();
+    x[ts] = tk.x();
+    y[ts] = tk.y();
+  }
+
   for(int ts=0; ts<ns; ts++){
 
-    const Track & track_first = seedTracks_[ts];
+    if (not writetrack[ts]) continue;//FIXME: this speed up prevents transitive masking; check build cost!
+    if (nHits[ts] < minNHits) continue;
 
-    if(track_first.nFoundHits() < minNHits)
-      continue;
+    const float oldPhi1 = oldPhi[ts];
+    const float pos2_first = pos2[ts];
+    const float Eta1 = eta[ts];
+    const float invptq_first = invptq[ts]; 
 
-    const float oldPhi1 = track_first.momPhi();
-    const float pos2_first = std::pow(track_first.x(), 2) + std::pow(track_first.y(), 2);
-    const float Eta1 = track_first.momEta();
-    const float invptq_first = track_first.charge()*track_first.invpT(); 
+    #pragma simd
+    for (int tss= ts+1; tss<ns; tss++){
 
-    for (int tss=0; tss<ns; tss++){
+      if (nHits[tss] < minNHits) continue;
 
-      const Track & track_second = seedTracks_[tss];
-
-      if (track_second.nFoundHits() < minNHits) continue;
-      if (ts==tss) continue;
-
-      const float Eta2 = track_second.momEta();
+      const float Eta2 = eta[tss];
       const float deta2 = std::pow(Eta1-Eta2, 2);
       if (deta2 > maxDR2 ) continue;
 
-      const float pos2_second = std::pow(track_second.x(), 2) + std::pow(track_second.y(), 2);
+      const float oldPhi2 = oldPhi[tss];
+      float dphiOld = std::abs(oldPhi1-oldPhi2);
+      if(dphiOld>=Config::PI) dphiOld =Config::TwoPI - dphiOld;
+      if (dphiOld > 0.5f) continue;
+
+      const float pos2_second = pos2[tss];
       const float thisDXYSign05 = pos2_second > pos2_first ? -0.5f : 0.5f;
 
-      const float thisDXY = thisDXYSign05*sqrt( std::pow(track_first.x()-track_second.x(), 2) 
-                                                + std::pow(track_first.y()-track_second.y(), 2) );
+      const float thisDXY = thisDXYSign05*sqrt( std::pow(x[ts]-x[tss], 2) + std::pow(y[ts]-y[tss], 2) );
       
-      const float oldPhi2 = track_second.momPhi();
-      const float invptq_second = track_second.charge()*track_second.invpT();
+      const float invptq_second = invptq[tss];
 
       const float newPhi1 = oldPhi1-thisDXY*invR1GeV*invptq_first;
       const float newPhi2 = oldPhi2+thisDXY*invR1GeV*invptq_second;
 
-      float dphi = newPhi1-newPhi2;
-      if(dphi>=Config::PI) dphi-=Config::TwoPI;
-      else if(dphi<-Config::PI) dphi+=Config::TwoPI;
-      
+      float dphi = std::abs(newPhi1-newPhi2);
+      if(dphi>=Config::PI) dphi =Config::TwoPI - dphi;
+
       const float dr2 = deta2+dphi*dphi;
 
       if (dr2 < maxDR2)
@@ -740,7 +757,7 @@ int Event::clean_cms_seedtracks()
    
 
     if(writetrack[ts])
-      cleanSeedTracks.emplace_back(track_first);
+      cleanSeedTracks.emplace_back(seedTracks_[ts]);
       
   }
   
