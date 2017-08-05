@@ -5,10 +5,11 @@ fin=${BIN_DATA_PATH}/PU70/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSi
 
 runBenchmark()
 {
-    for sV in "sim " "see --cmssw-seeds"; do echo $sV | while read -r sN sO; do
+#    for sV in "sim " "see --cmssw-seeds"; do echo $sV | while read -r sN sO; do
+    for sV in "see --cmssw-seeds"; do echo $sV | while read -r sN sO; do
             for bV in "BH bh" "STD std" "CE ce"; do echo $bV | while read -r bN bO; do
 		    oBase=${base}_${sN}_${bN}
-		    for nTH in 1 2 4 8 12 16 24 32; do
+		    for nTH in 1 4 8 16 32; do
 		        echo "${oBase}: benchmark [nTH:${nTH}, nVU:8]"
 		        time ./mkFit/mkFit --geom CMS-2017 --read --file-name ${fin} --build-${bO} ${sO} --num-thr ${nTH} >& log_${oBase}_NVU8int_NTH${nTH}_benchmark.txt
 		    done
