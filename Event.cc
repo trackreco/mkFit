@@ -508,9 +508,8 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
       ns = -ns;
     }
 #ifdef CLEAN_SEEDS
-    TrackVec mySeedTracks = clean_cms_seedtracks();
-    seedTracks_ = mySeedTracks;
-    ns = seedTracks_.size();
+    
+    ns = clean_cms_seedtracks();//operates on seedTracks_; returns the number of cleaned seeds
 #endif
 #ifdef DUMP_SEEDS
     printf("Read %i seedtracks (neg value means actual reading was skipped)\n", ns);
@@ -679,65 +678,69 @@ void Event::print_tracks(const TrackVec& tracks, bool print_hits) const
   }
 }
 
-TrackVec Event::clean_cms_seedtracks()
+int Event::clean_cms_seedtracks()
 {
 
-  double maxDR = Config::maxDR_seedclean;
+  double maxDR2 = Config::maxDR_seedclean*Config::maxDR_seedclean;
   int minNHits = Config::minNHits_seedclean;
 
   int ns = seedTracks_.size();
 
   TrackVec cleanSeedTracks;
-  std::vector<bool> writetrack;
-  for(int ts=0; ts<ns; ts++)
-    writetrack.push_back(true);
+  cleanSeedTracks.reserve(ns);
+  std::vector<bool> writetrack(ns, true);
+
+  const float invR1GeV = 1.f/Config::track1GeVradius;
 
   for(int ts=0; ts<ns; ts++){
 
-    if(seedTracks_[ts].nFoundHits() < minNHits)
+    const Track & track_first = seedTracks_[ts];
+
+    if(track_first.nFoundHits() < minNHits)
       continue;
 
-    Track & track_first = seedTracks_[ts];
+    const float oldPhi1 = track_first.momPhi();
+    const float pos2_first = std::pow(track_first.x(), 2) + std::pow(track_first.y(), 2);
+    const float Eta1 = track_first.momEta();
+    const float invptq_first = track_first.charge()*track_first.invpT(); 
 
     for (int tss=0; tss<ns; tss++){
 
-      if (seedTracks_[tss].nFoundHits() < minNHits) continue;
+      const Track & track_second = seedTracks_[tss];
+
+      if (track_second.nFoundHits() < minNHits) continue;
       if (ts==tss) continue;
 
-      Track & track_second = seedTracks_[tss];
+      const float Eta2 = track_second.momEta();
+      const float deta2 = std::pow(Eta1-Eta2, 2);
+      if (deta2 > maxDR2 ) continue;
 
-      double thisDXY = 0.5*sqrt( (track_first.x()-track_second.x())*(track_first.x()-track_second.x()) + (track_first.y()-track_second.y())*(track_first.y()-track_second.y()) );
-      double pos_first = sqrt(track_first.x()*track_first.x() + track_first.y()*track_first.y());
-      double pos_second = sqrt(track_second.x()*track_second.x() + track_second.y()*track_second.y());
+      const float pos2_second = std::pow(track_second.x(), 2) + std::pow(track_second.y(), 2);
+      const float thisDXYSign05 = pos2_second > pos2_first ? -0.5f : 0.5f;
 
-      if( pos_second > pos_first )
-	thisDXY*=-1;
+      const float thisDXY = thisDXYSign05*sqrt( std::pow(track_first.x()-track_second.x(), 2) 
+                                                + std::pow(track_first.y()-track_second.y(), 2) );
       
-      double oldPhi1 = track_first.momPhi();
-      double oldPhi2 = track_second.momPhi();
+      const float oldPhi2 = track_second.momPhi();
+      const float invptq_second = track_second.charge()*track_second.invpT();
 
-      double newPhi1 = oldPhi1-thisDXY/(Config::track1GeVradius)/track_first.pT()*track_first.charge();
-      double newPhi2 = oldPhi2+thisDXY/(Config::track1GeVradius)/track_second.pT()*track_second.charge();
+      const float newPhi1 = oldPhi1-thisDXY*invR1GeV*invptq_first;
+      const float newPhi2 = oldPhi2+thisDXY*invR1GeV*invptq_second;
 
-      double Eta1 = track_first.momEta();
-      double Eta2 = track_second.momEta();
-      
-      double deta = fabs(Eta1-Eta2);
-      
-      double dphi = newPhi1-newPhi2;
+      float dphi = newPhi1-newPhi2;
       if(dphi>=Config::PI) dphi-=Config::TwoPI;
       else if(dphi<-Config::PI) dphi+=Config::TwoPI;
       
-      double dr = sqrt(deta*deta+dphi*dphi);
+      const float dr2 = deta2+dphi*dphi;
 
-      if (dr < maxDR)
+      if (dr2 < maxDR2)
 	writetrack[tss]=false;
     
     }
    
 
-    if(writetrack[ts]==true)
-      cleanSeedTracks.push_back(seedTracks_[ts]);
+    if(writetrack[ts])
+      cleanSeedTracks.emplace_back(track_first);
       
   }
   
@@ -745,7 +748,7 @@ TrackVec Event::clean_cms_seedtracks()
   printf("Number of seeds: %d --> %d\n", ns, cleanSeedTracks.size());
 #endif
 
-  return cleanSeedTracks;
+  seedTracks_.swap(cleanSeedTracks);
 
 }
 
