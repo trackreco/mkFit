@@ -652,38 +652,6 @@ inline void MkBuilder::fit_one_seed_set(TrackVec& seedtracks, int itrack, int en
 // Common functions for validation
 //------------------------------------------------------------------------------
 
-////////////////////////////////
-// Outline of map/remap logic //
-////////////////////////////////
-/* 
-All built candidate tracks have all hit indices pointing to m_event_of_hits.m_layers_of_hits[layer].m_hits (LOH)
-MC seeds (both CMSSW and toyMC) have seed hit indices pointing to global HitVec m_event->layerHits_[layer] (GLH)
-"Real" seeds have all seed hit indices pointing to LOH.
-So.. to have universal seed fitting function --> have seed hits point to LOH no matter their origin.
-This means that all MC seeds must be "mapped" from GLH to LOH: map_seed_hits().
-Now InputTracksAndHits() for seed fit will use LOH instead of GLH.
-The output tracks of the seed fitting are now stored in m_event->seedTracks_.
-
-Then building proceeds as normal, using m_event->seedTracks_ as input no matter the choice of seeds. 
-
-For the validation, we can reuse the TrackExtra setMCTrackIDInfo() with a few tricks.
-Since setMCTrackIDInfo by necessity uses GLH, we then need ALL track collections (seed, candidate, fit) to their hits point back to GLH.
-There are also two validation options: w/ or w/o ROOT.
-
-W/ ROOT uses the TTreValidation class which needs seedTracks_, candidateTracks_, and fitTracks_ all stored in m_event.
-The fitTracks_ collection for now is just a copy of candidateTracks_ (eventually may have cuts and things that affect which tracks to fit).
-So... need to "remap" seedTracks_ hits from LOH to GLH with remap_seed_hits().
-And also copy in tracks from EtaBin* to candidateTracks_, and then remap hits from LOH to GLH with quality_store_tracks() and remap_cand_hits().
-W/ ROOT uses root_val_BH for BH, and root_val_COMB() for non-BH.
-
-W/O ROOT is a bit simpler... as we only need to do the copy out tracks from EtaBin* and then remap just candidateTracks_.
-This uses quality_output_COMB() or quality_output_BH()
-
-N.B.1 Since fittestMPlex at the moment is not "end-to-end" with candidate tracks, we can still use the GLH version of InputTracksAndHits()
-
-N.B.2 Since we inflate LOH by 2% more than GLH, hit indices in building only go to GLH, so all loops are sized to GLH.
-*/
-
 void MkBuilder::map_seed_hits()
 {
   // map seed hit indices from global m_event->layerHits_[i] to hit indices in

@@ -93,16 +93,6 @@ float Track::swimPhiToR(const float x0, const float y0) const
 // TrackExtra
 //==============================================================================
 
-// mcTrackID assignments 
-// ID >=  0 : reco track matched to sim track (n eligible found reco hits matching single sim track above some threshold, and n eligible found reco hits above some threshold) 
-// ID == -1 : reco track is a true fake (n eligible found reco hits matching single sim track below some threshold, and n eligible found reco hits above some threshold) 
-// ID == -2 : reco track is a matched short track --> inefficient but not fake (n eligible found reco hits matching single sim track above some threshold, and n eligible found reco hits below some threshold) 
-// ID == -3 : reco track is a short fake (n eligible found reco hits matching single sim track below some threshold, and n eligible found reco hits below some threshold) --> TOYMC SIM SEEDS ONLY
-// ID == -4 : reco track never made it past its sim seed --> inefficient but not fake --> TOYMC SIM SEEDS ONLY
-// ID == -5 : reco track somehow has zero hits... unclear what to do with these... ---> CMSSW OR REAL SEEDS ONLY
-// ID == -6 : reco track is long, and matched to sim track.  however, simtrack is unfindable (enter denom of FR)
-// ID == -7 : reco track is short, and matched to sim track. however, simtrack is unfindable (enter denom of FR for inclusive shorts)
-
 // More stringent requirement for matching --> used only for simtrack pure seeds
 void TrackExtra::setMCTrackIDInfoByLabel(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo)
 {
