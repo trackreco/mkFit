@@ -12,9 +12,11 @@
 #include "TStyle.h"
 #include "TDirectory.h"
 #include "TColor.h"
+#include "TLegend.h"
 
 #include <vector>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <cmath>
 
@@ -53,7 +55,7 @@ struct EffStruct
 class PlotValidation
 {
 public:
-  PlotValidation(TString inName, TString outName, 
+  PlotValidation(TString inName, TString outName, Bool_t computePulls, Bool_t cmsswComp,
 		 Bool_t mvInput, Bool_t saveAs, TString outType);
   ~PlotValidation();
   void Validation();
@@ -81,11 +83,13 @@ public:
   void MoveInput();
 
 private:
-  TString fInName;
-  TFile * fInRoot;
-  Bool_t  fMvInput;
-  Bool_t  fSaveAs;
-  TString fOutType;
+  const TString fInName;
+        TFile * fInRoot;
+  const Bool_t  fComputePulls;
+  const Bool_t  fCmsswComp;
+  const Bool_t  fMvInput;
+  const Bool_t  fSaveAs;
+  const TString fOutType;
   TString fOutName;
   TFile * fOutRoot;
   TCanvas * fTEffCanv;

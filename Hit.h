@@ -11,6 +11,11 @@
 template<typename T> inline T sqr(T x) { return x*x; }
 template<typename T> inline T cube(T x) { return x*x*x; }
 
+inline float squashPhiGeneral(float phi)
+{
+  return phi - floor(0.5*Config::InvPI*(phi+Config::PI)) * Config::TwoPI;
+}
+
 // moved from config to here
 inline int getEtaBin(float eta)
 {

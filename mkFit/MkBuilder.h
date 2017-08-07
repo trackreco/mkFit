@@ -80,19 +80,19 @@ public:
   void map_seed_hits(); // m_event->layerHits_ -> m_event_of_hits.m_layers_of_hits (seeds only)
   void remap_seed_hits(); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_ (seeds only)
   void remap_cand_hits(); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_ (cands only)
-  void align_recotracks(); // ensure that all track collections have labels equal to index inside vector
 
-  void quality_output_BH();
-  void quality_output_COMB();
+  void quality_output();
   void quality_reset();
   void quality_process(Track& tkcand);
   void quality_print();
 
-  void quality_store_tracks_COMB();
+  void quality_store_tracks();
 
-  void root_val_BH();
-  void root_val_COMB();
-  void init_track_extras();
+  void root_val();
+  void cmssw_val();
+  void prep_recotracks(); 
+  void prep_cmsswtracks();
+  void prep_tracks(TrackVec& tracks, TrackExtraVec& extras); // sort hits by layer, init track extras, align track labels
 
   // --------
 

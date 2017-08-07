@@ -10,7 +10,7 @@
 
 #include <vector>
 
-void makeValidation(TString label = "")
+void makeValidation(TString label = "", const Bool_t cmsswComp = false)
 {
   gStyle->SetOptStat(0);
 
@@ -18,18 +18,24 @@ void makeValidation(TString label = "")
   TFile * f_std = TFile::Open(Form("validation_%s_STD/plots.root",label.Data()));
   TFile * f_ce  = TFile::Open(Form("validation_%s_CE/plots.root",label.Data()));
 
+  const TString ref = (cmsswComp?"cmssw":"sim");
+
   std::vector<TString> dirs; 
   dirs.push_back("efficiency");
   dirs.push_back("inefficiency");
   dirs.push_back("inefficiency");
   dirs.push_back("fakerate");
   dirs.push_back("duplicaterate");
+  if (cmsswComp) 
+  {
+    for (UInt_t i = 0; i < dirs.size(); i++) dirs[i] += "_cmssw";
+  }
   std::vector<TString> sORr;
-  sORr.push_back("sim");
-  sORr.push_back("sim");
-  sORr.push_back("sim");
+  sORr.push_back(ref);
+  sORr.push_back(ref);
+  sORr.push_back(ref);
   sORr.push_back("reco");
-  sORr.push_back("sim");
+  sORr.push_back(ref);
   std::vector<TString> rates;
   rates.push_back("eff");
   rates.push_back("ineff_barrel");

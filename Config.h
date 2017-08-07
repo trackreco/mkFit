@@ -225,16 +225,20 @@ namespace Config
   extern    int maxHolesPerCand; // default: 2; cms  12 (should be reduced)
   extern    int maxCandsPerEtaBin;
 
-  // Selection of simtracks from CMSSW. Used in Event::clean_cms_simtracks().
-  constexpr int   cmsSimSelMinLayers = 8;
-  constexpr float cmsSimSelMinPt     = 0.5;
+  // Selection of simtracks from CMSSW. Used in Event::clean_cms_simtracks() and MkBuilder::prep_cmsswtracks()
+  constexpr int   cmsSelMinLayers = 8;
+  constexpr float cmsSelMinPt     = 0.5;
 
   // config on validation
-  constexpr float nMinSimHitsFrac = 0.7;
   constexpr int nMinFoundHits = 7; 
+  constexpr float minCMSSWMatchChi2 = 50;
+  constexpr float minCMSSWMatchdPhi = 0.03;
+  constexpr int   nCMSSWMatchHitsAfterSeed = 5;
   extern bool root_val;
+  extern bool cmssw_val;
   extern bool fit_val;
   extern bool inclusiveShorts;
+  extern bool applyCMSSWHitMatch;
 
   // config on seed cleaning
   constexpr double maxDR_seedclean = 0.005;

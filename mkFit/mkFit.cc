@@ -503,8 +503,10 @@ int main(int argc, const char *argv[])
         "  --cf-seeding             enable CF in seeding (def: %s)\n"
         "  --cf-fitting             enable CF in fitting (def: %s)\n"
         "  --root-val               enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
+        "  --cmssw-val              enable special CMSSW ROOT based validation for building [eff] (def: %s)\n"
       	"  --fit-val                enable ROOT based validation for fitting (def: %s)\n"
         "  --inc-shorts             include short reco tracks into FR (def: %s)\n"
+        "  --hit-match              apply hit matching criteria for CMSSW reco track matching (def: %s)\n"
         "  --silent                 suppress printouts inside event loop (def: %s)\n"
         "  --write                  write simulation to file and exit\n"
         "  --read                   read simulation from file\n"
@@ -530,8 +532,10 @@ int main(int argc, const char *argv[])
         b2a(Config::cf_seeding),
         b2a(Config::cf_fitting),
         b2a(Config::root_val),
+        b2a(Config::cmssw_val),
         b2a(Config::fit_val),
 	b2a(Config::inclusiveShorts),
+	b2a(Config::applyCMSSWHitMatch),
         b2a(Config::silent),
         g_start_event,
       	g_file_name.c_str(),
@@ -632,15 +636,23 @@ int main(int argc, const char *argv[])
     }
     else if (*i == "--root-val")
     {
-      Config::root_val = true; Config::fit_val = false;
+      Config::root_val = true; Config::cmssw_val = false; Config::fit_val = false;
+    }
+    else if (*i == "--cmssw-val")
+    {
+      Config::root_val = false; Config::cmssw_val = true; Config::fit_val = false;
     }
     else if (*i == "--fit-val")
     {
-      Config::root_val = false; Config::fit_val = true;
+      Config::root_val = false; Config::cmssw_val = false; Config::fit_val = true;
     }
     else if (*i == "--inc-shorts")
     {
       Config::inclusiveShorts = true;
+    }
+    else if (*i == "--hit-match")
+    {
+      Config::applyCMSSWHitMatch = true;
     }
     else if (*i == "--num-thr-ev")
     {

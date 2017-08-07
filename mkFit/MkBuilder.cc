@@ -652,38 +652,6 @@ inline void MkBuilder::fit_one_seed_set(TrackVec& seedtracks, int itrack, int en
 // Common functions for validation
 //------------------------------------------------------------------------------
 
-////////////////////////////////
-// Outline of map/remap logic //
-////////////////////////////////
-/* 
-All built candidate tracks have all hit indices pointing to m_event_of_hits.m_layers_of_hits[layer].m_hits (LOH)
-MC seeds (both CMSSW and toyMC) have seed hit indices pointing to global HitVec m_event->layerHits_[layer] (GLH)
-"Real" seeds have all seed hit indices pointing to LOH.
-So.. to have universal seed fitting function --> have seed hits point to LOH no matter their origin.
-This means that all MC seeds must be "mapped" from GLH to LOH: map_seed_hits().
-Now InputTracksAndHits() for seed fit will use LOH instead of GLH.
-The output tracks of the seed fitting are now stored in m_event->seedTracks_.
-
-Then building proceeds as normal, using m_event->seedTracks_ as input no matter the choice of seeds. 
-
-For the validation, we can reuse the TrackExtra setMCTrackIDInfo() with a few tricks.
-Since setMCTrackIDInfo by necessity uses GLH, we then need ALL track collections (seed, candidate, fit) to their hits point back to GLH.
-There are also two validation options: w/ or w/o ROOT.
-
-W/ ROOT uses the TTreValidation class which needs seedTracks_, candidateTracks_, and fitTracks_ all stored in m_event.
-The fitTracks_ collection for now is just a copy of candidateTracks_ (eventually may have cuts and things that affect which tracks to fit).
-So... need to "remap" seedTracks_ hits from LOH to GLH with remap_seed_hits().
-And also copy in tracks from EtaBin* to candidateTracks_, and then remap hits from LOH to GLH with quality_store_tracks() and remap_cand_hits().
-W/ ROOT uses root_val_BH for BH, and root_val_COMB() for non-BH.
-
-W/O ROOT is a bit simpler... as we only need to do the copy out tracks from EtaBin* and then remap just candidateTracks_.
-This uses quality_output_COMB() or quality_output_BH()
-
-N.B.1 Since fittestMPlex at the moment is not "end-to-end" with candidate tracks, we can still use the GLH version of InputTracksAndHits()
-
-N.B.2 Since we inflate LOH by 2% more than GLH, hit indices in building only go to GLH, so all loops are sized to GLH.
-*/
-
 void MkBuilder::map_seed_hits()
 {
   // map seed hit indices from global m_event->layerHits_[i] to hit indices in
@@ -800,25 +768,9 @@ void MkBuilder::remap_cand_hits()
 // Non-ROOT validation
 //------------------------------------------------------------------------------
 
-void MkBuilder::quality_output_BH()
+void MkBuilder::quality_output()
 {
   quality_reset();
-
-  remap_cand_hits();
-
-  for (int i = 0; i < m_event->candidateTracks_.size(); i++)
-  {
-    quality_process(m_event->candidateTracks_[i]);
-  }
-
-  quality_print();
-}
-
-void MkBuilder::quality_output_COMB()
-{
-  quality_reset();
-
-  quality_store_tracks_COMB();
 
   remap_cand_hits();
 
@@ -835,7 +787,7 @@ void MkBuilder::quality_reset()
   m_cnt = m_cnt1 = m_cnt2 = m_cnt_8 = m_cnt1_8 = m_cnt2_8 = m_cnt_nomc = 0;
 }
 
-void MkBuilder::quality_store_tracks_COMB()
+void MkBuilder::quality_store_tracks()
 {
   const EventOfCombCandidates &eoccs = m_event_of_comb_cands; 
     
@@ -915,7 +867,7 @@ void MkBuilder::quality_print()
 // Root validation
 //------------------------------------------------------------------------------
 
-void MkBuilder::root_val_BH()
+void MkBuilder::root_val()
 {
   // remap seed tracks
   remap_seed_hits();
@@ -923,49 +875,52 @@ void MkBuilder::root_val_BH()
   // get the tracks ready for validation
   remap_cand_hits();
   m_event->fitTracks_ = m_event->candidateTracks_; // fixme: hack for now. eventually fitting will be including end-to-end
-  init_track_extras();
-  align_recotracks();
+  prep_recotracks();
+  if (Config::readCmsswSeeds) m_event->clean_cms_simtracks();
 
   m_event->Validate();
 }
 
-void MkBuilder::root_val_COMB()
+void MkBuilder::cmssw_val()
 {
-  remap_seed_hits(); // prepare seed tracks for validation
-
   // get the tracks ready for validation
-  quality_store_tracks_COMB();
   remap_cand_hits();
-  m_event->fitTracks_ = m_event->candidateTracks_; // fixme: hack for now. eventually fitting will be including end-to-end
-  init_track_extras();
-  align_recotracks();
+  prep_recotracks();
 
+  prep_cmsswtracks();
   m_event->Validate();
 }
 
-void MkBuilder::init_track_extras()
+void MkBuilder::prep_recotracks()
 {
-  for (int i = 0; i < m_event->seedTracks_.size(); i++)
+  prep_tracks(m_event->candidateTracks_,m_event->candidateTracksExtra_);
+  if (Config::root_val)
   {
-    m_event->seedTracksExtra_.emplace_back(m_event->seedTracks_[i].label());
-  }
-
-  for (int i = 0; i < m_event->candidateTracks_.size(); i++)
-  {
-    m_event->candidateTracksExtra_.emplace_back(m_event->candidateTracks_[i].label());
-  }
-
-  for (int i = 0; i < m_event->fitTracks_.size(); i++)
-  {
-    m_event->fitTracksExtra_.emplace_back(m_event->fitTracks_[i].label());
+    prep_tracks(m_event->seedTracks_,m_event->seedTracksExtra_);
+    prep_tracks(m_event->fitTracks_,m_event->fitTracksExtra_);
   }
 }
 
-void MkBuilder::align_recotracks()
+void MkBuilder::prep_cmsswtracks()
 {
-  m_event->validation_.alignTracks(m_event->seedTracks_,m_event->seedTracksExtra_,false);
-  m_event->validation_.alignTracks(m_event->candidateTracks_,m_event->candidateTracksExtra_,false);
-  m_event->validation_.alignTracks(m_event->fitTracks_,m_event->fitTracksExtra_,false);
+  prep_tracks(m_event->extRecTracks_,m_event->extRecTracksExtra_);
+
+  // mark cmsswtracks as unfindable if too short
+  for (auto&& cmsswtrack : m_event->extRecTracks_)
+  {
+    const int nlyr = cmsswtrack.nUniqueLayers();
+    if (nlyr < Config::cmsSelMinLayers || cmsswtrack.pT() < Config::cmsSelMinPt) cmsswtrack.setNotFindable();
+  }
+}
+
+void MkBuilder::prep_tracks(TrackVec& tracks, TrackExtraVec& extras)
+{
+  for (int i = 0; i < tracks.size(); i++)
+  {
+    tracks[i].sortHitsByLayer();
+    extras.emplace_back(tracks[i].label());
+  }
+  m_event->validation_.alignTracks(tracks,extras,false);
 }
 
 //------------------------------------------------------------------------------

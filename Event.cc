@@ -329,13 +329,21 @@ void Event::Fit()
 
 void Event::Validate()
 {
-  // KM: Config tree just filled once... in main.cc
+  // standard eff/fr/dr validation
   if (Config::root_val) {
     validation_.setTrackExtras(*this);
     validation_.makeSimTkToRecoTksMaps(*this);
     validation_.makeSeedTkToRecoTkMaps(*this);
     validation_.fillEfficiencyTree(*this);
     validation_.fillFakeRateTree(*this);
+  }
+
+  // special cmssw to mkfit validation
+  if (Config::cmssw_val) {
+    validation_.setTrackExtras(*this);
+    validation_.makeCMSSWTkToRecoTksMap(*this);
+    validation_.fillCMSSWEfficiencyTree(*this);
+    validation_.fillCMSSWFakeRateTree(*this);
   }
 
   if (Config::fit_val) { // fit val for z-phi tuning
@@ -633,7 +641,7 @@ int Event::clean_cms_simtracks()
     
     const int lyr_cnt = t.nUniqueLayers();
 
-    if (lyr_cnt < Config::cmsSimSelMinLayers || t.pT() < Config::cmsSimSelMinPt)
+    if (lyr_cnt < Config::cmsSelMinLayers || t.pT() < Config::cmsSelMinPt)
     {
       dprintf("Rejecting simtrack %d, n_hits=%d, n_layers=%d, pT=%f\n", i, nh, lyr_cnt, t.pT());
       t.setNotFindable();
