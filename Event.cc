@@ -769,15 +769,8 @@ int Event::clean_cms_seedtracks()
 
   if (Config::root_val && (seedTracks_.size() > 0))
   {
-    std::vector<int> stids;
-    for (auto&& track : seedTracks_) stids.push_back(track.label());
-    std::sort(stids.begin(),stids.end());
-
-    int newlabel = stids.back();
-    for (auto&& seedtrack : seedTracks_)
-    {
-      if (seedtrack.label() < 0) seedtrack.setLabel(++newlabel);
-    }
+    int newlabel = 0;
+    for (auto&& track : seedTracks_) if (track.label() < 0) track.setLabel(--newlabel);
   }
 }
 
