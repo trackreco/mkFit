@@ -193,6 +193,7 @@ public:
   float py()     const { return state_.py();}
   float pz()     const { return state_.pz();}
   float pT()     const { return state_.pT();}
+  float invpT()  const { return state_.invpT();}
   float p()      const { return state_.p(); }
   float momPhi() const { return state_.momPhi(); }
   float momEta() const { return state_.momEta(); }

@@ -36,7 +36,7 @@ public:
   void read_in  (DataFile &data_file, FILE *in_fp=0);
 
   int  clean_cms_simtracks();
-  TrackVec clean_cms_seedtracks();
+  int clean_cms_seedtracks(); //operates on seedTracks_; returns the number of cleaned seeds
   void print_tracks(const TrackVec& tracks, bool print_hits) const;
 
   const Geometry& geom_;
