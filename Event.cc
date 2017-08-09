@@ -775,7 +775,7 @@ int Event::clean_cms_seedtracks()
 
   seedTracks_.swap(cleanSeedTracks);
 
-  if (Config::root_val && (seedTracks_.size() > 0))
+  if (Config::root_val || Config::cmssw_val)
   {
     int newlabel = 0;
     for (auto&& track : seedTracks_) if (track.label() < 0) track.setLabel(--newlabel);

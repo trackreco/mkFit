@@ -96,11 +96,6 @@ float Track::swimPhiToR(const float x0, const float y0) const
 // More stringent requirement for matching --> used only for simtrack pure seeds
 void TrackExtra::setMCTrackIDInfoByLabel(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo)
 {
-  // In this routine, we know that seedtracks == simtracks
-  // and as such seedtrack.label() == simtrack.label()
-  // assume each seed track has a hit on the very first layer!
-  const int label = globalHitInfo[layerHits[trk.getHitLyr(0)][trk.getHitIdx(0)].mcHitID()].mcTrackID();
-
   int nHitsMatched = 0;
   // count hits matched to simtrack after the seed : will need to modify the start of this loop! XXKM4MT
   for (int ihit = Config::nlayers_per_seed; ihit < trk.nTotalHits(); ++ihit) 
@@ -110,10 +105,10 @@ void TrackExtra::setMCTrackIDInfoByLabel(const Track& trk, const std::vector<Hit
     if ((hitidx >= 0) && (hitidx < layerHits[hitlyr].size())) // make sure it is a real hit
     {
       const int mchitid = layerHits[hitlyr][hitidx].mcHitID();
-      dprint("trk.label()=" << trk.label() << " simtrack.label()= " << label << " ihit=" << ihit
+      dprint("trk.label()=" << trk.label() << " simtrack.label()= " << seedID_ << " ihit=" << ihit
 	     << " trk.getHitIdx(ihit)=" << hitidx << " trk.getHitLyr(ihit)" << hitlyr
 	     << " mchitid=" << mchitid << " globalHitInfo[mchitid].mcTrackID()=" << globalHitInfo[mchitid].mcTrackID());
-      if (globalHitInfo[mchitid].mcTrackID() == label) nHitsMatched++;
+      if (globalHitInfo[mchitid].mcTrackID() == seedID_) nHitsMatched++;
     }
   }
 
@@ -124,7 +119,7 @@ void TrackExtra::setMCTrackIDInfoByLabel(const Track& trk, const std::vector<Hit
   if (nCandHits != 0)
   {
     // Require majority of hits to match
-    if (2*nHitsMatched >= nCandHits) mcTrackID_ = label;
+    if (2*nHitsMatched >= nCandHits) mcTrackID_ = seedID_;
     else                             mcTrackID_ = -1;
   
     // Modify mcTrackID based on nMinHits
@@ -144,7 +139,7 @@ void TrackExtra::setMCTrackIDInfoByLabel(const Track& trk, const std::vector<Hit
     fracHitsMatched_ = 0.f;
   }
 
-  dprint("Track " << trk.label() << " parent mc track " << label << " matched id "  << mcTrackID_ << " count " << nHitsMatched_ << "/" << nCandHits);
+  dprint("Track " << trk.label() << " parent mc track " << seedID_ << " matched id "  << mcTrackID_ << " count " << nHitsMatched_ << "/" << nCandHits);
 }
 
 // Generic 75% reco to sim matching --> for seeding or CMSSW-like building
