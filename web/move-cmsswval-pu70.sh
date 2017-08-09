@@ -1,31 +1,32 @@
 #!/bin/bash
 
-dir=${1:-cmsswval-pu70}
+dir=${1:-plots}
+outdir=${dir}/cmsswval-pu70
 base=SNB_CMSSW_PU70
 
-echo "Moving plots and text files locally to ${dir}"
+echo "Moving plots and text files locally to ${outdir}"
 for seed in SimSeed CMSSeed
 do
-    outdir=${dir}/${seed}
-    mkdir -p ${outdir}
+    fulldir=${outdir}/${seed}
+    mkdir -p ${fulldir}
  
-    mv ${base}_${seed}_*.png ${outdir}
+    mv ${base}_${seed}_*.png ${fulldir}
     for build in BH STD CE
     do
 	vbase=validation_${base}_${seed}_${build}
-	mv ${vbase}/totals_${vbase}.txt ${outdir}
+	mv ${vbase}/totals_${vbase}.txt ${fulldir}
     done
 done
 
 host=kmcdermo@lxplus.cern.ch
 whost=${host}":~/www"
-echo "Moving plots and text files remotly to ${whost}"
+echo "Moving plots and text files remotely to ${whost}"
 scp -r ${dir} ${whost}
 
-echo "Executing remotely ./makereadable.sh ${dir}"
+echo "Executing remotely ./makereadable.sh ${outdir}"
 ssh ${host} bash -c "'
 cd www
-./makereadable.sh ${dir}
+./makereadable.sh ${outdir}
 exit
 '"
 
