@@ -256,20 +256,21 @@ void TrackExtra::setCMSSWTrackIDInfo(const Track& trk, const std::vector<HitVec>
   idchi2PairVec cands;
   for (auto&& redcmsswtrack : redcmsswtracks)
   {
-    const float chi2 = computeHelixChi2(redcmsswtrack.parameters(),trkParamsR,trkErrsR,false);
+    const float chi2 = std::abs(computeHelixChi2(redcmsswtrack.parameters(),trkParamsR,trkErrsR,false));
     if (chi2 < Config::minCMSSWMatchChi2) cands.push_back(std::make_pair(redcmsswtrack.label(),chi2));
   }
 
   float minchi2 = -1e6;
   if (cands.size()>0)
   {
-    std::sort(cands.begin(),cands.end(),sortIDsByChi2);
+    std::sort(cands.begin(),cands.end(),sortIDsByChi2); // in case we just want to stop at the first dPhi match
     minchi2 = cands.front().second;
   }
 
   int cmsswTrackID = -1;
   int nHMatched = 0;
   float bestdPhi = Config::minCMSSWMatchdPhi;
+  float bestchi2 = minchi2;
   for (auto&& cand : cands) // loop over possible cmssw tracks
   {
     const auto label = cand.first;
@@ -291,13 +292,13 @@ void TrackExtra::setCMSSWTrackIDInfo(const Track& trk, const std::vector<HitVec>
 	}
       }
       if (Config::applyCMSSWHitMatch && matched < (Config::nCMSSWMatchHitsAfterSeed+Config::nlayers_per_seed)) continue;  // check for nMatchedHits if applied (in principle all seed hits should be found!)
-      bestdPhi = diffPhi; nHMatched = matched; cmsswTrackID = label; 
+      bestdPhi = diffPhi; nHMatched = matched; cmsswTrackID = label; bestchi2 = cand.second;
     }
   }
 
   // set cmsswTrackID
   cmsswTrackID_ = cmsswTrackID;
-  helixChi2_ = (cmsswTrackID_ >= 0 ? cands[cmsswTrackID_].second : minchi2);
+  helixChi2_ = bestchi2;
   
   // Modify cmsswTrackID based on length
   if (trk.nFoundHits() < Config::nMinFoundHits)
