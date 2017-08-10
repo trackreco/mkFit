@@ -517,7 +517,7 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
     }
 #ifdef CLEAN_SEEDS
     
-    ns = clean_cms_seedtracks();//operates on seedTracks_; returns the number of cleaned seeds
+    ns = clean_cms_seedtracks();//operates on seedTracks_; swaps cleaned seeds into seedTracks_; returns number of cleaned seedTracks
 #endif
 #ifdef DUMP_SEEDS
     printf("Read %i seedtracks (neg value means actual reading was skipped)\n", ns);
@@ -780,6 +780,8 @@ int Event::clean_cms_seedtracks()
     int newlabel = 0;
     for (auto&& track : seedTracks_) if (track.label() < 0) track.setLabel(--newlabel);
   }
+
+  return seedTracks_.size();
 }
 
 

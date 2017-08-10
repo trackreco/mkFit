@@ -1,6 +1,6 @@
 #! /bin/bash
 
-make -j 12 WITH_ROOT=yes
+make -j 12 WITH_ROOT=yes CPPUSERFLAGS+=-DCLEAN_SEEDS CXXUSERFLAGS+=-DCLEAN_SEEDS
 
 dir=/data/nfsmic/slava77/samples/2017/pass-4874f28/initialStep
 file=memoryFile.fv3.recT.072617.bin
