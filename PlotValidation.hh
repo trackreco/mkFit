@@ -35,10 +35,12 @@ typedef std::vector<IntVecRef> IntVecRefVec;
 typedef std::vector<TH1F *>        TH1FRefVec;
 typedef std::vector<TH1FRefVec>    TH1FRefVecVec;
 typedef std::vector<TH1FRefVecVec> TH1FRefVecVecVec;
+typedef std::vector<TH1FRefVecVecVec> TH1FRefVecVecVecVec;
 
 typedef std::vector<TEfficiency *> TEffRefVec;
 typedef std::vector<TEffRefVec>    TEffRefVecVec;
 typedef std::vector<TEffRefVecVec> TEffRefVecVecVec;
+typedef std::vector<TEffRefVecVecVec> TEffRefVecVecVecVec;
 
 typedef std::vector<TString> TStrVec;
 

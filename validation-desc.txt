@@ -12,6 +12,7 @@ D. Definitions of efficiency, fake rate, and duplicate rate
 E. Overview of scripts
 F. Hit map/remapping logic
 G. Extra info on ID and mask assignments
+H. Special note about duplicate rate
 
 =====================
  A. Overview of code
@@ -21,7 +22,7 @@ TTreeValidation will only compile the necessary ROOT code with WITH_ROOT=yes ena
 
 Three types of validation exist within TTreeValidation:
 [1.] "Building validation", enabled with Config::root_val, via the command line option: --root-val
-[2.] "CMSSW external tracks building validation", enabled with Config::cmssw_val, via the command line options: --cmss-val --cmssw-seeds --ext-rec-tracks --geom CMS-2017
+[2.] "CMSSW external tracks building validation", enabled with Config::cmssw_val, via the command line options: --cmssw-val --cmssw-seeds --ext-rec-tracks --geom CMS-2017
 [3.] "Fit validation", enabled with Config::fit_val, via the command line option: --fit-val
 
 We will ignore fit validation for the moment. The main idea behind the other two is that the validation routines are called outside of the standard timed sections, and as such, we do not care too much about performance, as long as it takes a reasonable amount of time to complete. Of course, the full wall clock time matters when running multiple events in flight, and because there is a lot of I/O as well as moves and stores that would hurt the performance with the validation enabled, these routines are ignored if the command line option "--silent" is enabled.
@@ -38,7 +39,7 @@ The building validation takes advantage of filling two trees per event per track
   - ToyMC, with sim seeds or find-seeds
   - CMSSW, with sim seeds or cmssw-seeds
 
-Upon instantiation of the TTreeValidation object, the respective ROOT trees are defined and allocated on the heap, along with setting the addresses of all the branches. After the building is completed in mkFit, we have to have the tracks in their standard event containers, namely: seedTracks_, candidateTracks_, and fitTracks_. In the standard combinatorial or clone engine, we have to copy out the built tracks from event of combined candiates into candidateTracks_ via: builder.quality_store_tracks() in mkFit/buildtestMPlex.cc.  Since we do not yet have fitting after building, we just set the fitTracks_ equal to the candidateTracks_.  For ease, I will from now on refer to the candidateTracks_ as buildTracks_.
+Upon instantiation of the TTreeValidation object, the respective ROOT trees are defined and allocated on the heap, along with setting the addresses of all the branches. After the building is completed in mkFit, we have to have the tracks in their standard event containers, namely: seedTracks_, candidateTracks_, and fitTracks_. In the standard combinatorial or clone engine, we have to copy out the built tracks from event of combined candidates into candidateTracks_ via: builder.quality_store_tracks() in mkFit/buildtestMPlex.cc.  Since we do not yet have fitting after building, we just set the fitTracks_ equal to the candidateTracks_.  For ease, I will from now on refer to the candidateTracks_ as buildTracks_.
 
 As a reminder, the sim tracks are stored in the Event.cc as simTracks_, while the CMSSW reco tracks are stored as extRecTracks_. Each track collection has an associated TrackExtra collection, which is stored as {trackname}Extra_ inside the Event object.  It is indexed the same as the collection it references, i.e. track[0] has an associated extra extra[0]. The TrackExtra object contains the mcTrackID, seedID, and cmsswTrackID each mkFit track is associated to. The validation also makes use of simHitsInfo_ (container for storing mcTrackID for each hit), layerHits_, and simTrackStates_ (used for pulls).  See Section B and C for explanations on how the track matching is performed and track information is saved.
 
@@ -308,7 +309,7 @@ Fake Rate (with all reco tracks: Config::inclusiveShorts == true, enabled with c
         -1 or -3        |     0
    -2 or -4 or -6 or -7 |     2   
 
-Duplicate Rate [PlotValidation::PlotDuplicateRate()]
+Duplicate Rate [PlotValidation::PlotDuplicateRate()], see special note in section H
   numerator:   sim tracks with more than reco track match (nTkMatches_[reco] > 1)
   denominator: sim tracks with at least one reco track with mcTrackID >= 0 (mcmask_[reco] == 1)
 
@@ -419,3 +420,15 @@ position reco variables
 --> layers_[reco]    ==  -1, reco unassociated to sim tk {eff only}
 --> reco pos+err var == -2000, reco tk is unassociated to sim tk {eff only}
 --> reco pos+err var == -3000, reco tk is unassociated to seed tk {FR only}
+
+======================================
+ H. Special note about duplicate rate
+======================================
+
+*** Originally from PlotValidation.cpp ***
+
+Currently, TEfficiency does not allow you to fill a weighted number in the numerator and NOT the denominator.
+In other words, we cannot fill numerator n-1 times sim track is matched, while denominator is just filled once.
+As a result, DR is simply if a sim track is duplicated once, and not how many times it is duplicated. 
+
+We can revert back to the n-1 filling for the numerator to weight by the amount of times a sim track is duplicated, but this would mean going back to the TH1Fs, and then using the binomial errors (or computing by hand the CP errors or something), in the case that the DR in any bin > 1... This would break the flow of the printouts as well as the stacking macro, but could be done with some mild pain.
