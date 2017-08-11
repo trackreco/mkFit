@@ -1,26 +1,27 @@
 #!/bin/bash
 
-dir=${1:-toymcval}
+dir=${1:-plots}
+outdir=${dir}/toymcval
 base=SNB_ToyMC_FullDet
 
-echo "Moving plots and text files locally to ${dir}"
-mkdir -p ${dir}
-mv ${base}_*.png ${dir}
+echo "Moving plots and text files locally to ${outdir}"
+mkdir -p ${outdir}
+mv ${base}_*.png ${outdir}
 for build in BH STD CE
 do
     vbase=validation_${base}_${build}
-    mv ${vbase}/totals_${vbase}.txt ${dir}
+    mv ${vbase}/totals_${vbase}.txt ${outdir}
 done
 
 host=kmcdermo@lxplus.cern.ch
 whost=${host}":~/www"
-echo "Moving plots and text files remotly to ${whost}"
+echo "Moving plots and text files remotely to ${whost}"
 scp -r ${dir} ${whost}
 
-echo "Executing remotely ./makereadable.sh ${dir}"
+echo "Executing remotely ./makereadable.sh ${outdir}"
 ssh ${host} bash -c "'
 cd www
-./makereadable.sh ${dir}
+./makereadable.sh ${outdir}
 exit
 '"
 

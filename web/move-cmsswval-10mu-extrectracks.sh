@@ -1,34 +1,35 @@
 #!/bin/bash
 
-dir=${1:-cmsswval-ext}
+dir=${1:-plots}
+outdir=${dir}/cmsswval-10mu-extrectracks
 base=SNB_CMSSW_10mu
 
-echo "Moving plots and text files locally to ${dir}"
+echo "Moving plots and text files locally to ${outdir}"
 for region in ECN2 ECN1 BRL ECP1 ECP2 FullDet
 do
-    outdir=${dir}/${region}
-    mkdir -p ${outdir}
+    fulldir=${outdir}/${region}
+    mkdir -p ${fulldir}
     
-    mv ${base}_${region}_*.png ${outdir}
+    mv ${base}_${region}_*.png ${fulldir}
     for build in BH STD CE
     do
 	vbase=validation_${base}_${region}_${build}
-	mv ${vbase}/totals_${vbase}_cmssw.txt ${outdir}
+	mv ${vbase}/totals_${vbase}_cmssw.txt ${fulldir}
     done
 done
 
-mv ${dir}/FullDet/*png ${dir}/FullDet/*txt ${dir}
-rm -rf ${dir}/FullDet
+mv ${outdir}/FullDet/*png ${outdir}/FullDet/*txt ${outdir}
+rm -rf ${outdir}/FullDet
 
 host=kmcdermo@lxplus.cern.ch
 whost=${host}":~/www"
-echo "Moving plots and text files remotly to ${whost}"
+echo "Moving plots and text files remotely to ${whost}"
 scp -r ${dir} ${whost}
 
-echo "Executing remotely ./makereadable.sh ${dir}"
+echo "Executing remotely ./makereadable.sh ${outdir}"
 ssh ${host} bash -c "'
 cd www
-./makereadable.sh ${dir}
+./makereadable.sh ${outdir}
 exit
 '"
 

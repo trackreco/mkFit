@@ -1,20 +1,20 @@
 #!/bin/bash
 
 dir=${1:-plots}
-outdir=${dir}/cmsswval-pu70
-base=SNB_CMSSW_PU70
+outdir=${dir}/cmsswval-ttbar-extrectracks
+base=SNB_CMSSW_TTbar
 
 echo "Moving plots and text files locally to ${outdir}"
-for seed in SimSeed CMSSeed
+for ttbar in NoPU PU35 PU70 
 do
-    fulldir=${outdir}/${seed}
+    fulldir=${outdir}/${ttbar}
     mkdir -p ${fulldir}
- 
-    mv ${base}_${seed}_*.png ${fulldir}
+
+    mv ${base}_${ttbar}_*.png ${fulldir}
     for build in BH STD CE
     do
-	vbase=validation_${base}_${seed}_${build}
-	mv ${vbase}/totals_${vbase}.txt ${fulldir}
+	vbase=validation_${base}_${ttbar}_${build}
+	mv ${vbase}/totals_${vbase}_cmssw.txt ${fulldir}
     done
 done
 
@@ -31,13 +31,13 @@ exit
 '"
 
 echo "Removing local files"
-for seed in SimSeed CMSSeed
+for ttbar in NoPU PU35 PU70
 do
     for build in BH STD CE
     do
-	testbase=${base}_${seed}_${build}
+	testbase=${base}_${ttbar}_${build}
 	rm -rf validation_${testbase}
-	rm -rf log_${testbase}_NVU8int_NTH24_val.txt 
+	rm -rf log_${testbase}_NVU8int_NTH24_cmsswval.txt 
     done
 done
 
