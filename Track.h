@@ -481,6 +481,9 @@ public:
   int   cmsswTrackID() const {return cmsswTrackID_;}
   float helixChi2() const {return helixChi2_;}
 
+  void  setmcTrackID(int mcTrackID) {mcTrackID_ = mcTrackID;}
+  void  setseedID(int seedID) {seedID_ = seedID;}
+
 private:
   friend class Track;
 

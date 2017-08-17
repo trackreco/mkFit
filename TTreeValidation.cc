@@ -317,6 +317,7 @@ void TTreeValidation::initializeCMSSWEfficiencyTree()
   cmsswefftree_->Branch("cmsswmask_build",&cmsswmask_build_ceff_);
   cmsswefftree_->Branch("seedID_cmssw",&seedID_cmssw_ceff_);
   cmsswefftree_->Branch("seedID_build",&seedID_build_ceff_);
+  cmsswefftree_->Branch("mcTrackID_build",&mcTrackID_build_ceff_);
 
   cmsswefftree_->Branch("x_cmssw",&x_cmssw_ceff_);
   cmsswefftree_->Branch("y_cmssw",&y_cmssw_ceff_);
@@ -361,11 +362,11 @@ void TTreeValidation::initializeCMSSWFakeRateTree()
   cmsswfrtree_ = new TTree("cmsswfrtree","cmsswfrtree");
 
   cmsswfrtree_->Branch("evtID",&evtID_cFR_);
-  cmsswfrtree_->Branch("label_build",&label_build_cFR_);
   cmsswfrtree_->Branch("cmsswID_build",&cmsswID_build_cFR_);
   cmsswfrtree_->Branch("cmsswmask_build",&cmsswmask_build_cFR_);
   cmsswfrtree_->Branch("seedID_cmssw",&seedID_cmssw_cFR_);
   cmsswfrtree_->Branch("seedID_build",&seedID_build_cFR_);
+  cmsswfrtree_->Branch("mcTrackID_build",&mcTrackID_build_cFR_);
 
   cmsswfrtree_->Branch("pt_build",&pt_build_cFR_);
   cmsswfrtree_->Branch("ept_build",&ept_build_cFR_);
@@ -491,8 +492,11 @@ void TTreeValidation::resetValidationMaps()
   seedToBuildMap_.clear();
   seedToFitMap_.clear();
 
-  // reest map of cmssw tracks to reco tracks
+  // reset map of cmssw tracks to reco tracks
   cmsswToBuildMap_.clear();
+
+  // reset special map of seed labels to cmssw tracks
+  seedToCmsswMap_.clear();
 }
 
 void TTreeValidation::setTrackExtras(Event& ev)
@@ -557,6 +561,9 @@ void TTreeValidation::setTrackExtras(Event& ev)
       auto&& extra(ev.candidateTracksExtra_[itrack]);
       extra.setCMSSWTrackIDInfo(track, ev.layerHits_, ev.extRecTracks_,reducedCMSSW);
     }
+  
+    // store mcTrackID and seedID correctly
+    storeSeedAndMCID(ev);
   }
 }
 
@@ -645,6 +652,41 @@ void TTreeValidation::makeCMSSWTkToRecoTksMap(Event& ev)
   std::lock_guard<std::mutex> locker(glock_);
   // can reuse this function
   TTreeValidation::mapRefTkToRecoTks(ev.candidateTracks_,ev.candidateTracksExtra_,cmsswToBuildMap_);
+}
+
+void TTreeValidation::makeSeedTkToCMSSWTkMap(Event& ev)
+{
+  const auto& seedtracks  = ev.seedTracks_;
+  const auto& cmsswtracks = ev.extRecTracks_;
+  for (int itrack = 0; itrack < seedtracks.size(); itrack++)
+  {
+    for (auto&& cmsswtrack : cmsswtracks)
+    {
+      if (cmsswtrack.label() == itrack) seedToCmsswMap_[seedtracks[itrack].label()] = cmsswtrack.label();
+    }
+  }
+}
+
+void TTreeValidation::storeSeedAndMCID(Event& ev)
+{
+  const auto& buildtracks = ev.candidateTracks_;
+        auto& buildextras = ev.candidateTracksExtra_;
+  
+  for (int itrack = 0; itrack < buildtracks.size(); itrack++)
+  {
+    auto& extra = buildextras[itrack];
+    const int seedID = extra.seedID();
+
+    extra.setmcTrackID(seedID);
+    if (seedToCmsswMap_.count(seedID))
+    {
+      extra.setseedID(seedToCmsswMap_[seedID]);
+    }
+    else 
+    {
+      extra.setseedID(-1);
+    }
+  }
 }
 
 int TTreeValidation::getLastFoundHit(const int trackMCHitID, const int mcTrackID, const Event& ev)
@@ -1521,7 +1563,8 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
       const auto& buildextra = evt_build_extras[buildtrack.label()]; // returns track extra best aligned with build track
       cmsswmask_build_ceff_ = 1; // quick logic for matched
 
-      seedID_build_ceff_ = buildextra.seedID(); 
+      seedID_build_ceff_    = buildextra.seedID(); 
+      mcTrackID_build_ceff_ = buildextra.mcTrackID(); 
 
       // track parameters
       pt_build_ceff_   = buildtrack.pT();
@@ -1559,7 +1602,8 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
     {
       cmsswmask_build_ceff_ = (cmsswtrack.isFindable() ? 0 : -1); // quick logic for not matched
       
-      seedID_build_ceff_ = -99;
+      seedID_build_ceff_    = -99;
+      mcTrackID_build_ceff_ = -99;
 
       pt_build_ceff_   = -99;
       ept_build_ceff_  = -99;
@@ -1605,9 +1649,9 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
   {
     const auto& buildextra = evt_build_extras[buildtrack.label()];
     
-    evtID_cFR_        = ievt;
-    label_build_cFR_  = buildtrack.label(); 
-    seedID_build_cFR_ = buildextra.seedID(); 
+    evtID_cFR_           = ievt;
+    seedID_build_cFR_    = buildextra.seedID(); 
+    mcTrackID_build_cFR_ = buildextra.mcTrackID();
 
     // track parameters
     pt_build_cFR_   = buildtrack.pT();
@@ -1650,7 +1694,7 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
       {
 	if      (cmsswID_build_cFR_ == -1 || cmsswID_build_cFR_ == -3)                             cmsswmask_build_cFR_ = 0;
 	else if (cmsswID_build_cFR_ == -2 || cmsswID_build_cFR_ == -6 || cmsswID_build_cFR_ == -7) cmsswmask_build_cFR_ = 2; 
-	else    std::cerr << "Somehow got a bad cmsswID: " << cmsswID_build_cFR_ << " trackID: " << label_build_cFR_ << std::endl;
+	else    std::cerr << "Somehow got a bad cmsswID: " << cmsswID_build_cFR_ << " trackID: " << mcTrackID_build_cFR_ << std::endl;
       }
       else 
       {

@@ -888,8 +888,8 @@ void MkBuilder::cmssw_val()
   // get the tracks ready for validation
   remap_cand_hits();
   prep_recotracks();
-
   prep_cmsswtracks();
+
   m_event->Validate();
 }
 
@@ -951,6 +951,14 @@ void MkBuilder::PrepareSeeds()
       }
       create_seeds_from_sim_tracks();
     }
+    else 
+    {
+      if (Config::cmssw_val) 
+      {
+	m_event->validation_.makeSeedTkToCMSSWTkMap(*m_event);
+      }
+    }
+
     import_seeds();
 
     // printf("\n* Seeds after import:\n");

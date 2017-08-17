@@ -46,6 +46,8 @@ public:
   void makeSeedTkToRecoTkMaps(Event& ev) override;
   void mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackExtraVec& evt_extras, TkIDToTkIDMap& seedTkMap);
   void makeCMSSWTkToRecoTksMap(Event& ev) override;
+  void makeSeedTkToCMSSWTkMap(Event& ev) override;
+  void storeSeedAndMCID(Event& ev);
 
   int getLastFoundHit(const int trackMCHitID, const int mcTrackID, const Event& ev);
 
@@ -74,6 +76,9 @@ public:
 
   // CMSSW to Reco Maps
   TkIDToTkIDVecMap cmsswToBuildMap_;
+
+  // Special map for CMSSW tracks to seed track labels --> NOT used for fake rate!!
+  TkIDToTkIDMap seedToCmsswMap_;
 
   // Efficiency Tree 
   TTree* efftree_;  
@@ -168,7 +173,7 @@ public:
   // CMSSW Efficiency tree
   TTree* cmsswefftree_;
   int   evtID_ceff_=0,cmsswID_ceff_=0;
-  int   seedID_cmssw_ceff_=0,seedID_build_ceff_=0;
+  int   seedID_cmssw_ceff_=0,seedID_build_ceff_=0,mcTrackID_build_ceff_=0;
   int   cmsswmask_build_ceff_=0;
 
   float x_cmssw_ceff_=0.,y_cmssw_ceff_=0.,z_cmssw_ceff_=0.;
@@ -193,8 +198,8 @@ public:
   // CMSSW FakeRate tree
   TTree* cmsswfrtree_;
 
-  int   evtID_cFR_=0,label_build_cFR_=0,cmsswID_build_cFR_=0;
-  int   seedID_cmssw_cFR_=0,seedID_build_cFR_=0;
+  int   evtID_cFR_=0,cmsswID_build_cFR_=0;
+  int   seedID_cmssw_cFR_=0,seedID_build_cFR_=0,mcTrackID_build_cFR_=0;
   int   cmsswmask_build_cFR_=0;
 
   float pt_build_cFR_=0.,ept_build_cFR_=0.;
