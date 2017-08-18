@@ -1,6 +1,6 @@
 #! /bin/bash
 
-make -j 12 WITH_ROOT=yes CPPUSERFLAGS+=-DCLEAN_SEEDS CXXUSERFLAGS+=-DCLEAN_SEEDS
+make -j 12 WITH_ROOT=yes
 
 dir=/data/nfsmic/slava77/samples/2017/pass-4874f28/initialStep
 file=memoryFile.fv3.recT.072617.bin
@@ -13,8 +13,8 @@ ECP2=${dir}/10muEta17to24Pt1to10/${file}
 
 base=SNB_CMSSW_10mu
 
-for sV in "SimSeed " "CMSSeed --cmssw-seeds"
-do echo $sV | while read -r sN sO
+for sV in "SimSeed " "CMSSeed --cmssw-seeds --clean-seeds"
+do echo $sV | while read -r sN sO sC
     do
 	for section in ECN2 ECN1 BRL ECP1 ECP2 
 	do
@@ -23,7 +23,7 @@ do echo $sV | while read -r sN sO
 		do
 		    oBase=${base}_${sN}_${section}_${bN}
 		    echo "${oBase}: validation [nTH:24, nVU:8]"
-		    ./mkFit/mkFit ${sO} --geom CMS-2017 --root-val --read --file-name ${!section} --build-${bO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_val.txt
+		    ./mkFit/mkFit ${sO} ${sC} --geom CMS-2017 --root-val --read --file-name ${!section} --build-${bO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_val.txt
 		    mv valtree.root valtree_${oBase}.root
 		done
 	    done
