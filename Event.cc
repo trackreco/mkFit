@@ -515,15 +515,6 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
       ns = -ns;
     }
 
-    if (Config::cleanCmsswSeeds)
-    {
-      ns = clean_cms_seedtracks();//operates on seedTracks_; swaps cleaned seeds into seedTracks_; returns number of cleaned seedTracks
-    }
-    else
-    {
-      ns = clean_cms_seedtracks_badlabel();//operates on seedTracks_, removes those with label == -1;
-    }
-    
 #ifdef DUMP_SEEDS
     printf("Read %i seedtracks (neg value means actual reading was skipped)\n", ns);
     for (int it = 0; it < ns; it++)
@@ -791,9 +782,27 @@ int Event::clean_cms_seedtracks()
 
 int Event::clean_cms_seedtracks_badlabel()
 {
-  printf("***\n*** MkBuilder::import_seeds REMOVING SEEDS WITH BAD LABEL. This is a development hack. ***\n***\n");
+  printf("***\n*** REMOVING SEEDS WITH BAD LABEL. This is a development hack. ***\n***\n");
   TrackVec buf; seedTracks_.swap(buf);
   std::copy_if(buf.begin(), buf.end(), std::back_inserter(seedTracks_), [](const Track& t){ return t.label() >= 0; });
+  return seedTracks_.size();
+}
+
+int Event::use_seeds_from_cmsswtracks()
+{
+  int ns = seedTracks_.size();
+
+  TrackVec cleanSeedTracks;
+  cleanSeedTracks.reserve(ns);
+
+  int i = 0;
+  for (auto&& cmsswtrack : extRecTracks_)
+  {
+    cleanSeedTracks.emplace_back(seedTracks_[cmsswtrack.label()]);
+  }
+
+  seedTracks_.swap(cleanSeedTracks);
+
   return seedTracks_.size();
 }
 

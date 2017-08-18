@@ -945,6 +945,24 @@ void MkBuilder::PrepareSeeds()
       {
 	m_event->validation_.makeSeedTkToCMSSWTkMap(*m_event);
       }
+
+      // CMSSW Seed Cleaning 
+      int ns = 0;
+      if (Config::cleanCmsswSeeds)
+      {
+	ns = m_event->clean_cms_seedtracks();
+      }
+      else
+      {
+	if (Config::cmssw_val)
+	{
+	  ns = m_event->use_seeds_from_cmsswtracks();
+	}
+	else 
+	{
+	  ns = m_event->clean_cms_seedtracks_badlabel();
+	}
+      }
     }
 
     import_seeds();

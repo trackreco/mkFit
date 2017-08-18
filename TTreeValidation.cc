@@ -534,6 +534,9 @@ void TTreeValidation::setTrackExtras(Event& ev)
 
   if (Config::cmssw_val)
   {    
+    // store mcTrackID and seedID correctly
+    storeSeedAndMCID(ev);
+
     RedTrackVec reducedCMSSW(ev.extRecTracks_.size()); // use 2D chi2 for now, so might as well make use of this object for now
     for (int itrack = 0; itrack < ev.extRecTracks_.size(); itrack++)
     {
@@ -561,9 +564,6 @@ void TTreeValidation::setTrackExtras(Event& ev)
       auto&& extra(ev.candidateTracksExtra_[itrack]);
       extra.setCMSSWTrackIDInfo(track, ev.layerHits_, ev.extRecTracks_,reducedCMSSW);
     }
-  
-    // store mcTrackID and seedID correctly
-    storeSeedAndMCID(ev);
   }
 }
 
