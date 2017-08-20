@@ -237,10 +237,22 @@ inline bool sortIDsByChi2(const idchi2Pair & cand1, const idchi2Pair & cand2)
   return cand1.second<cand2.second;
 }
 
+inline int getMatchBin(const float pt)
+{
+  if      (pt < 0.75f) return 0;
+  else if (pt < 1.f)   return 1;
+  else if (pt < 2.f)   return 2;
+  else if (pt < 5.f)   return 3;
+  else if (pt < 10.f)  return 4;
+  else                 return 5;
+}
+
 void TrackExtra::setCMSSWTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const TrackVec& cmsswtracks, const RedTrackVec& redcmsswtracks)
 {
   const SVector6 & trkParams = trk.parameters();
   const SMatrixSym66 & trkErrs = trk.errors();
+
+  const int bin = getMatchBin(trk.pT());
 
   // temps needed for chi2
   SVector2 trkParamsR;
@@ -257,7 +269,7 @@ void TrackExtra::setCMSSWTrackIDInfo(const Track& trk, const std::vector<HitVec>
   for (auto&& redcmsswtrack : redcmsswtracks)
   {
     const float chi2 = std::abs(computeHelixChi2(redcmsswtrack.parameters(),trkParamsR,trkErrsR,false));
-    if (chi2 < Config::minCMSSWMatchChi2) cands.push_back(std::make_pair(redcmsswtrack.label(),chi2));
+    if (chi2 < Config::minCMSSWMatchChi2[bin]) cands.push_back(std::make_pair(redcmsswtrack.label(),chi2));
   }
 
   float minchi2 = -1e6;
@@ -269,7 +281,7 @@ void TrackExtra::setCMSSWTrackIDInfo(const Track& trk, const std::vector<HitVec>
 
   int cmsswTrackID = -1;
   int nHMatched = 0;
-  float bestdPhi = Config::minCMSSWMatchdPhi;
+  float bestdPhi = Config::minCMSSWMatchdPhi[bin];
   float bestchi2 = minchi2;
   for (auto&& cand : cands) // loop over possible cmssw tracks
   {
@@ -299,6 +311,7 @@ void TrackExtra::setCMSSWTrackIDInfo(const Track& trk, const std::vector<HitVec>
   // set cmsswTrackID
   cmsswTrackID_ = cmsswTrackID;
   helixChi2_ = bestchi2;
+  dPhi_ = bestdPhi;
   
   // Modify cmsswTrackID based on length
   if (trk.nFoundHits() < Config::nMinFoundHits)
@@ -321,6 +334,84 @@ void TrackExtra::setCMSSWTrackIDInfo(const Track& trk, const std::vector<HitVec>
   nHitsMatched_ = nHMatched;
   fracHitsMatched_ = float(nHitsMatched_) / float(trk.nFoundHits()); // seed hits may already be included!
 }
+
+void TrackExtra::setCMSSWTrackIDInfoByLabel(const Track& trk, const std::vector<HitVec>& layerHits, const Track& cmsswtrack, const ReducedTrack& redcmsswtrack)
+{
+  const SVector6 & trkParams = trk.parameters();
+  const SMatrixSym66 & trkErrs = trk.errors();
+
+  // temps needed for chi2
+  SVector2 trkParamsR;
+  trkParamsR[0] = trkParams[3];
+  trkParamsR[1] = trkParams[5];
+    
+  SMatrixSym22 trkErrsR;
+  trkErrsR[0][0] = trkErrs[3][3];
+  trkErrsR[1][1] = trkErrs[5][5];
+  trkErrsR[0][1] = trkErrs[3][5];
+  trkErrsR[1][0] = trkErrs[5][3];
+
+  helixChi2_ = std::abs(computeHelixChi2(redcmsswtrack.parameters(),trkParamsR,trkErrsR,false));
+  dPhi_ = std::abs(squashPhiGeneral(cmsswtrack.swimPhiToR(trk.x(),trk.y())-trk.momPhi()));
+
+  const HitLayerMap & hitLayerMap = redcmsswtrack.hitLayerMap();
+  nHitsMatched_ = 0;
+  for (int ihit = Config::nlayers_per_seed; ihit < trk.nTotalHits(); ihit++) // loop over mkfit track hits
+  {
+    const int lyr = trk.getHitLyr(ihit);
+    const int idx = trk.getHitIdx(ihit);
+    
+    if (idx < 0 || !hitLayerMap.count(lyr)) continue; // skip if bad index or cmssw track does not have that layer
+    for (auto cidx : hitLayerMap.at(lyr)) // loop over hits in layer for the cmssw track
+    {
+      if (cidx == idx) {nHitsMatched_++; break;} 
+    }
+  }
+  
+  // get eligible hits
+  const int nCandHits = trk.nFoundHits()-Config::nlayers_per_seed; 
+
+  // protect against tracks that never make it past the seed
+  if (nCandHits != 0)
+  {
+    // Require majority of hits to match
+    if (2*nHitsMatched_ >= nCandHits) cmsswTrackID_ = cmsswtrack.label();
+    else cmsswTrackID_ = -1; 
+  
+    // Modify mcTrackID based on nMinHits
+    if (nCandHits < (Config::nMinFoundHits-Config::nlayers_per_seed))
+    {
+      if (cmsswTrackID_ >= 0) cmsswTrackID_ = -2;
+      else                    cmsswTrackID_ = -3;
+    }
+
+    // Modify cmsswTrackID based on if cmsswtrack is findable
+    if (cmsswTrackID_ >= 0)
+    {
+      if (cmsswtrack.isNotFindable()) 
+      {
+	if (cmsswTrackID_ >= 0) cmsswTrackID_ = -6;
+	else                    cmsswTrackID_ = -7;
+      }
+    }
+
+    fracHitsMatched_ = float(nHitsMatched_) / float(nCandHits);
+  }
+  else
+  { 
+    if (cmsswtrack.isNotFindable())
+    {
+      cmsswTrackID_ = -8;
+    }
+    else
+    {
+      cmsswTrackID_ = -4;
+    }
+    
+    fracHitsMatched_ = 0.f;
+  }
+}
+ 
 
 //==============================================================================
 

@@ -80,6 +80,9 @@ public:
   // Special map for CMSSW tracks to seed track labels --> NOT used for fake rate!!
   TkIDToTkIDMap seedToCmsswMap_;
 
+  // Special map for geting exact CMSSW track that originate build track from seed track through seedIDs
+  TkIDToTkIDMap buildToCmsswMap_;
+
   // Efficiency Tree 
   TTree* efftree_;  
   int   evtID_eff_=0,mcID_eff_=0;
@@ -191,7 +194,7 @@ public:
 
   // chi2 of tracks + phi swim
   float hitchi2_build_ceff_=0.,helixchi2_build_ceff_=0.;
-  float phi_cmssw_build_ceff_=0.;
+  float dphi_build_ceff_=0.;
 
   int   duplmask_build_ceff_=0,nTkMatches_build_ceff_=0;
 
@@ -213,6 +216,7 @@ public:
 
   // chi2 of tracks
   float hitchi2_build_cFR_=0.,helixchi2_build_cFR_=0.;
+  float dphi_build_cFR_=0.;
 
   // for duplicate track matches
   int   duplmask_build_cFR_=0,iTkMatches_build_cFR_=0;
@@ -220,8 +224,6 @@ public:
   float x_cmssw_cFR_=0.,y_cmssw_cFR_=0.,z_cmssw_cFR_=0.;
   float pt_cmssw_cFR_=0.,phi_cmssw_cFR_=0.,eta_cmssw_cFR_=0.;
   int   nHits_cmssw_cFR_=0,nLayers_cmssw_cFR_=0,lastlyr_cmssw_cFR_=0;
-
-  float phi_cmssw_build_cFR_=0.;
 
   // Fit tree (for fine tuning z-phi windows and such --> MPlex Only
   TTree* fittree_;

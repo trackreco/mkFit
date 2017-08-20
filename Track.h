@@ -26,16 +26,18 @@ struct ReducedTrack // used for cmssw reco track validation
 {
 public:
   ReducedTrack() {}
-  ReducedTrack(const int label, const SVector2 & params, const float phi, const HitLayerMap & hitmap) :
-  label_(label), parameters_(params), phi_(phi), hitLayerMap_(hitmap) {}
+  ReducedTrack(const int label, const int seedID, const SVector2 & params, const float phi, const HitLayerMap & hitmap) :
+  label_(label), seedID_(seedID), parameters_(params), phi_(phi), hitLayerMap_(hitmap) {}
   ~ReducedTrack() {}
 
         int           label()       const {return label_;}
+        int           seedID()      const {return seedID_;}
   const SVector2&     parameters()  const {return parameters_;}
         float         momPhi()      const {return phi_;}
   const HitLayerMap&  hitLayerMap() const {return hitLayerMap_;}
 
   int label_;
+  int seedID_;
   SVector2 parameters_;
   float phi_;
   HitLayerMap hitLayerMap_;
@@ -470,6 +472,7 @@ public:
   void setMCTrackIDInfoByLabel(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo);
   void setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo, const TrackVec& simtracks, const bool isSeed);
   void setCMSSWTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const TrackVec& cmsswtracks, const RedTrackVec& redcmsswtracks);
+  void setCMSSWTrackIDInfoByLabel(const Track& trk, const std::vector<HitVec>& layerHits, const Track& cmsswtrack, const ReducedTrack& redcmsswtrack);
 
   int   mcTrackID() const {return mcTrackID_;}
   int   nHitsMatched() const {return nHitsMatched_;}
@@ -480,6 +483,7 @@ public:
   void  setDuplicateInfo(int duplicateID, bool isDuplicate) {duplicateID_ = duplicateID; isDuplicate_ = isDuplicate;}
   int   cmsswTrackID() const {return cmsswTrackID_;}
   float helixChi2() const {return helixChi2_;}
+  float dPhi() const {return dPhi_;}
 
   void  setmcTrackID(int mcTrackID) {mcTrackID_ = mcTrackID;}
   void  setseedID(int seedID) {seedID_ = seedID;}
@@ -495,6 +499,7 @@ private:
   bool  isDuplicate_;
   int   cmsswTrackID_;
   float helixChi2_;
+  float dPhi_;
 };
 
 typedef std::vector<TrackExtra> TrackExtraVec;
