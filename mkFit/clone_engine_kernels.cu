@@ -1,4 +1,5 @@
 #include "clone_engine_kernels.h"
+#include "clone_engine_cuda_helpers.h"
 
 #include "BestCands.h"
 
@@ -9,30 +10,8 @@
 #include "array_algorithms_cu.h"
 #include "propagation_kernels.h"
 
+
 constexpr int BLOCK_SIZE_X = 256;
-
-__device__ int countValidHits_fn(const int itrack, const int end_hit, 
-                                 const GPlexQI *HitsIdx_arr)
-{
-  int result = 0;
-  for (int hi = 0; hi < end_hit; ++hi)
-    {
-      if (HitsIdx_arr[hi](itrack, 0, 0) >= 0) result++;
-    }
-  return result;
-}
-
-
-__device__ int countInvalidHits_fn(const int itrack, const int end_hit, 
-                                   const GPlexQI *HitsIdx_arr)
-{
-  int result = 0;
-  for (int hi = 0; hi < end_hit; ++hi)
-    {
-      if (HitsIdx_arr[hi](itrack, 0, 0) == -1) result++;
-    }
-  return result;
-}
 
 
 __device__ void findCandidates_fn(const int ilay,
@@ -40,62 +19,29 @@ __device__ void findCandidates_fn(const int ilay,
     const GPlexLS &propErr, GPlexHS &msErr, GPlexHV &msPar,
     const GPlexLV &propPar, GPlexQF &outChi2,
     GPlexQF &Chi2, GPlexQI *HitsIdx_arr,
-    GPlexQI &SeedIdx, GPlexQI &CandIdx,
     GPlexQB &Valid,
     const int maxSize, const int itrack, const int N,
     CandsGPU::BestCands<Config::maxCandsPerSeed, BLOCK_SIZE_X>& cand_list)
 {
-  // Note: cand_list is initially filled with sentinels
-  int itrack_block = threadIdx.x;  // for SM arrays
-  int iseed_block = itrack_block / Config::maxCandsPerSeed;
-  int icand_block = itrack_block % Config::maxCandsPerSeed;
+  if (itrack >= N) return;
+  if (!Valid[itrack]) return;
 
-  int Nhits = ilay;
-  GPlexQI &HitsIdx = HitsIdx_arr[ilay];
+  const int icand = itrack % Config::maxCandsPerSeed;
 
-  // Note: 0 < itrack < N = matriplex_width
-  if (itrack < N)
-    HitsIdx[itrack] = 0;  // reset
-
-  if (Valid[itrack]) {
-    for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt) {
-      HitToMs_fn(msErr, msPar, hits, XHitSize, XHitArr, 
-          HitsIdx, hit_cnt, itrack, N);
-      // TODO: add CMSGeom
-      computeChi2_fn(propErr, msErr, msPar, propPar, outChi2, itrack, N);
-
-      // make sure the hit was in the compatiblity window for the candidate
-      if (hit_cnt < XHitSize[itrack])
-      {
-        float chi2 = fabs(outChi2[itrack]); //fixme negative chi2 sometimes...
-        if (chi2 < Config::chi2Cut)
-        {
-          // TODO: probably faster to recompute candidx & seedidx from itrack
-          int cand_trIdx = CandIdx[itrack];
-          int cand_hitIdx = XHitArr(itrack, hit_cnt, 0);
-          int cand_nhits = countValidHits_fn(itrack, Nhits, HitsIdx_arr) + 1; 
-          float cand_chi2 = Chi2[itrack] + chi2;
-          cand_list.update(itrack_block, cand_trIdx, cand_hitIdx,
-                           cand_nhits, cand_chi2);
-        }
-      }
-    }
-    // now add invalid hit 
-    // if icand has enough 'good' hits, update will discard invalid hit.
-    int hit_idx = countInvalidHits_fn(itrack, Nhits, HitsIdx_arr) 
-      < Config::maxHolesPerCand ? -1 : -2;
-    cand_list.update(itrack_block, CandIdx[itrack], hit_idx, 
-                     countValidHits_fn(itrack, ilay, HitsIdx_arr), 
-                     Chi2[itrack]);
-  }
+  findTrackCands_fn(ilay, hits, XHitSize, XHitArr, 
+    propErr, msErr, msPar, propPar, outChi2, Chi2, HitsIdx_arr,
+    maxSize, itrack, icand, N, cand_list);
 
   // At this point, each track has the best candidates organized in a stack
   //__syncthreads(); no need for that, sync hapeen in merge
   // sorting garbbage is fine (i.e. threads with no valid tracks to start with)
+  // because of the default sentinel values.
+  int itrack_block = threadIdx.x;
+  int iseed_block = itrack_block / Config::maxCandsPerSeed;
+  int icand_block = itrack_block % Config::maxCandsPerSeed;
   cand_list.merge_cands_for_seed(iseed_block, icand_block);
-  // At this point, iseed has the best overall candidates
-  // This cand_list is the output of the function. Used to update the
-  // EtaBinOfCombCandidatesCU.
+  // At this point the best overall candidates for seed iseed are
+  // stored in the first list (icand == 0)
 }
 
 
@@ -108,26 +54,16 @@ __device__ void updateCandsWithInfo(Track *candidates, int *ntracks_per_seed,
   int iseed_ev = itrack_ev / Config::maxCandsPerSeed;
   int icand_ev = itrack_ev % Config::maxCandsPerSeed; 
 
-  Track tmp_track;
+  int ncands_seed = ntracks_per_seed[iseed_ev];
 
-  if (0 <= my_trkIdx && my_trkIdx < ntracks_per_seed[iseed_ev]) {
+  Track tmp_track;  // BAD: too big to fit in registers
+
+  if (0 <= my_trkIdx && my_trkIdx < ncands_seed) {
     // Get candidate of previous step that match this trkIdx
-    // Probably bad: won't fit in register
-    /*tmp_track = candidates[iseed_ev*Config::maxCandsPerSeed + my_trkIdx];*/
     Track& base_track = candidates[iseed_ev*Config::maxCandsPerSeed + my_trkIdx];
 
-    // TODO: copy ctor adapted to GPU 
-    // FIXME: attributes have been made public -> private again
-    tmp_track.setState(base_track.state_);
-    tmp_track.setChi2(base_track.chi2_);
-    for (int i = 0; i < Config::nLayers; i++) {
-      tmp_track.hitIdxArr_[i] = base_track.hitIdxArr_[i];
-    }
-    tmp_track.hitIdxPos_ = base_track.hitIdxPos_;
-    tmp_track.nGoodHitIdx_ = base_track.nGoodHitIdx_;
-    tmp_track.setLabel(base_track.label_);
-
-    tmp_track.addHitIdx(my_hitIdx, 0.f /*chi2*/, itrack );
+    tmp_track = base_track;
+    tmp_track.addHitIdx(my_hitIdx, 0.f /*chi2*/);
     tmp_track.setChi2(my_chi2);
   }
 
@@ -136,7 +72,7 @@ __device__ void updateCandsWithInfo(Track *candidates, int *ntracks_per_seed,
   // CUDA 8; synchronize only cands for seed;
   __syncthreads();
 
-  if (0 <= my_trkIdx && my_trkIdx < ntracks_per_seed[iseed_ev]) {
+  if (0 <= my_trkIdx && my_trkIdx < ncands_seed) {
     Track& my_track = candidates[iseed_ev*Config::maxCandsPerSeed + icand_ev];
     my_track = tmp_track;
   }
@@ -219,7 +155,7 @@ __global__ void findInLayers_kernel(LayerOfHitsCU *layers,
                 } else {
                   OutputParErrCU_fn(tracks, Err_iC, Par_iC,
                       beg, end, itrack_plex, N);
-                  break;  // TODO: on the CPU, "break" more readable?
+                  break;
                 }
               }
             } else {
@@ -237,13 +173,12 @@ __global__ void findInLayers_kernel(LayerOfHitsCU *layers,
                max_cands_per_block,
                &maxSize_block);
 
-            cand_list.reset(itrack_block);  // fill with sentinels TODO check if off guard
+            cand_list.reset(itrack_block);
 
             findCandidates_fn(ilay,
                 layers[ilay].m_hits.data(), XHitSize, XHitArr,
                 Err_iP, msErr_arr[ilay], msPar_arr[ilay], Par_iP, 
-                outChi2, Chi2, HitsIdx_arr,
-                SeedIdx, CandIdx, Valid,
+                outChi2, Chi2, HitsIdx_arr, Valid,
                 maxSize_block, itrack_plex, N, cand_list);
             // cand_list: each seed has the best cands 
             // It's similar to CandCloner::ProcessSeddRange (called from end_smthg)

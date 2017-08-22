@@ -39,7 +39,8 @@ public:
 
   void allocateGeometry(const Geometry& geom);
 
-  void FindTracksCloneEngine(EventOfCombCandidates& event_of_cands);
+  void FindTracksCloneEngine(EventOfCombCandidates& event_of_cands,
+                             bool seed_based=false);
 private:
   FitterCU<float> *cuFitter;
   EventOfHitsCU event_of_hits_cu;

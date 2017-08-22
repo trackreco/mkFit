@@ -12,14 +12,6 @@
 
 #define BLOCK_SIZE_X 32
 
-/*__device__ float getPhi_fn2(float x, float y)*/
-/*{*/
-  /*return atan2(y,x); */
-/*}*/
-
-/*__device__ float getTheta_fn(float r, float z){*/
-  /*return atan2(r,z);*/
-/*}*/
 
 __device__ void subtract_matrix(const float *a, const int aN, 
                                 const float *b, const int bN, 

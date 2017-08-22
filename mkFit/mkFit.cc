@@ -77,6 +77,7 @@ namespace
   bool  g_run_build_bh  = false;
   bool  g_run_build_std = false;
   bool  g_run_build_ce  = false;
+  bool  g_seed_based    = false;
 
   std::string g_operation = "simulate_and_process";;
   std::string g_file_name = "simtracks.bin";
@@ -368,7 +369,7 @@ void test_standard()
   #else
         t_cur[0] = (g_run_fit_std) ? runFittingTestPlexGPU(cuFitter, ev, plex_tracks) : 0;
         t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHitGPU(ev, mkb, cuBuilder) : 0;
-        t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngineGPU(ev, ev_tmp, mkb, cuBuilder) : 0;
+        t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngineGPU(ev, ev_tmp, mkb, cuBuilder, g_seed_based) : 0;
   #endif
         t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, ev_tmp, mkb) : 0;
 
@@ -512,6 +513,7 @@ int main(int argc, const char *argv[])
         "  --input-version          version for reading when converting formats (def: %d)\n"
         "GPU specific options: \n"
         "  --num-thr-reorg <num>    number of threads to run the hits reorganization\n"
+        "  --seed-based             For CE. Switch to 1 CUDA thread per seed\n"
         ,
         argv[0],
         Config::nEvents,
@@ -660,6 +662,10 @@ int main(int argc, const char *argv[])
     else if(*i == "--silent")
     {
       Config::silent = true;
+    }
+    else if(*i == "--seed-based")
+    {
+      g_seed_based = true;
     }
     else
     {

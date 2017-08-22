@@ -98,12 +98,13 @@ void BuilderCU::FindTracksBestHit(EventOfCandidates& event_of_cands)
 }
 
 
-void BuilderCU::FindTracksCloneEngine(EventOfCombCandidates& event_of_comb_cands)
+void BuilderCU::FindTracksCloneEngine(EventOfCombCandidates& event_of_comb_cands,
+    bool seed_based)
 {
   event_of_comb_cands_cu.copyFromCPU(event_of_comb_cands, cuFitter->get_stream());
 
   cuFitter->FindTracksInLayers(event_of_hits_cu.m_layers_of_hits.data(),
-                               event_of_comb_cands_cu, geom_cu);
+                               event_of_comb_cands_cu, geom_cu, seed_based);
 
   event_of_comb_cands_cu.copyToCPU(event_of_comb_cands, cuFitter->get_stream());
   cudaStreamSynchronize(cuFitter->get_stream());

@@ -245,7 +245,8 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp, MkBuilder& bu
 #if USE_CUDA
 double runBuildingTestPlexCloneEngineGPU(Event& ev, EventTmp& ev_tmp, 
                                          MkBuilder& builder,
-                                         BuilderCU& builder_cu)
+                                         BuilderCU& builder_cu,
+                                         bool seed_based)
 {
   EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
   event_of_comb_cands.Reset();
@@ -272,7 +273,7 @@ double runBuildingTestPlexCloneEngineGPU(Event& ev, EventTmp& ev_tmp,
   double time = dtime();
 
   //builder.FindTracksCloneEngine();
-  builder_cu.FindTracksCloneEngine(event_of_comb_cands);
+  builder_cu.FindTracksCloneEngine(event_of_comb_cands, seed_based);
 
   time = dtime() - time;
 

@@ -11,9 +11,8 @@ constexpr bool tmp_useCMSGeom = false;
 
 __device__ void selectHitIndices_fn(const LayerOfHitsCU &layer_of_hits,
     const GPlexLS &Err, const GPlexLV &Par, GPlexQI &XHitSize, 
-    GPlexHitIdx &XHitArr, const int itrack, const int N) {
-  //int itrack = threadIdx.x + blockDim.x*blockIdx.x;
-
+    GPlexHitIdx &XHitArr, const int itrack, const int N)
+{
   if (itrack < N) {
     bool dump = false;
     const float nSigmaPhi = 3;
@@ -31,13 +30,9 @@ __device__ void selectHitIndices_fn(const LayerOfHitsCU &layer_of_hits,
 
       z   = Par(itrack, 2, 0);
       phi = getPhi(x, y);
-      /*dz  = nSigmaZ * sqrtf(Err(itrack, 2, 2));*/
       dz  = nSigmaZ * sqrtf(Err[5*Err.stride + itrack]);
 
       const float dphidx = -y/r2, dphidy = x/r2;
-      /*const float dphi2  = dphidx * dphidx * Err(itrack, 0, 0) +*/
-                           /*dphidy * dphidy * Err(itrack, 1, 1) +*/
-                       /*2 * dphidx * dphidy * Err(itrack, 0, 0);*/
       const float dphi2  = dphidx * dphidx * Err[0*Err.stride + itrack] +
                            dphidy * dphidy * Err[2*Err.stride + itrack] +
                        2 * dphidx * dphidy * Err[1*Err.stride + itrack];
@@ -143,11 +138,6 @@ __device__ void selectHitIndices_fn(const LayerOfHitsCU &layer_of_hits,
           // we'd be taking in closest hits first.
           if (XHitSize[itrack] < GPlexHitIdxMax)
           {
-            /*if (itrack == 0)*/
-            /*if (XHitArr(itrack, XHitSize[itrack], 0) != hi) {*/
-              /*printf("before %d, after %d\n", XHitArr(itrack, XHitSize[itrack], 0), hi);*/
-              /*printf("--- %d, after %d\n", XHitSize[itrack], hi);*/
-            /*}*/
             XHitArr(itrack, XHitSize[itrack]++, 0) = hi;
           }
         }
@@ -156,11 +146,13 @@ __device__ void selectHitIndices_fn(const LayerOfHitsCU &layer_of_hits,
   }
 }
 
+
 __global__ void selectHitIndices_kernel(const LayerOfHitsCU layer_of_hits,
     const GPlexLS Err, const GPlexLV Par, GPlexQI XHitSize, GPlexHitIdx XHitArr, const int N) {
   int itrack = threadIdx.x + blockDim.x*blockIdx.x;
   selectHitIndices_fn(layer_of_hits, Err, Par, XHitSize, XHitArr, itrack, N);
 }
+
 
 void selectHitIndices_wrapper(const cudaStream_t& stream,
     const LayerOfHitsCU& layer_of_hits, const GPlexLS& Err, const GPlexLV& Par, 

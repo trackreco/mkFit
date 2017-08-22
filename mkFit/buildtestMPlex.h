@@ -18,7 +18,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& evtmp, MkBuilder& bui
 double runBuildingTestPlexBestHitGPU(Event& ev, MkBuilder& builder,
                                      BuilderCU& builder_cu);
 double runBuildingTestPlexCloneEngineGPU(Event& ev, EventTmp& ev_tmp, MkBuilder& builder,
-                                         BuilderCU& builder_cu);
+                                         BuilderCU& builder_cu, bool seed_based=false);
 double runAllBuildingTestPlexBestHitGPU(std::vector<Event> &events);
 #endif
 

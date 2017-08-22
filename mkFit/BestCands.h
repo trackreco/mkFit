@@ -24,7 +24,7 @@ __device__ void swap_values(T& a, T&b) {
 template <int MaxCandsPerSeed, int BlockSize>
 struct BestCands
 {
-  // AoS would generate bank conflicts
+  // AoS would generate bank conflicts when used in SM
   int   trkIdx [MaxCandsPerSeed][BlockSize];
   int   hitIdx [MaxCandsPerSeed][BlockSize];
   int   nhits  [MaxCandsPerSeed][BlockSize];
@@ -62,7 +62,6 @@ __device__
 void BestCands<M, B>::reset(int itrack)
 {
   for (auto j = 0; j <  M; ++j) {
-    // TODO: check these default values;
     trkIdx[j][itrack] = trkIdx_sentinel;
     hitIdx[j][itrack] = hitIdx_sentinel; 
     nhits [j][itrack] = nhits_sentinel;
@@ -87,6 +86,7 @@ void BestCands<M, B>::update(int itrack,
   heapify(itrack, 0, M);
 }
 
+
 template <int M, int B>
 __device__ 
 void BestCands<M, B>::print_heap(const int tid)
@@ -95,7 +95,6 @@ void BestCands<M, B>::print_heap(const int tid)
     printf(">>>>> tid %d rowIdx %d hitIdx %d nhits %d chi2 %f\n",
         tid, cid, hitIdx[cid][tid], nhits[cid][tid], chi2[cid][tid]);
   }
- 
 }
 
 
@@ -135,6 +134,7 @@ void BestCands<M, B>::swap_nodes(int icand_fst, int fst, int icand_snd, int snd)
   swap_values(nhits [fst][icand_fst], nhits [snd][icand_snd]);
   swap_values(chi2  [fst][icand_fst], chi2  [snd][icand_snd]);
 }
+
 
 template <int M, int B>
 __device__
@@ -197,7 +197,7 @@ void BestCands<M, B>::merge_cands_for_seed(int iseed, int icand)
     }
   }
   heap_sort(itrack, M);
-  __syncthreads();
+  __syncthreads(); // TODO: Volta: sync only on MaxCandsPerSeeds threads
 #else
 
   for (int step = 2; step <= Config::maxCandsPerSeed; step <<= 1) {
@@ -237,7 +237,7 @@ void BestCands<M, B>::heap_sort(int icand, int heap_size)
 {
   int num_unsorted_elts = heap_size;
   // Assume that we have a heap with the worst one at the root.
-  for (int i = heap_size-1; i > 0; i--)
+  for (int i = heap_size-1; i > 0; --i)
   {
     swap_nodes(icand, 0, icand, i);  // worst at the end
     heapify(icand, 0, --num_unsorted_elts);
@@ -266,8 +266,8 @@ __device__
 int BestCands<M, B>::count_valid_cands(int itrack)
 {
   int count = 0;
-  for (int i = 0; i < M; i++) {
-    if (trkIdx[i][itrack] != trkIdx_sentinel) count ++;
+  for (int i = 0; i < M; ++i) {
+    if (trkIdx[i][itrack] != trkIdx_sentinel) ++count;
   }
   return count;
 }

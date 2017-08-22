@@ -91,7 +91,6 @@ __device__ void computeChi2_fn(
     rotT00[0] = -(msPar(n, 1, 0) + propPar(n, 1, 0))/(2*r);
     rotT01[0] =  (msPar(n, 0, 0) + propPar(n, 0, 0))/(2*r);
 
-    /*float res_glo[HV];*/
     GPlexRegHV res_glo;
     subtractFirst3_fn(msPar, propPar, res_glo, N, n);
 
