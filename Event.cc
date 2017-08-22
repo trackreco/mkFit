@@ -771,11 +771,7 @@ int Event::clean_cms_seedtracks()
 
   seedTracks_.swap(cleanSeedTracks);
 
-  if (Config::root_val || Config::cmssw_val)
-  {
-    int newlabel = 0;
-    for (auto&& track : seedTracks_) if (track.label() < 0) track.setLabel(--newlabel);
-  }
+  if (Config::root_val || Config::cmssw_val) relabel_bad_seedtracks();
 
   return seedTracks_.size();
 }
@@ -803,7 +799,18 @@ int Event::use_seeds_from_cmsswtracks()
 
   seedTracks_.swap(cleanSeedTracks);
 
+  if (Config::root_val || Config::cmssw_val) relabel_bad_seedtracks();
+
   return seedTracks_.size();
+}
+
+void Event::relabel_bad_seedtracks()
+{
+  int newlabel = 0;
+  for (auto&& track : seedTracks_)
+  { 
+    if (track.label() < 0) track.setLabel(--newlabel);
+  }
 }
 
 //==============================================================================
