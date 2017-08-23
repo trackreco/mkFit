@@ -469,10 +469,11 @@ public:
   TrackExtra() : seedID_(std::numeric_limits<int>::max()) {}
   TrackExtra(int seedID) : seedID_(seedID) {}
 
-  void setMCTrackIDInfoByLabel(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo);
+  int  modifyRefTrackID(const int foundHits, const int minHits, const TrackVec& reftracks, const int trueID, int refTrackID);
+  void setMCTrackIDInfoByLabel(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo, const TrackVec& simtracks);
   void setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo, const TrackVec& simtracks, const bool isSeed);
   void setCMSSWTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const TrackVec& cmsswtracks, const RedTrackVec& redcmsswtracks);
-  void setCMSSWTrackIDInfoByLabel(const Track& trk, const std::vector<HitVec>& layerHits, const Track& cmsswtrack, const ReducedTrack& redcmsswtrack);
+  void setCMSSWTrackIDInfoByLabel(const Track& trk, const std::vector<HitVec>& layerHits, const TrackVec& cmsswtracks, const ReducedTrack& redcmsswtrack);
 
   int   mcTrackID() const {return mcTrackID_;}
   int   nHitsMatched() const {return nHitsMatched_;}

@@ -505,32 +505,42 @@ void TTreeValidation::setTrackExtras(Event& ev)
 {
   std::lock_guard<std::mutex> locker(glock_);
 
+  const auto& layerhits = ev.layerHits_;
+
   if (Config::root_val)
   {
+    const auto& simhits = ev.simHitsInfo_;
+    const auto& simtracks = ev.simTracks_;
+    const auto& seedtracks = ev.seedTracks_;
+          auto& seedextras = ev.seedTracksExtra_;
+    const auto& buildtracks = ev.candidateTracks_;
+          auto& buildextras = ev.candidateTracksExtra_;
+    const auto& fittracks = ev.fitTracks_;
+          auto& fitextras = ev.fitTracksExtra_;
     // set mcTrackID for seed tracks
-    for (int itrack = 0; itrack < ev.seedTracks_.size(); itrack++)
+    for (int itrack = 0; itrack < seedtracks.size(); itrack++)
     {
-      auto&& track(ev.seedTracks_[itrack]);
-      auto&& extra(ev.seedTracksExtra_[itrack]);
-      extra.setMCTrackIDInfo(track, ev.layerHits_, ev.simHitsInfo_, ev.simTracks_, true); // otherwise seeds are completely unmatched in ToyMC Sim Seeds
+      const auto& track = seedtracks[itrack];
+            auto& extra = seedextras[itrack];
+      extra.setMCTrackIDInfo(track, layerhits, simhits, simtracks, true); // otherwise seeds are completely unmatched in ToyMC Sim Seeds
     }
     
     // set mcTrackID for built tracks
-    for (int itrack = 0; itrack < ev.candidateTracks_.size(); itrack++)
+    for (int itrack = 0; itrack < buildtracks.size(); itrack++)
     {
-      auto&& track(ev.candidateTracks_[itrack]);
-      auto&& extra(ev.candidateTracksExtra_[itrack]);
-      if (Config::readCmsswSeeds || Config::findSeeds) {extra.setMCTrackIDInfo(track, ev.layerHits_, ev.simHitsInfo_, ev.simTracks_, false);}
-      else {extra.setMCTrackIDInfoByLabel(track, ev.layerHits_, ev.simHitsInfo_);}
+      const auto& track = buildtracks[itrack];
+            auto& extra = buildextras[itrack];
+      if (Config::readCmsswSeeds || Config::findSeeds) {extra.setMCTrackIDInfo(track, layerhits, simhits, simtracks, false);}
+      else {extra.setMCTrackIDInfoByLabel(track, layerhits, simhits, simtracks);}
     }
   
     // set mcTrackID for fit tracks
-    for (int itrack = 0; itrack < ev.fitTracks_.size(); itrack++)
+    for (int itrack = 0; itrack < fittracks.size(); itrack++)
     {
-      auto&& track(ev.fitTracks_[itrack]);
-      auto&& extra(ev.fitTracksExtra_[itrack]);
-      if (Config::readCmsswSeeds || Config::findSeeds) {extra.setMCTrackIDInfo(track, ev.layerHits_, ev.simHitsInfo_, ev.simTracks_, false);}
-      else {extra.setMCTrackIDInfoByLabel(track, ev.layerHits_, ev.simHitsInfo_);}
+      const auto& track = fittracks[itrack];
+            auto& extra = fitextras[itrack];
+      if (Config::readCmsswSeeds || Config::findSeeds) {extra.setMCTrackIDInfo(track, layerhits, simhits, simtracks, false);}
+      else {extra.setMCTrackIDInfoByLabel(track, layerhits, simhits, simtracks);}
     }
   }
 
@@ -539,11 +549,16 @@ void TTreeValidation::setTrackExtras(Event& ev)
     // store mcTrackID and seedID correctly
     storeSeedAndMCID(ev);
 
-    RedTrackVec reducedCMSSW(ev.extRecTracks_.size()); // use 2D chi2 for now, so might as well make use of this object for now
-    for (int itrack = 0; itrack < ev.extRecTracks_.size(); itrack++)
+    const auto& cmsswtracks = ev.extRecTracks_;
+          auto& cmsswextras = ev.extRecTracksExtra_;
+    const auto& buildtracks = ev.candidateTracks_;
+          auto& buildextras = ev.candidateTracksExtra_;
+
+    RedTrackVec reducedCMSSW(cmsswtracks.size()); // use 2D chi2 for now, so might as well make use of this object for now
+    for (int itrack = 0; itrack < cmsswtracks.size(); itrack++)
     {
-      const auto & cmsswtrack = ev.extRecTracks_[itrack];
-      const auto & cmsswextra = ev.extRecTracksExtra_[itrack];
+      const auto & cmsswtrack = cmsswtracks[itrack];
+      const int seedID = cmsswextras[itrack].seedID();
       const SVector6 & params = cmsswtrack.parameters();
       SVector2 tmpv(params[3],params[5]);
 
@@ -553,26 +568,28 @@ void TTreeValidation::setTrackExtras(Event& ev)
 	const int lyr = cmsswtrack.getHitLyr(ihit);
 	const int idx = cmsswtrack.getHitIdx(ihit);
 
-	if (idx >= 0) tmpmap[lyr].push_back(idx);
+	if (idx >= 0) 
+	{
+	  tmpmap[lyr].push_back(idx);
+	}
       }
 
       // index inside object is label (as cmsswtracks are now aligned)
-      reducedCMSSW[itrack] = ReducedTrack(cmsswtrack.label(),cmsswextra.seedID(),tmpv,cmsswtrack.momPhi(),tmpmap);
+      reducedCMSSW[itrack] = ReducedTrack(cmsswtrack.label(),seedID,tmpv,cmsswtrack.momPhi(),tmpmap);
     }
 
     // set cmsswTrackID for built tracks
-    for (int itrack = 0; itrack < ev.candidateTracks_.size(); itrack++)
+    for (int itrack = 0; itrack < buildtracks.size(); itrack++)
     {
-      auto&& track(ev.candidateTracks_[itrack]);
-      auto&& extra(ev.candidateTracksExtra_[itrack]);
+      const auto& track = buildtracks[itrack];
+            auto& extra = buildextras[itrack];
       if (Config::cleanCmsswSeeds)
       {
-	extra.setCMSSWTrackIDInfo(track, ev.layerHits_, ev.extRecTracks_, reducedCMSSW);
+	extra.setCMSSWTrackIDInfo(track, layerhits, cmsswtracks, reducedCMSSW);
       }
       else 
       {
-	auto&& cmsswtrack(ev.extRecTracks_[buildToCmsswMap_[track.label()]]);
-	extra.setCMSSWTrackIDInfoByLabel(track, ev.layerHits_, cmsswtrack, reducedCMSSW[cmsswtrack.label()]);
+	extra.setCMSSWTrackIDInfoByLabel(track, layerhits, cmsswtracks, reducedCMSSW[cmsswtracks[buildToCmsswMap_[track.label()]].label()]);
       }
     }
   }
@@ -686,12 +703,14 @@ void TTreeValidation::storeSeedAndMCID(Event& ev)
   const auto& cmsswtracks = ev.extRecTracks_;
         auto& cmsswextras = ev.extRecTracksExtra_;
   
+  int newlabel = -1;
   for (int itrack = 0; itrack < buildtracks.size(); itrack++)
   {
     auto& extra = buildextras[itrack];
     const int seedID = extra.seedID();
 
     extra.setmcTrackID(seedID);
+
     if (seedToCmsswMap_.count(seedID))
     {
       extra.setseedID(seedToCmsswMap_[seedID]);
@@ -706,7 +725,7 @@ void TTreeValidation::storeSeedAndMCID(Event& ev)
     }
     else 
     {
-      extra.setseedID(-1);
+      extra.setseedID(--newlabel);
     }
   }
 }
@@ -1166,18 +1185,37 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     {
       if (Config::inclusiveShorts) 
       {
-	if      (mcID_seed_FR_ == -1 || mcID_seed_FR_ == -3) mcmask_seed_FR_ = 0;
-	else if (mcID_seed_FR_ == -2 || mcID_seed_FR_ == -4 ||
-		 mcID_seed_FR_ == -6 || mcID_seed_FR_ == -7) mcmask_seed_FR_ = 2; 
-	else                                                 mcmask_seed_FR_ = -1; // mcID == -5
+	if      (mcID_seed_FR_ ==  -1 || mcID_seed_FR_ ==  -5 || mcID_seed_FR_ == -6 ||
+		 mcID_seed_FR_ ==  -7 || mcID_seed_FR_ ==  -8 || mcID_seed_FR_ == -9)  
+	{
+	  mcmask_seed_FR_ = 0;
+	}
+	else if (mcID_seed_FR_ ==  -2 || mcID_seed_FR_ ==  -3 || mcID_seed_FR_ == -4 || 
+		 mcID_seed_FR_ == -10 || mcID_seed_FR_ == -11 || mcID_seed_FR_ == -12)
+	{
+	  mcmask_seed_FR_ = 2; 
+	}
+	else // mcID == -13
+	{
+	  mcmask_seed_FR_ = -1;
+	}
       }
-      else 
+      else // only count long tracks
       {
-	if      (mcID_seed_FR_ == -1) mcmask_seed_FR_ = 0;
-	else if (mcID_seed_FR_ == -6) mcmask_seed_FR_ = 2;
-	else                          mcmask_seed_FR_ = -1; // mcID == -2,-3,-4,-5,-7
+	if      (mcID_seed_FR_ == -1 || mcID_seed_FR_ == -7 || mcID_seed_FR_ == -9) 
+	{
+	  mcmask_seed_FR_ = 0;
+	}
+	else if (mcID_seed_FR_ == -4) 
+	{
+	  mcmask_seed_FR_ = 2;
+	}
+	else // mcID == -2,-3,-5,-6,-8,-10,-11,-12,-13
+	{
+	  mcmask_seed_FR_ = -1; 
+	}
       }
-    }
+    } // end check over not matched
     
     if (mcmask_seed_FR_ == 1) // matched track to sim
     {
@@ -1262,18 +1300,37 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       {
 	if (Config::inclusiveShorts) 
         {
-	  if      (mcID_build_FR_ == -1 || mcID_build_FR_ == -3) mcmask_build_FR_ = 0;
-	  else if (mcID_build_FR_ == -2 || mcID_build_FR_ == -4 ||
-		   mcID_build_FR_ == -6 || mcID_build_FR_ == -7) mcmask_build_FR_ = 2; 
-	  else                                                   mcmask_build_FR_ = -1; // mcID == -5
+	  if      (mcID_build_FR_ ==  -1 || mcID_build_FR_ ==  -5 || mcID_build_FR_ == -6 ||
+		   mcID_build_FR_ ==  -7 || mcID_build_FR_ ==  -8 || mcID_build_FR_ == -9)  
+	  {
+	    mcmask_build_FR_ = 0;
+	  }
+	  else if (mcID_build_FR_ ==  -2 || mcID_build_FR_ ==  -3 || mcID_build_FR_ == -4 || 
+		   mcID_build_FR_ == -10 || mcID_build_FR_ == -11 || mcID_build_FR_ == -12)
+	  {
+	    mcmask_build_FR_ = 2; 
+	  }
+	  else // mcID == -13
+	  {
+	    mcmask_build_FR_ = -1;
+	  }
 	}
-	else 
+	else // only count long tracks
         {
-	  if      (mcID_build_FR_ == -1) mcmask_build_FR_ = 0;
-	  else if (mcID_build_FR_ == -6) mcmask_build_FR_ = 2;
-	  else                           mcmask_build_FR_ = -1; // mcID == -2,-3,-4,-5,-7
+	  if      (mcID_build_FR_ == -1 || mcID_build_FR_ == -7 || mcID_build_FR_ == -9) 
+	  {
+	    mcmask_build_FR_ = 0;
+	  }
+	  else if (mcID_build_FR_ == -4) 
+	  {
+	    mcmask_build_FR_ = 2;
+	  }
+	  else // mcID == -2,-3,-5,-6,-8,-10,-11,-12,-13
+	  {
+	    mcmask_build_FR_ = -1; 
+	  }
 	}
-      }
+      } // end check over not matched
 
       if (mcmask_build_FR_ == 1) // build track matched to seed and sim 
       {
@@ -1396,19 +1453,38 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       {
 	if (Config::inclusiveShorts) 
         {
-	  if      (mcID_fit_FR_ == -1 || mcID_fit_FR_ == -3) mcmask_fit_FR_ = 0;
-	  else if (mcID_fit_FR_ == -2 || mcID_fit_FR_ == -4 ||
-		   mcID_fit_FR_ == -6 || mcID_fit_FR_ == -7) mcmask_fit_FR_ = 2; 
-	  else                                               mcmask_fit_FR_ = -1; // mcID == -5
+	  if      (mcID_fit_FR_ ==  -1 || mcID_fit_FR_ ==  -5 || mcID_fit_FR_ == -6 ||
+		   mcID_fit_FR_ ==  -7 || mcID_fit_FR_ ==  -8 || mcID_fit_FR_ == -9)  
+	  {
+	    mcmask_fit_FR_ = 0;
+	  }
+	  else if (mcID_fit_FR_ ==  -2 || mcID_fit_FR_ ==  -3 || mcID_fit_FR_ == -4 || 
+		   mcID_fit_FR_ == -10 || mcID_fit_FR_ == -11 || mcID_fit_FR_ == -12)
+	  {
+	    mcmask_fit_FR_ = 2; 
+	  }
+	  else // mcID == -13
+	  {
+	    mcmask_fit_FR_ = -1;
+	  }
 	}
-	else 
+	else // only count long tracks
         {
-	  if      (mcID_fit_FR_ == -1) mcmask_fit_FR_ = 0;
-	  else if (mcID_fit_FR_ == -6) mcmask_fit_FR_ = 2;
-	  else                         mcmask_fit_FR_ = -1; // mcID == -2,-3,-4,-5,-7
+	  if      (mcID_fit_FR_ == -1 || mcID_fit_FR_ == -7 || mcID_fit_FR_ == -9) 
+	  {
+	    mcmask_fit_FR_ = 0;
+	  }
+	  else if (mcID_fit_FR_ == -4) 
+	  {
+	    mcmask_fit_FR_ = 2;
+	  }
+	  else // mcID == -2,-3,-5,-6,-8,-10,-11,-12,-13
+	  {
+	    mcmask_fit_FR_ = -1; 
+	  }
 	}
-      }
-
+      } // end check over not matched
+   
       if (mcmask_fit_FR_ == 1) // fit track matched to seed and sim 
       {
 	auto& simtrack = evt_sim_tracks[mcID_fit_FR_];
@@ -1704,7 +1780,7 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
     duplmask_build_cFR_   = buildextra.isDuplicate(); 
     iTkMatches_build_cFR_ = buildextra.duplicateID();
 
-    //dphi
+    // stored dphi
     dphi_build_cFR_ = buildextra.dPhi();
     
     // cmssw match?
@@ -1717,27 +1793,45 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
     {
       if (Config::inclusiveShorts) 
       {
-	if      (cmsswID_build_cFR_ == -1 || cmsswID_build_cFR_ == -3)    cmsswmask_build_cFR_ = 0;
-	else if (cmsswID_build_cFR_ == -2 || cmsswID_build_cFR_ == -4 ||
-		 cmsswID_build_cFR_ == -6 || cmsswID_build_cFR_ == -7 ||
-		 cmsswID_build_cFR_ == -8)                                cmsswmask_build_cFR_ = 2; 
-	else    std::cerr << "Somehow got a bad cmsswID: " << cmsswID_build_cFR_ << " trackID: " << mcTrackID_build_cFR_ << std::endl;
+	if      (cmsswID_build_cFR_ ==  -1 || cmsswID_build_cFR_ ==  -5 || cmsswID_build_cFR_ == -6 ||
+		 cmsswID_build_cFR_ ==  -7 || cmsswID_build_cFR_ ==  -8 || cmsswID_build_cFR_ == -9)  
+	{
+	  cmsswmask_build_cFR_ = 0;
+	}
+	else if (cmsswID_build_cFR_ ==  -2 || cmsswID_build_cFR_ ==  -3 || cmsswID_build_cFR_ == -4 || 
+		 cmsswID_build_cFR_ == -10 || cmsswID_build_cFR_ == -11 || cmsswID_build_cFR_ == -12)
+	{
+	  cmsswmask_build_cFR_ = 2; 
+	}
+	else // mcID == -13
+	{
+	  cmsswmask_build_cFR_ = -1;
+	}
       }
-      else 
+      else // only count long tracks
       {
-	if      (cmsswID_build_cFR_ == -1) cmsswmask_build_cFR_ = 0;
-	else if (cmsswID_build_cFR_ == -6) cmsswmask_build_cFR_ = 2;
-	else                               cmsswmask_build_cFR_ = -1; // cmsswID == -2,-3,-4,-7,-8
+	if      (cmsswID_build_cFR_ == -1 || cmsswID_build_cFR_ == -7 || cmsswID_build_cFR_ == -9) 
+	{
+	  cmsswmask_build_cFR_ = 0;
+	}
+	else if (cmsswID_build_cFR_ == -4) 
+	{
+	  cmsswmask_build_cFR_ = 2;
+	}
+	else // mcID == -2,-3,-5,-6,-8,-10,-11,-12,-13
+	{
+	  cmsswmask_build_cFR_ = -1; 
+	}
       }
-    }
+    } // end check over not matched
     
     if (cmsswmask_build_cFR_ == 1) // matched track to cmssw
     {
       const auto& cmsswtrack = evt_cmssw_tracks[cmsswID_build_cFR_];
       const auto& cmsswextra = evt_cmssw_extras[cmsswtrack.label()];
+
       seedID_cmssw_cFR_ = cmsswextra.seedID();
 
-      // PCA parameters
       x_cmssw_cFR_ = cmsswtrack.x();
       y_cmssw_cFR_ = cmsswtrack.y();
       z_cmssw_cFR_ = cmsswtrack.z();
@@ -1757,7 +1851,7 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
       x_cmssw_cFR_ = -2000;
       y_cmssw_cFR_ = -2000;
       z_cmssw_cFR_ = -2000;
-
+      
       pt_cmssw_cFR_  = -99;
       phi_cmssw_cFR_ = -99;
       eta_cmssw_cFR_ = -99;
@@ -1766,6 +1860,7 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
       nLayers_cmssw_cFR_ = -99;
       lastlyr_cmssw_cFR_ = -99;
     }
+
     cmsswfrtree_->Fill();
   } 
 }

@@ -357,7 +357,7 @@ void Event::PrintStats(const TrackVec& trks, TrackExtraVec& trkextras)
 
   for (auto&& trk : trks) {
     auto&& extra = trkextras[trk.label()];
-    extra.setMCTrackIDInfoByLabel(trk, layerHits_, simHitsInfo_);
+    extra.setMCTrackIDInfoByLabel(trk, layerHits_, simHitsInfo_, simTracks_);
     if (extra.mcTrackID() < 0) {
       ++miss;
     } else {
@@ -771,8 +771,6 @@ int Event::clean_cms_seedtracks()
 
   seedTracks_.swap(cleanSeedTracks);
 
-  if (Config::root_val || Config::cmssw_val) relabel_bad_seedtracks();
-
   return seedTracks_.size();
 }
 
@@ -798,8 +796,6 @@ int Event::use_seeds_from_cmsswtracks()
   }
 
   seedTracks_.swap(cleanSeedTracks);
-
-  if (Config::root_val || Config::cmssw_val) relabel_bad_seedtracks();
 
   return seedTracks_.size();
 }

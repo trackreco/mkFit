@@ -801,7 +801,7 @@ void MkBuilder::quality_process(Track &tkcand)
   }
   else
   {
-    extra.setMCTrackIDInfoByLabel(tkcand, m_event->layerHits_, m_event->simHitsInfo_);
+    extra.setMCTrackIDInfoByLabel(tkcand, m_event->layerHits_, m_event->simHitsInfo_, m_event->simTracks_);
   }
   int mctrk = extra.mcTrackID();
 
@@ -941,6 +941,8 @@ void MkBuilder::PrepareSeeds()
     }
     else 
     {
+      m_event->relabel_bad_seedtracks();
+
       if (Config::cmssw_val) 
       {
 	m_event->validation_.makeSeedTkToCMSSWTkMap(*m_event);
