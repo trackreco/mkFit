@@ -382,18 +382,6 @@ void MkBuilder::import_seeds()
 
   // bool debug = true;
 
-  if (Config::readCmsswSeeds)
-  {
-#ifndef CLEAN_SEEDS
-    printf("***\n*** MkBuilder::import_seeds REMOVING SEEDS WITH BAD LABEL. This is a development hack. ***\n***\n");
-
-    if (true) {
-      TrackVec buf; m_event->seedTracks_.swap(buf);
-      std::copy_if(buf.begin(), buf.end(), std::back_inserter(m_event->seedTracks_), [](const Track& t){ return t.label() >= 0; });
-    }
-#endif
-  }
-
   TrackerInfo &trk_info = Config::TrkInfo;
   TrackVec    &seeds    = m_event->seedTracks_;
   const int    size     = seeds.size();
@@ -813,7 +801,7 @@ void MkBuilder::quality_process(Track &tkcand)
   }
   else
   {
-    extra.setMCTrackIDInfoByLabel(tkcand, m_event->layerHits_, m_event->simHitsInfo_);
+    extra.setMCTrackIDInfoByLabel(tkcand, m_event->layerHits_, m_event->simHitsInfo_, m_event->simTracks_);
   }
   int mctrk = extra.mcTrackID();
 
@@ -888,8 +876,8 @@ void MkBuilder::cmssw_val()
   // get the tracks ready for validation
   remap_cand_hits();
   prep_recotracks();
-
   prep_cmsswtracks();
+
   m_event->Validate();
 }
 
@@ -911,7 +899,9 @@ void MkBuilder::prep_cmsswtracks()
   for (auto&& cmsswtrack : m_event->extRecTracks_)
   {
     const int nlyr = cmsswtrack.nUniqueLayers();
-    if (nlyr < Config::cmsSelMinLayers || cmsswtrack.pT() < Config::cmsSelMinPt) cmsswtrack.setNotFindable();
+    const int ihit = cmsswtrack.getLastFoundHitPos();
+    const float eta = m_event->layerHits_[cmsswtrack.getHitLyr(ihit)][cmsswtrack.getHitIdx(ihit)].eta();
+    if (nlyr < Config::cmsSelMinLayers || Config::TrkInfo.is_transition(eta)) cmsswtrack.setNotFindable();
   }
 }
 
@@ -951,6 +941,34 @@ void MkBuilder::PrepareSeeds()
       }
       create_seeds_from_sim_tracks();
     }
+    else 
+    {
+      m_event->relabel_bad_seedtracks();
+
+      if (Config::cmssw_val) 
+      {
+	m_event->validation_.makeSeedTkToCMSSWTkMap(*m_event);
+      }
+
+      // CMSSW Seed Cleaning 
+      int ns = 0;
+      if (Config::cleanCmsswSeeds)
+      {
+	ns = m_event->clean_cms_seedtracks();
+      }
+      else
+      {
+	if (Config::cmssw_val)
+	{
+	  ns = m_event->use_seeds_from_cmsswtracks();
+	}
+	else 
+	{
+	  ns = m_event->clean_cms_seedtracks_badlabel();
+	}
+      }
+    }
+
     import_seeds();
 
     // printf("\n* Seeds after import:\n");

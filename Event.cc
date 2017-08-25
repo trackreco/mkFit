@@ -357,7 +357,7 @@ void Event::PrintStats(const TrackVec& trks, TrackExtraVec& trkextras)
 
   for (auto&& trk : trks) {
     auto&& extra = trkextras[trk.label()];
-    extra.setMCTrackIDInfoByLabel(trk, layerHits_, simHitsInfo_);
+    extra.setMCTrackIDInfoByLabel(trk, layerHits_, simHitsInfo_, simTracks_);
     if (extra.mcTrackID() < 0) {
       ++miss;
     } else {
@@ -459,7 +459,6 @@ void Event::write_out(DataFile &data_file)
 // #define DUMP_TRACKS
 // #define DUMP_TRACK_HITS
 // #define DUMP_LAYER_HITS
-// #define CLEAN_SEEDS
 
 void Event::read_in(DataFile &data_file, FILE *in_fp)
 {
@@ -515,10 +514,7 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
       fseek(fp, ns * data_file.f_header.f_sizeof_track, SEEK_CUR);
       ns = -ns;
     }
-#ifdef CLEAN_SEEDS
-    
-    ns = clean_cms_seedtracks();//operates on seedTracks_; swaps cleaned seeds into seedTracks_; returns number of cleaned seedTracks
-#endif
+
 #ifdef DUMP_SEEDS
     printf("Read %i seedtracks (neg value means actual reading was skipped)\n", ns);
     for (int it = 0; it < ns; it++)
@@ -775,15 +771,43 @@ int Event::clean_cms_seedtracks()
 
   seedTracks_.swap(cleanSeedTracks);
 
-  if (Config::root_val || Config::cmssw_val)
+  return seedTracks_.size();
+}
+
+int Event::clean_cms_seedtracks_badlabel()
+{
+  printf("***\n*** REMOVING SEEDS WITH BAD LABEL. This is a development hack. ***\n***\n");
+  TrackVec buf; seedTracks_.swap(buf);
+  std::copy_if(buf.begin(), buf.end(), std::back_inserter(seedTracks_), [](const Track& t){ return t.label() >= 0; });
+  return seedTracks_.size();
+}
+
+int Event::use_seeds_from_cmsswtracks()
+{
+  int ns = seedTracks_.size();
+
+  TrackVec cleanSeedTracks;
+  cleanSeedTracks.reserve(ns);
+
+  int i = 0;
+  for (auto&& cmsswtrack : extRecTracks_)
   {
-    int newlabel = 0;
-    for (auto&& track : seedTracks_) if (track.label() < 0) track.setLabel(--newlabel);
+    cleanSeedTracks.emplace_back(seedTracks_[cmsswtrack.label()]);
   }
+
+  seedTracks_.swap(cleanSeedTracks);
 
   return seedTracks_.size();
 }
 
+void Event::relabel_bad_seedtracks()
+{
+  int newlabel = 0;
+  for (auto&& track : seedTracks_)
+  { 
+    if (track.label() < 0) track.setLabel(--newlabel);
+  }
+}
 
 //==============================================================================
 // DataFile

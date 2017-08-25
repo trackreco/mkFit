@@ -497,6 +497,7 @@ int main(int argc, const char *argv[])
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
         "  --ext-rec-tracks         read external rec trakcs if available (def: %s)\n"
         "  --cmssw-seeds            take seeds from CMSSW (def: %s)\n"
+        "  --clean-seeds            use N^2 seed cleaning on CMSSW seeds, else clean seeds with label == -1 (def: %s)\n"
         "  --find-seeds             run road search seeding [CF enabled by default] (def: %s)\n"
         "  --hits-per-task <num>    number of layer1 hits per task in finding seeds (def: %i)\n"
         "  --endcap-test            test endcap tracking (def: %s)\n"
@@ -526,6 +527,7 @@ int main(int argc, const char *argv[])
         Config::finderReportBestOutOfN,
 	b2a(Config::readExtRecTracks),
         b2a(Config::readCmsswSeeds),
+        b2a(Config::cleanCmsswSeeds),
         b2a(Config::findSeeds),
       	Config::numHitsPerTask,
         b2a(Config::endcapTest),
@@ -612,6 +614,10 @@ int main(int argc, const char *argv[])
     else if(*i == "--cmssw-seeds")
     {
       Config::readCmsswSeeds = true;
+    }
+    else if(*i == "--clean-seeds")
+    {
+      Config::cleanCmsswSeeds = true;
     }
     else if(*i == "--find-seeds")
     {

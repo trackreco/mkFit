@@ -46,6 +46,8 @@ public:
   void makeSeedTkToRecoTkMaps(Event& ev) override;
   void mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackExtraVec& evt_extras, TkIDToTkIDMap& seedTkMap);
   void makeCMSSWTkToRecoTksMap(Event& ev) override;
+  void makeSeedTkToCMSSWTkMap(Event& ev) override;
+  void storeSeedAndMCID(Event& ev);
 
   int getLastFoundHit(const int trackMCHitID, const int mcTrackID, const Event& ev);
 
@@ -74,6 +76,12 @@ public:
 
   // CMSSW to Reco Maps
   TkIDToTkIDVecMap cmsswToBuildMap_;
+
+  // Special map for CMSSW tracks to seed track labels --> NOT used for fake rate!!
+  TkIDToTkIDMap seedToCmsswMap_;
+
+  // Special map for geting exact CMSSW track that originate build track from seed track through seedIDs
+  TkIDToTkIDMap buildToCmsswMap_;
 
   // Efficiency Tree 
   TTree* efftree_;  
@@ -168,7 +176,7 @@ public:
   // CMSSW Efficiency tree
   TTree* cmsswefftree_;
   int   evtID_ceff_=0,cmsswID_ceff_=0;
-  int   seedID_cmssw_ceff_=0,seedID_build_ceff_=0;
+  int   seedID_cmssw_ceff_=0,seedID_build_ceff_=0,mcTrackID_build_ceff_=0;
   int   cmsswmask_build_ceff_=0;
 
   float x_cmssw_ceff_=0.,y_cmssw_ceff_=0.,z_cmssw_ceff_=0.;
@@ -186,15 +194,15 @@ public:
 
   // chi2 of tracks + phi swim
   float hitchi2_build_ceff_=0.,helixchi2_build_ceff_=0.;
-  float phi_cmssw_build_ceff_=0.;
+  float dphi_build_ceff_=0.;
 
   int   duplmask_build_ceff_=0,nTkMatches_build_ceff_=0;
 
   // CMSSW FakeRate tree
   TTree* cmsswfrtree_;
 
-  int   evtID_cFR_=0,label_build_cFR_=0,cmsswID_build_cFR_=0;
-  int   seedID_cmssw_cFR_=0,seedID_build_cFR_=0;
+  int   evtID_cFR_=0,cmsswID_build_cFR_=0;
+  int   seedID_cmssw_cFR_=0,seedID_build_cFR_=0,mcTrackID_build_cFR_=0;
   int   cmsswmask_build_cFR_=0;
 
   float pt_build_cFR_=0.,ept_build_cFR_=0.;
@@ -208,6 +216,7 @@ public:
 
   // chi2 of tracks
   float hitchi2_build_cFR_=0.,helixchi2_build_cFR_=0.;
+  float dphi_build_cFR_=0.;
 
   // for duplicate track matches
   int   duplmask_build_cFR_=0,iTkMatches_build_cFR_=0;
@@ -215,8 +224,6 @@ public:
   float x_cmssw_cFR_=0.,y_cmssw_cFR_=0.,z_cmssw_cFR_=0.;
   float pt_cmssw_cFR_=0.,phi_cmssw_cFR_=0.,eta_cmssw_cFR_=0.;
   int   nHits_cmssw_cFR_=0,nLayers_cmssw_cFR_=0,lastlyr_cmssw_cFR_=0;
-
-  float phi_cmssw_build_cFR_=0.;
 
   // Fit tree (for fine tuning z-phi windows and such --> MPlex Only
   TTree* fittree_;

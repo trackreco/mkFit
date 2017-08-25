@@ -47,6 +47,7 @@ namespace Config
 
   bool  useCMSGeom = false;
   bool  readCmsswSeeds = false;
+  bool  cleanCmsswSeeds = false;
   bool  readExtRecTracks = false;
 
   bool  findSeeds  = false;

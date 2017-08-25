@@ -230,9 +230,9 @@ namespace Config
   constexpr float cmsSelMinPt     = 0.5;
 
   // config on validation
-  constexpr int nMinFoundHits = 7; 
-  constexpr float minCMSSWMatchChi2 = 50;
-  constexpr float minCMSSWMatchdPhi = 0.03;
+  constexpr int nMinFoundHits = 7;
+  constexpr float minCMSSWMatchChi2[6] = {100,100,50,50,30,20};
+  constexpr float minCMSSWMatchdPhi[6] = {0.2,0.2,0.1,0.05,0.01,0.005};
   constexpr int   nCMSSWMatchHitsAfterSeed = 5;
   extern bool root_val;
   extern bool cmssw_val;
@@ -262,6 +262,7 @@ namespace Config
   
   extern bool   useCMSGeom;
   extern bool   readCmsswSeeds;
+  extern bool   cleanCmsswSeeds;
   extern bool   readExtRecTracks;
 
   extern bool   endcapTest;

@@ -1,6 +1,6 @@
 #! /bin/bash
 
-make -j 12 WITH_ROOT=yes CPPUSERFLAGS+=-DCLEAN_SEEDS CXXUSERFLAGS+=-DCLEAN_SEEDS
+make -j 12 WITH_ROOT=yes
 
 dir=/data/nfsmic/slava77/samples/2017/pass-4874f28/initialStep
 file=memoryFile.fv3.clean.writeAll.recT.072617.bin
@@ -18,7 +18,7 @@ do
 	do
 	    oBase=${base}_${ttbar}_${bN}
 	    echo "${oBase}: validation [nTH:24, nVU:8]"
-	    ./mkFit/mkFit --cmssw-seeds --geom CMS-2017 --cmssw-val --ext-rec-tracks --read --file-name ${dir}/${!ttbar}/${file} --build-${bO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_cmsswval.txt
+	    ./mkFit/mkFit --cmssw-seeds --clean-seeds --geom CMS-2017 --cmssw-val --ext-rec-tracks --read --file-name ${dir}/${!ttbar}/${file} --build-${bO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_cmsswval.txt
 	    mv valtree.root valtree_${oBase}.root
 	done
     done

@@ -34,6 +34,7 @@ public:
   virtual void makeSimTkToRecoTksMaps(Event&) {}
   virtual void makeSeedTkToRecoTkMaps(Event&) {}
   virtual void makeCMSSWTkToRecoTksMap(Event&) {}
+  virtual void makeSeedTkToCMSSWTkMap(Event&) {}
 
   virtual void fillEfficiencyTree(const Event&) {}
   virtual void fillFakeRateTree(const Event&) {}
