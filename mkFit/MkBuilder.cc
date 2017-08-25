@@ -899,7 +899,9 @@ void MkBuilder::prep_cmsswtracks()
   for (auto&& cmsswtrack : m_event->extRecTracks_)
   {
     const int nlyr = cmsswtrack.nUniqueLayers();
-    if (nlyr < Config::cmsSelMinLayers || cmsswtrack.pT() < Config::cmsSelMinPt) cmsswtrack.setNotFindable();
+    const int ihit = cmsswtrack.getLastFoundHitPos();
+    const float eta = m_event->layerHits_[cmsswtrack.getHitLyr(ihit)][cmsswtrack.getHitIdx(ihit)].eta();
+    if (nlyr < Config::cmsSelMinLayers || Config::TrkInfo.is_transition(eta)) cmsswtrack.setNotFindable();
   }
 }
 
