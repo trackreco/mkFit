@@ -6,6 +6,7 @@
 #include "buildtest.h"
 #include "fittest.h"
 #include "ConformalUtils.h"
+#include "TrackerInfo.h"
 
 //#define DEBUG
 #include "Debug.h"
@@ -636,7 +637,10 @@ int Event::clean_cms_simtracks()
     
     const int lyr_cnt = t.nUniqueLayers();
 
-    if (lyr_cnt < Config::cmsSelMinLayers || t.pT() < Config::cmsSelMinPt)
+    const int lasthit = t.getLastFoundHitPos();
+    const float eta = layerHits_[t.getHitLyr(lasthit)][t.getHitIdx(lasthit)].eta();
+
+    if (lyr_cnt < Config::cmsSelMinLayers || Config::TrkInfo.is_transition(eta))
     {
       dprintf("Rejecting simtrack %d, n_hits=%d, n_layers=%d, pT=%f\n", i, nh, lyr_cnt, t.pT());
       t.setNotFindable();
