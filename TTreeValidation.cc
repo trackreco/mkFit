@@ -952,7 +952,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
  
       hitchi2_seed_eff_   = -99;
       
-      duplmask_seed_eff_   = 2; // mask means unmatched sim track
+      duplmask_seed_eff_   = -1; // mask means unmatched sim track
       nTkMatches_seed_eff_ = -99; // unmatched
     }
 
@@ -1036,7 +1036,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 
       hitchi2_build_eff_   = -99;
       
-      duplmask_build_eff_   = 2; // mask means unmatched sim track
+      duplmask_build_eff_   = -1; // mask means unmatched sim track
       nTkMatches_build_eff_ = -99; // unmatched
     }
     
@@ -1121,7 +1121,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 
       hitchi2_fit_eff_   = -99;
       
-      duplmask_fit_eff_   = 2; // mask means unmatched sim track
+      duplmask_fit_eff_   = -1; // mask means unmatched sim track
       nTkMatches_fit_eff_ = -99; // unmatched
     }
 
@@ -1256,7 +1256,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       nHits_mc_seed_FR_ = -99;
       lastlyr_mc_seed_FR_ = -99;
 
-      duplmask_seed_FR_   = 2; // see notation above      
+      duplmask_seed_FR_   = -1;
       iTkMatches_seed_FR_ = -99;  
     }
 
@@ -1370,7 +1370,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	nHits_mc_build_FR_ = -99;
 	lastlyr_mc_build_FR_ = -99;
 
-	duplmask_build_FR_   = 2;
+	duplmask_build_FR_   = -1;
 	iTkMatches_build_FR_ = -99;
       } // matched seed to build, not build to sim
     }
@@ -1400,7 +1400,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       hitchi2_build_FR_  = -100; 
       
       // keep -100 for all sim variables as no such reco exists for this seed
-      mcmask_build_FR_ = -1; // do not want to count towards build FR
+      mcmask_build_FR_ = -2; // do not want to count towards build FR
       mcID_build_FR_   = -100;
 	
       pt_mc_build_FR_  = -100;
@@ -1411,7 +1411,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       nHits_mc_build_FR_ = -100;
       lastlyr_mc_build_FR_ = -100;
 
-      duplmask_build_FR_   = -1;
+      duplmask_build_FR_   = -2;
       iTkMatches_build_FR_ = -100;
     }
 
@@ -1523,7 +1523,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	nHits_mc_fit_FR_ = -99;
 	lastlyr_mc_fit_FR_ = -99;
 
-	duplmask_fit_FR_   = 2;
+	duplmask_fit_FR_   = -1;
 	iTkMatches_fit_FR_ = -99;
       } // matched seed to fit, not fit to sim
     }
@@ -1553,7 +1553,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       hitchi2_fit_FR_  = -100; 
       
       // keep -100 for all sim variables as no such reco exists for this seed
-      mcmask_fit_FR_ = -1; // do not want to count towards fit FR
+      mcmask_fit_FR_ = -2; // do not want to count towards fit FR
       mcID_fit_FR_   = -100;
 	
       pt_mc_fit_FR_  = -100;
@@ -1564,7 +1564,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       nHits_mc_fit_FR_ = -100;
       lastlyr_mc_fit_FR_ = -100;
 
-      duplmask_fit_FR_   = -1;
+      duplmask_fit_FR_   = -2;
       iTkMatches_fit_FR_ = -100;
     }
 
@@ -1725,7 +1725,7 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
       
       dphi_build_ceff_ = -99;
 
-      duplmask_build_ceff_   = 2; // mask means unmatched cmssw track
+      duplmask_build_ceff_   = -1; // mask means unmatched cmssw track
       nTkMatches_build_ceff_ = -99; // unmatched
     }
     cmsswefftree_->Fill();
@@ -1775,10 +1775,6 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
     // chi2 info
     hitchi2_build_cFR_ = buildtrack.chi2(); 
     helixchi2_build_cFR_ = buildextra.helixChi2();
-
-    // duplicate info
-    duplmask_build_cFR_   = buildextra.isDuplicate(); 
-    iTkMatches_build_cFR_ = buildextra.duplicateID();
 
     // stored dphi
     dphi_build_cFR_ = buildextra.dPhi();
@@ -1843,6 +1839,10 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
       nHits_cmssw_cFR_   = cmsswtrack.nFoundHits(); 
       nLayers_cmssw_cFR_ = cmsswtrack.nUniqueLayers();
       lastlyr_cmssw_cFR_ = cmsswtrack.getLastFoundHitLyr();
+
+      // duplicate info
+      duplmask_build_cFR_   = buildextra.isDuplicate(); 
+      iTkMatches_build_cFR_ = buildextra.duplicateID();
     }
     else // unmatched cmsswtracks ... put -99 for all reco values to denote unmatched
     {
@@ -1859,6 +1859,9 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
       nHits_cmssw_cFR_   = -99;
       nLayers_cmssw_cFR_ = -99;
       lastlyr_cmssw_cFR_ = -99;
+
+      duplmask_build_cFR_   = -1;
+      iTkMatches_build_cFR_ = -99;
     }
 
     cmsswfrtree_->Fill();

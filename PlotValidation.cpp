@@ -387,7 +387,7 @@ void PlotValidation::PlotFakeRate()
 	for (UInt_t p = 0; p < ptcuts.size(); p++) // loop over pt cuts
 	{
 	  if (recovars_val[0][j] < ptcuts[p]) continue; // pt cut
-	  if (mcmask_trk[j] != -1) // can include masks of 1,0,2 to enter denominator
+	  if (mcmask_trk[j] >= 0) // can include masks of 1,0,2 to enter denominator
 	  {
 	    varsFR[i][j][p]->Fill((mcmask_trk[j] == 0),recovars_val[i][j]); // only completely unassociated reco tracks enter FR
 	  } // must be a real reco track for FR
@@ -469,15 +469,12 @@ void PlotValidation::PlotDuplicateRate()
   }
 
   //Initialize masks, set branch addresses  
-  IntVec mcmask_trk(trks.size()); // need to know if sim track associated to a given reco track type
-  IntVec nTkMatches_trk(trks.size()); // need to know how many duplicates each mc track produces.  nDupl == 1 means one reco track
+  IntVec duplmask_trk(trks.size()); // need to know if sim track is duplicated
   for (UInt_t j = 0; j < trks.size(); j++) // loop over trks index
   {
-    mcmask_trk[j] = 0;
-    nTkMatches_trk[j] = 0;
+    duplmask_trk[j] = 0;
     
-    efftree->SetBranchAddress(Form("%smask_%s",(fCmsswComp?"cmssw":"mc"),trks[j].Data()),&(mcmask_trk[j]));
-    efftree->SetBranchAddress(Form("nTkMatches_%s",trks[j].Data()),&(nTkMatches_trk[j]));
+    efftree->SetBranchAddress(Form("duplmask_%s",trks[j].Data()),&(duplmask_trk[j]));
   }
 
   // Fill histos, compute DR from tree branches 
@@ -491,9 +488,9 @@ void PlotValidation::PlotDuplicateRate()
 	for (UInt_t p = 0; p < ptcuts.size(); p++) // loop over pt cuts
 	{
 	  if (mcvars_val[0] < ptcuts[p]) continue;
-	  if (mcmask_trk[j] == 1) // need to be matched at least once
+	  if (duplmask_trk[j] != -1) // need sim track to be matched at least once
 	  {
-	    varsDR[i][j][p]->Fill(nTkMatches_trk[j]>1,mcvars_val[i]); 
+	    varsDR[i][j][p]->Fill((duplmask_trk[j]==1),mcvars_val[i]); 
 	  }
 	} // must be a matched track for proper denom
       } // end loop over trks

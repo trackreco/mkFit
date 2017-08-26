@@ -275,7 +275,8 @@ The following routines are then called after the building (MkBuilder.cc, Event.c
       : mcmask == 1
       : get first seed track matched (i.e. the one with the highest nHits --> or lowest sum hit chi2 as provided by sort from above)
       : store seed track parameters
-      : store nHits, nlayers, last layer, chi2, duplicate info
+      : store nHits, nlayers, last layer, chi2
+      : store duplicate info: nTrks_matched from size() of mapped vector of labels, and duplicateMask == seedtrack.isDuplicate()
       : get last found hit index
       	: store hit parameters
 	: if mcTrackID of hit == mcTrackID of sim track // ONLY for when simtrackstates are stored, i.e. in ToyMC only at the moment
@@ -296,7 +297,8 @@ The following routines are then called after the building (MkBuilder.cc, Event.c
     : assign mcmask info based on mcTrackID from track extra (see section D and G for explanation of mask assignments)
     : if mcmask == 1
       : store gen sim momentum parameters
-      : store nhits info, last layer, duplicate info
+      : store nhits info, last layer
+      : store duplicate info: iTh track matched from seedtrack extra, duplicateMask == seedtrack.isDuplicate()
       : if last hit found has a valid mcHitID
       	: store sim track state momentum info from simTrackStates[mcHitID]
     : if seedToBuildMap[seedID] has value
@@ -304,7 +306,7 @@ The following routines are then called after the building (MkBuilder.cc, Event.c
       : assign mcmask info based on mcTrackID from track extra (see section D and G for explanation of mask assignments)
       : if mcmask == 1
       	: store gen sim momentum parameters
-        : store nhits info, last layer, duplicate info
+        : store nhits info, last layer, duplicate info as above
         : if last hit found has a valid mcHitID
       	  : store sim track state momentum info from simTrackStates[mcHitID]
     : if seedToFitMap[seedID] has value
@@ -372,8 +374,8 @@ Fake Rate (with all reco tracks: Config::inclusiveShorts == true, enabled with c
             -13          |    -1 // OR the seed track does produce a build/fit track as determined by the seedToBuild/FitMap
 
 Duplicate Rate [PlotValidation::PlotDuplicateRate()], see special note in section H
-  numerator:   sim tracks with more than reco track match (nTkMatches_[reco] > 1)
-  denominator: sim tracks with at least one reco track with mcTrackID >= 0 (mcmask_[reco] == 1)
+  numerator:   sim tracks with more than reco track match (duplmask_[reco] == 1), or another way is nTrks_matched_[reco] > 1
+  denominator: sim tracks with at least one reco track with mcTrackID >= 0 (duplmask_[reco] != -1), or mcmask_[reco] == 1
 
 ========================
  E. Overview of scripts
@@ -503,9 +505,13 @@ mcTrackID assignments in Track.cc
 _[reco] = {seed,build,fit}
 
 N.B. Mask assignments
+
+Logic is as follows: any negative integer means that track is excluded from both the numerator and denominator. A mask with a value greater than 1 means that the track is included in the denominator, but not the numerator.
+
 --> mcmask_[reco] == 1,"associated" reco to sim track [possible duplmask_[reco] == 1,0] {eff and FR}, enter numer and denom of eff, enter denom only of FR
---> mcmask_[reco] == 0,"unassociated" reco to sim track. by definition no duplicates (no reco to associate to sim tracks!) [possible duplmask_[reco] == 2 {eff and FR}], enter denom only of eff, enter numer and denom of FR
+--> mcmask_[reco] == 0,"unassociated" reco to sim track. by definition no duplicates (no reco to associate to sim tracks!) [possible duplmask_[reco] == -1 {eff and FR}], enter denom only of eff, enter numer and denom of FR
 --> mcmask_[reco] == -1, sim or reco track excluded from denominator (and therefore numerator) [possible duplmask_[reco] == -1] {eff and FR}
+--> mcmask_[reco] == -2, reco track excluded from denominator because it does not exist (and therefore numerator) [possible duplmask_[reco] == -2] {FR}
 --> mcmask_[reco] == 2, reco track included in demoninator of FR, but will not enter numerator: for short "matched" tracks {FR only}
 
 --> nTkMatches_[reco] > 1,   n reco tracks associated to the same sim track ID {eff only}
@@ -513,18 +519,18 @@ N.B. Mask assignments
 --> nTkMatches_[reco] == -99, no reco to sim match {eff only}
 
 excluding position variables, as position could be -99!
---> reco var == -99, "unassociated" reco to sim track [possible mcmask_[reco] == 0,-1,2; possible duplmask_[reco] == 2] {eff only}
---> sim  var == -99, "unassociated" reco to sim track [possible mcmask_[reco] == 0,-1,2; possible duplmask_[reco] == 2] {FR only}
+--> reco var == -99, "unassociated" reco to sim track [possible mcmask_[reco] == 0,-1,2; possible duplmask_[reco] == -1] {eff only}
+--> sim  var == -99, "unassociated" reco to sim track [possible mcmask_[reco] == 0,-1,2; possible duplmask_[reco] == -1] {FR only}
 --> reco/sim var == -100, "no matching seed to build/fit" track, fill all reco/sim variables -100 [possible mcmask_[reco] == -1, possible duplmask_[reco] == -1] {FR only}
 --> sim  var == -101, reco track is "associated" to sim track, however, sim track does have a hit on the layer the reco track is on
 
---> seedmask_[reco] == 1, matching seed to reco/fit track [possible mcmask_[reco] == 0,1,2; possible duplmask_[reco] == 0,1,2] {FR only}
---> seedmask_[reco] == 0, no matching seed to reco/fit track [possible mcmask_[reco] == -1; possible duplmask_[reco] == -1] {FR only}
+--> seedmask_[reco] == 1, matching seed to reco/fit track [possible mcmask_[reco] == 0,1,2; possible duplmask_[reco] == 0,1,-1] {FR only}
+--> seedmask_[reco] == 0, no matching seed to reco/fit track [possible mcmask_[reco] == -2; possible duplmask_[reco] == -2] {FR only}
 
 --> duplmask_[reco] == 0, only "associated" reco to sim track [possible mcmask_[reco] == 1] {eff and FR}
 --> duplmask_[reco] == 1, more than one "associated" reco to sim track [possible mcmask_[reco] == 1] {eff and FR}
---> duplmask_[reco] == 2, no "associated" reco to sim track [possible mcmask_[reco] == 0,-1,2] {eff and FR}
---> duplmask_[reco] == -1, no matching built/fit track for given seed [possible mcmask_[reco] == -1] {FR only}
+--> duplmask_[reco] == -1, no "associated" reco to sim track [possible mcmask_[reco] == 0,-1,-2] {eff and FR}
+--> duplmask_[reco] == -2, no matching built/fit track for given seed [possible mcmask_[reco] == -2] {FR only}
 
 --> reco var == -10, variable not yet implemented for given track object
 
