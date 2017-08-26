@@ -1185,32 +1185,28 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     {
       if (Config::inclusiveShorts) 
       {
-	if      (mcID_seed_FR_ ==  -1 || mcID_seed_FR_ ==  -5 || mcID_seed_FR_ == -6 ||
-		 mcID_seed_FR_ ==  -7 || mcID_seed_FR_ ==  -8 || mcID_seed_FR_ == -9)  
+	if      (mcID_seed_FR_ ==  -1 || mcID_seed_FR_ ==  -5 || 
+		 mcID_seed_FR_ ==  -8 || mcID_seed_FR_ ==  -9)  
 	{
 	  mcmask_seed_FR_ = 0;
 	}
-	else if (mcID_seed_FR_ ==  -2 || mcID_seed_FR_ ==  -3 || mcID_seed_FR_ == -4 || 
-		 mcID_seed_FR_ == -10 || mcID_seed_FR_ == -11 || mcID_seed_FR_ == -12)
+	else if (mcID_seed_FR_ ==  -2 || mcID_seed_FR_ == -10 ||
+		 mcID_seed_FR_ == -11)
 	{
 	  mcmask_seed_FR_ = 2; 
 	}
-	else // mcID == -13
+	else // mcID == -3,-4,-6,-7,-12,-13
 	{
 	  mcmask_seed_FR_ = -1;
 	}
       }
       else // only count long tracks
       {
-	if      (mcID_seed_FR_ == -1 || mcID_seed_FR_ == -7 || mcID_seed_FR_ == -9) 
+	if      (mcID_seed_FR_ == -1 || mcID_seed_FR_ == -9) 
 	{
 	  mcmask_seed_FR_ = 0;
 	}
-	else if (mcID_seed_FR_ == -4) 
-	{
-	  mcmask_seed_FR_ = 2;
-	}
-	else // mcID == -2,-3,-5,-6,-8,-10,-11,-12,-13
+	else // mcID == -2,-3,-5,-6,-7,-8,-10,-11,-12,-13
 	{
 	  mcmask_seed_FR_ = -1; 
 	}
@@ -1300,32 +1296,28 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       {
 	if (Config::inclusiveShorts) 
         {
-	  if      (mcID_build_FR_ ==  -1 || mcID_build_FR_ ==  -5 || mcID_build_FR_ == -6 ||
-		   mcID_build_FR_ ==  -7 || mcID_build_FR_ ==  -8 || mcID_build_FR_ == -9)  
+	  if      (mcID_build_FR_ ==  -1 || mcID_build_FR_ ==  -5 ||
+		   mcID_build_FR_ ==  -8 || mcID_build_FR_ ==  -9)  
 	  {
 	    mcmask_build_FR_ = 0;
 	  }
-	  else if (mcID_build_FR_ ==  -2 || mcID_build_FR_ ==  -3 || mcID_build_FR_ == -4 || 
-		   mcID_build_FR_ == -10 || mcID_build_FR_ == -11 || mcID_build_FR_ == -12)
+	  else if (mcID_build_FR_ ==  -2 || mcID_build_FR_ == -10 ||
+		   mcID_build_FR_ == -11)
 	  {
 	    mcmask_build_FR_ = 2; 
 	  }
-	  else // mcID == -13
+	  else // mcID == -3,-4,-6,-7,-12,-13
 	  {
 	    mcmask_build_FR_ = -1;
 	  }
 	}
 	else // only count long tracks
         {
-	  if      (mcID_build_FR_ == -1 || mcID_build_FR_ == -7 || mcID_build_FR_ == -9) 
+	  if      (mcID_build_FR_ == -1 || mcID_build_FR_ == -9) 
 	  {
 	    mcmask_build_FR_ = 0;
 	  }
-	  else if (mcID_build_FR_ == -4) 
-	  {
-	    mcmask_build_FR_ = 2;
-	  }
-	  else // mcID == -2,-3,-5,-6,-8,-10,-11,-12,-13
+	  else // mcID == -2,-3,-4,-5,-6,-7,-8,-10,-11,-12,-13
 	  {
 	    mcmask_build_FR_ = -1; 
 	  }
@@ -1453,32 +1445,28 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       {
 	if (Config::inclusiveShorts) 
         {
-	  if      (mcID_fit_FR_ ==  -1 || mcID_fit_FR_ ==  -5 || mcID_fit_FR_ == -6 ||
-		   mcID_fit_FR_ ==  -7 || mcID_fit_FR_ ==  -8 || mcID_fit_FR_ == -9)  
+	  if      (mcID_fit_FR_ ==  -1 || mcID_fit_FR_ ==  -5 ||
+		   mcID_fit_FR_ ==  -8 || mcID_fit_FR_ ==  -9)  
 	  {
 	    mcmask_fit_FR_ = 0;
 	  }
-	  else if (mcID_fit_FR_ ==  -2 || mcID_fit_FR_ ==  -3 || mcID_fit_FR_ == -4 || 
-		   mcID_fit_FR_ == -10 || mcID_fit_FR_ == -11 || mcID_fit_FR_ == -12)
+	  else if (mcID_fit_FR_ ==  -2 || mcID_fit_FR_ == -10 ||
+		   mcID_fit_FR_ == -11)
 	  {
 	    mcmask_fit_FR_ = 2; 
 	  }
-	  else // mcID == -13
+	  else // mcID == -3,-4,-6,-7,-12,-13
 	  {
 	    mcmask_fit_FR_ = -1;
 	  }
 	}
 	else // only count long tracks
         {
-	  if      (mcID_fit_FR_ == -1 || mcID_fit_FR_ == -7 || mcID_fit_FR_ == -9) 
+	  if      (mcID_fit_FR_ == -1 || mcID_fit_FR_ == -9) 
 	  {
 	    mcmask_fit_FR_ = 0;
 	  }
-	  else if (mcID_fit_FR_ == -4) 
-	  {
-	    mcmask_fit_FR_ = 2;
-	  }
-	  else // mcID == -2,-3,-5,-6,-8,-10,-11,-12,-13
+	  else // mcID == -2,-3,-4,-5,-6,-7,-8,-10,-11,-12,-13
 	  {
 	    mcmask_fit_FR_ = -1; 
 	  }
@@ -1789,32 +1777,28 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
     {
       if (Config::inclusiveShorts) 
       {
-	if      (cmsswID_build_cFR_ ==  -1 || cmsswID_build_cFR_ ==  -5 || cmsswID_build_cFR_ == -6 ||
-		 cmsswID_build_cFR_ ==  -7 || cmsswID_build_cFR_ ==  -8 || cmsswID_build_cFR_ == -9)  
+	if      (cmsswID_build_cFR_ ==  -1 || cmsswID_build_cFR_ ==  -5 ||
+		 cmsswID_build_cFR_ ==  -8 || cmsswID_build_cFR_ ==  -9)  
 	{
 	  cmsswmask_build_cFR_ = 0;
 	}
-	else if (cmsswID_build_cFR_ ==  -2 || cmsswID_build_cFR_ ==  -3 || cmsswID_build_cFR_ == -4 || 
-		 cmsswID_build_cFR_ == -10 || cmsswID_build_cFR_ == -11 || cmsswID_build_cFR_ == -12)
+	else if (cmsswID_build_cFR_ ==  -2 || cmsswID_build_cFR_ == -10 ||
+		 cmsswID_build_cFR_ == -11)
 	{
 	  cmsswmask_build_cFR_ = 2; 
 	}
-	else // mcID == -13
+	else // mcID == -3,-4,-6,-7,-12,-13
 	{
 	  cmsswmask_build_cFR_ = -1;
 	}
       }
       else // only count long tracks
       {
-	if      (cmsswID_build_cFR_ == -1 || cmsswID_build_cFR_ == -7 || cmsswID_build_cFR_ == -9) 
+	if      (cmsswID_build_cFR_ == -1 || cmsswID_build_cFR_ == -9) 
 	{
 	  cmsswmask_build_cFR_ = 0;
 	}
-	else if (cmsswID_build_cFR_ == -4) 
-	{
-	  cmsswmask_build_cFR_ = 2;
-	}
-	else // mcID == -2,-3,-5,-6,-8,-10,-11,-12,-13
+	else // mcID == -2,-3,-4,-5,-6,-7,-8,-10,-11,-12,-13
 	{
 	  cmsswmask_build_cFR_ = -1; 
 	}
