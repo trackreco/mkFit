@@ -356,22 +356,21 @@ Efficiency [PlotValidation::PlotEfficiency()]
   mcmask_[reco] == - 1 excluded from both numerator and denominator because this sim track was not findable!
 
 Fake Rate (with only long reco tracks: Config::inclusiveShorts == false) [PlotValidation::PlotFakeRate()]
-  numerator:   reco tracks with mcTrackID == -1 || == -7 || == -9
-  denominator: reco tracks with mcTrackID >=  0 || == -4 || == -1 || == -7 || == -9
+  numerator:   reco tracks with mcTrackID == -1 || == -9
+  denominator: reco tracks with mcTrackID >=  0 || == -1 || == -9
   mcTrackID | mcmask_[reco] 
      >= 0   |     1
-   -1,-7,-9 |     0
-      -4    |     2   
+    -1,-9   |     0
      else   |    -1 // OR the seed track does produce a build/fit track as determined by the seedToBuild/FitMap
 
 Fake Rate (with all reco tracks: Config::inclusiveShorts == true, enabled with command line option: --inc-shorts) [PlotValidation::PlotFakeRate()]
-  numerator:   reco tracks with mcTrackID == -1 || == -5 || == -6 || == -7 || ==  -8 || ==  -9
-  denominator: reco tracks with mcTrackID >=  0 || == -2 || == -3 || == -4 || == -10 || == -11 || == -12 || == -1 || == -5 || == -6 || == -7 || == -8 || == -9
-         mcTrackID       | mcmask_[reco] 
-           >= 0          |     1
-     -1,-5,-6,-7,-8,-9   |     0
-   -2,-3,-4,-10,-11,-12  |     2   
-            -13          |    -1 // OR the seed track does produce a build/fit track as determined by the seedToBuild/FitMap
+  numerator:   reco tracks with mcTrackID == -1 || == -5 || ==  -8 || ==  -9
+  denominator: reco tracks with mcTrackID >=  0 || == -2 || == -10 || == -11 || == -1 || == -5 || == -8 || == -9
+  mcTrackID  | mcmask_[reco] 
+    >= 0     |     1
+ -1,-5,-8,-9 |     0
+ -2,-10,-11  |     2   
+    else     |    -1 // OR the seed track does produce a build/fit track as determined by the seedToBuild/FitMap
 
 Duplicate Rate [PlotValidation::PlotDuplicateRate()], see special note in section H
   numerator:   sim tracks with more than reco track match (duplmask_[reco] == 1), or another way is nTrks_matched_[reco] > 1
