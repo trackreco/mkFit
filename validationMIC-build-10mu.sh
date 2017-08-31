@@ -10,7 +10,7 @@ ECP2=${BIN_DATA_PATH}/10muEta17to24Pt1to10/memoryFile.fv3.recT.072617.bin
 
 runValidation(){
     for sV in "sim " "see --cmssw-seeds --clean-seeds"; do echo $sV | while read -r sN sO sC; do
-	    if [ "${1}" == 0 ]
+	    if [ "${1}" == 0 ]; then
 		sC=""
 	    fi
 	    for section in ECN2 ECN1 BRL ECP1 ECP2; do
