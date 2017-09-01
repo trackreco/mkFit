@@ -80,7 +80,7 @@ runBenchmarkSections()
 make -j 12
 export base=SNB_CMSSW_10mu
 echo Run default build with base = ${base}
-runBenchmarkSections
+runBenchmarkSections 1
 
 make clean
 make distclean
