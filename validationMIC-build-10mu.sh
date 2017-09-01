@@ -10,7 +10,7 @@ ECP2=${BIN_DATA_PATH}/10muEta17to24Pt1to10/memoryFile.fv3.recT.072617.bin
 
 runValidation(){
     for sV in "sim " "see --cmssw-seeds --clean-seeds"; do echo $sV | while read -r sN sO sC; do
-	    if [ "${1}" == 0 ]; then
+	    if [ "${1}" == "0" ]; then
 		sC=""
 	    fi
 	    for section in ECN2 ECN1 BRL ECP1 ECP2; do
@@ -18,7 +18,7 @@ runValidation(){
 		        oBase=${base}_${sN}_${section}_${bN}
 		        nTH=8
 		        echo "${oBase}: validation [nTH:${nTH}, nVU:8]"
-		        ./mkFit/mkFit --geom CMS-2017 --root-val --read --file-name ${!section} --build-${bO} ${sO} ${sc} --num-thr ${nTH} >& log_${oBase}_NVU8int_NTH${nTH}_val.txt
+		        ./mkFit/mkFit --geom CMS-2017 --root-val --read --file-name ${!section} --build-${bO} ${sO} ${sC} --num-thr ${nTH} >& log_${oBase}_NVU8int_NTH${nTH}_val.txt
 		        mv valtree.root valtree_${oBase}.root
 		    done
 	        done
