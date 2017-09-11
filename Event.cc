@@ -729,7 +729,6 @@ int Event::clean_cms_seedtracks()
     const float Eta1 = eta[ts];
     const float invptq_first = invptq[ts]; 
 
-    #pragma simd
     for (int tss= ts+1; tss<ns; tss++){
 
       if (nHits[tss] < minNHits) continue;
