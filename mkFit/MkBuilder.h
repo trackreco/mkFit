@@ -54,8 +54,9 @@ protected:
 
   int m_cnt=0, m_cnt1=0, m_cnt2=0, m_cnt_8=0, m_cnt1_8=0, m_cnt2_8=0, m_cnt_nomc=0;
 
+  FindingFoos      m_fndfoos_brl, m_fndfoos_ec;
   SteeringParams   m_steering_params[5];
-  std::vector<int> m_brl_ecp_regions;
+  std::vector<int> m_regions;
 
 public:
   typedef std::vector<std::pair<int,int>> CandIdx_t;
@@ -98,8 +99,11 @@ public:
 
   void find_tracks_load_seeds_BH(); // for FindTracksBestHit
   void find_tracks_load_seeds();
+
   int  find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & seed_cand_vec,
-                                     int start_seed, int end_seed, int layer);
+                                     int start_seed, int end_seed,
+                                     int prev_layer, bool pickup_only);
+
   void find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
                              int start_seed, int end_seed, int region);
 

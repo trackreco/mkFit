@@ -169,6 +169,7 @@ public:
   void  PrintBins();
 };
 
+
 //==============================================================================
 
 class EventOfHits
@@ -279,10 +280,21 @@ public:
 // for combinatorial version, switch to vector of vectors
 //-------------------------------------------------------
 
+// This inheritance sucks but not doing it will require more changes.
+
+class CombCandidate : public std::vector<Track>
+{
+public:
+  enum SeedState_e { Dormant = 0, Finding, Finished };
+
+  SeedState_e m_state           = Dormant;
+  int         m_last_seed_layer = -1;
+};
+
 class EventOfCombCandidates
 {
 public:
-  std::vector<std::vector<Track> > m_candidates;
+  std::vector<CombCandidate> m_candidates;
 
   int     m_capacity;
   int     m_size;
@@ -318,13 +330,15 @@ public:
     m_size = 0;
   }
 
-  std::vector<Track>& operator[](int i) { return m_candidates[i]; }
+  CombCandidate& operator[](int i) { return m_candidates[i]; }
 
   void InsertSeed(const Track& seed)
   {
     assert (m_size < m_capacity);
 
-    m_candidates[m_size].emplace_back(seed);
+    m_candidates[m_size].push_back(seed);
+    m_candidates[m_size].m_state           = CombCandidate::Dormant;
+    m_candidates[m_size].m_last_seed_layer = seed.getLastHitLyr();
     ++m_size;
   }
 

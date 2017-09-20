@@ -46,8 +46,8 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<Track>& tracks,
   }
 }
 
-void MkFinder::InputTracksAndHitIdx(const std::vector<std::vector<Track> >& tracks,
-                                    const std::vector<std::pair<int,int> >& idxs,
+void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>     & tracks,
+                                    const std::vector<std::pair<int,int>>& idxs,
                                     int beg, int end, bool inputProp)
 {
   // Assign track parameters to initial state and copy hit values in.
@@ -68,8 +68,8 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<std::vector<Track> >& trac
   }
 }
 
-void MkFinder::InputTracksAndHitIdx(const std::vector<std::vector<Track> >& tracks,
-                                    const std::vector<std::pair<int,MkFinder::IdxChi2List> >& idxs,
+void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>                       & tracks,
+                                    const std::vector<std::pair<int,MkFinder::IdxChi2List>>& idxs,
                                     int beg, int end, bool inputProp)
 {
   // Assign track parameters to initial state and copy hit values in.
@@ -334,8 +334,8 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 //#define NO_PREFETCH
 //#define NO_GATHER
 
-void MkFinder::AddBestHit(const LayerOfHits    &layer_of_hits, const int N_proc,
-                          const SteeringParams &st_par)
+void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
+                          const FindingFoos &fnd_foos)
 {
   // debug = true;
 
@@ -435,8 +435,8 @@ void MkFinder::AddBestHit(const LayerOfHits    &layer_of_hits, const int N_proc,
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
-    (*st_par.compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                               outChi2, N_proc);
+    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
+                                   outChi2, N_proc);
 
 #ifndef NO_PREFETCH
     // Prefetch to L1 the hits we'll process in the next loop iteration.
@@ -478,6 +478,20 @@ void MkFinder::AddBestHit(const LayerOfHits    &layer_of_hits, const int N_proc,
 #pragma simd
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
+    // XXXXMT HACK ... SKIP missed layers here.
+    // Can/should be done earlier?
+    bool is_brl = layer_of_hits.is_barrel();
+    float q = is_brl ? Par[iP](itrack,2,0) : std::hypot(Par[iP](itrack,0,0), Par[iP](itrack,1,0));
+    if ( ! layer_of_hits.m_layer_info->is_within_q_limits(q))
+    {
+      msErr.SetDiagonal3x3(itrack, 666);
+      msPar(itrack,0,0) = Par[iP](itrack,0,0);
+      msPar(itrack,1,0) = Par[iP](itrack,1,0);
+      msPar(itrack,2,0) = Par[iP](itrack,2,0);
+      // Don't update chi2
+      continue;
+    }
+
     //fixme decide what to do in case no hit found
     if (bestHit[itrack] >= 0)
     {
@@ -521,8 +535,8 @@ void MkFinder::AddBestHit(const LayerOfHits    &layer_of_hits, const int N_proc,
   // are already done when computing chi2. Not sure it's worth caching them?)
 
   dprint("update parameters");
-  (*st_par.update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                             Err[iC], Par[iC], N_proc);
+  (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
+                                 Err[iC], Par[iC], N_proc);
 
   //std::cout << "Par[iP](0,0,0)=" << Par[iP](0,0,0) << " Par[iC](0,0,0)=" << Par[iC](0,0,0)<< std::endl;
 }
@@ -534,7 +548,7 @@ void MkFinder::AddBestHit(const LayerOfHits    &layer_of_hits, const int N_proc,
 void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
                               std::vector<std::vector<Track>>& tmp_candidates,
                               const int offset, const int N_proc,
-                              const SteeringParams &st_par)
+                              const FindingFoos &fnd_foos)
 {
   const char *varr      = (char*) layer_of_hits.m_hits;
 
@@ -601,8 +615,8 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
-    (*st_par.compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                               outChi2, N_proc);
+    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
+                                   outChi2, N_proc);
 
     // Prefetch to L1 the hits we'll (probably) process in the next loop iteration.
     for (int itrack = 0; itrack < N_proc; ++itrack)
@@ -633,8 +647,8 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
 
     if (oneCandPassCut)
     {
-      (*st_par.update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                 Err[iC], Par[iC], N_proc);
+      (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
+                                     Err[iC], Par[iC], N_proc);
 
       dprint("update parameters" << std::endl
 	     << "propagated track parameters x=" << Par[iP].ConstAt(0, 0, 0) << " y=" << Par[iP].ConstAt(0, 1, 0) << std::endl
@@ -671,6 +685,18 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
   //fixme: please vectorize me...
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
+    // XXXXMT HACK ... put in original track if a layer was missed completely.
+    // Can/should be done earlier?
+    bool is_brl = layer_of_hits.is_barrel();
+    float q = is_brl ? Par[iP](itrack,2,0) : std::hypot(Par[iP](itrack,0,0), Par[iP](itrack,1,0));
+    if ( ! layer_of_hits.m_layer_info->is_within_q_limits(q))
+    {
+      Track newcand;
+      copy_out(newcand, itrack, iP);
+      tmp_candidates[SeedIdx(itrack, 0, 0) - offset].emplace_back(newcand);
+      continue;
+    }
+
     int fake_hit_idx = num_invalid_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
 
     if (layer_of_hits.is_endcap() &&
@@ -696,7 +722,7 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
 
 void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandCloner& cloner,
                                          const int offset, const int N_proc,
-                                         const SteeringParams &st_par)
+                                         const FindingFoos &fnd_foos)
 {
   const char *varr      = (char*) layer_of_hits.m_hits;
 
@@ -765,7 +791,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
-    (*st_par.compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar, outChi2, N_proc);
+    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar, outChi2, N_proc);
 
     // Prefetch to L1 the hits we'll (probably) process in the next loop iteration.
     for (int itrack = 0; itrack < N_proc; ++itrack)
@@ -815,8 +841,17 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 
     int fake_hit_idx = num_invalid_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
 
-    if (layer_of_hits.is_endcap() &&
-          layer_of_hits.is_in_xy_hole(Par[iP](itrack,0,0), Par[iP](itrack,1,0)))
+    // XXXXMT HACK ... put a special code -4 if a layer was missed completely.
+    // The hit is then removed in update.
+    // Can/should be done earlier?
+    bool is_brl = layer_of_hits.is_barrel();
+    float q = is_brl ? Par[iP](itrack,2,0) : std::hypot(Par[iP](itrack,0,0), Par[iP](itrack,1,0));
+    if ( ! layer_of_hits.m_layer_info->is_within_q_limits(q))
+    {
+      fake_hit_idx = -4;
+    }
+    else if (layer_of_hits.is_endcap() &&
+             layer_of_hits.is_in_xy_hole(Par[iP](itrack,0,0), Par[iP](itrack,1,0)))
     {
       // YYYYYY Config::store_missed_layers
       fake_hit_idx = -3;
@@ -829,7 +864,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     tmpList.chi2   = Chi2(itrack, 0, 0);
     cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
 #ifdef DEBUG
-    std::cout << "adding invalid hit" << std::endl;
+    std::cout << "adding invalid hit " << fake_hit_idx << std::endl;
 #endif
   }
 }
@@ -840,24 +875,24 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 //==============================================================================
 
 void MkFinder::UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc,
-                                 const SteeringParams &st_par)
+                                 const FindingFoos &fnd_foos)
 {
   // layer_of_hits is for previous layer!
 
   for (int i = 0; i < N_proc; ++i)
   {
-    int hit_idx = HoTArrs[i][ NHits[i] - 1].index;
+    const HitOnTrack &hot = HoTArrs[i][ NHits[i] - 1];
 
-    if (hit_idx < 0) continue;
+    if (hot.index < 0) continue;
 
-    Hit &hit = layer_of_hits.m_hits[hit_idx];
+    Hit &hit = layer_of_hits.m_hits[hot.index];
 
     msErr.CopyIn(i, hit.errArray());
     msPar.CopyIn(i, hit.posArray());
   }
 
-  (*st_par.update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                             Err[iC], Par[iC], N_proc);
+  (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
+                                 Err[iC], Par[iC], N_proc);
 
   //now that we have moved propagation at the end of the sequence we lost the handle of
   //using the propagated parameters instead of the updated for the missing hit case.
@@ -873,6 +908,11 @@ void MkFinder::UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc,
       Err[iC].CopyIn (i, tmp);
       Par[iP].CopyOut(i, tmp);
       Par[iC].CopyIn (i, tmp);
+
+      if (HoTArrs[i][ NHits[i] - 1].index == -4)
+      {
+        --NHits[i];
+      }
     }
   }
 }
@@ -882,7 +922,7 @@ void MkFinder::UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc,
 // CopyOutParErr
 //==============================================================================
 
-void MkFinder::CopyOutParErr(std::vector<std::vector<Track> >& seed_cand_vec,
+void MkFinder::CopyOutParErr(std::vector<CombCandidate>& seed_cand_vec,
                              int N_proc, bool outputProp) const
 {
   const int iO = outputProp ? iP : iC;
@@ -891,6 +931,9 @@ void MkFinder::CopyOutParErr(std::vector<std::vector<Track> >& seed_cand_vec,
   {
     //create a new candidate and fill the cands_for_next_lay vector
     Track &cand = seed_cand_vec[SeedIdx(i, 0, 0)][CandIdx(i, 0, 0)];
+
+    // clone-engine update can remove the last hit if invalid (no chi2 change)
+    cand.setNTotalHits(NHits[i]);
 
     //set the track state to the updated parameters
     Err[iO].CopyOut(i, cand.errors_nc().Array());

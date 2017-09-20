@@ -213,7 +213,7 @@ void print_trk_info()
   add_ecap(lid, 4, 3, false, true,  10);
   NLN;
 
-  PRN("// TID +/-\n");
+  PRN("// TEC +/-\n");
   add_ecap(lid, 6, 1, false, false, -1);
   add_ecap(lid, 6, 1, false, true,  -1);
   add_ecap(lid, 6, 2, false, false, -1);

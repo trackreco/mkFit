@@ -108,7 +108,7 @@ double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
   __itt_pause();
   __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
-  
+
   if   (!Config::root_val && !Config::cmssw_val) {
     if (!Config::silent) builder.quality_output();
   } else if (Config::root_val) {
@@ -119,6 +119,8 @@ double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
 
   builder.end_event();
   
+  // ev.print_tracks(ev.candidateTracks_, true);
+
   return time;
 }
 
@@ -164,6 +166,8 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
 
   builder.end_event();
 
+  // ev.print_tracks(ev.candidateTracks_, true);
+
   return time;
 }
 
@@ -208,6 +212,8 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
   }
 
   builder.end_event();
+
+  // ev.print_tracks(ev.candidateTracks_, true);
 
   return time;
 }

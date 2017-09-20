@@ -6,7 +6,9 @@
 #include "Track.h"
 
 class CandCloner;
+class CombCandidate;
 class LayerOfHits;
+class FindingFoos;
 class SteeringParams;
 
 //#include "Event.h"
@@ -81,11 +83,11 @@ public:
                             const std::vector<int>  &   idxs,
                             int beg, int end, bool inputProp, int mp_offset);
 
-  void InputTracksAndHitIdx(const std::vector<std::vector<Track>>& tracks,
+  void InputTracksAndHitIdx(const std::vector<CombCandidate>& tracks,
                             const std::vector<std::pair<int,int>>& idxs,
                             int beg, int end, bool inputProp);
 
-  void InputTracksAndHitIdx(const std::vector<std::vector<Track>>& tracks,
+  void InputTracksAndHitIdx(const std::vector<CombCandidate>& tracks,
                             const std::vector<std::pair<int,IdxChi2List>>& idxs,
                             int beg, int end, bool inputProp);
 
@@ -100,26 +102,26 @@ public:
 
   void SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_proc, bool dump=false);
 
-  void AddBestHit(const LayerOfHits    &layer_of_hits, const int N_proc,
-                  const SteeringParams &st_par);
+  void AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
+                  const FindingFoos &fnd_foos);
 
   //----------------------------------------------------------------------------
 
   void FindCandidates(const LayerOfHits &layer_of_hits,
                       std::vector<std::vector<Track>>& tmp_candidates,
 		      const int offset, const int N_proc,
-                      const SteeringParams &st_par);
+                      const FindingFoos &fnd_foos);
 
   //----------------------------------------------------------------------------
 
   void FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandCloner& cloner,
                                  const int offset, const int N_proc,
-                                 const SteeringParams &st_par);
+                                 const FindingFoos &fnd_foos);
 
   void UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc,
-                         const SteeringParams &st_par);
+                         const FindingFoos &fnd_foos);
 
-  void CopyOutParErr(std::vector<std::vector<Track> >& seed_cand_vec,
+  void CopyOutParErr(std::vector<CombCandidate>& seed_cand_vec,
                      int N_proc, bool outputProp) const;
 
   //----------------------------------------------------------------------------

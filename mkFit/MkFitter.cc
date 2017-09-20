@@ -28,7 +28,7 @@ void MkFitter::PrintPt(int idx)
 {
   for (int i = 0; i < NN; ++i)
   {
-    printf("%5.2f  ", hipo(Par[idx].At(i, 3, 0), Par[idx].At(i, 4, 0)));
+    printf("%5.2f  ", std::hypot(Par[idx].At(i, 3, 0), Par[idx].At(i, 4, 0)));
   }
 }
 

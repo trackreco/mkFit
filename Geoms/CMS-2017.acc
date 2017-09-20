@@ -393,7 +393,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.set_selection_limits(0.01, 0.2, 10.0, 20.0);
   }
 
-  // TID +/-
+  // TEC +/-
 
   {
     LayerInfo & li  = ti.m_layers[27];

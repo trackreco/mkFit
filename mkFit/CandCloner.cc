@@ -28,7 +28,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
   {
     std::vector<MkFinder::IdxChi2List>& hitsForSeed = m_hits_to_add[is];
 
-    std::vector<std::vector<Track>> &cands = mp_event_of_comb_candidates->m_candidates;
+    std::vector<CombCandidate> &cands = mp_event_of_comb_candidates->m_candidates;
 
 #ifdef DEBUG
     int th_start_seed = m_start_seed;

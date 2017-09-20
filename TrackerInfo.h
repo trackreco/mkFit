@@ -1,11 +1,15 @@
 #ifndef TRACKERINFO_H
 #define TRACKERINFO_H
 
+#include "Matrix.h"
+
 #include <string>
 #include <vector>
+#include <stdexcept>
 
 #include <cmath>
 #include <cstdio>
+
 
 class LayerInfo
 {
@@ -41,7 +45,10 @@ public:
   // * ...
   // * pointers to hit containers
 
-  LayerInfo(int lid) : m_layer_id(lid) {}
+  LayerInfo(int lid, LayerType_e type) :
+    m_layer_id(lid),
+    m_layer_type(type)
+  {}
 
   void  set_limits(float r1, float r2, float z1, float z2);
   void  set_next_layers(int nb, int nep, int nen);
@@ -52,6 +59,10 @@ public:
   float z_mean()    const { return (m_zmin + m_zmax) / 2; }
 
   bool  is_barrel() const { return m_layer_type == Barrel; }
+
+  bool  is_within_z_limits(float z) const { return z > m_zmin && z < m_zmax; }
+  bool  is_within_r_limits(float r) const { return r > m_rin  && r < m_rout; }
+  bool  is_within_q_limits(float q) const { return is_barrel() ? is_within_z_limits(q) : is_within_r_limits(q); }
 
   bool  is_in_rsqr_hole(float r2)       const { return m_has_r_range_hole ? is_in_r2_hole(r2) : false; }
   bool  is_in_xy_hole(float x, float y) const { return m_has_r_range_hole ? is_in_r2_hole(x*x + y*y): false; }
@@ -70,7 +81,7 @@ public:
 class TrackerInfo
 {
 private:
-  int new_layer();
+  int new_layer(LayerInfo::LayerType_e type);
 
 public:
   enum AbsEtaRegion_e { AbsReg_Outside = -1, AbsReg_Barrel = 0, AbsReg_Transition = 1, AbsReg_Endcap = 2 };
@@ -79,6 +90,7 @@ public:
                    Reg_Transition_Pos, Reg_Endcap_Pos, Reg_End, Reg_Count = Reg_End };
 
   std::vector<LayerInfo> m_layers;
+  static LayerInfo       s_undefined_layer;
 
   std::vector<int>       m_barrel;
   std::vector<int>       m_ecap_pos;
@@ -86,6 +98,7 @@ public:
 
   float  m_eta_trans_beg, m_eta_trans_end, m_eta_ecap_end;
   bool   m_has_sibling_layers;
+
 
   void        set_eta_regions(float tr_beg, float tr_end, float ec_end,
                               bool has_sibl_lyrs);
@@ -129,6 +142,17 @@ public:
     if (l <= m_barrel.back())   return Reg_Barrel;
     if (l <= m_ecap_pos.back()) return Reg_Endcap_Pos;
     return Reg_Endcap_Neg;
+  }
+
+  const LayerInfo& outer_barrel_layer()
+  {
+    return m_layers[m_barrel.back()];
+  }
+
+  const LayerInfo& next_barrel_layer(int layer)
+  {
+    int nb = m_layers[layer].m_next_barrel;
+    return (nb >= 0) ? m_layers[nb] : s_undefined_layer;
   }
 
   static void ExecTrackerInfoCreatorPlugin(const std::string& base, TrackerInfo &ti, bool verbose=false);

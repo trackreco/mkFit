@@ -89,6 +89,118 @@ float Track::swimPhiToR(const float x0, const float y0) const
   return squashPhiGeneral(momPhi()-dPhi);
 }
 
+bool Track::canReachRadius(float R) const
+{
+  const float k   = ((charge() < 0) ? 100.0f : -100.0f) / (Config::sol * Config::Bfield);
+  const float ooc = 2.0f * k * pT();
+  return std::abs(ooc) > R - std::hypot(x(), y());
+}
+
+float Track::zAtR(float R, float *r_reached) const
+{
+  float xc  = x();
+  float yc  = y();
+  float pxc = px();
+  float pyc = py();
+
+  const float ipt   = invpT();
+  const float kinv  = ((charge() < 0) ? 0.01f : -0.01f) * Config::sol * Config::Bfield;
+  const float k     = 1.0f / kinv;
+
+  const float c      = 0.5f * kinv * ipt;
+  const float ooc    = 1.0f / c; // 2 * radius of curvature
+  const float lambda = pz() * ipt;
+
+  //printf("Track::zAtR to R=%f: k=%e, ipt=%e, c=%e, ooc=%e  -- can hit = %f (if > 1 can)\n",
+  //       R, k, ipt, c, ooc, ooc / (R - std::hypot(xc,yc)));
+
+  float D = 0;
+
+  for (int i = 0; i < Config::Niter; ++i)
+  {
+    // compute tangental and ideal distance for the current iteration.
+    // 3-rd order asin for symmetric incidence (shortest arc lenght).
+    float r0  = std::hypot(xc, yc);
+    float td  = (R - r0) * c;
+    float id  = ooc * td * (1.0f  +  0.16666666f * td *td);
+    // This would be for line approximation:
+    // float id = R - r0;
+    D += id;
+
+    //printf("%-3d r0=%f R-r0=%f td=%f id=%f id_line=%f delta_id=%g\n",
+    //       i, r0, R-r0, td, id, R - r0, id - (R-r0));
+
+    float cosa = std::cos(id*ipt*kinv);
+    float sina = std::sin(id*ipt*kinv);
+
+    //update parameters
+    xc +=  k * (pxc * sina  -  pyc * (1.0f - cosa));
+    yc +=  k * (pyc * sina  +  pxc * (1.0f - cosa));
+
+    const float pxo = pxc;//copy before overwriting
+    pxc = pxc * cosa  -  pyc * sina;
+    pyc = pyc * cosa  +  pxo * sina;
+  }
+
+  if (r_reached) *r_reached = std::hypot(xc, yc);
+
+  return z() + lambda * D;
+
+  // ----------------------------------------------------------------
+  // Exact solution from Avery's notes ... loses precision somewhere
+  // {
+  //   const float a = kinv;
+  //   float pT      = S.pT();
+
+  //   float ax2y2  = a*(x*x + y*y);
+  //   float T      = std::sqrt(pT*pT - 2.0f*a*(x*py - y*px) + a*ax2y2);
+  //   float D0     = (T - pT) / a;
+  //   float D      = (-2.0f * (x*py - y*px) + a * (x*x + y*y)) / (T + pT);
+
+  //   float B      = c * std::sqrt((R*R - D*D) / (1.0f + 2.0f*c*D));
+  //   float s1     = std::asin(B) / c;
+  //   float s2     = (Config::PI - std::asin(B)) / c;
+
+  //   printf("pt %f, invpT %f\n", pT, S.invpT());
+  //   printf("lambda %f, a %f, c %f, T %f, D0 %f, D %f, B %f, s1 %f, s2 %f\n",
+  //          lambda, a, c, T, D0, D, B, s1, s2);
+  //   printf("%f = %f / %f\n", (R*R - D*D) / (1.0f + 2.0f*c*D), (R*R - D*D), (1.0f + 2.0f*c*D));
+
+  //   z1 = S.z() + lambda * s1;
+  //   z2 = S.z() + lambda * s2;
+
+  //   printf("z1=%f z2=%f\n", z1, z2);
+  // }
+  // ----------------------------------------------------------------
+}
+
+float Track::rAtZ(float Z) const
+{
+  float xc  = x();
+  float yc  = y();
+  float pxc = px();
+  float pyc = py();
+
+  const float ipt   = invpT();
+  const float kinv  = ((charge() < 0) ? 0.01f : -0.01f) * Config::sol * Config::Bfield;
+  const float k     = 1.0f / kinv;
+
+  const float dz    = Z - z();
+  const float alpha = dz * ipt * kinv * std::tan(theta());
+
+  const float cosa  = std::cos(alpha);
+  const float sina  = std::sin(alpha);
+
+  xc +=  k * (pxc * sina  -  pyc * (1.0f - cosa));
+  yc +=  k * (pyc * sina  +  pxc * (1.0f - cosa));
+
+  // const float pxo = pxc;//copy before overwriting
+  // pxc = pxc * cosa  -  pyc * sina;
+  // pyc = pyc * cosa  +  pxo * sina;
+
+  return std::hypot(xc, yc);
+}
+
 //==============================================================================
 // TrackExtra
 //==============================================================================

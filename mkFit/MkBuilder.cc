@@ -180,39 +180,84 @@ MkBuilder::MkBuilder() :
 {
   const TrackerInfo &ti = Config::TrkInfo;
 
-  m_steering_params[TrackerInfo::Reg_Endcap_Neg] =
+  m_fndfoos_brl = { computeChi2MPlex,       updateParametersMPlex,       &MkBase::PropagateTracksToR };
+  m_fndfoos_ec  = { computeChi2EndcapMPlex, updateParametersEndcapMPlex, &MkBase::PropagateTracksToZ };
+
+  { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Endcap_Neg] =
     {
       computeChi2EndcapMPlex,
       updateParametersEndcapMPlex,
       &LayerInfo::m_next_ecap_neg,
       &MkBase::PropagateTracksToZ,
     };
+    sp.reserve_plan(2 + 6 + 18);
+    sp.append_plan(46, true);
+    sp.append_plan(47, false);
+    sp.fill_plan(48, 53); // TID, 6 layers
+    sp.fill_plan(54, 71); // TEC, 18 layers
+  }
 
-  //m_steering_params[TrackerInfo::Reg_Transition_Neg] = { };
+  { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Transition_Neg] =
+      { };
+    sp.reserve_plan(4 + 6 + 6 + 8 + 18);
+    sp.append_plan( 3, true);
+    sp.append_plan(45, true);
+    sp.append_plan(46, false);
+    sp.append_plan(47, false);
+    sp.fill_plan( 4,  9); // TIB, 6 layers
+    sp.fill_plan(48, 53); // TID, 6 layers
+    sp.fill_plan(10, 17); // TOB, 8 layers
+    sp.fill_plan(54, 71); // TEC, 18 layers
+  }
 
-  m_steering_params[TrackerInfo::Reg_Barrel] =
+
+  { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Barrel] =
     {
       computeChi2MPlex,
       updateParametersMPlex,
       &LayerInfo::m_next_barrel,
       &MkBase::PropagateTracksToR,
     };
+    sp.reserve_plan(1 + 6 + 8);
+    sp.append_plan(3, true); // pickup-only
+    sp.fill_plan( 4,  9);    // TIB, 6 layers
+    sp.fill_plan(10, 17);    // TOB, 8 layers
+  }
 
-  //m_steering_params[TrackerInfo::Reg_Transition_Pos] = { };
+  { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Transition_Pos] =
+      { };
+    sp.reserve_plan(4 + 6 + 6 + 8 + 18);
+    sp.append_plan( 3, true);
+    sp.append_plan(18, true);
+    sp.append_plan(19, false);
+    sp.append_plan(20, false);
+    sp.fill_plan( 4,  9); // TIB, 6 layers
+    sp.fill_plan(21, 26); // TID, 6 layers
+    sp.fill_plan(10, 17); // TOB, 8 layers
+    sp.fill_plan(27, 44); // TEC, 18 layers
+  }
 
-  m_steering_params[TrackerInfo::Reg_Endcap_Pos] =
+  { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Endcap_Pos] =
     {
       computeChi2EndcapMPlex,
       updateParametersEndcapMPlex,
       &LayerInfo::m_next_ecap_pos,
       &MkBase::PropagateTracksToZ,
     };
+    sp.reserve_plan(2 + 6 + 18);
+    sp.append_plan(19, true);
+    sp.append_plan(20, false);
+    sp.fill_plan(21, 26); // TID, 6 layers
+    sp.fill_plan(27, 44); // TEC, 18 layers
+  }
 
-  // XXMT4D Changing this order might
-  m_brl_ecp_regions.resize(3);
-  m_brl_ecp_regions[0] = TrackerInfo::Reg_Endcap_Neg;
-  m_brl_ecp_regions[1] = TrackerInfo::Reg_Barrel;
-  m_brl_ecp_regions[2] = TrackerInfo::Reg_Endcap_Pos;
+  // XXMT4D Changing this order might help.
+  m_regions.resize(5);
+  m_regions[0] = TrackerInfo::Reg_Transition_Pos;
+  m_regions[1] = TrackerInfo::Reg_Transition_Neg;
+  m_regions[2] = TrackerInfo::Reg_Endcap_Pos;
+  m_regions[3] = TrackerInfo::Reg_Endcap_Neg;
+  m_regions[4] = TrackerInfo::Reg_Barrel;
 }
 
 MkBuilder::~MkBuilder()
@@ -380,7 +425,7 @@ void MkBuilder::import_seeds()
   // Seeds are sorted by eta and counts for each eta region are
   // stored into Event::seedEtaSeparators_.
 
-  // bool debug = true;
+  bool debug = true;
 
   TrackerInfo &trk_info = Config::TrkInfo;
   TrackVec    &seeds    = m_event->seedTracks_;
@@ -396,17 +441,121 @@ void MkBuilder::import_seeds()
   std::vector<float> etas(size);
   for (int i = 0; i < size; ++i)
   {
-    //float eta = seeds[i].momEta();
+    const Track &S         = seeds[i];
+    const bool   z_dir_pos = S.pz() > 0;
 
-    HitOnTrack hot = seeds[i].getLastHitOnTrack();
+    HitOnTrack hot = S.getLastHitOnTrack();
     float      eta = m_event->layerHits_[hot.layer][hot.index].eta();
+    // float   eta = S.momEta();
 
-    etas[i] = eta;
-    TrackerInfo::EtaRegion reg = Config::TrkInfo.find_eta_region(eta);
+    // XXXX reg to be defined by propagation / intersection tests
+    TrackerInfo::EtaRegion reg;
+    TrackerInfo::EtaRegion reg_eta = Config::TrkInfo.find_eta_region(eta);
+
+    // hardcode for cms ... needs some lists of layers (hit/miss) for brl / ecp tests.
+
+    const LayerInfo &outer_brl = trk_info.outer_barrel_layer();
+
+    const LayerInfo &tib1 = trk_info.m_layers[ 4];
+    const LayerInfo &tob1 = trk_info.m_layers[10];
+
+    const LayerInfo &tecp1 = trk_info.m_layers[27];
+    const LayerInfo &tecn1 = trk_info.m_layers[54];
+
+    const LayerInfo &tec_first = z_dir_pos ? tecp1 : tecn1;
+
+    // If I hit outer barrel ... the track is in barrel (for central, "outgoing" tracks).
+    // This is also true for cyl-cow.
+    // Better check is: hits outer TIB, misses inner TEC (but is +-z dependant).
+    // XXXX Calculate z ... then check is inside or less that first EC z.
+    // There are a lot of tracks that go through that crack.
+
+    bool  can_reach_outer_brl = S.canReachRadius(outer_brl.m_rout);
+    float z_at_outer_brl;
+    bool  misses_first_tec;
+    if (can_reach_outer_brl)
+    {
+      z_at_outer_brl = S.zAtR(outer_brl.m_rout);
+      if (z_dir_pos)
+        misses_first_tec = z_at_outer_brl < tec_first.m_zmin;
+      else
+        misses_first_tec = z_at_outer_brl > tec_first.m_zmax;
+    }
+
+    //printf("Processing seed %d: r_means %f %f %f\n", i, tib1.r_mean(), tob1.r_mean(), outer_brl.r_mean());
+
+    if (can_reach_outer_brl && misses_first_tec)
+      //outer_brl.is_within_z_limits(S.zAtR(outer_brl.r_mean())))
+    {
+      reg = TrackerInfo::Reg_Barrel;
+    }
+    else
+    {
+      // This should be a list of layers
+      // CMS, first tib, tob: 4, 10
+      // In principle, for central tracks, could also only check the next barrel but
+      // then would have another condition of actually being in barrel with last seed hit.
+      // This would also work for cyl-cow.
+      // Argh ... and it is becoming more and more seed dependant ... which makes sense.
+      // All this confusion needs to be generalized so it's easy to do it for each seeding
+      // iteration. With some configuration and/or some code.
+
+      if ((S.canReachRadius(tib1.m_rin) && tib1.is_within_z_limits(S.zAtR(tib1.m_rin))) ||
+          (S.canReachRadius(tob1.m_rin) && tob1.is_within_z_limits(S.zAtR(tob1.m_rin))) )
+      {
+        // transition region ... we are still hitting barrel layers
+
+        reg = z_dir_pos ? TrackerInfo::Reg_Transition_Pos : TrackerInfo::Reg_Transition_Neg;
+      }
+      else
+      {
+        // endcap ... no barrel layers will be hit anymore.
+
+        reg = z_dir_pos ? TrackerInfo::Reg_Endcap_Pos : TrackerInfo::Reg_Endcap_Neg;
+      }
+    }
+    // reg is now defined
+
     ++m_event->seedEtaSeparators_[reg];
+
     m_event->seedMinLastLayer_[reg] = std::min(m_event->seedMinLastLayer_[reg], hot.layer);
     m_event->seedMaxLastLayer_[reg] = std::max(m_event->seedMaxLastLayer_[reg], hot.layer);
+
+    etas[i] = 5.0f * (reg - 2) + eta;
+
+    // -------------------------------------------------
+    // Compare r-z line vs. propagation
+
+    // const Hit &hit = m_event->layerHits_[hot.layer][hot.index];
+
+    // Do we hit the outermoset barrel? If yes, we are in barrel
+    // Do we hit the next barrel? If not, we are in endcap.
+    // XXXXMT: Dow we need some tolerances for this?
+    // XXXXMT: These conditions are true for central tracks. After that will need
+    // iteration specific list of layers to check.
+
+    // const LayerInfo &outer_brl = trk_info.outer_barrel_layer();
+    const LayerInfo &next_brl  = trk_info.next_barrel_layer(hot.layer);
+
+    float z_outer = S.z() + S.pz()/S.pT()*(outer_brl.m_rout - S.posR());
+    float z_next  = S.z() + S.pz()/S.pT()*(next_brl .m_rout - S.posR());
+
+    bool outer_hit = z_outer < outer_brl.m_zmax && z_outer > outer_brl.m_zmin;
+    bool next_hit  = z_next  < next_brl .m_zmax && z_next  > next_brl .m_zmin;
+
+    // ----------------------------------------------------------------
+
+    float r_it, z;
+
+    z = S.zAtR(outer_brl.m_rout, &r_it);
+
+    // printf("%3d % 6.3f %d %d %d -- % 8.3e % 8.3e %8.3f | linear: % 7.3f - iterative: % 7.3f dr = %e\n",
+    //        i, eta, reg, outer_hit, next_hit,
+    //        S.x(), S.y(), S.z(), z_outer, z, outer_brl.r_mean() - r_it);
+
+    // printf("ZZZZ %d %d\n", reg, hot.layer);
   }
+
   for (int i = 0; i < 5; ++i)
   {
     if (m_event->seedMinLastLayer_[i] == 9999) m_event->seedMinLastLayer_[i] = -1;
@@ -540,7 +689,7 @@ void MkBuilder::fit_seeds()
   // int count = (theEnd + NN - 1)/NN;
 
   // XXXXMT Actually, this should be good for all regions
-  tbb::parallel_for_each(m_brl_ecp_regions.begin(), m_brl_ecp_regions.end(),
+  tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
   [&](int reg)
   {
     // XXXXXX endcap only ...
@@ -808,7 +957,8 @@ void MkBuilder::quality_process(Track &tkcand)
   //  int mctrk = tkcand.label(); // assumes 100% "efficiency"
 
   float pt    = tkcand.pT();
-  float ptmc = 0., pr = 0., nfoundmc = 0., chi2mc = 0.;
+  float ptmc = 0., pr = 0., chi2mc = 0.;
+  int   nfoundmc = 0;
 
   if (mctrk < 0 || mctrk >= m_event->simTracks_.size())
   {
@@ -839,7 +989,8 @@ void MkBuilder::quality_process(Track &tkcand)
   if (!Config::silent)
   {
     std::lock_guard<std::mutex> printlock(Event::printmutex);
-    std::cout << "MX - found track with nFoundHits=" << tkcand.nFoundHits() << " chi2=" << tkcand.chi2() << " pT=" << pt <<" pTmc="<< ptmc << " nfoundmc=" << nfoundmc << " chi2mc=" << chi2mc <<" lab="<< tkcand.label() <<std::endl;
+    printf("MX - found track with nFoundHits=%2d chi2=%6.3f pT=%7.4f pTmc=%7.4f nfoundmc=%2d chi2mc=%5.2f lab=%d\n",
+           tkcand.nFoundHits(), tkcand.chi2(), pt, ptmc, nfoundmc, chi2mc, tkcand.label());
   }
 #endif
 }
@@ -1003,7 +1154,7 @@ void MkBuilder::FindTracksBestHit()
 
   TrackVec &cands = m_event->candidateTracks_;
 
-  tbb::parallel_for_each(m_brl_ecp_regions.begin(), m_brl_ecp_regions.end(),
+  tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
     [&](int region)
   {
     // XXXXXX Select endcap / barrel only ...
@@ -1023,31 +1174,43 @@ void MkBuilder::FindTracksBestHit()
 
       RangeOfSeedIndices rng = rosi.seed_rng(blk_rng);
 
-      std::vector<int> trk_idcs(NN);
-      std::vector<int> trk_llay(NN);
+      std::vector<int> trk_idcs(NN); // track indices in Matriplex
+      std::vector<int> trk_llay(NN); // last layer on input track
 
       while (rng.valid())
       {
-        dprint(std::endl << "processing track=" << rng.m_beg << ", label=" <<cands[rng.m_beg].label());
+        dprint(std::endl << "processing track=" << rng.m_beg << ", label=" << cands[rng.m_beg].label());
 
         int prev_layer = 9999;
+
         for (int i = rng.m_beg, ii = 0; i < rng.m_end; ++i, ++ii)
         {
           int llay = cands[i].getLastHitLyr();
           trk_llay[ii] = llay;
           prev_layer   = std::min(prev_layer, llay);
+
+          // printf("  %2d %2d %2d lay=%3d prev_layer=%d\n", ii, i, cands[i].label(), llay, prev_layer);
         }
-        int curr_layer = trk_info.m_layers[prev_layer].*st_par.next_layer_doo;
         int curr_tridx = 0;
+
+        auto layer_plan_it = st_par.layer_plan.begin();
+
+        assert( layer_plan_it->m_pickup_only );
+
+        int curr_layer = layer_plan_it->m_layer;
 
         // Loop over layers, starting from after the seed.
         // Consider inverting loop order and make layer outer, need to
         // trade off hit prefetching with copy-out of candidates.
-        while (true)
+        while (++layer_plan_it != st_par.layer_plan.end())
         {
+          prev_layer = curr_layer;
+          curr_layer = layer_plan_it->m_layer;
+
           dprint("at layer " << curr_layer);
           const LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[curr_layer];
           const LayerInfo   &layer_info    = trk_info.m_layers[curr_layer];
+          const FindingFoos &fnd_foos      = layer_info.is_barrel() ? m_fndfoos_brl : m_fndfoos_ec;
 
           // Pick up seeds that become active on current layer -- unless already fully loaded.
           if (curr_tridx < rng.n_proc())
@@ -1066,17 +1229,11 @@ void MkBuilder::FindTracksBestHit()
             }
           }
 
-          // XXX This should actually be done in some other thread for the next layer while
-          // this thread is crunching the current one.
-          // For now it's done in MkFinder::AddBestHit(), two loops before the data is needed.
-          // for (int i = 0; i < bunch_of_hits.m_size; ++i)
-          // {
-          //   _mm_prefetch((char*) & bunch_of_hits.m_hits[i], _MM_HINT_T1);
-          // }
+          if (layer_plan_it->m_pickup_only) continue;
 
           dcall(pre_prop_print(curr_layer, mkfndr.get()));
 
-          (mkfndr.get()->*st_par.propagate_foo)(layer_info.m_propagate_to, curr_tridx);
+          (mkfndr.get()->*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, curr_tridx);
 
           dcall(post_prop_print(curr_layer, mkfndr.get()));
 
@@ -1089,15 +1246,8 @@ void MkBuilder::FindTracksBestHit()
           // make candidates with best hit
           dprint("make new candidates");
 
-          mkfndr->AddBestHit(layer_of_hits, curr_tridx, st_par);
+          mkfndr->AddBestHit(layer_of_hits, curr_tridx, fnd_foos);
 
-          if (layer_info.m_is_outer)
-          {
-            break;
-          }
-
-          prev_layer = curr_layer;
-          curr_layer = layer_info.*st_par.next_layer_doo;
         } // end of layer loop
 
         mkfndr->OutputTracksAndHitIdx(cands, trk_idcs, 0, curr_tridx, false);
@@ -1114,7 +1264,7 @@ void MkBuilder::FindTracksBestHit()
 
 void MkBuilder::find_tracks_load_seeds()
 {
-  // Assumes seeds are sorter according to m_regions_of_comb_candidates
+  // Assumes seeds are sorted according to m_regions_of_comb_candidates
 
   EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
@@ -1130,18 +1280,33 @@ void MkBuilder::find_tracks_load_seeds()
 }
 
 int MkBuilder::find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & seed_cand_vec,
-                                             int start_seed, int end_seed, int layer)
+                                             int start_seed, int end_seed,
+                                             int prev_layer, bool pickup_only)
 {
   seed_cand_vec.clear();
 
   for (int iseed = start_seed; iseed < end_seed; ++iseed)
   {
-    std::vector<Track> &scands = m_event_of_comb_cands[iseed];
-    for (int ic = 0; ic < scands.size(); ++ic)
+    CombCandidate &ccand = m_event_of_comb_cands[iseed];
+
+    if (ccand.m_state == CombCandidate::Dormant && ccand.m_last_seed_layer == prev_layer)
     {
-      if (scands[ic].getLastHitIdx() != -2 && scands[ic].getLastHitLyr() < layer)
+      ccand.m_state = CombCandidate::Finding;
+    }
+    if ( ! pickup_only && ccand.m_state == CombCandidate::Finding)
+    {
+      bool active = false;
+      for (int ic = 0; ic < ccand.size(); ++ic)
       {
-        seed_cand_vec.push_back(std::pair<int,int>(iseed,ic));
+        if (ccand[ic].getLastHitIdx() != -2)
+        {
+          active = true;
+          seed_cand_vec.push_back(std::pair<int,int>(iseed,ic));
+        }
+      }
+      if ( ! active)
+      {
+        ccand.m_state = CombCandidate::Finished;
       }
     }
   }
@@ -1155,11 +1320,13 @@ int MkBuilder::find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & s
 
 void MkBuilder::FindTracksStandard()
 {
+  bool debug = true;
+
   g_exe_ctx.populate(Config::numThreadsFinder);
 
   EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
-  tbb::parallel_for_each(m_brl_ecp_regions.begin(), m_brl_ecp_regions.end(),
+  tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
     [&](int region)
   {
     const SteeringParams &st_par   = m_steering_params[region];
@@ -1192,17 +1359,31 @@ void MkBuilder::FindTracksStandard()
       std::vector<std::pair<int,int>> seed_cand_idx;
       seed_cand_idx.reserve(n_seeds * Config::maxCandsPerSeed);
 
+      auto layer_plan_it = st_par.layer_plan.begin();
+
+      assert( layer_plan_it->m_pickup_only );
+
+      int curr_layer = layer_plan_it->m_layer, prev_layer;
+
+      dprintf("\nMkBuilder::FindTracksStandard region=%d, seed_pickup_layer=%d, first_layer=%d\n",
+              region, curr_layer, (layer_plan_it + 1)->m_layer);
+
       // Loop over layers, starting from after the seed.
-      for (int ilay = first_layer; ; )
+      while (++layer_plan_it != st_par.layer_plan.end())
       {
-        dprint("processing lay=" << ilay);
-	
-        const LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay];
-        const LayerInfo   &layer_info    = trk_info.m_layers[ilay];
+        prev_layer = curr_layer;
+        curr_layer = layer_plan_it->m_layer;
 
-        int theEndCand = find_tracks_unroll_candidates(seed_cand_idx, start_seed, end_seed, ilay);
+        dprint("processing lay=" << curr_layer);
 
-        if (theEndCand == 0) goto next_layer;
+        const LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[curr_layer];
+        const LayerInfo   &layer_info    = trk_info.m_layers[curr_layer];
+        const FindingFoos &fnd_foos      = layer_info.is_barrel() ? m_fndfoos_brl : m_fndfoos_ec;
+
+        int theEndCand = find_tracks_unroll_candidates(seed_cand_idx, start_seed, end_seed,
+                                                       prev_layer, layer_plan_it->m_pickup_only);
+
+        if (layer_plan_it->m_pickup_only || theEndCand == 0) continue;
 
         // vectorized loop
         for (int itrack = 0; itrack < theEndCand; itrack += NN)
@@ -1217,21 +1398,21 @@ void MkBuilder::FindTracksStandard()
                                        false);
 
           //propagate to layer
-          dcall(pre_prop_print(ilay, mkfndr.get()));
+          dcall(pre_prop_print(curr_layer, mkfndr.get()));
 
-          (mkfndr.get()->*st_par.propagate_foo)(layer_info.m_propagate_to, end - itrack);
+          (mkfndr.get()->*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, end - itrack);
 
-          dcall(post_prop_print(ilay, mkfndr.get()));
+          dcall(post_prop_print(curr_layer, mkfndr.get()));
 
           dprint("now get hit range");
           mkfndr->SelectHitIndices(layer_of_hits, end - itrack, false);
 
 	  //#ifdef PRINTOUTS_FOR_PLOTS
-	  //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
+	  //std::cout << "MX number of hits in window in layer " << curr_layer << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
 	  //#endif
 
           dprint("make new candidates");
-          mkfndr->FindCandidates(layer_of_hits, tmp_cands, start_seed, end - itrack, st_par);
+          mkfndr->FindCandidates(layer_of_hits, tmp_cands, start_seed, end - itrack, fnd_foos);
 
         } //end of vectorized loop
 
@@ -1278,14 +1459,6 @@ void MkBuilder::FindTracksStandard()
           }
         }
 
-      next_layer:
-
-        if (layer_info.m_is_outer)
-        {
-          break;
-        }
-
-        ilay = layer_info.*st_par.next_layer_doo;
       } // end of layer loop
 
       // final sorting
@@ -1311,7 +1484,7 @@ void MkBuilder::FindTracksCloneEngine()
 
   EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
-  tbb::parallel_for_each(m_brl_ecp_regions.begin(), m_brl_ecp_regions.end(),
+  tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
     [&](int region)
   {
     int adaptiveSPT = eoccs.m_size / Config::numThreadsFinder / 2 + 1;
@@ -1338,9 +1511,9 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 {
   // int debug = 1;
 
-  EventOfCombCandidates &eoccs    = m_event_of_comb_cands;
-  const SteeringParams  &st_par   = m_steering_params[region];
-  const TrackerInfo     &trk_info = Config::TrkInfo;
+  EventOfCombCandidates  &eoccs             = m_event_of_comb_cands;
+  const SteeringParams   &st_par            = m_steering_params[region];
+  const TrackerInfo      &trk_info          = Config::TrkInfo;
 
   const int n_seeds = end_seed - start_seed;
 
@@ -1350,23 +1523,34 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
   cloner.begin_eta_bin(&eoccs, start_seed, n_seeds);
 
   // Loop over layers, starting from after the seed.
-  // Note that we do a final pass with ilay = -1 to update parameters
-  // and output final tracks. prev_ilay == -1 serves as is_first_layer.
-  int prev_ilay = -1;
+  // Note that we do a final pass with curr_layer = -1 to update parameters
+  // and output final tracks.
 
-  int last_seed_layer = m_event->seedMinLastLayer_[region];
-  int first_layer = trk_info.m_layers[last_seed_layer].*st_par.next_layer_doo;
+  auto layer_plan_it = st_par.layer_plan.begin();
 
-  dprintf("\nMkBuilder::find_tracks_in_layers region=%d, last_seed_layer=%d, first_layer=%d\n",
-          region, last_seed_layer, first_layer);
+  assert( layer_plan_it->m_pickup_only );
 
-  for (int ilay = first_layer; ; )
+  int curr_layer = layer_plan_it->m_layer, prev_layer;
+
+  dprintf("\nMkBuilder::find_tracks_in_layers region=%d, seed_pickup_layer=%d, first_layer=%d\n",
+          region, curr_layer, (layer_plan_it + 1)->m_layer);
+
+  // Loop over layers according to plan.
+  while (++layer_plan_it != st_par.layer_plan.end())
   {
-    dprint("\n* Processing lay=" << ilay);
+    prev_layer = curr_layer;
+    curr_layer = layer_plan_it->m_layer;
 
-    const LayerInfo &layer_info = trk_info.m_layers[ilay];
+    const bool pickup_only = layer_plan_it->m_pickup_only;
 
-    const int theEndCand = find_tracks_unroll_candidates(seed_cand_idx, start_seed, end_seed, ilay);
+    dprintf("\n* Processing layer %d, %s\n", curr_layer, pickup_only ? "pickup only" : "full finding");
+
+    const LayerInfo   &layer_info    = trk_info.m_layers[curr_layer];
+    const LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[curr_layer];
+    const FindingFoos &fnd_foos      = layer_info.is_barrel() ? m_fndfoos_brl : m_fndfoos_ec;
+
+    const int theEndCand = find_tracks_unroll_candidates(seed_cand_idx, start_seed, end_seed,
+                                                         prev_layer, pickup_only);
 
     dprintf("  Number of candidates to process: %d\n", theEndCand);
 
@@ -1377,12 +1561,9 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
     // XXXXMT There might be cases in endcap where all tracks will miss the
     // next layer, but only relevant if we do geometric selection before.
 
-    if (theEndCand == 0 && ilay != -1) goto next_layer;
+    if (pickup_only || theEndCand == 0) continue;
 
-    if (ilay >= 0)
-    {
-      cloner.begin_layer(ilay);
-    }
+    cloner.begin_layer(curr_layer);
 
     //vectorized loop
     for (int itrack = 0; itrack < theEndCand; itrack += NN)
@@ -1401,64 +1582,52 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 #endif
 
       mkfndr->InputTracksAndHitIdx(eoccs.m_candidates, seed_cand_idx,
-                                 itrack, end, prev_ilay >= 0);
+                                   itrack, end, false);
 
 #ifdef DEBUG
       for (int i=itrack; i < end; ++i)
         dprintf("  track %d, idx %d is from seed %d\n", i, i - itrack, mkfndr->Label(i - itrack,0,0));
       dprintf("\n");
 #endif
-      if (prev_ilay >= 0)
-      {
-        const LayerOfHits &prev_layer_of_hits = m_event_of_hits.m_layers_of_hits[prev_ilay];
 
-        mkfndr->UpdateWithLastHit(prev_layer_of_hits, end - itrack, st_par);
-      }
-      if (ilay >= 0)
-      {
-        // propagate to current layer
-        (mkfndr->*st_par.propagate_foo)(layer_info.m_propagate_to, end - itrack);
-        // copy_out the propagated track params, errors only (hit-idcs and chi2 already updated)
-        mkfndr->CopyOutParErr(eoccs.m_candidates, end - itrack, true);
-      }
-      else
-      {
-        // copy_out the updated track params, errors only (hit-idcs and chi2 already updated)
-        mkfndr->CopyOutParErr(eoccs.m_candidates, end - itrack, false);
-        continue;
-      }
+      // propagate to current layer
+      (mkfndr->*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, end - itrack);
+
+      // copy_out the propagated track params, errors only (hit-idcs and chi2 already updated)
+      mkfndr->CopyOutParErr(eoccs.m_candidates, end - itrack, true);
 
       dprint("now get hit range");
-
-      const LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[ilay];
 
       mkfndr->SelectHitIndices(layer_of_hits, end - itrack, false);
 
       //#ifdef PRINTOUTS_FOR_PLOTS
-      //std::cout << "MX number of hits in window in layer " << ilay << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
+      //std::cout << "MX number of hits in window in layer " << curr_layer << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
       //#endif
 
       dprint("make new candidates");
       cloner.begin_iteration();
 
-      mkfndr->FindCandidatesCloneEngine(layer_of_hits, cloner, start_seed, end - itrack, st_par);
+      mkfndr->FindCandidatesCloneEngine(layer_of_hits, cloner, start_seed, end - itrack, fnd_foos);
 
       cloner.end_iteration();
     } //end of vectorized loop
 
-    if (ilay >= 0)
+    cloner.end_layer();
+
+    // Update loop of best candidates.
+    for (int itrack = 0; itrack < theEndCand; itrack += NN)
     {
-      cloner.end_layer();
-    }
-    else
-    {
-      break;
+      const int end = std::min(itrack + NN, theEndCand);
+
+      mkfndr->InputTracksAndHitIdx(eoccs.m_candidates, seed_cand_idx,
+                                   itrack, end, true);
+
+      mkfndr->UpdateWithLastHit(layer_of_hits, end - itrack, fnd_foos);
+
+      // copy_out the updated track params, errors only (hit-idcs and chi2 already updated)
+      mkfndr->CopyOutParErr(eoccs.m_candidates, end - itrack, false);
     }
 
-    prev_ilay = ilay;
-
-  next_layer:
-    ilay = layer_info.*st_par.next_layer_doo;
   } // end of layer loop
 
   cloner.end_eta_bin();

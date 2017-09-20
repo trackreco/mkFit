@@ -199,6 +199,7 @@ public:
   float p()      const { return state_.p(); }
   float momPhi() const { return state_.momPhi(); }
   float momEta() const { return state_.momEta(); }
+  float theta()  const { return state_.theta(); }
 
   // track state momentum errors
   float epT()     const { return state_.epT();}
@@ -207,7 +208,11 @@ public:
 
   // used for swimming cmssw rec tracks to mkFit position
   float swimPhiToR(const float x, const float y) const;
-  
+
+  bool  canReachRadius(float R) const;
+  float zAtR(float R, float *r_reached=0) const;
+  float rAtZ(float Z) const;
+
   //this function is very inefficient, use only for debug and validation!
   const HitVec hitsVector(const std::vector<HitVec>& globalHitVec) const 
   {
