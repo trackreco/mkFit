@@ -1314,6 +1314,7 @@ int MkBuilder::find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & s
   return seed_cand_vec.size();
 }
 
+
 //------------------------------------------------------------------------------
 // FindTracksCombinatorial: Standard TBB
 //------------------------------------------------------------------------------
@@ -1517,10 +1518,11 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 
   const int n_seeds = end_seed - start_seed;
 
-  std::vector<std::pair<int,int>> seed_cand_idx;
-  seed_cand_idx.reserve(n_seeds * Config::maxCandsPerSeed);
+  std::vector<std::pair<int,int>> seed_cand_idx, seed_cand_update_idx;
+  seed_cand_idx.reserve       (n_seeds * Config::maxCandsPerSeed);
+  seed_cand_update_idx.reserve(n_seeds * Config::maxCandsPerSeed);
 
-  cloner.begin_eta_bin(&eoccs, start_seed, n_seeds);
+  cloner.begin_eta_bin(&eoccs, &seed_cand_update_idx, start_seed, n_seeds);
 
   // Loop over layers, starting from after the seed.
   // Note that we do a final pass with curr_layer = -1 to update parameters
@@ -1614,12 +1616,18 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 
     cloner.end_layer();
 
-    // Update loop of best candidates.
-    for (int itrack = 0; itrack < theEndCand; itrack += NN)
-    {
-      const int end = std::min(itrack + NN, theEndCand);
+    // Update loop of best candidates. CandCloner prepares the list of those
+    // that need update (excluding all those with negative last hid index).
 
-      mkfndr->InputTracksAndHitIdx(eoccs.m_candidates, seed_cand_idx,
+    const int theEndUpdater = seed_cand_update_idx.size();
+
+    if (theEndUpdater == 0) continue;
+
+    for (int itrack = 0; itrack < theEndUpdater; itrack += NN)
+    {
+      const int end = std::min(itrack + NN, theEndUpdater);
+
+      mkfndr->InputTracksAndHitIdx(eoccs.m_candidates, seed_cand_update_idx,
                                    itrack, end, true);
 
       mkfndr->UpdateWithLastHit(layer_of_hits, end - itrack, fnd_foos);

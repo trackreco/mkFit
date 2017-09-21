@@ -19,7 +19,7 @@ public:
   static const int s_max_seed_range = MPT_SIZE;
 
 private:
-  // Temporaries in ProcessSeedRange(), re-sized/served  in constructor.
+  // Temporaries in ProcessSeedRange(), resized/reserved  in constructor.
 
   // Size of this one is s_max_seed_range
   std::vector<std::vector<Track> > t_cands_for_next_lay;
@@ -38,9 +38,12 @@ public:
   {
   }
 
-  void begin_eta_bin(EventOfCombCandidates * e_o_ccs, int start_seed, int n_seeds)
+  void begin_eta_bin(EventOfCombCandidates           *e_o_ccs,
+                     std::vector<std::pair<int,int>> *update_list,
+                     int start_seed, int n_seeds)
   {
     mp_event_of_comb_candidates = e_o_ccs;
+    mp_kalman_update_list       = update_list,
     m_start_seed = start_seed;
     m_n_seeds    = n_seeds;
     m_hits_to_add.resize(n_seeds);
@@ -63,6 +66,8 @@ public:
 
     m_idx_max      = 0;
     m_idx_max_prev = 0;
+
+    mp_kalman_update_list->clear();
 
 #ifdef CC_TIME_LAYER
     t_lay = dtime();
@@ -161,7 +166,8 @@ public:
   int  m_idx_max, m_idx_max_prev;
   std::vector<std::vector<MkFinder::IdxChi2List>> m_hits_to_add;
 
-  EventOfCombCandidates *mp_event_of_comb_candidates;
+  EventOfCombCandidates           *mp_event_of_comb_candidates;
+  std::vector<std::pair<int,int>> *mp_kalman_update_list;
 
 #if defined(CC_TIME_ETA) or defined(CC_TIME_LAYER)
   double    t_eta, t_lay;

@@ -842,8 +842,8 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     int fake_hit_idx = num_invalid_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
 
     // XXXXMT HACK ... put a special code -4 if a layer was missed completely.
-    // The hit is then removed in update.
-    // Can/should be done earlier?
+    // The hit is then ignored in CandCloner.
+    // Can/should the "miss-layer" test be done earlier?
     bool is_brl = layer_of_hits.is_barrel();
     float q = is_brl ? Par[iP](itrack,2,0) : std::hypot(Par[iP](itrack,0,0), Par[iP](itrack,1,0));
     if ( ! layer_of_hits.m_layer_info->is_within_q_limits(q))
@@ -903,6 +903,8 @@ void MkFinder::UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc,
   {
     if (HoTArrs[i][ NHits[i] - 1].index < 0)
     {
+      assert (false && "This should not happen now that CandCloner builds a true update list.");
+      /*
       float tmp[21];
       Err[iP].CopyOut(i, tmp);
       Err[iC].CopyIn (i, tmp);
@@ -913,6 +915,7 @@ void MkFinder::UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc,
       {
         --NHits[i];
       }
+      */
     }
   }
 }
