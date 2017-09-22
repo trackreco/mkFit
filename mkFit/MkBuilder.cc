@@ -1052,7 +1052,7 @@ void MkBuilder::prep_cmsswtracks()
     const int nlyr = cmsswtrack.nUniqueLayers();
     const int ihit = cmsswtrack.getLastFoundHitPos();
     const float eta = m_event->layerHits_[cmsswtrack.getHitLyr(ihit)][cmsswtrack.getHitIdx(ihit)].eta();
-    if (nlyr < Config::cmsSelMinLayers || Config::TrkInfo.is_transition(eta)) cmsswtrack.setNotFindable();
+    if (nlyr < Config::cmsSelMinLayers) cmsswtrack.setNotFindable();
   }
 }
 
