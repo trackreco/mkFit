@@ -2,8 +2,8 @@
 // CMS 2017 geometry
 //-------------------
 
-#include "../Config.h"
-#include "../TrackerInfo.h"
+#include "Config.h"
+#include "TrackerInfo.h"
 
 namespace
 {

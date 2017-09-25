@@ -7,6 +7,8 @@ CPPFLAGS := ${CPPEXTRA} ${CPPFLAGS}
 CXXFLAGS += -fPIC ${USER_CXXFLAGS}
 LDFLAGS  += ${LDEXTRA}
 
+CPPFLAGS_NO_ROOT := ${CPPFLAGS}
+
 .PHONY: all clean distclean echo
 
 SRCS := $(wildcard *.cc)
@@ -28,7 +30,7 @@ all: ${TGTS}
 %.so: %.o
 	${CXX} -shared -L.. -lMicCore -o $@ $<
 
-%.om: %.cc
+%.om: %.cc %.d
 	${CXX} ${CPPFLAGS_NO_ROOT} ${CXXFLAGS} ${VEC_MIC} -c -o $@ $<
 
 %-mic.so: %.om
