@@ -561,6 +561,18 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
     }
   }
 
+  /*
+    // HACK TO ONLY SELECT ONE PROBLEMATIC TRACK.
+    // Note that MC matching gets screwed.
+    // Works for MC seeding.
+    //
+    printf("************** SIM SELECTION HACK IN FORCE ********************\n");
+    TrackVec x;
+    x.push_back(simTracks_[3]);
+    simTracks_.swap(x);
+    nt = 1;
+  */
+
 #ifdef DUMP_TRACKS
   printf("Read %i simtracks\n", nt);
   for (int it = 0; it < nt; it++)
@@ -680,7 +692,7 @@ void Event::print_tracks(const TrackVec& tracks, bool print_hits) const
                  hit.mcHitID(), hit.mcTrackID(simHitsInfo_));
         }
         else
-          printf("    hit %2d idx=%i\n", ih, t.getHitIdx(ih));
+          printf("    hit %2d lyr=%2d idx=%3d\n", ih, t.getHitLyr(ih), t.getHitIdx(ih));
       }
     }
   }

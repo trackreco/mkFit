@@ -190,8 +190,9 @@ MkBuilder::MkBuilder() :
       &LayerInfo::m_next_ecap_neg,
       &MkBase::PropagateTracksToZ,
     };
-    sp.reserve_plan(2 + 6 + 18);
-    sp.append_plan(46, true);
+    sp.reserve_plan(3 + 6 + 18);
+    sp.append_plan(45, true);
+    sp.append_plan(46, false);
     sp.append_plan(47, false);
     sp.fill_plan(48, 53); // TID, 6 layers
     sp.fill_plan(54, 71); // TEC, 18 layers
@@ -244,8 +245,9 @@ MkBuilder::MkBuilder() :
       &LayerInfo::m_next_ecap_pos,
       &MkBase::PropagateTracksToZ,
     };
-    sp.reserve_plan(2 + 6 + 18);
-    sp.append_plan(19, true);
+    sp.reserve_plan(3 + 6 + 18);
+    sp.append_plan(18, true);
+    sp.append_plan(19, false);
     sp.append_plan(20, false);
     sp.fill_plan(21, 26); // TID, 6 layers
     sp.fill_plan(27, 44); // TEC, 18 layers
@@ -1321,7 +1323,7 @@ int MkBuilder::find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & s
 
 void MkBuilder::FindTracksStandard()
 {
-  bool debug = true;
+  // bool debug = true;
 
   g_exe_ctx.populate(Config::numThreadsFinder);
 
