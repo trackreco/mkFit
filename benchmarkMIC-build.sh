@@ -14,7 +14,7 @@ runBenchmark()
 		    oBase=${base}_${sN}_${bN}
 		    for nTH in 1 4 8 16 32; do
 		        echo "${oBase}: benchmark [nTH:${nTH}, nVU:8]"
-		        time ./mkFit/mkFit --geom CMS-2017 --read --file-name ${fin} --build-${bO} ${sO} --num-thr ${nTH} >& log_${oBase}_NVU8int_NTH${nTH}_benchmark.txt
+		        time ./mkFit/mkFit --geom CMS-2017 --read --file-name ${fin} --build-${bO} ${sO} ${sC} --num-thr ${nTH} >& log_${oBase}_NVU8int_NTH${nTH}_benchmark.txt
 		    done
                 done
             done
