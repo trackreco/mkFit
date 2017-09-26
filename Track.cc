@@ -532,10 +532,15 @@ void print(const TrackState& s)
   std::cout << std::endl;
 }
 
-void print(std::string label, int itrack, const Track& trk)
+void print(std::string label, int itrack, const Track& trk, bool print_hits)
 {
   std::cout << std::endl << label << ": " << itrack << " hits: " << trk.nFoundHits() << " State" << std::endl;
   print(trk.state());
+  if (print_hits)
+  {
+    for (int i = 0; i < trk.nTotalHits(); ++i)
+      printf("  %2d: lyr %2d idx %d\n", i, trk.getHitLyr(i), trk.getHitIdx(i));
+  }
 }
 
 void print(std::string label, const TrackState& s)

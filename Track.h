@@ -245,18 +245,35 @@ public:
   CUDA_CALLABLE
   void addHitIdx(int hitIdx, int hitLyr, float chi2)
   {
-    if (lastHitIdx_ >= Config::nMaxTrkHits - 1) return;
+    if (lastHitIdx_ < Config::nMaxTrkHits - 1)
+    {
+      hitsOnTrk_[++lastHitIdx_] = { hitIdx, hitLyr };
+      if (hitIdx >= 0) { ++nFoundHits_; chi2_+=chi2; }
+    }
+    else
+    {
+      // printf("WARNING Track::addHitIdx hit-on-track limit reached for label=%d\n", label_);
+      // print("Track", -1, *this, true);
 
-    hitsOnTrk_[++lastHitIdx_] = { hitIdx, hitLyr };
-    if (hitIdx >= 0) { ++nFoundHits_; chi2_+=chi2; }
+      if (hitIdx >= 0)
+      {
+        if (hitsOnTrk_[lastHitIdx_].index < 0)
+          ++nFoundHits_;
+        chi2_+=chi2;
+        hitsOnTrk_[lastHitIdx_] = { hitIdx, hitLyr };
+      }
+      else if (hitIdx == -2)
+      {
+        if (hitsOnTrk_[lastHitIdx_].index >= 0)
+          --nFoundHits_;
+        hitsOnTrk_[lastHitIdx_] = { hitIdx, hitLyr };
+      }
+    }
   }
 
   void addHitIdx(const HitOnTrack &hot, float chi2)
   {
-    if (lastHitIdx_ >= Config::nMaxTrkHits - 1) return;
-
-    hitsOnTrk_[++lastHitIdx_] = hot;
-    if (hot.index >= 0) { ++nFoundHits_; chi2_+=chi2; }
+    addHitIdx(hot.index, hot.layer, chi2);
   }
 
   HitOnTrack getHitOnTrack(int posHitIdx) const { return hitsOnTrk_[posHitIdx]; }
@@ -522,7 +539,7 @@ typedef std::unordered_map<int,TrackState>        TkIDToTSMap;
 typedef std::unordered_map<int,TSLayerPairVec>    TkIDToTSLayerPairVecMap;
 
 void print(const TrackState& s);
-void print(std::string label, int itrack, const Track& trk);
+void print(std::string label, int itrack, const Track& trk, bool print_hits=false);
 void print(std::string label, const TrackState& s);
 
 #endif

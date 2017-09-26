@@ -903,6 +903,8 @@ void MkFinder::UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc,
   {
     if (HoTArrs[i][ NHits[i] - 1].index < 0)
     {
+      printf("MkFinder::UpdateWithLastHit hit with negative index %d ... i=%d, N_proc=%d.\n",
+             HoTArrs[i][ NHits[i] - 1].index, i, N_proc);
       assert (false && "This should not happen now that CandCloner builds a true update list.");
       /*
       float tmp[21];

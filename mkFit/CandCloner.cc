@@ -90,13 +90,17 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
       cands[ m_start_seed + is ].swap(cv);
       cv.clear();
     }
-    // else
+    // else // hitsForSeed.empty()
     // {
-    //   // MT: make sure we have all cands with last hit idx == -2 at this point
+    //   // Cross-check for what is left once there are no more changes for a whole seed.
     //
     //   for (auto &cand : cands[ m_start_seed + is ])
     //   {
-    //     assert(cand.getLastHitIdx() == -2);
+    //     if (cand.getLastHitIdx() < 0 && cand.getLastHitIdx() != -2)
+    //     {
+    //       printf("  We got cand with index %d\n", cand.getLastHitIdx());
+    //       print("offending track (unknown index)", -666, cand, true);
+    //     }
     //   }
     // }
   }
