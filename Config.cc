@@ -25,7 +25,7 @@ namespace Config
   int   numThreadsEvents = 1;
   int   numThreadsReorg = 1;
 
-#ifdef __MIC__
+#if defined(__MIC__) || defined(ARCH_KNL)
   int   numThreadsSimulation = 60;
 #else
   int   numThreadsSimulation = 12;

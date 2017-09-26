@@ -15,7 +15,9 @@ DEPS := $(SRCS:.cc=.d)
 TGTS := $(SRCS:.cc=)
 
 ifeq (${CXX},icc)
-  TGTS += $(addsuffix -mic, ${TGTS})
+  ifndef ARCH_KNL
+    TGTS += $(addsuffix -mic, ${TGTS})
+  endif
 endif
 
 TGTS := $(addsuffix .so, ${TGTS})
