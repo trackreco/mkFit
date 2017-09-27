@@ -158,9 +158,33 @@ private:
 
   void add_hit(const int mslot, int index, int layer)
   {
-    HoTArrs[mslot][NHits(mslot, 0, 0)] = { index, layer };
-    ++NHits(mslot, 0, 0);
-    if (index >= 0) ++NFoundHits(mslot, 0, 0);
+    int &n_tot_hits = NHits(mslot, 0, 0);
+    int &n_fnd_hits = NFoundHits(mslot, 0, 0);
+
+    if (n_tot_hits < Config::nMaxTrkHits)
+    {
+      HoTArrs[mslot][n_tot_hits++] = { index, layer };
+      if (index >= 0) { ++n_fnd_hits; }
+    }
+    else
+    {
+      // printf("WARNING MkFinder::add_hit hit-on-track limit reached for label=%d\n", label_);
+
+      const int LH = Config::nMaxTrkHits - 1;
+
+      if (index >= 0)
+      {
+        if (HoTArrs[mslot][LH].index < 0)
+          ++n_fnd_hits;
+        HoTArrs[mslot][LH] = { index, layer };
+      }
+      else if (index == -2)
+      {
+        if (HoTArrs[mslot][LH].index >= 0)
+          --n_fnd_hits;
+        HoTArrs[mslot][LH] = { index, layer };
+      }
+    }
   }
 
   int num_invalid_hits(const int mslot) const
