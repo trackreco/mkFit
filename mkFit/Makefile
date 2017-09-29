@@ -18,27 +18,25 @@ LDFLAGS  += ${LDEXTRA}
 CPPFLAGS_NO_ROOT += ${CPPEXTRA}
 LDFLAGS_NO_ROOT  += ${LDEXTRA}
 
-TGTS     := mkFit
-
-EXES     := ${TGTS}
-
-ifdef KNC_BUILD
-  EXES   += $(addsuffix -mic, ${TGTS})
-endif
-
 .PHONY: all clean distclean echo
 
 all: default
+
+TGTS := mkFit
+
+ifdef KNC_BUILD
+  TGTS += mkFit-mic
+endif
 
 auto-genmplex: GenMPlexOps.pl
 	./GenMPlexOps.pl && touch $@
 
 AUTO_TGTS := auto-genmplex
 
-default: ${AUTO_TGTS} ${EXES}
+default: ${AUTO_TGTS} ${TGTS}
 
 clean:
-	rm -f ${EXES} *.d *.o *.om Ice/*.d Ice/*.o Ice/*.om
+	rm -f ${TGTS} *.d *.o *.om Ice/*.d Ice/*.o Ice/*.om
 	rm -rf mkFit.dSYM
 
 distclean: clean
@@ -55,12 +53,6 @@ echo:
 
 
 ################################################################
-
-# Should be a lib, really
-ABOVE_OBJS := $(patsubst %, ../%.o, Config Matrix Event Hit Track Propagation KalmanUtils Simulation Geometry SimpleGeom fittest buildtest ConformalUtils seedtest BinInfoUtils TTreeValidation Validation)
-
-${ABOVE_OBJS}:
-	${MAKE} -C ..
 
 MKFSRCS := $(wildcard *.cc) $(wildcard Ice/*.cc)
 MKFHDRS := $(wildcard *.h)
@@ -91,7 +83,7 @@ ${CU_LINK}: ${CU_OBJS}
 	${NV} --device-link $^ --output-file $@
 endif
 
-ALLOBJS := ${MKFOBJS} ${ABOVE_OBJS} ${CU_OBJS} ${CU_LINK}
+ALLOBJS := ${MKFOBJS} ${CU_OBJS} ${CU_LINK}
 
 ${MKFDEPS}: auto-genmplex
 
@@ -100,7 +92,7 @@ include ${MKFDEPS}
 endif
 
 mkFit: ${ALLOBJS}
-	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} ${ALLOBJS} -o $@ ${LDFLAGS_HOST} ${LDFLAGS_CU}
+	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} ${ALLOBJS} -o $@ ${LDFLAGS_HOST} ${LDFLAGS_CU} -L.. -lMicCore -Wl,-rpath,..,-rpath,.
 
 ifdef WITH_ROOT
 fittestMPlex.o : CPPFLAGS += $(shell root-config --cflags)
@@ -129,8 +121,7 @@ MKFOBJS_MIC := $(MKFOBJS:.o=.om)
 ALLOBJS_MIC := $(ALLOBJS:.o=.om) 
 
 mkFit-mic: ${ALLOBJS_MIC}
-	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} ${ALLOBJS_MIC} -o $@ ${LDFLAGS_MIC}
-	scp $@ mic0:
+	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} ${ALLOBJS_MIC} -o $@ ${LDFLAGS_MIC} -L.. -lMicCore-mic -Wl,-rpath=..,-rpath=.
 
 ${MKFOBJS_MIC}: %.om: %.cc %.d
 	${CXX} ${CPPFLAGS_NO_ROOT} ${CXXFLAGS} ${VEC_MIC} -c -o $@ $<

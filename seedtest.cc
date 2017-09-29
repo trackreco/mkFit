@@ -11,7 +11,11 @@ inline float predz(const float z0, const float r0, const float z2, const float r
   return (predr-r0)*(z2-z0) / (r2-r0) + z0;
 }
 
-void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_extras, Event& ev){
+void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_extras, Event& ev)
+{
+  fprintf(stderr, "__FILE__::__LINE__ Needs fixing for B/E support, search for XXMT4K\n");
+  exit(1);
+
 #ifdef DEBUG
   bool debug(true);
 #endif
@@ -29,7 +33,6 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, T
     else {
       updatedState = trk.state();
     }
-    if (Config::super_debug) { ev.validation_.collectSeedTkCFMapInfo(itrack,updatedState); }
 
     dprint("processing sim track # " << itrack << " par=" << trk.parameters());
     TSLayerPairVec updatedStates; // validation for position pulls
@@ -38,7 +41,6 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, T
       auto hitidx = trk.getHitIdx(ilayer);
       const Hit& seed_hit = ev.layerHits_[ilayer][hitidx];
       TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
-      if (Config::super_debug) { ev.validation_.collectPropTSLayerVecInfo(ilayer,propState); }
 #ifdef CHECKSTATEVALID
       if (!propState.valid) {
 	std::cout << "Seeding failed to propagate to layer: " << ilayer << " for sim track: " << itrack << std::endl;
@@ -48,18 +50,16 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, T
       const auto& measState = seed_hit.measurementState();
       const float chi2 = computeChi2(propState,measState); 
       //      sumchi2 += chi2; //--> could use this to make the chi2
-      if (Config::super_debug) { ev.validation_.collectChi2LayerVecInfo(ilayer,chi2); }
       updatedState = updateParameters(propState, measState);
-      if (Config::super_debug) { ev.validation_.collectUpTSLayerVecInfo(ilayer,updatedState); }
       seedhits[ilayer] = hitidx;
 
       updatedStates.push_back(std::make_pair(ilayer,updatedState)); // validation
     }
-    ev.validation_.collectSeedTkTSLayerPairVecMapInfo(itrack,updatedStates); // use to collect position pull info
 
-    Track seed(updatedState,0.0f,itrack,Config::nlayers_per_seed,seedhits);//fixme chi2 (could use sumchi2)
-    dprint("created seed track # " << itrack << " par=" << seed.parameters());
-    evt_seed_tracks.push_back(seed);
+    // XXMT4K: Here will need layer indices, too now.
+    // XX Track seed(updatedState,0.0f,itrack,Config::nlayers_per_seed,seedhits);//fixme chi2 (could use sumchi2)
+    // XX dprint("created seed track # " << itrack << " par=" << seed.parameters());
+    // XX evt_seed_tracks.push_back(seed);
     evt_seed_extras.emplace_back(itrack); 
   }
 }
@@ -136,18 +136,9 @@ void buildSeedsByRZFirstRPhiSecond(TrackVec& evt_seed_tracks, TrackExtraVec& evt
     }
   }
 
-  if (!Config::super_debug) {
-    ev.validation_.fillSeedInfoTree(hitTriplets,ev);
-  }
-
   TripletIdxVec filteredTriplets;
   filterHitTripletsByCircleParams(evt_lay_hits,hitTriplets,filteredTriplets);  
   //  filterHitTripletsByRZChi2(evt_lay_hits,hitTriplets,filteredTriplets); // filter based on RZ chi2 cut
-
-  if (!Config::super_debug) {
-    ev.validation_.fillSeedTree(hitTriplets,filteredTriplets,ev);
-  }
-
   // turn triplets into track seeds by performing CF + KF fit  
   // buildSeedsFromTriplets(evt_lay_hits,filteredTriplets,evt_seed_tracks,evt_seed_extras,ev); 
 }
@@ -211,14 +202,15 @@ void buildSeedsByRoadTriplets(TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed
   filterHitTripletsBySecondLayerZResidual(evt_lay_hits,hitTriplets,filteredTriplets1); // filter based on residual of 2nd hit and line in R-Z for 1st, 3rd hit
   filterHitTripletsByCircleParams(evt_lay_hits,filteredTriplets1,filteredTriplets); // filter based on circle fit to three hits (d0 and curvature)
   //  filterHitTripletsByRZChi2(evt_lay_hits,hitTriplets,filteredTriplets); // filter based on RZ chi2 cut
-  if (!Config::super_debug) {
-    ev.validation_.fillSeedTree(hitTriplets,filteredTriplets,ev);
-  }
   buildSeedsFromTriplets(evt_lay_hits,filteredTriplets,evt_seed_tracks,evt_seed_extras,ev);
 }
 
 void buildSeedsByRoadSearch(TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_extras, 
-			    const std::vector<HitVec>& evt_lay_hits, const BinInfoMap& segmentMap, Event& ev){
+			    const std::vector<HitVec>& evt_lay_hits, const BinInfoMap& segmentMap, Event& ev)
+{
+  fprintf(stderr, "__FILE__::__LINE__ Needs fixing for B/E support, search for XXMT4K\n");
+  exit(1);
+
   // use this to initialize tracks
   const TrackState dummystate;
 
@@ -294,13 +286,14 @@ void buildSeedsByRoadSearch(TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_e
 	
 	// create a track object
 	int hitIndices[3] = {ihit0,ihit1,ihit2};
-	Track seed(dummystate,0.0f,seedID,Config::nlayers_per_seed,hitIndices); // argh! super not type-safe with dummystate
+        // XXMT4K: Here will need layer indices, too now.
+	// XX Track seed(dummystate,0.0f,seedID,Config::nlayers_per_seed,hitIndices); // argh! super not type-safe with dummystate
 
 	// estimate and set the charge
-	seed.setCharge(calculateCharge(hit0,hit1,hit2));
+	// XX seed.setCharge(calculateCharge(hit0,hit1,hit2));
 
 	// save the track and track extra
-	evt_seed_tracks.push_back(seed);
+	// XX evt_seed_tracks.push_back(seed);
 	evt_seed_extras.emplace_back(seedID);
 
 	// increment dummy counter for seedID
@@ -321,13 +314,8 @@ void buildHitPairs(const std::vector<HitVec>& evt_lay_hits, const BinInfoLayerMa
     const float outerhitz = evt_lay_hits[1][ihit].z(); // remember, layer[0] is first layer! --> second layer = [1]
     const float outerphi  = evt_lay_hits[1][ihit].phi();
 
-#ifdef ETASEG   // z cut is the largest killer... up to 3 sigma is probably best
     const auto etaBinMinus = getEtaPartition(getEta(Config::fRadialSpacing,(outerhitz-Config::seed_z0cut)/2.));
     const auto etaBinPlus  = getEtaPartition(getEta(Config::fRadialSpacing,(outerhitz+Config::seed_z0cut)/2.));
-#else
-    const auto etaBinMinus = 0;
-    const auto etaBinPlus  = 0;
-#endif
     const auto phiBinMinus = getPhiPartition(normalizedPhi(outerphi - Config::lay01angdiff));
     const auto phiBinPlus  = getPhiPartition(normalizedPhi(outerphi + Config::lay01angdiff));
 
@@ -389,23 +377,11 @@ void buildHitTripletsCurve(const std::vector<HitVec>& evt_lay_hits, const BinInf
     intersectThirdLayer(aneg,bneg,x1,y1,negx2,negy2);
     const float negPhi = getPhi(negx2,negy2);
 
-#ifdef ETASEG
     const float thirdZline = 2*hit1.z()-hit0.z(); // for dz displacements -- straight line window
     const auto etaBinMinus = getEtaPartition(getEta(lay3rad,thirdZline)-Config::dEtaSeedTrip);
     const auto etaBinPlus  = getEtaPartition(getEta(lay3rad,thirdZline)+Config::dEtaSeedTrip);
-#else
-    const auto etaBinMinus = 0;
-    const auto etaBinPlus  = 0;
-#endif    
     const auto phiBinMinus = getPhiPartition(negPhi);
     const auto phiBinPlus  = getPhiPartition(posPhi);
-
-#ifdef BROKEN_DEBUG
-    const float lay2phi = evt_lay_hits[2][ev.simTracks_[ev.simHitsInfo_[hit0.mcHitID()].mcTrackID()].getHitIdx(2)].phi();
-    dprint("lay0 phi: " << hit0.phi() << " lay1 phi: " << hit1.phi() << std::endl <<
-	   "negPhi: " << negPhi << " lay2 phi: " << lay2phi << " posPhi: " << posPhi << std::endl <<
-	   "binM: " << phiBinMinus << " phi2Bin: " << getPhiPartition(lay2phi) << " binP: " << phiBinPlus << std::endl);
-#endif
 
     std::vector<int> cand_hit_indices = getCandHitIndices(etaBinMinus,etaBinPlus,phiBinMinus,phiBinPlus,segLayMap);
     for (auto&& cand_hit_idx : cand_hit_indices){
@@ -446,14 +422,10 @@ void buildHitTripletsApproxWindow(const std::vector<HitVec>& evt_lay_hits, const
     const Hit& hit0 = evt_lay_hits[0][hit_pair[0]];
     const Hit& hit1 = evt_lay_hits[1][hit_pair[1]];
 
-#ifdef ETASEG
     const float thirdZline = 2*hit1.z()-hit0.z(); // for dz displacements -- straight line window
     const auto etaBinMinus = getEtaPartition(getEta(thirdRad,thirdZline)-Config::dEtaSeedTrip);
     const auto etaBinPlus  = getEtaPartition(getEta(thirdRad,thirdZline)+Config::dEtaSeedTrip);
-#else
-    const auto etaBinMinus = 0;
-    const auto etaBinPlus  = 0;
-#endif    
+
     const float linePhi = getPhi(hit1.position()[0] - hit0.position()[0], hit1.position()[1] - hit0.position()[1]);
     float thirdPhiMinus = 0.0f;
     float thirdPhiPlus  = 0.0f;  
@@ -550,7 +522,11 @@ void filterHitTripletsByRZChi2(const std::vector<HitVec>& evt_lay_hits, const Tr
 }
 
 void buildSeedsFromTriplets(const std::vector<HitVec>& evt_lay_hits, const TripletIdxVec& filtered_triplets, 
-			    TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_extras, Event& ev){
+			    TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_extras, Event& ev)
+{
+  fprintf(stderr, "__FILE__::__LINE__ Needs fixing for B/E support, search for XXMT4K\n");
+  exit(1);
+
   // now perform kalman fit on seeds --> first need initial parameters --> get from Conformal fitter!
   unsigned int seedID = 0;
   for(auto&& hit_triplet : filtered_triplets){
@@ -567,14 +543,12 @@ void buildSeedsFromTriplets(const std::vector<HitVec>& evt_lay_hits, const Tripl
     // px,py,pz from CF the same
     // epxpx,epypy,epzpz set to 0.25*(px/py/pz)^2 (half sigma)
 
-    ev.validation_.collectSeedTkCFMapInfo(seedID,updatedState);
-
     TSLayerPairVec updatedStates; // validation for position pulls
     float sumchi2 = 0;
-    for (auto ilayer=0;ilayer<Config::nlayers_per_seed;++ilayer) {
+    for (auto ilayer = 0; ilayer < Config::nlayers_per_seed; ++ilayer)
+    {
       const Hit& seed_hit = evt_lay_hits[ilayer][hit_triplet[ilayer]];
       TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
-      if (Config::super_debug) { ev.validation_.collectPropTSLayerVecInfo(ilayer,propState); }
 #ifdef CHECKSTATEVALID
       if (!propState.valid) {
         break;
@@ -583,16 +557,14 @@ void buildSeedsFromTriplets(const std::vector<HitVec>& evt_lay_hits, const Tripl
       MeasurementState measState = seed_hit.measurementState();
       const float chi2 = computeChi2(propState,measState);
       sumchi2 += chi2;// --> could use this to make the chi2
-      if (Config::super_debug) { ev.validation_.collectChi2LayerVecInfo(ilayer,chi2); } 
       updatedState = updateParameters(propState, measState);
-      if (Config::super_debug) { ev.validation_.collectUpTSLayerVecInfo(ilayer,updatedState); }
       updatedStates.push_back(std::make_pair(ilayer,updatedState)); // validation
     }
-    ev.validation_.collectSeedTkTSLayerPairVecMapInfo(seedID,updatedStates); // use to collect position pull info
 
     int hitIndices[3] = {hit_triplet[0],hit_triplet[1],hit_triplet[2]};
-    Track seed(updatedState,sumchi2,seedID,Config::nlayers_per_seed,hitIndices);//fixme chi2
-    evt_seed_tracks.push_back(seed);
+    // XXMT4K: Here will need layer indices, too now.
+    // XX Track seed(updatedState, sumchi2, seedID, Config::nlayers_per_seed, hitIndices);//fixme chi2
+    // XX evt_seed_tracks.push_back(seed);
     evt_seed_extras.emplace_back(seedID);
     seedID++; // increment dummy counter for seedID
   }
@@ -609,14 +581,12 @@ void fitSeeds(const std::vector<HitVec>& evt_lay_hits, TrackVec& evt_seed_tracks
     // first do CF Fit
     conformalFit(evt_lay_hits[0][seed.getHitIdx(0)],evt_lay_hits[1][seed.getHitIdx(1)],evt_lay_hits[2][seed.getHitIdx(2)],updatedState,false); 
     updatedState.charge = seed.charge();
-    ev.validation_.collectSeedTkCFMapInfo(seedID,updatedState);
 
     TSLayerPairVec updatedStates; // validation for position pulls
     float sumchi2 = 0.0f; // chi2 to save
     for (auto ilayer = 0; ilayer < Config::nlayers_per_seed; ++ilayer) {
       const Hit& seed_hit = evt_lay_hits[ilayer][seed.getHitIdx(ilayer)];
       TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
-      if (Config::super_debug) { ev.validation_.collectPropTSLayerVecInfo(ilayer,propState); }
 #ifdef CHECKSTATEVALID
       if (!propState.valid) {
         break;
@@ -625,12 +595,9 @@ void fitSeeds(const std::vector<HitVec>& evt_lay_hits, TrackVec& evt_seed_tracks
       MeasurementState measState = seed_hit.measurementState();
       const float chi2 = computeChi2(propState,measState);
       sumchi2 += chi2;// --> could use this to make the chi2
-      if (Config::super_debug) { ev.validation_.collectChi2LayerVecInfo(ilayer,chi2); } 
       updatedState = updateParameters(propState, measState);
-      if (Config::super_debug) { ev.validation_.collectUpTSLayerVecInfo(ilayer,updatedState); }
       updatedStates.push_back(std::make_pair(ilayer,updatedState)); // validation
     }
-    ev.validation_.collectSeedTkTSLayerPairVecMapInfo(seedID,updatedStates); // use to collect position pull info
     
     // make sure to set chi2 and track state of KF fit!
     seed.setChi2(sumchi2);

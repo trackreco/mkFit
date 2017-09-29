@@ -3,7 +3,7 @@
 Validation* Validation::make_validation(const std::string& fileName)
 {
 #ifndef NO_ROOT
-  if (Config::normal_val || Config::fit_val || Config::full_val) {
+  if (Config::root_val || Config::fit_val || Config::cmssw_val) {
     return new TTreeValidation(fileName);
   }
 #endif

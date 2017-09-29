@@ -1,7 +1,6 @@
 #include "buildtest.h"
 #include "KalmanUtils.h"
 #include "Propagation.h"
-#include "BinInfoUtils.h"
 #include "Event.h"
 //#define DEBUG
 #include "Debug.h"
@@ -26,15 +25,9 @@ static std::mutex evtlock;
 #endif
 typedef candvec::const_iterator canditer;
 
-void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidates, int ilay, int seedID, bool debug);
+void extendCandidate(const BinInfoMap & segmentMap, const Event& ev, const cand_t& cand, candvec& tmp_candidates, int ilay, int seedID, bool debug);
 
-inline bool sortByHitsChi2(const cand_t& cand1, const cand_t& cand2)
-{
-  if (cand1.nFoundHits()==cand2.nFoundHits()) return cand1.chi2()<cand2.chi2();
-  return cand1.nFoundHits()>cand2.nFoundHits();
-}
-
-void processCandidates(Event& ev, candvec& candidates, int ilay, int seedID, const bool debug)
+void processCandidates(const BinInfoMap & segmentMap, Event& ev, candvec& candidates, int ilay, int seedID, const bool debug)
 {
   auto& evt_track_candidates(ev.candidateTracks_);
 
@@ -45,7 +38,7 @@ void processCandidates(Event& ev, candvec& candidates, int ilay, int seedID, con
   {
     //loop over running candidates
     for (auto&& cand : candidates) {
-      extendCandidate(ev, cand, tmp_candidates, ilay, seedID, debug);
+      extendCandidate(segmentMap, ev, cand, tmp_candidates, ilay, seedID, debug);
     }
     if (tmp_candidates.size()>Config::maxCandsPerSeed) {
       dprint("huge size=" << tmp_candidates.size() << " keeping best "<< Config::maxCandsPerSeed << " only");
@@ -70,7 +63,7 @@ void processCandidates(Event& ev, candvec& candidates, int ilay, int seedID, con
   }
 }
 
-void buildTracksBySeeds(Event& ev)
+void buildTracksBySeeds(const BinInfoMap & segmentMap, Event& ev)
 {
   auto& evt_track_candidates(ev.candidateTracks_);
   const auto& evt_lay_hits(ev.layerHits_);
@@ -102,7 +95,7 @@ void buildTracksBySeeds(Event& ev)
       auto&& candidates(track_candidates[iseed]);
       for (int ilay=Config::nlayers_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
         dprint("going to layer #" << ilay << " with N cands=" << track_candidates.size());
-        processCandidates(ev, candidates, ilay, evt_seeds_extra[iseed].seedID(), debug);
+        processCandidates(segmentMap, ev, candidates, ilay, evt_seeds_extra[iseed].seedID(), debug);
       }
       //end of layer loop
     }//end of process seeds loop
@@ -124,7 +117,7 @@ void buildTracksBySeeds(Event& ev)
   }
 }		
 
-void buildTracksByLayers(Event& ev)
+void buildTracksByLayers(const BinInfoMap & segmentMap, Event& ev)
 {
   auto& evt_track_candidates(ev.candidateTracks_);
   const auto& evt_lay_hits(ev.layerHits_);
@@ -148,7 +141,7 @@ void buildTracksByLayers(Event& ev)
         [&](const tbb::blocked_range<size_t>& seediter) {
       for (auto iseed = seediter.begin(); iseed != seediter.end(); ++iseed) {
         auto&& candidates(track_candidates[iseed]);
-        processCandidates(ev, candidates, ilay, evt_seeds_extra[iseed].seedID(), debug);
+        processCandidates(segmentMap, ev, candidates, ilay, evt_seeds_extra[iseed].seedID(), debug);
       }
     }); //end of process seeds loop
 #else
@@ -156,7 +149,7 @@ void buildTracksByLayers(Event& ev)
     for (auto iseed = 0; iseed != evt_seeds.size(); ++iseed) {
       const auto& seed(evt_seeds[iseed]);
       auto&& candidates(track_candidates[iseed]);
-      processCandidates(ev, candidates, ilay, evt_seeds_extra[iseed].seedID(), debug);
+      processCandidates(segmentMap, ev, candidates, ilay, evt_seeds_extra[iseed].seedID(), debug);
     }
 #endif
   } //end of layer loop
@@ -175,24 +168,22 @@ void buildTracksByLayers(Event& ev)
   }
 }
 
-void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidates, int ilayer, int seedID, bool debug)
+void extendCandidate(const BinInfoMap & segmentMap, const Event& ev, const cand_t& cand, candvec& tmp_candidates, int ilayer, int seedID, bool debug)
 {
   std::vector<int> branch_hit_indices; // temp variable for validation... could be used for cand hit builder engine!
   const Track& tkcand = cand;
   const TrackState& updatedState = cand.state();
   const auto& evt_lay_hits(ev.layerHits_);
-  const auto& segLayMap(ev.segmentMap_[ilayer]);
+  const auto& segLayMap(segmentMap[ilayer]);
 
   dprint("processing candidate with nHits=" << tkcand.nFoundHits());
 #ifdef LINEARINTERP
   TrackState propState = propagateHelixToR(updatedState,ev.geom_.Radius(ilayer));
-  if (Config::super_debug) { ev.validation_.collectPropTSLayerVecInfo(ilayer,propState); }
 #else
 #ifdef TBB
 #error "Invalid combination of options (thread safety)"
 #endif
   TrackState propState = propagateHelixToLayer(updatedState,ilayer,ev.geom_);
-  if (Config::super_debug) { ev.validation_.collectPropTSLayerVecInfo(ilayer,propState); }
 #endif // LINEARINTERP
 #ifdef CHECKSTATEVALID
   if (!propState.valid) {
@@ -203,17 +194,12 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
   const float predy  = propState.parameters.At(1);
   const float predz  = propState.parameters.At(2);
 
-#ifdef ETASEG  
   const float eta  = getEta(std::sqrt(getRad2(predx,predy)),predz);
   const float deta = std::sqrt(std::abs(getEtaErr2(predx,predy,predz,propState.errors.At(0,0),propState.errors.At(1,1),propState.errors.At(2,2),propState.errors.At(0,1),propState.errors.At(0,2),propState.errors.At(1,2))));
   const float nSigmaDeta = std::min(std::max(Config::nSigma*deta,(float) Config::minDEta), (float) Config::maxDEta); // something to tune -- minDEta = 0.0
   const auto etaBinMinus = getEtaPartition(eta-nSigmaDeta);
   const auto etaBinPlus  = getEtaPartition(eta+nSigmaDeta);
-#else
-  const float nSigmaDeta = 0.;
-  const auto etaBinMinus = 0;
-  const auto etaBinPlus  = 0;
-#endif
+
   const float phi    = getPhi(predx,predy); //std::atan2(predy,predx); 
   const float dphi = std::sqrt(std::abs(getPhiErr2(predx,predy,propState.errors.At(0,0),propState.errors.At(1,1),propState.errors.At(0,1))));
   const float nSigmaDphi = std::min(std::max(Config::nSigma*dphi,(float) Config::minDPhi), (float) Config::maxDPhi);
@@ -261,16 +247,14 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
 #endif
       dprint(propState.position() - hitMeas.parameters());
       const float chi2 = computeChi2(propState,hitMeas);
-      if (Config::super_debug) { ev.validation_.collectChi2LayerVecInfo(ilayer,chi2); }
       dprint("found hit with index: " << cand_hit_idx << " from sim track " 
 	     << ev.simHitsInfo_[evt_lay_hits[ilayer][cand_hit_idx].mcHitID()].mcTrackID()
 	     << " chi2=" << chi2 << std::endl);
     
       if ((chi2<Config::chi2Cut)&&(chi2>0.)) {//fixme 
         const TrackState tmpUpdatedState = updateParameters(propState, hitMeas);
-	if (Config::super_debug) { ev.validation_.collectUpTSLayerVecInfo(ilayer,tmpUpdatedState); }
         Track tmpCand = tkcand.clone();
-        tmpCand.addHitIdx(cand_hit_idx,chi2);
+        tmpCand.addHitIdx(cand_hit_idx, ilayer, chi2);
         tmpCand.setState(tmpUpdatedState);
         tmp_candidates.push_back(tmpCand);
         branch_hit_indices.push_back(cand_hit_idx); // validation
@@ -278,13 +262,11 @@ void extendCandidate(const Event& ev, const cand_t& cand, candvec& tmp_candidate
     }//end of consider hits on layer loop
 
   //add also the candidate for no hit found
-  if (tkcand.nFoundHits()==ilayer && !Config::super_debug) {//only if this is the first missing hit and also not in super debug mode
+  if (tkcand.nFoundHits()==ilayer) {//only if this is the first missing hit
     dprint("adding candidate with no hit");
     Track tmpCand = tkcand.clone();
-    tmpCand.addHitIdx(-1,0.0f);
+    tmpCand.addHitIdx(-1, ilayer, 0.0f);
     tmp_candidates.push_back(tmpCand);  // fix this once moving to fix indices
     branch_hit_indices.push_back(Config::nTracks); // since tracks go from 0-Config::nTracks -1, the ghost index is just the one beyond
   }
-  ev.validation_.collectBranchingInfo(seedID,ilayer,nSigmaDeta,etaBinMinus,etaBinPlus,
-                                      nSigmaDphi,phiBinMinus,phiBinPlus,cand_hit_indices,branch_hit_indices);
 }

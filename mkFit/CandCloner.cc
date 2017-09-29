@@ -1,11 +1,14 @@
 #include "CandCloner.h"
+
+#include "HitStructures.h"
+
 //#define DEBUG
 #include "Debug.h"
 
 namespace
 {
-inline bool sortCandListByHitsChi2(const MkFitter::IdxChi2List& cand1,
-                                   const MkFitter::IdxChi2List& cand2)
+inline bool sortCandListByHitsChi2(const MkFinder::IdxChi2List& cand1,
+                                   const MkFinder::IdxChi2List& cand2)
 {
   if (cand1.nhits == cand2.nhits) return cand1.chi2 < cand2.chi2;
   return cand1.nhits > cand2.nhits;
@@ -23,15 +26,15 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
   //1) sort the candidates
   for (int is = is_beg; is < is_end; ++is)
   {
-    std::vector<MkFitter::IdxChi2List>& hitsForSeed = m_hits_to_add[is];
+    std::vector<MkFinder::IdxChi2List>& hitsForSeed = m_hits_to_add[is];
 
-    std::vector<std::vector<Track>> &cands = mp_etabin_of_comb_candidates->m_candidates;
+    std::vector<CombCandidate> &cands = mp_event_of_comb_candidates->m_candidates;
 
 #ifdef DEBUG
     int th_start_seed = m_start_seed;
 
     dprint("dump seed n " << is << " with input candidates=" << hitsForSeed.size());
-    for (int ih = 0; ih<hitsForSeed.size(); ih++)
+    for (int ih = 0; ih < hitsForSeed.size(); ih++)
     {
       dprint("trkIdx=" << hitsForSeed[ih].trkIdx << " hitIdx=" << hitsForSeed[ih].hitIdx << " chi2=" <<  hitsForSeed[ih].chi2 << std::endl
                 << "original pt=" << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].pT() << " "
@@ -48,17 +51,28 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
 
       int num_hits = std::min((int) hitsForSeed.size(), Config::maxCandsPerSeed);
 
+      // This is from buffer, we know it was cleared after last usage.
       std::vector<Track> &cv = t_cands_for_next_lay[is - is_beg];
 
       for (int ih = 0; ih < num_hits; ih++)
       {
-        const MkFitter::IdxChi2List &h2a = hitsForSeed[ih];
+        const MkFinder::IdxChi2List &h2a = hitsForSeed[ih];
+
         cv.push_back( cands[ m_start_seed + is ][ h2a.trkIdx ] );
-        cv.back().addHitIdx(h2a.hitIdx, 0);
-        cv.back().setChi2(h2a.chi2);
+
+        if (h2a.hitIdx != -4) // Could also skip storing of -3 hits.
+        {
+          cv.back().addHitIdx(h2a.hitIdx, m_layer, 0);
+          cv.back().setChi2(h2a.chi2);
+
+          if (h2a.hitIdx >= 0)
+          {
+            mp_kalman_update_list->push_back(std::pair<int,int>( m_start_seed + is, ih));
+          }
+        }
       }
 
-      // Copy the best -2 cands back to the current list.
+      // Copy the best -2 cands back to the current list while there is room.
       if (num_hits < Config::maxCandsPerSeed)
       {
         const std::vector<Track> &ov = cands[m_start_seed + is];
@@ -76,13 +90,17 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
       cands[ m_start_seed + is ].swap(cv);
       cv.clear();
     }
-    // else
+    // else // hitsForSeed.empty()
     // {
-    //   // MT: make sure we have all cands with last hit idx == -2 at this point
+    //   // Cross-check for what is left once there are no more changes for a whole seed.
     //
     //   for (auto &cand : cands[ m_start_seed + is ])
     //   {
-    //     assert(cand.getLastHitIdx() == -2);
+    //     if (cand.getLastHitIdx() < 0 && cand.getLastHitIdx() != -2)
+    //     {
+    //       printf("  We got cand with index %d\n", cand.getLastHitIdx());
+    //       print("offending track (unknown index)", -666, cand, true);
+    //     }
     //   }
     // }
   }

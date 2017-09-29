@@ -1,8 +1,24 @@
 #ifndef _propagation_mplex_
 #define _propagation_mplex_
 
-#include "Track.h"
 #include "Matrix.h"
+
+inline void squashPhiMPlex(MPlexLV& par, const int N_proc)
+{
+  #pragma simd
+  for (int n = 0; n < NN; ++n) {
+    if (par(n, 4, 0) >= Config::PI) par(n, 4, 0) -= Config::TwoPI;
+    if (par(n, 4, 0) < -Config::PI) par(n, 4, 0) += Config::TwoPI;
+  }
+}
+
+inline void squashPhiMPlexGeneral(MPlexLV& par, const int N_proc)
+{
+  #pragma simd
+  for (int n = 0; n < NN; ++n) {
+    par(n, 4, 0) -= std::floor(0.5f*Config::InvPI*(par(n, 4, 0)+Config::PI)) * Config::TwoPI;
+  }
+}
 
 void propagateLineToRMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
                            const MPlexHS &msErr,  const MPlexHV& msPar,

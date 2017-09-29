@@ -11,6 +11,11 @@
 template<typename T> inline T sqr(T x) { return x*x; }
 template<typename T> inline T cube(T x) { return x*x*x; }
 
+inline float squashPhiGeneral(float phi)
+{
+  return phi - floor(0.5*Config::InvPI*(phi+Config::PI)) * Config::TwoPI;
+}
+
 // moved from config to here
 inline int getEtaBin(float eta)
 {
@@ -38,43 +43,6 @@ inline int getEtaBinExtendedEdge(float eta)
   
   //now we can treat all bins as if they had same size
   return int( (eta+Config::fEtaDet-Config::lEtaBin/2.0f)/Config::lEtaBin );
-}
-
-inline int getBothEtaBins(float eta, int& b1, int& b2)
-{
-  b1 = b2 = -1;
-  
-  if (eta < -Config::fEtaDet || eta > Config::fEtaDet)
-    {
-      return 0;
-    }
-
-  if (Config::nEtaBin == 1) {
-    b1 = 0;
-    b2 = -1;
-    return 1;
-  }
-  
-  int b1p = std::floor((eta + Config::fEtaOffB1) * Config::fEtaFacB1);
-  int b2p = std::floor((eta + Config::fEtaOffB2) * Config::fEtaFacB2);
-  
-  // printf("b1' = %d   b2' = %d\n", b1p, b2p);
-  
-  int cnt = 0;
-  if (b1p >= 0 && b1p < Config::nEtaPart)
-    {
-      b1 = 2 * b1p;
-      ++cnt;
-    }
-  if (b2p >= 0 && b2p < Config::nEtaPart - 1)
-    {
-      b2 = 2 * b2p + 1;
-      ++cnt;
-    }
-  
-    // printf("b1  = %d   b2  = %d\n", b1, b2);
-  
-  return cnt;
 }
 
 inline float getRad2(float x, float y){
@@ -183,6 +151,7 @@ struct MCHitInfo
   
   int mcTrackID() const { return mcTrackID_; } 
   int layer()     const { return layer_; } 
+  int mcHitID()   const { return mcHitID_; }
   static void reset();
 };
 typedef std::vector<MCHitInfo> MCHitInfoVec;
@@ -285,4 +254,16 @@ typedef std::array<int,2>    PairIdx;
 typedef std::vector<PairIdx> PairIdxVec;
 typedef std::array<int,3>       TripletIdx;
 typedef std::vector<TripletIdx> TripletIdxVec;
+
+struct HitOnTrack
+{
+  int index : 24;
+  int layer :  8;
+
+  HitOnTrack()             : index(-1), layer (-1) {}
+  HitOnTrack(int i, int l) : index( i), layer ( l) {}
+};
+
+void print(std::string label, const MeasurementState& s);
+
 #endif

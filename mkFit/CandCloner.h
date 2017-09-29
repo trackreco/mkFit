@@ -1,9 +1,11 @@
 #ifndef CandCloner_h
 #define CandCloner_h
 
-#include "MkFitter.h"
+#include "MkFinder.h"
 
 #include <vector>
+
+class EventOfCombCandidates;
 
 //#define CC_TIME_LAYER
 //#define CC_TIME_ETA
@@ -17,7 +19,7 @@ public:
   static const int s_max_seed_range = MPT_SIZE;
 
 private:
-  // Temporaries in ProcessSeedRange(), re-sized/served  in constructor.
+  // Temporaries in ProcessSeedRange(), resized/reserved  in constructor.
 
   // Size of this one is s_max_seed_range
   std::vector<std::vector<Track> > t_cands_for_next_lay;
@@ -25,8 +27,6 @@ private:
 public:
   CandCloner()
   {
-    // m_fitter = new (_mm_malloc(sizeof(MkFitter), 64)) MkFitter(0);
-
     t_cands_for_next_lay.resize(s_max_seed_range);
     for (int iseed = 0; iseed < s_max_seed_range; ++iseed)
     {
@@ -38,9 +38,12 @@ public:
   {
   }
 
-  void begin_eta_bin(EtaBinOfCombCandidates * eb_o_ccs, int start_seed, int n_seeds)
+  void begin_eta_bin(EventOfCombCandidates           *e_o_ccs,
+                     std::vector<std::pair<int,int>> *update_list,
+                     int start_seed, int n_seeds)
   {
-    mp_etabin_of_comb_candidates = eb_o_ccs;
+    mp_event_of_comb_candidates = e_o_ccs;
+    mp_kalman_update_list       = update_list,
     m_start_seed = start_seed;
     m_n_seeds    = n_seeds;
     m_hits_to_add.resize(n_seeds);
@@ -61,10 +64,10 @@ public:
   {
     m_layer = lay;
 
-    // m_fitter->SetNhits(m_layer);//here again assuming one hit per layer
-
     m_idx_max      = 0;
     m_idx_max_prev = 0;
+
+    mp_kalman_update_list->clear();
 
 #ifdef CC_TIME_LAYER
     t_lay = dtime();
@@ -76,7 +79,7 @@ public:
     // Do nothing, "secondary" state vars updated when work completed/assigned.
   }
 
-  void add_cand(int idx, const MkFitter::IdxChi2List& cand_info)
+  void add_cand(int idx, const MkFinder::IdxChi2List& cand_info)
   {
     m_hits_to_add[idx].push_back(cand_info);
 
@@ -161,11 +164,10 @@ public:
   // eventually, protected or private
 
   int  m_idx_max, m_idx_max_prev;
-  std::vector<std::vector<MkFitter::IdxChi2List>> m_hits_to_add;
+  std::vector<std::vector<MkFinder::IdxChi2List>> m_hits_to_add;
 
-  EtaBinOfCombCandidates *mp_etabin_of_comb_candidates;
-
-  // MkFitter               *m_fitter;
+  EventOfCombCandidates           *mp_event_of_comb_candidates;
+  std::vector<std::pair<int,int>> *mp_kalman_update_list;
 
 #if defined(CC_TIME_ETA) or defined(CC_TIME_LAYER)
   double    t_eta, t_lay;

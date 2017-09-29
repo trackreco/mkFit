@@ -3,11 +3,13 @@
 #define _debug_
 
 #ifdef dprint
+
 #undef dprint
 #undef dprint_np
 #undef dcall
 #undef dprintf
 #undef dprintf_np
+
 #endif
 /*
   Usage: DEBUG must be defined before this header file is included, typically
@@ -49,54 +51,22 @@
 #define dprint_np(n,x) if(debug && n < N_proc) { dmutex_guard; std::cout << n << ": " << x << std::endl; }
 #define dcall(x)  if (debug) { dmutex_guard; x; }
 #define dprintf(...) if (debug) { dmutex_guard; printf(__VA_ARGS__); }
-#define dprintf_np(n, ...) if (debug && n< N_proc) { dmutex_guard; std::cout << n << ": "; printf(__VA_ARGS__); }
+#define dprintf_np(n, ...) if (debug && n < N_proc) { dmutex_guard; std::cout << n << ": "; printf(__VA_ARGS__); }
 
-namespace { 
+namespace
+{
   bool debug = false; // default, can be overridden locally
   std::mutex debug_mutex;
 }
 
-static void print(const TrackState& s)
-{
-  std::cout << "x:  "  << s.parameters[0] 
-            << " y:  " << s.parameters[1]
-            << " z:  " << s.parameters[2] << std::endl
-            << "px: "  << s.parameters[3]
-            << " py: " << s.parameters[4]
-            << " pz: " << s.parameters[5] << std::endl
-            << "valid: " << s.valid << " errors: " << std::endl;
-  dumpMatrix(s.errors);
-  std::cout << std::endl;
-}
-
-static void print(std::string label, int itrack, const Track& trk)
-{
-  std::cout << std::endl << label << ": " << itrack << " hits: " << trk.nFoundHits() << " State" << std::endl;
-  print(trk.state());
-}
-
-static void print(std::string label, const TrackState& s)
-{
-  std::cout << label << std::endl;
-  print(s);
-}
-
-static void print(std::string label, const MeasurementState& s)
-{
-  std::cout << label << std::endl;
-  std::cout << "x: "  << s.parameters()[0] 
-            << " y: " << s.parameters()[1]
-            << " z: " << s.parameters()[2] << std::endl
-            << "errors: " << std::endl;
-  dumpMatrix(s.errors());
-  std::cout << std::endl;
-}
-
 #else
+
 #define dprint(x) (void(0))
 #define dprint_np(n,x) (void(0))
 #define dcall(x) (void(0))
 #define dprintf(...) (void(0))
 #define dprintf_np(n,...) (void(0))
+
 #endif
+
 #endif

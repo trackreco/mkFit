@@ -1,52 +1,126 @@
 #########
-Work plan
+Open issues with endcap
 #########
 
-1. MkFitter::FindCandidatesMinimizeCopy() -- see comment XXXX MT FIXME in the
-   middle of index vector initialization loops.
-   In short - it's about supporting partial SlurpIn and masked intrinsics.
+* BestHit for cmssw
 
-   Matriplex could have a MAX_N member that would be used for non-vectorized
-   code. I'm not super sure about that -- if we limit the loading of data and
-   then never read out the parts that were not used it costs us nothing (or
-   little) to do operations on whole vectors.
+Truth seeds: Some events in endcap (more in ec- than ec+) have few mc matching
+found tracks (even only 2). The tracks are found but mc matching fails.
 
-2. Fix access of hits out of bunch_of_hits in FindCandidatesMinimizeCopy().
-   When we determine phi range for each track, this can oveflow over the end
-   of the array.
-   - Replace XHitBegin/XHitEnd with XHitPos/XHitSize
-   - Calculate them properly including phi wrap in SelectHitRanges()
-   - In FindCandidatesMinimizeCopy() wrap back the index vector.
+Similar for cmssw seeds with reco seed only -- maybe even less tracks are found.
 
-   Or, alternatively, copy a couple of front hits to the back.
-   Ouch, this is not so trivial, need to fix overrrun in the other direction,
-   too! Heh, I could always copy the last couple of hits to the front :)
-   No ... the first solution is fine!
+Some of this effect is seen in barrel, too.
 
-   Note --- there is also the maxSize there counter + a hack limiting it to 25
-   there. We should also fix this properly, either by restricting the number
-   of phi bins or by killing the candidates whose errors get too big.
 
-3. Hand-made multi-threading for eta bins.
+* Basic quality
 
-   Later, multi-threading over multiple events to fill all slots and to not
-   stall waiting for threads that take longer to process.
+In the following functions (search for XXXXMT4K):
+  TrackExtra::setMCTrackIDInfo, MkBuilder::quality_process
+we assume there is a single hit per layer in MC track.
+In cmssw case, there can be several ... and our algorithms find only one hit
+per layer. So some tracks get rejected as not having enough matching hits.
 
-   Note, current simulation produces higher occupancy at higher eta.
+----------------
 
-   Once we have endcaps, the transition region will also become more
-   expensive.
+Test samples on desire:
 
-4. Attempt number two at prefetching in a service thread.
+./mkFit --read --file-name /bar/mic/mu_brl-1000-10.bin-4 --build-ce --geom CMS-2017 --cmssw-seeds
+./mkFit --read --file-name /bar/mic/mu_ecp-1000-10.bin-4 --build-ce --geom CMS-2017 --cmssw-seeds --num-events 995
+./mkFit --read --file-name /bar/mic/mu_ecn-1000-10.bin-4 --build-ce --geom CMS-2017 --cmssw-seeds --num-events 995
 
-5. Make MkFitter use a single array of hits, copy in as they are needed.
-   Now we have a fixed set of 10 hits ... this was done for final fitting so
-   we could copy in all the hits in the beginning.
-   Or, if it turns out this makes sense for fitting, separate MkFitter and
-   MkBuilder, optionally using a common MkBase.
 
-6. Implement write/read events for the new event/track/hit format.
-   Started doing this on glut.
+#########
+Notes for Kevin
+#########
+
+// Dump sim tracks + hits
+  for (auto & t : m_event->simTracks_)
+  {
+    printf("%2d (%2d): ", t.label(), t.nFoundHits());
+
+    for (int i = 0; i < t.nFoundHits(); ++i)
+    {
+      int idx = t.getHitIdx(i);
+      int lyr = t.getHitLyr(i);
+
+      printf("%4d", idx >= 0 ? m_event->layerHits_[lyr][idx].mcHitID() : -1);
+    }
+    printf("\n");
+  }
+
+// Dump cands + hits (would need to build map label to index to
+// get it properly sorted)
+  for (auto & t : m_event->candidateTracks_)
+  {
+    printf("%2d (%2d): ", t.label(), t.nFoundHits());
+
+    for (int i = 0; i < t.nFoundHits(); ++i)
+    {
+      int idx = t.getHitIdx(i);
+      int lyr = t.getHitLyr(i);
+
+      printf("%4d", idx >= 0 ? m_event->layerHits_[lyr][idx].mcHitID() : -1);
+    }
+    printf("\n");
+  }
+
+In general, search for XXMT4K.
+
+Thing that is probably most urgent is Validation + some issues with Simulation
+and Seeding.
+
+Remapping funcs after finding commented out in:
+  MkBuilder::quality_output_BH()
+  MkBuilder::quality_output_COMB()
+
+What is needed for validation?
+
+
+#########
+Full detector tracking
+#########
+
+0. Open issues:
+  a. Storing of hit indices into Track
+     Also -- MkFitter and arrays of full hits.
+     There is this mkfp->SetNhits() in every building layer loop.
+  b. Last seed layer should somhow be known to building functions.
+
+1. Best-hit on x-1-10000-brl.raw
+
+BEFORE:
+Building tracks with 'runBuildingTestPlexBestHit', total simtracks=10000
+found tracks=9215  in pT 10%=9163  in pT 20%=9195     no_mc_assoc=785
+  nH >= 80% =9111  in pT 10%=9106  in pT 20%=9111
+
+AFTER:
+Building tracks with 'runBuildingTestPlexBestHit', total simtracks=10000
+found tracks=9215  in pT 10%=9165  in pT 20%=9194     no_mc_assoc=785
+  nH >= 80% =9115  in pT 10%=9110  in pT 20%=9115
+
+2. Std
+
+BEFORE:
+Building tracks with 'runBuildingTestPlexStandard', total simtracks=10000
+found tracks=9977  in pT 10%=9969  in pT 20%=9974     no_mc_assoc=23
+  nH >= 80% =9972  in pT 10%=9968  in pT 20%=9971
+
+AFTER:
+Building tracks with 'runBuildingTestPlexStandard', total simtracks=10000
+found tracks=9977  in pT 10%=9969  in pT 20%=9974     no_mc_assoc=23
+  nH >= 80% =9972  in pT 10%=9968  in pT 20%=9971
+
+3. Clone engine:
+
+BEFORE:
+Building tracks with 'runBuildingTestPlexCloneEngine', total simtracks=10000
+found tracks=9977  in pT 10%=9969  in pT 20%=9974     no_mc_assoc=23
+  nH >= 80% =9972  in pT 10%=9968  in pT 20%=9971
+
+AFTER:
+Building tracks with 'runBuildingTestPlexCloneEngine', total simtracks=10000
+found tracks=9977  in pT 10%=9969  in pT 20%=9974     no_mc_assoc=23
+  nH >= 80% =9972  in pT 10%=9968  in pT 20%=9971
 
 
 #########

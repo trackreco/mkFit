@@ -1,11 +1,12 @@
 #include "Event.h"
+
 #include "Simulation.h"
 #include "KalmanUtils.h"
 #include "seedtest.h"
 #include "buildtest.h"
 #include "fittest.h"
-#include "BinInfoUtils.h"
 #include "ConformalUtils.h"
+#include "TrackerInfo.h"
 
 //#define DEBUG
 #include "Debug.h"
@@ -13,6 +14,8 @@
 #ifdef TBB
 #include "tbb/tbb.h"
 #endif
+
+#include <memory>
 
 std::mutex Event::printmutex;
 
@@ -26,7 +29,6 @@ static bool tracksByPhi(const Track& t1, const Track& t2)
   return t1.posPhi()<t2.posPhi();
 }
 
-#ifdef ETASEG
 inline bool sortByEta(const Hit& hit1, const Hit& hit2){
   return hit1.eta()<hit2.eta();
 }
@@ -35,39 +37,27 @@ inline bool sortByEta(const Hit& hit1, const Hit& hit2){
 inline bool sortByZ(const Hit& hit1, const Hit& hit2){
   return hit1.z()<hit2.z();
 }
-#endif
 
-void Event::resetLayerHitMap(bool resetSimHits) {
-  //gc: not sure what is being done here
-  layerHitMap_.clear();
-  layerHitMap_.resize(simHitsInfo_.size());
-  for (int ilayer = 0; ilayer < layerHits_.size(); ++ilayer) {
-    for (int index = 0; index < layerHits_[ilayer].size(); ++index) {
-      auto& hit = layerHits_[ilayer][index];
-      assert(hit.mcHitID() >= 0); // tmp debug
-      assert(hit.mcHitID() < layerHitMap_.size());
-      layerHitMap_[hit.mcHitID()] = HitID(ilayer, index);
-    }
-  }
-  if (resetSimHits) {
-    for (auto&& track : simTracks_) {
-      for (int il = 0; il < track.nTotalHits(); ++il) {
-        assert(layerHitMap_[track.getHitIdx(il)].index >= 0); // tmp debug
-        track.setHitIdx(il, layerHitMap_[track.getHitIdx(il)].index);
-      }
-    }
-  }
+namespace
+{
+  Geometry dummyGeometry;
+  std::unique_ptr<Validation> dummyValidation( Validation::make_validation("dummy") );
 }
 
-Event::Event(const Geometry& g, Validation& v, int evtID, int threads) : geom_(g), validation_(v), evtID_(evtID), threads_(threads), mcHitIDCounter_(0)
+Event::Event(int evtID) :
+  geom_(dummyGeometry), validation_(*dummyValidation),
+  evtID_(evtID), threads_(1), mcHitIDCounter_(0)
 {
-  layerHits_.resize(Config::nLayers);
-  segmentMap_.resize(Config::nLayers);
+  layerHits_.resize(Config::nTotalLayers);
+}
+
+Event::Event(const Geometry& g, Validation& v, int evtID, int threads) :
+  geom_(g), validation_(v),
+  evtID_(evtID), threads_(threads), mcHitIDCounter_(0)
+{
+  layerHits_.resize(Config::nTotalLayers);
 
   validation_.resetValidationMaps(); // need to reset maps for every event.
-  if (Config::super_debug) {
-    validation_.resetDebugVectors(); // need to reset vectors for every event.
-  }
 }
 
 void Event::Reset(int evtID)
@@ -76,30 +66,60 @@ void Event::Reset(int evtID)
   mcHitIDCounter_ = 0;
 
   for (auto&& l : layerHits_) { l.clear(); }
-  for (auto&& l : segmentMap_) { l.clear(); }
 
   simHitsInfo_.clear();
-  layerHitMap_.clear();
-  simTracks_.clear();
-  seedTracks_.clear();
-  candidateTracks_.clear();
-  fitTracks_.clear();
   simTrackStates_.clear();
+  simTracks_.clear();
+  simTracksExtra_.clear();
+  seedTracks_.clear();
+  seedTracksExtra_.clear();
+  candidateTracks_.clear();
+  candidateTracksExtra_.clear();
+  fitTracks_.clear();
+  fitTracksExtra_.clear();
+  extRecTracks_.clear();
+  extRecTracksExtra_.clear();
 
   validation_.resetValidationMaps(); // need to reset maps for every event.
-  if (Config::super_debug) {
-    validation_.resetDebugVectors(); // need to reset vectors for every event.
+}
+
+void Event::RemapHits(TrackVec & tracks)
+{
+  std::unordered_map<int,int> simHitMap;
+  int max_layer = Config::nTotalLayers;
+  for (int ilayer = 0; ilayer < max_layer; ++ilayer)
+  {
+    const auto & hit_vec = layerHits_[ilayer];
+    const auto   size = hit_vec.size();
+    for (int index = 0; index < size; ++index)
+    {
+      simHitMap[hit_vec[index].mcHitID()] = index;
+    }
+  }
+  for (auto&& track : tracks)
+  {
+    for (int i = 0; i < track.nTotalHits(); ++i)
+    {
+      int hitidx = track.getHitIdx(i);
+      int hitlyr = track.getHitLyr(i);
+      if (hitidx >= 0)
+      {
+        track.setHitIdx(i, simHitMap[layerHits_[hitlyr][hitidx].mcHitID()]);
+      }
+    }
   }
 }
 
 void Event::Simulate()
 {
   simTracks_.resize(Config::nTracks);
-  simHitsInfo_.resize(Config::nTotHit * Config::nTracks);
+  simHitsInfo_.reserve(Config::nTotHit * Config::nTracks);
+  simTrackStates_.reserve(Config::nTotHit * Config::nTracks);
+
   for (auto&& l : layerHits_) {
-    l.resize(Config::nTracks);  // thread safety
+    l.clear();
+    l.reserve(Config::nTracks);
   }
-  simTrackStates_.resize(Config::nTracks);
 
 #ifdef TBB
   parallel_for( tbb::blocked_range<size_t>(0, Config::nTracks, 100), 
@@ -116,6 +136,7 @@ void Event::Simulate()
       SVector3 mom;
       SMatrixSym66 covtrk;
       HitVec hits;
+      MCHitInfoVec hitinfos;
       TSVec  initialTSs;
       // int starting_layer  = 0; --> for displaced tracks, may want to consider running a separate Simulate() block with extra parameters
 
@@ -123,7 +144,13 @@ void Event::Simulate()
       // do the simulation
       if (Config::useCMSGeom) setupTrackFromTextFile(pos,mom,covtrk,hits,*this,itrack,q,tmpgeom,initialTSs);
       else if (Config::endcapTest) setupTrackByToyMCEndcap(pos,mom,covtrk,hits,*this,itrack,q,tmpgeom,initialTSs);
-      else setupTrackByToyMC(pos,mom,covtrk,hits,*this,itrack,q,tmpgeom,initialTSs); 
+      else setupTrackByToyMC(pos,mom,covtrk,hits,hitinfos,*this,itrack,q,tmpgeom,initialTSs); 
+
+      // XXMT4K What genius set up separate setupTrackByToyMC / setupTrackByToyMCEndcap?
+      // setupTrackByToyMCEndcap does not have scattering and who knows what else.
+      // In the original commit Giuseppe he only did fittest ... strangle ... etc ...
+      // I'll just review/fix setupTrackByToyMC() for now (so Config::endcapTest = false).
+      // See also ifdef just below:
 
 #ifdef CCSCOORD
       // setupTrackByToyMCEndcap is already in CCS coord, no need to convert
@@ -135,34 +162,66 @@ void Event::Simulate()
 	}
       }
 #endif
-      // uber ugly way of getting around read-in / write-out of objects needed for validation
-      if (Config::normal_val || Config::fit_val) {simTrackStates_[itrack] = initialTSs;}
-      validation_.collectSimTkTSVecMapInfo(itrack,initialTSs); // save initial TS parameters in validation object ... just a copy of the above line
+      // MT: I'm putting in a mutex for now ...
+      std::lock_guard<std::mutex> lock(mcGatherMutex_);
 
       simTracks_[itrack] = Track(q,pos,mom,covtrk,0.0f);
       auto& sim_track = simTracks_[itrack];
       sim_track.setLabel(itrack);
-      for (int ilay = 0; ilay < hits.size(); ++ilay) {
-        sim_track.addHitIdx(hits[ilay].mcHitID(),0.0f); // set to the correct hit index after sorting
-        layerHits_[ilay][itrack] = hits[ilay];  // thread safety
+
+      // XXKM4MT
+      // Sorta assumes one hit per layer -- could just make this 2X nMaxSimHits inside track object (without loopers)
+      // This really would only matter for validation and seeding...
+      // Could imagine making an inherited class for sim tracks that keeps tracks overlaps
+      assert(hits.size() == hitinfos.size());
+      for (int i = 0; i < hits.size(); ++i)
+      {
+        // set to the correct hit index after sorting
+        sim_track.addHitIdx(layerHits_[hitinfos[i].layer_].size(), hitinfos[i].layer_, 0.0f);
+        layerHits_[hitinfos[i].layer_].emplace_back(hits[i]);
+
+        simHitsInfo_.emplace_back(hitinfos[i]);
+	if (Config::root_val || Config::fit_val) 
+        {
+	  simTrackStates_.emplace_back(initialTSs[i]);
+	}
       }
     }
 #ifdef TBB
   });
 #endif
+
+  // do some work to ensure everything is aligned after multithreading 	
+  std::unordered_map<int,int> mcHitIDMap;
+  for (int ihit = 0; ihit < simHitsInfo_.size(); ihit++)
+  {
+    mcHitIDMap[simHitsInfo_[ihit].mcHitID()] = ihit;
+  }
+
+  std::sort(simHitsInfo_.begin(),   simHitsInfo_.end(),
+	    [](const MCHitInfo& a, const MCHitInfo& b)
+	    { return a.mcHitID() < b.mcHitID(); });
+		
+  TSVec tmpTSVec(simTrackStates_.size());
+  for (int its = 0; its < simTrackStates_.size(); its++)
+  {
+    tmpTSVec[its] = simTrackStates_[mcHitIDMap[its]];
+  }
+  simTrackStates_ = tmpTSVec;
 }
 
-void Event::Segment()
+void Event::Segment(BinInfoMap & segmentMap)
 {
 #ifdef DEBUG
   bool debug=true;
 #endif
+  segmentMap.resize(Config::nTotalLayers);
+
   //sort in phi and dump hits per layer, fill phi partitioning
   for (int ilayer=0; ilayer<layerHits_.size(); ++ilayer) {
     dprint("Hits in layer=" << ilayer);
     
-#ifdef ETASEG
-    segmentMap_[ilayer].resize(Config::nEtaPart);    
+    segmentMap[ilayer].resize(Config::nEtaPart);    
     // eta first then phi
     std::sort(layerHits_[ilayer].begin(), layerHits_[ilayer].end(), sortByZ);
     std::vector<int> lay_eta_bin_count(Config::nEtaPart);
@@ -199,43 +258,19 @@ void Event::Segment()
         int firstPhiBinIdx = lastPhiIdxFound+1;
         int phiBinSize = lay_eta_phi_bin_count[phibin];
         BinInfo phiBinInfo(firstPhiBinIdx,phiBinSize);
-        segmentMap_[ilayer][etabin].push_back(phiBinInfo);
+        segmentMap[ilayer][etabin].push_back(phiBinInfo);
         if (phiBinSize>0){
           lastPhiIdxFound+=phiBinSize;
         }
 #ifdef DEBUG
         if ((debug) && (phiBinSize !=0)) dprintf("ilayer: %1u etabin: %1u phibin: %2u first: %2u last: %2u \n", 
                                                  ilayer, etabin, phibin, 
-                                                 segmentMap_[ilayer][etabin][phibin].first, 
-                                                 segmentMap_[ilayer][etabin][phibin].second+segmentMap_[ilayer][etabin][phibin].first
+                                                 segmentMap[ilayer][etabin][phibin].first, 
+                                                 segmentMap[ilayer][etabin][phibin].second+segmentMap[ilayer][etabin][phibin].first
                                                  );
 #endif
       } // end loop over storing phi index
     } // end loop over storing eta index
-#else
-    segmentMap_[ilayer].resize(1);    // only one eta bin for special case, avoid ifdefs
-    std::sort(layerHits_[ilayer].begin(), layerHits_[ilayer].end(), sortByPhi);
-    std::vector<int> lay_phi_bin_count(Config::nPhiPart);//should it be 63? - yes!
-    for (int ihit=0;ihit<layerHits_[ilayer].size();++ihit) {
-      dprint("hit r/phi/eta : " << layerHits_[ilayer][ihit].r() << " "
-                                << layerHits_[ilayer][ihit].phi() << " " << layerHits_[ilayer][ihit].eta());
-
-      int phibin = getPhiPartition(layerHits_[ilayer][ihit].phi());
-      lay_phi_bin_count[phibin]++;
-    }
-
-    //now set index and size in partitioning map
-    int lastIdxFound = -1;
-    for (int bin=0; bin<Config::nPhiPart; ++bin) {
-      int binSize = lay_phi_bin_count[bin];
-      int firstBinIdx = lastIdxFound+1;
-      BinInfo binInfo(firstBinIdx, binSize);
-      segmentMap_[ilayer][0].push_back(binInfo); // [0] bin is just the only eta bin ... reduce ifdefs
-      if (binSize>0){
-        lastIdxFound+=binSize;
-      }
-    }
-#endif
   } // end loop over layers
 
 #ifdef DEBUG
@@ -243,38 +278,40 @@ void Event::Segment()
     dmutex_guard;
     int etahitstotal = 0;
     for (int etabin = 0; etabin < Config::nEtaPart; etabin++){
-      int etahits = segmentMap_[ilayer][etabin][Config::nPhiPart-1].first + segmentMap_[ilayer][etabin][Config::nPhiPart-1].second - segmentMap_[ilayer][etabin][0].first;
+      int etahits = segmentMap[ilayer][etabin][Config::nPhiPart-1].first + segmentMap[ilayer][etabin][Config::nPhiPart-1].second - segmentMap[ilayer][etabin][0].first;
       std::cout << "etabin: " << etabin << " hits in bin: " << etahits << std::endl;
       etahitstotal += etahits;
 
       for (int phibin = 0; phibin < Config::nPhiPart; phibin++){
-	//	if (segmentMap_[ilayer][etabin][phibin].second > 3) {std::cout << "   phibin: " << phibin << " hits: " << segmentMap_[ilayer][etabin][phibin].second << std::endl;}
+	//	if (segmentMap[ilayer][etabin][phibin].second > 3) {std::cout << "   phibin: " << phibin << " hits: " << segmentMap[ilayer][etabin][phibin].second << std::endl;}
       }
     }
     std::cout << "layer: " << ilayer << " totalhits: " << etahitstotal << std::endl;
   }
 #endif
-  resetLayerHitMap(true);
+
+  // need to reset simtrack hit indices after sorting!
+  RemapHits(simTracks_);
 }
 
-  void Event::Seed()
+void Event::Seed(const BinInfoMap & segmentMap)
 {
 #ifdef ENDTOEND
-  buildSeedsByRoadSearch(seedTracks_,seedTracksExtra_,layerHits_,segmentMap_,*this);
-  //  buildSeedsByRoadTriplets(seedTracks_,seedTracksExtra_,layerHits_,segmentMap_,*this);
-  //buildSeedsByRZFirstRPhiSecond(seedTracks_,seedTracksExtra_,layerHits_,segmentMap_,*this);
+  buildSeedsByRoadSearch(seedTracks_,seedTracksExtra_,layerHits_,segmentMap,*this);
+  //  buildSeedsByRoadTriplets(seedTracks_,seedTracksExtra_,layerHits_,segmentMap,*this);
+  //buildSeedsByRZFirstRPhiSecond(seedTracks_,seedTracksExtra_,layerHits_,segmentMap,*this);
 #else
   buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
   simTracksExtra_ = seedTracksExtra_;
 #endif
   std::sort(seedTracks_.begin(), seedTracks_.end(), tracksByPhi);
-  validation_.alignTrackExtra(seedTracks_,seedTracksExtra_);   // if we sort here, also have to sort seedTracksExtra and redo labels.
+  validation_.alignTracks(seedTracks_,seedTracksExtra_,true);   // if we sort here, also have to sort seedTracksExtra and redo labels.
 }
 
-void Event::Find()
+void Event::Find(const BinInfoMap & segmentMap)
 {
-  buildTracksBySeeds(*this);
-  //  buildTracksByLayers(*this);
+  buildTracksBySeeds(segmentMap,*this);
+  //  buildTracksByLayers(segmentMap,*this);
 
   // From CHEP-2015
   // buildTestSerial(*this, Config::nlayers_per_seed, Config::maxCandsPerSeed, Config::chi2Cut, Config::nSigma, Config::minDPhi);
@@ -291,24 +328,23 @@ void Event::Fit()
 #endif
 }
 
-void Event::Validate(){
-  // KM: Config tree just filled once... in main.cc
-  if (Config::normal_val) {
+void Event::Validate()
+{
+  // standard eff/fr/dr validation
+  if (Config::root_val) {
     validation_.setTrackExtras(*this);
     validation_.makeSimTkToRecoTksMaps(*this);
     validation_.makeSeedTkToRecoTkMaps(*this);
     validation_.fillEfficiencyTree(*this);
     validation_.fillFakeRateTree(*this);
-    if (Config::full_val) {
-      validation_.fillSegmentTree(segmentMap_,evtID_);
-      validation_.fillBranchTree(evtID_);
-      validation_.fillGeometryTree(*this);
-      validation_.fillConformalTree(*this);
-    }
   }
 
-  if (Config::super_debug) { // super debug mode
-    validation_.fillDebugTree(*this);
+  // special cmssw to mkfit validation
+  if (Config::cmssw_val) {
+    validation_.setTrackExtras(*this);
+    validation_.makeCMSSWTkToRecoTksMap(*this);
+    validation_.fillCMSSWEfficiencyTree(*this);
+    validation_.fillCMSSWFakeRateTree(*this);
   }
 
   if (Config::fit_val) { // fit val for z-phi tuning
@@ -322,7 +358,7 @@ void Event::PrintStats(const TrackVec& trks, TrackExtraVec& trkextras)
 
   for (auto&& trk : trks) {
     auto&& extra = trkextras[trk.label()];
-    extra.setMCTrackIDInfo(trk, layerHits_, simHitsInfo_);
+    extra.setMCTrackIDInfoByLabel(trk, layerHits_, simHitsInfo_, simTracks_);
     if (extra.mcTrackID() < 0) {
       ++miss;
     } else {
@@ -343,8 +379,10 @@ void Event::PrintStats(const TrackVec& trks, TrackExtraVec& trkextras)
             << "  nH >= 8   =" << hit8    << "  in pT 10%=" << h8_10    << "  in pT 20%=" << h8_20    << std::endl;
 }
  
-void Event::write_out(FILE *fp) 
+void Event::write_out(DataFile &data_file)
 {
+  FILE *fp = data_file.f_fp;
+
   static std::mutex writemutex;
   std::lock_guard<std::mutex> writelock(writemutex);
 
@@ -357,13 +395,11 @@ void Event::write_out(FILE *fp)
   fwrite(&simTracks_[0], sizeof(Track), nt, fp);
   evsize += sizeof(int) + nt*sizeof(Track);
 
-  if (Config::normal_val || Config::fit_val) {
-    for (int it = 0; it<nt; ++it) {
-      int nts = simTrackStates_[it].size();
-      fwrite(&nts, sizeof(int), 1, fp);
-      fwrite(&simTrackStates_[it][0], sizeof(TrackState), nts, fp);
-      evsize += sizeof(int) + nts*sizeof(TrackState);
-    }
+  if (data_file.HasSimTrackStates()) {
+    int nts = simTrackStates_.size();
+    fwrite(&nts, sizeof(int), 1, fp);
+    fwrite(&simTrackStates_[0], sizeof(TrackState), nts, fp);
+    evsize += sizeof(int) + nts*sizeof(TrackState);
   }
 
   int nl = layerHits_.size();
@@ -381,11 +417,18 @@ void Event::write_out(FILE *fp)
   fwrite(&simHitsInfo_[0], sizeof(MCHitInfo), nm, fp);
   evsize += sizeof(int) + nm*sizeof(MCHitInfo);
 
-  if (Config::useCMSGeom || Config::readCmsswSeeds) {
+  if (data_file.HasSeeds()) {
     int ns = seedTracks_.size();
     fwrite(&ns, sizeof(int), 1, fp);
     fwrite(&seedTracks_[0], sizeof(Track), ns, fp);
     evsize += sizeof(int) + ns*sizeof(Track);
+  }
+
+  if (data_file.HasExtRecTracks()) {
+    int nert = extRecTracks_.size();
+    fwrite(&nert, sizeof(int), 1, fp);
+    fwrite(&extRecTracks_[0], sizeof(Track), nert, fp);
+    evsize += sizeof(int) + nert*sizeof(Track);
   }
 
   fseek(fp, start, SEEK_SET);
@@ -399,7 +442,7 @@ void Event::write_out(FILE *fp)
   for (int it = 0; it<nt; it++) {
     printf("track with pT=%5.3f\n",simTracks_[it].pT());
     for (int ih=0; ih<simTracks_[it].nTotalHits(); ++ih) {
-      printf("hit idx=%i\n", simTracks_[it].getHitIdx(ih));
+      printf("hit lyr:%2d idx=%i\n", simTracks_[it].getHitLyr(ih), simTracks_[it].getHitIdx(ih));
     }
   }
   printf("write %i layers\n",nl);
@@ -412,39 +455,33 @@ void Event::write_out(FILE *fp)
   */
 }
 
-void Event::read_in(FILE *fp, int version)
+// #define DUMP_SEEDS
+// #define DUMP_SEED_HITS
+// #define DUMP_TRACKS
+// #define DUMP_TRACK_HITS
+// #define DUMP_LAYER_HITS
+
+void Event::read_in(DataFile &data_file, FILE *in_fp)
 {
-  static long pos = sizeof(int); // header size
-  int evsize;
+  FILE *fp = in_fp ? in_fp : data_file.f_fp;
 
-  if (version > 0) {
-    static std::mutex readmutex;
-    std::lock_guard<std::mutex> readlock(readmutex);
-
-    fseek(fp, pos, SEEK_SET);
-    fread(&evsize, sizeof(int), 1, fp);
-    pos += evsize;
-  }
+  int evsize = data_file.AdvancePosToNextEvent(fp);
 
   int nt;
   fread(&nt, sizeof(int), 1, fp);
   simTracks_.resize(nt);
-  fread(&simTracks_[0], sizeof(Track), nt, fp);
+  for (int i = 0; i < nt; ++i)
+  {
+    fread(&simTracks_[i], data_file.f_header.f_sizeof_track, 1, fp);
+  }
   Config::nTracks = nt;
 
-  if (Config::normal_val || Config::fit_val) {
-    simTrackStates_.resize(nt);
-    for (int it = 0; it<nt; ++it) {
-      int nts;
-      fread(&nts, sizeof(int), 1, fp);
-      simTrackStates_[it].resize(nts);
-      fread(&simTrackStates_[it][0], sizeof(TrackState), nts, fp);
-    }
-    // now do the validation copying... ugh
-    for (int imc = 0; imc < nt; ++imc) {
-      validation_.collectSimTkTSVecMapInfo(imc,simTrackStates_[imc]); 
-    }
-    simTrackStates_.clear();
+  if (data_file.HasSimTrackStates())
+  {
+    int nts; 
+    fread(&nts, sizeof(int), 1, fp);
+    simTrackStates_.resize(nts);
+    fread(&simTrackStates_[0], sizeof(TrackState), nts, fp);
   }
 
   int nl;
@@ -462,39 +499,449 @@ void Event::read_in(FILE *fp, int version)
   simHitsInfo_.resize(nm);
   fread(&simHitsInfo_[0], sizeof(MCHitInfo), nm, fp);
 
-  if (Config::useCMSGeom || Config::readCmsswSeeds) {
+  if (data_file.HasSeeds()) {
     int ns;
     fread(&ns, sizeof(int), 1, fp);
-    seedTracks_.resize(ns);
-    if (Config::readCmsswSeeds) fread(&seedTracks_[0], sizeof(Track), ns, fp);
-    else fseek(fp, sizeof(Track)*ns, SEEK_CUR);
-    /*
-    printf("read %i seedtracks\n",nt);
-    for (int it = 0; it<ns; it++) {
-      printf("seedtrack with q=%i pT=%5.3f nHits=%i and label=%i\n",seedTracks_[it].charge(),seedTracks_[it].pT(),seedTracks_[it].nFoundHits(),seedTracks_[it].label());
+    if (Config::readCmsswSeeds)
+    {
+      seedTracks_.resize(ns);
+      for (int i = 0; i < ns; ++i)
+      {
+        fread(&seedTracks_[i], data_file.f_header.f_sizeof_track, 1, fp);
+      }
     }
-    */
+    else
+    {
+      fseek(fp, ns * data_file.f_header.f_sizeof_track, SEEK_CUR);
+      ns = -ns;
+    }
+
+#ifdef DUMP_SEEDS
+    printf("Read %i seedtracks (neg value means actual reading was skipped)\n", ns);
+    for (int it = 0; it < ns; it++)
+    {
+      printf("  q=%+i pT=%6.3f nHits=%i label=% i\n",seedTracks_[it].charge(),seedTracks_[it].pT(),seedTracks_[it].nFoundHits(),seedTracks_[it].label());
+#ifdef DUMP_SEED_HITS
+      for (int ih = 0; ih < seedTracks_[it].nTotalHits(); ++ih)
+      {
+        int lyr = seedTracks_[it].getHitLyr(ih);
+        int idx = seedTracks_[it].getHitIdx(ih);
+        if (idx >= 0)
+        {
+          const Hit &hit = layerHits_[lyr][idx];
+          printf("    hit %2d lyr=%3d idx=%4d pos r=%7.3f z=% 8.3f   mc_hit=%3d mc_trk=%3d\n",
+                 ih, lyr, idx, layerHits_[lyr][idx].r(), layerHits_[lyr][idx].z(),
+                 hit.mcHitID(), hit.mcTrackID(simHitsInfo_));
+        }
+        else
+          printf("    hit %2d idx=%i\n",ih,seedTracks_[it].getHitIdx(ih));
+
+      }
+#endif
+    }
+#endif
+  }
+
+  if (data_file.HasExtRecTracks())
+  {
+    int nert;
+    fread(&nert, sizeof(int), 1, fp);
+    if (Config::readExtRecTracks)
+    {
+      extRecTracks_.resize(nert);
+      for (int i = 0; i < nert; ++i)
+      {
+        fread(&extRecTracks_[i], data_file.f_header.f_sizeof_track, 1, fp);
+      }
+    }
+    else
+    {
+      fseek(fp, nert * data_file.f_header.f_sizeof_track, SEEK_CUR);
+      nert = -nert;
+    }
   }
 
   /*
-  printf("read %i simtracks\n",nt);
-  for (int it = 0; it<nt; it++) {
-    printf("simtrack with q=%i pT=%5.3f and nHits=%i\n",simTracks_[it].charge(),simTracks_[it].pT(),simTracks_[it].nFoundHits());
-    for (int ih=0; ih<simTracks_[it].nTotalHits(); ++ih) {
-      if (simTracks_[it].getHitIdx(ih)>=0)
-	printf("hit #%i idx=%i pos r=%5.3f\n",ih,simTracks_[it].getHitIdx(ih),layerHits_[ih][simTracks_[it].getHitIdx(ih)].r());
+    // HACK TO ONLY SELECT ONE PROBLEMATIC TRACK.
+    // Note that MC matching gets screwed.
+    // Works for MC seeding.
+    //
+    printf("************** SIM SELECTION HACK IN FORCE ********************\n");
+    TrackVec x;
+    x.push_back(simTracks_[3]);
+    simTracks_.swap(x);
+    nt = 1;
+  */
+
+#ifdef DUMP_TRACKS
+  printf("Read %i simtracks\n", nt);
+  for (int it = 0; it < nt; it++)
+  {
+    const Track &t = simTracks_[it];
+    printf("  %i with q=%+i pT=%7.3f eta=% 7.3f nHits=%2d  label=%4d\n",
+           it, t.charge(), t.pT(), t.momEta(), t.nFoundHits(), t.label());
+#ifdef DUMP_TRACK_HITS
+    for (int ih = 0; ih < t.nTotalHits(); ++ih)
+    {
+      int lyr = t.getHitLyr(ih);
+      int idx = t.getHitIdx(ih);
+      if (idx >= 0)
+      {
+        const Hit &hit = layerHits_[lyr][idx];
+	printf("    hit %2d lyr=%2d idx=%3d pos r=%7.3f z=% 8.3f   mc_hit=%3d mc_trk=%3d\n",
+               ih, lyr, idx, layerHits_[lyr][idx].r(), layerHits_[lyr][idx].z(),
+               hit.mcHitID(), hit.mcTrackID(simHitsInfo_));
+      }
       else
-	printf("hit #%i idx=%i\n",ih,simTracks_[it].getHitIdx(ih));
+	printf("    hit %2d idx=%i\n", ih, t.getHitIdx(ih));
+    }
+#endif
+  }
+#endif
+#ifdef DUMP_LAYER_HITS
+  printf("Read %i layers\n",nl);
+  int total_hits = 0;
+  for (int il = 0; il < nl; il++)
+  {
+    if (layerHits_[il].empty()) continue;
+
+    printf("Read %i hits in layer %i\n",layerHits_[il].size(),il);
+    total_hits += layerHits_[il].size();
+    for (int ih = 0; ih < layerHits_[il].size(); ih++)
+    {
+      printf("  hit with mcHitID=%i r=%5.3f x=%5.3f y=%5.3f z=%5.3f\n",
+             layerHits_[il][ih].mcHitID(), layerHits_[il][ih].r(),
+             layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z());
+    }
+  }
+  printf("Total hits in all layers = %d\n", total_hits);
+#endif
+
+  printf("Read complete, %d simtracks on file.\n", nt);
+}
+
+int Event::clean_cms_simtracks()
+{
+  // Sim tracks from cmssw have the following issues:
+  // - hits are not sorted by layer;
+  // - there are tracks with too low number of hits, even 0;
+  // - even with enough hits, there can be too few layers (esp. in endcap);
+  // - tracks from secondaries can have extremely low pT.
+  // Possible further checks:
+  // - make sure enough hits exist in seeding layers.
+  //
+  // What is done:
+  // 1. Hits are sorted by layer;
+  // 2. Non-findable tracks are marked with Track::Status::not_findable flag.
+  //
+  // Returns number of passed simtracks.
+
+  dprintf("Event::clean_cms_simtracks processing %d simtracks.\n", simTracks_.size());
+
+  int n_acc = 0;
+  int i = -1;//wrap in ifdef DEBUG?
+  for (Track & t : simTracks_)
+  {
+    i++;
+    const int nh  = t.nFoundHits();
+
+    t.sortHitsByLayer();
+    
+    const int lyr_cnt = t.nUniqueLayers();
+
+    const int lasthit = t.getLastFoundHitPos();
+    const float eta = layerHits_[t.getHitLyr(lasthit)][t.getHitIdx(lasthit)].eta();
+
+    if (lyr_cnt < Config::cmsSelMinLayers) // || Config::TrkInfo.is_transition(eta))
+    {
+      dprintf("Rejecting simtrack %d, n_hits=%d, n_layers=%d, pT=%f\n", i, nh, lyr_cnt, t.pT());
+      t.setNotFindable();
+    }
+    else
+    {
+      dprintf("Accepting simtrack %d, n_hits=%d, n_layers=%d, pT=%f\n", i, nh, lyr_cnt, t.pT());
+      ++n_acc;
     }
   }
 
-  printf("read %i layers\n",nl);
-  for (int il = 0; il<nl; il++) {
-    printf("read %i hits in layer %i\n",layerHits_[il].size(),il);
-    for (int ih = 0; ih<layerHits_[il].size(); ih++) {
-      printf("hit with mcHitID=%i r=%5.3f x=%5.3f y=%5.3f z=%5.3f\n",layerHits_[il][ih].mcHitID(),layerHits_[il][ih].r(),layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z());
+  return n_acc;
+}
+
+void Event::print_tracks(const TrackVec& tracks, bool print_hits) const
+{
+  const int nt = tracks.size();
+
+  printf("Event::print_tracks printing %d tracks %s hits:\n", nt, (print_hits ? "with" : "without"));
+  for (int it = 0; it < nt; it++)
+  {
+    const Track &t = tracks[it];
+    printf("  %i with q=%+i pT=%7.3f eta=% 7.3f nHits=%2d  label=%4d findable=%d\n",
+           it, t.charge(), t.pT(), t.momEta(), t.nFoundHits(), t.label(), t.isFindable());
+
+    if (print_hits)
+    {
+      for (int ih = 0; ih < t.nTotalHits(); ++ih)
+      {
+        int lyr = t.getHitLyr(ih);
+        int idx = t.getHitIdx(ih);
+        if (idx >= 0)
+        {
+          const Hit &hit = layerHits_[lyr][idx];
+          printf("    hit %2d lyr=%2d idx=%3d pos r=%7.3f z=% 8.3f   mc_hit=%3d mc_trk=%3d\n",
+                 ih, lyr, idx, layerHits_[lyr][idx].r(), layerHits_[lyr][idx].z(),
+                 hit.mcHitID(), hit.mcTrackID(simHitsInfo_));
+        }
+        else
+          printf("    hit %2d lyr=%2d idx=%3d\n", ih, t.getHitLyr(ih), t.getHitIdx(ih));
+      }
     }
   }
-  printf("read event done\n",nl);
-  */
 }
+
+int Event::clean_cms_seedtracks()
+{
+
+  double maxDR2 = Config::maxDR_seedclean*Config::maxDR_seedclean;
+  int minNHits = Config::minNHits_seedclean;
+
+  int ns = seedTracks_.size();
+
+  TrackVec cleanSeedTracks;
+  cleanSeedTracks.reserve(ns);
+  std::vector<bool> writetrack(ns, true);
+
+  const float invR1GeV = 1.f/Config::track1GeVradius;
+
+  std::vector<int>    nHits(ns);
+  std::vector<float>  oldPhi(ns);
+  std::vector<float>  pos2(ns);
+  std::vector<float>  eta(ns);
+  std::vector<float>  invptq(ns);
+  std::vector<float>  x(ns);
+  std::vector<float>  y(ns);
+
+  for(int ts=0; ts<ns; ts++){
+    const Track & tk = seedTracks_[ts];
+    nHits[ts] = tk.nFoundHits();
+    oldPhi[ts] = tk.momPhi();
+    pos2[ts] = std::pow(tk.x(), 2) + std::pow(tk.y(), 2);
+    eta[ts] = tk.momEta();
+    invptq[ts] = tk.charge()*tk.invpT();
+    x[ts] = tk.x();
+    y[ts] = tk.y();
+  }
+
+  for(int ts=0; ts<ns; ts++){
+
+    if (not writetrack[ts]) continue;//FIXME: this speed up prevents transitive masking; check build cost!
+    if (nHits[ts] < minNHits) continue;
+
+    const float oldPhi1 = oldPhi[ts];
+    const float pos2_first = pos2[ts];
+    const float Eta1 = eta[ts];
+    const float invptq_first = invptq[ts]; 
+
+    //#pragma simd /* Vectorization via simd had issues with icc */
+    for (int tss= ts+1; tss<ns; tss++){
+
+      if (nHits[tss] < minNHits) continue;
+
+      const float Eta2 = eta[tss];
+      const float deta2 = std::pow(Eta1-Eta2, 2);
+      if (deta2 > maxDR2 ) continue;
+
+      const float oldPhi2 = oldPhi[tss];
+      float dphiOld = std::abs(oldPhi1-oldPhi2);
+      if(dphiOld>=Config::PI) dphiOld =Config::TwoPI - dphiOld;
+      if (dphiOld > 0.5f) continue;
+
+      const float pos2_second = pos2[tss];
+      const float thisDXYSign05 = pos2_second > pos2_first ? -0.5f : 0.5f;
+
+      const float thisDXY = thisDXYSign05*sqrt( std::pow(x[ts]-x[tss], 2) + std::pow(y[ts]-y[tss], 2) );
+      
+      const float invptq_second = invptq[tss];
+
+      const float newPhi1 = oldPhi1-thisDXY*invR1GeV*invptq_first;
+      const float newPhi2 = oldPhi2+thisDXY*invR1GeV*invptq_second;
+
+      float dphi = std::abs(newPhi1-newPhi2);
+      if(dphi>=Config::PI) dphi =Config::TwoPI - dphi;
+
+      const float dr2 = deta2+dphi*dphi;
+
+      if (dr2 < maxDR2)
+	writetrack[tss]=false;
+    
+    }
+   
+
+    if(writetrack[ts])
+      cleanSeedTracks.emplace_back(seedTracks_[ts]);
+      
+  }
+  
+#ifdef DEBUG
+  printf("Number of seeds: %d --> %d\n", ns, cleanSeedTracks.size());
+#endif
+
+  seedTracks_.swap(cleanSeedTracks);
+
+  return seedTracks_.size();
+}
+
+int Event::clean_cms_seedtracks_badlabel()
+{
+  printf("***\n*** REMOVING SEEDS WITH BAD LABEL. This is a development hack. ***\n***\n");
+  TrackVec buf; seedTracks_.swap(buf);
+  std::copy_if(buf.begin(), buf.end(), std::back_inserter(seedTracks_), [](const Track& t){ return t.label() >= 0; });
+  return seedTracks_.size();
+}
+
+int Event::use_seeds_from_cmsswtracks()
+{
+  int ns = seedTracks_.size();
+
+  TrackVec cleanSeedTracks;
+  cleanSeedTracks.reserve(ns);
+
+  int i = 0;
+  for (auto&& cmsswtrack : extRecTracks_)
+  {
+    cleanSeedTracks.emplace_back(seedTracks_[cmsswtrack.label()]);
+  }
+
+  seedTracks_.swap(cleanSeedTracks);
+
+  return seedTracks_.size();
+}
+
+void Event::relabel_bad_seedtracks()
+{
+  int newlabel = 0;
+  for (auto&& track : seedTracks_)
+  { 
+    if (track.label() < 0) track.setLabel(--newlabel);
+  }
+}
+
+//==============================================================================
+// DataFile
+//==============================================================================
+
+int DataFile::OpenRead(const std::string& fname, bool set_n_layers)
+{
+  constexpr int min_ver = 3;
+  constexpr int max_ver = 3;
+
+  f_fp = fopen(fname.c_str(), "r");
+  assert (f_fp != 0 || "Opening of input file failed.");
+
+  fread(&f_header, sizeof(DataFileHeader), 1, f_fp);
+
+  if (f_header.f_magic != 0xBEEF)
+  {
+    fprintf(stderr, "Incompatible input file (wrong magick).\n");
+    exit(1);
+  }
+  if (f_header.f_format_version < min_ver || f_header.f_format_version > max_ver)
+  {
+    fprintf(stderr, "Unsupported file version %d. Supported versions are from %d to %d.\n",
+            f_header.f_format_version, min_ver, max_ver);
+    exit(1);
+  }
+  if (f_header.f_n_max_trk_hits > Config::nMaxTrkHits)
+  {
+    fprintf(stderr, "Number of hits-on-track on file (%d) larger than current Config::nMaxTrkHits (%d).\n",
+            f_header.f_n_max_trk_hits, Config::nMaxTrkHits);
+    exit(1);
+  }
+  if (set_n_layers)
+  {
+    Config::nTotalLayers = f_header.f_n_layers;
+  }
+  else if (f_header.f_n_layers != Config::nTotalLayers)
+  {
+    fprintf(stderr, "Number of layers on file (%d) is different from current Config::nTotalLayers (%d).\n",
+            f_header.f_n_layers, Config::nTotalLayers);
+    exit(1);
+  }
+
+  printf("Opened file '%s', format version %d, n_max_trk_hits %d, n_layers %d, n_events %d\n",
+         fname.c_str(), f_header.f_format_version, f_header.f_n_max_trk_hits, f_header.f_n_layers, f_header.f_n_events);
+  if (f_header.f_extra_sections)
+  {
+    printf("  Extra sections:");
+    if (f_header.f_extra_sections & ES_SimTrackStates) printf(" SimTrackStates");
+    if (f_header.f_extra_sections & ES_Seeds)          printf(" Seeds");
+    if (f_header.f_extra_sections & ES_ExtRecTracks)   printf(" ExtRecTracks");
+    printf("\n");
+  }
+
+  if (Config::readCmsswSeeds && ! HasSeeds()) {
+    fprintf(stderr, "Reading of CmsswSeeds requested but data not available on file.\n");
+    exit(1);
+  }
+
+  if (Config::readExtRecTracks && ! HasExtRecTracks()) {
+    fprintf(stderr, "Reading of ExtRecTracks requested but data not available on file.\n");
+    exit(1);
+  }
+
+  return f_header.f_n_events;
+}
+
+void DataFile::OpenWrite(const std::string& fname, int nev, int extra_sections)
+{
+  f_fp = fopen(fname.c_str(), "w");
+
+  f_header.f_n_events = nev;
+
+  f_header.f_extra_sections = extra_sections;
+
+  fwrite(&f_header, sizeof(DataFileHeader), 1, f_fp);
+}
+
+int DataFile::AdvancePosToNextEvent(FILE *fp)
+{
+  int evsize;
+
+  std::lock_guard<std::mutex> readlock(f_next_ev_mutex);
+
+  fseek(fp, f_pos, SEEK_SET);
+  fread(&evsize, sizeof(int), 1, fp);
+  f_pos += evsize;
+
+  return evsize;
+}
+
+void DataFile::SkipNEvents(int n_to_skip)
+{
+  int evsize;
+
+  std::lock_guard<std::mutex> readlock(f_next_ev_mutex);
+
+  while (n_to_skip-- > 0)
+  {
+    fseek(f_fp, f_pos, SEEK_SET);
+    fread(&evsize, sizeof(int), 1, f_fp);
+    f_pos += evsize;
+  }
+}
+
+void DataFile::Close()
+{
+  fclose(f_fp);
+  f_fp = 0;
+  f_header = DataFileHeader();
+}
+
+void DataFile::CloseWrite(int n_written){
+  if (f_header.f_n_events != n_written){
+    fseek(f_fp, 0, SEEK_SET);
+    f_header.f_n_events = n_written;
+    fwrite(&f_header, sizeof(DataFileHeader), 1, f_fp);
+  }
+  Close();
+}
+

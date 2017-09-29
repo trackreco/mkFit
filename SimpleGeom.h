@@ -3,11 +3,20 @@
 #include <vector>
 #include "Matrix.h"
 
+// MT XXXX: Should SVector3 base class really be the double
+//          version (probably is float right now).
+
 #ifndef WITH_USOLIDS
-class UVector3 : public SVector3 {
+class UVector3 : public SVector3
+{
   public:
   UVector3(float x, float y, float z) : SVector3(x, y, z) {}
   UVector3() : SVector(0.0f,0.0f,0.0f) {}
+
+  inline double X() const { return At(0); }
+  inline double Y() const { return At(1); }
+  inline double Z() const { return At(2); }
+
   inline double Dot(const UVector3&) const;
   inline double Mag2() const;
   inline double Mag() const;
@@ -41,16 +50,30 @@ inline double UVector3::Perp() const
   return std::sqrt(Perp2());
 }
 
-class VUSolid {
+class VUSolid
+{
 public:
-  VUSolid(double rin, double rout) : rin_(rin), rout_(rout) {}
   enum EnumInside { eInside=0, eSurface=1, eOutside=2 }; 
+
+  VUSolid(double rin, double rout, double zmin, double zmax,
+          bool is_barrel, bool is_outer) :
+    rin_(rin), rout_(rout), zmin_(zmin), zmax_(zmax),
+    is_barrel_(is_barrel), is_outer_(is_outer)
+  {}
+
   EnumInside Inside (const UVector3 &aPoint) const;
   double SafetyFromInside (const UVector3 &aPoint, bool aAccurate=false) const;
   double SafetyFromOutside(const UVector3 &aPoint, bool aAccurate=false) const;
-  bool Normal( const UVector3& aPoint, UVector3 &aNormal ) const;
-  double rin_, rout_;
-  VUSolid* Clone() const  {return new VUSolid(rin_, rout_);}
+  double SafetyFromOutsideDr(const UVector3 &aPoint, double ooaCtgTheta, bool aAccurate=false) const;
+  bool   Normal(const UVector3& aPoint, UVector3 &aNormal) const;
+
+  VUSolid* Clone() const {return new VUSolid(rin_, rout_, zmin_, zmax_, is_barrel_, is_outer_);}
+
+  double rin_,  rout_;
+  double zmin_, zmax_;
+  bool   is_barrel_;
+  bool   is_outer_;
 };
+
 #endif
 #endif

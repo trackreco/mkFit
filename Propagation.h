@@ -3,7 +3,6 @@
 
 #include "Track.h"
 #include "Geometry.h"
-#include "Matrix.h"
 
 // line propagation from state radius to hit radius
 // assuming radial direction (i.e. origin at (0,0))

@@ -4,6 +4,7 @@
 #include "../Config.h"
 #include "Hit.h"
 #include "Track.h"
+#include "TrackerInfo.h"
 //#define DEBUG
 #include "Debug.h"
 
@@ -53,50 +54,60 @@ inline bool sortTrksByPhiMT(const Track& t1, const Track& t2)
 
 //==============================================================================
 
-// Use extra arrays to store phi and z of hits.
+// Use extra arrays to store phi and q of hits.
 // MT: This would in principle allow fast selection of good hits, if
-// we had good error estimates and reasonable *minimal* phi and z windows.
+// we had good error estimates and reasonable *minimal* phi and q windows.
 // Speed-wise, those arrays (filling AND access, about half each) cost 1.5%
 // and could help us reduce the number of hits we need to process with bigger
 // potential gains.
 
-// #define LOH_USE_PHI_Z_ARRAYS
+#define LOH_USE_PHI_Q_ARRAYS
+
+// Note: the same code is used for barrel and endcap. In barrel the longitudinal
+// bins are in Z and in endcap they are in R -- here this coordinate is called Q
 
 class LayerOfHits
 {
 public:
+  const LayerInfo          *m_layer_info = 0;
   Hit                      *m_hits = 0;
   vecvecPhiBinInfo_t        m_phi_bin_infos;
-#ifdef LOH_USE_PHI_Z_ARRAYS
+#ifdef LOH_USE_PHI_Q_ARRAYS
   std::vector<float>        m_hit_phis;
-  std::vector<float>        m_hit_zs;
+  std::vector<float>        m_hit_qs;
 #endif
 
-  float m_zmin, m_zmax, m_fz;
-  int   m_nz = 0;
+  float m_qmin, m_qmax, m_fq;
+  int   m_nq = 0;
   int   m_capacity = 0;
 
-  //fixme, these are copies of the ones above, need to merge with a more generic name
-  float m_rmin, m_rmax, m_fr;
-  int   m_nr = 0;
-#ifdef LOH_USE_PHI_Z_ARRAYS
-  std::vector<float>        m_hit_rs;
-#endif
+  int   layer_id()  const { return m_layer_info->m_layer_id;    }
+  bool  is_barrel() const { return m_layer_info->is_barrel();   }
+  bool  is_endcap() const { return ! m_layer_info->is_barrel(); }
+
+  float min_dphi() const { return m_layer_info->m_select_min_dphi; }
+  float max_dphi() const { return m_layer_info->m_select_max_dphi; }
+  float min_dq()   const { return m_layer_info->m_select_min_dq;   }
+  float max_dq()   const { return m_layer_info->m_select_max_dq;   }
+
+  bool  is_in_xy_hole(float x, float y) const { return m_layer_info->is_in_xy_hole(x, y); }
 
   // Testing bin filling
-  static constexpr float m_fphi = Config::m_nphi / Config::TwoPI;
+  static constexpr float m_fphi     = Config::m_nphi / Config::TwoPI;
   static constexpr int   m_phi_mask = 0x3ff;
 
 protected:
+
+  void setup_bins(float qmin, float qmax, float dq);
+
   void alloc_hits(int size)
   {
     m_hits = (Hit*) _mm_malloc(sizeof(Hit) * size, 64);
     m_capacity = size;
     for (int ihit = 0; ihit < m_capacity; ihit++){m_hits[ihit] = Hit();} 
-#ifdef LOH_USE_PHI_Z_ARRAYS
+#ifdef LOH_USE_PHI_Q_ARRAYS
     m_hit_phis.resize(size);
-    m_hit_zs  .resize(size);
-    m_hit_rs  .resize(size);
+    m_hit_qs  .resize(size);
 #endif
   }
 
@@ -105,34 +116,26 @@ protected:
     _mm_free(m_hits);
   }
 
-  void set_phi_bin(int z_bin, int phi_bin, int &hit_count, int &hits_in_bin)
+  void set_phi_bin(int q_bin, int phi_bin, int &hit_count, int &hits_in_bin)
   {
-    m_phi_bin_infos[z_bin][phi_bin] = { hit_count, hit_count + hits_in_bin };
+    m_phi_bin_infos[q_bin][phi_bin] = { hit_count, hit_count + hits_in_bin };
     hit_count  += hits_in_bin;
     hits_in_bin = 0;
   }
 
-  void empty_phi_bins(int z_bin, int phi_bin_1, int phi_bin_2, int hit_count)
+  void empty_phi_bins(int q_bin, int phi_bin_1, int phi_bin_2, int hit_count)
   {
     for (int pb = phi_bin_1; pb < phi_bin_2; ++pb)
     {
-      m_phi_bin_infos[z_bin][pb] = { hit_count, hit_count };
+      m_phi_bin_infos[q_bin][pb] = { hit_count, hit_count };
     }
   }
 
-  void empty_z_bins(int z_bin_1, int z_bin_2, int hit_count)
+  void empty_q_bins(int q_bin_1, int q_bin_2, int hit_count)
   {
-    for (int zb = z_bin_1; zb < z_bin_2; ++zb)
+    for (int qb = q_bin_1; qb < q_bin_2; ++qb)
     {
-      empty_phi_bins(zb, 0, Config::m_nphi, hit_count);
-    }
-  }
-
-  void empty_r_bins(int r_bin_1, int r_bin_2, int hit_count)
-  {
-    for (int rb = r_bin_1; rb < r_bin_2; ++rb)
-    {
-      empty_phi_bins(rb, 0, Config::m_nphi, hit_count);
+      empty_phi_bins(qb, 0, Config::m_nphi, hit_count);
     }
   }
 
@@ -144,34 +147,28 @@ public:
     free_hits();
   }
 
-  void Reset() {}
+  void  SetupLayer(const LayerInfo &li);
 
-  void SetupLayer(float zmin, float zmax, float dz);
+  void  Reset() {}
 
-  void SetupDisk(float rmin, float rmax, float dr);
+  float NormalizeQ(float q) const { if (q < m_qmin) return m_qmin; if (q > m_qmax) return m_qmax; return q; }
 
-  float NormalizeZ(float z) const { if (z < m_zmin) return m_zmin; if (z > m_zmax) return m_zmax; return z; }
+  int   GetQBin(float q)    const { return (q - m_qmin) * m_fq; }
 
-  int   GetZBin(float z)    const { return (z - m_zmin) * m_fz; }
-
-  int   GetZBinChecked(float z) const { int zb = GetZBin(z); if (zb < 0) zb = 0; else if (zb >= m_nz) zb = m_nz - 1; return zb; }
-
-  int   GetRBin(float r)    const { return (r - m_rmin) * m_fr; }
-
-  int   GetRBinChecked(float r) const { int rb = GetRBin(r); if (rb < 0) rb = 0; else if (rb >= m_nr) rb = m_nr - 1; return rb; }
+  int   GetQBinChecked(float q) const { int qb = GetQBin(q); if (qb < 0) qb = 0; else if (qb >= m_nq) qb = m_nq - 1; return qb; }
 
   // if you don't pass phi in (-pi, +pi), mask away the upper bits using m_phi_mask
   int   GetPhiBin(float phi) const { return std::floor(m_fphi * (phi + Config::PI)); }
 
-  const vecPhiBinInfo_t& GetVecPhiBinInfo(float z) const { return m_phi_bin_infos[GetZBin(z)]; }
+  const vecPhiBinInfo_t& GetVecPhiBinInfo(float q) const { return m_phi_bin_infos[GetQBin(q)]; }
 
-  void SuckInHits(const HitVec &hitv);
-  void SuckInHitsEndcap(const HitVec &hitv);
+  void  SuckInHits(const HitVec &hitv);
 
-  void SelectHitIndices(float z, float phi, float dz, float dphi, std::vector<int>& idcs, bool isForSeeding=false, bool dump=false);
+  void  SelectHitIndices(float q, float phi, float dq, float dphi, std::vector<int>& idcs, bool isForSeeding=false, bool dump=false);
 
-  void PrintBins();
+  void  PrintBins();
 };
+
 
 //==============================================================================
 
@@ -182,16 +179,7 @@ public:
   int                      m_n_layers;
 
 public:
-  EventOfHits(int n_layers) :
-    m_layers_of_hits(n_layers),
-    m_n_layers(n_layers)
-  {
-    for (int i = 0; i < n_layers; ++i)
-    {
-      if (Config::endcapTest) m_layers_of_hits[i].SetupDisk(Config::cmsDiskMinRs[i], Config::cmsDiskMaxRs[i], Config::g_disk_dr[i]);
-      else m_layers_of_hits[i].SetupLayer(-Config::g_layer_zwidth[i], Config::g_layer_zwidth[i], Config::g_layer_dz[i]);
-    }
-  }
+  EventOfHits(TrackerInfo &trk_inf);
 
   void Reset()
   {
@@ -201,14 +189,9 @@ public:
     }
   }
 
-  void SuckInHits(const HitVec &hitv, int layer)
+  void SuckInHits(int layer, const HitVec &hitv)
   {
     m_layers_of_hits[layer].SuckInHits(hitv);
-  }
-
-  void SuckInHitsEndcap(const HitVec &hitv, int layer)
-  {
-    m_layers_of_hits[layer].SuckInHitsEndcap(hitv);
   }
 };
 
@@ -224,32 +207,32 @@ class EtaBinOfCandidates
 public:
   std::vector<Track> m_candidates;
 
-  int     m_real_size;
-  int     m_fill_index;
+  int     m_capacity;
+  int     m_size;
 
 public:
   EtaBinOfCandidates() :
-    m_candidates (Config::maxCandsPerEtaBin),
-    m_real_size  (Config::maxCandsPerEtaBin),
-    m_fill_index (0)
+    m_candidates(Config::maxCandsPerEtaBin),
+    m_capacity  (Config::maxCandsPerEtaBin),
+    m_size      (0)
   {}
 
   void Reset()
   {
-    m_fill_index = 0;
+    m_size = 0;
   }
 
   void InsertTrack(const Track& track)
   {
-    assert (m_fill_index < m_real_size); // or something
+    assert (m_size < m_capacity); // or something
 
-    m_candidates[m_fill_index] = track;
-    ++m_fill_index;
+    m_candidates[m_size] = track;
+    ++m_size;
   }
 
   void SortByPhi()
   {
-    std::sort(m_candidates.begin(), m_candidates.begin() + m_fill_index, sortTrksByPhiMT);
+    std::sort(m_candidates.begin(), m_candidates.begin() + m_size, sortTrksByPhiMT);
   }
 };
 
@@ -293,98 +276,78 @@ public:
 };
 
 
-
 //-------------------------------------------------------
 // for combinatorial version, switch to vector of vectors
 //-------------------------------------------------------
 
-class EtaBinOfCombCandidates
+// This inheritance sucks but not doing it will require more changes.
+
+class CombCandidate : public std::vector<Track>
 {
 public:
-  std::vector<std::vector<Track> > m_candidates;
+  enum SeedState_e { Dormant = 0, Finding, Finished };
 
-  //these refer to seeds
-  int     m_real_size;
-  int     m_fill_index;
-
-public:
-  EtaBinOfCombCandidates() :
-    m_candidates (Config::maxCandsPerEtaBin / Config::maxCandsPerSeed),
-    m_real_size  (Config::maxCandsPerEtaBin / Config::maxCandsPerSeed),
-    m_fill_index (0)
-  {
-    for (int s=0;s<m_real_size;++s)
-    {
-      m_candidates[s].reserve(Config::maxCandsPerSeed);//we should never exceed this
-    }
-  }
-
-  void Reset()
-  {
-    m_fill_index = 0;
-    for (int s=0;s<m_real_size;++s)
-    {
-      m_candidates[s].clear();
-    }
-  }
-
-  void InsertSeed(const Track& seed)
-  {
-    assert (m_fill_index < m_real_size); // or something
-
-    m_candidates[m_fill_index].push_back(seed);
-    ++m_fill_index;
-  }
-
-  void InsertTrack(const Track& track, int seed_index)
-  {
-    assert (seed_index <= m_fill_index); // or something
-
-    m_candidates[seed_index].push_back(track);
-  }
-
-  /* void SortByPhi() */
-  /* { */
-  /*   std::sort(m_candidates.begin(), m_candidates.begin() + m_fill_index, sortTrksByPhiMT); */
-  /* } */
+  SeedState_e m_state           = Dormant;
+  int         m_last_seed_layer = -1;
 };
 
 class EventOfCombCandidates
 {
 public:
-  std::vector<EtaBinOfCombCandidates> m_etabins_of_comb_candidates;
+  std::vector<CombCandidate> m_candidates;
+
+  int     m_capacity;
+  int     m_size;
 
 public:
-  EventOfCombCandidates() :
-    m_etabins_of_comb_candidates(Config::nEtaBin)
-  {}
-
-  void Reset()
+  EventOfCombCandidates(int size=0) :
+    m_candidates(),
+    m_capacity  (0),
+    m_size      (0)
   {
-    for (auto &i : m_etabins_of_comb_candidates)
-    {
-      i.Reset();
-    }
+    Reset(size);
   }
+
+  void Reset(int new_capacity)
+  {
+    for (int s = 0; s < m_size; ++s)
+    {
+      m_candidates[s].clear();
+    }
+
+    if (new_capacity > m_capacity)
+    {
+      m_candidates.resize(new_capacity);
+
+      for (int s = m_capacity; s < new_capacity; ++s)
+      {
+        m_candidates[s].reserve(Config::maxCandsPerSeed);//we should never exceed this
+      }
+
+      m_capacity = new_capacity;
+    }
+
+    m_size = 0;
+  }
+
+  CombCandidate& operator[](int i) { return m_candidates[i]; }
 
   void InsertSeed(const Track& seed)
   {
-    int bin = getEtaBin(seed.posEta());
-    if ( bin != -1 )
-    {
-      m_etabins_of_comb_candidates[bin].InsertSeed(seed);
-    } 
-#ifdef DEBUG
-    else { dprint("excluding seed with r=" << seed.posR() << " etaBin=" << bin); };
-#endif
+    assert (m_size < m_capacity);
+
+    m_candidates[m_size].push_back(seed);
+    m_candidates[m_size].m_state           = CombCandidate::Dormant;
+    m_candidates[m_size].m_last_seed_layer = seed.getLastHitLyr();
+    ++m_size;
   }
 
-  void InsertCandidate(const Track& track, int seed_index)
+  void InsertTrack(const Track& track, int seed_index)
   {
-    int bin = getEtaBin(track.posEta());
-    m_etabins_of_comb_candidates[bin].InsertTrack(track,seed_index);
-  }
+    assert (seed_index < m_size);
 
+    m_candidates[seed_index].push_back(track);
+  }
 };
 
 #endif

@@ -4,7 +4,6 @@
 #include "KalmanUtils.h"
 #include "Propagation.h"
 #include "Simulation.h"
-#include "BinInfoUtils.h"
 
 #include "MkBuilder.h"
 
@@ -76,17 +75,15 @@ inline bool sortByZ(const Hit& hit1, const Hit& hit2)
 
 double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
 {
-  builder.begin_event(&ev, 0, __func__);
+  builder.begin_event(&ev, __func__);
 
-  if   (Config::findSeeds) {builder.find_seeds();}
-  else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
+  builder.PrepareSeeds();
 
-  builder.fit_seeds();
-
-  EventOfCandidates event_of_cands;
-  builder.find_tracks_load_seeds(event_of_cands);
+  // EventOfCandidates event_of_cands;
+  builder.find_tracks_load_seeds_BH();
 
 #ifdef USE_VTUNE_PAUSE
+  __SSC_MARK(0x111);  // use this to resume Intel SDE at the same point
   __itt_resume();
 #endif
 
@@ -104,23 +101,28 @@ double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
   builder_cu.FindTracksBestHit(event_of_cands);
   builder_cu.tearDownBH();
 #else
-  builder.FindTracksBestHit(event_of_cands);
+  builder.FindTracksBestHit();
 #endif
 
   time = dtime() - time;
 
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
+  __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
-  
-  if   (!Config::normal_val) {
-    if (!Config::silent) builder.quality_output_BH(event_of_cands);
-  } else {
-    builder.root_val_BH(event_of_cands);
+
+  if   (!Config::root_val && !Config::cmssw_val) {
+    if (!Config::silent) builder.quality_output();
+  } else if (Config::root_val) {
+    builder.root_val();
+  } else if (Config::cmssw_val) {
+    builder.cmssw_val();
   }
 
   builder.end_event();
   
+  // ev.print_tracks(ev.candidateTracks_, true);
+
   return time;
 }
 
@@ -165,21 +167,16 @@ double runBuildingTestPlexBestHitGPU(Event& ev, MkBuilder& builder,
 // runBuildTestPlex Combinatorial: Standard TBB
 //==============================================================================
 
-double runBuildingTestPlexStandard(Event& ev, EventTmp& ev_tmp, MkBuilder& builder)
+double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
 {
-  EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
-  event_of_comb_cands.Reset();
+  builder.begin_event(&ev, __func__);
 
-  builder.begin_event(&ev, &ev_tmp, __func__);
-
-  if   (Config::findSeeds) {builder.find_seeds();}
-  else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
-
-  builder.fit_seeds();
+  builder.PrepareSeeds();
 
   builder.find_tracks_load_seeds();
 
 #ifdef USE_VTUNE_PAUSE
+  __SSC_MARK(0x111);  // use this to resume Intel SDE at the same point
   __itt_resume();
 #endif
 
@@ -191,13 +188,24 @@ double runBuildingTestPlexStandard(Event& ev, EventTmp& ev_tmp, MkBuilder& build
 
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
+  __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
-  
-  if (!Config::normal_val) {
-    if (!Config::silent) builder.quality_output_COMB();
-  } else {builder.root_val_COMB();}
+
+  if (!Config::silent)
+  {
+    builder.quality_store_tracks();
+    if (!Config::root_val && !Config::cmssw_val) {
+      builder.quality_output();
+    } else if (Config::root_val) { 
+      builder.root_val();
+    } else if (Config::cmssw_val) {
+      builder.cmssw_val();
+    }
+  }
 
   builder.end_event();
+
+  // ev.print_tracks(ev.candidateTracks_, true);
 
   return time;
 }
@@ -206,21 +214,16 @@ double runBuildingTestPlexStandard(Event& ev, EventTmp& ev_tmp, MkBuilder& build
 // runBuildTestPlex Combinatorial: CloneEngine TBB
 //==============================================================================
 
-double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp, MkBuilder& builder)
+double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
 {
-  EventOfCombCandidates &event_of_comb_cands = ev_tmp.m_event_of_comb_cands;
-  event_of_comb_cands.Reset();
+  builder.begin_event(&ev, __func__);
 
-  builder.begin_event(&ev, &ev_tmp, __func__);
-
-  if   (Config::findSeeds) {builder.find_seeds();}
-  else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
-
-  builder.fit_seeds();
+  builder.PrepareSeeds();
 
   builder.find_tracks_load_seeds();
 
 #ifdef USE_VTUNE_PAUSE
+  __SSC_MARK(0x111);  // use this to resume Intel SDE at the same point
   __itt_resume();
 #endif
   double time = dtime();
@@ -231,13 +234,24 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventTmp& ev_tmp, MkBuilder& bu
 
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
+  __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
 
-  if (!Config::normal_val) {
-    if (!Config::silent) builder.quality_output_COMB();
-  } else {builder.root_val_COMB();}
+  if (!Config::silent)
+  {
+    builder.quality_store_tracks();
+    if (!Config::root_val && !Config::cmssw_val) {
+      builder.quality_output();
+    } else if (Config::root_val) { 
+      builder.root_val();
+    } else if (Config::cmssw_val) {
+      builder.cmssw_val();
+    }
+  }
 
   builder.end_event();
+
+  // ev.print_tracks(ev.candidateTracks_, true);
 
   return time;
 }
@@ -345,10 +359,10 @@ double runAllBuildingTestPlexBestHitGPU(std::vector<Event> &events)
     BuilderCU &builder_cu = builder_cu_vec[i];
     builder_cu.tearDownBH();
     MkBuilder &builder = * builder_ptrs[i].get();
-    if (!Config::normal_val) {
-      if (!Config::silent) builder.quality_output_BH(event_of_cands);
-    } else {
-      builder.root_val_BH(event_of_cands);
+    if   (!Config::root_val && !Config::cmssw_val) {
+      if (!Config::silent) builder.quality_output();
+    } else if (Config::root_val) {
+      builder.root_val();
     }
 
     builder.end_event();

@@ -1,5 +1,6 @@
 #include <cmath>
 
+#include "TrackerInfo.h"
 #include "Simulation.h"
 #include "Event.h"
 //#define DEBUG
@@ -9,16 +10,16 @@
 #define SCATTER_XYZ
 
 void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
-                       HitVec& hits, Event& ev, int itrack,
-                       int& charge, const Geometry& geom, TSVec & initTSs)
+                       HitVec& hits, MCHitInfoVec& hitinfos, Event& ev,
+                       int itrack, int& charge,
+                       const Geometry& geom, TSVec& initTSs)
 {
-  MCHitInfoVec& initialhitinfo(ev.simHitsInfo_);
-
 #ifdef DEBUG
   bool debug = true;
 #endif
-  float pt = Config::minSimPt+g_unif(g_gen)*(Config::maxSimPt-Config::minSimPt);//this input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
-  pos=SVector3(Config::beamspotX*g_gaus(g_gen), Config::beamspotY*g_gaus(g_gen), Config::beamspotZ*g_gaus(g_gen));
+  // This input, 0.5<pt<10 GeV (below ~0.5 GeV does not make 10 layers)
+  float pt = Config::minSimPt + g_unif(g_gen)*(Config::maxSimPt - Config::minSimPt);
+  pos = SVector3(Config::beamspotX*g_gaus(g_gen), Config::beamspotY*g_gaus(g_gen), Config::beamspotZ*g_gaus(g_gen));
 
   dprint("production point x=" << pos[0] << " y=" << pos[1] << " z=" << pos[2] << std::endl);
 
@@ -32,30 +33,32 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
   float px = pt * cos(phi);
   float py = pt * sin(phi);
 
-  if (g_unif(g_gen)>0.5) px*=-1.;
-  if (g_unif(g_gen)>0.5) py*=-1.;
+  if (g_unif(g_gen) > 0.5) px*=-1.;
+  if (g_unif(g_gen) > 0.5) py*=-1.;
 
   dprint("phi= " << phi << std::endl);
 
-#ifdef GENFLATETA
-  // this generates flat in eta
-  
-  float eta = Config::maxEta*g_unif(g_gen);
-  float pz  = pt*(1./(std::tan(2*std::atan(std::exp(-eta)))));
-  if (g_unif(g_gen)>0.5) pz*=-1.;
-#else
-  // generate flat in pz
+roll_eta_dice:
 
-  float pz = pt*(2.3*(g_unif(g_gen)-0.5));//so that we have -1<eta<1
-#endif
+  // this generates flat in eta
+  float eta = Config::minSimEta + (Config::maxSimEta - Config::minSimEta) * g_unif(g_gen);
+
+  // XXXXMT Hardhack ... exclude transition region eta
+  if (Config::TrkInfo.is_transition(eta, 0.1f))
+    goto roll_eta_dice;
+
+  float pz  = pt*(1./(std::tan(2*std::atan(std::exp(-eta)))));
+  // XXXXMT Commented this out to get ecap_pos only !!!!
+  //if (g_unif(g_gen) > 0.5) pz *= -1.;
+  dprint("pz="<<pz<<", eta="<<eta);
   mom=SVector3(px,py,pz);
   covtrk=ROOT::Math::SMatrixIdentity();
   //initial covariance can be tricky
   for (int r=0; r<6; ++r) {
     for (int c=0; c<6; ++c) {
       if (r==c) {
-      if (r<3) covtrk(r,c)=pow(1.0*pos[r],2);//100% uncertainty on position
-      else covtrk(r,c)=pow(1.0*mom[r-3],2);  //100% uncertainty on momentum
+        if (r<3) covtrk(r,c)=pow(1.0*pos[r],2);//100% uncertainty on position
+        else covtrk(r,c)=pow(1.0*mom[r-3],2);  //100% uncertainty on momentum
       } else {
         covtrk(r,c)=0.;                   //no covariance
       }
@@ -73,22 +76,26 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
 
   // useful info for loopers/overlaps
 
-  int layer_counts[Config::nLayers];
-  for (int ilayer=0;ilayer<Config::nLayers;++ilayer){
-    layer_counts[ilayer]=0;
+  std::vector<int> layer_counts(Config::nTotalLayers);
+  for (int ilayer = 0; ilayer < Config::nTotalLayers; ++ilayer)
+  {
+    layer_counts[ilayer] = 0;
   }
-
-  // to include loopers would rather add a break on the code if nLayers
-  // if block BREAK if hit.Layer == theGeom->CountLayers() 
-  // else --> if (NMAX TO LOOPER (maybe same as 10?) {break;} else {continue;}
-  
-  int simLayer = 0; // use to keep track where hit lies on, will proceed monotonically increasing without loopers/overlaps
+  int simLayer = -1;
 
   hits.reserve(Config::nTotHit);
   initTSs.reserve(Config::nTotHit);
 
-  for (int ihit=0;ihit<Config::nTotHit;++ihit) {  // go to first layer in radius using propagation.h
-    //TrackState propState = propagateHelixToR(tmpState,4.*float(ihit+1));//radius of 4*ihit
+  // XXMT4M - This should become while not in outer layer (or at least propState.state == invalid)
+  // Try the invalid thingy first ... but would be good to also know what layers are final.
+
+  for (int ihit = 0; ihit < Config::nTotHit; ++ihit)
+  {
+    dprintf("\n================================================================================\n");
+    dprintf("=== Going for next hit %d from layer %d, xyrzphi=(%f,%f,%f,%f,%f)\n",
+            ihit, simLayer, tmpState.x(), tmpState.y(), tmpState.posR(), tmpState.z(), tmpState.posPhi());
+    dprintf("--------------------------------------------------------------------------------\n");
+
     auto propState = propagateHelixToNextSolid(tmpState,geom,true);
 
     float initX   = propState.parameters.At(0);
@@ -112,6 +119,9 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
 
       continue;
     }
+    bool is_barrel = theInitSolid->is_barrel_;
+
+scatter_and_smear:
 
 #ifdef SCATTERING
     // PW START
@@ -139,7 +149,7 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
     // y axis in the new coordinate system is given by y' = z' x x' = (-y1,x1,0)
     UVector3 init_xprime; // normal on surface
     bool init_good = theInitSolid->Normal(init_point, init_xprime);
-      
+
     if ( ! init_good ) {
       std::cerr << __FILE__ << ":" << __LINE__ << ": failed to find normal vector at " << init_point <<std::endl;
       break;
@@ -220,11 +230,20 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
     float hitPhi  = ((Config::hitposerrXY/scatteredRad)*g_gaus(g_gen))+scatteredPhi; // smear in phi after scatter
     float hitRad  = (Config::hitposerrR)*g_gaus(g_gen)+scatteredRad; // smear in rad after scatter
 #else // no Scattering --> use this position for smearing
-    float hitZ    = Config::hitposerrZ*g_gaus(g_gen)+initZ;
-    float hitPhi  = ((Config::hitposerrXY/initRad)*g_gaus(g_gen))+initPhi;
-    float hitRad  = (Config::hitposerrR)*g_gaus(g_gen)+initRad;
+    // XXMT4K - reuse Config z/r for endcaps in longitudinal/perpendicular sense;
+    // XY is still good? Argh ... too late to think.
+    // Similar hack below for variance ...
+    float poserr_Z = is_barrel ? Config::hitposerrZ : Config::hitposerrR;
+    float poserr_R = is_barrel ? Config::hitposerrR : Config::hitposerrZ;
+
+    float hitZ    = poserr_Z * g_gaus(g_gen) + initZ;
+    float hitRad  = poserr_R * g_gaus(g_gen) + initRad;
+    float hitPhi  = ((Config::hitposerrXY/initRad) * g_gaus(g_gen)) + initPhi;
+    // OLD CODE:
+    // float hitZ    = Config::hitposerrZ*g_gaus(g_gen)+initZ;
+    // float hitPhi  = ((Config::hitposerrXY/initRad)*g_gaus(g_gen))+initPhi;
+    // float hitRad  = (Config::hitposerrR)*g_gaus(g_gen)+initRad;
 #endif // SCATTERING
-    initTSs.push_back(propState); // if no scattering, will just parameters from prop to next layer
 
 #ifdef SOLID_SMEAR
     UVector3 scattered_point(scatteredX,scatteredY,scatteredZ);
@@ -277,7 +296,6 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
     }
 #endif
 
-    SVector3 x1(hitX,hitY,hitZ);
     SMatrixSym33 covXYZ = ROOT::Math::SMatrixIdentity();
 
 #ifdef SOLID_SMEAR
@@ -287,11 +305,23 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
     // covXYZ(1,0)  = covXYZ(0,1)    
     covXYZ(2,2) = Config::varZ;
 #else //  SOLID_SMEAR --> covariance for pure cylindrical geometry with smearing
-    covXYZ(0,0) = hitX*hitX*Config::varR/hitRad2 + hitY*hitY*varPhi;
-    covXYZ(1,1) = hitX*hitX*varPhi + hitY*hitY*Config::varR/hitRad2;
-    covXYZ(2,2) = Config::varZ;
-    covXYZ(0,1) = hitX*hitY*(Config::varR/hitRad2 - varPhi);
-    covXYZ(1,0) = covXYZ(0,1);
+    // XXMT4K - continuation of z/r hack.
+    // Still unsure if there is more interplay between varXY and varR ...
+    float var_R = is_barrel ? Config::varR : Config::varZ;
+    float var_Z = is_barrel ? Config::varZ : Config::varR;
+
+    covXYZ(0,0) = hitX*hitX * var_R / hitRad2 + hitY*hitY*varPhi;
+    covXYZ(1,1) = hitX*hitX * varPhi + hitY*hitY * var_R / hitRad2;
+    covXYZ(2,2) = var_Z;
+    covXYZ(0,1) = hitX*hitY*(var_R / hitRad2 - varPhi);
+    covXYZ(1,0) = covXYZ(0,1); // MT: this should be redundant, it's a Sym matrix type.
+
+    // OLD CODE:
+    // covXYZ(0,0) = hitX*hitX*Config::varR/hitRad2 + hitY*hitY*varPhi;
+    // covXYZ(1,1) = hitX*hitX*varPhi + hitY*hitY*Config::varR/hitRad2;
+    // covXYZ(2,2) = Config::varZ;
+    // covXYZ(0,1) = hitX*hitY*(Config::varR/hitRad2 - varPhi);
+    // covXYZ(1,0) = covXYZ(0,1); // MT: this should be redundant, it's a Sym matrix type.
 
     dprint("initPhi: " << initPhi << " hitPhi: " << hitPhi << " initRad: " << initRad  << " hitRad: " << hitRad << std::endl
         << "initX: " << initX << " hitX: " << hitX << " initY: " << initY << " hitY: " << hitY << " initZ: " << initZ << " hitZ: " << hitZ << std::endl 
@@ -299,9 +329,26 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
         << "cov(0,1): " << covXYZ(0,1) << " cov(1,0): " << covXYZ(1,0) << std::endl);
 #endif
 
+    UVector3 x1(hitX,hitY,hitZ);
+
+    // XXXXMT4K Are we introducing bias here?
+    // 1. I understand smearing needs to change position ... but I do not understand
+    // why multiple scattering needs to. Why doesn't it just change momentum?
+    // 2. Almost all hits are produced withing epsilon of the entry face. should
+    // we try to move it towards the center of the detector?
+
+    if (theInitSolid->Inside(x1) == VUSolid::eOutside)
+    {
+      dprintf("re-scattering/smearing after hit got placed outside of layer %d\n", simLayer);
+      goto scatter_and_smear;
+    }
+
     MCHitInfo hitinfo(itrack, simLayer, layer_counts[simLayer], ev.nextMCHitID());
-    initialhitinfo[hitinfo.mcHitID_] = hitinfo;
-    hits.emplace_back(x1,covXYZ,hitinfo.mcHitID_);
+    hits.emplace_back(x1, covXYZ, hitinfo.mcHitID_);
+    hitinfos.emplace_back(hitinfo);
+
+    initTSs.emplace_back(propState); // if no scattering, will just parameters from prop to next layer
+
     tmpState = propState;
 
     dprint("hit1Id: " << hitinfo.mcHitID_ <<std::endl
@@ -309,6 +356,12 @@ void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
 
     ++layer_counts[simLayer]; // count the number of times passed into layer
 
+    // End track if we hit one of the outer layers.
+    if (theInitSolid->is_outer_)
+    {
+      dprintf("Outer layer reached, track finished.\n");
+      break;
+    }
   } // end loop over nHitsPerTrack
 }
 
@@ -357,9 +410,9 @@ void setupTrackByToyMCEndcap(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
     hits.reserve(Config::nTotHit);
     initTSs.reserve(Config::nTotHit);
 
-    int layer_counts[Config::nLayers];
-    for (int ilayer=0;ilayer<Config::nLayers;++ilayer){
-      layer_counts[ilayer]=0;
+    int layer_counts[Config::nTotalLayers];
+    for (int ilayer = 0; ilayer < Config::nTotalLayers; ++ilayer){
+      layer_counts[ilayer] = 0;
     }
 
     TrackState initState;
@@ -373,8 +426,8 @@ void setupTrackByToyMCEndcap(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
     const float hitposerrRPhi = Config::hitposerrXY;
     const float hitposerrR    = Config::hitposerrZ;
 
-    for (int id = 0; id<Config::nTotHit; ++id) {
-
+    for (int id = 0; id < Config::nTotHit; ++id)
+    {
       int simLayer = id;//fixme take from geom
 
       if (pz>0.)
