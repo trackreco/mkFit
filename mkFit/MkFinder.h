@@ -9,7 +9,6 @@ class CandCloner;
 class CombCandidate;
 class LayerOfHits;
 class FindingFoos;
-class SteeringParams;
 
 //#include "Event.h"
 

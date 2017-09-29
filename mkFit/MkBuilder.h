@@ -46,7 +46,7 @@ class MkBuilder
 {
 protected:
   void fit_one_seed_set(TrackVec& simtracks, int itrack, int end, MkFitter *mkfttr,
-                        const bool is_brl[], const SteeringParams &st_par);
+                        const bool is_brl[]);
 
   Event                 *m_event;
   EventOfHits            m_event_of_hits;

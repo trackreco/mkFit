@@ -183,13 +183,7 @@ MkBuilder::MkBuilder() :
   m_fndfoos_brl = { computeChi2MPlex,       updateParametersMPlex,       &MkBase::PropagateTracksToR };
   m_fndfoos_ec  = { computeChi2EndcapMPlex, updateParametersEndcapMPlex, &MkBase::PropagateTracksToZ };
 
-  { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Endcap_Neg] =
-    {
-      computeChi2EndcapMPlex,
-      updateParametersEndcapMPlex,
-      &LayerInfo::m_next_ecap_neg,
-      &MkBase::PropagateTracksToZ,
-    };
+  { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Endcap_Neg];
     sp.reserve_plan(3 + 6 + 18);
     sp.append_plan(45, true);
     sp.append_plan(46, false);
@@ -198,8 +192,7 @@ MkBuilder::MkBuilder() :
     sp.fill_plan(54, 71); // TEC, 18 layers
   }
 
-  { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Transition_Neg] =
-      { };
+  { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Transition_Neg];
     sp.reserve_plan(4 + 6 + 6 + 8 + 18);
     sp.append_plan( 3, true);
     sp.append_plan(45, true);
@@ -212,21 +205,14 @@ MkBuilder::MkBuilder() :
   }
 
 
-  { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Barrel] =
-    {
-      computeChi2MPlex,
-      updateParametersMPlex,
-      &LayerInfo::m_next_barrel,
-      &MkBase::PropagateTracksToR,
-    };
+  { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Barrel];
     sp.reserve_plan(1 + 6 + 8);
     sp.append_plan(3, true); // pickup-only
     sp.fill_plan( 4,  9);    // TIB, 6 layers
     sp.fill_plan(10, 17);    // TOB, 8 layers
   }
 
-  { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Transition_Pos] =
-      { };
+  { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Transition_Pos];
     sp.reserve_plan(4 + 6 + 6 + 8 + 18);
     sp.append_plan( 3, true);
     sp.append_plan(18, true);
@@ -238,13 +224,7 @@ MkBuilder::MkBuilder() :
     sp.fill_plan(27, 44); // TEC, 18 layers
   }
 
-  { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Endcap_Pos] =
-    {
-      computeChi2EndcapMPlex,
-      updateParametersEndcapMPlex,
-      &LayerInfo::m_next_ecap_pos,
-      &MkBase::PropagateTracksToZ,
-    };
+  { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Endcap_Pos];
     sp.reserve_plan(3 + 6 + 18);
     sp.append_plan(18, true);
     sp.append_plan(19, false);
@@ -253,7 +233,6 @@ MkBuilder::MkBuilder() :
     sp.fill_plan(27, 44); // TEC, 18 layers
   }
 
-  // XXMT4D Changing this order might help.
   m_regions.resize(5);
   m_regions[0] = TrackerInfo::Reg_Transition_Pos;
   m_regions[1] = TrackerInfo::Reg_Transition_Neg;
@@ -755,14 +734,14 @@ void MkBuilder::fit_seeds()
           {
             dprintf("Breaking seed range due to different layer signature at %d (%d, %d)\n", i, rng.m_beg, rng.m_end);
 
-            fit_one_seed_set(seedtracks, rng.m_beg, i, mkfttr.get(), is_brl, m_steering_params[reg]);
+            fit_one_seed_set(seedtracks, rng.m_beg, i, mkfttr.get(), is_brl);
 
             rng.m_beg = i;
             goto layer_sig_change;
           }
         }
 
-        fit_one_seed_set(seedtracks, rng.m_beg, rng.m_end, mkfttr.get(), is_brl, m_steering_params[reg]);
+        fit_one_seed_set(seedtracks, rng.m_beg, rng.m_end, mkfttr.get(), is_brl);
 
         ++rng;
       }
@@ -771,8 +750,7 @@ void MkBuilder::fit_seeds()
 }
 
 inline void MkBuilder::fit_one_seed_set(TrackVec& seedtracks, int itrack, int end,
-                                        MkFitter *mkfttr, const bool is_brl[],
-                                        const SteeringParams &st_par)
+                                        MkFitter *mkfttr, const bool is_brl[])
 {
   // debug=true;
 
@@ -1336,9 +1314,6 @@ void MkBuilder::FindTracksStandard()
     const TrackerInfo    &trk_info = Config::TrkInfo;
 
     const RegionOfSeedIndices rosi(m_event, region);
-
-    const int last_seed_layer = m_event->seedMinLastLayer_[region];
-    const int first_layer     = trk_info.m_layers[last_seed_layer].*st_par.next_layer_doo;
 
     int adaptiveSPT = eoccs.m_size / Config::numThreadsFinder / 2 + 1;
     dprint("adaptiveSPT " << adaptiveSPT << " fill " << eoccs.m_size);
