@@ -25,7 +25,9 @@ all: default
 TGTS := mkFit
 
 ifeq (${CXX},icc)
-  TGTS += mkFit-mic
+  ifndef ARCH_KNL
+    TGTS += mkFit-mic
+  endif
 endif
 
 auto-genmplex: GenMPlexOps.pl
@@ -109,10 +111,11 @@ endif
 ${MKFOBJS}: %.o: %.cc %.d
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<
 
-### MIC build, icc only
+### MIC build, icc only, NOT on KNL
 
 ifeq ($(CXX),icc)
 
+ifndef ARCH_KNL
 MKFOBJS_MIC := $(MKFOBJS:.o=.om)
 
 ALLOBJS_MIC := $(ALLOBJS:.o=.om) 
@@ -123,4 +126,5 @@ mkFit-mic: ${ALLOBJS_MIC}
 ${MKFOBJS_MIC}: %.om: %.cc %.d
 	${CXX} ${CPPFLAGS_NO_ROOT} ${CXXFLAGS} ${VEC_MIC} -c -o $@ $<
 
+endif
 endif

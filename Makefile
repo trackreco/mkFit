@@ -7,7 +7,9 @@ LIB_CORE_MIC := libMicCore-mic.so
 TGTS := ${LIB_CORE} main
 
 ifeq (${CXX},icc)
-  TGTS += ${LIB_CORE_MIC} main-mic
+  ifndef ARCH_KNL
+    TGTS += ${LIB_CORE_MIC} main-mic
+  endif
 endif
 
 .PHONY: all clean distclean
@@ -68,7 +70,7 @@ ${LIBUSOLIDS} : USolids/CMakeLists.txt
 	cd USolids-host && cmake ${CMAKEFLAGS} ../USolids && make
 
 ifeq ($(CXX),icc)
-
+ifndef ARCH_KNL
 OBJS_MIC      := $(OBJS:.o=.om)
 CORE_OBJS_MIC := $(CORE_OBJS:.o=.om)
 
@@ -85,4 +87,5 @@ ${LIBUSOLIDS_MIC} : USolids/CMakeLists.txt
 ${OBJS_MIC}: %.om: %.cc
 	${CXX} ${CPPFLAGS_NO_ROOT} ${CXXFLAGS} ${VEC_MIC} -c -o $@ $<
 
+endif
 endif

@@ -5,6 +5,17 @@
 #ifdef __MIC__
 long64 Timing::s_cpu_freq       = 1238094000 / 2;
 int    Timing::s_vec_unit_width = 16;
+#elif defined(ARCH_KNL) 
+long64 Timing::s_cpu_freq       = 1311273000;//from cpuinfo (perf gives 1.265 GHz)
+//
+#ifdef __AVX512F__
+int    Timing::s_vec_unit_width = 16;
+#elif defined(__AVX__)
+int    Timing::s_vec_unit_width = 8;
+#else
+int    Timing::s_vec_unit_width = 4;
+#endif
+//
 #else
 long64 Timing::s_cpu_freq       = 2000003000;
 int    Timing::s_vec_unit_width = 8;
