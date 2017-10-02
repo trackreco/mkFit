@@ -9,58 +9,119 @@
 
 #include <mutex>
 
-struct HitID {
-  HitID() : layer(-1), index(-1) {}
-  HitID(int l, int i) : layer(l), index(i) {}
-  int layer;
-  int index;
-};
+class DataFile;
 
-typedef std::vector<HitID> HitIDVec;
-class Event {
+class Event
+{
 public:
+  explicit Event(int evtID);
   Event(const Geometry& g, Validation& v, int evtID, int threads = 1);
+
   void Reset(int evtID);
+  void RemapHits(TrackVec & tracks);
   void Simulate();
-  void Segment();
-  void Seed();
-  void Find();
+  void Segment(BinInfoMap & segmentMap);
+  void Seed(const BinInfoMap & segmentMap);
+  void Find(const BinInfoMap & segmentMap);
   void Fit();
   void Validate();
   void PrintStats(const TrackVec&, TrackExtraVec&);
   
-  int evtID() const {return evtID_;}
+  int  evtID() const {return evtID_;}
   void resetLayerHitMap(bool resetSimHits);
 
-  int nextMCHitID() { return mcHitIDCounter_++; }
+  int  nextMCHitID() { return mcHitIDCounter_++; }
 
-  void write_out(FILE *fp);
-  void read_in(FILE *fp, int version = Config::FileVersion);
+  void write_out(DataFile &data_file);
+  void read_in  (DataFile &data_file, FILE *in_fp=0);
+
+  int  use_seeds_from_cmsswtracks(); //special mode --> use only seeds which generated cmssw reco track
+  int  clean_cms_simtracks();
+  int  clean_cms_seedtracks(); //operates on seedTracks_; returns the number of cleaned seeds
+  int  clean_cms_seedtracks_badlabel(); //operates on seedTracks_, removes those with label == -1;
+  void relabel_bad_seedtracks();
+  void print_tracks(const TrackVec& tracks, bool print_hits) const;
 
   const Geometry& geom_;
   Validation& validation_;
- private:
-  int evtID_;
- public:
+
+private:
+  int  evtID_;
+
+public:
   int threads_;
+  std::mutex       mcGatherMutex_;
   std::atomic<int> mcHitIDCounter_;
   std::vector<HitVec> layerHits_;
   MCHitInfoVec simHitsInfo_;
-  HitIDVec layerHitMap_; // indexed same as simHitsInfo_, maps to layer & hit
 
   TrackVec simTracks_, seedTracks_, candidateTracks_, fitTracks_;
+  TrackVec extRecTracks_;
   // validation sets these, so needs to be mutable
   mutable TrackExtraVec simTracksExtra_, seedTracksExtra_, candidateTracksExtra_, fitTracksExtra_;
+  mutable TrackExtraVec extRecTracksExtra_;
 
-  // phi-eta partitioning map: vector of vector of vectors of std::pairs. 
-  // vec[nLayers][nEtaBins][nPhiBins]
-  BinInfoMap segmentMap_;
+  // XXXXMT: Preliminary. Separators into seed/candidate arrays.
+  // This will have to be extended for multi-pass tracking.
+  int seedEtaSeparators_[5];
+  int seedMinLastLayer_[5];
+  int seedMaxLastLayer_[5];
 
-  // used in normal validation --> only used on read-in / write-out (REALLY UGLY)
-  TkIDToTSVecVec simTrackStates_;
+  TSVec simTrackStates_;
   static std::mutex printmutex;
 };
 
 typedef std::vector<Event> EventVec;
+
+
+struct DataFileHeader
+{
+  int f_magic          = 0xBEEF;
+  int f_format_version = 3;
+  int f_sizeof_track   = sizeof(Track);
+  int f_n_max_trk_hits = Config::nMaxTrkHits;
+  int f_n_layers       = -1;
+  int f_n_events       = -1;
+
+  int f_extra_sections = 0;
+
+  DataFileHeader()
+  {
+    f_n_layers = Config::nTotalLayers;
+  }
+};
+
+struct DataFile
+{
+  enum ExtraSection
+  {
+    ES_SimTrackStates = 0x1,
+    ES_Seeds          = 0x2,
+    ES_ExtRecTracks   = 0x4
+  };
+
+  FILE *f_fp  =  0;
+  long  f_pos =  sizeof(DataFileHeader);
+
+  DataFileHeader f_header;
+
+  std::mutex     f_next_ev_mutex;
+
+  // ----------------------------------------------------------------
+
+  bool HasSimTrackStates() const { return f_header.f_extra_sections & ES_SimTrackStates; }
+  bool HasSeeds()          const { return f_header.f_extra_sections & ES_Seeds; }
+  bool HasExtRecTracks()   const { return f_header.f_extra_sections & ES_ExtRecTracks; }
+
+  int  OpenRead (const std::string& fname, bool set_n_layers = false);
+  void OpenWrite(const std::string& fname, int nev, int extra_sections=0);
+
+  int  AdvancePosToNextEvent(FILE *fp);
+
+  void SkipNEvents(int n_to_skip);
+
+  void Close();
+  void CloseWrite(int n_written); //override nevents in the header and close
+};
 
 #endif

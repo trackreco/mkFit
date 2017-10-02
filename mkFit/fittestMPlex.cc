@@ -31,75 +31,6 @@
 #endif
 
 //==============================================================================
-
-void make_validation_tree(const char         *fname,
-                          std::vector<Track> &simtracks,
-                          std::vector<Track> &rectracks)
-{
-   assert(simtracks.size() == rectracks.size());
-
-   float pt_mc, pt_fit, pt_err, chg;
-   int goodtrk = 0;
-
-#ifndef NO_ROOT
-   static std::mutex roolock;
-
-   std::lock_guard<std::mutex> rooguard(roolock);
-
-   TFile *file = TFile::Open(fname, "recreate");
-   TTree *tree = new TTree("T", "Validation Tree for simple Kalman fitter");;
-
-   tree->Branch("pt_mc",  &pt_mc,  "pt_mc");
-   tree->Branch("pt_fit", &pt_fit, "pt_fit");
-   tree->Branch("pt_err", &pt_err, "pt_err");
-   tree->Branch("chg",    &chg,    "chg");
-#endif
-
-   std::vector<float> diff_vec;
-
-   const int NT = simtracks.size();
-   for (int i = 0; i < NT; ++i)
-   {
-      pt_mc  = simtracks[i].pT();
-      pt_fit = rectracks[i].pT();
-      pt_err = rectracks[i].epT() / pt_fit;
-      chg = simtracks[i].charge();
-
-#ifndef NO_ROOT
-      tree->Fill();
-#endif
-
-      float pr = pt_fit/pt_mc;
-      float diff = (pt_mc/pt_fit - 1) / pt_err;
-      if (pr > 0.8 && pr < 1.2 && std::isfinite(diff)) {
-        diff_vec.push_back(diff);
-        ++goodtrk;
-      } else {
-        dprint("pt_mc, pt_fit, pt_err, ratio, diff " << pt_mc << " " << pt_fit << " " << pt_err << " " << pt_fit/pt_mc << " " << diff);
-      }
-   }
-   float mean = std::accumulate(diff_vec.begin(), diff_vec.end(), 0.0)
-              / diff_vec.size();
-
-   std::transform(diff_vec.begin(), diff_vec.end(), 
-                  diff_vec.begin(),  // in-place
-                  [mean](float x) {return (x-mean)*(x-mean);});
-                  
-   float stdev = std::sqrt(
-       std::accumulate(diff_vec.begin(), diff_vec.end(), 0.0)
-       / diff_vec.size());
-
-   std::cerr << goodtrk << " good tracks, mean pt pull: " << mean
-             << " standard dev: " << stdev << std::endl;
-
-#ifndef NO_ROOT
-   file->Write();
-   file->Close();
-   delete file;
-#endif
-}
-
-//==============================================================================
 // runFittingTestPlex
 //==============================================================================
 
@@ -136,6 +67,7 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
    int count = (theEnd + NN - 1)/NN;
 
 #ifdef USE_VTUNE_PAUSE
+   __SSC_MARK(0x111);  // use this to resume Intel SDE at the same point
    __itt_resume();
 #endif
 
@@ -148,9 +80,10 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
      mkfp->SetNhits(Nhits);
      for (int it = i.begin(); it < i.end(); ++it)
      {
-        int itrack = it*NN;
-        int end = itrack + NN;
-	if (Config::endcapTest) { 
+        int itrack = it * NN;
+        int end    = itrack + NN;
+	if (Config::endcapTest)
+        {
 	  //fixme, check usage of SlurpInTracksAndHits for endcapTest
 	  if (Config::readCmsswSeeds) {
 	    mkfp->InputSeedsTracksAndHits(ev.seedTracks_,simtracks, ev.layerHits_, itrack, end);
@@ -158,7 +91,11 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 	    mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
 	  }
 	  mkfp->FitTracksTestEndcap(end - itrack, &ev, true);
-	} else {
+	}
+        else
+        {
+        /*
+         * MT, trying to slurp and fit at the same time ...
 	  if (theEnd < end) {
 	    end = theEnd;
 	    mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
@@ -168,7 +105,16 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 	  
 	  if (Config::cf_fitting) mkfp->ConformalFitTracks(true, itrack, end);
 	  mkfp->FitTracks(end - itrack, &ev, true);
+        */
+
+          mkfp->InputTracksForFit(simtracks, itrack, end);
+
+          // XXXX MT - for this need 3 points in ... right
+	  // XXXX if (Config::cf_fitting) mkfp->ConformalFitTracks(true, itrack, end);
+
+          mkfp->FitTracksWithInterSlurp(ev.layerHits_, end - itrack);
 	}
+
 	mkfp->OutputFittedTracks(rectracks, itrack, end);
      }
    });
@@ -177,6 +123,7 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 
 #ifdef USE_VTUNE_PAUSE
    __itt_pause();
+   __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
 
    if (Config::fit_val) ev.Validate();
@@ -244,7 +191,6 @@ void runAllEventsFittingTestPlexGPU(std::vector<Event>& events)
       if (omp_get_num_threads() <= 1) {
         //if (g_run_fit_std) {
           std::string tree_name = "validation-plex-" + std::to_string(evt) + ".root";
-          make_validation_tree(tree_name.c_str(), ev.simTracks_, plex_tracks_ev);
         //}
       }
 #endif

@@ -48,29 +48,59 @@ void initGeom(Geometry& geom)
   // NB: we currently assume that each node is a layer, and that layers
   // are added starting from the center
   // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
-  float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
-  for (int l = 0; l < Config::nLayers; l++) {
-    if (Config::endcapTest) {
-      float z = Config::useCMSGeom ? Config::cmsAvgZs[l] : (l+1)*10.;//Config::fLongitSpacing
-      float rmin = Config::useCMSGeom ? Config::cmsDiskMinRs[l] : 0;
-      float rmax = Config::useCMSGeom ? Config::cmsDiskMaxRs[l] : 0;
-      VUSolid* utub = new VUSolid(rmin, rmax);
-      geom.AddLayer(utub, rmin, z);
-    } else {
-      float r = Config::useCMSGeom ? Config::cmsAvgRads[l] : (l+1)*Config::fRadialSpacing;
-      VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent);
-      float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
-      geom.AddLayer(utub, r, z);
+
+  TrackerInfo::ExecTrackerInfoCreatorPlugin(Config::geomPlugin, Config::TrkInfo);
+
+#ifndef WITH_USOLIDS
+    geom.BuildFromTrackerInfo(Config::TrkInfo);
+#else
+    fprintf(stderr, "TrackerInfo only supports SimpleGeometry, not USolids.\n");
+    exit(1);
+#endif
+
+  /*
+  if ( ! Config::endcapTest && ! Config::useCMSGeom)
+  {
+    // This is the new standalone case -- Cylindrical Cow with Lids
+    //Create_TrackerInfo(Config::TrkInfo);
+#ifndef WITH_USOLIDS
+    geom.BuildFromTrackerInfo(Config::TrkInfo);
+#else
+    fprintf(stderr, "Cylindrical Cow with Lids only supported for SimpleGeometry.\n");
+    exit(1);
+#endif
+  }
+  else
+  {
+    float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
+    for (int l = 0; l < Config::nLayers; l++)
+    {
+      if (Config::endcapTest)
+      {
+        float z = Config::useCMSGeom ? Config::cmsAvgZs[l] : (l+1)*10.;//Config::fLongitSpacing
+        float rmin = Config::useCMSGeom ? Config::cmsDiskMinRs[l] : 0;
+        float rmax = Config::useCMSGeom ? Config::cmsDiskMaxRs[l] : 0;
+        // XXXX MT: Do we need endcap layer "thickness" for cmssw at all? Use equiv of fRadialExtent.
+        // Do we even need geometry for cmssw?
+        float dz = 0.005;
+        VUSolid* utub = new VUSolid(rmin, rmax, z - dz, z + dz, false, l + 1 == Config::nLayers);
+        geom.AddLayer(utub, rmin, z);
+      }
+      else
+      {
+        float r = Config::useCMSGeom ? Config::cmsAvgRads[l] : (l+1)*Config::fRadialSpacing;
+        float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
+        VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent, -z, z, true, l + 1 == Config::nLayers);
+        geom.AddLayer(utub, r, z);
+      }
     }
   }
+  */
 }
 
 namespace
 {
-  FILE *g_file = 0;
-  int   g_file_num_ev = 0;
-  std::atomic<int>   g_file_cur_ev{0};
-
+  int   g_start_event   = 1;
   bool  g_run_fit_std   = false;
 
   bool  g_run_build_all = true;
@@ -82,48 +112,54 @@ namespace
   std::string g_operation = "simulate_and_process";;
   std::string g_file_name = "simtracks.bin";
   std::string g_input_file = "";
-  int g_input_version = Config::FileVersion;
+
+  const char* b2a(bool b) { return b ? "true" : "false"; }
 }
+
+//==============================================================================
 
 void read_and_save_tracks()
 {
-  FILE *ofp = fopen(g_file_name.c_str(), "w");
-  FILE *ifp = fopen(g_input_file.c_str(), "r");
+  DataFile in;
+  const int Nevents = in.OpenRead(g_input_file, true);
 
-  fread(&g_file_num_ev, sizeof(int), 1, ifp);
-  fwrite(&g_file_num_ev, sizeof(int), 1, ofp);
+  DataFile out;
+  out.OpenWrite(g_file_name, Nevents);
 
-  Geometry geom;
-  initGeom(geom);
-  std::unique_ptr<Validation> val(Validation::make_validation("empty.root"));
+  printf("writing %i events\n", Nevents);
 
-  printf("writing %i events\n",g_file_num_ev);
-
-  Event ev(geom, *val, 0);
-  for (int evt = 0; evt < g_file_num_ev; ++evt)
+  Event ev(0);
+  for (int evt = 0; evt < Nevents; ++evt)
   {
     ev.Reset(evt);
-    ev.read_in(ifp, g_input_version);
-    ev.write_out(ofp);
+    ev.read_in(in);
+    ev.write_out(out);
   }
 
-  fclose(ifp);
-  fclose(ofp);
+  out.Close();
+  in .Close();
 }
+
+//==============================================================================
 
 void generate_and_save_tracks()
 {
-  FILE *fp = fopen(g_file_name.c_str(), "w");
-
-  int Nevents = Config::nEvents;
+  const int Nevents = Config::nEvents;
 
   Geometry geom;
   initGeom(geom);
   std::unique_ptr<Validation> val(Validation::make_validation("empty.root"));
 
-  fwrite(&Nevents, sizeof(int), 1, fp);
+  int extra_sections = 0;
+  if (Config::root_val || Config::fit_val)
+  {
+    extra_sections |= DataFile::ES_SimTrackStates;
+  }
 
-  printf("writing %i events\n",Nevents);
+  DataFile data_file;
+  data_file.OpenWrite(g_file_name, Nevents, extra_sections);
+
+  printf("writing %i events\n", Nevents);
 
   tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
 
@@ -132,64 +168,44 @@ void generate_and_save_tracks()
   {
     ev.Reset(evt);
     ev.Simulate();
-    ev.resetLayerHitMap(true);
 
-    ev.write_out(fp);
+#ifdef DEBUG
+    for (int itrack = 0; itrack < ev.simTracks_.size(); itrack++)
+    {
+      const auto& track = ev.simTracks_[itrack];
+      int mcTrackId = track.label();
+      dprint("track: " << mcTrackId << " (" << itrack << ")");
+      for (int ihit = 0; ihit < track.nTotalHits(); ihit++)
+      {
+	int idx = track.getHitIdx(ihit); int lyr = track.getHitLyr(ihit);
+	int mcHitID = ev.layerHits_[lyr][idx].mcHitID(); int mcTrackID = ev.simHitsInfo_[mcHitID].mcTrackID();
+	float tsr = ev.simTrackStates_[mcHitID].posR();	float hitr = ev.layerHits_[lyr][idx].r();
+	float tsz = ev.simTrackStates_[mcHitID].z();    float hitz = ev.layerHits_[lyr][idx].z();
+	dprint("       " << mcTrackID << " (mcHitID: " << mcHitID << " ihit: " << ihit << " idx: " << idx << " lyr: "
+	       << lyr << " tsr: " << tsr << " hitr: " << hitr << " tsz: " << tsz << " hitz: " << hitz << ")");
+      }
+    }
+#endif
+
+    ev.write_out(data_file);
   }
 
-  fclose(fp);
+  data_file.Close();
 }
 
-
-int open_simtrack_file()
-{
-  g_file = fopen(g_file_name.c_str(), "r");
-
-  assert (g_file != 0);
-
-  fread(&g_file_num_ev, sizeof(int), 1, g_file);
-  g_file_cur_ev = 0;
-
-  printf("\nReading simulated tracks from \"%s\", %d events on file.\n\n",
-         g_file_name.c_str(), g_file_num_ev);
-
-  return g_file_num_ev;
-}
-
-void close_simtrack_file()
-{
-  fclose(g_file);
-  g_file = 0;
-  g_file_num_ev = 0;
-  g_file_cur_ev = 0;
-}
+//==============================================================================
 
 void test_standard()
 {
-  // ---- MT test eta bins
-  // int nb, b1, b2;
-  // for (float eta = -1.2; eta <= 1.2; eta += 0.01)
-  // {
-  //   nb = getBothEtaBins(eta, b1, b2);
-  //   printf("eta=%6.2f  bin=%3d  bin1=%3d  bin2=%3d nb=%d\n",
-  //          eta, getEtaBin(eta), b1, b2, nb);
-  // }
-
-  // return;
-  // ---- end MT test
-
   printf("Running test_standard(), operation=\"%s\"\n", g_operation.c_str());
   printf("  vusize=%d, num_th_sim=%d, num_th_finder=%d\n",
          MPT_SIZE, Config::numThreadsSimulation, Config::numThreadsFinder);
   printf("  sizeof(Track)=%zu, sizeof(Hit)=%zu, sizeof(SVector3)=%zu, sizeof(SMatrixSym33)=%zu, sizeof(MCHitInfo)=%zu\n",
          sizeof(Track), sizeof(Hit), sizeof(SVector3), sizeof(SMatrixSym33), sizeof(MCHitInfo));
-  if (Config::useCMSGeom) {
-    printf ("Using CMS-like geometry ");
-    if (Config::readCmsswSeeds) printf ("with CMSSW seeds \n");
-    else printf ("with MC-truth seeds \n");
-  } else if (Config::endcapTest) {
-    printf ("Test tracking in endcap, disks spacing 5 cm \n");
-  } else printf ("Using 4-cm spacing barrel geometry \n");
+
+  if (Config::useCMSGeom)     printf ("- using CMS-like geometry\n");
+  if (Config::readCmsswSeeds) printf ("- reading seeds from file\n");
+  if (Config::endcapTest)     printf ("- endcap test enabled (to be nixed)\n");
 
   if (g_operation == "write") {
     generate_and_save_tracks();
@@ -201,14 +217,30 @@ void test_standard()
     return;
   }
 
-  if (g_operation == "read")
-  {
-    Config::nEvents = open_simtrack_file();
-    assert(g_input_version > 0 || 1 == Config::numThreadsEvents);
-  }
-
   Geometry geom;
   initGeom(geom);
+
+  DataFile data_file;
+  if (g_operation == "read")
+  {
+    int evs_in_file   = data_file.OpenRead(g_file_name);
+    int evs_available = evs_in_file - g_start_event + 1;
+    if (Config::nEvents == -1)
+    {
+      Config::nEvents = evs_available;
+    }
+    else if (Config::nEvents > evs_available)
+    {
+      printf("Requested number of events %d, only %d available.\n",
+             Config::nEvents, evs_available);
+      Config::nEvents = evs_available;
+    }
+
+    if (g_start_event > 1)
+    {
+      data_file.SkipNEvents(g_start_event - 1);
+    }
+  }
 
   if (Config::useCMSGeom) fillZRgridME();
 
@@ -220,7 +252,7 @@ void test_standard()
 #if USE_CUDA_OLD
   tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
   //tbb::task_scheduler_init tbb_init(tbb::task_scheduler_init::automatic);
-  
+
   //omp_set_num_threads(Config::numThreadsFinder);
   // fittest time. Sum of all events. In case of multiple events
   // being run simultaneously in different streams this time will
@@ -237,7 +269,6 @@ void test_standard()
     printf("Simulating event %d\n", evt);
     events.emplace_back(geom, val, evt);
     events.back().Simulate();
-    events.back().resetLayerHitMap(true);
     dprint("Event #" << events.back().evtID() << " simtracks " << events.back().simTracks_.size() << " layerhits " << events.back().layerHits_.size());
   }
 
@@ -247,7 +278,7 @@ void test_standard()
   // CUDA function. These function can be changed to another one
   // if it becomes important to time (e.g. if you want the profiler to
   // tell you how much time is spend running cudaDeviceSynchronize(),
-  // use another function). 
+  // use another function).
   separate_first_call_for_meaningful_profiling_numbers();
 
   if (g_run_fit_std) runAllEventsFittingTestPlexGPU(events);
@@ -258,14 +289,13 @@ void test_standard()
     std::cout << "Total best hit time (GPU): " << total_best_hit_time << std::endl;
   }
 #else
-  std::atomic<int> nevt{1};
+  std::atomic<int> nevt{g_start_event};
   std::atomic<int> seedstot{0}, simtrackstot{0};
 
-  std::vector<EventTmp> ev_tmps(Config::numThreadsEvents);
-  std::vector<std::unique_ptr<Event>> evs(Config::numThreadsEvents);
+  std::vector<std::unique_ptr<Event>>      evs(Config::numThreadsEvents);
   std::vector<std::unique_ptr<Validation>> vals(Config::numThreadsEvents);
-  std::vector<std::unique_ptr<MkBuilder>> mkbs(Config::numThreadsEvents);
-  std::vector<std::shared_ptr<FILE>> fps;
+  std::vector<std::unique_ptr<MkBuilder>>  mkbs(Config::numThreadsEvents);
+  std::vector<std::shared_ptr<FILE>>       fps;
   fps.reserve(Config::numThreadsEvents);
 
 #if USE_CUDA
@@ -315,14 +345,12 @@ void test_standard()
     assert(threads.begin() == threads.end()-1 && thisthread < Config::numThreadsEvents);
 
     std::vector<Track> plex_tracks;
-    auto& ev_tmp = ev_tmps[thisthread];
-    auto& ev = *evs[thisthread].get();
-    auto& mkb = *mkbs[thisthread].get();
-    auto  fp = fps[thisthread].get();
-    if (g_input_version == 0) fseek(fp, sizeof(int), SEEK_SET);
+    auto& ev     = *evs[thisthread].get();
+    auto& mkb    = *mkbs[thisthread].get();
+    auto  fp     =  fps[thisthread].get();
 
     int evstart = thisthread*events_per_thread;
-    int evend = std::min(Config::nEvents, evstart+events_per_thread);
+    int evend   = std::min(Config::nEvents, evstart+events_per_thread);
 
 #if USE_CUDA
     auto& cuFitter = *cuFitters[thisthread].get();
@@ -331,8 +359,8 @@ void test_standard()
 
     dprint("thisthread " << thisthread << " events " << Config::nEvents << " events/thread " << events_per_thread
                          << " range " << evstart << ":" << evend);
- 
-   for (int evt = evstart; evt < evend; ++evt)
+
+    for (int evt = evstart; evt < evend; ++evt)
     {
       ev.Reset(nevt++);
 
@@ -345,33 +373,32 @@ void test_standard()
 
       if (g_operation == "read")
       {
-        ev.read_in(fp, g_input_version);
-        ev.resetLayerHitMap(false);//hitIdx's in the sim tracks are already ok 
+        ev.read_in(data_file, fp);
       }
       else
       {
         ev.Simulate();
-        ev.resetLayerHitMap(true);
       }
 
       plex_tracks.resize(ev.simTracks_.size());
 
       double t_best[NT] = {0}, t_cur[NT];
       simtrackstot += ev.simTracks_.size();
-      seedstot += ev.seedTracks_.size();
+      seedstot     += ev.seedTracks_.size();
 
       for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
       {
   #ifndef USE_CUDA
         t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
         t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev, mkb) : 0;
-        t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, ev_tmp, mkb) : 0;
+        t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, mkb) : 0;
   #else
         t_cur[0] = (g_run_fit_std) ? runFittingTestPlexGPU(cuFitter, ev, plex_tracks) : 0;
         t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHitGPU(ev, mkb, cuBuilder) : 0;
+        // XXXX MT note for Matthieu: ev_tmp no longer exists ----------------------------------v
         t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngineGPU(ev, ev_tmp, mkb, cuBuilder, g_seed_based) : 0;
   #endif
-        t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, ev_tmp, mkb) : 0;
+        t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, mkb) : 0;
 
         for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
 
@@ -398,8 +425,6 @@ void test_standard()
       // probably should convert to a scaled long so can use std::atomic<Integral>
       for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
       if (evt > 0) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
-
-      if (g_run_fit_std) make_validation_tree("validation-plex.root", ev.simTracks_, plex_tracks);
     }
   }, tbb::simple_partitioner());
 
@@ -420,10 +445,11 @@ void test_standard()
 
   if (g_operation == "read")
   {
-    close_simtrack_file();
+    data_file.Close();
   }
 
   for (auto& val : vals) {
+    val->fillConfigTree();
     val->saveTTrees();
   }
 #if USE_CUDA
@@ -436,6 +462,8 @@ void test_standard()
 #endif
 }
 
+//==============================================================================
+// Command line argument parsing
 //==============================================================================
 
 typedef std::list<std::string> lStr_t;
@@ -460,12 +488,16 @@ void next_arg_or_die(lStr_t& args, lStr_i& i, bool allow_single_minus=false)
 }
 
 //==============================================================================
+// main
+//==============================================================================
 
 int main(int argc, const char *argv[])
 {
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
 #endif
+
+  assert (sizeof(Track::Status) == 4 && "To make sure this is true for icc and gcc<6 when mixing bools/ints in bitfields.");
 
   lStr_t mArgs;
   for (int i = 1; i < argc; ++i)
@@ -483,59 +515,76 @@ int main(int argc, const char *argv[])
       printf(
         "Usage: %s [options]\n"
         "Options:\n"
+        "  --geom          <str>    geometry plugin to use (def: %s)\n"
         "  --num-events    <num>    number of events to run over (def: %d)\n"
         "  --num-tracks    <num>    number of tracks to generate for each event (def: %d)\n"
         "  --num-thr-sim   <num>    number of threads for simulation (def: %d)\n"
         "  --num-thr       <num>    number of threads for track finding (def: %d)\n"
-        "                           extra cloning thread is spawned for each of them\n"
-        "  --num-thr-ev    <num>    number of threads to run the event loop\n"
+        "  --num-thr-ev    <num>    number of threads to run the event loop (def: %d)\n"
         "  --fit-std                run standard fitting test (def: false)\n"
         "  --fit-std-only           run only standard fitting test (def: false)\n"
+        "  --chi2cut       <num>    chi2 cut used in building test (def: %.1f)\n"
         "  --build-bh               run best-hit building test (def: false)\n"
         "  --build-std              run standard combinatorial building test (def: false)\n"
         "  --build-ce               run clone engine combinatorial building test (def: false)\n"
         "  --seeds-per-task         number of seeds to process in a tbb task (def: %d)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
-        "  --cms-geom               use cms-like geometry (def: %i)\n"
-        "  --cmssw-seeds            take seeds from CMSSW (def: %i)\n"
+        "  --ext-rec-tracks         read external rec trakcs if available (def: %s)\n"
+        "  --cmssw-seeds            take seeds from CMSSW (def: %s)\n"
+        "  --clean-seeds            use N^2 seed cleaning on CMSSW seeds, else clean seeds with label == -1 (def: %s)\n"
         "  --find-seeds             run road search seeding [CF enabled by default] (def: %s)\n"
         "  --hits-per-task <num>    number of layer1 hits per task in finding seeds (def: %i)\n"
-        "  --endcap-test            test endcap tracking (def: %i)\n"
+        "  --endcap-test            test endcap tracking (def: %s)\n"
         "  --cf-seeding             enable CF in seeding (def: %s)\n"
         "  --cf-fitting             enable CF in fitting (def: %s)\n"
-        "  --normal-val             enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
+        "  --root-val               enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
+        "  --cmssw-val              enable special CMSSW ROOT based validation for building [eff] (def: %s)\n"
       	"  --fit-val                enable ROOT based validation for fitting (def: %s)\n"
+        "  --inc-shorts             include short reco tracks into FR (def: %s)\n"
+        "  --hit-match              apply hit matching criteria for CMSSW reco track matching (def: %s)\n"
         "  --silent                 suppress printouts inside event loop (def: %s)\n"
         "  --write                  write simulation to file and exit\n"
         "  --read                   read simulation from file\n"
+        "  --start-event   <num>    event number to start at when reading from a file (def: %d)\n"
         "  --file-name              file name for write/read (def: %s)\n"
         "  --input-file             file name for reading when converting formats (def: %s)\n"
-        "  --input-version          version for reading when converting formats (def: %d)\n"
         "GPU specific options: \n"
-        "  --num-thr-reorg <num>    number of threads to run the hits reorganization\n"
+        "  --num-thr-reorg <num>    number of threads to run the hits reorganization (def: %d)\n"
         "  --seed-based             For CE. Switch to 1 CUDA thread per seed\n"
         ,
         argv[0],
+        Config::geomPlugin.c_str(),
         Config::nEvents,
         Config::nTracks,
-        Config::numThreadsSimulation, Config::numThreadsFinder,
+        Config::numThreadsSimulation, Config::numThreadsFinder, Config::numThreadsEvents,
+        Config::chi2Cut,
         Config::numSeedsPerTask,
         Config::finderReportBestOutOfN,
-      	Config::useCMSGeom,
-      	Config::readCmsswSeeds,
-      	Config::findSeeds ? "true" : "false",
+	b2a(Config::readExtRecTracks),
+        b2a(Config::readCmsswSeeds),
+        b2a(Config::cleanCmsswSeeds),
+        b2a(Config::findSeeds),
       	Config::numHitsPerTask,
-      	Config::endcapTest,
-      	Config::cf_seeding ? "true" : "false",
-      	Config::cf_fitting ? "true" : "false",
-      	Config::normal_val ? "true" : "false",
-      	Config::fit_val    ? "true" : "false",
-        Config::silent ? "true" : "false",
+        b2a(Config::endcapTest),
+        b2a(Config::cf_seeding),
+        b2a(Config::cf_fitting),
+        b2a(Config::root_val),
+        b2a(Config::cmssw_val),
+        b2a(Config::fit_val),
+	b2a(Config::inclusiveShorts),
+	b2a(Config::applyCMSSWHitMatch),
+        b2a(Config::silent),
+        g_start_event,
       	g_file_name.c_str(),
       	g_input_file.c_str(),
-        g_input_version
+	Config::numThreadsReorg
       );
       exit(0);
+    }
+    else if (*i == "--geom")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::geomPlugin = *i;
     }
     else if (*i == "--num-events")
     {
@@ -566,6 +615,11 @@ int main(int argc, const char *argv[])
       g_run_fit_std = true;
       g_run_build_all = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = false;
     }
+    else if (*i == "--chi2cut")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::chi2Cut = atof(i->c_str());
+    }
     else if(*i == "--build-bh")
     {
       g_run_build_all = false; g_run_build_bh = true; g_run_build_std = false; g_run_build_ce = false;
@@ -588,13 +642,17 @@ int main(int argc, const char *argv[])
       next_arg_or_die(mArgs, i);
       Config::finderReportBestOutOfN = atoi(i->c_str());
     }
-    else if(*i == "--cms-geom")
+    else if(*i == "--ext-rec-tracks")
     {
-      Config::useCMSGeom = true;
+      Config::readExtRecTracks = true;
     }
     else if(*i == "--cmssw-seeds")
     {
       Config::readCmsswSeeds = true;
+    }
+    else if(*i == "--clean-seeds")
+    {
+      Config::cleanCmsswSeeds = true;
     }
     else if(*i == "--find-seeds")
     {
@@ -617,13 +675,25 @@ int main(int argc, const char *argv[])
     {
       Config::cf_fitting = true;
     }
-    else if (*i == "--normal-val")
+    else if (*i == "--root-val")
     {
-      Config::super_debug = false; Config::normal_val = true; Config::full_val = false; Config::fit_val = false;
+      Config::root_val = true; Config::cmssw_val = false; Config::fit_val = false;
+    }
+    else if (*i == "--cmssw-val")
+    {
+      Config::root_val = false; Config::cmssw_val = true; Config::fit_val = false;
     }
     else if (*i == "--fit-val")
     {
-      Config::super_debug = false; Config::normal_val = false; Config::full_val = false; Config::fit_val = true;
+      Config::root_val = false; Config::cmssw_val = false; Config::fit_val = true;
+    }
+    else if (*i == "--inc-shorts")
+    {
+      Config::inclusiveShorts = true;
+    }
+    else if (*i == "--hit-match")
+    {
+      Config::applyCMSSWHitMatch = true;
     }
     else if (*i == "--num-thr-ev")
     {
@@ -642,6 +712,12 @@ int main(int argc, const char *argv[])
     else if(*i == "--read")
     {
       g_operation = "read";
+      Config::nEvents = -1;
+    }
+    else if (*i == "--start-event")
+    {
+      next_arg_or_die(mArgs, i);
+      g_start_event = atoi(i->c_str());
     }
     else if(*i == "--file-name")
     {
@@ -653,11 +729,6 @@ int main(int argc, const char *argv[])
       next_arg_or_die(mArgs, i);
       g_operation = "convert";
       g_input_file = *i;
-    }
-    else if (*i == "--input-version")
-    {
-      next_arg_or_die(mArgs, i);
-      g_input_version = atoi(i->c_str());
     }
     else if(*i == "--silent")
     {

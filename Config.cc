@@ -1,13 +1,22 @@
 #include "Config.h"
 
+#include "TrackerInfo.h"
+
 namespace Config
 {
+  TrackerInfo TrkInfo;
+
   int nTracks = 10000;
   int nEvents = 20;
 
-  // Dependent constants, assigned after processing of commandline options
-  int maxHitsPerBunch;
-  int maxCandsPerEtaBin;
+  int nTotalLayers = -1;
+
+  std::string geomPlugin = "CylCowWLids";
+
+  int maxCandsPerSeed  = 6; // cmssw tests: 6 (GC had 3) \_ set from geom plugin
+  int maxHolesPerCand  = 2; // cmssw tests: 12           /
+
+  int maxCandsPerEtaBin; // Recalculated after config is read ... should be removed.
 
   // Multi threading and Clone engine configuration
   int   numThreadsFinder = 1;
@@ -24,7 +33,7 @@ namespace Config
 
   int   finderReportBestOutOfN = 1;
 
-  int   nlayers_per_seed = 3; // default is 3 for barrel seeding --> will need a new variable once we move to endcap seeding
+  int   nlayers_per_seed = 3; // can be overriden from Geom plugin; a very confusing variable :)
   int   numSeedsPerTask = 32;
   
   // number of hits per task for finding seeds
@@ -34,25 +43,29 @@ namespace Config
   float RlgridME[Config::nBinsZME][Config::nBinsRME];
   float XigridME[Config::nBinsZME][Config::nBinsRME];
 
+  float chi2Cut = 15.;
+
   bool  useCMSGeom = false;
   bool  readCmsswSeeds = false;
+  bool  cleanCmsswSeeds = false;
+  bool  readExtRecTracks = false;
 
-  bool  findSeeds   = false;
+  bool  findSeeds  = false;
   bool  endcapTest = false;
 
-  bool  silent      = false;
+  bool  silent     = false;
 
-  bool  cf_seeding  = false;
-  bool  cf_fitting  = false;
+  bool  cf_seeding = false;
+  bool  cf_fitting = false;
 
-  bool  super_debug = false;
-  bool  normal_val  = false;
-  bool  full_val    = false;
-  bool  fit_val     = false;
+  bool  root_val  = false;
+  bool  cmssw_val = false;
+  bool  fit_val   = false;
+  bool  inclusiveShorts = false;
+  bool  applyCMSSWHitMatch = false;
 
   void RecalculateDependentConstants()
   {
     maxCandsPerEtaBin = std::max(100, maxCandsPerSeed * (nTracks+100) / nEtaPart);
-    maxHitsPerBunch   = std::max(100, nTracks * 12 / 10 / nEtaPart) + maxHitsConsidered;
   }
 }

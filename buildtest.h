@@ -8,7 +8,8 @@
 #include "Track.h"
 #include "Geometry.h"
 #include "Event.h"
+#include "BinInfoUtils.h"
 
-void buildTracksBySeeds(Event& ev);
-void buildTracksByLayers(Event& ev);
+void buildTracksBySeeds(const BinInfoMap &, Event& ev);
+void buildTracksByLayers(const BinInfoMap &, Event& ev);
 #endif

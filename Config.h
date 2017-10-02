@@ -1,6 +1,9 @@
 #ifndef _config_
 #define _config_
 
+// Cram this in here for now ...
+class TrackerInfo;
+
 #include <algorithm>
 #include <cmath>
 #include <string> // won't compile on clang gcc for mac OS w/o this!
@@ -16,8 +19,7 @@
 
 namespace Config
 {
-  // super debug mode in SMatrix
-  extern bool super_debug;
+  extern TrackerInfo TrkInfo;
 
   // default file version
   constexpr int FileVersion = 1;
@@ -31,8 +33,9 @@ namespace Config
   constexpr float InvPI    = 1.0f / Config::PI;
   constexpr float RadToDeg = 180.0f / Config::PI;
   constexpr float DegToRad = Config::PI / 180.0f;
-  constexpr double Sqrt2   = 1.4142135623730950488016887242097;
   constexpr float sol      = 0.299792458; // speed of light in nm/s
+  constexpr double Sqrt2   = 1.4142135623730950488016887242097;
+  constexpr double OOSqrt2 = 1.0 / Config::Sqrt2;
 
   // general parameters of matrices
   constexpr int nParams = 6;
@@ -40,31 +43,30 @@ namespace Config
   // config on main + mkFit
   extern int nTracks; //defined in Config.cc by default or when reading events from file
   extern int nEvents;
+  // XXXXMT: nTracks should be thrown out ... SMatrix and Event allocate some arrays on this
+  // which can be wrong for real data or in multi-event environment
 
-  // config on main -- for geometry
+  extern std::string geomPlugin;
+
+  // config on main -- for geometry; XXXXMT to be thrown out, too
   constexpr int   nLayers   = 10; // default: 10; cmssw tests: 13, 17, 26 (for endcap)
+
+  // New layer constants for common barrel / endcap. I'd prefer those to go
+  // into some geometry definition "plugin" -- they belong more into some Geom
+  // namespace, too.
+  // XXXX This needs to be generalized for other geometries !
+  // TrackerInfo more or less has all this information (or could have it).
+  extern    int   nTotalLayers;        // To be set by geometry plugin.
+  constexpr int   nMaxSimHits    = 32; // Assuming dual hit on every barrel / endcap edge -> used in tkNtuple
+  constexpr int   nMaxTrkHits    = nMaxSimHits; // Used for array sizes in MkFitter and Track
+
   constexpr float fRadialSpacing   = 4.;
   constexpr float fRadialExtent    = 0.01;
   constexpr float fInnerSensorSize = 5.0; // approximate sensor size in cm
   constexpr float fOuterSensorSize = Config::fInnerSensorSize * 2.;
   constexpr float fEtaDet          = 1; // default: 1; cmssw tests: 2, 2.5
 
-  //constexpr float cmsAvgRads[13] = {4.42,7.31,10.17,25.58,33.98,41.79,49.78,60.78,69.2,77.96,86.80,96.53,108.00}; // cms average radii, noSplit version
-  constexpr float cmsAvgRads[17] = {4.42,7.31,10.17,25.58,25.58,33.98,33.98,41.79,49.78,60.57,61.00,69.41,68.98,77.96,86.80,96.53,108.00}; // cms average radii, split version
   constexpr float cmsDeltaRad = 2.5; //fixme! using constant 2.5 cm, to be taken from layer properties
-
-  constexpr float cmsAvgZs[26]         = {35.5,48.5,79.8,79.8,92.6,92.6,105.6,105.6,131.3,131.3,145.3,145.3,159.3,159.3,173.9,173.9,187.8,187.8,205.4,205.4,224.0,224.0,244.4,244.4,266.3,266.3}; // cms average z
-  constexpr float cmsDiskMinRs[26]     = { 5.7, 5.7,23.1,22.8,23.1,22.8, 23.1, 22.8, 23.3, 23.0, 23.3, 23.0, 23.3, 23.0, 31.6, 34.4, 31.6, 34.4, 31.6, 34.4, 59.9, 38.8, 59.9, 38.8, 59.9, 49.9};
-  constexpr float cmsDiskMaxRs[26]     = {14.7,14.7,50.8,42.0,50.8,42.0, 50.8, 42.0, 76.1,110.0, 76.1,110.0, 76.1,110.0, 75.9,109.7, 75.9,109.7, 75.9,109.7, 75.9,109.4, 75.9,109.4, 75.9,109.4};
-  constexpr float cmsDiskMinRsHole[26] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  0.0,  0.0, 42.0,  0.0, 42.0,  0.0, 42.0,  0.0, 42.1,  0.0, 42.1,  0.0, 42.1,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0};
-  constexpr float cmsDiskMaxRsHole[26] = {999.,999.,999.,999.,999.,999., 999., 999., 59.9, 999., 59.9, 999., 59.9, 999., 59.7, 999., 59.7, 999., 59.7, 999., 999., 999., 999., 999., 999., 999.};
-  const     float g_disk_dr[]        = {   1,   1,  20,  20,  20,  20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20};
-
-  const float g_layer_zwidth[] = { 10, 14, 18, 23, 28, 32, 37, 42, 48, 52 }; //default
-  const float g_layer_dz[]     = { 0.6, 0.55, 0.5, 0.5, 0.45, 0.4, 0.4, 0.4, 0.35, 0.35 }; //default
-
-  /* const float g_layer_zwidth[] = { 30, 30, 30, 70, 70, 70, 70, 70, 70, 110, 110, 110, 110, 110, 110, 110, 110 }; //cmssw tests */
-  /* const float g_layer_dz[] = { 1, 1, 1, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20 }; //cmssw tests */
 
   // config for material effects in cmssw
   constexpr float rangeZME = 300.;
@@ -109,39 +111,47 @@ namespace Config
   extern float RlgridME[Config::nBinsZME][Config::nBinsRME];
   extern float XigridME[Config::nBinsZME][Config::nBinsRME];
 
-  // These could be parameters, layer dependent.
-  static constexpr int   m_nphi = 1024;
-  static constexpr float m_max_dz   = 1; // default: 1; cmssw tests: 20
-  static constexpr float m_max_dphi = 0.02; // default: 0.02; cmssw tests: 0.2
+  // This will become layer dependent (in bits). To be consistent with min_dphi.
+  static constexpr int m_nphi = 1024;
 
   // config on Event
-  constexpr float chi2Cut = 15.;// default: 15.; cmssw tests: 30.
+  extern    float chi2Cut; // default: 15; cmssw: 30 (set in TrackerInfo plugin)
+  // the following are only used in SMatrix version
   constexpr float nSigma  = 3.;
-  constexpr float minDPhi = 0.;// default: 0.;  cmssw tests: 0.01;
+  constexpr float minDPhi = 0.01;// default: 0.;  cmssw tests: 0.01;
   constexpr float maxDPhi = Config::PI;
   constexpr float minDEta = 0.;
   constexpr float maxDEta = 1.0;
-  constexpr float minDZ = 0.; // default: 0.; cmssw tests: 10.;
 
   // Configuration for simulation info
-  //CMS beam spot width 25um in xy and 5cm in z 
+  // CMS beam spot width 25um in xy and 5cm in z
   constexpr float beamspotX = 0.1;
   constexpr float beamspotY = 0.1;
   constexpr float beamspotZ = 1.0;
-  
-  constexpr float minSimPt = 0.5;
+
+  // XXMT4K minPt was 0.5. Figure out what is the new limit for 90cm or be
+  // more flexible about finding fewer hits. Or postprocess looper candidates.
+  constexpr float minSimPt = 1;
   constexpr float maxSimPt = 10.;
 
-  constexpr float maxEta   = 1.0;
+  // XXMT Hardhack -- transition region excluded in Simulation::setupTrackByToyMC()
+  constexpr float minSimEta = -2.4;
+  constexpr float maxSimEta =  2.4;
+  // For testing separate EC-/BRL/EC+; -2.3--1.5 / -0.9-0.9 / 1.5-2.3
+  //constexpr float minSimEta =  -0.9;
+  //constexpr float maxSimEta =   0.9;
 
   constexpr float hitposerrXY = 0.01; // resolution is 100um in xy --> more realistic scenario is 0.003
-  constexpr float hitposerrZ  = 0.1; // resolution is 1mm in z
-  constexpr float hitposerrR  = Config::hitposerrXY / 10.0f;
+  constexpr float hitposerrZ  = 0.1;  // resolution is 1mm in z
+  constexpr float hitposerrR  = Config::hitposerrXY / 10.0f; // XXMT4K ??? I don't get this ...
   constexpr float varXY       = Config::hitposerrXY * Config::hitposerrXY;
   constexpr float varZ        = Config::hitposerrZ  * Config::hitposerrZ;
   constexpr float varR        = Config::hitposerrR  * Config::hitposerrR;
 
-  constexpr int nTotHit = Config::nLayers; // for now one hit per layer for sim
+  // XXMT4K OK ... what do we do with this guy? MaxTotHit / AvgTotHit ... ?
+  // For now setting it to nMaxTrkLayers which is too big ... but it seems to be
+  // only used for vector::reserve() ...
+  constexpr int nTotHit = Config::nMaxSimHits; // for now one hit per layer for sim
 
   // scattering simulation
   constexpr float X0 = 9.370; // cm, from http://pdg.lbl.gov/2014/AtomicNuclearProperties/HTML/silicon_Si.html // Pb = 0.5612 cm
@@ -149,7 +159,8 @@ namespace Config
   //const     float xr = std::sqrt(Config::beamspotX*Config::beamspotX + Config::beamspotY*Config::beamspotY); 
 
   // Config for seeding
-  extern    int   nlayers_per_seed;
+  extern    int   nlayers_per_seed;         // default: 3, cms sets from geom plugin
+  constexpr int   nlayers_per_seed_max = 4; // Needed for allocation of arrays on stack.
   constexpr float chi2seedcut  = 9.0;
   constexpr float lay01angdiff = 0.0634888; // analytically derived... depends on geometry of detector --> from mathematica ... d0 set to one sigma of getHypot(bsX,bsY)
   constexpr float lay02angdiff = 0.11537;
@@ -163,7 +174,8 @@ namespace Config
   extern bool findSeeds;
 
   // Config for propagation
-  constexpr int Niter = 5;
+  constexpr int Niter    =  5;
+  constexpr int NiterSim = 10; // Can make more steps due to near volume misses.
   constexpr bool useTrigApprox = true;
 
   // Config for Bfield
@@ -214,22 +226,32 @@ namespace Config
 
   //fixme: these should not be constant and modified when nTracks is set from reading a file
   constexpr int maxHitsConsidered = 25;
-  extern    int maxHitsPerBunch;
 
-  constexpr int maxCandsPerSeed   = 6; //default: 6; cmssw tests: 3; divisor of 32 for gpu
-  constexpr int maxHolesPerCand   = 2;
+  extern    int maxCandsPerSeed; // default: 6; cms: 6  (GC had 3)
+  extern    int maxHolesPerCand; // default: 2; cms  12 (should be reduced)
   extern    int maxCandsPerEtaBin;
 
+  // Selection of simtracks from CMSSW. Used in Event::clean_cms_simtracks() and MkBuilder::prep_cmsswtracks()
+  constexpr int   cmsSelMinLayers = 8;
+  constexpr float cmsSelMinPt     = 0.5;
+
   // config on validation
-  extern bool normal_val;
-  extern bool full_val;
+  constexpr int nMinFoundHits = 7;
+  constexpr float minCMSSWMatchChi2[6] = {100,100,50,50,30,20};
+  constexpr float minCMSSWMatchdPhi[6] = {0.2,0.2,0.1,0.05,0.01,0.005};
+  constexpr int   nCMSSWMatchHitsAfterSeed = 5;
+  extern bool root_val;
+  extern bool cmssw_val;
   extern bool fit_val;
+  extern bool inclusiveShorts;
+  extern bool applyCMSSWHitMatch;
 
-  // Effective eta bin is one half of nEtaPart -- so the above is twice the "average".
-  // Note that last and first bin are 3/4 nEtaPart ... but can be made 1/4 by adding
-  // additional bins on each end.
+  // config on seed cleaning
+  constexpr double maxDR_seedclean = 0.005;
+  constexpr int minNHits_seedclean = 4;
+  constexpr double track1GeVradius = 87.6; // = 1/(c*B)
 
-  // XXX std::min/max have constexpr versions in c++-14.
+  // Threading
   extern int    numThreadsFinder;
   extern int    numThreadsSimulation;
 
@@ -246,6 +268,8 @@ namespace Config
   
   extern bool   useCMSGeom;
   extern bool   readCmsswSeeds;
+  extern bool   cleanCmsswSeeds;
+  extern bool   readExtRecTracks;
 
   extern bool   endcapTest;
 

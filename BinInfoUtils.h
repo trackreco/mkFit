@@ -1,6 +1,9 @@
 #ifndef _bininfoutils_
 #define _bininfoutils_
 
+// XXXXMT4K This should all be removed ...
+// getCandHitIndices seems to be still used.
+
 // could #include "TMath.h", but then this is problematic for non root running.  This compiles and runs without tmath.h
 
 #include <cmath>

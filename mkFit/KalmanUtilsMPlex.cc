@@ -530,6 +530,8 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   // updateParametersContext ctx;
   //assert((long long)(&updateCtx.propErr.fArray[0]) % 64 == 0);
 
+  // debug = true;
+
   MPlexLS propErr;
   MPlexLV propPar;
   // do a full propagation step to correct for residual distance from the hit radius - need the charge for this
@@ -631,6 +633,7 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   MultResidualsAdd(K, propPar_ccs, res_loc, propPar_ccs);// propPar_ccs is now the updated parameters in CCS coordinates
 #endif
 
+  squashPhiMPlex(outPar,N_proc); // ensure phi is between |pi|
 
   KHMult(K, rotT00, rotT01, tempLL);
   KHC(tempLL, propErr, outErr);
@@ -863,6 +866,8 @@ void updateParametersEndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, co
   KalmanGain(propErr, resErr, K);
 
   MultResidualsAdd(K, propPar, res, outPar);
+
+  squashPhiMPlex(outPar,N_proc); // ensure phi is between |pi|
 
   KHC(K, propErr, outErr);
 
