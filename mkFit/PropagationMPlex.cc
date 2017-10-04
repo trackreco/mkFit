@@ -917,15 +917,15 @@ void helixAtZ(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
       dprint_np(n, std::endl << "outPar.At(n, 0, 0)=" << outPar.At(n, 0, 0) << " outPar.At(n, 1, 0)=" << outPar.At(n, 1, 0)
 		<< " pxin=" << pxin << " pyin=" << pyin);
 
-      errorProp(n,0,2) = cosP*sinT*(sinP*cosa*sin(cosP*sina) - cosa)/cosT;
-      errorProp(n,0,3) = cosP*sinT*deltaZ*cosa*( 1.f - sinP*sin(cosP*sina) )/(cosT*ipt) - k*(cosP*sina - sinP*(1.f-cos(cosP*sina)))/(ipt*ipt);
-      errorProp(n,0,4) = (k/ipt)*( -sinP*sina + sinP*sinP*sina*sin(cosP*sina) - cosP*(1.f - cos(cosP*sina) ) );
-      errorProp(n,0,5) = cosP*deltaZ*cosa*( 1.f - sinP*sin(cosP*sina) )/(cosT*cosT);
+      errorProp(n,0,2) = cosP*sinT*(sinP*cosa*std::sin(cosP*sina) - cosa)/cosT;
+      errorProp(n,0,3) = cosP*sinT*deltaZ*cosa*( 1.f - sinP*std::sin(cosP*sina) )/(cosT*ipt) - k*(cosP*sina - sinP*(1.f-std::cos(cosP*sina)))/(ipt*ipt);
+      errorProp(n,0,4) = (k/ipt)*( -sinP*sina + sinP*sinP*sina*std::sin(cosP*sina) - cosP*(1.f - std::cos(cosP*sina) ) );
+      errorProp(n,0,5) = cosP*deltaZ*cosa*( 1.f - sinP*std::sin(cosP*sina) )/(cosT*cosT);
 
-      errorProp(n,1,2) = cosa*sinT*(cosP*cosP*sin(cosP*sina) - sinP)/cosT;
-      errorProp(n,1,3) = sinT*deltaZ*cosa*( cosP*cosP*sin(cosP*sina) + sinP )/(cosT*ipt) - k*(sinP*sina + cosP*(1.f-cos(cosP*sina)))/(ipt*ipt);
-      errorProp(n,1,4) = (k/ipt)*( -sinP*(1.f - cos(cosP*sina)) - sinP*cosP*sina*sin(cosP*sina) + cosP*sina );
-      errorProp(n,1,5) = deltaZ*cosa*( cosP*cosP*sin(cosP*sina) + sinP )/(cosT*cosT);
+      errorProp(n,1,2) = cosa*sinT*(cosP*cosP*std::sin(cosP*sina) - sinP)/cosT;
+      errorProp(n,1,3) = sinT*deltaZ*cosa*( cosP*cosP*std::sin(cosP*sina) + sinP )/(cosT*ipt) - k*(sinP*sina + cosP*(1.f-std::cos(cosP*sina)))/(ipt*ipt);
+      errorProp(n,1,4) = (k/ipt)*( -sinP*(1.f - std::cos(cosP*sina)) - sinP*cosP*sina*std::sin(cosP*sina) + cosP*sina );
+      errorProp(n,1,5) = deltaZ*cosa*( cosP*cosP*std::sin(cosP*sina) + sinP )/(cosT*cosT);
 
       errorProp(n,4,2) = -ipt*sinT/(cosT*k);
       errorProp(n,4,3) = sinT*deltaZ/(cosT*k);

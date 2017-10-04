@@ -5,10 +5,15 @@
 #ifdef __MIC__
 long64 Timing::s_cpu_freq       = 1238094000 / 2;
 int    Timing::s_vec_unit_width = 16;
+#elif __AVX512F__
+//FIXME: this is specific to KNL 7210, need a flag-independent switch to set freq appropriately
+long64 Timing::s_cpu_freq       = 1311273000;//from cpuinfo (perf gives 1.265 GHz) 
+int    Timing::s_vec_unit_width = 16;
 #else
 long64 Timing::s_cpu_freq       = 2000003000;
 int    Timing::s_vec_unit_width = 8;
 #endif
+
 
 double Timing::ops_per_tick()
 {
