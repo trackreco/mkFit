@@ -1072,7 +1072,7 @@ void MkBuilder::PrepareSeeds()
       }
       create_seeds_from_sim_tracks();
     }
-    else 
+    else // Read in CMSSW seeds
     {
       m_event->relabel_bad_seedtracks();
 
@@ -1087,16 +1087,13 @@ void MkBuilder::PrepareSeeds()
       {
 	ns = m_event->clean_cms_seedtracks();
       }
+      else if (Config::pureCmsswSeeds)
+      {
+	ns = m_event->use_seeds_from_cmsswtracks();
+      }
       else
       {
-	if (Config::cmssw_val)
-	{
-	  ns = m_event->use_seeds_from_cmsswtracks();
-	}
-	else 
-	{
-	  ns = m_event->clean_cms_seedtracks_badlabel();
-	}
+	ns = m_event->clean_cms_seedtracks_badlabel();
       }
     }
 
@@ -1108,7 +1105,7 @@ void MkBuilder::PrepareSeeds()
 
     // For now, all simulated seeds need to have hit indices line up in LOH for seed fit
     map_seed_hits();
-  }
+  } // end block over not using seed finding algo
 
   fit_seeds();
 }

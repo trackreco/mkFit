@@ -583,13 +583,13 @@ void TTreeValidation::setTrackExtras(Event& ev)
     {
       const auto& track = buildtracks[itrack];
             auto& extra = buildextras[itrack];
-      if (Config::cleanCmsswSeeds)
+      if (Config::pureCmsswSeeds)
       {
-	extra.setCMSSWTrackIDInfo(track, layerhits, cmsswtracks, reducedCMSSW);
+	extra.setCMSSWTrackIDInfoByLabel(track, layerhits, cmsswtracks, reducedCMSSW[cmsswtracks[buildToCmsswMap_[track.label()]].label()]);	
       }
       else 
       {
-	extra.setCMSSWTrackIDInfoByLabel(track, layerhits, cmsswtracks, reducedCMSSW[cmsswtracks[buildToCmsswMap_[track.label()]].label()]);
+	extra.setCMSSWTrackIDInfo(track, layerhits, cmsswtracks, reducedCMSSW);
       }
     }
   }
