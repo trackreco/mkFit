@@ -646,19 +646,19 @@ int main(int argc, const char *argv[])
     }
     else if(*i == "--ext-rec-tracks")
     {
-      Config::readExtRecTracks = true;
+      Config::readExtRecTracks = true; Config::geomPlugin = "CMS-2017";
     }
     else if(*i == "--cmssw-seeds")
     {
-      Config::readCmsswSeeds = true;
+      Config::readCmsswSeeds = true; Config::geomPlugin = "CMS-2017";
     }
     else if(*i == "--clean-seeds")
     {
-      Config::readCmsswSeeds = true; Config::cleanCmsswSeeds = true; Config::pureCmsswSeeds = false;
+      Config::readCmsswSeeds = true; Config::cleanCmsswSeeds = true; Config::pureCmsswSeeds = false; Config::geomPlugin = "CMS-2017";
     }
     else if(*i == "--pure-seeds")
     {
-      Config::readCmsswSeeds = true; Config::cleanCmsswSeeds = false; Config::pureCmsswSeeds = true;
+      Config::readCmsswSeeds = true; Config::readExtRecTracks = true; Config::cleanCmsswSeeds = false; Config::pureCmsswSeeds = true; Config::geomPlugin = "CMS-2017";
     }
     else if(*i == "--find-seeds")
     {
@@ -687,7 +687,7 @@ int main(int argc, const char *argv[])
     }
     else if (*i == "--cmssw-val")
     {
-      Config::root_val = false; Config::cmssw_val = true; Config::fit_val = false;
+      Config::root_val = false; Config::cmssw_val = true; Config::fit_val = false; Config::readCmsswSeeds = true; Config::readExtRecTracks = true; Config::geomPlugin = "CMS-2017";
     }
     else if (*i == "--fit-val")
     {
