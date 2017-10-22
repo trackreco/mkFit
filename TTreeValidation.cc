@@ -549,8 +549,8 @@ void TTreeValidation::setTrackExtras(Event& ev)
     // store mcTrackID and seedID correctly
     storeSeedAndMCID(ev);
 
-    const auto& cmsswtracks = ev.extRecTracks_;
-          auto& cmsswextras = ev.extRecTracksExtra_;
+    const auto& cmsswtracks = ev.cmsswTracks_;
+          auto& cmsswextras = ev.cmsswTracksExtra_;
     const auto& buildtracks = ev.candidateTracks_;
           auto& buildextras = ev.candidateTracksExtra_;
 
@@ -640,7 +640,7 @@ void TTreeValidation::mapRefTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVe
       TrackVec tmpMatches;
       for (auto&& label : refTkMatches.second) // loop over vector of reco track labels, push back the track with each label 
       {
-	tmpMatches.push_back(evt_tracks[label]);
+	tmpMatches.emplace_back(evt_tracks[label]);
       }
       std::sort(tmpMatches.begin(), tmpMatches.end(), sortByHitsChi2); // sort the tracks
       for (auto itrack = 0; itrack < tmpMatches.size(); itrack++) // loop over sorted tracks, now make the vector of sorted labels match
@@ -685,7 +685,7 @@ void TTreeValidation::makeCMSSWTkToRecoTksMap(Event& ev)
 void TTreeValidation::makeSeedTkToCMSSWTkMap(Event& ev)
 {
   const auto& seedtracks  = ev.seedTracks_;
-  const auto& cmsswtracks = ev.extRecTracks_;
+  const auto& cmsswtracks = ev.cmsswTracks_;
   for (int itrack = 0; itrack < seedtracks.size(); itrack++)
   {
     for (auto&& cmsswtrack : cmsswtracks)
@@ -700,8 +700,8 @@ void TTreeValidation::storeSeedAndMCID(Event& ev)
   const auto& buildtracks = ev.candidateTracks_;
         auto& buildextras = ev.candidateTracksExtra_;
 
-  const auto& cmsswtracks = ev.extRecTracks_;
-        auto& cmsswextras = ev.extRecTracksExtra_;
+  const auto& cmsswtracks = ev.cmsswTracks_;
+        auto& cmsswextras = ev.cmsswTracksExtra_;
   
   int newlabel = -1;
   for (int itrack = 0; itrack < buildtracks.size(); itrack++)
@@ -853,8 +853,6 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
   auto& evt_layer_hits   = ev.layerHits_;
   const auto& evt_sim_trackstates = ev.simTrackStates_;
 
-  const bool useSimTSInfo = (evt_sim_trackstates.size() > 0);
-
   for (auto&& simtrack : evt_sim_tracks)
   {
     evtID_eff_ = ievt;
@@ -882,7 +880,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 
       // use this to access correct sim track layer params
       const int mcHitID = TTreeValidation::getLastFoundHit(seedtrack.getLastFoundMCHitID(evt_layer_hits),mcID_eff_,ev);
-      if (mcHitID >= 0 && useSimTSInfo)
+      if (mcHitID >= 0 && Config::readSimTrackStates)
       {
 	const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
 
@@ -967,7 +965,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 
       // use this to access correct sim track layer params
       const int mcHitID = TTreeValidation::getLastFoundHit(buildtrack.getLastFoundMCHitID(evt_layer_hits),mcID_eff_,ev);
-      if (mcHitID >= 0 && useSimTSInfo)
+      if (mcHitID >= 0 && Config::readSimTrackStates)
       {
 	const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
 
@@ -1051,7 +1049,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 
       // use this to access correct sim track layer params
       const int mcHitID = TTreeValidation::getLastFoundHit(fittrack.getLastFoundMCHitID(evt_layer_hits),mcID_eff_,ev);
-      if (mcHitID >= 0 && useSimTSInfo)
+      if (mcHitID >= 0 && Config::readSimTrackStates)
       {
 	const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
 
@@ -1144,8 +1142,6 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
   auto& evt_layer_hits   = ev.layerHits_;
   auto& evt_sim_trackstates = ev.simTrackStates_;
 
-  const bool useSimTSInfo = (evt_sim_trackstates.size() > 0);
-
   for (auto&& seedtrack : evt_seed_tracks)
   { 
     evtID_FR_       = ievt;
@@ -1218,7 +1214,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       auto& simtrack = evt_sim_tracks[mcID_seed_FR_];
 
       const int mcHitID = TTreeValidation::getLastFoundHit(seedtrack.getLastFoundMCHitID(evt_layer_hits),mcID_seed_FR_,ev);
-      if (mcHitID >= 0 && useSimTSInfo)
+      if (mcHitID >= 0 && Config::readSimTrackStates)
       {
 	const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
 	pt_mc_seed_FR_  = initLayTS.pT();
@@ -1329,7 +1325,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	auto& simtrack = evt_sim_tracks[mcID_build_FR_];
 
 	const int mcHitID = TTreeValidation::getLastFoundHit(buildtrack.getLastFoundMCHitID(evt_layer_hits),mcID_build_FR_,ev);
-	if (mcHitID >= 0 && useSimTSInfo)
+	if (mcHitID >= 0 && Config::readSimTrackStates)
         {
 	  const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
 	  pt_mc_build_FR_  = initLayTS.pT();
@@ -1478,7 +1474,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	auto& simtrack = evt_sim_tracks[mcID_fit_FR_];
       
 	const int mcHitID = TTreeValidation::getLastFoundHit(fittrack.getLastFoundMCHitID(evt_layer_hits),mcID_fit_FR_,ev); // only works for outward fit for now
-	if (mcHitID >= 0 && useSimTSInfo)
+	if (mcHitID >= 0 && Config::readSimTrackStates)
         {
 	  const TrackState & initLayTS = evt_sim_trackstates[mcHitID];
 	  pt_mc_fit_FR_  = initLayTS.pT();
@@ -1615,8 +1611,8 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
   std::lock_guard<std::mutex> locker(glock_);
 
   auto ievt = ev.evtID();
-  auto& evt_cmssw_tracks = ev.extRecTracks_;
-  auto& evt_cmssw_extras = ev.extRecTracksExtra_;
+  auto& evt_cmssw_tracks = ev.cmsswTracks_;
+  auto& evt_cmssw_extras = ev.cmsswTracksExtra_;
   auto& evt_build_tracks = ev.candidateTracks_;
   auto& evt_build_extras = ev.candidateTracksExtra_;
   auto& evt_layer_hits   = ev.layerHits_;
@@ -1725,8 +1721,8 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
   std::lock_guard<std::mutex> locker(glock_);
 
   auto ievt = ev.evtID();
-  auto& evt_cmssw_tracks = ev.extRecTracks_;
-  auto& evt_cmssw_extras = ev.extRecTracksExtra_;
+  auto& evt_cmssw_tracks = ev.cmsswTracks_;
+  auto& evt_cmssw_extras = ev.cmsswTracksExtra_;
   auto& evt_build_tracks = ev.candidateTracks_;
   auto& evt_build_extras = ev.candidateTracksExtra_;
   auto& evt_layer_hits   = ev.layerHits_;

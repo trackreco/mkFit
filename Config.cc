@@ -47,9 +47,8 @@ namespace Config
 
   bool  useCMSGeom = false;
   bool  readCmsswSeeds = false;
-  bool  cleanCmsswSeeds = false;
-  bool  pureCmsswSeeds = false;
-  bool  readExtRecTracks = false;
+  cleanOpts seedCleaning = noCleaning; 
+  bool  readCmsswTracks = false;
 
   bool  findSeeds  = false;
   bool  endcapTest = false;
@@ -62,6 +61,7 @@ namespace Config
   bool  root_val  = false;
   bool  cmssw_val = false;
   bool  fit_val   = false;
+  bool  readSimTrackStates = false;
   bool  inclusiveShorts = false;
   bool  applyCMSSWHitMatch = false;
 

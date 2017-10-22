@@ -529,15 +529,17 @@ int main(int argc, const char *argv[])
         "  --build-ce               run clone engine combinatorial building test (def: false)\n"
         "  --seeds-per-task         number of seeds to process in a tbb task (def: %d)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
-        "  --ext-rec-tracks         read external rec trakcs if available (def: %s)\n"
-        "  --cmssw-seeds            take seeds from CMSSW (def: %s)\n"
-        "  --clean-seeds            use N^2 seed cleaning on CMSSW seeds (def: %s)\n"
-        "  --pure-seeds             use only CMSSW seeds which produce a CMSSW track (def: %s)\n"
+        "  --read-cmssw-tracks      read external cmssw reco trakcs if available (def: %s)\n"
+        "  --read-cmssw-seeds       read seeds from CMSSW (def: %s)\n"
+        "  --clean-seeds-n2         use N^2 seed cleaning on CMSSW seeds (def: %s)\n"
+        "  --clean-seeds-pure       use only CMSSW seeds which produce a CMSSW track (def: %s)\n"
+        "  --clean-seeds-badlabel   use only CMSSW seeds with seed label >= 0 (def: %s)\n"
         "  --find-seeds             run road search seeding [CF enabled by default] (def: %s)\n"
         "  --hits-per-task <num>    number of layer1 hits per task in finding seeds (def: %i)\n"
         "  --endcap-test            test endcap tracking (def: %s)\n"
         "  --cf-seeding             enable CF in seeding (def: %s)\n"
         "  --cf-fitting             enable CF in fitting (def: %s)\n"
+	"  --read-simtrack-states   read in simTrackStates for pulls in validation (def: %s)\n"
         "  --root-val               enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
         "  --cmssw-val              enable special CMSSW ROOT based validation for building [eff] (def: %s)\n"
       	"  --fit-val                enable ROOT based validation for fitting (def: %s)\n"
@@ -561,15 +563,17 @@ int main(int argc, const char *argv[])
         Config::chi2Cut,
         Config::numSeedsPerTask,
         Config::finderReportBestOutOfN,
-	b2a(Config::readExtRecTracks),
+	b2a(Config::readCmsswTracks),
         b2a(Config::readCmsswSeeds),
-        b2a(Config::cleanCmsswSeeds),
-        b2a(Config::pureCmsswSeeds),
+        b2a(Config::seedCleaning == cleanSeedsN2),
+        b2a(Config::seedCleaning == cleanSeedsPure),
+        b2a(Config::seedCleaning == cleanSeedsBadLabel),
         b2a(Config::findSeeds),
       	Config::numHitsPerTask,
         b2a(Config::endcapTest),
         b2a(Config::cf_seeding),
         b2a(Config::cf_fitting),
+        b2a(Config::readSimTrackStates),
         b2a(Config::root_val),
         b2a(Config::cmssw_val),
         b2a(Config::fit_val),
@@ -644,21 +648,25 @@ int main(int argc, const char *argv[])
       next_arg_or_die(mArgs, i);
       Config::finderReportBestOutOfN = atoi(i->c_str());
     }
-    else if(*i == "--ext-rec-tracks")
+    else if(*i == "--read-cmssw-tracks")
     {
-      Config::readExtRecTracks = true; Config::geomPlugin = "CMS-2017";
+      Config::readCmsswTracks = true;
     }
-    else if(*i == "--cmssw-seeds")
+    else if(*i == "--read-cmssw-seeds")
     {
-      Config::readCmsswSeeds = true; Config::geomPlugin = "CMS-2017";
+      Config::readCmsswSeeds = true; 
     }
-    else if(*i == "--clean-seeds")
+    else if(*i == "--cmssw-seeds-n2")
     {
-      Config::readCmsswSeeds = true; Config::cleanCmsswSeeds = true; Config::pureCmsswSeeds = false; Config::geomPlugin = "CMS-2017";
+      Config::seedCleaning = cleanSeedsN2;
     }
-    else if(*i == "--pure-seeds")
+    else if(*i == "--clean-seeds-pure")
     {
-      Config::readCmsswSeeds = true; Config::readExtRecTracks = true; Config::cleanCmsswSeeds = false; Config::pureCmsswSeeds = true; Config::geomPlugin = "CMS-2017";
+      Config::seedCleaning = cleanSeedsPure;
+    }
+    else if(*i == "--clean-seeds-badlabel")
+    {
+      Config::seedCleaning = cleanSeedsBadLabel;
     }
     else if(*i == "--find-seeds")
     {
@@ -681,17 +689,21 @@ int main(int argc, const char *argv[])
     {
       Config::cf_fitting = true;
     }
+    else if (*i == "--read-simtrack-states")
+    {
+      Config::readSimTrackStates = true;
+    }
     else if (*i == "--root-val")
     {
-      Config::root_val = true; Config::cmssw_val = false; Config::fit_val = false;
+      Config::root_val = true; 
     }
     else if (*i == "--cmssw-val")
     {
-      Config::root_val = false; Config::cmssw_val = true; Config::fit_val = false; Config::readCmsswSeeds = true; Config::readExtRecTracks = true; Config::geomPlugin = "CMS-2017";
+      Config::cmssw_val = true; 
     }
     else if (*i == "--fit-val")
     {
-      Config::root_val = false; Config::cmssw_val = false; Config::fit_val = true;
+      Config::fit_val = true;
     }
     else if (*i == "--inc-shorts")
     {
