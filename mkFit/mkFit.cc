@@ -110,8 +110,8 @@ namespace
   bool  g_seed_based    = false;
 
   std::string g_operation = "simulate_and_process";;
-  std::string g_file_name = "simtracks.bin";
   std::string g_input_file = "";
+  std::string g_output_file = "";
 
   const char* b2a(bool b) { return b ? "true" : "false"; }
 }
@@ -124,7 +124,7 @@ void read_and_save_tracks()
   const int Nevents = in.OpenRead(g_input_file, true);
 
   DataFile out;
-  out.OpenWrite(g_file_name, Nevents);
+  out.OpenWrite(g_output_file, Nevents);
 
   printf("writing %i events\n", Nevents);
 
@@ -157,7 +157,7 @@ void generate_and_save_tracks()
   }
 
   DataFile data_file;
-  data_file.OpenWrite(g_file_name, Nevents, extra_sections);
+  data_file.OpenWrite(g_output_file, Nevents, extra_sections);
 
   printf("writing %i events\n", Nevents);
 
@@ -223,7 +223,7 @@ void test_standard()
   DataFile data_file;
   if (g_operation == "read")
   {
-    int evs_in_file   = data_file.OpenRead(g_file_name);
+    int evs_in_file   = data_file.OpenRead(g_input_file);
     int evs_available = evs_in_file - g_start_event + 1;
     if (Config::nEvents == -1)
     {
@@ -314,7 +314,7 @@ void test_standard()
     mkbs[i].reset(MkBuilder::make_builder());
     evs[i].reset(new Event(geom, *vals[i], 0));
     if (g_operation == "read") {
-      fps.emplace_back(fopen(g_file_name.c_str(), "r"), [](FILE* fp) { if (fp) fclose(fp); });
+      fps.emplace_back(fopen(g_input_file.c_str(), "r"), [](FILE* fp) { if (fp) fclose(fp); });
     }
 #if USE_CUDA
     constexpr int gplex_width = 10000;
@@ -546,11 +546,9 @@ int main(int argc, const char *argv[])
         "  --inc-shorts             include short reco tracks into FR (def: %s)\n"
         "  --hit-match              apply hit matching criteria for CMSSW reco track matching (def: %s)\n"
         "  --silent                 suppress printouts inside event loop (def: %s)\n"
-        "  --write                  write simulation to file and exit\n"
-        "  --read                   read simulation from file\n"
         "  --start-event   <num>    event number to start at when reading from a file (def: %d)\n"
-        "  --file-name              file name for write/read (def: %s)\n"
-        "  --input-file             file name for reading when converting formats (def: %s)\n"
+        "  --input-file             file name for reading (def: %s)\n"
+        "  --output-file            file name for writitng (def: %s)\n"
         "GPU specific options: \n"
         "  --num-thr-reorg <num>    number of threads to run the hits reorganization (def: %d)\n"
         "  --seed-based             For CE. Switch to 1 CUDA thread per seed\n"
@@ -581,8 +579,8 @@ int main(int argc, const char *argv[])
 	b2a(Config::applyCMSSWHitMatch),
         b2a(Config::silent),
         g_start_event,
-      	g_file_name.c_str(),
       	g_input_file.c_str(),
+      	g_output_file.c_str(),
 	Config::numThreadsReorg
       );
       exit(0);
@@ -723,30 +721,23 @@ int main(int argc, const char *argv[])
       next_arg_or_die(mArgs, i);
       Config::numThreadsReorg = atoi(i->c_str());
     }
-    else if(*i == "--write")
-    {
-      g_operation = "write";
-    }
-    else if(*i == "--read")
-    {
-      g_operation = "read";
-      Config::nEvents = -1;
-    }
     else if (*i == "--start-event")
     {
       next_arg_or_die(mArgs, i);
       g_start_event = atoi(i->c_str());
     }
-    else if(*i == "--file-name")
-    {
-      next_arg_or_die(mArgs, i);
-      g_file_name = *i;
-    }
     else if(*i == "--input-file")
     {
       next_arg_or_die(mArgs, i);
-      g_operation = "convert";
       g_input_file = *i;
+      g_operation = "read";
+      Config::nEvents = -1;
+    }
+    else if(*i == "--output-file")
+    {
+      next_arg_or_die(mArgs, i);
+      g_output_file = *i;
+      g_operation = "write";
     }
     else if(*i == "--silent")
     {
@@ -763,6 +754,11 @@ int main(int argc, const char *argv[])
     }
 
     mArgs.erase(start, ++i);
+  }
+
+  if (g_input_file != "" && g_output_file != "")
+  {
+    g_operation = "convert";
   }
 
   Config::RecalculateDependentConstants();
