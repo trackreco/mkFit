@@ -513,7 +513,7 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
   if (data_file.HasSeeds()) {
     int ns;
     fread(&ns, sizeof(int), 1, fp);
-    if (Config::readCmsswSeeds)
+    if (Config::seedInput == cmsswSeeds)
     {
       seedTracks_.resize(ns);
       for (int i = 0; i < ns; ++i)
@@ -889,7 +889,7 @@ int DataFile::OpenRead(const std::string& fname, bool set_n_layers)
     printf("\n");
   }
 
-  if (Config::readCmsswSeeds && ! HasSeeds()) {
+  if (Config::seedInput == cmsswSeeds && ! HasSeeds()) {
     fprintf(stderr, "Reading of CmsswSeeds requested but data not available on file.\n");
     exit(1);
   }

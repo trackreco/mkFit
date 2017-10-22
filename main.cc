@@ -155,8 +155,7 @@ int main(int argc, const char* argv[])
 	"  --cf-seeding             bool to enable CF in MC seeding (def: %s)\n"
 	"  --read                   read input simtracks file (def: false)\n"
 	"  --file-name              file name for write/read (def: %s)\n"
-	"  --cmssw-seeds            take seeds from CMSSW (def: %i)\n"
-	"  --endcap-test            test endcap tracking (def: %i)\n"
+	"  --cmssw-seeds            take seeds from CMSSW (def: %s)\n"
         ,
         argv[0],
         Config::nEvents,
@@ -166,8 +165,7 @@ int main(int argc, const char* argv[])
       	(Config::inclusiveShorts ? "true" : "false"),
 	(Config::cf_seeding ? "true" : "false"),
 	s_file_name.c_str(),
-	Config::readCmsswSeeds,
-	Config::endcapTest
+	(Config::seedInput == cmsswSeeds ? "true" : "false")
       );
       exit(0);
     }
@@ -209,7 +207,7 @@ int main(int argc, const char* argv[])
     }
     else if(*i == "--cmssw-seeds")
     {
-      Config::readCmsswSeeds = true;
+      Config::seedInput == cmsswSeeds;
     }
     else if (*i == "--endcap-test")
     {

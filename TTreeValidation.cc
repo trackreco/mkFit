@@ -530,7 +530,7 @@ void TTreeValidation::setTrackExtras(Event& ev)
     {
       const auto& track = buildtracks[itrack];
             auto& extra = buildextras[itrack];
-      if (Config::readCmsswSeeds || Config::findSeeds) {extra.setMCTrackIDInfo(track, layerhits, simhits, simtracks, false);}
+      if (Config::seedInput == cmsswSeeds || Config::seedInput == findSeeds) {extra.setMCTrackIDInfo(track, layerhits, simhits, simtracks, false);}
       else {extra.setMCTrackIDInfoByLabel(track, layerhits, simhits, simtracks);}
     }
   
@@ -539,7 +539,7 @@ void TTreeValidation::setTrackExtras(Event& ev)
     {
       const auto& track = fittracks[itrack];
             auto& extra = fitextras[itrack];
-      if (Config::readCmsswSeeds || Config::findSeeds) {extra.setMCTrackIDInfo(track, layerhits, simhits, simtracks, false);}
+      if (Config::seedInput == cmsswSeeds || Config::seedInput == findSeeds) {extra.setMCTrackIDInfo(track, layerhits, simhits, simtracks, false);}
       else {extra.setMCTrackIDInfoByLabel(track, layerhits, simhits, simtracks);}
     }
   }

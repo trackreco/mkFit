@@ -45,13 +45,11 @@ namespace Config
 
   float chi2Cut = 15.;
 
-  bool  useCMSGeom = false;
-  bool  readCmsswSeeds = false;
+  seedOpts  seedInput    = simSeeds;
   cleanOpts seedCleaning = noCleaning; 
-  bool  readCmsswTracks = false;
 
-  bool  findSeeds  = false;
-  bool  endcapTest = false;
+  bool  useCMSGeom = false;
+  bool  readCmsswTracks = false;
 
   bool  silent     = false;
 

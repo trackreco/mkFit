@@ -113,7 +113,62 @@ namespace
   std::string g_input_file = "";
   std::string g_output_file = "";
 
+  seedOptsMap g_seed_opts;
+  void init_seed_opts()
+  {
+    g_seed_opts["sim"]   = simSeeds;
+    g_seed_opts["cmssw"] = cmsswSeeds;
+    g_seed_opts["find"]  = findSeeds;
+  }
+
+  cleanOptsMap g_clean_opts;
+  void init_clean_opts()
+  {
+    g_clean_opts["none"]     = noCleaning;
+    g_clean_opts["n2"]       = cleanSeedsN2;
+    g_clean_opts["pure"]     = cleanSeedsPure;
+    g_clean_opts["badlabel"] = cleanSeedsBadLabel;
+  }
+
   const char* b2a(bool b) { return b ? "true" : "false"; }
+}
+
+//==============================================================================
+
+std::string getSeedInput()
+{
+  for (const auto & seed_opt : g_seed_opts)
+  {
+    if (seed_opt.second == Config::seedInput) return seed_opt.first;
+  }
+}
+
+void setSeedInput(const std::string & opt)
+{
+  if (g_seed_opts.count(opt)) Config::seedInput = g_seed_opts[opt];
+  else 
+  {
+    std::cerr << opt.c_str() << " is not a valid seed input option!! Exiting..." << std::endl;
+    exit(1);
+  }
+}
+
+std::string getSeedCleaning()
+{
+  for (const auto & clean_opt : g_clean_opts)
+  {
+    if (clean_opt.second == Config::seedCleaning) return clean_opt.first;
+  }
+}
+
+void setSeedCleaning(const std::string & opt)
+{
+  if (g_clean_opts.count(opt)) Config::seedCleaning = g_clean_opts[opt];
+  else 
+  {
+    std::cerr << opt.c_str() << " is not a valid seed input option!! Exiting..." << std::endl;
+    exit(1);
+  }
 }
 
 //==============================================================================
@@ -203,9 +258,8 @@ void test_standard()
   printf("  sizeof(Track)=%zu, sizeof(Hit)=%zu, sizeof(SVector3)=%zu, sizeof(SMatrixSym33)=%zu, sizeof(MCHitInfo)=%zu\n",
          sizeof(Track), sizeof(Hit), sizeof(SVector3), sizeof(SMatrixSym33), sizeof(MCHitInfo));
 
-  if (Config::useCMSGeom)     printf ("- using CMS-like geometry\n");
-  if (Config::readCmsswSeeds) printf ("- reading seeds from file\n");
-  if (Config::endcapTest)     printf ("- endcap test enabled (to be nixed)\n");
+  if (Config::useCMSGeom)              printf ("- using CMS-like geometry\n");
+  if (Config::seedInput == cmsswSeeds) printf ("- reading seeds from file\n");
 
   if (g_operation == "write") {
     generate_and_save_tracks();
@@ -499,6 +553,9 @@ int main(int argc, const char *argv[])
 
   assert (sizeof(Track::Status) == 4 && "To make sure this is true for icc and gcc<6 when mixing bools/ints in bitfields.");
 
+  init_seed_opts();
+  init_clean_opts();
+
   lStr_t mArgs;
   for (int i = 1; i < argc; ++i)
   {
@@ -528,17 +585,13 @@ int main(int argc, const char *argv[])
         "  --build-std              run standard combinatorial building test (def: false)\n"
         "  --build-ce               run clone engine combinatorial building test (def: false)\n"
         "  --seeds-per-task         number of seeds to process in a tbb task (def: %d)\n"
-        "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
-        "  --read-cmssw-tracks      read external cmssw reco trakcs if available (def: %s)\n"
-        "  --read-cmssw-seeds       read seeds from CMSSW (def: %s)\n"
-        "  --clean-seeds-n2         use N^2 seed cleaning on CMSSW seeds (def: %s)\n"
-        "  --clean-seeds-pure       use only CMSSW seeds which produce a CMSSW track (def: %s)\n"
-        "  --clean-seeds-badlabel   use only CMSSW seeds with seed label >= 0 (def: %s)\n"
-        "  --find-seeds             run road search seeding [CF enabled by default] (def: %s)\n"
         "  --hits-per-task <num>    number of layer1 hits per task in finding seeds (def: %i)\n"
-        "  --endcap-test            test endcap tracking (def: %s)\n"
+        "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
+        "  --seed-input    <str>    which seed collecion used for building (def: %s)\n"
+        "  --seed-cleaning <str>    which seed cleaning to apply if using cmssw seeds (def: %s)\n" 
         "  --cf-seeding             enable CF in seeding (def: %s)\n"
         "  --cf-fitting             enable CF in fitting (def: %s)\n"
+        "  --read-cmssw-tracks      read external cmssw reco tracks if available (def: %s)\n"
 	"  --read-simtrack-states   read in simTrackStates for pulls in validation (def: %s)\n"
         "  --root-val               enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
         "  --cmssw-val              enable special CMSSW ROOT based validation for building [eff] (def: %s)\n"
@@ -560,17 +613,13 @@ int main(int argc, const char *argv[])
         Config::numThreadsSimulation, Config::numThreadsFinder, Config::numThreadsEvents,
         Config::chi2Cut,
         Config::numSeedsPerTask,
+	Config::numHitsPerTask,
         Config::finderReportBestOutOfN,
-	b2a(Config::readCmsswTracks),
-        b2a(Config::readCmsswSeeds),
-        b2a(Config::seedCleaning == cleanSeedsN2),
-        b2a(Config::seedCleaning == cleanSeedsPure),
-        b2a(Config::seedCleaning == cleanSeedsBadLabel),
-        b2a(Config::findSeeds),
-      	Config::numHitsPerTask,
-        b2a(Config::endcapTest),
+	getSeedInput().c_str(),
+	getSeedCleaning().c_str(),
         b2a(Config::cf_seeding),
         b2a(Config::cf_fitting),
+	b2a(Config::readCmsswTracks),
         b2a(Config::readSimTrackStates),
         b2a(Config::root_val),
         b2a(Config::cmssw_val),
@@ -641,39 +690,25 @@ int main(int argc, const char *argv[])
       next_arg_or_die(mArgs, i);
       Config::numSeedsPerTask = atoi(i->c_str());
     }
+    else if (*i == "--hits-per-task")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::numHitsPerTask = atoi(i->c_str());
+    }
     else if(*i == "--best-out-of")
     {
       next_arg_or_die(mArgs, i);
       Config::finderReportBestOutOfN = atoi(i->c_str());
     }
-    else if(*i == "--read-cmssw-tracks")
-    {
-      Config::readCmsswTracks = true;
-    }
-    else if(*i == "--read-cmssw-seeds")
-    {
-      Config::readCmsswSeeds = true; 
-    }
-    else if(*i == "--cmssw-seeds-n2")
-    {
-      Config::seedCleaning = cleanSeedsN2;
-    }
-    else if(*i == "--clean-seeds-pure")
-    {
-      Config::seedCleaning = cleanSeedsPure;
-    }
-    else if(*i == "--clean-seeds-badlabel")
-    {
-      Config::seedCleaning = cleanSeedsBadLabel;
-    }
-    else if(*i == "--find-seeds")
-    {
-      Config::findSeeds = true; Config::cf_seeding = true;
-    }
-    else if (*i == "--hits-per-task")
+    else if(*i == "--seed-input")
     {
       next_arg_or_die(mArgs, i);
-      Config::numHitsPerTask = atoi(i->c_str());
+      setSeedInput(*i);
+    }
+    else if(*i == "--seed-cleaning")
+    {
+      next_arg_or_die(mArgs, i);
+      setSeedCleaning(*i);
     }
     else if(*i == "--endcap-test")
     {
@@ -686,6 +721,10 @@ int main(int argc, const char *argv[])
     else if (*i == "--cf-fitting")
     {
       Config::cf_fitting = true;
+    }
+    else if(*i == "--read-cmssw-tracks")
+    {
+      Config::readCmsswTracks = true;
     }
     else if (*i == "--read-simtrack-states")
     {

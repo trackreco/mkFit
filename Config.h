@@ -7,6 +7,7 @@ class TrackerInfo;
 #include <algorithm>
 #include <cmath>
 #include <string> // won't compile on clang gcc for mac OS w/o this!
+#include <map>
 
 //#define PRINTOUTS_FOR_PLOTS
 #define CCSCOORD
@@ -17,8 +18,13 @@ class TrackerInfo;
   #define CUDA_CALLABLE 
 #endif
 
+// Enum for input seed options
+enum seedOpts {simSeeds, cmsswSeeds, findSeeds};
+typedef std::map<std::string,seedOpts> seedOptsMap;
+
 // Enum for seed cleaning options
 enum cleanOpts {noCleaning, cleanSeedsN2, cleanSeedsPure, cleanSeedsBadLabel};
+typedef std::map<std::string,cleanOpts> cleanOptsMap;
 
 namespace Config
 {
@@ -174,7 +180,6 @@ namespace Config
   constexpr float seed_z1cut   = hitposerrZ * 3.6f; // 3.6 mm --> to match efficiency from chi2cut
   constexpr float seed_d0cut   = 0.5f; // 5mm
   extern bool cf_seeding;
-  extern bool findSeeds;
 
   // Config for propagation
   constexpr int Niter    =  5;
@@ -269,10 +274,12 @@ namespace Config
 
   // number of layer1 hits for finding seeds per task
   extern int    numHitsPerTask;
+
+  // seed options
+  extern seedOpts  seedInput;
+  extern cleanOpts seedCleaning;
   
   extern bool   useCMSGeom;
-  extern bool   readCmsswSeeds;
-  extern cleanOpts seedCleaning;
   extern bool   readCmsswTracks;
 
   extern bool   endcapTest;

@@ -132,8 +132,8 @@ double runBuildingTestPlexBestHitGPU(Event& ev, MkBuilder& builder,
 {
   builder.begin_event(&ev, 0, __func__);
 
-  if   (Config::findSeeds) {builder.find_seeds();}
-  else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
+  if   (Config::seedInput == findSeeds) {builder.find_seeds();}
+  else                                  {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
 
   builder.fit_seeds();
 
@@ -267,8 +267,8 @@ double runBuildingTestPlexCloneEngineGPU(Event& ev, EventTmp& ev_tmp,
 
   builder.begin_event(&ev, &ev_tmp, __func__);
 
-  if   (Config::findSeeds) {builder.find_seeds();}
-  else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
+  if   (Config::seedInput == findSeeds) {builder.find_seeds();}
+  else                                  {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
 
   builder.fit_seeds();
 
@@ -327,8 +327,8 @@ double runAllBuildingTestPlexBestHitGPU(std::vector<Event> &events)
 
     builder.begin_event(&ev, 0, __func__);
 
-    if   (Config::findSeeds) {builder.find_seeds();}
-    else                     {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
+    if   (Config::seedInput == findSeeds) {builder.find_seeds();}
+    else                                  {builder.map_seed_hits();} // all other simulated seeds need to have hit indices line up in LOH for seed fit
 
     builder.fit_seeds();
 
