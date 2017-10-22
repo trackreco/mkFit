@@ -386,17 +386,6 @@ void helixAtRFromIterativeCCS(const MPlexLV& inPar, const MPlexQI& inChg, MPlexL
   helixAtRFromIterativeCCS_impl(inPar, inChg, outPar, msRad, errorProp, 0, NN, N_proc, useParamBfield);
 }
 
-
-void helixAtRFromIterative(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
-                           const MPlexQF &msRad, MPlexLL& errorProp,
-                           const int      N_proc, const bool useParamBfield)
-{
-  errorProp.SetVal(0.f);
-
-  helixAtRFromIterative_impl(inPar, inChg, outPar, msRad, errorProp, 0, NN, N_proc, useParamBfield);
-}
-
-
 void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
                                 MPlexLS &outErr,       MPlexLV& outPar,
                          const int      N_proc)
@@ -404,8 +393,6 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
 #pragma simd
   for (int n = 0; n < NN; ++n)
     {
-#ifdef CCSCOORD
-
       float radL = hitsRl.ConstAt(n,0,0);
       if (radL<0.0000000000001f) continue;//ugly, please fixme
       const float theta = outPar.ConstAt(n,0,5);
@@ -441,71 +428,6 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
       outPar.At(n, 0, 3) = p/((p+dP)*pt);
       //assume 100% uncertainty
       outErr.At(n, 3, 3) += dP*dP/(p2*pt*pt);
-#else
-      float radL = hitsRl.ConstAt(n,0,0);
-      if (radL<0.0000000000001f) continue;//ugly, please fixme
-      const float x = outPar.ConstAt(n,0,0);
-      const float y = outPar.ConstAt(n,0,1);
-      const float px = outPar.ConstAt(n,0,3);
-      const float py = outPar.ConstAt(n,0,4);
-      const float pz = outPar.ConstAt(n,0,5);
-      const float r = std::sqrt(x*x+y*y);
-      float pt = px*px + py*py;
-      float p2 = pt + pz*pz;
-      pt = std::sqrt(pt);
-      const float p = std::sqrt(p2);
-      constexpr float mpi = 0.140f; // m=140 MeV, pion
-      constexpr float mpi2 = mpi*mpi; // m=140 MeV, pion
-      const float beta2 = p2/(p2+mpi2);
-      const float beta = std::sqrt(beta2);
-      //radiation lenght, corrected for the crossing angle (cos alpha from dot product of radius vector and momentum)
-      const float invCos = (p*r)/std::abs(x*px+y*py);
-      radL = radL * invCos; //fixme works only for barrel geom
-      // multiple scattering
-      // in a reference frame defined by the orthogonal unit vectors: u=(px/p,py/p,pz/p) v=(-py/pt,px/pt,0) s=(-pzpx/pt/p,-pzpy/pt/p,pt/p)
-      // we consider two planar angles theta1 and theta2 in the uv and us planes respectively
-      // note theta1 and theta2 are different angles but with the same rms value thetaMSC
-      // first order approximation: sin_thetaMSC ~ thetaMSC
-      // px' = px + (py*p*theta1 + pz*px*theta2)/pt; 
-      // py' = py - (px*p*theta1 - pz*py*theta2)/pt;
-      // pz' = pz + pt*theta2;
-      // this actually changes |p| so that p'^2 = p^2(1+2thetaMSC^2) so we should renormalize everything but we neglect this effect here (we are just inflating uncertainties a bit)
-      const float thetaMSC = 0.0136f*std::sqrt(radL)*(1.f+0.038f*std::log(radL))/(beta*p);// eq 32.15
-      const float thetaMSC2 = thetaMSC*thetaMSC;
-      const float thetaMSC2overPt2 = thetaMSC2/(pt*pt);
-      outErr.At(n, 3, 3) += (py*py*p*p + pz*pz*px*px)*thetaMSC2overPt2;
-      outErr.At(n, 4, 4) += (px*px*p*p + pz*pz*py*py)*thetaMSC2overPt2;
-      outErr.At(n, 5, 5) += pt*pt*thetaMSC2;
-      outErr.At(n, 3, 4) += -px*py*thetaMSC2;
-      outErr.At(n, 3, 5) += -pz*px*thetaMSC2;
-      outErr.At(n, 4, 5) += -pz*py*thetaMSC2;
-      // std::cout << "beta=" << beta << " p=" << p << std::endl;
-      // std::cout << "multiple scattering thetaMSC=" << thetaMSC << " thetaMSC2=" << thetaMSC2 << " radL=" << radL << " cxx=" << (py*py*p*p + pz*pz*px*px)*thetaMSC2overPt2 << " cyy=" << (px*px*p*p + pz*pz*py*py)*thetaMSC2overPt2 << " czz=" << pt*pt*thetaMSC2 << std::endl;
-      // energy loss
-      const float gamma = 1.f/std::sqrt(1.f - beta2);
-      const float gamma2 = gamma*gamma;
-      constexpr float me = 0.0005; // m=0.5 MeV, electron
-      const float wmax = 2.f*me*beta2*gamma2 / ( 1.f + 2.f*gamma*me/mpi + me*me/(mpi*mpi) );
-      constexpr float I = 16.0e-9f * 10.75f;
-      const float deltahalf = std::log(28.816e-9f * std::sqrt(2.33f*0.498f)/I) + std::log(beta*gamma) - 0.5f;
-      const float dEdx = 2.f*(hitsXi.ConstAt(n,0,0) * invCos * (0.5f*std::log(2*me*beta2*gamma2*wmax/(I*I)) - beta2 - deltahalf) / beta2) ;
-      //dEdx = dEdx*2.f;//xi in cmssw is defined with an extra factor 0.5 with respect to formula 27.1 in pdg
-      // std::cout << "dEdx=" << dEdx << " delta=" << deltahalf << std::endl;
-      float dP = dEdx/beta;
-      outPar.At(n, 0, 3) -= dP*px/p;
-      outPar.At(n, 0, 4) -= dP*py/p;
-      outPar.At(n, 0, 5) -= dP*pz/p;
-      //assume 100% uncertainty
-      dP = dP*dP;//warning, redefining dP!
-      p2 = 1.f/p2;//warning, redefining p2!
-      outErr.At(n, 3, 3) += dP*px*px*p2;//dP^2*px*px/p^2
-      outErr.At(n, 4, 4) += dP*py*py*p2;
-      outErr.At(n, 5, 5) += dP*pz*pz*p2;
-      p2 = p2/p;//warning, redefining p2!
-      outErr.At(n, 3, 4) += dP*px*py*p2;//dP^2*px*py/p^3
-      outErr.At(n, 3, 5) += dP*px*pz*p2;
-      outErr.At(n, 4, 5) += dP*pz*py*p2;
-#endif
     }
 
 }
@@ -526,11 +448,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
      msRad.At(n, 0, 0) = hipo(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
    }
 
-#ifdef CCSCOORD
    helixAtRFromIterativeCCS(inPar, inChg, outPar, msRad, errorProp, N_proc, useParamBfield);
-#else
-   helixAtRFromIterative(inPar, inChg, outPar, msRad, errorProp, N_proc, useParamBfield);
-#endif
 
 #ifdef DEBUG
    {
@@ -614,11 +532,7 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
      msRad.At(n, 0, 0) = r;
    }
 
-#ifdef CCSCOORD
    helixAtRFromIterativeCCS(inPar, inChg, outPar, msRad, errorProp, N_proc);
-#else
-   helixAtRFromIterative(inPar, inChg, outPar, msRad, errorProp, N_proc);
-#endif
 
    //add multiple scattering uncertainty and energy loss (FIXME: in this way it is not applied in track fit)
    if (Config::useCMSGeom) 

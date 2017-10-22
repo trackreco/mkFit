@@ -144,13 +144,12 @@ void Event::Simulate()
       // do the simulation
       setupTrackByToyMC(pos,mom,covtrk,hits,hitinfos,*this,itrack,q,tmpgeom,initialTSs); 
 
-#ifdef CCSCOORD
+      // convert from global cartesian to CCS
       float pt = sqrt(mom[0]*mom[0]+mom[1]*mom[1]);
       mom=SVector3(1./pt,atan2(mom[1],mom[0]),atan2(pt,mom[2]));
       for (int its = 0; its < initialTSs.size(); its++){
 	initialTSs[its].convertFromCartesianToCCS();
       }
-#endif
 
       // MT: I'm putting in a mutex for now ...
       std::lock_guard<std::mutex> lock(mcGatherMutex_);

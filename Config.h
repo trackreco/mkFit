@@ -10,7 +10,6 @@ class TrackerInfo;
 #include <map>
 
 //#define PRINTOUTS_FOR_PLOTS
-#define CCSCOORD
 
 #if defined(__CUDACC__)
   #define CUDA_CALLABLE __host__ __device__
@@ -283,11 +282,6 @@ namespace Config
   extern bool   readCmsswTracks;
 
   extern bool   silent;
-
-  const std::string inputFile = "cmssw.simtracks.SingleMu1GeV.10k.new.txt";
-  //const std::string inputFile = "cmssw.simtracks.SingleMu10GeV.10k.new.txt";
-  //const std::string inputFile = "cmssw.rectracks.SingleMu1GeV.10k.new.txt";
-  //const std::string inputFile = "cmssw.rectracks.SingleMu10GeV.10k.new.txt";
 
   void RecalculateDependentConstants();
   

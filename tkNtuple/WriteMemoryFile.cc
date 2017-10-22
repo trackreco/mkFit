@@ -721,11 +721,7 @@ int main(int argc, char *argv[])
       err.At(4,4) = sim_py->at(isim)*sim_py->at(isim);
       err.At(5,5) = sim_pz->at(isim)*sim_pz->at(isim);
       TrackState state(sim_q->at(isim), pos, mom, err);
-#ifdef CCSCOORD
-      //begin test CCS coordinates, define CCSCOORD in $(MICTESTDIR)/Config.h
       state.convertFromCartesianToCCS();
-      //end test CCS coordinates
-#endif
       //create track: store number of reco hits in place of track chi2; fill hits later
       //              set label to be its own index in the output file
       Track track(state, float(nlay), simTracks_.size(), 0, nullptr);
@@ -810,11 +806,7 @@ int main(int argc, char *argv[])
       err.At(4,5) = see_stateCcov45->at(is);
       err.At(5,5) = see_stateCcov55->at(is);
       TrackState state(see_q->at(is), pos, mom, err);
-#ifdef CCSCOORD
-      //begin test CCS coordinates
       state.convertFromCartesianToCCS();
-      //end test CCS coordinates
-#endif
       Track track(state, 0, seedSimIdx[is], 0, nullptr);
       auto const& shTypes = see_hitType->at(is);
       auto const& shIdxs = see_hitIdx->at(is);
@@ -878,11 +870,7 @@ int main(int argc, char *argv[])
       SVector3 pos = SVector3(trk_refpoint_x->at(ir), trk_refpoint_y->at(ir), trk_refpoint_z->at(ir));
       SVector3 mom = SVector3(1.f/pt, phi, M_PI_2 - trk_lambda->at(ir));
       TrackState state(trk_q->at(ir), pos, mom, err);
-#ifndef CCSCOORD
-      //begin test CCS coordinates
       state.convertFromCCSToCartesian();
-      //end test CCS coordinates
-#endif
       Track track(state, trk_nChi2->at(ir), trk_seedIdx->at(ir), 0, nullptr);//hits are filled later
       auto const& hTypes = trk_hitType->at(ir);
       auto const& hIdxs =  trk_hitIdx->at(ir);

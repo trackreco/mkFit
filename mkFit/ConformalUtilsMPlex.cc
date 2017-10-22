@@ -57,7 +57,6 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, MPlexLS& outErr, MPlexLV& o
     }
   }
   
-  // code common to CCS and Cartesian factored out
   // Start setting the output parameters
 #pragma simd
   for (int n = 0; n < N; ++n)
@@ -153,7 +152,6 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, MPlexLS& outErr, MPlexLV& o
     pz.At (n, 0, 0) = (pT.ConstAt(n, 0, 0) * (z.ConstAt(n, 2, 0) - z.ConstAt(n, 0, 0))) / hipo((x.ConstAt(n, 2, 0)-x.ConstAt(n, 0, 0)),(y.ConstAt(n, 2, 0)-y.ConstAt(n, 0, 0)));
   }
 
-#ifdef CCSCOORD
 #pragma simd
   for (int n = 0; n < N; ++n)
   {
@@ -173,44 +171,6 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, MPlexLS& outErr, MPlexLV& o
     outErr.At(n, 5, 5) = (fitting ? Config::thetaerr049 * Config::thetaerr049 : Config::thetaerr012 * Config::thetaerr012);
   }
 
-#else // cartesian coordinates
-
-#ifdef INWARDFIT
-  if (fitting)
-  {
-#pragma simd
-    for (int n = 0; n < N; ++n)
-    {
-      px.At(n, 0, 0) *= -1.0f;
-      py.At(n, 0, 0) *= -1.0f;
-      pz.At(n, 0, 0) *= -1.0f;
-    }
-  }
-#endif
-  // output momenta + errors
-#pragma simd
-  for (int n = 0; n < N; ++n)
-  {
-    outPar.At(n, 3, 0) = px.ConstAt(n, 0, 0);
-    outPar.At(n, 4, 0) = py.ConstAt(n, 0, 0);
-    outPar.At(n, 5, 0) = pz.ConstAt(n, 0, 0);
-  }
-
-  const float varPtInv = (fitting ? Config::ptinverr049 * Config::ptinverr049 : Config::ptinverr012 * Config::ptinverr012);
-  const float varPhi   = (fitting ? Config::phierr049   * Config::phierr049   : Config::phierr012   * Config::phierr012);
-  const float varTheta = (fitting ? Config::thetaerr049 * Config::thetaerr049 : Config::thetaerr012 * Config::thetaerr012);
-#pragma simd
-  for (int n = 0; n < N; ++n)
-  {
-    const float pT2 = pT.ConstAt(n, 0, 0)*pT.ConstAt(n, 0, 0);
-    const float pz2 = pz.ConstAt(n, 0, 0)*pz.ConstAt(n, 0, 0);
-    const float varPt  = pT2*varPtInv;
-    outErr.At(n, 3, 3) = px.ConstAt(n, 0, 0)*px.ConstAt(n, 0, 0)*varPt + py.ConstAt(n, 0, 0)*py.ConstAt(n, 0, 0)*varPhi;
-    outErr.At(n, 4, 4) = py.ConstAt(n, 0, 0)*py.ConstAt(n, 0, 0)*varPt + px.ConstAt(n, 0, 0)*px.ConstAt(n, 0, 0)*varPhi;
-    outErr.At(n, 5, 5) = pz2*varPt + ((pT2 + pz2)*(pT2 + pz2) / pT2) * varTheta;
-  }  
-#endif // cartesian output
-
   if (debug) {
     for (int n = 0; n < N; ++n) {
       dprintf("afterCF seedID: %1u \n",
@@ -224,16 +184,9 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, MPlexLS& outErr, MPlexLV& o
 	}
       }
 
-#ifdef CCSCOORD
       dcall(print("CCS",updatedState));
       updatedState.convertFromCCSToCartesian();
       dcall(print("Pol",updatedState));
-#else
-      updatedState.convertFromCartesianToCCS();
-      dcall(print("CCS",updatedState));
-      updatedState.convertFromCCSToCartesian();
-      dcall(print("Pol",updatedState));
-#endif
       dprint("--------------------------------");
     }
   }

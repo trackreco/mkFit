@@ -48,7 +48,6 @@ __device__ void selectHitIndices_fn(const LayerOfHitsCU &layer_of_hits,
         //now correct for bending and for layer thickness unsing linear approximation
         const float deltaR = Config::cmsDeltaRad; //fixme! using constant value, to be taken from layer properties
         const float r  = sqrt(r2);
-#ifdef CCSCOORD
         //here alpha is the difference between posPhi and momPhi
         const float alpha = phi - Par(itrack, 4, 0);
         float cosA, sinA;
@@ -58,18 +57,6 @@ __device__ void selectHitIndices_fn(const LayerOfHitsCU &layer_of_hits,
           cosA = cos(alpha);
           sinA = sin(alpha);
         }
-#else
-        const float px = Par(itrack, 3, 0);
-        const float py = Par(itrack, 4, 0);
-        const float pt = ::sqrt(px*px + py*py);
-        //here alpha is the difference between posPhi and momPhi
-        //const float cosA = ( x*px + dy*py ) / (pt*r);
-        //const float sinA = ( y*px - dx*py ) / (pt*r);
-        // FIXME dx, dy do not exist: 
-        //       does not matter yet for gpu as cms geom is not implemented 
-        const float cosA = ( x*px + y*py ) / (pt*r);
-        const float sinA = ( y*px - x*py ) / (pt*r);
-#endif
         //take abs so that we always inflate the window
         const float dist = fabs(deltaR*sinA/cosA);
 

@@ -80,7 +80,6 @@ public:
 						 errors.At(0,1),errors.At(0,2),errors.At(1,2)));}
 
   // track state momentum
-#ifdef CCSCOORD
   float invpT()  const {return parameters.At(3);}
   float momPhi() const {return parameters.At(4);}
   float theta()  const {return parameters.At(5);}
@@ -99,36 +98,6 @@ public:
   float epxpx()   const {return std::sqrt(getPxPxErr2(invpT(),momPhi(),errors.At(3,3),errors.At(4,4)));}
   float epypy()   const {return std::sqrt(getPyPyErr2(invpT(),momPhi(),errors.At(3,3),errors.At(4,4)));}
   float epzpz()   const {return std::sqrt(getPyPyErr2(invpT(),theta(),errors.At(3,3),errors.At(5,5)));}
-  // special note: KPM --> do not need cross terms in jacobian anymore, don't store them in validation anyways
-
-#else
-  float px()     const {return parameters.At(3);}
-  float py()     const {return parameters.At(4);}
-  float pz()     const {return parameters.At(5);}
-  float pT()     const {return std::sqrt(getRad2(px(),py()));}
-  float p()      const {return std::sqrt(px()*px()+py()*py()+pz()*pz());}
-  float momPhi() const {return       getPhi (px(),py());}
-  float momEta() const {return       getEta (pT(),pz());}
-  float theta()  const {return getTheta(pT(),pz());}
-  float invpT()  const {return std::sqrt(getInvRad2(px(),py()));}
-
-  // track state momentum errors
-  float epxpx()   const {return std::sqrt(errors.At(3,3));}
-  float epypy()   const {return std::sqrt(errors.At(4,4));}
-  float epzpz()   const {return std::sqrt(errors.At(5,5));}
-  float epxpy()   const {return std::sqrt(errors.At(3,4));}
-  float epxpz()   const {return std::sqrt(errors.At(3,5));}
-  float epypz()   const {return std::sqrt(errors.At(4,5));}
-
-  float epT()     const {return std::sqrt(getRadErr2(px(),py(),errors.At(3,3),errors.At(4,4),errors.At(3,4)));}
-  float emomPhi() const {return std::sqrt(getPhiErr2(px(),py(),errors.At(3,3),errors.At(4,4),errors.At(3,4)));}
-  float emomEta() const {return std::sqrt(getEtaErr2(px(),py(),pz(),errors.At(3,3),errors.At(4,4),errors.At(5,5),
-						 errors.At(3,4),errors.At(3,5),errors.At(4,5)));}
-
-  float etheta()  const {return sqrtf(getThetaErr2(px(),py(),pz(),errors.At(3,3),errors.At(4,4),errors.At(5,5),
-						   errors.At(3,4),errors.At(3,5),errors.At(4,5)));}
-  float einvpT()  const {return sqrtf(getInvRadErr2(px(),py(),errors.At(3,3),errors.At(4,4),errors.At(3,4)));}
-#endif
 
   void convertFromCartesianToCCS();
   void convertFromCCSToCartesian();

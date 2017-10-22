@@ -183,7 +183,6 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
         //XXXXMT4GC should we also increase dz?
         const float deltaR = Config::cmsDeltaRad;
         const float r  = std::sqrt(r2);
-#ifdef CCSCOORD
         //here alpha is the difference between posPhi and momPhi
         const float alpha = phi - Par[iP].ConstAt(itrack, 4, 0);
         float cosA, sinA;
@@ -193,14 +192,6 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
           cosA = std::cos(alpha);
           sinA = std::sin(alpha);
         }
-#else
-        const float px = Par[iP].ConstAt(itrack, 3, 0);
-        const float py = Par[iP].ConstAt(itrack, 4, 0);
-        const float pt = std::sqrt(px*px + py*py);
-        //here alpha is the difference between posPhi and momPhi
-        const float cosA = ( x*px + y*py ) / (pt*r);
-        const float sinA = ( y*px - x*py ) / (pt*r);
-#endif
         //take abs so that we always inflate the window
         const float dist = std::abs(deltaR*sinA/cosA);
         dphi += dist / r;
@@ -218,7 +209,6 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
       if (Config::useCMSGeom)
       {
-#ifdef CCSCOORD
         //now correct for bending and for layer thickness unsing linear approximation
         //fixme! using constant value, to be taken from layer properties
         //XXXXMT4GC should we also increase dr?
@@ -229,9 +219,6 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
         const float k = Chg.ConstAt(itrack, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
         const float alpha  = deltaZ*sinT*Par[iI].ConstAt(itrack, 3, 0)/(cosT*k);
         dphi += std::abs(alpha);
-#else
-        assert(0);
-#endif
       }
 
       q =  r;

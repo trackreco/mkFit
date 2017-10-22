@@ -238,68 +238,6 @@ void ProjectResErrTransp(const MPlexQF& A00,
    }
 }
 
-#ifndef CCSCOORD
-inline
-void CCSErr(const MPlexLL& A, const MPlexLS& B, MPlexLL& C)
-{
-  // C = A * B, C is 6x6, A is 6x6 , B is 6x6 sym
- 
-  typedef float T;
-  const idx_t N = NN;
-  
-  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
-  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
-        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
-
-#include "CCSErr.ah"
-}
-
-inline
-void CCSErrTransp(const MPlexLL& A, const MPlexLL& B, MPlexLS& C)
-{
-  // C = A * B, C is sym, A is 6x6 , B is 6x6
- 
-  typedef float T;
-  const idx_t N = NN;
-  
-  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
-  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
-        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
-
-#include "CCSErrTransp.ah"
-}
-
-inline
-void CartesianErr(const MPlexLL& A, const MPlexLS& B, MPlexLL& C)
-{
-  // C = A * B, C is 6x6, A is 6x6 , B is 6x6 sym
- 
-  typedef float T;
-  const idx_t N = NN;
-  
-  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
-  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
-        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
-
-#include "CartesianErr.ah"
-}
-
-inline
-void CartesianErrTransp(const MPlexLL& A, const MPlexLL& B, MPlexLS& C)
-{
-  // C = A * B, C is sym, A is 6x6 , B is 6x6
- 
-  typedef float T;
-  const idx_t N = NN;
-  
-  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
-  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
-        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
-
-#include "CartesianErrTransp.ah"
-}
-#endif
-
 inline
 void RotateResidulsOnTangentPlane(const MPlexQF& R00,//r00
 				  const MPlexQF& R01,//r01
@@ -454,20 +392,6 @@ void KHC(const MPlexL2& A, const MPlexLS& B, MPlexLS& C)
 #include "K62HC.ah"
 }
 
-#ifndef CCSCOORD
-inline
-void ConvertToCCS(const MPlexLV& A, MPlexLV& B, MPlexLL& C)
-{
-  ConvertToCCS_imp(A, B, C, 0, NN);
-}
-
-inline
-void ConvertToCartesian(const MPlexLV& A, MPlexLV& B, MPlexLL& C)
-{
-  ConvertToCartesian_imp(A, B, C, 0, NN); 
-}
-#endif
-
 // //Warning: MultFull is not vectorized, use only for testing!
 // template<typename T1, typename T2, typename T3>
 // void MultFull(const T1& A, int nia, int nja, const T2& B, int nib, int njb, T3& C, int nic, int njc)
@@ -608,45 +532,18 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
   //invert the 2x2 matrix
   Matriplex::InvertCramerSym(resErr_loc);
 
-#ifndef CCSCOORD
-  // Move to CCS coordinates: (x,y,z,1/pT,phi,theta)
-
-  MPlexLV propPar_ccs;// propagated parameters in CCS coordinates
-  MPlexLL jac_ccs;    // jacobian from cartesian to CCS
-  ConvertToCCS(propPar,propPar_ccs,jac_ccs);
-
-  MPlexLL tempLL;
-  CCSErr      (jac_ccs, propErr, tempLL);
-  CCSErrTransp(jac_ccs, tempLL, propErr);// propErr is now propagated errors in CCS coordinates
-#endif
-
-  // Kalman update in CCS coordinates
-
   MPlexLH K;           // kalman gain, fixme should be L2
   KalmanHTG(rotT00, rotT01, resErr_loc, tempHH); // intermediate term to get kalman gain (H^T*G)
   KalmanGain(propErr, tempHH, K);
 
-#ifdef CCSCOORD
-  MultResidualsAdd(K, propPar, res_loc, outPar);// propPar_ccs is now the updated parameters in CCS coordinates
+  MultResidualsAdd(K, propPar, res_loc, outPar);
   MPlexLL tempLL;
-#else
-  MultResidualsAdd(K, propPar_ccs, res_loc, propPar_ccs);// propPar_ccs is now the updated parameters in CCS coordinates
-#endif
 
   squashPhiMPlex(outPar,N_proc); // ensure phi is between |pi|
 
   KHMult(K, rotT00, rotT01, tempLL);
   KHC(tempLL, propErr, outErr);
-  outErr.Subtract(propErr, outErr);// outErr is in CCS coordinates now
-
-#ifndef CCSCOORD
-  // Go back to cartesian coordinates
-
-  // jac_ccs is now the jacobian from CCS to cartesian
-  ConvertToCartesian(propPar_ccs, outPar, jac_ccs);
-  CartesianErr      (jac_ccs, outErr, tempLL);
-  CartesianErrTransp(jac_ccs, tempLL, outErr);// outErr is in cartesian coordinates now
-#endif
+  outErr.Subtract(propErr, outErr);
 
 #ifdef DEBUG
   {
@@ -663,12 +560,6 @@ void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MP
     for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
         printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
     } printf("\n");
-#ifndef CCSCOORD
-    printf("jac_ccs:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", jac_ccs.At(0,i,j)); printf("\n");
-    } printf("\n");
-#endif
     printf("K:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 3; ++j)
         printf("%8f ", K.At(0,i,j)); printf("\n");

@@ -105,11 +105,7 @@ namespace
               << " start from x=" << fir->getPar(0, 0, 0) << " y=" << fir->getPar(0, 0, 1) << " z=" << fir->getPar(0, 0, 2)
               << " r=" << getHypot(fir->getPar(0, 0, 0), fir->getPar(0, 0, 1))
               << " px=" << fir->getPar(0, 0, 3) << " py=" << fir->getPar(0, 0, 4) << " pz=" << fir->getPar(0, 0, 5)
-#ifdef CCSCOORD
               << " pT=" << 1./fir->getPar(0, 0, 3) << std::endl;
-#else
-              << " pT=" << getHypot(fir->getPar(0, 0, 3), fir->getPar(0, 0, 4)) << std::endl;
-#endif
   }
 
   void post_prop_print(int ilay, MkBase* fir) {

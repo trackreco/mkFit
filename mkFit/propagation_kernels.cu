@@ -76,31 +76,6 @@ __device__ void helixAtRFromIterativeCCS_fn(const GPlexLV& inPar,
   }
 }
 
-
-__device__ 
-void helixAtRFromIterative_fn(const GPlexLV& inPar,
-    const GPlexQI& inChg, GPlexLV& outPar_global, const GPlexRegQF& msRad, 
-    GPlexRegLL& errorProp, const int N, const int n) {
-
-  GPlexRegLV outPar;
-
-  if (n < N) {
-    for (int j = 0; j < 5; ++j) {
-      outPar[j] = outPar_global(n, j, 0);
-    }
-    errorProp.SetVal(0);
-
-    // FIXME: Pass a sensible value for the last argument (instead of false)
-    //        Added to keep compiling ater PR 65
-    helixAtRFromIterative_impl(inPar, inChg, outPar, msRad, errorProp, n, n+1, -1, false);
-
-    // Once computations are done. Get values from registers to global memory.
-    for (int j = 0; j < 5; ++j) {
-      outPar_global(n, j, 0) = outPar[j];
-    }
-  }
-}
-
 /// Similarity ////////////////////////////////////////////////////////////////
 __device__ void similarity_fn(GPlexRegLL &a, GPlexLS &b, int N, int n) {
 
@@ -217,11 +192,7 @@ __device__ void propagation_fn(
       errorProp_reg[i] = 0.0;
     }
     computeMsRad_fn(msPar, msRad_reg, N, n);
-#ifdef CCSCOORD
     helixAtRFromIterativeCCS_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, useParamBfield, N, n);
-#else
-    helixAtRFromIterative_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
-#endif
     GPlexRegLL temp;
     MultHelixProp_fn      (errorProp_reg, outErr, temp, n);
     MultHelixPropTransp_fn(errorProp_reg, temp,   outErr, n);
@@ -288,12 +259,8 @@ __device__ void propagationForBuilding_fn(
 
     msRad_reg(n, 0, 0) = radius;
 
-#ifdef CCSCOORD
     bool useParamBfield = false;  // The propagation with radius as an arg do not use this parameter
     helixAtRFromIterativeCCS_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, useParamBfield, N, n);
-#else
-    helixAtRFromIterative_fn(inPar, inChg, outPar, msRad_reg, errorProp_reg, N, n);
-#endif
     // TODO: port me
     /*if (Config::useCMSGeom) {*/
     /*MPlexQF hitsRl;*/
