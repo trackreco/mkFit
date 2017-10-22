@@ -59,7 +59,7 @@ void initGeom(Geometry& geom)
 #endif
 
   /*
-  if ( ! Config::endcapTest && ! Config::useCMSGeom)
+  if ( ! Config::useCMSGeom)
   {
     // This is the new standalone case -- Cylindrical Cow with Lids
     //Create_TrackerInfo(Config::TrkInfo);
@@ -75,24 +75,10 @@ void initGeom(Geometry& geom)
     float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
     for (int l = 0; l < Config::nLayers; l++)
     {
-      if (Config::endcapTest)
-      {
-        float z = Config::useCMSGeom ? Config::cmsAvgZs[l] : (l+1)*10.;//Config::fLongitSpacing
-        float rmin = Config::useCMSGeom ? Config::cmsDiskMinRs[l] : 0;
-        float rmax = Config::useCMSGeom ? Config::cmsDiskMaxRs[l] : 0;
-        // XXXX MT: Do we need endcap layer "thickness" for cmssw at all? Use equiv of fRadialExtent.
-        // Do we even need geometry for cmssw?
-        float dz = 0.005;
-        VUSolid* utub = new VUSolid(rmin, rmax, z - dz, z + dz, false, l + 1 == Config::nLayers);
-        geom.AddLayer(utub, rmin, z);
-      }
-      else
-      {
         float r = Config::useCMSGeom ? Config::cmsAvgRads[l] : (l+1)*Config::fRadialSpacing;
         float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
         VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent, -z, z, true, l + 1 == Config::nLayers);
         geom.AddLayer(utub, r, z);
-      }
     }
   }
   */
@@ -709,10 +695,6 @@ int main(int argc, const char *argv[])
     {
       next_arg_or_die(mArgs, i);
       setSeedCleaning(*i);
-    }
-    else if(*i == "--endcap-test")
-    {
-      Config::endcapTest = true; Config::nlayers_per_seed = 2; // default is 3 for barrel
     }
     else if (*i == "--cf-seeding")
     {

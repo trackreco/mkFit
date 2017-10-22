@@ -563,60 +563,6 @@ void MkFitter::CollectFitValidation(const int hi, const int N_proc, const Event 
   }
 }
 
-void MkFitter::FitTracksTestEndcap(const int N_proc, const Event* ev, const bool useParamBfield)
-{
-  // XXXXMT4G
-  //if (countValidHits(0)<8) return;
-  //if (Label.ConstAt(0, 0, 0)<0) return;
-
-  //float ptin = 1./Par[iC].ConstAt(0, 0, 3);
-
-  float chi2 = 0.;
-  int hitcount = 0;
-  for (int hi = 0; hi < Nhits; ++hi)
-    {
-
-      //if starting from seed, skip seed hits in fit (note there are only two hits in seeds since pxb1 is removed upfront, at least for now)
-      if (Config::readCmsswSeeds && hi < 2) continue;
-      if (HoTArr[hi].ConstAt(0, 0, 0).index < 0) continue;
-
-      dprint("hit #" << hi << " hit  pos=" << msPar[hi].ConstAt(0, 0, 0) << ", " <<  msPar[hi].ConstAt(0, 0, 1) << ", " <<  msPar[hi].ConstAt(0, 0, 2));
-
-      propagateHelixToZMPlex(Err[iC], Par[iC], Chg, msPar[hi],
-			     Err[iP], Par[iP], N_proc, useParamBfield);
-
-      dprint("hit #" << hi << " prop par=" << Par[iP].ConstAt(0, 0, 0) << ", " <<  Par[iP].ConstAt(0, 0, 1) << ", " <<  Par[iP].ConstAt(0, 0, 2)  << ", "
-	     << Par[iP].ConstAt(0, 0, 3) << ", " <<  Par[iP].ConstAt(0, 0, 4) << ", " <<  Par[iP].ConstAt(0, 0, 5)
-	     << " p=(" << cos(Par[iP].ConstAt(0, 0, 4))/Par[iP].ConstAt(0, 0, 3) << ", " << sin(Par[iP].ConstAt(0, 0, 4))/Par[iP].ConstAt(0, 0, 3)
-	     << ", " << 1./(tan(Par[iP].ConstAt(0, 0, 5))*Par[iP].ConstAt(0, 0, 3)) << ")" );
-
-      computeChi2EndcapMPlex(Err[iP], Par[iP], Chg, msErr[hi], msPar[hi],
-			     Chi2,N_proc);
-
-      dprint("hit chi2: " << Chi2.At(0, 0, 0));
-      //if (Chi2.At(0, 0, 0)>30.) continue;
-      chi2+=Chi2.At(0, 0, 0);
-
-      updateParametersEndcapMPlex(Err[iP], Par[iP], Chg, msErr[hi], msPar[hi],
-				  Err[iC], Par[iC], N_proc);
-
-      dprint("hit #" << hi << " upda par=" << Par[iC].ConstAt(0, 0, 0) << ", " <<  Par[iC].ConstAt(0, 0, 1) << ", " <<  Par[iC].ConstAt(0, 0, 2)  << ", "
-	     << Par[iC].ConstAt(0, 0, 3) << ", " <<  Par[iC].ConstAt(0, 0, 4) << ", " <<  Par[iC].ConstAt(0, 0, 5)
-	     << " p=(" << cos(Par[iC].ConstAt(0, 0, 4))/Par[iC].ConstAt(0, 0, 3) << ", " << sin(Par[iC].ConstAt(0, 0, 4))/Par[iC].ConstAt(0, 0, 3)
-	     << ", " << 1./(tan(Par[iC].ConstAt(0, 0, 5))*Par[iC].ConstAt(0, 0, 3)) << ")" );
-      hitcount++;
-    }
-
-  // if ((1./Par[iC].ConstAt(0, 0, 3))<0. || chi2<0 || chi2>1000.) {
-  //   printf("ANOMALY pt=%6.1f chi2=%6.1f seed pt=%6.1f q=%2i sim pt=%6.1f q=%2i flip=%2i \n",1./Par[iC].ConstAt(0, 0, 3),chi2,ptin,Chg.ConstAt(0, 0, 0),
-  // 	   ev->simTracks_[Label.ConstAt(0, 0, 0)].pT(),ev->simTracks_[Label.ConstAt(0, 0, 0)].charge(),std::abs(Chg.ConstAt(0, 0, 0)-ev->simTracks_[Label.ConstAt(0, 0, 0)].charge())/2);
-  // }
-
-  // std::cout << "found track with pt: " << 1./Par[iC].ConstAt(0, 0, 3) << " chi2: " << chi2
-  // 	    << " delta(pT)/sim_pT: " << ((1./Par[iC].ConstAt(0, 0, 3))-ev->simTracks_[Label.ConstAt(0, 0, 0)].pT())/ev->simTracks_[Label.ConstAt(0, 0, 0)].pT()
-  // 	    << " fitted hits: " << hitcount<< std::endl;
-}
-
 void MkFitter::FitTracksSteered(const bool is_barrel[], const int N_proc, const Event * ev, const bool useParamBfield)
 {
   // Fitting loop.

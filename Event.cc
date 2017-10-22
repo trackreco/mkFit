@@ -142,26 +142,16 @@ void Event::Simulate()
 
       int q=0;//set it in setup function
       // do the simulation
-      if (Config::useCMSGeom) setupTrackFromTextFile(pos,mom,covtrk,hits,*this,itrack,q,tmpgeom,initialTSs);
-      else if (Config::endcapTest) setupTrackByToyMCEndcap(pos,mom,covtrk,hits,*this,itrack,q,tmpgeom,initialTSs);
-      else setupTrackByToyMC(pos,mom,covtrk,hits,hitinfos,*this,itrack,q,tmpgeom,initialTSs); 
-
-      // XXMT4K What genius set up separate setupTrackByToyMC / setupTrackByToyMCEndcap?
-      // setupTrackByToyMCEndcap does not have scattering and who knows what else.
-      // In the original commit Giuseppe he only did fittest ... strangle ... etc ...
-      // I'll just review/fix setupTrackByToyMC() for now (so Config::endcapTest = false).
-      // See also ifdef just below:
+      setupTrackByToyMC(pos,mom,covtrk,hits,hitinfos,*this,itrack,q,tmpgeom,initialTSs); 
 
 #ifdef CCSCOORD
-      // setupTrackByToyMCEndcap is already in CCS coord, no need to convert
-      if (Config::endcapTest==false) {
-	float pt = sqrt(mom[0]*mom[0]+mom[1]*mom[1]);
-	mom=SVector3(1./pt,atan2(mom[1],mom[0]),atan2(pt,mom[2]));
-	for (int its = 0; its < initialTSs.size(); its++){
-	  initialTSs[its].convertFromCartesianToCCS();
-	}
+      float pt = sqrt(mom[0]*mom[0]+mom[1]*mom[1]);
+      mom=SVector3(1./pt,atan2(mom[1],mom[0]),atan2(pt,mom[2]));
+      for (int its = 0; its < initialTSs.size(); its++){
+	initialTSs[its].convertFromCartesianToCCS();
       }
 #endif
+
       // MT: I'm putting in a mutex for now ...
       std::lock_guard<std::mutex> lock(mcGatherMutex_);
 

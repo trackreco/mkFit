@@ -282,8 +282,6 @@ namespace Config
   extern bool   useCMSGeom;
   extern bool   readCmsswTracks;
 
-  extern bool   endcapTest;
-
   extern bool   silent;
 
   const std::string inputFile = "cmssw.simtracks.SingleMu1GeV.10k.new.txt";
