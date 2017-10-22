@@ -588,6 +588,12 @@ int main(int argc, const char *argv[])
         "  --start-event   <num>    event number to start at when reading from a file (def: %d)\n"
         "  --input-file             file name for reading (def: %s)\n"
         "  --output-file            file name for writitng (def: %s)\n"
+	"Combo spaghetti, that's with cole slaw: \n"
+	"  --cmssw-simseeds         use CMS geom with simtracks for seeds \n"
+	"  --cmssw-stdseeds         use CMS geom with CMSSW seeds uncleaned \n"
+	"  --cmssw-n2seeds          use CMS geom with CMSSW seeds cleaned with N^2 routine \n"
+	"  --cmssw-pureseeds        use CMS geom with pure CMSSW seeds (seeds which produced CMSSW reco tracks) \n"
+	"  --cmssw-goodlabelseeds   use CMS geom with CMSSW seeds with label() >= 0 \n"
         "GPU specific options: \n"
         "  --num-thr-reorg <num>    number of threads to run the hits reorganization (def: %d)\n"
         "  --seed-based             For CE. Switch to 1 CUDA thread per seed\n"
@@ -718,7 +724,7 @@ int main(int argc, const char *argv[])
     }
     else if (*i == "--cmssw-val")
     {
-      Config::cmssw_val = true; 
+      Config::cmssw_val = true; Config::readCmsswTracks = true;
     }
     else if (*i == "--fit-val")
     {
@@ -747,24 +753,54 @@ int main(int argc, const char *argv[])
       next_arg_or_die(mArgs, i);
       g_start_event = atoi(i->c_str());
     }
-    else if(*i == "--input-file")
+    else if (*i == "--input-file")
     {
       next_arg_or_die(mArgs, i);
       g_input_file = *i;
       g_operation = "read";
       Config::nEvents = -1;
     }
-    else if(*i == "--output-file")
+    else if (*i == "--output-file")
     {
       next_arg_or_die(mArgs, i);
       g_output_file = *i;
       g_operation = "write";
     }
-    else if(*i == "--silent")
+    else if (*i == "--silent")
     {
       Config::silent = true;
     }
-    else if(*i == "--seed-based")
+    else if (*i == "--cmssw-simseeds")
+    {
+      Config::geomPlugin = "CMS-2017";
+      Config::seedInput  = simSeeds;
+    }
+    else if (*i == "--cmssw-stdseeds")
+    {
+      Config::geomPlugin   = "CMS-2017";
+      Config::seedInput    = cmsswSeeds;
+      Config::seedCleaning = noCleaning;
+    }
+    else if (*i == "--cmssw-n2seeds")
+    {
+      Config::geomPlugin   = "CMS-2017";
+      Config::seedInput    = cmsswSeeds;
+      Config::seedCleaning = cleanSeedsN2;
+    }
+    else if (*i == "--cmssw-pureseeds")
+    {
+      Config::geomPlugin      = "CMS-2017";
+      Config::seedInput       = cmsswSeeds;
+      Config::seedCleaning    = cleanSeedsPure;
+      Config::readCmsswTracks = true;
+    }
+    else if (*i == "--cmssw-goodlabelseeds")
+    {
+      Config::geomPlugin   = "CMS-2017";
+      Config::seedInput    = cmsswSeeds;
+      Config::seedCleaning = cleanSeedsBadLabel;
+    }
+    else if (*i == "--seed-based")
     {
       g_seed_based = true;
     }
