@@ -542,7 +542,7 @@ int main(int argc, char *argv[])
 
   DataFile data_file;
   int outOptions = DataFile::ES_Seeds;
-  if (writeRecTracks) outOptions |= DataFile::ES_ExtRecTracks;
+  if (writeRecTracks) outOptions |= DataFile::ES_CmsswTracks;
   data_file.OpenWrite(outputFileName, std::min(maxevt, totentries), outOptions);
 
   Event EE(0);
@@ -830,7 +830,7 @@ int main(int argc, char *argv[])
 
     if (seedTracks_.empty() and not writeAllEvents) continue;
 
-    vector<Track> &extRecTracks_ = EE.extRecTracks_;
+    vector<Track> &cmsswTracks_ = EE.cmsswTracks_;
     vector<vector<int> > pixHitRecIdx(pix_lay->size());
     vector<vector<int> > strHitRecIdx(str_lay->size());
     vector<vector<int> > gluHitRecIdx(glu_lay->size());
@@ -890,26 +890,26 @@ int main(int argc, char *argv[])
 	unsigned int hidx = hIdxs[ip];
 	switch( HitType(hTypes[ip]) ) {
 	  case HitType::Pixel:{
-	    //cout << "pix=" << hidx << " track=" << extRecTracks_.size() << endl;
-	    pixHitRecIdx[hidx].push_back(extRecTracks_.size());
+	    //cout << "pix=" << hidx << " track=" << cmsswTracks_.size() << endl;
+	    pixHitRecIdx[hidx].push_back(cmsswTracks_.size());
 	    break;
 	  }
 	  case HitType::Strip:{
-	    //cout << "pix=" << hidx << " track=" << extRecTracks_.size() << endl;
-	    strHitRecIdx[hidx].push_back(extRecTracks_.size());
+	    //cout << "pix=" << hidx << " track=" << cmsswTracks_.size() << endl;
+	    strHitRecIdx[hidx].push_back(cmsswTracks_.size());
 	    break;
 	  }
 	  case HitType::Glued:{
 	    if (not useMatched ) throw std::logic_error("Tracks have glued hits, but matchedHit load is not configured");
-	    //cout << "pix=" << hidx << " track=" << extRecTracks_.size() << endl;
-	    gluHitRecIdx[hidx].push_back(extRecTracks_.size());
+	    //cout << "pix=" << hidx << " track=" << cmsswTracks_.size() << endl;
+	    gluHitRecIdx[hidx].push_back(cmsswTracks_.size());
 	    break;
 	  }
 	  case HitType::Invalid: break;//FIXME. Skip, really?
 	  default: throw std::logic_error("Track hit type can not be handled");
 	}//switch( HitType
       }
-      extRecTracks_.push_back(track);
+      cmsswTracks_.push_back(track);
     }
 
 
@@ -946,7 +946,7 @@ int main(int argc, char *argv[])
       }
       for (int ir=0;ir<pixHitRecIdx[ipix].size();ir++) {
 	//cout << "xxx ipix=" << ipix << " recTrack=" << pixHitRecIdx[ipix][ir] << endl;
-      	extRecTracks_[pixHitRecIdx[ipix][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
+      	cmsswTracks_[pixHitRecIdx[ipix][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
       }
       Hit hit(pos, err, totHits);
       layerHits_[ilay].push_back(hit);
@@ -979,7 +979,7 @@ int main(int argc, char *argv[])
 	}
 	for (int ir=0;ir<gluHitRecIdx[iglu].size();ir++) {
 	  //cout << "xxx iglu=" << iglu << " recTrack=" << gluHitRecIdx[iglu][ir] << endl;
-	  extRecTracks_[gluHitRecIdx[iglu][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
+	  cmsswTracks_[gluHitRecIdx[iglu][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
 	}	
 	Hit hit(pos, err, totHits);
 	layerHits_[ilay].push_back(hit);
@@ -1015,7 +1015,7 @@ int main(int argc, char *argv[])
       }
       for (int ir=0;ir<strHitRecIdx[istr].size();ir++) {
 	//cout << "xxx istr=" << istr << " recTrack=" << strHitRecIdx[istr][ir] << endl;
-	extRecTracks_[strHitRecIdx[istr][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
+	cmsswTracks_[strHitRecIdx[istr][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
       }
       Hit hit(pos, err, totHits);
       layerHits_[ilay].push_back(hit);
@@ -1048,7 +1048,7 @@ int main(int argc, char *argv[])
 
       int ns = seedTracks_.size();
 
-      int nr = extRecTracks_.size();
+      int nr = cmsswTracks_.size();
 
       printf("number of simTracks %i\n",nt);
       printf("number of layerHits %i\n",nl);
@@ -1091,15 +1091,15 @@ int main(int argc, char *argv[])
 
 	if (writeRecTracks){
 	  for (int i=0;i<nr;++i) {
-	    float spt = sqrt(pow(extRecTracks_[i].px(),2)+pow(extRecTracks_[i].py(),2));
+	    float spt = sqrt(pow(cmsswTracks_[i].px(),2)+pow(cmsswTracks_[i].py(),2));
 	    printf("rec track id=%i label%i chi2=%6.3f q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) pT=%7.4f nTotal=%i nFound=%i \n",
-		   i, extRecTracks_[i].label(), extRecTracks_[i].chi2(),
-		   extRecTracks_[i].charge(),extRecTracks_[i].px(),extRecTracks_[i].py(),extRecTracks_[i].pz(),extRecTracks_[i].x(),extRecTracks_[i].y(),extRecTracks_[i].z(),spt,
-		   extRecTracks_[i].nTotalHits(),extRecTracks_[i].nFoundHits());
-	    int nh = extRecTracks_[i].nTotalHits();
+		   i, cmsswTracks_[i].label(), cmsswTracks_[i].chi2(),
+		   cmsswTracks_[i].charge(),cmsswTracks_[i].px(),cmsswTracks_[i].py(),cmsswTracks_[i].pz(),cmsswTracks_[i].x(),cmsswTracks_[i].y(),cmsswTracks_[i].z(),spt,
+		   cmsswTracks_[i].nTotalHits(),cmsswTracks_[i].nFoundHits());
+	    int nh = cmsswTracks_[i].nTotalHits();
 	    for (int ih=0;ih<nh;++ih){
-	      int hidx = extRecTracks_[i].getHitIdx(ih);
-	      int hlay = extRecTracks_[i].getHitLyr(ih);
+	      int hidx = cmsswTracks_[i].getHitIdx(ih);
+	      int hlay = cmsswTracks_[i].getHitLyr(ih);
 	      float hx = layerHits_[hlay][hidx].x();
 	      float hy = layerHits_[hlay][hidx].y();
 	      float hz = layerHits_[hlay][hidx].z();

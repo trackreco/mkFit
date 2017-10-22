@@ -1024,10 +1024,10 @@ void MkBuilder::prep_recotracks()
 
 void MkBuilder::prep_cmsswtracks()
 {
-  prep_tracks(m_event->extRecTracks_,m_event->extRecTracksExtra_);
+  prep_tracks(m_event->cmsswTracks_,m_event->cmsswTracksExtra_);
 
   // mark cmsswtracks as unfindable if too short
-  for (auto&& cmsswtrack : m_event->extRecTracks_)
+  for (auto&& cmsswtrack : m_event->cmsswTracks_)
   {
     const int nlyr = cmsswtrack.nUniqueLayers();
     const int ihit = cmsswtrack.getLastFoundHitPos();
@@ -1060,7 +1060,7 @@ void MkBuilder::PrepareSeeds()
   }
   else
   {
-    if ( ! Config::readCmsswSeeds)
+    if ( !Config::readCmsswSeeds)
     {
       if (Config::useCMSGeom)
       {
@@ -1072,7 +1072,7 @@ void MkBuilder::PrepareSeeds()
       }
       create_seeds_from_sim_tracks();
     }
-    else 
+    else // Read in CMSSW seeds
     {
       m_event->relabel_bad_seedtracks();
 
@@ -1081,22 +1081,28 @@ void MkBuilder::PrepareSeeds()
 	m_event->validation_.makeSeedTkToCMSSWTkMap(*m_event);
       }
 
-      // CMSSW Seed Cleaning 
+      // CMSSW Seed Cleaning with enum
       int ns = 0;
-      if (Config::cleanCmsswSeeds)
+      if (Config::seedCleaning == cleanSeedsN2)
       {
 	ns = m_event->clean_cms_seedtracks();
       }
+      else if (Config::seedCleaning == cleanSeedsPure)
+      {
+	ns = m_event->use_seeds_from_cmsswtracks();
+      }
+      else if (Config::seedCleaning == cleanSeedsBadLabel)
+      {
+	ns = m_event->clean_cms_seedtracks_badlabel();
+      }
+      else if (Config::seedCleaning == noCleaning)
+      {
+	ns = m_event->seedTracks_.size();
+      }
       else
       {
-	if (Config::cmssw_val)
-	{
-	  ns = m_event->use_seeds_from_cmsswtracks();
-	}
-	else 
-	{
-	  ns = m_event->clean_cms_seedtracks_badlabel();
-	}
+	std::cerr << "Specified incorrect seed cleaning option! Exiting..." << std::endl;
+	exit(1);
       }
     }
 
@@ -1108,7 +1114,7 @@ void MkBuilder::PrepareSeeds()
 
     // For now, all simulated seeds need to have hit indices line up in LOH for seed fit
     map_seed_hits();
-  }
+  } // end block over not using seed finding algo
 
   fit_seeds();
 }

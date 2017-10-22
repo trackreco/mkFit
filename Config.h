@@ -17,6 +17,9 @@ class TrackerInfo;
   #define CUDA_CALLABLE 
 #endif
 
+// Enum for seed cleaning options
+enum cleanOpts {noCleaning, cleanSeedsN2, cleanSeedsPure, cleanSeedsBadLabel};
+
 namespace Config
 {
   extern TrackerInfo TrkInfo;
@@ -243,6 +246,7 @@ namespace Config
   extern bool root_val;
   extern bool cmssw_val;
   extern bool fit_val;
+  extern bool readSimTrackStates; // need this to fill pulls
   extern bool inclusiveShorts;
   extern bool applyCMSSWHitMatch;
 
@@ -268,8 +272,8 @@ namespace Config
   
   extern bool   useCMSGeom;
   extern bool   readCmsswSeeds;
-  extern bool   cleanCmsswSeeds;
-  extern bool   readExtRecTracks;
+  extern cleanOpts seedCleaning;
+  extern bool   readCmsswTracks;
 
   extern bool   endcapTest;
 
