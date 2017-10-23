@@ -583,7 +583,7 @@ void TTreeValidation::setTrackExtras(Event& ev)
     {
       const auto& track = buildtracks[itrack];
             auto& extra = buildextras[itrack];
-      if (Config::pureCmsswSeeds)
+      if (Config::seedCleaning == cleanSeedsPure)
       {
 	extra.setCMSSWTrackIDInfoByLabel(track, layerhits, cmsswtracks, reducedCMSSW[cmsswtracks[buildToCmsswMap_[track.label()]].label()]);	
       }
