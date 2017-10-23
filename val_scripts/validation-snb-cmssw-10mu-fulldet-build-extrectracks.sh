@@ -20,7 +20,7 @@ do
 	do
 	    oBase=${base}_${section}_${bN}
 	    echo "${oBase}: validation [nTH:24, nVU:8]"
-	    ./mkFit/mkFit --cmssw-seeds --clean-seeds --geom CMS-2017 --cmssw-val --ext-rec-tracks --read --file-name ${!section} --build-${bO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_cmsswval.txt
+	    ./mkFit/mkFit --cmssw-n2seeds --cmssw-val --input-file ${!section} --build-${bO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_cmsswval.txt
 	    mv valtree.root valtree_${oBase}.root
 	done
     done
@@ -33,9 +33,9 @@ do
     oBase=${base}_${section}
     for build in BH STD CE
     do
-	root -b -q -l runValidation.C\(\"_${oBase}_${build}\",0,1\)
+	root -b -q -l plotting/runValidation.C\(\"_${oBase}_${build}\",0,1\)
     done
-    root -b -q -l makeValidation.C\(\"${oBase}\",1\)
+    root -b -q -l plotting/makeValidation.C\(\"${oBase}\",1\)
 done
 
 for build in BH STD CE
@@ -44,8 +44,8 @@ do
     fBase=valtree_${oBase}
     dBase=validation_${oBase}
     hadd ${fBase}_FullDet_${build}.root `for section in ECN2 ECN1 BRL ECP1 ECP2; do echo -n ${dBase}_${section}_${build}/${fBase}_${section}_${build}.root" "; done`
-    root -b -q -l runValidation.C\(\"_${oBase}_FullDet_${build}\",0,1\)
+    root -b -q -l plotting/runValidation.C\(\"_${oBase}_FullDet_${build}\",0,1\)
 done
-root -b -q -l makeValidation.C\(\"${oBase}_FullDet\",1\)
+root -b -q -l plotting/makeValidation.C\(\"${oBase}_FullDet\",1\)
 
 make distclean

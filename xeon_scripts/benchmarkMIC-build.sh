@@ -5,16 +5,16 @@ fin=${BIN_DATA_PATH}/PU70/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSi
 
 runBenchmark()
 {
-#    for sV in "sim " "see --cmssw-seeds --clean-seeds"; do echo $sV | while read -r sN sO sC; do
-    for sV in "see --cmssw-seeds --clean-seeds"; do echo $sV | while read -r sN sO sC; do
-            if [ "${1}" == "0" ]; then
-                sC=""
+#    for sV in "sim --cmssw-simseeds" "see --cmssw-stdseeds"; do echo $sV | while read -r sN sO; do
+    for sV in "see --cmssw-stdseeds"; do echo $sV | while read -r sN sO; do
+            if [ "${1}" == "1" ]; then
+                sO="--cmssw-n2seeds"
             fi
             for bV in "BH bh" "STD std" "CE ce"; do echo $bV | while read -r bN bO; do
 		    oBase=${base}_${sN}_${bN}
 		    for nTH in 1 4 8 16 32; do
 		        echo "${oBase}: benchmark [nTH:${nTH}, nVU:8]"
-		        time ./mkFit/mkFit --geom CMS-2017 --read --file-name ${fin} --build-${bO} ${sO} ${sC} --num-thr ${nTH} >& log_${oBase}_NVU8int_NTH${nTH}_benchmark.txt
+		        time ./mkFit/mkFit --input-file ${fin} --build-${bO} ${sO} --num-thr ${nTH} >& log_${oBase}_NVU8int_NTH${nTH}_benchmark.txt
 		    done
                 done
             done
@@ -58,16 +58,16 @@ ECP2=${BIN_DATA_PATH}/10muEta17to24Pt1to10/memoryFile.fv3.recT.072617.bin
 
 runBenchmarkSections()
 {
-    for sV in "sim " "see --cmssw-seeds --clean-seeds"; do echo $sV | while read -r sN sO sC; do
-            if [ "${1}" == "0" ]; then
-                sC=""
+    for sV in "sim --cmssw-seeds" "see --cmssw-stdseeds"; do echo $sV | while read -r sN sO; do
+            if [ "${1}" == "1" ]; then
+                sO="--cmssw-n2seeds"
             fi
             for section in ECN2 ECN1 BRL ECP1 ECP2; do
                 for bV in "BH bh" "STD std" "CE ce"; do echo $bV | while read -r bN bO; do
                         oBase=${base}_${sN}_${section}_${bN}
                         nTH=8
                         echo "${oBase}: benchmark [nTH:${nTH}, nVU:8]"
-                        time ./mkFit/mkFit --geom CMS-2017 --read --file-name ${!section} --build-${bO} ${sO} ${sC} --num-thr ${nTH} >& log_${oBase}_NVU8int_NTH${nTH}_benchmark.txt
+                        time ./mkFit/mkFit --input-file ${!section} --build-${bO} ${sO} --num-thr ${nTH} >& log_${oBase}_NVU8int_NTH${nTH}_benchmark.txt
                     done
                 done
             done

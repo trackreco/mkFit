@@ -1,5 +1,5 @@
 #if  !defined(__CINT__)
-#include "PlotValidation.hh"
+#include "plotting/PlotValidation.hh"
 #endif
 
 void setupcpp11()
@@ -20,7 +20,7 @@ void runValidation(TString test = "", Bool_t computePulls = false, Bool_t cmsswC
 {
   setupcpp11(); //  use this to get PlotValidation to compile ... phiphi ROOT build has ACLiC with C++98!
 
-  gROOT->LoadMacro("PlotValidation.cpp+g");
+  gROOT->LoadMacro("plotting/PlotValidation.cpp+g");
 
   // PlotValidation arguments
   // First is additional input name of root file
