@@ -229,17 +229,16 @@ public:
 
       if (hitIdx >= 0)
       {
-        if (hitsOnTrk_[lastHitIdx_].index < 0)
-          ++nFoundHits_;
-        chi2_+=chi2;
+        ++nFoundHits_;
+        chi2_ += chi2;
         hitsOnTrk_[lastHitIdx_] = { hitIdx, hitLyr };
       }
       else if (hitIdx == -2)
       {
-        if (hitsOnTrk_[lastHitIdx_].index >= 0)
-          --nFoundHits_;
         hitsOnTrk_[lastHitIdx_] = { hitIdx, hitLyr };
       }
+
+      setHasNonStoredHits();
     }
   }
 
@@ -329,7 +328,15 @@ public:
   CUDA_CALLABLE int  nFoundHits() const { return nFoundHits_; }
   CUDA_CALLABLE int  nTotalHits() const { return lastHitIdx_+1; }
 
-  int  nUniqueLayers() const 
+  int nStoredFoundHits() const
+  {
+    int n;
+    for (int i = 0; i <= lastHitIdx_; ++i)
+      if (hitsOnTrk_[i].index >= 0) ++n;
+    return n;
+  }
+
+  int nUniqueLayers() const
   {
     int lyr_cnt  =  0;
     int prev_lyr = -1;
@@ -375,14 +382,19 @@ public:
         bool not_findable : 1;
 
         // Set to true when number of holes would exceed an external limit, Config::maxHolesPerCand.
-        // XXXXMT Not used yet, -3 last hit idx is still used! Need to add it to MkFi**r classes.
+        // XXXXMT Not used yet, -2 last hit idx is still used! Need to add it to MkFi**r classes.
+        // Problem is that I have to carry bits in/out of the MkFinder, too.
         bool stopped : 1;
 
         // Production type (most useful for sim tracks): 0, 1, 2, 3 for unset, signal, in-time PU, oot PU
         unsigned int prod_type : 2;
 
+        // Set to true when hit-on-track array grows to the limits and last hits
+        // have to get overwritten.
+        bool has_non_stored_hits : 1;
+
         // The rest, testing if mixing int and unsigned int is ok.
-        int          _some_free_bits_ : 11;
+        int          _some_free_bits_ : 10;
         unsigned int _more_free_bits_ : 17;
       };
 
@@ -406,6 +418,9 @@ public:
   enum class ProdType { NotSet = 0, Signal = 1, InTimePU = 2, OutOfTimePU = 3};
   ProdType prodType()  const { return ProdType(status_.prod_type); }
   void setProdType(ProdType ptyp) { status_.prod_type = uint(ptyp); }
+
+  bool hasNonStoredHits() const { return status_.has_non_stored_hits; }
+  void setHasNonStoredHits()    { status_.has_non_stored_hits = true; }
 
   // To be used later
   // bool isStopped() const { return status_.stopped; }
