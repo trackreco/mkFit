@@ -10,6 +10,25 @@
 #include <cmath>
 #include <cstdio>
 
+//==============================================================================
+
+enum WithinSensitiveRegion_e
+{
+  WSR_Undef = -1, WSR_Inside = 0, WSR_Edge, WSR_Outside
+};
+
+struct WSR_Result
+{
+  // Could also store XHitSize count equivalent here : 16;
+  WithinSensitiveRegion_e m_wsr    : 8;
+  bool                    m_in_gap : 8;
+
+  WSR_Result() : m_wsr(WSR_Undef), m_in_gap(false) {}
+
+  WSR_Result(WithinSensitiveRegion_e wsr, bool in_gap) : m_wsr(wsr), m_in_gap(in_gap) {}
+};
+
+//==============================================================================
 
 class LayerInfo
 {
@@ -66,6 +85,29 @@ public:
 
   bool  is_in_rsqr_hole(float r2)       const { return m_has_r_range_hole ? is_in_r2_hole(r2) : false; }
   bool  is_in_xy_hole(float x, float y) const { return m_has_r_range_hole ? is_in_r2_hole(x*x + y*y): false; }
+
+  WSR_Result is_within_z_sensitive_region(float z, float dz) const
+  {
+    if (z > m_zmax + dz || z < m_zmin - dz)  return WSR_Result(WSR_Outside, false);
+    if (z < m_zmax - dz && z > m_zmin + dz)  return WSR_Result(WSR_Inside,  false);
+    return WSR_Result(WSR_Edge, false);
+  }
+
+  WSR_Result is_within_r_sensitive_region(float r, float dr) const
+  {
+    if (r > m_rout + dr || r < m_rin - dr)  return WSR_Result(WSR_Outside, false);
+    if (r < m_rout - dr && r > m_rin + dr)
+    {
+      if (m_has_r_range_hole)
+      {
+        const float r2 = r*r;
+        if (r < m_hole_r2_max - dr && r > m_hole_r2_min + dr)  return WSR_Result(WSR_Outside, true);
+        if (r < m_hole_r2_max + dr && r > m_hole_r2_min - dr ) return WSR_Result(WSR_Edge,    true);
+      }
+      return WSR_Result(WSR_Inside, false);
+    }
+    return WSR_Result(WSR_Edge, false);
+  }
 
   void  print_layer()
   {

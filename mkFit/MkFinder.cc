@@ -199,6 +199,8 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
       q =  z;
       dq = dz;
+
+      XWsrResult[itrack] = L.is_within_z_sensitive_region(z, dz);
     }
     else // endcap
     {
@@ -223,6 +225,8 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
       q =  r;
       dq = dr;
+
+      XWsrResult[itrack] = L.is_within_r_sensitive_region(r, dr);
     }
 
     dphi = std::min(std::abs(dphi), L.max_dphi());
@@ -238,6 +242,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     pb1v[itrack] = L.GetPhiBin(phi - dphi);
     pb2v[itrack] = L.GetPhiBin(phi + dphi) + 1;
     // MT: The extra phi bins give us ~1.5% more good tracks at expense of 10% runtime.
+    //     That was for 10k cylindrical cow, I think.
     // const int pb1 = L.GetPhiBin(phi - dphi) - 1;
     // const int pb2 = L.GetPhiBin(phi + dphi) + 2;
   }
@@ -247,6 +252,12 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
   //#pragma simd
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
+    if (XWsrResult[itrack].m_wsr == WSR_Outside)
+    {
+      XHitSize[itrack] = -1;
+      continue;
+    }
+
     const float q = qv[itrack];
     const float phi = phiv[itrack];
 
@@ -465,17 +476,20 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
 #pragma simd
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
-    // XXXXMT HACK ... SKIP missed layers here.
-    // Can/should be done earlier?
-    bool is_brl = layer_of_hits.is_barrel();
-    float q = is_brl ? Par[iP](itrack,2,0) : std::hypot(Par[iP](itrack,0,0), Par[iP](itrack,1,0));
-    if ( ! layer_of_hits.m_layer_info->is_within_q_limits(q))
+    if (XWsrResult[itrack].m_wsr == WSR_Outside)
     {
+      // Why am I doing this?
       msErr.SetDiagonal3x3(itrack, 666);
       msPar(itrack,0,0) = Par[iP](itrack,0,0);
       msPar(itrack,1,0) = Par[iP](itrack,1,0);
       msPar(itrack,2,0) = Par[iP](itrack,2,0);
-      // Don't update chi2
+
+      // XXXX If not in gap, should get back the old track params. But they are gone ...
+      // Would actually have to do it right after SelectHitIndices where update params are still ok.
+      // Here they got screwed during hit matching.
+      // So, I'd store them there (into propagated params) and retrieve them here.
+      // Or we decide not to care ...
+
       continue;
     }
 
@@ -499,8 +513,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
     {
       int fake_hit_idx = -1;
 
-      if (layer_of_hits.is_endcap() &&
-          layer_of_hits.is_in_xy_hole(Par[iP](itrack,0,0), Par[iP](itrack,1,0)))
+      if (XWsrResult[itrack].m_wsr == WSR_Edge)
       {
         // YYYYYY Config::store_missed_layers
         fake_hit_idx = -3;
@@ -674,9 +687,7 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
   {
     // XXXXMT HACK ... put in original track if a layer was missed completely.
     // Can/should be done earlier?
-    bool is_brl = layer_of_hits.is_barrel();
-    float q = is_brl ? Par[iP](itrack,2,0) : std::hypot(Par[iP](itrack,0,0), Par[iP](itrack,1,0));
-    if ( ! layer_of_hits.m_layer_info->is_within_q_limits(q))
+    if (XWsrResult[itrack].m_wsr == WSR_Outside)
     {
       Track newcand;
       copy_out(newcand, itrack, iP);
@@ -686,8 +697,7 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
 
     int fake_hit_idx = num_invalid_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
 
-    if (layer_of_hits.is_endcap() &&
-        layer_of_hits.is_in_xy_hole(Par[iP](itrack,0,0), Par[iP](itrack,1,0)))
+    if (XWsrResult[itrack].m_wsr == WSR_Edge)
     {
       // YYYYYY Config::store_missed_layers
       fake_hit_idx = -3;
@@ -828,19 +838,12 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 
     int fake_hit_idx = num_invalid_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
 
-    // XXXXMT HACK ... put a special code -4 if a layer was missed completely.
-    // The hit is then ignored in CandCloner.
-    // Can/should the "miss-layer" test be done earlier?
-    bool is_brl = layer_of_hits.is_barrel();
-    float q = is_brl ? Par[iP](itrack,2,0) : std::hypot(Par[iP](itrack,0,0), Par[iP](itrack,1,0));
-    if ( ! layer_of_hits.m_layer_info->is_within_q_limits(q))
+    if (XWsrResult[itrack].m_wsr == WSR_Outside)
     {
       fake_hit_idx = -4;
     }
-    else if (layer_of_hits.is_endcap() &&
-             layer_of_hits.is_in_xy_hole(Par[iP](itrack,0,0), Par[iP](itrack,1,0)))
+    else if (XWsrResult[itrack].m_wsr == WSR_Edge)
     {
-      // YYYYYY Config::store_missed_layers
       fake_hit_idx = -3;
     }
 

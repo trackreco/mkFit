@@ -1,3 +1,79 @@
+Better sensitive region checks, layer skipping, HoT in tree storage
+-------------------------------------------------------------------
+
+./mkFit --cmssw-seeds --clean-seeds --read --file-name /bar/mic/ttbar_pu.bin --build-ce --geom CMS-2017 --num-events 100 --best-out-of 3
+
+Before: ???
+
+After adding checks in SelectHitIndices and storage of WSR_Result
+13.97138
+
+After removing (now duplicate) checks in FindCandidatesCloneEngine()
+13.81581
+
+
+Stash of HoTNode/Tree for commit of HitStructures.h. Goes after
+EventOfHits << FNORD
+
+struct HoTNode
+{
+  HitOnTrack m_hot;
+  int        m_prev;
+  // could have short m_prev, m_ref_count ... if ref-count is needed.
+
+  HoTNode() {}
+
+  HoTNode(HitOnTrack hot, int prev) : m_hot(hot), m_prev(prev) {}
+};
+
+struct HoTTree
+{
+  std::vector<HoTNode> m_nodes;
+
+  HoTTree(int max_size)
+  {
+    m_nodes.reserve(max_size);
+    // For CE it's something like:
+    //   n_seed + max_cand * (max_layers - n_seed)
+    //   4 + 8 * (32 - 3) = 236
+    // Not sure for std. Not relevant for BestHit as it is now.
+  }
+
+  // Probably will be around for a long while ... growing as needed.
+
+  // API for adding hits.
+};
+
+// Could have common base with Track.
+// Track could subclass TrackState.
+
+class Candidate
+{
+  TrackState m_state;
+  int        m_last_hit_node;
+  float      m_chi2;
+  // int n_hits, n_holes, n_good_hits
+};
+
+class Seedling
+{
+  // vector or array of Candidates. hmmh, probably different size for CE vs. Std.
+  // Not if we do selective output from std, not final sorting.
+  HoTTree m_hot_tree;
+  int     m_label;
+  // is_complete
+  // arrays for chi2 so we can do selection? then not needed in Canditate?
+};
+
+
+//==============================================================================
+//==============================================================================
+
+FNORD
+
+--------------------------------------------------------------------------------
+
+
 #########
 Open issues with endcap
 #########

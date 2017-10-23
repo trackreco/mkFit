@@ -2,7 +2,7 @@
 #define MkFinder_h
 
 #include "MkBase.h"
-
+#include "TrackerInfo.h"
 #include "Track.h"
 
 class CandCloner;
@@ -62,6 +62,7 @@ public:
   MPlexQI    CandIdx; // candidate index for the given seed (for bookkeeping of clone engine)
 
   // Hit indices into LayerOfHits to explore.
+  WSR_Result  XWsrResult[NN]; // Could also merge it with XHitSize. Or use smaller arrays.
   MPlexQI     XHitSize;
   MPlexHitIdx XHitArr;
 
