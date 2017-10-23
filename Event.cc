@@ -469,19 +469,8 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
   {
     int nts; 
     fread(&nts, sizeof(int), 1, fp);
-    if (Config::readSimTrackStates)
-    {
-      simTrackStates_.resize(nts);
-      for (int i = 0; i < nts; ++i)
-      {
-	fread(&simTrackStates_[i], data_file.f_header.f_sizeof_trackstate, 1, fp);      
-      }
-    }
-    else
-    {
-      fseek(fp, nts * data_file.f_header.f_sizeof_trackstate, SEEK_CUR);
-      nts = -nts;
-    }
+    simTrackStates_.resize(nts);
+    fread(&simTrackStates_[0], sizeof(TrackState), nts, fp);
   }
 
   int nl;
