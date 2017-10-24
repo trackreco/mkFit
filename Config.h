@@ -9,8 +9,6 @@ class TrackerInfo;
 #include <string> // won't compile on clang gcc for mac OS w/o this!
 #include <map>
 
-//#define PRINTOUTS_FOR_PLOTS
-
 #if defined(__CUDACC__)
   #define CUDA_CALLABLE __host__ __device__
 #else
@@ -281,6 +279,7 @@ namespace Config
   extern bool   useCMSGeom;
   extern bool   readCmsswTracks;
 
+  extern bool   dumpForPlots;
   extern bool   silent;
 
   void RecalculateDependentConstants();

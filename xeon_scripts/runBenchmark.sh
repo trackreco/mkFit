@@ -2,75 +2,51 @@
 
 [ -z "$ROOTSYS" ] && source ~matevz/root/bin/thisroot.sh
 
-# tmp(?) due to file format changes
-export TOYMCUSER=dsr
-export CMSMCUSER=dsr
+sample="CMSSW_TTbar_PU70"
 
-##### Generate toyMC samples first #####
-./generateToyMCsamples.sh
+##### Benchmark Tests #####
+for archV in "SNB snb" "KNC knc" "KNL knl"
+    do echo $archV | while read -r archN archO
+	do
+	echo "Run benchmarking on" ${archN}
+	./xeon_scripts/benchmark-${archO}-cmssw-ttbar-fulldet-build.sh
+	
+	echo "Extract benchmarking results for" ${archN}
+	python plotting/makeBenchmarkPlots.py ${archN} ${sample}
 
-##### SNB Tests #####
-## ToyMC ##
-./benchmark-snb-toymc-barrel-build.sh
-./benchmark-snb-toymc-barrel-fit.sh
-python makeBenchmarkPlots.py SNB ToyMC Barrel
-root -b -q -l makeBenchmarkPlots.C
-root -b -q -l makeBenchmarkPlotsFit.C
+	echo "Make final plot comparing different build options for" ${archN}
+	root -b -q -l plotting/makeBenchmarkPlots.C\(\"${archN}\",\"${sample}\"\)	
 
-./benchmark-snb-toymc-endcap-fit.sh
-python makeBenchmarkPlots.py SNB ToyMC Endcap
-root -b -q -l makeBenchmarkPlotsFit.C\(0,1\)
+	echo "Extract multiple events in flight benchmark results for" ${archN}
+	python plotting/makeMEIFBenchmarkPlots.py ${archN} ${sample}
 
-## CMSSW ##
-./benchmark-snb-cmssw-barrel-build.sh
-python makeBenchmarkPlots.py SNB CMSSW Barrel
-root -b -q -l makeBenchmarkPlots.C\(0,1\)
-
-./benchmark-snb-cmssw-endcap-build.sh
-python makeBenchmarkPlots.py SNB CMSSW Endcap
-root -b -q -l makeBenchmarkPlots.C\(0,1,1\)
-
-##### KNC Tests #####
-## ToyMC ##
-./benchmark-knc-toymc-barrel-build.sh
-./benchmark-knc-toymc-barrel-fit.sh
-python makeBenchmarkPlots.py KNC ToyMC Barrel
-root -b -q -l makeBenchmarkPlots.C\(1\)
-root -b -q -l makeBenchmarkPlotsFit.C\(1\)
-
-./benchmark-knc-toymc-endcap-fit.sh
-python makeBenchmarkPlots.py KNC ToyMC Endcap
-root -b -q -l makeBenchmarkPlotsFit.C\(1,1\)
-
-## CMSSW ##
-./benchmark-knc-cmssw-barrel-build.sh
-python makeBenchmarkPlots.py KNC CMSSW Barrel
-root -b -q -l makeBenchmarkPlots.C\(1,1\)
+	echo "Make final plot comparing mulitple events in flight for" ${archN}
+	root -b -q -l plotting/makeMEIFBenchmarkPlots.C\(\"${archN}\",\"${sample}\"\)	
+    done
+done
 
 ##### nHits plots #####
-for test in BH STD CE; do 
-    echo "Making nHits plots for ToyMC Barrel:" ${test}
-    python makePlotsFromDump.py SNB ToyMC Barrel ${test} NVU1_NTH1
-    python makePlotsFromDump.py SNB ToyMC Barrel ${test} NVU8int_NTH24
-    python makePlotsFromDump.py KNC ToyMC Barrel ${test} NVU1_NTH1
-    python makePlotsFromDump.py KNC ToyMC Barrel ${test} NVU16int_NTH240
-    root -b -q -l makePlotsFromDump.C\(\"${test}\"\)
+for build in BH STD CE
+do 
+    echo "Making nHits plots for" ${sample} ":" ${build}
     
-    echo "Making nHits plots for CMSSW Barrel:" ${test}
-    python makePlotsFromDump.py SNB CMSSW Barrel ${test} NVU1_NTH1
-    python makePlotsFromDump.py SNB CMSSW Barrel ${test} NVU8int_NTH24
-    python makePlotsFromDump.py KNC CMSSW Barrel ${test} NVU1_NTH1
-    python makePlotsFromDump.py KNC CMSSW Barrel ${test} NVU16int_NTH240
-    root -b -q -l makePlotsFromDump.C\(\"${test}\",1\)
-     
-    echo "Making nHits plots for CMSSW Endcap:" ${test}
-    python makePlotsFromDump.py SNB CMSSW Endcap ${test} NVU1_NTH1
-    python makePlotsFromDump.py SNB CMSSW Endcap ${test} NVU8int_NTH24
-    root -b -q -l makePlotsFromDump.C\(\"${test}\",1,1\)
+    for archV in "SNB NVU8int_NTH24" "KNC NVUY16int_NTH240" "KNL NVU16int_NTH256"
+    do echo $archV | while read -r archN archO
+	do
+	    echo "Extracting nHits for" ${archN} NVU1_NTH1 
+	    python plotting/makePlotsFromDump.py ${archN} ${sample} ${build} NVU1_NTH1
+
+	    echo "Extracting nHits for" ${archN} ${archO}
+	    python plotting/makePlotsFromDump.py ${archN} ${sample} ${build} ${archO}
+	done
+    done
+
+    echo "Making final plot comparing nHits for" ${sample} ":" ${build}
+    root -b -q -l plotting/makePlotsFromDump.C\(\"${sample}\",\"${build}\"\)
 done
 
 ##### Validation tests #####
-./validation-snb-toymc-fulldet-build.sh
-./validation-snb-cmssw-fulldet-build.sh
+echo "Running ROOT based validation"
+./val_scripts/validation-snb-cmssw-ttbar-fulldet-build-allval.sh
 
 make distclean

@@ -1,5 +1,5 @@
-#ifndef PlotValidation_hh
-#define PlotValidation_hh
+#ifndef _PlotValidation_
+#define _PlotValidation_
 
 #include "TFile.h"
 #include "TEfficiency.h"

@@ -606,7 +606,7 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
   printf("Total hits in all layers = %d\n", total_hits);
 #endif
 
-  printf("Read complete, %d simtracks on file.\n", nt);
+  if (!Config::silent) printf("Read complete, %d simtracks on file.\n", nt);
 }
 
 int Event::clean_cms_simtracks()

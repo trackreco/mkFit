@@ -1,5 +1,5 @@
 #if  !defined(__CINT__)
-#include "plotting/StackValidation.hh"
+#include "plotting/PlotMEIFBenchmarks.hh"
 #endif
 
 void setupcpp11()
@@ -16,12 +16,12 @@ void setupcpp11()
   gSystem->SetMakeExe(o.Data());
 } 
 
-void makeValidation(const TString & label = "", const TString & extra = "", const Bool_t cmsswComp = false)
+void makeMEIFBenchmarkPlots(const TString & arch, const TString & sample)
 {
-  setupcpp11(); //  use this to get StackValidation to compile ... phiphi ROOT build has ACLiC with C++98!
+  setupcpp11(); //  use this to get PlotMEIFBenchmarks to compile ... phiphi ROOT build has ACLiC with C++98!
 
-  gROOT->LoadMacro("plotting/StackValidation.cpp+g");
+  gROOT->LoadMacro("plotting/PlotMEIFBenchmarks.cpp+g");
 
-  StackValidation Stacks(label,extra,cmsswComp);
-  Stacks.MakeValidationStacks();
+  PlotMEIFBenchmarks MEIFBenchmarks(arch,sample);
+  MEIFBenchmarks.RunMEIFBenchmarkPlots();
 }
