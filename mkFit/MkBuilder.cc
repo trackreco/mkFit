@@ -105,11 +105,7 @@ namespace
               << " start from x=" << fir->getPar(0, 0, 0) << " y=" << fir->getPar(0, 0, 1) << " z=" << fir->getPar(0, 0, 2)
               << " r=" << getHypot(fir->getPar(0, 0, 0), fir->getPar(0, 0, 1))
               << " px=" << fir->getPar(0, 0, 3) << " py=" << fir->getPar(0, 0, 4) << " pz=" << fir->getPar(0, 0, 5)
-#ifdef CCSCOORD
               << " pT=" << 1./fir->getPar(0, 0, 3) << std::endl;
-#else
-              << " pT=" << getHypot(fir->getPar(0, 0, 3), fir->getPar(0, 0, 4)) << std::endl;
-#endif
   }
 
   void post_prop_print(int ilay, MkBase* fir) {
@@ -759,7 +755,7 @@ inline void MkBuilder::fit_one_seed_set(TrackVec& seedtracks, int itrack, int en
 
   if (Config::cf_seeding) mkfttr->ConformalFitTracks(false, itrack, end);
 
-  if (Config::readCmsswSeeds == false)
+  if (Config::seedInput != cmsswSeeds)
   {
     mkfttr->FitTracksSteered(is_brl, end - itrack, m_event);
   }
@@ -924,7 +920,7 @@ void MkBuilder::quality_process(Track &tkcand)
 {
   TrackExtra extra(tkcand.label());
   
-  if (Config::readCmsswSeeds || Config::findSeeds)
+  if (Config::seedInput == cmsswSeeds || Config::seedInput == findSeeds)
   {
     extra.setMCTrackIDInfo(tkcand, m_event->layerHits_, m_event->simHitsInfo_, m_event->simTracks_, false);
   }
@@ -997,7 +993,7 @@ void MkBuilder::root_val()
   remap_cand_hits();
   m_event->fitTracks_ = m_event->candidateTracks_; // fixme: hack for now. eventually fitting will be including end-to-end
   prep_recotracks();
-  if (Config::readCmsswSeeds) m_event->clean_cms_simtracks();
+  if (Config::seedInput == cmsswSeeds) m_event->clean_cms_simtracks();
 
   m_event->Validate();
 }
@@ -1024,10 +1020,10 @@ void MkBuilder::prep_recotracks()
 
 void MkBuilder::prep_cmsswtracks()
 {
-  prep_tracks(m_event->extRecTracks_,m_event->extRecTracksExtra_);
+  prep_tracks(m_event->cmsswTracks_,m_event->cmsswTracksExtra_);
 
   // mark cmsswtracks as unfindable if too short
-  for (auto&& cmsswtrack : m_event->extRecTracks_)
+  for (auto&& cmsswtrack : m_event->cmsswTracks_)
   {
     const int nlyr = cmsswtrack.nUniqueLayers();
     const int ihit = cmsswtrack.getLastFoundHitPos();
@@ -1052,62 +1048,65 @@ void MkBuilder::prep_tracks(TrackVec& tracks, TrackExtraVec& extras)
 
 void MkBuilder::PrepareSeeds()
 {
-  if (Config::findSeeds)
+  if (Config::seedInput == simSeeds)
+  {
+    if (Config::useCMSGeom)
+    {
+      m_event->clean_cms_simtracks();
+
+      // printf("\n* Simtracks after cleaning:\n");
+      // m_event->print_tracks(m_event->simTracks_, true);
+      // printf("\n");
+    }
+    create_seeds_from_sim_tracks();
+    import_seeds();
+    map_seed_hits();
+  }
+  else if (Config::seedInput == cmsswSeeds)
+  {
+    m_event->relabel_bad_seedtracks();
+    
+    if (Config::cmssw_val) 
+    {
+      m_event->validation_.makeSeedTkToCMSSWTkMap(*m_event);
+    }
+    
+    int ns = 0;
+    if (Config::seedCleaning == cleanSeedsN2)
+    {
+      ns = m_event->clean_cms_seedtracks();
+    }
+    else if (Config::seedCleaning == cleanSeedsPure)
+    {
+      ns = m_event->use_seeds_from_cmsswtracks();
+    }
+    else if (Config::seedCleaning == cleanSeedsBadLabel)
+    {
+      ns = m_event->clean_cms_seedtracks_badlabel();
+    }
+    else if (Config::seedCleaning == noCleaning)
+    {
+      ns = m_event->seedTracks_.size();
+    }
+    else
+    {
+      std::cerr << "Specified reading cmssw seeds, but an incorrect seed cleaning option! Exiting..." << std::endl;
+      exit(1);
+    }
+
+    import_seeds();
+    map_seed_hits();
+  }
+  else if (Config::seedInput == findSeeds)
   {
     find_seeds();
     // XXXMT4K Those should be either sorted or sort should be called afterwards.
     // Note, sort also fills out some eta region info arrays in Event.
   }
-  else
+  else 
   {
-    if ( ! Config::readCmsswSeeds)
-    {
-      if (Config::useCMSGeom)
-      {
-        m_event->clean_cms_simtracks();
-
-        // printf("\n* Simtracks after cleaning:\n");
-        // m_event->print_tracks(m_event->simTracks_, true);
-        // printf("\n");
-      }
-      create_seeds_from_sim_tracks();
-    }
-    else 
-    {
-      m_event->relabel_bad_seedtracks();
-
-      if (Config::cmssw_val) 
-      {
-	m_event->validation_.makeSeedTkToCMSSWTkMap(*m_event);
-      }
-
-      // CMSSW Seed Cleaning 
-      int ns = 0;
-      if (Config::cleanCmsswSeeds)
-      {
-	ns = m_event->clean_cms_seedtracks();
-      }
-      else
-      {
-	if (Config::cmssw_val)
-	{
-	  ns = m_event->use_seeds_from_cmsswtracks();
-	}
-	else 
-	{
-	  ns = m_event->clean_cms_seedtracks_badlabel();
-	}
-      }
-    }
-
-    import_seeds();
-
-    // printf("\n* Seeds after import:\n");
-    // m_event->print_tracks(m_event->seedTracks_, true);
-    // printf("\n");
-
-    // For now, all simulated seeds need to have hit indices line up in LOH for seed fit
-    map_seed_hits();
+    std::cerr << "No input seed collection option selected!! Exiting..." << std::endl;
+    exit(1);
   }
 
   fit_seeds();

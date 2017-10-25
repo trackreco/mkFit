@@ -59,7 +59,7 @@ void initGeom(Geometry& geom)
 #endif
 
   /*
-  if ( ! Config::endcapTest && ! Config::useCMSGeom)
+  if ( ! Config::useCMSGeom)
   {
     // This is the new standalone case -- Cylindrical Cow with Lids
     //Create_TrackerInfo(Config::TrkInfo);
@@ -75,24 +75,10 @@ void initGeom(Geometry& geom)
     float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
     for (int l = 0; l < Config::nLayers; l++)
     {
-      if (Config::endcapTest)
-      {
-        float z = Config::useCMSGeom ? Config::cmsAvgZs[l] : (l+1)*10.;//Config::fLongitSpacing
-        float rmin = Config::useCMSGeom ? Config::cmsDiskMinRs[l] : 0;
-        float rmax = Config::useCMSGeom ? Config::cmsDiskMaxRs[l] : 0;
-        // XXXX MT: Do we need endcap layer "thickness" for cmssw at all? Use equiv of fRadialExtent.
-        // Do we even need geometry for cmssw?
-        float dz = 0.005;
-        VUSolid* utub = new VUSolid(rmin, rmax, z - dz, z + dz, false, l + 1 == Config::nLayers);
-        geom.AddLayer(utub, rmin, z);
-      }
-      else
-      {
         float r = Config::useCMSGeom ? Config::cmsAvgRads[l] : (l+1)*Config::fRadialSpacing;
         float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
         VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent, -z, z, true, l + 1 == Config::nLayers);
         geom.AddLayer(utub, r, z);
-      }
     }
   }
   */
@@ -110,10 +96,65 @@ namespace
   bool  g_seed_based    = false;
 
   std::string g_operation = "simulate_and_process";;
-  std::string g_file_name = "simtracks.bin";
   std::string g_input_file = "";
+  std::string g_output_file = "";
+
+  seedOptsMap g_seed_opts;
+  void init_seed_opts()
+  {
+    g_seed_opts["sim"]   = simSeeds;
+    g_seed_opts["cmssw"] = cmsswSeeds;
+    g_seed_opts["find"]  = findSeeds;
+  }
+
+  cleanOptsMap g_clean_opts;
+  void init_clean_opts()
+  {
+    g_clean_opts["none"]     = noCleaning;
+    g_clean_opts["n2"]       = cleanSeedsN2;
+    g_clean_opts["pure"]     = cleanSeedsPure;
+    g_clean_opts["badlabel"] = cleanSeedsBadLabel;
+  }
 
   const char* b2a(bool b) { return b ? "true" : "false"; }
+}
+
+//==============================================================================
+
+std::string getSeedInput()
+{
+  for (const auto & seed_opt : g_seed_opts)
+  {
+    if (seed_opt.second == Config::seedInput) return seed_opt.first;
+  }
+}
+
+void setSeedInput(const std::string & opt)
+{
+  if (g_seed_opts.count(opt)) Config::seedInput = g_seed_opts[opt];
+  else 
+  {
+    std::cerr << opt.c_str() << " is not a valid seed input option!! Exiting..." << std::endl;
+    exit(1);
+  }
+}
+
+std::string getSeedCleaning()
+{
+  for (const auto & clean_opt : g_clean_opts)
+  {
+    if (clean_opt.second == Config::seedCleaning) return clean_opt.first;
+  }
+}
+
+void setSeedCleaning(const std::string & opt)
+{
+  if (g_clean_opts.count(opt)) Config::seedCleaning = g_clean_opts[opt];
+  else 
+  {
+    std::cerr << opt.c_str() << " is not a valid seed input option!! Exiting..." << std::endl;
+    exit(1);
+  }
 }
 
 //==============================================================================
@@ -124,7 +165,7 @@ void read_and_save_tracks()
   const int Nevents = in.OpenRead(g_input_file, true);
 
   DataFile out;
-  out.OpenWrite(g_file_name, Nevents);
+  out.OpenWrite(g_output_file, Nevents);
 
   printf("writing %i events\n", Nevents);
 
@@ -157,7 +198,7 @@ void generate_and_save_tracks()
   }
 
   DataFile data_file;
-  data_file.OpenWrite(g_file_name, Nevents, extra_sections);
+  data_file.OpenWrite(g_output_file, Nevents, extra_sections);
 
   printf("writing %i events\n", Nevents);
 
@@ -203,9 +244,8 @@ void test_standard()
   printf("  sizeof(Track)=%zu, sizeof(Hit)=%zu, sizeof(SVector3)=%zu, sizeof(SMatrixSym33)=%zu, sizeof(MCHitInfo)=%zu\n",
          sizeof(Track), sizeof(Hit), sizeof(SVector3), sizeof(SMatrixSym33), sizeof(MCHitInfo));
 
-  if (Config::useCMSGeom)     printf ("- using CMS-like geometry\n");
-  if (Config::readCmsswSeeds) printf ("- reading seeds from file\n");
-  if (Config::endcapTest)     printf ("- endcap test enabled (to be nixed)\n");
+  if (Config::useCMSGeom)              printf ("- using CMS-like geometry\n");
+  if (Config::seedInput == cmsswSeeds) printf ("- reading seeds from file\n");
 
   if (g_operation == "write") {
     generate_and_save_tracks();
@@ -223,7 +263,7 @@ void test_standard()
   DataFile data_file;
   if (g_operation == "read")
   {
-    int evs_in_file   = data_file.OpenRead(g_file_name);
+    int evs_in_file   = data_file.OpenRead(g_input_file);
     int evs_available = evs_in_file - g_start_event + 1;
     if (Config::nEvents == -1)
     {
@@ -314,7 +354,7 @@ void test_standard()
     mkbs[i].reset(MkBuilder::make_builder());
     evs[i].reset(new Event(geom, *vals[i], 0));
     if (g_operation == "read") {
-      fps.emplace_back(fopen(g_file_name.c_str(), "r"), [](FILE* fp) { if (fp) fclose(fp); });
+      fps.emplace_back(fopen(g_input_file.c_str(), "r"), [](FILE* fp) { if (fp) fclose(fp); });
     }
 #if USE_CUDA
     constexpr int gplex_width = 10000;
@@ -499,6 +539,9 @@ int main(int argc, const char *argv[])
 
   assert (sizeof(Track::Status) == 4 && "To make sure this is true for icc and gcc<6 when mixing bools/ints in bitfields.");
 
+  init_seed_opts();
+  init_clean_opts();
+
   lStr_t mArgs;
   for (int i = 1; i < argc; ++i)
   {
@@ -528,26 +571,29 @@ int main(int argc, const char *argv[])
         "  --build-std              run standard combinatorial building test (def: false)\n"
         "  --build-ce               run clone engine combinatorial building test (def: false)\n"
         "  --seeds-per-task         number of seeds to process in a tbb task (def: %d)\n"
-        "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
-        "  --ext-rec-tracks         read external rec trakcs if available (def: %s)\n"
-        "  --cmssw-seeds            take seeds from CMSSW (def: %s)\n"
-        "  --clean-seeds            use N^2 seed cleaning on CMSSW seeds, else clean seeds with label == -1 (def: %s)\n"
-        "  --find-seeds             run road search seeding [CF enabled by default] (def: %s)\n"
         "  --hits-per-task <num>    number of layer1 hits per task in finding seeds (def: %i)\n"
-        "  --endcap-test            test endcap tracking (def: %s)\n"
+        "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
+        "  --seed-input    <str>    which seed collecion used for building (def: %s)\n"
+        "  --seed-cleaning <str>    which seed cleaning to apply if using cmssw seeds (def: %s)\n" 
         "  --cf-seeding             enable CF in seeding (def: %s)\n"
         "  --cf-fitting             enable CF in fitting (def: %s)\n"
+        "  --read-cmssw-tracks      read external cmssw reco tracks if available (def: %s)\n"
+	"  --read-simtrack-states   read in simTrackStates for pulls in validation (def: %s)\n"
         "  --root-val               enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
         "  --cmssw-val              enable special CMSSW ROOT based validation for building [eff] (def: %s)\n"
       	"  --fit-val                enable ROOT based validation for fitting (def: %s)\n"
         "  --inc-shorts             include short reco tracks into FR (def: %s)\n"
         "  --hit-match              apply hit matching criteria for CMSSW reco track matching (def: %s)\n"
         "  --silent                 suppress printouts inside event loop (def: %s)\n"
-        "  --write                  write simulation to file and exit\n"
-        "  --read                   read simulation from file\n"
         "  --start-event   <num>    event number to start at when reading from a file (def: %d)\n"
-        "  --file-name              file name for write/read (def: %s)\n"
-        "  --input-file             file name for reading when converting formats (def: %s)\n"
+        "  --input-file             file name for reading (def: %s)\n"
+        "  --output-file            file name for writitng (def: %s)\n"
+	"Combo spaghetti, that's with cole slaw: \n"
+	"  --cmssw-simseeds         use CMS geom with simtracks for seeds \n"
+	"  --cmssw-stdseeds         use CMS geom with CMSSW seeds uncleaned \n"
+	"  --cmssw-n2seeds          use CMS geom with CMSSW seeds cleaned with N^2 routine \n"
+	"  --cmssw-pureseeds        use CMS geom with pure CMSSW seeds (seeds which produced CMSSW reco tracks) \n"
+	"  --cmssw-goodlabelseeds   use CMS geom with CMSSW seeds with label() >= 0 \n"
         "GPU specific options: \n"
         "  --num-thr-reorg <num>    number of threads to run the hits reorganization (def: %d)\n"
         "  --seed-based             For CE. Switch to 1 CUDA thread per seed\n"
@@ -559,15 +605,14 @@ int main(int argc, const char *argv[])
         Config::numThreadsSimulation, Config::numThreadsFinder, Config::numThreadsEvents,
         Config::chi2Cut,
         Config::numSeedsPerTask,
+	Config::numHitsPerTask,
         Config::finderReportBestOutOfN,
-	b2a(Config::readExtRecTracks),
-        b2a(Config::readCmsswSeeds),
-        b2a(Config::cleanCmsswSeeds),
-        b2a(Config::findSeeds),
-      	Config::numHitsPerTask,
-        b2a(Config::endcapTest),
+	getSeedInput().c_str(),
+	getSeedCleaning().c_str(),
         b2a(Config::cf_seeding),
         b2a(Config::cf_fitting),
+	b2a(Config::readCmsswTracks),
+        b2a(Config::readSimTrackStates),
         b2a(Config::root_val),
         b2a(Config::cmssw_val),
         b2a(Config::fit_val),
@@ -575,8 +620,8 @@ int main(int argc, const char *argv[])
 	b2a(Config::applyCMSSWHitMatch),
         b2a(Config::silent),
         g_start_event,
-      	g_file_name.c_str(),
       	g_input_file.c_str(),
+      	g_output_file.c_str(),
 	Config::numThreadsReorg
       );
       exit(0);
@@ -637,35 +682,25 @@ int main(int argc, const char *argv[])
       next_arg_or_die(mArgs, i);
       Config::numSeedsPerTask = atoi(i->c_str());
     }
-    else if(*i == "--best-out-of")
-    {
-      next_arg_or_die(mArgs, i);
-      Config::finderReportBestOutOfN = atoi(i->c_str());
-    }
-    else if(*i == "--ext-rec-tracks")
-    {
-      Config::readExtRecTracks = true;
-    }
-    else if(*i == "--cmssw-seeds")
-    {
-      Config::readCmsswSeeds = true;
-    }
-    else if(*i == "--clean-seeds")
-    {
-      Config::cleanCmsswSeeds = true;
-    }
-    else if(*i == "--find-seeds")
-    {
-      Config::findSeeds = true; Config::cf_seeding = true;
-    }
     else if (*i == "--hits-per-task")
     {
       next_arg_or_die(mArgs, i);
       Config::numHitsPerTask = atoi(i->c_str());
     }
-    else if(*i == "--endcap-test")
+    else if(*i == "--best-out-of")
     {
-      Config::endcapTest = true; Config::nlayers_per_seed = 2; // default is 3 for barrel
+      next_arg_or_die(mArgs, i);
+      Config::finderReportBestOutOfN = atoi(i->c_str());
+    }
+    else if(*i == "--seed-input")
+    {
+      next_arg_or_die(mArgs, i);
+      setSeedInput(*i);
+    }
+    else if(*i == "--seed-cleaning")
+    {
+      next_arg_or_die(mArgs, i);
+      setSeedCleaning(*i);
     }
     else if (*i == "--cf-seeding")
     {
@@ -675,17 +710,25 @@ int main(int argc, const char *argv[])
     {
       Config::cf_fitting = true;
     }
+    else if(*i == "--read-cmssw-tracks")
+    {
+      Config::readCmsswTracks = true;
+    }
+    else if (*i == "--read-simtrack-states")
+    {
+      Config::readSimTrackStates = true;
+    }
     else if (*i == "--root-val")
     {
-      Config::root_val = true; Config::cmssw_val = false; Config::fit_val = false;
+      Config::root_val = true; 
     }
     else if (*i == "--cmssw-val")
     {
-      Config::root_val = false; Config::cmssw_val = true; Config::fit_val = false;
+      Config::cmssw_val = true; Config::readCmsswTracks = true;
     }
     else if (*i == "--fit-val")
     {
-      Config::root_val = false; Config::cmssw_val = false; Config::fit_val = true;
+      Config::fit_val = true;
     }
     else if (*i == "--inc-shorts")
     {
@@ -705,36 +748,59 @@ int main(int argc, const char *argv[])
       next_arg_or_die(mArgs, i);
       Config::numThreadsReorg = atoi(i->c_str());
     }
-    else if(*i == "--write")
-    {
-      g_operation = "write";
-    }
-    else if(*i == "--read")
-    {
-      g_operation = "read";
-      Config::nEvents = -1;
-    }
     else if (*i == "--start-event")
     {
       next_arg_or_die(mArgs, i);
       g_start_event = atoi(i->c_str());
     }
-    else if(*i == "--file-name")
+    else if (*i == "--input-file")
     {
       next_arg_or_die(mArgs, i);
-      g_file_name = *i;
-    }
-    else if(*i == "--input-file")
-    {
-      next_arg_or_die(mArgs, i);
-      g_operation = "convert";
       g_input_file = *i;
+      g_operation = "read";
+      Config::nEvents = -1;
     }
-    else if(*i == "--silent")
+    else if (*i == "--output-file")
+    {
+      next_arg_or_die(mArgs, i);
+      g_output_file = *i;
+      g_operation = "write";
+    }
+    else if (*i == "--silent")
     {
       Config::silent = true;
     }
-    else if(*i == "--seed-based")
+    else if (*i == "--cmssw-simseeds")
+    {
+      Config::geomPlugin = "CMS-2017";
+      Config::seedInput  = simSeeds;
+    }
+    else if (*i == "--cmssw-stdseeds")
+    {
+      Config::geomPlugin   = "CMS-2017";
+      Config::seedInput    = cmsswSeeds;
+      Config::seedCleaning = noCleaning;
+    }
+    else if (*i == "--cmssw-n2seeds")
+    {
+      Config::geomPlugin   = "CMS-2017";
+      Config::seedInput    = cmsswSeeds;
+      Config::seedCleaning = cleanSeedsN2;
+    }
+    else if (*i == "--cmssw-pureseeds")
+    {
+      Config::geomPlugin      = "CMS-2017";
+      Config::seedInput       = cmsswSeeds;
+      Config::seedCleaning    = cleanSeedsPure;
+      Config::readCmsswTracks = true;
+    }
+    else if (*i == "--cmssw-goodlabelseeds")
+    {
+      Config::geomPlugin   = "CMS-2017";
+      Config::seedInput    = cmsswSeeds;
+      Config::seedCleaning = cleanSeedsBadLabel;
+    }
+    else if (*i == "--seed-based")
     {
       g_seed_based = true;
     }
@@ -745,6 +811,11 @@ int main(int argc, const char *argv[])
     }
 
     mArgs.erase(start, ++i);
+  }
+
+  if (g_input_file != "" && g_output_file != "")
+  {
+    g_operation = "convert";
   }
 
   Config::RecalculateDependentConstants();

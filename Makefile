@@ -43,6 +43,7 @@ clean-local:
 	-rm -f ${TGTS} *.d *.o *.om *.so
 	-rm -rf main.dSYM
 	-rm -rf USolids-{host,mic}
+	-rm -rf plotting/*.so plotting/*.d
 
 clean: clean-local
 	cd mkFit && ${MAKE} clean

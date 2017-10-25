@@ -86,7 +86,6 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, TrackState&
   float py = std::copysign( k*vrx , (y[2]-y[0]) );
   float pz = (pt * (z[2]-z[0])) / std::sqrt(getRad2((x[2]-x[0]) , (y[2]-y[0])));
   
-#ifdef CCSCOORD
   fitStateHit0.parameters[3] = 1.0f/pt;
   fitStateHit0.parameters[4] = getPhi(px,py);
   fitStateHit0.parameters[5] = getTheta(pt,pz);
@@ -96,29 +95,4 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, TrackState&
   fitStateHit0.errors[3][3] = (fiterrs ? Config::ptinverr049 * Config::ptinverr049 : Config::ptinverr012 * Config::ptinverr012);
   fitStateHit0.errors[4][4] = (fiterrs ? Config::phierr049   * Config::phierr049   : Config::phierr012   * Config::phierr012);
   fitStateHit0.errors[5][5] = (fiterrs ? Config::thetaerr049 * Config::thetaerr049 : Config::thetaerr012 * Config::thetaerr012);
-#else
-#ifdef INWARDFIT
-  if (fiterrs) { // need conformal fit on seeds to be forward!
-    px*=-1.;
-    py*=-1.;
-    pz*=-1.;
-  }
-#endif
-  //return px,py,pz
-  fitStateHit0.parameters[3] = px;
-  fitStateHit0.parameters[4] = py;
-  fitStateHit0.parameters[5] = pz;
-
-  //get them a posteriori from width of residue plots (i.e. unitary pulls) + global maxima scan of nHits / track in super debug mode
-  const float pt2 = pt*pt;
-  const float pz2 = pz*pz;
-
-  const float varPt    = (fiterrs ? Config::ptinverr049 * Config::ptinverr049 : Config::ptinverr012 * Config::ptinverr012) * pt2;
-  const float varPhi   = (fiterrs ? Config::phierr049   * Config::phierr049   : Config::phierr012   * Config::phierr012);
-  const float varTheta = (fiterrs ? Config::thetaerr049 * Config::thetaerr049 : Config::thetaerr012 * Config::thetaerr012);
-
-  fitStateHit0.errors[3][3] = px*px*varPt + py*py*varPhi;
-  fitStateHit0.errors[4][4] = py*py*varPt + px*px*varPhi;
-  fitStateHit0.errors[5][5] = pz2  *varPt + ((pz2+pt2)*(pz2+pz2)/pt2)*varTheta;
-#endif // cartesian coords
 }

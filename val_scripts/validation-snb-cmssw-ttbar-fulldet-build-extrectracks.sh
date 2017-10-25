@@ -18,7 +18,7 @@ do
 	do
 	    oBase=${base}_${ttbar}_${bN}
 	    echo "${oBase}: validation [nTH:24, nVU:8]"
-	    ./mkFit/mkFit --cmssw-seeds --clean-seeds --geom CMS-2017 --cmssw-val --ext-rec-tracks --read --file-name ${dir}/${!ttbar}/${file} --build-${bO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_cmsswval.txt
+	    ./mkFit/mkFit --cmssw-n2seeds --cmssw-val --input-file ${dir}/${!ttbar}/${file} --build-${bO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_cmsswval.txt
 	    mv valtree.root valtree_${oBase}.root
 	done
     done
@@ -31,9 +31,9 @@ do
     tbase=${base}_${ttbar}
     for build in BH STD CE
     do
-	root -b -q -l runValidation.C\(\"_${tbase}_${build}\",0,1\)
+	root -b -q -l plotting/runValidation.C\(\"_${tbase}_${build}\",0,1\)
     done
-    root -b -q -l makeValidation.C\(\"${tbase}\",1\)
+    root -b -q -l plotting/makeValidation.C\(\"${tbase}\",1\)
 done
 
 make distclean

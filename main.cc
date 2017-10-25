@@ -13,8 +13,6 @@
 #include "Validation.h"
 #include "BinInfoUtils.h"
 
-#include "fittestEndcap.h"
-
 #ifdef TBB
 #include "tbb/task_scheduler_init.h"
 #endif
@@ -155,8 +153,7 @@ int main(int argc, const char* argv[])
 	"  --cf-seeding             bool to enable CF in MC seeding (def: %s)\n"
 	"  --read                   read input simtracks file (def: false)\n"
 	"  --file-name              file name for write/read (def: %s)\n"
-	"  --cmssw-seeds            take seeds from CMSSW (def: %i)\n"
-	"  --endcap-test            test endcap tracking (def: %i)\n"
+	"  --cmssw-seeds            take seeds from CMSSW (def: %s)\n"
         ,
         argv[0],
         Config::nEvents,
@@ -166,8 +163,7 @@ int main(int argc, const char* argv[])
       	(Config::inclusiveShorts ? "true" : "false"),
 	(Config::cf_seeding ? "true" : "false"),
 	s_file_name.c_str(),
-	Config::readCmsswSeeds,
-	Config::endcapTest
+	(Config::seedInput == cmsswSeeds ? "true" : "false")
       );
       exit(0);
     }
@@ -209,11 +205,7 @@ int main(int argc, const char* argv[])
     }
     else if(*i == "--cmssw-seeds")
     {
-      Config::readCmsswSeeds = true;
-    }
-    else if (*i == "--endcap-test")
-    {
-      Config::endcapTest = true;
+      Config::seedInput == cmsswSeeds;
     }
     else
     {
@@ -251,24 +243,16 @@ int main(int argc, const char* argv[])
     timepoint t0(now());
     if (s_operation != "read")
     {
-      if (!Config::endcapTest) ev.Simulate();
+      ev.Simulate();
     }
     else {
       ev.read_in(data_file);
     }
-
-    if (Config::endcapTest) {
-      //make it standalone for now
-      MCHitInfo::reset();
-      ev.simHitsInfo_.resize(Config::nTotHit * Config::nTracks);
-      fittestEndcap(ev);
-      continue;
-    }
-
+    
     // phi-eta partitioning map: vector of vector of vectors of std::pairs. 
     // vec[nLayers][nEtaBins][nPhiBins]
     BinInfoMap segmentMap;
-
+    
     /*simulate time*/        ticks[0] += delta(t0);
     ev.Segment(segmentMap);  ticks[1] += delta(t0);
     ev.Seed(segmentMap);     ticks[2] += delta(t0);

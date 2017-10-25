@@ -77,8 +77,8 @@ void Event::Reset(int evtID)
   candidateTracksExtra_.clear();
   fitTracks_.clear();
   fitTracksExtra_.clear();
-  extRecTracks_.clear();
-  extRecTracksExtra_.clear();
+  cmsswTracks_.clear();
+  cmsswTracksExtra_.clear();
 
   validation_.resetValidationMaps(); // need to reset maps for every event.
 }
@@ -142,26 +142,15 @@ void Event::Simulate()
 
       int q=0;//set it in setup function
       // do the simulation
-      if (Config::useCMSGeom) setupTrackFromTextFile(pos,mom,covtrk,hits,*this,itrack,q,tmpgeom,initialTSs);
-      else if (Config::endcapTest) setupTrackByToyMCEndcap(pos,mom,covtrk,hits,*this,itrack,q,tmpgeom,initialTSs);
-      else setupTrackByToyMC(pos,mom,covtrk,hits,hitinfos,*this,itrack,q,tmpgeom,initialTSs); 
+      setupTrackByToyMC(pos,mom,covtrk,hits,hitinfos,*this,itrack,q,tmpgeom,initialTSs); 
 
-      // XXMT4K What genius set up separate setupTrackByToyMC / setupTrackByToyMCEndcap?
-      // setupTrackByToyMCEndcap does not have scattering and who knows what else.
-      // In the original commit Giuseppe he only did fittest ... strangle ... etc ...
-      // I'll just review/fix setupTrackByToyMC() for now (so Config::endcapTest = false).
-      // See also ifdef just below:
-
-#ifdef CCSCOORD
-      // setupTrackByToyMCEndcap is already in CCS coord, no need to convert
-      if (Config::endcapTest==false) {
-	float pt = sqrt(mom[0]*mom[0]+mom[1]*mom[1]);
-	mom=SVector3(1./pt,atan2(mom[1],mom[0]),atan2(pt,mom[2]));
-	for (int its = 0; its < initialTSs.size(); its++){
-	  initialTSs[its].convertFromCartesianToCCS();
-	}
+      // convert from global cartesian to CCS
+      float pt = sqrt(mom[0]*mom[0]+mom[1]*mom[1]);
+      mom=SVector3(1./pt,atan2(mom[1],mom[0]),atan2(pt,mom[2]));
+      for (int its = 0; its < initialTSs.size(); its++){
+	initialTSs[its].convertFromCartesianToCCS();
       }
-#endif
+
       // MT: I'm putting in a mutex for now ...
       std::lock_guard<std::mutex> lock(mcGatherMutex_);
 
@@ -207,7 +196,7 @@ void Event::Simulate()
   {
     tmpTSVec[its] = simTrackStates_[mcHitIDMap[its]];
   }
-  simTrackStates_ = tmpTSVec;
+  simTrackStates_.swap(tmpTSVec);
 }
 
 void Event::Segment(BinInfoMap & segmentMap)
@@ -424,10 +413,10 @@ void Event::write_out(DataFile &data_file)
     evsize += sizeof(int) + ns*sizeof(Track);
   }
 
-  if (data_file.HasExtRecTracks()) {
-    int nert = extRecTracks_.size();
+  if (data_file.HasCmsswTracks()) {
+    int nert = cmsswTracks_.size();
     fwrite(&nert, sizeof(int), 1, fp);
-    fwrite(&extRecTracks_[0], sizeof(Track), nert, fp);
+    fwrite(&cmsswTracks_[0], sizeof(Track), nert, fp);
     evsize += sizeof(int) + nert*sizeof(Track);
   }
 
@@ -502,7 +491,7 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
   if (data_file.HasSeeds()) {
     int ns;
     fread(&ns, sizeof(int), 1, fp);
-    if (Config::readCmsswSeeds)
+    if (Config::seedInput == cmsswSeeds)
     {
       seedTracks_.resize(ns);
       for (int i = 0; i < ns; ++i)
@@ -542,16 +531,16 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
 #endif
   }
 
-  if (data_file.HasExtRecTracks())
+  if (data_file.HasCmsswTracks())
   {
     int nert;
     fread(&nert, sizeof(int), 1, fp);
-    if (Config::readExtRecTracks)
+    if (Config::readCmsswTracks)
     {
-      extRecTracks_.resize(nert);
+      cmsswTracks_.resize(nert);
       for (int i = 0; i < nert; ++i)
       {
-        fread(&extRecTracks_[i], data_file.f_header.f_sizeof_track, 1, fp);
+        fread(&cmsswTracks_[i], data_file.f_header.f_sizeof_track, 1, fp);
       }
     }
     else
@@ -806,7 +795,7 @@ int Event::use_seeds_from_cmsswtracks()
   cleanSeedTracks.reserve(ns);
 
   int i = 0;
-  for (auto&& cmsswtrack : extRecTracks_)
+  for (auto&& cmsswtrack : cmsswTracks_)
   {
     cleanSeedTracks.emplace_back(seedTracks_[cmsswtrack.label()]);
   }
@@ -874,17 +863,17 @@ int DataFile::OpenRead(const std::string& fname, bool set_n_layers)
     printf("  Extra sections:");
     if (f_header.f_extra_sections & ES_SimTrackStates) printf(" SimTrackStates");
     if (f_header.f_extra_sections & ES_Seeds)          printf(" Seeds");
-    if (f_header.f_extra_sections & ES_ExtRecTracks)   printf(" ExtRecTracks");
+    if (f_header.f_extra_sections & ES_CmsswTracks)    printf(" CmsswTracks");
     printf("\n");
   }
 
-  if (Config::readCmsswSeeds && ! HasSeeds()) {
+  if (Config::seedInput == cmsswSeeds && ! HasSeeds()) {
     fprintf(stderr, "Reading of CmsswSeeds requested but data not available on file.\n");
     exit(1);
   }
 
-  if (Config::readExtRecTracks && ! HasExtRecTracks()) {
-    fprintf(stderr, "Reading of ExtRecTracks requested but data not available on file.\n");
+  if (Config::readCmsswTracks && ! HasCmsswTracks()) {
+    fprintf(stderr, "Reading of CmsswTracks requested but data not available on file.\n");
     exit(1);
   }
 

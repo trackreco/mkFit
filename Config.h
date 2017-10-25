@@ -7,15 +7,23 @@ class TrackerInfo;
 #include <algorithm>
 #include <cmath>
 #include <string> // won't compile on clang gcc for mac OS w/o this!
+#include <map>
 
 //#define PRINTOUTS_FOR_PLOTS
-#define CCSCOORD
 
 #if defined(__CUDACC__)
   #define CUDA_CALLABLE __host__ __device__
 #else
   #define CUDA_CALLABLE 
 #endif
+
+// Enum for input seed options
+enum seedOpts {simSeeds, cmsswSeeds, findSeeds};
+typedef std::map<std::string,seedOpts> seedOptsMap;
+
+// Enum for seed cleaning options
+enum cleanOpts {noCleaning, cleanSeedsN2, cleanSeedsPure, cleanSeedsBadLabel};
+typedef std::map<std::string,cleanOpts> cleanOptsMap;
 
 namespace Config
 {
@@ -171,7 +179,6 @@ namespace Config
   constexpr float seed_z1cut   = hitposerrZ * 3.6f; // 3.6 mm --> to match efficiency from chi2cut
   constexpr float seed_d0cut   = 0.5f; // 5mm
   extern bool cf_seeding;
-  extern bool findSeeds;
 
   // Config for propagation
   constexpr int Niter    =  5;
@@ -243,6 +250,7 @@ namespace Config
   extern bool root_val;
   extern bool cmssw_val;
   extern bool fit_val;
+  extern bool readSimTrackStates; // need this to fill pulls
   extern bool inclusiveShorts;
   extern bool applyCMSSWHitMatch;
 
@@ -265,20 +273,15 @@ namespace Config
 
   // number of layer1 hits for finding seeds per task
   extern int    numHitsPerTask;
+
+  // seed options
+  extern seedOpts  seedInput;
+  extern cleanOpts seedCleaning;
   
   extern bool   useCMSGeom;
-  extern bool   readCmsswSeeds;
-  extern bool   cleanCmsswSeeds;
-  extern bool   readExtRecTracks;
-
-  extern bool   endcapTest;
+  extern bool   readCmsswTracks;
 
   extern bool   silent;
-
-  const std::string inputFile = "cmssw.simtracks.SingleMu1GeV.10k.new.txt";
-  //const std::string inputFile = "cmssw.simtracks.SingleMu10GeV.10k.new.txt";
-  //const std::string inputFile = "cmssw.rectracks.SingleMu1GeV.10k.new.txt";
-  //const std::string inputFile = "cmssw.rectracks.SingleMu10GeV.10k.new.txt";
 
   void RecalculateDependentConstants();
   

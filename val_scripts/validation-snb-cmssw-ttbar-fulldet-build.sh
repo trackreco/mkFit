@@ -13,15 +13,15 @@ base=SNB_CMSSW_TTbar
 
 for ttbar in NoPU PU35 PU70 
 do
-    for sV in "SimSeed " "CMSSeed --cmssw-seeds --clean-seeds"
-    do echo $sV | while read -r sN sO sC
+    for sV in "SimSeed --cmssw-simseeds" "CMSSeed --cmssw-n2seeds"
+    do echo $sV | while read -r sN sO
 	do
 	    for bV in "BH bh" "STD std" "CE ce"
 	    do echo $bV | while read -r bN bO
 		do
 		    oBase=${base}_${ttbar}_${sN}_${bN}
 		    echo "${oBase}: validation [nTH:24, nVU:8]"
-		    ./mkFit/mkFit ${sO} ${sC} --geom CMS-2017 --root-val --read --file-name ${dir}/${!ttbar}/${file} --build-${bO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_val.txt
+		    ./mkFit/mkFit ${sO} --root-val --input-file ${dir}/${!ttbar}/${file} --build-${bO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_val.txt
 		    mv valtree.root valtree_${oBase}.root
 		done
 	    done
@@ -38,9 +38,9 @@ do
 	oBase=${base}_${ttbar}_${seed}
 	for build in BH STD CE
 	do
-	    root -b -q -l runValidation.C\(\"_${oBase}_${build}\"\)
+	    root -b -q -l plotting/runValidation.C\(\"_${oBase}_${build}\"\)
 	done
-	root -b -q -l makeValidation.C\(\"${oBase}\"\)
+	root -b -q -l plotting/makeValidation.C\(\"${oBase}\"\)
     done
 done
 

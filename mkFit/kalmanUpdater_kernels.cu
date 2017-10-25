@@ -357,44 +357,20 @@ __device__ void kalmanUpdate_fn(
 
     /*invertCramerSym_fn(resErr_reg);*/
     invertCramerSym2x2_fn(resErr_loc);
-#ifndef CCSCOORD
-    // Move to "polar" coordinates: (x,y,z,1/pT,phi,theta) [can we find a better name?]
-
-    GPlexRegLV propPar_pol;  // propagated parameters in "polar" coordinates*/
-    GPlexRegLL jac_pol;  // jacobian from cartesian to "polar"*/
-    ConvertToCCS_fn(par_iP, propPar_pol, jac_pol, n);
-
-    GPlexRegLL tempLL;
-    PolarErr_fn(jac_pol, propErr.ptr, propErr.stride, tempLL, n);
-    PolarErrTransp_fn(jac_pol, tempLL, propErr, n);// propErr is now propagated errors in "polar" coordinates
-#endif
 
     // Kalman update in "polar" coordinates
     GPlexRegLH K;
     KalmanHTG_fn(rotT00, rotT01, resErr_loc, tempHH);
     KalmanGain_fn(propErr, tempHH, K, n);
 
-#ifdef CCSCOORD
     multResidualsAdd_fn(K, par_iP, res_loc, par_iC, N, n);// propPar_pol is now the updated parameters in "polar" coordinates
     GPlexRegLL tempLL;
-#else
-    MultResidualsAdd_all_reg(K, propPar_pol, res_loc, propPar_pol);
-#endif
 
     KHMult_fn(K, rotT00, rotT01, tempLL);
     KHC_fn(tempLL, propErr, outErr, n);
     subtract_matrix(propErr.ptr, propErr.stride, outErr.ptr, outErr.stride, 
                     outErr.ptr, outErr.stride, LS, n);
 
-#ifndef CCSCOORD
-    // Go back to cartesian coordinates
-
-    // jac_pol is now the jacobian from "polar" to cartesian
-    // outPar -> par_iC
-    ConvertToCartesian_fn(propPar_pol, par_iC, jac_pol, n);
-    CartesianErr_fn      (jac_pol, outErr.ptr, outErr.stride, tempLL, n);
-    CartesianErrTransp_fn(jac_pol, tempLL, outErr, n);// outErr is in cartesian coordinates now
-#endif
   }
 }
 

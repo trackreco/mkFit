@@ -56,10 +56,10 @@ public:
   MCHitInfoVec simHitsInfo_;
 
   TrackVec simTracks_, seedTracks_, candidateTracks_, fitTracks_;
-  TrackVec extRecTracks_;
+  TrackVec cmsswTracks_;
   // validation sets these, so needs to be mutable
   mutable TrackExtraVec simTracksExtra_, seedTracksExtra_, candidateTracksExtra_, fitTracksExtra_;
-  mutable TrackExtraVec extRecTracksExtra_;
+  mutable TrackExtraVec cmsswTracksExtra_;
 
   // XXXXMT: Preliminary. Separators into seed/candidate arrays.
   // This will have to be extended for multi-pass tracking.
@@ -97,7 +97,7 @@ struct DataFile
   {
     ES_SimTrackStates = 0x1,
     ES_Seeds          = 0x2,
-    ES_ExtRecTracks   = 0x4
+    ES_CmsswTracks    = 0x4
   };
 
   FILE *f_fp  =  0;
@@ -111,7 +111,7 @@ struct DataFile
 
   bool HasSimTrackStates() const { return f_header.f_extra_sections & ES_SimTrackStates; }
   bool HasSeeds()          const { return f_header.f_extra_sections & ES_Seeds; }
-  bool HasExtRecTracks()   const { return f_header.f_extra_sections & ES_ExtRecTracks; }
+  bool HasCmsswTracks()    const { return f_header.f_extra_sections & ES_CmsswTracks; }
 
   int  OpenRead (const std::string& fname, bool set_n_layers = false);
   void OpenWrite(const std::string& fname, int nev, int extra_sections=0);

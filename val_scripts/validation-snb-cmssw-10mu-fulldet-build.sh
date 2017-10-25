@@ -13,8 +13,8 @@ ECP2=${dir}/10muEta17to24Pt1to10/${file}
 
 base=SNB_CMSSW_10mu
 
-for sV in "SimSeed " "CMSSeed --cmssw-seeds --clean-seeds"
-do echo $sV | while read -r sN sO sC
+for sV in "SimSeed --cmssw-simseeds" "CMSSeed --cmssw-n2seeds"
+do echo $sV | while read -r sN sO
     do
 	for section in ECN2 ECN1 BRL ECP1 ECP2 
 	do
@@ -23,7 +23,7 @@ do echo $sV | while read -r sN sO sC
 		do
 		    oBase=${base}_${sN}_${section}_${bN}
 		    echo "${oBase}: validation [nTH:24, nVU:8]"
-		    ./mkFit/mkFit ${sO} ${sC} --geom CMS-2017 --root-val --read --file-name ${!section} --build-${bO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_val.txt
+		    ./mkFit/mkFit ${sO} --root-val --input-file ${!section} --build-${bO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_val.txt
 		    mv valtree.root valtree_${oBase}.root
 		done
 	    done
@@ -37,12 +37,12 @@ for seed in SimSeed CMSSeed
 do
     for section in ECN2 ECN1 BRL ECP1 ECP2
     do
-	oBase=${base}_${seed}_${section}
-	for build in BH STD CE
-	do
-	    root -b -q -l runValidation.C\(\"_${oBase}_${build}\"\)
-	done
-	root -b -q -l makeValidation.C\(\"${oBase}\"\)
+    	oBase=${base}_${seed}_${section}
+    	for build in BH STD CE
+    	do
+    	    root -b -q -l plotting/runValidation.C\(\"_${oBase}_${build}\"\)
+    	done
+    	root -b -q -l plotting/makeValidation.C\(\"${oBase}\"\)
     done
 
     for build in BH STD CE
@@ -51,9 +51,9 @@ do
 	fBase=valtree_${oBase}
 	dBase=validation_${oBase}
 	hadd ${fBase}_FullDet_${build}.root `for section in ECN2 ECN1 BRL ECP1 ECP2; do echo -n ${dBase}_${section}_${build}/${fBase}_${section}_${build}.root" "; done`
-	root -b -q -l runValidation.C\(\"_${oBase}_FullDet_${build}\"\)
+	root -b -q -l plotting/runValidation.C\(\"_${oBase}_FullDet_${build}\"\)
     done
-    root -b -q -l makeValidation.C\(\"${oBase}_FullDet\"\)
+    root -b -q -l plotting/makeValidation.C\(\"${oBase}_FullDet\"\)
 done
 
 make distclean
