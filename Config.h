@@ -243,6 +243,7 @@ namespace Config
   extern bool root_val;
   extern bool cmssw_val;
   extern bool fit_val;
+  extern bool readSimTrackStates;
   extern bool inclusiveShorts;
   extern bool applyCMSSWHitMatch;
 

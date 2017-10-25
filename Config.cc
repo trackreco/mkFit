@@ -61,6 +61,7 @@ namespace Config
   bool  root_val  = false;
   bool  cmssw_val = false;
   bool  fit_val   = false;
+  bool  readSimTrackStates = false;
   bool  inclusiveShorts = false;
   bool  applyCMSSWHitMatch = false;
 

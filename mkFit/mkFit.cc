@@ -537,6 +537,7 @@ int main(int argc, const char *argv[])
         "  --endcap-test            test endcap tracking (def: %s)\n"
         "  --cf-seeding             enable CF in seeding (def: %s)\n"
         "  --cf-fitting             enable CF in fitting (def: %s)\n"
+	"  --read-simtrack-states   read in simTrackStates for pulls in validation (def: %s)\n"
         "  --root-val               enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
         "  --cmssw-val              enable special CMSSW ROOT based validation for building [eff] (def: %s)\n"
       	"  --fit-val                enable ROOT based validation for fitting (def: %s)\n"
@@ -568,6 +569,7 @@ int main(int argc, const char *argv[])
         b2a(Config::endcapTest),
         b2a(Config::cf_seeding),
         b2a(Config::cf_fitting),
+	b2a(Config::readSimTrackStates),
         b2a(Config::root_val),
         b2a(Config::cmssw_val),
         b2a(Config::fit_val),
@@ -674,6 +676,10 @@ int main(int argc, const char *argv[])
     else if (*i == "--cf-fitting")
     {
       Config::cf_fitting = true;
+    }
+    else if (*i == "--read-simtrack-states")
+    {
+      Config::readSimTrackStates = true;
     }
     else if (*i == "--root-val")
     {
