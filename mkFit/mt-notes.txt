@@ -1,9 +1,19 @@
+Backward fit
+------------
+
+./mkFit --cmssw-seeds --read --file-name /bar/mic/mu_ecp-1000-10.bin-5 --build-ce --geom CMS-2017 --num-events 1
+
+chi2 seems too big!
+
+With backwards fit: 14.64713
+
+
 Better sensitive region checks, layer skipping, HoT in tree storage
 -------------------------------------------------------------------
 
 ./mkFit --cmssw-seeds --clean-seeds --read --file-name /bar/mic/ttbar_pu.bin --build-ce --geom CMS-2017 --num-events 100 --best-out-of 3
 
-Before: ???
+Before: 15.667 (wtf??)
 
 After adding checks in SelectHitIndices and storage of WSR_Result
 13.97138

@@ -941,3 +941,143 @@ void MkFinder::CopyOutParErr(std::vector<CombCandidate>& seed_cand_vec,
               << " posEta=" << cand.posEta());
   }
 }
+
+
+//==============================================================================
+// Backward Fit hack
+//==============================================================================
+
+void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
+{
+  // SlurpIn based on XHit array - so Nhits is irrelevant.
+  // Could as well use HotArrays from tracks directly + a local cursor array to last hit.
+
+  const int   N_proc     = end - beg;
+  const Track &trk0      = eocss[beg][0];
+  const char *varr       = (char*) &trk0;
+  const int   off_error  = (char*) trk0.errors().Array() - varr;
+  const int   off_param  = (char*) trk0.parameters().Array() - varr;
+
+  int idx[NN]      __attribute__((aligned(64)));
+
+  int itrack = 0;
+
+  for (int i = beg; i < end; ++i, ++itrack)
+  {
+    const Track &trk = eocss[i][0];
+
+    Chg(itrack, 0, 0) = trk.charge();
+    CurHit[itrack]    = trk.nTotalHits() - 1;
+    HoTArr[itrack]    = trk.getHitsOnTrackArray();
+
+    idx[itrack] = (char*) &trk - varr;
+  }
+
+  Chi2.SetVal(0);
+
+#ifdef MIC_INTRINSICS
+  __m512i vi      = _mm512_load_epi32(idx);
+  Err[iC].SlurpIn(varr + off_error, vi, N_proc);
+  Par[iC].SlurpIn(varr + off_param, vi, N_proc);
+#else
+  Err[iC].SlurpIn(varr + off_error, idx, N_proc);
+  Par[iC].SlurpIn(varr + off_param, idx, N_proc);
+#endif
+
+  Err[iC].Scale(100.0f);
+}
+
+void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
+                              const SteeringParams& st_par,
+                              int N_proc, bool useParamBfield)
+{
+  // Prototyping final backward fit.
+  // This works with track-finding indices, before remapping.
+  // layers should be collected during track finding and list all layers that have actual hits.
+
+  MPlexQF  tmp_chi2;
+  float    tmp_err[6] = { 666, 0, 666, 0, 0, 666 };
+  float    tmp_pos[3];
+
+  for (auto lp_iter = st_par.m_layer_plan.rbegin(); lp_iter != st_par.m_layer_plan.rend(); ++lp_iter)
+  {
+    const int layer = lp_iter->m_layer;
+
+    const LayerOfHits &L  =   eventofhits.m_layers_of_hits[layer];
+    const LayerInfo   &LI = * L.m_layer_info;
+
+    int count = 0;
+    for (int i = 0; i < N_proc; ++i)
+    {
+      while (CurHit[i] >= 0 && HoTArr[ i ][ CurHit[i] ].index < 0) --CurHit[i];
+
+      if (HoTArr[ i ][ CurHit[i] ].layer == layer)
+      {
+        const Hit &hit = L.m_hits[ HoTArr[ i ][ CurHit[i] ].index ];
+        msErr.CopyIn(i, hit.errArray());
+        msPar.CopyIn(i, hit.posArray());
+        ++count;
+        --CurHit[i];
+      }
+      else
+      {
+        tmp_pos[0] = Par[iC](i, 0, 0);
+        tmp_pos[1] = Par[iC](i, 1, 0);
+        tmp_pos[2] = Par[iC](i, 2, 0);
+        msErr.CopyIn(i, tmp_err);
+        msPar.CopyIn(i, tmp_pos);
+      }
+    }
+
+    if (count == 0) continue;
+
+    // ZZZ Could add missing hits here, only if there are any actual matches.
+
+    if (LI.is_barrel())
+    {
+      // ZZZ for cmsGeom propagation done in also done in update! fix
+      propagateHelixToRMPlex(Err[iC], Par[iC], Chg, msPar,
+                             Err[iP], Par[iP], N_proc, useParamBfield);
+
+      // ZZZ should have common chi2 / update function
+      computeChi2MPlex(Err[iP], Par[iP], Chg, msErr, msPar,
+                       tmp_chi2, N_proc);
+
+      updateParametersMPlex(Err[iP], Par[iP], Chg, msErr, msPar,
+                            Err[iC], Par[iC], N_proc);
+    }
+    else
+    {
+      propagateHelixToZMPlex(Err[iC], Par[iC], Chg, msPar,
+			     Err[iP], Par[iP], N_proc, useParamBfield);
+
+      computeChi2EndcapMPlex(Err[iP], Par[iP], Chg, msErr, msPar,
+                             tmp_chi2, N_proc);
+
+      updateParametersEndcapMPlex(Err[iP], Par[iP], Chg, msErr, msPar,
+				  Err[iC], Par[iC], N_proc);
+    }
+
+    // for (int i = 0; i < N_proc; ++i)
+    //   printf("%2d %d %f %f\n", layer, i, tmp_chi2[i], Chi2[i]);
+
+    // update chi2
+    Chi2.Add(tmp_chi2);
+  }
+}
+
+void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
+{
+  // Only copy out track params / errors / chi2, all the rest is ok.
+
+  int itrack = 0;
+  for (int i = beg; i < end; ++i, ++itrack)
+  {
+    Track &trk = eocss[i][0];
+
+    Err[iC].CopyOut(itrack, trk.errors_nc().Array());
+    Par[iC].CopyOut(itrack, trk.parameters_nc().Array());
+
+    trk.setChi2(Chi2(itrack, 0, 0));
+  }
+}

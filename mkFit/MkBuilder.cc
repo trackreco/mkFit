@@ -180,16 +180,19 @@ MkBuilder::MkBuilder() :
   m_fndfoos_ec  = { computeChi2EndcapMPlex, updateParametersEndcapMPlex, &MkBase::PropagateTracksToZ };
 
   { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Endcap_Neg];
-    sp.reserve_plan(3 + 6 + 18);
+    sp.reserve_plan(3 + 3 + 6 + 18);
+    sp.fill_plan(0, 2, false, true);
     sp.append_plan(45, true);
     sp.append_plan(46, false);
     sp.append_plan(47, false);
     sp.fill_plan(48, 53); // TID, 6 layers
     sp.fill_plan(54, 71); // TEC, 18 layers
+    sp.finalize_plan();
   }
 
   { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Transition_Neg];
-    sp.reserve_plan(4 + 6 + 6 + 8 + 18);
+    sp.reserve_plan(3 + 4 + 6 + 6 + 8 + 18);
+    sp.fill_plan(0, 2, false, true);
     sp.append_plan( 3, true);
     sp.append_plan(45, true);
     sp.append_plan(46, false);
@@ -198,18 +201,22 @@ MkBuilder::MkBuilder() :
     sp.fill_plan(48, 53); // TID, 6 layers
     sp.fill_plan(10, 17); // TOB, 8 layers
     sp.fill_plan(54, 71); // TEC, 18 layers
+    sp.finalize_plan();
   }
 
 
   { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Barrel];
-    sp.reserve_plan(1 + 6 + 8);
+    sp.reserve_plan(3 + 1 + 6 + 8);
+    sp.fill_plan(0, 2, false, true);
     sp.append_plan(3, true); // pickup-only
     sp.fill_plan( 4,  9);    // TIB, 6 layers
     sp.fill_plan(10, 17);    // TOB, 8 layers
+    sp.finalize_plan();
   }
 
   { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Transition_Pos];
-    sp.reserve_plan(4 + 6 + 6 + 8 + 18);
+    sp.reserve_plan(3 + 4 + 6 + 6 + 8 + 18);
+    sp.fill_plan(0, 2, false, true);
     sp.append_plan( 3, true);
     sp.append_plan(18, true);
     sp.append_plan(19, false);
@@ -218,15 +225,18 @@ MkBuilder::MkBuilder() :
     sp.fill_plan(21, 26); // TID, 6 layers
     sp.fill_plan(10, 17); // TOB, 8 layers
     sp.fill_plan(27, 44); // TEC, 18 layers
+    sp.finalize_plan();
   }
 
   { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Endcap_Pos];
-    sp.reserve_plan(3 + 6 + 18);
+    sp.reserve_plan(3 + 3 + 6 + 18);
+    sp.fill_plan(0, 2, false, true);
     sp.append_plan(18, true);
     sp.append_plan(19, false);
     sp.append_plan(20, false);
     sp.fill_plan(21, 26); // TID, 6 layers
     sp.fill_plan(27, 44); // TEC, 18 layers
+    sp.finalize_plan();
   }
 
   m_regions.resize(5);
@@ -1209,7 +1219,7 @@ void MkBuilder::FindTracksBestHit()
         }
         int curr_tridx = 0;
 
-        auto layer_plan_it = st_par.layer_plan.begin();
+        auto layer_plan_it = st_par.finding_begin();
 
         assert( layer_plan_it->m_pickup_only );
 
@@ -1218,7 +1228,7 @@ void MkBuilder::FindTracksBestHit()
         // Loop over layers, starting from after the seed.
         // Consider inverting loop order and make layer outer, need to
         // trade off hit prefetching with copy-out of candidates.
-        while (++layer_plan_it != st_par.layer_plan.end())
+        while (++layer_plan_it != st_par.finding_end())
         {
           prev_layer = curr_layer;
           curr_layer = layer_plan_it->m_layer;
@@ -1373,7 +1383,7 @@ void MkBuilder::FindTracksStandard()
       std::vector<std::pair<int,int>> seed_cand_idx;
       seed_cand_idx.reserve(n_seeds * Config::maxCandsPerSeed);
 
-      auto layer_plan_it = st_par.layer_plan.begin();
+      auto layer_plan_it = st_par.finding_begin();
 
       assert( layer_plan_it->m_pickup_only );
 
@@ -1383,7 +1393,7 @@ void MkBuilder::FindTracksStandard()
               region, curr_layer, (layer_plan_it + 1)->m_layer);
 
       // Loop over layers, starting from after the seed.
-      while (++layer_plan_it != st_par.layer_plan.end())
+      while (++layer_plan_it != st_par.finding_end())
       {
         prev_layer = curr_layer;
         curr_layer = layer_plan_it->m_layer;
@@ -1541,7 +1551,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
   // Note that we do a final pass with curr_layer = -1 to update parameters
   // and output final tracks.
 
-  auto layer_plan_it = st_par.layer_plan.begin();
+  auto layer_plan_it = st_par.finding_begin();
 
   assert( layer_plan_it->m_pickup_only );
 
@@ -1551,7 +1561,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
           region, curr_layer, (layer_plan_it + 1)->m_layer);
 
   // Loop over layers according to plan.
-  while (++layer_plan_it != st_par.layer_plan.end())
+  while (++layer_plan_it != st_par.finding_end())
   {
     prev_layer = curr_layer;
     curr_layer = layer_plan_it->m_layer;
@@ -1659,5 +1669,27 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
     std::vector<Track>& finalcands = eoccs.m_candidates[iseed];
     if (finalcands.size() == 0) continue;
     std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
+  }
+
+  // final backward fit
+  for (int iseed = start_seed; iseed < end_seed; iseed += NN)
+  {
+    const int end = std::min(iseed + NN, end_seed);
+
+    // printf("Pre Final fit for %d - %d\n", iseed, end);
+    // for (int i = iseed; i < end; ++i) { const Track &t = eoccs[i][0];
+    //   printf("  %4d with q=%+d chi2=%7.3f pT=%7.3f eta=% 7.3f x=%.3f y=%.3f z=%.3f nHits=%2d  label=%4d findable=%d\n",
+    //          i, t.charge(), t.chi2(), t.pT(), t.momEta(), t.x(), t.y(), t.z(), t.nFoundHits(), t.label(), t.isFindable());
+    // }
+
+    mkfndr->BkFitInputTracks(eoccs, iseed, end);
+    mkfndr->BkFitFitTracks(m_event_of_hits, st_par, end - iseed);
+    mkfndr->BkFitOutputTracks(eoccs, iseed, end);
+
+    // printf("Post Final fit for %d - %d\n", iseed, end);
+    // for (int i = iseed; i < end; ++i) { const Track &t = eoccs[i][0];
+    //   printf("  %4d with q=%+d chi2=%7.3f pT=%7.3f eta=% 7.3f x=%.3f y=%.3f z=%.3f nHits=%2d  label=%4d findable=%d\n",
+    //          i, t.charge(), t.chi2(), t.pT(), t.momEta(), t.x(), t.y(), t.z(), t.nFoundHits(), t.label(), t.isFindable());
+    // }
   }
 }

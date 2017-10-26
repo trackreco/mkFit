@@ -10,6 +10,11 @@ class CombCandidate;
 class LayerOfHits;
 class FindingFoos;
 
+// For backward fit hack
+class EventOfHits;
+class EventOfCombCandidates;
+class SteeringParams;
+
 //#include "Event.h"
 
 //#include "HitStructures.h"
@@ -123,6 +128,17 @@ public:
 
   void CopyOutParErr(std::vector<CombCandidate>& seed_cand_vec,
                      int N_proc, bool outputProp) const;
+
+  //----------------------------------------------------------------------------
+  // Backward fit hack
+
+  int               CurHit[NN];
+  const HitOnTrack *HoTArr[NN];
+
+  void BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end);
+  void BkFitFitTracks(const EventOfHits& eventofhits, const SteeringParams& st_par,
+                      int N_proc, bool useParamBfield = false);
+  void BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end);
 
   //----------------------------------------------------------------------------
 
