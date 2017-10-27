@@ -9,8 +9,12 @@ file=memoryFile.fv3.clean.writeAll.recT.072617.bin
 base=KNL_CMSSW_TTbar
 ttbar=PU70
 nevents=2560
+minth=1
 maxth=256
+minvu=1
 maxvu=16
+nevdump=256
+dump=DumpForPlots
 exe="./mkFit/mkFit --input-file ${dir}/${file} --cmssw-n2seeds" # "numactl --membind=1"
 
 for nth in 1 2 4 8 16 32 64 96 128 160 192 224 256
@@ -20,10 +24,10 @@ do
 	do
 	    oBase=${base}_${ttbar}_${bN}
 	    nproc=$(( ${nevents} / (${maxth}/${nth}) ))
-	    bExe="${exe} --build-${bO} --num-thr ${nth} --num-events ${nproc}"
+	    bExe="${exe} --build-${bO} --num-thr ${nth}"
 
-	    echo "${oBase}: Benchmark [nTH:${nth}, nVU:16int]"
-	    ${bExe} --dump-for-plots >& log_${oBase}_NVU16int_NTH${nth}.txt
+	    echo "${oBase}: Benchmark [nTH:${nth}, nVU:${maxvu}int]"
+	    ${bExe} --num-events ${nproc} >& log_${oBase}_NVU${maxvu}int_NTH${nth}.txt
 
 	    if [ "${bN}" == "CE" ]
 	    then
@@ -31,10 +35,16 @@ do
 		do
 		    if (( ${nev} <= ${nth} ))
 		    then
-			echo "${oBase}: Benchmark [nTH:${nth}, nVU:16int, nEV:${nev}]"
-			${bExe} --silent --num-thr-ev ${nev} >& log_${oBase}_NVU16int_NTH${nth}_NEV${nev}.txt
+			echo "${oBase}: Benchmark [nTH:${nth}, nVU:${maxvu}int, nEV:${nev}]"
+			${bExe} --silent --num-thr-ev ${nev} --num-events ${nproc} >& log_${oBase}_NVU${maxvu}int_NTH${nth}_NEV${nev}.txt
 		    fi
 		done
+	    fi
+
+	    if (( ${nth} == ${maxth} ))
+	    then
+		echo "${oBase}: Text dump for plots [nTH:${nth}, nVU:${maxvu}int]"
+		${bExe} --dump-for-plots --num-events ${nevdump} >& log_${oBase}_NVU${maxvu}int_NTH${nth}_${dump}.txt
 	    fi
 	done
     done
@@ -49,10 +59,16 @@ do
 	do
 	    oBase=${base}_${ttbar}_${bN}
 	    nproc=$(( ${nevents} / (${maxvu}/${nvu}) ))
-	    bExe="${exe} --build-${bO} --num-thr 1 --num-events ${nproc}"
+	    bExe="${exe} --build-${bO} --num-thr ${minth}"
 
-	    echo "${oBase}: Benchmark [nTH:1, nVU:${nvu}]"
-	    ${bExe} --dump-for-plots >& log_${oBase}_NVU${nvu}_NTH1.txt
+	    echo "${oBase}: Benchmark [nTH:${minth}, nVU:${nvu}]"
+	    ${bExe} --num-events ${nproc} >& log_${oBase}_NVU${nvu}_NTH${minth}.txt
+
+	    if (( ${nvu} == ${minvu} ))
+	    then
+		echo "${oBase}: Text dump for plots [nTH:${minth}, nVU:${nvu}]"
+		${bExe} --dump-for-plots --num-events ${nevdump} >& log_${oBase}_NVU${nvu}_NTH${minth}_${dump}.txt
+	    fi
 	done
     done
 done

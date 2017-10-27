@@ -27,7 +27,7 @@ h_MXPTr.GetXaxis().SetTitle("(p_{T}^{rec}-p_{T}^{sim})/p_{T}^{sim}")
 h_NHDS  = ROOT.TH1F("h_NHDS", "h_NHDS", 15, -7.5, 7.5)
 h_NHDS.GetXaxis().SetTitle("nHits_{found}-nHits_{sim}")
 
-with open('log_'+arch+'_'+sample+'_'+build+'_'+suffix+'.txt') as f :
+with open('log_'+arch+'_'+sample+'_'+build+'_'+suffix+'_DumpForPlots.txt') as f :
     for line in f :
         if "MX - found track with nFoundHits" in line :
             lsplit = line.split()
