@@ -16,7 +16,7 @@ minth=1
 maxth=240
 minvu=1
 maxvu=16
-nevdump=240
+nevdump=100
 dump=DumpForPlots
 exe="ssh ${host} ./mkFit-mic --input-file ${dir}/${file} --cmssw-n2seeds"
 
@@ -52,6 +52,8 @@ do
 	done
     done
 done
+
+nevents=256 
 
 for nvu in 1 2 4 8 16
 do

@@ -12,7 +12,7 @@ minth=1
 maxth=24
 minvu=1
 maxvu=8
-nevdump=50
+nevdump=100
 dump=DumpForPlots
 exe="./mkFit/mkFit --input-file ${dir}/${file} --cmssw-n2seeds"
 
@@ -48,6 +48,8 @@ do
 	done
     done
 done
+
+nevents=128
 
 for nvu in 1 2 4 8
 do
