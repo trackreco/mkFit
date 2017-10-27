@@ -1,6 +1,8 @@
 #! /bin/bash
 
+# Initialize Benchmarks
 [ -z "$ROOTSYS" ] && source ~matevz/root/bin/thisroot.sh
+./xeon_scripts/tarAndSendToKNL.sh
 
 sample="CMSSW_TTbar_PU70"
 
@@ -49,4 +51,6 @@ done
 echo "Running ROOT based validation"
 ./val_scripts/validation-snb-cmssw-ttbar-fulldet-build-allval.sh
 
+##### Final cleanup #####
 make distclean
+./xeon_scripts/trashKNL.sh
