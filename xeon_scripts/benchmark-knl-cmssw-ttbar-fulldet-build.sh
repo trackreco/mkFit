@@ -9,8 +9,8 @@ tmpdir=tmp
 echo "Executing KNL tests remotely..."
 ssh ${host} bash -c "'
 cd ${workdir}/${tmpdir}
-./xeon_scripts/initKNL.sh
-./xeon_scripts/benchmark-knl-cmssw-ttbar-fulldet.build-remote.sh
+source xeon_scripts/initKNL.sh
+./xeon_scripts/benchmark-knl-cmssw-ttbar-fulldet-build-remote.sh
 exit
 '"
 

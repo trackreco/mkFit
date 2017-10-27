@@ -1,7 +1,7 @@
 #! /bin/bash
 
 mKNL="AVX_512:=1"
-make -j 12 ${mKNL}
+make -j 32 ${mKNL}
 
 dir=/data1/work/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/a/
 file=memoryFile.fv3.clean.writeAll.recT.072617.bin
@@ -43,7 +43,7 @@ done
 for nvu in 1 2 4 8 16
 do
     make clean ${mKNL}
-    make -j 12 ${mKNL} USE_INTRINSICS:=-DMPT_SIZE=${nvu}
+    make -j 32 ${mKNL} USE_INTRINSICS:=-DMPT_SIZE=${nvu}
     for bV in "BH bh" "STD std" "CE ce"
     do echo $bV | while read -r bN bO
 	do

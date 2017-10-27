@@ -1,7 +1,11 @@
 #! /bin/bash
 
+host=${USER}@phiphi-mic0.t2.ucsd.edu
+workdir=/home/${USER}
+
 mKNC="KNC_BUILD:=1"
 make -j 12 ${mKNC}
+./xeon_scripts/copyToKNC.sh
 
 dir=/nfsmic/slava77/samples/2017/pass-4874f28/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/a/
 file=memoryFile.fv3.clean.writeAll.recT.072617.bin
@@ -11,7 +15,7 @@ ttbar=PU70
 nevents=2400
 maxth=240
 maxvu=16
-exe="ssh mic0 ./mkFit-mic --input-file ${dir}/${file} --cmssw-n2seeds"
+exe="ssh ${host} ./mkFit-mic --input-file ${dir}/${file} --cmssw-n2seeds"
 
 for nth in 1 2 4 8 15 30 60 90 120 150 180 210 240
 do
@@ -43,7 +47,10 @@ done
 for nvu in 1 2 4 8 16
 do
     make clean ${mKNC}
+    ./xeon_scripts/trashKNC.sh
     make -j 12 ${mKNC} USE_INTRINSICS:=-DMPT_SIZE=${nvu}
+    ./xeon_scripts/copyToKNC.sh
+
     for bV in "BH bh" "STD std" "CE ce"
     do echo $bV | while read -r bN bO
 	do
@@ -58,3 +65,4 @@ do
 done
 
 make distclean ${mKNC}
+./xeon_scripts/trashKNC.sh
