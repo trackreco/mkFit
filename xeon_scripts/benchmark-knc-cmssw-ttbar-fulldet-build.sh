@@ -18,7 +18,7 @@ minvu=1
 maxvu=16
 nevdump=100
 dump=DumpForPlots
-exe="ssh ${host} ./mkFit-mic --input-file ${dir}/${file} --cmssw-n2seeds"
+exe="ssh ${host} ./mkFit/mkFit-mic --input-file ${dir}/${file} --cmssw-n2seeds"
 
 for nth in 1 2 4 8 15 30 60 90 120 150 180 210 240
 do
