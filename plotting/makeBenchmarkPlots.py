@@ -73,6 +73,9 @@ def makeplots(arch,sample,build,vals,nC,text):
         # array of time values
         yvals = array.array('d');
 
+        # always skip the first event
+        firstFound = False
+
         # open the correct log file, store times into temp file
         if   text is 'VU' : os.system('grep Matriplex log_'+arch+'_'+sample+'_'+build+'_NVU'+val+'_NTH'+nC +'.txt >& log_'+arch+'_'+sample+'_'+build+'_'+text+'.txt')
         elif text is 'TH' : os.system('grep Matriplex log_'+arch+'_'+sample+'_'+build+'_NVU'+nC +'_NTH'+val+'.txt >& log_'+arch+'_'+sample+'_'+build+'_'+text+'.txt')
@@ -85,6 +88,9 @@ def makeplots(arch,sample,build,vals,nC,text):
             for line in f :
                 if 'Matriplex' not in line : continue
                 if 'Total' in line : continue
+                if not firstFound :
+                    firstFound = True
+                    continue
                 lsplit = line.split()
                 yvals.append(float(lsplit[pos]))
 
