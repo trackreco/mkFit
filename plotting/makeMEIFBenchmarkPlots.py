@@ -9,10 +9,10 @@ sample = sys.argv[2]
 g = ROOT.TFile('benchmarkMEIF_'+arch+'_'+sample+'.root','recreate')
 
 # Parallelization datapoints
-if arch is 'KNC' or arch is 'KNL' :
+if arch == 'KNC' or arch == 'KNL' :
     nvu = '16int'
     evvals = ['1','2','4','8','16','32','64','128']
-    if arch is 'KNC' :
+    if arch == 'KNC' :
         thvals = ['1','2','4','8','15','30','60','90','120','150','180','210','240']
     else : # KNL
         thvals = ['1','2','4','8','16','32','64','96','128','160','192','224','256']

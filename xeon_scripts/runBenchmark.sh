@@ -8,7 +8,7 @@ sample="CMSSW_TTbar_PU70"
 
 ##### Benchmark Tests #####
 for archV in "SNB snb" "KNC knc" "KNL knl"
-    do echo $archV | while read -r archN archO
+   do echo ${archV} | while read -r archN archO
 	do
 	echo "Run benchmarking on" ${archN}
 	./xeon_scripts/benchmark-${archO}-cmssw-ttbar-fulldet-build.sh
@@ -32,8 +32,8 @@ for build in BH STD CE
 do 
     echo "Making nHits plots for" ${sample} ":" ${build}
     
-    for archV in "SNB NVU8int_NTH24" "KNC NVUY16int_NTH240" "KNL NVU16int_NTH256"
-    do echo $archV | while read -r archN archO
+    for archV in "SNB NVU8int_NTH24" "KNC NVU16int_NTH240" "KNL NVU16int_NTH256"
+    do echo ${archV} | while read -r archN archO
 	do
 	    echo "Extracting nHits for" ${archN} NVU1_NTH1 
 	    python plotting/makePlotsFromDump.py ${archN} ${sample} ${build} NVU1_NTH1

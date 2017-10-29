@@ -16,7 +16,7 @@ def run():
         vuvals = ['1','2','4','8']
         nth = '1'
 
-        if arch is 'KNC' or arch is 'KNL' :
+        if arch == 'KNC' or arch == 'KNL' :
             vuvals.append('16')
             vuvals.append('16int')
         else : 
@@ -26,9 +26,9 @@ def run():
         makeplots(arch,sample,build,vuvals,nth,'VU')
 
         # Parallelization datapoints
-        if arch is 'KNC' or arch is 'KNL' :
+        if arch == 'KNC' or arch == 'KNL' :
             nvu = '16int'
-            if arch is 'KNC' :
+            if arch == 'KNC' :
                 thvals = ['1','2','4','8','15','30','60','90','120','150','180','210','240']
             else : # KNL
                 thvals = ['1','2','4','8','16','32','64','96','128','160','192','224','256']
