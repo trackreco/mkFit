@@ -17,6 +17,9 @@ PlotMEIFBenchmarks::PlotMEIFBenchmarks(const TString & arch, const TString & sam
     exit(1);
   }
 
+  // setup arch
+  setupArch(ARCH);
+
   // setup events
   setupEvents(ARCH);
 }
@@ -28,32 +31,26 @@ PlotMEIFBenchmarks::~PlotMEIFBenchmarks()
 
 void PlotMEIFBenchmarks::RunMEIFBenchmarkPlots()
 {
-  // ranges 
-  Float_t xthmax;
-  if      (ARCH == SNB) xthmax = 24.f;
-  else if (ARCH == KNC) xthmax = 240.f;
-  else if (ARCH == KNL) xthmax = 256.f;
-
-  const Float_t ythtimemin = 1e-6;
-  const Float_t ythtimemax = 1.f;
-
   // title options
-  const TString nvu = Form("%iint",(ARCH == SNB ? 8 : 16));
+  const TString nvu = Form("%iint",arch_opt.vumax);
 
-  // common xaxis
-  const TString xth = "Number of Threads";
+  // x-axis title
+  const TString xtitleth = "Number of Threads";
 
-  // common yaxis
-  const TString ytime = "Averarge Time per Event [s]";
-  const TString yspeedup = "Speedup";
+  // y-axis title
+  const TString ytitletime    = "Averarge Time per Event [s]";
+  const TString ytitlespeedup = "Speedup";
 
   // Do the overlaying!
-  PlotMEIFBenchmarks::MakeOverlay("time",   sample+" Multiple Events in Flight Benchmark on "+arch+ " [nVU="+nvu+"]",xth,ytime   ,xthmax,ythtimemin,ythtimemax);
-  PlotMEIFBenchmarks::MakeOverlay("speedup",sample+" Multiple Events in Flight Speedup on "  +arch+ " [nVU="+nvu+"]",xth,yspeedup,xthmax,1.f       ,xthmax);
+  PlotMEIFBenchmarks::MakeOverlay("time",sample+" Multiple Events in Flight Benchmark on "+arch+" [nVU="+nvu+"]",xtitleth,ytitletime,
+				  arch_opt.thmin,arch_opt.thmax,arch_opt.thmeiftimemin,arch_opt.thmeiftimemax);
+
+  PlotMEIFBenchmarks::MakeOverlay("speedup",sample+" Multiple Events in Flight Speedup on "+arch+" [nVU="+nvu+"]",xtitleth,ytitlespeedup,
+				  arch_opt.thmin,arch_opt.thmax,arch_opt.thmeifspeedupmin,arch_opt.thmeifspeedupmax);
 }
 
-void PlotMEIFBenchmarks::MakeOverlay(const TString & text, const TString & title, const TString & xtitle, 
-				     const TString & ytitle, const Float_t xmax, const Float_t ymin, const Float_t ymax)
+void PlotMEIFBenchmarks::MakeOverlay(const TString & text, const TString & title, const TString & xtitle, const TString & ytitle, 
+				     const Double_t xmin, const Double_t xmax, const Double_t ymin, const Double_t ymax)
 {
   // special setups
   const Bool_t isSpeedup = text.Contains("speedup",TString::kExact);
@@ -65,8 +62,8 @@ void PlotMEIFBenchmarks::MakeOverlay(const TString & text, const TString & title
   if (!isSpeedup) canv->SetLogy();
   
   // legend 
-  const Float_t x1 = (isSpeedup ? 0.20 : 0.60);
-  const Float_t y1 = 0.65;
+  const Double_t x1 = (isSpeedup ? 0.20 : 0.60);
+  const Double_t y1 = 0.65;
   TLegend * leg = new TLegend(x1,y1,x1+0.25,y1+0.2);
   leg->SetBorderSize(0);  
 
@@ -88,10 +85,19 @@ void PlotMEIFBenchmarks::MakeOverlay(const TString & text, const TString & title
   for (UInt_t i = 0; i < events.size(); i++)
   {
     graphs[i]->Draw(i>0?"LP SAME":"ALP");
-    graphs[i]->GetXaxis()->SetRangeUser(1,xmax);
+    graphs[i]->GetXaxis()->SetRangeUser(xmin,xmax);
     graphs[i]->GetYaxis()->SetRangeUser(ymin,ymax);
     leg->AddEntry(graphs[i],Form("%i Events",events[i].nev),"LP");
   }
+
+  TLine * line = NULL;
+  if (isSpeedup)
+  {
+    line = new TLine(arch_opt.thmin,arch_opt.thmin,arch_opt.thmeifspeedupmax,arch_opt.thmeifspeedupmax);
+    line->Draw("SAME");
+  }
+
+  // draw legend last
   leg->Draw("SAME");
 
   // Save the png
@@ -102,6 +108,7 @@ void PlotMEIFBenchmarks::MakeOverlay(const TString & text, const TString & title
   {
     delete graphs[i];
   }
+  if (isSpeedup) delete line;
   delete leg;
   delete canv;
 }

@@ -40,8 +40,8 @@ public:
   PlotMEIFBenchmarks(const TString & arch, const TString & sample);
   ~PlotMEIFBenchmarks();
   void RunMEIFBenchmarkPlots();
-  void MakeOverlay(const TString & text, const TString & title, const TString & xtitle, 
-		   const TString & ytitle, const Float_t xmax, const Float_t ymin, const Float_t ymax);
+  void MakeOverlay(const TString & text, const TString & title, const TString & xtitle, const TString & ytitle, 
+		   const Double_t xmin, const Double_t xmax, const Double_t ymin, const Double_t ymax);
 
 private:
   const TString arch;

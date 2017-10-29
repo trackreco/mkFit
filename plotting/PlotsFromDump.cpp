@@ -29,7 +29,7 @@ void PlotsFromDump::RunPlotsFromDump()
   canv->cd();
   canv->SetLogy();
 
-  TLegend * leg = new TLegend(0.2,0.5,0.6,0.9);
+  TLegend * leg = new TLegend(0.7,0.68,0.98,0.92);
 
   std::vector<TFile*> files(tests.size());
   std::vector<TH1F*> hists(tests.size());
