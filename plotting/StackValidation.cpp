@@ -51,7 +51,7 @@ void StackValidation::MakeValidationStacks()
 	  graphs[b]->SetLineColor(builds[b].color);
 	  graphs[b]->SetMarkerColor(builds[b].color);
 
-	  graphs[b]->Draw(b>0?"PZ SAME":"ALZ");
+	  graphs[b]->Draw(b>0?"PZ SAME":"APZ");
 
 	  if (!rates[i].rate.Contains("ineff",TString::kExact)) graphs[b]->GetYaxis()->SetRangeUser(0.0,1.05);
 	  else graphs[b]->GetYaxis()->SetRangeUser(0.0,0.25);

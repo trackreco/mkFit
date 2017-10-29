@@ -43,10 +43,10 @@ mkdir -p ${dir}/${rootdir}
 
 for build in BH STD CE
 do
-    vBase=${base}_${build}_"ROOTVAL"
-    mv ${vBase}_*.png ${dir}/${rootdir}
-    mv validation_${vBase}/totals_validation_${vBase}.txt ${dir}/${rootdir}
+    vBase=SNB_${base}_${build}
+    mv validation_${vBase}_"ROOTVAL"/totals_validation_${vBase}_"ROOTVAL".txt ${dir}/${rootdir}
 done
+mv SNB_${base}_*_"ROOTVAL".png ${dir}/${rootdir}
 
 # Move CMSSW validation
 cmsswdir="CMSSWVAL"
@@ -54,10 +54,10 @@ mkdir -p ${dir}/${cmsswdir}
 
 for build in BH STD CE
 do
-    vBase=${base}_${build}_"CMSSWVAL"
-    mv ${vBase}_*.png ${dir}/${cmsswdir}
-    mv validation_${vBase}/totals_validation_${vBase}.txt ${dir}/${cmsswdir}
+    vBase=SNB_${base}_${build}
+    mv validation_${vBase}_"CMSSWVAL"/totals_validation_${vBase}_"CMSSWVAL"_cmssw.txt ${dir}/${cmsswdir}
 done
+mv SNB_${base}_*_"CMSSWVAL".png ${dir}/${cmsswdir}
 
 host=kmcdermo@lxplus.cern.ch
 whost=${host}":~/www"
