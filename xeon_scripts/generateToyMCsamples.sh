@@ -1,42 +1,32 @@
 #! /bin/bash
 
-make -j 12
-
 . data-dir-location.sh
 
 mkdir -p ${dir}
 
-# Building test: Barrel
-if [ ! -f ${dir}/simtracks_barrel_20x10k.bin ]; then
-    echo "++++Generating 10k tracks/event * 20 events for ToyMC barrel-only building tests++++"
-    ./mkFit/mkFit --num-thr-sim ${n_sim_thr} --num-events 20 --num-tracks 10000 --write --file-name simtracks_barrel_20x10k.bin
-    mv simtracks_barrel_20x10k.bin ${dir}/
-fi
-
-# Fitting test: Barrel
-if [ ! -f ${dir}/simtracks_barrel_1kx10k.bin ]; then
-    echo "++++Generating 10k tracks/event * 1k events for ToyMC barrel-only fiting tests++++"
-    ./mkFit/mkFit --num-thr-sim ${n_sim_thr} --num-events 1000 --num-tracks 10000 --write --file-name simtracks_barrel_1kx10k.bin
-    mv simtracks_barrel_1kx10k.bin ${dir}/
-fi
-
-# Fitting test: Endcap
-if [ ! -f ${dir}/simtracks_endcap_1kx10k.bin ]; then
-    echo "++++Generating 10k tracks/event * 1k events for ToyMC endcap-only fiting tests++++"
-    ./mkFit/mkFit --num-thr-sim ${n_sim_thr} --endcap-test --num-events 1000 --num-tracks 10000 --write --file-name simtracks_endcap_1kx10k.bin
-    mv simtracks_endcap_1kx10k.bin ${dir}/
-fi
-
-make clean
-
-# Validation tests: Barrel
-if [ ! -f ${dir}/simtracks_fulldet_400x2p5k_val.bin ]; then
-    echo "++++Generating 2.5k tracks/event * 400 events for ToyMC barrel-only validation tests++++"
-    sed -i 's/#WITH_ROOT := yes/WITH_ROOT := yes/g' Makefile.config
+# Building test [1 event in flight]
+if [ ! -f ${dir}/simtracks_fulldet_100x2p5k.bin ]; then
+    echo "++++Generating 2.5k tracks/event * 100 events for ToyMC building tests with one event in flight++++"
     make -j 12
-    ./mkFit/mkFit --num-thr-sim 12 --root-val --num-events 400 --num-tracks 2500 --write --file-name simtracks_fulldet_400x2p5k_val.bin
-    mv simtracks_fulldet_400x2p5k_val.bin ${dir}/
-    sed -i 's/WITH_ROOT := yes/#WITH_ROOT := yes/g' Makefile.config
+    ./mkFit/mkFit --num-thr-sim ${n_sim_thr} --num-events 100 --num-tracks 2500 --output-file simtracks_fulldet_100x2p5k.bin
+    mv simtracks_fulldet_100x2p5k.bin ${dir}/
+    make clean
 fi
 
-make clean
+# Building test [n Events in flight]
+if [ ! -f ${dir}/simtracks_fulldet_5kx2p5k.bin ]; then
+    echo "++++Generating 2.5k tracks/event * 5k events for ToyMC building tests with nEvents in flight++++"
+    make -j 12
+    ./mkFit/mkFit --num-thr-sim ${n_sim_thr} --num-events 5000 --num-tracks 2500 --output-file simtracks_fulldet_5kx2p5k.bin
+    mv simtracks_fulldet_5kx2p5k.bin ${dir}/
+    make clean    
+fi
+
+# Validation tests
+if [ ! -f ${dir}/simtracks_fulldet_500x2p5k_val.bin ]; then
+    echo "++++Generating 2.5k tracks/event * 500 events for ToyMC validation tests++++"
+    make -j 12 WITH_ROOT=yes
+    ./mkFit/mkFit --num-thr-sim ${n_sim_thr} --root-val --num-events 500 --num-tracks 2500 --output-file simtracks_fulldet_500x2p5k_val.bin
+    mv simtracks_fulldet_500x2p5k_val.bin ${dir}/
+    make clean
+fi

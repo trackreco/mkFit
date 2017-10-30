@@ -33,7 +33,7 @@ do
     do
 	root -b -q -l plotting/runValidation.C\(\"_${tbase}_${build}\",0,1\)
     done
-    root -b -q -l plotting/makeValidation.C\(\"${tbase}\",1\)
+    root -b -q -l plotting/makeValidation.C\(\"${tbase}\",\"\",1\)
 done
 
 make distclean

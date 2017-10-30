@@ -961,19 +961,18 @@ void MkBuilder::quality_process(Track &tkcand)
     }
   }
 
-#if defined(DEBUG) || defined(PRINTOUTS_FOR_PLOTS)
-  if (!Config::silent)
+  if (!Config::silent && Config::dumpForPlots)
   {
     std::lock_guard<std::mutex> printlock(Event::printmutex);
-    printf("MX - found track with nFoundHits=%2d chi2=%6.3f pT=%7.4f pTmc=%7.4f nfoundmc=%2d chi2mc=%5.2f lab=%d\n",
+    printf("MX - found track with nFoundHits= %2d chi2= %6.3f pT= %7.4f pTmc= %7.4f nfoundmc= %2d chi2mc= %5.2f lab= %d\n",
            tkcand.nFoundHits(), tkcand.chi2(), pt, ptmc, nfoundmc, chi2mc, tkcand.label());
   }
-#endif
 }
 
 void MkBuilder::quality_print()
 {
-  if (!Config::silent) {
+  if (!Config::silent) 
+  {
     std::lock_guard<std::mutex> printlock(Event::printmutex);
     std::cout << "found tracks=" << m_cnt   << "  in pT 10%=" << m_cnt1   << "  in pT 20%=" << m_cnt2   << "     no_mc_assoc="<< m_cnt_nomc <<std::endl;
     std::cout << "  nH >= 80% =" << m_cnt_8 << "  in pT 10%=" << m_cnt1_8 << "  in pT 20%=" << m_cnt2_8 << std::endl;
@@ -1218,9 +1217,9 @@ void MkBuilder::FindTracksBestHit()
 
           mkfndr->SelectHitIndices(layer_of_hits, curr_tridx, false);
 
-// #ifdef PRINTOUTS_FOR_PLOTS
+// if (Config::dumpForPlots) {
 // 	     std::cout << "MX number of hits in window in layer " << curr_layer << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
-// #endif
+// }
 
           // make candidates with best hit
           dprint("make new candidates");
@@ -1384,9 +1383,9 @@ void MkBuilder::FindTracksStandard()
           dprint("now get hit range");
           mkfndr->SelectHitIndices(layer_of_hits, end - itrack, false);
 
-	  //#ifdef PRINTOUTS_FOR_PLOTS
+	  // if(Config::dumpForPlots) {
 	  //std::cout << "MX number of hits in window in layer " << curr_layer << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
-	  //#endif
+	  //}
 
           dprint("make new candidates");
           mkfndr->FindCandidates(layer_of_hits, tmp_cands, start_seed, end - itrack, fnd_foos);
@@ -1578,9 +1577,9 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 
       mkfndr->SelectHitIndices(layer_of_hits, end - itrack, false);
 
-      //#ifdef PRINTOUTS_FOR_PLOTS
+      // if (Config::dumpForPlots) {
       //std::cout << "MX number of hits in window in layer " << curr_layer << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
-      //#endif
+      // }
 
       dprint("make new candidates");
       cloner.begin_iteration();

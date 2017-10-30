@@ -51,7 +51,8 @@ namespace Config
   bool  useCMSGeom = false;
   bool  readCmsswTracks = false;
 
-  bool  silent     = false;
+  bool  dumpForPlots = false;
+  bool  silent       = false;
 
   bool  cf_seeding = false;
   bool  cf_fitting = false;

@@ -584,6 +584,7 @@ int main(int argc, const char *argv[])
       	"  --fit-val                enable ROOT based validation for fitting (def: %s)\n"
         "  --inc-shorts             include short reco tracks into FR (def: %s)\n"
         "  --hit-match              apply hit matching criteria for CMSSW reco track matching (def: %s)\n"
+	"  --dump-for-plots         printouts for plots from logs (def: %s)\n"
         "  --silent                 suppress printouts inside event loop (def: %s)\n"
         "  --start-event   <num>    event number to start at when reading from a file (def: %d)\n"
         "  --input-file             file name for reading (def: %s)\n"
@@ -618,6 +619,7 @@ int main(int argc, const char *argv[])
         b2a(Config::fit_val),
 	b2a(Config::inclusiveShorts),
 	b2a(Config::applyCMSSWHitMatch),
+        b2a(Config::dumpForPlots),
         b2a(Config::silent),
         g_start_event,
       	g_input_file.c_str(),
@@ -765,6 +767,10 @@ int main(int argc, const char *argv[])
       next_arg_or_die(mArgs, i);
       g_output_file = *i;
       g_operation = "write";
+    }
+    else if (*i == "--dump-for-plots")
+    {
+      Config::dumpForPlots = true;
     }
     else if (*i == "--silent")
     {
