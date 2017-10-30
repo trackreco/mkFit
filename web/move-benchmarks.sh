@@ -8,24 +8,36 @@ echo "Moving plots and text files locally to ${outdir}"
 # Move benchmark plots: subroutine build benchmarks
 builddir="Benchmarks"
 mkdir -p ${dir}/${builddir}
+mkdir -p ${dir}/${builddir}/logx
 
 for arch in SNB KNC KNL
 do
     for benchmark in TH VU
     do
-	mv ${arch}_${base}_${benchmark}_"time".png ${dir}/${builddir}
-	mv ${arch}_${base}_${benchmark}_"speedup".png ${dir}/${builddir}
+	oBase=${arch}_${base}_${benchmark}
+
+	mv ${oBase}_"time".png ${dir}/${builddir}
+	mv ${oBase}_"speedup".png ${dir}/${builddir}
+
+	mv ${oBase}_"time_logx".png ${dir}/${builddir}/logx
+	mv ${oBase}_"speedup_logx".png ${dir}/${builddir}/logx
     done
 done
 
 # Move multiple events in flight plots
 meifdir="MultEvInFlight"
 mkdir -p ${dir}/${meifdir}
+mkdir -p ${dir}/${meifdir}/logx
 
 for arch in SNB KNC KNL
 do
-    mv ${arch}_${base}_"MEIF"_"time".png ${dir}/${meifdir}
-    mv ${arch}_${base}_"MEIF"_"speedup".png ${dir}/${meifdir}
+    oBase=${arch}_${base}_"MEIF"
+
+    mv ${oBase}_"time".png ${dir}/${meifdir}
+    mv ${oBase}_"speedup".png ${dir}/${meifdir}
+
+    mv ${oBase}_"time_logx".png ${dir}/${meifdir}/logx
+    mv ${oBase}_"speedup_logx".png ${dir}/${meifdir}/logx
 done
 
 # Move nHits plots

@@ -8,7 +8,7 @@
 #include "TMarker.h"
 #include "TAxis.h"
 #include "TH1F.h"
-#include "TLine.h"
+#include "TF1.h"
 
 #include <iostream>
 #include <vector>
