@@ -1,20 +1,16 @@
 #! /bin/bash
 
-# vars for directories
-host=${USER}@phiphi-mic0.t2.ucsd.edu
-workdir=/home/${USER}
-
 # make temp dirs
 echo "Making tmp dirs on KNC remotely"
-ssh ${host} bash -c "'
-cd ${workdir}
+ssh ${KNC_HOST} bash -c "'
+cd ${KNC_WORKDIR}
 mkdir -p Geoms
 mkdir -p mkFit
 exit
 '"
 
 # copy the executables + shared object
-scp libMicCore-mic.so ${host}:${workdir}
-scp mkFit/mkFit-mic ${host}:${workdir}/mkFit
-scp Geoms/CMS-2017-mic.so ${host}:${workdir}/Geoms
-scp Geoms/CylCowWLids-mic.so ${host}:${workdir}/Geoms
+scp libMicCore-mic.so ${KNC_HOST}:${KNC_WORKDIR}
+scp mkFit/mkFit-mic ${KNC_HOST}:${KNC_WORKDIR}/mkFit
+scp Geoms/CMS-2017-mic.so ${KNC_HOST}:${KNC_WORKDIR}/Geoms
+scp Geoms/CylCowWLids-mic.so ${KNC_HOST}:${KNC_WORKDIR}/Geoms
