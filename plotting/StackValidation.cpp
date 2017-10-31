@@ -87,9 +87,10 @@ void StackValidation::MakeCMSSWKinematicDiffStacks()
     {
       for (UInt_t p = 0; p < ptcuts.size(); p++)
       {
+	const Bool_t isLogy = true;
 	TCanvas * canv = new TCanvas();
 	canv->cd();
-	canv->SetLogy();
+	canv->SetLogy(isLogy);
 
 	TLegend * leg = new TLegend(0.85,0.80,1.0,1.0);
 	
@@ -107,19 +108,12 @@ void StackValidation::MakeCMSSWKinematicDiffStacks()
 	  hists[b]->Scale(1.f/hists[b]->Integral());
 	  hists[b]->GetYaxis()->SetTitle("Fraction of Tracks");
 	  
-	  for (Int_t ibin = 1; ibin <= hists[b]->GetNbinsX(); ibin++)
-	  {
-	    const Double_t content = hists[b]->GetBinContent(ibin);
-
-	    if (content < min && content != 0.0) min = content;
-	    if (content > max) max = content;
-	  }
+	  GetMinMaxHist(hists[b],min,max);
 	}
 
 	for (UInt_t b = 0; b < builds.size(); b++)
 	{
-	  hists[b]->SetMininum(min/1.5);
-	  hists[b]->SetMaxinum(max*1.5);
+	  SetMinMaxHist(hists[b],min,max,isLogy);
 	  
 	  hists[b]->Draw(b>0?"EP SAME":"EP");
 	  leg->AddEntry(hists[b],builds[b].label.Data(),"LEP");

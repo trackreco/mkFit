@@ -1,5 +1,8 @@
 #! /bin/bash
 
+# in case this is sent separately
+source xeon_scripts/common_variables.sh
+
 # tar up the directory
 echo "Tarring directory for KNL... make sure it is clean!"
 repo=mictest.tar.gz

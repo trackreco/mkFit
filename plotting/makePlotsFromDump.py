@@ -9,10 +9,10 @@ suffix = sys.argv[4]
 g = ROOT.TFile("test_"+arch+"_"+sample+"_"+build+"_"+suffix+".root","recreate")
 
 # declare hists: reco only
-h_MXNH  = ROOT.TH1F("h_MXNH", "nHits/Track", 35, 0, 35)
-h_MXPT  = ROOT.TH1F("h_MXPT", "p_{T}^{mkFit}", 100, 0, 100)
-h_MXETA = ROOT.TH1F("h_MXETA", "#eta^{mkFit}", 25, -2.5, 2.5)
-h_MXPHI = ROOT.TH1F("h_MXPHI", "#phi^{mkFit}", 32, -3.2, 3.2)
+h_MXNH  = ROOT.TH1F("h_MXNH_"+suffix, "nHits/Track", 35, 0, 35)
+h_MXPT  = ROOT.TH1F("h_MXPT_"+suffix, "p_{T}^{mkFit}", 100, 0, 100)
+h_MXETA = ROOT.TH1F("h_MXETA_"+suffix, "#eta^{mkFit}", 25, -2.5, 2.5)
+h_MXPHI = ROOT.TH1F("h_MXPHI_"+suffix, "#phi^{mkFit}", 32, -3.2, 3.2)
 
 h_MXNH.Sumw2()
 h_MXPT.Sumw2()
@@ -20,10 +20,10 @@ h_MXETA.Sumw2()
 h_MXPHI.Sumw2()
 
 # declare hists: diffs 
-h_DCNH  = ROOT.TH1F("h_DCNH", "#DeltanHits(mkFit,CMSSW)", 15, -7.5, 7.5)
-h_DCPT  = ROOT.TH1F("h_DCPT", "#Deltap_{T}(mkFit,CMSSW)", 63, -15.5, 15.5)
-h_DCETA = ROOT.TH1F("h_DCETA", "#Delta#phi(mkFit,CMSSW)", 47, -5.5, 5.5)
-h_DCPHI = ROOT.TH1F("h_DCPHI", "#Delta#eta(mkFit,CMSSW)", 47, -5.5, 5.5)
+h_DCNH  = ROOT.TH1F("h_DCNH_"+suffix, "#DeltanHits(mkFit,CMSSW)", 46, -20.5, 25.5)
+h_DCPT  = ROOT.TH1F("h_DCPT_"+suffix, "#Deltap_{T}(mkFit,CMSSW)", 63, -2.5, 2.5)
+h_DCETA = ROOT.TH1F("h_DCETA_"+suffix, "#Delta#eta(mkFit,CMSSW)", 45, -0.5, 0.5)
+h_DCPHI = ROOT.TH1F("h_DCPHI_"+suffix, "#Delta#phi(mkFit,CMSSW)", 45, -0.5, 0.5)
 
 h_DCNH.Sumw2()
 h_DCPT.Sumw2()
@@ -32,7 +32,7 @@ h_DCPHI.Sumw2()
 
 with open('log_'+arch+'_'+sample+'_'+build+'_'+suffix+'_DumpForPlots.txt') as f :
     for line in f :
-        if "MX - found track with nFoundHits" in line :
+        if "MX - found track with chi2" in line :
             lsplit = line.split()
 
             NH = float(lsplit[8])
@@ -58,7 +58,7 @@ with open('log_'+arch+'_'+sample+'_'+build+'_'+suffix+'_DumpForPlots.txt') as f 
                 h_DCETA.Fill(ETA-ETAC)
                 
                 PHIC = float(lsplit[30])
-                h_DCPHI.Fill(PHIC)
+                h_DCPHI.Fill(PHI-PHIC)
 
 g.Write()
 g.Close()

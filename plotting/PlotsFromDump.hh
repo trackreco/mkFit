@@ -29,7 +29,6 @@ namespace
 struct PlotOpts
 {
   TString name;
-  TString title;
   TString xtitle;
   TString ytitle;
   TString outname;

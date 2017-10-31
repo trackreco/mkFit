@@ -16,7 +16,7 @@ void setupcpp11()
   gSystem->SetMakeExe(o.Data());
 } 
 
-void makeRatioValidation(const TString & label = "", const TString & extra = "", const Bool_t cmsswComp = false)
+void makeValidation(const TString & label = "", const TString & extra = "", const Bool_t cmsswComp = false)
 {
   setupcpp11(); //  use this to get StackValidation to compile ... phiphi ROOT build has ACLiC with C++98!
 

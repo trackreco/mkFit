@@ -12,7 +12,7 @@ echo "Run benchmarking on SNB"
 ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh SNB
 
 echo "Run benchmarking on KNC"
-./xeon_scripts/benchmark-cmssw-ttbar-fulldet-buils.sh KNC
+./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh KNC
 
 ##### Benchmark Plots #####
 for archV in "SNB snb" "KNC knc" "KNL knl"
@@ -27,7 +27,7 @@ for archV in "SNB snb" "KNC knc" "KNL knl"
 	echo "Extract multiple events in flight benchmark results for" ${archN}
 	python plotting/makeMEIFBenchmarkPlots.py ${archN} ${sample}
 
-	echo "Make final plot comparing mulitple events in flight for" ${archN}
+	echo "Make final plot comparing multiple events in flight for" ${archN}
 	root -b -q -l plotting/makeMEIFBenchmarkPlots.C\(\"${archN}\",\"${sample}\"\)	
     done
 done

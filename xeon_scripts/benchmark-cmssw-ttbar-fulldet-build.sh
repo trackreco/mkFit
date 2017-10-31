@@ -35,9 +35,9 @@ then
     maxth=240
     maxvu=16
     exe="ssh ${KNC_HOST} ./mkFit/mkFit-mic ${seeds} --input-file ${dir}/${subdir}/${file}"
-    declare -a nths=("1" "2" "4" "8" "15" "30" "60" "90" "120" "150" "180" "210" "240")
+    declare -a nths=("1" "2" "4" "8" "15" "30" "60" "90" "120" "180" "240")
     declare -a nvus=("1" "2" "4" "8" "16")
-    declare -a nevs=("1" "2" "4" "8" "16" "32" "64" "128")
+    declare -a nevs=("1" "2" "4" "8" "16" "32")
 elif [ ${arch} == "KNL" ]
 then
     mOpt="-j 64 AVX_512:=1"
@@ -58,7 +58,7 @@ fi
 make ${mOpt}
 if [ ${arch} == "KNC" ] 
 then
-    ./copyToKNC.sh
+    ./xeon_scripts/copyToKNC.sh
 fi
 
 ## Parallelization Benchmarks
@@ -93,7 +93,7 @@ do
 	    if (( ${nth} == ${maxth} ))
 	    then
 		echo "${oBase}: Text dump for plots [nTH:${nth}, nVU:${maxvu}int]"
-		${bExe} --dump-for-plots --num-events ${nevents} >& log_${oBase}_NVU${maxvu}int_NTH${nth}_${dump}.txt
+		${bExe} --dump-for-plots --read-cmssw-tracks --num-events ${nevents} >& log_${oBase}_NVU${maxvu}int_NTH${nth}_${dump}.txt
 	    fi
 	done
     done
@@ -105,13 +105,13 @@ do
     make clean ${mOpt}
     if [ ${arch} == "KNC" ] 
     then
-	./trashKNC.sh
+	./xeon_scripts/trashKNC.sh
     fi
 
     make ${mOpt} USE_INTRINSICS:=-DMPT_SIZE=${nvu}
     if [ ${arch} == "KNC" ] 
     then
-	./copyToKNC.sh
+	./xeon_scripts/copyToKNC.sh
     fi
 
     for bV in "BH bh" "STD std" "CE ce"
@@ -129,7 +129,7 @@ do
 	    if (( ${nvu} == ${minvu} ))
 	    then
 		echo "${oBase}: Text dump for plots [nTH:${minth}, nVU:${nvu}]"
-		${bExe} --dump-for-plots >& log_${oBase}_NVU${nvu}_NTH${minth}_${dump}.txt
+		${bExe} --dump-for-plots --read-cmssw-tracks >& log_${oBase}_NVU${nvu}_NTH${minth}_${dump}.txt
 	    fi
 	done
     done
@@ -139,5 +139,5 @@ done
 make distclean ${mOpt}
 if [ ${arch} == "KNC" ] 
 then
-    ./trashKNC.sh
+    ./xeon_scripts/trashKNC.sh
 fi

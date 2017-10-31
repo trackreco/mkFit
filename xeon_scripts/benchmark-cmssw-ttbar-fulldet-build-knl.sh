@@ -1,5 +1,8 @@
 #! /bin/bash
 
+# in case this is called separately
+source xeon_scripts/common_variables.sh
+
 # tar and send
 ./xeon_scripts/tarAndSendToKNL.sh
 

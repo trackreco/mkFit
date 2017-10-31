@@ -984,7 +984,7 @@ void MkBuilder::quality_process(Track &tkcand, std::map<int,int> & cmsswLabelToP
       auto & cmsswtrack = m_event->cmsswTracks_[cmsswLabelToPos[label]];
       pTcmssw  = cmsswtrack.pT();
       etacmssw = cmsswtrack.momEta();
-      phicmssw = cmsswtrack.momPhi();
+      phicmssw = cmsswtrack.swimPhiToR(tkcand.x(),tkcand.y()); // to get rough estimate of diff in phi
       cmsswtrack.sortHitsByLayer();
       nfoundcmssw = cmsswtrack.nUniqueLayers();
     }

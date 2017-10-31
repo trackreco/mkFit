@@ -689,25 +689,25 @@ void PlotValidation::PlotCMSSWKinematicDiffs()
       // nhits
       dnHitsPlot[p][c] = new TH1F(Form("h_dnHits_%s_pt%3.1f",coll[c].Data(),ptcuts[p]),
 				  Form("#DeltanHits(%s mkFit,CMSSW) [p_{T} > %3.1f GeV/c];nHits^{%s mkFit}-nHits^{CMSSW};nTracks",
-				       scoll[c].Data(),ptcuts[p],scoll[c].Data()),15,-7.5,7.5);
+				       scoll[c].Data(),ptcuts[p],scoll[c].Data()),31,-15.5,15.5);
       dnHitsPlot[p][c]->Sumw2();
 
       // 1/pt
       dinvptPlot[p][c] = new TH1F(Form("h_dinvpt_%s_pt%3.1f",coll[c].Data(),ptcuts[p]),
 				  Form("#Delta1/p_{T}(%s mkFit,CMSSW) [p_{T} > %3.1f GeV/c];1/p_{T}^{%s mkFit}-1/p_{T}^{CMSSW};nTracks",
-				       scoll[c].Data(),ptcuts[p],scoll[c].Data(),),47,-0.5,0.5);
+				       scoll[c].Data(),ptcuts[p],scoll[c].Data()),45,-0.5,0.5);
       dinvptPlot[p][c]->Sumw2();
 
       // phi
       dphiPlot[p][c] = new TH1F(Form("h_dphi_%s_pt%3.1f",coll[c].Data(),ptcuts[p]),
-				Form("#Delta#phi(%s mkFit,CMSSW) [p_{T} > %3.1f GeV/c];#phi^{%s mkFit}-#phi^{CMSSW};nTracks",
-				       scoll[c].Data(),ptcuts[p],scoll[c].Data(),),47,-5.5,5.5);
+				Form("|#Delta#phi(%s mkFit,CMSSW)| [p_{T} > %3.1f GeV/c];|#phi^{%s mkFit}-#phi^{CMSSW}|;nTracks",
+				       scoll[c].Data(),ptcuts[p],scoll[c].Data()),45,0,0.1);
       dphiPlot[p][c]->Sumw2();
 
       // eta
       detaPlot[p][c] = new TH1F(Form("h_deta_%s_pt%3.1f",coll[c].Data(),ptcuts[p]),
 				Form("#Delta#eta(%s mkFit,CMSSW) [p_{T} > %3.1f GeV/c];#eta^{%s mkFit}-#eta^{CMSSW};nTracks",
-				       scoll[c].Data(),ptcuts[p],scoll[c].Data()),47,-5.5,5.5);
+				       scoll[c].Data(),ptcuts[p],scoll[c].Data()),45,-0.1,0.1);
       detaPlot[p][c]->Sumw2();
     }
   }
@@ -734,9 +734,9 @@ void PlotValidation::PlotCMSSWKinematicDiffs()
   cmsswfrtree->SetBranchAddress("iTkMatches_build",&iTkMatches_build);
 
   // Fill histos, compute res/pull from tree branches 
-  for (Int_t k = 0; k < frtree->GetEntries(); k++)
+  for (Int_t k = 0; k < cmsswfrtree->GetEntries(); k++)
   {
-    frtree->GetEntry(k);
+    cmsswfrtree->GetEntry(k);
     for (UInt_t p = 0; p < ptcuts.size(); p++) // loop over pt cuts
     {
       if (pt_build < ptcuts[p]) continue;

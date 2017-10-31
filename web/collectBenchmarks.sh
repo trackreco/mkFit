@@ -1,5 +1,8 @@
 #! /bin/bash
 
+# in case this is run alone
+source xeon_scripts/common_variables.sh
+
 dir=${1:-benchmarks}
 
 # Move benchmark plots: subroutine build benchmarks
@@ -40,13 +43,15 @@ done
 # Move plots from text dump
 dumpdir="PlotsFromDump"
 mkdir -p ${dir}/${dumpdir}
+mkdir -p ${dir}/${dumpdir}/diffs
 
 for build in BH STD CE
 do
-    mv ${sample}_${build}_*"nHits".png ${dir}/${dumpdir}
-    mv ${sample}_${build}_*"pt".png ${dir}/${dumpdir}
-    mv ${sample}_${build}_*"eta".png ${dir}/${dumpdir}
-    mv ${sample}_${build}_*"phi".png ${dir}/${dumpdir}
+    for var in nHits pt eta phi
+    do
+	mv ${sample}_${build}_${var}.png ${dir}/${dumpdir}
+	mv ${sample}_${build}_"d"${var}.png ${dir}/${dumpdir}/diffs
+    done
 done
 
 # Move ROOT validation
@@ -90,6 +95,6 @@ for coll in bestmatch allmatch
 do 
     for var in nHits invpt phi eta
     do
-	mv SNB_${sample}_${coll}_${var}_*.png ${dir}/${cmsswdir}/diffs
+	mv SNB_${sample}_${coll}_d${var}_*.png ${dir}/${cmsswdir}/diffs
     done
 done
