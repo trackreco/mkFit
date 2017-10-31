@@ -68,6 +68,7 @@ public:
   void PlotDuplicateRate();
   void PlotNHits();
   void PlotMomResolutionPull();
+  void PlotCMSSWKinematicDiffs(); 
 
   void PrintTotals();
 
