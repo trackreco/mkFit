@@ -26,6 +26,33 @@ namespace
   }
 };
 
+struct PlotOpts
+{
+  TString name;
+  TString title;
+  TString xtitle;
+  TString ytitle;
+  TString outname;
+};
+typedef std::vector<PlotOpts> POVec;
+
+namespace 
+{
+  POVec plots;
+  void setupPlots()
+  {
+    plots.push_back({"h_MXNH","Number of Hits Found","Fraction of Tracks","nHits"});
+    plots.push_back({"h_MXPT","p_{T}^{mkFit}","Fraction of Tracks","pt"});
+    plots.push_back({"h_MXPHI","#phi^{mkFit}","Fraction of Tracks","phi"});
+    plots.push_back({"h_MXETA","#eta^{mkFit}","Fraction of Tracks","eta"});
+
+    plots.push_back({"h_DCNH","nHits^{mkFit}-nHits^{CMSSW}","Fraction of Tracks","dnHits"});
+    plots.push_back({"h_DCPT","p_{T}^{mkFit}-p_{T}^{CMSSW}","Fraction of Tracks","dpt"});
+    plots.push_back({"h_DCPHI","#phi^{mkFit}-#phi^{CMSSW}","Fraction of Tracks","dphi"});
+    plots.push_back({"h_DCETA","#eta^{mkFit}-#eta^{CMSSW}","Fraction of Tracks","deta"});
+  }
+};
+
 class PlotsFromDump
 {
 public:

@@ -32,23 +32,23 @@ for archV in "SNB snb" "KNC knc" "KNL knl"
     done
 done
 
-##### nHits plots #####
+##### Plots from Text Files #####
 for build in BH STD CE
 do 
-    echo "Making nHits plots for" ${sample} ":" ${build}
+    echo "Making plots from text files for" ${sample} ":" ${build}
     
     for archV in "SNB NVU8int_NTH24" "KNC NVU16int_NTH240" "KNL NVU16int_NTH256"
     do echo ${archV} | while read -r archN archO
 	do
-	    echo "Extracting nHits for" ${archN} NVU1_NTH1 
+	    echo "Extracting plots from dump for" ${archN} NVU1_NTH1 
 	    python plotting/makePlotsFromDump.py ${archN} ${sample} ${build} NVU1_NTH1
 
-	    echo "Extracting nHits for" ${archN} ${archO}
+	    echo "Extracting plots from dump for" ${archN} ${archO}
 	    python plotting/makePlotsFromDump.py ${archN} ${sample} ${build} ${archO}
 	done
     done
 
-    echo "Making final plot comparing nHits for" ${sample} ":" ${build}
+    echo "Making comparison plots from dump for" ${sample} ":" ${build}
     root -b -q -l plotting/makePlotsFromDump.C\(\"${sample}\",\"${build}\"\)
 done
 

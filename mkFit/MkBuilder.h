@@ -2,6 +2,7 @@
 #define MkBuilder_h
 
 #include <vector>
+#include <map>
 
 //------------------------------------------------------------------------------
 
@@ -84,7 +85,7 @@ public:
 
   void quality_output();
   void quality_reset();
-  void quality_process(Track& tkcand);
+  void quality_process(Track& tkcand, std::map<int,int> & cmsswLabelToPos);
   void quality_print();
 
   void quality_store_tracks();

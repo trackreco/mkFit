@@ -40,13 +40,16 @@ do
     mv ${oBase}_"speedup_logx".png ${dir}/${meifdir}/logx
 done
 
-# Move nHits plots
-nhitdir="nHits"
-mkdir -p ${dir}/${nhitdir}
+# Move plots from text dump
+dumpdir="PlotsFromDump"
+mkdir -p ${dir}/${dumpdir}
 
 for build in BH STD CE
 do
-    mv ${base}_${build}_"nHits".png ${dir}/${nhitdir}
+    mv ${base}_${build}_*"nHits".png ${dir}/${dumpdir}
+    mv ${base}_${build}_*"pt".png ${dir}/${dumpdir}
+    mv ${base}_${build}_*"eta".png ${dir}/${dumpdir}
+    mv ${base}_${build}_*"phi".png ${dir}/${dumpdir}
 done
 
 # Move ROOT validation
