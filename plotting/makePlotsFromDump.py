@@ -8,45 +8,57 @@ suffix = sys.argv[4]
 
 g = ROOT.TFile("test_"+arch+"_"+sample+"_"+build+"_"+suffix+".root","recreate")
 
-# declare hists
-h_MXNH  = ROOT.TH1F("h_MXNH", "h_MXNH", 35, 0, 35)
-h_MXNH.GetXaxis().SetTitle("nHits_{found}")
+# declare hists: reco only
+h_MXNH  = ROOT.TH1F("h_MXNH_"+suffix, "nHits/Track", 35, 0, 35)
+h_MXPT  = ROOT.TH1F("h_MXPT_"+suffix, "p_{T}^{mkFit}", 100, 0, 100)
+h_MXETA = ROOT.TH1F("h_MXETA_"+suffix, "#eta^{mkFit}", 25, -2.5, 2.5)
+h_MXPHI = ROOT.TH1F("h_MXPHI_"+suffix, "#phi^{mkFit}", 32, -3.2, 3.2)
 
-h_MXC2  = ROOT.TH1F("h_MXC2", "h_MXC2", 40, 0, 20)
-h_MXC2.GetXaxis().SetTitle("#chi^{2}")
+h_MXNH.Sumw2()
+h_MXPT.Sumw2()
+h_MXETA.Sumw2()
+h_MXPHI.Sumw2()
 
-h_MXPT  = ROOT.TH1F("h_MXPT", "h_MXPT", 20, 0, 20)
-h_MXPT.GetXaxis().SetTitle("p_{T}^{rec}")
+# declare hists: diffs 
+h_DCNH  = ROOT.TH1F("h_DCNH_"+suffix, "#DeltanHits(mkFit,CMSSW)", 46, -20.5, 25.5)
+h_DCPT  = ROOT.TH1F("h_DCPT_"+suffix, "#Deltap_{T}(mkFit,CMSSW)", 63, -2.5, 2.5)
+h_DCETA = ROOT.TH1F("h_DCETA_"+suffix, "#Delta#eta(mkFit,CMSSW)", 45, -0.5, 0.5)
+h_DCPHI = ROOT.TH1F("h_DCPHI_"+suffix, "#Delta#phi(mkFit,CMSSW)", 45, -0.5, 0.5)
 
-h_MXPTm = ROOT.TH1F("h_MXPTm", "h_MXPTm", 20, 0, 20)
-h_MXPTm.GetXaxis().SetTitle("p_{T}^{sim}")
-
-h_MXPTr = ROOT.TH1F("h_MXPTr", "h_MXPTr", 40, -0.4, 0.4)
-h_MXPTr.GetXaxis().SetTitle("(p_{T}^{rec}-p_{T}^{sim})/p_{T}^{sim}")
-
-h_NHDS  = ROOT.TH1F("h_NHDS", "h_NHDS", 15, -7.5, 7.5)
-h_NHDS.GetXaxis().SetTitle("nHits_{found}-nHits_{sim}")
+h_DCNH.Sumw2()
+h_DCPT.Sumw2()
+h_DCETA.Sumw2()
+h_DCPHI.Sumw2()
 
 with open('log_'+arch+'_'+sample+'_'+build+'_'+suffix+'_DumpForPlots.txt') as f :
     for line in f :
-        if "MX - found track with nFoundHits" in line :
+        if "MX - found track with chi2" in line :
             lsplit = line.split()
 
-            NH = float(lsplit[6])
+            NH = float(lsplit[8])
             h_MXNH.Fill(NH)
-
-            C2 = float(lsplit[8])
-            h_MXC2.Fill(C2/(3.*(NH-3.)-5.))
 
             PT = float(lsplit[10])
             h_MXPT.Fill(PT)
 
-            PTMC = float(lsplit[12])
-            NHS = float(lsplit[12])
-            if PTMC > 0.01 and NHS >= 3 :
-                h_MXPTm.Fill(PTMC)
-                h_MXPTr.Fill((PT-PTMC)/PTMC)
-                h_NHDS.Fill(NH-NHS)
+            ETA = float(lsplit[12])
+            h_MXETA.Fill(ETA)
+
+            PHI = float(lsplit[14])
+            h_MXPHI.Fill(PHI)
+
+            NHC = float(lsplit[24])
+            if NHC > 0 :
+                h_DCNH.Fill(NH-NHC)
+
+                PTC = float(lsplit[26])
+                h_DCPT.Fill(PT-PTC)
+                
+                ETAC = float(lsplit[28])
+                h_DCETA.Fill(ETA-ETAC)
+                
+                PHIC = float(lsplit[30])
+                h_DCPHI.Fill(PHI-PHIC)
 
 g.Write()
 g.Close()

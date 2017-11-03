@@ -889,9 +889,18 @@ void MkBuilder::quality_output()
 
   remap_cand_hits();
 
+  std::map<int,int> cmsswLabelToPos;
+  if (Config::dumpForPlots && Config::readCmsswTracks)
+  {
+    for (int itrack = 0; itrack < m_event->cmsswTracks_.size(); itrack++)
+    {
+      cmsswLabelToPos[m_event->cmsswTracks_[itrack].label()] = itrack;    
+    }
+  }
+
   for (int i = 0; i < m_event->candidateTracks_.size(); i++)
   {
-    quality_process(m_event->candidateTracks_[i]);
+    quality_process(m_event->candidateTracks_[i],cmsswLabelToPos);
   }
 
   quality_print();
@@ -916,9 +925,10 @@ void MkBuilder::quality_store_tracks()
   }
 }
 
-void MkBuilder::quality_process(Track &tkcand)
+void MkBuilder::quality_process(Track &tkcand, std::map<int,int> & cmsswLabelToPos)
 {
-  TrackExtra extra(tkcand.label());
+  const auto label = tkcand.label();
+  TrackExtra extra(label);
   
   if (Config::seedInput == cmsswSeeds || Config::seedInput == findSeeds)
   {
@@ -928,44 +938,63 @@ void MkBuilder::quality_process(Track &tkcand)
   {
     extra.setMCTrackIDInfoByLabel(tkcand, m_event->layerHits_, m_event->simHitsInfo_, m_event->simTracks_);
   }
-  int mctrk = extra.mcTrackID();
+  const int mctrk = extra.mcTrackID();
 
   //  int mctrk = tkcand.label(); // assumes 100% "efficiency"
 
-  float pt    = tkcand.pT();
-  float ptmc = 0., pr = 0., chi2mc = 0.;
-  int   nfoundmc = 0;
+  const float pT = tkcand.pT();
+  float pTmc = 0.f, etamc = 0.f, phimc = 0.f;
+  float pTr  = 0.f; 
+  int   nfoundmc = -1;
 
   if (mctrk < 0 || mctrk >= m_event->simTracks_.size())
   {
     ++m_cnt_nomc;
-    dprint("XX bad track idx " << mctrk << ", orig label was " << tkcand.label());
+    dprint("XX bad track idx " << mctrk << ", orig label was " << label);
   }
   else
   {
-    ptmc  = m_event->simTracks_[mctrk].pT() ;
-    pr    = pt / ptmc;
-    m_event->simTracks_[mctrk].sortHitsByLayer();
-    nfoundmc = m_event->simTracks_[mctrk].nUniqueLayers();
-    chi2mc = m_event->simTracks_[mctrk].chi2();//this is actually the number of reco hits in cmssw
+    auto & simtrack = m_event->simTracks_[mctrk];
+    pTmc  = simtrack.pT();
+    etamc = simtrack.momEta();
+    phimc = simtrack.momPhi();
+    pTr   = pT / pTmc;
+
+    simtrack.sortHitsByLayer();
+    nfoundmc = simtrack.nUniqueLayers();
 
     ++m_cnt;
-    if (pr > 0.9 && pr < 1.1) ++m_cnt1;
-    if (pr > 0.8 && pr < 1.2) ++m_cnt2;
+    if (pTr > 0.9 && pTr < 1.1) ++m_cnt1;
+    if (pTr > 0.8 && pTr < 1.2) ++m_cnt2;
 
     if (tkcand.nFoundHits() >= 0.8f*nfoundmc)
     {
       ++m_cnt_8;
-      if (pr > 0.9 && pr < 1.1) ++m_cnt1_8;
-      if (pr > 0.8 && pr < 1.2) ++m_cnt2_8;
+      if (pTr > 0.9 && pTr < 1.1) ++m_cnt1_8;
+      if (pTr > 0.8 && pTr < 1.2) ++m_cnt2_8;
+    }
+  }
+
+  float pTcmssw = 0.f, etacmssw = 0.f, phicmssw = 0.f;
+  int nfoundcmssw = -1;
+  if (Config::dumpForPlots && Config::readCmsswTracks)
+  {
+    if (cmsswLabelToPos.count(label))
+    {
+      auto & cmsswtrack = m_event->cmsswTracks_[cmsswLabelToPos[label]];
+      pTcmssw  = cmsswtrack.pT();
+      etacmssw = cmsswtrack.momEta();
+      phicmssw = cmsswtrack.swimPhiToR(tkcand.x(),tkcand.y()); // to get rough estimate of diff in phi
+      cmsswtrack.sortHitsByLayer();
+      nfoundcmssw = cmsswtrack.nUniqueLayers();
     }
   }
 
   if (!Config::silent && Config::dumpForPlots)
   {
     std::lock_guard<std::mutex> printlock(Event::printmutex);
-    printf("MX - found track with nFoundHits= %2d chi2= %6.3f pT= %7.4f pTmc= %7.4f nfoundmc= %2d chi2mc= %5.2f lab= %d\n",
-           tkcand.nFoundHits(), tkcand.chi2(), pt, ptmc, nfoundmc, chi2mc, tkcand.label());
+    printf("MX - found track with chi2= %6.3f nFoundHits= %2d pT= %7.4f eta= %7.4f phi= %7.4f nfoundmc= %2d pTmc= %7.4f etamc= %7.4f phimc= %7.4f nfoundcmssw= %2d pTcmssw= %7.4f etacmssw= %7.4f phicmssw= %7.4f lab= %d\n",
+           tkcand.chi2(), tkcand.nFoundHits(), pT, tkcand.momEta(), tkcand.momPhi(), nfoundmc, pTmc, etamc, phimc, nfoundcmssw, pTcmssw, etacmssw, phicmssw, label);
   }
 }
 
@@ -1069,7 +1098,18 @@ void MkBuilder::PrepareSeeds()
     {
       m_event->validation_.makeSeedTkToCMSSWTkMap(*m_event);
     }
-    
+
+    if (Config::dumpForPlots && Config::readCmsswTracks)
+    {
+      for (int itrack = 0; itrack < m_event->cmsswTracks_.size(); itrack++)
+      {
+	const auto & cmsswtrack = m_event->cmsswTracks_[itrack];
+	const auto cmsswlabel = cmsswtrack.label();
+	auto & seedtrack = m_event->seedTracks_[cmsswlabel];
+	seedtrack.setLabel(cmsswlabel);
+      }
+    }
+
     int ns = 0;
     if (Config::seedCleaning == cleanSeedsN2)
     {

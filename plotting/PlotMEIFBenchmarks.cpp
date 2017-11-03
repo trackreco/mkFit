@@ -39,7 +39,7 @@ void PlotMEIFBenchmarks::RunMEIFBenchmarkPlots()
 
   // y-axis title
   const TString ytitletime    = "Averarge Time per Event [s]";
-  const TString ytitlespeedup = "Speedup";
+  const TString ytitlespeedup = "Average Speedup per Event";
 
   // Do the overlaying!
   PlotMEIFBenchmarks::MakeOverlay("time",sample+" Multiple Events in Flight Benchmark on "+arch+" [nVU="+nvu+"]",xtitleth,ytitletime,
@@ -60,6 +60,7 @@ void PlotMEIFBenchmarks::MakeOverlay(const TString & text, const TString & title
   canv->cd();
   canv->SetGridy();
   if (!isSpeedup) canv->SetLogy();
+  canv->DrawFrame(xmin,ymin,xmax,ymax,"");
   
   // legend 
   const Double_t x1 = (isSpeedup ? 0.20 : 0.60);
@@ -90,25 +91,41 @@ void PlotMEIFBenchmarks::MakeOverlay(const TString & text, const TString & title
     leg->AddEntry(graphs[i],Form("%i Events",events[i].nev),"LP");
   }
 
-  TLine * line = NULL;
+  // Draw ideal scaling line
+  TF1 * scaling = NULL;
   if (isSpeedup)
   {
-    line = new TLine(arch_opt.thmin,arch_opt.thmin,arch_opt.thmeifspeedupmax,arch_opt.thmeifspeedupmax);
-    line->Draw("SAME");
+    scaling = new TF1("ideal_scaling","x",arch_opt.thmin,arch_opt.thmeifspeedupmax);
+    scaling->SetLineColor(kBlack);
+    scaling->SetLineStyle(kDashed);
+    scaling->SetLineWidth(2);
+    scaling->Draw("SAME");
+    leg->AddEntry(scaling,"Ideal Scaling","l");
   }
 
   // draw legend last
   leg->Draw("SAME");
 
   // Save the png
-  canv->SaveAs(arch+"_"+sample+"_MEIF_"+text+".png");
+  const TString outname = arch+"_"+sample+"_MEIF_"+text;
+  canv->SaveAs(outname+".png");
+  
+  // Save log-x version
+  canv->SetLogx();
+  for (UInt_t i = 0; i < events.size(); i++)
+  {
+    graphs[i]->GetXaxis()->SetRangeUser(xmin,xmax);
+    graphs[i]->GetYaxis()->SetRangeUser(ymin,ymax);
+  }
+  canv->Update();
+  canv->SaveAs(outname+"_logx.png");
 
   // delete everything
   for (UInt_t i = 0; i < events.size(); i++)
   {
     delete graphs[i];
   }
-  if (isSpeedup) delete line;
+  if (isSpeedup) delete scaling;
   delete leg;
   delete canv;
 }
