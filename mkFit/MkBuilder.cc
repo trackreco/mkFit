@@ -94,6 +94,7 @@ namespace
 
 MkBuilder* MkBuilder::make_builder()
 {
+  g_exe_ctx.populate_finderv(Config::numThreadsFinder, Config::numSeedsPerTask);
   return new MkBuilder;
 }
 
@@ -1622,4 +1623,120 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
     if (finalcands.size() == 0) continue;
     std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
   }
+}
+
+//------------------------------------------------------------------------------
+// FindTracksCombinatorial: CloneEngine TBB
+//------------------------------------------------------------------------------
+
+void MkBuilder::FindTracksFV()
+{
+  EventOfCombCandidates &eoccs = m_event_of_comb_cands;
+
+  tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
+    [&](int region)
+  {
+    int adaptiveSPT = eoccs.m_size / Config::numThreadsFinder / 2 + 1;
+    dprint("adaptiveSPT " << adaptiveSPT << " fill " << eoccs.m_size);
+
+    const RegionOfSeedIndices rosi(m_event, region);
+
+    tbb::parallel_for(rosi.tbb_blk_rng_std(/*adaptiveSPT*/),
+      [&](const tbb::blocked_range<int>& seeds)
+    {
+      find_tracks_in_layersFV(seeds.begin(), seeds.end(), region);
+    });
+  });
+}
+
+void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region)
+{
+  EventOfCombCandidates  &eoccs             = m_event_of_comb_cands;
+  const SteeringParams   &st_par            = m_steering_params[region];
+  const TrackerInfo      &trk_info          = Config::TrkInfo;
+
+  const int n_seeds = end_seed - start_seed;
+
+  std::vector<MkFinderFv> finders = g_exe_ctx.getFV(end_seed-start_seed);
+
+  int is = 0;
+  for (int iseed = start_seed; iseed < end_seed; ++iseed, ++is) {
+    const int index = is/MkFinderFv::Seeds;
+    const int offset = is - index*MkFinderFv::Seeds;
+    finders[index].InputTrack(eoccs.m_candidates[iseed][0], iseed, offset, false);
+  }
+
+  // Loop over layers, starting from after the seed.
+  // Note that we do a final pass with curr_layer = -1 to update parameters
+  // and output final tracks.
+
+  auto layer_plan_it = st_par.layer_plan.begin();
+
+  assert( layer_plan_it->m_pickup_only );
+
+  int curr_layer = layer_plan_it->m_layer, prev_layer;
+
+  dprintf("\nMkBuilder::find_tracks_in_layers region=%d, seed_pickup_layer=%d, first_layer=%d\n",
+          region, curr_layer, (layer_plan_it + 1)->m_layer);
+
+  // Loop over layers according to plan.
+  while (++layer_plan_it != st_par.layer_plan.end())
+  {
+    prev_layer = curr_layer;
+    curr_layer = layer_plan_it->m_layer;
+
+    const bool pickup_only = layer_plan_it->m_pickup_only;
+
+    dprintf("\n* Processing layer %d, %s\n", curr_layer, pickup_only ? "pickup only" : "full finding");
+
+    const LayerInfo   &layer_info    = trk_info.m_layers[curr_layer];
+    const LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[curr_layer];
+    const FindingFoos &fnd_foos      = layer_info.is_barrel() ? m_fndfoos_brl : m_fndfoos_ec;
+
+    // Don't bother messing with the clone engine if there are no candidates
+    // (actually it crashes, so this protection is needed).
+    // If there are no cands on this iteration, there won't be any later on either,
+    // by the construction of the seed_cand_idx vector.
+    // XXXXMT There might be cases in endcap where all tracks will miss the
+    // next layer, but only relevant if we do geometric selection before.
+
+    if (pickup_only) continue;
+
+    //vectorized loop
+    const int limit = (end_seed - start_seed + MkFinderFv::Seeds - 1)/MkFinderFv::Seeds;
+    for (int index = 0; index < limit; ++index)
+    {
+      auto& mkfndr = finders[index];
+
+      dprint("processing index=" << index);
+
+      // propagate to current layer
+      (mkfndr.*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, mkfndr.nnfv());
+
+      mkfndr.SelectHitIndices(layer_of_hits);
+
+      // if (Config::dumpForPlots) {
+      //std::cout << "MX number of hits in window in layer " << curr_layer << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
+      // }
+
+      mkfndr.FindCandidates(layer_of_hits, fnd_foos);
+      mkfndr.SelectBestCandidates(layer_of_hits);
+      mkfndr.UpdateWithLastHit(layer_of_hits, fnd_foos);
+    } //end of vectorized loop
+  } // end of layer loop
+
+  // final sorting
+  // final output
+  is = 0;
+  for (int iseed = start_seed; iseed < end_seed; ++iseed, ++is) {
+    const int index = is/MkFinderFv::Seeds;
+    const int offset = is - index*MkFinderFv::Seeds;
+
+    auto& mkf = finders[index];
+    auto best = mkf.BestCandidate(offset);
+    if (best >= 0) {
+      mkf.OutputTrack(eoccs.m_candidates[iseed], 0, best, true);
+    }
+  }
+  g_exe_ctx.pushFV(std::move(finders)); // need a sentry
 }

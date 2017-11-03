@@ -93,6 +93,7 @@ namespace
   bool  g_run_build_bh  = false;
   bool  g_run_build_std = false;
   bool  g_run_build_ce  = false;
+  bool  g_run_build_fv  = false;
   bool  g_seed_based    = false;
 
   std::string g_operation = "simulate_and_process";;
@@ -284,7 +285,7 @@ void test_standard()
 
   if (Config::useCMSGeom) fillZRgridME();
 
-  const int NT = 4;
+  const int NT = 5;
   double t_sum[NT] = {0};
   double t_skip[NT] = {0};
   double time = dtime();
@@ -432,6 +433,7 @@ void test_standard()
         t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
         t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev, mkb) : 0;
         t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, mkb) : 0;
+        t_cur[4] = (g_run_build_all || g_run_build_fv)  ? runBuildingTestPlexFV(ev, mkb) : 0;
   #else
         t_cur[0] = (g_run_fit_std) ? runFittingTestPlexGPU(cuFitter, ev, plex_tracks) : 0;
         t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHitGPU(ev, mkb, cuBuilder) : 0;
@@ -457,8 +459,8 @@ void test_standard()
 
       if (!Config::silent) {
         std::lock_guard<std::mutex> printlock(Event::printmutex);
-        printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
-               t_best[0], t_best[1], t_best[2], t_best[3]);
+        printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f  FVMX = %.5f\n",
+               t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
       }
 
       // not protected by a mutex, may be inacccurate for multiple events in flight;
@@ -678,6 +680,10 @@ int main(int argc, const char *argv[])
     else if(*i == "--build-ce")
     {
       g_run_build_all = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = true;
+    }
+    else if(*i == "--build-fv")
+    {
+      g_run_build_all = false; g_run_build_fv = true;
     }
     else if (*i == "--seeds-per-task")
     {

@@ -84,6 +84,13 @@ public:
   int   layer_id()  const { return m_layer_info->m_layer_id;    }
   bool  is_barrel() const { return m_layer_info->is_barrel();   }
   bool  is_endcap() const { return ! m_layer_info->is_barrel(); }
+  int   bin_index(int q, int p) const { return q*Config::m_nphi + p; }
+
+  PhiBinInfo_t operator[](int i) const {
+    int q = i/Config::m_nphi;
+    int p = i % Config::m_nphi;
+    return m_phi_bin_infos[q][p];
+  }
 
   float min_dphi() const { return m_layer_info->m_select_min_dphi; }
   float max_dphi() const { return m_layer_info->m_select_max_dphi; }

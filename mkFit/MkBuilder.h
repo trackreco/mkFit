@@ -8,6 +8,7 @@
 #include "CandCloner.h"
 #include "MkFitter.h"
 #include "MkFinder.h"
+#include "MkFinderFV.h"
 #include "SteeringParams.h"
 
 #include <functional>
@@ -25,12 +26,41 @@ struct ExecutionContext
   Pool<CandCloner> m_cloners;
   Pool<MkFitter>   m_fitters;
   Pool<MkFinder>   m_finders;
+  tbb::concurrent_queue<std::vector<MkFinderFv>> m_finderv;
 
   void populate(int n_thr)
   {
     m_cloners.populate(n_thr - m_cloners.size());
     m_fitters.populate(n_thr - m_fitters.size());
     m_finders.populate(n_thr - m_finders.size());
+  }
+
+  void populate_finderv(int n_thr, int n_seedsPerThread)
+  {
+    int count = (n_seedsPerThread + MkFinderFv::Seeds - 1)/MkFinderFv::Seeds; // adjust for seeds per finder
+    auto sz = m_finderv.unsafe_size();
+    if (sz < n_thr) {
+      for (int i = 0; i < n_thr - sz; ++i) {
+        std::vector<MkFinderFv> fv(count);
+        m_finderv.push(std::move(fv));
+      }
+    }
+  }
+
+  std::vector<MkFinderFv> getFV(int sz)
+  {
+    int count = (sz + MkFinderFv::Seeds - 1)/MkFinderFv::Seeds; // adjust for seeds per finder
+    std::vector<MkFinderFv> retfv;
+    m_finderv.try_pop(retfv);
+    if (retfv.size() < count) {
+      retfv.resize(count);
+    }
+    return retfv;
+  }
+
+  void pushFV(std::vector<MkFinderFv> fv)
+  {
+    m_finderv.push(std::move(fv));
   }
 };
 
@@ -106,6 +136,7 @@ public:
 
   void find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
                              int start_seed, int end_seed, int region);
+  void find_tracks_in_layersFV(int start_seed, int end_seed, int region);
 
   // --------
 
@@ -114,6 +145,7 @@ public:
   void FindTracksBestHit();
   void FindTracksStandard();
   void FindTracksCloneEngine();
+  void FindTracksFV();
 
 #ifdef USE_CUDA
   const Event* get_event() const { return m_event; }

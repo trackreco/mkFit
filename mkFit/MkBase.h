@@ -5,8 +5,9 @@
 
 #include "PropagationMPlex.h"
 
-struct MkBase
+class MkBase
 {
+public:
   MPlexLS    Err[2];
   MPlexLV    Par[2];
 
