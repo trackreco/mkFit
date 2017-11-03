@@ -32,6 +32,14 @@ namespace
       for (UInt_t i = 0; i < rates.size(); i++) rates[i].dir += "_cmssw";
     }
   }
+
+  std::vector<Float_t> ptcuts;
+  void setupPtCuts()
+  {
+    ptcuts.push_back(0.f);
+    ptcuts.push_back(0.9f);
+    ptcuts.push_back(2.f);
+  }
 };
 
 class StackValidation
@@ -40,6 +48,8 @@ public:
   StackValidation(const TString & label, const TString & extra, const Bool_t cmsswComp);
   ~StackValidation();
   void MakeValidationStacks();
+  void MakeRatioStacks();
+  void MakeCMSSWKinematicDiffStacks();
 
 private:
   const TString label;

@@ -65,7 +65,7 @@ void PlotValidation::Validation()
   std::cout << "Computing Efficiency ..." << std::endl;
   PlotValidation::PlotEfficiency();
   
-  std::cout << "Computing Inefficiency split in barrel and endcap..." << std::endl;
+  std::cout << "Computing Inefficiency split in barrel and endcap ..." << std::endl;
   PlotValidation::PlotInefficiencyVsGeom();
   
   std::cout << "Computing Fake Rate ..." << std::endl;
@@ -83,6 +83,12 @@ void PlotValidation::Validation()
     PlotValidation::PlotMomResolutionPull();
   }
   
+  if (fCmsswComp)
+  {
+    std::cout << "Computing Kinematic Diffs ..." << std::endl;
+    PlotValidation::PlotCMSSWKinematicDiffs();
+  }
+
   std::cout << "Printing Totals ..." << std::endl;
   PlotValidation::PrintTotals();
   
@@ -647,6 +653,137 @@ void PlotValidation::PlotNHits()
   }  
     
   delete frtree;
+}
+
+void PlotValidation::PlotCMSSWKinematicDiffs()
+{
+  // Get tree --> can do this all with fake rate tree
+  TTree * cmsswfrtree = (TTree*)fInRoot->Get("cmsswfrtree");
+
+  // make output subdirectory and subdir in ROOT file, and cd to it.
+  TString subdirname = "kindiffs_cmssw"; 
+  PlotValidation::MakeSubDirectory(subdirname);
+  PlotValidation::MakeSubDirectory(Form("%s/lin",subdirname.Data()));
+  PlotValidation::MakeSubDirectory(Form("%s/log",subdirname.Data()));
+  TDirectory * subdir = fOutRoot->mkdir(subdirname.Data());
+  subdir->cd();
+
+  //Declare strings for branches and plots
+  const FltVec  ptcuts= {0.f,0.9f,2.f};
+  const TStrVec coll  = {"allmatch","bestmatch"};
+  const TStrVec scoll = {"All Match","Best Match"};
+
+  // Create plots
+  TH1FRefVecVec dnHitsPlot(ptcuts.size());
+  TH1FRefVecVec dinvptPlot(ptcuts.size());
+  TH1FRefVecVec dphiPlot(ptcuts.size());
+  TH1FRefVecVec detaPlot(ptcuts.size());
+  for (UInt_t p = 0; p < ptcuts.size(); p++)
+  {
+    dnHitsPlot[p].resize(coll.size());
+    dinvptPlot[p].resize(coll.size());
+    detaPlot[p].resize(coll.size());
+    dphiPlot[p].resize(coll.size());
+    for (UInt_t c = 0; c < coll.size(); c++)
+    {
+      // nhits
+      dnHitsPlot[p][c] = new TH1F(Form("h_dnHits_%s_pt%3.1f",coll[c].Data(),ptcuts[p]),
+				  Form("#DeltanHits(%s mkFit,CMSSW) [p_{T} > %3.1f GeV/c];nHits^{%s mkFit}-nHits^{CMSSW};nTracks",
+				       scoll[c].Data(),ptcuts[p],scoll[c].Data()),31,-15.5,15.5);
+      dnHitsPlot[p][c]->Sumw2();
+
+      // 1/pt
+      dinvptPlot[p][c] = new TH1F(Form("h_dinvpt_%s_pt%3.1f",coll[c].Data(),ptcuts[p]),
+				  Form("#Delta1/p_{T}(%s mkFit,CMSSW) [p_{T} > %3.1f GeV/c];1/p_{T}^{%s mkFit}-1/p_{T}^{CMSSW};nTracks",
+				       scoll[c].Data(),ptcuts[p],scoll[c].Data()),45,-0.5,0.5);
+      dinvptPlot[p][c]->Sumw2();
+
+      // phi
+      dphiPlot[p][c] = new TH1F(Form("h_dphi_%s_pt%3.1f",coll[c].Data(),ptcuts[p]),
+				Form("|#Delta#phi(%s mkFit,CMSSW)| [p_{T} > %3.1f GeV/c];|#phi^{%s mkFit}-#phi^{CMSSW}|;nTracks",
+				       scoll[c].Data(),ptcuts[p],scoll[c].Data()),45,0,0.1);
+      dphiPlot[p][c]->Sumw2();
+
+      // eta
+      detaPlot[p][c] = new TH1F(Form("h_deta_%s_pt%3.1f",coll[c].Data(),ptcuts[p]),
+				Form("#Delta#eta(%s mkFit,CMSSW) [p_{T} > %3.1f GeV/c];#eta^{%s mkFit}-#eta^{CMSSW};nTracks",
+				       scoll[c].Data(),ptcuts[p],scoll[c].Data()),45,-0.1,0.1);
+      detaPlot[p][c]->Sumw2();
+    }
+  }
+
+  // Floats/Ints to be filled for trees
+  Int_t nHits_build = 0, nLayers_cmssw = 0;
+  Float_t pt_build = 0.f, pt_cmssw = 0.f;
+  Float_t dphi_build = 0.f;
+  Float_t eta_build = 0.f, eta_cmssw = 0.f;
+  
+  // masks
+  Int_t cmsswmask_build = 0;
+  Int_t iTkMatches_build = 0;
+
+  //Initialize masks and variables, set branch addresses  
+  cmsswfrtree->SetBranchAddress("nHits_build",&nHits_build);
+  cmsswfrtree->SetBranchAddress("nLayers_cmssw",&nLayers_cmssw);
+  cmsswfrtree->SetBranchAddress("pt_build",&pt_build);
+  cmsswfrtree->SetBranchAddress("pt_cmssw",&pt_cmssw);
+  cmsswfrtree->SetBranchAddress("dphi_build",&dphi_build);
+  cmsswfrtree->SetBranchAddress("eta_build",&eta_build);
+  cmsswfrtree->SetBranchAddress("eta_cmssw",&eta_cmssw);
+  cmsswfrtree->SetBranchAddress("cmsswmask_build",&cmsswmask_build);
+  cmsswfrtree->SetBranchAddress("iTkMatches_build",&iTkMatches_build);
+
+  // Fill histos, compute res/pull from tree branches 
+  for (Int_t k = 0; k < cmsswfrtree->GetEntries(); k++)
+  {
+    cmsswfrtree->GetEntry(k);
+    for (UInt_t p = 0; p < ptcuts.size(); p++) // loop over pt cuts
+    {
+      if (pt_build < ptcuts[p]) continue;
+      for (UInt_t c = 0; c < coll.size(); c++) // loop over trk collection type
+      {
+	if (c == 0) // all matches  
+	{
+	  if (cmsswmask_build == 1)
+          {
+	    dnHitsPlot[p][c]->Fill(nHits_build-nLayers_cmssw);
+	    dinvptPlot[p][c]->Fill(1.f/pt_build-1/pt_cmssw);
+	    dphiPlot[p][c]->Fill(dphi_build);
+	    detaPlot[p][c]->Fill(eta_build-eta_cmssw);
+	  }
+	}
+	else if (c == 1) // best matches only	  
+	{
+	  if ((cmsswmask_build == 1) && (iTkMatches_build == 0)) 
+	  {
+	    dnHitsPlot[p][c]->Fill(nHits_build-nLayers_cmssw);
+	    dinvptPlot[p][c]->Fill(1.f/pt_build-1/pt_cmssw);
+	    dphiPlot[p][c]->Fill(dphi_build);
+	    detaPlot[p][c]->Fill(eta_build-eta_cmssw);
+	  }
+	}
+      } // end loop over trk type collection
+    } // end loop over pt cuts
+  } // end loop over entry in tree
+
+  // Draw and save nHits plots
+  for (UInt_t p = 0; p < ptcuts.size(); p++)
+  {
+    for (UInt_t c = 0; c < coll.size(); c++) // loop over trk collection type
+    {
+      PlotValidation::DrawWriteSaveTH1FPlot(subdir,dnHitsPlot[p][c],subdirname,Form("dnHits_%s_pt%3.1f",coll[c].Data(),ptcuts[p]));
+      PlotValidation::DrawWriteSaveTH1FPlot(subdir,dinvptPlot[p][c],subdirname,Form("dinvpt_%s_pt%3.1f",coll[c].Data(),ptcuts[p]));
+      PlotValidation::DrawWriteSaveTH1FPlot(subdir,dphiPlot[p][c],subdirname,Form("dphi_%s_pt%3.1f",coll[c].Data(),ptcuts[p]));
+      PlotValidation::DrawWriteSaveTH1FPlot(subdir,detaPlot[p][c],subdirname,Form("deta_%s_pt%3.1f",coll[c].Data(),ptcuts[p]));
+      
+      delete dnHitsPlot[p][c];
+      delete dinvptPlot[p][c];
+      delete dphiPlot[p][c];
+      delete detaPlot[p][c];
+    }
+  }  
+    
+  delete cmsswfrtree;
 }
 
 void PlotValidation::PlotMomResolutionPull()

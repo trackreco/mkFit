@@ -42,8 +42,8 @@ void PlotBenchmarks::RunBenchmarkPlots()
   const TString xtitleth = "Number of Threads";
 
   // y-axis titles
-  const TString ytitletime    = "Averarge Time per Event [s]";
-  const TString ytitlespeedup = "Speedup";
+  const TString ytitletime    = "Average Build Time per Event [s]";
+  const TString ytitlespeedup = "Average Build Speedup per Event";
 
   // Do the overlaying!
   PlotBenchmarks::MakeOverlay("VU_time",sample+" Vectorization Benchmark on "+arch+" [nTH="+nth+"]",xtitlevu,ytitletime,
@@ -93,30 +93,43 @@ void PlotBenchmarks::MakeOverlay(const TString & text, const TString & title, co
     graphs[i]->GetXaxis()->SetRangeUser(xmin,xmax);
     graphs[i]->GetYaxis()->SetRangeUser(ymin,ymax);
 
-    if (isVU) graphs_int[i]->Draw("P SAME");
+    if (isVU) 
+    {
+      graphs_int[i]->GetXaxis()->SetRangeUser(xmin,xmax);
+      graphs_int[i]->GetYaxis()->SetRangeUser(ymin,ymax);
+      graphs_int[i]->Draw("P SAME");
+    }
     leg->AddEntry(graphs[i],builds[i].label.Data(),"LP");
   }
-  
+
   // Draw speedup line
-  TLine * line = NULL;
+  TF1 * scaling = NULL;
   if (isSpeedup)
   {
-    if (isVU)
-    {
-      line = new TLine(arch_opt.vumin,arch_opt.vumin,arch_opt.vuspeedupmax,arch_opt.vuspeedupmax);
-    }
-    else
-    {
-      line = new TLine(arch_opt.thmin,arch_opt.thmin,arch_opt.thspeedupmax,arch_opt.thspeedupmax);
-    }
-    line->Draw("SAME");
+    scaling = new TF1("ideal_scaling","x",(isVU?arch_opt.vumin:arch_opt.thmin),(isVU?arch_opt.vuspeedupmax:arch_opt.thspeedupmax));
+    scaling->SetLineColor(kBlack);
+    scaling->SetLineStyle(kDashed);
+    scaling->SetLineWidth(2);
+    scaling->Draw("SAME");
+    leg->AddEntry(scaling,"Ideal Scaling","l");
   }
-
+  
   // Draw legend last
   leg->Draw("SAME");
 
   // Save the png
-  canv->SaveAs(arch+"_"+sample+"_"+text+".png");
+  const TString outname = arch+"_"+sample+"_"+text;
+  canv->SaveAs(outname+".png");
+
+  // Save log-x version
+  canv->SetLogx();
+  for (UInt_t i = 0; i < builds.size(); i++)
+  {
+    graphs[i]->GetXaxis()->SetRangeUser(xmin,xmax);
+    graphs[i]->GetYaxis()->SetRangeUser(ymin,ymax);
+  }
+  canv->Update();
+  canv->SaveAs(outname+"_logx.png");
 
   // delete everything
   for (UInt_t i = 0; i < builds.size(); i++)
@@ -124,7 +137,7 @@ void PlotBenchmarks::MakeOverlay(const TString & text, const TString & title, co
     delete graphs[i];
     if (isVU) delete graphs_int[i];
   }
-  if (isSpeedup) delete line;
+  if (isSpeedup) delete scaling;
   delete leg;
   delete canv;
 }

@@ -8,7 +8,7 @@
 #include "TMarker.h"
 #include "TAxis.h"
 #include "TH1F.h"
-#include "TLine.h"
+#include "TF1.h"
 
 #include <iostream>
 #include <vector>
@@ -112,7 +112,7 @@ namespace
       arch_opt.thspeedupmin = 0.;
       arch_opt.thspeedupmax = 40.;
 
-      arch_opt.thmeiftimemin = 0.1;
+      arch_opt.thmeiftimemin = 0.05;
       arch_opt.thmeiftimemax = arch_opt.thtimemax;
 
       arch_opt.thmeifspeedupmin = 0.;
@@ -138,7 +138,7 @@ namespace
       arch_opt.thspeedupmin = 0.;
       arch_opt.thspeedupmax = 40.;
 
-      arch_opt.thmeiftimemin = 0.03;
+      arch_opt.thmeiftimemin = 0.01;
       arch_opt.thmeiftimemax = arch_opt.thtimemax;
 
       arch_opt.thmeifspeedupmin = 0.;
@@ -146,3 +146,20 @@ namespace
     }
   }
 };
+
+void GetMinMaxHist(const TH1F * hist, Double_t & min, Double_t & max)
+{
+  for (Int_t ibin = 1; ibin <= hist->GetNbinsX(); ibin++)
+  {
+    const Double_t content = hist->GetBinContent(ibin);
+    
+    if (content < min && content != 0.0) min = content;
+    if (content > max) max = content;
+  }
+}
+ 
+void SetMinMaxHist(TH1F * hist, const Double_t min, const Double_t max, const Bool_t isLogy)
+{
+  hist->SetMinimum(isLogy?min/2.0:min/1.05);
+  hist->SetMaximum(isLogy?max*2.0:max*1.05);
+}

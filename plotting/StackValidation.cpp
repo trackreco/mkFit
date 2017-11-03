@@ -15,6 +15,9 @@ StackValidation::StackValidation(const TString & label, const TString & extra, c
 
   // setup rates
   setupRates(cmsswComp);
+
+  // setup ptcuts
+  setupPtCuts();
 }
 
 StackValidation::~StackValidation()
@@ -24,14 +27,14 @@ StackValidation::~StackValidation()
 
 void StackValidation::MakeValidationStacks()
 {
-  std::vector<TString> vars;
-  vars.push_back("pt");
-  vars.push_back("phi");
-  vars.push_back("eta");
-  std::vector<Float_t> ptcuts;
-  ptcuts.push_back(0.f);
-  ptcuts.push_back(0.9f);
-  ptcuts.push_back(2.f);
+  StackValidation::MakeRatioStacks();
+  if (cmsswComp) StackValidation::MakeCMSSWKinematicDiffStacks();
+}
+
+void StackValidation::MakeRatioStacks()
+{
+  // Variables to plot
+  std::vector<TString> vars = {"pt","phi","eta"};
 
   for (UInt_t i = 0; i < rates.size(); i++)
   {
@@ -68,4 +71,61 @@ void StackValidation::MakeValidationStacks()
       }
     }
   }
+}
+
+void StackValidation::MakeCMSSWKinematicDiffStacks()
+{
+  // variables to plot
+  std::vector<TString> diffs = {"nHits","invpt","phi","eta"};
+
+  // diffferent reco collections
+  std::vector<TString> coll = {"allmatch","bestmatch"};
+
+  for (UInt_t c = 0; c < coll.size(); c++)
+  {
+    for (UInt_t d = 0; d < diffs.size(); d++)
+    {
+      for (UInt_t p = 0; p < ptcuts.size(); p++)
+      {
+	const Bool_t isLogy = true;
+	TCanvas * canv = new TCanvas();
+	canv->cd();
+	canv->SetLogy(isLogy);
+
+	TLegend * leg = new TLegend(0.85,0.80,1.0,1.0);
+	
+	// tmp min/max
+	Double_t min =  1e9;
+	Double_t max = -1e9;
+
+	std::vector<TH1F*> hists(builds.size());
+	for (UInt_t b = 0; b < builds.size(); b++)
+        {
+	  hists[b] = (TH1F*)files[b]->Get("kindiffs_cmssw/h_d"+diffs[d]+"_"+coll[c]+"_pt"+Form("%3.1f",ptcuts[p]));
+	  hists[b]->SetLineColor(builds[b].color);
+	  hists[b]->SetMarkerColor(builds[b].color);
+
+	  hists[b]->Scale(1.f/hists[b]->Integral());
+	  hists[b]->GetYaxis()->SetTitle("Fraction of Tracks");
+	  
+	  GetMinMaxHist(hists[b],min,max);
+	}
+
+	for (UInt_t b = 0; b < builds.size(); b++)
+	{
+	  SetMinMaxHist(hists[b],min,max,isLogy);
+	  
+	  hists[b]->Draw(b>0?"EP SAME":"EP");
+	  leg->AddEntry(hists[b],builds[b].label.Data(),"LEP");
+	}
+	
+	leg->Draw("SAME");
+	canv->SaveAs(label+"_"+coll[c]+"_d"+diffs[d]+"_pt"+Form("%3.1f",ptcuts[p])+extra+".png");
+	
+	delete leg;
+	for (auto & hist : hists) delete hist;
+	delete canv;
+      } // end pt cut loop
+    } // end var loop
+  } // end coll loop
 }

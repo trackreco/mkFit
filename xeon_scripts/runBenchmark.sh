@@ -2,17 +2,22 @@
 
 # Initialize Benchmarks
 [ -z "$ROOTSYS" ] && source ~matevz/root/bin/thisroot.sh
-./xeon_scripts/tarAndSendToKNL.sh
+source xeon_scripts/common_variables.sh
 
-sample="CMSSW_TTbar_PU70"
+##### Launch Tests
+echo "Run benchmarking on KNL concurrently with SNB and KNL" 
+./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-knl.sh >& benchmark_knl_dump.txt &
 
-##### Benchmark Tests #####
+echo "Run benchmarking on SNB"
+./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh SNB
+
+echo "Run benchmarking on KNC"
+./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh KNC
+
+##### Benchmark Plots #####
 for archV in "SNB snb" "KNC knc" "KNL knl"
    do echo ${archV} | while read -r archN archO
 	do
-	echo "Run benchmarking on" ${archN}
-	./xeon_scripts/benchmark-${archO}-cmssw-ttbar-fulldet-build.sh
-	
 	echo "Extract benchmarking results for" ${archN}
 	python plotting/makeBenchmarkPlots.py ${archN} ${sample}
 
@@ -22,28 +27,28 @@ for archV in "SNB snb" "KNC knc" "KNL knl"
 	echo "Extract multiple events in flight benchmark results for" ${archN}
 	python plotting/makeMEIFBenchmarkPlots.py ${archN} ${sample}
 
-	echo "Make final plot comparing mulitple events in flight for" ${archN}
+	echo "Make final plot comparing multiple events in flight for" ${archN}
 	root -b -q -l plotting/makeMEIFBenchmarkPlots.C\(\"${archN}\",\"${sample}\"\)	
     done
 done
 
-##### nHits plots #####
+##### Plots from Text Files #####
 for build in BH STD CE
 do 
-    echo "Making nHits plots for" ${sample} ":" ${build}
+    echo "Making plots from text files for" ${sample} ":" ${build}
     
     for archV in "SNB NVU8int_NTH24" "KNC NVU16int_NTH240" "KNL NVU16int_NTH256"
     do echo ${archV} | while read -r archN archO
 	do
-	    echo "Extracting nHits for" ${archN} NVU1_NTH1 
+	    echo "Extracting plots from dump for" ${archN} NVU1_NTH1 
 	    python plotting/makePlotsFromDump.py ${archN} ${sample} ${build} NVU1_NTH1
 
-	    echo "Extracting nHits for" ${archN} ${archO}
+	    echo "Extracting plots from dump for" ${archN} ${archO}
 	    python plotting/makePlotsFromDump.py ${archN} ${sample} ${build} ${archO}
 	done
     done
 
-    echo "Making final plot comparing nHits for" ${sample} ":" ${build}
+    echo "Making comparison plots from dump for" ${sample} ":" ${build}
     root -b -q -l plotting/makePlotsFromDump.C\(\"${sample}\",\"${build}\"\)
 done
 
@@ -53,4 +58,3 @@ echo "Running ROOT based validation"
 
 ##### Final cleanup #####
 make distclean
-./xeon_scripts/trashKNL.sh
