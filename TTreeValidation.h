@@ -47,7 +47,9 @@ public:
   void mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackExtraVec& evt_extras, TkIDToTkIDMap& seedTkMap);
   void makeCMSSWTkToRecoTksMap(Event& ev) override;
   void makeSeedTkToCMSSWTkMap(Event& ev) override;
+
   void storeSeedAndMCID(Event& ev);
+  void setupCMSSWMatching(const Event & ev, RedTrackVec & reducedCMSSW, LayIdxIDVecMapMap & cmsswHitIDMap);
 
   int getLastFoundHit(const int trackMCHitID, const int mcTrackID, const Event& ev);
 

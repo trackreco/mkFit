@@ -491,7 +491,7 @@ ID ==  -7 : a long reco track is unmatched to an unfindable sim/cmssw track: N,S
 ID ==  -8 : a short reco track is unmatched to a track that may not have a reference or the reference is not give: N,S,?
 ID ==  -9 : a long reco track is unmatched to a track that may not have a reference or the reference is not give: N,L,?
 ID == -10 : a pure seed cannot determine its reference track: N/A,O,?
-ID == -13 : a pure seed has a findable reference track: N/A,O,isF
+ID == -11 : a pure seed has a findable reference track: N/A,O,isF
 ID == -12 : a pure seed has an unfindable reference track: N/A,O,unF
 ID == -13 : a zero size track, protection inside setMCTrackIDInfo(). This should never happen...
 

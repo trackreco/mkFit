@@ -382,7 +382,7 @@ inline int getMatchBin(const float pt)
   else                 return 5;
 }
 
-void TrackExtra::setCMSSWTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const TrackVec& cmsswtracks, const RedTrackVec& redcmsswtracks)
+void TrackExtra::setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vector<HitVec>& layerHits, const TrackVec& cmsswtracks, const RedTrackVec& redcmsswtracks)
 {
   const SVector6 & trkParams = trk.parameters();
   const SMatrixSym66 & trkErrs = trk.errors();
@@ -453,6 +453,90 @@ void TrackExtra::setCMSSWTrackIDInfo(const Track& trk, const std::vector<HitVec>
 
   // other important info
   nHitsMatched_ = nHMatched;
+  fracHitsMatched_ = float(nHitsMatched_) / float(trk.nFoundHits()); // seed hits may already be included!
+}
+
+void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMapMap& cmsswHitIDMap, const TrackVec& cmsswtracks, const RedTrackVec& redcmsswtracks)
+{
+  std::unordered_map<int,int> labelMatchMap;
+
+  // loop over mkfit track hits
+  for (int ihit = 0; ihit < trk.nTotalHits(); ihit++)
+  {
+    const int lyr = trk.getHitLyr(ihit);
+    const int idx = trk.getHitIdx(ihit);
+
+    if (lyr < 0 || idx < 0) continue; // standard check
+    if (!cmsswHitIDMap.count(lyr)) continue; // make sure at least one cmssw track has this hit lyr!
+    if (!cmsswHitIDMap.at(lyr).count(idx)) continue; // make sure at least one cmssw track has this hit id!
+    {
+      for (const auto label : cmsswHitIDMap.at(lyr).at(idx))
+      {
+	labelMatchMap[label]++;
+      }
+    }
+  }
+
+  // make list of cmssw tracks that pass criteria --> could have multiple overlapping tracks!
+  std::vector<int> labelMatchVec;
+  for (const auto labelMatchPair : labelMatchMap)
+  {
+    // 75% matching criterion 
+    if (4*labelMatchPair.second >= 3*trk.nFoundHits()) labelMatchVec.push_back(labelMatchPair.first);
+  }
+
+  // protect against no matches!
+  if (labelMatchVec.size() > 0)
+  {
+    // sort by best matched: most hits matched, then ratio of matches (i.e. which cmssw track is shorter)
+    std::sort(labelMatchVec.begin(),labelMatchVec.end(),
+	      [&](const int label1, const int label2)
+	      {
+		if (labelMatchMap[label1] == labelMatchMap[label2]) return cmsswtracks[label1].nUniqueLayers() < cmsswtracks[label2].nUniqueLayers();
+		return labelMatchMap[label1] > labelMatchMap[label2];
+	      });
+
+    // pick the longest track!
+    cmsswTrackID_ = labelMatchVec.front();
+    nHitsMatched_ = labelMatchMap[cmsswTrackID_];
+
+    const SVector6 & trkParams = trk.parameters();
+    const SMatrixSym66 & trkErrs = trk.errors();
+
+    // temps needed for chi2
+    SVector2 trkParamsR;
+    trkParamsR[0] = trkParams[3];
+    trkParamsR[1] = trkParams[5];
+    
+    SMatrixSym22 trkErrsR;
+    trkErrsR[0][0] = trkErrs[3][3];
+    trkErrsR[1][1] = trkErrs[5][5];
+    trkErrsR[0][1] = trkErrs[3][5];
+    trkErrsR[1][0] = trkErrs[5][3];
+    
+    // set chi2 and dphi
+    helixChi2_ = std::abs(computeHelixChi2(redcmsswtracks[cmsswTrackID_].parameters(),trkParamsR,trkErrsR,false));
+    dPhi_ = std::abs(squashPhiGeneral(cmsswtracks[cmsswTrackID_].swimPhiToR(trk.x(),trk.y())-trk.momPhi()));
+  }
+  else
+  {
+    cmsswTrackID_ = -1;
+
+    int nHitsMatched = 0; // just get the most matches!
+    for (const auto labelMatchPair : labelMatchMap)
+    {
+      if (labelMatchPair.second > nHitsMatched) nHitsMatched = labelMatchPair.second;
+    }
+    nHitsMatched_ = nHitsMatched;
+
+    helixChi2_ = -1.f;
+    dPhi_ = -1.f;
+  }  
+
+  // Modify cmsswTrackID based on length and findability
+  cmsswTrackID_ = modifyRefTrackID(trk.nFoundHits(),Config::nMinFoundHits,cmsswtracks,-1,cmsswTrackID_);
+
+  // other important info
   fracHitsMatched_ = float(nHitsMatched_) / float(trk.nFoundHits()); // seed hits may already be included!
 }
 
