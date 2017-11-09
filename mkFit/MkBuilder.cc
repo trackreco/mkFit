@@ -1492,6 +1492,12 @@ void MkBuilder::FindTracksStandard()
         if (finalcands.size() == 0) continue;
         std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
       }
+
+      // final backward fit
+      if (Config::backwardFit)
+      {
+        BackwardFit(mkfndr.get(), start_seed, end_seed, region);
+      }
     }); // end parallel-for over chunk of seeds within region
   }); // end of parallel-for-each over eta regions
 }
@@ -1672,6 +1678,19 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
   }
 
   // final backward fit
+  if (Config::backwardFit)
+  {
+    BackwardFit(mkfndr, start_seed, end_seed, region);
+  }
+}
+
+//==============================================================================
+
+void MkBuilder::BackwardFit(MkFinder *mkfndr, int start_seed, int end_seed, int region)
+{
+  EventOfCombCandidates &eoccs  = m_event_of_comb_cands;
+  const SteeringParams  &st_par = m_steering_params[region];
+
   for (int iseed = start_seed; iseed < end_seed; iseed += NN)
   {
     const int end = std::min(iseed + NN, end_seed);
@@ -1692,4 +1711,5 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
     //          i, t.charge(), t.chi2(), t.pT(), t.momEta(), t.x(), t.y(), t.z(), t.nFoundHits(), t.label(), t.isFindable());
     // }
   }
+
 }

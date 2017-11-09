@@ -1058,8 +1058,30 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
 				  Err[iC], Par[iC], N_proc);
     }
 
-    // for (int i = 0; i < N_proc; ++i)
-    //   printf("%2d %d %f %f\n", layer, i, tmp_chi2[i], Chi2[i]);
+    /*
+    // Dump per hit chi2
+    for (int i = 0; i < N_proc; ++i)
+    {
+      float r_h = std::hypot(msPar.At(i,0,0), msPar.At(i,1,0));
+      float r_t = std::hypot(Par[iC].At(i,0,0), Par[iC].At(i,1,0));
+
+      if ( ! std::isnan(tmp_chi2[i]) && tmp_chi2[i] > 0) // && tmp_chi2[i] > 30)
+      {
+        printf("CHICHI %d %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g\n",
+               layer, tmp_chi2[i],
+               msPar.At(i,0,0), msPar.At(i,1,0), msPar.At(i,2,0), r_h,       // x_h y_h z_h r_h -- hit pos
+               msErr.At(i,0,0), msErr.At(i,1,1), msErr.At(i,2,2),            // ex_h ey_h ez_h -- hit errors
+               Par[iC].At(i,0,0), Par[iC].At(i,1,0), Par[iC].At(i,2,0), r_t, // x_t y_t z_t r_t -- track pos
+               Err[iC].At(i,0,0), Err[iC].At(i,1,1), Err[iC].At(i,2,2),      // ex_t ey_t ez_t -- track errors
+               1.0f/Par[iC].At(i,3,0), Par[iC].At(i,4,0), Par[iC].At(i,5,0), // pt, phi, theta
+               std::atan2(msPar.At(i,1,0), msPar.At(i,0,0)),     // phi_h
+               std::atan2(Par[iC].At(i,1,0), Par[iC].At(i,0,0)), // phi_t
+               (msErr.At(i,0,0) + msErr.At(i,1,1)) / (r_h * r_h), // ephi_h
+               (Err[iC].At(i,0,0) + Err[iC].At(i,1,1)) / (r_t * r_t) // ephi_t
+        );
+      }
+    }
+    */
 
     // update chi2
     Chi2.Add(tmp_chi2);
