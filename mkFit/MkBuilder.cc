@@ -1054,8 +1054,6 @@ void MkBuilder::prep_cmsswtracks()
   for (auto&& cmsswtrack : m_event->cmsswTracks_)
   {
     const int nlyr = cmsswtrack.nUniqueLayers();
-    const int ihit = cmsswtrack.getLastFoundHitPos();
-    const float eta = m_event->layerHits_[cmsswtrack.getHitLyr(ihit)][cmsswtrack.getHitIdx(ihit)].eta();
     if (nlyr < Config::cmsSelMinLayers) cmsswtrack.setNotFindable();
   }
 }

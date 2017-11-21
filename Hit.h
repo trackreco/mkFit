@@ -250,6 +250,7 @@ private:
 };
 
 typedef std::vector<Hit> HitVec;
+typedef std::map<int,std::map<int,std::vector<int> > > LayIdxIDVecMapMap;
 typedef std::array<int,2>    PairIdx;
 typedef std::vector<PairIdx> PairIdxVec;
 typedef std::array<int,3>       TripletIdx;

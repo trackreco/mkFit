@@ -63,6 +63,7 @@ namespace Config
   bool  readSimTrackStates = false;
   bool  inclusiveShorts = false;
   bool  applyCMSSWHitMatch = false;
+  matchOpts cmsswMatching = trkParamBased;
 
   void RecalculateDependentConstants()
   {

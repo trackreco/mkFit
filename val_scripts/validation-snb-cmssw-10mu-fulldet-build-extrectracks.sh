@@ -20,7 +20,7 @@ do
 	do
 	    oBase=${base}_${section}_${bN}
 	    echo "${oBase}: validation [nTH:24, nVU:8]"
-	    ./mkFit/mkFit --cmssw-n2seeds --cmssw-val --input-file ${!section} --build-${bO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_cmsswval.txt
+	    ./mkFit/mkFit --cmssw-n2seeds --cmssw-val-trkparam --input-file ${!section} --build-${bO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_cmsswval.txt
 	    mv valtree.root valtree_${oBase}.root
 	done
     done

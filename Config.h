@@ -23,6 +23,10 @@ typedef std::map<std::string,seedOpts> seedOptsMap;
 enum cleanOpts {noCleaning, cleanSeedsN2, cleanSeedsPure, cleanSeedsBadLabel};
 typedef std::map<std::string,cleanOpts> cleanOptsMap;
 
+// Enum for cmssw matching options
+enum matchOpts {trkParamBased, hitBased, labelBased};
+typedef std::map<std::string, matchOpts> matchOptsMap;
+
 namespace Config
 {
   extern TrackerInfo TrkInfo;
@@ -251,6 +255,7 @@ namespace Config
   extern bool readSimTrackStates; // need this to fill pulls
   extern bool inclusiveShorts;
   extern bool applyCMSSWHitMatch;
+  extern matchOpts cmsswMatching;
 
   // config on seed cleaning
   constexpr double maxDR_seedclean = 0.005;

@@ -5,7 +5,7 @@
 source xeon_scripts/common_variables.sh
 
 ##### Launch Tests
-echo "Run benchmarking on KNL concurrently with SNB and KNL" 
+echo "Run benchmarking on KNL concurrently with SNB and KNC benchmarks" 
 ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-knl.sh >& benchmark_knl_dump.txt &
 
 echo "Run benchmarking on SNB"

@@ -554,42 +554,33 @@ void TTreeValidation::setTrackExtras(Event& ev)
     const auto& buildtracks = ev.candidateTracks_;
           auto& buildextras = ev.candidateTracksExtra_;
 
-    RedTrackVec reducedCMSSW(cmsswtracks.size()); // use 2D chi2 for now, so might as well make use of this object for now
-    for (int itrack = 0; itrack < cmsswtracks.size(); itrack++)
-    {
-      const auto & cmsswtrack = cmsswtracks[itrack];
-      const int seedID = cmsswextras[itrack].seedID();
-      const SVector6 & params = cmsswtrack.parameters();
-      SVector2 tmpv(params[3],params[5]);
-
-      HitLayerMap tmpmap;
-      for (int ihit = 0; ihit < cmsswtrack.nTotalHits(); ihit++)
-      {
-	const int lyr = cmsswtrack.getHitLyr(ihit);
-	const int idx = cmsswtrack.getHitIdx(ihit);
-
-	if (idx >= 0) 
-	{
-	  tmpmap[lyr].push_back(idx);
-	}
-      }
-
-      // index inside object is label (as cmsswtracks are now aligned)
-      reducedCMSSW[itrack] = ReducedTrack(cmsswtrack.label(),seedID,tmpv,cmsswtrack.momPhi(),tmpmap);
-    }
+    // store reduced parameters, hit map of cmssw tracks, and global hit map
+    RedTrackVec reducedCMSSW;
+    LayIdxIDVecMapMap cmsswHitIDMap;
+    setupCMSSWMatching(ev,reducedCMSSW,cmsswHitIDMap);
 
     // set cmsswTrackID for built tracks
     for (int itrack = 0; itrack < buildtracks.size(); itrack++)
     {
       const auto& track = buildtracks[itrack];
             auto& extra = buildextras[itrack];
-      if (Config::seedCleaning == cleanSeedsPure)
+
+      if (Config::cmsswMatching == trkParamBased)
+      {	
+	extra.setCMSSWTrackIDInfoByTrkParams(track, layerhits, cmsswtracks, reducedCMSSW);
+      }
+      else if (Config::cmsswMatching == hitBased)
+      {
+	extra.setCMSSWTrackIDInfoByHits(track, cmsswHitIDMap, cmsswtracks, reducedCMSSW);
+      }
+      else if (Config::cmsswMatching == labelBased) // can only be used if using pure seeds!
       {
 	extra.setCMSSWTrackIDInfoByLabel(track, layerhits, cmsswtracks, reducedCMSSW[cmsswtracks[buildToCmsswMap_[track.label()]].label()]);	
       }
       else 
       {
-	extra.setCMSSWTrackIDInfo(track, layerhits, cmsswtracks, reducedCMSSW);
+	std::cerr << "Specified CMSSW validation, but using an incorrect matching option! Exiting..." << std::endl;
+	exit(1);
       }
     }
   }
@@ -727,6 +718,40 @@ void TTreeValidation::storeSeedAndMCID(Event& ev)
     {
       extra.setseedID(--newlabel);
     }
+  }
+}
+
+void TTreeValidation::setupCMSSWMatching(const Event & ev, RedTrackVec & reducedCMSSW, LayIdxIDVecMapMap & cmsswHitIDMap)
+{
+  // get the cmssw tracks
+  const auto& cmsswtracks = ev.cmsswTracks_;
+        auto& cmsswextras = ev.cmsswTracksExtra_;
+
+  // resize accordingly
+  reducedCMSSW.resize(cmsswtracks.size());
+
+  for (int itrack = 0; itrack < cmsswtracks.size(); itrack++)
+  {
+    const auto & cmsswtrack = cmsswtracks[itrack];
+    const int seedID = cmsswextras[itrack].seedID();
+    const SVector6 & params = cmsswtrack.parameters();
+    SVector2 tmpv(params[3],params[5]);
+    
+    HitLayerMap tmpmap;
+    for (int ihit = 0; ihit < cmsswtrack.nTotalHits(); ihit++)
+    {
+      const int lyr = cmsswtrack.getHitLyr(ihit);
+      const int idx = cmsswtrack.getHitIdx(ihit);
+      
+      if (lyr >= 0 && idx >= 0) 
+      {
+	tmpmap[lyr].push_back(idx);
+	cmsswHitIDMap[lyr][idx].push_back(cmsswtrack.label());
+      }
+    }
+
+    // index inside object is label (as cmsswtracks are now aligned)
+    reducedCMSSW[itrack] = ReducedTrack(cmsswtrack.label(),seedID,tmpv,cmsswtrack.momPhi(),tmpmap);
   }
 }
 
