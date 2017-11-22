@@ -64,7 +64,7 @@ fi
 ## Parallelization Benchmarks
 for nth in "${nths[@]}"
 do
-    for bV in "BH bh" "STD std" "CE ce"
+    for bV in "BH bh" "STD std" "CE ce" "FV fv"
     do echo ${bV} | while read -r bN bO
 	do
 	    ## Base executable
@@ -114,7 +114,7 @@ do
 	./xeon_scripts/copyToKNC.sh
     fi
 
-    for bV in "BH bh" "STD std" "CE ce"
+    for bV in "BH bh" "STD std" "CE ce" "FV fv"
     do echo ${bV} | while read -r bN bO
 	do
 	    ## Common base executable

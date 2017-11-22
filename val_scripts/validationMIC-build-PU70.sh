@@ -9,7 +9,7 @@ runValidation()
 	    if [ "${1}" == "1" ]; then
 		sO="--cmssw-n2seeds"
 	    fi
-            for bV in "BH bh" "STD std" "CE ce"; do echo $bV | while read -r bN bO; do
+            for bV in "BH bh" "STD std" "CE ce" "FV fv"; do echo $bV | while read -r bN bO; do
 		    oBase=${base}_${sN}_${bN}
 		    nTH=8
 		    echo "${oBase}: validation [nTH:${nTH}, nVU:8]"
@@ -23,7 +23,7 @@ runValidation()
     for opt in sim see
     do
         oBase=${base}_${opt}
-        for build in BH STD CE
+        for build in BH STD CE FV
         do
 	    root -b -q -l plotting/runValidation.C+\(\"_${oBase}_${build}\"\)
         done

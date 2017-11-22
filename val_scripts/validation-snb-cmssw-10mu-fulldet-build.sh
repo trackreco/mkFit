@@ -18,7 +18,7 @@ do echo $sV | while read -r sN sO
     do
 	for section in ECN2 ECN1 BRL ECP1 ECP2 
 	do
-	    for bV in "BH bh" "STD std" "CE ce"
+	    for bV in "BH bh" "STD std" "CE ce" "FV fv"
 	    do echo $bV | while read -r bN bO
 		do
 		    oBase=${base}_${sN}_${section}_${bN}
@@ -38,14 +38,14 @@ do
     for section in ECN2 ECN1 BRL ECP1 ECP2
     do
     	oBase=${base}_${seed}_${section}
-    	for build in BH STD CE
+    	for build in BH STD CE FV
     	do
     	    root -b -q -l plotting/runValidation.C\(\"_${oBase}_${build}\"\)
     	done
     	root -b -q -l plotting/makeValidation.C\(\"${oBase}\"\)
     done
 
-    for build in BH STD CE
+    for build in BH STD CE FV
     do
 	oBase=${base}_${seed}
 	fBase=valtree_${oBase}

@@ -1256,7 +1256,7 @@ void MkBuilder::FindTracksBestHit()
 
           dcall(post_prop_print(curr_layer, mkfndr.get()));
 
-          mkfndr->SelectHitIndices(layer_of_hits, curr_tridx, false);
+          mkfndr->SelectHitIndices(layer_of_hits, curr_tridx);
 
 // if (Config::dumpForPlots) {
 // 	     std::cout << "MX number of hits in window in layer " << curr_layer << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
@@ -1422,7 +1422,7 @@ void MkBuilder::FindTracksStandard()
           dcall(post_prop_print(curr_layer, mkfndr.get()));
 
           dprint("now get hit range");
-          mkfndr->SelectHitIndices(layer_of_hits, end - itrack, false);
+          mkfndr->SelectHitIndices(layer_of_hits, end - itrack);
 
 	  // if(Config::dumpForPlots) {
 	  //std::cout << "MX number of hits in window in layer " << curr_layer << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
@@ -1616,7 +1616,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 
       dprint("now get hit range");
 
-      mkfndr->SelectHitIndices(layer_of_hits, end - itrack, false);
+      mkfndr->SelectHitIndices(layer_of_hits, end - itrack);
 
       // if (Config::dumpForPlots) {
       //std::cout << "MX number of hits in window in layer " << curr_layer << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
@@ -1677,7 +1677,7 @@ void MkBuilder::FindTracksFV()
     [&](int region)
   {
     int adaptiveSPT = eoccs.m_size / Config::numThreadsFinder / 2 + 1;
-    dprint("adaptiveSPT " << adaptiveSPT << " fill " << eoccs.m_size);
+    dprint("adaptiveSPT " << adaptiveSPT << " fill " << eoccs.m_size << " region " << region);
 
     const RegionOfSeedIndices rosi(m_event, region);
 
@@ -1697,7 +1697,8 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
 
   const int n_seeds = end_seed - start_seed;
 
-  std::vector<MkFinderFv> finders = g_exe_ctx.getFV(end_seed-start_seed);
+  const int nMplx = (end_seed - start_seed + MkFinderFv::Seeds - 1)/MkFinderFv::Seeds;
+  std::vector<MkFinderFv> finders = g_exe_ctx.getFV(nMplx);
 
   int is = 0;
   for (int iseed = start_seed; iseed < end_seed; ++iseed, ++is) {
@@ -1714,10 +1715,11 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
 
   assert( layer_plan_it->m_pickup_only );
 
-  int curr_layer = layer_plan_it->m_layer, prev_layer;
+  int curr_layer = layer_plan_it->m_layer;
+  int prev_layer;
 
-  dprintf("\nMkBuilder::find_tracks_in_layers region=%d, seed_pickup_layer=%d, first_layer=%d\n",
-          region, curr_layer, (layer_plan_it + 1)->m_layer);
+  dprintf("\nMkBuilder::find_tracks_in_layersFV region=%d, seed_pickup_layer=%d, first_layer=%d seeds=%d,%d\n",
+          region, curr_layer, (layer_plan_it + 1)->m_layer, start_seed, end_seed);
 
   // Loop over layers according to plan.
   while (++layer_plan_it != st_par.layer_plan.end())
@@ -1733,22 +1735,14 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
     const LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[curr_layer];
     const FindingFoos &fnd_foos      = layer_info.is_barrel() ? m_fndfoos_brl : m_fndfoos_ec;
 
-    // Don't bother messing with the clone engine if there are no candidates
-    // (actually it crashes, so this protection is needed).
-    // If there are no cands on this iteration, there won't be any later on either,
-    // by the construction of the seed_cand_idx vector.
-    // XXXXMT There might be cases in endcap where all tracks will miss the
-    // next layer, but only relevant if we do geometric selection before.
-
     if (pickup_only) continue;
 
     //vectorized loop
-    const int limit = (end_seed - start_seed + MkFinderFv::Seeds - 1)/MkFinderFv::Seeds;
-    for (int index = 0; index < limit; ++index)
+    for (int index = 0; index < nMplx; ++index)
     {
-      auto& mkfndr = finders[index];
+      dprint("processing index=" << index << "/" << nMplx);
 
-      dprint("processing index=" << index);
+      auto& mkfndr = finders[index];
 
       // propagate to current layer
       (mkfndr.*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, mkfndr.nnfv());

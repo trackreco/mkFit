@@ -99,7 +99,7 @@ public:
 
   //----------------------------------------------------------------------------
 
-  void SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_proc, bool dump=false);
+  void SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_proc);
 
   void AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
                   const FindingFoos &fnd_foos);

@@ -125,10 +125,9 @@ void MkFinder::OutputTracksAndHitIdx(std::vector<Track>& tracks,
 //==============================================================================
 
 void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
-                                const int N_proc, bool dump)
+                                const int N_proc)
 {
-  // debug = 1;
-  // dump = true;
+  // debug = true;
 
   const LayerOfHits &L = layer_of_hits;
   const int   iI = iP;
@@ -136,8 +135,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
   const float nSigmaZ   = 3;
   const float nSigmaR   = 3;
 
-  if (dump)
-    printf("LayerOfHits::SelectHitIndices %s layer=%d N_proc=%d\n",
+  dprintf("LayerOfHits::SelectHitIndices %s layer=%d N_proc=%d\n",
            L.is_barrel() ? "barrel" : "endcap", L.layer_id(), N_proc);
 
   float dqv[NN], dphiv[NN], qv[NN], phiv[NN];
@@ -258,8 +256,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     const int pb1 = pb1v[itrack];
     const int pb2 = pb2v[itrack];
 
-    if (dump)
-      printf("  %2d: %6.3f %6.3f %6.6f %7.5f %3d %3d %4d %4d\n",
+    dprintf("  %2d: %6.3f %6.3f %6.6f %7.5f %3d %3d %4d %4d\n",
              itrack, q, phi, dq, dphi, qb1, qb2, pb1, pb2);
 
     // MT: One could iterate in "spiral" order, to pick hits close to the center.
@@ -288,8 +285,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
           float ddphi = std::abs(phi - L.m_hit_phis[hi]);
           if (ddphi > Config::PI) ddphi = Config::TwoPI - ddphi;
 
-          if (dump)
-            printf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
+          dprintf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
                    qi, pi, pb, hi,
                    L.m_hit_qs[hi], L.m_hit_phis[hi], ddq, ddphi,
                    (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");

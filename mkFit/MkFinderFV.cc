@@ -23,7 +23,7 @@ template<int nseeds, int ncands>
 void MkFinderFV<nseeds, ncands>::InputTrack(const Track& track, int iseed, int offset, bool inputProp)
 {
   const int iI = inputProp ? iP : iC;
-  for (int i = 0; i < nseeds; ++i)
+  for (int i = 0; i < ncands; ++i)
   {
     int imp = i + offset*ncands;
     copy_in(track, imp, iI);
@@ -150,6 +150,8 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
     dphi = std::min(std::abs(dphi), L.max_dphi());
     dq   = std::min(std::abs(dq),   L.max_dq());
 
+    dprintf("     SHI %5d  %6.3f %6.3f %6.4f %7.5f\n", itrack, q, phi, dq, dphi);
+
     qv[itrack]    = q;
     dqv[itrack]   = dq;
     phiv[itrack]  = phi;
@@ -213,7 +215,7 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
 
             dprintf("     SHI %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
                      hi,
-                     L.m_hit_qs[hi], L.m_hit_phis[hi], ddq, ddphi,
+                     L.m_hit_qs[hi], L.m_hit_phis[hi], q, phi,
                      (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
 
             // MT: Commenting this check out gives full efficiency ...
@@ -379,10 +381,17 @@ void MkFinderFV<nseeds, ncands>::SelectBestCandidates(const LayerOfHits &layer_o
           }
         }
         int fake_hit_idx = num_invalid_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
-        if (layer_of_hits.is_endcap() &&
-              layer_of_hits.is_in_xy_hole(Par[iP](itrack,0,0), Par[iP](itrack,1,0)))
-        {
-          fake_hit_idx = -3; // YYYYYY Config::store_missed_layers
+
+        bool is_brl = layer_of_hits.is_barrel();
+        float q = is_brl ? Par[iP](itrack,2,0) : std::hypot(Par[iP](itrack,0,0), Par[iP](itrack,1,0));
+
+        if (not layer_of_hits.m_layer_info->is_within_q_limits(q)) {
+          fake_hit_idx = -4;
+        } else {
+          if (layer_of_hits.is_endcap() &&
+            layer_of_hits.is_in_xy_hole(Par[iP](itrack,0,0), Par[iP](itrack,1,0))) {
+            fake_hit_idx = -3; // YYYYYY Config::store_missed_layers
+          }
         }
         // add a fake hit
         idxv[idxvsize++] = IdxChi2List(itrack, fake_hit_idx, NFoundHits[itrack], Chi2[itrack]);

@@ -15,7 +15,7 @@ base=SNB_CMSSW_10mu
 
 for section in ECN2 ECN1 BRL ECP1 ECP2 
 do
-    for bV in "BH bh" "STD std" "CE ce"
+    for bV in "BH bh" "STD std" "CE ce" "FV fv"
     do echo $bV | while read -r bN bO
 	do
 	    oBase=${base}_${section}_${bN}
@@ -31,14 +31,14 @@ make clean
 for section in ECN2 ECN1 BRL ECP1 ECP2
 do
     oBase=${base}_${section}
-    for build in BH STD CE
+    for build in BH STD CE FV
     do
 	root -b -q -l plotting/runValidation.C\(\"_${oBase}_${build}\",0,1\)
     done
     root -b -q -l plotting/makeValidation.C\(\"${oBase}\",\"\",1\)
 done
 
-for build in BH STD CE
+for build in BH STD CE FV
 do
     oBase=${base}
     fBase=valtree_${oBase}
