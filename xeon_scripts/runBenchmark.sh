@@ -25,10 +25,12 @@ for archV in "SNB snb" "KNC knc" "KNL knl"
 	root -b -q -l plotting/makeBenchmarkPlots.C\(\"${archN}\",\"${sample}\"\)	
 
 	echo "Extract multiple events in flight benchmark results for" ${archN}
-	python plotting/makeMEIFBenchmarkPlots.py ${archN} ${sample}
+	python plotting/makeMEIFBenchmarkPlots.py ${archN} ${sample} CE
+	python plotting/makeMEIFBenchmarkPlots.py ${archN} ${sample} FV
 
 	echo "Make final plot comparing multiple events in flight for" ${archN}
-	root -b -q -l plotting/makeMEIFBenchmarkPlots.C\(\"${archN}\",\"${sample}\"\)	
+	root -b -q -l plotting/makeMEIFBenchmarkPlots.C\(\"${archN}\",\"${sample}\",\"CE\"\)	
+	root -b -q -l plotting/makeMEIFBenchmarkPlots.C\(\"${archN}\",\"${sample}\",\"FV\"\)	
     done
 done
 

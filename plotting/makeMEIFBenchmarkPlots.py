@@ -4,9 +4,10 @@ import array
 import math
 
 arch   = sys.argv[1] # SNB, KNC, KNL
-sample = sys.argv[2] 
+sample = sys.argv[2]
+build  = sys.argv[3] # CE, FV
 
-g = ROOT.TFile('benchmarkMEIF_'+arch+'_'+sample+'.root','recreate')
+g = ROOT.TFile('benchmarkMEIF_'+arch+'_'+sample+'_'+build+'.root','recreate')
 
 # Parallelization datapoints
 if arch == 'KNC' or arch == 'KNL' :
@@ -35,7 +36,7 @@ yval0 = array.array('d',[0])
 
 # time    
 for evval in evvals :
-    print arch,sample,"nEV: ",evval
+    print arch,sample,build,"nEV: ",evval
     
     # define event float
     ev = float(evval)
@@ -53,7 +54,7 @@ for evval in evvals :
         yval = float(0)
 
         # open log file, grep for relevant lines
-        with open('log_'+arch+'_'+sample+'_CE_NVU'+nvu+'_NTH'+thval+'_NEV'+evval+'.txt') as f :
+        with open('log_'+arch+'_'+sample+'_'+build+'_NVU'+nvu+'_NTH'+thval+'_NEV'+evval+'.txt') as f :
             for line in f :
                 if grepnEV in line :
                     lsplit = line.split()                
@@ -72,7 +73,7 @@ for evval in evvals :
         point = point+1
 
     # write out the plot
-    g_time.Write('g_CE_'+text+'_nEV'+evval+'_time')
+    g_time.Write('g_'+build+'_'+text+'_nEV'+evval+'_time')
 
     # needed for speedup calculation
     if evval is '1' :
@@ -100,7 +101,7 @@ for evval in evvals :
         point = point+1
 
     # always write out speedup
-    g_speedup.Write('g_CE_'+text+'_nEV'+evval+'_speedup')
+    g_speedup.Write('g_'+build+'_'+text+'_nEV'+evval+'_speedup')
 
 g.Write()
 g.Close()

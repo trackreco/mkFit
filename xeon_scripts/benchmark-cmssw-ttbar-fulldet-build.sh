@@ -76,7 +76,7 @@ do
 	    ${bExe} --num-events ${nevents} >& log_${oBase}_NVU${maxvu}int_NTH${nth}.txt
 
 	    ## Multiple Events in Flight benchmark
-	    if [ "${bN}" == "CE" ]
+	    if [ "${bN}" == "CE" ] || [ "${bN}" == "FV" ]
 	    then
 		for nev in "${nevs[@]}"
 		do
@@ -114,7 +114,7 @@ do
 	./xeon_scripts/copyToKNC.sh
     fi
 
-    for bV in "BH bh" "STD std" "CE ce" "FV fv"
+    for bV in "BH bh" "STD std" "CE ce"
     do echo ${bV} | while read -r bN bO
 	do
 	    ## Common base executable
