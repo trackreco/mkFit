@@ -200,8 +200,8 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
         int pb = pi & L.m_phi_mask;
         for (int hi = L.m_phi_bin_infos[qi][pb].first; hi < L.m_phi_bin_infos[qi][pb].second; ++hi) {
           unsigned int pass[NN] = {};
-#pragma simd
           int itrack = iseed*ncands;
+#pragma simd
           for (int i = 0; i < ncands; ++i, ++itrack) {
             const float q    = qv[itrack];
             const float dq   = dqv[itrack];
@@ -327,13 +327,16 @@ void MkFinderFV<nseeds, ncands>::FindCandidates(const LayerOfHits &layer_of_hits
 template<int nseeds, int ncands>
 void MkFinderFV<nseeds, ncands>::UpdateWithLastHit(const LayerOfHits &layer_of_hits, const FindingFoos &fnd_foos)
 {
-  // layer_of_hits is for previous layer!
+  bool has_hit[NNFV];
 
   for (int i = 0; i < NNFV; ++i)
   {
-    int hit_idx = HoTArrs[i][ NHits[i] - 1].index;
+    const HitOnTrack &hot = HoTArrs[i][ NHits[i] - 1];
+    const int hit_idx = hot.index;
 
-    if (hit_idx >= 0) {
+    has_hit[i] = hit_idx >= 0 && hot.layer == layer_of_hits.layer_id();
+
+    if (has_hit[i]) {
       Hit &hit = layer_of_hits.m_hits[hit_idx];
 
       msErr.CopyIn(i, hit.errArray());
@@ -350,8 +353,7 @@ void MkFinderFV<nseeds, ncands>::UpdateWithLastHit(const LayerOfHits &layer_of_h
   //there may be a better way to restore this...
   for (int i = 0; i < NNFV; ++i)
   {
-    if (HoTArrs[i][ NHits[i] - 1].index < 0)
-    {
+    if (!has_hit[i]) {
       Err[iC].CopyIn(i, Err[iP], i);
       Par[iC].CopyIn(i, Par[iP], i);
     }

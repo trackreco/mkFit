@@ -860,8 +860,6 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 void MkFinder::UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc,
                                  const FindingFoos &fnd_foos)
 {
-  // layer_of_hits is for previous layer!
-
   for (int i = 0; i < N_proc; ++i)
   {
     const HitOnTrack &hot = HoTArrs[i][ NHits[i] - 1];
