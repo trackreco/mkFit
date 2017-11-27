@@ -82,7 +82,18 @@ public:
 
   //============================================================================
 
-  MkFinderFV() {}
+  MkFinderFV() {
+    for (int it = 0; it < NNFV; ++it) {
+      msErr.SetDiagonal3x3(it, 666);
+      Err[0].SetDiagonal3x3(it, 666);
+      Err[1].SetDiagonal3x3(it, 666);
+    }
+    msPar.SetVal(0.0f);
+    Chi2.SetVal(0.0f);
+    Chg.SetVal(0);
+    Par[0].SetVal(0.0f);
+    Par[1].SetVal(0.0f);
+  }
 
   static constexpr int nnfv() { return NNFV; }
   static constexpr int nCands() { return ncands; }

@@ -1700,11 +1700,13 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
   const int nMplx = (end_seed - start_seed + MkFinderFv::Seeds - 1)/MkFinderFv::Seeds;
   std::vector<MkFinderFv> finders = g_exe_ctx.getFV(nMplx);
 
-  int is = 0;
-  for (int iseed = start_seed; iseed < end_seed; ++iseed, ++is) {
-    const int index = is/MkFinderFv::Seeds;
-    const int offset = is - index*MkFinderFv::Seeds;
-    finders[index].InputTrack(eoccs.m_candidates[iseed][0], iseed, offset, false);
+  int iseed = start_seed;
+  for (int index = 0; index < nMplx; ++index) {
+    for (int offset = 0; offset < MkFinderFv::Seeds; ++offset) {
+      dprint("seed " << iseed << " index " << index << " offset " << offset);
+      finders[index].InputTrack(eoccs.m_candidates[iseed][0], iseed, offset, false);
+      iseed = std::min(++iseed, end_seed-1);
+    }
   }
 
   // Loop over layers, starting from after the seed.
@@ -1761,7 +1763,7 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
 
   // final sorting
   // final output
-  is = 0;
+  int is = 0;
   for (int iseed = start_seed; iseed < end_seed; ++iseed, ++is) {
     const int index = is/MkFinderFv::Seeds;
     const int offset = is - index*MkFinderFv::Seeds;

@@ -18,7 +18,7 @@ struct candComp {
   }
 };
 
-// fill the entire vector with the input track
+// fill all candidates with the input seed
 template<int nseeds, int ncands>
 void MkFinderFV<nseeds, ncands>::InputTrack(const Track& track, int iseed, int offset, bool inputProp)
 {
@@ -28,7 +28,7 @@ void MkFinderFV<nseeds, ncands>::InputTrack(const Track& track, int iseed, int o
     int imp = i + offset*ncands;
     copy_in(track, imp, iI);
     SeedIdx(imp, 0, 0) = iseed;
-    CandIdx(imp, 0, 0) = imp == 0 ? 0 : -1; // dummies are -1
+    CandIdx(imp, 0, 0) = i == 0 ? 0 : -1; // dummies are -1
   }
 }
 
@@ -182,6 +182,10 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
     qb2[iseed] = L.GetQBinChecked(qbest + dq) + 1;
     pb1[iseed] = L.GetPhiBin(phibest - dphi);
     pb2[iseed] = L.GetPhiBin(phibest + dphi) + 1;
+    dprint("Seed " << iseed << " Best " << BestCandidate(iseed) << " q " << qbest << " phi " << phibest 
+      << " c " << c << " dqvar " << dqvar << " dphivar " << dphivar << " bins " 
+      << qb1[iseed] << "-" << qb2[iseed] << ", "
+      << pb1[iseed] << "-" << pb2[iseed]);
   }
 
   _mm_prefetch((const char*) &L.m_phi_bin_infos[qb1[0]][pb1[0] & L.m_phi_mask], _MM_HINT_T0);
@@ -410,19 +414,20 @@ void MkFinderFV<nseeds, ncands>::SelectBestCandidates(const LayerOfHits &layer_o
 
     int filled[ncands];
     int tocopy[ncands];
+    int tmpidx[ncands];
 
     for (int i = 0; i < ncands; ++i) {
       filled[i]  = -1;
-      CandIdx[i] = -1;
+      tmpidx[i] = -1;
     }
 
     // identify tracks that can be reused and candidates that need a track to be copied
     int needscopy = 0;
     for (int ic = 0; ic < nc; ++ic) {
-      int it = idxv[ic].trkIdx;
+      int it = idxv[ic].trkIdx - iseed*ncands;
       if (filled[it] < 0) {
         filled[it] = ic; // slot it gets candidate ic, no copy
-        CandIdx[it] = it; // it or ic?
+        tmpidx[it] = it; // it or ic?
       } else {
         tocopy[needscopy++] = ic; // candidate ic needs a copy
       }
@@ -443,13 +448,13 @@ void MkFinderFV<nseeds, ncands>::SelectBestCandidates(const LayerOfHits &layer_o
 
     // copy the ones that need copying
     for (int i = 0; i < icopy; ++i) {
-      int it = copyto[i]; // fill this slot
+      int it = copyto[i] + iseed*ncands; // fill this slot
 
       int ic = tocopy[i];
       int ot = idxv[ic].trkIdx; // filled from this slot
       dprint("copying slot " << ot << " to slot " << it);
 
-      filled[it] = ic;
+      filled[copyto[i]] = ic;
 
       Err[iP].Copy(it, ot);
       Par[iP].Copy(it, ot);
@@ -458,15 +463,17 @@ void MkFinderFV<nseeds, ncands>::SelectBestCandidates(const LayerOfHits &layer_o
       NFoundHits(it, 0, 0) = NFoundHits(ot, 0, 0);
 
       SeedIdx[it] = SeedIdx[ot];
-      CandIdx[it] = it; // it or ic?
+      tmpidx[copyto[i]] = it; // it or ic?
 
       memcpy(HoTArrs[it], HoTArrs[ot], sizeof(HoTArrs[it]));
     }
 
     // update all
-    for (int it = 0; it < ncands; ++it) {
+    for (int ic = 0; ic < ncands; ++ic) {
+      int it = ic + iseed*ncands;
+      CandIdx[it] = tmpidx[ic];
       if (CandIdx[it] >= 0) {
-        const auto& idx = idxv[filled[it]];
+        const auto& idx = idxv[filled[ic]];
         add_hit(it, idx.hitIdx, layer_of_hits.layer_id());
         Chi2(it, 0, 0) = idx.chi2;
 #ifdef DEBUG

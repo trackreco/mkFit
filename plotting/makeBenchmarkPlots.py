@@ -9,7 +9,7 @@ def run():
 
     g = ROOT.TFile('benchmark_'+arch+'_'+sample+'.root','recreate')
 
-    for build in ['BH','STD','CE']:
+    for build in ['BH','STD','CE','FV']:
         print arch,sample,build
 
         # Vectorization data points
@@ -48,6 +48,7 @@ def makeplots(arch,sample,build,vals,nC,text):
     if   build is 'BH'  : pos = 8  
     elif build is 'STD' : pos = 11  
     elif build is 'CE'  : pos = 14 
+    elif build is 'FV'  : pos = 17
     else :
         print build,'is not a valid test! Exiting...'
         exit 

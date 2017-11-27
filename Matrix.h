@@ -48,6 +48,18 @@ inline void diagonalOnly(Matrix& m)
 
 // This should go elsewhere, eventually.
 
+template<class T, class Compare> inline
+constexpr const T clamp( const T v, const T lo, const T hi, Compare comp )
+{
+  return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
+}
+
+template<class T> inline
+constexpr const T clamp( const T v, const T lo, const T hi )
+{
+  return clamp( v, lo, hi, std::less<T>() );
+}
+
 #include <sys/time.h>
 
 inline double dtime()
