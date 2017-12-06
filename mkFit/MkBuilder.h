@@ -15,6 +15,8 @@
 #include <functional>
 #include <mutex>
 
+#include "align_alloc.h"
+
 #include "Pool.h"
 
 class TrackerInfo;
@@ -22,12 +24,14 @@ class LayerInfo;
 
 //------------------------------------------------------------------------------
 
+using MkFinderFvVec = std::vector<MkFinderFv, aligned_allocator<MkFinderFv, 64>>;
+
 struct ExecutionContext
 {
   Pool<CandCloner> m_cloners;
   Pool<MkFitter>   m_fitters;
   Pool<MkFinder>   m_finders;
-  tbb::concurrent_queue<std::vector<MkFinderFv>> m_finderv;
+  tbb::concurrent_queue<MkFinderFvVec> m_finderv;
 
   void populate(int n_thr)
   {
@@ -38,28 +42,29 @@ struct ExecutionContext
 
   void populate_finderv(int n_thr, int n_seedsPerThread)
   {
-    int count = (n_seedsPerThread + MkFinderFv::Seeds - 1)/MkFinderFv::Seeds; // adjust for seeds per finder
+    int count = MkFinderFv::nMplx(n_seedsPerThread);
     auto sz = m_finderv.unsafe_size();
     if (sz < n_thr) {
       for (int i = 0; i < n_thr - sz; ++i) {
-        std::vector<MkFinderFv> fv(count);
+        MkFinderFvVec fv(count);
         m_finderv.push(std::move(fv));
       }
     }
   }
 
-  std::vector<MkFinderFv> getFV(int sz)
+  MkFinderFvVec getFV(int sz)
   {
     int count = (sz + MkFinderFv::Seeds - 1)/MkFinderFv::Seeds; // adjust for seeds per finder
-    std::vector<MkFinderFv> retfv;
+    MkFinderFvVec retfv;
     m_finderv.try_pop(retfv);
     if (retfv.size() < count) {
+      dprint("Resizing from " << retfv.size() << " to " << count);
       retfv.resize(count);
     }
     return retfv;
   }
 
-  void pushFV(std::vector<MkFinderFv> fv)
+  void pushFV(MkFinderFvVec fv)
   {
     m_finderv.push(std::move(fv));
   }

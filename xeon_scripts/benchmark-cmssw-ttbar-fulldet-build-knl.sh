@@ -3,9 +3,6 @@
 # in case this is called separately
 source xeon_scripts/common_variables.sh
 
-# tar and send
-./xeon_scripts/tarAndSendToKNL.sh
-
 # execute knl tests remotely
 echo "Executing KNL tests remotely..."
 ssh ${KNL_HOST} bash -c "'

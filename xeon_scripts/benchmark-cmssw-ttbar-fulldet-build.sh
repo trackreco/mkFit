@@ -55,6 +55,7 @@ else
 fi
 
 ## compile with appropriate options
+make distclean
 make ${mOpt}
 if [ ${arch} == "KNC" ] 
 then

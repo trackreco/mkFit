@@ -520,5 +520,6 @@ int MkFinderFV<nseeds, ncands>::BestCandidate(int offset) const
   }
   return best;
 }
-
+#ifdef INSTANTIATE_FV
 template class MkFinderFV<NN/8, 8>;
+#endif

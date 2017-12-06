@@ -98,7 +98,10 @@ public:
   static constexpr int nnfv() { return NNFV; }
   static constexpr int nCands() { return ncands; }
   static constexpr int nSeeds() { return nseeds; }
-  int operator()(int seed, int track) { return seed*ncands + track; }
+  static int nMplx(int ns) { return (ns + nseeds - 1)/nseeds; }
+
+  int index(int seed, int track) { return seed*ncands + track; }
+  int operator()(int seed, int track) { return index(seed, track); }
 
   //----------------------------------------------------------------------------
 
@@ -200,8 +203,11 @@ private:
     return NHits(mslot,0,0) - NFoundHits(mslot,0,0);
   }
 };
-
+#if (MPT_SIZE == 8) || (MPT_SIZE == 16)
+#define INSTANTIATE_FV
 using MkFinderFv = MkFinderFV<NN/8, 8>;
-MkFinderFv* makeMkFinderFv();
-
+#else
+#warning "Not instantiating MkFinderFV"
+using MkFinderFv = MkFinderFV<1, 8>; // dummy
+#endif
 #endif

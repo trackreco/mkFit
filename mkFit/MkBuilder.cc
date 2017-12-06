@@ -94,7 +94,6 @@ namespace
 
 MkBuilder* MkBuilder::make_builder()
 {
-  g_exe_ctx.populate_finderv(Config::numThreadsFinder, Config::numSeedsPerTask);
   return new MkBuilder;
 }
 
@@ -1671,6 +1670,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 
 void MkBuilder::FindTracksFV()
 {
+  g_exe_ctx.populate_finderv(Config::numThreadsFinder, Config::numSeedsPerTask);
   EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
   tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
@@ -1691,14 +1691,22 @@ void MkBuilder::FindTracksFV()
 
 void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region)
 {
+#ifdef INSTANTIATE_FV
   EventOfCombCandidates  &eoccs             = m_event_of_comb_cands;
   const SteeringParams   &st_par            = m_steering_params[region];
   const TrackerInfo      &trk_info          = Config::TrkInfo;
 
   const int n_seeds = end_seed - start_seed;
 
-  const int nMplx = (end_seed - start_seed + MkFinderFv::Seeds - 1)/MkFinderFv::Seeds;
-  std::vector<MkFinderFv> finders = g_exe_ctx.getFV(nMplx);
+  struct finders_sentry {
+    finders_sentry(int n) { fv = g_exe_ctx.getFV(n); }
+    ~finders_sentry() { g_exe_ctx.pushFV(std::move(fv)); }
+    MkFinderFvVec fv;
+  };
+
+  const int nMplx = MkFinderFv::nMplx(end_seed - start_seed);
+  finders_sentry sentry(nMplx);
+  MkFinderFvVec& finders = sentry.fv;
 
   int iseed = start_seed;
   for (int index = 0; index < nMplx; ++index) {
@@ -1774,5 +1782,5 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
       mkf.OutputTrack(eoccs.m_candidates[iseed], 0, best, true);
     }
   }
-  g_exe_ctx.pushFV(std::move(finders)); // need a sentry
+#endif
 }

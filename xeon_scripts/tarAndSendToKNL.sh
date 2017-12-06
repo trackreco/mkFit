@@ -6,7 +6,7 @@ source xeon_scripts/common_variables.sh
 # tar up the directory
 echo "Tarring directory for KNL... make sure it is clean!"
 repo=mictest.tar.gz
-tar -zcvf ${repo} *
+tar --exclude-vcs --exclude='*.gz' --exclude='validation*' --exclude='*.root' --exclude='log_*' --exclude='*.png' --exclude='*.o' --exclude='*.om' -zcvf  ${repo} *
 
 # mkdir tmp dir on KNL remotely
 echo "Making tmp dir on KNL remotely"

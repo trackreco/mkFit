@@ -4,7 +4,12 @@
 [ -z "$ROOTSYS" ] && source ~matevz/root/bin/thisroot.sh
 source xeon_scripts/common_variables.sh
 
+make distclean
+
 ##### Launch Tests
+echo "Tar and send to KNL"
+./xeon_scripts/tarAndSendToKNL.sh
+
 echo "Run benchmarking on KNL concurrently with SNB and KNL" 
 ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-knl.sh >& benchmark_knl_dump.txt &
 
