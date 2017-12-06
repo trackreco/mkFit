@@ -19,6 +19,9 @@ echo "Run benchmarking on SNB"
 echo "Run benchmarking on KNC"
 ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh KNC
 
+echo "Waiting for KNL"
+wait
+
 ##### Benchmark Plots #####
 for archV in "SNB snb" "KNC knc" "KNL knl"
    do echo ${archV} | while read -r archN archO

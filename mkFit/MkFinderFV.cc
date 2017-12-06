@@ -341,7 +341,7 @@ void MkFinderFV<nseeds, ncands>::UpdateWithLastHit(const LayerOfHits &layer_of_h
     has_hit[i] = hit_idx >= 0 && hot.layer == layer_of_hits.layer_id();
 
     if (has_hit[i]) {
-      Hit &hit = layer_of_hits.m_hits[hit_idx];
+      const Hit& hit = layer_of_hits.m_hits[hit_idx];
 
       msErr.CopyIn(i, hit.errArray());
       msPar.CopyIn(i, hit.posArray());

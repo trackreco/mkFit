@@ -458,7 +458,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
     }
   }
 
-#pragma simd
+  //#pragma simd
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
     // XXXXMT HACK ... SKIP missed layers here.
@@ -792,7 +792,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 
       if (hit_cnt < XHitSize[itrack])
       {
-        float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
+        const float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
 #ifdef DEBUG
         std::cout << "chi2=" << chi2 << " for trkIdx=" << itrack << std::endl;
 #endif
@@ -866,7 +866,7 @@ void MkFinder::UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc,
 
     if (hot.index < 0) continue;
 
-    Hit &hit = layer_of_hits.m_hits[hot.index];
+    const Hit &hit = layer_of_hits.m_hits[hot.index];
 
     msErr.CopyIn(i, hit.errArray());
     msPar.CopyIn(i, hit.posArray());
