@@ -117,43 +117,37 @@ namespace
     g_clean_opts["badlabel"] = cleanSeedsBadLabel;
   }
 
+  matchOptsMap g_match_opts;
+  void init_match_opts()
+  {
+    g_match_opts["trkparam"] = trkParamBased;
+    g_match_opts["hits"]     = hitBased;
+    g_match_opts["label"]    = labelBased;
+  }
+
   const char* b2a(bool b) { return b ? "true" : "false"; }
 }
 
 //==============================================================================
 
-std::string getSeedInput()
+// Getters and setters of enum configs (from command line using anon. namespace above)
+
+template <typename T, typename U> 
+std::string getOpt(const T & c_opt, const U & g_opt_map)
 {
-  for (const auto & seed_opt : g_seed_opts)
+  for (const auto & g_opt_pair : g_opt_map)
   {
-    if (seed_opt.second == Config::seedInput) return seed_opt.first;
+    if (g_opt_pair.second == c_opt) return g_opt_pair.first;
   }
 }
 
-void setSeedInput(const std::string & opt)
+template <typename T, typename U>
+void setOpt(const std::string & cmd_ln_str, T & c_opt, const U & g_opt_map, const std::string & ex_txt)
 {
-  if (g_seed_opts.count(opt)) Config::seedInput = g_seed_opts[opt];
+  if (g_opt_map.count(cmd_ln_str)) c_opt = g_opt_map.at(cmd_ln_str);
   else 
   {
-    std::cerr << opt.c_str() << " is not a valid seed input option!! Exiting..." << std::endl;
-    exit(1);
-  }
-}
-
-std::string getSeedCleaning()
-{
-  for (const auto & clean_opt : g_clean_opts)
-  {
-    if (clean_opt.second == Config::seedCleaning) return clean_opt.first;
-  }
-}
-
-void setSeedCleaning(const std::string & opt)
-{
-  if (g_clean_opts.count(opt)) Config::seedCleaning = g_clean_opts[opt];
-  else 
-  {
-    std::cerr << opt.c_str() << " is not a valid seed input option!! Exiting..." << std::endl;
+    std::cerr << cmd_ln_str.c_str() << " is not a valid " << ex_txt.c_str() << " option!! Exiting..." << std::endl;
     exit(1);
   }
 }
@@ -541,8 +535,10 @@ int main(int argc, const char *argv[])
 
   assert (sizeof(Track::Status) == 4 && "To make sure this is true for icc and gcc<6 when mixing bools/ints in bitfields.");
 
+  // init enum maps
   init_seed_opts();
   init_clean_opts();
+  init_match_opts();
 
   lStr_t mArgs;
   for (int i = 1; i < argc; ++i)
@@ -585,7 +581,8 @@ int main(int argc, const char *argv[])
         "  --cmssw-val              enable special CMSSW ROOT based validation for building [eff] (def: %s)\n"
       	"  --fit-val                enable ROOT based validation for fitting (def: %s)\n"
         "  --inc-shorts             include short reco tracks into FR (def: %s)\n"
-        "  --hit-match              apply hit matching criteria for CMSSW reco track matching (def: %s)\n"
+	"  --cmssw-matching <str>   which cmssw track matching routine to use if doing special cmssw validation (def: %s)\n" 
+        "  --hit-match              apply hit matching criteria for track param matching in cmssw validation (def: %s)\n"
 	"  --dump-for-plots         printouts for plots from logs (def: %s)\n"
         "  --silent                 suppress printouts inside event loop (def: %s)\n"
         "  --start-event   <num>    event number to start at when reading from a file (def: %d)\n"
@@ -597,6 +594,9 @@ int main(int argc, const char *argv[])
 	"  --cmssw-n2seeds          use CMS geom with CMSSW seeds cleaned with N^2 routine \n"
 	"  --cmssw-pureseeds        use CMS geom with pure CMSSW seeds (seeds which produced CMSSW reco tracks) \n"
 	"  --cmssw-goodlabelseeds   use CMS geom with CMSSW seeds with label() >= 0 \n"
+	"  --cmssw-val-trkparam     use CMSSW validation with track parameter matching \n"
+	"  --cmssw-val-hit          use CMSSW validation with hit based matching (75 percent of reco track) \n"
+	"  --cmssw-val-label        use CMSSW validation with track label matching (ONLY WITH PURE SEEDS!) \n"
         "GPU specific options: \n"
         "  --num-thr-reorg <num>    number of threads to run the hits reorganization (def: %d)\n"
         "  --seed-based             For CE. Switch to 1 CUDA thread per seed\n"
@@ -610,8 +610,8 @@ int main(int argc, const char *argv[])
         Config::numSeedsPerTask,
 	Config::numHitsPerTask,
         Config::finderReportBestOutOfN,
-	getSeedInput().c_str(),
-	getSeedCleaning().c_str(),
+	getOpt(Config::seedInput, g_seed_opts).c_str(),
+	getOpt(Config::seedCleaning, g_clean_opts).c_str(),
         b2a(Config::cf_seeding),
         b2a(Config::cf_fitting),
 	b2a(Config::readCmsswTracks),
@@ -620,6 +620,7 @@ int main(int argc, const char *argv[])
         b2a(Config::cmssw_val),
         b2a(Config::fit_val),
 	b2a(Config::inclusiveShorts),
+	getOpt(Config::cmsswMatching, g_match_opts).c_str(),
 	b2a(Config::applyCMSSWHitMatch),
         b2a(Config::dumpForPlots),
         b2a(Config::silent),
@@ -703,12 +704,12 @@ int main(int argc, const char *argv[])
     else if(*i == "--seed-input")
     {
       next_arg_or_die(mArgs, i);
-      setSeedInput(*i);
+      setOpt(*i,Config::seedInput,g_seed_opts,"seed input collection");
     }
     else if(*i == "--seed-cleaning")
     {
       next_arg_or_die(mArgs, i);
-      setSeedCleaning(*i);
+      setOpt(*i,Config::seedCleaning,g_clean_opts,"seed cleaning");
     }
     else if (*i == "--cf-seeding")
     {
@@ -732,7 +733,7 @@ int main(int argc, const char *argv[])
     }
     else if (*i == "--cmssw-val")
     {
-      Config::cmssw_val = true; Config::readCmsswTracks = true;
+      Config::cmssw_val = true;
     }
     else if (*i == "--fit-val")
     {
@@ -741,6 +742,11 @@ int main(int argc, const char *argv[])
     else if (*i == "--inc-shorts")
     {
       Config::inclusiveShorts = true;
+    }
+    else if(*i == "--cmssw-matching")
+    {
+      next_arg_or_die(mArgs, i);
+      setOpt(*i,Config::cmsswMatching,g_match_opts,"CMSSW validation track matching");
     }
     else if (*i == "--hit-match")
     {
@@ -812,6 +818,24 @@ int main(int argc, const char *argv[])
       Config::seedInput    = cmsswSeeds;
       Config::seedCleaning = cleanSeedsBadLabel;
     }
+    else if (*i == "--cmssw-val-trkparam")
+    {
+      Config::cmssw_val = true; 
+      Config::readCmsswTracks = true;
+      Config::cmsswMatching = trkParamBased;
+    }
+    else if (*i == "--cmssw-val-hit")
+    {
+      Config::cmssw_val = true; 
+      Config::readCmsswTracks = true;
+      Config::cmsswMatching = hitBased;
+    }
+    else if (*i == "--cmssw-val-label")
+    {
+      Config::cmssw_val = true; 
+      Config::readCmsswTracks = true;
+      Config::cmsswMatching = labelBased;
+    }
     else if (*i == "--seed-based")
     {
       g_seed_based = true;
@@ -825,6 +849,14 @@ int main(int argc, const char *argv[])
     mArgs.erase(start, ++i);
   }
 
+  // Do some checking of options before going...
+  if (Config::seedCleaning != cleanSeedsPure && Config::cmsswMatching == labelBased)
+  {
+    std::cerr << "What have you done?!? Can't mix cmssw label matching without pure seeds! Exiting..." << std::endl;
+    exit(1);
+  }
+
+  // set to convert if I/O files both set!
   if (g_input_file != "" && g_output_file != "")
   {
     g_operation = "convert";

@@ -1104,8 +1104,8 @@ void PlotValidation::ComputeResolutionPull(const Float_t mcvar_val, const Float_
 
 void PlotValidation::GetTotalEfficiency(const TEfficiency * eff, EffStruct & effs)
 {
-  effs.passed_ = eff->GetPassedHistogram()->GetEntries();
-  effs.total_  = eff->GetTotalHistogram()->GetEntries();
+  effs.passed_ = eff->GetPassedHistogram()->Integral();
+  effs.total_  = eff->GetTotalHistogram() ->Integral();
   
   TEfficiency * tmp_eff = new TEfficiency("tmp_eff","tmp_eff",1,0,1);
   tmp_eff->SetTotalEvents(1,effs.total_);

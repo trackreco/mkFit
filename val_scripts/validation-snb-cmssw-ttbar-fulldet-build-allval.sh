@@ -18,7 +18,7 @@ mVal="WITH_ROOT:=yes"
 make -j 12 ${mVal}
 
 ## ROOTVAL == sim tracks as reference, CMSSWVAL == cmssw tracks as reference
-for vV in "ROOTVAL --root-val" "CMSSWVAL --cmssw-val"
+for vV in "ROOTVAL --root-val" "CMSSWVAL --cmssw-val-trkparam"
 do echo ${vV} | while read -r vN vO
     do
 	for bV in "BH bh" "STD std" "CE ce" "FV fv"

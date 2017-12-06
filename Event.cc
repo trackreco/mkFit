@@ -690,8 +690,30 @@ void Event::print_tracks(const TrackVec& tracks, bool print_hits) const
 int Event::clean_cms_seedtracks()
 {
 
-  double maxDR2 = Config::maxDR_seedclean*Config::maxDR_seedclean;
-  int minNHits = Config::minNHits_seedclean;
+  int minNHits     = Config::minNHits_seedclean;
+  float etamax_brl = Config::c_etamax_brl;
+  float dpt_brl_0  = Config::c_dpt_brl_0;
+  float dpt_ec_0   = Config::c_dpt_ec_0;
+  float ptmax_0    = Config::c_ptmax_0;
+  float dpt_1      = Config::c_dpt_1;
+  float ptmax_1    = Config::c_ptmax_1;
+  float dpt_2      = Config::c_dpt_2;
+  float ptmax_2    = Config::c_ptmax_2;
+  float dpt_3      = Config::c_dpt_3;
+  float dzmax_brl  = Config::c_dzmax_brl;
+  float drmax_brl  = Config::c_drmax_brl;
+  float ptmin_hpt  = Config::c_ptmin_hpt;
+  float dzmax_hpt  = Config::c_dzmax_hpt;
+  float drmax_hpt  = Config::c_drmax_hpt;
+  float dzmax_els  = Config::c_dzmax_els;
+  float drmax_els  = Config::c_drmax_els;
+
+  float dzmax2_brl = dzmax_brl*dzmax_brl;
+  float drmax2_brl = drmax_brl*drmax_brl;
+  float dzmax2_hpt = dzmax_hpt*dzmax_hpt;
+  float drmax2_hpt = drmax_hpt*drmax_hpt;
+  float dzmax2_els = dzmax_els*dzmax_els;
+  float drmax2_els = drmax_els*drmax_els;
 
   int ns = seedTracks_.size();
 
@@ -702,22 +724,30 @@ int Event::clean_cms_seedtracks()
   const float invR1GeV = 1.f/Config::track1GeVradius;
 
   std::vector<int>    nHits(ns);
+  std::vector<int>    charge(ns);
   std::vector<float>  oldPhi(ns);
   std::vector<float>  pos2(ns);
   std::vector<float>  eta(ns);
+  std::vector<float>  theta(ns);
   std::vector<float>  invptq(ns);
+  std::vector<float>  pt(ns);
   std::vector<float>  x(ns);
   std::vector<float>  y(ns);
+  std::vector<float>  z(ns);
 
   for(int ts=0; ts<ns; ts++){
     const Track & tk = seedTracks_[ts];
     nHits[ts] = tk.nFoundHits();
+    charge[ts] = tk.charge();
     oldPhi[ts] = tk.momPhi();
     pos2[ts] = std::pow(tk.x(), 2) + std::pow(tk.y(), 2);
     eta[ts] = tk.momEta();
+    theta[ts] = std::atan2(tk.pT(),tk.pz());
     invptq[ts] = tk.charge()*tk.invpT();
+    pt[ts] = tk.pT();
     x[ts] = tk.x();
     y[ts] = tk.y();
+    z[ts] = tk.z();
   }
 
   for(int ts=0; ts<ns; ts++){
@@ -728,6 +758,7 @@ int Event::clean_cms_seedtracks()
     const float oldPhi1 = oldPhi[ts];
     const float pos2_first = pos2[ts];
     const float Eta1 = eta[ts];
+    const float Pt1 = pt[ts];
     const float invptq_first = invptq[ts]; 
 
     //#pragma simd /* Vectorization via simd had issues with icc */
@@ -735,14 +766,43 @@ int Event::clean_cms_seedtracks()
 
       if (nHits[tss] < minNHits) continue;
 
+      const float Pt2 = pt[tss];
+
+      const int thisChX = (charge[tss])*(charge[ts]);
+      ////// Always require charge consistency. If different charge is assigned, do not remove seed-track
+      if(thisChX<0)
+	continue;
+      
+      const float thisDPt = std::abs(Pt2-Pt1);
+      ////// Require pT consistency between seeds. If dpT is large, do not remove seed-track.
+      ////// Adaptive thresholds, based on pT of reference seed-track (choice is a compromise between efficiency and duplicate rate):
+      ////// - 2.5% if track is barrel and w/ pT<2 GeV
+      ////// - 1.25% if track is non-barrel and w/ pT<2 GeV
+      ////// - 10% if track w/ 2<pT<5 GeV
+      ////// - 20% if track w/ 5<pT<10 GeV
+      ////// - 25% if track w/ pT>10 GeV
+      if(thisDPt>dpt_brl_0*(Pt1) && Pt1<ptmax_0 && std::abs(Eta1)<etamax_brl)
+	continue;
+
+      else if(thisDPt>dpt_ec_0*(Pt1) && Pt1<ptmax_0 && std::abs(Eta1)>etamax_brl)
+	continue;
+
+      else if(thisDPt>dpt_1*(Pt1) && Pt1>ptmax_0 && Pt1<ptmax_1)
+	continue;
+
+      else if(thisDPt>dpt_2*(Pt1) && Pt1>ptmax_1 && Pt1<ptmax_2)
+	continue;
+
+      else if(thisDPt>dpt_3*(Pt1) && Pt1>ptmax_2)
+	continue;
+
+
       const float Eta2 = eta[tss];
       const float deta2 = std::pow(Eta1-Eta2, 2);
-      if (deta2 > maxDR2 ) continue;
 
       const float oldPhi2 = oldPhi[tss];
       float dphiOld = std::abs(oldPhi1-oldPhi2);
       if(dphiOld>=Config::PI) dphiOld =Config::TwoPI - dphiOld;
-      if (dphiOld > 0.5f) continue;
 
       const float pos2_second = pos2[tss];
       const float thisDXYSign05 = pos2_second > pos2_first ? -0.5f : 0.5f;
@@ -758,16 +818,30 @@ int Event::clean_cms_seedtracks()
       if(dphi>=Config::PI) dphi =Config::TwoPI - dphi;
 
       const float dr2 = deta2+dphi*dphi;
+      
+      const float thisDZ = z[ts]-z[tss]-thisDXY*(1.f/std::tan(theta[ts])+1.f/std::tan(theta[tss]));
+      const float dz2 = thisDZ*thisDZ;
 
-      if (dr2 < maxDR2)
-	writetrack[tss]=false;
-    
+      ////// Reject tracks within dR-dz elliptical window.
+      ////// Adaptive thresholds, based on observation that duplicates are more abundant at large pseudo-rapidity and low track pT
+      if(std::abs(Eta1)<etamax_brl){
+	if(dz2/dzmax2_brl+dr2/drmax2_brl<1.0f)
+	  writetrack[tss]=false;	
+      }
+      else if(Pt1>ptmin_hpt){
+	if(dz2/dzmax2_hpt+dr2/drmax2_hpt<1.0f)
+	  writetrack[tss]=false;
+      }
+      else {
+	if(dz2/dzmax2_els+dr2/drmax2_els<1.0f)
+	  writetrack[tss]=false;
+      }
+
     }
    
-
     if(writetrack[ts])
       cleanSeedTracks.emplace_back(seedTracks_[ts]);
-      
+
   }
   
 #ifdef DEBUG

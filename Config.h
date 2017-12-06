@@ -23,6 +23,10 @@ typedef std::map<std::string,seedOpts> seedOptsMap;
 enum cleanOpts {noCleaning, cleanSeedsN2, cleanSeedsPure, cleanSeedsBadLabel};
 typedef std::map<std::string,cleanOpts> cleanOptsMap;
 
+// Enum for cmssw matching options
+enum matchOpts {trkParamBased, hitBased, labelBased};
+typedef std::map<std::string, matchOpts> matchOptsMap;
+
 namespace Config
 {
   extern TrackerInfo TrkInfo;
@@ -251,11 +255,27 @@ namespace Config
   extern bool readSimTrackStates; // need this to fill pulls
   extern bool inclusiveShorts;
   extern bool applyCMSSWHitMatch;
+  extern matchOpts cmsswMatching;
 
   // config on seed cleaning
-  constexpr double maxDR_seedclean = 0.005;
   constexpr int minNHits_seedclean = 4;
-  constexpr double track1GeVradius = 87.6; // = 1/(c*B)
+  constexpr float track1GeVradius = 87.6; // = 1/(c*B)
+  constexpr float c_etamax_brl = 0.9;
+  constexpr float c_dpt_brl_0 = 0.025;
+  constexpr float c_dpt_ec_0 = 0.0125;
+  constexpr float c_ptmax_0 = 2.0;
+  constexpr float c_dpt_1 = 0.10;
+  constexpr float c_ptmax_1 = 5.0;
+  constexpr float c_dpt_2 = 0.20;
+  constexpr float c_ptmax_2 = 10.0;
+  constexpr float c_dpt_3 = 0.25;
+  constexpr float c_dzmax_brl = 0.005;
+  constexpr float c_drmax_brl = 0.010;
+  constexpr float c_ptmin_hpt = 2.0;
+  constexpr float c_dzmax_hpt = 0.010;
+  constexpr float c_drmax_hpt = 0.010;
+  constexpr float c_dzmax_els = 0.015;
+  constexpr float c_drmax_els = 0.015;
 
   // Threading
   extern int    numThreadsFinder;
