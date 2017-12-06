@@ -568,6 +568,7 @@ int main(int argc, const char *argv[])
         "  --build-bh               run best-hit building test (def: false)\n"
         "  --build-std              run standard combinatorial building test (def: false)\n"
         "  --build-ce               run clone engine combinatorial building test (def: false)\n"
+        "  --build-fv               run full vector combinatorial building test (def: false)\n"
         "  --seeds-per-task         number of seeds to process in a tbb task (def: %d)\n"
         "  --hits-per-task <num>    number of layer1 hits per task in finding seeds (def: %i)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
