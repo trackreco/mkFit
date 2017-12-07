@@ -924,14 +924,32 @@ void MkBuilder::quality_reset()
 void MkBuilder::quality_store_tracks()
 {
   const EventOfCombCandidates &eoccs = m_event_of_comb_cands; 
-    
+
+  int chi2_500_cnt = 0, chi2_nan_cnt = 0;
+
   for (int i = 0; i < eoccs.m_size; i++)
   {
     // take the first one!
     if ( ! eoccs.m_candidates[i].empty())
     {
-      m_event->candidateTracks_.push_back(eoccs.m_candidates[i].front());
+      const Track &bcand = eoccs.m_candidates[i].front();
+
+      if (std::isnan(bcand.chi2())) ++chi2_nan_cnt;
+      if (bcand.chi2() > 500)       ++chi2_500_cnt;
+
+      m_event->candidateTracks_.push_back(bcand);
+
+#ifdef DEBUG_BACKWARD_FIT
+      printf("CHITRK %d %g %g %g %g %g\n",
+             bcand.nFoundHits(), bcand.chi2(), bcand.chi2() / (bcand.nFoundHits() * 3 - 6),
+             bcand.pT(), bcand.momPhi(), bcand.theta());
+#endif
     }
+  }
+
+  if (!Config::silent && (chi2_500_cnt > 0 || chi2_nan_cnt > 0)) {
+    std::lock_guard<std::mutex> printlock(Event::printmutex);
+    printf("MkBuilder::quality_store_tracks bad track chi2 (backward fit?). is-nan=%d, gt-500=%d.\n", chi2_nan_cnt, chi2_500_cnt);
   }
 }
 
@@ -1701,8 +1719,27 @@ void MkBuilder::BackwardFit(MkFinder *mkfndr, int start_seed, int end_seed, int 
     //          i, t.charge(), t.chi2(), t.pT(), t.momEta(), t.x(), t.y(), t.z(), t.nFoundHits(), t.label(), t.isFindable());
     // }
 
+    bool chi_debug = false;
+  redo_fit:
+
     mkfndr->BkFitInputTracks(eoccs, iseed, end);
-    mkfndr->BkFitFitTracks(m_event_of_hits, st_par, end - iseed);
+    mkfndr->BkFitFitTracks(m_event_of_hits, st_par, end - iseed, false, chi_debug);
+
+#ifdef DEBUG_BACKWARD_FIT
+    // Dump tracks with pT > 2 and chi2/dof > 20. Assumes MPT_SIZE=1.
+    if (! chi_debug && 1.0f/mkfndr->Par[MkBase::iC].At(0,3,0) > 2.0f &&
+        mkfndr->Chi2(0,0,0) / (eoccs[iseed][0].nFoundHits() * 3 - 6) > 20.0f)
+    {
+      chi_debug = true;
+      printf("CHIHDR Event %d, Seed %3d, pT %f, chipdof %f ### NOTE x,y,z in cm, sigmas, deltas in mum ### !!!\n",
+             m_event->evtID(), iseed, 1.0f/mkfndr->Par[MkBase::iC].At(0,3,0),
+             mkfndr->Chi2(0,0,0) / (eoccs[iseed][0].nFoundHits() * 3 - 6));
+      printf("CHIHDR %3s %10s %10s %10s %10s %10s %11s %11s %11s %10s %10s %10s %10s %11s %11s %11s %10s %10s %10s %10s %10s %11s %11s\n",
+             "lyr","chi2","x_h","y_h","z_h","r_h","sx_h","sy_h","sz_h","x_t","y_t","z_t","r_t","sx_t","sy_t","sz_t","pt","phi","theta","phi_h","phi_t","d_xy","d_z");
+      goto redo_fit;
+    }
+#endif
+
     mkfndr->BkFitOutputTracks(eoccs, iseed, end);
 
     // printf("Post Final fit for %d - %d\n", iseed, end);

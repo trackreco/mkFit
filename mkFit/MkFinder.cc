@@ -987,9 +987,11 @@ void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
   Err[iC].Scale(100.0f);
 }
 
+namespace { float e2s(float x) { return 1e4 * std::sqrt(x); } }
+
 void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
                               const SteeringParams& st_par,
-                              int N_proc, bool useParamBfield)
+                              int N_proc, bool useParamBfield, bool chiDebug)
 {
   // Prototyping final backward fit.
   // This works with track-finding indices, before remapping.
@@ -1058,30 +1060,36 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
 				  Err[iC], Par[iC], N_proc);
     }
 
-    /*
+#ifdef DEBUG_BACKWARD_FIT
     // Dump per hit chi2
     for (int i = 0; i < N_proc; ++i)
     {
       float r_h = std::hypot(msPar.At(i,0,0), msPar.At(i,1,0));
       float r_t = std::hypot(Par[iC].At(i,0,0), Par[iC].At(i,1,0));
 
-      if ( ! std::isnan(tmp_chi2[i]) && tmp_chi2[i] > 0) // && tmp_chi2[i] > 30)
+      // if ((std::isnan(tmp_chi2[i]) || std::isnan(r_t)))
+      // if ( ! std::isnan(tmp_chi2[i]) && tmp_chi2[i] > 0) // && tmp_chi2[i] > 30)
+      if (chiDebug)
       {
-        printf("CHICHI %d %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g\n",
-               layer, tmp_chi2[i],
+        int ti = iP;
+        printf("CHIHIT %3d %10g %10g %10g %10g %10g %11.5g %11.5g %11.5g %10g %10g %10g %10g %11.5g %11.5g %11.5g %10g %10g %10g %10g %10g %11.5g %11.5g\n",
+               layer,
+               tmp_chi2[i],
                msPar.At(i,0,0), msPar.At(i,1,0), msPar.At(i,2,0), r_h,       // x_h y_h z_h r_h -- hit pos
-               msErr.At(i,0,0), msErr.At(i,1,1), msErr.At(i,2,2),            // ex_h ey_h ez_h -- hit errors
-               Par[iC].At(i,0,0), Par[iC].At(i,1,0), Par[iC].At(i,2,0), r_t, // x_t y_t z_t r_t -- track pos
-               Err[iC].At(i,0,0), Err[iC].At(i,1,1), Err[iC].At(i,2,2),      // ex_t ey_t ez_t -- track errors
-               1.0f/Par[iC].At(i,3,0), Par[iC].At(i,4,0), Par[iC].At(i,5,0), // pt, phi, theta
+               e2s(msErr.At(i,0,0)), e2s(msErr.At(i,1,1)), e2s(msErr.At(i,2,2)),            // ex_h ey_h ez_h -- hit errors
+               Par[ti].At(i,0,0), Par[ti].At(i,1,0), Par[ti].At(i,2,0), r_t, // x_t y_t z_t r_t -- track pos
+               e2s(Err[ti].At(i,0,0)), e2s(Err[ti].At(i,1,1)), e2s(Err[ti].At(i,2,2)),      // ex_t ey_t ez_t -- track errors
+               1.0f/Par[ti].At(i,3,0), Par[ti].At(i,4,0), Par[ti].At(i,5,0), // pt, phi, theta
                std::atan2(msPar.At(i,1,0), msPar.At(i,0,0)),     // phi_h
-               std::atan2(Par[iC].At(i,1,0), Par[iC].At(i,0,0)), // phi_t
-               (msErr.At(i,0,0) + msErr.At(i,1,1)) / (r_h * r_h), // ephi_h
-               (Err[iC].At(i,0,0) + Err[iC].At(i,1,1)) / (r_t * r_t) // ephi_t
+               std::atan2(Par[ti].At(i,1,0), Par[ti].At(i,0,0)), // phi_t
+               1e4f * std::hypot(msPar.At(i,0,0) - Par[ti].At(i,0,0), msPar.At(i,1,0) - Par[ti].At(i,1,0)),  // d_xy
+               1e4f * (msPar.At(i,2,0) - Par[ti].At(i,2,0)) // d_z
+               // e2s((msErr.At(i,0,0) + msErr.At(i,1,1)) / (r_h * r_h)),     // ephi_h
+               // e2s((Err[ti].At(i,0,0) + Err[ti].At(i,1,1)) / (r_t * r_t))  // ephi_t
         );
       }
     }
-    */
+#endif
 
     // update chi2
     Chi2.Add(tmp_chi2);

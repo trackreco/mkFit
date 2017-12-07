@@ -37,6 +37,12 @@ class SteeringParams;
 // Actually ... am tempted to make MkFinder :)
 
 
+// Define to get printouts about track and hit chi2.
+// See also MkBuilder::BackwardFit() and MkBuilder::quality_store_tracks().
+
+// #define DEBUG_BACKWARD_FIT
+
+
 class MkFinder : public MkBase
 {
 public:
@@ -137,7 +143,7 @@ public:
 
   void BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end);
   void BkFitFitTracks(const EventOfHits& eventofhits, const SteeringParams& st_par,
-                      int N_proc, bool useParamBfield = false);
+                      int N_proc, bool useParamBfield = false, bool chiDebug = false);
   void BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end);
 
   //----------------------------------------------------------------------------
