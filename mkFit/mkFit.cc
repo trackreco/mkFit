@@ -628,7 +628,7 @@ int main(int argc, const char *argv[])
         g_start_event,
       	g_input_file.c_str(),
       	g_output_file.c_str(),
-	Config::numThreadsReorg
+	Config::numThreadsReorg,
         b2a(Config::kludgeCmsHitErrors),
         b2a(Config::backwardFit)
       );
