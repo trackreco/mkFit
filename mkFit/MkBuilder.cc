@@ -409,7 +409,7 @@ void MkBuilder::create_seeds_from_sim_tracks()
 
 void MkBuilder::import_seeds()
 {
-  // Seeds are sorted by eta and counts for each eta region are
+  // Seeds are placed into eta regions and sorted on eta. Counts for each eta region are
   // stored into Event::seedEtaSeparators_.
 
   bool debug = true;
@@ -435,11 +435,10 @@ void MkBuilder::import_seeds()
     float      eta = m_event->layerHits_[hot.layer][hot.index].eta();
     // float   eta = S.momEta();
 
-    // XXXX reg to be defined by propagation / intersection tests
+    // Region to be defined by propagation / intersection tests
     TrackerInfo::EtaRegion reg;
-    TrackerInfo::EtaRegion reg_eta = Config::TrkInfo.find_eta_region(eta);
 
-    // hardcode for cms ... needs some lists of layers (hit/miss) for brl / ecp tests.
+    // Hardcoded for cms ... needs some lists of layers (hit/miss) for brl / ecp tests.
 
     const LayerInfo &outer_brl = trk_info.outer_barrel_layer();
 
@@ -451,7 +450,7 @@ void MkBuilder::import_seeds()
 
     const LayerInfo &tec_first = z_dir_pos ? tecp1 : tecn1;
 
-    // If I hit outer barrel ... the track is in barrel (for central, "outgoing" tracks).
+    // If a track hits outer barrel ... it is in the barrel (for central, "outgoing" tracks).
     // This is also true for cyl-cow.
     // Better check is: hits outer TIB, misses inner TEC (but is +-z dependant).
     // XXXX Calculate z ... then check is inside or less that first EC z.
@@ -469,10 +468,10 @@ void MkBuilder::import_seeds()
         misses_first_tec = z_at_outer_brl > tec_first.m_zmax;
     }
 
-    //printf("Processing seed %d: r_means %f %f %f\n", i, tib1.r_mean(), tob1.r_mean(), outer_brl.r_mean());
+    // printf("Processing seed %d: r_means %f %f %f\n", i, tib1.r_mean(), tob1.r_mean(), outer_brl.r_mean());
 
     if (can_reach_outer_brl && misses_first_tec)
-      //outer_brl.is_within_z_limits(S.zAtR(outer_brl.r_mean())))
+      // outer_brl.is_within_z_limits(S.zAtR(outer_brl.r_mean())))
     {
       reg = TrackerInfo::Reg_Barrel;
     }
@@ -480,12 +479,6 @@ void MkBuilder::import_seeds()
     {
       // This should be a list of layers
       // CMS, first tib, tob: 4, 10
-      // In principle, for central tracks, could also only check the next barrel but
-      // then would have another condition of actually being in barrel with last seed hit.
-      // This would also work for cyl-cow.
-      // Argh ... and it is becoming more and more seed dependant ... which makes sense.
-      // All this confusion needs to be generalized so it's easy to do it for each seeding
-      // iteration. With some configuration and/or some code.
 
       if ((S.canReachRadius(tib1.m_rin) && tib1.is_within_z_limits(S.zAtR(tib1.m_rin))) ||
           (S.canReachRadius(tob1.m_rin) && tob1.is_within_z_limits(S.zAtR(tob1.m_rin))) )
@@ -512,16 +505,7 @@ void MkBuilder::import_seeds()
 
     // -------------------------------------------------
     // Compare r-z line vs. propagation
-
-    // const Hit &hit = m_event->layerHits_[hot.layer][hot.index];
-
-    // Do we hit the outermoset barrel? If yes, we are in barrel
-    // Do we hit the next barrel? If not, we are in endcap.
-    // XXXXMT: Dow we need some tolerances for this?
-    // XXXXMT: These conditions are true for central tracks. After that will need
-    // iteration specific list of layers to check.
-
-    // const LayerInfo &outer_brl = trk_info.outer_barrel_layer();
+    /*
     const LayerInfo &next_brl  = trk_info.next_barrel_layer(hot.layer);
 
     float z_outer = S.z() + S.pz()/S.pT()*(outer_brl.m_rout - S.posR());
@@ -541,6 +525,7 @@ void MkBuilder::import_seeds()
     //        S.x(), S.y(), S.z(), z_outer, z, outer_brl.r_mean() - r_it);
 
     // printf("ZZZZ %d %d\n", reg, hot.layer);
+    */
   }
 
   for (int i = 0; i < 5; ++i)
@@ -656,12 +641,12 @@ namespace
 
 void MkBuilder::fit_seeds()
 {
-  // XXXXMT For lack of better ideas ... expect seeds to be sorted in eta
-  // and that Event::seedEtaSeparators_[] holds starting indices of 5 eta regions.
-  // For now this is only true for MC Cyl Cow ... sorting done in begin_event() here.
-  // This might be premature ... sorting would actually be more meaningful after the seed fit.
-  // But we shot ourselves into the foot by doing propagation at the end of the loop.
-  // Seemed like a good idea at the time.
+  // Expect seeds to be sorted in eta (in some way) and that Event::seedEtaSeparators_[]
+  // array holds starting indices of 5 eta regions.
+  // Within each region it vectorizes the fit as long as layer indices of all seeds match.
+  // See layer_sig_change label below.
+  // Alternatively, we could be using the layer plan (but it might require addition of
+  // a new flag in LayerControl (well, should really change those bools to a bitfield).
 
   // debug = true;
 
@@ -671,18 +656,9 @@ void MkBuilder::fit_seeds()
 
   dcall(print_seeds(seedtracks));
 
-  // XXXXX was ... plus some elaborate chunking in the range and inside the loop.
-  // int theEnd = seedtracks.size();
-  // int count = (theEnd + NN - 1)/NN;
-
-  // XXXXMT Actually, this should be good for all regions
   tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
   [&](int reg)
   {
-    // XXXXXX endcap only ...
-    //if (reg != TrackerInfo::Reg_Endcap_Neg && reg != TrackerInfo::Reg_Endcap_Pos)
-    //continue;
-
     RegionOfSeedIndices rosi(m_event, reg);
 
     tbb::parallel_for(rosi.tbb_blk_rng_vec(),
@@ -712,18 +688,15 @@ void MkBuilder::fit_seeds()
         }
 #endif
 
-        // XXMT4K: I had seeds sorted in eta_mom ... but they have dZ displacement ...
+        // We had seeds sorted in eta_mom ... but they have dZ displacement ...
         // so they can go through "semi random" barrel/disk pattern close to
         // transition region for overall layers 2 and 3 where eta of barrel is
         // larger than transition region.
-        // For Cyl Cow w/ Lids this actually only happens in endcap tracking region.
-        // In transition tracking region all seed hits are still in barrel.
         // E.g., for 10k tracks in endcap/barrel the break happens ~250 times,
         // often several times witin the same NN range (5 time is not rare with NN=8).
         //
-        // Sorting on eta_pos of 3rd seed hit yields ~50 breaks on the same set.
-        // Using this now. Does it bias the region decision worse that
-        // eta_mom sorting? We should really analyze this later on.
+        // Sorting on eta_pos of the last seed hit yields ~50 breaks on the same set.
+        // This is being used now (in import_seeds()).
         //
         // In the following we make sure seed range passed to vectorized
         // function has compatible layer signatures (barrel / endcap).
