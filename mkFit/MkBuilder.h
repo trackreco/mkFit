@@ -18,6 +18,8 @@
 #include "align_alloc.h"
 
 #include "Pool.h"
+//#define DEBUG
+#include "Debug.h"
 
 class TrackerInfo;
 class LayerInfo;
@@ -28,6 +30,11 @@ using MkFinderFvVec = std::vector<MkFinderFv, aligned_allocator<MkFinderFv, 64>>
 
 struct ExecutionContext
 {
+  ExecutionContext() {}
+  ~ExecutionContext() {
+    dprint("MkFinderFvVec count " << m_finderv.unsafe_size());
+  }
+
   Pool<CandCloner> m_cloners;
   Pool<MkFitter>   m_fitters;
   Pool<MkFinder>   m_finders;
@@ -45,6 +52,7 @@ struct ExecutionContext
     int count = MkFinderFv::nMplx(n_seedsPerThread);
     auto sz = m_finderv.unsafe_size();
     if (sz < n_thr) {
+      dprint("Allocating " << n_thr - sz << " MkFinderFvVec of length " << count);
       for (int i = 0; i < n_thr - sz; ++i) {
         MkFinderFvVec fv(count);
         m_finderv.push(std::move(fv));
@@ -103,6 +111,13 @@ public:
   // --------
 
   static MkBuilder* make_builder();
+  static void populate(bool populatefv = false)
+  {
+    g_exe_ctx.populate(Config::numThreadsFinder);
+    if (populatefv) {
+      g_exe_ctx.populate_finderv(Config::numThreadsFinder, Config::numSeedsPerTask);
+    }
+  }
 
   void begin_event(Event* ev, const char* build_type);
   void end_event();

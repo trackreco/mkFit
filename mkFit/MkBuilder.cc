@@ -402,7 +402,7 @@ void MkBuilder::import_seeds()
   // Seeds are sorted by eta and counts for each eta region are
   // stored into Event::seedEtaSeparators_.
 
-  bool debug = true;
+  //bool debug = true;
 
   TrackerInfo &trk_info = Config::TrkInfo;
   TrackVec    &seeds    = m_event->seedTracks_;
@@ -655,7 +655,6 @@ void MkBuilder::fit_seeds()
 
   // debug = true;
 
-  g_exe_ctx.populate(Config::numThreadsFinder);
   const TrackerInfo &trk_info = Config::TrkInfo;
   TrackVec& seedtracks = m_event->seedTracks_;
 
@@ -1166,8 +1165,6 @@ void MkBuilder::FindTracksBestHit()
 {
   // debug = true;
 
-  g_exe_ctx.populate(Config::numThreadsFinder);
-
   TrackVec &cands = m_event->candidateTracks_;
 
   tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
@@ -1339,8 +1336,6 @@ void MkBuilder::FindTracksStandard()
 {
   // bool debug = true;
 
-  g_exe_ctx.populate(Config::numThreadsFinder);
-
   EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
   tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
@@ -1493,8 +1488,6 @@ void MkBuilder::FindTracksStandard()
 void MkBuilder::FindTracksCloneEngine()
 {
   // debug = true;
-
-  g_exe_ctx.populate(Config::numThreadsFinder);
 
   EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
@@ -1668,7 +1661,6 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 
 void MkBuilder::FindTracksFV()
 {
-  g_exe_ctx.populate_finderv(Config::numThreadsFinder, Config::numSeedsPerTask);
   EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
   tbb::parallel_for_each(m_regions.begin(), m_regions.end(),

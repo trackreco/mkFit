@@ -327,6 +327,8 @@ void test_standard()
   std::atomic<int> nevt{g_start_event};
   std::atomic<int> seedstot{0}, simtrackstot{0};
 
+  MkBuilder::populate(g_run_build_all || g_run_build_fv);
+
   std::vector<std::unique_ptr<Event>>      evs(Config::numThreadsEvents);
   std::vector<std::unique_ptr<Validation>> vals(Config::numThreadsEvents);
   std::vector<std::unique_ptr<MkBuilder>>  mkbs(Config::numThreadsEvents);
