@@ -468,7 +468,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    }
 #endif
    
-   if (Config::useCMSGeom && useParamBfield) // useParamBfield is proxy for fittest 
+   if (Config::useCMSGeom)
    {
      MPlexQF hitsRl;
      MPlexQF hitsXi;
@@ -625,7 +625,7 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    }
 #endif
 
-   if (Config::useCMSGeom && useParamBfield) // param bfield only used in fitting 
+   if (Config::useCMSGeom)
    {
      MPlexQF hitsRl;
      MPlexQF hitsXi;
