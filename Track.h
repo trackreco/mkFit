@@ -330,7 +330,7 @@ public:
 
   int nStoredFoundHits() const
   {
-    int n;
+    int n = 0;
     for (int i = 0; i <= lastHitIdx_; ++i)
       if (hitsOnTrk_[i].index >= 0) ++n;
     return n;
