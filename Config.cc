@@ -65,6 +65,9 @@ namespace Config
   bool  applyCMSSWHitMatch = false;
   matchOpts cmsswMatching = trkParamBased;
 
+  bool  kludgeCmsHitErrors = false;
+  bool  backwardFit = false;
+
   void RecalculateDependentConstants()
   {
     maxCandsPerEtaBin = std::max(100, maxCandsPerSeed * (nTracks+100) / nEtaPart);

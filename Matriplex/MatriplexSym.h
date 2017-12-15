@@ -57,6 +57,22 @@ public:
       }
    }
 
+   void Add(const MatriplexSym &v)
+   {
+      for (idx_t i = 0; i < kTotSize; ++i)
+      {
+         fArray[i] += v.fArray[i];
+      }
+   }
+
+   void Scale(T scale)
+   {
+      for (idx_t i = 0; i < kTotSize; ++i)
+      {
+         fArray[i] *= scale;
+      }
+   }
+
    T  operator[](idx_t xx) const { return fArray[xx]; }
    T& operator[](idx_t xx)       { return fArray[xx]; }
 

@@ -1,7 +1,5 @@
 #include "MkFitter.h"
 
-#include "CandCloner.h"
-
 #include "KalmanUtilsMPlex.h"
 #include "ConformalUtilsMPlex.h"
 #ifdef USE_CUDA

@@ -2,13 +2,18 @@
 #define MkFinder_h
 
 #include "MkBase.h"
-
+#include "TrackerInfo.h"
 #include "Track.h"
 
 class CandCloner;
 class CombCandidate;
 class LayerOfHits;
 class FindingFoos;
+
+// For backward fit hack
+class EventOfHits;
+class EventOfCombCandidates;
+class SteeringParams;
 
 //#include "Event.h"
 
@@ -30,6 +35,12 @@ class FindingFoos;
 // Changes will go into all finding functions + import-with-hit-idcs.
 //
 // Actually ... am tempted to make MkFinder :)
+
+
+// Define to get printouts about track and hit chi2.
+// See also MkBuilder::BackwardFit() and MkBuilder::quality_store_tracks().
+
+// #define DEBUG_BACKWARD_FIT
 
 
 class MkFinder : public MkBase
@@ -62,6 +73,7 @@ public:
   MPlexQI    CandIdx; // candidate index for the given seed (for bookkeeping of clone engine)
 
   // Hit indices into LayerOfHits to explore.
+  WSR_Result  XWsrResult[NN]; // Could also merge it with XHitSize. Or use smaller arrays.
   MPlexQI     XHitSize;
   MPlexHitIdx XHitArr;
 
@@ -122,6 +134,17 @@ public:
 
   void CopyOutParErr(std::vector<CombCandidate>& seed_cand_vec,
                      int N_proc, bool outputProp) const;
+
+  //----------------------------------------------------------------------------
+  // Backward fit hack
+
+  int               CurHit[NN];
+  const HitOnTrack *HoTArr[NN];
+
+  void BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end);
+  void BkFitFitTracks(const EventOfHits& eventofhits, const SteeringParams& st_par,
+                      int N_proc, bool useParamBfield = false, bool chiDebug = false);
+  void BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end);
 
   //----------------------------------------------------------------------------
 

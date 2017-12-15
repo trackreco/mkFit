@@ -35,6 +35,8 @@ public:
   void write_out(DataFile &data_file);
   void read_in  (DataFile &data_file, FILE *in_fp=0);
 
+  void kludge_cms_hit_errors();
+
   int  use_seeds_from_cmsswtracks(); //special mode --> use only seeds which generated cmssw reco track
   int  clean_cms_simtracks();
   int  clean_cms_seedtracks(); //operates on seedTracks_; returns the number of cleaned seeds
