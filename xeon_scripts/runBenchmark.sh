@@ -43,7 +43,7 @@ for archV in "SNB snb" "KNC knc" "KNL knl"
 done
 
 ##### Plots from Text Files #####
-for build in BH STD CE FV
+for build in BH STD CE # FV
 do 
     echo "Making plots from text files for" ${sample} ":" ${build}
     

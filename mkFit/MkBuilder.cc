@@ -1346,11 +1346,12 @@ void MkBuilder::FindTracksStandard()
 
     const RegionOfSeedIndices rosi(m_event, region);
 
-    int adaptiveSPT = eoccs.m_size / Config::numThreadsFinder / 2 + 1;
-    dprint("adaptiveSPT " << adaptiveSPT << " fill " << eoccs.m_size);
+    // adaptive seeds per task based on the total estimated amount of work to divide among all threads
+    const int adaptiveSPT = clamp(Config::numThreadsEvents*eoccs.m_size/Config::numThreadsFinder + 1, 4, Config::numSeedsPerTask);
+    dprint("adaptiveSPT " << adaptiveSPT << " fill " << rosi.count() << "/" << eoccs.m_size << " region " << region);
 
     // loop over seeds
-    tbb::parallel_for(rosi.tbb_blk_rng_std(/*adaptiveSPT*/),
+    tbb::parallel_for(rosi.tbb_blk_rng_std(adaptiveSPT),
       [&](const tbb::blocked_range<int>& seeds)
     {
       FINDER( mkfndr );
@@ -1494,12 +1495,13 @@ void MkBuilder::FindTracksCloneEngine()
   tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
     [&](int region)
   {
-    int adaptiveSPT = eoccs.m_size / Config::numThreadsFinder / 2 + 1;
-    dprint("adaptiveSPT " << adaptiveSPT << " fill " << eoccs.m_size);
+    // adaptive seeds per task based on the total estimated amount of work to divide among all threads
+    const int adaptiveSPT = clamp(Config::numThreadsEvents*eoccs.m_size/Config::numThreadsFinder + 1, 4, Config::numSeedsPerTask);
+    dprint("adaptiveSPT " << adaptiveSPT << " fill " << rosi.count() << "/" << eoccs.m_size << " region " << region);
 
     const RegionOfSeedIndices rosi(m_event, region);
 
-    tbb::parallel_for(rosi.tbb_blk_rng_std(/*adaptiveSPT*/),
+    tbb::parallel_for(rosi.tbb_blk_rng_std(adaptiveSPT),
       [&](const tbb::blocked_range<int>& seeds)
     {
       CLONER( cloner );
@@ -1661,15 +1663,17 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 
 void MkBuilder::FindTracksFV()
 {
+  bool debug = true;
   EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
   tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
     [&](int region)
   {
-    const int adaptiveSPT = clamp(Config::numThreadsEvents*eoccs.m_size/Config::numThreadsFinder + 1, 8, Config::numSeedsPerTask);
-    dprint("adaptiveSPT " << adaptiveSPT << " fill " << eoccs.m_size << " region " << region);
-
     const RegionOfSeedIndices rosi(m_event, region);
+
+    // adaptive seeds per task based on the total estimated amount of work to divide among all threads
+    const int adaptiveSPT = clamp(Config::numThreadsEvents*eoccs.m_size/Config::numThreadsFinder + 1, 4, Config::numSeedsPerTask);
+    dprint("adaptiveSPT " << adaptiveSPT << " fill " << rosi.count() << "/" << eoccs.m_size << " region " << region);
 
     tbb::parallel_for(rosi.tbb_blk_rng_std(adaptiveSPT),
       [&](const tbb::blocked_range<int>& seeds)
