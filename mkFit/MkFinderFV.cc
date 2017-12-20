@@ -121,6 +121,8 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
 
       q =  z;
       dq = dz;
+
+      XWsrResult[itrack] = L.is_within_z_sensitive_region(z, dz);
     }
     else // endcap
     {
@@ -145,6 +147,8 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
 
       q =  r;
       dq = dr;
+
+      XWsrResult[itrack] = L.is_within_r_sensitive_region(r, dr);
     }
 
     dphi = std::min(std::abs(dphi), L.max_dphi());
@@ -166,7 +170,7 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
     int count = 0;
     int itrack = iseed*ncands;
     for (int i = 0; i < ncands; ++i, ++itrack) {
-      int weight = CandIdx[itrack] >= 0 ? 1 : 0;
+      int weight = (CandIdx[itrack] >= 0 && XWsrResult[itrack].m_wsr != WSR_Outside)? 1 : 0;
       count += weight;
       dqvar   += weight*std::abs(  qv[itrack] - qbest);
       dphivar += weight*std::abs(phiv[itrack] - phibest);
@@ -231,7 +235,7 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
           }
           itrack = iseed*ncands;
           for (int i = 0; i < ncands; ++i, ++itrack) {
-            if (pass[itrack] && CandIdx[itrack] >= 0 && XHitSize[itrack] < MPlexHitIdxMax) {
+            if (pass[itrack] && XWsrResult[itrack].m_wsr != WSR_Outside && CandIdx[itrack] >= 0 && XHitSize[itrack] < MPlexHitIdxMax) {
               XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
             }
           }
@@ -391,11 +395,10 @@ void MkFinderFV<nseeds, ncands>::SelectBestCandidates(const LayerOfHits &layer_o
         bool is_brl = layer_of_hits.is_barrel();
         float q = is_brl ? Par[iP](itrack,2,0) : std::hypot(Par[iP](itrack,0,0), Par[iP](itrack,1,0));
 
-        if (not layer_of_hits.m_layer_info->is_within_q_limits(q)) {
+        if (XWsrResult[itrack].m_wsr == WSR_Outside) {
           fake_hit_idx = -4;
         } else {
-          if (layer_of_hits.is_endcap() &&
-            layer_of_hits.is_in_xy_hole(Par[iP](itrack,0,0), Par[iP](itrack,1,0))) {
+          if (XWsrResult[itrack].m_wsr == WSR_Edge) {
             fake_hit_idx = -3; // YYYYYY Config::store_missed_layers
           }
         }

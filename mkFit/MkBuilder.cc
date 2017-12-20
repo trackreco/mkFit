@@ -1777,7 +1777,7 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
   // Note that we do a final pass with curr_layer = -1 to update parameters
   // and output final tracks.
 
-  auto layer_plan_it = st_par.layer_plan.begin();
+  auto layer_plan_it = st_par.finding_begin();
 
   assert( layer_plan_it->m_pickup_only );
 
@@ -1788,7 +1788,7 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
           region, curr_layer, (layer_plan_it + 1)->m_layer, start_seed, end_seed);
 
   // Loop over layers according to plan.
-  while (++layer_plan_it != st_par.layer_plan.end())
+  while (++layer_plan_it != st_par.finding_end())
   {
     prev_layer = curr_layer;
     curr_layer = layer_plan_it->m_layer;
@@ -1837,6 +1837,12 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
     if (best >= 0) {
       mkf.OutputTrack(eoccs.m_candidates[iseed], 0, best, true);
     }
+  }
+  // final backward fit
+  if (Config::backwardFit)
+  {
+    FINDER( mkfndr );
+    BackwardFit(mkfndr.get(), start_seed, end_seed, region);
   }
 #endif
 }
