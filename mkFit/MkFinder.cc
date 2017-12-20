@@ -256,19 +256,20 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       continue;
     }
 
-    const float q = qv[itrack];
-    const float phi = phiv[itrack];
-
-    const float dphi = dphiv[itrack];
-    const float dq   = dqv[itrack];
-
     const int qb1 = qb1v[itrack];
     const int qb2 = qb2v[itrack];
     const int pb1 = pb1v[itrack];
     const int pb2 = pb2v[itrack];
 
+#ifdef DEBUG //LOH_USE_PHI_Q_ARRAYS
+    const float q = qv[itrack];
+    const float phi = phiv[itrack];
+    const float dphi = dphiv[itrack];
+    const float dq   = dqv[itrack];
+
     dprintf("  %2d: %6.3f %6.3f %6.6f %7.5f %3d %3d %4d %4d\n",
              itrack, q, phi, dq, dphi, qb1, qb2, pb1, pb2);
+#endif
 
     // MT: One could iterate in "spiral" order, to pick hits close to the center.
     // http://stackoverflow.com/questions/398299/looping-in-a-spiral
@@ -291,7 +292,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
         {
           // MT: Access into m_hit_zs and m_hit_phis is 1% run-time each.
 
-#ifdef LOH_USE_PHI_Q_ARRAYS
+#ifdef DEBUG //LOH_USE_PHI_Q_ARRAYS
           float ddq   = std::abs(q   - L.m_hit_qs[hi]);
           float ddphi = std::abs(phi - L.m_hit_phis[hi]);
           if (ddphi > Config::PI) ddphi = Config::TwoPI - ddphi;
@@ -306,7 +307,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
           // Avi says we should have *minimal* search windows per layer.
           // Also ... if bins are sufficiently small, we do not need the extra
           // checks, see above.
-          // if (ddz < dz && ddphi < dphi && XHitSize[itrack] < MPlexHitIdxMax)
+          // if (ddq < dq && ddphi < dphi && XHitSize[itrack] < MPlexHitIdxMax)
 #endif
           // MT: The following check also makes more sense with spiral traversal,
           // we'd be taking in closest hits first.

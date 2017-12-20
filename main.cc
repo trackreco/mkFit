@@ -205,7 +205,7 @@ int main(int argc, const char* argv[])
     }
     else if(*i == "--cmssw-seeds")
     {
-      Config::seedInput == cmsswSeeds;
+      Config::seedInput = cmsswSeeds;
     }
     else
     {

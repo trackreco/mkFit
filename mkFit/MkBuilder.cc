@@ -174,8 +174,6 @@ MkBuilder::MkBuilder() :
   m_event(0),
   m_event_of_hits(Config::TrkInfo)
 {
-  const TrackerInfo &ti = Config::TrkInfo;
-
   m_fndfoos_brl = { computeChi2MPlex,       updateParametersMPlex,       &MkBase::PropagateTracksToR };
   m_fndfoos_ec  = { computeChi2EndcapMPlex, updateParametersEndcapMPlex, &MkBase::PropagateTracksToZ };
 
@@ -398,9 +396,8 @@ void MkBuilder::create_seeds_from_sim_tracks()
 
     seeds.emplace_back( Track(src.state(), 0, src.label(), h_sel, new_hots) );
 
-    Track &dst = seeds.back();
     dprintf("  Seed nh=%d, last_lay=%d, last_idx=%d\n",
-            dst.nTotalHits(), dst.getLastHitLyr(), dst.getLastHitIdx());
+            seeds.back().nTotalHits(), seeds.back().getLastHitLyr(), seeds.back().getLastHitIdx());
     // dprintf("  "); for (int i=0; i<dst.nTotalHits();++i) printf(" (%d/%d)", dst.getHitIdx(i), dst.getHitLyr(i)); printf("\n");
   }
 
@@ -650,7 +647,6 @@ void MkBuilder::fit_seeds()
 
   // debug = true;
 
-  const TrackerInfo &trk_info = Config::TrkInfo;
   TrackVec& seedtracks = m_event->seedTracks_;
 
   dcall(print_seeds(seedtracks));
@@ -1725,7 +1721,6 @@ void MkBuilder::BackwardFit(MkFinder *mkfndr, int start_seed, int end_seed, int 
 
 void MkBuilder::FindTracksFV()
 {
-  bool debug = true;
   EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
   tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
@@ -1751,8 +1746,6 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
   EventOfCombCandidates  &eoccs             = m_event_of_comb_cands;
   const SteeringParams   &st_par            = m_steering_params[region];
   const TrackerInfo      &trk_info          = Config::TrkInfo;
-
-  const int n_seeds = end_seed - start_seed;
 
   struct finders_sentry {
     finders_sentry(int n) { fv = g_exe_ctx.getFV(n); }

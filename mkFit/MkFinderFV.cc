@@ -259,7 +259,7 @@ void MkFinderFV<nseeds, ncands>::FindCandidates(const LayerOfHits &layer_of_hits
   const int   off_error = (char*) layer_of_hits.m_hits[0].errArray() - varr;
   const int   off_param = (char*) layer_of_hits.m_hits[0].posArray() - varr;
 
-  int idx[NNFV]      __attribute__((aligned(64)));
+  alignas(64) int idx[NNFV];
 
   // prefetch the first set of hits to L1 and the second one to L2.
 #pragma simd
@@ -391,9 +391,6 @@ void MkFinderFV<nseeds, ncands>::SelectBestCandidates(const LayerOfHits &layer_o
           }
         }
         int fake_hit_idx = num_invalid_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
-
-        bool is_brl = layer_of_hits.is_barrel();
-        float q = is_brl ? Par[iP](itrack,2,0) : std::hypot(Par[iP](itrack,0,0), Par[iP](itrack,1,0));
 
         if (XWsrResult[itrack].m_wsr == WSR_Outside) {
           fake_hit_idx = -4;

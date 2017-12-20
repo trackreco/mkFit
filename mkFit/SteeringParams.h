@@ -59,8 +59,9 @@ struct LayerControl
 
 //==============================================================================
 
-struct SteeringParams
+class SteeringParams
 {
+public:
   std::vector<LayerControl>           m_layer_plan;
   std::vector<LayerControl>::iterator m_begin_for_finding;
   std::vector<LayerControl>::iterator m_end_for_finding;

@@ -454,7 +454,7 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
 {
   FILE *fp = in_fp ? in_fp : data_file.f_fp;
 
-  int evsize = data_file.AdvancePosToNextEvent(fp);
+  data_file.AdvancePosToNextEvent(fp);
 
   int nt;
   fread(&nt, sizeof(int), 1, fp);
@@ -679,23 +679,22 @@ int Event::clean_cms_simtracks()
   for (Track & t : simTracks_)
   {
     i++;
-    const int nh  = t.nFoundHits();
 
     t.sortHitsByLayer();
     
     const int lyr_cnt = t.nUniqueLayers();
 
-    const int lasthit = t.getLastFoundHitPos();
-    const float eta = layerHits_[t.getHitLyr(lasthit)][t.getHitIdx(lasthit)].eta();
+    //const int lasthit = t.getLastFoundHitPos();
+    //const float eta = layerHits_[t.getHitLyr(lasthit)][t.getHitIdx(lasthit)].eta();
 
     if (lyr_cnt < Config::cmsSelMinLayers) // || Config::TrkInfo.is_transition(eta))
     {
-      dprintf("Rejecting simtrack %d, n_hits=%d, n_layers=%d, pT=%f\n", i, nh, lyr_cnt, t.pT());
+      dprintf("Rejecting simtrack %d, n_hits=%d, n_layers=%d, pT=%f\n", i, t.nFoundHits(), lyr_cnt, t.pT());
       t.setNotFindable();
     }
     else
     {
-      dprintf("Accepting simtrack %d, n_hits=%d, n_layers=%d, pT=%f\n", i, nh, lyr_cnt, t.pT());
+      dprintf("Accepting simtrack %d, n_hits=%d, n_layers=%d, pT=%f\n", i, t.nFoundHits(), lyr_cnt, t.pT());
       ++n_acc;
     }
   }
@@ -915,7 +914,6 @@ int Event::use_seeds_from_cmsswtracks()
   TrackVec cleanSeedTracks;
   cleanSeedTracks.reserve(ns);
 
-  int i = 0;
   for (auto&& cmsswtrack : cmsswTracks_)
   {
     cleanSeedTracks.emplace_back(seedTracks_[cmsswtrack.label()]);

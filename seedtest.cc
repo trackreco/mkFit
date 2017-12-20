@@ -48,7 +48,7 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, T
       }
 #endif
       const auto& measState = seed_hit.measurementState();
-      const float chi2 = computeChi2(propState,measState); 
+      //const float chi2 = computeChi2(propState,measState); 
       //      sumchi2 += chi2; //--> could use this to make the chi2
       updatedState = updateParameters(propState, measState);
       seedhits[ilayer] = hitidx;
@@ -285,7 +285,7 @@ void buildSeedsByRoadSearch(TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_e
 	if ((r < Config::maxCurvR) || (std::abs(getHypot(a,b)-r) > Config::seed_d0cut)) continue; 
 	
 	// create a track object
-	int hitIndices[3] = {ihit0,ihit1,ihit2};
+	//int hitIndices[3] = {ihit0,ihit1,ihit2};
         // XXMT4K: Here will need layer indices, too now.
 	// XX Track seed(dummystate,0.0f,seedID,Config::nlayers_per_seed,hitIndices); // argh! super not type-safe with dummystate
 
@@ -561,7 +561,7 @@ void buildSeedsFromTriplets(const std::vector<HitVec>& evt_lay_hits, const Tripl
       updatedStates.push_back(std::make_pair(ilayer,updatedState)); // validation
     }
 
-    int hitIndices[3] = {hit_triplet[0],hit_triplet[1],hit_triplet[2]};
+    ///int hitIndices[3] = {hit_triplet[0],hit_triplet[1],hit_triplet[2]};
     // XXMT4K: Here will need layer indices, too now.
     // XX Track seed(updatedState, sumchi2, seedID, Config::nlayers_per_seed, hitIndices);//fixme chi2
     // XX evt_seed_tracks.push_back(seed);
@@ -576,7 +576,7 @@ void fitSeeds(const std::vector<HitVec>& evt_lay_hits, TrackVec& evt_seed_tracks
   for(auto&& seed : evt_seed_tracks) {
     // state to save to track
     TrackState updatedState;
-    const int seedID = seed.label(); // label == seedID!
+    //const int seedID = seed.label(); // label == seedID!
     
     // first do CF Fit
     conformalFit(evt_lay_hits[0][seed.getHitIdx(0)],evt_lay_hits[1][seed.getHitIdx(1)],evt_lay_hits[2][seed.getHitIdx(2)],updatedState,false); 

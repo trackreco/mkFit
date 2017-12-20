@@ -135,10 +135,14 @@ namespace
 template <typename T, typename U> 
 std::string getOpt(const T & c_opt, const U & g_opt_map)
 {
+  static const std::string empty("");
+
   for (const auto & g_opt_pair : g_opt_map)
   {
     if (g_opt_pair.second == c_opt) return g_opt_pair.first;
   }
+  std::cerr << "No match for option " << c_opt << std::endl;
+  return empty;
 }
 
 template <typename T, typename U>
@@ -147,7 +151,7 @@ void setOpt(const std::string & cmd_ln_str, T & c_opt, const U & g_opt_map, cons
   if (g_opt_map.count(cmd_ln_str)) c_opt = g_opt_map.at(cmd_ln_str);
   else 
   {
-    std::cerr << cmd_ln_str.c_str() << " is not a valid " << ex_txt.c_str() << " option!! Exiting..." << std::endl;
+    std::cerr << cmd_ln_str << " is not a valid " << ex_txt << " option!! Exiting..." << std::endl;
     exit(1);
   }
 }
