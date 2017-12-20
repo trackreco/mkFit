@@ -5,7 +5,7 @@ source xeon_scripts/common_variables.sh
 
 # execute knl tests remotely
 echo "Executing KNL tests remotely..."
-ssh ${KNL_HOST} bash -c "'
+ssh -o "StrictHostKeyChecking no" < /dev/null ${KNL_HOST} bash -c "'
 cd ${KNL_WORKDIR}/${KNL_TEMPDIR}
 source xeon_scripts/initKNL.sh
 ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh KNL
