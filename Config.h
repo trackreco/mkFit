@@ -302,6 +302,9 @@ namespace Config
   extern bool   dumpForPlots;
   extern bool   silent;
 
+  extern bool   kludgeCmsHitErrors;
+  extern bool   backwardFit;
+
   void RecalculateDependentConstants();
   
   CUDA_CALLABLE

@@ -53,6 +53,7 @@ inline bool sortTrksByPhiMT(const Track& t1, const Track& t2)
 }
 
 //==============================================================================
+//==============================================================================
 
 // Use extra arrays to store phi and q of hits.
 // MT: This would in principle allow fast selection of good hits, if
@@ -91,6 +92,15 @@ public:
     int p = i % Config::m_nphi;
     return m_phi_bin_infos[q][p];
   }
+
+  bool  is_within_z_limits(float z) const { return m_layer_info->is_within_z_limits(z); }
+  bool  is_within_r_limits(float r) const { return m_layer_info->is_within_r_limits(r); }
+
+  WSR_Result is_within_z_sensitive_region(float z, float dz) const
+  { return m_layer_info->is_within_z_sensitive_region(z, dz); }
+
+  WSR_Result is_within_r_sensitive_region(float r, float dr) const
+  { return m_layer_info->is_within_r_sensitive_region(r, dr); }
 
   float min_dphi() const { return m_layer_info->m_select_min_dphi; }
   float max_dphi() const { return m_layer_info->m_select_max_dphi; }
@@ -175,7 +185,6 @@ public:
 
   void  PrintBins();
 };
-
 
 //==============================================================================
 

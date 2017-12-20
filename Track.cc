@@ -271,7 +271,7 @@ void TrackExtra::setMCTrackIDInfoByLabel(const Track& trk, const std::vector<Hit
   }
 
   // Eligible hits 
-  const int nCandHits = trk.nFoundHits()-Config::nlayers_per_seed; 
+  const int nCandHits = trk.nStoredFoundHits()-Config::nlayers_per_seed; 
 
   // protect against tracks that never make it past the seed
   if (nCandHits != 0)
@@ -290,7 +290,7 @@ void TrackExtra::setMCTrackIDInfoByLabel(const Track& trk, const std::vector<Hit
     fracHitsMatched_ = 0.f;
   }
 
-  mcTrackID_ = modifyRefTrackID(nCandHits,Config::nMinFoundHits-Config::nlayers_per_seed,simtracks,seedID_,mcTrackID_);
+  mcTrackID_ = modifyRefTrackID(trk.nFoundHits()-Config::nlayers_per_seed,Config::nMinFoundHits-Config::nlayers_per_seed,simtracks,seedID_,mcTrackID_);
   
   dprint("Track " << trk.label() << " parent mc track " << seedID_ << " matched id "  << mcTrackID_ << " count " << nHitsMatched_ << "/" << nCandHits);
 }
@@ -344,14 +344,14 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
     }
   
     // 75% matching criterion 
-    if (4*mccount >= 3*trk.nFoundHits()) mcTrackID_ = mcTrackID;
-    else                                 mcTrackID_ = -1;
+    if (4*mccount >= 3*trk.nStoredFoundHits()) mcTrackID_ = mcTrackID;
+    else                                       mcTrackID_ = -1;
 
     // Modify mcTrackID based on length of track (excluding seed tracks, of course) and findability
     if (!isSeed) mcTrackID_ = modifyRefTrackID(trk.nFoundHits(),Config::nMinFoundHits,simtracks,-1,mcTrackID_);
     
     nHitsMatched_ = mccount;
-    fracHitsMatched_ = float(nHitsMatched_) / float(trk.nFoundHits());
+    fracHitsMatched_ = float(nHitsMatched_) / float(trk.nStoredFoundHits());
   }
   else
   {
@@ -453,7 +453,7 @@ void TrackExtra::setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vec
 
   // other important info
   nHitsMatched_ = nHMatched;
-  fracHitsMatched_ = float(nHitsMatched_) / float(trk.nFoundHits()); // seed hits may already be included!
+  fracHitsMatched_ = float(nHitsMatched_) / float(trk.nStoredFoundHits()); // seed hits may already be included!
 }
 
 void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMapMap& cmsswHitIDMap, const TrackVec& cmsswtracks, const RedTrackVec& redcmsswtracks)
@@ -482,8 +482,11 @@ void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMa
   for (const auto labelMatchPair : labelMatchMap)
   {
     // 75% matching criterion 
-    if (4*labelMatchPair.second >= 3*trk.nFoundHits()) labelMatchVec.push_back(labelMatchPair.first);
+    if (4*labelMatchPair.second >= 3*cmsswtracks[labelMatchPair.first].nUniqueLayers()) labelMatchVec.push_back(labelMatchPair.first);
   }
+
+  // initialize for later use
+  int cmsswTrackID = -1;
 
   // protect against no matches!
   if (labelMatchVec.size() > 0)
@@ -497,7 +500,8 @@ void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMa
 	      });
 
     // pick the longest track!
-    cmsswTrackID_ = labelMatchVec.front();
+    cmsswTrackID  = labelMatchVec.front();
+    cmsswTrackID_ = cmsswTrackID;
     nHitsMatched_ = labelMatchMap[cmsswTrackID_];
 
     const SVector6 & trkParams = trk.parameters();
@@ -520,12 +524,17 @@ void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMa
   }
   else
   {
-    cmsswTrackID_ = -1;
+    // by default
+    cmsswTrackID_ = cmsswTrackID;
 
     int nHitsMatched = 0; // just get the most matches!
     for (const auto labelMatchPair : labelMatchMap)
     {
-      if (labelMatchPair.second > nHitsMatched) nHitsMatched = labelMatchPair.second;
+      if (labelMatchPair.second > nHitsMatched) 
+      {
+	cmsswTrackID = labelMatchPair.first;
+	nHitsMatched = labelMatchPair.second;
+      }
     }
     nHitsMatched_ = nHitsMatched;
 
@@ -537,7 +546,7 @@ void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMa
   cmsswTrackID_ = modifyRefTrackID(trk.nFoundHits(),Config::nMinFoundHits,cmsswtracks,-1,cmsswTrackID_);
 
   // other important info
-  fracHitsMatched_ = float(nHitsMatched_) / float(trk.nFoundHits()); // seed hits may already be included!
+  fracHitsMatched_ = (cmsswTrackID >=0 ? (float(nHitsMatched_) / float(cmsswtracks[cmsswTrackID].nUniqueLayers())) : 0.f); // seed hits may already be included!
 }
 
 void TrackExtra::setCMSSWTrackIDInfoByLabel(const Track& trk, const std::vector<HitVec>& layerHits, const TrackVec& cmsswtracks, const ReducedTrack& redcmsswtrack)
@@ -579,7 +588,7 @@ void TrackExtra::setCMSSWTrackIDInfoByLabel(const Track& trk, const std::vector<
   }
 
   // get eligible hits
-  const int nCandHits = trk.nFoundHits()-Config::nlayers_per_seed; 
+  const int nCandHits = trk.nStoredFoundHits()-Config::nlayers_per_seed; 
 
   // protect against tracks that never make it past the seed
   if (nCandHits != 0)
@@ -597,7 +606,7 @@ void TrackExtra::setCMSSWTrackIDInfoByLabel(const Track& trk, const std::vector<
   }
   
   // Modify cmsswTrackID based on nMinHits
-  cmsswTrackID_ = modifyRefTrackID(nCandHits,Config::nMinFoundHits-Config::nlayers_per_seed,cmsswtracks,cmsswlabel,cmsswTrackID_);
+  cmsswTrackID_ = modifyRefTrackID(trk.nFoundHits()-Config::nlayers_per_seed,Config::nMinFoundHits-Config::nlayers_per_seed,cmsswtracks,cmsswlabel,cmsswTrackID_);
 }
  
 

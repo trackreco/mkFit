@@ -603,6 +603,9 @@ int main(int argc, const char *argv[])
         "GPU specific options: \n"
         "  --num-thr-reorg <num>    number of threads to run the hits reorganization (def: %d)\n"
         "  --seed-based             For CE. Switch to 1 CUDA thread per seed\n"
+        "New options -- to be placed appropriately:\n"
+        "  --kludge-cms-hit-errors  make sure err(xy) > 15 mum, err(z) > 30 mum (def: %s)\n"
+        "  --backward-fit           perform backward fit during building (std and ce only) (def: %s)\n"
         ,
         argv[0],
         Config::geomPlugin.c_str(),
@@ -630,7 +633,9 @@ int main(int argc, const char *argv[])
         g_start_event,
       	g_input_file.c_str(),
       	g_output_file.c_str(),
-	Config::numThreadsReorg
+	Config::numThreadsReorg,
+        b2a(Config::kludgeCmsHitErrors),
+        b2a(Config::backwardFit)
       );
       exit(0);
     }
@@ -842,6 +847,14 @@ int main(int argc, const char *argv[])
     else if (*i == "--seed-based")
     {
       g_seed_based = true;
+    }
+    else if(*i == "--kludge-cms-hit-errors")
+    {
+      Config::kludgeCmsHitErrors = true;
+    }
+    else if(*i == "--backward-fit")
+    {
+      Config::backwardFit = true;
     }
     else
     {

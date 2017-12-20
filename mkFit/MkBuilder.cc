@@ -180,16 +180,19 @@ MkBuilder::MkBuilder() :
   m_fndfoos_ec  = { computeChi2EndcapMPlex, updateParametersEndcapMPlex, &MkBase::PropagateTracksToZ };
 
   { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Endcap_Neg];
-    sp.reserve_plan(3 + 6 + 18);
+    sp.reserve_plan(3 + 3 + 6 + 18);
+    sp.fill_plan(0, 2, false, true);
     sp.append_plan(45, true);
     sp.append_plan(46, false);
     sp.append_plan(47, false);
     sp.fill_plan(48, 53); // TID, 6 layers
     sp.fill_plan(54, 71); // TEC, 18 layers
+    sp.finalize_plan();
   }
 
   { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Transition_Neg];
-    sp.reserve_plan(4 + 6 + 6 + 8 + 18);
+    sp.reserve_plan(3 + 4 + 6 + 6 + 8 + 18);
+    sp.fill_plan(0, 2, false, true);
     sp.append_plan( 3, true);
     sp.append_plan(45, true);
     sp.append_plan(46, false);
@@ -198,18 +201,22 @@ MkBuilder::MkBuilder() :
     sp.fill_plan(48, 53); // TID, 6 layers
     sp.fill_plan(10, 17); // TOB, 8 layers
     sp.fill_plan(54, 71); // TEC, 18 layers
+    sp.finalize_plan();
   }
 
 
   { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Barrel];
-    sp.reserve_plan(1 + 6 + 8);
+    sp.reserve_plan(3 + 1 + 6 + 8);
+    sp.fill_plan(0, 2, false, true);
     sp.append_plan(3, true); // pickup-only
     sp.fill_plan( 4,  9);    // TIB, 6 layers
     sp.fill_plan(10, 17);    // TOB, 8 layers
+    sp.finalize_plan();
   }
 
   { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Transition_Pos];
-    sp.reserve_plan(4 + 6 + 6 + 8 + 18);
+    sp.reserve_plan(3 + 4 + 6 + 6 + 8 + 18);
+    sp.fill_plan(0, 2, false, true);
     sp.append_plan( 3, true);
     sp.append_plan(18, true);
     sp.append_plan(19, false);
@@ -218,15 +225,18 @@ MkBuilder::MkBuilder() :
     sp.fill_plan(21, 26); // TID, 6 layers
     sp.fill_plan(10, 17); // TOB, 8 layers
     sp.fill_plan(27, 44); // TEC, 18 layers
+    sp.finalize_plan();
   }
 
   { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Endcap_Pos];
-    sp.reserve_plan(3 + 6 + 18);
+    sp.reserve_plan(3 + 3 + 6 + 18);
+    sp.fill_plan(0, 2, false, true);
     sp.append_plan(18, true);
     sp.append_plan(19, false);
     sp.append_plan(20, false);
     sp.fill_plan(21, 26); // TID, 6 layers
     sp.fill_plan(27, 44); // TEC, 18 layers
+    sp.finalize_plan();
   }
 
   m_regions.resize(5);
@@ -399,7 +409,7 @@ void MkBuilder::create_seeds_from_sim_tracks()
 
 void MkBuilder::import_seeds()
 {
-  // Seeds are sorted by eta and counts for each eta region are
+  // Seeds are placed into eta regions and sorted on eta. Counts for each eta region are
   // stored into Event::seedEtaSeparators_.
 
   //bool debug = true;
@@ -425,11 +435,10 @@ void MkBuilder::import_seeds()
     float      eta = m_event->layerHits_[hot.layer][hot.index].eta();
     // float   eta = S.momEta();
 
-    // XXXX reg to be defined by propagation / intersection tests
+    // Region to be defined by propagation / intersection tests
     TrackerInfo::EtaRegion reg;
-    TrackerInfo::EtaRegion reg_eta = Config::TrkInfo.find_eta_region(eta);
 
-    // hardcode for cms ... needs some lists of layers (hit/miss) for brl / ecp tests.
+    // Hardcoded for cms ... needs some lists of layers (hit/miss) for brl / ecp tests.
 
     const LayerInfo &outer_brl = trk_info.outer_barrel_layer();
 
@@ -441,7 +450,7 @@ void MkBuilder::import_seeds()
 
     const LayerInfo &tec_first = z_dir_pos ? tecp1 : tecn1;
 
-    // If I hit outer barrel ... the track is in barrel (for central, "outgoing" tracks).
+    // If a track hits outer barrel ... it is in the barrel (for central, "outgoing" tracks).
     // This is also true for cyl-cow.
     // Better check is: hits outer TIB, misses inner TEC (but is +-z dependant).
     // XXXX Calculate z ... then check is inside or less that first EC z.
@@ -459,10 +468,10 @@ void MkBuilder::import_seeds()
         misses_first_tec = z_at_outer_brl > tec_first.m_zmax;
     }
 
-    //printf("Processing seed %d: r_means %f %f %f\n", i, tib1.r_mean(), tob1.r_mean(), outer_brl.r_mean());
+    // printf("Processing seed %d: r_means %f %f %f\n", i, tib1.r_mean(), tob1.r_mean(), outer_brl.r_mean());
 
     if (can_reach_outer_brl && misses_first_tec)
-      //outer_brl.is_within_z_limits(S.zAtR(outer_brl.r_mean())))
+      // outer_brl.is_within_z_limits(S.zAtR(outer_brl.r_mean())))
     {
       reg = TrackerInfo::Reg_Barrel;
     }
@@ -470,12 +479,6 @@ void MkBuilder::import_seeds()
     {
       // This should be a list of layers
       // CMS, first tib, tob: 4, 10
-      // In principle, for central tracks, could also only check the next barrel but
-      // then would have another condition of actually being in barrel with last seed hit.
-      // This would also work for cyl-cow.
-      // Argh ... and it is becoming more and more seed dependant ... which makes sense.
-      // All this confusion needs to be generalized so it's easy to do it for each seeding
-      // iteration. With some configuration and/or some code.
 
       if ((S.canReachRadius(tib1.m_rin) && tib1.is_within_z_limits(S.zAtR(tib1.m_rin))) ||
           (S.canReachRadius(tob1.m_rin) && tob1.is_within_z_limits(S.zAtR(tob1.m_rin))) )
@@ -502,16 +505,7 @@ void MkBuilder::import_seeds()
 
     // -------------------------------------------------
     // Compare r-z line vs. propagation
-
-    // const Hit &hit = m_event->layerHits_[hot.layer][hot.index];
-
-    // Do we hit the outermoset barrel? If yes, we are in barrel
-    // Do we hit the next barrel? If not, we are in endcap.
-    // XXXXMT: Dow we need some tolerances for this?
-    // XXXXMT: These conditions are true for central tracks. After that will need
-    // iteration specific list of layers to check.
-
-    // const LayerInfo &outer_brl = trk_info.outer_barrel_layer();
+    /*
     const LayerInfo &next_brl  = trk_info.next_barrel_layer(hot.layer);
 
     float z_outer = S.z() + S.pz()/S.pT()*(outer_brl.m_rout - S.posR());
@@ -531,6 +525,7 @@ void MkBuilder::import_seeds()
     //        S.x(), S.y(), S.z(), z_outer, z, outer_brl.r_mean() - r_it);
 
     // printf("ZZZZ %d %d\n", reg, hot.layer);
+    */
   }
 
   for (int i = 0; i < 5; ++i)
@@ -646,12 +641,12 @@ namespace
 
 void MkBuilder::fit_seeds()
 {
-  // XXXXMT For lack of better ideas ... expect seeds to be sorted in eta
-  // and that Event::seedEtaSeparators_[] holds starting indices of 5 eta regions.
-  // For now this is only true for MC Cyl Cow ... sorting done in begin_event() here.
-  // This might be premature ... sorting would actually be more meaningful after the seed fit.
-  // But we shot ourselves into the foot by doing propagation at the end of the loop.
-  // Seemed like a good idea at the time.
+  // Expect seeds to be sorted in eta (in some way) and that Event::seedEtaSeparators_[]
+  // array holds starting indices of 5 eta regions.
+  // Within each region it vectorizes the fit as long as layer indices of all seeds match.
+  // See layer_sig_change label below.
+  // Alternatively, we could be using the layer plan (but it might require addition of
+  // a new flag in LayerControl (well, should really change those bools to a bitfield).
 
   // debug = true;
 
@@ -660,18 +655,9 @@ void MkBuilder::fit_seeds()
 
   dcall(print_seeds(seedtracks));
 
-  // XXXXX was ... plus some elaborate chunking in the range and inside the loop.
-  // int theEnd = seedtracks.size();
-  // int count = (theEnd + NN - 1)/NN;
-
-  // XXXXMT Actually, this should be good for all regions
   tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
   [&](int reg)
   {
-    // XXXXXX endcap only ...
-    //if (reg != TrackerInfo::Reg_Endcap_Neg && reg != TrackerInfo::Reg_Endcap_Pos)
-    //continue;
-
     RegionOfSeedIndices rosi(m_event, reg);
 
     tbb::parallel_for(rosi.tbb_blk_rng_vec(),
@@ -701,18 +687,15 @@ void MkBuilder::fit_seeds()
         }
 #endif
 
-        // XXMT4K: I had seeds sorted in eta_mom ... but they have dZ displacement ...
+        // We had seeds sorted in eta_mom ... but they have dZ displacement ...
         // so they can go through "semi random" barrel/disk pattern close to
         // transition region for overall layers 2 and 3 where eta of barrel is
         // larger than transition region.
-        // For Cyl Cow w/ Lids this actually only happens in endcap tracking region.
-        // In transition tracking region all seed hits are still in barrel.
         // E.g., for 10k tracks in endcap/barrel the break happens ~250 times,
         // often several times witin the same NN range (5 time is not rare with NN=8).
         //
-        // Sorting on eta_pos of 3rd seed hit yields ~50 breaks on the same set.
-        // Using this now. Does it bias the region decision worse that
-        // eta_mom sorting? We should really analyze this later on.
+        // Sorting on eta_pos of the last seed hit yields ~50 breaks on the same set.
+        // This is being used now (in import_seeds()).
         //
         // In the following we make sure seed range passed to vectorized
         // function has compatible layer signatures (barrel / endcap).
@@ -913,14 +896,32 @@ void MkBuilder::quality_reset()
 void MkBuilder::quality_store_tracks()
 {
   const EventOfCombCandidates &eoccs = m_event_of_comb_cands; 
-    
+
+  int chi2_500_cnt = 0, chi2_nan_cnt = 0;
+
   for (int i = 0; i < eoccs.m_size; i++)
   {
     // take the first one!
     if ( ! eoccs.m_candidates[i].empty())
     {
-      m_event->candidateTracks_.push_back(eoccs.m_candidates[i].front());
+      const Track &bcand = eoccs.m_candidates[i].front();
+
+      if (std::isnan(bcand.chi2())) ++chi2_nan_cnt;
+      if (bcand.chi2() > 500)       ++chi2_500_cnt;
+
+      m_event->candidateTracks_.push_back(bcand);
+
+#ifdef DEBUG_BACKWARD_FIT
+      printf("CHITRK %d %g %g %g %g %g\n",
+             bcand.nFoundHits(), bcand.chi2(), bcand.chi2() / (bcand.nFoundHits() * 3 - 6),
+             bcand.pT(), bcand.momPhi(), bcand.theta());
+#endif
     }
+  }
+
+  if (!Config::silent && (chi2_500_cnt > 0 || chi2_nan_cnt > 0)) {
+    std::lock_guard<std::mutex> printlock(Event::printmutex);
+    printf("MkBuilder::quality_store_tracks bad track chi2 (backward fit?). is-nan=%d, gt-500=%d.\n", chi2_nan_cnt, chi2_500_cnt);
   }
 }
 
@@ -1206,7 +1207,7 @@ void MkBuilder::FindTracksBestHit()
         }
         int curr_tridx = 0;
 
-        auto layer_plan_it = st_par.layer_plan.begin();
+        auto layer_plan_it = st_par.finding_begin();
 
         assert( layer_plan_it->m_pickup_only );
 
@@ -1215,7 +1216,7 @@ void MkBuilder::FindTracksBestHit()
         // Loop over layers, starting from after the seed.
         // Consider inverting loop order and make layer outer, need to
         // trade off hit prefetching with copy-out of candidates.
-        while (++layer_plan_it != st_par.layer_plan.end())
+        while (++layer_plan_it != st_par.finding_end())
         {
           prev_layer = curr_layer;
           curr_layer = layer_plan_it->m_layer;
@@ -1369,7 +1370,7 @@ void MkBuilder::FindTracksStandard()
       std::vector<std::pair<int,int>> seed_cand_idx;
       seed_cand_idx.reserve(n_seeds * Config::maxCandsPerSeed);
 
-      auto layer_plan_it = st_par.layer_plan.begin();
+      auto layer_plan_it = st_par.finding_begin();
 
       assert( layer_plan_it->m_pickup_only );
 
@@ -1379,7 +1380,7 @@ void MkBuilder::FindTracksStandard()
               region, curr_layer, (layer_plan_it + 1)->m_layer);
 
       // Loop over layers, starting from after the seed.
-      while (++layer_plan_it != st_par.layer_plan.end())
+      while (++layer_plan_it != st_par.finding_end())
       {
         prev_layer = curr_layer;
         curr_layer = layer_plan_it->m_layer;
@@ -1478,6 +1479,12 @@ void MkBuilder::FindTracksStandard()
         if (finalcands.size() == 0) continue;
         std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
       }
+
+      // final backward fit
+      if (Config::backwardFit)
+      {
+        BackwardFit(mkfndr.get(), start_seed, end_seed, region);
+      }
     }); // end parallel-for over chunk of seeds within region
   }); // end of parallel-for-each over eta regions
 }
@@ -1536,7 +1543,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
   // Note that we do a final pass with curr_layer = -1 to update parameters
   // and output final tracks.
 
-  auto layer_plan_it = st_par.layer_plan.begin();
+  auto layer_plan_it = st_par.finding_begin();
 
   assert( layer_plan_it->m_pickup_only );
 
@@ -1546,7 +1553,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
           region, curr_layer, (layer_plan_it + 1)->m_layer);
 
   // Loop over layers according to plan.
-  while (++layer_plan_it != st_par.layer_plan.end())
+  while (++layer_plan_it != st_par.finding_end())
   {
     prev_layer = curr_layer;
     curr_layer = layer_plan_it->m_layer;
@@ -1655,6 +1662,61 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
     if (finalcands.size() == 0) continue;
     std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
   }
+
+  // final backward fit
+  if (Config::backwardFit)
+  {
+    BackwardFit(mkfndr, start_seed, end_seed, region);
+  }
+}
+
+//==============================================================================
+
+void MkBuilder::BackwardFit(MkFinder *mkfndr, int start_seed, int end_seed, int region)
+{
+  EventOfCombCandidates &eoccs  = m_event_of_comb_cands;
+  const SteeringParams  &st_par = m_steering_params[region];
+
+  for (int iseed = start_seed; iseed < end_seed; iseed += NN)
+  {
+    const int end = std::min(iseed + NN, end_seed);
+
+    // printf("Pre Final fit for %d - %d\n", iseed, end);
+    // for (int i = iseed; i < end; ++i) { const Track &t = eoccs[i][0];
+    //   printf("  %4d with q=%+d chi2=%7.3f pT=%7.3f eta=% 7.3f x=%.3f y=%.3f z=%.3f nHits=%2d  label=%4d findable=%d\n",
+    //          i, t.charge(), t.chi2(), t.pT(), t.momEta(), t.x(), t.y(), t.z(), t.nFoundHits(), t.label(), t.isFindable());
+    // }
+
+    bool chi_debug = false;
+  redo_fit:
+
+    mkfndr->BkFitInputTracks(eoccs, iseed, end);
+    mkfndr->BkFitFitTracks(m_event_of_hits, st_par, end - iseed, false, chi_debug);
+
+#ifdef DEBUG_BACKWARD_FIT
+    // Dump tracks with pT > 2 and chi2/dof > 20. Assumes MPT_SIZE=1.
+    if (! chi_debug && 1.0f/mkfndr->Par[MkBase::iC].At(0,3,0) > 2.0f &&
+        mkfndr->Chi2(0,0,0) / (eoccs[iseed][0].nFoundHits() * 3 - 6) > 20.0f)
+    {
+      chi_debug = true;
+      printf("CHIHDR Event %d, Seed %3d, pT %f, chipdof %f ### NOTE x,y,z in cm, sigmas, deltas in mum ### !!!\n",
+             m_event->evtID(), iseed, 1.0f/mkfndr->Par[MkBase::iC].At(0,3,0),
+             mkfndr->Chi2(0,0,0) / (eoccs[iseed][0].nFoundHits() * 3 - 6));
+      printf("CHIHDR %3s %10s %10s %10s %10s %10s %11s %11s %11s %10s %10s %10s %10s %11s %11s %11s %10s %10s %10s %10s %10s %11s %11s\n",
+             "lyr","chi2","x_h","y_h","z_h","r_h","sx_h","sy_h","sz_h","x_t","y_t","z_t","r_t","sx_t","sy_t","sz_t","pt","phi","theta","phi_h","phi_t","d_xy","d_z");
+      goto redo_fit;
+    }
+#endif
+
+    mkfndr->BkFitOutputTracks(eoccs, iseed, end);
+
+    // printf("Post Final fit for %d - %d\n", iseed, end);
+    // for (int i = iseed; i < end; ++i) { const Track &t = eoccs[i][0];
+    //   printf("  %4d with q=%+d chi2=%7.3f pT=%7.3f eta=% 7.3f x=%.3f y=%.3f z=%.3f nHits=%2d  label=%4d findable=%d\n",
+    //          i, t.charge(), t.chi2(), t.pT(), t.momEta(), t.x(), t.y(), t.z(), t.nFoundHits(), t.label(), t.isFindable());
+    // }
+  }
+
 }
 
 //------------------------------------------------------------------------------

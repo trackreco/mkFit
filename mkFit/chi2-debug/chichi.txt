@@ -1,0 +1,32 @@
+echo $# $1
+
+exit
+
+files="/bar/mic/mu_brl-1000-10.bin-5  /bar/mic/mu_ecn-1000-10.bin-5  /bar/mic/mu_ecp-1000-10.bin-5  /bar/mic/mu_trn-1000-10.bin-5  /bar/mic/mu_trp-1000-10.bin-5"
+
+flds_chi="layer/I:chi2/F:x_h:y_h:z_h:r_h:ex_h:ey_h:ez_h:x_t:y_t:z_t:r_t:ex_t:ey_t:ez_t:pt:phi:theta:phi_h:phi_t:ephi_h:ephi_t"
+flds_trk="n_hits/I:chi2/F:chi2pdof:pt:phi:theta"
+
+opts="--build-ce --geom CMS-2017 --num-events 990 --backward-fit"
+#opts+="  --kludge-cms-hit-errors"
+
+rm -f chichi-pure.txt chitrk-pure.txt
+echo $flds_chi > chichi-pure.txt
+echo $flds_trk > chitrk-pure.txt
+for f in $files; do
+  echo $f
+  ./mkFit --cmssw-seeds --read --file-name $f ${opts} | grep CHICHI >> chichi-pure.txt
+  ./mkFit --cmssw-seeds --read --file-name $f ${opts} | grep CHITRK >> chitrk-pure.txt
+done
+
+rm -f chichi-sim.txt chitrk-sim.txt
+echo $flds_chi > chichi-sim.txt
+echo $flds_trk > chitrk-sim.txt
+for f in $files; do
+    echo $f
+  ./mkFit --read --file-name $f ${opts} | grep CHICHI >> chichi-sim.txt
+  ./mkFit --read --file-name $f ${opts} | grep CHITRK >> chitrk-sim.txt
+done
+
+perl -pi -e 's/CHICHI //o;'  chichi-pure.txt chichi-sim.txt
+perl -pi -e 's/CHITRK //o;'  chitrk-pure.txt chitrk-sim.txt

@@ -168,6 +168,8 @@ public:
   void FindTracksCloneEngine();
   void FindTracksFV();
 
+  void BackwardFit(MkFinder *mkfndr, int start_seed, int end_seed, int region);
+
 #ifdef USE_CUDA
   const Event* get_event() const { return m_event; }
   const EventOfHits& get_event_of_hits() const { return m_event_of_hits; }
