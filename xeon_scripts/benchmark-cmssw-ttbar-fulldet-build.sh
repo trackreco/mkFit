@@ -34,7 +34,7 @@ then
     base=${arch}_${sample}
     maxth=240
     maxvu=16
-    exe="ssh -o 'StrictHostKeyChecking no' ${KNC_HOST} ./mkFit/mkFit-mic ${seeds} --input-file ${dir}/${subdir}/${file}"
+    exe="timeout 15m ssh -o StrictHostKeyChecking=no ${KNC_HOST} ./mkFit/mkFit-mic ${seeds} --input-file ${dir}/${subdir}/${file}"
     declare -a nths=("1" "2" "4" "8" "15" "30" "60" "90" "120" "180" "240")
     declare -a nvus=("1" "2" "4" "8" "16")
     declare -a nevs=("1" "2" "4" "8" "16" "32")

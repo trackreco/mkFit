@@ -211,6 +211,7 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
           int itrack = iseed*ncands;
 #pragma simd
           for (int i = 0; i < ncands; ++i, ++itrack) {
+#if defined(LOH_USE_PHI_Q_ARRAYS)
             const float q    = qv[itrack];
             const float dq   = dqv[itrack];
 
@@ -232,6 +233,9 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
             // Also ... if bins are sufficiently small, we do not need the extra
             // checks, see above.
             pass[itrack] = ddq < dq && ddphi < dphi;
+#else
+            pass[itrack] = true;
+#endif
           }
           itrack = iseed*ncands;
           for (int i = 0; i < ncands; ++i, ++itrack) {

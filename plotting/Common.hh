@@ -137,7 +137,7 @@ namespace
       arch_opt.vuspeedupmax = arch_opt.vumax;
 
       arch_opt.thspeedupmin = 0.;
-      arch_opt.thspeedupmax = 40.;
+      arch_opt.thspeedupmax = 50.;
 
       arch_opt.thmeiftimemin = 0.01;
       arch_opt.thmeiftimemax = arch_opt.thtimemax;

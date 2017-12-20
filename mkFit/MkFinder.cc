@@ -261,7 +261,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     const int pb1 = pb1v[itrack];
     const int pb2 = pb2v[itrack];
 
-#ifdef DEBUG //LOH_USE_PHI_Q_ARRAYS
+#if defined(LOH_USE_PHI_Q_ARRAYS)
     const float q = qv[itrack];
     const float phi = phiv[itrack];
     const float dphi = dphiv[itrack];
@@ -292,7 +292,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
         {
           // MT: Access into m_hit_zs and m_hit_phis is 1% run-time each.
 
-#ifdef DEBUG //LOH_USE_PHI_Q_ARRAYS
+#if defined(LOH_USE_PHI_Q_ARRAYS)
           float ddq   = std::abs(q   - L.m_hit_qs[hi]);
           float ddphi = std::abs(phi - L.m_hit_phis[hi]);
           if (ddphi > Config::PI) ddphi = Config::TwoPI - ddphi;
@@ -302,16 +302,19 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
                    L.m_hit_qs[hi], L.m_hit_phis[hi], ddq, ddphi,
                    (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
 
-          // MT: Commenting this check out gives full efficiency ...
-          //     and means our error estimations are wrong!
-          // Avi says we should have *minimal* search windows per layer.
-          // Also ... if bins are sufficiently small, we do not need the extra
-          // checks, see above.
-          // if (ddq < dq && ddphi < dphi && XHitSize[itrack] < MPlexHitIdxMax)
 #endif
-          // MT: The following check also makes more sense with spiral traversal,
+          // MT: The following check alone makes more sense with spiral traversal,
           // we'd be taking in closest hits first.
-          if (XHitSize[itrack] < MPlexHitIdxMax)
+          if (XHitSize[itrack] < MPlexHitIdxMax
+#ifdef LOH_USE_PHI_Q_ARRAYS
+            // MT: Removing this check gives full efficiency ...
+            //     and means our error estimations are wrong!
+            // Avi says we should have *minimal* search windows per layer.
+            // Also ... if bins are sufficiently small, we do not need the extra
+            // checks, see above.
+            && ddq < dq && ddphi < dphi
+#endif
+            )
           {
             XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
           }

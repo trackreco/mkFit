@@ -10,7 +10,7 @@ tar --exclude-vcs --exclude='*.gz' --exclude='validation*' --exclude='*.root' --
 
 # mkdir tmp dir on KNL remotely
 echo "Making tmp dir on KNL remotely"
-ssh -o 'StrictHostKeyChecking no' < /dev/null ${KNL_HOST} bash -c "'
+ssh -o StrictHostKeyChecking=no < /dev/null ${KNL_HOST} bash -c "'
 mkdir -p ${KNL_WORKDIR}/${KNL_TEMPDIR}
 exit
 '"
@@ -21,7 +21,7 @@ scp ${repo} ${KNL_HOST}:${KNL_WORKDIR}/${KNL_TEMPDIR}
 
 # unzip tarball remotely
 echo "Untarring repo on KNL remotely"
-ssh -o 'StrictHostKeyChecking no'  < /dev/null ${KNL_HOST} bash -c "'
+ssh -o StrictHostKeyChecking=no  < /dev/null ${KNL_HOST} bash -c "'
 cd ${KNL_WORKDIR}/${KNL_TEMPDIR}
 tar -zxvf ${repo}
 rm ${repo}

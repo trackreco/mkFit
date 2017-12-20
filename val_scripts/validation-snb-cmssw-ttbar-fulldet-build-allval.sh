@@ -14,6 +14,7 @@ maxvu=8
 exe="./mkFit/mkFit --input-file ${dir}/${file} --cmssw-n2seeds --num-thr ${maxth} --num-events ${nevents}"
 
 ## Compile once
+make clean
 mVal="WITH_ROOT:=yes"
 make -j 12 ${mVal}
 
