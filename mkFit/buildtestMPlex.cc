@@ -257,7 +257,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
 }
 
 //==============================================================================
-// runBuildTestPlex Combinatorial: CloneEngine TBB
+// runBuildTestPlex Combinatorial: Full Vector TBB
 //==============================================================================
 
 double runBuildingTestPlexFV(Event& ev, MkBuilder& builder)
