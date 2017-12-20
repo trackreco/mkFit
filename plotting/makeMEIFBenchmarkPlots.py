@@ -52,6 +52,7 @@ for evval in evvals :
             
         # extracted time
         yval = float(0)
+        nev  = float(1)
 
         # open log file, grep for relevant lines
         with open('log_'+arch+'_'+sample+'_'+build+'_NVU'+nvu+'_NTH'+thval+'_NEV'+evval+'.txt') as f :
