@@ -77,9 +77,16 @@ public:
   MPlexQI     XHitSize;
   MPlexHitIdx XHitArr;
 
-  // Hit error / parameters for hit matching, update.
+  // Hit errors / parameters for hit matching, update.
   MPlexHS    msErr;
   MPlexHV    msPar;
+
+  // An idea: Do propagation to hit in FindTracksXYZZ functions.
+  // Have some state / functions here that make this short to write.
+  // This would simplify KalmanUtils (remove the propagate functions).
+  // Track errors / parameters propagated to current hit.
+  // MPlexLS    candErrAtCurrHit;
+  // MPlexLV    candParAtCurrHit;
 
   //============================================================================
 

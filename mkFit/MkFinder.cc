@@ -434,7 +434,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
     (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                   outChi2, N_proc);
+                                   outChi2, N_proc, PF_use_param_b_field);
 
 #ifndef NO_PREFETCH
     // Prefetch to L1 the hits we'll process in the next loop iteration.
@@ -536,7 +536,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
 
   dprint("update parameters");
   (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                 Err[iC], Par[iC], N_proc);
+                                 Err[iC], Par[iC], N_proc, PF_use_param_b_field);
 
   //std::cout << "Par[iP](0,0,0)=" << Par[iP](0,0,0) << " Par[iC](0,0,0)=" << Par[iC](0,0,0)<< std::endl;
 }
@@ -616,7 +616,7 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
     (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                   outChi2, N_proc);
+                                   outChi2, N_proc, PF_use_param_b_field);
 
     // Prefetch to L1 the hits we'll (probably) process in the next loop iteration.
     for (int itrack = 0; itrack < N_proc; ++itrack)
@@ -648,7 +648,7 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
     if (oneCandPassCut)
     {
       (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                     Err[iC], Par[iC], N_proc);
+                                     Err[iC], Par[iC], N_proc, PF_use_param_b_field);
 
       dprint("update parameters" << std::endl
 	     << "propagated track parameters x=" << Par[iP].ConstAt(0, 0, 0) << " y=" << Par[iP].ConstAt(0, 1, 0) << std::endl
@@ -788,7 +788,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
-    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar, outChi2, N_proc);
+    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar, outChi2, N_proc, PF_use_param_b_field);
 
     // Prefetch to L1 the hits we'll (probably) process in the next loop iteration.
     for (int itrack = 0; itrack < N_proc; ++itrack)
@@ -882,7 +882,7 @@ void MkFinder::UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc,
   }
 
   (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                 Err[iC], Par[iC], N_proc);
+                                 Err[iC], Par[iC], N_proc, PF_use_param_b_field);
 
   //now that we have moved propagation at the end of the sequence we lost the handle of
   //using the propagated parameters instead of the updated for the missing hit case.
@@ -995,7 +995,9 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
 {
   // Prototyping final backward fit.
   // This works with track-finding indices, before remapping.
-  // layers should be collected during track finding and list all layers that have actual hits.
+  //
+  // Layers should be collected during track finding and list all layers that have actual hits.
+  // Then we could avoid checking which layers actually do have hits.
 
   MPlexQF  tmp_chi2;
   float    tmp_err[6] = { 666, 0, 666, 0, 0, 666 };
@@ -1037,27 +1039,17 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
 
     if (LI.is_barrel())
     {
-      // ZZZ for cmsGeom propagation done in also done in update! fix
-      propagateHelixToRMPlex(Err[iC], Par[iC], Chg, msPar,
-                             Err[iP], Par[iP], N_proc, useParamBfield);
+      PropagateTracksToHitR(msPar, N_proc, PF_use_param_b_field | PF_apply_material);
 
-      // ZZZ should have common chi2 / update function
-      computeChi2MPlex(Err[iP], Par[iP], Chg, msErr, msPar,
-                       tmp_chi2, N_proc);
-
-      updateParametersMPlex(Err[iP], Par[iP], Chg, msErr, msPar,
-                            Err[iC], Par[iC], N_proc);
+      kalmanOperation(KFO_Calculate_Chi2 | KFO_Update_Params,
+                      Err[iP], Par[iP], msErr, msPar, Err[iC], Par[iC], tmp_chi2, N_proc);
     }
     else
     {
-      propagateHelixToZMPlex(Err[iC], Par[iC], Chg, msPar,
-			     Err[iP], Par[iP], N_proc, useParamBfield);
+      PropagateTracksToHitZ(msPar, N_proc, PF_use_param_b_field | PF_apply_material);
 
-      computeChi2EndcapMPlex(Err[iP], Par[iP], Chg, msErr, msPar,
-                             tmp_chi2, N_proc);
-
-      updateParametersEndcapMPlex(Err[iP], Par[iP], Chg, msErr, msPar,
-				  Err[iC], Par[iC], N_proc);
+      kalmanOperationEndcap(KFO_Calculate_Chi2 | KFO_Update_Params,
+                            Err[iP], Par[iP], msErr, msPar, Err[iC], Par[iC], tmp_chi2, N_proc);
     }
 
 #ifdef DEBUG_BACKWARD_FIT

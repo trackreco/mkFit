@@ -176,8 +176,8 @@ MkBuilder::MkBuilder() :
 {
   const TrackerInfo &ti = Config::TrkInfo;
 
-  m_fndfoos_brl = { computeChi2MPlex,       updateParametersMPlex,       &MkBase::PropagateTracksToR };
-  m_fndfoos_ec  = { computeChi2EndcapMPlex, updateParametersEndcapMPlex, &MkBase::PropagateTracksToZ };
+  m_fndfoos_brl = { kalmanPropagateAndComputeChi2,       kalmanPropagateAndUpdate,       &MkBase::PropagateTracksToR };
+  m_fndfoos_ec  = { kalmanPropagateAndComputeChi2Endcap, kalmanPropagateAndUpdateEndcap, &MkBase::PropagateTracksToZ };
 
   { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Endcap_Neg];
     sp.reserve_plan(3 + 3 + 6 + 18);
@@ -1250,7 +1250,9 @@ void MkBuilder::FindTracksBestHit()
 
           dcall(pre_prop_print(curr_layer, mkfndr.get()));
 
-          (mkfndr.get()->*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, curr_tridx);
+          (mkfndr.get()->*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, curr_tridx,
+                                                    PF_use_param_b_field | PF_apply_material);
+          // XXXX-MFMAT-review
 
           dcall(post_prop_print(curr_layer, mkfndr.get()));
 
@@ -1415,7 +1417,10 @@ void MkBuilder::FindTracksStandard()
           //propagate to layer
           dcall(pre_prop_print(curr_layer, mkfndr.get()));
 
-          (mkfndr.get()->*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, end - itrack);
+          (mkfndr.get()->*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, end - itrack,
+                                                    PF_use_param_b_field | PF_apply_material);
+          // XXXX-MFMAT-review
+
 
           dcall(post_prop_print(curr_layer, mkfndr.get()));
 
@@ -1613,7 +1618,10 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 #endif
 
       // propagate to current layer
-      (mkfndr->*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, end - itrack);
+      (mkfndr->*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, end - itrack,
+                                          PF_use_param_b_field | PF_apply_material);
+      // XXXX-MFMAT-review
+
 
       // copy_out the propagated track params, errors only (hit-idcs and chi2 already updated)
       mkfndr->CopyOutParErr(eoccs.m_candidates, end - itrack, true);

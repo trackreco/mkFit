@@ -246,8 +246,8 @@ void MultHelixPropTranspFull(const MPlexLL& A, const MPlexLL& B, MPlexLL& C)
 #endif
 } // end unnamed namespace
 
-void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
-                                     const MPlexQF &msRad,       MPlexLL& errorProp,
+void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg, const MPlexQF &msRad,
+                                           MPlexLV& outPar,      MPlexLL& errorProp,
                                      const int      N_proc)
 {
   errorProp.SetVal(0.f);
@@ -377,18 +377,18 @@ void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg,
 //#pragma omp declare simd simdlen(NN) notinbranch linear(n)
 #include "PropagationMPlex.icc"
 
-void helixAtRFromIterativeCCS(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
-                              const MPlexQF &msRad, MPlexLL& errorProp,
-                              const int      N_proc, const bool useParamBfield)
+void helixAtRFromIterativeCCS(const MPlexLV& inPar,     const MPlexQI& inChg, const MPlexQF &msRad,
+                                    MPlexLV& outPar,          MPlexLL& errorProp,
+                              const int      N_proc,    const PropagationFlags pf)
 {
   errorProp.SetVal(0.f);
-     
-  helixAtRFromIterativeCCS_impl(inPar, inChg, outPar, msRad, errorProp, 0, NN, N_proc, useParamBfield);
+
+  helixAtRFromIterativeCCS_impl(inPar, inChg, msRad, outPar, errorProp, 0, NN, N_proc, pf);
 }
 
 void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
                                 MPlexLS &outErr,       MPlexLV& outPar,
-                         const int      N_proc)
+                          const int      N_proc)
 {
 #pragma simd
   for (int n = 0; n < NN; ++n)
@@ -433,22 +433,17 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
 }
 
 void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
-                            const MPlexQI &inChg,  const MPlexHV& msPar, 
+                            const MPlexQI &inChg,  const MPlexQF& msRad, 
 			          MPlexLS &outErr,       MPlexLV& outPar,
-                            const int      N_proc, const bool useParamBfield)
+                            const int      N_proc, const PropagationFlags pf)
 {
    outErr = inErr;
-   outPar = inPar;
+   outPar = inPar; // XXXX-4G is this requirement for helixAtRFromIterativeCCS_XXX ??? We should document it there.
+                   // Or even better, do it there as it is somewhat counterintuitive :)
 
    MPlexLL errorProp;
 
-   MPlexQF msRad;
-#pragma simd
-   for (int n = 0; n < NN; ++n) {
-     msRad.At(n, 0, 0) = hipo(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
-   }
-
-   helixAtRFromIterativeCCS(inPar, inChg, outPar, msRad, errorProp, N_proc, useParamBfield);
+   helixAtRFromIterativeCCS(inPar, inChg, msRad, outPar, errorProp, N_proc, pf.use_param_b_field);
 
 #ifdef DEBUG
    {
@@ -468,26 +463,29 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    }
 #endif
    
-   if (Config::useCMSGeom && useParamBfield) // useParamBfield is proxy for fittest 
+   if (Config::useCMSGeom && pf.apply_material)
    {
      MPlexQF hitsRl;
      MPlexQF hitsXi;
 #pragma simd
      for (int n = 0; n < NN; ++n) 
      {
-       const int zbin = getZbinME(msPar(n, 2, 0));
-       const int rbin = getRbinME(msRad(n, 0, 0));
+       const int zbin = getZbinME(outPar(n, 2, 0)); // XXXX-4K changed msPar_z to outPar_z
+       const int rbin = getRbinME(msRad (n, 0, 0));
        
        hitsRl(n, 0, 0) = (zbin>=0 && zbin<Config::nBinsZME) ? getRlVal(zbin,rbin) : 0.f; // protect against crazy propagations
        hitsXi(n, 0, 0) = (zbin>=0 && zbin<Config::nBinsZME) ? getXiVal(zbin,rbin) : 0.f; // protect against crazy propagations
      }
-     applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);
+     applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc); // XXXX-4K - why are we doing this on error before propagation ???
+                                                                   // Isn't the material calculated for this/current layer?
    }
 
    squashPhiMPlex(outPar,N_proc); // ensure phi is between |pi|
 
    // Matriplex version of:
    // result.errors = ROOT::Math::Similarity(errorProp, outErr);
+
+   // MultHelixProp can be optimized for CCS coordinates, see GenMPlexOps.pl
    MPlexLL temp;
    MultHelixProp      (errorProp, outErr, temp);
    MultHelixPropTransp(errorProp, temp,   outErr);
@@ -514,11 +512,21 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
      }
    }
 #endif
+
+   /*
+     // To be used with: MPT_DIM = 1
+     if (fabs(sqrt(outPar[0]*outPar[0]+outPar[1]*outPar[1])-r)>0.0001) {
+     std::cout << "DID NOT GET TO R, dR=" << fabs(sqrt(outPar[0]*outPar[0]+outPar[1]*outPar[1])-r)
+     << " r=" << r << " r0in=" << r0in << " rout=" << sqrt(outPar[0]*outPar[0]+outPar[1]*outPar[1]) << std::endl;
+     std::cout << "pt=" << pt << " pz=" << inPar.At(n, 2) << std::endl;
+     }
+   */
 }
 
+/*
 void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
                             const MPlexQI& inChg,  const float    r,
-                            MPlexLS&       outErr, MPlexLV&       outPar,
+                                  MPlexLS& outErr,       MPlexLV& outPar,
                             const int      N_proc)
 {
    outErr = inErr;
@@ -532,7 +540,7 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
      msRad.At(n, 0, 0) = r;
    }
 
-   helixAtRFromIterativeCCS(inPar, inChg, outPar, msRad, errorProp, N_proc);
+   helixAtRFromIterativeCCS(inPar, inChg, msRad, outPar, errorProp, N_proc);
 
    //add multiple scattering uncertainty and energy loss (FIXME: in this way it is not applied in track fit)
    if (Config::useCMSGeom) 
@@ -579,33 +587,20 @@ void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
      }
    }
 #endif
-
-   /*
-     if (fabs(sqrt(outPar[0]*outPar[0]+outPar[1]*outPar[1])-r)>0.0001) {
-     std::cout << "DID NOT GET TO R, dR=" << fabs(sqrt(outPar[0]*outPar[0]+outPar[1]*outPar[1])-r)
-     << " r=" << r << " r0in=" << r0in << " rout=" << sqrt(outPar[0]*outPar[0]+outPar[1]*outPar[1]) << std::endl;
-     std::cout << "pt=" << pt << " pz=" << inPar.At(n, 2) << std::endl;
-     }
-   */
 }
+*/
 
 void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
-                            const MPlexQI &inChg,  const MPlexHV& msPar,
+                            const MPlexQI &inChg,  const MPlexQF& msZ,
 			          MPlexLS &outErr,       MPlexLV& outPar,
-                            const int      N_proc, const bool useParamBfield)
+                            const int      N_proc, const PropagationFlags pf)
 {
    outErr = inErr;
    outPar = inPar;
 
    MPlexLL errorProp;
 
-   MPlexQF msZ;
-#pragma simd
-   for (int n = 0; n < NN; ++n) {
-     msZ.At(n, 0, 0) = msPar.ConstAt(n, 2, 0);
-   }
-
-   helixAtZ(inPar, inChg, outPar, msZ, errorProp, N_proc, useParamBfield);
+   helixAtZ(inPar, inChg, msZ, outPar, errorProp, N_proc, pf);
 
 #ifdef DEBUG
    {
@@ -625,7 +620,7 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    }
 #endif
 
-   if (Config::useCMSGeom && useParamBfield) // param bfield only used in fitting 
+   if (Config::useCMSGeom && pf.apply_material)
    {
      MPlexQF hitsRl;
      MPlexQF hitsXi;
@@ -633,7 +628,7 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
      for (int n = 0; n < NN; ++n) 
      {
        const int zbin = getZbinME(msZ(n, 0, 0));
-       const int rbin = getRbinME(hipo(msPar(n, 0, 0), msPar(n, 1, 0)));
+       const int rbin = getRbinME(std::hypot(outPar(n, 0, 0), outPar(n, 1, 0)));  // XXXX-4K changed msPar_xy to outPar_xy
        
        hitsRl(n, 0, 0) = (rbin>=0 && rbin<Config::nBinsRME) ? getRlVal(zbin,rbin) : 0.f; // protect against crazy propagations
        hitsXi(n, 0, 0) = (rbin>=0 && rbin<Config::nBinsRME) ? getXiVal(zbin,rbin) : 0.f; // protect against crazy propagations
@@ -673,7 +668,7 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 #endif
 }
 
-
+/*
 void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
                             const MPlexQI &inChg,  const float z,
 			          MPlexLS &outErr,       MPlexLV& outPar,
@@ -683,14 +678,6 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    outPar = inPar;
 
    MPlexLL errorProp;
-
-   MPlexQF msZ;
-#pragma simd
-   for (int n = 0; n < NN; ++n) {
-     // XXXXMT4G
-     // msZ.At(n, 0, 0) = (inPar.ConstAt(n, 2, 0) > 0) ? z : -z;
-     msZ.At(n, 0, 0) = z;
-   }
 
    helixAtZ(inPar, inChg, outPar, msZ, errorProp, N_proc);
 
@@ -762,11 +749,11 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    }
 #endif
 }
+*/
 
-
-void helixAtZ(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
-	      const MPlexQF &msZ, MPlexLL& errorProp,
-	      const int      N_proc, const bool useParamBfield)
+void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
+                    MPlexLV& outPar,       MPlexLL& errorProp,
+	      const int      N_proc, const PropagationFlags pf)
 {
   errorProp.SetVal(0.f);
 
@@ -787,7 +774,7 @@ void helixAtZ(const MPlexLV& inPar, const MPlexQI& inChg, MPlexLV& outPar,
       const float phiin = inPar.ConstAt(n, 4, 0);
       const float theta = inPar.ConstAt(n, 5, 0);
 
-      const float k = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*(useParamBfield?Config::BfieldFromZR(zin,hipo(inPar.ConstAt(n,0,0),inPar.ConstAt(n,1,0))):Config::Bfield));
+      const float k = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*(pf.use_param_b_field?Config::BfieldFromZR(zin,hipo(inPar.ConstAt(n,0,0),inPar.ConstAt(n,1,0))):Config::Bfield));
 
       dprint_np(n, std::endl << "input parameters"
             << " inPar.ConstAt(n, 0, 0)=" << std::setprecision(9) << inPar.ConstAt(n, 0, 0)
