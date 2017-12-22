@@ -1812,7 +1812,7 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
       auto& mkfndr = finders[index];
 
       // propagate to current layer
-      (mkfndr.*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, mkfndr.nnfv());
+      (mkfndr.*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, mkfndr.nnfv(), PF_use_param_b_field);
 
       mkfndr.SelectHitIndices(layer_of_hits);
 
