@@ -14,6 +14,7 @@ maxvu=8
 exe="./mkFit/mkFit --input-file ${dir}/${file} --cmssw-n2seeds --num-thr ${maxth} --num-events ${nevents}"
 
 ## Compile once
+make clean
 mVal="WITH_ROOT:=yes"
 make -j 12 ${mVal}
 
@@ -21,7 +22,7 @@ make -j 12 ${mVal}
 for vV in "ROOTVAL --root-val" "CMSSWVAL --cmssw-val-trkparam"
 do echo ${vV} | while read -r vN vO
     do
-	for bV in "BH bh" "STD std" "CE ce"
+	for bV in "BH bh" "STD std" "CE ce" "FV fv"
 	do echo ${bV} | while read -r bN bO
 	    do
 	    	oBase=${arch}_${sample}_${bN}
@@ -42,7 +43,7 @@ for vV in "ROOTVAL 0" "CMSSWVAL 1"
 do echo ${vV} | while read -r vN vO
     do
 	tbase=${arch}_${sample}
-	for build in BH STD CE
+	for build in BH STD CE FV
 	do
 	    echo "Computing observables for: ${tbase} ${build} ${vN}"
 	    root -b -q -l plotting/runValidation.C\(\"_${tbase}_${build}_${vN}\",0,${vO}\)

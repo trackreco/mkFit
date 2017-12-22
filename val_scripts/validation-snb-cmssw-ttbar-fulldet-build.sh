@@ -16,7 +16,7 @@ do
     for sV in "SimSeed --cmssw-simseeds" "CMSSeed --cmssw-n2seeds"
     do echo $sV | while read -r sN sO
 	do
-	    for bV in "BH bh" "STD std" "CE ce"
+	    for bV in "BH bh" "STD std" "CE ce" "FV fv"
 	    do echo $bV | while read -r bN bO
 		do
 		    oBase=${base}_${ttbar}_${sN}_${bN}
@@ -36,7 +36,7 @@ do
     for seed in SimSeed CMSSeed
     do
 	oBase=${base}_${ttbar}_${seed}
-	for build in BH STD CE
+	for build in BH STD CE FV
 	do
 	    root -b -q -l plotting/runValidation.C\(\"_${oBase}_${build}\"\)
 	done

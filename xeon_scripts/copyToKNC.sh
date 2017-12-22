@@ -2,7 +2,7 @@
 
 # make temp dirs
 echo "Making tmp dirs on KNC remotely"
-ssh ${KNC_HOST} bash -c "'
+ssh < /dev/null -o StrictHostKeyChecking=no ${KNC_HOST} bash -c "'
 cd ${KNC_WORKDIR}
 mkdir -p Geoms
 mkdir -p mkFit

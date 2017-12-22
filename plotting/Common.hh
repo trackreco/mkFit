@@ -31,6 +31,7 @@ namespace
     builds.push_back({"BH",kBlue,"Best Hit"});
     builds.push_back({"STD",kGreen+1,"Standard"});
     builds.push_back({"CE",kRed,"Clone Engine"});
+    builds.push_back({"FV",kMagenta,"Full Vector"});
   }
 };
 
@@ -110,7 +111,7 @@ namespace
       arch_opt.vuspeedupmax = arch_opt.vumax;
 
       arch_opt.thspeedupmin = 0.;
-      arch_opt.thspeedupmax = 40.;
+      arch_opt.thspeedupmax = 60.;
 
       arch_opt.thmeiftimemin = 0.05;
       arch_opt.thmeiftimemax = arch_opt.thtimemax;
@@ -136,7 +137,7 @@ namespace
       arch_opt.vuspeedupmax = arch_opt.vumax;
 
       arch_opt.thspeedupmin = 0.;
-      arch_opt.thspeedupmax = 40.;
+      arch_opt.thspeedupmax = 60.;
 
       arch_opt.thmeiftimemin = 0.01;
       arch_opt.thmeiftimemax = arch_opt.thtimemax;

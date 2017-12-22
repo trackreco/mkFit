@@ -14,7 +14,7 @@ runValidation(){
 		sO="--cmssw-n2seeds"
 	    fi
 	    for section in ECN2 ECN1 BRL ECP1 ECP2; do
-	        for bV in "BH bh" "STD std" "CE ce"; do echo $bV | while read -r bN bO; do
+	        for bV in "BH bh" "STD std" "CE ce" "FV fv"; do echo $bV | while read -r bN bO; do
 		        oBase=${base}_${sN}_${section}_${bN}
 		        nTH=8
 		        echo "${oBase}: validation [nTH:${nTH}, nVU:8]"
@@ -31,14 +31,14 @@ runValidation(){
         for section in ECN2 ECN1 BRL ECP1 ECP2
         do
 	    oBase=${base}_${opt}_${section}
-	    for build in BH STD CE
+	    for build in BH STD CE FV
 	    do
 	        root -b -q -l plotting/runValidation.C+\(\"_${oBase}_${build}\"\)
 	    done
 	    root -b -q -l plotting/makeValidation.C+\(\"${oBase}\"\)
         done
         
-        for build in BH STD CE
+        for build in BH STD CE FV
         do
 	    oBase=${base}_${opt}
 	    fBase=valtree_${oBase}

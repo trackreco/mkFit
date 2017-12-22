@@ -48,11 +48,7 @@ namespace
   {
     TrackerInfo &m_trkinfo;
 
-    float        m_det_half_thickness = 0.005; // for 100 micron total
-
-    int          m_n_barrel   = 10;
-    int          m_n_endcap   =  9;
-    int          m_first_ecap = 10;
+    static constexpr float        m_det_half_thickness = 0.005; // for 100 micron total
 
     //------------------------------------------------------------------------------
 

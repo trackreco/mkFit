@@ -80,6 +80,24 @@ public:
       }
    }
 
+   void CopyIn(idx_t n, const Matriplex& m, idx_t in)
+   {
+      for (idx_t i = n; i < kTotSize; i += N)
+      {
+         fArray[i] = m[in];
+         in += N;
+      }
+   }
+
+   void Copy(idx_t n, idx_t in)
+   {
+      for (idx_t i = n; i < kTotSize; i += N)
+      {
+         fArray[i] = fArray[in];
+         in += N;
+      }
+   }
+
 #if defined(MIC_INTRINSICS)
 
    void SlurpIn(const char *arr, __m512i& vi, const int N_proc = N)

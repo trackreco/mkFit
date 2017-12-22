@@ -23,8 +23,9 @@ const int MPlexHitIdxMax = 16;
 using MPlexHitIdx = Matriplex::Matriplex<int, MPlexHitIdxMax, 1, NN>;
 using MPlexQHoT   = Matriplex::Matriplex<HitOnTrack, 1, 1, NN>;
 
-struct MkFitter : public MkBase
+class MkFitter : public MkBase
 {
+public:
   MPlexQF Chi2;
 
   MPlexHS msErr[Config::nMaxTrkHits];

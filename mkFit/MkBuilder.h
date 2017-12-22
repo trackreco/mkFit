@@ -9,29 +9,72 @@
 #include "CandCloner.h"
 #include "MkFitter.h"
 #include "MkFinder.h"
+#include "MkFinderFV.h"
 #include "SteeringParams.h"
 
 #include <functional>
 #include <mutex>
 
+#include "align_alloc.h"
+
 #include "Pool.h"
+//#define DEBUG
+#include "Debug.h"
 
 class TrackerInfo;
 class LayerInfo;
 
 //------------------------------------------------------------------------------
 
+using MkFinderFvVec = std::vector<MkFinderFv, aligned_allocator<MkFinderFv, 64>>;
+
 struct ExecutionContext
 {
+  ExecutionContext() {}
+  ~ExecutionContext() {
+    dprint("MkFinderFvVec count " << m_finderv.unsafe_size());
+  }
+
   Pool<CandCloner> m_cloners;
   Pool<MkFitter>   m_fitters;
   Pool<MkFinder>   m_finders;
+  tbb::concurrent_queue<MkFinderFvVec> m_finderv;
 
   void populate(int n_thr)
   {
     m_cloners.populate(n_thr - m_cloners.size());
     m_fitters.populate(n_thr - m_fitters.size());
     m_finders.populate(n_thr - m_finders.size());
+  }
+
+  void populate_finderv(int n_thr, int n_seedsPerThread)
+  {
+    int count = MkFinderFv::nMplx(n_seedsPerThread);
+    auto sz = m_finderv.unsafe_size();
+    if (sz < n_thr) {
+      dprint("Allocating " << n_thr - sz << " MkFinderFvVec of length " << count);
+      for (int i = 0; i < n_thr - sz; ++i) {
+        MkFinderFvVec fv(count);
+        m_finderv.push(std::move(fv));
+      }
+    }
+  }
+
+  MkFinderFvVec getFV(int sz)
+  {
+    int count = (sz + MkFinderFv::Seeds - 1)/MkFinderFv::Seeds; // adjust for seeds per finder
+    MkFinderFvVec retfv;
+    m_finderv.try_pop(retfv);
+    if (retfv.size() < count) {
+      dprint("Resizing from " << retfv.size() << " to " << count);
+      retfv.resize(count);
+    }
+    return retfv;
+  }
+
+  void pushFV(MkFinderFvVec fv)
+  {
+    m_finderv.push(std::move(fv));
   }
 };
 
@@ -68,6 +111,13 @@ public:
   // --------
 
   static MkBuilder* make_builder();
+  static void populate(bool populatefv = false)
+  {
+    g_exe_ctx.populate(Config::numThreadsFinder);
+    if (populatefv) {
+      g_exe_ctx.populate_finderv(Config::numThreadsFinder, Config::numSeedsPerTask);
+    }
+  }
 
   void begin_event(Event* ev, const char* build_type);
   void end_event();
@@ -107,6 +157,7 @@ public:
 
   void find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
                              int start_seed, int end_seed, int region);
+  void find_tracks_in_layersFV(int start_seed, int end_seed, int region);
 
   // --------
 
@@ -115,6 +166,7 @@ public:
   void FindTracksBestHit();
   void FindTracksStandard();
   void FindTracksCloneEngine();
+  void FindTracksFV();
 
   void BackwardFit(MkFinder *mkfndr, int start_seed, int end_seed, int region);
 

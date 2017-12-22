@@ -9,7 +9,7 @@ def run():
 
     g = ROOT.TFile('benchmark_'+arch+'_'+sample+'.root','recreate')
 
-    for build in ['BH','STD','CE']:
+    for build in ['BH','STD','CE','FV']:
         print arch,sample,build
 
         # Vectorization data points
@@ -23,7 +23,8 @@ def run():
             vuvals.append('8int')
 
         # call the make plots function
-        makeplots(arch,sample,build,vuvals,nth,'VU')
+        if build != "FV" :
+            makeplots(arch,sample,build,vuvals,nth,'VU')
 
         # Parallelization datapoints
         if arch == 'KNC' or arch == 'KNL' :
@@ -48,6 +49,7 @@ def makeplots(arch,sample,build,vals,nC,text):
     if   build is 'BH'  : pos = 8  
     elif build is 'STD' : pos = 11  
     elif build is 'CE'  : pos = 14 
+    elif build is 'FV'  : pos = 17
     else :
         print build,'is not a valid test! Exiting...'
         exit 
@@ -98,12 +100,18 @@ def makeplots(arch,sample,build,vals,nC,text):
         sum = 0.;
         for yval in range(0,len(yvals)):
             sum = sum + yvals[yval]
-        mean = sum/len(yvals)
+        if len(yvals) > 0 :
+            mean = sum/len(yvals)
+        else :
+            mean = 0
         emean = 0.;
         for yval in range(0,len(yvals)):
             emean = emean + ((yvals[yval] - mean) * (yvals[yval] - mean))
-        emean = math.sqrt(emean / (len(yvals) - 1))
-        emean = emean/math.sqrt(len(yvals))
+        if len(yvals) > 1 :
+            emean = math.sqrt(emean / (len(yvals) - 1))
+            emean = emean/math.sqrt(len(yvals))
+        else :
+            emean = 0
 
         # Printout value for good measure
         print val,mean,'+/-',emean
@@ -150,7 +158,7 @@ def makeplots(arch,sample,build,vals,nC,text):
 
         speedup  = 0.
         espeedup = 0.
-        if yval[0] > 0. : 
+        if yval[0] > 0. and yval0[0] > 0. : 
             speedup  = yval0[0]/yval[0]
             espeedup = speedup * math.sqrt(math.pow(yerr0[0]/yval0[0],2) + math.pow(yerr[0]/yval[0],2))
 

@@ -41,7 +41,7 @@ typedef std::vector<TGraph*> TGVec;
 class PlotMEIFBenchmarks
 {
 public:
-  PlotMEIFBenchmarks(const TString & arch, const TString & sample);
+  PlotMEIFBenchmarks(const TString & arch, const TString & sample, const TString & build);
   ~PlotMEIFBenchmarks();
   void RunMEIFBenchmarkPlots();
   void MakeOverlay(const TString & text, const TString & title, const TString & xtitle, const TString & ytitle, 
@@ -50,6 +50,7 @@ public:
 private:
   const TString arch;
   const TString sample;
+  const TString build;
 
   ArchEnum ARCH;
   TFile * file;

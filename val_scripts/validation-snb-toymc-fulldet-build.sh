@@ -7,7 +7,7 @@ file=simtracks_fulldet_400x2p5k_val.bin
 
 base=SNB_ToyMC_FullDet
 
-for bV in "BH bh" "STD std" "CE ce" 
+for bV in "BH bh" "STD std" "CE ce" "FV fv"
 do echo $bV | while read -r bN bO
     do
 	oBase=${base}_${bN}
@@ -17,7 +17,7 @@ do echo $bV | while read -r bN bO
     done
 done
 
-for build in BH STD CE
+for build in BH STD CE FV
 do
     root -b -q -l plotting/runValidation.C\(\"_SNB_ToyMC_FullDet_${build}\",1\)
 done

@@ -66,7 +66,7 @@ double Geometry::SafetyFromOutside ( const UVector3 &aPoint, bool aAccurate) con
 double Geometry::SafetyFromOutsideDr(const UVector3 &aPoint, double ooaCtgTheta,
                                      int skip_layer, int &layer, bool aAccurate) const
 {
-  bool debug = false;
+  //bool debug = false;
 
   double small = 1e10;
 

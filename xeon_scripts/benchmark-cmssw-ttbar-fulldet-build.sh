@@ -34,7 +34,7 @@ then
     base=${arch}_${sample}
     maxth=240
     maxvu=16
-    exe="ssh ${KNC_HOST} ./mkFit/mkFit-mic ${seeds} --input-file ${dir}/${subdir}/${file}"
+    exe="timeout 15m ssh -o StrictHostKeyChecking=no ${KNC_HOST} ./mkFit/mkFit-mic ${seeds} --input-file ${dir}/${subdir}/${file}"
     declare -a nths=("1" "2" "4" "8" "15" "30" "60" "90" "120" "180" "240")
     declare -a nvus=("1" "2" "4" "8" "16")
     declare -a nevs=("1" "2" "4" "8" "16" "32")
@@ -55,6 +55,7 @@ else
 fi
 
 ## compile with appropriate options
+make distclean
 make ${mOpt}
 if [ ${arch} == "KNC" ] 
 then
@@ -64,7 +65,7 @@ fi
 ## Parallelization Benchmarks
 for nth in "${nths[@]}"
 do
-    for bV in "BH bh" "STD std" "CE ce"
+    for bV in "BH bh" "STD std" "CE ce" "FV fv"
     do echo ${bV} | while read -r bN bO
 	do
 	    ## Base executable
@@ -76,7 +77,7 @@ do
 	    ${bExe} --num-events ${nevents} >& log_${oBase}_NVU${maxvu}int_NTH${nth}.txt
 
 	    ## Multiple Events in Flight benchmark
-	    if [ "${bN}" == "CE" ]
+	    if [ "${bN}" == "CE" ] || [ "${bN}" == "FV" ]
 	    then
 		for nev in "${nevs[@]}"
 		do
@@ -114,7 +115,7 @@ do
 	./xeon_scripts/copyToKNC.sh
     fi
 
-    for bV in "BH bh" "STD std" "CE ce"
+    for bV in "BH bh" "STD std" "CE ce" # "FV fv"
     do echo ${bV} | while read -r bN bO
 	do
 	    ## Common base executable

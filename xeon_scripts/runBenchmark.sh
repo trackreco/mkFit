@@ -4,7 +4,12 @@
 [ -z "$ROOTSYS" ] && source ~matevz/root/bin/thisroot.sh
 source xeon_scripts/common_variables.sh
 
+make distclean
+
 ##### Launch Tests
+echo "Tar and send to KNL"
+./xeon_scripts/tarAndSendToKNL.sh
+
 echo "Run benchmarking on KNL concurrently with SNB and KNC benchmarks" 
 ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-knl.sh >& benchmark_knl_dump.txt &
 
@@ -13,6 +18,9 @@ echo "Run benchmarking on SNB"
 
 echo "Run benchmarking on KNC"
 ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh KNC
+
+echo "Waiting for KNL"
+wait
 
 ##### Benchmark Plots #####
 for archV in "SNB snb" "KNC knc" "KNL knl"
@@ -25,15 +33,17 @@ for archV in "SNB snb" "KNC knc" "KNL knl"
 	root -b -q -l plotting/makeBenchmarkPlots.C\(\"${archN}\",\"${sample}\"\)	
 
 	echo "Extract multiple events in flight benchmark results for" ${archN}
-	python plotting/makeMEIFBenchmarkPlots.py ${archN} ${sample}
+	python plotting/makeMEIFBenchmarkPlots.py ${archN} ${sample} CE
+	python plotting/makeMEIFBenchmarkPlots.py ${archN} ${sample} FV
 
 	echo "Make final plot comparing multiple events in flight for" ${archN}
-	root -b -q -l plotting/makeMEIFBenchmarkPlots.C\(\"${archN}\",\"${sample}\"\)	
+	root -b -q -l plotting/makeMEIFBenchmarkPlots.C\(\"${archN}\",\"${sample}\",\"CE\"\)	
+	root -b -q -l plotting/makeMEIFBenchmarkPlots.C\(\"${archN}\",\"${sample}\",\"FV\"\)	
     done
 done
 
 ##### Plots from Text Files #####
-for build in BH STD CE
+for build in BH STD CE # FV
 do 
     echo "Making plots from text files for" ${sample} ":" ${build}
     

@@ -1,7 +1,8 @@
-#ifndef MkFinder_h
-#define MkFinder_h
+#ifndef MkFinderFV_h
+#define MkFinderFV_h
 
 #include "MkBase.h"
+
 #include "TrackerInfo.h"
 #include "Track.h"
 
@@ -9,11 +10,6 @@ class CandCloner;
 class CombCandidate;
 class LayerOfHits;
 class FindingFoos;
-
-// For backward fit hack
-class EventOfHits;
-class EventOfCombCandidates;
-class SteeringParams;
 
 //#include "Event.h"
 
@@ -36,24 +32,28 @@ class SteeringParams;
 //
 // Actually ... am tempted to make MkFinder :)
 
-
-// Define to get printouts about track and hit chi2.
-// See also MkBuilder::BackwardFit() and MkBuilder::quality_store_tracks().
-
-// #define DEBUG_BACKWARD_FIT
-
-
-class MkFinder : public MkBase
+template<int nseeds, int ncands>
+class alignas(64) MkFinderFV : public MkBase
 {
 public:
+  static constexpr int NNFV = nseeds * ncands;
+  static constexpr int Seeds = nseeds;
+  static constexpr int Candidates = ncands;
 
   static constexpr int MPlexHitIdxMax = 16;
 
-  using MPlexHitIdx = Matriplex::Matriplex<int, MPlexHitIdxMax, 1, NN>;
-  using MPlexQHoT   = Matriplex::Matriplex<HitOnTrack, 1, 1, NN>;
+  using MPlexHitIdx = Matriplex::Matriplex<int, MPlexHitIdxMax, 1, NNFV>;
+  using MPlexQHoT   = Matriplex::Matriplex<HitOnTrack, 1, 1, NNFV>;
+
+  using MPlexHV     = Matriplex::Matriplex<float, HH,  1, NNFV>;
+  using MPlexHS     = Matriplex::MatriplexSym<float, HH,  NNFV>;
+  using MPlexQF     = Matriplex::Matriplex<float, 1, 1, NNFV>;
+  using MPlexQI     = Matriplex::Matriplex<int,   1, 1, NNFV>;
 
   struct IdxChi2List
   {
+    IdxChi2List() {}
+    IdxChi2List(int t, int h, int n, float c) : trkIdx(t), hitIdx(h), nhits(n), chi2(c) {}
     int   trkIdx; // candidate index
     int   hitIdx; // hit index
     int   nhits;  // number of hits (used for sorting)
@@ -67,15 +67,16 @@ public:
 
   MPlexQI    NHits;
   MPlexQI    NFoundHits;
-  HitOnTrack HoTArrs[NN][Config::nMaxTrkHits];
+  HitOnTrack HoTArrs[NNFV][Config::nMaxTrkHits];
 
   MPlexQI    SeedIdx; // seed index in local thread (for bookkeeping at thread level)
   MPlexQI    CandIdx; // candidate index for the given seed (for bookkeeping of clone engine)
 
   // Hit indices into LayerOfHits to explore.
-  WSR_Result  XWsrResult[NN]; // Could also merge it with XHitSize. Or use smaller arrays.
+  WSR_Result  XWsrResult[NNFV]; // Could also merge it with XHitSize. Or use smaller arrays.
   MPlexQI     XHitSize;
   MPlexHitIdx XHitArr;
+  MPlexQF     XHitChi2[MPlexHitIdxMax];
 
   // Hit error / parameters for hit matching, update.
   MPlexHS    msErr;
@@ -83,72 +84,62 @@ public:
 
   //============================================================================
 
-  MkFinder() {}
+  MkFinderFV() {
+    for (int it = 0; it < NNFV; ++it) {
+      msErr.SetDiagonal3x3(it, 666);
+      Err[0].SetDiagonal3x3(it, 666);
+      Err[1].SetDiagonal3x3(it, 666);
+    }
+    msPar.SetVal(0.0f);
+    Chi2.SetVal(0.0f);
+    Chg.SetVal(0);
+    Par[0].SetVal(0.0f);
+    Par[1].SetVal(0.0f);
+  }
+
+  static constexpr int nnfv() { return NNFV; }
+  static constexpr int nCands() { return ncands; }
+  static constexpr int nSeeds() { return nseeds; }
+  static int nMplx(int ns) { return (ns + nseeds - 1)/nseeds; }
+
+  int index(int seed, int track) { return seed*ncands + track; }
+  int operator()(int seed, int track) { return index(seed, track); }
 
   //----------------------------------------------------------------------------
 
-  void InputTracksAndHitIdx(const std::vector<Track>& tracks,
-                            int beg, int end, bool inputProp);
-
-  void InputTracksAndHitIdx(const std::vector<Track>& tracks,
-                            const std::vector<int>  &   idxs,
-                            int beg, int end, bool inputProp, int mp_offset);
-
-  void InputTracksAndHitIdx(const std::vector<CombCandidate>& tracks,
-                            const std::vector<std::pair<int,int>>& idxs,
-                            int beg, int end, bool inputProp);
-
-  void InputTracksAndHitIdx(const std::vector<CombCandidate>& tracks,
-                            const std::vector<std::pair<int,IdxChi2List>>& idxs,
-                            int beg, int end, bool inputProp);
-
-  void OutputTracksAndHitIdx(std::vector<Track>& tracks,
-                             int beg, int end, bool outputProp) const;
-
-  void OutputTracksAndHitIdx(std::vector<Track>& tracks,
-                             const std::vector<int>& idxs,
-                             int beg, int end, bool outputProp) const;
+  void InputTrack(const Track& track, int iseed, int offset, bool inputProp);
+  void OutputTrack(std::vector<Track>& tracks, int itrack, int imp, bool outputProp) const;
 
   //----------------------------------------------------------------------------
 
-  void SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_proc);
+  void SelectHitIndices(const LayerOfHits &layer_of_hits);
 
-  void AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
-                  const FindingFoos &fnd_foos);
+  void FindCandidates(const LayerOfHits &layer_of_hits, const FindingFoos &fnd_foos);
 
-  //----------------------------------------------------------------------------
+  void UpdateWithLastHit(const LayerOfHits &layer_of_hits, const FindingFoos &fnd_foos);
 
-  void FindCandidates(const LayerOfHits &layer_of_hits,
-                      std::vector<std::vector<Track>>& tmp_candidates,
-		      const int offset, const int N_proc,
-                      const FindingFoos &fnd_foos);
-
-  //----------------------------------------------------------------------------
-
-  void FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandCloner& cloner,
-                                 const int offset, const int N_proc,
-                                 const FindingFoos &fnd_foos);
-
-  void UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc,
-                         const FindingFoos &fnd_foos);
+  void SelectBestCandidates(const LayerOfHits &layer_of_hits);
+  int BestCandidate(int offset) const;
 
   void CopyOutParErr(std::vector<CombCandidate>& seed_cand_vec,
                      int N_proc, bool outputProp) const;
 
   //----------------------------------------------------------------------------
-  // Backward fit hack
-
-  int               CurHit[NN];
-  const HitOnTrack *HoTArr[NN];
-
-  void BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end);
-  void BkFitFitTracks(const EventOfHits& eventofhits, const SteeringParams& st_par,
-                      int N_proc, bool useParamBfield = false, bool chiDebug = false);
-  void BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end);
-
-  //----------------------------------------------------------------------------
 
 private:
+
+  int XHitMax() const {
+    int m = 0;
+    for (int i = 0; i < NNFV; ++i) m = std::max(m, XHitSize[i]);
+    return m;
+  }
+
+  int XHitMax(int offset) const {
+    int m = 0;
+    int j = offset*ncands;
+    for (int i = 0; i < ncands; ++i, ++j) m = std::max(m, XHitSize[j]);
+    return m;
+  }
 
   void copy_in(const Track& trk, const int mslot, const int tslot)
   {
@@ -214,5 +205,11 @@ private:
     return NHits(mslot,0,0) - NFoundHits(mslot,0,0);
   }
 };
-
+#if (MPT_SIZE == 8) || (MPT_SIZE == 16)
+#define INSTANTIATE_FV
+using MkFinderFv = MkFinderFV<NN/8, 8>;
+#else
+#warning "Not instantiating MkFinderFV"
+using MkFinderFv = MkFinderFV<1, 8>; // dummy
+#endif
 #endif

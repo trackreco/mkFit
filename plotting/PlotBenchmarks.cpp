@@ -89,17 +89,19 @@ void PlotBenchmarks::MakeOverlay(const TString & text, const TString & title, co
   // Draw graphs
   for (UInt_t i = 0; i < builds.size(); i++)
   {
-    graphs[i]->Draw(i>0?"LP SAME":"ALP");
-    graphs[i]->GetXaxis()->SetRangeUser(xmin,xmax);
-    graphs[i]->GetYaxis()->SetRangeUser(ymin,ymax);
+    if (graphs[i]) {
+      graphs[i]->Draw(i>0?"LP SAME":"ALP");
+      graphs[i]->GetXaxis()->SetRangeUser(xmin,xmax);
+      graphs[i]->GetYaxis()->SetRangeUser(ymin,ymax);
 
-    if (isVU) 
-    {
-      graphs_int[i]->GetXaxis()->SetRangeUser(xmin,xmax);
-      graphs_int[i]->GetYaxis()->SetRangeUser(ymin,ymax);
-      graphs_int[i]->Draw("P SAME");
-    }
-    leg->AddEntry(graphs[i],builds[i].label.Data(),"LP");
+      if (isVU && graphs_int[i]) 
+      {
+        graphs_int[i]->GetXaxis()->SetRangeUser(xmin,xmax);
+        graphs_int[i]->GetYaxis()->SetRangeUser(ymin,ymax);
+        graphs_int[i]->Draw("P SAME");
+      }
+      leg->AddEntry(graphs[i],builds[i].label.Data(),"LP");
+     }
   }
 
   // Draw speedup line
@@ -125,8 +127,10 @@ void PlotBenchmarks::MakeOverlay(const TString & text, const TString & title, co
   canv->SetLogx();
   for (UInt_t i = 0; i < builds.size(); i++)
   {
-    graphs[i]->GetXaxis()->SetRangeUser(xmin,xmax);
-    graphs[i]->GetYaxis()->SetRangeUser(ymin,ymax);
+    if (graphs[i]) {
+      graphs[i]->GetXaxis()->SetRangeUser(xmin,xmax);
+      graphs[i]->GetYaxis()->SetRangeUser(ymin,ymax);
+    }
   }
   canv->Update();
   canv->SaveAs(outname+"_logx.png");
@@ -150,13 +154,14 @@ void PlotBenchmarks::GetGraphs(TGEVec & graphs, const TString & text, const TStr
   for (UInt_t i = 0; i < builds.size(); i++)
   {
     graphs[i] = (TGraphErrors*)file->Get("g_"+builds[i].name+"_"+text);
+    if (graphs[i]) {
+      std::cout << Form("g_%s_%s",builds[i].name.Data(),text.Data()) << std::endl;
+      graphs[i]->SetTitle(title+";"+xtitle+";"+ytitle);
 
-    std::cout << Form("g_%s_%s",builds[i].name.Data(),text.Data()) << std::endl;
-    graphs[i]->SetTitle(title+";"+xtitle+";"+ytitle);
-
-    graphs[i]->SetLineWidth(2);
-    graphs[i]->SetLineColor(builds[i].color);
-    graphs[i]->SetMarkerStyle(isInt ? kOpenCircle : kFullCircle);
-    graphs[i]->SetMarkerColor(builds[i].color);
+      graphs[i]->SetLineWidth(2);
+      graphs[i]->SetLineColor(builds[i].color);
+      graphs[i]->SetMarkerStyle(isInt ? kOpenCircle : kFullCircle);
+      graphs[i]->SetMarkerColor(builds[i].color);
+    }
   }
 }

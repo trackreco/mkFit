@@ -13,7 +13,7 @@ base=SNB_CMSSW_TTbar
 
 for ttbar in NoPU PU35 PU70 
 do
-    for bV in "BH bh" "STD std" "CE ce"
+    for bV in "BH bh" "STD std" "CE ce" "FV fv"
     do echo $bV | while read -r bN bO
 	do
 	    oBase=${base}_${ttbar}_${bN}
@@ -29,7 +29,7 @@ make clean
 for ttbar in NoPU PU35 PU70 
 do
     tbase=${base}_${ttbar}
-    for build in BH STD CE
+    for build in BH STD CE FV
     do
 	root -b -q -l plotting/runValidation.C\(\"_${tbase}_${build}\",0,1\)
     done
