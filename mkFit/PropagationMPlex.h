@@ -29,12 +29,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
                             const MPlexQI &inChg,  const MPlexQF& msRad,
                                   MPlexLS &outErr,       MPlexLV& outPar,
                             const int      N_proc, const PropagationFlags pf);
-/*
-void propagateHelixToRMPlex(const MPlexLS& inErr,  const MPlexLV& inPar,
-                            const MPlexQI& inChg,  const float    r,
-                                  MPlexLS& outErr,       MPlexLV& outPar,
-                            const int      N_proc, const PropagationFlags pf);
-*/
+
 void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg, const MPlexQF &msRad,
                                            MPlexLV& outPar,      MPlexLL& errorProp,
                                      const int      N_proc);
@@ -47,13 +42,6 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
                             const MPlexQI &inChg,  const MPlexQF& msZ,
                                   MPlexLS &outErr,       MPlexLV& outPar,
                             const int      N_proc, const PropagationFlags pf);
-
-/*
-void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
-                            const MPlexQI &inChg,  const float    z,
-                                  MPlexLS &outErr,       MPlexLV& outPar,
-                            const int      N_proc);
-*/
 
 void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
                     MPlexLV& outPar,       MPlexLL& errorProp,
