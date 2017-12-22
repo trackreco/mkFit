@@ -9,7 +9,7 @@
 
 #include <mutex>
 
-class DataFile;
+struct DataFile;
 
 class Event
 {

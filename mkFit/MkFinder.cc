@@ -125,10 +125,9 @@ void MkFinder::OutputTracksAndHitIdx(std::vector<Track>& tracks,
 //==============================================================================
 
 void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
-                                const int N_proc, bool dump)
+                                const int N_proc)
 {
-  // debug = 1;
-  // dump = true;
+  // debug = true;
 
   const LayerOfHits &L = layer_of_hits;
   const int   iI = iP;
@@ -136,8 +135,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
   const float nSigmaZ   = 3;
   const float nSigmaR   = 3;
 
-  if (dump)
-    printf("LayerOfHits::SelectHitIndices %s layer=%d N_proc=%d\n",
+  dprintf("LayerOfHits::SelectHitIndices %s layer=%d N_proc=%d\n",
            L.is_barrel() ? "barrel" : "endcap", L.layer_id(), N_proc);
 
   float dqv[NN], dphiv[NN], qv[NN], phiv[NN];
@@ -258,20 +256,20 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       continue;
     }
 
-    const float q = qv[itrack];
-    const float phi = phiv[itrack];
-
-    const float dphi = dphiv[itrack];
-    const float dq   = dqv[itrack];
-
     const int qb1 = qb1v[itrack];
     const int qb2 = qb2v[itrack];
     const int pb1 = pb1v[itrack];
     const int pb2 = pb2v[itrack];
 
-    if (dump)
-      printf("  %2d: %6.3f %6.3f %6.6f %7.5f %3d %3d %4d %4d\n",
+#if defined(LOH_USE_PHI_Q_ARRAYS)
+    const float q = qv[itrack];
+    const float phi = phiv[itrack];
+    const float dphi = dphiv[itrack];
+    const float dq   = dqv[itrack];
+
+    dprintf("  %2d: %6.3f %6.3f %6.6f %7.5f %3d %3d %4d %4d\n",
              itrack, q, phi, dq, dphi, qb1, qb2, pb1, pb2);
+#endif
 
     // MT: One could iterate in "spiral" order, to pick hits close to the center.
     // http://stackoverflow.com/questions/398299/looping-in-a-spiral
@@ -294,27 +292,29 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
         {
           // MT: Access into m_hit_zs and m_hit_phis is 1% run-time each.
 
-#ifdef LOH_USE_PHI_Q_ARRAYS
+#if defined(LOH_USE_PHI_Q_ARRAYS)
           float ddq   = std::abs(q   - L.m_hit_qs[hi]);
           float ddphi = std::abs(phi - L.m_hit_phis[hi]);
           if (ddphi > Config::PI) ddphi = Config::TwoPI - ddphi;
 
-          if (dump)
-            printf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
+          dprintf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
                    qi, pi, pb, hi,
                    L.m_hit_qs[hi], L.m_hit_phis[hi], ddq, ddphi,
                    (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
 
-          // MT: Commenting this check out gives full efficiency ...
-          //     and means our error estimations are wrong!
-          // Avi says we should have *minimal* search windows per layer.
-          // Also ... if bins are sufficiently small, we do not need the extra
-          // checks, see above.
-          // if (ddz < dz && ddphi < dphi && XHitSize[itrack] < MPlexHitIdxMax)
 #endif
-          // MT: The following check also makes more sense with spiral traversal,
+          // MT: The following check alone makes more sense with spiral traversal,
           // we'd be taking in closest hits first.
-          if (XHitSize[itrack] < MPlexHitIdxMax)
+          if (XHitSize[itrack] < MPlexHitIdxMax
+#ifdef LOH_USE_PHI_Q_ARRAYS
+            // MT: Removing this check gives full efficiency ...
+            //     and means our error estimations are wrong!
+            // Avi says we should have *minimal* search windows per layer.
+            // Also ... if bins are sufficiently small, we do not need the extra
+            // checks, see above.
+            && ddq < dq && ddphi < dphi
+#endif
+            )
           {
             XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
           }
@@ -473,7 +473,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
     }
   }
 
-#pragma simd
+  //#pragma simd
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
     if (XWsrResult[itrack].m_wsr == WSR_Outside)
@@ -806,7 +806,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 
       if (hit_cnt < XHitSize[itrack])
       {
-        float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
+        const float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
 #ifdef DEBUG
         std::cout << "chi2=" << chi2 << " for trkIdx=" << itrack << std::endl;
 #endif
@@ -867,15 +867,13 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 void MkFinder::UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc,
                                  const FindingFoos &fnd_foos)
 {
-  // layer_of_hits is for previous layer!
-
   for (int i = 0; i < N_proc; ++i)
   {
     const HitOnTrack &hot = HoTArrs[i][ NHits[i] - 1];
 
     if (hot.index < 0) continue;
 
-    Hit &hit = layer_of_hits.m_hits[hot.index];
+    const Hit &hit = layer_of_hits.m_hits[hot.index];
 
     msErr.CopyIn(i, hit.errArray());
     msPar.CopyIn(i, hit.posArray());

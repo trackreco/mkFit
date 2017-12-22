@@ -256,6 +256,52 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
   return time;
 }
 
+//==============================================================================
+// runBuildTestPlex Combinatorial: Full Vector TBB
+//==============================================================================
+
+double runBuildingTestPlexFV(Event& ev, MkBuilder& builder)
+{
+  builder.begin_event(&ev, __func__);
+
+  builder.PrepareSeeds();
+
+  builder.find_tracks_load_seeds();
+
+#ifdef USE_VTUNE_PAUSE
+  __SSC_MARK(0x111);  // use this to resume Intel SDE at the same point
+  __itt_resume();
+#endif
+  double time = dtime();
+
+  builder.FindTracksFV();
+
+  time = dtime() - time;
+
+#ifdef USE_VTUNE_PAUSE
+  __itt_pause();
+  __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
+#endif
+
+  if (!Config::silent)
+  {
+    builder.quality_store_tracks();
+    if (!Config::root_val && !Config::cmssw_val) {
+      builder.quality_output();
+    } else if (Config::root_val) { 
+      builder.root_val();
+    } else if (Config::cmssw_val) {
+      builder.cmssw_val();
+    }
+  }
+
+  builder.end_event();
+
+  // ev.print_tracks(ev.candidateTracks_, true);
+
+  return time;
+}
+
 #if USE_CUDA
 double runBuildingTestPlexCloneEngineGPU(Event& ev, EventTmp& ev_tmp, 
                                          MkBuilder& builder,

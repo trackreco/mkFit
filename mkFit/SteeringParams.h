@@ -17,8 +17,9 @@ class MkFinder;
                           const MPlexHS &,  const MPlexHV &, \
                                 MPlexLS &,        MPlexLV &, const int, const PropagationFlags
 
-struct FindingFoos
+class FindingFoos
 {
+public:
   void (*m_compute_chi2_foo)      (COMPUTE_CHI2_ARGS);
   void (*m_update_param_foo)      (UPDATE_PARAM_ARGS);
   void (MkBase::*m_propagate_foo) (float, const int, const PropagationFlags);
@@ -58,8 +59,9 @@ struct LayerControl
 
 //==============================================================================
 
-struct SteeringParams
+class SteeringParams
 {
+public:
   std::vector<LayerControl>           m_layer_plan;
   std::vector<LayerControl>::iterator m_begin_for_finding;
   std::vector<LayerControl>::iterator m_end_for_finding;

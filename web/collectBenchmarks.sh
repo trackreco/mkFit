@@ -31,13 +31,15 @@ mkdir -p ${dir}/${meifdir}/logx
 
 for arch in SNB KNC KNL
 do
-    oBase=${arch}_${sample}_"MEIF"
+    for build in CE FV ; do
+        oBase=${arch}_${sample}_${build}_"MEIF"
 
-    mv ${oBase}_"time".png ${dir}/${meifdir}
-    mv ${oBase}_"speedup".png ${dir}/${meifdir}
+        mv ${oBase}_"time".png ${dir}/${meifdir}
+        mv ${oBase}_"speedup".png ${dir}/${meifdir}
 
-    mv ${oBase}_"time_logx".png ${dir}/${meifdir}/logx
-    mv ${oBase}_"speedup_logx".png ${dir}/${meifdir}/logx
+        mv ${oBase}_"time_logx".png ${dir}/${meifdir}/logx
+        mv ${oBase}_"speedup_logx".png ${dir}/${meifdir}/logx
+    done
 done
 
 # Move plots from text dump
@@ -45,7 +47,7 @@ dumpdir="PlotsFromDump"
 mkdir -p ${dir}/${dumpdir}
 mkdir -p ${dir}/${dumpdir}/diffs
 
-for build in BH STD CE
+for build in BH STD CE FV
 do
     for var in nHits pt eta phi
     do
@@ -58,7 +60,7 @@ done
 rootdir="ROOTVAL"
 mkdir -p ${dir}/${rootdir}
 
-for build in BH STD CE
+for build in BH STD CE FV
 do
     vBase=SNB_${sample}_${build}
     mv validation_${vBase}_"ROOTVAL"/totals_validation_${vBase}_"ROOTVAL".txt ${dir}/${rootdir}
@@ -77,7 +79,7 @@ cmsswdir="CMSSWVAL"
 mkdir -p ${dir}/${cmsswdir}
 mkdir -p ${dir}/${cmsswdir}/diffs
 
-for build in BH STD CE
+for build in BH STD CE FV
 do
     vBase=SNB_${sample}_${build}
     mv validation_${vBase}_"CMSSWVAL"/totals_validation_${vBase}_"CMSSWVAL"_cmssw.txt ${dir}/${cmsswdir}

@@ -93,6 +93,7 @@ namespace
   bool  g_run_build_bh  = false;
   bool  g_run_build_std = false;
   bool  g_run_build_ce  = false;
+  bool  g_run_build_fv  = false;
   bool  g_seed_based    = false;
 
   std::string g_operation = "simulate_and_process";;
@@ -134,10 +135,14 @@ namespace
 template <typename T, typename U> 
 std::string getOpt(const T & c_opt, const U & g_opt_map)
 {
+  static const std::string empty("");
+
   for (const auto & g_opt_pair : g_opt_map)
   {
     if (g_opt_pair.second == c_opt) return g_opt_pair.first;
   }
+  std::cerr << "No match for option " << c_opt << std::endl;
+  return empty;
 }
 
 template <typename T, typename U>
@@ -146,7 +151,7 @@ void setOpt(const std::string & cmd_ln_str, T & c_opt, const U & g_opt_map, cons
   if (g_opt_map.count(cmd_ln_str)) c_opt = g_opt_map.at(cmd_ln_str);
   else 
   {
-    std::cerr << cmd_ln_str.c_str() << " is not a valid " << ex_txt.c_str() << " option!! Exiting..." << std::endl;
+    std::cerr << cmd_ln_str << " is not a valid " << ex_txt << " option!! Exiting..." << std::endl;
     exit(1);
   }
 }
@@ -278,7 +283,7 @@ void test_standard()
 
   if (Config::useCMSGeom) fillZRgridME();
 
-  const int NT = 4;
+  const int NT = 5;
   double t_sum[NT] = {0};
   double t_skip[NT] = {0};
   double time = dtime();
@@ -325,6 +330,8 @@ void test_standard()
 #else
   std::atomic<int> nevt{g_start_event};
   std::atomic<int> seedstot{0}, simtrackstot{0};
+
+  MkBuilder::populate(g_run_build_all || g_run_build_fv);
 
   std::vector<std::unique_ptr<Event>>      evs(Config::numThreadsEvents);
   std::vector<std::unique_ptr<Validation>> vals(Config::numThreadsEvents);
@@ -426,6 +433,7 @@ void test_standard()
         t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
         t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev, mkb) : 0;
         t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, mkb) : 0;
+        t_cur[4] = (g_run_build_all || g_run_build_fv)  ? runBuildingTestPlexFV(ev, mkb) : 0;
   #else
         t_cur[0] = (g_run_fit_std) ? runFittingTestPlexGPU(cuFitter, ev, plex_tracks) : 0;
         t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHitGPU(ev, mkb, cuBuilder) : 0;
@@ -451,8 +459,8 @@ void test_standard()
 
       if (!Config::silent) {
         std::lock_guard<std::mutex> printlock(Event::printmutex);
-        printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
-               t_best[0], t_best[1], t_best[2], t_best[3]);
+        printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f  FVMX = %.5f\n",
+               t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
       }
 
       // not protected by a mutex, may be inacccurate for multiple events in flight;
@@ -470,10 +478,10 @@ void test_standard()
   printf("=== TOTAL for %d events\n", Config::nEvents);
   printf("================================================================\n");
 
-  printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
-         t_sum[0], t_sum[1], t_sum[2], t_sum[3]);
-  printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
-         t_skip[0], t_skip[1], t_skip[2], t_skip[3]);
+  printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f  FVMX = %.5f\n",
+         t_sum[0], t_sum[1], t_sum[2], t_sum[3], t_sum[4]);
+  printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f  FVMX = %.5f\n",
+         t_skip[0], t_skip[1], t_skip[2], t_skip[3], t_skip[4]);
   printf("Total event loop time %.5f simtracks %d seedtracks %d\n", time, simtrackstot.load(), seedstot.load());
   //fflush(stdout);
 
@@ -566,6 +574,7 @@ int main(int argc, const char *argv[])
         "  --build-bh               run best-hit building test (def: false)\n"
         "  --build-std              run standard combinatorial building test (def: false)\n"
         "  --build-ce               run clone engine combinatorial building test (def: false)\n"
+        "  --build-fv               run full vector combinatorial building test (def: false)\n"
         "  --seeds-per-task         number of seeds to process in a tbb task (def: %d)\n"
         "  --hits-per-task <num>    number of layer1 hits per task in finding seeds (def: %i)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
@@ -684,6 +693,10 @@ int main(int argc, const char *argv[])
     else if(*i == "--build-ce")
     {
       g_run_build_all = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = true;
+    }
+    else if(*i == "--build-fv")
+    {
+      g_run_build_all = false; g_run_build_fv = true;
     }
     else if (*i == "--seeds-per-task")
     {

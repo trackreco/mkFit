@@ -18,7 +18,6 @@ void fitTrack(const Track & trk, const TrackExtra& trkextra, int itrack, Event& 
   bool debug(false);
 #endif
   auto& evt_lay_hits = ev.layerHits_;
-  auto seedID = trkextra.seedID();
 
   auto trkLayers = trk.foundLayers(); // need the exact layers to make sure we are accessing the right hits for conformal fit!
 #ifdef INWARDFIT

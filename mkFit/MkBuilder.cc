@@ -174,8 +174,6 @@ MkBuilder::MkBuilder() :
   m_event(0),
   m_event_of_hits(Config::TrkInfo)
 {
-  const TrackerInfo &ti = Config::TrkInfo;
-
   m_fndfoos_brl = { kalmanPropagateAndComputeChi2,       kalmanPropagateAndUpdate,       &MkBase::PropagateTracksToR };
   m_fndfoos_ec  = { kalmanPropagateAndComputeChi2Endcap, kalmanPropagateAndUpdateEndcap, &MkBase::PropagateTracksToZ };
 
@@ -398,9 +396,8 @@ void MkBuilder::create_seeds_from_sim_tracks()
 
     seeds.emplace_back( Track(src.state(), 0, src.label(), h_sel, new_hots) );
 
-    Track &dst = seeds.back();
     dprintf("  Seed nh=%d, last_lay=%d, last_idx=%d\n",
-            dst.nTotalHits(), dst.getLastHitLyr(), dst.getLastHitIdx());
+            seeds.back().nTotalHits(), seeds.back().getLastHitLyr(), seeds.back().getLastHitIdx());
     // dprintf("  "); for (int i=0; i<dst.nTotalHits();++i) printf(" (%d/%d)", dst.getHitIdx(i), dst.getHitLyr(i)); printf("\n");
   }
 
@@ -412,7 +409,7 @@ void MkBuilder::import_seeds()
   // Seeds are placed into eta regions and sorted on eta. Counts for each eta region are
   // stored into Event::seedEtaSeparators_.
 
-  bool debug = true;
+  //bool debug = true;
 
   TrackerInfo &trk_info = Config::TrkInfo;
   TrackVec    &seeds    = m_event->seedTracks_;
@@ -650,8 +647,6 @@ void MkBuilder::fit_seeds()
 
   // debug = true;
 
-  g_exe_ctx.populate(Config::numThreadsFinder);
-  const TrackerInfo &trk_info = Config::TrkInfo;
   TrackVec& seedtracks = m_event->seedTracks_;
 
   dcall(print_seeds(seedtracks));
@@ -1167,8 +1162,6 @@ void MkBuilder::FindTracksBestHit()
 {
   // debug = true;
 
-  g_exe_ctx.populate(Config::numThreadsFinder);
-
   TrackVec &cands = m_event->candidateTracks_;
 
   tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
@@ -1256,7 +1249,7 @@ void MkBuilder::FindTracksBestHit()
 
           dcall(post_prop_print(curr_layer, mkfndr.get()));
 
-          mkfndr->SelectHitIndices(layer_of_hits, curr_tridx, false);
+          mkfndr->SelectHitIndices(layer_of_hits, curr_tridx);
 
 // if (Config::dumpForPlots) {
 // 	     std::cout << "MX number of hits in window in layer " << curr_layer << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
@@ -1342,8 +1335,6 @@ void MkBuilder::FindTracksStandard()
 {
   // bool debug = true;
 
-  g_exe_ctx.populate(Config::numThreadsFinder);
-
   EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
   tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
@@ -1354,11 +1345,12 @@ void MkBuilder::FindTracksStandard()
 
     const RegionOfSeedIndices rosi(m_event, region);
 
-    int adaptiveSPT = eoccs.m_size / Config::numThreadsFinder / 2 + 1;
-    dprint("adaptiveSPT " << adaptiveSPT << " fill " << eoccs.m_size);
+    // adaptive seeds per task based on the total estimated amount of work to divide among all threads
+    const int adaptiveSPT = clamp(Config::numThreadsEvents*eoccs.m_size/Config::numThreadsFinder + 1, 4, Config::numSeedsPerTask);
+    dprint("adaptiveSPT " << adaptiveSPT << " fill " << rosi.count() << "/" << eoccs.m_size << " region " << region);
 
     // loop over seeds
-    tbb::parallel_for(rosi.tbb_blk_rng_std(/*adaptiveSPT*/),
+    tbb::parallel_for(rosi.tbb_blk_rng_std(adaptiveSPT),
       [&](const tbb::blocked_range<int>& seeds)
     {
       FINDER( mkfndr );
@@ -1425,7 +1417,7 @@ void MkBuilder::FindTracksStandard()
           dcall(post_prop_print(curr_layer, mkfndr.get()));
 
           dprint("now get hit range");
-          mkfndr->SelectHitIndices(layer_of_hits, end - itrack, false);
+          mkfndr->SelectHitIndices(layer_of_hits, end - itrack);
 
 	  // if(Config::dumpForPlots) {
 	  //std::cout << "MX number of hits in window in layer " << curr_layer << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
@@ -1506,19 +1498,18 @@ void MkBuilder::FindTracksCloneEngine()
 {
   // debug = true;
 
-  g_exe_ctx.populate(Config::numThreadsFinder);
-
   EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
   tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
     [&](int region)
   {
-    int adaptiveSPT = eoccs.m_size / Config::numThreadsFinder / 2 + 1;
-    dprint("adaptiveSPT " << adaptiveSPT << " fill " << eoccs.m_size);
+    // adaptive seeds per task based on the total estimated amount of work to divide among all threads
+    const int adaptiveSPT = clamp(Config::numThreadsEvents*eoccs.m_size/Config::numThreadsFinder + 1, 4, Config::numSeedsPerTask);
+    dprint("adaptiveSPT " << adaptiveSPT << " fill " << rosi.count() << "/" << eoccs.m_size << " region " << region);
 
     const RegionOfSeedIndices rosi(m_event, region);
 
-    tbb::parallel_for(rosi.tbb_blk_rng_std(/*adaptiveSPT*/),
+    tbb::parallel_for(rosi.tbb_blk_rng_std(adaptiveSPT),
       [&](const tbb::blocked_range<int>& seeds)
     {
       CLONER( cloner );
@@ -1628,7 +1619,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 
       dprint("now get hit range");
 
-      mkfndr->SelectHitIndices(layer_of_hits, end - itrack, false);
+      mkfndr->SelectHitIndices(layer_of_hits, end - itrack);
 
       // if (Config::dumpForPlots) {
       //std::cout << "MX number of hits in window in layer " << curr_layer << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
@@ -1730,4 +1721,129 @@ void MkBuilder::BackwardFit(MkFinder *mkfndr, int start_seed, int end_seed, int 
     // }
   }
 
+}
+
+//------------------------------------------------------------------------------
+// FindTracksCombinatorial: FullVector TBB
+//------------------------------------------------------------------------------
+
+void MkBuilder::FindTracksFV()
+{
+  EventOfCombCandidates &eoccs = m_event_of_comb_cands;
+
+  tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
+    [&](int region)
+  {
+    const RegionOfSeedIndices rosi(m_event, region);
+
+    // adaptive seeds per task based on the total estimated amount of work to divide among all threads
+    const int adaptiveSPT = clamp(Config::numThreadsEvents*eoccs.m_size/Config::numThreadsFinder + 1, 4, Config::numSeedsPerTask);
+    dprint("adaptiveSPT " << adaptiveSPT << " fill " << rosi.count() << "/" << eoccs.m_size << " region " << region);
+
+    tbb::parallel_for(rosi.tbb_blk_rng_std(adaptiveSPT),
+      [&](const tbb::blocked_range<int>& seeds)
+    {
+      find_tracks_in_layersFV(seeds.begin(), seeds.end(), region);
+    });
+  });
+}
+
+void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region)
+{
+#ifdef INSTANTIATE_FV
+  EventOfCombCandidates  &eoccs             = m_event_of_comb_cands;
+  const SteeringParams   &st_par            = m_steering_params[region];
+  const TrackerInfo      &trk_info          = Config::TrkInfo;
+
+  struct finders_sentry {
+    finders_sentry(int n) { fv = g_exe_ctx.getFV(n); }
+    ~finders_sentry() { g_exe_ctx.pushFV(std::move(fv)); }
+    MkFinderFvVec fv;
+  };
+
+  const int nMplx = MkFinderFv::nMplx(end_seed - start_seed);
+  finders_sentry sentry(nMplx);
+  MkFinderFvVec& finders = sentry.fv;
+
+  int iseed = start_seed;
+  for (int index = 0; index < nMplx; ++index) {
+    for (int offset = 0; offset < MkFinderFv::Seeds; ++offset) {
+      dprint("seed " << iseed << " index " << index << " offset " << offset);
+      finders[index].InputTrack(eoccs.m_candidates[iseed][0], iseed, offset, false);
+      iseed = std::min(++iseed, end_seed-1);
+    }
+  }
+
+  // Loop over layers, starting from after the seed.
+  // Note that we do a final pass with curr_layer = -1 to update parameters
+  // and output final tracks.
+
+  auto layer_plan_it = st_par.finding_begin();
+
+  assert( layer_plan_it->m_pickup_only );
+
+  int curr_layer = layer_plan_it->m_layer;
+  int prev_layer;
+
+  dprintf("\nMkBuilder::find_tracks_in_layersFV region=%d, seed_pickup_layer=%d, first_layer=%d seeds=%d,%d\n",
+          region, curr_layer, (layer_plan_it + 1)->m_layer, start_seed, end_seed);
+
+  // Loop over layers according to plan.
+  while (++layer_plan_it != st_par.finding_end())
+  {
+    prev_layer = curr_layer;
+    curr_layer = layer_plan_it->m_layer;
+
+    const bool pickup_only = layer_plan_it->m_pickup_only;
+
+    dprintf("\n* Processing layer %d, %s\n", curr_layer, pickup_only ? "pickup only" : "full finding");
+
+    const LayerInfo   &layer_info    = trk_info.m_layers[curr_layer];
+    const LayerOfHits &layer_of_hits = m_event_of_hits.m_layers_of_hits[curr_layer];
+    const FindingFoos &fnd_foos      = layer_info.is_barrel() ? m_fndfoos_brl : m_fndfoos_ec;
+
+    if (pickup_only) continue;
+
+    //vectorized loop
+    for (int index = 0; index < nMplx; ++index)
+    {
+      dprint("processing index=" << index << "/" << nMplx);
+
+      auto& mkfndr = finders[index];
+
+      // propagate to current layer
+      (mkfndr.*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, mkfndr.nnfv());
+
+      mkfndr.SelectHitIndices(layer_of_hits);
+
+      // if (Config::dumpForPlots) {
+      //std::cout << "MX number of hits in window in layer " << curr_layer << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
+      // }
+
+      mkfndr.FindCandidates(layer_of_hits, fnd_foos);
+      mkfndr.SelectBestCandidates(layer_of_hits);
+      mkfndr.UpdateWithLastHit(layer_of_hits, fnd_foos);
+    } //end of vectorized loop
+  } // end of layer loop
+
+  // final sorting
+  // final output
+  int is = 0;
+  for (int iseed = start_seed; iseed < end_seed; ++iseed, ++is) {
+    const int index = is/MkFinderFv::Seeds;
+    const int offset = is - index*MkFinderFv::Seeds;
+
+    auto& mkf = finders[index];
+    auto best = mkf.BestCandidate(offset);
+    if (best >= 0) {
+      mkf.OutputTrack(eoccs.m_candidates[iseed], 0, best, true);
+    }
+  }
+  // final backward fit
+  if (Config::backwardFit)
+  {
+    FINDER( mkfndr );
+    BackwardFit(mkfndr.get(), start_seed, end_seed, region);
+  }
+#endif
 }

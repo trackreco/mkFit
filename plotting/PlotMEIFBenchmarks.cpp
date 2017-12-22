@@ -1,11 +1,12 @@
 #include "plotting/PlotMEIFBenchmarks.hh"
 
-PlotMEIFBenchmarks::PlotMEIFBenchmarks(const TString & arch, const TString & sample) : arch(arch), sample(sample)
+PlotMEIFBenchmarks::PlotMEIFBenchmarks(const TString & arch, const TString & sample, const TString &  build)
+  : arch(arch), sample(sample), build(build)
 {
   gStyle->SetOptStat(0);
 
   // get file
-  file = TFile::Open("benchmarkMEIF_"+arch+"_"+sample+".root");
+  file = TFile::Open("benchmarkMEIF_"+arch+"_"+sample+"_"+build+".root");
 
   // setup enum
   if      (arch.Contains("SNB")) ARCH = SNB;
@@ -42,10 +43,10 @@ void PlotMEIFBenchmarks::RunMEIFBenchmarkPlots()
   const TString ytitlespeedup = "Average Speedup per Event";
 
   // Do the overlaying!
-  PlotMEIFBenchmarks::MakeOverlay("time",sample+" Multiple Events in Flight Benchmark on "+arch+" [nVU="+nvu+"]",xtitleth,ytitletime,
+  PlotMEIFBenchmarks::MakeOverlay("time",build+" "+sample+" Multiple Events in Flight Benchmark on "+arch+" [nVU="+nvu+"]",xtitleth,ytitletime,
 				  arch_opt.thmin,arch_opt.thmax,arch_opt.thmeiftimemin,arch_opt.thmeiftimemax);
 
-  PlotMEIFBenchmarks::MakeOverlay("speedup",sample+" Multiple Events in Flight Speedup on "+arch+" [nVU="+nvu+"]",xtitleth,ytitlespeedup,
+  PlotMEIFBenchmarks::MakeOverlay("speedup",build+" "+sample+" Multiple Events in Flight Speedup on "+arch+" [nVU="+nvu+"]",xtitleth,ytitlespeedup,
 				  arch_opt.thmin,arch_opt.thmax,arch_opt.thmeifspeedupmin,arch_opt.thmeifspeedupmax);
 }
 
@@ -73,7 +74,7 @@ void PlotMEIFBenchmarks::MakeOverlay(const TString & text, const TString & title
   for (UInt_t i = 0; i < events.size(); i++)
   {
     const TString nEV = Form("%i",events[i].nev);
-    graphs[i] = (TGraph*)file->Get("g_CE_MEIF_nEV"+nEV+"_"+text);
+    graphs[i] = (TGraph*)file->Get("g_"+build+"_MEIF_nEV"+nEV+"_"+text);
     graphs[i]->SetTitle(title+";"+xtitle+";"+ytitle);
 
     graphs[i]->SetLineWidth(2);
@@ -107,7 +108,7 @@ void PlotMEIFBenchmarks::MakeOverlay(const TString & text, const TString & title
   leg->Draw("SAME");
 
   // Save the png
-  const TString outname = arch+"_"+sample+"_MEIF_"+text;
+  const TString outname = arch+"_"+sample+"_"+build+"_MEIF_"+text;
   canv->SaveAs(outname+".png");
   
   // Save log-x version

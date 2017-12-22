@@ -101,8 +101,8 @@ public:
       if (m_has_r_range_hole)
       {
         const float r2 = r*r;
-        if (r < m_hole_r2_max - dr && r > m_hole_r2_min + dr)  return WSR_Result(WSR_Outside, true);
-        if (r < m_hole_r2_max + dr && r > m_hole_r2_min - dr ) return WSR_Result(WSR_Edge,    true);
+        if (r2 < m_hole_r2_max - dr && r2 > m_hole_r2_min + dr)  return WSR_Result(WSR_Outside, true);
+        if (r2 < m_hole_r2_max + dr && r2 > m_hole_r2_min - dr ) return WSR_Result(WSR_Edge,    true);
       }
       return WSR_Result(WSR_Inside, false);
     }
