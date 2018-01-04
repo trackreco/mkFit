@@ -1410,7 +1410,6 @@ void MkBuilder::FindTracksStandard()
 
           (mkfndr.get()->*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, end - itrack,
                                                     Config::finding_inter_layer_pflags);
-          // XXXX-MFMAT-review
 
 
           dcall(post_prop_print(curr_layer, mkfndr.get()));
@@ -1610,7 +1609,6 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
       // propagate to current layer
       (mkfndr->*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, end - itrack,
                                           Config::finding_inter_layer_pflags);
-      // XXXX-MFMAT-review
 
 
       // copy_out the propagated track params, errors only (hit-idcs and chi2 already updated)
