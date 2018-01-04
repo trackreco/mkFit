@@ -176,14 +176,16 @@ void extendCandidate(const BinInfoMap & segmentMap, const Event& ev, const cand_
   const auto& evt_lay_hits(ev.layerHits_);
   const auto& segLayMap(segmentMap[ilayer]);
 
+  const PropagationFlags pflags(PF_none);
+
   dprint("processing candidate with nHits=" << tkcand.nFoundHits());
 #ifdef LINEARINTERP
-  TrackState propState = propagateHelixToR(updatedState,ev.geom_.Radius(ilayer));
+  TrackState propState = propagateHelixToR(updatedState, ev.geom_.Radius(ilayer), pflags);
 #else
 #ifdef TBB
 #error "Invalid combination of options (thread safety)"
 #endif
-  TrackState propState = propagateHelixToLayer(updatedState,ilayer,ev.geom_);
+  TrackState propState = propagateHelixToLayer(updatedState, ilayer,ev.geom_, pflags);
 #endif // LINEARINTERP
 #ifdef CHECKSTATEVALID
   if (!propState.valid) {
@@ -221,7 +223,7 @@ void extendCandidate(const BinInfoMap & segmentMap, const Event& ev, const cand_
     const float deltaR = maxR - minR;
     dprint("min, max, delta: " << minR << ", " << maxR << ", " << deltaR);
     const TrackState propStateMin = propState;
-    const TrackState propStateMax = propagateHelixToR(updatedState,maxR);
+    const TrackState propStateMax = propagateHelixToR(updatedState, maxR, pflags);
 #ifdef CHECKSTATEVALID
     if (!propStateMax.valid) {
       return;
