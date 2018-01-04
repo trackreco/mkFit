@@ -735,7 +735,7 @@ inline void MkBuilder::fit_one_seed_set(TrackVec& seedtracks, int itrack, int en
 
   if (Config::seedInput != cmsswSeeds)
   {
-    mkfttr->FitTracksSteered(is_brl, end - itrack, m_event);
+    mkfttr->FitTracksSteered(is_brl, end - itrack, m_event, Config::seed_fit_pflags);
   }
 
   mkfttr->OutputFittedTracksAndHitIdx(m_event->seedTracks_, itrack, end, false);
@@ -1244,8 +1244,7 @@ void MkBuilder::FindTracksBestHit()
           dcall(pre_prop_print(curr_layer, mkfndr.get()));
 
           (mkfndr.get()->*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, curr_tridx,
-                                                    PF_use_param_b_field | PF_apply_material);
-          // XXXX-MFMAT-review
+                                                    Config::finding_inter_layer_pflags);
 
           dcall(post_prop_print(curr_layer, mkfndr.get()));
 
@@ -1410,7 +1409,7 @@ void MkBuilder::FindTracksStandard()
           dcall(pre_prop_print(curr_layer, mkfndr.get()));
 
           (mkfndr.get()->*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, end - itrack,
-                                                    PF_use_param_b_field | PF_apply_material);
+                                                    Config::finding_inter_layer_pflags);
           // XXXX-MFMAT-review
 
 
@@ -1610,7 +1609,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 
       // propagate to current layer
       (mkfndr->*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, end - itrack,
-                                          PF_use_param_b_field | PF_apply_material);
+                                          Config::finding_inter_layer_pflags);
       // XXXX-MFMAT-review
 
 
@@ -1812,7 +1811,7 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
       auto& mkfndr = finders[index];
 
       // propagate to current layer
-      (mkfndr.*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, mkfndr.nnfv(), PF_use_param_b_field);
+      (mkfndr.*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, mkfndr.nnfv(), Config::finding_inter_layer_pflags);
 
       mkfndr.SelectHitIndices(layer_of_hits);
 

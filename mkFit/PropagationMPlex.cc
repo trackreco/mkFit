@@ -382,18 +382,18 @@ void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg,
 
 void helixAtRFromIterativeCCS(const MPlexLV& inPar,     const MPlexQI& inChg, const MPlexQF &msRad,
                                     MPlexLV& outPar,          MPlexLL& errorProp,
-                              const int      N_proc,    const PropagationFlags pf)
+                              const int      N_proc,    const PropagationFlags pflags)
 {
   errorProp.SetVal(0.f);
 
-  helixAtRFromIterativeCCS_impl(inPar, inChg, msRad, outPar, errorProp, 0, NN, N_proc, pf);
+  helixAtRFromIterativeCCS_impl(inPar, inChg, msRad, outPar, errorProp, 0, NN, N_proc, pflags);
 }
 
 
 void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
                             const MPlexQI &inChg,  const MPlexQF& msRad, 
 			          MPlexLS &outErr,       MPlexLV& outPar,
-                            const int      N_proc, const PropagationFlags pf)
+                            const int      N_proc, const PropagationFlags pflags)
 {
    outErr = inErr;
    outPar = inPar; // XXXX-4G is this requirement for helixAtRFromIterativeCCS_XXX ??? We should document it there.
@@ -401,7 +401,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 
    MPlexLL errorProp;
 
-   helixAtRFromIterativeCCS(inPar, inChg, msRad, outPar, errorProp, N_proc, pf.use_param_b_field);
+   helixAtRFromIterativeCCS(inPar, inChg, msRad, outPar, errorProp, N_proc, pflags.use_param_b_field);
 
 #ifdef DEBUG
    {
@@ -421,7 +421,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    }
 #endif
    
-   if (Config::useCMSGeom && pf.apply_material)
+   if (pflags.apply_material)
    {
      MPlexQF hitsRl;
      MPlexQF hitsXi;
@@ -487,14 +487,14 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
                             const MPlexQI &inChg,  const MPlexQF& msZ,
 			          MPlexLS &outErr,       MPlexLV& outPar,
-                            const int      N_proc, const PropagationFlags pf)
+                            const int      N_proc, const PropagationFlags pflags)
 {
    outErr = inErr;
    outPar = inPar;
 
    MPlexLL errorProp;
 
-   helixAtZ(inPar, inChg, msZ, outPar, errorProp, N_proc, pf);
+   helixAtZ(inPar, inChg, msZ, outPar, errorProp, N_proc, pflags);
 
 #ifdef DEBUG
    {
@@ -514,7 +514,7 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    }
 #endif
 
-   if (Config::useCMSGeom && pf.apply_material)
+   if (pflags.apply_material)
    {
      MPlexQF hitsRl;
      MPlexQF hitsXi;
@@ -565,7 +565,7 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 
 void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
                     MPlexLV& outPar,       MPlexLL& errorProp,
-	      const int      N_proc, const PropagationFlags pf)
+	      const int      N_proc, const PropagationFlags pflags)
 {
   errorProp.SetVal(0.f);
 
@@ -586,7 +586,7 @@ void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
       const float phiin = inPar.ConstAt(n, 4, 0);
       const float theta = inPar.ConstAt(n, 5, 0);
 
-      const float k = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*(pf.use_param_b_field?Config::BfieldFromZR(zin,hipo(inPar.ConstAt(n,0,0),inPar.ConstAt(n,1,0))):Config::Bfield));
+      const float k = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*(pflags.use_param_b_field?Config::BfieldFromZR(zin,hipo(inPar.ConstAt(n,0,0),inPar.ConstAt(n,1,0))):Config::Bfield));
 
       dprint_np(n, std::endl << "input parameters"
             << " inPar.ConstAt(n, 0, 0)=" << std::setprecision(9) << inPar.ConstAt(n, 0, 0)

@@ -444,7 +444,7 @@ void MkFitter::FitTracksWithInterSlurp(const std::vector<HitVec>& layersohits,
     msErr[0].SlurpIn(varr + off_error, idx, N_proc);
 #endif
 
-    PropagateTracksToHitR(msPar[0], N_proc, PF_use_param_b_field | PF_apply_material);
+    PropagateTracksToHitR(msPar[0], N_proc, Config::forward_fit_pflags);
 
     kalmanUpdate(Err[iP], Par[iP], msErr[0], msPar[0],
                  Err[iC], Par[iC], N_proc);
@@ -516,11 +516,9 @@ void MkFitter::ConformalFitTracks(bool fitting, int beg, int end)
   }
 }
 
-void MkFitter::FitTracks(const int N_proc, const Event * ev, const bool useParamBfield)
+void MkFitter::FitTracks(const int N_proc, const Event * ev, const PropagationFlags pflags)
 {
   // Fitting loop.
-
-  PropagationFlags pflags((useParamBfield ? PF_use_param_b_field : 0) | PF_apply_material);
 
   for (int hi = 0; hi < Nhits; ++hi)
   {
@@ -561,13 +559,11 @@ void MkFitter::CollectFitValidation(const int hi, const int N_proc, const Event 
   }
 }
 
-void MkFitter::FitTracksSteered(const bool is_barrel[], const int N_proc, const Event * ev, const bool useParamBfield)
+void MkFitter::FitTracksSteered(const bool is_barrel[], const int N_proc, const Event * ev, const PropagationFlags pflags)
 {
   // Fitting loop.
 
   dprintf("MkFitter::FitTracksSteered %d %d %d\n", is_barrel[0], is_barrel[1], is_barrel[2]);
-
-  PropagationFlags pflags((useParamBfield ? PF_use_param_b_field : 0) | PF_apply_material);
 
   for (int hi = 0; hi < Nhits; ++hi)
   {

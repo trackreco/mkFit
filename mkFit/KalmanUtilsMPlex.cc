@@ -470,14 +470,10 @@ void kalmanPropagateAndUpdate(const MPlexLS &psErr,  const MPlexLV& psPar, const
                                     MPlexLS &outErr,       MPlexLV& outPar,
                               const int      N_proc, const PropagationFlags propFlags)
 {
-  MPlexLS propErr;
-  MPlexLV propPar;
-
-  // XXXX The following if could go away if we use proper update_foos in
-  // steering and set them from geom. For now it is still here (I'm going
-  // crazy already as things are).
-
-  if (Config::useCMSGeom) {
+  if (Config::finding_requires_propagation_to_hit_pos)
+  {
+    MPlexLS propErr;
+    MPlexLV propPar;
     MPlexQF msRad;
 #pragma simd
     for (int n = 0; n < NN; ++n)
@@ -486,13 +482,15 @@ void kalmanPropagateAndUpdate(const MPlexLS &psErr,  const MPlexLV& psPar, const
     }
 
     propagateHelixToRMPlex(psErr, psPar, inChg, msRad, propErr, propPar, N_proc, propFlags);
-  } else {
-    propErr = psErr;
-    propPar = psPar;
-  }
 
-  kalmanOperation(KFO_Update_Params, propErr, propPar, msErr, msPar,
-                  outErr, outPar, dummy_chi2, N_proc);
+    kalmanOperation(KFO_Update_Params, propErr, propPar, msErr, msPar,
+                    outErr, outPar, dummy_chi2, N_proc);
+  }
+  else
+  {
+    kalmanOperation(KFO_Update_Params, psErr, psPar, msErr, msPar,
+                    outErr, outPar, dummy_chi2, N_proc);
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -511,10 +509,10 @@ void kalmanPropagateAndComputeChi2(const MPlexLS &psErr,  const MPlexLV& psPar, 
                                          MPlexQF& outChi2,
                                    const int      N_proc, const PropagationFlags propFlags)
 {
-  MPlexLS propErr;
-  MPlexLV propPar;
-
-  if (Config::useCMSGeom) {
+  if (Config::finding_requires_propagation_to_hit_pos)
+  {
+    MPlexLS propErr;
+    MPlexLV propPar;
     MPlexQF msRad;
 #pragma simd
     for (int n = 0; n < NN; ++n)
@@ -523,13 +521,15 @@ void kalmanPropagateAndComputeChi2(const MPlexLS &psErr,  const MPlexLV& psPar, 
     }
 
     propagateHelixToRMPlex(psErr, psPar, inChg, msRad, propErr, propPar, N_proc, propFlags);
-  } else {
-    propErr = psErr;
-    propPar = psPar;
-  }
 
-  kalmanOperation(KFO_Calculate_Chi2, propErr, propPar, msErr, msPar,
-                  dummy_err, dummy_par, outChi2, N_proc);
+    kalmanOperation(KFO_Calculate_Chi2, propErr, propPar, msErr, msPar,
+                    dummy_err, dummy_par, outChi2, N_proc);
+  }
+  else
+  {
+    kalmanOperation(KFO_Calculate_Chi2, psErr, psPar, msErr, msPar,
+                    dummy_err, dummy_par, outChi2, N_proc);
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -688,14 +688,10 @@ void kalmanPropagateAndUpdateEndcap(const MPlexLS &psErr,  const MPlexLV& psPar,
                                           MPlexLS &outErr,       MPlexLV& outPar,
                                     const int      N_proc, const PropagationFlags propFlags)
 {
-  MPlexLS propErr;
-  MPlexLV propPar;
-
-  // XXXX The following if could go away if we use proper update_foos in
-  // steering and set them from geom. For now it is still here (I'm going
-  // crazy already as things are).
-
-  if (Config::useCMSGeom) {
+  if (Config::finding_requires_propagation_to_hit_pos)
+  {
+    MPlexLS propErr;
+    MPlexLV propPar;
     MPlexQF msZ;
 #pragma simd
     for (int n = 0; n < NN; ++n)
@@ -704,13 +700,15 @@ void kalmanPropagateAndUpdateEndcap(const MPlexLS &psErr,  const MPlexLV& psPar,
     }
 
     propagateHelixToZMPlex(psErr, psPar, inChg, msZ, propErr, propPar, N_proc, propFlags);
-  } else {
-    propErr = psErr;
-    propPar = psPar;
-  }
 
-  kalmanOperationEndcap(KFO_Update_Params, propErr, propPar, msErr, msPar,
-                        outErr, outPar, dummy_chi2, N_proc);
+    kalmanOperationEndcap(KFO_Update_Params, propErr, propPar, msErr, msPar,
+                          outErr, outPar, dummy_chi2, N_proc);
+  }
+  else
+  {
+    kalmanOperationEndcap(KFO_Update_Params, psErr, psPar, msErr, msPar,
+                          outErr, outPar, dummy_chi2, N_proc);
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -729,10 +727,10 @@ void kalmanPropagateAndComputeChi2Endcap(const MPlexLS &psErr,  const MPlexLV& p
                                                MPlexQF& outChi2,
                                          const int      N_proc, const PropagationFlags propFlags)
 {
-  MPlexLS propErr;
-  MPlexLV propPar;
-
-  if (Config::useCMSGeom) {
+  if (Config::finding_requires_propagation_to_hit_pos)
+  {
+    MPlexLS propErr;
+    MPlexLV propPar;
     MPlexQF msZ;
 #pragma simd
     for (int n = 0; n < NN; ++n)
@@ -741,13 +739,15 @@ void kalmanPropagateAndComputeChi2Endcap(const MPlexLS &psErr,  const MPlexLV& p
     }
 
     propagateHelixToZMPlex(psErr, psPar, inChg, msZ, propErr, propPar, N_proc, propFlags);
-  } else {
-    propErr = psErr;
-    propPar = psPar;
-  }
 
-  kalmanOperationEndcap(KFO_Calculate_Chi2, propErr, propPar, msErr, msPar,
-                             dummy_err, dummy_par, outChi2, N_proc);
+    kalmanOperationEndcap(KFO_Calculate_Chi2, propErr, propPar, msErr, msPar,
+                          dummy_err, dummy_par, outChi2, N_proc);
+  }
+  else
+  {
+    kalmanOperationEndcap(KFO_Calculate_Chi2, psErr, psPar, msErr, msPar,
+                          dummy_err, dummy_par, outChi2, N_proc);
+  }
 }
 
 //------------------------------------------------------------------------------

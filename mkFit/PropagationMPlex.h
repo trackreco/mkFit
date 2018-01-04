@@ -28,7 +28,7 @@ void propagateLineToRMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
 void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
                             const MPlexQI &inChg,  const MPlexQF& msRad,
                                   MPlexLS &outErr,       MPlexLV& outPar,
-                            const int      N_proc, const PropagationFlags pf);
+                            const int      N_proc, const PropagationFlags pflags);
 
 void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg, const MPlexQF &msRad,
                                            MPlexLV& outPar,      MPlexLL& errorProp,
@@ -36,16 +36,16 @@ void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg,
 
 void helixAtRFromIterativeCCS(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msRad,
                                     MPlexLV& outPar,       MPlexLL& errorProp,
-                              const int      N_proc, const PropagationFlags pf);
+                              const int      N_proc, const PropagationFlags pflags);
 
 void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
                             const MPlexQI &inChg,  const MPlexQF& msZ,
                                   MPlexLS &outErr,       MPlexLV& outPar,
-                            const int      N_proc, const PropagationFlags pf);
+                            const int      N_proc, const PropagationFlags pflags);
 
 void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
                     MPlexLV& outPar,       MPlexLL& errorProp,
-              const int      N_proc, const PropagationFlags pf);
+              const int      N_proc, const PropagationFlags pflags);
 
 void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, 
                                 MPlexLS &outErr,       MPlexLV& outPar,
