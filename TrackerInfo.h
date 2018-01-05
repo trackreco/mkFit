@@ -33,7 +33,7 @@ struct WSR_Result
 class LayerInfo
 {
 private:
-  bool  is_in_r2_hole(float r2) const { return r2 > m_hole_r2_min && r2 < m_hole_r2_max; }
+  bool  is_in_r_hole_no_check(float r) const { return r > m_hole_r_min && r < m_hole_r_max; }
 
 public:
   enum  LayerType_e { Undef = -1, Barrel = 0, EndCapPos = 1, EndCapNeg = 2 };
@@ -49,7 +49,7 @@ public:
 
   bool          m_is_outer         = false;
   bool          m_has_r_range_hole = false;
-  float         m_hole_r2_min, m_hole_r2_max; // This could be turned into std::function when needed.
+  float         m_hole_r_min, m_hole_r_max; // This could be turned into std::function when needed.
 
   // Selection limits
   float         m_q_bin; // > 0 - bin width, < 0 - number of bins
@@ -83,8 +83,7 @@ public:
   bool  is_within_r_limits(float r) const { return r > m_rin  && r < m_rout; }
   bool  is_within_q_limits(float q) const { return is_barrel() ? is_within_z_limits(q) : is_within_r_limits(q); }
 
-  bool  is_in_rsqr_hole(float r2)       const { return m_has_r_range_hole ? is_in_r2_hole(r2) : false; }
-  bool  is_in_xy_hole(float x, float y) const { return m_has_r_range_hole ? is_in_r2_hole(x*x + y*y): false; }
+  bool  is_in_r_hole      (float r) const { return m_has_r_range_hole ? is_in_r_hole_no_check(r) : false; }
 
   WSR_Result is_within_z_sensitive_region(float z, float dz) const
   {
@@ -100,9 +99,8 @@ public:
     {
       if (m_has_r_range_hole)
       {
-        const float r2 = r*r;
-        if (r2 < m_hole_r2_max - dr && r2 > m_hole_r2_min + dr)  return WSR_Result(WSR_Outside, true);
-        if (r2 < m_hole_r2_max + dr && r2 > m_hole_r2_min - dr ) return WSR_Result(WSR_Edge,    true);
+        if (r < m_hole_r_max - dr && r > m_hole_r_min + dr)  return WSR_Result(WSR_Outside, true);
+        if (r < m_hole_r_max + dr && r > m_hole_r_min - dr ) return WSR_Result(WSR_Edge,    true);
       }
       return WSR_Result(WSR_Inside, false);
     }

@@ -107,8 +107,6 @@ public:
   float min_dq()   const { return m_layer_info->m_select_min_dq;   }
   float max_dq()   const { return m_layer_info->m_select_max_dq;   }
 
-  bool  is_in_xy_hole(float x, float y) const { return m_layer_info->is_in_xy_hole(x, y); }
-
   // Testing bin filling
   static constexpr float m_fphi     = Config::m_nphi / Config::TwoPI;
   static constexpr int   m_phi_mask = 0x3ff;
