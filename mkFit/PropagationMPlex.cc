@@ -395,9 +395,12 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 			          MPlexLS &outErr,       MPlexLV& outPar,
                             const int      N_proc, const PropagationFlags pflags)
 {
+   // This is used further down when calculating similarity with errorProp (and before in DEBUG).
+   // MT: I don't think this really needed if we use inErr where required.
    outErr = inErr;
-   outPar = inPar; // XXXX-4G is this requirement for helixAtRFromIterativeCCS_XXX ??? We should document it there.
-                   // Or even better, do it there as it is somewhat counterintuitive :)
+   // This requirement for helixAtRFromIterativeCCS_impl() and for helixAtRFromIterativeCCSFullJac().
+   // MT: This should be properly handled in both functions (expecting input in output parameters sucks).
+   outPar = inPar;
 
    MPlexLL errorProp;
 
@@ -428,14 +431,13 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 #pragma simd
      for (int n = 0; n < NN; ++n) 
      {
-       const int zbin = getZbinME(outPar(n, 2, 0)); // XXXX-4K changed msPar_z to outPar_z
+       const int zbin = getZbinME(outPar(n, 2, 0));
        const int rbin = getRbinME(msRad (n, 0, 0));
        
        hitsRl(n, 0, 0) = (zbin>=0 && zbin<Config::nBinsZME) ? getRlVal(zbin,rbin) : 0.f; // protect against crazy propagations
        hitsXi(n, 0, 0) = (zbin>=0 && zbin<Config::nBinsZME) ? getXiVal(zbin,rbin) : 0.f; // protect against crazy propagations
      }
-     applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc); // XXXX-4K - why are we doing this on error before propagation ???
-                                                                   // Isn't the material calculated for this/current layer?
+     applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);
    }
 
    squashPhiMPlex(outPar,N_proc); // ensure phi is between |pi|
@@ -522,8 +524,8 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
      for (int n = 0; n < NN; ++n) 
      {
        const int zbin = getZbinME(msZ(n, 0, 0));
-       const int rbin = getRbinME(std::hypot(outPar(n, 0, 0), outPar(n, 1, 0)));  // XXXX-4K changed msPar_xy to outPar_xy
-       
+       const int rbin = getRbinME(std::hypot(outPar(n, 0, 0), outPar(n, 1, 0)));
+
        hitsRl(n, 0, 0) = (rbin>=0 && rbin<Config::nBinsRME) ? getRlVal(zbin,rbin) : 0.f; // protect against crazy propagations
        hitsXi(n, 0, 0) = (rbin>=0 && rbin<Config::nBinsRME) ? getXiVal(zbin,rbin) : 0.f; // protect against crazy propagations
      }
