@@ -949,6 +949,64 @@ void MkFinder::CopyOutParErr(std::vector<CombCandidate>& seed_cand_vec,
 // Backward Fit hack
 //==============================================================================
 
+void MkFinder::BkFitInputTracks(TrackVec& cands, int beg, int end)
+{
+  // SlurpIn based on XHit array - so Nhits is irrelevant.
+  // Could as well use HotArrays from tracks directly + a local cursor array to last hit.
+
+  const int   N_proc     = end - beg;
+  const Track &trk0      = cands[beg];
+  const char *varr       = (char*) &trk0;
+  const int   off_error  = (char*) trk0.errors().Array() - varr;
+  const int   off_param  = (char*) trk0.parameters().Array() - varr;
+
+  int idx[NN]      __attribute__((aligned(64)));
+
+  int itrack = 0;
+
+  for (int i = beg; i < end; ++i, ++itrack)
+  {
+    const Track &trk = cands[i];
+
+    Chg(itrack, 0, 0) = trk.charge();
+    CurHit[itrack]    = trk.nTotalHits() - 1;
+    HoTArr[itrack]    = trk.getHitsOnTrackArray();
+
+    idx[itrack] = (char*) &trk - varr;
+  }
+
+  Chi2.SetVal(0);
+
+#ifdef MIC_INTRINSICS
+  __m512i vi      = _mm512_load_epi32(idx);
+  Err[iC].SlurpIn(varr + off_error, vi, N_proc);
+  Par[iC].SlurpIn(varr + off_param, vi, N_proc);
+#else
+  Err[iC].SlurpIn(varr + off_error, idx, N_proc);
+  Par[iC].SlurpIn(varr + off_param, idx, N_proc);
+#endif
+
+  Err[iC].Scale(100.0f);
+}
+
+void MkFinder::BkFitOutputTracks(TrackVec& cands, int beg, int end)
+{
+  // Only copy out track params / errors / chi2, all the rest is ok.
+
+  int itrack = 0;
+  for (int i = beg; i < end; ++i, ++itrack)
+  {
+    Track &trk = cands[i];
+
+    Err[iC].CopyOut(itrack, trk.errors_nc().Array());
+    Par[iC].CopyOut(itrack, trk.parameters_nc().Array());
+
+    trk.setChi2(Chi2(itrack, 0, 0));
+  }
+}
+
+//------------------------------------------------------------------------------
+
 void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
 {
   // SlurpIn based on XHit array - so Nhits is irrelevant.
@@ -988,6 +1046,24 @@ void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
 
   Err[iC].Scale(100.0f);
 }
+
+void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
+{
+  // Only copy out track params / errors / chi2, all the rest is ok.
+
+  int itrack = 0;
+  for (int i = beg; i < end; ++i, ++itrack)
+  {
+    Track &trk = eocss[i][0];
+
+    Err[iC].CopyOut(itrack, trk.errors_nc().Array());
+    Par[iC].CopyOut(itrack, trk.parameters_nc().Array());
+
+    trk.setChi2(Chi2(itrack, 0, 0));
+  }
+}
+
+//------------------------------------------------------------------------------
 
 namespace { float e2s(float x) { return 1e4 * std::sqrt(x); } }
 
@@ -1087,21 +1163,5 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
 
     // update chi2
     Chi2.Add(tmp_chi2);
-  }
-}
-
-void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
-{
-  // Only copy out track params / errors / chi2, all the rest is ok.
-
-  int itrack = 0;
-  for (int i = beg; i < end; ++i, ++itrack)
-  {
-    Track &trk = eocss[i][0];
-
-    Err[iC].CopyOut(itrack, trk.errors_nc().Array());
-    Par[iC].CopyOut(itrack, trk.parameters_nc().Array());
-
-    trk.setChi2(Chi2(itrack, 0, 0));
   }
 }

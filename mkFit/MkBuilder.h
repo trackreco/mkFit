@@ -168,6 +168,7 @@ public:
   void FindTracksCloneEngine();
   void FindTracksFV();
 
+  void BackwardFitBH(MkFinder *mkfndr, int start_seed, int end_seed, int region);
   void BackwardFit(MkFinder *mkfndr, int start_seed, int end_seed, int region);
 
 #ifdef USE_CUDA

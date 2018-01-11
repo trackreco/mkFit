@@ -210,89 +210,10 @@ public:
 };
 
 
+
 //==============================================================================
+// CombinedCandidate and EventOfCombinedCandidates
 //==============================================================================
-
-// This should actually be a BunchOfCandidates that share common hit vector.
-// At the moment this is an EtaBin ...
-
-class EtaBinOfCandidates
-{
-public:
-  std::vector<Track> m_candidates;
-
-  int     m_capacity;
-  int     m_size;
-
-public:
-  EtaBinOfCandidates() :
-    m_candidates(Config::maxCandsPerEtaBin),
-    m_capacity  (Config::maxCandsPerEtaBin),
-    m_size      (0)
-  {}
-
-  void Reset()
-  {
-    m_size = 0;
-  }
-
-  void InsertTrack(const Track& track)
-  {
-    assert (m_size < m_capacity); // or something
-
-    m_candidates[m_size] = track;
-    ++m_size;
-  }
-
-  void SortByPhi()
-  {
-    std::sort(m_candidates.begin(), m_candidates.begin() + m_size, sortTrksByPhiMT);
-  }
-};
-
-class EventOfCandidates
-{
-public:
-  std::vector<EtaBinOfCandidates> m_etabins_of_candidates;
-
-public:
-  EventOfCandidates() :
-    m_etabins_of_candidates(Config::nEtaBin)
-  {}
-
-  void Reset()
-  {
-    for (auto &i : m_etabins_of_candidates)
-    {
-      i.Reset();
-    }
-  }
-
-  void InsertCandidate(const Track& track)
-  {
-    int bin = getEtaBinExtendedEdge(track.posEta());
-    // XXXX MT Had to add back this conditional for best-hit (bad seeds)
-    // Note also the ExtendedEdge above, this practically removes bin = -1
-    // occurence and improves efficiency.
-    if (bin != -1)
-    {
-      m_etabins_of_candidates[bin].InsertTrack(track);
-    }
-  }
-
-  void SortByPhi()
-  {
-    for (auto &i : m_etabins_of_candidates)
-    {
-      i.SortByPhi();
-    }
-  }
-};
-
-
-//-------------------------------------------------------
-// for combinatorial version, switch to vector of vectors
-//-------------------------------------------------------
 
 // This inheritance sucks but not doing it will require more changes.
 
@@ -304,6 +225,7 @@ public:
   SeedState_e m_state           = Dormant;
   int         m_last_seed_layer = -1;
 };
+
 
 class EventOfCombCandidates
 {
