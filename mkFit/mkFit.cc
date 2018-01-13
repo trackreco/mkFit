@@ -575,6 +575,7 @@ int main(int argc, const char *argv[])
         "  --build-std              run standard combinatorial building test (def: false)\n"
         "  --build-ce               run clone engine combinatorial building test (def: false)\n"
         "  --build-fv               run full vector combinatorial building test (def: false)\n"
+	"  --use-phiq-arr           use phi-Q arrays in select hit indices (def: %s)\n"
         "  --seeds-per-task         number of seeds to process in a tbb task (def: %d)\n"
         "  --hits-per-task <num>    number of layer1 hits per task in finding seeds (def: %i)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
@@ -618,6 +619,7 @@ int main(int argc, const char *argv[])
         Config::nTracks,
         Config::numThreadsSimulation, Config::numThreadsFinder, Config::numThreadsEvents,
         Config::chi2Cut,
+	b2a(Config::usePhiQArrays),
         Config::numSeedsPerTask,
 	Config::numHitsPerTask,
         Config::finderReportBestOutOfN,
@@ -683,6 +685,10 @@ int main(int argc, const char *argv[])
     {
       next_arg_or_die(mArgs, i);
       Config::chi2Cut = atof(i->c_str());
+    }
+    else if (*i == "--use-phiq-arr")
+    {
+      Config::usePhiQArrays = true;
     }
     else if(*i == "--build-bh")
     {

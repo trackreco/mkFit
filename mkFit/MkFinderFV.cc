@@ -209,37 +209,35 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
         for (int hi = L.m_phi_bin_infos[qi][pb].first; hi < L.m_phi_bin_infos[qi][pb].second; ++hi) {
           unsigned int pass[NN] = {};
           int itrack = iseed*ncands;
+	  if (Config::usePhiQArrays) {
 #pragma simd
-          for (int i = 0; i < ncands; ++i, ++itrack) {
-#if defined(LOH_USE_PHI_Q_ARRAYS)
-            const float q    = qv[itrack];
-            const float dq   = dqv[itrack];
-
-            const float phi  = phiv[itrack];
-            const float dphi = dphiv[itrack];
-
-            float ddq   = std::abs(q   - L.m_hit_qs[hi]);
-            float ddphi = std::abs(phi - L.m_hit_phis[hi]);
-            if (ddphi > Config::PI) ddphi = Config::TwoPI - ddphi;
-
-            dprintf("     SHI %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
-                     hi,
-                     L.m_hit_qs[hi], L.m_hit_phis[hi], q, phi,
-                     (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
-
-            // MT: Commenting this check out gives full efficiency ...
-            //     and means our error estimations are wrong!
-            // Avi says we should have *minimal* search windows per layer.
-            // Also ... if bins are sufficiently small, we do not need the extra
-            // checks, see above.
-            pass[itrack] = ddq < dq && ddphi < dphi;
-#else
-            pass[itrack] = true;
-#endif
+	    for (int i = 0; i < ncands; ++i, ++itrack) {
+	      const float q    = qv[itrack];
+	      const float dq   = dqv[itrack];
+	      
+	      const float phi  = phiv[itrack];
+	      const float dphi = dphiv[itrack];
+	      
+	      float ddq   = std::abs(q   - L.m_hit_qs[hi]);
+	      float ddphi = std::abs(phi - L.m_hit_phis[hi]);
+	      if (ddphi > Config::PI) ddphi = Config::TwoPI - ddphi;
+	      
+	      dprintf("     SHI %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
+		      hi,
+		      L.m_hit_qs[hi], L.m_hit_phis[hi], q, phi,
+		      (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
+	      
+	      // MT: Commenting this check out gives full efficiency ...
+	      //     and means our error estimations are wrong!
+	      // Avi says we should have *minimal* search windows per layer.
+	      // Also ... if bins are sufficiently small, we do not need the extra
+	      // checks, see above.
+	      pass[itrack] = ddq < dq && ddphi < dphi;
+	    }
           }
           itrack = iseed*ncands;
           for (int i = 0; i < ncands; ++i, ++itrack) {
-            if (pass[itrack] && XWsrResult[itrack].m_wsr != WSR_Outside && CandIdx[itrack] >= 0 && XHitSize[itrack] < MPlexHitIdxMax) {
+            if ((pass[itrack] || !Config::usePhiQArrays) && XWsrResult[itrack].m_wsr != WSR_Outside && CandIdx[itrack] >= 0 && XHitSize[itrack] < MPlexHitIdxMax) {
               XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
             }
           }

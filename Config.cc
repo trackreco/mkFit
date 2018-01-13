@@ -55,6 +55,8 @@ namespace Config
   PropagationFlags forward_fit_pflags;
   PropagationFlags seed_fit_pflags;
 
+  bool  usePhiQArrays = true;
+
   bool  useCMSGeom = false;
   bool  readCmsswTracks = false;
 

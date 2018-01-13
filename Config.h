@@ -241,6 +241,15 @@ namespace Config
   constexpr float mag_b1 = 7.53701e-06;
   constexpr float mag_a  = 2.43878e-11;
 
+  // Config for SelectHitIndices
+  // Use extra arrays to store phi and q of hits.
+  // MT: This would in principle allow fast selection of good hits, if
+  // we had good error estimates and reasonable *minimal* phi and q windows.
+  // Speed-wise, those arrays (filling AND access, about half each) cost 1.5%
+  // and could help us reduce the number of hits we need to process with bigger
+  // potential gains.
+  extern bool usePhiQArrays;
+
   // Config for seeding as well... needed bfield
   constexpr float maxCurvR = (100 * minSimPt) / (sol * Bfield); // in cm
 
