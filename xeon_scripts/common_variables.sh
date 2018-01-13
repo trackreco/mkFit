@@ -12,3 +12,9 @@ export KNL_TEMPDIR=tmp
 export LXPLUS_HOST=${USER}@lxplus.cern.ch
 export LXPLUS_WORKDIR=/afs/cern.ch/user/${USER:0:1}/${USER}
 export LXPLUS_OUTDIR=www
+
+# SSH options
+SSHO() {
+    ssh -o StrictHostKeyChecking=no < /dev/null "$@"
+}
+export -f SSHO

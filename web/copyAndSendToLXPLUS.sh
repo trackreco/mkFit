@@ -15,7 +15,7 @@ scp -r ${tarball} ${LXPLUS_HOST}:${LXPLUS_WORKDIR}/${LXPLUS_OUTDIR}
 
 # Make outdir nice and pretty
 echo "Unpack tarball and execute remotely ./makereadable.sh ${dir}"
-ssh ${LXPLUS_HOST} bash -c "'
+SSHO ${LXPLUS_HOST} bash -c "'
 cd ${LXPLUS_OUTDIR}
 tar -zxvf ${tarball}
 ./makereadable.sh ${dir}

@@ -44,7 +44,7 @@ else
 fi
 
 ## compile with appropriate options
-make distclean
+make distclean ${mOpt}
 make ${mOpt}
 
 ## Parallelization Benchmarks
