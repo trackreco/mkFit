@@ -1,6 +1,6 @@
 #! /bin/bash
 
-## SNB, KNC, or KNL
+## SNB or KNL
 arch=${1}
 
 ## In the case this is run separately from main script
@@ -27,17 +27,6 @@ then
     declare -a nths=("1" "2" "4" "6" "8" "12" "16" "20" "24")
     declare -a nvus=("1" "2" "4" "8")
     declare -a nevs=("1" "2" "4" "8" "12")
-elif [ ${arch} == "KNC" ]
-then
-    mOpt="-j 12 KNC_BUILD:=1"
-    dir=/nfsmic/slava77/samples
-    base=${arch}_${sample}
-    maxth=240
-    maxvu=16
-    exe="timeout 15m ssh -o StrictHostKeyChecking=no ${KNC_HOST} ./mkFit/mkFit-mic ${seeds} --input-file ${dir}/${subdir}/${file}"
-    declare -a nths=("1" "2" "4" "8" "15" "30" "60" "90" "120" "180" "240")
-    declare -a nvus=("1" "2" "4" "8" "16")
-    declare -a nevs=("1" "2" "4" "8" "16" "32")
 elif [ ${arch} == "KNL" ]
 then
     mOpt="-j 64 AVX_512:=1"
@@ -57,10 +46,6 @@ fi
 ## compile with appropriate options
 make distclean
 make ${mOpt}
-if [ ${arch} == "KNC" ] 
-then
-    ./xeon_scripts/copyToKNC.sh
-fi
 
 ## Parallelization Benchmarks
 for nth in "${nths[@]}"
@@ -104,16 +89,7 @@ done
 for nvu in "${nvus[@]}"
 do
     make clean ${mOpt}
-    if [ ${arch} == "KNC" ] 
-    then
-	./xeon_scripts/trashKNC.sh
-    fi
-
     make ${mOpt} USE_INTRINSICS:=-DMPT_SIZE=${nvu}
-    if [ ${arch} == "KNC" ] 
-    then
-	./xeon_scripts/copyToKNC.sh
-    fi
 
     for bV in "BH bh" "STD std" "CE ce" # "FV fv"
     do echo ${bV} | while read -r bN bO
@@ -138,7 +114,3 @@ done
 
 ## Final cleanup
 make distclean ${mOpt}
-if [ ${arch} == "KNC" ] 
-then
-    ./xeon_scripts/trashKNC.sh
-fi

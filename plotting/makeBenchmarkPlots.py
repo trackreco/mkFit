@@ -4,7 +4,7 @@ import array
 import math
 
 def run():
-    arch   = sys.argv[1] # SNB, KNC, KNL
+    arch   = sys.argv[1] # SNB, KNL
     sample = sys.argv[2] 
 
     g = ROOT.TFile('benchmark_'+arch+'_'+sample+'.root','recreate')
@@ -16,26 +16,29 @@ def run():
         vuvals = ['1','2','4','8']
         nth = '1'
 
-        if arch == 'KNC' or arch == 'KNL' :
+        if  arch == 'KNL' :
             vuvals.append('16')
             vuvals.append('16int')
-        else : 
+        elif arch == 'SNB' :
             vuvals.append('8int')
+        else :
+            print arch,'is not a valid architecture! Exiting...'
+            sys.exit(0)
 
         # call the make plots function
         if build != "FV" :
             makeplots(arch,sample,build,vuvals,nth,'VU')
 
         # Parallelization datapoints
-        if arch == 'KNC' or arch == 'KNL' :
+        if arch == 'KNL' :
             nvu = '16int'
-            if arch == 'KNC' :
-                thvals = ['1','2','4','8','15','30','60','90','120','180','240']
-            else : # KNL
-                thvals = ['1','2','4','8','16','32','64','96','128','160','192','224','256']
-        else : # SNB
+            thvals = ['1','2','4','8','16','32','64','96','128','160','192','224','256']
+        elif arch == 'SNB' :
             nvu = '8int'
             thvals = ['1','2','4','6','8','12','16','20','24']
+        else :
+            print arch,'is not a valid architecture! Exiting...'
+            sys.exit(0)
     
         # call the make plots function
         makeplots(arch,sample,build,thvals,nvu,'TH')
@@ -52,7 +55,7 @@ def makeplots(arch,sample,build,vals,nC,text):
     elif build is 'FV'  : pos = 17
     else :
         print build,'is not a valid test! Exiting...'
-        exit 
+        sys.exit(0)
 
     # time    
     print arch,sample,build,text

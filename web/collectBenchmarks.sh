@@ -10,7 +10,7 @@ builddir="Benchmarks"
 mkdir -p ${dir}/${builddir}
 mkdir -p ${dir}/${builddir}/logx
 
-for arch in SNB KNC KNL
+for arch in SNB KNL
 do
     for benchmark in TH VU
     do
@@ -29,7 +29,7 @@ meifdir="MultEvInFlight"
 mkdir -p ${dir}/${meifdir}
 mkdir -p ${dir}/${meifdir}/logx
 
-for arch in SNB KNC KNL
+for arch in SNB KNL
 do
     for build in CE FV ; do
         oBase=${arch}_${sample}_${build}_"MEIF"
@@ -69,8 +69,11 @@ done
 for rate in eff ineff_barrel ineff_endcap dr fr 
 do
     for var in pt phi eta
-    do
-	mv SNB_${sample}_${rate}_${var}_*_"ROOTVAL".png ${dir}/${rootdir}
+    do 
+	for pt in 0.0 0.9 2.0
+	do
+	    mv SNB_${sample}_${rate}_${var}_pt${pt}_"ROOTVAL".png ${dir}/${rootdir}
+	done
     done
 done
 
@@ -89,7 +92,10 @@ for rate in eff ineff_barrel ineff_endcap dr fr
 do
     for var in pt phi eta
     do
-	mv SNB_${sample}_${rate}_${var}_*_"CMSSWVAL".png ${dir}/${cmsswdir}
+	for pt in 0.0 0.9 2.0
+	do
+	    mv SNB_${sample}_${rate}_${var}_pt${pt}_"CMSSWVAL".png ${dir}/${cmsswdir}
+	done
     done
 done
 
@@ -97,6 +103,9 @@ for coll in bestmatch allmatch
 do 
     for var in nHits invpt phi eta
     do
-	mv SNB_${sample}_${coll}_d${var}_*.png ${dir}/${cmsswdir}/diffs
+	for pt in 0.0 0.9 2.0
+	do
+	    mv SNB_${sample}_${coll}_d${var}_pt${pt}_"CMSSWVAL".png ${dir}/${cmsswdir}/diffs
+	done
     done
 done

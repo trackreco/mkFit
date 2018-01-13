@@ -1,6 +1,7 @@
 #! /bin/bash
 
 ## In the case this is run separately from main script
+[ -z "$ROOTSYS" ] && source ~matevz/root/bin/thisroot.sh
 source xeon_scripts/common_variables.sh
 
 ## Common setup

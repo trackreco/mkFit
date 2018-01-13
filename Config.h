@@ -296,6 +296,7 @@ namespace Config
   constexpr float minCMSSWMatchChi2[6] = {100,100,50,50,30,20};
   constexpr float minCMSSWMatchdPhi[6] = {0.2,0.2,0.1,0.05,0.01,0.005};
   constexpr int   nCMSSWMatchHitsAfterSeed = 5;
+  extern bool quality_val;
   extern bool root_val;
   extern bool cmssw_val;
   extern bool fit_val;

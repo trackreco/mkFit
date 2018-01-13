@@ -3,25 +3,24 @@ import ROOT
 import array
 import math
 
-arch   = sys.argv[1] # SNB, KNC, KNL
+arch   = sys.argv[1] # SNB, KNL
 sample = sys.argv[2]
 build  = sys.argv[3] # CE, FV
 
 g = ROOT.TFile('benchmarkMEIF_'+arch+'_'+sample+'_'+build+'.root','recreate')
 
 # Parallelization datapoints
-if arch == 'KNC' or arch == 'KNL' :
+if arch == 'KNL' :
     nvu = '16int'
-    if arch == 'KNC' :
-        thvals = ['1','2','4','8','15','30','60','90','120','180','240']
-        evvals = ['1','2','4','8','16','32']
-    else : # KNL
-        thvals = ['1','2','4','8','16','32','64','96','128','160','192','224','256']
-        evvals = ['1','2','4','8','16','32','64','128']
-else : # SNB
+    thvals = ['1','2','4','8','16','32','64','96','128','160','192','224','256']
+    evvals = ['1','2','4','8','16','32','64','128']
+elif arch == 'SNB' :
     nvu = '8int'
-    evvals = ['1','2','4','8','12']
     thvals = ['1','2','4','6','8','12','16','20','24']
+    evvals = ['1','2','4','8','12']
+else :
+    print arch,"is not a valid architecture! Exiting..."
+    sys.exit(0)
 
 # extra text label
 text = 'MEIF'

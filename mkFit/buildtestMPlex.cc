@@ -111,8 +111,8 @@ double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
   __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
 
-  if   (!Config::root_val && !Config::cmssw_val) {
-    if (!Config::silent) builder.quality_output();
+  if        (Config::quality_val) {
+    builder.quality_output();
   } else if (Config::root_val) {
     builder.root_val();
   } else if (Config::cmssw_val) {
@@ -150,7 +150,7 @@ double runBuildingTestPlexBestHitGPU(Event& ev, MkBuilder& builder,
   builder_cu.tearDownBH();
 
   time = dtime() - time;
-  if   (!Config::normal_val) {
+  if   (Config::quality_val) {
     if (!Config::silent) builder.quality_output_BH(event_of_cands);
   } else {
     builder.root_val_BH(event_of_cands);
@@ -191,10 +191,10 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
   __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
 
-  if (!Config::silent)
+  if (Config::quality_val || Config::root_val || Config::cmssw_val)
   {
     builder.quality_store_tracks();
-    if (!Config::root_val && !Config::cmssw_val) {
+    if        (Config::quality_val) {
       builder.quality_output();
     } else if (Config::root_val) { 
       builder.root_val();
@@ -237,10 +237,10 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
   __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
 
-  if (!Config::silent)
+  if (Config::quality_val || Config::root_val || Config::cmssw_val)
   {
     builder.quality_store_tracks();
-    if (!Config::root_val && !Config::cmssw_val) {
+    if        (Config::quality_val) {
       builder.quality_output();
     } else if (Config::root_val) { 
       builder.root_val();
@@ -283,10 +283,10 @@ double runBuildingTestPlexFV(Event& ev, MkBuilder& builder)
   __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
 
-  if (!Config::silent)
+  if (Config::quality_val || Config::root_val || Config::cmssw_val)
   {
     builder.quality_store_tracks();
-    if (!Config::root_val && !Config::cmssw_val) {
+    if        (Config::quality_val) {
       builder.quality_output();
     } else if (Config::root_val) { 
       builder.root_val();
@@ -342,7 +342,7 @@ double runBuildingTestPlexCloneEngineGPU(Event& ev, EventTmp& ev_tmp,
   __itt_pause();
 #endif
 
-  if (!Config::normal_val) {
+  if (Config::quality_val) {
     if (!Config::silent) builder.quality_output_COMB();
   } else {builder.root_val_COMB();}
 

@@ -1015,7 +1015,7 @@ void MkBuilder::root_val()
 
   // get the tracks ready for validation
   remap_cand_hits();
-  m_event->fitTracks_ = m_event->candidateTracks_; // fixme: hack for now. eventually fitting will be including end-to-end
+  m_event->fitTracks_ = m_event->candidateTracks_; // if we decide to validate with BK fit against sim track params, then this can be dropped
   prep_recotracks();
   if (Config::seedInput == cmsswSeeds) m_event->clean_cms_simtracks();
 
