@@ -992,22 +992,6 @@ void MkFinder::BkFitInputTracks(TrackVec& cands, int beg, int end)
   Err[iC].Scale(100.0f);
 }
 
-void MkFinder::BkFitOutputTracks(TrackVec& cands, int beg, int end)
-{
-  // Only copy out track params / errors / chi2, all the rest is ok.
-
-  int itrack = 0;
-  for (int i = beg; i < end; ++i, ++itrack)
-  {
-    Track &trk = cands[i];
-
-    Err[iC].CopyOut(itrack, trk.errors_nc().Array());
-    Par[iC].CopyOut(itrack, trk.parameters_nc().Array());
-
-    trk.setChi2(Chi2(itrack, 0, 0));
-  }
-}
-
 //------------------------------------------------------------------------------
 
 void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
@@ -1059,8 +1043,8 @@ void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
   {
     Track &trk = eocss[i][0];
 
-    Err[iC].CopyOut(itrack, trk.errors_nc().Array());
-    Par[iC].CopyOut(itrack, trk.parameters_nc().Array());
+    Err[iP].CopyOut(itrack, trk.errors_nc().Array());
+    Par[iP].CopyOut(itrack, trk.parameters_nc().Array());
 
     trk.setChi2(Chi2(itrack, 0, 0));
   }
@@ -1072,7 +1056,7 @@ namespace { float e2s(float x) { return 1e4 * std::sqrt(x); } }
 
 void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
                               const SteeringParams& st_par,
-                              int N_proc, bool useParamBfield, bool chiDebug)
+                              const int N_proc, bool chiDebug)
 {
   // Prototyping final backward fit.
   // This works with track-finding indices, before remapping.
@@ -1167,4 +1151,9 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
     // update chi2
     Chi2.Add(tmp_chi2);
   }
+}
+
+void MkFinder::BkFitPropTracksToPCA(const int N_proc)
+{
+  PropagateTracksToPCAZ(N_proc, Config::pca_prop_pflags);
 }

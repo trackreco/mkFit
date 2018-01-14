@@ -54,6 +54,7 @@ namespace Config
   PropagationFlags backward_fit_pflags;
   PropagationFlags forward_fit_pflags;
   PropagationFlags seed_fit_pflags;
+  PropagationFlags pca_prop_pflags;
 
   bool  usePhiQArrays = true;
 

@@ -233,6 +233,7 @@ namespace Config
   extern PropagationFlags backward_fit_pflags;
   extern PropagationFlags forward_fit_pflags;
   extern PropagationFlags seed_fit_pflags;
+  extern PropagationFlags pca_prop_pflags;
 
   // Config for Bfield. Note: for now the same for CMS-2017 and CylCowWLids.
   constexpr float Bfield = 3.8112;

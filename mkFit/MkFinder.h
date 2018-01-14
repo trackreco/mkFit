@@ -149,13 +149,14 @@ public:
   const HitOnTrack *HoTArr[NN];
 
   void BkFitInputTracks (TrackVec& cands, int beg, int end);
-  void BkFitOutputTracks(TrackVec& cands, int beg, int end);
 
   void BkFitInputTracks (EventOfCombCandidates& eocss, int beg, int end);
   void BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end);
 
   void BkFitFitTracks(const EventOfHits& eventofhits, const SteeringParams& st_par,
-                      int N_proc, bool useParamBfield = false, bool chiDebug = false);
+                      const int N_proc, bool chiDebug = false);
+
+  void BkFitPropTracksToPCA(const int N_proc);
 
   //----------------------------------------------------------------------------
 

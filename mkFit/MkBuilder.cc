@@ -821,7 +821,7 @@ void MkBuilder::remap_seed_hits()
   }
 }
 
-void MkBuilder::remap_cand_hits()
+void MkBuilder::remap_cand_hits(TrackVec & tracks)
 {
   // map cand hit indices from hit indices in structure
   // m_event_of_hits.m_layers_of_hits[i].m_hits to global
@@ -841,7 +841,7 @@ void MkBuilder::remap_cand_hits()
     }
   }
 
-  for (auto&& track : m_event->candidateTracks_)
+  for (auto&& track : tracks)
   {
     for (int i = 0; i < track.nTotalHits(); ++i)
     {
@@ -861,11 +861,11 @@ void MkBuilder::remap_cand_hits()
 // Non-ROOT validation
 //------------------------------------------------------------------------------
 
-void MkBuilder::quality_output()
+void MkBuilder::quality_val()
 {
   quality_reset();
 
-  remap_cand_hits();
+  remap_cand_hits(m_event->candidateTracks_);
 
   std::map<int,int> cmsswLabelToPos;
   if (Config::dumpForPlots && Config::readCmsswTracks)
@@ -889,7 +889,7 @@ void MkBuilder::quality_reset()
   m_cnt = m_cnt1 = m_cnt2 = m_cnt_8 = m_cnt1_8 = m_cnt2_8 = m_cnt_nomc = 0;
 }
 
-void MkBuilder::quality_store_tracks()
+void MkBuilder::quality_store_tracks(TrackVec& tracks)
 {
   const EventOfCombCandidates &eoccs = m_event_of_comb_cands; 
 
@@ -905,7 +905,7 @@ void MkBuilder::quality_store_tracks()
       if (std::isnan(bcand.chi2())) ++chi2_nan_cnt;
       if (bcand.chi2() > 500)       ++chi2_500_cnt;
 
-      m_event->candidateTracks_.push_back(bcand);
+      tracks.push_back(bcand);
 
 #ifdef DEBUG_BACKWARD_FIT
       printf("CHITRK %d %g %g %g %g %g\n",
@@ -1014,8 +1014,9 @@ void MkBuilder::root_val()
   remap_seed_hits();
 
   // get the tracks ready for validation
-  remap_cand_hits();
-  m_event->fitTracks_ = m_event->candidateTracks_; // if we decide to validate with BK fit against sim track params, then this can be dropped
+  remap_cand_hits(m_event->candidateTracks_);
+  if (Config::backwardFit) remap_cand_hits(m_event->fitTracks_);
+  else m_event->fitTracks_ = m_event->candidateTracks_; 
   prep_recotracks();
   if (Config::seedInput == cmsswSeeds) m_event->clean_cms_simtracks();
 
@@ -1025,7 +1026,8 @@ void MkBuilder::root_val()
 void MkBuilder::cmssw_val()
 {
   // get the tracks ready for validation
-  remap_cand_hits();
+  remap_cand_hits(m_event->candidateTracks_);
+  remap_cand_hits(m_event->fitTracks_);
   prep_recotracks();
   prep_cmsswtracks();
 
@@ -1035,10 +1037,11 @@ void MkBuilder::cmssw_val()
 void MkBuilder::prep_recotracks()
 {
   prep_tracks(m_event->candidateTracks_,m_event->candidateTracksExtra_);
+  prep_tracks(m_event->fitTracks_,m_event->fitTracksExtra_);
+  
   if (Config::root_val)
   {
     prep_tracks(m_event->seedTracks_,m_event->seedTracksExtra_);
-    prep_tracks(m_event->fitTracks_,m_event->fitTracksExtra_);
   }
 }
 
@@ -1263,12 +1266,6 @@ void MkBuilder::FindTracksBestHit()
 
         mkfndr->OutputTracksAndHitIdx(cands, trk_idcs, 0, curr_tridx, false);
 
-        // final backward fit
-        if (Config::backwardFit)
-        {
-          BackwardFitBH(mkfndr.get(), rng.m_beg, rng.m_end, region);
-        }
-
         ++rng;
       } // end of loop over candidates in a tbb chunk
     }); // end parallel_for over candidates in a region
@@ -1485,11 +1482,6 @@ void MkBuilder::FindTracksStandard()
         std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
       }
 
-      // final backward fit
-      if (Config::backwardFit)
-      {
-        BackwardFit(mkfndr.get(), start_seed, end_seed, region);
-      }
     }); // end parallel-for over chunk of seeds within region
   }); // end of parallel-for-each over eta regions
 }
@@ -1669,12 +1661,6 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
     if (finalcands.size() == 0) continue;
     std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
   }
-
-  // final backward fit
-  if (Config::backwardFit)
-  {
-    BackwardFit(mkfndr, start_seed, end_seed, region);
-  }
 }
 
 
@@ -1794,12 +1780,6 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
       mkf.OutputTrack(eoccs.m_candidates[iseed], 0, best, true);
     }
   }
-  // final backward fit
-  if (Config::backwardFit)
-  {
-    FINDER( mkfndr );
-    BackwardFit(mkfndr.get(), start_seed, end_seed, region);
-  }
 #endif
 }
 
@@ -1808,18 +1788,55 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
 // BackwardFit
 //==============================================================================
 
-void MkBuilder::BackwardFitBH(MkFinder *mkfndr, int start_seed, int end_seed, int region)
+void MkBuilder::BackwardFitBH()
 {
-  TrackVec &cands = m_event->candidateTracks_;
+  // need to be properly sized in order to be dumped inside
+  m_event->fitTracks_.resize(m_event->candidateTracks_.size());
+  
+  tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
+    [&](int region)
+  {
+    // XXXXXX Select endcap / barrel only ...
+    // if (region != TrackerInfo::Reg_Endcap_Neg && region != TrackerInfo::Reg_Endcap_Pos)
+    // if (region != TrackerInfo::Reg_Barrel)
+    //   return;
 
+    const SteeringParams &st_par   = m_steering_params[region];
+    const TrackerInfo    &trk_info = Config::TrkInfo;
+
+    const RegionOfSeedIndices rosi(m_event, region);
+
+    tbb::parallel_for(rosi.tbb_blk_rng_vec(),
+      [&](const tbb::blocked_range<int>& blk_rng)
+    {
+      FINDER( mkfndr );
+
+      RangeOfSeedIndices rng = rosi.seed_rng(blk_rng);
+
+      std::vector<int> trk_idcs(NN); // track indices in Matriplex
+      std::vector<int> trk_llay(NN); // last layer on input track
+
+      while (rng.valid())
+      {
+        // final backward fit
+	fit_cands_to_pca_BH(mkfndr.get(), rng.m_beg, rng.m_end, region);
+
+	++rng;
+      }
+    });
+  });
+}
+
+void MkBuilder::fit_cands_to_pca_BH(MkFinder *mkfndr, int start_cand, int end_cand, int region)
+{
   const SteeringParams &st_par = m_steering_params[region];
 
-  for (int iseed = start_seed; iseed < end_seed; iseed += NN)
+  for (int icand = start_cand; icand < end_cand; icand += NN)
   {
-    const int end = std::min(iseed + NN, end_seed);
+    const int end = std::min(icand + NN, end_cand);
 
-    // printf("Pre Final fit for %d - %d\n", iseed, end);
-    // for (int i = iseed; i < end; ++i) { const Track &t = eoccs[i][0];
+    // printf("Pre Final fit for %d - %d\n", icand, end);
+    // for (int i = icand; i < end; ++i) { const Track &t = eoccs[i][0];
     //   printf("  %4d with q=%+d chi2=%7.3f pT=%7.3f eta=% 7.3f x=%.3f y=%.3f z=%.3f nHits=%2d  label=%4d findable=%d\n",
     //          i, t.charge(), t.chi2(), t.pT(), t.momEta(), t.x(), t.y(), t.z(), t.nFoundHits(), t.label(), t.isFindable());
     // }
@@ -1827,46 +1844,75 @@ void MkBuilder::BackwardFitBH(MkFinder *mkfndr, int start_seed, int end_seed, in
     bool chi_debug = false;
   redo_fit:
 
-    mkfndr->BkFitInputTracks(cands, iseed, end);
-    mkfndr->BkFitFitTracks(m_event_of_hits, st_par, end - iseed, false, chi_debug);
+    // inout candidate tracks
+    mkfndr->BkFitInputTracks(m_event->candidateTracks_, icand, end);
+
+    // perform fit back to first layer on track
+    mkfndr->BkFitFitTracks(m_event_of_hits, st_par, end - icand, chi_debug);
+
+    // now move one last time to PCA
+    mkfndr->BkFitPropTracksToPCA(end - icand);
 
 #ifdef DEBUG_BACKWARD_FIT
     // Dump tracks with pT > 2 and chi2/dof > 20. Assumes MPT_SIZE=1.
-    if (! chi_debug && 1.0f/mkfndr->Par[MkBase::iC].At(0,3,0) > 2.0f &&
-        mkfndr->Chi2(0,0,0) / (eoccs[iseed][0].nFoundHits() * 3 - 6) > 20.0f)
+    if (! chi_debug && 1.0f/mkfndr->Par[MkBase::iP].At(0,3,0) > 2.0f &&
+        mkfndr->Chi2(0,0,0) / (eoccs[icand][0].nFoundHits() * 3 - 6) > 20.0f)
     {
       chi_debug = true;
-      printf("CHIHDR Event %d, Seed %3d, pT %f, chipdof %f ### NOTE x,y,z in cm, sigmas, deltas in mum ### !!!\n",
-             m_event->evtID(), iseed, 1.0f/mkfndr->Par[MkBase::iC].At(0,3,0),
-             mkfndr->Chi2(0,0,0) / (eoccs[iseed][0].nFoundHits() * 3 - 6));
+      printf("CHIHDR Event %d, Cand %3d, pT %f, chipdof %f ### NOTE x,y,z in cm, sigmas, deltas in mum ### !!!\n",
+             m_event->evtID(), icand, 1.0f/mkfndr->Par[MkBase::iP].At(0,3,0),
+             mkfndr->Chi2(0,0,0) / (eoccs[icand][0].nFoundHits() * 3 - 6));
       printf("CHIHDR %3s %10s %10s %10s %10s %10s %11s %11s %11s %10s %10s %10s %10s %11s %11s %11s %10s %10s %10s %10s %10s %11s %11s\n",
              "lyr","chi2","x_h","y_h","z_h","r_h","sx_h","sy_h","sz_h","x_t","y_t","z_t","r_t","sx_t","sy_t","sz_t","pt","phi","theta","phi_h","phi_t","d_xy","d_z");
       goto redo_fit;
     }
 #endif
 
-    mkfndr->BkFitOutputTracks(cands, iseed, end);
+    // copy out full set of info at last propagated position
+    mkfndr->OutputTracksAndHitIdx(m_event->fitTracks_, icand, end, MkBase::iP); 
 
-    // printf("Post Final fit for %d - %d\n", iseed, end);
-    // for (int i = iseed; i < end; ++i) { const Track &t = eoccs[i][0];
+    // printf("Post Final fit for %d - %d\n", icand, end);
+    // for (int i = icand; i < end; ++i) { const Track &t = eoccs[i][0];
     //   printf("  %4d with q=%+d chi2=%7.3f pT=%7.3f eta=% 7.3f x=%.3f y=%.3f z=%.3f nHits=%2d  label=%4d findable=%d\n",
     //          i, t.charge(), t.chi2(), t.pT(), t.momEta(), t.x(), t.y(), t.z(), t.nFoundHits(), t.label(), t.isFindable());
     // }
   }
-
 }
 
-void MkBuilder::BackwardFit(MkFinder *mkfndr, int start_seed, int end_seed, int region)
+void MkBuilder::BackwardFit()
+{
+  EventOfCombCandidates &eoccs = m_event_of_comb_cands;
+
+  tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
+    [&](int region)
+  {
+    // adaptive seeds per task based on the total estimated amount of work to divide among all threads
+    const int adaptiveSPT = clamp(Config::numThreadsEvents*eoccs.m_size/Config::numThreadsFinder + 1, 4, Config::numSeedsPerTask);
+    dprint("adaptiveSPT " << adaptiveSPT << " fill " << rosi.count() << "/" << eoccs.m_size << " region " << region);
+
+    const RegionOfSeedIndices rosi(m_event, region);
+
+    tbb::parallel_for(rosi.tbb_blk_rng_std(adaptiveSPT),
+      [&](const tbb::blocked_range<int>& cands)
+    {
+      FINDER( mkfndr );
+
+      fit_cands_to_pca(mkfndr.get(), cands.begin(), cands.end(), region);
+    });
+  });
+}
+
+void MkBuilder::fit_cands_to_pca(MkFinder *mkfndr, int start_cand, int end_cand, int region)
 {
   EventOfCombCandidates &eoccs  = m_event_of_comb_cands;
   const SteeringParams  &st_par = m_steering_params[region];
 
-  for (int iseed = start_seed; iseed < end_seed; iseed += NN)
+  for (int icand = start_cand; icand < end_cand; icand += NN)
   {
-    const int end = std::min(iseed + NN, end_seed);
+    const int end = std::min(icand + NN, end_cand);
 
-    // printf("Pre Final fit for %d - %d\n", iseed, end);
-    // for (int i = iseed; i < end; ++i) { const Track &t = eoccs[i][0];
+    // printf("Pre Final fit for %d - %d\n", icand, end);
+    // for (int i = icand; i < end; ++i) { const Track &t = eoccs[i][0];
     //   printf("  %4d with q=%+d chi2=%7.3f pT=%7.3f eta=% 7.3f x=%.3f y=%.3f z=%.3f nHits=%2d  label=%4d findable=%d\n",
     //          i, t.charge(), t.chi2(), t.pT(), t.momEta(), t.x(), t.y(), t.z(), t.nFoundHits(), t.label(), t.isFindable());
     // }
@@ -1874,30 +1920,84 @@ void MkBuilder::BackwardFit(MkFinder *mkfndr, int start_seed, int end_seed, int 
     bool chi_debug = false;
   redo_fit:
 
-    mkfndr->BkFitInputTracks(eoccs, iseed, end);
-    mkfndr->BkFitFitTracks(m_event_of_hits, st_par, end - iseed, false, chi_debug);
+    // input tracks
+    mkfndr->BkFitInputTracks(eoccs, icand, end);
 
+    // fit tracks back to first layer
+    mkfndr->BkFitFitTracks(m_event_of_hits, st_par, end - icand, chi_debug);
+    
+    // now move one last time to PCA
+    mkfndr->BkFitPropTracksToPCA(end - icand);
+    
 #ifdef DEBUG_BACKWARD_FIT
     // Dump tracks with pT > 2 and chi2/dof > 20. Assumes MPT_SIZE=1.
-    if (! chi_debug && 1.0f/mkfndr->Par[MkBase::iC].At(0,3,0) > 2.0f &&
-        mkfndr->Chi2(0,0,0) / (eoccs[iseed][0].nFoundHits() * 3 - 6) > 20.0f)
+    if (! chi_debug && 1.0f/mkfndr->Par[MkBase::iP].At(0,3,0) > 2.0f &&
+        mkfndr->Chi2(0,0,0) / (eoccs[icand][0].nFoundHits() * 3 - 6) > 20.0f)
     {
       chi_debug = true;
-      printf("CHIHDR Event %d, Seed %3d, pT %f, chipdof %f ### NOTE x,y,z in cm, sigmas, deltas in mum ### !!!\n",
-             m_event->evtID(), iseed, 1.0f/mkfndr->Par[MkBase::iC].At(0,3,0),
-             mkfndr->Chi2(0,0,0) / (eoccs[iseed][0].nFoundHits() * 3 - 6));
+      printf("CHIHDR Event %d, Cand %3d, pT %f, chipdof %f ### NOTE x,y,z in cm, sigmas, deltas in mum ### !!!\n",
+             m_event->evtID(), icand, 1.0f/mkfndr->Par[MkBase::iP].At(0,3,0),
+             mkfndr->Chi2(0,0,0) / (eoccs[icand][0].nFoundHits() * 3 - 6));
       printf("CHIHDR %3s %10s %10s %10s %10s %10s %11s %11s %11s %10s %10s %10s %10s %11s %11s %11s %10s %10s %10s %10s %10s %11s %11s\n",
              "lyr","chi2","x_h","y_h","z_h","r_h","sx_h","sy_h","sz_h","x_t","y_t","z_t","r_t","sx_t","sy_t","sz_t","pt","phi","theta","phi_h","phi_t","d_xy","d_z");
       goto redo_fit;
     }
 #endif
 
-    mkfndr->BkFitOutputTracks(eoccs, iseed, end);
+    mkfndr->BkFitOutputTracks(eoccs, icand, end); 
 
-    // printf("Post Final fit for %d - %d\n", iseed, end);
-    // for (int i = iseed; i < end; ++i) { const Track &t = eoccs[i][0];
+    // printf("Post Final fit for %d - %d\n", icand, end);
+    // for (int i = icand; i < end; ++i) { const Track &t = eoccs[i][0];
     //   printf("  %4d with q=%+d chi2=%7.3f pT=%7.3f eta=% 7.3f x=%.3f y=%.3f z=%.3f nHits=%2d  label=%4d findable=%d\n",
     //          i, t.charge(), t.chi2(), t.pT(), t.momEta(), t.x(), t.y(), t.z(), t.nFoundHits(), t.label(), t.isFindable());
     // }
   }
+}
+
+void MkBuilder::BackwardFitFV()
+{
+  EventOfCombCandidates &eoccs = m_event_of_comb_cands;
+
+  tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
+    [&](int region)
+  {
+    const RegionOfSeedIndices rosi(m_event, region);
+
+    // adaptive seeds per task based on the total estimated amount of work to divide among all threads
+    const int adaptiveSPT = clamp(Config::numThreadsEvents*eoccs.m_size/Config::numThreadsFinder + 1, 4, Config::numSeedsPerTask);
+    dprint("adaptiveSPT " << adaptiveSPT << " fill " << rosi.count() << "/" << eoccs.m_size << " region " << region);
+
+    tbb::parallel_for(rosi.tbb_blk_rng_std(adaptiveSPT),
+      [&](const tbb::blocked_range<int>& cands)
+    {
+#ifdef INSTANTIATE_FV
+      EventOfCombCandidates &eoccs = m_event_of_comb_cands;
+      int start_cand = cands.begin();
+      int end_cand   = cands.end();
+      
+      struct finders_sentry {
+	finders_sentry(int n) { fv = g_exe_ctx.getFV(n); }
+	~finders_sentry() { g_exe_ctx.pushFV(std::move(fv)); }
+	MkFinderFvVec fv;
+      };
+
+      const int nMplx = MkFinderFv::nMplx(end_cand - start_cand);
+      finders_sentry sentry(nMplx);
+      MkFinderFvVec& finders = sentry.fv;
+      
+      int icand = start_cand;
+      for (int index = 0; index < nMplx; ++index) {
+	for (int offset = 0; offset < MkFinderFv::Seeds; ++offset) {
+	  dprint("cand " << icand << " index " << index << " offset " << offset);
+	  finders[index].InputTrack(eoccs.m_candidates[icand][0], icand, offset, MkBase::iC);
+	  icand = std::min(++icand, end_cand-1);
+	}
+      }
+
+      // Final backward fit
+      FINDER( mkfndr );
+      fit_cands_to_pca(mkfndr.get(), start_cand, end_cand, region);
+#endif
+    });
+  });
 }
