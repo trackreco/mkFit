@@ -212,7 +212,7 @@ namespace
     Config::nTotalLayers     = 10 + 2 * 9;
 
     Config::finding_requires_propagation_to_hit_pos = false;
-    Config::finding_inter_layer_pflags = PropagationFlags(PF_use_param_b_field);
+    Config::finding_inter_layer_pflags = PropagationFlags(PF_none);
     Config::finding_intra_layer_pflags = PropagationFlags(PF_none);
     Config::backward_fit_pflags        = PropagationFlags(PF_use_param_b_field);
     Config::forward_fit_pflags         = PropagationFlags(PF_use_param_b_field);

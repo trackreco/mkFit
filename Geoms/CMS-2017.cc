@@ -20,7 +20,7 @@ namespace
     Config::chi2Cut          = 30.0;
 
     Config::finding_requires_propagation_to_hit_pos = true;
-    Config::finding_inter_layer_pflags = PropagationFlags(PF_use_param_b_field | PF_apply_material);
+    Config::finding_inter_layer_pflags = PropagationFlags(PF_apply_material);
     Config::finding_intra_layer_pflags = PropagationFlags(PF_none);
     Config::backward_fit_pflags        = PropagationFlags(PF_use_param_b_field | PF_apply_material);
     Config::forward_fit_pflags         = PropagationFlags(PF_use_param_b_field | PF_apply_material);
