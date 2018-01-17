@@ -48,6 +48,13 @@ namespace Config
   seedOpts  seedInput    = simSeeds;
   cleanOpts seedCleaning = noCleaning; 
 
+  bool             finding_requires_propagation_to_hit_pos;
+  PropagationFlags finding_inter_layer_pflags;
+  PropagationFlags finding_intra_layer_pflags;
+  PropagationFlags backward_fit_pflags;
+  PropagationFlags forward_fit_pflags;
+  PropagationFlags seed_fit_pflags;
+
   bool  useCMSGeom = false;
   bool  readCmsswTracks = false;
 

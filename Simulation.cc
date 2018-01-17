@@ -89,6 +89,8 @@ roll_eta_dice:
   // XXMT4M - This should become while not in outer layer (or at least propState.state == invalid)
   // Try the invalid thingy first ... but would be good to also know what layers are final.
 
+  const PropagationFlags pflags(PF_use_param_b_field);
+
   for (int ihit = 0; ihit < Config::nTotHit; ++ihit)
   {
     dprintf("\n================================================================================\n");
@@ -96,7 +98,7 @@ roll_eta_dice:
             ihit, simLayer, tmpState.x(), tmpState.y(), tmpState.posR(), tmpState.z(), tmpState.posPhi());
     dprintf("--------------------------------------------------------------------------------\n");
 
-    auto propState = propagateHelixToNextSolid(tmpState,geom,true);
+    auto propState = propagateHelixToNextSolid(tmpState, geom, pflags);
 
     float initX   = propState.parameters.At(0);
     float initY   = propState.parameters.At(1);

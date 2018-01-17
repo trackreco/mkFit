@@ -87,6 +87,7 @@ inline void sincos4(const float x, float& sin, float& cos)
    cos  = 1.f - 0.5f*x2 + 0.04166667f*x2*x2;
    sin  = x - 0.16666667f*x*x2;
 }
+
 //==============================================================================
 
 // This ifdef needs to be changed to something like "use matriplex" and/or

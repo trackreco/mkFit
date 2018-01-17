@@ -5,6 +5,10 @@
 
 #include "PropagationMPlex.h"
 
+//==============================================================================
+// MkBase
+//==============================================================================
+
 class MkBase
 {
 public:
@@ -22,16 +26,60 @@ public:
 
   MkBase() {}
 
-  void PropagateTracksToR(float R, const int N_proc)
+  //----------------------------------------------------------------------------
+
+  void PropagateTracksToR(float r, const int N_proc, const PropagationFlags pf)
   {
-    propagateHelixToRMPlex(Err[iC], Par[iC], Chg, R,
-                           Err[iP], Par[iP], N_proc);
+    MPlexQF msRad;
+#pragma simd
+    for (int n = 0; n < NN; ++n)
+    {
+      msRad.At(n, 0, 0) = r;
+    }
+
+    propagateHelixToRMPlex(Err[iC], Par[iC], Chg, msRad,
+                           Err[iP], Par[iP], N_proc, pf);
   }
 
-  void PropagateTracksToZ(float Z, const int N_proc)
+  void PropagateTracksToHitR(const MPlexHV& par, const int N_proc, const PropagationFlags pf)
   {
-    propagateHelixToZMPlex(Err[iC], Par[iC], Chg, Z,
-                           Err[iP], Par[iP], N_proc);
+    MPlexQF msRad;
+#pragma simd
+    for (int n = 0; n < NN; ++n)
+    {
+      msRad.At(n, 0, 0) = std::hypot(par.ConstAt(n, 0, 0), par.ConstAt(n, 1, 0));
+    }
+
+    propagateHelixToRMPlex(Err[iC], Par[iC], Chg, msRad,
+                           Err[iP], Par[iP], N_proc, pf);
+  }
+
+  //----------------------------------------------------------------------------
+
+  void PropagateTracksToZ(float z, const int N_proc, const PropagationFlags pf)
+  {
+    MPlexQF msZ;
+#pragma simd
+    for (int n = 0; n < NN; ++n)
+    {
+      msZ.At(n, 0, 0) = z;
+    }
+
+    propagateHelixToZMPlex(Err[iC], Par[iC], Chg, msZ,
+                           Err[iP], Par[iP], N_proc, pf);
+  }
+
+  void PropagateTracksToHitZ(const MPlexHV& par, const int N_proc, const PropagationFlags pf)
+  {
+    MPlexQF msZ;
+#pragma simd
+    for (int n = 0; n < NN; ++n)
+    {
+      msZ.At(n, 0, 0) = par.ConstAt(n, 2, 0);
+    }
+
+    propagateHelixToZMPlex(Err[iC], Par[iC], Chg, msZ,
+                           Err[iP], Par[iP], N_proc, pf);
   }
 
 };

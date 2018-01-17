@@ -234,13 +234,13 @@ void HelixState::propagateErrors(const HelixState& in, float totalDistance, bool
 // each step travels for a path length equal to the safe step between the current position and the nearest object.
 
 TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom,
-                                     const bool useParamBfield)
+                                     const PropagationFlags pflags)
 {
   bool debug = true;
 
-  const HelixState hsin(inputState,useParamBfield);
+  const HelixState hsin(inputState, pflags.use_param_b_field);
   TrackState result(inputState);
-  HelixState hsout(result,useParamBfield);
+  HelixState hsout(result, pflags.use_param_b_field);
 
 #ifdef CHECKSTATEVALID
   if (!hsout.state.valid) {
@@ -341,17 +341,19 @@ TrackState propagateHelixToNextSolid(TrackState inputState, const Geometry& geom
 
 // XXMT4K The following is only used in buildtest.cc, maybe obsolete?
 
-// Propagate to the next obj
-// each step travels for a path length equal to the safe step between the current position and the nearest object.
-TrackState propagateHelixToLayer(TrackState inputState, int layer, const Geometry& geom, const bool useParamBfield)
+// Propagate to the next obj. Eeach step travels for a path length equal to
+// the safe step between the current position and the nearest object.
+
+TrackState propagateHelixToLayer(TrackState inputState, int layer, const Geometry& geom,
+                                 const PropagationFlags pflags)
 {
   bool debug = true;
 
   const VUSolid* target = geom.Layer(layer);
 
-  const HelixState hsin(inputState,useParamBfield);
+  const HelixState hsin(inputState, pflags.use_param_b_field);
   TrackState result(inputState);
-  HelixState hsout(result,useParamBfield);
+  HelixState hsout(result, pflags.use_param_b_field);
 
 #ifdef CHECKSTATEVALID
   if (!hsout.state.valid) {
@@ -405,13 +407,13 @@ TrackState propagateHelixToLayer(TrackState inputState, int layer, const Geometr
 // each step travels for a path lenght equal to delta r between the current position and the target radius. 
 // for track with pT>=1 GeV this converges to the correct path lenght in <5 iterations
 // derivatives need to be updated at each iteration
-TrackState propagateHelixToR(TrackState inputState, float r, const bool useParamBfield)
+TrackState propagateHelixToR(TrackState inputState, float r, const PropagationFlags pflags)
 {
   bool debug = false;
 
-  const HelixState hsin(inputState,useParamBfield);
+  const HelixState hsin(inputState, pflags.use_param_b_field);
   TrackState result(inputState);
-  HelixState hsout(result,useParamBfield);
+  HelixState hsout(result, pflags.use_param_b_field);
 
 #ifdef CHECKSTATEVALID
   if (!hsout.state.valid) {
@@ -470,8 +472,8 @@ TrackState propagateHelixToR(TrackState inputState, float r, const bool useParam
   return hsout.state;
 }
 
-TrackState propagateHelixToZ(TrackState inputState, float zout, const bool useParamBfield) {
-
+TrackState propagateHelixToZ(TrackState inputState, float zout, const PropagationFlags pflags)
+{
   TrackState result = inputState;
 
   const float z = inputState.z();
@@ -485,7 +487,7 @@ TrackState propagateHelixToZ(TrackState inputState, float zout, const bool usePa
   const float cosP = std::cos(phi);
   const float sinP = std::sin(phi);
 
-  const float k = inputState.charge*100.f/(-Config::sol*(useParamBfield?Config::BfieldFromZR(z,inputState.posR()):Config::Bfield));
+  const float k = inputState.charge*100.f/(-Config::sol*(pflags.use_param_b_field ? Config::BfieldFromZR(z,inputState.posR()) : Config::Bfield));
 
   const float s = (zout - z)/cosT;
   const float angPath = s*sinT*ipT/k;

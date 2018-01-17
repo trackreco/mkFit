@@ -444,11 +444,10 @@ void MkFitter::FitTracksWithInterSlurp(const std::vector<HitVec>& layersohits,
     msErr[0].SlurpIn(varr + off_error, idx, N_proc);
 #endif
 
-    propagateHelixToRMPlex(Err[iC], Par[iC], Chg, msPar[0],
-                           Err[iP], Par[iP], N_proc);
+    PropagateTracksToHitR(msPar[0], N_proc, Config::forward_fit_pflags);
 
-    updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[0], msPar[0],
-                          Err[iC], Par[iC], N_proc);
+    kalmanUpdate(Err[iP], Par[iP], msErr[0], msPar[0],
+                 Err[iC], Par[iC], N_proc);
   }
 }
 
@@ -517,7 +516,7 @@ void MkFitter::ConformalFitTracks(bool fitting, int beg, int end)
   }
 }
 
-void MkFitter::FitTracks(const int N_proc, const Event * ev, const bool useParamBfield)
+void MkFitter::FitTracks(const int N_proc, const Event * ev, const PropagationFlags pflags)
 {
   // Fitting loop.
 
@@ -527,11 +526,10 @@ void MkFitter::FitTracks(const int N_proc, const Event * ev, const bool useParam
     // propagateLineToRMPlex(Err[iC], Par[iC], msErr[hi], msPar[hi],
     //                       Err[iP], Par[iP]);
 
-    propagateHelixToRMPlex(Err[iC], Par[iC], Chg, msPar[hi],
-                           Err[iP], Par[iP], N_proc, useParamBfield);
+    PropagateTracksToHitR(msPar[hi], N_proc, pflags);
 
-    updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[hi], msPar[hi],
-                          Err[iC], Par[iC], N_proc);
+    kalmanUpdate(Err[iP], Par[iP], msErr[hi], msPar[hi],
+                 Err[iC], Par[iC], N_proc);
 
     if (Config::fit_val) MkFitter::CollectFitValidation(hi,N_proc,ev);
   }
@@ -561,7 +559,7 @@ void MkFitter::CollectFitValidation(const int hi, const int N_proc, const Event 
   }
 }
 
-void MkFitter::FitTracksSteered(const bool is_barrel[], const int N_proc, const Event * ev, const bool useParamBfield)
+void MkFitter::FitTracksSteered(const bool is_barrel[], const int N_proc, const Event * ev, const PropagationFlags pflags)
 {
   // Fitting loop.
 
@@ -575,19 +573,17 @@ void MkFitter::FitTracksSteered(const bool is_barrel[], const int N_proc, const 
 
     if (is_barrel[hi])
     {
-      propagateHelixToRMPlex(Err[iC], Par[iC], Chg, msPar[hi],
-                             Err[iP], Par[iP], N_proc, useParamBfield);
+      PropagateTracksToHitR(msPar[hi], N_proc, pflags);
 
-      updateParametersMPlex(Err[iP], Par[iP], Chg, msErr[hi], msPar[hi],
-                            Err[iC], Par[iC], N_proc);
+      kalmanUpdate(Err[iP], Par[iP], msErr[hi], msPar[hi],
+                   Err[iC], Par[iC], N_proc);
     }
     else
     {
-      propagateHelixToZMPlex(Err[iC], Par[iC], Chg, msPar[hi],
-			     Err[iP], Par[iP], N_proc, useParamBfield);
+      PropagateTracksToHitZ(msPar[hi], N_proc, pflags);
 
-      updateParametersEndcapMPlex(Err[iP], Par[iP], Chg, msErr[hi], msPar[hi],
-				  Err[iC], Par[iC], N_proc);
+      kalmanUpdateEndcap(Err[iP], Par[iP], msErr[hi], msPar[hi],
+                         Err[iC], Par[iC], N_proc);
     }
 
     if (Config::fit_val) MkFitter::CollectFitValidation(hi,N_proc,ev);

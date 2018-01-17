@@ -437,180 +437,119 @@ void KHC(const MPlexL2& A, const MPlexLS& B, MPlexLS& C)
 
 
 //==============================================================================
-// updateParametersMPlex
+// Kalman operations - common dummy variables
 //==============================================================================
 
-void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
-                           const MPlexHS &msErr,  const MPlexHV& msPar,
-                                 MPlexLS &outErr,       MPlexLV& outPar,
-                           const int      N_proc)
+namespace
 {
-  // const idx_t N = psErr.N;
-  // Assert N-s of all parameters are the same.
+  // Dummy variables for parameter consistency to kalmanOperation.
+  // Through KalmanFilterOperation enum parameter it is guaranteed that
+  // those will never get accessed in the code (read from or written into).
 
-  // Temporaries -- this is expensive -- should have them allocated outside and reused.
-  // Can be passed in in a struct, see above.
-
-  // updateParametersContext ctx;
-  //assert((long long)(&updateCtx.propErr.fArray[0]) % 64 == 0);
-
-  // debug = true;
-
-  MPlexLS propErr;
-  MPlexLV propPar;
-  // do a full propagation step to correct for residual distance from the hit radius - need the charge for this
-  if (Config::useCMSGeom) {
-    propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar, N_proc);
-  } else {
-    propErr = psErr;
-    propPar = psPar;
-  }
-
-#ifdef DEBUG
-  {
-    dmutex_guard;
-    printf("propPar:\n");
-    for (int i = 0; i < 6; ++i) { 
-      printf("%8f ", propPar.ConstAt(0,0,i)); printf("\n");
-    } printf("\n");
-    printf("msPar:\n");
-    for (int i = 0; i < 3; ++i) { 
-      printf("%8f ", msPar.ConstAt(0,0,i)); printf("\n");
-    } printf("\n");
-    printf("propErr:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", propErr.At(0,i,j)); printf("\n");
-    } printf("\n");
-    printf("msErr:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", msErr.ConstAt(0,i,j)); printf("\n");
-    } printf("\n");
-  }
-#endif
-
-  // Rotate global point on tangent plane to cylinder
-  // Tangent point is half way between hit and propagate position
-
-  // Rotation matrix
-  //  rotT00  0  rotT01
-  //  rotT01  0 -rotT00
-  //     0    1    0
-  // Minimize temporaries: only two float are needed!
-
-  MPlexQF rotT00;
-  MPlexQF rotT01;
-#pragma simd
-  for (int n = 0; n < NN; ++n) {
-    float r = hipo(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
-    rotT00.At(n, 0, 0) = -(msPar.ConstAt(n, 1, 0)+propPar.ConstAt(n, 1, 0))/(2*r);
-    rotT01.At(n, 0, 0) =  (msPar.ConstAt(n, 0, 0)+propPar.ConstAt(n, 0, 0))/(2*r);
-  }
-
-  MPlexHV res_glo;   //position residual in global coordinates
-  SubtractFirst3(msPar, propPar, res_glo);
-  
-  MPlexHS resErr_glo;//covariance sum in global position coordinates
-  AddIntoUpperLeft3x3(propErr, msErr, resErr_glo);
-
-  MPlex2V res_loc;   //position residual in local coordinates
-  RotateResidulsOnTangentPlane(rotT00,rotT01,res_glo,res_loc);
-  MPlex2S resErr_loc;//covariance sum in local position coordinates
-  MPlexHH tempHH;
-  ProjectResErr      (rotT00, rotT01, resErr_glo, tempHH);
-  ProjectResErrTransp(rotT00, rotT01, tempHH, resErr_loc);
-
-#ifdef DEBUG
-  {
-    dmutex_guard;
-    printf("resErr:\n");
-    for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
-        printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
-    } printf("\n");
-  }
-#endif
-
-  //invert the 2x2 matrix
-  Matriplex::InvertCramerSym(resErr_loc);
-
-  MPlexLH K;           // kalman gain, fixme should be L2
-  KalmanHTG(rotT00, rotT01, resErr_loc, tempHH); // intermediate term to get kalman gain (H^T*G)
-  KalmanGain(propErr, tempHH, K);
-
-  MultResidualsAdd(K, propPar, res_loc, outPar);
-  MPlexLL tempLL;
-
-  squashPhiMPlex(outPar,N_proc); // ensure phi is between |pi|
-
-  KHMult(K, rotT00, rotT01, tempLL);
-  KHC(tempLL, propErr, outErr);
-  outErr.Subtract(propErr, outErr);
-
-#ifdef DEBUG
-  {
-    dmutex_guard;
-    printf("res_glo:\n");
-    for (int i = 0; i < 3; ++i) {
-        printf("%8f ", res_glo.At(0,i,0));
-    } printf("\n");
-    printf("res_loc:\n");
-    for (int i = 0; i < 2; ++i) {
-        printf("%8f ", res_loc.At(0,i,0));
-    } printf("\n");
-    printf("resErr_loc (Inv):\n");
-    for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
-        printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
-    } printf("\n");
-    printf("K:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 3; ++j)
-        printf("%8f ", K.At(0,i,j)); printf("\n");
-    } printf("\n");
-    printf("outPar:\n");
-    for (int i = 0; i < 6; ++i) {
-      printf("%8f  ", outPar.At(0,i,0));
-    } printf("\n");
-    printf("outErr:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", outErr.At(0,i,j)); printf("\n");
-    } printf("\n");
-  }
-#endif
+  MPlexLS dummy_err;
+  MPlexLV dummy_par;
+  MPlexQF dummy_chi2;
 }
 
-void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
-                      const MPlexHS &msErr,  const MPlexHV& msPar,
-                            MPlexQF& outChi2,
-                      const int      N_proc)
+
+//==============================================================================
+// Kalman operations - Barrel
+//==============================================================================
+
+void kalmanUpdate(const MPlexLS &psErr,  const MPlexLV& psPar,
+                  const MPlexHS &msErr,  const MPlexHV& msPar,
+                        MPlexLS &outErr,       MPlexLV& outPar,
+                  const int      N_proc)
 {
+  kalmanOperation(KFO_Update_Params, psErr, psPar, msErr, msPar,
+                  outErr, outPar, dummy_chi2, N_proc);
+}
 
-  // const idx_t N = psErr.N;
-  // Assert N-s of all parameters are the same.
+void kalmanPropagateAndUpdate(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+                              const MPlexHS &msErr,  const MPlexHV& msPar,
+                                    MPlexLS &outErr,       MPlexLV& outPar,
+                              const int      N_proc, const PropagationFlags propFlags)
+{
+  if (Config::finding_requires_propagation_to_hit_pos)
+  {
+    MPlexLS propErr;
+    MPlexLV propPar;
+    MPlexQF msRad;
+#pragma simd
+    for (int n = 0; n < NN; ++n)
+    {
+      msRad.At(n, 0, 0) = std::hypot(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
+    }
 
-  // Temporaries -- this is expensive -- should have them allocated outside and reused.
-  // Can be passed in in a struct, see above.
+    propagateHelixToRMPlex(psErr, psPar, inChg, msRad, propErr, propPar, N_proc, propFlags);
 
-  // updateParametersContext ctx;
-  //assert((long long)(&updateCtx.propErr.fArray[0]) % 64 == 0);
-
-  MPlexLS propErr;
-  MPlexLV propPar;
-  // do a full propagation step to correct for residual distance from the hit radius - need the charge for this
-  if (Config::useCMSGeom) {
-    propagateHelixToRMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar, N_proc);
-  } else {
-    propErr = psErr;
-    propPar = psPar;
+    kalmanOperation(KFO_Update_Params, propErr, propPar, msErr, msPar,
+                    outErr, outPar, dummy_chi2, N_proc);
   }
+  else
+  {
+    kalmanOperation(KFO_Update_Params, psErr, psPar, msErr, msPar,
+                    outErr, outPar, dummy_chi2, N_proc);
+  }
+}
 
+//------------------------------------------------------------------------------
+
+void kalmanComputeChi2(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+                       const MPlexHS &msErr,  const MPlexHV& msPar,
+                             MPlexQF& outChi2,
+                       const int      N_proc)
+{
+  kalmanOperation(KFO_Calculate_Chi2, psErr, psPar, msErr, msPar,
+                  dummy_err, dummy_par, outChi2, N_proc);
+}
+
+void kalmanPropagateAndComputeChi2(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+                                   const MPlexHS &msErr,  const MPlexHV& msPar,
+                                         MPlexQF& outChi2,
+                                   const int      N_proc, const PropagationFlags propFlags)
+{
+  if (Config::finding_requires_propagation_to_hit_pos)
+  {
+    MPlexLS propErr;
+    MPlexLV propPar;
+    MPlexQF msRad;
+#pragma simd
+    for (int n = 0; n < NN; ++n)
+    {
+      msRad.At(n, 0, 0) = std::hypot(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
+    }
+
+    propagateHelixToRMPlex(psErr, psPar, inChg, msRad, propErr, propPar, N_proc, propFlags);
+
+    kalmanOperation(KFO_Calculate_Chi2, propErr, propPar, msErr, msPar,
+                    dummy_err, dummy_par, outChi2, N_proc);
+  }
+  else
+  {
+    kalmanOperation(KFO_Calculate_Chi2, psErr, psPar, msErr, msPar,
+                    dummy_err, dummy_par, outChi2, N_proc);
+  }
+}
+
+//------------------------------------------------------------------------------
+
+void kalmanOperation(const int      kfOp,
+                     const MPlexLS &psErr,  const MPlexLV& psPar,
+                     const MPlexHS &msErr,  const MPlexHV& msPar,
+                           MPlexLS &outErr,       MPlexLV& outPar, MPlexQF& outChi2,
+                     const int      N_proc)
+{
 #ifdef DEBUG
   {
     dmutex_guard;
-    printf("propPar:\n");
+    printf("psPar:\n");
     for (int i = 0; i < 6; ++i) { 
-      printf("%8f ", propPar.ConstAt(0,0,i)); printf("\n");
+      printf("%8f ", psPar.ConstAt(0,0,i)); printf("\n");
     } printf("\n");
-    printf("propErr:\n");
+    printf("psErr:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", propErr.At(0,i,j)); printf("\n");
+        printf("%8f ", psErr.At(0,i,j)); printf("\n");
     } printf("\n");
     printf("msPar:\n");
     for (int i = 0; i < 3; ++i) {
@@ -635,16 +574,16 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
   MPlexQF rotT00;
   MPlexQF rotT01;
   for (int n = 0; n < NN; ++n) {
-    const float r = hipo(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
-    rotT00.At(n, 0, 0) = -(msPar.ConstAt(n, 1, 0)+propPar.ConstAt(n, 1, 0))/(2*r);
-    rotT01.At(n, 0, 0) =  (msPar.ConstAt(n, 0, 0)+propPar.ConstAt(n, 0, 0))/(2*r);
+    const float r = std::hypot(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
+    rotT00.At(n, 0, 0) = -(msPar.ConstAt(n, 1, 0) + psPar.ConstAt(n, 1, 0)) / (2*r);
+    rotT01.At(n, 0, 0) =  (msPar.ConstAt(n, 0, 0) + psPar.ConstAt(n, 0, 0)) / (2*r);
   }
 
   MPlexHV res_glo;   //position residual in global coordinates
-  SubtractFirst3(msPar, propPar, res_glo);
-  
+  SubtractFirst3(msPar, psPar, res_glo);
+
   MPlexHS resErr_glo;//covariance sum in global position coordinates
-  AddIntoUpperLeft3x3(propErr, msErr, resErr_glo);
+  AddIntoUpperLeft3x3(psErr, msErr, resErr_glo);
 
   MPlex2V res_loc;   //position residual in local coordinates
   RotateResidulsOnTangentPlane(rotT00,rotT01,res_glo,res_loc);
@@ -666,66 +605,174 @@ void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI
   //invert the 2x2 matrix
   Matriplex::InvertCramerSym(resErr_loc);
 
-  //compute chi2
-  Chi2Similarity(res_loc, resErr_loc, outChi2);
+  if (kfOp & KFO_Calculate_Chi2)
+  {
+    Chi2Similarity(res_loc, resErr_loc, outChi2);
 
 #ifdef DEBUG
-  {
-    dmutex_guard;
-    printf("resErr_loc (Inv):\n");
-    for (int i = 0; i < 2; ++i) {
-      for (int j = 0; j < 2; ++j)
-        printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
-    } printf("\n");
-    printf("chi2: %8f\n", outChi2.At(0,0,0));
-  }
+    {
+      dmutex_guard;
+      printf("resErr_loc (Inv):\n");
+      for (int i = 0; i < 2; ++i) {
+        for (int j = 0; j < 2; ++j)
+          printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
+      } printf("\n");
+      printf("chi2: %8f\n", outChi2.At(0,0,0));
+    }
 #endif
+  }
 
+  if (kfOp & KFO_Update_Params)
+  {
+    MPlexLH K;           // kalman gain, fixme should be L2
+    KalmanHTG(rotT00, rotT01, resErr_loc, tempHH); // intermediate term to get kalman gain (H^T*G)
+    KalmanGain(psErr, tempHH, K);
+
+    MultResidualsAdd(K, psPar, res_loc, outPar);
+    MPlexLL tempLL;
+
+    squashPhiMPlex(outPar,N_proc); // ensure phi is between |pi|
+
+    KHMult(K, rotT00, rotT01, tempLL);
+    KHC(tempLL, psErr, outErr);
+    outErr.Subtract(psErr, outErr);
+
+#ifdef DEBUG
+    {
+      dmutex_guard;
+      printf("res_glo:\n");
+      for (int i = 0; i < 3; ++i) {
+        printf("%8f ", res_glo.At(0,i,0));
+      } printf("\n");
+      printf("res_loc:\n");
+      for (int i = 0; i < 2; ++i) {
+        printf("%8f ", res_loc.At(0,i,0));
+      } printf("\n");
+      printf("resErr_loc (Inv):\n");
+      for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
+          printf("%8f ", resErr_loc.At(0,i,j)); printf("\n");
+      } printf("\n");
+      printf("K:\n");
+      for (int i = 0; i < 6; ++i) { for (int j = 0; j < 3; ++j)
+          printf("%8f ", K.At(0,i,j)); printf("\n");
+      } printf("\n");
+      printf("outPar:\n");
+      for (int i = 0; i < 6; ++i) {
+        printf("%8f  ", outPar.At(0,i,0));
+      } printf("\n");
+      printf("outErr:\n");
+      for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+          printf("%8f ", outErr.At(0,i,j)); printf("\n");
+      } printf("\n");
+    }
+#endif
+  }
 }
 
 
+//==============================================================================
+// Kalman operations - Endcap
+//==============================================================================
 
-
-
-void updateParametersEndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
-				 const MPlexHS &msErr,  const MPlexHV& msPar,
-                                       MPlexLS &outErr,       MPlexLV& outPar,
-				 const int      N_proc)
+void kalmanUpdateEndcap(const MPlexLS &psErr,  const MPlexLV& psPar,
+                        const MPlexHS &msErr,  const MPlexHV& msPar,
+                              MPlexLS &outErr,       MPlexLV& outPar,
+                        const int      N_proc)
 {
-  // const idx_t N = psErr.N;
-  // Assert N-s of all parameters are the same.
+  kalmanOperationEndcap(KFO_Update_Params, psErr, psPar, msErr, msPar,
+                        outErr, outPar, dummy_chi2, N_proc);
+}
 
-  // Temporaries -- this is expensive -- should have them allocated outside and reused.
-  // Can be passed in in a struct, see above.
+void kalmanPropagateAndUpdateEndcap(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+                                    const MPlexHS &msErr,  const MPlexHV& msPar,
+                                          MPlexLS &outErr,       MPlexLV& outPar,
+                                    const int      N_proc, const PropagationFlags propFlags)
+{
+  if (Config::finding_requires_propagation_to_hit_pos)
+  {
+    MPlexLS propErr;
+    MPlexLV propPar;
+    MPlexQF msZ;
+#pragma simd
+    for (int n = 0; n < NN; ++n)
+    {
+      msZ.At(n, 0, 0) = msPar.ConstAt(n, 2, 0);
+    }
 
-  // updateParametersContext ctx;
-  //assert((long long)(&updateCtx.propErr.fArray[0]) % 64 == 0);
+    propagateHelixToZMPlex(psErr, psPar, inChg, msZ, propErr, propPar, N_proc, propFlags);
 
-  MPlexLS propErr;
-  MPlexLV propPar;
-  // do a full propagation step to correct for residual distance from the hit radius - need the charge for this
-  if (Config::useCMSGeom) {
-    propagateHelixToZMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar, N_proc);
-  } else {
-    propErr = psErr;
-    propPar = psPar;
+    kalmanOperationEndcap(KFO_Update_Params, propErr, propPar, msErr, msPar,
+                          outErr, outPar, dummy_chi2, N_proc);
   }
+  else
+  {
+    kalmanOperationEndcap(KFO_Update_Params, psErr, psPar, msErr, msPar,
+                          outErr, outPar, dummy_chi2, N_proc);
+  }
+}
 
+//------------------------------------------------------------------------------
+
+void kalmanComputeChi2Endcap(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+                             const MPlexHS &msErr,  const MPlexHV& msPar,
+                                   MPlexQF& outChi2,
+                             const int      N_proc)
+{
+  kalmanOperationEndcap(KFO_Calculate_Chi2, psErr, psPar, msErr, msPar,
+                        dummy_err, dummy_par, outChi2, N_proc);
+}
+
+void kalmanPropagateAndComputeChi2Endcap(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+                                         const MPlexHS &msErr,  const MPlexHV& msPar,
+                                               MPlexQF& outChi2,
+                                         const int      N_proc, const PropagationFlags propFlags)
+{
+  if (Config::finding_requires_propagation_to_hit_pos)
+  {
+    MPlexLS propErr;
+    MPlexLV propPar;
+    MPlexQF msZ;
+#pragma simd
+    for (int n = 0; n < NN; ++n)
+    {
+      msZ.At(n, 0, 0) = msPar.ConstAt(n, 2, 0);
+    }
+
+    propagateHelixToZMPlex(psErr, psPar, inChg, msZ, propErr, propPar, N_proc, propFlags);
+
+    kalmanOperationEndcap(KFO_Calculate_Chi2, propErr, propPar, msErr, msPar,
+                          dummy_err, dummy_par, outChi2, N_proc);
+  }
+  else
+  {
+    kalmanOperationEndcap(KFO_Calculate_Chi2, psErr, psPar, msErr, msPar,
+                          dummy_err, dummy_par, outChi2, N_proc);
+  }
+}
+
+//------------------------------------------------------------------------------
+
+void kalmanOperationEndcap(const int      kfOp,
+                           const MPlexLS &psErr,  const MPlexLV& psPar,
+                           const MPlexHS &msErr,  const MPlexHV& msPar,
+                           MPlexLS &outErr,       MPlexLV& outPar, MPlexQF& outChi2,
+                           const int      N_proc)
+{
 #ifdef DEBUG
   {
     dmutex_guard;
-  printf("updateParametersEndcapMPlex\n");
-    printf("propPar:\n");
+    printf("updateParametersEndcapMPlex\n");
+    printf("psPar:\n");
     for (int i = 0; i < 6; ++i) {
-      printf("%8f ", propPar.ConstAt(0,0,i)); printf("\n");
+      printf("%8f ", psPar.ConstAt(0,0,i)); printf("\n");
     } printf("\n");
     printf("msPar:\n");
     for (int i = 0; i < 3; ++i) {
       printf("%8f ", msPar.ConstAt(0,0,i)); printf("\n");
     } printf("\n");
-    printf("propErr:\n");
+    printf("psErr:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", propErr.At(0,i,j)); printf("\n");
+        printf("%8f ", psErr.At(0,i,j)); printf("\n");
     } printf("\n");
     printf("msErr:\n");
     for (int i = 0; i < 3; ++i) { for (int j = 0; j < 3; ++j)
@@ -735,10 +782,10 @@ void updateParametersEndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, co
 #endif
 
   MPlex2V res;
-  SubtractFirst2(msPar, propPar, res);
+  SubtractFirst2(msPar, psPar, res);
 
   MPlex2S resErr;
-  AddIntoUpperLeft2x2(propErr, msErr, resErr);
+  AddIntoUpperLeft2x2(psErr, msErr, resErr);
 
 #ifdef DEBUG
   {
@@ -753,136 +800,69 @@ void updateParametersEndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, co
   //invert the 2x2 matrix
   Matriplex::InvertCramerSym(resErr);
 
-  MPlexL2 K;
-  KalmanGain(propErr, resErr, K);
-
-  MultResidualsAdd(K, propPar, res, outPar);
-
-  squashPhiMPlex(outPar,N_proc); // ensure phi is between |pi|
-
-  KHC(K, propErr, outErr);
+  if (kfOp & KFO_Calculate_Chi2)
+  {
+    Chi2Similarity(res, resErr, outChi2);
 
 #ifdef DEBUG
-  {
-    printf("outErr before subtract:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-	printf("%8f ", outErr.At(0,i,j)); printf("\n");
-    } printf("\n");
+    {
+      dmutex_guard;
+      printf("resErr_loc (Inv):\n");
+      for (int i = 0; i < 2; ++i) {
+        for (int j = 0; j < 2; ++j)
+          printf("%8f ", resErr.At(0,i,j)); printf("\n");
+      } printf("\n");
+      printf("chi2: %8f\n", outChi2.At(0,0,0));
+    }
+#endif
   }
+
+  if (kfOp & KFO_Update_Params)
+  {
+    MPlexL2 K;
+    KalmanGain(psErr, resErr, K);
+
+    MultResidualsAdd(K, psPar, res, outPar);
+
+    squashPhiMPlex(outPar,N_proc); // ensure phi is between |pi|
+
+    KHC(K, psErr, outErr);
+
+#ifdef DEBUG
+    {
+      printf("outErr before subtract:\n");
+      for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+          printf("%8f ", outErr.At(0,i,j)); printf("\n");
+      } printf("\n");
+    }
 #endif
 
-  outErr.Subtract(propErr, outErr);
+    outErr.Subtract(psErr, outErr);
 
 #ifdef DEBUG
-  {
-    dmutex_guard;
-    printf("res:\n");
-    for (int i = 0; i < 2; ++i) {
+    {
+      dmutex_guard;
+      printf("res:\n");
+      for (int i = 0; i < 2; ++i) {
         printf("%8f ", res.At(0,i,0));
-    } printf("\n");
-    printf("resErr (Inv):\n");
-    for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
-        printf("%8f ", resErr.At(0,i,j)); printf("\n");
-    } printf("\n");
-    printf("K:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 2; ++j)
-        printf("%8f ", K.At(0,i,j)); printf("\n");
-    } printf("\n");
-    printf("outPar:\n");
-    for (int i = 0; i < 6; ++i) {
-      printf("%8f  ", outPar.At(0,i,0));
-    } printf("\n");
-    printf("outErr:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", outErr.At(0,i,j)); printf("\n");
-    } printf("\n");
-  }
+      } printf("\n");
+      printf("resErr (Inv):\n");
+      for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
+          printf("%8f ", resErr.At(0,i,j)); printf("\n");
+      } printf("\n");
+      printf("K:\n");
+      for (int i = 0; i < 6; ++i) { for (int j = 0; j < 2; ++j)
+          printf("%8f ", K.At(0,i,j)); printf("\n");
+      } printf("\n");
+      printf("outPar:\n");
+      for (int i = 0; i < 6; ++i) {
+        printf("%8f  ", outPar.At(0,i,0));
+      } printf("\n");
+      printf("outErr:\n");
+      for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
+          printf("%8f ", outErr.At(0,i,j)); printf("\n");
+      } printf("\n");
+    }
 #endif
-}
-
-void computeChi2EndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
-			    const MPlexHS &msErr,  const MPlexHV& msPar,
-                                  MPlexQF& outChi2,
-			    const int      N_proc)
-{
-  // const idx_t N = psErr.N;
-  // Assert N-s of all parameters are the same.
-
-  // Temporaries -- this is expensive -- should have them allocated outside and reused.
-  // Can be passed in in a struct, see above.
-
-  // updateParametersContext ctx;
-  //assert((long long)(&updateCtx.propErr.fArray[0]) % 64 == 0);
-
-  MPlexLS propErr;
-  MPlexLV propPar;
-  // do a full propagation step to correct for residual distance from the hit radius - need the charge for this
-  if (Config::useCMSGeom) {
-    propagateHelixToZMPlex(psErr,  psPar, inChg,  msPar, propErr, propPar, N_proc);
-  } else {
-    propErr = psErr;
-    propPar = psPar;
   }
-
-#ifdef DEBUG
-  {
-    dmutex_guard;
-    printf("computeChi2EndcapMPlex\n");
-    printf("propPar:\n");
-    for (int i = 0; i < 6; ++i) {
-      printf("%8f ", propPar.ConstAt(0,0,i)); printf("\n");
-    } printf("\n");
-    printf("msPar:\n");
-    for (int i = 0; i < 3; ++i) {
-      printf("%8f ", msPar.ConstAt(0,0,i)); printf("\n");
-    } printf("\n");
-    printf("propErr:\n");
-    for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", propErr.At(0,i,j)); printf("\n");
-    } printf("\n");
-    printf("msErr:\n");
-    for (int i = 0; i < 3; ++i) { for (int j = 0; j < 3; ++j)
-        printf("%8f ", msErr.ConstAt(0,i,j)); printf("\n");
-    } printf("\n");
-  }
-#endif
-
-  MPlex2V res;
-  SubtractFirst2(msPar, propPar, res);
-
-  MPlex2S resErr;
-  AddIntoUpperLeft2x2(propErr, msErr, resErr);
-
-#ifdef DEBUG
-  {
-    dmutex_guard;
-    printf("res:\n");
-    for (int i = 0; i < 2; ++i) {
-        printf("%8f ", res.At(0,0,i)); printf("\n");
-    } printf("\n");
-    printf("resErr:\n");
-    for (int i = 0; i < 2; ++i) { for (int j = 0; j < 2; ++j)
-        printf("%8f ", resErr.At(0,i,j)); printf("\n");
-    } printf("\n");
-  }
-#endif
-
-  //invert the 2x2 matrix
-  Matriplex::InvertCramerSym(resErr);
-
-  //compute chi2
-  Chi2Similarity(res, resErr, outChi2);
-
-#ifdef DEBUG
-  {
-    dmutex_guard;
-    printf("resErr_loc (Inv):\n");
-    for (int i = 0; i < 2; ++i) {
-      for (int j = 0; j < 2; ++j)
-        printf("%8f ", resErr.At(0,i,j)); printf("\n");
-    } printf("\n");
-    printf("chi2: %8f\n", outChi2.At(0,0,0));
-  }
-#endif
-
 }

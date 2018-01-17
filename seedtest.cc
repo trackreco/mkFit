@@ -20,7 +20,10 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, T
   bool debug(true);
 #endif
 
-  for (int itrack=0;itrack<evt_sim_tracks.size();++itrack) {
+  const PropagationFlags pflags(PF_none);
+
+  for (int itrack=0;itrack<evt_sim_tracks.size();++itrack)
+  {
     const Track& trk = evt_sim_tracks[itrack];
     int   seedhits[Config::nLayers];
     //float sumchi2 = 0;
@@ -37,10 +40,12 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, T
     dprint("processing sim track # " << itrack << " par=" << trk.parameters());
     TSLayerPairVec updatedStates; // validation for position pulls
 
-    for (auto ilayer=0;ilayer<Config::nlayers_per_seed;++ilayer) {//seeds have first three layers as seeds
+    // use first layers as seed hits
+    for (auto ilayer=0;ilayer<Config::nlayers_per_seed;++ilayer)
+    {
       auto hitidx = trk.getHitIdx(ilayer);
       const Hit& seed_hit = ev.layerHits_[ilayer][hitidx];
-      TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
+      TrackState propState = propagateHelixToR(updatedState, seed_hit.r(), pflags);
 #ifdef CHECKSTATEVALID
       if (!propState.valid) {
 	std::cout << "Seeding failed to propagate to layer: " << ilayer << " for sim track: " << itrack << std::endl;
@@ -527,6 +532,8 @@ void buildSeedsFromTriplets(const std::vector<HitVec>& evt_lay_hits, const Tripl
   fprintf(stderr, "__FILE__::__LINE__ Needs fixing for B/E support, search for XXMT4K\n");
   exit(1);
 
+  const PropagationFlags pflags(PF_none);
+
   // now perform kalman fit on seeds --> first need initial parameters --> get from Conformal fitter!
   unsigned int seedID = 0;
   for(auto&& hit_triplet : filtered_triplets){
@@ -548,7 +555,7 @@ void buildSeedsFromTriplets(const std::vector<HitVec>& evt_lay_hits, const Tripl
     for (auto ilayer = 0; ilayer < Config::nlayers_per_seed; ++ilayer)
     {
       const Hit& seed_hit = evt_lay_hits[ilayer][hit_triplet[ilayer]];
-      TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
+      TrackState propState = propagateHelixToR(updatedState, seed_hit.r(), pflags);
 #ifdef CHECKSTATEVALID
       if (!propState.valid) {
         break;
@@ -573,7 +580,10 @@ void buildSeedsFromTriplets(const std::vector<HitVec>& evt_lay_hits, const Tripl
 void fitSeeds(const std::vector<HitVec>& evt_lay_hits, TrackVec& evt_seed_tracks, Event& ev){
   // copy+paste code to fit needs here...
 
-  for(auto&& seed : evt_seed_tracks) {
+  const PropagationFlags pflags(PF_none);
+
+  for (auto&& seed : evt_seed_tracks)
+  {
     // state to save to track
     TrackState updatedState;
     //const int seedID = seed.label(); // label == seedID!
@@ -586,7 +596,7 @@ void fitSeeds(const std::vector<HitVec>& evt_lay_hits, TrackVec& evt_seed_tracks
     float sumchi2 = 0.0f; // chi2 to save
     for (auto ilayer = 0; ilayer < Config::nlayers_per_seed; ++ilayer) {
       const Hit& seed_hit = evt_lay_hits[ilayer][seed.getHitIdx(ilayer)];
-      TrackState propState = propagateHelixToR(updatedState,seed_hit.r());
+      TrackState propState = propagateHelixToR(updatedState, seed_hit.r(), pflags);
 #ifdef CHECKSTATEVALID
       if (!propState.valid) {
         break;

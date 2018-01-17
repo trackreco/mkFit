@@ -21,8 +21,8 @@ void LayerInfo::set_selection_limits(float p1, float p2, float q1, float q2)
 void LayerInfo::set_r_hole_range(float rh1, float rh2)
 {
   m_has_r_range_hole = true;
-  m_hole_r2_min = rh1 * rh1;
-  m_hole_r2_max = rh2 * rh2;
+  m_hole_r_min = rh1;
+  m_hole_r_max = rh2;
 }
 
 

@@ -75,8 +75,8 @@ public:
   void FitTracksWithInterSlurp(const std::vector<HitVec>& layersohits, int N_proc);
 
   void ConformalFitTracks(bool fitting, int beg, int end);
-  void FitTracks(const int N_proc, const Event * ev, const bool useParamBfield = false);
-  void FitTracksSteered(const bool is_barrel[], const int N_proc, const Event * ev, const bool useParamBfield = false);
+  void FitTracks(const int N_proc, const Event * ev, const PropagationFlags pflags);
+  void FitTracksSteered(const bool is_barrel[], const int N_proc, const Event * ev, const PropagationFlags pflags);
 
   void CollectFitValidation(const int hi, const int N_proc, const Event * ev) const;
 

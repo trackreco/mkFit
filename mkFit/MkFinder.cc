@@ -172,13 +172,16 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       float z  = Par[iI].ConstAt(itrack, 2, 0);
       float dz = nSigmaZ * std::sqrt(Err[iI].ConstAt(itrack, 2, 2));
 
-      dz = std::max(std::abs(dz),   L.min_dq());
+      dz = std::max(std::abs(dz), L.min_dq());
 
-      if (Config::useCMSGeom)
+      // NOTE -- once issues in this block are resolved the changes should also be
+      // ported to MkFinderFV.
+      if (Config::useCMSGeom) // should be Config::finding_requires_propagation_to_hit_pos
       {
         //now correct for bending and for layer thickness unsing linear approximation
         //fixme! using constant value, to be taken from layer properties
         //XXXXMT4GC should we also increase dz?
+        //XXXXMT4GC an we just take half od layer dR?
         const float deltaR = Config::cmsDeltaRad;
         const float r  = std::sqrt(r2);
         //here alpha is the difference between posPhi and momPhi
@@ -207,11 +210,12 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
       dr = std::max(std::abs(dr), L.min_dq());
 
-      if (Config::useCMSGeom)
+      if (Config::useCMSGeom) // should be Config::finding_requires_propagation_to_hit_pos
       {
         //now correct for bending and for layer thickness unsing linear approximation
         //fixme! using constant value, to be taken from layer properties
         //XXXXMT4GC should we also increase dr?
+        //XXXXMT4GC can we just take half of layer dz?
         const float deltaZ = 5;
         float cosT = std::cos(Par[iI].ConstAt(itrack, 5, 0));
         float sinT = std::sin(Par[iI].ConstAt(itrack, 5, 0));
@@ -434,7 +438,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
     (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                   outChi2, N_proc);
+                                   outChi2, N_proc, Config::finding_intra_layer_pflags);
 
 #ifndef NO_PREFETCH
     // Prefetch to L1 the hits we'll process in the next loop iteration.
@@ -536,7 +540,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
 
   dprint("update parameters");
   (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                 Err[iC], Par[iC], N_proc);
+                                 Err[iC], Par[iC], N_proc, Config::finding_intra_layer_pflags);
 
   //std::cout << "Par[iP](0,0,0)=" << Par[iP](0,0,0) << " Par[iC](0,0,0)=" << Par[iC](0,0,0)<< std::endl;
 }
@@ -616,7 +620,7 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
     (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                   outChi2, N_proc);
+                                   outChi2, N_proc, Config::finding_intra_layer_pflags);
 
     // Prefetch to L1 the hits we'll (probably) process in the next loop iteration.
     for (int itrack = 0; itrack < N_proc; ++itrack)
@@ -648,7 +652,7 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
     if (oneCandPassCut)
     {
       (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                     Err[iC], Par[iC], N_proc);
+                                     Err[iC], Par[iC], N_proc, Config::finding_intra_layer_pflags);
 
       dprint("update parameters" << std::endl
 	     << "propagated track parameters x=" << Par[iP].ConstAt(0, 0, 0) << " y=" << Par[iP].ConstAt(0, 1, 0) << std::endl
@@ -788,7 +792,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
-    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar, outChi2, N_proc);
+    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar, outChi2, N_proc, Config::finding_intra_layer_pflags);
 
     // Prefetch to L1 the hits we'll (probably) process in the next loop iteration.
     for (int itrack = 0; itrack < N_proc; ++itrack)
@@ -880,7 +884,7 @@ void MkFinder::UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc,
   }
 
   (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                 Err[iC], Par[iC], N_proc);
+                                 Err[iC], Par[iC], N_proc, Config::finding_intra_layer_pflags);
 
   //now that we have moved propagation at the end of the sequence we lost the handle of
   //using the propagated parameters instead of the updated for the missing hit case.
@@ -945,6 +949,64 @@ void MkFinder::CopyOutParErr(std::vector<CombCandidate>& seed_cand_vec,
 // Backward Fit hack
 //==============================================================================
 
+void MkFinder::BkFitInputTracks(TrackVec& cands, int beg, int end)
+{
+  // SlurpIn based on XHit array - so Nhits is irrelevant.
+  // Could as well use HotArrays from tracks directly + a local cursor array to last hit.
+
+  const int   N_proc     = end - beg;
+  const Track &trk0      = cands[beg];
+  const char *varr       = (char*) &trk0;
+  const int   off_error  = (char*) trk0.errors().Array() - varr;
+  const int   off_param  = (char*) trk0.parameters().Array() - varr;
+
+  int idx[NN]      __attribute__((aligned(64)));
+
+  int itrack = 0;
+
+  for (int i = beg; i < end; ++i, ++itrack)
+  {
+    const Track &trk = cands[i];
+
+    Chg(itrack, 0, 0) = trk.charge();
+    CurHit[itrack]    = trk.nTotalHits() - 1;
+    HoTArr[itrack]    = trk.getHitsOnTrackArray();
+
+    idx[itrack] = (char*) &trk - varr;
+  }
+
+  Chi2.SetVal(0);
+
+#ifdef MIC_INTRINSICS
+  __m512i vi      = _mm512_load_epi32(idx);
+  Err[iC].SlurpIn(varr + off_error, vi, N_proc);
+  Par[iC].SlurpIn(varr + off_param, vi, N_proc);
+#else
+  Err[iC].SlurpIn(varr + off_error, idx, N_proc);
+  Par[iC].SlurpIn(varr + off_param, idx, N_proc);
+#endif
+
+  Err[iC].Scale(100.0f);
+}
+
+void MkFinder::BkFitOutputTracks(TrackVec& cands, int beg, int end)
+{
+  // Only copy out track params / errors / chi2, all the rest is ok.
+
+  int itrack = 0;
+  for (int i = beg; i < end; ++i, ++itrack)
+  {
+    Track &trk = cands[i];
+
+    Err[iC].CopyOut(itrack, trk.errors_nc().Array());
+    Par[iC].CopyOut(itrack, trk.parameters_nc().Array());
+
+    trk.setChi2(Chi2(itrack, 0, 0));
+  }
+}
+
+//------------------------------------------------------------------------------
+
 void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
 {
   // SlurpIn based on XHit array - so Nhits is irrelevant.
@@ -985,6 +1047,24 @@ void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
   Err[iC].Scale(100.0f);
 }
 
+void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
+{
+  // Only copy out track params / errors / chi2, all the rest is ok.
+
+  int itrack = 0;
+  for (int i = beg; i < end; ++i, ++itrack)
+  {
+    Track &trk = eocss[i][0];
+
+    Err[iC].CopyOut(itrack, trk.errors_nc().Array());
+    Par[iC].CopyOut(itrack, trk.parameters_nc().Array());
+
+    trk.setChi2(Chi2(itrack, 0, 0));
+  }
+}
+
+//------------------------------------------------------------------------------
+
 namespace { float e2s(float x) { return 1e4 * std::sqrt(x); } }
 
 void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
@@ -993,7 +1073,9 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
 {
   // Prototyping final backward fit.
   // This works with track-finding indices, before remapping.
-  // layers should be collected during track finding and list all layers that have actual hits.
+  //
+  // Layers should be collected during track finding and list all layers that have actual hits.
+  // Then we could avoid checking which layers actually do have hits.
 
   MPlexQF  tmp_chi2;
   float    tmp_err[6] = { 666, 0, 666, 0, 0, 666 };
@@ -1035,27 +1117,17 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
 
     if (LI.is_barrel())
     {
-      // ZZZ for cmsGeom propagation done in also done in update! fix
-      propagateHelixToRMPlex(Err[iC], Par[iC], Chg, msPar,
-                             Err[iP], Par[iP], N_proc, useParamBfield);
+      PropagateTracksToHitR(msPar, N_proc, Config::backward_fit_pflags);
 
-      // ZZZ should have common chi2 / update function
-      computeChi2MPlex(Err[iP], Par[iP], Chg, msErr, msPar,
-                       tmp_chi2, N_proc);
-
-      updateParametersMPlex(Err[iP], Par[iP], Chg, msErr, msPar,
-                            Err[iC], Par[iC], N_proc);
+      kalmanOperation(KFO_Calculate_Chi2 | KFO_Update_Params,
+                      Err[iP], Par[iP], msErr, msPar, Err[iC], Par[iC], tmp_chi2, N_proc);
     }
     else
     {
-      propagateHelixToZMPlex(Err[iC], Par[iC], Chg, msPar,
-			     Err[iP], Par[iP], N_proc, useParamBfield);
+      PropagateTracksToHitZ(msPar, N_proc, Config::backward_fit_pflags);
 
-      computeChi2EndcapMPlex(Err[iP], Par[iP], Chg, msErr, msPar,
-                             tmp_chi2, N_proc);
-
-      updateParametersEndcapMPlex(Err[iP], Par[iP], Chg, msErr, msPar,
-				  Err[iC], Par[iC], N_proc);
+      kalmanOperationEndcap(KFO_Calculate_Chi2 | KFO_Update_Params,
+                            Err[iP], Par[iP], msErr, msPar, Err[iC], Par[iC], tmp_chi2, N_proc);
     }
 
 #ifdef DEBUG_BACKWARD_FIT
@@ -1091,21 +1163,5 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
 
     // update chi2
     Chi2.Add(tmp_chi2);
-  }
-}
-
-void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
-{
-  // Only copy out track params / errors / chi2, all the rest is ok.
-
-  int itrack = 0;
-  for (int i = beg; i < end; ++i, ++itrack)
-  {
-    Track &trk = eocss[i][0];
-
-    Err[iC].CopyOut(itrack, trk.errors_nc().Array());
-    Par[iC].CopyOut(itrack, trk.parameters_nc().Array());
-
-    trk.setChi2(Chi2(itrack, 0, 0));
   }
 }

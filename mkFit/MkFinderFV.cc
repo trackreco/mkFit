@@ -318,7 +318,7 @@ void MkFinderFV<nseeds, ncands>::FindCandidates(const LayerOfHits &layer_of_hits
 #endif
 
     //now compute the chi2 of track state vs hit
-    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar, XHitChi2[hit_cnt], NNFV);
+    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar, XHitChi2[hit_cnt], NNFV, Config::finding_intra_layer_pflags);
 
     // Prefetch to L1 the hits we'll (probably) process in the next loop iteration.
     for (int itrack = 0; itrack < NNFV; ++itrack)
@@ -357,7 +357,7 @@ void MkFinderFV<nseeds, ncands>::UpdateWithLastHit(const LayerOfHits &layer_of_h
   }
 
   (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                 Err[iC], Par[iC], NNFV);
+                                 Err[iC], Par[iC], NNFV, Config::finding_intra_layer_pflags);
 
   //now that we have moved propagation at the end of the sequence we lost the handle of
   //using the propagated parameters instead of the updated for the missing hit case.

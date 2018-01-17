@@ -8,30 +8,75 @@
 #include "FitterCU.h"
 #endif
 
-void updateParametersMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+//------------------------------------------------------------------------------
+
+enum KalmanFilterOperation
+{
+  KFO_Calculate_Chi2 = 1,
+  KFO_Update_Params  = 2
+};
+
+
+//------------------------------------------------------------------------------
+
+void kalmanUpdate(const MPlexLS &psErr,  const MPlexLV& psPar,
+                  const MPlexHS &msErr,  const MPlexHV& msPar,
+                        MPlexLS &outErr,       MPlexLV& outPar,
+                  const int      N_proc);
+
+void kalmanPropagateAndUpdate(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+                              const MPlexHS &msErr,  const MPlexHV& msPar,
+                                    MPlexLS &outErr,       MPlexLV& outPar,
+                              const int      N_proc, const PropagationFlags propFlags);
+
+
+void kalmanComputeChi2(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+                       const MPlexHS &msErr,  const MPlexHV& msPar,
+                             MPlexQF& outChi2,
+                       const int      N_proc);
+
+void kalmanPropagateAndComputeChi2(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+                                   const MPlexHS &msErr,  const MPlexHV& msPar,
+                                         MPlexQF& outChi2,
+                                   const int      N_proc, const PropagationFlags propFlags);
+
+
+void kalmanOperation(const int      kfOp,
+                     const MPlexLS &psErr,  const MPlexLV& psPar,
+                     const MPlexHS &msErr,  const MPlexHV& msPar,
+                           MPlexLS &outErr,       MPlexLV& outPar, MPlexQF& outChi2,
+                     const int      N_proc);
+
+//------------------------------------------------------------------------------
+
+
+void kalmanUpdateEndcap(const MPlexLS &psErr,  const MPlexLV& psPar,
+                        const MPlexHS &msErr,  const MPlexHV& msPar,
+                              MPlexLS &outErr,       MPlexLV& outPar,
+                        const int      N_proc);
+
+void kalmanPropagateAndUpdateEndcap(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+                                    const MPlexHS &msErr,  const MPlexHV& msPar,
+                                          MPlexLS &outErr,       MPlexLV& outPar,
+                                    const int      N_proc, const PropagationFlags propFlags);
+
+
+void kalmanComputeChi2Endcap(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+                             const MPlexHS &msErr,  const MPlexHV& msPar,
+                                   MPlexQF& outChi2,
+                             const int      N_proc);
+
+void kalmanPropagateAndComputeChi2Endcap(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+                                         const MPlexHS &msErr,  const MPlexHV& msPar,
+                                               MPlexQF& outChi2,
+                                         const int      N_proc, const PropagationFlags propFlags);
+
+
+void kalmanOperationEndcap(const int      kfOp,
+                           const MPlexLS &psErr,  const MPlexLV& psPar,
                            const MPlexHS &msErr,  const MPlexHV& msPar,
-                                 MPlexLS &outErr,       MPlexLV& outPar,
+                                 MPlexLS &outErr,       MPlexLV& outPar, MPlexQF& outChi2,
                            const int      N_proc);
 
-#ifdef USE_CUDA  // FIXME: temporary; move to FitterCU
-void computeChi2MPlex_tmp(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
-                      const MPlexHS &msErr,  const MPlexHV& msPar,
-                            MPlexQF& outChi2,
-                            FitterCU<float>& cuFitter);
-#endif
-void computeChi2MPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
-		      const MPlexHS &msErr,  const MPlexHV& msPar,
-                            MPlexQF& outChi2,
-                      const int      N_proc);
-
-void updateParametersEndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
-				 const MPlexHS &msErr,  const MPlexHV& msPar,
-                                       MPlexLS &outErr,       MPlexLV& outPar,
-				 const int      N_proc);
-
-void computeChi2EndcapMPlex(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
-			    const MPlexHS &msErr,  const MPlexHV& msPar,
-                                  MPlexQF& outChi2,
-			    const int      N_proc);
 
 #endif

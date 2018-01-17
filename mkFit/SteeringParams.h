@@ -11,24 +11,24 @@ class MkFinder;
 
 #define COMPUTE_CHI2_ARGS const MPlexLS &,  const MPlexLV &, const MPlexQI &, \
                           const MPlexHS &,  const MPlexHV &, \
-                                MPlexQF &,  const int
+                          MPlexQF &,  const int, const PropagationFlags
 
 #define UPDATE_PARAM_ARGS const MPlexLS &,  const MPlexLV &, const MPlexQI &, \
                           const MPlexHS &,  const MPlexHV &, \
-                                MPlexLS &,        MPlexLV &, const int
+                                MPlexLS &,        MPlexLV &, const int, const PropagationFlags
 
 class FindingFoos
 {
 public:
   void (*m_compute_chi2_foo)      (COMPUTE_CHI2_ARGS);
   void (*m_update_param_foo)      (UPDATE_PARAM_ARGS);
-  void (MkBase::*m_propagate_foo) (float, const int);
+  void (MkBase::*m_propagate_foo) (float, const int, const PropagationFlags);
 
   FindingFoos() {}
 
   FindingFoos(void (*cch2_f)      (COMPUTE_CHI2_ARGS),
               void (*updp_f)      (UPDATE_PARAM_ARGS),
-              void (MkBase::*p_f) (float, const int)) :
+              void (MkBase::*p_f) (float, const int, const PropagationFlags)) :
     m_compute_chi2_foo(cch2_f),
     m_update_param_foo(updp_f),
     m_propagate_foo(p_f)

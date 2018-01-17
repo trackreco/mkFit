@@ -15,6 +15,43 @@ class TrackerInfo;
   #define CUDA_CALLABLE 
 #endif
 
+
+//------------------------------------------------------------------------------
+
+enum PropagationFlagsEnum
+{
+  PF_none              = 0,
+
+  PF_use_param_b_field = 0x1,
+  PF_apply_material    = 0x2
+};
+
+struct PropagationFlags
+{
+  union
+  {
+    struct
+    {
+      bool use_param_b_field  : 1;
+      bool apply_material     : 1;
+      // Could add: bool use_trig_approx  -- now Config::useTrigApprox = true
+      // Could add: int  n_iter : 8       -- now Config::Niter = 5
+    };
+
+    unsigned int _raw_;
+
+  };
+
+  PropagationFlags() : _raw_(0) {}
+
+  PropagationFlags(int pfe) :
+    use_param_b_field       ( pfe & PF_use_param_b_field),
+    apply_material          ( pfe & PF_apply_material)
+  {}
+};
+
+//------------------------------------------------------------------------------
+
 // Enum for input seed options
 enum seedOpts {simSeeds, cmsswSeeds, findSeeds};
 typedef std::map<std::string,seedOpts> seedOptsMap;
@@ -26,6 +63,8 @@ typedef std::map<std::string,cleanOpts> cleanOptsMap;
 // Enum for cmssw matching options
 enum matchOpts {trkParamBased, hitBased, labelBased};
 typedef std::map<std::string, matchOpts> matchOptsMap;
+
+//------------------------------------------------------------------------------
 
 namespace Config
 {
@@ -182,18 +221,26 @@ namespace Config
   constexpr float seed_d0cut   = 0.5f; // 5mm
   extern bool cf_seeding;
 
-  // Config for propagation
+  // Config for propagation - could/should enter into PropagationFlags?!
   constexpr int Niter    =  5;
   constexpr int NiterSim = 10; // Can make more steps due to near volume misses.
   constexpr bool useTrigApprox = true;
 
-  // Config for Bfield
+  // PropagationFlags as used during finding and fitting. Defined for each Geom in its plugin.
+  extern bool             finding_requires_propagation_to_hit_pos;
+  extern PropagationFlags finding_inter_layer_pflags;
+  extern PropagationFlags finding_intra_layer_pflags;
+  extern PropagationFlags backward_fit_pflags;
+  extern PropagationFlags forward_fit_pflags;
+  extern PropagationFlags seed_fit_pflags;
+
+  // Config for Bfield. Note: for now the same for CMS-2017 and CylCowWLids.
   constexpr float Bfield = 3.8112;
   constexpr float mag_c1 = 3.8114;
   constexpr float mag_b0 = -3.94991e-06;
   constexpr float mag_b1 = 7.53701e-06;
   constexpr float mag_a  = 2.43878e-11;
-  
+
   // Config for seeding as well... needed bfield
   constexpr float maxCurvR = (100 * minSimPt) / (sol * Bfield); // in cm
 
