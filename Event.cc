@@ -449,6 +449,8 @@ void Event::write_out(DataFile &data_file)
 // #define DUMP_TRACKS
 // #define DUMP_TRACK_HITS
 // #define DUMP_LAYER_HITS
+// #define DUMP_REC_TRACKS
+// #define DUMP_REC_TRACK_HITS
 
 void Event::read_in(DataFile &data_file, FILE *in_fp)
 {
@@ -531,9 +533,9 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
 #endif
   }
 
+  int nert = -99999;
   if (data_file.HasCmsswTracks())
   {
-    int nert;
     fread(&nert, sizeof(int), 1, fp);
     if (Config::readCmsswTracks)
     {
@@ -605,6 +607,31 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
     }
   }
   printf("Total hits in all layers = %d\n", total_hits);
+#endif
+#ifdef DUMP_REC_TRACKS
+  printf("Read %i rectracks\n", nert);
+  for (int it = 0; it < nert; it++)
+  {
+    const Track &t = cmsswTracks_[it];
+    printf("  %i with q=%+i pT=%7.3f eta=% 7.3f nHits=%2d  label=%4d\n",
+           it, t.charge(), t.pT(), t.momEta(), t.nFoundHits(), t.label());
+#ifdef DUMP_REC_TRACK_HITS
+    for (int ih = 0; ih < t.nTotalHits(); ++ih)
+    {
+      int lyr = t.getHitLyr(ih);
+      int idx = t.getHitIdx(ih);
+      if (idx >= 0)
+      {
+        const Hit &hit = layerHits_[lyr][idx];
+       printf("    hit %2d lyr=%2d idx=%3d pos r=%7.3f z=% 8.3f   mc_hit=%3d mc_trk=%3d\n",
+               ih, lyr, idx, layerHits_[lyr][idx].r(), layerHits_[lyr][idx].z(),
+               hit.mcHitID(), hit.mcTrackID(simHitsInfo_));
+      }
+      else
+       printf("    hit %2d idx=%i\n", ih, t.getHitIdx(ih));
+    }
+#endif
+  }
 #endif
 
   if (Config::kludgeCmsHitErrors)
