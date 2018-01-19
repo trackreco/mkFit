@@ -12,7 +12,7 @@ arch=SNB
 nevents=500
 maxth=24
 maxvu=8
-exe="./mkFit/mkFit --input-file ${dir}/${file} --cmssw-n2seeds --num-thr ${maxth} --num-events ${nevents}"
+exe="./mkFit/mkFit --input-file ${dir}/${file} --cmssw-n2seeds --backward-fit --num-thr ${maxth} --num-events ${nevents}"
 
 ## Compile once
 make clean

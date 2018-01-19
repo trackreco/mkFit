@@ -33,7 +33,8 @@ public:
   virtual void setTrackExtras(Event& ev) {}
   virtual void makeSimTkToRecoTksMaps(Event&) {}
   virtual void makeSeedTkToRecoTkMaps(Event&) {}
-  virtual void makeCMSSWTkToRecoTksMap(Event&) {}
+  virtual void makeRecoTkToRecoTkMaps(Event&) {}
+  virtual void makeCMSSWTkToRecoTksMaps(Event&) {}
   virtual void makeSeedTkToCMSSWTkMap(Event&) {}
 
   virtual void fillEfficiencyTree(const Event&) {}

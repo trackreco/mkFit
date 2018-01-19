@@ -45,7 +45,10 @@ public:
   void mapRefTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, TkIDToTkIDVecMap& refTkMap);
   void makeSeedTkToRecoTkMaps(Event& ev) override;
   void mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackExtraVec& evt_extras, TkIDToTkIDMap& seedTkMap);
-  void makeCMSSWTkToRecoTksMap(Event& ev) override;
+  void makeRecoTkToRecoTkMaps(Event& ev) override;
+  void makeRecoTkToRecoTkMap(TkIDToTkIDMap& refToPairMap, const TrackVec& reftracks, const TrackExtraVec& refextras, 
+			     const TrackVec& pairtracks, const TrackExtraVec& pairextras);
+  void makeCMSSWTkToRecoTksMaps(Event& ev) override;
   void makeSeedTkToCMSSWTkMap(Event& ev) override;
 
   void storeSeedAndMCID(Event& ev);
@@ -78,12 +81,17 @@ public:
 
   // CMSSW to Reco Maps
   TkIDToTkIDVecMap cmsswToBuildMap_;
+  TkIDToTkIDVecMap cmsswToFitMap_;
 
   // Special map for CMSSW tracks to seed track labels --> NOT used for fake rate!!
   TkIDToTkIDMap seedToCmsswMap_;
 
   // Special map for geting exact CMSSW track that originate build track from seed track through seedIDs
   TkIDToTkIDMap buildToCmsswMap_;
+ 
+  // Special map for associating candidate to fit tracks in CMSSW only
+  TkIDToTkIDMap buildToFitMap_;
+  TkIDToTkIDMap fitToBuildMap_;
 
   // Efficiency Tree 
   TTree* efftree_;  
@@ -177,13 +185,15 @@ public:
 
   // CMSSW Efficiency tree
   TTree* cmsswefftree_;
-  int   evtID_ceff_=0,cmsswID_ceff_=0;
-  int   seedID_cmssw_ceff_=0,seedID_build_ceff_=0,mcTrackID_build_ceff_=0;
-  int   cmsswmask_build_ceff_=0;
+  int   evtID_ceff_=0,cmsswID_ceff_=0,seedID_cmssw_ceff_=0;
 
   float x_cmssw_ceff_=0.,y_cmssw_ceff_=0.,z_cmssw_ceff_=0.;
   float pt_cmssw_ceff_=0.,phi_cmssw_ceff_=0.,eta_cmssw_ceff_=0.;
   int   nHits_cmssw_ceff_=0,nLayers_cmssw_ceff_=0,lastlyr_cmssw_ceff_=0;
+
+  // build
+  int   seedID_build_ceff_=0,mcTrackID_build_ceff_=0;
+  int   cmsswmask_build_ceff_=0;
 
   float pt_build_ceff_=0.,ept_build_ceff_=0.;
   float phi_build_ceff_=0.,ephi_build_ceff_=0.;
@@ -200,12 +210,31 @@ public:
 
   int   duplmask_build_ceff_=0,nTkMatches_build_ceff_=0;
 
+  // fit
+  int   seedID_fit_ceff_=0,mcTrackID_fit_ceff_=0;
+  int   cmsswmask_fit_ceff_=0;
+
+  float pt_fit_ceff_=0.,ept_fit_ceff_=0.;
+  float phi_fit_ceff_=0.,ephi_fit_ceff_=0.;
+  float eta_fit_ceff_=0.,eeta_fit_ceff_=0.;
+
+  int   nHits_fit_ceff_=0,nLayers_fit_ceff_=0,nHitsMatched_fit_ceff_=0,lastlyr_fit_ceff_=0;
+  float fracHitsMatched_fit_ceff_=0;
+
+  float xhit_fit_ceff_=0.,yhit_fit_ceff_=0.,zhit_fit_ceff_=0.;
+
+  // chi2 of tracks + phi swim
+  float hitchi2_fit_ceff_=0.,helixchi2_fit_ceff_=0.;
+  float dphi_fit_ceff_=0.;
+
+  int   duplmask_fit_ceff_=0,nTkMatches_fit_ceff_=0;
+
   // CMSSW FakeRate tree
   TTree* cmsswfrtree_;
+  int   evtID_cFR_=0,seedID_cFR_=0,mcTrackID_cFR_=0;
 
-  int   evtID_cFR_=0,cmsswID_build_cFR_=0;
-  int   seedID_cmssw_cFR_=0,seedID_build_cFR_=0,mcTrackID_build_cFR_=0;
-  int   cmsswmask_build_cFR_=0;
+  // build info
+  int   cmsswID_build_cFR_=0,cmsswmask_build_cFR_=0;
 
   float pt_build_cFR_=0.,ept_build_cFR_=0.;
   float phi_build_cFR_=0.,ephi_build_cFR_=0.;
@@ -223,9 +252,36 @@ public:
   // for duplicate track matches
   int   duplmask_build_cFR_=0,iTkMatches_build_cFR_=0;
 
-  float x_cmssw_cFR_=0.,y_cmssw_cFR_=0.,z_cmssw_cFR_=0.;
-  float pt_cmssw_cFR_=0.,phi_cmssw_cFR_=0.,eta_cmssw_cFR_=0.;
-  int   nHits_cmssw_cFR_=0,nLayers_cmssw_cFR_=0,lastlyr_cmssw_cFR_=0;
+  // cmssw info
+  int   seedID_cmssw_build_cFR_=0;
+  float x_cmssw_build_cFR_=0.,y_cmssw_build_cFR_=0.,z_cmssw_build_cFR_=0.;
+  float pt_cmssw_build_cFR_=0.,phi_cmssw_build_cFR_=0.,eta_cmssw_build_cFR_=0.;
+  int   nHits_cmssw_build_cFR_=0,nLayers_cmssw_build_cFR_=0,lastlyr_cmssw_build_cFR_=0;
+
+  // fit info
+  int   cmsswID_fit_cFR_=0,cmsswmask_fit_cFR_=0;
+
+  float pt_fit_cFR_=0.,ept_fit_cFR_=0.;
+  float phi_fit_cFR_=0.,ephi_fit_cFR_=0.;
+  float eta_fit_cFR_=0.,eeta_fit_cFR_=0.;
+
+  int   nHits_fit_cFR_=0,nLayers_fit_cFR_=0,nHitsMatched_fit_cFR_=0,lastlyr_fit_cFR_=0;
+  float fracHitsMatched_fit_cFR_=0;
+
+  float xhit_fit_cFR_=0.,yhit_fit_cFR_=0.,zhit_fit_cFR_=0.;
+
+  // chi2 of tracks
+  float hitchi2_fit_cFR_=0.,helixchi2_fit_cFR_=0.;
+  float dphi_fit_cFR_=0.;
+
+  // for duplicate track matches
+  int   duplmask_fit_cFR_=0,iTkMatches_fit_cFR_=0;
+
+  // cmssw info
+  int   seedID_cmssw_fit_cFR_=0;
+  float x_cmssw_fit_cFR_=0.,y_cmssw_fit_cFR_=0.,z_cmssw_fit_cFR_=0.;
+  float pt_cmssw_fit_cFR_=0.,phi_cmssw_fit_cFR_=0.,eta_cmssw_fit_cFR_=0.;
+  int   nHits_cmssw_fit_cFR_=0,nLayers_cmssw_fit_cFR_=0,lastlyr_cmssw_fit_cFR_=0;
 
   // Fit tree (for fine tuning z-phi windows and such --> MPlex Only
   TTree* fittree_;

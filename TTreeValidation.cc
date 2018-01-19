@@ -314,11 +314,9 @@ void TTreeValidation::initializeCMSSWEfficiencyTree()
   cmsswefftree_ = new TTree("cmsswefftree","cmsswefftree");
   cmsswefftree_->Branch("evtID",&evtID_ceff_);
   cmsswefftree_->Branch("cmsswID",&cmsswID_ceff_);
-  cmsswefftree_->Branch("cmsswmask_build",&cmsswmask_build_ceff_);
   cmsswefftree_->Branch("seedID_cmssw",&seedID_cmssw_ceff_);
-  cmsswefftree_->Branch("seedID_build",&seedID_build_ceff_);
-  cmsswefftree_->Branch("mcTrackID_build",&mcTrackID_build_ceff_);
 
+  // CMSSW
   cmsswefftree_->Branch("x_cmssw",&x_cmssw_ceff_);
   cmsswefftree_->Branch("y_cmssw",&y_cmssw_ceff_);
   cmsswefftree_->Branch("z_cmssw",&z_cmssw_ceff_);
@@ -330,6 +328,11 @@ void TTreeValidation::initializeCMSSWEfficiencyTree()
   cmsswefftree_->Branch("nHits_cmssw",&nHits_cmssw_ceff_);
   cmsswefftree_->Branch("nLayers_cmssw",&nLayers_cmssw_ceff_);
   cmsswefftree_->Branch("lastlyr_cmssw",&lastlyr_cmssw_ceff_);
+
+  // Build
+  cmsswefftree_->Branch("cmsswmask_build",&cmsswmask_build_ceff_);
+  cmsswefftree_->Branch("seedID_build",&seedID_build_ceff_);
+  cmsswefftree_->Branch("mcTrackID_build",&mcTrackID_build_ceff_);
 
   cmsswefftree_->Branch("pt_build",&pt_build_ceff_);
   cmsswefftree_->Branch("ept_build",&ept_build_ceff_);
@@ -354,6 +357,35 @@ void TTreeValidation::initializeCMSSWEfficiencyTree()
 
   cmsswefftree_->Branch("duplmask_build",&duplmask_build_ceff_);
   cmsswefftree_->Branch("nTkMatches_build",&nTkMatches_build_ceff_);
+
+  // Fit
+  cmsswefftree_->Branch("cmsswmask_fit",&cmsswmask_fit_ceff_);
+  cmsswefftree_->Branch("seedID_fit",&seedID_fit_ceff_);
+  cmsswefftree_->Branch("mcTrackID_fit",&mcTrackID_fit_ceff_);
+
+  cmsswefftree_->Branch("pt_fit",&pt_fit_ceff_);
+  cmsswefftree_->Branch("ept_fit",&ept_fit_ceff_);
+  cmsswefftree_->Branch("phi_fit",&phi_fit_ceff_);
+  cmsswefftree_->Branch("ephi_fit",&ephi_fit_ceff_);
+  cmsswefftree_->Branch("eta_fit",&eta_fit_ceff_);
+  cmsswefftree_->Branch("eeta_fit",&eeta_fit_ceff_);
+
+  cmsswefftree_->Branch("nHits_fit",&nHits_fit_ceff_);
+  cmsswefftree_->Branch("nLayers_fit",&nLayers_fit_ceff_);
+  cmsswefftree_->Branch("nHitsMatched_fit",&nHitsMatched_fit_ceff_);
+  cmsswefftree_->Branch("fracHitsMatched_fit",&fracHitsMatched_fit_ceff_);
+  cmsswefftree_->Branch("lastlyr_fit",&lastlyr_fit_ceff_);
+
+  cmsswefftree_->Branch("xhit_fit",&xhit_fit_ceff_);
+  cmsswefftree_->Branch("yhit_fit",&yhit_fit_ceff_);
+  cmsswefftree_->Branch("zhit_fit",&zhit_fit_ceff_);
+
+  cmsswefftree_->Branch("hitchi2_fit",&hitchi2_fit_ceff_);
+  cmsswefftree_->Branch("helixchi2_fit",&helixchi2_fit_ceff_);
+  cmsswefftree_->Branch("dphi_fit",&dphi_fit_ceff_);
+
+  cmsswefftree_->Branch("duplmask_fit",&duplmask_fit_ceff_);
+  cmsswefftree_->Branch("nTkMatches_fit",&nTkMatches_fit_ceff_);
 }
 
 void TTreeValidation::initializeCMSSWFakeRateTree()
@@ -362,11 +394,12 @@ void TTreeValidation::initializeCMSSWFakeRateTree()
   cmsswfrtree_ = new TTree("cmsswfrtree","cmsswfrtree");
 
   cmsswfrtree_->Branch("evtID",&evtID_cFR_);
+  cmsswfrtree_->Branch("seedID",&seedID_cFR_);
+  cmsswfrtree_->Branch("mcTrackID",&mcTrackID_cFR_);
+
+  // build
   cmsswfrtree_->Branch("cmsswID_build",&cmsswID_build_cFR_);
   cmsswfrtree_->Branch("cmsswmask_build",&cmsswmask_build_cFR_);
-  cmsswfrtree_->Branch("seedID_cmssw",&seedID_cmssw_cFR_);
-  cmsswfrtree_->Branch("seedID_build",&seedID_build_cFR_);
-  cmsswfrtree_->Branch("mcTrackID_build",&mcTrackID_build_cFR_);
 
   cmsswfrtree_->Branch("pt_build",&pt_build_cFR_);
   cmsswfrtree_->Branch("ept_build",&ept_build_cFR_);
@@ -392,17 +425,61 @@ void TTreeValidation::initializeCMSSWFakeRateTree()
   cmsswfrtree_->Branch("duplmask_build",&duplmask_build_cFR_);
   cmsswfrtree_->Branch("iTkMatches_build",&iTkMatches_build_cFR_);
 
-  cmsswfrtree_->Branch("x_cmssw",&x_cmssw_cFR_);
-  cmsswfrtree_->Branch("y_cmssw",&y_cmssw_cFR_);
-  cmsswfrtree_->Branch("z_cmssw",&z_cmssw_cFR_);
+  cmsswfrtree_->Branch("seedID_cmssw_build",&seedID_cmssw_build_cFR_);
 
-  cmsswfrtree_->Branch("pt_cmssw",&pt_cmssw_cFR_);
-  cmsswfrtree_->Branch("phi_cmssw",&phi_cmssw_cFR_);
-  cmsswfrtree_->Branch("eta_cmssw",&eta_cmssw_cFR_);
+  cmsswfrtree_->Branch("x_cmssw_build",&x_cmssw_build_cFR_);
+  cmsswfrtree_->Branch("y_cmssw_build",&y_cmssw_build_cFR_);
+  cmsswfrtree_->Branch("z_cmssw_build",&z_cmssw_build_cFR_);
 
-  cmsswfrtree_->Branch("nHits_cmssw",&nHits_cmssw_cFR_);
-  cmsswfrtree_->Branch("nLayers_cmssw",&nLayers_cmssw_cFR_);
-  cmsswfrtree_->Branch("lastlyr_cmssw",&lastlyr_cmssw_cFR_);
+  cmsswfrtree_->Branch("pt_cmssw_build",&pt_cmssw_build_cFR_);
+  cmsswfrtree_->Branch("phi_cmssw_build",&phi_cmssw_build_cFR_);
+  cmsswfrtree_->Branch("eta_cmssw_build",&eta_cmssw_build_cFR_);
+
+  cmsswfrtree_->Branch("nHits_cmssw_build",&nHits_cmssw_build_cFR_);
+  cmsswfrtree_->Branch("nLayers_cmssw_build",&nLayers_cmssw_build_cFR_);
+  cmsswfrtree_->Branch("lastlyr_cmssw_build",&lastlyr_cmssw_build_cFR_);
+
+  // fit
+  cmsswfrtree_->Branch("cmsswID_fit",&cmsswID_fit_cFR_);
+  cmsswfrtree_->Branch("cmsswmask_fit",&cmsswmask_fit_cFR_);
+
+  cmsswfrtree_->Branch("pt_fit",&pt_fit_cFR_);
+  cmsswfrtree_->Branch("ept_fit",&ept_fit_cFR_);
+  cmsswfrtree_->Branch("phi_fit",&phi_fit_cFR_);
+  cmsswfrtree_->Branch("ephi_fit",&ephi_fit_cFR_);
+  cmsswfrtree_->Branch("eta_fit",&eta_fit_cFR_);
+  cmsswfrtree_->Branch("eeta_fit",&eeta_fit_cFR_);
+
+  cmsswfrtree_->Branch("nHits_fit",&nHits_fit_cFR_);
+  cmsswfrtree_->Branch("nLayers_fit",&nLayers_fit_cFR_);
+  cmsswfrtree_->Branch("nHitsMatched_fit",&nHitsMatched_fit_cFR_);
+  cmsswfrtree_->Branch("fracHitsMatched_fit",&fracHitsMatched_fit_cFR_);
+  cmsswfrtree_->Branch("lastlyr_fit",&lastlyr_fit_cFR_);
+
+  cmsswfrtree_->Branch("xhit_fit",&xhit_fit_cFR_);
+  cmsswfrtree_->Branch("yhit_fit",&yhit_fit_cFR_);
+  cmsswfrtree_->Branch("zhit_fit",&zhit_fit_cFR_);
+
+  cmsswfrtree_->Branch("hitchi2_fit",&hitchi2_fit_cFR_);
+  cmsswfrtree_->Branch("helixchi2_fit",&helixchi2_fit_cFR_);
+  cmsswfrtree_->Branch("dphi_fit",&dphi_fit_cFR_);
+
+  cmsswfrtree_->Branch("duplmask_fit",&duplmask_fit_cFR_);
+  cmsswfrtree_->Branch("iTkMatches_fit",&iTkMatches_fit_cFR_);
+
+  cmsswfrtree_->Branch("seedID_cmssw_fit",&seedID_cmssw_fit_cFR_);
+
+  cmsswfrtree_->Branch("x_cmssw_fit",&x_cmssw_fit_cFR_);
+  cmsswfrtree_->Branch("y_cmssw_fit",&y_cmssw_fit_cFR_);
+  cmsswfrtree_->Branch("z_cmssw_fit",&z_cmssw_fit_cFR_);
+
+  cmsswfrtree_->Branch("pt_cmssw_fit",&pt_cmssw_fit_cFR_);
+  cmsswfrtree_->Branch("phi_cmssw_fit",&phi_cmssw_fit_cFR_);
+  cmsswfrtree_->Branch("eta_cmssw_fit",&eta_cmssw_fit_cFR_);
+
+  cmsswfrtree_->Branch("nHits_cmssw_fit",&nHits_cmssw_fit_cFR_);
+  cmsswfrtree_->Branch("nLayers_cmssw_fit",&nLayers_cmssw_fit_cFR_);
+  cmsswfrtree_->Branch("lastlyr_cmssw_fit",&lastlyr_cmssw_fit_cFR_);
 }
 
 void TTreeValidation::initializeFitTree()
@@ -493,12 +570,17 @@ void TTreeValidation::resetValidationMaps()
 
   // reset map of cmssw tracks to reco tracks
   cmsswToBuildMap_.clear();
+  cmsswToFitMap_.clear();
 
   // reset special map of seed labels to cmssw tracks
   seedToCmsswMap_.clear();
 
   // reset special map of matching build tracks exactly to cmssw tracks through seedIDs
   buildToCmsswMap_.clear();
+
+  // reset special maps used for pairing build to fit tracks CMSSW only
+  buildToFitMap_.clear();
+  fitToBuildMap_.clear();
 }
 
 void TTreeValidation::setTrackExtras(Event& ev)
@@ -517,6 +599,7 @@ void TTreeValidation::setTrackExtras(Event& ev)
           auto& buildextras = ev.candidateTracksExtra_;
     const auto& fittracks = ev.fitTracks_;
           auto& fitextras = ev.fitTracksExtra_;
+
     // set mcTrackID for seed tracks
     for (int itrack = 0; itrack < seedtracks.size(); itrack++)
     {
@@ -553,6 +636,8 @@ void TTreeValidation::setTrackExtras(Event& ev)
           auto& cmsswextras = ev.cmsswTracksExtra_;
     const auto& buildtracks = ev.candidateTracks_;
           auto& buildextras = ev.candidateTracksExtra_;
+    const auto& fittracks   = ev.fitTracks_;
+          auto& fitextras   = ev.fitTracksExtra_;
 
     // store reduced parameters, hit map of cmssw tracks, and global hit map
     RedTrackVec reducedCMSSW;
@@ -567,7 +652,7 @@ void TTreeValidation::setTrackExtras(Event& ev)
 
       if (Config::cmsswMatching == trkParamBased)
       {	
-	extra.setCMSSWTrackIDInfoByTrkParams(track, layerhits, cmsswtracks, reducedCMSSW);
+	extra.setCMSSWTrackIDInfoByTrkParams(track, layerhits, cmsswtracks, reducedCMSSW, false);
       }
       else if (Config::cmsswMatching == hitBased)
       {
@@ -583,6 +668,15 @@ void TTreeValidation::setTrackExtras(Event& ev)
 	exit(1);
       }
     }
+
+    // set cmsswTrackID for fit tracks --> at this point only do track param matching!
+    for (int itrack = 0; itrack < fittracks.size(); itrack++)
+    {
+      const auto& track = fittracks[itrack];
+            auto& extra = fitextras[itrack];
+
+      extra.setCMSSWTrackIDInfoByTrkParams(track, layerhits, cmsswtracks, reducedCMSSW, true);
+    }    
   }
 }
 
@@ -666,11 +760,39 @@ void TTreeValidation::mapSeedTkToRecoTk(const TrackVec& evt_tracks, const TrackE
   }
 }
 
-void TTreeValidation::makeCMSSWTkToRecoTksMap(Event& ev)
+void TTreeValidation::makeRecoTkToRecoTkMaps(Event& ev)
+{
+  std::lock_guard<std::mutex> locker(glock_);
+  TTreeValidation::makeRecoTkToRecoTkMap(buildToFitMap_,ev.candidateTracks_,ev.candidateTracksExtra_,ev.fitTracks_,ev.fitTracksExtra_);
+  TTreeValidation::makeRecoTkToRecoTkMap(fitToBuildMap_,ev.fitTracks_,ev.fitTracksExtra_,ev.candidateTracks_,ev.candidateTracksExtra_);
+}
+
+void TTreeValidation::makeRecoTkToRecoTkMap(TkIDToTkIDMap& refToPairMap, const TrackVec& reftracks, const TrackExtraVec& refextras, 
+					    const TrackVec& pairtracks, const TrackExtraVec& pairextras)
+{
+  // at this point in the code, the labels of the tracks point their position inside the vector
+  // while the seedID is the label prior to relabeling (in reality, this is the MC track ID)
+  for (auto&& reftrack : reftracks)
+  {
+    const auto & refextra = refextras[reftrack.label()];
+    for (auto&& pairtrack : pairtracks)
+    {
+      const auto & pairextra = pairextras[pairtrack.label()];
+      if (refextra.seedID() == pairextra.seedID())
+      {
+	refToPairMap[reftrack.label()] = pairtrack.label(); 
+	break;
+      }
+    }
+  }
+}
+
+void TTreeValidation::makeCMSSWTkToRecoTksMaps(Event& ev)
 {
   std::lock_guard<std::mutex> locker(glock_);
   // can reuse this function
   TTreeValidation::mapRefTkToRecoTks(ev.candidateTracks_,ev.candidateTracksExtra_,cmsswToBuildMap_);
+  TTreeValidation::mapRefTkToRecoTks(ev.fitTracks_,ev.fitTracksExtra_,cmsswToFitMap_);
 }
 
 void TTreeValidation::makeSeedTkToCMSSWTkMap(Event& ev)
@@ -691,9 +813,13 @@ void TTreeValidation::storeSeedAndMCID(Event& ev)
   const auto& buildtracks = ev.candidateTracks_;
         auto& buildextras = ev.candidateTracksExtra_;
 
+  const auto& fittracks = ev.fitTracks_;
+        auto& fitextras = ev.fitTracksExtra_;
+
   const auto& cmsswtracks = ev.cmsswTracks_;
         auto& cmsswextras = ev.cmsswTracksExtra_;
   
+  // first set candidate tracks, use as base for fittracks
   int newlabel = -1;
   for (int itrack = 0; itrack < buildtracks.size(); itrack++)
   {
@@ -705,12 +831,15 @@ void TTreeValidation::storeSeedAndMCID(Event& ev)
     if (seedToCmsswMap_.count(seedID))
     {
       extra.setseedID(seedToCmsswMap_[seedID]);
-      for (int ctrack = 0; ctrack < cmsswextras.size(); ctrack++)
+      if (Config::cmsswMatching == labelBased)
       {
-	if (cmsswextras[ctrack].seedID() == extra.seedID())
-	{
-	  buildToCmsswMap_[itrack] = cmsswtracks[ctrack].label(); // cmsstracks[ctrack].label() == ctrack!
-	  break;
+	for (int ctrack = 0; ctrack < cmsswextras.size(); ctrack++)
+        {
+	  if (cmsswextras[ctrack].seedID() == extra.seedID())
+	  {
+	    buildToCmsswMap_[itrack] = cmsswtracks[ctrack].label(); // cmsstracks[ctrack].label() == ctrack!
+	    break;
+	  }
 	}
       }
     }
@@ -718,6 +847,15 @@ void TTreeValidation::storeSeedAndMCID(Event& ev)
     {
       extra.setseedID(--newlabel);
     }
+  }
+
+  // set according to candidate tracks for fit tracks through map
+  for (int itrack = 0; itrack < fittracks.size(); itrack++)
+  {
+    auto& extra = fitextras[itrack];
+
+    extra.setmcTrackID(buildextras[fitToBuildMap_[itrack]].mcTrackID());
+    extra.setseedID   (buildextras[fitToBuildMap_[itrack]].seedID());
   }
 }
 
@@ -1640,6 +1778,8 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
   auto& evt_cmssw_extras = ev.cmsswTracksExtra_;
   auto& evt_build_tracks = ev.candidateTracks_;
   auto& evt_build_extras = ev.candidateTracksExtra_;
+  auto& evt_fit_tracks   = ev.fitTracks_;
+  auto& evt_fit_extras   = ev.fitTracksExtra_;
   auto& evt_layer_hits   = ev.layerHits_;
 
   for (auto&& cmsswtrack : evt_cmssw_tracks)
@@ -1737,6 +1877,82 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
       duplmask_build_ceff_   = -1; // mask means unmatched cmssw track
       nTkMatches_build_ceff_ = -99; // unmatched
     }
+
+    // matched fit track
+    if (cmsswToFitMap_.count(cmsswID_ceff_) && cmsswtrack.isFindable()) // recoToCmssw match : save best match --> most hits, lowest chi2, i.e. cmsswToFitMap_[matched CmsswID][first element in vector]
+    {
+      const auto& fittrack = evt_fit_tracks[cmsswToFitMap_[cmsswID_ceff_][0]]; // returns fitTrack best matched to cmssw track
+      const auto& fitextra = evt_fit_extras[fittrack.label()]; // returns track extra best aligned with fit track
+      cmsswmask_fit_ceff_ = 1; // quick logic for matched
+
+      seedID_fit_ceff_    = fitextra.seedID(); 
+      mcTrackID_fit_ceff_ = fitextra.mcTrackID(); 
+
+      // track parameters
+      pt_fit_ceff_   = fittrack.pT();
+      ept_fit_ceff_  = fittrack.epT();
+      phi_fit_ceff_  = fittrack.momPhi();
+      ephi_fit_ceff_ = fittrack.emomPhi();
+      eta_fit_ceff_  = fittrack.momEta();
+      eeta_fit_ceff_ = fittrack.emomEta();
+
+      // hit/layer info
+      nHits_fit_ceff_           = fittrack.nFoundHits();
+      nLayers_fit_ceff_         = fittrack.nUniqueLayers();
+      nHitsMatched_fit_ceff_    = fitextra.nHitsMatched();
+      fracHitsMatched_fit_ceff_ = fitextra.fracHitsMatched();
+      lastlyr_fit_ceff_         = fittrack.getLastFoundHitLyr();
+
+      // hit info
+      const Hit& lasthit = evt_layer_hits[fittrack.getLastFoundHitLyr()][fittrack.getLastFoundHitIdx()];
+      xhit_fit_ceff_ = lasthit.x(); 
+      yhit_fit_ceff_ = lasthit.y(); 
+      zhit_fit_ceff_ = lasthit.z(); 
+
+      // chi2 info
+      hitchi2_fit_ceff_ = fittrack.chi2(); 
+      helixchi2_fit_ceff_ = fitextra.helixChi2();
+
+      // swim dphi
+      dphi_fit_ceff_ = fitextra.dPhi(); 
+
+      // duplicate info
+      duplmask_fit_ceff_   = fitextra.isDuplicate(); 
+      nTkMatches_fit_ceff_ = cmsswToFitMap_[cmsswID_ceff_].size(); // n reco matches to this cmssw track.
+    }
+    else // unmatched cmsswtracks ... put -99 for all reco values to denote unmatched
+    {
+      cmsswmask_fit_ceff_ = (cmsswtrack.isFindable() ? 0 : -1); // quick logic for not matched
+      
+      seedID_fit_ceff_    = -99;
+      mcTrackID_fit_ceff_ = -99;
+
+      pt_fit_ceff_   = -99;
+      ept_fit_ceff_  = -99;
+      phi_fit_ceff_  = -99;
+      ephi_fit_ceff_ = -99;
+      eta_fit_ceff_  = -99;
+      eeta_fit_ceff_ = -99;
+
+      nHits_fit_ceff_           = -99;
+      nLayers_fit_ceff_         = -99;
+      nHitsMatched_fit_ceff_    = -99;
+      fracHitsMatched_fit_ceff_ = -99;
+      lastlyr_fit_ceff_         = -99;
+ 
+      xhit_fit_ceff_ = -2000;
+      yhit_fit_ceff_ = -2000;
+      zhit_fit_ceff_ = -2000;
+
+      hitchi2_fit_ceff_   = -99;
+      helixchi2_fit_ceff_ = -99;
+      
+      dphi_fit_ceff_ = -99;
+
+      duplmask_fit_ceff_   = -1; // mask means unmatched cmssw track
+      nTkMatches_fit_ceff_ = -99; // unmatched
+    }
+
     cmsswefftree_->Fill();
   } 
 }
@@ -1750,15 +1966,18 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
   auto& evt_cmssw_extras = ev.cmsswTracksExtra_;
   auto& evt_build_tracks = ev.candidateTracks_;
   auto& evt_build_extras = ev.candidateTracksExtra_;
+  auto& evt_fit_tracks   = ev.fitTracks_;
+  auto& evt_fit_extras   = ev.fitTracksExtra_;
   auto& evt_layer_hits   = ev.layerHits_;
 
   for (auto&& buildtrack : evt_build_tracks)
   {
     const auto& buildextra = evt_build_extras[buildtrack.label()];
     
-    evtID_cFR_           = ievt;
-    seedID_build_cFR_    = buildextra.seedID(); 
-    mcTrackID_build_cFR_ = buildextra.mcTrackID();
+    // same for fit and build tracks
+    evtID_cFR_     = ievt;
+    seedID_cFR_    = buildextra.seedID(); 
+    mcTrackID_cFR_ = buildextra.mcTrackID();
 
     // track parameters
     pt_build_cFR_   = buildtrack.pT();
@@ -1831,19 +2050,19 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
       const auto& cmsswtrack = evt_cmssw_tracks[cmsswID_build_cFR_];
       const auto& cmsswextra = evt_cmssw_extras[cmsswtrack.label()];
 
-      seedID_cmssw_cFR_ = cmsswextra.seedID();
+      seedID_cmssw_build_cFR_ = cmsswextra.seedID();
 
-      x_cmssw_cFR_ = cmsswtrack.x();
-      y_cmssw_cFR_ = cmsswtrack.y();
-      z_cmssw_cFR_ = cmsswtrack.z();
+      x_cmssw_build_cFR_ = cmsswtrack.x();
+      y_cmssw_build_cFR_ = cmsswtrack.y();
+      z_cmssw_build_cFR_ = cmsswtrack.z();
       
-      pt_cmssw_cFR_  = cmsswtrack.pT(); 
-      phi_cmssw_cFR_ = cmsswtrack.momPhi();
-      eta_cmssw_cFR_ = cmsswtrack.momEta();
+      pt_cmssw_build_cFR_  = cmsswtrack.pT(); 
+      phi_cmssw_build_cFR_ = cmsswtrack.momPhi();
+      eta_cmssw_build_cFR_ = cmsswtrack.momEta();
 
-      nHits_cmssw_cFR_   = cmsswtrack.nFoundHits(); 
-      nLayers_cmssw_cFR_ = cmsswtrack.nUniqueLayers();
-      lastlyr_cmssw_cFR_ = cmsswtrack.getLastFoundHitLyr();
+      nHits_cmssw_build_cFR_   = cmsswtrack.nFoundHits(); 
+      nLayers_cmssw_build_cFR_ = cmsswtrack.nUniqueLayers();
+      lastlyr_cmssw_build_cFR_ = cmsswtrack.getLastFoundHitLyr();
 
       // duplicate info
       duplmask_build_cFR_   = buildextra.isDuplicate(); 
@@ -1851,22 +2070,181 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
     }
     else // unmatched cmsswtracks ... put -99 for all reco values to denote unmatched
     {
-      seedID_cmssw_cFR_ = -99;
+      seedID_cmssw_build_cFR_ = -99;
 
-      x_cmssw_cFR_ = -2000;
-      y_cmssw_cFR_ = -2000;
-      z_cmssw_cFR_ = -2000;
+      x_cmssw_build_cFR_ = -2000;
+      y_cmssw_build_cFR_ = -2000;
+      z_cmssw_build_cFR_ = -2000;
       
-      pt_cmssw_cFR_  = -99;
-      phi_cmssw_cFR_ = -99;
-      eta_cmssw_cFR_ = -99;
+      pt_cmssw_build_cFR_  = -99;
+      phi_cmssw_build_cFR_ = -99;
+      eta_cmssw_build_cFR_ = -99;
 
-      nHits_cmssw_cFR_   = -99;
-      nLayers_cmssw_cFR_ = -99;
-      lastlyr_cmssw_cFR_ = -99;
+      nHits_cmssw_build_cFR_   = -99;
+      nLayers_cmssw_build_cFR_ = -99;
+      lastlyr_cmssw_build_cFR_ = -99;
 
       duplmask_build_cFR_   = -1;
       iTkMatches_build_cFR_ = -99;
+    }
+  
+    // ensure there is a fit track to mess with
+    if (buildToFitMap_.count(buildtrack.label()))
+    {
+      const auto& fittrack = evt_fit_tracks[buildToFitMap_[buildtrack.label()]];
+      const auto& fitextra = evt_fit_extras[fittrack.label()];
+
+      // track parameters
+      pt_fit_cFR_   = fittrack.pT();
+      ept_fit_cFR_  = fittrack.epT();
+      phi_fit_cFR_  = fittrack.momPhi();
+      ephi_fit_cFR_ = fittrack.emomPhi();
+      eta_fit_cFR_  = fittrack.momEta();
+      eeta_fit_cFR_ = fittrack.emomEta();
+    
+      // hit/layer info
+      nHits_fit_cFR_           = fittrack.nFoundHits();
+      nLayers_fit_cFR_         = fittrack.nUniqueLayers();
+      nHitsMatched_fit_cFR_    = fitextra.nHitsMatched();
+      fracHitsMatched_fit_cFR_ = fitextra.fracHitsMatched();
+      lastlyr_fit_cFR_         = fittrack.getLastFoundHitLyr();
+    
+      // hit info
+      const Hit& lasthit = evt_layer_hits[fittrack.getLastFoundHitLyr()][fittrack.getLastFoundHitIdx()];
+      xhit_fit_cFR_ = lasthit.x(); 
+      yhit_fit_cFR_ = lasthit.y(); 
+      zhit_fit_cFR_ = lasthit.z(); 
+
+      // chi2 info
+      hitchi2_fit_cFR_ = fittrack.chi2(); 
+      helixchi2_fit_cFR_ = fitextra.helixChi2();
+
+      // stored dphi
+      dphi_fit_cFR_ = fitextra.dPhi();
+    
+      // cmssw match?
+      cmsswID_fit_cFR_ = fitextra.cmsswTrackID();
+      if (cmsswID_fit_cFR_ >= 0) // matched track to cmssw 
+      {
+	cmsswmask_fit_cFR_ = 1; 
+      }
+      else 
+      {
+	if (Config::inclusiveShorts) 
+	{
+	  if      (cmsswID_fit_cFR_ ==  -1 || cmsswID_fit_cFR_ ==  -5 ||
+		   cmsswID_fit_cFR_ ==  -8 || cmsswID_fit_cFR_ ==  -9)  
+	  {
+	    cmsswmask_fit_cFR_ = 0;
+	  }
+	  else if (cmsswID_fit_cFR_ ==  -2 || cmsswID_fit_cFR_ == -10 ||
+		   cmsswID_fit_cFR_ == -11)
+	  {
+	    cmsswmask_fit_cFR_ = 2; 
+	  }
+	  else // mcID == -3,-4,-6,-7,-12,-13
+	  {
+	    cmsswmask_fit_cFR_ = -1;
+	  }
+	}
+	else // only count long tracks
+	{
+	  if      (cmsswID_fit_cFR_ == -1 || cmsswID_fit_cFR_ == -9) 
+	  {
+	    cmsswmask_fit_cFR_ = 0;
+	  }
+	  else // mcID == -2,-3,-4,-5,-6,-7,-8,-10,-11,-12,-13
+	  {
+	    cmsswmask_fit_cFR_ = -1; 
+	  }
+	}
+      } // end check over not matched
+      
+      if (cmsswmask_fit_cFR_ == 1) // matched track to cmssw
+      {
+	const auto& cmsswtrack = evt_cmssw_tracks[cmsswID_fit_cFR_];
+	const auto& cmsswextra = evt_cmssw_extras[cmsswtrack.label()];
+	
+	seedID_cmssw_fit_cFR_ = cmsswextra.seedID();
+	
+	x_cmssw_fit_cFR_ = cmsswtrack.x();
+	y_cmssw_fit_cFR_ = cmsswtrack.y();
+	z_cmssw_fit_cFR_ = cmsswtrack.z();
+      
+	pt_cmssw_fit_cFR_  = cmsswtrack.pT(); 
+	phi_cmssw_fit_cFR_ = cmsswtrack.momPhi();
+	eta_cmssw_fit_cFR_ = cmsswtrack.momEta();
+	
+	nHits_cmssw_fit_cFR_   = cmsswtrack.nFoundHits(); 
+	nLayers_cmssw_fit_cFR_ = cmsswtrack.nUniqueLayers();
+	lastlyr_cmssw_fit_cFR_ = cmsswtrack.getLastFoundHitLyr();
+
+	// duplicate info
+	duplmask_fit_cFR_   = fitextra.isDuplicate(); 
+	iTkMatches_fit_cFR_ = fitextra.duplicateID();
+      }
+      else // unmatched cmsswtracks ... put -99 for all reco values to denote unmatched
+      {
+	seedID_cmssw_fit_cFR_ = -99;
+	
+	x_cmssw_fit_cFR_ = -2000;
+	y_cmssw_fit_cFR_ = -2000;
+	z_cmssw_fit_cFR_ = -2000;
+	
+	pt_cmssw_fit_cFR_  = -99;
+	phi_cmssw_fit_cFR_ = -99;
+	eta_cmssw_fit_cFR_ = -99;
+
+	nHits_cmssw_fit_cFR_   = -99;
+	nLayers_cmssw_fit_cFR_ = -99;
+	lastlyr_cmssw_fit_cFR_ = -99;
+	
+	duplmask_fit_cFR_   = -1;
+	iTkMatches_fit_cFR_ = -99;
+      }
+    }
+    else // no fit track to match to a build track! 
+    {
+      pt_fit_cFR_   = -100;
+      ept_fit_cFR_  = -100;
+      phi_fit_cFR_  = -100;
+      ephi_fit_cFR_ = -100;
+      eta_fit_cFR_  = -100;
+      eeta_fit_cFR_ = -100;
+    
+      nHits_fit_cFR_           = -100;
+      nLayers_fit_cFR_         = -100;
+      nHitsMatched_fit_cFR_    = -100;
+      fracHitsMatched_fit_cFR_ = -100;
+      lastlyr_fit_cFR_         = -100;
+    
+      xhit_fit_cFR_ = -3000;
+      yhit_fit_cFR_ = -3000;
+      zhit_fit_cFR_ = -3000;
+
+      hitchi2_fit_cFR_   = -100;
+      helixchi2_fit_cFR_ = -100;
+      dphi_fit_cFR_      = -100;
+    
+      cmsswID_fit_cFR_   = -100;
+      cmsswmask_fit_cFR_ = -2;
+      
+      seedID_cmssw_fit_cFR_ = -100;
+	
+      x_cmssw_fit_cFR_ = -3000;
+      y_cmssw_fit_cFR_ = -3000;
+      z_cmssw_fit_cFR_ = -3000;
+      
+      pt_cmssw_fit_cFR_  = -100;
+      phi_cmssw_fit_cFR_ = -100;
+      eta_cmssw_fit_cFR_ = -100;
+
+      nHits_cmssw_fit_cFR_   = -100;
+      nLayers_cmssw_fit_cFR_ = -100;
+      lastlyr_cmssw_fit_cFR_ = -100;
+      
+      duplmask_fit_cFR_   = -2;
+      iTkMatches_fit_cFR_ = -100;
     }
 
     cmsswfrtree_->Fill();

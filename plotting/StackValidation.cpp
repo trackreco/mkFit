@@ -27,11 +27,17 @@ StackValidation::~StackValidation()
 
 void StackValidation::MakeValidationStacks()
 {
-  StackValidation::MakeRatioStacks();
-  if (cmsswComp) StackValidation::MakeCMSSWKinematicDiffStacks();
+  StackValidation::MakeRatioStacks("build");
+
+  if (cmsswComp)
+  {    
+    StackValidation::MakeRatioStacks("fit");
+    StackValidation::MakeCMSSWKinematicDiffStacks("build");
+    StackValidation::MakeCMSSWKinematicDiffStacks("fit");
+  }
 }
 
-void StackValidation::MakeRatioStacks()
+void StackValidation::MakeRatioStacks(const TString & trk)
 {
   // Variables to plot
   std::vector<TString> vars = {"pt","phi","eta"};
@@ -50,7 +56,7 @@ void StackValidation::MakeRatioStacks()
 	std::vector<TGraphAsymmErrors*> graphs(builds.size());
 	for (UInt_t b = 0; b < builds.size(); b++)
 	{
-	  graphs[b] = ((TEfficiency*)files[b]->Get(rates[i].dir+"/"+rates[i].rate+"_"+rates[i].sORr+"_"+vars[j]+"_build_pt"+Form("%3.1f",ptcuts[p])))->CreateGraph();
+	  graphs[b] = ((TEfficiency*)files[b]->Get(rates[i].dir+"/"+rates[i].rate+"_"+rates[i].sORr+"_"+vars[j]+"_"+trk+"_pt"+Form("%3.1f",ptcuts[p])))->CreateGraph();
 	  graphs[b]->SetLineColor(builds[b].color);
 	  graphs[b]->SetMarkerColor(builds[b].color);
 
@@ -63,7 +69,7 @@ void StackValidation::MakeRatioStacks()
 	}
 	
 	leg->Draw("SAME");
-	canv->SaveAs(label+"_"+rates[i].rate+"_"+vars[j]+"_pt"+Form("%3.1f",ptcuts[p])+extra+".png");
+	canv->SaveAs(label+"_"+rates[i].rate+"_"+vars[j]+"_"+trk+"_pt"+Form("%3.1f",ptcuts[p])+extra+".png");
 	
 	delete leg;
 	for (auto & graph : graphs) delete graph;
@@ -73,7 +79,7 @@ void StackValidation::MakeRatioStacks()
   }
 }
 
-void StackValidation::MakeCMSSWKinematicDiffStacks()
+void StackValidation::MakeCMSSWKinematicDiffStacks(const TString & trk)
 {
   // variables to plot
   std::vector<TString> diffs = {"nHits","invpt","phi","eta"};
@@ -101,7 +107,7 @@ void StackValidation::MakeCMSSWKinematicDiffStacks()
 	std::vector<TH1F*> hists(builds.size());
 	for (UInt_t b = 0; b < builds.size(); b++)
         {
-	  hists[b] = (TH1F*)files[b]->Get("kindiffs_cmssw/h_d"+diffs[d]+"_"+coll[c]+"_pt"+Form("%3.1f",ptcuts[p]));
+	  hists[b] = (TH1F*)files[b]->Get("kindiffs_cmssw/h_d"+diffs[d]+"_"+coll[c]+"_"+trk+"_pt"+Form("%3.1f",ptcuts[p]));
 	  hists[b]->SetLineColor(builds[b].color);
 	  hists[b]->SetMarkerColor(builds[b].color);
 
@@ -120,7 +126,7 @@ void StackValidation::MakeCMSSWKinematicDiffStacks()
 	}
 	
 	leg->Draw("SAME");
-	canv->SaveAs(label+"_"+coll[c]+"_d"+diffs[d]+"_pt"+Form("%3.1f",ptcuts[p])+extra+".png");
+	canv->SaveAs(label+"_"+coll[c]+"_d"+diffs[d]+"_"+trk+"_pt"+Form("%3.1f",ptcuts[p])+extra+".png");
 	
 	delete leg;
 	for (auto & hist : hists) delete hist;
