@@ -590,7 +590,7 @@ int main(int argc, const char *argv[])
         "  --cmssw-val              enable special CMSSW ROOT based validation for building [eff] (def: %s)\n"
       	"  --fit-val                enable ROOT based validation for fitting (def: %s)\n"
         "  --inc-shorts             include short reco tracks into FR (def: %s)\n"
-	"  --cmssw-matching <str>   which cmssw track matching routine to use if doing special cmssw validation (def: %s)\n" 
+	"  --cmssw-matching <str>   which cmssw track matching routine to use if doing special cmssw validation, candidate tracks only (def: %s)\n" 
         "  --hit-match              apply hit matching criteria for track param matching in cmssw validation (def: %s)\n"
 	"  --dump-for-plots         printouts for plots from logs (def: %s)\n"
         "  --silent                 suppress printouts inside event loop (def: %s)\n"

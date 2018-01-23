@@ -20,7 +20,7 @@ if [ ${arch} == "SNB" ]
 then
     mOpt="-j 12"
     dir=/data/nfsmic/slava77/samples
-    base=${arch}_${sample}
+    base=${arch}_${physics_sample}
     maxth=24
     maxvu=8
     exe="./mkFit/mkFit ${seeds} --input-file ${dir}/${subdir}/${file}"
@@ -31,7 +31,7 @@ elif [ ${arch} == "KNL" ]
 then
     mOpt="-j 64 AVX_512:=1"
     dir=/data1/work/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000
-    base=${arch}_${sample}
+    base=${arch}_${physics_sample}
     maxth=256
     maxvu=16
     exe="./mkFit/mkFit ${seeds} --input-file ${dir}/${subdir}/${file}"

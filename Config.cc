@@ -74,7 +74,7 @@ namespace Config
   bool  readSimTrackStates = false;
   bool  inclusiveShorts = false;
   bool  applyCMSSWHitMatch = false;
-  matchOpts cmsswMatching = trkParamBased;
+  matchOpts cmsswMatching = hitBased;
 
   bool  kludgeCmsHitErrors = false;
   bool  backwardFit = false;

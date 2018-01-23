@@ -1,7 +1,8 @@
 #! /bin/bash
 
-# sample
-export sample=CMSSW_TTbar_PU70
+# samples
+export rootval_sample=CMSSW_10mu
+export physics_sample=CMSSW_TTbar_PU70
 
 # vars for KNL
 export KNL_HOST=${USER}@phi2.t2.ucsd.edu
@@ -18,3 +19,6 @@ SSHO() {
     ssh -o StrictHostKeyChecking=no < /dev/null "$@"
 }
 export -f SSHO
+
+# Validation architecture
+export val_arch=SNB

@@ -14,7 +14,7 @@ exit
 
 # copy logs back for plotting
 echo "Copying logs back from KNL for plotting"
-scp ${KNL_HOST}:${KNL_WORKDIR}/${KNL_TEMPDIR}/log_KNL_${sample}_*.txt .
+scp ${KNL_HOST}:${KNL_WORKDIR}/${KNL_TEMPDIR}/log_KNL_${physics_sample}_*.txt .
 
 # destroy tmp files
 ./xeon_scripts/trashKNL.sh

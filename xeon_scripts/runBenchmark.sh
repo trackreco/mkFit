@@ -18,14 +18,16 @@ echo "Waiting for KNL"
 wait
 
 ##### Benchmark Plots #####
+echo "Producing benchmarking plots"
 ./plotting/benchmarkPlots.sh
 
 ##### Plots from Text Files #####
+echo "Producing plots from text files"
 ./plotting/textDumpPlots.sh
 
 ##### Validation tests #####
 echo "Running ROOT based validation"
-./val_scripts/validation-snb-cmssw-ttbar-fulldet-build-allval.sh
+./val_scripts/validation-snb-cmssw-benchmarks.sh
 
 ##### Final cleanup #####
 make distclean
