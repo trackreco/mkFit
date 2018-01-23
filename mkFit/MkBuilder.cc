@@ -1467,7 +1467,13 @@ void MkBuilder::FindTracksStandard()
               }
             }
 
-            eoccs[start_seed+is].swap(tmp_cands[is]);
+	    //eoccs[start_seed+is].swap(tmp_cands[is]); // segfaulting w/ backwards fit input tracks -- using loop below now
+	    eoccs[start_seed+is].resize(tmp_cands[is].size());
+	    for (int ii = 0; ii < tmp_cands[is].size(); ++ii)
+	    {
+	      memcpy( & eoccs[start_seed+is][ii], & tmp_cands[is][ii], sizeof(Track));
+	    }
+
             tmp_cands[is].clear();
           }
         }
