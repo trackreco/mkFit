@@ -1796,20 +1796,12 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
 
 void MkBuilder::BackwardFitBH()
 {
-  // need to be properly sized in order to be dumped inside
-  m_event->fitTracks_.resize(m_event->candidateTracks_.size());
+  // XXXXKM4MT HACK to use hacked BkFit copy in/out functions and play nice with validation... aye 
+  m_event->fitTracks_ = m_event->candidateTracks_;
   
   tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
     [&](int region)
   {
-    // XXXXXX Select endcap / barrel only ...
-    // if (region != TrackerInfo::Reg_Endcap_Neg && region != TrackerInfo::Reg_Endcap_Pos)
-    // if (region != TrackerInfo::Reg_Barrel)
-    //   return;
-
-    const SteeringParams &st_par   = m_steering_params[region];
-    const TrackerInfo    &trk_info = Config::TrkInfo;
-
     const RegionOfSeedIndices rosi(m_event, region);
 
     tbb::parallel_for(rosi.tbb_blk_rng_vec(),
@@ -1818,9 +1810,6 @@ void MkBuilder::BackwardFitBH()
       FINDER( mkfndr );
 
       RangeOfSeedIndices rng = rosi.seed_rng(blk_rng);
-
-      std::vector<int> trk_idcs(NN); // track indices in Matriplex
-      std::vector<int> trk_llay(NN); // last layer on input track
 
       while (rng.valid())
       {
@@ -1875,7 +1864,7 @@ void MkBuilder::fit_cands_to_pca_BH(MkFinder *mkfndr, int start_cand, int end_ca
 #endif
 
     // copy out full set of info at last propagated position
-    mkfndr->OutputTracksAndHitIdx(m_event->fitTracks_, icand, end, MkBase::iP); 
+    mkfndr->BkFitOutputTracks(m_event->fitTracks_, icand, end);
 
     // printf("Post Final fit for %d - %d\n", icand, end);
     // for (int i = icand; i < end; ++i) { const Track &t = eoccs[i][0];

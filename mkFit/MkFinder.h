@@ -149,7 +149,7 @@ public:
   const HitOnTrack *HoTArr[NN];
 
   void BkFitInputTracks (TrackVec& cands, int beg, int end);
-
+  void BkFitOutputTracks(TrackVec& cands, int beg, int end);
   void BkFitInputTracks (EventOfCombCandidates& eocss, int beg, int end);
   void BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end);
 
