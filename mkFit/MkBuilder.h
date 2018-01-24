@@ -174,8 +174,6 @@ public:
   void BackwardFit();
   void fit_cands_to_pca(MkFinder *mkfndr, int start_cand, int end_cand, int region);
 
-  void BackwardFitFV();
-
 #ifdef USE_CUDA
   const Event* get_event() const { return m_event; }
   const EventOfHits& get_event_of_hits() const { return m_event_of_hits; }

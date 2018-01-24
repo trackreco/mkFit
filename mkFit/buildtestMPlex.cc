@@ -332,7 +332,7 @@ double runBuildingTestPlexFV(Event& ev, MkBuilder& builder)
   // now do backwards fit... do we want to time this section?
   if (Config::backwardFit)
   {
-    builder.BackwardFitFV();
+    builder.BackwardFit();
 
     if (Config::root_val || Config::cmssw_val)
     {
