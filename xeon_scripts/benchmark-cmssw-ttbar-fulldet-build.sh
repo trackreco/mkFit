@@ -79,7 +79,7 @@ do
 	    if (( ${nth} == ${maxth} ))
 	    then
 		echo "${oBase}: Text dump for plots [nTH:${nth}, nVU:${maxvu}int]"
-		${bExe} --dump-for-plots --read-cmssw-tracks --num-events ${nevents} >& log_${oBase}_NVU${maxvu}int_NTH${nth}_${dump}.txt
+		${bExe} --dump-for-plots --quality-val --read-cmssw-tracks --num-events ${nevents} >& log_${oBase}_NVU${maxvu}int_NTH${nth}_${dump}.txt
 	    fi
 	done
     done
@@ -106,7 +106,7 @@ do
 	    if (( ${nvu} == ${minvu} ))
 	    then
 		echo "${oBase}: Text dump for plots [nTH:${minth}, nVU:${nvu}]"
-		${bExe} --dump-for-plots --read-cmssw-tracks >& log_${oBase}_NVU${nvu}_NTH${minth}_${dump}.txt
+		${bExe} --dump-for-plots --quality-val --read-cmssw-tracks >& log_${oBase}_NVU${nvu}_NTH${minth}_${dump}.txt
 	    fi
 	done
     done

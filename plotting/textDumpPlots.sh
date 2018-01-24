@@ -6,7 +6,7 @@ source xeon_scripts/common_variables.sh
 
 Base_Test="NVU1_NTH1"
 
-for build in BH STD CE FV
+for build in BH STD CE # FV
 do 
     echo "Making plots from text files for" ${physics_sample} ":" ${build}
     
