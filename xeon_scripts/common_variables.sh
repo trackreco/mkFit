@@ -1,11 +1,8 @@
 #! /bin/bash
 
-# sample
-export sample=CMSSW_TTbar_PU70
-
-# vars for KNC
-export KNC_HOST=${USER}@phiphi-mic0.t2.ucsd.edu
-export KNC_WORKDIR=/home/${USER}
+# samples
+export rootval_sample=CMSSW_10mu
+export physics_sample=CMSSW_TTbar_PU70
 
 # vars for KNL
 export KNL_HOST=${USER}@phi2.t2.ucsd.edu
@@ -16,3 +13,12 @@ export KNL_TEMPDIR=tmp
 export LXPLUS_HOST=${USER}@lxplus.cern.ch
 export LXPLUS_WORKDIR=/afs/cern.ch/user/${USER:0:1}/${USER}
 export LXPLUS_OUTDIR=www
+
+# SSH options
+SSHO() {
+    ssh -o StrictHostKeyChecking=no < /dev/null "$@"
+}
+export -f SSHO
+
+# Validation architecture
+export val_arch=SNB

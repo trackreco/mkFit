@@ -78,9 +78,10 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
     alloc_hits(1.02 * size);
   }
 
-#ifndef LOH_USE_PHI_Q_ARRAYS
-  std::vector<float>        m_hit_phis(size);
-#endif
+  if (!Config::usePhiQArrays)
+  {
+    m_hit_phis.resize(size);
+  }
 
   struct HitInfo
   {
@@ -134,10 +135,11 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
     // Could fix the mis-sorts. Set ha size to size + 1 and fake last entry to avoid ifs.
 
     memcpy(&m_hits[i], &hitv[j], sizeof(Hit));
-#ifdef LOH_USE_PHI_Q_ARRAYS
-    m_hit_phis[i] = ha[j].phi;
-    m_hit_qs  [i] = ha[j].q;
-#endif
+    if (Config::usePhiQArrays)
+    {
+      m_hit_phis[i] = ha[j].phi;
+      m_hit_qs  [i] = ha[j].q;
+    }
 
     // Fill the bin info
 
@@ -243,22 +245,27 @@ void LayerOfHits::SelectHitIndices(float q, float phi, float dq, float dphi, std
       for (int hi = m_phi_bin_infos[qi][pb].first; hi < m_phi_bin_infos[qi][pb].second; ++hi)
       {
         // Here could enforce some furhter selection on hits
-#ifdef LOH_USE_PHI_Q_ARRAYS
-        float ddq   = std::abs(q   - m_hit_qs[hi]);
-        float ddphi = std::abs(phi - m_hit_phis[hi]);
-        if (ddphi > Config::PI) ddphi = Config::TwoPI - ddphi;
-
-        if (dump)
-          printf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
-                 qi, pi, pb, hi,
-                 m_hit_qs[hi], m_hit_phis[hi], ddq, ddphi,
-                 (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
-
-        if (ddq < dq && ddphi < dphi)
-#endif
-        {
-          idcs.push_back(hi);
-        }
+	if (Config::usePhiQArrays)
+	{
+	  float ddq   = std::abs(q   - m_hit_qs[hi]);
+	  float ddphi = std::abs(phi - m_hit_phis[hi]);
+	  if (ddphi > Config::PI) ddphi = Config::TwoPI - ddphi;
+	  
+	  if (dump)
+	    printf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
+		   qi, pi, pb, hi,
+		   m_hit_qs[hi], m_hit_phis[hi], ddq, ddphi,
+		   (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
+	  
+	  if (ddq < dq && ddphi < dphi)
+	  {
+	    idcs.push_back(hi);
+	  }
+	}
+	else // do not use phi-q arrays
+	{
+	  idcs.push_back(hi);
+	}
       }
     }
   }

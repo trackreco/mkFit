@@ -1,6 +1,6 @@
 #! /bin/bash
 
-## SNB, KNC, or KNL
+## SNB or KNL
 arch=${1}
 
 ## In the case this is run separately from main script
@@ -20,29 +20,18 @@ if [ ${arch} == "SNB" ]
 then
     mOpt="-j 12"
     dir=/data/nfsmic/slava77/samples
-    base=${arch}_${sample}
+    base=${arch}_${physics_sample}
     maxth=24
     maxvu=8
     exe="./mkFit/mkFit ${seeds} --input-file ${dir}/${subdir}/${file}"
     declare -a nths=("1" "2" "4" "6" "8" "12" "16" "20" "24")
     declare -a nvus=("1" "2" "4" "8")
     declare -a nevs=("1" "2" "4" "8" "12")
-elif [ ${arch} == "KNC" ]
-then
-    mOpt="-j 12 KNC_BUILD:=1"
-    dir=/nfsmic/slava77/samples
-    base=${arch}_${sample}
-    maxth=240
-    maxvu=16
-    exe="timeout 15m ssh -o StrictHostKeyChecking=no ${KNC_HOST} ./mkFit/mkFit-mic ${seeds} --input-file ${dir}/${subdir}/${file}"
-    declare -a nths=("1" "2" "4" "8" "15" "30" "60" "90" "120" "180" "240")
-    declare -a nvus=("1" "2" "4" "8" "16")
-    declare -a nevs=("1" "2" "4" "8" "16" "32")
 elif [ ${arch} == "KNL" ]
 then
     mOpt="-j 64 AVX_512:=1"
     dir=/data1/work/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000
-    base=${arch}_${sample}
+    base=${arch}_${physics_sample}
     maxth=256
     maxvu=16
     exe="./mkFit/mkFit ${seeds} --input-file ${dir}/${subdir}/${file}"
@@ -55,12 +44,8 @@ else
 fi
 
 ## compile with appropriate options
-make distclean
+make distclean ${mOpt}
 make ${mOpt}
-if [ ${arch} == "KNC" ] 
-then
-    ./xeon_scripts/copyToKNC.sh
-fi
 
 ## Parallelization Benchmarks
 for nth in "${nths[@]}"
@@ -94,7 +79,7 @@ do
 	    if (( ${nth} == ${maxth} ))
 	    then
 		echo "${oBase}: Text dump for plots [nTH:${nth}, nVU:${maxvu}int]"
-		${bExe} --dump-for-plots --read-cmssw-tracks --num-events ${nevents} >& log_${oBase}_NVU${maxvu}int_NTH${nth}_${dump}.txt
+		${bExe} --dump-for-plots --quality-val --read-cmssw-tracks --num-events ${nevents} >& log_${oBase}_NVU${maxvu}int_NTH${nth}_${dump}.txt
 	    fi
 	done
     done
@@ -104,16 +89,7 @@ done
 for nvu in "${nvus[@]}"
 do
     make clean ${mOpt}
-    if [ ${arch} == "KNC" ] 
-    then
-	./xeon_scripts/trashKNC.sh
-    fi
-
     make ${mOpt} USE_INTRINSICS:=-DMPT_SIZE=${nvu}
-    if [ ${arch} == "KNC" ] 
-    then
-	./xeon_scripts/copyToKNC.sh
-    fi
 
     for bV in "BH bh" "STD std" "CE ce" # "FV fv"
     do echo ${bV} | while read -r bN bO
@@ -130,7 +106,7 @@ do
 	    if (( ${nvu} == ${minvu} ))
 	    then
 		echo "${oBase}: Text dump for plots [nTH:${minth}, nVU:${nvu}]"
-		${bExe} --dump-for-plots --read-cmssw-tracks >& log_${oBase}_NVU${nvu}_NTH${minth}_${dump}.txt
+		${bExe} --dump-for-plots --quality-val --read-cmssw-tracks >& log_${oBase}_NVU${nvu}_NTH${minth}_${dump}.txt
 	    fi
 	done
     done
@@ -138,7 +114,3 @@ done
 
 ## Final cleanup
 make distclean ${mOpt}
-if [ ${arch} == "KNC" ] 
-then
-    ./xeon_scripts/trashKNC.sh
-fi

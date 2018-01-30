@@ -48,8 +48,8 @@ public:
   StackValidation(const TString & label, const TString & extra, const Bool_t cmsswComp);
   ~StackValidation();
   void MakeValidationStacks();
-  void MakeRatioStacks();
-  void MakeCMSSWKinematicDiffStacks();
+  void MakeRatioStacks(const TString & trk);
+  void MakeCMSSWKinematicDiffStacks(const TString & trk);
 
 private:
   const TString label;

@@ -575,6 +575,7 @@ int main(int argc, const char *argv[])
         "  --build-std              run standard combinatorial building test (def: false)\n"
         "  --build-ce               run clone engine combinatorial building test (def: false)\n"
         "  --build-fv               run full vector combinatorial building test (def: false)\n"
+	"  --use-phiq-arr           use phi-Q arrays in select hit indices (def: %s)\n"
         "  --seeds-per-task         number of seeds to process in a tbb task (def: %d)\n"
         "  --hits-per-task <num>    number of layer1 hits per task in finding seeds (def: %i)\n"
         "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
@@ -584,11 +585,12 @@ int main(int argc, const char *argv[])
         "  --cf-fitting             enable CF in fitting (def: %s)\n"
         "  --read-cmssw-tracks      read external cmssw reco tracks if available (def: %s)\n"
 	"  --read-simtrack-states   read in simTrackStates for pulls in validation (def: %s)\n"
+	"  --quality-val            enable printout validation for MkBuilder (def: %s)\n"
         "  --root-val               enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
         "  --cmssw-val              enable special CMSSW ROOT based validation for building [eff] (def: %s)\n"
       	"  --fit-val                enable ROOT based validation for fitting (def: %s)\n"
         "  --inc-shorts             include short reco tracks into FR (def: %s)\n"
-	"  --cmssw-matching <str>   which cmssw track matching routine to use if doing special cmssw validation (def: %s)\n" 
+	"  --cmssw-matching <str>   which cmssw track matching routine to use if doing special cmssw validation, candidate tracks only (def: %s)\n" 
         "  --hit-match              apply hit matching criteria for track param matching in cmssw validation (def: %s)\n"
 	"  --dump-for-plots         printouts for plots from logs (def: %s)\n"
         "  --silent                 suppress printouts inside event loop (def: %s)\n"
@@ -617,6 +619,7 @@ int main(int argc, const char *argv[])
         Config::nTracks,
         Config::numThreadsSimulation, Config::numThreadsFinder, Config::numThreadsEvents,
         Config::chi2Cut,
+	b2a(Config::usePhiQArrays),
         Config::numSeedsPerTask,
 	Config::numHitsPerTask,
         Config::finderReportBestOutOfN,
@@ -626,6 +629,7 @@ int main(int argc, const char *argv[])
         b2a(Config::cf_fitting),
 	b2a(Config::readCmsswTracks),
         b2a(Config::readSimTrackStates),
+        b2a(Config::quality_val),
         b2a(Config::root_val),
         b2a(Config::cmssw_val),
         b2a(Config::fit_val),
@@ -681,6 +685,10 @@ int main(int argc, const char *argv[])
     {
       next_arg_or_die(mArgs, i);
       Config::chi2Cut = atof(i->c_str());
+    }
+    else if (*i == "--use-phiq-arr")
+    {
+      Config::usePhiQArrays = true;
     }
     else if(*i == "--build-bh")
     {
@@ -738,6 +746,10 @@ int main(int argc, const char *argv[])
     else if (*i == "--read-simtrack-states")
     {
       Config::readSimTrackStates = true;
+    }
+    else if (*i == "--quality-val")
+    {
+      Config::quality_val = true; 
     }
     else if (*i == "--root-val")
     {

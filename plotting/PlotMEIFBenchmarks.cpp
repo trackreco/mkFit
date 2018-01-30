@@ -10,7 +10,6 @@ PlotMEIFBenchmarks::PlotMEIFBenchmarks(const TString & arch, const TString & sam
 
   // setup enum
   if      (arch.Contains("SNB")) ARCH = SNB;
-  else if (arch.Contains("KNC")) ARCH = KNC;
   else if (arch.Contains("KNL")) ARCH = KNL;
   else 
   {

@@ -131,14 +131,14 @@ public:
 
   void map_seed_hits(); // m_event->layerHits_ -> m_event_of_hits.m_layers_of_hits (seeds only)
   void remap_seed_hits(); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_ (seeds only)
-  void remap_cand_hits(); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_ (cands only)
+  void remap_cand_hits(TrackVec & tracks); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_ (cands only)
 
-  void quality_output();
+  void quality_val();
   void quality_reset();
   void quality_process(Track& tkcand, std::map<int,int> & cmsswLabelToPos);
   void quality_print();
 
-  void quality_store_tracks();
+  void quality_store_tracks(TrackVec & tracks);
 
   void root_val();
   void cmssw_val();
@@ -168,8 +168,11 @@ public:
   void FindTracksCloneEngine();
   void FindTracksFV();
 
-  void BackwardFitBH(MkFinder *mkfndr, int start_seed, int end_seed, int region);
-  void BackwardFit(MkFinder *mkfndr, int start_seed, int end_seed, int region);
+  void BackwardFitBH();
+  void fit_cands_to_pca_BH(MkFinder *mkfndr, int start_cand, int end_cand, int region);
+
+  void BackwardFit();
+  void fit_cands_to_pca(MkFinder *mkfndr, int start_cand, int end_cand, int region);
 
 #ifdef USE_CUDA
   const Event* get_event() const { return m_event; }

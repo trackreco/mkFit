@@ -13,7 +13,7 @@
 #include <iostream>
 #include <vector>
 
-enum ArchEnum {SNB, KNC, KNL};
+enum ArchEnum {SNB, KNL};
 
 struct BuildOpts
 {
@@ -78,7 +78,7 @@ namespace
       arch_opt.vutimemin = 0.;
       arch_opt.vutimemax = 1.;
 
-      arch_opt.thtimemin = 0.005;
+      arch_opt.thtimemin = 0.001;
       arch_opt.thtimemax = 1.;
 
       arch_opt.vuspeedupmin = 0.;
@@ -93,32 +93,6 @@ namespace
       arch_opt.thmeifspeedupmin = 0.;
       arch_opt.thmeifspeedupmax = arch_opt.thmax;
     }
-    else if (ARCH == KNC)
-    {
-      arch_opt.vumin = 1;
-      arch_opt.vumax = 16;
-
-      arch_opt.thmin = 1;
-      arch_opt.thmax = 240;
-
-      arch_opt.vutimemin = 0.;
-      arch_opt.vutimemax = 12.;
-
-      arch_opt.thtimemin = 0.01;
-      arch_opt.thtimemax = 2.;
-
-      arch_opt.vuspeedupmin = 0.;
-      arch_opt.vuspeedupmax = arch_opt.vumax;
-
-      arch_opt.thspeedupmin = 0.;
-      arch_opt.thspeedupmax = 60.;
-
-      arch_opt.thmeiftimemin = 0.05;
-      arch_opt.thmeiftimemax = arch_opt.thtimemax;
-
-      arch_opt.thmeifspeedupmin = 0.;
-      arch_opt.thmeifspeedupmax = 40;
-    }
     else if (ARCH == KNL)
     {
       arch_opt.vumin = 1;
@@ -130,7 +104,7 @@ namespace
       arch_opt.vutimemin = 0.;
       arch_opt.vutimemax = 2.;
 
-      arch_opt.thtimemin = 0.005;
+      arch_opt.thtimemin = 0.001;
       arch_opt.thtimemax = 1.;
 
       arch_opt.vuspeedupmin = 0.;

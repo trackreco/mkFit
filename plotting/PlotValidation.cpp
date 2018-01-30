@@ -121,8 +121,8 @@ void PlotValidation::PlotEfficiency()
   const FltVec  xlow  = {0,-3,-4};
   const FltVec  xhigh = {15,3,4};  
 
-  const TStrVec trks  = (fCmsswComp ? TStrVec{"build"} : TStrVec{"seed","build","fit"});
-  const TStrVec strks = (fCmsswComp ? TStrVec{"Build"} : TStrVec{"Seed","Build","Fit"}); // strk --> labels for histograms for given track type
+  const TStrVec trks  = (fCmsswComp ? TStrVec{"build","fit"} : TStrVec{"seed","build","fit"});
+  const TStrVec strks = (fCmsswComp ? TStrVec{"Build","Fit"} : TStrVec{"Seed","Build","Fit"}); // strk --> labels for histograms for given track type
 
   // Create plots
   TEffRefVecVecVec varsEff(vars.size());
@@ -223,8 +223,8 @@ void PlotValidation::PlotInefficiencyVsGeom()
   const TStrVec regs  = {"barrel","endcap"};
   const TStrVec sregs = {"Barrel","Endcap"};
 
-  const TStrVec trks  = (fCmsswComp ? TStrVec{"build"} : TStrVec{"seed","build","fit"});
-  const TStrVec strks = (fCmsswComp ? TStrVec{"Build"} : TStrVec{"Seed","Build","Fit"}); // strk --> labels for histograms for given track type
+  const TStrVec trks  = (fCmsswComp ? TStrVec{"build","fit"} : TStrVec{"seed","build","fit"});
+  const TStrVec strks = (fCmsswComp ? TStrVec{"Build","Fit"} : TStrVec{"Seed","Build","Fit"}); // strk --> labels for histograms for given track type
 
   // Create plots
   TEffRefVecVecVecVec varsIneff(regs.size());
@@ -336,8 +336,8 @@ void PlotValidation::PlotFakeRate()
   const FltVec  xlow  = {0,-3,-4};
   const FltVec  xhigh = {15,3,4};  
 
-  const TStrVec trks  = (fCmsswComp ? TStrVec{"build"} : TStrVec{"seed","build","fit"});
-  const TStrVec strks = (fCmsswComp ? TStrVec{"Build"} : TStrVec{"Seed","Build","Fit"}); // strk --> labels for histograms for given track type
+  const TStrVec trks  = (fCmsswComp ? TStrVec{"build","fit"} : TStrVec{"seed","build","fit"});
+  const TStrVec strks = (fCmsswComp ? TStrVec{"Build","Fit"} : TStrVec{"Seed","Build","Fit"}); // strk --> labels for histograms for given track type
 
   // Create FR plots
   TEffRefVecVecVec varsFR(vars.size());
@@ -440,8 +440,8 @@ void PlotValidation::PlotDuplicateRate()
   const FltVec  xlow  = {0,-3,-4};
   const FltVec  xhigh = {15,3,4};  
 
-  const TStrVec trks  = (fCmsswComp ? TStrVec{"build"} : TStrVec{"seed","build","fit"});
-  const TStrVec strks = (fCmsswComp ? TStrVec{"Build"} : TStrVec{"Seed","Build","Fit"}); // strk --> labels for histograms for given track type
+  const TStrVec trks  = (fCmsswComp ? TStrVec{"build","fit"} : TStrVec{"seed","build","fit"});
+  const TStrVec strks = (fCmsswComp ? TStrVec{"Build","Fit"} : TStrVec{"Seed","Build","Fit"}); // strk --> labels for histograms for given track type
 
   // Create DR plots
   TEffRefVecVecVec varsDR(vars.size());
@@ -533,8 +533,8 @@ void PlotValidation::PlotNHits()
   subdir->cd();
 
   //Declare strings for branches and plots
-  const TStrVec trks  = (fCmsswComp ? TStrVec{"build"} : TStrVec{"seed","build","fit"});
-  const TStrVec strks = (fCmsswComp ? TStrVec{"Build"} : TStrVec{"Seed","Build","Fit"}); // strk --> labels for histograms
+  const TStrVec trks  = (fCmsswComp ? TStrVec{"build","fit"} : TStrVec{"seed","build","fit"});
+  const TStrVec strks = (fCmsswComp ? TStrVec{"Build","Fit"} : TStrVec{"Seed","Build","Fit"}); // strk --> labels for histograms
   const FltVec  ptcuts= {0.f,0.9f,2.f};
   const TStrVec coll  = {"allreco","fake","allmatch","bestmatch"};
   const TStrVec scoll = {"All Reco","Fake","All Match","Best Match"};
@@ -669,117 +669,144 @@ void PlotValidation::PlotCMSSWKinematicDiffs()
   subdir->cd();
 
   //Declare strings for branches and plots
+  const TStrVec trks  = {"build","fit"};
+  const TStrVec strks = {"Build","Fit"};
   const FltVec  ptcuts= {0.f,0.9f,2.f};
   const TStrVec coll  = {"allmatch","bestmatch"};
   const TStrVec scoll = {"All Match","Best Match"};
 
   // Create plots
-  TH1FRefVecVec dnHitsPlot(ptcuts.size());
-  TH1FRefVecVec dinvptPlot(ptcuts.size());
-  TH1FRefVecVec dphiPlot(ptcuts.size());
-  TH1FRefVecVec detaPlot(ptcuts.size());
-  for (UInt_t p = 0; p < ptcuts.size(); p++)
+  TH1FRefVecVecVec dnHitsPlot(trks.size());
+  TH1FRefVecVecVec dinvptPlot(trks.size());
+  TH1FRefVecVecVec dphiPlot(trks.size());
+  TH1FRefVecVecVec detaPlot(trks.size());
+  for (UInt_t j = 0; j < trks.size(); j++)
   {
-    dnHitsPlot[p].resize(coll.size());
-    dinvptPlot[p].resize(coll.size());
-    detaPlot[p].resize(coll.size());
-    dphiPlot[p].resize(coll.size());
-    for (UInt_t c = 0; c < coll.size(); c++)
+    dnHitsPlot[j].resize(ptcuts.size());
+    dinvptPlot[j].resize(ptcuts.size());
+    detaPlot[j].resize(ptcuts.size());
+    dphiPlot[j].resize(ptcuts.size());
+
+    for (UInt_t p = 0; p < ptcuts.size(); p++)
     {
-      // nhits
-      dnHitsPlot[p][c] = new TH1F(Form("h_dnHits_%s_pt%3.1f",coll[c].Data(),ptcuts[p]),
-				  Form("#DeltanHits(%s mkFit,CMSSW) [p_{T} > %3.1f GeV/c];nHits^{%s mkFit}-nHits^{CMSSW};nTracks",
-				       scoll[c].Data(),ptcuts[p],scoll[c].Data()),31,-15.5,15.5);
-      dnHitsPlot[p][c]->Sumw2();
+      dnHitsPlot[j][p].resize(coll.size());
+      dinvptPlot[j][p].resize(coll.size());
+      detaPlot[j][p].resize(coll.size());
+      dphiPlot[j][p].resize(coll.size());
 
-      // 1/pt
-      dinvptPlot[p][c] = new TH1F(Form("h_dinvpt_%s_pt%3.1f",coll[c].Data(),ptcuts[p]),
-				  Form("#Delta1/p_{T}(%s mkFit,CMSSW) [p_{T} > %3.1f GeV/c];1/p_{T}^{%s mkFit}-1/p_{T}^{CMSSW};nTracks",
-				       scoll[c].Data(),ptcuts[p],scoll[c].Data()),45,-0.5,0.5);
-      dinvptPlot[p][c]->Sumw2();
+      for (UInt_t c = 0; c < coll.size(); c++)
+      {
+	// nhits
+	dnHitsPlot[j][p][c] = new TH1F(Form("h_dnHits_%s_%s_pt%3.1f",coll[c].Data(),trks[j].Data(),ptcuts[p]),
+				       Form("#DeltanHits(%s %s,CMSSW) [p_{T} > %3.1f GeV/c];nHits^{%s %s}-nHits^{CMSSW};nTracks",
+					    scoll[c].Data(),strks[j].Data(),ptcuts[p],scoll[c].Data(),strks[j].Data()),31,-15.5,15.5);
+	dnHitsPlot[j][p][c]->Sumw2();
 
-      // phi
-      dphiPlot[p][c] = new TH1F(Form("h_dphi_%s_pt%3.1f",coll[c].Data(),ptcuts[p]),
-				Form("|#Delta#phi(%s mkFit,CMSSW)| [p_{T} > %3.1f GeV/c];|#phi^{%s mkFit}-#phi^{CMSSW}|;nTracks",
-				       scoll[c].Data(),ptcuts[p],scoll[c].Data()),45,0,0.1);
-      dphiPlot[p][c]->Sumw2();
+	// 1/pt
+	dinvptPlot[j][p][c] = new TH1F(Form("h_dinvpt_%s_%s_pt%3.1f",coll[c].Data(),trks[j].Data(),ptcuts[p]),
+				       Form("#Delta1/p_{T}(%s %s,CMSSW) [p_{T} > %3.1f GeV/c];1/p_{T}^{%s %s}-1/p_{T}^{CMSSW};nTracks",
+					    scoll[c].Data(),strks[j].Data(),ptcuts[p],scoll[c].Data(),strks[j].Data()),45,-0.5,0.5);
+	dinvptPlot[j][p][c]->Sumw2();
 
-      // eta
-      detaPlot[p][c] = new TH1F(Form("h_deta_%s_pt%3.1f",coll[c].Data(),ptcuts[p]),
-				Form("#Delta#eta(%s mkFit,CMSSW) [p_{T} > %3.1f GeV/c];#eta^{%s mkFit}-#eta^{CMSSW};nTracks",
-				       scoll[c].Data(),ptcuts[p],scoll[c].Data()),45,-0.1,0.1);
-      detaPlot[p][c]->Sumw2();
+	// phi
+	dphiPlot[j][p][c] = new TH1F(Form("h_dphi_%s_%s_pt%3.1f",coll[c].Data(),trks[j].Data(),ptcuts[p]),
+				     Form("|#Delta#phi(%s %s,CMSSW)| [p_{T} > %3.1f GeV/c];|#phi^{%s %s}-#phi^{CMSSW}|;nTracks",
+					  scoll[c].Data(),strks[j].Data(),ptcuts[p],scoll[c].Data(),strks[j].Data()),45,0,0.1);
+	dphiPlot[j][p][c]->Sumw2();
+	
+	// eta
+	detaPlot[j][p][c] = new TH1F(Form("h_deta_%s_%s_pt%3.1f",coll[c].Data(),trks[j].Data(),ptcuts[p]),
+				     Form("#Delta#eta(%s %s,CMSSW) [p_{T} > %3.1f GeV/c];#eta^{%s %s}-#eta^{CMSSW};nTracks",
+					  scoll[c].Data(),strks[j].Data(),ptcuts[p],scoll[c].Data(),strks[j].Data()),45,-0.1,0.1);
+	detaPlot[j][p][c]->Sumw2();
+      }
     }
   }
 
   // Floats/Ints to be filled for trees
-  Int_t nHits_build = 0, nLayers_cmssw = 0;
-  Float_t pt_build = 0.f, pt_cmssw = 0.f;
-  Float_t dphi_build = 0.f;
-  Float_t eta_build = 0.f, eta_cmssw = 0.f;
+  IntVec nHits_trk(trks.size());
+  IntVec nLayers_cms(trks.size());
+
+  FltVec pt_trk(trks.size()); 
+  FltVec pt_cms(trks.size());
+
+  FltVec dphi_trk(trks.size());
+  
+  FltVec eta_trk(trks.size());
+  FltVec eta_cms(trks.size());
   
   // masks
-  Int_t cmsswmask_build = 0;
-  Int_t iTkMatches_build = 0;
+  IntVec cmsswmask_trk(trks.size());
+  IntVec iTkMatches_trk(trks.size());
 
   //Initialize masks and variables, set branch addresses  
-  cmsswfrtree->SetBranchAddress("nHits_build",&nHits_build);
-  cmsswfrtree->SetBranchAddress("nLayers_cmssw",&nLayers_cmssw);
-  cmsswfrtree->SetBranchAddress("pt_build",&pt_build);
-  cmsswfrtree->SetBranchAddress("pt_cmssw",&pt_cmssw);
-  cmsswfrtree->SetBranchAddress("dphi_build",&dphi_build);
-  cmsswfrtree->SetBranchAddress("eta_build",&eta_build);
-  cmsswfrtree->SetBranchAddress("eta_cmssw",&eta_cmssw);
-  cmsswfrtree->SetBranchAddress("cmsswmask_build",&cmsswmask_build);
-  cmsswfrtree->SetBranchAddress("iTkMatches_build",&iTkMatches_build);
+  for (UInt_t j = 0; j < trks.size(); j++) // loop over tracks
+  {
+    cmsswfrtree->SetBranchAddress(Form("nHits_%s",trks[j].Data()),&nHits_trk[j]);
+    cmsswfrtree->SetBranchAddress(Form("pt_%s",trks[j].Data()),&pt_trk[j]);
+    cmsswfrtree->SetBranchAddress(Form("dphi_%s",trks[j].Data()),&dphi_trk[j]);
+    cmsswfrtree->SetBranchAddress(Form("eta_%s",trks[j].Data()),&eta_trk[j]);
+    cmsswfrtree->SetBranchAddress(Form("cmsswmask_%s",trks[j].Data()),&cmsswmask_trk[j]);
+    cmsswfrtree->SetBranchAddress(Form("iTkMatches_%s",trks[j].Data()),&iTkMatches_trk[j]);
+
+    cmsswfrtree->SetBranchAddress(Form("nLayers_cmssw_%s",trks[j].Data()),&nLayers_cms[j]);
+    cmsswfrtree->SetBranchAddress(Form("pt_cmssw_%s",trks[j].Data()),&pt_cms[j]);
+    cmsswfrtree->SetBranchAddress(Form("eta_cmssw_%s",trks[j].Data()),&eta_cms[j]);
+  }
 
   // Fill histos, compute res/pull from tree branches 
   for (Int_t k = 0; k < cmsswfrtree->GetEntries(); k++)
   {
     cmsswfrtree->GetEntry(k);
-    for (UInt_t p = 0; p < ptcuts.size(); p++) // loop over pt cuts
+    for (UInt_t j = 0; j < trks.size(); j++) // loop over tracks
     {
-      if (pt_build < ptcuts[p]) continue;
-      for (UInt_t c = 0; c < coll.size(); c++) // loop over trk collection type
+      for (UInt_t p = 0; p < ptcuts.size(); p++) // loop over pt cuts
       {
-	if (c == 0) // all matches  
+	if (pt_trk[j] < ptcuts[p]) continue;
+	for (UInt_t c = 0; c < coll.size(); c++) // loop over trk collection type
 	{
-	  if (cmsswmask_build == 1)
-          {
-	    dnHitsPlot[p][c]->Fill(nHits_build-nLayers_cmssw);
-	    dinvptPlot[p][c]->Fill(1.f/pt_build-1/pt_cmssw);
-	    dphiPlot[p][c]->Fill(dphi_build);
-	    detaPlot[p][c]->Fill(eta_build-eta_cmssw);
-	  }
-	}
-	else if (c == 1) // best matches only	  
-	{
-	  if ((cmsswmask_build == 1) && (iTkMatches_build == 0)) 
+	  if (c == 0) // all matches  
 	  {
-	    dnHitsPlot[p][c]->Fill(nHits_build-nLayers_cmssw);
-	    dinvptPlot[p][c]->Fill(1.f/pt_build-1/pt_cmssw);
-	    dphiPlot[p][c]->Fill(dphi_build);
-	    detaPlot[p][c]->Fill(eta_build-eta_cmssw);
+	    if (cmsswmask_trk[j] == 1)
+	    {
+	      dnHitsPlot[j][p][c]->Fill(nHits_trk[j]-nLayers_cms[j]);
+	      dinvptPlot[j][p][c]->Fill(1.f/pt_trk[j]-1/pt_cms[j]);
+	      dphiPlot[j][p][c]->Fill(dphi_trk[j]);
+	      detaPlot[j][p][c]->Fill(eta_trk[j]-eta_cms[j]);
+	    }
 	  }
-	}
-      } // end loop over trk type collection
-    } // end loop over pt cuts
+	  else if (c == 1) // best matches only	  
+	  {
+	    if ((cmsswmask_trk[j] == 1) && (iTkMatches_trk[j] == 0)) 
+	    {
+	      dnHitsPlot[j][p][c]->Fill(nHits_trk[j]-nLayers_cms[j]);
+	      dinvptPlot[j][p][c]->Fill(1.f/pt_trk[j]-1/pt_cms[j]);
+	      dphiPlot[j][p][c]->Fill(dphi_trk[j]);
+	      detaPlot[j][p][c]->Fill(eta_trk[j]-eta_cms[j]);
+	    }
+	  }
+	} // end loop over trk type collection
+      } // end loop over pt cuts
+    } // end loop over tracks
   } // end loop over entry in tree
 
   // Draw and save nHits plots
-  for (UInt_t p = 0; p < ptcuts.size(); p++)
+  for (UInt_t j = 0; j < trks.size(); j++) // loop over tracks
   {
-    for (UInt_t c = 0; c < coll.size(); c++) // loop over trk collection type
+    for (UInt_t p = 0; p < ptcuts.size(); p++)
     {
-      PlotValidation::DrawWriteSaveTH1FPlot(subdir,dnHitsPlot[p][c],subdirname,Form("dnHits_%s_pt%3.1f",coll[c].Data(),ptcuts[p]));
-      PlotValidation::DrawWriteSaveTH1FPlot(subdir,dinvptPlot[p][c],subdirname,Form("dinvpt_%s_pt%3.1f",coll[c].Data(),ptcuts[p]));
-      PlotValidation::DrawWriteSaveTH1FPlot(subdir,dphiPlot[p][c],subdirname,Form("dphi_%s_pt%3.1f",coll[c].Data(),ptcuts[p]));
-      PlotValidation::DrawWriteSaveTH1FPlot(subdir,detaPlot[p][c],subdirname,Form("deta_%s_pt%3.1f",coll[c].Data(),ptcuts[p]));
-      
-      delete dnHitsPlot[p][c];
-      delete dinvptPlot[p][c];
-      delete dphiPlot[p][c];
-      delete detaPlot[p][c];
+      for (UInt_t c = 0; c < coll.size(); c++) // loop over trk collection type
+      {
+	PlotValidation::DrawWriteSaveTH1FPlot(subdir,dnHitsPlot[j][p][c],subdirname,Form("dnHits_%s_pt%3.1f",coll[c].Data(),ptcuts[p]));
+	PlotValidation::DrawWriteSaveTH1FPlot(subdir,dinvptPlot[j][p][c],subdirname,Form("dinvpt_%s_pt%3.1f",coll[c].Data(),ptcuts[p]));
+	PlotValidation::DrawWriteSaveTH1FPlot(subdir,dphiPlot[j][p][c],subdirname,Form("dphi_%s_pt%3.1f",coll[c].Data(),ptcuts[p]));
+	PlotValidation::DrawWriteSaveTH1FPlot(subdir,detaPlot[j][p][c],subdirname,Form("deta_%s_pt%3.1f",coll[c].Data(),ptcuts[p]));
+	
+	delete dnHitsPlot[j][p][c];
+	delete dinvptPlot[j][p][c];
+	delete dphiPlot[j][p][c];
+	delete detaPlot[j][p][c];
+      }
     }
   }  
     
@@ -815,8 +842,8 @@ void PlotValidation::PlotMomResolutionPull()
   const FltVec  xhighPull = {5,5,5};  
   const FltVec  gausPull  = {3,3,3}; // symmetric bounds for gaussian fit
 
-  const TStrVec trks  = {"seed","build","fit"};
-  const TStrVec strks = {"Seed","Build","Fit"}; // strk --> labels for histograms for given track type
+  const TStrVec trks  = (fCmsswComp ? TStrVec{"build","fit"} : TStrVec{"seed","build","fit"});
+  const TStrVec strks = (fCmsswComp ? TStrVec{"Build","Fit"} : TStrVec{"Seed","Build","Fit"}); // strk --> labels for histograms for given track type
 
   // Create pos plots
   TH1FRefVecVecVec varsResPlot(vars.size());
@@ -933,8 +960,8 @@ void PlotValidation::PrintTotals()
   // want to print out totals of nHits, fraction of Hits shared, efficiency, fake rate, duplicate rate of seeds, build, fit
   // --> numer/denom plots for phi, know it will be in the bounds.  
 
-  const TStrVec trks   = (fCmsswComp ? TStrVec{"build"} : TStrVec{"seed","build","fit"});
-  const TStrVec strks  = (fCmsswComp ? TStrVec{"Build"} : TStrVec{"Seed","Build","Fit"}); // strk --> labels for histograms for given track type
+  const TStrVec trks   = (fCmsswComp ? TStrVec{"build","fit"} : TStrVec{"seed","build","fit"});
+  const TStrVec strks  = (fCmsswComp ? TStrVec{"Build","Fit"} : TStrVec{"Seed","Build","Fit"}); // strk --> labels for histograms for given track type
   const TStrVec rates  = {"eff","fr","dr"};
   const TStrVec srates = {"Efficiency","Fake Rate","Duplicate Rate"};
   const TStrVec rateSD = {"efficiency","fakerate","duplicaterate"};

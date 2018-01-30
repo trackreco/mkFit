@@ -265,7 +265,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     const int pb1 = pb1v[itrack];
     const int pb2 = pb2v[itrack];
 
-#if defined(LOH_USE_PHI_Q_ARRAYS)
+    // Used only by usePhiQArrays
     const float q = qv[itrack];
     const float phi = phiv[itrack];
     const float dphi = dphiv[itrack];
@@ -273,7 +273,6 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
     dprintf("  %2d: %6.3f %6.3f %6.6f %7.5f %3d %3d %4d %4d\n",
              itrack, q, phi, dq, dphi, qb1, qb2, pb1, pb2);
-#endif
 
     // MT: One could iterate in "spiral" order, to pick hits close to the center.
     // http://stackoverflow.com/questions/398299/looping-in-a-spiral
@@ -296,32 +295,36 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
         {
           // MT: Access into m_hit_zs and m_hit_phis is 1% run-time each.
 
-#if defined(LOH_USE_PHI_Q_ARRAYS)
-          float ddq   = std::abs(q   - L.m_hit_qs[hi]);
-          float ddphi = std::abs(phi - L.m_hit_phis[hi]);
-          if (ddphi > Config::PI) ddphi = Config::TwoPI - ddphi;
+	  if (Config::usePhiQArrays)
+	  {
+	    const float ddq   = std::abs(q   - L.m_hit_qs[hi]);
+	          float ddphi = std::abs(phi - L.m_hit_phis[hi]);
+	    if (ddphi > Config::PI) ddphi = Config::TwoPI - ddphi;
 
-          dprintf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
-                   qi, pi, pb, hi,
-                   L.m_hit_qs[hi], L.m_hit_phis[hi], ddq, ddphi,
-                   (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
+	    dprintf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
+		    qi, pi, pb, hi,
+		    L.m_hit_qs[hi], L.m_hit_phis[hi], ddq, ddphi,
+		    (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
 
-#endif
-          // MT: The following check alone makes more sense with spiral traversal,
-          // we'd be taking in closest hits first.
-          if (XHitSize[itrack] < MPlexHitIdxMax
-#ifdef LOH_USE_PHI_Q_ARRAYS
-            // MT: Removing this check gives full efficiency ...
+            // MT: Removing extra check gives full efficiency ...
             //     and means our error estimations are wrong!
             // Avi says we should have *minimal* search windows per layer.
             // Also ... if bins are sufficiently small, we do not need the extra
             // checks, see above.
-            && ddq < dq && ddphi < dphi
-#endif
-            )
-          {
-            XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
-          }
+	    if (XHitSize[itrack] < MPlexHitIdxMax && ddq < dq && ddphi < dphi)
+	    {
+	      XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
+	    }
+	  }
+	  else
+	  {
+	    // MT: The following check alone makes more sense with spiral traversal,
+	    // we'd be taking in closest hits first.
+	    if (XHitSize[itrack] < MPlexHitIdxMax)
+	    {
+	      XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
+	    }
+	  }
         }
       }
     }
@@ -989,22 +992,6 @@ void MkFinder::BkFitInputTracks(TrackVec& cands, int beg, int end)
   Err[iC].Scale(100.0f);
 }
 
-void MkFinder::BkFitOutputTracks(TrackVec& cands, int beg, int end)
-{
-  // Only copy out track params / errors / chi2, all the rest is ok.
-
-  int itrack = 0;
-  for (int i = beg; i < end; ++i, ++itrack)
-  {
-    Track &trk = cands[i];
-
-    Err[iC].CopyOut(itrack, trk.errors_nc().Array());
-    Par[iC].CopyOut(itrack, trk.parameters_nc().Array());
-
-    trk.setChi2(Chi2(itrack, 0, 0));
-  }
-}
-
 //------------------------------------------------------------------------------
 
 void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
@@ -1047,6 +1034,23 @@ void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
   Err[iC].Scale(100.0f);
 }
 
+
+void MkFinder::BkFitOutputTracks(TrackVec& cands, int beg, int end)
+{
+  // Only copy out track params / errors / chi2, all the rest is ok.
+
+  int itrack = 0;
+  for (int i = beg; i < end; ++i, ++itrack)
+    {
+      Track &trk = cands[i];
+
+      Err[iC].CopyOut(itrack, trk.errors_nc().Array());
+      Par[iC].CopyOut(itrack, trk.parameters_nc().Array());
+
+      trk.setChi2(Chi2(itrack, 0, 0));
+    }
+}
+
 void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
 {
   // Only copy out track params / errors / chi2, all the rest is ok.
@@ -1056,8 +1060,8 @@ void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
   {
     Track &trk = eocss[i][0];
 
-    Err[iC].CopyOut(itrack, trk.errors_nc().Array());
-    Par[iC].CopyOut(itrack, trk.parameters_nc().Array());
+    Err[iP].CopyOut(itrack, trk.errors_nc().Array());
+    Par[iP].CopyOut(itrack, trk.parameters_nc().Array());
 
     trk.setChi2(Chi2(itrack, 0, 0));
   }
@@ -1069,7 +1073,7 @@ namespace { float e2s(float x) { return 1e4 * std::sqrt(x); } }
 
 void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
                               const SteeringParams& st_par,
-                              int N_proc, bool useParamBfield, bool chiDebug)
+                              const int N_proc, bool chiDebug)
 {
   // Prototyping final backward fit.
   // This works with track-finding indices, before remapping.
@@ -1164,4 +1168,9 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
     // update chi2
     Chi2.Add(tmp_chi2);
   }
+}
+
+void MkFinder::BkFitPropTracksToPCA(const int N_proc)
+{
+  PropagateTracksToPCAZ(N_proc, Config::pca_prop_pflags);
 }

@@ -54,6 +54,9 @@ namespace Config
   PropagationFlags backward_fit_pflags;
   PropagationFlags forward_fit_pflags;
   PropagationFlags seed_fit_pflags;
+  PropagationFlags pca_prop_pflags;
+
+  bool  usePhiQArrays = true;
 
   bool  useCMSGeom = false;
   bool  readCmsswTracks = false;
@@ -64,13 +67,14 @@ namespace Config
   bool  cf_seeding = false;
   bool  cf_fitting = false;
 
-  bool  root_val  = false;
-  bool  cmssw_val = false;
-  bool  fit_val   = false;
+  bool  quality_val = false;
+  bool  root_val    = false;
+  bool  cmssw_val   = false;
+  bool  fit_val     = false;
   bool  readSimTrackStates = false;
   bool  inclusiveShorts = false;
   bool  applyCMSSWHitMatch = false;
-  matchOpts cmsswMatching = trkParamBased;
+  matchOpts cmsswMatching = hitBased;
 
   bool  kludgeCmsHitErrors = false;
   bool  backwardFit = false;

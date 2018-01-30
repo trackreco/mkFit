@@ -330,8 +330,9 @@ void Event::Validate()
 
   // special cmssw to mkfit validation
   if (Config::cmssw_val) {
+    validation_.makeRecoTkToRecoTkMaps(*this);
     validation_.setTrackExtras(*this);
-    validation_.makeCMSSWTkToRecoTksMap(*this);
+    validation_.makeCMSSWTkToRecoTksMaps(*this);
     validation_.fillCMSSWEfficiencyTree(*this);
     validation_.fillCMSSWFakeRateTree(*this);
   }

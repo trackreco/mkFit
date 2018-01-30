@@ -217,6 +217,7 @@ namespace
     Config::backward_fit_pflags        = PropagationFlags(PF_use_param_b_field);
     Config::forward_fit_pflags         = PropagationFlags(PF_use_param_b_field);
     Config::seed_fit_pflags            = PropagationFlags(PF_none);
+    Config::pca_prop_pflags            = PropagationFlags(PF_use_param_b_field);
 
     CylCowWLidsCreator creator(ti);
 

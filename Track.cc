@@ -382,7 +382,7 @@ inline int getMatchBin(const float pt)
   else                 return 5;
 }
 
-void TrackExtra::setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vector<HitVec>& layerHits, const TrackVec& cmsswtracks, const RedTrackVec& redcmsswtracks)
+void TrackExtra::setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vector<HitVec>& layerHits, const TrackVec& cmsswtracks, const RedTrackVec& redcmsswtracks, const bool isBkFit)
 {
   const SVector6 & trkParams = trk.parameters();
   const SMatrixSym66 & trkErrs = trk.errors();
@@ -422,7 +422,7 @@ void TrackExtra::setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vec
   {
     const auto label = cand.first;
     const auto & cmsswtrack = cmsswtracks[label];
-    const float diffPhi = std::abs(squashPhiGeneral(cmsswtrack.swimPhiToR(trk.x(),trk.y())-trk.momPhi()));
+    const float diffPhi = std::abs(squashPhiGeneral((isBkFit?cmsswtrack.momPhi():cmsswtrack.swimPhiToR(trk.x(),trk.y()))-trk.momPhi()));
     if (diffPhi < bestdPhi) // check for best matched track by phi
     {
       const HitLayerMap & hitLayerMap = redcmsswtracks[label].hitLayerMap();

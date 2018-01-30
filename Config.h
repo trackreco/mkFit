@@ -233,6 +233,7 @@ namespace Config
   extern PropagationFlags backward_fit_pflags;
   extern PropagationFlags forward_fit_pflags;
   extern PropagationFlags seed_fit_pflags;
+  extern PropagationFlags pca_prop_pflags;
 
   // Config for Bfield. Note: for now the same for CMS-2017 and CylCowWLids.
   constexpr float Bfield = 3.8112;
@@ -240,6 +241,15 @@ namespace Config
   constexpr float mag_b0 = -3.94991e-06;
   constexpr float mag_b1 = 7.53701e-06;
   constexpr float mag_a  = 2.43878e-11;
+
+  // Config for SelectHitIndices
+  // Use extra arrays to store phi and q of hits.
+  // MT: This would in principle allow fast selection of good hits, if
+  // we had good error estimates and reasonable *minimal* phi and q windows.
+  // Speed-wise, those arrays (filling AND access, about half each) cost 1.5%
+  // and could help us reduce the number of hits we need to process with bigger
+  // potential gains.
+  extern bool usePhiQArrays;
 
   // Config for seeding as well... needed bfield
   constexpr float maxCurvR = (100 * minSimPt) / (sol * Bfield); // in cm
@@ -296,6 +306,7 @@ namespace Config
   constexpr float minCMSSWMatchChi2[6] = {100,100,50,50,30,20};
   constexpr float minCMSSWMatchdPhi[6] = {0.2,0.2,0.1,0.05,0.01,0.005};
   constexpr int   nCMSSWMatchHitsAfterSeed = 5;
+  extern bool quality_val;
   extern bool root_val;
   extern bool cmssw_val;
   extern bool fit_val;

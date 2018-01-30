@@ -55,15 +55,6 @@ inline bool sortTrksByPhiMT(const Track& t1, const Track& t2)
 //==============================================================================
 //==============================================================================
 
-// Use extra arrays to store phi and q of hits.
-// MT: This would in principle allow fast selection of good hits, if
-// we had good error estimates and reasonable *minimal* phi and q windows.
-// Speed-wise, those arrays (filling AND access, about half each) cost 1.5%
-// and could help us reduce the number of hits we need to process with bigger
-// potential gains.
-
-#define LOH_USE_PHI_Q_ARRAYS
-
 // Note: the same code is used for barrel and endcap. In barrel the longitudinal
 // bins are in Z and in endcap they are in R -- here this coordinate is called Q
 
@@ -73,10 +64,8 @@ public:
   const LayerInfo          *m_layer_info = 0;
   Hit                      *m_hits = 0;
   vecvecPhiBinInfo_t        m_phi_bin_infos;
-#ifdef LOH_USE_PHI_Q_ARRAYS
   std::vector<float>        m_hit_phis;
   std::vector<float>        m_hit_qs;
-#endif
 
   float m_qmin, m_qmax, m_fq;
   int   m_nq = 0;
@@ -120,10 +109,11 @@ protected:
     m_hits = (Hit*) _mm_malloc(sizeof(Hit) * size, 64);
     m_capacity = size;
     for (int ihit = 0; ihit < m_capacity; ihit++){m_hits[ihit] = Hit();} 
-#ifdef LOH_USE_PHI_Q_ARRAYS
-    m_hit_phis.resize(size);
-    m_hit_qs  .resize(size);
-#endif
+    if (Config::usePhiQArrays)
+    {
+      m_hit_phis.resize(size);
+      m_hit_qs  .resize(size);
+    }
   }
 
   void free_hits()
