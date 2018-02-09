@@ -13,7 +13,7 @@ runValidation()
 		    oBase=${base}_${sN}_${bN}
 		    nTH=8
 		    echo "${oBase}: validation [nTH:${nTH}, nVU:8]"
-		    ./mkFit/mkFit --root-val --input-file ${fin} --build-${bO} ${sO} --num-thr ${nTH} >& log_${oBase}_NVU8int_NTH${nTH}_val.txt
+		    ./mkFit/mkFit --sim-val --input-file ${fin} --build-${bO} ${sO} --num-thr ${nTH} >& log_${oBase}_NVU8int_NTH${nTH}_val.txt
 		    mv valtree.root valtree_${oBase}.root
                 done
             done

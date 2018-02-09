@@ -1008,7 +1008,7 @@ void MkBuilder::quality_print()
 // Root validation
 //------------------------------------------------------------------------------
 
-void MkBuilder::root_val()
+void MkBuilder::sim_val()
 {
   // remap seed tracks
   remap_seed_hits();
@@ -1038,7 +1038,7 @@ void MkBuilder::prep_recotracks()
   prep_tracks(m_event->candidateTracks_,m_event->candidateTracksExtra_,true);
   prep_tracks(m_event->fitTracks_,m_event->fitTracksExtra_,true);
   
-  if (Config::root_val)
+  if (Config::sim_val)
   {
     prep_tracks(m_event->seedTracks_,m_event->seedTracksExtra_,true);
   }
@@ -1158,7 +1158,7 @@ void MkBuilder::PrepareSeeds()
     m_event->relabel_bad_seedtracks();
     
     // want to make sure we mark which sim tracks are findable based on cmssw seeds BEFORE seed cleaning
-    if (Config::root_val)
+    if (Config::sim_val)
     {
       prep_simtracks();
     }

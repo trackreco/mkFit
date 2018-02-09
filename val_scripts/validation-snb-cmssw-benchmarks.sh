@@ -13,7 +13,7 @@ maxvu=8
 exe="./mkFit/mkFit --cmssw-n2seeds --backward-fit --num-thr ${maxth}"
 
 ## Sample input
-ROOTVAL=10muPt0p5to10HS
+SIMVAL=10muPt0p5to10HS
 CMSSWVAL=PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/a
 
 ## Compile once
@@ -21,8 +21,8 @@ make clean
 mVal="WITH_ROOT:=yes"
 make -j 12 ${mVal}
 
-## ROOTVAL == sim tracks as reference, CMSSWVAL == cmssw tracks as reference
-for vV in "ROOTVAL --root-val ${rootval_sample} 20000" "CMSSWVAL --cmssw-val-hit ${physics_sample} 500"
+## SIMVAL == sim tracks as reference, CMSSWVAL == cmssw tracks as reference
+for vV in "SIMVAL --sim-val ${simval_sample} 20000" "CMSSWVAL --cmssw-val-hit ${physics_sample} 500"
 do echo ${vV} | while read -r vN vO sample nevents
     do
 	for bV in "BH bh" "STD std" "CE ce" "FV fv"
@@ -42,7 +42,7 @@ done
 make clean ${mVal}
 
 ## Compute observables and make images
-for vV in "ROOTVAL 0 ${rootval_sample}" "CMSSWVAL 1 ${physics_sample}"
+for vV in "SIMVAL 0 ${simval_sample}" "CMSSWVAL 1 ${physics_sample}"
 do echo ${vV} | while read -r vN vO sample
     do
 	tbase=${val_arch}_${sample}

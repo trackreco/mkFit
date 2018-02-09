@@ -119,8 +119,8 @@ double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
 
   if        (Config::quality_val) {
     builder.quality_val();
-  } else if (Config::root_val) {
-    builder.root_val();
+  } else if (Config::sim_val) {
+    builder.sim_val();
   } else if (Config::cmssw_val) {
     builder.cmssw_val();
   }
@@ -159,7 +159,7 @@ double runBuildingTestPlexBestHitGPU(Event& ev, MkBuilder& builder,
   if   (Config::quality_val) {
     if (!Config::silent) builder.quality_val_BH(event_of_cands);
   } else {
-    builder.root_val_BH(event_of_cands);
+    builder.sim_val_BH(event_of_cands);
   }
 
   builder.end_event();
@@ -198,7 +198,7 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
 #endif
 
   // first store candidate tracks
-  if (Config::quality_val || Config::root_val || Config::cmssw_val)
+  if (Config::quality_val || Config::sim_val || Config::cmssw_val)
   {
     builder.quality_store_tracks(ev.candidateTracks_);
   }
@@ -208,19 +208,19 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
   {
     builder.BackwardFit();
 
-    if (Config::root_val || Config::cmssw_val)
+    if (Config::sim_val || Config::cmssw_val)
     {
       builder.quality_store_tracks(ev.fitTracks_);
     }
   }
 
   // validation section
-  if (Config::quality_val || Config::root_val || Config::cmssw_val)
+  if (Config::quality_val || Config::sim_val || Config::cmssw_val)
   {
     if        (Config::quality_val) {
       builder.quality_val();
-    } else if (Config::root_val) { 
-      builder.root_val();
+    } else if (Config::sim_val) { 
+      builder.sim_val();
     } else if (Config::cmssw_val) {
       builder.cmssw_val();
     }
@@ -261,7 +261,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
 #endif
 
   // first store candidate tracks
-  if (Config::quality_val || Config::root_val || Config::cmssw_val)
+  if (Config::quality_val || Config::sim_val || Config::cmssw_val)
   {
     builder.quality_store_tracks(ev.candidateTracks_);
   }
@@ -271,19 +271,19 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
   {
     builder.BackwardFit();
 
-    if (Config::root_val || Config::cmssw_val)
+    if (Config::sim_val || Config::cmssw_val)
     {
       builder.quality_store_tracks(ev.fitTracks_);
     }
   }
 
   // validation section
-  if (Config::quality_val || Config::root_val || Config::cmssw_val) 
+  if (Config::quality_val || Config::sim_val || Config::cmssw_val) 
   {
     if        (Config::quality_val) {
       builder.quality_val();
-    } else if (Config::root_val) { 
-      builder.root_val();
+    } else if (Config::sim_val) { 
+      builder.sim_val();
     } else if (Config::cmssw_val) {
       builder.cmssw_val();
     }
@@ -324,7 +324,7 @@ double runBuildingTestPlexFV(Event& ev, MkBuilder& builder)
 #endif
 
   // first store candidate tracks
-  if (Config::quality_val || Config::root_val || Config::cmssw_val)
+  if (Config::quality_val || Config::sim_val || Config::cmssw_val)
   {
     builder.quality_store_tracks(ev.candidateTracks_);
   }
@@ -334,19 +334,19 @@ double runBuildingTestPlexFV(Event& ev, MkBuilder& builder)
   {
     builder.BackwardFit();
 
-    if (Config::root_val || Config::cmssw_val)
+    if (Config::sim_val || Config::cmssw_val)
     {
       builder.quality_store_tracks(ev.fitTracks_);
     }
   }
 
   // validation section
-  if (Config::quality_val || Config::root_val || Config::cmssw_val)
+  if (Config::quality_val || Config::sim_val || Config::cmssw_val)
   {
     if        (Config::quality_val) {
       builder.quality_val();
-    } else if (Config::root_val) { 
-      builder.root_val();
+    } else if (Config::sim_val) { 
+      builder.sim_val();
     } else if (Config::cmssw_val) {
       builder.cmssw_val();
     }
@@ -401,7 +401,7 @@ double runBuildingTestPlexCloneEngineGPU(Event& ev, EventTmp& ev_tmp,
 
   if (Config::quality_val) {
     if (!Config::silent) builder.quality_val_COMB();
-  } else {builder.root_val_COMB();}
+  } else {builder.sim_val_COMB();}
 
   builder.end_event();
 
@@ -462,10 +462,10 @@ double runAllBuildingTestPlexBestHitGPU(std::vector<Event> &events)
     BuilderCU &builder_cu = builder_cu_vec[i];
     builder_cu.tearDownBH();
     MkBuilder &builder = * builder_ptrs[i].get();
-    if   (!Config::root_val && !Config::cmssw_val) {
+    if   (!Config::sim_val && !Config::cmssw_val) {
       if (!Config::silent) builder.quality_val();
-    } else if (Config::root_val) {
-      builder.root_val();
+    } else if (Config::sim_val) {
+      builder.sim_val();
     }
 
     builder.end_event();

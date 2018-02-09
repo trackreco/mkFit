@@ -57,13 +57,13 @@ do
 done
 
 # Move ROOT validation
-rootdir="ROOTVAL"
+rootdir="SIMVAL"
 mkdir -p ${dir}/${rootdir}
 
 for build in BH STD CE FV
 do
-    vBase=${val_arch}_${rootval_sample}_${build}
-    mv validation_${vBase}_"ROOTVAL"/totals_validation_${vBase}_"ROOTVAL".txt ${dir}/${rootdir}
+    vBase=${val_arch}_${simval_sample}_${build}
+    mv validation_${vBase}_"SIMVAL"/totals_validation_${vBase}_"SIMVAL".txt ${dir}/${rootdir}
 done
 
 for rate in eff ineff_barrel ineff_endcap dr fr 
@@ -72,7 +72,7 @@ do
     do 
 	for pt in 0.0 0.9 2.0
 	do
-	    mv ${val_arch}_${rootval_sample}_${rate}_${var}_"build"_pt${pt}_"ROOTVAL".png ${dir}/${rootdir}
+	    mv ${val_arch}_${simval_sample}_${rate}_${var}_"build"_pt${pt}_"SIMVAL".png ${dir}/${rootdir}
 	done
     done
 done

@@ -26,7 +26,7 @@ fi
 if [ ! -f ${dir}/simtracks_fulldet_500x2p5k_val.bin ]; then
     echo "++++Generating 2.5k tracks/event * 500 events for ToyMC validation tests++++"
     make -j 12 WITH_ROOT=yes
-    ./mkFit/mkFit --num-thr-sim ${n_sim_thr} --root-val --num-events 500 --num-tracks 2500 --output-file simtracks_fulldet_500x2p5k_val.bin
+    ./mkFit/mkFit --num-thr-sim ${n_sim_thr} --sim-val --num-events 500 --num-tracks 2500 --output-file simtracks_fulldet_500x2p5k_val.bin
     mv simtracks_fulldet_500x2p5k_val.bin ${dir}/
     make clean
 fi

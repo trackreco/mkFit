@@ -22,7 +22,7 @@ I. The use of label_
 TTreeValidation will only compile the necessary ROOT code with WITH_ROOT=yes enabled (either manually editting Makefile.config, or at the command line). Always do a make clean before compiling with ROOT, as the code is ifdef'ed. To hide the heavy-duty functions from the main code, TTreeValidation inherits from the virtual class "Validation", and overrides the common functions.  The TTreeValidation object is created once per number of events in flight. The Event object obtains a reference to the validation object (store as a data member "validation_"), so it is up to the Event object to reset some of the data members of the TTreeValidation object on every event.
 
 Three types of validation exist within TTreeValidation:
-[1.] "Building validation", enabled with Config::root_val, via the command line option: --root-val [--read-sim-trackstates, for pulls]
+[1.] "Building validation", enabled with Config::sim_val, via the command line option: --sim-val [--read-sim-trackstates, for pulls]
 [2.] "CMSSW external tracks building validation", enabled with Config::cmssw_val, via a minimum of the command line options: --cmssw-val --read-cmssw-tracks --geom CMS-2017 --seed-input cmssw [and potentially a seed cleaning --seed-cleaning <str>, and also specifying which cmssw matching --cmssw-matching <str>]
 [3.] "Fit validation", enabled with Config::fit_val, via the command line option: --fit-val
 
@@ -56,7 +56,7 @@ Following each event, each of the track and extra objects are cleared. In additi
 
 The following routines are then called after the building (MkBuilder.cc, Event.cc, TTreeValidation.cc, Track.cc):
 
-[1.] builder.root_val()
+[1.] builder.sim_val()
    : (actually run clean_cms_simtracks() when using CMS geom and using sim tracks as reference set)
    : remap_seed_hits()
    : remap_cand_hits()
@@ -450,7 +450,7 @@ W/ ROOT uses the TTreValidation class which needs seedTracks_, candidateTracks_,
 The fitTracks_ collection for now is just a copy of candidateTracks_ (eventually may have cuts and things that affect which tracks to fit).
 So... need to "remap" seedTracks_ hits from LOH to GLH with remap_seed_hits().
 And also copy in tracks from EtaBin* to candidateTracks_, and then remap hits from LOH to GLH with quality_store_tracks() and remap_cand_hits().
-W/ ROOT uses root_val()
+W/ ROOT uses sim_val()
 
 W/O ROOT is a bit simpler... as we only need to do the copy out tracks from EtaBin* and then remap just candidateTracks_.
 This uses quality_output()
