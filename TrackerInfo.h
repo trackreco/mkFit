@@ -56,6 +56,10 @@ public:
   float         m_select_min_dphi, m_select_max_dphi;
   float         m_select_min_dq,   m_select_max_dq;
 
+  // Seeding information: if we do more than one iteration: change from bool to int
+  // Will need a separate map to make this simpler
+  bool          m_is_seed_lyr = false;
+
   // Additional stuff needed?
   // * pixel / strip, mono / stereo
   // * resolutions, min/max search windows
@@ -84,6 +88,8 @@ public:
   bool  is_within_q_limits(float q) const { return is_barrel() ? is_within_z_limits(q) : is_within_r_limits(q); }
 
   bool  is_in_r_hole      (float r) const { return m_has_r_range_hole ? is_in_r_hole_no_check(r) : false; }
+
+  bool  is_seed_lyr() const { return m_is_seed_lyr; }
 
   WSR_Result is_within_z_sensitive_region(float z, float dz) const
   {
@@ -163,6 +169,11 @@ public:
   bool is_endcap(float eta) const
   {
     return std::abs(eta) > m_eta_trans_end;
+  }
+
+  bool is_seed_lyr(int i) const
+  {
+    return m_layers[i].is_seed_lyr();
   }
 
   EtaRegion find_eta_region(float eta) const
