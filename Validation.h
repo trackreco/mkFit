@@ -23,6 +23,8 @@ public:
 
 class Validation {
 public:
+  virtual ~Validation() {}
+
   virtual void alignTracks(TrackVec&, TrackExtraVec&, bool) {}
 
   virtual void resetValidationMaps() {}

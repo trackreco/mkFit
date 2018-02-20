@@ -202,7 +202,7 @@ public:
   {
     for (int ihit = 0; ihit <= lastHitIdx_; ++ihit) {
       const HitOnTrack &hot = hitsOnTrk_[ihit];
-      if ((hot.index >= 0) && (hot.index < globalHitVec[hot.layer].size()))
+      if ((hot.index >= 0) && (static_cast<size_t>(hot.index) < globalHitVec[hot.layer].size()))
       {
         mcHitIDs.push_back(globalHitVec[hot.layer][hot.index].mcTrackID(globalMCHitInfo));
 	//globalMCHitInfo[globalHitVec[hot.layer][hot.index].mcHitID()].mcTrackID());

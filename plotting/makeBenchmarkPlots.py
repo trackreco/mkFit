@@ -4,7 +4,7 @@ import array
 import math
 
 def run():
-    arch   = sys.argv[1] # SNB, KNL
+    arch   = sys.argv[1] # SNB, KNL, SKL
     sample = sys.argv[2] 
 
     g = ROOT.TFile('benchmark_'+arch+'_'+sample+'.root','recreate')
@@ -16,7 +16,7 @@ def run():
         vuvals = ['1','2','4','8']
         nth = '1'
 
-        if  arch == 'KNL' :
+        if  arch == 'KNL' or arch == 'SKL' :
             vuvals.append('16')
             vuvals.append('16int')
         elif arch == 'SNB' :
@@ -36,6 +36,9 @@ def run():
         elif arch == 'SNB' :
             nvu = '8int'
             thvals = ['1','2','4','6','8','12','16','20','24']
+        elif arch == 'SKL' :
+            nvu = '16int'
+            thvals = ['1','2','4','8','16','32','48']
         else :
             print arch,'is not a valid architecture! Exiting...'
             sys.exit(0)

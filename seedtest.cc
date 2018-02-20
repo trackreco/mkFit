@@ -22,10 +22,10 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, T
 
   const PropagationFlags pflags(PF_none);
 
-  for (int itrack=0;itrack<evt_sim_tracks.size();++itrack)
+  for (size_t itrack=0;itrack<evt_sim_tracks.size();++itrack)
   {
     const Track& trk = evt_sim_tracks[itrack];
-    int   seedhits[Config::nLayers];
+    //int   seedhits[Config::nLayers];
     //float sumchi2 = 0;
 
     TrackState updatedState;
@@ -56,7 +56,7 @@ void buildSeedsByMC(const TrackVec& evt_sim_tracks, TrackVec& evt_seed_tracks, T
       //const float chi2 = computeChi2(propState,measState); 
       //      sumchi2 += chi2; //--> could use this to make the chi2
       updatedState = updateParameters(propState, measState);
-      seedhits[ilayer] = hitidx;
+      //seedhits[ilayer] = hitidx;
 
       updatedStates.push_back(std::make_pair(ilayer,updatedState)); // validation
     }
@@ -82,13 +82,13 @@ void buildSeedsByRZFirstRPhiSecond(TrackVec& evt_seed_tracks, TrackExtraVec& evt
 
   TripletIdxVec hitTriplets;
   if (rz_path == 0) {
-    for (int i = 0; i < evt_lay_hits[0].size(); i++){
-      for (int j = 0; j < evt_lay_hits[2].size(); j++){
+    for (int i = 0; static_cast<size_t>(i) < evt_lay_hits[0].size(); i++){
+      for (int j = 0; static_cast<size_t>(j) < evt_lay_hits[2].size(); j++){
 	if ( std::abs(((3.*evt_lay_hits[0][i].z()-evt_lay_hits[2][j].z())/2.)) > (Config::seed_z0cut)) {continue;}
 	const float z1 = (evt_lay_hits[0][i].z() + evt_lay_hits[2][j].z()) / 2.;
-	for (int k = 0; k < evt_lay_hits[1].size(); k++){
+	for (int k = 0; static_cast<size_t>(k) < evt_lay_hits[1].size(); k++){
 	  if (std::abs(z1-evt_lay_hits[1][k].z()) < Config::seed_z1cut) {
-	    TripletIdx triplet = {i,k,j};
+	    TripletIdx triplet = {{i,k,j}};
 	    hitTriplets.push_back(triplet);
 	  }
 	}
@@ -96,17 +96,17 @@ void buildSeedsByRZFirstRPhiSecond(TrackVec& evt_seed_tracks, TrackExtraVec& evt
     }
   }
   else if (rz_path == 1) { // don't cheat on r-z calculation ... but still explore all eta-phi bins
-    for (int i = 0; i < evt_lay_hits[0].size(); i++){
+    for (int i = 0; static_cast<size_t>(i) < evt_lay_hits[0].size(); i++){
       const float z0 = evt_lay_hits[0][i].z();
       const float r0 = evt_lay_hits[0][i].r();
-      for (int j = 0; j < evt_lay_hits[2].size(); j++){
+      for (int j = 0; static_cast<size_t>(j) < evt_lay_hits[2].size(); j++){
 	const float z2 = evt_lay_hits[2][j].z();
 	const float r2 = evt_lay_hits[2][j].r();
 	if (std::abs(predz(z0,r0,z2,r2,0.0f)) > (Config::seed_z0cut)) {continue;}
 	const float z1 = predz(z0,r0,z2,r2,Config::fRadialSpacing*2.);
-	for (int k = 0; k < evt_lay_hits[1].size(); k++) {
+	for (int k = 0; static_cast<size_t>(k) < evt_lay_hits[1].size(); k++) {
 	  if (std::abs(z1-evt_lay_hits[1][k].z()) < Config::seed_z1cut) { // five sigma inclusion
-	    TripletIdx triplet = {i,k,j};
+	    TripletIdx triplet = {{i,k,j}};
 	    hitTriplets.push_back(triplet);
 	  }
 	}
@@ -114,14 +114,14 @@ void buildSeedsByRZFirstRPhiSecond(TrackVec& evt_seed_tracks, TrackExtraVec& evt
     }
   }
   else if (rz_path == 2){ // full implementation with eta-phi bins
-    for (int i = 0; i < evt_lay_hits[0].size(); i++){
+    for (int i = 0; static_cast<size_t>(i) < evt_lay_hits[0].size(); i++){
       const float z0 = evt_lay_hits[0][i].z();
       const float r0 = evt_lay_hits[0][i].r();
       const int etabin  = getEtaPartition(evt_lay_hits[0][i].eta());
       const int etabinM = (etabin-2)>0?etabin-2:((etabin-1)>0?etabin-1:etabin); 
       const int etabinP = (etabin+2)<Config::nEtaPart?etabin+2:((etabin+1)<Config::nEtaPart?etabin+1:etabin ); 
       std::vector<int> cand_lay2_indices = getCandHitIndices(etabinM,etabinP,0,Config::nPhiPart-1,segmentMap[1]);
-      for (auto&& j : cand_lay2_indices){
+      for (auto j : cand_lay2_indices){
 	const float z2 = evt_lay_hits[2][j].z();
 	const float r2 = evt_lay_hits[2][j].r();
 	if (std::abs(predz(z0,r0,z2,r2,0.0f)) > (Config::seed_z0cut)) {continue;}
@@ -131,9 +131,9 @@ void buildSeedsByRZFirstRPhiSecond(TrackVec& evt_seed_tracks, TrackExtraVec& evt
 	const int etabinM = (etabin-1)>0?etabin-1:etabin; 
 	const int etabinP = (etabin+1)<Config::nEtaPart?etabin+1:etabin; 
 	std::vector<int> cand_lay1_indices = getCandHitIndices(etabinM,etabinP,0,Config::nPhiPart-1,segmentMap[1]);
-	for (auto&& k : cand_lay1_indices){
+	for (auto k : cand_lay1_indices){
 	  if (std::abs(z1-evt_lay_hits[1][k].z()) < Config::seed_z1cut) { // five sigma inclusion
-	    TripletIdx triplet = {i,k,j};
+	    TripletIdx triplet = {{i,k,j}};
 	    hitTriplets.push_back(triplet);
 	  }
 	}
@@ -223,7 +223,7 @@ void buildSeedsByRoadSearch(TrackVec& evt_seed_tracks, TrackExtraVec& evt_seed_e
   const float maxCurvR2 = Config::maxCurvR * Config::maxCurvR;
 
   int seedID = 0;
-  for (int ihit1 = 0; ihit1 < evt_lay_hits[1].size(); ++ihit1) { // 0 = first layer, 1 = second layer, 2 = third layer
+  for (size_t ihit1 = 0; ihit1 < evt_lay_hits[1].size(); ++ihit1) { // 0 = first layer, 1 = second layer, 2 = third layer
     const Hit & hit1     = evt_lay_hits[1][ihit1];
     const float hit1_z   = evt_lay_hits[1][ihit1].z();
     const float hit1_phi = evt_lay_hits[1][ihit1].phi();

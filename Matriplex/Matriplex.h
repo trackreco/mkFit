@@ -227,7 +227,7 @@ void MultiplyGeneral(const MPlex<T, D1, D2, N>& A,
             const idx_t iko = N * (i * D2 + k);
             const idx_t kjo = N * (k * D3 + j);
 
-#pragma simd
+            #pragma omp simd
             for (idx_t n = 0; n < N; ++n)
             {
                // C.fArray[i, j, n] += A.fArray[i, k, n] * B.fArray[k, j, n];
@@ -262,7 +262,7 @@ struct MultiplyCls<T, 3, N>
    const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
          T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
-#pragma simd
+#pragma omp simd
    for (idx_t n = 0; n < N; ++n)
    {
       c[ 0*N+n] = a[ 0*N+n]*b[ 0*N+n] + a[ 1*N+n]*b[ 3*N+n] + a[ 2*N+n]*b[ 6*N+n];
@@ -288,7 +288,7 @@ struct MultiplyCls<T, 6, N>
    const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
    const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
          T *c = C.fArray; ASSUME_ALIGNED(c, 64);
-#pragma simd
+#pragma omp simd
    for (idx_t n = 0; n < N; ++n)
    {
       c[ 0*N+n] = a[ 0*N+n]*b[ 0*N+n] + a[ 1*N+n]*b[ 6*N+n] + a[ 2*N+n]*b[12*N+n] + a[ 3*N+n]*b[18*N+n] + a[ 4*N+n]*b[24*N+n] + a[ 5*N+n]*b[30*N+n];
@@ -365,7 +365,7 @@ struct CramerInverter<T, 2, N>
 
       T *a = A.fArray; ASSUME_ALIGNED(a, 64);
 
-#pragma simd
+#pragma omp simd
       for (idx_t n = 0; n < N; ++n)
       {
          const TT det = a[0*N+n] * a[3*N+n] - a[2*N+n] * a[1*N+n];
@@ -392,7 +392,7 @@ struct CramerInverter<T, 3, N>
 
       T *a = A.fArray; ASSUME_ALIGNED(a, 64);
 
-#pragma simd
+#pragma omp simd
       for (idx_t n = 0; n < N; ++n)
       {
          const TT c00 = a[4*N+n] * a[8*N+n] - a[5*N+n] * a[7*N+n];
@@ -461,7 +461,7 @@ struct CholeskyInverter<T, 3, N>
 
       T *a = A.fArray; ASSUME_ALIGNED(a, 64);
 
-#pragma simd
+#pragma omp simd
       for (idx_t n = 0; n < N; ++n)
       {
          TT l0 = std::sqrt(T(1) / a[0*N+n]);

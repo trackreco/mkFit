@@ -68,7 +68,7 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
 
   // Pull out the part of the loop that vectorizes
   //#pragma ivdep
-#pragma simd
+#pragma omp simd
   for (int itrack = 0; itrack < NNFV; ++itrack)
   {
     XHitSize[itrack] = 0;
@@ -207,11 +207,12 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
       for (int pi = pb1[iseed]; pi < pb2[iseed]; ++pi) {
         int pb = pi & L.m_phi_mask;
         for (int hi = L.m_phi_bin_infos[qi][pb].first; hi < L.m_phi_bin_infos[qi][pb].second; ++hi) {
-          unsigned int pass[NN] = {};
-          int itrack = iseed*ncands;
+          unsigned int pass[ncands] = {};
+          const int base = iseed*ncands;
 	  if (Config::usePhiQArrays) {
-#pragma simd
-	    for (int i = 0; i < ncands; ++i, ++itrack) {
+#pragma omp simd
+	    for (int i = 0; i < ncands; ++i) {
+              const int itrack = base + i;
 	      const float q    = qv[itrack];
 	      const float dq   = dqv[itrack];
 	      
@@ -232,12 +233,12 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
 	      // Avi says we should have *minimal* search windows per layer.
 	      // Also ... if bins are sufficiently small, we do not need the extra
 	      // checks, see above.
-	      pass[itrack] = ddq < dq && ddphi < dphi;
+	      pass[i] = ddq < dq && ddphi < dphi;
 	    }
           }
-          itrack = iseed*ncands;
+          int itrack = iseed*ncands;
           for (int i = 0; i < ncands; ++i, ++itrack) {
-            if ((pass[itrack] || !Config::usePhiQArrays) && XWsrResult[itrack].m_wsr != WSR_Outside && CandIdx[itrack] >= 0 && XHitSize[itrack] < MPlexHitIdxMax) {
+            if ((pass[i] || !Config::usePhiQArrays) && XWsrResult[itrack].m_wsr != WSR_Outside && CandIdx[itrack] >= 0 && XHitSize[itrack] < MPlexHitIdxMax) {
               XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
             }
           }
@@ -264,7 +265,7 @@ void MkFinderFV<nseeds, ncands>::FindCandidates(const LayerOfHits &layer_of_hits
   alignas(64) int idx[NNFV];
 
   // prefetch the first set of hits to L1 and the second one to L2.
-#pragma simd
+#pragma omp simd
   for (int it = 0; it < NNFV; ++it)
   {
     if (XHitSize[it] > 0)
@@ -285,7 +286,7 @@ void MkFinderFV<nseeds, ncands>::FindCandidates(const LayerOfHits &layer_of_hits
   const int maxhit = XHitMax();
   for (int hit_cnt = 0; hit_cnt < maxhit; ++hit_cnt)
   {
-#pragma simd
+#pragma omp simd
     for (int itrack = 0; itrack < NNFV; ++itrack)
     {
       if (hit_cnt < XHitSize[itrack])

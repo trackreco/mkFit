@@ -86,9 +86,10 @@ void findSeedsByRoadSearch(TripletIdxConVec & seed_idcs, std::vector<LayerOfHits
 
 	  // loop over candidate third layer hits
 	  //temp_thr_seed_idcs.reserve(temp_thr_seed_idcs.size()+cand_hit2_indices.size());
-#pragma simd
-	  for (auto&& ihit2 : cand_hit2_indices)
+#pragma omp simd
+	  for (size_t idx = 0; idx < cand_hit2_indices.size(); ++idx)
 	  {
+            const int ihit2 = cand_hit2_indices[idx];
 	    const Hit & hit2 = lay2_hits.m_hits[ihit2];
 
 	    const float lay1_predz = (hit0_z + hit2.z()) / 2.0f;

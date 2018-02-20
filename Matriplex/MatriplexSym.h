@@ -230,7 +230,7 @@ public:
    {
       // Does *this = a - b;
 
-#pragma ivdep
+#pragma omp simd
       for (idx_t i = 0; i < kTotSize; ++i)
       {
          fArray[i] = a.fArray[i] - b.fArray[i];
@@ -265,7 +265,7 @@ public:
 
       T *a = fArray; ASSUME_ALIGNED(a, 64);
 
-#pragma simd
+#pragma omp simd
       for (idx_t n = 0; n < N; ++n)
       {
          const TT c00 = a[2*N+n] * a[5*N+n] - a[4*N+n] * a[4*N+n];
@@ -329,7 +329,7 @@ struct SymMultiplyCls<T, 3, N>
 
 #else
 
-#pragma simd
+#pragma omp simd
    for (idx_t n = 0; n < N; ++n)
    {
 #include "std_sym_3x3.ah"
@@ -359,7 +359,7 @@ struct SymMultiplyCls<T, 6, N>
 
 #else
 
-#pragma simd
+#pragma omp simd
    for (idx_t n = 0; n < N; ++n)
    {
       #include "std_sym_6x6.ah"
@@ -400,7 +400,7 @@ struct CramerInverterSym<T, 2, N>
 
       T *a = A.fArray; ASSUME_ALIGNED(a, 64);
 
-#pragma simd
+#pragma omp simd
       for (idx_t n = 0; n < N; ++n)
       {
          const TT det = a[0*N+n] * a[2*N+n] - a[1*N+n] * a[1*N+n];
@@ -423,7 +423,7 @@ struct CramerInverterSym<T, 3, N>
 
       T *a = A.fArray; ASSUME_ALIGNED(a, 64);
 
-#pragma simd
+#pragma omp simd
       for (idx_t n = 0; n < N; ++n)
       {
          const TT c00 = a[2*N+n] * a[5*N+n] - a[4*N+n] * a[4*N+n];
@@ -476,7 +476,7 @@ struct CholeskyInverterSym<T, 3, N>
 
       T *a = A.fArray;
 
-#pragma simd
+#pragma omp simd
       for (idx_t n = 0; n < N; ++n)
       {
          TT l0 = std::sqrt(T(1) / a[0*N+n]);

@@ -144,7 +144,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
   // Pull out the part of the loop that vectorizes
   //#pragma ivdep
-#pragma simd
+#pragma omp simd
   for (int itrack = 0; itrack < NN; ++itrack)
   {
     XHitSize[itrack] = 0;
@@ -251,7 +251,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
   // Vectorizing this makes it run slower!
   //#pragma ivdep
-  //#pragma simd
+  //#pragma omp simd
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
     if (XWsrResult[itrack].m_wsr == WSR_Outside)
@@ -390,7 +390,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
   {
     //fixme what if size is zero???
 
-#pragma simd
+#pragma omp simd
     for (int itrack = 0; itrack < N_proc; ++itrack)
     {
       if (hit_cnt < XHitSize[itrack])
@@ -416,7 +416,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
 
 #ifdef NO_GATHER
 
-#pragma simd
+#pragma omp simd
     for (int itrack = 0; itrack < N_proc; ++itrack)
     {
       if (hit_cnt < XHitSize[itrack])
@@ -455,7 +455,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
 #endif
 
     //update best hit in case chi2<minChi2
-#pragma simd
+#pragma omp simd
     for (int itrack = 0; itrack < N_proc; ++itrack)
     {
       if (hit_cnt < XHitSize[itrack])
@@ -480,7 +480,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
     }
   }
 
-  //#pragma simd
+  //#pragma omp simd
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
     if (XWsrResult[itrack].m_wsr == WSR_Outside)
@@ -590,7 +590,7 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
   //#pragma noprefetch
   for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
   {
-#pragma simd
+#pragma omp simd
     for (int itrack = 0; itrack < N_proc; ++itrack)
     {
       if (hit_cnt < XHitSize[itrack])
@@ -739,7 +739,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 
   // Determine maximum number of hits for tracks in the collection.
   // At the same time prefetch the first set of hits to L1 and the second one to L2.
-#pragma simd
+#pragma omp simd
   for (int it = 0; it < NN; ++it)
   {
     if (it < N_proc)
@@ -763,7 +763,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 //#pragma noprefetch
   for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
   {
-#pragma simd
+#pragma omp simd
     for (int itrack = 0; itrack < N_proc; ++itrack)
     {
       if (hit_cnt < XHitSize[itrack])
@@ -806,7 +806,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
       }
     }
 
-#pragma simd // DOES NOT VECTORIZE AS IT IS NOW
+#pragma omp simd // DOES NOT VECTORIZE AS IT IS NOW
     for (int itrack = 0; itrack < N_proc; ++itrack)
     {
       // make sure the hit was in the compatiblity window for the candidate

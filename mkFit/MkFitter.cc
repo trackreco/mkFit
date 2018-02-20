@@ -430,7 +430,11 @@ void MkFitter::FitTracksWithInterSlurp(const std::vector<HitVec>& layersohits,
       // Or, if the hidx is the "universal" missing hit, it could just work.
       // Say, hidx = 0 ... grr ... but then we don't know it is missing.
 
-      idx[i] = (char*) & layersohits[hlyr][hidx] - varr;
+      if (hidx < 0 || hlyr < 0) {
+        idx[i] = 0;
+      } else {
+        idx[i] = (char*) & layersohits[hlyr][hidx] - varr;
+      }
     }
 
     // for (int i = N_proc; i < NN; ++i)  {  idx[i] = idx[0];  }
@@ -486,7 +490,7 @@ void MkFitter::ConformalFitTracks(bool fitting, int beg, int end)
   { 
   using idx_t = Matriplex::idx_t;
   const idx_t N = NN;
-#pragma simd
+#pragma omp simd
     for (int n = 0; n < N; ++n)
     {
       Err[iC].At(n, 0, 0) = Err[iC].ConstAt(n, 0, 0) * Config::blowupfit; 

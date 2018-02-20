@@ -260,7 +260,7 @@ void TrackExtra::setMCTrackIDInfoByLabel(const Track& trk, const std::vector<Hit
   {
     const int hitidx = trk.getHitIdx(ihit);
     const int hitlyr = trk.getHitLyr(ihit);
-    if ((hitidx >= 0) && (hitidx < layerHits[hitlyr].size())) // make sure it is a real hit
+    if ((hitidx >= 0) && (static_cast<size_t>(hitidx) < layerHits[hitlyr].size())) // make sure it is a real hit
     {
       const int mchitid = layerHits[hitlyr][hitidx].mcHitID();
       dprint("trk.label()=" << trk.label() << " simtrack.label()= " << seedID_ << " ihit=" << ihit
@@ -298,8 +298,6 @@ void TrackExtra::setMCTrackIDInfoByLabel(const Track& trk, const std::vector<Hit
 // Generic 75% reco to sim matching --> for seeding or CMSSW-like building
 void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo, const TrackVec& simtracks, const bool isSeed)
 {
-  bool debug = true;
-
   dprintf("TrackExtra::setMCTrackIDInfo for track with label %d, total hits %d, found hits %d\n",
           trk.label(), trk.nTotalHits(), trk.nFoundHits());
   std::vector<int> mcTrackIDs;
@@ -308,7 +306,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
   {
     const int hitidx = trk.getHitIdx(ihit);
     const int hitlyr = trk.getHitLyr(ihit);
-    if ((hitidx >= 0) && (hitidx < layerHits[hitlyr].size())) // make sure it is a real hit
+    if ((hitidx >= 0) && (static_cast<size_t>(hitidx) < layerHits[hitlyr].size())) // make sure it is a real hit
     {
       const int mchitid = layerHits[hitlyr][hitidx].mcHitID();
       dprintf("  ihit=%3d   trk.hit_idx=%4d  trk.hit_lyr=%2d   mchitid=%4d  mctrkid=%3d\n",

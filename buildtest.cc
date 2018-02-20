@@ -40,7 +40,7 @@ void processCandidates(const BinInfoMap & segmentMap, Event& ev, candvec& candid
     for (auto&& cand : candidates) {
       extendCandidate(segmentMap, ev, cand, tmp_candidates, ilay, seedID, debug);
     }
-    if (tmp_candidates.size()>Config::maxCandsPerSeed) {
+    if (tmp_candidates.size()>static_cast<size_t>(Config::maxCandsPerSeed)) {
       dprint("huge size=" << tmp_candidates.size() << " keeping best "<< Config::maxCandsPerSeed << " only");
       std::partial_sort(tmp_candidates.begin(),tmp_candidates.begin()+(Config::maxCandsPerSeed-1),tmp_candidates.end(),sortByHitsChi2);
       tmp_candidates.resize(Config::maxCandsPerSeed); // thread local, so ok not thread safe
@@ -72,7 +72,7 @@ void buildTracksBySeeds(const BinInfoMap & segmentMap, Event& ev)
   bool debug(true);
 
   std::vector<candvec> track_candidates(evt_seeds.size());
-  for (auto iseed = 0; iseed < evt_seeds.size(); iseed++) {
+  for (size_t iseed = 0; iseed < evt_seeds.size(); iseed++) {
     const auto& seed(evt_seeds[iseed]);
     track_candidates[iseed].push_back(seed);
   }
@@ -82,18 +82,18 @@ void buildTracksBySeeds(const BinInfoMap & segmentMap, Event& ev)
   parallel_for( tbb::blocked_range<size_t>(0, evt_seeds.size()), 
       [&](const tbb::blocked_range<size_t>& seediter) {
     for (auto iseed = seediter.begin(); iseed != seediter.end(); ++iseed) {
-      const auto& seed(evt_seeds[iseed]);
+      //const auto& seed(evt_seeds[iseed]);
 #else
     for (auto iseed = 0; iseed != evt_seeds.size(); ++iseed) {
-      const auto& seed(evt_seeds[iseed]);
+      //const auto& seed(evt_seeds[iseed]);
 #endif
       dprint("processing seed # " << iseed << " par=" << seed.parameters());
       dprint("from MC track par = " << ev.simTracks_[iseed].parameters()); // will be wrong with real seeding
-      TrackState seed_state = seed.state();
+      //TrackState seed_state = seed.state();
       //seed_state.errors *= 0.01;//otherwise combinatorics explode!!!
       //should consider more than 1 candidate...
       auto&& candidates(track_candidates[iseed]);
-      for (int ilay=Config::nlayers_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
+      for (size_t ilay=Config::nlayers_per_seed;ilay<evt_lay_hits.size();++ilay) {//loop over layers, starting from after the seed
         dprint("going to layer #" << ilay << " with N cands=" << track_candidates.size());
         processCandidates(segmentMap, ev, candidates, ilay, evt_seeds_extra[iseed].seedID(), debug);
       }
@@ -102,7 +102,7 @@ void buildTracksBySeeds(const BinInfoMap & segmentMap, Event& ev)
 #ifdef TBB
   });
 #endif
-  for (auto iseed = 0; iseed < track_candidates.size(); ++iseed) {
+  for (size_t iseed = 0; iseed < track_candidates.size(); ++iseed) {
     auto& cand = track_candidates[iseed];
     if (cand.size()>0) {
       // only save one track candidate per seed, one with lowest chi2
@@ -126,13 +126,13 @@ void buildTracksByLayers(const BinInfoMap & segmentMap, Event& ev)
   bool debug(true);
 
   std::vector<candvec> track_candidates(evt_seeds.size());
-  for (auto iseed = 0; iseed < evt_seeds.size(); iseed++) {
+  for (size_t iseed = 0; iseed < evt_seeds.size(); iseed++) {
     const auto& seed(evt_seeds[iseed]);
     track_candidates[iseed].push_back(seed);
   }
 
   //loop over layers, starting from after the seed
-  for (auto ilay = Config::nlayers_per_seed; ilay < evt_lay_hits.size(); ++ilay) {
+  for (size_t ilay = Config::nlayers_per_seed; ilay < evt_lay_hits.size(); ++ilay) {
     dprint("going to layer #" << ilay << " with N cands = " << track_candidates.size());
 
 #ifdef TBB
@@ -155,7 +155,7 @@ void buildTracksByLayers(const BinInfoMap & segmentMap, Event& ev)
   } //end of layer loop
 
   //std::lock_guard<std::mutex> evtguard(evtlock);
-  for (auto iseed = 0; iseed < track_candidates.size(); ++iseed) {
+  for (size_t iseed = 0; iseed < track_candidates.size(); ++iseed) {
     auto& cand = track_candidates[iseed];
     if (cand.size()>0) {
       // only save one track candidate per seed, one with lowest chi2

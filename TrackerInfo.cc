@@ -85,7 +85,7 @@ LayerInfo& TrackerInfo::new_ecap_neg_layer()
 
 bool TrackerInfo::are_layers_siblings(int l1, int l2) const
 {
-  assert(l1 < m_layers.size() && l2 < m_layers.size());
+  assert(static_cast<size_t>(l1) < m_layers.size() && static_cast<size_t>(l2) < m_layers.size());
 
   const LayerInfo &i1 = m_layers[l1];
   const LayerInfo &i2 = m_layers[l2];

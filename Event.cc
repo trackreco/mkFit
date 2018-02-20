@@ -91,7 +91,7 @@ void Event::RemapHits(TrackVec & tracks)
   {
     const auto & hit_vec = layerHits_[ilayer];
     const auto   size = hit_vec.size();
-    for (int index = 0; index < size; ++index)
+    for (size_t index = 0; index < size; ++index)
     {
       simHitMap[hit_vec[index].mcHitID()] = index;
     }
@@ -147,7 +147,7 @@ void Event::Simulate()
       // convert from global cartesian to CCS
       float pt = sqrt(mom[0]*mom[0]+mom[1]*mom[1]);
       mom=SVector3(1./pt,atan2(mom[1],mom[0]),atan2(pt,mom[2]));
-      for (int its = 0; its < initialTSs.size(); its++){
+      for (size_t its = 0; its < initialTSs.size(); its++){
 	initialTSs[its].convertFromCartesianToCCS();
       }
 
@@ -163,7 +163,7 @@ void Event::Simulate()
       // This really would only matter for validation and seeding...
       // Could imagine making an inherited class for sim tracks that keeps tracks overlaps
       assert(hits.size() == hitinfos.size());
-      for (int i = 0; i < hits.size(); ++i)
+      for (size_t i = 0; i < hits.size(); ++i)
       {
         // set to the correct hit index after sorting
         sim_track.addHitIdx(layerHits_[hitinfos[i].layer_].size(), hitinfos[i].layer_, 0.0f);
@@ -182,7 +182,7 @@ void Event::Simulate()
 
   // do some work to ensure everything is aligned after multithreading 	
   std::unordered_map<int,int> mcHitIDMap;
-  for (int ihit = 0; ihit < simHitsInfo_.size(); ihit++)
+  for (size_t ihit = 0; ihit < simHitsInfo_.size(); ihit++)
   {
     mcHitIDMap[simHitsInfo_[ihit].mcHitID()] = ihit;
   }
@@ -192,7 +192,7 @@ void Event::Simulate()
 	    { return a.mcHitID() < b.mcHitID(); });
 		
   TSVec tmpTSVec(simTrackStates_.size());
-  for (int its = 0; its < simTrackStates_.size(); its++)
+  for (size_t its = 0; its < simTrackStates_.size(); its++)
   {
     tmpTSVec[its] = simTrackStates_[mcHitIDMap[its]];
   }
@@ -207,14 +207,14 @@ void Event::Segment(BinInfoMap & segmentMap)
   segmentMap.resize(Config::nTotalLayers);
 
   //sort in phi and dump hits per layer, fill phi partitioning
-  for (int ilayer=0; ilayer<layerHits_.size(); ++ilayer) {
+  for (size_t ilayer=0; ilayer<layerHits_.size(); ++ilayer) {
     dprint("Hits in layer=" << ilayer);
     
     segmentMap[ilayer].resize(Config::nEtaPart);    
     // eta first then phi
     std::sort(layerHits_[ilayer].begin(), layerHits_[ilayer].end(), sortByZ);
     std::vector<int> lay_eta_bin_count(Config::nEtaPart);
-    for (int ihit=0;ihit<layerHits_[ilayer].size();++ihit) {
+    for (size_t ihit=0;ihit<layerHits_[ilayer].size();++ihit) {
       int etabin = getEtaPartition(layerHits_[ilayer][ihit].eta());
       dprint("ihit: " << ihit << " eta: " << layerHits_[ilayer][ihit].eta() << " etabin: " << etabin);
       lay_eta_bin_count[etabin]++;

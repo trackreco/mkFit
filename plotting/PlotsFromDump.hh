@@ -21,6 +21,8 @@ namespace
     tests.push_back({"SNB","NVU8int_NTH24",kBlack,kOpenCross});
     tests.push_back({"KNL","NVU1_NTH1",kGreen+1,kOpenTriangleUp});
     tests.push_back({"KNL","NVU16int_NTH256",kOrange+1,kOpenTriangleDown});
+    tests.push_back({"SKL","NVU1_NTH1",kRed+1,kOpenTriangleUp});
+    tests.push_back({"SKL","NVU16int_NTH48",kMagenta+1,kOpenTriangleDown});
   }
 };
 
