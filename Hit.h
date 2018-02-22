@@ -2,6 +2,7 @@
 #define _hit_
 
 #include <cmath>
+#include <unordered_set>
 
 #include "Config.h"
 #include "Matrix.h"
@@ -251,6 +252,7 @@ private:
 
 typedef std::vector<Hit> HitVec;
 typedef std::map<int,std::map<int,std::vector<int> > > LayIdxIDVecMapMap;
+typedef std::map<int, std::unordered_set<int> > TrkIDLaySetMap;
 typedef std::array<int,2>    PairIdx;
 typedef std::vector<PairIdx> PairIdxVec;
 typedef std::array<int,3>       TripletIdx;

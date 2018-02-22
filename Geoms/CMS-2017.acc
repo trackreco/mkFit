@@ -11,6 +11,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_is_outer = false;
     li.m_q_bin = 2.000;
     li.set_selection_limits(0.01, 0.05, 1.0, 2.0);
+    li.m_is_seed_lyr = true;
   }
 
   {
@@ -22,6 +23,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_is_outer = false;
     li.m_q_bin = 2.000;
     li.set_selection_limits(0.01, 0.05, 1.0, 2.0);
+    li.m_is_seed_lyr = true;
   }
 
   {
@@ -33,6 +35,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_is_outer = false;
     li.m_q_bin = 2.000;
     li.set_selection_limits(0.01, 0.05, 1.0, 2.0);
+    li.m_is_seed_lyr = true;
   }
 
   {
@@ -44,6 +47,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_is_outer = false;
     li.m_q_bin = 2.000;
     li.set_selection_limits(0.01, 0.05, 1.0, 2.0);
+    li.m_is_seed_lyr = true;
   }
 
 
@@ -218,6 +222,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_is_outer = false;
     li.m_q_bin = 1.000;
     li.set_selection_limits(0.01, 0.05, 0.8, 1.6);
+    li.m_is_seed_lyr = true;
   }
   {
     LayerInfo & li  = ti.m_layers[45];
@@ -228,6 +233,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_is_outer = false;
     li.m_q_bin = 1.000;
     li.set_selection_limits(0.01, 0.05, 0.8, 1.6);
+    li.m_is_seed_lyr = true;
   }
   {
     LayerInfo & li  = ti.m_layers[19];
@@ -238,6 +244,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_is_outer = false;
     li.m_q_bin = 1.000;
     li.set_selection_limits(0.01, 0.05, 0.8, 1.6);
+    li.m_is_seed_lyr = true;
   }
   {
     LayerInfo & li  = ti.m_layers[46];
@@ -248,6 +255,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_is_outer = false;
     li.m_q_bin = 1.000;
     li.set_selection_limits(0.01, 0.05, 0.8, 1.6);
+    li.m_is_seed_lyr = true;
   }
   {
     LayerInfo & li  = ti.m_layers[20];
@@ -258,6 +266,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_is_outer = false;
     li.m_q_bin = 1.000;
     li.set_selection_limits(0.01, 0.05, 0.8, 1.6);
+    li.m_is_seed_lyr = true;
   }
   {
     LayerInfo & li  = ti.m_layers[47];
@@ -268,6 +277,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo& ti)
     li.m_is_outer = false;
     li.m_q_bin = 1.000;
     li.set_selection_limits(0.01, 0.05, 0.8, 1.6);
+    li.m_is_seed_lyr = true;
   }
 
   // TID +/-

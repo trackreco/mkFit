@@ -21,7 +21,7 @@ do
 		do
 		    oBase=${base}_${ttbar}_${sN}_${bN}
 		    echo "${oBase}: validation [nTH:24, nVU:8]"
-		    ./mkFit/mkFit ${sO} --root-val --input-file ${dir}/${!ttbar}/${file} --build-${bO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_val.txt
+		    ./mkFit/mkFit ${sO} --sim-val --input-file ${dir}/${!ttbar}/${file} --build-${bO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_val.txt
 		    mv valtree.root valtree_${oBase}.root
 		done
 	    done

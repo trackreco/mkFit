@@ -1,8 +1,8 @@
 // Recipe:
 // Makefile.config --> WITH_ROOT = yes (uncommented)
 // make -j 12
-// ./mkFit/mkFit --num-thr-sim 12 --root-val --num-events 100000 --num-tracks 1 --write --file-name simtracks_fulldet_100kx1_val.bin
-// ./mkFit/mkFit --root-val --read --file-name simtracks_fulldet_100kx1_val.bin --build-bh  --num-thr 24 >& log_SNB_ToyMC_Barrel_BH_NVU8int_NTH24_val.txt 
+// ./mkFit/mkFit --num-thr-sim 12 --sim-val --num-events 100000 --num-tracks 1 --write --file-name simtracks_fulldet_100kx1_val.bin
+// ./mkFit/mkFit --sim-val --read --file-name simtracks_fulldet_100kx1_val.bin --build-bh  --num-thr 24 >& log_SNB_ToyMC_Barrel_BH_NVU8int_NTH24_val.txt 
 
 void lastlyr()
 {

@@ -1008,7 +1008,7 @@ void MkBuilder::quality_print()
 // Root validation
 //------------------------------------------------------------------------------
 
-void MkBuilder::root_val()
+void MkBuilder::sim_val()
 {
   // remap seed tracks
   remap_seed_hits();
@@ -1018,7 +1018,6 @@ void MkBuilder::root_val()
   if (Config::backwardFit) remap_cand_hits(m_event->fitTracks_);
   else m_event->fitTracks_ = m_event->candidateTracks_; 
   prep_recotracks();
-  if (Config::seedInput == cmsswSeeds) m_event->clean_cms_simtracks();
 
   m_event->Validate();
 }
@@ -1036,35 +1035,102 @@ void MkBuilder::cmssw_val()
 
 void MkBuilder::prep_recotracks()
 {
-  prep_tracks(m_event->candidateTracks_,m_event->candidateTracksExtra_);
-  prep_tracks(m_event->fitTracks_,m_event->fitTracksExtra_);
+  prep_tracks(m_event->candidateTracks_,m_event->candidateTracksExtra_,true);
+  prep_tracks(m_event->fitTracks_,m_event->fitTracksExtra_,true);
   
-  if (Config::root_val)
+  if (Config::sim_val)
   {
-    prep_tracks(m_event->seedTracks_,m_event->seedTracksExtra_);
+    prep_tracks(m_event->seedTracks_,m_event->seedTracksExtra_,true);
   }
+}
+
+void MkBuilder::prep_simtracks()
+{
+  // First prep sim tracks to have hits sorted, then mark unfindable if too short
+  prep_reftracks(m_event->simTracks_,m_event->simTracksExtra_,false);
+
+  // Now, make sure sim track shares at least four hits with a single cmssw seed.
+  // This ensures we factor out any weakness from CMSSW
+
+  // First, make a make a map of [lyr][hit idx].vector(seed trk labels) 
+  LayIdxIDVecMapMap seedHitIDMap;
+  for (const auto& seedtrack : m_event->seedTracks_)
+  {
+    for (int ihit = 0; ihit < seedtrack.nTotalHits(); ihit++)
+    {
+      const auto lyr = seedtrack.getHitLyr(ihit);
+      const auto idx = seedtrack.getHitIdx(ihit);
+
+      if (lyr < 0 || idx < 0) continue; // standard check
+      seedHitIDMap[lyr][idx].push_back(seedtrack.label());
+    }
+  }
+
+  // Then, loop over sim tracks, and add up how many lyrs they possess of a single seed track
+  for (auto& simtrack : m_event->simTracks_)
+  {
+    if (simtrack.isNotFindable()) continue; // skip ones we already know are bad
+
+    TrkIDLaySetMap seedIDMap;
+    for (int ihit = 0; ihit < simtrack.nTotalHits(); ihit++)
+    {
+      const auto lyr = simtrack.getHitLyr(ihit);
+      const auto idx = simtrack.getHitIdx(ihit);
+
+      if (lyr < 0 || idx < 0) continue; // standard check
+      if (!Config::TrkInfo.is_seed_lyr(lyr)) continue; // want seeding layers only!
+
+      if (!seedHitIDMap.count(lyr)) continue; // ensure seed hit map has at least one entry for this layer
+      if (!seedHitIDMap.at(lyr).count(idx)) continue; // ensure seed hit map has at least one entry for this idx
+
+      for (const auto label : seedHitIDMap.at(lyr).at(idx))
+      {
+	seedIDMap[label].emplace(lyr);
+      }
+    }
+
+    // now see if one of the seedIDs matched has at least 4 hits!
+    bool isSimSeed = false;
+    for (const auto seedIDpair : seedIDMap)
+    {
+      if (seedIDpair.second.size() == Config::nlayers_per_seed)
+      {
+	isSimSeed = true;
+	break;
+      }
+    }
+
+    // set findability based on bool isSimSeed
+    if (!isSimSeed) simtrack.setNotFindable();
+  }
+
 }
 
 void MkBuilder::prep_cmsswtracks()
 {
-  prep_tracks(m_event->cmsswTracks_,m_event->cmsswTracksExtra_);
+  prep_reftracks(m_event->cmsswTracks_,m_event->cmsswTracksExtra_,true);
+}
+
+void MkBuilder::prep_reftracks(TrackVec& tracks, TrackExtraVec& extras, const bool realigntracks)
+{
+  prep_tracks(tracks,extras,realigntracks);
 
   // mark cmsswtracks as unfindable if too short
-  for (auto&& cmsswtrack : m_event->cmsswTracks_)
+  for (auto& track : tracks)
   {
-    const int nlyr = cmsswtrack.nUniqueLayers();
-    if (nlyr < Config::cmsSelMinLayers) cmsswtrack.setNotFindable();
+    const int nlyr = track.nUniqueLayers();
+    if (nlyr < Config::cmsSelMinLayers) track.setNotFindable();
   }
 }
 
-void MkBuilder::prep_tracks(TrackVec& tracks, TrackExtraVec& extras)
+void MkBuilder::prep_tracks(TrackVec& tracks, TrackExtraVec& extras, const bool realigntracks)
 {
   for (int i = 0; i < tracks.size(); i++)
   {
     tracks[i].sortHitsByLayer();
     extras.emplace_back(tracks[i].label());
   }
-  m_event->validation_.alignTracks(tracks,extras,false);
+  if (realigntracks) m_event->validation_.alignTracks(tracks,extras,false);
 }
 
 //------------------------------------------------------------------------------
@@ -1091,11 +1157,19 @@ void MkBuilder::PrepareSeeds()
   {
     m_event->relabel_bad_seedtracks();
     
+    // want to make sure we mark which sim tracks are findable based on cmssw seeds BEFORE seed cleaning
+    if (Config::sim_val)
+    {
+      prep_simtracks();
+    }
+
+    // need to make a map of seed ids to cmssw tk ids BEFORE seeds are sorted
     if (Config::cmssw_val) 
     {
       m_event->validation_.makeSeedTkToCMSSWTkMap(*m_event);
     }
 
+    // this is a hack that allows us to associate seeds with cmssw tracks for the text dump plots
     if (Config::dumpForPlots && Config::readCmsswTracks)
     {
       for (int itrack = 0; itrack < m_event->cmsswTracks_.size(); itrack++)
