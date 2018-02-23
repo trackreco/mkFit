@@ -9,6 +9,7 @@
 
 class MkBuilder;
 
+void   runBuildingTestPlexDumbCMSSW(Event& ev, MkBuilder& builder);
 double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder);
 double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder);
 double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder);

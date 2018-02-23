@@ -26,12 +26,13 @@ typedef std::vector<BuildOpts> BOVec;
 namespace
 {
   BOVec builds;
-  void setupBuilds()
+  void setupBuilds(const Bool_t includeCMSSW)
   {
     builds.push_back({"BH",kBlue,"Best Hit"});
     builds.push_back({"STD",kGreen+1,"Standard"});
     builds.push_back({"CE",kRed,"Clone Engine"});
     builds.push_back({"FV",kMagenta,"Full Vector"});
+    if (includeCMSSW) builds.push_back({"CMSSW",kBlack,"CMSSW"});
   }
 };
 

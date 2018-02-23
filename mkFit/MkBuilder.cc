@@ -1008,6 +1008,24 @@ void MkBuilder::quality_print()
 // Root validation
 //------------------------------------------------------------------------------
 
+void MkBuilder::sim_val_for_cmssw()
+{
+  // get labels correct first
+  m_event->relabel_bad_seedtracks();
+  m_event->relabel_cmsswtracks_from_seeds();
+
+  // set the track collections to each other
+  m_event->candidateTracks_ = m_event->cmsswTracks_;
+  m_event->fitTracks_ = m_event->candidateTracks_;
+
+  // prep the tracks + extras
+  prep_simtracks();
+  prep_recotracks();
+
+  // validate
+  m_event->Validate();
+}
+
 void MkBuilder::sim_val()
 {
   // remap seed tracks
@@ -1038,7 +1056,7 @@ void MkBuilder::prep_recotracks()
   prep_tracks(m_event->candidateTracks_,m_event->candidateTracksExtra_,true);
   prep_tracks(m_event->fitTracks_,m_event->fitTracksExtra_,true);
   
-  if (Config::sim_val)
+  if (Config::sim_val || Config::sim_val_for_cmssw)
   {
     prep_tracks(m_event->seedTracks_,m_event->seedTracksExtra_,true);
   }

@@ -10,7 +10,7 @@ TTreeValidation::TTreeValidation(std::string fileName)
   gROOT->ProcessLine("#include <vector>");
   f_ = TFile::Open(fileName.c_str(), "recreate");
 
-  if (Config::sim_val) 
+  if (Config::sim_val_for_cmssw || Config::sim_val) 
   { 
     TTreeValidation::initializeEfficiencyTree();
     TTreeValidation::initializeFakeRateTree();  
@@ -30,7 +30,7 @@ TTreeValidation::TTreeValidation(std::string fileName)
 
 TTreeValidation::~TTreeValidation()
 {
-  if (Config::sim_val) 
+  if (Config::sim_val_for_cmssw || Config::sim_val) 
   {
     delete efftree_;
     delete frtree_;
@@ -589,7 +589,7 @@ void TTreeValidation::setTrackExtras(Event& ev)
 
   const auto& layerhits = ev.layerHits_;
 
-  if (Config::sim_val)
+  if (Config::sim_val_for_cmssw || Config::sim_val)
   {
     const auto& simhits = ev.simHitsInfo_;
     const auto& simtracks = ev.simTracks_;
@@ -695,7 +695,7 @@ void TTreeValidation::mapRefTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVe
   {
     auto&& track(evt_tracks[itrack]);
     auto&& extra(evt_extras[itrack]);
-    if (Config::sim_val)
+    if (Config::sim_val_for_cmssw || Config::sim_val)
     {
       if (extra.mcTrackID() >= 0) // skip fakes, don't store them at all in sim map
       {

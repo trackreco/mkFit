@@ -90,6 +90,7 @@ namespace
   bool  g_run_fit_std   = false;
 
   bool  g_run_build_all = true;
+  bool  g_run_build_cmssw = false;
   bool  g_run_build_bh  = false;
   bool  g_run_build_std = false;
   bool  g_run_build_ce  = false;
@@ -434,6 +435,7 @@ void test_standard()
         t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev, mkb) : 0;
         t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, mkb) : 0;
         t_cur[4] = (g_run_build_all || g_run_build_fv)  ? runBuildingTestPlexFV(ev, mkb) : 0;
+	if (g_run_build_all || g_run_build_cmssw) runBuildingTestPlexDumbCMSSW(ev, mkb);
   #else
         t_cur[0] = (g_run_fit_std) ? runFittingTestPlexGPU(cuFitter, ev, plex_tracks) : 0;
         t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHitGPU(ev, mkb, cuBuilder) : 0;
@@ -571,6 +573,7 @@ int main(int argc, const char *argv[])
         "  --fit-std                run standard fitting test (def: false)\n"
         "  --fit-std-only           run only standard fitting test (def: false)\n"
         "  --chi2cut       <num>    chi2 cut used in building test (def: %.1f)\n"
+        "  --build-cmssw            run dummy validation of CMSSW tracks with MkBuilder stuff (def: false)\n"
         "  --build-bh               run best-hit building test (def: false)\n"
         "  --build-std              run standard combinatorial building test (def: false)\n"
         "  --build-ce               run clone engine combinatorial building test (def: false)\n"
@@ -586,7 +589,8 @@ int main(int argc, const char *argv[])
         "  --read-cmssw-tracks      read external cmssw reco tracks if available (def: %s)\n"
 	"  --read-simtrack-states   read in simTrackStates for pulls in validation (def: %s)\n"
 	"  --quality-val            enable printout validation for MkBuilder (def: %s)\n"
-        "  --sim-val               enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
+        "  --sim-val-for-cmssw      enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
+        "  --sim-val                enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
         "  --cmssw-val              enable special CMSSW ROOT based validation for building [eff] (def: %s)\n"
       	"  --fit-val                enable ROOT based validation for fitting (def: %s)\n"
         "  --inc-shorts             include short reco tracks into FR (def: %s)\n"
@@ -630,6 +634,7 @@ int main(int argc, const char *argv[])
 	b2a(Config::readCmsswTracks),
         b2a(Config::readSimTrackStates),
         b2a(Config::quality_val),
+        b2a(Config::sim_val_for_cmssw),
         b2a(Config::sim_val),
         b2a(Config::cmssw_val),
         b2a(Config::fit_val),
@@ -690,21 +695,25 @@ int main(int argc, const char *argv[])
     {
       Config::usePhiQArrays = true;
     }
+    else if(*i == "--build-cmssw")
+    {
+      g_run_build_all = false; g_run_build_cmssw = true; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = false;
+    }
     else if(*i == "--build-bh")
     {
-      g_run_build_all = false; g_run_build_bh = true; g_run_build_std = false; g_run_build_ce = false;
+      g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = true; g_run_build_std = false; g_run_build_ce = false;
     }
     else if(*i == "--build-std")
     {
-      g_run_build_all = false; g_run_build_bh = false; g_run_build_std = true; g_run_build_ce = false;
+      g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = false; g_run_build_std = true; g_run_build_ce = false;
     }
     else if(*i == "--build-ce")
     {
-      g_run_build_all = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = true;
+      g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = true;
     }
     else if(*i == "--build-fv")
     {
-      g_run_build_all = false; g_run_build_fv = true;
+      g_run_build_all = false; g_run_build_cmssw = false; g_run_build_fv = true; g_run_build_std = false; g_run_build_ce = false;
     }
     else if (*i == "--seeds-per-task")
     {
@@ -750,6 +759,10 @@ int main(int argc, const char *argv[])
     else if (*i == "--quality-val")
     {
       Config::quality_val = true; 
+    }
+    else if (*i == "--sim-val-for-cmssw")
+    {
+      Config::sim_val_for_cmssw = true; 
     }
     else if (*i == "--sim-val")
     {

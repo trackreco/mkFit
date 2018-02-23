@@ -4,8 +4,8 @@ StackValidation::StackValidation(const TString & label, const TString & extra, c
 {
   gStyle->SetOptStat(0);
 
-  // setup builds
-  setupBuilds();
+  // setup builds --> if simvalidation, add cmssw tracks to validation
+  setupBuilds(!cmsswComp);
 
   files.resize(builds.size());
   for (UInt_t b = 0; b < files.size(); b++)

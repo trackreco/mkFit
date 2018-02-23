@@ -320,7 +320,7 @@ void Event::Fit()
 void Event::Validate()
 {
   // standard eff/fr/dr validation
-  if (Config::sim_val) {
+  if (Config::sim_val || Config::sim_val_for_cmssw) {
     validation_.setTrackExtras(*this);
     validation_.makeSimTkToRecoTksMaps(*this);
     validation_.makeSeedTkToRecoTkMaps(*this);
@@ -958,6 +958,26 @@ void Event::relabel_bad_seedtracks()
   for (auto&& track : seedTracks_)
   { 
     if (track.label() < 0) track.setLabel(--newlabel);
+  }
+}
+
+void Event::relabel_cmsswtracks_from_seeds()
+{
+  std::map<int,int> cmsswLabelMap;
+  for (int iseed = 0; iseed < seedTracks_.size(); iseed++)
+  {
+    for (int icmssw = 0; icmssw < cmsswTracks_.size(); icmssw++)
+    {
+      if (cmsswTracks_[icmssw].label() == iseed)
+      {
+	cmsswLabelMap[icmssw] = seedTracks_[iseed].label();
+  	break;
+      }
+    }
+  }
+  for (int icmssw = 0; icmssw < cmsswTracks_.size(); icmssw++)
+  {
+    cmsswTracks_[icmssw].setLabel(cmsswLabelMap[icmssw]);
   }
 }
 
