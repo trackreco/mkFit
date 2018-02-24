@@ -9,10 +9,12 @@ dir=/data/nfsmic/slava77/samples/2017/pass-4874f28/initialStep
 subdir=PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/a
 file=memoryFile.fv3.clean.writeAll.recT.072617.bin
 nevents=500
+tmpdir="tmp"
 
 maxth=24
 maxvu=8
-exe="./mkFit/mkFit --cmssw-n2seeds --num-thr ${maxth} --input-file ${dir}/${subdir}/${file} --num-events ${nevents}"
+maxev=12
+exe="./mkFit/mkFit --cmssw-n2seeds --num-thr ${maxth} --num-thr-ev ${maxev} --input-file ${dir}/${subdir}/${file} --num-events ${nevents}"
 
 ## validation function
 doVal()
@@ -25,16 +27,19 @@ doVal()
     oBase=${val_arch}_${sample}_${bN}
     bExe="${exe} ${vO} --build-${bO}"
     
-    echo "${oBase}: ${vN} [nTH:${maxth}, nVU:${maxvu}int]"
-    ${bExe} >& log_${oBase}_NVU${maxvu}int_NTH${maxth}_${vN}.txt
+    echo "${oBase}: ${vN} [nTH:${maxth}, nVU:${maxvu}int, nEV:${maxev}]"
+    ${bExe} >& log_${oBase}_NVU${maxvu}int_NTH${maxth}_NEV${maxev}_${vN}.txt
     
-    mv valtree.root valtree_${oBase}_${vN}.root
+    hadd valtree.root valtree_*.root
+    rm valtree_*.root
+    mv valtree.root ${tmpdir}/valtree_${oBase}_${vN}.root
 }		
 
 ## Compile once
 make clean
 mVal="WITH_ROOT:=yes"
 make -j 12 ${mVal}
+mkdir ${tmpdir}
 
 ## Special simtrack validation vs cmssw tracks
 doVal CMSSW cmssw SIMVAL "--sim-val-for-cmssw --read-cmssw-tracks"
@@ -54,6 +59,8 @@ done
 
 ## clean up
 make clean ${mVal}
+mv tmp/valtree_*.root .
+rm -rf ${tmpdir}
 
 ## Compute observables and make images
 for vV in "SIMVAL 0" "CMSSWVAL 1"
