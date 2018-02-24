@@ -87,6 +87,7 @@ void initGeom(Geometry& geom)
 namespace
 {
   int   g_start_event   = 1;
+
   bool  g_run_fit_std   = false;
 
   bool  g_run_build_all = true;
@@ -95,6 +96,7 @@ namespace
   bool  g_run_build_std = false;
   bool  g_run_build_ce  = false;
   bool  g_run_build_fv  = false;
+
   bool  g_seed_based    = false;
 
   std::string g_operation = "simulate_and_process";;
@@ -104,26 +106,26 @@ namespace
   seedOptsMap g_seed_opts;
   void init_seed_opts()
   {
-    g_seed_opts["sim"]   = simSeeds;
-    g_seed_opts["cmssw"] = cmsswSeeds;
-    g_seed_opts["find"]  = findSeeds;
+    g_seed_opts["sim"]   = {simSeeds,"Use simtracks for seeds"};
+    g_seed_opts["cmssw"] = {cmsswSeeds,"Use external CMSSW seeds"};
+    g_seed_opts["find"]  = {findSeeds,"Use mplex seed finder for seeds"};
   }
 
   cleanOptsMap g_clean_opts;
   void init_clean_opts()
   {
-    g_clean_opts["none"]     = noCleaning;
-    g_clean_opts["n2"]       = cleanSeedsN2;
-    g_clean_opts["pure"]     = cleanSeedsPure;
-    g_clean_opts["badlabel"] = cleanSeedsBadLabel;
+    g_clean_opts["none"]     = {noCleaning,"No cleaning applied to external CMSSW seeds"};
+    g_clean_opts["n2"]       = {cleanSeedsN2,"Apply N^2 cleaning by Mario to external CMSSW seeds"};
+    g_clean_opts["pure"]     = {cleanSeedsPure,"Only use external CMSSW seeds that have produced a CMSSW track \n    must enable: --read-cmssw-tracks"};
+    g_clean_opts["badlabel"] = {cleanSeedsBadLabel,"Remove seeds with label()<0 in external CMSSW seeds"};
   }
 
   matchOptsMap g_match_opts;
   void init_match_opts()
   {
-    g_match_opts["trkparam"] = trkParamBased;
-    g_match_opts["hits"]     = hitBased;
-    g_match_opts["label"]    = labelBased;
+    g_match_opts["trkparam"] = {trkParamBased,"Use track parameter-based matching for validating against CMSSW tracks"};
+    g_match_opts["hits"]     = {hitBased,"Use hit-based matching for validating against CMSSW tracks"};
+    g_match_opts["label"]    = {labelBased,"Only allowed with pure seeds: stricter hit-based matching"};
   }
 
   const char* b2a(bool b) { return b ? "true" : "false"; }
@@ -140,7 +142,7 @@ std::string getOpt(const T & c_opt, const U & g_opt_map)
 
   for (const auto & g_opt_pair : g_opt_map)
   {
-    if (g_opt_pair.second == c_opt) return g_opt_pair.first;
+    if (g_opt_pair.second.first == c_opt) return g_opt_pair.first;
   }
   std::cerr << "No match for option " << c_opt << std::endl;
   return empty;
@@ -149,11 +151,20 @@ std::string getOpt(const T & c_opt, const U & g_opt_map)
 template <typename T, typename U>
 void setOpt(const std::string & cmd_ln_str, T & c_opt, const U & g_opt_map, const std::string & ex_txt)
 {
-  if (g_opt_map.count(cmd_ln_str)) c_opt = g_opt_map.at(cmd_ln_str);
+  if (g_opt_map.count(cmd_ln_str)) c_opt = g_opt_map.at(cmd_ln_str).first;
   else 
   {
     std::cerr << cmd_ln_str << " is not a valid " << ex_txt << " option!! Exiting..." << std::endl;
     exit(1);
+  }
+}
+
+template <typename U>
+void listOpts(const U & g_opt_map)
+{
+  for (const auto & g_opt_pair : g_opt_map)
+  {
+    std::cout << "  " << g_opt_pair.first.c_str() << " : " << g_opt_pair.second.second.c_str() << std::endl;
   }
 }
 
@@ -563,106 +574,203 @@ int main(int argc, const char *argv[])
     {
       printf(
         "Usage: %s [options]\n"
-        "Options:\n"
-        "  --geom          <str>    geometry plugin to use (def: %s)\n"
-        "  --num-events    <num>    number of events to run over (def: %d)\n"
-        "  --num-tracks    <num>    number of tracks to generate for each event (def: %d)\n"
-        "  --num-thr-sim   <num>    number of threads for simulation (def: %d)\n"
-        "  --num-thr       <num>    number of threads for track finding (def: %d)\n"
-        "  --num-thr-ev    <num>    number of threads to run the event loop (def: %d)\n"
-        "  --fit-std                run standard fitting test (def: false)\n"
-        "  --fit-std-only           run only standard fitting test (def: false)\n"
-        "  --chi2cut       <num>    chi2 cut used in building test (def: %.1f)\n"
-        "  --build-cmssw            run dummy validation of CMSSW tracks with MkBuilder stuff (def: false)\n"
-        "  --build-bh               run best-hit building test (def: false)\n"
-        "  --build-std              run standard combinatorial building test (def: false)\n"
-        "  --build-ce               run clone engine combinatorial building test (def: false)\n"
-        "  --build-fv               run full vector combinatorial building test (def: false)\n"
-	"  --use-phiq-arr           use phi-Q arrays in select hit indices (def: %s)\n"
-        "  --seeds-per-task         number of seeds to process in a tbb task (def: %d)\n"
-        "  --hits-per-task <num>    number of layer1 hits per task in finding seeds (def: %i)\n"
-        "  --best-out-of   <num>    run track finding num times, report best time (def: %d)\n"
-        "  --seed-input    <str>    which seed collecion used for building (def: %s)\n"
-        "  --seed-cleaning <str>    which seed cleaning to apply if using cmssw seeds (def: %s)\n" 
-        "  --cf-seeding             enable CF in seeding (def: %s)\n"
-        "  --cf-fitting             enable CF in fitting (def: %s)\n"
-        "  --read-cmssw-tracks      read external cmssw reco tracks if available (def: %s)\n"
-	"  --read-simtrack-states   read in simTrackStates for pulls in validation (def: %s)\n"
-	"  --quality-val            enable printout validation for MkBuilder (def: %s)\n"
-        "  --sim-val-for-cmssw      enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
-        "  --sim-val                enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
-        "  --cmssw-val              enable special CMSSW ROOT based validation for building [eff] (def: %s)\n"
-      	"  --fit-val                enable ROOT based validation for fitting (def: %s)\n"
-        "  --inc-shorts             include short reco tracks into FR (def: %s)\n"
-        "  --keep-hit-info          keep vectors of hit idxs and branches in trees (def: %s)\n"
-	"  --cmssw-matching <str>   which cmssw track matching routine to use if doing special cmssw validation, candidate tracks only (def: %s)\n" 
-        "  --hit-match              apply hit matching criteria for track param matching in cmssw validation (def: %s)\n"
-	"  --dump-for-plots         printouts for plots from logs (def: %s)\n"
+        "Options (defaults defined as def:):\n\n"
+	"Generic options\n"
+        "  --geom           <str>   geometry plugin to use (def: %s)\n"
         "  --silent                 suppress printouts inside event loop (def: %s)\n"
-        "  --start-event   <num>    event number to start at when reading from a file (def: %d)\n"
+        "  --best-out-of    <int>   run test num times, report best time (def: %d)\n"
         "  --input-file             file name for reading (def: %s)\n"
         "  --output-file            file name for writitng (def: %s)\n"
-	"Combo spaghetti, that's with cole slaw: \n"
-	"  --cmssw-simseeds         use CMS geom with simtracks for seeds \n"
-	"  --cmssw-stdseeds         use CMS geom with CMSSW seeds uncleaned \n"
-	"  --cmssw-n2seeds          use CMS geom with CMSSW seeds cleaned with N^2 routine \n"
-	"  --cmssw-pureseeds        use CMS geom with pure CMSSW seeds (seeds which produced CMSSW reco tracks) \n"
-	"  --cmssw-goodlabelseeds   use CMS geom with CMSSW seeds with label() >= 0 \n"
-	"  --cmssw-val-trkparam     use CMSSW validation with track parameter matching \n"
-	"  --cmssw-val-hit          use CMSSW validation with hit based matching (75 percent of reco track) \n"
-	"  --cmssw-val-label        use CMSSW validation with track label matching (ONLY WITH PURE SEEDS!) \n"
-        "GPU specific options: \n"
-        "  --num-thr-reorg <num>    number of threads to run the hits reorganization (def: %d)\n"
-        "  --seed-based             For CE. Switch to 1 CUDA thread per seed\n"
-        "New options -- to be placed appropriately:\n"
+        "  --read-cmssw-tracks      read external cmssw reco tracks if available (def: %s)\n"
+	"  --read-simtrack-states   read in simTrackStates for pulls in validation (def: %s)\n"
+        "  --num-events     <int>   number of events to run over or simulate (def: %d)\n"
+        "                             if using --input-file, must be enabled AFTER on command line\n"
+        "  --start-event    <int>   event number to start at when reading from a file (def: %d)\n"
+	"\n"
+	"If no --input-file is specified, will trigger simulation\n"
+        "  --num-tracks    <num>    number of tracks to generate for each event (def: %d)\n"
+	"---------------------------------------\n\n"
+	"Threading related options\n"
+        "  --num-thr-sim    <int>   number of threads for simulation (def: %d)\n"
+        "  --num-thr        <int>   number of threads for track finding (def: %d)\n"
+        "  --num-thr-ev     <int>   number of threads to run the event loop (def: %d)\n"
+        "  --seeds-per-task <int>   number of seeds to process in a tbb task (def: %d)\n"
+        "  --hits-per-task  <int>   number of layer1 hits per task when using find seeds (def: %d)\n"
+	"---------------------------------------\n\n"
+	"FittingTestMPlex options\n"
+        "  --fit-std                run standard fitting test (def: %s)\n"
+        "  --fit-std-only           run only standard fitting test (def: %s)\n"
+        "  --cf-fitting             enable conformal fit before fitting tracks to get initial estimate of track parameters and errors (def: %s)\n"
+      	"  --fit-val                enable ROOT based validation for fittingMPlex  (def: %s)\n"
+	"---------------------------------------\n\n"
+	"BuildingTestMPlex options\n\n"
+	"Specify which building routine you would like to run\n"
+        "  --build-cmssw            run dummy validation of CMSSW tracks with MkBuilder stuff (def: %s)\n"
+        "  --build-bh               run best-hit building test (def: %s)\n"
+        "  --build-std              run standard combinatorial building test (def: %s)\n"
+        "  --build-ce               run clone engine combinatorial building test (def: %s)\n"
+        "  --build-fv               run full vector combinatorial building test (def: %s)\n"
+	"\n"
+	"Seeding options\n"
+        "  --seed-input     <str>   which seed collecion used for building (def: %s)\n"
+        "  --seed-cleaning  <str>   which seed cleaning to apply if using cmssw seeds (def: %s)\n" 
+        "  --cf-seeding             enable conformal fit over seeds (def: %s)\n"
+	"\n"
+	"Additional options for building\n"
+        "  --chi2cut        <flt>   chi2 cut used in building test (def: %.1f)\n"
+	"  --use-phiq-arr           use phi-Q arrays in select hit indices (def: %s)\n"
         "  --kludge-cms-hit-errors  make sure err(xy) > 15 mum, err(z) > 30 mum (def: %s)\n"
         "  --backward-fit           perform backward fit during building (std and ce only) (def: %s)\n"
+	"---------------------------------------\n\n"
+	"Validation options\n\n"
+	"Text file based options\n"
+	"  --quality-val            enable printout validation for MkBuilder (def: %s)\n"
+	"                             must enable: --dump-for-plots\n"
+	"  --dump-for-plots         make shell printouts for plots (def: %s)\n"
+	"\n"
+	"ROOT based options\n"
+        "  --sim-val-for-cmssw      enable ROOT based validation for CMSSW tracks with simtracks as reference [eff, FR, DR] (def: %s)\n"
+        "  --sim-val                enable ROOT based validation for seeding, building, and fitting with simtracks as reference [eff, FR, DR] (def: %s)\n"
+        "  --cmssw-val              enable ROOT based validation for building and fitting with CMSSW tracks as reference [eff, FR, DR] (def: %s)\n"
+	"                             must enable: --read-cmssw-tracks\n"
+	"  --cmssw-matching  <str>  which cmssw track matching routine to use if doing special cmssw validation, candidate tracks only (def: %s)\n" 
+        "  --inc-shorts             include short reco tracks into FR (def: %s)\n"
+        "  --keep-hit-info          keep vectors of hit idxs and branches in trees (def: %s)\n"
+	"---------------------------------------\n\n"
+	"Combo spaghetti, that's with cole slaw:\n"
+	"  --cmssw-simseeds         use CMS geom with simtracks for seeds\n"
+	"  --cmssw-stdseeds         use CMS geom with CMSSW seeds uncleaned\n"
+	"  --cmssw-n2seeds          use CMS geom with CMSSW seeds cleaned with N^2 routine\n"
+	"  --cmssw-pureseeds        use CMS geom with pure CMSSW seeds (seeds which produced CMSSW reco tracks), enable read of CMSSW tracks\n"
+	"  --cmssw-goodlabelseeds   use CMS geom with CMSSW seeds with label() >= 0\n"
+	"  --cmssw-val-trkparam     use CMSSW validation with track parameter matching, enable read of CMSSW tracks\n"
+	"  --cmssw-val-hit          use CMSSW validation with hit based matching (75 percent of reco track), enable read of CMSSW tracks\n"
+	"  --cmssw-val-label        use CMSSW validation with track label matching, enable read of CMSSW tracks\n"
+	"                             must enable: --cmssw-pureseeds\n"
+	"---------------------------------------\n\n"
+        "GPU specific options: \n"
+        "  --num-thr-reorg <num>    number of threads to run the hits reorganization (def: %d)\n"
+        "  --seed-based             For CE. Switch to 1 CUDA thread per seed (def: %s)\n"
+	"---------------------------------------\n\n"
         ,
         argv[0],
+
         Config::geomPlugin.c_str(),
-        Config::nEvents,
+        b2a(Config::silent),
+        Config::finderReportBestOutOfN,
+      	g_input_file.c_str(),
+      	g_output_file.c_str(),
+	b2a(Config::readCmsswTracks),
+        b2a(Config::readSimTrackStates),
+	Config::nEvents,
+        g_start_event,
         Config::nTracks,
-        Config::numThreadsSimulation, Config::numThreadsFinder, Config::numThreadsEvents,
-        Config::chi2Cut,
-	b2a(Config::usePhiQArrays),
+
+        Config::numThreadsSimulation, 
+	Config::numThreadsFinder, 
+	Config::numThreadsEvents,
         Config::numSeedsPerTask,
 	Config::numHitsPerTask,
-        Config::finderReportBestOutOfN,
+
+	b2a(g_run_fit_std),
+	b2a(g_run_fit_std && !(g_run_build_all || g_run_build_cmssw || g_run_build_bh || g_run_build_std || g_run_build_ce || g_run_build_fv)),
+        b2a(Config::cf_fitting),
+        b2a(Config::fit_val),
+
+	b2a(g_run_build_all || g_run_build_cmssw),
+	b2a(g_run_build_all || g_run_build_bh),
+	b2a(g_run_build_all || g_run_build_std),
+	b2a(g_run_build_all || g_run_build_ce),
+	b2a(g_run_build_all || g_run_build_fv),
+        
 	getOpt(Config::seedInput, g_seed_opts).c_str(),
 	getOpt(Config::seedCleaning, g_clean_opts).c_str(),
         b2a(Config::cf_seeding),
-        b2a(Config::cf_fitting),
-	b2a(Config::readCmsswTracks),
-        b2a(Config::readSimTrackStates),
+
+	Config::chi2Cut,
+	b2a(Config::usePhiQArrays),
+        b2a(Config::kludgeCmsHitErrors),
+        b2a(Config::backwardFit)
+
         b2a(Config::quality_val),
+        b2a(Config::dumpForPlots),
+
         b2a(Config::sim_val_for_cmssw),
         b2a(Config::sim_val),
         b2a(Config::cmssw_val),
-        b2a(Config::fit_val),
+	getOpt(Config::cmsswMatching, g_match_opts).c_str(),
 	b2a(Config::inclusiveShorts),
 	b2a(Config::keepHitInfo),
-	getOpt(Config::cmsswMatching, g_match_opts).c_str(),
-	b2a(Config::applyCMSSWHitMatch),
-        b2a(Config::dumpForPlots),
-        b2a(Config::silent),
-        g_start_event,
-      	g_input_file.c_str(),
-      	g_output_file.c_str(),
+
 	Config::numThreadsReorg,
-        b2a(Config::kludgeCmsHitErrors),
-        b2a(Config::backwardFit)
+	b2a(g_seed_based)
       );
+
+      printf("List of options for string based inputs \n");
+      printf("--geom \n"
+	     "  CMS-2017 \n"
+	     "  CylCowWLids \n"
+	     "\n");
+
+      printf("--seed-input \n");
+      listOpts(g_seed_opts);
+      printf("\n");
+
+      printf("--seed-cleaning \n");
+      listOpts(g_clean_opts);
+      printf("\n");
+
+      printf("--cmssw-matching \n");
+      listOpts(g_match_opts);
+      printf("\n");
+
       exit(0);
-    }
+    } // end of "help" block
+
     else if (*i == "--geom")
     {
       next_arg_or_die(mArgs, i);
       Config::geomPlugin = *i;
     }
+    else if (*i == "--silent")
+    {
+      Config::silent = true;
+    }
+    else if(*i == "--best-out-of")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::finderReportBestOutOfN = atoi(i->c_str());
+    }
+    else if (*i == "--input-file")
+    {
+      next_arg_or_die(mArgs, i);
+      g_input_file = *i;
+      g_operation = "read";
+      Config::nEvents = -1;
+    }
+    else if (*i == "--output-file")
+    {
+      next_arg_or_die(mArgs, i);
+      g_output_file = *i;
+      g_operation = "write";
+    }
     else if (*i == "--num-events")
     {
       next_arg_or_die(mArgs, i);
       Config::nEvents = atoi(i->c_str());
+    }
+    else if (*i == "--start-event")
+    {
+      next_arg_or_die(mArgs, i);
+      g_start_event = atoi(i->c_str());
+    }
+    else if(*i == "--read-cmssw-tracks")
+    {
+      Config::readCmsswTracks = true;
+    }
+    else if (*i == "--read-simtrack-states")
+    {
+      Config::readSimTrackStates = true;
     }
     else if (*i == "--num-tracks")
     {
@@ -679,6 +787,21 @@ int main(int argc, const char *argv[])
       next_arg_or_die(mArgs, i);
       Config::numThreadsFinder = atoi(i->c_str());
     }
+    else if (*i == "--num-thr-ev")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::numThreadsEvents = atoi(i->c_str());
+    }
+    else if (*i == "--seeds-per-task")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::numSeedsPerTask = atoi(i->c_str());
+    }
+    else if (*i == "--hits-per-task")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::numHitsPerTask = atoi(i->c_str());
+    }
     else if(*i == "--fit-std")
     {
       g_run_fit_std = true;
@@ -686,16 +809,15 @@ int main(int argc, const char *argv[])
     else if(*i == "--fit-std-only")
     {
       g_run_fit_std = true;
-      g_run_build_all = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = false;
+      g_run_build_all = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = false; g_run_build_fv = false;
     }
-    else if (*i == "--chi2cut")
+    else if (*i == "--cf-fitting")
     {
-      next_arg_or_die(mArgs, i);
-      Config::chi2Cut = atof(i->c_str());
+      Config::cf_fitting = true;
     }
-    else if (*i == "--use-phiq-arr")
+    else if (*i == "--fit-val")
     {
-      Config::usePhiQArrays = true;
+      Config::fit_val = true;
     }
     else if(*i == "--build-cmssw")
     {
@@ -717,21 +839,6 @@ int main(int argc, const char *argv[])
     {
       g_run_build_all = false; g_run_build_cmssw = false; g_run_build_fv = true; g_run_build_std = false; g_run_build_ce = false;
     }
-    else if (*i == "--seeds-per-task")
-    {
-      next_arg_or_die(mArgs, i);
-      Config::numSeedsPerTask = atoi(i->c_str());
-    }
-    else if (*i == "--hits-per-task")
-    {
-      next_arg_or_die(mArgs, i);
-      Config::numHitsPerTask = atoi(i->c_str());
-    }
-    else if(*i == "--best-out-of")
-    {
-      next_arg_or_die(mArgs, i);
-      Config::finderReportBestOutOfN = atoi(i->c_str());
-    }
     else if(*i == "--seed-input")
     {
       next_arg_or_die(mArgs, i);
@@ -746,21 +853,30 @@ int main(int argc, const char *argv[])
     {
       Config::cf_seeding = true;
     }
-    else if (*i == "--cf-fitting")
+    else if (*i == "--chi2cut")
     {
-      Config::cf_fitting = true;
+      next_arg_or_die(mArgs, i);
+      Config::chi2Cut = atof(i->c_str());
     }
-    else if(*i == "--read-cmssw-tracks")
+    else if (*i == "--use-phiq-arr")
     {
-      Config::readCmsswTracks = true;
+      Config::usePhiQArrays = true;
     }
-    else if (*i == "--read-simtrack-states")
+    else if(*i == "--kludge-cms-hit-errors")
     {
-      Config::readSimTrackStates = true;
+      Config::kludgeCmsHitErrors = true;
+    }
+    else if(*i == "--backward-fit")
+    {
+      Config::backwardFit = true;
     }
     else if (*i == "--quality-val")
     {
       Config::quality_val = true; 
+    }
+    else if (*i == "--dump-for-plots")
+    {
+      Config::dumpForPlots = true;
     }
     else if (*i == "--sim-val-for-cmssw")
     {
@@ -774,9 +890,10 @@ int main(int argc, const char *argv[])
     {
       Config::cmssw_val = true;
     }
-    else if (*i == "--fit-val")
+    else if(*i == "--cmssw-matching")
     {
-      Config::fit_val = true;
+      next_arg_or_die(mArgs, i);
+      setOpt(*i,Config::cmsswMatching,g_match_opts,"CMSSW validation track matching");
     }
     else if (*i == "--inc-shorts")
     {
@@ -785,51 +902,6 @@ int main(int argc, const char *argv[])
     else if (*i == "--keep-hit-info")
     {
       Config::keepHitInfo = true;
-    }
-    else if(*i == "--cmssw-matching")
-    {
-      next_arg_or_die(mArgs, i);
-      setOpt(*i,Config::cmsswMatching,g_match_opts,"CMSSW validation track matching");
-    }
-    else if (*i == "--hit-match")
-    {
-      Config::applyCMSSWHitMatch = true;
-    }
-    else if (*i == "--num-thr-ev")
-    {
-      next_arg_or_die(mArgs, i);
-      Config::numThreadsEvents = atoi(i->c_str());
-    }
-    else if (*i == "--num-thr-reorg")
-    {
-      next_arg_or_die(mArgs, i);
-      Config::numThreadsReorg = atoi(i->c_str());
-    }
-    else if (*i == "--start-event")
-    {
-      next_arg_or_die(mArgs, i);
-      g_start_event = atoi(i->c_str());
-    }
-    else if (*i == "--input-file")
-    {
-      next_arg_or_die(mArgs, i);
-      g_input_file = *i;
-      g_operation = "read";
-      Config::nEvents = -1;
-    }
-    else if (*i == "--output-file")
-    {
-      next_arg_or_die(mArgs, i);
-      g_output_file = *i;
-      g_operation = "write";
-    }
-    else if (*i == "--dump-for-plots")
-    {
-      Config::dumpForPlots = true;
-    }
-    else if (*i == "--silent")
-    {
-      Config::silent = true;
     }
     else if (*i == "--cmssw-simseeds")
     {
@@ -879,17 +951,14 @@ int main(int argc, const char *argv[])
       Config::readCmsswTracks = true;
       Config::cmsswMatching = labelBased;
     }
+    else if (*i == "--num-thr-reorg")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::numThreadsReorg = atoi(i->c_str());
+    }
     else if (*i == "--seed-based")
     {
       g_seed_based = true;
-    }
-    else if(*i == "--kludge-cms-hit-errors")
-    {
-      Config::kludgeCmsHitErrors = true;
-    }
-    else if(*i == "--backward-fit")
-    {
-      Config::backwardFit = true;
     }
     else
     {

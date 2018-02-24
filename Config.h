@@ -54,15 +54,15 @@ struct PropagationFlags
 
 // Enum for input seed options
 enum seedOpts {simSeeds, cmsswSeeds, findSeeds};
-typedef std::map<std::string,seedOpts> seedOptsMap;
+typedef std::map<std::string, std::pair<seedOpts, string> > seedOptsMap;
 
 // Enum for seed cleaning options
 enum cleanOpts {noCleaning, cleanSeedsN2, cleanSeedsPure, cleanSeedsBadLabel};
-typedef std::map<std::string,cleanOpts> cleanOptsMap;
+typedef std::map<std::string, std::pair<cleanOpts,string> > cleanOptsMap;
 
 // Enum for cmssw matching options
 enum matchOpts {trkParamBased, hitBased, labelBased};
-typedef std::map<std::string, matchOpts> matchOptsMap;
+typedef std::map<std::string, std::pair<matchOpts,string> > matchOptsMap;
 
 //------------------------------------------------------------------------------
 
@@ -314,7 +314,6 @@ namespace Config
   extern bool readSimTrackStates; // need this to fill pulls
   extern bool inclusiveShorts;
   extern bool keepHitInfo;
-  extern bool applyCMSSWHitMatch;
   extern matchOpts cmsswMatching;
 
   // config on seed cleaning

@@ -438,7 +438,6 @@ void TrackExtra::setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vec
 	  if (cidx == idx) {matched++; break;} 
 	}
       }
-      if (Config::applyCMSSWHitMatch && matched < (Config::nCMSSWMatchHitsAfterSeed+Config::nlayers_per_seed)) continue;  // check for nMatchedHits if applied (in principle all seed hits should be found!)
       bestdPhi = diffPhi; nHMatched = matched; cmsswTrackID = label; bestchi2 = cand.second;
     }
   }
