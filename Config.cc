@@ -74,6 +74,7 @@ namespace Config
   bool  fit_val     = false;
   bool  readSimTrackStates = false;
   bool  inclusiveShorts = false;
+  bool  keepHitInfo = false;
   bool  applyCMSSWHitMatch = false;
   matchOpts cmsswMatching = hitBased;
 

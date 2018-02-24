@@ -313,6 +313,7 @@ namespace Config
   extern bool fit_val;
   extern bool readSimTrackStates; // need this to fill pulls
   extern bool inclusiveShorts;
+  extern bool keepHitInfo;
   extern bool applyCMSSWHitMatch;
   extern matchOpts cmsswMatching;
 

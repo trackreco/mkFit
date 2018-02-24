@@ -594,6 +594,7 @@ int main(int argc, const char *argv[])
         "  --cmssw-val              enable special CMSSW ROOT based validation for building [eff] (def: %s)\n"
       	"  --fit-val                enable ROOT based validation for fitting (def: %s)\n"
         "  --inc-shorts             include short reco tracks into FR (def: %s)\n"
+        "  --keep-hit-info          keep vectors of hit idxs and branches in trees (def: %s)\n"
 	"  --cmssw-matching <str>   which cmssw track matching routine to use if doing special cmssw validation, candidate tracks only (def: %s)\n" 
         "  --hit-match              apply hit matching criteria for track param matching in cmssw validation (def: %s)\n"
 	"  --dump-for-plots         printouts for plots from logs (def: %s)\n"
@@ -639,6 +640,7 @@ int main(int argc, const char *argv[])
         b2a(Config::cmssw_val),
         b2a(Config::fit_val),
 	b2a(Config::inclusiveShorts),
+	b2a(Config::keepHitInfo),
 	getOpt(Config::cmsswMatching, g_match_opts).c_str(),
 	b2a(Config::applyCMSSWHitMatch),
         b2a(Config::dumpForPlots),
@@ -779,6 +781,10 @@ int main(int argc, const char *argv[])
     else if (*i == "--inc-shorts")
     {
       Config::inclusiveShorts = true;
+    }
+    else if (*i == "--keep-hit-info")
+    {
+      Config::keepHitInfo = true;
     }
     else if(*i == "--cmssw-matching")
     {

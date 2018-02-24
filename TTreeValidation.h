@@ -56,6 +56,8 @@ public:
 
   int getLastFoundHit(const int trackMCHitID, const int mcTrackID, const Event& ev);
 
+  void fillHitInfo(const Track& track, std::vector<int> & lyrs, std::vector<int> & idxs);
+
   void fillEfficiencyTree(const Event& ev) override;
   void fillFakeRateTree(const Event& ev) override;
   void fillConfigTree() override;
@@ -131,6 +133,10 @@ public:
   int   duplmask_seed_eff_=0,duplmask_build_eff_=0,duplmask_fit_eff_=0;
   int   nTkMatches_seed_eff_=0,nTkMatches_build_eff_=0,nTkMatches_fit_eff_=0;
 
+  // hit info
+  std::vector<int> hitlyrs_mc_eff_,hitlyrs_seed_eff_,hitlyrs_build_eff_,hitlyrs_fit_eff_;
+  std::vector<int> hitidxs_mc_eff_,hitidxs_seed_eff_,hitidxs_build_eff_,hitidxs_fit_eff_;
+
   // Fake Rate tree and variables
   TTree* frtree_;
   int   evtID_FR_=0,seedID_FR_=0;
@@ -167,6 +173,10 @@ public:
   int   duplmask_seed_FR_=0,duplmask_build_FR_=0,duplmask_fit_FR_=0;
   int   iTkMatches_seed_FR_=0,iTkMatches_build_FR_=0,iTkMatches_fit_FR_=0;
 
+  // hit info
+  std::vector<int> hitlyrs_seed_FR_,hitlyrs_build_FR_,hitlyrs_fit_FR_,hitlyrs_mc_seed_FR_,hitlyrs_mc_build_FR_,hitlyrs_mc_fit_FR_;
+  std::vector<int> hitidxs_seed_FR_,hitidxs_build_FR_,hitidxs_fit_FR_,hitidxs_mc_seed_FR_,hitidxs_mc_build_FR_,hitidxs_mc_fit_FR_;
+
   // Configuration tree
   TTree* configtree_;
   int   Ntracks_=0,Nevents_=0;
@@ -199,6 +209,9 @@ public:
   float phi_build_ceff_=0.,ephi_build_ceff_=0.;
   float eta_build_ceff_=0.,eeta_build_ceff_=0.;
 
+  float x_mc_build_ceff_=0.,y_mc_build_ceff_=0.,z_mc_build_ceff_=0.;
+  float pt_mc_build_ceff_=0.,phi_mc_build_ceff_=0.,eta_mc_build_ceff_=0.;
+
   int   nHits_build_ceff_=0,nLayers_build_ceff_=0,nHitsMatched_build_ceff_=0,lastlyr_build_ceff_=0;
   float fracHitsMatched_build_ceff_=0;
 
@@ -218,6 +231,9 @@ public:
   float phi_fit_ceff_=0.,ephi_fit_ceff_=0.;
   float eta_fit_ceff_=0.,eeta_fit_ceff_=0.;
 
+  float x_mc_fit_ceff_=0.,y_mc_fit_ceff_=0.,z_mc_fit_ceff_=0.;
+  float pt_mc_fit_ceff_=0.,phi_mc_fit_ceff_=0.,eta_mc_fit_ceff_=0.;
+
   int   nHits_fit_ceff_=0,nLayers_fit_ceff_=0,nHitsMatched_fit_ceff_=0,lastlyr_fit_ceff_=0;
   float fracHitsMatched_fit_ceff_=0;
 
@@ -229,6 +245,10 @@ public:
 
   int   duplmask_fit_ceff_=0,nTkMatches_fit_ceff_=0;
 
+  // hit info
+  std::vector<int> hitlyrs_cmssw_ceff_,hitlyrs_build_ceff_,hitlyrs_mc_build_ceff_,hitlyrs_fit_ceff_,hitlyrs_mc_fit_ceff_;
+  std::vector<int> hitidxs_cmssw_ceff_,hitidxs_build_ceff_,hitidxs_mc_build_ceff_,hitidxs_fit_ceff_,hitidxs_mc_fit_ceff_;
+
   // CMSSW FakeRate tree
   TTree* cmsswfrtree_;
   int   evtID_cFR_=0,seedID_cFR_=0,mcTrackID_cFR_=0;
@@ -239,6 +259,9 @@ public:
   float pt_build_cFR_=0.,ept_build_cFR_=0.;
   float phi_build_cFR_=0.,ephi_build_cFR_=0.;
   float eta_build_cFR_=0.,eeta_build_cFR_=0.;
+
+  float x_mc_cFR_=0.,y_mc_cFR_=0.,z_mc_cFR_=0.;
+  float pt_mc_cFR_=0.,phi_mc_cFR_=0.,eta_mc_cFR_=0.;
 
   int   nHits_build_cFR_=0,nLayers_build_cFR_=0,nHitsMatched_build_cFR_=0,lastlyr_build_cFR_=0;
   float fracHitsMatched_build_cFR_=0;
@@ -282,6 +305,10 @@ public:
   float x_cmssw_fit_cFR_=0.,y_cmssw_fit_cFR_=0.,z_cmssw_fit_cFR_=0.;
   float pt_cmssw_fit_cFR_=0.,phi_cmssw_fit_cFR_=0.,eta_cmssw_fit_cFR_=0.;
   int   nHits_cmssw_fit_cFR_=0,nLayers_cmssw_fit_cFR_=0,lastlyr_cmssw_fit_cFR_=0;
+
+  // hit info
+  std::vector<int> hitlyrs_mc_cFR_,hitlyrs_build_cFR_,hitlyrs_cmssw_build_cFR_,hitlyrs_fit_cFR_,hitlyrs_cmssw_fit_cFR_;
+  std::vector<int> hitidxs_mc_cFR_,hitidxs_build_cFR_,hitidxs_cmssw_build_cFR_,hitidxs_fit_cFR_,hitidxs_cmssw_fit_cFR_;
 
   // Fit tree (for fine tuning z-phi windows and such --> MPlex Only
   TTree* fittree_;
