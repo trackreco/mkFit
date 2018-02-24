@@ -62,13 +62,14 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
            L.is_barrel() ? "barrel" : "endcap", L.layer_id());
 
   float dqv[NNFV], dphiv[NNFV], qv[NNFV], phiv[NNFV];
+  int goodv[NNFV];
 
   int best[nseeds];
   for (auto i = 0; i < nseeds; ++i) { best[i] = std::max(BestCandidate(i), 0); }
 
   // Pull out the part of the loop that vectorizes
   //#pragma ivdep
-#pragma omp simd
+  #pragma omp simd
   for (int itrack = 0; itrack < NNFV; ++itrack)
   {
     XHitSize[itrack] = 0;
@@ -160,6 +161,7 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
     dqv[itrack]   = dq;
     phiv[itrack]  = phi;
     dphiv[itrack] = dphi;
+    goodv[itrack] = XWsrResult[itrack].m_wsr != WSR_Outside && CandIdx[itrack] >= 0;
   }
 
   int qb1[nseeds], qb2[nseeds], pb1[nseeds], pb2[nseeds];
@@ -168,10 +170,12 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
     const float phibest = phiv[best[iseed]];
     float dqvar = 0.0f, dphivar = 0.0f;
     int count = 0;
-    int itrack = iseed*ncands;
-    for (int i = 0; i < ncands; ++i, ++itrack) {
-      int weight = (CandIdx[itrack] >= 0 && XWsrResult[itrack].m_wsr != WSR_Outside)? 1 : 0;
-      count += weight;
+    const int base = iseed*ncands;
+    #pragma omp simd
+    for (int i = 0; i < ncands; ++i) {
+      const int itrack = base + i;
+      const int weight = goodv[itrack];
+      count   += weight;
       dqvar   += weight*std::abs(  qv[itrack] - qbest);
       dphivar += weight*std::abs(phiv[itrack] - phibest);
     }
@@ -194,12 +198,8 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
 
   _mm_prefetch((const char*) &L.m_phi_bin_infos[qb1[0]][pb1[0] & L.m_phi_mask], _MM_HINT_T0);
 
-  // MT: The following line is the biggest hog (4% total run time).
-  // This comes from cache misses, I presume.
-  // It might make sense to make first loop to extract bin indices
-  // and issue prefetches at the same time.
-  // Then enter vectorized loop to actually collect the hits in proper order.
   for (auto iseed = 0; iseed < nseeds; ++iseed) {
+    const int base = iseed*ncands;
     for (int qi = qb1[iseed]; qi < qb2[iseed]; ++qi) {
       if (qi+1 < qb2[iseed]) {
         _mm_prefetch((const char*) &L.m_phi_bin_infos[qi+1][pb1[iseed] & L.m_phi_mask], _MM_HINT_T0);
@@ -208,37 +208,36 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
         int pb = pi & L.m_phi_mask;
         for (int hi = L.m_phi_bin_infos[qi][pb].first; hi < L.m_phi_bin_infos[qi][pb].second; ++hi) {
           unsigned int pass[ncands] = {};
-          const int base = iseed*ncands;
-	  if (Config::usePhiQArrays) {
-#pragma omp simd
-	    for (int i = 0; i < ncands; ++i) {
+          if (Config::usePhiQArrays) {
+            #pragma omp simd
+            for (int i = 0; i < ncands; ++i) {
               const int itrack = base + i;
-	      const float q    = qv[itrack];
-	      const float dq   = dqv[itrack];
-	      
-	      const float phi  = phiv[itrack];
-	      const float dphi = dphiv[itrack];
-	      
-	      float ddq   = std::abs(q   - L.m_hit_qs[hi]);
-	      float ddphi = std::abs(phi - L.m_hit_phis[hi]);
-	      if (ddphi > Config::PI) ddphi = Config::TwoPI - ddphi;
-	      
-	      dprintf("     SHI %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
-		      hi,
-		      L.m_hit_qs[hi], L.m_hit_phis[hi], q, phi,
-		      (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
-	      
-	      // MT: Commenting this check out gives full efficiency ...
-	      //     and means our error estimations are wrong!
-	      // Avi says we should have *minimal* search windows per layer.
-	      // Also ... if bins are sufficiently small, we do not need the extra
-	      // checks, see above.
-	      pass[i] = ddq < dq && ddphi < dphi;
-	    }
+              const float q    = qv[itrack];
+              const float dq   = dqv[itrack];
+              
+              const float phi  = phiv[itrack];
+              const float dphi = dphiv[itrack];
+              
+              const float ddq   =       std::abs(q   - L.m_hit_qs[hi]);
+              const float ddphi = cdist(std::abs(phi - L.m_hit_phis[hi]));
+              
+              dprintf("     SHI %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
+                      hi,
+                      L.m_hit_qs[hi], L.m_hit_phis[hi], q, phi,
+                      (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
+              
+                      pass[i] = goodv[itrack] && ddq < dq && ddphi < dphi;
+            }
+          } else {
+            #pragma omp simd
+            for (int i = 0; i < ncands; ++i) {
+              const int itrack = base + i;
+              pass[i] = goodv[itrack];
+            }
           }
-          int itrack = iseed*ncands;
-          for (int i = 0; i < ncands; ++i, ++itrack) {
-            if ((pass[i] || !Config::usePhiQArrays) && XWsrResult[itrack].m_wsr != WSR_Outside && CandIdx[itrack] >= 0 && XHitSize[itrack] < MPlexHitIdxMax) {
+          for (int i = 0; i < ncands; ++i) {
+            const int itrack = base + i;
+            if (pass[i] && XHitSize[itrack] < MPlexHitIdxMax) {
               XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
             }
           }
@@ -265,7 +264,7 @@ void MkFinderFV<nseeds, ncands>::FindCandidates(const LayerOfHits &layer_of_hits
   alignas(64) int idx[NNFV];
 
   // prefetch the first set of hits to L1 and the second one to L2.
-#pragma omp simd
+  #pragma omp simd
   for (int it = 0; it < NNFV; ++it)
   {
     if (XHitSize[it] > 0)
@@ -281,12 +280,12 @@ void MkFinderFV<nseeds, ncands>::FindCandidates(const LayerOfHits &layer_of_hits
   }
   // XXXX MT FIXME: use masks to filter out SlurpIns
 
-// Has basically no effect, it seems.
-//#pragma noprefetch
+  // Has basically no effect, it seems.
+  //#pragma noprefetch
   const int maxhit = XHitMax();
   for (int hit_cnt = 0; hit_cnt < maxhit; ++hit_cnt)
   {
-#pragma omp simd
+    #pragma omp simd
     for (int itrack = 0; itrack < NNFV; ++itrack)
     {
       if (hit_cnt < XHitSize[itrack])

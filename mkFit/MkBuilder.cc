@@ -134,15 +134,6 @@ namespace
     }
   }
 
-  void print_seeds(const EventOfCandidates& event_of_cands) {
-    for (int ebin = 0; ebin < Config::nEtaBin; ++ebin) {
-      const EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin]; 
-      for (int iseed = 0; iseed < etabin_of_candidates.m_size; iseed++) {
-        print_seed2(etabin_of_candidates.m_candidates[iseed]);
-      }
-    }
-  }
-
   void print_seeds(const EventOfCombCandidates& event_of_comb_cands) {
     for (int iseed = 0; iseed < event_of_comb_cands.m_size; iseed++)
     {
@@ -750,11 +741,25 @@ void MkBuilder::map_seed_hits()
   // map seed hit indices from global m_event->layerHits_[i] to hit indices in
   // structure m_event_of_hits.m_layers_of_hits[i].m_hits
 
-  std::unordered_map<int,int> seedHitMap;
+  std::vector<int> seedHitMap;
 
   // XXMT4K: This was: Config::nlayers_per_seed, now not that simple.
   // In principle could have a list of seed layers (from outside (seed maker) or TrackerInfo).
-  int max_layer = Config::nTotalLayers;
+  const int max_layer = Config::nTotalLayers;
+
+  int max = 0;
+  for (int ilayer = 0; ilayer < max_layer; ++ilayer)
+  {
+    const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
+    const auto   size = m_event->layerHits_[ilayer].size();
+
+    for (size_t index = 0; index < size; ++index)
+    {
+      max = std::max(max, lof_m_hits[index].mcHitID());
+    }
+  }
+
+  seedHitMap.resize(max+1);
 
   for (int ilayer = 0; ilayer < max_layer; ++ilayer)
   {
@@ -1500,11 +1505,11 @@ void MkBuilder::FindTracksCloneEngine()
   tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
     [&](int region)
   {
+    const RegionOfSeedIndices rosi(m_event, region);
+
     // adaptive seeds per task based on the total estimated amount of work to divide among all threads
     const int adaptiveSPT = clamp(Config::numThreadsEvents*eoccs.m_size/Config::numThreadsFinder + 1, 4, Config::numSeedsPerTask);
     dprint("adaptiveSPT " << adaptiveSPT << " fill " << rosi.count() << "/" << eoccs.m_size << " region " << region);
-
-    const RegionOfSeedIndices rosi(m_event, region);
 
     tbb::parallel_for(rosi.tbb_blk_rng_std(adaptiveSPT),
       [&](const tbb::blocked_range<int>& seeds)
@@ -1875,11 +1880,11 @@ void MkBuilder::BackwardFit()
   tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
     [&](int region)
   {
+    const RegionOfSeedIndices rosi(m_event, region);
+
     // adaptive seeds per task based on the total estimated amount of work to divide among all threads
     const int adaptiveSPT = clamp(Config::numThreadsEvents*eoccs.m_size/Config::numThreadsFinder + 1, 4, Config::numSeedsPerTask);
     dprint("adaptiveSPT " << adaptiveSPT << " fill " << rosi.count() << "/" << eoccs.m_size << " region " << region);
-
-    const RegionOfSeedIndices rosi(m_event, region);
 
     tbb::parallel_for(rosi.tbb_blk_rng_std(adaptiveSPT),
       [&](const tbb::blocked_range<int>& cands)

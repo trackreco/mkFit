@@ -549,7 +549,7 @@ void kalmanOperation(const int      kfOp,
     } printf("\n");
     printf("psErr:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", psErr.At(0,i,j)); printf("\n");
+        printf("%8f ", psErr.ConstAt(0,i,j)); printf("\n");
     } printf("\n");
     printf("msPar:\n");
     for (int i = 0; i < 3; ++i) {
@@ -772,7 +772,7 @@ void kalmanOperationEndcap(const int      kfOp,
     } printf("\n");
     printf("psErr:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", psErr.At(0,i,j)); printf("\n");
+        printf("%8f ", psErr.ConstAt(0,i,j)); printf("\n");
     } printf("\n");
     printf("msErr:\n");
     for (int i = 0; i < 3; ++i) { for (int j = 0; j < 3; ++j)

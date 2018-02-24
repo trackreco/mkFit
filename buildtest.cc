@@ -82,12 +82,10 @@ void buildTracksBySeeds(const BinInfoMap & segmentMap, Event& ev)
   parallel_for( tbb::blocked_range<size_t>(0, evt_seeds.size()), 
       [&](const tbb::blocked_range<size_t>& seediter) {
     for (auto iseed = seediter.begin(); iseed != seediter.end(); ++iseed) {
-      //const auto& seed(evt_seeds[iseed]);
 #else
     for (auto iseed = 0; iseed != evt_seeds.size(); ++iseed) {
-      //const auto& seed(evt_seeds[iseed]);
 #endif
-      dprint("processing seed # " << iseed << " par=" << seed.parameters());
+      dprint("processing seed # " << iseed << " par=" << evt_seeds[iseed].parameters());
       dprint("from MC track par = " << ev.simTracks_[iseed].parameters()); // will be wrong with real seeding
       //TrackState seed_state = seed.state();
       //seed_state.errors *= 0.01;//otherwise combinatorics explode!!!

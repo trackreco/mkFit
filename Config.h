@@ -391,4 +391,6 @@ namespace Config
 
 };
 
+inline float cdist(float a) { return a > Config::PI ? Config::TwoPI - a : a; }
+
 #endif 

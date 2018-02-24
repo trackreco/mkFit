@@ -42,6 +42,8 @@ elif [ ${arch} == "SKL" ]
 then
     mOpt="-j 24 AVX_512:=1"
     dir=/nfs/cms/mc1/dsr
+    dir=/mnt/scratch
+    subdir=dsr
     base=${arch}_${physics_sample}
     maxth=48
     maxvu=16

@@ -764,32 +764,32 @@ void Event::print_tracks(const TrackVec& tracks, bool print_hits) const
 int Event::clean_cms_seedtracks()
 {
 
-  int minNHits     = Config::minNHits_seedclean;
-  float etamax_brl = Config::c_etamax_brl;
-  float dpt_brl_0  = Config::c_dpt_brl_0;
-  float dpt_ec_0   = Config::c_dpt_ec_0;
-  float ptmax_0    = Config::c_ptmax_0;
-  float dpt_1      = Config::c_dpt_1;
-  float ptmax_1    = Config::c_ptmax_1;
-  float dpt_2      = Config::c_dpt_2;
-  float ptmax_2    = Config::c_ptmax_2;
-  float dpt_3      = Config::c_dpt_3;
-  float dzmax_brl  = Config::c_dzmax_brl;
-  float drmax_brl  = Config::c_drmax_brl;
-  float ptmin_hpt  = Config::c_ptmin_hpt;
-  float dzmax_hpt  = Config::c_dzmax_hpt;
-  float drmax_hpt  = Config::c_drmax_hpt;
-  float dzmax_els  = Config::c_dzmax_els;
-  float drmax_els  = Config::c_drmax_els;
+  const int minNHits     = Config::minNHits_seedclean;
+  const float etamax_brl = Config::c_etamax_brl;
+  const float dpt_brl_0  = Config::c_dpt_brl_0;
+  const float dpt_ec_0   = Config::c_dpt_ec_0;
+  const float ptmax_0    = Config::c_ptmax_0;
+  const float dpt_1      = Config::c_dpt_1;
+  const float ptmax_1    = Config::c_ptmax_1;
+  const float dpt_2      = Config::c_dpt_2;
+  const float ptmax_2    = Config::c_ptmax_2;
+  const float dpt_3      = Config::c_dpt_3;
+  const float dzmax_brl  = Config::c_dzmax_brl;
+  const float drmax_brl  = Config::c_drmax_brl;
+  const float ptmin_hpt  = Config::c_ptmin_hpt;
+  const float dzmax_hpt  = Config::c_dzmax_hpt;
+  const float drmax_hpt  = Config::c_drmax_hpt;
+  const float dzmax_els  = Config::c_dzmax_els;
+  const float drmax_els  = Config::c_drmax_els;
 
-  float dzmax2_brl = dzmax_brl*dzmax_brl;
-  float drmax2_brl = drmax_brl*drmax_brl;
-  float dzmax2_hpt = dzmax_hpt*dzmax_hpt;
-  float drmax2_hpt = drmax_hpt*drmax_hpt;
-  float dzmax2_els = dzmax_els*dzmax_els;
-  float drmax2_els = drmax_els*drmax_els;
+  const float dzmax2_brl = dzmax_brl*dzmax_brl;
+  const float drmax2_brl = drmax_brl*drmax_brl;
+  const float dzmax2_hpt = dzmax_hpt*dzmax_hpt;
+  const float drmax2_hpt = drmax_hpt*drmax_hpt;
+  const float dzmax2_els = dzmax_els*dzmax_els;
+  const float drmax2_els = drmax_els*drmax_els;
 
-  int ns = seedTracks_.size();
+  const int ns = seedTracks_.size();
 
   TrackVec cleanSeedTracks;
   cleanSeedTracks.reserve(ns);
@@ -842,10 +842,9 @@ int Event::clean_cms_seedtracks()
 
       const float Pt2 = pt[tss];
 
-      const int thisChX = (charge[tss])*(charge[ts]);
       ////// Always require charge consistency. If different charge is assigned, do not remove seed-track
-      if(thisChX<0)
-	continue;
+      if(charge[tss] != charge[ts])
+        continue;
       
       const float thisDPt = std::abs(Pt2-Pt1);
       ////// Require pT consistency between seeds. If dpT is large, do not remove seed-track.
@@ -875,8 +874,7 @@ int Event::clean_cms_seedtracks()
       const float deta2 = std::pow(Eta1-Eta2, 2);
 
       const float oldPhi2 = oldPhi[tss];
-      float dphiOld = std::abs(oldPhi1-oldPhi2);
-      if(dphiOld>=Config::PI) dphiOld =Config::TwoPI - dphiOld;
+      const float dphiOld = cdist(std::abs(oldPhi1-oldPhi2));
 
       const float pos2_second = pos2[tss];
       const float thisDXYSign05 = pos2_second > pos2_first ? -0.5f : 0.5f;
@@ -888,8 +886,7 @@ int Event::clean_cms_seedtracks()
       const float newPhi1 = oldPhi1-thisDXY*invR1GeV*invptq_first;
       const float newPhi2 = oldPhi2+thisDXY*invR1GeV*invptq_second;
 
-      float dphi = std::abs(newPhi1-newPhi2);
-      if(dphi>=Config::PI) dphi =Config::TwoPI - dphi;
+      const float dphi = cdist(std::abs(newPhi1-newPhi2));
 
       const float dr2 = deta2+dphi*dphi;
       

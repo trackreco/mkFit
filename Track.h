@@ -417,7 +417,7 @@ public:
 
   enum class ProdType { NotSet = 0, Signal = 1, InTimePU = 2, OutOfTimePU = 3};
   ProdType prodType()  const { return ProdType(status_.prod_type); }
-  void setProdType(ProdType ptyp) { status_.prod_type = uint(ptyp); }
+  void setProdType(ProdType ptyp) { status_.prod_type = static_cast<unsigned int>(ptyp); }
 
   bool hasNonStoredHits() const { return status_.has_non_stored_hits; }
   void setHasNonStoredHits()    { status_.has_non_stored_hits = true; }
