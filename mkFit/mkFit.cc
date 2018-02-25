@@ -632,21 +632,40 @@ int main(int argc, const char *argv[])
         "  --sim-val-for-cmssw      enable ROOT based validation for CMSSW tracks with simtracks as reference [eff, FR, DR] (def: %s)\n"
         "  --sim-val                enable ROOT based validation for seeding, building, and fitting with simtracks as reference [eff, FR, DR] (def: %s)\n"
         "  --cmssw-val              enable ROOT based validation for building and fitting with CMSSW tracks as reference [eff, FR, DR] (def: %s)\n"
-	"                             must enable: --read-cmssw-tracks\n"
-	"  --cmssw-matching  <str>  which cmssw track matching routine to use if doing special cmssw validation, candidate tracks only (def: %s)\n" 
+	"                             must enable: --geom CMS-2017 --read-cmssw-tracks\n"
+	"  --cmssw-match-fw  <str>  which cmssw track matching routine to use if validating against CMSSW tracks, forward built tracks only (def: %s)\n" 
+	"                             must enable: --geom CMS-2017 --cmssw-val --read-cmssw-tracks"
+	"  --cmssw-match-bk  <str>  which cmssw track matching routine to use if validating against CMSSW tracks, backward fit tracks only (def: %s)\n" 
+	"                             must enable: --geom CMS-2017 --cmssw-val --read-cmssw-tracks --backward-fit\n"
         "  --inc-shorts             include short reco tracks into FR (def: %s)\n"
         "  --keep-hit-info          keep vectors of hit idxs and branches in trees (def: %s)\n"
 	"---------------------------------------\n\n"
 	"Combo spaghetti, that's with cole slaw:\n"
 	"  --cmssw-simseeds         use CMS geom with simtracks for seeds\n"
+	"                             == --geom CMS-2017 --seed-input %s\n"
 	"  --cmssw-stdseeds         use CMS geom with CMSSW seeds uncleaned\n"
+	"                             == --geom CMS-2017 --seed-input %s --seed-cleaning %s\n"
 	"  --cmssw-n2seeds          use CMS geom with CMSSW seeds cleaned with N^2 routine\n"
+	"                             == --geom CMS-2017 --seed-input %s --seed-cleaning %s\n"
 	"  --cmssw-pureseeds        use CMS geom with pure CMSSW seeds (seeds which produced CMSSW reco tracks), enable read of CMSSW tracks\n"
+	"                             == --geom CMS-2017 --seed-input %s --seed-cleaning %s --read-cmssw-tracks\n"
 	"  --cmssw-goodlabelseeds   use CMS geom with CMSSW seeds with label() >= 0\n"
-	"  --cmssw-val-trkparam     use CMSSW validation with track parameter matching, enable read of CMSSW tracks\n"
-	"  --cmssw-val-hit          use CMSSW validation with hit based matching (75 percent of reco track), enable read of CMSSW tracks\n"
-	"  --cmssw-val-label        use CMSSW validation with track label matching, enable read of CMSSW tracks\n"
-	"                             must enable: --cmssw-pureseeds\n"
+	"                             == --geom CMS-2017 --seed-input %s --seed-cleaning %s\n"
+	"  --cmssw-val-fhit-bhit    use CMSSW validation with hit based matching (50% after seed) for forward built tracks\n"
+	"                           use CMSSW validation with hit based matching (50% after seed) for backward fit tracks\n"
+	"                             == --cmssw-val --read-cmssw-tracks --cmssw-match-fw %s --cmssw-match-bk %s\n"
+	"  --cmssw-val-fhit-bprm    use CMSSW validation with hit based matching (50% after seed) for forward built tracks\n"
+	"                           use CMSSW validation with track parameter based matching for backward fit tracks\n"
+	"                             == --cmssw-val --read-cmssw-tracks --cmssw-match-fw %s --cmssw-match-bk %s\n"
+	"  --cmssw-val-fprm-bhit    use CMSSW validation with track parameter based matching for forward built tracks\n"
+	"                           use CMSSW validation with hit based matching (50% after seed) for backward fit tracks\n"
+	"                             == --cmssw-val --read-cmssw-tracks --cmssw-match-fw %s --cmssw-match-bk %s\n"
+	"  --cmssw-val-fprm-bprm    use CMSSW validation with track parameter based matching for forward built tracks\n"
+	"                           use CMSSW validation with track parameter based matching for backward fit tracks\n"
+	"                             == --cmssw-val --read-cmssw-tracks --cmssw-match-fw %s --cmssw-match-bk %s\n"
+	"  --cmssw-val-label        use CMSSW validation with stricter hit based matching for both forward built and backward fit tracks, enable read of CMSSW tracks\n"
+	"                             == --cmssw-val --read-cmssw-tracks --cmssw-match-fw %s --cmssw-match-bk %s\n"
+	"                             must enable: --cmssw-pureseeds --backward-fit\n"
 	"---------------------------------------\n\n"
         "GPU specific options: \n"
         "  --num-thr-reorg <num>    number of threads to run the hits reorganization (def: %d)\n"
@@ -701,6 +720,18 @@ int main(int argc, const char *argv[])
 	getOpt(Config::cmsswMatching, g_match_opts).c_str(),
 	b2a(Config::inclusiveShorts),
 	b2a(Config::keepHitInfo),
+
+	getOpt(simSeeds, g_seed_opts).c_str(),
+	getOpt(cmsswSeeds, g_seed_opts).c_str(), getOpt(noCleaning, g_clean_opts).c_str(),
+	getOpt(cmsswSeeds, g_seed_opts).c_str(), getOpt(cleanSeedsN2, g_clean_opts).c_str(),
+	getOpt(cmsswSeeds, g_seed_opts).c_str(), getOpt(cleanSeedsPure, g_clean_opts).c_str(),
+	getOpt(cmsswSeeds, g_seed_opts).c_str(), getOpt(cleanSeedsBadLabel, g_clean_opts).c_str(),
+	
+	getOpt(hitBased, g_match_opts).c_str(), getOpt(hitBased, g_match_opts).c_str(), 
+	getOpt(hitBased, g_match_opts).c_str(), getOpt(trkParamBased, g_match_opts).c_str(), 
+	getOpt(trkParamBased, g_match_opts).c_str(), getOpt(hitBased, g_match_opts).c_str(), 
+	getOpt(trkParamBased, g_match_opts).c_str(), getOpt(trkParamBased, g_match_opts).c_str(), 
+	getOpt(labelBased, g_match_opts).c_str(), getOpt(labelBased, g_match_opts).c_str(), 
 
 	Config::numThreadsReorg,
 	b2a(g_seed_based)
@@ -890,10 +921,15 @@ int main(int argc, const char *argv[])
     {
       Config::cmssw_val = true;
     }
-    else if(*i == "--cmssw-matching")
+    else if(*i == "--cmssw-match-fw")
     {
       next_arg_or_die(mArgs, i);
-      setOpt(*i,Config::cmsswMatching,g_match_opts,"CMSSW validation track matching");
+      setOpt(*i,Config::cmsswMatchingFW,g_match_opts,"CMSSW validation track matching for forward built tracks");
+    }
+    else if(*i == "--cmssw-match-bk")
+    {
+      next_arg_or_die(mArgs, i);
+      setOpt(*i,Config::cmsswMatchingBK,g_match_opts,"CMSSW validation track matching for backward fit tracks");
     }
     else if (*i == "--inc-shorts")
     {
@@ -933,23 +969,40 @@ int main(int argc, const char *argv[])
       Config::seedInput    = cmsswSeeds;
       Config::seedCleaning = cleanSeedsBadLabel;
     }
-    else if (*i == "--cmssw-val-trkparam")
+    else if (*i == "--cmssw-val-fhit-bhit")
     {
       Config::cmssw_val = true; 
       Config::readCmsswTracks = true;
-      Config::cmsswMatching = trkParamBased;
+      Config::cmsswMatchingFW = hitBased;
+      Config::cmsswMatchingBK = hitBased;
     }
-    else if (*i == "--cmssw-val-hit")
+    else if (*i == "--cmssw-val-fhit-bprm")
     {
       Config::cmssw_val = true; 
       Config::readCmsswTracks = true;
-      Config::cmsswMatching = hitBased;
+      Config::cmsswMatchingFW = hitBased;
+      Config::cmsswMatchingBK = trkParamBased;
+    }
+    else if (*i == "--cmssw-val-fprm-bhit")
+    {
+      Config::cmssw_val = true; 
+      Config::readCmsswTracks = true;
+      Config::cmsswMatchingFW = trkParamBased;
+      Config::cmsswMatchingBK = hitBased;
+    }
+    else if (*i == "--cmssw-val-fprm-bprm")
+    {
+      Config::cmssw_val = true; 
+      Config::readCmsswTracks = true;
+      Config::cmsswMatchingFW = trkParamBased;
+      Config::cmsswMatchingBK = trkParamBased;
     }
     else if (*i == "--cmssw-val-label")
     {
       Config::cmssw_val = true; 
       Config::readCmsswTracks = true;
-      Config::cmsswMatching = labelBased;
+      Config::cmsswMatchingFW = labelBased;
+      Config::cmsswMatchingBK = labelBased;
     }
     else if (*i == "--num-thr-reorg")
     {

@@ -732,15 +732,15 @@ void TTreeValidation::setTrackExtras(Event& ev)
       const auto& track = buildtracks[itrack];
             auto& extra = buildextras[itrack];
 
-      if (Config::cmsswMatching == trkParamBased)
+      if (Config::cmsswMatchingFW == trkParamBased)
       {	
-	extra.setCMSSWTrackIDInfoByTrkParams(track, layerhits, cmsswtracks, reducedCMSSW, false);
+	extra.setCMSSWTrackIDInfoByTrkParams(track, layerhits, cmsswtracks, reducedCMSSW, true);
       }
-      else if (Config::cmsswMatching == hitBased)
+      else if (Config::cmsswMatchingFW == hitBased)
       {
 	extra.setCMSSWTrackIDInfoByHits(track, cmsswHitIDMap, cmsswtracks, reducedCMSSW);
       }
-      else if (Config::cmsswMatching == labelBased) // can only be used if using pure seeds!
+      else if (Config::cmsswMatchingFW == labelBased) // can only be used if using pure seeds!
       {
 	extra.setCMSSWTrackIDInfoByLabel(track, layerhits, cmsswtracks, reducedCMSSW[cmsswtracks[buildToCmsswMap_[track.label()]].label()]);	
       }
@@ -751,13 +751,29 @@ void TTreeValidation::setTrackExtras(Event& ev)
       }
     }
 
-    // set cmsswTrackID for fit tracks --> at this point only do track param matching!
+    // set cmsswTrackID for fit tracks
     for (int itrack = 0; itrack < fittracks.size(); itrack++)
     {
       const auto& track = fittracks[itrack];
             auto& extra = fitextras[itrack];
 
-      extra.setCMSSWTrackIDInfoByTrkParams(track, layerhits, cmsswtracks, reducedCMSSW, true);
+      if (Config::cmsswMatchingBK == trkParamBased)
+      {	
+	extra.setCMSSWTrackIDInfoByTrkParams(track, layerhits, cmsswtracks, reducedCMSSW, true);
+      }
+      else if (Config::cmsswMatchingBK == hitBased)
+      {
+	extra.setCMSSWTrackIDInfoByHits(track, cmsswHitIDMap, cmsswtracks, reducedCMSSW);
+      }
+      else if (Config::cmsswMatchingBK == labelBased) // can only be used if using pure seeds!
+      {
+	extra.setCMSSWTrackIDInfoByLabel(track, layerhits, cmsswtracks, reducedCMSSW[cmsswtracks[buildToCmsswMap_[fitToBuildMap_[track.label()]]].label()]);	
+      }
+      else 
+      {
+	std::cerr << "Specified CMSSW validation, but using an incorrect matching option! Exiting..." << std::endl;
+	exit(1);
+      }
     }    
   }
 }
@@ -913,7 +929,7 @@ void TTreeValidation::storeSeedAndMCID(Event& ev)
     if (seedToCmsswMap_.count(seedID))
     {
       extra.setseedID(seedToCmsswMap_[seedID]);
-      if (Config::cmsswMatching == labelBased)
+      if (Config::cmsswMatchingFW == labelBased || Config::cmsswMatchingBK == labelBased)
       {
 	for (int ctrack = 0; ctrack < cmsswextras.size(); ctrack++)
         {
