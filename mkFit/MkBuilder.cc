@@ -925,15 +925,7 @@ void MkBuilder::quality_process(Track &tkcand, std::map<int,int> & cmsswLabelToP
 {
   const auto label = tkcand.label();
   TrackExtra extra(label);
-  
-  if (Config::seedInput == cmsswSeeds || Config::seedInput == findSeeds)
-  {
-    extra.setMCTrackIDInfo(tkcand, m_event->layerHits_, m_event->simHitsInfo_, m_event->simTracks_, false);
-  }
-  else
-  {
-    extra.setMCTrackIDInfoByLabel(tkcand, m_event->layerHits_, m_event->simHitsInfo_, m_event->simTracks_);
-  }
+  extra.setMCTrackIDInfo(tkcand, m_event->layerHits_, m_event->simHitsInfo_, m_event->simTracks_, false, (Config::seedInput == simSeeds));
   const int mctrk = extra.mcTrackID();
 
   //  int mctrk = tkcand.label(); // assumes 100% "efficiency"
@@ -957,7 +949,7 @@ void MkBuilder::quality_process(Track &tkcand, std::map<int,int> & cmsswLabelToP
     pTr   = pT / pTmc;
 
     simtrack.sortHitsByLayer();
-    nfoundmc = simtrack.nUniqueLayers();
+    nfoundmc = simtrack.nUniqueLayers(false);
 
     ++m_cnt;
     if (pTr > 0.9 && pTr < 1.1) ++m_cnt1;
@@ -982,7 +974,7 @@ void MkBuilder::quality_process(Track &tkcand, std::map<int,int> & cmsswLabelToP
       etacmssw = cmsswtrack.momEta();
       phicmssw = cmsswtrack.swimPhiToR(tkcand.x(),tkcand.y()); // to get rough estimate of diff in phi
       cmsswtrack.sortHitsByLayer();
-      nfoundcmssw = cmsswtrack.nUniqueLayers();
+      nfoundcmssw = cmsswtrack.nUniqueLayers(false);
     }
   }
 
@@ -1136,7 +1128,7 @@ void MkBuilder::prep_reftracks(TrackVec& tracks, TrackExtraVec& extras, const bo
   // mark cmsswtracks as unfindable if too short
   for (auto& track : tracks)
   {
-    const int nlyr = track.nUniqueLayers();
+    const int nlyr = track.nUniqueLayers(false);
     if (nlyr < Config::cmsSelMinLayers) track.setNotFindable();
   }
 }

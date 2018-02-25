@@ -4,6 +4,7 @@
 #include "Hit.h"
 #include "Matrix.h"
 #include "Config.h"
+#include "TrackerInfo.h"
 
 #include <vector>
 #include <map>
@@ -336,13 +337,28 @@ public:
     return n;
   }
 
-  int nUniqueLayers() const
+  int nSeedHits() const
+  {
+    int nSeedHits = 0;
+    for (int ihit = 0; ihit <= lastHitIdx_ ; ++ihit)
+    {
+      int h_lyr = hitsOnTrk_[ihit].layer;
+      if (TrackerInfo::is_seed_lyr(h_lyr))
+      {
+	nSeedHits++;
+      }
+    }
+    return nSeedHits;
+  }
+
+  int nUniqueLayers(const bool skipSeedLyrs) const
   {
     int lyr_cnt  =  0;
     int prev_lyr = -1;
     for (int ihit = 0; ihit <= lastHitIdx_ ; ++ihit)
     {
       int h_lyr = hitsOnTrk_[ihit].layer;
+      if (skipSeedLyrs && TrackerInfo::is_seed_lyr(h_lyr)) continue;
       if (h_lyr >= 0 && hitsOnTrk_[ihit].index >= 0 && h_lyr != prev_lyr)
       {
         ++lyr_cnt;
@@ -475,12 +491,12 @@ public:
   TrackExtra(int seedID) : seedID_(seedID) {}
 
   int  modifyRefTrackID(const int foundHits, const int minHits, const TrackVec& reftracks, const int trueID, int refTrackID);
-  void setMCTrackIDInfoByLabel(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo, const TrackVec& simtracks);
-  void setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo, const TrackVec& simtracks, const bool isSeed);
-  void setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vector<HitVec>& layerHits, const TrackVec& cmsswtracks, const RedTrackVec& redcmsswtracks, const bool isBkFit);
-  void setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMapMap& cmsswHitIDMap, const TrackVec& cmsswtracks, const RedTrackVec& redcmsswtracks);
-  void setCMSSWTrackIDInfoByLabel(const Track& trk, const std::vector<HitVec>& layerHits, const TrackVec& cmsswtracks, const ReducedTrack& redcmsswtrack);
-
+  void setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo, const TrackVec& simtracks, 
+			const bool isSeed, const bool isPure);
+  void setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vector<HitVec>& layerHits, const TrackVec& cmsswtracks, const RedTrackVec& redcmsswtracks,
+				      const bool isBkFit);
+  void setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMapMap& cmsswHitIDMap, const TrackVec& cmsswtracks, const RedTrackVec& redcmsswtracks, 
+				 const int cmsswlabel);
   int   mcTrackID() const {return mcTrackID_;}
   int   nHitsMatched() const {return nHitsMatched_;}
   float fracHitsMatched() const {return fracHitsMatched_;}

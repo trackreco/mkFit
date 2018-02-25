@@ -687,7 +687,8 @@ void TTreeValidation::setTrackExtras(Event& ev)
     {
       const auto& track = seedtracks[itrack];
             auto& extra = seedextras[itrack];
-      extra.setMCTrackIDInfo(track, layerhits, simhits, simtracks, true); // otherwise seeds are completely unmatched in ToyMC Sim Seeds
+  
+      extra.setMCTrackIDInfo(track, layerhits, simhits, simtracks, true, (Config::seedInput == simSeeds)); // otherwise seeds are completely unmatched in ToyMC Sim Seeds
     }
     
     // set mcTrackID for built tracks
@@ -695,8 +696,8 @@ void TTreeValidation::setTrackExtras(Event& ev)
     {
       const auto& track = buildtracks[itrack];
             auto& extra = buildextras[itrack];
-      if (Config::seedInput == cmsswSeeds || Config::seedInput == findSeeds) {extra.setMCTrackIDInfo(track, layerhits, simhits, simtracks, false);}
-      else {extra.setMCTrackIDInfoByLabel(track, layerhits, simhits, simtracks);}
+	
+      extra.setMCTrackIDInfo(track, layerhits, simhits, simtracks, false, (Config::seedInput == simSeeds)); // otherwise seeds are completely unmatched in ToyMC Sim Seeds
     }
   
     // set mcTrackID for fit tracks
@@ -704,8 +705,8 @@ void TTreeValidation::setTrackExtras(Event& ev)
     {
       const auto& track = fittracks[itrack];
             auto& extra = fitextras[itrack];
-      if (Config::seedInput == cmsswSeeds || Config::seedInput == findSeeds) {extra.setMCTrackIDInfo(track, layerhits, simhits, simtracks, false);}
-      else {extra.setMCTrackIDInfoByLabel(track, layerhits, simhits, simtracks);}
+      
+      extra.setMCTrackIDInfo(track, layerhits, simhits, simtracks, false, (Config::seedInput == simSeeds)); // otherwise seeds are completely unmatched in ToyMC Sim Seeds
     }
   }
 
@@ -738,11 +739,11 @@ void TTreeValidation::setTrackExtras(Event& ev)
       }
       else if (Config::cmsswMatchingFW == hitBased)
       {
-	extra.setCMSSWTrackIDInfoByHits(track, cmsswHitIDMap, cmsswtracks, reducedCMSSW);
+	extra.setCMSSWTrackIDInfoByHits(track, cmsswHitIDMap, cmsswtracks, reducedCMSSW, -1); // == -1 for not passing truth info about cmssw tracks
       }
       else if (Config::cmsswMatchingFW == labelBased) // can only be used if using pure seeds!
       {
-	extra.setCMSSWTrackIDInfoByLabel(track, layerhits, cmsswtracks, reducedCMSSW[cmsswtracks[buildToCmsswMap_[track.label()]].label()]);	
+	extra.setCMSSWTrackIDInfoByHits(track, cmsswHitIDMap, cmsswtracks, reducedCMSSW, reducedCMSSW[cmsswtracks[buildToCmsswMap_[track.label()]].label()]);	
       }
       else 
       {
@@ -763,11 +764,11 @@ void TTreeValidation::setTrackExtras(Event& ev)
       }
       else if (Config::cmsswMatchingBK == hitBased)
       {
-	extra.setCMSSWTrackIDInfoByHits(track, cmsswHitIDMap, cmsswtracks, reducedCMSSW);
+	extra.setCMSSWTrackIDInfoByHits(track, cmsswHitIDMap, cmsswtracks, reducedCMSSW, -1); // == -1 not passing truth info about cmssw
       }
       else if (Config::cmsswMatchingBK == labelBased) // can only be used if using pure seeds!
       {
-	extra.setCMSSWTrackIDInfoByLabel(track, layerhits, cmsswtracks, reducedCMSSW[cmsswtracks[buildToCmsswMap_[fitToBuildMap_[track.label()]]].label()]);	
+	extra.setCMSSWTrackIDInfoByHits(track, cmsswHitIDMap, cmsswtracks, reducedCMSSW, reducedCMSSW[cmsswtracks[buildToCmsswMap_[fitToBuildMap_[track.label()]]].label()]);	
       }
       else 
       {
@@ -979,6 +980,9 @@ void TTreeValidation::setupCMSSWMatching(const Event & ev, RedTrackVec & reduced
       const int lyr = cmsswtrack.getHitLyr(ihit);
       const int idx = cmsswtrack.getHitIdx(ihit);
       
+      // don't bother with seed layer hits
+      if (TrackerInfo::is_seed_lyr(lyr)) continue; 
+
       if (lyr >= 0 && idx >= 0) 
       {
 	tmpmap[lyr].push_back(idx);
@@ -1501,12 +1505,11 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	{
 	  mcmask_seed_FR_ = 0;
 	}
-	else if (mcID_seed_FR_ ==  -2 || mcID_seed_FR_ == -10 ||
-		 mcID_seed_FR_ == -11)
+	else if (mcID_seed_FR_ ==  -2)
 	{
 	  mcmask_seed_FR_ = 2; 
 	}
-	else // mcID == -3,-4,-6,-7,-12,-13
+	else // mcID == -3,-4,-6,-7
 	{
 	  mcmask_seed_FR_ = -1;
 	}
@@ -1517,7 +1520,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	{
 	  mcmask_seed_FR_ = 0;
 	}
-	else // mcID == -2,-3,-5,-6,-7,-8,-10,-11,-12,-13
+	else // mcID == -2,-3,-5,-6,-7,-8
 	{
 	  mcmask_seed_FR_ = -1; 
 	}
@@ -1616,12 +1619,11 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	  {
 	    mcmask_build_FR_ = 0;
 	  }
-	  else if (mcID_build_FR_ ==  -2 || mcID_build_FR_ == -10 ||
-		   mcID_build_FR_ == -11)
+	  else if (mcID_build_FR_ ==  -2)
 	  {
 	    mcmask_build_FR_ = 2; 
 	  }
-	  else // mcID == -3,-4,-6,-7,-12,-13
+	  else // mcID == -3,-4,-6,-7
 	  {
 	    mcmask_build_FR_ = -1;
 	  }
@@ -1632,7 +1634,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	  {
 	    mcmask_build_FR_ = 0;
 	  }
-	  else // mcID == -2,-3,-4,-5,-6,-7,-8,-10,-11,-12,-13
+	  else // mcID == -2,-3,-4,-5,-6,-7,-8
 	  {
 	    mcmask_build_FR_ = -1; 
 	  }
@@ -1769,12 +1771,11 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	  {
 	    mcmask_fit_FR_ = 0;
 	  }
-	  else if (mcID_fit_FR_ ==  -2 || mcID_fit_FR_ == -10 ||
-		   mcID_fit_FR_ == -11)
+	  else if (mcID_fit_FR_ ==  -2)
 	  {
 	    mcmask_fit_FR_ = 2; 
 	  }
-	  else // mcID == -3,-4,-6,-7,-12,-13
+	  else // mcID == -3,-4,-6,-7
 	  {
 	    mcmask_fit_FR_ = -1;
 	  }
@@ -1785,7 +1786,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	  {
 	    mcmask_fit_FR_ = 0;
 	  }
-	  else // mcID == -2,-3,-4,-5,-6,-7,-8,-10,-11,-12,-13
+	  else // mcID == -2,-3,-4,-5,-6,-7,-8
 	  {
 	    mcmask_fit_FR_ = -1; 
 	  }
@@ -1979,7 +1980,7 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
     eta_cmssw_ceff_ = cmsswtrack.momEta();
 
     nHits_cmssw_ceff_   = cmsswtrack.nFoundHits(); 
-    nLayers_cmssw_ceff_ = cmsswtrack.nUniqueLayers();
+    nLayers_cmssw_ceff_ = cmsswtrack.nUniqueLayers(false);
     lastlyr_cmssw_ceff_ = cmsswtrack.getLastFoundHitLyr();
 
     if (Config::keepHitInfo) TTreeValidation::fillHitInfo(cmsswtrack,hitlyrs_cmssw_ceff_,hitidxs_cmssw_ceff_);
@@ -2027,7 +2028,7 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
 	  
       // hit/layer info
       nHits_build_ceff_           = buildtrack.nFoundHits();
-      nLayers_build_ceff_         = buildtrack.nUniqueLayers();
+      nLayers_build_ceff_         = buildtrack.nUniqueLayers(false);
       nHitsMatched_build_ceff_    = buildextra.nHitsMatched();
       fracHitsMatched_build_ceff_ = buildextra.fracHitsMatched();
       lastlyr_build_ceff_         = buildtrack.getLastFoundHitLyr();
@@ -2134,7 +2135,7 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
 
       // hit/layer info
       nHits_fit_ceff_           = fittrack.nFoundHits();
-      nLayers_fit_ceff_         = fittrack.nUniqueLayers();
+      nLayers_fit_ceff_         = fittrack.nUniqueLayers(false);
       nHitsMatched_fit_ceff_    = fitextra.nHitsMatched();
       fracHitsMatched_fit_ceff_ = fitextra.fracHitsMatched();
       lastlyr_fit_ceff_         = fittrack.getLastFoundHitLyr();
@@ -2274,7 +2275,7 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
 
     // hit/layer info
     nHits_build_cFR_           = buildtrack.nFoundHits();
-    nLayers_build_cFR_         = buildtrack.nUniqueLayers();
+    nLayers_build_cFR_         = buildtrack.nUniqueLayers(false);
     nHitsMatched_build_cFR_    = buildextra.nHitsMatched();
     fracHitsMatched_build_cFR_ = buildextra.fracHitsMatched();
     lastlyr_build_cFR_         = buildtrack.getLastFoundHitLyr();
@@ -2309,12 +2310,11 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
 	{
 	  cmsswmask_build_cFR_ = 0;
 	}
-	else if (cmsswID_build_cFR_ ==  -2 || cmsswID_build_cFR_ == -10 ||
-		 cmsswID_build_cFR_ == -11)
+	else if (cmsswID_build_cFR_ ==  -2)
 	{
 	  cmsswmask_build_cFR_ = 2; 
 	}
-	else // mcID == -3,-4,-6,-7,-12,-13
+	else // mcID == -3,-4,-6,-7
 	{
 	  cmsswmask_build_cFR_ = -1;
 	}
@@ -2325,7 +2325,7 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
 	{
 	  cmsswmask_build_cFR_ = 0;
 	}
-	else // mcID == -2,-3,-4,-5,-6,-7,-8,-10,-11,-12,-13
+	else // mcID == -2,-3,-4,-5,-6,-7,-8
 	{
 	  cmsswmask_build_cFR_ = -1; 
 	}
@@ -2348,7 +2348,7 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
       eta_cmssw_build_cFR_ = cmsswtrack.momEta();
 
       nHits_cmssw_build_cFR_   = cmsswtrack.nFoundHits(); 
-      nLayers_cmssw_build_cFR_ = cmsswtrack.nUniqueLayers();
+      nLayers_cmssw_build_cFR_ = cmsswtrack.nUniqueLayers(false);
       lastlyr_cmssw_build_cFR_ = cmsswtrack.getLastFoundHitLyr();
 
       // duplicate info
@@ -2393,7 +2393,7 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
     
       // hit/layer info
       nHits_fit_cFR_           = fittrack.nFoundHits();
-      nLayers_fit_cFR_         = fittrack.nUniqueLayers();
+      nLayers_fit_cFR_         = fittrack.nUniqueLayers(false);
       nHitsMatched_fit_cFR_    = fitextra.nHitsMatched();
       fracHitsMatched_fit_cFR_ = fitextra.fracHitsMatched();
       lastlyr_fit_cFR_         = fittrack.getLastFoundHitLyr();
@@ -2428,12 +2428,11 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
 	  {
 	    cmsswmask_fit_cFR_ = 0;
 	  }
-	  else if (cmsswID_fit_cFR_ ==  -2 || cmsswID_fit_cFR_ == -10 ||
-		   cmsswID_fit_cFR_ == -11)
+	  else if (cmsswID_fit_cFR_ ==  -2)
 	  {
 	    cmsswmask_fit_cFR_ = 2; 
 	  }
-	  else // mcID == -3,-4,-6,-7,-12,-13
+	  else // mcID == -3,-4,-6,-7
 	  {
 	    cmsswmask_fit_cFR_ = -1;
 	  }
@@ -2444,7 +2443,7 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
 	  {
 	    cmsswmask_fit_cFR_ = 0;
 	  }
-	  else // mcID == -2,-3,-4,-5,-6,-7,-8,-10,-11,-12,-13
+	  else // mcID == -2,-3,-4,-5,-6,-7,-8
 	  {
 	    cmsswmask_fit_cFR_ = -1; 
 	  }
@@ -2467,7 +2466,7 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
 	eta_cmssw_fit_cFR_ = cmsswtrack.momEta();
 	
 	nHits_cmssw_fit_cFR_   = cmsswtrack.nFoundHits(); 
-	nLayers_cmssw_fit_cFR_ = cmsswtrack.nUniqueLayers();
+	nLayers_cmssw_fit_cFR_ = cmsswtrack.nUniqueLayers(false);
 	lastlyr_cmssw_fit_cFR_ = cmsswtrack.getLastFoundHitLyr();
 
 	// duplicate info
