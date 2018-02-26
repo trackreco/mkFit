@@ -8,7 +8,7 @@ source xeon_scripts/common_variables.sh
 dir=/data/nfsmic/slava77/samples/2017/pass-4874f28/initialStep
 subdir=PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/a
 file=memoryFile.fv3.clean.writeAll.recT.072617.bin
-nevents=20000
+nevents=500
 tmpdir="tmp"
 
 maxth=24
@@ -41,7 +41,7 @@ doVal()
 make clean
 mVal="WITH_ROOT:=yes"
 make -j 12 ${mVal}
-mkdir ${tmpdir}
+mkdir -p ${tmpdir}
 
 ## Special simtrack validation vs cmssw tracks
 doVal CMSSW cmssw SIMVAL "--sim-val-for-cmssw --read-cmssw-tracks"
