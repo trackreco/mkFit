@@ -606,6 +606,8 @@ void TTreeValidation::initializeFitTree()
 
 void TTreeValidation::alignTracks(TrackVec& evt_tracks, TrackExtraVec& evt_extras, bool alignExtra)
 {
+  std::lock_guard<std::mutex> locker(glock_);
+
   // redo trackExtras first if necessary
   if (alignExtra)
   {
@@ -1886,6 +1888,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 
 void TTreeValidation::fillConfigTree()
 {
+  std::lock_guard<std::mutex> locker(glock_);
+
   Ntracks_ = Config::nTracks;
   Nevents_ = Config::nEvents;
 
@@ -2549,7 +2553,21 @@ void TTreeValidation::saveTTrees()
 {  
   std::lock_guard<std::mutex> locker(glock_); 
   f_->cd();
-  f_->Write();
+  if (Config::sim_val_for_cmssw || Config::sim_val) 
+  {
+    efftree_->Write();
+    frtree_->Write();
+  }
+  if (Config::cmssw_val)
+  {
+    cmsswefftree_->Write();
+    cmsswfrtree_->Write();
+  }
+  if (Config::fit_val) 
+  {
+    fittree_->Write();
+  }
+  configtree_->Write();
 }             
 
 #endif
