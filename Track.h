@@ -343,7 +343,7 @@ public:
     for (int ihit = 0; ihit <= lastHitIdx_ ; ++ihit)
     {
       int h_lyr = hitsOnTrk_[ihit].layer;
-      if (TrackerInfo::is_seed_lyr(h_lyr))
+      if (Config::TrkInfo.is_seed_lyr(h_lyr))
       {
 	nSeedHits++;
       }
@@ -358,7 +358,7 @@ public:
     for (int ihit = 0; ihit <= lastHitIdx_ ; ++ihit)
     {
       int h_lyr = hitsOnTrk_[ihit].layer;
-      if (skipSeedLyrs && TrackerInfo::is_seed_lyr(h_lyr)) continue;
+      if (skipSeedLyrs && Config::TrkInfo.is_seed_lyr(h_lyr)) continue;
       if (h_lyr >= 0 && hitsOnTrk_[ihit].index >= 0 && h_lyr != prev_lyr)
       {
         ++lyr_cnt;

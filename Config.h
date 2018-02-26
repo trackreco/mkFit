@@ -54,15 +54,15 @@ struct PropagationFlags
 
 // Enum for input seed options
 enum seedOpts {simSeeds, cmsswSeeds, findSeeds};
-typedef std::map<std::string, std::pair<seedOpts, string> > seedOptsMap;
+typedef std::map<std::string, std::pair<seedOpts,std::string> > seedOptsMap;
 
 // Enum for seed cleaning options
 enum cleanOpts {noCleaning, cleanSeedsN2, cleanSeedsPure, cleanSeedsBadLabel};
-typedef std::map<std::string, std::pair<cleanOpts,string> > cleanOptsMap;
+typedef std::map<std::string, std::pair<cleanOpts,std::string> > cleanOptsMap;
 
 // Enum for cmssw matching options
 enum matchOpts {trkParamBased, hitBased, labelBased};
-typedef std::map<std::string, std::pair<matchOpts,string> > matchOptsMap;
+typedef std::map<std::string, std::pair<matchOpts,std::string> > matchOptsMap;
 
 //------------------------------------------------------------------------------
 

@@ -743,7 +743,8 @@ void TTreeValidation::setTrackExtras(Event& ev)
       }
       else if (Config::cmsswMatchingFW == labelBased) // can only be used if using pure seeds!
       {
-	extra.setCMSSWTrackIDInfoByHits(track, cmsswHitIDMap, cmsswtracks, reducedCMSSW, reducedCMSSW[cmsswtracks[buildToCmsswMap_[track.label()]].label()]);	
+	extra.setCMSSWTrackIDInfoByHits(track, cmsswHitIDMap, cmsswtracks, reducedCMSSW, 
+					reducedCMSSW[cmsswtracks[buildToCmsswMap_[track.label()]].label()].label());	
       }
       else 
       {
@@ -768,7 +769,8 @@ void TTreeValidation::setTrackExtras(Event& ev)
       }
       else if (Config::cmsswMatchingBK == labelBased) // can only be used if using pure seeds!
       {
-	extra.setCMSSWTrackIDInfoByHits(track, cmsswHitIDMap, cmsswtracks, reducedCMSSW, reducedCMSSW[cmsswtracks[buildToCmsswMap_[fitToBuildMap_[track.label()]]].label()]);	
+	extra.setCMSSWTrackIDInfoByHits(track, cmsswHitIDMap, cmsswtracks, reducedCMSSW,
+					reducedCMSSW[cmsswtracks[buildToCmsswMap_[fitToBuildMap_[track.label()]]].label()].label());	
       }
       else 
       {
@@ -981,7 +983,7 @@ void TTreeValidation::setupCMSSWMatching(const Event & ev, RedTrackVec & reduced
       const int idx = cmsswtrack.getHitIdx(ihit);
       
       // don't bother with seed layer hits
-      if (TrackerInfo::is_seed_lyr(lyr)) continue; 
+      if (Config::TrkInfo.is_seed_lyr(lyr)) continue; 
 
       if (lyr >= 0 && idx >= 0) 
       {

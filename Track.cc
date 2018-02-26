@@ -267,7 +267,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
     if (lyr < 0) continue;
 
     // skip seed layers (unless, of course, we are validating the seed tracks themselves)
-    if (!isSeed && TrackerInfo::is_seed_lyr(lyr)) continue;
+    if (!isSeed && Config::TrkInfo.is_seed_lyr(lyr)) continue;
 
     // make sure it is a real hit
     if ((idx >= 0) && (idx < layerHits[lyr].size()))
@@ -293,7 +293,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
     std::sort(mcTrackIDs.begin(),mcTrackIDs.end());
 
     // don't count bad mcTrackIDs (id < 0)
-    mcTrackIDs.erase(std::remove_if(mcTrackIDs.begin(),mcTrackIDs.end(),[](const int id){id < 0;}),mcTrackIDs.end());
+    mcTrackIDs.erase(std::remove_if(mcTrackIDs.begin(),mcTrackIDs.end(),[](const int id){return id < 0;}),mcTrackIDs.end());
     
     int n_ids = mcTrackIDs.size();
     int i = 0;
@@ -448,7 +448,7 @@ void TrackExtra::setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vec
 	const int idx = trk.getHitIdx(ihit);
 
 	// skip seed layers
-	if (TrackerInfo::is_seed_lyr(lyr)) continue;
+	if (Config::TrkInfo.is_seed_lyr(lyr)) continue;
 
 	// skip if bad index or cmssw track does not have that layer
 	if (idx < 0 || !hitLayerMap.count(lyr)) continue; 
@@ -497,7 +497,7 @@ void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMa
     const int idx = trk.getHitIdx(ihit);
 
     if (lyr < 0 || idx < 0) continue; // standard check
-    if (TrackerInfo::is_seed_lyr(lyr)) continue; // skip seed layers
+    if (Config::TrkInfo.is_seed_lyr(lyr)) continue; // skip seed layers
     if (!cmsswHitIDMap.count(lyr)) continue; // make sure at least one cmssw track has this hit lyr!
     if (!cmsswHitIDMap.at(lyr).count(idx)) continue; // make sure at least one cmssw track has this hit id!
     {

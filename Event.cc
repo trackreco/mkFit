@@ -348,7 +348,7 @@ void Event::PrintStats(const TrackVec& trks, TrackExtraVec& trkextras)
 
   for (auto&& trk : trks) {
     auto&& extra = trkextras[trk.label()];
-    extra.setMCTrackIDInfoByLabel(trk, layerHits_, simHitsInfo_, simTracks_);
+    extra.setMCTrackIDInfo(trk, layerHits_, simHitsInfo_, simTracks_, false, true);
     if (extra.mcTrackID() < 0) {
       ++miss;
     } else {
