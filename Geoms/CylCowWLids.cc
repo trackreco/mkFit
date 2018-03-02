@@ -75,6 +75,8 @@ namespace
 
       li.m_q_bin = 2.0;
       li.set_selection_limits(0.01, 0.05, 1.0, 2.0);
+
+      li.m_is_seed_lyr = (lid < 4);
     }
 
     void add_barrel_r_eta(int lid, float r, float eta)
@@ -117,6 +119,8 @@ namespace
 
         li.m_q_bin = 1.5;
         li.set_selection_limits(0.01, 0.05, 1.0, 2.0);
+
+	li.m_is_seed_lyr = ((lid - 9) < 4);
       }
       {
         lid += 9;
@@ -139,6 +143,8 @@ namespace
 
         li.m_q_bin = 1.5;
         li.set_selection_limits(0.01, 0.05, 1.0, 2.0);
+
+	li.m_is_seed_lyr = ((lid - 18) < 4);
       }
     }
 
@@ -181,22 +187,23 @@ namespace
 
       add_barrel_r_z  (1, pix_0 + 1 * pix_sep, pix_z0 + 1 * pix_zgrow);
       add_barrel_r_z  (2, pix_0 + 2 * pix_sep, pix_z0 + 2 * pix_zgrow);
+      add_barrel_r_z  (3, pix_0 + 3 * pix_sep, pix_z0 + 3 * pix_zgrow);
 
-      for (int i = 0; i < 7; ++i)
+      for (int i = 0; i < 6; ++i)
       {
-        add_barrel_r_z(3 + i, sct_0  + i * sct_sep, sct_z0 + i * sct_zgrow);
+        add_barrel_r_z(4 + i, sct_0  + i * sct_sep, sct_z0 + i * sct_zgrow);
       }
 
-      for (int i = 1; i < 3; ++i)
+      for (int i = 1; i < 4; ++i)
       {
         add_endcap(9 + i,
                    pix_0  + i * pix_sep   + pix_ec_rextra,
                    pix_z0 + i * pix_zgrow + pix_ec_zgap,
                    full_eta_ec_in[i]);
       }
-      for (int i = 0; i < 7; ++i)
+      for (int i = 0; i < 6; ++i)
       {
-        add_endcap(12 + i,
+        add_endcap(13 + i,
                    sct_0  + i * sct_sep   + sct_ec_rextra,
                    sct_z0 + i * sct_zgrow + sct_ec_zgap,
                    full_eta);
@@ -210,6 +217,7 @@ namespace
   void Create_CylCowWLids(TrackerInfo& ti, bool verbose)
   {
     Config::nTotalLayers     = 10 + 2 * 9;
+    Config::nlayers_per_seed = 4;
 
     Config::finding_requires_propagation_to_hit_pos = false;
     Config::finding_inter_layer_pflags = PropagationFlags(PF_none);

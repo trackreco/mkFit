@@ -140,11 +140,13 @@ public:
 
   void quality_store_tracks(TrackVec & tracks);
 
-  void root_val();
+  void sim_val();
   void cmssw_val();
   void prep_recotracks(); 
+  void prep_simtracks();
   void prep_cmsswtracks();
-  void prep_tracks(TrackVec& tracks, TrackExtraVec& extras); // sort hits by layer, init track extras, align track labels
+  void prep_reftracks(TrackVec& tracks, TrackExtraVec& extras, const bool realigntracks); 
+  void prep_tracks(TrackVec& tracks, TrackExtraVec& extras, const bool realigntracks); // sort hits by layer, init track extras, align track labels if true
 
   // --------
 

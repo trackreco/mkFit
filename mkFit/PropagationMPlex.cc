@@ -404,7 +404,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 
    MPlexLL errorProp;
 
-   helixAtRFromIterativeCCS(inPar, inChg, msRad, outPar, errorProp, N_proc, pflags.use_param_b_field);
+   helixAtRFromIterativeCCS(inPar, inChg, msRad, outPar, errorProp, N_proc, pflags);
 
 #ifdef DEBUG
    {

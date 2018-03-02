@@ -1,7 +1,7 @@
 #! /bin/bash
 
 # samples
-export rootval_sample=CMSSW_10mu
+export simval_sample=CMSSW_10mu
 export physics_sample=CMSSW_TTbar_PU70
 
 # vars for KNL

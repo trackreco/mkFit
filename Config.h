@@ -307,7 +307,7 @@ namespace Config
   constexpr float minCMSSWMatchdPhi[6] = {0.2,0.2,0.1,0.05,0.01,0.005};
   constexpr int   nCMSSWMatchHitsAfterSeed = 5;
   extern bool quality_val;
-  extern bool root_val;
+  extern bool sim_val;
   extern bool cmssw_val;
   extern bool fit_val;
   extern bool readSimTrackStates; // need this to fill pulls

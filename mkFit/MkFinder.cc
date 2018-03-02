@@ -1035,8 +1035,8 @@ void MkFinder::BkFitOutputTracks(TrackVec& cands, int beg, int end)
     {
       Track &trk = cands[i];
 
-      Err[iC].CopyOut(itrack, trk.errors_nc().Array());
-      Par[iC].CopyOut(itrack, trk.parameters_nc().Array());
+      Err[iP].CopyOut(itrack, trk.errors_nc().Array());
+      Par[iP].CopyOut(itrack, trk.parameters_nc().Array());
 
       trk.setChi2(Chi2(itrack, 0, 0));
     }

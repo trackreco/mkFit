@@ -170,7 +170,7 @@ void Event::Simulate()
         layerHits_[hitinfos[i].layer_].emplace_back(hits[i]);
 
         simHitsInfo_.emplace_back(hitinfos[i]);
-	if (Config::root_val || Config::fit_val) 
+	if (Config::sim_val || Config::fit_val) 
         {
 	  simTrackStates_.emplace_back(initialTSs[i]);
 	}
@@ -320,7 +320,7 @@ void Event::Fit()
 void Event::Validate()
 {
   // standard eff/fr/dr validation
-  if (Config::root_val) {
+  if (Config::sim_val) {
     validation_.setTrackExtras(*this);
     validation_.makeSimTkToRecoTksMaps(*this);
     validation_.makeSeedTkToRecoTkMaps(*this);

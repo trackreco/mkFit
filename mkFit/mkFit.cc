@@ -191,7 +191,7 @@ void generate_and_save_tracks()
   std::unique_ptr<Validation> val(Validation::make_validation("empty.root"));
 
   int extra_sections = 0;
-  if (Config::root_val || Config::fit_val)
+  if (Config::sim_val || Config::fit_val)
   {
     extra_sections |= DataFile::ES_SimTrackStates;
   }
@@ -586,7 +586,7 @@ int main(int argc, const char *argv[])
         "  --read-cmssw-tracks      read external cmssw reco tracks if available (def: %s)\n"
 	"  --read-simtrack-states   read in simTrackStates for pulls in validation (def: %s)\n"
 	"  --quality-val            enable printout validation for MkBuilder (def: %s)\n"
-        "  --root-val               enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
+        "  --sim-val               enable ROOT based validation for building [eff, FR, DR] (def: %s)\n"
         "  --cmssw-val              enable special CMSSW ROOT based validation for building [eff] (def: %s)\n"
       	"  --fit-val                enable ROOT based validation for fitting (def: %s)\n"
         "  --inc-shorts             include short reco tracks into FR (def: %s)\n"
@@ -630,7 +630,7 @@ int main(int argc, const char *argv[])
 	b2a(Config::readCmsswTracks),
         b2a(Config::readSimTrackStates),
         b2a(Config::quality_val),
-        b2a(Config::root_val),
+        b2a(Config::sim_val),
         b2a(Config::cmssw_val),
         b2a(Config::fit_val),
 	b2a(Config::inclusiveShorts),
@@ -751,9 +751,9 @@ int main(int argc, const char *argv[])
     {
       Config::quality_val = true; 
     }
-    else if (*i == "--root-val")
+    else if (*i == "--sim-val")
     {
-      Config::root_val = true; 
+      Config::sim_val = true; 
     }
     else if (*i == "--cmssw-val")
     {
