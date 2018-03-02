@@ -5,7 +5,7 @@ PlotsFromDump::PlotsFromDump(const TString & sample, const TString & build) : sa
   gStyle->SetOptStat(0);
 
   // Setup build opts
-  setupBuilds();
+  setupBuilds(false);
 
   // get the right build label
   for (auto & ibuild : builds)

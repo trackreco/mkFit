@@ -42,6 +42,7 @@ public:
   int  clean_cms_seedtracks(); //operates on seedTracks_; returns the number of cleaned seeds
   int  clean_cms_seedtracks_badlabel(); //operates on seedTracks_, removes those with label == -1;
   void relabel_bad_seedtracks();
+  void relabel_cmsswtracks_from_seeds();
   void print_tracks(const TrackVec& tracks, bool print_hits) const;
 
   const Geometry& geom_;

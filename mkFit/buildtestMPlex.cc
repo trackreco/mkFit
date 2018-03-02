@@ -70,6 +70,21 @@ inline bool sortByZ(const Hit& hit1, const Hit& hit2)
 }
 
 //==============================================================================
+// runBuildTestPlexDumbCMSSW
+//==============================================================================
+
+void runBuildingTestPlexDumbCMSSW(Event& ev, MkBuilder& builder)
+{
+  builder.begin_event(&ev, __func__);
+
+  if (Config::sim_val_for_cmssw) {
+    builder.sim_val_for_cmssw();
+  }
+
+  builder.end_event();
+}
+
+//==============================================================================
 // runBuildTestPlexBestHit
 //==============================================================================
 
