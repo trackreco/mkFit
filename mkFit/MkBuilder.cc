@@ -7,7 +7,7 @@
 #include "Event.h"
 #include "TrackerInfo.h"
 
-//#define DEBUG
+#define DEBUG
 #include "Debug.h"
 
 #include "Ice/IceRevisitedRadix.h"
@@ -102,11 +102,12 @@ MkBuilder* MkBuilder::make_builder()
 namespace
 {
   void pre_prop_print(int ilay, MkBase* fir) {
+    const float pt = 1.f/fir->getPar(0, 0, 3);
     std::cout << "propagate to lay=" << ilay
               << " start from x=" << fir->getPar(0, 0, 0) << " y=" << fir->getPar(0, 0, 1) << " z=" << fir->getPar(0, 0, 2)
               << " r=" << getHypot(fir->getPar(0, 0, 0), fir->getPar(0, 0, 1))
-              << " px=" << fir->getPar(0, 0, 3) << " py=" << fir->getPar(0, 0, 4) << " pz=" << fir->getPar(0, 0, 5)
-              << " pT=" << 1./fir->getPar(0, 0, 3) << std::endl;
+              << " px=" << pt*std::cos(fir->getPar(0, 0, 4)) << " py=" << pt*std::sin(fir->getPar(0, 0, 4)) << " pz=" << pt/std::tan(fir->getPar(0, 0, 5))
+              << " pT=" << pt << std::endl;
   }
 
   void post_prop_print(int ilay, MkBase* fir) {
@@ -1253,6 +1254,40 @@ void MkBuilder::PrepareSeeds()
       exit(1);
     }
 
+    ///*
+    {
+      const int  select_label = -33;
+      TrackVec  &tv = m_event->seedTracks_;
+      for (int i = 0; (int) i < tv.size(); ++i)
+      {
+        if (tv[i].label() == select_label)
+        {
+          printf("Preselect seed with label %d - found on pos %d\n", select_label, i);
+          if (i != 0) tv[0] = tv[i];
+          tv.resize(1);
+          printf("  seeds.size = %lld, lab[0] = %d\n", tv.size(), tv[0].label());
+          break;
+        }
+      }
+    }
+    //*/
+    const bool fix_silly_seeds    = true;
+    const bool remove_silly_seeds = true;
+    if (fix_silly_seeds)
+    {
+      TrackVec  &tv = m_event->seedTracks_;
+      for (int i = 0; (int) i < tv.size(); ++i)
+      {
+        bool silly = tv[i].hasSillyValues(true, true, "Input seed silly value check");
+        if (silly && remove_silly_seeds)
+        {
+          // Could do somethin smarter here: setStopped ?  check in seed cleaning ?
+          tv.erase(tv.begin() + i);
+          --i;
+        }
+      }
+    }
+
     import_seeds();
     map_seed_hits();
   }
@@ -1458,7 +1493,7 @@ int MkBuilder::find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & s
 
 void MkBuilder::FindTracksStandard()
 {
-  // bool debug = true;
+  bool debug = true;
 
   EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
@@ -1524,7 +1559,11 @@ void MkBuilder::FindTracksStandard()
         {
           int end = std::min(itrack + NN, theEndCand);
 
-          dprint("processing track=" << itrack);
+          dprint("processing track=" << itrack << ", label=" << eoccs.m_candidates[seed_cand_idx[itrack].first][seed_cand_idx[itrack].second].label());
+
+          for (int ti = itrack; ti < end; ++ti)
+            eoccs.m_candidates[seed_cand_idx[ti].first][seed_cand_idx[ti].second].hasSillyValues(true, false, "Input");
+
 
           //fixme find a way to deal only with the candidates needed in this thread
           mkfndr->InputTracksAndHitIdx(eoccs.m_candidates,

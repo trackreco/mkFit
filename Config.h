@@ -208,14 +208,15 @@ namespace Config
   //const     float xr = std::sqrt(Config::beamspotX*Config::beamspotX + Config::beamspotY*Config::beamspotY); 
 
   // Config for seeding
-  extern    int   nlayers_per_seed;         // default: 3, cms sets from geom plugin
   constexpr int   nlayers_per_seed_max = 4; // Needed for allocation of arrays on stack.
+  extern    int   nlayers_per_seed;         // default: 3, cms sets from geom plugin
   constexpr float chi2seedcut  = 9.0;
   constexpr float lay01angdiff = 0.0634888; // analytically derived... depends on geometry of detector --> from mathematica ... d0 set to one sigma of getHypot(bsX,bsY)
   constexpr float lay02angdiff = 0.11537;
   constexpr float dEtaSeedTrip = 0.06; // for almost max efficiency --> empirically derived... depends on geometry of detector
   constexpr float dPhiSeedTrip = 0.0458712; // numerically+semianalytically derived... depends on geometry of detector
-  static const float seed_z2cut= (nlayers_per_seed * fRadialSpacing) / std::tan(2.0f*std::atan(std::exp(-1.0f*dEtaSeedTrip)));
+  // Recalculated in seedTest as it depends on nlayers_per_seed
+  // static const float seed_z2cut= (nlayers_per_seed * fRadialSpacing) / std::tan(2.0f*std::atan(std::exp(-1.0f*dEtaSeedTrip)));
   constexpr float seed_z0cut   = beamspotZ * 3.0f; // 3cm
   constexpr float seed_z1cut   = hitposerrZ * 3.6f; // 3.6 mm --> to match efficiency from chi2cut
   constexpr float seed_d0cut   = 0.5f; // 5mm

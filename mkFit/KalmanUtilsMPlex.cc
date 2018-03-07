@@ -1,7 +1,7 @@
 #include "KalmanUtilsMPlex.h"
 #include "PropagationMPlex.h"
 
-//#define DEBUG
+#define DEBUG
 #include "Debug.h"
 
 #include "KalmanUtilsMPlex.icc"
@@ -830,6 +830,7 @@ void kalmanOperationEndcap(const int      kfOp,
 
 #ifdef DEBUG
     {
+      dmutex_guard;
       printf("outErr before subtract:\n");
       for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
           printf("%8f ", outErr.At(0,i,j)); printf("\n");

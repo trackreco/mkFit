@@ -546,8 +546,12 @@ void next_arg_or_die(lStr_t& args, lStr_i& i, bool allow_single_minus=false)
 // main
 //==============================================================================
 
+#include <fenv.h>
+
 int main(int argc, const char *argv[])
 {
+  feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW); //FE_ALL_EXCEPT);
+
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
 #endif

@@ -131,6 +131,8 @@ public:
   CUDA_CALLABLE
   ~Track(){}
 
+  bool  hasSillyValues(bool dump, bool fix, const char* pref="");
+
   const SVector6&     parameters() const {return state_.parameters;}
   const SMatrixSym66& errors()     const {return state_.errors;}
   const TrackState&   state()      const {return state_;}
