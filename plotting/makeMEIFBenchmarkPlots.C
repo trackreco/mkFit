@@ -1,6 +1,5 @@
 #if  !defined(__CINT__)
 #include "plotting/PlotMEIFBenchmarks.hh"
-#include "plotting/PlotMEIFBenchmarks.cpp+"
 #endif
 
 void setupcpp11()
@@ -19,9 +18,9 @@ void setupcpp11()
 
 void makeMEIFBenchmarkPlots(const TString & arch, const TString & sample, const TString & build)
 {
-  //setupcpp11(); //  use this to get PlotMEIFBenchmarks to compile ... phiphi ROOT build has ACLiC with C++98!
+  setupcpp11(); //  use this to get PlotMEIFBenchmarks to compile ... phiphi ROOT build has ACLiC with C++98!
 
-  //gROOT->LoadMacro("plotting/PlotMEIFBenchmarks.cpp+g");
+  gROOT->LoadMacro("plotting/PlotMEIFBenchmarks.cpp+g");
 
   PlotMEIFBenchmarks MEIFBenchmarks(arch,sample,build);
   MEIFBenchmarks.RunMEIFBenchmarkPlots();

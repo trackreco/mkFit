@@ -1,6 +1,5 @@
 #if  !defined(__CINT__)
 #include "plotting/PlotBenchmarks.hh"
-#include "plotting/PlotBenchmarks.cpp+"
 #endif
 
 void setupcpp11()
@@ -19,9 +18,9 @@ void setupcpp11()
 
 void makeBenchmarkPlots(const TString & arch, const TString & sample)
 {
-  //setupcpp11(); //  use this to get PlotBenchmarks to compile ... phiphi ROOT build has ACLiC with C++98!
+  setupcpp11(); //  use this to get PlotBenchmarks to compile ... phiphi ROOT build has ACLiC with C++98!
 
-  //gROOT->LoadMacro("plotting/PlotBenchmarks.cpp+g");
+  gROOT->LoadMacro("plotting/PlotBenchmarks.cpp+g");
 
   PlotBenchmarks Benchmarks(arch,sample);
   Benchmarks.RunBenchmarkPlots();
