@@ -139,7 +139,7 @@ namespace
       arch_opt.thspeedupmin = 0.;
       arch_opt.thspeedupmax = arch_opt.thmax;
 
-      arch_opt.thmeiftimemin = 0.01;
+      arch_opt.thmeiftimemin = 0.001;
       arch_opt.thmeiftimemax = arch_opt.thtimemax;
 
       arch_opt.thmeifspeedupmin = 0.;

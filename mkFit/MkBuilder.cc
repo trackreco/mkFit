@@ -1,4 +1,5 @@
 #include <memory>
+#include <limits>
 
 #include "MkBuilder.h"
 #include "seedtestMPlex.h"
@@ -741,34 +742,40 @@ void MkBuilder::map_seed_hits()
   // map seed hit indices from global m_event->layerHits_[i] to hit indices in
   // structure m_event_of_hits.m_layers_of_hits[i].m_hits
 
-  std::vector<int> seedHitMap;
-
   // XXMT4K: This was: Config::nlayers_per_seed, now not that simple.
   // In principle could have a list of seed layers (from outside (seed maker) or TrackerInfo).
   const int max_layer = Config::nTotalLayers;
 
   int max = 0;
+  int min = std::numeric_limits<int>::max();
+
   for (int ilayer = 0; ilayer < max_layer; ++ilayer)
   {
-    const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
-    const auto   size = m_event->layerHits_[ilayer].size();
+    if (Config::TrkInfo.is_seed_lyr(ilayer)) {
+      const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
+      const auto   size = m_event->layerHits_[ilayer].size();
 
-    for (size_t index = 0; index < size; ++index)
-    {
-      max = std::max(max, lof_m_hits[index].mcHitID());
+      for (size_t index = 0; index < size; ++index)
+      {
+        const auto mcHitID = lof_m_hits[index].mcHitID();
+        min = std::min(min, mcHitID);
+        max = std::max(max, mcHitID);
+      }
     }
   }
 
-  seedHitMap.resize(max+1);
+  std::vector<int> seedHitMap(max-min+1);
 
   for (int ilayer = 0; ilayer < max_layer; ++ilayer)
   {
-    const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
-    const auto   size = m_event->layerHits_[ilayer].size();
+    if (Config::TrkInfo.is_seed_lyr(ilayer)) {
+      const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
+      const auto   size = m_event->layerHits_[ilayer].size();
 
-    for (size_t index = 0; index < size; ++index)
-    {
-      seedHitMap[lof_m_hits[index].mcHitID()] = index;
+      for (size_t index = 0; index < size; ++index)
+      {
+        seedHitMap[lof_m_hits[index].mcHitID()-min] = index;
+      }
     }
   }
 
@@ -778,11 +785,10 @@ void MkBuilder::map_seed_hits()
     {
       int hitidx = track.getHitIdx(i);
       int hitlyr = track.getHitLyr(i);
-      if (hitidx >= 0)
+      if (hitidx >= 0 && Config::TrkInfo.is_seed_lyr(hitlyr))
       {
         const auto & global_hit_vec = m_event->layerHits_[hitlyr];
-
-        track.setHitIdx(i, seedHitMap[global_hit_vec[hitidx].mcHitID()]);
+        track.setHitIdx(i, seedHitMap[global_hit_vec[hitidx].mcHitID()-min]);
       }
     }
   }
@@ -794,19 +800,39 @@ void MkBuilder::remap_seed_hits()
   // m_event_of_hits.m_layers_of_hits[i].m_hits to global
   // m_event->layerHits_[i]
 
-  std::unordered_map<int,int> seedHitMap;
 
   // XXMT4K: This was: Config::nlayers_per_seed, now not that simple.
   // In principle could have a list of seed layers (from outside (seed maker) or TrackerInfo).
-  int max_layer = Config::nTotalLayers;
+  const int max_layer = Config::nTotalLayers;
+
+  int max = 0;
+  int min = std::numeric_limits<int>::max();
 
   for (int ilayer = 0; ilayer < max_layer; ++ilayer)
   {
-    const auto & global_hit_vec = m_event->layerHits_[ilayer];
-    const auto   size = global_hit_vec.size();
-    for (size_t index = 0; index < size; ++index)
-    {
-      seedHitMap[global_hit_vec[index].mcHitID()] = index;
+    if (Config::TrkInfo.is_seed_lyr(ilayer)) {
+      const auto & global_hit_vec = m_event->layerHits_[ilayer];
+      const auto   size = global_hit_vec.size();
+      for (size_t index = 0; index < size; ++index)
+      {
+        const auto mcHitID = global_hit_vec[index].mcHitID();
+        min = std::min(min, mcHitID);
+        max = std::max(max, mcHitID);
+      }
+    }
+  }
+
+  std::vector<int> seedHitMap(max-min+1); // assume indexes are dense
+
+  for (int ilayer = 0; ilayer < max_layer; ++ilayer)
+  {
+    if (Config::TrkInfo.is_seed_lyr(ilayer)) {
+      const auto & global_hit_vec = m_event->layerHits_[ilayer];
+      const auto   size = global_hit_vec.size();
+      for (size_t index = 0; index < size; ++index)
+      {
+        seedHitMap[global_hit_vec[index].mcHitID()-min] = index;
+      }
     }
   }
 
@@ -816,11 +842,10 @@ void MkBuilder::remap_seed_hits()
     {
       int hitidx = track.getHitIdx(i);
       int hitlyr = track.getHitLyr(i);
-      if (hitidx >= 0)
+      if (hitidx >= 0 && Config::TrkInfo.is_seed_lyr(hitlyr))
       {
         const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[hitlyr].m_hits;
-
-        track.setHitIdx(i, seedHitMap[lof_m_hits[hitidx].mcHitID()]);
+        track.setHitIdx(i, seedHitMap[lof_m_hits[hitidx].mcHitID()-min]);
       }
     }
   }
@@ -832,9 +857,10 @@ void MkBuilder::remap_cand_hits(TrackVec & tracks)
   // m_event_of_hits.m_layers_of_hits[i].m_hits to global
   // m_event->layerHits_[i]
 
-  std::unordered_map<int,int> candHitMap;
+  const int max_layer = Config::nTotalLayers;
 
-  int max_layer = Config::nTotalLayers;
+  int max = 0;
+  int min = std::numeric_limits<int>::max();
 
   for (int ilayer = 0; ilayer < max_layer; ++ilayer)
   {
@@ -842,7 +868,21 @@ void MkBuilder::remap_cand_hits(TrackVec & tracks)
     const auto   size = global_hit_vec.size();
     for (size_t index = 0; index < size; ++index)
     {
-      candHitMap[global_hit_vec[index].mcHitID()] = index;
+      const auto mcHitID = global_hit_vec[index].mcHitID();
+      min = std::min(min, mcHitID);
+      max = std::max(max, mcHitID);
+    }
+  }
+
+  std::vector<int> candHitMap(max-min+1);
+
+  for (int ilayer = 0; ilayer < max_layer; ++ilayer)
+  {
+    const auto & global_hit_vec = m_event->layerHits_[ilayer];
+    const auto   size = global_hit_vec.size();
+    for (size_t index = 0; index < size; ++index)
+    {
+      candHitMap[global_hit_vec[index].mcHitID()-min] = index;
     }
   }
 
@@ -855,8 +895,7 @@ void MkBuilder::remap_cand_hits(TrackVec & tracks)
       if (hitidx >= 0)
       {
         const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[hitlyr].m_hits;
-
-        track.setHitIdx(i, candHitMap[lof_m_hits[hitidx].mcHitID()]);
+        track.setHitIdx(i, candHitMap[lof_m_hits[hitidx].mcHitID()-min]);
       }
     }
   }

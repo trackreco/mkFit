@@ -874,7 +874,6 @@ int Event::clean_cms_seedtracks()
       const float deta2 = std::pow(Eta1-Eta2, 2);
 
       const float oldPhi2 = oldPhi[tss];
-      const float dphiOld = cdist(std::abs(oldPhi1-oldPhi2));
 
       const float pos2_second = pos2[tss];
       const float thisDXYSign05 = pos2_second > pos2_first ? -0.5f : 0.5f;
