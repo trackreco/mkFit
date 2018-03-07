@@ -960,18 +960,18 @@ void Event::relabel_bad_seedtracks()
 void Event::relabel_cmsswtracks_from_seeds()
 {
   std::map<int,int> cmsswLabelMap;
-  for (int iseed = 0; iseed < seedTracks_.size(); iseed++)
+  for (size_t iseed = 0; iseed < seedTracks_.size(); iseed++)
   {
-    for (int icmssw = 0; icmssw < cmsswTracks_.size(); icmssw++)
+    for (size_t icmssw = 0; icmssw < cmsswTracks_.size(); icmssw++)
     {
-      if (cmsswTracks_[icmssw].label() == iseed)
+      if (cmsswTracks_[icmssw].label() == static_cast<int>(iseed))
       {
 	cmsswLabelMap[icmssw] = seedTracks_[iseed].label();
   	break;
       }
     }
   }
-  for (int icmssw = 0; icmssw < cmsswTracks_.size(); icmssw++)
+  for (size_t icmssw = 0; icmssw < cmsswTracks_.size(); icmssw++)
   {
     cmsswTracks_[icmssw].setLabel(cmsswLabelMap[icmssw]);
   }

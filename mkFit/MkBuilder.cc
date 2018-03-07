@@ -1147,7 +1147,7 @@ void MkBuilder::prep_simtracks()
     bool isSimSeed = false;
     for (const auto seedIDpair : seedIDMap)
     {
-      if (seedIDpair.second.size() == Config::nlayers_per_seed)
+      if (seedIDpair.second.size() == static_cast<size_t>(Config::nlayers_per_seed))
       {
 	isSimSeed = true;
 	break;
