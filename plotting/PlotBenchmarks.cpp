@@ -10,7 +10,7 @@ PlotBenchmarks::PlotBenchmarks(const TString & arch, const TString & sample) : a
   file = TFile::Open("benchmark_"+arch+"_"+sample+".root");
 
   // types of build options
-  setupBuilds();
+  setupBuilds(false);
 
   // setup enum
   if      (arch.Contains("SNB")) ARCH = SNB;

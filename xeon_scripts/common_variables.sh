@@ -1,8 +1,7 @@
 #! /bin/bash
 
 # samples
-export simval_sample=CMSSW_10mu
-export physics_sample=CMSSW_TTbar_PU70
+export sample=CMSSW_TTbar_PU70
 
 # vars for KNL
 export KNL_HOST=${USER}@phi2.t2.ucsd.edu

@@ -1,3 +1,5 @@
+** KPM 25/02/18: still need to update methods for setting mc/cmssw track id **
+
 This file is a compendium on how the validation runs within mkFit, which makes use of the TTreeValidation class and other supporting macros.  
 
 Table of Contents
@@ -191,10 +193,6 @@ The following routines are then called after the building (MkBuilder.cc, Event.c
     : else (not matching by label, or ref track does not exist
       : if nCandHits < nMinHits, ID = -8
       : else, ID = -9
-  : else if (mc/cmsswTrackID == -10), i.e. track is a pure seed and we are matching using byLabel
-    : if ref track exists
-      : if nCandHits < nMinHits, ID = -11
-      : else, ID = -12
   -->return potentially new ID assignment
 
 - setMCTrackIDInfoByLabel()
@@ -203,12 +201,9 @@ The following routines are then called after the building (MkBuilder.cc, Event.c
   : if hits are found after seed
     : if 50% are matched, mcTrackID == seedID_
     : else, mcTrackID == -1
-  : else 
-    : mcTrackID = -10
   : mcTrackID = modifyRecTrackID() // nCandhits = nFoundHits-nlayers_per_seed, nMinHits = Config::nMinFoundHits - Config::nlayers_per_seed		      
     
 - setMCTrackIDInfo(isSeedTrack)
-  : if track somehow has zero hits on track, mcTrackID = -13 --> should never happen unless some really deep bug
   : Loop over all found hits on build track (includes seed hits)
     : count the mcTrackID that appears most from the hits
   : if 75% of hits on reco track match a single sim track, mcTrackID == mcTrackID of single sim track
@@ -369,11 +364,11 @@ Fake Rate (with only long reco tracks: Config::inclusiveShorts == false) [PlotVa
 
 Fake Rate (with all reco tracks: Config::inclusiveShorts == true, enabled with command line option: --inc-shorts) [PlotValidation::PlotFakeRate()]
   numerator:   reco tracks with mcTrackID == -1 || == -5 || ==  -8 || ==  -9
-  denominator: reco tracks with mcTrackID >=  0 || == -2 || == -10 || == -11 || == -1 || == -5 || == -8 || == -9
+  denominator: reco tracks with mcTrackID >=  0 || == -2 || == -1 || == -5 || == -8 || == -9
   mcTrackID  | mcmask_[reco] 
     >= 0     |     1
  -1,-5,-8,-9 |     0
- -2,-10,-11  |     2   
+     -2      |     2   
     else     |    -1 // OR the seed track does produce a build/fit track as determined by the seedToBuild/FitMap
 
 Duplicate Rate [PlotValidation::PlotDuplicateRate()], see special note in section H
@@ -494,10 +489,6 @@ ID ==  -6 : a short reco track is unmatched to an unfindable sim/cmssw track: N,
 ID ==  -7 : a long reco track is unmatched to an unfindable sim/cmssw track: N,S,unF
 ID ==  -8 : a short reco track is unmatched to a track that may not have a reference or the reference is not give: N,S,?
 ID ==  -9 : a long reco track is unmatched to a track that may not have a reference or the reference is not give: N,L,?
-ID == -10 : a pure seed cannot determine its reference track: N/A,O,?
-ID == -11 : a pure seed has a findable reference track: N/A,O,isF
-ID == -12 : a pure seed has an unfindable reference track: N/A,O,unF
-ID == -13 : a zero size track, protection inside setMCTrackIDInfo(). This should never happen...
 
 N.B. CMSSW TrackID uses same assignments!
 

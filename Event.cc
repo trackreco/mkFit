@@ -320,7 +320,7 @@ void Event::Fit()
 void Event::Validate()
 {
   // standard eff/fr/dr validation
-  if (Config::sim_val) {
+  if (Config::sim_val || Config::sim_val_for_cmssw) {
     validation_.setTrackExtras(*this);
     validation_.makeSimTkToRecoTksMaps(*this);
     validation_.makeSeedTkToRecoTkMaps(*this);
@@ -348,7 +348,7 @@ void Event::PrintStats(const TrackVec& trks, TrackExtraVec& trkextras)
 
   for (auto&& trk : trks) {
     auto&& extra = trkextras[trk.label()];
-    extra.setMCTrackIDInfoByLabel(trk, layerHits_, simHitsInfo_, simTracks_);
+    extra.setMCTrackIDInfo(trk, layerHits_, simHitsInfo_, simTracks_, false, true);
     if (extra.mcTrackID() < 0) {
       ++miss;
     } else {
@@ -710,7 +710,7 @@ int Event::clean_cms_simtracks()
 
     t.sortHitsByLayer();
     
-    const int lyr_cnt = t.nUniqueLayers();
+    const int lyr_cnt = t.nUniqueLayers(false);
 
     //const int lasthit = t.getLastFoundHitPos();
     //const float eta = layerHits_[t.getHitLyr(lasthit)][t.getHitIdx(lasthit)].eta();
@@ -954,6 +954,26 @@ void Event::relabel_bad_seedtracks()
   for (auto&& track : seedTracks_)
   { 
     if (track.label() < 0) track.setLabel(--newlabel);
+  }
+}
+
+void Event::relabel_cmsswtracks_from_seeds()
+{
+  std::map<int,int> cmsswLabelMap;
+  for (int iseed = 0; iseed < seedTracks_.size(); iseed++)
+  {
+    for (int icmssw = 0; icmssw < cmsswTracks_.size(); icmssw++)
+    {
+      if (cmsswTracks_[icmssw].label() == iseed)
+      {
+	cmsswLabelMap[icmssw] = seedTracks_[iseed].label();
+  	break;
+      }
+    }
+  }
+  for (int icmssw = 0; icmssw < cmsswTracks_.size(); icmssw++)
+  {
+    cmsswTracks_[icmssw].setLabel(cmsswLabelMap[icmssw]);
   }
 }
 

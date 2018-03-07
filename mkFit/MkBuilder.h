@@ -140,6 +140,7 @@ public:
 
   void quality_store_tracks(TrackVec & tracks);
 
+  void sim_val_for_cmssw();
   void sim_val();
   void cmssw_val();
   void prep_recotracks(); 

@@ -91,7 +91,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
       cands[m_start_seed+is].resize(cv.size());
       for (int ii = 0; ii < cv.size(); ++ii)
       {
-        memcpy( & cands[m_start_seed+is][ii], & cv[ii], sizeof(Track));
+	memcpy( & cands[m_start_seed+is][ii], & cv[ii], sizeof(Track));
       }
       cv.clear();
     }
