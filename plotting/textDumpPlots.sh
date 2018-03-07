@@ -10,7 +10,7 @@ for build in BH STD CE # FV
 do 
     echo "Making plots from text files for" ${sample} ":" ${build}
     
-    for archV in "SNB ${Base_Test}" "SNB NVU8int_NTH24" "KNL ${Base_Test}" "KNL NVU16int_NTH256" "SKL ${Base_Test}" "SKL NVU16int_NTH48"
+    for archV in "SNB ${Base_Test}" "SNB NVU8int_NTH24" "KNL ${Base_Test}" "KNL NVU16int_NTH256" # "SKL ${Base_Test}" "SKL NVU16int_NTH48"
     do echo ${archV} | while read -r archN archO
 	do
 	    echo "Extracting plots from dump for" ${archN} ${archO}
