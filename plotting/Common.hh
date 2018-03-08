@@ -112,13 +112,13 @@ namespace
       arch_opt.vuspeedupmax = arch_opt.vumax;
 
       arch_opt.thspeedupmin = 0.;
-      arch_opt.thspeedupmax = 60.;
+      arch_opt.thspeedupmax = 80.;
 
-      arch_opt.thmeiftimemin = 0.01;
+      arch_opt.thmeiftimemin = 0.001;
       arch_opt.thmeiftimemax = arch_opt.thtimemax;
 
       arch_opt.thmeifspeedupmin = 0.;
-      arch_opt.thmeifspeedupmax = 40.;
+      arch_opt.thmeifspeedupmax = arch_opt.thspeedupmax;
     }
     else if (ARCH == SKL)
     {
