@@ -172,7 +172,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       float z  = Par[iI].ConstAt(itrack, 2, 0);
       float dz = nSigmaZ * std::sqrt(Err[iI].ConstAt(itrack, 2, 2));
 
-      dz = std::max(std::abs(dz), L.min_dq());
+      dz = std::min(std::max(std::abs(dz), L.min_dq()), L.max_dq());
 
       // NOTE -- once issues in this block are resolved the changes should also be
       // ported to MkFinderFV.
@@ -208,7 +208,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       float  r = std::sqrt(r2);
       float dr = nSigmaR*(x*x*Err[iI].ConstAt(itrack, 0, 0) + y*y*Err[iI].ConstAt(itrack, 1, 1) + 2*x*y*Err[iI].ConstAt(itrack, 0, 1))/r2;
 
-      dr = std::max(std::abs(dr), L.min_dq());
+      dr = std::min(std::max(std::abs(dr), L.min_dq()), L.max_dq());
 
       if (Config::useCMSGeom) // should be Config::finding_requires_propagation_to_hit_pos
       {
@@ -692,12 +692,14 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
     // XXXXMT HACK ... put in original track if a layer was missed completely.
-    // Can/should be done earlier?
+    // Can/should be done earlier? It must be - we can be propagated to outer
+    // space by now for low pt, low eta tracks.
+    // XXXX-1 - This is now done before, in MkBuilder(), with original candidate, before propagation.
     if (XWsrResult[itrack].m_wsr == WSR_Outside)
     {
-      Track newcand;
-      copy_out(newcand, itrack, iP);
-      tmp_candidates[SeedIdx(itrack, 0, 0) - offset].emplace_back(newcand);
+      // Track newcand;
+      // copy_out(newcand, itrack, iP);
+      // tmp_candidates[SeedIdx(itrack, 0, 0) - offset].emplace_back(newcand);
       continue;
     }
 

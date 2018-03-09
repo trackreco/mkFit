@@ -1,7 +1,7 @@
 #include "KalmanUtilsMPlex.h"
 #include "PropagationMPlex.h"
 
-#define DEBUG
+//#define DEBUG
 #include "Debug.h"
 
 #include "KalmanUtilsMPlex.icc"

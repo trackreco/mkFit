@@ -1,7 +1,7 @@
 #include "MaterialEffects.h"
 #include "PropagationMPlex.h"
 
-#define DEBUG
+//#define DEBUG
 #include "Debug.h"
 
 
@@ -396,7 +396,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 			          MPlexLS &outErr,       MPlexLV& outPar,
                             const int      N_proc, const PropagationFlags pflags)
 {
-  debug = true;
+   // debug = true;
 
    // This is used further down when calculating similarity with errorProp (and before in DEBUG).
    // MT: I don't think this really needed if we use inErr where required.
@@ -495,7 +495,7 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 			          MPlexLS &outErr,       MPlexLV& outPar,
                             const int      N_proc, const PropagationFlags pflags)
 {
-  debug = true;
+   // debug = true;
 
    outErr = inErr;
    outPar = inPar;

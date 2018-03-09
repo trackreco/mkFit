@@ -185,6 +185,7 @@ public:
   float swimPhiToR(const float x, const float y) const;
 
   bool  canReachRadius(float R) const;
+  float maxReachRadius() const;
   float zAtR(float R, float *r_reached=0) const;
   float rAtZ(float Z) const;
 

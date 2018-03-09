@@ -446,6 +446,10 @@ void MkBuilder::import_seeds()
     // XXXX Calculate z ... then check is inside or less that first EC z.
     // There are a lot of tracks that go through that crack.
 
+    // XXXX trying a fix for low pT tracks that are in barrel after half circle
+    float maxR = S.maxReachRadius();
+    float z_at_maxr;
+
     bool  can_reach_outer_brl = S.canReachRadius(outer_brl.m_rout);
     float z_at_outer_brl;
     bool  misses_first_tec;
@@ -457,10 +461,18 @@ void MkBuilder::import_seeds()
       else
         misses_first_tec = z_at_outer_brl > tec_first.m_zmax;
     }
+    else
+    {
+      z_at_maxr = S.zAtR(maxR);
+      if (z_dir_pos)
+        misses_first_tec = z_at_maxr < tec_first.m_zmin;
+      else
+        misses_first_tec = z_at_maxr > tec_first.m_zmax;
+    }
 
-    // printf("Processing seed %d: r_means %f %f %f\n", i, tib1.r_mean(), tob1.r_mean(), outer_brl.r_mean());
+    // dprintf("Processing seed %d: r_mean tib1=%f tob1=%f tob_last=%f\n", i, tib1.r_mean(), tob1.r_mean(), outer_brl.r_mean());
 
-    if (can_reach_outer_brl && misses_first_tec)
+    if (/*can_reach_outer_brl &&*/ misses_first_tec)
       // outer_brl.is_within_z_limits(S.zAtR(outer_brl.r_mean())))
     {
       reg = TrackerInfo::Reg_Barrel;
@@ -492,6 +504,8 @@ void MkBuilder::import_seeds()
     m_event->seedMaxLastLayer_[reg] = std::max(m_event->seedMaxLastLayer_[reg], hot.layer);
 
     etas[i] = 5.0f * (reg - 2) + eta;
+
+    // dprintf("  can_reach_outer_brl=%d misses_first_tec=%d => reg=%d\n", can_reach_outer_brl, misses_first_tec, reg);
 
     // -------------------------------------------------
     // Compare r-z line vs. propagation
@@ -535,7 +549,7 @@ void MkBuilder::import_seeds()
     seeds.emplace_back( orig_seeds[ rs.GetRanks()[i] ] );
   }
 
-  dprintf("MkBuilder::import_seeds finished import of %d seeds (last seeding layer):\n"
+  dprintf("MkBuilder::import_seeds finished import of %d seeds (last seeding layer min, max):\n"
           "  ec- = %d(%d,%d), t- = %d(%d,%d), brl = %d(%d,%d), t+ = %d(%d,%d), ec+ = %d(%d,%d).\n",
           size,
           m_event->seedEtaSeparators_[0], m_event->seedMinLastLayer_[0], m_event->seedMaxLastLayer_[0],
@@ -1194,6 +1208,16 @@ void MkBuilder::prep_tracks(TrackVec& tracks, TrackExtraVec& extras, const bool 
 
 void MkBuilder::PrepareSeeds()
 {
+  {
+    TrackVec  &tv = m_event->seedTracks_;
+    char pref[80];
+    for (int i = 0; (int) i < tv.size(); ++i)
+    {
+      sprintf(pref, "Pre-cleaning seed silly value check event=%d index=%d:", m_event->evtID(), i);
+      tv[i].hasSillyValues(true, false, pref);
+    }
+  }
+
   if (Config::seedInput == simSeeds)
   {
     if (Config::useCMSGeom)
@@ -1254,9 +1278,9 @@ void MkBuilder::PrepareSeeds()
       exit(1);
     }
 
-    ///*
+    /*
     {
-      const int  select_label = -33;
+      const int  select_label = -53;
       TrackVec  &tv = m_event->seedTracks_;
       for (int i = 0; (int) i < tv.size(); ++i)
       {
@@ -1270,15 +1294,15 @@ void MkBuilder::PrepareSeeds()
         }
       }
     }
-    //*/
+    */
     const bool fix_silly_seeds    = true;
     const bool remove_silly_seeds = true;
     if (fix_silly_seeds)
     {
       TrackVec  &tv = m_event->seedTracks_;
-      for (int i = 0; (int) i < tv.size(); ++i)
+      for (int i = 0; i < (int) tv.size(); ++i)
       {
-        bool silly = tv[i].hasSillyValues(true, true, "Input seed silly value check");
+        bool silly = tv[i].hasSillyValues(true, fix_silly_seeds, "Post-cleaning seed silly value check and fix");
         if (silly && remove_silly_seeds)
         {
           // Could do somethin smarter here: setStopped ?  check in seed cleaning ?
@@ -1493,7 +1517,7 @@ int MkBuilder::find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & s
 
 void MkBuilder::FindTracksStandard()
 {
-  bool debug = true;
+  //bool debug = true;
 
   EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
@@ -1562,7 +1586,7 @@ void MkBuilder::FindTracksStandard()
           dprint("processing track=" << itrack << ", label=" << eoccs.m_candidates[seed_cand_idx[itrack].first][seed_cand_idx[itrack].second].label());
 
           for (int ti = itrack; ti < end; ++ti)
-            eoccs.m_candidates[seed_cand_idx[ti].first][seed_cand_idx[ti].second].hasSillyValues(true, false, "Input");
+            eoccs.m_candidates[seed_cand_idx[ti].first][seed_cand_idx[ti].second].hasSillyValues(true, true, "Per layer silly check");
 
 
           //fixme find a way to deal only with the candidates needed in this thread
@@ -1576,11 +1600,55 @@ void MkBuilder::FindTracksStandard()
           (mkfndr.get()->*fnd_foos.m_propagate_foo)(layer_info.m_propagate_to, end - itrack,
                                                     Config::finding_inter_layer_pflags);
 
-
           dcall(post_prop_print(curr_layer, mkfndr.get()));
 
           dprint("now get hit range");
           mkfndr->SelectHitIndices(layer_of_hits, end - itrack);
+
+          // XXXX-1 If I miss a layer, insert the original track into tmp_cands
+          // AND do not do it in FindCandidates as the position can be badly
+          // screwed by then. See XXXX-1 comment there,
+          // One could also do a pre-check ... so as not to use up a slot.
+          // ! Another reason why candidate first processing could help !
+          // Oh, but be careful with low-pt / looper tracks - propagation
+          // can really screw you there (need a maxR in candidate?).
+          for (int ti = itrack; ti < end; ++ti)
+          {
+            Track      &cand = eoccs.m_candidates[seed_cand_idx[ti].first][seed_cand_idx[ti].second];
+            WSR_Result &w    = mkfndr->XWsrResult[ti - itrack];
+
+            // XXXX-4 Low pT tracks can miss a barrel layer ... and should be stopped
+            const float cand_r = std::hypot(mkfndr->getPar(ti - itrack, 0, MkBase::iP), mkfndr->getPar(ti - itrack, 1, MkBase::iP));
+            if (region == TrackerInfo::Reg_Barrel && cand_r < layer_info.m_rin)
+            {
+              // For now just fake outside ... and let logic below fix it.
+              dprintf("Barrel cand propagated to r=%f ... layer is %f - %f\n", cand_r, layer_info.m_rin, layer_info.m_rout);
+
+              mkfndr->XHitSize[ti - itrack] = 0;
+              w.m_wsr = WSR_Outside;
+            }
+
+            dprintf("WSR Check label %d, seed %d, cand %d -> wsr %d, in_gap %d\n",
+                    cand.label(), seed_cand_idx[ti].first, seed_cand_idx[ti].second,
+                    w.m_wsr, w.m_in_gap);
+
+            if (w.m_wsr == WSR_Outside)
+            {
+              tmp_cands[seed_cand_idx[ti].first - start_seed].emplace_back(cand);
+            }
+            else if (w.m_wsr == WSR_Edge)
+            {
+              // XXXX-2 Additionally, if I miss/hit by epsilon, here would be a
+              // good place to clone the extra track that goes straight into
+              // the "other" sub-section - ecap/brl (for the transition
+              // region). Here the jump-to-layer-on-miss I wanted to add to
+              // LayerInfo will be needed.
+              // And, stop the track if told to do so !!!
+            }
+
+            // XXXX-3 mind the gap - as in w.m_in_gap !!!!
+            // Those don't really need to be taken out ... but think it through.
+          }
 
 	  // if(Config::dumpForPlots) {
 	  //std::cout << "MX number of hits in window in layer " << curr_layer << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;

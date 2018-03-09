@@ -121,6 +121,14 @@ bool Track::canReachRadius(float R) const
   return std::abs(ooc) > R - std::hypot(x(), y());
 }
 
+float Track::maxReachRadius() const
+{
+  // Does NOT consider direction of the track ... it's upper bound.
+  const float k   = ((charge() < 0) ? 100.0f : -100.0f) / (Config::sol * Config::Bfield);
+  const float ooc = 2.0f * k * pT();
+  return std::abs(ooc) + std::hypot(x(), y());
+}
+
 float Track::zAtR(float R, float *r_reached) const
 {
   float xc  = x();
