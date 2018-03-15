@@ -298,14 +298,13 @@ namespace Config
   extern    int maxCandsPerEtaBin;
 
   // Selection of simtracks from CMSSW. Used in Event::clean_cms_simtracks() and MkBuilder::prep_cmsswtracks()
-  constexpr int   cmsSelMinLayers = 8;
+  constexpr int   cmsSelMinLayers = 12;
   constexpr float cmsSelMinPt     = 0.5;
 
   // config on validation
-  constexpr int nMinFoundHits = 7;
+  constexpr int nMinFoundHits = 10;
   constexpr float minCMSSWMatchChi2[6] = {100,100,50,50,30,20};
   constexpr float minCMSSWMatchdPhi[6] = {0.2,0.2,0.1,0.05,0.01,0.005};
-  constexpr int   nCMSSWMatchHitsAfterSeed = 5;
   extern bool quality_val;
   extern bool sim_val_for_cmssw;
   extern bool sim_val;
