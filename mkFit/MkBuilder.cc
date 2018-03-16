@@ -262,7 +262,7 @@ void MkBuilder::begin_event(Event* ev, const char* build_type)
   }
 #ifdef DEBUG
   //dump sim tracks
-  for (int itrack = 0; itrack < simtracks.size(); ++itrack)
+  for (int itrack = 0; itrack < (int) simtracks.size(); ++itrack)
   {
     Track track = simtracks[itrack];
     //if (track.label() != itrack)
@@ -288,7 +288,7 @@ void MkBuilder::begin_event(Event* ev, const char* build_type)
   });
 
 #ifdef DEBUG
-  for (int itrack = 0; itrack < simtracks.size(); ++itrack)
+  for (int itrack = 0; itrack < (int) simtracks.size(); ++itrack)
   {
     for (int ihit = 0; ihit < simtracks[itrack].nFoundHits(); ++ihit)
     {
@@ -1211,7 +1211,7 @@ void MkBuilder::PrepareSeeds()
   {
     TrackVec  &tv = m_event->seedTracks_;
     char pref[80];
-    for (int i = 0; (int) i < tv.size(); ++i)
+    for (int i = 0; i < (int) tv.size(); ++i)
     {
       sprintf(pref, "Pre-cleaning seed silly value check event=%d index=%d:", m_event->evtID(), i);
       tv[i].hasSillyValues(true, false, pref);
