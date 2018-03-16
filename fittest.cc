@@ -110,7 +110,7 @@ void runFittingTest(Event& ev, const TrackVec& candidates, const TrackExtraVec& 
   {
     for (auto itrack = trackiter.begin(); itrack != trackiter.end(); ++itrack) {
       const auto& trk = candidates[itrack];
-      assert(trk.label() == itrack);
+      assert(static_cast<size_t>(trk.label()) == itrack);
       fitTrack(trk, candextra[itrack], itrack, ev);
     }
   });

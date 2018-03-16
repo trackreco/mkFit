@@ -267,7 +267,7 @@ namespace Math {
    __host__ __device__
 #endif
       inline MatRepSym<T, D>& operator=(const MatRepSym& rhs) {
-         #pragma ivdep
+         #pragma omp simd
          for(unsigned int i=0; i<kSize; ++i) fArray[i] = rhs.Array()[i];
          return *this;
       }

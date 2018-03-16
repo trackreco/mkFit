@@ -51,9 +51,9 @@ struct ExecutionContext
   {
     int count = MkFinderFv::nMplx(n_seedsPerThread);
     auto sz = m_finderv.unsafe_size();
-    if (sz < n_thr) {
+    if (sz < static_cast<size_t>(n_thr)) {
       dprint("Allocating " << n_thr - sz << " MkFinderFvVec of length " << count);
-      for (int i = 0; i < n_thr - sz; ++i) {
+      for (size_t i = 0; i < n_thr - sz; ++i) {
         MkFinderFvVec fv(count);
         m_finderv.push(std::move(fv));
       }
@@ -62,7 +62,7 @@ struct ExecutionContext
 
   MkFinderFvVec getFV(int sz)
   {
-    int count = (sz + MkFinderFv::Seeds - 1)/MkFinderFv::Seeds; // adjust for seeds per finder
+    size_t count = (sz + MkFinderFv::Seeds - 1)/MkFinderFv::Seeds; // adjust for seeds per finder
     MkFinderFvVec retfv;
     m_finderv.try_pop(retfv);
     if (retfv.size() < count) {

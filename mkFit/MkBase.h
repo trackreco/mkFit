@@ -31,7 +31,7 @@ public:
   void PropagateTracksToR(float r, const int N_proc, const PropagationFlags pf)
   {
     MPlexQF msRad;
-#pragma simd
+#pragma omp simd
     for (int n = 0; n < NN; ++n)
     {
       msRad.At(n, 0, 0) = r;
@@ -44,7 +44,7 @@ public:
   void PropagateTracksToHitR(const MPlexHV& par, const int N_proc, const PropagationFlags pf)
   {
     MPlexQF msRad;
-#pragma simd
+#pragma omp simd
     for (int n = 0; n < NN; ++n)
     {
       msRad.At(n, 0, 0) = std::hypot(par.ConstAt(n, 0, 0), par.ConstAt(n, 1, 0));
@@ -59,7 +59,7 @@ public:
   void PropagateTracksToZ(float z, const int N_proc, const PropagationFlags pf)
   {
     MPlexQF msZ;
-#pragma simd
+#pragma omp simd
     for (int n = 0; n < NN; ++n)
     {
       msZ.At(n, 0, 0) = z;
@@ -72,7 +72,7 @@ public:
   void PropagateTracksToHitZ(const MPlexHV& par, const int N_proc, const PropagationFlags pf)
   {
     MPlexQF msZ;
-#pragma simd
+#pragma omp simd
     for (int n = 0; n < NN; ++n)
     {
       msZ.At(n, 0, 0) = par.ConstAt(n, 2, 0);
@@ -85,7 +85,7 @@ public:
   void PropagateTracksToPCAZ(const int N_proc, const PropagationFlags pf)
   {
     MPlexQF msZ; // PCA z-coordinate
-#pragma simd
+#pragma omp simd
     for (int n = 0; n < NN; ++n)
     {
       const float slope = std::tan(Par[iC].ConstAt(n, 5, 0));

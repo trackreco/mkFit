@@ -3,7 +3,7 @@ import ROOT
 import array
 import math
 
-arch   = sys.argv[1] # SNB, KNL
+arch   = sys.argv[1] # SNB, KNL, SKL
 sample = sys.argv[2]
 build  = sys.argv[3] # CE, FV
 
@@ -18,6 +18,10 @@ elif arch == 'SNB' :
     nvu = '8int'
     thvals = ['1','2','4','6','8','12','16','20','24']
     evvals = ['1','2','4','8','12']
+elif arch == 'SKL' :
+    nvu = '16int'
+    thvals = ['1','2','4','8','16','32','48']
+    evvals = ['1','2','4','8','16','32']
 else :
     print arch,"is not a valid architecture! Exiting..."
     sys.exit(0)

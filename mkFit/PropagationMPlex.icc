@@ -15,7 +15,7 @@ static inline void helixAtRFromIterativeCCS_impl(const    Tf& __restrict__ inPar
                                                  const int N_proc,
                                                  const PropagationFlags pf)
 {
-#pragma simd
+#pragma omp simd
   for (int n = nmin; n < nmax; ++n)
     {
       //initialize erroProp to identity matrix

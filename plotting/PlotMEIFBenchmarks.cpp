@@ -11,6 +11,7 @@ PlotMEIFBenchmarks::PlotMEIFBenchmarks(const TString & arch, const TString & sam
   // setup enum
   if      (arch.Contains("SNB")) ARCH = SNB;
   else if (arch.Contains("KNL")) ARCH = KNL;
+  else if (arch.Contains("SKL")) ARCH = SKL;
   else 
   {
     std::cerr << arch.Data() << " is not an allowed architecture! Exiting... " << std::endl;

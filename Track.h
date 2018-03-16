@@ -203,7 +203,7 @@ public:
   {
     for (int ihit = 0; ihit <= lastHitIdx_; ++ihit) {
       const HitOnTrack &hot = hitsOnTrk_[ihit];
-      if ((hot.index >= 0) && (hot.index < globalHitVec[hot.layer].size()))
+      if ((hot.index >= 0) && (static_cast<size_t>(hot.index) < globalHitVec[hot.layer].size()))
       {
         mcHitIDs.push_back(globalHitVec[hot.layer][hot.index].mcTrackID(globalMCHitInfo));
 	//globalMCHitInfo[globalHitVec[hot.layer][hot.index].mcHitID()].mcTrackID());
@@ -433,7 +433,7 @@ public:
 
   enum class ProdType { NotSet = 0, Signal = 1, InTimePU = 2, OutOfTimePU = 3};
   ProdType prodType()  const { return ProdType(status_.prod_type); }
-  void setProdType(ProdType ptyp) { status_.prod_type = uint(ptyp); }
+  void setProdType(ProdType ptyp) { status_.prod_type = static_cast<unsigned int>(ptyp); }
 
   bool hasNonStoredHits() const { return status_.has_non_stored_hits; }
   void setHasNonStoredHits()    { status_.has_non_stored_hits = true; }

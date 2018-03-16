@@ -48,6 +48,9 @@ inline void diagonalOnly(Matrix& m)
 
 // This should go elsewhere, eventually.
 
+#if __cplusplus > 201402L
+using std::clamp;
+#else
 template<class T, class Compare> inline
 constexpr const T clamp( const T v, const T lo, const T hi, Compare comp )
 {
@@ -59,6 +62,7 @@ constexpr const T clamp( const T v, const T lo, const T hi )
 {
   return clamp( v, lo, hi, std::less<T>() );
 }
+#endif
 
 #include <sys/time.h>
 

@@ -5,7 +5,7 @@
 source xeon_scripts/common_variables.sh
 
 ##### Make benchmark plots for each architecture #####
-for archV in "SNB snb" "KNL knl"
+for archV in "SNB snb" "KNL knl" #"SKL skl"
    do echo ${archV} | while read -r archN archO
 	do
 	echo "Extract benchmarking results for" ${archN}

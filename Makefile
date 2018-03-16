@@ -56,10 +56,10 @@ distclean: clean-local
 	cd mkFit     && ${MAKE} distclean
 
 ${LIB_CORE}: ${CORE_OBJS}
-	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} ${CORE_OBJS} -shared -o $@ ${LDFLAGS_HOST} ${LDFLAGS_CU}
+	${CXX} ${CXXFLAGS} ${VEC_HOST} ${CORE_OBJS} -shared -o $@ ${LDFLAGS_HOST} ${LDFLAGS_CU} ${LDFLAGS}
 
 main: ${AUTO_TGTS} ${LIB_CORE} main.o ${LIBUSOLIDS}
-	${CXX} ${CXXFLAGS} ${VEC_HOST} -o $@ main.o ${LIBUSOLIDS} ${LDFLAGS} -L. -lMicCore -Wl,-rpath,.
+	${CXX} ${CXXFLAGS} ${VEC_HOST} -o $@ main.o ${LIBUSOLIDS} ${LDFLAGS_HOST} ${LDFLAGS} -L. -lMicCore -Wl,-rpath,.
 
 ${OBJS}: %.o: %.cc %.d
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<

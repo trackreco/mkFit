@@ -1,4 +1,5 @@
 #include <memory>
+#include <limits>
 
 #include "MkBuilder.h"
 #include "seedtestMPlex.h"
@@ -131,15 +132,6 @@ namespace
     std::cout << "found total seeds=" << seeds.size() << std::endl;
     for (auto&& seed : seeds) {
       print_seed(seed);
-    }
-  }
-
-  void print_seeds(const EventOfCandidates& event_of_cands) {
-    for (int ebin = 0; ebin < Config::nEtaBin; ++ebin) {
-      const EtaBinOfCandidates &etabin_of_candidates = event_of_cands.m_etabins_of_candidates[ebin]; 
-      for (int iseed = 0; iseed < etabin_of_candidates.m_size; iseed++) {
-        print_seed2(etabin_of_candidates.m_candidates[iseed]);
-      }
     }
   }
 
@@ -583,7 +575,7 @@ void MkBuilder::find_seeds()
   // make seed tracks
   TrackVec & seedtracks = m_event->seedTracks_;
   seedtracks.resize(seed_idcs.size());
-  for (int iseed = 0; iseed < seedtracks.size(); iseed++)
+  for (size_t iseed = 0; iseed < seedtracks.size(); iseed++)
   {
     auto & seedtrack = seedtracks[iseed];
     seedtrack.setLabel(iseed);
@@ -750,20 +742,40 @@ void MkBuilder::map_seed_hits()
   // map seed hit indices from global m_event->layerHits_[i] to hit indices in
   // structure m_event_of_hits.m_layers_of_hits[i].m_hits
 
-  std::unordered_map<int,int> seedHitMap;
-
   // XXMT4K: This was: Config::nlayers_per_seed, now not that simple.
   // In principle could have a list of seed layers (from outside (seed maker) or TrackerInfo).
-  int max_layer = Config::nTotalLayers;
+  const int max_layer = Config::nTotalLayers;
+
+  int max = 0;
+  int min = std::numeric_limits<int>::max();
 
   for (int ilayer = 0; ilayer < max_layer; ++ilayer)
   {
-    const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
-    const auto   size = m_event->layerHits_[ilayer].size();
+    if (Config::TrkInfo.is_seed_lyr(ilayer)) {
+      const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
+      const auto   size = m_event->layerHits_[ilayer].size();
 
-    for (int index = 0; index < size; ++index)
-    {
-      seedHitMap[lof_m_hits[index].mcHitID()] = index;
+      for (size_t index = 0; index < size; ++index)
+      {
+        const auto mcHitID = lof_m_hits[index].mcHitID();
+        min = std::min(min, mcHitID);
+        max = std::max(max, mcHitID);
+      }
+    }
+  }
+
+  std::vector<int> seedHitMap(max-min+1);
+
+  for (int ilayer = 0; ilayer < max_layer; ++ilayer)
+  {
+    if (Config::TrkInfo.is_seed_lyr(ilayer)) {
+      const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
+      const auto   size = m_event->layerHits_[ilayer].size();
+
+      for (size_t index = 0; index < size; ++index)
+      {
+        seedHitMap[lof_m_hits[index].mcHitID()-min] = index;
+      }
     }
   }
 
@@ -773,11 +785,10 @@ void MkBuilder::map_seed_hits()
     {
       int hitidx = track.getHitIdx(i);
       int hitlyr = track.getHitLyr(i);
-      if (hitidx >= 0)
+      if (hitidx >= 0 && Config::TrkInfo.is_seed_lyr(hitlyr))
       {
         const auto & global_hit_vec = m_event->layerHits_[hitlyr];
-
-        track.setHitIdx(i, seedHitMap[global_hit_vec[hitidx].mcHitID()]);
+        track.setHitIdx(i, seedHitMap[global_hit_vec[hitidx].mcHitID()-min]);
       }
     }
   }
@@ -789,19 +800,39 @@ void MkBuilder::remap_seed_hits()
   // m_event_of_hits.m_layers_of_hits[i].m_hits to global
   // m_event->layerHits_[i]
 
-  std::unordered_map<int,int> seedHitMap;
 
   // XXMT4K: This was: Config::nlayers_per_seed, now not that simple.
   // In principle could have a list of seed layers (from outside (seed maker) or TrackerInfo).
-  int max_layer = Config::nTotalLayers;
+  const int max_layer = Config::nTotalLayers;
+
+  int max = 0;
+  int min = std::numeric_limits<int>::max();
 
   for (int ilayer = 0; ilayer < max_layer; ++ilayer)
   {
-    const auto & global_hit_vec = m_event->layerHits_[ilayer];
-    const auto   size = global_hit_vec.size();
-    for (int index = 0; index < size; ++index)
-    {
-      seedHitMap[global_hit_vec[index].mcHitID()] = index;
+    if (Config::TrkInfo.is_seed_lyr(ilayer)) {
+      const auto & global_hit_vec = m_event->layerHits_[ilayer];
+      const auto   size = global_hit_vec.size();
+      for (size_t index = 0; index < size; ++index)
+      {
+        const auto mcHitID = global_hit_vec[index].mcHitID();
+        min = std::min(min, mcHitID);
+        max = std::max(max, mcHitID);
+      }
+    }
+  }
+
+  std::vector<int> seedHitMap(max-min+1); // assume indexes are dense
+
+  for (int ilayer = 0; ilayer < max_layer; ++ilayer)
+  {
+    if (Config::TrkInfo.is_seed_lyr(ilayer)) {
+      const auto & global_hit_vec = m_event->layerHits_[ilayer];
+      const auto   size = global_hit_vec.size();
+      for (size_t index = 0; index < size; ++index)
+      {
+        seedHitMap[global_hit_vec[index].mcHitID()-min] = index;
+      }
     }
   }
 
@@ -811,11 +842,10 @@ void MkBuilder::remap_seed_hits()
     {
       int hitidx = track.getHitIdx(i);
       int hitlyr = track.getHitLyr(i);
-      if (hitidx >= 0)
+      if (hitidx >= 0 && Config::TrkInfo.is_seed_lyr(hitlyr))
       {
         const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[hitlyr].m_hits;
-
-        track.setHitIdx(i, seedHitMap[lof_m_hits[hitidx].mcHitID()]);
+        track.setHitIdx(i, seedHitMap[lof_m_hits[hitidx].mcHitID()-min]);
       }
     }
   }
@@ -827,17 +857,32 @@ void MkBuilder::remap_cand_hits(TrackVec & tracks)
   // m_event_of_hits.m_layers_of_hits[i].m_hits to global
   // m_event->layerHits_[i]
 
-  std::unordered_map<int,int> candHitMap;
+  const int max_layer = Config::nTotalLayers;
 
-  int max_layer = Config::nTotalLayers;
+  int max = 0;
+  int min = std::numeric_limits<int>::max();
 
   for (int ilayer = 0; ilayer < max_layer; ++ilayer)
   {
     const auto & global_hit_vec = m_event->layerHits_[ilayer];
     const auto   size = global_hit_vec.size();
-    for (int index = 0; index < size; ++index)
+    for (size_t index = 0; index < size; ++index)
     {
-      candHitMap[global_hit_vec[index].mcHitID()] = index;
+      const auto mcHitID = global_hit_vec[index].mcHitID();
+      min = std::min(min, mcHitID);
+      max = std::max(max, mcHitID);
+    }
+  }
+
+  std::vector<int> candHitMap(max-min+1);
+
+  for (int ilayer = 0; ilayer < max_layer; ++ilayer)
+  {
+    const auto & global_hit_vec = m_event->layerHits_[ilayer];
+    const auto   size = global_hit_vec.size();
+    for (size_t index = 0; index < size; ++index)
+    {
+      candHitMap[global_hit_vec[index].mcHitID()-min] = index;
     }
   }
 
@@ -850,8 +895,7 @@ void MkBuilder::remap_cand_hits(TrackVec & tracks)
       if (hitidx >= 0)
       {
         const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[hitlyr].m_hits;
-
-        track.setHitIdx(i, candHitMap[lof_m_hits[hitidx].mcHitID()]);
+        track.setHitIdx(i, candHitMap[lof_m_hits[hitidx].mcHitID()-min]);
       }
     }
   }
@@ -870,13 +914,13 @@ void MkBuilder::quality_val()
   std::map<int,int> cmsswLabelToPos;
   if (Config::dumpForPlots && Config::readCmsswTracks)
   {
-    for (int itrack = 0; itrack < m_event->cmsswTracks_.size(); itrack++)
+    for (size_t itrack = 0; itrack < m_event->cmsswTracks_.size(); itrack++)
     {
       cmsswLabelToPos[m_event->cmsswTracks_[itrack].label()] = itrack;    
     }
   }
 
-  for (int i = 0; i < m_event->candidateTracks_.size(); i++)
+  for (size_t i = 0; i < m_event->candidateTracks_.size(); i++)
   {
     quality_process(m_event->candidateTracks_[i],cmsswLabelToPos);
   }
@@ -935,7 +979,7 @@ void MkBuilder::quality_process(Track &tkcand, std::map<int,int> & cmsswLabelToP
   float pTr  = 0.f; 
   int   nfoundmc = -1;
 
-  if (mctrk < 0 || mctrk >= m_event->simTracks_.size())
+  if (mctrk < 0 || static_cast<size_t>(mctrk) >= m_event->simTracks_.size())
   {
     ++m_cnt_nomc;
     dprint("XX bad track idx " << mctrk << ", orig label was " << label);
@@ -1103,7 +1147,7 @@ void MkBuilder::prep_simtracks()
     bool isSimSeed = false;
     for (const auto seedIDpair : seedIDMap)
     {
-      if (seedIDpair.second.size() == Config::nlayers_per_seed)
+      if (seedIDpair.second.size() == static_cast<size_t>(Config::nlayers_per_seed))
       {
 	isSimSeed = true;
 	break;
@@ -1135,7 +1179,7 @@ void MkBuilder::prep_reftracks(TrackVec& tracks, TrackExtraVec& extras, const bo
 
 void MkBuilder::prep_tracks(TrackVec& tracks, TrackExtraVec& extras, const bool realigntracks)
 {
-  for (int i = 0; i < tracks.size(); i++)
+  for (size_t i = 0; i < tracks.size(); i++)
   {
     tracks[i].sortHitsByLayer();
     extras.emplace_back(tracks[i].label());
@@ -1182,7 +1226,7 @@ void MkBuilder::PrepareSeeds()
     // this is a hack that allows us to associate seeds with cmssw tracks for the text dump plots
     if (Config::dumpForPlots && Config::readCmsswTracks)
     {
-      for (int itrack = 0; itrack < m_event->cmsswTracks_.size(); itrack++)
+      for (size_t itrack = 0; itrack < m_event->cmsswTracks_.size(); itrack++)
       {
 	const auto & cmsswtrack = m_event->cmsswTracks_[itrack];
 	const auto cmsswlabel = cmsswtrack.label();
@@ -1191,24 +1235,19 @@ void MkBuilder::PrepareSeeds()
       }
     }
 
-    int ns = 0;
     if (Config::seedCleaning == cleanSeedsN2)
     {
-      ns = m_event->clean_cms_seedtracks();
+      m_event->clean_cms_seedtracks();
     }
     else if (Config::seedCleaning == cleanSeedsPure)
     {
-      ns = m_event->use_seeds_from_cmsswtracks();
+      m_event->use_seeds_from_cmsswtracks();
     }
     else if (Config::seedCleaning == cleanSeedsBadLabel)
     {
-      ns = m_event->clean_cms_seedtracks_badlabel();
+      m_event->clean_cms_seedtracks_badlabel();
     }
-    else if (Config::seedCleaning == noCleaning)
-    {
-      ns = m_event->seedTracks_.size();
-    }
-    else
+    else if (Config::seedCleaning != noCleaning)
     {
       std::cerr << "Specified reading cmssw seeds, but an incorrect seed cleaning option! Exiting..." << std::endl;
       exit(1);
@@ -1394,7 +1433,7 @@ int MkBuilder::find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & s
     if ( ! pickup_only && ccand.m_state == CombCandidate::Finding)
     {
       bool active = false;
-      for (int ic = 0; ic < ccand.size(); ++ic)
+      for (size_t ic = 0; ic < ccand.size(); ++ic)
       {
         if (ccand[ic].getLastHitIdx() != -2)
         {
@@ -1446,7 +1485,7 @@ void MkBuilder::FindTracksStandard()
       const int n_seeds    = end_seed - start_seed;
 
       std::vector<std::vector<Track>> tmp_cands(n_seeds);
-      for (int iseed = 0; iseed < tmp_cands.size(); ++iseed)
+      for (size_t iseed = 0; iseed < tmp_cands.size(); ++iseed)
       {
         tmp_cands[iseed].reserve(2*Config::maxCandsPerSeed);//factor 2 seems reasonable to start with
       }
@@ -1520,7 +1559,7 @@ void MkBuilder::FindTracksStandard()
           dprint("dump seed n " << is << " with input candidates=" << tmp_cands[is].size());
           std::sort(tmp_cands[is].begin(), tmp_cands[is].end(), sortCandByHitsChi2);
 	  
-          if (tmp_cands[is].size() > Config::maxCandsPerSeed)
+          if (tmp_cands[is].size() > static_cast<size_t>(Config::maxCandsPerSeed))
           {
             dprint("erase extra candidates" << " tmp_cands[is].size()=" << tmp_cands[is].size()
                    << " Config::maxCandsPerSeed=" << Config::maxCandsPerSeed);
@@ -1553,7 +1592,7 @@ void MkBuilder::FindTracksStandard()
 
 	    //eoccs[start_seed+is].swap(tmp_cands[is]); // segfaulting w/ backwards fit input tracks -- using loop below now
 	    eoccs[start_seed+is].resize(tmp_cands[is].size());
-	    for (int ii = 0; ii < tmp_cands[is].size(); ++ii)
+	    for (size_t ii = 0; ii < tmp_cands[is].size(); ++ii)
 	    {
 	      memcpy( & eoccs[start_seed+is][ii], & tmp_cands[is][ii], sizeof(Track));
 	    }
@@ -1589,11 +1628,11 @@ void MkBuilder::FindTracksCloneEngine()
   tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
     [&](int region)
   {
+    const RegionOfSeedIndices rosi(m_event, region);
+
     // adaptive seeds per task based on the total estimated amount of work to divide among all threads
     const int adaptiveSPT = clamp(Config::numThreadsEvents*eoccs.m_size/Config::numThreadsFinder + 1, 4, Config::numSeedsPerTask);
     dprint("adaptiveSPT " << adaptiveSPT << " fill " << rosi.count() << "/" << eoccs.m_size << " region " << region);
-
-    const RegionOfSeedIndices rosi(m_event, region);
 
     tbb::parallel_for(rosi.tbb_blk_rng_std(adaptiveSPT),
       [&](const tbb::blocked_range<int>& seeds)
@@ -1801,7 +1840,8 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
     for (int offset = 0; offset < MkFinderFv::Seeds; ++offset) {
       dprint("seed " << iseed << " index " << index << " offset " << offset);
       finders[index].InputTrack(eoccs.m_candidates[iseed][0], iseed, offset, false);
-      iseed = std::min(++iseed, end_seed-1);
+      ++iseed;
+      iseed = std::min(iseed, end_seed-1);
     }
   }
 
@@ -1814,7 +1854,6 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
   assert( layer_plan_it->m_pickup_only );
 
   int curr_layer = layer_plan_it->m_layer;
-  int prev_layer;
 
   dprintf("\nMkBuilder::find_tracks_in_layersFV region=%d, seed_pickup_layer=%d, first_layer=%d seeds=%d,%d\n",
           region, curr_layer, (layer_plan_it + 1)->m_layer, start_seed, end_seed);
@@ -1822,7 +1861,6 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
   // Loop over layers according to plan.
   while (++layer_plan_it != st_par.finding_end())
   {
-    prev_layer = curr_layer;
     curr_layer = layer_plan_it->m_layer;
 
     const bool pickup_only = layer_plan_it->m_pickup_only;
@@ -1965,11 +2003,11 @@ void MkBuilder::BackwardFit()
   tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
     [&](int region)
   {
+    const RegionOfSeedIndices rosi(m_event, region);
+
     // adaptive seeds per task based on the total estimated amount of work to divide among all threads
     const int adaptiveSPT = clamp(Config::numThreadsEvents*eoccs.m_size/Config::numThreadsFinder + 1, 4, Config::numSeedsPerTask);
     dprint("adaptiveSPT " << adaptiveSPT << " fill " << rosi.count() << "/" << eoccs.m_size << " region " << region);
-
-    const RegionOfSeedIndices rosi(m_event, region);
 
     tbb::parallel_for(rosi.tbb_blk_rng_std(adaptiveSPT),
       [&](const tbb::blocked_range<int>& cands)

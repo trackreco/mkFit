@@ -9,7 +9,7 @@ __device__
 static inline void KHMult_imp(const TfLH& a, const TfQF1& b00, const TfQF2&  b01, TfLL& c,
                               const int nmin, const int nmax)
 {
-#pragma simd
+#pragma omp simd
    for (int n = nmin; n < nmax; ++n)
    {
       c(n, 0,  0) = a(n, 0,  0)*b00(n, 0, 0);
@@ -62,7 +62,7 @@ __device__
 static inline void ConvertToCCS_imp(const TfLV1& a, TfLV2& b, TfLL& c,
                                     const int nmin, const int nmax)
 {
-#pragma simd
+#pragma omp simd
   for (int n = nmin; n < nmax; ++n)
   {
     // TODO Check why getHypot and getHypot_fn have to be different
@@ -130,7 +130,7 @@ __device__
 static inline void ConvertToCartesian_imp(const TfLV1& a, TfLV2& b, TfLL& c,
                                           const int nmin, const int nmax)
 {
-#pragma simd
+#pragma omp simd
   for (int n = nmin; n < nmax; ++n)
   {
     const float cosP = std::cos(a(n, 0,  4)); //fixme: use trig approx
@@ -196,7 +196,7 @@ static inline void MultResidualsAdd_imp(const TfLH& a, const TfLV1& b,
                                        const Tf2V& c, TfLV2& d,
                                        const int nmin, const int nmax)
 {
-#pragma simd
+#pragma omp simd
    for (int n = nmin; n < nmax; ++n)
    {
       d(n, 0, 0) = b(n, 0, 0) + a(n, 0,  0) * c(n, 0, 0) + a(n, 0,  1) * c(n, 0, 1);
@@ -234,7 +234,7 @@ __device__
 static inline void RotateResidulsOnTangentPlane_impl(const TfQF1& r00,
     const TfQF2& r01, const TfHV& a, Tf2V& b, const int nmin, const int nmax)
 {
-#pragma simd
+#pragma omp simd
    for (int n = nmin; n < nmax; ++n)
    {
       b(n, 0, 0) =  r00(n, 0, 0)*a(n, 0, 0) + r01(n, 0, 0)*a(n, 0, 1);

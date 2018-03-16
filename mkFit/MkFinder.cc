@@ -144,7 +144,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
   // Pull out the part of the loop that vectorizes
   //#pragma ivdep
-#pragma simd
+#pragma omp simd
   for (int itrack = 0; itrack < NN; ++itrack)
   {
     XHitSize[itrack] = 0;
@@ -251,7 +251,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
   // Vectorizing this makes it run slower!
   //#pragma ivdep
-  //#pragma simd
+  //#pragma omp simd
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
     if (XWsrResult[itrack].m_wsr == WSR_Outside)
@@ -297,9 +297,8 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
 	  if (Config::usePhiQArrays)
 	  {
-	    const float ddq   = std::abs(q   - L.m_hit_qs[hi]);
-	          float ddphi = std::abs(phi - L.m_hit_phis[hi]);
-	    if (ddphi > Config::PI) ddphi = Config::TwoPI - ddphi;
+	    const float ddq   =       std::abs(q   - L.m_hit_qs[hi]);
+	    const float ddphi = cdist(std::abs(phi - L.m_hit_phis[hi]));
 
 	    dprintf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
 		    qi, pi, pb, hi,
@@ -390,7 +389,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
   {
     //fixme what if size is zero???
 
-#pragma simd
+#pragma omp simd
     for (int itrack = 0; itrack < N_proc; ++itrack)
     {
       if (hit_cnt < XHitSize[itrack])
@@ -416,7 +415,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
 
 #ifdef NO_GATHER
 
-#pragma simd
+#pragma omp simd
     for (int itrack = 0; itrack < N_proc; ++itrack)
     {
       if (hit_cnt < XHitSize[itrack])
@@ -455,7 +454,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
 #endif
 
     //update best hit in case chi2<minChi2
-#pragma simd
+#pragma omp simd
     for (int itrack = 0; itrack < N_proc; ++itrack)
     {
       if (hit_cnt < XHitSize[itrack])
@@ -480,7 +479,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
     }
   }
 
-  //#pragma simd
+  //#pragma omp simd
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
     if (XWsrResult[itrack].m_wsr == WSR_Outside)
@@ -590,7 +589,7 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
   //#pragma noprefetch
   for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
   {
-#pragma simd
+#pragma omp simd
     for (int itrack = 0; itrack < N_proc; ++itrack)
     {
       if (hit_cnt < XHitSize[itrack])
@@ -739,7 +738,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 
   // Determine maximum number of hits for tracks in the collection.
   // At the same time prefetch the first set of hits to L1 and the second one to L2.
-#pragma simd
+#pragma omp simd
   for (int it = 0; it < NN; ++it)
   {
     if (it < N_proc)
@@ -763,7 +762,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 //#pragma noprefetch
   for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
   {
-#pragma simd
+#pragma omp simd
     for (int itrack = 0; itrack < N_proc; ++itrack)
     {
       if (hit_cnt < XHitSize[itrack])
@@ -806,7 +805,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
       }
     }
 
-#pragma simd // DOES NOT VECTORIZE AS IT IS NOW
+#pragma omp simd // DOES NOT VECTORIZE AS IT IS NOW
     for (int itrack = 0; itrack < N_proc; ++itrack)
     {
       // make sure the hit was in the compatiblity window for the candidate
@@ -814,9 +813,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
       if (hit_cnt < XHitSize[itrack])
       {
         const float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
-#ifdef DEBUG
-        std::cout << "chi2=" << chi2 << " for trkIdx=" << itrack << std::endl;
-#endif
+        dprint("chi2=" << chi2 << " for trkIdx=" << itrack);
         if (chi2 < Config::chi2Cut)
         {
           IdxChi2List tmpList;
@@ -826,9 +823,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
           tmpList.chi2   = Chi2(itrack, 0, 0) + chi2;
           cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
           // hitsToAdd[SeedIdx(itrack, 0, 0)-offset].push_back(tmpList);
-#ifdef DEBUG
-          std::cout << "adding hit with hit_cnt=" << hit_cnt << " for trkIdx=" << tmpList.trkIdx << " orig Seed=" << Label(itrack, 0, 0) << std::endl;
-#endif
+          dprint("adding hit with hit_cnt=" << hit_cnt << " for trkIdx=" << tmpList.trkIdx << " orig Seed=" << Label(itrack, 0, 0));
         }
       }
     }
@@ -839,9 +834,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
   //fixme: please vectorize me...
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
-#ifdef DEBUG
-    std::cout << "num_invalid_hits(" << itrack << ")=" << num_invalid_hits(itrack) << std::endl;
-#endif
+    dprint("num_invalid_hits(" << itrack << ")=" << num_invalid_hits(itrack));
 
     int fake_hit_idx = num_invalid_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
 
@@ -860,9 +853,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     tmpList.nhits  = NFoundHits(itrack,0,0);
     tmpList.chi2   = Chi2(itrack, 0, 0);
     cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
-#ifdef DEBUG
-    std::cout << "adding invalid hit " << fake_hit_idx << std::endl;
-#endif
+    dprint("adding invalid hit " << fake_hit_idx);
   }
 }
 

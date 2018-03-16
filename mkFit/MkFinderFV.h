@@ -176,8 +176,10 @@ private:
 
     if (n_tot_hits < Config::nMaxTrkHits)
     {
-      HoTArrs[mslot][n_tot_hits++] = { index, layer };
-      if (index >= 0) { ++n_fnd_hits; }
+      if (index != -3 && index != -4) {
+        HoTArrs[mslot][n_tot_hits++] = { index, layer };
+        if (index >= 0) { ++n_fnd_hits; }
+      }
     }
     else
     {

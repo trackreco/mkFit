@@ -249,8 +249,6 @@ int TrackExtra::modifyRefTrackID(const int foundHits, const int minHits, const T
 void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo, const TrackVec& simtracks, 
 				  const bool isSeed, const bool isPure)
 {
-  bool debug = true;
-
   dprintf("TrackExtra::setMCTrackIDInfo for track with label %d, total hits %d, found hits %d\n",
           trk.label(), trk.nTotalHits(), trk.nFoundHits());
 
@@ -270,7 +268,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
     if (!isSeed && Config::TrkInfo.is_seed_lyr(lyr)) continue;
 
     // make sure it is a real hit
-    if ((idx >= 0) && (idx < layerHits[lyr].size()))
+    if ((idx >= 0) && (static_cast<size_t>(idx) < layerHits[lyr].size()))
     {
       // get mchitid and then get mcTrackID
       const int mchitid = layerHits[lyr][idx].mcHitID();

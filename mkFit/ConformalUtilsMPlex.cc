@@ -36,7 +36,7 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, MPlexLS& outErr, MPlexLV& o
 
   // Store positions in mplex vectors... could consider storing in a 3x3 matrix, too
   MPlexHV x, y, z, r2;
-#pragma simd
+#pragma omp simd
   for (int n = 0; n < N; ++n) 
   {
     x.At(n, 0, 0) = msPar0.ConstAt(n, 0, 0);
@@ -58,7 +58,7 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, MPlexLS& outErr, MPlexLV& o
   }
   
   // Start setting the output parameters
-#pragma simd
+#pragma omp simd
   for (int n = 0; n < N; ++n)
   {
     outPar.At(n, 0, 0) = x.ConstAt(n, 0, 0);
@@ -68,7 +68,7 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, MPlexLS& outErr, MPlexLV& o
 
   // Use r-phi smearing to set initial error estimation for positions 
   // trackStates already initialized to identity for seeding ... don't store off-diag 0's, zero's for fitting set outside CF
-#pragma simd
+#pragma omp simd
   for (int n = 0; n < N; ++n)
   {
     const float varPhi   = Config::varXY/r2.ConstAt(n, 0, 0);
@@ -85,7 +85,7 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, MPlexLS& outErr, MPlexLV& o
   
   MPlexQF initPhi;
   MPlexQI xtou; // bool to determine "split space", i.e. map x to u or v
-#pragma simd
+#pragma omp simd
   for (int n = 0; n < N; ++n) 
   {
     initPhi.At(n, 0, 0) = std::abs(getPhi(x.ConstAt(n, 0, 0), y.ConstAt(n, 0, 0)));
@@ -93,7 +93,7 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, MPlexLS& outErr, MPlexLV& o
   }
 
   MPlexHV u,v;
-#pragma simd
+#pragma omp simd
   for (int n = 0; n < N; ++n) 
   {
     if (xtou.At(n, 0, 0)) // x mapped to u
@@ -115,7 +115,7 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, MPlexLS& outErr, MPlexLV& o
   }
 
   MPlexHH A;
-#pragma simd
+#pragma omp simd
   for (int n = 0; n < N; ++n) 
   {
     for (int i = 0; i < 3; ++i) 
@@ -130,7 +130,7 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, MPlexLS& outErr, MPlexLV& o
   CFMap(A, v, C);
   
   MPlexQF a,b;
-#pragma simd
+#pragma omp simd
   for (int n = 0; n < N; ++n) 
   {
     b.At(n, 0, 0) = 1.0f/(2.0f*C.ConstAt(n, 0, 0)); 
@@ -141,7 +141,7 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, MPlexLS& outErr, MPlexLV& o
   const float k = (Config::sol*Config::Bfield)/100.0f;
 
   MPlexQF vrx, vry, pT, px, py, pz;
-#pragma simd
+#pragma omp simd
   for (int n = 0; n < N; ++n)
   {
     vrx.At(n, 0, 0) = (xtou.ConstAt(n, 0, 0) ? x.ConstAt(n, 0, 0) - a.ConstAt(n, 0, 0) : x.ConstAt(n, 0, 0) - b.ConstAt(n, 0, 0));
@@ -152,7 +152,7 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, MPlexLS& outErr, MPlexLV& o
     pz.At (n, 0, 0) = (pT.ConstAt(n, 0, 0) * (z.ConstAt(n, 2, 0) - z.ConstAt(n, 0, 0))) / hipo((x.ConstAt(n, 2, 0)-x.ConstAt(n, 0, 0)),(y.ConstAt(n, 2, 0)-y.ConstAt(n, 0, 0)));
   }
 
-#pragma simd
+#pragma omp simd
   for (int n = 0; n < N; ++n)
   {
     outPar.At(n, 3, 0) = 1.0f/pT.ConstAt(n, 0, 0);
@@ -163,7 +163,7 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, MPlexLS& outErr, MPlexLV& o
 #endif
   }
 
-#pragma simd
+#pragma omp simd
   for (int n = 0; n < N; ++n)
   {
     outErr.At(n, 3, 3) = (fitting ? Config::ptinverr049 * Config::ptinverr049 : Config::ptinverr012 * Config::ptinverr012);

@@ -45,7 +45,7 @@ void MultResidualsAdd(const MPlexL2& A,
    const T *c = C.fArray; ASSUME_ALIGNED(c, 64);
          T *d = D.fArray; ASSUME_ALIGNED(d, 64);
 
-#pragma simd
+#pragma omp simd
    for (idx_t n = 0; n < N; ++n)
    {
       // generate loop (can also write it manually this time, it's not much)
@@ -76,7 +76,7 @@ void Chi2Similarity(const MPlex2V& A,//resPar
    const T *c = C.fArray; ASSUME_ALIGNED(c, 64);
          T *d = D.fArray; ASSUME_ALIGNED(d, 64);
 
-#pragma simd
+#pragma omp simd
    for (idx_t n = 0; n < N; ++n)
    {
       // generate loop (can also write it manually this time, it's not much)
@@ -100,7 +100,7 @@ void AddIntoUpperLeft3x3(const MPlexLS& A, const MPlexHS& B, MPlexHS& C)
    const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
          T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
-#pragma simd
+#pragma omp simd
    for (idx_t n = 0; n < N; ++n)
    {
       c[0*N+n] = a[0*N+n] + b[0*N+n];
@@ -124,7 +124,7 @@ void AddIntoUpperLeft2x2(const MPlexLS& A, const MPlexHS& B, MPlex2S& C)
    const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
          T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
-#pragma simd
+#pragma omp simd
    for (idx_t n = 0; n < N; ++n)
    {
       c[0*N+n] = a[0*N+n] + b[0*N+n];
@@ -147,7 +147,7 @@ void SubtractFirst3(const MPlexHV& A, const MPlexLV& B, MPlexHV& C)
    const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
          T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
-#pragma simd
+#pragma omp simd
    for (idx_t n = 0; n < N; ++n)
    {
       c[0*N+n] = a[0*N+n] - b[0*N+n];
@@ -168,7 +168,7 @@ void SubtractFirst2(const MPlexHV& A, const MPlexLV& B, MPlex2V& C)
    const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
          T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
-#pragma simd
+#pragma omp simd
    for (idx_t n = 0; n < N; ++n)
    {
       c[0*N+n] = a[0*N+n] - b[0*N+n];
@@ -196,7 +196,7 @@ void ProjectResErr(const MPlexQF& A00,
   const T *b   = B.fArray; ASSUME_ALIGNED(b, 64);
         T *c   = C.fArray; ASSUME_ALIGNED(c, 64);
 
-#pragma simd
+#pragma omp simd
    for (int n = 0; n < N; ++n)
    {
       c[ 0*N+n] = a00[n]*b[ 0*N+n] + a01[n]*b[ 1*N+n];
@@ -229,7 +229,7 @@ void ProjectResErrTransp(const MPlexQF& A00,
   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
-#pragma simd
+#pragma omp simd
    for (int n = 0; n < N; ++n)
    {
       c[ 0*N+n] = b[ 0*N+n]*a00[n] + b[ 1*N+n]*a01[n];
@@ -257,7 +257,7 @@ void RotateResidulsOnTangentPlane(const MPlexQF& R00,//r00
    const T *r01 = R01.fArray; ASSUME_ALIGNED(r01, 64);
          T *b   = B.fArray;   ASSUME_ALIGNED(b, 64);
 
-#pragma simd
+#pragma omp simd
    for (idx_t n = 0; n < N; ++n)
    {
       b[0 * N + n] =  r00[0 * N + n]*a[0 * N + n] + r01[0 * N + n]*a[1 * N + n];
@@ -286,7 +286,7 @@ void KalmanHTG(const MPlexQF& A00,
    const T *b   = B.fArray;   ASSUME_ALIGNED(b, 64);
          T *c   = C.fArray;   ASSUME_ALIGNED(c, 64);
 
-#pragma simd
+#pragma omp simd
    for (int n = 0; n < N; ++n)
    {
       c[ 0*N+n] = a00[n]*b[ 0*N+n];
@@ -313,7 +313,7 @@ void KalmanGain(const MPlexLS& A, const MPlexHH& B, MPlexLH& C)
   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
-#pragma simd
+#pragma omp simd
    for (int n = 0; n < N; ++n)
    {
       c[ 0*N+n] = a[ 0*N+n]*b[ 0*N+n] + a[ 1*N+n]*b[ 3*N+n] + a[ 3*N+n]*b[ 6*N+n];
@@ -475,7 +475,7 @@ void kalmanPropagateAndUpdate(const MPlexLS &psErr,  const MPlexLV& psPar, const
     MPlexLS propErr;
     MPlexLV propPar;
     MPlexQF msRad;
-#pragma simd
+#pragma omp simd
     for (int n = 0; n < NN; ++n)
     {
       msRad.At(n, 0, 0) = std::hypot(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
@@ -514,7 +514,7 @@ void kalmanPropagateAndComputeChi2(const MPlexLS &psErr,  const MPlexLV& psPar, 
     MPlexLS propErr;
     MPlexLV propPar;
     MPlexQF msRad;
-#pragma simd
+#pragma omp simd
     for (int n = 0; n < NN; ++n)
     {
       msRad.At(n, 0, 0) = std::hypot(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
@@ -549,7 +549,7 @@ void kalmanOperation(const int      kfOp,
     } printf("\n");
     printf("psErr:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", psErr.At(0,i,j)); printf("\n");
+        printf("%8f ", psErr.ConstAt(0,i,j)); printf("\n");
     } printf("\n");
     printf("msPar:\n");
     for (int i = 0; i < 3; ++i) {
@@ -693,7 +693,7 @@ void kalmanPropagateAndUpdateEndcap(const MPlexLS &psErr,  const MPlexLV& psPar,
     MPlexLS propErr;
     MPlexLV propPar;
     MPlexQF msZ;
-#pragma simd
+#pragma omp simd
     for (int n = 0; n < NN; ++n)
     {
       msZ.At(n, 0, 0) = msPar.ConstAt(n, 2, 0);
@@ -732,7 +732,7 @@ void kalmanPropagateAndComputeChi2Endcap(const MPlexLS &psErr,  const MPlexLV& p
     MPlexLS propErr;
     MPlexLV propPar;
     MPlexQF msZ;
-#pragma simd
+#pragma omp simd
     for (int n = 0; n < NN; ++n)
     {
       msZ.At(n, 0, 0) = msPar.ConstAt(n, 2, 0);
@@ -772,7 +772,7 @@ void kalmanOperationEndcap(const int      kfOp,
     } printf("\n");
     printf("psErr:\n");
     for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-        printf("%8f ", psErr.At(0,i,j)); printf("\n");
+        printf("%8f ", psErr.ConstAt(0,i,j)); printf("\n");
     } printf("\n");
     printf("msErr:\n");
     for (int i = 0; i < 3; ++i) { for (int j = 0; j < 3; ++j)

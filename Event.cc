@@ -91,7 +91,7 @@ void Event::RemapHits(TrackVec & tracks)
   {
     const auto & hit_vec = layerHits_[ilayer];
     const auto   size = hit_vec.size();
-    for (int index = 0; index < size; ++index)
+    for (size_t index = 0; index < size; ++index)
     {
       simHitMap[hit_vec[index].mcHitID()] = index;
     }
@@ -147,7 +147,7 @@ void Event::Simulate()
       // convert from global cartesian to CCS
       float pt = sqrt(mom[0]*mom[0]+mom[1]*mom[1]);
       mom=SVector3(1./pt,atan2(mom[1],mom[0]),atan2(pt,mom[2]));
-      for (int its = 0; its < initialTSs.size(); its++){
+      for (size_t its = 0; its < initialTSs.size(); its++){
 	initialTSs[its].convertFromCartesianToCCS();
       }
 
@@ -163,7 +163,7 @@ void Event::Simulate()
       // This really would only matter for validation and seeding...
       // Could imagine making an inherited class for sim tracks that keeps tracks overlaps
       assert(hits.size() == hitinfos.size());
-      for (int i = 0; i < hits.size(); ++i)
+      for (size_t i = 0; i < hits.size(); ++i)
       {
         // set to the correct hit index after sorting
         sim_track.addHitIdx(layerHits_[hitinfos[i].layer_].size(), hitinfos[i].layer_, 0.0f);
@@ -182,7 +182,7 @@ void Event::Simulate()
 
   // do some work to ensure everything is aligned after multithreading 	
   std::unordered_map<int,int> mcHitIDMap;
-  for (int ihit = 0; ihit < simHitsInfo_.size(); ihit++)
+  for (size_t ihit = 0; ihit < simHitsInfo_.size(); ihit++)
   {
     mcHitIDMap[simHitsInfo_[ihit].mcHitID()] = ihit;
   }
@@ -192,7 +192,7 @@ void Event::Simulate()
 	    { return a.mcHitID() < b.mcHitID(); });
 		
   TSVec tmpTSVec(simTrackStates_.size());
-  for (int its = 0; its < simTrackStates_.size(); its++)
+  for (size_t its = 0; its < simTrackStates_.size(); its++)
   {
     tmpTSVec[its] = simTrackStates_[mcHitIDMap[its]];
   }
@@ -207,14 +207,14 @@ void Event::Segment(BinInfoMap & segmentMap)
   segmentMap.resize(Config::nTotalLayers);
 
   //sort in phi and dump hits per layer, fill phi partitioning
-  for (int ilayer=0; ilayer<layerHits_.size(); ++ilayer) {
+  for (size_t ilayer=0; ilayer<layerHits_.size(); ++ilayer) {
     dprint("Hits in layer=" << ilayer);
     
     segmentMap[ilayer].resize(Config::nEtaPart);    
     // eta first then phi
     std::sort(layerHits_[ilayer].begin(), layerHits_[ilayer].end(), sortByZ);
     std::vector<int> lay_eta_bin_count(Config::nEtaPart);
-    for (int ihit=0;ihit<layerHits_[ilayer].size();++ihit) {
+    for (size_t ihit=0;ihit<layerHits_[ilayer].size();++ihit) {
       int etabin = getEtaPartition(layerHits_[ilayer][ihit].eta());
       dprint("ihit: " << ihit << " eta: " << layerHits_[ilayer][ihit].eta() << " etabin: " << etabin);
       lay_eta_bin_count[etabin]++;
@@ -764,32 +764,32 @@ void Event::print_tracks(const TrackVec& tracks, bool print_hits) const
 int Event::clean_cms_seedtracks()
 {
 
-  int minNHits     = Config::minNHits_seedclean;
-  float etamax_brl = Config::c_etamax_brl;
-  float dpt_brl_0  = Config::c_dpt_brl_0;
-  float dpt_ec_0   = Config::c_dpt_ec_0;
-  float ptmax_0    = Config::c_ptmax_0;
-  float dpt_1      = Config::c_dpt_1;
-  float ptmax_1    = Config::c_ptmax_1;
-  float dpt_2      = Config::c_dpt_2;
-  float ptmax_2    = Config::c_ptmax_2;
-  float dpt_3      = Config::c_dpt_3;
-  float dzmax_brl  = Config::c_dzmax_brl;
-  float drmax_brl  = Config::c_drmax_brl;
-  float ptmin_hpt  = Config::c_ptmin_hpt;
-  float dzmax_hpt  = Config::c_dzmax_hpt;
-  float drmax_hpt  = Config::c_drmax_hpt;
-  float dzmax_els  = Config::c_dzmax_els;
-  float drmax_els  = Config::c_drmax_els;
+  const int minNHits     = Config::minNHits_seedclean;
+  const float etamax_brl = Config::c_etamax_brl;
+  const float dpt_brl_0  = Config::c_dpt_brl_0;
+  const float dpt_ec_0   = Config::c_dpt_ec_0;
+  const float ptmax_0    = Config::c_ptmax_0;
+  const float dpt_1      = Config::c_dpt_1;
+  const float ptmax_1    = Config::c_ptmax_1;
+  const float dpt_2      = Config::c_dpt_2;
+  const float ptmax_2    = Config::c_ptmax_2;
+  const float dpt_3      = Config::c_dpt_3;
+  const float dzmax_brl  = Config::c_dzmax_brl;
+  const float drmax_brl  = Config::c_drmax_brl;
+  const float ptmin_hpt  = Config::c_ptmin_hpt;
+  const float dzmax_hpt  = Config::c_dzmax_hpt;
+  const float drmax_hpt  = Config::c_drmax_hpt;
+  const float dzmax_els  = Config::c_dzmax_els;
+  const float drmax_els  = Config::c_drmax_els;
 
-  float dzmax2_brl = dzmax_brl*dzmax_brl;
-  float drmax2_brl = drmax_brl*drmax_brl;
-  float dzmax2_hpt = dzmax_hpt*dzmax_hpt;
-  float drmax2_hpt = drmax_hpt*drmax_hpt;
-  float dzmax2_els = dzmax_els*dzmax_els;
-  float drmax2_els = drmax_els*drmax_els;
+  const float dzmax2_brl = dzmax_brl*dzmax_brl;
+  const float drmax2_brl = drmax_brl*drmax_brl;
+  const float dzmax2_hpt = dzmax_hpt*dzmax_hpt;
+  const float drmax2_hpt = drmax_hpt*drmax_hpt;
+  const float dzmax2_els = dzmax_els*dzmax_els;
+  const float drmax2_els = drmax_els*drmax_els;
 
-  int ns = seedTracks_.size();
+  const int ns = seedTracks_.size();
 
   TrackVec cleanSeedTracks;
   cleanSeedTracks.reserve(ns);
@@ -842,10 +842,9 @@ int Event::clean_cms_seedtracks()
 
       const float Pt2 = pt[tss];
 
-      const int thisChX = (charge[tss])*(charge[ts]);
       ////// Always require charge consistency. If different charge is assigned, do not remove seed-track
-      if(thisChX<0)
-	continue;
+      if(charge[tss] != charge[ts])
+        continue;
       
       const float thisDPt = std::abs(Pt2-Pt1);
       ////// Require pT consistency between seeds. If dpT is large, do not remove seed-track.
@@ -875,8 +874,6 @@ int Event::clean_cms_seedtracks()
       const float deta2 = std::pow(Eta1-Eta2, 2);
 
       const float oldPhi2 = oldPhi[tss];
-      float dphiOld = std::abs(oldPhi1-oldPhi2);
-      if(dphiOld>=Config::PI) dphiOld =Config::TwoPI - dphiOld;
 
       const float pos2_second = pos2[tss];
       const float thisDXYSign05 = pos2_second > pos2_first ? -0.5f : 0.5f;
@@ -888,8 +885,7 @@ int Event::clean_cms_seedtracks()
       const float newPhi1 = oldPhi1-thisDXY*invR1GeV*invptq_first;
       const float newPhi2 = oldPhi2+thisDXY*invR1GeV*invptq_second;
 
-      float dphi = std::abs(newPhi1-newPhi2);
-      if(dphi>=Config::PI) dphi =Config::TwoPI - dphi;
+      const float dphi = cdist(std::abs(newPhi1-newPhi2));
 
       const float dr2 = deta2+dphi*dphi;
       
@@ -964,18 +960,18 @@ void Event::relabel_bad_seedtracks()
 void Event::relabel_cmsswtracks_from_seeds()
 {
   std::map<int,int> cmsswLabelMap;
-  for (int iseed = 0; iseed < seedTracks_.size(); iseed++)
+  for (size_t iseed = 0; iseed < seedTracks_.size(); iseed++)
   {
-    for (int icmssw = 0; icmssw < cmsswTracks_.size(); icmssw++)
+    for (size_t icmssw = 0; icmssw < cmsswTracks_.size(); icmssw++)
     {
-      if (cmsswTracks_[icmssw].label() == iseed)
+      if (cmsswTracks_[icmssw].label() == static_cast<int>(iseed))
       {
 	cmsswLabelMap[icmssw] = seedTracks_[iseed].label();
   	break;
       }
     }
   }
-  for (int icmssw = 0; icmssw < cmsswTracks_.size(); icmssw++)
+  for (size_t icmssw = 0; icmssw < cmsswTracks_.size(); icmssw++)
   {
     cmsswTracks_[icmssw].setLabel(cmsswLabelMap[icmssw]);
   }

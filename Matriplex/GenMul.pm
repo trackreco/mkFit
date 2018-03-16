@@ -792,7 +792,7 @@ FNORD
 
 #else
 
-#pragma simd
+#pragma omp simd
    for (int n = 0; n < N; ++n)
    {
 FNORD
