@@ -48,7 +48,7 @@ inline void diagonalOnly(Matrix& m)
 
 // This should go elsewhere, eventually.
 
-#if __cplusplus > 201402L
+#ifdef __cpp_lib_clamp
 using std::clamp;
 #else
 template<class T, class Compare> inline
