@@ -402,7 +402,7 @@ void MkBuilder::import_seeds()
   // Seeds are placed into eta regions and sorted on eta. Counts for each eta region are
   // stored into Event::seedEtaSeparators_.
 
-  //bool debug = true;
+  // bool debug = true;
 
   TrackerInfo &trk_info = Config::TrkInfo;
   TrackVec    &seeds    = m_event->seedTracks_;
@@ -1280,21 +1280,22 @@ void MkBuilder::PrepareSeeds()
 
     /*
     {
-      const int  select_label = -53;
+      const int  select_label = 0;
       TrackVec  &tv = m_event->seedTracks_;
-      for (int i = 0; (int) i < tv.size(); ++i)
+      for (int i = 0; i < (int) tv.size(); ++i)
       {
         if (tv[i].label() == select_label)
         {
           printf("Preselect seed with label %d - found on pos %d\n", select_label, i);
           if (i != 0) tv[0] = tv[i];
           tv.resize(1);
-          printf("  seeds.size = %lld, lab[0] = %d\n", tv.size(), tv[0].label());
+          printf("  seeds.size = %lu, lab[0] = %d\n", tv.size(), tv[0].label());
           break;
         }
       }
     }
     */
+
     const bool fix_silly_seeds    = true;
     const bool remove_silly_seeds = true;
     if (fix_silly_seeds)
@@ -1517,7 +1518,7 @@ int MkBuilder::find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & s
 
 void MkBuilder::FindTracksStandard()
 {
-  //bool debug = true;
+  // bool debug = true;
 
   EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
@@ -1618,7 +1619,7 @@ void MkBuilder::FindTracksStandard()
             WSR_Result &w    = mkfndr->XWsrResult[ti - itrack];
 
             // XXXX-4 Low pT tracks can miss a barrel layer ... and should be stopped
-            const float cand_r = std::hypot(mkfndr->getPar(ti - itrack, 0, MkBase::iP), mkfndr->getPar(ti - itrack, 1, MkBase::iP));
+            const float cand_r = std::hypot(mkfndr->getPar(ti - itrack, MkBase::iP, 0), mkfndr->getPar(ti - itrack, MkBase::iP, 1));
             if (region == TrackerInfo::Reg_Barrel && cand_r < layer_info.m_rin)
             {
               // For now just fake outside ... and let logic below fix it.
