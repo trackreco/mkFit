@@ -123,10 +123,12 @@ bool Track::canReachRadius(float R) const
 
 float Track::maxReachRadius() const
 {
-  // Does NOT consider direction of the track ... it's upper bound.
-  const float k   = ((charge() < 0) ? 100.0f : -100.0f) / (Config::sol * Config::Bfield);
-  const float ooc = 2.0f * k * pT();
-  return std::abs(ooc) + std::hypot(x(), y());
+  const float k = ((charge() < 0) ? 100.0f : -100.0f) / (Config::sol * Config::Bfield);
+  const float abs_ooc_half = std::abs(k * pT());
+  // center of helix in x,y plane
+  const float x_center = x() - k * py();
+  const float y_center = y() + k * px();
+  return std::hypot(x_center, y_center) + abs_ooc_half;
 }
 
 float Track::zAtR(float R, float *r_reached) const
