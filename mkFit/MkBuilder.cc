@@ -117,7 +117,7 @@ namespace
   }
 
   void print_seed(const Track& seed) {
-    std::cout << "MX - found seed with nHits=" << seed.nFoundHits() << " chi2=" << seed.chi2()
+    std::cout << "MX - found seed with label=" << seed.label() << " nHits=" << seed.nFoundHits() << " chi2=" << seed.chi2()
               << " posEta=" << seed.posEta() << " posPhi=" << seed.posPhi() << " posR=" << seed.posR()
               << " posZ=" << seed.z() << " pT=" << seed.pT() << std::endl;
   }
@@ -337,13 +337,19 @@ void MkBuilder::create_seeds_from_sim_tracks()
   seeds.clear();       // Needed when reading from file and then recreating from sim.
   seeds.reserve(size);
 
-  dprintf("MkBuilder::create_seeds_from_sim_tracks processing %d simtracks.", size);
+  dprintf("MkBuilder::create_seeds_from_sim_tracks processing %d simtracks.\n", size);
 
   for (int i = 0; i < size; ++i)
   {
     const Track &src = sims[i];
 
-    if (src.isNotFindable()) continue;
+    dprintf("  [%d] pT=%f eta=%f n_hits=%d lbl=%d\n", i, src.pT(), src.momEta(), src.nFoundHits(), src.label());
+
+    if (src.isNotFindable())
+    {
+      dprintf("  [%d] not findable.\n", i);
+      continue;
+    }
 
     int h_sel = 0, h = 0;
     const HitOnTrack *hots = src.getHitsOnTrackArray();
@@ -362,7 +368,7 @@ void MkBuilder::create_seeds_from_sim_tracks()
       // Check if hit is on a sibling layer given the previous one.
       if (h_sel > 0 && trk_info.are_layers_siblings(new_hots[h_sel - 1].layer, hots[h].layer))
       {
-        dprintf("    Sibling layers %d %d ... overwriting with new one\n",
+        dprintf("    [%d] Sibling layers %d %d ... overwriting with new one\n", i,
                 new_hots[h_sel - 1].layer, hots[h].layer);
 
         new_hots[h_sel - 1] = hots[h];
@@ -370,7 +376,7 @@ void MkBuilder::create_seeds_from_sim_tracks()
       // Drop further hits on the same layer. It seems hard to select the best one (in any way).
       else if (h_sel > 0 && new_hots[h_sel - 1].layer == hots[h].layer)
       {
-        dprintf("    Hits on the same layer %d ... keeping the first one\n", hots[h].layer);
+        dprintf("    [%d] Hits on the same layer %d ... keeping the first one\n", i, hots[h].layer);
       }
       else if ( ! last_hit_check)
       {
@@ -389,12 +395,13 @@ void MkBuilder::create_seeds_from_sim_tracks()
 
     seeds.emplace_back( Track(src.state(), 0, src.label(), h_sel, new_hots) );
 
-    dprintf("  Seed nh=%d, last_lay=%d, last_idx=%d\n",
+    dprintf("  [%d->%d] Seed nh=%d, last_lay=%d, last_idx=%d\n", i, (int) seeds.size() - 1,
             seeds.back().nTotalHits(), seeds.back().getLastHitLyr(), seeds.back().getLastHitIdx());
     // dprintf("  "); for (int i=0; i<dst.nTotalHits();++i) printf(" (%d/%d)", dst.getHitIdx(i), dst.getHitLyr(i)); printf("\n");
   }
 
-  dprintf("MkBuilder::create_seeds_from_sim_tracks finished processing of %d seeds.\n", size);
+  dprintf("MkBuilder::create_seeds_from_sim_tracks finished processing of %d sim tracks - created %d seeds.\n",
+          size, (int) seeds.size());
 }
 
 void MkBuilder::import_seeds()
@@ -683,8 +690,8 @@ void MkBuilder::fit_seeds()
         {
           auto &t = seedtracks[i];
           auto &dst = t;
-          dprintf("Seed %4d pos(%+7.3f %+7.3f %+7.3f; %+7.3f %+6.3f %+6.3f) mom(%+7.3f %+7.3f; %+6.3f %+6.3f)\n",
-                  i, t.x(), t.y(), t.z(), t.posR(), t.posEta(), t.posPhi(),
+          dprintf("Seed %4d lbl=%d pos(%+7.3f %+7.3f %+7.3f; %+7.3f %+6.3f %+6.3f) mom(%+7.3f %+7.3f; %+6.3f %+6.3f)\n",
+                  i, t.label(), t.x(), t.y(), t.z(), t.posR(), t.posEta(), t.posPhi(),
                   t.pT(), t.pz(), t.momEta(), t.momPhi());
           dprintf("  Idx/lay for above track:"); for (int i=0; i<dst.nTotalHits();++i) dprintf(" (%d/%d)", dst.getHitIdx(i), dst.getHitLyr(i)); dprintf("\n");
         }
@@ -764,9 +771,19 @@ void MkBuilder::map_seed_hits()
   int max = 0;
   int min = std::numeric_limits<int>::max();
 
+  std::vector<int> layer_has_hits(max_layer);
+  for (auto&& track : m_event->seedTracks_)
+  {
+    for (int i = 0; i < track.nTotalHits(); ++i)
+    {
+      if (track.getHitIdx(i) >= 0)  ++layer_has_hits[track.getHitLyr(i)];
+    }
+  }
+
   for (int ilayer = 0; ilayer < max_layer; ++ilayer)
   {
-    if (Config::TrkInfo.is_seed_lyr(ilayer)) {
+    if (layer_has_hits[ilayer])
+    {
       const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
       const auto   size = m_event->layerHits_[ilayer].size();
 
@@ -783,7 +800,8 @@ void MkBuilder::map_seed_hits()
 
   for (int ilayer = 0; ilayer < max_layer; ++ilayer)
   {
-    if (Config::TrkInfo.is_seed_lyr(ilayer)) {
+    if (layer_has_hits[ilayer])
+    {
       const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
       const auto   size = m_event->layerHits_[ilayer].size();
 
@@ -800,10 +818,11 @@ void MkBuilder::map_seed_hits()
     {
       int hitidx = track.getHitIdx(i);
       int hitlyr = track.getHitLyr(i);
-      if (hitidx >= 0 && Config::TrkInfo.is_seed_lyr(hitlyr))
+      if (hitidx >= 0)
       {
         const auto & global_hit_vec = m_event->layerHits_[hitlyr];
         track.setHitIdx(i, seedHitMap[global_hit_vec[hitidx].mcHitID()-min]);
+        // printf("YYY mapped %d/%d to %d\n", hitidx, hitlyr, seedHitMap[global_hit_vec[hitidx].mcHitID()-min]);
       }
     }
   }
@@ -1206,6 +1225,44 @@ void MkBuilder::prep_tracks(TrackVec& tracks, TrackExtraVec& extras, const bool 
 // PrepareSeeds
 //------------------------------------------------------------------------------
 
+namespace
+{
+  void seed_post_cleaning(TrackVec &tv, const bool fix_silly_seeds, const bool remove_silly_seeds)
+  {
+    /*
+    {
+      const int  select_label = 3;
+      for (int i = 0; i < (int) tv.size(); ++i)
+      {
+        if (tv[i].label() == select_label)
+        {
+          printf("Preselect seed with label %d - found on pos %d\n", select_label, i);
+          if (i != 0) tv[0] = tv[i];
+          tv.resize(1);
+          printf("  seeds.size = %lu, lab[0] = %d\n", tv.size(), tv[0].label());
+          print("  ", 0, tv[0], true);
+          break;
+        }
+      }
+    }
+    */
+
+    if (fix_silly_seeds)
+    {
+      for (int i = 0; i < (int) tv.size(); ++i)
+      {
+        bool silly = tv[i].hasSillyValues(true, fix_silly_seeds, "Post-cleaning seed silly value check and fix");
+        if (silly && remove_silly_seeds)
+        {
+          // Could do somethin smarter here: setStopped ?  check in seed cleaning ?
+          tv.erase(tv.begin() + i);
+          --i;
+        }
+      }
+    }
+  }
+}
+
 void MkBuilder::PrepareSeeds()
 {
   {
@@ -1229,6 +1286,9 @@ void MkBuilder::PrepareSeeds()
       // printf("\n");
     }
     create_seeds_from_sim_tracks();
+
+    seed_post_cleaning(m_event->seedTracks_, true, true);
+
     import_seeds();
     map_seed_hits();
   }
@@ -1278,40 +1338,7 @@ void MkBuilder::PrepareSeeds()
       exit(1);
     }
 
-    /*
-    {
-      const int  select_label = 0;
-      TrackVec  &tv = m_event->seedTracks_;
-      for (int i = 0; i < (int) tv.size(); ++i)
-      {
-        if (tv[i].label() == select_label)
-        {
-          printf("Preselect seed with label %d - found on pos %d\n", select_label, i);
-          if (i != 0) tv[0] = tv[i];
-          tv.resize(1);
-          printf("  seeds.size = %lu, lab[0] = %d\n", tv.size(), tv[0].label());
-          break;
-        }
-      }
-    }
-    */
-
-    const bool fix_silly_seeds    = true;
-    const bool remove_silly_seeds = true;
-    if (fix_silly_seeds)
-    {
-      TrackVec  &tv = m_event->seedTracks_;
-      for (int i = 0; i < (int) tv.size(); ++i)
-      {
-        bool silly = tv[i].hasSillyValues(true, fix_silly_seeds, "Post-cleaning seed silly value check and fix");
-        if (silly && remove_silly_seeds)
-        {
-          // Could do somethin smarter here: setStopped ?  check in seed cleaning ?
-          tv.erase(tv.begin() + i);
-          --i;
-        }
-      }
-    }
+    seed_post_cleaning(m_event->seedTracks_, true, true);
 
     import_seeds();
     map_seed_hits();
