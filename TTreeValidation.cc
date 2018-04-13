@@ -614,7 +614,7 @@ void TTreeValidation::alignTracks(TrackVec& evt_tracks, TrackExtraVec& evt_extra
     TrackExtraVec trackExtra_tmp(evt_tracks.size());
 
     // align temporary tkExVec with new track collection ordering
-    for (int itrack = 0; itrack < evt_tracks.size(); itrack++)
+    for (int itrack = 0; itrack < (int) evt_tracks.size(); itrack++)
     { 
       trackExtra_tmp[itrack] = evt_extras[evt_tracks[itrack].label()]; // label is old seedID!
     }
@@ -624,7 +624,7 @@ void TTreeValidation::alignTracks(TrackVec& evt_tracks, TrackExtraVec& evt_extra
   }  
 
   // redo track labels to match index in vector
-  for (int itrack = 0; itrack < evt_tracks.size(); itrack++)
+  for (int itrack = 0; itrack < (int) evt_tracks.size(); itrack++)
   {
     evt_tracks[itrack].setLabel(itrack);
   }
@@ -685,7 +685,7 @@ void TTreeValidation::setTrackExtras(Event& ev)
           auto& fitextras = ev.fitTracksExtra_;
 
     // set mcTrackID for seed tracks
-    for (int itrack = 0; itrack < seedtracks.size(); itrack++)
+    for (int itrack = 0; itrack < (int) seedtracks.size(); itrack++)
     {
       const auto& track = seedtracks[itrack];
             auto& extra = seedextras[itrack];
@@ -694,7 +694,7 @@ void TTreeValidation::setTrackExtras(Event& ev)
     }
     
     // set mcTrackID for built tracks
-    for (int itrack = 0; itrack < buildtracks.size(); itrack++)
+    for (int itrack = 0; itrack < (int) buildtracks.size(); itrack++)
     {
       const auto& track = buildtracks[itrack];
             auto& extra = buildextras[itrack];
@@ -703,7 +703,7 @@ void TTreeValidation::setTrackExtras(Event& ev)
     }
   
     // set mcTrackID for fit tracks
-    for (int itrack = 0; itrack < fittracks.size(); itrack++)
+    for (int itrack = 0; itrack < (int) fittracks.size(); itrack++)
     {
       const auto& track = fittracks[itrack];
             auto& extra = fitextras[itrack];
@@ -718,7 +718,7 @@ void TTreeValidation::setTrackExtras(Event& ev)
     storeSeedAndMCID(ev);
 
     const auto& cmsswtracks = ev.cmsswTracks_;
-          auto& cmsswextras = ev.cmsswTracksExtra_;
+    //      auto& cmsswextras = ev.cmsswTracksExtra_;
     const auto& buildtracks = ev.candidateTracks_;
           auto& buildextras = ev.candidateTracksExtra_;
     const auto& fittracks   = ev.fitTracks_;
@@ -730,7 +730,7 @@ void TTreeValidation::setTrackExtras(Event& ev)
     setupCMSSWMatching(ev,reducedCMSSW,cmsswHitIDMap);
 
     // set cmsswTrackID for built tracks
-    for (int itrack = 0; itrack < buildtracks.size(); itrack++)
+    for (int itrack = 0; itrack < (int) buildtracks.size(); itrack++)
     {
       const auto& track = buildtracks[itrack];
             auto& extra = buildextras[itrack];
@@ -756,7 +756,7 @@ void TTreeValidation::setTrackExtras(Event& ev)
     }
 
     // set cmsswTrackID for fit tracks
-    for (int itrack = 0; itrack < fittracks.size(); itrack++)
+    for (int itrack = 0; itrack < (int) fittracks.size(); itrack++)
     {
       const auto& track = fittracks[itrack];
             auto& extra = fitextras[itrack];
@@ -794,7 +794,7 @@ void TTreeValidation::makeSimTkToRecoTksMaps(Event& ev)
 
 void TTreeValidation::mapRefTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVec& evt_extras, TkIDToTkIDVecMap& refTkMap)
 {
-  for (auto itrack = 0; itrack < evt_tracks.size(); ++itrack)
+  for (auto itrack = 0; itrack < (int) evt_tracks.size(); ++itrack)
   {
     auto&& track(evt_tracks[itrack]);
     auto&& extra(evt_extras[itrack]);
@@ -831,7 +831,7 @@ void TTreeValidation::mapRefTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVe
 	tmpMatches.emplace_back(evt_tracks[label]);
       }
       std::sort(tmpMatches.begin(), tmpMatches.end(), sortByHitsChi2); // sort the tracks
-      for (auto itrack = 0; itrack < tmpMatches.size(); itrack++) // loop over sorted tracks, now make the vector of sorted labels match
+      for (auto itrack = 0; itrack < (int) tmpMatches.size(); itrack++) // loop over sorted tracks, now make the vector of sorted labels match
       {
 	refTkMatches.second[itrack] = tmpMatches[itrack].label();
       }
@@ -902,7 +902,7 @@ void TTreeValidation::makeSeedTkToCMSSWTkMap(Event& ev)
 {
   const auto& seedtracks  = ev.seedTracks_;
   const auto& cmsswtracks = ev.cmsswTracks_;
-  for (int itrack = 0; itrack < seedtracks.size(); itrack++)
+  for (int itrack = 0; itrack < (int) seedtracks.size(); itrack++)
   {
     for (auto&& cmsswtrack : cmsswtracks)
     {
@@ -924,7 +924,7 @@ void TTreeValidation::storeSeedAndMCID(Event& ev)
   
   // first set candidate tracks, use as base for fittracks
   int newlabel = -1;
-  for (int itrack = 0; itrack < buildtracks.size(); itrack++)
+  for (int itrack = 0; itrack < (int) buildtracks.size(); itrack++)
   {
     auto& extra = buildextras[itrack];
     const int seedID = extra.seedID();
@@ -936,7 +936,7 @@ void TTreeValidation::storeSeedAndMCID(Event& ev)
       extra.setseedID(seedToCmsswMap_[seedID]);
       if (Config::cmsswMatchingFW == labelBased || Config::cmsswMatchingBK == labelBased)
       {
-	for (int ctrack = 0; ctrack < cmsswextras.size(); ctrack++)
+	for (int ctrack = 0; ctrack < (int) cmsswextras.size(); ctrack++)
         {
 	  if (cmsswextras[ctrack].seedID() == extra.seedID())
 	  {
@@ -953,7 +953,7 @@ void TTreeValidation::storeSeedAndMCID(Event& ev)
   }
 
   // set according to candidate tracks for fit tracks through map
-  for (int itrack = 0; itrack < fittracks.size(); itrack++)
+  for (int itrack = 0; itrack < (int)  fittracks.size(); itrack++)
   {
     auto& extra = fitextras[itrack];
 
@@ -971,7 +971,7 @@ void TTreeValidation::setupCMSSWMatching(const Event & ev, RedTrackVec & reduced
   // resize accordingly
   reducedCMSSW.resize(cmsswtracks.size());
 
-  for (int itrack = 0; itrack < cmsswtracks.size(); itrack++)
+  for (int itrack = 0; itrack < (int) cmsswtracks.size(); itrack++)
   {
     const auto & cmsswtrack = cmsswtracks[itrack];
     const int seedID = cmsswextras[itrack].seedID();
