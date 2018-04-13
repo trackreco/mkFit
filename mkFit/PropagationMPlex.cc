@@ -564,7 +564,7 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
          float pt = 1.0f / inPar.ConstAt(kk,3,0);
 	 dprint_np(kk, "DID NOT GET TO Z, dZ=" << std::abs(outPar.At(kk,2,0) - msZ.ConstAt(kk, 0, 0))
 		   << " z=" << msZ.ConstAt(kk, 0, 0) << " zin=" << inPar.ConstAt(kk,2,0) << " zout=" << outPar.At(kk,2,0) << std::endl
-		   << "pt=" << pt << " pz=" << pt/std::tan(inPar.ConstAt(kk,5,0));
+		   << "pt=" << pt << " pz=" << pt/std::tan(inPar.ConstAt(kk,5,0)));
        }
      }
    }

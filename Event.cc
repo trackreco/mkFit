@@ -580,8 +580,8 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
       if (idx >= 0)
       {
         const Hit &hit = layerHits_[lyr][idx];
-	printf("    hit %2d lyr=%2d idx=%3d pos r=%7.3f z=% 8.3f   mc_hit=%3d mc_trk=%3d\n",
-               ih, lyr, idx, layerHits_[lyr][idx].r(), layerHits_[lyr][idx].z(),
+	printf("    hit %2d lyr=%2d idx=%3d pos r=%7.3f x=% 8.3f y=% 8.3f z=% 8.3f   mc_hit=%3d mc_trk=%3d\n",
+               ih, lyr, idx, layerHits_[lyr][idx].r(), layerHits_[lyr][idx].x(), layerHits_[lyr][idx].y(), layerHits_[lyr][idx].z(),
                hit.mcHitID(), hit.mcTrackID(simHitsInfo_));
       }
       else
