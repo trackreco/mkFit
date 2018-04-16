@@ -7,6 +7,7 @@
 //          version (probably is float right now).
 
 #ifndef WITH_USOLIDS
+namespace mkfit {
 class UVector3 : public SVector3
 {
   public:
@@ -74,6 +75,6 @@ public:
   bool   is_barrel_;
   bool   is_outer_;
 };
-
+} // end namespace mkfit
 #endif
 #endif

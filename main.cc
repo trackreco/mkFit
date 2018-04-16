@@ -13,6 +13,8 @@
 #include "Validation.h"
 #include "BinInfoUtils.h"
 
+using namespace mkfit;
+
 #ifdef TBB
 #include "tbb/task_scheduler_init.h"
 #endif

@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+namespace mkfit {
+
 void LayerInfo::set_limits(float r1, float r2, float z1, float z2)
 {
   m_rin = r1; m_rout = r2; m_zmin = z1; m_zmax = z2;
@@ -154,3 +156,5 @@ void TrackerInfo::ExecTrackerInfoCreatorPlugin(const std::string& base, TrackerI
   fprintf(stderr, "TrackerInfo plugin '%s' not found in search path.\n", soname.c_str());
   exit(2);
 }
+
+} // end namespace mkfit

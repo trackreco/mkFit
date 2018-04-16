@@ -9,6 +9,8 @@
 //#define SOLID_SMEAR
 #define SCATTER_XYZ
 
+namespace mkfit {
+
 void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
                        HitVec& hits, MCHitInfoVec& hitinfos, Event& ev,
                        int itrack, int& charge,
@@ -366,3 +368,5 @@ scatter_and_smear:
     }
   } // end loop over nHitsPerTrack
 }
+
+} // end namespace mkfit

@@ -39,6 +39,8 @@
 #include "ittnotify.h"
 #endif
 
+using namespace mkfit;
+
 //==============================================================================
 
 void initGeom(Geometry& geom)

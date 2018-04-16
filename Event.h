@@ -9,6 +9,8 @@
 
 #include <mutex>
 
+namespace mkfit {
+
 struct DataFile;
 
 class Event
@@ -132,4 +134,5 @@ struct DataFile
   void CloseWrite(int n_written); //override nevents in the header and close
 };
 
+} // end namespace mkfit
 #endif

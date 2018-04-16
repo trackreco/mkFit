@@ -9,6 +9,8 @@
 #include <vector>
 #include <map>
 
+namespace mkfit {
+
 typedef std::pair<int,int> SimTkIDInfo;
 typedef std::vector<int>   HitIdxVec;
 typedef std::map<int,std::vector<int> > HitLayerMap;
@@ -539,8 +541,10 @@ typedef std::vector<TrackState> TSVec;
 typedef std::vector<TSVec>      TkIDToTSVecVec;
 typedef std::vector<std::pair<int, TrackState> > TSLayerPairVec;
 typedef std::vector<std::pair<int, float> > FltLayerPairVec; // used exclusively for debugtree
+} // end namespace mkfit
 
 #include <unordered_map>
+namespace mkfit {
 // Map typedefs needed for mapping different sets of tracks to another
 typedef std::unordered_map<int,int>               TkIDToTkIDMap;
 typedef std::unordered_map<int,std::vector<int> > TkIDToTkIDVecMap;
@@ -551,4 +555,5 @@ void print(const TrackState& s);
 void print(std::string label, int itrack, const Track& trk, bool print_hits=false);
 void print(std::string label, const TrackState& s);
 
+} // end namespace mkfit
 #endif

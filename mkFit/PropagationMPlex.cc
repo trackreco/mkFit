@@ -11,6 +11,8 @@
 
 using namespace Matriplex;
 
+namespace mkfit {
+
 void propagateLineToRMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
                            const MPlexHS &msErr,  const MPlexHV& msPar,
                                  MPlexLS &outErr,       MPlexLV& outPar,
@@ -71,6 +73,7 @@ void propagateLineToRMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
    }
 }
 
+} // end namespace mkfit
 
 //==============================================================================
 // propagateHelixToRMPlex
@@ -78,6 +81,7 @@ void propagateLineToRMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
 
 namespace
 {
+  using namespace mkfit;
 
 void MultHelixProp(const MPlexLL& A, const MPlexLS& B, MPlexLL& C)
 {
@@ -250,6 +254,8 @@ void MultHelixPropTranspFull(const MPlexLL& A, const MPlexLL& B, MPlexLL& C)
 
 //==============================================================================
 
+namespace mkfit {
+
 void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg, const MPlexQF &msRad,
                                            MPlexLV& outPar,      MPlexLL& errorProp,
                                      const int      N_proc)
@@ -378,8 +384,12 @@ void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg,
     }
 }
 
+} // end namespace mkfit
+
 //#pragma omp declare simd simdlen(NN) notinbranch linear(n)
 #include "PropagationMPlex.icc"
+
+namespace mkfit {
 
 void helixAtRFromIterativeCCS(const MPlexLV& inPar,     const MPlexQI& inChg, const MPlexQF &msRad,
                                     MPlexLV& outPar,          MPlexLL& errorProp,
@@ -729,3 +739,5 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
       outErr.At(n, 3, 3) += dP*dP/(p2*pt*pt);
     }
 }
+
+} // end namespace mkfit

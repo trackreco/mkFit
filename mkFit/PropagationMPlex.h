@@ -3,6 +3,8 @@
 
 #include "Matrix.h"
 
+namespace mkfit {
+
 inline void squashPhiMPlex(MPlexLV& par, const int N_proc)
 {
   #pragma omp simd
@@ -51,4 +53,5 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
                                 MPlexLS &outErr,       MPlexLV& outPar,
                           const int      N_proc);
 
+} // end namespace mkfit
 #endif

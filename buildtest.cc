@@ -8,21 +8,29 @@
 #include <cmath>
 #include <iostream>
 
+namespace mkfit {
+
 //typedef std::pair<Track, TrackState> cand_t;
 typedef Track cand_t;
 typedef TrackVec::const_iterator TrkIter;
+}  // end namespace mkfit
 
 #ifndef TBB
+namespace mkfit {
 typedef std::vector<cand_t> candvec;
+} // end namespace mkfit
 #else
 #include "tbb/tbb.h"
 #include <mutex>
+namespace mkfit {
 // concurrent_vector is only needed if we parallelize the candidate loops;
 // not needed if we only parallelize over seeds.
 //typedef tbb::concurrent_vector<cand_t> candvec;
 typedef std::vector<cand_t> candvec;
 static std::mutex evtlock;
+} // end namespace mkfit
 #endif
+namespace mkfit {
 typedef candvec::const_iterator canditer;
 
 void extendCandidate(const BinInfoMap & segmentMap, const Event& ev, const cand_t& cand, candvec& tmp_candidates, int ilay, int seedID, bool debug);
@@ -270,3 +278,5 @@ void extendCandidate(const BinInfoMap & segmentMap, const Event& ev, const cand_
     branch_hit_indices.push_back(Config::nTracks); // since tracks go from 0-Config::nTracks -1, the ghost index is just the one beyond
   }
 }
+
+} // end namespace mkfit

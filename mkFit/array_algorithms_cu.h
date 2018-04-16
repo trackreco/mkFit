@@ -5,6 +5,8 @@
 //#include "atomic_utils.h"
 #include "gpu_utils.h"
 
+namespace mkfit {
+
 template <typename T,
           int BLOCK_THREADS,
           int ITEMS_PER_THREAD,
@@ -80,4 +82,5 @@ __device__ void reduceMaxPartial_fn(const T *d_in, const int start_idx,
     *d_max = aggregate;
   }
 }
+} // end namespace mkfit
 #endif /* ifndef ARRAY_ALGORITHMS_CU_H */

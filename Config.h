@@ -1,9 +1,6 @@
 #ifndef _config_
 #define _config_
 
-// Cram this in here for now ...
-class TrackerInfo;
-
 #include <algorithm>
 #include <cmath>
 #include <string> // won't compile on clang gcc for mac OS w/o this!
@@ -15,6 +12,10 @@ class TrackerInfo;
   #define CUDA_CALLABLE 
 #endif
 
+namespace mkfit {
+
+// Cram this in here for now ...
+class TrackerInfo;
 
 //------------------------------------------------------------------------------
 
@@ -417,4 +418,5 @@ namespace Config
 
 inline float cdist(float a) { return a > Config::PI ? Config::TwoPI - a : a; }
 
+} // end namespace mkfit
 #endif 

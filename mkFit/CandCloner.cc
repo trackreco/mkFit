@@ -7,13 +7,15 @@
 
 namespace
 {
-inline bool sortCandListByHitsChi2(const MkFinder::IdxChi2List& cand1,
-                                   const MkFinder::IdxChi2List& cand2)
+inline bool sortCandListByHitsChi2(const mkfit::MkFinder::IdxChi2List& cand1,
+                                   const mkfit::MkFinder::IdxChi2List& cand2)
 {
   if (cand1.nhits == cand2.nhits) return cand1.chi2 < cand2.chi2;
   return cand1.nhits > cand2.nhits;
 }
 }
+
+namespace mkfit {
 
 //==============================================================================
 
@@ -118,3 +120,5 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
     }
   }
 }
+
+} // end namespace mkfit

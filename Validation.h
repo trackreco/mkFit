@@ -3,6 +3,8 @@
 #include "Track.h"
 #include "BinInfoUtils.h"
 
+namespace mkfit {
+
 class Event;
 
 // Fit Validation objects -- mplex only
@@ -56,4 +58,5 @@ protected:
   Validation();
 };
 
+} // end namespace mkfit
 #endif

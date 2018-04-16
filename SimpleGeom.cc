@@ -1,6 +1,8 @@
 #ifndef WITH_USOLIDS
 #include "SimpleGeom.h"
 
+namespace mkfit {
+
 VUSolid::EnumInside VUSolid::Inside (const UVector3 &aPoint) const
 {
   double z = aPoint.Z();
@@ -97,4 +99,6 @@ double UVector3::Normalize()
   At(2) /= mag;
   return mag;
 }
+
+} // end namespace mkfit
 #endif

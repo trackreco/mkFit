@@ -5,6 +5,12 @@
 #include "TrackerInfo.h"
 #include "Track.h"
 
+//#include "Event.h"
+
+//#include "HitStructures.h"
+
+namespace mkfit {
+
 class CandCloner;
 class CombCandidate;
 class LayerOfHits;
@@ -14,10 +20,6 @@ class FindingFoos;
 class EventOfHits;
 class EventOfCombCandidates;
 class SteeringParams;
-
-//#include "Event.h"
-
-//#include "HitStructures.h"
 
 // NOTES from MkFitter ... where things were getting super messy.
 //
@@ -229,4 +231,5 @@ private:
   }
 };
 
+} // end namespace mkfit
 #endif

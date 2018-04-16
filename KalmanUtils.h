@@ -4,6 +4,8 @@
 #include "Track.h"
 #include "Matrix.h"
 
+namespace mkfit {
+
 float computeChi2(const TrackState& propagatedState, const MeasurementState& measurementState);
 
 //see e.g. http://inspirehep.net/record/259509?ln=en
@@ -13,4 +15,5 @@ TrackState updateParameters(const TrackState& propagatedState, const Measurement
 TrackState updateParametersEndcap(const TrackState& propagatedState, const MeasurementState& measurementState);
 float computeChi2Endcap(const TrackState& propagatedState, const MeasurementState& measurementState);
 
+} // end namespace mkfit
 #endif

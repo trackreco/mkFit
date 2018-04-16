@@ -6,14 +6,16 @@
 #include "TrackerInfo.h"
 #include "Track.h"
 
+//#include "Event.h"
+
+//#include "HitStructures.h"
+
+namespace mkfit {
+
 class CandCloner;
 class CombCandidate;
 class LayerOfHits;
 class FindingFoos;
-
-//#include "Event.h"
-
-//#include "HitStructures.h"
 
 // NOTES from MkFitter ... where things were getting super messy.
 //
@@ -214,4 +216,5 @@ using MkFinderFv = MkFinderFV<NN/8, 8>;
 #warning "Not instantiating MkFinderFV"
 using MkFinderFv = MkFinderFV<1, 8>; // dummy
 #endif
+} // end namespace mkfit
 #endif

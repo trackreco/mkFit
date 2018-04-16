@@ -11,6 +11,8 @@
 
 #include <sstream>
 
+namespace mkfit {
+
 void MkFitter::CheckAlignment()
 {
   printf("MkFitter alignment check:\n");
@@ -638,3 +640,5 @@ void MkFitter::OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, 
     }
   }
 }
+
+} // end namespace mkfit

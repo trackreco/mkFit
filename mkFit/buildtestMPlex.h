@@ -7,6 +7,8 @@
 #include "BuilderCU.h"
 #endif
 
+namespace mkfit {
+
 class MkBuilder;
 
 void   runBuildingTestPlexDumbCMSSW(Event& ev, MkBuilder& builder);
@@ -23,4 +25,5 @@ double runBuildingTestPlexCloneEngineGPU(Event& ev, EventTmp& ev_tmp, MkBuilder&
 double runAllBuildingTestPlexBestHitGPU(std::vector<Event> &events);
 #endif
 
+} // end namespace mkfit
 #endif

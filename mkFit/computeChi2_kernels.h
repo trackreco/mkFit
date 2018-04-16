@@ -5,6 +5,7 @@
 #include "GPlex.h"
 #include "GeometryCU.h"
 
+namespace mkfit {
 
 __device__ void computeChi2_fn(const GPlexLS &propErr, const GPlexHS &msErr,
     const GPlexHV &msPar, const GPlexLV &propPar, GPlexQF &outChi2, 
@@ -30,4 +31,5 @@ __device__ void ProjectResErr_fn(const GPlexRegQF& a00, const GPlexRegQF& a01,
 __device__ void ProjectResErrTransp_fn(const GPlexRegQF& a00, const GPlexRegQF& a01, 
                                        const GPlexRegHH &b, GPlexReg2S &c);
 
+} // end namespace mkfit
 #endif
