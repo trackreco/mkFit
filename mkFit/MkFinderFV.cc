@@ -10,6 +10,8 @@
 //#define DEBUG
 #include "Debug.h"
 
+namespace mkfit {
+
 struct candComp {
   bool operator()(const MkFinderFv::IdxChi2List& c1, const MkFinderFv::IdxChi2List& c2) const
   {
@@ -544,3 +546,5 @@ int MkFinderFV<nseeds, ncands>::BestCandidate(int offset) const
 #ifdef INSTANTIATE_FV
 template class MkFinderFV<NN/8, 8>;
 #endif
+
+} // end namespace mkfit

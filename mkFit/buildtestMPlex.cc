@@ -19,6 +19,8 @@
 
 #include <memory>
 
+namespace mkfit {
+
 inline bool sortByHitsChi2(const std::pair<Track, TrackState>& cand1,
                            const std::pair<Track, TrackState>& cand2)
 {
@@ -528,3 +530,4 @@ double runAllBuildingTestPlexBestHitGPU(std::vector<Event> &events)
   return time;
 }
 #endif
+} // end namespace mkfit

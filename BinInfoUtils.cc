@@ -1,5 +1,7 @@
 #include "BinInfoUtils.h"
 
+namespace mkfit {
+
 std::vector<int> getCandHitIndices(const int & etaBinMinus, const int & etaBinPlus, const int & phiBinMinus, const int & phiBinPlus, const BinInfoLayerMap& segLayMap){    
   std::vector<int> cand_hit_indices;
   for (int ieta = etaBinMinus; ieta <= etaBinPlus; ++ieta){
@@ -30,3 +32,5 @@ std::vector<int> getCandHitIndices(const int & etaBinMinus, const int & etaBinPl
   }
   return cand_hit_indices;
 }
+
+} // end namespace mkfit

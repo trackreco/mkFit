@@ -9,6 +9,8 @@
 #include <atomic>
 #include <array>
 
+namespace mkfit {
+
 template<typename T> inline T sqr(T x) { return x*x; }
 template<typename T> inline T cube(T x) { return x*x*x; }
 
@@ -271,4 +273,5 @@ typedef std::vector<HitOnTrack> HoTVec;
 
 void print(std::string label, const MeasurementState& s);
 
+} // end namespace mkfit
 #endif

@@ -4,10 +4,13 @@
 #include "Validation.h"
 
 #ifdef NO_ROOT
+namespace mkfit {
+
 class TTreeValidation : public Validation {
 public:
   TTreeValidation(std::string) {}
 };
+} // end namespace mkfit
 #else
 
 #include <unordered_map>
@@ -16,6 +19,7 @@ public:
 #include "TTree.h"
 #include "TROOT.h"
 
+namespace mkfit {
 // FitVal defined in Validation.h
 typedef std::map<int, FitVal> FitValLayMap;
 typedef std::unordered_map<int, FitValLayMap> TkIDtoFitValLayMapMap;
@@ -336,5 +340,6 @@ public:
 
   std::mutex glock_;
 };
+} // end namespace mkfit
 #endif
 #endif

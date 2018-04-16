@@ -6,6 +6,8 @@
 #include "HitStructuresCU.h"
 #include "Track.h"
 
+namespace mkfit {
+
 __device__ float *get_posArray(Hit &hit);
 __device__ float *get_errArray(Hit &hit);
 __device__ float *get_posArray(Track &track);
@@ -120,4 +122,5 @@ __device__ void OutputParErrCU_fn_seed(Track *tracks,
                                   const int icand_ev,
                                   int N);
 
+} // end namespace mkfit
 #endif  // REORGANIZE_GPLEX_H

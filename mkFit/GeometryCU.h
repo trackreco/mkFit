@@ -3,6 +3,8 @@
 
 #include "gpu_utils.h"
 
+namespace mkfit {
+
 struct GeometryCU {
   float *radii = nullptr;
 
@@ -24,4 +26,5 @@ struct GeometryCU {
   }
 };
 
+} // end namespace mkfit
 #endif /* ifndef GEOMETRY_CU_H */

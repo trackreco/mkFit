@@ -2,6 +2,8 @@
 //#define DEBUG
 #include "Debug.h"
 
+namespace mkfit {
+
 VUSolid::EnumInside Geometry::Inside (const UVector3 &aPoint) const {
   VUSolid::EnumInside in = VUSolid::eOutside;
   for (auto i = solids_.begin(); i != solids_.end(); ++i) {
@@ -97,9 +99,13 @@ Geometry Geometry::clone() const
   return NewGeo;
 }
 
+} // end namespace mkfit
+
 //==============================================================================
 
 #include "TrackerInfo.h"
+
+namespace mkfit {
 
 void Geometry::BuildFromTrackerInfo(const TrackerInfo& tracker_info)
 {
@@ -117,3 +123,5 @@ void Geometry::BuildFromTrackerInfo(const TrackerInfo& tracker_info)
   exit(1);
 #endif
 }
+
+} // end namespace mkfit

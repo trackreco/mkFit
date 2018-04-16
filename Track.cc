@@ -3,6 +3,8 @@
 //#define DEBUG
 #include "Debug.h"
 
+namespace mkfit {
+
 //==============================================================================
 // TrackState
 //==============================================================================
@@ -740,3 +742,5 @@ void print(std::string label, const TrackState& s)
   std::cout << label << std::endl;
   print(s);
 }
+
+} // end namespace mkfit

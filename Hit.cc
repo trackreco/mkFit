@@ -1,5 +1,7 @@
 #include "Hit.h"
 
+namespace mkfit {
+
 void MCHitInfo::reset()
 {
 }
@@ -14,3 +16,5 @@ void print(std::string label, const MeasurementState& s)
   dumpMatrix(s.errors());
   std::cout << std::endl;
 }
+
+} // end namespace mkfit

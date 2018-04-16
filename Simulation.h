@@ -6,9 +6,13 @@
 #include "Propagation.h"
 #include "Geometry.h"
 
+namespace mkfit {
+
 class Event;
 
 void setupTrackByToyMC(SVector3& pos, SVector3& mom, SMatrixSym66& covtrk,
                        HitVec& hits, MCHitInfoVec& hitinfos, Event& ev, 
 		       int itrack, int& charge, const Geometry&, TSVec& initTSs);
+
+} // end namespace mkfit
 #endif

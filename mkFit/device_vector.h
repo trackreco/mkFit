@@ -7,6 +7,8 @@
 
 #include <cassert>
 
+namespace mkfit {
+
 template <typename T>
 class DeviceVector {
  public:
@@ -112,4 +114,5 @@ inline void DeviceVector<T>::free() {
   data_ = nullptr;
 }
 
+} // end namespace mkfit
 #endif /* DEVICE_VECTOR_H_ */

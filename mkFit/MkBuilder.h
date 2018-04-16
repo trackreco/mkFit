@@ -21,6 +21,8 @@
 //#define DEBUG
 #include "Debug.h"
 
+namespace mkfit {
+
 class TrackerInfo;
 class LayerInfo;
 
@@ -207,4 +209,5 @@ public:
 #endif
 };
 
+} // end namespace mkfit
 #endif

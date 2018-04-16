@@ -5,6 +5,8 @@
 //#define DEBUG
 #include "Debug.h"
 
+namespace mkfit {
+
 inline
 void CFMap(const MPlexHH& A, const MPlexHV& B, MPlexHV& C)
 {
@@ -191,3 +193,5 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, MPlexLS& outErr, MPlexLV& o
     }
   }
 }
+
+} // end namespace mkfit

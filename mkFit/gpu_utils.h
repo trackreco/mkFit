@@ -19,6 +19,8 @@
     cudaCheckError();                  \
   } while(0)
 
+namespace mkfit {
+
 // CUDA specific:
 // Maximum number of blocks in the X direction of the thread grid.
 constexpr int max_blocks_x = INT32_MAX;
@@ -56,5 +58,6 @@ static std::unordered_map<std::string, unsigned int> tracer_colors = {
     {"Chocolate",       0xD2691E}
 };
 
+} // end namespace mkfit
 
 #endif /* ifndef GPU_UTILS_H */

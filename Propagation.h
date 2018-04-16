@@ -4,6 +4,8 @@
 #include "Track.h"
 #include "Geometry.h"
 
+namespace mkfit {
+
 // line propagation from state radius to hit radius
 // assuming radial direction (i.e. origin at (0,0))
 TrackState propagateLineToR(const TrackState& inputState, float r);
@@ -20,4 +22,5 @@ TrackState propagateHelixToR(TrackState inputState, float r, const PropagationFl
 //
 TrackState propagateHelixToZ(TrackState inputState, float z, const PropagationFlags pflags);
 
+} // end namespace mkfit
 #endif

@@ -2,6 +2,8 @@
 
 #include "TrackerInfo.h"
 
+namespace mkfit {
+
 namespace Config
 {
   TrackerInfo TrkInfo;
@@ -86,3 +88,5 @@ namespace Config
     maxCandsPerEtaBin = std::max(100, maxCandsPerSeed * (nTracks+100) / nEtaPart);
   }
 }
+
+} // end namespace mkfit

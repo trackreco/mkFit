@@ -3,6 +3,7 @@
 
 #include "device_vector.h"
 
+namespace mkfit {
 
 template <typename T>
 class DeviceBundle {
@@ -83,4 +84,5 @@ inline void DeviceBundle<T>::copy_from_cpu(const pointer from,
                   cudaMemcpyHostToDevice, stream);
 }
 
+} // end namespace mkfit
 #endif  // BUNDLE_VECTOR_H

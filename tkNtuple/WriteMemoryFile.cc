@@ -5,6 +5,8 @@
 #include <list>
 #include "Event.h"
 
+using namespace mkfit;
+
 constexpr bool useMatched = false;
 
 constexpr int cleanSimTrack_minSimHits = 3;

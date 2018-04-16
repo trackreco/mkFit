@@ -10,6 +10,8 @@
 #include "SimpleGeom.h"
 #endif
 
+namespace mkfit {
+
 class TrackerInfo;
 
 // XXXX MT: What it the purpose of zPlanes?
@@ -47,4 +49,5 @@ private:
   std::vector<float> zPlanes_;
 };
 
+} // end namespace mkfit
 #endif

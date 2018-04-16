@@ -4,6 +4,8 @@
 // #define DEBUG
 #include "Debug.h"
 
+namespace mkfit {
+
 inline void intersectThirdLayer(const float a, const float b, const float hit1_x, const float hit1_y, float& lay2_x, float& lay2_y){
   const float a2 = a*a; const float b2 = b*b; const float a2b2 = a2+b2;
   const float lay2rad2  = (Config::fRadialSpacing*Config::fRadialSpacing)*9.0f; // average third radius squared
@@ -120,3 +122,5 @@ void findSeedsByRoadSearch(TripletIdxConVec & seed_idcs, std::vector<LayerOfHits
       seed_idcs.grow_by(temp_thr_seed_idcs.begin(), temp_thr_seed_idcs.end());
   }); // end parallel for loop over second layer hits
 }
+
+} // end namespace mkfit

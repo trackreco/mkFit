@@ -2,6 +2,8 @@
 //#define DEBUG
 #include "Debug.h"
 
+namespace mkfit {
+
 const double tolerance = 0.001;
 
 /////////////////////////////// SPECIAL NOTE: KPM ////////////////////////////////////
@@ -544,3 +546,5 @@ TrackState propagateHelixToZ(TrackState inputState, float zout, const Propagatio
 
   return result;
 }
+
+} // end namespace mkfit

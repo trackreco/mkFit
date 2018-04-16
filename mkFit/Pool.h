@@ -2,6 +2,8 @@
 #define Pool_h
 #include "tbb/concurrent_queue.h"
 
+namespace mkfit {
+
 template <typename TT>
 struct Pool
 {
@@ -55,5 +57,5 @@ struct Pool
 };
 
 
-
+} // end namespace mkfit
 #endif

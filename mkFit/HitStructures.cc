@@ -4,6 +4,8 @@
 
 #include "Ice/IceRevisitedRadix.h"
 
+namespace mkfit {
+
 void LayerOfHits::setup_bins(float qmin, float qmax, float dq)
 {
   // Define layer with min/max and number of bins along q.
@@ -301,3 +303,5 @@ EventOfHits::EventOfHits(TrackerInfo &trk_inf) :
     m_layers_of_hits[li.m_layer_id].SetupLayer(li);
   }
 }
+
+} // end namespace mkfit

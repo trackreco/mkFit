@@ -17,6 +17,8 @@
 
 //#define USE_BOHS
 
+namespace mkfit {
+
 class CandCloner;
 
 const int MPlexHitIdxMax = 16;
@@ -91,5 +93,7 @@ public:
   void OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, int end, bool outputProp) const;
 
 };
+
+} // end namespace mkfit
 
 #endif

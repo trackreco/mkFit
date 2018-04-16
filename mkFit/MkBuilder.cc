@@ -17,7 +17,9 @@
 // Set this to select a single track for deep debugging:
 //#define SELECT_SEED_LABEL -494
 
+namespace mkfit {
 ExecutionContext g_exe_ctx;
+} // end namespace mkfit
 
 //------------------------------------------------------------------------------
 
@@ -27,6 +29,7 @@ ExecutionContext g_exe_ctx;
 
 namespace
 {
+  using namespace mkfit;
   auto retcand = [](CandCloner* cloner) { g_exe_ctx.m_cloners.ReturnToPool(cloner); };
   auto retfitr = [](MkFitter*   mkfttr) { g_exe_ctx.m_fitters.ReturnToPool(mkfttr); };
   auto retfndr = [](MkFinder*   mkfndr) { g_exe_ctx.m_finders.ReturnToPool(mkfndr); };
@@ -96,10 +99,14 @@ namespace
   };
 }
 
+namespace mkfit {
+
 MkBuilder* MkBuilder::make_builder()
 {
   return new MkBuilder;
 }
+
+} // end namespace mkfit
 
 #ifdef DEBUG
 namespace
@@ -165,6 +172,8 @@ namespace
 //------------------------------------------------------------------------------
 
 #include "KalmanUtilsMPlex.h"
+
+namespace mkfit {
 
 MkBuilder::MkBuilder() :
   m_event(0),
@@ -628,6 +637,8 @@ void MkBuilder::find_seeds()
   }
 }
 
+} // end namespace mkfit
+
 namespace
 {
   void fill_seed_layer_sig(const Track& trk, int n_hits, bool is_brl[])
@@ -652,6 +663,8 @@ namespace
     return true;
   }
 }
+
+namespace mkfit {
 
 void MkBuilder::fit_seeds()
 {
@@ -2274,3 +2287,5 @@ void MkBuilder::fit_cands_to_pca(MkFinder *mkfndr, int start_cand, int end_cand,
     // }
   }
 }
+
+} // end namespace mkfit

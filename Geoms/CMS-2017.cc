@@ -5,6 +5,8 @@
 #include "Config.h"
 #include "TrackerInfo.h"
 
+using namespace mkfit;
+
 namespace
 {
 #include "CMS-2017.acc"

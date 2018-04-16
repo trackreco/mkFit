@@ -8,6 +8,7 @@
 
 namespace
 {
+  using namespace mkfit;
   using idx_t = Matriplex::idx_t;
 
 inline
@@ -446,11 +447,13 @@ namespace
   // Through KalmanFilterOperation enum parameter it is guaranteed that
   // those will never get accessed in the code (read from or written into).
 
-  MPlexLS dummy_err;
-  MPlexLV dummy_par;
-  MPlexQF dummy_chi2;
+  mkfit::MPlexLS dummy_err;
+  mkfit::MPlexLV dummy_par;
+  mkfit::MPlexQF dummy_chi2;
 }
 
+
+namespace mkfit {
 
 //==============================================================================
 // Kalman operations - Barrel
@@ -867,3 +870,5 @@ void kalmanOperationEndcap(const int      kfOp,
 #endif
   }
 }
+
+} // end namespace mkfit

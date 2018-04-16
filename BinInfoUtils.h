@@ -11,6 +11,8 @@
 #include "Config.h"
 #include <iostream>
 
+namespace mkfit {
+
 typedef std::pair<int, int>                 BinInfo;
 typedef std::vector<std::vector<BinInfo>>   BinInfoLayerMap;
 typedef std::vector<BinInfoLayerMap>        BinInfoMap;
@@ -68,4 +70,5 @@ inline int getEtaPartition(float eta)
 
 std::vector<int> getCandHitIndices(const int &, const int &, const int &, const int &, const BinInfoLayerMap &);
 
+} // end namespace mkfit
 #endif

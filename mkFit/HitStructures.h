@@ -11,6 +11,8 @@
 #include <array>
 #include <tbb/tbb.h>
 
+namespace mkfit {
+
 typedef tbb::concurrent_vector<TripletIdx> TripletIdxConVec;
 
 // for each layer
@@ -303,4 +305,5 @@ public:
   }
 };
 
+} // end namespace mkfit
 #endif

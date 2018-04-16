@@ -1,5 +1,7 @@
 #include "TTreeValidation.h"
 
+namespace mkfit {
+
 Validation* Validation::make_validation(const std::string& fileName)
 {
 #ifndef NO_ROOT
@@ -11,3 +13,5 @@ Validation* Validation::make_validation(const std::string& fileName)
 }
 
 Validation::Validation() {}
+
+} // end namespace mkfit

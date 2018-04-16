@@ -22,6 +22,8 @@
 
 #include <cmath>
 
+using namespace mkfit;
+
 namespace
 {
   float getTheta(float r, float z)

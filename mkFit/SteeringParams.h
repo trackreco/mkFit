@@ -3,6 +3,8 @@
 
 #include "Matrix.h"
 
+namespace mkfit {
+
 class LayerInfo;
 class CandCloner;
 class MkBase;
@@ -96,4 +98,5 @@ public:
   std::vector<LayerControl>::iterator finding_end()   const { return m_end_for_finding; }
 };
 
+} // end namespace mkfit
 #endif

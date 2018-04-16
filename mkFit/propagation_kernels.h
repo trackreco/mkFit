@@ -3,6 +3,8 @@
 
 #include "GPlex.h"
 
+namespace mkfit {
+
 void propagation_wrapper(const cudaStream_t& stream,
     GPlexHV& msPar, GPlexLS& inErr,
     GPlexLV& inPar, GPlexQI& inChg,
@@ -30,4 +32,5 @@ __device__ void propagationForBuilding_fn(
     GPlexLS &outErr, GPlexLV &outPar, 
     const int n, const int N);
 
+} // end namespace mkfit
 #endif  // _PROPAGATION_KERNELS_H_

@@ -9,6 +9,8 @@
 #include "device_array_view.h"
 #include "gpu_utils.h"
 
+namespace mkfit {
+
 template <typename T1, typename T2>
 struct PairCU {
   T1 first;
@@ -204,5 +206,6 @@ public:
                  const cudaStream_t &stream) const;
 };
 
+// end namespace mkfit
 #endif  // _HIT_STRUCTURES_H_
 
