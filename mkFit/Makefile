@@ -22,7 +22,9 @@ LDFLAGS_NO_ROOT  += ${LDEXTRA}
 
 all: default
 
-TGTS := mkFit
+LIB_MKFIT := libMkFit.so
+
+TGTS := mkFit ${LIB_MKFIT}
 
 ifdef KNC_BUILD
   TGTS += mkFit-mic
@@ -84,6 +86,7 @@ ${CU_LINK}: ${CU_OBJS}
 endif
 
 ALLOBJS := ${MKFOBJS} ${CU_OBJS} ${CU_LINK}
+LIBOBJS := $(filter-out mkFit.o, ${ALLOBJS})
 
 ${MKFDEPS}: auto-genmplex
 
@@ -93,6 +96,9 @@ endif
 
 mkFit: ${ALLOBJS}
 	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} ${ALLOBJS} -o $@ ${LDFLAGS_HOST} ${LDFLAGS_CU} -L.. -lMicCore -Wl,-rpath,..,-rpath,.
+
+${LIB_MKFIT}: ${LIBOBJS}
+	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LIBOBJS} -shared -o $@ ${LDFLAGS_HOST} ${LDFLAGS_CU} ${LDFLAGS}
 
 ifdef WITH_ROOT
 fittestMPlex.o : CPPFLAGS += $(shell root-config --cflags)
