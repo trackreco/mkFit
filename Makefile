@@ -1,7 +1,7 @@
 include Makefile.config
 
-LIB_CORE     := libMicCore.so
-LIB_CORE_MIC := libMicCore-mic.so
+LIB_CORE     := lib/libMicCore.so
+LIB_CORE_MIC := lib/libMicCore-mic.so
 
 
 TGTS := ${LIB_CORE} main
@@ -51,15 +51,17 @@ clean: clean-local
 distclean: clean-local
 	-rm -f ${AUTO_TGTS}
 	-rm -f *.optrpt
+	-rm -f lib
 	cd Geoms     && ${MAKE} distclean
 	cd Matriplex && ${MAKE} distclean
 	cd mkFit     && ${MAKE} distclean
 
 ${LIB_CORE}: ${CORE_OBJS}
+	@mkdir -p $(@D)
 	${CXX} ${CXXFLAGS} ${VEC_HOST} ${CORE_OBJS} -shared -o $@ ${LDFLAGS_HOST} ${LDFLAGS_CU} ${LDFLAGS}
 
 main: ${AUTO_TGTS} ${LIB_CORE} main.o ${LIBUSOLIDS}
-	${CXX} ${CXXFLAGS} ${VEC_HOST} -o $@ main.o ${LIBUSOLIDS} ${LDFLAGS_HOST} ${LDFLAGS} -L. -lMicCore -Wl,-rpath,.
+	${CXX} ${CXXFLAGS} ${VEC_HOST} -o $@ main.o ${LIBUSOLIDS} ${LDFLAGS_HOST} ${LDFLAGS} -Llib -lMicCore -Wl,-rpath,lib
 
 ${OBJS}: %.o: %.cc %.d
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<
@@ -78,7 +80,7 @@ ${LIB_CORE_MIC}: ${CORE_OBJS_MIC}
 	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} ${CORE_OBJS_MIC} -shared -o $@ ${LDFLAGS_MIC}
 
 main-mic: ${AUTO_TGTS} ${LIB_CORE_MIC} main.om ${LIBUSOLIDS_MIC}
-	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} -o $@ main.om ${LIBUSOLIDS_MIC} ${LDFLAGS_MIC} -L. -lMicCore-mic -Wl,-rpath=.
+	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} -o $@ main.om ${LIBUSOLIDS_MIC} ${LDFLAGS_MIC} -Llib -lMicCore-mic -Wl,-rpath=lib
 
 ${LIBUSOLIDS_MIC} : USolids/CMakeLists.txt
 	-mkdir USolids-mic

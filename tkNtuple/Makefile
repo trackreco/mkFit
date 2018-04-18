@@ -15,7 +15,7 @@ LDEXTRA  := ${USER_LDFLAGS}
 
 CPPFLAGS := -I${ROOTSYS}/include ${CPPEXTRA} ${CPPFLAGS}
 CXXFLAGS += ${USER_CXXFLAGS}
-LDFLAGS  += -L${ROOTSYS}/lib -lCore -lRIO -lTree -lMathCore ${LDEXTRA}
+LDFLAGS  += -L${ROOTSYS}/lib -L../lib -lCore -lRIO -lTree -lMathCore ${LDEXTRA}
 
 
 EXES     := writeMemoryFile
