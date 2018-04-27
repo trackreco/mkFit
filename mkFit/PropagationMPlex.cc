@@ -456,6 +456,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    // This dump is now out of its place as similarity is done with matriplex ops.
 #ifdef DEBUG
    {
+     dmutex_guard;
      for (int kk = 0; kk < N_proc; ++kk)
      {
        dprintf("outErr %d\n", kk);
@@ -549,6 +550,7 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    // This dump is now out of its place as similarity is done with matriplex ops.
 #ifdef DEBUG
    {
+     dmutex_guard;
      for (int kk = 0; kk < N_proc; ++kk)
      {
        dprintf("outErr %d\n", kk);
@@ -683,7 +685,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
   for (int n = 0; n < NN; ++n)
     {
       float radL = hitsRl.ConstAt(n,0,0);
-      if (radL<0.0000000000001f) continue;//ugly, please fixme
+      if (radL < 1e-13f) continue;//ugly, please fixme
       const float theta = outPar.ConstAt(n,5,0);
       const float pt = 1.f/outPar.ConstAt(n,3,0);
       const float p = pt/std::sin(theta);
@@ -698,7 +700,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
       // multiple scattering
       //vary independently phi and theta by the rms of the planar multiple scattering angle
       // XXX-KMD radL < 0, see your fixme above! Repeating bailout
-      if (radL<0.0000000000001f) continue;
+      if (radL < 1e-13f) continue;
       const float thetaMSC = 0.0136f*std::sqrt(radL)*(1.f+0.038f*std::log(radL))/(beta*p);// eq 32.15
       const float thetaMSC2 = thetaMSC*thetaMSC;
       outErr.At(n, 4, 4) += thetaMSC2;
@@ -717,7 +719,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
       // dEdx = dEdx*2.;//xi in cmssw is defined with an extra factor 0.5 with respect to formula 27.1 in pdg
       //std::cout << "dEdx=" << dEdx << " delta=" << deltahalf << " wmax=" << wmax << " Xi=" << hitsXi.ConstAt(n,0,0) << std::endl;
       const float dP = dEdx/beta;
-      outPar.At(n, 0, 3) = p/((p+dP)*pt);
+      outPar.At(n, 3, 0) = p/((p+dP)*pt);
       //assume 100% uncertainty
       outErr.At(n, 3, 3) += dP*dP/(p2*pt*pt);
     }

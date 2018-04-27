@@ -1063,7 +1063,9 @@ void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
 
 //------------------------------------------------------------------------------
 
+#ifdef DEBUG_BACKWARD_FIT
 namespace { float e2s(float x) { return 1e4 * std::sqrt(x); } }
+#endif
 
 void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
                               const SteeringParams& st_par,

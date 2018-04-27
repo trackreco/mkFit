@@ -7,7 +7,7 @@
 #include "Event.h"
 #include "TrackerInfo.h"
 
-#define DEBUG
+//#define DEBUG
 #include "Debug.h"
 
 #include "Ice/IceRevisitedRadix.h"
@@ -409,7 +409,7 @@ void MkBuilder::import_seeds()
   // Seeds are placed into eta regions and sorted on eta. Counts for each eta region are
   // stored into Event::seedEtaSeparators_.
 
-  // bool debug = true;
+  //bool debug = true;
 
   TrackerInfo &trk_info = Config::TrkInfo;
   TrackVec    &seeds    = m_event->seedTracks_;
@@ -2094,7 +2094,9 @@ void MkBuilder::fit_cands_to_pca_BH(MkFinder *mkfndr, int start_cand, int end_ca
     // }
 
     bool chi_debug = false;
+#ifdef DEBUG_BACKWARD_FIT
   redo_fit:
+#endif
 
     // inout candidate tracks
     mkfndr->BkFitInputTracks(m_event->candidateTracks_, icand, end);
