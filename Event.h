@@ -51,6 +51,8 @@ public:
 private:
   int  evtID_;
 
+  void reset_nan_n_silly_counters();
+
 public:
   int threads_;
   std::mutex       mcGatherMutex_;
@@ -63,6 +65,9 @@ public:
   // validation sets these, so needs to be mutable
   mutable TrackExtraVec simTracksExtra_, seedTracksExtra_, candidateTracksExtra_, fitTracksExtra_;
   mutable TrackExtraVec cmsswTracksExtra_;
+
+  // counters for bad candidates during finding.
+  std::atomic<int> nan_n_silly_per_layer_count_;
 
   // XXXXMT: Preliminary. Separators into seed/candidate arrays.
   // This will have to be extended for multi-pass tracking.

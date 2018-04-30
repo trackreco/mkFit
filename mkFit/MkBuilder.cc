@@ -1230,7 +1230,7 @@ namespace
   void seed_post_cleaning(TrackVec &tv, const bool fix_silly_seeds, const bool remove_silly_seeds)
   {
     /*
-    {
+    { // Select seed with the following label for detailed debugging.
       const int  select_label = 3;
       for (int i = 0; i < (int) tv.size(); ++i)
       {
@@ -1247,17 +1247,32 @@ namespace
     }
     */
 
-    if (fix_silly_seeds)
+    if (Config::nan_n_silly_check_seeds)
     {
+      int count = 0;
+
       for (int i = 0; i < (int) tv.size(); ++i)
       {
-        bool silly = tv[i].hasSillyValues(true, fix_silly_seeds, "Post-cleaning seed silly value check and fix");
-        if (silly && remove_silly_seeds)
+        bool silly = tv[i].hasSillyValues(Config::nan_n_silly_print_bad_seeds,
+                                          Config::nan_n_silly_fixup_bad_seeds,
+                                          "Post-cleaning seed silly value check and fix");
+        if (silly)
         {
-          // Could do somethin smarter here: setStopped ?  check in seed cleaning ?
-          tv.erase(tv.begin() + i);
-          --i;
+          ++count;
+          if (Config::nan_n_silly_remove_bad_seeds)
+          {
+            // XXXX MT
+            // Could do somethin smarter here: setStopped ?  check in seed cleaning ?
+            tv.erase(tv.begin() + i);
+            --i;
+          }
         }
+      }
+
+      if (count > 0)
+      {
+        printf("Nan'n'Silly detected %d silly seeds (fix=%d, remove=%d).\n",
+               count, Config::nan_n_silly_fixup_bad_seeds, Config::nan_n_silly_remove_bad_seeds);
       }
     }
   }
@@ -1265,15 +1280,15 @@ namespace
 
 void MkBuilder::PrepareSeeds()
 {
-  {
-    TrackVec  &tv = m_event->seedTracks_;
-    char pref[80];
-    for (int i = 0; i < (int) tv.size(); ++i)
-    {
-      sprintf(pref, "Pre-cleaning seed silly value check event=%d index=%d:", m_event->evtID(), i);
-      tv[i].hasSillyValues(true, false, pref);
-    }
-  }
+  // {
+  //   TrackVec  &tv = m_event->seedTracks_;
+  //   char pref[80];
+  //   for (int i = 0; i < (int) tv.size(); ++i)
+  //   {
+  //     sprintf(pref, "Pre-cleaning seed silly value check event=%d index=%d:", m_event->evtID(), i);
+  //     tv[i].hasSillyValues(true, false, pref);
+  //   }
+  // }
 
   if (Config::seedInput == simSeeds)
   {
@@ -1613,9 +1628,20 @@ void MkBuilder::FindTracksStandard()
 
           dprint("processing track=" << itrack << ", label=" << eoccs.m_candidates[seed_cand_idx[itrack].first][seed_cand_idx[itrack].second].label());
 
-          for (int ti = itrack; ti < end; ++ti)
-            eoccs.m_candidates[seed_cand_idx[ti].first][seed_cand_idx[ti].second].hasSillyValues(true, true, "Per layer silly check");
-
+          if (Config::nan_n_silly_check_cands_every_layer)
+          {
+            int silly_count = 0;
+            for (int ti = itrack; ti < end; ++ti)
+            {
+              Track &t = eoccs.m_candidates[seed_cand_idx[ti].first][seed_cand_idx[ti].second];
+              if (t.hasSillyValues(Config::nan_n_silly_print_bad_cands_every_layer,
+                                   Config::nan_n_silly_fixup_bad_cands_every_layer,
+                                   "Per layer silly check"))
+              {
+                m_event->nan_n_silly_per_layer_count_ += silly_count;
+              }
+            }
+          }
 
           //fixme find a way to deal only with the candidates needed in this thread
           mkfndr->InputTracksAndHitIdx(eoccs.m_candidates,
@@ -1745,7 +1771,6 @@ void MkBuilder::FindTracksStandard()
         if (finalcands.size() == 0) continue;
         std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
       }
-
     }); // end parallel-for over chunk of seeds within region
   }); // end of parallel-for-each over eta regions
 }

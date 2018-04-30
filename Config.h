@@ -365,6 +365,25 @@ namespace Config
   extern bool   kludgeCmsHitErrors;
   extern bool   backwardFit;
 
+  // NAN and silly track parameter tracking options
+  constexpr bool nan_etc_sigs_enable = false;
+
+  constexpr bool nan_n_silly_check_seeds      = true;
+  constexpr bool nan_n_silly_print_bad_seeds  = false;
+  constexpr bool nan_n_silly_fixup_bad_seeds  = false;
+  constexpr bool nan_n_silly_remove_bad_seeds = true;
+
+  constexpr bool nan_n_silly_check_cands_every_layer     = false;
+  constexpr bool nan_n_silly_print_bad_cands_every_layer = false;
+  constexpr bool nan_n_silly_fixup_bad_cands_every_layer = false;
+
+  // NOTE: post_bkfit checks are NOT yet implemented in code!
+  constexpr bool nan_n_silly_check_cands_pre_bkfit  = true;
+  constexpr bool nan_n_silly_check_cands_post_bkfit = true;
+  constexpr bool nan_n_silly_print_bad_cands_bkfit  = false;
+
+  // ================================================================
+
   void RecalculateDependentConstants();
   
   CUDA_CALLABLE

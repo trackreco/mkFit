@@ -44,10 +44,16 @@ namespace
   std::unique_ptr<Validation> dummyValidation( Validation::make_validation("dummy") );
 }
 
+void Event::reset_nan_n_silly_counters()
+{
+  nan_n_silly_per_layer_count_ = 0;
+}
+
 Event::Event(int evtID) :
   geom_(dummyGeometry), validation_(*dummyValidation),
   evtID_(evtID), threads_(1), mcHitIDCounter_(0)
 {
+  reset_nan_n_silly_counters();
   layerHits_.resize(Config::nTotalLayers);
 }
 
@@ -55,6 +61,7 @@ Event::Event(const Geometry& g, Validation& v, int evtID, int threads) :
   geom_(g), validation_(v),
   evtID_(evtID), threads_(threads), mcHitIDCounter_(0)
 {
+  reset_nan_n_silly_counters();
   layerHits_.resize(Config::nTotalLayers);
 
   validation_.resetValidationMaps(); // need to reset maps for every event.
@@ -64,6 +71,7 @@ void Event::Reset(int evtID)
 {
   evtID_ = evtID;
   mcHitIDCounter_ = 0;
+  reset_nan_n_silly_counters();
 
   for (auto&& l : layerHits_) { l.clear(); }
 
