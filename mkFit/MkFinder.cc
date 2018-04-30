@@ -172,8 +172,6 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       float z  = Par[iI].ConstAt(itrack, 2, 0);
       float dz = std::abs(nSigmaZ * std::sqrt(Err[iI].ConstAt(itrack, 2, 2)));
 
-      // dz = std::min(std::max(dz, L.min_dq()), L.max_dq());
-
       // NOTE -- once issues in this block are resolved the changes should also be
       // ported to MkFinderFV.
       if (Config::useCMSGeom) // should be Config::finding_requires_propagation_to_hit_pos
@@ -208,8 +206,6 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       float  r = std::sqrt(r2);
       float dr = std::abs(nSigmaR*(x*x*Err[iI].ConstAt(itrack, 0, 0) + y*y*Err[iI].ConstAt(itrack, 1, 1) + 2*x*y*Err[iI].ConstAt(itrack, 0, 1)) / r2);
 
-      // dr = std::min(std::max(dr, L.min_dq()), L.max_dq());
-
       if (Config::useCMSGeom) // should be Config::finding_requires_propagation_to_hit_pos
       {
         //now correct for bending and for layer thickness unsing linear approximation
@@ -232,8 +228,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     }
 
     dphi = std::min(std::abs(dphi), L.max_dphi());
-    // dq = std::min(std::abs(dq), L.max_dq());
-    dq = std::min(std::max(dq, L.min_dq()), L.max_dq());
+    dq   = std::min(std::max(dq, L.min_dq()), L.max_dq());
 
     qv[itrack] = q;
     phiv[itrack] = phi;
