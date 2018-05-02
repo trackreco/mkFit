@@ -21,7 +21,9 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
 {
   // Process new hits for a range of seeds.
 
-  // printf("CandCloner::ProcessSeedRange is_beg=%d, is_end=%d\n", is_beg, is_end);
+  // bool debug = true;
+
+  dprintf("\nCandCloner::ProcessSeedRange is_beg=%d, is_end=%d\n", is_beg, is_end);
 
   //1) sort the candidates
   for (int is = is_beg; is < is_end; ++is)
@@ -33,14 +35,15 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
 #ifdef DEBUG
     int th_start_seed = m_start_seed;
 
-    dprint("dump seed n " << is << " with input candidates=" << hitsForSeed.size());
-    for (int ih = 0; ih < hitsForSeed.size(); ih++)
+    dprint("  seed n " << is << " with input candidates=" << hitsForSeed.size());
+    for (int ih = 0; ih < (int) hitsForSeed.size(); ih++)
     {
       dprint("trkIdx=" << hitsForSeed[ih].trkIdx << " hitIdx=" << hitsForSeed[ih].hitIdx << " chi2=" <<  hitsForSeed[ih].chi2 << std::endl
-                << "original pt=" << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].pT() << " "
-                << "nTotalHits="  << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].nTotalHits() << " "
-                << "nFoundHits="  << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].nFoundHits() << " "
-                << "chi2="        << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].chi2());
+             << "    "
+             << "original pt=" << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].pT() << " "
+             << "nTotalHits="  << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].nTotalHits() << " "
+             << "nFoundHits="  << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].nFoundHits() << " "
+             << "chi2="        << cands[th_start_seed+is][hitsForSeed[ih].trkIdx].chi2());
     }
 #endif
 
@@ -67,7 +70,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
 
           if (h2a.hitIdx >= 0)
           {
-            mp_kalman_update_list->push_back(std::pair<int,int>( m_start_seed + is, ih));
+            mp_kalman_update_list->push_back(std::pair<int,int>(m_start_seed + is, ih));
           }
         }
       }
@@ -88,25 +91,30 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
       }
 
       //cands[ m_start_seed + is ].swap(cv); // segfaulting w/ backwards fit input tracks -- using loop below now
-      cands[m_start_seed+is].resize(cv.size());
+      cands[m_start_seed + is].resize(cv.size());
       for (size_t ii = 0; ii < cv.size(); ++ii)
       {
-	memcpy( & cands[m_start_seed+is][ii], & cv[ii], sizeof(Track));
+	memcpy( & cands[m_start_seed + is][ii], & cv[ii], sizeof(Track));
       }
       cv.clear();
     }
-    // else // hitsForSeed.empty()
-    // {
-    //   // Cross-check for what is left once there are no more changes for a whole seed.
-    //
-    //   for (auto &cand : cands[ m_start_seed + is ])
-    //   {
-    //     if (cand.getLastHitIdx() < 0 && cand.getLastHitIdx() != -2)
-    //     {
-    //       printf("  We got cand with index %d\n", cand.getLastHitIdx());
-    //       print("offending track (unknown index)", -666, cand, true);
-    //     }
-    //   }
-    // }
+    else // hitsForSeed.empty()
+    {
+      if (cands[m_start_seed + is].m_state == CombCandidate::Finding)
+      {
+        cands[m_start_seed + is].clear();
+      }
+
+      // Cross-check for what is left once there are no more changes for a whole seed.
+      //
+      // for (auto &cand : cands[ m_start_seed + is ])
+      // {
+      //   if (cand.getLastHitIdx() < 0 && cand.getLastHitIdx() != -2)
+      //   {
+      //     printf("  We got cand with index %d\n", cand.getLastHitIdx());
+      //     print("offending track (unknown index)", -666, cand, true);
+      //   }
+      // }
+    }
   }
 }

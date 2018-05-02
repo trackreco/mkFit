@@ -75,19 +75,47 @@ inline bool sortByZ(const Hit& hit1, const Hit& hit2)
 
 namespace
 {
-int check_nan_n_silly(TrackVec &tracks, const char* prefix)
-{
-  int count = 0;
-  for (auto & t : tracks)
+
+  int check_nan_n_silly(TrackVec &tracks, const char* prefix)
   {
-    if (t.hasSillyValues(Config::nan_n_silly_print_bad_cands_bkfit,
-                         false, prefix))
+    int count = 0;
+    for (auto & t : tracks)
     {
-      ++count;
+      if (t.hasSillyValues(Config::nan_n_silly_print_bad_cands_bkfit,
+                           false, prefix))
+      {
+        ++count;
+      }
+    }
+    return count;
+  }
+
+  void check_nan_n_silly_candiates(Event &ev)
+  {
+    if (Config::nan_n_silly_check_cands_every_layer)
+    {
+      int sc = (int) ev.nan_n_silly_per_layer_count_;
+      if (sc > 0)
+        printf("Nan'n'Silly: Number of silly candidates over all layers = %d\n", sc);
+    }
+    if (Config::nan_n_silly_check_cands_pre_bkfit)
+    {
+      int sc = check_nan_n_silly(ev.candidateTracks_, "Pre-bkfit silly check");
+      if (sc > 0)
+        printf("Nan'n'Silly: Number of silly pre-bkfit candidates = %d\n", sc);
     }
   }
-  return count;
-}
+
+  void check_nan_n_silly_bkfit(Event &ev)
+  {
+    if (Config::nan_n_silly_check_cands_post_bkfit)
+    {
+      int sc = check_nan_n_silly(ev.fitTracks_, "Post-bkfit silly check");
+      if (sc > 0)
+        printf("Nan'n'Silly: Number of silly post-bkfit candidates = %d\n", sc);
+    }
+  }
+
 }
 
 //==============================================================================
@@ -233,23 +261,12 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
   __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
 
+  check_nan_n_silly_candiates(ev);
+
   // first store candidate tracks
   if (Config::quality_val || Config::sim_val || Config::cmssw_val)
   {
     builder.quality_store_tracks(ev.candidateTracks_);
-  }
-
-  if (Config::nan_n_silly_check_cands_every_layer)
-  {
-    int sc = (int) ev.nan_n_silly_per_layer_count_;
-    if (sc > 0)
-      printf("Nan'n'Silly: Number of silly candidates over all layers = %d\n", sc);
-  }
-  if (Config::nan_n_silly_check_cands_pre_bkfit)
-  {
-    int sc = check_nan_n_silly(ev.candidateTracks_, "Pre-bkfit silly check");
-    if (sc > 0)
-      printf("Nan'n'Silly: Number of silly pre-bkfit candidates = %d\n", sc);
   }
 
   // now do backwards fit... do we want to time this section?
@@ -257,12 +274,7 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
   {
     builder.BackwardFit();
 
-    if (Config::nan_n_silly_check_cands_post_bkfit)
-    {
-      int sc = check_nan_n_silly(ev.fitTracks_, "Post-bkfit silly check");
-      if (sc > 0)
-        printf("Nan'n'Silly: Number of silly post-bkfit candidates = %d\n", sc);
-    }
+    check_nan_n_silly_bkfit(ev);
 
     if (Config::sim_val || Config::cmssw_val)
     {
@@ -316,7 +328,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
   __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
 
-  // silly check
+  check_nan_n_silly_candiates(ev);
 
   // first store candidate tracks
   if (Config::quality_val || Config::sim_val || Config::cmssw_val)
@@ -329,13 +341,13 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
   {
     builder.BackwardFit();
 
+    check_nan_n_silly_bkfit(ev);
+
     if (Config::sim_val || Config::cmssw_val)
     {
       builder.quality_store_tracks(ev.fitTracks_);
     }
   }
-
-  // silly check
 
   // validation section
   if (Config::quality_val || Config::sim_val || Config::cmssw_val) 

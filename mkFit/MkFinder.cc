@@ -127,7 +127,7 @@ void MkFinder::OutputTracksAndHitIdx(std::vector<Track>& tracks,
 void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
                                 const int N_proc)
 {
-  // debug = true;
+  // bool debug = true;
 
   const LayerOfHits &L = layer_of_hits;
   const int   iI = iP;
@@ -552,6 +552,8 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
                               const int offset, const int N_proc,
                               const FindingFoos &fnd_foos)
 {
+  // bool debug = true;
+
   const char *varr      = (char*) layer_of_hits.m_hits;
 
   const int   off_error = (char*) layer_of_hits.m_hits[0].errArray() - varr;
@@ -580,6 +582,8 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
 
     idx[it] = 0;
   }
+
+  dprintf("FindCandidates max hits to process=%d\n", maxSize);
 
   // Has basically no effect, it seems.
   //#pragma noprefetch
@@ -725,6 +729,8 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
                                          const int offset, const int N_proc,
                                          const FindingFoos &fnd_foos)
 {
+  // bool debug = true;
+
   const char *varr      = (char*) layer_of_hits.m_hits;
 
   const int   off_error = (char*) layer_of_hits.m_hits[0].errArray() - varr;
@@ -755,6 +761,8 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     idx[it] = 0;
   }
   // XXXX MT FIXME: use masks to filter out SlurpIns
+
+  dprintf("FindCandidatesCloneEngine max hits to process=%d\n", maxSize);
 
 // Has basically no effect, it seems.
 //#pragma noprefetch
@@ -811,7 +819,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
       if (hit_cnt < XHitSize[itrack])
       {
         const float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
-        dprint("chi2=" << chi2 << " for trkIdx=" << itrack);
+        dprint("chi2=" << chi2 << " for trkIdx=" << itrack << " hitIdx=" << XHitArr.At(itrack, hit_cnt, 0));
         if (chi2 < Config::chi2Cut)
         {
           IdxChi2List tmpList;
@@ -821,7 +829,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
           tmpList.chi2   = Chi2(itrack, 0, 0) + chi2;
           cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
           // hitsToAdd[SeedIdx(itrack, 0, 0)-offset].push_back(tmpList);
-          dprint("adding hit with hit_cnt=" << hit_cnt << " for trkIdx=" << tmpList.trkIdx << " orig Seed=" << Label(itrack, 0, 0));
+          dprint("  adding hit with hit_cnt=" << hit_cnt << " for trkIdx=" << tmpList.trkIdx << " orig Seed=" << Label(itrack, 0, 0));
         }
       }
     }
@@ -829,18 +837,20 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
   }//end loop over hits
 
   //now add invalid hit
-  //fixme: please vectorize me...
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
     dprint("num_invalid_hits(" << itrack << ")=" << num_invalid_hits(itrack));
 
-    int fake_hit_idx = num_invalid_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
-
     if (XWsrResult[itrack].m_wsr == WSR_Outside)
     {
-      fake_hit_idx = -4;
+      // fake_hit_idx = -4;
+      dprint("track missed layer, not adding a clone with a missing hit");
+      continue; // handled outside, keep previous parameters
     }
-    else if (XWsrResult[itrack].m_wsr == WSR_Edge)
+
+    int fake_hit_idx = num_invalid_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
+
+    if (XWsrResult[itrack].m_wsr == WSR_Edge)
     {
       fake_hit_idx = -3;
     }
