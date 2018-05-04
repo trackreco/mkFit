@@ -377,7 +377,6 @@ namespace Config
   constexpr bool nan_n_silly_print_bad_cands_every_layer = false;
   constexpr bool nan_n_silly_fixup_bad_cands_every_layer = false;
 
-  // NOTE: post_bkfit checks are NOT yet implemented in code!
   constexpr bool nan_n_silly_check_cands_pre_bkfit  = true;
   constexpr bool nan_n_silly_check_cands_post_bkfit = true;
   constexpr bool nan_n_silly_print_bad_cands_bkfit  = false;
