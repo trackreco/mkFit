@@ -45,9 +45,9 @@ void StackValidation::MakeRatioStacks(const TString & trk)
   // indices for loops match PlotValidation.cpp
   for (UInt_t l = 0; l < rates.size(); l++)
   {
-    for (UInt_t i = 0; i < vars.size(); i++)
+    for (UInt_t k = 0; k < ptcuts.size(); k++)
     {
-      for (UInt_t k = 0; k < ptcuts.size(); k++)
+      for (UInt_t i = 0; i < vars.size(); i++)
       {
 	TCanvas * canv = new TCanvas();
 	canv->cd();
@@ -72,6 +72,23 @@ void StackValidation::MakeRatioStacks(const TString & trk)
 	leg->Draw("SAME");
 	canv->SaveAs(label+"_"+rates[l].rate+"_"+vars[i]+"_"+trk+"_pt"+Form("%3.1f",ptcuts[k])+extra+".png");
 	
+	// zoom in on pt range
+	if (i == 0)
+	{
+	  std::vector<TGraphAsymmErrors*> zoomgraphs(builds.size());
+	  for (UInt_t b = 0; b < builds.size(); b++)
+	  {
+	    zoomgraphs[b] = (TGraphAsymmErrors*)graphs[b]->Clone(Form("%s_zoom",graphs[b]->GetName()));
+	    zoomgraphs[b]->GetXaxis()->SetRangeUser(0,10);
+	    zoomgraphs[b]->Draw(b>0?"PZ SAME":"APZ");
+	  }
+
+	  leg->Draw("SAME");
+	  canv->SaveAs(label+"_"+rates[l].rate+"_"+vars[i]+"_zoom_"+trk+"_pt"+Form("%3.1f",ptcuts[k])+extra+".png");
+
+	  for (auto & zoomgraph : zoomgraphs) delete zoomgraph; 
+	}
+
 	delete leg;
 	for (auto & graph : graphs) delete graph;
 	delete canv;
