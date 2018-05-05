@@ -19,7 +19,7 @@ done
 
 for build in BH STD CE FV
 do
-    root -b -q -l plotting/runValidation.C\(\"_SNB_ToyMC_FullDet_${build}\",1\)
+    root -b -q -l plotting/runValidation.C\(\"_SNB_ToyMC_FullDet_${build}\"\)
 done
 root -b -q -l plotting/makeValidation.C\(\"SNB_ToyMC_FullDet\"\)
 

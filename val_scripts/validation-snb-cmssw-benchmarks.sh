@@ -76,7 +76,7 @@ do echo ${vV} | while read -r vN vO
 	    fi
 
 	    echo "Computing observables for: ${tbase} ${build} ${vN}"
-	    root -b -q -l plotting/runValidation.C\(\"_${tbase}_${build}_${vN}\",0,${vO}\)
+	    root -b -q -l plotting/runValidation.C\(\"_${tbase}_${build}_${vN}\",${vO}\)
 	done
 
 	## overlay histograms

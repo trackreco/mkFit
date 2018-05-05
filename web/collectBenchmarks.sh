@@ -66,7 +66,7 @@ do
     mv validation_${vBase}_"SIMVAL"/totals_validation_${vBase}_"SIMVAL".txt ${dir}/${rootdir}
 done
 
-for rate in eff ineff_barrel ineff_endcap dr fr 
+for rate in eff ineff_brl ineff_trans ineff_ec dr fr 
 do
     for var in pt phi eta
     do 

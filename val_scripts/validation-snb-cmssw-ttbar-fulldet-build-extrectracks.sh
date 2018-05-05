@@ -31,7 +31,7 @@ do
     tbase=${base}_${ttbar}
     for build in BH STD CE FV
     do
-	root -b -q -l plotting/runValidation.C\(\"_${tbase}_${build}\",0,1\)
+	root -b -q -l plotting/runValidation.C\(\"_${tbase}_${build}\",1\)
     done
     root -b -q -l plotting/makeValidation.C\(\"${tbase}\",\"\",1\)
 done
