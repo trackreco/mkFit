@@ -2,50 +2,45 @@
 #define _PlotValidation_
 
 #include "TFile.h"
+#include "TTree.h"
+#include "TBranch.h"
+#include "TDirectory.h"
+#include "TString.h"
 #include "TEfficiency.h"
 #include "TH1F.h"
-#include "TString.h"
-#include "TTree.h"
 #include "TCanvas.h"
 #include "TROOT.h"
 #include "TSystem.h"
 #include "TStyle.h"
-#include "TDirectory.h"
-#include "TColor.h"
-#include "TLegend.h"
 
+#include <string>
 #include <vector>
-#include <iostream>
+#include <map>
 #include <iomanip>
+#include <iostream>
 #include <fstream>
+#include <sstream>
 #include <cmath>
 
-typedef std::vector<Float_t>      FltVec;
-typedef std::vector<FltVec>       FltVecVec;
-typedef std::vector<FltVecVec>    FltVecVecVec;
-typedef std::vector<Float_t> *    FltVecRef;
-typedef std::vector<FltVecRef>    FltVecRefVec;
-typedef std::vector<FltVecRefVec> FltVecRefVecVec;
+typedef std::vector<Float_t>  FltVec;
+typedef std::vector<FltVec>   FltVecVec;
+typedef std::vector<Double_t> DblVec;
+typedef std::vector<DblVec>   DblVecVec;
+typedef std::vector<Int_t>    IntVec;
+typedef std::vector<TString>  TStrVec;
 
-typedef std::vector<Int_t>     IntVec;
-typedef std::vector<IntVec>    IntVecVec;
-typedef std::vector<Int_t> *   IntVecRef;
-typedef std::vector<IntVecRef> IntVecRefVec;
+typedef std::vector<TBranch*>    TBrRefVec;
+typedef std::vector<TBrRefVec>   TBrRefVecVec;
+typedef std::vector<TDirectory*> TDirRefVec;
 
-typedef std::vector<TH1F *>        TH1FRefVec;
-typedef std::vector<TH1FRefVec>    TH1FRefVecVec;
-typedef std::vector<TH1FRefVecVec> TH1FRefVecVecVec;
-typedef std::vector<TH1FRefVecVecVec> TH1FRefVecVecVecVec;
-
-typedef std::vector<TEfficiency *> TEffRefVec;
-typedef std::vector<TEffRefVec>    TEffRefVecVec;
-typedef std::vector<TEffRefVecVec> TEffRefVecVecVec;
-typedef std::vector<TEffRefVecVecVec> TEffRefVecVecVecVec;
-
-typedef std::vector<TString> TStrVec;
+typedef std::map<TString,TH1F*>        TH1FRefMap;
+typedef std::map<TString,TEfficiency*> TEffRefMap;
 
 struct EffStruct
 {
+  EffStruct(){}
+  ~EffStruct(){}
+
   Float_t passed_;
   Float_t total_;
 
@@ -57,50 +52,61 @@ struct EffStruct
 class PlotValidation
 {
 public:
-  PlotValidation(TString inName, TString outName, Bool_t computePulls, Bool_t cmsswComp,
-		 Bool_t mvInput, Bool_t saveAs, TString outType);
+  PlotValidation(const TString & inName, const TString & outName, const Bool_t cmsswComp,
+		 const Bool_t mvInput, const Bool_t saveAs, const TString & outType);
   ~PlotValidation();
+  
+  // setup functions
+  void SetupStyle();
+  void SetupBins();
+  void SetupVariableBins(const std::string & s_bins, DblVec & bins);
+  void SetupFixedBins(const Int_t nBins, const Double_t low, const Double_t high, DblVec & bins);
+
+  // main call
   void Validation();
-
-  void PlotEfficiency();
-  void PlotInefficiencyVsGeom();
-  void PlotFakeRate();
-  void PlotDuplicateRate();
-  void PlotNHits();
-  void PlotMomResolutionPull();
-  void PlotCMSSWKinematicDiffs(); 
-
+  void PlotEffTree();
+  void PlotFRTree();
   void PrintTotals();
 
-  void MakeSubDirectory(const TString subdirname);
+  // output functions
+  template <typename T>
+  void DrawWriteSavePlot(T *& plot, TDirectory *& subdir, const TString & subdirname, const TString & option);
 
-  void ComputeResidual      (const Float_t mcvar_val, const Float_t recovar_val, Float_t & var_out);
-  void ComputeResolutionPull(const Float_t mcvar_val, const Float_t recovar_val, const Float_t recovar_err, FltVec & var_out);
-
+  // helper functions
+  void MakeOutDir(const TString & outdirname);
   void GetTotalEfficiency(const TEfficiency * eff, EffStruct & effs);
-    
-  void DrawWriteSaveTEffPlot   (TDirectory *& subdir, TEfficiency *& eff, const TString subdirname, const TString plotName);
-  void DrawWriteSaveTH1FPlot   (TDirectory *& subdir, TH1F *& histo, const TString subdirname, const TString plotName);
-  void DrawWriteFitSaveTH1FPlot(TDirectory *& subdir, TH1F *& histo, const TString subdirname, const TString plotName, const Float_t fitrange);
-
+  TDirectory * MakeSubDirs(const TString & subdirname);
   void MoveInput();
 
 private:
+  // input+output config
   const TString fInName;
-        TFile * fInRoot;
-  const Bool_t  fComputePulls;
   const Bool_t  fCmsswComp;
   const Bool_t  fMvInput;
   const Bool_t  fSaveAs;
   const TString fOutType;
+
+  // main input 
+  TFile * fInRoot;
+
+  // binning for rate plots
+  DblVec fPtBins;
+  DblVec fEtaBins;
+  DblVec fPhiBins;
+
+  // binning for hit hists
+  DblVec fNHitsBins;
+  DblVec fFracHitsBins;
+
+  // binning for diff hists
+  DblVec fDNHitsBins;
+  DblVec fDInvPtBins;
+  DblVec fDPhiBins;
+  DblVec fDEtaBins;
+
+  // output variables
   TString fOutName;
   TFile * fOutRoot;
-  TCanvas * fTEffCanv;
-  TCanvas * fTH1Canv;
-
-  // color base
-  std::vector<Color_t> fColors;
-  UInt_t fColorSize;
 };
 
 #endif

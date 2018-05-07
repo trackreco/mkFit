@@ -33,7 +33,7 @@ do
     oBase=${base}_${section}
     for build in BH STD CE FV
     do
-	root -b -q -l plotting/runValidation.C\(\"_${oBase}_${build}\",0,1\)
+	root -b -q -l plotting/runValidation.C\(\"_${oBase}_${build}\",1\)
     done
     root -b -q -l plotting/makeValidation.C\(\"${oBase}\",\"\",1\)
 done
@@ -44,7 +44,7 @@ do
     fBase=valtree_${oBase}
     dBase=validation_${oBase}
     hadd ${fBase}_FullDet_${build}.root `for section in ECN2 ECN1 BRL ECP1 ECP2; do echo -n ${dBase}_${section}_${build}/${fBase}_${section}_${build}.root" "; done`
-    root -b -q -l plotting/runValidation.C\(\"_${oBase}_FullDet_${build}\",0,1\)
+    root -b -q -l plotting/runValidation.C\(\"_${oBase}_FullDet_${build}\",1\)
 done
 root -b -q -l plotting/makeValidation.C\(\"${oBase}_FullDet\",\"\",1\)
 

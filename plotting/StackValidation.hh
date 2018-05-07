@@ -22,8 +22,9 @@ namespace
     const TString ref = (cmsswComp?"cmssw":"sim");
 
     rates.push_back({"efficiency",ref,"eff"});
-    rates.push_back({"inefficiency",ref,"ineff_barrel"});
-    rates.push_back({"inefficiency",ref,"ineff_endcap"});
+    rates.push_back({"inefficiency",ref,"ineff_brl"});
+    rates.push_back({"inefficiency",ref,"ineff_trans"});
+    rates.push_back({"inefficiency",ref,"ineff_ec"});
     rates.push_back({"fakerate","reco","fr"});
     rates.push_back({"duplicaterate",ref,"dr"});
     

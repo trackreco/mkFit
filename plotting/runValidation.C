@@ -15,8 +15,8 @@ void setupcpp11()
   gSystem->SetMakeExe(o.Data());
 } 
 
-void runValidation(TString test = "", Bool_t computePulls = false, Bool_t cmsswComp = false, 
-		   Bool_t mvInput = true, Bool_t saveAs = false, TString image = "pdf")
+void runValidation(const TString & test = "", const Bool_t cmsswComp = false, const Bool_t mvInput = true,
+		   const Bool_t saveAs = false, const TString & image = "pdf")
 {
   setupcpp11(); //  use this to get PlotValidation to compile ... phiphi ROOT build has ACLiC with C++98!
 
@@ -25,12 +25,11 @@ void runValidation(TString test = "", Bool_t computePulls = false, Bool_t cmsswC
   // PlotValidation arguments
   // First is additional input name of root file
   // Second is name of output directory
-  // First boolean argument is to compute momentum pulls: currently implemented only when sim track states are available!
-  // Second boolean argument is to do special CMSSW validation
-  // The third boolean argument == true to move input root file to output directory, false to keep input file where it is.
-  // Fourth Bool is saving the image files
+  // First boolean argument is to do special CMSSW validation
+  // The second boolean argument == true to move input root file to output directory, false to keep input file where it is.
+  // Third Bool is saving the image files
   // Last argument is output type of plots
 
-  PlotValidation Val(Form("valtree%s.root",test.Data()),Form("validation%s",test.Data()),computePulls,cmsswComp,mvInput,saveAs,image);
+  PlotValidation Val(Form("valtree%s.root",test.Data()),Form("validation%s",test.Data()),cmsswComp,mvInput,saveAs,image);
   Val.Validation(); 
 }
