@@ -403,7 +403,8 @@ struct CramerInverterSym<T, 2, N>
 #pragma omp simd
       for (idx_t n = 0; n < N; ++n)
       {
-         const TT det = a[0*N+n] * a[2*N+n] - a[1*N+n] * a[1*N+n];
+         //const TT det = a[0*N+n] * a[2*N+n] - a[1*N+n] * a[1*N+n];
+         const double det = (double)a[0*N+n] * a[2*N+n] - (double)a[1*N+n] * a[1*N+n];
 
          const TT s   = TT(1) / det;
          const TT tmp = s * a[2*N+n];

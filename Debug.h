@@ -57,6 +57,8 @@ namespace
 {
   bool debug = false; // default, can be overridden locally
   std::mutex debug_mutex;
+
+  struct foo_doo_debug_unused { void foo() { debug = true; } };
 }
 
 #else

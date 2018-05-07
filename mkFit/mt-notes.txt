@@ -1,3 +1,51 @@
+Tracing down silly values in track errors
+-----------------------------------------
+
+Working with standard finding
+
+Added Track::hasSillyValues() to dump track covariance elements that are ans
+or diagonal negative.
+
+Call it from MkFinder::InputTracksAndHitIdcs()
+./mkFit --cmssw-n2seeds --input-file /bar/mic/mu_ecp-1000-10.bin-5 --build-std --geom CMS-2017 --num-events 900 --quality-val > ecp-silly.txt
+./mkFit --cmssw-n2seeds --input-file /bar/mic/mu_ecn-1000-10.bin-5 --build-std --geom CMS-2017 --num-events 900 --quality-val > ecn-silly.txt
+./mkFit --cmssw-n2seeds --input-file /bar/mic/ttbar.bin --build-std --geom CMS-2017 --num-events 10 --quality-val > ttbar-10-silly.txt
+./mkFit --cmssw-n2seeds --input-file /bar/mic/ttbar_pu.bin --build-std --geom CMS-2017 --num-events 10 --quality-val > ttbarpu-10-silly.txt
+
+* 10 muon
+  barrel, transition - clear
+  endcaps have 5 - 10 tracks with negative diag elements of track covariance.
+  Typically -epsilon
+
+* ttbar, ttbar-pu
+  have the above + frequent nans in on and off-diagnoal elements
+
+It turns out the nans and negative diagonal elements mostly appear for seeds
+that have a negative diagonal element to start with,
+
+- Most of nans can be fixed by setting negative diagonal elements to 1 (for
+  lack of a better value) ... but some persist.
+- Practically all nans can be avoided by removing those seeds.
+  Negative diagonal elements still remain, but there are really few,
+  maybe a couple in ttbar_pu sample.
+- I was trying to trace further how they comes about and ended with a huge headache.
+
+Conclusion - nans during track findinf come from bad seeds.
+I'll look at the backward fit once we resolve those.
+
+Enabled FP exceptions in main(). The following things showed up:
+- Determinant in 2x2 Cramer inversion can be 0.
+  Using double just for determinant is good enough.
+- Two issues in PropagationMPlex.cc - applyMaterialEffects()
+  marked with XXX-KMD
+  1. radL can become negative (sqrt), there is comment current code is for
+     barrel only
+  2. beta^2 can be one for large momentum - then we have sqrt(1 - beta2)
+- MkFinder::SelectHitIndices() line 173:
+    float dz = nSigmaZ * std::sqrt(Err[iI].ConstAt(itrack, 2, 2));
+  When Cov(2,2) turns negative, we have a nan.
+
+
 Backward fit
 ------------
 

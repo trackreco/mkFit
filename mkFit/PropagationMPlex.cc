@@ -4,6 +4,7 @@
 //#define DEBUG
 #include "Debug.h"
 
+
 //==============================================================================
 // propagateLineToRMPlex
 //==============================================================================
@@ -395,6 +396,8 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 			          MPlexLS &outErr,       MPlexLV& outPar,
                             const int      N_proc, const PropagationFlags pflags)
 {
+   // debug = true;
+
    // This is used further down when calculating similarity with errorProp (and before in DEBUG).
    // MT: I don't think this really needed if we use inErr where required.
    outErr = inErr;
@@ -453,6 +456,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    // This dump is now out of its place as similarity is done with matriplex ops.
 #ifdef DEBUG
    {
+     dmutex_guard;
      for (int kk = 0; kk < N_proc; ++kk)
      {
        dprintf("outErr %d\n", kk);
@@ -464,6 +468,12 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
        for (int i = 0; i < 6; ++i) {
            dprintf("%8f ", outPar.At(kk,i,0)); printf("\n");
        } dprintf("\n");
+       if (std::abs(hipo(outPar.At(kk,0,0), outPar.At(kk,1,0)) - msRad.ConstAt(kk, 0, 0)) > 0.0001) {
+         float pt = 1.0f / inPar.ConstAt(kk,3,0);
+	 dprint_np(kk, "DID NOT GET TO R, dR=" << std::abs(hipo(outPar.At(kk,0,0), outPar.At(kk,1,0)) - msRad.ConstAt(kk, 0, 0))
+		   << " r=" << msRad.ConstAt(kk, 0, 0) << " r0in=" << hipo(inPar.ConstAt(kk,0,0), inPar.ConstAt(kk,1,0)) << " rout=" << hipo(outPar.At(kk,0,0), outPar.At(kk,1,0)) << std::endl
+		   << "pt=" << pt << " pz=" << pt/std::tan(inPar.ConstAt(kk,5,0)));
+       }
      }
    }
 #endif
@@ -486,6 +496,8 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 			          MPlexLS &outErr,       MPlexLV& outPar,
                             const int      N_proc, const PropagationFlags pflags)
 {
+   // debug = true;
+
    outErr = inErr;
    outPar = inPar;
 
@@ -538,6 +550,7 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    // This dump is now out of its place as similarity is done with matriplex ops.
 #ifdef DEBUG
    {
+     dmutex_guard;
      for (int kk = 0; kk < N_proc; ++kk)
      {
        dprintf("outErr %d\n", kk);
@@ -549,6 +562,12 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
        for (int i = 0; i < 6; ++i) {
            dprintf("%8f ", outPar.At(kk,i,0)); printf("\n");
        } dprintf("\n");
+       if (std::abs(outPar.At(kk,2,0) - msZ.ConstAt(kk, 0, 0)) > 0.0001) {
+         float pt = 1.0f / inPar.ConstAt(kk,3,0);
+	 dprint_np(kk, "DID NOT GET TO Z, dZ=" << std::abs(outPar.At(kk,2,0) - msZ.ConstAt(kk, 0, 0))
+		   << " z=" << msZ.ConstAt(kk, 0, 0) << " zin=" << inPar.ConstAt(kk,2,0) << " zout=" << outPar.At(kk,2,0) << std::endl
+		   << "pt=" << pt << " pz=" << pt/std::tan(inPar.ConstAt(kk,5,0)));
+       }
      }
    }
 #endif
@@ -666,9 +685,9 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
   for (int n = 0; n < NN; ++n)
     {
       float radL = hitsRl.ConstAt(n,0,0);
-      if (radL<0.0000000000001f) continue;//ugly, please fixme
-      const float theta = outPar.ConstAt(n,0,5);
-      const float pt = 1.f/outPar.ConstAt(n,0,3);
+      if (radL < 1e-13f) continue;//ugly, please fixme
+      const float theta = outPar.ConstAt(n,5,0);
+      const float pt = 1.f/outPar.ConstAt(n,3,0);
       const float p = pt/std::sin(theta);
       const float p2 = p*p;
       constexpr float mpi = 0.140; // m=140 MeV, pion
@@ -680,6 +699,8 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
       radL = radL * invCos; //fixme works only for barrel geom
       // multiple scattering
       //vary independently phi and theta by the rms of the planar multiple scattering angle
+      // XXX-KMD radL < 0, see your fixme above! Repeating bailout
+      if (radL < 1e-13f) continue;
       const float thetaMSC = 0.0136f*std::sqrt(radL)*(1.f+0.038f*std::log(radL))/(beta*p);// eq 32.15
       const float thetaMSC2 = thetaMSC*thetaMSC;
       outErr.At(n, 4, 4) += thetaMSC2;
@@ -687,7 +708,8 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
       //std::cout << "beta=" << beta << " p=" << p << std::endl;
       //std::cout << "multiple scattering thetaMSC=" << thetaMSC << " thetaMSC2=" << thetaMSC2 << " radL=" << radL << std::endl;
       // energy loss
-      const float gamma = 1.f/std::sqrt(1.f - beta2);
+      // XXX-KMD beta2 = 1 => 1 / sqrt(0)
+      const float gamma = 1.f/std::sqrt(1.f - std::min(beta2, 0.999999f));
       const float gamma2 = gamma*gamma;
       constexpr float me = 0.0005; // m=0.5 MeV, electron
       const float wmax = 2.f*me*beta2*gamma2 / ( 1.f + 2.f*gamma*me/mpi + me*me/(mpi*mpi) );
@@ -697,7 +719,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
       // dEdx = dEdx*2.;//xi in cmssw is defined with an extra factor 0.5 with respect to formula 27.1 in pdg
       //std::cout << "dEdx=" << dEdx << " delta=" << deltahalf << " wmax=" << wmax << " Xi=" << hitsXi.ConstAt(n,0,0) << std::endl;
       const float dP = dEdx/beta;
-      outPar.At(n, 0, 3) = p/((p+dP)*pt);
+      outPar.At(n, 3, 0) = p/((p+dP)*pt);
       //assume 100% uncertainty
       outErr.At(n, 3, 3) += dP*dP/(p2*pt*pt);
     }

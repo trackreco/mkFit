@@ -76,6 +76,31 @@ SMatrix66 TrackState::jacobianCartesianToCCS(float px,float py,float pz) const {
 // Track
 //==============================================================================
 
+bool Track::hasSillyValues(bool dump, bool fix, const char* pref)
+{
+  bool is_silly = false;
+  for (int i = 0; i < LL; ++i)
+  {
+    for (int j = 0; j <= i; ++j)
+    {
+      if ((i == j && state_.errors.At(i,j) < 0) || ! std::isfinite(state_.errors.At(i,j)))
+      {
+        if ( ! is_silly)
+        {
+          is_silly = true;
+          if (dump) printf("%s (label=%d):", pref, label_);
+        }
+        if (dump) printf(" (%d,%d)=%e", i, j, state_.errors.At(i,j));
+        if (fix)  state_.errors.At(i,j) = 1;
+      }
+    }
+  }
+  if (is_silly && dump) printf("\n");
+  return is_silly;
+}
+
+//------------------------------------------------------------------------------
+
 void Track::sortHitsByLayer()
 {
   std::sort(& hitsOnTrk_[0], & hitsOnTrk_[lastHitIdx_ + 1],
@@ -94,6 +119,16 @@ bool Track::canReachRadius(float R) const
   const float k   = ((charge() < 0) ? 100.0f : -100.0f) / (Config::sol * Config::Bfield);
   const float ooc = 2.0f * k * pT();
   return std::abs(ooc) > R - std::hypot(x(), y());
+}
+
+float Track::maxReachRadius() const
+{
+  const float k = ((charge() < 0) ? 100.0f : -100.0f) / (Config::sol * Config::Bfield);
+  const float abs_ooc_half = std::abs(k * pT());
+  // center of helix in x,y plane
+  const float x_center = x() - k * py();
+  const float y_center = y() + k * px();
+  return std::hypot(x_center, y_center) + abs_ooc_half;
 }
 
 float Track::zAtR(float R, float *r_reached) const

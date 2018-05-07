@@ -137,6 +137,7 @@ public:
   void quality_reset();
   void quality_process(Track& tkcand, std::map<int,int> & cmsswLabelToPos);
   void quality_print();
+  void track_print(Track &t, const char* pref);
 
   void quality_store_tracks(TrackVec & tracks);
 
@@ -158,8 +159,14 @@ public:
                                      int start_seed, int end_seed,
                                      int prev_layer, bool pickup_only);
 
+  void find_tracks_handle_missed_layers(MkFinder *mkfndr, const LayerInfo &layer_info,
+                                        std::vector<std::vector<Track>> &tmp_cands,
+                                        const std::vector<std::pair<int,int>> &seed_cand_idx,
+                                        const int region, const int start_seed,
+                                        const int itrack, const int end);
+
   void find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
-                             int start_seed, int end_seed, int region);
+                             const int start_seed, const int end_seed, const int region);
   void find_tracks_in_layersFV(int start_seed, int end_seed, int region);
 
   // --------

@@ -78,8 +78,8 @@ public:
   void  set_selection_limits(float p1, float p2, float q1, float q2);
   void  set_r_hole_range(float rh1, float rh2);
 
-  float r_mean()    const { return (m_rin  + m_rout) / 2; }
-  float z_mean()    const { return (m_zmin + m_zmax) / 2; }
+  float r_mean()    const { return 0.5f * (m_rin  + m_rout); }
+  float z_mean()    const { return 0.5f * (m_zmin + m_zmax); }
 
   bool  is_barrel() const { return m_layer_type == Barrel; }
 

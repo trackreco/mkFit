@@ -215,7 +215,8 @@ namespace Config
   constexpr float lay02angdiff = 0.11537;
   constexpr float dEtaSeedTrip = 0.06; // for almost max efficiency --> empirically derived... depends on geometry of detector
   constexpr float dPhiSeedTrip = 0.0458712; // numerically+semianalytically derived... depends on geometry of detector
-  static const float seed_z2cut= (nlayers_per_seed * fRadialSpacing) / std::tan(2.0f*std::atan(std::exp(-1.0f*dEtaSeedTrip)));
+  // Recalculated in seedTest as it depends on nlayers_per_seed
+  // static const float seed_z2cut= (nlayers_per_seed * fRadialSpacing) / std::tan(2.0f*std::atan(std::exp(-1.0f*dEtaSeedTrip)));
   constexpr float seed_z0cut   = beamspotZ * 3.0f; // 3cm
   constexpr float seed_z1cut   = hitposerrZ * 3.6f; // 3.6 mm --> to match efficiency from chi2cut
   constexpr float seed_d0cut   = 0.5f; // 5mm
@@ -363,6 +364,24 @@ namespace Config
 
   extern bool   kludgeCmsHitErrors;
   extern bool   backwardFit;
+
+  // NAN and silly track parameter tracking options
+  constexpr bool nan_etc_sigs_enable = false;
+
+  constexpr bool nan_n_silly_check_seeds      = true;
+  constexpr bool nan_n_silly_print_bad_seeds  = false;
+  constexpr bool nan_n_silly_fixup_bad_seeds  = false;
+  constexpr bool nan_n_silly_remove_bad_seeds = true;
+
+  constexpr bool nan_n_silly_check_cands_every_layer     = false;
+  constexpr bool nan_n_silly_print_bad_cands_every_layer = false;
+  constexpr bool nan_n_silly_fixup_bad_cands_every_layer = false;
+
+  constexpr bool nan_n_silly_check_cands_pre_bkfit  = true;
+  constexpr bool nan_n_silly_check_cands_post_bkfit = true;
+  constexpr bool nan_n_silly_print_bad_cands_bkfit  = false;
+
+  // ================================================================
 
   void RecalculateDependentConstants();
   
