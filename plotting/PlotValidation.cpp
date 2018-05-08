@@ -1,4 +1,4 @@
-#include "plotting/PlotValidation.hh"
+#include "PlotValidation.hh"
 
 PlotValidation::PlotValidation(TString inName, TString outName, Bool_t computePulls, Bool_t cmsswComp,
 			       Bool_t mvInput, Bool_t saveAs, TString outType)

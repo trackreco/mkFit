@@ -1,8 +1,11 @@
 #! /bin/bash
 
-# Final cleanup script for benchmarks
-rm -rf benchmark_knl_dump.txt
-rm -rf log_*.txt
-rm -rf *.root
-rm -rf *.png
-rm -rf validation_*
+# in case this is called separately
+source xeon_scripts/common_variables.sh
+
+# remove tmp dir on SNB remotely
+echo "Removing tmp dir on SNB remotely"
+SSHO ${SNB_HOST} bash -c "'
+rm -rf ${SNB_WORKDIR}/${SNB_TEMPDIR}
+exit
+'"

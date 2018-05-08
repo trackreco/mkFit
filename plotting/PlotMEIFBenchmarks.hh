@@ -1,7 +1,7 @@
 #ifndef _PlotMEIFBenchmarks_
 #define _PlotMEIFBenchmarks_
 
-#include "plotting/Common.hh"
+#include "Common.hh"
 
 #include "TGraph.h"
 

@@ -1,7 +1,7 @@
 #ifndef _StackValidation_
 #define _StackValidation_
 
-#include "plotting/Common.hh"
+#include "Common.hh"
 
 #include "TEfficiency.h"
 #include "TGraphAsymmErrors.h"

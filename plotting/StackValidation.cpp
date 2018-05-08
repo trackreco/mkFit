@@ -1,4 +1,4 @@
-#include "plotting/StackValidation.hh"
+#include "StackValidation.hh"
 
 StackValidation::StackValidation(const TString & label, const TString & extra, const Bool_t cmsswComp) : label(label), extra(extra), cmsswComp(cmsswComp)
 {

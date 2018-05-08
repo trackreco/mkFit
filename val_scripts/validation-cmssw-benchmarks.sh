@@ -1,18 +1,18 @@
 #! /bin/bash
 
 ## In the case this is run separately from main script
-[ -z "$ROOTSYS" ] && source ~matevz/root/bin/thisroot.sh
+[ -z "$ROOTSYS" ] && source /cvmfs/cms.cern.ch/slc7_amd64_gcc630/lcg/root/6.12.07-gnimlf/etc/profile.d/init.sh
 source xeon_scripts/common_variables.sh
 
 ## Common setup
-dir=/data/nfsmic/slava77/samples/2017/pass-4874f28/initialStep
+dir=/data2/slava77/samples/2017/pass-4874f28/initialStep
 subdir=PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/a
 file=memoryFile.fv3.clean.writeAll.recT.072617.bin
 nevents=500
 tmpdir="tmp"
 
-maxth=24
-maxvu=8
+maxth=64
+maxvu=16
 #maxev=12 FIXME: comment out MEIF stuff for now
 maxev=1
 exe="./mkFit/mkFit --cmssw-n2seeds --num-thr ${maxth} --num-thr-ev ${maxev} --input-file ${dir}/${subdir}/${file} --num-events ${nevents}"
@@ -40,7 +40,7 @@ doVal()
 ## Compile once
 make clean
 mVal="WITH_ROOT:=yes"
-make -j 12 ${mVal}
+make -j 32 ${mVal}
 mkdir -p ${tmpdir}
 
 ## Special simtrack validation vs cmssw tracks

@@ -1,6 +1,6 @@
 #! /bin/bash
 
-## SNB, KNL, of SKL
+## SNB, KNL, SKL-SP
 arch=${1}
 
 ## In the case this is run separately from main script
@@ -38,19 +38,17 @@ then
     declare -a nths=("1" "2" "4" "8" "16" "32" "64" "96" "128" "160" "192" "224" "256")
     declare -a nvus=("1" "2" "4" "8" "16")
     declare -a nevs=("1" "2" "4" "8" "16" "32" "64" "128")
-elif [ ${arch} == "SKL" ]
+elif [ ${arch} == "SKL-SP" ]
 then
-    mOpt="-j 24 AVX_512:=1"
-    dir=/nfs/cms/mc1/dsr
-    dir=/mnt/scratch/dsr
-    subdir=PU70HS
+    mOpt="-j 32 AVX_512:=1"
+    dir=/data2/slava77/samples
     base=${arch}_${sample}
-    maxth=48
+    maxth=64
     maxvu=16
     exe="./mkFit/mkFit ${seeds} --input-file ${dir}/${subdir}/${file}"
-    declare -a nths=("1" "2" "4" "8" "16" "32" "48")
+    declare -a nths=("1" "2" "4" "8" "16" "32" "64")
     declare -a nvus=("1" "2" "4" "8" "16")
-    declare -a nevs=("1" "2" "4" "8" "16" "32")
+    declare -a nevs=("1" "2" "4" "8" "16" "32" "64")
 else 
     echo ${arch} "is not a valid architecture! Exiting..."
     exit
