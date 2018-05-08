@@ -44,10 +44,16 @@ namespace
   std::unique_ptr<Validation> dummyValidation( Validation::make_validation("dummy") );
 }
 
+void Event::reset_nan_n_silly_counters()
+{
+  nan_n_silly_per_layer_count_ = 0;
+}
+
 Event::Event(int evtID) :
   geom_(dummyGeometry), validation_(*dummyValidation),
   evtID_(evtID), threads_(1), mcHitIDCounter_(0)
 {
+  reset_nan_n_silly_counters();
   layerHits_.resize(Config::nTotalLayers);
 }
 
@@ -55,6 +61,7 @@ Event::Event(const Geometry& g, Validation& v, int evtID, int threads) :
   geom_(g), validation_(v),
   evtID_(evtID), threads_(threads), mcHitIDCounter_(0)
 {
+  reset_nan_n_silly_counters();
   layerHits_.resize(Config::nTotalLayers);
 
   validation_.resetValidationMaps(); // need to reset maps for every event.
@@ -64,6 +71,7 @@ void Event::Reset(int evtID)
 {
   evtID_ = evtID;
   mcHitIDCounter_ = 0;
+  reset_nan_n_silly_counters();
 
   for (auto&& l : layerHits_) { l.clear(); }
 
@@ -580,8 +588,8 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
       if (idx >= 0)
       {
         const Hit &hit = layerHits_[lyr][idx];
-	printf("    hit %2d lyr=%2d idx=%3d pos r=%7.3f z=% 8.3f   mc_hit=%3d mc_trk=%3d\n",
-               ih, lyr, idx, layerHits_[lyr][idx].r(), layerHits_[lyr][idx].z(),
+	printf("    hit %2d lyr=%2d idx=%3d pos r=%7.3f x=% 8.3f y=% 8.3f z=% 8.3f   mc_hit=%3d mc_trk=%3d\n",
+               ih, lyr, idx, layerHits_[lyr][idx].r(), layerHits_[lyr][idx].x(), layerHits_[lyr][idx].y(), layerHits_[lyr][idx].z(),
                hit.mcHitID(), hit.mcTrackID(simHitsInfo_));
       }
       else
@@ -601,10 +609,10 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
     total_hits += layerHits_[il].size();
     for (int ih = 0; ih < layerHits_[il].size(); ih++)
     {
+      const Hit &hit = layerHits_[il][ih];
       printf("  mcHitID=%5d r=%10g x=%10g y=%10g z=%10g  sx=%10.4g sy=%10.4e sz=%10.4e\n",
-             layerHits_[il][ih].mcHitID(), layerHits_[il][ih].r(),
-             layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z(),
-             std::sqrt(layerHits_[il][ih].exx()),std::sqrt(layerHits_[il][ih].eyy()),std::sqrt(layerHits_[il][ih].ezz()));
+             hit.mcHitID(), hit.r(), hit.x(), hit.y(), hit.z(),
+             std::sqrt(hit.exx()), std::sqrt(hit.eyy()), std::sqrt(hit.ezz()));
     }
   }
   printf("Total hits in all layers = %d\n", total_hits);
@@ -624,12 +632,12 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
       if (idx >= 0)
       {
         const Hit &hit = layerHits_[lyr][idx];
-       printf("    hit %2d lyr=%2d idx=%3d pos r=%7.3f z=% 8.3f   mc_hit=%3d mc_trk=%3d\n",
-               ih, lyr, idx, layerHits_[lyr][idx].r(), layerHits_[lyr][idx].z(),
+        printf("    hit %2d lyr=%2d idx=%3d pos r=%7.3f z=% 8.3f   mc_hit=%3d mc_trk=%3d\n",
+               ih, lyr, idx, hit.r(), hit.z(),
                hit.mcHitID(), hit.mcTrackID(simHitsInfo_));
       }
       else
-       printf("    hit %2d idx=%i\n", ih, t.getHitIdx(ih));
+       printf("    hit %2d        idx=%i\n", ih, t.getHitIdx(ih));
     }
 #endif
   }

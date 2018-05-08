@@ -39,14 +39,15 @@ void StackValidation::MakeValidationStacks()
 
 void StackValidation::MakeRatioStacks(const TString & trk)
 {
-  // Variables to plot
-  std::vector<TString> vars = {"pt","phi","eta"};
+  // kinematic variables to plot
+  std::vector<TString> vars = {"pt","eta","phi"};
 
-  for (UInt_t i = 0; i < rates.size(); i++)
+  // indices for loops match PlotValidation.cpp
+  for (UInt_t l = 0; l < rates.size(); l++)
   {
-    for (UInt_t j = 0; j < vars.size(); j++)
+    for (UInt_t k = 0; k < ptcuts.size(); k++)
     {
-      for (UInt_t p = 0; p < ptcuts.size(); p++)
+      for (UInt_t i = 0; i < vars.size(); i++)
       {
 	TCanvas * canv = new TCanvas();
 	canv->cd();
@@ -56,21 +57,38 @@ void StackValidation::MakeRatioStacks(const TString & trk)
 	std::vector<TGraphAsymmErrors*> graphs(builds.size());
 	for (UInt_t b = 0; b < builds.size(); b++)
 	{
-	  graphs[b] = ((TEfficiency*)files[b]->Get(rates[i].dir+"/"+rates[i].rate+"_"+rates[i].sORr+"_"+vars[j]+"_"+trk+"_pt"+Form("%3.1f",ptcuts[p])))->CreateGraph();
+	  graphs[b] = ((TEfficiency*)files[b]->Get(rates[l].dir+"/"+rates[l].rate+"_"+rates[l].sORr+"_"+vars[i]+"_"+trk+"_pt"+Form("%3.1f",ptcuts[k])))->CreateGraph();
 	  graphs[b]->SetLineColor(builds[b].color);
 	  graphs[b]->SetMarkerColor(builds[b].color);
 
 	  graphs[b]->Draw(b>0?"PZ SAME":"APZ");
 
-	  if (!rates[i].rate.Contains("ineff",TString::kExact)) graphs[b]->GetYaxis()->SetRangeUser(0.0,1.05);
+	  if (!rates[l].rate.Contains("ineff",TString::kExact)) graphs[b]->GetYaxis()->SetRangeUser(0.0,1.05);
 	  else graphs[b]->GetYaxis()->SetRangeUser(0.0,0.25);
 	  
 	  leg->AddEntry(graphs[b],builds[b].label.Data(),"LEP");
 	}
 	
 	leg->Draw("SAME");
-	canv->SaveAs(label+"_"+rates[i].rate+"_"+vars[j]+"_"+trk+"_pt"+Form("%3.1f",ptcuts[p])+extra+".png");
+	canv->SaveAs(label+"_"+rates[l].rate+"_"+vars[i]+"_"+trk+"_pt"+Form("%3.1f",ptcuts[k])+extra+".png");
 	
+	// zoom in on pt range
+	if (i == 0)
+	{
+	  std::vector<TGraphAsymmErrors*> zoomgraphs(builds.size());
+	  for (UInt_t b = 0; b < builds.size(); b++)
+	  {
+	    zoomgraphs[b] = (TGraphAsymmErrors*)graphs[b]->Clone(Form("%s_zoom",graphs[b]->GetName()));
+	    zoomgraphs[b]->GetXaxis()->SetRangeUser(0,10);
+	    zoomgraphs[b]->Draw(b>0?"PZ SAME":"APZ");
+	  }
+
+	  leg->Draw("SAME");
+	  canv->SaveAs(label+"_"+rates[l].rate+"_"+vars[i]+"_zoom_"+trk+"_pt"+Form("%3.1f",ptcuts[k])+extra+".png");
+
+	  for (auto & zoomgraph : zoomgraphs) delete zoomgraph; 
+	}
+
 	delete leg;
 	for (auto & graph : graphs) delete graph;
 	delete canv;
@@ -82,16 +100,17 @@ void StackValidation::MakeRatioStacks(const TString & trk)
 void StackValidation::MakeCMSSWKinematicDiffStacks(const TString & trk)
 {
   // variables to plot
-  std::vector<TString> diffs = {"nHits","invpt","phi","eta"};
+  std::vector<TString> diffs = {"nHits","invpt","eta","phi"};
 
   // diffferent reco collections
   std::vector<TString> coll = {"allmatch","bestmatch"};
 
-  for (UInt_t c = 0; c < coll.size(); c++)
+  // indices for loops match PlotValidation.cpp
+  for (UInt_t o = 0; o < coll.size(); o++)
   {
-    for (UInt_t d = 0; d < diffs.size(); d++)
+    for (UInt_t p = 0; p < diffs.size(); p++)
     {
-      for (UInt_t p = 0; p < ptcuts.size(); p++)
+      for (UInt_t k = 0; k < ptcuts.size(); k++)
       {
 	const Bool_t isLogy = true;
 	TCanvas * canv = new TCanvas();
@@ -107,7 +126,7 @@ void StackValidation::MakeCMSSWKinematicDiffStacks(const TString & trk)
 	std::vector<TH1F*> hists(builds.size());
 	for (UInt_t b = 0; b < builds.size(); b++)
         {
-	  hists[b] = (TH1F*)files[b]->Get("kindiffs_cmssw/h_d"+diffs[d]+"_"+coll[c]+"_"+trk+"_pt"+Form("%3.1f",ptcuts[p]));
+	  hists[b] = (TH1F*)files[b]->Get("kindiffs_cmssw/h_d"+diffs[p]+"_"+coll[o]+"_"+trk+"_pt"+Form("%3.1f",ptcuts[k]));
 	  hists[b]->SetLineColor(builds[b].color);
 	  hists[b]->SetMarkerColor(builds[b].color);
 
@@ -126,7 +145,7 @@ void StackValidation::MakeCMSSWKinematicDiffStacks(const TString & trk)
 	}
 	
 	leg->Draw("SAME");
-	canv->SaveAs(label+"_"+coll[c]+"_d"+diffs[d]+"_"+trk+"_pt"+Form("%3.1f",ptcuts[p])+extra+".png");
+	canv->SaveAs(label+"_"+coll[o]+"_d"+diffs[p]+"_"+trk+"_pt"+Form("%3.1f",ptcuts[k])+extra+".png");
 	
 	delete leg;
 	for (auto & hist : hists) delete hist;

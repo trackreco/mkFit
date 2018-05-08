@@ -66,9 +66,9 @@ do
     mv validation_${vBase}_"SIMVAL"/totals_validation_${vBase}_"SIMVAL".txt ${dir}/${rootdir}
 done
 
-for rate in eff ineff_barrel ineff_endcap dr fr 
+for rate in eff ineff_brl ineff_trans ineff_ec dr fr 
 do
-    for var in pt phi eta
+    for var in pt pt_zoom phi eta
     do 
 	for pt in 0.0 0.9 2.0
 	do
@@ -95,7 +95,7 @@ done
 
 for rate in eff ineff_barrel ineff_endcap dr fr 
 do
-    for var in pt phi eta
+    for var in pt pt_zoom phi eta
     do
 	for trk in build fit
 	do

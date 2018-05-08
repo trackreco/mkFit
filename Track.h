@@ -131,6 +131,8 @@ public:
   CUDA_CALLABLE
   ~Track(){}
 
+  bool  hasSillyValues(bool dump, bool fix, const char* pref="");
+
   const SVector6&     parameters() const {return state_.parameters;}
   const SMatrixSym66& errors()     const {return state_.errors;}
   const TrackState&   state()      const {return state_;}
@@ -183,6 +185,7 @@ public:
   float swimPhiToR(const float x, const float y) const;
 
   bool  canReachRadius(float R) const;
+  float maxReachRadius() const;
   float zAtR(float R, float *r_reached=0) const;
   float rAtZ(float Z) const;
 

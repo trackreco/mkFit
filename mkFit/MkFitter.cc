@@ -436,8 +436,7 @@ void MkFitter::FitTracksWithInterSlurp(const std::vector<HitVec>& layersohits,
         idx[i] = (char*) & layersohits[hlyr][hidx] - varr;
       }
     }
-
-    // for (int i = N_proc; i < NN; ++i)  {  idx[i] = idx[0];  }
+    for (int i = N_proc; i < NN; ++i)  {  idx[i] = idx[0];  }
 
 #ifdef MIC_INTRINSICS
     __m512i vi      = _mm512_load_epi32(idx);

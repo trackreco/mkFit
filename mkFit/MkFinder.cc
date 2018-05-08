@@ -127,7 +127,7 @@ void MkFinder::OutputTracksAndHitIdx(std::vector<Track>& tracks,
 void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
                                 const int N_proc)
 {
-  // debug = true;
+  // bool debug = true;
 
   const LayerOfHits &L = layer_of_hits;
   const int   iI = iP;
@@ -170,9 +170,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     if (L.is_barrel())
     {
       float z  = Par[iI].ConstAt(itrack, 2, 0);
-      float dz = nSigmaZ * std::sqrt(Err[iI].ConstAt(itrack, 2, 2));
-
-      dz = std::max(std::abs(dz), L.min_dq());
+      float dz = std::abs(nSigmaZ * std::sqrt(Err[iI].ConstAt(itrack, 2, 2)));
 
       // NOTE -- once issues in this block are resolved the changes should also be
       // ported to MkFinderFV.
@@ -206,9 +204,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     else // endcap
     {
       float  r = std::sqrt(r2);
-      float dr = nSigmaR*(x*x*Err[iI].ConstAt(itrack, 0, 0) + y*y*Err[iI].ConstAt(itrack, 1, 1) + 2*x*y*Err[iI].ConstAt(itrack, 0, 1))/r2;
-
-      dr = std::max(std::abs(dr), L.min_dq());
+      float dr = std::abs(nSigmaR*(x*x*Err[iI].ConstAt(itrack, 0, 0) + y*y*Err[iI].ConstAt(itrack, 1, 1) + 2*x*y*Err[iI].ConstAt(itrack, 0, 1)) / r2);
 
       if (Config::useCMSGeom) // should be Config::finding_requires_propagation_to_hit_pos
       {
@@ -232,7 +228,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     }
 
     dphi = std::min(std::abs(dphi), L.max_dphi());
-    dq   = std::min(std::abs(dq),   L.max_dq());
+    dq   = std::min(std::max(dq, L.min_dq()), L.max_dq());
 
     qv[itrack] = q;
     phiv[itrack] = phi;
@@ -556,6 +552,8 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
                               const int offset, const int N_proc,
                               const FindingFoos &fnd_foos)
 {
+  // bool debug = true;
+
   const char *varr      = (char*) layer_of_hits.m_hits;
 
   const int   off_error = (char*) layer_of_hits.m_hits[0].errArray() - varr;
@@ -584,6 +582,8 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
 
     idx[it] = 0;
   }
+
+  dprintf("FindCandidates max hits to process=%d\n", maxSize);
 
   // Has basically no effect, it seems.
   //#pragma noprefetch
@@ -692,12 +692,14 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
     // XXXXMT HACK ... put in original track if a layer was missed completely.
-    // Can/should be done earlier?
+    // Can/should be done earlier? It must be - we can be propagated to outer
+    // space by now for low pt, low eta tracks.
+    // XXXX-1 - This is now done before, in MkBuilder(), with original candidate, before propagation.
     if (XWsrResult[itrack].m_wsr == WSR_Outside)
     {
-      Track newcand;
-      copy_out(newcand, itrack, iP);
-      tmp_candidates[SeedIdx(itrack, 0, 0) - offset].emplace_back(newcand);
+      // Track newcand;
+      // copy_out(newcand, itrack, iP);
+      // tmp_candidates[SeedIdx(itrack, 0, 0) - offset].emplace_back(newcand);
       continue;
     }
 
@@ -727,6 +729,8 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
                                          const int offset, const int N_proc,
                                          const FindingFoos &fnd_foos)
 {
+  // bool debug = true;
+
   const char *varr      = (char*) layer_of_hits.m_hits;
 
   const int   off_error = (char*) layer_of_hits.m_hits[0].errArray() - varr;
@@ -757,6 +761,8 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     idx[it] = 0;
   }
   // XXXX MT FIXME: use masks to filter out SlurpIns
+
+  dprintf("FindCandidatesCloneEngine max hits to process=%d\n", maxSize);
 
 // Has basically no effect, it seems.
 //#pragma noprefetch
@@ -813,7 +819,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
       if (hit_cnt < XHitSize[itrack])
       {
         const float chi2 = fabs(outChi2[itrack]);//fixme negative chi2 sometimes...
-        dprint("chi2=" << chi2 << " for trkIdx=" << itrack);
+        dprint("chi2=" << chi2 << " for trkIdx=" << itrack << " hitIdx=" << XHitArr.At(itrack, hit_cnt, 0));
         if (chi2 < Config::chi2Cut)
         {
           IdxChi2List tmpList;
@@ -823,7 +829,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
           tmpList.chi2   = Chi2(itrack, 0, 0) + chi2;
           cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
           // hitsToAdd[SeedIdx(itrack, 0, 0)-offset].push_back(tmpList);
-          dprint("adding hit with hit_cnt=" << hit_cnt << " for trkIdx=" << tmpList.trkIdx << " orig Seed=" << Label(itrack, 0, 0));
+          dprint("  adding hit with hit_cnt=" << hit_cnt << " for trkIdx=" << tmpList.trkIdx << " orig Seed=" << Label(itrack, 0, 0));
         }
       }
     }
@@ -831,18 +837,20 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
   }//end loop over hits
 
   //now add invalid hit
-  //fixme: please vectorize me...
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
     dprint("num_invalid_hits(" << itrack << ")=" << num_invalid_hits(itrack));
 
-    int fake_hit_idx = num_invalid_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
-
     if (XWsrResult[itrack].m_wsr == WSR_Outside)
     {
-      fake_hit_idx = -4;
+      // fake_hit_idx = -4;
+      dprint("track missed layer, not adding a clone with a missing hit");
+      continue; // handled outside, keep previous parameters
     }
-    else if (XWsrResult[itrack].m_wsr == WSR_Edge)
+
+    int fake_hit_idx = num_invalid_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
+
+    if (XWsrResult[itrack].m_wsr == WSR_Edge)
     {
       fake_hit_idx = -3;
     }
@@ -1060,7 +1068,9 @@ void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
 
 //------------------------------------------------------------------------------
 
+#ifdef DEBUG_BACKWARD_FIT
 namespace { float e2s(float x) { return 1e4 * std::sqrt(x); } }
+#endif
 
 void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
                               const SteeringParams& st_par,

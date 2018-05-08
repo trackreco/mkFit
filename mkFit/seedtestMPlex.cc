@@ -29,6 +29,9 @@ void findSeedsByRoadSearch(TripletIdxConVec & seed_idcs, std::vector<LayerOfHits
 #ifdef DEBUG
   bool debug(false);
 #endif
+
+  const float seed_z2cut = (Config::nlayers_per_seed * Config::fRadialSpacing) / std::tan(2.0f*std::atan(std::exp(-1.0f*Config::dEtaSeedTrip)));
+
   // 0 = first layer, 1 = second layer, 2 = third layer
   const LayerOfHits& lay1_hits = evt_lay_hits[1];
   LayerOfHits& lay0_hits = evt_lay_hits[0];
@@ -78,11 +81,11 @@ void findSeedsByRoadSearch(TripletIdxConVec & seed_idcs, std::vector<LayerOfHits
 
 	  std::vector<int> cand_hit2_indices;
 	  lay2_hits.SelectHitIndices((2.0f*hit1_z-hit0_z),(lay2_posphi+lay2_negphi)/2.0f,
-				     Config::seed_z2cut,(lay2_posphi-lay2_negphi)/2.0f,
+				     seed_z2cut,(lay2_posphi-lay2_negphi)/2.0f,
 				     cand_hit2_indices,true,false);
 
 	  dprint(" ihit0: " << ihit0 << " mcTrackID: " << hit0.mcTrackID(ev->simHitsInfo_) << " phi: " << hit0.phi() << " z: " << hit0.z());
-	  dprint("  predphi: " << (lay2_posphi+lay2_negphi)/2.0f << "+/-" << (lay2_posphi-lay2_negphi)/2.0f << " predz: " << 2.0f*hit1_z-hit0_z << "+/-" << Config::seed_z2cut << std::endl);
+	  dprint("  predphi: " << (lay2_posphi+lay2_negphi)/2.0f << "+/-" << (lay2_posphi-lay2_negphi)/2.0f << " predz: " << 2.0f*hit1_z-hit0_z << "+/-" << seed_z2cut << std::endl);
 
 	  // loop over candidate third layer hits
 	  //temp_thr_seed_idcs.reserve(temp_thr_seed_idcs.size()+cand_hit2_indices.size());
