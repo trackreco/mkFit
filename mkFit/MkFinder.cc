@@ -228,7 +228,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     }
 
     dphi = std::min(std::abs(dphi), L.max_dphi());
-    dq   = std::min(std::max(dq, L.min_dq()), L.max_dq());
+    dq   = clamp(dq, L.min_dq(), L.max_dq());
 
     qv[itrack] = q;
     phiv[itrack] = phi;

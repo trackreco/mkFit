@@ -93,7 +93,7 @@ do
     mkdir -p ${dir}/${cmsswdir}/${trk}/diffs
 done
 
-for rate in eff ineff_barrel ineff_endcap dr fr 
+for rate in eff ineff_brl ineff_trans ineff_ec dr fr 
 do
     for var in pt pt_zoom phi eta
     do
