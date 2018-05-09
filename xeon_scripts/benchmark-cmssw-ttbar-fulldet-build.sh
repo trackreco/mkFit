@@ -46,7 +46,7 @@ then
     maxth=64
     maxvu=16
     exe="./mkFit/mkFit ${seeds} --input-file ${dir}/${subdir}/${file}"
-    declare -a nths=("1" "2" "4" "8" "16" "32" "64")
+    declare -a nths=("1" "2" "4" "8" "16" "32" "48" "64")
     declare -a nvus=("1" "2" "4" "8" "16")
     declare -a nevs=("1" "2" "4" "8" "16" "32" "64")
 else 

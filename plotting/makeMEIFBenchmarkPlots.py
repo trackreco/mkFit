@@ -20,7 +20,7 @@ elif arch == 'SNB' :
     evvals = ['1','2','4','8','12']
 elif arch == 'SKL-SP' :
     nvu = '16int'
-    thvals = ['1','2','4','8','16','32','64']
+    thvals = ['1','2','4','8','16','32','48','64']
     evvals = ['1','2','4','8','16','32','64']
 else :
     print arch,"is not a valid architecture! Exiting..."

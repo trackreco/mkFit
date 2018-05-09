@@ -38,7 +38,7 @@ def run():
             thvals = ['1','2','4','6','8','12','16','20','24']
         elif arch == 'SKL-SP' :
             nvu = '16int'
-            thvals = ['1','2','4','8','16','32','64']
+            thvals = ['1','2','4','8','16','32','48','64']
         else :
             print arch,'is not a valid architecture! Exiting...'
             sys.exit(0)
