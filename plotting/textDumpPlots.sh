@@ -1,7 +1,7 @@
 #! /bin/bash
 
 ## In case this is run separately from the main script
-[ -z "$ROOTSYS" ] && source ~matevz/root/bin/thisroot.sh
+[ -z "$ROOTSYS" ] && source /cvmfs/cms.cern.ch/slc7_amd64_gcc630/lcg/root/6.12.07-gnimlf/etc/profile.d/init.sh
 source xeon_scripts/common_variables.sh
 
 Base_Test="NVU1_NTH1"
@@ -10,7 +10,7 @@ for build in BH STD CE # FV
 do 
     echo "Making plots from text files for" ${sample} ":" ${build}
     
-    for archV in "SNB ${Base_Test}" "SNB NVU8int_NTH24" "KNL ${Base_Test}" "KNL NVU16int_NTH256" # "SKL ${Base_Test}" "SKL NVU16int_NTH48"
+    for archV in "SNB ${Base_Test}" "SNB NVU8int_NTH24" "KNL ${Base_Test}" "KNL NVU16int_NTH256" "SKL-SP ${Base_Test}" "SKL-SP NVU16int_NTH64"
     do echo ${archV} | while read -r archN archO
 	do
 	    echo "Extracting plots from dump for" ${archN} ${archO}

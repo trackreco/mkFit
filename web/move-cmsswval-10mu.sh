@@ -2,7 +2,7 @@
 
 dir=${1:-plots}
 outdir=${dir}/cmsswval-10mu
-base=SNB_CMSSW_10mu
+base=SKL-SP_CMSSW_10mu
 
 echo "Moving plots and text files locally to ${outdir}"
 for seed in SimSeed CMSSeed

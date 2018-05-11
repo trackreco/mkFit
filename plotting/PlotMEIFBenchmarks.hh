@@ -1,7 +1,7 @@
 #ifndef _PlotMEIFBenchmarks_
 #define _PlotMEIFBenchmarks_
 
-#include "plotting/Common.hh"
+#include "Common.hh"
 
 #include "TGraph.h"
 
@@ -23,10 +23,13 @@ namespace
     events.push_back({8,kRed});
     events.push_back({(ARCH==SNB?12:16),kMagenta});
     
-    if (ARCH == KNL)
+    if (ARCH == KNL || ARCH == SKL)
     {
       events.push_back({32,kAzure+10});
       events.push_back({64,kOrange+3});
+    }
+    if (ARCH == KNL)
+    {
       events.push_back({128,kViolet-1});
     }
   }

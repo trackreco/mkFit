@@ -1,11 +1,11 @@
 #! /bin/bash
 
 ## In case this is run separately from the main script
-[ -z "$ROOTSYS" ] && source ~matevz/root/bin/thisroot.sh
+[ -z "$ROOTSYS" ] && source /cvmfs/cms.cern.ch/slc7_amd64_gcc630/lcg/root/6.12.07-gnimlf/etc/profile.d/init.sh
 source xeon_scripts/common_variables.sh
 
 ##### Make benchmark plots for each architecture #####
-for archV in "SNB snb" "KNL knl" #"SKL skl"
+for archV in "SNB snb" "KNL knl" "SKL-SP skl-sp"
    do echo ${archV} | while read -r archN archO
 	do
 	echo "Extract benchmarking results for" ${archN}

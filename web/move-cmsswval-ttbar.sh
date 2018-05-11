@@ -2,7 +2,7 @@
 
 dir=${1:-plots}
 outdir=${dir}/cmsswval-ttbar
-base=SNB_CMSSW_TTbar
+base=SKL-SP_CMSSW_TTbar
 
 echo "Moving plots and text files locally to ${outdir}"
 for ttbar in NoPU PU35 PU70

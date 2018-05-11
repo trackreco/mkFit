@@ -1,4 +1,4 @@
-#include "plotting/PlotsFromDump.hh"
+#include "PlotsFromDump.hh"
 
 PlotsFromDump::PlotsFromDump(const TString & sample, const TString & build) : sample(sample), build(build)
 {

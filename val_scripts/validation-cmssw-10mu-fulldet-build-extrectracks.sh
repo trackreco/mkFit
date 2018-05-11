@@ -1,8 +1,8 @@
 #! /bin/bash
 
-make -j 12 WITH_ROOT=yes
+make -j 32 WITH_ROOT=yes
 
-dir=/data/nfsmic/slava77/samples/2017/pass-4874f28/initialStep
+dir=/data2/slava77/samples/2017/pass-4874f28/initialStep
 file=memoryFile.fv3.recT.072617.bin
 
 ECN2=${dir}/10muEta-24to-17Pt1to10/${file}
@@ -19,8 +19,8 @@ do
     do echo $bV | while read -r bN bO
 	do
 	    oBase=${base}_${section}_${bN}
-	    echo "${oBase}: validation [nTH:24, nVU:8]"
-	    ./mkFit/mkFit --cmssw-n2seeds --cmssw-val-trkparam --input-file ${!section} --build-${bO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_cmsswval.txt
+	    echo "${oBase}: validation [nTH:32, nVU:32]"
+	    ./mkFit/mkFit --cmssw-n2seeds --cmssw-val-trkparam --input-file ${!section} --build-${bO} --num-thr 32 >& log_${oBase}_NVU32int_NTH32_cmsswval.txt
 	    mv valtree.root valtree_${oBase}.root
 	done
     done

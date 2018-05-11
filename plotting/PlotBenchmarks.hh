@@ -1,7 +1,7 @@
 #ifndef _PlotBenchmarks_
 #define _PlotBenchmarks_
 
-#include "plotting/Common.hh"
+#include "Common.hh"
 
 typedef std::vector<TGraphErrors*> TGEVec;
 

@@ -1,4 +1,4 @@
-#include "plotting/PlotMEIFBenchmarks.hh"
+#include "PlotMEIFBenchmarks.hh"
 
 PlotMEIFBenchmarks::PlotMEIFBenchmarks(const TString & arch, const TString & sample, const TString &  build)
   : arch(arch), sample(sample), build(build)
@@ -75,21 +75,25 @@ void PlotMEIFBenchmarks::MakeOverlay(const TString & text, const TString & title
   {
     const TString nEV = Form("%i",events[i].nev);
     graphs[i] = (TGraph*)file->Get("g_"+build+"_MEIF_nEV"+nEV+"_"+text);
-    graphs[i]->SetTitle(title+";"+xtitle+";"+ytitle);
+    if (graphs[i]) {
+      graphs[i]->SetTitle(title+";"+xtitle+";"+ytitle);
 
-    graphs[i]->SetLineWidth(2);
-    graphs[i]->SetLineColor(events[i].color);
-    graphs[i]->SetMarkerStyle(kFullCircle);
-    graphs[i]->SetMarkerColor(events[i].color);
+      graphs[i]->SetLineWidth(2);
+      graphs[i]->SetLineColor(events[i].color);
+      graphs[i]->SetMarkerStyle(kFullCircle);
+      graphs[i]->SetMarkerColor(events[i].color);
+    }
   }
 
   // Draw graphs
   for (UInt_t i = 0; i < events.size(); i++)
   {
-    graphs[i]->Draw(i>0?"LP SAME":"ALP");
-    graphs[i]->GetXaxis()->SetRangeUser(xmin,xmax);
-    graphs[i]->GetYaxis()->SetRangeUser(ymin,ymax);
-    leg->AddEntry(graphs[i],Form("%i Events",events[i].nev),"LP");
+    if (graphs[i]) {
+      graphs[i]->Draw(i>0?"LP SAME":"ALP");
+      graphs[i]->GetXaxis()->SetRangeUser(xmin,xmax);
+      graphs[i]->GetYaxis()->SetRangeUser(ymin,ymax);
+      leg->AddEntry(graphs[i],Form("%i Events",events[i].nev),"LP");
+    }
   }
 
   // Draw ideal scaling line
@@ -115,8 +119,10 @@ void PlotMEIFBenchmarks::MakeOverlay(const TString & text, const TString & title
   canv->SetLogx();
   for (UInt_t i = 0; i < events.size(); i++)
   {
-    graphs[i]->GetXaxis()->SetRangeUser(xmin,xmax);
-    graphs[i]->GetYaxis()->SetRangeUser(ymin,ymax);
+    if (graphs[i]) {
+      graphs[i]->GetXaxis()->SetRangeUser(xmin,xmax);
+      graphs[i]->GetYaxis()->SetRangeUser(ymin,ymax);
+    }
   }
   canv->Update();
   canv->SaveAs(outname+"_logx.png");

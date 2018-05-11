@@ -115,7 +115,7 @@ void conformalFitMPlex(bool fitting, MPlexQI seedID, MPlexLS& outErr, MPlexLV& o
   }
 
   MPlexHH A;
-#pragma omp simd
+//#pragma omp simd // triggers an internal compiler error with icc 18.0.2!
   for (int n = 0; n < N; ++n) 
   {
     for (int i = 0; i < 3; ++i) 

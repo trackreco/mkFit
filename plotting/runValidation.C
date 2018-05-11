@@ -1,27 +1,9 @@
-#if  !defined(__CINT__)
-#include "plotting/PlotValidation.hh"
-#endif
-
-void setupcpp11()
-{ // customize ACLiC's behavior ...
-  TString o;
-  // customize MakeSharedLib
-  o = TString(gSystem->GetMakeSharedLib());
-  o = o.ReplaceAll(" -c ", " -std=c++0x -c ");
-  gSystem->SetMakeSharedLib(o.Data());
-  // customize MakeExe
-  o = TString(gSystem->GetMakeExe());
-  o = o.ReplaceAll(" -c ", " -std=c++0x -c ");
-  gSystem->SetMakeExe(o.Data());
-} 
+#include "PlotValidation.hh"
+#include "PlotValidation.cpp"
 
 void runValidation(const TString & test = "", const Bool_t cmsswComp = false, const Bool_t mvInput = true,
 		   const Bool_t saveAs = false, const TString & image = "pdf")
 {
-  setupcpp11(); //  use this to get PlotValidation to compile ... phiphi ROOT build has ACLiC with C++98!
-
-  gROOT->LoadMacro("plotting/PlotValidation.cpp+g");
-
   // PlotValidation arguments
   // First is additional input name of root file
   // Second is name of output directory

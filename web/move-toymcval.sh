@@ -2,7 +2,7 @@
 
 dir=${1:-plots}
 outdir=${dir}/toymcval
-base=SNB_ToyMC_FullDet
+base=SKL-SP_ToyMC_FullDet
 
 echo "Moving plots and text files locally to ${outdir}"
 mkdir -p ${outdir}
