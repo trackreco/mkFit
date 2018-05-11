@@ -10,7 +10,7 @@ builddir="Benchmarks"
 mkdir -p ${dir}/${builddir}
 mkdir -p ${dir}/${builddir}/logx
 
-for arch in SNB KNL
+for arch in SNB KNL SKL-SP
 do
     for benchmark in TH VU
     do
@@ -29,7 +29,7 @@ meifdir="MultEvInFlight"
 mkdir -p ${dir}/${meifdir}
 mkdir -p ${dir}/${meifdir}/logx
 
-for arch in SNB KNL
+for arch in SNB KNL SKL-SP
 do
     for build in CE FV ; do
         oBase=${arch}_${sample}_${build}_"MEIF"
@@ -93,7 +93,7 @@ do
     mkdir -p ${dir}/${cmsswdir}/${trk}/diffs
 done
 
-for rate in eff ineff_barrel ineff_endcap dr fr 
+for rate in eff ineff_brl ineff_trans ineff_ec dr fr 
 do
     for var in pt pt_zoom phi eta
     do

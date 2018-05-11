@@ -1,8 +1,8 @@
 #! /bin/bash
 
-make -j 12 WITH_ROOT=yes
+make -j 32 WITH_ROOT=yes
 
-dir=/data/nfsmic/slava77/samples/2017/pass-4874f28/initialStep
+dir=/data2/slava77/samples/2017/pass-4874f28/initialStep
 file=memoryFile.fv3.recT.072617.bin
 
 ECN2=${dir}/10muEta-24to-17Pt1to10/${file}
@@ -11,7 +11,7 @@ BRL=${dir}/10muEtaLT06Pt1to10/${file}
 ECP1=${dir}/10muEta055to175Pt1to10/${file}
 ECP2=${dir}/10muEta17to24Pt1to10/${file}
 
-base=SNB_CMSSW_10mu
+base=SKL-SP_CMSSW_10mu
 
 for sV in "SimSeed --cmssw-simseeds" "CMSSeed --cmssw-n2seeds"
 do echo $sV | while read -r sN sO
@@ -22,8 +22,8 @@ do echo $sV | while read -r sN sO
 	    do echo $bV | while read -r bN bO
 		do
 		    oBase=${base}_${sN}_${section}_${bN}
-		    echo "${oBase}: validation [nTH:24, nVU:8]"
-		    ./mkFit/mkFit ${sO} --sim-val --input-file ${!section} --build-${bO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_val.txt
+		    echo "${oBase}: validation [nTH:32, nVU:32]"
+		    ./mkFit/mkFit ${sO} --sim-val --input-file ${!section} --build-${bO} --num-thr 32 >& log_${oBase}_NVU32int_NTH32_val.txt
 		    mv valtree.root valtree_${oBase}.root
 		done
 	    done

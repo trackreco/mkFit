@@ -1,4 +1,4 @@
-#include "plotting/PlotBenchmarks.hh"
+#include "PlotBenchmarks.hh"
 
 #include <iostream>
 

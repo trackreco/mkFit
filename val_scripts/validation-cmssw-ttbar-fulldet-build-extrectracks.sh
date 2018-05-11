@@ -1,15 +1,15 @@
 #! /bin/bash
 
-make -j 12 WITH_ROOT=yes
+make -j 32 WITH_ROOT=yes
 
-dir=/data/nfsmic/slava77/samples/2017/pass-4874f28/initialStep
+dir=/data2/slava77/samples/2017/pass-4874f28/initialStep
 file=memoryFile.fv3.clean.writeAll.recT.072617.bin
 
 NoPU=10024.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017_GenSimFullINPUT+DigiFull_2017+RecoFull_2017+ALCAFull_2017+HARVESTFull_2017
 PU35=10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU
 PU70=PU70/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU
 
-base=SNB_CMSSW_TTbar
+base=SKL-SP_CMSSW_TTbar
 
 for ttbar in NoPU PU35 PU70 
 do
@@ -17,8 +17,8 @@ do
     do echo $bV | while read -r bN bO
 	do
 	    oBase=${base}_${ttbar}_${bN}
-	    echo "${oBase}: validation [nTH:24, nVU:8]"
-	    ./mkFit/mkFit --cmssw-n2seeds --cmssw-val-trkparam --input-file ${dir}/${!ttbar}/${file} --build-${bO} --num-thr 24 >& log_${oBase}_NVU8int_NTH24_cmsswval.txt
+	    echo "${oBase}: validation [nTH:32, nVU:32]"
+	    ./mkFit/mkFit --cmssw-n2seeds --cmssw-val-trkparam --input-file ${dir}/${!ttbar}/${file} --build-${bO} --num-thr 32 >& log_${oBase}_NVU32int_NTH32_cmsswval.txt
 	    mv valtree.root valtree_${oBase}.root
 	done
     done

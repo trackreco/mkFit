@@ -8,13 +8,23 @@ make distclean
 echo "Tar and send to KNL"
 ./xeon_scripts/tarAndSendToKNL.sh
 
-echo "Run benchmarking on KNL concurrently with SNB benchmarks" 
+echo "Run benchmarking on KNL concurrently with SKL-SP benchmarks" 
 ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-knl.sh >& benchmark_knl_dump.txt &
 
-echo "Run benchmarking on SNB"
-./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh SNB
+echo "Tar and send to SNB"
+./xeon_scripts/tarAndSendToSNB.sh
 
-echo "Waiting for KNL"
+echo "Run benchmarking on SNB concurrently with SKL-SP benchmarks" 
+./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-snb.sh >& benchmark_snb_dump.txt &
+
+echo "Run benchmarking on SKL-SP"
+./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh SKL-SP
+
+##### Validation tests #####
+echo "Running ROOT based validation"
+./val_scripts/validation-cmssw-benchmarks.sh
+
+echo "Waiting for KNL and SNB"
 wait
 
 ##### Benchmark Plots #####
@@ -24,10 +34,6 @@ echo "Producing benchmarking plots"
 ##### Plots from Text Files #####
 echo "Producing plots from text files"
 ./plotting/textDumpPlots.sh
-
-##### Validation tests #####
-echo "Running ROOT based validation"
-./val_scripts/validation-snb-cmssw-benchmarks.sh
 
 ##### Final cleanup #####
 make distclean
