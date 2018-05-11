@@ -234,8 +234,8 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       const float r2     = x*x + y*y;
       const float dphidx = -y/r2, dphidy = x/r2;
       const float dphi2  = dphidx * dphidx * Err[iI].ConstAt(itrack, 0, 0) +
-	dphidy * dphidy * Err[iI].ConstAt(itrack, 1, 1) +
-	2 * dphidx * dphidy * Err[iI].ConstAt(itrack, 0, 1);
+        dphidy * dphidy * Err[iI].ConstAt(itrack, 1, 1) +
+        2 * dphidx * dphidy * Err[iI].ConstAt(itrack, 0, 1);
 #ifdef HARD_CHECK
       assert(dphi2 >= 0);
 #endif
@@ -251,17 +251,17 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
       if (Config::useCMSGeom) // should be Config::finding_requires_propagation_to_hit_pos
       {
-	//now correct for bending and for layer thickness unsing linear approximation
-	//fixme! using constant value, to be taken from layer properties
-	//XXXXMT4GC should we also increase dr?
-	//XXXXMT4GC can we just take half of layer dz?
-	const float deltaZ = 5;
-	float cosT = std::cos(Par[iI].ConstAt(itrack, 5, 0));
-	float sinT = std::sin(Par[iI].ConstAt(itrack, 5, 0));
-	//here alpha is the helix angular path corresponding to deltaZ
-	const float k = Chg.ConstAt(itrack, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
-	const float alpha  = deltaZ*sinT*Par[iI].ConstAt(itrack, 3, 0)/(cosT*k);
-	dphi += std::abs(alpha);
+        //now correct for bending and for layer thickness unsing linear approximation
+        //fixme! using constant value, to be taken from layer properties
+        //XXXXMT4GC should we also increase dr?
+        //XXXXMT4GC can we just take half of layer dz?
+        const float deltaZ = 5;
+        float cosT = std::cos(Par[iI].ConstAt(itrack, 5, 0));
+        float sinT = std::sin(Par[iI].ConstAt(itrack, 5, 0));
+        //here alpha is the helix angular path corresponding to deltaZ
+        const float k = Chg.ConstAt(itrack, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
+        const float alpha  = deltaZ*sinT*Par[iI].ConstAt(itrack, 3, 0)/(cosT*k);
+        dphi += std::abs(alpha);
       }
 
       q =  r;
