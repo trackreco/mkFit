@@ -73,6 +73,7 @@ namespace Config
   bool  sim_val_for_cmssw = false;
   bool  sim_val     = false;
   bool  cmssw_val   = false;
+  bool  cmssw_export = false;
   bool  fit_val     = false;
   bool  readSimTrackStates = false;
   bool  inclusiveShorts = false;

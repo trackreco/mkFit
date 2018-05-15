@@ -263,7 +263,7 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
   check_nan_n_silly_candiates(ev);
 
   // first store candidate tracks
-  if (Config::quality_val || Config::sim_val || Config::cmssw_val)
+  if (Config::quality_val || Config::sim_val || Config::cmssw_val || Config::cmssw_export)
   {
     builder.quality_store_tracks(ev.candidateTracks_);
   }
@@ -275,7 +275,7 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
 
     check_nan_n_silly_bkfit(ev);
 
-    if (Config::sim_val || Config::cmssw_val)
+    if (Config::sim_val || Config::cmssw_val || Config::cmssw_export)
     {
       builder.quality_store_tracks(ev.fitTracks_);
     }
@@ -286,6 +286,8 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
     builder.quality_val();
   } else if (Config::sim_val || Config::cmssw_val) { 
     builder.root_val();
+  } else if (Config::cmssw_export) {
+    builder.cmssw_export();
   }
 
   builder.end_event();
@@ -325,7 +327,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
   check_nan_n_silly_candiates(ev);
 
   // first store candidate tracks
-  if (Config::quality_val || Config::sim_val || Config::cmssw_val)
+  if (Config::quality_val || Config::sim_val || Config::cmssw_val || Config::cmssw_export)
   {
     builder.quality_store_tracks(ev.candidateTracks_);
   }
@@ -337,7 +339,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
 
     check_nan_n_silly_bkfit(ev);
 
-    if (Config::sim_val || Config::cmssw_val)
+    if (Config::sim_val || Config::cmssw_val || Config::cmssw_export)
     {
       builder.quality_store_tracks(ev.fitTracks_);
     }
@@ -348,6 +350,8 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
     builder.quality_val();
   } else if (Config::sim_val || Config::cmssw_val) { 
     builder.root_val();
+  } else if (Config::cmssw_export) {
+    builder.cmssw_export();
   }
 
   builder.end_event();
@@ -385,7 +389,7 @@ double runBuildingTestPlexFV(Event& ev, MkBuilder& builder)
 #endif
 
   // first store candidate tracks
-  if (Config::quality_val || Config::sim_val || Config::cmssw_val)
+  if (Config::quality_val || Config::sim_val || Config::cmssw_val || Config::cmssw_export)
   {
     builder.quality_store_tracks(ev.candidateTracks_);
   }
@@ -395,7 +399,7 @@ double runBuildingTestPlexFV(Event& ev, MkBuilder& builder)
   {
     builder.BackwardFit();
 
-    if (Config::sim_val || Config::cmssw_val)
+    if (Config::sim_val || Config::cmssw_val || Config::cmssw_export)
     {
       builder.quality_store_tracks(ev.fitTracks_);
     }
@@ -406,6 +410,8 @@ double runBuildingTestPlexFV(Event& ev, MkBuilder& builder)
     builder.quality_val();
   } else if (Config::sim_val || Config::cmssw_val) { 
     builder.root_val();
+  } else if (Config::cmssw_export) {
+    builder.cmssw_export();
   }
 
   builder.end_event();
