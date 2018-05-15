@@ -311,6 +311,7 @@ namespace Config
   extern bool sim_val_for_cmssw;
   extern bool sim_val;
   extern bool cmssw_val;
+  extern bool cmssw_export;
   extern bool fit_val;
   extern bool readSimTrackStates; // need this to fill pulls
   extern bool inclusiveShorts;
