@@ -141,6 +141,35 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
   float dqv[NN], dphiv[NN], qv[NN], phiv[NN];
   int qb1v[NN], qb2v[NN], pb1v[NN], pb2v[NN];
 
+  const auto assignbins = [&](int itrack, float q, float dq, float phi, float dphi){
+    dphi = std::min(std::abs(dphi), L.max_dphi());
+    dq   = clamp(dq, L.min_dq(), L.max_dq());
+
+    qv[itrack] = q;
+    phiv[itrack] = phi;
+    dphiv[itrack] = dphi;
+    dqv[itrack]   = dq;
+
+    qb1v[itrack] = L.GetQBinChecked(q - dq);
+    qb2v[itrack] = L.GetQBinChecked(q + dq) + 1;
+    pb1v[itrack] = L.GetPhiBin(phi - dphi);
+    pb2v[itrack] = L.GetPhiBin(phi + dphi) + 1;
+    // MT: The extra phi bins give us ~1.5% more good tracks at expense of 10% runtime.
+    //     That was for 10k cylindrical cow, I think.
+    // const int pb1 = L.GetPhiBin(phi - dphi) - 1;
+    // const int pb2 = L.GetPhiBin(phi + dphi) + 2;
+  };
+
+  const auto calcdphi2 = [&](int itrack, float dphidx, float dphidy) {
+    return dphidx * dphidx * Err[iI].ConstAt(itrack, 0, 0) +
+           dphidy * dphidy * Err[iI].ConstAt(itrack, 1, 1) +
+       2 * dphidx * dphidy * Err[iI].ConstAt(itrack, 0, 1);
+  };
+
+  const auto calcdphi = [&](float dphi2) {
+    return std::max(nSigmaPhi * std::sqrt(std::abs(dphi2)), L.min_dphi());
+  };
+
 
   if (L.is_barrel())
   {
@@ -156,67 +185,43 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
       const float r2     = x*x + y*y;
       const float dphidx = -y/r2, dphidy = x/r2;
-      const float dphi2  = dphidx * dphidx * Err[iI].ConstAt(itrack, 0, 0) +
-        dphidy * dphidy * Err[iI].ConstAt(itrack, 1, 1) +
-        2 * dphidx * dphidy * Err[iI].ConstAt(itrack, 0, 1);
+      const float dphi2  = calcdphi2(itrack, dphidx, dphidy);
 #ifdef HARD_CHECK
       assert(dphi2 >= 0);
 #endif
 
-        float q, dq, phi, dphi;
+      const float phi  = getPhi(x, y);
+      float dphi = calcdphi(dphi2);
 
-        phi  = getPhi(x, y);
-        dphi = nSigmaPhi * std::sqrt(std::abs(dphi2));
-        dphi = std::max(std::abs(dphi), L.min_dphi());
+      const float z  = Par[iI].ConstAt(itrack, 2, 0);
+      const float dz = std::abs(nSigmaZ * std::sqrt(Err[iI].ConstAt(itrack, 2, 2)));
 
-        float z  = Par[iI].ConstAt(itrack, 2, 0);
-        float dz = std::abs(nSigmaZ * std::sqrt(Err[iI].ConstAt(itrack, 2, 2)));
-
-        // NOTE -- once issues in this block are resolved the changes should also be
-        // ported to MkFinderFV.
-        if (Config::useCMSGeom) // should be Config::finding_requires_propagation_to_hit_pos
-        {
-          //now correct for bending and for layer thickness unsing linear approximation
-          //fixme! using constant value, to be taken from layer properties
-          //XXXXMT4GC should we also increase dz?
-          //XXXXMT4GC an we just take half od layer dR?
-          const float deltaR = Config::cmsDeltaRad;
-          const float r  = std::sqrt(r2);
-          //here alpha is the difference between posPhi and momPhi
-          const float alpha = phi - Par[iP].ConstAt(itrack, 4, 0);
-          float cosA, sinA;
-          if (Config::useTrigApprox) {
-            sincos4(alpha, sinA, cosA);
-          } else {
-            cosA = std::cos(alpha);
-            sinA = std::sin(alpha);
-          }
-          //take abs so that we always inflate the window
-          const float dist = std::abs(deltaR*sinA/cosA);
-          dphi += dist / r;
+      // NOTE -- once issues in this block are resolved the changes should also be
+      // ported to MkFinderFV.
+      if (Config::useCMSGeom) // should be Config::finding_requires_propagation_to_hit_pos
+      {
+        //now correct for bending and for layer thickness unsing linear approximation
+        //fixme! using constant value, to be taken from layer properties
+        //XXXXMT4GC should we also increase dz?
+        //XXXXMT4GC an we just take half od layer dR?
+        const float deltaR = Config::cmsDeltaRad;
+        const float r  = std::sqrt(r2);
+        //here alpha is the difference between posPhi and momPhi
+        const float alpha = phi - Par[iP].ConstAt(itrack, 4, 0);
+        float cosA, sinA;
+        if (Config::useTrigApprox) {
+          sincos4(alpha, sinA, cosA);
+        } else {
+          cosA = std::cos(alpha);
+          sinA = std::sin(alpha);
         }
+        //take abs so that we always inflate the window
+        const float dist = std::abs(deltaR*sinA/cosA);
+        dphi += dist / r;
+      }
 
-        q =  z;
-        dq = dz;
-
-        XWsrResult[itrack] = L.is_within_z_sensitive_region(z, dz);
-
-        dphi = std::min(std::abs(dphi), L.max_dphi());
-        dq   = clamp(dq, L.min_dq(), L.max_dq());
-
-        qv[itrack] = q;
-        phiv[itrack] = phi;
-        dphiv[itrack] = dphi;
-        dqv[itrack]   = dq;
-
-        qb1v[itrack] = L.GetQBinChecked(q - dq);
-        qb2v[itrack] = L.GetQBinChecked(q + dq) + 1;
-        pb1v[itrack] = L.GetPhiBin(phi - dphi);
-        pb2v[itrack] = L.GetPhiBin(phi + dphi) + 1;
-        // MT: The extra phi bins give us ~1.5% more good tracks at expense of 10% runtime.
-        //     That was for 10k cylindrical cow, I think.
-        // const int pb1 = L.GetPhiBin(phi - dphi) - 1;
-        // const int pb2 = L.GetPhiBin(phi + dphi) + 2;
+      XWsrResult[itrack] = L.is_within_z_sensitive_region(z, dz);
+      assignbins(itrack, z, dz, phi, dphi);
     }
   }
   else // endcap
@@ -233,21 +238,16 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
       const float r2     = x*x + y*y;
       const float dphidx = -y/r2, dphidy = x/r2;
-      const float dphi2  = dphidx * dphidx * Err[iI].ConstAt(itrack, 0, 0) +
-        dphidy * dphidy * Err[iI].ConstAt(itrack, 1, 1) +
-        2 * dphidx * dphidy * Err[iI].ConstAt(itrack, 0, 1);
+      const float dphi2  = calcdphi2(itrack, dphidx, dphidy);
 #ifdef HARD_CHECK
       assert(dphi2 >= 0);
 #endif
 
-      float q, dq, phi, dphi;
+      const float phi  = getPhi(x, y);
+      float dphi = calcdphi(dphi2);
 
-      phi  = getPhi(x, y);
-      dphi = nSigmaPhi * std::sqrt(std::abs(dphi2));
-      dphi = std::max(std::abs(dphi), L.min_dphi());
-
-      float  r = std::sqrt(r2);
-      float dr = std::abs(nSigmaR*(x*x*Err[iI].ConstAt(itrack, 0, 0) + y*y*Err[iI].ConstAt(itrack, 1, 1) + 2*x*y*Err[iI].ConstAt(itrack, 0, 1)) / r2);
+      const float  r = std::sqrt(r2);
+      const float dr = std::abs(nSigmaR*(x*x*Err[iI].ConstAt(itrack, 0, 0) + y*y*Err[iI].ConstAt(itrack, 1, 1) + 2*x*y*Err[iI].ConstAt(itrack, 0, 1)) / r2);
 
       if (Config::useCMSGeom) // should be Config::finding_requires_propagation_to_hit_pos
       {
@@ -263,28 +263,8 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
         const float alpha  = deltaZ*sinT*Par[iI].ConstAt(itrack, 3, 0)/(cosT*k);
         dphi += std::abs(alpha);
       }
-
-      q =  r;
-      dq = dr;
-
       XWsrResult[itrack] = L.is_within_r_sensitive_region(r, dr);
-
-      dphi = std::min(std::abs(dphi), L.max_dphi());
-      dq   = clamp(dq, L.min_dq(), L.max_dq());
-
-      qv[itrack] = q;
-      phiv[itrack] = phi;
-      dphiv[itrack] = dphi;
-      dqv[itrack]   = dq;
-
-      qb1v[itrack] = L.GetQBinChecked(q - dq);
-      qb2v[itrack] = L.GetQBinChecked(q + dq) + 1;
-      pb1v[itrack] = L.GetPhiBin(phi - dphi);
-      pb2v[itrack] = L.GetPhiBin(phi + dphi) + 1;
-      // MT: The extra phi bins give us ~1.5% more good tracks at expense of 10% runtime.
-      //     That was for 10k cylindrical cow, I think.
-      // const int pb1 = L.GetPhiBin(phi - dphi) - 1;
-      // const int pb2 = L.GetPhiBin(phi + dphi) + 2;
+      assignbins(itrack, r, dr, phi, dphi);
     }
   }
 
