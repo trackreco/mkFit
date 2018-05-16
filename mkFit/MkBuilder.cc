@@ -1349,6 +1349,8 @@ void MkBuilder::PrepareSeeds()
     seed_post_cleaning(m_event->seedTracks_, true, true);
 
     import_seeds();
+    if(m_event->seedTracks_.empty())
+      return;
     map_track_hits(m_event->seedTracks_);
   }
   else if (Config::seedInput == findSeeds)
