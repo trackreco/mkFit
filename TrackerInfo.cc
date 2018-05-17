@@ -127,7 +127,13 @@ void TrackerInfo::ExecTrackerInfoCreatorPlugin(const std::string& base, TrackerI
   int si = 0;
   while (search_path[si])
   {
-    std::string path(search_path[si]); path += soname;
+    std::string path;
+    const char *envpath = std::getenv("MKFIT_BASE");
+    if(envpath != nullptr) {
+      path += envpath;
+      path += "/";
+    }
+    path += search_path[si]; path += soname;
     if (stat(path.c_str(), &st) == 0)
     {
       printf("TrackerInfo::ExecTrackerInfoCreatorPlugin processing '%s'\n", path.c_str());
