@@ -67,37 +67,56 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
   int best[nseeds];
   for (auto i = 0; i < nseeds; ++i) { best[i] = std::max(BestCandidate(i), 0); }
 
+  const auto assignbins = [&](int itrack, float q, float dq, float phi, float dphi){
+    dphi = std::min(std::abs(dphi), L.max_dphi());
+    dq   = clamp(dq, L.min_dq(), L.max_dq());
+
+    dprintf("     SHI %5d  %6.3f %6.3f %6.4f %7.5f\n", itrack, q, phi, dq, dphi);
+
+    qv[itrack] = q;
+    phiv[itrack] = phi;
+    dphiv[itrack] = dphi;
+    dqv[itrack]   = dq;
+    goodv[itrack] = XWsrResult[itrack].m_wsr != WSR_Outside && CandIdx[itrack] >= 0;
+    // MT: The extra phi bins give us ~1.5% more good tracks at expense of 10% runtime.
+    //     That was for 10k cylindrical cow, I think.
+    // const int pb1 = L.GetPhiBin(phi - dphi) - 1;
+    // const int pb2 = L.GetPhiBin(phi + dphi) + 2;
+  };
+
+  const auto calcdphi2 = [&](int itrack, float dphidx, float dphidy) {
+    return dphidx * dphidx * Err[iI].ConstAt(itrack, 0, 0) +
+           dphidy * dphidy * Err[iI].ConstAt(itrack, 1, 1) +
+       2 * dphidx * dphidy * Err[iI].ConstAt(itrack, 0, 1);
+  };
+
+  const auto calcdphi = [&](float dphi2) {
+    return std::max(nSigmaPhi * std::sqrt(std::abs(dphi2)), L.min_dphi());
+  };
+
   // Pull out the part of the loop that vectorizes
-  //#pragma ivdep
-  #pragma omp simd
-  for (int itrack = 0; itrack < NNFV; ++itrack)
+  if (L.is_barrel())
   {
-    XHitSize[itrack] = 0;
-
-    const float x = Par[iI].ConstAt(itrack, 0, 0);
-    const float y = Par[iI].ConstAt(itrack, 1, 0);
-
-    const float r2     = x*x + y*y;
-    const float dphidx = -y/r2, dphidy = x/r2;
-    const float dphi2  = dphidx * dphidx * Err[iI].ConstAt(itrack, 0, 0) +
-      dphidy * dphidy * Err[iI].ConstAt(itrack, 1, 1) +
-      2 * dphidx * dphidy * Err[iI].ConstAt(itrack, 0, 1);
-#ifdef HARD_CHECK
-    assert(dphi2 >= 0);
-#endif
-
-    float q, dq, phi, dphi;
-
-    phi  = getPhi(x, y);
-    dphi = nSigmaPhi * std::sqrt(std::abs(dphi2));
-    dphi = std::max(std::abs(dphi), L.min_dphi());
-
-    if (L.is_barrel())
+#pragma omp simd
+    for (int itrack = 0; itrack < NNFV; ++itrack)
     {
-      float z  = Par[iI].ConstAt(itrack, 2, 0);
-      float dz = nSigmaZ * std::sqrt(Err[iI].ConstAt(itrack, 2, 2));
+      XHitSize[itrack] = 0;
 
-      dz = std::max(std::abs(dz), L.min_dq());
+      const float x = Par[iI].ConstAt(itrack, 0, 0);
+      const float y = Par[iI].ConstAt(itrack, 1, 0);
+
+      const float r2     = x*x + y*y;
+      const float dphidx = -y/r2, dphidy = x/r2;
+      const float dphi2  = calcdphi2(itrack, dphidx, dphidy);
+  #ifdef HARD_CHECK
+      assert(dphi2 >= 0);
+  #endif
+
+      const float phi  = getPhi(x, y);
+      float dphi = calcdphi(dphi2);
+
+      const float z  = Par[iI].ConstAt(itrack, 2, 0);
+      const float dz = std::abs(nSigmaZ * std::sqrt(Err[iI].ConstAt(itrack, 2, 2)));
 
       if (Config::useCMSGeom)
       {
@@ -120,17 +139,30 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
         dphi += dist / r;
       }
 
-      q =  z;
-      dq = dz;
-
       XWsrResult[itrack] = L.is_within_z_sensitive_region(z, dz);
+      assignbins(itrack, z, dz, phi, dphi);
     }
-    else // endcap
+  } else {
+#pragma omp simd
+    for (int itrack = 0; itrack < NNFV; ++itrack)
     {
-      const float  r = std::sqrt(r2);
-      float dr = nSigmaR*(x*x*Err[iI].ConstAt(itrack, 0, 0) + y*y*Err[iI].ConstAt(itrack, 1, 1) + 2*x*y*Err[iI].ConstAt(itrack, 0, 1))/r2;
+      XHitSize[itrack] = 0;
 
-      dr = std::max(std::abs(dr), L.min_dq());
+      const float x = Par[iI].ConstAt(itrack, 0, 0);
+      const float y = Par[iI].ConstAt(itrack, 1, 0);
+
+      const float r2     = x*x + y*y;
+      const float dphidx = -y/r2, dphidy = x/r2;
+      const float dphi2  = calcdphi2(itrack, dphidx, dphidy);
+  #ifdef HARD_CHECK
+      assert(dphi2 >= 0);
+  #endif
+
+      const float phi  = getPhi(x, y);
+      float dphi = calcdphi(dphi2);
+
+      const float  r = std::sqrt(r2);
+      const float dr = std::abs(nSigmaR*(x*x*Err[iI].ConstAt(itrack, 0, 0) + y*y*Err[iI].ConstAt(itrack, 1, 1) + 2*x*y*Err[iI].ConstAt(itrack, 0, 1)) / r2);
 
       if (Config::useCMSGeom)
       {
@@ -146,22 +178,9 @@ void MkFinderFV<nseeds, ncands>::SelectHitIndices(const LayerOfHits &layer_of_hi
         dphi += std::abs(alpha);
       }
 
-      q =  r;
-      dq = dr;
-
       XWsrResult[itrack] = L.is_within_r_sensitive_region(r, dr);
+      assignbins(itrack, r, dr, phi, dphi);
     }
-
-    dphi = std::min(std::abs(dphi), L.max_dphi());
-    dq   = std::min(std::abs(dq),   L.max_dq());
-
-    dprintf("     SHI %5d  %6.3f %6.3f %6.4f %7.5f\n", itrack, q, phi, dq, dphi);
-
-    qv[itrack]    = q;
-    dqv[itrack]   = dq;
-    phiv[itrack]  = phi;
-    dphiv[itrack] = dphi;
-    goodv[itrack] = XWsrResult[itrack].m_wsr != WSR_Outside && CandIdx[itrack] >= 0;
   }
 
   int qb1[nseeds], qb2[nseeds], pb1[nseeds], pb2[nseeds];

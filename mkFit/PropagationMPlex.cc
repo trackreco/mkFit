@@ -610,10 +610,10 @@ void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
 
       const float pt = 1.f/ipt;
 
-      float cosa = 0., sina = 0.;
+      float cosaTmp = 0., sinaTmp = 0.;
       //no trig approx here, phi can be large
-      float cosP = std::cos(phiin), sinP = std::sin(phiin);
-      float cosT = std::cos(theta), sinT = std::sin(theta);
+      const float cosP = std::cos(phiin), sinP = std::sin(phiin);
+      const float cosT = std::cos(theta), sinT = std::sin(theta);
       const float pxin = cosP*pt;
       const float pyin = sinP*pt;
 
@@ -626,11 +626,13 @@ void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
       const float alpha  = deltaZ*sinT*ipt/(cosT*k);
 
       if (Config::useTrigApprox) {
-	sincos4(alpha, sina, cosa);
+	sincos4(alpha, sinaTmp, cosaTmp);
       } else {
-	cosa=std::cos(alpha);
-	sina=std::sin(alpha);
+	cosaTmp=std::cos(alpha);
+	sinaTmp=std::sin(alpha);
       }
+      const float cosa = cosaTmp;
+      const float sina = sinaTmp;
 
       //update parameters
       outPar.At(n, 0, 0) = outPar.At(n, 0, 0) + k*(pxin*sina - pyin*(1.f-cosa));
@@ -641,15 +643,18 @@ void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
       dprint_np(n, std::endl << "outPar.At(n, 0, 0)=" << outPar.At(n, 0, 0) << " outPar.At(n, 1, 0)=" << outPar.At(n, 1, 0)
 		<< " pxin=" << pxin << " pyin=" << pyin);
 
-      errorProp(n,0,2) = cosP*sinT*(sinP*cosa*std::sin(cosP*sina) - cosa)/cosT;
-      errorProp(n,0,3) = cosP*sinT*deltaZ*cosa*( 1.f - sinP*std::sin(cosP*sina) )/(cosT*ipt) - k*(cosP*sina - sinP*(1.f-std::cos(cosP*sina)))/(ipt*ipt);
-      errorProp(n,0,4) = (k/ipt)*( -sinP*sina + sinP*sinP*sina*std::sin(cosP*sina) - cosP*(1.f - std::cos(cosP*sina) ) );
-      errorProp(n,0,5) = cosP*deltaZ*cosa*( 1.f - sinP*std::sin(cosP*sina) )/(cosT*cosT);
+      const float sCosPsina = std::sin(cosP*sina);
+      const float cCosPsina = std::cos(cosP*sina);
 
-      errorProp(n,1,2) = cosa*sinT*(cosP*cosP*std::sin(cosP*sina) - sinP)/cosT;
-      errorProp(n,1,3) = sinT*deltaZ*cosa*( cosP*cosP*std::sin(cosP*sina) + sinP )/(cosT*ipt) - k*(sinP*sina + cosP*(1.f-std::cos(cosP*sina)))/(ipt*ipt);
-      errorProp(n,1,4) = (k/ipt)*( -sinP*(1.f - std::cos(cosP*sina)) - sinP*cosP*sina*std::sin(cosP*sina) + cosP*sina );
-      errorProp(n,1,5) = deltaZ*cosa*( cosP*cosP*std::sin(cosP*sina) + sinP )/(cosT*cosT);
+      errorProp(n,0,2) = cosP*sinT*(sinP*cosa*sCosPsina - cosa)/cosT;
+      errorProp(n,0,3) = cosP*sinT*deltaZ*cosa*( 1.f - sinP*sCosPsina )/(cosT*ipt) - k*(cosP*sina - sinP*(1.f-cCosPsina))/(ipt*ipt);
+      errorProp(n,0,4) = (k/ipt)*( -sinP*sina + sinP*sinP*sina*sCosPsina - cosP*(1.f - cCosPsina ) );
+      errorProp(n,0,5) = cosP*deltaZ*cosa*( 1.f - sinP*sCosPsina )/(cosT*cosT);
+
+      errorProp(n,1,2) = cosa*sinT*(cosP*cosP*sCosPsina - sinP)/cosT;
+      errorProp(n,1,3) = sinT*deltaZ*cosa*( cosP*cosP*sCosPsina + sinP )/(cosT*ipt) - k*(sinP*sina + cosP*(1.f-cCosPsina))/(ipt*ipt);
+      errorProp(n,1,4) = (k/ipt)*( -sinP*(1.f - cCosPsina) - sinP*cosP*sina*sCosPsina + cosP*sina );
+      errorProp(n,1,5) = deltaZ*cosa*( cosP*cosP*sCosPsina + sinP )/(cosT*cosT);
 
       errorProp(n,4,2) = -ipt*sinT/(cosT*k);
       errorProp(n,4,3) = sinT*deltaZ/(cosT*k);
