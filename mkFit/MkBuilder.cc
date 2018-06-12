@@ -2185,8 +2185,10 @@ void MkBuilder::fit_cands_to_pca_BH(MkFinder *mkfndr, int start_cand, int end_ca
     // perform fit back to first layer on track
     mkfndr->BkFitFitTracks(m_event_of_hits, st_par, end - icand, chi_debug);
 
-    // now move one last time to PCA
-    mkfndr->BkFitPropTracksToPCA(end - icand);
+    if(Config::backwardFitPCA) {
+      // now move one last time to PCA
+      mkfndr->BkFitPropTracksToPCA(end - icand);
+    }
 
 #ifdef DEBUG_BACKWARD_FIT
     // Dump tracks with pT > 2 and chi2/dof > 20. Assumes MPT_SIZE=1.
@@ -2262,8 +2264,10 @@ void MkBuilder::fit_cands_to_pca(MkFinder *mkfndr, int start_cand, int end_cand,
     // fit tracks back to first layer
     mkfndr->BkFitFitTracks(m_event_of_hits, st_par, end - icand, chi_debug);
     
-    // now move one last time to PCA
-    mkfndr->BkFitPropTracksToPCA(end - icand);
+    if(Config::backwardFitPCA) {
+      // now move one last time to PCA
+      mkfndr->BkFitPropTracksToPCA(end - icand);
+    }
     
 #ifdef DEBUG_BACKWARD_FIT
     // Dump tracks with pT > 2 and chi2/dof > 20. Assumes MPT_SIZE=1.

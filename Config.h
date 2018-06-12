@@ -369,6 +369,7 @@ namespace Config
 
   extern bool   kludgeCmsHitErrors;
   extern bool   backwardFit;
+  extern bool   backwardFitPCA;
 
   // NAN and silly track parameter tracking options
   constexpr bool nan_etc_sigs_enable = false;
