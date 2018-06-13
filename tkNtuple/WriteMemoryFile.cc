@@ -164,6 +164,7 @@ void printHelp(const char* av0){
 	 "  --input          <str>    input file\n"
 	 "  --output         <str>    output file\n"
 	 "  --verbosity      <num>    print details (0 quiet, 1 print counts, 2 print all; def: 0)\n"
+	 "  --maxevt         <num>    maxevt events to write (-1 for everything in the file def: -1)\n"
 	 "  --clean-sim-tracks        apply sim track cleaning (def: no cleaning)\n"
 	 "  --write-all-events        write all events (def: skip events with 0 simtracks or seeds)\n"
 	 "  --write-rec-tracks        write rec tracks (def: not written)\n"
@@ -182,6 +183,7 @@ int main(int argc, char *argv[])
   bool writeRecTracks = false;
 
   int verbosity = 0;
+  long long maxevt = -1;
 
   lStr_t mArgs;
   for (int i = 1; i < argc; ++i)
@@ -214,6 +216,11 @@ int main(int argc, char *argv[])
 	{
 	  next_arg_or_die(mArgs, i);
 	  verbosity = std::atoi(i->c_str());
+	}
+      else if (*i == "--maxevt")
+	{
+	  next_arg_or_die(mArgs, i);
+	  maxevt = std::atoi(i->c_str());
 	}
       else if (*i == "--clean-sim-tracks")
 	{
@@ -249,8 +256,6 @@ int main(int argc, char *argv[])
   const unsigned int nTotalLayers = lnc.nLayers();
   Config::nTotalLayers = lnc.nLayers();
 
-  long long maxevt = 0;
-
   int nstot = 0;
   std::vector<int> nhitstot(nTotalLayers, 0);
 
@@ -260,7 +265,6 @@ int main(int argc, char *argv[])
     fprintf(stderr, "Failed opening input root file '%s'\n", inputFileName);
     exit(1);
   }
-  maxevt = 1000;
   
   TTree* t = (TTree*) f->Get("trackingNtuple/tree");
 
@@ -543,6 +547,7 @@ int main(int argc, char *argv[])
   DataFile data_file;
   int outOptions = DataFile::ES_Seeds;
   if (writeRecTracks) outOptions |= DataFile::ES_CmsswTracks;
+  if (maxevt < 0) maxevt = totentries;
   data_file.OpenWrite(outputFileName, std::min(maxevt, totentries), outOptions);
 
   Event EE(0);
