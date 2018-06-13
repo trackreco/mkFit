@@ -262,7 +262,7 @@ int main(int argc, char *argv[])
   TFile* f = TFile::Open(inputFileName.c_str());
   if (f == 0)
   {
-    fprintf(stderr, "Failed opening input root file '%s'\n", inputFileName);
+    fprintf(stderr, "Failed opening input root file '%s'\n", inputFileName.c_str());
     exit(1);
   }
   
@@ -655,7 +655,7 @@ int main(int argc, char *argv[])
     vector<Track> &simTracks_ = EE.simTracks_;
     vector<int> simTrackIdx_(sim_q->size(),-1);//keep track of original index in ntuple
     vector<int> seedSimIdx(see_q->size(),-1);
-    for (int isim = 0; isim < sim_q->size(); ++isim) {
+    for (unsigned int isim = 0; isim < sim_q->size(); ++isim) {
 
       //load sim production vertex data
       auto iVtx = sim_parentVtxIdx->at(isim);
@@ -687,14 +687,14 @@ int main(int argc, char *argv[])
               int ipix = ihIdx;
               if (ipix<0) continue;
               int cmsswlay = lnc.convertLayerNumber(pix_det->at(ipix),pix_lay->at(ipix),useMatched,-1,pix_z->at(ipix)>0);
-              if (cmsswlay>=0 && cmsswlay<nTotalLayers) hitlay[cmsswlay]++;	    
+              if (cmsswlay>=0 && cmsswlay<static_cast<int>(nTotalLayers)) hitlay[cmsswlay]++;	    
               break;
             }
             case HitType::Strip:{
               int istr = ihIdx;
               if (istr<0) continue;
               int cmsswlay = lnc.convertLayerNumber(str_det->at(istr),str_lay->at(istr),useMatched,str_isStereo->at(istr),str_z->at(istr)>0);
-              if (cmsswlay>=0 && cmsswlay<nTotalLayers) hitlay[cmsswlay]++;	    
+              if (cmsswlay>=0 && cmsswlay<static_cast<int>(nTotalLayers)) hitlay[cmsswlay]++;	    
               break;
             }
             case HitType::Glued:{
@@ -702,7 +702,7 @@ int main(int argc, char *argv[])
 		int iglu = ihIdx;
 		if (iglu<0) continue;
 		int cmsswlay = lnc.convertLayerNumber(glu_det->at(iglu),glu_lay->at(iglu),useMatched,-1,glu_z->at(iglu)>0);
-		if (cmsswlay>=0 && cmsswlay<nTotalLayers) hitlay[cmsswlay]++;
+		if (cmsswlay>=0 && cmsswlay<static_cast<int>(nTotalLayers)) hitlay[cmsswlay]++;
               }	    
               break;
             }
@@ -710,7 +710,7 @@ int main(int argc, char *argv[])
             default: throw std::logic_error("Track type can not be handled");
 	  }//hit type
 	}//hits on track
-	for (int i=0;i<nTotalLayers;i++) if (hitlay[i]>0) nlay++;
+	for (unsigned int i=0;i<nTotalLayers;i++) if (hitlay[i]>0) nlay++;
       }//count nlay layers on matching reco track
 
       //cout << Form("track q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) nlay=%i",sim_q->at(isim),sim_px->at(isim),sim_py->at(isim),sim_pz->at(isim),sim_prodx,sim_prody,sim_prodz,nlay) << endl;
@@ -747,7 +747,7 @@ int main(int argc, char *argv[])
 	if (sim_nValid->at(isim) < cleanSimTrack_minSimHits) continue;
 	if (cleanSimTrack_minRecHits > 0){
 	  int nRecToSimHit = 0;
-	  for (int ipix = 0; ipix < pix_lay->size() && nRecToSimHit < cleanSimTrack_minRecHits; ++ipix) {
+	  for (unsigned int ipix = 0; ipix < pix_lay->size() && nRecToSimHit < cleanSimTrack_minRecHits; ++ipix) {
 	    int ilay = -1;
 	    ilay = lnc.convertLayerNumber(pix_det->at(ipix),pix_lay->at(ipix),useMatched,-1,pix_z->at(ipix)>0);
 	    if (ilay<0) continue;
@@ -755,14 +755,14 @@ int main(int argc, char *argv[])
 	    if (simTkIdxNt >= 0) nRecToSimHit++;
 	  }
 	  if (useMatched) {
-	    for (int iglu = 0; iglu < glu_lay->size() && nRecToSimHit < cleanSimTrack_minRecHits; ++iglu) {
+	    for (unsigned int iglu = 0; iglu < glu_lay->size() && nRecToSimHit < cleanSimTrack_minRecHits; ++iglu) {
 	      if (glu_isBarrel->at(iglu)==0) continue;
 	      int igluMono = glu_monoIdx->at(iglu);
 	      int simTkIdxNt = bestTkIdx(str_simHitIdx->at(igluMono), str_chargeFraction->at(igluMono),       igluMono, HitType::Strip);
 	      if (simTkIdxNt >= 0) nRecToSimHit++;
 	    }
 	  }
-	  for (int istr = 0; istr < str_lay->size() && nRecToSimHit < cleanSimTrack_minRecHits; ++istr) {
+	  for (unsigned int istr = 0; istr < str_lay->size() && nRecToSimHit < cleanSimTrack_minRecHits; ++istr) {
 	    int ilay = -1;
 	    ilay = lnc.convertLayerNumber(str_det->at(istr),str_lay->at(istr),useMatched,str_isStereo->at(istr),str_z->at(istr)>0);
 	    if (useMatched && str_isBarrel->at(istr)==1 && str_isStereo->at(istr)) continue;
@@ -783,7 +783,7 @@ int main(int argc, char *argv[])
     
     vector<Track> &seedTracks_ = EE.seedTracks_;
     vector<vector<int> > pixHitSeedIdx(pix_lay->size());
-    for (int is = 0; is<see_q->size(); ++is) {
+    for (unsigned int is = 0; is<see_q->size(); ++is) {
       if (TrackAlgorithm(see_algo->at(is))!=TrackAlgorithm::initialStep) continue;//select seed in acceptance
       //if (see_pt->at(is)<0.5 || fabs(see_eta->at(is))>0.8) continue;//select seed in acceptance
       SVector3 pos = SVector3(see_stateTrajGlbX->at(is),see_stateTrajGlbY->at(is),see_stateTrajGlbZ->at(is));
@@ -817,7 +817,7 @@ int main(int argc, char *argv[])
       auto const& shIdxs = see_hitIdx->at(is);
       if (! (TrackAlgorithm(see_algo->at(is))== TrackAlgorithm::initialStep
 	     && std::count(shTypes.begin(), shTypes.end(), int(HitType::Pixel))>=3)) continue;//check algo and nhits
-      for (int ip=0; ip<shTypes.size(); ip++) {
+      for (unsigned int ip=0; ip<shTypes.size(); ip++) {
 	unsigned int ipix = shIdxs[ip];
 	//cout << "ipix=" << ipix << " seed=" << seedTracks_.size() << endl;
 	pixHitSeedIdx[ipix].push_back(seedTracks_.size());
@@ -831,7 +831,7 @@ int main(int argc, char *argv[])
     vector<vector<int> > pixHitRecIdx(pix_lay->size());
     vector<vector<int> > strHitRecIdx(str_lay->size());
     vector<vector<int> > gluHitRecIdx(glu_lay->size());
-    for (int ir = 0; ir<trk_q->size(); ++ir) {
+    for (unsigned int ir = 0; ir<trk_q->size(); ++ir) {
       if ((trk_algoMask->at(ir) & (1 << int(TrackAlgorithm::initialStep))) == 0){//check the origin; redundant for initialStep ntuples
 	if (verbosity > 1){
 	  std::cout<<"track "<<ir<<" failed algo selection for "<< int(TrackAlgorithm::initialStep) <<": mask "<<trk_algoMask->at(ir)
@@ -878,7 +878,7 @@ int main(int argc, char *argv[])
       Track track(state, trk_nChi2->at(ir), trk_seedIdx->at(ir), 0, nullptr);//hits are filled later
       auto const& hTypes = trk_hitType->at(ir);
       auto const& hIdxs =  trk_hitIdx->at(ir);
-      for (int ip=0; ip<hTypes.size(); ip++) {
+      for (unsigned int ip=0; ip<hTypes.size(); ip++) {
 	unsigned int hidx = hIdxs[ip];
 	switch( HitType(hTypes[ip]) ) {
 	  case HitType::Pixel:{
@@ -911,7 +911,7 @@ int main(int argc, char *argv[])
     vector<MCHitInfo>    &simHitsInfo_ = EE.simHitsInfo_;
     int totHits = 0;
     layerHits_.resize(nTotalLayers);
-    for (int ipix = 0; ipix < pix_lay->size(); ++ipix) {
+    for (unsigned int ipix = 0; ipix < pix_lay->size(); ++ipix) {
       int ilay = -1;
       ilay = lnc.convertLayerNumber(pix_det->at(ipix),pix_lay->at(ipix),useMatched,-1,pix_z->at(ipix)>0);
       if (ilay<0) continue;
@@ -932,11 +932,11 @@ int main(int argc, char *argv[])
 	if (nhits < Config::nMaxSimHits) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
 	else cout<<"SKIP: Tried to add pix hit to track with "<<nhits<<" hits "<<std::endl;
       }
-      for (int is=0;is<pixHitSeedIdx[ipix].size();is++) {
+      for (unsigned int is=0;is<pixHitSeedIdx[ipix].size();is++) {
 	//cout << "xxx ipix=" << ipix << " seed=" << pixHitSeedIdx[ipix][is] << endl;
       	seedTracks_[pixHitSeedIdx[ipix][is]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
       }
-      for (int ir=0;ir<pixHitRecIdx[ipix].size();ir++) {
+      for (unsigned int ir=0;ir<pixHitRecIdx[ipix].size();ir++) {
 	//cout << "xxx ipix=" << ipix << " recTrack=" << pixHitRecIdx[ipix][ir] << endl;
       	cmsswTracks_[pixHitRecIdx[ipix][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
       }
@@ -948,7 +948,7 @@ int main(int argc, char *argv[])
     }
 
     if (useMatched) {
-      for (int iglu = 0; iglu < glu_lay->size(); ++iglu) {
+      for (unsigned int iglu = 0; iglu < glu_lay->size(); ++iglu) {
 	if (glu_isBarrel->at(iglu)==0) continue;
 	int igluMono = glu_monoIdx->at(iglu);
 	int simTkIdxNt = bestTkIdx(str_simHitIdx->at(igluMono), str_chargeFraction->at(igluMono),	igluMono, HitType::Strip);
@@ -969,7 +969,7 @@ int main(int argc, char *argv[])
 	  if (nhits < Config::nMaxSimHits) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
 	  else cout<<"SKIP: Tried to add glu hit to track with "<<nhits<<" hits "<<std::endl;
 	}
-	for (int ir=0;ir<gluHitRecIdx[iglu].size();ir++) {
+	for (unsigned int ir=0;ir<gluHitRecIdx[iglu].size();ir++) {
 	  //cout << "xxx iglu=" << iglu << " recTrack=" << gluHitRecIdx[iglu][ir] << endl;
 	  cmsswTracks_[gluHitRecIdx[iglu][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
 	}	
@@ -983,7 +983,7 @@ int main(int argc, char *argv[])
 
     vector<int> strIdx;
     strIdx.resize(str_lay->size());
-    for (int istr = 0; istr < str_lay->size(); ++istr) {
+    for (unsigned int istr = 0; istr < str_lay->size(); ++istr) {
       int ilay = -1;
       ilay = lnc.convertLayerNumber(str_det->at(istr),str_lay->at(istr),useMatched,str_isStereo->at(istr),str_z->at(istr)>0);
       if (useMatched && str_isBarrel->at(istr)==1 && str_isStereo->at(istr)) continue;
@@ -1005,7 +1005,7 @@ int main(int argc, char *argv[])
 	if (nhits < Config::nMaxSimHits) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
 	else cout<<"SKIP: Tried to add str hit to track with "<<nhits<<" hits "<<std::endl;	
       }
-      for (int ir=0;ir<strHitRecIdx[istr].size();ir++) {
+      for (unsigned int ir=0;ir<strHitRecIdx[istr].size();ir++) {
 	//cout << "xxx istr=" << istr << " recTrack=" << strHitRecIdx[istr][ir] << endl;
 	cmsswTracks_[strHitRecIdx[istr][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
       }
@@ -1017,7 +1017,7 @@ int main(int argc, char *argv[])
     }
 
     // bool allTracksAllHits = true;
-    for (int i=0;i<simTracks_.size();++i) {
+    for (unsigned int i=0;i<simTracks_.size();++i) {
       simTracks_[i].setNFoundHits();
       // if (simTracks_[i].nFoundHits()!=Config::nTotalLayers) allTracksAllHits = false;
     }
@@ -1025,7 +1025,7 @@ int main(int argc, char *argv[])
 
     // Seed % hit statistics
     nstot += seedTracks_.size();
-    for (int il = 0; il<layerHits_.size(); ++il) {
+    for (unsigned int il = 0; il<layerHits_.size(); ++il) {
       int nh = layerHits_[il].size();
       nhitstot[il]+=nh;
     }
@@ -1113,7 +1113,7 @@ int main(int argc, char *argv[])
   printf("\nSaved %lli events\n\n",savedEvents);
 
   printf("Average number of seeds per event %f\n",float(nstot)/float(savedEvents));
-  for (int il=0;il<nhitstot.size();++il)
+  for (unsigned int il=0;il<nhitstot.size();++il)
     printf("Average number of hits in layer %3i = %7.2f\n", il, float(nhitstot[il])/float(savedEvents));
 
 }
