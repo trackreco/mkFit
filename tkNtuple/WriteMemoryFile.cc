@@ -875,7 +875,6 @@ int main(int argc, char *argv[])
       SVector3 pos = SVector3(trk_refpoint_x->at(ir), trk_refpoint_y->at(ir), trk_refpoint_z->at(ir));
       SVector3 mom = SVector3(1.f/pt, phi, M_PI_2 - trk_lambda->at(ir));
       TrackState state(trk_q->at(ir), pos, mom, err);
-      state.convertFromCCSToCartesian();
       Track track(state, trk_nChi2->at(ir), trk_seedIdx->at(ir), 0, nullptr);//hits are filled later
       auto const& hTypes = trk_hitType->at(ir);
       auto const& hIdxs =  trk_hitIdx->at(ir);
