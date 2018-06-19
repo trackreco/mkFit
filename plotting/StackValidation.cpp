@@ -139,9 +139,10 @@ void StackValidation::MakeCMSSWKinematicDiffStacks(const TString & trk)
 	for (UInt_t b = 0; b < builds.size(); b++)
 	{
 	  SetMinMaxHist(hists[b],min,max,isLogy);
-	  
 	  hists[b]->Draw(b>0?"EP SAME":"EP");
-	  leg->AddEntry(hists[b],builds[b].label.Data(),"LEP");
+	  
+	  const TString mean = Form("%4.1f",hists[b]->GetMean());
+	  leg->AddEntry(hists[b],builds[b].label+" "+" [#mu = "+mean+"]","LEP");
 	}
 	
 	leg->Draw("SAME");
