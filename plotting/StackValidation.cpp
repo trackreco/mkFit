@@ -53,22 +53,36 @@ void StackValidation::MakeRatioStacks(const TString & trk)
 	canv->cd();
 
 	TLegend * leg = new TLegend(0.85,0.80,1.0,1.0);
+
+	// tmp axis titles, not sure why ROOT is deleting them
+	TString xtitle = "";
+	TString ytitle = "";
 	
 	std::vector<TGraphAsymmErrors*> graphs(builds.size());
 	for (UInt_t b = 0; b < builds.size(); b++)
 	{
-	  graphs[b] = ((TEfficiency*)files[b]->Get(rates[l].dir+"/"+rates[l].rate+"_"+rates[l].sORr+"_"+vars[i]+"_"+trk+"_pt"+Form("%3.1f",ptcuts[k])))->CreateGraph();
-	  graphs[b]->SetLineColor(builds[b].color);
-	  graphs[b]->SetMarkerColor(builds[b].color);
+	  auto & graph = graphs[b];
 
-	  graphs[b]->Draw(b>0?"PZ SAME":"APZ");
+	  graph = ((TEfficiency*)files[b]->Get(rates[l].dir+"/"+rates[l].rate+"_"+rates[l].sORr+"_"+vars[i]+"_"+trk+"_pt"+Form("%3.1f",ptcuts[k])))->CreateGraph();
+	  graph->SetLineColor(builds[b].color);
+	  graph->SetMarkerColor(builds[b].color);
 
-	  if (!rates[l].rate.Contains("ineff",TString::kExact)) graphs[b]->GetYaxis()->SetRangeUser(0.0,1.05);
-	  else graphs[b]->GetYaxis()->SetRangeUser(0.0,0.25);
+	  // store tmp titles
+	  if (b == 0)
+	  {
+	    xtitle = graph->GetXaxis()->GetTitle();
+	    ytitle = graph->GetYaxis()->GetTitle();
+	  }
 	  
-	  leg->AddEntry(graphs[b],builds[b].label.Data(),"LEP");
+	  graph->Draw(b>0?"PZ SAME":"APZ");
+
+	  if (!rates[l].rate.Contains("ineff",TString::kExact)) graph->GetYaxis()->SetRangeUser(0.0,1.05);
+	  else graph->GetYaxis()->SetRangeUser(0.0,0.25);
+	  
+	  leg->AddEntry(graph,builds[b].label.Data(),"LEP");
 	}
-	
+
+	// print standard plot for every rate/variable
 	leg->Draw("SAME");
 	canv->SaveAs(label+"_"+rates[l].rate+"_"+vars[i]+"_"+trk+"_pt"+Form("%3.1f",ptcuts[k])+extra+".png");
 	
@@ -87,6 +101,30 @@ void StackValidation::MakeRatioStacks(const TString & trk)
 	  canv->SaveAs(label+"_"+rates[l].rate+"_"+vars[i]+"_zoom_"+trk+"_pt"+Form("%3.1f",ptcuts[k])+extra+".png");
 
 	  for (auto & zoomgraph : zoomgraphs) delete zoomgraph; 
+	}
+
+	// make logx plots for pt: causes LOTS of weird effects... workarounds for now
+	if (i == 0)
+	{
+	  canv->SetLogx(1);
+
+	  // apparently logx removes titles and ranges???
+	  for (UInt_t b = 0; b < builds.size(); b++)
+	  {
+	    auto & graph = graphs[b];
+	    graph->GetXaxis()->SetRangeUser(0.01,graph->GetXaxis()->GetBinUpEdge(graph->GetXaxis()->GetNbins()));
+
+	    if (!rates[l].rate.Contains("ineff",TString::kExact)) graph->GetYaxis()->SetRangeUser(0.0,1.05);
+	    else graph->GetYaxis()->SetRangeUser(0.0,0.25);
+
+	    graph->GetXaxis()->SetTitle(xtitle);
+	    graph->GetYaxis()->SetTitle(ytitle);
+
+	    graph->Draw(b>0?"PZ SAME":"APZ");
+	  }
+
+	  leg->Draw("SAME");
+	  canv->SaveAs(label+"_"+rates[l].rate+"_"+vars[i]+"_logx_"+trk+"_pt"+Form("%3.1f",ptcuts[k])+extra+".png");
 	}
 
 	delete leg;
@@ -139,9 +177,10 @@ void StackValidation::MakeCMSSWKinematicDiffStacks(const TString & trk)
 	for (UInt_t b = 0; b < builds.size(); b++)
 	{
 	  SetMinMaxHist(hists[b],min,max,isLogy);
-	  
 	  hists[b]->Draw(b>0?"EP SAME":"EP");
-	  leg->AddEntry(hists[b],builds[b].label.Data(),"LEP");
+	  
+	  const TString mean = Form("%4.1f",hists[b]->GetMean());
+	  leg->AddEntry(hists[b],builds[b].label+" "+" [#mu = "+mean+"]","LEP");
 	}
 	
 	leg->Draw("SAME");
