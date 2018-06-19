@@ -346,7 +346,7 @@ void PlotValidation::PlotFRTree()
 	    // plot names and key
 	    const TString histkey   = Form("%i_%i_d_%i_%i",j,k,p,o);
 	    const TString histname  = "h_"+dvars[p]+"_"+coll[o]+"_"+trks[j]+"_pt"+sptcuts[k];
-	    const TString histtitle = "#Delta"+sdvars[p]+"("+scoll[o]+" "+strks[j]+",CMSSW) [p_{T} > "+sptcuts[k]+" GeV/c];"+dvars[p]+"^{"+scoll[o]+" "+strks[j]+"}-"+dvars[p]+"^{CMSSW};nTracks";
+	    const TString histtitle = "#Delta"+sdvars[p]+"("+scoll[o]+" "+strks[j]+",CMSSW) [p_{T} > "+sptcuts[k]+" GeV/c];"+sdvars[p]+"^{"+scoll[o]+" "+strks[j]+"}-"+sdvars[p]+"^{CMSSW};nTracks";
 	    
 	    // Numerator only type plots only!
 	    hists[histkey] = new TH1F(histname.Data(),histtitle.Data(),dvarbins[p].size()-1,bins);
