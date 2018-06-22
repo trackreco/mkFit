@@ -72,6 +72,22 @@ void StackValidation::MakeRatioStacks(const TString & trk)
 	leg->Draw("SAME");
 	canv->SaveAs(label+"_"+rates[l].rate+"_"+vars[i]+"_"+trk+"_pt"+Form("%3.1f",ptcuts[k])+extra+".png");
 	
+	// make logx plots for pt
+	if (i == 0)
+	{
+	  canv->SetLogx(1);
+
+	  // apparently logx removes y-axis range??
+	  for (auto & graph : graphs)
+	  {
+	    if (!rates[l].rate.Contains("ineff",TString::kExact)) graph->GetYaxis()->SetRangeUser(0.0,1.05);
+	    else graph->GetYaxis()->SetRangeUser(0.0,0.25);
+	  }
+
+	  canv->SaveAs(label+"_"+rates[l].rate+"_"+vars[i]+"_logx_"+trk+"_pt"+Form("%3.1f",ptcuts[k])+extra+".png");
+	  canv->SetLogx(0);
+	}
+
 	// zoom in on pt range
 	if (i == 0)
 	{
