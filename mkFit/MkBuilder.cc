@@ -1302,7 +1302,7 @@ namespace
         }
       }
 
-      if (count > 0)
+      if (count > 0 && !Config::silent)
       {
         printf("Nan'n'Silly detected %d silly seeds (fix=%d, remove=%d).\n",
                count, Config::nan_n_silly_fixup_bad_seeds, Config::nan_n_silly_remove_bad_seeds);
