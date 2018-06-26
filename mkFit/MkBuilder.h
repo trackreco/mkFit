@@ -119,6 +119,25 @@ public:
     }
   }
 
+  int total_cands() const { 
+    int res = 0; 
+    for (auto const& icomb: m_event_of_comb_cands.m_candidates) res += icomb.size();
+    return res;
+  }
+
+  std::pair<int,int> max_hits_layer() const {
+    int maxN = 0;
+    int maxL = 0;
+    for (auto const& lh : m_event_of_hits.m_layers_of_hits){
+      auto lsize = lh.m_hit_phis.size();
+      if (lsize > maxN){
+        maxN = lsize;
+        maxL = lh.layer_id();
+      }
+    }
+    return {maxN,maxL};
+  }
+
   void begin_event(Event* ev, const char* build_type);
   void end_event();
 

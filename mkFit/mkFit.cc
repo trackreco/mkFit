@@ -341,7 +341,8 @@ void test_standard()
   }
 #else
   std::atomic<int> nevt{g_start_event};
-  std::atomic<int> seedstot{0}, simtrackstot{0};
+  std::atomic<int> seedstot{0}, simtrackstot{0}, candstot{0};
+  std::atomic<int> maxHits_all{0}, maxLayer_all{0};
 
   MkBuilder::populate(g_run_build_all || g_run_build_fv);
 
@@ -439,6 +440,9 @@ void test_standard()
       simtrackstot += ev.simTracks_.size();
       seedstot     += ev.seedTracks_.size();
 
+      int ncands_thisthread = 0;
+      int maxHits_thisthread = 0;
+      int maxLayer_thisthread = 0;
       for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
       {
   #ifndef USE_CUDA
@@ -454,7 +458,12 @@ void test_standard()
         t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngineGPU(ev, ev_tmp, mkb, cuBuilder, g_seed_based) : 0;
   #endif
         t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, mkb) : 0;
-
+        if (g_run_build_ce){
+          ncands_thisthread = mkb.total_cands();
+          auto const& ln = mkb.max_hits_layer();
+          maxHits_thisthread = ln.first;
+          maxLayer_thisthread = ln.second;
+        }
         for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
 
         if (!Config::silent) {
@@ -470,6 +479,11 @@ void test_standard()
         }
       }
 
+      candstot += ncands_thisthread;
+      if (maxHits_thisthread > maxHits_all){
+        maxHits_all = maxHits_thisthread;
+        maxLayer_all = maxLayer_thisthread;
+      }
       if (!Config::silent) {
         std::lock_guard<std::mutex> printlock(Event::printmutex);
         printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f  FVMX = %.5f\n",
@@ -495,7 +509,8 @@ void test_standard()
          t_sum[0], t_sum[1], t_sum[2], t_sum[3], t_sum[4]);
   printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f  FVMX = %.5f\n",
          t_skip[0], t_skip[1], t_skip[2], t_skip[3], t_skip[4]);
-  printf("Total event loop time %.5f simtracks %d seedtracks %d\n", time, simtrackstot.load(), seedstot.load());
+  printf("Total event loop time %.5f simtracks %d seedtracks %d builtcands %d maxhits %d on lay %d\n", time, 
+         simtrackstot.load(), seedstot.load(), candstot.load(), maxHits_all.load(), maxLayer_all.load());
   //fflush(stdout);
 
   if (g_operation == "read")
