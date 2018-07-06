@@ -240,6 +240,41 @@ float Track::rAtZ(float Z) const
 // TrackExtra
 //==============================================================================
 
+void TrackExtra::findMatchingSeedHits(const Track & reco_trk, const Track & seed_trk, const std::vector<HitVec>& layerHits)
+{
+  // outer loop over reco hits
+  for (int reco_ihit = 0; reco_ihit < reco_trk.nTotalHits(); ++reco_ihit)
+  {
+    const int reco_lyr = reco_trk.getHitLyr(reco_ihit);
+    const int reco_idx = reco_trk.getHitIdx(reco_ihit);
+
+    // ensure layer exists
+    if (reco_lyr < 0) continue;
+
+    // make sure it is a real hit
+    if ((reco_idx < 0) || (static_cast<size_t>(reco_idx) >= layerHits[reco_lyr].size())) continue;
+
+    // inner loop over seed hits
+    for (int seed_ihit = 0; seed_ihit < seed_trk.nTotalHits(); ++seed_ihit)
+    {
+      const int seed_lyr = seed_trk.getHitLyr(seed_ihit);
+      const int seed_idx = seed_trk.getHitIdx(seed_ihit);
+
+      // ensure layer exists
+      if (seed_lyr < 0) continue;
+      
+      // check that lyrs are the same
+      if (reco_lyr != seed_lyr) continue;
+
+      // make sure it is a real hit
+      if ((seed_idx < 0) || (static_cast<size_t>(seed_idx) >= layerHits[seed_lyr].size())) continue;
+
+      // finally, count it up id idx is the same
+      if (reco_idx == seed_idx) matchedSeedHits_.emplace_back(seed_idx,seed_lyr);
+    }
+  }
+}
+
 int TrackExtra::modifyRefTrackID(const int foundHits, const int minHits, const TrackVec& reftracks, const int trueID, int refTrackID)
 {
   // Modify refTrackID based on nMinHits and findability

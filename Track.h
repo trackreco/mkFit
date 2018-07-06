@@ -510,6 +510,8 @@ public:
   int   cmsswTrackID() const {return cmsswTrackID_;}
   float helixChi2() const {return helixChi2_;}
   float dPhi() const {return dPhi_;}
+  void findMatchingSeedHits(const Track & reco_trk, const Track & seed_trk, const std::vector<HitVec>& layerHits);
+  int nMatchedSeedHits() const {return matchedSeedHits_.size();}
 
   void  setmcTrackID(int mcTrackID) {mcTrackID_ = mcTrackID;}
   void  setseedID(int seedID) {seedID_ = seedID;}
@@ -526,6 +528,7 @@ private:
   int   cmsswTrackID_;
   float helixChi2_;
   float dPhi_;
+  HoTVec matchedSeedHits_;
 };
 
 typedef std::vector<TrackExtra> TrackExtraVec;

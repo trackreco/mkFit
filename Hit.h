@@ -267,6 +267,8 @@ struct HitOnTrack
   HitOnTrack(int i, int l) : index( i), layer ( l) {}
 };
 
+typedef std::vector<HitOnTrack> HoTVec;
+
 void print(std::string label, const MeasurementState& s);
 
 #endif
