@@ -327,6 +327,11 @@ void Event::Fit()
 
 void Event::Validate()
 {
+  // special map needed for sim_val_for_cmssw
+  if (Config::sim_val_for_cmssw) {
+    validation_.makeRecoTkToSeedTkMapsDumbCMSSW(*this);
+  }
+
   // standard eff/fr/dr validation
   if (Config::sim_val || Config::sim_val_for_cmssw) {
     validation_.setTrackExtras(*this);
@@ -338,6 +343,7 @@ void Event::Validate()
 
   // special cmssw to mkfit validation
   if (Config::cmssw_val) {
+    validation_.makeCMSSWTkToSeedTkMap(*this);
     validation_.makeRecoTkToRecoTkMaps(*this);
     validation_.setTrackExtras(*this);
     validation_.makeCMSSWTkToRecoTksMaps(*this);
@@ -1104,4 +1110,3 @@ void DataFile::CloseWrite(int n_written){
   }
   Close();
 }
-

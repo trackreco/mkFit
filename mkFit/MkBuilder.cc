@@ -944,9 +944,19 @@ void MkBuilder::quality_store_tracks(TrackVec& tracks)
 
 void MkBuilder::quality_process(Track &tkcand, std::map<int,int> & cmsswLabelToPos)
 {
+  // KPM: Do not use this method for validating CMSSW tracks if we ever build a DumbCMSSW function for them to print out...
+  // as we would need to access seeds through map of seed ids...
+  
+  // get and set seedID
   const auto label = tkcand.label();
   TrackExtra extra(label);
-  extra.setMCTrackIDInfo(tkcand, m_event->layerHits_, m_event->simHitsInfo_, m_event->simTracks_, false, (Config::seedInput == simSeeds));
+  
+  // access temp seed trk and set matching seed hits
+  const auto & seed = m_event->seedTracks_[label];
+  extra.findMatchingSeedHits(tkcand, seed, m_event->layerHits_);
+
+  // set mcTrackID through 50% hit matching after seed
+  extra.setMCTrackIDInfo(tkcand, m_event->layerHits_, m_event->simHitsInfo_, m_event->simTracks_, false, (Config::seedInput == simSeeds)); 
   const int mctrk = extra.mcTrackID();
 
   //  int mctrk = tkcand.label(); // assumes 100% "efficiency"
