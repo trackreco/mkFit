@@ -762,20 +762,18 @@ inline void MkBuilder::fit_one_seed_set(TrackVec& seedtracks, int itrack, int en
 // Common functions for validation
 //------------------------------------------------------------------------------
 
-void MkBuilder::map_seed_hits()
+void MkBuilder::map_track_hits(TrackVec & tracks)
 {
-  // map seed hit indices from global m_event->layerHits_[i] to hit indices in
+  // map hit indices from global m_event->layerHits_[i] to hit indices in
   // structure m_event_of_hits.m_layers_of_hits[i].m_hits
 
-  // XXMT4K: This was: Config::nlayers_per_seed, now not that simple.
-  // In principle could have a list of seed layers (from outside (seed maker) or TrackerInfo).
   const int max_layer = Config::nTotalLayers;
 
   int max = 0;
   int min = std::numeric_limits<int>::max();
 
   std::vector<int> layer_has_hits(max_layer);
-  for (auto&& track : m_event->seedTracks_)
+  for (auto&& track : tracks)
   {
     for (int i = 0; i < track.nTotalHits(); ++i)
     {
@@ -799,7 +797,7 @@ void MkBuilder::map_seed_hits()
     }
   }
 
-  std::vector<int> seedHitMap(max-min+1);
+  std::vector<int> trackHitMap(max-min+1);
 
   for (int ilayer = 0; ilayer < max_layer; ++ilayer)
   {
@@ -810,12 +808,12 @@ void MkBuilder::map_seed_hits()
 
       for (size_t index = 0; index < size; ++index)
       {
-        seedHitMap[lof_m_hits[index].mcHitID()-min] = index;
+        trackHitMap[lof_m_hits[index].mcHitID()-min] = index;
       }
     }
   }
 
-  for (auto&& track : m_event->seedTracks_)
+  for (auto&& track : tracks)
   {
     for (int i = 0; i < track.nTotalHits(); ++i)
     {
@@ -824,75 +822,17 @@ void MkBuilder::map_seed_hits()
       if (hitidx >= 0)
       {
         const auto & global_hit_vec = m_event->layerHits_[hitlyr];
-        track.setHitIdx(i, seedHitMap[global_hit_vec[hitidx].mcHitID()-min]);
-        // printf("YYY mapped %d/%d to %d\n", hitidx, hitlyr, seedHitMap[global_hit_vec[hitidx].mcHitID()-min]);
+        track.setHitIdx(i, trackHitMap[global_hit_vec[hitidx].mcHitID()-min]);
+        // printf("YYY mapped %d/%d to %d\n", hitidx, hitlyr, trackHitMap[global_hit_vec[hitidx].mcHitID()-min]);
       }
     }
   }
 }
 
-void MkBuilder::remap_seed_hits()
-{
-  // map seed hit indices from hit indices in structure
-  // m_event_of_hits.m_layers_of_hits[i].m_hits to global
-  // m_event->layerHits_[i]
-
-
-  // XXMT4K: This was: Config::nlayers_per_seed, now not that simple.
-  // In principle could have a list of seed layers (from outside (seed maker) or TrackerInfo).
-  const int max_layer = Config::nTotalLayers;
-
-  int max = 0;
-  int min = std::numeric_limits<int>::max();
-
-  for (int ilayer = 0; ilayer < max_layer; ++ilayer)
-  {
-    if (Config::TrkInfo.is_seed_lyr(ilayer)) {
-      const auto & global_hit_vec = m_event->layerHits_[ilayer];
-      const auto   size = global_hit_vec.size();
-      for (size_t index = 0; index < size; ++index)
-      {
-        const auto mcHitID = global_hit_vec[index].mcHitID();
-        min = std::min(min, mcHitID);
-        max = std::max(max, mcHitID);
-      }
-    }
-  }
-
-  std::vector<int> seedHitMap(max-min+1); // assume indexes are dense
-
-  for (int ilayer = 0; ilayer < max_layer; ++ilayer)
-  {
-    if (Config::TrkInfo.is_seed_lyr(ilayer)) {
-      const auto & global_hit_vec = m_event->layerHits_[ilayer];
-      const auto   size = global_hit_vec.size();
-      for (size_t index = 0; index < size; ++index)
-      {
-        seedHitMap[global_hit_vec[index].mcHitID()-min] = index;
-      }
-    }
-  }
-
-  for (auto&& track : m_event->seedTracks_)
-  {
-    for (int i = 0; i < track.nTotalHits(); ++i)
-    {
-      int hitidx = track.getHitIdx(i);
-      int hitlyr = track.getHitLyr(i);
-      if (hitidx >= 0 && Config::TrkInfo.is_seed_lyr(hitlyr))
-      {
-        const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[hitlyr].m_hits;
-        track.setHitIdx(i, seedHitMap[lof_m_hits[hitidx].mcHitID()-min]);
-      }
-    }
-  }
-}
-
-void MkBuilder::remap_cand_hits(TrackVec & tracks)
+void MkBuilder::remap_track_hits(TrackVec & tracks)
 {
   // map cand hit indices from hit indices in structure
-  // m_event_of_hits.m_layers_of_hits[i].m_hits to global
-  // m_event->layerHits_[i]
+  // m_event_of_hits.m_layers_of_hits[i].m_hits to global m_event->layerHits_[i]
 
   const int max_layer = Config::nTotalLayers;
 
@@ -911,7 +851,7 @@ void MkBuilder::remap_cand_hits(TrackVec & tracks)
     }
   }
 
-  std::vector<int> candHitMap(max-min+1);
+  std::vector<int> trackHitMap(max-min+1);
 
   for (int ilayer = 0; ilayer < max_layer; ++ilayer)
   {
@@ -919,7 +859,7 @@ void MkBuilder::remap_cand_hits(TrackVec & tracks)
     const auto   size = global_hit_vec.size();
     for (size_t index = 0; index < size; ++index)
     {
-      candHitMap[global_hit_vec[index].mcHitID()-min] = index;
+      trackHitMap[global_hit_vec[index].mcHitID()-min] = index;
     }
   }
 
@@ -932,7 +872,7 @@ void MkBuilder::remap_cand_hits(TrackVec & tracks)
       if (hitidx >= 0)
       {
         const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[hitlyr].m_hits;
-        track.setHitIdx(i, candHitMap[lof_m_hits[hitidx].mcHitID()-min]);
+        track.setHitIdx(i, trackHitMap[lof_m_hits[hitidx].mcHitID()-min]);
       }
     }
   }
@@ -946,7 +886,7 @@ void MkBuilder::quality_val()
 {
   quality_reset();
 
-  remap_cand_hits(m_event->candidateTracks_);
+  remap_track_hits(m_event->candidateTracks_);
 
   std::map<int,int> cmsswLabelToPos;
   if (Config::dumpForPlots && Config::readCmsswTracks)
@@ -1112,7 +1052,7 @@ void MkBuilder::track_print(Track &t, const char* pref)
 // Root validation
 //------------------------------------------------------------------------------
 
-void MkBuilder::sim_val_for_cmssw()
+void MkBuilder::root_val_dumb_cmssw()
 {
   // get labels correct first
   m_event->relabel_bad_seedtracks();
@@ -1130,40 +1070,37 @@ void MkBuilder::sim_val_for_cmssw()
   m_event->Validate();
 }
 
-void MkBuilder::sim_val()
+void MkBuilder::root_val()
 {
-  // remap seed tracks
-  remap_seed_hits();
-
-  // get the tracks ready for validation
-  remap_cand_hits(m_event->candidateTracks_);
-  if (Config::backwardFit) remap_cand_hits(m_event->fitTracks_);
+  // remap hits first before prepping extras
+  remap_track_hits(m_event->seedTracks_);
+  remap_track_hits(m_event->candidateTracks_);
+  if (Config::backwardFit) remap_track_hits(m_event->fitTracks_);
   else m_event->fitTracks_ = m_event->candidateTracks_; 
+
+  // sort hits + make extras, align if needed
   prep_recotracks();
+  if (Config::cmssw_val) prep_cmsswtracks();
 
-  m_event->Validate();
-}
-
-void MkBuilder::cmssw_val()
-{
-  // get the tracks ready for validation
-  remap_cand_hits(m_event->candidateTracks_);
-  remap_cand_hits(m_event->fitTracks_);
-  prep_recotracks();
-  prep_cmsswtracks();
-
+  // validate
   m_event->Validate();
 }
 
 void MkBuilder::prep_recotracks()
 {
-  prep_tracks(m_event->candidateTracks_,m_event->candidateTracksExtra_,true);
-  prep_tracks(m_event->fitTracks_,m_event->fitTracksExtra_,true);
-  
-  if (Config::sim_val || Config::sim_val_for_cmssw)
+  // seed tracks extras always needed
+  if      (Config::sim_val || Config::sim_val_for_cmssw)
   {
     prep_tracks(m_event->seedTracks_,m_event->seedTracksExtra_,true);
   }
+  else if (Config::cmssw_val) // seed tracks are not validated, labels used for maps --> do NOT align index and labels!
+  {
+    prep_tracks(m_event->seedTracks_,m_event->seedTracksExtra_,false);
+  }
+
+  // make extras + align index == label() for candidate tracks
+  prep_tracks(m_event->candidateTracks_,m_event->candidateTracksExtra_,true);
+  prep_tracks(m_event->fitTracks_,m_event->fitTracksExtra_,true);
 }
 
 void MkBuilder::prep_simtracks()
@@ -1338,7 +1275,7 @@ void MkBuilder::PrepareSeeds()
     seed_post_cleaning(m_event->seedTracks_, true, true);
 
     import_seeds();
-    map_seed_hits();
+    map_track_hits(m_event->seedTracks_);
   }
   else if (Config::seedInput == cmsswSeeds)
   {
@@ -1389,7 +1326,7 @@ void MkBuilder::PrepareSeeds()
     seed_post_cleaning(m_event->seedTracks_, true, true);
 
     import_seeds();
-    map_seed_hits();
+    map_track_hits(m_event->seedTracks_);
   }
   else if (Config::seedInput == findSeeds)
   {

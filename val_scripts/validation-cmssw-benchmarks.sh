@@ -39,8 +39,8 @@ doVal()
 
 ## Compile once
 make clean
-mVal="WITH_ROOT:=yes"
-make -j 32 ${mVal} AVX_512:=1
+mVal="WITH_ROOT:=yes AVX_512:=1"
+make -j 32 ${mVal}
 mkdir -p ${tmpdir}
 
 ## Special simtrack validation vs cmssw tracks
