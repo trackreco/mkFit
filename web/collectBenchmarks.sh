@@ -59,6 +59,7 @@ done
 # Move ROOT validation
 rootdir="SIMVAL"
 mkdir -p ${dir}/${rootdir}
+mkdir -p ${dir}/${rootdir}/logx
 
 for build in BH STD CE FV CMSSW
 do
@@ -68,17 +69,25 @@ done
 
 for rate in eff ineff_brl ineff_trans ineff_ec dr fr 
 do
-    for var in pt pt_logx pt_zoom phi eta
-    do 
-	for pt in 0.0 0.9 2.0
-	do
+    for pt in 0.0 0.9 2.0
+    do
+	for var in phi eta
+	do 
 	    mv ${val_arch}_${sample}_${rate}_${var}_"build"_pt${pt}_"SIMVAL".png ${dir}/${rootdir}
 	done
     done
+
+    for var in pt pt_zoom
+    do 
+	mv ${val_arch}_${sample}_${rate}_${var}_"build"_pt"0.0"_"SIMVAL".png ${dir}/${rootdir}
+    done
+
+    mv ${val_arch}_${sample}_${rate}_"pt_logx"_"build"_pt"0.0"_"SIMVAL".png ${dir}/${rootdir}/logx
 done
 
 # Move CMSSW validation
 cmsswdir="CMSSWVAL"
+mkdir -p ${dir}/${cmsswdir}
 mkdir -p ${dir}/${cmsswdir}
 
 for build in BH STD CE FV
@@ -89,21 +98,28 @@ done
 
 for trk in build fit
 do
-    mkdir -p ${dir}/${cmsswdir}/${trk}
+    mkdir -p ${dir}/${cmsswdir}/${trk}/logx
     mkdir -p ${dir}/${cmsswdir}/${trk}/diffs
 done
 
 for rate in eff ineff_brl ineff_trans ineff_ec dr fr 
 do
-    for var in pt pt_logx pt_zoom phi eta
+    for trk in build fit
     do
-	for trk in build fit
+	for pt in 0.0 0.9 2.0
 	do
-	    for pt in 0.0 0.9 2.0
+	    for var in phi eta
 	    do
 		mv ${val_arch}_${sample}_${rate}_${var}_${trk}_pt${pt}_"CMSSWVAL".png ${dir}/${cmsswdir}/${trk}
 	    done
 	done
+
+	for var in pt pt_zoom
+	do
+	    mv ${val_arch}_${sample}_${rate}_${var}_${trk}_pt"0.0"_"CMSSWVAL".png ${dir}/${cmsswdir}/${trk}
+	done
+	
+	mv ${val_arch}_${sample}_${rate}_"pt_logx"_${trk}_pt"0.0"_"CMSSWVAL".png ${dir}/${cmsswdir}/${trk}/logx
     done
 done    
 
