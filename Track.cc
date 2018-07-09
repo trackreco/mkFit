@@ -278,7 +278,7 @@ void TrackExtra::findMatchingSeedHits(const Track & reco_trk, const Track & seed
 bool TrackExtra::isSeedHit(const int lyr, const int idx) const
 {
   return (std::find_if(matchedSeedHits_.begin(),matchedSeedHits_.end(),
-		       [=](const auto & matchedSeedHit){return ((matchedSeedHit.layer == lyr) && (matchedSeedHit.index == idx));})
+		       [=](const HitOnTrack & matchedSeedHit){return ((matchedSeedHit.layer == lyr) && (matchedSeedHit.index == idx));})
 	  != matchedSeedHits_.end());
 }
 
