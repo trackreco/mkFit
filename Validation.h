@@ -38,6 +38,8 @@ public:
   virtual void makeRecoTkToRecoTkMaps(Event&) {}
   virtual void makeCMSSWTkToRecoTksMaps(Event&) {}
   virtual void makeSeedTkToCMSSWTkMap(Event&) {}
+  virtual void makeCMSSWTkToSeedTkMap(Event&) {}
+  virtual void makeRecoTkToSeedTkMapsDumbCMSSW(Event&) {}
 
   virtual void fillEfficiencyTree(const Event&) {}
   virtual void fillFakeRateTree(const Event&) {}

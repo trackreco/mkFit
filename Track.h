@@ -340,7 +340,7 @@ public:
     return n;
   }
 
-  int nSeedHits() const
+  int nSeedLyrHits() const
   {
     int nSeedHits = 0;
     for (int ihit = 0; ihit <= lastHitIdx_ ; ++ihit)
@@ -487,6 +487,9 @@ float computeHelixChi2(const Vector& simV, const Vector& recoV, const Matrix& re
   return ROOT::Math::Dot(diffV*recoMI,diffV)/(diffV.kSize-1);
 }
 
+class TrackExtra;
+typedef std::vector<TrackExtra> TrackExtraVec;
+
 class TrackExtra
 {
 public:
@@ -498,8 +501,8 @@ public:
 			const bool isSeed, const bool isPure);
   void setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vector<HitVec>& layerHits, const TrackVec& cmsswtracks, const RedTrackVec& redcmsswtracks,
 				      const bool isBkFit);
-  void setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMapMap& cmsswHitIDMap, const TrackVec& cmsswtracks, const RedTrackVec& redcmsswtracks, 
-				 const int cmsswlabel);
+  void setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMapMap& cmsswHitIDMap, const TrackVec& cmsswtracks, 
+				 const TrackExtraVec& cmsswextras, const RedTrackVec& redcmsswtracks, const int cmsswlabel);
   int   mcTrackID() const {return mcTrackID_;}
   int   nHitsMatched() const {return nHitsMatched_;}
   float fracHitsMatched() const {return fracHitsMatched_;}
@@ -511,6 +514,7 @@ public:
   float helixChi2() const {return helixChi2_;}
   float dPhi() const {return dPhi_;}
   void findMatchingSeedHits(const Track & reco_trk, const Track & seed_trk, const std::vector<HitVec>& layerHits);
+  bool isSeedHit (const int lyr, const int idx) const;
   int nMatchedSeedHits() const {return matchedSeedHits_.size();}
 
   void  setmcTrackID(int mcTrackID) {mcTrackID_ = mcTrackID;}
@@ -531,7 +535,6 @@ private:
   HoTVec matchedSeedHits_;
 };
 
-typedef std::vector<TrackExtra> TrackExtraVec;
 typedef std::vector<TrackState> TSVec;
 typedef std::vector<TSVec>      TkIDToTSVecVec;
 typedef std::vector<std::pair<int, TrackState> > TSLayerPairVec;
