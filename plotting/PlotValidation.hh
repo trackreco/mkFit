@@ -20,7 +20,6 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <cmath>
 
 typedef std::vector<Float_t>  FltVec;
 typedef std::vector<FltVec>   FltVecVec;
