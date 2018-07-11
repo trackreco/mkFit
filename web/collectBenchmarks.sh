@@ -1,7 +1,8 @@
 #! /bin/bash
 
 # in case this is run alone
-source xeon_scripts/common_variables.sh
+source xeon_scripts/common-variables.sh
+source xeon_scripts/init-env.sh
 
 dir=${1:-benchmarks}
 

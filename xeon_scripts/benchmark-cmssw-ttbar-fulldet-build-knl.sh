@@ -1,13 +1,13 @@
 #! /bin/bash
 
 # in case this is called separately
-source xeon_scripts/common_variables.sh
+source xeon_scripts/common-variables.sh
+source xeon_scripts/init-env.sh
 
 # execute knl tests remotely
 echo "Executing KNL tests remotely..."
 SSHO ${KNL_HOST} bash -c "'
 cd ${KNL_WORKDIR}/${KNL_TEMPDIR}
-source xeon_scripts/initKNL.sh
 ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh KNL
 exit
 '"

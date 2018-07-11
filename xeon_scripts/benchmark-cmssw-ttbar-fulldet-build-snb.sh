@@ -1,13 +1,13 @@
 #! /bin/bash
 
 # in case this is called separately
-source xeon_scripts/common_variables.sh
+source xeon_scripts/common-variables.sh
+source xeon_scripts/init-env.sh
 
 # execute SNB tests remotely
 echo "Executing SNB tests remotely..."
 SSHO ${SNB_HOST} bash -c "'
 cd ${SNB_WORKDIR}/${SNB_TEMPDIR}
-source xeon_scripts/initSNB.sh
 ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh SNB
 exit
 '"

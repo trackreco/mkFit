@@ -1,13 +1,14 @@
 #! /bin/bash
 
-## Run this script on SNB before benchmarking and submitting a PR to ensure your new commit does not break the debug mode!
+## Use this script to turn auto debug printouts. Warning: debug statements are ifdef'ed and not maintained
 
-## In the case this is run separately from main script
-[ -z "$ROOTSYS" ] && source ~matevz/root/bin/thisroot.sh
-source xeon_scripts/common_variables.sh
+## initialize
+source xeon_scripts/common-variables.sh
+source xeon_scripts/init-env.sh
+
 
 ## Common setup
-dir=/data/nfsmic/slava77/samples/2017/pass-4874f28/initialStep
+dir=/data2/slava77/samples/2017/pass-4874f28/initialStep/
 subdir=10muPt0p5to10HS
 file=memoryFile.fv3.clean.writeAll.recT.072617.bin
 
@@ -21,9 +22,9 @@ maxev=1
 exe="./mkFit/mkFit --cmssw-n2seeds --num-thr ${maxth} --num-thr-ev ${maxev} --input-file ${dir}/${subdir}/${file} --num-events ${nevents}"
 
 ## Compile once
-mOpt="DEBUG:=yes WITH_ROOT:=yes USE_INTRINSICS:=-DMPT_SIZE=${maxvu}"
+mOpt="DEBUG:=yes WITH_ROOT:=yes USE_INTRINSICS:=-DMPT_SIZE=${maxvu} AVX_512:=1"
 make distclean ${mOpt}
-make -j 12 ${mOpt}
+make -j 32 ${mOpt}
 
 ## test each build routine to be sure it works!
 for bV in "BH bh" "STD std" "CE ce" "FV fv"
