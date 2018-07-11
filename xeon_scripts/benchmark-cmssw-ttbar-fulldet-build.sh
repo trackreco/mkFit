@@ -4,7 +4,8 @@
 arch=${1}
 
 ## In the case this is run separately from main script
-source xeon_scripts/common_variables.sh
+source xeon_scripts/common-variables.sh
+source xeon_scripts/init-env.sh
 
 ## Common setup
 subdir=2017/pass-4874f28/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/a/
