@@ -75,6 +75,76 @@ void add_barrel(int &lid, int det, int lay, bool is_pix,
     ASSF(m_q_bin, 2.0);
     PRN("li.set_selection_limits(0.01, 0.05, 1.0, 2.0);");
   }
+  else if (lid==4)
+  {
+    ASSF(m_q_bin, 6.0);
+    PRN("li.set_selection_limits(0.01, 0.015, 6.0, 12.0);");
+  }
+  else if (lid==5)
+  {
+    ASSF(m_q_bin, 6.0);
+    PRN("li.set_selection_limits(0.023, 0.03, 6.0, 12.0);");
+  }
+  else if (lid==6)
+  {
+    ASSF(m_q_bin, 6.0);
+    PRN("li.set_selection_limits(0.01, 0.015, 6.0, 12.0);");
+  }
+  else if (lid==7)
+  {
+    ASSF(m_q_bin, 6.0);
+    PRN("li.set_selection_limits(0.016, 0.03, 6.0, 12.0);");
+  }
+  else if (lid==8)
+  {
+    ASSF(m_q_bin, 6.0);
+    PRN("li.set_selection_limits(0.01, 0.015, 6.0, 12.0);");
+  }
+  else if (lid==9)
+  {
+    ASSF(m_q_bin, 6.0);
+    PRN("li.set_selection_limits(0.01, 0.015, 6.0, 12.0);");
+  }
+  else if (lid==10)
+  {
+    ASSF(m_q_bin, 9.5);
+    PRN("li.set_selection_limits(0.01, 0.015, 9.5, 19.0);");
+  }
+  else if (lid==11)
+  {
+    ASSF(m_q_bin, 9.5);
+    PRN("li.set_selection_limits(0.016, 0.03, 9.5, 19.0);");
+  }
+  else if (lid==12)
+  {
+    ASSF(m_q_bin, 9.5);
+    PRN("li.set_selection_limits(0.01, 0.015, 9.5, 19.0);");
+  }
+  else if (lid==13)
+  {
+    ASSF(m_q_bin, 9.5);
+    PRN("li.set_selection_limits(0.013, 0.03, 9.5, 19.0);");
+  }
+  else if (lid==14)
+  {
+    ASSF(m_q_bin, 9.5);
+    PRN("li.set_selection_limits(0.01, 0.015, 9.5, 19.0);");
+  }
+  else if (lid==15)
+  {
+    ASSF(m_q_bin, 9.5);
+    PRN("li.set_selection_limits(0.01, 0.015, 9.5, 19.0);");
+  }
+  else if (lid==16)
+  {
+    ASSF(m_q_bin, 9.5);
+    PRN("li.set_selection_limits(0.01, 0.015, 9.5, 19.0);");
+  }
+  else if (lid==17)
+  {
+    ASSF(m_q_bin, 9.5);
+    PRN("li.set_selection_limits(0.01, 0.015, 9.5, 19.0);");
+  }
   else
   {
     ASSF(m_q_bin, 20.0);
@@ -121,10 +191,109 @@ void add_ecap(int &lid, int det, int lay, bool is_pix, bool stereo_hack,
     ASSB(m_is_outer, lid == 44);
     if (is_pix) {
       ASSF(m_q_bin, 1.0);
-      PRN("li.set_selection_limits(0.01, 0.05, 0.8, 1.6);");
-    } else {
-      ASSF(m_q_bin, 20.0);
-      PRN("li.set_selection_limits(0.01, 0.2, 10.0, 20.0);");
+      PRN("li.set_selection_limits(0.01, 0.015, 0.8, 1.6);");
+    } 
+    else {
+      if(lid==21){
+	ASSF(m_q_bin, 5.5);
+	PRN("li.set_selection_limits(0.01, 0.015, 5.5, 11.0);");
+      }
+      else if(lid==22){
+	ASSF(m_q_bin, 5.5);
+	PRN("li.set_selection_limits(0.01, 0.03, 5.5, 11.0);");
+      }
+      else if(lid==23){
+	ASSF(m_q_bin, 5.5);
+	PRN("li.set_selection_limits(0.01, 0.015, 5.5, 11.0);");
+      }
+      else if(lid==24){
+	ASSF(m_q_bin, 5.5);
+	PRN("li.set_selection_limits(0.01, 0.03, 5.5, 11.0);");
+      }
+      else if(lid==25){
+	ASSF(m_q_bin, 5.5);
+	PRN("li.set_selection_limits(0.01, 0.015, 5.5, 11.0);");
+      }
+      else if(lid==26){
+	ASSF(m_q_bin, 5.5);
+	PRN("li.set_selection_limits(0.01, 0.03, 5.5, 11.0);");
+      }
+      else if(lid==27){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
+      }
+      else if(lid==28){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
+      }
+      else if(lid==29){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
+      }
+      else if(lid==30){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
+      }
+      else if(lid==31){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
+      }
+      else if(lid==32){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
+      }
+      else if(lid==33){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
+      }
+      else if(lid==34){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
+      }
+      else if(lid==35){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
+      }
+      else if(lid==36){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
+      }
+      else if(lid==37){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
+      }
+      else if(lid==38){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
+      }
+      else if(lid==39){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
+      }
+      else if(lid==40){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
+      }
+      else if(lid==41){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
+      }
+      else if(lid==42){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
+      }
+      else if(lid==43){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
+      }
+      else if(lid==44){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
+      }
+      else{
+	ASSF(m_q_bin, 20.0);
+	PRN("li.set_selection_limits(0.01, 0.2, 10.0, 20.0);");
+      }
     }
     if (hole_hack) {
       PRN("li.set_r_hole_range(%.3f, %.3f);", cmsDiskMinRsHole[shi], cmsDiskMaxRsHole[shi]);
@@ -147,10 +316,109 @@ void add_ecap(int &lid, int det, int lay, bool is_pix, bool stereo_hack,
     ASSB(m_is_outer, lid == 71);
     if (is_pix) {
       ASSF(m_q_bin, 1.0);
-      PRN("li.set_selection_limits(0.01, 0.05, 0.8, 1.6);");
-    } else {
-      ASSF(m_q_bin, 20.0);
-      PRN("li.set_selection_limits(0.01, 0.2, 10.0, 20.0);");
+      PRN("li.set_selection_limits(0.01, 0.015, 0.8, 1.6);");
+    } 
+    else {
+      if(lid==48){
+	ASSF(m_q_bin, 5.5);
+	PRN("li.set_selection_limits(0.01, 0.015, 5.5, 11.0);");
+      }
+      else if(lid==49){
+	ASSF(m_q_bin, 5.5);
+	PRN("li.set_selection_limits(0.01, 0.03, 5.5, 11.0);");
+      }
+      else if(lid==50){
+	ASSF(m_q_bin, 5.5);
+	PRN("li.set_selection_limits(0.01, 0.015, 5.5, 11.0);");
+      }
+      else if(lid==51){
+	ASSF(m_q_bin, 5.5);
+	PRN("li.set_selection_limits(0.01, 0.03, 5.5, 11.0);");
+      }
+      else if(lid==52){
+	ASSF(m_q_bin, 5.5);
+	PRN("li.set_selection_limits(0.01, 0.015, 5.5, 11.0);");
+      }
+      else if(lid==53){
+	ASSF(m_q_bin, 5.5);
+	PRN("li.set_selection_limits(0.01, 0.03, 5.5, 11.0);");
+      }
+      else if(lid==54){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
+      }
+      else if(lid==55){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
+      }
+      else if(lid==56){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
+      }
+      else if(lid==57){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
+      }
+      else if(lid==58){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
+      }
+      else if(lid==59){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
+      }
+      else if(lid==60){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
+      }
+      else if(lid==61){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
+      }
+      else if(lid==62){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
+      }
+      else if(lid==63){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
+      }
+      else if(lid==64){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
+      }
+      else if(lid==65){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
+      }
+      else if(lid==66){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
+      }
+      else if(lid==67){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
+      }
+      else if(lid==68){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
+      }
+      else if(lid==69){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
+      }
+      else if(lid==70){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
+      }
+      else if(lid==71){
+	ASSF(m_q_bin, 10.0);
+	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
+      }
+      else{
+	ASSF(m_q_bin, 20.0);
+	PRN("li.set_selection_limits(0.01, 0.2, 10.0, 20.0);");
+      }
     }
     if (hole_hack) {
       PRN("li.set_r_hole_range(%.3f, %.3f);", cmsDiskMinRsHole[shi], cmsDiskMaxRsHole[shi]);
