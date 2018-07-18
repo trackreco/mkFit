@@ -56,7 +56,7 @@ do
     done
 done
 
-# Move ROOT validation
+# Move SimTrack validation
 rootdir="SIMVAL"
 mkdir -p ${dir}/${rootdir}
 
@@ -77,7 +77,7 @@ do
     done
 done
 
-# Move CMSSW validation
+# Move CMSSWTrack validation
 cmsswdir="CMSSWVAL"
 mkdir -p ${dir}/${cmsswdir}
 

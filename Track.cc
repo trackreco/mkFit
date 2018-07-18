@@ -240,6 +240,48 @@ float Track::rAtZ(float Z) const
 // TrackExtra
 //==============================================================================
 
+void TrackExtra::findMatchingSeedHits(const Track & reco_trk, const Track & seed_trk, const std::vector<HitVec>& layerHits)
+{
+  // outer loop over reco hits
+  for (int reco_ihit = 0; reco_ihit < reco_trk.nTotalHits(); ++reco_ihit)
+  {
+    const int reco_lyr = reco_trk.getHitLyr(reco_ihit);
+    const int reco_idx = reco_trk.getHitIdx(reco_ihit);
+
+    // ensure layer exists
+    if (reco_lyr < 0) continue;
+
+    // make sure it is a real hit
+    if ((reco_idx < 0) || (static_cast<size_t>(reco_idx) >= layerHits[reco_lyr].size())) continue;
+
+    // inner loop over seed hits
+    for (int seed_ihit = 0; seed_ihit < seed_trk.nTotalHits(); ++seed_ihit)
+    {
+      const int seed_lyr = seed_trk.getHitLyr(seed_ihit);
+      const int seed_idx = seed_trk.getHitIdx(seed_ihit);
+
+      // ensure layer exists
+      if (seed_lyr < 0) continue;
+      
+      // check that lyrs are the same
+      if (reco_lyr != seed_lyr) continue;
+
+      // make sure it is a real hit
+      if ((seed_idx < 0) || (static_cast<size_t>(seed_idx) >= layerHits[seed_lyr].size())) continue;
+
+      // finally, emplace if idx is the same
+      if (reco_idx == seed_idx) matchedSeedHits_.emplace_back(seed_idx,seed_lyr);
+    }
+  }
+}
+
+bool TrackExtra::isSeedHit(const int lyr, const int idx) const
+{
+  return (std::find_if(matchedSeedHits_.begin(),matchedSeedHits_.end(),
+		       [=](const HitOnTrack & matchedSeedHit){return ((matchedSeedHit.layer == lyr) && (matchedSeedHit.index == idx));})
+	  != matchedSeedHits_.end());
+}
+
 int TrackExtra::modifyRefTrackID(const int foundHits, const int minHits, const TrackVec& reftracks, const int trueID, int refTrackID)
 {
   // Modify refTrackID based on nMinHits and findability
@@ -288,7 +330,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
           trk.label(), trk.nTotalHits(), trk.nFoundHits());
 
   std::vector<int> mcTrackIDs; // vector of found mcTrackIDs on reco track
-  int nSeedHits = trk.nSeedHits(); // count seed hits
+  int nSeedHits = nMatchedSeedHits(); // count seed hits
 
   // loop over all hits stored in reco track, storing valid mcTrackIDs
   for (int ihit = 0; ihit < trk.nTotalHits(); ++ihit) 
@@ -300,7 +342,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
     if (lyr < 0) continue;
 
     // skip seed layers (unless, of course, we are validating the seed tracks themselves)
-    if (!isSeed && Config::TrkInfo.is_seed_lyr(lyr)) continue;
+    if (!isSeed && isSeedHit(lyr,idx)) continue;
 
     // make sure it is a real hit
     if ((idx >= 0) && (static_cast<size_t>(idx) < layerHits[lyr].size()))
@@ -481,7 +523,7 @@ void TrackExtra::setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vec
 	const int idx = trk.getHitIdx(ihit);
 
 	// skip seed layers
-	if (Config::TrkInfo.is_seed_lyr(lyr)) continue;
+	if (isSeedHit(lyr,idx)) continue;
 
 	// skip if bad index or cmssw track does not have that layer
 	if (idx < 0 || !hitLayerMap.count(lyr)) continue; 
@@ -505,7 +547,7 @@ void TrackExtra::setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vec
   dPhi_ = bestdPhi;
   
   // get seed hits
-  const int nSeedHits = trk.nSeedHits();
+  const int nSeedHits = nMatchedSeedHits();
 
   // Modify cmsswTrackID based on length and findability
   cmsswTrackID_ = modifyRefTrackID(trk.nFoundHits()-nSeedHits,Config::nMinFoundHits-nSeedHits,cmsswtracks,-1,cmsswTrackID_);
@@ -515,8 +557,8 @@ void TrackExtra::setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vec
   fracHitsMatched_ = float(nHitsMatched_) / float(trk.nStoredFoundHits()-nSeedHits); // seed hits may already be included!
 }
 
-void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMapMap& cmsswHitIDMap, const TrackVec& cmsswtracks, const RedTrackVec& redcmsswtracks, 
-					   const int cmsswlabel)
+void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMapMap& cmsswHitIDMap, const TrackVec& cmsswtracks, 
+					   const TrackExtraVec& cmsswextras, const RedTrackVec& redcmsswtracks, const int cmsswlabel)
 {
   // reminder: cmsswlabel >= 0 indicates we are using pure seeds and matching by cmsswlabel
 
@@ -530,7 +572,7 @@ void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMa
     const int idx = trk.getHitIdx(ihit);
 
     if (lyr < 0 || idx < 0) continue; // standard check
-    if (Config::TrkInfo.is_seed_lyr(lyr)) continue; // skip seed layers
+    if (isSeedHit(lyr,idx)) continue; // skip seed layers
     if (!cmsswHitIDMap.count(lyr)) continue; // make sure at least one cmssw track has this hit lyr!
     if (!cmsswHitIDMap.at(lyr).count(idx)) continue; // make sure at least one cmssw track has this hit id!
     {
@@ -545,8 +587,11 @@ void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMa
   std::vector<int> labelMatchVec;
   for (const auto labelMatchPair : labelMatchMap)
   {
+    const auto cmsswlabel   = labelMatchPair.first;
+    const auto nMatchedHits = labelMatchPair.second;
+
     // 50% matching criterion 
-    if (2*labelMatchPair.second >= cmsswtracks[labelMatchPair.first].nUniqueLayers(true)) labelMatchVec.push_back(labelMatchPair.first);
+    if ((2*nMatchedHits) >= (cmsswtracks[cmsswlabel].nUniqueLayers(false)-cmsswextras[cmsswlabel].nMatchedSeedHits())) labelMatchVec.push_back(cmsswlabel);
   }
 
   // initialize tmpID for later use
@@ -555,11 +600,20 @@ void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMa
   // protect against no matches!
   if (labelMatchVec.size() > 0)
   {
-    // sort by best matched: most hits matched, then ratio of matches (i.e. which cmssw track is shorter)
+    // sort by best matched: most hits matched , then ratio of matches (i.e. which cmssw track is shorter)
     std::sort(labelMatchVec.begin(),labelMatchVec.end(),
 	      [&](const int label1, const int label2)
 	      {
-		if (labelMatchMap[label1] == labelMatchMap[label2]) return cmsswtracks[label1].nUniqueLayers(true) < cmsswtracks[label2].nUniqueLayers(true);
+		if (labelMatchMap[label1] == labelMatchMap[label2])
+		{
+		  const auto & track1 = cmsswtracks[label1];
+		  const auto & track2 = cmsswtracks[label2];
+
+		  const auto & extra1 = cmsswextras[label1];
+		  const auto & extra2 = cmsswextras[label2];
+
+		  return ((track1.nUniqueLayers(false)-extra1.nMatchedSeedHits()) < (track2.nUniqueLayers(false)-extra2.nMatchedSeedHits()));
+		}
 		return labelMatchMap[label1] > labelMatchMap[label2];
 	      });
 
@@ -646,13 +700,13 @@ void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMa
   }
 
   // get nSeedHits
-  const int nSeedHits = trk.nSeedHits();
+  const int nSeedHits = nMatchedSeedHits();
 
   // Modify cmsswTrackID based on length and findability
   cmsswTrackID_ = modifyRefTrackID(trk.nFoundHits()-nSeedHits,Config::nMinFoundHits-nSeedHits,cmsswtracks,cmsswlabel,cmsswTrackID_);
 
   // other important info
-  fracHitsMatched_ = (cmsswTrackID >=0 ? (float(nHitsMatched_) / float(cmsswtracks[cmsswTrackID].nUniqueLayers(true))) : 0.f);
+  fracHitsMatched_ = (cmsswTrackID >=0 ? (float(nHitsMatched_) / float(cmsswtracks[cmsswTrackID].nUniqueLayers(false)-cmsswextras[cmsswTrackID].nMatchedSeedHits())) : 0.f);
 }
 
 //==============================================================================

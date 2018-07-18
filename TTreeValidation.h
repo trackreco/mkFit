@@ -50,6 +50,9 @@ public:
 			     const TrackVec& pairtracks, const TrackExtraVec& pairextras);
   void makeCMSSWTkToRecoTksMaps(Event& ev) override;
   void makeSeedTkToCMSSWTkMap(Event& ev) override;
+  void makeCMSSWTkToSeedTkMap(Event& ev) override;
+  void makeRecoTkToSeedTkMapsDumbCMSSW(Event& ev) override;
+  void makeRecoTkToSeedTkMapDumbCMSSW(const TrackExtraVec& recoextras, const TrackExtraVec& seedextras, TkIDToTkIDMap& recoToSeedMap);
 
   void storeSeedAndMCID(Event& ev);
   void setupCMSSWMatching(const Event & ev, RedTrackVec & reducedCMSSW, LayIdxIDVecMapMap & cmsswHitIDMap);
@@ -87,6 +90,7 @@ public:
 
   // Special map for CMSSW tracks to seed track labels --> NOT used for fake rate!!
   TkIDToTkIDMap seedToCmsswMap_;
+  TkIDToTkIDMap cmsswToSeedMap_;
 
   // Special map for geting exact CMSSW track that originate build track from seed track through seedIDs
   TkIDToTkIDMap buildToCmsswMap_;
@@ -94,6 +98,10 @@ public:
   // Special map for associating candidate to fit tracks in CMSSW only
   TkIDToTkIDMap buildToFitMap_;
   TkIDToTkIDMap fitToBuildMap_;
+
+  // Special map for associating reco tracks to seed tracks for sim_val_for_cmssw
+  TkIDToTkIDMap candToSeedMapDumbCMSSW_;
+  TkIDToTkIDMap fitToSeedMapDumbCMSSW_;
 
   // Efficiency Tree 
   TTree* efftree_;  
