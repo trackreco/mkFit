@@ -1,3 +1,9 @@
+##### IMPORTANT DISCLAIMER #####
+
+Please read the validation-desc.txt preface before launching any validation scripts! It has useful info on scripts within this directory.
+
+===================================
+
 To get CERN website up and running:
 
 A) Request CERN website from websites.cern.ch
@@ -18,4 +24,4 @@ C) Then copy in really the very useful index.php into {dir}
 
 D) Once set up and website is live, copy plots and directories into {dir}
 E) cd {dir}
-F) ./makereadable {subdir}, for every subdir
+F) ./makereadable.sh {subdir}, for every subdir

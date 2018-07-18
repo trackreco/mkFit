@@ -1,7 +1,8 @@
 #! /bin/bash
 
 # source global variables
-source xeon_scripts/common_variables.sh
+source xeon_scripts/common-variables.sh
+source xeon_scripts/init-env.sh
 
 # Main output dir name
 dir=${1:-benchmarks}

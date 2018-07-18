@@ -1,7 +1,8 @@
 #! /bin/bash
 
 ##### Initialize Benchmarks #####
-source xeon_scripts/common_variables.sh
+source xeon_scripts/common-variables.sh
+source xeon_scripts/init-env.sh
 make distclean
 
 ##### Launch Tests #####
