@@ -121,6 +121,47 @@ void MkFinder::OutputTracksAndHitIdx(std::vector<Track>& tracks,
 
 
 //==============================================================================
+// getHitSelDynamicWindows
+//==============================================================================
+
+void MkFinder::getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, float track_pt, float track_eta, float min_dq, float max_dphi)
+{
+
+  const LayerOfHits &L = layer_of_hits;
+  
+  if ( L.isTIB() || L.isTOB() )
+    {
+      
+      if ( track_eta>Config::treg_eta[0] && track_eta<Config::treg_eta[1] )
+	min_dq *= L.m_qf_treg;
+      
+      if ( track_pt<Config::track_ptlow )
+	max_dphi *= L.m_phif_lpt_brl;
+      
+    }
+  
+  else if ( L.isTID() || L.isTEC() )
+    {
+      
+      if ( track_pt<Config::track_ptlow )
+	{
+	  
+	  if ( track_eta>Config::treg_eta[0] && track_eta<Config::treg_eta[1] )
+	    max_dphi *= L.m_phif_lpt_treg;
+	  
+	  else if ( !(L.is_stereo_lyr()) && track_eta>=Config::treg_eta[1] )
+	    max_dphi *= L.m_phif_lpt_ec;
+	  
+	}
+      else if ( !(L.is_stereo_lyr()) && track_eta>Config::treg_eta[0] && track_eta<Config::treg_eta[1] )
+	max_dphi *= L.m_phif_treg;
+      
+    }
+  
+}
+
+
+//==============================================================================
 // SelectHitIndices
 //==============================================================================
 
@@ -146,40 +187,12 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     float thisPt    = 1.0f/Par[iI].At(itrack,3,0);
     float thisTheta = Par[iI].At(itrack,5,0);
     float thisEta   = std::fabs(-1.0f * std::log( std::tan(thisTheta/2.0f) ));
-    int divisor=2; // In ECP, even layers are stereo, and odd layers are mono; in ECN, viceversa.
-
-    float max_dphi = L.max_dphi();
-    if( L.layer_id()>=Config::brl_tibId[0] && L.layer_id()<=Config::brl_tobId[1]){
-      if( thisPt<Config::track_ptlow ){
-    	if ( L.layer_id()==Config::brl_stereoId[0] || L.layer_id()==Config::brl_stereoId[1] || L.layer_id()==Config::brl_stereoId[2] || L.layer_id()==Config::brl_stereoId[3] ) max_dphi *= Config::phif_ptlow_brl_stereo;
-	else max_dphi *= Config::phif_ptlow_brl_mono;
-      }
-    }
-    else if(L.layer_id()>=Config::ecp_striplId[0] && L.layer_id()<=Config::ecp_striplId[1]){
-      if (thisPt<Config::track_ptlow){
-	if(thisEta>Config::treg_eta[0] && thisEta<Config::treg_eta[1] && L.layer_id()%divisor==0) max_dphi *= Config::phif_ptlow_treg_ec_stereo;
-	else if(thisEta>Config::treg_eta[0] && thisEta<Config::treg_eta[1] && L.layer_id()%divisor>0) max_dphi *= Config::phif_ptlow_treg_ec_mono;
-	else if(thisEta>=Config::treg_eta[1] && L.layer_id()%divisor>0) max_dphi *= Config::phif_ptlow_ec_mono;
-      }
-      else{
-	if(thisEta>Config::treg_eta[0] && thisEta<Config::treg_eta[1] && L.layer_id()%divisor>0) max_dphi *= Config::phif_treg_ec_mono;
-      }
-    }
-    else if(L.layer_id()>=Config::ecn_striplId[0] && L.layer_id()<=Config::ecn_striplId[1]){
-      if (thisPt<Config::track_ptlow){
-	if(thisEta>Config::treg_eta[0] && thisEta<Config::treg_eta[1] && L.layer_id()%divisor>0) max_dphi *= Config::phif_ptlow_treg_ec_stereo;
-	else if(thisEta>Config::treg_eta[0] && thisEta<Config::treg_eta[1] && L.layer_id()%divisor==0) max_dphi *= Config::phif_ptlow_treg_ec_mono;
-	else if(thisEta>=Config::treg_eta[1] && L.layer_id()%divisor==0) max_dphi *= Config::phif_ptlow_ec_mono;
-      }
-      else{
-	if(thisEta>Config::treg_eta[0] && thisEta<Config::treg_eta[1] && L.layer_id()%divisor==0) max_dphi *= Config::phif_treg_ec_mono;
-      }
-    }
-
+    //
     float min_dq    = L.min_dq();
-    if (thisEta>Config::treg_eta[0] && thisEta<Config::treg_eta[1] && L.layer_id()>=Config::brl_tibId[0] && L.layer_id()<Config::brl_tobId[0]) min_dq *= Config::qf_treg_tib;
-    else if (thisEta>Config::treg_eta[0] && thisEta<Config::treg_eta[1] && L.layer_id()>=Config::brl_tobId[0] && L.layer_id()<=Config::brl_tobId[1]) min_dq *= Config::qf_treg_tob;
-
+    float max_dphi = L.max_dphi();
+    //
+    getHitSelDynamicWindows(L, thisPt, thisEta, min_dq, max_dphi);         
+    //
     dphi = std::min(std::abs(dphi), max_dphi);
     dq   = clamp(dq, min_dq, L.max_dq());
 

@@ -337,25 +337,9 @@ namespace Config
   constexpr float c_dzmax_els = 0.015;
   constexpr float c_drmax_els = 0.015;
 
-  // config on hit selection windows
-  // geometry and track boundaries
-  constexpr int brl_stereoId[4] = {5,7,11,13};
-  constexpr int brl_tibId[2] = {4,9};
-  constexpr int brl_tobId[2] = {10,17};
-  constexpr int ecp_striplId[2] = {21,44};
-  constexpr int ecn_striplId[2] = {48,71};
+  // track-related config on hit selection windows
   constexpr float treg_eta[2] = {0.45,1.5};
   constexpr float track_ptlow = 0.9;
-  // phi dynamic factor
-  constexpr float phif_ptlow_brl_mono       = 3.0;
-  constexpr float phif_ptlow_brl_stereo     = 2.0;
-  constexpr float phif_ptlow_treg_ec_mono   = 3.0;
-  constexpr float phif_ptlow_treg_ec_stereo = 2.0;
-  constexpr float phif_ptlow_ec_mono        = 2.0;
-  constexpr float phif_treg_ec_mono         = 1.5;
-  // q dynamic factors
-  constexpr float qf_treg_tib = 1.5;
-  constexpr float qf_treg_tob = 1.25;
 
   // Threading
   extern int    numThreadsFinder;
