@@ -149,8 +149,6 @@ void assignSubDetector(int id){
 void add_barrel(int &lid, int det, int lay, bool is_pix,
                 int necp, int necn)
 {
-
-
   RZBox b = BBB.b[det][lay].Round(100);
 
   SCOPE_BEG;
