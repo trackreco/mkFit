@@ -62,6 +62,14 @@ public:
 
   // Adding flag for mono/stereo
   bool          m_is_stereo_lyr = false;
+
+  // Adding info on sub-detector
+  bool          m_is_pixb_lyr = false;
+  bool          m_is_pixe_lyr = false;
+  bool          m_is_tib_lyr = false;
+  bool          m_is_tob_lyr = false;
+  bool          m_is_tid_lyr = false;
+  bool          m_is_tec_lyr = false;
   
   // Adding hit selection limits dynamic factors
   float         m_qf_treg       = 1.0f;
@@ -102,6 +110,14 @@ public:
   bool  is_seed_lyr() const { return m_is_seed_lyr; }
 
   bool  is_stereo_lyr() const { return m_is_stereo_lyr; }
+
+  bool  is_pixb_lyr() const { return m_is_pixb_lyr; }
+  bool  is_pixe_lyr() const { return m_is_pixe_lyr; }
+  bool  is_pix_lyr() const { return (m_is_pixb_lyr || m_is_pixe_lyr); }
+  bool  is_tib_lyr() const { return m_is_tib_lyr; }
+  bool  is_tob_lyr() const { return m_is_tob_lyr; }
+  bool  is_tid_lyr() const { return m_is_tid_lyr; }
+  bool  is_tec_lyr() const { return m_is_tec_lyr; }
 
   WSR_Result is_within_z_sensitive_region(float z, float dz) const
   {
@@ -191,6 +207,41 @@ public:
   bool is_stereo_lyr(int i) const
   {
     return m_layers[i].is_stereo_lyr();
+  }
+
+  bool is_pixb_lyr(int i) const
+  {
+    return m_layers[i].is_pixb_lyr();
+  }
+
+  bool is_pixe_lyr(int i) const
+  {
+    return m_layers[i].is_pixe_lyr();
+  }
+
+  bool is_pix_lyr(int i) const
+  {
+    return m_layers[i].is_pix_lyr();
+  }
+
+  bool is_tib_lyr(int i) const
+  {
+    return m_layers[i].is_tib_lyr();
+  }
+
+  bool is_tob_lyr(int i) const
+  {
+    return m_layers[i].is_tob_lyr();
+  }
+
+  bool is_tid_lyr(int i) const
+  {
+    return m_layers[i].is_tid_lyr();
+  }
+
+  bool is_tec_lyr(int i) const
+  {
+    return m_layers[i].is_tec_lyr();
   }
 
   EtaRegion find_eta_region(float eta) const

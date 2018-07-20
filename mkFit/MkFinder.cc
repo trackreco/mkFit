@@ -124,37 +124,37 @@ void MkFinder::OutputTracksAndHitIdx(std::vector<Track>& tracks,
 // getHitSelDynamicWindows
 //==============================================================================
 
-void MkFinder::getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, float track_pt, float track_eta, float min_dq, float max_dphi)
+void MkFinder::getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, float track_pt, float track_eta, float &min_dq, float &max_dphi)
 {
 
   const LayerOfHits &L = layer_of_hits;
   
-  if ( L.isTIB() || L.isTOB() )
+  if ( L.is_tib_lyr() || L.is_tob_lyr() )
     {
       
       if ( track_eta>Config::treg_eta[0] && track_eta<Config::treg_eta[1] )
-	min_dq *= L.m_qf_treg;
+	min_dq *= L.qf_treg();
       
       if ( track_pt<Config::track_ptlow )
-	max_dphi *= L.m_phif_lpt_brl;
+	max_dphi *= L.phif_lpt_brl();
       
     }
   
-  else if ( L.isTID() || L.isTEC() )
+  else if ( L.is_tid_lyr() || L.is_tec_lyr() )
     {
       
       if ( track_pt<Config::track_ptlow )
 	{
 	  
 	  if ( track_eta>Config::treg_eta[0] && track_eta<Config::treg_eta[1] )
-	    max_dphi *= L.m_phif_lpt_treg;
+	    max_dphi *= L.phif_lpt_treg();
 	  
 	  else if ( !(L.is_stereo_lyr()) && track_eta>=Config::treg_eta[1] )
-	    max_dphi *= L.m_phif_lpt_ec;
+	    max_dphi *= L.phif_lpt_ec();
 	  
 	}
       else if ( !(L.is_stereo_lyr()) && track_eta>Config::treg_eta[0] && track_eta<Config::treg_eta[1] )
-	max_dphi *= L.m_phif_treg;
+	max_dphi *= L.phif_treg();
       
     }
   

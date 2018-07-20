@@ -61,40 +61,47 @@ void setHitSelDynamicFactors(int id){
 
   // config on hit selection windows
   // geometry and track boundaries
-  constexpr int brl_tibId[2] = {4,9};
-  constexpr int brl_tobId[2] = {10,17};
-  constexpr int ecp_striplId[2] = {21,44};
-  constexpr int ecn_striplId[2] = {48,71};
+  int brl_tibId[2] = {4,9};
+  int brl_tobId[2] = {10,17};
+  int ecp_stripId[2] = {21,44};
+  int ecn_stripId[2] = {48,71};
   // phi dynamic factor
-  constexpr float phif_ptlow_brl_mono       = 3.0;
-  constexpr float phif_ptlow_brl_stereo     = 2.0;
-  constexpr float phif_ptlow_treg_ec_mono   = 3.0;
-  constexpr float phif_ptlow_treg_ec_stereo = 2.0;
-  constexpr float phif_ptlow_ec_mono        = 2.0;
-  constexpr float phif_treg_ec_mono         = 1.5;
+  float phif_ptlow_brl_mono       = 3.0;
+  float phif_ptlow_brl_stereo     = 2.0;
+  float phif_ptlow_treg_ec_mono   = 3.0;
+  float phif_ptlow_treg_ec_stereo = 2.0;
+  float phif_ptlow_ec_mono        = 2.0;
+  float phif_treg_ec_mono         = 1.5;
   // q dynamic factors
-  constexpr float qf_treg_tib = 1.5;
-  constexpr float qf_treg_tob = 1.25;
+  float qf_treg_tib = 1.5;
+  float qf_treg_tob = 1.25;
   
-  bool is_stereo_lyr = ( (lid<21 && (lid==5 || lid==7 || lid==11 || lid==13)) || (lid>=21 && lid<45 && lid%2==0) || (lid>=48 && lid<72 && lid%2>0) ); // In ECP(N), even (odd) layers are stereo
+  bool is_stereo_lyr = ( (id<21 && (id==5 || id==7 || id==11 || id==13)) || (id>=21 && id<45 && id%2==0) || (id>=48 && id<72 && id%2>0) ); // In ECP(N), even (odd) layers are stereo
   
   if( id>=brl_tibId[0] && id<=brl_tobId[1] )
     {
     
-      if( id<tobId[0] ) ASSF(m_qf_treg, qf_treg_tib);
-      else ASSF(m_qf_treg, qf_treg_tob);
-      
-      if( is_stereo_lyr )
+      if( id<brl_tobId[0] ){
+	ASSF(m_qf_treg, qf_treg_tib);
+      }
+      else{
+	ASSF(m_qf_treg, qf_treg_tob);
+      }
+
+      if( is_stereo_lyr ){
 	ASSF(m_phif_lpt_brl, phif_ptlow_brl_stereo);
-      else
+      }
+      else{
 	ASSF(m_phif_lpt_brl, phif_ptlow_brl_mono);
-      
+      }
+
     }
   else if( (id>=ecp_stripId[0] && id<=ecp_stripId[1]) || (id>=ecn_stripId[0] && id<=ecn_stripId[1]) )
     {
       
-      if( is_stereo_lyr )
+      if( is_stereo_lyr ){
 	ASSF(m_phif_lpt_treg, phif_ptlow_treg_ec_stereo);
+      }
       else{
 	ASSF(m_phif_lpt_treg, phif_ptlow_treg_ec_mono);
 	ASSF(m_phif_lpt_ec, phif_ptlow_ec_mono);
@@ -106,9 +113,44 @@ void setHitSelDynamicFactors(int id){
 } 
 
 
+void assignSubDetector(int id){
+
+  int pixb_lyrs[2]={0,3};
+  int tib_lyrs[2]={4,9};
+  int tob_lyrs[2]={10,17};
+  int pixep_lyrs[2]={18,20};
+  int pixen_lyrs[2]={45,47};
+  int tidp_lyrs[2]={21,26};
+  int tidn_lyrs[2]={48,53};
+  int tecp_lyrs[2]={27,44};
+  int tecn_lyrs[2]={54,71};
+
+  if(id>=pixb_lyrs[0] && id<=pixb_lyrs[1]){ 
+    ASSB(m_is_pixb_lyr, 1);
+  }
+  else if(id>=tib_lyrs[0] && id<=tib_lyrs[1]){ 
+    ASSB(m_is_tib_lyr, 1);
+  }
+  else if(id>=tob_lyrs[0] && id<=tob_lyrs[1]){
+    ASSB(m_is_tib_lyr, 1);
+  }  
+  else if((id>=pixep_lyrs[0] && id<=pixep_lyrs[1])||(id>=pixen_lyrs[0] && id<=pixen_lyrs[1])){
+    ASSB(m_is_pixe_lyr, 1);
+  }
+  else if((id>=tidp_lyrs[0] && id<=tidp_lyrs[1])||(id>=tidn_lyrs[0] && id<=tidn_lyrs[1])){
+    ASSB(m_is_tid_lyr, 1);
+  }
+  else if((id>=tecp_lyrs[0] && id<=tecp_lyrs[1])||(id>=tecn_lyrs[0] && id<=tecn_lyrs[1])){
+    ASSB(m_is_tec_lyr, 1);
+  }
+
+}
+
 void add_barrel(int &lid, int det, int lay, bool is_pix,
                 int necp, int necn)
 {
+
+
   RZBox b = BBB.b[det][lay].Round(100);
 
   SCOPE_BEG;
@@ -120,7 +162,8 @@ void add_barrel(int &lid, int det, int lay, bool is_pix,
   PRN("li.set_next_layers(%d, %d, %d);", lid < 17 ? lid + 1 : -1, necp, necn);
   ASSB(m_is_outer, lid == 17);
   ASSB(m_is_stereo_lyr, ( (lid<21 && (lid==5 || lid==7 || lid==11 || lid==13)) || (lid>=21 && lid<45 && lid%2==0) || (lid>=48 && lid<72 && lid%2>0) )); // In ECP(N), even (odd) layers are stereo
-  setHitSelDynamicFactor(lid);
+  assignSubDetector(lid);
+  setHitSelDynamicFactors(lid);
   if (is_pix)
   {
     ASSB(m_is_seed_lyr, 1);
@@ -242,7 +285,8 @@ void add_ecap(int &lid, int det, int lay, bool is_pix, bool stereo_hack,
     PRN("li.set_next_layers(%d, %d, %d);", next_brl, lid < 44 ? lid + 1 : -1, -1);
     ASSB(m_is_outer, lid == 44);
     ASSB(m_is_stereo_lyr, ( (lid<21 && (lid==5 || lid==7 || lid==11 || lid==13)) || (lid>=21 && lid<45 && lid%2==0) || (lid>=48 && lid<72 && lid%2>0) )); // In ECP(N), even (odd) layers are stereo
-    setHitSelDynamicFactor(lid);
+    assignSubDetector(lid);
+    setHitSelDynamicFactors(lid);
     if (is_pix) {
       ASSB(m_is_seed_lyr, 1);
       ASSF(m_q_bin, 1.0);
@@ -370,7 +414,8 @@ void add_ecap(int &lid, int det, int lay, bool is_pix, bool stereo_hack,
     PRN("li.set_next_layers(%d, %d, %d);", next_brl, -1, lid < 71 ? lid + 1 : -1);
     ASSB(m_is_outer, lid == 71);
     ASSB(m_is_stereo_lyr, ( (lid<21 && (lid==5 || lid==7 || lid==11 || lid==13)) || (lid>=21 && lid<45 && lid%2==0) || (lid>=48 && lid<72 && lid%2>0) )); // In ECP(N), even (odd) layers are stereo
-    setHitSelDynamicFactor(lid);
+    assignSubDetector(lid);
+    setHitSelDynamicFactors(lid);
     if (is_pix) {
       ASSB(m_is_seed_lyr, 1);
       ASSF(m_q_bin, 1.0);

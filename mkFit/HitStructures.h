@@ -96,6 +96,33 @@ public:
   float min_dq()   const { return m_layer_info->m_select_min_dq;   }
   float max_dq()   const { return m_layer_info->m_select_max_dq;   }
 
+  // Adding flag for mono/stereo
+  bool is_stereo_lyr() const 
+  { return  m_layer_info->is_stereo_lyr(); }
+ 
+  // Adding info on sub-detector
+  bool is_pixb_lyr() const 
+  { return  m_layer_info->is_pixb_lyr(); }
+  bool is_pixe_lyr() const 
+  { return  m_layer_info->is_pixe_lyr(); }
+  bool is_pix_lyr() const 
+  { return  m_layer_info->is_pix_lyr(); }
+  bool is_tib_lyr() const 
+  { return  m_layer_info->is_tib_lyr(); }
+  bool is_tob_lyr() const 
+  { return  m_layer_info->is_tob_lyr(); }
+  bool is_tid_lyr() const 
+  { return  m_layer_info->is_tid_lyr(); }
+  bool is_tec_lyr() const 
+  { return  m_layer_info->is_tec_lyr(); }
+
+  // Adding hit selection limits dynamic factors
+  float qf_treg() const { return m_layer_info->m_qf_treg; }
+  float phif_treg() const { return m_layer_info->m_phif_treg; }
+  float phif_lpt_brl() const { return m_layer_info->m_phif_lpt_brl; }
+  float phif_lpt_treg() const { return m_layer_info->m_phif_lpt_treg; }
+  float phif_lpt_ec() const { return m_layer_info->m_phif_lpt_ec; }
+
   // Testing bin filling
   static constexpr float m_fphi     = Config::m_nphi / Config::TwoPI;
   static constexpr int   m_phi_mask = 0x3ff;
