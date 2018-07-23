@@ -118,7 +118,7 @@ public:
 
   //----------------------------------------------------------------------------
 
-  void getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, float track_pt, float track_eta, float &min_dq, float &max_dphi);
+  void getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, const float track_pt, const float track_eta, float &min_dq, float &max_dphi);
 
   void SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_proc);
 
