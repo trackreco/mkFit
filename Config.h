@@ -337,6 +337,10 @@ namespace Config
   constexpr float c_dzmax_els = 0.015;
   constexpr float c_drmax_els = 0.015;
 
+  // track-related config on hit selection windows
+  constexpr float treg_eta[2] = {0.45,1.5};
+  constexpr float track_ptlow = 0.9;
+
   // Threading
   extern int    numThreadsFinder;
   extern int    numThreadsSimulation;

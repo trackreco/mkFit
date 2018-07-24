@@ -121,6 +121,47 @@ void MkFinder::OutputTracksAndHitIdx(std::vector<Track>& tracks,
 
 
 //==============================================================================
+// getHitSelDynamicWindows
+//==============================================================================
+
+void MkFinder::getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, const float track_pt, const float track_eta, float &min_dq, float &max_dphi)
+{
+
+  const LayerOfHits &L = layer_of_hits;
+  
+  if ( L.is_tib_lyr() || L.is_tob_lyr() )
+    {
+      
+      if ( track_eta>Config::treg_eta[0] && track_eta<Config::treg_eta[1] )
+	min_dq *= L.qf_treg();
+      
+      if ( track_pt<Config::track_ptlow )
+	max_dphi *= L.phif_lpt_brl();
+      
+    }
+  
+  else if ( L.is_tid_lyr() || L.is_tec_lyr() )
+    {
+      
+      if ( track_pt<Config::track_ptlow )
+	{
+	  
+	  if ( track_eta>Config::treg_eta[0] && track_eta<Config::treg_eta[1] )
+	    max_dphi *= L.phif_lpt_treg();
+	  
+	  else if ( !(L.is_stereo_lyr()) && track_eta>=Config::treg_eta[1] )
+	    max_dphi *= L.phif_lpt_ec();
+	  
+	}
+      else if ( !(L.is_stereo_lyr()) && track_eta>Config::treg_eta[0] && track_eta<Config::treg_eta[1] )
+	max_dphi *= L.phif_treg();
+      
+    }
+  
+}
+
+
+//==============================================================================
 // SelectHitIndices
 //==============================================================================
 
@@ -142,8 +183,17 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
   int qb1v[NN], qb2v[NN], pb1v[NN], pb2v[NN];
 
   const auto assignbins = [&](int itrack, float q, float dq, float phi, float dphi){
-    dphi = std::min(std::abs(dphi), L.max_dphi());
-    dq   = clamp(dq, L.min_dq(), L.max_dq());
+
+    float thisPt    = 1.0f/Par[iI].At(itrack,3,0);
+    float thisEta   = std::fabs( getEta( Par[iI].At(itrack,5,0) ) );
+    //
+    float min_dq    = L.min_dq();
+    float max_dphi = L.max_dphi();
+    //
+    getHitSelDynamicWindows(L, thisPt, thisEta, min_dq, max_dphi);         
+    //
+    dphi = std::min(std::abs(dphi), max_dphi);
+    dq   = clamp(dq, min_dq, L.max_dq());
 
     qv[itrack] = q;
     phiv[itrack] = phi;
