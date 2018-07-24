@@ -148,9 +148,8 @@ public:
 
   // --------
 
-  void map_seed_hits(); // m_event->layerHits_ -> m_event_of_hits.m_layers_of_hits (seeds only)
-  void remap_seed_hits(); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_ (seeds only)
-  void remap_cand_hits(TrackVec & tracks); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_ (cands only)
+  void map_track_hits  (TrackVec & tracks); // m_event->layerHits_ -> m_event_of_hits.m_layers_of_hits
+  void remap_track_hits(TrackVec & tracks); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_
 
   void quality_val();
   void quality_reset();
@@ -160,9 +159,8 @@ public:
 
   void quality_store_tracks(TrackVec & tracks);
 
-  void sim_val_for_cmssw();
-  void sim_val();
-  void cmssw_val();
+  void root_val_dumb_cmssw();
+  void root_val();
   void prep_recotracks(); 
   void prep_simtracks();
   void prep_cmsswtracks();

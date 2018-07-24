@@ -56,7 +56,7 @@ do
     done
 done
 
-# Move ROOT validation
+# Move SimTrack validation
 rootdir="SIMVAL"
 mkdir -p ${dir}/${rootdir}
 mkdir -p ${dir}/${rootdir}/logx
@@ -85,7 +85,7 @@ do
     mv ${val_arch}_${sample}_${rate}_"pt_logx"_"build"_pt"0.0"_"SIMVAL".png ${dir}/${rootdir}/logx
 done
 
-# Move CMSSW validation
+# Move CMSSWTrack validation
 cmsswdir="CMSSWVAL"
 mkdir -p ${dir}/${cmsswdir}
 mkdir -p ${dir}/${cmsswdir}
