@@ -4,7 +4,8 @@
 
 PlotBenchmarks::PlotBenchmarks(const TString & arch, const TString & sample) : arch(arch), sample(sample)
 {
-  gStyle->SetOptStat(0);
+  // setup style for plotting
+  setupStyle();
 
   // get file
   file = TFile::Open("benchmark_"+arch+"_"+sample+".root");

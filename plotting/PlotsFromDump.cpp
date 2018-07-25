@@ -2,7 +2,8 @@
 
 PlotsFromDump::PlotsFromDump(const TString & sample, const TString & build) : sample(sample), build(build)
 {
-  gStyle->SetOptStat(0);
+  // setup style for plotting
+  setupStyle();
 
   // Setup build opts
   setupBuilds(false);
