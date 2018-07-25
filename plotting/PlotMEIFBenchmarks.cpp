@@ -3,7 +3,8 @@
 PlotMEIFBenchmarks::PlotMEIFBenchmarks(const TString & arch, const TString & sample, const TString &  build)
   : arch(arch), sample(sample), build(build)
 {
-  gStyle->SetOptStat(0);
+  // setup style for plotting
+  setupStyle();
 
   // get file
   file = TFile::Open("benchmarkMEIF_"+arch+"_"+sample+"_"+build+".root");

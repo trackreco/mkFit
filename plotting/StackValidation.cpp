@@ -2,7 +2,8 @@
 
 StackValidation::StackValidation(const TString & label, const TString & extra, const Bool_t cmsswComp) : label(label), extra(extra), cmsswComp(cmsswComp)
 {
-  gStyle->SetOptStat(0);
+  // setup style for plotting
+  setupStyle();
 
   // setup builds --> if simvalidation, add cmssw tracks to validation
   setupBuilds(!cmsswComp);
