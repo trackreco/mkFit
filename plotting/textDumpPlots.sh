@@ -3,7 +3,6 @@
 ## In case this is run separately from the main script
 source xeon_scripts/common-variables.sh
 source xeon_scripts/init-env.sh
-source val_scripts/init-root.sh
 
 Base_Test="NVU1_NTH1"
 

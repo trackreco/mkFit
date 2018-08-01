@@ -3,7 +3,6 @@
 ## In the case this is run separately from main script
 source xeon_scripts/common-variables.sh
 source xeon_scripts/init-env.sh
-source val_scripts/init-root.sh
 
 ## Common setup
 dir=/data2/slava77/samples/2017/pass-4874f28/initialStep
