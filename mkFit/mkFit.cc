@@ -647,6 +647,7 @@ int main(int argc, const char *argv[])
 	"  --use-phiq-arr           use phi-Q arrays in select hit indices (def: %s)\n"
         "  --kludge-cms-hit-errors  make sure err(xy) > 15 mum, err(z) > 30 mum (def: %s)\n"
         "  --backward-fit           perform backward fit during building (def: %s)\n"
+        "  --backward-fit-pca       do the backward fit to point of closest approach, does not imply '--backward-fit' (def: %s)\n"
 	"\n----------------------------------------------------------------------------------------------------------\n\n"
 	"Validation options\n\n"
 	" **Text file based options\n"
@@ -662,7 +663,7 @@ int main(int argc, const char *argv[])
 	"  --cmssw-match-fw  <str>  which cmssw track matching routine to use if validating against CMSSW tracks, forward built tracks only (def: %s)\n" 
 	"                             must enable: --geom CMS-2017 --cmssw-val --read-cmssw-tracks\n"
 	"  --cmssw-match-bk  <str>  which cmssw track matching routine to use if validating against CMSSW tracks, backward fit tracks only (def: %s)\n" 
-	"                             must enable: --geom CMS-2017 --cmssw-val --read-cmssw-tracks --backward-fit\n"
+	"                             must enable: --geom CMS-2017 --cmssw-val --read-cmssw-tracks --backward-fit --backward-fit-pca\n"
         "  --inc-shorts             include short reco tracks into FR (def: %s)\n"
         "  --keep-hit-info          keep vectors of hit idxs and branches in trees (def: %s)\n"
 	"\n----------------------------------------------------------------------------------------------------------\n\n"
@@ -694,7 +695,7 @@ int main(int argc, const char *argv[])
 	"                             == --cmssw-val --read-cmssw-tracks --cmssw-match-fw %s --cmssw-match-bk %s\n"
 	"  --cmssw-val-label        use CMSSW validation with stricter hit based matching for both forward built and backward fit tracks, enable read of CMSSW tracks\n"
 	"                             == --cmssw-val --read-cmssw-tracks --cmssw-match-fw %s --cmssw-match-bk %s\n"
-	"                             must enable: --cmssw-pureseeds --backward-fit\n"
+	"                             must enable: --cmssw-pureseeds --backward-fit --backward-fit-pca\n"
 	"\n----------------------------------------------------------------------------------------------------------\n\n"
         "GPU specific options: \n\n"
         "  --num-thr-reorg <num>    number of threads to run the hits reorganization (def: %d)\n"
@@ -739,6 +740,7 @@ int main(int argc, const char *argv[])
 	b2a(Config::usePhiQArrays),
         b2a(Config::kludgeCmsHitErrors),
         b2a(Config::backwardFit),
+        b2a(Config::backwardFitPCA),
 
         b2a(Config::quality_val),
         b2a(Config::dumpForPlots),
@@ -930,6 +932,10 @@ int main(int argc, const char *argv[])
     else if(*i == "--backward-fit")
     {
       Config::backwardFit = true;
+    }
+    else if(*i == "--backward-fit-pca")
+    {
+      Config::backwardFitPCA = true;
     }
     else if (*i == "--quality-val")
     {

@@ -53,7 +53,7 @@ do echo ${vV} | while read -r vN vO
 	for bV in "BH bh" "STD std" "CE ce" "FV fv"
 	do echo ${bV} | while read -r bN bO
 	    do
-		doVal ${bN} ${bO} ${vN} "${vO} --backward-fit"
+		doVal ${bN} ${bO} ${vN} "${vO} --backward-fit --backward-fit-pca"
 	    done
 	done
     done

@@ -12,7 +12,7 @@
 $flds_hit = "layer/I:chi2/F:x_h:y_h:z_h:r_h:ex_h:ey_h:ez_h:x_t:y_t:z_t:r_t:ex_t:ey_t:ez_t:pt:phi:theta:phi_h:phi_t:ephi_h:ephi_t";
 $flds_trk = "n_hits/I:chi2/F:chi2pdof:pt:phi:theta";
 
-$base_opts   = "--build-ce --geom CMS-2017 --num-events 990 --backward-fit";
+$base_opts   = "--build-ce --geom CMS-2017 --num-events 990 --backward-fit --backward-fit-pca";
 
 #-----------------------------------------------------------------------
 
