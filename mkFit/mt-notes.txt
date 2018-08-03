@@ -56,7 +56,7 @@ chi2 seems too big!
 With backwards fit: 14.64713
 
 Test bad fit:
-./mkFit --cmssw-seeds --read --file-name /bar/mic/mu_brl-1000-10.bin-5 --build-ce --geom CMS-2017 --num-events 990 --backward-fit --kludge-cms-hit-errors | less
+./mkFit --cmssw-seeds --read --file-name /bar/mic/mu_brl-1000-10.bin-5 --build-ce --geom CMS-2017 --num-events 990 --backward-fit --backward-fit-pca --kludge-cms-hit-errors | less
 
 
 
