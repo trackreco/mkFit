@@ -13,6 +13,16 @@
 #include <iostream>
 #include <vector>
 
+namespace
+{
+  void setupStyle()
+  {
+    gStyle->SetOptStat(0);
+    gStyle->SetPadTickX(1);
+    gStyle->SetPadTickY(1);
+  }
+};
+
 enum ArchEnum {SNB, KNL, SKL};
 
 struct BuildOpts
@@ -77,7 +87,7 @@ namespace
       arch_opt.thmax = 24;
       
       arch_opt.vutimemin = 0.;
-      arch_opt.vutimemax = 1.;
+      arch_opt.vutimemax = 0.5;
 
       arch_opt.thtimemin = 0.001;
       arch_opt.thtimemax = 1.;
@@ -88,7 +98,7 @@ namespace
       arch_opt.thspeedupmin = 0.;
       arch_opt.thspeedupmax = arch_opt.thmax;
 
-      arch_opt.thmeiftimemin = 0.02;
+      arch_opt.thmeiftimemin = 0.01;
       arch_opt.thmeiftimemax = 0.5;
 
       arch_opt.thmeifspeedupmin = 0.;
@@ -103,7 +113,7 @@ namespace
       arch_opt.thmax = 256;
 
       arch_opt.vutimemin = 0.;
-      arch_opt.vutimemax = 2.;
+      arch_opt.vutimemax = 1.5;
 
       arch_opt.thtimemin = 0.001;
       arch_opt.thtimemax = 1.;
@@ -129,7 +139,7 @@ namespace
       arch_opt.thmax = 64;
 
       arch_opt.vutimemin = 0.;
-      arch_opt.vutimemax = 2.;
+      arch_opt.vutimemax = 0.25;
 
       arch_opt.thtimemin = 0.001;
       arch_opt.thtimemax = 1.;
@@ -138,13 +148,13 @@ namespace
       arch_opt.vuspeedupmax = arch_opt.vumax;
 
       arch_opt.thspeedupmin = 0.;
-      arch_opt.thspeedupmax = arch_opt.thmax;
+      arch_opt.thspeedupmax = arch_opt.thmax / 2;
 
       arch_opt.thmeiftimemin = 0.001;
       arch_opt.thmeiftimemax = arch_opt.thtimemax;
 
       arch_opt.thmeifspeedupmin = 0.;
-      arch_opt.thmeifspeedupmax = arch_opt.thmax;
+      arch_opt.thmeifspeedupmax = arch_opt.thspeedupmax;
     }
   }
 };
