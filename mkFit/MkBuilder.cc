@@ -1363,8 +1363,11 @@ void MkBuilder::PrepareSeeds()
     seed_post_cleaning(m_event->seedTracks_, true, true);
 
     import_seeds();
-    if(m_event->seedTracks_.empty())
-      return;
+
+    // in rare corner cases, seed tracks could be fully cleaned out: skip mapping if so
+    if (m_event->is_trackvec_empty(m_event->seedTracks_)) return;
+
+    // map seed track hits into layer_of_hits
     map_track_hits(m_event->seedTracks_);
   }
   else if (Config::seedInput == findSeeds)

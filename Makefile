@@ -51,7 +51,7 @@ clean: clean-local
 distclean: clean-local
 	-rm -f ${AUTO_TGTS}
 	-rm -f *.optrpt
-	-rm -f lib
+	-rm -rf lib
 	cd Geoms     && ${MAKE} distclean
 	cd Matriplex && ${MAKE} distclean
 	cd mkFit     && ${MAKE} distclean
