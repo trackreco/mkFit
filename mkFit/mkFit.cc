@@ -436,6 +436,9 @@ void test_standard()
         ev.Simulate();
       }
 
+      // skip events with zero seed tracks!
+      if (ev.is_trackvec_empty(ev.seedTracks_)) continue;
+
       plex_tracks.resize(ev.simTracks_.size());
 
       double t_best[NT] = {0}, t_cur[NT];

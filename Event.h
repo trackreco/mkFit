@@ -46,6 +46,9 @@ public:
   int  clean_cms_seedtracks_badlabel(); //operates on seedTracks_, removes those with label == -1;
   void relabel_bad_seedtracks();
   void relabel_cmsswtracks_from_seeds();
+
+  inline bool is_trackvec_empty(const TrackVec & tracks) { return tracks.empty(); }
+
   void print_tracks(const TrackVec& tracks, bool print_hits) const;
 
   const Geometry& geom_;
