@@ -56,7 +56,7 @@ runValidation(){
 #cleanup first
 make clean
 make distclean
-make -j 12 WITH_ROOT=yes
+make -j 12 WITH_ROOT:=1
 
 export base=SNB_CMSSW_10mu
 echo Run default with base = ${base}

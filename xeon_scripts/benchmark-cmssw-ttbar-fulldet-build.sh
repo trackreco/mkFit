@@ -1,52 +1,45 @@
 #! /bin/bash
 
-## SNB, KNL, SKL-SP
-ben_arch=${1}
+###########
+## Input ##
+###########
 
-## In the case this is run separately from main script
-source xeon_scripts/common-variables.sh
+ben_arch=${1} # SNB, KNL, SKL-SP
+suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
+
+###################
+## Configuration ##
+###################
+
+## Source environment and common variables
+source xeon_scripts/common_variables.sh ${suite}
 source xeon_scripts/init-env.sh
 
-## Common setup
-subdir=2017/pass-4874f28/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/a/
-file=memoryFile.fv3.clean.writeAll.recT.072617.bin
-nevents=20
-minth=1
-minvu=1
-dump=DumpForPlots
-seeds="--cmssw-n2seeds"
-
 ## Platform specific settings
-if [ ${ben_arch} == "SNB" ]
+if [[ "${ben_arch}" == "SNB" ]]
 then
     mOpt="-j 12"
     dir=/data2/nfsmic/slava77/samples
-    base=${ben_arch}_${sample}
     maxth=24
     maxvu=8
-    exe="./mkFit/mkFit ${seeds} --input-file ${dir}/${subdir}/${file}"
     declare -a nths=("1" "2" "4" "6" "8" "12" "16" "20" "24")
     declare -a nvus=("1" "2" "4" "8")
     declare -a nevs=("1" "2" "4" "8" "12")
-elif [ ${ben_arch} == "KNL" ]
+elif [[ "${ben_arch}" == "KNL" ]]
 then
     mOpt="-j 64 AVX_512:=1"
     dir=/data1/work/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000
-    base=${ben_arch}_${sample}
     maxth=256
     maxvu=16
-    exe="./mkFit/mkFit ${seeds} --input-file ${dir}/${subdir}/${file}"
     declare -a nths=("1" "2" "4" "8" "16" "32" "64" "96" "128" "160" "192" "224" "256")
     declare -a nvus=("1" "2" "4" "8" "16")
     declare -a nevs=("1" "2" "4" "8" "16" "32" "64" "128")
-elif [ ${ben_arch} == "SKL-SP" ]
+elif [[ "${ben_arch}" == "SKL-SP" ]]
 then
     mOpt="-j 32 AVX_512:=1"
     dir=/data2/slava77/samples
-    base=${ben_arch}_${sample}
     maxth=64
     maxvu=16
-    exe="./mkFit/mkFit ${seeds} --input-file ${dir}/${subdir}/${file}"
     declare -a nths=("1" "2" "4" "8" "16" "32" "48" "64")
     declare -a nvus=("1" "2" "4" "8" "16")
     declare -a nevs=("1" "2" "4" "8" "16" "32" "64")
@@ -55,6 +48,25 @@ else
     exit
 fi
 
+## Common file setup
+subdir=2017/pass-4874f28/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/a
+file=memoryFile.fv3.clean.writeAll.recT.072617.bin
+nevents=20
+
+## Common executable setup
+minth=1
+minvu=1
+seeds="--cmssw-n2seeds"
+exe="./mkFit/mkFit ${seeds} --input-file ${dir}/${subdir}/${file}"
+
+## Common output setup
+dump=DumpForPlots
+base=${ben_arch}_${sample}
+
+####################
+## Run Benchmarks ##
+####################
+
 ## compile with appropriate options
 make distclean ${mOpt}
 make ${mOpt}
@@ -62,8 +74,8 @@ make ${mOpt}
 ## Parallelization Benchmarks
 for nth in "${nths[@]}"
 do
-    for bV in "BH bh" "STD std" "CE ce" "FV fv"
-    do echo ${bV} | while read -r bN bO
+    for build in "${th_builds[@]}"
+    do echo ${!build} | while read -r bN bO
 	do
 	    ## Base executable
 	    oBase=${base}_${bN}
@@ -74,7 +86,8 @@ do
 	    ${bExe} --num-events ${nevents} >& log_${oBase}_NVU${maxvu}int_NTH${nth}.txt
 
 	    ## Multiple Events in Flight benchmark
-	    if [ "${bN}" == "CE" ] || [ "${bN}" == "FV" ]
+	    check_meif=$( CheckIfMeif ${build} )
+	    if [[ "${check_meif}" == "true" ]]
 	    then
 		for nev in "${nevs[@]}"
 		do
@@ -88,7 +101,8 @@ do
 	    fi
 
 	    ## nHits validation
-	    if (( ${nth} == ${maxth} ))
+	    check_text=$( CheckIfText ${build} )
+	    if (( ${nth} == ${maxth} )) && [[ "${check_text}" == "true" ]]
 	    then
 		echo "${oBase}: Text dump for plots [nTH:${nth}, nVU:${maxvu}int]"
 		${bExe} --dump-for-plots --quality-val --read-cmssw-tracks --num-events ${nevents} >& log_${oBase}_NVU${maxvu}int_NTH${nth}_${dump}.txt
@@ -103,8 +117,8 @@ do
     make clean ${mOpt}
     make ${mOpt} USE_INTRINSICS:=-DMPT_SIZE=${nvu}
 
-    for bV in "BH bh" "STD std" "CE ce" # "FV fv"
-    do echo ${bV} | while read -r bN bO
+    for build in "${vu_builds[@]}"
+    do echo ${!build} | while read -r bN bO
 	do
 	    ## Common base executable
 	    oBase=${base}_${bN}
@@ -115,7 +129,8 @@ do
 	    ${bExe} >& log_${oBase}_NVU${nvu}_NTH${minth}.txt
 
 	    ## nHits validation
-	    if (( ${nvu} == ${minvu} ))
+	    check_text=$( CheckIfText ${build} )
+	    if (( ${nvu} == ${minvu} )) && [[ "${check_text}" == "true" ]]
 	    then
 		echo "${oBase}: Text dump for plots [nTH:${minth}, nVU:${nvu}]"
 		${bExe} --dump-for-plots --quality-val --read-cmssw-tracks >& log_${oBase}_NVU${nvu}_NTH${minth}_${dump}.txt

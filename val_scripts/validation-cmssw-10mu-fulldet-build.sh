@@ -1,6 +1,6 @@
 #! /bin/bash
 
-make -j 32 WITH_ROOT=yes
+make -j 32 WITH_ROOT:=1
 
 dir=/data2/slava77/samples/2017/pass-4874f28/initialStep
 file=memoryFile.fv3.recT.072617.bin

@@ -22,7 +22,7 @@ maxev=1
 exe="./mkFit/mkFit --cmssw-n2seeds --num-thr ${maxth} --num-thr-ev ${maxev} --input-file ${dir}/${subdir}/${file} --num-events ${nevents}"
 
 ## Compile once
-mOpt="DEBUG:=yes WITH_ROOT:=yes USE_INTRINSICS:=-DMPT_SIZE=${maxvu} AVX_512:=1"
+mOpt="DEBUG:=1 WITH_ROOT:=1 USE_INTRINSICS:=-DMPT_SIZE=${maxvu} AVX_512:=1"
 make distclean ${mOpt}
 make -j 32 ${mOpt}
 

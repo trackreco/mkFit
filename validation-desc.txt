@@ -46,7 +46,7 @@ I. The use of label_
  A. Overview of code
 =====================
 
-TTreeValidation will only compile the necessary ROOT code with WITH_ROOT=yes enabled (either manually editting Makefile.config, or at the command line). Always do a make clean before compiling with ROOT, as the code is ifdef'ed. To hide the heavy-duty functions from the main code, TTreeValidation inherits from the virtual class "Validation", and overrides the common functions.  The TTreeValidation object is created once per number of events in flight. The Event object obtains a reference to the validation object (store as a data member "validation_"), so it is up to the Event object to reset some of the data members of the TTreeValidation object on every event.
+TTreeValidation will only compile the necessary ROOT code with WITH_ROOT:=1 enabled (either manually editting Makefile.config, or at the command line). Always do a make clean before compiling with ROOT, as the code is ifdef'ed. To hide the heavy-duty functions from the main code, TTreeValidation inherits from the virtual class "Validation", and overrides the common functions.  The TTreeValidation object is created once per number of events in flight. The Event object obtains a reference to the validation object (store as a data member "validation_"), so it is up to the Event object to reset some of the data members of the TTreeValidation object on every event.
 
 Three types of validation exist within TTreeValidation:
 [1.] "Building validation", enabled with Config::sim_val, via the command line option: --sim-val [--read-sim-trackstates, for pulls]

@@ -1,10 +1,12 @@
 #! /bin/bash
 
-# in case this is run alone
-source xeon_scripts/common-variables.sh
-source xeon_scripts/init-env.sh
+# command line input
+dir=${1:-"benchmarks"} # Main output dir name
+suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
 
-dir=${1:-benchmarks}
+# in case this is run alone
+source xeon_scripts/common-variables.sh ${suite}
+source xeon_scripts/init-env.sh
 
 # first tar the directory to be sent
 echo "Tarring plot directory"

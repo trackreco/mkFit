@@ -1,21 +1,32 @@
 #! /bin/bash
 
-# in case this is run alone
-source xeon_scripts/common-variables.sh
+###########
+## Input ##
+###########
+
+dir=${1:-"benchmarks"}
+suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
+
+###################
+## Configuration ##
+###################
+source xeon_scripts/common-variables.sh ${suite}
 source xeon_scripts/init-env.sh
 
-dir=${1:-benchmarks}
+######################################
+## Move Compute Performance Results ##
+######################################
 
-# Move benchmark plots: subroutine build benchmarks
+# Move subroutine build benchmarks
 builddir="Benchmarks"
 mkdir -p ${dir}/${builddir}
 mkdir -p ${dir}/${builddir}/logx
 
-for arch in SNB KNL SKL-SP
+for ben_arch in SNB KNL SKL-SP
 do
     for benchmark in TH VU
     do
-	oBase=${arch}_${sample}_${benchmark}
+	oBase=${ben_arch}_${sample}_${benchmark}
 
 	mv ${oBase}_"time".png ${dir}/${builddir}
 	mv ${oBase}_"speedup".png ${dir}/${builddir}
@@ -30,16 +41,19 @@ meifdir="MultEvInFlight"
 mkdir -p ${dir}/${meifdir}
 mkdir -p ${dir}/${meifdir}/logx
 
-for arch in SNB KNL SKL-SP
+for ben_arch in SNB KNL SKL-SP
 do
-    for build in CE FV ; do
-        oBase=${arch}_${sample}_${build}_"MEIF"
-
-        mv ${oBase}_"time".png ${dir}/${meifdir}
-        mv ${oBase}_"speedup".png ${dir}/${meifdir}
-
-        mv ${oBase}_"time_logx".png ${dir}/${meifdir}/logx
-        mv ${oBase}_"speedup_logx".png ${dir}/${meifdir}/logx
+    for build in "${meif_builds[@]}"
+    do echo ${!build} | while read -r bN bO
+	do
+            oBase=${ben_arch}_${sample}_${bN}_"MEIF"
+	    
+            mv ${oBase}_"time".png ${dir}/${meifdir}
+            mv ${oBase}_"speedup".png ${dir}/${meifdir}
+	    
+            mv ${oBase}_"time_logx".png ${dir}/${meifdir}/logx
+            mv ${oBase}_"speedup_logx".png ${dir}/${meifdir}/logx
+	done
     done
 done
 
@@ -48,62 +62,82 @@ dumpdir="PlotsFromDump"
 mkdir -p ${dir}/${dumpdir}
 mkdir -p ${dir}/${dumpdir}/diffs
 
-for build in BH STD CE FV
-do
-    for var in nHits pt eta phi
+for build in "${text_builds[@]}"
+do echo ${!build} | while read -r bN bO
     do
-	mv ${sample}_${build}_${var}.png ${dir}/${dumpdir}
-	mv ${sample}_${build}_"d"${var}.png ${dir}/${dumpdir}/diffs
+	for var in nHits pt eta phi
+	do
+	    mv ${sample}_${bN}_${var}.png ${dir}/${dumpdir}
+	    mv ${sample}_${bN}_"d"${var}.png ${dir}/${dumpdir}/diffs
+	done
     done
 done
 
-# Move SimTrack validation
+######################################
+## Move Physics Performance Results ##
+######################################
+
+# Make SimTrack Validation directories
 rootdir="SIMVAL"
 mkdir -p ${dir}/${rootdir}
 mkdir -p ${dir}/${rootdir}/logx
 
-for build in BH STD CE FV CMSSW
-do
-    vBase=${val_arch}_${sample}_${build}
-    mv validation_${vBase}_"SIMVAL"/totals_validation_${vBase}_"SIMVAL".txt ${dir}/${rootdir}
+# Move text file dumps for SimTrack Validation
+for build in "${val_builds[@]}"
+do echo ${!build} | while read -r bN bO
+    do
+	vBase=${val_arch}_${sample}_${bN}
+	mv "validation"_${vBase}_"SIMVAL"/"totals_validation"_${vBase}_"SIMVAL".txt ${dir}/${rootdir}
+    done
 done
 
-for rate in eff ineff_brl ineff_trans ineff_ec dr fr 
+# Move dummy CMSSW text file (SimTrack Validation)
+vBase=${val_arch}_${sample}_CMSSW
+mv validation_${vBase}_"SIMVAL"/totals_validation_${vBase}_"SIMVAL".txt ${dir}/${rootdir}
+
+# Move rate plots for SimTrack Validation
+for rate in eff ineff_brl ineff_trans ineff_ec dr fr
 do
     for pt in 0.0 0.9 2.0
     do
 	for var in phi eta
 	do 
-	    mv ${val_arch}_${sample}_${rate}_${var}_"build"_pt${pt}_"SIMVAL".png ${dir}/${rootdir}
+	    mv ${val_arch}_${sample}_${rate}_${var}_"build"_"pt"${pt}_"SIMVAL".png ${dir}/${rootdir}
 	done
     done
 
+    # only copy pt > 0 for pt rate plots
     for var in pt pt_zoom
     do 
-	mv ${val_arch}_${sample}_${rate}_${var}_"build"_pt"0.0"_"SIMVAL".png ${dir}/${rootdir}
+	mv ${val_arch}_${sample}_${rate}_${var}_"build"_"pt0.0"_"SIMVAL".png ${dir}/${rootdir}
     done
 
-    mv ${val_arch}_${sample}_${rate}_"pt_logx"_"build"_pt"0.0"_"SIMVAL".png ${dir}/${rootdir}/logx
+    mv ${val_arch}_${sample}_${rate}_"pt_logx"_"build"_"pt0.0"_"SIMVAL".png ${dir}/${rootdir}/logx
 done
 
-# Move CMSSWTrack validation
+# Make CMSSWTrack Validation directories
 cmsswdir="CMSSWVAL"
 mkdir -p ${dir}/${cmsswdir}
 mkdir -p ${dir}/${cmsswdir}
 
-for build in BH STD CE FV
-do
-    vBase=${val_arch}_${sample}_${build}
-    mv validation_${vBase}_"CMSSWVAL"/totals_validation_${vBase}_"CMSSWVAL"_cmssw.txt ${dir}/${cmsswdir}
+# Move text file dumps for CMSSWTrack Validation
+for build in "${val_builds[@]}"
+do echo ${!build} | while read -r bN bO
+    do
+	vBase=${val_arch}_${sample}_${bN}
+	mv "validation"_${vBase}_"CMSSWVAL"/"totals_validation"_${vBase}_"CMSSWVAL"_"cmssw".txt ${dir}/${cmsswdir}
+    done
 done
 
+# Make subdirs for two different track association methods
 for trk in build fit
 do
     mkdir -p ${dir}/${cmsswdir}/${trk}/logx
     mkdir -p ${dir}/${cmsswdir}/${trk}/diffs
 done
 
-for rate in eff ineff_brl ineff_trans ineff_ec dr fr 
+# Move rate plots for CMSSWTrack Validation
+for rate in eff ineff_brl ineff_trans ineff_ec dr fr
 do
     for trk in build fit
     do
@@ -115,15 +149,17 @@ do
 	    done
 	done
 
+	# only copy pt > 0 for pt rate plots
 	for var in pt pt_zoom
 	do
-	    mv ${val_arch}_${sample}_${rate}_${var}_${trk}_pt"0.0"_"CMSSWVAL".png ${dir}/${cmsswdir}/${trk}
+	    mv ${val_arch}_${sample}_${rate}_${var}_${trk}_"pt0.0"_"CMSSWVAL".png ${dir}/${cmsswdir}/${trk}
 	done
 	
-	mv ${val_arch}_${sample}_${rate}_"pt_logx"_${trk}_pt"0.0"_"CMSSWVAL".png ${dir}/${cmsswdir}/${trk}/logx
+	mv ${val_arch}_${sample}_${rate}_"pt_logx"_${trk}_"pt0.0"_"CMSSWVAL".png ${dir}/${cmsswdir}/${trk}/logx
     done
 done    
 
+# Move kinematic diff plots for CMSSWTrack Validation
 for coll in bestmatch allmatch
 do 
     for var in nHits invpt phi eta
@@ -132,7 +168,7 @@ do
 	do
 	    for pt in 0.0 0.9 2.0
 	    do
-		mv ${val_arch}_${sample}_${coll}_d${var}_${trk}_pt${pt}_"CMSSWVAL".png ${dir}/${cmsswdir}/${trk}/diffs
+		mv ${val_arch}_${sample}_${coll}_"d"${var}_${trk}_"pt"${pt}_"CMSSWVAL".png ${dir}/${cmsswdir}/${trk}/diffs
 	    done
 	done
     done

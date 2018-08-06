@@ -1,6 +1,6 @@
 #! /bin/bash
 
-make -j 32 WITH_ROOT=yes
+make -j 32 WITH_ROOT:=1
 
 dir=/data2/scratch/toymc
 file=simtracks_fulldet_400x2p5k_val.bin
