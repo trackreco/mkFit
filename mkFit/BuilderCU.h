@@ -8,6 +8,7 @@
 #include "Geometry.h"
 #include "Event.h"
 
+namespace mkfit {
 
 // FIXME: Design Issue
 //        What to do, allocation in ctor, free in dtor?
@@ -50,4 +51,5 @@ private:
 };
 
 
+} // end namespace mkfit
 #endif /* ifndef BUILDER_CU_H */

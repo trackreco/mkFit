@@ -4,6 +4,8 @@
 #include "Config.h"
 #include <cstddef>
 
+namespace mkfit {
+
 template <typename T>
 class DeviceArrayView {
  public:
@@ -40,4 +42,5 @@ class DeviceArrayView {
 };
 
 
+} // end namespace mkfit
 #endif /* DEVICE_ARRAY_VIEW_H_ */

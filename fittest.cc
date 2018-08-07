@@ -12,6 +12,8 @@
 
 #include <iostream>
 
+namespace mkfit {
+
 void fitTrack(const Track & trk, const TrackExtra& trkextra, int itrack, Event& ev)
 {
 #ifdef DEBUG
@@ -124,4 +126,6 @@ void runFittingTest(Event& ev, const TrackVec& candidates, const TrackExtraVec& 
     fitTrack(trk, candextra[itrack], itrack, ev);
   }
 }
+
 #endif
+} // end namespace mkfit

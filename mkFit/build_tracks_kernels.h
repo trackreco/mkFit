@@ -4,6 +4,8 @@
 #include "GPlex.h"
 #include "HitStructuresCU.h"
 
+namespace mkfit {
+
 void getHitFromLayer_wrappper( const cudaStream_t& stream,
     LayerOfHitsCU& layer_cu, GPlexQI& HitsIdx, 
     GPlexHV& msPar, GPlexHS& msErr, int N);
@@ -29,4 +31,5 @@ void UpdateWithLastHit_wrapper(
     GPlexLV& Par_iC, GPlexLS& Err_iC,
     int N);
 
+} // end namespace mkfit
 #endif  /* ifndef _BUILD_TRACKS_KERNELS_ */ 

@@ -10,6 +10,10 @@
 #include "Event.h"
 #include "BinInfoUtils.h"
 
+namespace mkfit {
+
 void buildTracksBySeeds(const BinInfoMap &, Event& ev);
 void buildTracksByLayers(const BinInfoMap &, Event& ev);
+
+} // end namespace mkfit
 #endif

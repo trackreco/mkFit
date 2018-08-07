@@ -39,7 +39,7 @@ namespace
 {
   struct ExecutionContext
   {
-    Pool<MkFitter>   m_fitters;
+    mkfit::Pool<mkfit::MkFitter>   m_fitters;
 
     void populate(int n_thr)
     {
@@ -48,8 +48,10 @@ namespace
   };
 
   ExecutionContext g_exe_ctx;
-  auto retfitr = [](MkFitter*   mkfp  ) { g_exe_ctx.m_fitters.ReturnToPool(mkfp);   };
+  auto retfitr = [](mkfit::MkFitter*   mkfp  ) { g_exe_ctx.m_fitters.ReturnToPool(mkfp);   };
 }
+
+namespace mkfit {
 
 double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 {
@@ -216,3 +218,4 @@ double runFittingTestPlexGPU(FitterCU<float> &cuFitter,
   return time;
 }
 #endif
+} // end namespace mkfit

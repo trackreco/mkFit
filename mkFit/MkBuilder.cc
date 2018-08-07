@@ -17,7 +17,9 @@
 // Set this to select a single track for deep debugging:
 //#define SELECT_SEED_LABEL -494
 
+namespace mkfit {
 ExecutionContext g_exe_ctx;
+} // end namespace mkfit
 
 //------------------------------------------------------------------------------
 
@@ -27,6 +29,7 @@ ExecutionContext g_exe_ctx;
 
 namespace
 {
+  using namespace mkfit;
   auto retcand = [](CandCloner* cloner) { g_exe_ctx.m_cloners.ReturnToPool(cloner); };
   auto retfitr = [](MkFitter*   mkfttr) { g_exe_ctx.m_fitters.ReturnToPool(mkfttr); };
   auto retfndr = [](MkFinder*   mkfndr) { g_exe_ctx.m_finders.ReturnToPool(mkfndr); };
@@ -96,10 +99,14 @@ namespace
   };
 }
 
+namespace mkfit {
+
 MkBuilder* MkBuilder::make_builder()
 {
   return new MkBuilder;
 }
+
+} // end namespace mkfit
 
 #ifdef DEBUG
 namespace
@@ -165,6 +172,8 @@ namespace
 //------------------------------------------------------------------------------
 
 #include "KalmanUtilsMPlex.h"
+
+namespace mkfit {
 
 MkBuilder::MkBuilder() :
   m_event(0),
@@ -628,6 +637,8 @@ void MkBuilder::find_seeds()
   }
 }
 
+} // end namespace mkfit
+
 namespace
 {
   void fill_seed_layer_sig(const Track& trk, int n_hits, bool is_brl[])
@@ -652,6 +663,8 @@ namespace
     return true;
   }
 }
+
+namespace mkfit {
 
 void MkBuilder::fit_seeds()
 {
@@ -1096,6 +1109,20 @@ void MkBuilder::root_val()
   m_event->Validate();
 }
 
+void MkBuilder::cmssw_export()
+{
+  // get the tracks ready for export
+  remap_track_hits(m_event->candidateTracks_);
+  if(Config::backwardFit) {
+    remap_track_hits(m_event->fitTracks_);
+  }
+  // prep_(reco)tracks doesn't actually do anything useful for CMSSW.
+  // We don't need the extra (seed index is obtained via canidate
+  // track label()), and sorting the hits by layer is actually
+  // harmful.
+  //prep_recotracks();
+}
+
 void MkBuilder::prep_recotracks()
 {
   // seed tracks extras always needed
@@ -1336,6 +1363,11 @@ void MkBuilder::PrepareSeeds()
     seed_post_cleaning(m_event->seedTracks_, true, true);
 
     import_seeds();
+
+    // in rare corner cases, seed tracks could be fully cleaned out: skip mapping if so
+    if (m_event->is_trackvec_empty(m_event->seedTracks_)) return;
+
+    // map seed track hits into layer_of_hits
     map_track_hits(m_event->seedTracks_);
   }
   else if (Config::seedInput == findSeeds)
@@ -2170,8 +2202,10 @@ void MkBuilder::fit_cands_to_pca_BH(MkFinder *mkfndr, int start_cand, int end_ca
     // perform fit back to first layer on track
     mkfndr->BkFitFitTracks(m_event_of_hits, st_par, end - icand, chi_debug);
 
-    // now move one last time to PCA
-    mkfndr->BkFitPropTracksToPCA(end - icand);
+    if(Config::backwardFitPCA) {
+      // now move one last time to PCA
+      mkfndr->BkFitPropTracksToPCA(end - icand);
+    }
 
 #ifdef DEBUG_BACKWARD_FIT
     // Dump tracks with pT > 2 and chi2/dof > 20. Assumes MPT_SIZE=1.
@@ -2247,8 +2281,10 @@ void MkBuilder::fit_cands_to_pca(MkFinder *mkfndr, int start_cand, int end_cand,
     // fit tracks back to first layer
     mkfndr->BkFitFitTracks(m_event_of_hits, st_par, end - icand, chi_debug);
     
-    // now move one last time to PCA
-    mkfndr->BkFitPropTracksToPCA(end - icand);
+    if(Config::backwardFitPCA) {
+      // now move one last time to PCA
+      mkfndr->BkFitPropTracksToPCA(end - icand);
+    }
     
 #ifdef DEBUG_BACKWARD_FIT
     // Dump tracks with pT > 2 and chi2/dof > 20. Assumes MPT_SIZE=1.
@@ -2274,3 +2310,5 @@ void MkBuilder::fit_cands_to_pca(MkFinder *mkfndr, int start_cand, int end_cand,
     // }
   }
 }
+
+} // end namespace mkfit

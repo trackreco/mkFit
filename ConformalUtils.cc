@@ -3,6 +3,8 @@
 //M. Hansroul, H. Jeremie and D. Savard, NIM A 270 (1988) 498
 //http://www.sciencedirect.com/science/article/pii/016890028890722X
 
+namespace mkfit {
+
 void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, TrackState& fitStateHit0, bool fiterrs) {
 
   // store hit info
@@ -96,3 +98,5 @@ void conformalFit(const Hit& hit0, const Hit& hit1, const Hit& hit2, TrackState&
   fitStateHit0.errors[4][4] = (fiterrs ? Config::phierr049   * Config::phierr049   : Config::phierr012   * Config::phierr012);
   fitStateHit0.errors[5][5] = (fiterrs ? Config::thetaerr049 * Config::thetaerr049 : Config::thetaerr012 * Config::thetaerr012);
 }
+
+} // end namespace mkfit

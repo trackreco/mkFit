@@ -9,6 +9,8 @@
 
 #include <mutex>
 
+namespace mkfit {
+
 struct DataFile;
 
 class Event
@@ -34,6 +36,7 @@ public:
 
   void write_out(DataFile &data_file);
   void read_in  (DataFile &data_file, FILE *in_fp=0);
+  void setInputFromCMSSW(std::vector<HitVec>&& hits, TrackVec&& seeds);
 
   void kludge_cms_hit_errors();
 
@@ -43,6 +46,9 @@ public:
   int  clean_cms_seedtracks_badlabel(); //operates on seedTracks_, removes those with label == -1;
   void relabel_bad_seedtracks();
   void relabel_cmsswtracks_from_seeds();
+
+  inline bool is_trackvec_empty(const TrackVec & tracks) { return tracks.empty(); }
+
   void print_tracks(const TrackVec& tracks, bool print_hits) const;
 
   const Geometry& geom_;
@@ -132,4 +138,5 @@ struct DataFile
   void CloseWrite(int n_written); //override nevents in the header and close
 };
 
+} // end namespace mkfit
 #endif

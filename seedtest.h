@@ -6,6 +6,8 @@
 #include "Event.h"
 #include "Hit.h"
 
+namespace mkfit {
+
 void buildSeedsByMC(const TrackVec&, TrackVec&, TrackExtraVec&, Event&);
 void buildSeedsByRZFirstRPhiSecond(TrackVec&, TrackExtraVec&, const std::vector<HitVec>&, const BinInfoMap&, Event&);
 void buildSeedsByRoadTriplets(TrackVec&, TrackExtraVec&, const std::vector<HitVec>&, const BinInfoMap&, Event&);
@@ -20,4 +22,5 @@ void filterHitTripletsByRZChi2(const std::vector<HitVec>&, const TripletIdxVec&,
 void buildSeedsFromTriplets(const std::vector<HitVec>&, const TripletIdxVec&, TrackVec&, TrackExtraVec&, Event&);
 void fitSeeds(const std::vector<HitVec>&, TrackVec&, Event&);
 
+} // end namespace mkfit
 #endif

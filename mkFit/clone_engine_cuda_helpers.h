@@ -6,6 +6,8 @@
 #include "reorganize_gplex.h"
 #include "computeChi2_kernels.h"
 
+namespace mkfit {
+
 __device__ int countValidHits_fn(const int itrack, const int end_hit,
                                  const GPlexQI *HitsIdx_arr);
 
@@ -63,4 +65,5 @@ __device__ void findTrackCands_fn(const int ilay,
                    chi2_track);
 }
 
+} // end namespace mkfit
 #endif  // CLONE_ENGINE_CUDA_HELPERS_H

@@ -7,6 +7,8 @@
 #include "gpu_utils.h"
 #include "Matrix.h"
 
+namespace mkfit {
+
 //#include "gpu_constants.h"
 __device__ __constant__ static int gplexSymOffsets[7][36] =
 {
@@ -143,4 +145,5 @@ using GPlexReg2V = GPlexReg<MPlex2V>;
 using GPlexReg2S = GPlexReg<MPlex2S>;
 using GPlexRegQF = GPlexReg<MPlexQF>;
 
+} // end namespace mkfit
 #endif  // _GPLEX_H_

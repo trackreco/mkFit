@@ -30,7 +30,7 @@ all: ${TGTS}
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<
 
 %.so: %.o
-	${CXX} -shared -L.. -lMicCore -o $@ $<
+	${CXX} -shared -L../lib -lMicCore -o $@ $<
 
 %.om: %.cc %.d
 	${CXX} ${CPPFLAGS_NO_ROOT} ${CXXFLAGS} ${VEC_MIC} -c -o $@ $<

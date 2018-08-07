@@ -5,6 +5,7 @@
 #include "HitStructuresCU.h"
 #include "GeometryCU.h"
 
+namespace mkfit {
 
 void findInLayers_wrapper_seed(cudaStream_t &stream,
                           LayerOfHitsCU *layers, 
@@ -21,4 +22,5 @@ void findInLayers_wrapper_seed(cudaStream_t &stream,
                           GeometryCU &geom, 
                           int *maxSize, int N);
 
+} // end namespace mkfit
 #endif  /* ifndef CLONE_ENGINE_KERNELS_SEED_H */

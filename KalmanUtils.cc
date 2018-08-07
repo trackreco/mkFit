@@ -2,6 +2,8 @@
 //#define DEBUG
 #include "Debug.h"
 
+namespace mkfit {
+
 static const SMatrix36 projMatrix  = ROOT::Math::SMatrixIdentity();
 static const SMatrix63 projMatrixT = ROOT::Math::Transpose(projMatrix);
 
@@ -230,3 +232,5 @@ float computeChi2Endcap(const TrackState& propagatedState, const MeasurementStat
   const SVector2 res(hpos.At(0)-propagatedState.x(), hpos.At(1)-propagatedState.y());
   return ROOT::Math::Similarity(res,resErrInv);
 }
+
+} // end namespace mkfit

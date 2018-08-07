@@ -6,6 +6,7 @@
 #include "HitStructuresCU.h"
 #include "GeometryCU.h"
 
+namespace mkfit {
 
 void getNewBestHitChi2_wrapper(const cudaStream_t &stream,
     const GPlexQI &XHitSize, const GPlexHitIdx &XHitArr,
@@ -46,4 +47,5 @@ void findBestHit_wrapper(cudaStream_t &stream,
                          int *maxSize, int N);
 
 
+} // end namespace mkfit
 #endif  /* ifndef BEST_HIT_KERNELS_H */

@@ -7,6 +7,8 @@
 //#define DEBUG
 #include "Debug.h"
 
+namespace mkfit {
+
 inline float predz(const float z0, const float r0, const float z2, const float r2, const float predr) {
   return (predr-r0)*(z2-z0) / (r2-r0) + z0;
 }
@@ -614,3 +616,5 @@ void fitSeeds(const std::vector<HitVec>& evt_lay_hits, TrackVec& evt_seed_tracks
     seed.setState(updatedState);
   }
 }
+
+} // end namespace mkfit

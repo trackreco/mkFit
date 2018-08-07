@@ -21,6 +21,8 @@
 //#define DEBUG
 #include "Debug.h"
 
+namespace mkfit {
+
 class TrackerInfo;
 class LayerInfo;
 
@@ -161,6 +163,7 @@ public:
 
   void root_val_dumb_cmssw();
   void root_val();
+  void cmssw_export();
   void prep_recotracks(); 
   void prep_simtracks();
   void prep_cmsswtracks();
@@ -207,4 +210,5 @@ public:
 #endif
 };
 
+} // end namespace mkfit
 #endif

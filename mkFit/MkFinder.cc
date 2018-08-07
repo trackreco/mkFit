@@ -9,6 +9,8 @@
 //#define DEBUG
 #include "Debug.h"
 
+namespace mkfit {
+
 //==============================================================================
 // Input / Output TracksAndHitIdx
 //==============================================================================
@@ -1139,11 +1141,14 @@ void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
   }
 }
 
+} // end namespace mkfit
 //------------------------------------------------------------------------------
 
 #ifdef DEBUG_BACKWARD_FIT
 namespace { float e2s(float x) { return 1e4 * std::sqrt(x); } }
 #endif
+
+namespace mkfit {
 
 void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
                               const SteeringParams& st_par,
@@ -1248,3 +1253,5 @@ void MkFinder::BkFitPropTracksToPCA(const int N_proc)
 {
   PropagateTracksToPCAZ(N_proc, Config::pca_prop_pflags);
 }
+
+} // end namespace mkfit

@@ -4,6 +4,8 @@
 #include "Propagation.h"
 #ifndef NO_ROOT
 
+namespace mkfit {
+
 TTreeValidation::TTreeValidation(std::string fileName)
 {
   std::lock_guard<std::mutex> locker(glock_);
@@ -2662,4 +2664,5 @@ void TTreeValidation::saveTTrees()
   configtree_->Write();
 }             
 
+} // end namespace mkfit
 #endif

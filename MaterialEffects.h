@@ -3,6 +3,8 @@
 
 #include "Config.h"
 
+namespace mkfit {
+
 inline int getZbinME(const float z){return (std::abs(z) * Config::nBinsZME)/(Config::rangeZME);}
 inline int getRbinME(const float r){return (         r  * Config::nBinsRME)/(Config::rangeRME);}
 inline float getRlVal(const int zb, const int rb){return Config::RlgridME[zb][rb];}
@@ -267,4 +269,5 @@ inline void fillZRgridME()
   }
 }
 
+} // end namespace mkfit
 #endif

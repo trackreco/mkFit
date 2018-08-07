@@ -10,6 +10,8 @@
 #include <cmath>
 #include <cstdio>
 
+namespace mkfit {
+
 //==============================================================================
 
 enum WithinSensitiveRegion_e
@@ -279,4 +281,5 @@ public:
 
 typedef void (*TrackerInfoCreator_foo)(TrackerInfo&, bool verbose);
 
+} // end namespace mkfit
 #endif

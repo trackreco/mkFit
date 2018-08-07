@@ -21,6 +21,8 @@
 
 #define BLOCK_SIZE_X 256
 
+namespace mkfit {
+
 using idx_t = Matriplex::idx_t;
 
 template <typename T>
@@ -143,4 +145,5 @@ class FitterCU {
 
 #include "FitterCU-imp.h"
 
+} // end namespace mkfit
 #endif  // _PROPAGATOR_CU_H_

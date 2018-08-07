@@ -8,6 +8,8 @@
 #include "FitterCU.h"
 #endif
 
+namespace mkfit {
+
 //------------------------------------------------------------------------------
 
 enum KalmanFilterOperation
@@ -79,4 +81,5 @@ void kalmanOperationEndcap(const int      kfOp,
                            const int      N_proc);
 
 
+} // end namespace mkfit
 #endif

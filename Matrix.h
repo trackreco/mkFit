@@ -4,6 +4,8 @@
 #include "Math/SMatrix.h"
 #include "Config.h"
 
+namespace mkfit {
+
 typedef ROOT::Math::SMatrix<float,6,6,ROOT::Math::MatRepSym<float,6> >    SMatrixSym66;
 typedef ROOT::Math::SMatrix<float,6> SMatrix66;
 typedef ROOT::Math::SVector<float,6> SVector6;
@@ -44,11 +46,13 @@ inline void diagonalOnly(Matrix& m)
   }
 }
 
+} // end namespace mkfit
+
 //==============================================================================
 
 // This should go elsewhere, eventually.
 
-#if __cplusplus > 201402L
+#ifdef __cpp_lib_clamp
 using std::clamp;
 #else
 template<class T, class Compare> inline
@@ -65,6 +69,8 @@ constexpr const T clamp( const T v, const T lo, const T hi )
 #endif
 
 #include <sys/time.h>
+
+namespace mkfit {
 
 inline double dtime()
 {
@@ -91,7 +97,7 @@ inline void sincos4(const float x, float& sin, float& cos)
    cos  = 1.f - 0.5f*x2 + 0.04166667f*x2*x2;
    sin  = x - 0.16666667f*x*x2;
 }
-
+} // end namespace mkfit
 //==============================================================================
 
 // This ifdef needs to be changed to something like "use matriplex" and/or
@@ -106,6 +112,8 @@ inline void sincos4(const float x, float& sin, float& cos)
   #endif
 
   #include "Matriplex/MatriplexSym.h"
+
+  namespace mkfit {
 
   constexpr Matriplex::idx_t NN =  MPT_SIZE; // "Length" of MPlex.
 
@@ -134,14 +142,17 @@ inline void sincos4(const float x, float& sin, float& cos)
 
   typedef Matriplex::Matriplex<bool,  1, 1, NN>     MPlexQB;
 
+  } // end namespace mkfit
 #endif
 
 //==============================================================================
 
 #include <random>
 
+namespace mkfit {
 extern std::default_random_engine            g_gen;
 extern std::normal_distribution<float>       g_gaus;
 extern std::uniform_real_distribution<float> g_unif;
+} // end namespace mkfit
 
 #endif

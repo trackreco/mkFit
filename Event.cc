@@ -17,6 +17,14 @@
 
 #include <memory>
 
+namespace
+{
+  mkfit::Geometry dummyGeometry;
+  std::unique_ptr<mkfit::Validation> dummyValidation( mkfit::Validation::make_validation("dummy") );
+}
+
+namespace mkfit {
+
 std::mutex Event::printmutex;
 
 inline bool sortByPhi(const Hit& hit1, const Hit& hit2)
@@ -36,12 +44,6 @@ inline bool sortByEta(const Hit& hit1, const Hit& hit2){
 // within a layer with a "reasonable" geometry, ordering by Z is the same as eta
 inline bool sortByZ(const Hit& hit1, const Hit& hit2){
   return hit1.z()<hit2.z();
-}
-
-namespace
-{
-  Geometry dummyGeometry;
-  std::unique_ptr<Validation> dummyValidation( Validation::make_validation("dummy") );
 }
 
 void Event::reset_nan_n_silly_counters()
@@ -657,6 +659,12 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
   if (!Config::silent) printf("Read complete, %d simtracks on file.\n", nt);
 }
 
+void Event::setInputFromCMSSW(std::vector<HitVec>&& hits, TrackVec&& seeds)
+{
+  layerHits_ = std::move(hits);
+  seedTracks_ = std::move(seeds);
+}
+
 //------------------------------------------------------------------------------
 
 void Event::kludge_cms_hit_errors()
@@ -1110,3 +1118,5 @@ void DataFile::CloseWrite(int n_written){
   }
   Close();
 }
+
+} // end namespace mkfit

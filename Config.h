@@ -1,9 +1,6 @@
 #ifndef _config_
 #define _config_
 
-// Cram this in here for now ...
-class TrackerInfo;
-
 #include <algorithm>
 #include <cmath>
 #include <string> // won't compile on clang gcc for mac OS w/o this!
@@ -15,6 +12,10 @@ class TrackerInfo;
   #define CUDA_CALLABLE 
 #endif
 
+namespace mkfit {
+
+// Cram this in here for now ...
+class TrackerInfo;
 
 //------------------------------------------------------------------------------
 
@@ -310,6 +311,7 @@ namespace Config
   extern bool sim_val_for_cmssw;
   extern bool sim_val;
   extern bool cmssw_val;
+  extern bool cmssw_export;
   extern bool fit_val;
   extern bool readSimTrackStates; // need this to fill pulls
   extern bool inclusiveShorts;
@@ -368,6 +370,7 @@ namespace Config
 
   extern bool   kludgeCmsHitErrors;
   extern bool   backwardFit;
+  extern bool   backwardFitPCA;
 
   // NAN and silly track parameter tracking options
   constexpr bool nan_etc_sigs_enable = false;
@@ -417,4 +420,5 @@ namespace Config
 
 inline float cdist(float a) { return a > Config::PI ? Config::TwoPI - a : a; }
 
+} // end namespace mkfit
 #endif 

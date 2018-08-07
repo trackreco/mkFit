@@ -5,6 +5,8 @@
 
 #include <vector>
 
+namespace mkfit {
+
 class EventOfCombCandidates;
 
 //#define CC_TIME_LAYER
@@ -177,4 +179,5 @@ public:
   int       m_layer;
 };
 
+} // end namespace mkfit
 #endif
