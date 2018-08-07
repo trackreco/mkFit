@@ -1,29 +1,9 @@
+EDIT HISTORY
+** KPM 06/08/18: moved preface to README **
 ** KPM 11/07/18: added a preface but still need to update this for newest methods/revisions... **
 ** KPM 25/02/18: still need to update methods for setting mc/cmssw track id **
 
-==========================
- Preface: READ THIS FIRST
-==========================
-
-This file is a compendium on how the validation runs within mkFit, which makes use of the TTreeValidation class and other supporting macros.  
-
-Please run the validation from phi3 (SKL-SP Gold @ UCSD), since we want to maintain consistent software environments by sourcing the latest version of ROOT via CVFMS. phi2 (KNL @ UCSD) is an option, but slow (since most of the validation is serial at the moment). phiphi (SNB @ UCSD) has a way outdated version of ROOT built from source --> could consider installing a binary/building from source, but really unnecessary as phi3 is faster anyways.
-
-Make sure to run the standard intel initialization as well as ROOT. The three source lines in val_scripts/validation-cmssw-benchmarks.sh is sufficient.
-
-If you are running the "standard" stand-alone validation, via ./xeon_scripts/runBenchmark.sh or just ./val_scripts/validation-cmssw-benchmarks.sh, there are helper scripts to tidy up the plots and send them to an AFS directory, in the ./web directory.
-
-Make sure to read the README_WEBPLOTS.txt first to setup an afs web directory. 
-
-Afterwards, simply do ./web/move-benchmarks.sh ${name-of-out-dir} from the top directory to collect the plots neatly and send them to an afs space on lxplus.
-
-*** IMPORTANT DISCLAIMER ***
-
-There is a script: ./xeon_scripts/trashSKL-SP.sh that is run at the very end of the move-benchmarks.sh script that will delete log files, pngs, validation directories, root files, and the neat directory created to house all the validation plots.  This means that if the scp fails, the plots will still be deleted locally!!  You can of course comment this out if this bothers you.
-
-*** FINAL WORD ON AFS ***
-
-AFS is being phased out at CERN... so at some point we will have to update our scripts to point to eos spaces for web directories... a problem for another day
+PREFACE: This file is a compendium on how the validation runs within mkFit, which makes use of the TTreeValidation class and other supporting macros.  
 
 ===================
  Table of Contents
