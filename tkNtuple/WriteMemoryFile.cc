@@ -66,6 +66,7 @@ void printHelp(const char* av0){
 	 "  --clean-sim-tracks        apply sim track cleaning (def: no cleaning)\n"
 	 "  --write-all-events        write all events (def: skip events with 0 simtracks or seeds)\n"
 	 "  --write-rec-tracks        write rec tracks (def: not written)\n"
+	 "  --apply-ccc               apply cluster charge cut to strip hits (def: false)\n"
 	 , av0);
 }
 
@@ -79,6 +80,7 @@ int main(int argc, char *argv[])
   bool cleanSimTracks = false;
   bool writeAllEvents = false;
   bool writeRecTracks = false;
+  bool applyCCC       = false;
 
   int verbosity = 0;
   long long maxevt = -1;
@@ -132,6 +134,10 @@ int main(int argc, char *argv[])
 	{
 	  writeRecTracks = true;
 	}
+      else if (*i == "--apply-ccc")
+        {
+          applyCCC = true;
+        }
       else
 	{
 	  fprintf(stderr, "Error: Unknown option/argument '%s'.\n", i->c_str());
@@ -419,6 +425,7 @@ int main(int argc, char *argv[])
   vector<float>*  str_yz = 0;
   vector<float>*  str_zz = 0;
   vector<float>*  str_zx = 0;
+  vector<float>*  str_chargePerCM = 0;
   t->SetBranchAddress("str_isBarrel",&str_isBarrel);
   t->SetBranchAddress("str_isStereo",&str_isStereo);
   t->SetBranchAddress("str_det",&str_det);
@@ -433,7 +440,8 @@ int main(int argc, char *argv[])
   t->SetBranchAddress("str_yz",&str_yz);
   t->SetBranchAddress("str_zz",&str_zz);
   t->SetBranchAddress("str_zx",&str_zx);
-  
+  t->SetBranchAddress("str_chargePerCM",&str_chargePerCM);
+
   vector<vector<int> >*    str_simHitIdx = 0;
   t->SetBranchAddress("str_simHitIdx", &str_simHitIdx);
   vector<vector<float> >*    str_chargeFraction = 0;
@@ -450,6 +458,8 @@ int main(int argc, char *argv[])
 
   Event EE(0);
 
+  int numFailCCC = 0;
+  int numTotalStr = 0;
   // gDebug = 8;
 
   for (long long i = 0; savedEvents < maxevt && i<totentries && i<maxevt; ++i)
@@ -461,6 +471,11 @@ int main(int argc, char *argv[])
     t->GetEntry(i);
 
     cout << "edm event=" << event << endl;
+
+    for (unsigned int istr = 0; istr < str_lay->size(); ++istr) {
+      if(str_chargePerCM->at(istr) < 1620) numFailCCC++;
+      numTotalStr++;
+    }
 
     auto nSims = sim_q->size();
     if (nSims==0) {
@@ -889,6 +904,8 @@ int main(int argc, char *argv[])
       int simTkIdxNt = bestTkIdx(str_simHitIdx->at(istr), str_chargeFraction->at(istr), istr, HitType::Strip);
       int simTkIdx = simTkIdxNt >= 0 ? simTrackIdx_[simTkIdxNt] : -1; //switch to index in simTracks_
 
+      bool passCCC = applyCCC ? (str_chargePerCM->at(istr) > 1620) : true;
+
       //if (str_onTrack->at(istr)==0) continue;//do not consider hits that are not on track!
       SVector3 pos(str_x->at(istr),str_y->at(istr),str_z->at(istr));
       SMatrixSym33 err;
@@ -900,18 +917,24 @@ int main(int argc, char *argv[])
       err.At(1,2) = str_yz->at(istr);
       if (simTkIdx>=0){
 	int nhits = simTracks_[simTkIdx].nTotalHits();
-	if (nhits < Config::nMaxSimHits) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
+	if (nhits < Config::nMaxSimHits){
+	  if(passCCC) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
+	  else simTracks_[simTkIdx].addHitIdx( -9, ilay,0);
+	}
 	else cout<<"SKIP: Tried to add str hit to track with "<<nhits<<" hits "<<std::endl;	
       }
       for (unsigned int ir=0;ir<strHitRecIdx[istr].size();ir++) {
 	//cout << "xxx istr=" << istr << " recTrack=" << strHitRecIdx[istr][ir] << endl;
-	cmsswTracks_[strHitRecIdx[istr][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
+	if(passCCC) cmsswTracks_[strHitRecIdx[istr][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
+	else cmsswTracks_[strHitRecIdx[istr][ir]].addHitIdx(-9,ilay,0); 
       }
-      Hit hit(pos, err, totHits);
-      layerHits_[ilay].push_back(hit);
-      MCHitInfo hitInfo(simTkIdx, ilay, layerHits_[ilay].size()-1, totHits);
-      simHitsInfo_.push_back(hitInfo);
-      totHits++;
+      if(passCCC){ 
+	Hit hit(pos, err, totHits);
+	layerHits_[ilay].push_back(hit);
+	MCHitInfo hitInfo(simTkIdx, ilay, layerHits_[ilay].size()-1, totHits);
+	simHitsInfo_.push_back(hitInfo);
+	totHits++;
+      }
     }
 
     // bool allTracksAllHits = true;
@@ -1012,6 +1035,7 @@ int main(int argc, char *argv[])
 
   printf("Average number of seeds per event %f\n",float(nstot)/float(savedEvents));
   for (unsigned int il=0;il<nhitstot.size();++il)
-    printf("Average number of hits in layer %3i = %7.2f\n", il, float(nhitstot[il])/float(savedEvents));
+    printf("Average number of hits in layer %3i = %7.2f\n", il, float(nhitstot[il])/float(savedEvents)); //Includes those that failed the cluster charge cut
 
+  printf("Out of %i hits, %i failed the cut",numTotalStr,numFailCCC);
 }
