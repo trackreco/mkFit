@@ -224,14 +224,14 @@ public:
     if (lastHitIdx_ < Config::nMaxTrkHits - 1)
     {
       hitsOnTrk_[++lastHitIdx_] = { hitIdx, hitLyr };
-      if (hitIdx >= 0) { ++nFoundHits_; chi2_+=chi2; }
+      if (hitIdx >= 0 || hitIdx == -9) { ++nFoundHits_; chi2_+=chi2; }
     }
     else
     {
       // printf("WARNING Track::addHitIdx hit-on-track limit reached for label=%d\n", label_);
       // print("Track", -1, *this, true);
 
-      if (hitIdx >= 0)
+      if (hitIdx >= 0 || hitIdx == -9)
       {
         ++nFoundHits_;
         chi2_ += chi2;
@@ -263,7 +263,7 @@ public:
   int getLastFoundHitPos() const
   {
     int hi = lastHitIdx_;
-    while (hitsOnTrk_[hi].index < 0) --hi;
+    while (hitsOnTrk_[hi].index < 0 && hitsOnTrk_[hi].index != -9) --hi;
     return hi;
   }
 
@@ -318,7 +318,7 @@ public:
   void setNFoundHits() {
     nFoundHits_=0;
     for (int i = 0; i <= lastHitIdx_; i++) {
-      if (hitsOnTrk_[i].index >= 0) nFoundHits_++;
+      if (hitsOnTrk_[i].index >= 0 || hitsOnTrk_[i].index == -9) nFoundHits_++;
     }
   }
 
@@ -336,7 +336,7 @@ public:
   {
     int n = 0;
     for (int i = 0; i <= lastHitIdx_; ++i)
-      if (hitsOnTrk_[i].index >= 0) ++n;
+      if (hitsOnTrk_[i].index >= 0 || hitsOnTrk_[i].index == -9) ++n; 
     return n;
   }
 
@@ -375,7 +375,7 @@ public:
   {
     std::vector<int> layers;
     for (int ihit = 0; ihit <= lastHitIdx_; ++ihit) {
-      if (hitsOnTrk_[ihit].index >= 0) {
+      if (hitsOnTrk_[ihit].index >= 0 || hitsOnTrk_[ihit].index == -9) {
         layers.push_back( hitsOnTrk_[ihit].layer );
       }
     }
