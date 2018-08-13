@@ -66,6 +66,7 @@ void printHelp(const char* av0){
 	 "  --clean-sim-tracks        apply sim track cleaning (def: no cleaning)\n"
 	 "  --write-all-events        write all events (def: skip events with 0 simtracks or seeds)\n"
 	 "  --write-rec-tracks        write rec tracks (def: not written)\n"
+	 "  --apply-ccc               apply cluster charge cut to strip hits (def: false)\n"
 	 , av0);
 }
 
@@ -79,6 +80,7 @@ int main(int argc, char *argv[])
   bool cleanSimTracks = false;
   bool writeAllEvents = false;
   bool writeRecTracks = false;
+  bool applyCCC       = false;
 
   int verbosity = 0;
   long long maxevt = -1;
@@ -132,6 +134,10 @@ int main(int argc, char *argv[])
 	{
 	  writeRecTracks = true;
 	}
+      else if (*i == "--apply-ccc")
+        {
+          applyCCC = true;
+        }
       else
 	{
 	  fprintf(stderr, "Error: Unknown option/argument '%s'.\n", i->c_str());
@@ -898,7 +904,7 @@ int main(int argc, char *argv[])
       int simTkIdxNt = bestTkIdx(str_simHitIdx->at(istr), str_chargeFraction->at(istr), istr, HitType::Strip);
       int simTkIdx = simTkIdxNt >= 0 ? simTrackIdx_[simTkIdxNt] : -1; //switch to index in simTracks_
 
-      bool passCCC = (str_chargePerCM->at(istr) > 1620);
+      bool passCCC = applyCCC ? (str_chargePerCM->at(istr) > 1620) : true;
 
       //if (str_onTrack->at(istr)==0) continue;//do not consider hits that are not on track!
       SVector3 pos(str_x->at(istr),str_y->at(istr),str_z->at(istr));
