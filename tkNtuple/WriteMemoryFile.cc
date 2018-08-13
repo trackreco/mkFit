@@ -1000,7 +1000,7 @@ int main(int argc, char *argv[])
       int simTkIdxNt = bestTkIdx(str_simHitIdx->at(istr), str_chargeFraction->at(istr), istr, HitType::Strip);
       int simTkIdx = simTkIdxNt >= 0 ? simTrackIdx_[simTkIdxNt] : -1; //switch to index in simTracks_
 
-      bool passCCC = (str_chargePerCM->at(istr) < 1620);
+      bool passCCC = (str_chargePerCM->at(istr) > 1620);
 
       //if (str_onTrack->at(istr)==0) continue;//do not consider hits that are not on track!
       SVector3 pos(str_x->at(istr),str_y->at(istr),str_z->at(istr));
