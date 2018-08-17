@@ -189,7 +189,8 @@ void extendCandidate(const BinInfoMap & segmentMap, const Event& ev, const cand_
   TrackState propState = propagateHelixToR(updatedState, ev.geom_.Radius(ilayer), pflags);
 #else
 #ifdef TBB
-#error "Invalid combination of options (thread safety)"
+  // #error "Invalid combination of options (thread safety)" // KPM : I commented this out, because the default in the Makefile.config was to use LINEARINTERP, 
+  // and when disabled... this block is included when using TBB for the rest of the code, even though we haven't touched SMatrix in years! We really ought to axe this code..
 #endif
   TrackState propState = propagateHelixToLayer(updatedState, ilayer,ev.geom_, pflags);
 #endif // LINEARINTERP
