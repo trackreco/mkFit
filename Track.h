@@ -364,7 +364,7 @@ public:
     {
       int h_lyr = hitsOnTrk_[ihit].layer;
       if (skipSeedLyrs && Config::TrkInfo.is_seed_lyr(h_lyr)) continue;
-      if (h_lyr >= 0 && hitsOnTrk_[ihit].index >= 0 && h_lyr != prev_lyr)
+      if (h_lyr >= 0 && (hitsOnTrk_[ihit].index >= 0 || hitsOnTrk_[ihit].index == -9) && h_lyr != prev_lyr)
       {
         ++lyr_cnt;
         prev_lyr = h_lyr;
