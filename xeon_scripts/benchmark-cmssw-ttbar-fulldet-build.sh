@@ -20,7 +20,7 @@ seeds="--cmssw-n2seeds"
 if [ ${ben_arch} == "SNB" ]
 then
     mOpt="-j 12"
-    dir=/data/nfsmic/slava77/samples
+    dir=/data2/nfsmic/slava77/samples
     base=${ben_arch}_${sample}
     maxth=24
     maxvu=8
