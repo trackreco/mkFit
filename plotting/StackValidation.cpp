@@ -1,13 +1,22 @@
 #include "StackValidation.hh"
 
-StackValidation::StackValidation(const TString & label, const TString & extra, const Bool_t cmsswComp) : label(label), extra(extra), cmsswComp(cmsswComp)
+StackValidation::StackValidation(const TString & label, const TString & extra, const Bool_t cmsswComp, const TString & suite)
+  : label(label), extra(extra), cmsswComp(cmsswComp), suite(suite)
 {
   // setup style for plotting
   setupStyle();
 
-  // setup builds --> if simvalidation, add cmssw tracks to validation
-  setupBuilds(!cmsswComp);
+  // setup suite enum
+  setupSUITEEnum(suite);
 
+  // setup build options : true for isBenchmark-type plots, and include cmssw in plots if simval
+  setupBuilds(false,!cmsswComp);
+
+  // set legend y height
+  y1 = 0.80;
+  y2 = y1 + builds.size()*0.04; // full + CMSSW = 0.04*5 + 0.8 = 1.0
+
+  // open the files
   files.resize(builds.size());
   for (UInt_t b = 0; b < files.size(); b++)
   {
@@ -53,7 +62,7 @@ void StackValidation::MakeRatioStacks(const TString & trk)
 	TCanvas * canv = new TCanvas();
 	canv->cd();
 
-	TLegend * leg = new TLegend(0.85,0.80,1.0,1.0);
+	TLegend * leg = new TLegend(0.85,y1,1.0,y2);
 
 	// tmp axis titles, not sure why ROOT is deleting them
 	TString xtitle = "";
@@ -156,7 +165,7 @@ void StackValidation::MakeCMSSWKinematicDiffStacks(const TString & trk)
 	canv->cd();
 	canv->SetLogy(isLogy);
 
-	TLegend * leg = new TLegend(0.85,0.80,1.0,1.0);
+	TLegend * leg = new TLegend(0.85,y1,1.0,y2);
 	
 	// tmp min/max
 	Double_t min =  1e9;

@@ -2,7 +2,8 @@
 
 #include <iostream>
 
-PlotBenchmarks::PlotBenchmarks(const TString & arch, const TString & sample) : arch(arch), sample(sample)
+PlotBenchmarks::PlotBenchmarks(const TString & arch, const TString & sample, const TString & suite)
+  : arch(arch), sample(sample), suite(suite)
 {
   // setup style for plotting
   setupStyle();
@@ -10,21 +11,17 @@ PlotBenchmarks::PlotBenchmarks(const TString & arch, const TString & sample) : a
   // get file
   file = TFile::Open("benchmark_"+arch+"_"+sample+".root");
 
-  // types of build options
-  setupBuilds(false);
+  // setup arch enum
+  setupARCHEnum(arch);
 
-  // setup enum
-  if      (arch.Contains("SNB")) ARCH = SNB;
-  else if (arch.Contains("KNL")) ARCH = KNL;
-  else if (arch.Contains("SKL")) ARCH = SKL;
-  else 
-  {
-    std::cerr << arch.Data() << " is not an allowed architecture! Exiting... " << std::endl;
-    exit(1);
-  }
+  // setup arch options
+  setupArch();
 
-  // setup which options to use!
-  setupArch(ARCH);
+  // setup suite enum
+  setupSUITEEnum(suite);
+
+  // setup build options : true for isBenchmark-type plots, false for no CMSSW
+  setupBuilds(true,false);
 }
 
 PlotBenchmarks::~PlotBenchmarks()
@@ -74,9 +71,10 @@ void PlotBenchmarks::MakeOverlay(const TString & text, const TString & title, co
   if (!isVU && !isSpeedup) canv->SetLogy();
   
   // legend 
-  const Double_t x1 = (isSpeedup ? 0.20 : 0.60);
+  const Double_t x1 = (isSpeedup ? 0.20 : 0.60); // draw legend on left for speedup plots as this part is empty
   const Double_t y1 = 0.65;
-  TLegend * leg = new TLegend(x1,y1,x1+0.25,y1+0.2);
+  const Double_t ylength = builds.size()*0.05; // adjust size of legend for how many build routines we are plotting
+  TLegend * leg = new TLegend(x1,y1,x1+0.25,y1+ylength);
   leg->SetBorderSize(0);  
 
   // setup tgraphs

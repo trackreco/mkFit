@@ -52,13 +52,13 @@ CMSSW="CMSSW cmssw SIMVAL --sim-val-for-cmssw --read-cmssw-tracks"
 ## validation function
 function doVal()
 {
-    bN=${1}
-    bO=${2}
-    vN=${3}
-    vO=${4}
+    local bN=${1}
+    local bO=${2}
+    local vN=${3}
+    local vO=${4}
 
-    oBase=${val_arch}_${sample}_${bN}
-    bExe="${exe} ${vO} --build-${bO}"
+    local oBase=${val_arch}_${sample}_${bN}
+    local bExe="${exe} ${vO} --build-${bO}"
     
     echo "${oBase}: ${vN} [nTH:${maxth}, nVU:${maxvu}int, nEV:${maxev}]"
     ${bExe} >& log_${oBase}_NVU${maxvu}int_NTH${maxth}_NEV${maxev}_${vN}.txt
@@ -72,10 +72,10 @@ function doVal()
 ## plotting function
 function plotVal()
 {
-    base=${1}
-    bN=${2}
-    pN=${3}
-    pO=${4}
+    local base=${1}
+    local bN=${2}
+    local pN=${3}
+    local pO=${4}
 
     echo "Computing observables for: ${base} ${bN} ${pN}"
     root -b -q -l plotting/runValidation.C\(\"_${base}_${bN}_${pN}\",${pO}\)
@@ -87,8 +87,8 @@ function plotVal()
 
 ## Compile once
 make clean
-mVal="WITH_ROOT:=1 AVX_512:=1"
-make -j 32 ${mVal}
+mVal="-j 32 WITH_ROOT:=1 AVX_512:=1"
+make ${mVal}
 mkdir -p ${tmpdir}
 
 ## Special simtrack validation vs cmssw tracks
@@ -120,9 +120,9 @@ for plot in "${plots[@]}"
 do echo ${!plot} | while read -r pN pO
     do
         ## Compute observables for special dummy CMSSW
-	if [ ${pN} == "SIMVAL" ]
+	if [[ "${pN}" == "SIMVAL" ]]
 	then
-	    echo ${CMSSW} | while read -r ${bN} ${bO} ${val_extras}
+	    echo ${CMSSW} | while read -r bN bO val_extras
 	    do
 		plotVal ${base} ${bN} ${pN} ${pO}
 	    done
@@ -138,7 +138,7 @@ do echo ${!plot} | while read -r pN pO
 	
 	## overlay histograms
 	echo "Overlaying histograms for: ${base} ${vN}"
-	root -b -q -l plotting/makeValidation.C\(\"${base}\",\"_${pN}\",${pO}\)
+	root -b -q -l plotting/makeValidation.C\(\"${base}\",\"_${pN}\",${pO},\"${suite}\"\)
     done
 done
 

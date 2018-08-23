@@ -15,7 +15,7 @@ do
 	python plotting/makeBenchmarkPlots.py ${archN} ${sample}
 	
 	echo "Make final plot comparing different build options for" ${archN}
-	root -b -q -l plotting/makeBenchmarkPlots.C\(\"${archN}\",\"${sample}\"\)	
+	root -b -q -l plotting/makeBenchmarkPlots.C\(\"${archN}\",\"${sample}\",\"${suite}\"\)
 	
 	for build in "${meif_builds[@]}"
 	do

@@ -3,6 +3,8 @@ import ROOT
 import array
 import math
 
+# N.B.: Consult ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh for info on nTHs, nVUs, and text file names
+
 def run():
     arch   = sys.argv[1] # SNB, KNL, SKL-SP
     sample = sys.argv[2] 

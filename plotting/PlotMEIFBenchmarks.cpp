@@ -10,20 +10,13 @@ PlotMEIFBenchmarks::PlotMEIFBenchmarks(const TString & arch, const TString & sam
   file = TFile::Open("benchmarkMEIF_"+arch+"_"+sample+"_"+build+".root");
 
   // setup enum
-  if      (arch.Contains("SNB")) ARCH = SNB;
-  else if (arch.Contains("KNL")) ARCH = KNL;
-  else if (arch.Contains("SKL")) ARCH = SKL;
-  else 
-  {
-    std::cerr << arch.Data() << " is not an allowed architecture! Exiting... " << std::endl;
-    exit(1);
-  }
+  setupARCHEnum(arch);
 
-  // setup arch
-  setupArch(ARCH);
+  // setup arch options
+  setupArch();
 
   // setup events
-  setupEvents(ARCH);
+  setupEvents();
 }
 
 PlotMEIFBenchmarks::~PlotMEIFBenchmarks()

@@ -1,5 +1,4 @@
-#include "PlotsFromDump.hh"
-#include "PlotsFromDump.cpp"
+#include "plotting/PlotsFromDump.cpp+"
 
 void makePlotsFromDump(const TString & sample, const TString & build)
 {

@@ -1,21 +1,23 @@
 #include "PlotsFromDump.hh"
 
-PlotsFromDump::PlotsFromDump(const TString & sample, const TString & build) : sample(sample), build(build)
+PlotsFromDump::PlotsFromDump(const TString & sample, const TString & build, const TString & suite) 
+  : sample(sample), build(build), suite(suite)
 {
   // setup style for plotting
   setupStyle();
 
-  // Setup build opts
-  setupBuilds(false);
+  // setup suite enum
+  setupSUITEEnum(suite);
+
+  // setup build options : true for isBenchmark-type plots, false for no CMSSW
+  setupBuilds(true,false);
 
   // get the right build label
-  for (auto & ibuild : builds)
+  label = std::find_if(builds.begin(),builds.end(),[&](const auto & ibuild){return build.EqualTo(ibuild);})->label;
+  if (label == "")
   {
-    if (build == ibuild.name) 
-    {
-      label = ibuild.label; 
-      break;
-    }
+    std::cerr << build.Data() << " build routine not specified in list of builds! Exiting..." << std::endl;
+    exit(1);
   }
 
   // Setup test opts

@@ -1,8 +1,7 @@
-#include "PlotBenchmarks.hh"
-#include "PlotBenchmarks.cpp"
+#include "plotting/PlotBenchmarks.cpp+"
 
-void makeBenchmarkPlots(const TString & arch, const TString & sample)
+void makeBenchmarkPlots(const TString & arch, const TString & sample, const TString & suite)
 {
-  PlotBenchmarks Benchmarks(arch,sample);
+  PlotBenchmarks Benchmarks(arch,sample,suite);
   Benchmarks.RunBenchmarkPlots();
 }

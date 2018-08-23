@@ -8,6 +8,10 @@
 
 struct RateOpts
 {
+  RateOpts() {}
+  RateOpts(const TString & dir, const TString & sORr, const TString & rate)
+    : dir(dir), sORr(sORr), rate(rate) {}
+
   TString dir;
   TString sORr; // sim or reco 
   TString rate;
@@ -21,12 +25,12 @@ namespace
   {
     const TString ref = (cmsswComp?"cmssw":"sim");
 
-    rates.push_back({"efficiency",ref,"eff"});
-    rates.push_back({"inefficiency",ref,"ineff_brl"});
-    rates.push_back({"inefficiency",ref,"ineff_trans"});
-    rates.push_back({"inefficiency",ref,"ineff_ec"});
-    rates.push_back({"fakerate","reco","fr"});
-    rates.push_back({"duplicaterate",ref,"dr"});
+    rates.emplace_back("efficiency",ref,"eff");
+    rates.emplace_back("inefficiency",ref,"ineff_brl");
+    rates.emplace_back("inefficiency",ref,"ineff_trans");
+    rates.emplace_back("inefficiency",ref,"ineff_ec");
+    rates.emplace_back("fakerate","reco","fr");
+    rates.emplace_back("duplicaterate",ref,"dr");
     
     if (cmsswComp) 
     {
@@ -37,16 +41,16 @@ namespace
   std::vector<Float_t> ptcuts;
   void setupPtCuts()
   {
-    ptcuts.push_back(0.f);
-    ptcuts.push_back(0.9f);
-    ptcuts.push_back(2.f);
+    ptcuts.emplace_back(0.f);
+    ptcuts.emplace_back(0.9f);
+    ptcuts.emplace_back(2.f);
   }
 };
 
 class StackValidation
 {
 public:
-  StackValidation(const TString & label, const TString & extra, const Bool_t cmsswComp);
+  StackValidation(const TString & label, const TString & extra, const Bool_t cmsswComp, const TString & suite);
   ~StackValidation();
   void MakeValidationStacks();
   void MakeRatioStacks(const TString & trk);
@@ -56,6 +60,11 @@ private:
   const TString label;
   const TString extra;
   const Bool_t cmsswComp;
+  const TString suite;
+
+  // legend height
+  Double_t y1;
+  Double_t y2; 
 
   std::vector<TFile*> files;
 };
