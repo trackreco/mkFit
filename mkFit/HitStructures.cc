@@ -96,18 +96,28 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
   std::vector<int>     qc(m_nq, 0);
   int nqh = m_nq / 2;
   {
-    int i = 0;
-    for (auto const &h : hitv)
+    for (int ii =0; ii< size; ii+=NN)
     {
-      HitInfo &hi = ha[i];
-      // N.1.a For phi in [-pi, pi): squashPhiMinimal(h.phi()); Apparently atan2 can round the wrong way.
-      hi.phi  = h.phi();
-      hi.q    = is_brl ? h.z() : h.r();
-      hi.qbin = std::max(std::min(static_cast<int>((hi.q - m_qmin) * m_fq), m_nq - 1), 0);
-      m_hit_phis[i] = hi.phi + 6.3f * (hi.qbin - nqh);
-      ++qc[hi.qbin];
-      ++i;
-    }
+      int qbins[NN] {};
+#pragma omp simd
+      for (int j = 0; j < NN; ++j)
+      {
+        int i = ii+j;
+        if (i < size)
+        {
+          auto const& h = hitv[i];
+
+          HitInfo &hi = ha[i];
+          // N.1.a For phi in [-pi, pi): squashPhiMinimal(h.phi()); Apparently atan2 can round the wrong way.
+          hi.phi  = h.phi();
+          hi.q    = is_brl ? h.z() : h.r();
+          hi.qbin = std::max(std::min(static_cast<int>((hi.q - m_qmin) * m_fq), m_nq - 1), 0);
+          m_hit_phis[i] = hi.phi + 6.3f * (hi.qbin - nqh);
+          qbins[j] = hi.qbin;
+        }
+      }//j < NN
+      for (int j = 0; j < NN; ++j) ++qc[qbins[j]];
+    }//ii<size
   }
 
   RadixSort sort;
