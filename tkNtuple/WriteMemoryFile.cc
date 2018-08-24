@@ -13,6 +13,8 @@ constexpr bool useMatched = false;
 constexpr int cleanSimTrack_minSimHits = 3;
 constexpr int cleanSimTrack_minRecHits = 2;
 
+constexpr int cutValueCCC = 1620; //Nominal value (from first iteration of CMSSW) is 1620
+
 //check if this is the same as in the release
 enum class HitType {
   Pixel = 0,
@@ -473,7 +475,7 @@ int main(int argc, char *argv[])
     cout << "edm event=" << event << endl;
 
     for (unsigned int istr = 0; istr < str_lay->size(); ++istr) {
-      if(str_chargePerCM->at(istr) < 1620) numFailCCC++;
+      if(str_chargePerCM->at(istr) < cutValueCCC) numFailCCC++;
       numTotalStr++;
     }
 
@@ -904,7 +906,7 @@ int main(int argc, char *argv[])
       int simTkIdxNt = bestTkIdx(str_simHitIdx->at(istr), str_chargeFraction->at(istr), istr, HitType::Strip);
       int simTkIdx = simTkIdxNt >= 0 ? simTrackIdx_[simTkIdxNt] : -1; //switch to index in simTracks_
 
-      bool passCCC = applyCCC ? (str_chargePerCM->at(istr) > 1620) : true;
+      bool passCCC = applyCCC ? (str_chargePerCM->at(istr) > cutValueCCC) : true;
 
       //if (str_onTrack->at(istr)==0) continue;//do not consider hits that are not on track!
       SVector3 pos(str_x->at(istr),str_y->at(istr),str_z->at(istr));
