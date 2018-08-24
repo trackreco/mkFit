@@ -78,22 +78,24 @@ done
 ######################################
 
 # Make SimTrack Validation directories
-rootdir="SIMVAL"
-mkdir -p ${dir}/${rootdir}
-mkdir -p ${dir}/${rootdir}/logx
+simdir="SIMVAL"
+mkdir -p ${dir}/${simdir}
+mkdir -p ${dir}/${simdir}/logx
+mkdir -p ${dir}/${simdir}/diffs
+mkdir -p ${dir}/${simdir}/nHits
 
 # Move text file dumps for SimTrack Validation
 for build in "${val_builds[@]}"
 do echo ${!build} | while read -r bN bO
     do
 	vBase=${val_arch}_${sample}_${bN}
-	mv "validation"_${vBase}_"SIMVAL"/"totals_validation"_${vBase}_"SIMVAL".txt ${dir}/${rootdir}
+	mv "validation"_${vBase}_"SIMVAL"/"totals_validation"_${vBase}_"SIMVAL".txt ${dir}/${simdir}
     done
 done
 
 # Move dummy CMSSW text file (SimTrack Validation)
 vBase=${val_arch}_${sample}_CMSSW
-mv validation_${vBase}_"SIMVAL"/totals_validation_${vBase}_"SIMVAL".txt ${dir}/${rootdir}
+mv validation_${vBase}_"SIMVAL"/totals_validation_${vBase}_"SIMVAL".txt ${dir}/${simdir}
 
 # Move rate plots for SimTrack Validation
 for rate in eff ineff_brl ineff_trans ineff_ec dr fr
@@ -102,22 +104,42 @@ do
     do
 	for var in phi eta
 	do 
-	    mv ${val_arch}_${sample}_${rate}_${var}_"build"_"pt"${pt}_"SIMVAL".png ${dir}/${rootdir}
+	    mv ${val_arch}_${sample}_${rate}_${var}_"build"_"pt"${pt}_"SIMVAL".png ${dir}/${simdir}
 	done
     done
 
     # only copy pt > 0 for pt rate plots
     for var in pt pt_zoom
     do 
-	mv ${val_arch}_${sample}_${rate}_${var}_"build"_"pt0.0"_"SIMVAL".png ${dir}/${rootdir}
+	mv ${val_arch}_${sample}_${rate}_${var}_"build"_"pt0.0"_"SIMVAL".png ${dir}/${simdir}
     done
 
-    mv ${val_arch}_${sample}_${rate}_"pt_logx"_"build"_"pt0.0"_"SIMVAL".png ${dir}/${rootdir}/logx
+    mv ${val_arch}_${sample}_${rate}_"pt_logx"_"build"_"pt0.0"_"SIMVAL".png ${dir}/${simdir}/logx
+done
+
+# Move kinematic diff plots for SimTrack Validation
+for coll in bestmatch allmatch
+do 
+    for var in nHits invpt phi eta
+    do
+	for pt in 0.0 0.9 2.0
+	do
+	    mv ${val_arch}_${sample}_${coll}_"d"${var}_"build"_"pt"${pt}_"SIMVAL".png ${dir}/${simdir}/diffs
+	done
+    done
+done
+
+# Move nHits plots for SimTrack Validation
+for coll in allreco fake bestmatch allmatch
+do 
+    for pt in 0.0 0.9 2.0
+    do
+	mv ${val_arch}_${sample}_${coll}_"nHits"_"build"_"pt"${pt}_"SIMVAL".png ${dir}/${simdir}/nHits
+    done
 done
 
 # Make CMSSWTrack Validation directories
 cmsswdir="CMSSWVAL"
-mkdir -p ${dir}/${cmsswdir}
 mkdir -p ${dir}/${cmsswdir}
 
 # Move text file dumps for CMSSWTrack Validation
@@ -134,6 +156,7 @@ for trk in build fit
 do
     mkdir -p ${dir}/${cmsswdir}/${trk}/logx
     mkdir -p ${dir}/${cmsswdir}/${trk}/diffs
+    mkdir -p ${dir}/${cmsswdir}/${trk}/nHits
 done
 
 # Move rate plots for CMSSWTrack Validation
@@ -170,6 +193,18 @@ do
 	    do
 		mv ${val_arch}_${sample}_${coll}_"d"${var}_${trk}_"pt"${pt}_"CMSSWVAL".png ${dir}/${cmsswdir}/${trk}/diffs
 	    done
+	done
+    done
+done
+
+# Move nHits plots for CMSSWTrack Validation
+for coll in allreco fake bestmatch allmatch
+do 
+    for trk in build fit
+    do
+	for pt in 0.0 0.9 2.0
+	do
+	    mv ${val_arch}_${sample}_${coll}_"nHits"_${trk}_"pt"${pt}_"CMSSWVAL".png ${dir}/${cmsswdir}/${trk}/nHits
 	done
     done
 done

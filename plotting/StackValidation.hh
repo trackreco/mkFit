@@ -54,7 +54,8 @@ public:
   ~StackValidation();
   void MakeValidationStacks();
   void MakeRatioStacks(const TString & trk);
-  void MakeCMSSWKinematicDiffStacks(const TString & trk);
+  void MakeKinematicDiffStacks(const TString & trk);
+  void MakeNHitsStacks(const TString & trk);
 
 private:
   const TString label;

@@ -38,12 +38,14 @@ StackValidation::~StackValidation()
 void StackValidation::MakeValidationStacks()
 {
   StackValidation::MakeRatioStacks("build");
+  StackValidation::MakeKinematicDiffStacks("build");
+  StackValidation::MakeNHitsStacks("build");
 
   if (cmsswComp)
   {    
     StackValidation::MakeRatioStacks("fit");
-    StackValidation::MakeCMSSWKinematicDiffStacks("build");
-    StackValidation::MakeCMSSWKinematicDiffStacks("fit");
+    StackValidation::MakeKinematicDiffStacks("fit");
+    StackValidation::MakeNHitsStacks("fit");
   }
 }
 
@@ -145,7 +147,7 @@ void StackValidation::MakeRatioStacks(const TString & trk)
   }
 }
 
-void StackValidation::MakeCMSSWKinematicDiffStacks(const TString & trk)
+void StackValidation::MakeKinematicDiffStacks(const TString & trk)
 {
   // variables to plot
   std::vector<TString> diffs = {"nHits","invpt","eta","phi"};
@@ -174,7 +176,7 @@ void StackValidation::MakeCMSSWKinematicDiffStacks(const TString & trk)
 	std::vector<TH1F*> hists(builds.size());
 	for (UInt_t b = 0; b < builds.size(); b++)
         {
-	  hists[b] = (TH1F*)files[b]->Get("kindiffs_cmssw/h_d"+diffs[p]+"_"+coll[o]+"_"+trk+"_pt"+Form("%3.1f",ptcuts[k]));
+	  hists[b] = (TH1F*)files[b]->Get("kindiffs"+TString(cmsswComp?"_cmssw":"")+"/h_d"+diffs[p]+"_"+coll[o]+"_"+trk+"_pt"+Form("%3.1f",ptcuts[k]));
 	  hists[b]->SetLineColor(builds[b].color);
 	  hists[b]->SetMarkerColor(builds[b].color);
 
@@ -201,5 +203,58 @@ void StackValidation::MakeCMSSWKinematicDiffStacks(const TString & trk)
 	delete canv;
       } // end pt cut loop
     } // end var loop
+  } // end coll loop
+}
+
+void StackValidation::MakeNHitsStacks(const TString & trk)
+{
+  // diffferent reco collections
+  std::vector<TString> coll = {"allreco","fake","allmatch","bestmatch"};
+
+  // indices for loops match PlotValidation.cpp
+  for (UInt_t o = 0; o < coll.size(); o++)
+  {
+    for (UInt_t k = 0; k < ptcuts.size(); k++)
+    {
+      const Bool_t isLogy = true;
+      TCanvas * canv = new TCanvas();
+      canv->cd();
+      canv->SetLogy(isLogy);
+      
+      TLegend * leg = new TLegend(0.85,y1,1.0,y2);
+      
+      // tmp min/max
+      Double_t min =  1e9;
+      Double_t max = -1e9;
+      
+      std::vector<TH1F*> hists(builds.size());
+      for (UInt_t b = 0; b < builds.size(); b++)
+      {
+	hists[b] = (TH1F*)files[b]->Get("nHits"+TString(cmsswComp?"_cmssw":"")+"/h_nHits_"+coll[o]+"_"+trk+"_pt"+Form("%3.1f",ptcuts[k]));
+	hists[b]->SetLineColor(builds[b].color);
+	hists[b]->SetMarkerColor(builds[b].color);
+	
+	hists[b]->Scale(1.f/hists[b]->Integral());
+	hists[b]->GetYaxis()->SetTitle("Fraction of Tracks");
+	  
+	GetMinMaxHist(hists[b],min,max);
+      }
+      
+      for (UInt_t b = 0; b < builds.size(); b++)
+      {
+	SetMinMaxHist(hists[b],min,max,isLogy);
+	hists[b]->Draw(b>0?"EP SAME":"EP");
+	
+	const TString mean = Form("%4.1f",hists[b]->GetMean());
+	leg->AddEntry(hists[b],builds[b].label+" "+" [#mu = "+mean+"]","LEP");
+      }
+      
+      leg->Draw("SAME");
+      canv->SaveAs(label+"_"+coll[o]+"_nHits_"+trk+"_pt"+Form("%3.1f",ptcuts[k])+extra+".png");
+      
+      delete leg;
+      for (auto & hist : hists) delete hist;
+      delete canv;
+    } // end pt cut loop
   } // end coll loop
 }

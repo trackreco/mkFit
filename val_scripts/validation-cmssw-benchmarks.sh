@@ -23,7 +23,8 @@ nevents=500
 maxth=64
 maxvu=16
 maxev=32
-exe="./mkFit/mkFit --cmssw-n2seeds --num-thr ${maxth} --num-thr-ev ${maxev} --input-file ${dir}/${subdir}/${file} --num-events ${nevents}"
+seeds="--cmssw-n2seeds"
+exe="./mkFit/mkFit --silent ${seeds} --num-thr ${maxth} --num-thr-ev ${maxev} --input-file ${dir}/${subdir}/${file} --num-events ${nevents}"
 
 ## Common output setup
 tmpdir="tmp"

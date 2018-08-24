@@ -58,6 +58,7 @@ void TTreeValidation::initializeEfficiencyTree()
   efftree_->Branch("mcID",&mcID_eff_);
 
   efftree_->Branch("nHits_mc",&nHits_mc_eff_);
+  efftree_->Branch("nLayers_mc",&nHits_mc_eff_);
   efftree_->Branch("lastlyr_mc",&lastlyr_mc_eff_);
 
   efftree_->Branch("seedID_seed",&seedID_seed_eff_);
@@ -253,6 +254,10 @@ void TTreeValidation::initializeFakeRateTree()
   frtree_->Branch("nHits_mc_seed",&nHits_mc_seed_FR_);
   frtree_->Branch("nHits_mc_build",&nHits_mc_build_FR_);
   frtree_->Branch("nHits_mc_fit",&nHits_mc_fit_FR_);
+
+  frtree_->Branch("nLayers_mc_seed",&nLayers_mc_seed_FR_);
+  frtree_->Branch("nLayers_mc_build",&nLayers_mc_build_FR_);
+  frtree_->Branch("nLayers_mc_fit",&nLayers_mc_fit_FR_);
 
   frtree_->Branch("lastlyr_mc_seed",&lastlyr_mc_seed_FR_);
   frtree_->Branch("lastlyr_mc_build",&lastlyr_mc_build_FR_);
@@ -1253,6 +1258,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     phi_mc_gen_eff_ = simtrack.momPhi();
     eta_mc_gen_eff_ = simtrack.momEta();
     nHits_mc_eff_   = simtrack.nFoundHits(); // could be that the sim track skips layers!
+    nLayers_mc_eff_ = simtrack.nUniqueLayers(false);
     lastlyr_mc_eff_ = simtrack.getLastFoundHitLyr();
 
     // hit indices
@@ -1647,7 +1653,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       }
 
       nHits_mc_seed_FR_   = simtrack.nFoundHits();
-
+      nLayers_mc_seed_FR_ = simtrack.nUniqueLayers(false);
       lastlyr_mc_seed_FR_ = simtrack.getLastFoundHitLyr();
 
       duplmask_seed_FR_   = seedextra.isDuplicate();
@@ -1664,6 +1670,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       helixchi2_seed_FR_ = -99;
       
       nHits_mc_seed_FR_ = -99;
+      nLayers_mc_seed_FR_ = -99;
       lastlyr_mc_seed_FR_ = -99;
 
       duplmask_seed_FR_   = -1;
@@ -1761,6 +1768,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	}
 
 	nHits_mc_build_FR_   = simtrack.nFoundHits();
+	nLayers_mc_build_FR_ = simtrack.nUniqueLayers(false);
 	lastlyr_mc_build_FR_ = simtrack.getLastFoundHitLyr();
 
 	duplmask_build_FR_   = buildextra.isDuplicate();
@@ -1777,6 +1785,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	helixchi2_build_FR_ = -99;
 
 	nHits_mc_build_FR_ = -99;
+	nLayers_mc_build_FR_ = -99;
 	lastlyr_mc_build_FR_ = -99;
 
 	duplmask_build_FR_   = -1;
@@ -1818,6 +1827,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       helixchi2_build_FR_ = -100;
 
       nHits_mc_build_FR_ = -100;
+      nLayers_mc_build_FR_ = -100;
       lastlyr_mc_build_FR_ = -100;
 
       duplmask_build_FR_   = -2;
@@ -1913,6 +1923,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	}
 
 	nHits_mc_fit_FR_   = simtrack.nFoundHits();
+	nLayers_mc_fit_FR_ = simtrack.nUniqueLayers(false);
 	lastlyr_mc_fit_FR_ = simtrack.getLastFoundHitLyr();
 
 	duplmask_fit_FR_   = fitextra.isDuplicate();
@@ -1929,6 +1940,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	helixchi2_fit_FR_ = -99;
 	
 	nHits_mc_fit_FR_ = -99;
+	nLayers_mc_fit_FR_ = -99;
 	lastlyr_mc_fit_FR_ = -99;
 
 	duplmask_fit_FR_   = -1;
@@ -1970,6 +1982,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       helixchi2_fit_FR_ = -100;
 
       nHits_mc_fit_FR_ = -100;
+      nLayers_mc_fit_FR_ = -100;
       lastlyr_mc_fit_FR_ = -100;
 
       duplmask_fit_FR_   = -2;

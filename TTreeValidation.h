@@ -116,7 +116,7 @@ public:
   // for efficiency and duplicate rate plots
   float x_mc_gen_eff_=0.,y_mc_gen_eff_=0.,z_mc_gen_eff_=0.;
   float pt_mc_gen_eff_=0.,phi_mc_gen_eff_=0.,eta_mc_gen_eff_=0.;
-  int   nHits_mc_eff_=0,lastlyr_mc_eff_=0;
+  int   nHits_mc_eff_=0,nLayers_mc_eff_=0,lastlyr_mc_eff_=0;
 
   // for getting last hit positions track ended up on
   float xhit_seed_eff_=0.,xhit_build_eff_=0.,xhit_fit_eff_=0.;
@@ -178,6 +178,7 @@ public:
   int   mcID_seed_FR_=0,mcID_build_FR_=0,mcID_fit_FR_=0;
   int   mcmask_seed_FR_=0,mcmask_build_FR_=0,mcmask_fit_FR_=0;
   int   nHits_mc_seed_FR_=0,nHits_mc_build_FR_=0,nHits_mc_fit_FR_=0;
+  int   nLayers_mc_seed_FR_=0,nLayers_mc_build_FR_=0,nLayers_mc_fit_FR_=0;
   int   lastlyr_mc_seed_FR_=0,lastlyr_mc_build_FR_=0,lastlyr_mc_fit_FR_=0;
 
   float helixchi2_seed_FR_=0.,helixchi2_build_FR_=0.,helixchi2_fit_FR_=0.;

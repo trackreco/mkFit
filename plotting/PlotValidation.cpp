@@ -1,4 +1,5 @@
 #include "PlotValidation.hh"
+#include "TVector2.h"
 
 PlotValidation::PlotValidation(const TString & inName, const TString & outName, const Bool_t cmsswComp,
 			       const Bool_t mvInput, const Bool_t saveAs, const TString & outType)
@@ -33,7 +34,7 @@ void PlotValidation::Validation()
   std::cout << "Computing Efficiency, Inefficiency, and Duplicate Rate ..." << std::endl;
   PlotValidation::PlotEffTree();
   
-  std::cout << "Computing Fake Rate and <nHits/track>" << (fCmsswComp?" as well as kinematic diffs to CMSSW":"") << " ..." << std::endl;
+  std::cout << "Computing Fake Rate, <nHits/track>, and kinematic diffs to " << (fCmsswComp?"CMSSW":"Sim") << " tracks ..." << std::endl;
   PlotValidation::PlotFRTree();
   
   std::cout << "Printing Totals ..." << std::endl;
@@ -93,7 +94,7 @@ void PlotValidation::PlotEffTree()
 	  // plot names and key
 	  const TString plotkey   = Form("%i_%i_%i_%i",i,j,k,l);
 	  const TString plotname  = Form("%s_",fCmsswComp?"cmssw":"sim")+vars[i]+"_"+trks[j]+"_pt"+sptcuts[k];
-	  const TString plottitle = strks[j]+" Track "+srates[l]+" vs "+(fCmsswComp?"CMSSW":"MC")+" "+svars[i]+" [p_{T} > "+sptcuts[k] +" GeV/c];"+svars[i]+sunits[i]+";"+srates[l];
+	  const TString plottitle = strks[j]+" Track "+srates[l]+" vs "+(fCmsswComp?"CMSSW":"Sim")+" "+svars[i]+" [p_{T} > "+sptcuts[k] +" GeV/c];"+svars[i]+sunits[i]+";"+srates[l];
 
 	  // eff and dr not split by region
 	  if (l < 2)
@@ -107,7 +108,7 @@ void PlotValidation::PlotEffTree()
 	    {
 	      const TString tmpkey   = Form("%s_%i",plotkey.Data(),m);
 	      const TString tmpname  = rates[l]+"_"+regs[m]+"_"+plotname;
-	      const TString tmptitle = strks[j]+" Track "+srates[l]+" vs "+(fCmsswComp?"CMSSW":"MC")+" "+svars[i]+" [p_{T} > "+sptcuts[k] +" GeV/c, "+sregs[m]+"];"+svars[i]+sunits[i]+";"+srates[l];
+	      const TString tmptitle = strks[j]+" Track "+srates[l]+" vs "+(fCmsswComp?"CMSSW":"Sim")+" "+svars[i]+" [p_{T} > "+sptcuts[k] +" GeV/c, "+sregs[m]+"];"+svars[i]+sunits[i]+";"+srates[l];
 
 	      plots[tmpkey] = new TEfficiency(tmpname.Data(),tmptitle.Data(),varbins[i].size()-1,bins);
 	    } // end loop over regions
@@ -334,27 +335,24 @@ void PlotValidation::PlotFRTree()
 	} // end loop over tracks collections
       } // end loop over hit plots
       
-      // initialize diff to cmssw plots
-      if (fCmsswComp)
+      // initialize diff plots
+      for (UInt_t p = 0; p < dvars.size(); p++) // loop over hits vars
       {
-	for (UInt_t p = 0; p < dvars.size(); p++) // loop over hits vars
-        {
-	  // get bins for the variable of interest
-	  const Double_t * bins = &dvarbins[p][0];
-	  for (UInt_t o = 2; o < coll.size(); o++) // loop over collection of tracks for only matched tracks
-	  {
-	    // plot names and key
-	    const TString histkey   = Form("%i_%i_d_%i_%i",j,k,p,o);
-	    const TString histname  = "h_"+dvars[p]+"_"+coll[o]+"_"+trks[j]+"_pt"+sptcuts[k];
-	    const TString histtitle = "#Delta"+sdvars[p]+"("+scoll[o]+" "+strks[j]+",CMSSW) [p_{T} > "+sptcuts[k]+" GeV/c];"+sdvars[p]+"^{"+scoll[o]+" "+strks[j]+"}-"+sdvars[p]+"^{CMSSW};nTracks";
+	// get bins for the variable of interest
+	const Double_t * bins = &dvarbins[p][0];
+	for (UInt_t o = 2; o < coll.size(); o++) // loop over collection of tracks for only matched tracks
+	{
+	  // plot names and key
+	  const TString histkey   = Form("%i_%i_d_%i_%i",j,k,p,o);
+	  const TString histname  = "h_"+dvars[p]+"_"+coll[o]+"_"+trks[j]+"_pt"+sptcuts[k];
+	  const TString histtitle = "#Delta"+sdvars[p]+"("+scoll[o]+" "+strks[j]+","+TString(fCmsswComp?"CMSSW":"Sim")+") [p_{T} > "+sptcuts[k]+" GeV/c];"+sdvars[p]+"^{"+scoll[o]+" "+strks[j]+"}-"+sdvars[p]+"^{CMSSW};nTracks";
 	    
-	    // Numerator only type plots only!
-	    hists[histkey] = new TH1F(histname.Data(),histtitle.Data(),dvarbins[p].size()-1,bins);
-	    hists[histkey]->Sumw2();
-
-	  } // end loop over track collections
-	} // end loop over diff plots
-      } // end check over is cmssw comp
+	  // Numerator only type plots only!
+	  hists[histkey] = new TH1F(histname.Data(),histtitle.Data(),dvarbins[p].size()-1,bins);
+	  hists[histkey]->Sumw2();
+	  
+	} // end loop over track collections
+      } // end loop over diff plots
 
     } // end loop over pt cuts
   } // end loop over tracks
@@ -394,12 +392,14 @@ void PlotValidation::PlotFRTree()
   TBrRefVec fracHits_trk_br(trks.size()); // branch per track
 
   // Initialize diff branches
-  IntVec    nLayers_cms   (trks.size()); // cms nUnique layers
-  TBrRefVec nLayers_cms_br(trks.size()); 
-  FltVec    pt_cms        (trks.size()); // cmssw pt
-  TBrRefVec pt_cms_br     (trks.size()); 
-  FltVec    eta_cms       (trks.size()); // cmssw eta
-  TBrRefVec eta_cms_br    (trks.size());
+  IntVec    nLayers_ref   (trks.size()); // sim/cmssw nUnique layers
+  TBrRefVec nLayers_ref_br(trks.size()); 
+  FltVec    pt_ref        (trks.size()); // sim/cmssw pt
+  TBrRefVec pt_ref_br     (trks.size()); 
+  FltVec    eta_ref       (trks.size()); // cmssw eta
+  TBrRefVec eta_ref_br    (trks.size());
+  FltVec    phi_ref       (trks.size()); // sim track phi (do not store dphi in the same way as cmssw)
+  TBrRefVec phi_ref_br    (trks.size());
   FltVec    dphi_trk      (trks.size()); // dphi between reco track and cmssw (used in matching)
   TBrRefVec dphi_trk_br   (trks.size());
 
@@ -417,12 +417,14 @@ void PlotValidation::PlotFRTree()
     fracHits_trk_br[j] = 0;
 
     // initialize diff branches
-    nLayers_cms   [j] = 0;
-    nLayers_cms_br[j] = 0;
-    pt_cms        [j] = 0.f;
-    pt_cms_br     [j] = 0;
-    eta_cms       [j] = 0.f;
-    eta_cms_br    [j] = 0;
+    nLayers_ref   [j] = 0;
+    nLayers_ref_br[j] = 0;
+    pt_ref        [j] = 0.f;
+    pt_ref_br     [j] = 0;
+    eta_ref       [j] = 0.f;
+    eta_ref_br    [j] = 0;
+    phi_ref       [j] = 0.f;
+    phi_ref_br    [j] = 0;
     dphi_trk      [j] = 0.f;
     dphi_trk_br   [j] = 0;
 
@@ -433,12 +435,17 @@ void PlotValidation::PlotFRTree()
     frtree->SetBranchAddress(Form("nHits_%s",trks[j].Data()),&(nHits_trk[j]),&(nHits_trk_br[j]));
     frtree->SetBranchAddress(Form("fracHitsMatched_%s",trks[j].Data()),&(fracHits_trk[j]),&(fracHits_trk_br[j]));
     
+    frtree->SetBranchAddress(Form("nLayers_%s_%s",(fCmsswComp?"cmssw":"mc"),trks[j].Data()),&(nLayers_ref[j]),&(nLayers_ref_br[j]));
+    frtree->SetBranchAddress(Form("pt_%s_%s",(fCmsswComp?"cmssw":"mc"),trks[j].Data()),&(pt_ref[j]),&(pt_ref_br[j]));
+    frtree->SetBranchAddress(Form("eta_%s_%s",(fCmsswComp?"cmssw":"mc"),trks[j].Data()),&(eta_ref[j]),&(eta_ref_br[j]));
+
     if (fCmsswComp)
     {
-      frtree->SetBranchAddress(Form("nLayers_cmssw_%s",trks[j].Data()),&(nLayers_cms[j]),&(nLayers_cms_br[j]));
-      frtree->SetBranchAddress(Form("pt_cmssw_%s",trks[j].Data()),&(pt_cms[j]),&(pt_cms_br[j]));
-      frtree->SetBranchAddress(Form("eta_cmssw_%s",trks[j].Data()),&(eta_cms[j]),&(eta_cms_br[j]));
       frtree->SetBranchAddress(Form("dphi_%s",trks[j].Data()),&(dphi_trk[j]),&(dphi_trk_br[j]));
+    }
+    else
+    {
+      frtree->SetBranchAddress(Form("phi_mc_%s",trks[j].Data()),&(phi_ref[j]),&(phi_ref_br[j]));
     }
   }
 
@@ -465,12 +472,17 @@ void PlotValidation::PlotFRTree()
       nHits_trk_br   [j]->GetEntry(e);
       fracHits_trk_br[j]->GetEntry(e);
 
+      nLayers_ref_br[j]->GetEntry(e);
+      pt_ref_br     [j]->GetEntry(e);
+      eta_ref_br    [j]->GetEntry(e);
+      
       if (fCmsswComp)
       {
-	nLayers_cms_br[j]->GetEntry(e);
-	pt_cms_br     [j]->GetEntry(e);
-	eta_cms_br    [j]->GetEntry(e);
-	dphi_trk_br   [j]->GetEntry(e);
+	dphi_trk_br [j]->GetEntry(e);
+      }
+      else
+      {
+	phi_ref_br  [j]->GetEntry(e);
       }
     }
 
@@ -517,26 +529,37 @@ void PlotValidation::PlotFRTree()
 	  hists[Form("%s_2",nhitkey.Data())]->Fill(nHits_trk[j]);
 	  hists[Form("%s_2",frackey.Data())]->Fill(fracHits_trk[j]);
 
+	  hists[Form("%s_2",dnhitkey .Data())]->Fill(nHits_trk[j]-nLayers_ref[j]);
+	  hists[Form("%s_2",dinvptkey.Data())]->Fill(1.f/recovars_val[0][j]-1.f/pt_ref[j]);
+	  hists[Form("%s_2",detakey  .Data())]->Fill(recovars_val[1][j]-eta_ref[j]);
+
 	  if (fCmsswComp)
 	  {
-	    hists[Form("%s_2",dnhitkey .Data())]->Fill(nHits_trk[j]-nLayers_cms[j]);
-	    hists[Form("%s_2",dinvptkey.Data())]->Fill(1.f/recovars_val[0][j]-1.f/pt_cms[j]);
-	    hists[Form("%s_2",detakey  .Data())]->Fill(recovars_val[1][j]-eta_cms[j]);
-	    hists[Form("%s_2",dphikey  .Data())]->Fill(dphi_trk[j]);
-	  } // end check over is cmssw comp
+	    hists[Form("%s_2",dphikey.Data())]->Fill(dphi_trk[j]);
+	  }
+	  else
+	  {
+	    hists[Form("%s_2",dphikey.Data())]->Fill(TVector2::Phi_mpi_pi(recovars_val[2][j]-phi_ref[j])); // phi-wrapping
+	  }
 
 	  if (iTkMatches_trk[j] == 0) // best matches only
 	  {
 	    hists[Form("%s_3",nhitkey.Data())]->Fill(nHits_trk[j]);
 	    hists[Form("%s_3",frackey.Data())]->Fill(fracHits_trk[j]);
 	    
+	    hists[Form("%s_3",dnhitkey .Data())]->Fill(nHits_trk[j]-nLayers_ref[j]);
+	    hists[Form("%s_3",dinvptkey.Data())]->Fill(1.f/recovars_val[0][j]-1.f/pt_ref[j]);
+	    hists[Form("%s_3",detakey  .Data())]->Fill(recovars_val[1][j]-eta_ref[j]);
+	    
 	    if (fCmsswComp)
 	    {
-	      hists[Form("%s_3",dnhitkey .Data())]->Fill(nHits_trk[j]-nLayers_cms[j]);
-	      hists[Form("%s_3",dinvptkey.Data())]->Fill(1.f/recovars_val[0][j]-1.f/pt_cms[j]);
-	      hists[Form("%s_3",detakey  .Data())]->Fill(recovars_val[1][j]-eta_cms[j]);
-	      hists[Form("%s_3",dphikey  .Data())]->Fill(dphi_trk[j]);
-	    } // end check over is cmssw comp
+	      hists[Form("%s_3",dphikey.Data())]->Fill(dphi_trk[j]);
+	    }
+	    else
+	    {
+	      hists[Form("%s_3",dphikey.Data())]->Fill(TVector2::Phi_mpi_pi(recovars_val[2][j]-phi_ref[j])); // phi-wrapping
+	    }
+
 	  } // end check over best matches
 	} // end check over all matches
 
@@ -549,12 +572,8 @@ void PlotValidation::PlotFRTree()
   /////////////////
 
   // make subdirs
-  TStrVec dirnames = {"fakerate","nHits"};
-  if (fCmsswComp) 
-  {
-    dirnames.emplace_back("kindiffs");
-    for (auto & dirname : dirnames) dirname += "_cmssw";
-  }
+  TStrVec dirnames = {"fakerate","nHits","kindiffs"};
+  if (fCmsswComp) for (auto & dirname : dirnames) dirname += "_cmssw";
 
   TDirRefVec subdirs(dirnames.size());
   for (UInt_t q = 0; q < subdirs.size(); q++) subdirs[q] = PlotValidation::MakeSubDirs(dirnames[q]);
@@ -568,8 +587,9 @@ void PlotValidation::PlotFRTree()
       // fake rate plots
       for (UInt_t i = 0; i < vars.size(); i++) // loop over vars
       {
+	const Int_t diridx = 0;
 	const TString plotkey = Form("%i_%i_%i",i,j,k);
-	PlotValidation::DrawWriteSavePlot(plots[plotkey],subdirs[0],dirnames[0],"AP");
+	PlotValidation::DrawWriteSavePlot(plots[plotkey],subdirs[diridx],dirnames[diridx],"AP");
 	delete plots[plotkey];
       }
 
@@ -578,25 +598,24 @@ void PlotValidation::PlotFRTree()
       {
 	for (UInt_t o = 0; o < coll.size(); o++) // loop over collection of tracks 
 	{
+	  const Int_t diridx = 1;
 	  const TString histkey = Form("%i_%i_%i_%i",j,k,n,o);
-	  PlotValidation::DrawWriteSavePlot(hists[histkey],subdirs[1],dirnames[1],"");
+	  PlotValidation::DrawWriteSavePlot(hists[histkey],subdirs[diridx],dirnames[diridx],"");
 	  delete hists[histkey];
 	} // end loop over track collections
       } // end loop over hit vars
     
-      // cmssw plots
-      if (fCmsswComp)
+      // kinematic diff plots
+      for (UInt_t p = 0; p < dvars.size(); p++) // loop over hits vars
       {
-	for (UInt_t p = 0; p < dvars.size(); p++) // loop over hits vars
-        {
-	  for (UInt_t o = 2; o < coll.size(); o++) // loop over collection of tracks for only matched tracks
-	  {
-	    const TString histkey = Form("%i_%i_d_%i_%i",j,k,p,o);
-	    PlotValidation::DrawWriteSavePlot(hists[histkey],subdirs[2],dirnames[2],"");
-	    delete hists[histkey];
-	  } // end loop over track collections
-	} // end loop over diff plots
-      } // end check over is cmssw comp
+	for (UInt_t o = 2; o < coll.size(); o++) // loop over collection of tracks for only matched tracks
+	{
+	  const Int_t diridx = 2;
+	  const TString histkey = Form("%i_%i_d_%i_%i",j,k,p,o);
+	  PlotValidation::DrawWriteSavePlot(hists[histkey],subdirs[diridx],dirnames[diridx],"");
+	  delete hists[histkey];
+	} // end loop over track collections
+      } // end loop over diff plots
 
     } // end loop over pt cuts
   } // end loop over tracks
@@ -604,7 +623,7 @@ void PlotValidation::PlotFRTree()
   // delete fake rate tree
   delete frtree;
 }
-  
+
 void PlotValidation::PrintTotals()
 {
   ///////////////////////////////////////////////
@@ -690,12 +709,12 @@ void PlotValidation::PrintTotals()
   std::ofstream totalsout(outfilename.Data());
 
   std::cout << "--------Track Reconstruction Summary--------" << std::endl;
-  std::cout << "nEvents: " << Nevents << Form(" n%sTracks/evt: ",(fCmsswComp?"CMSSW":"MC"))  << ntkspevMC << " nRecoTracks/evt: "  << ntkspevReco << std::endl;
+  std::cout << "nEvents: " << Nevents << Form(" n%sTracks/evt: ",(fCmsswComp?"CMSSW":"Sim"))  << ntkspevMC << " nRecoTracks/evt: "  << ntkspevReco << std::endl;
   std::cout << "++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
   std::cout << std::endl;
 
   totalsout << "--------Track Reconstruction Summary--------" << std::endl;
-  totalsout << "nEvents: " << Nevents << Form(" n%sTracks/evt: ",(fCmsswComp?"CMSSW":"MC"))  << ntkspevMC << " nRecoTracks/evt: "  << ntkspevReco << std::endl;
+  totalsout << "nEvents: " << Nevents << Form(" n%sTracks/evt: ",(fCmsswComp?"CMSSW":"Sim"))  << ntkspevMC << " nRecoTracks/evt: "  << ntkspevReco << std::endl;
   totalsout << "++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
   totalsout << std::endl;
 
@@ -867,21 +886,17 @@ void PlotValidation::SetupBins()
   // fraction hits matched bins
   PlotValidation::SetupFixedBins(110,0,1.1,fFracHitsBins);
 
-  // diff bins
-  if (fCmsswComp)
-  {
-    // dNhits
-    PlotValidation::SetupFixedBins(30,-15,15,fDNHitsBins);
-
-    // dinvpt
-    PlotValidation::SetupFixedBins(45,-0.5,0.5,fDInvPtBins);
-
-    // dphi
-    PlotValidation::SetupFixedBins(45,0,0.1,fDPhiBins);
-
-    // deta
-    PlotValidation::SetupFixedBins(45,-0.1,0.1,fDEtaBins);
-  }
+  // dNhits
+  PlotValidation::SetupFixedBins(30,-15,15,fDNHitsBins);
+  
+  // dinvpt
+  PlotValidation::SetupFixedBins(45,-0.5,0.5,fDInvPtBins);
+  
+  // dphi
+  PlotValidation::SetupFixedBins(45,0,0.1,fDPhiBins);
+  
+  // deta
+  PlotValidation::SetupFixedBins(45,-0.1,0.1,fDEtaBins);
 }
 
 void PlotValidation::SetupVariableBins(const std::string & s_bins, DblVec & bins)
