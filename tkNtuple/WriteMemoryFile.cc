@@ -13,8 +13,6 @@ constexpr bool useMatched = false;
 constexpr int cleanSimTrack_minSimHits = 3;
 constexpr int cleanSimTrack_minRecHits = 2;
 
-constexpr int cutValueCCC = 1620; //Nominal value (from first iteration of CMSSW) is 1620
-
 //check if this is the same as in the release
 enum class HitType {
   Pixel = 0,
@@ -57,6 +55,17 @@ void next_arg_or_die(lStr_t& args, lStr_i& i)
   i = j;
 }
 
+bool next_arg_option(lStr_t& args, lStr_i& i)
+{
+  lStr_i j = i;
+  if (++j == args.end() || ((*j)[0] == '-' ))
+    {
+      return false;
+    }
+  i = j;
+  return true;
+}
+
 void printHelp(const char* av0){
   printf(
 	 "Usage: %s [options]\n"
@@ -86,6 +95,8 @@ int main(int argc, char *argv[])
 
   int verbosity = 0;
   long long maxevt = -1;
+
+  int cutValueCCC = 1620; //Nominal value (from first iteration of CMSSW) is 1620 
 
   lStr_t mArgs;
   for (int i = 1; i < argc; ++i)
@@ -139,6 +150,10 @@ int main(int argc, char *argv[])
       else if (*i == "--apply-ccc")
         {
           applyCCC = true;
+	  if( next_arg_option(mArgs, i))
+	    {
+	      cutValueCCC = std::atoi(i->c_str());
+	    }
         }
       else
 	{

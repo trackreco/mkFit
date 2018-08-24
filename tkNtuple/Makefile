@@ -51,7 +51,7 @@ DictsDict.cc: DictsLinkDef.h
 	rootcint -v3 -f $@ -c -p $<
 
 writeMemoryFile: ${OBJS} DictsDict.o
-	${CXX} ${CXXFLAGS} ${LDFLAGS} $^ -L.. -lMicCore -Wl,-rpath=..,-rpath=. -o $@
+	${CXX} ${CXXFLAGS} ${LDFLAGS} $^ -L.. -lMicCore -Wl,-rpath=..,-rpath=.,-rpath=../lib -o $@
 
 %.o: %.cc
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} -c -o $@ $<
