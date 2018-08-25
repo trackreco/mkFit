@@ -128,6 +128,7 @@ public:
   // Testing bin filling
   static constexpr float m_fphi     = Config::m_nphi / Config::TwoPI;
   static constexpr int   m_phi_mask = 0x3ff;
+  static constexpr int   m_phi_bits = 10;
 
 protected:
 
