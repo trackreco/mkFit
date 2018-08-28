@@ -161,10 +161,12 @@ It should be mentioned that each of these scripts within ```./xeon_scripts/runBe
 After running the full suite, there is an additional set of scripts within the ```web/``` directory for organizing the output plots and text files for viewing them on the web.  The main script is:
 
 ```
-./web/move-benchmark.sh ${outdir_name} ${suite}
+./web/move-benchmark.sh ${outdir_name} ${suite} ${afs_or_eos}
 ```
 
-where again, ```${suite}``` defaults to ```forPR```. ```${outdir_name}``` will be the top-level directory where the output is collected and eventually shipped to LXPLUS. This will call ```./web/collectBenchmarks.sh ${outdir_name} ${suite}```, which will sort the files, and then ```./web/tarAndSendToLXPLUS.sh ${outdir_name} ${suite}```, which  packs up the top-level output dir and copies it to an /afs userspace on LXPLUS. This will also run another script remotely to copy ```web/index.php``` into each directory to have a nice web GUI for the plots. Make sure to read the ```web/README_WEBPLOTS.txt``` first to setup an /afs web directory. 
+where again, ```${suite}``` defaults to ```forPR```. ```${outdir_name}``` will be the top-level directory where the output is collected and eventually shipped to LXPLUS. This will call ```./web/collectBenchmarks.sh ${outdir_name} ${suite}```, which will sort the files, and then ```./web/tarAndSendToLXPLUS.sh ${outdir_name} ${suite} ${afs_or_eos}```, which  packs up the top-level output dir and copies it to either an /afs or /eos userspace on LXPLUS. This will also run another script remotely to copy ```web/index.php``` into each directory to have a nice web GUI for the plots. Make sure to read the ```web/README_WEBPLOTS.txt``` first to setup an /afs or /eos web directory. 
+
+The option ```${afs_or_eos}``` takes either of the following arguments: ```afs``` or ```eos```, and defaults to ```afs```. The mapping of usernames to /afs or /eos spaces is in ```./xeon_scripts/common_variables.sh```. If an incorrect string is passed, the script will exit. 
 
 **IMPORTANT DISCLAIMER**
 
@@ -172,7 +174,7 @@ There is a script: ```./xeon_scripts/trashSKL-SP.sh``` that is run at the very e
 
 **FINAL WORD ON AFS**
 
-AFS is being phased out at CERN... so at some point we will have to update our scripts to point to /eos spaces for web directories... a problem for another day.  However, if you have your own website you want to post plots to, then feel free to use ```./web/collect-benchmarks.sh``` to tidy up the plots into neat directories, and then send them where you want.
+AFS is being phased out at CERN. The web scripts currently accomodate both options. However, if you have your own website you want to post plots to, then feel free to use ```./web/collect-benchmarks.sh``` to tidy up the plots into neat directories, and then send them where you want.
 
 ## Section 6: Submit an issue
 
@@ -277,7 +279,7 @@ Given that this is a living repository, the comments in the code may not always 
 - afer compiling the code, do: ```./mkFit/mkFit --help``` : Describes the full list of command line options, inputs, and defaults when running mkFit. The list can also be seen in the code in mkFit/mkFit.cc, although the defaults are hidden behind Config.[h,cc], as well as mkFit.cc.
 - cmssw-trackerinfo-desc.txt : Describes the structure of the CMS Phase-I geometry as represented within this repo.
 - validation-desc.txt : The validation manifesto: (somewhat) up-to-date description of the full physics validation suite. It is complemented by a somewhat out-of-date code flow diagram, found here: https://indico.cern.ch/event/656884/contributions/2676532/attachments/1513662/2363067/validation_flow_diagram-v4.pdf
-- web/README_WEBPLOTS.txt : A short text file on how to setup a website with an AFS directory.
+- web/README_WEBPLOTS.txt : A short text file on how to setup a website with an AFS or EOS directory on LXPLUS.
 
 ## Section 9: Other useful links and information
 
