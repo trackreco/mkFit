@@ -1,8 +1,8 @@
 #! /bin/bash
 
 ## In the case this is run separately from main script
-[ -z "$ROOTSYS" ] && source /cvmfs/cms.cern.ch/slc7_amd64_gcc630/lcg/root/6.12.07-gnimlf/etc/profile.d/init.sh
-source xeon_scripts/common_variables.sh
+source xeon_scripts/common-variables.sh
+source xeon_scripts/init-env.sh
 
 ## Common setup
 dir=/data2/slava77/samples/2017/pass-4874f28/initialStep

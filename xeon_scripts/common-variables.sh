@@ -9,8 +9,8 @@ export KNL_WORKDIR=/data1/work/${USER}
 export KNL_TEMPDIR=tmp
 
 # vars for SNB
-export SNB_HOST=${USER}@phiphi.t2.ucsd.edu
-export SNB_WORKDIR=/data/nfsmic/${USER}
+export SNB_HOST=${USER}@phi1.t2.ucsd.edu
+export SNB_WORKDIR=/data2/nfsmic/${USER}
 export SNB_TEMPDIR=tmp
 
 # vars for LXPLUS

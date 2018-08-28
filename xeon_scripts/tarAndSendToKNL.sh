@@ -1,7 +1,8 @@
 #! /bin/bash
 
 # in case this is sent separately
-source xeon_scripts/common_variables.sh
+source xeon_scripts/common-variables.sh
+source xeon_scripts/init-env.sh
 
 # tar up the directory
 echo "Tarring directory for KNL... make sure it is clean!"

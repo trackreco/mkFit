@@ -1,10 +1,11 @@
 #! /bin/bash
 
 ## SNB, KNL, SKL-SP
-arch=${1}
+ben_arch=${1}
 
 ## In the case this is run separately from main script
-source xeon_scripts/common_variables.sh
+source xeon_scripts/common-variables.sh
+source xeon_scripts/init-env.sh
 
 ## Common setup
 subdir=2017/pass-4874f28/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/a/
@@ -16,33 +17,33 @@ dump=DumpForPlots
 seeds="--cmssw-n2seeds"
 
 ## Platform specific settings
-if [ ${arch} == "SNB" ]
+if [ ${ben_arch} == "SNB" ]
 then
     mOpt="-j 12"
-    dir=/data/nfsmic/slava77/samples
-    base=${arch}_${sample}
+    dir=/data2/nfsmic/slava77/samples
+    base=${ben_arch}_${sample}
     maxth=24
     maxvu=8
     exe="./mkFit/mkFit ${seeds} --input-file ${dir}/${subdir}/${file}"
     declare -a nths=("1" "2" "4" "6" "8" "12" "16" "20" "24")
     declare -a nvus=("1" "2" "4" "8")
     declare -a nevs=("1" "2" "4" "8" "12")
-elif [ ${arch} == "KNL" ]
+elif [ ${ben_arch} == "KNL" ]
 then
     mOpt="-j 64 AVX_512:=1"
     dir=/data1/work/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000
-    base=${arch}_${sample}
+    base=${ben_arch}_${sample}
     maxth=256
     maxvu=16
     exe="./mkFit/mkFit ${seeds} --input-file ${dir}/${subdir}/${file}"
     declare -a nths=("1" "2" "4" "8" "16" "32" "64" "96" "128" "160" "192" "224" "256")
     declare -a nvus=("1" "2" "4" "8" "16")
     declare -a nevs=("1" "2" "4" "8" "16" "32" "64" "128")
-elif [ ${arch} == "SKL-SP" ]
+elif [ ${ben_arch} == "SKL-SP" ]
 then
     mOpt="-j 32 AVX_512:=1"
     dir=/data2/slava77/samples
-    base=${arch}_${sample}
+    base=${ben_arch}_${sample}
     maxth=64
     maxvu=16
     exe="./mkFit/mkFit ${seeds} --input-file ${dir}/${subdir}/${file}"
@@ -50,7 +51,7 @@ then
     declare -a nvus=("1" "2" "4" "8" "16")
     declare -a nevs=("1" "2" "4" "8" "16" "32" "64")
 else 
-    echo ${arch} "is not a valid architecture! Exiting..."
+    echo ${ben_arch} "is not a valid architecture! Exiting..."
     exit
 fi
 
