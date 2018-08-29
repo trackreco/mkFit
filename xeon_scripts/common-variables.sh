@@ -60,48 +60,62 @@ meif_builds=() ## for multiple-events-in-flight tests
 text_builds=() ## for text dump comparison tests
 
 # loop over ben_builds and set dependent arrays, export when done
-for build in "${ben_builds[@]}"
+for ben_build in "${ben_builds[@]}"
 do
     # set th builds : all benchmarks!
-    th_builds+=("${build}")
+    th_builds+=("${ben_build}")
     
     # set vu builds : exclude FV since it does not have a meaningful implementation outside of max VU
-    if [[ "${build}" != "FV" ]]
+    if [[ "${ben_build}" != "FV" ]]
     then
-	vu_builds+=("${build}")
+	vu_builds+=("${ben_build}")
     fi
     
     # set meif builds : only do CE and FV
-    if [[ "${build}" == "CE" ]] || [[ "${build}" == "FV" ]]
+    if [[ "${ben_build}" == "CE" ]] || [[ "${ben_build}" == "FV" ]]
     then
-	meif_builds+=("${build}")
+	meif_builds+=("${ben_build}")
     fi
 done
+export ben_builds val_builds th_builds vu_builds meif_builds
 
-# set text dump builds: need builds matched in both TH and VU tests
-for th_build in "${th_builds[@]}"
-do 
-    for vu_build in "${vu_builds[@]}"
-    do
-	if [[ "${th_build}" == "${vu_build}" ]]
-	then
-	    text_builds+=("${th_build}")
-	fi
-    done
-done
-for vu_build in "${vu_builds[@]}"
-do 
+# th checking
+function CheckIfTH ()
+{
+    local build=${1}
+    local result="false"
+
     for th_build in "${th_builds[@]}"
-    do
-	if [[ "${vu_build}" == "${th_build}" ]]
+    do 
+	if [[ "${th_build}" == "${build}" ]]
 	then
-	    text_builds+=("${vu_build}")
+	    result="true"
+	    break
 	fi
     done
-done    
-text_builds=( $( for build in "${text_builds[@]}"; do echo "${build}"; done | sort | uniq | xargs ) )
+    
+    echo "${result}"
+}
+export -f CheckIfTH
 
-export ben_builds val_builds th_builds vu_builds meif_builds text_builds
+# vu checking
+function CheckIfVU ()
+{
+    local build=${1}
+    local result="false"
+
+    for vu_build in "${vu_builds[@]}"
+    do 
+	if [[ "${vu_build}" == "${build}" ]]
+	then
+	    result="true"
+	    break
+	fi
+    done
+    
+    echo "${result}"
+}
+export -f CheckIfVU
 
 # meif checking
 function CheckIfMEIF ()
@@ -121,6 +135,20 @@ function CheckIfMEIF ()
     echo "${result}"
 }
 export -f CheckIfMEIF
+
+# set text dump builds: need builds matched in both TH and VU tests
+for ben_build in "${ben_builds[@]}"
+do 
+    check_th=$( CheckIfTH ${ben_build} )
+    check_vu=$( CheckIfVU ${ben_build} )
+
+    if [[ "${check_th}" == "true" ]] && [[ "${check_vu}" == "true" ]]
+    then
+	text_builds+=("${ben_build}")
+    fi
+done
+
+export text_builds
 
 # text checking
 function CheckIfText ()

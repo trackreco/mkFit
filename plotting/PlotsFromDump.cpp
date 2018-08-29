@@ -13,7 +13,7 @@ PlotsFromDump::PlotsFromDump(const TString & sample, const TString & build, cons
   setupBuilds(true,false);
 
   // get the right build label
-  label = std::find_if(builds.begin(),builds.end(),[&](const auto & ibuild){return build.EqualTo(ibuild);})->label;
+  label = std::find_if(builds.begin(),builds.end(),[&](const auto & ibuild){return build.EqualTo(ibuild.name);})->label;
   if (label == "")
   {
     std::cerr << build.Data() << " build routine not specified in list of builds! Exiting..." << std::endl;

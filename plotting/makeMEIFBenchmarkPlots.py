@@ -41,7 +41,7 @@ yval0 = array.array('d',[0])
 
 # time    
 for evval in evvals :
-    print arch,sample,build,"nEV: ",evval
+    print arch,sample,build,"nEV:",evval
     
     # define event float
     ev = float(evval)

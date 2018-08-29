@@ -539,7 +539,8 @@ void PlotValidation::PlotFRTree()
 	  }
 	  else
 	  {
-	    hists[Form("%s_2",dphikey.Data())]->Fill(TVector2::Phi_mpi_pi(recovars_val[2][j]-phi_ref[j])); // phi-wrapping
+	    const Float_t dphi = recovars_val[2][j]-phi_ref[j];
+	    if (!std::isnan(dphi)) hists[Form("%s_2",dphikey.Data())]->Fill(TVector2::Phi_mpi_pi(dphi)); // phi-wrapping and make sure it is not a NaN
 	  }
 
 	  if (iTkMatches_trk[j] == 0) // best matches only
@@ -557,7 +558,8 @@ void PlotValidation::PlotFRTree()
 	    }
 	    else
 	    {
-	      hists[Form("%s_3",dphikey.Data())]->Fill(TVector2::Phi_mpi_pi(recovars_val[2][j]-phi_ref[j])); // phi-wrapping
+	      const Float_t dphi = recovars_val[2][j]-phi_ref[j];
+	      if (!std::isnan(dphi)) hists[Form("%s_3",dphikey.Data())]->Fill(TVector2::Phi_mpi_pi(dphi)); // phi-wrapping and make sure it is not a NaN
 	    }
 
 	  } // end check over best matches
@@ -881,19 +883,19 @@ void PlotValidation::SetupBins()
   PlotValidation::SetupFixedBins(70,-3.5,3.5,fPhiBins);
 
   // nHits bins
-  PlotValidation::SetupFixedBins(30,0,30,fNHitsBins);
+  PlotValidation::SetupFixedBins(40,0,40,fNHitsBins);
 
   // fraction hits matched bins
   PlotValidation::SetupFixedBins(110,0,1.1,fFracHitsBins);
 
   // dNhits
-  PlotValidation::SetupFixedBins(30,-15,15,fDNHitsBins);
+  PlotValidation::SetupFixedBins(40,-20,20,fDNHitsBins);
   
   // dinvpt
-  PlotValidation::SetupFixedBins(45,-0.5,0.5,fDInvPtBins);
+  PlotValidation::SetupFixedBins(45,-1.0,1.0,fDInvPtBins);
   
   // dphi
-  PlotValidation::SetupFixedBins(45,0,0.1,fDPhiBins);
+  PlotValidation::SetupFixedBins(45,-0.1,0.1,fDPhiBins);
   
   // deta
   PlotValidation::SetupFixedBins(45,-0.1,0.1,fDEtaBins);

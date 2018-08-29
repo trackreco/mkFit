@@ -95,7 +95,7 @@ mkdir -p ${tmpdir}
 ## Special simtrack validation vs cmssw tracks
 echo ${CMSSW} | while read -r bN bO vN vO
 do
-    doVal ${bN} ${bO} ${vN} ${vO}
+    doVal "${bN}" "${bO}" "${vN}" "${vO}"
 done
 
 ## Run validation for standard build options
@@ -105,7 +105,7 @@ do echo ${!val} | while read -r vN vO
 	for build in "${val_builds[@]}"
 	do echo ${!build} | while read -r bN bO
 	    do
-		doVal ${bN} ${bO} ${vN} ${vO}
+		doVal "${bN}" "${bO}" "${vN}" "${vO}"
 	    done
 	done
     done
@@ -125,7 +125,7 @@ do echo ${!plot} | while read -r pN pO
 	then
 	    echo ${CMSSW} | while read -r bN bO val_extras
 	    do
-		plotVal ${base} ${bN} ${pN} ${pO}
+		plotVal "${base}" "${bN}" "${pN}" "${pO}"
 	    done
 	fi
 
@@ -133,7 +133,7 @@ do echo ${!plot} | while read -r pN pO
 	for build in "${val_builds[@]}"
 	do echo ${!build} | while read -r bN bO
 	    do
-		plotVal ${base} ${bN} ${pN} ${pO}
+		plotVal "${base}" "${bN}" "${pN}" "${pO}"
 	    done
 	done
 	

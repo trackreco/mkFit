@@ -154,7 +154,6 @@ void PlotBenchmarks::GetGraphs(TGEVec & graphs, const TString & text, const TStr
   {
     graphs[i] = (TGraphErrors*)file->Get("g_"+builds[i].name+"_"+text);
     if (graphs[i]) {
-      std::cout << Form("g_%s_%s",builds[i].name.Data(),text.Data()) << std::endl;
       graphs[i]->SetTitle(title+";"+xtitle+";"+ytitle);
 
       graphs[i]->SetLineWidth(2);

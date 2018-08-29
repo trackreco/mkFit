@@ -12,7 +12,7 @@ suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
 ###################
 
 ## Source environment and common variables
-source xeon_scripts/common_variables.sh ${suite}
+source xeon_scripts/common-variables.sh ${suite}
 source xeon_scripts/init-env.sh
 
 ## Platform specific settings
@@ -86,7 +86,7 @@ do
 	    ${bExe} --num-events ${nevents} >& log_${oBase}_NVU${maxvu}int_NTH${nth}.txt
 
 	    ## Multiple Events in Flight benchmark
-	    check_meif=$( CheckIfMeif ${build} )
+	    check_meif=$( CheckIfMEIF ${build} )
 	    if [[ "${check_meif}" == "true" ]]
 	    then
 		for nev in "${nevs[@]}"

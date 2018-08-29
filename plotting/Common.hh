@@ -207,7 +207,7 @@ namespace
     buildsMap["FV"] = {"FV",kMagenta,"Full Vector"};
     buildsMap["CMSSW"] = {"CMSSW",kBlack,"CMSSW"};
 
-    // KPM: Consult ./xeon_scripts/common_variables.sh to match routines to suite
+    // KPM: Consult ./xeon_scripts/common-variables.sh to match routines to suite
     if (SUITE == full)
     {
       builds.emplace_back(buildsMap["BH"]);

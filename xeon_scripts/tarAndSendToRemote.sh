@@ -11,7 +11,7 @@ suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
 ## Configuration ##
 ###################
 
-source xeon_scripts/common_variables.sh ${suite}
+source xeon_scripts/common-variables.sh ${suite}
 source xeon_scripts/init-env.sh
 
 # architecture dependent settings
@@ -50,7 +50,7 @@ scp ${repo} ${HOST}:${DIR}
 
 # unzip tarball remotely
 echo "Untarring repo on ${remote_arch} remotely"
-SSHO ${KNL_HOST} bash -c "'
+SSHO ${HOST} bash -c "'
 cd ${DIR}
 tar -zxvf ${repo}
 rm ${repo}

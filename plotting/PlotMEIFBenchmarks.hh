@@ -19,7 +19,7 @@ typedef std::vector<EventOpts> EOVec;
 namespace
 {
   EOVec events;
-  void setupEvents(const ArchEnum ARCH)
+  void setupEvents()
   {
     // N.B.: Consult ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh for matching MEIF to arch
 

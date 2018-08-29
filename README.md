@@ -166,7 +166,7 @@ After running the full suite, there is an additional set of scripts within the `
 
 where again, ```${suite}``` defaults to ```forPR```. ```${outdir_name}``` will be the top-level directory where the output is collected and eventually shipped to LXPLUS. This will call ```./web/collectBenchmarks.sh ${outdir_name} ${suite}```, which will sort the files, and then ```./web/tarAndSendToLXPLUS.sh ${outdir_name} ${suite} ${afs_or_eos}```, which  packs up the top-level output dir and copies it to either an /afs or /eos userspace on LXPLUS. This will also run another script remotely to copy ```web/index.php``` into each directory to have a nice web GUI for the plots. Make sure to read the ```web/README_WEBPLOTS.txt``` first to setup an /afs or /eos web directory. 
 
-The option ```${afs_or_eos}``` takes either of the following arguments: ```afs``` or ```eos```, and defaults to ```afs```. The mapping of usernames to /afs or /eos spaces is in ```./xeon_scripts/common_variables.sh```. If an incorrect string is passed, the script will exit. 
+The option ```${afs_or_eos}``` takes either of the following arguments: ```afs``` or ```eos```, and defaults to ```afs```. The mapping of usernames to /afs or /eos spaces is in ```./xeon_scripts/common-variables.sh```. If an incorrect string is passed, the script will exit. 
 
 **IMPORTANT DISCLAIMER**
 

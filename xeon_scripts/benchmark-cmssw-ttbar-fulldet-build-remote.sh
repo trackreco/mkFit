@@ -11,7 +11,7 @@ suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
 ## Configuration ##
 ###################
 
-source xeon_scripts/common_variables.sh ${suite}
+source xeon_scripts/common-variables.sh ${suite}
 source xeon_scripts/init-env.sh
 
 # architecture dependent settings
