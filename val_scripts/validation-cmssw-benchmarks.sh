@@ -31,7 +31,7 @@ tmpdir="tmp"
 base=${val_arch}_${sample}
 
 ## backward fit flag
-bkfit="--backward-fit --backward-fit-pca"
+bkfit="--backward-fit-pca"
 
 ## validation options: SIMVAL == sim tracks as reference, CMSSWVAL == cmssw tracks as reference
 SIMVAL="SIMVAL --sim-val ${bkfit}"

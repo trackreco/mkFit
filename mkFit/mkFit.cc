@@ -650,7 +650,7 @@ int main(int argc, const char *argv[])
 	"  --use-phiq-arr           use phi-Q arrays in select hit indices (def: %s)\n"
         "  --kludge-cms-hit-errors  make sure err(xy) > 15 mum, err(z) > 30 mum (def: %s)\n"
         "  --backward-fit           perform backward fit during building (def: %s)\n"
-        "  --backward-fit-pca       do the backward fit to point of closest approach, does not imply '--backward-fit' (def: %s)\n"
+        "  --include-pca            do the backward fit to point of closest approach, does not imply '--backward-fit' (def: %s)\n"
 	"\n----------------------------------------------------------------------------------------------------------\n\n"
 	"Validation options\n\n"
 	" **Text file based options\n"
@@ -671,6 +671,9 @@ int main(int argc, const char *argv[])
         "  --keep-hit-info          keep vectors of hit idxs and branches in trees (def: %s)\n"
 	"\n----------------------------------------------------------------------------------------------------------\n\n"
 	"Combo spaghetti, that's with cole slaw:\n\n"
+	" **Building and fitting combo options\n"
+	"  --backward-fit-pca       perform backward fit to point of closest approach during building\n"
+	"                             == --backward-fit --include-pca\n"
 	" **Seed combo options\n"
 	"  --cmssw-simseeds         use CMS geom with simtracks for seeds\n"
 	"                             == --geom CMS-2017 --seed-input %s\n"
@@ -687,18 +690,22 @@ int main(int argc, const char *argv[])
 	"  --cmssw-val-fhit-bhit    use CMSSW validation with hit based matching (50 percent after seed) for forward built tracks\n"
 	"                           use CMSSW validation with hit based matching (50 percent after seed) for backward fit tracks\n"
 	"                             == --cmssw-val --read-cmssw-tracks --cmssw-match-fw %s --cmssw-match-bk %s\n"
+	"                             must enable: --backward-fit-pca\n"
 	"  --cmssw-val-fhit-bprm    use CMSSW validation with hit based matching (50 percent after seed) for forward built tracks\n"
 	"                           use CMSSW validation with track parameter based matching for backward fit tracks\n"
 	"                             == --cmssw-val --read-cmssw-tracks --cmssw-match-fw %s --cmssw-match-bk %s\n"
+	"                             must enable: --backward-fit-pca\n"
 	"  --cmssw-val-fprm-bhit    use CMSSW validation with track parameter based matching for forward built tracks\n"
 	"                           use CMSSW validation with hit based matching (50 percent after seed) for backward fit tracks\n"
 	"                             == --cmssw-val --read-cmssw-tracks --cmssw-match-fw %s --cmssw-match-bk %s\n"
+	"                             must enable: --backward-fit-pca\n"
 	"  --cmssw-val-fprm-bprm    use CMSSW validation with track parameter based matching for forward built tracks\n"
 	"                           use CMSSW validation with track parameter based matching for backward fit tracks\n"
 	"                             == --cmssw-val --read-cmssw-tracks --cmssw-match-fw %s --cmssw-match-bk %s\n"
+	"                             must enable: --backward-fit-pca\n"
 	"  --cmssw-val-label        use CMSSW validation with stricter hit based matching for both forward built and backward fit tracks, enable read of CMSSW tracks\n"
 	"                             == --cmssw-val --read-cmssw-tracks --cmssw-match-fw %s --cmssw-match-bk %s\n"
-	"                             must enable: --cmssw-pureseeds --backward-fit --backward-fit-pca\n"
+	"                             must enable: --cmssw-pureseeds --backward-fit-pca\n"
 	"\n----------------------------------------------------------------------------------------------------------\n\n"
         "GPU specific options: \n\n"
         "  --num-thr-reorg <num>    number of threads to run the hits reorganization (def: %d)\n"
@@ -743,7 +750,7 @@ int main(int argc, const char *argv[])
 	b2a(Config::usePhiQArrays),
         b2a(Config::kludgeCmsHitErrors),
         b2a(Config::backwardFit),
-        b2a(Config::backwardFitPCA),
+        b2a(Config::includePCA),
 
         b2a(Config::quality_val),
         b2a(Config::dumpForPlots),
@@ -936,9 +943,9 @@ int main(int argc, const char *argv[])
     {
       Config::backwardFit = true;
     }
-    else if(*i == "--backward-fit-pca")
+    else if(*i == "--include-pca")
     {
-      Config::backwardFitPCA = true;
+      Config::includePCA = true;
     }
     else if (*i == "--quality-val")
     {
@@ -977,6 +984,11 @@ int main(int argc, const char *argv[])
     else if (*i == "--keep-hit-info")
     {
       Config::keepHitInfo = true;
+    }
+    else if (*i == "--backward-fit-pca")
+    {
+      Config::backwardFit = true;
+      Config::includePCA  = true;
     }
     else if (*i == "--cmssw-simseeds")
     {

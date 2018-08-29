@@ -21,11 +21,11 @@ namespace mkfit {
         break;
       case BackwardFit::toFirstLayer:
         Config::backwardFit = true;
-        Config::backwardFitPCA = false;
+        Config::includePCA = false;
         break;
       case BackwardFit::toPCA:
         Config::backwardFit = true;
-        Config::backwardFitPCA = true;
+        Config::includePCA = true;
         break;
       }
 

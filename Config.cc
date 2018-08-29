@@ -83,7 +83,7 @@ namespace Config
 
   bool  kludgeCmsHitErrors = false;
   bool  backwardFit = false;
-  bool  backwardFitPCA = false;
+  bool  includePCA = false;
 
   void RecalculateDependentConstants()
   {
