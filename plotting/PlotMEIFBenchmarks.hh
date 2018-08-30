@@ -19,6 +19,7 @@ typedef std::vector<EventOpts> EOVec;
 namespace
 {
   EOVec events;
+  UInt_t nevents;
   void setupEvents()
   {
     // N.B.: Consult ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh for matching MEIF to arch
@@ -38,6 +39,9 @@ namespace
     {
       events.emplace_back(128,kViolet-1);
     }
+
+    // set nevents once events is set
+    nevents = events.size();
   }
 };
 

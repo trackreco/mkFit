@@ -422,12 +422,16 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
     // store matched hit info
     nHitsMatched_ = mccount;
     fracHitsMatched_ = float(nHitsMatched_) / float(nCandHits);
+
+    // compute dPhi
+    dPhi_ = (mcTrackID >= 0 ? squashPhiGeneral(simtracks[mcTrackID].swimPhiToR(trk.x(),trk.y())-trk.momPhi()) : -99.f);
   }
   else
   {
     mcTrackID_ = mcTrackID; // defaults from -1!
-    nHitsMatched_ = 0;
-    fracHitsMatched_ = 0.f;
+    nHitsMatched_ = -99;
+    fracHitsMatched_ = -99.f;
+    dPhi_ = -99.f;
   }
 
   // Modify mcTrackID based on length of track (excluding seed tracks, of course) and findability
@@ -510,10 +514,10 @@ void TrackExtra::setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vec
     const auto & cmsswtrack = cmsswtracks[label];
 
     // get diff in track mom. phi: swim phi of cmssw track to reco track R if forward built tracks
-    const float diffPhi = std::abs(squashPhiGeneral((isBkFit?cmsswtrack.momPhi():cmsswtrack.swimPhiToR(trk.x(),trk.y()))-trk.momPhi()));
+    const float diffPhi = squashPhiGeneral((isBkFit?cmsswtrack.momPhi():cmsswtrack.swimPhiToR(trk.x(),trk.y()))-trk.momPhi());
 
     // check for best matched track by phi
-    if (diffPhi < bestdPhi) 
+    if (std::abs(diffPhi) < std::abs(bestdPhi))
     {
       const HitLayerMap & hitLayerMap = redcmsswtracks[label].hitLayerMap();
       int matched = 0;
@@ -693,12 +697,12 @@ void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMa
     
     // set chi2 and dphi
     helixChi2_ = std::abs(computeHelixChi2(redcmsswtracks[cmsswTrackID].parameters(),trkParamsR,trkErrsR,false));
-    dPhi_ = std::abs(squashPhiGeneral(cmsswtracks[cmsswTrackID].swimPhiToR(trk.x(),trk.y())-trk.momPhi()));
+    dPhi_ = squashPhiGeneral(cmsswtracks[cmsswTrackID].swimPhiToR(trk.x(),trk.y())-trk.momPhi());
   }
   else
   {
-    helixChi2_ = 0.f;
-    dPhi_ = 0.f;
+    helixChi2_ = -99.f;
+    dPhi_ = -99.f;
   }
 
   // get nSeedHits

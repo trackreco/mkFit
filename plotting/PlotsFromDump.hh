@@ -19,6 +19,7 @@ typedef std::vector<TestOpts>  TOVec;
 namespace
 {
   TOVec tests;
+  UInt_t ntests;
   void setupTests()
   {
     // N.B.: Consult ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh for info on which VU and TH tests were used for making text dumps
@@ -29,6 +30,9 @@ namespace
     tests.emplace_back("KNL","NVU16int_NTH256",kOrange+1,kOpenTriangleDown);
     tests.emplace_back("SKL-SP","NVU1_NTH1",kRed+1,kOpenTriangleUp);
     tests.emplace_back("SKL-SP","NVU16int_NTH64",kMagenta+1,kOpenTriangleDown);
+
+    // set ntests after tests is set up
+    ntests = tests.size();
   }
 };
 
@@ -48,6 +52,7 @@ typedef std::vector<PlotOpts> POVec;
 namespace 
 {
   POVec plots;
+  UInt_t nplots;
   void setupPlots()
   {
     // N.B. Consult plotting/makePlotsFromDump.py for info on hist names
@@ -61,6 +66,9 @@ namespace
     plots.emplace_back("h_DCPT","p_{T}^{mkFit}-p_{T}^{CMSSW}","Fraction of Tracks","dpt");
     plots.emplace_back("h_DCPHI","#phi^{mkFit}-#phi^{CMSSW}","Fraction of Tracks","dphi");
     plots.emplace_back("h_DCETA","#eta^{mkFit}-#eta^{CMSSW}","Fraction of Tracks","deta");
+
+    // set nplots after plots are set
+    nplots = plots.size();
   }
 };
 

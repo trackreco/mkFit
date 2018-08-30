@@ -20,30 +20,44 @@ typedef std::vector<RateOpts> ROVec;
 
 namespace
 {
+  TString ref;
+  TString refdir;
+  void setupRef(const Bool_t cmsswComp)
+  {
+    ref    = (cmsswComp?"cmssw" :"sim");
+    refdir = (cmsswComp?"_cmssw":"");
+  }
+
   ROVec rates;
+  UInt_t nrates;
   void setupRates(const Bool_t cmsswComp)
   {
-    const TString ref = (cmsswComp?"cmssw":"sim");
-
     rates.emplace_back("efficiency",ref,"eff");
     rates.emplace_back("inefficiency",ref,"ineff_brl");
     rates.emplace_back("inefficiency",ref,"ineff_trans");
     rates.emplace_back("inefficiency",ref,"ineff_ec");
     rates.emplace_back("fakerate","reco","fr");
     rates.emplace_back("duplicaterate",ref,"dr");
-    
-    if (cmsswComp) 
-    {
-      for (UInt_t i = 0; i < rates.size(); i++) rates[i].dir += "_cmssw";
-    }
+
+    // set nrates after rates is set
+    nrates = rates.size();
   }
 
-  std::vector<Float_t> ptcuts;
+  std::vector<TString> ptcuts;
+  UInt_t nptcuts;
   void setupPtCuts()
   {
-    ptcuts.emplace_back(0.f);
-    ptcuts.emplace_back(0.9f);
-    ptcuts.emplace_back(2.f);
+    std::vector<Float_t> tmp_ptcuts = {0.f,0.9f,2.f};
+
+    for (const auto tmp_ptcut : tmp_ptcuts)
+    {
+      TString ptcut = Form("%3.1f",tmp_ptcut);
+      ptcut.ReplaceAll(".","p");
+      ptcuts.emplace_back(ptcut);
+    }
+
+    // set nptcuts once ptcuts is set
+    nptcuts = ptcuts.size();
   }
 };
 

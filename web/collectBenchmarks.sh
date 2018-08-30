@@ -100,7 +100,7 @@ mv validation_${vBase}_"SIMVAL"/totals_validation_${vBase}_"SIMVAL".txt ${dir}/$
 # Move rate plots for SimTrack Validation
 for rate in eff ineff_brl ineff_trans ineff_ec dr fr
 do
-    for pt in 0.0 0.9 2.0
+    for pt in 0p0 0p9 2p0
     do
 	for var in phi eta
 	do 
@@ -111,10 +111,10 @@ do
     # only copy pt > 0 for pt rate plots
     for var in pt pt_zoom
     do 
-	mv ${val_arch}_${sample}_${rate}_${var}_"build"_"pt0.0"_"SIMVAL".png ${dir}/${simdir}
+	mv ${val_arch}_${sample}_${rate}_${var}_"build"_"pt0p0"_"SIMVAL".png ${dir}/${simdir}
     done
 
-    mv ${val_arch}_${sample}_${rate}_"pt_logx"_"build"_"pt0.0"_"SIMVAL".png ${dir}/${simdir}/logx
+    mv ${val_arch}_${sample}_${rate}_"pt_logx"_"build"_"pt0p0"_"SIMVAL".png ${dir}/${simdir}/logx
 done
 
 # Move kinematic diff plots for SimTrack Validation
@@ -122,7 +122,7 @@ for coll in bestmatch allmatch
 do 
     for var in nHits invpt phi eta
     do
-	for pt in 0.0 0.9 2.0
+	for pt in 0p0 0p9 2p0
 	do
 	    mv ${val_arch}_${sample}_${coll}_"d"${var}_"build"_"pt"${pt}_"SIMVAL".png ${dir}/${simdir}/diffs
 	done
@@ -132,7 +132,7 @@ done
 # Move nHits plots for SimTrack Validation
 for coll in allreco fake bestmatch allmatch
 do 
-    for pt in 0.0 0.9 2.0
+    for pt in 0p0 0p9 2p0
     do
 	mv ${val_arch}_${sample}_${coll}_"nHits"_"build"_"pt"${pt}_"SIMVAL".png ${dir}/${simdir}/nHits
     done
@@ -164,7 +164,7 @@ for rate in eff ineff_brl ineff_trans ineff_ec dr fr
 do
     for trk in build fit
     do
-	for pt in 0.0 0.9 2.0
+	for pt in 0p0 0p9 2p0
 	do
 	    for var in phi eta
 	    do
@@ -175,10 +175,10 @@ do
 	# only copy pt > 0 for pt rate plots
 	for var in pt pt_zoom
 	do
-	    mv ${val_arch}_${sample}_${rate}_${var}_${trk}_"pt0.0"_"CMSSWVAL".png ${dir}/${cmsswdir}/${trk}
+	    mv ${val_arch}_${sample}_${rate}_${var}_${trk}_"pt0p0"_"CMSSWVAL".png ${dir}/${cmsswdir}/${trk}
 	done
 	
-	mv ${val_arch}_${sample}_${rate}_"pt_logx"_${trk}_"pt0.0"_"CMSSWVAL".png ${dir}/${cmsswdir}/${trk}/logx
+	mv ${val_arch}_${sample}_${rate}_"pt_logx"_${trk}_"pt0p0"_"CMSSWVAL".png ${dir}/${cmsswdir}/${trk}/logx
     done
 done    
 
@@ -189,7 +189,7 @@ do
     do
 	for trk in build fit
 	do
-	    for pt in 0.0 0.9 2.0
+	    for pt in 0p0 0p9 2p0
 	    do
 		mv ${val_arch}_${sample}_${coll}_"d"${var}_${trk}_"pt"${pt}_"CMSSWVAL".png ${dir}/${cmsswdir}/${trk}/diffs
 	    done
@@ -202,7 +202,7 @@ for coll in allreco fake bestmatch allmatch
 do 
     for trk in build fit
     do
-	for pt in 0.0 0.9 2.0
+	for pt in 0p0 0p9 2p0
 	do
 	    mv ${val_arch}_${sample}_${coll}_"nHits"_${trk}_"pt"${pt}_"CMSSWVAL".png ${dir}/${cmsswdir}/${trk}/nHits
 	done

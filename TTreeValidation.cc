@@ -135,6 +135,10 @@ void TTreeValidation::initializeEfficiencyTree()
   efftree_->Branch("lastlyr_build",&lastlyr_build_eff_);
   efftree_->Branch("lastlyr_fit",&lastlyr_fit_eff_);
 
+  efftree_->Branch("dphi_seed",&dphi_seed_eff_);
+  efftree_->Branch("dphi_build",&dphi_build_eff_);
+  efftree_->Branch("dphi_fit",&dphi_fit_eff_);
+
   efftree_->Branch("hitchi2_seed",&hitchi2_seed_eff_);
   efftree_->Branch("hitchi2_build",&hitchi2_build_eff_);
   efftree_->Branch("hitchi2_fit",&hitchi2_fit_eff_);
@@ -225,6 +229,10 @@ void TTreeValidation::initializeFakeRateTree()
   frtree_->Branch("lastlyr_seed",&lastlyr_seed_FR_);
   frtree_->Branch("lastlyr_build",&lastlyr_build_FR_);
   frtree_->Branch("lastlyr_fit",&lastlyr_fit_FR_);
+
+  frtree_->Branch("dphi_seed",&dphi_seed_FR_);
+  frtree_->Branch("dphi_build",&dphi_build_FR_);
+  frtree_->Branch("dphi_fit",&dphi_fit_FR_);
 
   frtree_->Branch("hitchi2_seed",&hitchi2_seed_FR_);
   frtree_->Branch("hitchi2_build",&hitchi2_build_FR_);
@@ -1311,6 +1319,9 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       fracHitsMatched_seed_eff_ = seedextra.fracHitsMatched();
       lastlyr_seed_eff_         = seedtrack.getLastFoundHitLyr();
 
+      // swim dphi
+      dphi_seed_eff_ = seedextra.dPhi();
+
       hitchi2_seed_eff_ = seedtrack.chi2(); // currently not being used
 
       duplmask_seed_eff_   = seedextra.isDuplicate(); 
@@ -1346,6 +1357,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       fracHitsMatched_seed_eff_ = -99;
       lastlyr_seed_eff_         = -99;
  
+      dphi_seed_eff_ = -99;
+
       hitchi2_seed_eff_   = -99;
       
       duplmask_seed_eff_   = -1; // mask means unmatched sim track
@@ -1398,6 +1411,9 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       fracHitsMatched_build_eff_ = buildextra.fracHitsMatched();
       lastlyr_build_eff_         = buildtrack.getLastFoundHitLyr();
 
+      // swim dphi
+      dphi_build_eff_ = buildextra.dPhi();
+
       hitchi2_build_eff_ = buildtrack.chi2(); 
 
       duplmask_build_eff_   = buildextra.isDuplicate(); 
@@ -1432,6 +1448,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       nHitsMatched_build_eff_    = -99;
       fracHitsMatched_build_eff_ = -99;
       lastlyr_build_eff_         = -99;
+
+      dphi_build_eff_ = -99;
 
       hitchi2_build_eff_   = -99;
       
@@ -1486,6 +1504,9 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       fracHitsMatched_fit_eff_ = fitextra.fracHitsMatched();
       lastlyr_fit_eff_         = fittrack.getLastFoundHitLyr();
 
+      // swim dphi
+      dphi_fit_eff_ = fitextra.dPhi();
+
       hitchi2_fit_eff_ = -10; //fittrack.chi2(); // currently not being used
 
       duplmask_fit_eff_   = fitextra.isDuplicate(); 
@@ -1520,6 +1541,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       nHitsMatched_fit_eff_    = -99;
       fracHitsMatched_fit_eff_ = -99;
       lastlyr_fit_eff_         = -99;
+
+      dphi_fit_eff_ = -99;
 
       hitchi2_fit_eff_   = -99;
       
@@ -1589,6 +1612,9 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     nHitsMatched_seed_FR_    = seedextra.nHitsMatched();
     fracHitsMatched_seed_FR_ = seedextra.fracHitsMatched();
     lastlyr_seed_FR_         = seedtrack.getLastFoundHitLyr();
+
+    // swim dphi
+    dphi_seed_FR_ = seedextra.dPhi();
 
     hitchi2_seed_FR_ = seedtrack.chi2(); //--> not currently used
 
@@ -1705,6 +1731,9 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       fracHitsMatched_build_FR_ = buildextra.fracHitsMatched();
       lastlyr_build_FR_         = buildtrack.getLastFoundHitLyr();
 
+      // swim dphi
+      dphi_build_FR_ = buildextra.dPhi();
+
       hitchi2_build_FR_ = buildtrack.chi2();
 
       if (Config::keepHitInfo) TTreeValidation::fillHitInfo(buildtrack,hitlyrs_build_FR_,hitidxs_build_FR_);
@@ -1815,6 +1844,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       fracHitsMatched_build_FR_ = -100;
       lastlyr_build_FR_ = -100;
 
+      dphi_build_FR_ = -100;
+
       hitchi2_build_FR_  = -100; 
       
       // keep -100 for all sim variables as no such reco exists for this seed
@@ -1859,6 +1890,9 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       nHitsMatched_fit_FR_    = fitextra.nHitsMatched();
       fracHitsMatched_fit_FR_ = fitextra.fracHitsMatched();
       lastlyr_fit_FR_         = fittrack.getLastFoundHitLyr();
+
+      // swim dphi
+      dphi_fit_FR_ = fitextra.dPhi();
 
       hitchi2_fit_FR_ = -10; //fittrack.chi2() --> currently not used
 
@@ -1969,6 +2003,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       nHitsMatched_fit_FR_ = -100;
       fracHitsMatched_fit_FR_ = -100;
       lastlyr_fit_FR_ = -100;
+
+      dphi_fit_FR_ = -100;
 
       hitchi2_fit_FR_  = -100; 
       

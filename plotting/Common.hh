@@ -197,6 +197,7 @@ typedef std::map<TString,BuildOpts> BOMap;
 namespace
 {
   BOVec builds;
+  UInt_t nbuilds;
   void setupBuilds(const Bool_t isBenchmark, const Bool_t includeCMSSW)
   {
     // tmp map to fill builds vector
@@ -241,15 +242,18 @@ namespace
 
     // always check for adding in CMSSW --> never true for isBenchmark
     if (includeCMSSW) builds.emplace_back(buildsMap["CMSSW"]);
+
+    // set nbuilds
+    nbuilds = builds.size();
   }
 
 };
 
 void GetMinMaxHist(const TH1F * hist, Double_t & min, Double_t & max)
 {
-  for (Int_t ibin = 1; ibin <= hist->GetNbinsX(); ibin++)
+  for (auto ibin = 1; ibin <= hist->GetNbinsX(); ibin++)
   {
-    const Double_t content = hist->GetBinContent(ibin);
+    const auto content = hist->GetBinContent(ibin);
     
     if (content < min && content != 0.0) min = content;
     if (content > max) max = content;

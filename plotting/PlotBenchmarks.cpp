@@ -65,7 +65,7 @@ void PlotBenchmarks::MakeOverlay(const TString & text, const TString & title, co
   const Bool_t isSpeedup = text.Contains("speedup",TString::kExact);
 
   // canvas
-  TCanvas * canv = new TCanvas(); 
+  auto canv = new TCanvas(); 
   canv->cd();
   canv->SetGridy();
   if (!isVU && !isSpeedup) canv->SetLogy();
@@ -74,32 +74,41 @@ void PlotBenchmarks::MakeOverlay(const TString & text, const TString & title, co
   const Double_t x1 = (isSpeedup ? 0.20 : 0.60); // draw legend on left for speedup plots as this part is empty
   const Double_t y1 = 0.65;
   const Double_t ylength = builds.size()*0.05; // adjust size of legend for how many build routines we are plotting
-  TLegend * leg = new TLegend(x1,y1,x1+0.25,y1+ylength);
+  auto leg = new TLegend(x1,y1,x1+0.25,y1+ylength);
   leg->SetBorderSize(0);  
 
   // setup tgraphs
-  TGEVec graphs(builds.size());
+  TGEVec graphs(nbuilds);
   PlotBenchmarks::GetGraphs(graphs,text,title,xtitle,ytitle);
 
   // get tgraphs for intrinsic plot
-  TGEVec graphs_int(builds.size());
+  TGEVec graphs_int(nbuilds);
   if (isVU) PlotBenchmarks::GetGraphs(graphs_int,text+"_int",title,xtitle,ytitle);
 
   // Draw graphs
-  for (UInt_t i = 0; i < builds.size(); i++)
+  for (auto i = 0U; i < nbuilds; i++)
   {
-    if (graphs[i]) {
-      graphs[i]->Draw(i>0?"LP SAME":"ALP");
-      graphs[i]->GetXaxis()->SetRangeUser(xmin,xmax);
-      graphs[i]->GetYaxis()->SetRangeUser(ymin,ymax);
+    auto & graph     = graphs    [i];
+    auto & graph_int = graphs_int[i];
+    auto & build     = builds    [i];
 
-      if (isVU && graphs_int[i]) 
+    // draph if graph exists
+    if (graph)
+    {
+      graph->GetXaxis()->SetRangeUser(xmin,xmax);
+      graph->GetYaxis()->SetRangeUser(ymin,ymax);
+      graph->Draw(i>0?"LP SAME":"ALP");
+
+      // add point for VU with intrinsics
+      if (isVU && graph_int)
       {
-        graphs_int[i]->GetXaxis()->SetRangeUser(xmin,xmax);
-        graphs_int[i]->GetYaxis()->SetRangeUser(ymin,ymax);
-        graphs_int[i]->Draw("P SAME");
+        graph_int->GetXaxis()->SetRangeUser(xmin,xmax);
+        graph_int->GetYaxis()->SetRangeUser(ymin,ymax);
+        graph_int->Draw("P SAME");
       }
-      leg->AddEntry(graphs[i],builds[i].label.Data(),"LP");
+
+      // add to legend
+      leg->AddEntry(graph,build.label.Data(),"LP");
      }
   }
 
@@ -124,18 +133,28 @@ void PlotBenchmarks::MakeOverlay(const TString & text, const TString & title, co
 
   // Save log-x version
   canv->SetLogx();
-  for (UInt_t i = 0; i < builds.size(); i++)
+  for (auto i = 0U; i < nbuilds; i++)
   {
-    if (graphs[i]) {
-      graphs[i]->GetXaxis()->SetRangeUser(xmin,xmax);
-      graphs[i]->GetYaxis()->SetRangeUser(ymin,ymax);
+    auto & graph     = graphs    [i];
+    auto & graph_int = graphs_int[i];
+    
+    // need to reset range with logx
+    if (graph)
+    {
+      graph->GetXaxis()->SetRangeUser(xmin,xmax);
+      graph->GetYaxis()->SetRangeUser(ymin,ymax);
+      if (isVU && graph_int)
+      {
+        graph_int->GetXaxis()->SetRangeUser(xmin,xmax);
+        graph_int->GetYaxis()->SetRangeUser(ymin,ymax);
+      }
     }
   }
   canv->Update();
   canv->SaveAs(outname+"_logx.png");
 
   // delete everything
-  for (UInt_t i = 0; i < builds.size(); i++)
+  for (auto i = 0U; i < nbuilds; i++)
   {
     delete graphs[i];
     if (isVU) delete graphs_int[i];
@@ -150,16 +169,23 @@ void PlotBenchmarks::GetGraphs(TGEVec & graphs, const TString & text, const TStr
   // special setup for intrinsic only plot
   const Bool_t isInt = text.Contains("_int",TString::kExact);
 
-  for (UInt_t i = 0; i < builds.size(); i++)
+  for (auto i = 0U; i < nbuilds; i++)
   {
-    graphs[i] = (TGraphErrors*)file->Get("g_"+builds[i].name+"_"+text);
-    if (graphs[i]) {
-      graphs[i]->SetTitle(title+";"+xtitle+";"+ytitle);
+    const auto & build = builds[i];
+    auto & graph       = graphs[i];
 
-      graphs[i]->SetLineWidth(2);
-      graphs[i]->SetLineColor(builds[i].color);
-      graphs[i]->SetMarkerStyle(isInt ? kOpenCircle : kFullCircle);
-      graphs[i]->SetMarkerColor(builds[i].color);
+    // get graph
+    graph = (TGraphErrors*)file->Get("g_"+build.name+"_"+text);
+
+    // restyle if graph exists
+    if (graph)
+    {
+      graph->SetTitle(title+";"+xtitle+";"+ytitle);
+
+      graph->SetLineWidth(2);
+      graph->SetLineColor(build.color);
+      graph->SetMarkerStyle(isInt ? kOpenCircle : kFullCircle);
+      graph->SetMarkerColor(build.color);
     }
   }
 }

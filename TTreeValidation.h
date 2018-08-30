@@ -137,6 +137,9 @@ public:
   float fracHitsMatched_seed_eff_=0,fracHitsMatched_build_eff_=0,fracHitsMatched_fit_eff_=0;
   int   lastlyr_seed_eff_=0,lastlyr_build_eff_=0,lastlyr_fit_eff_=0;
 
+  // swim phi
+  float dphi_seed_eff_=0.,dphi_build_eff_=0.,dphi_fit_eff_=0.;
+  
   // chi2 of tracks
   float hitchi2_seed_eff_=0.,hitchi2_build_eff_=0.,hitchi2_fit_eff_=0.;
   float helixchi2_seed_eff_=0.,helixchi2_build_eff_=0.,helixchi2_fit_eff_=0.;
@@ -172,6 +175,9 @@ public:
   int   nHitsMatched_seed_FR_=0,nHitsMatched_build_FR_=0,nHitsMatched_fit_FR_=0;
   float fracHitsMatched_seed_FR_=0,fracHitsMatched_build_FR_=0,fracHitsMatched_fit_FR_=0;
   int   lastlyr_seed_FR_=0,lastlyr_build_FR_=0,lastlyr_fit_FR_=0;
+
+  // swim phi
+  float dphi_seed_FR_=0.,dphi_build_FR_=0.,dphi_fit_FR_=0.;
 
   float hitchi2_seed_FR_=0.,hitchi2_build_FR_=0.,hitchi2_fit_FR_=0.;
  

@@ -60,7 +60,8 @@ public:
   void SetupStyle();
   void SetupBins();
   void SetupVariableBins(const std::string & s_bins, DblVec & bins);
-  void SetupFixedBins(const Int_t nBins, const Double_t low, const Double_t high, DblVec & bins);
+  void SetupFixedBins(const UInt_t nBins, const Double_t low, const Double_t high, DblVec & bins);
+  void SetupCommonVars();
 
   // main call
   void Validation();
@@ -103,6 +104,42 @@ private:
   DblVec fDInvPtBins;
   DblVec fDPhiBins;
   DblVec fDEtaBins;
+
+  // rate vars
+  TStrVec fVars;
+  TStrVec fSVars;
+  TStrVec fSUnits;
+  UInt_t  fNVars;
+  
+  TString fSVarPt;
+  TString fSUnitPt;
+
+  // rate bins
+  DblVecVec fVarBins;
+  
+  // track collections
+  TStrVec fTrks;
+  TStrVec fSTrks;
+  UInt_t  fNTrks;
+
+  // pt cuts
+  FltVec  fPtCuts;
+  TStrVec fSPtCuts;
+  TStrVec fHPtCuts;
+  UInt_t  fNPtCuts;
+
+  // track hits plots
+  TStrVec fTrkHits;
+  TStrVec fSTrkHits;
+  UInt_t  fNTrkHits;
+
+  // reference related strings
+  TString fSRefTitle;
+  TString fSRefVar;
+  TString fSRefMask;
+  TString fSRefVarTrk;
+  TString fSRefDir;
+  TString fSRefOut;
 
   // output variables
   TString fOutName;
