@@ -517,6 +517,12 @@ Logic is as follows: any negative integer means that track is excluded from both
 --> nTkMatches_[reco] == 1,  1 reco track associated to single sim track ID {eff only}
 --> nTkMatches_[reco] == -99, no reco to sim match {eff only}
 
+--> mcTSmask_[reco] == 1, reco track is associated to sim track, and sim track contains the same hit as the last hit on the reco track
+--> mcTSmask_[reco] == 0, reco track is associated to sim track, and either A) sim track does not contain the last hit found on the reco track or B) the sim trackstates were not read in (still save sim info from gen position via --try-to-save-sim-info
+--> mcTSmask_[reco] == -1, reco track is unassociated to sim track
+--> mcTSmask_[reco] == -2, reco track is associated to sim track, and we fail == 1 and == 0
+--> mcTSmask_[reco] == -3, reco track is unassociated to seed track {FR only}
+
 excluding position variables, as position could be -99!
 --> reco var == -99, "unassociated" reco to sim track [possible mcmask_[reco] == 0,-1,2; possible duplmask_[reco] == -1] {eff only}
 --> sim  var == -99, "unassociated" reco to sim track [possible mcmask_[reco] == 0,-1,2; possible duplmask_[reco] == -1] {FR only}

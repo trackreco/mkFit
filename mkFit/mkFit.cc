@@ -669,6 +669,12 @@ int main(int argc, const char *argv[])
 	"                             must enable: --geom CMS-2017 --cmssw-val --read-cmssw-tracks --backward-fit --backward-fit-pca\n"
         "  --inc-shorts             include short reco tracks into FR (def: %s)\n"
         "  --keep-hit-info          keep vectors of hit idxs and branches in trees (def: %s)\n"
+	"  --try-to-save-sim-info   two options for this flag [related to validation with simtracks as reference collection] (def: %s)\n"
+	"                              a) IF (--read-simtrack-states is enabled)\n"
+	"                                    If a sim track is associated to a reco track, but it does not contain the last found on the reco track\n"
+	"                                    still save sim track kinematic info from generator position\n"
+	"                              b) ELSE (--read-simtrack-states is NOT enabled)\n"
+	"                                    Save sim track kinematic info grom generator position if matched to reco track\n"
 	"\n----------------------------------------------------------------------------------------------------------\n\n"
 	"Combo spaghetti, that's with cole slaw:\n\n"
 	" **Building and fitting combo options\n"
@@ -762,6 +768,7 @@ int main(int argc, const char *argv[])
 	getOpt(Config::cmsswMatchingBK, g_match_opts).c_str(),
 	b2a(Config::inclusiveShorts),
 	b2a(Config::keepHitInfo),
+	b2a(Config::tryToSaveSimInfo),
 
 	getOpt(simSeeds, g_seed_opts).c_str(),
 	getOpt(cmsswSeeds, g_seed_opts).c_str(), getOpt(noCleaning, g_clean_opts).c_str(),
@@ -984,6 +991,10 @@ int main(int argc, const char *argv[])
     else if (*i == "--keep-hit-info")
     {
       Config::keepHitInfo = true;
+    }
+    else if (*i == "--try-to-save-sim-info")
+    {
+      Config::tryToSaveSimInfo = true;
     }
     else if (*i == "--backward-fit-pca")
     {

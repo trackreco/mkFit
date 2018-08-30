@@ -78,6 +78,7 @@ namespace Config
   bool  readSimTrackStates = false;
   bool  inclusiveShorts = false;
   bool  keepHitInfo = false;
+  bool  tryToSaveSimInfo = false;
   matchOpts cmsswMatchingFW = hitBased;
   matchOpts cmsswMatchingBK = trkParamBased;
 

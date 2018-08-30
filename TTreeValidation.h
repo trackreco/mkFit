@@ -112,6 +112,7 @@ public:
   int   evtID_eff_=0,mcID_eff_=0;
   int   mcmask_seed_eff_=0,mcmask_build_eff_=0,mcmask_fit_eff_=0;
   int   seedID_seed_eff_=0,seedID_build_eff_=0,seedID_fit_eff_=0;
+  int   mcTSmask_seed_eff_=0,mcTSmask_build_eff_=0,mcTSmask_fit_eff_=0;
 
   // for efficiency and duplicate rate plots
   float x_mc_gen_eff_=0.,y_mc_gen_eff_=0.,z_mc_gen_eff_=0.;
@@ -183,6 +184,7 @@ public:
  
   int   mcID_seed_FR_=0,mcID_build_FR_=0,mcID_fit_FR_=0;
   int   mcmask_seed_FR_=0,mcmask_build_FR_=0,mcmask_fit_FR_=0;
+  int   mcTSmask_seed_FR_=0,mcTSmask_build_FR_=0,mcTSmask_fit_FR_=0;
   int   nHits_mc_seed_FR_=0,nHits_mc_build_FR_=0,nHits_mc_fit_FR_=0;
   int   nLayers_mc_seed_FR_=0,nLayers_mc_build_FR_=0,nLayers_mc_fit_FR_=0;
   int   lastlyr_mc_seed_FR_=0,lastlyr_mc_build_FR_=0,lastlyr_mc_fit_FR_=0;

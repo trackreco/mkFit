@@ -30,11 +30,14 @@ exe="./mkFit/mkFit --silent ${seeds} --num-thr ${maxth} --num-thr-ev ${maxev} --
 tmpdir="tmp"
 base=${val_arch}_${sample}
 
+## flag to save sim info for matched tracks since track states not read in
+siminfo="--try-to-save-sim-info"
+
 ## backward fit flag
 bkfit="--backward-fit-pca"
 
 ## validation options: SIMVAL == sim tracks as reference, CMSSWVAL == cmssw tracks as reference
-SIMVAL="SIMVAL --sim-val ${bkfit}"
+SIMVAL="SIMVAL --sim-val ${siminfo} ${bkfit}"
 CMSSWVAL="CMSSWVAL --cmssw-val-fhit-bprm ${bkfit}"
 declare -a vals=(SIMVAL CMSSWVAL)
 
@@ -44,7 +47,7 @@ CMSSWPLOT="CMSSWVAL 1"
 declare -a plots=(SIMPLOT CMSSWPLOT)
 
 ## special cmssw dummy build
-CMSSW="CMSSW cmssw SIMVAL --sim-val-for-cmssw --read-cmssw-tracks"
+CMSSW="CMSSW cmssw SIMVAL --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks"
 
 ###############
 ## Functions ##
