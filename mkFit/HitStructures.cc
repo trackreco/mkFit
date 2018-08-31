@@ -131,7 +131,7 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
   int hit_count    = 0;
   empty_q_bins(0, m_nq, 0);
 
-  for (int i = 0; i < size; ++i)
+  for (uint16_t i = 0; i < size; ++i)
   {
     int j = sort.GetRanks()[i];
 
@@ -241,7 +241,7 @@ void LayerOfHits::SelectHitIndices(float q, float phi, float dq, float dphi, std
     {
       int pb = pi & m_phi_mask;
 
-      for (int hi = m_phi_bin_infos[qi][pb].first; hi < m_phi_bin_infos[qi][pb].second; ++hi)
+      for (uint16_t hi = m_phi_bin_infos[qi][pb].first; hi < m_phi_bin_infos[qi][pb].second; ++hi)
       {
         // Here could enforce some furhter selection on hits
 	if (Config::usePhiQArrays)

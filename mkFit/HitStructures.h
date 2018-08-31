@@ -36,7 +36,7 @@ typedef tbb::concurrent_vector<TripletIdx> TripletIdxConVec;
 // Need a good "array of pods" class with aligned alloc and automatic growth.
 // For now just implement the no-resize / no-destroy basics in the BoH.
 
-typedef std::pair<int, int> PhiBinInfo_t;
+typedef std::pair<uint16_t, uint16_t> PhiBinInfo_t;
 
 typedef std::vector<PhiBinInfo_t> vecPhiBinInfo_t;
 
@@ -151,14 +151,14 @@ protected:
     _mm_free(m_hits);
   }
 
-  void set_phi_bin(int q_bin, int phi_bin, int &hit_count, int &hits_in_bin)
+  void set_phi_bin(int q_bin, int phi_bin, uint16_t &hit_count, uint16_t &hits_in_bin)
   {
     m_phi_bin_infos[q_bin][phi_bin] = { hit_count, hit_count + hits_in_bin };
     hit_count  += hits_in_bin;
     hits_in_bin = 0;
   }
 
-  void empty_phi_bins(int q_bin, int phi_bin_1, int phi_bin_2, int hit_count)
+  void empty_phi_bins(int q_bin, int phi_bin_1, int phi_bin_2, uint16_t hit_count)
   {
     for (int pb = phi_bin_1; pb < phi_bin_2; ++pb)
     {
@@ -166,7 +166,7 @@ protected:
     }
   }
 
-  void empty_q_bins(int q_bin_1, int q_bin_2, int hit_count)
+  void empty_q_bins(int q_bin_1, int q_bin_2, uint16_t hit_count)
   {
     for (int qb = q_bin_1; qb < q_bin_2; ++qb)
     {
