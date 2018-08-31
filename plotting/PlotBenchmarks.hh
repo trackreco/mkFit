@@ -8,7 +8,7 @@ typedef std::vector<TGraphErrors*> TGEVec;
 class PlotBenchmarks
 {
 public:
-  PlotBenchmarks(const TString & arch, const TString & sample);
+  PlotBenchmarks(const TString & arch, const TString & sample, const TString & suite);
   ~PlotBenchmarks();
   void RunBenchmarkPlots();
   void MakeOverlay(const TString & text, const TString & title, const TString & xtitle, const TString & ytitle, 
@@ -18,8 +18,8 @@ public:
 private:
   const TString arch;
   const TString sample;
+  const TString suite;
 
-  ArchEnum ARCH;
   TFile * file;
 };
 

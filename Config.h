@@ -316,6 +316,7 @@ namespace Config
   extern bool readSimTrackStates; // need this to fill pulls
   extern bool inclusiveShorts;
   extern bool keepHitInfo;
+  extern bool tryToSaveSimInfo;
   extern matchOpts cmsswMatchingFW;
   extern matchOpts cmsswMatchingBK;
 
@@ -370,7 +371,7 @@ namespace Config
 
   extern bool   kludgeCmsHitErrors;
   extern bool   backwardFit;
-  extern bool   backwardFitPCA;
+  extern bool   includePCA;
 
   // NAN and silly track parameter tracking options
   constexpr bool nan_etc_sigs_enable = false;

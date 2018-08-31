@@ -1,5 +1,4 @@
-#include "PlotValidation.hh"
-#include "PlotValidation.cpp"
+#include "plotting/PlotValidation.cpp+"
 
 void runValidation(const TString & test = "", const Bool_t cmsswComp = false, const Bool_t mvInput = true,
 		   const Bool_t saveAs = false, const TString & image = "pdf")

@@ -8,6 +8,10 @@
 
 struct RateOpts
 {
+  RateOpts() {}
+  RateOpts(const TString & dir, const TString & sORr, const TString & rate)
+    : dir(dir), sORr(sORr), rate(rate) {}
+
   TString dir;
   TString sORr; // sim or reco 
   TString rate;
@@ -16,46 +20,66 @@ typedef std::vector<RateOpts> ROVec;
 
 namespace
 {
-  ROVec rates;
-  void setupRates(const Bool_t cmsswComp)
+  TString ref;
+  TString refdir;
+  void setupRef(const Bool_t cmsswComp)
   {
-    const TString ref = (cmsswComp?"cmssw":"sim");
-
-    rates.push_back({"efficiency",ref,"eff"});
-    rates.push_back({"inefficiency",ref,"ineff_brl"});
-    rates.push_back({"inefficiency",ref,"ineff_trans"});
-    rates.push_back({"inefficiency",ref,"ineff_ec"});
-    rates.push_back({"fakerate","reco","fr"});
-    rates.push_back({"duplicaterate",ref,"dr"});
-    
-    if (cmsswComp) 
-    {
-      for (UInt_t i = 0; i < rates.size(); i++) rates[i].dir += "_cmssw";
-    }
+    ref    = (cmsswComp?"cmssw" :"sim");
+    refdir = (cmsswComp?"_cmssw":"");
   }
 
-  std::vector<Float_t> ptcuts;
+  ROVec rates;
+  UInt_t nrates;
+  void setupRates(const Bool_t cmsswComp)
+  {
+    rates.emplace_back("efficiency",ref,"eff");
+    rates.emplace_back("inefficiency",ref,"ineff_brl");
+    rates.emplace_back("inefficiency",ref,"ineff_trans");
+    rates.emplace_back("inefficiency",ref,"ineff_ec");
+    rates.emplace_back("fakerate","reco","fr");
+    rates.emplace_back("duplicaterate",ref,"dr");
+
+    // set nrates after rates is set
+    nrates = rates.size();
+  }
+
+  std::vector<TString> ptcuts;
+  UInt_t nptcuts;
   void setupPtCuts()
   {
-    ptcuts.push_back(0.f);
-    ptcuts.push_back(0.9f);
-    ptcuts.push_back(2.f);
+    std::vector<Float_t> tmp_ptcuts = {0.f,0.9f,2.f};
+
+    for (const auto tmp_ptcut : tmp_ptcuts)
+    {
+      TString ptcut = Form("%3.1f",tmp_ptcut);
+      ptcut.ReplaceAll(".","p");
+      ptcuts.emplace_back(ptcut);
+    }
+
+    // set nptcuts once ptcuts is set
+    nptcuts = ptcuts.size();
   }
 };
 
 class StackValidation
 {
 public:
-  StackValidation(const TString & label, const TString & extra, const Bool_t cmsswComp);
+  StackValidation(const TString & label, const TString & extra, const Bool_t cmsswComp, const TString & suite);
   ~StackValidation();
   void MakeValidationStacks();
   void MakeRatioStacks(const TString & trk);
-  void MakeCMSSWKinematicDiffStacks(const TString & trk);
+  void MakeKinematicDiffStacks(const TString & trk);
+  void MakeNHitsStacks(const TString & trk);
 
 private:
   const TString label;
   const TString extra;
   const Bool_t cmsswComp;
+  const TString suite;
+
+  // legend height
+  Double_t y1;
+  Double_t y2; 
 
   std::vector<TFile*> files;
 };

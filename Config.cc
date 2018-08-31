@@ -78,12 +78,13 @@ namespace Config
   bool  readSimTrackStates = false;
   bool  inclusiveShorts = false;
   bool  keepHitInfo = false;
+  bool  tryToSaveSimInfo = false;
   matchOpts cmsswMatchingFW = hitBased;
   matchOpts cmsswMatchingBK = trkParamBased;
 
   bool  kludgeCmsHitErrors = false;
   bool  backwardFit = false;
-  bool  backwardFitPCA = false;
+  bool  includePCA = false;
 
   void RecalculateDependentConstants()
   {

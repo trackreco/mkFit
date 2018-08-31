@@ -1,8 +1,7 @@
-#include "PlotsFromDump.hh"
-#include "PlotsFromDump.cpp"
+#include "plotting/PlotsFromDump.cpp+"
 
-void makePlotsFromDump(const TString & sample, const TString & build)
+void makePlotsFromDump(const TString & sample, const TString & build, const TString & suite)
 {
-  PlotsFromDump Plots(sample,build);
+  PlotsFromDump Plots(sample,build,suite);
   Plots.RunPlotsFromDump();
 }

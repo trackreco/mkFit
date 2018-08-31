@@ -10,20 +10,13 @@ PlotMEIFBenchmarks::PlotMEIFBenchmarks(const TString & arch, const TString & sam
   file = TFile::Open("benchmarkMEIF_"+arch+"_"+sample+"_"+build+".root");
 
   // setup enum
-  if      (arch.Contains("SNB")) ARCH = SNB;
-  else if (arch.Contains("KNL")) ARCH = KNL;
-  else if (arch.Contains("SKL")) ARCH = SKL;
-  else 
-  {
-    std::cerr << arch.Data() << " is not an allowed architecture! Exiting... " << std::endl;
-    exit(1);
-  }
+  setupARCHEnum(arch);
 
-  // setup arch
-  setupArch(ARCH);
+  // setup arch options
+  setupArch();
 
   // setup events
-  setupEvents(ARCH);
+  setupEvents();
 }
 
 PlotMEIFBenchmarks::~PlotMEIFBenchmarks()
@@ -58,7 +51,7 @@ void PlotMEIFBenchmarks::MakeOverlay(const TString & text, const TString & title
   const Bool_t isSpeedup = text.Contains("speedup",TString::kExact);
 
   // canvas
-  TCanvas * canv = new TCanvas(); 
+  auto canv = new TCanvas(); 
   canv->cd();
   canv->SetGridy();
   if (!isSpeedup) canv->SetLogy();
@@ -67,33 +60,34 @@ void PlotMEIFBenchmarks::MakeOverlay(const TString & text, const TString & title
   // legend 
   const Double_t x1 = (isSpeedup ? 0.20 : 0.60);
   const Double_t y1 = 0.65;
-  TLegend * leg = new TLegend(x1,y1,x1+0.25,y1+0.2);
+  auto leg = new TLegend(x1,y1,x1+0.25,y1+0.2);
   leg->SetBorderSize(0);  
 
-  // get tgraphs for intrinsic plot
-  TGVec graphs(events.size());
-  for (UInt_t i = 0; i < events.size(); i++)
+  // get tgraphs for meif and draw
+  TGVec graphs(nevents);
+  for (auto i = 0U; i < nevents; i++)
   {
-    const TString nEV = Form("%i",events[i].nev);
-    graphs[i] = (TGraph*)file->Get("g_"+build+"_MEIF_nEV"+nEV+"_"+text);
-    if (graphs[i]) {
-      graphs[i]->SetTitle(title+";"+xtitle+";"+ytitle);
+    const auto & event = events[i];
+    auto & graph       = graphs[i];
+    
+    const TString nEV = Form("%i",event.nev);
+    graph = (TGraph*)file->Get("g_"+build+"_MEIF_nEV"+nEV+"_"+text);
 
-      graphs[i]->SetLineWidth(2);
-      graphs[i]->SetLineColor(events[i].color);
-      graphs[i]->SetMarkerStyle(kFullCircle);
-      graphs[i]->SetMarkerColor(events[i].color);
-    }
-  }
+    if (graph) 
+    {
+      // restyle a bit
+      graph->SetTitle(title+";"+xtitle+";"+ytitle);
 
-  // Draw graphs
-  for (UInt_t i = 0; i < events.size(); i++)
-  {
-    if (graphs[i]) {
-      graphs[i]->Draw(i>0?"LP SAME":"ALP");
-      graphs[i]->GetXaxis()->SetRangeUser(xmin,xmax);
-      graphs[i]->GetYaxis()->SetRangeUser(ymin,ymax);
-      leg->AddEntry(graphs[i],Form("%i Events",events[i].nev),"LP");
+      graph->SetLineWidth(2);
+      graph->SetLineColor(event.color);
+      graph->SetMarkerStyle(kFullCircle);
+      graph->SetMarkerColor(event.color);
+      graph->GetXaxis()->SetRangeUser(xmin,xmax);
+      graph->GetYaxis()->SetRangeUser(ymin,ymax);
+
+      // draw and add to legend
+      graph->Draw(i>0?"LP SAME":"ALP");
+      leg->AddEntry(graph,Form("%i Events",event.nev),"LP");
     }
   }
 
@@ -118,21 +112,22 @@ void PlotMEIFBenchmarks::MakeOverlay(const TString & text, const TString & title
   
   // Save log-x version
   canv->SetLogx();
-  for (UInt_t i = 0; i < events.size(); i++)
+  for (auto i = 0U; i < nevents; i++)
   {
-    if (graphs[i]) {
-      graphs[i]->GetXaxis()->SetRangeUser(xmin,xmax);
-      graphs[i]->GetYaxis()->SetRangeUser(ymin,ymax);
+    auto & graph = graphs[i];
+
+    // reset axes for logx
+    if (graph)
+    {
+      graph->GetXaxis()->SetRangeUser(xmin,xmax);
+      graph->GetYaxis()->SetRangeUser(ymin,ymax);
     }
   }
   canv->Update();
   canv->SaveAs(outname+"_logx.png");
 
   // delete everything
-  for (UInt_t i = 0; i < events.size(); i++)
-  {
-    delete graphs[i];
-  }
+  for (auto & graph : graphs) delete graph;
   if (isSpeedup) delete scaling;
   delete leg;
   delete canv;

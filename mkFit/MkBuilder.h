@@ -199,10 +199,10 @@ public:
   void FindTracksFV();
 
   void BackwardFitBH();
-  void fit_cands_to_pca_BH(MkFinder *mkfndr, int start_cand, int end_cand, int region);
+  void fit_cands_BH(MkFinder *mkfndr, int start_cand, int end_cand, int region);
 
   void BackwardFit();
-  void fit_cands_to_pca(MkFinder *mkfndr, int start_cand, int end_cand, int region);
+  void fit_cands(MkFinder *mkfndr, int start_cand, int end_cand, int region);
 
 #ifdef USE_CUDA
   const Event* get_event() const { return m_event; }

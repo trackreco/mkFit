@@ -1,21 +1,23 @@
 #include "PlotsFromDump.hh"
 
-PlotsFromDump::PlotsFromDump(const TString & sample, const TString & build) : sample(sample), build(build)
+PlotsFromDump::PlotsFromDump(const TString & sample, const TString & build, const TString & suite) 
+  : sample(sample), build(build), suite(suite)
 {
   // setup style for plotting
   setupStyle();
 
-  // Setup build opts
-  setupBuilds(false);
+  // setup suite enum
+  setupSUITEEnum(suite);
+
+  // setup build options : true for isBenchmark-type plots, false for no CMSSW
+  setupBuilds(true,false);
 
   // get the right build label
-  for (auto & ibuild : builds)
+  label = std::find_if(builds.begin(),builds.end(),[&](const auto & ibuild){return build.EqualTo(ibuild.name);})->label;
+  if (label == "")
   {
-    if (build == ibuild.name) 
-    {
-      label = ibuild.label; 
-      break;
-    }
+    std::cerr << build.Data() << " build routine not specified in list of builds! Exiting..." << std::endl;
+    exit(1);
   }
 
   // Setup test opts
@@ -30,55 +32,67 @@ PlotsFromDump::~PlotsFromDump() {}
 void PlotsFromDump::RunPlotsFromDump()
 {
   // Open ROOT files first
-  std::vector<TFile*> files(tests.size());
-  for (UInt_t t = 0; t < tests.size(); t++)
+  std::vector<TFile*> files(ntests);
+  for (auto t = 0U; t < ntests; t++)
   {
-    files[t] = TFile::Open("test_"+tests[t].arch+"_"+sample+"_"+build+"_"+tests[t].suffix+".root");
+    const auto & test = tests[t];
+    auto & file = files[t];
+    
+    file = TFile::Open("test_"+test.arch+"_"+sample+"_"+build+"_"+test.suffix+".root");
   }
 
   // Outer loop over all overplots
-  for (UInt_t p = 0; p < plots.size(); p++)
+  for (auto p = 0U; p < nplots; p++)
   {
+    const auto & plot = plots[p];
+
     // declare standard stuff
-    const Bool_t isLogy = !(plots[p].name.Contains("MXPHI",TString::kExact) || plots[p].name.Contains("MXETA",TString::kExact));
-    TCanvas * canv = new TCanvas();
+    const Bool_t isLogy = !(plot.name.Contains("MXPHI",TString::kExact) || plot.name.Contains("MXETA",TString::kExact));
+    auto canv = new TCanvas();
     canv->cd();
     canv->SetLogy(isLogy);
     
-    TLegend * leg = new TLegend(0.7,0.68,0.98,0.92);
+    auto leg = new TLegend(0.7,0.68,0.98,0.92);
 
     Double_t min =  1e9;
     Double_t max = -1e9;
 
-    std::vector<TH1F*> hists(tests.size());        
-    for (UInt_t t = 0; t < tests.size(); t++)
+    std::vector<TH1F*> hists(ntests);        
+    for (auto t = 0U; t < ntests; t++)
     {
-      hists[t] = (TH1F*)files[t]->Get(plots[p].name+"_"+tests[t].suffix);
-      const TString title = hists[t]->GetTitle();
-      hists[t]->SetTitle(title+" ["+label+" - "+sample+"]");
-      hists[t]->GetXaxis()->SetTitle(plots[p].xtitle.Data());
-      hists[t]->GetYaxis()->SetTitle(plots[p].ytitle.Data());
+      const auto & test = tests[t];
+      auto & file = files[t];
+      auto & hist = hists[t];
       
-      hists[t]->SetLineColor(tests[t].color);
-      hists[t]->SetMarkerColor(tests[t].color);
-      hists[t]->SetMarkerStyle(tests[t].marker);
+      hist = (TH1F*)file->Get(plot.name+"_"+test.suffix);
+      const TString title = hist->GetTitle();
+      hist->SetTitle(title+" ["+label+" - "+sample+"]");
+      hist->GetXaxis()->SetTitle(plot.xtitle.Data());
+      hist->GetYaxis()->SetTitle(plot.ytitle.Data());
+      
+      hist->SetLineColor(test.color);
+      hist->SetMarkerColor(test.color);
+      hist->SetMarkerStyle(test.marker);
 
-      hists[t]->Scale(1.f/hists[t]->Integral());
-      GetMinMaxHist(hists[t],min,max);
+      hist->Scale(1.f/hist->Integral());
+      GetMinMaxHist(hist,min,max);
     }
 
-    for (UInt_t t = 0; t < tests.size(); t++)
+    for (auto t = 0U; t < ntests; t++)
     {
-      SetMinMaxHist(hists[t],min,max,isLogy);
-      hists[t]->Draw(t>0?"P SAME":"P");
+      const auto & test = tests[t];
+      auto & hist = hists[t];
 
-      const TString mean = Form("%4.1f",hists[t]->GetMean());
-      leg->AddEntry(hists[t],tests[t].arch+" "+tests[t].suffix+" [#mu = "+mean+"]","p");
+      SetMinMaxHist(hist,min,max,isLogy);
+      hist->Draw(t>0?"P SAME":"P");
+
+      const TString mean = Form("%4.1f",hist->GetMean());
+      leg->AddEntry(hist,test.arch+" "+test.suffix+" [#mu = "+mean+"]","p");
     }
 
     // draw legend and save plot
     leg->Draw("SAME");
-    canv->SaveAs(sample+"_"+build+"_"+plots[p].outname+".png");
+    canv->SaveAs(sample+"_"+build+"_"+plot.outname+".png");
 
     // delete temps
     for (auto & hist : hists) delete hist;

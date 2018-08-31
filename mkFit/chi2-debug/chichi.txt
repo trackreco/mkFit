@@ -7,7 +7,7 @@ files="/bar/mic/mu_brl-1000-10.bin-5  /bar/mic/mu_ecn-1000-10.bin-5  /bar/mic/mu
 flds_chi="layer/I:chi2/F:x_h:y_h:z_h:r_h:ex_h:ey_h:ez_h:x_t:y_t:z_t:r_t:ex_t:ey_t:ez_t:pt:phi:theta:phi_h:phi_t:ephi_h:ephi_t"
 flds_trk="n_hits/I:chi2/F:chi2pdof:pt:phi:theta"
 
-opts="--build-ce --geom CMS-2017 --num-events 990 --backward-fit --backward-fit-pca"
+opts="--build-ce --geom CMS-2017 --num-events 990 --backward-fit-pca"
 #opts+="  --kludge-cms-hit-errors"
 
 rm -f chichi-pure.txt chitrk-pure.txt

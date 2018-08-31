@@ -3,59 +3,63 @@ import ROOT
 import array
 import math
 
+# N.B.: Consult ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh for info on nTHs, nVUs, and text file names
+
 def run():
+    # command line input
     arch   = sys.argv[1] # SNB, KNL, SKL-SP
     sample = sys.argv[2] 
+    build  = sys.argv[3] # BH, STD, CE, FV
+    isVU   = sys.argv[4] # 'true' or 'false': if no argument passed, will not do VU plots
+    isTH   = sys.argv[5] # 'true' or 'false': if no argument passed, will not do TH plots
 
-    g = ROOT.TFile('benchmark_'+arch+'_'+sample+'.root','recreate')
+    # reopen file for writing
+    g = ROOT.TFile('benchmark_'+arch+'_'+sample+'.root','update')
 
-    for build in ['BH','STD','CE','FV']:
-        print arch,sample,build
-
-        # Vectorization data points
-        vuvals = ['1','2','4','8']
-        nth = '1'
-
-        if  arch == 'KNL' or arch == 'SKL-SP' :
-            vuvals.append('16')
-            vuvals.append('16int')
-        elif arch == 'SNB' :
-            vuvals.append('8int')
-        else :
-            print arch,'is not a valid architecture! Exiting...'
-            sys.exit(0)
-
-        # call the make plots function
-        if build != "FV" :
-            makeplots(arch,sample,build,vuvals,nth,'VU')
-
-        # Parallelization datapoints
-        if arch == 'KNL' :
-            nvu = '16int'
-            thvals = ['1','2','4','8','16','32','64','96','128','160','192','224','256']
-        elif arch == 'SNB' :
-            nvu = '8int'
-            thvals = ['1','2','4','6','8','12','16','20','24']
-        elif arch == 'SKL-SP' :
-            nvu = '16int'
-            thvals = ['1','2','4','8','16','32','48','64']
-        else :
-            print arch,'is not a valid architecture! Exiting...'
-            sys.exit(0)
+    # Vectorization data points
+    vuvals = ['1','2','4','8']
+    nth = '1'
     
-        # call the make plots function
+    if  arch == 'KNL' or arch == 'SKL-SP' :
+        vuvals.append('16')
+        vuvals.append('16int')
+    elif arch == 'SNB' :
+        vuvals.append('8int')
+    else :
+        print arch,'is not a valid architecture! Exiting...'
+        sys.exit(0)
+
+    # call the make plots function
+    if isVU == 'true' :
+        makeplots(arch,sample,build,vuvals,nth,'VU')
+
+    # Parallelization datapoints
+    if arch == 'KNL' :
+        nvu = '16int'
+        thvals = ['1','2','4','8','16','32','64','96','128','160','192','224','256']
+    elif arch == 'SNB' :
+        nvu = '8int'
+        thvals = ['1','2','4','6','8','12','16','20','24']
+    elif arch == 'SKL-SP' :
+        nvu = '16int'
+        thvals = ['1','2','4','8','16','32','48','64']
+    else :
+        print arch,'is not a valid architecture! Exiting...'
+        sys.exit(0)
+    
+    # call the make plots function
+    if isTH == 'true' :
         makeplots(arch,sample,build,thvals,nvu,'TH')
 
     g.Write()
     g.Close()
 
 def makeplots(arch,sample,build,vals,nC,text):
-
     # position in logs
-    if   build is 'BH'  : pos = 8  
-    elif build is 'STD' : pos = 11  
-    elif build is 'CE'  : pos = 14 
-    elif build is 'FV'  : pos = 17
+    if   build == 'BH'  : pos = 8  
+    elif build == 'STD' : pos = 11  
+    elif build == 'CE'  : pos = 14 
+    elif build == 'FV'  : pos = 17
     else :
         print build,'is not a valid test! Exiting...'
         sys.exit(0)

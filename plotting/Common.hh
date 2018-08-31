@@ -1,3 +1,6 @@
+#ifndef _Common_
+#define _Common_
+
 #include "TString.h"
 #include "TColor.h"
 #include "TStyle.h"
@@ -12,6 +15,7 @@
 
 #include <iostream>
 #include <vector>
+#include <algorithm>
 
 namespace
 {
@@ -25,24 +29,19 @@ namespace
 
 enum ArchEnum {SNB, KNL, SKL};
 
-struct BuildOpts
-{
-  TString name;
-  Color_t color;
-  TString label;
-};
-typedef std::vector<BuildOpts> BOVec;
-
 namespace
 {
-  BOVec builds;
-  void setupBuilds(const Bool_t includeCMSSW)
+  ArchEnum ARCH;
+  void setupARCHEnum(const TString & arch)
   {
-    builds.push_back({"BH",kBlue,"Best Hit"});
-    builds.push_back({"STD",kGreen+1,"Standard"});
-    builds.push_back({"CE",kRed,"Clone Engine"});
-    builds.push_back({"FV",kMagenta,"Full Vector"});
-    if (includeCMSSW) builds.push_back({"CMSSW",kBlack,"CMSSW"});
+    if      (arch.Contains("SNB")) ARCH = SNB;
+    else if (arch.Contains("KNL")) ARCH = KNL;
+    else if (arch.Contains("SKL")) ARCH = SKL;
+    else 
+    {
+      std::cerr << arch.Data() << " is not an allowed architecture! Exiting... " << std::endl;
+      exit(1);
+    }
   }
 };
 
@@ -76,7 +75,7 @@ struct ArchOpts
 namespace 
 {
   ArchOpts arch_opt;
-  void setupArch(ArchEnum ARCH)
+  void setupArch()
   {
     if      (ARCH == SNB)
     {
@@ -156,14 +155,105 @@ namespace
       arch_opt.thmeifspeedupmin = 0.;
       arch_opt.thmeifspeedupmax = arch_opt.thspeedupmax;
     }
+    else
+    {
+      std::cerr << "How did this happen?? You did not specify one of the allowed ARCHs!" << std::endl;
+      exit(1);
+    }
   }
+};
+
+enum SuiteEnum {full, forPR, forConf};
+
+namespace 
+{
+  SuiteEnum SUITE;
+  void setupSUITEEnum(const TString & suite)
+  {
+    if      (suite.Contains("full"))    SUITE = full;
+    else if (suite.Contains("forPR"))   SUITE = forPR;
+    else if (suite.Contains("forConf")) SUITE = forConf;
+    else 
+    {
+      std::cerr << suite.Data() << " is not an allowed validation suite! Exiting... " << std::endl;
+      exit(1);
+    }
+  }
+};
+
+struct BuildOpts
+{
+  BuildOpts() {}
+  BuildOpts(const TString & name, const Color_t color, const TString & label)
+    : name(name), color(color), label(label) {}
+  
+  TString name;
+  Color_t color;
+  TString label;
+};
+typedef std::vector<BuildOpts> BOVec;
+typedef std::map<TString,BuildOpts> BOMap;
+
+namespace
+{
+  BOVec builds;
+  UInt_t nbuilds;
+  void setupBuilds(const Bool_t isBenchmark, const Bool_t includeCMSSW)
+  {
+    // tmp map to fill builds vector
+    BOMap buildsMap;
+    buildsMap["BH"] = {"BH",kBlue,"Best Hit"};
+    buildsMap["STD"] = {"STD",kGreen+1,"Standard"};
+    buildsMap["CE"] = {"CE",kRed,"Clone Engine"};
+    buildsMap["FV"] = {"FV",kMagenta,"Full Vector"};
+    buildsMap["CMSSW"] = {"CMSSW",kBlack,"CMSSW"};
+
+    // KPM: Consult ./xeon_scripts/common-variables.sh to match routines to suite
+    if (SUITE == full)
+    {
+      builds.emplace_back(buildsMap["BH"]);
+      builds.emplace_back(buildsMap["STD"]);
+      builds.emplace_back(buildsMap["CE"]);
+      builds.emplace_back(buildsMap["FV"]);
+    }
+    else if (SUITE == forPR)
+    {
+      if (isBenchmark)
+      {
+	builds.emplace_back(buildsMap["BH"]);
+	builds.emplace_back(buildsMap["CE"]);
+      }
+      else
+      {
+	builds.emplace_back(buildsMap["STD"]);
+	builds.emplace_back(buildsMap["CE"]);
+      }
+    }
+    else if (SUITE == forConf)
+    {
+      builds.emplace_back(buildsMap["CE"]);
+      builds.back().label = "mkFit"; // change label in legend for conference
+    }
+    else
+    {
+      std::cerr << "How did this happen?? You did not specify one of the allowed SUITEs!" << std::endl;
+      exit(1);
+    }
+
+    // always check for adding in CMSSW --> never true for isBenchmark
+    if (includeCMSSW) builds.emplace_back(buildsMap["CMSSW"]);
+
+    // set nbuilds
+    nbuilds = builds.size();
+  }
+
 };
 
 void GetMinMaxHist(const TH1F * hist, Double_t & min, Double_t & max)
 {
-  for (Int_t ibin = 1; ibin <= hist->GetNbinsX(); ibin++)
+  for (auto ibin = 1; ibin <= hist->GetNbinsX(); ibin++)
   {
-    const Double_t content = hist->GetBinContent(ibin);
+    const auto content = hist->GetBinContent(ibin);
     
     if (content < min && content != 0.0) min = content;
     if (content > max) max = content;
@@ -175,3 +265,5 @@ void SetMinMaxHist(TH1F * hist, const Double_t min, const Double_t max, const Bo
   hist->SetMinimum(isLogy?min/2.0:min/1.05);
   hist->SetMaximum(isLogy?max*2.0:max*1.05);
 }
+
+#endif

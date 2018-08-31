@@ -2169,7 +2169,7 @@ void MkBuilder::BackwardFitBH()
       while (rng.valid())
       {
         // final backward fit
-	fit_cands_to_pca_BH(mkfndr.get(), rng.m_beg, rng.m_end, region);
+	fit_cands_BH(mkfndr.get(), rng.m_beg, rng.m_end, region);
 
 	++rng;
       }
@@ -2177,7 +2177,7 @@ void MkBuilder::BackwardFitBH()
   });
 }
 
-void MkBuilder::fit_cands_to_pca_BH(MkFinder *mkfndr, int start_cand, int end_cand, int region)
+void MkBuilder::fit_cands_BH(MkFinder *mkfndr, int start_cand, int end_cand, int region)
 {
   const SteeringParams &st_par = m_steering_params[region];
 
@@ -2202,8 +2202,9 @@ void MkBuilder::fit_cands_to_pca_BH(MkFinder *mkfndr, int start_cand, int end_ca
     // perform fit back to first layer on track
     mkfndr->BkFitFitTracks(m_event_of_hits, st_par, end - icand, chi_debug);
 
-    if(Config::backwardFitPCA) {
-      // now move one last time to PCA
+    // now move one last time to PCA
+    if (Config::includePCA)
+    {
       mkfndr->BkFitPropTracksToPCA(end - icand);
     }
 
@@ -2251,12 +2252,12 @@ void MkBuilder::BackwardFit()
     {
       FINDER( mkfndr );
 
-      fit_cands_to_pca(mkfndr.get(), cands.begin(), cands.end(), region);
+      fit_cands(mkfndr.get(), cands.begin(), cands.end(), region);
     });
   });
 }
 
-void MkBuilder::fit_cands_to_pca(MkFinder *mkfndr, int start_cand, int end_cand, int region)
+void MkBuilder::fit_cands(MkFinder *mkfndr, int start_cand, int end_cand, int region)
 {
   EventOfCombCandidates &eoccs  = m_event_of_comb_cands;
   const SteeringParams  &st_par = m_steering_params[region];
@@ -2281,8 +2282,9 @@ void MkBuilder::fit_cands_to_pca(MkFinder *mkfndr, int start_cand, int end_cand,
     // fit tracks back to first layer
     mkfndr->BkFitFitTracks(m_event_of_hits, st_par, end - icand, chi_debug);
     
-    if(Config::backwardFitPCA) {
-      // now move one last time to PCA
+    // now move one last time to PCA
+    if (Config::includePCA) 
+    {
       mkfndr->BkFitPropTracksToPCA(end - icand);
     }
     

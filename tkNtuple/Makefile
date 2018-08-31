@@ -2,7 +2,7 @@ ifndef ROOTSYS
 $(error ROOTSYS is not set. Please set ROOT environment properly)
 endif
 
-WITH_ROOT:=yes
+WITH_ROOT:=1
 
 include ../Makefile.config
 

@@ -1,29 +1,9 @@
+EDIT HISTORY
+** KPM 06/08/18: moved preface to README **
 ** KPM 11/07/18: added a preface but still need to update this for newest methods/revisions... **
 ** KPM 25/02/18: still need to update methods for setting mc/cmssw track id **
 
-==========================
- Preface: READ THIS FIRST
-==========================
-
-This file is a compendium on how the validation runs within mkFit, which makes use of the TTreeValidation class and other supporting macros.  
-
-Please run the validation from phi3 (SKL-SP Gold @ UCSD), since we want to maintain consistent software environments by sourcing the latest version of ROOT via CVFMS. phi2 (KNL @ UCSD) is an option, but slow (since most of the validation is serial at the moment). phiphi (SNB @ UCSD) has a way outdated version of ROOT built from source --> could consider installing a binary/building from source, but really unnecessary as phi3 is faster anyways.
-
-Make sure to run the standard intel initialization as well as ROOT. The three source lines in val_scripts/validation-cmssw-benchmarks.sh is sufficient.
-
-If you are running the "standard" stand-alone validation, via ./xeon_scripts/runBenchmark.sh or just ./val_scripts/validation-cmssw-benchmarks.sh, there are helper scripts to tidy up the plots and send them to an AFS directory, in the ./web directory.
-
-Make sure to read the README_WEBPLOTS.txt first to setup an afs web directory. 
-
-Afterwards, simply do ./web/move-benchmarks.sh ${name-of-out-dir} from the top directory to collect the plots neatly and send them to an afs space on lxplus.
-
-*** IMPORTANT DISCLAIMER ***
-
-There is a script: ./xeon_scripts/trashSKL-SP.sh that is run at the very end of the move-benchmarks.sh script that will delete log files, pngs, validation directories, root files, and the neat directory created to house all the validation plots.  This means that if the scp fails, the plots will still be deleted locally!!  You can of course comment this out if this bothers you.
-
-*** FINAL WORD ON AFS ***
-
-AFS is being phased out at CERN... so at some point we will have to update our scripts to point to eos spaces for web directories... a problem for another day
+PREFACE: This file is a compendium on how the validation runs within mkFit, which makes use of the TTreeValidation class and other supporting macros.  
 
 ===================
  Table of Contents
@@ -46,7 +26,7 @@ I. The use of label_
  A. Overview of code
 =====================
 
-TTreeValidation will only compile the necessary ROOT code with WITH_ROOT=yes enabled (either manually editting Makefile.config, or at the command line). Always do a make clean before compiling with ROOT, as the code is ifdef'ed. To hide the heavy-duty functions from the main code, TTreeValidation inherits from the virtual class "Validation", and overrides the common functions.  The TTreeValidation object is created once per number of events in flight. The Event object obtains a reference to the validation object (store as a data member "validation_"), so it is up to the Event object to reset some of the data members of the TTreeValidation object on every event.
+TTreeValidation will only compile the necessary ROOT code with WITH_ROOT:=1 enabled (either manually editting Makefile.config, or at the command line). Always do a make clean before compiling with ROOT, as the code is ifdef'ed. To hide the heavy-duty functions from the main code, TTreeValidation inherits from the virtual class "Validation", and overrides the common functions.  The TTreeValidation object is created once per number of events in flight. The Event object obtains a reference to the validation object (store as a data member "validation_"), so it is up to the Event object to reset some of the data members of the TTreeValidation object on every event.
 
 Three types of validation exist within TTreeValidation:
 [1.] "Building validation", enabled with Config::sim_val, via the command line option: --sim-val [--read-sim-trackstates, for pulls]
@@ -536,6 +516,12 @@ Logic is as follows: any negative integer means that track is excluded from both
 --> nTkMatches_[reco] > 1,   n reco tracks associated to the same sim track ID {eff only}
 --> nTkMatches_[reco] == 1,  1 reco track associated to single sim track ID {eff only}
 --> nTkMatches_[reco] == -99, no reco to sim match {eff only}
+
+--> mcTSmask_[reco] == 1, reco track is associated to sim track, and sim track contains the same hit as the last hit on the reco track
+--> mcTSmask_[reco] == 0, reco track is associated to sim track, and either A) sim track does not contain the last hit found on the reco track or B) the sim trackstates were not read in (still save sim info from gen position via --try-to-save-sim-info
+--> mcTSmask_[reco] == -1, reco track is unassociated to sim track
+--> mcTSmask_[reco] == -2, reco track is associated to sim track, and we fail == 1 and == 0
+--> mcTSmask_[reco] == -3, reco track is unassociated to seed track {FR only}
 
 excluding position variables, as position could be -99!
 --> reco var == -99, "unassociated" reco to sim track [possible mcmask_[reco] == 0,-1,2; possible duplmask_[reco] == -1] {eff only}

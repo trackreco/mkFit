@@ -34,7 +34,7 @@ runValidation()
 #cleanup first
 make clean
 make distclean
-make -j 12 WITH_ROOT=yes
+make -j 12 WITH_ROOT:=1
 
 export base=SNB_CMSSW_PU70_clean
 echo Run default build with base = ${base}
