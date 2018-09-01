@@ -362,6 +362,8 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
         // and issue prefetches at the same time.
         // Then enter vectorized loop to actually collect the hits in proper order.
 
+        //SK: ~20x1024 bin sizes give mostly 1 hit per bin
+#pragma nounroll
         for (uint16_t hi = L.m_phi_bin_infos[qi][pb].first; hi < L.m_phi_bin_infos[qi][pb].second; ++hi)
         {
           // MT: Access into m_hit_zs and m_hit_phis is 1% run-time each.
