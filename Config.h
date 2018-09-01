@@ -251,7 +251,11 @@ namespace Config
   // Speed-wise, those arrays (filling AND access, about half each) cost 1.5%
   // and could help us reduce the number of hits we need to process with bigger
   // potential gains.
+#ifdef CONFIG_PhiQArrays
   extern bool usePhiQArrays;
+#else
+  constexpr bool usePhiQArrays = true;
+#endif
 
   // Config for seeding as well... needed bfield
   constexpr float maxCurvR = (100 * minSimPt) / (sol * Bfield); // in cm
