@@ -124,11 +124,7 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
   RadixSort sort;
   sort.Sort(&hit_qphis[0], size);
 
-  int curr_q_bin   = 0;
-  int curr_phi_bin = 0;
-  int curr_qphi    = 0;
-  int hits_in_bin  = 0;
-  int hit_count    = 0;
+  int curr_qphi    = -1;
   empty_q_bins(0, m_nq, 0);
 
   for (uint16_t i = 0; i < size; ++i)
