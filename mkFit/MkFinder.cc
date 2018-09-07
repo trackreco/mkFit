@@ -370,23 +370,32 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
 	  if (Config::usePhiQArrays)
 	  {
-	    const float ddq   =       std::abs(q   - L.m_hit_qs[hi]);
-	    const float ddphi = cdist(std::abs(phi - L.m_hit_phis[hi]));
-
-	    dprintf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
-		    qi, pi, pb, hi,
-		    L.m_hit_qs[hi], L.m_hit_phis[hi], ddq, ddphi,
-		    (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
-
-            // MT: Removing extra check gives full efficiency ...
-            //     and means our error estimations are wrong!
-            // Avi says we should have *minimal* search windows per layer.
-            // Also ... if bins are sufficiently small, we do not need the extra
-            // checks, see above.
-	    if (XHitSize[itrack] < MPlexHitIdxMax && ddq < dq && ddphi < dphi)
-	    {
-	      XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
-	    }
+            if (XHitSize[itrack] >= MPlexHitIdxMax) continue;
+            //inner bins should pass by construction
+            if (qi != qb1  && qb2 - 1 != qi  && pi != pb1 && pb2 - 1 != pi)
+            {
+              XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
+            }
+            else //border bins
+            {
+              const float ddq   =       std::abs(q   - L.m_hit_qs[hi]);
+              const float ddphi = cdist(std::abs(phi - L.m_hit_phis[hi]));
+              
+              dprintf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
+                      qi, pi, pb, hi,
+                      L.m_hit_qs[hi], L.m_hit_phis[hi], ddq, ddphi,
+                      (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
+              
+              // MT: Removing extra check gives full efficiency ...
+              //     and means our error estimations are wrong!
+              // Avi says we should have *minimal* search windows per layer.
+              // Also ... if bins are sufficiently small, we do not need the extra
+              // checks, see above.
+              if (ddq < dq && ddphi < dphi)
+              {
+                XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
+              }
+            }//inner or border bins
 	  }
 	  else
 	  {
