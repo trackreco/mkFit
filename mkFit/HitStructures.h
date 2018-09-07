@@ -127,8 +127,13 @@ public:
 
   // Testing bin filling
   static constexpr float m_fphi     = Config::m_nphi / Config::TwoPI;
-  static constexpr int   m_phi_mask = 0x3ff;
-  static constexpr int   m_phi_bits = 10;
+  static constexpr int   m_phi_mask = 0x7f;
+  static constexpr int   m_phi_bits = 7;
+  static constexpr float m_fphi_fine     =  1024 / Config::TwoPI;
+  static constexpr int   m_phi_mask_fine = 0x3ff;
+  static constexpr int   m_phi_bits_fine = 10;//can't be more than 16
+  static constexpr int   m_phi_bits_shift = m_phi_bits_fine - m_phi_bits;
+  static constexpr int   m_phi_fine_mask = ~((1 << m_phi_bits_shift) - 1);
 
 protected:
 
@@ -192,8 +197,9 @@ public:
 
   int   GetQBinChecked(float q) const { int qb = GetQBin(q); if (qb < 0) qb = 0; else if (qb >= m_nq) qb = m_nq - 1; return qb; }
 
-  // If you don't pass phi in (-pi, +pi), mask away the upper bits using m_phi_mask or use the Checked version.
-  int   GetPhiBin(float phi) const { return std::floor(m_fphi * (phi + Config::PI)); }
+  // if you don't pass phi in (-pi, +pi), mask away the upper bits using m_phi_mask or use the Checked version.
+  int   GetPhiBinFine(float phi) const { return std::floor(m_fphi_fine * (phi + Config::PI)); }
+  int   GetPhiBin(float phi) const { return GetPhiBinFine(phi)>>m_phi_bits_shift; }
 
   int   GetPhiBinChecked(float phi) const { return GetPhiBin(phi) & m_phi_mask; }
 

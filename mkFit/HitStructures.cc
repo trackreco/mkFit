@@ -89,12 +89,14 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
   {
     float phi;
     float q;
-    int   qbin;
+    uint16_t   qbin;
+    uint16_t   phibin;
   };
 
   std::vector<HitInfo> ha(size);
   std::vector<int>     qc(m_nq, 0);
-  std::vector<udword>     hit_qphis(size);
+  std::vector<udword>     hit_qphiFines(size);
+  
   int nqh = m_nq / 2;
   {
     for (int ii =0; ii< size; ii+=NN)
@@ -113,7 +115,9 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
           hi.phi  = h.phi();
           hi.q    = is_brl ? h.z() : h.r();
           hi.qbin = std::max(std::min(static_cast<int>((hi.q - m_qmin) * m_fq), m_nq - 1), 0);
-          hit_qphis[i] = GetPhiBin(hi.phi) + (hi.qbin << m_phi_bits);
+          // N.1.b ha[j].phi is returned by atan2 and can be rounded the wrong way, resulting in bin -1 or Config::m_nphi
+          hi.phibin = GetPhiBin(hi.phi) & m_phi_mask;
+          hit_qphiFines[i] = GetPhiBinFine(hi.phi) + (hi.qbin << 16);
           qbins[j] = hi.qbin;
         }
       }//j < NN
@@ -122,7 +126,7 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
   }
 
   RadixSort sort;
-  sort.Sort(&hit_qphis[0], size);
+  sort.Sort(&hit_qphiFines[0], size);
 
   int curr_qphi    = -1;
   empty_q_bins(0, m_nq, 0);
@@ -154,16 +158,16 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
       m_hit_phis[i] = ha[j].phi;
       m_hit_qs  [i] = ha[j].q;
     }
-    
-    // N.1.b ha[j].phi is returned by atan2 and can be rounded the wrong way, resulting in bin -1 or Config::m_nphi
-    const int phi_bin = hit_qphis[j] & m_phi_mask;
+
+    const int phi_bin = ha[j].phibin;
     const int q_bin = ha[j].qbin;
 
     // Fill the bin info
-    if (hit_qphis[j] != curr_qphi)
+    const int jqphi = hit_qphiFines[j] & m_phi_fine_mask;
+    if (jqphi != curr_qphi)
     {
       m_phi_bin_infos[q_bin][phi_bin] = {i, i};
-      curr_qphi = hit_qphis[j];
+      curr_qphi = jqphi;
     }
 
     m_phi_bin_infos[q_bin][phi_bin].second++;

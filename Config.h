@@ -162,7 +162,7 @@ namespace Config
   extern float XigridME[Config::nBinsZME][Config::nBinsRME];
 
   // This will become layer dependent (in bits). To be consistent with min_dphi.
-  static constexpr int m_nphi = 1024;
+  static constexpr int m_nphi = 128;
 
   // config on Event
   extern    float chi2Cut; // default: 15; cmssw: 30 (set in TrackerInfo plugin)
