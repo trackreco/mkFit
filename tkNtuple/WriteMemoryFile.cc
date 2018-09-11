@@ -148,13 +148,13 @@ int main(int argc, char *argv[])
 	  writeRecTracks = true;
 	}
       else if (*i == "--apply-ccc")
-        {
-          applyCCC = true;
+	{
+	  applyCCC = true;
 	  if( next_arg_option(mArgs, i))
 	    {
 	      cutValueCCC = std::atoi(i->c_str());
 	    }
-        }
+	}
       else
 	{
 	  fprintf(stderr, "Error: Unknown option/argument '%s'.\n", i->c_str());
