@@ -945,13 +945,14 @@ int main(int argc, char *argv[])
 	if(passCCC) cmsswTracks_[strHitRecIdx[istr][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
 	else cmsswTracks_[strHitRecIdx[istr][ir]].addHitIdx(-9,ilay,0); 
       }
-      if(passCCC){ 
-	Hit hit(pos, err, totHits);
-	layerHits_[ilay].push_back(hit);
-	MCHitInfo hitInfo(simTkIdx, ilay, layerHits_[ilay].size()-1, totHits);
-	simHitsInfo_.push_back(hitInfo);
-	totHits++;
-      }
+      if(passCCC)
+	{
+	  Hit hit(pos, err, totHits);
+	  layerHits_[ilay].push_back(hit);
+	  MCHitInfo hitInfo(simTkIdx, ilay, layerHits_[ilay].size()-1, totHits);
+	  simHitsInfo_.push_back(hitInfo);
+	  totHits++;
+	}
     }
 
     // bool allTracksAllHits = true;
