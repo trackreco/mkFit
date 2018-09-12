@@ -28,7 +28,7 @@ then
 elif [[ "${ben_arch}" == "KNL" ]]
 then
     mOpt="-j 64 AVX_512:=1"
-    dir=/data1/work/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000
+    dir=/data1/work/slava77/samples
     maxth=256
     maxvu=16
     declare -a nths=("1" "2" "4" "8" "16" "32" "64" "96" "128" "160" "192" "224" "256")
@@ -49,8 +49,8 @@ else
 fi
 
 ## Common file setup
-subdir=2017/pass-4874f28/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/a
-file=memoryFile.fv3.clean.writeAll.recT.072617.bin
+subdir=2017/pass-c93773a/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU
+file=memoryFile.fv3.clean.writeAll.CCC1620.recT.082418-25daeda.bin
 nevents=20
 
 ## Common executable setup

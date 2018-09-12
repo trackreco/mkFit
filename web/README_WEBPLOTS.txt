@@ -35,13 +35,16 @@ Now, you have to determine if you are either A) looking to migrate your personal
       c) [open .htaccess and paste the following] "Options +Indexes" [without quotes]
    B) If you want to set restrictions on who can view your website, you can modify your .htaccess file by following along in "Access control for AFS / EOS web sites"
 
-5) Move/copy new plots to /eos/user/${FIRST_LETTER}/${USERNAME}/${dir}, and use ./copyphp.sh ${subdir} to copy index.php into every directory below ${subdir}.
+5) Copy the really very useful index.php and copyphp.sh into ${dir}. 
+
+6) Move/copy new plots to /eos/user/${FIRST_LETTER}/${USERNAME}/${dir}, and use ./copyphp.sh ${subdir} to copy index.php into every directory below ${subdir}. When running ``` ./web/move-benchmarks```, the ```copyphp.sh``` will be run for you, assuming it can be found in your web directory.
 
 ===================================
 
-#################################
-## WARNING: DEPRECATED BY CERN ##
-#################################
+############################################
+## Setting up a website with an AFS space ##
+##      WARNING: DEPRECATED BY CERN       ##
+############################################
 
 A) Request CERN website from websites.cern.ch
    --> set website to point to AFS directory

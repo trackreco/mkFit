@@ -158,6 +158,8 @@ This script will run the validation on the building tests specified by the ```${
 
 It should be mentioned that each of these scripts within ```./xeon_scripts/runBenchmark.sh``` can be launched on their own, as again, they each set the environment and run tests and/or plot making. However, for simplicity's sake, it is easiest when prepping for a PR to just run the master ```./xeon_scripts/runBenchmark.sh```.  If you want to test locally, it is of course possible to launch the scripts one at a time.
 
+Note that you need to have SSH-forwarding set up to avoid having to type your password every time ```./xeon_scripts/runBenchmark.sh``` needs to copy files back and forth.
+
 After running the full suite, there is an additional set of scripts within the ```web/``` directory for organizing the output plots and text files for viewing them on the web.  The main script is:
 
 ```
