@@ -27,7 +27,7 @@ typedef std::unordered_map<int, FitValLayMap> TkIDtoFitValLayMapMap;
 class TTreeValidation : public Validation {
 public:
   TTreeValidation(std::string fileName);
-  ~TTreeValidation();
+  ~TTreeValidation() {}
   
   void initializeEfficiencyTree();
   void initializeFakeRateTree();  
@@ -75,7 +75,7 @@ public:
   void saveTTrees() override;
 
  private:
-  TFile* f_; // output file!
+  std::unique_ptr<TFile> f_; // output file!
   
   TkIDtoFitValLayMapMap fitValTkMapMap_; // map used for fit validation in mplex
 
@@ -108,7 +108,7 @@ public:
   TkIDToTkIDMap fitToSeedMapDumbCMSSW_;
 
   // Efficiency Tree 
-  TTree* efftree_;  
+  std::unique_ptr<TTree> efftree_;  
   int   evtID_eff_=0,mcID_eff_=0;
   int   mcmask_seed_eff_=0,mcmask_build_eff_=0,mcmask_fit_eff_=0;
   int   seedID_seed_eff_=0,seedID_build_eff_=0,seedID_fit_eff_=0;
@@ -154,7 +154,7 @@ public:
   std::vector<int> hitidxs_mc_eff_,hitidxs_seed_eff_,hitidxs_build_eff_,hitidxs_fit_eff_;
 
   // Fake Rate tree and variables
-  TTree* frtree_;
+  std::unique_ptr<TTree> frtree_;
   int   evtID_FR_=0,seedID_FR_=0;
 
   int   seedmask_seed_FR_=0,seedmask_build_FR_=0,seedmask_fit_FR_=0;
@@ -199,7 +199,7 @@ public:
   std::vector<int> hitidxs_seed_FR_,hitidxs_build_FR_,hitidxs_fit_FR_,hitidxs_mc_seed_FR_,hitidxs_mc_build_FR_,hitidxs_mc_fit_FR_;
 
   // Configuration tree
-  TTree* configtree_;
+  std::unique_ptr<TTree> configtree_;
   int   Ntracks_=0,Nevents_=0;
   int   nLayers_=0;
   float fRadialSpacing_=0.,fRadialExtent_=0.,fInnerSensorSize_=0.,fOuterSensorSize_=0.;
@@ -215,7 +215,7 @@ public:
   float ptinverr049_=0.,phierr049_=0.,thetaerr049_=0.,ptinverr012_=0.,phierr012_=0.,thetaerr012_=0.;
 
   // CMSSW Efficiency tree
-  TTree* cmsswefftree_;
+  std::unique_ptr<TTree> cmsswefftree_;
   int   evtID_ceff_=0,cmsswID_ceff_=0,seedID_cmssw_ceff_=0;
 
   float x_cmssw_ceff_=0.,y_cmssw_ceff_=0.,z_cmssw_ceff_=0.;
@@ -271,7 +271,7 @@ public:
   std::vector<int> hitidxs_cmssw_ceff_,hitidxs_build_ceff_,hitidxs_mc_build_ceff_,hitidxs_fit_ceff_,hitidxs_mc_fit_ceff_;
 
   // CMSSW FakeRate tree
-  TTree* cmsswfrtree_;
+  std::unique_ptr<TTree> cmsswfrtree_;
   int   evtID_cFR_=0,seedID_cFR_=0,mcTrackID_cFR_=0;
 
   // build info
@@ -332,7 +332,7 @@ public:
   std::vector<int> hitidxs_mc_cFR_,hitidxs_build_cFR_,hitidxs_cmssw_build_cFR_,hitidxs_fit_cFR_,hitidxs_cmssw_fit_cFR_;
 
   // Fit tree (for fine tuning z-phi windows and such --> MPlex Only
-  TTree* fittree_;
+  std::unique_ptr<TTree> fittree_;
   int   ntotallayers_fit_=0,tkid_fit_=0,evtid_fit_=0;
 
   static const int   nfvs_ = 24;
