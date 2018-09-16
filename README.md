@@ -280,11 +280,13 @@ There are some sections of code that are not in use anymore and/or are not regul
 Given that this is a living repository, the comments in the code may not always be enough. Here are some useful other README's within this repo:
 - afer compiling the code, do: ```./mkFit/mkFit --help``` : Describes the full list of command line options, inputs, and defaults when running mkFit. The list can also be seen in the code in mkFit/mkFit.cc, although the defaults are hidden behind Config.[h,cc], as well as mkFit.cc.
 - cmssw-trackerinfo-desc.txt : Describes the structure of the CMS Phase-I geometry as represented within this repo.
+- index-desc.txt : Desribes the various hit and track indices used by different sets of tracks throughout the different stages of the read in, seeding, building, fitting, and validation.
 - validation-desc.txt : The validation manifesto: (somewhat) up-to-date description of the full physics validation suite. It is complemented by a somewhat out-of-date code flow diagram, found here: https://indico.cern.ch/event/656884/contributions/2676532/attachments/1513662/2363067/validation_flow_diagram-v4.pdf
 - web/README_WEBPLOTS.txt : A short text file on how to setup a website with an AFS or EOS directory on LXPLUS.
 
 ## Section 9: Other useful links and information
 
+### Useful Links
 - Main development GitHub: https://github.com/cerati/mictest
 - Our project website: https://trackreco.github.io
 - Out-of-date and longer used twiki: https://twiki.cern.ch/twiki/bin/viewauth/CMS/MicTrkRnD
@@ -292,9 +294,20 @@ Given that this is a living repository, the comments in the code may not always 
 - Vidyo room: Parallel_Kalman_Filter_Tracking
 - Email list-serv: mic-trk-rd@cern.ch
 
-Acronyms/Abbreviations:
-- AVX: Advanced Vector Extensions
+### Tips and Tricks: Missing Libraries and Debugging
+
+When sourcing the environment on phi3 via ```source xeon_scripts/init-env.sh```, some paths will be unset and access to local binaries may be lost. For example, since we source ROOT (and its many dependencies) over CVMFS, there may be some conflicts in loading some applications. In fact, the shell may complain about missing environment variables (emacs loves to complain about TIFF). The best way around this is to simply use CVMFS as a crutch to load in what you need.
+
+This is particularly noticeable when trying to run a debugger. To compile the code, at a minimum, we must source icc + toolkits that give us libraries for c++14. We achieve this through the dependency loading of ROOT through CVMFS (previously, we sourced devtoolset-N to grab c++14 libraries). 
+
+After sourcing and compiling and then running only to find out there is some crash, when trying to load ```mkFit``` into ``gdb`` via ```gdb ./mkFit/mkFit```, it gives rather opaque error messages about missing Python paths.
+
+This can be overcome by loading ```gdb``` over CVMFS: ```source /cvmfs/cms.cern.ch/slc7_amd64_gcc630/external/gdb/7.12.1-omkpbe2/etc/profile.d/init.sh```. At this point, the application will run normally and debugging can commence.
+
+### Acronyms/Abbreviations:
+- AVX: Advanced Vector Extensions [flavors of AVX: AVX, AVX2, AVX512]
 - BH: Best Hit
+- CCC: Charge Cluster Cut
 - CE: Clone Engine
 - CMS: Compact Muon Solenoid
 - CMSSW: CMS Software
@@ -303,6 +316,7 @@ Acronyms/Abbreviations:
 - GH: GitHub
 - GUI: Graphical User Interface
 - MEIF: Multiple-Events-In-Flight
+- MP: Multi-Processing
 - N^2: Local seed cleaning algorithm developed by Mario and Slava
 - PR: Pull Request
 - Reco: Reconstruction
