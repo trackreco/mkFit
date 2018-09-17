@@ -10,7 +10,14 @@ TTreeValidation::TTreeValidation(std::string fileName)
 {
   std::lock_guard<std::mutex> locker(glock_);
   gROOT->ProcessLine("#include <vector>");
-  f_ = TFile::Open(fileName.c_str(), "recreate");
+
+  // KPM via DSR's ROOT wizardry: ROOT's context management implicitly assumes that a file is opened and
+  // closed on the same thread. To avoid the problem, we declare a local
+  // TContext object; when it goes out of scope, its destructor unregisters
+  // the context, guaranteeing the context is unregistered in the same thread
+  // it was registered in. (do this for tfiles and trees
+  TDirectory::TContext contextEraser;
+  f_ = std::unique_ptr<TFile>(TFile::Open(fileName.c_str(), "recreate"));
 
   if (Config::sim_val_for_cmssw || Config::sim_val) 
   { 
@@ -30,30 +37,12 @@ TTreeValidation::TTreeValidation(std::string fileName)
   TTreeValidation::initializeConfigTree();
 }
 
-TTreeValidation::~TTreeValidation()
-{
-  if (Config::sim_val_for_cmssw || Config::sim_val) 
-  {
-    delete efftree_;
-    delete frtree_;
-  }
-  if (Config::cmssw_val)
-  {
-    delete cmsswefftree_;
-    delete cmsswfrtree_;
-  }
-  if (Config::fit_val) 
-  {
-    delete fittree_;
-  }
-  delete configtree_;
-  delete f_;
-}
-
 void TTreeValidation::initializeEfficiencyTree()
-{  
+{
   // efficiency validation
-  efftree_ = new TTree("efftree","efftree");
+  efftree_ = std::make_unique<TTree>("efftree","efftree");
+  efftree_->SetDirectory(0);
+  
   efftree_->Branch("evtID",&evtID_eff_);
   efftree_->Branch("mcID",&mcID_eff_);
 
@@ -176,8 +165,9 @@ void TTreeValidation::initializeEfficiencyTree()
 void TTreeValidation::initializeFakeRateTree()
 {
   // fake rate validation
-  frtree_ = new TTree("frtree","frtree");
-
+  frtree_ = std::make_unique<TTree>("frtree","frtree");
+  frtree_->SetDirectory(0);
+  
   frtree_->Branch("evtID",&evtID_FR_);
   frtree_->Branch("seedID",&seedID_FR_);
 
@@ -312,7 +302,8 @@ void TTreeValidation::initializeFakeRateTree()
 void TTreeValidation::initializeConfigTree()
 {
   // include config ++ real seeding parameters ...
-  configtree_ = new TTree("configtree","configtree");
+  configtree_ = std::make_unique<TTree>("configtree","configtree");
+  configtree_->SetDirectory(0);
 
   configtree_->Branch("Ntracks",&Ntracks_);
   configtree_->Branch("Nevents",&Nevents_);
@@ -364,7 +355,9 @@ void TTreeValidation::initializeConfigTree()
 void TTreeValidation::initializeCMSSWEfficiencyTree()
 {  
   // cmssw reco track efficiency validation
-  cmsswefftree_ = new TTree("cmsswefftree","cmsswefftree");
+  cmsswefftree_ = std::make_unique<TTree>("cmsswefftree","cmsswefftree");
+  cmsswefftree_->SetDirectory(0);
+
   cmsswefftree_->Branch("evtID",&evtID_ceff_);
   cmsswefftree_->Branch("cmsswID",&cmsswID_ceff_);
   cmsswefftree_->Branch("seedID_cmssw",&seedID_cmssw_ceff_);
@@ -473,7 +466,8 @@ void TTreeValidation::initializeCMSSWEfficiencyTree()
 void TTreeValidation::initializeCMSSWFakeRateTree()
 {  
   // cmssw reco track efficiency validation
-  cmsswfrtree_ = new TTree("cmsswfrtree","cmsswfrtree");
+  cmsswfrtree_ = std::make_unique<TTree>("cmsswfrtree","cmsswfrtree");
+  cmsswfrtree_->SetDirectory(0);
 
   cmsswfrtree_->Branch("evtID",&evtID_cFR_);
   cmsswfrtree_->Branch("seedID",&seedID_cFR_);
@@ -589,9 +583,10 @@ void TTreeValidation::initializeCMSSWFakeRateTree()
 
 void TTreeValidation::initializeFitTree()
 {
+  fittree_ = std::make_unique<TTree>("fittree","fittree");
+  fittree_->SetDirectory(0);
+
   ntotallayers_fit_ = Config::nTotalLayers;
-  
-  fittree_ = new TTree("fittree","fittree");
 
   fittree_->Branch("ntotallayers",&ntotallayers_fit_,"ntotallayers_fit_/I");
   fittree_->Branch("tkid",&tkid_fit_,"tkid_fit_/I");
@@ -2797,24 +2792,34 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
   } 
 }
 
-void TTreeValidation::saveTTrees() 
+void TTreeValidation::saveTTrees()
 {  
   std::lock_guard<std::mutex> locker(glock_); 
   f_->cd();
+
   if (Config::sim_val_for_cmssw || Config::sim_val) 
   {
+    efftree_->SetDirectory(f_.get());
     efftree_->Write();
+
+    frtree_->SetDirectory(f_.get());
     frtree_->Write();
   }
   if (Config::cmssw_val)
   {
+    cmsswefftree_->SetDirectory(f_.get());
     cmsswefftree_->Write();
+
+    cmsswfrtree_->SetDirectory(f_.get());
     cmsswfrtree_->Write();
   }
   if (Config::fit_val) 
   {
+    fittree_->SetDirectory(f_.get());
     fittree_->Write();
   }
+
+  configtree_->SetDirectory(f_.get());
   configtree_->Write();
 }             
 
