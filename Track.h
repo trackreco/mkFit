@@ -265,7 +265,7 @@ public:
   int getLastFoundHitPos() const
   {
     int hi = lastHitIdx_;
-    while (hitsOnTrk_[hi].index < 0 && hitsOnTrk_[hi].index != -9) --hi;
+    while (hitsOnTrk_[hi].index < 0) --hi;
     return hi;
   }
 
