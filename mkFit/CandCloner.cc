@@ -13,6 +13,27 @@ inline bool sortCandListByHitsChi2(const mkfit::MkFinder::IdxChi2List& cand1,
   if (cand1.nhits == cand2.nhits) return cand1.chi2 < cand2.chi2;
   return cand1.nhits > cand2.nhits;
 }
+
+inline bool sortCandListByScore(const mkfit::MkFinder::IdxChi2List& cand1,
+				const mkfit::MkFinder::IdxChi2List& cand2)
+{
+
+
+  float validHitBonus_=0.5*5.0;
+  float missingHitPenalty_=20.0;
+  int nfoundhits[2] = {cand1.nhits,cand2.nhits};
+  int nmisshits[2] = {cand1.nholes,cand2.nholes};
+  float chi2[2] = {cand1.chi2,cand2.chi2};
+  float pt[2] = {cand1.pt,cand2.pt};
+  float score[2] = {0.f,0.f};
+  for(int c=0; c<2; ++c){
+    score[c] = (validHitBonus_)*nfoundhits[c] - (missingHitPenalty_)*nmisshits[c] - chi2[c];
+    if(pt[c]<0.9f) score[c] -= 0.5f*(validHitBonus_)*nfoundhits[c];
+    else if(nfoundhits[c]>8) score[c] += (validHitBonus_)*nfoundhits[c];
+  }
+  return score[0]>score[1];
+
+}
 }
 
 namespace mkfit {
@@ -52,7 +73,8 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
     if ( ! hitsForSeed.empty())
     {
       //sort the new hits
-      std::sort(hitsForSeed.begin(), hitsForSeed.end(), sortCandListByHitsChi2);
+      //std::sort(hitsForSeed.begin(), hitsForSeed.end(), sortCandListByHitsChi2);
+      std::sort(hitsForSeed.begin(), hitsForSeed.end(), sortCandListByScore);
 
       int num_hits = std::min((int) hitsForSeed.size(), Config::maxCandsPerSeed);
 

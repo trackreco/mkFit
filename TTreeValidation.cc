@@ -880,7 +880,8 @@ void TTreeValidation::mapRefTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVe
       {
 	tmpMatches.emplace_back(evt_tracks[label]);
       }
-      std::sort(tmpMatches.begin(), tmpMatches.end(), sortByHitsChi2); // sort the tracks
+      //std::sort(tmpMatches.begin(), tmpMatches.end(), sortByHitsChi2); // sort the tracks
+      std::sort(tmpMatches.begin(), tmpMatches.end(), sortByScore); // sort the tracks
       for (auto itrack = 0; itrack < (int) tmpMatches.size(); itrack++) // loop over sorted tracks, now set the vector of sorted labels match
       {
 	refTkMatches.second[itrack] = tmpMatches[itrack].label();
