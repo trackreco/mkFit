@@ -94,3 +94,6 @@ endif
 
 echo:
 	-echo CXX = ${CXX}
+
+echo_cc_defs:
+	${CXX} -dM -E -mavx2 - < /dev/null
