@@ -63,6 +63,8 @@ namespace Config
   bool  useCMSGeom = false;
   bool  readCmsswTracks = false;
 
+  bool perfectSimOnly = true;
+
   bool  dumpForPlots = false;
   bool  silent       = false;
 

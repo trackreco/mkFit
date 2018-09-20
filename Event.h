@@ -49,6 +49,8 @@ public:
 
   inline bool is_trackvec_empty(const TrackVec & tracks) { return tracks.empty(); }
 
+  bool has_perfect_tracks_only(const TrackVec & tracks);
+
   void print_tracks(const TrackVec& tracks, bool print_hits) const;
 
   const Geometry& geom_;

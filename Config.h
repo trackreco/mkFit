@@ -365,6 +365,8 @@ namespace Config
   extern bool   useCMSGeom;
   extern bool   readCmsswTracks;
 
+  extern bool   perfectSimOnly;
+
   extern bool   dumpForPlots;
   extern bool   silent;
 

@@ -439,6 +439,8 @@ void test_standard()
       // skip events with zero seed tracks!
       if (ev.is_trackvec_empty(ev.seedTracks_)) continue;
 
+      if(Config::perfectSimOnly && !(ev.has_perfect_tracks_only(ev.simTracks_) ) ) continue;
+
       plex_tracks.resize(ev.simTracks_.size());
 
       double t_best[NT] = {0}, t_cur[NT];
