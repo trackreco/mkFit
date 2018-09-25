@@ -28,6 +28,8 @@
     #define MPLEX_INTRINSICS_WIDTH_BYTES  64
     #define MPLEX_INTRINSICS_WIDTH_BITS  512
     #define MIC_INTRINSICS
+    #define GATHER_INTRINSICS
+    #define GATHER_IDX_LOAD(name, arr)  __m512i name = _mm512_load_epi32(arr);
 
     #define LD(a, i)      _mm512_load_ps(&a[i*N+n])
     #define ST(a, i, r)   _mm512_store_ps(&a[i*N+n], r)
@@ -40,7 +42,9 @@
     typedef __m256 IntrVec_t;
     #define MPLEX_INTRINSICS_WIDTH_BYTES  32
     #define MPLEX_INTRINSICS_WIDTH_BITS  256
-    #define AVX_INTRINSICS
+    #define AVX2_INTRINSICS
+    #define GATHER_INTRINSICS
+    #define GATHER_IDX_LOAD(name, arr)  __m256i name = _mm256_load_epi32(arr);
 
     #define LD(a, i)      _mm256_load_ps(&a[i*N+n])
     #define ST(a, i, r)   _mm256_store_ps(&a[i*N+n], r)

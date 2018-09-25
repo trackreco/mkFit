@@ -157,6 +157,26 @@ public:
    }
    */
 
+#elif defined(AVX2_INTRINSICS)
+
+   void SlurpIn(const char *arr, __m256i& vi, const int N_proc = N)
+   {
+      const __m256 src = { 0 };
+
+      __m256i k_master = _mm256_setr_epi32( -1, -1, -1, -1, -1, -1, -1, -1 );
+      int *kmp = (int*) & k_master;
+      for (int i = N_proc; i < N; ++i) kmp[i] = 0;
+
+      __m256i k = k_master;
+      for (int i = 0; i < kSize; ++i, arr += sizeof(T))
+      {
+         __m256 reg = _mm256_mask_i32gather_ps(src, (float*) arr, vi, (__m256) k, 1);
+         // Restore mask (docs say gather clears it but it doesn't seem to).
+         k = k_master;
+         _mm256_maskstore_ps((float*) &fArray[i*N], k, reg);
+      }
+   }
+
 #else
 
    void SlurpIn(const char *arr, int vi[N], const int N_proc = N)

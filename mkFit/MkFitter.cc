@@ -197,8 +197,8 @@ void MkFitter::SlurpInTracksAndHits(const std::vector<Track>&  tracks,
     Chi2(itrack, 0, 0) = trk.chi2();
   }
 
-#ifdef MIC_INTRINSICS
-  __m512i vi      = _mm512_load_epi32(idx);
+#ifdef GATHER_INTRINSICS
+  GATHER_IDX_LOAD(vi, idx);
   Err[iC].SlurpIn(varr + off_error, vi);
   Par[iC].SlurpIn(varr + off_param, vi);
 #else
@@ -228,8 +228,8 @@ void MkFitter::SlurpInTracksAndHits(const std::vector<Track>&  tracks,
       HoTArr[hi](itrack, 0, 0) = tracks[i].getHitOnTrack(hi);
     }
 
-#ifdef MIC_INTRINSICS
-    __m512i vi      = _mm512_load_epi32(idx);
+#ifdef GATHER_INTRINSICS
+    GATHER_IDX_LOAD(vi, idx);
     msErr[hi].SlurpIn(varr + off_error, vi);
     msPar[hi].SlurpIn(varr + off_param, vi);
 #else
@@ -388,8 +388,8 @@ void MkFitter::InputTracksForFit(const std::vector<Track>& tracks,
 
   // for ( ; itrack < NN; ++itrack)  {  idx[itrack] = idx[0];  }
 
-#ifdef MIC_INTRINSICS
-  __m512i vi      = _mm512_load_epi32(idx);
+#ifdef GATHER_INTRINSICS
+  GATHER_IDX_LOAD(vi, idx);
   Err[iC].SlurpIn(varr + off_error, vi, N_proc);
   Par[iC].SlurpIn(varr + off_param, vi, N_proc);
   for (int ll = 0; ll < Config::nLayers; ++ll)
@@ -440,8 +440,8 @@ void MkFitter::FitTracksWithInterSlurp(const std::vector<HitVec>& layersohits,
     }
     for (int i = N_proc; i < NN; ++i)  {  idx[i] = idx[0];  }
 
-#ifdef MIC_INTRINSICS
-    __m512i vi      = _mm512_load_epi32(idx);
+#ifdef GATHER_INTRINSICS
+    GATHER_IDX_LOAD(vi, idx);
     msPar[0].SlurpIn(varr + off_param, vi, N_proc);
     msErr[0].SlurpIn(varr + off_error, vi, N_proc);
 #else

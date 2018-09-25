@@ -314,9 +314,6 @@ void MkFinderFV<nseeds, ncands>::FindCandidates(const LayerOfHits &layer_of_hits
         idx[itrack] = XHitArr.At(itrack, hit_cnt, 0) * sizeof(Hit);
       }
     }
-#if defined(MIC_INTRINSICS)
-    __m512i vi = _mm512_load_epi32(idx);
-#endif
 
     // Prefetch to L2 the hits we'll (probably) process after two loops iterations.
     // Ideally this would be initiated before coming here, for whole bunch_of_hits.m_hits vector.
@@ -328,7 +325,8 @@ void MkFinderFV<nseeds, ncands>::FindCandidates(const LayerOfHits &layer_of_hits
       }
     }
 
-#if defined(MIC_INTRINSICS)
+#if defined(GATHER_INTRINSICS)
+    GATHER_IDX_LOAD(vi, idx);
     msErr.SlurpIn(varr + off_error, vi);
     msPar.SlurpIn(varr + off_param, vi);
 #else
