@@ -21,7 +21,7 @@ public:
       /// return no. of matrix columns
       kCols = D2,
       /// return no of elements: rows*columns
-      kSize = hacked_size,//D1 * D2,
+      kSize = std::min(hacked_size, D1 * D2),
       /// size of the whole matriplex
       kTotSize = N * kSize
    };
@@ -57,15 +57,15 @@ public:
       }
    }
 
-   T  operator[](idx_t xx) const { return fArray[std::min(xx,kSize-1)]; }
-   T& operator[](idx_t xx)       { return fArray[std::min(xx,kSize-1)]; }
+   T  operator[](idx_t xx) const { return fArray[std::min(xx,kTotSize-1)]; }
+   T& operator[](idx_t xx)       { return fArray[std::min(xx,kTotSize-1)]; }
 
-   const T& ConstAt(idx_t n, idx_t i, idx_t j) const { return fArray[std::min((i * D2 + j),hacked_size-1) * N + n]; }
+   const T& ConstAt(idx_t n, idx_t i, idx_t j) const { return fArray[std::min((i * D2 + j),kSize-1) * N + n]; }
 
-   T& At(idx_t n, idx_t i, idx_t j) { return fArray[std::min((i * D2 + j),hacked_size-1) * N + n]; }
+   T& At(idx_t n, idx_t i, idx_t j) { return fArray[std::min((i * D2 + j),kSize-1) * N + n]; }
 
-   T& operator()(idx_t n, idx_t i, idx_t j) { return fArray[std::min((i * D2 + j),hacked_size-1) * N + n]; }
-   const T& operator()(idx_t n, idx_t i, idx_t j) const { return fArray[std::min((i * D2 + j),hacked_size-1) * N + n]; }
+   T& operator()(idx_t n, idx_t i, idx_t j) { return fArray[std::min((i * D2 + j),kSize-1) * N + n]; }
+   const T& operator()(idx_t n, idx_t i, idx_t j) const { return fArray[std::min((i * D2 + j),kSize-1) * N + n]; }
 
    Matriplex& operator=(const Matriplex& m)
    {

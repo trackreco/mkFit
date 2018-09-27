@@ -36,7 +36,7 @@ public:
       /// no. of matrix columns
       kCols = D,
       /// no of elements: lower triangle
-      kSize = (D + 1) * D / 2,
+      kSize = (std::min(hacked_size, D + 1) * D / 2),
       /// size of the whole matriplex
       kTotSize = N * kSize
    };
@@ -73,15 +73,15 @@ public:
       }
    }
 
-   T  operator[](idx_t xx) const { return fArray[xx]; }
-   T& operator[](idx_t xx)       { return fArray[xx]; }
+   T  operator[](idx_t xx) const { return fArray[std::min(xx,kTotSize-1)]; }
+   T& operator[](idx_t xx)       { return fArray[std::min(xx,kTotSize-1)]; }
 
    const idx_t * Offsets()    const { return gSymOffsets[D];    }
          idx_t   Off(idx_t i) const { return gSymOffsets[D][i]; }
 
-   const T& ConstAt(idx_t n, idx_t i, idx_t j) const { return fArray[Off(i * D + j) * N + n]; }
+   const T& ConstAt(idx_t n, idx_t i, idx_t j) const { return fArray[std::min(Off(i * D + j),kSize-1) * N + n]; }
 
-   T& At(idx_t n, idx_t i, idx_t j) { return fArray[Off(i * D + j) * N + n]; }
+   T& At(idx_t n, idx_t i, idx_t j) { return fArray[std::min(Off(i * D + j),kSize-1) * N + n]; }
 
    T& operator()(idx_t n, idx_t i, idx_t j) { return At(n, i, j); }
    const T& operator()(idx_t n, idx_t i, idx_t j) const { return ConstAt(n, i, j); }
@@ -422,28 +422,28 @@ struct CramerInverterSym<T, 3, N>
    {
       typedef T TT;
 
-      T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+      /* T *a = A.fArray; ASSUME_ALIGNED(a, 64); */
 
 #pragma omp simd
       for (idx_t n = 0; n < N; ++n)
       {
-         const TT c00 = a[2*N+n] * a[5*N+n] - a[4*N+n] * a[4*N+n];
-         const TT c01 = a[4*N+n] * a[3*N+n] - a[1*N+n] * a[5*N+n];
-         const TT c02 = a[1*N+n] * a[4*N+n] - a[2*N+n] * a[3*N+n];
-         const TT c11 = a[5*N+n] * a[0*N+n] - a[3*N+n] * a[3*N+n];
-         const TT c12 = a[3*N+n] * a[1*N+n] - a[4*N+n] * a[0*N+n];
-         const TT c22 = a[0*N+n] * a[2*N+n] - a[1*N+n] * a[1*N+n];
+         const TT c00 = A[2*N+n] * A[5*N+n] - A[4*N+n] * A[4*N+n];
+         const TT c01 = A[4*N+n] * A[3*N+n] - A[1*N+n] * A[5*N+n];
+         const TT c02 = A[1*N+n] * A[4*N+n] - A[2*N+n] * A[3*N+n];
+         const TT c11 = A[5*N+n] * A[0*N+n] - A[3*N+n] * A[3*N+n];
+         const TT c12 = A[3*N+n] * A[1*N+n] - A[4*N+n] * A[0*N+n];
+         const TT c22 = A[0*N+n] * A[2*N+n] - A[1*N+n] * A[1*N+n];
 
-         const TT det = a[0*N+n] * c00 + a[1*N+n] * c01 + a[3*N+n] * c02;
+         const TT det = A[0*N+n] * c00 + A[1*N+n] * c01 + A[3*N+n] * c02;
 
          const TT s = TT(1) / det;
 
-         a[0*N+n] = s*c00;
-         a[1*N+n] = s*c01;
-         a[2*N+n] = s*c11;
-         a[3*N+n] = s*c02;
-         a[4*N+n] = s*c12;
-         a[5*N+n] = s*c22;
+         A[0*N+n] = s*c00;
+         A[1*N+n] = s*c01;
+         A[2*N+n] = s*c11;
+         A[3*N+n] = s*c02;
+         A[4*N+n] = s*c12;
+         A[5*N+n] = s*c22;
       }
    }
 };

@@ -90,11 +90,51 @@ void MultHelixProp(const MPlexLL& A, const MPlexLS& B, MPlexLL& C)
    typedef float T;
    const idx_t N  = NN;
 
-   const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
-   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
-         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+   // const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+   // const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+   //       T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
-#include "MultHelixProp.ah"
+// #include "MultHelixProp.ah"
+#pragma simd
+   for (int n = 0; n < N; ++n)
+   {
+      C[ 0*N+n] = A[ 0*N+n]*B[ 0*N+n] + A[ 1*N+n]*B[ 1*N+n] + A[ 3*N+n]*B[ 6*N+n] + A[ 4*N+n]*B[10*N+n];
+      C[ 1*N+n] = A[ 0*N+n]*B[ 1*N+n] + A[ 1*N+n]*B[ 2*N+n] + A[ 3*N+n]*B[ 7*N+n] + A[ 4*N+n]*B[11*N+n];
+      C[ 2*N+n] = A[ 0*N+n]*B[ 3*N+n] + A[ 1*N+n]*B[ 4*N+n] + A[ 3*N+n]*B[ 8*N+n] + A[ 4*N+n]*B[12*N+n];
+      C[ 3*N+n] = A[ 0*N+n]*B[ 6*N+n] + A[ 1*N+n]*B[ 7*N+n] + A[ 3*N+n]*B[ 9*N+n] + A[ 4*N+n]*B[13*N+n];
+      C[ 4*N+n] = A[ 0*N+n]*B[10*N+n] + A[ 1*N+n]*B[11*N+n] + A[ 3*N+n]*B[13*N+n] + A[ 4*N+n]*B[14*N+n];
+      C[ 5*N+n] = A[ 0*N+n]*B[15*N+n] + A[ 1*N+n]*B[16*N+n] + A[ 3*N+n]*B[18*N+n] + A[ 4*N+n]*B[19*N+n];
+      C[ 6*N+n] = A[ 6*N+n]*B[ 0*N+n] + A[ 7*N+n]*B[ 1*N+n] + A[ 9*N+n]*B[ 6*N+n] + A[10*N+n]*B[10*N+n];
+      C[ 7*N+n] = A[ 6*N+n]*B[ 1*N+n] + A[ 7*N+n]*B[ 2*N+n] + A[ 9*N+n]*B[ 7*N+n] + A[10*N+n]*B[11*N+n];
+      C[ 8*N+n] = A[ 6*N+n]*B[ 3*N+n] + A[ 7*N+n]*B[ 4*N+n] + A[ 9*N+n]*B[ 8*N+n] + A[10*N+n]*B[12*N+n];
+      C[ 9*N+n] = A[ 6*N+n]*B[ 6*N+n] + A[ 7*N+n]*B[ 7*N+n] + A[ 9*N+n]*B[ 9*N+n] + A[10*N+n]*B[13*N+n];
+      C[10*N+n] = A[ 6*N+n]*B[10*N+n] + A[ 7*N+n]*B[11*N+n] + A[ 9*N+n]*B[13*N+n] + A[10*N+n]*B[14*N+n];
+      C[11*N+n] = A[ 6*N+n]*B[15*N+n] + A[ 7*N+n]*B[16*N+n] + A[ 9*N+n]*B[18*N+n] + A[10*N+n]*B[19*N+n];
+      C[12*N+n] = A[12*N+n]*B[ 0*N+n] + A[13*N+n]*B[ 1*N+n] + B[ 3*N+n] + A[15*N+n]*B[ 6*N+n] + A[16*N+n]*B[10*N+n] + A[17*N+n]*B[15*N+n];
+      C[13*N+n] = A[12*N+n]*B[ 1*N+n] + A[13*N+n]*B[ 2*N+n] + B[ 4*N+n] + A[15*N+n]*B[ 7*N+n] + A[16*N+n]*B[11*N+n] + A[17*N+n]*B[16*N+n];
+      C[14*N+n] = A[12*N+n]*B[ 3*N+n] + A[13*N+n]*B[ 4*N+n] + B[ 5*N+n] + A[15*N+n]*B[ 8*N+n] + A[16*N+n]*B[12*N+n] + A[17*N+n]*B[17*N+n];
+      C[15*N+n] = A[12*N+n]*B[ 6*N+n] + A[13*N+n]*B[ 7*N+n] + B[ 8*N+n] + A[15*N+n]*B[ 9*N+n] + A[16*N+n]*B[13*N+n] + A[17*N+n]*B[18*N+n];
+      C[16*N+n] = A[12*N+n]*B[10*N+n] + A[13*N+n]*B[11*N+n] + B[12*N+n] + A[15*N+n]*B[13*N+n] + A[16*N+n]*B[14*N+n] + A[17*N+n]*B[19*N+n];
+      C[17*N+n] = A[12*N+n]*B[15*N+n] + A[13*N+n]*B[16*N+n] + B[17*N+n] + A[15*N+n]*B[18*N+n] + A[16*N+n]*B[19*N+n] + A[17*N+n]*B[20*N+n];
+      C[18*N+n] = A[18*N+n]*B[ 0*N+n] + A[19*N+n]*B[ 1*N+n] + A[21*N+n]*B[ 6*N+n] + A[22*N+n]*B[10*N+n];
+      C[19*N+n] = A[18*N+n]*B[ 1*N+n] + A[19*N+n]*B[ 2*N+n] + A[21*N+n]*B[ 7*N+n] + A[22*N+n]*B[11*N+n];
+      C[20*N+n] = A[18*N+n]*B[ 3*N+n] + A[19*N+n]*B[ 4*N+n] + A[21*N+n]*B[ 8*N+n] + A[22*N+n]*B[12*N+n];
+      C[21*N+n] = A[18*N+n]*B[ 6*N+n] + A[19*N+n]*B[ 7*N+n] + A[21*N+n]*B[ 9*N+n] + A[22*N+n]*B[13*N+n];
+      C[22*N+n] = A[18*N+n]*B[10*N+n] + A[19*N+n]*B[11*N+n] + A[21*N+n]*B[13*N+n] + A[22*N+n]*B[14*N+n];
+      C[23*N+n] = A[18*N+n]*B[15*N+n] + A[19*N+n]*B[16*N+n] + A[21*N+n]*B[18*N+n] + A[22*N+n]*B[19*N+n];
+      C[24*N+n] = A[24*N+n]*B[ 0*N+n] + A[25*N+n]*B[ 1*N+n] + A[27*N+n]*B[ 6*N+n] + A[28*N+n]*B[10*N+n];
+      C[25*N+n] = A[24*N+n]*B[ 1*N+n] + A[25*N+n]*B[ 2*N+n] + A[27*N+n]*B[ 7*N+n] + A[28*N+n]*B[11*N+n];
+      C[26*N+n] = A[24*N+n]*B[ 3*N+n] + A[25*N+n]*B[ 4*N+n] + A[27*N+n]*B[ 8*N+n] + A[28*N+n]*B[12*N+n];
+      C[27*N+n] = A[24*N+n]*B[ 6*N+n] + A[25*N+n]*B[ 7*N+n] + A[27*N+n]*B[ 9*N+n] + A[28*N+n]*B[13*N+n];
+      C[28*N+n] = A[24*N+n]*B[10*N+n] + A[25*N+n]*B[11*N+n] + A[27*N+n]*B[13*N+n] + A[28*N+n]*B[14*N+n];
+      C[29*N+n] = A[24*N+n]*B[15*N+n] + A[25*N+n]*B[16*N+n] + A[27*N+n]*B[18*N+n] + A[28*N+n]*B[19*N+n];
+      C[30*N+n] = B[15*N+n];
+      C[31*N+n] = B[16*N+n];
+      C[32*N+n] = B[17*N+n];
+      C[33*N+n] = B[18*N+n];
+      C[34*N+n] = B[19*N+n];
+      C[35*N+n] = B[20*N+n];
+   }
 }
 
 void MultHelixPropTransp(const MPlexLL& A, const MPlexLL& B, MPlexLS& C)
@@ -104,11 +144,36 @@ void MultHelixPropTransp(const MPlexLL& A, const MPlexLL& B, MPlexLS& C)
    typedef float T;
    const idx_t N  = NN;
 
-   const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
-   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
-         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+   // const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+   // const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+   //       T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
-#include "MultHelixPropTransp.ah"
+// #include "MultHelixPropTransp.ah"
+#pragma simd
+   for (int n = 0; n < N; ++n)
+   {
+      C[ 0*N+n] = B[ 0*N+n]*A[ 0*N+n] + B[ 1*N+n]*A[ 1*N+n] + B[ 3*N+n]*A[ 3*N+n] + B[ 4*N+n]*A[ 4*N+n];
+      C[ 1*N+n] = B[ 6*N+n]*A[ 0*N+n] + B[ 7*N+n]*A[ 1*N+n] + B[ 9*N+n]*A[ 3*N+n] + B[10*N+n]*A[ 4*N+n];
+      C[ 2*N+n] = B[ 6*N+n]*A[ 6*N+n] + B[ 7*N+n]*A[ 7*N+n] + B[ 9*N+n]*A[ 9*N+n] + B[10*N+n]*A[10*N+n];
+      C[ 3*N+n] = B[12*N+n]*A[ 0*N+n] + B[13*N+n]*A[ 1*N+n] + B[15*N+n]*A[ 3*N+n] + B[16*N+n]*A[ 4*N+n];
+      C[ 4*N+n] = B[12*N+n]*A[ 6*N+n] + B[13*N+n]*A[ 7*N+n] + B[15*N+n]*A[ 9*N+n] + B[16*N+n]*A[10*N+n];
+      C[ 5*N+n] = B[12*N+n]*A[12*N+n] + B[13*N+n]*A[13*N+n] + B[14*N+n] + B[15*N+n]*A[15*N+n] + B[16*N+n]*A[16*N+n] + B[17*N+n]*A[17*N+n];
+      C[ 6*N+n] = B[18*N+n]*A[ 0*N+n] + B[19*N+n]*A[ 1*N+n] + B[21*N+n]*A[ 3*N+n] + B[22*N+n]*A[ 4*N+n];
+      C[ 7*N+n] = B[18*N+n]*A[ 6*N+n] + B[19*N+n]*A[ 7*N+n] + B[21*N+n]*A[ 9*N+n] + B[22*N+n]*A[10*N+n];
+      C[ 8*N+n] = B[18*N+n]*A[12*N+n] + B[19*N+n]*A[13*N+n] + B[20*N+n] + B[21*N+n]*A[15*N+n] + B[22*N+n]*A[16*N+n] + B[23*N+n]*A[17*N+n];
+      C[ 9*N+n] = B[18*N+n]*A[18*N+n] + B[19*N+n]*A[19*N+n] + B[21*N+n]*A[21*N+n] + B[22*N+n]*A[22*N+n];
+      C[10*N+n] = B[24*N+n]*A[ 0*N+n] + B[25*N+n]*A[ 1*N+n] + B[27*N+n]*A[ 3*N+n] + B[28*N+n]*A[ 4*N+n];
+      C[11*N+n] = B[24*N+n]*A[ 6*N+n] + B[25*N+n]*A[ 7*N+n] + B[27*N+n]*A[ 9*N+n] + B[28*N+n]*A[10*N+n];
+      C[12*N+n] = B[24*N+n]*A[12*N+n] + B[25*N+n]*A[13*N+n] + B[26*N+n] + B[27*N+n]*A[15*N+n] + B[28*N+n]*A[16*N+n] + B[29*N+n]*A[17*N+n];
+      C[13*N+n] = B[24*N+n]*A[18*N+n] + B[25*N+n]*A[19*N+n] + B[27*N+n]*A[21*N+n] + B[28*N+n]*A[22*N+n];
+      C[14*N+n] = B[24*N+n]*A[24*N+n] + B[25*N+n]*A[25*N+n] + B[27*N+n]*A[27*N+n] + B[28*N+n]*A[28*N+n];
+      C[15*N+n] = B[30*N+n]*A[ 0*N+n] + B[31*N+n]*A[ 1*N+n] + B[33*N+n]*A[ 3*N+n] + B[34*N+n]*A[ 4*N+n];
+      C[16*N+n] = B[30*N+n]*A[ 6*N+n] + B[31*N+n]*A[ 7*N+n] + B[33*N+n]*A[ 9*N+n] + B[34*N+n]*A[10*N+n];
+      C[17*N+n] = B[30*N+n]*A[12*N+n] + B[31*N+n]*A[13*N+n] + B[32*N+n] + B[33*N+n]*A[15*N+n] + B[34*N+n]*A[16*N+n] + B[35*N+n]*A[17*N+n];
+      C[18*N+n] = B[30*N+n]*A[18*N+n] + B[31*N+n]*A[19*N+n] + B[33*N+n]*A[21*N+n] + B[34*N+n]*A[22*N+n];
+      C[19*N+n] = B[30*N+n]*A[24*N+n] + B[31*N+n]*A[25*N+n] + B[33*N+n]*A[27*N+n] + B[34*N+n]*A[28*N+n];
+      C[20*N+n] = B[35*N+n];
+   }
 }
 
 void MultHelixPropEndcap(const MPlexLL& A, const MPlexLS& B, MPlexLL& C)
