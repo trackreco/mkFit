@@ -55,6 +55,7 @@ namespace mkfit {
 
 double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 {
+                                                           
    g_exe_ctx.populate(Config::numThreadsFinder);
    std::vector<Track>& simtracks = ev.simTracks_;
 
@@ -67,6 +68,7 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
 
    int theEnd = simtracks.size();
    int count = (theEnd + NN - 1)/NN;
+
 
 #ifdef USE_VTUNE_PAUSE
    __SSC_MARK(0x111);  // use this to resume Intel SDE at the same point
@@ -84,26 +86,26 @@ double runFittingTestPlex(Event& ev, std::vector<Track>& rectracks)
      {
         int itrack = it * NN;
         int end    = itrack + NN;
-        /*
-         * MT, trying to slurp and fit at the same time ...
-	  if (theEnd < end) {
-	    end = theEnd;
-	    mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
-	  } else {
-	    mkfp->SlurpInTracksAndHits(simtracks, ev.layerHits_, itrack, end); // only safe for a full matriplex
-	  }
-	  
-	  if (Config::cf_fitting) mkfp->ConformalFitTracks(true, itrack, end);
-	  mkfp->FitTracks(end - itrack, &ev, true);
-        */
+        
+        // MT, trying to slurp and fit at the same time ...
+	if (theEnd < end) {
+	  end = theEnd;
+	  mkfp->InputTracksAndHits(simtracks, ev.layerHits_, itrack, end);
+	} 
+	else {
+	  mkfp->SlurpInTracksAndHits(simtracks, ev.layerHits_, itrack, end); // only safe for a full matriplex
+	}
+	
+	if (Config::cf_fitting) mkfp->ConformalFitTracks(true, itrack, end);
+	mkfp->FitTracks(end - itrack, &ev, true);
+	
 
+	  /*
 	mkfp->InputTracksForFit(simtracks, itrack, end);
-
 	// XXXX MT - for this need 3 points in ... right
 	// XXXX if (Config::cf_fitting) mkfp->ConformalFitTracks(true, itrack, end);
-	
 	mkfp->FitTracksWithInterSlurp(ev.layerHits_, end - itrack);
-
+	  */
 	mkfp->OutputFittedTracks(rectracks, itrack, end);
      }
    });

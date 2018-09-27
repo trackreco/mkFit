@@ -120,6 +120,28 @@ void Event::RemapHits(TrackVec & tracks)
   }
 }
 
+bool Event::has_perfect_tracks_only(const TrackVec & tracks)
+{
+  bool perfect = true;
+  for (auto&& track : tracks)
+    {
+      if(!perfect) break;
+      int num_hits = 0;
+      for (int i = 0; i < track.nTotalHits(); ++i)
+	{
+	  int hitidx = track.getHitIdx(i);
+	  if(hitidx < 0 ) { perfect = false; break;}
+	  num_hits++;
+	}
+      //ARH ideally this would point back to the config variable where the number of hits per layer for fitting is set. 
+      if(num_hits < 10) {perfect = false; break;} 
+  }
+  if(!perfect) std::cout << "Skipping this event because it has at least one imperfect track!" << std::endl;
+  return perfect;	      
+}
+
+
+
 void Event::Simulate()
 {
   simTracks_.resize(Config::nTracks);

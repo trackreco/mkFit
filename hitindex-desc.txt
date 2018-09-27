@@ -1,0 +1,30 @@
+Description of negative hit indices 
+===================================
+
+There are several places in the coe where
+hit indices < 0 are used to indicate special 
+circumstances. In all cases, the hits themselves
+are not stored in layerHits within the Track 
+object. The various values are described below.
+
+
+Hit index -1
+===================================
+
+Hit index -2
+===================================
+
+Hit index -3
+===================================
+
+Hit index -9
+===================================
+
+Hits with an index of -9 are those that failed
+the cluster charge cut. This cut is applied 
+when writing the memory files from the ntuples. 
+These hits require special treatment, because 
+we still want them to count in the denominators
+of any validation plots, but they obviously
+will not be used when actually performing 
+the track building. 
