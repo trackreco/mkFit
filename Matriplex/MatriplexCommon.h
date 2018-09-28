@@ -76,7 +76,7 @@ namespace Matriplex
 {
    typedef int idx_t;
 
-   constexpr idx_t hacked_size = 1;
+   constexpr idx_t hacked_size = 100;
 
    inline void align_check(const char* pref, void *adr)
    {

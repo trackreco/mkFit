@@ -36,7 +36,7 @@ public:
       /// no. of matrix columns
       kCols = D,
       /// no of elements: lower triangle
-      kSize = (std::min(hacked_size, D + 1) * D / 2),
+      kSize = std::min(hacked_size, (D + 1) * D / 2),
       /// size of the whole matriplex
       kTotSize = N * kSize
    };
