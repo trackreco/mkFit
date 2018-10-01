@@ -50,7 +50,7 @@ fi
 ## Common file setup
 subdir=2017/pass-4874f28/initialStep/10muEtaLT06Pt1to10/
 file=memoryFile.fv3.clean.writeAll.recT.072617.bin
-nevents=500
+nevents=1000
 
 ## Common executable setup
 minth=1

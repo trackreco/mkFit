@@ -9,7 +9,7 @@
 namespace
 {
   using namespace mkfit;
-  using idx_t = Matriplex::idx_t;
+  using namespace Matriplex;
 
 inline
 void MultResidualsAdd(const MPlexLH& A,
@@ -96,19 +96,19 @@ void AddIntoUpperLeft3x3(const MPlexLS& A, const MPlexHS& B, MPlexHS& C)
    typedef float T;
    const idx_t N = NN;
 
-   // const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
-   // const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
-   //       T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+   const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
 #pragma omp simd
    for (idx_t n = 0; n < N; ++n)
    {
-      C[0*N+n] = A[0*N+n] + B[0*N+n];
-      C[1*N+n] = A[1*N+n] + B[1*N+n];
-      C[2*N+n] = A[2*N+n] + B[2*N+n];
-      C[3*N+n] = A[3*N+n] + B[3*N+n];
-      C[4*N+n] = A[4*N+n] + B[4*N+n];
-      C[5*N+n] = A[5*N+n] + B[5*N+n];
+      c[h0*N+n] = a[h0*N+n] + b[h0*N+n];
+      c[h1*N+n] = a[h1*N+n] + b[h1*N+n];
+      c[h2*N+n] = a[h2*N+n] + b[h2*N+n];
+      c[h3*N+n] = a[h3*N+n] + b[h3*N+n];
+      c[h4*N+n] = a[h4*N+n] + b[h4*N+n];
+      c[h5*N+n] = a[h5*N+n] + b[h5*N+n];
    }
 }
 
@@ -143,16 +143,16 @@ void SubtractFirst3(const MPlexHV& A, const MPlexLV& B, MPlexHV& C)
    typedef float T;
    const idx_t N = NN;
 
-   // const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
-   // const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
-   //       T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+   const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+   const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+         T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
 #pragma omp simd
    for (idx_t n = 0; n < N; ++n)
    {
-      C[0*N+n] = A[0*N+n] - B[0*N+n];
-      C[1*N+n] = A[1*N+n] - B[1*N+n];
-      C[2*N+n] = A[2*N+n] - B[2*N+n];
+      c[h0*N+n] = a[h0*N+n] - b[h0*N+n];
+      c[h1*N+n] = a[h1*N+n] - b[h1*N+n];
+      c[h2*N+n] = a[h2*N+n] - b[h2*N+n];
    }
 }
 
@@ -191,23 +191,23 @@ void ProjectResErr(const MPlexQF& A00,
   typedef float T;
   const idx_t N = NN;
   
-  // const T *a00 = A00.fArray; ASSUME_ALIGNED(a00, 64);
-  // const T *a01 = A01.fArray; ASSUME_ALIGNED(a01, 64);
-  // const T *b   = B.fArray; ASSUME_ALIGNED(b, 64);
-  //       T *c   = C.fArray; ASSUME_ALIGNED(c, 64);
+  const T *a00 = A00.fArray; ASSUME_ALIGNED(a00, 64);
+  const T *a01 = A01.fArray; ASSUME_ALIGNED(a01, 64);
+  const T *b   = B.fArray; ASSUME_ALIGNED(b, 64);
+        T *c   = C.fArray; ASSUME_ALIGNED(c, 64);
 
 #pragma omp simd
    for (int n = 0; n < N; ++n)
    {
-      C[ 0*N+n] = A00[n]*B[ 0*N+n] + A01[n]*B[ 1*N+n];
-      C[ 1*N+n] = A00[n]*B[ 1*N+n] + A01[n]*B[ 2*N+n];
-      C[ 2*N+n] = A00[n]*B[ 3*N+n] + A01[n]*B[ 4*N+n];
-      C[ 3*N+n] = B[ 3*N+n];
-      C[ 4*N+n] = B[ 4*N+n];
-      C[ 5*N+n] = B[ 5*N+n];
-      C[ 6*N+n] = A01[n]*B[ 0*N+n] - A00[n]*B[ 1*N+n];
-      C[ 7*N+n] = A01[n]*B[ 1*N+n] - A00[n]*B[ 2*N+n];
-      C[ 8*N+n] = A01[n]*B[ 3*N+n] - A00[n]*B[ 4*N+n];
+      c[h0*N+n] = a00[n]*b[h0*N+n] + a01[n]*b[h1*N+n];
+      c[h1*N+n] = a00[n]*b[h1*N+n] + a01[n]*b[h2*N+n];
+      c[h2*N+n] = a00[n]*b[h3*N+n] + a01[n]*b[h4*N+n];
+      c[h3*N+n] = b[h3*N+n];
+      c[h4*N+n] = b[h4*N+n];
+      c[h5*N+n] = b[h5*N+n];
+      c[h6*N+n] = a01[n]*b[h0*N+n] - a00[n]*b[h1*N+n];
+      c[h7*N+n] = a01[n]*b[h1*N+n] - a00[n]*b[h2*N+n];
+      c[h8*N+n] = a01[n]*b[h3*N+n] - a00[n]*b[h4*N+n];
    }
 }
 
@@ -224,17 +224,17 @@ void ProjectResErrTransp(const MPlexQF& A00,
   typedef float T;
   const idx_t N = NN;
   
-  // const T *a00 = A00.fArray; ASSUME_ALIGNED(a00, 64);
-  // const T *a01 = A01.fArray; ASSUME_ALIGNED(a01, 64);
-  // const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
-  //       T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+  const T *a00 = A00.fArray; ASSUME_ALIGNED(a00, 64);
+  const T *a01 = A01.fArray; ASSUME_ALIGNED(a01, 64);
+  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
 #pragma omp simd
    for (int n = 0; n < N; ++n)
    {
-      C[ 0*N+n] = B[ 0*N+n]*A00[n] + B[ 1*N+n]*A01[n];
-      C[ 1*N+n] = B[ 3*N+n]*A00[n] + B[ 4*N+n]*A01[n];
-      C[ 2*N+n] = B[ 5*N+n];
+      c[ h0*N+n] = b[ h0*N+n]*a00[n] + b[ h1*N+n]*a01[n];
+      c[ h1*N+n] = b[ h3*N+n]*a00[n] + b[ h4*N+n]*a01[n];
+      c[ h2*N+n] = b[ h5*N+n];
    }
 }
 
@@ -252,16 +252,16 @@ void RotateResidulsOnTangentPlane(const MPlexQF& R00,//r00
    typedef float T;
    const idx_t N = NN;
 
-   // const T *a   = A.fArray;   ASSUME_ALIGNED(a, 64);
-   // const T *r00 = R00.fArray; ASSUME_ALIGNED(r00, 64);
-   // const T *r01 = R01.fArray; ASSUME_ALIGNED(r01, 64);
-   //       T *b   = B.fArray;   ASSUME_ALIGNED(b, 64);
+   const T *a   = A.fArray;   ASSUME_ALIGNED(a, 64);
+   const T *r00 = R00.fArray; ASSUME_ALIGNED(r00, 64);
+   const T *r01 = R01.fArray; ASSUME_ALIGNED(r01, 64);
+         T *b   = B.fArray;   ASSUME_ALIGNED(b, 64);
 
 #pragma omp simd
    for (idx_t n = 0; n < N; ++n)
    {
-      B[0 * N + n] =  R00[0 * N + n]*A[0 * N + n] + R01[0 * N + n]*A[1 * N + n];
-      B[1 * N + n] =  A[2 * N + n];
+      b[h0 * N + n] =  r00[h0 * N + n]*a[h0 * N + n] + r01[h0 * N + n]*a[h1 * N + n];
+      b[h1 * N + n] =  a[h2 * N + n];
    }
 // #endif
 }
@@ -281,23 +281,23 @@ void KalmanHTG(const MPlexQF& A00,
    typedef float T;
    const idx_t N = NN;
 
-   // const T *a00 = A00.fArray; ASSUME_ALIGNED(a00, 64);
-   // const T *a01 = A01.fArray; ASSUME_ALIGNED(a01, 64);
-   // const T *b   = B.fArray;   ASSUME_ALIGNED(b, 64);
-   //       T *c   = C.fArray;   ASSUME_ALIGNED(c, 64);
+   const T *a00 = A00.fArray; ASSUME_ALIGNED(a00, 64);
+   const T *a01 = A01.fArray; ASSUME_ALIGNED(a01, 64);
+   const T *b   = B.fArray;   ASSUME_ALIGNED(b, 64);
+         T *c   = C.fArray;   ASSUME_ALIGNED(c, 64);
 
 #pragma omp simd
    for (int n = 0; n < N; ++n)
    {
-      C[ 0*N+n] = A00[n]*B[ 0*N+n];
-      C[ 1*N+n] = A00[n]*B[ 1*N+n];
-      C[ 2*N+n] = 0.;
-      C[ 3*N+n] = A01[n]*B[ 0*N+n];
-      C[ 4*N+n] = A01[n]*B[ 1*N+n];
-      C[ 5*N+n] = 0.;
-      C[ 6*N+n] = B[ 1*N+n];
-      C[ 7*N+n] = B[ 2*N+n];
-      C[ 8*N+n] = 0.;
+      c[ h0*N+n] = a00[n]*b[ h0*N+n];
+      c[ h1*N+n] = a00[n]*b[ h1*N+n];
+      c[ h2*N+n] = 0.;
+      c[ h3*N+n] = a01[n]*b[ h0*N+n];
+      c[ h4*N+n] = a01[n]*b[ h1*N+n];
+      c[ h5*N+n] = 0.;
+      c[ h6*N+n] = b[ h1*N+n];
+      c[ h7*N+n] = b[ h2*N+n];
+      c[ h8*N+n] = 0.;
    }
 }
 
@@ -309,31 +309,31 @@ void KalmanGain(const MPlexLS& A, const MPlexHH& B, MPlexLH& C)
   typedef float T;
   const idx_t N = NN;
 
-  // const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
-  // const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
-  //       T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
 #pragma omp simd
    for (int n = 0; n < N; ++n)
    {
-      C[ 0*N+n] = A[ 0*N+n]*B[ 0*N+n] + A[ 1*N+n]*B[ 3*N+n] + A[ 3*N+n]*B[ 6*N+n];
-      C[ 1*N+n] = A[ 0*N+n]*B[ 1*N+n] + A[ 1*N+n]*B[ 4*N+n] + A[ 3*N+n]*B[ 7*N+n];
-      C[ 2*N+n] = 0;
-      C[ 3*N+n] = A[ 1*N+n]*B[ 0*N+n] + A[ 2*N+n]*B[ 3*N+n] + A[ 4*N+n]*B[ 6*N+n];
-      C[ 4*N+n] = A[ 1*N+n]*B[ 1*N+n] + A[ 2*N+n]*B[ 4*N+n] + A[ 4*N+n]*B[ 7*N+n];
-      C[ 5*N+n] = 0;
-      C[ 6*N+n] = A[ 3*N+n]*B[ 0*N+n] + A[ 4*N+n]*B[ 3*N+n] + A[ 5*N+n]*B[ 6*N+n];
-      C[ 7*N+n] = A[ 3*N+n]*B[ 1*N+n] + A[ 4*N+n]*B[ 4*N+n] + A[ 5*N+n]*B[ 7*N+n];
-      C[ 8*N+n] = 0;
-      C[ 9*N+n] = A[ 6*N+n]*B[ 0*N+n] + A[ 7*N+n]*B[ 3*N+n] + A[ 8*N+n]*B[ 6*N+n];
-      C[10*N+n] = A[ 6*N+n]*B[ 1*N+n] + A[ 7*N+n]*B[ 4*N+n] + A[ 8*N+n]*B[ 7*N+n];
-      C[11*N+n] = 0;
-      C[12*N+n] = A[10*N+n]*B[ 0*N+n] + A[11*N+n]*B[ 3*N+n] + A[12*N+n]*B[ 6*N+n];
-      C[13*N+n] = A[10*N+n]*B[ 1*N+n] + A[11*N+n]*B[ 4*N+n] + A[12*N+n]*B[ 7*N+n];
-      C[14*N+n] = 0;
-      C[15*N+n] = A[15*N+n]*B[ 0*N+n] + A[16*N+n]*B[ 3*N+n] + A[17*N+n]*B[ 6*N+n];
-      C[16*N+n] = A[15*N+n]*B[ 1*N+n] + A[16*N+n]*B[ 4*N+n] + A[17*N+n]*B[ 7*N+n];
-      C[17*N+n] = 0;
+      c[ h0*N+n] = a[ h0*N+n]*b[ h0*N+n] + a[ h1*N+n]*b[ h3*N+n] + a[ h3*N+n]*b[ h6*N+n];
+      c[ h1*N+n] = a[ h0*N+n]*b[ h1*N+n] + a[ h1*N+n]*b[ h4*N+n] + a[ h3*N+n]*b[ h7*N+n];
+      c[ h2*N+n] = 0;
+      c[ h3*N+n] = a[ h1*N+n]*b[ h0*N+n] + a[ h2*N+n]*b[ h3*N+n] + a[ h4*N+n]*b[ h6*N+n];
+      c[ h4*N+n] = a[ h1*N+n]*b[ h1*N+n] + a[ h2*N+n]*b[ h4*N+n] + a[ h4*N+n]*b[ h7*N+n];
+      c[ h5*N+n] = 0;
+      c[ h6*N+n] = a[ h3*N+n]*b[ h0*N+n] + a[ h4*N+n]*b[ h3*N+n] + a[ h5*N+n]*b[ h6*N+n];
+      c[ h7*N+n] = a[ h3*N+n]*b[ h1*N+n] + a[ h4*N+n]*b[ h4*N+n] + a[ h5*N+n]*b[ h7*N+n];
+      c[ h8*N+n] = 0;
+      c[ h9*N+n] = a[ h6*N+n]*b[ h0*N+n] + a[ h7*N+n]*b[ h3*N+n] + a[ h8*N+n]*b[ h6*N+n];
+      c[h10*N+n] = a[ h6*N+n]*b[ h1*N+n] + a[ h7*N+n]*b[ h4*N+n] + a[ h8*N+n]*b[ h7*N+n];
+      c[h11*N+n] = 0;
+      c[h12*N+n] = a[h10*N+n]*b[ h0*N+n] + a[h11*N+n]*b[ h3*N+n] + a[h12*N+n]*b[ h6*N+n];
+      c[h13*N+n] = a[h10*N+n]*b[ h1*N+n] + a[h11*N+n]*b[ h4*N+n] + a[h12*N+n]*b[ h7*N+n];
+      c[h14*N+n] = 0;
+      c[h15*N+n] = a[h15*N+n]*b[ h0*N+n] + a[h16*N+n]*b[ h3*N+n] + a[h17*N+n]*b[ h6*N+n];
+      c[h16*N+n] = a[h15*N+n]*b[ h1*N+n] + a[h16*N+n]*b[ h4*N+n] + a[h17*N+n]*b[ h7*N+n];
+      c[h17*N+n] = 0;
    }
 }
 
@@ -370,34 +370,35 @@ void KHC(const MPlexLL& A, const MPlexLS& B, MPlexLS& C)
   typedef float T;
   const idx_t N = NN;
 
-  // const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
-  // const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
-  //       T *c = C.fArray; ASSUME_ALIGNED(c, 64);
+  const T *a = A.fArray; ASSUME_ALIGNED(a, 64);
+  const T *b = B.fArray; ASSUME_ALIGNED(b, 64);
+        T *c = C.fArray; ASSUME_ALIGNED(c, 64);
 
 // #include "KHC.ah"
+#pragma simd
    for (int n = 0; n < N; ++n)
    {
-      C[ 0*N+n] = A[ 0*N+n]*B[ 0*N+n] + A[ 1*N+n]*B[ 1*N+n] + A[ 2*N+n]*B[ 3*N+n];
-      C[ 1*N+n] = A[ 6*N+n]*B[ 0*N+n] + A[ 7*N+n]*B[ 1*N+n] + A[ 8*N+n]*B[ 3*N+n];
-      C[ 2*N+n] = A[ 6*N+n]*B[ 1*N+n] + A[ 7*N+n]*B[ 2*N+n] + A[ 8*N+n]*B[ 4*N+n];
-      C[ 3*N+n] = A[12*N+n]*B[ 0*N+n] + A[13*N+n]*B[ 1*N+n] + A[14*N+n]*B[ 3*N+n];
-      C[ 4*N+n] = A[12*N+n]*B[ 1*N+n] + A[13*N+n]*B[ 2*N+n] + A[14*N+n]*B[ 4*N+n];
-      C[ 5*N+n] = A[12*N+n]*B[ 3*N+n] + A[13*N+n]*B[ 4*N+n] + A[14*N+n]*B[ 5*N+n];
-      C[ 6*N+n] = A[18*N+n]*B[ 0*N+n] + A[19*N+n]*B[ 1*N+n] + A[20*N+n]*B[ 3*N+n];
-      C[ 7*N+n] = A[18*N+n]*B[ 1*N+n] + A[19*N+n]*B[ 2*N+n] + A[20*N+n]*B[ 4*N+n];
-      C[ 8*N+n] = A[18*N+n]*B[ 3*N+n] + A[19*N+n]*B[ 4*N+n] + A[20*N+n]*B[ 5*N+n];
-      C[ 9*N+n] = A[18*N+n]*B[ 6*N+n] + A[19*N+n]*B[ 7*N+n] + A[20*N+n]*B[ 8*N+n];
-      C[10*N+n] = A[24*N+n]*B[ 0*N+n] + A[25*N+n]*B[ 1*N+n] + A[26*N+n]*B[ 3*N+n];
-      C[11*N+n] = A[24*N+n]*B[ 1*N+n] + A[25*N+n]*B[ 2*N+n] + A[26*N+n]*B[ 4*N+n];
-      C[12*N+n] = A[24*N+n]*B[ 3*N+n] + A[25*N+n]*B[ 4*N+n] + A[26*N+n]*B[ 5*N+n];
-      C[13*N+n] = A[24*N+n]*B[ 6*N+n] + A[25*N+n]*B[ 7*N+n] + A[26*N+n]*B[ 8*N+n];
-      C[14*N+n] = A[24*N+n]*B[10*N+n] + A[25*N+n]*B[11*N+n] + A[26*N+n]*B[12*N+n];
-      C[15*N+n] = A[30*N+n]*B[ 0*N+n] + A[31*N+n]*B[ 1*N+n] + A[32*N+n]*B[ 3*N+n];
-      C[16*N+n] = A[30*N+n]*B[ 1*N+n] + A[31*N+n]*B[ 2*N+n] + A[32*N+n]*B[ 4*N+n];
-      C[17*N+n] = A[30*N+n]*B[ 3*N+n] + A[31*N+n]*B[ 4*N+n] + A[32*N+n]*B[ 5*N+n];
-      C[18*N+n] = A[30*N+n]*B[ 6*N+n] + A[31*N+n]*B[ 7*N+n] + A[32*N+n]*B[ 8*N+n];
-      C[19*N+n] = A[30*N+n]*B[10*N+n] + A[31*N+n]*B[11*N+n] + A[32*N+n]*B[12*N+n];
-      C[20*N+n] = A[30*N+n]*B[15*N+n] + A[31*N+n]*B[16*N+n] + A[32*N+n]*B[17*N+n];
+      c[ 0*N+n] = a[ 0*N+n]*b[ 0*N+n] + a[ 1*N+n]*b[ 1*N+n] + a[ 2*N+n]*b[ 3*N+n];
+      c[ 1*N+n] = a[ 6*N+n]*b[ 0*N+n] + a[ 7*N+n]*b[ 1*N+n] + a[ 8*N+n]*b[ 3*N+n];
+      c[ 2*N+n] = a[ 6*N+n]*b[ 1*N+n] + a[ 7*N+n]*b[ 2*N+n] + a[ 8*N+n]*b[ 4*N+n];
+      c[ 3*N+n] = a[12*N+n]*b[ 0*N+n] + a[13*N+n]*b[ 1*N+n] + a[14*N+n]*b[ 3*N+n];
+      c[ 4*N+n] = a[12*N+n]*b[ 1*N+n] + a[13*N+n]*b[ 2*N+n] + a[14*N+n]*b[ 4*N+n];
+      c[ 5*N+n] = a[12*N+n]*b[ 3*N+n] + a[13*N+n]*b[ 4*N+n] + a[14*N+n]*b[ 5*N+n];
+      c[ 6*N+n] = a[18*N+n]*b[ 0*N+n] + a[19*N+n]*b[ 1*N+n] + a[20*N+n]*b[ 3*N+n];
+      c[ 7*N+n] = a[18*N+n]*b[ 1*N+n] + a[19*N+n]*b[ 2*N+n] + a[20*N+n]*b[ 4*N+n];
+      c[ 8*N+n] = a[18*N+n]*b[ 3*N+n] + a[19*N+n]*b[ 4*N+n] + a[20*N+n]*b[ 5*N+n];
+      c[ 9*N+n] = a[18*N+n]*b[ 6*N+n] + a[19*N+n]*b[ 7*N+n] + a[20*N+n]*b[ 8*N+n];
+      c[10*N+n] = a[24*N+n]*b[ 0*N+n] + a[25*N+n]*b[ 1*N+n] + a[26*N+n]*b[ 3*N+n];
+      c[11*N+n] = a[24*N+n]*b[ 1*N+n] + a[25*N+n]*b[ 2*N+n] + a[26*N+n]*b[ 4*N+n];
+      c[12*N+n] = a[24*N+n]*b[ 3*N+n] + a[25*N+n]*b[ 4*N+n] + a[26*N+n]*b[ 5*N+n];
+      c[13*N+n] = a[24*N+n]*b[ 6*N+n] + a[25*N+n]*b[ 7*N+n] + a[26*N+n]*b[ 8*N+n];
+      c[14*N+n] = a[24*N+n]*b[10*N+n] + a[25*N+n]*b[11*N+n] + a[26*N+n]*b[12*N+n];
+      c[15*N+n] = a[30*N+n]*b[ 0*N+n] + a[31*N+n]*b[ 1*N+n] + a[32*N+n]*b[ 3*N+n];
+      c[16*N+n] = a[30*N+n]*b[ 1*N+n] + a[31*N+n]*b[ 2*N+n] + a[32*N+n]*b[ 4*N+n];
+      c[17*N+n] = a[30*N+n]*b[ 3*N+n] + a[31*N+n]*b[ 4*N+n] + a[32*N+n]*b[ 5*N+n];
+      c[18*N+n] = a[30*N+n]*b[ 6*N+n] + a[31*N+n]*b[ 7*N+n] + a[32*N+n]*b[ 8*N+n];
+      c[19*N+n] = a[30*N+n]*b[10*N+n] + a[31*N+n]*b[11*N+n] + a[32*N+n]*b[12*N+n];
+      c[20*N+n] = a[30*N+n]*b[15*N+n] + a[31*N+n]*b[16*N+n] + a[32*N+n]*b[17*N+n];
    }
 }
 
