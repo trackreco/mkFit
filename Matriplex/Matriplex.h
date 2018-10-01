@@ -163,11 +163,11 @@ public:
    {
       const __m256 src = { 0 };
 
-      __m256i k_master = _mm256_setr_epi32( -1, -1, -1, -1, -1, -1, -1, -1 );
-      int *kmp = (int*) & k_master;
-      for (int i = N_proc; i < N; ++i) kmp[i] = 0;
+      __m256i k        = _mm256_setr_epi32( 0, 1, 2, 3, 4, 5, 6, 7 );
+      __m256i k_sel    = _mm256_set1_epi32(N_proc);
+      __m256i k_master = _mm256_cmpgt_epi32(k_sel, k);
 
-      __m256i k = k_master;
+      k = k_master;
       for (int i = 0; i < kSize; ++i, arr += sizeof(T))
       {
          __m256 reg = _mm256_mask_i32gather_ps(src, (float*) arr, vi, (__m256) k, 1);
