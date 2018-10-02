@@ -901,8 +901,8 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
           tmpList.trkIdx = CandIdx(itrack, 0, 0);
           tmpList.hitIdx = XHitArr.At(itrack, hit_cnt, 0);
           tmpList.nhits  = NFoundHits(itrack,0,0) + 1;
-	  tmpList.nholes  = num_invalid_hits(itrack);
-	  tmpList.pt = std::abs(1.0f/Par[iP].At(itrack,3,0));
+          tmpList.nholes  = num_invalid_hits(itrack);
+          tmpList.pt = std::abs(1.0f/Par[iP].At(itrack,3,0));
           tmpList.chi2   = Chi2(itrack, 0, 0) + chi2;
           cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
           // hitsToAdd[SeedIdx(itrack, 0, 0)-offset].push_back(tmpList);
