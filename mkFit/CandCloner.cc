@@ -19,7 +19,7 @@ inline bool sortCandListByScore(const mkfit::MkFinder::IdxChi2List& cand1,
 {
 
 
-  float validHitBonus_=0.5*5.0;
+  float validHitBonus_=2.5;
   float missingHitPenalty_=20.0;
   int nfoundhits[2] = {cand1.nhits,cand2.nhits};
   int nmisshits[2] = {cand1.nholes,cand2.nholes};

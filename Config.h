@@ -345,7 +345,7 @@ namespace Config
   constexpr float track_ptlow = 0.9;
 
   // sorting config (bonus,penalty)
-  constexpr float validHitBonus_ = 0.5*5.0;
+  constexpr float validHitBonus_ = 2.5;
   constexpr float missingHitPenalty_ = 20.0;
 
   // Threading

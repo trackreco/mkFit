@@ -168,7 +168,7 @@ namespace
 
   bool sortCandByScore(const Track & cand1, const Track & cand2)
   {
-    float validHitBonus_=0.5*5.0;
+    float validHitBonus_=2.5;
     float missingHitPenalty_=20.0;
     int nfoundhits[2] = {cand1.nFoundHits(),cand2.nFoundHits()};
     int nmisshits[2] = {cand1.nTotalHits()-cand1.nFoundHits(),cand2.nTotalHits()-cand2.nFoundHits()};
