@@ -1,6 +1,6 @@
 # mictest: a repository for vectorized, parallelized charged particle track reconstruction
 
-Intro: Below is a short README on setup steps, code change procedures, and some helpful pointers. Please read this thoroughly before checking out the code!
+Intro: Below is a short README on setup steps, code change procedures, and some helpful pointers. Please read this thoroughly before checking out the code! As this is a markdown file, it is best viewed via a web browser.
 
 ### Outline
 1) Test platforms
@@ -11,7 +11,12 @@ Intro: Below is a short README on setup steps, code change procedures, and some 
 6) Submit an issue
 7) Condensed description of code
 8) Other helpful README's in the repository
-9) Other useful links and information
+9) Other useful information
+   1) Important Links
+   2) Tips and Tricks
+      1) Missing Libraries and Debugging
+      2) SSH passwordless login for benchmarking and web scripts
+   3) Acronyms/Abbreviations
 
 ## Section 1: Test platforms
 
@@ -23,7 +28,7 @@ Intro: Below is a short README on setup steps, code change procedures, and some 
 
 phi1, phi2, and phi3 are all managed across a virtual login server and therefore the home user spaces are shared. phi1, phi2, phi3, and lnx4108 also have /cvmfs mounted so you can source the environment needed to run the code. 
 
-The main development platform is phi3. This is the recommended machine for beginning development and testing.
+The main development platform is phi3. This is the recommended machine for beginning development and testing. Login into any of the machines is achieved through ```ssh -X -Y <phi username>@phi<N>.t2.ucsd.edu```. It is recommended that you setup ssh key forwarding on your local machine so as to avoid typing in your password with every login, and more importantly, to avoid typing your password during the benchmarking (see Section 9.ii.b).
 
 ## Section 2: How to checkout the code
 
@@ -31,13 +36,17 @@ The master development branch is ```devel``` on https://github.com/cerati/mictes
 
 Once forked, checkout a local copy by simply doing a git clone:
 
-```git clone git@github.com:<user>/mictest```
+```
+git clone git@github.com:<user>/mictest
+```
 
-where ```<user>``` is your username if renamed your remote to your username. Otherwise ```<user>``` will be ```origin```.
+where ```<user>``` is your GH username if renamed your remote to your username. Otherwise ```<user>``` will be ```origin```.
 
 If you wish to add another user's repo to your local clone, do:
 
-```git remote add <user> git@github.com:<user>/mictest```
+```
+git remote add <user> git@github.com:<user>/mictest
+```
 
 This is useful if you want to submit changes to another user's branches. To checkout a remote branch, do:
 
@@ -60,7 +69,7 @@ You are free to put the lines from this script in your login scripts (.bashrc, .
 Now compile the code:
 
 ```
-make -j 32 WITH_AVX512:=1
+make -j 32 AVX_512:=1
 ```
 
 To run the code with some generic options, do:
@@ -86,9 +95,9 @@ Below are some rules and procedures on how to submit changes to the main develop
 5. Test locally!
    1. If you have not done so, clone your forked repo onto phi3, checking out your new branch.
    2. Source the environment for phi3 as explained in Section 3.
-   3. Compile test: ```make -j 32 WITH_AVX512:=1```. Fix compilation errors if they are your fault or email the group / person responsible to fix their errors! 
+   3. Compile test: ```make -j 32 AVX_512:=1```. Fix compilation errors if they are your fault or email the group / person responsible to fix their errors! 
    4. Run benchmark test: ```./mkFit/mkFit --cmssw-n2seeds --input-file /data2/slava77/samples/2017/pass-4874f28/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/a/memoryFile.fv3.clean.writeAll.recT.072617.bin --build-ce --num-thr 64 --num-events 20```. Ensure the test did not crash, and fix any segfaults / run-time errors! 
-   5. Compile with ROOT test: ```make -j 32 WITH_AVX512:=1 WITH_ROOT:=1```. Before compiling, make sure to do a ```make distclean```, as we do not want conflicting object definitions. Fix errors if compilation fails.
+   5. Compile with ROOT test: ```make -j 32 AVX_512:=1 WITH_ROOT:=1```. Before compiling, make sure to do a ```make distclean```, as we do not want conflicting object definitions. Fix errors if compilation fails.
    6. Run validation test:  ```./mkFit/mkFit --cmssw-n2seeds --input-file /data2/slava77/samples/2017/pass-4874f28/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/a/memoryFile.fv3.clean.writeAll.recT.072617.bin --build-ce --num-thr 64 --num-events 20 --backward-fit-pca --cmssw-val-fhit-bprm```. Ensure the test did not crash! 
 6. Run the full benchmarking + validation suite on all platforms: follow procedure in Section 5 (below)! If you notice changes to compute or physics performance, make sure to understand why! Even if you are proposing a technical two-line change, please follow this step as it ensures we have a full history of changes.
 7. Prepare a Pull Request (PR)
@@ -124,7 +133,7 @@ There are three options for running the full suite by passing one of the three s
 
 The ```full``` option currently takes little over an hour to run.  Make sure the machines are quiet before launching any tests: we don't want to disturb someone who already is testing! 
 
-Inside the main script, tests are submitted for phi1, phi2, and phi3 concurrently, by tarring up the local repo, sending the tarball to the remote platform, compiling the untarred directory natively on the remote platform, and then sending back the results to be collected on phi3. These scripts are: 
+Inside the main script, tests are submitted for phi1, phi2, and phi3 concurrently, by tarring up the local repo, sending the tarball to a disk space on the remote platform, compiling the untarred directory natively on the remote platform, and then sending back the results to be collected on phi3. It should be noted that the tests for phi3 are simply run on in the user home directory when logged into phi3 (although we could in principle ship the code to the work space disk on phi3). Because we run the tests for phi3 in the home directory, which is shared by all three machines, we pack and send the code to a remote _disk_ space _before_ launching the tests on phi3 from the home directory. The scripts that handle the remote testing are: 
 
 ```
 ./xeon_scripts/tarAndSendToRemote.sh ${remote_arch} ${suite}
@@ -166,7 +175,7 @@ After running the full suite, there is an additional set of scripts within the `
 ./web/move-benchmark.sh ${outdir_name} ${suite} ${afs_or_eos}
 ```
 
-where again, ```${suite}``` defaults to ```forPR```. ```${outdir_name}``` will be the top-level directory where the output is collected and eventually shipped to LXPLUS. This will call ```./web/collectBenchmarks.sh ${outdir_name} ${suite}```, which will sort the files, and then ```./web/tarAndSendToLXPLUS.sh ${outdir_name} ${suite} ${afs_or_eos}```, which  packs up the top-level output dir and copies it to either an /afs or /eos userspace on LXPLUS. This will also run another script remotely to copy ```web/index.php``` into each directory to have a nice web GUI for the plots. Make sure to read the ```web/README_WEBPLOTS.txt``` first to setup an /afs or /eos web directory. 
+where again, ```${suite}``` defaults to ```forPR```. ```${outdir_name}``` will be the top-level directory where the output is collected and eventually shipped to LXPLUS. This will call ```./web/collectBenchmarks.sh ${outdir_name} ${suite}```, which will sort the files, and then ```./web/tarAndSendToLXPLUS.sh ${outdir_name} ${suite} ${afs_or_eos}```, which  packs up the top-level output dir and copies it to either an /afs or /eos userspace on LXPLUS. This will also run another script remotely to copy ```web/index.php``` into each directory to have a nice web GUI for the plots. Make sure to read the ```web/README_WEBPLOTS.md``` first to setup an /afs or /eos web directory. 
 
 The option ```${afs_or_eos}``` takes either of the following arguments: ```afs``` or ```eos```, and defaults to ```afs```. The mapping of usernames to /afs or /eos spaces is in ```./xeon_scripts/common-variables.sh```. If an incorrect string is passed, the script will exit. 
 
@@ -282,11 +291,11 @@ Given that this is a living repository, the comments in the code may not always 
 - cmssw-trackerinfo-desc.txt : Describes the structure of the CMS Phase-I geometry as represented within this repo.
 - index-desc.txt : Desribes the various hit and track indices used by different sets of tracks throughout the different stages of the read in, seeding, building, fitting, and validation.
 - validation-desc.txt : The validation manifesto: (somewhat) up-to-date description of the full physics validation suite. It is complemented by a somewhat out-of-date code flow diagram, found here: https://indico.cern.ch/event/656884/contributions/2676532/attachments/1513662/2363067/validation_flow_diagram-v4.pdf
-- web/README_WEBPLOTS.txt : A short text file on how to setup a website with an AFS or EOS directory on LXPLUS.
+- web/README_WEBPLOTS.md : A short markdown file on how to setup a website with an AFS or EOS directory on LXPLUS (best when viewed from a web browser, like this README).
 
-## Section 9: Other useful links and information
+## Section 9: Other useful information
 
-### Useful Links
+### Section 9.i: Important Links
 - Main development GitHub: https://github.com/cerati/mictest
 - Our project website: https://trackreco.github.io
 - Out-of-date and longer used twiki: https://twiki.cern.ch/twiki/bin/viewauth/CMS/MicTrkRnD
@@ -294,7 +303,9 @@ Given that this is a living repository, the comments in the code may not always 
 - Vidyo room: Parallel_Kalman_Filter_Tracking
 - Email list-serv: mic-trk-rd@cern.ch
 
-### Tips and Tricks: Missing Libraries and Debugging
+### Section 9.ii: Tips and Tricks
+
+#### Section 9.ii.a: Missing Libraries and Debugging
 
 When sourcing the environment on phi3 via ```source xeon_scripts/init-env.sh```, some paths will be unset and access to local binaries may be lost. For example, since we source ROOT (and its many dependencies) over CVMFS, there may be some conflicts in loading some applications. In fact, the shell may complain about missing environment variables (emacs loves to complain about TIFF). The best way around this is to simply use CVMFS as a crutch to load in what you need.
 
@@ -304,7 +315,44 @@ After sourcing and compiling and then running only to find out there is some cra
 
 This can be overcome by loading ```gdb``` over CVMFS: ```source /cvmfs/cms.cern.ch/slc7_amd64_gcc630/external/gdb/7.12.1-omkpbe2/etc/profile.d/init.sh```. At this point, the application will run normally and debugging can commence.
 
-### Acronyms/Abbreviations:
+#### Section 9.ii.b: SSH passwordless login for benchmarking scripts and web scripts
+
+When running the benchmarks, a tarball of the working directory will be ```scp```'ed to phi2 and phi1 before running tests on phi3. After the tests complete on each platform, the log files will be ```scp```'ed back to phi3 concurrently. If you do not forward your ssh keys upon login to phi3, you will have to enter your password when first shipping the code over to phi2 and phi1, and also, at some undetermined point, enter it again to receive the logs.
+
+With your favorite text editor, enter the text below into ```~/.ssh/config``` on your local machine to avoid having to type in your password for login to any phi machine (N.B. some lines are optional):
+
+```
+Host phi*.t2.ucsd.edu
+     User <phi* username>
+     ForwardAgent yes
+# lines below are for using X11 on phi* to look at plots, open new windows for emacs, etc.
+     ForwardX11 yes
+     XAuthLocation /opt/X11/bin/xauth
+# lines below are specific to macOS	     
+     AddKeysToAgent yes 
+     UseKeychain yes
+```
+
+After the benchmarks run, you may elect to use the ```web/``` scripts to transfer plots to CERN website hosted on either LXPLUS EOS or AFS. The plots will be put into a tarball, ```scp```'ed over, and then untarred remotely via ```ssh```. To avoid typing in your password for the ```web/``` scripts, you will need to use a Kerberos ticket and also modify your ```.ssh/config``` file in your home directory on the _phi_ machines with the text below:
+
+```
+Host lxplus*.cern.ch
+     User <lxplus username>
+     ForwardAgent yes
+     ForwardX11 yes
+     GSSAPIAuthentication yes
+     GSSAPIDelegateCredentials yes
+```
+
+The last two lines are specific to Kerberos's handling of ssh, which is installed on all of the _phi_ machines. In order to open a Kerberos ticket, you will need to do:
+
+```
+kinit -f <lxplus username>@CERN.CH
+```
+
+and then enter your LXPLUS password. Kerberos will keep your ticket open for a few days to allow passwordless ```ssh``` into LXPLUS. After the ticket expires, you will need to enter that same command again. So, even if you only send plots once every month to LXPLUS, this reduces the number of times of typing in your LXPLUS password from two to one :).
+
+### Section 9.iii: Acronyms/Abbreviations:
 - AVX: Advanced Vector Extensions [flavors of AVX: AVX, AVX2, AVX512]
 - BH: Best Hit
 - CCC: Charge Cluster Cut
