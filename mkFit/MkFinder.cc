@@ -6,6 +6,8 @@
 
 #include "KalmanUtilsMPlex.h"
 
+#include "MatriplexPackers.h"
+
 //#define DEBUG
 #include "Debug.h"
 
@@ -1039,13 +1041,7 @@ void MkFinder::BkFitInputTracks(TrackVec& cands, int beg, int end)
   // SlurpIn based on XHit array - so Nhits is irrelevant.
   // Could as well use HotArrays from tracks directly + a local cursor array to last hit.
 
-  const int   N_proc     = end - beg;
-  const Track &trk0      = cands[beg];
-  const char *varr       = (char*) &trk0;
-  const int   off_error  = (char*) trk0.errors().Array() - varr;
-  const int   off_param  = (char*) trk0.parameters().Array() - varr;
-
-  int idx[NN]      __attribute__((aligned(64)));
+  MatriplexTrackPacker mtp(end - beg);
 
   int itrack = 0;
 
@@ -1057,19 +1053,12 @@ void MkFinder::BkFitInputTracks(TrackVec& cands, int beg, int end)
     CurHit[itrack]    = trk.nTotalHits() - 1;
     HoTArr[itrack]    = trk.getHitsOnTrackArray();
 
-    idx[itrack] = (char*) &trk - varr;
+    mtp.AddInput(trk);
   }
 
   Chi2.SetVal(0);
 
-#ifdef GATHER_INTRINSICS
-  GATHER_IDX_LOAD(vi, idx);
-  Err[iC].SlurpIn(varr + off_error, vi, N_proc);
-  Par[iC].SlurpIn(varr + off_param, vi, N_proc);
-#else
-  Err[iC].SlurpIn(varr + off_error, idx, N_proc);
-  Par[iC].SlurpIn(varr + off_param, idx, N_proc);
-#endif
+  mtp.Pack(Err[iC], Par[iC]);
 
   Err[iC].Scale(100.0f);
 }
@@ -1081,13 +1070,7 @@ void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
   // SlurpIn based on XHit array - so Nhits is irrelevant.
   // Could as well use HotArrays from tracks directly + a local cursor array to last hit.
 
-  const int   N_proc     = end - beg;
-  const Track &trk0      = eocss[beg][0];
-  const char *varr       = (char*) &trk0;
-  const int   off_error  = (char*) trk0.errors().Array() - varr;
-  const int   off_param  = (char*) trk0.parameters().Array() - varr;
-
-  int idx[NN]      __attribute__((aligned(64)));
+  MatriplexTrackPacker mtp(end - beg);
 
   int itrack = 0;
 
@@ -1099,19 +1082,12 @@ void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
     CurHit[itrack]    = trk.nTotalHits() - 1;
     HoTArr[itrack]    = trk.getHitsOnTrackArray();
 
-    idx[itrack] = (char*) &trk - varr;
+    mtp.AddInput(trk);
   }
 
   Chi2.SetVal(0);
 
-#ifdef GATHER_INTRINSICS
-  GATHER_IDX_LOAD(vi, idx);
-  Err[iC].SlurpIn(varr + off_error, vi, N_proc);
-  Par[iC].SlurpIn(varr + off_param, vi, N_proc);
-#else
-  Err[iC].SlurpIn(varr + off_error, idx, N_proc);
-  Par[iC].SlurpIn(varr + off_param, idx, N_proc);
-#endif
+  mtp.Pack(Err[iC], Par[iC]);
 
   Err[iC].Scale(100.0f);
 }
