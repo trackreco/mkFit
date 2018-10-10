@@ -468,8 +468,8 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
         idx[itrack] = XHitArr.At(itrack, hit_cnt, 0) * sizeof(Hit);
       }
     }
-#if defined(MIC_INTRINSICS)
-    __m512i vi = _mm512_load_epi32(idx);
+#if defined(GATHER_INTRINSICS)
+    GATHER_IDX_LOAD(vi, idx);
 #endif
 
 #ifndef NO_PREFETCH
@@ -499,7 +499,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
 
 #else //NO_GATHER
 
-#if defined(MIC_INTRINSICS)
+#if defined(GATHER_INTRINSICS)
     msErr.SlurpIn(varr + off_error, vi);
     msPar.SlurpIn(varr + off_param, vi);
 #else
@@ -672,8 +672,8 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
 	idx[itrack] = XHitArr.At(itrack, hit_cnt, 0) * sizeof(Hit);
       }
     }
-#if defined(MIC_INTRINSICS)
-    __m512i vi = _mm512_load_epi32(idx);
+#if defined(GATHER_INTRINSICS)
+    GATHER_IDX_LOAD(vi, idx);
 #endif
 
     // Prefetch to L2 the hits we'll (probably) process after two loops iterations.
@@ -686,7 +686,7 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
       }
     }
 
-#if defined(MIC_INTRINSICS)
+#if defined(GATHER_INTRINSICS)
     msErr.SlurpIn(varr + off_error, vi);
     msPar.SlurpIn(varr + off_param, vi);
 #else
@@ -851,8 +851,8 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
         idx[itrack] = XHitArr.At(itrack, hit_cnt, 0) * sizeof(Hit);
       }
     }
-#if defined(MIC_INTRINSICS)
-    __m512i vi = _mm512_load_epi32(idx);
+#if defined(GATHER_INTRINSICS)
+    GATHER_IDX_LOAD(vi, idx);
 #endif
 
     // Prefetch to L2 the hits we'll (probably) process after two loops iterations.
@@ -865,7 +865,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
       }
     }
 
-#if defined(MIC_INTRINSICS)
+#if defined(GATHER_INTRINSICS)
     msErr.SlurpIn(varr + off_error, vi);
     msPar.SlurpIn(varr + off_param, vi);
 #else
@@ -1054,8 +1054,8 @@ void MkFinder::BkFitInputTracks(TrackVec& cands, int beg, int end)
 
   Chi2.SetVal(0);
 
-#ifdef MIC_INTRINSICS
-  __m512i vi      = _mm512_load_epi32(idx);
+#ifdef GATHER_INTRINSICS
+  GATHER_IDX_LOAD(vi, idx);
   Err[iC].SlurpIn(varr + off_error, vi, N_proc);
   Par[iC].SlurpIn(varr + off_param, vi, N_proc);
 #else
@@ -1096,8 +1096,8 @@ void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
 
   Chi2.SetVal(0);
 
-#ifdef MIC_INTRINSICS
-  __m512i vi      = _mm512_load_epi32(idx);
+#ifdef GATHER_INTRINSICS
+  GATHER_IDX_LOAD(vi, idx);
   Err[iC].SlurpIn(varr + off_error, vi, N_proc);
   Par[iC].SlurpIn(varr + off_param, vi, N_proc);
 #else

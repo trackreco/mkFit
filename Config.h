@@ -406,6 +406,8 @@ namespace Config
       #define MPT_SIZE 16
     #elif defined USE_CUDA
       #define MPT_SIZE 8
+    #elif defined(__AVX__) || defined(__AVX2__)
+      #define MPT_SIZE 8
     #else
       #define MPT_SIZE 8
     #endif

@@ -28,12 +28,29 @@
     #define MPLEX_INTRINSICS_WIDTH_BYTES  64
     #define MPLEX_INTRINSICS_WIDTH_BITS  512
     #define MIC_INTRINSICS
+    #define GATHER_INTRINSICS
+    #define GATHER_IDX_LOAD(name, arr)  __m512i name = _mm512_load_epi32(arr);
 
     #define LD(a, i)      _mm512_load_ps(&a[i*N+n])
     #define ST(a, i, r)   _mm512_store_ps(&a[i*N+n], r)
-    #define ADD(a, b)     _mm512_add_ps(a, b) 
+    #define ADD(a, b)     _mm512_add_ps(a, b)
     #define MUL(a, b)     _mm512_mul_ps(a, b)
     #define FMA(a, b, v)  _mm512_fmadd_ps(a, b, v)
+
+  #elif defined(__AVX2__)
+
+    typedef __m256 IntrVec_t;
+    #define MPLEX_INTRINSICS_WIDTH_BYTES  32
+    #define MPLEX_INTRINSICS_WIDTH_BITS  256
+    #define AVX2_INTRINSICS
+    #define GATHER_INTRINSICS
+    #define GATHER_IDX_LOAD(name, arr)  __m256i name = _mm256_load_epi32(arr);
+
+    #define LD(a, i)      _mm256_load_ps(&a[i*N+n])
+    #define ST(a, i, r)   _mm256_store_ps(&a[i*N+n], r)
+    #define ADD(a, b)     _mm256_add_ps(a, b)
+    #define MUL(a, b)     _mm256_mul_ps(a, b)
+    #define FMA(a, b, v)  _mm256_fmadd_ps(a, b, v)
 
   #elif defined(__AVX__)
 
@@ -44,7 +61,7 @@
 
     #define LD(a, i)      _mm256_load_ps(&a[i*N+n])
     #define ST(a, i, r)   _mm256_store_ps(&a[i*N+n], r)
-    #define ADD(a, b)     _mm256_add_ps(a, b) 
+    #define ADD(a, b)     _mm256_add_ps(a, b)
     #define MUL(a, b)     _mm256_mul_ps(a, b)
     // #define FMA(a, b, v)  { __m256 temp = _mm256_mul_ps(a, b); v = _mm256_add_ps(temp, v); }
     inline __m256 FMA(const __m256 &a, const __m256 &b, const __m256 &v)
