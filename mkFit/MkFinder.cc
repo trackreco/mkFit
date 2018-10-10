@@ -1041,7 +1041,7 @@ void MkFinder::BkFitInputTracks(TrackVec& cands, int beg, int end)
   // SlurpIn based on XHit array - so Nhits is irrelevant.
   // Could as well use HotArrays from tracks directly + a local cursor array to last hit.
 
-  MatriplexTrackPacker mtp(end - beg);
+  MatriplexTrackPacker mtp;
 
   int itrack = 0;
 
@@ -1070,7 +1070,7 @@ void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
   // SlurpIn based on XHit array - so Nhits is irrelevant.
   // Could as well use HotArrays from tracks directly + a local cursor array to last hit.
 
-  MatriplexTrackPacker mtp(end - beg);
+  MatriplexTrackPacker mtp;
 
   int itrack = 0;
 

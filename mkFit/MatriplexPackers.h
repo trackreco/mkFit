@@ -10,74 +10,82 @@ namespace mkfit {
 
 
 //==============================================================================
-// MatriplexTrackPacker - do we even need a baseclass?
+// MatriplexErrParPackerSlurpIn
 //==============================================================================
 
-class MatriplexTrackPackerBase
+// Extract base class to also support HitOnTrack slurping.
+
+// T - input class, D - data type
+
+template<typename T, typename D>
+class MatriplexErrParPackerSlurpIn // : public MatriplexPackerSlurpInBase
 {
-protected:
-   const int m_n_proc;
-
-public:
-   MatriplexTrackPackerBase(int N_proc) :
-      m_n_proc(N_proc)
-   {
-      assert(m_n_proc <= NN);
-   }
-};
-
-
-//==============================================================================
-// MatriplexTrackPackerSlurpIn
-//==============================================================================
-
-class MatriplexTrackPackerSlurpIn : public MatriplexTrackPackerBase
-{
-   char *m_base;     // Template to matriplex type, use as scale.
+   D    *m_base;     // Template to matriplex type, use as scale.
                      // Need typedef in Matrix.h (and pass it in Packer Selection
                      // section below).
-   int   m_n_pos;
+   int   m_pos;
    int   m_off_error;
    int   m_off_param;
 
    int   m_idx[NN]  __attribute__((aligned(64)));
 
 public:
-   MatriplexTrackPackerSlurpIn(int N_proc) :
-      MatriplexTrackPackerBase(N_proc),
-      m_n_pos(0)
+   MatriplexErrParPackerSlurpIn() :
+      m_base (0),
+      m_pos  (0)
    {}
 
-   void Reset()
-   {
-      m_n_pos = 0;
-   }
+   void Reset()      { m_pos = 0; }
 
-   void AddInput(const Track &track)
+   void ResetBase()  { m_pos = 0; m_base = 0; }
+
+   void AddInput(const T& item)
    {
-      if (m_n_pos == 0)
+      if (m_base == 0)
       {
-         m_base      = (char*) &track;
-         m_off_error = (char*) track.errors().Array()     - m_base;
-         m_off_param = (char*) track.parameters().Array() - m_base;
+         m_base      = (D*) &item;
+         m_off_error = item.errArray() - m_base;
+         m_off_param = item.posArray() - m_base;
       }
 
-      m_idx[m_n_pos] = (char*) &track - m_base;
+      // Could issue prefetch requests here.
 
-      ++m_n_pos;
+      m_idx[m_pos] = (D*) &item - m_base;
 
-      assert(m_n_pos <= m_n_proc);
+      ++m_pos;
    }
 
-   void Pack(MPlexLS &err, MPlexLV &par)
+   void AddInputAt(int pos, const T& item)
    {
+      while (m_pos < pos)
+      {
+         // We might not care about initialization / reset to 0.
+         // Or we could be building an additional mask (on top of N_proc).
+         m_idx[m_pos++] = 0;
+      }
+
+      AddInput(item);
+   }
+
+   template<typename TMerr, typename TMpar>
+   void Pack(TMerr &err, TMpar &par)
+   {
+      assert (m_pos <= NN);
+
+      if (m_pos == 0)
+      {
+         // throw ... this is probably not expected to happen.
+
+         return;
+      }
+
 #ifdef MIC_INTRINSICS
       __m512i vi = _mm512_load_epi32(m_idx);
-      err.SlurpIn(m_base + m_off_error, vi, m_n_proc);
-      par.SlurpIn(m_base + m_off_param, vi, m_n_proc);
+      err.SlurpIn(m_base + m_off_error, vi, sizeof(D), m_pos);
+      par.SlurpIn(m_base + m_off_param, vi, sizeof(D), m_pos);
 #else
-      err.SlurpIn(m_base + m_off_error, m_idx, m_n_proc);
-      par.SlurpIn(m_base + m_off_param, m_idx, m_n_proc);
+      err.SlurpIn(m_base + m_off_error, m_idx, m_pos);
+      par.SlurpIn(m_base + m_off_param, m_idx, m_pos);
 #endif
    }
 };
@@ -87,11 +95,10 @@ public:
 // MatriplexTrackPackerPlexify
 //==============================================================================
 
-class MatriplexTrackPackerPlexify : public MatriplexTrackPackerBase
+class MatriplexTrackPackerPlexify // : public MatriplexTrackPackerBase
 {
 public:
-   MatriplexTrackPackerPlexify(int N_proc) :
-      MatriplexTrackPackerBase(N_proc)
+   MatriplexTrackPackerPlexify() // : MatriplexPlexifyPackerBase(N_proc)
    {}
 
    void AddInput(const Track &track)
@@ -110,7 +117,7 @@ public:
 
 // Optionally ifdef with defines from Makefile.config
 
-using MatriplexTrackPacker = MatriplexTrackPackerSlurpIn;
+using MatriplexTrackPacker = MatriplexErrParPackerSlurpIn<Track, float>;
 
 }
 
