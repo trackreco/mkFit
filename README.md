@@ -11,12 +11,20 @@ Intro: Below is a short README on setup steps, code change procedures, and some 
 6) Submit an issue
 7) Condensed description of code
 8) Other helpful README's in the repository
-9) Other useful information
-   1) Important Links
-   2) Tips and Tricks
-      1) Missing Libraries and Debugging
-      2) SSH passwordless login for benchmarking and web scripts
-   3) Acronyms/Abbreviations
+9) CMSSW integration
+   1) Considerations for `mkFit` code
+   2) Instructions to use `mkFit` from CMSSW
+      1) Build `mkFit`
+      2) Set up `mkFit` as an external
+      3) Pull CMSSW code and build
+      4) Use `mkFit` in InitialStep of CMS offline tracking
+      5) Producing MultiTrackValidator plots
+10) Other useful information
+    1) Important Links
+    2) Tips and Tricks
+       1) Missing Libraries and Debugging
+       2) SSH passwordless login for benchmarking and web scripts
+    3) Acronyms/Abbreviations
 
 ## Section 1: Test platforms
 
@@ -293,9 +301,125 @@ Given that this is a living repository, the comments in the code may not always 
 - validation-desc.txt : The validation manifesto: (somewhat) up-to-date description of the full physics validation suite. It is complemented by a somewhat out-of-date code flow diagram, found here: https://indico.cern.ch/event/656884/contributions/2676532/attachments/1513662/2363067/validation_flow_diagram-v4.pdf
 - web/README_WEBPLOTS.md : A short markdown file on how to setup a website with an AFS or EOS directory on LXPLUS (best when viewed from a web browser, like this README).
 
-## Section 9: Other useful information
+## Section 9: CMSSW integration
 
-### Section 9.i: Important Links
+The supported CMSSW version is currently `10_2_0_pre3`. The
+integration of `mkFit` in CMSSW is based on setting it up as a CMSSW
+external.
+
+### Section 9.i: Considerations for `mkFit` code
+
+The multi-threaded CMSSW framework, and the iterative nature of CMS
+tracking impose some constraints on `mkFit` code (that are not all met
+yet). Note that not all are mandatory per se, but they would make the
+life easier for everybody.
+
+* A single instance of `mkFit` should correspond to a single track building iteration
+* There should be no global non-const variables
+  - Currently there are non-const global variables e.g. in `Config` namespace
+* All iteration-specific parameters should be passed from CMSSW to `mkFit` at run time
+
+### Section 9.ii: Instructions to use `mkFit` from CMSSW
+
+#### Section 9.ii.a: Build `mkFit`
+
+To be used from CMSSW the `mkFit` must be built with the CMSSW
+toolchain. Assuming you are in an empty directory, the following
+recipe will set up a CMSSW developer area and a `mictest` area there,
+and compile `mkFit` using the CMSSW toolchain.
+
+```bash
+cmsrel CMSSW_10_2_0_pre3
+pushd CMSSW_10_2_0_pre3/src
+cmsenv
+git cms-init
+scram setup icc-ccompiler
+source $(scram tool tag icc-ccompiler ICC_CCOMPILER_BASE)/bin/iccvars.sh intel64
+popd
+git clone git@github.com:cerati/mictest
+pushd mictest
+TBB_PREFIX=$(dirname $(cd $CMSSW_BASE && scram tool tag tbb INCLUDE)) make -j 12
+popd
+```
+
+#### Section 9.ii.b: Set up `mkFit` as an external
+
+Assuming you are in the aforementioned parent directory, the following
+recipe will create a scram tool file, and set up scram to use it
+
+```bash
+pushd CMSSW_10_2_0_pre3/src
+cat <<EOF >mkfit.xml
+<tool name="mkfit" version="1.0">
+  <client>
+    <environment name="MKFITBASE" default="$PWD/../../mictest"/>
+    <environment name="LIBDIR" default="\$MKFITBASE/lib"/>
+    <environment name="INCLUDE" default="\$MKFITBASE"/>
+  </client>
+  <runtime name="MKFIT_BASE" value="\$MKFITBASE"/>
+  <lib name="MicCore"/>
+  <lib name="MkFit"/>
+</tool>
+EOF
+scram setup mkfit.xml
+cmsenv
+```
+
+#### Section 9.ii.c: Pull CMSSW code and build
+
+The following recipe will pull the necessary CMSSW-side code and build it
+
+```bash
+# in CMSSW_10_2_0_pre3/src
+git cms-remote add makortel
+git fetch makortel
+git checkout -b mkfit_1020pre3 makortel/mkfit_1020pre3
+git cms-addpkg $(git diff $CMSSW_VERSION --name-only | cut -d/ -f-2 | uniq)
+git cms-checkdeps -a
+scram b -j 12
+```
+
+#### Section 9.ii.d: Use `mkFit` in InitialStep of CMS offline tracking
+
+The example below uses 2018 tracking-only workflow
+
+```bash
+# Generate configuration
+runTheMatrix.py -l 10824.1 --apply 2 --command "--customise RecoTracker/MkFit/customizeInitialStepToMkFit.customizeInitialStepToMkFit" -j 0
+cd 10824.1*
+# edit step3*RECO*.py to contain your desired (2018 RelVal MC) input files
+cmsRun step3*RECO*.py
+```
+
+The customize function replaces the initialStep track building module
+with `mkFit`. In principle the customize function should work with any
+reconstruction configuration file.
+
+By default `mkFit` is configured to use Clone Engine with N^2 seed
+cleaning, and to do the backward fit (to the innermost hit) within `mkFit`.
+
+#### Section 9.ii.e: Producing MultiTrackValidator plots
+
+The `step3` above runs also the [MultiTrackValidator](https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideMultiTrackValidator).
+
+To produce the plots, first run the DQM harvesting step
+
+```bash
+cmsRun step4_HARVESTING.py
+```
+
+which produces a `DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO.root` file that contains all the histograms. Rename the file to something reflecting the contents, and run
+
+```bash
+makeTrackValidationPlots.py --extended --limit-tracking-algo initialStep <DQM file> [<another DQM file> ...]
+```
+
+The script produces a directory `plots` that can be copied to any web area.
+
+
+## Section 10: Other useful information
+
+### Section 10.i: Important Links
 - Main development GitHub: https://github.com/cerati/mictest
 - Our project website: https://trackreco.github.io
 - Out-of-date and longer used twiki: https://twiki.cern.ch/twiki/bin/viewauth/CMS/MicTrkRnD
@@ -303,9 +427,9 @@ Given that this is a living repository, the comments in the code may not always 
 - Vidyo room: Parallel_Kalman_Filter_Tracking
 - Email list-serv: mic-trk-rd@cern.ch
 
-### Section 9.ii: Tips and Tricks
+### Section 10.ii: Tips and Tricks
 
-#### Section 9.ii.a: Missing Libraries and Debugging
+#### Section 10.ii.a: Missing Libraries and Debugging
 
 When sourcing the environment on phi3 via ```source xeon_scripts/init-env.sh```, some paths will be unset and access to local binaries may be lost. For example, since we source ROOT (and its many dependencies) over CVMFS, there may be some conflicts in loading some applications. In fact, the shell may complain about missing environment variables (emacs loves to complain about TIFF). The best way around this is to simply use CVMFS as a crutch to load in what you need.
 
@@ -352,7 +476,7 @@ kinit -f <lxplus username>@CERN.CH
 
 and then enter your LXPLUS password. Kerberos will keep your ticket open for a few days to allow passwordless ```ssh``` into LXPLUS. After the ticket expires, you will need to enter that same command again. So, even if you only send plots once every month to LXPLUS, this reduces the number of times of typing in your LXPLUS password from two to one :).
 
-### Section 9.iii: Acronyms/Abbreviations:
+### Section 10.iii: Acronyms/Abbreviations:
 - AVX: Advanced Vector Extensions [flavors of AVX: AVX, AVX2, AVX512]
 - BH: Best Hit
 - CCC: Charge Cluster Cut
