@@ -498,13 +498,6 @@ inline bool sortByScoreCand(const Track& cand1, const Track& cand2)
   int nmisshits[2] = {cand1.nTotalHits()-cand1.nFoundHits(),cand2.nTotalHits()-cand2.nFoundHits()};
   float chi2[2] = {cand1.chi2(),cand2.chi2()};
   float pt[2] = {cand1.pT(),cand2.pT()};
-//  float score[2] = {0.f,0.f};
-//  for(int c=0; c<2; ++c){
-//    score[c] = Config::validHitBonus_*nfoundhits[c] - Config::missingHitPenalty_*nmisshits[c] - chi2[c];
-//    if(pt[c]<0.9f) score[c] -= 0.5f*Config::validHitBonus_*nfoundhits[c];
-//    else if(nfoundhits[c]>8) score[c] += Config::validHitBonus_*nfoundhits[c];
-//  }
-//  return score[0]>score[1];
   return sortByScoreLoop(nfoundhits,nmisshits,chi2,pt);
 }
 
@@ -515,13 +508,6 @@ inline bool sortByScoreStruct(const IdxChi2List& cand1, const IdxChi2List& cand2
   int nmisshits[2] = {cand1.nholes,cand2.nholes};
   float chi2[2] = {cand1.chi2,cand2.chi2};
   float pt[2] = {cand1.pt,cand2.pt};
-//  float score[2] = {0.f,0.f};
-//  for(int c=0; c<2; ++c){
-//    score[c] = Config::validHitBonus_*nfoundhits[c] - Config::missingHitPenalty_*nmisshits[c] - chi2[c];
-//    if(pt[c]<0.9f) score[c] -= 0.5f*Config::validHitBonus_*nfoundhits[c];
-//    else if(nfoundhits[c]>8) score[c] += Config::validHitBonus_*nfoundhits[c];
-//  }
-//  return score[0]>score[1];
   return sortByScoreLoop(nfoundhits,nmisshits,chi2,pt);
 }
 
@@ -531,13 +517,6 @@ inline bool sortByScoreCandPair(const std::pair<Track, TrackState>& cand1, const
   int nmisshits[2] = {cand1.first.nTotalHits()-cand1.first.nFoundHits(),cand2.first.nTotalHits()-cand2.first.nFoundHits()};
   float chi2[2] = {cand1.first.chi2(),cand2.first.chi2()};
   float pt[2] = {cand1.first.pT(),cand2.first.pT()};
-//  float score[2] = {0.f,0.f};
-//  for(int c=0; c<2; ++c){
-//    score[c] = Config::validHitBonus_*nfoundhits[c] - Config::missingHitPenalty_*nmisshits[c] - chi2[c];
-//    if(pt[c]<0.9f) score[c] -= 0.5f*Config::validHitBonus_*nfoundhits[c];
-//    else if(nfoundhits[c]>8) score[c] += Config::validHitBonus_*nfoundhits[c];
-//  }
-//  return score[0]>score[1];
   return sortByScoreLoop(nfoundhits,nmisshits,chi2,pt);
 }
 

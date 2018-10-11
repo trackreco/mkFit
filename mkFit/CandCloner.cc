@@ -17,21 +17,7 @@ inline bool sortCandListByHitsChi2(const mkfit::IdxChi2List& cand1,
 inline bool sortCandListByScore(const mkfit::IdxChi2List& cand1,
 				const mkfit::IdxChi2List& cand2)
 {
-
-//  int nfoundhits[2] = {cand1.nhits,cand2.nhits};
-//  int nmisshits[2] = {cand1.nholes,cand2.nholes};
-//  float chi2[2] = {cand1.chi2,cand2.chi2};
-//  float pt[2] = {cand1.pt,cand2.pt};
-//  float score[2] = {0.f,0.f};
-//  for(int c=0; c<2; ++c){
-//    score[c] = (mkfit::Config::validHitBonus_)*nfoundhits[c] - (mkfit::Config::missingHitPenalty_)*nmisshits[c] - chi2[c];
-//    if(pt[c]<0.9f) score[c] -= 0.5f*(mkfit::Config::validHitBonus_)*nfoundhits[c];
-//    else if(nfoundhits[c]>8) score[c] += (mkfit::Config::validHitBonus_)*nfoundhits[c];
-//  }
-//  return score[0]>score[1];
-  
   return mkfit::sortByScoreStruct(cand1, cand2);
-
 }
 }
 
