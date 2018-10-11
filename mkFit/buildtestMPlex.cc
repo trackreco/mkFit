@@ -33,17 +33,19 @@ inline bool sortByHitsChi2(const std::pair<Track, TrackState>& cand1,
 inline bool sortByScore(const std::pair<Track, TrackState>& cand1,
 			const std::pair<Track, TrackState>& cand2)
 {
-  int nfoundhits[2] = {cand1.first.nFoundHits(),cand2.first.nFoundHits()};
-  int nmisshits[2] = {cand1.first.nTotalHits()-cand1.first.nFoundHits(),cand2.first.nTotalHits()-cand2.first.nFoundHits()};
-  float chi2[2] = {cand1.first.chi2(),cand2.first.chi2()};
-  float pt[2] = {cand1.first.pT(),cand2.first.pT()};
-  float score[2] = {0.f,0.f};
-  for(int c=0; c<2; ++c){
-    score[c] = Config::validHitBonus_*nfoundhits[c] - Config::missingHitPenalty_*nmisshits[c] - chi2[c];
-    if(pt[c]<0.9f) score[c] -= 0.5f*Config::validHitBonus_*nfoundhits[c];
-    else if(nfoundhits[c]>8) score[c] += Config::validHitBonus_*nfoundhits[c];
-  }
-  return score[0]>score[1];
+//  int nfoundhits[2] = {cand1.first.nFoundHits(),cand2.first.nFoundHits()};
+//  int nmisshits[2] = {cand1.first.nTotalHits()-cand1.first.nFoundHits(),cand2.first.nTotalHits()-cand2.first.nFoundHits()};
+//  float chi2[2] = {cand1.first.chi2(),cand2.first.chi2()};
+//  float pt[2] = {cand1.first.pT(),cand2.first.pT()};
+//  float score[2] = {0.f,0.f};
+//  for(int c=0; c<2; ++c){
+//    score[c] = Config::validHitBonus_*nfoundhits[c] - Config::missingHitPenalty_*nmisshits[c] - chi2[c];
+//    if(pt[c]<0.9f) score[c] -= 0.5f*Config::validHitBonus_*nfoundhits[c];
+//    else if(nfoundhits[c]>8) score[c] += Config::validHitBonus_*nfoundhits[c];
+//  }
+//  return score[0]>score[1];
+  return sortByScoreCandPair(cand1,cand2);
+
 }
 
 inline bool sortByPhi(const Hit& hit1, const Hit& hit2)

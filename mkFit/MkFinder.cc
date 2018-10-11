@@ -71,7 +71,7 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>     & track
 }
 
 void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>                       & tracks,
-                                    const std::vector<std::pair<int,MkFinder::IdxChi2List>>& idxs,
+                                    const std::vector<std::pair<int,IdxChi2List>>& idxs,
                                     int beg, int end, bool inputProp)
 {
   // Assign track parameters to initial state and copy hit values in.
