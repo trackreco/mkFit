@@ -33,6 +33,7 @@ public:
   int   nhits;  // number of hits (used for sorting)
   int   nholes;  // number of holes (used for sorting)
   float pt;   // pt (used for sorting)
+  float eta;   // eta (used for sorting)
   float chi2;   // total chi2 (used for sorting)
 };
  
@@ -479,15 +480,31 @@ inline bool sortByHitsChi2(const Track & cand1, const Track & cand2)
 }
 
 inline bool sortByScoreLoop(const int nfoundhits[2], 
-			const int nmisshits[2], 
-			const float chi2[2],
-			const float pt[2])
+			    const int nmisshits[2], 
+			    const float chi2[2],
+			    const float pt[2],
+			    const float eta[2])
 {
   float score[2] = {0.f,0.f};
-  for(int c=0; c<2; ++c){
-    score[c] = Config::validHitBonus_*nfoundhits[c] - Config::missingHitPenalty_*nmisshits[c] - chi2[c];
-    if(pt[c]<0.9f) score[c] -= 0.5f*Config::validHitBonus_*nfoundhits[c];
-    else if(nfoundhits[c]>8) score[c] += Config::validHitBonus_*nfoundhits[c];
+  for(int c=0; c<2; ++c){ 
+    // For high pT central tracks: double valid hit bonus
+    if((pt[0]+pt[1])/2.0f > 2.0f && (eta[0]+eta[1])/2.0f < 1.5f){
+      score[c] = (Config::validHitBonus_*2.0f)*nfoundhits[c] - Config::missingHitPenalty_*nmisshits[c] - chi2[c];
+      if(pt[c]<0.9f) score[c] -= 0.5f*(Config::validHitBonus_*2.0f)*nfoundhits[c];
+      else if(nfoundhits[c]>8) score[c] += (Config::validHitBonus_*2.0f)*nfoundhits[c];
+    }
+    // For low pT endcap tracks: half valid hit bonus & half missing hit penalty
+    else if((pt[0]+pt[1])/2.0f < 0.9f && (eta[0]+eta[1])/2.0f >= 1.5f){
+      score[c] = (Config::validHitBonus_*0.5f)*nfoundhits[c] - (Config::missingHitPenalty_*0.5f)*nmisshits[c] - chi2[c];
+      if(pt[c]<0.9f) score[c] -= 0.5f*(Config::validHitBonus_*0.5f)*nfoundhits[c];
+      else if(nfoundhits[c]>8) score[c] += (Config::validHitBonus_*0.5f)*nfoundhits[c];
+    }
+    // For all other tracks: unchanged cmssw bonus and penalty
+    else{
+      score[c] = Config::validHitBonus_*nfoundhits[c] - Config::missingHitPenalty_*nmisshits[c] - chi2[c];
+      if(pt[c]<0.9f) score[c] -= 0.5f*Config::validHitBonus_*nfoundhits[c];
+      else if(nfoundhits[c]>8) score[c] += Config::validHitBonus_*nfoundhits[c];
+    }
   }
   return score[0]>score[1];
 }
@@ -498,7 +515,8 @@ inline bool sortByScoreCand(const Track& cand1, const Track& cand2)
   int nmisshits[2] = {cand1.nTotalHits()-cand1.nFoundHits(),cand2.nTotalHits()-cand2.nFoundHits()};
   float chi2[2] = {cand1.chi2(),cand2.chi2()};
   float pt[2] = {cand1.pT(),cand2.pT()};
-  return sortByScoreLoop(nfoundhits,nmisshits,chi2,pt);
+  float eta[2] = {std::fabs(cand1.momEta()),std::fabs(cand2.momEta())};
+  return sortByScoreLoop(nfoundhits,nmisshits,chi2,pt,eta);
 }
 
 inline bool sortByScoreStruct(const IdxChi2List& cand1, const IdxChi2List& cand2)
@@ -507,7 +525,8 @@ inline bool sortByScoreStruct(const IdxChi2List& cand1, const IdxChi2List& cand2
   int nmisshits[2] = {cand1.nholes,cand2.nholes};
   float chi2[2] = {cand1.chi2,cand2.chi2};
   float pt[2] = {cand1.pt,cand2.pt};
-  return sortByScoreLoop(nfoundhits,nmisshits,chi2,pt);
+  float eta[2] = {cand1.eta,cand2.eta};
+  return sortByScoreLoop(nfoundhits,nmisshits,chi2,pt,eta);
 }
 
 inline bool sortByScoreCandPair(const std::pair<Track, TrackState>& cand1, const std::pair<Track, TrackState>& cand2)

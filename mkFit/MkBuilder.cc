@@ -168,7 +168,7 @@ namespace
 
   bool sortCandByScore(const Track & cand1, const Track & cand2)
   {
-    return mkfit::sortByScoreCand(cand1,cand2);    
+    return mkfit::sortByScoreCand(cand1,cand2);
   }
 }
 
