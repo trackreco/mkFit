@@ -513,11 +513,6 @@ inline bool sortByScoreStruct(const IdxChi2List& cand1, const IdxChi2List& cand2
 inline bool sortByScoreCandPair(const std::pair<Track, TrackState>& cand1, const std::pair<Track, TrackState>& cand2)
 {
   return sortByScoreCand(cand1.first,cand2.first);
-//  int nfoundhits[2] = {cand1.first.nFoundHits(),cand2.first.nFoundHits()};
-//  int nmisshits[2] = {cand1.first.nTotalHits()-cand1.first.nFoundHits(),cand2.first.nTotalHits()-cand2.first.nFoundHits()};
-//  float chi2[2] = {cand1.first.chi2(),cand2.first.chi2()};
-//  float pt[2] = {cand1.first.pT(),cand2.first.pT()};
-//  return sortByScoreLoop(nfoundhits,nmisshits,chi2,pt);
 }
 
 
