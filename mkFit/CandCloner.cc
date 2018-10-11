@@ -7,32 +7,17 @@
 
 namespace
 {
-inline bool sortCandListByHitsChi2(const mkfit::MkFinder::IdxChi2List& cand1,
-                                   const mkfit::MkFinder::IdxChi2List& cand2)
+inline bool sortCandListByHitsChi2(const mkfit::IdxChi2List& cand1,
+                                   const mkfit::IdxChi2List& cand2)
 {
   if (cand1.nhits == cand2.nhits) return cand1.chi2 < cand2.chi2;
   return cand1.nhits > cand2.nhits;
 }
 
-inline bool sortCandListByScore(const mkfit::MkFinder::IdxChi2List& cand1,
-				const mkfit::MkFinder::IdxChi2List& cand2)
+inline bool sortCandListByScore(const mkfit::IdxChi2List& cand1,
+				const mkfit::IdxChi2List& cand2)
 {
-
-
-  float validHitBonus_=2.5;
-  float missingHitPenalty_=20.0;
-  int nfoundhits[2] = {cand1.nhits,cand2.nhits};
-  int nmisshits[2] = {cand1.nholes,cand2.nholes};
-  float chi2[2] = {cand1.chi2,cand2.chi2};
-  float pt[2] = {cand1.pt,cand2.pt};
-  float score[2] = {0.f,0.f};
-  for(int c=0; c<2; ++c){
-    score[c] = (validHitBonus_)*nfoundhits[c] - (missingHitPenalty_)*nmisshits[c] - chi2[c];
-    if(pt[c]<0.9f) score[c] -= 0.5f*(validHitBonus_)*nfoundhits[c];
-    else if(nfoundhits[c]>8) score[c] += (validHitBonus_)*nfoundhits[c];
-  }
-  return score[0]>score[1];
-
+  return mkfit::sortByScoreStruct(cand1,cand2);
 }
 }
 
@@ -51,7 +36,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
   //1) sort the candidates
   for (int is = is_beg; is < is_end; ++is)
   {
-    std::vector<MkFinder::IdxChi2List>& hitsForSeed = m_hits_to_add[is];
+    std::vector<IdxChi2List>& hitsForSeed = m_hits_to_add[is];
 
     std::vector<CombCandidate> &cands = mp_event_of_comb_candidates->m_candidates;
 
@@ -83,7 +68,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
 
       for (int ih = 0; ih < num_hits; ih++)
       {
-        const MkFinder::IdxChi2List &h2a = hitsForSeed[ih];
+        const IdxChi2List &h2a = hitsForSeed[ih];
 
         cv.push_back( cands[ m_start_seed + is ][ h2a.trkIdx ] );
 
