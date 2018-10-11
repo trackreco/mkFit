@@ -17,7 +17,7 @@ inline bool sortCandListByHitsChi2(const mkfit::IdxChi2List& cand1,
 inline bool sortCandListByScore(const mkfit::IdxChi2List& cand1,
 				const mkfit::IdxChi2List& cand2)
 {
-  return mkfit::sortByScoreStruct(cand1, cand2);
+  return mkfit::sortByScoreStruct(cand1,cand2);
 }
 }
 
