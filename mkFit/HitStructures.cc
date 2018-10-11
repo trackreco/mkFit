@@ -100,6 +100,7 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
     for (auto const &h : hitv)
     {
       HitInfo &hi = ha[i];
+      // N.1.a For phi in [-pi, pi): squashPhiMinimal(h.phi()); Apparently atan2 can round the wrong way.
       hi.phi  = h.phi();
       hi.q    = is_brl ? h.z() : h.r();
       hi.qbin = std::max(std::min(static_cast<int>((hi.q - m_qmin) * m_fq), m_nq - 1), 0);
@@ -157,7 +158,8 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
       curr_phi_bin = 0;
     }
 
-    int phi_bin = GetPhiBinChecked(ha[j].phi);
+    // N.1.b ha[j].phi is returned by atan2 and can be rounded the wrong way, resulting in bin -1 or Config::m_nphi
+    int phi_bin = std::min(std::max(GetPhiBin(ha[j].phi), 0), Config::m_nphi - 1);
 
     if (phi_bin > curr_phi_bin)
     {
