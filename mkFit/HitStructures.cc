@@ -159,7 +159,7 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
     }
 
     // N.1.b ha[j].phi is returned by atan2 and can be rounded the wrong way, resulting in bin -1 or Config::m_nphi
-    int phi_bin = std::min(std::max(GetPhiBin(ha[j].phi), 0), Config::m_nphi - 1);
+    int phi_bin = clamp(GetPhiBin(ha[j].phi), 0, Config::m_nphi - 1);
 
     if (phi_bin > curr_phi_bin)
     {
