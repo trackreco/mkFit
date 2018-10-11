@@ -4,6 +4,7 @@
 #include "HitStructures.h"
 
 #include "KalmanUtilsMPlex.h"
+#include "MatriplexPackers.h"
 
 #include <set>
 
@@ -277,12 +278,9 @@ template<int nseeds, int ncands>
 void MkFinderFV<nseeds, ncands>::FindCandidates(const LayerOfHits &layer_of_hits,
                                                 const FindingFoos &fnd_foos)
 {
+  MatriplexHitPacker mhp;
+
   const char *varr      = (char*) layer_of_hits.m_hits;
-
-  const int   off_error = (char*) layer_of_hits.m_hits[0].errArray() - varr;
-  const int   off_param = (char*) layer_of_hits.m_hits[0].posArray() - varr;
-
-  alignas(64) int idx[NNFV];
 
   // prefetch the first set of hits to L1 and the second one to L2.
   #pragma omp simd
@@ -296,8 +294,6 @@ void MkFinderFV<nseeds, ncands>::FindCandidates(const LayerOfHits &layer_of_hits
         _mm_prefetch(varr + XHitArr.At(it, 1, 0) * sizeof(Hit), _MM_HINT_T1);
       }
     }
-
-    idx[it] = 0;
   }
   // XXXX MT FIXME: use masks to filter out SlurpIns
 
@@ -306,12 +302,14 @@ void MkFinderFV<nseeds, ncands>::FindCandidates(const LayerOfHits &layer_of_hits
   const int maxhit = XHitMax();
   for (int hit_cnt = 0; hit_cnt < maxhit; ++hit_cnt)
   {
-    #pragma omp simd
+    mhp.Reset();
+
+#pragma omp simd
     for (int itrack = 0; itrack < NNFV; ++itrack)
     {
       if (hit_cnt < XHitSize[itrack])
       {
-        idx[itrack] = XHitArr.At(itrack, hit_cnt, 0) * sizeof(Hit);
+        mhp.AddInputAt(itrack, layer_of_hits.m_hits[ XHitArr.At(itrack, hit_cnt, 0) ]);
       }
     }
 
@@ -325,14 +323,7 @@ void MkFinderFV<nseeds, ncands>::FindCandidates(const LayerOfHits &layer_of_hits
       }
     }
 
-#if defined(GATHER_INTRINSICS)
-    GATHER_IDX_LOAD(vi, idx);
-    msErr.SlurpIn(varr + off_error, vi);
-    msPar.SlurpIn(varr + off_param, vi);
-#else
-    msErr.SlurpIn(varr + off_error, idx);
-    msPar.SlurpIn(varr + off_param, idx);
-#endif
+    mhp.Pack(msErr, msPar);
 
     //now compute the chi2 of track state vs hit
     (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar, XHitChi2[hit_cnt], NNFV, Config::finding_intra_layer_pflags);

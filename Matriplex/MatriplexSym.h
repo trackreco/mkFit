@@ -119,22 +119,6 @@ public:
 
 #if defined(MIC_INTRINSICS)
 
-   void SlurpIn(const char *arr, __m512i& vi, const int N_proc = N)
-   {
-      //_mm512_prefetch_i32gather_ps(vi, arr, 1, _MM_HINT_T0);
-
-      const __m512    src = { 0 };
-      const __mmask16 k = N_proc == N ? -1 : (1 << N_proc) - 1;
-
-      for (int i = 0; i < kSize; ++i, arr += sizeof(T))
-      {
-         //_mm512_prefetch_i32gather_ps(vi, arr+2, 1, _MM_HINT_NTA);
-
-         __m512 reg = _mm512_mask_i32gather_ps(src, k, vi, arr, 1);
-         _mm512_mask_store_ps(&fArray[i*N], k, reg);
-      }
-   }
-
    void SlurpIn(const T *arr, __m512i& vi, int scale, const int N_proc = N)
    {
       //_mm512_prefetch_i32gather_ps(vi, arr, 1, _MM_HINT_T0);
@@ -195,7 +179,7 @@ public:
 
 #elif defined(AVX2_INTRINSICS)
 
-   void SlurpIn(const char *arr, __m256i& vi, const int N_proc = N)
+   void SlurpIn(const T *arr, __m256i& vi, int scale, const int N_proc = N)
    {
       const __m256 src = { 0 };
 
@@ -204,41 +188,16 @@ public:
       __m256i k_master = _mm256_cmpgt_epi32(k_sel, k);
 
       k = k_master;
-      for (int i = 0; i < kSize; ++i, arr += sizeof(T))
+      for (int i = 0; i < kSize; ++i, ++arr)
       {
-         __m256 reg = _mm256_mask_i32gather_ps(src, (float *) arr, vi, (__m256) k, 1);
+         __m256 reg = _mm256_mask_i32gather_ps(src, arr, vi, (__m256) k, scale);
          // Restore mask (docs say gather clears it but it doesn't seem to).
          k = k_master;
-         _mm256_maskstore_ps((float*) &fArray[i*N], k, reg);
+         _mm256_maskstore_ps(&fArray[i*N], k, reg);
       }
    }
 
 #else
-
-   void SlurpIn(const char *arr, int vi[N], const int N_proc = N)
-   {
-      // Separate N_proc == N case (gains about 7% in fit test).
-      if (N_proc == N)
-      {
-         for (int i = 0; i < kSize; ++i)
-         {
-            for (int j = 0; j < N; ++j)
-            {
-               fArray[i*N + j] = * (const T*) (arr + i*sizeof(T) + vi[j]);
-            }
-         }
-      }
-      else
-      {
-         for (int i = 0; i < kSize; ++i)
-         {
-            for (int j = 0; j < N_proc; ++j)
-            {
-               fArray[i*N + j] = * (const T*) (arr + i*sizeof(T) + vi[j]);
-            }
-         }
-      }
-   }
 
    void SlurpIn(const T *arr, int vi[N], const int N_proc = N)
    {

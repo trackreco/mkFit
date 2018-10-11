@@ -2,6 +2,8 @@
 
 #include "KalmanUtilsMPlex.h"
 #include "ConformalUtilsMPlex.h"
+#include "MatriplexPackers.h"
+
 #ifdef USE_CUDA
 //#include "FitterCU.h"
 #endif
@@ -168,13 +170,7 @@ void MkFitter::SlurpInTracksAndHits(const std::vector<Track>&  tracks,
   // This might not be true for the last chunk!
   // assert(end - beg == NN);
 
-  const Track &trk = tracks[beg];
-  const char *varr       = (char*) &trk;
-  const int   off_error  = (char*) trk.errors().Array() - varr;
-  const int   off_param  = (char*) trk.parameters().Array() - varr;
-
-  int idx[NN]      __attribute__((aligned(64)));
-  int itrack;
+  MatriplexTrackPacker mtp;
 
 //#ifdef USE_CUDA
 #if 0
@@ -185,57 +181,44 @@ void MkFitter::SlurpInTracksAndHits(const std::vector<Track>&  tracks,
   omp_set_num_threads(Config::numThreadsReorg);
 #pragma omp parallel for private(itrack)
 #endif
-  for (int i = beg; i < end; ++i) {
-    itrack = i - beg;
+  for (int i = beg; i < end; ++i)
+  {
+    int itrack = i - beg;
     const Track &trk = tracks[i];
 
     Label(itrack, 0, 0) = trk.label();
 
-    idx[itrack] = (char*) &trk - varr;
+    mtp.AddInput(trk);
 
     Chg(itrack, 0, 0) = trk.charge();
     Chi2(itrack, 0, 0) = trk.chi2();
   }
 
-#ifdef GATHER_INTRINSICS
-  GATHER_IDX_LOAD(vi, idx);
-  Err[iC].SlurpIn(varr + off_error, vi);
-  Par[iC].SlurpIn(varr + off_param, vi);
-#else
-  Err[iC].SlurpIn(varr + off_error, idx);
-  Par[iC].SlurpIn(varr + off_param, idx);
-#endif
-  
+  mtp.Pack(Err[iC], Par[iC]);
+
 // CopyIn seems fast enough, but indirections are quite slow.
 // For GPU computations, it has been moved in between kernels
 // in an attempt to overlap CPU and GPU computations.
 //#ifndef USE_CUDA
 #if 1
+
+  MatriplexHitPacker mhp;
+
   for (int hi = 0; hi < Nhits; ++hi)
   {
-    const int   hidx      = tracks[beg].getHitIdx(hi);
-    const Hit  &hit       = layerHits[hi][hidx];
-    const char *varr      = (char*) &hit;
-    const int   off_error = (char*) hit.errArray() - varr;
-    const int   off_param = (char*) hit.posArray() - varr;
+    mhp.Reset();
 
     for (int i = beg; i < end; ++i)
     {
       const int   hidx = tracks[i].getHitIdx(hi);
       const Hit  &hit  = layerHits[hi][hidx];
-      itrack = i - beg;
-      idx[itrack] = (char*) &hit - varr;
-      HoTArr[hi](itrack, 0, 0) = tracks[i].getHitOnTrack(hi);
+
+      HoTArr[hi](i - beg, 0, 0) = tracks[i].getHitOnTrack(hi);
+
+      mhp.AddInput(hit);
     }
 
-#ifdef GATHER_INTRINSICS
-    GATHER_IDX_LOAD(vi, idx);
-    msErr[hi].SlurpIn(varr + off_error, vi);
-    msPar[hi].SlurpIn(varr + off_param, vi);
-#else
-    msErr[hi].SlurpIn(varr + off_error, idx);
-    msPar[hi].SlurpIn(varr + off_param, idx);
-#endif
+    mhp.Pack(msErr[hi], msPar[hi]);
   }
 #endif
 }
@@ -364,14 +347,11 @@ void MkFitter::InputTracksForFit(const std::vector<Track>& tracks,
   // Check for max? Expect an argument?
   // What to do with invalid hits? Skip?
 
-  const int   N_proc     = end - beg;
-  const Track &trk0      = tracks[beg];
-  const char *varr       = (char*) &trk0;
-  const int   off_error  = (char*) trk0.errors().Array() - varr;
-  const int   off_param  = (char*) trk0.parameters().Array() - varr;
-  const int   off_hitidx = (char*) trk0.getHitsOnTrackArray() - varr;
+  // XXXX MT Here the same idx array WAS used for slurping in of tracks and
+  // hots. With this, two index arrays are built, one within each packer.
 
-  int idx[NN]      __attribute__((aligned(64)));
+  MatriplexTrackPacker mtp;
+  MatriplexHoTPacker   mhotp;
 
   int itrack = 0;
 
@@ -383,27 +363,16 @@ void MkFitter::InputTracksForFit(const std::vector<Track>& tracks,
     Chi2(itrack, 0, 0)  = trk.chi2();
     Label(itrack, 0, 0) = trk.label();
 
-    idx[itrack] = (char*) &trk - varr;
+    mtp.AddInput(trk);
+
+    mhotp.AddInput( * trk.getHitsOnTrackArray());
   }
 
-  // for ( ; itrack < NN; ++itrack)  {  idx[itrack] = idx[0];  }
-
-#ifdef GATHER_INTRINSICS
-  GATHER_IDX_LOAD(vi, idx);
-  Err[iC].SlurpIn(varr + off_error, vi, N_proc);
-  Par[iC].SlurpIn(varr + off_param, vi, N_proc);
+  mtp.Pack(Err[iC], Par[iC]);
   for (int ll = 0; ll < Config::nLayers; ++ll)
   {
-    HoTArr[ll].SlurpIn(varr + off_hitidx + sizeof(int)*ll, vi, N_proc);
+     mhotp.Pack(HoTArr[ll], ll);
   }
-#else
-  Err[iC].SlurpIn(varr + off_error, idx, N_proc);
-  Par[iC].SlurpIn(varr + off_param, idx, N_proc);
-  for (int ll = 0; ll < Config::nLayers; ++ll)
-  {
-    HoTArr[ll].SlurpIn(varr + off_hitidx + sizeof(int)*ll, idx, N_proc);
-  }
-#endif
 }
 
 void MkFitter::FitTracksWithInterSlurp(const std::vector<HitVec>& layersohits,
@@ -413,15 +382,10 @@ void MkFitter::FitTracksWithInterSlurp(const std::vector<HitVec>& layersohits,
   // a) slurps in hit parameters;
   // b) propagates and updates tracks
 
-  int idx[NN]      __attribute__((aligned(64)));
+  MatriplexHitPacker mhp;
 
   for (int ii = 0; ii < Nhits; ++ii)
   {
-    const Hit  &hit0      = layersohits[ii][0];
-    const char *varr      = (char*) &hit0;
-    const int   off_param = (char*) hit0.posArray() - varr;
-    const int   off_error = (char*) hit0.errArray() - varr;
-
     for (int i = 0; i < N_proc; ++i)
     {
       const int hidx = HoTArr[ii](i, 0, 0).index;
@@ -433,21 +397,13 @@ void MkFitter::FitTracksWithInterSlurp(const std::vector<HitVec>& layersohits,
       // Say, hidx = 0 ... grr ... but then we don't know it is missing.
 
       if (hidx < 0 || hlyr < 0) {
-        idx[i] = 0;
+         mhp.AddNullInput();
       } else {
-        idx[i] = (char*) & layersohits[hlyr][hidx] - varr;
+         mhp.AddInput( layersohits[hlyr][hidx] );
       }
     }
-    for (int i = N_proc; i < NN; ++i)  {  idx[i] = idx[0];  }
 
-#ifdef GATHER_INTRINSICS
-    GATHER_IDX_LOAD(vi, idx);
-    msPar[0].SlurpIn(varr + off_param, vi, N_proc);
-    msErr[0].SlurpIn(varr + off_error, vi, N_proc);
-#else
-    msPar[0].SlurpIn(varr + off_param, idx, N_proc);
-    msErr[0].SlurpIn(varr + off_error, idx, N_proc);
-#endif
+    mhp.Pack(msErr[0], msPar[0]);
 
     PropagateTracksToHitR(msPar[0], N_proc, Config::forward_fit_pflags);
 
