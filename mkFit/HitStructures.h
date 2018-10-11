@@ -191,8 +191,10 @@ public:
 
   int   GetQBinChecked(float q) const { int qb = GetQBin(q); if (qb < 0) qb = 0; else if (qb >= m_nq) qb = m_nq - 1; return qb; }
 
-  // if you don't pass phi in (-pi, +pi), mask away the upper bits using m_phi_mask
+  // If you don't pass phi in (-pi, +pi), mask away the upper bits using m_phi_mask or use the Checked version.
   int   GetPhiBin(float phi) const { return std::floor(m_fphi * (phi + Config::PI)); }
+
+  int   GetPhiBinChecked(float phi) const { return GetPhiBin(phi) & m_phi_mask; }
 
   const vecPhiBinInfo_t& GetVecPhiBinInfo(float q) const { return m_phi_bin_infos[GetQBin(q)]; }
 
