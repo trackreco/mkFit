@@ -180,7 +180,7 @@ Note that you need to have SSH-forwarding set up to avoid having to type your pa
 After running the full suite, there is an additional set of scripts within the ```web/``` directory for organizing the output plots and text files for viewing them on the web.  The main script is:
 
 ```
-./web/move-benchmark.sh ${outdir_name} ${suite} ${afs_or_eos}
+./web/move-benchmarks.sh ${outdir_name} ${suite} ${afs_or_eos}
 ```
 
 where again, ```${suite}``` defaults to ```forPR```. ```${outdir_name}``` will be the top-level directory where the output is collected and eventually shipped to LXPLUS. This will call ```./web/collectBenchmarks.sh ${outdir_name} ${suite}```, which will sort the files, and then ```./web/tarAndSendToLXPLUS.sh ${outdir_name} ${suite} ${afs_or_eos}```, which  packs up the top-level output dir and copies it to either an /afs or /eos userspace on LXPLUS. This will also run another script remotely to copy ```web/index.php``` into each directory to have a nice web GUI for the plots. Make sure to read the ```web/README_WEBPLOTS.md``` first to setup an /afs or /eos web directory. 
