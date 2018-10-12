@@ -36,7 +36,7 @@ Intro: Below is a short README on setup steps, code change procedures, and some 
 
 phi1, phi2, and phi3 are all managed across a virtual login server and therefore the home user spaces are shared. phi1, phi2, phi3, and lnx4108 also have /cvmfs mounted so you can source the environment needed to run the code. 
 
-The main development platform is phi3. This is the recommended machine for beginning development and testing. Login into any of the machines is achieved through ```ssh -X -Y <phi username>@phi<N>.t2.ucsd.edu```. It is recommended that you setup ssh key forwarding on your local machine so as to avoid typing in your password with every login, and more importantly, to avoid typing your password during the benchmarking (see Section 9.ii.b).
+The main development platform is phi3. This is the recommended machine for beginning development and testing. Login into any of the machines is achieved through ```ssh -X -Y <phi username>@phi<N>.t2.ucsd.edu```. It is recommended that you setup ssh key forwarding on your local machine so as to avoid typing in your password with every login, and more importantly, to avoid typing your password during the benchmarking (see Section 10.ii.b).
 
 ## Section 2: How to checkout the code
 
@@ -439,7 +439,7 @@ After sourcing and compiling and then running only to find out there is some cra
 
 This can be overcome by loading ```gdb``` over CVMFS: ```source /cvmfs/cms.cern.ch/slc7_amd64_gcc630/external/gdb/7.12.1-omkpbe2/etc/profile.d/init.sh```. At this point, the application will run normally and debugging can commence.
 
-#### Section 9.ii.b: SSH passwordless login for benchmarking scripts and web scripts
+#### Section 10.ii.b: SSH passwordless login for benchmarking scripts and web scripts
 
 When running the benchmarks, a tarball of the working directory will be ```scp```'ed to phi2 and phi1 before running tests on phi3. After the tests complete on each platform, the log files will be ```scp```'ed back to phi3 concurrently. If you do not forward your ssh keys upon login to phi3, you will have to enter your password when first shipping the code over to phi2 and phi1, and also, at some undetermined point, enter it again to receive the logs.
 
