@@ -278,7 +278,7 @@ template<int nseeds, int ncands>
 void MkFinderFV<nseeds, ncands>::FindCandidates(const LayerOfHits &layer_of_hits,
                                                 const FindingFoos &fnd_foos)
 {
-  MatriplexHitPacker mhp;
+  MatriplexHitPacker mhp(layer_of_hits.m_hits[0]);
 
   const char *varr      = (char*) layer_of_hits.m_hits;
 

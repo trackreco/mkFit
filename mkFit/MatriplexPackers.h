@@ -23,24 +23,17 @@ protected:
    int      m_pos;
 
 public:
-   MatriplexPackerSlurpIn() :
-      m_base (0),
+   MatriplexPackerSlurpIn(const D& base) :
+      m_base (&base),
       m_pos  (0)
    {}
 
    void Reset()        { m_pos = 0; }
 
-   void ResetBase()    { m_pos = 0; m_base = 0; }
-
    void AddNullInput() { m_idx[m_pos++] = 0; }
 
    void AddInput(const D& item)
    {
-      if (m_base == 0)
-      {
-         m_base = & item;
-      }
-
       // Could issue prefetch requests here.
 
       m_idx[m_pos] = & item - m_base;
@@ -87,47 +80,19 @@ public:
 
 // T - input class (Track or Hit), D - data type (float)
 
-// Would this actually be prettier without the inheriatance (and all this-> mess)?
-
 template<typename T, typename D>
 class MatriplexErrParPackerSlurpIn : public MatriplexPackerSlurpIn<D>
 {
-   // alignas(64) int m_idx[NN];
-
-   // const D *m_base;
-   // int      m_pos;
-   // int      m_off_error;
    int      m_off_param;
 
 public:
-   MatriplexErrParPackerSlurpIn() : MatriplexPackerSlurpIn<D>()
-      // m_base (0),
-      // m_pos  (0)
+   MatriplexErrParPackerSlurpIn(const T& t) :
+      MatriplexPackerSlurpIn<D>(*t.errArray()),
+      m_off_param(t.posArray() - this->m_base)
    {}
-
-   // void Reset()        { m_pos = 0; }
-
-   // void ResetBase()    { m_pos = 0; m_base = 0; }
-
-   // void AddNullInput() { m_idx[m_pos++] = 0; }
 
    void AddInput(const T& item)
    {
-      if (this->m_base == 0)
-      {
-         // One could use item.errArray() as base and then we'd only need
-         // m_off_param. I'm avoiding this as I'm not sure if this
-         // requires fetching of item (also when base != 0).
-         // Nope ... this compiles into a constant.
-
-         // this->m_base = (D*) &item;
-         // m_off_error  = item.errArray() - this->m_base;
-
-         this->m_base = item.errArray();
-
-         m_off_param  = item.posArray() - this->m_base;
-      }
-
       // Could issue L1 prefetch requests here.
 
       this->m_idx[this->m_pos] = item.errArray() - this->m_base;
@@ -174,19 +139,28 @@ public:
 // MatriplexTrackPackerPlexify
 //==============================================================================
 
+template<typename T, typename D>
 class MatriplexTrackPackerPlexify // : public MatriplexTrackPackerBase
 {
 public:
-   MatriplexTrackPackerPlexify() // : MatriplexPlexifyPackerBase(N_proc)
+   MatriplexTrackPackerPlexify(const T& t)
    {}
 
-   void AddInput(const Track &track)
-   {
-   }
+   void Reset()
+   {}
 
-   void Pack(MPlexLS &err, MPlexLV &par)
-   {
-   }
+   void AddNullInput()
+   {}
+
+   void AddInput(const T& item)
+   {}
+
+   void AddInputAt(int pos, const T& item)
+   {}
+
+   template<typename TMerr, typename TMpar>
+   void Pack(TMerr &err, TMpar &par)
+   {}
 };
 
 

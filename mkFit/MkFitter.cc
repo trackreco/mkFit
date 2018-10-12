@@ -170,7 +170,7 @@ void MkFitter::SlurpInTracksAndHits(const std::vector<Track>&  tracks,
   // This might not be true for the last chunk!
   // assert(end - beg == NN);
 
-  MatriplexTrackPacker mtp;
+  MatriplexTrackPacker mtp(tracks[beg]);
 
 //#ifdef USE_CUDA
 #if 0
@@ -202,11 +202,9 @@ void MkFitter::SlurpInTracksAndHits(const std::vector<Track>&  tracks,
 //#ifndef USE_CUDA
 #if 1
 
-  MatriplexHitPacker mhp;
-
   for (int hi = 0; hi < Nhits; ++hi)
   {
-    mhp.Reset();
+    MatriplexHitPacker mhp(layerHits[hi][0]);
 
     for (int i = beg; i < end; ++i)
     {
@@ -350,8 +348,8 @@ void MkFitter::InputTracksForFit(const std::vector<Track>& tracks,
   // XXXX MT Here the same idx array WAS used for slurping in of tracks and
   // hots. With this, two index arrays are built, one within each packer.
 
-  MatriplexTrackPacker mtp;
-  MatriplexHoTPacker   mhotp;
+  MatriplexTrackPacker mtp  ( tracks[beg]);
+  MatriplexHoTPacker   mhotp(*tracks[beg].getHitsOnTrackArray());
 
   int itrack = 0;
 
@@ -378,14 +376,19 @@ void MkFitter::InputTracksForFit(const std::vector<Track>& tracks,
 void MkFitter::FitTracksWithInterSlurp(const std::vector<HitVec>& layersohits,
                                        const int N_proc)
 {
+  // XXXX This has potential issues hits coming from different layers!
+  // Expected to only work reliably with barrel (consecutive layers from 0 -> Nhits)
+  // and with hits present on every layer for every track.
+
   // Loops over layers and:
   // a) slurps in hit parameters;
   // b) propagates and updates tracks
 
-  MatriplexHitPacker mhp;
-
   for (int ii = 0; ii < Nhits; ++ii)
   {
+    // XXXX Assuming hit index corresponds to layer!
+    MatriplexHitPacker mhp(layersohits[ii][0]);
+
     for (int i = 0; i < N_proc; ++i)
     {
       const int hidx = HoTArr[ii](i, 0, 0).index;

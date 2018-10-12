@@ -2272,9 +2272,28 @@ void MkBuilder::fit_cands(MkFinder *mkfndr, int start_cand, int end_cand, int re
   EventOfCombCandidates &eoccs  = m_event_of_comb_cands;
   const SteeringParams  &st_par = m_steering_params[region];
 
-  for (int icand = start_cand; icand < end_cand; icand += NN)
+  int step;
+  for (int icand = start_cand; icand < end_cand; icand += step)
   {
-    const int end = std::min(icand + NN, end_cand);
+    int end  = std::min(icand + NN, end_cand);
+
+    // Check if we need to fragment this for SlurpIn to work.
+    step = NN;
+    {
+       int end_c = icand + 1;
+       while (end_c < end)
+       {
+          // Still crashes with 0x1fffffff and 0x1ffffff, 0x1fffff works (~2000 breaks over 5k high PU events)
+          if (std::abs(&eoccs[icand][0] - &eoccs[end_c][0]) > 0x1fffff)
+          {
+             printf("XXYZZ MkBuilder::fit_cands Breaking up candidates with offset outside of 32-bit range.\n");
+             end  = end_c;
+             step = end - icand;
+             break;
+          }
+          ++end_c;
+       }
+    }
 
     // printf("Pre Final fit for %d - %d\n", icand, end);
     // for (int i = icand; i < end; ++i) { const Track &t = eoccs[i][0];
