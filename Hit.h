@@ -19,6 +19,11 @@ inline float squashPhiGeneral(float phi)
   return phi - floor(0.5*Config::InvPI*(phi+Config::PI)) * Config::TwoPI;
 }
 
+inline float squashPhiMinimal(float phi)
+{
+   return phi >= Config::PI ? phi - Config::TwoPI : (phi < -Config::PI ? phi + Config::TwoPI : phi);
+}
+
 // moved from config to here
 inline int getEtaBin(float eta)
 {
