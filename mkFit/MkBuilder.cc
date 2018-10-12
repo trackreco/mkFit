@@ -165,6 +165,11 @@ namespace
 
     return cand1.nFoundHits() > cand2.nFoundHits();
   }
+
+  bool sortCandByScore(const Track & cand1, const Track & cand2)
+  {
+    return mkfit::sortByScoreCand(cand1,cand2);    
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -1747,7 +1752,8 @@ void MkBuilder::FindTracksStandard()
         for (int is = 0; is < n_seeds; ++is)
         {
           dprint("dump seed n " << is << " with input candidates=" << tmp_cands[is].size());
-          std::sort(tmp_cands[is].begin(), tmp_cands[is].end(), sortCandByHitsChi2);
+          //std::sort(tmp_cands[is].begin(), tmp_cands[is].end(), sortCandByHitsChi2);
+          std::sort(tmp_cands[is].begin(), tmp_cands[is].end(), sortCandByScore);
 
           if (tmp_cands[is].size() > static_cast<size_t>(Config::maxCandsPerSeed))
           {
@@ -1799,7 +1805,8 @@ void MkBuilder::FindTracksStandard()
       {
         std::vector<Track>& finalcands = eoccs[iseed];
         if (finalcands.size() == 0) continue;
-        std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
+        //std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
+        std::sort(finalcands.begin(), finalcands.end(), sortCandByScore);
       }
     }); // end parallel-for over chunk of seeds within region
   }); // end of parallel-for-each over eta regions
@@ -1976,7 +1983,8 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
         dprintf("Extra layer %d start_seed %d, is %d, N=%d  (orig size = %d) -- ",
                 curr_layer, start_seed, is, (int) extra_cands[is].size(), (int) eoccs.m_candidates[start_seed + is].size());
 
-        std::sort(extra_cands[is].begin(), extra_cands[is].end(), sortCandByHitsChi2);
+        //std::sort(extra_cands[is].begin(), extra_cands[is].end(), sortCandByHitsChi2);
+        std::sort(extra_cands[is].begin(), extra_cands[is].end(), sortCandByScore);
 
         auto src_i  = extra_cands[is].begin();
         auto src_e  = extra_cands[is].end();
@@ -1995,7 +2003,8 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
         int cnt = 0;
         while (dest_i != dest_e && src_i != src_e)
         {
-          while (dest_i != dest_e && sortCandByHitsChi2(*dest_i, *src_i)) ++dest_i;
+          //while (dest_i != dest_e && sortCandByHitsChi2(*dest_i, *src_i)) ++dest_i;
+          while (dest_i != dest_e && sortCandByScore(*dest_i, *src_i)) ++dest_i;
 
           if (dest_i != dest_e)
           {
@@ -2021,7 +2030,8 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
   {
     std::vector<Track>& finalcands = eoccs.m_candidates[iseed];
     if (finalcands.size() == 0) continue;
-    std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
+    //std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
+    std::sort(finalcands.begin(), finalcands.end(), sortCandByScore);
   }
 }
 

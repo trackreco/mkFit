@@ -7,11 +7,17 @@
 
 namespace
 {
-inline bool sortCandListByHitsChi2(const mkfit::MkFinder::IdxChi2List& cand1,
-                                   const mkfit::MkFinder::IdxChi2List& cand2)
+inline bool sortCandListByHitsChi2(const mkfit::IdxChi2List& cand1,
+                                   const mkfit::IdxChi2List& cand2)
 {
   if (cand1.nhits == cand2.nhits) return cand1.chi2 < cand2.chi2;
   return cand1.nhits > cand2.nhits;
+}
+
+inline bool sortCandListByScore(const mkfit::IdxChi2List& cand1,
+				const mkfit::IdxChi2List& cand2)
+{
+  return mkfit::sortByScoreStruct(cand1,cand2);
 }
 }
 
@@ -30,7 +36,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
   //1) sort the candidates
   for (int is = is_beg; is < is_end; ++is)
   {
-    std::vector<MkFinder::IdxChi2List>& hitsForSeed = m_hits_to_add[is];
+    std::vector<IdxChi2List>& hitsForSeed = m_hits_to_add[is];
 
     std::vector<CombCandidate> &cands = mp_event_of_comb_candidates->m_candidates;
 
@@ -52,7 +58,8 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
     if ( ! hitsForSeed.empty())
     {
       //sort the new hits
-      std::sort(hitsForSeed.begin(), hitsForSeed.end(), sortCandListByHitsChi2);
+      //std::sort(hitsForSeed.begin(), hitsForSeed.end(), sortCandListByHitsChi2);
+      std::sort(hitsForSeed.begin(), hitsForSeed.end(), sortCandListByScore);
 
       int num_hits = std::min((int) hitsForSeed.size(), Config::maxCandsPerSeed);
 
@@ -61,7 +68,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
 
       for (int ih = 0; ih < num_hits; ih++)
       {
-        const MkFinder::IdxChi2List &h2a = hitsForSeed[ih];
+        const IdxChi2List &h2a = hitsForSeed[ih];
 
         cv.push_back( cands[ m_start_seed + is ][ h2a.trkIdx ] );
 
