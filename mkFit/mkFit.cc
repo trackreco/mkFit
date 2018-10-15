@@ -439,6 +439,15 @@ void test_standard()
       // skip events with zero seed tracks!
       if (ev.is_trackvec_empty(ev.seedTracks_)) continue;
 
+      int copyNTimes = 50;
+      TrackVec multiplySimTracks;
+      for(int j = 0; j < ev.simTracks_.size(); j++){	
+	for (int i = 0; i < copyNTimes; i++){
+	  multiplySimTracks.push_back(ev.simTracks_[j]);
+	}
+      }
+      ev.simTracks_ = multiplySimTracks;
+
       plex_tracks.resize(ev.simTracks_.size());
 
       double t_best[NT] = {0}, t_cur[NT];
