@@ -100,7 +100,7 @@ When running ```./web/move-benchmarks ${plotdir}```, the ```copyphp.sh ${plotdir
 
 While option ii) is significantly more modifications, it allows the user to keep the ```copyphp.sh``` script in the top-level ```${webdir}``` for future use with other projects.
 
-Lastly, make sure to read Section 9.ii.b on how to take advantage of passwordless scp for transferring plots to LXPLUS via ```./web/move-benchmarks.sh ${plotdir}```.
+Lastly, make sure to read Section 10.ii.b in the main README.md on how to take advantage of passwordless scp for transferring plots to LXPLUS via ```./web/move-benchmarks.sh ${plotdir}```.
 
 ## Section 2: DEPRECATED: Setting up a website with an AFS userspace
 
