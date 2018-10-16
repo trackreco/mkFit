@@ -16,7 +16,7 @@ source xeon_scripts/init-env.sh
 ## Common file setup
 dir=/data2/slava77/samples/2017/pass-c93773a/initialStep
 subdir=PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU
-file=memoryFile.fv3.clean.writeAll.CCC1620.recT.082418-25daeda.bin
+file=memoryFile.fv3.clean.writeAll.recT.082418-25daeda.bin
 nevents=500
 
 ## Common executable setup
