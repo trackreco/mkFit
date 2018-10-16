@@ -30,12 +30,6 @@ inline bool sortByHitsChi2(const std::pair<Track, TrackState>& cand1,
   return cand1.first.nFoundHits() > cand2.first.nFoundHits();
 }
 
-inline bool sortByScore(const std::pair<Track, TrackState>& cand1,
-			const std::pair<Track, TrackState>& cand2)
-{
-  return sortByScoreCandPair(cand1,cand2);
-}
-
 inline bool sortByPhi(const Hit& hit1, const Hit& hit2)
 {
   return std::atan2(hit1.y(),hit1.x()) < std::atan2(hit2.y(),hit2.x());

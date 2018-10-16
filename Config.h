@@ -344,10 +344,6 @@ namespace Config
   constexpr float treg_eta[2] = {0.45,1.5};
   constexpr float track_ptlow = 0.9;
 
-  // sorting config (bonus,penalty)
-  constexpr float validHitBonus_ = 2.5;
-  constexpr float missingHitPenalty_ = 20.0;
-
   // Threading
   extern int    numThreadsFinder;
   extern int    numThreadsSimulation;

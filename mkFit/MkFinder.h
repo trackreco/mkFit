@@ -54,6 +54,14 @@ public:
   using MPlexHitIdx = Matriplex::Matriplex<int, MPlexHitIdxMax, 1, NN>;
   using MPlexQHoT   = Matriplex::Matriplex<HitOnTrack, 1, 1, NN>;
 
+  struct IdxChi2List
+  {
+    int   trkIdx; // candidate index
+    int   hitIdx; // hit index
+    int   nhits;  // number of hits (used for sorting)
+    float chi2;   // total chi2 (used for sorting)
+  };
+
   //----------------------------------------------------------------------------
 
   MPlexQF    Chi2;

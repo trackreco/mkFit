@@ -71,7 +71,7 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>     & track
 }
 
 void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>                       & tracks,
-                                    const std::vector<std::pair<int,IdxChi2List>>& idxs,
+                                    const std::vector<std::pair<int,MkFinder::IdxChi2List>>& idxs,
                                     int beg, int end, bool inputProp)
 {
   // Assign track parameters to initial state and copy hit values in.
@@ -901,8 +901,6 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
           tmpList.trkIdx = CandIdx(itrack, 0, 0);
           tmpList.hitIdx = XHitArr.At(itrack, hit_cnt, 0);
           tmpList.nhits  = NFoundHits(itrack,0,0) + 1;
-          tmpList.nholes  = num_invalid_hits(itrack);
-          tmpList.pt = std::abs(1.0f/Par[iP].At(itrack,3,0));
           tmpList.chi2   = Chi2(itrack, 0, 0) + chi2;
           cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
           // hitsToAdd[SeedIdx(itrack, 0, 0)-offset].push_back(tmpList);
@@ -936,8 +934,6 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     tmpList.trkIdx = CandIdx(itrack, 0, 0);
     tmpList.hitIdx = fake_hit_idx;
     tmpList.nhits  = NFoundHits(itrack,0,0);
-    tmpList.nholes  = num_invalid_hits(itrack)+1;
-    tmpList.pt = std::abs(1.0f/Par[iP].At(itrack,3,0));
     tmpList.chi2   = Chi2(itrack, 0, 0);
     cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
     dprint("adding invalid hit " << fake_hit_idx);

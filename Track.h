@@ -25,17 +25,6 @@ inline int calculateCharge(const float hit0_x, const float hit0_y,
   return ((hit2_y-hit0_y)*(hit2_x-hit1_x)>(hit2_y-hit1_y)*(hit2_x-hit0_x)?1:-1);
 }
 
-struct IdxChi2List
-{
-public:
-  int   trkIdx; // candidate index
-  int   hitIdx; // hit index
-  int   nhits;  // number of hits (used for sorting)
-  int   nholes;  // number of holes (used for sorting)
-  float pt;   // pt (used for sorting)
-  float chi2;   // total chi2 (used for sorting)
-};
- 
 struct ReducedTrack // used for cmssw reco track validation
 {
 public:
@@ -477,44 +466,6 @@ inline bool sortByHitsChi2(const Track & cand1, const Track & cand2)
   if (cand1.nFoundHits()==cand2.nFoundHits()) return cand1.chi2()<cand2.chi2();
   return cand1.nFoundHits()>cand2.nFoundHits();
 }
-
-inline bool sortByScoreLoop(const int nfoundhits[2], 
-			const int nmisshits[2], 
-			const float chi2[2],
-			const float pt[2])
-{
-  float score[2] = {0.f,0.f};
-  for(int c=0; c<2; ++c){
-    score[c] = Config::validHitBonus_*nfoundhits[c] - Config::missingHitPenalty_*nmisshits[c] - chi2[c];
-    if(pt[c]<0.9f) score[c] -= 0.5f*Config::validHitBonus_*nfoundhits[c];
-    else if(nfoundhits[c]>8) score[c] += Config::validHitBonus_*nfoundhits[c];
-  }
-  return score[0]>score[1];
-}
-
-inline bool sortByScoreCand(const Track& cand1, const Track& cand2)
-{
-  int nfoundhits[2] = {cand1.nFoundHits(),cand2.nFoundHits()};
-  int nmisshits[2] = {cand1.nTotalHits()-cand1.nFoundHits(),cand2.nTotalHits()-cand2.nFoundHits()};
-  float chi2[2] = {cand1.chi2(),cand2.chi2()};
-  float pt[2] = {cand1.pT(),cand2.pT()};
-  return sortByScoreLoop(nfoundhits,nmisshits,chi2,pt);
-}
-
-inline bool sortByScoreStruct(const IdxChi2List& cand1, const IdxChi2List& cand2)
-{
-  int nfoundhits[2] = {cand1.nhits,cand2.nhits};
-  int nmisshits[2] = {cand1.nholes,cand2.nholes};
-  float chi2[2] = {cand1.chi2,cand2.chi2};
-  float pt[2] = {cand1.pt,cand2.pt};
-  return sortByScoreLoop(nfoundhits,nmisshits,chi2,pt);
-}
-
-inline bool sortByScoreCandPair(const std::pair<Track, TrackState>& cand1, const std::pair<Track, TrackState>& cand2)
-{
-  return sortByScoreCand(cand1.first,cand2.first);
-}
-
 
 template <typename Vector>
 inline void squashPhiGeneral(Vector& v)

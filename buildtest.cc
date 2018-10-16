@@ -50,14 +50,12 @@ void processCandidates(const BinInfoMap & segmentMap, Event& ev, candvec& candid
     }
     if (tmp_candidates.size()>static_cast<size_t>(Config::maxCandsPerSeed)) {
       dprint("huge size=" << tmp_candidates.size() << " keeping best "<< Config::maxCandsPerSeed << " only");
-      //std::partial_sort(tmp_candidates.begin(),tmp_candidates.begin()+(Config::maxCandsPerSeed-1),tmp_candidates.end(),sortByHitsChi2);
-      std::partial_sort(tmp_candidates.begin(),tmp_candidates.begin()+(Config::maxCandsPerSeed-1),tmp_candidates.end(),sortByScoreCand);
+      std::partial_sort(tmp_candidates.begin(),tmp_candidates.begin()+(Config::maxCandsPerSeed-1),tmp_candidates.end(),sortByHitsChi2);
       tmp_candidates.resize(Config::maxCandsPerSeed); // thread local, so ok not thread safe
     } else if (tmp_candidates.size()==0) {
       // save the best candidate from the previous iteration and then swap in
       // the empty new candidate list; seed will be skipped on future iterations
-      //auto best = std::min_element(candidates.begin(),candidates.end(),sortByHitsChi2);
-      auto best = std::min_element(candidates.begin(),candidates.end(),sortByScoreCand);
+      auto best = std::min_element(candidates.begin(),candidates.end(),sortByHitsChi2);
 #ifdef TBB
       std::lock_guard<std::mutex> evtguard(evtlock); // should be rare
 #endif
@@ -115,8 +113,7 @@ void buildTracksBySeeds(const BinInfoMap & segmentMap, Event& ev)
     if (cand.size()>0) {
       // only save one track candidate per seed, one with lowest chi2
       //std::partial_sort(cand.begin(),cand.begin()+1,cand.end(),sortByHitsChi2);
-      //auto best = std::min_element(cand.begin(),cand.end(),sortByHitsChi2);
-      auto best = std::min_element(cand.begin(),cand.end(),sortByScoreCand);
+      auto best = std::min_element(cand.begin(),cand.end(),sortByHitsChi2);
       best->setLabel(evt_track_candidates.size());
       dprint("Saving track from seed " << iseed << " label " << best->label() << " hits " 
                                        << best->nFoundHits() << " parameters " << best->parameters() << std::endl);
@@ -169,8 +166,7 @@ void buildTracksByLayers(const BinInfoMap & segmentMap, Event& ev)
     if (cand.size()>0) {
       // only save one track candidate per seed, one with lowest chi2
       //std::partial_sort(cand.begin(),cand.begin()+1,cand.end(),sortByHitsChi2);
-      //auto best = std::min_element(cand.begin(),cand.end(),sortByHitsChi2);
-      auto best = std::min_element(cand.begin(),cand.end(),sortByScoreCand);
+      auto best = std::min_element(cand.begin(),cand.end(),sortByHitsChi2);
       best->setLabel(evt_track_candidates.size());
       evt_track_candidates.push_back(*best);
       ev.candidateTracksExtra_.emplace_back(evt_seeds_extra[iseed].seedID());
