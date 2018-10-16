@@ -192,7 +192,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     float min_dq    = L.min_dq();
     float max_dphi = L.max_dphi();
     //
-    getHitSelDynamicWindows(L, thisPt, thisEta, min_dq, max_dphi);         
+    //    getHitSelDynamicWindows(L, thisPt, thisEta, min_dq, max_dphi);         
     //
     dphi = std::min(std::abs(dphi), max_dphi);
     dq   = clamp(dq, min_dq, L.max_dq());
