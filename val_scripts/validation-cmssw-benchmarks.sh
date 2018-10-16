@@ -22,7 +22,7 @@ nevents=500
 ## Common executable setup
 maxth=64
 maxvu=16
-maxev=32
+maxev=1
 seeds="--cmssw-n2seeds"
 exe="./mkFit/mkFit --silent ${seeds} --num-thr ${maxth} --num-thr-ev ${maxev} --input-file ${dir}/${subdir}/${file} --num-events ${nevents}"
 
@@ -68,8 +68,6 @@ function doVal()
     ${bExe} >& log_${oBase}_NVU${maxvu}int_NTH${maxth}_NEV${maxev}_${vN}.txt
     
     # hadd output files for this test, then move to temporary directory
-    hadd -O valtree.root valtree_*.root
-    rm valtree_*.root
     mv valtree.root ${tmpdir}/valtree_${oBase}_${vN}.root
 }		
 
