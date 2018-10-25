@@ -111,7 +111,7 @@
   greater pileup of events, and higher occupancy making the track
   reconstruction even more computationally demanding. Existing algorithms at
   the LHC are based on Kalman filter techniques with proven excellent physics
-  performance under variety of conditions. Starting in 2014, we have been
+  performance under a variety of conditions. Starting in 2014, we have been
   developing Kalman-filter-based methods for track finding and fitting adapted
   for many-core SIMD processors that are becoming dominant in high-performance
   systems.
@@ -137,7 +137,7 @@
 
 In the beginning of this decade the confirmation of the High-Luminosity Large
 Hadron Collider project and the accompanying ten fold leap in luminosity made
-it clear that a significant research and development effort is required
+it clear that a significant research and development effort was required
 towards the 2020 to 2025 time-frame to address the increased complexity and
 computational requirements of the track finding algorithms. Significant
 enthusiasm has been demonstrated for exploration of radically different
@@ -149,26 +149,27 @@ framework that yields better to parallelism available in the contemporary
 general-purpose computing hardware.
 
 There were several motivating factors that made us choose this route. First,
-there was practically no other research going in this direction and we
-believed that an honest attempt needs to be made to modernize the algorithms
+there was practically no other research going in this direction, and we
+believed that an honest attempt needed to be made to modernize the algorithms
 that have been in use for over 30 years and whose physics performance is
-understood in detail.  Second, we felt that while KF algorithm is not trivial
-to parallelize, it is, mathematically, an algorithm that needs to do the least
+understood in detail.  Second, while we felt that a combinatorial KF-based
+tracking algorithm is not trivial
+to parallelize, it is, mathematically, an algorithm that perfoms the least
 amount of computation: proper handling of measurement and track parameter
 errors allows the algorithm to select possible trajectories with maximal
 available precision and thus reject statistically unlikely combinations at an
-early stage. This feature can only become more important in a high occupancy
+early stage. This feature will only become more important in a high occupancy
 environment. Third, at that time it was unclear which computing architectures
 will become a mainstay of scientific computing and therefore it seemed prudent
 to support less exotic options while aiming to also explore the ones whose
-future seemed uncertain (Xeon Phi products and GP-GPUs). Further, one should
-also not forget that other parts of event reconstruction, event simulation,
+future seemed uncertain (Xeon Phi products and GP-GPUs). It should also be 
+pointed out that other parts of event reconstruction, event simulation,
 and physics analysis are even less amenable to parallelization and that this
 will likewise influence the choice of the hardware deployed and made available
 to the experiments.
 
-All things considered, a parallelized and vectorized implementation of KF
-based tracking framework provides a strong reference point for evaluation of
+All things considered, a parallelized and vectorized implementation of KF-based
+tracking framework provides a strong reference point for evaluation of
 more exotic solutions, both in terms of computational as well as physics
 performance. And, should it turn out that either or both of them are
 inadequate for the novel approaches, it offers a safe fallback solution for
@@ -196,7 +197,7 @@ vectorized code on Xeon and Xeon Phi processors\footnote{Machine Torture:
   \url{https://github.com/osschar/mtorture}} and with development of matrix
 operation library, named Matriplex, optimized for simultaneous vectorized
 processing of sets of small matrices. Based on that, the initial
-implementation of vectorized KF fitting demonstrator on a simplified
+implementation of a vectorized KF fitting demonstrator on a simplified
 barrel-only detector was implemented \cite{pkf-fit}. Summarizing the results,
 we observed a vectorization speedup of 8 on Intel KNC processor when using MIC
 512-bit intrinsics code with single precision floating point arithmetic for KF
@@ -206,7 +207,7 @@ provided an encouraging starting point for further development. At this point
 the code-name for the project was chosen to be \mkfit --- Matriplex Kalman
 Fitter.
 
-The next stage was implementation of track finding demonstrator using the
+The next stage was an implementation of track finding demonstrator using the
 above technology and the same simplified geometry \cite{pkf-finding}. Two
 tracking algorithms were implemented, the first one simply picking the best
 matching hit on each layer, and the second one considering up to $N_{max}$
@@ -234,9 +235,9 @@ directions.
   flexibility and also to be in compliance with CMS code base
   \cite{pkf-tbb}. Further, to avoid imbalances in $\eta$ regions and to provide
   more workload tasks for the many available cores, support for processing of
-  multiple events in parallel has been added. This allows the individual tasks
+  multiple events in parallel was added. This allows the individual tasks
   to remain relatively large while still being able to fill up all available
-  hardware threads. This resulted in ability of \mkfit to scale much better with
+  hardware threads. As a result, \mkfit was able to scale much better with
   the number of available cores with typical number of concurrent events ranging
   from 8 (12-core Xeon SNB) to 32 (KNC) \cite{pkf-acat-17}.
 
@@ -262,26 +263,26 @@ directions.
   support arbitrary detector geometries.
 
 \item Early on in the project a simple triplet-based seed finding algorithm
-  has been developed. However, when we started to use CMS events, the CMS
+  was developed. However, when we started using CMS events as input, the CMS
   cellular automaton seeding algorithm\footnote{Spell out Patatrack and add
-    reference?} has already been implemented and we decided to discontinue
+    reference?} had already been implemented, so we decided to discontinue
   this development within \mkfit.
 
-\item Support for new architectures was being added as they became
+\item Support for new architectures was added as they became
   available. We started with Intel Sandy Bridge (AVX) and Intel Knights
   Corner (KNC) (MIC 512-bit vector instructions). Later, we also added support for
   Intel Knights Landing (AVX-512) which only needed to be modified slightly
-  to also support the Intel Skylake processors. We have recently dropped
+  to also support the Intel Skylake Scalable Performance processors. We have recently dropped
   support for KNC as it became clear \mkfit will never actually run
   on this architecture in production.
 
   We are using recent versions of \stt{icc} and \stt{gcc} to build our
-  software. \stt{C++-14} language support is required to build \mkfit.
+  software. \stt{C++14} language support is required to build \mkfit.
 
-\item Validation and benchmarking suite has been developed to help maintain
-  full control over physics and computational performance and to identify
-  issues that require further attention. The validation suite is run for every
-  code change and results are stored for later reference.
+\item A validation and benchmarking suite has been developed to monitor and
+  improve physics and computational performance and to identify, helping to spot
+  issues that require further attention. The validation and benchmarking suite
+  is run for every code change and results are stored for later reference.
 
 \item Recently, work has started on integration of \mkfit into CMS software
   framework for easy testing and integration with other software expected to
@@ -290,10 +291,10 @@ directions.
 \end{enumerate}
 
 Currently, \mkfit is able to run on CMS-2017 geometry with reasonable physics
-and computational performance. Ongoing work is focusing on improving of the
+and computational performance. Ongoing work is focusing on improving the
 physics performance through fine-tuning of hit and track selection
 algorithms. Post-processing of found tracks and duplicate track removal
-still needs to be implemented or delegated to algorithms in CMS
+still needs to be implemented or may be delegated to algorithms in CMS
 software. 
 
 
@@ -305,7 +306,7 @@ software.
 \subsection{Geometry \& Detector description}
 
 Geometry in \mkfit is described as a vector of \stt{LayerInfo} structures
-that contain physical dimensions of a layer ($r_{in}$, $r_{out}$, $z_{min}$
+that contain the physical dimensions of a layer ($r_{in}$, $r_{out}$, $z_{min}$
 and $z_{max}$ are sufficient for both barrel and endcap layers) and parameters
 and flags relevant for track finding. This includes information about layer
 type, stereo/mono layers, hit search windows, and an optional hole in detector
@@ -327,7 +328,7 @@ plan in the steering parameters and executes operations in accordance with the
 control flags in \stt{LayerControl} and \stt{LayerInfo} structures.
 
 Geometry and steering parameter setup is implemented as a plugin that
-populates the in-memory data structures with required information. With this
+populates the in-memory data structures with the required information. With this
 functionality, we are able to support both the simplified geometry and
 CMS-2017 geometry with all detector-specific information existing only in the
 plugin code.
@@ -337,14 +338,15 @@ plugin code.
 
 When processing CMS events \mkfit relies on hit and seed data to be provided
 externally. In standalone case, \mkfit reads these data from a binary file
-created by a converter application. Additionally, to be able to do detailed
-validation of \mkfit's performance, the binary file can also contain vectors
-of simulated tracks and reconstructed tracks as found by standard CMS tracking.
+created by a converter application. Additionally, the binary file can also 
+contain vectors of simulated tracks and reconstructed tracks as found by 
+standard CMS tracking used in the validation of \mkfit's performance.
 
-Before passing seeds to \mkfit for track finding, the seed collection needs to
-be "cleaned", i.e., multiple instances of seeds that are most likely based on
-hits belonging to the same outgoing particle need to be thinned down. The
-algorithm is using identity of hits and fitted seed parameters $p_T$, $\eta$,
+
+Before passing seeds to \mkfit for track finding, the seed collection is
+``cleaned'' by removing multiple instances of seeds that are most likely 
+based on hits belonging to the same outgoing particle. The cleaning
+algorithm uses the identity of hits and fitted seed parameters $p_T$, $\eta$,
 and $\varphi$ to eliminate duplicate seeds and is tuned so as to not cause any
 drop in track finding efficiency for high pile-up events. The duplicate seeds
 arise due to detector module overlaps that are rather significant, especially
@@ -355,7 +357,7 @@ wheel. Multiplicity of seeds from a single particle frequently reaches 8 and
 can be as high as 16.
 
 In principle, seed cleaning could be performed as a final step in the seed
-finding algorithm, however, due to the way standard track finding works in
+finding algorithm; however, due to the way standard track finding works in
 CMSSW, this was not deemed necessary. CMSSW processes seeds one by one and
 when a track candidate is found, its hits are tagged as used and will not be
 considered by later tracks. This selection is also applied to the seeds, thus
@@ -382,8 +384,9 @@ perform development and testing in a more lightweight environment.
 \label{sec:phys-perf}
 
 This section presents current basic physics performance plots for \mkfit
-running on CMS-2017 geometry and CMSSW generated sample of 5000 $t\bar{t}$
-events superimposed with 70 minimum-bias $pp$ collisions. We are showing
+running on CMS-2017 geometry and CMSSW generated sample of 500 $t\bar{t}$
+events superimposed with a mean of 70 minimum-bias $pp$ collisions per event. 
+We are showing
 results for processing of CMS \emph{tracking iteration 0} where seeds are
 required to have 4 hits all coming from distinct inner pixel layers and be
 compatible with the beam spot constraint. Results shown for CMSSW are using
@@ -437,10 +440,10 @@ regions, down to $p_t = 450\MeVoc$.
 Figure \ref{fig:drates} shows \mkfit's duplicate track rates versus $p_T$ and
 $\eta$. CMSSW's duplicate rates are 0. Duplicate rate is significant for all
 values of $p_T$. In $\eta$, it is below 5\% level in the barrel and rises
-sharply when tracks start entering the endcap disks. Duplicate rate plots are
-exactly the same as for 10 muon events and therefore the duplicate rate can be
-explained entirely by duplicate seeds and the absence of duplicate removal
-procedure in \mkfit (see section \ref{ssec:cms-event-processing}).
+sharply when tracks start entering the endcap disks. The duplicate rate 
+distribution is exactly the same when using 10 muon events the duplicate rate 
+and can be explained entirely by duplicate seeds and the absence of a duplicate
+ removal procedure in \mkfit (see section \ref{ssec:cms-event-processing}).
 
 \begin{figure}[thb]
   \centering
@@ -508,20 +511,20 @@ controls on Linux. On our SNB and KNL machines the turbo boost feature is
 turned off. KNL can also vary frequency to some extent when AVX-512 code is
 being executed. This will be further discussed in individual subsections.
 
-Unless otherwise noted, results presented in this section were obtained
-using the same events and configuration as described in introduction to
-section \ref{sec:phys-perf}. Intel icc compiler was used to compile the
+Results presented in this section were obtained using a subset of the 
+events with the configuration described in the introduction to section 
+\ref{sec:phys-perf}. Intel \stt{icc} compiler was used to compile the
 code.
 
 
 \subsection{Single event performance of core track finding}
 
 To assess performance of the track finding algorithm alone, we run a dedicated
-benchmark measuring the time of central track finding loop, without measuring
-the time needed to pre-process the hits and seeds, and to post-process the
-track candidates. This allows us to focus on the most relevant part of our
-code and to sideline the more administrative tasks that might, in a production
-system, even be performed outside of \mkfit itself.
+benchmark measuring the time of central track finding loop for processing 20 
+events, without measuring the time needed to pre-process the hits and seeds, 
+and to post-process the track candidates. This allows us to focus on the most 
+relevant part of our code and to sideline the more administrative tasks that 
+might, in a production system, be performed outside of \mkfit itself.
 
 First, we show the speedup as function of the Matriplex width which
 effectively controls how many slots in the vector registers are used. The
@@ -529,8 +532,8 @@ results are shown in figure \ref{fig:vu-speedup}.
 
 For SNB the obtained AVX vectorization speed up is 2.4. On KNL, with AVX-512
 and usage of auto-generated intrinsics code for Matriplex operations, we
-observe a speedup of 3.3 (3.1 for icc auto vectorization). Using the same
-vector instruction set on SKL gives a speedup of 2.75 which can be explained
+observe a speedup of 3.3 (3.1 for \stt{icc} auto vectorization). Using the same
+vector instruction set on SKL-SP gives a speedup of 2.75 which can be explained
 with the reduced AVX-512 base frequency on this platform. Assuming effective
 vectorization speedup of 3 and applying Amdhal's law one finds that about 72\%
 of our code gets executed as vector instructions.
@@ -538,7 +541,7 @@ of our code gets executed as vector instructions.
 Notice that the speedup when shifting from Matriplex width of 1 to width of 2
 is consistently smaller than for larger widths (and even non-existing for
 KNL). This is due to scalar instruction set being used for width 1. On KNL and
-SKL additional drop is observed due to usage of AVX-512 intrinsics and the
+SKL-SP an additional drop is observed due to usage of AVX-512 intrinsics and the
 related drop in base frequency.
 
 \begin{figure}[htb]
@@ -564,8 +567,8 @@ parallelism happens within processing of seeds belonging to the same
 event. SNB shows good scaling up to the number of real cores (12) and a
 reduced slope after that. For the large number of available cores on KNL the
 standard work chunk of 16 or 32 seeds needs to be reduced, leading to
-increased TBB overhead and poorer scaling. On SKL, effect of turbo boost masks
-the real scaling behavior.
+increased TBB overhead and poorer scaling. On SKL-SP, the effect of turbo 
+boost masks the real scaling behavior.
 
 \begin{figure}[htb]
   \centering
@@ -584,12 +587,13 @@ the real scaling behavior.
 
 \subsection{Full processing with multiple concurrent events in flight}
 
-To asses the scaling behavior of the full event processing chain as it would
+To assess the scaling behavior of the full event processing chain as it would
 run in CMSSW which can process several events concurrently, we implemented
 support for multiple concurrent events in flight in \mkfit as well. This
 balances out the tail effects present in event-by-event processing and allows
-the tasks themselves to be larger, thus reducing the overhead of
-TBB.
+the tasks themselves to be larger, thus reducing the overhead of TBB. The 
+number of events processed for each test was 20 times the number of events in 
+flight. 
 
 Scaling behavior for multiple events in flight is shown in figure
 \ref{fig:meif-speedup}. Many of the administrative tasks related to
@@ -602,7 +606,7 @@ to 64 thread, above that 32 events in flight are required. There is no gain in
 using more than 128 threads, i.e., hyperthreading does not yield any
 additional speedup.\footnote{Dan, Steve, do we understand why MEIF does not
   scale better / further out for KNL? Serial parts of the code (seed cleaning,
-  hit processing)? Memory B/W?} For SKL the scaling is again masked by the
+  hit processing)? Memory B/W?} For SKL-SP the scaling is again masked by the
 effects of turbo boost; 16 events in flight are sufficient to fill up the
 processing threads up to the maximum of 64, with some benefit observed from
 hyperthreading.
@@ -626,7 +630,7 @@ hyperthreading.
 \subsection{Estimated performance of \mkfit at CMS HLT}
 
 Measured \mkfit event processing rates for the expected LHC Run 3 pileup of 70
-are 115\,events/s for KNL and 250\,events/s for SKL. Thus, to process events
+are 115\,events/s for KNL and 250\,events/s for SKL-SP. Thus, to process events
 at CMS HLT at the expected 100\,kHz rate, one would need an equivalent of 400
 32-core Skylake machines for track reconstruction alone. This is an upper
 estimate with the current version of code which we believe can be further
@@ -638,9 +642,9 @@ On the same machines CMSSW tracking processing rates for the same events are ...
   like to avoid spelling it out :)}.  While this indicates \mkfit brings
 significant improvements in processing rates, this result should be deemed
 preliminary, especially since track post-processing has not yet been
-implemented in \mkfit. Further, effects of usage of icc compiler and various
-optimization options related to vectorization and fast mathematics also need
-to be understood, both for CMSSW and \mkfit.
+implemented in \mkfit. Further, effects of usage of \stt{icc} compiler and 
+various optimization options related to vectorization and fast mathematics 
+also need to be understood, both for CMSSW and \mkfit.
 
 
 %-------------------------------------------------------------------------------
