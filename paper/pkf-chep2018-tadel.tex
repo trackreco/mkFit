@@ -351,18 +351,21 @@ algorithm uses the identity of hits and fitted seed parameters $p_T$, $\eta$,
 and $\varphi$ to eliminate duplicate seeds and is tuned so as to not cause any
 drop in track finding efficiency for high pile-up events. The duplicate seeds
 arise due to detector module overlaps that are rather significant, especially
-in the endcaps where modules belonging to the same wheel can be spaced over
+in the endcaps, where the modules on the same blade of a disk overlap considerably,
+and the modules on the two rings of the same disk can be spaced over
 almost 10\,cm. Low $p_T$ tracks (below 2\GeVoc) are more affected due to
 bending in the $r$-$\varphi$ plane during their flight through the detector
 wheel. Multiplicity of seeds from a single particle frequently reaches 8 and
-can be as high as 16.
+can go as high as several tens.
 
 In principle, seed cleaning could be performed as a final step in the seed
 finding algorithm; however, due to the way standard track finding works in
 CMSSW, this was not deemed necessary. CMSSW processes seeds one by one and
-when a track candidate is found, its hits are tagged as used and will not be
-considered by later tracks. This selection is also applied to the seeds, thus
-eliminating duplicate seeds in the first step of their consideration. This is
+when a track candidate is found, its hits are tagged as used. A seed is
+rejected if all its hits have already been used by a track candidate found
+earlier. The technique relies on CMSSW backward propagation to find additional
+hits on the seeding layers, and reduces the duplicate seeds in the first step
+of their consideration to a negligible level. This is
 not possible in \mkfit where we process up to 32 seeds in parallel and, as we
 try to processes together seeds that are close in $\eta$ and $\varphi$ to
 maximize memory cache reuse of hit data, this could lead to significant waste
@@ -414,7 +417,7 @@ equivalent to that of CMSSW for $p_T > 1\GeVoc$. Below that, \mkfit's
 inefficiency is largest in the transition region and noticeable in the
 endcaps. We believe that tuning of hit selection windows and candidate scoring
 criteria can help us achieve efficiencies comparable to CMSSW for all tracking
-regions, down to $p_t = 450\MeVoc$.
+regions, down to $p_T = 450\MeVoc$.
 
 \begin{figure}[thb]
   \centering
