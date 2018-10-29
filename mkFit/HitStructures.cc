@@ -94,35 +94,23 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
   };
 
   std::vector<HitInfo> ha(size);
-  std::vector<int>     qc(m_nq, 0);
   std::vector<udword>     hit_qphiFines(size);
   
   int nqh = m_nq / 2;
   {
-    for (int ii =0; ii< size; ii+=NN)
+    for (int i =0; i < size; ++i)
     {
-      int qbins[NN] {};
-#pragma omp simd
-      for (int j = 0; j < NN; ++j)
-      {
-        int i = ii+j;
-        if (i < size)
-        {
-          auto const& h = hitv[i];
-
-          HitInfo &hi = ha[i];
-          // N.1.a For phi in [-pi, pi): squashPhiMinimal(h.phi()); Apparently atan2 can round the wrong way.
-          hi.phi  = h.phi();
-          hi.q    = is_brl ? h.z() : h.r();
-          hi.qbin = std::max(std::min(static_cast<int>((hi.q - m_qmin) * m_fq), m_nq - 1), 0);
-          // N.1.b ha[j].phi is returned by atan2 and can be rounded the wrong way, resulting in bin -1 or Config::m_nphi
-          hi.phibin = GetPhiBin(hi.phi) & m_phi_mask;
-          hit_qphiFines[i] = GetPhiBinFine(hi.phi) + (hi.qbin << 16);
-          qbins[j] = hi.qbin;
-        }
-      }//j < NN
-      for (int j = 0; j < NN; ++j) ++qc[qbins[j]];
-    }//ii<size
+      auto const& h = hitv[i];
+      
+      HitInfo &hi = ha[i];
+      // N.1.a For phi in [-pi, pi): squashPhiMinimal(h.phi()); Apparently atan2 can round the wrong way.
+      hi.phi  = h.phi();
+      hi.q    = is_brl ? h.z() : h.r();
+      hi.qbin = std::max(std::min(static_cast<int>((hi.q - m_qmin) * m_fq), m_nq - 1), 0);
+      // N.1.b ha[j].phi is returned by atan2 and can be rounded the wrong way, resulting in bin -1 or Config::m_nphi
+      hi.phibin = GetPhiBin(hi.phi) & m_phi_mask;
+      hit_qphiFines[i] = GetPhiBinFine(hi.phi) + (hi.qbin << 16);
+    }//i < size
   }
 
   RadixSort sort;
