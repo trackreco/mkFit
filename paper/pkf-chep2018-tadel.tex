@@ -329,7 +329,11 @@ Geometry and steering parameter setup is implemented as a plugin that
 populates the in-memory data structures with the required information. With this
 functionality, we are able to support both the simplified geometry and
 CMS-2017 geometry with all detector-specific information existing only in the
-plugin code.
+plugin code. For the CMS-2017 geometry, we include the effects of multiple 
+scattering and energy loss by defining two-dimensional arrays for the radiation 
+length and material composition that is quickly indexed in $r-z$. These constants
+are taken from CMS simulation for the amount of material a particle would traverse 
+propagating from module to module. 
 
 \subsection{Handling and processing of CMS events}
 \label{ssec:cms-event-processing}
