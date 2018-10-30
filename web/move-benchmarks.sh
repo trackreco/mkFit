@@ -15,7 +15,7 @@ echo "Moving plots and text files locally to ${dir}"
 
 # Now copy to lxplus
 echo "Moving plots and text files remotely to lxplus"
-./web/copyAndSendToLXPLUS.sh ${dir} ${suite} ${afs_or_eos}
+./web/tarAndSendToLXPLUS.sh ${dir} ${suite} ${afs_or_eos}
 
 # Final cleanup of directory
 echo "Removing local files"

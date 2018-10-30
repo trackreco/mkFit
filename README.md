@@ -1,6 +1,6 @@
 # mictest: a repository for vectorized, parallelized charged particle track reconstruction
 
-Intro: Below is a short README on setup steps, code change procedures, and some helpful pointers. Please read this thoroughly before checking out the code! As this is a markdown file, it is best viewed via a web browser.
+**Intro**: Below is a short README on setup steps, code change procedures, and some helpful pointers. Please read this thoroughly before checking out the code! As this is a markdown file, it is best viewed via a web browser.
 
 ### Outline
 1) Test platforms
@@ -8,6 +8,9 @@ Intro: Below is a short README on setup steps, code change procedures, and some 
 3) How to run the code
 4) How to make changes to the main development branch
 5) How to run the benchmarking and validation suite
+   1) Running the main script
+   2) Some (must read) advice on benchmarking
+   3) (Optional) Using additional scripts to display plots on the web
 6) Submit an issue
 7) Condensed description of code
 8) Other helpful README's in the repository
@@ -28,10 +31,10 @@ Intro: Below is a short README on setup steps, code change procedures, and some 
 
 ## Section 1: Test platforms
 
-- **phi1.t2.ucsd.edu**: _Intel Xeon Sandy Bridge_ (referred to as SNB, phiphi, phi1), model number: E5-2620 [https://ark.intel.com/products/64594/Intel-Xeon-Processor-E5-2620-15M-Cache-2_00-GHz-7_20-GTs-Intel-QPI]
-- **phi2.t2.ucsd.edu**: _Intel Xeon Phi Knights Landing_ (referred to as KNL, phi2), model number: 7210 [https://ark.intel.com/products/94033/Intel-Xeon-Phi-Processor-7210-16GB-1_30-GHz-64-core] 
-- **phi3.t2.ucsd.edu**: _Intel Xeon Skylake-SP Gold_ (referred to as SKL-Au, SKL-SP, phi3), model number: 6130 [https://ark.intel.com/products/120492/Intel-Xeon-Gold-6130-Processor-22M-Cache-2_10-GHz]
-- **lnx4108.classe.cornell.edu**: _Intel Xeon Skylake-SP Silver_ (referred to as SKL-Ag, SKL-SP, lnx4108), model number: 4116 [https://ark.intel.com/products/120481/Intel-Xeon-Silver-4116-Processor-16_5M-Cache-2_10-GHz] 
+- **phi1.t2.ucsd.edu**: [Intel Xeon Processor E5-2620](https://ark.intel.com/products/64594/Intel-Xeon-Processor-E5-2620-15M-Cache-2_00-GHz-7_20-GTs-Intel-QPI) _Sandy Bridge_ (referred to as SNB, phiphi, phi1)
+- **phi2.t2.ucsd.edu**: [Intel Xeon Phi Processor 7210](https://ark.intel.com/products/94033/Intel-Xeon-Phi-Processor-7210-16GB-1_30-GHz-64-core) _Knights Landing_ (referred to as KNL, phi2)
+- **phi3.t2.ucsd.edu**: [Intel Xeon Gold 6130 Processor](https://ark.intel.com/products/120492/Intel-Xeon-Gold-6130-Processor-22M-Cache-2_10-GHz) _Skylake Scalable Performance_ (referred to as SKL-Au, SKL-SP, phi3)
+- **lnx4108.classe.cornell.edu**: [Intel Xeon Silver 4116 Processor](https://ark.intel.com/products/120481/Intel-Xeon-Silver-4116-Processor-16_5M-Cache-2_10-GHz) _Skylake Scalable Performance_ (referred to as SKL-Ag, SKL-SP, lnx4108)
 - **GPUs**: to be filled out
 
 phi1, phi2, and phi3 are all managed across a virtual login server and therefore the home user spaces are shared. phi1, phi2, phi3, and lnx4108 also have /cvmfs mounted so you can source the environment needed to run the code. 
@@ -40,7 +43,7 @@ The main development platform is phi3. This is the recommended machine for begin
 
 ## Section 2: How to checkout the code
 
-The master development branch is ```devel``` on https://github.com/cerati/mictest (referred to as ```cerati/devel``` for the remainder of the README). This is a private repository, as are all forks of this repository. Development for mictest is done on separate branches within a forked repository. Since Giuseppe is politely hosting the main repo on his account, make sure to fork the repository to your own account first (using the "Fork" option at the top of the webpage), and push any development branches to your own forked repo first.
+The master development branch is ```devel```, hosted on a [private GH repo](https://github.com/cerati/mictest) (referred to as ```cerati/devel``` for the remainder of the README). This is a private repository, as are all forks of this repository. Development for mictest is done on separate branches within a forked repository. Since Giuseppe is politely hosting the main repo on his account, make sure to fork the repository to your own account first (using the "Fork" option at the top of the webpage), and push any development branches to your own forked repo first.
 
 Once forked, checkout a local copy by simply doing a git clone:
 
@@ -98,8 +101,8 @@ Below are some rules and procedures on how to submit changes to the main develop
 
 1. Checkout a new branch on your local repo: ```git checkout -b <branch>```
 2. Make some changes on your local repo, and commit them to your branch: ```git commit -m "some meaningful text describing the changes"```
-3. If you have made multiple commits, see if you can squash them together to make the git history legibile for review. If you do not know what you are doing with this, make sure to save a copy of the local branch as backup by simplying checking out a new branch from the branch you are with something like: ```git checkout -b <branch_copy>```. Git provides a tutorial on squashing commits: [https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History]
-4. Ensure you have pulled down the latest changes from the main development branch merged into your local development branch. ```git merge cerati devel``` can make a mess, so the preferred option is ```git rebase --onto <new_base_hash> <old_base_hash> <branch>```. CMSSW provides a nice explanation of this rebase option: [https://cms-sw.github.io/tutorial-resolve-conflicts.html]
+3. If you have made multiple commits, see if you can squash them together to make the git history legibile for review. If you do not know what you are doing with this, make sure to save a copy of the local branch as backup by simplying checking out a new branch from the branch you are with something like: ```git checkout -b <branch_copy>```. Git provides a [tutorial on squashing commits](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History).
+4. Ensure you have pulled down the latest changes from the main development branch merged into your local development branch. ```git merge cerati devel``` can make a mess, so the preferred option is ```git rebase --onto <new_base_hash> <old_base_hash> <branch>```. CMSSW provides a nice explanation of [this rebase option](https://cms-sw.github.io/tutorial-resolve-conflicts.html).
 5. Test locally!
    1. If you have not done so, clone your forked repo onto phi3, checking out your new branch.
    2. Source the environment for phi3 as explained in Section 3.
@@ -110,7 +113,7 @@ Below are some rules and procedures on how to submit changes to the main develop
 6. Run the full benchmarking + validation suite on all platforms: follow procedure in Section 5 (below)! If you notice changes to compute or physics performance, make sure to understand why! Even if you are proposing a technical two-line change, please follow this step as it ensures we have a full history of changes.
 7. Prepare a Pull Request (PR)
    1. Push your branch to your forked repo on GitHub: ```git push <forked_repo_name> <branch>```
-   2. Navigate to the main GH: https://github.com/cerati/mictest
+   2. [Navigate to the main GH](https://github.com/cerati/mictest)
    3. Click on "New Pull Request"
    4. Click on "Compare across forks", and navigate to your fork + branch you wish to merge as the "head fork + compare"
    5. Provide a decent title, give a brief description of the proposed commits. Include a link to the benchmarking and validation plots in the description. If there are changes to the compute or physics performance, provide an explanation for why! If no changes are expected and none are seen, make sure to mention it.
@@ -126,9 +129,9 @@ Notes on nomenclature:
 
 We often use these words interchangibly to refer to the set of benchmark and validation tests as a single suite. So if you are asked to "run the benchmarking" or "run the validation": please run the full suite (unless specifically stated to run one or the other). In fact, the main scripts that run the full suite use "benchmark" in their name, even though they may refer to both the running of the compute and physics performance tests and plot comparisons.
 
-When submitting a PR or preparing for a conference, please run the full suite from phi3 with a clean login: make sure nothing has been sourced to set up the environment. The scripts will set the environment as needed through ```./xeon_scripts/common-variables.sh ${suite}```. 
+### Section 5.i: Running the main script
 
-The main script for running the full suite can be launched with:
+The main script for running the full suite can be launched from the top-level directory with:
 
 ```
 ./xeon_scripts/runBenchmark.sh ${suite}
@@ -139,24 +142,24 @@ There are three options for running the full suite by passing one of the three s
 - ```forPR``` : runs compute and physics tests for track finding routines used for comparisons in pull requests (default setting: BH and CE for benchmarks, STD and CE for validation)
 - ```forConf``` : runs compute and physics tests for track finding routines used for conferences only (currently only CE)
 
-The ```full``` option currently takes little over an hour to run.  Make sure the machines are quiet before launching any tests: we don't want to disturb someone who already is testing! 
+The ```full``` option currently takes little more than a half hour, while the other tests take about 25 minutes. 
 
-Inside the main script, tests are submitted for phi1, phi2, and phi3 concurrently, by tarring up the local repo, sending the tarball to a disk space on the remote platform, compiling the untarred directory natively on the remote platform, and then sending back the results to be collected on phi3. It should be noted that the tests for phi3 are simply run on in the user home directory when logged into phi3 (although we could in principle ship the code to the work space disk on phi3). Because we run the tests for phi3 in the home directory, which is shared by all three machines, we pack and send the code to a remote _disk_ space _before_ launching the tests on phi3 from the home directory. The scripts that handle the remote testing are: 
+Inside the main script, tests are submitted for phi1, phi2, and phi3 concurrently by: tarring up the local repo, sending the tarball to a disk space on the remote platform, compiling the untarred directory natively on the remote platform, and then sending back the log files to be analyzed on phi3. It should be noted that the tests for phi3 are simply run on in the user home directory when logged into phi3 (although we could in principle ship the code to the work space disk on phi3). Because we run the tests for phi3 in the home directory, which is shared by all three machines, we pack and send the code to a remote _disk_ space _before_ launching the tests on phi3 from the home directory. The scripts that handle the remote testing are: 
 
 ```
 ./xeon_scripts/tarAndSendToRemote.sh ${remote_arch} ${suite}
 ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh ${ben_arch} ${suite}
 ```
 
-When these scripts are called separately to run a test on particular platform, one of three options must be specified for ```${remote_arch}``` or ```${ben_arch}```: ```SNB```, ```KNL```, or ```SKL-SP```. The main script ```runBenchmark.sh``` will do this automatically for all three platforms. If the code has already been compiled on a given machine, it is sufficient to run:
+When these scripts are called separately to run a test on particular platform, one of three options must be specified for ```${remote_arch}``` or ```${ben_arch}```: ```SNB```, ```KNL```, or ```SKL-SP```. The main script ```xeon_scripts/runBenchmark.sh``` will do this automatically for all three platforms. If the code is already resident on a given machine, it is sufficient to run:
 
 ```
 ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh ${ben_arch} ${suite}
 ```
 
-The appropriate strings should appear in place of ```${ben_arch}``` and ```${suite}```.
+The appropriate strings should appear in place of ```${ben_arch}``` and ```${suite}```. In fact, this is the script called by ```xeon_scripts/runBenchmark.sh``` to launch tests on each of the platforms once the code is sent and unpacked.
 
-Within the main ```./xeon_scripts/runBenchmark.sh``` script, there are two other scripts that make performance plots from the log files of compute performance tests:
+Within the main ```xeon_scripts/runBenchmark.sh``` script, there are two other scripts that make performance plots from the log files of compute performance tests:
 
 ```
 ./plotting/benchmarkPlots.sh ${suite} 
@@ -175,25 +178,38 @@ This script will run the validation on the building tests specified by the ```${
 
 It should be mentioned that each of these scripts within ```./xeon_scripts/runBenchmark.sh``` can be launched on their own, as again, they each set the environment and run tests and/or plot making. However, for simplicity's sake, it is easiest when prepping for a PR to just run the master ```./xeon_scripts/runBenchmark.sh```.  If you want to test locally, it is of course possible to launch the scripts one at a time.
 
-Note that you need to have SSH-forwarding set up to avoid having to type your password every time ```./xeon_scripts/runBenchmark.sh``` needs to copy files back and forth.
+### Section 5.ii: Some (must read) advice on benchmarking
 
-After running the full suite, there is an additional set of scripts within the ```web/``` directory for organizing the output plots and text files for viewing them on the web.  The main script is:
+1. Since the repo tarball and log files are sent back and forth via ```scp``` in various subscripts, it is highly recommended you have SSH-forwarding set up to avoid having to type your password every time ```scp``` is called. This can be particularly annoying since the return of the log files is mostly indeterminate, since it is just when the scripts finish running on the remote they will be sent back. Coupled with ```nohup``` when launching the main script, the prompt will never appear, and the log files will then be lost, as the final step in remote testing is removing the copy of repo on the remote platform at the end of ```xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh```. See Section 10.ii.b for more information on how to set up SSH-forwarding and passwordless login.
+
+2. Before launching any tests, make sure the machines are quiet: we don't want to disturb someone who already is testing! Tests from different users at the same time will also skew the results of your own tests as the scripts make use of the full resources available on each platform at various points. 
+
+3. Please run the full suite from phi3 with a clean login: make sure nothing has been sourced to set up the environment. The main script (as well as the called subscripts) will set the environment and some common variables shared between all subscripts by sourcing two scripts:
+
+```
+source xeon_scripts/init-env.sh
+source xeon_scripts/common-variables.sh ${suite}
+```
+
+### Section 5.iii: (Optional) Using additional scripts to display plots on the web
+
+After running the full suite, there is an additional set of scripts within the ```web/``` directory for organizing the output plots and text files for viewing them on the web. Make sure to read the ```web/README_WEBPLOTS.md``` first to setup an /afs or /eos web directory on LXPLUS. If you have your own website where you would rather post the results, just use ```web/collectBenchmarks.sh``` to tidy up the plots into neat directories before sending them somewhere else. More info on this script is below.
+
+The main script for collecting plots and sending them to LXPLUS can be called by:
 
 ```
 ./web/move-benchmarks.sh ${outdir_name} ${suite} ${afs_or_eos}
 ```
 
-where again, ```${suite}``` defaults to ```forPR```. ```${outdir_name}``` will be the top-level directory where the output is collected and eventually shipped to LXPLUS. This will call ```./web/collectBenchmarks.sh ${outdir_name} ${suite}```, which will sort the files, and then ```./web/tarAndSendToLXPLUS.sh ${outdir_name} ${suite} ${afs_or_eos}```, which  packs up the top-level output dir and copies it to either an /afs or /eos userspace on LXPLUS. This will also run another script remotely to copy ```web/index.php``` into each directory to have a nice web GUI for the plots. Make sure to read the ```web/README_WEBPLOTS.md``` first to setup an /afs or /eos web directory. 
+where again, ```${suite}``` defaults to ```forPR```. ```${outdir_name}``` will be the top-level directory where the output is collected and eventually shipped to LXPLUS. This will call ```./web/collectBenchmarks.sh ${outdir_name} ${suite}```, which will sort the files, and then call ```./web/tarAndSendToLXPLUS.sh ${outdir_name} ${suite} ${afs_or_eos}```, which packs up the top-level output dir and copies it to either an /afs or /eos userspace on LXPLUS. This will also run another script remotely on LXPLUS to copy ```web/index.php``` into each directory to have a nice web GUI for the plots. N.B. There are some assumptions on the remote directory structure, naming, and files present in order for ```web/tarAndSendToLXPLUS.sh``` to work. Please consult ```web/README_WEBPLOTS.md``` for setting this up properly!
 
-The option ```${afs_or_eos}``` takes either of the following arguments: ```afs``` or ```eos```, and defaults to ```afs```. The mapping of usernames to /afs or /eos spaces is in ```./xeon_scripts/common-variables.sh```. If an incorrect string is passed, the script will exit. 
+Lastly, the option ```${afs_or_eos}``` takes either of the following arguments: ```afs``` or ```eos```, and defaults to ```afs```. The mapping of the username to the remote directories is in ```web/tarAndSendToLXPLUS.sh```. If an incorrect string is passed, the script will exit. N.B. AFS is being phased out at CERN, so the preferred option is ```eos```.
 
-**IMPORTANT DISCLAIMER**
+**IMPORTANT DISCLAIMERS**
 
-There is a script: ```./xeon_scripts/trashSKL-SP.sh``` that is run at the very end of the ```./web/move-benchmarks.sh``` script that will delete log files, pngs, validation directories, root files, and the neat directory created to house all the validation plots.  This means that if the scp fails, the plots will still be deleted locally, and you will be forced to re-run the whole suite!!  You can of course comment this script out if this bothers you.
+1. There is a script: ```./xeon_scripts/trashSKL-SP.sh``` that is run at the very end of the ```./web/move-benchmarks.sh``` script that will delete log files, pngs, validation directories, root files, and the neat directory created to house all the validation plots.  This means that if the scp fails, the plots will still be deleted locally, and you will be forced to re-run the whole suite!!  You can of course comment this script out if this bothers you.
 
-**FINAL WORD ON AFS**
-
-AFS is being phased out at CERN. The web scripts currently accomodate both options. However, if you have your own website you want to post plots to, then feel free to use ```./web/collect-benchmarks.sh``` to tidy up the plots into neat directories, and then send them where you want.
+2. ```web/tarAndSendToLXPLUS.sh``` has a number of pieces that execute code on LXPLUS, which includes executing scripts to copy ```web/index.php``` removing the copied over tarball of plots. If you are uncomfortable with this, you can comment it out.
 
 ## Section 6: Submit an issue
 
@@ -298,7 +314,7 @@ Given that this is a living repository, the comments in the code may not always 
 - afer compiling the code, do: ```./mkFit/mkFit --help``` : Describes the full list of command line options, inputs, and defaults when running mkFit. The list can also be seen in the code in mkFit/mkFit.cc, although the defaults are hidden behind Config.[h,cc], as well as mkFit.cc.
 - cmssw-trackerinfo-desc.txt : Describes the structure of the CMS Phase-I geometry as represented within this repo.
 - index-desc.txt : Desribes the various hit and track indices used by different sets of tracks throughout the different stages of the read in, seeding, building, fitting, and validation.
-- validation-desc.txt : The validation manifesto: (somewhat) up-to-date description of the full physics validation suite. It is complemented by a somewhat out-of-date code flow diagram, found here: https://indico.cern.ch/event/656884/contributions/2676532/attachments/1513662/2363067/validation_flow_diagram-v4.pdf
+- validation-desc.txt : The validation manifesto: (somewhat) up-to-date description of the full physics validation suite. It is complemented by a somewhat out-of-date [code flow diagram](https://indico.cern.ch/event/656884/contributions/2676532/attachments/1513662/2363067/validation_flow_diagram-v4.pdf).
 - web/README_WEBPLOTS.md : A short markdown file on how to setup a website with an AFS or EOS directory on LXPLUS (best when viewed from a web browser, like this README).
 
 ## Section 9: CMSSW integration
@@ -420,12 +436,20 @@ The script produces a directory `plots` that can be copied to any web area.
 ## Section 10: Other useful information
 
 ### Section 10.i: Important Links
-- Main development GitHub: https://github.com/cerati/mictest
-- Our project website: https://trackreco.github.io
-- Out-of-date and longer used twiki: https://twiki.cern.ch/twiki/bin/viewauth/CMS/MicTrkRnD
-- Indico meeting page: https://indico.cern.ch/category/8433
+
+Project Links
+- [Main development GitHub](https://github.com/cerati/mictest)
+- [Our project website](https://trackreco.github.io) and the [GH repo](https://github.com/trackreco/trackreco.github.io-source) hosting the web files. Feel free to edit the website repo if you have contributed a presentation, poster, or paper. 
+- Out-of-date and no longer used [project twiki](https://twiki.cern.ch/twiki/bin/viewauth/CMS/MicTrkRnD)
+- [Indico meeting page](https://indico.cern.ch/category/8433)
 - Vidyo room: Parallel_Kalman_Filter_Tracking
 - Email list-serv: mic-trk-rd@cern.ch
+
+Other Useful References
+- [CMS Run1 Tracking Paper](https://arxiv.org/abs/1405.6569)
+- [CMS Public Tracking Results](https://twiki.cern.ch/twiki/bin/view/CMSPublic/PhysicsResultsTRK)
+- [Kalman Filter in Particle Physics, paper by Rudi Fruhwirth](https://inspirehep.net/record/259509?ln=en)
+- [Kalman Filter explained simply](https://128.232.0.20/~rmf25/papers/Understanding%20the%20Basis%20of%20the%20Kalman%20Filter.pdf)
 
 ### Section 10.ii: Tips and Tricks
 
@@ -477,25 +501,31 @@ kinit -f <lxplus username>@CERN.CH
 and then enter your LXPLUS password. Kerberos will keep your ticket open for a few days to allow passwordless ```ssh``` into LXPLUS. After the ticket expires, you will need to enter that same command again. So, even if you only send plots once every month to LXPLUS, this reduces the number of times of typing in your LXPLUS password from two to one :).
 
 ### Section 10.iii: Acronyms/Abbreviations:
+
+[Glossary of acronyms from CMS](https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookGlossary)
+
 - AVX: Advanced Vector Extensions [flavors of AVX: AVX, AVX2, AVX512]
-- BH: Best Hit
-- CCC: Charge Cluster Cut
-- CE: Clone Engine
+- BH: Best Hit (building routine that selects only the best hit per layer when performing track building)
+- CCC: Charge Cluster Cut, used to remove hits that come from out-of-time pileup
+- CE: Clone Engine (building routine that keeps N candidates per seed, performing the KF update after hits have been saved)
 - CMS: Compact Muon Solenoid
 - CMSSW: CMS Software
 - CMSSWVal: CMSSWTrack Validation, use cmssw tracks as reference set of tracks for association
-- FV: Full Vector
+- FV: Full Vector (building routine that uses a clever way of filling Matriplexes of tracks during track building to boost vectorization, current status: deprecated)
 - GH: GitHub
+- GPU: Graphical Processing Unit
 - GUI: Graphical User Interface
-- MEIF: Multiple-Events-In-Flight
+- KNC: Knights Corner (iteration of Xeon Phi prior to KNL, no longer used in this project)
+- KNL: Knights Landing
+- MEIF: Multiple-Events-In-Flight (method for splitting events into different tasks)
 - MP: Multi-Processing
 - N^2: Local seed cleaning algorithm developed by Mario and Slava
 - PR: Pull Request
 - Reco: Reconstruction
 - SimVal: SimTrack validation, use simtracks as reference set of tracks for association
-- STD: Standard
-- TBB: (Intel) Threaded Building Blocks
+- SKL-SP: Skylake Scalable Performance
+- SNB: Sandy Bridge
+- STD: Standard (building routine, like Clone Engine, but performs KF update before hits are saved to a track)
+- TBB: (Intel) Threaded Building Blocks, open source library from Intel to perform tasks in a multithreaded environment
 - TH: Threads
 - VU: (loosely) Vector Units
-
-Glossary of acronyms from CMS: https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookGlossary
