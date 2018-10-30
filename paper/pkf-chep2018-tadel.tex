@@ -146,7 +146,7 @@ radically different algorithms and computing architectures to address the
 anticipated issues~\cite{CTD2018}. Our approach, however, has been to focus on
 the traditional, well-known, and well-understood Kalman Filter (KF) method, to
 see how far KF-based tracking can be pushed in this new environment. To that
-end we have been developing a framework, designed from the ground up for
+end we have been developing the \mkfit framework, designed from the ground up for
 performance, that is better suited to utilize the types of parallelism available
 in contemporary general-purpose computing hardware.
 
@@ -178,7 +178,7 @@ offers a safe fallback solution for operation in less time constrained
 environments such as high-level trigger applications and offline reconstruction.
 
 This paper focuses on recent developments required to fully support realistic
-geometry of the Compact Muon Solenoid (CMS) detector and to process CMS data
+geometry of the Compact Muon Solenoid (CMS) detector and to process simulated CMS data
 with up to 70 minimum bias $pp$ collisions superimposed over the signal $t\bar{t}$
 events. To facilitate this discussion a brief overview of the project is given
 in appendix \ref{sec:project-overview} and an outline of our track finding
@@ -219,7 +219,7 @@ control flags in \stt{LayerControl} and \stt{LayerInfo} structures.
 
 Geometry and steering parameter setup is implemented as a plugin that
 populates the in-memory data structures with the required information. With
-this functionality, we are able to support both the simplified geometry and
+this functionality, we are able to support both a simple geometry used for development and
 CMS-2017 geometry with all detector-specific information existing only in the
 plugin code. For the CMS-2017 geometry, we include the effects of multiple
 scattering and energy loss by defining two-dimensional arrays for the
@@ -415,7 +415,7 @@ for SKL-SP will be presented separately.
 Results presented in this section were obtained using a subset of the 
 events with the configuration described in the introduction to section 
 \ref{sec:phys-perf}. Intel \stt{icc} compiler was used to compile the
-code.
+code. \mkfit uses Intel Thread Building Blocks (TBB) for multi-threading.
 
 
 \subsection{Single event performance of core track finding}
@@ -433,7 +433,7 @@ results are shown in figure \ref{fig:vu-speedup}.
 For SNB the obtained AVX vectorization speed up is 2.4. On KNL, with AVX-512
 and usage of auto-generated intrinsics code for Matriplex operations, we
 observe a speedup of 3.3 (3.1 for \stt{icc} auto vectorization). Assuming effective
-vectorization speedup of 3 and applying Amdhal's law one finds that about 72\%
+vectorization speedup of 3 and applying Amdahl's law one finds that about 72\%
 of our code gets executed as vector instructions.
 
 Notice that the speedup when shifting from Matriplex width of 1 to width of 2
@@ -585,8 +585,8 @@ early participation in the CMS HLT test-bed system for Run 3 of the LHC.
 %-------------------------------------------------------------------------------
 
 This work is supported by the U.S. National Science Foundation, under the
-grants PHY-1520969, PHY-1521042, PHY-1520942 and PHY-1624356, by the
-U.S. Department of Energy, and by the U.S. Department of Energy, Office of
+grants PHY-1520969, PHY-1521042, PHY-1520942 and PHY-1624356,
+and by the U.S. Department of Energy, Office of
 Science, Office of Advanced Scientific Computing Research, Scientific
 Discovery through Advanced Computing (SciDAC) program.
 
