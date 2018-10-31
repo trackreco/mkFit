@@ -168,7 +168,7 @@ namespace
 
   bool sortCandByScore(const Track & cand1, const Track & cand2)
   {
-    return mkfit::sortByScoreCand(cand1,cand2);    
+    return mkfit::sortByScoreCand(cand1,cand2);
   }
 }
 
@@ -670,6 +670,20 @@ namespace
 }
 
 namespace mkfit {
+
+void MkBuilder::assign_seedrange_forranking()
+{
+  // Assign idx to determine seed range, for ranking
+  for(int ts=0; ts<=(int) m_event->seedTracks_.size(); ++ts){
+    if(m_event->seedTracks_[ts].pT()>2.0f && std::fabs(m_event->seedTracks_[ts].momEta())<1.5f)
+      m_event->seedTracks_[ts].setSeedRangeForRanking(1);
+    else if(m_event->seedTracks_[ts].pT()<0.9f && std::fabs(m_event->seedTracks_[ts].momEta())>=1.5f)
+      m_event->seedTracks_[ts].setSeedRangeForRanking(2);
+    else
+      m_event->seedTracks_[ts].setSeedRangeForRanking(3);
+  }
+
+}
 
 void MkBuilder::fit_seeds()
 {
@@ -1386,6 +1400,9 @@ void MkBuilder::PrepareSeeds()
     std::cerr << "No input seed collection option selected!! Exiting..." << std::endl;
     exit(1);
   }
+  
+  //Assign idx to seeds for determining kinematic range for candidate ranking
+  assign_seedrange_forranking();
 
   fit_seeds();
 }

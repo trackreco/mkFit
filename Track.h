@@ -32,7 +32,9 @@ public:
   int   hitIdx; // hit index
   int   nhits;  // number of hits (used for sorting)
   int   nholes;  // number of holes (used for sorting)
+  unsigned int seedrange; // seed range idx (used for sorting)
   float pt;   // pt (used for sorting)
+  float eta;   // eta (used for sorting)
   float chi2;   // total chi2 (used for sorting)
 };
  
@@ -425,9 +427,13 @@ public:
         // have to get overwritten.
         bool has_non_stored_hits : 1;
 
+	// Seed range for candidate ranking: 
+        unsigned int _seed_range_ : 3;
+
         // The rest, testing if mixing int and unsigned int is ok.
-        int          _some_free_bits_ : 10;
-        unsigned int _more_free_bits_ : 17;
+        int          _some_free_bits_ : 8;
+        unsigned int _more_free_bits_ : 16;
+
       };
 
       unsigned int _raw_;
@@ -446,6 +452,9 @@ public:
   bool isFindable()    const { return ! status_.not_findable; }
   bool isNotFindable() const { return   status_.not_findable; }
   void setNotFindable()      { status_.not_findable = true; }
+
+  void setSeedRangeForRanking(unsigned int r) { status_._seed_range_ = r; }
+  unsigned int getSeedRangeForRanking() const { return status_._seed_range_; }
 
   enum class ProdType { NotSet = 0, Signal = 1, InTimePU = 2, OutOfTimePU = 3};
   ProdType prodType()  const { return ProdType(status_.prod_type); }
@@ -477,37 +486,58 @@ inline bool sortByHitsChi2(const Track & cand1, const Track & cand2)
   if (cand1.nFoundHits()==cand2.nFoundHits()) return cand1.chi2()<cand2.chi2();
   return cand1.nFoundHits()>cand2.nFoundHits();
 }
-
-inline bool sortByScoreLoop(const int nfoundhits[2], 
-			const int nmisshits[2], 
-			const float chi2[2],
-			const float pt[2])
+ 
+inline bool sortByScoreLoop(const unsigned int seedrange[2],
+			    const int nfoundhits[2], 
+			    const int nmisshits[2], 
+			    const float chi2[2],
+			    const float pt[2],
+			    const float eta[2])
 {
   float score[2] = {0.f,0.f};
-  for(int c=0; c<2; ++c){
-    score[c] = Config::validHitBonus_*nfoundhits[c] - Config::missingHitPenalty_*nmisshits[c] - chi2[c];
-    if(pt[c]<0.9f) score[c] -= 0.5f*Config::validHitBonus_*nfoundhits[c];
-    else if(nfoundhits[c]>8) score[c] += Config::validHitBonus_*nfoundhits[c];
+  for(int c=0; c<2; ++c){ 
+    // For high pT central tracks: double valid hit bonus
+    if(seedrange[c]==1){
+      score[c] = (Config::validHitBonus_*2.0f)*nfoundhits[c] - Config::missingHitPenalty_*nmisshits[c] - chi2[c];
+      if(pt[c]<0.9f) score[c] -= 0.5f*(Config::validHitBonus_*2.0f)*nfoundhits[c];
+      else if(nfoundhits[c]>8) score[c] += (Config::validHitBonus_*2.0f)*nfoundhits[c];
+    }
+    // For low pT endcap tracks: half valid hit bonus & half missing hit penalty
+    else if(seedrange[c]==2){
+      score[c] = (Config::validHitBonus_*0.5f)*nfoundhits[c] - (Config::missingHitPenalty_*0.5f)*nmisshits[c] - chi2[c];
+      if(pt[c]<0.9f) score[c] -= 0.5f*(Config::validHitBonus_*0.5f)*nfoundhits[c];
+      else if(nfoundhits[c]>8) score[c] += (Config::validHitBonus_*0.5f)*nfoundhits[c];
+    }
+    // For all other tracks: unchanged cmssw bonus and penalty
+    else{
+      score[c] = Config::validHitBonus_*nfoundhits[c] - Config::missingHitPenalty_*nmisshits[c] - chi2[c];
+      if(pt[c]<0.9f) score[c] -= 0.5f*Config::validHitBonus_*nfoundhits[c];
+      else if(nfoundhits[c]>8) score[c] += Config::validHitBonus_*nfoundhits[c];
+    }
   }
   return score[0]>score[1];
 }
 
 inline bool sortByScoreCand(const Track& cand1, const Track& cand2)
 {
+  unsigned int seedrange[2] = {cand1.getSeedRangeForRanking(),cand2.getSeedRangeForRanking()};
   int nfoundhits[2] = {cand1.nFoundHits(),cand2.nFoundHits()};
   int nmisshits[2] = {cand1.nTotalHits()-cand1.nFoundHits(),cand2.nTotalHits()-cand2.nFoundHits()};
   float chi2[2] = {cand1.chi2(),cand2.chi2()};
   float pt[2] = {cand1.pT(),cand2.pT()};
-  return sortByScoreLoop(nfoundhits,nmisshits,chi2,pt);
+  float eta[2] = {std::fabs(cand1.momEta()),std::fabs(cand2.momEta())};
+  return sortByScoreLoop(seedrange,nfoundhits,nmisshits,chi2,pt,eta);
 }
 
 inline bool sortByScoreStruct(const IdxChi2List& cand1, const IdxChi2List& cand2)
 {
+  unsigned int seedrange[2] = {cand1.seedrange,cand2.seedrange};
   int nfoundhits[2] = {cand1.nhits,cand2.nhits};
   int nmisshits[2] = {cand1.nholes,cand2.nholes};
   float chi2[2] = {cand1.chi2,cand2.chi2};
   float pt[2] = {cand1.pt,cand2.pt};
-  return sortByScoreLoop(nfoundhits,nmisshits,chi2,pt);
+  float eta[2] = {cand1.eta,cand2.eta};
+  return sortByScoreLoop(seedrange,nfoundhits,nmisshits,chi2,pt,eta);
 }
 
 inline bool sortByScoreCandPair(const std::pair<Track, TrackState>& cand1, const std::pair<Track, TrackState>& cand2)
