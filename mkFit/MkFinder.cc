@@ -908,7 +908,6 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
           tmpList.nholes  = num_invalid_hits(itrack);
           tmpList.seedrange = SeedRange(itrack, 0, 0);
           tmpList.pt = std::abs(1.0f/Par[iP].At(itrack,3,0));
-          tmpList.eta = std::fabs( getEta( Par[iP].At(itrack,5,0) ) );
           tmpList.chi2   = Chi2(itrack, 0, 0) + chi2;
           cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
           // hitsToAdd[SeedIdx(itrack, 0, 0)-offset].push_back(tmpList);
@@ -945,7 +944,6 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     tmpList.nholes  = num_invalid_hits(itrack)+1;
     tmpList.seedrange = SeedRange(itrack, 0, 0);
     tmpList.pt = std::abs(1.0f/Par[iP].At(itrack,3,0));
-    tmpList.eta = std::fabs( getEta( Par[iP].At(itrack,5,0) ) );
     tmpList.chi2   = Chi2(itrack, 0, 0);
     cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
     dprint("adding invalid hit " << fake_hit_idx);

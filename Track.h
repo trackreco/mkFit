@@ -34,7 +34,6 @@ public:
   int   nholes;  // number of holes (used for sorting)
   unsigned int seedrange; // seed range idx (used for sorting)
   float pt;   // pt (used for sorting)
-  float eta;   // eta (used for sorting)
   float chi2;   // total chi2 (used for sorting)
 };
  
@@ -491,8 +490,7 @@ inline bool sortByScoreLoop(const unsigned int seedrange[2],
 			    const int nfoundhits[2], 
 			    const int nmisshits[2], 
 			    const float chi2[2],
-			    const float pt[2],
-			    const float eta[2])
+			    const float pt[2])
 {
   float score[2] = {0.f,0.f};
   for(int c=0; c<2; ++c){ 
@@ -525,8 +523,7 @@ inline bool sortByScoreCand(const Track& cand1, const Track& cand2)
   int nmisshits[2] = {cand1.nTotalHits()-cand1.nFoundHits(),cand2.nTotalHits()-cand2.nFoundHits()};
   float chi2[2] = {cand1.chi2(),cand2.chi2()};
   float pt[2] = {cand1.pT(),cand2.pT()};
-  float eta[2] = {std::fabs(cand1.momEta()),std::fabs(cand2.momEta())};
-  return sortByScoreLoop(seedrange,nfoundhits,nmisshits,chi2,pt,eta);
+  return sortByScoreLoop(seedrange,nfoundhits,nmisshits,chi2,pt);
 }
 
 inline bool sortByScoreStruct(const IdxChi2List& cand1, const IdxChi2List& cand2)
@@ -536,8 +533,7 @@ inline bool sortByScoreStruct(const IdxChi2List& cand1, const IdxChi2List& cand2
   int nmisshits[2] = {cand1.nholes,cand2.nholes};
   float chi2[2] = {cand1.chi2,cand2.chi2};
   float pt[2] = {cand1.pt,cand2.pt};
-  float eta[2] = {cand1.eta,cand2.eta};
-  return sortByScoreLoop(seedrange,nfoundhits,nmisshits,chi2,pt,eta);
+  return sortByScoreLoop(seedrange,nfoundhits,nmisshits,chi2,pt);
 }
 
 inline bool sortByScoreCandPair(const std::pair<Track, TrackState>& cand1, const std::pair<Track, TrackState>& cand2)
