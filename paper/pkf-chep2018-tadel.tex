@@ -169,13 +169,12 @@ hardware that is ultimately deployed and made available to the experiments;
 other parts of event reconstruction, event simulation, and physics analysis may
 be more or less amenable to a high degree of parallelization.
 
-All things considered, a parallelized and vectorized implementation of KF-based
-tracking framework provides a strong reference point for evaluation of more
-exotic solutions, both in terms of computational as well as physics
-performance. And, should it turn out that performance in either of these
-respects is inadequate for usage in physics reconstruction applications, it
-offers a safe fallback solution for operation in less time constrained
-environments such as high-level trigger applications and offline reconstruction.
+All things considered, a fully-integrated, parallelized and vectorized implementation 
+of a KF-based tracking application provides a strong reference point for evaluation 
+of more exotic solutions, both in terms of computational as well as physics performance. 
+Indeed, new solutions will have to demonstrate superior performance in both of these 
+respects for operations in environments with moderate time constrains such as high-level 
+trigger applications and offline reconstruction.
 
 This paper focuses on recent developments required to fully support realistic
 geometry of the Compact Muon Solenoid (CMS) detector and to process simulated CMS data
