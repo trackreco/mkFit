@@ -64,7 +64,8 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>     & track
     const Track &trk = tracks[idxs[i].first][idxs[i].second];
 
     copy_in(trk, imp, iI);
-
+    
+    SeedRange(imp, 0, 0) = tracks[idxs[i].first].m_seed_range;
     SeedIdx(imp, 0, 0) = idxs[i].first;
     CandIdx(imp, 0, 0) = idxs[i].second;
   }
@@ -87,6 +88,7 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>            
 
     copy_in(trk, imp, iI);
 
+    SeedRange(imp, 0, 0) = tracks[idxs[i].first].m_seed_range;
     SeedIdx(imp, 0, 0) = idxs[i].first;
     CandIdx(imp, 0, 0) = idxs[i].second.trkIdx;
   }
@@ -751,7 +753,8 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
 	    Track newcand;
             copy_out(newcand, itrack, iC);
 	    newcand.addHitIdx(XHitArr.At(itrack, hit_cnt, 0), layer_of_hits.layer_id(), chi2);
-
+	    newcand.setSeedRangeForRanking(SeedRange(itrack, 0, 0));
+	    
 	    dprint("updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << " z=" << newcand.parameters()[2] << " pt=" << 1./newcand.parameters()[3]);
 
 	    tmp_candidates[SeedIdx(itrack, 0, 0) - offset].emplace_back(newcand);
@@ -791,6 +794,7 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
     Track newcand;
     copy_out(newcand, itrack, iP);
     newcand.addHitIdx(fake_hit_idx, layer_of_hits.layer_id(), 0.);
+    newcand.setSeedRangeForRanking(SeedRange(itrack, 0, 0));
     tmp_candidates[SeedIdx(itrack, 0, 0) - offset].emplace_back(newcand);
   }
 }
@@ -902,6 +906,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
           tmpList.hitIdx = XHitArr.At(itrack, hit_cnt, 0);
           tmpList.nhits  = NFoundHits(itrack,0,0) + 1;
           tmpList.nholes  = num_invalid_hits(itrack);
+          tmpList.seedrange = SeedRange(itrack, 0, 0);
           tmpList.pt = std::abs(1.0f/Par[iP].At(itrack,3,0));
           tmpList.eta = std::fabs( getEta( Par[iP].At(itrack,5,0) ) );
           tmpList.chi2   = Chi2(itrack, 0, 0) + chi2;
@@ -938,6 +943,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     tmpList.hitIdx = fake_hit_idx;
     tmpList.nhits  = NFoundHits(itrack,0,0);
     tmpList.nholes  = num_invalid_hits(itrack)+1;
+    tmpList.seedrange = SeedRange(itrack, 0, 0);
     tmpList.pt = std::abs(1.0f/Par[iP].At(itrack,3,0));
     tmpList.eta = std::fabs( getEta( Par[iP].At(itrack,5,0) ) );
     tmpList.chi2   = Chi2(itrack, 0, 0);

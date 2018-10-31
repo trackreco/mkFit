@@ -243,6 +243,7 @@ public:
 
   SeedState_e m_state           = Dormant;
   int         m_last_seed_layer = -1;
+  unsigned int m_seed_range = 0;
 };
 
 
@@ -294,6 +295,7 @@ public:
     m_candidates[m_size].push_back(seed);
     m_candidates[m_size].m_state           = CombCandidate::Dormant;
     m_candidates[m_size].m_last_seed_layer = seed.getLastHitLyr();
+    m_candidates[m_size].m_seed_range = seed.getSeedRangeForRanking();
     ++m_size;
   }
 

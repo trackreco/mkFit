@@ -146,6 +146,7 @@ public:
   void create_seeds_from_sim_tracks();
   void import_seeds();
   void find_seeds();
+  void assign_seedrange_forranking();
   void fit_seeds();
 
   // --------
