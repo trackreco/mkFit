@@ -427,7 +427,7 @@ public:
         bool has_non_stored_hits : 1;
 
 	// Seed range for candidate ranking: 
-        unsigned int _seed_range_ : 3;
+        unsigned int seed_range : 3;
 
         // The rest, testing if mixing int and unsigned int is ok.
         int          _some_free_bits_ : 8;
@@ -452,8 +452,8 @@ public:
   bool isNotFindable() const { return   status_.not_findable; }
   void setNotFindable()      { status_.not_findable = true; }
 
-  void setSeedRangeForRanking(unsigned int r) { status_._seed_range_ = r; }
-  unsigned int getSeedRangeForRanking() const { return status_._seed_range_; }
+  void setSeedRangeForRanking(unsigned int r) { status_.seed_range = r; }
+  unsigned int getSeedRangeForRanking() const { return status_.seed_range; }
 
   enum class ProdType { NotSet = 0, Signal = 1, InTimePU = 2, OutOfTimePU = 3};
   ProdType prodType()  const { return ProdType(status_.prod_type); }
