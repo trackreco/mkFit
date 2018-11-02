@@ -18,10 +18,14 @@
    1) Considerations for `mkFit` code
    2) Instructions to use `mkFit` from CMSSW
       1) Build `mkFit`
+         1) Lxplus
+         2) Phi3
       2) Set up `mkFit` as an external
       3) Pull CMSSW code and build
       4) Use `mkFit` in InitialStep of CMS offline tracking
-      5) Producing MultiTrackValidator plots
+      5) Timing measurements
+      6) Producing MultiTrackValidator plots
+      7) Interpreting MultiTrackValidator plots
 10) Other useful information
     1) Important Links
     2) Tips and Tricks
@@ -344,6 +348,14 @@ toolchain. Assuming you are in an empty directory, the following
 recipe will set up a CMSSW developer area and a `mictest` area there,
 and compile `mkFit` using the CMSSW toolchain.
 
+**Note:** Use a `SCRAM_ARCH` with `gcc630` (i.e. either
+`slc7_amd64_gcc630` or `slc6_amd64_gcc630`) to be able to use `icc`.
+
+**Note:** The recipes have been tested on `lxplus` and on `phi3`.
+Currently there is no working recipe to compile with `icc` on LPC.
+
+##### Section 9.ii.a.a: Lxplus
+
 ```bash
 cmsrel CMSSW_10_2_0_pre3
 pushd CMSSW_10_2_0_pre3/src
@@ -357,6 +369,26 @@ pushd mictest
 TBB_PREFIX=$(dirname $(cd $CMSSW_BASE && scram tool tag tbb INCLUDE)) make -j 12
 popd
 ```
+
+##### Section 9.ii.a.b: Phi3
+
+```bash
+source /opt/intel/bin/compilervars.sh intel64
+git clone git@github.com:cerati/mictest
+pushd mictest
+TBB_PREFIX=$(dirname $(cd $CMSSW_BASE && scram tool tag tbb INCLUDE)) make -j 12
+popd
+cmsrel CMSSW_10_2_0_pre3
+pushd CMSSW_10_2_0_pre3/src
+cmsenv
+git cms-init
+popd
+```
+
+The `lxplus` recipe can also be used (to pick `icc` from CMSSW
+externals), but then the `$INTEL_LICENSE_FILE` has to be reset to the
+value given by `/opt/intel/bin/compilervars.sh` after sourcing
+`iccvars.sh`.
 
 #### Section 9.ii.b: Set up `mkFit` as an external
 
@@ -414,7 +446,23 @@ reconstruction configuration file.
 By default `mkFit` is configured to use Clone Engine with N^2 seed
 cleaning, and to do the backward fit (to the innermost hit) within `mkFit`.
 
-#### Section 9.ii.e: Producing MultiTrackValidator plots
+#### Section 9.ii.e: Timing measurements
+
+There are several options for the CMSSW module timing measurements:
+
+- [FastTimerService](https://twiki.cern.ch/twiki/bin/viewauth/CMS/FastTimerService)
+  * Produces timing measurements as histograms in the DQM root file
+  * `makeTrackValidationPlots.py` (see next subsection) produces plots of those
+     - "Timing" -> "iterationsCPU.pdf", look for "initialStep" histogram and "Building" bin
+- Framework report `process.options = cms.untracked.PSet(wantSummary = cms.untracked.bool(True))`
+  * Prints module timings to the standard output
+  * Look for the timing of `initialStepTrackCandidates`
+- [Timing module](https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideEDMTimingAndMemory)
+  * Prints module timings to the standard output
+  * Look for the timing of `initialStepTrackCandidates`
+
+
+#### Section 9.ii.f: Producing MultiTrackValidator plots
 
 The `step3` above runs also the [MultiTrackValidator](https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideMultiTrackValidator).
 
@@ -430,8 +478,37 @@ which produces a `DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO.root` file tha
 makeTrackValidationPlots.py --extended --limit-tracking-algo initialStep <DQM file> [<another DQM file> ...]
 ```
 
-The script produces a directory `plots` that can be copied to any web area.
+The script produces a directory `plots` that can be copied to any web
+area. Note that the script produces an `index.html` to ease the
+navigation.
 
+#### Section 9.ii.g: Interpreting MultiTrackValidator plots
+
+As the recipe above replaces the initialStep track building, we are
+interested in the plots of "initialStep" (in the main page), and in
+the iteration-specific page the plots on the column "Built tracks".
+Technically these are the output of the final fit of the initialStep,
+but the difference wrt. `TrackCandidate`s of `MkFitProducer` should be
+negligible.
+
+In short, the relevant plots are
+- `effandfake*` show efficiency and fake+duplicate rate vs. various quantities
+- `dupandfake*` show fake, duplicate, and pileup rates vs. various quantities (pileup rate is not that interesting for our case)
+- `distsim*` show distributions for all and reconstructed TrackingParticles (numerators and denominators of efficiencies)
+- `dist*` show distributions for all, true, fake, and duplicate tracks (numerators and denominators of fake and duplicate rates)
+- `hitsAndPt` and hitsLayers shows various information on hits and layers
+- `resolutions*` show track parameter resolutions vs eta and pT
+- `residual*` show track parameter residuals (bias) vs eta and pT
+- `pulls` shows track parameter pulls
+- `tuning` shows chi2/ndof, chi2 probability, chi2/ndof vs eta and pT residual
+- `mva1*` show various information on the BDT track selection
+
+The tracking MC truth matching criteria are different from the mkFit
+SimVal. In MTV a track is classified as a "true track" (and a matched
+SimTrack as "reconstructed") if more than 75 % of the clusters of the
+track are linked to a single SimTrack. A cluster is linked to a
+SimTrack if the SimTrack has induced any amount of charge to any of
+the digis (= pixel or strip) of the cluster.
 
 ## Section 10: Other useful information
 
@@ -519,6 +596,7 @@ and then enter your LXPLUS password. Kerberos will keep your ticket open for a f
 - KNL: Knights Landing
 - MEIF: Multiple-Events-In-Flight (method for splitting events into different tasks)
 - MP: Multi-Processing
+- MTV: MultiTrackValidator
 - N^2: Local seed cleaning algorithm developed by Mario and Slava
 - PR: Pull Request
 - Reco: Reconstruction
