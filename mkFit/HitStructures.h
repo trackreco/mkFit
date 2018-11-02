@@ -36,7 +36,7 @@ typedef tbb::concurrent_vector<TripletIdx> TripletIdxConVec;
 // Need a good "array of pods" class with aligned alloc and automatic growth.
 // For now just implement the no-resize / no-destroy basics in the BoH.
 
-typedef std::pair<int, int> PhiBinInfo_t;
+typedef std::pair<uint16_t, uint16_t> PhiBinInfo_t;
 
 typedef std::vector<PhiBinInfo_t> vecPhiBinInfo_t;
 
@@ -127,7 +127,13 @@ public:
 
   // Testing bin filling
   static constexpr float m_fphi     = Config::m_nphi / Config::TwoPI;
-  static constexpr int   m_phi_mask = 0x3ff;
+  static constexpr int   m_phi_mask = 0x7f;
+  static constexpr int   m_phi_bits = 7;
+  static constexpr float m_fphi_fine     =  1024 / Config::TwoPI;
+  static constexpr int   m_phi_mask_fine = 0x3ff;
+  static constexpr int   m_phi_bits_fine = 10;//can't be more than 16
+  static constexpr int   m_phi_bits_shift = m_phi_bits_fine - m_phi_bits;
+  static constexpr int   m_phi_fine_mask = ~((1 << m_phi_bits_shift) - 1);
 
 protected:
 
@@ -150,14 +156,14 @@ protected:
     _mm_free(m_hits);
   }
 
-  void set_phi_bin(int q_bin, int phi_bin, int &hit_count, int &hits_in_bin)
+  void set_phi_bin(int q_bin, int phi_bin, uint16_t &hit_count, uint16_t &hits_in_bin)
   {
     m_phi_bin_infos[q_bin][phi_bin] = { hit_count, hit_count + hits_in_bin };
     hit_count  += hits_in_bin;
     hits_in_bin = 0;
   }
 
-  void empty_phi_bins(int q_bin, int phi_bin_1, int phi_bin_2, int hit_count)
+  void empty_phi_bins(int q_bin, int phi_bin_1, int phi_bin_2, uint16_t hit_count)
   {
     for (int pb = phi_bin_1; pb < phi_bin_2; ++pb)
     {
@@ -165,7 +171,7 @@ protected:
     }
   }
 
-  void empty_q_bins(int q_bin_1, int q_bin_2, int hit_count)
+  void empty_q_bins(int q_bin_1, int q_bin_2, uint16_t hit_count)
   {
     for (int qb = q_bin_1; qb < q_bin_2; ++qb)
     {
@@ -191,8 +197,9 @@ public:
 
   int   GetQBinChecked(float q) const { int qb = GetQBin(q); if (qb < 0) qb = 0; else if (qb >= m_nq) qb = m_nq - 1; return qb; }
 
-  // If you don't pass phi in (-pi, +pi), mask away the upper bits using m_phi_mask or use the Checked version.
-  int   GetPhiBin(float phi) const { return std::floor(m_fphi * (phi + Config::PI)); }
+  // if you don't pass phi in (-pi, +pi), mask away the upper bits using m_phi_mask or use the Checked version.
+  int   GetPhiBinFine(float phi) const { return std::floor(m_fphi_fine * (phi + Config::PI)); }
+  int   GetPhiBin(float phi) const { return GetPhiBinFine(phi)>>m_phi_bits_shift; }
 
   int   GetPhiBinChecked(float phi) const { return GetPhiBin(phi) & m_phi_mask; }
 

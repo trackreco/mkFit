@@ -89,42 +89,44 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
   {
     float phi;
     float q;
-    int   qbin;
+    uint16_t   qbin;
+    uint16_t   phibin;
   };
 
   std::vector<HitInfo> ha(size);
-  std::vector<int>     qc(m_nq, 0);
+  std::vector<udword>     hit_qphiFines(size);
+  
   int nqh = m_nq / 2;
   {
-    int i = 0;
-    for (auto const &h : hitv)
+    for (int i =0; i < size; ++i)
     {
+      auto const& h = hitv[i];
+      
       HitInfo &hi = ha[i];
       // N.1.a For phi in [-pi, pi): squashPhiMinimal(h.phi()); Apparently atan2 can round the wrong way.
       hi.phi  = h.phi();
       hi.q    = is_brl ? h.z() : h.r();
       hi.qbin = std::max(std::min(static_cast<int>((hi.q - m_qmin) * m_fq), m_nq - 1), 0);
-      m_hit_phis[i] = hi.phi + 6.3f * (hi.qbin - nqh);
-      ++qc[hi.qbin];
-      ++i;
-    }
+      // N.1.b ha[j].phi is returned by atan2 and can be rounded the wrong way, resulting in bin -1 or Config::m_nphi
+      hi.phibin = GetPhiBin(hi.phi) & m_phi_mask;
+      hit_qphiFines[i] = GetPhiBinFine(hi.phi) + (hi.qbin << 16);
+    }//i < size
   }
 
   RadixSort sort;
-  sort.Sort(&m_hit_phis[0], size);
+  sort.Sort(&hit_qphiFines[0], size);
 
-  int curr_q_bin   = 0;
-  int curr_phi_bin = 0;
-  int hits_in_bin  = 0;
-  int hit_count    = 0;
+  int curr_qphi    = -1;
+  empty_q_bins(0, m_nq, 0);
 
-  for (int i = 0; i < size; ++i)
+  for (uint16_t i = 0; i < size; ++i)
   {
     int j = sort.GetRanks()[i];
 
     // XXXX MT: Endcap has special check - try to get rid of this!
     // Also, WTF ... this brings in holes as pos i is not filled.
     // If this stays I need i_offset variable.
+    /* UNCOMMENT FOR DEBUGS??
     if ( ! is_brl && (hitv[j].r() > m_qmax || hitv[j].r() < m_qmin))
     {
       printf("LayerOfHits::SuckInHits WARNING hit out of r boundary of disk\n"
@@ -134,6 +136,7 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
       // --m_size;
       // continue;
     }
+    */
 
     // Could fix the mis-sorts. Set ha size to size + 1 and fake last entry to avoid ifs.
 
@@ -144,40 +147,20 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
       m_hit_qs  [i] = ha[j].q;
     }
 
+    const int phi_bin = ha[j].phibin;
+    const int q_bin = ha[j].qbin;
+
     // Fill the bin info
-
-    if (ha[j].qbin != curr_q_bin)
+    const int jqphi = hit_qphiFines[j] & m_phi_fine_mask;
+    if (jqphi != curr_qphi)
     {
-      set_phi_bin(curr_q_bin, curr_phi_bin, hit_count, hits_in_bin);
-
-      empty_phi_bins(curr_q_bin, curr_phi_bin + 1, Config::m_nphi, hit_count);
-
-      empty_q_bins(curr_q_bin + 1, ha[j].qbin, hit_count);
-
-      curr_q_bin = ha[j].qbin;
-      curr_phi_bin = 0;
+      m_phi_bin_infos[q_bin][phi_bin] = {i, i};
+      curr_qphi = jqphi;
     }
 
-    // N.1.b ha[j].phi is returned by atan2 and can be rounded the wrong way, resulting in bin -1 or Config::m_nphi
-    int phi_bin = clamp(GetPhiBin(ha[j].phi), 0, Config::m_nphi - 1);
-
-    if (phi_bin > curr_phi_bin)
-    {
-      set_phi_bin(curr_q_bin, curr_phi_bin, hit_count, hits_in_bin);
-
-      empty_phi_bins(curr_q_bin, curr_phi_bin + 1, phi_bin, hit_count);
-
-      curr_phi_bin = phi_bin;
-    }
-
-    ++hits_in_bin;
+    m_phi_bin_infos[q_bin][phi_bin].second++;
   }
 
-  set_phi_bin(curr_q_bin, curr_phi_bin, hit_count, hits_in_bin);
-
-  empty_phi_bins(curr_q_bin, curr_phi_bin + 1, Config::m_nphi, hit_count);
-
-  empty_q_bins(curr_q_bin + 1, m_nq, hit_count);
 
   // Check for mis-sorts due to lost precision (not really important).
   // float phi_prev = 0;
@@ -246,7 +229,7 @@ void LayerOfHits::SelectHitIndices(float q, float phi, float dq, float dphi, std
     {
       int pb = pi & m_phi_mask;
 
-      for (int hi = m_phi_bin_infos[qi][pb].first; hi < m_phi_bin_infos[qi][pb].second; ++hi)
+      for (uint16_t hi = m_phi_bin_infos[qi][pb].first; hi < m_phi_bin_infos[qi][pb].second; ++hi)
       {
         // Here could enforce some furhter selection on hits
 	if (Config::usePhiQArrays)

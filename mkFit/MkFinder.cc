@@ -362,29 +362,33 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
         // and issue prefetches at the same time.
         // Then enter vectorized loop to actually collect the hits in proper order.
 
-        for (int hi = L.m_phi_bin_infos[qi][pb].first; hi < L.m_phi_bin_infos[qi][pb].second; ++hi)
+        //SK: ~20x1024 bin sizes give mostly 1 hit per bin. Commented out for 128 bins or less
+        // #pragma nounroll
+        for (uint16_t hi = L.m_phi_bin_infos[qi][pb].first; hi < L.m_phi_bin_infos[qi][pb].second; ++hi)
         {
           // MT: Access into m_hit_zs and m_hit_phis is 1% run-time each.
 
 	  if (Config::usePhiQArrays)
 	  {
-	    const float ddq   =       std::abs(q   - L.m_hit_qs[hi]);
-	    const float ddphi = cdist(std::abs(phi - L.m_hit_phis[hi]));
+            if (XHitSize[itrack] >= MPlexHitIdxMax) continue;
 
-	    dprintf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
-		    qi, pi, pb, hi,
-		    L.m_hit_qs[hi], L.m_hit_phis[hi], ddq, ddphi,
-		    (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
-
+            const float ddq   =       std::abs(q   - L.m_hit_qs[hi]);
+            const float ddphi = cdist(std::abs(phi - L.m_hit_phis[hi]));
+            
+            dprintf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
+                    qi, pi, pb, hi,
+                    L.m_hit_qs[hi], L.m_hit_phis[hi], ddq, ddphi,
+                    (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
+            
             // MT: Removing extra check gives full efficiency ...
             //     and means our error estimations are wrong!
             // Avi says we should have *minimal* search windows per layer.
             // Also ... if bins are sufficiently small, we do not need the extra
             // checks, see above.
-	    if (XHitSize[itrack] < MPlexHitIdxMax && ddq < dq && ddphi < dphi)
-	    {
-	      XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
-	    }
+            if (ddq < dq && ddphi < dphi)
+            {
+              XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
+            }
 	  }
 	  else
 	  {
@@ -395,10 +399,10 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 	      XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
 	    }
 	  }
-        }
-      }
-    }
-  }
+        }//for (uint16_t hi =
+      }//pi
+    }//qi
+  }//itrack
 }
 
 

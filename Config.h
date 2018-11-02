@@ -162,7 +162,7 @@ namespace Config
   extern float XigridME[Config::nBinsZME][Config::nBinsRME];
 
   // This will become layer dependent (in bits). To be consistent with min_dphi.
-  static constexpr int m_nphi = 1024;
+  static constexpr int m_nphi = 128;
 
   // config on Event
   extern    float chi2Cut; // default: 15; cmssw: 30 (set in TrackerInfo plugin)
@@ -251,7 +251,11 @@ namespace Config
   // Speed-wise, those arrays (filling AND access, about half each) cost 1.5%
   // and could help us reduce the number of hits we need to process with bigger
   // potential gains.
+#ifdef CONFIG_PhiQArrays
   extern bool usePhiQArrays;
+#else
+  constexpr bool usePhiQArrays = true;
+#endif
 
   // Config for seeding as well... needed bfield
   constexpr float maxCurvR = (100 * minSimPt) / (sol * Bfield); // in cm

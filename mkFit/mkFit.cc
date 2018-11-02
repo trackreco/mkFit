@@ -940,7 +940,11 @@ int main(int argc, const char *argv[])
     }
     else if (*i == "--use-phiq-arr")
     {
+#ifdef CONFIG_PhiQArrays
       Config::usePhiQArrays = true;
+#else
+      printf("--use-phiq-arr has no effect: recompile with CONFIG_PhiQArrays\n");
+#endif
     }
     else if(*i == "--kludge-cms-hit-errors")
     {
