@@ -2025,10 +2025,10 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
           src_i->setCandScore(getScoreCand(*src_i));
           dest_i->setCandScore(getScoreCand(*dest_i));
           while (dest_i != dest_e && sortCandByScore(*dest_i, *src_i)) 
-	  {
-	    ++dest_i;
-	    dest_i->setCandScore(getScoreCand(*dest_i));
-	  }
+          {
+            ++dest_i;
+            dest_i->setCandScore(getScoreCand(*dest_i));
+          }
           if (dest_i != dest_e)
           {
             *dest_i = *src_i;
