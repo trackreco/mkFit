@@ -2022,10 +2022,9 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
         int cnt = 0;
         while (dest_i != dest_e && src_i != src_e)
         {
-          //while (dest_i != dest_e && sortCandByHitsChi2(*dest_i, *src_i)) ++dest_i;
-	  src_i->setCandScore(getScoreCand(*src_i));
-	  dest_i->setCandScore(getScoreCand(*dest_i));
-	  while (dest_i != dest_e && sortCandByScore(*dest_i, *src_i)) 
+          src_i->setCandScore(getScoreCand(*src_i));
+          dest_i->setCandScore(getScoreCand(*dest_i));
+          while (dest_i != dest_e && sortCandByScore(*dest_i, *src_i)) 
 	    {
 	      ++dest_i;
 	      dest_i->setCandScore(getScoreCand(*dest_i));
