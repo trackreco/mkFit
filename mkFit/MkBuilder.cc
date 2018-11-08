@@ -2001,7 +2001,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
       {
         dprintf("Extra layer %d start_seed %d, is %d, N=%d  (orig size = %d) -- ",
                 curr_layer, start_seed, is, (int) extra_cands[is].size(), (int) eoccs.m_candidates[start_seed + is].size());
-	
+
         //std::sort(extra_cands[is].begin(), extra_cands[is].end(), sortCandByHitsChi2);
         std::sort(extra_cands[is].begin(), extra_cands[is].end(), sortCandByScore);
 
@@ -2021,14 +2021,14 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 
         int cnt = 0;
         while (dest_i != dest_e && src_i != src_e)
-        {
-          src_i->setCandScore(getScoreCand(*src_i));
-          dest_i->setCandScore(getScoreCand(*dest_i));
-          while (dest_i != dest_e && sortCandByScore(*dest_i, *src_i)) 
-	    {
-	      ++dest_i;
-	      dest_i->setCandScore(getScoreCand(*dest_i));
-	    }
+	{
+	  src_i->setCandScore(getScoreCand(*src_i));
+	  dest_i->setCandScore(getScoreCand(*dest_i));
+	  while (dest_i != dest_e && sortCandByScore(*dest_i, *src_i)) 
+	  {
+	    ++dest_i;
+	    dest_i->setCandScore(getScoreCand(*dest_i));
+	  }
           if (dest_i != dest_e)
           {
             *dest_i = *src_i;
