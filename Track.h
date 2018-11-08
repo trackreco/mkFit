@@ -35,6 +35,7 @@ public:
   unsigned int seedrange; // seed range idx (used for sorting)
   float pt;   // pt (used for sorting)
   float chi2;   // total chi2 (used for sorting)
+  float score; // score used for candidate ranking
 };
  
 struct ReducedTrack // used for cmssw reco track validation
@@ -340,11 +341,15 @@ public:
   void setNFoundHits(int nHits) { nFoundHits_ = nHits; }
   void setNTotalHits(int nHits) { lastHitIdx_ = nHits - 1; }
 
+  void setCandScore(float score) { candScore_ = score; }
+
   CUDA_CALLABLE
   void resetHits() { lastHitIdx_ = -1; nFoundHits_ =  0; }
 
   CUDA_CALLABLE int  nFoundHits() const { return nFoundHits_; }
   CUDA_CALLABLE int  nTotalHits() const { return lastHitIdx_+1; }
+
+  float candScore() const { return candScore_; }
 
   int nStoredFoundHits() const
   {
@@ -475,6 +480,7 @@ private:
   Status        status_;
   int           label_      = -1;
   HitOnTrack    hitsOnTrk_[Config::nMaxTrkHits];
+  float         candScore_  = 0.;
 };
 
 typedef std::vector<Track>    TrackVec;
@@ -485,60 +491,68 @@ inline bool sortByHitsChi2(const Track & cand1, const Track & cand2)
   if (cand1.nFoundHits()==cand2.nFoundHits()) return cand1.chi2()<cand2.chi2();
   return cand1.nFoundHits()>cand2.nFoundHits();
 }
- 
-inline bool sortByScoreLoop(const unsigned int seedrange[2],
-			    const int nfoundhits[2], 
-			    const int nmisshits[2], 
-			    const float chi2[2],
-			    const float pt[2])
-{
-  float score[2] = {0.f,0.f};
-  for(int c=0; c<2; ++c){ 
-    // For high pT central tracks: double valid hit bonus
-    if(seedrange[c]==1){
-      score[c] = (Config::validHitBonus_*2.0f)*nfoundhits[c] - Config::missingHitPenalty_*nmisshits[c] - chi2[c];
-      if(pt[c]<0.9f) score[c] -= 0.5f*(Config::validHitBonus_*2.0f)*nfoundhits[c];
-      else if(nfoundhits[c]>8) score[c] += (Config::validHitBonus_*2.0f)*nfoundhits[c];
-    }
-    // For low pT endcap tracks: half valid hit bonus & half missing hit penalty
-    else if(seedrange[c]==2){
-      score[c] = (Config::validHitBonus_*0.5f)*nfoundhits[c] - (Config::missingHitPenalty_*0.5f)*nmisshits[c] - chi2[c];
-      if(pt[c]<0.9f) score[c] -= 0.5f*(Config::validHitBonus_*0.5f)*nfoundhits[c];
-      else if(nfoundhits[c]>8) score[c] += (Config::validHitBonus_*0.5f)*nfoundhits[c];
-    }
-    // For all other tracks: unchanged cmssw bonus and penalty
-    else{
-      score[c] = Config::validHitBonus_*nfoundhits[c] - Config::missingHitPenalty_*nmisshits[c] - chi2[c];
-      if(pt[c]<0.9f) score[c] -= 0.5f*Config::validHitBonus_*nfoundhits[c];
-      else if(nfoundhits[c]>8) score[c] += Config::validHitBonus_*nfoundhits[c];
-    }
-  }
-  return score[0]>score[1];
-}
 
-inline bool sortByScoreCand(const Track& cand1, const Track& cand2)
+inline bool sortByScoreCand(const Track & cand1, const Track & cand2)
 {
-  unsigned int seedrange[2] = {cand1.getSeedRangeForRanking(),cand2.getSeedRangeForRanking()};
-  int nfoundhits[2] = {cand1.nFoundHits(),cand2.nFoundHits()};
-  int nmisshits[2] = {cand1.nTotalHits()-cand1.nFoundHits(),cand2.nTotalHits()-cand2.nFoundHits()};
-  float chi2[2] = {cand1.chi2(),cand2.chi2()};
-  float pt[2] = {cand1.pT(),cand2.pT()};
-  return sortByScoreLoop(seedrange,nfoundhits,nmisshits,chi2,pt);
+  return cand1.candScore() > cand2.candScore();
 }
 
 inline bool sortByScoreStruct(const IdxChi2List& cand1, const IdxChi2List& cand2)
 {
-  unsigned int seedrange[2] = {cand1.seedrange,cand2.seedrange};
-  int nfoundhits[2] = {cand1.nhits,cand2.nhits};
-  int nmisshits[2] = {cand1.nholes,cand2.nholes};
-  float chi2[2] = {cand1.chi2,cand2.chi2};
-  float pt[2] = {cand1.pt,cand2.pt};
-  return sortByScoreLoop(seedrange,nfoundhits,nmisshits,chi2,pt);
+  return cand1.score > cand2.score;
 }
 
 inline bool sortByScoreCandPair(const std::pair<Track, TrackState>& cand1, const std::pair<Track, TrackState>& cand2)
 {
   return sortByScoreCand(cand1.first,cand2.first);
+}
+
+inline float getScoreCalc(const unsigned int seedrange,
+			  const int nfoundhits, 
+			  const int nmisshits, 
+			  const float chi2,
+			  const float pt)
+{
+  float score = 0.f; 
+  // For high pT central tracks: double valid hit bonus
+  if(seedrange==1){
+    score = (Config::validHitBonus_*2.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
+    if(pt<0.9f) score -= 0.5f*(Config::validHitBonus_*2.0f)*nfoundhits;
+    else if(nfoundhits>8) score += (Config::validHitBonus_*2.0f)*nfoundhits;
+  }
+  // For low pT endcap tracks: half valid hit bonus & half missing hit penalty
+  else if(seedrange==2){
+    score = (Config::validHitBonus_*0.5f)*nfoundhits - (Config::missingHitPenalty_*0.5f)*nmisshits - chi2;
+    if(pt<0.9f) score -= 0.5f*(Config::validHitBonus_*0.5f)*nfoundhits;
+    else if(nfoundhits>8) score += (Config::validHitBonus_*0.5f)*nfoundhits;
+  }
+  // For all other tracks: unchanged cmssw bonus and penalty
+  else{
+    score = Config::validHitBonus_*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
+    if(pt<0.9f) score -= 0.5f*Config::validHitBonus_*nfoundhits;
+    else if(nfoundhits>8) score += Config::validHitBonus_*nfoundhits;
+  }
+  return score;
+}
+
+inline float getScoreCand(const Track& cand1)
+{
+  unsigned int seedrange = cand1.getSeedRangeForRanking();
+  int nfoundhits = cand1.nFoundHits();
+  int nmisshits = cand1.nTotalHits()-cand1.nFoundHits();
+  float chi2 = cand1.chi2();
+  float pt = cand1.pT();
+  return getScoreCalc(seedrange,nfoundhits,nmisshits,chi2,pt);
+}
+
+inline float getScoreStruct(const IdxChi2List& cand1)
+{
+  unsigned int seedrange = cand1.seedrange;
+  int nfoundhits = cand1.nhits;
+  int nmisshits = cand1.nholes;
+  float chi2 = cand1.chi2;
+  float pt = cand1.pt;
+  return getScoreCalc(seedrange,nfoundhits,nmisshits,chi2,pt);
 }
 
 
