@@ -7,10 +7,14 @@
 2) How to checkout the code
 3) How to run the code
 4) How to make changes to the main development branch
-5) How to run the benchmarking and validation suite
+5) The benchmark and validation suite
    1) Running the main script
    2) Some (must read) advice on benchmarking
    3) (Optional) Using additional scripts to display plots on the web
+   4) Interpretting the results
+      1) Benchmark results
+      2) Validation results
+      3) Other plots
 6) Submit an issue
 7) Condensed description of code
 8) Other helpful README's in the repository
@@ -41,9 +45,15 @@
 - **lnx4108.classe.cornell.edu**: [Intel Xeon Silver 4116 Processor](https://ark.intel.com/products/120481/Intel-Xeon-Silver-4116-Processor-16_5M-Cache-2_10-GHz) _Skylake Scalable Performance_ (referred to as SKL-Ag, SKL-SP, lnx4108)
 - **GPUs**: to be filled out
 
-phi1, phi2, and phi3 are all managed across a virtual login server and therefore the home user spaces are shared. phi1, phi2, phi3, and lnx4108 also have /cvmfs mounted so you can source the environment needed to run the code. 
+phi1, phi2, and phi3 are all managed across a virtual login server and therefore the home user spaces are shared. phi1, phi2, phi3, and lnx4108 also have /cvmfs mounted so you can source the environment needed to run the code.
 
 The main development platform is phi3. This is the recommended machine for beginning development and testing. Login into any of the machines is achieved through ```ssh -X -Y <phi username>@phi<N>.t2.ucsd.edu```. It is recommended that you setup ssh key forwarding on your local machine so as to avoid typing in your password with every login, and more importantly, to avoid typing your password during the benchmarking (see Section 10.ii.b).
+
+**Extra platform configuration information**
+- phi1 has two identical Xeons as part of that machine
+- phi1 and phi2 both have TurboBoost disabled, while it is enabled on phi3
+
+For further info on the configuration of each machine, use your favorite text file viewer to peruse the files ```/proc/cpuinfo``` and ```/proc/meminfo``` on each machine.
 
 ## Section 2: How to checkout the code
 
@@ -125,13 +135,17 @@ Below are some rules and procedures on how to submit changes to the main develop
    7. Follow up on review comments! After pushing new commits to your branch, repeat big steps 5 and 6 (i.e. test locally and re-run the validation). Post a comment to the PR with the new plots.
    8. Once given the green light, you can hit "Merge Pull Request", or ask someone else to do it.
 
-## Section 5: How to run the benchmark and validation suite
+## Section 5: The benchmark and validation suite
 
-Notes on nomenclature:
+**Notes on nomenclature**
 - "benchmark": these are the compute performance tests (i.e. time and speedup)
 - "validation": these are the physics performance tests (i.e. track-finding efficiency, fake rate, etc.)
 
 We often use these words interchangibly to refer to the set of benchmark and validation tests as a single suite. So if you are asked to "run the benchmarking" or "run the validation": please run the full suite (unless specifically stated to run one or the other). In fact, the main scripts that run the full suite use "benchmark" in their name, even though they may refer to both the running of the compute and physics performance tests and plot comparisons.
+
+**Notes on samples**
+
+Currently, the full benchmark and validation suite uses simulated event data from CMSSW for ttbar events with an average 70 pileup collisions per event. The binary file has over 5000 events to be used for high statistics testing of time performance. There also exists samples with lower number of events for plain ttbar no pileup and ttbar + 30 pileup, used to measure the effects on physics performance when adding more complexity. Lastly, there also exists a sample for muon-gun events: 10 muons per event with no pileup. The muon-gun sample is used to show physics performance in a very clean detector environment. All of these samples are replicated on disk on all three platforms to make time measurements as repeatable and representative as possible. 
 
 ### Section 5.i: Running the main script
 
@@ -170,7 +184,7 @@ Within the main ```xeon_scripts/runBenchmark.sh``` script, there are two other s
 ./plotting/textDumpPlots.sh ${suite}
 ```
 
-The first will produce the time and speedup plots, while the second produces distributions of basic kinematic quantites of the candidate track collections, comparing the results across the different platforms and different number of vector units and threads. Ideally, in plots from the second script, the distributions should have all points lie on top of each other: there should be no dependency on platform or parallelization/vectorization setting for a specific track-finding routine.
+The first will produce the time and speedup plots, while the second produces distributions of basic kinematic quantites of the candidate track collections, comparing the results across the different platforms and different number of vector units and threads.
 
 The main physics performance script that is run is:
 
@@ -189,6 +203,8 @@ It should be mentioned that each of these scripts within ```./xeon_scripts/runBe
 2. Before launching any tests, make sure the machines are quiet: we don't want to disturb someone who already is testing! Tests from different users at the same time will also skew the results of your own tests as the scripts make use of the full resources available on each platform at various points. 
 
 3. Please run the full suite from phi3 with a clean login: make sure nothing has been sourced to set up the environment. The main script (as well as the called subscripts) will set the environment and some common variables shared between all subscripts by sourcing two scripts:
+
+4. Check the logs! A log with standard out and error is generated for each test launched. If a plot is empty, check the log corresponding to the test point that failed as this will be the first place to say where and how the test died (hopefully with a somewhat useful stack trace). If you are sure you are not responsible for the crash, email the group listserv to see if anyone else has experienced the issue (attaching the log file(s) for reference). If it cannot be resolved via email, it will be promoted to the a GH Issue.
 
 ```
 source xeon_scripts/init-env.sh
@@ -214,6 +230,76 @@ Lastly, the option ```${afs_or_eos}``` takes either of the following arguments: 
 1. There is a script: ```./xeon_scripts/trashSKL-SP.sh``` that is run at the very end of the ```./web/move-benchmarks.sh``` script that will delete log files, pngs, validation directories, root files, and the neat directory created to house all the validation plots.  This means that if the scp fails, the plots will still be deleted locally, and you will be forced to re-run the whole suite!!  You can of course comment this script out if this bothers you.
 
 2. ```web/tarAndSendToLXPLUS.sh``` has a number of pieces that execute code on LXPLUS, which includes executing scripts to copy ```web/index.php``` removing the copied over tarball of plots. If you are uncomfortable with this, you can comment it out.
+
+### Section 5.iv: Interpretting the results
+
+This section provides a brief overview in how to interpret the plots and logs from the tests that produced them. This section assumes the plots were organized with the ```web/collectBenchmarks.sh``` script.
+
+#### Section 5.iv.a: Benchmark results
+
+The "main" benchmark plots are organized into two folders:
+- Benchmarks: Will contain plots of the form ```${ben_arch}_CMSSW_TTbar_PU70_${ben_test}_${ben_trend}```
+- MultEvInFlight: Will contain plots of the form ```${ben_arch}_CMSSW_TTbar_PU70_MEIF_${ben_trend}```
+
+where the variables in the plot names are:  
+- ```${ben_arch}```: SNB (phi1 results), KNL (phi2 results), or SKL (phi3 results)
+- ```${ben_test}```: VU (vectorization) or TH (multithreaded)
+- ```${ben_trend}```: time or speedup, i.e. the y-axis points
+
+The plots in "Benchmarks" measure the time of the building sections only. These tests run over 20 events total, taking the average to measure the per event time for each building section. We discard the first event's time when computing the timing. The logs used for extracting the time information into plots are of the form: ```log_${ben_arch}_CMSSW_TTbar_PU70_${build}_NVU${nVU}_NTH${nTH}.txt```, where ```${build}``` is the building routine tested. 
+
+The plots in "MultEvInFlight" measure the perfomance of the full event loop time which includes I/O, seed cleaning, etc. These tests run over 20 events times the number of events in flight. The time plotted is the total time for all events divided by the number of events.
+
+The points in the speedup plots are simply produced by dividing the first point by each point in the trend. The ideal scaling line assumes that with an N increase in resources, the speedup is then N, i.e. the code is fully vectorized and parallelized with no stalls from memory bandwidth, latency, cache misses, etc. Ideal scaling also assumes no penalty from dynamic frequency scaling. Intel lowers the base and turbo frequency as a function of the occupancy of the number of cores, which can make speedup plots look much worse than they really are. In addition, different instruction sets have different base and turbo frequency settings. Namely, SSE has the highest settings, while AVX512 has the lowest.
+
+The "VU" tests measure the performance of the building sections as a function of the vector width. The vector width is of course a constant measure in bits in the VPU hardware: for the tests, we are simply instructing the compiler to only use so many floats. So at VU=1, the code is serial as we force the compiler to only process one float per cycle with the VPU, while at VU=16 on SKL, the code is fully vectorized and the VPU can be fully loaded with 16 floats to process. The vectorization tests only use a single thread. There is an additional point at the VU=N_max (SNB: 8, KNL, SKL: 16) with an open dot: this is a measure of the vectorization using intrinsics. 
+
+The "TH" tests measure the performance of the building sections as a function of the number of threads launched. These tests have vectorization fully enabled with instrinsics. It should be noted that we do not account for frequency scaling in the speedup plots.
+
+The building section has sections of codes that are inherently serial (hit chi2 comparisons, copying tracks, etc.), so the vectorization and parallelization is not perfect. However, it is important to consider the effect of [Amdahl's Law](https://en.wikipedia.org/wiki/Amdahl%27s_law). Amdahl's law can be rewritten as:
+```
+    1-1/S
+p = -----
+    1-1/R
+```
+
+where, ```p``` is the fraction of the code that is vectorized/parallelized, ```S``` is the measured speedup, and ```R``` is the amount of speedup from increased resources. For example, SKL clocks in at about a factor of three in speedup for vectorization when fully vectorized (i.e. nVU=16), which suggests the code is 70% vectorized. Of course, this assumes no issues with memory bandwidth, cache misses, etc. 
+
+We have seen that moving from nVU=1 to nVU=2 the improvement is minimal (and sometimes a loss in performance). We have speculated that this is due to compiler trickery using serial instructions (i.e. SSE) versus AVX(2,512). Due to the higher base and turbo frequencies set for SSE vs. AVX, it is possible the decrease in frequency when moving to a higher vector utilization hurts more than it helps. 
+
+Lastly, it is important to consider the effects of hyperthreading in the "TH" tests. At nTH=number of cores, we typically see a clear discontinuation in the slope. This is likely due to resource contention as two threads now share the same cache.
+
+#### Section 5.iv.b: Validation results
+
+The physics validation results are organized into two directories:
+- SimVal: SimTracks are used as the reference set of tracks
+- CMSSWVal: CMSSW tracks are used as the reference set of tracks
+
+Three different matching criteria are used for making associations between reconstructed tracks and reference tracks. Many of the details are enumerated in the validation manifesto, however, for simplicity, the main points are listed here. 
+
+- CMSSW tracks = "initial step" CMSSW tracks, after fitting in CMSSW (i.e. includes outlier rejection)
+- Reference tracks must satisfy:
+  - "Findable": require least 12 layers (including 4 seed layers)
+  - Sim tracks are required to have four hits that match a seed
+- To-be-validated reconstructed tracks must satisfy:
+  - "Good" tracks: require at least 10 layers
+  - If a mkFit track, 4 hits from seed are included in this 10
+  - If a CMSSW track, up to 4 hits are in included, as a seed hit may be missing from outlier rejection
+- Matching Criteria:
+  - SimVal: reco track is matched to a sim track if >= 50% of hits on reco track match hits from a single sim track, excluding hits from the seed
+  - CMSSWVal + Build Tracks: reco track is matched to a CMSSW track if >= 50% of hits on reco track match hits from a single CMSSW track, excluding hits from the seed. Given that CMSSW can produce duplicates (although very low), if a reco track matches more than one CMSSW track, the matching is set to the higher match percentage
+  - CMSSWVal + Fit Tracks: reco track is matched to a CMSSW track via a set of binned helix chi2 (track eta and track pT) and delta phi cuts
+- Fake = reco track NOT matching a ref. track, excluding matching to non-findable tracks
+- Figures of merit: 
+  - Efficiency = fraction of findable ref. tracks matched to a reco track
+  - Duplicate rate = fraction of matched ref. tracks with more than one match to a reco track
+  - Fake rate = fraction of "good" reco tracks without a match to a ref. track 
+
+There are text files within these directories that contain the average numbers for each of the figures of merit, which start with "totals\_\*.txt." In addition, these directories contain nHit plots, as well as kinematic difference plots for matched tracks. Best matched plots are for differences with matched reco tracks with the best track score if more than one reco track matches a ref. track. 
+
+#### Section 5.iv.c: Other plots
+
+The last set of plots to consider are those that produce some kinematic distributions from the text file logs, in the directory: "PlotsFromDump." The text files have nearly the same form as those for benchmarking, except they also have "DumpForPlots" at the very end. Ideally, the distributions should have all points lie on top of each other: there should be no dependency on platform or parallelization/vectorization setting for a specific track-finding routine. 
 
 ## Section 6: Submit an issue
 
@@ -583,6 +669,8 @@ and then enter your LXPLUS password. Kerberos will keep your ticket open for a f
 
 - AVX: Advanced Vector Extensions [flavors of AVX: AVX, AVX2, AVX512]
 - BH: Best Hit (building routine that selects only the best hit per layer when performing track building)
+- BkFit: (B)ac(k)wards Fit, i.e. perform a KF fit backwards from the last layer on the track to the first layer / PCA
+- BS: Beamspot (i.e. the luminous region of interactions)
 - CCC: Charge Cluster Cut, used to remove hits that come from out-of-time pileup
 - CE: Clone Engine (building routine that keeps N candidates per seed, performing the KF update after hits have been saved)
 - CMS: Compact Muon Solenoid
@@ -592,12 +680,15 @@ and then enter your LXPLUS password. Kerberos will keep your ticket open for a f
 - GH: GitHub
 - GPU: Graphical Processing Unit
 - GUI: Graphical User Interface
+- KF: Kalman Filter
 - KNC: Knights Corner (iteration of Xeon Phi prior to KNL, no longer used in this project)
 - KNL: Knights Landing
 - MEIF: Multiple-Events-In-Flight (method for splitting events into different tasks)
+- mkFit: (m)atriplex (k)alman filter (Fit)
 - MP: Multi-Processing
 - MTV: MultiTrackValidator
 - N^2: Local seed cleaning algorithm developed by Mario and Slava
+- PCA: Point of closest approach to either the origin or the BS
 - PR: Pull Request
 - Reco: Reconstruction
 - SimVal: SimTrack validation, use simtracks as reference set of tracks for association
