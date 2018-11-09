@@ -50,7 +50,7 @@ phi1, phi2, and phi3 are all managed across a virtual login server and therefore
 The main development platform is phi3. This is the recommended machine for beginning development and testing. Login into any of the machines is achieved through ```ssh -X -Y <phi username>@phi<N>.t2.ucsd.edu```. It is recommended that you setup ssh key forwarding on your local machine so as to avoid typing in your password with every login, and more importantly, to avoid typing your password during the benchmarking (see Section 10.ii.b).
 
 **Extra platform configuration information**
-- phi1 has two identical Xeons as part of that machine
+- phi1, phi3, and lnx4108 are dual socket machines and have two identical Xeons on each board
 - phi1 and phi2 both have TurboBoost disabled, while it is enabled on phi3
 
 For further info on the configuration of each machine, use your favorite text file viewer to peruse the files ```/proc/cpuinfo``` and ```/proc/meminfo``` on each machine.
@@ -243,31 +243,31 @@ The "main" benchmark plots are organized into two folders:
 
 where the variables in the plot names are:  
 - ```${ben_arch}```: SNB (phi1 results), KNL (phi2 results), or SKL (phi3 results)
-- ```${ben_test}```: VU (vectorization) or TH (multithreaded)
+- ```${ben_test}```: VU (vector units) or TH (threads)
 - ```${ben_trend}```: time or speedup, i.e. the y-axis points
 
 The plots in "Benchmarks" measure the time of the building sections only. These tests run over 20 events total, taking the average to measure the per event time for each building section. We discard the first event's time when computing the timing. The logs used for extracting the time information into plots are of the form: ```log_${ben_arch}_CMSSW_TTbar_PU70_${build}_NVU${nVU}_NTH${nTH}.txt```, where ```${build}``` is the building routine tested. 
 
 The plots in "MultEvInFlight" measure the perfomance of the full event loop time which includes I/O, seed cleaning, etc. These tests run over 20 events times the number of events in flight. The time plotted is the total time for all events divided by the number of events.
 
-The points in the speedup plots are simply produced by dividing the first point by each point in the trend. The ideal scaling line assumes that with an N increase in resources, the speedup is then N, i.e. the code is fully vectorized and parallelized with no stalls from memory bandwidth, latency, cache misses, etc. Ideal scaling also assumes no penalty from dynamic frequency scaling. Intel lowers the base and turbo frequency as a function of the occupancy of the number of cores, which can make speedup plots look much worse than they really are. In addition, different instruction sets have different base and turbo frequency settings. Namely, SSE has the highest settings, while AVX512 has the lowest.
+The points in the speedup plots are simply produced by dividing the first point by each point in the trend. The ideal scaling line assumes that with an N increase in resources, the speedup is then N, i.e. the code is fully vectorized and parallelized with no stalls from memory bandwidth, latency, cache misses, etc. Ideal scaling also assumes no penalty from [dynamic frequency scaling](https://en.wikichip.org/wiki/intel/frequency_behavior). Intel lowers the base and turbo frequency as a function of the occupancy of the number of cores, which can make speedup plots look much worse than they really are. In addition, different instruction sets have different base and turbo frequency settings. Namely, SSE has the highest settings, while AVX512 has the lowest.
 
 The "VU" tests measure the performance of the building sections as a function of the vector width. The vector width is of course a constant measure in bits in the VPU hardware: for the tests, we are simply instructing the compiler to only use so many floats. So at VU=1, the code is serial as we force the compiler to only process one float per cycle with the VPU, while at VU=16 on SKL, the code is fully vectorized and the VPU can be fully loaded with 16 floats to process. The vectorization tests only use a single thread. There is an additional point at the VU=N_max (SNB: 8, KNL, SKL: 16) with an open dot: this is a measure of the vectorization using intrinsics. 
 
 The "TH" tests measure the performance of the building sections as a function of the number of threads launched. These tests have vectorization fully enabled with instrinsics. It should be noted that we do not account for frequency scaling in the speedup plots.
 
-The building section has sections of codes that are inherently serial (hit chi2 comparisons, copying tracks, etc.), so the vectorization and parallelization is not perfect. However, it is important to consider the effect of [Amdahl's Law](https://en.wikipedia.org/wiki/Amdahl%27s_law). Amdahl's law can be rewritten as:
+The building section has sections of code that are inherently serial (hit chi2 comparisons, copying tracks, etc.), so the vectorization and parallelization is not perfect. However, it is important to consider the effect of [Amdahl's Law](https://en.wikipedia.org/wiki/Amdahl%27s_law). Amdahl's law can be rewritten as:
 ```
     1-1/S
 p = -----
     1-1/R
 ```
 
-where, ```p``` is the fraction of the code that is vectorized/parallelized, ```S``` is the measured speedup, and ```R``` is the amount of speedup from increased resources. For example, SKL clocks in at about a factor of three in speedup for vectorization when fully vectorized (i.e. nVU=16), which suggests the code is 70% vectorized. Of course, this assumes no issues with memory bandwidth, cache misses, etc. 
+where, ```p``` is the fraction of the code that is vectorized/parallelized, ```S``` is the measured speedup, and ```R``` is the amount of speedup from increased resources. For example, we have seen that SKL clocks in at about a factor of three in speedup (S=3) for vectorization when fully vectorized (i.e. nVU=R=16), which suggests the code is 70% vectorized. Of course, this assumes no issues with memory bandwidth, cache misses, etc.
+ 
+We have seen that moving from nVU=1 to nVU=2 the improvement is minimal (and sometimes a loss in performance). One hypothetical reason for this (yet unconfirmed) is that this is due to compiler trickery. Namely, the compiler may be figuring out it does not need to use more than one vector register in the nVU=1 tests, so it actually uses SSE as the instruction set, whereas for nVU>=2, it correctly uses AVX(2,512) as the instruction set uduring compilation. Due to the higher base and turbo frequencies set for SSE vs. AVX, it is possible the decrease in frequency when moving to a higher vector utilization hurts more than it helps.
 
-We have seen that moving from nVU=1 to nVU=2 the improvement is minimal (and sometimes a loss in performance). We have speculated that this is due to compiler trickery using serial instructions (i.e. SSE) versus AVX(2,512). Due to the higher base and turbo frequencies set for SSE vs. AVX, it is possible the decrease in frequency when moving to a higher vector utilization hurts more than it helps. 
-
-Lastly, it is important to consider the effects of hyperthreading in the "TH" tests. At nTH=number of cores, we typically see a clear discontinuation in the slope. This is likely due to resource contention as two threads now share the same cache.
+Lastly, it is important to consider the effects of hyperthreading in the "TH" tests. At nTH=number of cores, we typically see a clear discontinuation in the slope. The main hypothesis is that this is likely due to resource contention as two threads now share the same cache.
 
 #### Section 5.iv.b: Validation results
 
@@ -279,12 +279,12 @@ Three different matching criteria are used for making associations between recon
 
 - CMSSW tracks = "initial step" CMSSW tracks, after fitting in CMSSW (i.e. includes outlier rejection)
 - Reference tracks must satisfy:
-  - "Findable": require least 12 layers (including 4 seed layers)
+  - "Findable": require least 12 layers (includes 4 seed layers, so only 8 outside of the seed are required)
   - Sim tracks are required to have four hits that match a seed
 - To-be-validated reconstructed tracks must satisfy:
   - "Good" tracks: require at least 10 layers
-  - If a mkFit track, 4 hits from seed are included in this 10
-  - If a CMSSW track, up to 4 hits are in included, as a seed hit may be missing from outlier rejection
+  - If a mkFit track, 4 hits from seed are included in this 10. So, 6 additional hits must be found during building to be considered a "good" track.
+  - If a CMSSW track, up to 4 hits are in included, as a seed hit may be missing from outlier rejection. So, a CMSSW track may have to find more than 6 layers during building to be considered a "good" track, as some hits from the seed may have been removed.
 - Matching Criteria:
   - SimVal: reco track is matched to a sim track if >= 50% of hits on reco track match hits from a single sim track, excluding hits from the seed
   - CMSSWVal + Build Tracks: reco track is matched to a CMSSW track if >= 50% of hits on reco track match hits from a single CMSSW track, excluding hits from the seed. Given that CMSSW can produce duplicates (although very low), if a reco track matches more than one CMSSW track, the CMSSW track with the highest match percentage is chosen.
@@ -299,7 +299,9 @@ There are text files within these directories that contain the average numbers f
 
 #### Section 5.iv.c: Other plots
 
-The last set of plots to consider are those that produce some kinematic distributions from the text file logs, in the directory: "PlotsFromDump." The text files have nearly the same form as those for benchmarking, except they also have "DumpForPlots" at the very end. Ideally, the distributions should have all points lie on top of each other: there should be no dependency on platform or parallelization/vectorization setting for a specific track-finding routine. 
+The last set of plots to consider are those that produce some kinematic distributions from the text file logs, in the directory: "PlotsFromDump." The distributions compare for each building routine run during the benchmarking the differences across platform and vector + thread setup. Ideally, the distributions should have all points lie on top of each other: there should be no dependency on platform or parallelization/vectorization setting for a specific track-finding routine. The text files that produce these plots have nearly the same form as those for benchmarking, except they also have "DumpForPlots" at the very end.
+
+The subdirectory for "Diffs" in "PlotsFromDump" are kinematic difference plots between mkFit and CMSSW. The matching is simple: we compare mkFit to CMSSW tracks for those that share the exact same CMSSW seed (since we clean some seeds out and CMSSW does not produce a track for every seed as well). The printouts that produce the dump have info to compare to sim tracks using the standard 50% hit matching as done in the SimVal. However, we do not produce these plots as it is redundant to the diff plots already in the validation plots.
 
 ## Section 6: Submit an issue
 
@@ -694,6 +696,7 @@ and then enter your LXPLUS password. Kerberos will keep your ticket open for a f
 - SimVal: SimTrack validation, use simtracks as reference set of tracks for association
 - SKL-SP: Skylake Scalable Performance
 - SNB: Sandy Bridge
+- SSE: Streaming SIMD Extensions
 - STD: Standard (building routine, like Clone Engine, but performs KF update before hits are saved to a track)
 - TBB: (Intel) Threaded Building Blocks, open source library from Intel to perform tasks in a multithreaded environment
 - TH: Threads
