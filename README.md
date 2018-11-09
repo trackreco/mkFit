@@ -11,7 +11,7 @@
    1) Running the main script
    2) Some (must read) advice on benchmarking
    3) (Optional) Using additional scripts to display plots on the web
-   4) Interpretting the results
+   4) Interpreting the results
       1) Benchmark results
       2) Validation results
       3) Other plots
@@ -231,7 +231,7 @@ Lastly, the option ```${afs_or_eos}``` takes either of the following arguments: 
 
 2. ```web/tarAndSendToLXPLUS.sh``` has a number of pieces that execute code on LXPLUS, which includes executing scripts to copy ```web/index.php``` removing the copied over tarball of plots. If you are uncomfortable with this, you can comment it out.
 
-### Section 5.iv: Interpretting the results
+### Section 5.iv: Interpreting the results
 
 This section provides a brief overview in how to interpret the plots and logs from the tests that produced them. This section assumes the plots were organized with the ```web/collectBenchmarks.sh``` script.
 
@@ -287,7 +287,7 @@ Three different matching criteria are used for making associations between recon
   - If a CMSSW track, up to 4 hits are in included, as a seed hit may be missing from outlier rejection
 - Matching Criteria:
   - SimVal: reco track is matched to a sim track if >= 50% of hits on reco track match hits from a single sim track, excluding hits from the seed
-  - CMSSWVal + Build Tracks: reco track is matched to a CMSSW track if >= 50% of hits on reco track match hits from a single CMSSW track, excluding hits from the seed. Given that CMSSW can produce duplicates (although very low), if a reco track matches more than one CMSSW track, the matching is set to the higher match percentage
+  - CMSSWVal + Build Tracks: reco track is matched to a CMSSW track if >= 50% of hits on reco track match hits from a single CMSSW track, excluding hits from the seed. Given that CMSSW can produce duplicates (although very low), if a reco track matches more than one CMSSW track, the CMSSW track with the highest match percentage is chosen.
   - CMSSWVal + Fit Tracks: reco track is matched to a CMSSW track via a set of binned helix chi2 (track eta and track pT) and delta phi cuts
 - Fake = reco track NOT matching a ref. track, excluding matching to non-findable tracks
 - Figures of merit: 
