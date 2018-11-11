@@ -35,7 +35,7 @@ public:
   unsigned int seedrange; // seed range idx (used for sorting)
   float pt;   // pt (used for sorting)
   float chi2;   // total chi2 (used for sorting)
-  float score; // score used for candidate ranking
+  int score; // score used for candidate ranking
 };
  
 struct ReducedTrack // used for cmssw reco track validation
@@ -341,15 +341,11 @@ public:
   void setNFoundHits(int nHits) { nFoundHits_ = nHits; }
   void setNTotalHits(int nHits) { lastHitIdx_ = nHits - 1; }
 
-  void setCandScore(float score) { candScore_ = score; }
-
   CUDA_CALLABLE
   void resetHits() { lastHitIdx_ = -1; nFoundHits_ =  0; }
 
   CUDA_CALLABLE int  nFoundHits() const { return nFoundHits_; }
   CUDA_CALLABLE int  nTotalHits() const { return lastHitIdx_+1; }
-
-  float candScore() const { return candScore_; }
 
   int nStoredFoundHits() const
   {
@@ -432,11 +428,14 @@ public:
         bool has_non_stored_hits : 1;
 
 	// Seed range for candidate ranking: 
-        unsigned int seed_range : 3;
+        unsigned int seed_range : 2;
+
+	// Candidate score for ranking:
+	int cand_score : 13;
 
         // The rest, testing if mixing int and unsigned int is ok.
-        int          _some_free_bits_ : 8;
-        unsigned int _more_free_bits_ : 16;
+        int          _some_free_bits_ : 4;
+        unsigned int _more_free_bits_ : 8;
 
       };
 
@@ -460,6 +459,9 @@ public:
   void setSeedRangeForRanking(unsigned int r) { status_.seed_range = r; }
   unsigned int getSeedRangeForRanking() const { return status_.seed_range; }
 
+  void setCandScore(int r) { status_.cand_score = r; }
+  int getCandScore() const { return status_.cand_score; }
+
   enum class ProdType { NotSet = 0, Signal = 1, InTimePU = 2, OutOfTimePU = 3};
   ProdType prodType()  const { return ProdType(status_.prod_type); }
   void setProdType(ProdType ptyp) { status_.prod_type = static_cast<unsigned int>(ptyp); }
@@ -480,7 +482,6 @@ private:
   Status        status_;
   int           label_      = -1;
   HitOnTrack    hitsOnTrk_[Config::nMaxTrkHits];
-  float         candScore_  = 0.;
 };
 
 typedef std::vector<Track>    TrackVec;
@@ -494,7 +495,7 @@ inline bool sortByHitsChi2(const Track & cand1, const Track & cand2)
 
 inline bool sortByScoreCand(const Track & cand1, const Track & cand2)
 {
-  return cand1.candScore() > cand2.candScore();
+  return cand1.getCandScore() > cand2.getCandScore();
 }
 
 inline bool sortByScoreStruct(const IdxChi2List& cand1, const IdxChi2List& cand2)
@@ -507,35 +508,37 @@ inline bool sortByScoreCandPair(const std::pair<Track, TrackState>& cand1, const
   return sortByScoreCand(cand1.first,cand2.first);
 }
 
-inline float getScoreCalc(const unsigned int seedrange,
+inline int getScoreCalc(const unsigned int seedrange,
 			  const int nfoundhits, 
 			  const int nmisshits, 
 			  const float chi2,
 			  const float pt)
 {
-  float score = 0.f; 
+  int score = 0;
+  float score_ = 0.f;
   // For high pT central tracks: double valid hit bonus
   if(seedrange==1){
-    score = (Config::validHitBonus_*2.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
-    if(pt<0.9f) score -= 0.5f*(Config::validHitBonus_*2.0f)*nfoundhits;
-    else if(nfoundhits>8) score += (Config::validHitBonus_*2.0f)*nfoundhits;
+    score_ = (Config::validHitBonus_*2.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
+    if(pt<0.9f) score_ -= 0.5f*(Config::validHitBonus_*2.0f)*nfoundhits;
+    else if(nfoundhits>8) score_ += (Config::validHitBonus_*2.0f)*nfoundhits;
   }
   // For low pT endcap tracks: half valid hit bonus & half missing hit penalty
   else if(seedrange==2){
-    score = (Config::validHitBonus_*0.5f)*nfoundhits - (Config::missingHitPenalty_*0.5f)*nmisshits - chi2;
-    if(pt<0.9f) score -= 0.5f*(Config::validHitBonus_*0.5f)*nfoundhits;
-    else if(nfoundhits>8) score += (Config::validHitBonus_*0.5f)*nfoundhits;
+    score_ = (Config::validHitBonus_*0.5f)*nfoundhits - (Config::missingHitPenalty_*0.5f)*nmisshits - chi2;
+    if(pt<0.9f) score_ -= 0.5f*(Config::validHitBonus_*0.5f)*nfoundhits;
+    else if(nfoundhits>8) score_ += (Config::validHitBonus_*0.5f)*nfoundhits;
   }
   // For all other tracks: unchanged cmssw bonus and penalty
   else{
-    score = Config::validHitBonus_*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
-    if(pt<0.9f) score -= 0.5f*Config::validHitBonus_*nfoundhits;
-    else if(nfoundhits>8) score += Config::validHitBonus_*nfoundhits;
+    score_ = Config::validHitBonus_*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
+    if(pt<0.9f) score_ -= 0.5f*Config::validHitBonus_*nfoundhits;
+    else if(nfoundhits>8) score_ += Config::validHitBonus_*nfoundhits;
   }
+  score = (int)(floor(10.f * score_ + 0.5));
   return score;
 }
 
-inline float getScoreCand(const Track& cand1)
+inline int getScoreCand(const Track& cand1)
 {
   unsigned int seedrange = cand1.getSeedRangeForRanking();
   int nfoundhits = cand1.nFoundHits();
@@ -545,7 +548,7 @@ inline float getScoreCand(const Track& cand1)
   return getScoreCalc(seedrange,nfoundhits,nmisshits,chi2,pt);
 }
 
-inline float getScoreStruct(const IdxChi2List& cand1)
+inline int getScoreStruct(const IdxChi2List& cand1)
 {
   unsigned int seedrange = cand1.seedrange;
   int nfoundhits = cand1.nhits;
