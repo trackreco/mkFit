@@ -509,10 +509,10 @@ inline bool sortByScoreCandPair(const std::pair<Track, TrackState>& cand1, const
 }
 
 inline int getScoreCalc(const unsigned int seedrange,
-			  const int nfoundhits, 
-			  const int nmisshits, 
-			  const float chi2,
-			  const float pt)
+			const int nfoundhits, 
+			const int nmisshits, 
+			const float chi2,
+			const float pt)
 {
   int score = 0;
   float score_ = 0.f;
