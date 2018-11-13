@@ -674,7 +674,7 @@ int main(int argc, const char *argv[])
 	"                                    If a sim track is associated to a reco track, but it does not contain the last found on the reco track\n"
 	"                                    still save sim track kinematic info from generator position\n"
 	"                              b) ELSE (--read-simtrack-states is NOT enabled)\n"
-	"                                    Save sim track kinematic info grom generator position if matched to reco track\n"
+	"                                    Save sim track kinematic info from generator position if matched to reco track\n"
 	"\n----------------------------------------------------------------------------------------------------------\n\n"
 	"Combo spaghetti, that's with cole slaw:\n\n"
 	" **Building and fitting combo options\n"

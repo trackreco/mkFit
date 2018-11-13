@@ -674,16 +674,10 @@ namespace mkfit {
 void MkBuilder::assign_seedrange_forranking()
 {
   // Assign idx to determine seed range, for ranking
-  // 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
-  for(int ts=0; ts<=(int) m_event->seedTracks_.size(); ++ts){
-    if(m_event->seedTracks_[ts].pT()>2.0f && std::fabs(m_event->seedTracks_[ts].momEta())<1.5f)
-      m_event->seedTracks_[ts].setSeedRangeForRanking(1);
-    else if(m_event->seedTracks_[ts].pT()<0.9f && std::fabs(m_event->seedTracks_[ts].momEta())>=1.5f)
-      m_event->seedTracks_[ts].setSeedRangeForRanking(2);
-    else
-      m_event->seedTracks_[ts].setSeedRangeForRanking(3);
+  for (size_t ts = 0; ts < m_event->seedTracks_.size(); ++ts)
+  {
+    assignSeedRangeForRanking(m_event->seedTracks_[ts]);
   }
-
 }
 
 void MkBuilder::fit_seeds()
@@ -1125,6 +1119,9 @@ void MkBuilder::root_val()
   prep_recotracks();
   if (Config::cmssw_val) prep_cmsswtracks();
 
+  // score the seed tracks
+  score_tracks(m_event->seedTracks_);
+
   // validate
   m_event->Validate();
 }
@@ -1247,6 +1244,15 @@ void MkBuilder::prep_tracks(TrackVec& tracks, TrackExtraVec& extras, const bool 
     extras.emplace_back(tracks[i].label());
   }
   if (realigntracks) m_event->validation_.alignTracks(tracks,extras,false);
+}
+
+void MkBuilder::score_tracks(TrackVec& tracks)
+{
+  for (auto & track : tracks)
+  {
+    assignSeedRangeForRanking(track);
+    track.setCandScore(getScoreCand(track));
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -2055,7 +2061,8 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
   {
     std::vector<Track>& finalcands = eoccs.m_candidates[iseed];
     if (finalcands.size() == 0) continue;
-    for(int ic=0; ic < (int) finalcands.size(); ++ic){
+    for(size_t ic = 0; ic < finalcands.size(); ++ic)
+    {
       finalcands[ic].setCandScore(getScoreCand(finalcands[ic]));
     }
     //std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);

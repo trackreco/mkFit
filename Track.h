@@ -488,6 +488,15 @@ private:
 typedef std::vector<Track>    TrackVec;
 typedef std::vector<TrackVec> TrackVecVec;
 
+
+// 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
+inline void assignSeedRangeForRanking(Track & seed)
+{
+  if      (seed.pT()>2.0f && std::fabs(seed.momEta())< 1.5f) seed.setSeedRangeForRanking(1);
+  else if (seed.pT()<0.9f && std::fabs(seed.momEta())>=1.5f) seed.setSeedRangeForRanking(2);
+  else                                                       seed.setSeedRangeForRanking(3);
+}
+
 inline bool sortByHitsChi2(const Track & cand1, const Track & cand2)
 {
   if (cand1.nFoundHits()==cand2.nFoundHits()) return cand1.chi2()<cand2.chi2();

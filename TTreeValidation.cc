@@ -136,6 +136,10 @@ void TTreeValidation::initializeEfficiencyTree()
   efftree_->Branch("hitchi2_build",&hitchi2_build_eff_);
   efftree_->Branch("hitchi2_fit",&hitchi2_fit_eff_);
 
+  efftree_->Branch("score_seed",&score_seed_eff_);
+  efftree_->Branch("score_build",&score_build_eff_);
+  efftree_->Branch("score_fit",&score_fit_eff_);
+
   efftree_->Branch("helixchi2_seed",&helixchi2_seed_eff_);
   efftree_->Branch("helixchi2_build",&helixchi2_build_eff_);
   efftree_->Branch("helixchi2_fit",&helixchi2_fit_eff_);
@@ -231,6 +235,10 @@ void TTreeValidation::initializeFakeRateTree()
   frtree_->Branch("hitchi2_seed",&hitchi2_seed_FR_);
   frtree_->Branch("hitchi2_build",&hitchi2_build_FR_);
   frtree_->Branch("hitchi2_fit",&hitchi2_fit_FR_);
+
+  frtree_->Branch("score_seed",&score_seed_FR_);
+  frtree_->Branch("score_build",&score_build_FR_);
+  frtree_->Branch("score_fit",&score_fit_FR_);
 
   // sim info of seed,build,fit tracks
   frtree_->Branch("mcID_seed",&mcID_seed_FR_);
@@ -406,6 +414,7 @@ void TTreeValidation::initializeCMSSWEfficiencyTree()
 
   cmsswefftree_->Branch("hitchi2_build",&hitchi2_build_ceff_);
   cmsswefftree_->Branch("helixchi2_build",&helixchi2_build_ceff_);
+  cmsswefftree_->Branch("score_build",&score_build_ceff_);
   cmsswefftree_->Branch("dphi_build",&dphi_build_ceff_);
 
   cmsswefftree_->Branch("duplmask_build",&duplmask_build_ceff_);
@@ -442,6 +451,7 @@ void TTreeValidation::initializeCMSSWEfficiencyTree()
 
   cmsswefftree_->Branch("hitchi2_fit",&hitchi2_fit_ceff_);
   cmsswefftree_->Branch("helixchi2_fit",&helixchi2_fit_ceff_);
+  cmsswefftree_->Branch("score_fit",&score_fit_ceff_);
   cmsswefftree_->Branch("dphi_fit",&dphi_fit_ceff_);
 
   cmsswefftree_->Branch("duplmask_fit",&duplmask_fit_ceff_);
@@ -504,6 +514,7 @@ void TTreeValidation::initializeCMSSWFakeRateTree()
 
   cmsswfrtree_->Branch("hitchi2_build",&hitchi2_build_cFR_);
   cmsswfrtree_->Branch("helixchi2_build",&helixchi2_build_cFR_);
+  cmsswfrtree_->Branch("score_build",&score_build_cFR_);
   cmsswfrtree_->Branch("dphi_build",&dphi_build_cFR_);
 
   cmsswfrtree_->Branch("duplmask_build",&duplmask_build_cFR_);
@@ -546,6 +557,7 @@ void TTreeValidation::initializeCMSSWFakeRateTree()
 
   cmsswfrtree_->Branch("hitchi2_fit",&hitchi2_fit_cFR_);
   cmsswfrtree_->Branch("helixchi2_fit",&helixchi2_fit_cFR_);
+  cmsswfrtree_->Branch("score_fit",&score_fit_cFR_);
   cmsswfrtree_->Branch("dphi_fit",&dphi_fit_cFR_);
 
   cmsswfrtree_->Branch("duplmask_fit",&duplmask_fit_cFR_);
@@ -732,7 +744,7 @@ void TTreeValidation::setTrackExtras(Event& ev)
 	extra.findMatchingSeedHits(track,seedtracks[candToSeedMapDumbCMSSW_[track.label()]],layerhits);
       }
 	
-      extra.setMCTrackIDInfo(track, layerhits, simhits, simtracks, false, (Config::seedInput == simSeeds)); // otherwise seeds are completely unmatched in ToyMC Sim Seeds
+      extra.setMCTrackIDInfo(track, layerhits, simhits, simtracks, false, (Config::seedInput == simSeeds));
     }
   
     // set mcTrackID for fit tracks
@@ -747,10 +759,10 @@ void TTreeValidation::setTrackExtras(Event& ev)
       }
       else if (Config::sim_val_for_cmssw)
       {
-	extra.findMatchingSeedHits(track,seedtracks[fitToSeedMapDumbCMSSW_[track.label()]],layerhits);
+	extra.findMatchingSeedHits(track,seedtracks[candToSeedMapDumbCMSSW_[track.label()]],layerhits);
       }
 
-      extra.setMCTrackIDInfo(track, layerhits, simhits, simtracks, false, (Config::seedInput == simSeeds)); // otherwise seeds are completely unmatched in ToyMC Sim Seeds
+      extra.setMCTrackIDInfo(track, layerhits, simhits, simtracks, false, (Config::seedInput == simSeeds));
     }
   }
 
@@ -871,10 +883,10 @@ void TTreeValidation::mapRefTkToRecoTks(const TrackVec& evt_tracks, TrackExtraVe
       auto& extra(evt_extras[refTkMatches.second[0]]);
       extra.setDuplicateInfo(0,bool(false));
     }
-    else // sort duplicates (ghosts) to keep best one --> most hits, lowest chi2
+    else // sort duplicates (ghosts) to keep best one --> best score
     {  
       // really should sort on indices with a reduced data structure... this is a hack way to do this for now...
-      // e.g. std::tuple<int, int, float>, (label, nHits, chi2)
+      // e.g. std::pair<int, int> (label, score)
       TrackVec tmpMatches;
       for (auto&& label : refTkMatches.second) // loop over vector of reco track labels, push back the track with each label 
       {
@@ -1009,6 +1021,38 @@ void TTreeValidation::makeRecoTkToSeedTkMapDumbCMSSW(const TrackExtraVec& recoex
 	break;
       }
     }
+  }
+}
+
+void TTreeValidation::setTrackScoresDumbCMSSW(Event& ev)
+{
+  auto & seedtracks = ev.seedTracks_;
+  auto & candtracks = ev.candidateTracks_;
+  auto & fittracks = ev.fitTracks_;
+
+  // first assign seed range to seeds and compute score...
+  for (auto & seedtrack : seedtracks)
+  {
+    assignSeedRangeForRanking(seedtrack);
+    seedtrack.setCandScore(getScoreCand(seedtrack));
+  }
+
+  // ...then use map to set seed range to for build/fit tracks and compute scores
+  for (const auto & candToSeedPair : candToSeedMapDumbCMSSW_)
+  {
+    const auto & seedtrack = seedtracks[candToSeedPair.second];
+    auto & candtrack = candtracks[candToSeedPair.first];
+
+    candtrack.setSeedRangeForRanking(seedtrack.getSeedRangeForRanking());
+    candtrack.setCandScore(getScoreCand(candtrack));
+  }
+  for (const auto & fitToSeedPair : fitToSeedMapDumbCMSSW_)
+  {
+    const auto & seedtrack = seedtracks[fitToSeedPair.second];
+    auto & fittrack = fittracks[fitToSeedPair.first];
+
+    fittrack.setSeedRangeForRanking(seedtrack.getSeedRangeForRanking());
+    fittrack.setCandScore(getScoreCand(fittrack));
   }
 }
 
@@ -1277,7 +1321,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     if (Config::keepHitInfo) TTreeValidation::fillHitInfo(simtrack,hitlyrs_mc_eff_,hitidxs_mc_eff_);
 
     // matched seed track
-    if (simToSeedMap_.count(mcID_eff_) && simtrack.isFindable()) // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToSeedMap_[matched SimID][first element in vector]
+    if (simToSeedMap_.count(mcID_eff_) && simtrack.isFindable()) // recoToSim match : save best match with best score, i.e. simToSeedMap_[matched SimID][first element in vector]
     {
       const auto& seedtrack = evt_seed_tracks[simToSeedMap_[mcID_eff_][0]]; // returns seedTrack best matched to sim track
       const auto& seedextra = evt_seed_extras[seedtrack.label()]; // returns track extra best aligned with seed track
@@ -1340,7 +1384,9 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       // swim dphi
       dphi_seed_eff_ = seedextra.dPhi();
 
+      // quality info
       hitchi2_seed_eff_ = seedtrack.chi2(); // currently not being used
+      score_seed_eff_   = seedtrack.getCandScore(); // currently a constant by definition
 
       duplmask_seed_eff_   = seedextra.isDuplicate(); 
       nTkMatches_seed_eff_ = simToSeedMap_[mcID_eff_].size(); // n reco matches to this sim track.
@@ -1379,14 +1425,15 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
  
       dphi_seed_eff_ = -99;
 
-      hitchi2_seed_eff_   = -99;
-      
+      hitchi2_seed_eff_ = -99;
+      score_seed_eff_   = -5000;
+
       duplmask_seed_eff_   = -1; // mask means unmatched sim track
       nTkMatches_seed_eff_ = -99; // unmatched
     }
 
     // matched build track
-    if (simToBuildMap_.count(mcID_eff_) && simtrack.isFindable()) // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToBuildMap_[matched SimID][first element in vector]
+    if (simToBuildMap_.count(mcID_eff_) && simtrack.isFindable()) // recoToSim match : save best match with best score i.e. simToBuildMap_[matched SimID][first element in vector]
     {
       const auto& buildtrack = evt_build_tracks[simToBuildMap_[mcID_eff_][0]]; // returns buildTrack best matched to sim track
       const auto& buildextra = evt_build_extras[buildtrack.label()]; // returns track extra best aligned with build track
@@ -1448,7 +1495,9 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       // swim dphi
       dphi_build_eff_ = buildextra.dPhi();
 
-      hitchi2_build_eff_ = buildtrack.chi2(); 
+      // quality info
+      hitchi2_build_eff_ = buildtrack.chi2();
+      score_build_eff_   = buildtrack.getCandScore();
 
       duplmask_build_eff_   = buildextra.isDuplicate(); 
       nTkMatches_build_eff_ = simToBuildMap_[mcID_eff_].size(); // n reco matches to this sim track.
@@ -1487,14 +1536,15 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 
       dphi_build_eff_ = -99;
 
-      hitchi2_build_eff_   = -99;
-      
+      hitchi2_build_eff_ = -99;
+      score_build_eff_   = -5000;
+
       duplmask_build_eff_   = -1; // mask means unmatched sim track
       nTkMatches_build_eff_ = -99; // unmatched
     }
     
     // matched fit track
-    if (simToFitMap_.count(mcID_eff_) && simtrack.isFindable()) // recoToSim match : save best match --> most hits, lowest chi2, i.e. simToFitMap_[matched SimID][first element in vector]
+    if (simToFitMap_.count(mcID_eff_) && simtrack.isFindable()) // recoToSim match : save best match with best score i.e. simToFitMap_[matched SimID][first element in vector]
     {
       const auto& fittrack = evt_fit_tracks[simToFitMap_[mcID_eff_][0]]; // returns fitTrack best matched to sim track
       const auto& fitextra = evt_fit_extras[fittrack.label()]; // returns track extra best aligned with fit track
@@ -1557,7 +1607,9 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       // swim dphi
       dphi_fit_eff_ = fitextra.dPhi();
 
-      hitchi2_fit_eff_ = -10; //fittrack.chi2(); // currently not being used
+      // quality info
+      hitchi2_fit_eff_ = fittrack.chi2(); // -10 when not used
+      score_fit_eff_   = fittrack.getCandScore();
 
       duplmask_fit_eff_   = fitextra.isDuplicate(); 
       nTkMatches_fit_eff_ = simToFitMap_[mcID_eff_].size(); // n reco matches to this sim track.
@@ -1596,7 +1648,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 
       dphi_fit_eff_ = -99;
 
-      hitchi2_fit_eff_   = -99;
+      hitchi2_fit_eff_ = -99;
+      score_fit_eff_   = -5000;
       
       duplmask_fit_eff_   = -1; // mask means unmatched sim track
       nTkMatches_fit_eff_ = -99; // unmatched
@@ -1668,7 +1721,9 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     // swim dphi
     dphi_seed_FR_ = seedextra.dPhi();
 
+    // quality info
     hitchi2_seed_FR_ = seedtrack.chi2(); //--> not currently used
+    score_seed_FR_   = seedtrack.getCandScore();
 
     if (Config::keepHitInfo) TTreeValidation::fillHitInfo(seedtrack,hitlyrs_seed_FR_,hitidxs_seed_FR_);
 
@@ -1801,7 +1856,9 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       // swim dphi
       dphi_build_FR_ = buildextra.dPhi();
 
+      // quality info
       hitchi2_build_FR_ = buildtrack.chi2();
+      score_build_FR_   = buildtrack.getCandScore();
 
       if (Config::keepHitInfo) TTreeValidation::fillHitInfo(buildtrack,hitlyrs_build_FR_,hitidxs_build_FR_);
 
@@ -1928,7 +1985,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 
       dphi_build_FR_ = -100;
 
-      hitchi2_build_FR_  = -100; 
+      hitchi2_build_FR_ = -100; 
+      score_build_FR_   = -5001;
       
       // keep -100 for all sim variables as no such reco exists for this seed
       mcmask_build_FR_ = -2; // do not want to count towards build FR
@@ -1978,7 +2036,9 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       // swim dphi
       dphi_fit_FR_ = fitextra.dPhi();
 
-      hitchi2_fit_FR_ = -10; //fittrack.chi2() --> currently not used
+      // quality info
+      hitchi2_fit_FR_ = fittrack.chi2(); // -10 when not used
+      score_fit_FR_   = fittrack.getCandScore();
 
       if (Config::keepHitInfo) TTreeValidation::fillHitInfo(fittrack,hitlyrs_fit_FR_,hitidxs_fit_FR_);
 
@@ -2105,8 +2165,9 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 
       dphi_fit_FR_ = -100;
 
-      hitchi2_fit_FR_  = -100; 
-      
+      hitchi2_fit_FR_ = -100; 
+      score_fit_FR_   = -5001;
+
       // keep -100 for all sim variables as no such reco exists for this seed
       mcmask_fit_FR_ = -2; // do not want to count towards fit FR
       mcID_fit_FR_   = -100;
@@ -2236,7 +2297,7 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
     if (Config::keepHitInfo) TTreeValidation::fillHitInfo(cmsswtrack,hitlyrs_cmssw_ceff_,hitidxs_cmssw_ceff_);
 
     // matched build track
-    if (cmsswToBuildMap_.count(cmsswID_ceff_) && cmsswtrack.isFindable()) // recoToCmssw match : save best match --> most hits, lowest chi2, i.e. cmsswToBuildMap_[matched CmsswID][first element in vector]
+    if (cmsswToBuildMap_.count(cmsswID_ceff_) && cmsswtrack.isFindable()) // recoToCmssw match : save best match with best score i.e. cmsswToBuildMap_[matched CmsswID][first element in vector]
     {
       const auto& buildtrack = evt_build_tracks[cmsswToBuildMap_[cmsswID_ceff_][0]]; // returns buildTrack best matched to cmssw track
       const auto& buildextra = evt_build_extras[buildtrack.label()]; // returns track extra best aligned with build track
@@ -2289,9 +2350,10 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
       yhit_build_ceff_ = lasthit.y(); 
       zhit_build_ceff_ = lasthit.z(); 
 
-      // chi2 info
-      hitchi2_build_ceff_ = buildtrack.chi2(); 
+      // quality info
+      hitchi2_build_ceff_   = buildtrack.chi2(); 
       helixchi2_build_ceff_ = buildextra.helixChi2();
+      score_build_ceff_     = buildtrack.getCandScore();
 
       // swim dphi
       dphi_build_ceff_ = buildextra.dPhi(); 
@@ -2335,6 +2397,7 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
 
       hitchi2_build_ceff_   = -99;
       helixchi2_build_ceff_ = -99;
+      score_build_ceff_     = -5000;
       
       dphi_build_ceff_ = -99;
 
@@ -2343,7 +2406,7 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
     }
 
     // matched fit track
-    if (cmsswToFitMap_.count(cmsswID_ceff_) && cmsswtrack.isFindable()) // recoToCmssw match : save best match --> most hits, lowest chi2, i.e. cmsswToFitMap_[matched CmsswID][first element in vector]
+    if (cmsswToFitMap_.count(cmsswID_ceff_) && cmsswtrack.isFindable()) // recoToCmssw match : save best match with best score i.e. cmsswToFitMap_[matched CmsswID][first element in vector]
     {
       const auto& fittrack = evt_fit_tracks[cmsswToFitMap_[cmsswID_ceff_][0]]; // returns fitTrack best matched to cmssw track
       const auto& fitextra = evt_fit_extras[fittrack.label()]; // returns track extra best aligned with fit track
@@ -2396,9 +2459,10 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
       yhit_fit_ceff_ = lasthit.y(); 
       zhit_fit_ceff_ = lasthit.z(); 
 
-      // chi2 info
-      hitchi2_fit_ceff_ = fittrack.chi2(); 
+      // quality info
+      hitchi2_fit_ceff_   = fittrack.chi2();
       helixchi2_fit_ceff_ = fitextra.helixChi2();
+      score_fit_ceff_     = fittrack.getCandScore();
 
       // swim dphi
       dphi_fit_ceff_ = fitextra.dPhi(); 
@@ -2442,6 +2506,7 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
 
       hitchi2_fit_ceff_   = -99;
       helixchi2_fit_ceff_ = -99;
+      score_fit_ceff_     = -5000;
       
       dphi_fit_ceff_ = -99;
 
@@ -2483,7 +2548,6 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
       hitidxs_fit_cFR_.clear();
       hitidxs_cmssw_fit_cFR_.clear();
     }
-
 
     const auto& buildextra = evt_build_extras[buildtrack.label()];
     
@@ -2536,9 +2600,10 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
     yhit_build_cFR_ = lasthit.y(); 
     zhit_build_cFR_ = lasthit.z(); 
 
-    // chi2 info
-    hitchi2_build_cFR_ = buildtrack.chi2(); 
+    // quality info
+    hitchi2_build_cFR_   = buildtrack.chi2(); 
     helixchi2_build_cFR_ = buildextra.helixChi2();
+    score_build_cFR_     = buildtrack.getCandScore();
 
     // stored dphi
     dphi_build_cFR_ = buildextra.dPhi();
@@ -2655,8 +2720,9 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
       zhit_fit_cFR_ = lasthit.z(); 
 
       // chi2 info
-      hitchi2_fit_cFR_ = fittrack.chi2(); 
+      hitchi2_fit_cFR_   = fittrack.chi2(); 
       helixchi2_fit_cFR_ = fitextra.helixChi2();
+      score_fit_cFR_     = fittrack.getCandScore();
 
       // stored dphi
       dphi_fit_cFR_ = fitextra.dPhi();
@@ -2766,6 +2832,7 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
 
       hitchi2_fit_cFR_   = -100;
       helixchi2_fit_cFR_ = -100;
+      score_fit_cFR_     = -5001;
       dphi_fit_cFR_      = -100;
     
       cmsswID_fit_cFR_   = -100;

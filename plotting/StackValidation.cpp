@@ -45,13 +45,13 @@ void StackValidation::MakeValidationStacks()
 {
   StackValidation::MakeRatioStacks("build");
   StackValidation::MakeKinematicDiffStacks("build");
-  StackValidation::MakeNHitsStacks("build");
+  StackValidation::MakeQualityStacks("build");
 
   if (cmsswComp)
   {    
     StackValidation::MakeRatioStacks("fit");
     StackValidation::MakeKinematicDiffStacks("fit");
-    StackValidation::MakeNHitsStacks("fit");
+    StackValidation::MakeQualityStacks("fit");
   }
 }
 
@@ -240,11 +240,15 @@ void StackValidation::MakeKinematicDiffStacks(const TString & trk)
   } // end coll loop
 }
 
-void StackValidation::MakeNHitsStacks(const TString & trk)
+void StackValidation::MakeQualityStacks(const TString & trk)
 {
   // diffferent reco collections
   std::vector<TString> colls = {"allreco","fake","allmatch","bestmatch"};
   const UInt_t ncolls = colls.size();
+
+  // quality plots to use: nHits/track and track score
+  std::vector<TString> quals = {"nHits","score"};
+  const UInt_t nquals = quals.size();
 
   // indices for loops match PlotValidation.cpp
   for (auto o = 0U; o < ncolls; o++)
@@ -255,52 +259,58 @@ void StackValidation::MakeNHitsStacks(const TString & trk)
     {
       const auto & ptcut = ptcuts[k];
 
-      const Bool_t isLogy = true;
-      auto canv = new TCanvas();
-      canv->cd();
-      canv->SetLogy(isLogy);
-      
-      auto leg = new TLegend(0.85,y1,1.0,y2);
-      
-      // tmp min/max
-      Double_t min =  1e9;
-      Double_t max = -1e9;
-      
-      std::vector<TH1F*> hists(nbuilds);
-      for (auto b = 0U; b < nbuilds; b++)
+      for (auto n = 0U; n < nquals; n++)
       {
-	const auto & build = builds[b];
-	auto & file        = files [b];
-	auto & hist        = hists [b];
+	const auto & qual = quals[n];
 
-	hist = (TH1F*)file->Get("nHits"+refdir+"/h_nHits_"+coll+"_"+trk+"_pt"+ptcut);
-	hist->SetLineColor(build.color);
-	hist->SetMarkerColor(build.color);
+	const Bool_t isLogy = true;
+	auto canv = new TCanvas();
+	canv->cd();
+	canv->SetLogy(isLogy);
+      
+	auto leg = new TLegend(0.85,y1,1.0,y2);
 	
-	hist->Scale(1.f/hist->Integral());
-	hist->GetYaxis()->SetTitle("Fraction of Tracks");
+	// tmp min/max
+	Double_t min =  1e9;
+	Double_t max = -1e9;
+      
+	std::vector<TH1F*> hists(nbuilds);
+	for (auto b = 0U; b < nbuilds; b++)
+        {
+	  const auto & build = builds[b];
+	  auto & file        = files [b];
+	  auto & hist        = hists [b];
 	  
-	GetMinMaxHist(hist,min,max);
-      }
-      
-      for (auto b = 0U; b < nbuilds; b++)
-      {
-	const auto & build = builds[b];
-	auto & hist        = hists [b];
-
-	SetMinMaxHist(hist,min,max,isLogy);
-	hist->Draw(b>0?"EP SAME":"EP");
+	  hist = (TH1F*)file->Get("quality"+refdir+"/h_"+qual+"_"+coll+"_"+trk+"_pt"+ptcut);
+	  hist->SetLineColor(build.color);
+	  hist->SetMarkerColor(build.color);
+	  
+	  hist->Scale(1.f/hist->Integral());
+	  hist->GetYaxis()->SetTitle("Fraction of Tracks");
+	  
+	  GetMinMaxHist(hist,min,max);
+	}
 	
-	const TString mean = Form("%4.1f",hist->GetMean());
-	leg->AddEntry(hist,build.label+" "+" [#mu = "+mean+"]","LEP");
-      }
-      
-      leg->Draw("SAME");
-      canv->SaveAs(label+"_"+coll+"_nHits_"+trk+"_pt"+ptcut+extra+".png");
-      
-      delete leg;
-      for (auto & hist : hists) delete hist;
-      delete canv;
+	for (auto b = 0U; b < nbuilds; b++)
+	{
+	  const auto & build = builds[b];
+	  auto & hist        = hists [b];
+	  
+	  SetMinMaxHist(hist,min,max,isLogy);
+	  hist->Draw(b>0?"EP SAME":"EP");
+	
+	  const TString mean = Form("%4.1f",hist->GetMean());
+	  leg->AddEntry(hist,build.label+" "+" [#mu = "+mean+"]","LEP");
+	}
+	
+	leg->Draw("SAME");
+	canv->SaveAs(label+"_"+coll+"_"+qual+"_"+trk+"_pt"+ptcut+extra+".png");
+	
+	delete leg;
+	for (auto & hist : hists) delete hist;
+	delete canv;
+
+      } // end loop over quality variable
     } // end pt cut loop
   } // end coll loop
 }
