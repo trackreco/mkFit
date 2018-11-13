@@ -674,6 +674,7 @@ namespace mkfit {
 void MkBuilder::assign_seedrange_forranking()
 {
   // Assign idx to determine seed range, for ranking
+  // 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
   for(int ts=0; ts<=(int) m_event->seedTracks_.size(); ++ts){
     if(m_event->seedTracks_[ts].pT()>2.0f && std::fabs(m_event->seedTracks_[ts].momEta())<1.5f)
       m_event->seedTracks_[ts].setSeedRangeForRanking(1);
@@ -1402,6 +1403,7 @@ void MkBuilder::PrepareSeeds()
   }
   
   //Assign idx to seeds for determining kinematic range for candidate ranking
+  //0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
   assign_seedrange_forranking();
 
   fit_seeds();

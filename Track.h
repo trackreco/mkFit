@@ -32,7 +32,7 @@ public:
   int   hitIdx; // hit index
   int   nhits;  // number of hits (used for sorting)
   int   nholes;  // number of holes (used for sorting)
-  unsigned int seedrange; // seed range idx (used for sorting)
+  unsigned int seedrange; // seed range idx (used for sorting: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds)
   float pt;   // pt (used for sorting)
   float chi2;   // total chi2 (used for sorting)
   int score; // score used for candidate ranking
@@ -427,10 +427,10 @@ public:
         // have to get overwritten.
         bool has_non_stored_hits : 1;
 
-	// Seed range for candidate ranking: 
+	// Seed range for candidate ranking: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
         unsigned int seed_range : 2;
 
-	// Candidate score for ranking:
+	// Candidate score for ranking (12 bits for value + 1 bit for sign):
 	int cand_score : 13;
 
         // The rest, testing if mixing int and unsigned int is ok.
@@ -455,7 +455,8 @@ public:
   bool isFindable()    const { return ! status_.not_findable; }
   bool isNotFindable() const { return   status_.not_findable; }
   void setNotFindable()      { status_.not_findable = true; }
-
+  
+  //Seed range for ranking: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds.
   void setSeedRangeForRanking(unsigned int r) { status_.seed_range = r; }
   unsigned int getSeedRangeForRanking() const { return status_.seed_range; }
 
@@ -509,10 +510,10 @@ inline bool sortByScoreCandPair(const std::pair<Track, TrackState>& cand1, const
 }
 
 inline int getScoreCalc(const unsigned int seedrange,
-			const int nfoundhits, 
-			const int nmisshits, 
-			const float chi2,
-			const float pt)
+                        const int nfoundhits,
+                        const int nmisshits,
+                        const float chi2,
+                        const float pt)
 {
   int score = 0;
   float score_ = 0.f;

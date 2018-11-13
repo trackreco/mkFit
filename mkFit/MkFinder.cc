@@ -1139,13 +1139,11 @@ void MkFinder::BkFitOutputTracks(TrackVec& cands, int beg, int end)
       Err[iP].CopyOut(itrack, trk.errors_nc().Array());
       Par[iP].CopyOut(itrack, trk.parameters_nc().Array());
       
-      //printf("BkFitCands %.2f %d %d\n", trk.chi2(), trk.getSeedRangeForRanking(), trk.getCandScore());
       trk.setChi2(Chi2(itrack, 0, 0));
       if(!(std::isnan(trk.chi2())))
       {
 	trk.setCandScore(getScoreCand(trk));
       }
-      //printf("BkFitCands (ii) %.2f %d %d\n", trk.chi2(), trk.getSeedRangeForRanking(), trk.getCandScore());
     }
 }
 
@@ -1161,13 +1159,11 @@ void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
     Err[iP].CopyOut(itrack, trk.errors_nc().Array());
     Par[iP].CopyOut(itrack, trk.parameters_nc().Array());
     
-    //printf("BkFitCombCands %.2f %d %d\n", trk.chi2(), trk.getSeedRangeForRanking(), trk.getCandScore());
     trk.setChi2(Chi2(itrack, 0, 0));
     if(!(std::isnan(trk.chi2())))
     {
       trk.setCandScore(getScoreCand(trk));
     }
-    //printf("BkFitCombCands (ii) %.2f %d %d\n", trk.chi2(), trk.getSeedRangeForRanking(), trk.getCandScore());
   }
 }
 
