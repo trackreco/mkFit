@@ -1138,7 +1138,7 @@ void MkFinder::BkFitOutputTracks(TrackVec& cands, int beg, int end)
 
       Err[iP].CopyOut(itrack, trk.errors_nc().Array());
       Par[iP].CopyOut(itrack, trk.parameters_nc().Array());
-      
+
       trk.setChi2(Chi2(itrack, 0, 0));
       if(!(std::isnan(trk.chi2())))
       {
@@ -1158,7 +1158,7 @@ void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
 
     Err[iP].CopyOut(itrack, trk.errors_nc().Array());
     Par[iP].CopyOut(itrack, trk.parameters_nc().Array());
-    
+
     trk.setChi2(Chi2(itrack, 0, 0));
     if(!(std::isnan(trk.chi2())))
     {

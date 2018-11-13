@@ -427,7 +427,7 @@ public:
         // have to get overwritten.
         bool has_non_stored_hits : 1;
 
-	// Seed range for candidate ranking: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
+        // Seed range for candidate ranking: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
         unsigned int seed_range : 2;
 
 	// Candidate score for ranking (12 bits for value + 1 bit for sign):
