@@ -43,6 +43,8 @@ public:
   virtual void makeCMSSWTkToSeedTkMap(Event&) {}
   virtual void makeRecoTkToSeedTkMapsDumbCMSSW(Event&) {}
 
+  virtual void setTrackScoresDumbCMSSW(Event &) {}
+
   virtual void fillEfficiencyTree(const Event&) {}
   virtual void fillFakeRateTree(const Event&) {}
   virtual void fillConfigTree() {}

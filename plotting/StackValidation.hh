@@ -69,7 +69,7 @@ public:
   void MakeValidationStacks();
   void MakeRatioStacks(const TString & trk);
   void MakeKinematicDiffStacks(const TString & trk);
-  void MakeNHitsStacks(const TString & trk);
+  void MakeQualityStacks(const TString & trk);
 
 private:
   const TString label;

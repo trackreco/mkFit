@@ -170,6 +170,7 @@ public:
   void prep_cmsswtracks();
   void prep_reftracks(TrackVec& tracks, TrackExtraVec& extras, const bool realigntracks); 
   void prep_tracks(TrackVec& tracks, TrackExtraVec& extras, const bool realigntracks); // sort hits by layer, init track extras, align track labels if true
+  void score_tracks(TrackVec& tracks); // if track score not already assigned
 
   // --------
 
