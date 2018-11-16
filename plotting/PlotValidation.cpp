@@ -641,7 +641,7 @@ void PlotValidation::PlotFRTree()
 	// key strings
 	const TString nhitkey  = Form("%s_0",basekey.Data());
 	const TString frackey  = Form("%s_1",basekey.Data());
-	const TString scorekey = Form("%s_1",basekey.Data());
+	const TString scorekey = Form("%s_2",basekey.Data());
 
 	const TString dnhitkey  = Form("%s_d_0",basekey.Data());
 	const TString dinvptkey = Form("%s_d_1",basekey.Data());
@@ -651,6 +651,7 @@ void PlotValidation::PlotFRTree()
 	// all reco
 	hists[Form("%s_0",nhitkey.Data())]->Fill(nHits_trk);
 	hists[Form("%s_0",frackey.Data())]->Fill(fracHits_trk);
+	hists[Form("%s_0",scorekey.Data())]->Fill(score_trk);
 
 	if      (refmask_trk == 0) // all fakes 
 	{
