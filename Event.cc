@@ -329,9 +329,10 @@ void Event::Fit()
 
 void Event::Validate()
 {
-  // special map needed for sim_val_for_cmssw
+  // special map needed for sim_val_for_cmssw + set the track scores
   if (Config::sim_val_for_cmssw) {
     validation_.makeRecoTkToSeedTkMapsDumbCMSSW(*this);
+    validation_.setTrackScoresDumbCMSSW(*this);
   }
 
   // standard eff/fr/dr validation

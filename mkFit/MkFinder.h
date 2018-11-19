@@ -63,6 +63,7 @@ public:
   MPlexQI    NFoundHits;
   HitOnTrack HoTArrs[NN][Config::nMaxTrkHits];
 
+  MPlexQUI   SeedType; // seed range for ranking (0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds)
   MPlexQI    SeedIdx; // seed index in local thread (for bookkeeping at thread level)
   MPlexQI    CandIdx; // candidate index for the given seed (for bookkeeping of clone engine)
 

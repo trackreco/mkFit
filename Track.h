@@ -32,8 +32,10 @@ public:
   int   hitIdx; // hit index
   int   nhits;  // number of hits (used for sorting)
   int   nholes;  // number of holes (used for sorting)
+  unsigned int seedtype; // seed type idx (used for sorting: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds)
   float pt;   // pt (used for sorting)
   float chi2;   // total chi2 (used for sorting)
+  int score; // score used for candidate ranking
 };
  
 struct ReducedTrack // used for cmssw reco track validation
@@ -425,9 +427,16 @@ public:
         // have to get overwritten.
         bool has_non_stored_hits : 1;
 
+        // Seed type for candidate ranking: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
+        unsigned int seed_type : 2;
+
+	// Candidate score for ranking (12 bits for value + 1 bit for sign):
+	int cand_score : 15;
+
         // The rest, testing if mixing int and unsigned int is ok.
-        int          _some_free_bits_ : 10;
-        unsigned int _more_free_bits_ : 17;
+        int          _some_free_bits_ : 4;
+        unsigned int _more_free_bits_ : 6;
+
       };
 
       unsigned int _raw_;
@@ -446,6 +455,13 @@ public:
   bool isFindable()    const { return ! status_.not_findable; }
   bool isNotFindable() const { return   status_.not_findable; }
   void setNotFindable()      { status_.not_findable = true; }
+  
+  //Seed type for ranking: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds.
+  void setSeedTypeForRanking(unsigned int r) { status_.seed_type = r; }
+  unsigned int getSeedTypeForRanking() const { return status_.seed_type; }
+
+  void setCandScore(int r) { status_.cand_score = r; }
+  int getCandScore() const { return status_.cand_score; }
 
   enum class ProdType { NotSet = 0, Signal = 1, InTimePU = 2, OutOfTimePU = 3};
   ProdType prodType()  const { return ProdType(status_.prod_type); }
@@ -472,47 +488,96 @@ private:
 typedef std::vector<Track>    TrackVec;
 typedef std::vector<TrackVec> TrackVecVec;
 
+
+// 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
+inline void assignSeedTypeForRanking(Track & seed)
+{
+  if      (seed.pT()>2.0f && std::fabs(seed.momEta())< 1.5f) seed.setSeedTypeForRanking(1);
+  else if (seed.pT()<0.9f && std::fabs(seed.momEta())>=1.5f) seed.setSeedTypeForRanking(2);
+  else                                                       seed.setSeedTypeForRanking(3);
+}
+
 inline bool sortByHitsChi2(const Track & cand1, const Track & cand2)
 {
   if (cand1.nFoundHits()==cand2.nFoundHits()) return cand1.chi2()<cand2.chi2();
   return cand1.nFoundHits()>cand2.nFoundHits();
 }
 
-inline bool sortByScoreLoop(const int nfoundhits[2], 
-			const int nmisshits[2], 
-			const float chi2[2],
-			const float pt[2])
+inline bool sortByScoreCand(const Track & cand1, const Track & cand2)
 {
-  float score[2] = {0.f,0.f};
-  for(int c=0; c<2; ++c){
-    score[c] = Config::validHitBonus_*nfoundhits[c] - Config::missingHitPenalty_*nmisshits[c] - chi2[c];
-    if(pt[c]<0.9f) score[c] -= 0.5f*Config::validHitBonus_*nfoundhits[c];
-    else if(nfoundhits[c]>8) score[c] += Config::validHitBonus_*nfoundhits[c];
-  }
-  return score[0]>score[1];
-}
-
-inline bool sortByScoreCand(const Track& cand1, const Track& cand2)
-{
-  int nfoundhits[2] = {cand1.nFoundHits(),cand2.nFoundHits()};
-  int nmisshits[2] = {cand1.nTotalHits()-cand1.nFoundHits(),cand2.nTotalHits()-cand2.nFoundHits()};
-  float chi2[2] = {cand1.chi2(),cand2.chi2()};
-  float pt[2] = {cand1.pT(),cand2.pT()};
-  return sortByScoreLoop(nfoundhits,nmisshits,chi2,pt);
+  return cand1.getCandScore() > cand2.getCandScore();
 }
 
 inline bool sortByScoreStruct(const IdxChi2List& cand1, const IdxChi2List& cand2)
 {
-  int nfoundhits[2] = {cand1.nhits,cand2.nhits};
-  int nmisshits[2] = {cand1.nholes,cand2.nholes};
-  float chi2[2] = {cand1.chi2,cand2.chi2};
-  float pt[2] = {cand1.pt,cand2.pt};
-  return sortByScoreLoop(nfoundhits,nmisshits,chi2,pt);
+  return cand1.score > cand2.score;
 }
 
 inline bool sortByScoreCandPair(const std::pair<Track, TrackState>& cand1, const std::pair<Track, TrackState>& cand2)
 {
   return sortByScoreCand(cand1.first,cand2.first);
+}
+
+inline int getScoreCalc(const unsigned int seedtype,
+                        const int nfoundhits,
+                        const int nmisshits,
+                        const float chi2,
+                        const float pt)
+{
+  //// Do not allow for chi2<0 in score calculation
+  //if(chi2<0) chi2=0.f;
+  //// Do not allow for chi2>2^14/2/10 in score calculation (15 bits for (int) score x 10: 14 bits for score magnitude + 1 bit for sign --> max chi2 = 1/2*1/10*2^14=819.2) 
+  //if(chi2>Config::maxChi2ForRanking_) chi2=Config::maxChi2ForRanking_;
+  int score = 0;
+  float score_ = 0.f;
+  // For high pT central tracks: double valid hit bonus
+  if(seedtype==1){
+    score_ = (Config::validHitBonus_*2.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
+    if(pt<0.9f) score_ -= 0.5f*(Config::validHitBonus_*2.0f)*nfoundhits;
+    else if(nfoundhits>8) score_ += (Config::validHitBonus_*2.0f)*nfoundhits;
+  }
+  // For low pT endcap tracks: half valid hit bonus & half missing hit penalty
+  else if(seedtype==2){
+    score_ = (Config::validHitBonus_*0.5f)*nfoundhits - (Config::missingHitPenalty_*0.5f)*nmisshits - chi2;
+    if(pt<0.9f) score_ -= 0.5f*(Config::validHitBonus_*0.5f)*nfoundhits;
+    else if(nfoundhits>8) score_ += (Config::validHitBonus_*0.5f)*nfoundhits;
+  }
+  // For all other tracks: unchanged cmssw bonus and penalty
+  else{
+    score_ = Config::validHitBonus_*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
+    if(pt<0.9f) score_ -= 0.5f*Config::validHitBonus_*nfoundhits;
+    else if(nfoundhits>8) score_ += Config::validHitBonus_*nfoundhits;
+  }
+  score = (int)(floor(10.f * score_ + 0.5));
+  return score;
+}
+
+inline int getScoreCand(const Track& cand1)
+{
+  unsigned int seedtype = cand1.getSeedTypeForRanking();
+  int nfoundhits = cand1.nFoundHits();
+  int nmisshits = cand1.nTotalHits()-cand1.nFoundHits();
+  float pt = cand1.pT();
+  float chi2 = cand1.chi2();
+  // Do not allow for chi2<0 in score calculation
+  if(chi2<0) chi2=0.f;
+  // Do not allow for chi2>2^14/2/10 in score calculation (15 bits for (int) score x 10: 14 bits for score magnitude + 1 bit for sign --> max chi2 = 1/2*1/10*2^14=819.2) 
+  if(chi2>Config::maxChi2ForRanking_) chi2=Config::maxChi2ForRanking_;
+  return getScoreCalc(seedtype,nfoundhits,nmisshits,chi2,pt);
+}
+
+inline int getScoreStruct(const IdxChi2List& cand1)
+{
+  unsigned int seedtype = cand1.seedtype;
+  int nfoundhits = cand1.nhits;
+  int nmisshits = cand1.nholes;
+  float pt = cand1.pt;
+  float chi2 = cand1.chi2;
+  // Do not allow for chi2<0 in score calculation
+  if(chi2<0) chi2=0.f;
+  // Do not allow for chi2>2^14/2/10 in score calculation (15 bits for (int) score x 10: 14 bits for score magnitude + 1 bit for sign --> max chi2 = 1/2*1/10*2^14=819.2) 
+  if(chi2>Config::maxChi2ForRanking_) chi2=Config::maxChi2ForRanking_;
+  return getScoreCalc(seedtype,nfoundhits,nmisshits,chi2,pt);
 }
 
 

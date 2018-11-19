@@ -83,6 +83,7 @@ mkdir -p ${dir}/${simdir}
 mkdir -p ${dir}/${simdir}/logx
 mkdir -p ${dir}/${simdir}/diffs
 mkdir -p ${dir}/${simdir}/nHits
+mkdir -p ${dir}/${simdir}/score
 
 # Move text file dumps for SimTrack Validation
 for build in "${val_builds[@]}"
@@ -129,12 +130,15 @@ do
     done
 done
 
-# Move nHits plots for SimTrack Validation
+# Move track quality plots for SimTrack Validation (nHits,score)
 for coll in allreco fake bestmatch allmatch
 do 
     for pt in 0p0 0p9 2p0
     do
-	mv ${val_arch}_${sample}_${coll}_"nHits"_"build"_"pt"${pt}_"SIMVAL".png ${dir}/${simdir}/nHits
+	for qual in nHits score
+	do
+	    mv ${val_arch}_${sample}_${coll}_${qual}_"build"_"pt"${pt}_"SIMVAL".png ${dir}/${simdir}/${qual}
+	done
     done
 done
 
@@ -157,6 +161,7 @@ do
     mkdir -p ${dir}/${cmsswdir}/${trk}/logx
     mkdir -p ${dir}/${cmsswdir}/${trk}/diffs
     mkdir -p ${dir}/${cmsswdir}/${trk}/nHits
+    mkdir -p ${dir}/${cmsswdir}/${trk}/score
 done
 
 # Move rate plots for CMSSWTrack Validation
@@ -197,14 +202,17 @@ do
     done
 done
 
-# Move nHits plots for CMSSWTrack Validation
+# Move track quality plots for CMSSWTrack Validation (nHits, score)
 for coll in allreco fake bestmatch allmatch
 do 
     for trk in build fit
     do
 	for pt in 0p0 0p9 2p0
 	do
-	    mv ${val_arch}_${sample}_${coll}_"nHits"_${trk}_"pt"${pt}_"CMSSWVAL".png ${dir}/${cmsswdir}/${trk}/nHits
+	    for qual in nHits score
+	    do
+		mv ${val_arch}_${sample}_${coll}_${qual}_${trk}_"pt"${pt}_"CMSSWVAL".png ${dir}/${cmsswdir}/${trk}/${qual}
+	    done
 	done
     done
 done
