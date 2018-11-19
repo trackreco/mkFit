@@ -32,7 +32,7 @@ public:
   int   hitIdx; // hit index
   int   nhits;  // number of hits (used for sorting)
   int   nholes;  // number of holes (used for sorting)
-  unsigned int seedrange; // seed range idx (used for sorting: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds)
+  unsigned int seedtype; // seed type idx (used for sorting: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds)
   float pt;   // pt (used for sorting)
   float chi2;   // total chi2 (used for sorting)
   int score; // score used for candidate ranking
@@ -427,15 +427,15 @@ public:
         // have to get overwritten.
         bool has_non_stored_hits : 1;
 
-        // Seed range for candidate ranking: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
-        unsigned int seed_range : 2;
+        // Seed type for candidate ranking: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
+        unsigned int seed_type : 2;
 
 	// Candidate score for ranking (12 bits for value + 1 bit for sign):
-	int cand_score : 13;
+	int cand_score : 15;
 
         // The rest, testing if mixing int and unsigned int is ok.
         int          _some_free_bits_ : 4;
-        unsigned int _more_free_bits_ : 8;
+        unsigned int _more_free_bits_ : 6;
 
       };
 
@@ -456,9 +456,9 @@ public:
   bool isNotFindable() const { return   status_.not_findable; }
   void setNotFindable()      { status_.not_findable = true; }
   
-  //Seed range for ranking: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds.
-  void setSeedRangeForRanking(unsigned int r) { status_.seed_range = r; }
-  unsigned int getSeedRangeForRanking() const { return status_.seed_range; }
+  //Seed type for ranking: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds.
+  void setSeedTypeForRanking(unsigned int r) { status_.seed_type = r; }
+  unsigned int getSeedTypeForRanking() const { return status_.seed_type; }
 
   void setCandScore(int r) { status_.cand_score = r; }
   int getCandScore() const { return status_.cand_score; }
@@ -490,11 +490,11 @@ typedef std::vector<TrackVec> TrackVecVec;
 
 
 // 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
-inline void assignSeedRangeForRanking(Track & seed)
+inline void assignSeedTypeForRanking(Track & seed)
 {
-  if      (seed.pT()>2.0f && std::fabs(seed.momEta())< 1.5f) seed.setSeedRangeForRanking(1);
-  else if (seed.pT()<0.9f && std::fabs(seed.momEta())>=1.5f) seed.setSeedRangeForRanking(2);
-  else                                                       seed.setSeedRangeForRanking(3);
+  if      (seed.pT()>2.0f && std::fabs(seed.momEta())< 1.5f) seed.setSeedTypeForRanking(1);
+  else if (seed.pT()<0.9f && std::fabs(seed.momEta())>=1.5f) seed.setSeedTypeForRanking(2);
+  else                                                       seed.setSeedTypeForRanking(3);
 }
 
 inline bool sortByHitsChi2(const Track & cand1, const Track & cand2)
@@ -518,22 +518,26 @@ inline bool sortByScoreCandPair(const std::pair<Track, TrackState>& cand1, const
   return sortByScoreCand(cand1.first,cand2.first);
 }
 
-inline int getScoreCalc(const unsigned int seedrange,
+inline int getScoreCalc(const unsigned int seedtype,
                         const int nfoundhits,
                         const int nmisshits,
                         const float chi2,
                         const float pt)
 {
+  //// Do not allow for chi2<0 in score calculation
+  //if(chi2<0) chi2=0.f;
+  //// Do not allow for chi2>2^14/2/10 in score calculation (15 bits for (int) score x 10: 14 bits for score magnitude + 1 bit for sign --> max chi2 = 1/2*1/10*2^14=819.2) 
+  //if(chi2>Config::maxChi2ForRanking_) chi2=Config::maxChi2ForRanking_;
   int score = 0;
   float score_ = 0.f;
   // For high pT central tracks: double valid hit bonus
-  if(seedrange==1){
+  if(seedtype==1){
     score_ = (Config::validHitBonus_*2.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
     if(pt<0.9f) score_ -= 0.5f*(Config::validHitBonus_*2.0f)*nfoundhits;
     else if(nfoundhits>8) score_ += (Config::validHitBonus_*2.0f)*nfoundhits;
   }
   // For low pT endcap tracks: half valid hit bonus & half missing hit penalty
-  else if(seedrange==2){
+  else if(seedtype==2){
     score_ = (Config::validHitBonus_*0.5f)*nfoundhits - (Config::missingHitPenalty_*0.5f)*nmisshits - chi2;
     if(pt<0.9f) score_ -= 0.5f*(Config::validHitBonus_*0.5f)*nfoundhits;
     else if(nfoundhits>8) score_ += (Config::validHitBonus_*0.5f)*nfoundhits;
@@ -550,22 +554,30 @@ inline int getScoreCalc(const unsigned int seedrange,
 
 inline int getScoreCand(const Track& cand1)
 {
-  unsigned int seedrange = cand1.getSeedRangeForRanking();
+  unsigned int seedtype = cand1.getSeedTypeForRanking();
   int nfoundhits = cand1.nFoundHits();
   int nmisshits = cand1.nTotalHits()-cand1.nFoundHits();
-  float chi2 = cand1.chi2();
   float pt = cand1.pT();
-  return getScoreCalc(seedrange,nfoundhits,nmisshits,chi2,pt);
+  float chi2 = cand1.chi2();
+  // Do not allow for chi2<0 in score calculation
+  if(chi2<0) chi2=0.f;
+  // Do not allow for chi2>2^14/2/10 in score calculation (15 bits for (int) score x 10: 14 bits for score magnitude + 1 bit for sign --> max chi2 = 1/2*1/10*2^14=819.2) 
+  if(chi2>Config::maxChi2ForRanking_) chi2=Config::maxChi2ForRanking_;
+  return getScoreCalc(seedtype,nfoundhits,nmisshits,chi2,pt);
 }
 
 inline int getScoreStruct(const IdxChi2List& cand1)
 {
-  unsigned int seedrange = cand1.seedrange;
+  unsigned int seedtype = cand1.seedtype;
   int nfoundhits = cand1.nhits;
   int nmisshits = cand1.nholes;
-  float chi2 = cand1.chi2;
   float pt = cand1.pt;
-  return getScoreCalc(seedrange,nfoundhits,nmisshits,chi2,pt);
+  float chi2 = cand1.chi2;
+  // Do not allow for chi2<0 in score calculation
+  if(chi2<0) chi2=0.f;
+  // Do not allow for chi2>2^14/2/10 in score calculation (15 bits for (int) score x 10: 14 bits for score magnitude + 1 bit for sign --> max chi2 = 1/2*1/10*2^14=819.2) 
+  if(chi2>Config::maxChi2ForRanking_) chi2=Config::maxChi2ForRanking_;
+  return getScoreCalc(seedtype,nfoundhits,nmisshits,chi2,pt);
 }
 
 

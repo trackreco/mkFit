@@ -671,12 +671,12 @@ namespace
 
 namespace mkfit {
 
-void MkBuilder::assign_seedrange_forranking()
+void MkBuilder::assign_seedtype_forranking()
 {
-  // Assign idx to determine seed range, for ranking
+  // Assign idx to determine seed type, for ranking
   for (size_t ts = 0; ts < m_event->seedTracks_.size(); ++ts)
   {
-    assignSeedRangeForRanking(m_event->seedTracks_[ts]);
+    assignSeedTypeForRanking(m_event->seedTracks_[ts]);
   }
 }
 
@@ -1250,7 +1250,7 @@ void MkBuilder::score_tracks(TrackVec& tracks)
 {
   for (auto & track : tracks)
   {
-    assignSeedRangeForRanking(track);
+    assignSeedTypeForRanking(track);
     track.setCandScore(getScoreCand(track));
   }
 }
@@ -1410,7 +1410,7 @@ void MkBuilder::PrepareSeeds()
   
   //Assign idx to seeds for determining kinematic range for candidate ranking
   //0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
-  assign_seedrange_forranking();
+  assign_seedtype_forranking();
 
   fit_seeds();
 }
@@ -1626,7 +1626,7 @@ void MkBuilder::find_tracks_handle_missed_layers(MkFinder *mkfndr, const LayerIn
   for (int ti = itrack; ti < end; ++ti)
   {
     Track      &cand = m_event_of_comb_cands.m_candidates[seed_cand_idx[ti].first][seed_cand_idx[ti].second];
-    cand.setSeedRangeForRanking(m_event_of_comb_cands.m_candidates[seed_cand_idx[ti].first].m_seed_range);
+    cand.setSeedTypeForRanking(m_event_of_comb_cands.m_candidates[seed_cand_idx[ti].first].m_seed_type);
     cand.setCandScore(getScoreCand(cand));
     WSR_Result &w    = mkfndr->XWsrResult[ti - itrack];
 
