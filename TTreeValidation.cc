@@ -759,7 +759,7 @@ void TTreeValidation::setTrackExtras(Event& ev)
       }
       else if (Config::sim_val_for_cmssw)
       {
-	extra.findMatchingSeedHits(track,seedtracks[candToSeedMapDumbCMSSW_[track.label()]],layerhits);
+	extra.findMatchingSeedHits(track,seedtracks[fitToSeedMapDumbCMSSW_[track.label()]],layerhits);
       }
 
       extra.setMCTrackIDInfo(track, layerhits, simhits, simtracks, false, (Config::seedInput == simSeeds));
@@ -1030,20 +1030,20 @@ void TTreeValidation::setTrackScoresDumbCMSSW(Event& ev)
   auto & candtracks = ev.candidateTracks_;
   auto & fittracks = ev.fitTracks_;
 
-  // first assign seed range to seeds and compute score...
+  // first assign seed type to seeds and compute score...
   for (auto & seedtrack : seedtracks)
   {
-    assignSeedRangeForRanking(seedtrack);
+    assignSeedTypeForRanking(seedtrack);
     seedtrack.setCandScore(getScoreCand(seedtrack));
   }
 
-  // ...then use map to set seed range to for build/fit tracks and compute scores
+  // ...then use map to set seed type to for build/fit tracks and compute scores
   for (const auto & candToSeedPair : candToSeedMapDumbCMSSW_)
   {
     const auto & seedtrack = seedtracks[candToSeedPair.second];
     auto & candtrack = candtracks[candToSeedPair.first];
 
-    candtrack.setSeedRangeForRanking(seedtrack.getSeedRangeForRanking());
+    candtrack.setSeedTypeForRanking(seedtrack.getSeedTypeForRanking());
     candtrack.setCandScore(getScoreCand(candtrack));
   }
   for (const auto & fitToSeedPair : fitToSeedMapDumbCMSSW_)
@@ -1051,7 +1051,7 @@ void TTreeValidation::setTrackScoresDumbCMSSW(Event& ev)
     const auto & seedtrack = seedtracks[fitToSeedPair.second];
     auto & fittrack = fittracks[fitToSeedPair.first];
 
-    fittrack.setSeedRangeForRanking(seedtrack.getSeedRangeForRanking());
+    fittrack.setSeedTypeForRanking(seedtrack.getSeedTypeForRanking());
     fittrack.setCandScore(getScoreCand(fittrack));
   }
 }
@@ -1426,7 +1426,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       dphi_seed_eff_ = -99;
 
       hitchi2_seed_eff_ = -99;
-      score_seed_eff_   = -5000;
+      score_seed_eff_   = -17000;
 
       duplmask_seed_eff_   = -1; // mask means unmatched sim track
       nTkMatches_seed_eff_ = -99; // unmatched
@@ -1537,7 +1537,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       dphi_build_eff_ = -99;
 
       hitchi2_build_eff_ = -99;
-      score_build_eff_   = -5000;
+      score_build_eff_   = -17000;
 
       duplmask_build_eff_   = -1; // mask means unmatched sim track
       nTkMatches_build_eff_ = -99; // unmatched
@@ -1649,7 +1649,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       dphi_fit_eff_ = -99;
 
       hitchi2_fit_eff_ = -99;
-      score_fit_eff_   = -5000;
+      score_fit_eff_   = -17000;
       
       duplmask_fit_eff_   = -1; // mask means unmatched sim track
       nTkMatches_fit_eff_ = -99; // unmatched
@@ -2397,7 +2397,7 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
 
       hitchi2_build_ceff_   = -99;
       helixchi2_build_ceff_ = -99;
-      score_build_ceff_     = -5000;
+      score_build_ceff_     = -17000;
       
       dphi_build_ceff_ = -99;
 
@@ -2506,7 +2506,7 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
 
       hitchi2_fit_ceff_   = -99;
       helixchi2_fit_ceff_ = -99;
-      score_fit_ceff_     = -5000;
+      score_fit_ceff_     = -17000;
       
       dphi_fit_ceff_ = -99;
 
