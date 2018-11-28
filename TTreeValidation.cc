@@ -47,7 +47,7 @@ void TTreeValidation::initializeEfficiencyTree()
   efftree_->Branch("mcID",&mcID_eff_);
 
   efftree_->Branch("nHits_mc",&nHits_mc_eff_);
-  efftree_->Branch("nLayers_mc",&nHits_mc_eff_);
+  efftree_->Branch("nLayers_mc",&nLayers_mc_eff_);
   efftree_->Branch("lastlyr_mc",&lastlyr_mc_eff_);
 
   efftree_->Branch("seedID_seed",&seedID_seed_eff_);
@@ -115,6 +115,10 @@ void TTreeValidation::initializeEfficiencyTree()
   efftree_->Branch("nHits_seed",&nHits_seed_eff_);
   efftree_->Branch("nHits_build",&nHits_build_eff_);
   efftree_->Branch("nHits_fit",&nHits_fit_eff_);
+
+  efftree_->Branch("nLayers_seed",&nLayers_seed_eff_);
+  efftree_->Branch("nLayers_build",&nLayers_build_eff_);
+  efftree_->Branch("nLayers_fit",&nLayers_fit_eff_);
 
   efftree_->Branch("nHitsMatched_seed",&nHitsMatched_seed_eff_);
   efftree_->Branch("nHitsMatched_build",&nHitsMatched_build_eff_);
@@ -215,6 +219,10 @@ void TTreeValidation::initializeFakeRateTree()
   frtree_->Branch("nHits_seed",&nHits_seed_FR_);
   frtree_->Branch("nHits_build",&nHits_build_FR_);
   frtree_->Branch("nHits_fit",&nHits_fit_FR_);
+
+  frtree_->Branch("nLayers_seed",&nLayers_seed_FR_);
+  frtree_->Branch("nLayers_build",&nLayers_build_FR_);
+  frtree_->Branch("nLayers_fit",&nLayers_fit_FR_);
 
   frtree_->Branch("nHitsMatched_seed",&nHitsMatched_seed_FR_);
   frtree_->Branch("nHitsMatched_build",&nHitsMatched_build_FR_);
@@ -1377,6 +1385,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 
       // rest of mc info
       nHits_seed_eff_           = seedtrack.nFoundHits();
+      nLayers_seed_eff_         = seedtrack.nUniqueLayers(false);
       nHitsMatched_seed_eff_    = seedextra.nHitsMatched();
       fracHitsMatched_seed_eff_ = seedextra.fracHitsMatched();
       lastlyr_seed_eff_         = seedtrack.getLastFoundHitLyr();
@@ -1419,6 +1428,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       eeta_seed_eff_ = -99;
 
       nHits_seed_eff_           = -99;
+      nLayers_seed_eff_         = -99;
       nHitsMatched_seed_eff_    = -99;
       fracHitsMatched_seed_eff_ = -99;
       lastlyr_seed_eff_         = -99;
@@ -1488,6 +1498,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       eeta_build_eff_ = buildtrack.emomEta();
       
       nHits_build_eff_           = buildtrack.nFoundHits();
+      nLayers_build_eff_         = buildtrack.nUniqueLayers(false);
       nHitsMatched_build_eff_    = buildextra.nHitsMatched();
       fracHitsMatched_build_eff_ = buildextra.fracHitsMatched();
       lastlyr_build_eff_         = buildtrack.getLastFoundHitLyr();
@@ -1530,6 +1541,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       eeta_build_eff_ = -99;
 
       nHits_build_eff_           = -99;
+      nLayers_build_eff_         = -99;
       nHitsMatched_build_eff_    = -99;
       fracHitsMatched_build_eff_ = -99;
       lastlyr_build_eff_         = -99;
@@ -1600,6 +1612,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       
       // rest of mc info
       nHits_fit_eff_           = fittrack.nFoundHits();
+      nLayers_fit_eff_         = fittrack.nUniqueLayers(false);
       nHitsMatched_fit_eff_    = fitextra.nHitsMatched();
       fracHitsMatched_fit_eff_ = fitextra.fracHitsMatched();
       lastlyr_fit_eff_         = fittrack.getLastFoundHitLyr();
@@ -1642,6 +1655,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       eeta_fit_eff_ = -99;
 
       nHits_fit_eff_           = -99;
+      nLayers_fit_eff_         = -99;
       nHitsMatched_fit_eff_    = -99;
       fracHitsMatched_fit_eff_ = -99;
       lastlyr_fit_eff_         = -99;
@@ -1714,6 +1728,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     eeta_seed_FR_ = seedtrack.emomEta();
 
     nHits_seed_FR_           = seedtrack.nFoundHits();
+    nLayers_seed_FR_         = seedtrack.nUniqueLayers(false);
     nHitsMatched_seed_FR_    = seedextra.nHitsMatched();
     fracHitsMatched_seed_FR_ = seedextra.fracHitsMatched();
     lastlyr_seed_FR_         = seedtrack.getLastFoundHitLyr();
@@ -1849,6 +1864,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       eeta_build_FR_ = buildtrack.emomEta();
 
       nHits_build_FR_           = buildtrack.nFoundHits();
+      nLayers_build_FR_         = buildtrack.nUniqueLayers(false);
       nHitsMatched_build_FR_    = buildextra.nHitsMatched();
       fracHitsMatched_build_FR_ = buildextra.fracHitsMatched();
       lastlyr_build_FR_         = buildtrack.getLastFoundHitLyr();
@@ -1978,10 +1994,11 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       eta_build_FR_  = -100;
       eeta_build_FR_ = -100;
       
-      nHits_build_FR_ = -100;
-      nHitsMatched_build_FR_ = -100;
+      nHits_build_FR_           = -100;
+      nLayers_build_FR_         = -100;
+      nHitsMatched_build_FR_    = -100;
       fracHitsMatched_build_FR_ = -100;
-      lastlyr_build_FR_ = -100;
+      lastlyr_build_FR_         = -100;
 
       dphi_build_FR_ = -100;
 
@@ -2029,6 +2046,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       eeta_fit_FR_ = fittrack.emomEta();
 
       nHits_fit_FR_           = fittrack.nFoundHits();
+      nLayers_fit_FR_         = fittrack.nUniqueLayers(false);
       nHitsMatched_fit_FR_    = fitextra.nHitsMatched();
       fracHitsMatched_fit_FR_ = fitextra.fracHitsMatched();
       lastlyr_fit_FR_         = fittrack.getLastFoundHitLyr();
@@ -2158,10 +2176,11 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       eta_fit_FR_  = -100;
       eeta_fit_FR_ = -100;
       
-      nHits_fit_FR_ = -100;
-      nHitsMatched_fit_FR_ = -100;
+      nHits_fit_FR_           = -100;
+      nLayers_fit_FR_         = -100;
+      nHitsMatched_fit_FR_    = -100;
       fracHitsMatched_fit_FR_ = -100;
-      lastlyr_fit_FR_ = -100;
+      lastlyr_fit_FR_         = -100;
 
       dphi_fit_FR_ = -100;
 

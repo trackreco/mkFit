@@ -136,6 +136,7 @@ public:
   
   // for hit countings
   int   nHits_seed_eff_=0,nHits_build_eff_=0,nHits_fit_eff_=0;
+  int   nLayers_seed_eff_=0,nLayers_build_eff_=0,nLayers_fit_eff_=0;
   int   nHitsMatched_seed_eff_=0,nHitsMatched_build_eff_=0,nHitsMatched_fit_eff_=0;
   float fracHitsMatched_seed_eff_=0,fracHitsMatched_build_eff_=0,fracHitsMatched_fit_eff_=0;
   int   lastlyr_seed_eff_=0,lastlyr_build_eff_=0,lastlyr_fit_eff_=0;
@@ -176,6 +177,7 @@ public:
   float eta_seed_FR_=0.,eta_build_FR_=0.,eta_fit_FR_=0.,eeta_seed_FR_=0.,eeta_build_FR_=0.,eeta_fit_FR_=0.;
     
   int   nHits_seed_FR_=0,nHits_build_FR_=0,nHits_fit_FR_=0;
+  int   nLayers_seed_FR_=0,nLayers_build_FR_=0,nLayers_fit_FR_=0;
   int   nHitsMatched_seed_FR_=0,nHitsMatched_build_FR_=0,nHitsMatched_fit_FR_=0;
   float fracHitsMatched_seed_FR_=0,fracHitsMatched_build_FR_=0,fracHitsMatched_fit_FR_=0;
   int   lastlyr_seed_FR_=0,lastlyr_build_FR_=0,lastlyr_fit_FR_=0;
