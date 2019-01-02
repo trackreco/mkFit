@@ -95,9 +95,10 @@ private:
   DblVec fEtaBins;
   DblVec fPhiBins;
 
-  // binning for hit hists
+  // binning for track quality hists
   DblVec fNHitsBins;
   DblVec fFracHitsBins;
+  DblVec fScoreBins;
 
   // binning for diff hists
   DblVec fDNHitsBins;
@@ -128,10 +129,10 @@ private:
   TStrVec fHPtCuts;
   UInt_t  fNPtCuts;
 
-  // track hits plots
-  TStrVec fTrkHits;
-  TStrVec fSTrkHits;
-  UInt_t  fNTrkHits;
+  // track quality plots
+  TStrVec fTrkQual;
+  TStrVec fSTrkQual;
+  UInt_t  fNTrkQual;
 
   // reference related strings
   TString fSRefTitle;

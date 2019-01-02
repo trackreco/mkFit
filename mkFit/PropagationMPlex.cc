@@ -441,6 +441,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    {
      MPlexQF hitsRl;
      MPlexQF hitsXi;
+     MPlexQF propSign;
 #pragma omp simd
      for (int n = 0; n < NN; ++n) 
      {
@@ -449,8 +450,12 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
        
        hitsRl(n, 0, 0) = (zbin>=0 && zbin<Config::nBinsZME && rbin>=0 && rbin<Config::nBinsRME) ? getRlVal(zbin,rbin) : 0.f; // protect against crazy propagations
        hitsXi(n, 0, 0) = (zbin>=0 && zbin<Config::nBinsZME && rbin>=0 && rbin<Config::nBinsRME) ? getXiVal(zbin,rbin) : 0.f; // protect against crazy propagations
+
+       const float r0 = hipo(inPar(n, 0, 0), inPar(n, 1, 0));
+       const float r = msRad(n, 0, 0);
+       propSign(n, 0, 0) = (r>r0 ? 1. : -1.);
      }
-     applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);
+     applyMaterialEffects(hitsRl, hitsXi, propSign, outErr, outPar, N_proc);
    }
 
    squashPhiMPlex(outPar,N_proc); // ensure phi is between |pi|
@@ -537,6 +542,7 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    {
      MPlexQF hitsRl;
      MPlexQF hitsXi;
+     MPlexQF propSign;
 #pragma omp simd
      for (int n = 0; n < NN; ++n) 
      {
@@ -545,8 +551,12 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 
        hitsRl(n, 0, 0) = (zbin>=0 && zbin<Config::nBinsZME && rbin>=0 && rbin<Config::nBinsRME) ? getRlVal(zbin,rbin) : 0.f; // protect against crazy propagations
        hitsXi(n, 0, 0) = (zbin>=0 && zbin<Config::nBinsZME && rbin>=0 && rbin<Config::nBinsRME) ? getXiVal(zbin,rbin) : 0.f; // protect against crazy propagations
+
+       const float zout = msZ.ConstAt(n, 0, 0);
+       const float zin   = inPar.ConstAt(n, 2, 0);
+       propSign(n, 0, 0) = (std::abs(zout)>std::abs(zin) ? 1. : -1.);
      }
-     applyMaterialEffects(hitsRl, hitsXi, outErr, outPar, N_proc);
+     applyMaterialEffects(hitsRl, hitsXi, propSign, outErr, outPar, N_proc);
    }
 
    squashPhiMPlex(outPar,N_proc); // ensure phi is between |pi|
@@ -692,7 +702,7 @@ void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
 
 //==============================================================================
 
-void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
+void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, const MPlexQF& propSign,
                                 MPlexLS &outErr,       MPlexLV& outPar,
                           const int      N_proc)
 {
@@ -733,7 +743,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi,
       const float dEdx = beta<1.f ? (2.f*(hitsXi.ConstAt(n,0,0) * invCos * (0.5f*std::log(2.f*me*beta2*gamma2*wmax/(I*I)) - beta2 - deltahalf) / beta2)) : 0.f;//protect against infs and nans
       // dEdx = dEdx*2.;//xi in cmssw is defined with an extra factor 0.5 with respect to formula 27.1 in pdg
       //std::cout << "dEdx=" << dEdx << " delta=" << deltahalf << " wmax=" << wmax << " Xi=" << hitsXi.ConstAt(n,0,0) << std::endl;
-      const float dP = dEdx/beta;
+      const float dP = propSign.ConstAt(n,0,0)*dEdx/beta;
       outPar.At(n, 3, 0) = p/((p+dP)*pt);
       //assume 100% uncertainty
       outErr.At(n, 3, 3) += dP*dP/(p2*pt*pt);

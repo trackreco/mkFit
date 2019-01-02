@@ -49,7 +49,7 @@ void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
                     MPlexLV& outPar,       MPlexLL& errorProp,
               const int      N_proc, const PropagationFlags pflags);
 
-void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, 
+void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, const MPlexQF& propSign,
                                 MPlexLS &outErr,       MPlexLV& outPar,
                           const int      N_proc);
 

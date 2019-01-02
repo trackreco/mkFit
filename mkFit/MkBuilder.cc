@@ -168,7 +168,7 @@ namespace
 
   bool sortCandByScore(const Track & cand1, const Track & cand2)
   {
-    return mkfit::sortByScoreCand(cand1,cand2);    
+    return mkfit::sortByScoreCand(cand1,cand2);
   }
 }
 
@@ -671,6 +671,15 @@ namespace
 
 namespace mkfit {
 
+void MkBuilder::assign_seedtype_forranking()
+{
+  // Assign idx to determine seed type, for ranking
+  for (size_t ts = 0; ts < m_event->seedTracks_.size(); ++ts)
+  {
+    assignSeedTypeForRanking(m_event->seedTracks_[ts]);
+  }
+}
+
 void MkBuilder::fit_seeds()
 {
   // Expect seeds to be sorted in eta (in some way) and that Event::seedEtaSeparators_[]
@@ -1110,6 +1119,9 @@ void MkBuilder::root_val()
   prep_recotracks();
   if (Config::cmssw_val) prep_cmsswtracks();
 
+  // score the seed tracks
+  score_tracks(m_event->seedTracks_);
+
   // validate
   m_event->Validate();
 }
@@ -1232,6 +1244,15 @@ void MkBuilder::prep_tracks(TrackVec& tracks, TrackExtraVec& extras, const bool 
     extras.emplace_back(tracks[i].label());
   }
   if (realigntracks) m_event->validation_.alignTracks(tracks,extras,false);
+}
+
+void MkBuilder::score_tracks(TrackVec& tracks)
+{
+  for (auto & track : tracks)
+  {
+    assignSeedTypeForRanking(track);
+    track.setCandScore(getScoreCand(track));
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -1386,6 +1407,10 @@ void MkBuilder::PrepareSeeds()
     std::cerr << "No input seed collection option selected!! Exiting..." << std::endl;
     exit(1);
   }
+  
+  //Assign idx to seeds for determining kinematic range for candidate ranking
+  //0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
+  assign_seedtype_forranking();
 
   fit_seeds();
 }
@@ -1601,6 +1626,8 @@ void MkBuilder::find_tracks_handle_missed_layers(MkFinder *mkfndr, const LayerIn
   for (int ti = itrack; ti < end; ++ti)
   {
     Track      &cand = m_event_of_comb_cands.m_candidates[seed_cand_idx[ti].first][seed_cand_idx[ti].second];
+    cand.setSeedTypeForRanking(m_event_of_comb_cands.m_candidates[seed_cand_idx[ti].first].m_seed_type);
+    cand.setCandScore(getScoreCand(cand));
     WSR_Result &w    = mkfndr->XWsrResult[ti - itrack];
 
     // XXXX-4 Low pT tracks can miss a barrel layer ... and should be stopped
@@ -2003,9 +2030,13 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
         int cnt = 0;
         while (dest_i != dest_e && src_i != src_e)
         {
-          //while (dest_i != dest_e && sortCandByHitsChi2(*dest_i, *src_i)) ++dest_i;
-          while (dest_i != dest_e && sortCandByScore(*dest_i, *src_i)) ++dest_i;
-
+          dest_i->setCandScore(getScoreCand(*dest_i));
+          while (dest_i != dest_e && sortCandByScore(*dest_i, *src_i)) 
+          {
+            ++dest_i;
+	    if(dest_i==dest_e) break;
+            dest_i->setCandScore(getScoreCand(*dest_i));
+          }
           if (dest_i != dest_e)
           {
             *dest_i = *src_i;
@@ -2030,6 +2061,10 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
   {
     std::vector<Track>& finalcands = eoccs.m_candidates[iseed];
     if (finalcands.size() == 0) continue;
+    for(size_t ic = 0; ic < finalcands.size(); ++ic)
+    {
+      finalcands[ic].setCandScore(getScoreCand(finalcands[ic]));
+    }
     //std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
     std::sort(finalcands.begin(), finalcands.end(), sortCandByScore);
   }
@@ -2272,9 +2307,28 @@ void MkBuilder::fit_cands(MkFinder *mkfndr, int start_cand, int end_cand, int re
   EventOfCombCandidates &eoccs  = m_event_of_comb_cands;
   const SteeringParams  &st_par = m_steering_params[region];
 
-  for (int icand = start_cand; icand < end_cand; icand += NN)
+  int step;
+  for (int icand = start_cand; icand < end_cand; icand += step)
   {
-    const int end = std::min(icand + NN, end_cand);
+    int end  = std::min(icand + NN, end_cand);
+
+    // Check if we need to fragment this for SlurpIn to work.
+    step = NN;
+    {
+       int end_c = icand + 1;
+       while (end_c < end)
+       {
+          // Still crashes with 0x1fffffff and 0x1ffffff, 0x1fffff works (~2000 breaks over 5k high PU events)
+          if (std::abs(&eoccs[icand][0] - &eoccs[end_c][0]) > 0x1fffff)
+          {
+             printf("XXYZZ MkBuilder::fit_cands Breaking up candidates with offset outside of 32-bit range.\n");
+             end  = end_c;
+             step = end - icand;
+             break;
+          }
+          ++end_c;
+       }
+    }
 
     // printf("Pre Final fit for %d - %d\n", icand, end);
     // for (int i = icand; i < end; ++i) { const Track &t = eoccs[i][0];

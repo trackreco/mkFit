@@ -58,6 +58,8 @@ public:
   void makeRecoTkToSeedTkMapsDumbCMSSW(Event& ev) override;
   void makeRecoTkToSeedTkMapDumbCMSSW(const TrackExtraVec& recoextras, const TrackExtraVec& seedextras, TkIDToTkIDMap& recoToSeedMap);
 
+  void setTrackScoresDumbCMSSW(Event &) override;
+
   void storeSeedAndMCID(Event& ev);
   void setupCMSSWMatching(const Event & ev, RedTrackVec & reducedCMSSW, LayIdxIDVecMapMap & cmsswHitIDMap);
 
@@ -134,6 +136,7 @@ public:
   
   // for hit countings
   int   nHits_seed_eff_=0,nHits_build_eff_=0,nHits_fit_eff_=0;
+  int   nLayers_seed_eff_=0,nLayers_build_eff_=0,nLayers_fit_eff_=0;
   int   nHitsMatched_seed_eff_=0,nHitsMatched_build_eff_=0,nHitsMatched_fit_eff_=0;
   float fracHitsMatched_seed_eff_=0,fracHitsMatched_build_eff_=0,fracHitsMatched_fit_eff_=0;
   int   lastlyr_seed_eff_=0,lastlyr_build_eff_=0,lastlyr_fit_eff_=0;
@@ -141,9 +144,10 @@ public:
   // swim phi
   float dphi_seed_eff_=0.,dphi_build_eff_=0.,dphi_fit_eff_=0.;
   
-  // chi2 of tracks
+  // quality info of tracks
   float hitchi2_seed_eff_=0.,hitchi2_build_eff_=0.,hitchi2_fit_eff_=0.;
   float helixchi2_seed_eff_=0.,helixchi2_build_eff_=0.,helixchi2_fit_eff_=0.;
+  int   score_seed_eff_=0,score_build_eff_=0,score_fit_eff_=0;
 
   // for duplicate track matches
   int   duplmask_seed_eff_=0,duplmask_build_eff_=0,duplmask_fit_eff_=0;
@@ -173,6 +177,7 @@ public:
   float eta_seed_FR_=0.,eta_build_FR_=0.,eta_fit_FR_=0.,eeta_seed_FR_=0.,eeta_build_FR_=0.,eeta_fit_FR_=0.;
     
   int   nHits_seed_FR_=0,nHits_build_FR_=0,nHits_fit_FR_=0;
+  int   nLayers_seed_FR_=0,nLayers_build_FR_=0,nLayers_fit_FR_=0;
   int   nHitsMatched_seed_FR_=0,nHitsMatched_build_FR_=0,nHitsMatched_fit_FR_=0;
   float fracHitsMatched_seed_FR_=0,fracHitsMatched_build_FR_=0,fracHitsMatched_fit_FR_=0;
   int   lastlyr_seed_FR_=0,lastlyr_build_FR_=0,lastlyr_fit_FR_=0;
@@ -181,7 +186,8 @@ public:
   float dphi_seed_FR_=0.,dphi_build_FR_=0.,dphi_fit_FR_=0.;
 
   float hitchi2_seed_FR_=0.,hitchi2_build_FR_=0.,hitchi2_fit_FR_=0.;
- 
+  int   score_seed_FR_=0,score_build_FR_=0,score_fit_FR_=0;
+
   int   mcID_seed_FR_=0,mcID_build_FR_=0,mcID_fit_FR_=0;
   int   mcmask_seed_FR_=0,mcmask_build_FR_=0,mcmask_fit_FR_=0;
   int   mcTSmask_seed_FR_=0,mcTSmask_build_FR_=0,mcTSmask_fit_FR_=0;
@@ -240,6 +246,7 @@ public:
 
   // chi2 of tracks + phi swim
   float hitchi2_build_ceff_=0.,helixchi2_build_ceff_=0.;
+  int   score_build_ceff_=0;
   float dphi_build_ceff_=0.;
 
   int   duplmask_build_ceff_=0,nTkMatches_build_ceff_=0;
@@ -262,6 +269,7 @@ public:
 
   // chi2 of tracks + phi swim
   float hitchi2_fit_ceff_=0.,helixchi2_fit_ceff_=0.;
+  int   score_fit_ceff_=0;
   float dphi_fit_ceff_=0.;
 
   int   duplmask_fit_ceff_=0,nTkMatches_fit_ceff_=0;
@@ -291,6 +299,7 @@ public:
 
   // chi2 of tracks
   float hitchi2_build_cFR_=0.,helixchi2_build_cFR_=0.;
+  int   score_build_cFR_=0;
   float dphi_build_cFR_=0.;
 
   // for duplicate track matches
@@ -316,6 +325,7 @@ public:
 
   // chi2 of tracks
   float hitchi2_fit_cFR_=0.,helixchi2_fit_cFR_=0.;
+  int   score_fit_cFR_=0;
   float dphi_fit_cFR_=0.;
 
   // for duplicate track matches

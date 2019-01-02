@@ -11,7 +11,7 @@
 // k == pt cuts
 // l == rates: eff, dupl rate, ineff (efftree), eff, dupl rate, fake rate (print)
 // m == eta regions: brl, trans, enc (efftree)
-// n == hit plots: nHits, fracHits (frtree and print)
+// n == track quality plots: nHits, fracHits, track score (frtree and print)
 // o == matched reco collections: all reco, fake, all match, best match (frtree), all reco, fake, and best match (print)
 // p == diff of kinematic variables: dnhits, dinvpt, deta, dphi (frtree)
 // q == n directories in frtree
@@ -319,7 +319,7 @@ void PlotValidation::PlotEffTree()
   delete efftree;
 }
 
-// loop over fake rate tree, producing fake rate, nHits/track, and kinematic diffs to cmssw
+// loop over fake rate tree, producing fake rate, nHits/track, score, and kinematic diffs to cmssw
 void PlotValidation::PlotFRTree()
 {
   //////////////
@@ -332,13 +332,13 @@ void PlotValidation::PlotFRTree()
   // Declare strings for branches and plots //
   ////////////////////////////////////////////
 
-  // info for nHits, kinematic diffs
+  // info for quality info (nHits,score), kinematic diffs
   const TStrVec colls  = {"allreco","fake","allmatch","bestmatch"};
   const TStrVec scolls = {"All Reco","Fake","All Match","Best Match"};
   const UInt_t  ncolls = colls.size();
 
   // get bins ready
-  const DblVecVec trkhitbins = {fNHitsBins,fFracHitsBins};
+  const DblVecVec trkqualbins = {fNHitsBins,fFracHitsBins,fScoreBins};
 
   // diffs
   const TStrVec dvars  = {"dnHits","dinvpt","deta","dphi"};
@@ -383,14 +383,14 @@ void PlotValidation::PlotFRTree()
 	plots[plotkey] = new TEfficiency(plotname.Data(),plottitle.Data(),varbins.size()-1,bins);
       } // end loop over vars for efficiency
 
-      // initialize hits on track plots
-      for (auto n = 0U; n < fNTrkHits; n++) // loop over hits vars
+      // initialize track quality plots
+      for (auto n = 0U; n < fNTrkQual; n++) // loop over quality vars
       {
-	const auto & trkhit  = fTrkHits [n];
-	const auto & strkhit = fSTrkHits[n];
+	const auto & trkqual  = fTrkQual [n];
+	const auto & strkqual = fSTrkQual[n];
 
 	// get bins for the variable of interest
-	const auto & varbins  = trkhitbins[n];
+	const auto & varbins  = trkqualbins[n];
 	const Double_t * bins = &varbins[0];
 
 	for (auto o = 0U; o < ncolls; o++) // loop over collection of tracks 
@@ -400,8 +400,8 @@ void PlotValidation::PlotFRTree()
 
 	  // plot names and key
 	  const TString histkey   = Form("%i_%i_%i_%i",j,k,n,o);
-	  const TString histname  = "h_"+trkhit+"_"+coll+"_"+trk+"_pt"+hptcut;
-	  const TString histtitle = scoll+" "+strk+" Track vs "+strkhit+" {"+fSVarPt+" > "+sptcut+" "+fSUnitPt+"};"+strkhit+";nTracks";
+	  const TString histname  = "h_"+trkqual+"_"+coll+"_"+trk+"_pt"+hptcut;
+	  const TString histtitle = scoll+" "+strk+" Track vs "+strkqual+" {"+fSVarPt+" > "+sptcut+" "+fSUnitPt+"};"+strkqual+";nTracks";
 
 	  // Numerator only type plots only!
 	  hists[histkey] = new TH1F(histname.Data(),histtitle.Data(),varbins.size()-1,bins);
@@ -410,7 +410,7 @@ void PlotValidation::PlotFRTree()
       } // end loop over hit plots
       
       // initialize diff plots
-      for (auto p = 0U; p < ndvars; p++) // loop over hits vars
+      for (auto p = 0U; p < ndvars; p++) // loop over kin diff vars
       {
 	const auto & dvar  = dvars [p];
 	const auto & sdvar = sdvars[p];
@@ -481,6 +481,8 @@ void PlotValidation::PlotFRTree()
   TBrRefVec nHits_trks_br   (fNTrks); // branch per track
   FltVec    fracHits_trks   (fNTrks); // fraction of hits matched (most) / track
   TBrRefVec fracHits_trks_br(fNTrks); // branch per track
+  IntVec    score_trks      (fNTrks); // track score
+  TBrRefVec score_trks_br   (fNTrks); // branch per track
 
   // Initialize diff branches
   IntVec    nLayers_ref_trks   (fNTrks); // sim/cmssw nUnique layers
@@ -504,6 +506,8 @@ void PlotValidation::PlotFRTree()
     auto & nHits_trk_br       = nHits_trks_br      [j];
     auto & fracHits_trk       = fracHits_trks      [j];
     auto & fracHits_trk_br    = fracHits_trks_br   [j];
+    auto & score_trk          = score_trks         [j];
+    auto & score_trk_br       = score_trks_br      [j];
     auto & nLayers_ref_trk    = nLayers_ref_trks   [j];
     auto & nLayers_ref_trk_br = nLayers_ref_trks_br[j];
     auto & pt_ref_trk         = pt_ref_trks        [j];
@@ -524,6 +528,8 @@ void PlotValidation::PlotFRTree()
     nHits_trk_br    = 0;
     fracHits_trk    = 0.f;
     fracHits_trk_br = 0;
+    score_trk       = 0;
+    score_trk_br    = 0;
 
     // initialize diff branches
     nLayers_ref_trk    = 0;
@@ -541,7 +547,8 @@ void PlotValidation::PlotFRTree()
     
     frtree->SetBranchAddress("nHits_"+trk,&nHits_trk,&nHits_trk_br);
     frtree->SetBranchAddress("fracHitsMatched_"+trk,&fracHits_trk,&fracHits_trk_br);
-    
+    frtree->SetBranchAddress("score_"+trk,&score_trk,&score_trk_br);
+
     frtree->SetBranchAddress("nLayers_"+fSRefVarTrk+"_"+trk,&nLayers_ref_trk,&nLayers_ref_trk_br);
     frtree->SetBranchAddress("pt_"+fSRefVarTrk+"_"+trk,&pt_ref_trk,&pt_ref_trk_br);
     frtree->SetBranchAddress("eta_"+fSRefVarTrk+"_"+trk,&eta_ref_trk,&eta_ref_trk_br);
@@ -573,6 +580,7 @@ void PlotValidation::PlotFRTree()
       auto & iTkMatches_trk_br  = iTkMatches_trks_br [j];
       auto & nHits_trk_br       = nHits_trks_br      [j];
       auto & fracHits_trk_br    = fracHits_trks_br   [j];
+      auto & score_trk_br       = score_trks_br      [j];
       auto & nLayers_ref_trk_br = nLayers_ref_trks_br[j];
       auto & pt_ref_trk_br      = pt_ref_trks_br     [j];
       auto & eta_ref_trk_br     = eta_ref_trks_br    [j];
@@ -583,6 +591,7 @@ void PlotValidation::PlotFRTree()
 
       nHits_trk_br   ->GetEntry(e);
       fracHits_trk_br->GetEntry(e);
+      score_trk_br   ->GetEntry(e);
 
       nLayers_ref_trk_br->GetEntry(e);
       pt_ref_trk_br     ->GetEntry(e);
@@ -601,6 +610,8 @@ void PlotValidation::PlotFRTree()
       const auto iTkMatches_trk  = iTkMatches_trks [j];
       const auto nHits_trk       = nHits_trks      [j];
       const auto fracHits_trk    = fracHits_trks   [j];
+      const auto score_trk       = score_trks      [j];
+
       const auto nLayers_ref_trk = nLayers_ref_trks[j];
       const auto pt_ref_trk      = pt_ref_trks     [j];
       const auto eta_ref_trk     = eta_ref_trks    [j];
@@ -628,8 +639,9 @@ void PlotValidation::PlotFRTree()
 	const TString basekey = Form("%i_%i",j,k); // hist key
 
 	// key strings
-	const TString nhitkey = Form("%s_0",basekey.Data());
-	const TString frackey = Form("%s_1",basekey.Data());
+	const TString nhitkey  = Form("%s_0",basekey.Data());
+	const TString frackey  = Form("%s_1",basekey.Data());
+	const TString scorekey = Form("%s_2",basekey.Data());
 
 	const TString dnhitkey  = Form("%s_d_0",basekey.Data());
 	const TString dinvptkey = Form("%s_d_1",basekey.Data());
@@ -639,31 +651,35 @@ void PlotValidation::PlotFRTree()
 	// all reco
 	hists[Form("%s_0",nhitkey.Data())]->Fill(nHits_trk);
 	hists[Form("%s_0",frackey.Data())]->Fill(fracHits_trk);
+	hists[Form("%s_0",scorekey.Data())]->Fill(score_trk);
 
 	if      (refmask_trk == 0) // all fakes 
 	{
-	  hists[Form("%s_1",nhitkey.Data())]->Fill(nHits_trk);
-	  hists[Form("%s_1",frackey.Data())]->Fill(fracHits_trk);
+	  hists[Form("%s_1",nhitkey .Data())]->Fill(nHits_trk);
+	  hists[Form("%s_1",frackey .Data())]->Fill(fracHits_trk);
+	  hists[Form("%s_1",scorekey.Data())]->Fill(score_trk);
 	}
 	else if (refmask_trk == 1) // all matches
 	{
-	  hists[Form("%s_2",nhitkey.Data())]->Fill(nHits_trk);
-	  hists[Form("%s_2",frackey.Data())]->Fill(fracHits_trk);
+	  hists[Form("%s_2",nhitkey .Data())]->Fill(nHits_trk);
+	  hists[Form("%s_2",frackey .Data())]->Fill(fracHits_trk);
+	  hists[Form("%s_2",scorekey.Data())]->Fill(score_trk);
 
 	  hists[Form("%s_2",dnhitkey .Data())]->Fill(nHits_trk-nLayers_ref_trk);
 	  hists[Form("%s_2",dinvptkey.Data())]->Fill(1.f/pt_trk-1.f/pt_ref_trk);
 	  hists[Form("%s_2",detakey  .Data())]->Fill(eta_trk-eta_ref_trk);
-	  hists[Form("%s_2",dphikey.Data())]->Fill(dphi_trk);
+	  hists[Form("%s_2",dphikey  .Data())]->Fill(dphi_trk);
 
 	  if (iTkMatches_trk == 0) // best matches only
 	  {
-	    hists[Form("%s_3",nhitkey.Data())]->Fill(nHits_trk);
-	    hists[Form("%s_3",frackey.Data())]->Fill(fracHits_trk);
+	    hists[Form("%s_3",nhitkey .Data())]->Fill(nHits_trk);
+	    hists[Form("%s_3",frackey .Data())]->Fill(fracHits_trk);
+	    hists[Form("%s_3",scorekey.Data())]->Fill(score_trk);
 	    
 	    hists[Form("%s_3",dnhitkey .Data())]->Fill(nHits_trk-nLayers_ref_trk);
 	    hists[Form("%s_3",dinvptkey.Data())]->Fill(1.f/pt_trk-1.f/pt_ref_trk);
 	    hists[Form("%s_3",detakey  .Data())]->Fill(eta_trk-eta_ref_trk);
-	    hists[Form("%s_3",dphikey.Data())]->Fill(dphi_trk);
+	    hists[Form("%s_3",dphikey  .Data())]->Fill(dphi_trk);
 	  } // end check over best matches
 	} // end check over all matches
       } // end loop over pt cuts
@@ -675,7 +691,7 @@ void PlotValidation::PlotFRTree()
   /////////////////
 
   // make subdirs
-  TStrVec dirnames = {"fakerate","nHits","kindiffs"};
+  TStrVec dirnames = {"fakerate","quality","kindiffs"};
   for (auto & dirname : dirnames) dirname += fSRefDir;
   const UInt_t ndirs = dirnames.size();
 
@@ -696,8 +712,8 @@ void PlotValidation::PlotFRTree()
 	delete plots[plotkey];
       }
 
-      // nhits plots
-      for (auto n = 0U; n < fNTrkHits; n++) // loop over hits vars
+      // track quality plots
+      for (auto n = 0U; n < fNTrkQual; n++) // loop over track quality vars
       {
 	for (auto o = 0U; o < ncolls; o++) // loop over collection of tracks 
 	{
@@ -709,7 +725,7 @@ void PlotValidation::PlotFRTree()
       } // end loop over hit vars
     
       // kinematic diff plots
-      for (auto p = 0U; p < ndvars; p++) // loop over hits vars
+      for (auto p = 0U; p < ndvars; p++) // loop over diff vars
       {
 	for (auto o = 2U; o < ncolls; o++) // loop over collection of tracks for only matched tracks
 	{
@@ -752,10 +768,10 @@ void PlotValidation::PrintTotals()
   delete frtree;
   delete efftree;
 
-  ///////////////////////////////////////////////////////////////////////////////////////////
-  // Print out totals of nHits, frac of Hits shared, eff, FR, DR rate of seeds, build, fit //
-  //          --> numer/denom plots for phi, know it will be in the bounds.                //
-  ///////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Print out totals of nHits, frac of Hits shared, track score, eff, FR, DR rate of seeds, build, fit //
+  //                --> numer/denom plots for phi, know it will be in the bounds.                       //
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   const TStrVec rates    = {"eff","fr","dr"};
   const TStrVec srates   = {"Efficiency","Fake Rate","Duplicate Rate"};
@@ -764,7 +780,7 @@ void PlotValidation::PrintTotals()
   const UInt_t  nrates   = rates.size();
 
   const TStrVec snumers = {fSRefTitle+" Tracks Matched","Unmatched Reco Tracks",fSRefTitle+" Tracks Matched (nTimes>1)"};
-  const TStrVec sdenoms = {"Eligible"+fSRefTitle+"Tracks","Eligible Reco Tracks","Eligible"+fSRefTitle+"Tracks"};
+  const TStrVec sdenoms = {"Eligible "+fSRefTitle+" Tracks","Eligible Reco Tracks","Eligible "+fSRefTitle+" Tracks"};
 
   TEffRefMap plots;
   for (auto j = 0U; j < fNTrks; j++) 
@@ -802,16 +818,16 @@ void PlotValidation::PrintTotals()
     {
       const auto & hptcut = fHPtCuts[k];
       
-      for (auto n = 0U; n < fNTrkHits; n++) 
+      for (auto n = 0U; n < fNTrkQual; n++) 
       {
-	const auto & trkhit = fTrkHits[n];
+	const auto & trkqual = fTrkQual[n];
 
 	for (auto o = 0U; o < ncolls; o++) 
 	{
 	  const auto & coll = colls[o];
 
 	  const TString histkey  = Form("%i_%i_%i_%i",j,k,n,o);
-	  const TString histname = "nHits"+fSRefDir+"/h_"+trkhit+"_"+coll+"_"+trk+"_pt"+hptcut;
+	  const TString histname = "quality"+fSRefDir+"/h_"+trkqual+"_"+coll+"_"+trk+"_pt"+hptcut;
 	  hists[histkey] = (TH1F*)fOutRoot->Get(histname.Data());
 	}
       }
@@ -848,12 +864,12 @@ void PlotValidation::PrintTotals()
 
       std::cout << strk.Data() << " Tracks" << std::endl;
       std::cout << "++++++++++++++++++++++++++++++++++++++++++" << std::endl << std::endl;
-      std::cout << "Hit Totals for " << strk.Data() << " Track Collections" << std::endl;
+      std::cout << "Quality Info for " << strk.Data() << " Track Collections" << std::endl;
       std::cout << "==========================================" << std::endl;
       
       totalsout << strk.Data() << " Tracks" << std::endl;
       totalsout << "++++++++++++++++++++++++++++++++++++++++++" << std::endl << std::endl;
-      totalsout << "Hit Totals for " << strk.Data() << " Track Collections" << std::endl;
+      totalsout << "Quality Info for " << strk.Data() << " Track Collections" << std::endl;
       totalsout << "==========================================" << std::endl;
       for (auto o = 0U; o < ncolls; o++)
       {
@@ -863,15 +879,19 @@ void PlotValidation::PrintTotals()
 	const Float_t nHits_mean_unc    = hists[Form("%i_%i_0_%i",j,k,o)]->GetMeanError(1); // 1 is mean of x-axis
 	const Float_t fracHits_mean     = hists[Form("%i_%i_1_%i",j,k,o)]->GetMean(1);
 	const Float_t fracHits_mean_unc = hists[Form("%i_%i_1_%i",j,k,o)]->GetMeanError(1);
-	
+	const Float_t score_mean        = hists[Form("%i_%i_2_%i",j,k,o)]->GetMean(1);
+	const Float_t score_mean_unc    = hists[Form("%i_%i_2_%i",j,k,o)]->GetMeanError(1);
+
 	std::cout << scoll.Data() << " Tracks" << std::endl;
 	std::cout << "Mean nHits / Track = " << nHits_mean << " +/- " << nHits_mean_unc << std::endl;
 	std::cout << "Mean Shared Hits / Track = " << fracHits_mean << " +/- " << fracHits_mean_unc << std::endl;
+	std::cout << "Mean Track Score = " << score_mean << " +/- " << score_mean_unc << std::endl;
 	std::cout << "------------------------------------------" << std::endl;
 	
 	totalsout << scoll.Data() << " Tracks" << std::endl;
 	totalsout << "Mean nHits / Track = " << nHits_mean << " +/- " << nHits_mean_unc << std::endl;
 	totalsout << "Mean Shared Hits / Track = " << fracHits_mean << " +/- " << fracHits_mean_unc << std::endl;
+	totalsout << "Mean Track Score = " << score_mean << " +/- " << score_mean_unc << std::endl;
 	totalsout << "------------------------------------------" << std::endl;
       }
       
@@ -1010,6 +1030,9 @@ void PlotValidation::SetupBins()
   // fraction hits matched bins
   PlotValidation::SetupFixedBins(110,0,1.1,fFracHitsBins);
 
+  // track score bins
+  PlotValidation::SetupFixedBins(1699,-16990,16990,fScoreBins);
+
   // dNhits
   PlotValidation::SetupFixedBins(40,-20,20,fDNHitsBins);
   
@@ -1077,10 +1100,10 @@ void PlotValidation::SetupCommonVars()
   }
   fNPtCuts = fPtCuts.size();
   
-  // nhits
-  fTrkHits  = {"nHits","fracHitsMatched"};
-  fSTrkHits = {"nHits / Track","Highest Fraction of Matched Hits / Track"};
-  fNTrkHits = fTrkHits.size();
+  // quality info
+  fTrkQual  = {"nHits","fracHitsMatched","score"};
+  fSTrkQual = {"nHits / Track","Highest Fraction of Matched Hits / Track","Track Score"};
+  fNTrkQual = fTrkQual.size();
 
   // reference related strings
   fSRefTitle  = (fCmsswComp?"CMSSW":"Sim");
