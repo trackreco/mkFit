@@ -473,7 +473,7 @@ git cms-init
 popd
 git clone git@github.com:cerati/mictest
 pushd mictest
-TBB_PREFIX=$(dirname $(cd $CMSSW_BASE && scram tool tag tbb INCLUDE)) make -j 12
+TBB_PREFIX=$(dirname $(cd $CMSSW_BASE && scram tool tag tbb INCLUDE)) make -j 12 AVX_512:=1
 popd
 ```
 
