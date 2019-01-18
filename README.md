@@ -463,15 +463,17 @@ popd
 ##### Section 9.ii.a.b: Phi3
 
 ```bash
+source /cvmfs/cms.cern.ch/cmsset_default.sh
 source /opt/intel/bin/compilervars.sh intel64
-git clone git@github.com:cerati/mictest
-pushd mictest
-TBB_PREFIX=$(dirname $(cd $CMSSW_BASE && scram tool tag tbb INCLUDE)) make -j 12
-popd
+export SCRAM_ARCH=slc7_amd64_gcc630
 cmsrel CMSSW_10_2_0_pre3
 pushd CMSSW_10_2_0_pre3/src
 cmsenv
 git cms-init
+popd
+git clone git@github.com:cerati/mictest
+pushd mictest
+TBB_PREFIX=$(dirname $(cd $CMSSW_BASE && scram tool tag tbb INCLUDE)) make -j 12 AVX_512:=1
 popd
 ```
 
