@@ -40,6 +40,7 @@ function GetNCore ()
  
     echo "${ncore}"
 }
+export -f GetNCore
 
 ####################
 ## Core Test Loop ##
@@ -47,21 +48,21 @@ function GetNCore ()
 
 function MkFitLoop ()
 {
-    local duration=${1}
-    local base_exe=${2}
+    local min_duration=${1}
+    local test_exe=${2}
     local nproc=${3}
     local njob=${4}
     
     local start_time=$( date +"%s" )
-    local end_time=$(( ${start_time} + ${duration} ))
+    local end_time=$(( ${start_time} + ${min_duration} ))
     
     ## compute number of events to process per job
-    local nproc_per_core=$(( ${nproc} / ${njob} ))
+    local nproc_per_job=$(( ${nproc} / ${njob} ))
 
     ## global variable to be read back in main loop to keep track of number of times processed
     nloop=0
 
-    ## run stress test for min duration with an emulated do-while loop: https://stackoverflow.com/a/16491478
+    ## run stress test for min min_duration with an emulated do-while loop: https://stackoverflow.com/a/16491478
     while
 
     ## launch jobs in parallel to background : let scheduler put jobs all around
@@ -71,7 +72,7 @@ function MkFitLoop ()
 	local start_event=$(( ${nproc_per_job} * ${ijob} ))
 
         ## run the executable
-	${base_exe} "--num-events ${nproc_per_job} --start-event ${start_event}" &
+	${test_exe} --num-events ${nproc_per_job} --start-event ${start_event} &
     done
 
     ## wait for all background processes to finish --> non-ideal as we would rather "stream" jobs launching
@@ -80,13 +81,14 @@ function MkFitLoop ()
     ## increment nloop counter
     ((nloop++))
 
-    ## perform check now to end loop : if current time is greater than duration, break.
+    ## perform check now to end loop : if current time is greater than projected end time, break.
     local current_time=$( date +"%s" )
-    (( ${current_time} <= ${duration} ))
+    (( ${current_time} <= ${end_time} ))
     do
 	continue
     done
 }
+export -f MkFitLoop
 
 ########################################
 ## Dump Info about Test into Tmp File ##
@@ -103,6 +105,7 @@ function AppendTmpFile ()
     echo "${nproc_label} ${nproc}" >> "${tmp_output_file}"
     echo "${nloop_label} ${nloop}" >> "${tmp_output_file}"
 }
+export -f AppendTmpFile
 
 ####################################
 ## Dump Tmp Output into Main File ##
@@ -125,15 +128,17 @@ function DumpIntoFile ()
     ## get physical cores used
     local ncore=$( grep "${ncore_label}" "${tmp_output_file}" | cut -d " " -f 2 )
 
-    ## compute total events processed
+    ## compute total events processed per core
     local nloop=$( grep "${nloop_label}" "${tmp_output_file}" | cut -d " " -f 2 )
     local nproc=$( grep "${nproc_label}" "${tmp_output_file}" | cut -d " " -f 2 )
-    
-    local total_proc=$(( ${nloop} * ${nproc} )) 
 
-    ## divide by total number of events processed and physical cores used
-    local norm_time=$( bc -l <<< "${total_time} / ${ncore} / ${total_proc}" )
+    local total_proc=$(( ${nloop} * ${nproc} )) 
+    local total_proc_per_core=$( bc -l <<< "${total_proc} / ${ncore}" )
+
+    ## divide time by total events processed per core 
+    local norm_time=$( bc -l <<< "${total_time} / ${total_proc_per_core}" )
 
     ## dump result into final output file
     echo "${test_label} ${norm_time}" >> "${output_file}"
 }
+export -f DumpIntoFile

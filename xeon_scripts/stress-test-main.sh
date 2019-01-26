@@ -3,18 +3,27 @@
 #################################################################################
 ##                                    README!                                  ##
 ##                                                                             ##
-## Stress test script to run on phi3, testing different thread/MEIF combos     ##
-## with different instruction sets using clone engine building and n2-seeding. ##
+## Stress test script to run on phiN, testing different thread/MEIF combos     ##
+## with different instruction sets with default settings of clone engine track ##
+## finding and CMSSW n2-seeding using ttbar PU70.                              ##
 ##                                                                             ##
-## 120 events per physical core are processed (need even number for ST tests). ##
-## Can vary nevents, thread/MEIF combos, input file, seeds, building algo.     ##
+## Can vary thread/MEIF combos, input file, seeds, building algo by editting   ##
+## this script manually.                                                       ##
 ##                                                                             ##
-## Command line inputs are which platform to stress (ben_arch) no_turbo ON/OFF ##
-## (no_turbo), the min time per test (duration), and the time between each     ##
-## test (sleep_time).                                                          ##
-##                                                                             ##    
+## Command line inputs are which platform to stress (ben_arch), the min time   ## 
+## per test (min_duration), the time between each test (sleep_time), and the   ##
+## number of events to process per physical core (base_events).                ##
+##                                                                             ##
+## N.B. : base_events MUST be a number divisible by 4! This is because the     ##
+## max physical cores on KNL is 64, but the highest nTH/nJOB test is 256.      ##       
+##                                                                             ##
 ## Output file lists stress test time per event processed per physical core.   ##
 #################################################################################
+
+## N.B. : Set no_turbo at command line on phiN BEFORE running this script via:
+## TURBO OFF : echo 1 | sudo /usr/bin/tee /sys/devices/system/cpu/intel_pstate/no_turbo > /dev/null 2>&1
+## TURBO ON  : echo 0 | sudo /usr/bin/tee /sys/devices/system/cpu/intel_pstate/no_turbo > /dev/null 2>&1
+## Then, after the test is over, return machine to default state: TURBO OFF
 
 ########################
 ## Source Environment ##
@@ -22,7 +31,7 @@
 
 source /opt/rh/devtoolset-7/enable
 source /opt/intel/bin/compilervars.sh intel64
-source stress-test-config.sh
+source xeon_scripts/stress-test-common.sh
 
 ###################
 ## Configuration ##
@@ -30,9 +39,9 @@ source stress-test-config.sh
 
 ## Command line inputs
 ben_arch=${1} # SNB (phi1), KNL (phi2), SKL-SP (phi3)
-no_turbo=${2:-1} # turbo on/off (default is turbo OFF)
-duration=${3:-1800} # min time spent for each test [s]
-sleep_time=${4:-300} # sleep time between tests [s]
+min_duration=${2:-1800} # min time spent for each test [s]
+sleep_time=${3:-300} # sleep time between tests [s]
+base_nevents=${4:-120} # number of events to process per physical core, must be divisible by 4
 
 ## platform specific settings
 if [[ "${ben_arch}" == "SNB" ]]
@@ -48,7 +57,7 @@ then
     mOpt="-j 64"
     dir=/data1/work/slava77/samples
     maxcore=64
-    declare -a instruction_sets=(SSE3 AVX AX2 AVX512)
+    declare -a instruction_sets=(SSE3 AVX AVX2 AVX512)
     declare -a thread_combo_arr=("1 1" "32 32" "64 32" "64 64" "128 32" "128 64" "128 128" "256 32" "256 64" "256 128" "256 256")
     declare -a njob_arr=("32" "64" "128" "256")
 elif [[ "${ben_arch}" == "SKL-SP" ]]
@@ -56,7 +65,7 @@ then
     mOpt="-j 32"
     dir=/data2/slava77/samples
     maxcore=32
-    declare -a instruction_sets=(SSE3 AVX AX2 AVX512)
+    declare -a instruction_sets=(SSE3 AVX AVX2 AVX512)
     declare -a thread_combo_arr=("1 1" "16 16" "32 16" "32 32" "48 16" "48 32" "64 16" "64 32" "64 64")
     declare -a njob_arr=("32" "64")
 else 
@@ -67,23 +76,16 @@ fi
 ## Common file setup
 subdir=2017/pass-c93773a/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU
 file=memoryFile.fv3.clean.writeAll.CCC1620.recT.082418-25daeda.bin
-nevents=120
 
 ## Common mkFit options
 seeds="--cmssw-n2seeds"
-algo="--ce"
+algo="--build-ce"
 opts="--silent"
-exe="./mkFit/mkFit --input-file ${dir}/${subdir}/${file} ${seeds} ${algo} ${opts}"
+base_exe="./mkFit/mkFit --input-file ${dir}/${subdir}/${file} ${seeds} ${algo} ${opts}"
 
 ## Output options
-base_outname="mkfit_stress_tests_${ben_arch}"
+base_outname="stress_tests_${ben_arch}"
 output_file="${base_outname}_results.${ext}"
-
-##################
-## Set no_turbo ##
-##################
-
-echo ${no_turbo} | sudo /usr/bin/tee /sys/devices/system/cpu/intel_pstate/no_turbo >/dev/null 2>&1
 
 ###############
 ## Run tests ##
@@ -94,28 +96,28 @@ for instruction_set in "${instruction_sets[@]}"
 do
     ## compile once, using settings for the given instruction set
     make distclean
-    make "${mOpt}" "${!instruction_set}"
+    make ${mOpt} ${!instruction_set}
     
     ## run thread combo tests (nThreads, nEventsInFlight)
     for thread_combo in "${thread_combo_arr[@]}"
     do echo "${thread_combo}" | while read -r nth nev
 	do
 	    ## compute total number of events to process
-	    ncore=$( GetNCore() "${nth}" "${maxcore}" ) 
-	    nproc=$(( ${nevents} * ${ncore} ))
+	    ncore=$( GetNCore "${nth}" "${maxcore}" ) 
+	    nproc=$(( ${base_nevents} * ${ncore} ))
 
 	    ## print out which test is being performed
 	    test_label="${instruction_set}_${nth_label}${nth}_${nev_label}${nev}"
 	    echo "Running stress test for: ${test_label}..."
 
-	    ## full executable
-	    base_exe="${exe} --num-thr ${nth} --num-thr-ev ${nev}"
+	    ## test executable
+	    test_exe="${base_exe} --num-thr ${nth} --num-thr-ev ${nev}"
 
 	    ## output file
 	    tmp_output_file="${base_outname}_${test_label}.${tmp_ext}"
 	    
 	    ## execute test and pipe time to output file: https://stackoverflow.com/a/2409214
-	    { time MkFitLoop "${duration}" "${base_exe}" "${nproc}" "1" > /dev/null 2>&1 ; } 2> "${tmp_output_file}"
+	    { time MkFitLoop "${min_duration}" "${test_exe}" "${nproc}" "1" > /dev/null 2>&1 ; } 2> "${tmp_output_file}"
 
 	    ## pause to let machine cool down between each test
 	    sleep "${sleep_time}"
@@ -129,21 +131,21 @@ do
     for njob in "${njob_arr[@]}"
     do
 	## compute total number of events to process
-	ncore=$( GetNCore() "${njob}" "${maxcore}" ) 
-	nproc=$(( ${nevents} * ${ncore} ))
+	ncore=$( GetNCore "${njob}" "${maxcore}" ) 
+	nproc=$(( ${base_nevents} * ${ncore} ))
 
 	## print out which test is being performed
 	test_label="${instruction_set}_${njob_label}${njob}"
 	echo "Running stress test for: ${test_label}..."
 
-	## base executable
-	base_exe="${exe} --num-thr 1 --num-thr-ev 1"
+	## test executable
+	test_exe="${base_exe} --num-thr 1 --num-thr-ev 1"
 
 	## output file
 	tmp_output_file="${base_outname}_${test_label}.${tmp_ext}"
 	    
 	## execute test and pipe time to output file: https://stackoverflow.com/a/2409214
-	{ time MkFitLoop "${duration}" "${base_exe}" "${nproc}" "${njob}" > /dev/null 2>&1 ; } 2> "${tmp_output_file}"
+	{ time MkFitLoop "${min_duration}" "${test_exe}" "${nproc}" "${njob}" > /dev/null 2>&1 ; } 2> "${tmp_output_file}"
 
         ## add other info about test to tmp file
 	AppendTmpFile "${tmp_output_file}" "${ncore}" "${nproc}" "${nloop}"
@@ -158,45 +160,55 @@ done # end loop over instruction set
 ## Make Final Output ##
 #######################
 
-## final output file
+## init output file
 > "${output_file}"
+echo -e "Stress test meta-data\n" >> "${output_file}"
+echo "min_duration [s]: ${min_duration}" >> "${output_file}"
+echo "sleep_time [s]: ${sleep_time}" >> "${output_file}"
+echo "base_exe: ${base_exe}" >> "${output_file}"
+echo "base_nevents: ${base_nevents}" >> "${output_file}"
+echo -e "\nResults\n" >> "${output_file}"
 
 ## loop over all output files, and append results to single file
-for thread_combo in "${thread_combo_arr[@]}"
-do echo "${thread_combo}" | while read -r nth nev
+for instruction_set in "${instruction_sets[@]}"
+do
+    ## loop over nThread/MEIF tests, and append to single file
+    for thread_combo in "${thread_combo_arr[@]}"
+    do echo "${thread_combo}" | while read -r nth nev
+	do
+	    ## get test label, print it
+	    test_label="${instruction_set}_${nth_label}${nth}_${nev_label}${nev}"
+	    echo "Computing time for: ${test_label}"
+	    
+            ## get tmp output file name
+	    tmp_output_file="${base_outname}_${test_label}.${tmp_ext}"
+	    
+	    ## dump into output file
+	    DumpIntoFile "${tmp_output_file}" "${output_file}"
+	done # end loop over reading thread combo
+    done # end loop over thread combos
+
+    ## loop over single thread njob tests, and append to single file
+    for njob in "${njob_arr[@]}"
     do
 	## get test label, print it
-	test_label="${instruction_set}_${nth_label}${nth}_${nev_label}${nev}"
+	test_label="${instruction_set}_${njob_label}${njob}"
 	echo "Computing time for: ${test_label}"
 	
-        ## get tmp output file name
+	## get tmp output file name
 	tmp_output_file="${base_outname}_${test_label}.${tmp_ext}"
-
+	
 	## dump into output file
 	DumpIntoFile "${tmp_output_file}" "${output_file}"
-    done
-done
+    done # end loop over njob array
 
-## loop over single thread njob tests, and append to single file
-for njob in "${njob_arr[@]}"
-do
-    ## get test label, print it
-    test_label="${instruction_set}_${njob_label}${njob}"
-    echo "Computing time for: ${test_label}"
+done # end loop over instruction set
 
-    ## get tmp output file name
-    tmp_output_file="${base_outname}_${test_label}.${tmp_ext}"
+##############
+## Clean up ##
+##############
 
-    ## dump into output file
-    DumpIntoFile "${tmp_output_file}" "${output_file}"
-done
-
-####################
-## Reset no_turbo ##
-####################
-
-## default state of machine is turbo OFF
-echo 1 | sudo /usr/bin/tee /sys/devices/system/cpu/intel_pstate/no_turbo >/dev/null 2>&1 
+make distclean
 
 ###################
 ## Final Message ##
