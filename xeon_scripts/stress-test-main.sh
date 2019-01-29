@@ -1,29 +1,26 @@
 #!/bin/bash
 
-#################################################################################
-##                                    README!                                  ##
-##                                                                             ##
-## Stress test script to run on phiN, testing different thread/MEIF combos     ##
-## with different instruction sets with default settings of clone engine track ##
-## finding and CMSSW n2-seeding using ttbar PU70.                              ##
-##                                                                             ##
-## Can vary thread/MEIF combos, input file, seeds, building algo by editting   ##
-## this script manually.                                                       ##
-##                                                                             ##
-## Command line inputs are which platform to stress (ben_arch), the min time   ## 
-## per test (min_duration), the time between each test (sleep_time), and the   ##
-## number of events to process per physical core (base_events).                ##
-##                                                                             ##
-## N.B. : base_events MUST be a number divisible by 4! This is because the     ##
-## max physical cores on KNL is 64, but the highest nTH/nJOB test is 256.      ##       
-##                                                                             ##
-## Output file lists stress test time per event processed per physical core.   ##
-#################################################################################
-
-## N.B. : Set no_turbo at command line on phiN BEFORE running this script via:
-## TURBO OFF : echo 1 | sudo /usr/bin/tee /sys/devices/system/cpu/intel_pstate/no_turbo > /dev/null 2>&1
-## TURBO ON  : echo 0 | sudo /usr/bin/tee /sys/devices/system/cpu/intel_pstate/no_turbo > /dev/null 2>&1
-## Then, after the test is over, return machine to default state: TURBO OFF
+###############################################################################
+##                                    README!                                ##
+##                                                                           ##
+## Stress test script to run on phiN, testing different thread/MEIF combos   ##
+## with different instruction set architecture extensions, using default     ## 
+## settings of benchmarking scripts for clone engine track finding + CMSSW   ##
+## n2-seeding, input sample ttbar PU70.                                      ##
+##                                                                           ##
+## Can vary thread/MEIF combos, input file, seeds, building algo by editting ##
+## this script manually.                                                     ##
+##                                                                           ##
+## Command line inputs are which platform to stress (ben_arch), enable       ##
+## TurboBoost OFF/ON (no_turbo), the min time per test (min_duration), the   ##   
+## time between each test (sleep_time), and the number of events to process  ## 
+## per physical core (base_events).                                          ##
+##                                                                           ##
+## N.B.: base_events MUST be a number divisible by 4! This is because the    ##
+## max physical cores on KNL is 64, but the highest nTH/nJOB test is 256.    ##       
+##                                                                           ##
+## Output file lists stress test time per event processed per physical core. ##
+###############################################################################
 
 ########################
 ## Source Environment ##
@@ -39,9 +36,10 @@ source xeon_scripts/stress-test-common.sh
 
 ## Command line inputs
 ben_arch=${1} # SNB (phi1), KNL (phi2), SKL-SP (phi3)
-min_duration=${2:-1800} # min time spent for each test [s]
-sleep_time=${3:-300} # sleep time between tests [s]
-base_nevents=${4:-120} # number of events to process per physical core, must be divisible by 4
+no_turbo=${2:-1} # Turbo OFF or ON --> default is OFF!
+min_duration=${3:-1800} # min time spent for each test [s]
+sleep_time=${4:-300} # sleep time between tests [s]
+base_nevents=${5:-120} # number of events to process per physical core, must be divisible by 4
 
 ## platform specific settings
 if [[ "${ben_arch}" == "SNB" ]]
@@ -84,8 +82,11 @@ opts="--silent"
 base_exe="./mkFit/mkFit --input-file ${dir}/${subdir}/${file} ${seeds} ${algo} ${opts}"
 
 ## Output options
-base_outname="stress_tests_${ben_arch}"
+base_outname="stress_test"
 output_file="${base_outname}_results.${ext}"
+
+## Set TurboBoost option
+echo "${no_turbo}" | PATH=/bin sudo /usr/bin/tee /sys/devices/system/cpu/intel_pstate/no_turbo > /dev/null 2>&1  
 
 ###############
 ## Run tests ##
@@ -163,6 +164,8 @@ done # end loop over instruction set
 ## init output file
 > "${output_file}"
 echo -e "Stress test meta-data\n" >> "${output_file}"
+echo "ben_arch: ${ben_arch}" >> "${output_file}"
+echo "no_turbo: ${no_turbo}" >> "${output_file}"
 echo "min_duration [s]: ${min_duration}" >> "${output_file}"
 echo "sleep_time [s]: ${sleep_time}" >> "${output_file}"
 echo "base_exe: ${base_exe}" >> "${output_file}"
@@ -204,11 +207,12 @@ do
 
 done # end loop over instruction set
 
-##############
-## Clean up ##
-##############
+#########################################
+## Clean up and Restore Default Status ##
+#########################################
 
 make distclean
+echo 1 | PATH=/bin sudo /usr/bin/tee /sys/devices/system/cpu/intel_pstate/no_turbo > /dev/null 2>&1
 
 ###################
 ## Final Message ##
