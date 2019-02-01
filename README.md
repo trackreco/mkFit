@@ -100,7 +100,7 @@ make -j 32 AVX_512:=1
 To run the code with some generic options, do:
 
 ```
-./mkFit/mkFit --cmssw-n2seeds --input-file /data2/slava77/samples/2017/pass-4874f28/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/a/memoryFile.fv3.clean.writeAll.recT.072617.bin --build-ce --num-thr 64 --num-events 20
+./mkFit/mkFit --cmssw-n2seeds --input-file /data2/slava77/samples/2017/pass-c93773a/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/memoryFile.fv3.clean.writeAll.CCC1620.recT.082418-25daeda.bin --build-ce --num-thr 64 --num-events 20
 ```
 
 Consult Sections 7-8 for where to find more information on descriptions of the code, which list resources on where to find the full set of options for running the code.
