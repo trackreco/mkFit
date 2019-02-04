@@ -20,16 +20,24 @@
 8) Other helpful README's in the repository
 9) CMSSW integration
    1) Considerations for `mkFit` code
-   2) Instructions to use `mkFit` from CMSSW
+   2) Building and setting up `mkFit` for CMSSW
       1) Build `mkFit`
          1) Lxplus
          2) Phi3
       2) Set up `mkFit` as an external
       3) Pull CMSSW code and build
-      4) Use `mkFit` in InitialStep of CMS offline tracking
-      5) Timing measurements
-      6) Producing MultiTrackValidator plots
-      7) Interpreting MultiTrackValidator plots
+   3) Recipes for the impatient on phi3
+      1) Offline tracking (initialStep)
+      2) HLT tracking (iter0)
+   4) More thorough running instructions
+      1) Offline tracking (initialStep)
+         1) Customize functions
+         2) Timing measurements
+         3) Producing MultiTrackValidator plots
+      2) HLT tracking (iter0)
+   5) Interpretation of results
+      1) MultiTrackValidator plots
+      2) Timing
 10) Other useful information
     1) Important Links
     2) Tips and Tricks
@@ -430,7 +438,7 @@ Given that this is a living repository, the comments in the code may not always 
 
 ## Section 9: CMSSW integration
 
-The supported CMSSW version is currently `10_2_0_pre3`. The
+The supported CMSSW version is currently `10_4_0_patch1`. The
 integration of `mkFit` in CMSSW is based on setting it up as a CMSSW
 external.
 
@@ -446,7 +454,7 @@ life easier for everybody.
   - Currently there are non-const global variables e.g. in `Config` namespace
 * All iteration-specific parameters should be passed from CMSSW to `mkFit` at run time
 
-### Section 9.ii: Instructions to use `mkFit` from CMSSW
+### Section 9.ii: Building and setting up `mkFit` for CMSSW
 
 #### Section 9.ii.a: Build `mkFit`
 
@@ -464,12 +472,11 @@ Currently there is no working recipe to compile with `icc` on LPC.
 ##### Section 9.ii.a.a: Lxplus
 
 ```bash
-cmsrel CMSSW_10_2_0_pre3
-pushd CMSSW_10_2_0_pre3/src
+source /cvmfs/projects.cern.ch/intelsw/psxe/linux/x86_64/2019/compilers_and_libraries_2019.1.144/linux/bin/iccvars.sh intel64
+cmsrel CMSSW_10_4_0_patch1
+pushd CMSSW_10_4_0_patch1/src
 cmsenv
 git cms-init
-scram setup icc-ccompiler
-source $(scram tool tag icc-ccompiler ICC_CCOMPILER_BASE)/bin/iccvars.sh intel64
 popd
 git clone git@github.com:cerati/mictest
 pushd mictest
@@ -482,9 +489,9 @@ popd
 ```bash
 source /cvmfs/cms.cern.ch/cmsset_default.sh
 source /opt/intel/bin/compilervars.sh intel64
-export SCRAM_ARCH=slc7_amd64_gcc630
-cmsrel CMSSW_10_2_0_pre3
-pushd CMSSW_10_2_0_pre3/src
+export SCRAM_ARCH=slc7_amd64_gcc700
+cmsrel CMSSW_10_4_0_patch1
+pushd CMSSW_10_4_0_patch1/src
 cmsenv
 git cms-init
 popd
@@ -494,18 +501,13 @@ TBB_PREFIX=$(dirname $(cd $CMSSW_BASE && scram tool tag tbb INCLUDE)) make -j 12
 popd
 ```
 
-The `lxplus` recipe can also be used (to pick `icc` from CMSSW
-externals), but then the `$INTEL_LICENSE_FILE` has to be reset to the
-value given by `/opt/intel/bin/compilervars.sh` after sourcing
-`iccvars.sh`.
-
 #### Section 9.ii.b: Set up `mkFit` as an external
 
 Assuming you are in the aforementioned parent directory, the following
 recipe will create a scram tool file, and set up scram to use it
 
 ```bash
-pushd CMSSW_10_2_0_pre3/src
+pushd CMSSW_10_4_0_patch1/src
 cat <<EOF >mkfit.xml
 <tool name="mkfit" version="1.0">
   <client>
@@ -527,22 +529,97 @@ cmsenv
 The following recipe will pull the necessary CMSSW-side code and build it
 
 ```bash
-# in CMSSW_10_2_0_pre3/src
+# in CMSSW_10_4_0_patch1/src
 git cms-remote add makortel
 git fetch makortel
-git checkout -b mkfit_1020pre3 makortel/mkfit_1020pre3
+git checkout -b mkfit_1040p1 makortel/mkfit_1040p1
 git cms-addpkg $(git diff $CMSSW_VERSION --name-only | cut -d/ -f-2 | uniq)
 git cms-checkdeps -a
 scram b -j 12
 ```
 
-#### Section 9.ii.d: Use `mkFit` in InitialStep of CMS offline tracking
+### Section 9.iii Recipes for the impatient on phi3
+
+#### Section 9.iii.a: Offline tracking (initialStep)
+
+Reconstruction up to initialStep (in reality initialStepPreSplitting
+named as initialStep)
+
+```bash
+# in CMSSW_10_4_0_patch1/src
+
+# sample = 10mu, ttbarnopu, ttbar_pu50, ttbar_pu70
+# mkfit = 1, 0
+# timing = 0, 1
+# (maxEvents = 0, <N>, -1)
+# nthreads = 1, <N>
+# nstreams = 0, <N>
+cmsRun RecoTracker/MkFit/test/reco_cfg.py sample=ttbar_pu70 timing=1
+```
+* The default values for the command line parameters are the first ones.
+* `mkfit=1` runs MkFit, `0` runs CMSSW tracking
+* For `timing=0` (default), the job produces `step3_inDQM.root` that
+  needs to be "harvested" to get a "normal" ROOT file with the
+  histograms.
+* Note that `timing=0` reads the input from the T2 over xrootd, which
+  requires a GRID proxy certificate (e.g. `voms-proxy-init -valid
+  172:00 -voms cms`). The input files are on the T2 because they are
+  too big to fit on the local disk of phi3. `timing=1` uses slimmed
+  input files (with RAW data only) from the local disk.
+* Especially for `timing=1` it is advisable to capture the output of
+  the job to a file to save the output of the simple timing measurement
+* If `maxEvents` is set to `0`, the number of events to be processed
+  is set to a relatively small value depending on the sample for short
+  testing purposes.
+* Setting `maxEvents=-1` means to process all events.
+* `nthreads` sets the number of threads (default 1), and `nstreams`
+  the number of EDM streams (or events in flight, default 0, meaning
+  the same value as the number of threads)
+
+DQM harvesting (unless running timing)
+```bash
+cmsRun RecoTracker/MkFit/test/reco_harvest_cfg.py
+```
+* Produces `DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO.root`
+
+Producing plots (unless running timing)
+```bash
+makeTrackValidationPlots.py --extended --ptcut <DQM file> [<another DQM file>]
+```
+* Produces `plots` directory with PDF files and HTML pages for
+  navigation. Copy the directory to your web area of choice.
+* See `makeTrackValidationPlots.py --help` for more options
+
+#### Section 9.iii.b HLT tracking (iter0)
+
+HLT reconstruction
+
+```bash
+# in CMSSW_10_4_0_patch1/src
+
+cmsRun RecoTracker/MkFit/test/hlt_cfg.py sample=ttbar_pu70 timing=1
+```
+* Options and behavior is the same as for the offline reconstruction above
+
+DQM harvesting (unless running timing)
+```bash
+cmsRun RecoTracker/MkFit/test/hlt_harvest.py
+```
+
+Producing plots (unless running timing)
+```bash
+makeTrackValidationPlots.py --extended <DQM file> [<another DQM file>]
+```
+
+### Section 9.iv More thorough instructions
+
+#### Section 9.iv.a: Offline tracking (initialStep)
 
 The example below uses 2018 tracking-only workflow
 
 ```bash
 # Generate configuration
-runTheMatrix.py -l 10824.1 --apply 2 --command "--customise RecoTracker/MkFit/customizeInitialStepToMkFit.customizeInitialStepToMkFit" -j 0
+runTheMatrix.py -l 10824.1 --apply 2 --command "--customise RecoTracker/MkFit/customizeInitialStepToMkFit.customizeInitialStepToMkFit --customise RecoTracker/MkFit/customizeInitialStepOnly.customizeInitialStepOnly" -j 0
 cd 10824.1*
 # edit step3*RECO*.py to contain your desired (2018 RelVal MC) input files
 cmsRun step3*RECO*.py
@@ -555,7 +632,25 @@ reconstruction configuration file.
 By default `mkFit` is configured to use Clone Engine with N^2 seed
 cleaning, and to do the backward fit (to the innermost hit) within `mkFit`.
 
-#### Section 9.ii.e: Timing measurements
+For profiling it is suggested to replace the
+`customizeInitialStepOnly` customize function with
+`customizeInitialStepOnlyNoMTV`. See below for more details.
+
+##### Section 9.iv.a.a: Customize functions
+
+* `RecoTracker/MkFit/customizeInitialStepToMkFit.customizeInitialStepToMkFit`
+  * Replaces initialStep track building module with `mkFit`.
+* `RecoTracker/MkFit/customizeInitialStepOnly.customizeInitialStepOnly`
+  * Run only the initialStep tracking. In practice this configuration
+    runs the initialStepPreSplitting iteration, but named as
+    initialStep. MultiTrackValidator is included, and configured to
+    monitor initialStep. Intended to provide the minimal configuration
+    for CMSSW tests.
+* `RecoTracker/MkFit/customizeInitialStepOnly.customizeInitialStepOnlyNoMTV`
+  * Otherwise same as `customizeInitialStepOnly` except drops
+    MultiTrackValidator. Intended for profiling.
+
+##### Section 9.iv.a.b: Timing measurements
 
 There are several options for the CMSSW module timing measurements:
 
@@ -571,7 +666,7 @@ There are several options for the CMSSW module timing measurements:
   * Look for the timing of `initialStepTrackCandidates`
 
 
-#### Section 9.ii.f: Producing MultiTrackValidator plots
+#### Section 9.iv.a.c: Producing MultiTrackValidator plots
 
 The `step3` above runs also the [MultiTrackValidator](https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideMultiTrackValidator).
 
@@ -591,7 +686,9 @@ The script produces a directory `plots` that can be copied to any web
 area. Note that the script produces an `index.html` to ease the
 navigation.
 
-#### Section 9.ii.g: Interpreting MultiTrackValidator plots
+### Section 9.v: Interpretation of results
+
+#### Section 9.v.a: MultiTrackValidator plots
 
 As the recipe above replaces the initialStep track building, we are
 interested in the plots of "initialStep" (in the main page), and in
@@ -618,6 +715,22 @@ SimTrack as "reconstructed") if more than 75 % of the clusters of the
 track are linked to a single SimTrack. A cluster is linked to a
 SimTrack if the SimTrack has induced any amount of charge to any of
 the digis (= pixel or strip) of the cluster.
+
+#### Section 9.v.b: Timing
+
+When looking the per-module timing numbers, please see the following
+table for the relevant modules to look for, and what is their purpose.
+
+| **Module in offline** | **Module in HLT** | **Description** |
+|-----------------------|-------------------|-----------------|
+| `initialStepTrackCandidatesMkFitInput` | `hltIter0PFlowCkfTrackCandidatesMkFitInput` | Input data conversion |
+| `initialStepTrackCandidatesMkFit` | `hltIter0PFlowCkfTrackCandidatesMkFit` | MkFit itself |
+| `initialStepTrackCandidates` | `hltIter0PFlowCkfTrackCandidates` | Output data conversion |
+
+The MTV timing plot of initialStep "Building" includes the
+contributions of all three modules.
+
+
 
 ## Section 10: Other useful information
 
