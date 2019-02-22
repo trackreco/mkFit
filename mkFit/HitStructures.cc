@@ -96,7 +96,6 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
   std::vector<HitInfo> ha(size);
   std::vector<udword>     hit_qphiFines(size);
   
-  int nqh = m_nq / 2;
   {
     for (int i =0; i < size; ++i)
     {
