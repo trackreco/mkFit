@@ -320,6 +320,8 @@ namespace Config
   extern bool readSimTrackStates; // need this to fill pulls
   extern bool inclusiveShorts;
   extern bool keepHitInfo;
+  extern bool useHitsForDuplicates;
+  extern bool removeDuplicates;
   extern bool tryToSaveSimInfo;
   extern matchOpts cmsswMatchingFW;
   extern matchOpts cmsswMatchingBK;

@@ -952,6 +952,7 @@ void MkBuilder::quality_store_tracks(TrackVec& tracks)
 
       if (std::isnan(bcand.chi2())) ++chi2_nan_cnt;
       if (bcand.chi2() > 500)       ++chi2_500_cnt;
+      //      if (bcand.getDuplicateValue()) {std::cout<<"Duplicate!" << std::endl;continue;}
 
       tracks.push_back(bcand);
 
@@ -962,6 +963,8 @@ void MkBuilder::quality_store_tracks(TrackVec& tracks)
 #endif
     }
   }
+
+  if(Config::removeDuplicates) tracks = remove_duplicates(tracks);
 
   if (!Config::silent && (chi2_500_cnt > 0 || chi2_nan_cnt > 0)) {
     std::lock_guard<std::mutex> printlock(Event::printmutex);
@@ -1253,6 +1256,77 @@ void MkBuilder::score_tracks(TrackVec& tracks)
     assignSeedTypeForRanking(track);
     track.setCandScore(getScoreCand(track));
   }
+}
+
+
+TrackVec MkBuilder::remove_duplicates(TrackVec& tracks)
+{
+  //  std::cout <<"Inside function " << std::endl;
+  for (auto & track : tracks)
+  {
+    float eta1 = track.momEta();
+    float phi1 = track.momPhi();
+    float pt1  = track.pT();
+    for (auto & track2 : tracks)
+    {
+      //      std::cout <<"Inside function " << std::endl;  
+      if(track.label() == track2.label()) continue;
+      //std::cout <<"Inside function2 " << std::endl;  
+      float eta2 = track2.momEta();
+      float phi2 = track2.momPhi();
+      float pt2  = track2.pT();
+      float dphi = std::abs(phi1-phi2);
+      dphi = dphi >= Config::PI ? Config::TwoPI - dphi: dphi;
+      float deta = std::abs(eta2 - eta1);
+      float maxpt = std::max(pt1,pt2);
+      if (maxpt <= 0){std::cout << "EEK!" << std::endl;}
+      if(maxpt ==0) continue;
+      if(dphi > Config::PI)
+	{
+	  std::cout << "dPhi is too big!" << std::endl;
+	  break;
+	}
+      if(dphi < 0.1 && std::abs(pt2 - pt1)/maxpt < 0.05 && deta < 0.2)
+      {
+	if(Config::useHitsForDuplicates)
+	{
+	  std::vector<int> vecOfHits;
+	  int numHitsShared = 0;
+	  for (int ihit = 0; ihit < track.nTotalHits(); ihit++)
+	  {
+	    vecOfHits.push_back(track.getHitIdx(ihit));
+	  }
+	  for (int ihit2 = 0; ihit2 < track2.nTotalHits(); ihit2++)
+	  {
+	    std::vector<int>::iterator it;
+	    it = std::find(vecOfHits.begin(), vecOfHits.end(),track2.getHitIdx(ihit2) );
+	    if (it != vecOfHits.end()) numHitsShared += 1;
+	  }
+	    //Only remove one of the tracks if they share at least 12 hits.
+	    if(numHitsShared < 12) continue;
+	}
+	//Keep track with best score
+	if(track.getCandScore() > track2.getCandScore())
+	{
+	  track2.setDuplicateValue(true);
+	}
+	else
+	{
+	  track.setDuplicateValue(true);
+	}
+      }
+    }
+  }
+  
+  TrackVec nonduplicate_tracks;
+  for (auto & track : tracks)
+  {
+    if(!track.getDuplicateValue())
+    {
+      nonduplicate_tracks.push_back(track);
+    }
+  }
+  return nonduplicate_tracks;
 }
 
 //------------------------------------------------------------------------------
