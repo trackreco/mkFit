@@ -51,7 +51,7 @@ The main development platform is phi3. This is the recommended machine for begin
 
 **Extra platform configuration information**
 - phi1, phi3, and lnx4108 are dual socket machines and have two identical Xeons on each board
-- phi1 and phi2 both have TurboBoost disabled, while it is enabled on phi3
+- phi1, phi2, and phi3 all have TurboBoost disabled to disentangle some effects of dynamic frequency scaling with higher vectorization
 
 For further info on the configuration of each machine, use your favorite text file viewer to peruse the files ```/proc/cpuinfo``` and ```/proc/meminfo``` on each machine.
 
