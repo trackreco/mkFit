@@ -1,5 +1,8 @@
 #!/bin/bash
 
+## source environment (get ROOT)
+source xeon_scripts/init-env.sh
+
 ## Command line config
 infile_name=${1:-"stress_test_SKL-SP_results.txt"}
 graph_label=${2:-"[Turbo=OFF(Long)]"}

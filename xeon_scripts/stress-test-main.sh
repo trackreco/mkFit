@@ -26,8 +26,7 @@
 ## Source Environment ##
 ########################
 
-source /opt/rh/devtoolset-7/enable
-source /opt/intel/bin/compilervars.sh intel64
+source xeon_scripts/init-env.sh
 source xeon_scripts/stress-test-common.sh
 
 ###################

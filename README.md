@@ -51,7 +51,7 @@ The main development platform is phi3. This is the recommended machine for begin
 
 **Extra platform configuration information**
 - phi1, phi3, and lnx4108 are dual socket machines and have two identical Xeons on each board
-- phi1 and phi2 both have TurboBoost disabled, while it is enabled on phi3
+- phi1, phi2, and phi3 all have TurboBoost disabled to disentangle some effects of dynamic frequency scaling with higher vectorization
 
 For further info on the configuration of each machine, use your favorite text file viewer to peruse the files ```/proc/cpuinfo``` and ```/proc/meminfo``` on each machine.
 
@@ -100,7 +100,7 @@ make -j 32 AVX_512:=1
 To run the code with some generic options, do:
 
 ```
-./mkFit/mkFit --cmssw-n2seeds --input-file /data2/slava77/samples/2017/pass-4874f28/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/a/memoryFile.fv3.clean.writeAll.recT.072617.bin --build-ce --num-thr 64 --num-events 20
+./mkFit/mkFit --cmssw-n2seeds --input-file /data2/slava77/samples/2017/pass-c93773a/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/memoryFile.fv3.clean.writeAll.CCC1620.recT.082418-25daeda.bin --build-ce --num-thr 64 --num-events 20
 ```
 
 Consult Sections 7-8 for where to find more information on descriptions of the code, which list resources on where to find the full set of options for running the code.
