@@ -964,8 +964,6 @@ void MkBuilder::quality_store_tracks(TrackVec& tracks)
     }
   }
 
-  if(Config::removeDuplicates) tracks = remove_duplicates(tracks);
-
   if (!Config::silent && (chi2_500_cnt > 0 || chi2_nan_cnt > 0)) {
     std::lock_guard<std::mutex> printlock(Event::printmutex);
     printf("MkBuilder::quality_store_tracks bad track chi2 (backward fit?). is-nan=%d, gt-500=%d.\n", chi2_nan_cnt, chi2_500_cnt);
@@ -1131,6 +1129,8 @@ void MkBuilder::root_val()
 
 void MkBuilder::cmssw_export()
 {
+  if(Config::removeDuplicates) remove_duplicates(m_event->candidateTracks_);
+  
   // get the tracks ready for export
   remap_track_hits(m_event->candidateTracks_);
   if(Config::backwardFit) {
@@ -1259,19 +1259,19 @@ void MkBuilder::score_tracks(TrackVec& tracks)
 }
 
 
-TrackVec MkBuilder::remove_duplicates(TrackVec& tracks)
+void MkBuilder::find_duplicates(TrackVec& tracks)
 {
-  //  std::cout <<"Inside function " << std::endl;
-  for (auto & track : tracks)
+  const auto ntracks = tracks.size();
+  for (auto itrack = 0U; itrack < ntracks-1; itrack++))
   {
+    auto & track = tracks[itrack];
     float eta1 = track.momEta();
     float phi1 = track.momPhi();
     float pt1  = track.pT();
-    for (auto & track2 : tracks)
+    for (auto jtrack = itrack+1; jtrack < ntracks; jtrack++)
     {
-      //      std::cout <<"Inside function " << std::endl;  
+      auto & track2 = tracks[jtrack];
       if(track.label() == track2.label()) continue;
-      //std::cout <<"Inside function2 " << std::endl;  
       float eta2 = track2.momEta();
       float phi2 = track2.momPhi();
       float pt2  = track2.pT();
@@ -1279,7 +1279,6 @@ TrackVec MkBuilder::remove_duplicates(TrackVec& tracks)
       dphi = dphi >= Config::PI ? Config::TwoPI - dphi: dphi;
       float deta = std::abs(eta2 - eta1);
       float maxpt = std::max(pt1,pt2);
-      if (maxpt <= 0){std::cout << "EEK!" << std::endl;}
       if(maxpt ==0) continue;
       if(dphi > Config::PI)
 	{
@@ -1317,16 +1316,12 @@ TrackVec MkBuilder::remove_duplicates(TrackVec& tracks)
       }
     }
   }
-  
-  TrackVec nonduplicate_tracks;
-  for (auto & track : tracks)
-  {
-    if(!track.getDuplicateValue())
-    {
-      nonduplicate_tracks.push_back(track);
-    }
-  }
-  return nonduplicate_tracks;
+}
+
+void MkBuilder::remove_duplicates(TrackVec & tracks)
+{
+  tracks.erase(std::remove_if(tracks.begin(),tracks.end(),
+			      [](){return track.status.duplicate;}),tracks.end());
 }
 
 //------------------------------------------------------------------------------

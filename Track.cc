@@ -438,6 +438,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
   if (!isSeed)
   {
     mcTrackID_ = modifyRefTrackID(trk.nFoundHits()-nSeedHits,Config::nMinFoundHits-nSeedHits,simtracks,(isPure?seedID_:-1),mcTrackID_);
+    if(trk.getDuplicateValue()) mcTrackID_ = -10;
   }
 
   dprint("Track " << trk.label() << " best mc track " << mcTrackID_ << " count " << mccount << "/" << trk.nFoundHits());

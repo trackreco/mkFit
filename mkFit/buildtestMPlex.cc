@@ -272,6 +272,7 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
   if (Config::quality_val || Config::sim_val || Config::cmssw_val || Config::cmssw_export)
   {
     builder.quality_store_tracks(ev.candidateTracks_);
+    if(Config::removeDuplicates) builder.find_duplicates(ev.candidateTracks_);
   }
 
   // now do backwards fit... do we want to time this section?
@@ -336,6 +337,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
   if (Config::quality_val || Config::sim_val || Config::cmssw_val || Config::cmssw_export)
   {
     builder.quality_store_tracks(ev.candidateTracks_);
+    if(Config::removeDuplicates) builder.find_duplicates(ev.candidateTracks_);
   }
 
   // now do backwards fit... do we want to time this section?

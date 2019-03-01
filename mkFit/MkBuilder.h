@@ -172,7 +172,8 @@ public:
   void prep_tracks(TrackVec& tracks, TrackExtraVec& extras, const bool realigntracks); // sort hits by layer, init track extras, align track labels if true
   void score_tracks(TrackVec& tracks); // if track score not already assigned
 
-  TrackVec remove_duplicates(TrackVec& tracks);
+  void find_duplicates(TrackVec& tracks);
+  void remove_duplicates(TrackVec& tracks);
 
   // --------
 
