@@ -57,7 +57,7 @@ void fitTrack(const Track & trk, const TrackExtra& trkextra, int itrack, Event& 
   TSLayerPairVec updatedStates; // need this for position pulls --> can ifdef out for performance tests? --> assume one hit per layer
   
 #ifdef INWARDFIT
-  for (int i = trkLayers.size()-1; i >= 0; i--){
+  for (int i = (int) trkLayers.size()-1; i >= 0; i--){
 #else
   for (int i = 0; i < static_cast<int>(trkLayers.size()); i++){
 #endif

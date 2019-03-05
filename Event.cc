@@ -529,7 +529,9 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
     printf("Read %i seedtracks (neg value means actual reading was skipped)\n", ns);
     for (int it = 0; it < ns; it++)
     {
-      printf("  q=%+i pT=%6.3f nHits=%i label=% i\n",seedTracks_[it].charge(),seedTracks_[it].pT(),seedTracks_[it].nFoundHits(),seedTracks_[it].label());
+      const Track& ss = seedTracks_[it];
+      printf("  %3i q=%+i pT=%7.3f eta=% 7.3f nHits=%i label=% i\n",
+             it,ss.charge(),ss.pT(),ss.momEta(),ss.nFoundHits(),ss.label());
 #ifdef DUMP_SEED_HITS
       for (int ih = 0; ih < seedTracks_[it].nTotalHits(); ++ih)
       {
@@ -587,7 +589,7 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
   for (int it = 0; it < nt; it++)
   {
     const Track &t = simTracks_[it];
-    printf("  %i with q=%+i pT=%7.3f eta=% 7.3f nHits=%2d  label=%4d\n",
+    printf("  %3i q=%+i pT=%7.3f eta=% 7.3f nHits=%2d  label=%4d\n",
            it, t.charge(), t.pT(), t.momEta(), t.nFoundHits(), t.label());
 #ifdef DUMP_TRACK_HITS
     for (int ih = 0; ih < t.nTotalHits(); ++ih)
@@ -937,11 +939,21 @@ int Event::clean_cms_seedtracks()
 
   }
   
-#ifdef DEBUG
-  printf("Number of seeds: %d --> %d\n", ns, cleanSeedTracks.size());
-#endif
-
   seedTracks_.swap(cleanSeedTracks);
+
+#ifdef DEBUG
+  {
+    const int ns2 = seedTracks_.size();
+    printf("Number of CMS seeds before %d --> after %d cleaning\n", ns, ns2);
+
+    for (int it = 0; it < ns2; it++)
+    {
+      const Track& ss = seedTracks_[it];
+      printf("  %3i q=%+i pT=%7.3f eta=% 7.3f nHits=%i label=% i\n",
+             it,ss.charge(),ss.pT(),ss.momEta(),ss.nFoundHits(),ss.label());
+    }
+  }
+#endif
 
   return seedTracks_.size();
 }

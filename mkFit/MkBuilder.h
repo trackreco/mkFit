@@ -137,7 +137,7 @@ public:
         maxL = lh.layer_id();
       }
     }
-    return {maxN,maxL};
+    return {maxN, maxL};
   }
 
   void begin_event(Event* ev, const char* build_type);

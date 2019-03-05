@@ -1,3 +1,47 @@
+Barrel, maxHolesPerCand=3 losses
+--------------------------------
+
+./mkFit --cmssw-n2seeds --input-file /bar/mic/mu_brl-1000-10.bin-5 --geom CMS-2017 --num-events 100 --quality-val --build-ce | grep "FOUND_LABEL" | sort -n -k 8 -k 2,2 > fce-nh-12.txt
+./mkFit --cmssw-n2seeds --input-file /bar/mic/mu_brl-1000-10.bin-5 --geom CMS-2017 --num-events 100 --quality-val --build-ce | grep "FOUND_LABEL" | sort -n -k 8 -k 2,2 > fce-nh-3.txt
+
+diff -u fce-nh-12.txt fce-nh-3.txt
+
+-FOUND_LABEL      5  pT_mc=     3.34 eta_mc=    -0.35 event= 16
+
+  5 q=-1 pT=  3.341 eta= -0.351 nHits=13  label=   5
+    hit  0 lyr= 0 idx=  9 pos r=  3.066 x=   2.025 y=   2.302 z=  -3.178   mc_hit=  9 mc_trk=  5
+    hit  1 lyr= 1 idx=  3 pos r=  6.958 x=   4.594 y=   5.225 z=  -4.572   mc_hit= 17 mc_trk=  5
+    hit  2 lyr= 2 idx=  3 pos r= 11.062 x=   7.262 y=   8.344 z=  -6.037   mc_hit= 27 mc_trk=  5
+    hit  3 lyr= 3 idx=  3 pos r= 16.152 x=  10.505 y=  12.269 z=  -7.853   mc_hit= 39 mc_trk=  5
+    hit  4 lyr= 5 idx=  1 pos r= 27.389 x=  17.725 y=  20.880 z= -15.811   mc_hit= 48 mc_trk=  5
+    hit  5 lyr= 4 idx=  4 pos r= 27.533 x=  17.510 y=  21.248 z= -16.019   mc_hit= 51 mc_trk=  5
+    hit  6 lyr= 8 idx=  4 pos r= 43.306 x=  26.640 y=  34.143 z= -15.240   mc_hit= 89 mc_trk=  5
+    hit  7 lyr=11 idx=  0 pos r= 60.026 x=  35.240 y=  48.594 z= -27.604   mc_hit=104 mc_trk=  5
+    hit  8 lyr=10 idx=  0 pos r= 59.616 x=  35.355 y=  48.001 z= -27.316   mc_hit=105 mc_trk=  5
+    hit  9 lyr=14 idx=  0 pos r= 76.787 x=  43.689 y=  63.147 z= -27.316   mc_hit=158 mc_trk=  5
+    hit 10 lyr=15 idx=  0 pos r= 88.083 x=  48.667 y=  73.418 z= -27.313   mc_hit=170 mc_trk=  5
+    hit 11 lyr=16 idx=  0 pos r= 97.773 x=  52.614 y=  82.410 z= -45.066   mc_hit=182 mc_trk=  5
+    hit 12 lyr=17 idx=  0 pos r=106.757 x=  56.015 y=  90.881 z= -45.977   mc_hit=196 mc_trk=  5
+
+-FOUND_LABEL      5  pT_mc=     6.36 eta_mc=    -0.04 event= 17
+
+  5 q=-1 pT=  6.355 eta= -0.041 nHits=14  label=   5
+    hit  0 lyr= 0 idx=  0 pos r=  2.840 x=   2.474 y=   1.394 z=   2.697   mc_hit=  0 mc_trk=  5
+    hit  1 lyr= 1 idx=  0 pos r=  6.586 x=   5.795 y=   3.128 z=   2.555   mc_hit= 19 mc_trk=  5
+    hit  2 lyr= 2 idx=  0 pos r= 11.037 x=   9.726 y=   5.219 z=   2.368   mc_hit= 44 mc_trk=  5
+    hit  3 lyr= 3 idx=  0 pos r= 15.833 x=  13.940 y=   7.507 z=   2.180   mc_hit= 70 mc_trk=  5
+    hit  4 lyr= 4 idx=  0 pos r= 24.320 x=  21.351 y=  11.645 z=  -3.694   mc_hit= 90 mc_trk=  5
+    hit  5 lyr= 9 idx=  3 pos r= 48.415 x=  42.035 y=  24.022 z=   3.351   mc_hit=150 mc_trk=  5
+    hit  6 lyr=11 idx=  4 pos r= 63.176 x=  54.880 y=  31.295 z=   9.079   mc_hit=171 mc_trk=  5
+    hit  7 lyr=10 idx=  4 pos r= 62.729 x=  54.062 y=  31.814 z=   9.230   mc_hit=172 mc_trk=  5
+    hit  8 lyr=13 idx=  0 pos r= 67.975 x=  58.888 y=  33.953 z=  -8.970   mc_hit=184 mc_trk=  5
+    hit  9 lyr=13 idx=  4 pos r= 66.846 x=  57.018 y=  34.890 z=   9.313   mc_hit=193 mc_trk=  5
+    hit 10 lyr=12 idx=  5 pos r= 67.295 x=  57.862 y=  34.361 z=   9.232   mc_hit=194 mc_trk=  5
+    hit 11 lyr=15 idx=  0 pos r= 88.727 x=  75.412 y=  46.750 z=  -9.231   mc_hit=217 mc_trk=  5
+    hit 12 lyr=16 idx=  0 pos r= 94.623 x=  80.155 y=  50.286 z=  -9.231   mc_hit=225 mc_trk=  5
+    hit 13 lyr=17 idx=  0 pos r=106.803 x=  89.843 y=  57.750 z=  -9.230   mc_hit=236 mc_trk=  5
+
+
 Tracing down silly values in track errors
 -----------------------------------------
 
