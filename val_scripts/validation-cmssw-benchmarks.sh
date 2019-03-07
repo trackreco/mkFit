@@ -5,6 +5,7 @@
 ###########
 
 suite=${1:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
+style=${2:-""} # option --mtv-like-val
 
 ###################
 ## Configuration ##
@@ -24,7 +25,7 @@ maxth=64
 maxvu=16
 maxev=32
 seeds="--cmssw-n2seeds"
-exe="./mkFit/mkFit --silent ${seeds} --num-thr ${maxth} --num-thr-ev ${maxev} --input-file ${dir}/${subdir}/${file} --num-events ${nevents}"
+exe="./mkFit/mkFit --silent ${seeds} --num-thr ${maxth} --num-thr-ev ${maxev} --input-file ${dir}/${subdir}/${file} --num-events ${nevents} ${style}"
 
 ## Common output setup
 tmpdir="tmp"

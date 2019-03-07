@@ -657,6 +657,7 @@ int main(int argc, const char *argv[])
 	"  --quality-val            enable printout validation for MkBuilder (def: %s)\n"
 	"                             must enable: --dump-for-plots\n"
 	"  --dump-for-plots         make shell printouts for plots (def: %s)\n"
+        "  --mtv-like-val           configure validation to emulate CMSSW MultiTrackValidator (MTV)"
 	"\n"
 	" **ROOT based options\n"
         "  --sim-val-for-cmssw      enable ROOT based validation for CMSSW tracks with simtracks as reference [eff, FR, DR] (def: %s)\n"
@@ -965,6 +966,12 @@ int main(int argc, const char *argv[])
     else if (*i == "--dump-for-plots")
     {
       Config::dumpForPlots = true;
+    }
+    else if (*i == "--mtv-like-val")
+    {
+      Config::mtvLikeValidation = true;
+      Config::cmsSelMinLayers = 0;
+      Config::nMinFoundHits = 0;
     }
     else if (*i == "--sim-val-for-cmssw")
     {
