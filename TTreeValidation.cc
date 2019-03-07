@@ -1748,7 +1748,11 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     {
       mcmask_seed_FR_ = 1; // matched track to sim
     }
-    else 
+    else if (mcID_seed_FR_ == -10) //duplicate track
+    {
+      mcmask_seed_FR_ = -2;
+    }
+    else if
     {
       if (Config::inclusiveShorts) 
       {
@@ -1884,7 +1888,11 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       {
 	mcmask_build_FR_ = 1; // matched track to sim
       }
-      else 
+      else if (mcID_build_FR_ == -10) //duplicate track
+      { 
+	mcmask_build_FR_ = -2;
+      }
+      else if
       {
 	if (Config::inclusiveShorts) 
         {
@@ -2066,7 +2074,11 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       {
 	mcmask_fit_FR_ = 1; // matched track to sim
       }
-      else 
+      else if (mcID_fit_FR_ == -10) //duplicate track
+      { 
+	mcmask_fit_FR_ = -2;
+      }
+      else if 
       {
 	if (Config::inclusiveShorts) 
         {
@@ -2635,7 +2647,11 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
     {
       cmsswmask_build_cFR_ = 1; 
     }
-    else 
+    else if (cmsswID_build_cFR_ == -10) //duplicate track
+    { 
+      cmsswmask_build_cFR_ = -2;
+    }
+    else if
     {
       if (Config::inclusiveShorts) 
       {
@@ -2753,6 +2769,10 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
       if (cmsswID_fit_cFR_ >= 0) // matched track to cmssw 
       {
 	cmsswmask_fit_cFR_ = 1; 
+      }
+      else if (cmsswID_fit_cFR_ == -10) //duplicate track
+      {
+	cmsswmask_fit_cFR_ = -2;
       }
       else 
       {

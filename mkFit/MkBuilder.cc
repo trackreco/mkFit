@@ -952,7 +952,6 @@ void MkBuilder::quality_store_tracks(TrackVec& tracks)
 
       if (std::isnan(bcand.chi2())) ++chi2_nan_cnt;
       if (bcand.chi2() > 500)       ++chi2_500_cnt;
-      //      if (bcand.getDuplicateValue()) {std::cout<<"Duplicate!" << std::endl;continue;}
 
       tracks.push_back(bcand);
 
