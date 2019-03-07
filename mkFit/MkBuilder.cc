@@ -1261,7 +1261,7 @@ void MkBuilder::score_tracks(TrackVec& tracks)
 void MkBuilder::find_duplicates(TrackVec& tracks)
 {
   const auto ntracks = tracks.size();
-  for (auto itrack = 0U; itrack < ntracks-1; itrack++))
+  for (auto itrack = 0U; itrack < ntracks-1; itrack++)
   {
     auto & track = tracks[itrack];
     float eta1 = track.momEta();
@@ -1320,7 +1320,7 @@ void MkBuilder::find_duplicates(TrackVec& tracks)
 void MkBuilder::remove_duplicates(TrackVec & tracks)
 {
   tracks.erase(std::remove_if(tracks.begin(),tracks.end(),
-			      [](){return track.status.duplicate;}),tracks.end());
+			      [](auto track){return track.getDuplicateValue();}),tracks.end());
 }
 
 //------------------------------------------------------------------------------

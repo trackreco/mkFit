@@ -1752,7 +1752,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     {
       mcmask_seed_FR_ = -2;
     }
-    else if
+    else
     {
       if (Config::inclusiveShorts) 
       {
@@ -1892,7 +1892,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       { 
 	mcmask_build_FR_ = -2;
       }
-      else if
+      else
       {
 	if (Config::inclusiveShorts) 
         {
@@ -2078,7 +2078,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       { 
 	mcmask_fit_FR_ = -2;
       }
-      else if 
+      else
       {
 	if (Config::inclusiveShorts) 
         {
@@ -2651,7 +2651,7 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
     { 
       cmsswmask_build_cFR_ = -2;
     }
-    else if
+    else
     {
       if (Config::inclusiveShorts) 
       {
