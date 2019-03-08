@@ -1176,6 +1176,53 @@ int TTreeValidation::getLastFoundHit(const int trackMCHitID, const int mcTrackID
   return mcHitID;
 }
 
+int TTreeValidation::getMaskAssignment(const int refID)
+{
+  // initialize
+  auto refmask = -99;
+
+  if (refID >= 0) // seed track matched to seed and sim 
+  {
+    refmask = 1; // matched track to sim
+  }
+  else 
+  {
+    if (Config::inclusiveShorts) // only used by standard simval!
+    {
+      if      (refID ==  -1 || refID ==  -5 || 
+	       refID ==  -8 || refID ==  -9)  
+      {
+	refmask = 0;
+      }
+      else if (refID ==  -2)
+      {
+	refmask = 2; 
+      }
+      else // mcID == -3,-4,-6,-7
+      {
+	refmask = -1;
+      }
+    }
+    else // only count long tracks (in mtvLike: all reco tracks are counted!)
+    {
+      if      (refID == -1 || refID == -9) 
+      {
+	refmask = 0;
+      }
+      else if (Config::mtvLikeValidation && refID == -4)
+      {
+	refmask = 2;
+      }
+      else // mcID == -2,-3,-4,-5,-6,-7,-8: standard simval
+      {
+	refmask = -1;
+      }
+    }
+  } // end check over not matched
+
+  return refmask;
+}
+  
 void TTreeValidation::resetFitBranches()
 {
   for(int ilayer = 0; ilayer < Config::nTotalLayers; ++ilayer)
@@ -1743,41 +1790,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     if (Config::keepHitInfo) TTreeValidation::fillHitInfo(seedtrack,hitlyrs_seed_FR_,hitidxs_seed_FR_);
 
     // sim info for seed track
-    mcID_seed_FR_ = seedextra.mcTrackID();
-    if (mcID_seed_FR_ >= 0) // seed track matched to seed and sim 
-    {
-      mcmask_seed_FR_ = 1; // matched track to sim
-    }
-    else 
-    {
-      if (Config::inclusiveShorts) 
-      {
-	if      (mcID_seed_FR_ ==  -1 || mcID_seed_FR_ ==  -5 || 
-		 mcID_seed_FR_ ==  -8 || mcID_seed_FR_ ==  -9)  
-	{
-	  mcmask_seed_FR_ = 0;
-	}
-	else if (mcID_seed_FR_ ==  -2)
-	{
-	  mcmask_seed_FR_ = 2; 
-	}
-	else // mcID == -3,-4,-6,-7
-	{
-	  mcmask_seed_FR_ = -1;
-	}
-      }
-      else // only count long tracks
-      {
-	if      (mcID_seed_FR_ == -1 || mcID_seed_FR_ == -9) 
-	{
-	  mcmask_seed_FR_ = 0;
-	}
-	else // mcID == -2,-3,-5,-6,-7,-8
-	{
-	  mcmask_seed_FR_ = -1; 
-	}
-      }
-    } // end check over not matched
+    mcID_seed_FR_   = seedextra.mcTrackID();
+    mcmask_seed_FR_ = TTreeValidation::getMaskAssignment(mcID_seed_FR_);
     
     if (mcmask_seed_FR_ == 1) // matched track to sim
     {
@@ -1879,41 +1893,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       if (Config::keepHitInfo) TTreeValidation::fillHitInfo(buildtrack,hitlyrs_build_FR_,hitidxs_build_FR_);
 
       // sim info for build track
-      mcID_build_FR_  = buildextra.mcTrackID();
-      if (mcID_build_FR_ >= 0) // build track matched to seed and sim 
-      {
-	mcmask_build_FR_ = 1; // matched track to sim
-      }
-      else 
-      {
-	if (Config::inclusiveShorts) 
-        {
-	  if      (mcID_build_FR_ ==  -1 || mcID_build_FR_ ==  -5 ||
-		   mcID_build_FR_ ==  -8 || mcID_build_FR_ ==  -9)  
-	  {
-	    mcmask_build_FR_ = 0;
-	  }
-	  else if (mcID_build_FR_ ==  -2)
-	  {
-	    mcmask_build_FR_ = 2; 
-	  }
-	  else // mcID == -3,-4,-6,-7
-	  {
-	    mcmask_build_FR_ = -1;
-	  }
-	}
-	else // only count long tracks
-        {
-	  if      (mcID_build_FR_ == -1 || mcID_build_FR_ == -9) 
-	  {
-	    mcmask_build_FR_ = 0;
-	  }
-	  else // mcID == -2,-3,-4,-5,-6,-7,-8
-	  {
-	    mcmask_build_FR_ = -1; 
-	  }
-	}
-      } // end check over not matched
+      mcID_build_FR_   = buildextra.mcTrackID();
+      mcmask_build_FR_ = TTreeValidation::getMaskAssignment(mcID_build_FR_);
 
       if (mcmask_build_FR_ == 1) // build track matched to seed and sim 
       {
@@ -2061,42 +2042,9 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       if (Config::keepHitInfo) TTreeValidation::fillHitInfo(fittrack,hitlyrs_fit_FR_,hitidxs_fit_FR_);
 
       // sim info for fit track
-      mcID_fit_FR_  = fitextra.mcTrackID();
-      if (mcID_fit_FR_ >= 0) // fit track matched to seed and sim 
-      {
-	mcmask_fit_FR_ = 1; // matched track to sim
-      }
-      else 
-      {
-	if (Config::inclusiveShorts) 
-        {
-	  if      (mcID_fit_FR_ ==  -1 || mcID_fit_FR_ ==  -5 ||
-		   mcID_fit_FR_ ==  -8 || mcID_fit_FR_ ==  -9)  
-	  {
-	    mcmask_fit_FR_ = 0;
-	  }
-	  else if (mcID_fit_FR_ ==  -2)
-	  {
-	    mcmask_fit_FR_ = 2; 
-	  }
-	  else // mcID == -3,-4,-6,-7
-	  {
-	    mcmask_fit_FR_ = -1;
-	  }
-	}
-	else // only count long tracks
-        {
-	  if      (mcID_fit_FR_ == -1 || mcID_fit_FR_ == -9) 
-	  {
-	    mcmask_fit_FR_ = 0;
-	  }
-	  else // mcID == -2,-3,-4,-5,-6,-7,-8
-	  {
-	    mcmask_fit_FR_ = -1; 
-	  }
-	}
-      } // end check over not matched
-   
+      mcID_fit_FR_   = fitextra.mcTrackID();
+      mcmask_fit_FR_ = TTreeValidation::getMaskAssignment(mcID_fit_FR_);
+
       if (mcmask_fit_FR_ == 1) // fit track matched to seed and sim 
       {
 	const auto& simtrack = evt_sim_tracks[mcID_fit_FR_];
@@ -2630,41 +2578,8 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
     if (Config::keepHitInfo) TTreeValidation::fillHitInfo(buildtrack,hitlyrs_build_cFR_,hitidxs_build_cFR_);
 
     // cmssw match?
-    cmsswID_build_cFR_ = buildextra.cmsswTrackID();
-    if (cmsswID_build_cFR_ >= 0) // matched track to cmssw 
-    {
-      cmsswmask_build_cFR_ = 1; 
-    }
-    else 
-    {
-      if (Config::inclusiveShorts) 
-      {
-	if      (cmsswID_build_cFR_ ==  -1 || cmsswID_build_cFR_ ==  -5 ||
-		 cmsswID_build_cFR_ ==  -8 || cmsswID_build_cFR_ ==  -9)  
-	{
-	  cmsswmask_build_cFR_ = 0;
-	}
-	else if (cmsswID_build_cFR_ ==  -2)
-	{
-	  cmsswmask_build_cFR_ = 2; 
-	}
-	else // mcID == -3,-4,-6,-7
-	{
-	  cmsswmask_build_cFR_ = -1;
-	}
-      }
-      else // only count long tracks
-      {
-	if      (cmsswID_build_cFR_ == -1 || cmsswID_build_cFR_ == -9) 
-	{
-	  cmsswmask_build_cFR_ = 0;
-	}
-	else // mcID == -2,-3,-4,-5,-6,-7,-8
-	{
-	  cmsswmask_build_cFR_ = -1; 
-	}
-      }
-    } // end check over not matched
+    cmsswID_build_cFR_   = buildextra.cmsswTrackID();
+    cmsswmask_build_cFR_ = TTreeValidation::getMaskAssignment(cmsswID_build_cFR_);
     
     if (cmsswmask_build_cFR_ == 1) // matched track to cmssw
     {
@@ -2749,41 +2664,8 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
       if (Config::keepHitInfo) TTreeValidation::fillHitInfo(buildtrack,hitlyrs_fit_cFR_,hitidxs_fit_cFR_);
 
       // cmssw match?
-      cmsswID_fit_cFR_ = fitextra.cmsswTrackID();
-      if (cmsswID_fit_cFR_ >= 0) // matched track to cmssw 
-      {
-	cmsswmask_fit_cFR_ = 1; 
-      }
-      else 
-      {
-	if (Config::inclusiveShorts) 
-	{
-	  if      (cmsswID_fit_cFR_ ==  -1 || cmsswID_fit_cFR_ ==  -5 ||
-		   cmsswID_fit_cFR_ ==  -8 || cmsswID_fit_cFR_ ==  -9)  
-	  {
-	    cmsswmask_fit_cFR_ = 0;
-	  }
-	  else if (cmsswID_fit_cFR_ ==  -2)
-	  {
-	    cmsswmask_fit_cFR_ = 2; 
-	  }
-	  else // mcID == -3,-4,-6,-7
-	  {
-	    cmsswmask_fit_cFR_ = -1;
-	  }
-	}
-	else // only count long tracks
-	{
-	  if      (cmsswID_fit_cFR_ == -1 || cmsswID_fit_cFR_ == -9) 
-	  {
-	    cmsswmask_fit_cFR_ = 0;
-	  }
-	  else // mcID == -2,-3,-4,-5,-6,-7,-8
-	  {
-	    cmsswmask_fit_cFR_ = -1; 
-	  }
-	}
-      } // end check over not matched
+      cmsswID_fit_cFR_   = fitextra.cmsswTrackID();
+      cmsswmask_fit_cFR_ = TTreeValidation::getMaskAssignment(cmsswID_fit_cFR_);
       
       if (cmsswmask_fit_cFR_ == 1) // matched track to cmssw
       {

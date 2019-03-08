@@ -192,6 +192,11 @@ The main physics performance script that is run is:
 ./val_scripts/validation-cmssw-benchmarks.sh ${suite}
 ```
 
+The physics validation scripts supports also an option to produce results compatible with the standard tracking validation in CMSSW, the MultiTrackValidator (MTV). This can run as:
+```
+./val_scripts/validation-cmssw-benchmarks.sh ${suite} --mtv-like-val
+```
+
 This script will run the validation on the building tests specified by the ```${suite}``` option. It will also produce the full set of physics performance plots and text files detailing the various physics rates.
 
 It should be mentioned that each of these scripts within ```./xeon_scripts/runBenchmark.sh``` can be launched on their own, as again, they each set the environment and run tests and/or plot making. However, for simplicity's sake, it is easiest when prepping for a PR to just run the master ```./xeon_scripts/runBenchmark.sh```.  If you want to test locally, it is of course possible to launch the scripts one at a time.
@@ -296,6 +301,13 @@ Three different matching criteria are used for making associations between recon
   - Efficiency = fraction of findable ref. tracks matched to a reco track
   - Duplicate rate = fraction of matched ref. tracks with more than one match to a reco track
   - Fake rate = fraction of "good" reco tracks without a match to a ref. track 
+
+In case the MTV-like validation is selected with the option ```mtv-like-val```, the above requirements are replaced with the following:
+- Reference tracks:
+  - Sim tracks required to come from the hard-scatter interaction, originate from R<3.5 cm and |z|<30 cm, and with pseudorapidity |eta|<2.5 (no requirement to have four hits that match a seed)
+- All reconstructed tracks are considered "To-be-validated"
+- Matching Criteria:
+  - Reco track is matched to a sim track if > 75% of hits on reco track match hits from a single sim track (including hits from the seed)
 
 There are text files within these directories that contain the average numbers for each of the figures of merit, which start with "totals\_\*.txt." In addition, these directories contain nHit plots, as well as kinematic difference plots for matched tracks. Best matched plots are for differences with matched reco tracks with the best track score if more than one reco track matches a ref. track. 
 

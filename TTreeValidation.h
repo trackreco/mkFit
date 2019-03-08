@@ -64,6 +64,7 @@ public:
   void setupCMSSWMatching(const Event & ev, RedTrackVec & reducedCMSSW, LayIdxIDVecMapMap & cmsswHitIDMap);
 
   int getLastFoundHit(const int trackMCHitID, const int mcTrackID, const Event& ev);
+  int getMaskAssignment(const int refID);
 
   void fillHitInfo(const Track& track, std::vector<int> & lyrs, std::vector<int> & idxs);
 
