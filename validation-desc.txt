@@ -368,9 +368,9 @@ Fake Rate (with only long reco tracks: Config::inclusiveShorts == false) [PlotVa
      else   |    -1 // OR the seed track does produce a build/fit track as determined by the seedToBuild/FitMap
 
 N.B. In the MTV-Like SimVal: the requirement on minHits is removed, so all reco tracks are considered.
-For the efficiency: only simtracks from the hard scatter are considered, while in the FR all reco tracks matched to any sim track are in the denominator,
-and only those that are truly unmatched to any simtrack, regardless of size, PU or signal simtracks, dz/d0, etc, are marked for the numerator.
-This means that tracks with mcTrackID == -4 will now have a mcmask_[reco] == 2.
+ - For the efficiency: only simtracks from the hard scatter (with some quality cuts on d0, dz, and eta) are considered for the denominator and numerator. If a simtrack from the hard-scatter is unmatched, it will not enter the numerator.
+ - For the FR: all reco tracks (regardless of nHits) are in the denominator, and only those that are unmatched to any simtrack are in the numerator. Compared to the standard FR definition, we now allow reco tracks that are matched to any simtrack (regardless of quality of the simtrack, if its from PU, etc.) to enter the denominator. 
+- This means that tracks with mcTrackID == -4 will now have a mcmask_[reco] == 2 for MTV-Like simtrack validation. 
 
 Fake Rate (with all reco tracks: Config::inclusiveShorts == true, enabled with command line option: --inc-shorts) [PlotValidation::PlotFakeRate()]
   numerator:   reco tracks with mcTrackID == -1 || == -5 || ==  -8 || ==  -9
