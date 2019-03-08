@@ -1167,7 +1167,7 @@ void MkBuilder::prep_simtracks()
     for (auto& simtrack : m_event->simTracks_)
       {
 	if (simtrack.isNotFindable()) continue; // skip ones we already know are bad
-	if (int(simtrack.prodType())!=1 || simtrack.charge()==0 || simtrack.posR()>3.5 || std::abs(simtrack.z())>30 || std::abs(simtrack.momEta())>2.5) simtrack.setNotFindable();
+	if (simtrack.prodType()!=Track::ProdType::Signal || simtrack.charge()==0 || simtrack.posR()>3.5 || std::abs(simtrack.z())>30 || std::abs(simtrack.momEta())>2.5) simtrack.setNotFindable();
       }
     return;
   }
