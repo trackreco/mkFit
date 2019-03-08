@@ -1102,6 +1102,11 @@ int main(int argc, const char *argv[])
     std::cerr << "What have you done?!? Can't mix cmssw label matching without pure seeds! Exiting..." << std::endl;
     exit(1);
   }
+  else if (Config::mtvLikeValidation && Config::inclusiveShorts)
+  {
+    std::cerr << "What have you done?!? Short reco tracks are already accounted for in the MTV-Like Validation! Inclusive shorts is only an option for the standard simval, and will break the MTV-Like simval! Exiting..." << std::endl;
+    exit(1);
+  }
 
   // set to convert if I/O files both set!
   if (g_input_file != "" && g_output_file != "")

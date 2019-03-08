@@ -309,7 +309,7 @@ int TrackExtra::modifyRefTrackID(const int foundHits, const int minHits, const T
 	if (foundHits < minHits) refTrackID = -5;
 	else                     refTrackID = refTrackID;
       }
-      else // sim track is not findable
+      else // ref track is not findable
       {
 	if (foundHits < minHits) refTrackID = -6;
 	else                     refTrackID = -7;
