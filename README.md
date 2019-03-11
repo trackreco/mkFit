@@ -51,7 +51,7 @@ The main development platform is phi3. This is the recommended machine for begin
 
 **Extra platform configuration information**
 - phi1, phi3, and lnx4108 are dual socket machines and have two identical Xeons on each board
-- phi1 and phi2 both have TurboBoost disabled, while it is enabled on phi3
+- phi1, phi2, and phi3 all have TurboBoost disabled to disentangle some effects of dynamic frequency scaling with higher vectorization
 
 For further info on the configuration of each machine, use your favorite text file viewer to peruse the files ```/proc/cpuinfo``` and ```/proc/meminfo``` on each machine.
 
@@ -100,7 +100,7 @@ make -j 32 AVX_512:=1
 To run the code with some generic options, do:
 
 ```
-./mkFit/mkFit --cmssw-n2seeds --input-file /data2/slava77/samples/2017/pass-4874f28/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/a/memoryFile.fv3.clean.writeAll.recT.072617.bin --build-ce --num-thr 64 --num-events 20
+./mkFit/mkFit --cmssw-n2seeds --input-file /data2/slava77/samples/2017/pass-c93773a/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/memoryFile.fv3.clean.writeAll.CCC1620.recT.082418-25daeda.bin --build-ce --num-thr 64 --num-events 20
 ```
 
 Consult Sections 7-8 for where to find more information on descriptions of the code, which list resources on where to find the full set of options for running the code.
@@ -190,6 +190,11 @@ The main physics performance script that is run is:
 
 ```
 ./val_scripts/validation-cmssw-benchmarks.sh ${suite}
+```
+
+The physics validation scripts supports also an option to produce results compatible with the standard tracking validation in CMSSW, the MultiTrackValidator (MTV). This can run as:
+```
+./val_scripts/validation-cmssw-benchmarks.sh ${suite} --mtv-like-val
 ```
 
 This script will run the validation on the building tests specified by the ```${suite}``` option. It will also produce the full set of physics performance plots and text files detailing the various physics rates.
@@ -296,6 +301,13 @@ Three different matching criteria are used for making associations between recon
   - Efficiency = fraction of findable ref. tracks matched to a reco track
   - Duplicate rate = fraction of matched ref. tracks with more than one match to a reco track
   - Fake rate = fraction of "good" reco tracks without a match to a ref. track 
+
+In case the MTV-like validation is selected with the option ```mtv-like-val```, the above requirements are replaced with the following:
+- Reference tracks:
+  - Sim tracks required to come from the hard-scatter interaction, originate from R<3.5 cm and |z|<30 cm, and with pseudorapidity |eta|<2.5 (no requirement to have four hits that match a seed)
+- All reconstructed tracks are considered "To-be-validated"
+- Matching Criteria:
+  - Reco track is matched to a sim track if > 75% of hits on reco track match hits from a single sim track (including hits from the seed)
 
 There are text files within these directories that contain the average numbers for each of the figures of merit, which start with "totals\_\*.txt." In addition, these directories contain nHit plots, as well as kinematic difference plots for matched tracks. Best matched plots are for differences with matched reco tracks with the best track score if more than one reco track matches a ref. track. 
 

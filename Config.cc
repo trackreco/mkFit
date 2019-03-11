@@ -81,10 +81,14 @@ namespace Config
   bool  inclusiveShorts = false;
   bool  keepHitInfo = false;
   bool  useHitsForDuplicates = false;
-  bool  removeDuplicates = true;
+  bool  removeDuplicates = false;
   bool  tryToSaveSimInfo = false;
   matchOpts cmsswMatchingFW = hitBased;
   matchOpts cmsswMatchingBK = trkParamBased;
+
+  bool mtvLikeValidation = false;
+  int  cmsSelMinLayers = 12;
+  int  nMinFoundHits = 10;
 
   bool  kludgeCmsHitErrors = false;
   bool  backwardFit = false;

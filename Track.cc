@@ -294,39 +294,39 @@ bool TrackExtra::isSeedHit(const int lyr, const int idx) const
   else
   {
     if (refTrackID >= 0)
+    {
+      if (reftracks[refTrackID].isFindable()) 
       {
-	if (reftracks[refTrackID].isFindable()) 
-	  {
-	    if (foundHits < minHits) refTrackID = -2;
-	    else                     refTrackID = refTrackID;
-	  }
-	else // ref track is not findable
-	  {
-	    if (foundHits < minHits) refTrackID = -3;
-      else                     refTrackID = -4;
-	  }
+	if (foundHits < minHits) refTrackID = -2;
+	else                     refTrackID = refTrackID;
       }
+      else // ref track is not findable
+      {
+	if (foundHits < minHits) refTrackID = -3;
+	else                     refTrackID = -4;
+      }
+    }
     else if (refTrackID == -1)
+    {
+      if (trueID >= 0)
       {
-	if (trueID >= 0)
-	  {
-	    if (reftracks[trueID].isFindable()) 
-	      {
-		if (foundHits < minHits) refTrackID = -5;
-		else                     refTrackID = refTrackID;
-	      }
-	    else // sim track is not findable
-	      {
-		if (foundHits < minHits) refTrackID = -6;
-		else                     refTrackID = -7;
-	      }
-	  }
-	else
-	  {
-	    if (foundHits < minHits) refTrackID = -8;
-	    else                     refTrackID = -9;
-	  }
+	if (reftracks[trueID].isFindable()) 
+	{
+	  if (foundHits < minHits) refTrackID = -5;
+	  else                     refTrackID = refTrackID;
+	}
+	else // sim track is not findable
+	{
+	  if (foundHits < minHits) refTrackID = -6;
+	  else                     refTrackID = -7;
+	}
       }
+      else
+      {
+	if (foundHits < minHits) refTrackID = -8;
+	else                     refTrackID = -9;
+      }
+    }
   }
   return refTrackID;
 }
@@ -351,7 +351,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
     if (lyr < 0) continue;
 
     // skip seed layers (unless, of course, we are validating the seed tracks themselves)
-    if (!isSeed && isSeedHit(lyr,idx)) continue;
+    if (!Config::mtvLikeValidation && !isSeed && isSeedHit(lyr,idx)) continue;
 
     // make sure it is a real hit
     if ((idx >= 0) && (static_cast<size_t>(idx) < layerHits[lyr].size()))
@@ -395,10 +395,10 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
     }
   
     // total found hits in hit index array, excluding seed if necessary
-    const int nCandHits = (isSeed ? trk.nStoredFoundHits() : trk.nStoredFoundHits() - nSeedHits);
+    const int nCandHits = ((Config::mtvLikeValidation || isSeed) ? trk.nStoredFoundHits() : trk.nStoredFoundHits() - nSeedHits);
 
-    // 50% matching criterion 
-    if (2*mccount >= nCandHits) 
+    // 75% or 50% matching criterion 
+    if ( ( Config::mtvLikeValidation ? (4*mccount > 3*nCandHits) : (2*mccount >= nCandHits) ) )
     {
       // require that most matched is the mcTrackID!
       if (isPure)

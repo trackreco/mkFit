@@ -270,9 +270,12 @@ void MkBuilder::begin_event(Event* ev, const char* build_type)
   std::vector<Track>& simtracks = m_event->simTracks_;
   // DDDD MT: debug seed fit divergence between host / mic.
   // Use this once you know seed index + set debug in MkFitter.cc, PropagationXX.cc, KalmanUtils.cc
-  // Track xx = simtracks[2069];
-  // simtracks.clear();
-  // simtracks.push_back(xx);
+  // To get seed index you'll have to dump tracks from Event::read_in().
+  // {
+  //   Track xx = simtracks[5];
+  //   simtracks.clear();
+  //   simtracks.push_back(xx);
+  // }
 
   if (!Config::silent) {
     std::cout << "Building tracks with '" << build_type << "', total simtracks=" << simtracks.size() << std::endl;
@@ -281,6 +284,7 @@ void MkBuilder::begin_event(Event* ev, const char* build_type)
   //dump sim tracks
   for (int itrack = 0; itrack < (int) simtracks.size(); ++itrack)
   {
+    bool debug = true;
     Track track = simtracks[itrack];
     //if (track.label() != itrack)
     //{
@@ -1021,7 +1025,8 @@ void MkBuilder::quality_process(Track &tkcand, std::map<int,int> & cmsswLabelToP
     }
 
     // perl -ne 'print if m/FOUND_LABEL\s+[-\d]+/o;' | sort -k2 -n
-    // printf("FOUND_LABEL %6d  pT_mc=%8.2f eta_mc=%8.2f\n", label, pTmc, etamc);
+    // grep "FOUND_LABEL" | sort -n -k 8,8 -k 2,2
+    // printf("FOUND_LABEL %6d  pT_mc= %8.2f eta_mc= %8.2f event= %d\n", label, pTmc, etamc, m_event->evtID());
   }
 
 #ifdef SELECT_SEED_LABEL
@@ -1163,6 +1168,16 @@ void MkBuilder::prep_simtracks()
 {
   // First prep sim tracks to have hits sorted, then mark unfindable if too short
   prep_reftracks(m_event->simTracks_,m_event->simTracksExtra_,false);
+
+  if (Config::mtvLikeValidation) {
+    // Apply MTV selection criteria and then return
+    for (auto& simtrack : m_event->simTracks_)
+      {
+	if (simtrack.isNotFindable()) continue; // skip ones we already know are bad
+	if (simtrack.prodType()!=Track::ProdType::Signal || simtrack.charge()==0 || simtrack.posR()>3.5 || std::abs(simtrack.z())>30 || std::abs(simtrack.momEta())>2.5) simtrack.setNotFindable();
+      }
+    return;
+  }
 
   // Now, make sure sim track shares at least four hits with a single cmssw seed.
   // This ensures we factor out any weakness from CMSSW
@@ -1439,6 +1454,13 @@ void MkBuilder::PrepareSeeds()
     if (Config::seedCleaning == cleanSeedsN2)
     {
       m_event->clean_cms_seedtracks();
+
+      // Select specific cmssw seed for detailed debug.
+      // {
+      //   Track xx = m_event->seedTracks_[6];
+      //   m_event->seedTracks_.clear();
+      //   m_event->seedTracks_.push_back(xx);
+      // }
     }
     else if (Config::seedCleaning == cleanSeedsPure)
     {

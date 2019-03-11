@@ -5,6 +5,7 @@
 ###########
 
 suite=${1:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
+style=${2:-""} # option --mtv-like-val
 
 ###################
 ## Configuration ##
@@ -37,7 +38,7 @@ siminfo="--try-to-save-sim-info"
 bkfit="--backward-fit-pca"
 
 ## validation options: SIMVAL == sim tracks as reference, CMSSWVAL == cmssw tracks as reference
-SIMVAL="SIMVAL --sim-val ${siminfo} ${bkfit}"
+SIMVAL="SIMVAL --sim-val ${siminfo} ${bkfit} ${style}"
 CMSSWVAL="CMSSWVAL --cmssw-val-fhit-bprm ${bkfit}"
 declare -a vals=(SIMVAL CMSSWVAL)
 
@@ -47,7 +48,7 @@ CMSSWPLOT="CMSSWVAL 1"
 declare -a plots=(SIMPLOT CMSSWPLOT)
 
 ## special cmssw dummy build
-CMSSW="CMSSW cmssw SIMVAL --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks"
+CMSSW="CMSSW cmssw SIMVAL --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks ${style}"
 
 ###############
 ## Functions ##

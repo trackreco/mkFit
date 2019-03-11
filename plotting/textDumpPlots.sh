@@ -1,11 +1,15 @@
 #! /bin/bash
 
+## input
+suite=${1:-"forPR"}
+
 ## In case this is run separately from the main script
-source xeon_scripts/common-variables.sh
+source xeon_scripts/common-variables.sh ${suite}
 source xeon_scripts/init-env.sh
 
 Base_Test="NVU1_NTH1"
 
+##### Make plots of track properties (kinematics, nHits, etc) from text files, comparing different machine configurations #####
 for build in "${text_builds[@]}"
 do echo ${!build} | while read -r bN bO
     do

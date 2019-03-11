@@ -657,6 +657,7 @@ int main(int argc, const char *argv[])
 	"  --quality-val            enable printout validation for MkBuilder (def: %s)\n"
 	"                             must enable: --dump-for-plots\n"
 	"  --dump-for-plots         make shell printouts for plots (def: %s)\n"
+        "  --mtv-like-val           configure validation to emulate CMSSW MultiTrackValidator (MTV) (def: %s)\n"
 	"\n"
 	" **ROOT based options\n"
         "  --sim-val-for-cmssw      enable ROOT based validation for CMSSW tracks with simtracks as reference [eff, FR, DR] (def: %s)\n"
@@ -760,6 +761,7 @@ int main(int argc, const char *argv[])
 
         b2a(Config::quality_val),
         b2a(Config::dumpForPlots),
+        b2a(Config::mtvLikeValidation),
 
         b2a(Config::sim_val_for_cmssw),
         b2a(Config::sim_val),
@@ -966,6 +968,12 @@ int main(int argc, const char *argv[])
     {
       Config::dumpForPlots = true;
     }
+    else if (*i == "--mtv-like-val")
+    {
+      Config::mtvLikeValidation = true;
+      Config::cmsSelMinLayers = 0;
+      Config::nMinFoundHits = 0;
+    }
     else if (*i == "--sim-val-for-cmssw")
     {
       Config::sim_val_for_cmssw = true; 
@@ -1092,6 +1100,11 @@ int main(int argc, const char *argv[])
   if (Config::seedCleaning != cleanSeedsPure && (Config::cmsswMatchingFW == labelBased || Config::cmsswMatchingBK == labelBased))
   {
     std::cerr << "What have you done?!? Can't mix cmssw label matching without pure seeds! Exiting..." << std::endl;
+    exit(1);
+  }
+  else if (Config::mtvLikeValidation && Config::inclusiveShorts)
+  {
+    std::cerr << "What have you done?!? Short reco tracks are already accounted for in the MTV-Like Validation! Inclusive shorts is only an option for the standard simval, and will break the MTV-Like simval! Exiting..." << std::endl;
     exit(1);
   }
 

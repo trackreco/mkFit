@@ -131,13 +131,13 @@ public:
     int maxN = 0;
     int maxL = 0;
     for (auto const& lh : m_event_of_hits.m_layers_of_hits){
-      auto lsize = lh.m_hit_phis.size();
+      auto lsize = static_cast<int>(lh.m_hit_phis.size());
       if (lsize > maxN){
         maxN = lsize;
         maxL = lh.layer_id();
       }
     }
-    return {maxN,maxL};
+    return {maxN, maxL};
   }
 
   void begin_event(Event* ev, const char* build_type);
