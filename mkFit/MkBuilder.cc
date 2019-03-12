@@ -1133,8 +1133,6 @@ void MkBuilder::root_val()
 
 void MkBuilder::cmssw_export()
 {
-  if(Config::removeDuplicates) remove_duplicates(m_event->candidateTracks_);
-  
   // get the tracks ready for export
   remap_track_hits(m_event->candidateTracks_);
   if(Config::backwardFit) {
