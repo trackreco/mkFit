@@ -10,7 +10,10 @@ Apologies on the ordered list style: GitHub Flavored Markdown ignores CSS/HTML s
    1) Intro
    2) Step-by-step instructions for setting up your website
    3) Setting permissions for your website
-   4) Integration with the scripts in this directory
+   4) Special Notes
+      1) Disclaimer on email addresses
+      2) Notes on ```${webdir}```
+      3) Passwordless scp on LXPLUS
 2) DEPRECATED: Setting up a website with an AFS userspace
 
 ## Section 1: Setting up a website with an EOS userspace
@@ -72,35 +75,25 @@ Upon trying to access your website now via a web browser (or another user's webs
 
 **Some discussion on the ```.htaccess``` file**: If you would like to use your personal website for more than just this project, it is recommended that you create a subdirectory ```${mictrkdir}``` under ```${webdir}```. In ```${mictrkdir}```, you then can create another ```.htaccess``` file which includes the restricted access for only members of the mic-trk e-group using the line from above: ```Require ADFS_GROUP mic-trk-rd```. This line would then need to be removed in your top-level ```${webdir}/.htaccess```, in case you want others to have access to other subdirectories related to physics analysis, RECO convener duties, etc. 
 
-**IMPORTANT DISCLAIMER**: It is imperative that you have your primary email address associated to your CERN account (go to CERN accounts to check this) be the same email used for sending+receiving emails from the mictrk e-group. Otherwise, the line ```Require ADFS_GROUP mic-trk-rd``` will lock you out of viewing your own website on a browser! Unless you have some special CERN account, your primary email for your CERN account is a ```@cern.ch``` Outlook address. 
+### Section 1.iv: Special Notes
+ 
+#### Section 1.iv.a: Disclaimer on email addresses
+ 
+It is imperative that you have your primary email address associated to your CERN account (go to CERN accounts to check this) be the same email used for sending+receiving emails from the mictrk e-group. Otherwise, the line ```Require ADFS_GROUP mic-trk-rd``` will lock you out of viewing your own website on a browser! Unless you have some special CERN account, your primary email for your CERN account is a ```@cern.ch``` Outlook address. 
 
-### Section 1.iv: Integration with the scripts in this directory
-
-In order to take advantage of the ```web/move-benchmarks.sh``` script, you will need to copy the script: ```copyphp.sh``` and php file: ```index.php``` to your top-level ```${webdir}``` on LXPLUS, i.e.:
-
-```
-scp copyphp.sh index.php ${USERNAME}@lxplus.cern.ch:/eos/user/${FIRST_LETTER}/${USERNAME}/${webdir}
-```
-
-where, again ```${webdir}``` == "www" if you followed the CERNBox instructions exactly. 
-
-When running ```./web/move-benchmarks ${plotdir}```, the ```copyphp.sh ${plotdir}``` script will run remotely, assuming this script can be found in your ```${webdir}```. ```copyphp.sh``` will copy ```index.php``` into ```${plotdir}``` as well as all subdirectories underneath it.
-
-**Note on ```${webdir}```**
-
+ 
+#### Section 1.iv.b: Notes on `${webdir}`
+ 
 - If ```${webdir} != "www"```, then you will have to modify the variable ```LXPLUS_OUTDIR``` in ```web/copyAndSendToLXPLUS.sh``` to match the name for ```${webdir}```. 
-- If you decided to make a subdirectory under ```${webdir}``` specifically for this project, then you will have to **either**:
-  1) Set ```LXPLUS_OUTDIR=${webdir}/${mictrkdir}```, and then move ```index.php``` and ```copyphp.sh``` to ```${mictrkdir}```.
-  2) **Or**, keep ```index.php``` and ```${copyphp.sh}``` in ```${webdir}```, and make the following changes to ```web/copyAndSendToLXPLUS.sh```
-     1) Make a new variable ```LXPLUS_WEBDIR=${webdir}```, and set ```LXPLUS_OUTDIR=${mictrkdir}```.
-     2) Modify the ```scp``` to be: ```scp -r ${tarball} ${LXPLUS_HOST}:${LXPLUS_WORKDIR}/${LXPLUS_WEBDIR}/${LXPLUS_OUTDIR}```
-     3) Modify the ```cd``` to be: ```cd ${LXPLUS_WORKDIR}/${LXPLUS_WEBDIR}/${LXPLUS_OUTDIR}```
-     4) Add this line under the untar (i.e. ```tar -zxvf```): ```cd ${LXPLUS_WORKDIR}/${LXPLUS_WEBDIR}```
-     4) Modify the call to ```copyphp.sh``` to be: ```./copyphp.sh ${LXPLUS_OUTDIR}/${dir}```
-
-While option ii) is significantly more modifications, it allows the user to keep the ```copyphp.sh``` script in the top-level ```${webdir}``` for future use with other projects.
-
-Lastly, make sure to read Section 10.ii.b in the main README.md on how to take advantage of passwordless scp for transferring plots to LXPLUS via ```./web/move-benchmarks.sh ${plotdir}```.
+- If you decided to make a subdirectory under ```${webdir}``` specifically for this project, then may wish to make the following modifications to: ```web/copyAndSendToLXPLUS.sh```
+  1) Make a new variable ```LXPLUS_WEBDIR=${webdir}```, and set ```LXPLUS_OUTDIR=${mictrkdir}```.
+  2) Modify the ```scp``` to be: ```scp -r ${tarball} ${LXPLUS_HOST}:${LXPLUS_WORKDIR}/${LXPLUS_WEBDIR}/${LXPLUS_OUTDIR}```
+  3) Modify the ```cd``` to be: ```cd ${LXPLUS_WORKDIR}/${LXPLUS_WEBDIR}/${LXPLUS_OUTDIR}```
+  4) Add this line under the untar (i.e. ```tar -zxvf```): ```cd ${LXPLUS_WORKDIR}/${LXPLUS_WEBDIR}```
+ 
+#### Section 1.iv.c: Passwordless scp to LXPLUS
+ 
+Make sure to read Section 10.ii.b in the main README.md on how to take advantage of passwordless scp for transferring plots to LXPLUS via ```./web/move-benchmarks.sh ${plotdir}```.
 
 ## Section 2: DEPRECATED: Setting up a website with an AFS userspace
 
@@ -119,7 +112,7 @@ Lastly, make sure to read Section 10.ii.b in the main README.md on how to take a
    4) ```touch .htaccess```
    5) open .htaccess in an editor and paste the following: ```Options +Indexes```
 
-3) Then copy in really the very useful ```index.php``` into ```${dir}```
+3) Then copy in really the very useful ```index.php``` into ```${dir}``` (optional: will simply make the top-level web GUI nice)
 
 4) Once set up and website is live, copy plots and directories into ```${dir}```
 5) ```cd ${dir}```

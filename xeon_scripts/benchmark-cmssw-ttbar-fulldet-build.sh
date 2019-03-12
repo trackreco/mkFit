@@ -141,3 +141,6 @@ done
 
 ## Final cleanup
 make distclean ${mOpt}
+
+## Final message
+echo "Finished compute benchmarks on ${ben_arch}!"

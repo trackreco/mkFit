@@ -216,3 +216,6 @@ do
 	done
     done
 done
+
+# Final message
+echo "Finished collecting benchmark plots into ${dir}!"
