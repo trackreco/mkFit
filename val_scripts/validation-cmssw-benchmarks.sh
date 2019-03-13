@@ -147,4 +147,8 @@ do echo ${!plot} | while read -r pN pO
     done
 done
 
+## Final cleanup
 make distclean ${mVal}
+
+## Final message
+echo "Finished physics validation!"

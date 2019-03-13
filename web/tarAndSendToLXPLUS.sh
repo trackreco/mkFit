@@ -3,7 +3,7 @@
 # command line input
 dir=${1:-"benchmarks"} # Main output dir name
 suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
-afs_or_eos=${3:-"afs"} # which user space to use: afs or eos
+afs_or_eos=${3:-"eos"} # which user space to use: afs or eos
 
 # in case this is run alone
 source xeon_scripts/common-variables.sh ${suite}
@@ -36,7 +36,7 @@ scp -r ${tarball} ${LXPLUS_HOST}:${LXPLUS_WORKDIR}/${LXPLUS_OUTDIR}
 # Make outdir nice and pretty
 if [[ "${afs_or_eos}" == "afs" ]]
 then
-    echo "Unpack tarball and execute remotely ./makereadable.sh ${dir}"
+    echo "Unpacking tarball and executing remotely: ./makereadable.sh ${dir}"
     SSHO ${LXPLUS_HOST} bash -c "'
     cd ${LXPLUS_WORKDIR}/${LXPLUS_OUTDIR}
     tar -zxvf ${tarball}
@@ -45,16 +45,18 @@ then
     exit
     '"
 else
-    echo "Unpack tarball and execute remotely ./copyphp.sh ${dir}"
+    echo "Unpacking tarball"
     SSHO ${LXPLUS_HOST} bash -c "'
     cd ${LXPLUS_WORKDIR}/${LXPLUS_OUTDIR}
     tar -zxvf ${tarball}
-    ./copyphp.sh ${dir}
     rm -rf ${tarball}
     exit
     '"
 fi
 
 # remove local tarball
-echo "Remove local tarball of plots"
+echo "Removing local tarball of plots"
 rm ${tarball}
+
+# Final message
+echo "Finished tarring and sending plots to LXPLUS!"

@@ -226,15 +226,20 @@ The main script for collecting plots and sending them to LXPLUS can be called by
 ./web/move-benchmarks.sh ${outdir_name} ${suite} ${afs_or_eos}
 ```
 
-where again, ```${suite}``` defaults to ```forPR```. ```${outdir_name}``` will be the top-level directory where the output is collected and eventually shipped to LXPLUS. This will call ```./web/collectBenchmarks.sh ${outdir_name} ${suite}```, which will sort the files, and then call ```./web/tarAndSendToLXPLUS.sh ${outdir_name} ${suite} ${afs_or_eos}```, which packs up the top-level output dir and copies it to either an /afs or /eos userspace on LXPLUS. This will also run another script remotely on LXPLUS to copy ```web/index.php``` into each directory to have a nice web GUI for the plots. N.B. There are some assumptions on the remote directory structure, naming, and files present in order for ```web/tarAndSendToLXPLUS.sh``` to work. Please consult ```web/README_WEBPLOTS.md``` for setting this up properly!
+where again, ```${suite}``` defaults to ```forPR```. ```${outdir_name}``` will be the top-level directory where the output is collected and eventually shipped to LXPLUS. This script first calls ```./web/collectBenchmarks.sh ${outdir_name} ${suite}```, which will sort the files, and then calls the script ```./web/copyphp.sh```, which copies ```web/index.php``` into the ```${outdir_name}``` to have a nice GUI on the web, and finally calls ```./web/tarAndSendToLXPLUS.sh ${outdir_name} ${suite} ${afs_or_eos}```, which packs up the top-level output dir and copies it to either an /afs or /eos userspace on LXPLUS. 
 
-Lastly, the option ```${afs_or_eos}``` takes either of the following arguments: ```afs``` or ```eos```, and defaults to ```afs```. The mapping of the username to the remote directories is in ```web/tarAndSendToLXPLUS.sh```. If an incorrect string is passed, the script will exit. N.B. AFS is being phased out at CERN, so the preferred option is ```eos```.
+The option ```${afs_or_eos}``` takes either of the following arguments: ```afs``` or ```eos```, and defaults to ```eos```. The mapping of the username to the remote directories is in ```web/tarAndSendToLXPLUS.sh```. If an incorrect string is passed, the script will exit. 
+
+**IMPORTANT NOTES**
+1) AFS is being phased out at CERN, so the preferred option is ```eos```.
+
+2) There are some assumptions on the remote directory structure, naming, and files present in order for ```web/tarAndSendToLXPLUS.sh``` to work. Please consult ```web/README_WEBPLOTS.md``` for setting this up properly!
 
 **IMPORTANT DISCLAIMERS**
 
 1. There is a script: ```./xeon_scripts/trashSKL-SP.sh``` that is run at the very end of the ```./web/move-benchmarks.sh``` script that will delete log files, pngs, validation directories, root files, and the neat directory created to house all the validation plots.  This means that if the scp fails, the plots will still be deleted locally, and you will be forced to re-run the whole suite!!  You can of course comment this script out if this bothers you.
 
-2. ```web/tarAndSendToLXPLUS.sh``` has a number of pieces that execute code on LXPLUS, which includes executing scripts to copy ```web/index.php``` removing the copied over tarball of plots. If you are uncomfortable with this, you can comment it out.
+2. ```web/tarAndSendToLXPLUS.sh``` executes a script remotely on LXPLUS when using AFS, which makes the directory readable to outside world. If you are uncomfortable with this, you can comment it out. If your website is on EOS, then please ignore this disclaimer.
 
 ### Section 5.iv: Interpreting the results
 

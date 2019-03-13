@@ -41,3 +41,6 @@ echo "Producing plots from text files"
 
 ##### Final cleanup #####
 make distclean
+
+##### Final message #####
+echo "Finished benchmarking and validation suite!"
