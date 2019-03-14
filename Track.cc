@@ -284,7 +284,7 @@ bool TrackExtra::isSeedHit(const int lyr, const int idx) const
 	  != matchedSeedHits_.end());
 }
 
-  int TrackExtra::modifyRefTrackID(const int foundHits, const int minHits, const TrackVec& reftracks, const int trueID, const int duplicate, int refTrackID)
+ int TrackExtra::modifyRefTrackID(const int foundHits, const int minHits, const TrackVec& reftracks, const int trueID, const int duplicate, int refTrackID)
 {
   // Modify refTrackID based on nMinHits and findability
   if(duplicate)

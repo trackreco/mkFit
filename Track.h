@@ -418,7 +418,7 @@ public:
         // Set to true when number of holes would exceed an external limit, Config::maxHolesPerCand.
         // XXXXMT Not used yet, -2 last hit idx is still used! Need to add it to MkFi**r classes.
         // Problem is that I have to carry bits in/out of the MkFinder, too.
-	//        bool stopped : 1;
+	bool stopped : 1;
 
         // Production type (most useful for sim tracks): 0, 1, 2, 3 for unset, signal, in-time PU, oot PU
         unsigned int prod_type : 2;
@@ -437,7 +437,7 @@ public:
 	bool duplicate : 1;
 
         // The rest, testing if mixing int and unsigned int is ok.
-        int          _some_free_bits_ : 4;
+        int          _some_free_bits_ : 3;
         unsigned int _more_free_bits_ : 6;
 
       };

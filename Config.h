@@ -320,11 +320,17 @@ namespace Config
   extern bool readSimTrackStates; // need this to fill pulls
   extern bool inclusiveShorts;
   extern bool keepHitInfo;
-  extern bool useHitsForDuplicates;
-  extern bool removeDuplicates;
   extern bool tryToSaveSimInfo;
   extern matchOpts cmsswMatchingFW;
   extern matchOpts cmsswMatchingBK;
+
+  // config on duplicate removal
+  extern bool useHitsForDuplicates;
+  extern bool removeDuplicates;
+  extern float maxdPhi;
+  extern float maxdPt;
+  extern float maxdEta;
+  extern float minFracHitsShared;
 
   // config on seed cleaning
   constexpr int minNHits_seedclean = 4;

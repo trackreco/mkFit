@@ -80,11 +80,16 @@ namespace Config
   bool  readSimTrackStates = false;
   bool  inclusiveShorts = false;
   bool  keepHitInfo = false;
-  bool  useHitsForDuplicates = true;
-  bool  removeDuplicates = false;
   bool  tryToSaveSimInfo = false;
   matchOpts cmsswMatchingFW = hitBased;
   matchOpts cmsswMatchingBK = trkParamBased;
+
+  bool  removeDuplicates = true;
+  bool  useHitsForDuplicates = true;
+  float maxdPhi = 0.1;
+  float maxdPt  = 0.05;
+  float maxdEta = 0.2;
+  float minFracHitsShared = 0.75;
 
   bool mtvLikeValidation = false;
   int  cmsSelMinLayers = 12;

@@ -1287,22 +1287,16 @@ void MkBuilder::find_duplicates(TrackVec& tracks)
       float eta2 = track2.momEta();
       float phi2 = track2.momPhi();
       float pt2  = track2.pT();
-      float dphi = std::abs(phi1-phi2);
-      dphi = dphi >= Config::PI ? Config::TwoPI - dphi: dphi;
+      float dphi = squashPhiMinimal(phi1-phi2);
       float deta = std::abs(eta2 - eta1);
       float maxpt = std::max(pt1,pt2);
       if(maxpt ==0) continue;
-      if(dphi > Config::PI)
-	{
-	  std::cout << "dPhi is too big!" << std::endl;
-	  break;
-	}
-      if(dphi < 0.1 && std::abs(pt2 - pt1)/maxpt < 0.05 && deta < 0.2)
+      if(dphi < Config::maxdPhi && std::abs(pt2 - pt1)/maxpt < Config::maxdPt && deta < Config::maxdEta)
       {
 	if(Config::useHitsForDuplicates)
 	{
 	  std::vector<int> vecOfHits;
-	  int numHitsShared = 0;
+	  float numHitsShared = 0;
 	  for (int ihit = 0; ihit < track.nTotalHits(); ihit++)
 	  {
 	    vecOfHits.push_back(track.getHitIdx(ihit));
@@ -1311,10 +1305,11 @@ void MkBuilder::find_duplicates(TrackVec& tracks)
 	  {
 	    std::vector<int>::iterator it;
 	    it = std::find(vecOfHits.begin(), vecOfHits.end(),track2.getHitIdx(ihit2) );
-	    if (it != vecOfHits.end()) numHitsShared += 1;
+	    if (it != vecOfHits.end()) numHitsShared++;
 	  }
-	    //Only remove one of the tracks if they share at least 12 hits.
-	    if(numHitsShared < 12) continue;
+	  float fracHitsShared = (track.nTotalHits() < track2.nTotalHits()) ? numHitsShared/track.nTotalHits() : numHitsShared/track2.nTotalHits();
+	  //Only remove one of the tracks if they share at least 90% of the hits (denominator is the shorter track)
+	  if(fracHitsShared < Config::minFracHitsShared) continue;
 	}
 	//Keep track with best score
 	if(track.getCandScore() > track2.getCandScore())
