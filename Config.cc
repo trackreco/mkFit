@@ -84,7 +84,7 @@ namespace Config
   matchOpts cmsswMatchingFW = hitBased;
   matchOpts cmsswMatchingBK = trkParamBased;
 
-  bool  removeDuplicates = true;
+  bool  removeDuplicates = false;
   bool  useHitsForDuplicates = true;
   float maxdPhi = 0.1;
   float maxdPt  = 0.05;
