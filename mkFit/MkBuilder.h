@@ -174,6 +174,7 @@ public:
 
   void find_duplicates(TrackVec& tracks);
   void remove_duplicates(TrackVec& tracks);
+  void handle_duplicates();
 
   // --------
 

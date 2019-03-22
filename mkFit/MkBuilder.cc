@@ -1331,6 +1331,32 @@ void MkBuilder::remove_duplicates(TrackVec & tracks)
 			      [](auto track){return track.getDuplicateValue();}),tracks.end());
 }
 
+void MkBuilder::handle_duplicates()
+{
+  //Mark tracks as duplicates; if within CMSSW, remove duplicate tracks from fit or candidate track collection
+  if (Config::removeDuplicates)
+  {
+    if (Config::quality_val || Config::sim_val || Config::cmssw_val)
+    {
+      find_duplicates(m_event->candidateTracks_);
+      find_duplicates(m_event->fitTracks_);
+    }
+    else if ( Config::cmssw_export)
+    {
+      if (Config::backwardFit)
+      {
+	find_duplicates(m_event->fitTracks_);
+	remove_duplicates(m_event->fitTracks_);
+      }
+      else
+      {
+	find_duplicates(m_event->candidateTracks_);
+	remove_duplicates(m_event->candidateTracks_);
+      }
+    } 
+  }
+}
+
 //------------------------------------------------------------------------------
 // PrepareSeeds
 //------------------------------------------------------------------------------

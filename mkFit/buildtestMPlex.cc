@@ -282,12 +282,6 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
   if (Config::quality_val || Config::sim_val || Config::cmssw_val || Config::cmssw_export)
   {
     builder.quality_store_tracks(ev.candidateTracks_);
-    //Mark tracks as duplicates; if within CMSSW, remove duplicate tracks before backward fit
-    if(Config::removeDuplicates) 
-    {
-      builder.find_duplicates(ev.candidateTracks_);
-      if(Config::cmssw_export) builder.remove_duplicates(ev.candidateTracks_);
-    }
   }
 
   // now do backwards fit... do we want to time this section?
@@ -302,6 +296,8 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
       builder.quality_store_tracks(ev.fitTracks_);
     }
   }
+
+  builder.handle_duplicates();
 
   // validation section
   if        (Config::quality_val) {
@@ -352,12 +348,6 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
   if (Config::quality_val || Config::sim_val || Config::cmssw_val || Config::cmssw_export)
   {
     builder.quality_store_tracks(ev.candidateTracks_);
-    //Mark tracks as duplicates; if within CMSSW, remove duplicate tracks before backward fit
-    if(Config::removeDuplicates)
-    {
-      builder.find_duplicates(ev.candidateTracks_);
-      if(Config::cmssw_export) builder.remove_duplicates(ev.candidateTracks_);
-    }
   }
 
   // now do backwards fit... do we want to time this section?
@@ -372,6 +362,8 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
       builder.quality_store_tracks(ev.fitTracks_);
     }
   }
+
+  builder.handle_duplicates();
 
   // validation section
   if        (Config::quality_val) {
@@ -420,12 +412,6 @@ double runBuildingTestPlexFV(Event& ev, MkBuilder& builder)
   if (Config::quality_val || Config::sim_val || Config::cmssw_val || Config::cmssw_export)
   {
     builder.quality_store_tracks(ev.candidateTracks_);
-    //Mark tracks as duplicates; if within CMSSW, remove duplicate tracks before backward fit  
-    if(Config::removeDuplicates)
-    {
-      builder.find_duplicates(ev.candidateTracks_);
-      if(Config::cmssw_export) builder.remove_duplicates(ev.candidateTracks_);
-    }
   }
 
   // now do backwards fit... do we want to time this section?
@@ -438,6 +424,8 @@ double runBuildingTestPlexFV(Event& ev, MkBuilder& builder)
       builder.quality_store_tracks(ev.fitTracks_);
     }
   }
+
+  builder.handle_duplicates();
 
   // validation section
   if        (Config::quality_val) {
