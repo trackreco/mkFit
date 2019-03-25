@@ -355,6 +355,18 @@ public:
     return n;
   }
 
+  int nMissingHits() const
+  {
+    int n = 0;
+    bool insideValid = false;
+    for (int i = lastHitIdx_; i >= 0; --i)
+    {
+      if (hitsOnTrk_[i].index >= 0 || hitsOnTrk_[i].index == -2) insideValid = true;
+      if (insideValid && hitsOnTrk_[i].index == -1) ++n;
+    }
+    return n;
+  }
+
   int nSeedLyrHits() const
   {
     int nSeedHits = 0;
@@ -565,7 +577,7 @@ inline int getScoreCand(const Track& cand1)
 {
   unsigned int seedtype = cand1.getSeedTypeForRanking();
   int nfoundhits = cand1.nFoundHits();
-  int nmisshits = cand1.nTotalHits()-cand1.nFoundHits();
+  int nmisshits = cand1.nMissingHits();
   float pt = cand1.pT();
   float chi2 = cand1.chi2();
   // Do not allow for chi2<0 in score calculation
