@@ -644,6 +644,10 @@ int main(int argc, const char *argv[])
         "  --seed-input     <str>   which seed collecion used for building (def: %s)\n"
         "  --seed-cleaning  <str>   which seed cleaning to apply if using cmssw seeds (def: %s)\n" 
         "  --cf-seeding             enable conformal fit over seeds (def: %s)\n"
+        "\n"
+	" **Duplicate removal options\n"
+	"  --remove-dup            run duplicate removal after building, using both hit and kinematic criteria"
+	"  --remove-dup-no-hit     run duplicate removal after building, using kinematic criteria only"
 	"\n"
 	" **Additional options for building\n"
         "  --chi2cut        <flt>   chi2 cut used in building test (def: %.1f)\n"
@@ -947,6 +951,16 @@ int main(int argc, const char *argv[])
 #else
       printf("--use-phiq-arr has no effect: recompile with CONFIG_PhiQArrays\n");
 #endif
+    }
+    else if(*i == "--remove-dup")
+    {
+      Config::removeDuplicates = true;
+      Config::useHitsForDuplicates = true;
+    }
+    else if(*i == "--remove-dup-no-hit")
+    {
+      Config::removeDuplicates = true;
+      Config::useHitsForDuplicates = false;
     }
     else if(*i == "--kludge-cms-hit-errors")
     {
