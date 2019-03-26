@@ -284,41 +284,48 @@ bool TrackExtra::isSeedHit(const int lyr, const int idx) const
 	  != matchedSeedHits_.end());
 }
 
-int TrackExtra::modifyRefTrackID(const int foundHits, const int minHits, const TrackVec& reftracks, const int trueID, int refTrackID)
+ int TrackExtra::modifyRefTrackID(const int foundHits, const int minHits, const TrackVec& reftracks, const int trueID, const int duplicate, int refTrackID)
 {
   // Modify refTrackID based on nMinHits and findability
-  if (refTrackID >= 0)
+  if(duplicate)
   {
-    if (reftracks[refTrackID].isFindable()) 
-    {
-      if (foundHits < minHits) refTrackID = -2;
-      else                     refTrackID = refTrackID;
-    }
-    else // ref track is not findable
-    {
-      if (foundHits < minHits) refTrackID = -3;
-      else                     refTrackID = -4;
-    }
+    refTrackID = -10;
   }
-  else if (refTrackID == -1)
+  else
   {
-    if (trueID >= 0)
+    if (refTrackID >= 0)
     {
-      if (reftracks[trueID].isFindable()) 
+      if (reftracks[refTrackID].isFindable()) 
       {
-	if (foundHits < minHits) refTrackID = -5;
+	if (foundHits < minHits) refTrackID = -2;
 	else                     refTrackID = refTrackID;
       }
       else // ref track is not findable
       {
-	if (foundHits < minHits) refTrackID = -6;
-	else                     refTrackID = -7;
+	if (foundHits < minHits) refTrackID = -3;
+	else                     refTrackID = -4;
       }
     }
-    else
+    else if (refTrackID == -1)
     {
-      if (foundHits < minHits) refTrackID = -8;
-      else                     refTrackID = -9;
+      if (trueID >= 0)
+      {
+	if (reftracks[trueID].isFindable()) 
+	{
+	  if (foundHits < minHits) refTrackID = -5;
+	  else                     refTrackID = refTrackID;
+	}
+	else // sim track is not findable
+	{
+	  if (foundHits < minHits) refTrackID = -6;
+	  else                     refTrackID = -7;
+	}
+      }
+      else
+      {
+	if (foundHits < minHits) refTrackID = -8;
+	else                     refTrackID = -9;
+      }
     }
   }
   return refTrackID;
@@ -437,7 +444,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
   // Modify mcTrackID based on length of track (excluding seed tracks, of course) and findability
   if (!isSeed)
   {
-    mcTrackID_ = modifyRefTrackID(trk.nFoundHits()-nSeedHits,Config::nMinFoundHits-nSeedHits,simtracks,(isPure?seedID_:-1),mcTrackID_);
+    mcTrackID_ = modifyRefTrackID(trk.nFoundHits()-nSeedHits,Config::nMinFoundHits-nSeedHits,simtracks,(isPure?seedID_:-1),trk.getDuplicateValue(),mcTrackID_);
   }
 
   dprint("Track " << trk.label() << " best mc track " << mcTrackID_ << " count " << mccount << "/" << trk.nFoundHits());
@@ -556,7 +563,7 @@ void TrackExtra::setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vec
   const int nSeedHits = nMatchedSeedHits();
 
   // Modify cmsswTrackID based on length and findability
-  cmsswTrackID_ = modifyRefTrackID(trk.nFoundHits()-nSeedHits,Config::nMinFoundHits-nSeedHits,cmsswtracks,-1,cmsswTrackID_);
+  cmsswTrackID_ = modifyRefTrackID(trk.nFoundHits()-nSeedHits,Config::nMinFoundHits-nSeedHits,cmsswtracks,-1,trk.getDuplicateValue(),cmsswTrackID_);
 
   // other important info
   nHitsMatched_ = nHitsMatched;
@@ -709,7 +716,7 @@ void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMa
   const int nSeedHits = nMatchedSeedHits();
 
   // Modify cmsswTrackID based on length and findability
-  cmsswTrackID_ = modifyRefTrackID(trk.nFoundHits()-nSeedHits,Config::nMinFoundHits-nSeedHits,cmsswtracks,cmsswlabel,cmsswTrackID_);
+  cmsswTrackID_ = modifyRefTrackID(trk.nFoundHits()-nSeedHits,Config::nMinFoundHits-nSeedHits,cmsswtracks,cmsswlabel,trk.getDuplicateValue(),cmsswTrackID_);
 
   // other important info
   fracHitsMatched_ = (cmsswTrackID >=0 ? (float(nHitsMatched_) / float(cmsswtracks[cmsswTrackID].nUniqueLayers(false)-cmsswextras[cmsswTrackID].nMatchedSeedHits())) : 0.f);

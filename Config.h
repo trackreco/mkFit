@@ -324,6 +324,14 @@ namespace Config
   extern matchOpts cmsswMatchingFW;
   extern matchOpts cmsswMatchingBK;
 
+  // config on duplicate removal
+  extern bool useHitsForDuplicates;
+  extern bool removeDuplicates;
+  extern float maxdPhi;
+  extern float maxdPt;
+  extern float maxdEta;
+  extern float minFracHitsShared;
+
   // config on seed cleaning
   constexpr int minNHits_seedclean = 4;
   constexpr float track1GeVradius = 87.6; // = 1/(c*B)

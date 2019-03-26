@@ -1185,6 +1185,10 @@ int TTreeValidation::getMaskAssignment(const int refID)
   {
     refmask = 1; // matched track to sim
   }
+  else if( refID == -10)
+  {
+    refmask = -2;
+  }
   else 
   {
     if (Config::inclusiveShorts) // only used by standard simval!

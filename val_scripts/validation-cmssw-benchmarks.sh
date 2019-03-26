@@ -25,7 +25,7 @@ maxth=64
 maxvu=16
 maxev=32
 seeds="--cmssw-n2seeds"
-exe="./mkFit/mkFit --silent ${seeds} --num-thr ${maxth} --num-thr-ev ${maxev} --input-file ${dir}/${subdir}/${file} --num-events ${nevents}"
+exe="./mkFit/mkFit --silent ${seeds} --num-thr ${maxth} --num-thr-ev ${maxev} --input-file ${dir}/${subdir}/${file} --num-events ${nevents} --remove-dup"
 
 ## Common output setup
 tmpdir="tmp"

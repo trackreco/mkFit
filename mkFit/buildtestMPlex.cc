@@ -183,6 +183,17 @@ double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
   __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
 
+  //For best hit, the candidateTracks_ vector is the direct input to the backward fit so only need to do find_duplicates once
+  if (Config::quality_val || Config::sim_val || Config::cmssw_val || Config::cmssw_export)
+  {
+    //Mark tracks as duplicates; if within CMSSW, remove duplicate tracks before backward fit   
+    if(Config::removeDuplicates)
+    {
+      builder.find_duplicates(ev.candidateTracks_);
+      if(Config::cmssw_export) builder.remove_duplicates(ev.candidateTracks_);
+    }
+  }
+
   // now do backwards fit... do we want to time this section?
   if (Config::backwardFit)
   {
@@ -287,6 +298,8 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
     }
   }
 
+  builder.handle_duplicates();
+
   // validation section
   if        (Config::quality_val) {
     builder.quality_val();
@@ -351,6 +364,8 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
     }
   }
 
+  builder.handle_duplicates();
+
   // validation section
   if        (Config::quality_val) {
     builder.quality_val();
@@ -410,6 +425,8 @@ double runBuildingTestPlexFV(Event& ev, MkBuilder& builder)
       builder.quality_store_tracks(ev.fitTracks_);
     }
   }
+
+  builder.handle_duplicates();
 
   // validation section
   if        (Config::quality_val) {

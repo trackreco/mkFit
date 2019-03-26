@@ -182,7 +182,8 @@ The following routines are then called after the building (MkBuilder.cc, Event.c
   // Config::nMinFoundHits = 7, Config::nlayers_per_seed = 4 or 3 
   // nCandHits = trk.nFoundHits() OR trk.nFoundHits()-Config::nlayers_per_seed (see calling function)
   // nMinHits = Config::nMinFoundHits OR Config::nMinFoundHits-Config::nlayers_per_seed (see calling function)
-  : if (mc/cmsswTrackID >= 0) (i.e. the track has successfully matched)
+  : if track has been marked as a duplicate, mc/cmsswTrackID = -10
+  : else if (mc/cmsswTrackID >= 0) (i.e. the track has successfully matched)
     : if mc/cmsswTrack is findable
       : if nCandHits < nMinHits, mc/cmsswTrackID = -2
     : else
@@ -365,6 +366,7 @@ Fake Rate (with only long reco tracks: Config::inclusiveShorts == false) [PlotVa
   mcTrackID | mcmask_[reco] 
      >= 0   |     1
     -1,-9   |     0
+     -10    |    -2
      else   |    -1 // OR the seed track does produce a build/fit track as determined by the seedToBuild/FitMap
 
 N.B. In the MTV-Like SimVal: the requirement on minHits is removed, so all reco tracks are considered.
@@ -378,6 +380,7 @@ Fake Rate (with all reco tracks: Config::inclusiveShorts == true, enabled with c
   mcTrackID  | mcmask_[reco] 
     >= 0     |     1
  -1,-5,-8,-9 |     0
+    -10      |    -2
      -2      |     2   
     else     |    -1 // OR the seed track does produce a build/fit track as determined by the seedToBuild/FitMap
 
