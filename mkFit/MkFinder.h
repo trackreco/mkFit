@@ -61,7 +61,6 @@ public:
 
   MPlexQI    NHits;
   MPlexQI    NFoundHits;
-  MPlexQI    NMissingHits;
   HitOnTrack HoTArrs[NN][Config::nMaxTrkHits];
 
   MPlexQUI   SeedType; // seed range for ranking (0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds)
@@ -169,7 +168,6 @@ private:
     Chi2 (mslot, 0, 0) = trk.chi2();
     Label(mslot, 0, 0) = trk.label();
 
-    NMissingHits(mslot, 0, 0) = trk.nMissingHits();
     NHits     (mslot, 0, 0) = trk.nTotalHits();
     NFoundHits(mslot, 0, 0) = trk.nFoundHits();
     std::copy(trk.BeginHitsOnTrack(), trk.EndHitsOnTrack(), HoTArrs[mslot]); 
@@ -220,9 +218,15 @@ private:
     }
   }
 
-  int num_invalid_hits(const int mslot) const
+  int num_invalid_hits(const int mslot, bool insideValid = false) const
   {
-    return NHits(mslot,0,0) - NFoundHits(mslot,0,0);
+    int n = 0;
+    for (int i = NHits(mslot, 0, 0); i >= 0; --i)
+      {
+	if (HoTArrs[mslot][i].index >= 0) insideValid = true;
+	if (insideValid && HoTArrs[mslot][i].index == -1) ++n;
+      }
+    return n;
   }
 };
 

@@ -361,7 +361,7 @@ public:
     bool insideValid = false;
     for (int i = lastHitIdx_; i >= 0; --i)
     {
-      if (hitsOnTrk_[i].index >= 0 || hitsOnTrk_[i].index == -2) insideValid = true;
+      if (hitsOnTrk_[i].index >= 0) insideValid = true;
       if (insideValid && hitsOnTrk_[i].index == -1) ++n;
     }
     return n;

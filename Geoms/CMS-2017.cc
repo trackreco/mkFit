@@ -18,8 +18,8 @@ namespace
     Config::useCMSGeom       = true;
     Config::nlayers_per_seed = 4;
     Config::maxCandsPerSeed  = 6;  // GC said 3 is enough ???
-    Config::maxHolesPerCand  = 12; // should be reduced
-    Config::chi2Cut          = 30.0;
+    Config::maxHolesPerCand  = 3; // should be reduced
+    Config::chi2Cut          = 15.0;
 
     Config::finding_requires_propagation_to_hit_pos = true;
     Config::finding_inter_layer_pflags = PropagationFlags(PF_apply_material);

@@ -766,8 +766,7 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
       continue;
     }
 
-    int fake_hit_idx = NMissingHits(itrack,0,0) < Config::maxHolesPerCand ? -1 : -2;
-    //    int fake_hit_idx = num_invalid_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
+    int fake_hit_idx = num_invalid_hits(itrack,true) < Config::maxHolesPerCand ? -1 : -2;
 
     if (XWsrResult[itrack].m_wsr == WSR_Edge)
     {
@@ -880,8 +879,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
           tmpList.trkIdx = CandIdx(itrack, 0, 0);
           tmpList.hitIdx = XHitArr.At(itrack, hit_cnt, 0);
           tmpList.nhits  = NFoundHits(itrack,0,0) + 1;
-          tmpList.nholes  = NMissingHits(itrack,0,0);
-	  //          tmpList.nholes  = num_invalid_hits(itrack);
+	  tmpList.nholes  = num_invalid_hits(itrack,false);
           tmpList.seedtype = SeedType(itrack, 0, 0);
           tmpList.pt = std::abs(1.0f/Par[iP].At(itrack,3,0));
           tmpList.chi2   = Chi2(itrack, 0, 0) + chi2;
@@ -898,8 +896,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
   //now add invalid hit
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
-    //    dprint("num_invalid_hits(" << itrack << ")=" << num_invalid_hits(itrack));
-    dprint("NMissingHits(" << itrack << ")=" << NMissingHits(itrack,0,0));
+    dprint("num_invalid_hits(" << itrack << ")=" << num_invalid_hits(itrack,true));
     if (XWsrResult[itrack].m_wsr == WSR_Outside)
     {
       // fake_hit_idx = -4;
@@ -907,9 +904,8 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
       continue; // handled outside, keep previous parameters
     }
 
-    int fake_hit_idx = NMissingHits(itrack,0,0) < Config::maxHolesPerCand ? -1 : -2;
-    //    int fake_hit_idx = num_invalid_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
-
+    int fake_hit_idx = num_invalid_hits(itrack,true) < Config::maxHolesPerCand ? -1 : -2;
+	
     if (XWsrResult[itrack].m_wsr == WSR_Edge)
     {
       fake_hit_idx = -3;
@@ -919,8 +915,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     tmpList.trkIdx = CandIdx(itrack, 0, 0);
     tmpList.hitIdx = fake_hit_idx;
     tmpList.nhits  = NFoundHits(itrack,0,0);
-    tmpList.nholes  = NMissingHits(itrack,0,0);
-    //    tmpList.nholes  = num_invalid_hits(itrack)+1;
+    tmpList.nholes  = num_invalid_hits(itrack,false);
     tmpList.seedtype = SeedType(itrack, 0, 0);
     tmpList.pt = std::abs(1.0f/Par[iP].At(itrack,3,0));
     tmpList.chi2   = Chi2(itrack, 0, 0);
