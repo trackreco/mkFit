@@ -221,7 +221,7 @@ private:
   int num_invalid_hits(const int mslot, bool insideValid = false) const
   {
     int n = 0;
-    for (int i = NHits(mslot, 0, 0); i >= 0; --i)
+    for (int i = NHits(mslot, 0, 0)-1; i >= 0; --i)
       {
 	if (HoTArrs[mslot][i].index >= 0) insideValid = true;
 	if (insideValid && HoTArrs[mslot][i].index == -1) ++n;
