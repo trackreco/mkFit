@@ -879,12 +879,12 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
           tmpList.trkIdx = CandIdx(itrack, 0, 0);
           tmpList.hitIdx = XHitArr.At(itrack, hit_cnt, 0);
           tmpList.nhits  = NFoundHits(itrack,0,0) + 1;
-	  tmpList.nholes  = num_invalid_hits(itrack,true);
+          tmpList.nholes  = num_invalid_hits(itrack,true);
           tmpList.seedtype = SeedType(itrack, 0, 0);
           tmpList.pt = std::abs(1.0f/Par[iP].At(itrack,3,0));
           tmpList.chi2   = Chi2(itrack, 0, 0) + chi2;
           tmpList.score  = getScoreStruct(tmpList);
-	  cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
+          cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
           // hitsToAdd[SeedIdx(itrack, 0, 0)-offset].push_back(tmpList);
           dprint("  adding hit with hit_cnt=" << hit_cnt << " for trkIdx=" << tmpList.trkIdx << " orig Seed=" << Label(itrack, 0, 0));
         }
@@ -897,6 +897,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
     dprint("num_invalid_hits(" << itrack << ")=" << num_invalid_hits(itrack,true));
+
     if (XWsrResult[itrack].m_wsr == WSR_Outside)
     {
       // fake_hit_idx = -4;
@@ -905,7 +906,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     }
 
     int fake_hit_idx = num_invalid_hits(itrack,true) < Config::maxHolesPerCand ? -1 : -2;
-	
+
     if (XWsrResult[itrack].m_wsr == WSR_Edge)
     {
       fake_hit_idx = -3;
