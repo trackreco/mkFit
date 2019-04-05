@@ -250,8 +250,9 @@ class CombCandidate : public std::vector<Track>
 public:
   enum SeedState_e { Dormant = 0, Finding, Finished };
 
-  SeedState_e m_state           = Dormant;
-  int         m_last_seed_layer = -1;
+  Track        m_best_short_cand;
+  SeedState_e  m_state           = Dormant;
+  int          m_last_seed_layer = -1;
   unsigned int m_seed_type = 0;
 };
 
@@ -286,7 +287,8 @@ public:
 
       for (int s = m_capacity; s < new_capacity; ++s)
       {
-        m_candidates[s].reserve(Config::maxCandsPerSeed);//we should never exceed this
+        m_candidates[s].reserve(Config::maxCandsPerSeed); //we should never exceed this
+        m_candidates[s].m_best_short_cand.setCandScore( getScoreWorstPossible() );
       }
 
       m_capacity = new_capacity;

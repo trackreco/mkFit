@@ -522,6 +522,11 @@ inline bool sortByScoreCandPair(const std::pair<Track, TrackState>& cand1, const
   return sortByScoreCand(cand1.first,cand2.first);
 }
 
+inline int getScoreWorstPossible()
+{
+  return -0x3FFF; // 14 bits, all ones.
+}
+
 inline int getScoreCalc(const unsigned int seedtype,
                         const int nfoundhits,
                         const int nmisshits,

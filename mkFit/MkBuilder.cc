@@ -983,7 +983,26 @@ void MkBuilder::quality_process(Track &tkcand, std::map<int,int> & cmsswLabelToP
   TrackExtra extra(label);
   
   // access temp seed trk and set matching seed hits
-  const auto & seed = m_event->seedTracks_[label];
+
+  // MT for Kevin -- after seed cleaning the label was no longer correct index.
+  // We could build a map one step higher and pass in seed index, but this is
+  // probably an ok fix for this purpose.
+  int seed_idx = -1;
+  for (int i = 0; i < m_event->seedTracks_.size(); ++i)
+  {
+    if (m_event->seedTracks_[i].label() == label)
+    {
+      seed_idx = i;
+      break;
+    }
+  }
+  if (seed_idx < 0)
+  {
+    ++m_cnt_nomc;
+    return;
+  }
+  const auto & seed = m_event->seedTracks_[seed_idx];
+
   extra.findMatchingSeedHits(tkcand, seed, m_event->layerHits_);
 
   // set mcTrackID through 50% hit matching after seed
@@ -1906,29 +1925,25 @@ void MkBuilder::FindTracksStandard()
         {
           if (tmp_cands[is].size() > 0)
           {
-            // Copy the best -2 cands back to the current list.
-            int num_cands = tmp_cands[is].size();
+            eoccs[start_seed+is].resize(0);
 
-            if (num_cands < Config::maxCandsPerSeed)
+            // Put good candidates into eoccs, process -2 candidates.
+            bool first_short = true;
+            for (size_t ii = 0; ii < tmp_cands[is].size(); ++ii)
             {
-              std::vector<Track> &ov = eoccs[start_seed + is];
-              const int max_m2 = ov.size();
-
-              int cur_m2 = 0;
-              while (cur_m2 < max_m2 && ov[cur_m2].getLastHitIdx() != -2) ++cur_m2;
-              while (cur_m2 < max_m2 && num_cands < Config::maxCandsPerSeed)
+              if (tmp_cands[is][ii].getLastHitIdx() != -2)
               {
-                tmp_cands[is].push_back( ov[cur_m2++] );
-                ++num_cands;
+                eoccs[start_seed+is].emplace_back(tmp_cands[is][ii]);
+              }
+              else if (first_short)
+              {
+                first_short = false;
+                if (tmp_cands[is][ii].getCandScore() > eoccs[start_seed+is].m_best_short_cand.getCandScore())
+                {
+                  eoccs[start_seed+is].m_best_short_cand = tmp_cands[is][ii];
+                }
               }
             }
-
-	    //eoccs[start_seed+is].swap(tmp_cands[is]); // segfaulting w/ backwards fit input tracks -- using loop below now
-	    eoccs[start_seed+is].resize(tmp_cands[is].size());
-	    for (size_t ii = 0; ii < tmp_cands[is].size(); ++ii)
-	    {
-	      memcpy( & eoccs[start_seed+is][ii], & tmp_cands[is][ii], sizeof(Track));
-	    }
 
             tmp_cands[is].clear();
           }
@@ -1939,10 +1954,37 @@ void MkBuilder::FindTracksStandard()
       // final sorting
       for (int iseed = start_seed; iseed < end_seed; ++iseed)
       {
-        std::vector<Track>& finalcands = eoccs[iseed];
-        if (finalcands.size() == 0) continue;
-        //std::sort(finalcands.begin(), finalcands.end(), sortCandByHitsChi2);
-        std::sort(finalcands.begin(), finalcands.end(), sortCandByScore);
+        std::vector<Track> &finalcands = eoccs[iseed];
+        Track              &best_short = eoccs[iseed].m_best_short_cand;
+
+        if ( ! finalcands.empty())
+        {
+          std::sort(finalcands.begin(), finalcands.end(), sortCandByScore);
+
+          if (best_short.getCandScore() > finalcands.back().getCandScore())
+          {
+            auto ci = finalcands.begin();
+            while (ci->getCandScore() > best_short.getCandScore()) ++ci;
+
+            if (finalcands.size() > Config::maxCandsPerSeed)  finalcands.pop_back();
+
+            // To print out what has been replaced -- remove when done with short track handling.
+            if (ci == finalcands.begin())
+            {
+              printf("FindTracksStd -- Replacing best cand (%d) with short one (%d) in final sorting for seed index=%d\n",
+                     finalcands.front().getCandScore(), best_short.getCandScore(), iseed);
+            }
+
+            finalcands.insert(ci, best_short);
+          }
+
+        }
+        else if (best_short.getCandScore() > getScoreWorstPossible())
+        {
+          finalcands.push_back( best_short );
+        }
+
+        best_short.setCandScore( getScoreWorstPossible() );
       }
     }); // end parallel-for over chunk of seeds within region
   }); // end of parallel-for-each over eta regions
@@ -2111,7 +2153,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
       mkfndr->CopyOutParErr(eoccs.m_candidates, end - itrack, false);
     }
 
-    // Bring in the extras.
+    // Bring the extras (cands that missed the current layer) back in.
     for (int is = 0; is < n_seeds; ++is)
     {
       if ( ! extra_cands[is].empty())
@@ -2119,7 +2161,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
         dprintf("Extra layer %d start_seed %d, is %d, N=%d  (orig size = %d) -- ",
                 curr_layer, start_seed, is, (int) extra_cands[is].size(), (int) eoccs.m_candidates[start_seed + is].size());
 
-        //std::sort(extra_cands[is].begin(), extra_cands[is].end(), sortCandByHitsChi2);
+        // MT -- Aren't extras already sorted (by construction)?
         std::sort(extra_cands[is].begin(), extra_cands[is].end(), sortCandByScore);
 
         auto src_i  = extra_cands[is].begin();
@@ -2143,7 +2185,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
           while (dest_i != dest_e && sortCandByScore(*dest_i, *src_i)) 
           {
             ++dest_i;
-	    if(dest_i==dest_e) break;
+	    if(dest_i == dest_e) break;
             dest_i->setCandScore(getScoreCand(*dest_i));
           }
           if (dest_i != dest_e)
