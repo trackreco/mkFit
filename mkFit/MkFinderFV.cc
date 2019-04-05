@@ -278,27 +278,8 @@ template<int nseeds, int ncands>
 void MkFinderFV<nseeds, ncands>::FindCandidates(const LayerOfHits &layer_of_hits,
                                                 const FindingFoos &fnd_foos)
 {
-  MatriplexHitPacker mhp(layer_of_hits.m_hits[0]);
+  MatriplexHitPacker mhp(* layer_of_hits.GetHitArray());
 
-  const char *varr      = (char*) layer_of_hits.m_hits;
-
-  // prefetch the first set of hits to L1 and the second one to L2.
-  #pragma omp simd
-  for (int it = 0; it < NNFV; ++it)
-  {
-    if (XHitSize[it] > 0)
-    {
-      _mm_prefetch(varr + XHitArr.At(it, 0, 0) * sizeof(Hit), _MM_HINT_T0);
-      if (XHitSize[it] > 1)
-      {
-        _mm_prefetch(varr + XHitArr.At(it, 1, 0) * sizeof(Hit), _MM_HINT_T1);
-      }
-    }
-  }
-  // XXXX MT FIXME: use masks to filter out SlurpIns
-
-  // Has basically no effect, it seems.
-  //#pragma noprefetch
   const int maxhit = XHitMax();
   for (int hit_cnt = 0; hit_cnt < maxhit; ++hit_cnt)
   {
@@ -309,17 +290,7 @@ void MkFinderFV<nseeds, ncands>::FindCandidates(const LayerOfHits &layer_of_hits
     {
       if (hit_cnt < XHitSize[itrack])
       {
-        mhp.AddInputAt(itrack, layer_of_hits.m_hits[ XHitArr.At(itrack, hit_cnt, 0) ]);
-      }
-    }
-
-    // Prefetch to L2 the hits we'll (probably) process after two loops iterations.
-    // Ideally this would be initiated before coming here, for whole bunch_of_hits.m_hits vector.
-    for (int itrack = 0; itrack < NNFV; ++itrack)
-    {
-      if (hit_cnt + 2 < XHitSize[itrack])
-      {
-        _mm_prefetch(varr + XHitArr.At(itrack, hit_cnt+2, 0)*sizeof(Hit), _MM_HINT_T1);
+        mhp.AddInputAt(itrack, layer_of_hits.GetHit( XHitArr.At(itrack, hit_cnt, 0) ));
       }
     }
 
@@ -328,14 +299,6 @@ void MkFinderFV<nseeds, ncands>::FindCandidates(const LayerOfHits &layer_of_hits
     //now compute the chi2 of track state vs hit
     (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar, XHitChi2[hit_cnt], NNFV, Config::finding_intra_layer_pflags);
 
-    // Prefetch to L1 the hits we'll (probably) process in the next loop iteration.
-    for (int itrack = 0; itrack < NNFV; ++itrack)
-    {
-      if (hit_cnt + 1 < XHitSize[itrack])
-      {
-        _mm_prefetch(varr + XHitArr.At(itrack, hit_cnt+1, 0)*sizeof(Hit), _MM_HINT_T0);
-      }
-    }
   }//end loop over hits
 }
 
@@ -357,7 +320,7 @@ void MkFinderFV<nseeds, ncands>::UpdateWithLastHit(const LayerOfHits &layer_of_h
     has_hit[i] = hit_idx >= 0 && hot.layer == layer_of_hits.layer_id();
 
     if (has_hit[i]) {
-      const Hit& hit = layer_of_hits.m_hits[hit_idx];
+      const Hit& hit = layer_of_hits.GetHit(hit_idx);
 
       msErr.CopyIn(i, hit.errArray());
       msPar.CopyIn(i, hit.posArray());

@@ -44,7 +44,7 @@ void findSeedsByRoadSearch(TripletIdxConVec & seed_idcs, std::vector<LayerOfHits
       TripletIdxVec temp_thr_seed_idcs;		      
       for (int ihit1 = i.begin(); ihit1 < i.end(); ++ihit1)
       {
-	const Hit & hit1   = lay1_hits.m_hits[ihit1];
+	const Hit & hit1   = lay1_hits.GetHit(ihit1);
 	const float hit1_z = hit1.z();
 			     
 	dprint("ihit1: " << ihit1 << " mcTrackID: " << hit1.mcTrackID(ev->simHitsInfo_) << " phi: " << hit1.phi() << " z: " << hit1.z());
@@ -55,7 +55,7 @@ void findSeedsByRoadSearch(TripletIdxConVec & seed_idcs, std::vector<LayerOfHits
 	// loop over first layer hits
 	for (auto&& ihit0 : cand_hit0_indices)
 	{
-	  const Hit & hit0   = lay0_hits.m_hits[ihit0]; 
+	  const Hit & hit0   = lay0_hits.GetHit(ihit0);
 	  const float hit0_z = hit0.z();
 	  const float hit0_x = hit0.x(); const float hit0_y = hit0.y();
 	  const float hit1_x = hit1.x(); const float hit1_y = hit1.y();
@@ -95,7 +95,7 @@ void findSeedsByRoadSearch(TripletIdxConVec & seed_idcs, std::vector<LayerOfHits
 	  for (size_t idx = 0; idx < cand_hit2_indices.size(); ++idx)
 	  {
             const int ihit2 = cand_hit2_indices[idx];
-	    const Hit & hit2 = lay2_hits.m_hits[ihit2];
+	    const Hit & hit2 = lay2_hits.GetHit(ihit2);
 
 	    const float lay1_predz = (hit0_z + hit2.z()) / 2.0f;
 	    // filter by residual of second layer hit

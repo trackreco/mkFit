@@ -73,16 +73,19 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
   const int  size   = hitv.size();
   const bool is_brl = is_barrel();
 
+#ifdef COPY_SORTED_HITS
   if (m_capacity < size)
   {
     free_hits();
     alloc_hits(1.02 * size);
   }
+#endif
 
-  if (!Config::usePhiQArrays)
+  if (Config::usePhiQArrays)
   {
-    m_hit_phis.resize(size);
+    m_hit_qs.resize(size);
   }
+  m_hit_phis.resize(size);
 
   struct HitInfo
   {
@@ -93,10 +96,10 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
   };
 
   std::vector<HitInfo> ha(size);
-  std::vector<udword>     hit_qphiFines(size);
+  std::vector<udword>  hit_qphiFines(size);
   
   {
-    for (int i =0; i < size; ++i)
+    for (int i = 0; i < size; ++i)
     {
       auto const& h = hitv[i];
       
@@ -121,24 +124,12 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
   {
     int j = sort.GetRanks()[i];
 
-    // XXXX MT: Endcap has special check - try to get rid of this!
-    // Also, WTF ... this brings in holes as pos i is not filled.
-    // If this stays I need i_offset variable.
-    /* UNCOMMENT FOR DEBUGS??
-    if ( ! is_brl && (hitv[j].r() > m_qmax || hitv[j].r() < m_qmin))
-    {
-      printf("LayerOfHits::SuckInHits WARNING hit out of r boundary of disk\n"
-             "  layer %d hit %d hit_r %f limits (%f, %f)\n",
-             layer_id(), j, hitv[j].r(), m_qmin, m_qmax);
-      // Figure out of this needs to stay ... and fix it
-      // --m_size;
-      // continue;
-    }
-    */
-
     // Could fix the mis-sorts. Set ha size to size + 1 and fake last entry to avoid ifs.
 
+#ifdef COPY_SORTED_HITS
     memcpy(&m_hits[i], &hitv[j], sizeof(Hit));
+#endif
+
     if (Config::usePhiQArrays)
     {
       m_hit_phis[i] = ha[j].phi;
@@ -159,6 +150,11 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
     m_phi_bin_infos[q_bin][phi_bin].second++;
   }
 
+#ifndef COPY_SORTED_HITS
+  delete [] m_hit_ranks;
+  m_hit_ranks = sort.RelinquishRanks();
+  m_ext_hits  = & hitv;
+#endif
 
   // Check for mis-sorts due to lost precision (not really important).
   // float phi_prev = 0;
