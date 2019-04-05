@@ -611,9 +611,10 @@ void MkBuilder::find_seeds()
   // XXMT4K  ... configurable input layers ... or hardcode something else for endcap.
   // Could come from TrackerInfo ...
   // But what about transition ... TrackerInfo as well or arbitrary combination of B/E seed layers ????
-  const Hit * lay0hits = m_event_of_hits.m_layers_of_hits[0].m_hits;
-  const Hit * lay1hits = m_event_of_hits.m_layers_of_hits[1].m_hits;
-  const Hit * lay2hits = m_event_of_hits.m_layers_of_hits[2].m_hits;
+
+  const LayerOfHits &loh0 = m_event_of_hits.m_layers_of_hits[0];
+  const LayerOfHits &loh1 = m_event_of_hits.m_layers_of_hits[1];
+  const LayerOfHits &loh2 = m_event_of_hits.m_layers_of_hits[2];
 
   // make seed tracks
   TrackVec & seedtracks = m_event->seedTracks_;
@@ -624,9 +625,9 @@ void MkBuilder::find_seeds()
     seedtrack.setLabel(iseed);
 
     // use to set charge
-    const Hit & hit0 = lay0hits[seed_idcs[iseed][0]];
-    const Hit & hit1 = lay1hits[seed_idcs[iseed][1]];
-    const Hit & hit2 = lay2hits[seed_idcs[iseed][2]];
+    const Hit & hit0 = loh0.GetHit(seed_idcs[iseed][0]);
+    const Hit & hit1 = loh1.GetHit(seed_idcs[iseed][1]);
+    const Hit & hit2 = loh2.GetHit(seed_idcs[iseed][2]);
 
     seedtrack.setCharge(calculateCharge(hit0,hit1,hit2));
 
@@ -816,12 +817,12 @@ void MkBuilder::map_track_hits(TrackVec & tracks)
   {
     if (layer_has_hits[ilayer])
     {
-      const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
+      const auto  &loh  = m_event_of_hits.m_layers_of_hits[ilayer];
       const auto   size = m_event->layerHits_[ilayer].size();
 
       for (size_t index = 0; index < size; ++index)
       {
-        const auto mcHitID = lof_m_hits[index].mcHitID();
+        const auto mcHitID = loh.GetHit(index).mcHitID();
         min = std::min(min, mcHitID);
         max = std::max(max, mcHitID);
       }
@@ -834,12 +835,12 @@ void MkBuilder::map_track_hits(TrackVec & tracks)
   {
     if (layer_has_hits[ilayer])
     {
-      const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[ilayer].m_hits;
+      const auto  &loh  = m_event_of_hits.m_layers_of_hits[ilayer];
       const auto   size = m_event->layerHits_[ilayer].size();
 
       for (size_t index = 0; index < size; ++index)
       {
-        trackHitMap[lof_m_hits[index].mcHitID()-min] = index;
+        trackHitMap[loh.GetHit(index).mcHitID()-min] = index;
       }
     }
   }
@@ -902,8 +903,8 @@ void MkBuilder::remap_track_hits(TrackVec & tracks)
       int hitlyr = track.getHitLyr(i);
       if (hitidx >= 0)
       {
-        const auto & lof_m_hits = m_event_of_hits.m_layers_of_hits[hitlyr].m_hits;
-        track.setHitIdx(i, trackHitMap[lof_m_hits[hitidx].mcHitID()-min]);
+        const auto & loh = m_event_of_hits.m_layers_of_hits[hitlyr];
+        track.setHitIdx(i, trackHitMap[loh.GetHit(hitidx).mcHitID() - min]);
       }
     }
   }

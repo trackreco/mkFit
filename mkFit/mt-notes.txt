@@ -1,3 +1,128 @@
+Using non-sorted hits from external hit-vector ...
+----------------------------------------------
+
+... and keeping hit ranks for access.
+
+*** Summary:
+
+- Not sorting hits does not hurt performance, very little change.
+
+  TO DECIDE: Do we keep both options with ifdefs?
+
+- Test performance without doing the explicit mm_prefetch.
+
+  ifdefs were there (MkFinder) for best-hit, I added them for clone engine
+  and for standard. Did not do it for FV yet.
+
+  It seems there is no benefit from prefetchin at all, even when
+  hits are not copied into sorted order!
+  In fact, about 3% faster.
+  [It made me think hits are alrady sorted ... well, they seem to be within
+  a module ... but the direction is not necessarily the same.]
+
+  TO DECIDE: Do we remove prefetching instructions or we just
+  ifdef them out by default.
+
+- Fix in quality_val where we search for the seed track which was wrong due
+  to seed cleaning. Kevin, please review.
+
+  Note that with ranks (and reverse ranks) we could do hit index remapping
+  without building of translation maps.
+  Kevin and I (tohether) can probably do it rather fast.
+
+
+*** Funny crash:
+
+SEGV in mm_prefetch when preloading a hit.
+
+Seems to only happen with O3, nun-thr >= 4, prefetching on (obviously).
+
+I'm tracing it down as it really shouldn't happen. Seems more like an icc bug.
+
+
+*** "Physics performance" test
+
+Compare quality-val output on first 5 events.
+1. Expect no change.
+2. Observe some improvement with new code for some events ... probably due to fix in
+   getting the seed track.
+
+
+*** Timing tests: clone engine, single thread, pu70-ccc, 500 events
+
+time ./mkFit --cmssw-n2seeds --input-file ../../mictest/mkFit/pu70-ccc-hs.bin --build-ce --num-events 500
+
+- "Manual" prefetching that we have hurts a little.
+  Surprisingly, even when not storing sorted hits.
+
+= devel
+
+  Total Matriplex fit = 0.00000  --- Build  BHMX = 0.00000  STDMX = 0.00000  CEMX = 69.67924  FVMX = 0.00000
+  Total event loop time 79.82160 simtracks 4943065 seedtracks 1040426 builtcands 3421025 maxhits 6117 on lay 5
+  real    1m19.853s  user    1m18.097s  sys     0m1.552s
+
+= hit-sort - no hit copy
+
+  Total Matriplex fit = 0.00000  --- Build  BHMX = 0.00000  STDMX = 0.00000  CEMX = 69.85903  FVMX = 0.00000
+  Total event loop time 79.78304 simtracks 4943065 seedtracks 1040426 builtcands 3421025 maxhits 5998 on lay 5
+  real    1m19.819s  user    1m18.050s  sys     0m1.563s
+
+= hit-sort - no hit copy - AVX_512
+
+  Total Matriplex fit = 0.00000  --- Build  BHMX = 0.00000  STDMX = 0.00000  CEMX = 46.86359  FVMX = 0.00000
+  Total event loop time 57.06883 simtracks 4943065 seedtracks 1040426 builtcands 3421071 maxhits 5998 on lay 5
+  real    0m57.099s  user    0m55.389s  sys     0m1.560s
+
+
+= hit-sort - no hit copy - no prefetch
+
+  Total Matriplex fit = 0.00000  --- Build  BHMX = 0.00000  STDMX = 0.00000  CEMX = 67.40083  FVMX = 0.00000
+  Total event loop time 77.28962 simtracks 4943065 seedtracks 1040426 builtcands 3421025 maxhits 5998 on lay 5
+  real    1m17.319s  user    1m15.600s  sys     0m1.521s
+
+= hit-sort - no hit copy - no prefetch - AVX_512
+
+  Total Matriplex fit = 0.00000  --- Build  BHMX = 0.00000  STDMX = 0.00000  CEMX = 44.65550  FVMX = 0.00000
+  Total event loop time 54.89823 simtracks 4943065 seedtracks 1040426 builtcands 3421071 maxhits 5998 on lay 5
+  real    0m54.925s  user    0m53.196s  sys     0m1.584s
+
+= hit-sort - no hit copy - no prefetch - AVX2
+
+  Total Matriplex fit = 0.00000  --- Build  BHMX = 0.00000  STDMX = 0.00000  CEMX = 53.88735  FVMX = 0.00000
+  Total event loop time 63.83459 simtracks 4943065 seedtracks 1040426 builtcands 3421022 maxhits 5998 on lay 5
+  real    1m3.861s  user    1m2.114s  sys     0m1.578s
+
+= hit-sort - yes hit copy
+
+  Total Matriplex fit = 0.00000  --- Build  BHMX = 0.00000  STDMX = 0.00000  CEMX = 69.97530  FVMX = 0.00000
+  Total event loop time 80.25051 simtracks 4943065 seedtracks 1040426 builtcands 3421025 maxhits 5998 on lay 5
+  real    1m20.279s  user    1m18.494s  sys     0m1.579s
+
+= hit-sort - yes hit copy - no prefetch
+
+  Total Matriplex fit = 0.00000  --- Build  BHMX = 0.00000  STDMX = 0.00000  CEMX = 66.97209  FVMX = 0.00000
+  Total event loop time 77.29263 simtracks 4943065 seedtracks 1040426 builtcands 3421025 maxhits 5998 on lay 5
+  real    1m17.322s  user    1m15.508s  sys     0m1.615s
+
+
+*** Timing tests: clone engine, 64 threads / 16 in flight, pu70-ccc, avx-512, 5000 events:
+
+time ./mkFit --cmssw-n2seeds --input-file ../../mictest/mkFit/pu70-ccc-hs.bin --build-ce --num-events 5000 --num-thr 64 --num-thr-ev 16
+
+= devel
+
+  Total event loop time 17.07450 simtracks 49338285 seedtracks 10275105 builtcands 33905375 maxhits 6473 on lay 5
+  real    0m17.211s  user    16m14.243s  sys     0m33.480s
+
+= hit-sort - no hit copy - no prefetch
+
+  Total event loop time 16.56905 simtracks 49338285 seedtracks 10275105 builtcands 33905375 maxhits 6347 on lay 5
+  real    0m16.692s  user    15m51.343s  sys     0m31.998s
+
+
+
+================================================================================
+
 Barrel, maxHolesPerCand=3 losses
 --------------------------------
 
@@ -41,6 +166,8 @@ diff -u fce-nh-12.txt fce-nh-3.txt
     hit 12 lyr=16 idx=  0 pos r= 94.623 x=  80.155 y=  50.286 z=  -9.231   mc_hit=225 mc_trk=  5
     hit 13 lyr=17 idx=  0 pos r=106.803 x=  89.843 y=  57.750 z=  -9.230   mc_hit=236 mc_trk=  5
 
+
+================================================================================
 
 Tracing down silly values in track errors
 -----------------------------------------

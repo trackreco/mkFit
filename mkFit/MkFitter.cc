@@ -150,7 +150,7 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
     {
       const int hidx = trk.getHitIdx(hi);
       const int hlyr = trk.getHitLyr(hi);
-      const Hit &hit = layerHits[hlyr].m_hits[hidx];
+      const Hit &hit = layerHits[hlyr].GetHit(hidx);
 
       msErr[hi].CopyIn(itrack, hit.errArray());
       msPar[hi].CopyIn(itrack, hit.posArray());

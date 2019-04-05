@@ -40,6 +40,10 @@ public:
   //i.e. in the order you may further process your data
   const udword*	GetRanks() const { return mRanks; }
 
+  //! Detach mRanks. After this the caller is responsible for
+  //! freeing this array via delete [] operator.
+  udword* RelinquishRanks();
+
   //! mIndices2 gets trashed on calling the sort routine, but
   //otherwise you can recycle it the way you want.
   udword* GetRecyclable() const { return mRanks2; }

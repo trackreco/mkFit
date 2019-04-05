@@ -202,6 +202,22 @@ RadixSort::~RadixSort()
 
 //----------------------------------------------------------------------
 /**
+ * Detach mRanks. After this the caller is responsible for
+ * freeing this array via delete [] operator.
+ */
+//----------------------------------------------------------------------
+udword* RadixSort::RelinquishRanks()
+{
+  udword *ranks = mRanks;
+  mRanks = 0;
+  DELETEARRAY(mRanks2);
+  mCurrentSize = 0;
+  return ranks;
+}
+
+
+//----------------------------------------------------------------------
+/**
  *	Resizes the inner lists.
  *	\param		nb	[in] new size (number of dwords)
  *	\return		true if success
