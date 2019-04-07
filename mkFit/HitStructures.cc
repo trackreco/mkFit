@@ -293,5 +293,48 @@ EventOfHits::EventOfHits(TrackerInfo &trk_inf) :
 // CombCandidate
 //==============================================================================
 
+void CombCandidate::MergeCandsAndBestShortOne(bool update_score, bool sort_cands)
+{
+  std::vector<Track> &finalcands = *this;
+  Track              &best_short = m_best_short_cand;
+
+  if ( ! finalcands.empty())
+  {
+    if (update_score)
+    {
+      for (auto &c : finalcands) c.setCandScore( getScoreCand(c) );
+    }
+    if (sort_cands)
+    {
+      std::sort(finalcands.begin(), finalcands.end(), sortByScoreCand);
+    }
+
+    if (best_short.getCandScore() > finalcands.back().getCandScore())
+    {
+      auto ci = finalcands.begin();
+      while (ci->getCandScore() > best_short.getCandScore()) ++ci;
+
+      if (finalcands.size() > Config::maxCandsPerSeed)  finalcands.pop_back();
+
+      // To print out what has been replaced -- remove when done with short track handling.
+      /*
+        if (ci == finalcands.begin())
+        {
+        printf("FindTracksStd -- Replacing best cand (%d) with short one (%d) in final sorting for seed index=%d\n",
+                     finalcands.front().getCandScore(), best_short.getCandScore(), iseed);
+        }
+      */
+
+      finalcands.insert(ci, best_short);
+    }
+
+  }
+  else if (best_short.getCandScore() > getScoreWorstPossible())
+  {
+    finalcands.push_back( best_short );
+  }
+
+  best_short.setCandScore( getScoreWorstPossible() );
+}
 
 } // end namespace mkfit

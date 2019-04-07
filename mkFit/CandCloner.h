@@ -42,10 +42,12 @@ public:
 
   void begin_eta_bin(EventOfCombCandidates           *e_o_ccs,
                      std::vector<std::pair<int,int>> *update_list,
+                     std::vector<std::vector<Track>> *extra_cands,
                      int start_seed, int n_seeds)
   {
     mp_event_of_comb_candidates = e_o_ccs;
-    mp_kalman_update_list       = update_list,
+    mp_kalman_update_list       = update_list;
+    mp_extra_cands              = extra_cands;
     m_start_seed = start_seed;
     m_n_seeds    = n_seeds;
     m_hits_to_add.resize(n_seeds);
@@ -170,6 +172,7 @@ public:
 
   EventOfCombCandidates           *mp_event_of_comb_candidates;
   std::vector<std::pair<int,int>> *mp_kalman_update_list;
+  std::vector<std::vector<Track>> *mp_extra_cands;
 
 #if defined(CC_TIME_ETA) or defined(CC_TIME_LAYER)
   double    t_eta, t_lay;
