@@ -913,11 +913,22 @@ void MkBuilder::remap_track_hits(TrackVec & tracks)
 // Non-ROOT validation
 //------------------------------------------------------------------------------
 
+void MkBuilder::quality_prep_tracks(TrackVec & tracks)
+{
+  // first, remap hits
+  remap_track_hits(tracks);
+
+  // then, sort hits by layer
+  for (auto & track : tracks) track.sortHitsByLayer();
+}
+
 void MkBuilder::quality_val()
 {
   quality_reset();
 
-  remap_track_hits(m_event->candidateTracks_);
+  // remap hits + sort hits by layer (seed + reco)
+  quality_prep_tracks(m_event->seedTracks_);
+  quality_prep_tracks(m_event->candidateTracks_);
 
   std::map<int,int> cmsswLabelToPos;
   if (Config::dumpForPlots && Config::readCmsswTracks)
@@ -928,9 +939,9 @@ void MkBuilder::quality_val()
     }
   }
 
-  for (size_t i = 0; i < m_event->candidateTracks_.size(); i++)
+  for (size_t itrack = 0; itrack < m_event->candidateTracks_.size(); itrack++)
   {
-    quality_process(m_event->candidateTracks_[i],cmsswLabelToPos);
+    quality_process(m_event->candidateTracks_[itrack],itrack,cmsswLabelToPos);
   }
 
   quality_print();
@@ -973,35 +984,41 @@ void MkBuilder::quality_store_tracks(TrackVec& tracks)
   }
 }
 
-void MkBuilder::quality_process(Track &tkcand, std::map<int,int> & cmsswLabelToPos)
+void MkBuilder::quality_process(Track &tkcand, const int itrack, std::map<int,int> & cmsswLabelToPos)
 {
   // KPM: Do not use this method for validating CMSSW tracks if we ever build a DumbCMSSW function for them to print out...
   // as we would need to access seeds through map of seed ids...
   
-  // get and set seedID
+  // initialize track extra (input original seed label)
   const auto label = tkcand.label();
   TrackExtra extra(label);
   
   // access temp seed trk and set matching seed hits
+  const auto & seed = m_event->seedTracks_[itrack];
 
-  // MT for Kevin -- after seed cleaning the label was no longer correct index.
-  // We could build a map one step higher and pass in seed index, but this is
-  // probably an ok fix for this purpose.
-  int seed_idx = -1;
-  for (int i = 0; i < m_event->seedTracks_.size(); ++i)
+
+  std::cout << "Seed Track [" << seed.label() << "] : ";
+  for (int ihit = 0; ihit < seed.nTotalHits(); ++ihit) 
   {
-    if (m_event->seedTracks_[i].label() == label)
-    {
-      seed_idx = i;
-      break;
-    }
+    const int lyr = seed.getHitLyr(ihit);
+    const int idx = seed.getHitIdx(ihit);
+    
+    std::cout << idx << "(" << lyr << ") ";
   }
-  if (seed_idx < 0)
+  std::cout << std::endl;
+
+  std::cout << "Reco Track [" << tkcand.label() << "] : ";
+  for (int ihit = 0; ihit < tkcand.nTotalHits(); ++ihit) 
   {
-    ++m_cnt_nomc;
-    return;
+    const int lyr = tkcand.getHitLyr(ihit);
+    const int idx = tkcand.getHitIdx(ihit);
+    
+    std::cout << idx << "(" << lyr << ") ";
   }
-  const auto & seed = m_event->seedTracks_[seed_idx];
+  std::cout << std::endl << "==================" << std::endl;
+
+
+  return;
 
   extra.findMatchingSeedHits(tkcand, seed, m_event->layerHits_);
 
