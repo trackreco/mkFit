@@ -995,31 +995,6 @@ void MkBuilder::quality_process(Track &tkcand, const int itrack, std::map<int,in
   
   // access temp seed trk and set matching seed hits
   const auto & seed = m_event->seedTracks_[itrack];
-
-
-  std::cout << "Seed Track [" << seed.label() << "] : ";
-  for (int ihit = 0; ihit < seed.nTotalHits(); ++ihit) 
-  {
-    const int lyr = seed.getHitLyr(ihit);
-    const int idx = seed.getHitIdx(ihit);
-    
-    std::cout << idx << "(" << lyr << ") ";
-  }
-  std::cout << std::endl;
-
-  std::cout << "Reco Track [" << tkcand.label() << "] : ";
-  for (int ihit = 0; ihit < tkcand.nTotalHits(); ++ihit) 
-  {
-    const int lyr = tkcand.getHitLyr(ihit);
-    const int idx = tkcand.getHitIdx(ihit);
-    
-    std::cout << idx << "(" << lyr << ") ";
-  }
-  std::cout << std::endl << "==================" << std::endl;
-
-
-  return;
-
   extra.findMatchingSeedHits(tkcand, seed, m_event->layerHits_);
 
   // set mcTrackID through 50% hit matching after seed
