@@ -1458,7 +1458,7 @@ void MkBuilder::PrepareSeeds()
     m_event->relabel_bad_seedtracks();
     
     // want to make sure we mark which sim tracks are findable based on cmssw seeds BEFORE seed cleaning
-    if (Config::sim_val)
+    if (Config::sim_val || Config::quality_val)
     {
       prep_simtracks();
     }
