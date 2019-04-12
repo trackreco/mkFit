@@ -662,7 +662,7 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
   if (!Config::silent) printf("Read complete, %d simtracks on file.\n", nt);
 }
 
-void Event::setInputFromCMSSW(std::vector<HitVec>&& hits, TrackVec&& seeds)
+void Event::setInputFromCMSSW(std::vector<HitVec> hits, TrackVec seeds)
 {
   layerHits_ = std::move(hits);
   seedTracks_ = std::move(seeds);

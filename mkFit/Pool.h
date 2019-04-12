@@ -11,7 +11,7 @@ struct Pool
   typedef std::function<void(TT*)> DFoo_t;
 
   CFoo_t m_create_foo  = []()     { return new (_mm_malloc(sizeof(TT), 64)) TT; };
-  DFoo_t m_destroy_foo = [](TT* x){ _mm_free(x); };
+  DFoo_t m_destroy_foo = [](TT* x){ x->~TT(); _mm_free(x); };
 
   tbb::concurrent_queue<TT*> m_stack;
 

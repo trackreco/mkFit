@@ -36,7 +36,7 @@ public:
 
   void write_out(DataFile &data_file);
   void read_in  (DataFile &data_file, FILE *in_fp=0);
-  void setInputFromCMSSW(std::vector<HitVec>&& hits, TrackVec&& seeds);
+  void setInputFromCMSSW(std::vector<HitVec> hits, TrackVec seeds);
 
   void kludge_cms_hit_errors();
 

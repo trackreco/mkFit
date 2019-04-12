@@ -93,7 +93,7 @@ inline void MoveMemory(void* dest, const void* src, udword size) { memmove(dest,
 #define SIZEOFOBJECT	  sizeof(*this)				   //!< Gives the size of current object. Avoid some mistakes (e.g. "sizeof(this)").
 //#define CLEAROBJECT		{ memset(this, 0, SIZEOFOBJECT); } //!< Clears current object. Laziness is my business. HANDLE WITH CARE.
 #define DELETESINGLE(x)   if (x) { delete x;		x = 0; }   //!< Deletes an instance of a class.
-#define DELETEARRAY(x)    if (x) { delete []x;		x = 0; }   //!< Deletes an array.
+#define DELETEARRAY(x)    if (x) { operator delete[](x);		x = 0; }   //!< Deletes an array.
 #define SAFE_RELEASE(x)   if (x) { (x)->Release();      (x) = 0; } //!< Safe D3D-style release
 #define SAFE_DESTRUCT(x)  if (x) { (x)->SelfDestruct(); (x) = 0; } //!< Safe ICE-style release
 
