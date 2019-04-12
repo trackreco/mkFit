@@ -94,6 +94,7 @@ private:
   DblVec fPtBins;
   DblVec fEtaBins;
   DblVec fPhiBins;
+  DblVec fNLayersBins;
 
   // binning for track quality hists
   DblVec fNHitsBins;

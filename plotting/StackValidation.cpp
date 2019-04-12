@@ -58,7 +58,7 @@ void StackValidation::MakeValidationStacks()
 void StackValidation::MakeRatioStacks(const TString & trk)
 {
   // kinematic variables to plot
-  std::vector<TString> vars = {"pt","eta","phi"};
+  std::vector<TString> vars = {"pt","eta","phi","nLayers"};
   const UInt_t nvars = vars.size();
 
   // indices for loops match PlotValidation.cpp
