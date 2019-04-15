@@ -171,14 +171,7 @@ void PlotValidation::PlotEffTree()
     var_ref_br = 0;
 
     // Set var branch
-    if(fSRefVar!="cmssw"){
-      if(var!="nLayers")
-	efftree->SetBranchAddress(var+"_"+fSRefVar,&var_ref,&var_ref_br);
-      else
-	efftree->SetBranchAddress(var+"_mc",&var_ref,&var_ref_br);
-    }
-    else
-      efftree->SetBranchAddress(var+"_"+fSRefVar,&var_ref,&var_ref_br);
+    efftree->SetBranchAddress(var+"_"+((fSRefVar == "cmssw" || var != "nLayers") ? fSRefVar : fSRefVarTrk),&var_ref,&var_ref_br);
   }
   
   // Initialize masks, set branch addresses
