@@ -551,23 +551,43 @@ inline int getScoreCalc(const unsigned int seedtype,
   //if(chi2>Config::maxChi2ForRanking_) chi2=Config::maxChi2ForRanking_;
   int score = 0;
   float score_ = 0.f;
+//  // For high pT central tracks: double valid hit bonus
+//  if(seedtype==1){
+//    score_ = (Config::validHitBonus_*2.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
+//    if(pt<0.9f) score_ -= 0.5f*(Config::validHitBonus_*2.0f)*nfoundhits;
+//    else if(nfoundhits>8) score_ += (Config::validHitBonus_*2.0f)*nfoundhits;
+//  }
+//  // For low pT endcap tracks: half valid hit bonus & half missing hit penalty
+//  else if(seedtype==2){
+//    score_ = (Config::validHitBonus_*0.5f)*nfoundhits - (Config::missingHitPenalty_*0.5f)*nmisshits - chi2;
+//    if(pt<0.9f) score_ -= 0.5f*(Config::validHitBonus_*0.5f)*nfoundhits;
+//    else if(nfoundhits>8) score_ += (Config::validHitBonus_*0.5f)*nfoundhits;
+//  }
+//  // For all other tracks: unchanged cmssw bonus and penalty
+//  else{
+//    score_ = Config::validHitBonus_*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
+//    if(pt<0.9f) score_ -= 0.5f*Config::validHitBonus_*nfoundhits;
+//    else if(nfoundhits>8) score_ += Config::validHitBonus_*nfoundhits;
+////    if(pt<0.9f) score_ -= 0.25f*Config::validHitBonus_*nfoundhits;
+////    if(nfoundhits>8) score_ += Config::validHitBonus_*nfoundhits;
+//  }
   // For high pT central tracks: double valid hit bonus
   if(seedtype==1){
-    score_ = (Config::validHitBonus_*2.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
-    if(pt<0.9f) score_ -= 0.5f*(Config::validHitBonus_*2.0f)*nfoundhits;
-    else if(nfoundhits>8) score_ += (Config::validHitBonus_*2.0f)*nfoundhits;
+    score_ = (Config::validHitBonus_*4.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits*0.25f - chi2;
+    if(pt<0.9f) score_ -= 0.25f*(Config::validHitBonus_)*nfoundhits;
+    if(nfoundhits>8) score_ += (Config::validHitBonus_*2.0f)*nfoundhits;
   }
   // For low pT endcap tracks: half valid hit bonus & half missing hit penalty
   else if(seedtype==2){
-    score_ = (Config::validHitBonus_*0.5f)*nfoundhits - (Config::missingHitPenalty_*0.5f)*nmisshits - chi2;
-    if(pt<0.9f) score_ -= 0.5f*(Config::validHitBonus_*0.5f)*nfoundhits;
-    else if(nfoundhits>8) score_ += (Config::validHitBonus_*0.5f)*nfoundhits;
+    score_ = (Config::validHitBonus_*2.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits*0.25f - chi2;
+    if(pt<0.9f) score_ -= 0.25f*(Config::validHitBonus_*0.5f)*nfoundhits;
+    if(nfoundhits>8) score_ += (Config::validHitBonus_*1.0f)*nfoundhits;
   }
   // For all other tracks: unchanged cmssw bonus and penalty
   else{
-    score_ = Config::validHitBonus_*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
-    if(pt<0.9f) score_ -= 0.5f*Config::validHitBonus_*nfoundhits;
-    else if(nfoundhits>8) score_ += Config::validHitBonus_*nfoundhits;
+    score_ = (Config::validHitBonus_*4.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
+    if(pt<0.9f) score_ -= 0.2f*(Config::validHitBonus_)*nfoundhits;
+    if(nfoundhits>8) score_ += (Config::validHitBonus_)*nfoundhits;
   }
   score = (int)(floor(10.f * score_ + 0.5));
   return score;
