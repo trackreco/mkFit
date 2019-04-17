@@ -77,17 +77,18 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
       {
         const IdxChi2List &h2a = hitsForSeed[ih];
 
-        ccand[h2a.trkIdx].addHitIdx(h2a.hitIdx, m_layer, 0);
-        ccand[h2a.trkIdx].setChi2(h2a.chi2);
-        ccand[h2a.trkIdx].setCandScore(h2a.score);
+        Track cc( ccand[h2a.trkIdx] );
+        cc.addHitIdx(h2a.hitIdx, m_layer, 0);
+        cc.setChi2(h2a.chi2);
+        cc.setCandScore(h2a.score);
         // XXXX - Mario, Isn't the score in h2a already the same?
-        // ccand[h2a.trkIdx].setCandScore( getScoreCand(ccand[h2a.trkIdx]) );
+        // cc.setCandScore( getScoreCand( cc );
 
         if (h2a.hitIdx == -2)
         {
-          if (ccand[h2a.trkIdx].getCandScore() > ccand.m_best_short_cand.getCandScore())
+          if (h2a.score > ccand.m_best_short_cand.getCandScore())
           {
-            ccand.m_best_short_cand = ccand[h2a.trkIdx];
+            ccand.m_best_short_cand = cc;
           }
           continue;
         }
@@ -95,7 +96,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
         // Could also skip storing of cands with last -3 hit.
 
         // Squeeze in extra tracks that are better than current one.
-        while (extra_i != extra_e && sortByScoreCand(*extra_i, ccand[h2a.trkIdx]) && n_pushed < Config::maxCandsPerSeed)
+        while (extra_i != extra_e && sortByScoreCand(*extra_i, cc) && n_pushed < Config::maxCandsPerSeed)
         {
           cv.emplace_back(*extra_i);
           ++n_pushed;
@@ -105,7 +106,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
         if (n_pushed >= Config::maxCandsPerSeed)
           break;
 
-        cv.emplace_back( ccand[h2a.trkIdx] );
+        cv.emplace_back( cc );
         ++n_pushed;
 
         if (h2a.hitIdx >= 0)
