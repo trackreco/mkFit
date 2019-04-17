@@ -171,7 +171,7 @@ void PlotValidation::PlotEffTree()
     var_ref_br = 0;
 
     // Set var branch
-    efftree->SetBranchAddress(var+"_"+fSRefVar,&var_ref,&var_ref_br);
+    efftree->SetBranchAddress(var+"_"+((fSRefVar == "cmssw" || var != "nLayers") ? fSRefVar : fSRefVarTrk),&var_ref,&var_ref_br);
   }
   
   // Initialize masks, set branch addresses
@@ -485,7 +485,7 @@ void PlotValidation::PlotFRTree()
   TBrRefVec score_trks_br   (fNTrks); // branch per track
 
   // Initialize diff branches
-  IntVec    nLayers_ref_trks   (fNTrks); // sim/cmssw nUnique layers
+  FltVec    nLayers_ref_trks   (fNTrks); // sim/cmssw nUnique layers
   TBrRefVec nLayers_ref_trks_br(fNTrks); 
   FltVec    pt_ref_trks        (fNTrks); // sim/cmssw pt
   TBrRefVec pt_ref_trks_br     (fNTrks); 
@@ -665,7 +665,7 @@ void PlotValidation::PlotFRTree()
 	  hists[Form("%s_2",frackey .Data())]->Fill(fracHits_trk);
 	  hists[Form("%s_2",scorekey.Data())]->Fill(score_trk);
 
-	  hists[Form("%s_2",dnhitkey .Data())]->Fill(nHits_trk-nLayers_ref_trk);
+	  hists[Form("%s_2",dnhitkey .Data())]->Fill(nHits_trk-(Int_t)nLayers_ref_trk);
 	  hists[Form("%s_2",dinvptkey.Data())]->Fill(1.f/pt_trk-1.f/pt_ref_trk);
 	  hists[Form("%s_2",detakey  .Data())]->Fill(eta_trk-eta_ref_trk);
 	  hists[Form("%s_2",dphikey  .Data())]->Fill(dphi_trk);
@@ -676,7 +676,7 @@ void PlotValidation::PlotFRTree()
 	    hists[Form("%s_3",frackey .Data())]->Fill(fracHits_trk);
 	    hists[Form("%s_3",scorekey.Data())]->Fill(score_trk);
 	    
-	    hists[Form("%s_3",dnhitkey .Data())]->Fill(nHits_trk-nLayers_ref_trk);
+	    hists[Form("%s_3",dnhitkey .Data())]->Fill(nHits_trk-(Int_t)nLayers_ref_trk);
 	    hists[Form("%s_3",dinvptkey.Data())]->Fill(1.f/pt_trk-1.f/pt_ref_trk);
 	    hists[Form("%s_3",detakey  .Data())]->Fill(eta_trk-eta_ref_trk);
 	    hists[Form("%s_3",dphikey  .Data())]->Fill(dphi_trk);
@@ -1024,6 +1024,9 @@ void PlotValidation::SetupBins()
   // phi bins
   PlotValidation::SetupFixedBins(70,-3.5,3.5,fPhiBins);
 
+  // nLayers bins
+  PlotValidation::SetupFixedBins(26,-0.5,25.5,fNLayersBins);
+
   // nHits bins
   PlotValidation::SetupFixedBins(40,0,40,fNHitsBins);
 
@@ -1063,9 +1066,9 @@ void PlotValidation::SetupFixedBins(const UInt_t nBins, const Double_t low, cons
 void PlotValidation::SetupCommonVars()
 {
   // common kinematic variables
-  fVars   = {"pt","eta","phi"};
-  fSVars  = {"p_{T}","#eta","#phi"}; // svars --> labels for histograms for given variable
-  fSUnits = {"GeV/c","",""}; // units --> labels for histograms for given variable
+  fVars   = {"pt","eta","phi","nLayers"};
+  fSVars  = {"p_{T}","#eta","#phi","Number of layers"}; // svars --> labels for histograms for given variable
+  fSUnits = {"GeV/c","","",""}; // units --> labels for histograms for given variable
   fNVars  = fVars.size();
 
   fSVarPt  = fSVars[0];
@@ -1082,7 +1085,7 @@ void PlotValidation::SetupCommonVars()
   }
 
   // get bins ready for rate variables
-  fVarBins = {fPtBins,fEtaBins,fPhiBins};
+  fVarBins = {fPtBins,fEtaBins,fPhiBins,fNLayersBins};
 
   // which tracks to use
   fTrks  = (fCmsswComp ? TStrVec{"build","fit"} : TStrVec{"seed","build","fit"});
