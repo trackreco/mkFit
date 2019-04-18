@@ -1097,6 +1097,15 @@ int DataFile::AdvancePosToNextEvent(FILE *fp)
 
   fseek(fp, f_pos, SEEK_SET);
   fread(&evsize, sizeof(int), 1, fp);
+  if(Config::loopOverFile) {
+    // File ended, rewind back to beginning
+    if(feof(fp) != 0) {
+      f_pos = sizeof(DataFileHeader);
+      fseek(fp, f_pos, SEEK_SET);
+      fread(&evsize, sizeof(int), 1, fp);
+    }
+  }
+
   f_pos += evsize;
 
   return evsize;
