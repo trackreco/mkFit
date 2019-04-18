@@ -1128,15 +1128,21 @@ void MkBuilder::root_val()
   // remap hits first before prepping extras
   remap_track_hits(m_event->seedTracks_);
   remap_track_hits(m_event->candidateTracks_);
-  if (Config::backwardFit) remap_track_hits(m_event->fitTracks_);
+
+  // score the tracks
+  score_tracks(m_event->seedTracks_);
+  score_tracks(m_event->candidateTracks_);
+  
+  // deal with fit tracks
+  if (Config::backwardFit){
+    remap_track_hits(m_event->fitTracks_);
+    score_tracks(m_event->fitTracks_);
+  }
   else m_event->fitTracks_ = m_event->candidateTracks_; 
 
   // sort hits + make extras, align if needed
   prep_recotracks();
   if (Config::cmssw_val) prep_cmsswtracks();
-
-  // score the seed tracks
-  score_tracks(m_event->seedTracks_);
 
   // validate
   m_event->Validate();
