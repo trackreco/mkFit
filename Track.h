@@ -355,6 +355,18 @@ public:
     return n;
   }
 
+  int nMissingHits() const
+  {
+    int n = 0;
+    bool insideValid = false;
+    for (int i = lastHitIdx_; i >= 0; --i)
+    {
+      if (hitsOnTrk_[i].index >= 0) insideValid = true;
+      if (insideValid && hitsOnTrk_[i].index == -1) ++n;
+    }
+    return n;
+  }
+
   int nSeedLyrHits() const
   {
     int nSeedHits = 0;
@@ -522,6 +534,11 @@ inline bool sortByScoreCandPair(const std::pair<Track, TrackState>& cand1, const
   return sortByScoreCand(cand1.first,cand2.first);
 }
 
+inline int getScoreWorstPossible()
+{
+  return -0x3FFF; // 14 bits, all ones.
+}
+
 inline int getScoreCalc(const unsigned int seedtype,
                         const int nfoundhits,
                         const int nmisshits,
@@ -534,6 +551,8 @@ inline int getScoreCalc(const unsigned int seedtype,
   //if(chi2>Config::maxChi2ForRanking_) chi2=Config::maxChi2ForRanking_;
   int score = 0;
   float score_ = 0.f;
+  /*
+  ////// V0 of candidate score (before fix for counts of # missing hits):
   // For high pT central tracks: double valid hit bonus
   if(seedtype==1){
     score_ = (Config::validHitBonus_*2.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
@@ -552,6 +571,26 @@ inline int getScoreCalc(const unsigned int seedtype,
     if(pt<0.9f) score_ -= 0.5f*Config::validHitBonus_*nfoundhits;
     else if(nfoundhits>8) score_ += Config::validHitBonus_*nfoundhits;
   }
+  */
+  ////// V1 of candidate score (after fix for counts of # missing hits):
+  // For high pT central tracks: 4x valid hit bonus and 0.25x missing hit penalty
+  if(seedtype==1){
+    score_ = (Config::validHitBonus_*4.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits*0.25f - chi2;
+    if(pt<0.9f) score_ -= 0.25f*(Config::validHitBonus_)*nfoundhits;
+    if(nfoundhits>8) score_ += (Config::validHitBonus_*2.0f)*nfoundhits;
+  }
+  // For low pT endcap tracks: 2x valid hit bonus & 0.25x missing hit penalty
+  else if(seedtype==2){
+    score_ = (Config::validHitBonus_*2.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits*0.25f - chi2;
+    if(pt<0.9f) score_ -= 0.25f*(Config::validHitBonus_*0.5f)*nfoundhits;
+    if(nfoundhits>8) score_ += (Config::validHitBonus_*1.0f)*nfoundhits;
+  }
+  // For all other tracks: 4x cmssw bonus and unchanged missing hit penalty
+  else{
+    score_ = (Config::validHitBonus_*4.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
+    if(pt<0.9f) score_ -= 0.2f*(Config::validHitBonus_)*nfoundhits;
+    if(nfoundhits>8) score_ += (Config::validHitBonus_)*nfoundhits;
+  }
   score = (int)(floor(10.f * score_ + 0.5));
   return score;
 }
@@ -560,7 +599,7 @@ inline int getScoreCand(const Track& cand1)
 {
   unsigned int seedtype = cand1.getSeedTypeForRanking();
   int nfoundhits = cand1.nFoundHits();
-  int nmisshits = cand1.nTotalHits()-cand1.nFoundHits();
+  int nmisshits = cand1.nMissingHits();
   float pt = cand1.pT();
   float chi2 = cand1.chi2();
   // Do not allow for chi2<0 in score calculation
