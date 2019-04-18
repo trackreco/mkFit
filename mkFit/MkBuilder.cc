@@ -1754,13 +1754,6 @@ void MkBuilder::find_tracks_handle_missed_layers(MkFinder *mkfndr, const LayerIn
     Track      &cand = m_event_of_comb_cands.m_candidates[seed_cand_idx[ti].first][seed_cand_idx[ti].second];
     WSR_Result &w    = mkfndr->XWsrResult[ti - itrack];
 
-    // MT - Mario --- Why is this here? Shouldn't one set seed type when
-    // preparing a seed that is being imported? Put this into EventOfCombCandidates::ImportSeed().
-    // Score would only need to be recalculated for CloneEngine so if we
-    // decide to do it after update, we can do it there directly.
-    // cand.setSeedTypeForRanking(m_event_of_comb_cands.m_candidates[seed_cand_idx[ti].first].m_seed_type);
-    // cand.setCandScore(getScoreCand(cand));
-
     // XXXX-4 Low pT tracks can miss a barrel layer ... and should be stopped
     const float cand_r = std::hypot(mkfndr->getPar(ti - itrack, MkBase::iP, 0), mkfndr->getPar(ti - itrack, MkBase::iP, 1));
     if (region == TrackerInfo::Reg_Barrel && cand_r < layer_info.m_rin)

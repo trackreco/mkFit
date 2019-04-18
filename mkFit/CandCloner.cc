@@ -81,7 +81,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
         cc.addHitIdx(h2a.hitIdx, m_layer, 0);
         cc.setChi2(h2a.chi2);
         cc.setCandScore(h2a.score);
-        // XXXX - Mario, Isn't the score in h2a already the same?
+        // h2a already carries correct score
         // cc.setCandScore( getScoreCand( cc );
 
         if (h2a.hitIdx == -2)
