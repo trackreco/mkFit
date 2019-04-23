@@ -252,7 +252,6 @@ int main(int argc, char *argv[])
   //rec tracks
   std::vector<int>*                trk_q = 0;
   std::vector<unsigned int>*       trk_nValid = 0;
-  std::vector<unsigned int>*       trk_nInvalid = 0;
   std::vector<int>*                trk_seedIdx = 0;
   std::vector<unsigned long long>* trk_algoMask = 0;
   std::vector<unsigned int>*       trk_algo = 0   ;
@@ -274,7 +273,6 @@ int main(int argc, char *argv[])
   std::vector<float>*              trk_lambdaErr = 0;
   t->SetBranchAddress("trk_q",   &trk_q);
   t->SetBranchAddress("trk_nValid",   &trk_nValid);
-  t->SetBranchAddress("trk_nInvalid", &trk_nInvalid);
   t->SetBranchAddress("trk_seedIdx",  &trk_seedIdx);
   t->SetBranchAddress("trk_algoMask", &trk_algoMask);
   t->SetBranchAddress("trk_algo", &trk_algo);
