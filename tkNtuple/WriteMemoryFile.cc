@@ -379,8 +379,15 @@ int main(int argc, char *argv[])
   vector<float>*  pix_yz = 0;
   vector<float>*  pix_zz = 0;
   vector<float>*  pix_zx = 0;
-  t->SetBranchAddress("pix_det",&pix_det);
-  t->SetBranchAddress("pix_lay",&pix_lay);
+  //these were renamed in CMSSW_9_1_0: auto-detect
+  bool has910_det_lay = t->GetBranch("pix_det") == nullptr;
+  if (has910_det_lay){
+    t->SetBranchAddress("pix_subdet",&pix_det);
+    t->SetBranchAddress("pix_layer",&pix_lay);
+  } else {
+    t->SetBranchAddress("pix_det",&pix_det);
+    t->SetBranchAddress("pix_lay",&pix_lay);
+  }
   t->SetBranchAddress("pix_x",&pix_x);
   t->SetBranchAddress("pix_y",&pix_y);
   t->SetBranchAddress("pix_z",&pix_z);
@@ -412,8 +419,13 @@ int main(int argc, char *argv[])
   vector<float>*  glu_zz = 0;
   vector<float>*  glu_zx = 0;
   t->SetBranchAddress("glu_isBarrel",&glu_isBarrel);
-  t->SetBranchAddress("glu_det",&glu_det);
-  t->SetBranchAddress("glu_lay",&glu_lay);
+  if (has910_det_lay){
+    t->SetBranchAddress("glu_subdet",&glu_det);
+    t->SetBranchAddress("glu_layer",&glu_lay);
+  } else {
+    t->SetBranchAddress("glu_det",&glu_det);
+    t->SetBranchAddress("glu_lay",&glu_lay);
+  }
   t->SetBranchAddress("glu_monoIdx",&glu_monoIdx);
   t->SetBranchAddress("glu_stereoIdx",&glu_stereoIdx);
   t->SetBranchAddress("glu_x",&glu_x);
@@ -443,8 +455,13 @@ int main(int argc, char *argv[])
   vector<float>*  str_chargePerCM = 0;
   t->SetBranchAddress("str_isBarrel",&str_isBarrel);
   t->SetBranchAddress("str_isStereo",&str_isStereo);
-  t->SetBranchAddress("str_det",&str_det);
-  t->SetBranchAddress("str_lay",&str_lay);
+  if (has910_det_lay){
+    t->SetBranchAddress("str_subdet",&str_det);
+    t->SetBranchAddress("str_layer",&str_lay);
+  } else {
+    t->SetBranchAddress("str_det",&str_det);
+    t->SetBranchAddress("str_lay",&str_lay);
+  }
   t->SetBranchAddress("str_simType",&str_simType);
   t->SetBranchAddress("str_x",&str_x);
   t->SetBranchAddress("str_y",&str_y);
