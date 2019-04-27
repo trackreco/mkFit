@@ -93,6 +93,7 @@ namespace Config
   // config on main + mkFit
   extern int nTracks; //defined in Config.cc by default or when reading events from file
   extern int nEvents;
+  extern bool loopOverFile;
   // XXXXMT: nTracks should be thrown out ... SMatrix and Event allocate some arrays on this
   // which can be wrong for real data or in multi-event environment
 

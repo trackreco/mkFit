@@ -282,7 +282,7 @@ void test_standard()
     {
       Config::nEvents = evs_available;
     }
-    else if (Config::nEvents > evs_available)
+    else if (Config::nEvents > evs_available and not Config::loopOverFile)
     {
       printf("Requested number of events %d, only %d available.\n",
              Config::nEvents, evs_available);
@@ -615,6 +615,7 @@ int main(int argc, const char *argv[])
         "  --num-events     <int>   number of events to run over or simulate (def: %d)\n"
         "                             if using --input-file, must be enabled AFTER on command line\n"
         "  --start-event    <int>   event number to start at when reading from a file (def: %d)\n"
+        "  --loop-over-file         after reaching the end of the file, start over from the beginning until <num-events> events have been processed\n"
 	"\n"
 	"If no --input-file is specified, will trigger simulation\n"
         "  --num-tracks     <int>   number of tracks to generate for each event (def: %d)\n"
@@ -860,6 +861,10 @@ int main(int argc, const char *argv[])
     {
       next_arg_or_die(mArgs, i);
       g_start_event = atoi(i->c_str());
+    }
+    else if (*i == "--loop-over-file")
+    {
+      Config::loopOverFile = true;
     }
     else if (*i == "--num-tracks")
     {
