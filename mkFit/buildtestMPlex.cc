@@ -280,10 +280,7 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
   check_nan_n_silly_candiates(ev);
 
   // first store candidate tracks
-  if (Config::quality_val || Config::sim_val || Config::cmssw_val || Config::cmssw_export)
-  {
-    builder.quality_store_tracks(ev.candidateTracks_);
-  }
+  builder.quality_store_tracks(ev.candidateTracks_);
 
   // now do backwards fit... do we want to time this section?
   if (Config::backwardFit)
@@ -346,10 +343,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
   check_nan_n_silly_candiates(ev);
 
   // first store candidate tracks
-  if (Config::quality_val || Config::sim_val || Config::cmssw_val || Config::cmssw_export)
-  {
-    builder.quality_store_tracks(ev.candidateTracks_);
-  }
+  builder.quality_store_tracks(ev.candidateTracks_);
 
   // now do backwards fit... do we want to time this section?
   if (Config::backwardFit)
@@ -410,10 +404,7 @@ double runBuildingTestPlexFV(Event& ev, MkBuilder& builder)
 #endif
 
   // first store candidate tracks
-  if (Config::quality_val || Config::sim_val || Config::cmssw_val || Config::cmssw_export)
-  {
-    builder.quality_store_tracks(ev.candidateTracks_);
-  }
+  builder.quality_store_tracks(ev.candidateTracks_);
 
   // now do backwards fit... do we want to time this section?
   if (Config::backwardFit)
