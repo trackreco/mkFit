@@ -374,25 +374,27 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
 	  if (Config::usePhiQArrays)
 	  {
-            if (XHitSize[itrack] >= MPlexHitIdxMax) continue;
+            if (XHitSize[itrack] >= MPlexHitIdxMax) break;
 
             const float ddq   =       std::abs(q   - L.m_hit_qs[hi]);
+            if (ddq >= dq) continue;
             const float ddphi = cdist(std::abs(phi - L.m_hit_phis[hi]));
+            if (ddphi >= dphi) continue;
             
-            dprintf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
-                    qi, pi, pb, hi,
-                    L.m_hit_qs[hi], L.m_hit_phis[hi], ddq, ddphi,
-                    (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
+            // dprintf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
+            //         qi, pi, pb, hi,
+            //         L.m_hit_qs[hi], L.m_hit_phis[hi], ddq, ddphi,
+            //         (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
             
             // MT: Removing extra check gives full efficiency ...
             //     and means our error estimations are wrong!
             // Avi says we should have *minimal* search windows per layer.
             // Also ... if bins are sufficiently small, we do not need the extra
             // checks, see above.
-            if (ddq < dq && ddphi < dphi)
-            {
+            // if (ddq < dq && ddphi < dphi)
+            // {
               XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
-            }
+            // }
 	  }
 	  else
 	  {
