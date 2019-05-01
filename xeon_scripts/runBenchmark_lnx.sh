@@ -9,6 +9,9 @@ source xeon_scripts/init-env.sh
 make distclean
 
 ##### Launch Tests #####
+echo "Tar and send to LNX"
+./xeon_scripts/tarAndSendToRemote.sh LNX ${suite}
+
 echo "Run benchmarking on LNX concurrently with SKL-SP benchmarks" 
 ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh LNX ${suite} >& benchmark_lnx_dump.txt &
 
@@ -36,11 +39,11 @@ wait
 
 ##### Benchmark Plots #####
 echo "Producing benchmarking plots"
-./plotting/benchmarkPlots.sh ${suite}
+./plotting/benchmarkPlots_lnx.sh ${suite}
 
 ##### Plots from Text Files #####
 echo "Producing plots from text files"
-./plotting/textDumpPlots.sh ${suite}
+./plotting/textDumpPlots_lnx.sh ${suite}
 
 ##### Final cleanup #####
 make distclean
