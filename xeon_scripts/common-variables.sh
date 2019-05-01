@@ -19,6 +19,11 @@ export SNB_HOST=${USER}@phi1.t2.ucsd.edu
 export SNB_WORKDIR=/data2/nfsmic/${USER}
 export SNB_TEMPDIR=tmp
 
+# vars for LNX
+export LNX_HOST=mgr85@lnx7188.classe.cornell.edu
+export LNX_WORKDIR=/home/mgr85
+export LNX_TEMPDIR=tmp
+
 # SSH options
 function SSHO()
 {

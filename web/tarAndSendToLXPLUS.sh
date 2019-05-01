@@ -1,5 +1,5 @@
 #! /bin/bash
-
+USER="mireid"
 # command line input
 dir=${1:-"benchmarks"} # Main output dir name
 suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
