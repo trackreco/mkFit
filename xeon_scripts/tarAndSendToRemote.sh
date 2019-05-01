@@ -23,6 +23,10 @@ elif [[ "${remote_arch}" == "KNL" ]]
 then
     HOST=${KNL_HOST}
     DIR=${KNL_WORKDIR}/${KNL_TEMPDIR}
+elif [[ "${remote_arch}" == "LNX" ]]
+then
+    HOST=${LNX_HOST}
+    DIR=${LNX_WORKDIR}/${LNX_TEMPDIR}
 else 
     echo ${remote_arch} "is not a valid architecture! Exiting..."
     exit

@@ -15,7 +15,7 @@ do echo ${!build} | while read -r bN bO
     do
 	echo "Making plots from text files for" ${sample} ":" ${bN}
 	
-	for archV in "SNB ${Base_Test}" "SNB NVU8int_NTH24" "KNL ${Base_Test}" "KNL NVU16int_NTH256" "SKL-SP ${Base_Test}" "SKL-SP NVU16int_NTH64"
+	for archV in "SNB ${Base_Test}" "SNB NVU8int_NTH24" "KNL ${Base_Test}" "KNL NVU16int_NTH256" "SKL-SP ${Base_Test}" "SKL-SP NVU16int_NTH64" "LNX ${Base_Test}" "LNX NVU16int_NTH64"
 	do echo ${archV} | while read -r archN archO
 	    do
 		echo "Extracting plots from dump for" ${archN} ${archO}

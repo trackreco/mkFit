@@ -3,7 +3,7 @@
 ########################
 ## Command Line Input ##
 ########################
-
+#USER=mgr85
 remote_arch=${1} # SNB, KNL, SKL-SP
 suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
 
@@ -23,6 +23,11 @@ elif [[ "${remote_arch}" == "KNL" ]]
 then
     HOST=${KNL_HOST}
     DIR=${KNL_WORKDIR}/${KNL_TEMPDIR}
+elif [[ "${remote_arch}" == "LNX" ]]
+then
+    USER="mgr85"
+    HOST=${LNX_HOST}
+    DIR=${LNX_WORKDIR}/${LNX_TEMPDIR}
 else 
     echo ${remote_arch} "is not a valid architecture! Exiting..."
     exit
@@ -35,6 +40,7 @@ fi
 # execute tests remotely
 echo "Executing ${remote_arch} tests remotely..."
 SSHO ${HOST} bash -c "'
+echo "Executing test ${remote_arch} tests remotely..."
 cd ${DIR}
 ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh ${remote_arch} ${suite}
 exit
