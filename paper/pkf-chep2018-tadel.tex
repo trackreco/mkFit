@@ -14,8 +14,14 @@
 \usepackage{enumerate}
 %\usepackage{subcaption}
 
-\usepackage{lineno}
-\linenumbers
+% Line numbers
+%\usepackage{lineno}
+%\linenumbers
+
+\usepackage{xcolor}
+\def\mayberemove{\color{orange}}
+\def\remove{\color{magenta}}
+\def\add{\color{blue}}
 
 \def\mkfit{mkFit\xspace}
 
@@ -150,6 +156,7 @@ end we have been developing the \mkfit framework, designed from the ground up fo
 performance, that is better suited to utilize the types of parallelism available
 in contemporary general-purpose computing hardware.
 
+{\remove
 There were several motivating factors that made us choose this route. First,
 there was practically no other research going in this direction, and we believed
 that an honest attempt needed to be made to modernize the algorithms that have
@@ -168,6 +175,7 @@ GPGPUs). It should be pointed out that many factors influence the choice of the
 hardware that is ultimately deployed and made available to the experiments;
 other parts of event reconstruction, event simulation, and physics analysis may
 be more or less amenable to a high degree of parallelization.
+}
 
 All things considered, a fully-integrated, parallelized and vectorized implementation 
 of a KF-based tracking application provides a strong reference point for evaluation 
@@ -175,6 +183,10 @@ of more exotic solutions, both in terms of computational as well as physics perf
 Indeed, new solutions will have to demonstrate superior performance in both of these 
 respects for operations in environments with moderate time constrains such as high-level 
 trigger applications and offline reconstruction.
+
+{\add
+Much shortened version of Appendix A.
+}
 
 This paper focuses on recent developments required to fully support realistic
 geometry of the Compact Muon Solenoid (CMS) detector and to process simulated CMS data
@@ -195,8 +207,8 @@ physics and computational performance are presented in sections
 \subsection{Geometry \& Detector description}
 
 Geometry in \mkfit is described as a vector of \stt{LayerInfo} structures
-that contain the physical dimensions of a layer ($r_{in}$, $r_{out}$, $z_{min}$
-and $z_{max}$ are sufficient for both barrel and endcap layers) and parameters
+that contain the physical dimensions of a layer {\remove($r_{in}$, $r_{out}$, $z_{min}$
+and $z_{max}$ are sufficient for both barrel and endcap layers)} and parameters
 and flags relevant for track finding. This includes information about layer
 type, stereo/mono layers, hit search windows, and an optional hole in detector
 coverage as needed for the CMS endcap detectors (this could be extended for
@@ -226,8 +238,8 @@ radiation length and material composition that is quickly indexed in
 $r-z$. These constants are taken from CMS simulation for the amount of
 material a particle would traverse propagating from module to module. \mkfit
 supports usage of constant and parametrized magnetic field; type of field can
-be selected each time propagation is required in the code, e.g., for inter /
-intra layer propagation, forward / backward fit.
+be selected each time propagation is required in the code{\remove, e.g., for inter /
+intra layer propagation, forward / backward fit}.
 
 \subsection{Handling and processing of CMS events}
 \label{ssec:cms-event-processing}
@@ -245,12 +257,12 @@ algorithm uses the identity of hits and fitted seed parameters $p_T$, $\eta$,
 and $\varphi$ to eliminate duplicate seeds and is tuned so as to not cause any
 drop in track finding efficiency for high pile-up events. The duplicate seeds
 arise due to detector module overlaps that are rather significant, especially
-in the endcaps, where the modules on the same blade of a disk overlap considerably,
+in the endcaps, where the modules on the same blade of a disk overlap considerably{\remove,
 and the modules on the two rings of the same disk can be spaced over
 almost 10\,cm. Low $p_T$ tracks (below 2\GeVoc) are more affected due to
 bending in the $r$-$\varphi$ plane during their flight through the detector
 wheel. Multiplicity of seeds from a single particle frequently reaches 8 and
-can go as high as several tens.
+can go as high as several tens}.
 
 In principle, seed cleaning could be performed as a final step in the seed
 finding algorithm; however, due to the way standard track finding works in
@@ -550,6 +562,8 @@ the current size of the CMS HLT cluster. This is an upper
 estimate with the current version of code which we believe can be further
 optimized. A significant increase in speed could also be achieved by not
 processing the seeds with estimated $p_T$ below certain threshold.
+
+{\add Rewrite the following paragraph with Skylake results?}
 
 Comparing CMSSW and \mkfit single-threaded performance of initial iteration tracking
 on KNL one finds that \mkfit runs about 10-times faster than CMSSW tracking.
