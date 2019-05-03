@@ -391,10 +391,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
             // Avi says we should have *minimal* search windows per layer.
             // Also ... if bins are sufficiently small, we do not need the extra
             // checks, see above.
-            // if (ddq < dq && ddphi < dphi)
-            // {
-              XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
-            // }
+	    XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
 	  }
 	  else
 	  {
