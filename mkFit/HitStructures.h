@@ -38,7 +38,7 @@ typedef tbb::concurrent_vector<TripletIdx> TripletIdxConVec;
 
 typedef std::pair<uint16_t, uint16_t> PhiBinInfo_t;
 
-typedef std::vector<PhiBinInfo_t> vecPhiBinInfo_t;
+typedef std::array<PhiBinInfo_t, Config::m_nphi> vecPhiBinInfo_t;
 
 typedef std::vector<vecPhiBinInfo_t> vecvecPhiBinInfo_t;
 
