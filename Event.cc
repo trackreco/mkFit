@@ -1022,7 +1022,7 @@ int DataFile::OpenRead(const std::string& fname, bool set_n_layers)
   constexpr int max_ver = 3;
 
   f_fp = fopen(fname.c_str(), "r");
-  assert (f_fp != 0 || "Opening of input file failed.");
+  assert (f_fp != 0 && "Opening of input file failed.");
 
   fread(&f_header, sizeof(DataFileHeader), 1, f_fp);
 

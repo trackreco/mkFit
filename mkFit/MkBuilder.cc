@@ -1356,7 +1356,7 @@ void MkBuilder::handle_duplicates()
     if (Config::quality_val || Config::sim_val || Config::cmssw_val)
     {
       find_duplicates(m_event->candidateTracks_);
-      find_duplicates(m_event->fitTracks_);
+      if (Config::backwardFit) find_duplicates(m_event->fitTracks_);
     }
     else if ( Config::cmssw_export)
     {
@@ -1370,7 +1370,13 @@ void MkBuilder::handle_duplicates()
 	find_duplicates(m_event->candidateTracks_);
 	remove_duplicates(m_event->candidateTracks_);
       }
-    } 
+    }
+    // For the MEIF benchmarks and the stress tests, no validation flags are set so we will enter this block
+    else 
+    {
+      //Only care about the candidate tracks here; no need to run the duplicate removal on both candidate and fit tracks
+      find_duplicates(m_event->candidateTracks_);
+    }
   }
 }
 

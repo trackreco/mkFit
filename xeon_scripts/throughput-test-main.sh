@@ -34,7 +34,7 @@ base_nevents=5000 # 30/10 minutes
 ## Common mkFit options
 seeds="--cmssw-n2seeds"
 algo="--build-ce"
-opts="--silent --loop-over-file"
+opts="--silent --loop-over-file --remove-dup"
 base_exe="./mkFit/mkFit --input-file ${dir}/${subdir}/${file} ${seeds} ${algo} ${opts}"
 
 ## Output options
