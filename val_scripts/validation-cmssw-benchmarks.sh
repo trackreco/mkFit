@@ -6,6 +6,7 @@
 
 suite=${1:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
 style=${2:-""} # option --mtv-like-val
+inputBin=${3:-"91XPU70CCC"}
 
 ###################
 ## Configuration ##
@@ -15,9 +16,24 @@ source xeon_scripts/common-variables.sh ${suite}
 source xeon_scripts/init-env.sh
 
 ## Common file setup
-dir=/data2/slava77/samples/2017/pass-c93773a/initialStep
-subdir=PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU
-file=memoryFile.fv3.clean.writeAll.CCC1620.recT.082418-25daeda.bin
+case ${inputBin} in 
+"91XPU70CCC")
+        echo "Inputs from 2017 initialStep PU 70 with CCC"
+        dir=/data2/slava77/samples/2017/pass-c93773a/initialStep
+        subdir=PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU
+        file=memoryFile.fv3.clean.writeAll.CCC1620.recT.082418-25daeda.bin
+        ;;
+"104XPU70CCC")
+        echo "Inputs from 2018 initialStep/default PU 70 with CCC"
+        dir=/data2/slava77/samples/2018/pass-e072c1a/initialStep/default
+        subdir=11024.0_TTbar_13/AVE_70_BX01_25ns
+        file=memoryFile.fv3.clean.writeAll.CCC1620.recT.190423-19a1bc3.bin
+        ;;
+*)
+        echo "INPUT BIN IS UNKNOWN"
+        exit 12
+        ;;
+esac
 nevents=500
 
 ## Common executable setup
