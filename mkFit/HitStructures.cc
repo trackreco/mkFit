@@ -29,7 +29,6 @@ void LayerOfHits::setup_bins(float qmin, float qmax, float dq)
   m_fq = m_nq / (qmax - qmin); // qbin = (q_hit - m_qmin) * m_fq;
 
   m_phi_bin_infos.resize(m_nq);
-  for (int i = 0; i < m_nq; ++i) m_phi_bin_infos[i].resize(Config::m_nphi);
 }
 
 void LayerOfHits::SetupLayer(const LayerInfo &li)
