@@ -3,7 +3,7 @@
 ########################
 ## Command Line Input ##
 ########################
-#USER=mgr85
+
 remote_arch=${1} # SNB, KNL, SKL-SP
 suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
 

@@ -14,6 +14,7 @@ echo "Tar and send to LNX"
 
 echo "Run benchmarking on LNX concurrently with SKL-SP benchmarks" 
 ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh LNX ${suite} >& benchmark_lnx_dump.txt &
+
 echo "Tar and send to LNX-S"
 ./xeon_scripts/tarAndSendToRemote.sh LNX-S ${suite}
 
