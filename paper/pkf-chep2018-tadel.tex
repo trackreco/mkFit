@@ -100,7 +100,7 @@
 %%   The presentation summarizes the latest features of this software, beginning
 %%   with the data structures and code constructs that facilitate vectorization,
 %%   as well as the multiple levels of parallel tracking tasks that have been
-%%   multi-threaded with TBB. We demonstrate that the present Kalman filter
+%%   multithreaded with TBB. We demonstrate that the present Kalman filter
 %%   implementation is able to reconstruct events with comparable physics
 %%   performance to CMSSW, while providing generally better computational
 %%   performance. Further plans for advancing the software are discussed.
@@ -169,11 +169,11 @@ barrel-only detector~\cite{pkf-fit}.
 
 The next stage was the implementation of track finding using the above
 technology and the same simplified geometry~\cite{pkf-finding}. Simple
-multi-threading was implemented through segmentation of tracks in up to 21
+multithreading was implemented through segmentation of tracks in up to 21
 $\eta$ bins and usage of OpenMP parallel pragma. Physics performance was
 adequate (95\% efficiency and correct $\chi^2$ distribution of tracks and
 pulls of the track parameters), but the achieved parallelization speedups were
-a bit disappointing (x2 for vectorization and x10 for multi-threading on Intel
+a bit disappointing (x2 for vectorization and x10 for multithreading on Intel
 KNC), indicating the need to decrease the fraction of non-vectorizable code
 and implement a better work partitioning scheme. To this end processing of
 track candidates on each layer was optimized to reduce the number of
@@ -424,40 +424,42 @@ Computational benchmarks are shown for our main development platforms:
 
 \end{itemize}
 
-While Turbo Boost feature is turned off on all our development machines,
+While the Turbo Boost feature is turned off on all our development machines,
 SKL-SP processor cores feature different frequency characteristics depending
-on which vector instruction set is being used on them. KNL can also vary
-frequency to a lesser extent when AVX-512 code is being executed.
+on how many cores are in use and which vector instruction set is being used on
+them. KNL can also vary frequency to a lesser extent when AVX-512 code is
+being executed.
 
 Results presented in this section were obtained using a subset of the 
 events with the configuration described in the introduction to section 
-\ref{sec:phys-perf}. Intel \stt{icc} compiler was used to compile the
-code. \mkfit uses Intel Thread Building Blocks (TBB) for multi-threading.
+\ref{sec:phys-perf}. The Intel \stt{icc} compiler was used to compile the
+code. \mkfit uses Intel Thread Building Blocks (TBB) for multithreading.
 
 
 \subsection{Single event performance of core track finding}
 
-To assess performance of the track finding algorithm alone, we run a dedicated
-benchmark measuring the time of central track finding loop for processing 20 
-events, without measuring the time needed to pre-process the hits and seeds, 
-and to post-process the track candidates. This allows us to focus on the most 
-relevant part of our code and to sideline the more administrative tasks that 
-might, in a production system, be performed outside of \mkfit itself.
+To assess the performance of the track finding algorithm alone, we run a
+dedicated benchmark measuring the time taken by the central track-finding loop
+for processing 20 events, without measuring the time needed to pre-process the
+hits and seeds, or to post-process the track candidates. This allows us to
+focus on the most relevant part of our code and to sideline the more
+administrative tasks that might, in a production system, be performed outside
+of \mkfit itself.
 
-First, we show the speedup as function of the Matriplex width which
+First, we show the speedup as a function of the Matriplex width which
 effectively controls how many slots in the vector registers are used. The
-results are shown in figure \ref{fig:vu-speedup}.
-For SKL-SP the obtained AVX vectorization speed up is 2.8. On KNL, with AVX-512
-and usage of auto-generated intrinsics code for Matriplex operations, we
-observe a speedup of 3.2. Assuming effective
-vectorization speedup of 3 and applying Amdahl's law one finds that about 72\%
-of our code gets executed as vector instructions.
+results are shown in figure \ref{fig:vu-speedup}. For SKL-SP the highest
+speedup obtained with AVX-512 vectorization (SIMD width of 16 floats) is 2.8.
+On KNL with AVX-512, including auto-generated intrinsics code for Matriplex
+operations, we observe a maximum speedup of 3.2. Assuming the that effective
+vectorization speedup is 3, Amdahl's Law implies that a minimum of 72\% of our
+code's execution path consists of vector instructions.
 
 Notice that the speedup when shifting from Matriplex width of 1 to width of 2
-is consistently smaller than for larger widths.
-This is due to scalar instruction set being used for width 1. On KNL
-an additional drop is observed due to usage of AVX-512 intrinsics and the
-related drop in frequency.
+is consistently smaller than for larger widths. This is due to the low-overhead
+scalar instruction set being used for width 1. On KNL an additional drop is
+observed, most likely due to usage of AVX-512 intrinsics and the related drop
+in frequency.
 
 \begin{figure}[htb]
   \centering
@@ -472,11 +474,11 @@ related drop in frequency.
   \label{fig:vu-speedup}
 \end{figure}
 
-Figure \ref{fig:th-speedup} shows speedup as a function of number of threads
-TBB is configured to use. Note that events are processed sequentially and all
-parallelism happens within processing of seeds belonging to the same
-event. SNB shows good scaling up to the number of physical cores (12) and a
-reduced slope after that. For the large number of available cores on KNL the
+Figure \ref{fig:th-speedup} shows speedup as a function of the number of
+threads TBB is configured to use. Note that events are processed sequentially
+and all parallelism happens during the processing of seeds belonging to the
+same event. SNB shows good scaling up to the number of physical cores (12) and
+a reduced slope after that. For the large number of available cores on KNL the
 standard work chunk of 16 seeds per task has been reduced to 8, leading to
 increased thread management overhead but better overall scaling.
 
@@ -487,7 +489,7 @@ increased thread management overhead but better overall scaling.
   \includegraphics[width=\twop]{figs/comp/KNL_CMSSW_TTbar_PU70_TH_speedup.png}
   \postfigskip
 
-  \caption{Multi-threading speedup as a function of used number of threads for
+  \caption{Multithreading speedup as a function of used number of threads for
     Skylake (left) and Knights Landing (right) processors.}
   \label{fig:th-speedup}
 \end{figure}
@@ -506,11 +508,11 @@ flight.
 Scaling behavior for multiple events in flight is shown in figure
 \ref{fig:meif-speedup}. Many of the administrative tasks related to
 pre-processing of hits and seeds have not yet been fully optimized for
-multi-threaded operation or to use vectorization. One can see the effect of
+multithreaded operation or to use vectorization. One can see the effect of
 those by comparing results for one event in flight with corresponding result in
 the previous section, figure \ref{fig:th-speedup}. SKL-SP shows good scaling with 16
 events in flight; hyperthreading provides additional 30\% speedup when going from 32 to 64
-total threads. For KNL, 16 events in flight offer the best performance up to
+total threads. For KNL, having 16 events in flight offers the best performance up to
 64 threads; above that, 32 events in flight are required, but having more than
 32 events in flight is not helpful, possibly due to the fact that in KNL a given
 memory reference can only be ``owned'' by 1 of 32 tiles in the layout of cores.
@@ -526,8 +528,8 @@ yield any additional speedup.
 %  \includegraphics[width=\threep]{figs/comp/SKL-SP_CMSSW_TTbar_PU70_CE_MEIF_speedup.png}
   \postfigskip
 
-  \caption{Multi-threading speedup for different number of concurrent events
-    in flight as a function of used number of threads for Skylake (left),
+  \caption{Multithreading speedup for different numbers of concurrent events
+    in flight, as a function of used number of threads for Skylake (left),
     Knights Landing (right).}
   \label{fig:meif-speedup}
 \end{figure}
