@@ -28,6 +28,10 @@ elif arch == 'LNX' :
     nvu = '16int'
     thvals = ['1','2','4','8','16','32','48','64']
     evvals = ['1','2','4','8','16','32','64']
+elif arch == 'LNX-S' :
+    nvu = '16int'
+    thvals = ['1','2','4','8','16','32','48','64']
+    evvals = ['1','2','4','8','16','32','64']
 else :
     print arch,"is not a valid architecture! Exiting..."
     sys.exit(0)

@@ -27,6 +27,10 @@ elif [[ "${remote_arch}" == "LNX" ]]
 then
     HOST=${LNX_HOST}
     DIR=${LNX_WORKDIR}/${LNX_TEMPDIR}
+elif [[ "${remote_arch}" == "LNX-S" ]]
+then
+    HOST=${LNXS_HOST}
+    DIR=${LNXS_WORKDIR}/${LNXS_TEMPDIR}
 else 
     echo ${remote_arch} "is not a valid architecture! Exiting..."
     exit
