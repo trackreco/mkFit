@@ -535,30 +535,22 @@ yield any additional speedup.
 
 \subsection{Estimated performance of \mkfit at CMS HLT}
 
-For CMS HLT Run 3 running full tracking is planned for selected events. Full
-tracking is also being considered to be run for all events (100\,kHz rate) as
-this would allow better event selection, cleaner physics data sets and better
+In the CMS HLT, due to its processing time constraints, tracking is run only on selected events.
+On the other hand, running on all events (100\,kHz rate) a version of the tracking similar to the one used offline
+would allow better event selection, cleaner physics data sets and better
 utilization of available computing resources after data is already taken.
-Measured \mkfit full-node event processing rates for the expected LHC Run 3 pileup of 70
+Comparing CMSSW and standalone \mkfit single-threaded performance of the initial offline tracking iteration
+one finds that \mkfit runs about 10-times faster than CMSSW offline tracking.
+Correspondingly, measured \mkfit full-node event processing rates for the expected LHC Run 3 pileup of 70
 are 115\,events/s for KNL and 250\,events/s for SKL-SP. Thus, to process events
 at CMS HLT at the expected 100\,kHz rate, one would need an equivalent of 400
 32-core Skylake machines for track reconstruction alone. Note that this is below
-the current size of the CMS HLT cluster. This is an upper
-estimate with the current version of code which we believe can be further
-optimized. A significant increase in speed could also be achieved by not
-processing the seeds with estimated $p_T$ below certain threshold.
+the current size of the CMS HLT cluster.
 
-{ADD/CHANGE Rewrite the following paragraph with Skylake results?}
-
-Comparing CMSSW and \mkfit single-threaded performance of initial iteration tracking
-on KNL one finds that \mkfit runs about 10-times faster than CMSSW tracking.
-While this indicates \mkfit brings
-significant improvements in processing rates, this result should be deemed
-preliminary, especially since track post-processing has not yet been
-implemented in \mkfit. Further, effects of usage of \stt{icc} compiler and 
-various optimization options related to vectorization and fast mathematics 
-also need to be understood, both for CMSSW and \mkfit.
-
+These results are to be considered as very preliminary.
+In fact, while on one side we believe the current version of the \mkfit code can be further optimized,
+running in the actual HLT configuration within CMSSW requires more work to mitigate overheads
+due to data preparation (local reconstruction) and data conversions.
 
 %-------------------------------------------------------------------------------
 \section{Conclusion}
