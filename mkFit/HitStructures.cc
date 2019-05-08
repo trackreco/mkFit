@@ -29,7 +29,6 @@ void LayerOfHits::setup_bins(float qmin, float qmax, float dq)
   m_fq = m_nq / (qmax - qmin); // qbin = (q_hit - m_qmin) * m_fq;
 
   m_phi_bin_infos.resize(m_nq);
-  for (int i = 0; i < m_nq; ++i) m_phi_bin_infos[i].resize(Config::m_nphi);
 }
 
 void LayerOfHits::SetupLayer(const LayerInfo &li)
@@ -286,6 +285,55 @@ EventOfHits::EventOfHits(TrackerInfo &trk_inf) :
   {
     m_layers_of_hits[li.m_layer_id].SetupLayer(li);
   }
+}
+
+
+//==============================================================================
+// CombCandidate
+//==============================================================================
+
+void CombCandidate::MergeCandsAndBestShortOne(bool update_score, bool sort_cands)
+{
+  std::vector<Track> &finalcands = *this;
+  Track              &best_short = m_best_short_cand;
+
+  if ( ! finalcands.empty())
+  {
+    if (update_score)
+    {
+      for (auto &c : finalcands) c.setCandScore( getScoreCand(c) );
+    }
+    if (sort_cands)
+    {
+      std::sort(finalcands.begin(), finalcands.end(), sortByScoreCand);
+    }
+
+    if (best_short.getCandScore() > finalcands.back().getCandScore())
+    {
+      auto ci = finalcands.begin();
+      while (ci->getCandScore() > best_short.getCandScore()) ++ci;
+
+      if (finalcands.size() > Config::maxCandsPerSeed)  finalcands.pop_back();
+
+      // To print out what has been replaced -- remove when done with short track handling.
+      /*
+        if (ci == finalcands.begin())
+        {
+        printf("FindTracksStd -- Replacing best cand (%d) with short one (%d) in final sorting for seed index=%d\n",
+                     finalcands.front().getCandScore(), best_short.getCandScore(), iseed);
+        }
+      */
+
+      finalcands.insert(ci, best_short);
+    }
+
+  }
+  else if (best_short.getCandScore() > getScoreWorstPossible())
+  {
+    finalcands.push_back( best_short );
+  }
+
+  best_short.setCandScore( getScoreWorstPossible() );
 }
 
 } // end namespace mkfit
