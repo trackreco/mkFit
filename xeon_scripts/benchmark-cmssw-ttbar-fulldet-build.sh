@@ -104,7 +104,7 @@ do
 		    then
 			nproc=$(( ${nevents} * ${nev} ))
 			echo "${oBase}: Benchmark [nTH:${nth}, nVU:${maxvu}int, nEV:${nev}]"
-			${bExe} --silent --num-thr-ev ${nev} --num-events ${nproc} >& log_${oBase}_NVU${maxvu}int_NTH${nth}_NEV${nev}.txt
+			${bExe} --silent --num-thr-ev ${nev} --num-events ${nproc} --remove-dup >& log_${oBase}_NVU${maxvu}int_NTH${nth}_NEV${nev}.txt
 		    fi
 		done
 	    fi
@@ -114,7 +114,7 @@ do
 	    if (( ${nth} == ${maxth} )) && [[ "${check_text}" == "true" ]]
 	    then
 		echo "${oBase}: Text dump for plots [nTH:${nth}, nVU:${maxvu}int]"
-		${bExe} --dump-for-plots --quality-val --read-cmssw-tracks --num-events ${nevents} >& log_${oBase}_NVU${maxvu}int_NTH${nth}_${dump}.txt
+		${bExe} --dump-for-plots --quality-val --read-cmssw-tracks --num-events ${nevents} --remove-dup >& log_${oBase}_NVU${maxvu}int_NTH${nth}_${dump}.txt
 	    fi
 	done
     done

@@ -93,6 +93,7 @@ namespace Config
   // config on main + mkFit
   extern int nTracks; //defined in Config.cc by default or when reading events from file
   extern int nEvents;
+  extern bool loopOverFile;
   // XXXXMT: nTracks should be thrown out ... SMatrix and Event allocate some arrays on this
   // which can be wrong for real data or in multi-event environment
 
@@ -357,8 +358,8 @@ namespace Config
   constexpr float track_ptlow = 0.9;
 
   // sorting config (bonus,penalty)
-  constexpr float validHitBonus_ = 2.5;
-  constexpr float missingHitPenalty_ = 20.0;
+  constexpr float validHitBonus_ = 10.0;//2.5*4.0; // 4x cmssw bonus (after fix for counts of # missing hits)
+  constexpr float missingHitPenalty_ = 5.0;//20.0/4.0; // 0.25x cmssw penalty (after fix for counts of # missing hits)  
   constexpr float maxChi2ForRanking_ = 819.2f; // (=0.5f*0.1f*pow(2,14);)
 
   // Threading

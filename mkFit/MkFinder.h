@@ -218,9 +218,15 @@ private:
     }
   }
 
-  int num_invalid_hits(const int mslot) const
+  int num_invalid_hits(const int mslot, bool insideValid = false) const
   {
-    return NHits(mslot,0,0) - NFoundHits(mslot,0,0);
+    int n = 0;
+    for (int i = NHits(mslot, 0, 0)-1; i >= 0; --i)
+      {
+	if (HoTArrs[mslot][i].index >= 0) insideValid = true;
+	if (insideValid && HoTArrs[mslot][i].index == -1) ++n;
+      }
+    return n;
   }
 };
 

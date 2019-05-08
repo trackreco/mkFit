@@ -1022,7 +1022,7 @@ int DataFile::OpenRead(const std::string& fname, bool set_n_layers)
   constexpr int max_ver = 3;
 
   f_fp = fopen(fname.c_str(), "r");
-  assert (f_fp != 0 || "Opening of input file failed.");
+  assert (f_fp != 0 && "Opening of input file failed.");
 
   fread(&f_header, sizeof(DataFileHeader), 1, f_fp);
 
@@ -1097,6 +1097,15 @@ int DataFile::AdvancePosToNextEvent(FILE *fp)
 
   fseek(fp, f_pos, SEEK_SET);
   fread(&evsize, sizeof(int), 1, fp);
+  if(Config::loopOverFile) {
+    // File ended, rewind back to beginning
+    if(feof(fp) != 0) {
+      f_pos = sizeof(DataFileHeader);
+      fseek(fp, f_pos, SEEK_SET);
+      fread(&evsize, sizeof(int), 1, fp);
+    }
+  }
+
   f_pos += evsize;
 
   return evsize;

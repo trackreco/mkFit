@@ -103,7 +103,7 @@ for rate in eff ineff_brl ineff_trans ineff_ec dr fr
 do
     for pt in 0p0 0p9 2p0
     do
-	for var in phi eta
+	for var in phi eta nLayers
 	do 
 	    mv ${val_arch}_${sample}_${rate}_${var}_"build"_"pt"${pt}_"SIMVAL".png ${dir}/${simdir}
 	done
@@ -171,7 +171,7 @@ do
     do
 	for pt in 0p0 0p9 2p0
 	do
-	    for var in phi eta
+	    for var in phi eta nLayers
 	    do
 		mv ${val_arch}_${sample}_${rate}_${var}_${trk}_pt${pt}_"CMSSWVAL".png ${dir}/${cmsswdir}/${trk}
 	    done

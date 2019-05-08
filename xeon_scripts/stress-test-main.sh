@@ -77,7 +77,7 @@ file=memoryFile.fv3.clean.writeAll.CCC1620.recT.082418-25daeda.bin
 ## Common mkFit options
 seeds="--cmssw-n2seeds"
 algo="--build-ce"
-opts="--silent"
+opts="--silent --remove-dup"
 base_exe="./mkFit/mkFit --input-file ${dir}/${subdir}/${file} ${seeds} ${algo} ${opts}"
 
 ## Output options
