@@ -120,7 +120,7 @@
   This paper summarizes the latest extensions to our software that allow it to
   run on the realistic CMS-2017 tracker geometry using CMSSW-generated events,
   including pileup. The reconstructed tracks can be validated against either
-  the CMSSW simulation that generated the hits, or the CMSSW reconstruction of
+  the CMSSW simulation that generated the detector hits, or the CMSSW reconstruction of
   the tracks. In general, the code's computational performance has continued
   to improve while the above capabilities were being added. We demonstrate
   that the present Kalman filter implementation is able to reconstruct events
@@ -154,30 +154,30 @@ to reach physics performance on par with the standard Compact Muon Solenoid (CMS
 tracking~\cite{CMS-tracking} while achieving a significant reduction in processing time.
 
 All things considered, a fully-integrated, parallelized and vectorized implementation 
-of a KF-based tracking application provides a strong reference point for evaluation 
-of more exotic solutions, both in terms of computational as well as physics performance. 
-Indeed, new solutions will have to demonstrate superior performance in both of these 
-respects for operations in environments with moderate time constrains such as high-level 
+of a KF-based tracking application provides a strong reference point for the evaluation 
+of more exotic types of solutions, both in terms of computational as well as physics performance. 
+Indeed, new solutions of any type will have to demonstrate superior performance in both of these 
+respects to operate successfully in environments with moderate time constraints such as high-level 
 trigger applications and offline reconstruction.
 
-
 The project was started in 2014 with the development of a
-Matriplex matrix operation library optimized for simultaneous vectorized
+``Matriplex'' matrix operation library optimized for simultaneous vectorized
 processing of sets of small matrices. From this basis, the initial
 implementation of vectorized KF fitting was demonstrated on a simplified
 barrel-only detector~\cite{pkf-fit}.
 
 The next stage was the implementation of track finding using the above
 technology and the same simplified geometry~\cite{pkf-finding}. Simple
-multithreading was implemented through segmentation of tracks in up to 21
-$\eta$ bins and usage of OpenMP parallel pragma. Physics performance was
+multithreading was implemented by partitioning tracks in up to 21
+$\eta$ bins and using OpenMP parallel constructs. Physics performance was
 adequate (95\% efficiency and correct $\chi^2$ distribution of tracks and
 pulls of the track parameters), but the achieved parallelization speedups were
 a bit disappointing (x2 for vectorization and x10 for multithreading on Intel
 KNC), indicating the need to decrease the fraction of non-vectorizable code
-and implement a better work partitioning scheme. To this end processing of
+and implement a better work partitioning scheme. To this end, processing of
 track candidates on each layer was optimized to reduce the number of
-instantiations of Track objects by selecting the best hits based on their
+instantiations of Track objects by selecting only the hits giving the best
+extensions to tracks based on their
 $\chi^2$ score before doing the final Kalman updates~\cite{pkf-clone-engine}.
 
 OpenMP was replaced by Intel Thread Building Blocks (TBB) to increase
@@ -237,14 +237,14 @@ coverage as needed for the CMS endcap detectors (this could be extended for
 even more general acceptance handling).
 
 For track finding, \emph{steering parameters} need to be defined for every
-\emph{tracking region}. So far, it has been sufficient to consider only $\eta$
+\emph{tracking region}. So far, it has been sufficient to consider only five distinct $\eta$
 regions (barrel, $+z$/$-z$ transition, and $+z$/$-z$ endcap) but the concept
 could be used also to separate regions by $p_T$ or by tracking iteration. The
 steering parameters contain, most importantly, a vector of \stt{LayerControl}
-structures that hold layer indices (mapping into the \stt{LayerInfo} vector)
+structures that hold the layer indices (mapping into the \stt{LayerInfo} vector)
 that need to be traversed during track finding. Additionally, it contains
 layer parameters and flags that are specific for this tracking region, such as
-tagging layers as possible seeding layers or as layers to be only considered
+tags for layers that are possible seeding layers or layers to be considered only
 during backward fitting. This allows the track finding algorithm to be completely
 agnostic of the detector structure: it simply follows the layer propagation
 plan in the steering parameters and executes operations in accordance with the
@@ -259,17 +259,18 @@ scattering and energy loss by defining two-dimensional arrays for the
 radiation length and material composition that is quickly indexed in
 $r-z$. These constants are taken from CMS simulation for the amount of
 material a particle would traverse propagating from module to module. \mkfit
-supports usage of constant and parametrized magnetic field; type of field can
+supports usage of both constant and parameterized magnetic field; either type of field can
 be selected each time propagation is required in the code.
 
 \subsection{Handling and processing of CMS events}
 \label{ssec:cms-event-processing}
 
 When processing CMS events \mkfit relies on hit and seed data to be provided
-externally. In the standalone case, \mkfit reads these data from a binary file
+externally. In the standalone case (where mkFit operates independently of CMSSW),
+\mkfit reads these data from a binary file
 created by a converter application. Additionally, the binary file can also 
 contain vectors of simulated tracks and reconstructed tracks as found by 
-standard CMS tracking used in the validation of \mkfit's performance.
+standard CMS tracking, for later use in the validation of \mkfit's performance.
 
 Before passing seeds to \mkfit for track finding, the seed collection is
 ``cleaned'' by removing multiple instances of seeds that are most likely 
@@ -288,8 +289,8 @@ rejected if all its hits have already been used by a track candidate found
 earlier. The technique relies on CMSSW backward propagation to find additional
 hits on the seeding layers, and reduces the duplicate seeds in the first step
 of their consideration to a negligible level. This is
-not possible in \mkfit where we process up to 32 seeds in parallel and, as we
-try to processes together seeds that are close in $\eta$ and $\varphi$ to
+not possible in \mkfit where we process up to $32 \times N_{threads}$ seeds in parallel and, as we
+try to group seeds that are close in $\eta$ and $\varphi$ to
 maximize memory cache reuse of hit data, this could lead to significant waste
 of processing slots.
 
@@ -310,12 +311,12 @@ perform development and testing in a more lightweight environment.
 \label{sec:phys-perf}
 
 This section presents current basic physics performance plots for \mkfit
-running on CMS-2017 geometry and CMSSW generated sample of 500 $t\bar{t}$
-events superimposed with a mean of 70 minimum-bias $pp$ collisions per event.
+running on CMS-2017 geometry with a CMSSW simulated sample of 500 $t\bar{t}$
+events, each of which has been superimposed with a mean of 70 minimum-bias $pp$ collisions.
 Constant magnetic field of 3.8\,T has been used. We are showing
-results for processing of CMS \emph{initial tracking iteration} where seeds are
+results corresponding to the CMS \emph{initial tracking iteration} where seeds are
 required to have 4 hits all coming from distinct inner pixel layers and be
-compatible with the beam spot constraint. Results shown for CMSSW are using
+compatible with the beam spot constraint. We show equivalent results from CMSSW using
 the same set of input seeds.
 
 While these results show the actual performance of \mkfit, they are
@@ -364,12 +365,12 @@ regions, down to $p_T = 450\MeVoc$.
 
 
 Figure \ref{fig:drates} shows \mkfit's duplicate track rates versus $p_T$ and
-$\eta$. CMSSW's duplicate rates are 0. Duplicate rate is significant for all
+$\eta$. CMSSW's duplicate rates are 0. Duplicate rate of \mkfit is significant for all
 values of $p_T$. In $\eta$, it is below 5\% level in the barrel and rises
 sharply when tracks start entering the endcap disks. The duplicate rate 
-distribution is exactly the same when using 10 muon events the duplicate rate 
+distribution is exactly the same when using artificial 10-muon events 
 and can be explained entirely by duplicate seeds and the absence of a duplicate
- removal procedure in \mkfit (see section \ref{ssec:cms-event-processing}).
+removal procedure in \mkfit (see section \ref{ssec:cms-event-processing}).
 
 \begin{figure}[thb]
   \centering
@@ -391,7 +392,7 @@ and can be explained entirely by duplicate seeds and the absence of a duplicate
 %%   \label{fig:frates}
 %% \end{figure}
 
-As already mentioned, further work is required to make more detailed
+As already mentioned, further work is required to make a more detailed
 assessment of \mkfit's performance. However, with \mkfit being available
 within the CMSSW, all quality assurance and validation tools developed for CMS
 tracking are available for more detailed studies and debugging.
@@ -455,12 +456,6 @@ operations, we observe a maximum speedup of 3.2. Assuming the that effective
 vectorization speedup is 3, Amdahl's Law implies that a minimum of 72\% of our
 code's execution path consists of vector instructions.
 
-Notice that the speedup when shifting from Matriplex width of 1 to width of 2
-is consistently smaller than for larger widths. This is due to the low-overhead
-scalar instruction set being used for width 1. On KNL an additional drop is
-observed, most likely due to usage of AVX-512 intrinsics and the related drop
-in frequency.
-
 \begin{figure}[htb]
   \centering
   \includegraphics[width=\twop]{figs/comp/SKL-SP_CMSSW_TTbar_PU70_VU_speedup.png}
@@ -474,13 +469,16 @@ in frequency.
   \label{fig:vu-speedup}
 \end{figure}
 
-Figure \ref{fig:th-speedup} shows speedup as a function of the number of
-threads TBB is configured to use. Note that events are processed sequentially
-and all parallelism happens during the processing of seeds belonging to the
-same event. SNB shows good scaling up to the number of physical cores (12) and
-a reduced slope after that. For the large number of available cores on KNL the
-standard work chunk of 16 seeds per task has been reduced to 8, leading to
-increased thread management overhead but better overall scaling.
+Figure \ref{fig:th-speedup} shows speedup as a function of the number of threads
+TBB is configured to use. Note that events are processed sequentially and all
+parallelism happens during the processing of seeds belonging to the same
+event. Beyond 32 threads the standard work chunk of 32 seeds per task gets
+progressively reduced down to 4 seeds per task at 256 threads.
+SKL-SP shows good scaling up to 8 threads and KNL up to 32 threads.
+For KNL the effect of reduction of the standard work chunk can be observed
+in continuation of scaling toward higher number of threads where, ultimately, at
+about 164 threads there simply isn't enough seeds per event to fill up all
+the processing slots.
 
 \begin{figure}[htb]
   \centering
@@ -550,7 +548,7 @@ estimate with the current version of code which we believe can be further
 optimized. A significant increase in speed could also be achieved by not
 processing the seeds with estimated $p_T$ below certain threshold.
 
-{ADD Rewrite the following paragraph with Skylake results?}
+{ADD/CHANGE Rewrite the following paragraph with Skylake results?}
 
 Comparing CMSSW and \mkfit single-threaded performance of initial iteration tracking
 on KNL one finds that \mkfit runs about 10-times faster than CMSSW tracking.
