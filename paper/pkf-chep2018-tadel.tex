@@ -230,9 +230,9 @@ performance are presented in sections \ref{sec:phys-perf} and
 \subsection{Geometry \& Detector description}
 
 Geometry in \mkfit is described as a vector of \stt{LayerInfo} structures
-that contain the physical dimensions of a layer and parameters
+that contain the physical dimensions of a layer, hit search windows, and parameters
 and flags relevant for track finding. This includes information about layer
-type, stereo/mono layers, hit search windows, and an optional hole in detector
+detector type, stereo/mono layers, and an optional hole in detector
 coverage as needed for the CMS endcap detectors (this could be extended for
 even more general acceptance handling).
 
@@ -289,8 +289,8 @@ rejected if all its hits have already been used by a track candidate found
 earlier. The technique relies on CMSSW backward propagation to find additional
 hits on the seeding layers, and reduces the duplicate seeds in the first step
 of their consideration to a negligible level. This is
-not possible in \mkfit where we process up to $32 \times N_{threads}$ seeds in parallel and, as we
-try to group seeds that are close in $\eta$ and $\varphi$ to
+not possible in \mkfit where we process up to $32 \times N_{threads}$ seeds in parallel
+and, as we try to group seeds that are close in $\eta$ and $\varphi$ to
 maximize memory cache reuse of hit data, this could lead to significant waste
 of processing slots.
 
@@ -336,7 +336,8 @@ comparison between CMSSW and \mkfit initial iteration tracking:
 
 Track finding efficiency versus $p_T$ and $\eta$ for \mkfit and CMSSW are shown
 in figure \ref{fig:eff-pt-etapt0p9}. \mkfit's performance is essentially
-equivalent to that of CMSSW for $p_T > 1\GeVoc$. Below that, \mkfit's
+equivalent to that of CMSSW for $p_T > 0.9\GeVoc$, the standard CMS cut for detailed
+efficiency staudies. Below that, \mkfit's
 inefficiency is largest in the transition region and noticeable in the
 endcaps. We believe that tuning of hit selection windows and candidate scoring
 criteria can help us achieve efficiencies comparable to CMSSW for all tracking
@@ -368,8 +369,9 @@ Figure \ref{fig:drates} shows \mkfit's duplicate track rates versus $p_T$ and
 $\eta$. CMSSW's duplicate rates are 0. Duplicate rate of \mkfit is significant for all
 values of $p_T$. In $\eta$, it is below 5\% level in the barrel and rises
 sharply when tracks start entering the endcap disks. The duplicate rate 
-distribution is exactly the same when using artificial 10-muon events 
-and can be explained entirely by duplicate seeds and the absence of a duplicate
+distribution is exactly the same as for the artificial 10-muon events, showing that
+the duplicate rate is entirely due to duplicate seeds arising from module overlaps in the
+seeding layers and the absence of a duplicate track
 removal procedure in \mkfit (see section \ref{ssec:cms-event-processing}).
 
 \begin{figure}[thb]
@@ -439,13 +441,14 @@ code. \mkfit uses Intel Thread Building Blocks (TBB) for multithreading.
 
 \subsection{Single event performance of core track finding}
 
-To assess the performance of the track finding algorithm alone, we run a
-dedicated benchmark measuring the time taken by the central track-finding loop
-for processing 20 events, without measuring the time needed to pre-process the
-hits and seeds, or to post-process the track candidates. This allows us to
-focus on the most relevant part of our code and to sideline the more
-administrative tasks that might, in a production system, be performed outside
-of \mkfit itself.
+To assess the performance of the track finding algorithm alone,
+we run a dedicated benchmark measuring the track-finding time for
+a sufficient number of events ($20 \times \mathrm{N_{threads}}$)
+without including the time needed
+to pre-process the hits and seeds, or to post-process the track
+candidates. This allows us to focus on the most relevant part of our code and
+to sideline the more administrative tasks that might, in a production system,
+be performed outside of \mkfit itself.
 
 First, we show the speedup as a function of the Matriplex width which
 effectively controls how many slots in the vector registers are used. The
@@ -497,11 +500,12 @@ the processing slots.
 
 To assess the scaling behavior of the full event processing chain as it would
 run in CMSSW which can process several events concurrently, we implemented
-support for multiple concurrent events in flight in \mkfit as well. This
+support for multiple concurrent events in flight in \mkfit as well.
+Technically, this is achieved by using the TBB \stt{parallel\_for} construct
+for the event loop itself and retaining all intra-event parallelism described before. This
 balances out the tail effects present in event-by-event processing and allows
-the tasks themselves to be larger, thus reducing the overhead of TBB. The 
-number of events processed for each test was 20 times the number of events in 
-flight. 
+the tasks themselves to be larger, thus reducing the multithreading overhead. As before, the
+number of events processed for each test was 20 times the number of configured threads.
 
 Scaling behavior for multiple events in flight is shown in figure
 \ref{fig:meif-speedup}. Many of the administrative tasks related to
@@ -538,8 +542,8 @@ yield any additional speedup.
 In the CMS HLT, due to its processing time constraints, tracking is run only
 for a subset of all the input events. On the other hand, running on all events
 (100\,kHz rate) a version of the tracking similar to the one used offline
-would allow better event selection, cleaner physics data sets and better
-utilization of available computing resources after data is already
+would allow better event selection, cleaner physics data sets and thus better
+utilization of storage and CPU resources after data is already
 taken. Comparing CMSSW and standalone \mkfit single-threaded performance of
 the initial offline tracking iteration, one finds that \mkfit runs about
 10-times faster than CMSSW offline tracking. Correspondingly, measured \mkfit
@@ -560,7 +564,7 @@ data conversions.
 %-------------------------------------------------------------------------------
 
 Following developments required to support complex, realistic detector
-geometries, \mkfit is now in position to demonstrate its potential for use in
+geometries, \mkfit is now in the position to demonstrate its potential for use in
 real-world reconstruction scenarios. Preliminary results show that \mkfit
 exhibits physics performance on par with existing, traditional KF tracking
 algorithms while retaining a significant boost in computational
@@ -570,7 +574,7 @@ architectures with few concurrent processes.
 Ongoing work is focusing on finishing the tuning of track finding algorithm
 parameters and implementing the missing final post-processing of
 tracks. Integration with CMSSW is proceeding in parallel with the goal of
-early participation in the CMS HLT test-bed system for Run 3 of the LHC.
+integration in the CMS HLT test-bed system for Run 3 of the LHC.
 
 
 %-------------------------------------------------------------------------------
