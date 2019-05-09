@@ -452,11 +452,10 @@ be performed outside of \mkfit itself.
 
 First, we show the speedup as a function of the Matriplex width which
 effectively controls how many slots in the vector registers are used. The
-results are shown in figure \ref{fig:vu-speedup}. For SKL-SP the highest
-speedup obtained with AVX-512 vectorization (SIMD width of 16 floats) is 2.8.
-On KNL with AVX-512, including auto-generated intrinsics code for Matriplex
-operations, we observe a maximum speedup of 3.2. Assuming that effective
-vectorization speedup is 3, speedup of vectorized code is 16, and using
+results are shown in figure \ref{fig:vu-speedup}. On both platforms the highest
+speedup is obtained with AVX-512 vectorization (SIMD width of 16 floats) and
+is 2.9 for SKL-SP and 3.3 for KNL. Taking the effective
+vectorization speedup of 3, assuming that speedup of vectorized code is 16, and using
 Amdahl's Law in reverse, we can conclude that at least 72\% of our code's
 execution time operates with vector instructions.
 
@@ -480,9 +479,8 @@ event. Beyond 32 threads the standard work chunk of 32 seeds per task gets
 progressively reduced down to 4 seeds per task at 256 threads.
 SKL-SP shows good scaling up to 8 threads and KNL up to 32 threads.
 For KNL the effect of reduction of the standard work chunk can be observed
-in continuation of scaling toward higher number of threads where, ultimately, at
-about 164 threads there simply isn't enough seeds per event to fill up all
-the processing slots.
+in continuation of scaling toward higher number of threads, up to 
+about 164 threads.
 
 \begin{figure}[htb]
   \centering
@@ -513,10 +511,10 @@ Scaling behavior for multiple events in flight is shown in figure
 pre-processing of hits and seeds have not yet been fully optimized for
 multithreaded operation or to use vectorization. One can see the effect of
 those by comparing results for one event in flight with corresponding result in
-the previous section, figure \ref{fig:th-speedup}. SKL-SP shows good scaling with 16
+the previous section, figure \ref{fig:th-speedup}. SKL-SP shows best scaling with 16
 events in flight; hyperthreading provides additional 30\% speedup when going from 32 to 64
-total threads. For KNL, having 16 events in flight offers the best performance up to
-64 threads; above that, 32 events in flight are required, but having more than
+total threads. For KNL, having 32 events in flight offers the best performance; up to
+64 threads the performance is also achieved by 16 events inflight. Having more than
 32 events in flight is not helpful, possibly due to the fact that in KNL a given
 memory reference can only be ``owned'' by 1 of 32 tiles in the layout of cores.
 KNL shows no gain in using more than 128 threads, i.e., hyperthreading does not
