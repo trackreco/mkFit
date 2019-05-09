@@ -455,9 +455,10 @@ effectively controls how many slots in the vector registers are used. The
 results are shown in figure \ref{fig:vu-speedup}. For SKL-SP the highest
 speedup obtained with AVX-512 vectorization (SIMD width of 16 floats) is 2.8.
 On KNL with AVX-512, including auto-generated intrinsics code for Matriplex
-operations, we observe a maximum speedup of 3.2. Assuming the that effective
-vectorization speedup is 3, Amdahl's Law implies that a minimum of 72\% of our
-code's execution path consists of vector instructions.
+operations, we observe a maximum speedup of 3.2. Assuming that effective
+vectorization speedup is 3, speedup of vectorized code is 16, and using
+Amdahl's Law in reverse, we can conclude that at least 72\% of our code's
+execution time operates with vector instructions.
 
 \begin{figure}[htb]
   \centering
