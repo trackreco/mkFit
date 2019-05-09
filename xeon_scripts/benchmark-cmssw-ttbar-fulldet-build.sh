@@ -81,9 +81,14 @@ do
 	    oBase=${base}_${bN}
 	    bExe="${exe} --build-${bO} --num-thr ${nth}"
 
+	    nproc=$(( ${nevents} * ${nth} ))
+            if (( ${nproc} > 5000 )); then
+                nproc=5000
+            fi
+
 	    ## Building-only benchmark
 	    echo "${oBase}: Benchmark [nTH:${nth}, nVU:${maxvu}int]"
-	    ${bExe} --num-events ${nevents} >& log_${oBase}_NVU${maxvu}int_NTH${nth}.txt
+	    ${bExe} --num-events ${nproc} >& log_${oBase}_NVU${maxvu}int_NTH${nth}.txt
 
 	    ## Multiple Events in Flight benchmark
 	    check_meif=$( CheckIfMEIF ${build} )
@@ -93,7 +98,6 @@ do
 		do
 		    if (( ${nev} <= ${nth} ))
 		    then
-			nproc=$(( ${nevents} * ${nev} ))
 			echo "${oBase}: Benchmark [nTH:${nth}, nVU:${maxvu}int, nEV:${nev}]"
 			${bExe} --silent --num-thr-ev ${nev} --num-events ${nproc} >& log_${oBase}_NVU${maxvu}int_NTH${nth}_NEV${nev}.txt
 		    fi
