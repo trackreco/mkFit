@@ -913,22 +913,13 @@ void MkBuilder::remap_track_hits(TrackVec & tracks)
 // Non-ROOT validation
 //------------------------------------------------------------------------------
 
-void MkBuilder::quality_prep_tracks(TrackVec & tracks)
-{
-  // first, remap hits
-  remap_track_hits(tracks);
-
-  // then, sort hits by layer
-  for (auto & track : tracks) track.sortHitsByLayer();
-}
-
 void MkBuilder::quality_val()
 {
   quality_reset();
 
-  // remap hits + sort hits by layer (seed + reco)
-  quality_prep_tracks(m_event->seedTracks_);
-  quality_prep_tracks(m_event->candidateTracks_);
+  // remap hits
+  remap_track_hits(m_event->seedTracks_);
+  remap_track_hits(m_event->candidateTracks_);
 
   std::map<int,int> cmsswLabelToPos;
   if (Config::dumpForPlots && Config::readCmsswTracks)
@@ -1021,8 +1012,7 @@ void MkBuilder::quality_process(Track &tkcand, const int itrack, std::map<int,in
     phimc = simtrack.momPhi();
     pTr   = pT / pTmc;
 
-    simtrack.sortHitsByLayer();
-    nfoundmc = simtrack.nUniqueLayers(false);
+    nfoundmc = simtrack.nUniqueLayers();
 
     ++m_cnt;
     if (pTr > 0.9 && pTr < 1.1) ++m_cnt1;
@@ -1054,8 +1044,7 @@ void MkBuilder::quality_process(Track &tkcand, const int itrack, std::map<int,in
       pTcmssw  = cmsswtrack.pT();
       etacmssw = cmsswtrack.momEta();
       phicmssw = cmsswtrack.swimPhiToR(tkcand.x(),tkcand.y()); // to get rough estimate of diff in phi
-      cmsswtrack.sortHitsByLayer();
-      nfoundcmssw = cmsswtrack.nUniqueLayers(false);
+      nfoundcmssw = cmsswtrack.nUniqueLayers();
     }
   }
 
@@ -1263,7 +1252,7 @@ void MkBuilder::prep_reftracks(TrackVec& tracks, TrackExtraVec& extras, const bo
   // mark cmsswtracks as unfindable if too short
   for (auto& track : tracks)
   {
-    const int nlyr = track.nUniqueLayers(false);
+    const int nlyr = track.nUniqueLayers();
     if (nlyr < Config::cmsSelMinLayers) track.setNotFindable();
   }
 }
@@ -1272,7 +1261,6 @@ void MkBuilder::prep_tracks(TrackVec& tracks, TrackExtraVec& extras, const bool 
 {
   for (size_t i = 0; i < tracks.size(); i++)
   {
-    tracks[i].sortHitsByLayer();
     extras.emplace_back(tracks[i].label());
   }
   if (realigntracks) m_event->validation_.alignTracks(tracks,extras,false);
