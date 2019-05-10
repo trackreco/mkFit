@@ -15,17 +15,17 @@ echo "Tar and send to LNX"
 echo "Run benchmarking on LNX concurrently with SKL-SP benchmarks" 
 ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh LNX ${suite} >& benchmark_lnx_dump.txt &
 
-echo "Tar and send to LNX-S"
-./xeon_scripts/tarAndSendToRemote.sh LNX-S ${suite}
-
-echo "Run benchmarking on LNX-S concurrently with SKL-SP benchmarks" 
-./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh LNX-S ${suite} >& benchmark_lnx-s_dump.txt &
-
 echo "Tar and send to KNL"
 ./xeon_scripts/tarAndSendToRemote.sh KNL ${suite}
 
 echo "Run benchmarking on KNL concurrently with SKL-SP benchmarks" 
 ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh KNL ${suite} >& benchmark_knl_dump.txt &
+
+echo "Tar and send to LNX-S"
+./xeon_scripts/tarAndSendToRemote.sh LNX-S ${suite}
+
+echo "Run benchmarking on LNX-S concurrently with SKL-SP benchmarks" 
+./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh LNX-S ${suite} >& benchmark_lnx-s_dump.txt &
 
 echo "Tar and send to SNB"
 ./xeon_scripts/tarAndSendToRemote.sh SNB ${suite}
