@@ -27,7 +27,7 @@ namespace
   }
 };
 
-enum ArchEnum {SNB, KNL, SKL, LNX, LNXS};
+enum ArchEnum {SNB, KNL, SKL, LNXG, LNXS};
 
 namespace
 {
@@ -38,7 +38,7 @@ namespace
     else if (arch.Contains("KNL")) ARCH = KNL;
     else if (arch.Contains("SKL")) ARCH = SKL;
     else if (arch.Contains("LNX-S")) ARCH = LNXS;
-    else if (arch.Contains("LNX")) ARCH = LNX;
+    else if (arch.Contains("LNX-G")) ARCH = LNXG;
     else 
     {
       std::cerr << arch.Data() << " is not an allowed architecture! Exiting... " << std::endl;
@@ -157,7 +157,7 @@ namespace
       arch_opt.thmeifspeedupmin = 0.;
       arch_opt.thmeifspeedupmax = arch_opt.thspeedupmax;
     }
-    else if (ARCH == LNX)
+    else if (ARCH == LNXG)
     {
       arch_opt.vumin = 1;
       arch_opt.vumax = 16;

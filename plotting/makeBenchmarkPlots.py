@@ -20,7 +20,7 @@ def run():
     vuvals = ['1','2','4','8']
     nth = '1'
     
-    if  arch == 'KNL' or arch == 'SKL-SP' or arch == 'LNX' or arch == 'LNX-S':
+    if  arch == 'KNL' or arch == 'SKL-SP' or arch == 'LNX-G' or arch == 'LNX-S':
         vuvals.append('16')
         vuvals.append('16int')
     elif arch == 'SNB' :
@@ -43,7 +43,7 @@ def run():
     elif arch == 'SKL-SP' :
         nvu = '16int'
         thvals = ['1','2','4','8','16','32','48','64']
-    elif arch == 'LNX' :
+    elif arch == 'LNX-G' :
         nvu = '16int'
         thvals = ['1','2','4','8','16','32','48','64']
     elif arch == 'LNX-S' :

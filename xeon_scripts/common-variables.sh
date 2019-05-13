@@ -2,6 +2,7 @@
 
 # command line input
 suite=${1:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
+lnxuser=${2:=${USER}}
 
 # samples
 export sample=CMSSW_TTbar_PU70
@@ -20,12 +21,12 @@ export SNB_WORKDIR=/data2/nfsmic/${USER}
 export SNB_TEMPDIR=tmp
 
 # vars for LNX7188
-export LNX_HOST=mgr85@lnx7188.classe.cornell.edu
-export LNX_WORKDIR=/home/mgr85
-export LNX_TEMPDIR=tmp7188
+export LNXG_HOST=${lnxuser}@lnx7188.classe.cornell.edu
+export LNXG_WORKDIR=/home/${lnxuser}
+export LNXG_TEMPDIR=tmp7188
 # vars for LNX4108
-export LNXS_HOST=mgr85@lnx4108.classe.cornell.edu
-export LNXS_WORKDIR=/home/mgr85
+export LNXS_HOST=${lnxuser}@lnx4108.classe.cornell.edu
+export LNXS_WORKDIR=/home/${lnxuser}
 export LNXS_TEMPDIR=tmp4108
 
 # SSH options
