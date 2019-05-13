@@ -46,11 +46,11 @@ wait
 
 ##### Benchmark Plots #####
 echo "Producing benchmarking plots"
-./plotting/benchmarkPlots_lnx.sh ${suite}
+./plotting/benchmarkPlots_lnx.sh ${suite} ${lnxuser}
 
 ##### Plots from Text Files #####
 echo "Producing plots from text files"
-./plotting/textDumpPlots_lnx.sh ${suite}
+./plotting/textDumpPlots_lnx.sh ${suite} ${lnxuser}
 
 ##### Final cleanup #####
 make distclean

@@ -2,9 +2,10 @@
 
 ## input
 suite=${1:-"forPR"}
+lnxuser=${2:-${USER}}
 
 ## In case this is run separately from the main script
-source xeon_scripts/common-variables.sh ${suite}
+source xeon_scripts/common-variables.sh ${suite} ${lnxuser}
 source xeon_scripts/init-env.sh
 
 Base_Test="NVU1_NTH1"
