@@ -2,7 +2,7 @@
 
 # command line input
 suite=${1:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
-lnxuser=${2:=${USER}}
+lnxuser=${2:-${USER}}
 
 # samples
 export sample=CMSSW_TTbar_PU70
