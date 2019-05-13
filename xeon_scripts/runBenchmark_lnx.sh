@@ -2,18 +2,19 @@
 
 ##### Command Line Input #####
 suite=${1:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
+lnxuser=${2:-${USER}}
 
 ##### Initialize Benchmarks #####
-source xeon_scripts/common-variables.sh ${suite}
+source xeon_scripts/common-variables.sh ${suite} ${lnxuser}
 source xeon_scripts/init-env.sh
 make distclean
 
 ##### Launch Tests #####
-echo "Tar and send to LNX"
-./xeon_scripts/tarAndSendToRemote.sh LNX ${suite}
+echo "Tar and send to LNX7188"
+./xeon_scripts/tarAndSendToRemote.sh LNX-G ${suite} ${lnxuser}
 
-echo "Run benchmarking on LNX concurrently with SKL-SP benchmarks" 
-./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh LNX ${suite} >& benchmark_lnx_dump.txt &
+echo "Run benchmarking on LNX7188 concurrently with SKL-SP benchmarks" 
+./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh LNX-G ${suite} ${lnxuser} >& benchmark_lnx-g_dump.txt &
 
 echo "Tar and send to KNL"
 ./xeon_scripts/tarAndSendToRemote.sh KNL ${suite}
@@ -21,11 +22,11 @@ echo "Tar and send to KNL"
 echo "Run benchmarking on KNL concurrently with SKL-SP benchmarks" 
 ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh KNL ${suite} >& benchmark_knl_dump.txt &
 
-echo "Tar and send to LNX-S"
-./xeon_scripts/tarAndSendToRemote.sh LNX-S ${suite}
+echo "Tar and send to LNX4108"
+./xeon_scripts/tarAndSendToRemote.sh LNX-S ${suite} ${lnxuser}
 
-echo "Run benchmarking on LNX-S concurrently with SKL-SP benchmarks" 
-./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh LNX-S ${suite} >& benchmark_lnx-s_dump.txt &
+echo "Run benchmarking on LNX4108 concurrently with SKL-SP benchmarks" 
+./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh LNX-S ${suite} ${lnxuser} >& benchmark_lnx-s_dump.txt &
 
 echo "Tar and send to SNB"
 ./xeon_scripts/tarAndSendToRemote.sh SNB ${suite}
@@ -40,7 +41,7 @@ echo "Run benchmarking on SKL-SP"
 echo "Running ROOT based validation"
 ./val_scripts/validation-cmssw-benchmarks.sh ${suite}
 
-echo "Waiting for KNL and SNB"
+echo "Waiting for LNX-G, LNX-S, KNL and SNB"
 wait
 
 ##### Benchmark Plots #####
