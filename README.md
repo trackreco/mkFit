@@ -50,7 +50,8 @@
 - **phi1.t2.ucsd.edu**: [Intel Xeon Processor E5-2620](https://ark.intel.com/products/64594/Intel-Xeon-Processor-E5-2620-15M-Cache-2_00-GHz-7_20-GTs-Intel-QPI) _Sandy Bridge_ (referred to as SNB, phiphi, phi1)
 - **phi2.t2.ucsd.edu**: [Intel Xeon Phi Processor 7210](https://ark.intel.com/products/94033/Intel-Xeon-Phi-Processor-7210-16GB-1_30-GHz-64-core) _Knights Landing_ (referred to as KNL, phi2)
 - **phi3.t2.ucsd.edu**: [Intel Xeon Gold 6130 Processor](https://ark.intel.com/products/120492/Intel-Xeon-Gold-6130-Processor-22M-Cache-2_10-GHz) _Skylake Scalable Performance_ (referred to as SKL-Au, SKL-SP, phi3)
-- **lnx4108.classe.cornell.edu**: [Intel Xeon Silver 4116 Processor](https://ark.intel.com/products/120481/Intel-Xeon-Silver-4116-Processor-16_5M-Cache-2_10-GHz) _Skylake Scalable Performance_ (referred to as SKL-Ag, SKL-SP, lnx4108)
+- **lnx4108.classe.cornell.edu**: [Intel Xeon Silver 4116 Processor](https://ark.intel.com/products/120481/Intel-Xeon-Silver-4116-Processor-16_5M-Cache-2_10-GHz) _Skylake Scalable Performance_ (referred to as SKL-Ag, SKL-SP, lnx4108, LNX-S)
+- **lnx7188.classe.cornell.edu**: [Intel Xeon Gold 6142 Processor](https://ark.intel.com/content/www/us/en/ark/products/120487/intel-xeon-gold-6142-processor-22m-cache-2-60-ghz.html) _Skylake Scalable Performance_ (referred to as lnx7188,LNX-G)
 - **GPUs**: to be filled out
 
 phi1, phi2, and phi3 are all managed across a virtual login server and therefore the home user spaces are shared. phi1, phi2, phi3, and lnx4108 also have /cvmfs mounted so you can source the environment needed to run the code.
