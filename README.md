@@ -54,7 +54,7 @@
 - **lnx7188.classe.cornell.edu**: [Intel Xeon Gold 6142 Processor](https://ark.intel.com/content/www/us/en/ark/products/120487/intel-xeon-gold-6142-processor-22m-cache-2-60-ghz.html) _Skylake Scalable Performance_ (referred to as lnx7188,LNX-G)
 - **GPUs**: to be filled out
 
-phi1, phi2, and phi3 are all managed across a virtual login server and therefore the home user spaces are shared. phi1, phi2, phi3, and lnx4108 also have /cvmfs mounted so you can source the environment needed to run the code.
+phi1, phi2, and phi3 are all managed across a virtual login server and therefore the home user spaces are shared. phi1, phi2, phi3, lnx7188, and lnx4108 also have /cvmfs mounted so you can source the environment needed to run the code.
 
 The main development platform is phi3. This is the recommended machine for beginning development and testing. Login into any of the machines is achieved through ```ssh -X -Y <phi username>@phi<N>.t2.ucsd.edu```. It is recommended that you setup ssh key forwarding on your local machine so as to avoid typing in your password with every login, and more importantly, to avoid typing your password during the benchmarking (see Section 10.ii.b).
 
@@ -170,6 +170,14 @@ There are three options for running the full suite by passing one of the three s
 - ```forConf``` : runs compute and physics tests for track finding routines used for conferences only (currently only CE)
 
 The ```full``` option currently takes little more than a half hour, while the other tests take about 25 minutes. 
+
+Additionally, to run benchmarks on lnx4108 and lnx7188 as well as phi1, phi2, and phi3 from phi3, the main script can be run with:
+
+```
+./xeon_scripts/runBenchmark_lnx.sh ${suite} ${lnxuser}
+```
+
+Where ```${lnxuser}``` denotes the username on the lnx computers if different from the phi3 username. 
 
 Inside the main script, tests are submitted for phi1, phi2, and phi3 concurrently by: tarring up the local repo, sending the tarball to a disk space on the remote platform, compiling the untarred directory natively on the remote platform, and then sending back the log files to be analyzed on phi3. It should be noted that the tests for phi3 are simply run on in the user home directory when logged into phi3 (although we could in principle ship the code to the work space disk on phi3). Because we run the tests for phi3 in the home directory, which is shared by all three machines, we pack and send the code to a remote _disk_ space _before_ launching the tests on phi3 from the home directory. The scripts that handle the remote testing are: 
 
