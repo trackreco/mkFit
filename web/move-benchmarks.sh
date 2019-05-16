@@ -4,7 +4,7 @@
 dir=${1:-"benchmarks"} # Main output dir name
 suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
 afs_or_eos=${3:-"eos"} # which user space to use: afs or eos
-user=${4:-${USER}}
+lxpuser=${4:-${USER}}
 
 # source global variables
 source xeon_scripts/common-variables.sh ${suite}
@@ -20,7 +20,7 @@ echo "Copying index.php into ${dir}"
 
 # Then copy to lxplus
 echo "Moving plots and text files remotely to lxplus"
-./web/tarAndSendToLXPLUS.sh ${dir} ${suite} ${afs_or_eos} ${user}
+./web/tarAndSendToLXPLUS.sh ${dir} ${suite} ${afs_or_eos} ${lxpuser}
 
 # Final cleanup of directory
 echo "Removing local files"

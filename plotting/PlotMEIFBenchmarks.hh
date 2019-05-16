@@ -30,7 +30,7 @@ namespace
     events.emplace_back(8,kRed);
     events.emplace_back((ARCH==SNB?12:16),kMagenta);
     
-    if (ARCH == KNL || ARCH == SKL)
+    if (ARCH == KNL || ARCH == SKL || ARCH == LNXG || ARCH == LNXS)
     {
       events.emplace_back(32,kAzure+10);
       events.emplace_back(64,kOrange+3);
