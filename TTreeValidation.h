@@ -66,7 +66,9 @@ public:
   int getLastFoundHit(const int trackMCHitID, const int mcTrackID, const Event& ev);
   int getMaskAssignment(const int refID);
 
-  void fillHitInfo(const Track& track, std::vector<int> & lyrs, std::vector<int> & idxs);
+  void fillMinHitInfo(const Track& track, std::vector<int> & lyrs, std::vector<int> & idxs);
+  void fillFullHitInfo(const Event& ev, const Track& track, std::vector<int> & lyrs, std::vector<int> & idxs, std::vector<int> & mcTkIDs,
+		       std::vector<float> & xs, std::vector<float> & ys, std::vector<float> & zs);
 
   void fillEfficiencyTree(const Event& ev) override;
   void fillFakeRateTree(const Event& ev) override;
@@ -158,6 +160,10 @@ public:
   // hit info
   std::vector<int> hitlyrs_mc_eff_,hitlyrs_seed_eff_,hitlyrs_build_eff_,hitlyrs_fit_eff_;
   std::vector<int> hitidxs_mc_eff_,hitidxs_seed_eff_,hitidxs_build_eff_,hitidxs_fit_eff_;
+  std::vector<int> hitmcTkIDs_mc_eff_,hitmcTkIDs_seed_eff_,hitmcTkIDs_build_eff_,hitmcTkIDs_fit_eff_;
+  std::vector<float> hitxs_mc_eff_,hitxs_seed_eff_,hitxs_build_eff_,hitxs_fit_eff_;
+  std::vector<float> hitys_mc_eff_,hitys_seed_eff_,hitys_build_eff_,hitys_fit_eff_;
+  std::vector<float> hitzs_mc_eff_,hitzs_seed_eff_,hitzs_build_eff_,hitzs_fit_eff_;
 
   // Fake Rate tree and variables
   std::unique_ptr<TTree> frtree_;
@@ -205,6 +211,10 @@ public:
   // hit info
   std::vector<int> hitlyrs_seed_FR_,hitlyrs_build_FR_,hitlyrs_fit_FR_,hitlyrs_mc_seed_FR_,hitlyrs_mc_build_FR_,hitlyrs_mc_fit_FR_;
   std::vector<int> hitidxs_seed_FR_,hitidxs_build_FR_,hitidxs_fit_FR_,hitidxs_mc_seed_FR_,hitidxs_mc_build_FR_,hitidxs_mc_fit_FR_;
+  std::vector<int> hitmcTkIDs_seed_FR_,hitmcTkIDs_build_FR_,hitmcTkIDs_fit_FR_,hitmcTkIDs_mc_seed_FR_,hitmcTkIDs_mc_build_FR_,hitmcTkIDs_mc_fit_FR_;
+  std::vector<float> hitxs_seed_FR_,hitxs_build_FR_,hitxs_fit_FR_,hitxs_mc_seed_FR_,hitxs_mc_build_FR_,hitxs_mc_fit_FR_;
+  std::vector<float> hitys_seed_FR_,hitys_build_FR_,hitys_fit_FR_,hitys_mc_seed_FR_,hitys_mc_build_FR_,hitys_mc_fit_FR_;
+  std::vector<float> hitzs_seed_FR_,hitzs_build_FR_,hitzs_fit_FR_,hitzs_mc_seed_FR_,hitzs_mc_build_FR_,hitzs_mc_fit_FR_;
 
   // Configuration tree
   std::unique_ptr<TTree> configtree_;

@@ -312,8 +312,6 @@ public:
 
   HitOnTrack* BeginHitsOnTrack_nc() { return hitsOnTrk_; }
 
-  void sortHitsByLayer();
-
   void fillEmptyLayers() {
     for (int h = lastHitIdx_ + 1; h < Config::nMaxTrkHits; h++) {
       setHitIdxLyr(h, -1, -1);
@@ -367,36 +365,34 @@ public:
     return n;
   }
 
-  int nSeedLyrHits() const
+  int nUniqueLayers() const 
   {
-    int nSeedHits = 0;
-    for (int ihit = 0; ihit <= lastHitIdx_ ; ++ihit)
-    {
-      int h_lyr = hitsOnTrk_[ihit].layer;
-      if (Config::TrkInfo.is_seed_lyr(h_lyr))
-      {
-	nSeedHits++;
-      }
-    }
-    return nSeedHits;
-  }
+    // make local copy in vector: sort it in place
+    std::vector<HitOnTrack> tmp_hitsOnTrk(hitsOnTrk_,hitsOnTrk_+(lastHitIdx_+1)); 
+    std::sort(tmp_hitsOnTrk.begin(), tmp_hitsOnTrk.end(),
+	      [](const auto & h1, const auto & h2) { return h1.layer < h2.layer; });
 
-  int nUniqueLayers(const bool skipSeedLyrs) const
-  {
-    int lyr_cnt  =  0;
-    int prev_lyr = -1;
-    for (int ihit = 0; ihit <= lastHitIdx_ ; ++ihit)
+    // local counters
+    auto lyr_cnt  =  0;
+    auto prev_lyr = -1;
+
+    // loop over copy of hitsOnTrk
+    for (auto ihit = 0; ihit <= lastHitIdx_; ++ihit)
     {
-      int h_lyr = hitsOnTrk_[ihit].layer;
-      if (skipSeedLyrs && Config::TrkInfo.is_seed_lyr(h_lyr)) continue;
-      if (h_lyr >= 0 && (hitsOnTrk_[ihit].index >= 0 || hitsOnTrk_[ihit].index == -9) && h_lyr != prev_lyr)
+      const auto & hot = tmp_hitsOnTrk[ihit];
+      const auto lyr = hot.layer;
+      const auto idx = hot.index;
+      if (lyr >= 0 && (idx >= 0 || idx == -9) && lyr != prev_lyr)
       {
         ++lyr_cnt;
-        prev_lyr = h_lyr;
+        prev_lyr = lyr;
       }
     }
     return lyr_cnt;
   }
+
+  // this method sorts the data member hitOnTrk_ and is ONLY to be used by sim track seeding
+  void sortHitsByLayer();
 
   const std::vector<int> foundLayers() const
   {

@@ -734,8 +734,8 @@ int Event::clean_cms_simtracks()
     i++;
 
     t.sortHitsByLayer();
-    
-    const int lyr_cnt = t.nUniqueLayers(false);
+
+    const int lyr_cnt = t.nUniqueLayers();
 
     //const int lasthit = t.getLastFoundHitPos();
     //const float eta = layerHits_[t.getHitLyr(lasthit)][t.getHitIdx(lasthit)].eta();

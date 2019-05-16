@@ -106,8 +106,9 @@ bool Track::hasSillyValues(bool dump, bool fix, const char* pref)
 void Track::sortHitsByLayer()
 {
   std::sort(& hitsOnTrk_[0], & hitsOnTrk_[lastHitIdx_ + 1],
-            [&](HitOnTrack h1, HitOnTrack h2) { return h1.layer < h2.layer; });
+	    [](const auto & h1, const auto & h2) { return h1.layer < h2.layer; });
 }
+
 
 float Track::swimPhiToR(const float x0, const float y0) const
 {
@@ -604,7 +605,7 @@ void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMa
     const auto nMatchedHits = labelMatchPair.second;
 
     // 50% matching criterion 
-    if ((2*nMatchedHits) >= (cmsswtracks[cmsswlabel].nUniqueLayers(false)-cmsswextras[cmsswlabel].nMatchedSeedHits())) labelMatchVec.push_back(cmsswlabel);
+    if ((2*nMatchedHits) >= (cmsswtracks[cmsswlabel].nUniqueLayers()-cmsswextras[cmsswlabel].nMatchedSeedHits())) labelMatchVec.push_back(cmsswlabel);
   }
 
   // initialize tmpID for later use
@@ -625,7 +626,7 @@ void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMa
 		  const auto & extra1 = cmsswextras[label1];
 		  const auto & extra2 = cmsswextras[label2];
 
-		  return ((track1.nUniqueLayers(false)-extra1.nMatchedSeedHits()) < (track2.nUniqueLayers(false)-extra2.nMatchedSeedHits()));
+		  return ((track1.nUniqueLayers()-extra1.nMatchedSeedHits()) < (track2.nUniqueLayers()-extra2.nMatchedSeedHits()));
 		}
 		return labelMatchMap[label1] > labelMatchMap[label2];
 	      });
@@ -719,7 +720,7 @@ void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMa
   cmsswTrackID_ = modifyRefTrackID(trk.nFoundHits()-nSeedHits,Config::nMinFoundHits-nSeedHits,cmsswtracks,cmsswlabel,trk.getDuplicateValue(),cmsswTrackID_);
 
   // other important info
-  fracHitsMatched_ = (cmsswTrackID >=0 ? (float(nHitsMatched_) / float(cmsswtracks[cmsswTrackID].nUniqueLayers(false)-cmsswextras[cmsswTrackID].nMatchedSeedHits())) : 0.f);
+  fracHitsMatched_ = (cmsswTrackID >=0 ? (float(nHitsMatched_) / float(cmsswtracks[cmsswTrackID].nUniqueLayers()-cmsswextras[cmsswTrackID].nMatchedSeedHits())) : 0.f);
 }
 
 //==============================================================================
