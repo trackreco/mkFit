@@ -391,6 +391,9 @@ public:
     return lyr_cnt;
   }
 
+  // this method sorts the data member hitOnTrk_ and is ONLY to be used by sim track seeding
+  void sortHitsByLayer();
+
   const std::vector<int> foundLayers() const
   {
     std::vector<int> layers;

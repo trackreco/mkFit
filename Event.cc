@@ -732,7 +732,9 @@ int Event::clean_cms_simtracks()
   for (Track & t : simTracks_)
   {
     i++;
-    
+
+    t.sortHitsByLayer();
+
     const int lyr_cnt = t.nUniqueLayers();
 
     //const int lasthit = t.getLastFoundHitPos();

@@ -103,6 +103,13 @@ bool Track::hasSillyValues(bool dump, bool fix, const char* pref)
 
 //------------------------------------------------------------------------------
 
+void Track::sortHitsByLayer()
+{
+  std::sort(& hitsOnTrk_[0], & hitsOnTrk_[lastHitIdx_ + 1],
+	    [](const auto & h1, const auto & h2) { return h1.layer < h2.layer; });
+}
+
+
 float Track::swimPhiToR(const float x0, const float y0) const
 {
   const float dR = getHypot(x()-x0,y()-y0); 
