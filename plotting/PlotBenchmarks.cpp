@@ -41,7 +41,7 @@ void PlotBenchmarks::RunBenchmarkPlots()
 
   // y-axis titles
   const TString ytitletime    = "Average Build Time per Event [s]";
-  const TString ytitlespeedup = "Average Build Speedup per Event";
+  const TString ytitlespeedup = "Track Finding Speedup";
 
   // Do the overlaying!
   PlotBenchmarks::MakeOverlay("VU_time",sample+" Vectorization Benchmark on "+arch+" [nTH="+nth+"]",xtitlevu,ytitletime,
@@ -71,10 +71,10 @@ void PlotBenchmarks::MakeOverlay(const TString & text, const TString & title, co
   if (!isVU && !isSpeedup) canv->SetLogy();
   
   // legend 
-  const Double_t x1 = (isSpeedup ? 0.20 : 0.60); // draw legend on left for speedup plots as this part is empty
+  const Double_t x1 = (isSpeedup ? 0.15 : 0.60); // draw legend on left for speedup plots as this part is empty
   const Double_t y1 = 0.65;
   const Double_t ylength = builds.size()*0.05; // adjust size of legend for how many build routines we are plotting
-  auto leg = new TLegend(x1,y1,x1+0.25,y1+ylength);
+  auto leg = new TLegend(x1,y1,x1+0.20,y1+ylength);
   leg->SetBorderSize(0);  
 
   // setup tgraphs
@@ -83,7 +83,7 @@ void PlotBenchmarks::MakeOverlay(const TString & text, const TString & title, co
 
   // get tgraphs for intrinsic plot
   TGEVec graphs_int(nbuilds);
-  if (isVU) PlotBenchmarks::GetGraphs(graphs_int,text+"_int",title,xtitle,ytitle);
+  // if (isVU) PlotBenchmarks::GetGraphs(graphs_int,text+"_int",title,xtitle,ytitle);
 
   // Draw graphs
   for (auto i = 0U; i < nbuilds; i++)

@@ -34,7 +34,7 @@ void PlotMEIFBenchmarks::RunMEIFBenchmarkPlots()
 
   // y-axis title
   const TString ytitletime    = "Averarge Time per Event [s]";
-  const TString ytitlespeedup = "Average Speedup per Event";
+  const TString ytitlespeedup = "Event Processing Speedup";
 
   // Do the overlaying!
   PlotMEIFBenchmarks::MakeOverlay("time",build+" "+sample+" Multiple Events in Flight Benchmark on "+arch+" [nVU="+nvu+"]",xtitleth,ytitletime,
@@ -58,9 +58,9 @@ void PlotMEIFBenchmarks::MakeOverlay(const TString & text, const TString & title
   canv->DrawFrame(xmin,ymin,xmax,ymax,"");
   
   // legend 
-  const Double_t x1 = (isSpeedup ? 0.20 : 0.60);
+  const Double_t x1 = (isSpeedup ? 0.15 : 0.60);
   const Double_t y1 = 0.65;
-  auto leg = new TLegend(x1,y1,x1+0.25,y1+0.2);
+  auto leg = new TLegend(x1,y1,x1+0.2,y1+0.2);
   leg->SetBorderSize(0);  
 
   // get tgraphs for meif and draw

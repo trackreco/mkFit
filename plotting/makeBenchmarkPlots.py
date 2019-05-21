@@ -17,11 +17,12 @@ def run():
     g = ROOT.TFile('benchmark_'+arch+'_'+sample+'.root','update')
 
     # Vectorization data points
-    vuvals = ['1','2','4','8']
+    vuvals = ['1','2','4']
     nth = '1'
     
     if  arch == 'KNL' or arch == 'SKL-SP' :
-        vuvals.append('16')
+        # vuvals.append('16')
+        vuvals.append('8')
         vuvals.append('16int')
     elif arch == 'SNB' :
         vuvals.append('8int')
@@ -72,9 +73,9 @@ def makeplots(arch,sample,build,vals,nC,text):
     g_speedup = ROOT.TGraphErrors(len(vals)-1)
 
     # make separate plot for intrinsics measurement
-    if text is 'VU' :
-        g_time_int    = ROOT.TGraphErrors(1)
-        g_speedup_int = ROOT.TGraphErrors(1)
+    #if text is 'VU' :
+    #    g_time_int    = ROOT.TGraphErrors(1)
+    #    g_speedup_int = ROOT.TGraphErrors(1)
 
     point = 0
     for val in vals :
@@ -127,7 +128,8 @@ def makeplots(arch,sample,build,vals,nC,text):
         print val,mean,'+/-',emean
 
         # store intrinsics val into separate plot
-        if 'int' not in val :
+        # if 'int' not in val :
+        if True :
             g_time.SetPoint(point,xval,mean)
             g_time.SetPointError(point,0,emean)
             point = point+1
@@ -139,8 +141,8 @@ def makeplots(arch,sample,build,vals,nC,text):
     g_time.Write('g_'+build+'_'+text+'_time')
 
     # write out separate intrinsics plot
-    if text is 'VU' :
-        g_time_int.Write('g_'+build+'_'+text+'_time_int')
+    #if text is 'VU' :
+    #    g_time_int.Write('g_'+build+'_'+text+'_time_int')
 
     # Speedup calculation
     xval0 = array.array('d',[0])
@@ -159,7 +161,8 @@ def makeplots(arch,sample,build,vals,nC,text):
         yerr = array.array('d',[0])
 
         # get standard plots from standard plot
-        if 'int' not in val :
+        # if 'int' not in val :
+        if True :
             g_time.GetPoint(point,xval,yval)
             yerr.append(g_time.GetErrorY(point))
         else :
@@ -173,7 +176,8 @@ def makeplots(arch,sample,build,vals,nC,text):
             espeedup = speedup * math.sqrt(math.pow(yerr0[0]/yval0[0],2) + math.pow(yerr[0]/yval[0],2))
 
         # store in the correct plot
-        if 'int' not in val :
+        # if 'int' not in val :
+        if True :
             g_speedup.SetPoint(point,xval[0],speedup)
             g_speedup.SetPointError(point,0,espeedup)
             point = point+1
@@ -185,8 +189,8 @@ def makeplots(arch,sample,build,vals,nC,text):
     g_speedup.Write('g_'+build+'_'+text+'_speedup')
 
     # write out separate intrinsics plot
-    if text is 'VU' :
-        g_speedup_int.Write('g_'+build+'_'+text+'_speedup_int')
+    #if text is 'VU' :
+    #    g_speedup_int.Write('g_'+build+'_'+text+'_speedup_int')
 
     # all done
     return
