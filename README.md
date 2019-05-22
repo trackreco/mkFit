@@ -50,10 +50,11 @@
 - **phi1.t2.ucsd.edu**: [Intel Xeon Processor E5-2620](https://ark.intel.com/products/64594/Intel-Xeon-Processor-E5-2620-15M-Cache-2_00-GHz-7_20-GTs-Intel-QPI) _Sandy Bridge_ (referred to as SNB, phiphi, phi1)
 - **phi2.t2.ucsd.edu**: [Intel Xeon Phi Processor 7210](https://ark.intel.com/products/94033/Intel-Xeon-Phi-Processor-7210-16GB-1_30-GHz-64-core) _Knights Landing_ (referred to as KNL, phi2)
 - **phi3.t2.ucsd.edu**: [Intel Xeon Gold 6130 Processor](https://ark.intel.com/products/120492/Intel-Xeon-Gold-6130-Processor-22M-Cache-2_10-GHz) _Skylake Scalable Performance_ (referred to as SKL-Au, SKL-SP, phi3)
-- **lnx4108.classe.cornell.edu**: [Intel Xeon Silver 4116 Processor](https://ark.intel.com/products/120481/Intel-Xeon-Silver-4116-Processor-16_5M-Cache-2_10-GHz) _Skylake Scalable Performance_ (referred to as SKL-Ag, SKL-SP, lnx4108)
+- **lnx4108.classe.cornell.edu**: [Intel Xeon Silver 4116 Processor](https://ark.intel.com/products/120481/Intel-Xeon-Silver-4116-Processor-16_5M-Cache-2_10-GHz) _Skylake Scalable Performance_ (referred to as SKL-Ag, SKL-SP, lnx4108, LNX-S)
+- **lnx7188.classe.cornell.edu**: [Intel Xeon Gold 6142 Processor](https://ark.intel.com/content/www/us/en/ark/products/120487/intel-xeon-gold-6142-processor-22m-cache-2-60-ghz.html) _Skylake Scalable Performance_ (referred to as lnx7188,LNX-G)
 - **GPUs**: to be filled out
 
-phi1, phi2, and phi3 are all managed across a virtual login server and therefore the home user spaces are shared. phi1, phi2, phi3, and lnx4108 also have /cvmfs mounted so you can source the environment needed to run the code.
+phi1, phi2, and phi3 are all managed across a virtual login server and therefore the home user spaces are shared. phi1, phi2, phi3, lnx7188, and lnx4108 also have /cvmfs mounted so you can source the environment needed to run the code.
 
 The main development platform is phi3. This is the recommended machine for beginning development and testing. Login into any of the machines is achieved through ```ssh -X -Y <phi username>@phi<N>.t2.ucsd.edu```. It is recommended that you setup ssh key forwarding on your local machine so as to avoid typing in your password with every login, and more importantly, to avoid typing your password during the benchmarking (see Section 10.ii.b).
 
@@ -169,6 +170,14 @@ There are three options for running the full suite by passing one of the three s
 - ```forConf``` : runs compute and physics tests for track finding routines used for conferences only (currently only CE)
 
 The ```full``` option currently takes little more than a half hour, while the other tests take about 25 minutes. 
+
+Additionally, to run benchmarks on lnx4108 and lnx7188 as well as phi1, phi2, and phi3 from phi3, the main script can be run with:
+
+```
+./xeon_scripts/runBenchmark_lnx.sh ${suite} ${lnxuser}
+```
+
+Where ```${lnxuser}``` denotes the username on the lnx computers if different from the phi3 username. 
 
 Inside the main script, tests are submitted for phi1, phi2, and phi3 concurrently by: tarring up the local repo, sending the tarball to a disk space on the remote platform, compiling the untarred directory natively on the remote platform, and then sending back the log files to be analyzed on phi3. It should be noted that the tests for phi3 are simply run on in the user home directory when logged into phi3 (although we could in principle ship the code to the work space disk on phi3). Because we run the tests for phi3 in the home directory, which is shared by all three machines, we pack and send the code to a remote _disk_ space _before_ launching the tests on phi3 from the home directory. The scripts that handle the remote testing are: 
 

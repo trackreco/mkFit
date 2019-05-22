@@ -4,6 +4,7 @@
 dir=${1:-"benchmarks"} # Main output dir name
 suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
 afs_or_eos=${3:-"eos"} # which user space to use: afs or eos
+lxpuser=${4:=${USER}}
 
 # in case this is run alone
 source xeon_scripts/common-variables.sh ${suite}
@@ -15,9 +16,9 @@ tarball=${dir}.tar.gz
 tar -zcvf ${tarball} ${dir}
 
 # vars for LXPLUS
-LXPLUS_HOST=${USER}@lxplus.cern.ch
+LXPLUS_HOST=${lxpuser}@lxplus.cern.ch
 LXPLUS_OUTDIR=www
-LXPLUS_WORKDIR=user/${USER:0:1}/${USER}
+LXPLUS_WORKDIR=user/${lxpuser:0:1}/${lxpuser}
 
 if [[ "${afs_or_eos}" == "afs" ]]
 then

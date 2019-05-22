@@ -19,6 +19,20 @@ then
     maxcore=32
     declare -a instruction_sets=(AVX512)
     declare -a thread_combo_arr=("1 1" "2 2" "4 4" "8 8" "16 16" "32 32" "64 64")
+elif [[ "${ben_arch}" == "LNX-G" ]]
+then
+    mOpt="-j 32"
+    dir=/data2/slava77/samples
+    maxcore=32
+    declare -a instruction_sets=(AVX512)
+    declare -a thread_combo_arr=("1 1" "2 2" "4 4" "8 8" "16 16" "32 32" "64 64")
+elif [[ "${ben_arch}" == "LNX-S" ]]
+then
+    mOpt="-j 32"
+    dir=/data2/slava77/samples
+    maxcore=32
+    declare -a instruction_sets=(AVX512)
+    declare -a thread_combo_arr=("1 1" "2 2" "4 4" "8 8" "16 16" "32 32" "64 64")
 else
     echo "${ben_arch} is not a valid architecture! Exiting..."
     exit

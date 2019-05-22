@@ -27,7 +27,7 @@ namespace
   }
 };
 
-enum ArchEnum {SNB, KNL, SKL};
+enum ArchEnum {SNB, KNL, SKL, LNXG, LNXS};
 
 namespace
 {
@@ -37,6 +37,8 @@ namespace
     if      (arch.Contains("SNB")) ARCH = SNB;
     else if (arch.Contains("KNL")) ARCH = KNL;
     else if (arch.Contains("SKL")) ARCH = SKL;
+    else if (arch.Contains("LNX-S")) ARCH = LNXS;
+    else if (arch.Contains("LNX-G")) ARCH = LNXG;
     else 
     {
       std::cerr << arch.Data() << " is not an allowed architecture! Exiting... " << std::endl;
@@ -130,6 +132,58 @@ namespace
       arch_opt.thmeifspeedupmax = arch_opt.thspeedupmax;
     }
     else if (ARCH == SKL)
+    {
+      arch_opt.vumin = 1;
+      arch_opt.vumax = 16;
+      
+      arch_opt.thmin = 1;
+      arch_opt.thmax = 64;
+
+      arch_opt.vutimemin = 0.;
+      arch_opt.vutimemax = 0.25;
+
+      arch_opt.thtimemin = 0.001;
+      arch_opt.thtimemax = 1.;
+
+      arch_opt.vuspeedupmin = 0.;
+      arch_opt.vuspeedupmax = arch_opt.vumax;
+
+      arch_opt.thspeedupmin = 0.;
+      arch_opt.thspeedupmax = arch_opt.thmax / 2;
+
+      arch_opt.thmeiftimemin = 0.001;
+      arch_opt.thmeiftimemax = arch_opt.thtimemax;
+
+      arch_opt.thmeifspeedupmin = 0.;
+      arch_opt.thmeifspeedupmax = arch_opt.thspeedupmax;
+    }
+    else if (ARCH == LNXG)
+    {
+      arch_opt.vumin = 1;
+      arch_opt.vumax = 16;
+      
+      arch_opt.thmin = 1;
+      arch_opt.thmax = 64;
+
+      arch_opt.vutimemin = 0.;
+      arch_opt.vutimemax = 0.25;
+
+      arch_opt.thtimemin = 0.001;
+      arch_opt.thtimemax = 1.;
+
+      arch_opt.vuspeedupmin = 0.;
+      arch_opt.vuspeedupmax = arch_opt.vumax;
+
+      arch_opt.thspeedupmin = 0.;
+      arch_opt.thspeedupmax = arch_opt.thmax / 2;
+
+      arch_opt.thmeiftimemin = 0.001;
+      arch_opt.thmeiftimemax = arch_opt.thtimemax;
+
+      arch_opt.thmeifspeedupmin = 0.;
+      arch_opt.thmeifspeedupmax = arch_opt.thspeedupmax;
+    }
+    else if (ARCH == LNXS)
     {
       arch_opt.vumin = 1;
       arch_opt.vumax = 16;

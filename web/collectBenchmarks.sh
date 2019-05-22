@@ -22,7 +22,7 @@ builddir="Benchmarks"
 mkdir -p ${dir}/${builddir}
 mkdir -p ${dir}/${builddir}/logx
 
-for ben_arch in SNB KNL SKL-SP
+for ben_arch in SNB KNL SKL-SP LNX-G LNX-S
 do
     for benchmark in TH VU
     do
@@ -41,7 +41,7 @@ meifdir="MultEvInFlight"
 mkdir -p ${dir}/${meifdir}
 mkdir -p ${dir}/${meifdir}/logx
 
-for ben_arch in SNB KNL SKL-SP
+for ben_arch in SNB KNL SKL-SP LNX-G LNX-S
 do
     for build in "${meif_builds[@]}"
     do echo ${!build} | while read -r bN bO
