@@ -2,13 +2,28 @@
 
 ## input
 suite=${1:-"forPR"}
+lnxuser=${2:-${USER}}
+useLNX=${3:-0}
 
 ## In case this is run separately from the main script
-source xeon_scripts/common-variables.sh ${suite}
+source xeon_scripts/common-variables.sh ${suite} ${lnxuser}
 source xeon_scripts/init-env.sh
 
 ##### Make benchmark plots for each architecture #####
-for archV in "SNB snb" "KNL knl" "SKL-SP skl-sp"
+if [[ ${useLNX} -eq 0 ]]
+then
+arch_array=("SNB snb" "KNL knl" "SKL-SP skl-sp")
+fi
+if [[ ${useLNX} -eq 1 ]]
+then
+arch_array=("LNX-G lnx-g" "LNX-S lnx-s")
+fi
+if [[ ${useLNX} -eq 2 ]]
+then
+arch_array=("SNB snb" "KNL knl" "SKL-SP skl-sp" "LNX-G lnx-g" "LNX-S lnx-s")
+fi
+
+for archV in "${arch_array}" #"SNB snb" "KNL knl" "SKL-SP skl-sp"
 do echo ${archV} | while read -r archN archO
     do
 	for build in "${ben_builds[@]}"

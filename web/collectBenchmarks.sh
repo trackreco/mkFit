@@ -6,7 +6,9 @@
 
 dir=${1:-"benchmarks"}
 suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
+useLNX=${3:-0}
 
+echo ${useLNX}
 ###################
 ## Configuration ##
 ###################
@@ -22,7 +24,20 @@ builddir="Benchmarks"
 mkdir -p ${dir}/${builddir}
 mkdir -p ${dir}/${builddir}/logx
 
-for ben_arch in SNB KNL SKL-SP LNX-G LNX-S
+if [[ ${useLNX} -eq 0 ]]
+then 
+arch_array=(SNB KNL SKL-SP)
+fi
+if [[ ${useLNX} -eq 1 ]]
+then 
+arch_array=(LNX-G LNX-S)
+fi
+if [[ ${useLNX} -eq 2 ]]
+then 
+arch_array=(SNB KNL SKL-SP LNX-G LNX-S)
+fi
+
+for ben_arch in "${arch_array[@]}" #SNB KNL SKL-SP LNX-G LNX-S
 do
     for benchmark in TH VU
     do
@@ -41,7 +56,9 @@ meifdir="MultEvInFlight"
 mkdir -p ${dir}/${meifdir}
 mkdir -p ${dir}/${meifdir}/logx
 
-for ben_arch in SNB KNL SKL-SP LNX-G LNX-S
+
+#for ben_arch in SNB KNL SKL-SP LNX-G LNX-S
+for ben_arch in "${arch_array[@]}" #SNB KNL SKL-SP LNX-G LNX-S
 do
     for build in "${meif_builds[@]}"
     do echo ${!build} | while read -r bN bO

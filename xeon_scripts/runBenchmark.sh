@@ -37,7 +37,7 @@ echo "Producing benchmarking plots"
 
 ##### Plots from Text Files #####
 echo "Producing plots from text files"
-./plotting/textDumpPlots.sh ${suite}
+./plotting/textDumpPlots.sh ${suite} 
 
 ##### Final cleanup #####
 make distclean
