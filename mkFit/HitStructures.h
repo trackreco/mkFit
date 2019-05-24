@@ -60,18 +60,30 @@ inline bool sortTrksByPhiMT(const Track& t1, const Track& t2)
 // Note: the same code is used for barrel and endcap. In barrel the longitudinal
 // bins are in Z and in endcap they are in R -- here this coordinate is called Q
 
+// When not defined, hits are accessed from the original hit vector and
+// only sort ranks are kept for proper access.
+//
+//#define COPY_SORTED_HITS
+
 class LayerOfHits
 {
+private:
+#ifdef COPY_SORTED_HITS
+  Hit                      *m_hits = 0;
+  int                       m_capacity = 0;
+#else
+  unsigned int             *m_hit_ranks = 0; // allocated by IceSort via new []
+  const HitVec             *m_ext_hits;
+#endif
+
 public:
   const LayerInfo          *m_layer_info = 0;
-  Hit                      *m_hits = 0;
   vecvecPhiBinInfo_t        m_phi_bin_infos;
   std::vector<float>        m_hit_phis;
   std::vector<float>        m_hit_qs;
 
   float m_qmin, m_qmax, m_fq;
   int   m_nq = 0;
-  int   m_capacity = 0;
 
   int   layer_id()  const { return m_layer_info->m_layer_id;    }
   bool  is_barrel() const { return m_layer_info->is_barrel();   }
@@ -137,24 +149,21 @@ public:
 
 protected:
 
-  void setup_bins(float qmin, float qmax, float dq);
-
+#ifdef COPY_SORTED_HITS
   void alloc_hits(int size)
   {
     m_hits = (Hit*) _mm_malloc(sizeof(Hit) * size, 64);
     m_capacity = size;
     for (int ihit = 0; ihit < m_capacity; ihit++){m_hits[ihit] = Hit();} 
-    if (Config::usePhiQArrays)
-    {
-      m_hit_phis.resize(size);
-      m_hit_qs  .resize(size);
-    }
   }
 
   void free_hits()
   {
     _mm_free(m_hits);
   }
+#endif
+
+  void setup_bins(float qmin, float qmax, float dq);
 
   void set_phi_bin(int q_bin, int phi_bin, uint16_t &hit_count, uint16_t &hits_in_bin)
   {
@@ -184,7 +193,11 @@ public:
 
   ~LayerOfHits()
   {
+#ifdef COPY_SORTED_HITS
     free_hits();
+#else
+    delete [] m_hit_ranks;
+#endif
   }
 
   void  SetupLayer(const LayerInfo &li);
@@ -206,6 +219,16 @@ public:
   const vecPhiBinInfo_t& GetVecPhiBinInfo(float q) const { return m_phi_bin_infos[GetQBin(q)]; }
 
   void  SuckInHits(const HitVec &hitv);
+
+#ifdef COPY_SORTED_HITS
+  int GetHitIndex(int i)   const { return i; }
+  const Hit& GetHit(int i) const { return m_hits[i]; }
+  const Hit* GetHitArray() const { return m_hits; }
+#else
+  int GetHitIndex(int i)   const { return m_hit_ranks[i]; }
+  const Hit& GetHit(int i) const { return (*m_ext_hits)[m_hit_ranks[i]]; }
+  const Hit* GetHitArray() const { return & (*m_ext_hits)[0]; }
+#endif
 
   void  SelectHitIndices(float q, float phi, float dq, float dphi, std::vector<int>& idcs, bool isForSeeding=false, bool dump=false);
 
