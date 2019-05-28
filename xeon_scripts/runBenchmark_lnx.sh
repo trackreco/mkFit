@@ -46,7 +46,7 @@ wait
 
 ##### Benchmark Plots #####
 echo "Producing benchmarking plots"
-./plotting/benchmarkPlots_lnx.sh ${suite} ${lnxuser}
+./plotting/benchmarkPlots_lnx.sh ${suite} ${lnxuser} ${useLNX}
 
 ##### Plots from Text Files #####
 echo "Producing plots from text files"
