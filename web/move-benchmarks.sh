@@ -7,7 +7,6 @@ afs_or_eos=${3:-"eos"} # which user space to use: afs or eos
 lxpuser=${4:-${USER}}
 useLNX=${5:-0}
 
-echo ${useLNX}
 # source global variables
 source xeon_scripts/common-variables.sh ${suite}
 source xeon_scripts/init-env.sh

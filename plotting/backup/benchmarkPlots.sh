@@ -23,7 +23,7 @@ then
 arch_array=("SNB snb" "KNL knl" "SKL-SP skl-sp" "LNX-G lnx-g" "LNX-S lnx-s")
 fi
 
-for archV in "${arch_array[@]}" #"SNB snb" "KNL knl" "SKL-SP skl-sp" "LNX-G lnx-g" "LNX-S lnx-s"
+for archV in "${arch_array}" #"SNB snb" "KNL knl" "SKL-SP skl-sp"
 do echo ${archV} | while read -r archN archO
     do
 	for build in "${ben_builds[@]}"
