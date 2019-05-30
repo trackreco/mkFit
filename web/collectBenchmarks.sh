@@ -41,7 +41,7 @@ meifdir="MultEvInFlight"
 mkdir -p ${dir}/${meifdir}
 mkdir -p ${dir}/${meifdir}/logx
 
-for ben_arch in SNB KNL SKL-SP LNX-G LNX-S
+for ben_arch in "${arch_array[@]}" 
 do
     for build in "${meif_builds[@]}"
     do echo ${!build} | while read -r bN bO

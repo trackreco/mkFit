@@ -13,40 +13,39 @@ make distclean
 ##### Launch Tests #####
 if [[ ${useLNX} -eq 1 ]] || [[ ${useLNX} -eq 2 ]]
 then
-
 echo "Tar and send to LNX7188"
-./xeon_scripts/tarAndSendToRemote.sh LNX-G ${suite} ${lnxuser}
+./xeon_scripts/tarAndSendToRemote.sh LNX-G ${suite} ${useLNX} ${lnxuser}
 
 echo "Run benchmarking on LNX7188 concurrently with SKL-SP benchmarks" 
-./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh LNX-G ${suite} ${lnxuser} >& benchmark_lnx-g_dump.txt &
+./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh LNX-G ${suite} ${useLNX} ${lnxuser} >& benchmark_lnx-g_dump.txt &
 
 echo "Tar and send to LNX4108"
-./xeon_scripts/tarAndSendToRemote.sh LNX-S ${suite} ${lnxuser}
+./xeon_scripts/tarAndSendToRemote.sh LNX-S ${suite} ${useLNX} ${lnxuser}
 
 echo "Run benchmarking on LNX4108 concurrently with SKL-SP benchmarks" 
-./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh LNX-S ${suite} ${lnxuser} >& benchmark_lnx-s_dump.txt &
+./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh LNX-S ${suite} ${useLNX} ${lnxuser} >& benchmark_lnx-s_dump.txt &
 fi
 
 if [[ ${useLNX} -eq 0 ]] || [[ ${useLNX} -eq 2 ]]
 then
 
 echo "Tar and send to KNL"
-./xeon_scripts/tarAndSendToRemote.sh KNL ${suite}
+./xeon_scripts/tarAndSendToRemote.sh KNL ${suite} ${useLNX} ${lnxuser}
 
 echo "Run benchmarking on KNL concurrently with SKL-SP benchmarks" 
-./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh KNL ${suite} >& benchmark_knl_dump.txt &
+./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh KNL ${suite} ${useLNX} ${lnxuser} >& benchmark_knl_dump.txt &
 
 echo "Tar and send to SNB"
-./xeon_scripts/tarAndSendToRemote.sh SNB ${suite}
+./xeon_scripts/tarAndSendToRemote.sh SNB ${suite} ${useLNX} ${lnxuser}
 
 echo "Run benchmarking on SNB concurrently with SKL-SP benchmarks" 
-./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh SNB ${suite} >& benchmark_snb_dump.txt &
+./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build-remote.sh SNB ${suite} ${useLNX} ${lnxuser} >& benchmark_snb_dump.txt &
 
 echo "Run benchmarking on SKL-SP"
-./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh SKL-SP ${suite}
+./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh SKL-SP ${suite} ${useLNX} ${lnxuser} 
 fi
 
-###### Validation tests #####
+####### Validation tests #####
 echo "Running ROOT based validation"
 ./val_scripts/validation-cmssw-benchmarks.sh ${suite}
 
@@ -56,7 +55,6 @@ wait
 ##### Benchmark Plots #####
 echo "Producing benchmarking plots"
 ./plotting/benchmarkPlots.sh ${suite} ${useLNX} ${lnxuser} 
-#./plotting/benchmarkPlots_lnx.sh ${suite} ${lnxuser} ${useLNX}
 
 ##### Plots from Text Files #####
 echo "Producing plots from text files"

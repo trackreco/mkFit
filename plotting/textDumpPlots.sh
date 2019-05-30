@@ -14,6 +14,7 @@ for build in "${text_builds[@]}"
 do echo ${!build} | while read -r bN bO
     do
 	echo "Making plots from text files for" ${sample} ":" ${bN}
+
 	for archV in "${arch_array_textdump[@]}"
 	do echo ${archV} | while read -r archN archO
 	    do
@@ -21,7 +22,6 @@ do echo ${!build} | while read -r bN bO
 		python plotting/makePlotsFromDump.py ${archN} ${sample} ${bN} ${archO}
 	    done
 	done
-	
 	
 	echo "Making comparison plots from dump for" ${sample} ":" ${bN}
 	root -b -q -l plotting/makePlotsFromDump.C\(\"${sample}\",\"${bN}\",\"${suite}\"\)

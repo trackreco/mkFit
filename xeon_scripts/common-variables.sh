@@ -25,6 +25,7 @@ export SNB_TEMPDIR=tmp
 export LNXG_HOST=${lnxuser}@lnx7188.classe.cornell.edu
 export LNXG_WORKDIR=/home/${lnxuser}
 export LNXG_TEMPDIR=/tmp/tmp7188
+
 # vars for LNX4108
 export LNXS_HOST=${lnxuser}@lnx4108.classe.cornell.edu
 export LNXS_WORKDIR=/home/${lnxuser}
@@ -183,20 +184,21 @@ export -f CheckIfText
 Base_Test="NVU1_NTH1"
 if [[ ${useLNX} -eq 0 ]]
 then
-arch_array=(SNB KNL SKL-SP)
-arch_array_textdump=("SNB ${Base_Test}" "SNB NVU8int_NTH24" "KNL ${Base_Test}" "KNL NVU16int_NTH256" "SKL-SP ${Base_Test}" "SKL-SP NVU16int_NTH64")
-arch_array_benchmark=("SNB snb" "KNL knl" "SKL-SP skl-sp")
-fi
-if [[ ${useLNX} -eq 1 ]]
+    arch_array=(SNB KNL SKL-SP)
+    arch_array_textdump=("SNB ${Base_Test}" "SNB NVU8int_NTH24" "KNL ${Base_Test}" "KNL NVU16int_NTH256" "SKL-SP ${Base_Test}" "SKL-SP NVU16int_NTH64")
+    arch_array_benchmark=("SNB snb" "KNL knl" "SKL-SP skl-sp")
+else if [[ ${useLNX} -eq 1 ]]
 then
-arch_array=(LNX-G LNX-S)
-arch_array_textdump=("LNX-G ${Base_Test}" "LNX-G NVU16int_NTH64" "LNX-S ${Base_Test}" "LNX-S NVU16int_NTH64")
-arch_array_benchmark=("LNX-G lnx-g" "LNX-S lnx-s")
-fi
-if [[ ${useLNX} -eq 2 ]]
+    arch_array=(LNX-G LNX-S)
+    arch_array_textdump=("LNX-G ${Base_Test}" "LNX-G NVU16int_NTH64" "LNX-S ${Base_Test}" "LNX-S NVU16int_NTH64")
+    arch_array_benchmark=("LNX-G lnx-g" "LNX-S lnx-s")
+else fi [[ ${useLNX} -eq 2 ]]
 then
-arch_array=(SNB KNL SKL-SP LNX-G LNX-S)
-arch_array_textdump=("SNB ${Base_Test}" "SNB NVU8int_NTH24" "KNL ${Base_Test}" "KNL NVU16int_NTH256" "SKL-SP ${Base_Test}" "SKL-SP NVU16int_NTH64" "LNX-G ${Base_Test}" "LNX-G NVU16int_NTH64" "LNX-S ${Base_Test}" "LNX-S NVU16int_NTH64")
-arch_array_benchmark=("SNB snb" "KNL knl" "SKL-SP skl-sp" "LNX-G lnx-g" "LNX-S lnx-s")
+    arch_array=(SNB KNL SKL-SP LNX-G LNX-S)
+    arch_array_textdump=("SNB ${Base_Test}" "SNB NVU8int_NTH24" "KNL ${Base_Test}" "KNL NVU16int_NTH256" "SKL-SP ${Base_Test}" "SKL-SP NVU16int_NTH64" "LNX-G ${Base_Test}" "LNX-G NVU16int_NTH64" "LNX-S ${Base_Test}" "LNX-S NVU16int_NTH64")
+    arch_array_benchmark=("SNB snb" "KNL knl" "SKL-SP skl-sp" "LNX-G lnx-g" "LNX-S lnx-s")
+else
+    echo "${useLNX} is not a valid useLNX option! Exiting..."
+    exit
 fi
 export arch_array arch_array_textdump arch_array_benchmark
