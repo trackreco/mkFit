@@ -25,6 +25,7 @@ export SNB_TEMPDIR=tmp
 export LNXG_HOST=${lnxuser}@lnx7188.classe.cornell.edu
 export LNXG_WORKDIR=/home/${lnxuser}
 export LNXG_TEMPDIR=/tmp/tmp7188
+
 # vars for LNX4108
 export LNXS_HOST=${lnxuser}@lnx4108.classe.cornell.edu
 export LNXS_WORKDIR=/home/${lnxuser}

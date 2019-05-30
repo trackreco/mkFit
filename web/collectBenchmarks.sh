@@ -23,20 +23,7 @@ builddir="Benchmarks"
 mkdir -p ${dir}/${builddir}
 mkdir -p ${dir}/${builddir}/logx
 
-#if [[ ${useLNX} -eq 0 ]]
-#then 
-#arch_array=(SNB KNL SKL-SP)
-#fi
-#if [[ ${useLNX} -eq 1 ]]
-#then 
-#arch_array=(LNX-G LNX-S)
-#fi
-#if [[ ${useLNX} -eq 2 ]]
-#then 
-#arch_array=(SNB KNL SKL-SP LNX-G LNX-S)
-#fi
-
-for ben_arch in "${arch_array[@]}" #SNB KNL SKL-SP LNX-G LNX-S
+for ben_arch in "${arch_array[@]}" 
 do
     for benchmark in TH VU
     do
@@ -56,8 +43,7 @@ mkdir -p ${dir}/${meifdir}
 mkdir -p ${dir}/${meifdir}/logx
 
 
-#for ben_arch in SNB KNL SKL-SP LNX-G LNX-S
-for ben_arch in "${arch_array[@]}" #SNB KNL SKL-SP LNX-G LNX-S
+for ben_arch in "${arch_array[@]}" 
 do
     for build in "${meif_builds[@]}"
     do echo ${!build} | while read -r bN bO
