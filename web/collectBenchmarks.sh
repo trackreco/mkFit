@@ -8,11 +8,10 @@ dir=${1:-"benchmarks"}
 suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
 useLNX=${3:-0}
 
-echo ${useLNX}
 ###################
 ## Configuration ##
 ###################
-source xeon_scripts/common-variables.sh ${suite}
+source xeon_scripts/common-variables.sh ${suite} ${useLNX}
 source xeon_scripts/init-env.sh
 
 ######################################
@@ -24,18 +23,18 @@ builddir="Benchmarks"
 mkdir -p ${dir}/${builddir}
 mkdir -p ${dir}/${builddir}/logx
 
-if [[ ${useLNX} -eq 0 ]]
-then 
-arch_array=(SNB KNL SKL-SP)
-fi
-if [[ ${useLNX} -eq 1 ]]
-then 
-arch_array=(LNX-G LNX-S)
-fi
-if [[ ${useLNX} -eq 2 ]]
-then 
-arch_array=(SNB KNL SKL-SP LNX-G LNX-S)
-fi
+#if [[ ${useLNX} -eq 0 ]]
+#then 
+#arch_array=(SNB KNL SKL-SP)
+#fi
+#if [[ ${useLNX} -eq 1 ]]
+#then 
+#arch_array=(LNX-G LNX-S)
+#fi
+#if [[ ${useLNX} -eq 2 ]]
+#then 
+#arch_array=(SNB KNL SKL-SP LNX-G LNX-S)
+#fi
 
 for ben_arch in "${arch_array[@]}" #SNB KNL SKL-SP LNX-G LNX-S
 do

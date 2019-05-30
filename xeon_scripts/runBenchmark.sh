@@ -2,11 +2,11 @@
 
 ##### Command Line Input #####
 suite=${1:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
-lnxuser=${2:-${USER}}
-useLNX=${3:-0}
+useLNX=${2:-0}
+lnxuser=${3:-${USER}}
 
 ##### Initialize Benchmarks #####
-source xeon_scripts/common-variables.sh ${suite} ${lnxuser}
+source xeon_scripts/common-variables.sh ${suite} ${useLNX} ${lnxuser}
 source xeon_scripts/init-env.sh
 make distclean
 
@@ -46,7 +46,7 @@ echo "Run benchmarking on SKL-SP"
 ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh SKL-SP ${suite}
 fi
 
-##### Validation tests #####
+###### Validation tests #####
 echo "Running ROOT based validation"
 ./val_scripts/validation-cmssw-benchmarks.sh ${suite}
 
@@ -55,12 +55,12 @@ wait
 
 ##### Benchmark Plots #####
 echo "Producing benchmarking plots"
-./plotting/benchmarkPlots.sh ${suite} ${lnxuser} ${useLNX}
+./plotting/benchmarkPlots.sh ${suite} ${useLNX} ${lnxuser} 
 #./plotting/benchmarkPlots_lnx.sh ${suite} ${lnxuser} ${useLNX}
 
 ##### Plots from Text Files #####
 echo "Producing plots from text files"
-./plotting/textDumpPlots.sh ${suite} ${lnxuser} ${useLNX}
+./plotting/textDumpPlots.sh ${suite} ${useLNX} ${lnxuser} 
 #./plotting/textDumpPlots_lnx.sh ${suite} ${lnxuser} ${useLNX}
 
 ##### Final cleanup #####

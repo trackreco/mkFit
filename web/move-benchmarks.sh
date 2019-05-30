@@ -8,7 +8,7 @@ lxpuser=${4:-${USER}}
 useLNX=${5:-0}
 
 # source global variables
-source xeon_scripts/common-variables.sh ${suite}
+source xeon_scripts/common-variables.sh ${suite} ${useLNX}
 source xeon_scripts/init-env.sh
 
 # First collect all plots and text files into common dir
