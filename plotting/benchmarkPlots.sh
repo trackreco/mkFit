@@ -2,12 +2,14 @@
 
 ## input
 suite=${1:-"forPR"}
+useLNX=${2:-0}
+lnxuser=${3:-${USER}}
 
 ## In case this is run separately from the main script
-source xeon_scripts/common-variables.sh ${suite}
+source xeon_scripts/common-variables.sh ${suite} ${useLNX} ${lnxuser}
 source xeon_scripts/init-env.sh
 
-##### Make benchmark plots for each architecture #####
+for archV in "${arch_array_benchmark[@]}"
 do echo ${archV} | while read -r archN archO
     do
 	for build in "${ben_builds[@]}"

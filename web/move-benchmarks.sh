@@ -7,7 +7,7 @@ afs_or_eos=${3:-"eos"} # which user space to use: afs or eos
 lxpuser=${4:-${USER}}
 
 # source global variables
-source xeon_scripts/common-variables.sh ${suite}
+source xeon_scripts/common-variables.sh ${suite} ${useLNX}
 source xeon_scripts/init-env.sh
 
 # First collect all plots and text files into common dir
