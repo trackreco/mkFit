@@ -23,6 +23,7 @@ namespace
   void setupTests(const int useLNX)
   {
     // N.B.: Consult ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh for info on which VU and TH tests were used for making text dumps
+
     if(useLNX ==0 or useLNX==2){
     tests.emplace_back("SNB","NVU1_NTH1",kBlue,kOpenDiamond);
     tests.emplace_back("SNB","NVU8int_NTH24",kBlack,kOpenCross);

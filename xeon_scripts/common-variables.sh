@@ -2,8 +2,8 @@
 
 # command line input
 suite=${1:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
-useLNX=${2:-0} # which computer clusters to run on. 0=phi, 1=lnx, 2= phi+lnx
-lnxuser=${3:-${USER}}
+useLNX=${2:-0} # which computer cluster to run on. 0=phi, 1=lnx, 2= phi+lnx
+lnxuser=${3:-${USER}} #username for lnx computers
 
 # samples
 export sample=CMSSW_TTbar_PU70
