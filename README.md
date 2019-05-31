@@ -174,10 +174,10 @@ The ```full``` option currently takes little more than a half hour, while the ot
 Additionally, to run benchmarks on lnx4108 and lnx7188 as well as phi1, phi2, and phi3 from phi3, the main script can be run with:
 
 ```
-./xeon_scripts/runBenchmark_lnx.sh ${suite} ${lnxuser}
+./xeon_scripts/runBenchmark_lnx.sh ${suite} ${useLNX} ${lnxuser}
 ```
 
-Where ```${lnxuser}``` denotes the username on the lnx computers if different from the phi3 username. 
+Where ```${useLNX}``` denotes which computer cluser to use (0 for phi, 1 for lnx, 2 for phi and lnx) and ```${lnxuser}``` denotes the username on the lnx computers if different from the phi3 username. 
 
 Inside the main script, tests are submitted for phi1, phi2, and phi3 concurrently by: tarring up the local repo, sending the tarball to a disk space on the remote platform, compiling the untarred directory natively on the remote platform, and then sending back the log files to be analyzed on phi3. It should be noted that the tests for phi3 are simply run on in the user home directory when logged into phi3 (although we could in principle ship the code to the work space disk on phi3). Because we run the tests for phi3 in the home directory, which is shared by all three machines, we pack and send the code to a remote _disk_ space _before_ launching the tests on phi3 from the home directory. The scripts that handle the remote testing are: 
 
