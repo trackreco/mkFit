@@ -24,15 +24,18 @@ namespace
   {
     // N.B.: Consult ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh for info on which VU and TH tests were used for making text dumps
 
-    tests.emplace_back("SNB","NVU1_NTH1",kBlue,kOpenDiamond);
-    tests.emplace_back("SNB","NVU8int_NTH24",kBlack,kOpenCross);
-    tests.emplace_back("KNL","NVU1_NTH1",kGreen+1,kOpenTriangleUp);
-    tests.emplace_back("KNL","NVU16int_NTH256",kOrange+1,kOpenTriangleDown);
-    tests.emplace_back("SKL-SP","NVU1_NTH1",kRed+1,kOpenTriangleUp);
-    tests.emplace_back("SKL-SP","NVU16int_NTH64",kMagenta+1,kOpenTriangleDown);
-
-    // set ntests after tests is set up
-    ntests = tests.size();
+    if (useLNX == 0 or useLNX == 2)
+    {
+      tests.emplace_back("SNB","NVU1_NTH1",kBlue,kOpenDiamond);
+      tests.emplace_back("SNB","NVU8int_NTH24",kBlack,kOpenCross);
+      tests.emplace_back("KNL","NVU1_NTH1",kGreen+1,kOpenTriangleUp);
+      tests.emplace_back("KNL","NVU16int_NTH256",kOrange+1,kOpenTriangleDown);
+      tests.emplace_back("SKL-SP","NVU1_NTH1",kRed+1,kOpenTriangleUp);
+      tests.emplace_back("SKL-SP","NVU16int_NTH64",kMagenta+1,kOpenTriangleDown);
+      
+      // set ntests after tests is set up
+      ntests = tests.size();
+    }
   }
 };
 

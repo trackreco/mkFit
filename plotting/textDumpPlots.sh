@@ -22,7 +22,7 @@ do echo ${!build} | while read -r bN bO
 		python plotting/makePlotsFromDump.py ${archN} ${sample} ${bN} ${archO}
 	    done
 	done
-	
+
 	echo "Making comparison plots from dump for" ${sample} ":" ${bN}
 	root -b -q -l plotting/makePlotsFromDump.C\(\"${sample}\",\"${bN}\",\"${suite}\"\)
     done
