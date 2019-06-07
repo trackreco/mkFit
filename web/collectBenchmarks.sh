@@ -6,6 +6,7 @@
 
 dir=${1:-"benchmarks"}
 suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
+useLNX=${3:-0}
 
 ###################
 ## Configuration ##

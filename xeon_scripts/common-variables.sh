@@ -187,12 +187,12 @@ then
     arch_array=(SNB KNL SKL-SP)
     arch_array_textdump=("SNB ${Base_Test}" "SNB NVU8int_NTH24" "KNL ${Base_Test}" "KNL NVU16int_NTH256" "SKL-SP ${Base_Test}" "SKL-SP NVU16int_NTH64")
     arch_array_benchmark=("SNB snb" "KNL knl" "SKL-SP skl-sp")
-else if [[ ${useLNX} -eq 1 ]]
+elif [[ ${useLNX} -eq 1 ]]
 then
     arch_array=(LNX-G LNX-S)
     arch_array_textdump=("LNX-G ${Base_Test}" "LNX-G NVU16int_NTH64" "LNX-S ${Base_Test}" "LNX-S NVU16int_NTH64")
     arch_array_benchmark=("LNX-G lnx-g" "LNX-S lnx-s")
-else fi [[ ${useLNX} -eq 2 ]]
+elif [[ ${useLNX} -eq 2 ]]
 then
     arch_array=(SNB KNL SKL-SP LNX-G LNX-S)
     arch_array_textdump=("SNB ${Base_Test}" "SNB NVU8int_NTH24" "KNL ${Base_Test}" "KNL NVU16int_NTH256" "SKL-SP ${Base_Test}" "SKL-SP NVU16int_NTH64" "LNX-G ${Base_Test}" "LNX-G NVU16int_NTH64" "LNX-S ${Base_Test}" "LNX-S NVU16int_NTH64")
