@@ -9,7 +9,7 @@ lnxuser=${3:-${USER}}
 source xeon_scripts/common-variables.sh ${suite} ${useLNX} ${lnxuser}
 source xeon_scripts/init-env.sh
 
-for archV in "${arch_array_benchmark[@]}"
+for archV in "${arch_array_benchmark[@]}" 
 do echo ${archV} | while read -r archN archO
     do
 	for build in "${ben_builds[@]}"
