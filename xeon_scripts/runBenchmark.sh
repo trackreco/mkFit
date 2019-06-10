@@ -45,11 +45,20 @@ echo "Run benchmarking on SKL-SP"
 ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh SKL-SP ${suite} ${useLNX} ${lnxuser} 
 fi
 
-####### Validation tests #####
+##### Validation tests #####
 echo "Running ROOT based validation"
 ./val_scripts/validation-cmssw-benchmarks.sh ${suite}
 
-echo "Waiting for LNX-G, LNX-S, KNL and SNB"
+if [[ ${useLNX} -eq 0 ]] 
+then
+echo "Waiting for KNL and SNB"
+elif [[ ${useLNX} -eq 1 ]]
+then
+echo "Waiting for LNX-G and LNX-S"
+elif  [[ ${useLNX} -eq 2 ]]
+then 
+echo "Waiting for LNX-G, LNX-S, KNL, and SNB"
+fi
 wait
 
 ##### Benchmark Plots #####

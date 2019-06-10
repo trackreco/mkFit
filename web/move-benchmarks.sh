@@ -25,7 +25,7 @@ echo "Moving plots and text files remotely to lxplus"
 
 # Final cleanup of directory
 echo "Removing local files"
-./xeon_scripts/trashSKL-SP.sh 
+./xeon_scripts/trashSKL-SP.sh ${useLNX} 
 rm -rf ${dir}
 
 # Final message
