@@ -161,7 +161,7 @@ Currently, the full benchmark and validation suite uses simulated event data fro
 The main script for running the full suite can be launched from the top-level directory with:
 
 ```
-./xeon_scripts/runBenchmark.sh ${suite}
+./xeon_scripts/runBenchmark.sh ${suite} ${useLNX} ${lnxuser}
 ```
 
 There are three options for running the full suite by passing one of the three strings to the parameter ```${suite}```:
@@ -171,13 +171,11 @@ There are three options for running the full suite by passing one of the three s
 
 The ```full``` option currently takes little more than a half hour, while the other tests take about 25 minutes. 
 
-Additionally, to run benchmarks on lnx4108 and lnx7188 as well as phi1, phi2, and phi3 from phi3, the main script can be run with:
-
-```
-./xeon_scripts/runBenchmark_lnx.sh ${suite} ${lnxuser}
-```
-
-Where ```${lnxuser}``` denotes the username on the lnx computers if different from the phi3 username. 
+Additionally, the ```${useLNX}``` option allows the benchmarks to be run on different computer clusters: 
+- ```${useLNX} = 0```: (default) runs on the phi computers onlyi (phi1, phi2 and phi3). This option should be run from phi3.
+- ```${useLNX} = 1```: runs on lnx7188 and lnx4108 only. This option should be run from lnx7188.
+- ```${useLNX} = 2```: runs on both phi and lnx. This option should be run from phi3.
+- ```${lnxuser}``` denotes the username on the lnx computers. This is only need if running on the lnx computers when the lnx username is different from the phi3 username.  
 
 Inside the main script, tests are submitted for phi1, phi2, and phi3 concurrently by: tarring up the local repo, sending the tarball to a disk space on the remote platform, compiling the untarred directory natively on the remote platform, and then sending back the log files to be analyzed on phi3. It should be noted that the tests for phi3 are simply run on in the user home directory when logged into phi3 (although we could in principle ship the code to the work space disk on phi3). Because we run the tests for phi3 in the home directory, which is shared by all three machines, we pack and send the code to a remote _disk_ space _before_ launching the tests on phi3 from the home directory. The scripts that handle the remote testing are: 
 

@@ -6,13 +6,14 @@
 
 remote_arch=${1} # SNB, KNL, SKL-SP
 suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
-lnxuser=${3:-${USER}}
+useLNX=${3:-0}
+lnxuser=${4:-${USER}}
 
 ###################
 ## Configuration ##
 ###################
 
-source xeon_scripts/common-variables.sh ${suite} ${lnxuser}
+source xeon_scripts/common-variables.sh ${suite} ${useLNX} ${lnxuser}
 source xeon_scripts/init-env.sh
 
 # architecture dependent settings

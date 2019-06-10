@@ -2,7 +2,8 @@
 
 # command line input
 suite=${1:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
-lnxuser=${2:-${USER}}
+useLNX=${2:-0} # which computer cluster to run on. 0=phi, 1=lnx, 2= phi+lnx
+lnxuser=${3:-${USER}} #username for lnx computers
 
 # samples
 export sample=CMSSW_TTbar_PU70
@@ -23,11 +24,12 @@ export SNB_TEMPDIR=tmp
 # vars for LNX7188
 export LNXG_HOST=${lnxuser}@lnx7188.classe.cornell.edu
 export LNXG_WORKDIR=/home/${lnxuser}
-export LNXG_TEMPDIR=tmp7188
+export LNXG_TEMPDIR=/tmp/tmp7188
+
 # vars for LNX4108
 export LNXS_HOST=${lnxuser}@lnx4108.classe.cornell.edu
 export LNXS_WORKDIR=/home/${lnxuser}
-export LNXS_TEMPDIR=tmp4108
+export LNXS_TEMPDIR=/tmp/tmp4108
 
 # SSH options
 function SSHO()
@@ -178,3 +180,25 @@ function CheckIfText ()
     echo "${result}"
 }
 export -f CheckIfText
+
+Base_Test="NVU1_NTH1"
+if [[ ${useLNX} -eq 0 ]]
+then
+    arch_array=(SNB KNL SKL-SP)
+    arch_array_textdump=("SNB ${Base_Test}" "SNB NVU8int_NTH24" "KNL ${Base_Test}" "KNL NVU16int_NTH256" "SKL-SP ${Base_Test}" "SKL-SP NVU16int_NTH64")
+    arch_array_benchmark=("SNB snb" "KNL knl" "SKL-SP skl-sp")
+elif [[ ${useLNX} -eq 1 ]]
+then
+    arch_array=(LNX-G LNX-S)
+    arch_array_textdump=("LNX-G ${Base_Test}" "LNX-G NVU16int_NTH64" "LNX-S ${Base_Test}" "LNX-S NVU16int_NTH64")
+    arch_array_benchmark=("LNX-G lnx-g" "LNX-S lnx-s")
+elif [[ ${useLNX} -eq 2 ]]
+then
+    arch_array=(SNB KNL SKL-SP LNX-G LNX-S)
+    arch_array_textdump=("SNB ${Base_Test}" "SNB NVU8int_NTH24" "KNL ${Base_Test}" "KNL NVU16int_NTH256" "SKL-SP ${Base_Test}" "SKL-SP NVU16int_NTH64" "LNX-G ${Base_Test}" "LNX-G NVU16int_NTH64" "LNX-S ${Base_Test}" "LNX-S NVU16int_NTH64")
+    arch_array_benchmark=("SNB snb" "KNL knl" "SKL-SP skl-sp" "LNX-G lnx-g" "LNX-S lnx-s")
+else
+    echo "${useLNX} is not a valid useLNX option! Exiting..."
+    exit
+fi
+export arch_array arch_array_textdump arch_array_benchmark

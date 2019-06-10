@@ -6,11 +6,12 @@
 
 dir=${1:-"benchmarks"}
 suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
+useLNX=${3:-0}
 
 ###################
 ## Configuration ##
 ###################
-source xeon_scripts/common-variables.sh ${suite}
+source xeon_scripts/common-variables.sh ${suite} ${useLNX}
 source xeon_scripts/init-env.sh
 
 ######################################
@@ -22,7 +23,7 @@ builddir="Benchmarks"
 mkdir -p ${dir}/${builddir}
 mkdir -p ${dir}/${builddir}/logx
 
-for ben_arch in SNB KNL SKL-SP LNX-G LNX-S
+for ben_arch in "${arch_array[@]}"
 do
     for benchmark in TH VU
     do
@@ -41,7 +42,7 @@ meifdir="MultEvInFlight"
 mkdir -p ${dir}/${meifdir}
 mkdir -p ${dir}/${meifdir}/logx
 
-for ben_arch in SNB KNL SKL-SP LNX-G LNX-S
+for ben_arch in "${arch_array[@]}" 
 do
     for build in "${meif_builds[@]}"
     do echo ${!build} | while read -r bN bO
