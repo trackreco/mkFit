@@ -40,8 +40,8 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
   {
     std::vector<IdxChi2List>& hitsForSeed = m_hits_to_add[is];
 
-    CombCandidate      &ccand  = cands[m_start_seed + is];
-    std::vector<Track> &extras = (*mp_extra_cands)[is];
+    CombCandidate          &ccand  = cands[m_start_seed + is];
+    std::vector<TrackCand> &extras = (*mp_extra_cands)[is];
     auto extra_i = extras.begin();
     auto extra_e = extras.end();
 
@@ -69,7 +69,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
       int num_hits = std::min((int) hitsForSeed.size(), Config::maxCandsPerSeed);
 
       // This is from buffer, we know it was cleared after last usage.
-      std::vector<Track> &cv = t_cands_for_next_lay[is - is_beg];
+      std::vector<TrackCand> &cv = t_cands_for_next_lay[is - is_beg];
 
       int n_pushed = 0;
 
@@ -77,7 +77,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
       {
         const IdxChi2List &h2a = hitsForSeed[ih];
 
-        Track cc( ccand[h2a.trkIdx] );
+        TrackCand cc( ccand[h2a.trkIdx] );
         cc.addHitIdx(h2a.hitIdx, m_layer, 0);
         cc.setChi2(h2a.chi2);
         cc.setCandScore(h2a.score);
@@ -96,7 +96,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
         // Could also skip storing of cands with last -3 hit.
 
         // Squeeze in extra tracks that are better than current one.
-        while (extra_i != extra_e && sortByScoreCand(*extra_i, cc) && n_pushed < Config::maxCandsPerSeed)
+        while (extra_i != extra_e && sortByScoreTrackCand(*extra_i, cc) && n_pushed < Config::maxCandsPerSeed)
         {
           cv.emplace_back(*extra_i);
           ++n_pushed;
@@ -127,7 +127,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
       ccand.resize(cv.size());
       for (size_t ii = 0; ii < cv.size(); ++ii)
       {
-	memcpy( & ccand[ii], & cv[ii], sizeof(Track));
+        ccand[ii] = cv[ii];
       }
       cv.clear();
     }

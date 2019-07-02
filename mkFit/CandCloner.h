@@ -24,7 +24,7 @@ private:
   // Temporaries in ProcessSeedRange(), resized/reserved  in constructor.
 
   // Size of this one is s_max_seed_range
-  std::vector<std::vector<Track> > t_cands_for_next_lay;
+  std::vector<std::vector<TrackCand>> t_cands_for_next_lay;
 
 public:
   CandCloner()
@@ -40,9 +40,9 @@ public:
   {
   }
 
-  void begin_eta_bin(EventOfCombCandidates           *e_o_ccs,
-                     std::vector<std::pair<int,int>> *update_list,
-                     std::vector<std::vector<Track>> *extra_cands,
+  void begin_eta_bin(EventOfCombCandidates               *e_o_ccs,
+                     std::vector<std::pair<int,int>>     *update_list,
+                     std::vector<std::vector<TrackCand>> *extra_cands,
                      int start_seed, int n_seeds)
   {
     mp_event_of_comb_candidates = e_o_ccs;
@@ -170,9 +170,9 @@ public:
   int  m_idx_max, m_idx_max_prev;
   std::vector<std::vector<IdxChi2List>> m_hits_to_add;
 
-  EventOfCombCandidates           *mp_event_of_comb_candidates;
-  std::vector<std::pair<int,int>> *mp_kalman_update_list;
-  std::vector<std::vector<Track>> *mp_extra_cands;
+  EventOfCombCandidates               *mp_event_of_comb_candidates;
+  std::vector<std::pair<int,int>>     *mp_kalman_update_list;
+  std::vector<std::vector<TrackCand>> *mp_extra_cands;
 
 #if defined(CC_TIME_ETA) or defined(CC_TIME_LAYER)
   double    t_eta, t_lay;

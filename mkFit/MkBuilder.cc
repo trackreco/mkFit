@@ -166,9 +166,9 @@ namespace
     return cand1.nFoundHits() > cand2.nFoundHits();
   }
 
-  bool sortCandByScore(const Track & cand1, const Track & cand2)
+  bool sortCandByScore(const TrackCand & cand1, const TrackCand & cand2)
   {
-    return mkfit::sortByScoreCand(cand1,cand2);
+    return mkfit::sortByScoreTrackCand(cand1,cand2);
   }
 }
 
@@ -955,12 +955,12 @@ void MkBuilder::quality_store_tracks(TrackVec& tracks)
     // take the first one!
     if ( ! eoccs.m_candidates[i].empty())
     {
-      const Track &bcand = eoccs.m_candidates[i].front();
+      const TrackCand &bcand = eoccs.m_candidates[i].front();
 
       if (std::isnan(bcand.chi2())) ++chi2_nan_cnt;
       if (bcand.chi2() > 500)       ++chi2_500_cnt;
 
-      tracks.push_back(bcand);
+      tracks.emplace_back( bcand.exportTrack() );
 
 #ifdef DEBUG_BACKWARD_FIT
       printf("CHITRK %d %g %g %g %g %g\n",
@@ -984,7 +984,9 @@ void MkBuilder::quality_process(Track &tkcand, const int itrack, std::map<int,in
   // initialize track extra (input original seed label)
   const auto label = tkcand.label();
   TrackExtra extra(label);
-  
+
+  // track_print(tkcand, "XXX");
+
   // access temp seed trk and set matching seed hits
   const auto & seed = m_event->seedTracks_[itrack];
   extra.findMatchingSeedHits(tkcand, seed, m_event->layerHits_);
@@ -1729,7 +1731,7 @@ int MkBuilder::find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & s
 }
 
 void MkBuilder::find_tracks_handle_missed_layers(MkFinder *mkfndr, const LayerInfo &layer_info,
-                                                 std::vector<std::vector<Track>> &tmp_cands,
+                                                 std::vector<std::vector<TrackCand>> &tmp_cands,
                                                  const std::vector<std::pair<int,int>> &seed_cand_idx,
                                                  const int region, const int start_seed,
                                                  const int itrack, const int end)
@@ -1743,7 +1745,7 @@ void MkBuilder::find_tracks_handle_missed_layers(MkFinder *mkfndr, const LayerIn
   // can really screw you there (need a maxR in candidate?).
   for (int ti = itrack; ti < end; ++ti)
   {
-    Track      &cand = m_event_of_comb_cands.m_candidates[seed_cand_idx[ti].first][seed_cand_idx[ti].second];
+    TrackCand  &cand = m_event_of_comb_cands.m_candidates[seed_cand_idx[ti].first][seed_cand_idx[ti].second];
     WSR_Result &w    = mkfndr->XWsrResult[ti - itrack];
 
     // XXXX-4 Low pT tracks can miss a barrel layer ... and should be stopped
@@ -1821,7 +1823,7 @@ void MkBuilder::FindTracksStandard()
       const int end_seed   = seeds.end();
       const int n_seeds    = end_seed - start_seed;
 
-      std::vector<std::vector<Track>> tmp_cands(n_seeds);
+      std::vector<std::vector<TrackCand>> tmp_cands(n_seeds);
       for (size_t iseed = 0; iseed < tmp_cands.size(); ++iseed)
       {
         tmp_cands[iseed].reserve(2*Config::maxCandsPerSeed);//factor 2 seems reasonable to start with
@@ -1891,30 +1893,20 @@ void MkBuilder::FindTracksStandard()
 
         } //end of vectorized loop
 
-	// clean exceeding candidates per seed
+	// sort the input candidates
         for (int is = 0; is < n_seeds; ++is)
         {
-          dprint("dump seed n " << is << " with input candidates=" << tmp_cands[is].size());
-          //std::sort(tmp_cands[is].begin(), tmp_cands[is].end(), sortCandByHitsChi2);
-          std::sort(tmp_cands[is].begin(), tmp_cands[is].end(), sortCandByScore);
+          dprint("dump seed n " << is << " with N_input_candidates=" << tmp_cands[is].size());
 
-          // MT -- now we just copy as many as we need to below while we take out the -2 cands.
-          // if (tmp_cands[is].size() > static_cast<size_t>(Config::maxCandsPerSeed))
-          // {
-          //   dprint("erase extra candidates" << " tmp_cands[is].size()=" << tmp_cands[is].size()
-          //          << " Config::maxCandsPerSeed=" << Config::maxCandsPerSeed);
-          //   tmp_cands[is].erase(tmp_cands[is].begin() + Config::maxCandsPerSeed,
-          //                       tmp_cands[is].end());
-          // }
-          dprint("dump seed n " << is << " with output candidates=" << tmp_cands[is].size());
+          std::sort(tmp_cands[is].begin(), tmp_cands[is].end(), sortCandByScore);
         }
 
-        // now swap with input candidates
+        // now fill out the output candidates
         for (int is = 0; is < n_seeds; ++is)
         {
           if (tmp_cands[is].size() > 0)
           {
-            eoccs[start_seed+is].resize(0);
+            eoccs[start_seed+is].clear();
 
             // Put good candidates into eoccs, process -2 candidates.
             int  n_placed    = 0;
@@ -1999,7 +1991,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
   seed_cand_idx.reserve       (n_seeds * Config::maxCandsPerSeed);
   seed_cand_update_idx.reserve(n_seeds * Config::maxCandsPerSeed);
 
-  std::vector<std::vector<Track>> extra_cands(n_seeds);
+  std::vector<std::vector<TrackCand>> extra_cands(n_seeds);
   for (int ii = 0; ii < n_seeds; ++ii) extra_cands[ii].reserve(Config::maxCandsPerSeed);
 
   cloner.begin_eta_bin(&eoccs, &seed_cand_update_idx, &extra_cands, start_seed, n_seeds);
@@ -2255,7 +2247,10 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
     auto& mkf = finders[index];
     auto best = mkf.BestCandidate(offset);
     if (best >= 0) {
-      mkf.OutputTrack(eoccs.m_candidates[iseed], 0, best, true);
+      // QQQ Not implemented
+      // Should, probably, wipe CombCand and re-output
+      // or, just extend from seed hits onwards.
+      // mkf.OutputTrack(eoccs.m_candidates[iseed], 0, best, true);
     }
   }
 #endif

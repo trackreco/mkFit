@@ -272,6 +272,12 @@ struct HitOnTrack
 
   HitOnTrack()             : index(-1), layer (-1) {}
   HitOnTrack(int i, int l) : index( i), layer ( l) {}
+
+  bool operator<(const HitOnTrack o) const
+  {
+    if (layer != o.layer) return layer < o.layer;
+    return index < o.index;
+  }
 };
 
 typedef std::vector<HitOnTrack> HoTVec;

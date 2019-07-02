@@ -495,10 +495,13 @@ void test_standard()
                t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
       }
 
-      // not protected by a mutex, may be inacccurate for multiple events in flight;
-      // probably should convert to a scaled long so can use std::atomic<Integral>
-      for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
-      if (evt > 0) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
+      {
+        static std::mutex sum_up_lock;
+        std::lock_guard<std::mutex> locker(sum_up_lock);
+
+        for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
+        if (evt > 0) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
+      }
     }
   }, tbb::simple_partitioner());
 

@@ -73,12 +73,11 @@ SMatrix66 TrackState::jacobianCartesianToCCS(float px,float py,float pz) const {
   return jac;
 }
 
-
 //==============================================================================
-// Track
+// TrackBase
 //==============================================================================
 
-bool Track::hasSillyValues(bool dump, bool fix, const char* pref)
+bool TrackBase::hasSillyValues(bool dump, bool fix, const char* pref)
 {
   bool is_silly = false;
   for (int i = 0; i < LL; ++i)
@@ -90,7 +89,7 @@ bool Track::hasSillyValues(bool dump, bool fix, const char* pref)
         if ( ! is_silly)
         {
           is_silly = true;
-          if (dump) printf("%s (label=%d):", pref, label_);
+          if (dump) printf("%s (label=%d):", pref, label());
         }
         if (dump) printf(" (%d,%d)=%e", i, j, state_.errors.At(i,j));
         if (fix)  state_.errors.At(i,j) = 1;
@@ -101,7 +100,9 @@ bool Track::hasSillyValues(bool dump, bool fix, const char* pref)
   return is_silly;
 }
 
-//------------------------------------------------------------------------------
+//==============================================================================
+// Track
+//==============================================================================
 
 void Track::sortHitsByLayer()
 {
