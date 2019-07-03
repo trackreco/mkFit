@@ -151,7 +151,7 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
   }
 
 #ifndef COPY_SORTED_HITS
-  delete [] m_hit_ranks;
+  operator delete [] (m_hit_ranks);
   m_hit_ranks = sort.RelinquishRanks();
   m_ext_hits  = & hitv;
 #endif

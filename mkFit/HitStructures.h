@@ -196,7 +196,7 @@ public:
 #ifdef COPY_SORTED_HITS
     free_hits();
 #else
-    delete [] m_hit_ranks;
+    operator delete [] (m_hit_ranks);
 #endif
   }
 
