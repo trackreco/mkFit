@@ -663,6 +663,7 @@ int main(int argc, const char *argv[])
 	"                             must enable: --dump-for-plots\n"
 	"  --dump-for-plots         make shell printouts for plots (def: %s)\n"
         "  --mtv-like-val           configure validation to emulate CMSSW MultiTrackValidator (MTV) (def: %s)\n"
+	"  --mtv-require-seeds           configure validation to emulate MTV but require sim tracks to be matched to seeds (def: %s)\n"
 	"\n"
 	" **ROOT based options\n"
         "  --sim-val-for-cmssw      enable ROOT based validation for CMSSW tracks with simtracks as reference [eff, FR, DR] (def: %s)\n"
@@ -770,6 +771,7 @@ int main(int argc, const char *argv[])
         b2a(Config::quality_val),
         b2a(Config::dumpForPlots),
         b2a(Config::mtvLikeValidation),
+	b2a(Config::mtvRequireSeeds),
 
         b2a(Config::sim_val_for_cmssw),
         b2a(Config::sim_val),
@@ -995,6 +997,13 @@ int main(int argc, const char *argv[])
       Config::mtvLikeValidation = true;
       Config::cmsSelMinLayers = 0;
       Config::nMinFoundHits = 0;
+    }
+    else if (*i == "--mtv-require-seeds")
+    {
+	Config::mtvLikeValidation = true;
+	Config::cmsSelMinLayers = 0;
+	Config::nMinFoundHits = 0;
+	Config::mtvRequireSeeds = true;
     }
     else if (*i == "--sim-val-for-cmssw")
     {

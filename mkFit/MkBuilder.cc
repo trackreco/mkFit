@@ -1174,16 +1174,6 @@ void MkBuilder::prep_simtracks()
   // First prep sim tracks to have hits sorted, then mark unfindable if too short
   prep_reftracks(m_event->simTracks_,m_event->simTracksExtra_,false);
 
-  if (Config::mtvLikeValidation) {
-    // Apply MTV selection criteria and then return
-    for (auto& simtrack : m_event->simTracks_)
-      {
-	if (simtrack.isNotFindable()) continue; // skip ones we already know are bad
-	if (simtrack.prodType()!=Track::ProdType::Signal || simtrack.charge()==0 || simtrack.posR()>3.5 || std::abs(simtrack.z())>30 || std::abs(simtrack.momEta())>2.5) simtrack.setNotFindable();
-      }
-    return;
-  }
-
   // Now, make sure sim track shares at least four hits with a single cmssw seed.
   // This ensures we factor out any weakness from CMSSW
 
@@ -1235,8 +1225,15 @@ void MkBuilder::prep_simtracks()
       }
     }
 
-    // set findability based on bool isSimSeed
-    if (!isSimSeed) simtrack.setNotFindable();
+    if (Config::mtvLikeValidation) {
+      // Apply MTV selection criteria and then return                                                                                                                                                                     
+      if (simtrack.prodType()!=Track::ProdType::Signal || simtrack.charge()==0 || simtrack.posR()>3.5 || std::abs(simtrack.z())>30 || std::abs(simtrack.momEta())>2.5) simtrack.setNotFindable();
+      else if(Config::mtvRequireSeeds && !isSimSeed) simtrack.setNotFindable();
+    }
+    else{
+      // set findability based on bool isSimSeed                                                                                                                                                                         
+      if (!isSimSeed) simtrack.setNotFindable();
+    }
   }
 
 }
