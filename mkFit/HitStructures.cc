@@ -309,7 +309,7 @@ void CombCandidate::MergeCandsAndBestShortOne(bool update_score, bool sort_cands
       auto ci = finalcands.begin();
       while (ci->getCandScore() > best_short.getCandScore()) ++ci;
 
-      if (finalcands.size() > Config::maxCandsPerSeed)  finalcands.pop_back();
+      if (finalcands.size() > static_cast<size_t>(Config::maxCandsPerSeed))  finalcands.pop_back();
 
       // To print out what has been replaced -- remove when done with short track handling.
       /*
