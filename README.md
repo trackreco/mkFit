@@ -1,4 +1,4 @@
-# mictest: a repository for vectorized, parallelized charged particle track reconstruction
+# mkFit: a repository for vectorized, parallelized charged particle track reconstruction
 
 **Intro**: Below is a short README on setup steps, code change procedures, and some helpful pointers. Please read this thoroughly before checking out the code! As this is a markdown file, it is best viewed via a web browser.
 
@@ -66,12 +66,12 @@ For further info on the configuration of each machine, use your favorite text fi
 
 ## Section 2: How to checkout the code
 
-The master development branch is ```devel```, hosted on a [private GH repo](https://github.com/cerati/mictest) (referred to as ```cerati/devel``` for the remainder of the README). This is a private repository, as are all forks of this repository. Development for mictest is done on separate branches within a forked repository. Since Giuseppe is politely hosting the main repo on his account, make sure to fork the repository to your own account first (using the "Fork" option at the top of the webpage), and push any development branches to your own forked repo first.
+The master development branch is ```devel```, hosted on a [public GH repo](https://github.com/trackreco/mkFit) (referred to as ```trackreco/devel``` for the remainder of the README). This is a public repository, as are all forks of this repository. Development for mkFit is done on separate branches within a forked repository. Make sure to fork the repository to your own account first (using the "Fork" option at the top of the webpage), and push any development branches to your own forked repo first.
 
 Once forked, checkout a local copy by simply doing a git clone:
 
 ```
-git clone git@github.com:<user>/mictest
+git clone git@github.com:<user>/mkFit
 ```
 
 where ```<user>``` is your GH username if renamed your remote to your username. Otherwise ```<user>``` will be ```origin```.
@@ -79,7 +79,7 @@ where ```<user>``` is your GH username if renamed your remote to your username. 
 If you wish to add another user's repo to your local clone, do:
 
 ```
-git remote add <user> git@github.com:<user>/mictest
+git remote add <user> git@github.com:<user>/mkFit
 ```
 
 This is useful if you want to submit changes to another user's branches. To checkout a remote branch, do:
@@ -136,7 +136,7 @@ Below are some rules and procedures on how to submit changes to the main develop
 6. Run the full benchmarking + validation suite on all platforms: follow procedure in Section 5 (below)! If you notice changes to compute or physics performance, make sure to understand why! Even if you are proposing a technical two-line change, please follow this step as it ensures we have a full history of changes.
 7. Prepare a Pull Request (PR)
    1. Push your branch to your forked repo on GitHub: ```git push <forked_repo_name> <branch>```
-   2. [Navigate to the main GH](https://github.com/cerati/mictest)
+   2. [Navigate to the main GH](https://github.com/trackreco/mkFit)
    3. Click on "New Pull Request"
    4. Click on "Compare across forks", and navigate to your fork + branch you wish to merge as the "head fork + compare"
    5. Provide a decent title, give a brief description of the proposed commits. Include a link to the benchmarking and validation plots in the description. If there are changes to the compute or physics performance, provide an explanation for why! If no changes are expected and none are seen, make sure to mention it.
@@ -467,7 +467,7 @@ life easier for everybody.
 
 To be used from CMSSW the `mkFit` must be built with the CMSSW
 toolchain. Assuming you are in an empty directory, the following
-recipe will set up a CMSSW developer area and a `mictest` area there,
+recipe will set up a CMSSW developer area and a `mkFit` area there,
 and compile `mkFit` using the CMSSW toolchain.
 
 **Note:** Use a `SCRAM_ARCH` with `gcc630` (i.e. either
@@ -485,8 +485,8 @@ pushd CMSSW_10_4_0_patch1/src
 cmsenv
 git cms-init
 popd
-git clone git@github.com:cerati/mictest
-pushd mictest
+git clone git@github.com:trackreco/mkFit
+pushd mkFit
 TBB_PREFIX=$(dirname $(cd $CMSSW_BASE && scram tool tag tbb INCLUDE)) make -j 12
 popd
 ```
@@ -502,8 +502,8 @@ pushd CMSSW_10_4_0_patch1/src
 cmsenv
 git cms-init
 popd
-git clone git@github.com:cerati/mictest
-pushd mictest
+git clone git@github.com:trackreco/mkFit
+pushd mkFit
 TBB_PREFIX=$(dirname $(cd $CMSSW_BASE && scram tool tag tbb INCLUDE)) make -j 12 AVX_512:=1
 popd
 ```
@@ -518,7 +518,7 @@ pushd CMSSW_10_4_0_patch1/src
 cat <<EOF >mkfit.xml
 <tool name="mkfit" version="1.0">
   <client>
-    <environment name="MKFITBASE" default="$PWD/../../mictest"/>
+    <environment name="MKFITBASE" default="$PWD/../../mkFit"/>
     <environment name="LIBDIR" default="\$MKFITBASE/lib"/>
     <environment name="INCLUDE" default="\$MKFITBASE"/>
   </client>
@@ -744,7 +744,7 @@ contributions of all three modules.
 ### Section 10.i: Important Links
 
 Project Links
-- [Main development GitHub](https://github.com/cerati/mictest)
+- [Main development GitHub](https://github.com/trackreco/mkFit)
 - [Our project website](https://trackreco.github.io) and the [GH repo](https://github.com/trackreco/trackreco.github.io-source) hosting the web files. Feel free to edit the website repo if you have contributed a presentation, poster, or paper. 
 - Out-of-date and no longer used [project twiki](https://twiki.cern.ch/twiki/bin/viewauth/CMS/MicTrkRnD)
 - [Indico meeting page](https://indico.cern.ch/category/8433)
