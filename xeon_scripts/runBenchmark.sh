@@ -10,6 +10,13 @@ source xeon_scripts/common-variables.sh ${suite} ${useLNX} ${lnxuser}
 source xeon_scripts/init-env.sh
 make distclean
 
+##### Check Settings #####
+echo "--------Showing System Settings--------"
+echo "turbo status: "$(cat /sys/devices/system/cpu/intel_pstate/no_turbo)
+echo "scaling governor setting: "$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor)
+echo "--------End System Settings ------------"
+sleep 3 ## so you can see the settings
+
 ##### Launch Tests #####
 if [[ ${useLNX} -eq 1 ]] || [[ ${useLNX} -eq 2 ]] || [[ ${useLNX} -eq 4 ]]
 then

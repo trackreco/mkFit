@@ -62,6 +62,12 @@ scp ${repo} ${HOST}:${DIR}
 echo "Untarring repo on ${remote_arch} remotely"
 SSHO ${HOST} bash -c "'
 cd ${DIR}
+###### Check Settings #####
+echo "--------Showing System Settings on ${remote_arch}--------"
+echo "turbo status: "$(cat /sys/devices/system/cpu/intel_pstate/no_turbo)
+echo "scaling governor setting: "$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor)
+echo "--------End System Settings ------------"
+sleep 3 ## so you can see the settings
 tar -zxvf ${repo}
 rm ${repo}
 '"
