@@ -57,7 +57,7 @@ fi
 
 ##### Validation tests #####
 echo "Running ROOT based validation"
-./val_scripts/validation-cmssw-benchmarks.sh ${suite}
+./val_scripts/validation-cmssw-benchmarks.sh ${suite} --mtv-like-val
 
 if [[ ${useLNX} -eq 1 ]] || [[ ${useLNX} -eq 2 ]]
 then

@@ -5,7 +5,7 @@
 ###########
 
 suite=${1:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
-style=${2:-""} # option --mtv-like-val
+style=${2:-"--mtv-like-val"} # option --mtv-like-val
 inputBin=${3:-"91XPU70CCC"}
 
 ###################
@@ -55,17 +55,20 @@ bkfit="--backward-fit-pca"
 
 ## validation options: SIMVAL == sim tracks as reference, CMSSWVAL == cmssw tracks as reference
 SIMVAL="SIMVAL --sim-val ${siminfo} ${bkfit} ${style}"
-CMSSWVAL="CMSSWVAL --cmssw-val-fhit-bprm ${bkfit}"
-declare -a vals=(SIMVAL CMSSWVAL)
+SIMVAL_SEED="SIMVALSEED --sim-val ${siminfo} ${bkfit} --mtv-require-seeds"
+#CMSSWVAL="CMSSWVAL --cmssw-val-fhit-bprm ${bkfit}"
+declare -a vals=(SIMVAL SIMVAL_SEED) #CMSSWVAL)
 
 ## plotting options
 SIMPLOT="SIMVAL 0"
-CMSSWPLOT="CMSSWVAL 1"
-declare -a plots=(SIMPLOT CMSSWPLOT)
+SIMPLOTSEED="SIMVALSEED 0"
+#CMSSWPLOT="CMSSWVAL 1"
+declare -a plots=(SIMPLOT SIMPLOTSEED) # CMSSWPLOT)
 
 ## special cmssw dummy build
 CMSSW="CMSSW cmssw SIMVAL --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks ${style}"
-
+CMSSW2="CMSSW cmssw SIMVALSEED --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks --mtv-require-seeds"
+#declare -a CMSSW=(CMSSW1 CMSSW2)
 ###############
 ## Functions ##
 ###############
@@ -117,6 +120,11 @@ echo ${CMSSW} | while read -r bN bO vN vO
 do
     doVal "${bN}" "${bO}" "${vN}" "${vO}"
 done
+## Special simtrack validation vs cmssw tracks
+echo ${CMSSW2} | while read -r bN bO vN vO
+do
+    doVal "${bN}" "${bO}" "${vN}" "${vO}"
+done
 
 ## Run validation for standard build options
 for val in "${vals[@]}"
@@ -144,6 +152,13 @@ do echo ${!plot} | while read -r pN pO
 	if [[ "${pN}" == "SIMVAL" ]]
 	then
 	    echo ${CMSSW} | while read -r bN bO val_extras
+	    do
+		plotVal "${base}" "${bN}" "${pN}" "${pO}"
+	    done
+	fi
+	if [[ "${pN}" == "SIMVALSEED" ]]
+	then
+	    echo ${CMSSW2} | while read -r bN bO val_extras
 	    do
 		plotVal "${base}" "${bN}" "${pN}" "${pO}"
 	    done
