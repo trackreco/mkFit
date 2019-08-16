@@ -42,6 +42,38 @@ fi
 ## Tar and Send ##
 ##################
 
+check_settings=true
+echo "--------Showing System Settings--------"
+# unzip tarball remotely
+echo "Untarring repo on ${remote_arch} remotely"
+SSHO ${HOST} bash -c "'
+echo "--------Showing System Settings--------"
+##### Check Settings #####
+echo "turbo status: "$(cat /sys/devices/system/cpu/intel_pstate/no_turbo)
+echo "scaling governor setting: "$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor)
+echo "--------End System Settings ------------"
+if ${check_settings};
+then
+echo "Ensuring correct settings"
+if [[ $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor) != "performance" ]]
+then
+echo "performance mode is OFF. Exiting"
+exit 1
+fi
+if [[ $(cat /sys/devices/system/cpu/intel_pstate/no_turbo) == "0" ]]
+then
+echo "Turbo is ON. Exiting"
+exit 1
+fi
+fi
+sleep 3 ## so you can see the settings
+'"
+bad=$(SSHO ${HOST} echo $?)
+if [ $bad -eq 1 ]; then
+echo "killed"
+exit 1
+fi
+
 # tar up the directory
 echo "Tarring directory for ${remote_arch}... make sure it is clean!"
 repo=mictest.tar.gz
@@ -62,12 +94,6 @@ scp ${repo} ${HOST}:${DIR}
 echo "Untarring repo on ${remote_arch} remotely"
 SSHO ${HOST} bash -c "'
 cd ${DIR}
-###### Check Settings #####
-echo "--------Showing System Settings on ${remote_arch}--------"
-echo "turbo status: "$(cat /sys/devices/system/cpu/intel_pstate/no_turbo)
-echo "scaling governor setting: "$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor)
-echo "--------End System Settings ------------"
-sleep 3 ## so you can see the settings
 tar -zxvf ${repo}
 rm ${repo}
 '"

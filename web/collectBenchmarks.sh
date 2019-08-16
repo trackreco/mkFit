@@ -79,7 +79,7 @@ done
 ######################################
 
 # Make SimTrack Validation directories
-simdir="SIMVAL"
+simdir="SIMVAL_MTV"
 mkdir -p ${dir}/${simdir}
 mkdir -p ${dir}/${simdir}/logx
 mkdir -p ${dir}/${simdir}/diffs
@@ -144,7 +144,7 @@ do
 done
 
 # Make SimTrack Validation directories
-simdir="SIMVALSEED"
+simdir="SIMVAL_MTV_SEED"
 mkdir -p ${dir}/${simdir}
 mkdir -p ${dir}/${simdir}/logx
 mkdir -p ${dir}/${simdir}/diffs
