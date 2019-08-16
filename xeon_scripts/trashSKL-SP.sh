@@ -1,6 +1,6 @@
 #! /bin/bash
 
-useARCH=${1:-0}
+useARCH=${1:-4}
 
 # Final cleanup script for benchmarks
 if [[ ${useARCH} -eq 3 ]] || [[ ${useARCH} -eq 4 ]] 
