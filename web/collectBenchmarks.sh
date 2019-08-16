@@ -6,12 +6,12 @@
 
 dir=${1:-"benchmarks"}
 suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
-useLNX=${3:-0}
+useARCH=${3:-0}
 
 ###################
 ## Configuration ##
 ###################
-source xeon_scripts/common-variables.sh ${suite} ${useLNX}
+source xeon_scripts/common-variables.sh ${suite} ${useARCH}
 source xeon_scripts/init-env.sh
 
 ######################################

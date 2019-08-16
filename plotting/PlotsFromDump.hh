@@ -20,21 +20,21 @@ namespace
 {
   TOVec tests;
   UInt_t ntests;
-  void setupTests(const int useLNX)
+  void setupTests(const int useARCH)
   {
     // N.B.: Consult ./xeon_scripts/benchmark-cmssw-ttbar-fulldet-build.sh for info on which VU and TH tests were used for making text dumps
 
-    if(useLNX ==0 or useLNX==2 or useLNX==3 or useLNX==4){
+    if(useARCH ==0 or useARCH==2 or useARCH==3 or useARCH==4){
     tests.emplace_back("SKL-SP","NVU1_NTH1",kRed+1,kOpenTriangleUp);
     tests.emplace_back("SKL-SP","NVU16int_NTH64",kMagenta+1,kOpenTriangleDown);
     }
-    if(useLNX ==3 or useLNX==4){
+    if(useARCH ==3 or useARCH==4){
     tests.emplace_back("SNB","NVU1_NTH1",kBlue,kOpenDiamond);
     tests.emplace_back("SNB","NVU8int_NTH24",kBlack,kOpenCross);
     tests.emplace_back("KNL","NVU1_NTH1",kGreen+1,kOpenTriangleUp);
     tests.emplace_back("KNL","NVU16int_NTH256",kOrange+1,kOpenTriangleDown);
     }
-    if(useLNX == 1 or useLNX == 2 or useLNX==4){
+    if(useARCH == 1 or useARCH == 2 or useARCH==4){
     tests.emplace_back("LNX-G","NVU1_NTH1",7,40);
     tests.emplace_back("LNX-G","NVU16int_NTH64",8,42);
     tests.emplace_back("LNX-S","NVU1_NTH1",46,49);
@@ -84,7 +84,7 @@ namespace
 class PlotsFromDump
 {
 public:
-  PlotsFromDump(const TString & sample, const TString & build, const TString & suite, const int useLNX);
+  PlotsFromDump(const TString & sample, const TString & build, const TString & suite, const int useARCH);
   ~PlotsFromDump();
   void RunPlotsFromDump();
 
@@ -92,7 +92,7 @@ private:
   const TString sample;
   const TString build;
   const TString suite;
-  const int useLNX;
+  const int useARCH;
 
   TString label;
 };

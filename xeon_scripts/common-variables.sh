@@ -2,7 +2,7 @@
 
 # command line input
 suite=${1:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
-useLNX=${2:-0} # which computer cluster to run on. 0=phi3, 1=lnx, 2= phi3+lnx, 3=phi123, 4=phi123+lnx
+useARCH=${2:-0} # which computer cluster to run on. 0=phi3, 1=lnx, 2= phi3+lnx, 3=phi123, 4=phi123+lnx
 lnxuser=${3:-${USER}} #username for lnx computers
 
 # samples
@@ -182,33 +182,33 @@ function CheckIfText ()
 export -f CheckIfText
 
 Base_Test="NVU1_NTH1"
-if [[ ${useLNX} -eq 0 ]]
+if [[ ${useARCH} -eq 0 ]]
 then
     arch_array=(SKL-SP)
     arch_array_textdump=("SKL-SP ${Base_Test}" "SKL-SP NVU16int_NTH64")
     arch_array_benchmark=("SKL-SP skl-sp")
-elif [[ ${useLNX} -eq 1 ]]
+elif [[ ${useARCH} -eq 1 ]]
 then
     arch_array=(LNX-G LNX-S)
     arch_array_textdump=("LNX-G ${Base_Test}" "LNX-G NVU16int_NTH64" "LNX-S ${Base_Test}" "LNX-S NVU16int_NTH64")
     arch_array_benchmark=("LNX-G lnx-g" "LNX-S lnx-s")
-elif [[ ${useLNX} -eq 2 ]]
+elif [[ ${useARCH} -eq 2 ]]
 then
     arch_array=(SKL-SP LNX-G LNX-S)
     arch_array_textdump=("SKL-SP ${Base_Test}" "SKL-SP NVU16int_NTH64" "LNX-G ${Base_Test}" "LNX-G NVU16int_NTH64" "LNX-S ${Base_Test}" "LNX-S NVU16int_NTH64")
     arch_array_benchmark=("SKL-SP skl-sp" "LNX-G lnx-g" "LNX-S lnx-s")
-elif [[ ${useLNX} -eq 3 ]]
+elif [[ ${useARCH} -eq 3 ]]
 then
     arch_array=(SNB KNL SKL-SP)
     arch_array_textdump=("SNB ${Base_Test}" "SNB NVU8int_NTH24" "KNL ${Base_Test}" "KNL NVU16int_NTH256" "SKL-SP ${Base_Test}" "SKL-SP NVU16int_NTH64")
     arch_array_benchmark=("SNB snb" "KNL knl" "SKL-SP skl-sp")
-elif [[ ${useLNX} -eq 4 ]]
+elif [[ ${useARCH} -eq 4 ]]
 then
     arch_array=(SNB KNL SKL-SP LNX-G LNX-S)
     arch_array_textdump=("SNB ${Base_Test}" "SNB NVU8int_NTH24" "KNL ${Base_Test}" "KNL NVU16int_NTH256" "SKL-SP ${Base_Test}" "SKL-SP NVU16int_NTH64" "LNX-G ${Base_Test}" "LNX-G NVU16int_NTH64" "LNX-S ${Base_Test}" "LNX-S NVU16int_NTH64")
     arch_array_benchmark=("SNB snb" "KNL knl" "SKL-SP skl-sp" "LNX-G lnx-g" "LNX-S lnx-s")
 else
-    echo "${useLNX} is not a valid useLNX option! Exiting..."
+    echo "${useARCH} is not a valid useARCH option! Exiting..."
     exit
 fi
 export arch_array arch_array_textdump arch_array_benchmark

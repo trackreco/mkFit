@@ -6,7 +6,7 @@
 
 ben_arch=${1} # SNB, KNL, SKL-SP
 suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
-useLNX=${3:-0}
+useARCH=${3:-0}
 lnxuser=${4:-${USER}}
 
 ###################
@@ -14,7 +14,7 @@ lnxuser=${4:-${USER}}
 ###################
 
 ## Source environment and common variables
-source xeon_scripts/common-variables.sh ${suite} ${useLNX} ${lnxuser}
+source xeon_scripts/common-variables.sh ${suite} ${useARCH} ${lnxuser}
 source xeon_scripts/init-env.sh
 
 ## Platform specific settings
