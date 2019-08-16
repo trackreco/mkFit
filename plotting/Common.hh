@@ -142,7 +142,7 @@ namespace
       arch_opt.vutimemin = 0.;
       arch_opt.vutimemax = 0.25;
 
-      arch_opt.thtimemin = 0.001;
+      arch_opt.thtimemin = 0.0001;
       arch_opt.thtimemax = 1.;
 
       arch_opt.vuspeedupmin = 0.;
@@ -168,7 +168,7 @@ namespace
       arch_opt.vutimemin = 0.;
       arch_opt.vutimemax = 0.25;
 
-      arch_opt.thtimemin = 0.001;
+      arch_opt.thtimemin = 0.0001;
       arch_opt.thtimemax = 1.;
 
       arch_opt.vuspeedupmin = 0.;
@@ -194,7 +194,7 @@ namespace
       arch_opt.vutimemin = 0.;
       arch_opt.vutimemax = 0.25;
 
-      arch_opt.thtimemin = 0.001;
+      arch_opt.thtimemin = 0.0001;
       arch_opt.thtimemax = 1.;
 
       arch_opt.vuspeedupmin = 0.;

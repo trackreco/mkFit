@@ -99,9 +99,6 @@ echo "Waiting for KNL and SNB"
 elif  [[ ${useLNX} -eq 4 ]]
 then 
 echo "Waiting for LNX-G, LNX-S, KNL, and SNB"
-#elif [[ ${useLNX} -eq 0 ]]
-#then
-#echo "waiting for SKL-SP"
 fi
 wait
 
