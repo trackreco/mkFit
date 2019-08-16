@@ -11,12 +11,12 @@ source xeon_scripts/init-env.sh
 make distclean
 
 ##### Check Settings #####
-check_settings=true
+assert_settings=true
 echo "--------Showing System Settings--------"
 echo "turbo status: "$(cat /sys/devices/system/cpu/intel_pstate/no_turbo)
 echo "scaling governor setting: "$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor)
 echo "--------End System Settings ------------"
-if ${check_settings}
+if ${assert_settings}
 then
 echo "Ensuring correct settings"
 if [[ $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor) != "performance" ]]

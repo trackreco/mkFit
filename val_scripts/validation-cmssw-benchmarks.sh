@@ -56,19 +56,17 @@ bkfit="--backward-fit-pca"
 ## validation options: SIMVAL == sim tracks as reference, CMSSWVAL == cmssw tracks as reference
 SIMVAL="SIMVAL --sim-val ${siminfo} ${bkfit} ${style}"
 SIMVAL_SEED="SIMVALSEED --sim-val ${siminfo} ${bkfit} --mtv-require-seeds"
-#CMSSWVAL="CMSSWVAL --cmssw-val-fhit-bprm ${bkfit}"
 declare -a vals=(SIMVAL SIMVAL_SEED) #CMSSWVAL)
 
 ## plotting options
 SIMPLOT="SIMVAL 0"
 SIMPLOTSEED="SIMVALSEED 0"
-#CMSSWPLOT="CMSSWVAL 1"
 declare -a plots=(SIMPLOT SIMPLOTSEED) # CMSSWPLOT)
 
 ## special cmssw dummy build
 CMSSW="CMSSW cmssw SIMVAL --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks ${style}"
 CMSSW2="CMSSW cmssw SIMVALSEED --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks --mtv-require-seeds"
-#declare -a CMSSW=(CMSSW1 CMSSW2)
+
 ###############
 ## Functions ##
 ###############
