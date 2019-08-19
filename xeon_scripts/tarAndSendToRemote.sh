@@ -6,14 +6,14 @@
 
 remote_arch=${1} # SNB, KNL, SKL-SP
 suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
-useLNX=${3:-0}
+useARCH=${3:-0}
 lnxuser=${4:-${USER}}
 
 ###################
 ## Configuration ##
 ###################
 
-source xeon_scripts/common-variables.sh ${suite} ${useLNX} ${lnxuser}
+source xeon_scripts/common-variables.sh ${suite} ${useARCH} ${lnxuser}
 source xeon_scripts/init-env.sh
 
 # architecture dependent settings
@@ -41,6 +41,38 @@ fi
 ##################
 ## Tar and Send ##
 ##################
+
+assert_settings=true
+echo "--------Showing System Settings--------"
+# unzip tarball remotely
+echo "Untarring repo on ${remote_arch} remotely"
+SSHO ${HOST} bash -c "'
+echo "--------Showing System Settings--------"
+##### Check Settings #####
+echo "turbo status: "$(cat /sys/devices/system/cpu/intel_pstate/no_turbo)
+echo "scaling governor setting: "$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor)
+echo "--------End System Settings ------------"
+if ${assert_settings};
+then
+echo "Ensuring correct settings"
+if [[ $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor) != "performance" ]]
+then
+echo "performance mode is OFF. Exiting"
+exit 1
+fi
+if [[ $(cat /sys/devices/system/cpu/intel_pstate/no_turbo) == "0" ]]
+then
+echo "Turbo is ON. Exiting"
+exit 1
+fi
+fi
+sleep 3 ## so you can see the settings
+'"
+bad=$(SSHO ${HOST} echo $?)
+if [ $bad -eq 1 ]; then
+echo "killed"
+exit 1
+fi
 
 # tar up the directory
 echo "Tarring directory for ${remote_arch}... make sure it is clean!"

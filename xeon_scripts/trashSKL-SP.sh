@@ -1,17 +1,14 @@
 #! /bin/bash
 
-useLNX=${1:-0}
+useARCH=${1:-4}
 
 # Final cleanup script for benchmarks
-if [[ ${useLNX} -eq 0 ]] 
+if [[ ${useARCH} -eq 3 ]] || [[ ${useARCH} -eq 4 ]] 
 then
 rm -rf benchmark_knl_dump.txt benchmark_snb_dump.txt
-elif [[ ${useLNX} -eq 1 ]]
+fi
+if [[ ${useARCH} -eq 1 ]] || [[ ${useARCH} -eq 2 ]] || [[ ${useARCH} -eq 4 ]]
 then
-rm -rf benchmark_lnx-g_dump.txt benchmark_lnx-s_dump.txt
-elif  [[ ${useLNX} -eq 2 ]]
-then 
-rm -rf benchmark_knl_dump.txt benchmark_snb_dump.txt
 rm -rf benchmark_lnx-g_dump.txt benchmark_lnx-s_dump.txt
 fi
 

@@ -1,7 +1,7 @@
 #include "PlotsFromDump.hh"
 
-PlotsFromDump::PlotsFromDump(const TString & sample, const TString & build, const TString & suite, const int useLNX) 
-  : sample(sample), build(build), suite(suite), useLNX(useLNX)
+PlotsFromDump::PlotsFromDump(const TString & sample, const TString & build, const TString & suite, const int useARCH) 
+  : sample(sample), build(build), suite(suite), useARCH(useARCH)
 {
   // setup style for plotting
   setupStyle();
@@ -21,7 +21,7 @@ PlotsFromDump::PlotsFromDump(const TString & sample, const TString & build, cons
   }
 
   // Setup test opts
-  setupTests(useLNX);
+  setupTests(useARCH);
 
   // Setup plot opts
   setupPlots();

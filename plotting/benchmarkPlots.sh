@@ -2,11 +2,11 @@
 
 ## input
 suite=${1:-"forPR"}
-useLNX=${2:-0}
+useARCH=${2:-0}
 lnxuser=${3:-${USER}}
 
 ## In case this is run separately from the main script
-source xeon_scripts/common-variables.sh ${suite} ${useLNX} ${lnxuser}
+source xeon_scripts/common-variables.sh ${suite} ${useARCH} ${lnxuser}
 source xeon_scripts/init-env.sh
 
 for archV in "${arch_array_benchmark[@]}" 

@@ -2,11 +2,11 @@
 
 ## input
 suite=${1:-"forPR"}
-useLNX=${2:-0}
+useARCH=${2:-0}
 lnxuser=${3:-${USER}}
 
 ## In case this is run separately from the main script
-source xeon_scripts/common-variables.sh ${suite} ${useLNX} ${lnxuser}
+source xeon_scripts/common-variables.sh ${suite} ${useARCH} ${lnxuser}
 source xeon_scripts/init-env.sh
 
 ##### Make plots of track properties (kinematics, nHits, etc) from text files, comparing different machine configurations #####
@@ -23,6 +23,6 @@ do echo ${!build} | while read -r bN bO
 	done
 		
 	echo "Making comparison plots from dump for" ${sample} ":" ${bN}
-	root -b -q -l plotting/makePlotsFromDump.C\(\"${sample}\",\"${bN}\",\"${suite}\",${useLNX}\)
+	root -b -q -l plotting/makePlotsFromDump.C\(\"${sample}\",\"${bN}\",\"${suite}\",${useARCH}\)
     done
 done
