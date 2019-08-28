@@ -359,7 +359,7 @@ namespace Config
   constexpr float track_ptlow = 0.9;
 
   // sorting config (bonus,penalty)
-  constexpr float validHitBonus_ = 5.0;//cmssw bonus = 2.5
+  constexpr float validHitBonus_ = 7.5;//cmssw bonus = 2.5
   constexpr float missingHitPenalty_ = 5.0;//cmssw penalty = 20
   constexpr float maxChi2ForRanking_ = 819.2f; // (=0.5f*0.1f*pow(2,14);)
 
