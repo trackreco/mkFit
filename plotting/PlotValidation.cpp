@@ -1034,7 +1034,7 @@ void PlotValidation::SetupBins()
   PlotValidation::SetupFixedBins(110,0,1.1,fFracHitsBins);
 
   // track score bins
-  PlotValidation::SetupFixedBins(1699,-16990,16990,fScoreBins);
+  PlotValidation::SetupFixedBins(50,-500,5000,fScoreBins);
 
   // dNhits
   PlotValidation::SetupFixedBins(40,-20,20,fDNHitsBins);

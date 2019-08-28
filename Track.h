@@ -592,7 +592,6 @@ inline int getScoreCalc(const unsigned int seedtype,
     if(nfoundhits>8) score_ += (Config::validHitBonus_)*nfoundhits;
   }
   */
-  if(score > 16000 && !Config::silent) std::cout << "WARNING!! Might be facing score overflow, which leads to discrepancies between STD and CE!" << std::endl;
   score = (int)(floor(10.f * score_ + 0.5));
   return score;
 }
