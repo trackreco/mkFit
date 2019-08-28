@@ -547,6 +547,9 @@ inline int getScoreCalc(const unsigned int seedtype,
   //if(chi2>Config::maxChi2ForRanking_) chi2=Config::maxChi2ForRanking_;
   int score = 0;
   float score_ = 0.f;
+  ////// V2 of candidate score (simplified score, after fix for counts of # missing hits):
+  score_ = Config::validHitBonus_*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
+  if(pt<0.9f && seedtype==2) score_ -= 0.5f*(Config::validHitBonus_)*nfoundhits;
   /*
   ////// V0 of candidate score (before fix for counts of # missing hits):
   // For high pT central tracks: double valid hit bonus
@@ -570,6 +573,7 @@ inline int getScoreCalc(const unsigned int seedtype,
   */
   ////// V1 of candidate score (after fix for counts of # missing hits):
   // For high pT central tracks: 4x valid hit bonus and 0.25x missing hit penalty
+  /*
   if(seedtype==1){
     score_ = (Config::validHitBonus_*4.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits*0.25f - chi2;
     if(pt<0.9f) score_ -= 0.25f*(Config::validHitBonus_)*nfoundhits;
@@ -587,6 +591,7 @@ inline int getScoreCalc(const unsigned int seedtype,
     if(pt<0.9f) score_ -= 0.2f*(Config::validHitBonus_)*nfoundhits;
     if(nfoundhits>8) score_ += (Config::validHitBonus_)*nfoundhits;
   }
+  */
   score = (int)(floor(10.f * score_ + 0.5));
   return score;
 }
