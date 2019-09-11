@@ -1271,7 +1271,7 @@ void MkBuilder::score_tracks(TrackVec& tracks)
   for (auto & track : tracks)
   {
     assignSeedTypeForRanking(track);
-    track.setCandScore(getScoreCand(track));
+    track.setScore(getScoreCand(track));
   }
 }
 
@@ -1317,7 +1317,7 @@ void MkBuilder::find_duplicates(TrackVec& tracks)
 	  if(fracHitsShared < Config::minFracHitsShared) continue;
 	}
 	//Keep track with best score
-	if(track.getCandScore() > track2.getCandScore())
+	if(track.score() > track2.score())
 	{
 	  track2.setDuplicateValue(true);
 	}
@@ -1921,7 +1921,7 @@ void MkBuilder::FindTracksStandard()
               else if (first_short)
               {
                 first_short = false;
-                if (tmp_cands[is][ii].getCandScore() > eoccs[start_seed+is].m_best_short_cand.getCandScore())
+                if (tmp_cands[is][ii].score() > eoccs[start_seed+is].m_best_short_cand.score())
                 {
                   eoccs[start_seed+is].m_best_short_cand = tmp_cands[is][ii];
                 }
@@ -2114,10 +2114,10 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 
       for (int i = 0; i < ((int) cc.size()) - 1; ++i)
       {
-        if (cc[i].getCandScore() < cc[i+1].getCandScore())
+        if (cc[i].score() < cc[i+1].score())
         {
           printf("CloneEngine - NOT SORTED: layer=%d, iseed=%d (size=%llu)-- %d : %d smaller than %d : %d\n",
-                 curr_layer, iseed, cc.size(), i, cc[i].getCandScore(), i+1, cc[i+1].getCandScore());
+                 curr_layer, iseed, cc.size(), i, cc[i].score(), i+1, cc[i+1].score());
         }
       }
     }
@@ -2163,7 +2163,7 @@ void MkBuilder::FindTracksFV()
 void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region)
 {
 #ifdef INSTANTIATE_FV
-  EventOfCombCandidates  &eoccs             = m_event_of_comb_cands;
+  // QQQQ EventOfCombCandidates  &eoccs             = m_event_of_comb_cands;
   const SteeringParams   &st_par            = m_steering_params[region];
   const TrackerInfo      &trk_info          = Config::TrkInfo;
 
@@ -2181,7 +2181,11 @@ void MkBuilder::find_tracks_in_layersFV(int start_seed, int end_seed, int region
   for (int index = 0; index < nMplx; ++index) {
     for (int offset = 0; offset < MkFinderFv::Seeds; ++offset) {
       dprint("seed " << iseed << " index " << index << " offset " << offset);
-      finders[index].InputTrack(eoccs.m_candidates[iseed][0], iseed, offset, false);
+
+      // QQQQ InputTrack for TrackCand does not exist ... see what to do.
+      //
+      // finders[index].InputTrack(eoccs.m_candidates[iseed][0], iseed, offset, false);
+
       ++iseed;
       iseed = std::min(iseed, end_seed-1);
     }
@@ -2348,6 +2352,10 @@ void MkBuilder::fit_cands_BH(MkFinder *mkfndr, int start_cand, int end_cand, int
 
 void MkBuilder::BackwardFit()
 {
+  // QQQQ - decide what / how to do it
+
+  assert (false && "Currently not supported");
+
   EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
   tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
@@ -2408,7 +2416,7 @@ void MkBuilder::fit_cands(MkFinder *mkfndr, int start_cand, int end_cand, int re
   redo_fit:
 #endif
     // input tracks
-    mkfndr->BkFitInputTracks(eoccs, icand, end);
+    // QQQQQ mkfndr->BkFitInputTracks(eoccs, icand, end);
 
     // fit tracks back to first layer
     mkfndr->BkFitFitTracks(m_event_of_hits, st_par, end - icand, chi_debug);
@@ -2434,7 +2442,7 @@ void MkBuilder::fit_cands(MkFinder *mkfndr, int start_cand, int end_cand, int re
     }
 #endif
 
-    mkfndr->BkFitOutputTracks(eoccs, icand, end); 
+    // QQQQQ mkfndr->BkFitOutputTracks(eoccs, icand, end);
 
     // printf("Post Final fit for %d - %d\n", icand, end);
     // for (int i = icand; i < end; ++i) { const Track &t = eoccs[i][0];

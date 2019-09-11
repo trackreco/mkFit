@@ -123,8 +123,8 @@ void Event::RemapHits(TrackVec & tracks)
 void Event::Simulate()
 {
   simTracks_.resize(Config::nTracks);
-  simHitsInfo_.reserve(Config::nTotHit * Config::nTracks);
-  simTrackStates_.reserve(Config::nTotHit * Config::nTracks);
+  simHitsInfo_.reserve(Config::nAvgSimHits * Config::nTracks);
+  simTrackStates_.reserve(Config::nAvgSimHits * Config::nTracks);
 
   for (auto&& l : layerHits_) {
     l.clear();
@@ -169,7 +169,7 @@ void Event::Simulate()
       sim_track.setLabel(itrack);
 
       // XXKM4MT
-      // Sorta assumes one hit per layer -- could just make this 2X nMaxSimHits inside track object (without loopers)
+      // Sorta assumes one hit per layer.
       // This really would only matter for validation and seeding...
       // Could imagine making an inherited class for sim tracks that keeps tracks overlaps
       assert(hits.size() == hitinfos.size());
@@ -397,10 +397,7 @@ void Event::write_out(DataFile &data_file)
   int evsize = sizeof(int);
   fwrite(&evsize, sizeof(int), 1, fp); // this will be overwritten at the end
 
-  int nt = simTracks_.size();
-  fwrite(&nt, sizeof(int), 1, fp);
-  fwrite(&simTracks_[0], sizeof(Track), nt, fp);
-  evsize += sizeof(int) + nt*sizeof(Track);
+  evsize += write_tracks(fp, simTracks_);
 
   if (data_file.HasSimTrackStates()) {
     int nts = simTrackStates_.size();
@@ -425,17 +422,11 @@ void Event::write_out(DataFile &data_file)
   evsize += sizeof(int) + nm*sizeof(MCHitInfo);
 
   if (data_file.HasSeeds()) {
-    int ns = seedTracks_.size();
-    fwrite(&ns, sizeof(int), 1, fp);
-    fwrite(&seedTracks_[0], sizeof(Track), ns, fp);
-    evsize += sizeof(int) + ns*sizeof(Track);
+    evsize += write_tracks(fp, seedTracks_);
   }
 
   if (data_file.HasCmsswTracks()) {
-    int nert = cmsswTracks_.size();
-    fwrite(&nert, sizeof(int), 1, fp);
-    fwrite(&cmsswTracks_[0], sizeof(Track), nert, fp);
-    evsize += sizeof(int) + nert*sizeof(Track);
+    evsize += write_tracks(fp, cmsswTracks_);
   }
 
   fseek(fp, start, SEEK_SET);
@@ -476,13 +467,7 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
 
   data_file.AdvancePosToNextEvent(fp);
 
-  int nt;
-  fread(&nt, sizeof(int), 1, fp);
-  simTracks_.resize(nt);
-  for (int i = 0; i < nt; ++i)
-  {
-    fread(&simTracks_[i], data_file.f_header.f_sizeof_track, 1, fp);
-  }
+  int nt = read_tracks(fp, simTracks_);
   Config::nTracks = nt;
 
   if (data_file.HasSimTrackStates())
@@ -509,21 +494,8 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
   fread(&simHitsInfo_[0], sizeof(MCHitInfo), nm, fp);
 
   if (data_file.HasSeeds()) {
-    int ns;
-    fread(&ns, sizeof(int), 1, fp);
-    if (Config::seedInput == cmsswSeeds)
-    {
-      seedTracks_.resize(ns);
-      for (int i = 0; i < ns; ++i)
-      {
-        fread(&seedTracks_[i], data_file.f_header.f_sizeof_track, 1, fp);
-      }
-    }
-    else
-    {
-      fseek(fp, ns * data_file.f_header.f_sizeof_track, SEEK_CUR);
-      ns = -ns;
-    }
+    int ns = read_tracks(fp, seedTracks_, Config::seedInput != cmsswSeeds);
+    (void) ns;
 
 #ifdef DUMP_SEEDS
     printf("Read %i seedtracks (neg value means actual reading was skipped)\n", ns);
@@ -556,20 +528,8 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
   int nert = -99999;
   if (data_file.HasCmsswTracks())
   {
-    fread(&nert, sizeof(int), 1, fp);
-    if (Config::readCmsswTracks)
-    {
-      cmsswTracks_.resize(nert);
-      for (int i = 0; i < nert; ++i)
-      {
-        fread(&cmsswTracks_[i], data_file.f_header.f_sizeof_track, 1, fp);
-      }
-    }
-    else
-    {
-      fseek(fp, nert * data_file.f_header.f_sizeof_track, SEEK_CUR);
-      nert = -nert;
-    }
+    nert = read_tracks(fp, cmsswTracks_, ! Config::readCmsswTracks);
+    (void) nert;
   }
 
   /*
@@ -616,9 +576,9 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
   {
     if (layerHits_[il].empty()) continue;
 
-    printf("Read %i hits in layer %i\n",layerHits_[il].size(),il);
+    printf("Read %i hits in layer %i\n", (int) layerHits_[il].size(), il);
     total_hits += layerHits_[il].size();
-    for (int ih = 0; ih < layerHits_[il].size(); ih++)
+    for (int ih = 0; ih < (int) layerHits_[il].size(); ih++)
     {
       const Hit &hit = layerHits_[il][ih];
       printf("  mcHitID=%5d r=%10g x=%10g y=%10g z=%10g  sx=%10.4g sy=%10.4e sz=%10.4e\n",
@@ -661,6 +621,65 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
 
   if (!Config::silent) printf("Read complete, %d simtracks on file.\n", nt);
 }
+
+//------------------------------------------------------------------------------
+
+int Event::write_tracks(FILE *fp, const TrackVec& tracks)
+{
+  // Returns total number of bytes written.
+
+  int n_tracks  = tracks.size();
+  fwrite(&n_tracks, sizeof(int), 1, fp);
+
+  auto start = ftell(fp);
+  int data_size = 2 * sizeof(int) + n_tracks * sizeof(Track);
+  fwrite(&data_size, sizeof(int), 1, fp);
+
+  fwrite(tracks.data(), sizeof(Track), n_tracks, fp);
+
+  for (int i = 0; i < n_tracks; ++i)
+  {
+    fwrite(tracks[i].BeginHitsOnTrack(), sizeof(HitOnTrack), tracks[i].nTotalHits(), fp);
+    data_size += tracks[i].nTotalHits() * sizeof(HitOnTrack);
+  }
+
+  fseek(fp, start, SEEK_SET);
+  fwrite(&data_size, sizeof(int), 1, fp);
+  fseek(fp, 0, SEEK_END);
+
+  return data_size;
+}
+
+int Event::read_tracks(FILE *fp, TrackVec& tracks, bool skip_reading)
+{
+  // Returns number of read tracks (negative if actual reading was skipped).
+
+  int n_tracks, data_size;
+  fread(&n_tracks,  sizeof(int), 1, fp);
+  fread(&data_size, sizeof(int), 1, fp);
+
+  if (skip_reading)
+  {
+    fseek(fp, data_size, SEEK_CUR);
+    n_tracks = -n_tracks;
+  }
+  else
+  {
+    tracks.resize(n_tracks);
+
+    fread(tracks.data(), sizeof(Track), n_tracks, fp);
+
+    for (int i = 0; i < n_tracks; ++i)
+    {
+      tracks[i].resizeHitsForInput();
+      fread(tracks[i].BeginHitsOnTrack_nc(), sizeof(HitOnTrack), tracks[i].nTotalHits(), fp);
+    }
+  }
+
+  return n_tracks;
+}
+
+//------------------------------------------------------------------------------
 
 void Event::setInputFromCMSSW(std::vector<HitVec> hits, TrackVec seeds)
 {
@@ -1018,8 +1037,8 @@ void Event::relabel_cmsswtracks_from_seeds()
 
 int DataFile::OpenRead(const std::string& fname, bool set_n_layers)
 {
-  constexpr int min_ver = 3;
-  constexpr int max_ver = 3;
+  constexpr int min_ver = 4;
+  constexpr int max_ver = 4;
 
   f_fp = fopen(fname.c_str(), "r");
   assert (f_fp != 0 && "Opening of input file failed.");
@@ -1037,10 +1056,22 @@ int DataFile::OpenRead(const std::string& fname, bool set_n_layers)
             f_header.f_format_version, min_ver, max_ver);
     exit(1);
   }
-  if (f_header.f_n_max_trk_hits > Config::nMaxTrkHits)
+  if (f_header.f_sizeof_track != sizeof(Track))
   {
-    fprintf(stderr, "Number of hits-on-track on file (%d) larger than current Config::nMaxTrkHits (%d).\n",
-            f_header.f_n_max_trk_hits, Config::nMaxTrkHits);
+    fprintf(stderr, "sizeof(Track) on file (%d) different from current value (%d).\n",
+            f_header.f_sizeof_track, (int) sizeof(Track));
+    exit(1);
+  }
+  if (f_header.f_sizeof_hit != sizeof(Hit))
+  {
+    fprintf(stderr, "sizeof(Hit) on file (%d) different from current value (%d).\n",
+            f_header.f_sizeof_hit, (int) sizeof(Hit));
+    exit(1);
+  }
+  if (f_header.f_sizeof_hot != sizeof(HitOnTrack))
+  {
+    fprintf(stderr, "sizeof(HitOnTrack) on file (%d) different from current value (%d).\n",
+            f_header.f_sizeof_hot, (int) sizeof(HitOnTrack));
     exit(1);
   }
   if (set_n_layers)
@@ -1054,8 +1085,8 @@ int DataFile::OpenRead(const std::string& fname, bool set_n_layers)
     exit(1);
   }
 
-  printf("Opened file '%s', format version %d, n_max_trk_hits %d, n_layers %d, n_events %d\n",
-         fname.c_str(), f_header.f_format_version, f_header.f_n_max_trk_hits, f_header.f_n_layers, f_header.f_n_events);
+  printf("Opened file '%s', format version %d, n_layers %d, n_events %d\n",
+         fname.c_str(), f_header.f_format_version, f_header.f_n_layers, f_header.f_n_events);
   if (f_header.f_extra_sections)
   {
     printf("  Extra sections:");

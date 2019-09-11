@@ -648,7 +648,7 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
             copy_out(newcand, itrack, iC);
 	    newcand.addHitIdx(XHitArr.At(itrack, hit_cnt, 0), layer_of_hits.layer_id(), chi2);
 	    newcand.setSeedTypeForRanking(SeedType(itrack, 0, 0));
-	    newcand.setCandScore(getScoreCand(newcand));
+	    newcand.setScore(getScoreCand(newcand));
 
 	    dprint("updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << " z=" << newcand.parameters()[2] << " pt=" << 1./newcand.parameters()[3]);
 
@@ -686,7 +686,7 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
     copy_out(newcand, itrack, iP);
     newcand.addHitIdx(fake_hit_idx, layer_of_hits.layer_id(), 0.);
     newcand.setSeedTypeForRanking(SeedType(itrack, 0, 0));
-    newcand.setCandScore(getScoreCand(newcand));
+    newcand.setScore(getScoreCand(newcand));
     tmp_candidates[SeedIdx(itrack, 0, 0) - offset].emplace_back(newcand);
   }
 }
@@ -884,6 +884,8 @@ void MkFinder::BkFitInputTracks(TrackVec& cands, int beg, int end)
 
 //------------------------------------------------------------------------------
 
+/* QQQQ - out until further notice
+
 void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
 {
   // XXXX Can cause trouble if per-seed vectors get scattered beyond 2GB (or maybe 8).
@@ -912,7 +914,7 @@ void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
 
   Err[iC].Scale(100.0f);
 }
-
+*/
 
 void MkFinder::BkFitOutputTracks(TrackVec& cands, int beg, int end)
 {
@@ -929,10 +931,12 @@ void MkFinder::BkFitOutputTracks(TrackVec& cands, int beg, int end)
       trk.setChi2(Chi2(itrack, 0, 0));
       if(!(std::isnan(trk.chi2())))
       {
-	trk.setCandScore(getScoreCand(trk));
+	trk.setScore(getScoreCand(trk));
       }
     }
 }
+
+/* QQQQ - out until further notice
 
 void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
 {
@@ -949,10 +953,12 @@ void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
     trk.setChi2(Chi2(itrack, 0, 0));
     if(!(std::isnan(trk.chi2())))
     {
-      trk.setCandScore(getScoreCand(trk));
+      trk.setScore(getScoreCand(trk));
     }
   }
 }
+*/
+
 
 } // end namespace mkfit
 //------------------------------------------------------------------------------

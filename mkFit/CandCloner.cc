@@ -80,13 +80,13 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
         TrackCand cc( ccand[h2a.trkIdx] );
         cc.addHitIdx(h2a.hitIdx, m_layer, 0);
         cc.setChi2(h2a.chi2);
-        cc.setCandScore(h2a.score);
+        cc.setScore(h2a.score);
         // h2a already carries correct score
-        // cc.setCandScore( getScoreCand( cc );
+        // cc.setScore( getScoreCand( cc );
 
         if (h2a.hitIdx == -2)
         {
-          if (h2a.score > ccand.m_best_short_cand.getCandScore())
+          if (h2a.score > ccand.m_best_short_cand.score())
           {
             ccand.m_best_short_cand = cc;
           }

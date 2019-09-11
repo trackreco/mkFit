@@ -278,7 +278,6 @@ Track TrackCand::exportTrack() const
   // printf("TrackCand::exportTrack %p, label=%d\n", this, label());
 
   Track res(*this);
-  res.resetHitsFound();
 
   int nh = nTotalHits();
   int ch = lastHitIdx_;
@@ -294,6 +293,7 @@ Track TrackCand::exportTrack() const
     ch       = hot_node.m_prev_idx;
   }
 
+  res.reserveHits(nTotalHits());
   for (auto & i : hots)
   {
     res.addHitIdx(i.index, i.layer, 0.0f);
@@ -331,16 +331,17 @@ void CombCandidate::ImportSeed(const Track& seed)
   m_seed_type       = seed.getSeedTypeForRanking();
 
   TrackCand &cand = back();
-  cand.setSeedTypeForRanking(m_seed_type);
-  cand.setCandScore         (getScoreCand(cand));
 
   // printf("Importing pt=%f eta=%f, lastCcIndex=%d\n", cand.pT(), cand.momEta(), cand.lastCcIndex());
-  cand.resetHitsFound();
+
   for (const HitOnTrack* hp = seed.BeginHitsOnTrack(); hp != seed.EndHitsOnTrack(); ++hp)
   {
     // printf(" hit idx=%d lyr=%d\n", hp->index, hp->layer);
     cand.addHitIdx(hp->index, hp->layer, 0.0f);
   }
+
+  cand.setSeedTypeForRanking(m_seed_type);
+  cand.setScore             (getScoreCand(cand));
 }
 
 void CombCandidate::MergeCandsAndBestShortOne(bool update_score, bool sort_cands)
@@ -352,17 +353,17 @@ void CombCandidate::MergeCandsAndBestShortOne(bool update_score, bool sort_cands
   {
     if (update_score)
     {
-      for (auto &c : finalcands) c.setCandScore( getScoreCand(c) );
+      for (auto &c : finalcands) c.setScore( getScoreCand(c) );
     }
     if (sort_cands)
     {
       std::sort(finalcands.begin(), finalcands.end(), sortByScoreTrackCand);
     }
 
-    if (best_short.getCandScore() > finalcands.back().getCandScore())
+    if (best_short.score() > finalcands.back().score())
     {
       auto ci = finalcands.begin();
-      while (ci->getCandScore() > best_short.getCandScore()) ++ci;
+      while (ci->score() > best_short.score()) ++ci;
 
       if ((int) finalcands.size() > Config::maxCandsPerSeed)  finalcands.pop_back();
 
@@ -371,7 +372,7 @@ void CombCandidate::MergeCandsAndBestShortOne(bool update_score, bool sort_cands
         if (ci == finalcands.begin())
         {
         printf("FindTracksStd -- Replacing best cand (%d) with short one (%d) in final sorting for seed index=%d\n",
-                     finalcands.front().getCandScore(), best_short.getCandScore(), iseed);
+                     finalcands.front().score(), best_short.score(), iseed);
         }
       */
 
@@ -379,12 +380,12 @@ void CombCandidate::MergeCandsAndBestShortOne(bool update_score, bool sort_cands
     }
 
   }
-  else if (best_short.getCandScore() > getScoreWorstPossible())
+  else if (best_short.score() > getScoreWorstPossible())
   {
     finalcands.push_back( best_short );
   }
 
-  best_short.setCandScore( getScoreWorstPossible() );
+  best_short.setScore( getScoreWorstPossible() );
 }
 
 } // end namespace mkfit

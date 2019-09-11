@@ -104,6 +104,12 @@ bool TrackBase::hasSillyValues(bool dump, bool fix, const char* pref)
 // Track
 //==============================================================================
 
+void Track::resizeHitsForInput()
+{
+  bzero(&hitsOnTrk_, sizeof(hitsOnTrk_));
+  hitsOnTrk_.resize(lastHitIdx_ + 1);
+}
+
 void Track::sortHitsByLayer()
 {
   std::sort(& hitsOnTrk_[0], & hitsOnTrk_[lastHitIdx_ + 1],
@@ -397,7 +403,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
     }
   
     // total found hits in hit index array, excluding seed if necessary
-    const int nCandHits = ((Config::mtvLikeValidation || isSeed) ? trk.nStoredFoundHits() : trk.nStoredFoundHits() - nSeedHits);
+    const int nCandHits = ((Config::mtvLikeValidation || isSeed) ? trk.nFoundHits() : trk.nFoundHits() - nSeedHits);
 
     // 75% or 50% matching criterion 
     if ( ( Config::mtvLikeValidation ? (4*mccount > 3*nCandHits) : (2*mccount >= nCandHits) ) )
@@ -569,7 +575,7 @@ void TrackExtra::setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vec
 
   // other important info
   nHitsMatched_ = nHitsMatched;
-  fracHitsMatched_ = float(nHitsMatched_) / float(trk.nStoredFoundHits()-nSeedHits); // seed hits may already be included!
+  fracHitsMatched_ = float(nHitsMatched_) / float(trk.nFoundHits()-nSeedHits); // seed hits may already be included!
 }
 
 void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMapMap& cmsswHitIDMap, const TrackVec& cmsswtracks, 

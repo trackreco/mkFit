@@ -1,3 +1,36 @@
+
+With GC's cluster info etc ... testing
+--------------------------------------
+
+./writeMemoryFile --input ~slava77/data-buffer/CMSSW_10_4_0_patch1-tkNtuple/pass-925bb57/initialStep/default/10muPt0p2to10HS/trackingNtuple.root --output ../../mu-hs.bin --clean-sim-tracks --apply-ccc --write-rec-tracks &
+
+./writeMemoryFile --input ~slava77/data-buffer/CMSSW_10_4_0_patch1-tkNtuple/pass-925bb57/initialStep/default/11024.0_TTbar_13/AVE_70_BX01_25ns/trackingNtuple.root --output ../../pu70-ccc-hs.bin --clean-sim-tracks --apply-ccc --write-rec-tracks &
+
+./writeMemoryFile --input ~slava77/data-buffer/CMSSW_10_4_0_patch1-tkNtuple/pass-925bb57/initialStep/default/11024.0_TTbar_13/AVE_50_BX01_25ns/trackingNtuple.root --output ../../pu50-ccc-hs.bin --clean-sim-tracks --apply-ccc --write-rec-tracks &
+
+Data-format change: Hit gets module id, cluster info, Track now uses std::vector<HitOnTrack>
+--------------------------------------------------------------------------------------------
+
+* phi1 setup / running notes
+
+.  /cvmfs/cms.cern.ch/slc7_amd64_gcc630/lcg/root/6.12.07-gnimlf2/etc/profile.d/init.sh
+.  /cvmfs/cms.cern.ch/slc7_amd64_gcc630/external/tbb/2018_U1-cms/etc/profile.d/init.sh
+export TBB_PREFIX=$TBB_ROOT
+
+./writeMemoryFile --input root://redirector//store/user/slava77/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-c93773a/initialStep/10muPt0p5to10HS//trackingNtuple.root --output ../../mu-hs.bin --clean-sim-tracks --apply-ccc --write-rec-tracks &
+
+./writeMemoryFile --input root://redirector//store/user/slava77/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-c93773a/initialStep/PU70/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/trackingNtuple.root --output ../../pu70-ccc.bin --clean-sim-tracks --apply-ccc --write-rec-tracks &
+
+./writeMemoryFile --input root://redirector//store/user/slava77/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-c93773a/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/trackingNtuple.root --output ../../pu70-ccc-hs.bin --clean-sim-tracks --apply-ccc --write-rec-tracks &
+
+
+.  /cvmfs/cms.cern.ch/slc7_amd64_gcc630/external/gdb/7.12.1-omkpbe2/etc/profile.d/init.sh
+.  /cvmfs/cms.cern.ch/slc7_amd64_gcc630/external/valgrind/3.13.0-omkpbe/etc/profile.d/init.sh
+
+mkFit/mkFit --cmssw-n2seeds --input-file /data2/mu-hs.bin --build-std
+mkFit/mkFit --cmssw-n2seeds --input-file /data2/pu70-ccc-hs.bin --build-std --quality-val --num-events 10
+
+
 TrackBase, TrackCand, storage of cand hits into a tree structure
 ----------------------------------------------------------------
 

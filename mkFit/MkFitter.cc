@@ -592,7 +592,10 @@ void MkFitter::OutputFittedTracksAndHitIdx(std::vector<Track>& tracks, int beg, 
     tracks[i].setChi2(Chi2(itrack, 0, 0));
     tracks[i].setLabel(Label(itrack, 0, 0));
 
+    // QQQQ Could do resize and std::copy, as in MkFinder::copy_out(), but
+    // we do not know the correct N_found_hits.
     tracks[i].resetHits();
+    tracks[i].reserveHits(Nhits);
     for (int hi = 0; hi < Nhits; ++hi)
     {
       tracks[i].addHitIdx(HoTArr[hi](itrack, 0, 0), 0.);

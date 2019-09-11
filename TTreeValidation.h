@@ -229,7 +229,6 @@ public:
   float minSimPt_=0.,maxSimPt_=0.;
   float hitposerrXY_=0.,hitposerrZ_=0.,hitposerrR_=0.;
   float varXY_=0.,varZ_=0.;
-  int   nTotHit_=0;
   float ptinverr049_=0.,phierr049_=0.,thetaerr049_=0.,ptinverr012_=0.,phierr012_=0.,thetaerr012_=0.;
 
   // CMSSW Efficiency tree

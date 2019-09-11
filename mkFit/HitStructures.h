@@ -279,13 +279,13 @@ class TrackCand : public TrackBase
 public:
   TrackCand() {}
 
-  TrackCand(const TrackBase& base, CombCandidate* ccand) :
+  explicit TrackCand(const TrackBase& base, CombCandidate* ccand) :
     TrackBase(base),
     m_comb_candidate(ccand)
   {
-    // Reset position for filling into CombCandidate hit storage.
-    // Caller has to initialize hits.
+    // Reset hit counters -- caller has to initialize hits.
     lastHitIdx_ = -1;
+    nFoundHits_ =  0;
   }
 
   CombCandidate* combCandidate() const { return m_comb_candidate; }
@@ -329,7 +329,7 @@ protected:
 
 inline bool sortByScoreTrackCand(const TrackCand & cand1, const TrackCand & cand2)
 {
-  return cand1.getCandScore() > cand2.getCandScore();
+  return cand1.score() > cand2.score();
 }
 
 inline int getScoreCand(const TrackCand& cand1)
@@ -342,7 +342,7 @@ inline int getScoreCand(const TrackCand& cand1)
   // Do not allow for chi2<0 in score calculation
   if(chi2<0) chi2=0.f;
   // Do not allow for chi2>2^14/2/10 in score calculation (15 bits for (int) score x 10: 14 bits for score magnitude + 1 bit for sign --> max chi2 = 1/2*1/10*2^14=819.2)
-  if(chi2>Config::maxChi2ForRanking_) chi2=Config::maxChi2ForRanking_;
+  if(chi2 > Config::maxChi2ForRanking_) chi2=Config::maxChi2ForRanking_;
   return getScoreCalc(seedtype,nfoundhits,nmisshits,chi2,pt);
 }
 
@@ -356,7 +356,7 @@ public:
   TrackCand    m_best_short_cand;
   SeedState_e  m_state           = Dormant;
   int          m_last_seed_layer = -1;
-  unsigned int m_seed_type       = 0;
+  unsigned int m_seed_type       =  0;
 
   int                  m_hots_size = 0;
   std::vector<HoTNode> m_hots;
@@ -364,7 +364,7 @@ public:
   CombCandidate()
   {
     reserve(Config::maxCandsPerSeed); //we should never exceed this
-    m_best_short_cand.setCandScore( getScoreWorstPossible() );
+    m_best_short_cand.setScore( getScoreWorstPossible() );
 
     // this will be different for CloneEngine and Std, especially as long as we
     // instantiate all candidates before purging them.

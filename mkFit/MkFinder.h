@@ -157,8 +157,10 @@ public:
 
   void BkFitInputTracks (TrackVec& cands, int beg, int end);
   void BkFitOutputTracks(TrackVec& cands, int beg, int end);
-  void BkFitInputTracks (EventOfCombCandidates& eocss, int beg, int end);
-  void BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end);
+
+  // QQQQQ - out until further notice
+  // void BkFitInputTracks (EventOfCombCandidates& eocss, int beg, int end);
+  // void BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end);
 
   void BkFitFitTracks(const EventOfHits& eventofhits, const SteeringParams& st_par,
                       const int N_proc, bool chiDebug = false);
@@ -192,8 +194,7 @@ private:
     trk.setChi2  (Chi2 (mslot, 0, 0));
     trk.setLabel (Label(mslot, 0, 0));
 
-    trk.setNTotalHits(NHits     (mslot, 0, 0));
-    trk.setNFoundHits(NFoundHits(mslot, 0, 0));
+    trk.resizeHits(NHits(mslot, 0, 0), NFoundHits(mslot, 0, 0));
     std::copy(HoTArrs[mslot], & HoTArrs[mslot][NHits(mslot, 0, 0)], trk.BeginHitsOnTrack_nc());
   }
 
