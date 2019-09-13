@@ -34,6 +34,10 @@ namespace mkfit {
       fillZRgridME();
     }
 
+    void setRemoveDuplicates(bool removeDuplicates) {
+      Config::removeDuplicates = removeDuplicates;
+    }
+
     void setNTotalLayers(int nTotalLayers) {
       Config::nTotalLayers = nTotalLayers;
     }

@@ -20,6 +20,7 @@ namespace mkfit {
     };
 
     void initializeForCMSSW(SeedCleaningOpts seedClean, BackwardFit backfit, bool silent);
+    void setRemoveDuplicates(bool removeDuplicates);
 
     void setNTotalLayers(int nTotalLayers);
   }
