@@ -6,7 +6,7 @@
 
 suite=${1:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
 style=${2:-"--mtv-like-val"} # option --mtv-like-val
-inputBin=${3:-"91XPU70CCC"}
+inputBin=${3:-"104XPU50CCC"}
 
 ###################
 ## Configuration ##
@@ -18,16 +18,17 @@ source xeon_scripts/init-env.sh
 ## Common file setup
 case ${inputBin} in 
 "91XPU70CCC")
-        echo "Inputs from 2017 initialStep PU 70 with CCC"
+        echo "Inputs from 2017 initialStep PU 70 with CCC -- DO NOT WORK ANYMORE"
+        exit 1
         dir=/data2/slava77/samples/2017/pass-c93773a/initialStep
         subdir=PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU
         file=memoryFile.fv3.clean.writeAll.CCC1620.recT.082418-25daeda.bin
         ;;
-"104XPU70CCC")
-        echo "Inputs from 2018 initialStep/default PU 70 with CCC"
-        dir=/data2/slava77/samples/2018/pass-e072c1a/initialStep/default
-        subdir=11024.0_TTbar_13/AVE_70_BX01_25ns
-        file=memoryFile.fv3.clean.writeAll.CCC1620.recT.190423-19a1bc3.bin
+"104XPU50CCC")
+        echo "Inputs from 2018 initialStep/default PU 50 with CCC"
+        dir=/data2
+        subdir=
+        file=pu50-ccc-hs.bin
         ;;
 *)
         echo "INPUT BIN IS UNKNOWN"
@@ -83,7 +84,7 @@ function doVal()
     local bExe="${exe} ${vO} --build-${bO}"
     
     echo "${oBase}: ${vN} [nTH:${maxth}, nVU:${maxvu}int, nEV:${maxev}]"
-    ${bExe} >& log_${oBase}_NVU${maxvu}int_NTH${maxth}_NEV${maxev}_${vN}.txt
+    ${bExe} >& log_${oBase}_NVU${maxvu}int_NTH${maxth}_NEV${maxev}_${vN}.txt || (echo Crashed; exit 2)
     
     # hadd output files for this test, then move to temporary directory
     hadd -O valtree.root valtree_*.root
@@ -100,7 +101,7 @@ function plotVal()
     local pO=${4}
 
     echo "Computing observables for: ${base} ${bN} ${pN}"
-    root -b -q -l plotting/runValidation.C\(\"_${base}_${bN}_${pN}\",${pO}\)
+    root -b -q -l plotting/runValidation.C\(\"_${base}_${bN}_${pN}\",${pO}\) || (echo Crashed; exit 3)
 }
 
 ########################
