@@ -6,7 +6,7 @@ useARCH=${2:-0} # which computer cluster to run on. 0=phi3, 1=lnx, 2= phi3+lnx, 
 lnxuser=${3:-${USER}} #username for lnx computers
 
 # samples
-export sample=CMSSW_TTbar_PU70
+export sample=CMSSW_TTbar_PU50
 
 # Validation architecture
 export val_arch=SKL-SP
