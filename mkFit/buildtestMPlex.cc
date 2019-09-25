@@ -285,14 +285,17 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
   // now do backwards fit... do we want to time this section?
   if (Config::backwardFit)
   {
-    builder.BackwardFit();
+    // QQQQ Using the TrackVec version until we home in on THE backward fit etc.
+    // builder.BackwardFit();
+    builder.BackwardFitBH();
 
     check_nan_n_silly_bkfit(ev);
 
-    if (Config::sim_val || Config::cmssw_val || Config::cmssw_export)
-    {
-      builder.quality_store_tracks(ev.fitTracks_);
-    }
+    // QQQQ already done by BackwardFitBH()
+    // if (Config::sim_val || Config::cmssw_val || Config::cmssw_export)
+    // {
+    //   builder.quality_store_tracks(ev.fitTracks_);
+    // }
   }
 
   builder.handle_duplicates();
@@ -348,14 +351,17 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
   // now do backwards fit... do we want to time this section?
   if (Config::backwardFit)
   {
-    builder.BackwardFit();
+    // QQQQ Using the TrackVec version until we home in on THE backward fit etc.
+    // builder.BackwardFit();
+    builder.BackwardFitBH();
 
     check_nan_n_silly_bkfit(ev);
 
-    if (Config::sim_val || Config::cmssw_val || Config::cmssw_export)
-    {
-      builder.quality_store_tracks(ev.fitTracks_);
-    }
+   // QQQQ already done by BackwardFitBH()
+   // if (Config::sim_val || Config::cmssw_val || Config::cmssw_export)
+   //  {
+   //    builder.quality_store_tracks(ev.fitTracks_);
+   //  }
   }
 
   builder.handle_duplicates();

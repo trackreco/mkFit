@@ -1,3 +1,231 @@
+
+Sim 2018 PU70 sample - hit, module infos
+----------------------------------------
+
+Average number of seeds per event 828.942505
+Average number of hits in layer   0 = 3073.32
+Average number of hits in layer   1 = 2615.13
+Average number of hits in layer   2 = 2277.22
+Average number of hits in layer   3 = 1917.71
+Average number of hits in layer   4 = 4214.65
+Average number of hits in layer   5 = 4349.80
+Average number of hits in layer   6 = 3720.44
+Average number of hits in layer   7 = 3737.94
+Average number of hits in layer   8 = 3085.48
+Average number of hits in layer   9 = 2640.19
+Average number of hits in layer  10 = 3470.67
+Average number of hits in layer  11 = 3450.70
+Average number of hits in layer  12 = 2955.59
+Average number of hits in layer  13 = 3003.03
+Average number of hits in layer  14 = 2380.01
+Average number of hits in layer  15 = 1955.55
+Average number of hits in layer  16 = 1700.98
+Average number of hits in layer  17 = 1360.74
+Average number of hits in layer  18 = 1198.10
+Average number of hits in layer  19 = 1276.75
+Average number of hits in layer  20 = 1361.93
+Average number of hits in layer  21 = 1032.49
+Average number of hits in layer  22 =  768.76
+Average number of hits in layer  23 = 1130.75
+Average number of hits in layer  24 =  748.53
+Average number of hits in layer  25 = 1187.02
+Average number of hits in layer  26 =  849.00
+Average number of hits in layer  27 = 2272.04
+Average number of hits in layer  28 = 1071.64
+Average number of hits in layer  29 = 2412.70
+Average number of hits in layer  30 = 1157.40
+Average number of hits in layer  31 = 2486.16
+Average number of hits in layer  32 = 1201.94
+Average number of hits in layer  33 = 2076.90
+Average number of hits in layer  34 =  750.31
+Average number of hits in layer  35 = 2154.58
+Average number of hits in layer  36 =  762.48
+Average number of hits in layer  37 = 2209.81
+Average number of hits in layer  38 =  775.21
+Average number of hits in layer  39 = 1770.90
+Average number of hits in layer  40 =  349.86
+Average number of hits in layer  41 = 1854.49
+Average number of hits in layer  42 =  389.69
+Average number of hits in layer  43 = 1464.36
+Average number of hits in layer  44 =  403.46
+Average number of hits in layer  45 = 1235.84
+Average number of hits in layer  46 = 1362.54
+Average number of hits in layer  47 = 1412.89
+Average number of hits in layer  48 = 1016.37
+Average number of hits in layer  49 =  726.22
+Average number of hits in layer  50 = 1029.12
+Average number of hits in layer  51 =  623.23
+Average number of hits in layer  52 = 1189.20
+Average number of hits in layer  53 =  854.48
+Average number of hits in layer  54 = 2289.76
+Average number of hits in layer  55 = 1105.33
+Average number of hits in layer  56 = 2312.55
+Average number of hits in layer  57 = 1117.81
+Average number of hits in layer  58 = 2497.48
+Average number of hits in layer  59 = 1208.42
+Average number of hits in layer  60 = 2105.25
+Average number of hits in layer  61 =  755.48
+Average number of hits in layer  62 = 2159.37
+Average number of hits in layer  63 =  758.59
+Average number of hits in layer  64 = 2195.77
+Average number of hits in layer  65 =  745.96
+Average number of hits in layer  66 = 1810.17
+Average number of hits in layer  67 =  330.47
+Average number of hits in layer  68 = 1909.99
+Average number of hits in layer  69 =  388.32
+Average number of hits in layer  70 = 1473.86
+Average number of hits in layer  71 =  406.15
+Out of 1239532103 hits, 196376076 failed the cut
+
+================================================================
+=== Max module id for 72 layers
+================================================================
+Layer 0 : 92
+Layer 1 : 209
+Layer 2 : 336
+Layer 3 : 488
+Layer 4 : 306
+Layer 5 : 313
+Layer 6 : 409
+Layer 7 : 407
+Layer 8 : 494
+Layer 9 : 576
+Layer10 : 498
+Layer11 : 498
+Layer12 : 567
+Layer13 : 567
+Layer14 : 624
+Layer15 : 672
+Layer16 : 779
+Layer17 : 881
+Layer18 : 108
+Layer19 : 109
+Layer20 : 110
+Layer21 : 85
+Layer22 : 48
+Layer23 : 86
+Layer24 : 44
+Layer25 : 87
+Layer26 : 48
+Layer27 : 311
+Layer28 : 82
+Layer29 : 319
+Layer30 : 88
+Layer31 : 316
+Layer32 : 88
+Layer33 : 294
+Layer34 : 63
+Layer35 : 294
+Layer36 : 63
+Layer37 : 288
+Layer38 : 61
+Layer39 : 258
+Layer40 : 37
+Layer41 : 261
+Layer42 : 40
+Layer43 : 225
+Layer44 : 40
+Layer45 : 111
+Layer46 : 110
+Layer47 : 111
+Layer48 : 84
+Layer49 : 45
+Layer50 : 81
+Layer51 : 37
+Layer52 : 88
+Layer53 : 48
+Layer54 : 319
+Layer55 : 88
+Layer56 : 312
+Layer57 : 86
+Layer58 : 318
+Layer59 : 88
+Layer60 : 296
+Layer61 : 64
+Layer62 : 295
+Layer63 : 63
+Layer64 : 291
+Layer65 : 60
+Layer66 : 261
+Layer67 : 35
+Layer68 : 267
+Layer69 : 40
+Layer70 : 227
+Layer71 : 40
+
+
+With GC's cluster info etc ... testing
+--------------------------------------
+
+./writeMemoryFile --input ~slava77/data-buffer/CMSSW_10_4_0_patch1-tkNtuple/pass-925bb57/initialStep/default/10muPt0p2to10HS/trackingNtuple.root --output ../../mu-hs.bin --clean-sim-tracks --apply-ccc --write-rec-tracks &
+
+./writeMemoryFile --input ~slava77/data-buffer/CMSSW_10_4_0_patch1-tkNtuple/pass-925bb57/initialStep/default/11024.0_TTbar_13/AVE_70_BX01_25ns/trackingNtuple.root --output ../../pu70-ccc-hs.bin --clean-sim-tracks --apply-ccc --write-rec-tracks &
+
+./writeMemoryFile --input ~slava77/data-buffer/CMSSW_10_4_0_patch1-tkNtuple/pass-925bb57/initialStep/default/11024.0_TTbar_13/AVE_50_BX01_25ns/trackingNtuple.root --output ../../pu50-ccc-hs.bin --clean-sim-tracks --apply-ccc --write-rec-tracks &
+
+Data-format change: Hit gets module id, cluster info, Track now uses std::vector<HitOnTrack>
+--------------------------------------------------------------------------------------------
+
+* phi1 setup / running notes
+
+.  /cvmfs/cms.cern.ch/slc7_amd64_gcc630/lcg/root/6.12.07-gnimlf2/etc/profile.d/init.sh
+.  /cvmfs/cms.cern.ch/slc7_amd64_gcc630/external/tbb/2018_U1-cms/etc/profile.d/init.sh
+export TBB_PREFIX=$TBB_ROOT
+
+./writeMemoryFile --input root://redirector//store/user/slava77/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-c93773a/initialStep/10muPt0p5to10HS//trackingNtuple.root --output ../../mu-hs.bin --clean-sim-tracks --apply-ccc --write-rec-tracks &
+
+./writeMemoryFile --input root://redirector//store/user/slava77/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-c93773a/initialStep/PU70/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/trackingNtuple.root --output ../../pu70-ccc.bin --clean-sim-tracks --apply-ccc --write-rec-tracks &
+
+./writeMemoryFile --input root://redirector//store/user/slava77/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-c93773a/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/trackingNtuple.root --output ../../pu70-ccc-hs.bin --clean-sim-tracks --apply-ccc --write-rec-tracks &
+
+
+.  /cvmfs/cms.cern.ch/slc7_amd64_gcc630/external/gdb/7.12.1-omkpbe2/etc/profile.d/init.sh
+.  /cvmfs/cms.cern.ch/slc7_amd64_gcc630/external/valgrind/3.13.0-omkpbe/etc/profile.d/init.sh
+
+mkFit/mkFit --cmssw-n2seeds --input-file /data2/mu-hs.bin --build-std
+mkFit/mkFit --cmssw-n2seeds --input-file /data2/pu70-ccc-hs.bin --build-std --quality-val --num-events 10
+
+
+TrackBase, TrackCand, storage of cand hits into a tree structure
+----------------------------------------------------------------
+
+The shittiest part of the problem seems to be how one handles backward fit and
+pickup of overlap hits. OK, and then getting rid of outliers.
+
+It almost seems like TrackFinalCand class would be needed where one would be
+able to add and remove hits relatively easily. Like having a list but this is horrible.
+
+On the other hand, once outward processing is done for a seed, a single
+candidate is selected and therefore we can in principle screw up the hit history.
+- Will we ever consider more than one Cand from a single seed?
+- Have we finally checked if abs diag errors could be used to stop a cand (or at least
+  reduce its score)?
+  - For shortish tracks, how suspect should one be of the final couple of hits?
+
+? HitStore interface to Track -- could this make Track indepenent of how hits are actually stored?
+Several implementations + with/without cache (like N_holes).
+
+? Filling / retrieving data from Matriplexes. MkFinder CopyIn/Out interfaces
+... are they overdone, ie, should the guy the fills them up store extra data
+elsewhere instead of putting it into Matriplex members of MkFinder?
+
+------------------------------------------------------------------------
+
+- Keep Track as IO object.
+
+- Move all you need to move to TrackBase (need to keep memory layout of Track
+  intact so all members before State need to be moved, too).
+
+------------------------------------------------------------------------
+
+CE and STD give identical track results as devel.
+For 5k PU70 evs, 64 thr, 16 EIF, avx_512 (on phi3, best run out of 3):
+ - CE  15% faster build,  3% better wall time
+ - STD 25% faster build, 10% better wall time
+
+
+================================================================================
+
 Using non-sorted hits from external hit-vector ...
 ----------------------------------------------
 

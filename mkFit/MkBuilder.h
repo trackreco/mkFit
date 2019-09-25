@@ -186,7 +186,7 @@ public:
                                      int prev_layer, bool pickup_only);
 
   void find_tracks_handle_missed_layers(MkFinder *mkfndr, const LayerInfo &layer_info,
-                                        std::vector<std::vector<Track>> &tmp_cands,
+                                        std::vector<std::vector<TrackCand>> &tmp_cands,
                                         const std::vector<std::pair<int,int>> &seed_cand_idx,
                                         const int region, const int start_seed,
                                         const int itrack, const int end);

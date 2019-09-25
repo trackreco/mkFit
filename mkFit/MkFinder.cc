@@ -63,17 +63,17 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>     & track
 
   for (int i = beg, imp = 0; i < end; ++i, ++imp)
   {
-    const Track &trk = tracks[idxs[i].first][idxs[i].second];
+    const TrackCand &trk = tracks[idxs[i].first][idxs[i].second];
 
     copy_in(trk, imp, iI);
-    
+
     SeedType(imp, 0, 0) = tracks[idxs[i].first].m_seed_type;
     SeedIdx(imp, 0, 0) = idxs[i].first;
     CandIdx(imp, 0, 0) = idxs[i].second;
   }
 }
 
-void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>                       & tracks,
+void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>             & tracks,
                                     const std::vector<std::pair<int,IdxChi2List>>& idxs,
                                     int beg, int end, bool inputProp)
 {
@@ -86,7 +86,7 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>            
 
   for (int i = beg, imp = 0; i < end; ++i, ++imp)
   {
-    const Track &trk = tracks[idxs[i].first][idxs[i].second.trkIdx];
+    const TrackCand &trk = tracks[idxs[i].first][idxs[i].second.trkIdx];
 
     copy_in(trk, imp, iI);
 
@@ -556,7 +556,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
 //==============================================================================
 
 void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
-                              std::vector<std::vector<Track>>& tmp_candidates,
+                              std::vector<std::vector<TrackCand>>& tmp_candidates,
                               const int offset, const int N_proc,
                               const FindingFoos &fnd_foos)
 {
@@ -642,12 +642,13 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
 	  if (chi2 < Config::chi2Cut)
 	  {
 	    dprint("chi2 cut passed, creating new candidate");
-	    //create a new candidate and fill the reccands_tmp vector
-	    Track newcand;
+	    // Create a new candidate and fill the tmp_candidates output vector.
+            // QQQ only instantiate if it will pass, be better than N_best
+	    TrackCand newcand;
             copy_out(newcand, itrack, iC);
 	    newcand.addHitIdx(XHitArr.At(itrack, hit_cnt, 0), layer_of_hits.layer_id(), chi2);
 	    newcand.setSeedTypeForRanking(SeedType(itrack, 0, 0));
-	    newcand.setCandScore(getScoreCand(newcand));
+	    newcand.setScore(getScoreCand(newcand));
 
 	    dprint("updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << " z=" << newcand.parameters()[2] << " pt=" << 1./newcand.parameters()[3]);
 
@@ -663,19 +664,14 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
   //fixme: please vectorize me...
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
-    // XXXXMT HACK ... put in original track if a layer was missed completely.
-    // Can/should be done earlier? It must be - we can be propagated to outer
-    // space by now for low pt, low eta tracks.
-    // XXXX-1 - This is now done before, in MkBuilder(), with original candidate, before propagation.
+    // Cands that miss the layer are stashed away in MkBuilder(), before propagation,
+    // and then merged back afterwards.
     if (XWsrResult[itrack].m_wsr == WSR_Outside)
     {
-      // Track newcand;
-      // copy_out(newcand, itrack, iP);
-      // tmp_candidates[SeedIdx(itrack, 0, 0) - offset].emplace_back(newcand);
       continue;
     }
 
-    int fake_hit_idx = num_invalid_hits(itrack,true) < Config::maxHolesPerCand ? -1 : -2;
+    int fake_hit_idx = num_all_minus_one_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
 
     if (XWsrResult[itrack].m_wsr == WSR_Edge)
     {
@@ -685,11 +681,12 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
 
     dprint("ADD FAKE HIT FOR TRACK #" << itrack << " withinBounds=" << (fake_hit_idx != -3) << " r=" << std::hypot(Par[iP](itrack,0,0), Par[iP](itrack,1,0)));
 
-    Track newcand;
+    // QQQ as above, only create and add if score better
+    TrackCand newcand;
     copy_out(newcand, itrack, iP);
     newcand.addHitIdx(fake_hit_idx, layer_of_hits.layer_id(), 0.);
     newcand.setSeedTypeForRanking(SeedType(itrack, 0, 0));
-    newcand.setCandScore(getScoreCand(newcand));
+    newcand.setScore(getScoreCand(newcand));
     tmp_candidates[SeedIdx(itrack, 0, 0) - offset].emplace_back(newcand);
   }
 }
@@ -721,7 +718,6 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
       }
     }
   }
-  // XXXX MT FIXME: use masks to filter out SlurpIns
 
   dprintf("FindCandidatesCloneEngine max hits to process=%d\n", maxSize);
 
@@ -756,16 +752,16 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
         if (chi2 < Config::chi2Cut)
         {
           IdxChi2List tmpList;
-          tmpList.trkIdx = CandIdx(itrack, 0, 0);
-          tmpList.hitIdx = XHitArr.At(itrack, hit_cnt, 0);
-          tmpList.nhits  = NFoundHits(itrack,0,0) + 1;
-          tmpList.nholes  = num_invalid_hits(itrack,true);
+          tmpList.trkIdx   = CandIdx(itrack, 0, 0);
+          tmpList.hitIdx   = XHitArr.At(itrack, hit_cnt, 0);
+          tmpList.nhits    = NFoundHits(itrack,0,0) + 1;
+          tmpList.nholes   = num_all_minus_one_hits(itrack);
           tmpList.seedtype = SeedType(itrack, 0, 0);
-          tmpList.pt = std::abs(1.0f/Par[iP].At(itrack,3,0));
-          tmpList.chi2   = Chi2(itrack, 0, 0) + chi2;
-          tmpList.score  = getScoreStruct(tmpList);
+          tmpList.pt       = std::abs(1.0f/Par[iP].At(itrack,3,0));
+          tmpList.chi2     = Chi2(itrack, 0, 0) + chi2;
+          tmpList.score    = getScoreStruct(tmpList);
           cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
-          // hitsToAdd[SeedIdx(itrack, 0, 0)-offset].push_back(tmpList);
+
           dprint("  adding hit with hit_cnt=" << hit_cnt << " for trkIdx=" << tmpList.trkIdx << " orig Seed=" << Label(itrack, 0, 0));
         }
       }
@@ -776,16 +772,16 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
   //now add invalid hit
   for (int itrack = 0; itrack < N_proc; ++itrack)
   {
-    dprint("num_invalid_hits(" << itrack << ")=" << num_invalid_hits(itrack,true));
+    dprint("num_all_minus_one_hits(" << itrack << ")=" << num_all_minus_one_hits(itrack));
 
+    // Cands that miss the layer are stashed away in MkBuilder(), before propagation,
+    // and then merged back afterwards.
     if (XWsrResult[itrack].m_wsr == WSR_Outside)
     {
-      // fake_hit_idx = -4;
-      dprint("track missed layer, not adding a clone with a missing hit");
-      continue; // handled outside, keep previous parameters
+      continue;
     }
 
-    int fake_hit_idx = num_invalid_hits(itrack,true) < Config::maxHolesPerCand ? -1 : -2;
+    int fake_hit_idx = num_all_minus_one_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
 
     if (XWsrResult[itrack].m_wsr == WSR_Edge)
     {
@@ -793,14 +789,14 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     }
 
     IdxChi2List tmpList;
-    tmpList.trkIdx = CandIdx(itrack, 0, 0);
-    tmpList.hitIdx = fake_hit_idx;
-    tmpList.nhits  = NFoundHits(itrack,0,0);
-    tmpList.nholes  = num_invalid_hits(itrack,false);
+    tmpList.trkIdx   = CandIdx(itrack, 0, 0);
+    tmpList.hitIdx   = fake_hit_idx;
+    tmpList.nhits    = NFoundHits(itrack,0,0);
+    tmpList.nholes   = num_inside_minus_one_hits(itrack);
     tmpList.seedtype = SeedType(itrack, 0, 0);
-    tmpList.pt = std::abs(1.0f/Par[iP].At(itrack,3,0));
-    tmpList.chi2   = Chi2(itrack, 0, 0);
-    tmpList.score  = getScoreStruct(tmpList);
+    tmpList.pt       = std::abs(1.0f/Par[iP].At(itrack,3,0));
+    tmpList.chi2     = Chi2(itrack, 0, 0);
+    tmpList.score    = getScoreStruct(tmpList);
     cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
     dprint("adding invalid hit " << fake_hit_idx);
   }
@@ -816,9 +812,7 @@ void MkFinder::UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc,
 {
   for (int i = 0; i < N_proc; ++i)
   {
-    const HitOnTrack &hot = HoTArrs[i][ NHits[i] - 1];
-
-    if (hot.index < 0) continue;
+    const HitOnTrack &hot = LastHoT[i];
 
     const Hit &hit = layer_of_hits.GetHit(hot.index);
 
@@ -828,33 +822,6 @@ void MkFinder::UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc,
 
   (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
                                  Err[iC], Par[iC], N_proc, Config::finding_intra_layer_pflags);
-
-  //now that we have moved propagation at the end of the sequence we lost the handle of
-  //using the propagated parameters instead of the updated for the missing hit case.
-  //so we need to replace by hand the updated with the propagated
-  //there may be a better way to restore this...
-
-  for (int i = 0; i < N_proc; ++i)
-  {
-    if (HoTArrs[i][ NHits[i] - 1].index < 0)
-    {
-      printf("MkFinder::UpdateWithLastHit hit with negative index %d ... i=%d, N_proc=%d.\n",
-             HoTArrs[i][ NHits[i] - 1].index, i, N_proc);
-      assert (false && "This should not happen now that CandCloner builds a true update list.");
-      /*
-      float tmp[21];
-      Err[iP].CopyOut(i, tmp);
-      Err[iC].CopyIn (i, tmp);
-      Par[iP].CopyOut(i, tmp);
-      Par[iC].CopyIn (i, tmp);
-
-      if (HoTArrs[i][ NHits[i] - 1].index == -4)
-      {
-        --NHits[i];
-      }
-      */
-    }
-  }
 }
 
 
@@ -869,13 +836,9 @@ void MkFinder::CopyOutParErr(std::vector<CombCandidate>& seed_cand_vec,
 
   for (int i = 0; i < N_proc; ++i)
   {
-    //create a new candidate and fill the cands_for_next_lay vector
-    Track &cand = seed_cand_vec[SeedIdx(i, 0, 0)][CandIdx(i, 0, 0)];
+    TrackCand &cand = seed_cand_vec[SeedIdx(i, 0, 0)][CandIdx(i, 0, 0)];
 
-    // clone-engine update can remove the last hit if invalid (no chi2 change)
-    cand.setNTotalHits(NHits[i]);
-
-    //set the track state to the updated parameters
+    // Set the track state to the updated parameters
     Err[iO].CopyOut(i, cand.errors_nc().Array());
     Par[iO].CopyOut(i, cand.parameters_nc().Array());
 
@@ -921,6 +884,8 @@ void MkFinder::BkFitInputTracks(TrackVec& cands, int beg, int end)
 
 //------------------------------------------------------------------------------
 
+/* QQQQ - out until further notice
+
 void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
 {
   // XXXX Can cause trouble if per-seed vectors get scattered beyond 2GB (or maybe 8).
@@ -949,7 +914,7 @@ void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
 
   Err[iC].Scale(100.0f);
 }
-
+*/
 
 void MkFinder::BkFitOutputTracks(TrackVec& cands, int beg, int end)
 {
@@ -966,10 +931,12 @@ void MkFinder::BkFitOutputTracks(TrackVec& cands, int beg, int end)
       trk.setChi2(Chi2(itrack, 0, 0));
       if(!(std::isnan(trk.chi2())))
       {
-	trk.setCandScore(getScoreCand(trk));
+	trk.setScore(getScoreCand(trk));
       }
     }
 }
+
+/* QQQQ - out until further notice
 
 void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
 {
@@ -978,7 +945,7 @@ void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
   int itrack = 0;
   for (int i = beg; i < end; ++i, ++itrack)
   {
-    Track &trk = eocss[i][0];
+    TrackCand &trk = eocss[i][0];
 
     Err[iP].CopyOut(itrack, trk.errors_nc().Array());
     Par[iP].CopyOut(itrack, trk.parameters_nc().Array());
@@ -986,10 +953,12 @@ void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
     trk.setChi2(Chi2(itrack, 0, 0));
     if(!(std::isnan(trk.chi2())))
     {
-      trk.setCandScore(getScoreCand(trk));
+      trk.setScore(getScoreCand(trk));
     }
   }
 }
+*/
+
 
 } // end namespace mkfit
 //------------------------------------------------------------------------------

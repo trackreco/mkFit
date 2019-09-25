@@ -406,8 +406,6 @@ void TTreeValidation::initializeConfigTree()
   configtree_->Branch("varXY",&varXY_);
   configtree_->Branch("varZ",&varZ_);
 
-  configtree_->Branch("nTotHit",&nTotHit_);
-
   configtree_->Branch("ptinverr049",&ptinverr049_);
   configtree_->Branch("phierr049",&phierr049_);
   configtree_->Branch("thetaerr049",&thetaerr049_);
@@ -830,7 +828,6 @@ void TTreeValidation::setTrackExtras(Event& ev)
     const auto& cmsswtracks = ev.cmsswTracks_;
     const auto& cmsswextras = ev.cmsswTracksExtra_;
     const auto& seedtracks = ev.seedTracks_;
-    const auto& seedextras = ev.seedTracksExtra_;
     const auto& buildtracks = ev.candidateTracks_;
           auto& buildextras = ev.candidateTracksExtra_;
     const auto& fittracks   = ev.fitTracks_;
@@ -1037,13 +1034,13 @@ void TTreeValidation::makeSeedTkToCMSSWTkMap(Event& ev)
 void TTreeValidation::makeCMSSWTkToSeedTkMap(Event& ev)
 {
   const auto& seedtracks  = ev.seedTracks_;
-  const auto& cmsswtracks = ev.cmsswTracks_;
+
   for (const auto & seedToCmsswPair : seedToCmsswMap_)
   {
     const auto seedlabel  = seedToCmsswPair.first; // !! in cmssw validation, seed label != seed index in vector as they are not aligned!! --> need to find itrack!
     const auto cmsswlabel = seedToCmsswPair.second; // however, cmssw tracks ARE aligned for label == index
 
-    for (int itrack = 0; itrack < seedtracks.size(); itrack++)
+    for (int itrack = 0; itrack < (int) seedtracks.size(); itrack++)
     {
       const auto & seedtrack = seedtracks[itrack];
       if (seedtrack.label() == seedlabel)
@@ -1090,7 +1087,7 @@ void TTreeValidation::setTrackScoresDumbCMSSW(Event& ev)
   for (auto & seedtrack : seedtracks)
   {
     assignSeedTypeForRanking(seedtrack);
-    seedtrack.setCandScore(getScoreCand(seedtrack));
+    seedtrack.setScore(getScoreCand(seedtrack));
   }
 
   // ...then use map to set seed type to for build/fit tracks and compute scores
@@ -1100,7 +1097,7 @@ void TTreeValidation::setTrackScoresDumbCMSSW(Event& ev)
     auto & candtrack = candtracks[candToSeedPair.first];
 
     candtrack.setSeedTypeForRanking(seedtrack.getSeedTypeForRanking());
-    candtrack.setCandScore(getScoreCand(candtrack));
+    candtrack.setScore(getScoreCand(candtrack));
   }
   for (const auto & fitToSeedPair : fitToSeedMapDumbCMSSW_)
   {
@@ -1108,7 +1105,7 @@ void TTreeValidation::setTrackScoresDumbCMSSW(Event& ev)
     auto & fittrack = fittracks[fitToSeedPair.first];
 
     fittrack.setSeedTypeForRanking(seedtrack.getSeedTypeForRanking());
-    fittrack.setCandScore(getScoreCand(fittrack));
+    fittrack.setScore(getScoreCand(fittrack));
   }
 }
 
@@ -1551,7 +1548,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 
       // quality info
       hitchi2_seed_eff_ = seedtrack.chi2(); // currently not being used
-      score_seed_eff_   = seedtrack.getCandScore(); // currently a constant by definition
+      score_seed_eff_   = seedtrack.score(); // currently a constant by definition
 
       duplmask_seed_eff_   = seedextra.isDuplicate(); 
       nTkMatches_seed_eff_ = simToSeedMap_[mcID_eff_].size(); // n reco matches to this sim track.
@@ -1665,7 +1662,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 
       // quality info
       hitchi2_build_eff_ = buildtrack.chi2();
-      score_build_eff_   = buildtrack.getCandScore();
+      score_build_eff_   = buildtrack.score();
 
       duplmask_build_eff_   = buildextra.isDuplicate(); 
       nTkMatches_build_eff_ = simToBuildMap_[mcID_eff_].size(); // n reco matches to this sim track.
@@ -1780,7 +1777,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 
       // quality info
       hitchi2_fit_eff_ = fittrack.chi2(); // -10 when not used
-      score_fit_eff_   = fittrack.getCandScore();
+      score_fit_eff_   = fittrack.score();
 
       duplmask_fit_eff_   = fitextra.isDuplicate(); 
       nTkMatches_fit_eff_ = simToFitMap_[mcID_eff_].size(); // n reco matches to this sim track.
@@ -1925,7 +1922,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 
     // quality info
     hitchi2_seed_FR_ = seedtrack.chi2(); //--> not currently used
-    score_seed_FR_   = seedtrack.getCandScore();
+    score_seed_FR_   = seedtrack.score();
 
     if (Config::keepHitInfo) TTreeValidation::fillFullHitInfo(ev,seedtrack,hitlyrs_seed_FR_,hitidxs_seed_FR_,hitmcTkIDs_seed_FR_,
 							      hitxs_seed_FR_,hitys_seed_FR_,hitzs_seed_FR_);
@@ -2030,7 +2027,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 
       // quality info
       hitchi2_build_FR_ = buildtrack.chi2();
-      score_build_FR_   = buildtrack.getCandScore();
+      score_build_FR_   = buildtrack.score();
 
       if (Config::keepHitInfo) TTreeValidation::fillFullHitInfo(ev,buildtrack,hitlyrs_build_FR_,hitidxs_build_FR_,hitmcTkIDs_build_FR_,
 								hitxs_build_FR_,hitys_build_FR_,hitzs_build_FR_);
@@ -2181,7 +2178,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 
       // quality info
       hitchi2_fit_FR_ = fittrack.chi2(); // -10 when not used
-      score_fit_FR_   = fittrack.getCandScore();
+      score_fit_FR_   = fittrack.score();
 
       if (Config::keepHitInfo) TTreeValidation::fillFullHitInfo(ev,fittrack,hitlyrs_fit_FR_,hitidxs_fit_FR_,hitmcTkIDs_fit_FR_,
 								hitxs_fit_FR_,hitys_fit_FR_,hitzs_fit_FR_);
@@ -2344,8 +2341,6 @@ void TTreeValidation::fillConfigTree()
   varXY_ = Config::varXY;
   varZ_  = Config::varZ;
   
-  nTotHit_ = Config::nTotHit;
-
   ptinverr049_ = Config::ptinverr049;
   phierr049_   = Config::phierr049;
   thetaerr049_ = Config::thetaerr049;
@@ -2466,7 +2461,7 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
       // quality info
       hitchi2_build_ceff_   = buildtrack.chi2(); 
       helixchi2_build_ceff_ = buildextra.helixChi2();
-      score_build_ceff_     = buildtrack.getCandScore();
+      score_build_ceff_     = buildtrack.score();
 
       // swim dphi
       dphi_build_ceff_ = buildextra.dPhi(); 
@@ -2575,7 +2570,7 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
       // quality info
       hitchi2_fit_ceff_   = fittrack.chi2();
       helixchi2_fit_ceff_ = fitextra.helixChi2();
-      score_fit_ceff_     = fittrack.getCandScore();
+      score_fit_ceff_     = fittrack.score();
 
       // swim dphi
       dphi_fit_ceff_ = fitextra.dPhi(); 
@@ -2716,7 +2711,7 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
     // quality info
     hitchi2_build_cFR_   = buildtrack.chi2(); 
     helixchi2_build_cFR_ = buildextra.helixChi2();
-    score_build_cFR_     = buildtrack.getCandScore();
+    score_build_cFR_     = buildtrack.score();
 
     // stored dphi
     dphi_build_cFR_ = buildextra.dPhi();
@@ -2802,7 +2797,7 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
       // chi2 info
       hitchi2_fit_cFR_   = fittrack.chi2(); 
       helixchi2_fit_cFR_ = fitextra.helixChi2();
-      score_fit_cFR_     = fittrack.getCandScore();
+      score_fit_cFR_     = fittrack.score();
 
       // stored dphi
       dphi_fit_cFR_ = fitextra.dPhi();

@@ -188,8 +188,10 @@ class Hit
 {
 public:
   Hit() : mcHitID_(-1) {}
+
   Hit(const SVector3& position, const SMatrixSym33& error, int mcHitID = -1)
-    : state_(position, error), mcHitID_(mcHitID) {}
+    : state_(position, error), mcHitID_(mcHitID)
+  {}
 
   ~Hit(){}
 
@@ -251,10 +253,59 @@ public:
   int mcHitID() const { return mcHitID_; }
   int layer(const MCHitInfoVec& globalMCHitInfo) const { return globalMCHitInfo[mcHitID_].layer(); }
   int mcTrackID(const MCHitInfoVec& globalMCHitInfo) const { return globalMCHitInfo[mcHitID_].mcTrackID(); }
-  
+
+  struct PackedData {
+    union {
+      struct {
+        unsigned int detid_in_layer : 12;
+        unsigned int charge_pcm     :  8;
+        unsigned int span_rows      :  3;
+        unsigned int span_cols      :  3;
+      };
+      unsigned int _raw_;
+    };
+
+    PackedData() : _raw_(0) {}
+
+    void set_charge_pcm(int cpcm)
+    {
+      if (cpcm < 1620) charge_pcm = 0;
+      else             charge_pcm = std::min(0xff, ((cpcm - 1620) >> 3) + 1);
+    }
+    unsigned int get_charge_pcm() const
+    {
+      if (charge_pcm == 0) return 0;
+      else                 return ((charge_pcm - 1) << 3) + 1620;
+    }
+  };
+
+  unsigned int detIDinLayer() const { return pdata_.detid_in_layer; }
+  unsigned int chargePerCM()  const { return pdata_.get_charge_pcm(); }
+  unsigned int spanRows()     const { return pdata_.span_rows + 1; }
+  unsigned int spanCols()     const { return pdata_.span_cols + 1; }
+
+  static unsigned int maxChargePerCM() { return 1620 + (0xfe << 3); }
+  static unsigned int maxSpan()        { return 8; }
+
+  void setupAsPixel(unsigned int id, int rows, int cols)
+  {
+    pdata_.detid_in_layer = id;
+    pdata_.charge_pcm = 0xff;
+    pdata_.span_rows = std::min(0x7, rows - 1);
+    pdata_.span_cols = std::min(0x7, cols - 1);
+  }
+
+  void setupAsStrip(unsigned int id, int cpcm, int rows)
+  {
+    pdata_.detid_in_layer = id;
+    pdata_.set_charge_pcm(cpcm);
+    pdata_.span_rows = std::min(0x7, rows - 1);
+  }
+
 private:
   MeasurementState state_;
-  int mcHitID_;
+  int              mcHitID_;
+  PackedData       pdata_;
 };
 
 typedef std::vector<Hit> HitVec;
@@ -272,6 +323,12 @@ struct HitOnTrack
 
   HitOnTrack()             : index(-1), layer (-1) {}
   HitOnTrack(int i, int l) : index( i), layer ( l) {}
+
+  bool operator<(const HitOnTrack o) const
+  {
+    if (layer != o.layer) return layer < o.layer;
+    return index < o.index;
+  }
 };
 
 typedef std::vector<HitOnTrack> HoTVec;

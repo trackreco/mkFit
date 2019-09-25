@@ -85,15 +85,15 @@ roll_eta_dice:
   }
   int simLayer = -1;
 
-  hits.reserve(Config::nTotHit);
-  initTSs.reserve(Config::nTotHit);
+  hits.reserve(Config::nAvgSimHits);
+  initTSs.reserve(Config::nAvgSimHits);
 
   // XXMT4M - This should become while not in outer layer (or at least propState.state == invalid)
   // Try the invalid thingy first ... but would be good to also know what layers are final.
 
   const PropagationFlags pflags(PF_use_param_b_field);
 
-  for (int ihit = 0; ihit < Config::nTotHit; ++ihit)
+  for (int ihit = 0; ihit < Config::nMaxTrkHits; ++ihit)
   {
     dprintf("\n================================================================================\n");
     dprintf("=== Going for next hit %d from layer %d, xyrzphi=(%f,%f,%f,%f,%f)\n",

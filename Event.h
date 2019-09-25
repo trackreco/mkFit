@@ -36,6 +36,9 @@ public:
 
   void write_out(DataFile &data_file);
   void read_in  (DataFile &data_file, FILE *in_fp=0);
+  int  write_tracks(FILE *fp, const TrackVec& tracks);
+  int  read_tracks (FILE *fp,       TrackVec& tracks, bool skip_reading = false);
+
   void setInputFromCMSSW(std::vector<HitVec> hits, TrackVec seeds);
 
   void kludge_cms_hit_errors();
@@ -91,9 +94,10 @@ typedef std::vector<Event> EventVec;
 struct DataFileHeader
 {
   int f_magic          = 0xBEEF;
-  int f_format_version = 3;
+  int f_format_version = 4;
   int f_sizeof_track   = sizeof(Track);
-  int f_n_max_trk_hits = Config::nMaxTrkHits;
+  int f_sizeof_hit     = sizeof(Hit);
+  int f_sizeof_hot     = sizeof(HitOnTrack);
   int f_n_layers       = -1;
   int f_n_events       = -1;
 

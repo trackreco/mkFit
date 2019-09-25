@@ -7,7 +7,8 @@
 
 //#include "Event.h"
 
-//#include "HitStructures.h"
+// Needed for TrackCand
+#include "HitStructures.h"
 
 namespace mkfit {
 
@@ -67,6 +68,15 @@ public:
   MPlexQI    SeedIdx; // seed index in local thread (for bookkeeping at thread level)
   MPlexQI    CandIdx; // candidate index for the given seed (for bookkeeping of clone engine)
 
+  // Additions / substitutions for TrackCand copy_in/out()
+  MPlexQI    NMissingHits;   // sub: NHits, sort of
+  MPlexQI    NInsideMinusOneHits;  // sub: before we copied all hit idcs and had a loop counting them
+  MPlexQI    NTailMinusOneHits;  // sub: before we copied all hit idcs and had a loop counting them
+  MPlexQI    LastHitCcIndex; // add: index of last hit in CombCand hit tree
+  HitOnTrack LastHoT[NN];
+  CombCandidate *CombCand[NN];
+  // const TrackCand *TrkCand[NN]; // hmmh, could get all data through this guy ... but scattered
+
   // Hit indices into LayerOfHits to explore.
   WSR_Result  XWsrResult[NN]; // Could also merge it with XHitSize. Or use smaller arrays.
   MPlexQI     XHitSize;
@@ -123,7 +133,7 @@ public:
   //----------------------------------------------------------------------------
 
   void FindCandidates(const LayerOfHits &layer_of_hits,
-                      std::vector<std::vector<Track>>& tmp_candidates,
+                      std::vector<std::vector<TrackCand>>& tmp_candidates,
 		      const int offset, const int N_proc,
                       const FindingFoos &fnd_foos);
 
@@ -147,8 +157,10 @@ public:
 
   void BkFitInputTracks (TrackVec& cands, int beg, int end);
   void BkFitOutputTracks(TrackVec& cands, int beg, int end);
-  void BkFitInputTracks (EventOfCombCandidates& eocss, int beg, int end);
-  void BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end);
+
+  // QQQQQ - out until further notice
+  // void BkFitInputTracks (EventOfCombCandidates& eocss, int beg, int end);
+  // void BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end);
 
   void BkFitFitTracks(const EventOfHits& eventofhits, const SteeringParams& st_par,
                       const int N_proc, bool chiDebug = false);
@@ -182,9 +194,47 @@ private:
     trk.setChi2  (Chi2 (mslot, 0, 0));
     trk.setLabel (Label(mslot, 0, 0));
 
-    trk.setNTotalHits(NHits     (mslot, 0, 0));
-    trk.setNFoundHits(NFoundHits(mslot, 0, 0));
+    trk.resizeHits(NHits(mslot, 0, 0), NFoundHits(mslot, 0, 0));
     std::copy(HoTArrs[mslot], & HoTArrs[mslot][NHits(mslot, 0, 0)], trk.BeginHitsOnTrack_nc());
+  }
+
+  void copy_in(const TrackCand& trk, const int mslot, const int tslot)
+  {
+    Err[tslot].CopyIn(mslot, trk.errors().Array());
+    Par[tslot].CopyIn(mslot, trk.parameters().Array());
+
+    Chg  (mslot, 0, 0) = trk.charge();
+    Chi2 (mslot, 0, 0) = trk.chi2();
+    Label(mslot, 0, 0) = trk.label();
+
+    LastHitCcIndex(mslot, 0, 0) = trk.lastCcIndex();
+    NFoundHits    (mslot, 0, 0) = trk.nFoundHits();
+    NMissingHits  (mslot, 0, 0) = trk.nMissingHits();
+
+    NInsideMinusOneHits(mslot, 0, 0) = trk.nInsideMinusOneHits();
+    NTailMinusOneHits  (mslot, 0, 0) = trk.nTailMinusOneHits();
+
+    LastHoT[mslot]  = trk.getLastHitOnTrack();
+    CombCand[mslot] = trk.combCandidate();
+  }
+
+  void copy_out(TrackCand& trk, const int mslot, const int tslot) const
+  {
+    Err[tslot].CopyOut(mslot, trk.errors_nc().Array());
+    Par[tslot].CopyOut(mslot, trk.parameters_nc().Array());
+
+    trk.setCharge(Chg  (mslot, 0, 0));
+    trk.setChi2  (Chi2 (mslot, 0, 0));
+    trk.setLabel (Label(mslot, 0, 0));
+
+    trk.setLastCcIndex (LastHitCcIndex(mslot, 0, 0));
+    trk.setNFoundHits  (NFoundHits    (mslot, 0, 0));
+    trk.setNMissingHits(NMissingHits  (mslot, 0, 0));
+
+    trk.setNInsideMinusOneHits(NInsideMinusOneHits(mslot, 0, 0));
+    trk.setNTailMinusOneHits  (NTailMinusOneHits  (mslot, 0, 0));
+
+    trk.setCombCandidate( CombCand[mslot] );
   }
 
   void add_hit(const int mslot, int index, int layer)
@@ -218,15 +268,14 @@ private:
     }
   }
 
-  int num_invalid_hits(const int mslot, bool insideValid = false) const
+  int num_all_minus_one_hits(const int mslot) const
   {
-    int n = 0;
-    for (int i = NHits(mslot, 0, 0)-1; i >= 0; --i)
-      {
-	if (HoTArrs[mslot][i].index >= 0) insideValid = true;
-	if (insideValid && HoTArrs[mslot][i].index == -1) ++n;
-      }
-    return n;
+    return NInsideMinusOneHits(mslot, 0, 0) + NTailMinusOneHits(mslot, 0, 0);
+  }
+
+  int num_inside_minus_one_hits(const int mslot) const
+  {
+    return NInsideMinusOneHits(mslot, 0, 0);
   }
 };
 

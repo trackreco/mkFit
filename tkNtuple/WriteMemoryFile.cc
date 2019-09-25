@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <list>
+#include <unordered_map>
 #include "Event.h"
 #include "LayerNumberConverter.h"
 
@@ -176,6 +177,8 @@ int main(int argc, char *argv[])
   LayerNumberConverter lnc(TkLayout::phase1);
   const unsigned int nTotalLayers = lnc.nLayers();
   Config::nTotalLayers = lnc.nLayers();
+
+  vector<unordered_map<unsigned int, unsigned int>> module_shortId_hash(Config::nTotalLayers);
 
   int nstot = 0;
   std::vector<int> nhitstot(nTotalLayers, 0);
@@ -370,6 +373,7 @@ int main(int argc, char *argv[])
   //pixel hits
   vector<unsigned short>*    pix_det = 0;
   vector<unsigned short>*    pix_lay = 0;
+  vector<unsigned int>*      pix_detId = 0;
   vector<float>*  pix_x = 0;
   vector<float>*  pix_y = 0;
   vector<float>*  pix_z = 0;
@@ -379,6 +383,8 @@ int main(int argc, char *argv[])
   vector<float>*  pix_yz = 0;
   vector<float>*  pix_zz = 0;
   vector<float>*  pix_zx = 0;
+  vector<int>*    pix_csize_col = 0;
+  vector<int>*    pix_csize_row = 0;
   //these were renamed in CMSSW_9_1_0: auto-detect
   bool has910_det_lay = t->GetBranch("pix_det") == nullptr;
   if (has910_det_lay){
@@ -388,6 +394,7 @@ int main(int argc, char *argv[])
     t->SetBranchAddress("pix_det",&pix_det);
     t->SetBranchAddress("pix_lay",&pix_lay);
   }
+  t->SetBranchAddress("pix_detId",&pix_detId);
   t->SetBranchAddress("pix_x",&pix_x);
   t->SetBranchAddress("pix_y",&pix_y);
   t->SetBranchAddress("pix_z",&pix_z);
@@ -397,6 +404,8 @@ int main(int argc, char *argv[])
   t->SetBranchAddress("pix_yz",&pix_yz);
   t->SetBranchAddress("pix_zz",&pix_zz);
   t->SetBranchAddress("pix_zx",&pix_zx);
+  t->SetBranchAddress("pix_clustSizeCol",&pix_csize_col);
+  t->SetBranchAddress("pix_clustSizeRow",&pix_csize_row);
 
   vector<vector<int> >*    pix_simHitIdx = 0;
   t->SetBranchAddress("pix_simHitIdx", &pix_simHitIdx);
@@ -407,6 +416,7 @@ int main(int argc, char *argv[])
   vector<short>*  glu_isBarrel = 0;
   vector<unsigned int>*    glu_det = 0;
   vector<unsigned int>*    glu_lay = 0;
+  vector<unsigned int>*    glu_detId = 0;
   vector<int>*    glu_monoIdx = 0;
   vector<int>*    glu_stereoIdx = 0;
   vector<float>*  glu_x = 0;
@@ -426,6 +436,7 @@ int main(int argc, char *argv[])
     t->SetBranchAddress("glu_det",&glu_det);
     t->SetBranchAddress("glu_lay",&glu_lay);
   }
+  t->SetBranchAddress("glu_detId",&glu_detId);
   t->SetBranchAddress("glu_monoIdx",&glu_monoIdx);
   t->SetBranchAddress("glu_stereoIdx",&glu_stereoIdx);
   t->SetBranchAddress("glu_x",&glu_x);
@@ -442,6 +453,7 @@ int main(int argc, char *argv[])
   vector<short>*    str_isStereo = 0;
   vector<unsigned int>*    str_det = 0;
   vector<unsigned int>*    str_lay = 0;
+  vector<unsigned int>*    str_detId = 0;
   vector<unsigned int>*    str_simType = 0;
   vector<float>*  str_x = 0;
   vector<float>*  str_y = 0;
@@ -453,6 +465,7 @@ int main(int argc, char *argv[])
   vector<float>*  str_zz = 0;
   vector<float>*  str_zx = 0;
   vector<float>*  str_chargePerCM = 0;
+  vector<int>*    str_csize = 0;
   t->SetBranchAddress("str_isBarrel",&str_isBarrel);
   t->SetBranchAddress("str_isStereo",&str_isStereo);
   if (has910_det_lay){
@@ -462,6 +475,7 @@ int main(int argc, char *argv[])
     t->SetBranchAddress("str_det",&str_det);
     t->SetBranchAddress("str_lay",&str_lay);
   }
+  t->SetBranchAddress("str_detId",&str_detId);
   t->SetBranchAddress("str_simType",&str_simType);
   t->SetBranchAddress("str_x",&str_x);
   t->SetBranchAddress("str_y",&str_y);
@@ -473,6 +487,7 @@ int main(int argc, char *argv[])
   t->SetBranchAddress("str_zz",&str_zz);
   t->SetBranchAddress("str_zx",&str_zx);
   t->SetBranchAddress("str_chargePerCM",&str_chargePerCM);
+  t->SetBranchAddress("str_clustSize", &str_csize);
 
   vector<vector<int> >*    str_simHitIdx = 0;
   t->SetBranchAddress("str_simHitIdx", &str_simHitIdx);
@@ -860,6 +875,13 @@ int main(int argc, char *argv[])
       int ilay = -1;
       ilay = lnc.convertLayerNumber(pix_det->at(ipix),pix_lay->at(ipix),useMatched,-1,pix_z->at(ipix)>0);
       if (ilay<0) continue;
+
+      unsigned int imoduleid;
+      {
+        auto ii = module_shortId_hash[ilay].emplace(pix_detId->at(ipix), (unsigned int) module_shortId_hash[ilay].size());
+        imoduleid = ii.first->second;
+      }
+
       int simTkIdxNt = bestTkIdx(pix_simHitIdx->at(ipix), pix_chargeFraction->at(ipix), ipix, HitType::Pixel); 
       int simTkIdx = simTkIdxNt >= 0 ? simTrackIdx_[simTkIdxNt] : -1; //switch to index in simTracks_
 
@@ -873,9 +895,7 @@ int main(int argc, char *argv[])
       err.At(0,2) = pix_zx->at(ipix);
       err.At(1,2) = pix_yz->at(ipix);
       if (simTkIdx>=0){
-	int nhits = simTracks_[simTkIdx].nTotalHits();
-	if (nhits < Config::nMaxSimHits) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
-	else cout<<"SKIP: Tried to add pix hit to track with "<<nhits<<" hits "<<std::endl;
+	simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
       }
       for (unsigned int is=0;is<pixHitSeedIdx[ipix].size();is++) {
 	//cout << "xxx ipix=" << ipix << " seed=" << pixHitSeedIdx[ipix][is] << endl;
@@ -886,6 +906,7 @@ int main(int argc, char *argv[])
       	cmsswTracks_[pixHitRecIdx[ipix][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
       }
       Hit hit(pos, err, totHits);
+      hit.setupAsPixel(imoduleid, pix_csize_row->at(ipix), pix_csize_col->at(ipix));
       layerHits_[ilay].push_back(hit);
       MCHitInfo hitInfo(simTkIdx, ilay, layerHits_[ilay].size()-1, totHits);
       simHitsInfo_.push_back(hitInfo);
@@ -910,14 +931,17 @@ int main(int argc, char *argv[])
 	err.At(0,2) = glu_zx->at(iglu);
 	err.At(1,2) = glu_yz->at(iglu);	
 	if (simTkIdx>=0){
-	  int nhits = simTracks_[simTkIdx].nTotalHits();
-	  if (nhits < Config::nMaxSimHits) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
-	  else cout<<"SKIP: Tried to add glu hit to track with "<<nhits<<" hits "<<std::endl;
+	  simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
 	}
 	for (unsigned int ir=0;ir<gluHitRecIdx[iglu].size();ir++) {
 	  //cout << "xxx iglu=" << iglu << " recTrack=" << gluHitRecIdx[iglu][ir] << endl;
 	  cmsswTracks_[gluHitRecIdx[iglu][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
-	}	
+	}
+
+        // QQQQ module-id-in-layer, adc and phi/theta spans are not done for matched hits.
+        // Will we ever use / need this?
+        assert (false && "Implement module-ids, cluster adc and spans for matched hits!");
+
 	Hit hit(pos, err, totHits);
 	layerHits_[ilay].push_back(hit);
 	MCHitInfo hitInfo(simTkIdx, ilay, layerHits_[ilay].size()-1, totHits);
@@ -933,6 +957,13 @@ int main(int argc, char *argv[])
       ilay = lnc.convertLayerNumber(str_det->at(istr),str_lay->at(istr),useMatched,str_isStereo->at(istr),str_z->at(istr)>0);
       if (useMatched && str_isBarrel->at(istr)==1 && str_isStereo->at(istr)) continue;
       if (ilay==-1) continue;
+
+      unsigned int imoduleid;
+      {
+        auto ii = module_shortId_hash[ilay].emplace(str_detId->at(istr), (unsigned int) module_shortId_hash[ilay].size() );
+        imoduleid = ii.first->second;
+      }
+
       int simTkIdxNt = bestTkIdx(str_simHitIdx->at(istr), str_chargeFraction->at(istr), istr, HitType::Strip);
       int simTkIdx = simTkIdxNt >= 0 ? simTrackIdx_[simTkIdxNt] : -1; //switch to index in simTracks_
 
@@ -948,12 +979,8 @@ int main(int argc, char *argv[])
       err.At(0,2) = str_zx->at(istr);
       err.At(1,2) = str_yz->at(istr);
       if (simTkIdx>=0){
-	int nhits = simTracks_[simTkIdx].nTotalHits();
-	if (nhits < Config::nMaxSimHits){
-	  if(passCCC) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
-	  else simTracks_[simTkIdx].addHitIdx( -9, ilay,0);
-	}
-	else cout<<"SKIP: Tried to add str hit to track with "<<nhits<<" hits "<<std::endl;	
+        if(passCCC) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
+        else simTracks_[simTkIdx].addHitIdx( -9, ilay,0);
       }
       for (unsigned int ir=0;ir<strHitRecIdx[istr].size();ir++) {
 	//cout << "xxx istr=" << istr << " recTrack=" << strHitRecIdx[istr][ir] << endl;
@@ -962,20 +989,14 @@ int main(int argc, char *argv[])
       }
       if(passCCC)
 	{
-	  Hit hit(pos, err, totHits);
-	  layerHits_[ilay].push_back(hit);
+          Hit hit(pos, err, totHits);
+          hit.setupAsStrip(imoduleid, str_chargePerCM->at(istr), str_csize->at(istr));
+          layerHits_[ilay].push_back(hit);
 	  MCHitInfo hitInfo(simTkIdx, ilay, layerHits_[ilay].size()-1, totHits);
 	  simHitsInfo_.push_back(hitInfo);
 	  totHits++;
 	}
     }
-
-    // bool allTracksAllHits = true;
-    for (unsigned int i=0;i<simTracks_.size();++i) {
-      simTracks_[i].setNFoundHits();
-      // if (simTracks_[i].nFoundHits()!=Config::nTotalLayers) allTracksAllHits = false;
-    }
-    // if (!allTracksAllHits) continue;
 
     // Seed % hit statistics
     nstot += seedTracks_.size();
@@ -1071,4 +1092,14 @@ int main(int argc, char *argv[])
     printf("Average number of hits in layer %3i = %7.2f\n", il, float(nhitstot[il])/float(savedEvents)); //Includes those that failed the cluster charge cut
 
   printf("Out of %i hits, %i failed the cut",numTotalStr,numFailCCC);
+
+  //========================================================================
+
+  printf("\n\n================================================================\n");
+  printf("=== Max module id for %d layers\n", Config::nTotalLayers);
+  printf("================================================================\n");
+  for (int ii = 0; ii < Config::nTotalLayers; ++ii)
+  {
+    printf("Layer%2d : %d\n", ii, (int) module_shortId_hash[ii].size());
+  }
 }

@@ -73,12 +73,11 @@ SMatrix66 TrackState::jacobianCartesianToCCS(float px,float py,float pz) const {
   return jac;
 }
 
-
 //==============================================================================
-// Track
+// TrackBase
 //==============================================================================
 
-bool Track::hasSillyValues(bool dump, bool fix, const char* pref)
+bool TrackBase::hasSillyValues(bool dump, bool fix, const char* pref)
 {
   bool is_silly = false;
   for (int i = 0; i < LL; ++i)
@@ -90,7 +89,7 @@ bool Track::hasSillyValues(bool dump, bool fix, const char* pref)
         if ( ! is_silly)
         {
           is_silly = true;
-          if (dump) printf("%s (label=%d):", pref, label_);
+          if (dump) printf("%s (label=%d):", pref, label());
         }
         if (dump) printf(" (%d,%d)=%e", i, j, state_.errors.At(i,j));
         if (fix)  state_.errors.At(i,j) = 1;
@@ -101,7 +100,15 @@ bool Track::hasSillyValues(bool dump, bool fix, const char* pref)
   return is_silly;
 }
 
-//------------------------------------------------------------------------------
+//==============================================================================
+// Track
+//==============================================================================
+
+void Track::resizeHitsForInput()
+{
+  bzero(&hitsOnTrk_, sizeof(hitsOnTrk_));
+  hitsOnTrk_.resize(lastHitIdx_ + 1);
+}
 
 void Track::sortHitsByLayer()
 {
@@ -396,7 +403,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
     }
   
     // total found hits in hit index array, excluding seed if necessary
-    const int nCandHits = ((Config::mtvLikeValidation || isSeed) ? trk.nStoredFoundHits() : trk.nStoredFoundHits() - nSeedHits);
+    const int nCandHits = ((Config::mtvLikeValidation || isSeed) ? trk.nFoundHits() : trk.nFoundHits() - nSeedHits);
 
     // 75% or 50% matching criterion 
     if ( ( Config::mtvLikeValidation ? (4*mccount > 3*nCandHits) : (2*mccount >= nCandHits) ) )
@@ -568,7 +575,7 @@ void TrackExtra::setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vec
 
   // other important info
   nHitsMatched_ = nHitsMatched;
-  fracHitsMatched_ = float(nHitsMatched_) / float(trk.nStoredFoundHits()-nSeedHits); // seed hits may already be included!
+  fracHitsMatched_ = float(nHitsMatched_) / float(trk.nFoundHits()-nSeedHits); // seed hits may already be included!
 }
 
 void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMapMap& cmsswHitIDMap, const TrackVec& cmsswtracks, 

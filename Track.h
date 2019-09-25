@@ -38,6 +38,10 @@ public:
   int score; // score used for candidate ranking
 };
  
+//==============================================================================
+// ReducedTrack
+//==============================================================================
+
 struct ReducedTrack // used for cmssw reco track validation
 {
 public:
@@ -59,6 +63,10 @@ public:
   HitLayerMap hitLayerMap_;
 };
 typedef std::vector<ReducedTrack> RedTrackVec;
+
+//==============================================================================
+// TrackState
+//==============================================================================
 
 struct TrackState //  possible to add same accessors as track? 
 {
@@ -121,36 +129,33 @@ public:
   SMatrix66 jacobianCartesianToCCS(float px,float py,float pz) const;
 };
 
+//==============================================================================
+// TrackBase
+//==============================================================================
 
-class Track
+class TrackBase
 {
 public:
-  CUDA_CALLABLE
-  Track() {}
+  TrackBase() {}
 
-  CUDA_CALLABLE
-  Track(const TrackState& state, float chi2, int label, int nHits, const HitOnTrack* hits) :
+  TrackBase(const TrackState& state, float chi2, int label) :
     state_(state),
     chi2_ (chi2),
     label_(label)
-  {
-    for (int h = 0; h < nHits; ++h)
-    {
-      addHitIdx(hits[h].index, hits[h].layer, 0.0f);
-    }
-  }
+  {}
 
-  Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, float chi2) :
-    state_(charge, position, momentum, errors), chi2_(chi2) {}
+  TrackBase(int charge, const SVector3& position, const SVector3& momentum,
+            const SMatrixSym66& errors, float chi2) :
+    state_(charge, position, momentum, errors), chi2_(chi2)
+  {}
 
-  CUDA_CALLABLE
-  ~Track(){}
+  ~TrackBase() {}
 
-  bool  hasSillyValues(bool dump, bool fix, const char* pref="");
+  const TrackState&  state() const { return state_; }
+  CUDA_CALLABLE void setState(const TrackState& newState) { state_ = newState; }
 
   const SVector6&     parameters() const {return state_.parameters;}
   const SMatrixSym66& errors()     const {return state_.errors;}
-  const TrackState&   state()      const {return state_;}
 
   const float* posArray() const {return state_.parameters.Array();}
   const float* errArray() const {return state_.errors.Array();}
@@ -166,13 +171,6 @@ public:
 
   SVector3 position() const {return SVector3(state_.parameters[0],state_.parameters[1],state_.parameters[2]);}
   SVector3 momentum() const {return SVector3(state_.parameters[3],state_.parameters[4],state_.parameters[5]);}
-
-  CUDA_CALLABLE
-  int      charge() const {return state_.charge;}
-  CUDA_CALLABLE
-  float    chi2()   const {return chi2_;}
-  CUDA_CALLABLE
-  int      label()  const {return label_;}
 
   float x()      const { return state_.parameters[0]; }
   float y()      const { return state_.parameters[1]; }
@@ -195,6 +193,142 @@ public:
   float epT()     const { return state_.epT();}
   float emomPhi() const { return state_.emomPhi();}
   float emomEta() const { return state_.emomEta();}
+
+  // ------------------------------------------------------------------------
+
+  CUDA_CALLABLE int   charge() const { return state_.charge; }
+  CUDA_CALLABLE float chi2()   const { return chi2_; }
+  CUDA_CALLABLE float score()  const { return score_; }
+  CUDA_CALLABLE int   label()  const { return label_; }
+
+  CUDA_CALLABLE void  setCharge(int chg)  { state_.charge = chg; }
+  CUDA_CALLABLE void  setChi2(float chi2) { chi2_ = chi2; }
+  CUDA_CALLABLE void  setScore(float s)   { score_ = s; }
+  CUDA_CALLABLE void  setLabel(int lbl)   { label_ = lbl; }
+
+  bool  hasSillyValues(bool dump, bool fix, const char* pref="");
+
+  // ------------------------------------------------------------------------
+
+  struct Status {
+    union  {
+      struct {
+        // Set to true for short, low-pt CMS tracks. They do not generate mc seeds and
+        // do not enter the efficiency denominator.
+        bool not_findable : 1;
+
+        // Set to true when number of holes would exceed an external limit, Config::maxHolesPerCand.
+        // XXXXMT Not used yet, -2 last hit idx is still used! Need to add it to MkFi**r classes.
+        // Problem is that I have to carry bits in/out of the MkFinder, too.
+	bool stopped : 1;
+
+        // Production type (most useful for sim tracks): 0, 1, 2, 3 for unset, signal, in-time PU, oot PU
+        unsigned int prod_type : 2;
+
+        // Seed type for candidate ranking: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
+        unsigned int seed_type : 2;
+
+	// Whether or not the track matched to another track and had the lower cand score
+	bool duplicate : 1;
+
+        // The remaining bits.
+        unsigned int _free_bits_ : 25;
+
+      };
+
+      unsigned int _raw_;
+    };
+
+    Status() : _raw_(0) {}
+  };
+
+  Status  getStatus() const  { return  status_; }
+  // Maybe needed for MkFi**r copy in / out
+  // Status& refStatus() { return  status_; }
+  // Status* ptrStatus() { return &status_; }
+  // unsigned int rawStatus() const { return  status_._raw_; }
+  // void         setRawStatus(unsigned int rs) { status_._raw_ = rs; }
+
+  bool isFindable()    const { return ! status_.not_findable; }
+  bool isNotFindable() const { return   status_.not_findable; }
+  void setNotFindable()      { status_.not_findable = true; }
+
+  //Seed type for ranking: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds.
+  void setSeedTypeForRanking(unsigned int r) { status_.seed_type = r; }
+  unsigned int getSeedTypeForRanking() const { return status_.seed_type; }
+
+  void setDuplicateValue(bool d) {status_.duplicate = d;}
+  bool getDuplicateValue() const {return status_.duplicate;}
+  enum class ProdType { NotSet = 0, Signal = 1, InTimePU = 2, OutOfTimePU = 3};
+  ProdType prodType()  const { return ProdType(status_.prod_type); }
+  void setProdType(ProdType ptyp) { status_.prod_type = static_cast<unsigned int>(ptyp); }
+
+  // To be used later
+  // bool isStopped() const { return status_.stopped; }
+  // void setStopped()      { status_.stopped = true; }
+
+  // ------------------------------------------------------------------------
+
+protected:
+  TrackState    state_;
+  float         chi2_       =  0.;
+  float         score_      =  0.;
+  short int     lastHitIdx_ = -1;
+  short int     nFoundHits_ =  0;
+  Status        status_;
+  int           label_      = -1;
+};
+
+//==============================================================================
+// TrackCand
+//==============================================================================
+
+// TrackCand depends on stuff in mkFit/HitStructures, CombCand in particular,
+// so it is declared / implemented there.
+
+// class TrackCand : public TrackBase { ... };
+
+//==============================================================================
+// Track
+//==============================================================================
+
+class Track : public TrackBase
+{
+public:
+  CUDA_CALLABLE
+  Track() {}
+
+  explicit Track(const TrackBase& base) :
+    TrackBase(base)
+  {
+    // Reset hit counters -- caller has to initialize hits.
+    lastHitIdx_ = -1;
+    nFoundHits_ =  0;
+  }
+
+  CUDA_CALLABLE
+  Track(const TrackState& state, float chi2, int label, int nHits, const HitOnTrack* hits) :
+    TrackBase(state, chi2, label)
+  {
+    reserveHits(nHits);
+    for (int h = 0; h < nHits; ++h)
+    {
+      addHitIdx(hits[h].index, hits[h].layer, 0.0f);
+    }
+  }
+
+  Track(int charge, const SVector3& position, const SVector3& momentum,
+        const SMatrixSym66& errors, float chi2) :
+    TrackBase(charge, position, momentum, errors, chi2)
+  {}
+
+  Track(const Track &t) :
+    TrackBase  (t),
+    hitsOnTrk_ (t.hitsOnTrk_)
+  {}
+
+  CUDA_CALLABLE
+  ~Track(){}
 
   // used for swimming cmssw rec tracks to mkFit position
   float swimPhiToR(const float x, const float y) const;
@@ -233,31 +367,28 @@ public:
     }
   }
 
+  // The following 2 (well, 3) funcs to be fixed once we move lastHitIdx_ and nFoundHits_
+  // out of TrackBase. If we do it.
+  void reserveHits(int nHits) { hitsOnTrk_.reserve(nHits); }
+
+  CUDA_CALLABLE
+  void resetHits() { lastHitIdx_ = -1; nFoundHits_ =  0; hitsOnTrk_.clear(); }
+
+  // Hackish for MkFinder::copy_out ... to be reviewed
+  void resizeHits(int nHits, int nFoundHits)
+  { hitsOnTrk_.resize(nHits); lastHitIdx_ = nHits - 1; nFoundHits_ = nFoundHits; }
+
+  void resizeHitsForInput();
+
   CUDA_CALLABLE
   void addHitIdx(int hitIdx, int hitLyr, float chi2)
   {
-    if (lastHitIdx_ < Config::nMaxTrkHits - 1)
+    hitsOnTrk_.push_back( { hitIdx, hitLyr } );
+    ++lastHitIdx_;
+    if (hitIdx >= 0 || hitIdx == -9)
     {
-      hitsOnTrk_[++lastHitIdx_] = { hitIdx, hitLyr };
-      if (hitIdx >= 0 || hitIdx == -9) { ++nFoundHits_; chi2_+=chi2; }
-    }
-    else
-    {
-      // printf("WARNING Track::addHitIdx hit-on-track limit reached for label=%d\n", label_);
-      // print("Track", -1, *this, true);
-
-      if (hitIdx >= 0 || hitIdx == -9)
-      {
-        ++nFoundHits_;
-        chi2_ += chi2;
-        hitsOnTrk_[lastHitIdx_] = { hitIdx, hitLyr };
-      }
-      else if (hitIdx == -2)
-      {
-        hitsOnTrk_[lastHitIdx_] = { hitIdx, hitLyr };
-      }
-
-      setHasNonStoredHits();
+      ++nFoundHits_;
+      chi2_ += chi2;
     }
   }
 
@@ -278,13 +409,13 @@ public:
   int getLastFoundHitPos() const
   {
     int hi = lastHitIdx_;
-    while (hitsOnTrk_[hi].index < 0) --hi;
+    while (hi >= 0 && hitsOnTrk_[hi].index < 0) --hi;
     return hi;
   }
 
-  HitOnTrack getLastFoundHitOnTrack() const { return hitsOnTrk_[getLastFoundHitPos()]; }
-  int        getLastFoundHitIdx()     const { return hitsOnTrk_[getLastFoundHitPos()].index; }
-  int        getLastFoundHitLyr()     const { return hitsOnTrk_[getLastFoundHitPos()].layer; }
+  HitOnTrack getLastFoundHitOnTrack() const { int p = getLastFoundHitPos(); return p >= 0 ? hitsOnTrk_[p] : HitOnTrack(-1, -1); }
+  int        getLastFoundHitIdx()     const { int p = getLastFoundHitPos(); return p >= 0 ? hitsOnTrk_[p].index : -1; }
+  int        getLastFoundHitLyr()     const { int p = getLastFoundHitPos(); return p >= 0 ? hitsOnTrk_[p].layer : -1; }
 
   int getLastFoundMCHitID(const std::vector<HitVec>& globalHitVec) const
   {
@@ -306,17 +437,11 @@ public:
     return mcHitID;
   }
 
-  const HitOnTrack* getHitsOnTrackArray() const { return hitsOnTrk_; }
-  const HitOnTrack* BeginHitsOnTrack()    const { return hitsOnTrk_; }
-  const HitOnTrack* EndHitsOnTrack()      const { return & hitsOnTrk_[lastHitIdx_ + 1]; }
+  const HitOnTrack* getHitsOnTrackArray() const { return hitsOnTrk_.data(); }
+  const HitOnTrack* BeginHitsOnTrack()    const { return hitsOnTrk_.data(); }
+  const HitOnTrack* EndHitsOnTrack()      const { return hitsOnTrk_.data() + (lastHitIdx_ + 1); }
 
-  HitOnTrack* BeginHitsOnTrack_nc() { return hitsOnTrk_; }
-
-  void fillEmptyLayers() {
-    for (int h = lastHitIdx_ + 1; h < Config::nMaxTrkHits; h++) {
-      setHitIdxLyr(h, -1, -1);
-    }
-  }
+  HitOnTrack* BeginHitsOnTrack_nc() { return hitsOnTrk_.data(); }
 
   CUDA_CALLABLE
   void setHitIdx(int posHitIdx, int newIdx) {
@@ -328,32 +453,17 @@ public:
     hitsOnTrk_[posHitIdx] = { newIdx, newLyr };
   }
 
-  void setNFoundHits() {
+  void countAndSetNFoundHits() {
     nFoundHits_=0;
     for (int i = 0; i <= lastHitIdx_; i++) {
       if (hitsOnTrk_[i].index >= 0 || hitsOnTrk_[i].index == -9) nFoundHits_++;
     }
   }
 
-  CUDA_CALLABLE
-  void setNFoundHits(int nHits) { nFoundHits_ = nHits; }
-  void setNTotalHits(int nHits) { lastHitIdx_ = nHits - 1; }
-
-  CUDA_CALLABLE
-  void resetHits() { lastHitIdx_ = -1; nFoundHits_ =  0; }
-
   CUDA_CALLABLE int  nFoundHits() const { return nFoundHits_; }
-  CUDA_CALLABLE int  nTotalHits() const { return lastHitIdx_+1; }
+  CUDA_CALLABLE int  nTotalHits() const { return lastHitIdx_ + 1; }
 
-  int nStoredFoundHits() const
-  {
-    int n = 0;
-    for (int i = 0; i <= lastHitIdx_; ++i)
-      if (hitsOnTrk_[i].index >= 0 || hitsOnTrk_[i].index == -9) ++n; 
-    return n;
-  }
-
-  int nMissingHits() const
+  int nInsideMinusOneHits() const
   {
     int n = 0;
     bool insideValid = false;
@@ -368,7 +478,7 @@ public:
   int nUniqueLayers() const 
   {
     // make local copy in vector: sort it in place
-    std::vector<HitOnTrack> tmp_hitsOnTrk(hitsOnTrk_,hitsOnTrk_+(lastHitIdx_+1)); 
+    std::vector<HitOnTrack> tmp_hitsOnTrk(hitsOnTrk_.begin(), hitsOnTrk_.end());
     std::sort(tmp_hitsOnTrk.begin(), tmp_hitsOnTrk.end(),
 	      [](const auto & h1, const auto & h2) { return h1.layer < h2.layer; });
 
@@ -405,96 +515,11 @@ public:
     return layers;
   }
 
-  CUDA_CALLABLE void setCharge(int chg)  { state_.charge = chg; }
-  CUDA_CALLABLE void setChi2(float chi2) { chi2_ = chi2; }
-  CUDA_CALLABLE void setLabel(int lbl)   { label_ = lbl; }
+  CUDA_CALLABLE Track clone() const { return Track(*this); }
 
-  CUDA_CALLABLE void setState(const TrackState& newState) { state_ = newState; }
-
-  CUDA_CALLABLE Track clone() const { return Track(state_,chi2_,label_,nTotalHits(),hitsOnTrk_); }
-
-  struct Status
-  {
-    union
-    {
-      struct
-      {
-        // Set to true for short, low-pt CMS tracks. They do not generate mc seeds and
-        // do not enter the efficiency denominator.
-        bool not_findable : 1;
-
-        // Set to true when number of holes would exceed an external limit, Config::maxHolesPerCand.
-        // XXXXMT Not used yet, -2 last hit idx is still used! Need to add it to MkFi**r classes.
-        // Problem is that I have to carry bits in/out of the MkFinder, too.
-	bool stopped : 1;
-
-        // Production type (most useful for sim tracks): 0, 1, 2, 3 for unset, signal, in-time PU, oot PU
-        unsigned int prod_type : 2;
-
-        // Set to true when hit-on-track array grows to the limits and last hits
-        // have to get overwritten.
-        bool has_non_stored_hits : 1;
-
-        // Seed type for candidate ranking: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
-        unsigned int seed_type : 2;
-
-	// Candidate score for ranking (12 bits for value + 1 bit for sign):
-	int cand_score : 15;
-
-	//Whether or not the track matched to another track and had the lower cand score
-	bool duplicate : 1;
-
-        // The rest, testing if mixing int and unsigned int is ok.
-        int          _some_free_bits_ : 3;
-        unsigned int _more_free_bits_ : 6;
-
-      };
-
-      unsigned int _raw_;
-    };
-
-    Status() : _raw_(0) {}
-  };
-
-  Status  getStatus() const  { return  status_; }
-  // Maybe needed for MkFi**r copy in / out
-  // Status& refStatus() { return  status_; }
-  // Status* ptrStatus() { return &status_; }
-  // unsigned int rawStatus() const { return  status_._raw_; }
-  // void         setRawStatus(unsigned int rs) { status_._raw_ = rs; }
-
-  bool isFindable()    const { return ! status_.not_findable; }
-  bool isNotFindable() const { return   status_.not_findable; }
-  void setNotFindable()      { status_.not_findable = true; }
-  
-  //Seed type for ranking: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds.
-  void setSeedTypeForRanking(unsigned int r) { status_.seed_type = r; }
-  unsigned int getSeedTypeForRanking() const { return status_.seed_type; }
-
-  void setCandScore(int r) { status_.cand_score = r; }
-  int getCandScore() const { return status_.cand_score; }
-  void setDuplicateValue(bool d) {status_.duplicate = d;}
-  bool getDuplicateValue() const {return status_.duplicate;}
-  enum class ProdType { NotSet = 0, Signal = 1, InTimePU = 2, OutOfTimePU = 3};
-  ProdType prodType()  const { return ProdType(status_.prod_type); }
-  void setProdType(ProdType ptyp) { status_.prod_type = static_cast<unsigned int>(ptyp); }
-
-  bool hasNonStoredHits() const { return status_.has_non_stored_hits; }
-  void setHasNonStoredHits()    { status_.has_non_stored_hits = true; }
-
-  // To be used later
-  // bool isStopped() const { return status_.stopped; }
-  // void setStopped()      { status_.stopped = true; }
 
 private:
-
-  TrackState    state_;
-  float         chi2_       =  0.;
-  short int     lastHitIdx_ = -1;
-  short int     nFoundHits_ =  0;
-  Status        status_;
-  int           label_      = -1;
-  HitOnTrack    hitsOnTrk_[Config::nMaxTrkHits];
+  std::vector<HitOnTrack>    hitsOnTrk_;
 };
 
 typedef std::vector<Track>    TrackVec;
@@ -517,7 +542,7 @@ inline bool sortByHitsChi2(const Track & cand1, const Track & cand2)
 
 inline bool sortByScoreCand(const Track & cand1, const Track & cand2)
 {
-  return cand1.getCandScore() > cand2.getCandScore();
+  return cand1.score() > cand2.score();
 }
 
 inline bool sortByScoreStruct(const IdxChi2List& cand1, const IdxChi2List& cand2)
@@ -530,22 +555,25 @@ inline bool sortByScoreCandPair(const std::pair<Track, TrackState>& cand1, const
   return sortByScoreCand(cand1.first,cand2.first);
 }
 
-inline int getScoreWorstPossible()
+inline float getScoreWorstPossible()
 {
-  return -0x3FFF; // 14 bits, all ones.
+  return -1e16; // somewhat arbitrary value, used  during finding (will try to take it out)
 }
 
-inline int getScoreCalc(const unsigned int seedtype,
-                        const int nfoundhits,
-                        const int nmisshits,
-                        const float chi2,
-                        const float pt)
+inline float getScoreCalc(const unsigned int seedtype,
+                          const int nfoundhits,
+                          const int nmisshits,
+                          const float chi2,
+                          const float pt)
 {
+  // QQQQ Mario, Allie ... do we want to change this now that score is a float?
+  // In particular, we probably don't need Config::maxChi2ForRanking any more.
+  // Comments below need to be updated.
+
   //// Do not allow for chi2<0 in score calculation
   //if(chi2<0) chi2=0.f;
   //// Do not allow for chi2>2^14/2/10 in score calculation (15 bits for (int) score x 10: 14 bits for score magnitude + 1 bit for sign --> max chi2 = 1/2*1/10*2^14=819.2) 
   //if(chi2>Config::maxChi2ForRanking_) chi2=Config::maxChi2ForRanking_;
-  int score = 0;
   float score_ = 0.f;
   ////// V2 of candidate score (simplified score, after fix for counts of # missing hits):
   score_ = Config::validHitBonus_*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
@@ -592,15 +620,14 @@ inline int getScoreCalc(const unsigned int seedtype,
     if(nfoundhits>8) score_ += (Config::validHitBonus_)*nfoundhits;
   }
   */
-  score = (int)(floor(10.f * score_ + 0.5));
-  return score;
+  return score_;
 }
 
-inline int getScoreCand(const Track& cand1)
+inline float getScoreCand(const Track& cand1)
 {
   unsigned int seedtype = cand1.getSeedTypeForRanking();
   int nfoundhits = cand1.nFoundHits();
-  int nmisshits = cand1.nMissingHits();
+  int nmisshits = cand1.nInsideMinusOneHits();
   float pt = cand1.pT();
   float chi2 = cand1.chi2();
   // Do not allow for chi2<0 in score calculation
@@ -610,7 +637,7 @@ inline int getScoreCand(const Track& cand1)
   return getScoreCalc(seedtype,nfoundhits,nmisshits,chi2,pt);
 }
 
-inline int getScoreStruct(const IdxChi2List& cand1)
+inline float getScoreStruct(const IdxChi2List& cand1)
 {
   unsigned int seedtype = cand1.seedtype;
   int nfoundhits = cand1.nhits;
@@ -646,6 +673,10 @@ float computeHelixChi2(const Vector& simV, const Vector& recoV, const Matrix& re
 
   return ROOT::Math::Dot(diffV*recoMI,diffV)/(diffV.kSize-1);
 }
+
+//==============================================================================
+// TrackExtra
+//==============================================================================
 
 class TrackExtra;
 typedef std::vector<TrackExtra> TrackExtraVec;

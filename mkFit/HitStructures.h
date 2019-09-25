@@ -263,24 +263,168 @@ public:
 
 
 //==============================================================================
-// CombinedCandidate and EventOfCombinedCandidates
+// TrackCand, CombinedCandidate and EventOfCombinedCandidates
 //==============================================================================
+
+struct HoTNode
+{
+  HitOnTrack m_hot;
+  int        m_prev_idx;
+};
+
+class CombCandidate;
+
+class TrackCand : public TrackBase
+{
+public:
+  TrackCand() {}
+
+  explicit TrackCand(const TrackBase& base, CombCandidate* ccand) :
+    TrackBase(base),
+    m_comb_candidate(ccand)
+  {
+    // Reset hit counters -- caller has to initialize hits.
+    lastHitIdx_ = -1;
+    nFoundHits_ =  0;
+  }
+
+  CombCandidate* combCandidate() const { return m_comb_candidate; }
+  void setCombCandidate(CombCandidate* cc) { m_comb_candidate = cc; }
+
+  int  lastCcIndex()  const { return lastHitIdx_; }
+  int  nFoundHits()   const { return nFoundHits_; }
+  int  nMissingHits() const { return nMissingHits_; }
+  int  nTotalHits()   const { return nFoundHits_ + nMissingHits_; }
+
+  void setLastCcIndex(int i)  { lastHitIdx_   = i; }
+  void setNFoundHits(int n)   { nFoundHits_   = n; }
+  void setNMissingHits(int n) { nMissingHits_ = n; }
+
+  int  nInsideMinusOneHits() const { return nInsideMinusOneHits_; }
+  int  nTailMinusOneHits()   const { return nTailMinusOneHits_; }
+
+  void setNInsideMinusOneHits(int n) { nInsideMinusOneHits_ = n; }
+  void setNTailMinusOneHits(int n)   { nTailMinusOneHits_ = n; }
+
+  // Inlines after definition of CombCandidate
+
+  HitOnTrack getLastHitOnTrack() const;
+  int        getLastHitIdx()     const;
+  int        getLastHitLyr()     const;
+
+  void addHitIdx(int hitIdx, int hitLyr, float chi2);
+
+  Track exportTrack() const;
+
+protected:
+  CombCandidate *m_comb_candidate = nullptr;
+  // using from TrackBase:
+  // short int lastHitIdx_
+  // short int nFoundHits_
+  short int    nMissingHits_        = 0;
+
+  short int    nInsideMinusOneHits_ = 0;
+  short int    nTailMinusOneHits_   = 0;
+};
+
+inline bool sortByScoreTrackCand(const TrackCand & cand1, const TrackCand & cand2)
+{
+  return cand1.score() > cand2.score();
+}
+
+inline int getScoreCand(const TrackCand& cand1)
+{
+  unsigned int seedtype = cand1.getSeedTypeForRanking();
+  int nfoundhits = cand1.nFoundHits();
+  int nmisshits = cand1.nInsideMinusOneHits();
+  float pt = cand1.pT();
+  float chi2 = cand1.chi2();
+  // Do not allow for chi2<0 in score calculation
+  if(chi2<0) chi2=0.f;
+  // Do not allow for chi2>2^14/2/10 in score calculation (15 bits for (int) score x 10: 14 bits for score magnitude + 1 bit for sign --> max chi2 = 1/2*1/10*2^14=819.2)
+  if(chi2 > Config::maxChi2ForRanking_) chi2=Config::maxChi2ForRanking_;
+  return getScoreCalc(seedtype,nfoundhits,nmisshits,chi2,pt);
+}
 
 // This inheritance sucks but not doing it will require more changes.
 
-class CombCandidate : public std::vector<Track>
+class CombCandidate : public std::vector<TrackCand>
 {
 public:
   enum SeedState_e { Dormant = 0, Finding, Finished };
 
-  Track        m_best_short_cand;
+  TrackCand    m_best_short_cand;
   SeedState_e  m_state           = Dormant;
   int          m_last_seed_layer = -1;
-  unsigned int m_seed_type = 0;
+  unsigned int m_seed_type       =  0;
+
+  int                  m_hots_size = 0;
+  std::vector<HoTNode> m_hots;
+
+  CombCandidate()
+  {
+    reserve(Config::maxCandsPerSeed); //we should never exceed this
+    m_best_short_cand.setScore( getScoreWorstPossible() );
+
+    // this will be different for CloneEngine and Std, especially as long as we
+    // instantiate all candidates before purging them.
+    // ce:  N_layer * N_cands ~~ 20 * 6 = 120
+    // std: i don't know, let's say double
+    m_hots.reserve(256);
+  }
+
+  void Reset()
+  {
+    clear();
+    m_hots_size = 0;
+    m_hots.clear();
+  }
+
+  void ImportSeed(const Track& seed);
+
+  int AddHit(const HitOnTrack& hot, int prev_idx)
+  {
+    m_hots.push_back({hot, prev_idx});
+    return m_hots_size++;
+  }
 
   void MergeCandsAndBestShortOne(bool update_score, bool sort_cands);
 };
 
+//==============================================================================
+
+inline HitOnTrack TrackCand::getLastHitOnTrack() const
+{
+   return m_comb_candidate->m_hots[lastHitIdx_].m_hot;
+}
+
+inline int TrackCand::getLastHitIdx() const
+{
+   return m_comb_candidate->m_hots[lastHitIdx_].m_hot.index;
+}
+
+inline int TrackCand::getLastHitLyr() const
+{
+   return m_comb_candidate->m_hots[lastHitIdx_].m_hot.layer;
+}
+
+//------------------------------------------------------------------------------
+
+inline void TrackCand::addHitIdx(int hitIdx, int hitLyr, float chi2)
+{
+  lastHitIdx_ = m_comb_candidate->AddHit({ hitIdx, hitLyr }, lastHitIdx_);
+  if (hitIdx >= 0 || hitIdx == -9)
+  {
+    ++nFoundHits_; chi2_+=chi2;
+    nInsideMinusOneHits_ += nTailMinusOneHits_;
+    nTailMinusOneHits_    = 0;
+  } else {
+    ++nMissingHits_;
+    if (hitIdx == -1) ++nTailMinusOneHits_;
+  }
+}
+
+//==============================================================================
 
 class EventOfCombCandidates
 {
@@ -297,24 +441,20 @@ public:
     m_size      (0)
   {
     Reset(size);
+
+    m_candidates.reserve(256);
   }
 
   void Reset(int new_capacity)
   {
     for (int s = 0; s < m_size; ++s)
     {
-      m_candidates[s].clear();
+      m_candidates[s].Reset();
     }
 
     if (new_capacity > m_capacity)
     {
       m_candidates.resize(new_capacity);
-
-      for (int s = m_capacity; s < new_capacity; ++s)
-      {
-        m_candidates[s].reserve(Config::maxCandsPerSeed); //we should never exceed this
-        m_candidates[s].m_best_short_cand.setCandScore( getScoreWorstPossible() );
-      }
 
       m_capacity = new_capacity;
     }
@@ -328,21 +468,9 @@ public:
   {
     assert (m_size < m_capacity);
 
-    m_candidates[m_size].push_back(seed);
-    m_candidates[m_size].m_state           = CombCandidate::Dormant;
-    m_candidates[m_size].m_last_seed_layer = seed.getLastHitLyr();
-    m_candidates[m_size].m_seed_type = seed.getSeedTypeForRanking();
-    Track &cand = m_candidates[m_size].back();
-    cand.setSeedTypeForRanking(seed.getSeedTypeForRanking());
-    cand.setCandScore         (getScoreCand(seed));
+    m_candidates[m_size].ImportSeed(seed);
+
     ++m_size;
-  }
-
-  void InsertTrack(const Track& track, int seed_index)
-  {
-    assert (seed_index < m_size);
-
-    m_candidates[seed_index].push_back(track);
   }
 };
 

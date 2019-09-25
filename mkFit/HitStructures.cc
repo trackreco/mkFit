@@ -270,6 +270,40 @@ void LayerOfHits::PrintBins()
 
 
 //==============================================================================
+// TrackCand
+//==============================================================================
+
+Track TrackCand::exportTrack() const
+{
+  // printf("TrackCand::exportTrack %p, label=%d\n", this, label());
+
+  Track res(*this);
+
+  int nh = nTotalHits();
+  int ch = lastHitIdx_;
+  std::vector<HitOnTrack> hots(nh);
+  while (--nh >= 0)
+  {
+    HoTNode& hot_node = m_comb_candidate->m_hots[ch];
+
+    // printf("  nh=%2d, ch=%d, idx=%d lyr=%d prev_idx=%d\n",
+    //        nh, ch, hot_node.m_hot.index, hot_node.m_hot.layer, hot_node.m_prev_idx);
+
+    hots[nh] = hot_node.m_hot;
+    ch       = hot_node.m_prev_idx;
+  }
+
+  res.reserveHits(nTotalHits());
+  for (auto & i : hots)
+  {
+    res.addHitIdx(i.index, i.layer, 0.0f);
+  }
+
+  return res;
+}
+
+
+//==============================================================================
 // EventOfHits
 //==============================================================================
 
@@ -288,35 +322,57 @@ EventOfHits::EventOfHits(TrackerInfo &trk_inf) :
 // CombCandidate
 //==============================================================================
 
+void CombCandidate::ImportSeed(const Track& seed)
+{
+  emplace_back(TrackCand(seed, this));
+
+  m_state           = CombCandidate::Dormant;
+  m_last_seed_layer = seed.getLastHitLyr();
+  m_seed_type       = seed.getSeedTypeForRanking();
+
+  TrackCand &cand = back();
+
+  // printf("Importing pt=%f eta=%f, lastCcIndex=%d\n", cand.pT(), cand.momEta(), cand.lastCcIndex());
+
+  for (const HitOnTrack* hp = seed.BeginHitsOnTrack(); hp != seed.EndHitsOnTrack(); ++hp)
+  {
+    // printf(" hit idx=%d lyr=%d\n", hp->index, hp->layer);
+    cand.addHitIdx(hp->index, hp->layer, 0.0f);
+  }
+
+  cand.setSeedTypeForRanking(m_seed_type);
+  cand.setScore             (getScoreCand(cand));
+}
+
 void CombCandidate::MergeCandsAndBestShortOne(bool update_score, bool sort_cands)
 {
-  std::vector<Track> &finalcands = *this;
-  Track              &best_short = m_best_short_cand;
+  std::vector<TrackCand> &finalcands = *this;
+  TrackCand              &best_short = m_best_short_cand;
 
   if ( ! finalcands.empty())
   {
     if (update_score)
     {
-      for (auto &c : finalcands) c.setCandScore( getScoreCand(c) );
+      for (auto &c : finalcands) c.setScore( getScoreCand(c) );
     }
     if (sort_cands)
     {
-      std::sort(finalcands.begin(), finalcands.end(), sortByScoreCand);
+      std::sort(finalcands.begin(), finalcands.end(), sortByScoreTrackCand);
     }
 
-    if (best_short.getCandScore() > finalcands.back().getCandScore())
+    if (best_short.score() > finalcands.back().score())
     {
       auto ci = finalcands.begin();
-      while (ci->getCandScore() > best_short.getCandScore()) ++ci;
+      while (ci->score() > best_short.score()) ++ci;
 
-      if (finalcands.size() > static_cast<size_t>(Config::maxCandsPerSeed))  finalcands.pop_back();
+      if ((int) finalcands.size() > Config::maxCandsPerSeed)  finalcands.pop_back();
 
       // To print out what has been replaced -- remove when done with short track handling.
       /*
         if (ci == finalcands.begin())
         {
         printf("FindTracksStd -- Replacing best cand (%d) with short one (%d) in final sorting for seed index=%d\n",
-                     finalcands.front().getCandScore(), best_short.getCandScore(), iseed);
+                     finalcands.front().score(), best_short.score(), iseed);
         }
       */
 
@@ -324,12 +380,12 @@ void CombCandidate::MergeCandsAndBestShortOne(bool update_score, bool sort_cands
     }
 
   }
-  else if (best_short.getCandScore() > getScoreWorstPossible())
+  else if (best_short.score() > getScoreWorstPossible())
   {
     finalcands.push_back( best_short );
   }
 
-  best_short.setCandScore( getScoreWorstPossible() );
+  best_short.setScore( getScoreWorstPossible() );
 }
 
 } // end namespace mkfit
