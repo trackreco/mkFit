@@ -1304,15 +1304,18 @@ void MkBuilder::find_duplicates(TrackVec& tracks)
 	  float numHitsShared = 0;
 	  for (int ihit = 0; ihit < track.nTotalHits(); ihit++)
 	  {
-	    vecOfHits.push_back(track.getHitIdx(ihit));
+	    if(track.getHitIdx(ihit)>=0) vecOfHits.push_back(track.getHitIdx(ihit));
 	  }
 	  for (int ihit2 = 0; ihit2 < track2.nTotalHits(); ihit2++)
 	  {
-	    std::vector<int>::iterator it;
-	    it = std::find(vecOfHits.begin(), vecOfHits.end(),track2.getHitIdx(ihit2) );
-	    if (it != vecOfHits.end()) numHitsShared++;
+	    if(track2.getHitIdx(ihit2) >= 0)
+	    {
+	      std::vector<int>::iterator it;
+	      it = std::find(vecOfHits.begin(), vecOfHits.end(),track2.getHitIdx(ihit2) );
+	      if (it != vecOfHits.end()) numHitsShared++;
+	    }
 	  }
-	  float fracHitsShared = (track.nTotalHits() < track2.nTotalHits()) ? numHitsShared/track.nTotalHits() : numHitsShared/track2.nTotalHits();
+	  float fracHitsShared = numHitsShared/std::min(track.nFoundHits(),track2.nFoundHits());
 	  //Only remove one of the tracks if they share at least 90% of the hits (denominator is the shorter track)
 	  if(fracHitsShared < Config::minFracHitsShared) continue;
 	}
