@@ -1300,23 +1300,22 @@ void MkBuilder::find_duplicates(TrackVec& tracks)
       {
 	if(Config::useHitsForDuplicates)
 	{
-	  std::vector<int> vecOfHits;
 	  float numHitsShared = 0;
-	  for (int ihit = 0; ihit < track.nTotalHits(); ihit++)
-	  {
-	    if(track.getHitIdx(ihit)>=0) vecOfHits.push_back(track.getHitIdx(ihit));
-	  }
+	  const std::vector<HitOnTrack> *hots = track.getHitsOnTrackVector();
 	  for (int ihit2 = 0; ihit2 < track2.nTotalHits(); ihit2++)
-	  {
-	    if(track2.getHitIdx(ihit2) >= 0)
 	    {
-	      std::vector<int>::iterator it;
-	      it = std::find(vecOfHits.begin(), vecOfHits.end(),track2.getHitIdx(ihit2) );
-	      if (it != vecOfHits.end()) numHitsShared++;
+	      int hitidx2 = track2.getHitIdx(ihit2);
+	      int hitlyr2 = track2.getHitLyr(ihit2);
+	      if(hitidx2 >=0)
+	      {
+		auto it = std::find_if (hots->begin(), hots->end(),[&hitidx2,&hitlyr2](const HitOnTrack& element){
+		    return (element.index == hitidx2 && element.layer == hitlyr2);});
+		if (it != hots->end()) numHitsShared++;
+	      }
 	    }
-	  }
+
 	  float fracHitsShared = numHitsShared/std::min(track.nFoundHits(),track2.nFoundHits());
-	  //Only remove one of the tracks if they share at least 90% of the hits (denominator is the shorter track)
+	  //Only remove one of the tracks if they share at least X% of the hits (denominator is the shorter track)
 	  if(fracHitsShared < Config::minFracHitsShared) continue;
 	}
 	//Keep track with best score

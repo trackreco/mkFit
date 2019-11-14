@@ -437,6 +437,7 @@ public:
     return mcHitID;
   }
 
+  const std::vector<HitOnTrack>* getHitsOnTrackVector() const { return &hitsOnTrk_;}
   const HitOnTrack* getHitsOnTrackArray() const { return hitsOnTrk_.data(); }
   const HitOnTrack* BeginHitsOnTrack()    const { return hitsOnTrk_.data(); }
   const HitOnTrack* EndHitsOnTrack()      const { return hitsOnTrk_.data() + (lastHitIdx_ + 1); }
