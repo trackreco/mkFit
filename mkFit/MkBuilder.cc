@@ -1301,16 +1301,15 @@ void MkBuilder::find_duplicates(TrackVec& tracks)
 	if(Config::useHitsForDuplicates)
 	{
 	  float numHitsShared = 0;
-	  const std::vector<HitOnTrack> *hots = track.getHitsOnTrackVector();
 	  for (int ihit2 = 0; ihit2 < track2.nTotalHits(); ihit2++)
 	    {
 	      int hitidx2 = track2.getHitIdx(ihit2);
 	      int hitlyr2 = track2.getHitLyr(ihit2);
 	      if(hitidx2 >=0)
 	      {
-		auto it = std::find_if (hots->begin(), hots->end(),[&hitidx2,&hitlyr2](const HitOnTrack& element){
+		auto it = std::find_if (track.BeginHitsOnTrack(), track.EndHitsOnTrack(),[&hitidx2,&hitlyr2](const HitOnTrack& element){
 		    return (element.index == hitidx2 && element.layer == hitlyr2);});
-		if (it != hots->end()) numHitsShared++;
+		if (it != track.EndHitsOnTrack() ) numHitsShared++;
 	      }
 	    }
 
