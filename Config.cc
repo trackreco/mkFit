@@ -89,8 +89,9 @@ namespace Config
   bool  useHitsForDuplicates = true;
   float maxdPhi = 0.4;
   float maxdPt  = 0.7;
-  float maxdEta = 0.1;
+  float maxdEta = 0.05;
   float minFracHitsShared = 0.75;
+  float maxdRSquared = 0.000001; //corresponds to maxdR of 0.001
 
   bool mtvLikeValidation = false;
   bool mtvRequireSeeds = false;
