@@ -1302,18 +1302,18 @@ void MkBuilder::find_duplicates(TrackVec& tracks)
       {
         //Keep track with best score
         if(track.score() > track2.score())  track2.setDuplicateValue(true);
-	else track.setDuplicateValue(true);
-	continue;
+        else track.setDuplicateValue(true);
+        continue;
       }
       else
       {
-	maxpt = std::max(pt1,track2.pT());
-	if(maxpt ==0) continue;
+        maxpt = std::max(pt1,track2.pT());
+        if(maxpt ==0) continue;
 
         if(std::abs(track2.pT() - pt1)/maxpt < Config::maxdPt)
         {
-	  if(Config::useHitsForDuplicates)
-	  {
+          if(Config::useHitsForDuplicates)
+          {
 	    float numHitsShared = 0;
 	    for (int ihit2 = 0; ihit2 < track2.nTotalHits(); ihit2++)
 	    {
@@ -1334,7 +1334,7 @@ void MkBuilder::find_duplicates(TrackVec& tracks)
 	  //Keep track with best score
 	  if(track.score() > track2.score())  track2.setDuplicateValue(true);
 	  else track.setDuplicateValue(true);	  
-	} //end of if dPt
+        } //end of if dPt
       } //end of else
     } //end of loop over track2
   } //end of loop over track1 
