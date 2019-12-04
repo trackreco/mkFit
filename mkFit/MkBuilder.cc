@@ -1280,6 +1280,9 @@ void MkBuilder::find_duplicates(TrackVec& tracks)
 {
   const auto ntracks = tracks.size();
   float eta1, phi1, pt1, deta, dphi, maxpt, dr2;
+  if (ntracks == 0) {
+    return;
+  }
   for (auto itrack = 0U; itrack < ntracks-1; itrack++)
   {
     auto & track = tracks[itrack];
