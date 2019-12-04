@@ -1279,6 +1279,9 @@ void MkBuilder::score_tracks(TrackVec& tracks)
 void MkBuilder::find_duplicates(TrackVec& tracks)
 {
   const auto ntracks = tracks.size();
+  if (ntracks == 0) {
+    return;
+  }
   for (auto itrack = 0U; itrack < ntracks-1; itrack++)
   {
     auto & track = tracks[itrack];
