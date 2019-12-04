@@ -1279,58 +1279,68 @@ void MkBuilder::score_tracks(TrackVec& tracks)
 void MkBuilder::find_duplicates(TrackVec& tracks)
 {
   const auto ntracks = tracks.size();
+  float eta1, phi1, pt1, deta, dphi, maxpt, dr2;
   if (ntracks == 0) {
     return;
   }
   for (auto itrack = 0U; itrack < ntracks-1; itrack++)
   {
     auto & track = tracks[itrack];
-    float eta1 = track.momEta();
-    float phi1 = track.momPhi();
-    float pt1  = track.pT();
+    eta1 = track.momEta();
+    phi1 = track.momPhi();
+    pt1  = track.pT();
     for (auto jtrack = itrack+1; jtrack < ntracks; jtrack++)
     {
       auto & track2 = tracks[jtrack];
       if(track.label() == track2.label()) continue;
-      float eta2 = track2.momEta();
-      float phi2 = track2.momPhi();
-      float pt2  = track2.pT();
-      float dphi = squashPhiMinimal(phi1-phi2);
-      float deta = std::abs(eta2 - eta1);
-      float maxpt = std::max(pt1,pt2);
-      if(maxpt ==0) continue;
-      if(dphi < Config::maxdPhi && std::abs(pt2 - pt1)/maxpt < Config::maxdPt && deta < Config::maxdEta)
+     
+      deta = std::abs(track2.momEta() - eta1);
+      if(deta > Config::maxdEta) continue;
+
+      dphi = std::abs(squashPhiMinimal(phi1-track2.momPhi()));
+      if(dphi > Config::maxdPhi) continue;
+
+      dr2 = dphi*dphi + deta*deta;
+      if(dr2 < Config::maxdRSquared)
       {
-	if(Config::useHitsForDuplicates)
-	{
-	  std::vector<int> vecOfHits;
-	  float numHitsShared = 0;
-	  for (int ihit = 0; ihit < track.nTotalHits(); ihit++)
-	  {
-	    vecOfHits.push_back(track.getHitIdx(ihit));
-	  }
-	  for (int ihit2 = 0; ihit2 < track2.nTotalHits(); ihit2++)
-	  {
-	    std::vector<int>::iterator it;
-	    it = std::find(vecOfHits.begin(), vecOfHits.end(),track2.getHitIdx(ihit2) );
-	    if (it != vecOfHits.end()) numHitsShared++;
-	  }
-	  float fracHitsShared = (track.nTotalHits() < track2.nTotalHits()) ? numHitsShared/track.nTotalHits() : numHitsShared/track2.nTotalHits();
-	  //Only remove one of the tracks if they share at least 90% of the hits (denominator is the shorter track)
-	  if(fracHitsShared < Config::minFracHitsShared) continue;
-	}
-	//Keep track with best score
-	if(track.score() > track2.score())
-	{
-	  track2.setDuplicateValue(true);
-	}
-	else
-	{
-	  track.setDuplicateValue(true);
-	}
+        //Keep track with best score
+        if(track.score() > track2.score())  track2.setDuplicateValue(true);
+        else track.setDuplicateValue(true);
+        continue;
       }
-    }
-  }
+      else
+      {
+        maxpt = std::max(pt1,track2.pT());
+        if(maxpt ==0) continue;
+
+        if(std::abs(track2.pT() - pt1)/maxpt < Config::maxdPt)
+        {
+          if(Config::useHitsForDuplicates)
+          {
+	    float numHitsShared = 0;
+	    for (int ihit2 = 0; ihit2 < track2.nTotalHits(); ihit2++)
+	    {
+	      int hitidx2 = track2.getHitIdx(ihit2);
+	      int hitlyr2 = track2.getHitLyr(ihit2);
+	      if(hitidx2 >=0)
+	      {
+		auto it = std::find_if (track.BeginHitsOnTrack(), track.EndHitsOnTrack(),[&hitidx2,&hitlyr2](const HitOnTrack& element){
+		    return (element.index == hitidx2 && element.layer == hitlyr2);});
+		if (it != track.EndHitsOnTrack() ) numHitsShared++;
+	      }
+	    }
+
+	    float fracHitsShared = numHitsShared/std::min(track.nFoundHits(),track2.nFoundHits());
+	    //Only remove one of the tracks if they share at least X% of the hits (denominator is the shorter track)
+	    if(fracHitsShared < Config::minFracHitsShared) continue;
+	  }
+	  //Keep track with best score
+	  if(track.score() > track2.score())  track2.setDuplicateValue(true);
+	  else track.setDuplicateValue(true);	  
+        } //end of if dPt
+      } //end of else
+    } //end of loop over track2
+  } //end of loop over track1 
 }
 
 void MkBuilder::remove_duplicates(TrackVec & tracks)

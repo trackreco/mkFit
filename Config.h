@@ -328,6 +328,7 @@ namespace Config
   extern float maxdPt;
   extern float maxdEta;
   extern float minFracHitsShared;
+  extern float maxdRSquared;
 
   // config on seed cleaning
   constexpr int minNHits_seedclean = 4;

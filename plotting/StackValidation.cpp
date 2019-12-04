@@ -104,7 +104,7 @@ void StackValidation::MakeRatioStacks(const TString & trk)
 	  
 	  graph->Draw(b>0?"PZ SAME":"APZ");
 
-	  if (!rate.rate.Contains("ineff",TString::kExact)) graph->GetYaxis()->SetRangeUser(0.0,1.05);
+	  if (!rate.rate.Contains("ineff",TString::kExact) && !rate.rate.Contains("dr",TString::kExact)) graph->GetYaxis()->SetRangeUser(0.0,1.05);
 	  else graph->GetYaxis()->SetRangeUser(0.0,0.25);
 	  
 	  leg->AddEntry(graph,build.label.Data(),"LEP");
@@ -145,7 +145,7 @@ void StackValidation::MakeRatioStacks(const TString & trk)
 	    auto & graph = graphs[b];
 	    graph->GetXaxis()->SetRangeUser(0.01,graph->GetXaxis()->GetBinUpEdge(graph->GetXaxis()->GetNbins()));
 
-	    if (!rate.rate.Contains("ineff",TString::kExact)) graph->GetYaxis()->SetRangeUser(0.0,1.05);
+	    if (!rate.rate.Contains("ineff",TString::kExact) && !rate.rate.Contains("dr",TString::kExact)) graph->GetYaxis()->SetRangeUser(0.0,1.05);
 	    else graph->GetYaxis()->SetRangeUser(0.0,0.25);
 
 	    graph->GetXaxis()->SetTitle(xtitle);
