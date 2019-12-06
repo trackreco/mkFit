@@ -559,13 +559,13 @@ named as initialStep)
 ```bash
 # in CMSSW_10_4_0_patch1/src
 
-# sample = 10mu, ttbarnopu, ttbar_pu50, ttbar_pu70
+# sample = 10mu, ttbarnopu, ttbarpu50, ttbarpu70
 # mkfit = 1, 0
 # timing = 0, 1
 # (maxEvents = 0, <N>, -1)
 # nthreads = 1, <N>
 # nstreams = 0, <N>
-cmsRun RecoTracker/MkFit/test/reco_cfg.py sample=ttbar_pu70 timing=1
+cmsRun RecoTracker/MkFit/test/reco_cfg.py sample=ttbarpu50 timing=1
 ```
 * The default values for the command line parameters are the first ones.
 * `mkfit=1` runs MkFit, `0` runs CMSSW tracking
@@ -608,9 +608,20 @@ HLT reconstruction
 ```bash
 # in CMSSW_10_4_0_patch1/src
 
-cmsRun RecoTracker/MkFit/test/hlt_cfg.py sample=ttbar_pu70 timing=1
+# in addition to the offline tracking options
+# hltOnDemand = 0, 1
+# hltIncludeFourthHit = 0, 1
+cmsRun RecoTracker/MkFit/test/hlt_cfg.py sample=ttbarpu50 timing=1
 ```
-* Options and behavior is the same as for the offline reconstruction above
+* The default values for the command line parameters are the first ones.
+* For options that are same as in offline tracking, see above
+* Setting `hltOnDemand=1` makes the strip local reconstruction to be
+  run in the "on-demand" mode (which is the default in real HLT but
+  not here). Note that `hltOnDemand=1` works only with `mkfit=0`.
+* Setting `hltIncludeFourthHit=1` changes the (HLT-default) behavior
+  of the EDProducer that converts pixel tracks to `TrajectorySeed`
+  objects to include also the fourth, outermost hit of the pixel track
+  in the seed.
 
 DQM harvesting (unless running timing)
 ```bash
