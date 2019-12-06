@@ -189,25 +189,27 @@ MkBuilder::MkBuilder() :
 
   { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Endcap_Neg];
     sp.reserve_plan(3 + 3 + 6 + 18);
-    sp.fill_plan(0, 2, false, true);
-    sp.append_plan(45, true);
+    sp.fill_plan(0, 1, false, true); // bk-fit only
+    sp.append_plan( 2, true);        // pick-up only
+    sp.append_plan(45, false);
     sp.append_plan(46, false);
     sp.append_plan(47, false);
-    sp.fill_plan(48, 53); // TID, 6 layers
+    sp.fill_plan(48, 53); // TID,  6 layers
     sp.fill_plan(54, 71); // TEC, 18 layers
     sp.finalize_plan();
   }
 
   { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Transition_Neg];
     sp.reserve_plan(3 + 4 + 6 + 6 + 8 + 18);
-    sp.fill_plan(0, 2, false, true);
-    sp.append_plan( 3, true);
-    sp.append_plan(45, true);
+    sp.fill_plan(0, 1, false, true); // bk-fit only
+    sp.append_plan( 2, true);
+    sp.append_plan( 3, false);
+    sp.append_plan(45, false);
     sp.append_plan(46, false);
     sp.append_plan(47, false);
-    sp.fill_plan( 4,  9); // TIB, 6 layers
-    sp.fill_plan(48, 53); // TID, 6 layers
-    sp.fill_plan(10, 17); // TOB, 8 layers
+    sp.fill_plan( 4,  9); // TIB,  6 layers
+    sp.fill_plan(48, 53); // TID,  6 layers
+    sp.fill_plan(10, 17); // TOB,  8 layers
     sp.fill_plan(54, 71); // TEC, 18 layers
     sp.finalize_plan();
   }
@@ -215,34 +217,37 @@ MkBuilder::MkBuilder() :
 
   { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Barrel];
     sp.reserve_plan(3 + 1 + 6 + 8);
-    sp.fill_plan(0, 2, false, true);
-    sp.append_plan(3, true); // pickup-only
-    sp.fill_plan( 4,  9);    // TIB, 6 layers
-    sp.fill_plan(10, 17);    // TOB, 8 layers
+    sp.fill_plan(0, 1, false, true); // bk-fit only
+    sp.append_plan( 2, true);        // pickup-only
+    sp.append_plan( 3, false);
+    sp.fill_plan( 4,  9); // TIB, 6 layers
+    sp.fill_plan(10, 17); // TOB, 8 layers
     sp.finalize_plan();
   }
 
   { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Transition_Pos];
     sp.reserve_plan(3 + 4 + 6 + 6 + 8 + 18);
-    sp.fill_plan(0, 2, false, true);
-    sp.append_plan( 3, true);
-    sp.append_plan(18, true);
+    sp.fill_plan(0, 1, false, true); // bk-fit only
+    sp.append_plan( 2, true);        // pickup-only
+    sp.append_plan( 3, false);
+    sp.append_plan(18, false);
     sp.append_plan(19, false);
     sp.append_plan(20, false);
-    sp.fill_plan( 4,  9); // TIB, 6 layers
-    sp.fill_plan(21, 26); // TID, 6 layers
-    sp.fill_plan(10, 17); // TOB, 8 layers
+    sp.fill_plan( 4,  9); // TIB,  6 layers
+    sp.fill_plan(21, 26); // TID,  6 layers
+    sp.fill_plan(10, 17); // TOB,  8 layers
     sp.fill_plan(27, 44); // TEC, 18 layers
     sp.finalize_plan();
   }
 
   { SteeringParams &sp = m_steering_params[TrackerInfo::Reg_Endcap_Pos];
     sp.reserve_plan(3 + 3 + 6 + 18);
-    sp.fill_plan(0, 2, false, true);
-    sp.append_plan(18, true);
+    sp.fill_plan(0, 1, false, true); // bk-fit only
+    sp.append_plan( 2, true);        // pickup-only
+    sp.append_plan(18, false);
     sp.append_plan(19, false);
     sp.append_plan(20, false);
-    sp.fill_plan(21, 26); // TID, 6 layers
+    sp.fill_plan(21, 26); // TID,  6 layers
     sp.fill_plan(27, 44); // TEC, 18 layers
     sp.finalize_plan();
   }
@@ -782,10 +787,7 @@ inline void MkBuilder::fit_one_seed_set(TrackVec& seedtracks, int itrack, int en
 
   if (Config::cf_seeding) mkfttr->ConformalFitTracks(false, itrack, end);
 
-  if (Config::seedInput != cmsswSeeds)
-  {
-    mkfttr->FitTracksSteered(is_brl, end - itrack, m_event, Config::seed_fit_pflags);
-  }
+  mkfttr->FitTracksSteered(is_brl, end - itrack, m_event, Config::seed_fit_pflags);
 
   mkfttr->OutputFittedTracksAndHitIdx(m_event->seedTracks_, itrack, end, false);
 }
@@ -1545,7 +1547,12 @@ void MkBuilder::PrepareSeeds()
   //0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
   assign_seedtype_forranking();
 
-  fit_seeds();
+  // Do not refit cmssw seeds (this if was nested in fit_one_seed_set() until now).
+  // Eventually we can add force-refit option.
+  if (Config::seedInput != cmsswSeeds)
+  {
+    fit_seeds();
+  }
 }
 
 //------------------------------------------------------------------------------

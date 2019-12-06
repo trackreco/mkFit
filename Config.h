@@ -331,7 +331,6 @@ namespace Config
   extern float maxdRSquared;
 
   // config on seed cleaning
-  constexpr int minNHits_seedclean = 4;
   constexpr float track1GeVradius = 87.6; // = 1/(c*B)
   constexpr float c_etamax_brl = 0.9;
   constexpr float c_dpt_brl_0 = 0.025;
