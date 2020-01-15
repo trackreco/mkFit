@@ -40,7 +40,44 @@ enum class TrackAlgorithm {
   jetCoreRegionalStep = 11,
   conversionStep = 12,
   muonSeededStepInOut = 13,
-  muonSeededStepOutIn = 14
+  muonSeededStepOutIn = 14,
+  outInEcalSeededConv = 15,
+  inOutEcalSeededConv = 16,
+  nuclInter = 17,
+  standAloneMuon = 18,
+  globalMuon = 19,
+  cosmicStandAloneMuon = 20,
+  cosmicGlobalMuon = 21,
+  // Phase1
+  highPtTripletStep = 22,
+  lowPtQuadStep = 23,
+  detachedQuadStep = 24,
+  reservedForUpgrades1 = 25,
+  reservedForUpgrades2 = 26,
+  bTagGhostTracks = 27,
+  beamhalo = 28,
+  gsf = 29,
+  // HLT algo name
+  hltPixel = 30,
+  // steps used by PF
+  hltIter0 = 31,
+  hltIter1 = 32,
+  hltIter2 = 33,
+  hltIter3 = 34,
+  hltIter4 = 35,
+  // steps used by all other objects @HLT
+  hltIterX = 36,
+  // steps used by HI muon regional iterative tracking
+  hiRegitMuInitialStep = 37,
+  hiRegitMuLowPtTripletStep = 38,
+  hiRegitMuPixelPairStep = 39,
+  hiRegitMuDetachedTripletStep = 40,
+  hiRegitMuMixedTripletStep = 41,
+  hiRegitMuPixelLessStep = 42,
+  hiRegitMuTobTecStep = 43,
+  hiRegitMuMuonSeededStepInOut = 44,
+  hiRegitMuMuonSeededStepOutIn = 45,
+  algoSize = 46
 };
 
 typedef std::list<std::string> lStr_t;
@@ -744,7 +781,9 @@ int main(int argc, char *argv[])
     vector<Track> &seedTracks_ = EE.seedTracks_;
     vector<vector<int> > pixHitSeedIdx(pix_lay->size());
     for (unsigned int is = 0; is<see_q->size(); ++is) {
-      if (TrackAlgorithm(see_algo->at(is))!=TrackAlgorithm::initialStep) continue;//select seed in acceptance
+      auto isAlgo = TrackAlgorithm(see_algo->at(is));
+      if (isAlgo != TrackAlgorithm::initialStep 
+          && isAlgo != TrackAlgorithm::hltIter0 ) continue;//select seed in acceptance
       //if (see_pt->at(is)<0.5 || fabs(see_eta->at(is))>0.8) continue;//select seed in acceptance
       SVector3 pos = SVector3(see_stateTrajGlbX->at(is),see_stateTrajGlbY->at(is),see_stateTrajGlbZ->at(is));
       SVector3 mom = SVector3(see_stateTrajGlbPx->at(is),see_stateTrajGlbPy->at(is),see_stateTrajGlbPz->at(is));
@@ -775,7 +814,7 @@ int main(int argc, char *argv[])
       Track track(state, 0, seedSimIdx[is], 0, nullptr);
       auto const& shTypes = see_hitType->at(is);
       auto const& shIdxs = see_hitIdx->at(is);
-      if (! (TrackAlgorithm(see_algo->at(is))== TrackAlgorithm::initialStep
+      if (! ( (isAlgo == TrackAlgorithm::initialStep || isAlgo == TrackAlgorithm::hltIter0)
 	     && std::count(shTypes.begin(), shTypes.end(), int(HitType::Pixel))>=3)) continue;//check algo and nhits
       for (unsigned int ip=0; ip<shTypes.size(); ip++) {
 	unsigned int ipix = shIdxs[ip];
@@ -792,7 +831,8 @@ int main(int argc, char *argv[])
     vector<vector<int> > strHitRecIdx(str_lay->size());
     vector<vector<int> > gluHitRecIdx(glu_lay->size());
     for (unsigned int ir = 0; ir<trk_q->size(); ++ir) {
-      if ((trk_algoMask->at(ir) & (1 << int(TrackAlgorithm::initialStep))) == 0){//check the origin; redundant for initialStep ntuples
+      //check the origin; redundant for initialStep ntuples
+      if ((trk_algoMask->at(ir) & ( (1 << int(TrackAlgorithm::initialStep )) | (1 << int(TrackAlgorithm::hltIter0 )) )) == 0){
 	if (verbosity > 1){
 	  std::cout<<"track "<<ir<<" failed algo selection for "<< int(TrackAlgorithm::initialStep) <<": mask "<<trk_algoMask->at(ir)
 		   <<" origAlgo "<<trk_originalAlgo->at(ir)<<" algo "<<trk_algo->at(ir)
