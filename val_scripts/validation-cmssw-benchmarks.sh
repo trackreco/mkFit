@@ -15,6 +15,8 @@ inputBin=${3:-"104XPU50CCC"}
 source xeon_scripts/common-variables.sh ${suite}
 source xeon_scripts/init-env.sh
 
+nevents=500
+
 ## Common file setup
 case ${inputBin} in 
 "91XPU70CCC")
@@ -30,12 +32,18 @@ case ${inputBin} in
         subdir=
         file=pu50-ccc-hs.bin
         ;;
+"104X10muHLT3CCC")
+        echo "Inputs from 2018 10mu large pt range using HLT iter0 seeds as triplets with CCC"
+        dir=/data1/work/slava77/analysis/CMSSW_10_4_0_patch1-tkNtuple/pass-f2bb882
+        subdir=hltIter0/default/triplet/10muPt0p2to1000HS
+        file=memoryFile.fv4.clean.writeAll.CCC1620.recT.200115-0a18240.bin
+        nevents=10000
+        ;;
 *)
         echo "INPUT BIN IS UNKNOWN"
         exit 12
         ;;
 esac
-nevents=500
 
 ## Common executable setup
 maxth=64
