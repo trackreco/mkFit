@@ -4,7 +4,7 @@
 ## Input ##
 ###########
 
-suite=${1:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
+suite=${1:-"forPR"} # which set of benchmarks to run: full, forPR, forConf, val, valMT1
 style=${2:-"--mtv-like-val"} # option --mtv-like-val
 inputBin=${3:-"104XPU50CCC"}
 
@@ -38,6 +38,7 @@ case ${inputBin} in
         subdir=hltIter0/default/triplet/10muPt0p2to1000HS
         file=memoryFile.fv4.clean.writeAll.CCC1620.recT.200115-0a18240.bin
         nevents=10000
+        sample=CMSSW_10mu_HLT3
         ;;
 *)
         echo "INPUT BIN IS UNKNOWN"
@@ -49,6 +50,11 @@ esac
 maxth=64
 maxvu=16
 maxev=32
+if [[  "${suite}" == "valMT1" ]]
+then
+    maxth=1
+    maxev=1
+fi
 seeds="--cmssw-n2seeds"
 exe="./mkFit/mkFit --silent ${seeds} --num-thr ${maxth} --num-thr-ev ${maxev} --input-file ${dir}/${subdir}/${file} --num-events ${nevents} --remove-dup"
 
@@ -92,11 +98,14 @@ function doVal()
     local bExe="${exe} ${vO} --build-${bO}"
     
     echo "${oBase}: ${vN} [nTH:${maxth}, nVU:${maxvu}int, nEV:${maxev}]"
-    ${bExe} >& log_${oBase}_NVU${maxvu}int_NTH${maxth}_NEV${maxev}_${vN}.txt || (echo Crashed; exit 2)
+    ${bExe} >& log_${oBase}_NVU${maxvu}int_NTH${maxth}_NEV${maxev}_${vN}.txt || (echo "Crashed on CMD: "${bExe}; exit 2)
     
-    # hadd output files for this test, then move to temporary directory
-    hadd -O valtree.root valtree_*.root
-    rm valtree_*.root
+    if (( ${maxth} > 1 ))
+    then
+        # hadd output files from different threads for this test, then move to temporary directory
+        hadd -O valtree.root valtree_*.root
+        rm valtree_*.root
+    fi
     mv valtree.root ${tmpdir}/valtree_${oBase}_${vN}.root
 }		
 
@@ -109,7 +118,8 @@ function plotVal()
     local pO=${4}
 
     echo "Computing observables for: ${base} ${bN} ${pN}"
-    root -b -q -l plotting/runValidation.C\(\"_${base}_${bN}_${pN}\",${pO}\) || (echo Crashed; exit 3)
+    bExe="root -b -q -l plotting/runValidation.C(\"_${base}_${bN}_${pN}\",${pO})"
+    ${bExe} || (echo "Crashed on CMD: "${bExe}; exit 3)
 }
 
 ########################
