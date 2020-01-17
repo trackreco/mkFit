@@ -60,6 +60,10 @@ elif [[ "${suite}" == "forConf" ]]
 then
     declare -a ben_builds=(CE)
     declare -a val_builds=(CE)
+elif [[ "${suite}" == "val" || "${suite}" == "valMT1" ]]
+then
+    declare -a ben_builds=()
+    declare -a val_builds=(STD CE)
 else
     echo ${suite} "is not a valid benchmarking suite option! Exiting..."
     exit
