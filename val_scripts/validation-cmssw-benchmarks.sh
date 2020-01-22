@@ -100,7 +100,7 @@ function doVal()
     echo "${oBase}: ${vN} [nTH:${maxth}, nVU:${maxvu}int, nEV:${maxev}]"
     ${bExe} >& log_${oBase}_NVU${maxvu}int_NTH${maxth}_NEV${maxev}_${vN}.txt || (echo "Crashed on CMD: "${bExe}; exit 2)
     
-    if (( ${maxth} > 1 ))
+    if (( ${maxev} > 1 ))
     then
         # hadd output files from different threads for this test, then move to temporary directory
         hadd -O valtree.root valtree_*.root
