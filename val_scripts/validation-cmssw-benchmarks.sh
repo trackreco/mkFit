@@ -32,6 +32,14 @@ case ${inputBin} in
         subdir=
         file=pu50-ccc-hs.bin
         ;;
+"104X10muCCC")
+        echo "Inputs from 2018 10mu large pt range using the offline initialStep seeds with CCC (phi3)"
+        dir=/data2/slava77/samples/2018/pass-925bb57
+        subdir=initialStep/default/10muPt0p2to1000HS
+        file=memoryFile.fv4.clean.writeAll.CCC1620.recT.191108-c41a0f2.bin
+        nevents=10000
+        sample=CMSSW_10mu
+        ;;
 "104X10muHLT3CCC")
         echo "Inputs from 2018 10mu large pt range using HLT iter0 seeds as triplets with CCC (phi3)"
         dir=/data2/slava77/samples/2018/pass-2eaa1f7
