@@ -33,12 +33,34 @@ case ${inputBin} in
         file=pu50-ccc-hs.bin
         ;;
 "104X10muHLT3CCC")
-        echo "Inputs from 2018 10mu large pt range using HLT iter0 seeds as triplets with CCC"
-        dir=/data1/work/slava77/analysis/CMSSW_10_4_0_patch1-tkNtuple/pass-f2bb882
+        echo "Inputs from 2018 10mu large pt range using HLT iter0 seeds as triplets with CCC (phi3)"
+        dir=/data2/slava77/samples/2018/pass-2eaa1f7
         subdir=hltIter0/default/triplet/10muPt0p2to1000HS
-        file=memoryFile.fv4.clean.writeAll.CCC1620.recT.200115-0a18240.bin
+        file=memoryFile.fv4.clean.writeAll.CCC1620.recT.200122-fcff8a8.bin
         nevents=10000
         sample=CMSSW_10mu_HLT3
+        ;;
+"104X10muHLT4CCC")
+        echo "Inputs from 2018 10mu large pt range using HLT iter0 seeds as quadruplets with CCC (phi3)"
+        dir=/data2/slava77/samples/2018/pass-2eaa1f7
+        subdir=hltIter0/default/quadruplet/10muPt0p2to1000HS
+        file=memoryFile.fv4.clean.writeAll.CCC1620.recT.200122-fcff8a8.bin
+        nevents=10000
+        sample=CMSSW_10mu_HLT4
+        ;;
+"104XPU50HLT3CCC")
+        echo "Inputs from 2018 ttbar PU50 using HLT iter0 seeds as triplets with CCC (phi3)"
+        dir=/data2/slava77/samples/2018/pass-2eaa1f7
+        subdir=hltIter0/default/triplet/11024.0_TTbar_13/AVE_50_BX01_25ns
+        file=memoryFile.fv4.clean.writeAll.CCC1620.recT.200122-fcff8a8.bin
+        sample=CMSSW_TTbar_PU50_HLT3
+        ;;
+"104XPU50HLT4CCC")
+        echo "Inputs from 2018 ttbar PU50 using HLT iter0 seeds as quadruplets with CCC (phi3)"
+        dir=/data2/slava77/samples/2018/pass-2eaa1f7
+        subdir=hltIter0/default/quadruplet/11024.0_TTbar_13/AVE_50_BX01_25ns
+        file=memoryFile.fv4.clean.writeAll.CCC1620.recT.200122-fcff8a8.bin
+        sample=CMSSW_TTbar_PU50_HLT4
         ;;
 *)
         echo "INPUT BIN IS UNKNOWN"
