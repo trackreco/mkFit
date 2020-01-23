@@ -285,6 +285,8 @@ void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg,
 	continue;
       }
 
+      //fixme: This function is not currently used, but note that ipt is allowed to take
+      //negative values, which may break the propagation
       const float ipt   = inPar.ConstAt(n, 3, 0);
       const float phiin = inPar.ConstAt(n, 4, 0);
       const float theta = inPar.ConstAt(n, 5, 0);
@@ -612,12 +614,18 @@ void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
 
       const float zout = msZ.ConstAt(n, 0, 0);
 
+      //Note that if the charge of the seed is wrong, then in our code we could eventually
+      //get negative values for ipt. The propagation code below assumes ipt is positive and that
+      //the sign of the charge is included in the factor k.
       const float zin   = inPar.ConstAt(n, 2, 0);
-      const float ipt   = inPar.ConstAt(n, 3, 0);
+      float ipt_temp    = inPar.ConstAt(n, 3, 0);
       const float phiin = inPar.ConstAt(n, 4, 0);
       const float theta = inPar.ConstAt(n, 5, 0);
 
-      const float k = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*(pflags.use_param_b_field?Config::BfieldFromZR(zin,hipo(inPar.ConstAt(n,0,0),inPar.ConstAt(n,1,0))):Config::Bfield));
+      //Multiply k by -1 if ipt_temp is negative. 
+      const float k = ( (ipt_temp < 0) ? -1.f : 1.f ) * inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*(pflags.use_param_b_field?Config::BfieldFromZR(zin,hipo(inPar.ConstAt(n,0,0),inPar.ConstAt(n,1,0))):Config::Bfield));
+      //Make sure the ipt value used in the propagation is positive.
+      const float ipt = std::abs(ipt_temp);
 
       dprint_np(n, std::endl << "input parameters"
             << " inPar.ConstAt(n, 0, 0)=" << std::setprecision(9) << inPar.ConstAt(n, 0, 0)
@@ -712,7 +720,10 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, const MP
       float radL = hitsRl.ConstAt(n,0,0);
       if (radL < 1e-13f) continue;//ugly, please fixme
       const float theta = outPar.ConstAt(n,5,0);
-      const float pt = 1.f/outPar.ConstAt(n,3,0);
+      //Note that the abs is necessary because the code below assumes pt is positive,
+      //but pt is allowed to go negative (corresponding to a charge flip for the track)
+      const float pt = std::abs(1.f/outPar.ConstAt(n,3,0));
+      const float chargeFactor = (outPar.ConstAt(n,3,0) < 0) ? -1.f : 1.f;
       const float p = pt/std::sin(theta);
       const float p2 = p*p;
       constexpr float mpi = 0.140; // m=140 MeV, pion
@@ -744,7 +755,8 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, const MP
       // dEdx = dEdx*2.;//xi in cmssw is defined with an extra factor 0.5 with respect to formula 27.1 in pdg
       //std::cout << "dEdx=" << dEdx << " delta=" << deltahalf << " wmax=" << wmax << " Xi=" << hitsXi.ConstAt(n,0,0) << std::endl;
       const float dP = propSign.ConstAt(n,0,0)*dEdx/beta;
-      outPar.At(n, 3, 0) = p/((p+dP)*pt);
+      //Keep factor of -1 in ipt if present in input track (see note above)
+      outPar.At(n, 3, 0) = chargeFactor*p/((p+dP)*pt);
       //assume 100% uncertainty
       outErr.At(n, 3, 3) += dP*dP/(p2*pt*pt);
     }

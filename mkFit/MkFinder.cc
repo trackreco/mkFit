@@ -190,7 +190,8 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
   const auto assignbins = [&](int itrack, float q, float dq, float phi, float dphi){
 
-    float thisPt    = 1.0f/Par[iI].At(itrack,3,0);
+    //Keep in mind that ipt can be negative, so take abs here
+    float thisPt    = std::fabs( 1.0f/Par[iI].At(itrack,3,0));
     float thisEta   = std::fabs( getEta( Par[iI].At(itrack,5,0) ) );
     //
     float min_dq    = L.min_dq();

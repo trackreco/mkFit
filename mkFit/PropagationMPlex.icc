@@ -26,8 +26,13 @@ static inline void helixAtRFromIterativeCCS_impl(const    Tf& __restrict__ inPar
       errorProp(n,4,4) = 1.f;
       errorProp(n,5,5) = 1.f;
 
+      //Note that if the charge of the seed is wrong, then in our code we could eventually
+      //get negative values for ipt. The propagation code below assumes ipt is positive and that 
+      //the sign of the charge is included in the factor k.
+      const float chargeFactor = (inPar(n, 3, 0) < 0) ?	-1.f : 1.f;
+
       float r0 = hipo(inPar(n, 0, 0), inPar(n, 1, 0));
-      const float k = inChg(n, 0, 0) * 100.f / (-Config::sol*(pf.use_param_b_field ? Config::BfieldFromZR(inPar(n,2,0),r0) : Config::Bfield));
+      const float k = chargeFactor * inChg(n, 0, 0) * 100.f / (-Config::sol*(pf.use_param_b_field ? Config::BfieldFromZR(inPar(n,2,0),r0) : Config::Bfield));
       const float r = msRad(n, 0, 0);
 
       // if (std::abs(r-r0)<0.0001f) {
@@ -37,7 +42,7 @@ static inline void helixAtRFromIterativeCCS_impl(const    Tf& __restrict__ inPar
 
       const float xin   = inPar(n, 0, 0);
       const float yin   = inPar(n, 1, 0);
-      const float ipt   = inPar(n, 3, 0);
+      const float ipt   = std::abs(inPar(n, 3, 0));
       const float phiin = inPar(n, 4, 0);
       const float theta = inPar(n, 5, 0);
 
@@ -169,7 +174,8 @@ static inline void helixAtRFromIterativeCCS_impl(const    Tf& __restrict__ inPar
       errorProp(n,2,4) = k*dadphi*cosPorT*pt*sinPorT;
       errorProp(n,2,5) =-k*alpha*pt*sinPorT*sinPorT;
 
-      outPar(n, 3, 0) = ipt;
+      //Here we set the sign of the updated track ipt based on whether the original track ipt was negative.
+      outPar(n, 3, 0) = ipt*chargeFactor;
 
       errorProp(n,3,0) = 0.f;
       errorProp(n,3,1) = 0.f;
