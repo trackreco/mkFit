@@ -217,7 +217,7 @@ namespace
   }
 };
 
-enum SuiteEnum {full, forPR, forConf};
+enum SuiteEnum {full, forPR, forConf, val};
 
 namespace 
 {
@@ -227,6 +227,7 @@ namespace
     if      (suite.Contains("full"))    SUITE = full;
     else if (suite.Contains("forPR"))   SUITE = forPR;
     else if (suite.Contains("forConf")) SUITE = forConf;
+    else if (suite.Contains("val"))     SUITE = val;
     else 
     {
       std::cerr << suite.Data() << " is not an allowed validation suite! Exiting... " << std::endl;
@@ -287,6 +288,18 @@ namespace
     {
       builds.emplace_back(buildsMap["CE"]);
       builds.back().label = "mkFit"; // change label in legend for conference
+    }
+    else if (SUITE == val)
+    {
+      if (isBenchmark)
+      {
+        std::cout<<"INFO: val mode has an empty set for isBenchmark" << std::endl;
+      }
+      else
+      {
+	builds.emplace_back(buildsMap["STD"]);
+	builds.emplace_back(buildsMap["CE"]);
+      }
     }
     else
     {

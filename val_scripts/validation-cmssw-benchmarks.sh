@@ -4,7 +4,7 @@
 ## Input ##
 ###########
 
-suite=${1:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
+suite=${1:-"forPR"} # which set of benchmarks to run: full, forPR, forConf, val, valMT1
 style=${2:-"--mtv-like-val"} # option --mtv-like-val
 inputBin=${3:-"104XPU50CCC"}
 
@@ -14,6 +14,8 @@ inputBin=${3:-"104XPU50CCC"}
 
 source xeon_scripts/common-variables.sh ${suite}
 source xeon_scripts/init-env.sh
+
+nevents=500
 
 ## Common file setup
 case ${inputBin} in 
@@ -30,17 +32,59 @@ case ${inputBin} in
         subdir=
         file=pu50-ccc-hs.bin
         ;;
+"104X10muCCC")
+        echo "Inputs from 2018 10mu large pt range using the offline initialStep seeds with CCC (phi3)"
+        dir=/data2/slava77/samples/2018/pass-925bb57
+        subdir=initialStep/default/10muPt0p2to1000HS
+        file=memoryFile.fv4.clean.writeAll.CCC1620.recT.191108-c41a0f2.bin
+        nevents=10000
+        sample=CMSSW_10mu
+        ;;
+"104X10muHLT3CCC")
+        echo "Inputs from 2018 10mu large pt range using HLT iter0 seeds as triplets with CCC (phi3)"
+        dir=/data2/slava77/samples/2018/pass-2eaa1f7
+        subdir=hltIter0/default/triplet/10muPt0p2to1000HS
+        file=memoryFile.fv4.clean.writeAll.CCC1620.recT.200122-fcff8a8.bin
+        nevents=10000
+        sample=CMSSW_10mu_HLT3
+        ;;
+"104X10muHLT4CCC")
+        echo "Inputs from 2018 10mu large pt range using HLT iter0 seeds as quadruplets with CCC (phi3)"
+        dir=/data2/slava77/samples/2018/pass-2eaa1f7
+        subdir=hltIter0/default/quadruplet/10muPt0p2to1000HS
+        file=memoryFile.fv4.clean.writeAll.CCC1620.recT.200122-fcff8a8.bin
+        nevents=10000
+        sample=CMSSW_10mu_HLT4
+        ;;
+"104XPU50HLT3CCC")
+        echo "Inputs from 2018 ttbar PU50 using HLT iter0 seeds as triplets with CCC (phi3)"
+        dir=/data2/slava77/samples/2018/pass-2eaa1f7
+        subdir=hltIter0/default/triplet/11024.0_TTbar_13/AVE_50_BX01_25ns
+        file=memoryFile.fv4.clean.writeAll.CCC1620.recT.200122-fcff8a8.bin
+        sample=CMSSW_TTbar_PU50_HLT3
+        ;;
+"104XPU50HLT4CCC")
+        echo "Inputs from 2018 ttbar PU50 using HLT iter0 seeds as quadruplets with CCC (phi3)"
+        dir=/data2/slava77/samples/2018/pass-2eaa1f7
+        subdir=hltIter0/default/quadruplet/11024.0_TTbar_13/AVE_50_BX01_25ns
+        file=memoryFile.fv4.clean.writeAll.CCC1620.recT.200122-fcff8a8.bin
+        sample=CMSSW_TTbar_PU50_HLT4
+        ;;
 *)
         echo "INPUT BIN IS UNKNOWN"
         exit 12
         ;;
 esac
-nevents=500
 
 ## Common executable setup
 maxth=64
 maxvu=16
 maxev=32
+if [[  "${suite}" == "valMT1" ]]
+then
+    maxth=1
+    maxev=1
+fi
 seeds="--cmssw-n2seeds"
 exe="./mkFit/mkFit --silent ${seeds} --num-thr ${maxth} --num-thr-ev ${maxev} --input-file ${dir}/${subdir}/${file} --num-events ${nevents} --remove-dup"
 
@@ -84,11 +128,14 @@ function doVal()
     local bExe="${exe} ${vO} --build-${bO}"
     
     echo "${oBase}: ${vN} [nTH:${maxth}, nVU:${maxvu}int, nEV:${maxev}]"
-    ${bExe} >& log_${oBase}_NVU${maxvu}int_NTH${maxth}_NEV${maxev}_${vN}.txt || (echo Crashed; exit 2)
+    ${bExe} >& log_${oBase}_NVU${maxvu}int_NTH${maxth}_NEV${maxev}_${vN}.txt || (echo "Crashed on CMD: "${bExe}; exit 2)
     
-    # hadd output files for this test, then move to temporary directory
-    hadd -O valtree.root valtree_*.root
-    rm valtree_*.root
+    if (( ${maxev} > 1 ))
+    then
+        # hadd output files from different threads for this test, then move to temporary directory
+        hadd -O valtree.root valtree_*.root
+        rm valtree_*.root
+    fi
     mv valtree.root ${tmpdir}/valtree_${oBase}_${vN}.root
 }		
 
@@ -101,7 +148,8 @@ function plotVal()
     local pO=${4}
 
     echo "Computing observables for: ${base} ${bN} ${pN}"
-    root -b -q -l plotting/runValidation.C\(\"_${base}_${bN}_${pN}\",${pO}\) || (echo Crashed; exit 3)
+    bExe="root -b -q -l plotting/runValidation.C(\"_${base}_${bN}_${pN}\",${pO})"
+    ${bExe} || (echo "Crashed on CMD: "${bExe}; exit 3)
 }
 
 ########################

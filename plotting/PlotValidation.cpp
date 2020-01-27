@@ -1016,7 +1016,7 @@ void PlotValidation::SetupStyle()
 void PlotValidation::SetupBins()
 {
   // pt bins
-  PlotValidation::SetupVariableBins("0 0.25 0.5 0.75 1 1.25 1.5 1.75 2 2.5 3 3.5 4 4.5 5 5 6 7 8 9 10 15 20 25 30 40 50 100",fPtBins); 
+  PlotValidation::SetupVariableBins("0 0.25 0.5 0.75 1 1.25 1.5 1.75 2 2.5 3 3.5 4 4.5 5 5 6 7 8 9 10 15 20 25 30 40 50 100 200 500 1000",fPtBins);
   
   // eta bins
   PlotValidation::SetupFixedBins(60,-3,3,fEtaBins);
