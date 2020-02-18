@@ -116,6 +116,7 @@ void printHelp(const char* av0){
 	 "  --write-all-events        write all events (def: skip events with 0 simtracks or seeds)\n"
 	 "  --write-rec-tracks        write rec tracks (def: not written)\n"
 	 "  --apply-ccc               apply cluster charge cut to strip hits (def: false)\n"
+	 "  --all-seeds               merge all seeds from the input file (def: false)\n"
 	 , av0);
 }
 
@@ -130,6 +131,7 @@ int main(int argc, char *argv[])
   bool writeAllEvents = false;
   bool writeRecTracks = false;
   bool applyCCC       = false;
+  bool allSeeds       = false;
 
   int verbosity = 0;
   long long maxevt = -1;
@@ -192,6 +194,10 @@ int main(int argc, char *argv[])
 	    {
 	      cutValueCCC = std::atoi(i->c_str());
 	    }
+	}
+      else if (*i == "--all-seeds")
+	{
+	  allSeeds = true;
 	}
       else
 	{
@@ -782,8 +788,9 @@ int main(int argc, char *argv[])
     vector<vector<int> > pixHitSeedIdx(pix_lay->size());
     for (unsigned int is = 0; is<see_q->size(); ++is) {
       auto isAlgo = TrackAlgorithm(see_algo->at(is));
-      if (isAlgo != TrackAlgorithm::initialStep 
-          && isAlgo != TrackAlgorithm::hltIter0 ) continue;//select seed in acceptance
+      if (not allSeeds)
+        if (isAlgo != TrackAlgorithm::initialStep 
+            && isAlgo != TrackAlgorithm::hltIter0 ) continue;//select seed in acceptance
       //if (see_pt->at(is)<0.5 || fabs(see_eta->at(is))>0.8) continue;//select seed in acceptance
       SVector3 pos = SVector3(see_stateTrajGlbX->at(is),see_stateTrajGlbY->at(is),see_stateTrajGlbZ->at(is));
       SVector3 mom = SVector3(see_stateTrajGlbPx->at(is),see_stateTrajGlbPy->at(is),see_stateTrajGlbPz->at(is));
@@ -814,8 +821,9 @@ int main(int argc, char *argv[])
       Track track(state, 0, seedSimIdx[is], 0, nullptr);
       auto const& shTypes = see_hitType->at(is);
       auto const& shIdxs = see_hitIdx->at(is);
-      if (! ( (isAlgo == TrackAlgorithm::initialStep || isAlgo == TrackAlgorithm::hltIter0)
-	     && std::count(shTypes.begin(), shTypes.end(), int(HitType::Pixel))>=3)) continue;//check algo and nhits
+      if (not allSeeds)
+        if (! ( (isAlgo == TrackAlgorithm::initialStep || isAlgo == TrackAlgorithm::hltIter0)
+                && std::count(shTypes.begin(), shTypes.end(), int(HitType::Pixel))>=3)) continue;//check algo and nhits
       for (unsigned int ip=0; ip<shTypes.size(); ip++) {
 	unsigned int ipix = shIdxs[ip];
 	//cout << "ipix=" << ipix << " seed=" << seedTracks_.size() << endl;
@@ -832,14 +840,15 @@ int main(int argc, char *argv[])
     vector<vector<int> > gluHitRecIdx(glu_lay->size());
     for (unsigned int ir = 0; ir<trk_q->size(); ++ir) {
       //check the origin; redundant for initialStep ntuples
-      if ((trk_algoMask->at(ir) & ( (1 << int(TrackAlgorithm::initialStep )) | (1 << int(TrackAlgorithm::hltIter0 )) )) == 0){
-	if (verbosity > 1){
-	  std::cout<<"track "<<ir<<" failed algo selection for "<< int(TrackAlgorithm::initialStep) <<": mask "<<trk_algoMask->at(ir)
-		   <<" origAlgo "<<trk_originalAlgo->at(ir)<<" algo "<<trk_algo->at(ir)
-		   <<std::endl;
-	}
-	continue;
-      }
+      if (not allSeeds)
+        if ((trk_algoMask->at(ir) & ( (1 << int(TrackAlgorithm::initialStep )) | (1 << int(TrackAlgorithm::hltIter0 )) )) == 0){
+          if (verbosity > 1){
+            std::cout<<"track "<<ir<<" failed algo selection for "<< int(TrackAlgorithm::initialStep) <<": mask "<<trk_algoMask->at(ir)
+                     <<" origAlgo "<<trk_originalAlgo->at(ir)<<" algo "<<trk_algo->at(ir)
+                     <<std::endl;
+          }
+          continue;
+        }
       //fill the state in CCS upfront
       SMatrixSym66 err;
       /*	
