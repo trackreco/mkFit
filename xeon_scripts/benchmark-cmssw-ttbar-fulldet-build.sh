@@ -48,7 +48,7 @@ then
 elif [[ "${ben_arch}" == "LNX-G" ]]
 then 
     mOpt="-j 32 AVX_512:=1"
-    dir=/data2/slava77/samples
+    dir=/data2
     maxth=64
     maxvu=16
     declare -a nths=("1" "2" "4" "8" "16" "32" "48" "64")
@@ -57,7 +57,7 @@ then
 elif [[ "${ben_arch}" == "LNX-S" ]]
 then 
     mOpt="-j 32 AVX_512:=1"
-    dir=/data2/slava77/samples
+    dir=/data2
     maxth=64
     maxvu=16
     declare -a nths=("1" "2" "4" "8" "16" "32" "48" "64")
