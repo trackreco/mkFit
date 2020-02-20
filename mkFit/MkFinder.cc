@@ -995,7 +995,7 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
     {
       while (CurHit[i] >= 0 && HoTArr[ i ][ CurHit[i] ].index < 0) --CurHit[i];
 
-      if (HoTArr[ i ][ CurHit[i] ].layer == layer)
+      if (CurHit[i] >= 0 && HoTArr[ i ][ CurHit[i] ].layer == layer)
       {
         const Hit &hit = L.GetHit( HoTArr[ i ][ CurHit[i] ].index );
         msErr.CopyIn(i, hit.errArray());
