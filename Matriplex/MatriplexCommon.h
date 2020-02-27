@@ -15,7 +15,7 @@
 #include "immintrin.h"
 
 #if defined(MPLEX_USE_INTRINSICS)
-
+  // This seems unnecessary: __AVX__ is usually defined for all higher ISA extensions
   #if defined(__MIC__) || defined(__AVX__) || defined(__AVX512F__)
 
     #define MPLEX_INTRINSICS
@@ -37,14 +37,15 @@
     #define MUL(a, b)     _mm512_mul_ps(a, b)
     #define FMA(a, b, v)  _mm512_fmadd_ps(a, b, v)
 
-  #elif defined(__AVX2__)
+  #elif defined(__AVX2__) && defined(__FMA__)
 
     typedef __m256 IntrVec_t;
     #define MPLEX_INTRINSICS_WIDTH_BYTES  32
     #define MPLEX_INTRINSICS_WIDTH_BITS  256
     #define AVX2_INTRINSICS
     #define GATHER_INTRINSICS
-    #define GATHER_IDX_LOAD(name, arr)  __m256i name = _mm256_load_epi32(arr);
+    // Previously used _mm256_load_epi32(arr) here, but that's part of AVX-512F, not AVX2
+    #define GATHER_IDX_LOAD(name, arr)  __m256i name = _mm256_load_si256(reinterpret_cast<const __m256i *>(arr));
 
     #define LD(a, i)      _mm256_load_ps(&a[i*N+n])
     #define ST(a, i, r)   _mm256_store_ps(&a[i*N+n], r)
