@@ -491,7 +491,7 @@ git cms-init
 popd
 git clone git@github.com:trackreco/mkFit
 pushd mkFit
-TBB_PREFIX=$(dirname $(cd $CMSSW_BASE && scram tool tag tbb INCLUDE)) make -j 12
+make -j 12 TBB_PREFIX=$(dirname $(cd $CMSSW_BASE && scram tool tag tbb INCLUDE)) CXX=g++ WITH_ROOT=1 VEC_GCC="-march=core2"
 popd
 ```
 
@@ -508,7 +508,7 @@ git cms-init
 popd
 git clone git@github.com:trackreco/mkFit
 pushd mkFit
-TBB_PREFIX=$(dirname $(cd $CMSSW_BASE && scram tool tag tbb INCLUDE)) make -j 12 AVX_512:=1
+make -j 12 TBB_PREFIX=$(dirname $(cd $CMSSW_BASE && scram tool tag tbb INCLUDE)) WITH_ROOT=1 AVX_512:=1
 popd
 ```
 
