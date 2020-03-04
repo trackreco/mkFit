@@ -10,7 +10,7 @@ namespace mkfit {
 
 
 //==============================================================================
-// MatriplexErrParPackerSlurpIn
+// MatriplexPackerSlurpIn
 //==============================================================================
 
 template<typename D>
