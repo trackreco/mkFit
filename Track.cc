@@ -119,8 +119,11 @@ void Track::sortHitsByLayer()
 
 float Track::swimPhiToR(const float x0, const float y0) const
 {
-  const float dR = getHypot(x()-x0,y()-y0); 
-  const float dPhi = 2.f*std::asin(dR/176.f/pT()*charge());
+  const float dR = getHypot(x()-x0,y()-y0);
+  // XXX-ASSUMPTION-ERROR can not always reach R, should see what callers expect.
+  // For now return PI to signal apex on the ohter side of the helix.
+  const float v  = dR/176.f/pT()*charge();
+  const float dPhi = std::abs(v) <= 1.0f ? 2.f*std::asin(v) : Config::PI;;
   return squashPhiGeneral(momPhi()-dPhi);
 }
 

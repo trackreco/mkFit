@@ -167,6 +167,8 @@ namespace Config
 
   // config on Event
   extern    float chi2Cut; // default: 15; cmssw: 30 (set in TrackerInfo plugin)
+  extern    float chi2CutOverlap; // default: 5; cmssw: 3.5
+  extern    float pTCutOverlap; // default: 0; cmssw: 1
   // the following are only used in SMatrix version
   constexpr float nSigma  = 3.;
   constexpr float minDPhi = 0.01;// default: 0.;  cmssw tests: 0.01;
@@ -292,9 +294,6 @@ namespace Config
   // config on fitting
   extern bool cf_fitting;
 
-  //fixme: these should not be constant and modified when nTracks is set from reading a file
-  constexpr int maxHitsConsidered = 25;
-
   extern    int maxCandsPerSeed; // default: 6; cms: 6  (GC had 3)
   extern    int maxHolesPerCand; // default: 2; cms  12 (should be reduced)
   extern    int maxConsecHoles;
@@ -356,9 +355,8 @@ namespace Config
 
   // sorting config (bonus,penalty)
   constexpr float validHitBonus_ = 10;
+  constexpr float overlapHitBonus_ = 0; // set to negative for penalty
   constexpr float missingHitPenalty_ = 10;
-  // QQQQ do we still need this?
-  constexpr float maxChi2ForRanking_ = 819.2f; // (=0.5f*0.1f*pow(2,14);)
 
   // Threading
   extern int    numThreadsFinder;

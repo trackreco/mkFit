@@ -132,7 +132,7 @@ namespace
               << " posZ=" << seed.z() << " pT=" << seed.pT() << std::endl;
   }
 
-  void print_seed2(const Track& seed) {
+  void print_seed2(const TrackCand& seed) {
     std::cout << "MX - found seed with nFoundHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() 
               << " x=" << seed.x() << " y=" << seed.y() << " z=" << seed.z()
               << " px=" << seed.px() << " py=" << seed.py() << " pz=" << seed.pz()
@@ -289,14 +289,14 @@ void MkBuilder::begin_event(Event* ev, const char* build_type)
   //dump sim tracks
   for (int itrack = 0; itrack < (int) simtracks.size(); ++itrack)
   {
-    bool debug = true;
+    // bool debug = true;
     Track track = simtracks[itrack];
-    //if (track.label() != itrack)
-    //{
-    //dprintf("Bad label for simtrack %d -- %d\n", itrack, track.label());
-    //}
+    // if (track.label() != itrack) {
+    //   dprintf("Bad label for simtrack %d -- %d\n", itrack, track.label());
+    // }
+
     dprint("MX - simtrack with nHits=" << track.nFoundHits() << " chi2=" << track.chi2()
-              << " pT=" << track.pT() <<" phi="<< track.momPhi() <<" eta=" << track.momEta());
+           << " pT=" << track.pT() <<" phi="<< track.momPhi() <<" eta=" << track.momEta());
   }
 #endif
 
@@ -946,9 +946,70 @@ void MkBuilder::quality_reset()
   m_cnt = m_cnt1 = m_cnt2 = m_cnt_8 = m_cnt1_8 = m_cnt2_8 = m_cnt_nomc = 0;
 }
 
+// #define DUMP_OVERLAP_RTTS
+
 void MkBuilder::quality_store_tracks(TrackVec& tracks)
 {
   const EventOfCombCandidates &eoccs = m_event_of_comb_cands; 
+
+#ifdef DUMP_OVERLAP_RTTS
+
+  // SIMTRACK DUMPERS
+
+  static bool first = true;
+  if (first)
+  {
+    // ./mkFit ... | perl -ne 'if (/^ZZZ_OVERLAP/) { s/^ZZZ_OVERLAP //og; print; }' > ovlp.rtt
+    printf("SSS_OVERLAP label/I:prod_type/I:is_findable/I:layer/I:pt/F:eta/F:phi/F\n");
+
+    printf("SSS_TRACK label/I:prod_type/I:is_findable/I:pt/F:eta/F:phi/F:nhit_sim/I:nlay_sim/I:novlp/I:novlp_pix/I:novlp_strip/I:novlp_stereo/I\n");
+
+    first = false;
+  }
+
+  for (int i = 0; i < (int) m_event->simTracks_.size(); ++i)
+  {
+    Track &bb = m_event->simTracks_[i];
+
+    if (bb.prodType() == Track::ProdType::Signal)
+    {
+      bb.sortHitsByLayer();
+
+      int no = 0, npix = 0, nstrip = 0, nstereo = 0, prev_lay = -1, last_ovlp = -1;
+
+      for (int hi = 0; hi < bb.nTotalHits(); ++hi)
+      {
+        HitOnTrack hot = bb.getHitOnTrack(hi);
+
+        if (hot.layer == prev_lay && hot.layer != last_ovlp)
+        {
+          last_ovlp = hot.layer;
+
+          ++no;
+
+          const LayerInfo &li = Config::TrkInfo.m_layers[hot.layer];
+
+          if (li.is_pixb_lyr() || li.is_pixe_lyr()) { ++npix; }
+          else                                      { ++nstrip; }
+
+          if (li.is_stereo_lyr()) ++nstereo;
+
+          printf("SSS_OVERLAP %d %d %d %d %f %f %f\n",
+                 bb.label(), (int) bb.prodType(), bb.isFindable(), hot.layer, bb.pT(), bb.posEta(), bb.posPhi());
+        }
+        prev_lay = hot.layer;
+      }
+
+      printf("SSS_TRACK %d %d %d %f %f %f %d %d %d %d %d %d\n",
+             bb.label(), (int) bb.prodType(), bb.isFindable(), bb.pT(), bb.momEta(), bb.momPhi(),
+             bb.nTotalHits(), bb.nUniqueLayers(),
+             no, npix, nstrip, nstereo
+             );
+    }
+
+  }
+
+#endif
 
   int chi2_500_cnt = 0, chi2_nan_cnt = 0;
 
@@ -962,9 +1023,78 @@ void MkBuilder::quality_store_tracks(TrackVec& tracks)
       if (std::isnan(bcand.chi2())) ++chi2_nan_cnt;
       if (bcand.chi2() > 500)       ++chi2_500_cnt;
 
+#ifdef DUMP_OVERLAP_RTTS
+      // DUMP overlap hits
+      int no_good = 0;
+      int no_bad  = 0;
+      int no      = 0; // total, esp for tracks that don't have good label
+      const HoTNode *hnp = & bcand.refLastHoTNode();
+      while (true)
+      {
+        if (hnp->m_index_ovlp >= 0)
+        {
+          static bool first = true;
+          if (first)
+          {
+            // ./mkFit ... | perl -ne 'if (/^ZZZ_OVERLAP/) { s/^ZZZ_OVERLAP //og; print; }' > ovlp.rtt
+            printf("ZZZ_OVERLAP label/I:prod_type/I:is_findable/I:layer/I:pt/F:eta/F:phi/F:"
+                   "chi2/F:chi2_ovlp/F:module/I:module_ovlp/I:hit_label/I:hit_label_ovlp/I\n");
+            first = false;
+          }
+
+          auto &LoH = m_event_of_hits.m_layers_of_hits[hnp->m_hot.layer];
+
+          const Hit       &h    = LoH.GetHit(hnp->m_hot.index);
+          const MCHitInfo &mchi = m_event->simHitsInfo_[h.mcHitID()];
+          const Hit       &o    = LoH.GetHit(hnp->m_index_ovlp);
+          const MCHitInfo &mcoi = m_event->simHitsInfo_[o.mcHitID()];
+
+          const TrackBase &bb = (bcand.label() >= 0) ? (const TrackBase &) m_event->simTracks_[bcand.label()] : bcand;
+
+          if (bcand.label() >= 0)
+          {
+            if (bcand.label() == mcoi.mcTrackID()) ++no_good; else ++no_bad;
+          }
+          ++no;
+
+          // label/I:can_idx/I:layer/I:pt/F:eta/F:phi/F:chi2/F:chi2_ovlp/F:module/I:module_ovlp/I:hit_label/I:hit_label_ovlp/I
+          printf("ZZZ_OVERLAP %d %d %d %d %f %f %f %f %f %u %u %d %d\n",
+                 bb.label(), (int) bb.prodType(), bb.isFindable(), hnp->m_hot.layer, bb.pT(), bb.posEta(), bb.posPhi(),
+                 hnp->m_chi2, hnp->m_chi2_ovlp, h.detIDinLayer(), o.detIDinLayer(),
+                 mchi.mcTrackID(), mcoi.mcTrackID());
+        }
+
+        if (hnp->m_prev_idx >= 0)
+          hnp = & eoccs.m_candidates[i].m_hots[hnp->m_prev_idx];
+        else
+          break;
+      }
+
+      if (bcand.label() >= 0)
+      {
+        static bool first = true;
+        if (first)
+        {
+          // ./mkFit ... | perl -ne 'if (/^ZZZ_TRACK/) { s/^ZZZ_TRACK //og; print; }' > track.rtt
+          printf("ZZZ_TRACK label/I:prod_type/I:is_findable/I:pt/F:eta/F:phi/F:nhit_sim/I:nlay_sim/I:nhit_rec/I:nhit_miss_rec/I:novlp/I:novlp_good/I:novlp_bad/I\n");
+          first = false;
+        }
+
+        const Track &bb = m_event->simTracks_[bcand.label()];
+
+        printf("ZZZ_TRACK %d %d %d %f %f %f %d %d %d %d %d %d %d\n",
+               bb.label(), (int) bb.prodType(), bb.isFindable(), bb.pT(), bb.momEta(), bb.momPhi(),
+               bb.nTotalHits(), bb.nUniqueLayers(),
+               bcand.nFoundHits(), bcand.nMissingHits(),
+               no, no_good, no_bad
+               );
+      }
+      // DUMP END
+#endif
+
       tracks.emplace_back( bcand.exportTrack() );
 
-#ifdef DEBUG_BACKWARD_FIT
+#ifdef DEBUG_BACKWARD_FIT_BH
       printf("CHITRK %d %g %g %g %g %g\n",
              bcand.nFoundHits(), bcand.chi2(), bcand.chi2() / (bcand.nFoundHits() * 3 - 6),
              bcand.pT(), bcand.momPhi(), bcand.theta());
@@ -972,7 +1102,8 @@ void MkBuilder::quality_store_tracks(TrackVec& tracks)
     }
   }
 
-  if (!Config::silent && (chi2_500_cnt > 0 || chi2_nan_cnt > 0)) {
+  if ( ! Config::silent && (chi2_500_cnt > 0 || chi2_nan_cnt > 0))
+  {
     std::lock_guard<std::mutex> printlock(Event::printmutex);
     printf("MkBuilder::quality_store_tracks bad track chi2 (backward fit?). is-nan=%d, gt-500=%d.\n", chi2_nan_cnt, chi2_500_cnt);
   }
@@ -1036,7 +1167,7 @@ void MkBuilder::quality_process(Track &tkcand, const int itrack, std::map<int,in
   }
 
 #ifdef SELECT_SEED_LABEL
-  if (label == SELECT_SEED_LABEL) track_print(tkcand, "SELECTED LABEL:");
+  if (label == SELECT_SEED_LABEL) track_print(tkcand, "MkBuilder::quality_process SELECT_SEED_LABEL:");
 #endif
 
   float pTcmssw = 0.f, etacmssw = 0.f, phicmssw = 0.f;
@@ -1725,6 +1856,7 @@ int MkBuilder::find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & s
         {
           active = true;
           seed_cand_vec.push_back(std::pair<int,int>(iseed,ic));
+          ccand.m_overlap_hits[ic].reset();
 
           if (Config::nan_n_silly_check_cands_every_layer)
           {
@@ -1758,32 +1890,42 @@ void MkBuilder::find_tracks_handle_missed_layers(MkFinder *mkfndr, const LayerIn
 {
   // XXXX-1 If I miss a layer, insert the original track into tmp_cands
   // AND do not do it in FindCandidates as the position can be badly
-  // screwed by then. See XXXX-1 comment there,
+  // screwed by then. See comment there, too.
   // One could also do a pre-check ... so as not to use up a slot.
-  // ! Another reason why candidate first processing could help !
-  // Oh, but be careful with low-pt / looper tracks - propagation
-  // can really screw you there (need a maxR in candidate?).
+
+  // bool debug = true;
+
   for (int ti = itrack; ti < end; ++ti)
   {
     TrackCand  &cand = m_event_of_comb_cands.m_candidates[seed_cand_idx[ti].first][seed_cand_idx[ti].second];
     WSR_Result &w    = mkfndr->XWsrResult[ti - itrack];
 
     // XXXX-4 Low pT tracks can miss a barrel layer ... and should be stopped
-    const float cand_r = std::hypot(mkfndr->getPar(ti - itrack, MkBase::iP, 0), mkfndr->getPar(ti - itrack, MkBase::iP, 1));
-    if (region == TrackerInfo::Reg_Barrel && cand_r < layer_info.m_rin)
+    const float cand_r = std::hypot(mkfndr->getPar(ti - itrack, MkBase::iP, 0),
+                                    mkfndr->getPar(ti - itrack, MkBase::iP, 1));
+
+    dprintf("WSR Check label %d, seed %d, cand %d score %f -> wsr %d, in_gap %d\n",
+            cand.label(), seed_cand_idx[ti].first, seed_cand_idx[ti].second, cand.score(),
+            w.m_wsr, w.m_in_gap);
+
+    if (layer_info.is_barrel() && cand_r < layer_info.m_rin)
     {
-      // For now just fake outside ... and let logic below fix it.
+      // Fake outside so it does not get processed in FindTracks Std/CE... and
+      // create a stopped replica in barrel and original copy if there is
+      // still chance to hit endcaps.
       dprintf("Barrel cand propagated to r=%f ... layer is %f - %f\n", cand_r, layer_info.m_rin, layer_info.m_rout);
 
       mkfndr->XHitSize[ti - itrack] = 0;
       w.m_wsr = WSR_Outside;
+
+      tmp_cands[seed_cand_idx[ti].first - start_seed].push_back(cand);
+      if (region == TrackerInfo::Reg_Barrel)
+      {
+        dprintf(" creating extra stopped held back candidate\n");
+        tmp_cands[seed_cand_idx[ti].first - start_seed].back().addHitIdx(-2, layer_info.m_layer_id, 0);
+      }
     }
-
-    dprintf("WSR Check label %d, seed %d, cand %d -> wsr %d, in_gap %d\n",
-            cand.label(), seed_cand_idx[ti].first, seed_cand_idx[ti].second,
-            w.m_wsr, w.m_in_gap);
-
-    if (w.m_wsr == WSR_Outside)
+    else if (w.m_wsr == WSR_Outside)
     {
       dprintf(" creating extra held back candidate\n");
       tmp_cands[seed_cand_idx[ti].first - start_seed].push_back(cand);
@@ -1926,24 +2068,58 @@ void MkBuilder::FindTracksStandard()
         {
           if (tmp_cands[is].size() > 0)
           {
-            eoccs[start_seed+is].clear();
+            eoccs[start_seed + is].clear();
 
             // Put good candidates into eoccs, process -2 candidates.
             int  n_placed    = 0;
             bool first_short = true;
-            for (size_t ii = 0; ii < tmp_cands[is].size() && n_placed < Config::maxCandsPerSeed; ++ii)
+            for (int ii = 0; ii < (int) tmp_cands[is].size() && n_placed < Config::maxCandsPerSeed; ++ii)
             {
-              if (tmp_cands[is][ii].getLastHitIdx() != -2)
+              TrackCand &tc = tmp_cands[is][ii];
+
+              // See if we have an overlap hit available, but only if we have a true hit in this layer
+              // and pT is above the pTCutOverlap
+              if (tc.pT() > Config::pTCutOverlap && tc.getLastHitLyr() == curr_layer && tc.getLastHitIdx() >= 0)
               {
-                eoccs[start_seed+is].emplace_back(tmp_cands[is][ii]);
+                CombCandidate &ccand = eoccs[start_seed + is];
+
+                HitMatch *hm = ccand.findOverlap(tc.originIndex(), tc.getLastHitIdx(), layer_of_hits.GetHit(tc.getLastHitIdx()).detIDinLayer());
+
+                if (hm)
+                {
+                  tc.addHitIdx(hm->m_hit_idx, curr_layer, hm->m_chi2);
+                  tc.incOverlapCount();
+
+                  // --- ROOT text tree dump of all found overlaps
+                  // static bool first = true;
+                  // if (first)
+                  // {
+                  //   // ./mkFit ... | perl -ne 'if (/^ZZZ_EXTRA/) { s/^ZZZ_EXTRA //og; print; }' > extra.rtt
+                  //   printf("ZZZ_EXTRA label/I:can_idx/I:layer/I:pt/F:eta/F:phi/F:"
+                  //          "chi2/F:chi2_extra/F:module/I:module_extra/I:extra_label/I\n");
+                  //   first = false;
+                  // }
+
+                  // const Hit       &h    = layer_of_hits.GetHit(tc.getLastHitIdx());
+                  // const MCHitInfo &mchi = m_event->simHitsInfo_[h.mcHitID()];
+                  // // label/I:can_idx/I:layer/I:pt/F:eta/F:phi/F:chi2_orig/F:chi2/F:chi2_extra/F:module/I:module_extra/I
+                  // printf("ZZZ_EXTRA %d %d %d %f %f %f %f %f %u %u %d\n",
+                  //        tc.label(), tc.originIndex(), curr_layer, tc.pT(), tc.posEta(), tc.posPhi(),
+                  //        tc.chi2(), hm->m_chi2, layer_of_hits.GetHit(tc.getLastHitIdx()).detIDinLayer(), hm->m_module_id, mchi.mcTrackID());
+                }
+              }
+
+              if (tc.getLastHitIdx() != -2)
+              {
+                eoccs[start_seed + is].emplace_back(tc);
                 ++n_placed;
               }
               else if (first_short)
               {
                 first_short = false;
-                if (tmp_cands[is][ii].score() > eoccs[start_seed+is].m_best_short_cand.score())
+                if (tc.score() > eoccs[start_seed + is].m_best_short_cand.score())
                 {
-                  eoccs[start_seed+is].m_best_short_cand = tmp_cands[is][ii];
+                  eoccs[start_seed + is].m_best_short_cand = tc;
                 }
               }
             }
@@ -1957,7 +2133,7 @@ void MkBuilder::FindTracksStandard()
       // final sorting
       for (int iseed = start_seed; iseed < end_seed; ++iseed)
       {
-        eoccs[iseed].MergeCandsAndBestShortOne(false, false);
+        eoccs[iseed].MergeCandsAndBestShortOne(true, true);
       }
     }); // end parallel-for over chunk of seeds within region
   }); // end of parallel-for-each over eta regions
@@ -2328,7 +2504,7 @@ void MkBuilder::fit_cands_BH(MkFinder *mkfndr, int start_cand, int end_cand, int
     // }
 
     bool chi_debug = false;
-#ifdef DEBUG_BACKWARD_FIT
+#ifdef DEBUG_BACKWARD_FIT_BH
   redo_fit:
 #endif
 
@@ -2336,7 +2512,7 @@ void MkBuilder::fit_cands_BH(MkFinder *mkfndr, int start_cand, int end_cand, int
     mkfndr->BkFitInputTracks(m_event->candidateTracks_, icand, end);
 
     // perform fit back to first layer on track
-    mkfndr->BkFitFitTracks(m_event_of_hits, st_par, end - icand, chi_debug);
+    mkfndr->BkFitFitTracksBH(m_event_of_hits, st_par, end - icand, chi_debug);
 
     // now move one last time to PCA
     if (Config::includePCA)
@@ -2344,7 +2520,7 @@ void MkBuilder::fit_cands_BH(MkFinder *mkfndr, int start_cand, int end_cand, int
       mkfndr->BkFitPropTracksToPCA(end - icand);
     }
 
-#ifdef DEBUG_BACKWARD_FIT
+#ifdef DEBUG_BACKWARD_FIT_BH
     // Dump tracks with pT > 2 and chi2/dof > 20. Assumes MPT_SIZE=1.
     if (! chi_debug && 1.0f/mkfndr->Par[MkBase::iP].At(0,3,0) > 2.0f &&
         mkfndr->Chi2(0,0,0) / (eoccs[icand][0].nFoundHits() * 3 - 6) > 20.0f)
@@ -2370,12 +2546,10 @@ void MkBuilder::fit_cands_BH(MkFinder *mkfndr, int start_cand, int end_cand, int
   }
 }
 
+//------------------------------------------------------------------------------
+
 void MkBuilder::BackwardFit()
 {
-  // QQQQ - decide what / how to do it
-
-  assert (false && "Currently not supported");
-
   EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
   tbb::parallel_for_each(m_regions.begin(), m_regions.end(),
@@ -2402,12 +2576,15 @@ void MkBuilder::fit_cands(MkFinder *mkfndr, int start_cand, int end_cand, int re
   EventOfCombCandidates &eoccs  = m_event_of_comb_cands;
   const SteeringParams  &st_par = m_steering_params[region];
 
-  int step;
+  int step = NN;
+
   for (int icand = start_cand; icand < end_cand; icand += step)
   {
     int end  = std::min(icand + NN, end_cand);
 
     // Check if we need to fragment this for SlurpIn to work.
+    // Would actually prefer to do memory allocator for HoTNode storage.
+    /*
     step = NN;
     {
        int end_c = icand + 1;
@@ -2416,14 +2593,16 @@ void MkBuilder::fit_cands(MkFinder *mkfndr, int start_cand, int end_cand, int re
           // Still crashes with 0x1fffffff and 0x1ffffff, 0x1fffff works (~2000 breaks over 5k high PU events)
           if (std::abs(&eoccs[icand][0] - &eoccs[end_c][0]) > 0x1fffff)
           {
-             if(!Config::silent) printf("XXYZZ MkBuilder::fit_cands Breaking up candidates with offset outside of 32-bit range.\n");
              end  = end_c;
              step = end - icand;
+             if ( ! Config::silent)
+               printf("XXYZZ MkBuilder::fit_cands Breaking up candidates with offset outside of 32-bit range, step=%d.\n", step);
              break;
           }
           ++end_c;
        }
     }
+    */
 
     // printf("Pre Final fit for %d - %d\n", icand, end);
     // for (int i = icand; i < end; ++i) { const Track &t = eoccs[i][0];
@@ -2433,10 +2612,21 @@ void MkBuilder::fit_cands(MkFinder *mkfndr, int start_cand, int end_cand, int re
 
     bool chi_debug = false;
 #ifdef DEBUG_BACKWARD_FIT
-  redo_fit:
+    chi_debug = true;
+    static bool first = true;
+    if (first)
+    {
+      // ./mkFit ... | perl -ne 'if (/^BKF_OVERLAP/) { s/^BKF_OVERLAP //og; print; }' > bkf_ovlp.rtt
+      printf("BKF_OVERLAP event/I:label/I:prod_type/I:is_findable/I:layer/I:is_stereo/I:is_barrel/I:"
+             "pt/F:eta/F:phi/F:chi2/F:isnan/I:isfin/I:gtzero/I:hit_label/I:"
+             "sx_t/F:sy_t/F:sz_t/F:d_xy/F:d_z/F\n");
+      first = false;
+    }
+    mkfndr->m_event = m_event;
 #endif
+
     // input tracks
-    // QQQQQ mkfndr->BkFitInputTracks(eoccs, icand, end);
+    mkfndr->BkFitInputTracks(eoccs, icand, end);
 
     // fit tracks back to first layer
     mkfndr->BkFitFitTracks(m_event_of_hits, st_par, end - icand, chi_debug);
@@ -2447,22 +2637,7 @@ void MkBuilder::fit_cands(MkFinder *mkfndr, int start_cand, int end_cand, int re
       mkfndr->BkFitPropTracksToPCA(end - icand);
     }
     
-#ifdef DEBUG_BACKWARD_FIT
-    // Dump tracks with pT > 2 and chi2/dof > 20. Assumes MPT_SIZE=1.
-    if (! chi_debug && 1.0f/mkfndr->Par[MkBase::iP].At(0,3,0) > 2.0f &&
-        mkfndr->Chi2(0,0,0) / (eoccs[icand][0].nFoundHits() * 3 - 6) > 20.0f)
-    {
-      chi_debug = true;
-      printf("CHIHDR Event %d, Cand %3d, pT %f, chipdof %f ### NOTE x,y,z in cm, sigmas, deltas in mum ### !!!\n",
-             m_event->evtID(), icand, 1.0f/mkfndr->Par[MkBase::iP].At(0,3,0),
-             mkfndr->Chi2(0,0,0) / (eoccs[icand][0].nFoundHits() * 3 - 6));
-      printf("CHIHDR %3s %10s %10s %10s %10s %10s %11s %11s %11s %10s %10s %10s %10s %11s %11s %11s %10s %10s %10s %10s %10s %11s %11s\n",
-             "lyr","chi2","x_h","y_h","z_h","r_h","sx_h","sy_h","sz_h","x_t","y_t","z_t","r_t","sx_t","sy_t","sz_t","pt","phi","theta","phi_h","phi_t","d_xy","d_z");
-      goto redo_fit;
-    }
-#endif
-
-    // QQQQQ mkfndr->BkFitOutputTracks(eoccs, icand, end);
+    mkfndr->BkFitOutputTracks(eoccs, icand, end);
 
     // printf("Post Final fit for %d - %d\n", icand, end);
     // for (int i = icand; i < end; ++i) { const Track &t = eoccs[i][0];

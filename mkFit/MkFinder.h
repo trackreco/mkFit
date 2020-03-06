@@ -5,10 +5,15 @@
 #include "TrackerInfo.h"
 #include "Track.h"
 
-//#include "Event.h"
-
 // Needed for TrackCand
 #include "HitStructures.h"
+
+// Define to get printouts about track and hit chi2.
+// See also MkBuilder::BackwardFit() and MkBuilder::quality_store_tracks().
+
+//#define DEBUG_BACKWARD_FIT_BH
+//#define DEBUG_BACKWARD_FIT
+
 
 namespace mkfit {
 
@@ -21,6 +26,10 @@ class FindingFoos;
 class EventOfHits;
 class EventOfCombCandidates;
 class SteeringParams;
+
+#ifdef DEBUG_BACKWARD_FIT
+class Event;
+#endif
 
 // NOTES from MkFitter ... where things were getting super messy.
 //
@@ -38,12 +47,6 @@ class SteeringParams;
 // Changes will go into all finding functions + import-with-hit-idcs.
 //
 // Actually ... am tempted to make MkFinder :)
-
-
-// Define to get printouts about track and hit chi2.
-// See also MkBuilder::BackwardFit() and MkBuilder::quality_store_tracks().
-
-// #define DEBUG_BACKWARD_FIT
 
 
 class MkFinder : public MkBase
@@ -69,13 +72,23 @@ public:
   MPlexQI    CandIdx; // candidate index for the given seed (for bookkeeping of clone engine)
 
   // Additions / substitutions for TrackCand copy_in/out()
-  MPlexQI    NMissingHits;   // sub: NHits, sort of
-  MPlexQI    NInsideMinusOneHits;  // sub: before we copied all hit idcs and had a loop counting them
-  MPlexQI    NTailMinusOneHits;  // sub: before we copied all hit idcs and had a loop counting them
-  MPlexQI    LastHitCcIndex; // add: index of last hit in CombCand hit tree
+  // One could really access the original TrackCand for all of those, especially the ones that
+  // are STD only. This then requires access back to that TrackCand memory.
+  // So maybe one should just have flags for CopyIn methods (or several versions). Yay, etc.
+  MPlexQI    NMissingHits;   // sub: NHits, sort of, STD only
+  MPlexQI    NOverlapHits;   // add: num of overlaps registered in HitOnTrack, STD only
+  MPlexQI    NInsideMinusOneHits;  // sub: before we copied all hit idcs and had a loop counting them only
+  MPlexQI    NTailMinusOneHits;  // sub: before we copied all hit idcs and had a loop counting them only
+  MPlexQI    LastHitCcIndex; // add: index of last hit in CombCand hit tree, STD only
   HitOnTrack LastHoT[NN];
   CombCandidate *CombCand[NN];
   // const TrackCand *TrkCand[NN]; // hmmh, could get all data through this guy ... but scattered
+  // storing it in now for bkfit debug printouts
+  TrackCand *TrkCand[NN];
+  // XXXX - for bk-fit debug
+#ifdef DEBUG_BACKWARD_FIT
+  Event     *m_event;
+#endif
 
   // Hit indices into LayerOfHits to explore.
   WSR_Result  XWsrResult[NN]; // Could also merge it with XHitSize. Or use smaller arrays.
@@ -132,8 +145,8 @@ public:
 
   //----------------------------------------------------------------------------
 
-  void FindCandidates(const LayerOfHits &layer_of_hits,
-                      std::vector<std::vector<TrackCand>>& tmp_candidates,
+  void FindCandidates(const LayerOfHits                   &layer_of_hits,
+                      std::vector<std::vector<TrackCand>> &tmp_candidates,
 		      const int offset, const int N_proc,
                       const FindingFoos &fnd_foos);
 
@@ -155,12 +168,17 @@ public:
   int               CurHit[NN];
   const HitOnTrack *HoTArr[NN];
 
+  int               CurNode[NN];
+  HoTNode          *HoTNodeArr[NN]; // Not const as we can modify it!
+
   void BkFitInputTracks (TrackVec& cands, int beg, int end);
   void BkFitOutputTracks(TrackVec& cands, int beg, int end);
 
-  // QQQQQ - out until further notice
-  // void BkFitInputTracks (EventOfCombCandidates& eocss, int beg, int end);
-  // void BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end);
+  void BkFitInputTracks (EventOfCombCandidates& eocss, int beg, int end);
+  void BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end);
+
+  void BkFitFitTracksBH(const EventOfHits& eventofhits, const SteeringParams& st_par,
+                        const int N_proc, bool chiDebug = false);
 
   void BkFitFitTracks(const EventOfHits& eventofhits, const SteeringParams& st_par,
                       const int N_proc, bool chiDebug = false);
@@ -210,6 +228,7 @@ private:
     LastHitCcIndex(mslot, 0, 0) = trk.lastCcIndex();
     NFoundHits    (mslot, 0, 0) = trk.nFoundHits();
     NMissingHits  (mslot, 0, 0) = trk.nMissingHits();
+    NOverlapHits  (mslot, 0, 0) = trk.nOverlapHits();
 
     NInsideMinusOneHits(mslot, 0, 0) = trk.nInsideMinusOneHits();
     NTailMinusOneHits  (mslot, 0, 0) = trk.nTailMinusOneHits();
@@ -230,6 +249,7 @@ private:
     trk.setLastCcIndex (LastHitCcIndex(mslot, 0, 0));
     trk.setNFoundHits  (NFoundHits    (mslot, 0, 0));
     trk.setNMissingHits(NMissingHits  (mslot, 0, 0));
+    trk.setNOverlapHits(NOverlapHits  (mslot, 0, 0));
 
     trk.setNInsideMinusOneHits(NInsideMinusOneHits(mslot, 0, 0));
     trk.setNTailMinusOneHits  (NTailMinusOneHits  (mslot, 0, 0));

@@ -45,8 +45,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
     auto extra_i = extras.begin();
     auto extra_e = extras.end();
 
-    // Extras sorted now
-    // std::sort(extras.begin(), extras.end(), sortByScoreCand);
+    // Extras are sorted by candScore.
 
 #ifdef DEBUG
     dprint("  seed n " << is << " with input candidates=" << hitsForSeed.size());
@@ -77,18 +76,15 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
       {
         const IdxChi2List &h2a = hitsForSeed[ih];
 
-        TrackCand cc( ccand[h2a.trkIdx] );
-        cc.addHitIdx(h2a.hitIdx, m_layer, 0);
-        cc.setChi2(h2a.chi2);
-        cc.setScore(h2a.score);
-        // h2a already carries correct score
-        // cc.setScore( getScoreCand( cc );
+        TrackCand tc( ccand[h2a.trkIdx] );
+        tc.addHitIdx(h2a.hitIdx, m_layer, h2a.chi2_hit);
+        tc.setScore(h2a.score);
 
         if (h2a.hitIdx == -2)
         {
           if (h2a.score > ccand.m_best_short_cand.score())
           {
-            ccand.m_best_short_cand = cc;
+            ccand.m_best_short_cand = tc;
           }
           continue;
         }
@@ -96,7 +92,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
         // Could also skip storing of cands with last -3 hit.
 
         // Squeeze in extra tracks that are better than current one.
-        while (extra_i != extra_e && sortByScoreTrackCand(*extra_i, cc) && n_pushed < Config::maxCandsPerSeed)
+        while (extra_i != extra_e && sortByScoreTrackCand(*extra_i, tc) && n_pushed < Config::maxCandsPerSeed)
         {
           cv.emplace_back(*extra_i);
           ++n_pushed;
@@ -106,7 +102,29 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
         if (n_pushed >= Config::maxCandsPerSeed)
           break;
 
-        cv.emplace_back( cc );
+        // set the overlap if we have a true hit and pT > pTCutOverlap
+        HitMatch *hm;
+        if (tc.pT() > Config::pTCutOverlap && h2a.hitIdx >= 0 && (hm = ccand.findOverlap(h2a.trkIdx, h2a.hitIdx, h2a.module)))
+        {
+          tc.addHitIdx(hm->m_hit_idx, m_layer, hm->m_chi2);
+          tc.incOverlapCount();
+
+          // --- ROOT text tree dump of all used overlaps
+          // static bool first = true;
+          // if (first)
+          // {
+          //   // ./mkFit ... | perl -ne 'if (/^ZZZ_EXTRA/) { s/^ZZZ_EXTRA //og; print; }' > extra.rtt
+          //   printf("ZZZ_EXTRA label/I:can_idx/I:layer/I:pt/F:eta/F:phi/F:"
+          //          "chi2_orig/F:chi2/F:chi2_extra/F:module/I:module_extra/I\n");
+          //   first = false;
+          // }
+          // label/I:can_idx/I:layer/I:pt/F:eta/F:phi/F:chi2_orig/F:chi2/F:chi2_extra/F:module/I:module_extra/I
+          // printf("ZZZ_EXTRA %d %d %d %f %f %f %f %f %f %u %u\n",
+          //        tc.label(), h2a.trkIdx, m_layer, tc.pT(), tc.posEta(), tc.posPhi(),
+          //        ccand[h2a.trkIdx].chi2(), h2a.chi2, hm->m_chi2, h2a.module, hm->m_module_id);
+        }
+
+        cv.emplace_back( tc );
         ++n_pushed;
 
         if (h2a.hitIdx >= 0)

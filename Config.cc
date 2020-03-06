@@ -48,6 +48,8 @@ namespace Config
   float XigridME[Config::nBinsZME][Config::nBinsRME];
 
   float chi2Cut = 15.;
+  float chi2CutOverlap = 5.;
+  float pTCutOverlap = 0.;
 
   seedOpts  seedInput    = simSeeds;
   cleanOpts seedCleaning = noCleaning; 

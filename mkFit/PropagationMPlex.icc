@@ -11,10 +11,13 @@ static inline void helixAtRFromIterativeCCS_impl(const    Tf& __restrict__ inPar
                                                  const  Tf11& __restrict__ msRad,
                                                        TfLL1& __restrict__ outPar,
                                                        TfLLL& __restrict__ errorProp,
+                                                          Ti& __restrict__ outFailFlag, // expected to be initialized to 0
                                                  const int nmin, const int nmax,
                                                  const int N_proc,
                                                  const PropagationFlags pf)
 {
+  // bool debug = true;
+
 #pragma omp simd
   for (int n = nmin; n < nmax; ++n)
     {
@@ -41,7 +44,8 @@ static inline void helixAtRFromIterativeCCS_impl(const    Tf& __restrict__ inPar
       const float phiin = inPar(n, 4, 0);
       const float theta = inPar(n, 5, 0);
 
-      dprint_np(n, std::endl << "input parameters"
+      dprint(std::endl);
+      dprint_np(n, "input parameters"
             << " inPar(n, 0, 0)=" << std::setprecision(9) << inPar(n, 0, 0)
             << " inPar(n, 1, 0)=" << std::setprecision(9) << inPar(n, 1, 0)
             << " inPar(n, 2, 0)=" << std::setprecision(9) << inPar(n, 2, 0)
@@ -50,8 +54,8 @@ static inline void helixAtRFromIterativeCCS_impl(const    Tf& __restrict__ inPar
             << " inPar(n, 5, 0)=" << std::setprecision(9) << inPar(n, 5, 0)
             );
 
-      const float kinv  = 1.f/k;
-      const float pt = 1.f/ipt;
+      const float kinv  = 1.f / k;
+      const float pt    = 1.f / ipt;
 
       float D = 0., cosa = 0., sina = 0., id = 0.;
       //no trig approx here, phi can be large
@@ -59,7 +63,7 @@ static inline void helixAtRFromIterativeCCS_impl(const    Tf& __restrict__ inPar
       float pxin = cosPorT*pt;
       float pyin = sinPorT*pt;
 
-      dprint_np(n, std::endl << "k=" << std::setprecision(9) << k << " pxin=" << std::setprecision(9) << pxin << " pyin="
+      dprint_np(n, "k=" << std::setprecision(9) << k << " pxin=" << std::setprecision(9) << pxin << " pyin="
              << std::setprecision(9) << pyin << " cosPorT=" << std::setprecision(9) << cosPorT
              << " sinPorT=" << std::setprecision(9) << sinPorT << " pt=" << std::setprecision(9) << pt);
 
@@ -71,13 +75,30 @@ static inline void helixAtRFromIterativeCCS_impl(const    Tf& __restrict__ inPar
 
       for (int i = 0; i < Config::Niter; ++i)
       {
-        dprint_np(n, std::endl << "attempt propagation from r=" << r0 << " to r=" << r << std::endl
-            << "x=" << xin << " y=" << yin  << " z=" << inPar(n, 2, 0) << " px=" << pxin << " py=" << pyin << " pz=" << pt*std::tan(theta) << " q=" << inChg(n, 0, 0));
-
         //compute distance and path for the current iteration
-        r0 = hipo(outPar(n, 0, 0), outPar(n, 1, 0));
-        id = (r-r0);
-        D+=id;
+        r0  = hipo(outPar(n, 0, 0), outPar(n, 1, 0));
+
+        // Use one over dot produce of transverse momentum and radial
+        // direction to scale the step. Propagation is prevented from reaching
+        // too close to the apex (dotp > 0.2).
+        // - Can / should we come up with a better approximation?
+        // - Can / should take +/- curvature into account?
+
+        const float oodotp = r0 * pt / (pxin * outPar(n,0,0) + pyin * outPar(n,1,0));
+
+        if (oodotp > 5.0f || oodotp < 0) // 0.2 is 78.5 deg
+        {
+          id = 0.0f;
+          outFailFlag(n, 0, 0) = 1;
+        }
+        else
+        {
+          // Can we come up with a better approximation?
+          // Should take +/- curvature into account.
+          id = (r - r0) * oodotp;
+        }
+        D  += id;
+
         if (Config::useTrigApprox) {
           sincos4(id*ipt*kinv, sina, cosa);
         } else {
@@ -85,15 +106,18 @@ static inline void helixAtRFromIterativeCCS_impl(const    Tf& __restrict__ inPar
           sina=std::sin(id*ipt*kinv);
         }
 
-        dprint_np(n, std::endl << "r=" << std::setprecision(9) << r << " r0=" << std::setprecision(9) << r0
-               << " id=" << std::setprecision(9) << id << " cosa=" << cosa << " sina=" << sina);
+        dprint_np(n, "Attempt propagation from r=" << r0 << " to r=" << r << std::endl
+                  << "   x=" << xin << " y=" << yin  << " z=" << inPar(n, 2, 0)
+                  << " px=" << pxin << " py=" << pyin << " pz=" << pt*std::tan(theta) << " q=" << inChg(n, 0, 0) << std::endl
+                  << "   r=" << std::setprecision(9) << r << " r0=" << std::setprecision(9) << r0
+                  << " id=" << std::setprecision(9) << id << " dr=" << std::setprecision(9) << r - r0 << " cosa=" << cosa << " sina=" << sina);
 
         //update derivatives on total distance
-        if (i+1 != Config::Niter) {
-
+        if (i+1 != Config::Niter)
+        {
           const float x = outPar(n, 0, 0);
           const float y = outPar(n, 1, 0);
-          const float oor0 = (r0>0.f && std::abs(r-r0)<0.0001f) ? 1.f/r0 : 0.f;
+          const float oor0 = (r0 > 0.f && std::abs(r-r0) < 0.0001f) ? 1.f / r0 : 0.f;
 
           const float dadipt = id*kinv;
 
@@ -105,15 +129,19 @@ static inline void helixAtRFromIterativeCCS_impl(const    Tf& __restrict__ inPar
           const float pyca = pyin*cosa;
           const float pysa = pyin*sina;
 
-          float tmp = k*dadx;
-                dDdx   -= ( x*(1.f + tmp*(pxca - pysa)) + y*tmp*(pyca + pxsa) )*oor0;
-          tmp = k*dady;
-                dDdy   -= ( x*tmp*(pxca - pysa) + y*(1.f + tmp*(pyca + pxsa)) )*oor0;
-                //now r0 depends on ipt and phi as well
-          tmp = dadipt*ipt;
-                dDdipt -= k*( x*(pxca*tmp - pysa*tmp - pyca - pxsa + pyin) +
-                              y*(pyca*tmp + pxsa*tmp - pysa + pxca - pxin))*pt*oor0;
-                dDdphi += k*( x*(pysa - pxin + pxca) - y*(pxsa - pyin + pyca))*oor0;
+          float tmp;
+
+          tmp   = k*dadx;
+          dDdx -= ( x*(1.f + tmp*(pxca - pysa)) + y*tmp*(pyca + pxsa) )*oor0;
+
+          tmp   = k*dady;
+          dDdy -= ( x*tmp*(pxca - pysa) + y*(1.f + tmp*(pyca + pxsa)) )*oor0;
+
+          //now r0 depends on ipt and phi as well
+          tmp     = dadipt*ipt;
+          dDdipt -= k*( x*(pxca*tmp - pysa*tmp - pyca - pxsa + pyin) +
+                        y*(pyca*tmp + pxsa*tmp - pysa + pxca - pxin) )*pt*oor0;
+          dDdphi += k*( x*(pysa - pxin + pxca) - y*(pxsa - pyin + pyca) )*oor0;
         }
 
         //update parameters
@@ -123,7 +151,7 @@ static inline void helixAtRFromIterativeCCS_impl(const    Tf& __restrict__ inPar
         pxin = pxin*cosa - pyin*sina;
         pyin = pyin*cosa + pxinold*sina;
 
-        dprint_np(n, std::endl << "outPar(n, 0, 0)=" << outPar(n, 0, 0) << " outPar(n, 1, 0)=" << outPar(n, 1, 0)
+        dprint_np(n, "outPar(n, 0, 0)=" << outPar(n, 0, 0) << " outPar(n, 1, 0)=" << outPar(n, 1, 0)
                << " pxin=" << pxin << " pyin=" << pyin);
       }
 
@@ -197,9 +225,10 @@ static inline void helixAtRFromIterativeCCS_impl(const    Tf& __restrict__ inPar
       errorProp(n,5,5) = 1.f;
 
       dprint_np(n, "propagation end, dump parameters" << std::endl
-	     << "pos = " << outPar(n, 0, 0) << " " << outPar(n, 1, 0) << " " << outPar(n, 2, 0) << std::endl
-	     << "mom = " << std::cos(outPar(n, 4, 0))/outPar(n, 3, 0) << " " << std::sin(outPar(n, 4, 0))/outPar(n, 3, 0) << " " << 1./(outPar(n, 3, 0)*tan(outPar(n, 5, 0)))
-	     << " r=" << std::sqrt( outPar(n, 0, 0)*outPar(n, 0, 0) + outPar(n, 1, 0)*outPar(n, 1, 0) ) << " pT=" << 1./std::abs(outPar(n, 3, 0)) << std::endl);
+                << "   pos = " << outPar(n, 0, 0) << " " << outPar(n, 1, 0) << " " << outPar(n, 2, 0)
+                << "\t\t r=" << std::sqrt( outPar(n, 0, 0)*outPar(n, 0, 0) + outPar(n, 1, 0)*outPar(n, 1, 0) ) << std::endl
+                << "   mom = " << std::cos(outPar(n, 4, 0))/outPar(n, 3, 0) << " " << std::sin(outPar(n, 4, 0))/outPar(n, 3, 0) << " " << 1./(outPar(n, 3, 0)*tan(outPar(n, 5, 0)))
+                << "\t\tpT=" << 1./std::abs(outPar(n, 3, 0)) << std::endl);
       
 #ifdef DEBUG
       if (n < N_proc) {
@@ -211,6 +240,7 @@ static inline void helixAtRFromIterativeCCS_impl(const    Tf& __restrict__ inPar
 	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,3,0),errorProp(n,3,1),errorProp(n,3,2),errorProp(n,3,3),errorProp(n,3,4),errorProp(n,3,5));
 	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,4,0),errorProp(n,4,1),errorProp(n,4,2),errorProp(n,4,3),errorProp(n,4,4),errorProp(n,4,5));
 	printf("%5f %5f %5f %5f %5f %5f\n", errorProp(n,5,0),errorProp(n,5,1),errorProp(n,5,2),errorProp(n,5,3),errorProp(n,5,4),errorProp(n,5,5));
+        printf("\n");
       }
 #endif
     }

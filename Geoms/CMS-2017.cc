@@ -21,6 +21,8 @@ namespace
     Config::maxHolesPerCand  = 4;
     Config::maxConsecHoles   = 1;
     Config::chi2Cut          = 30;
+    Config::chi2CutOverlap   = 3.5;
+    Config::pTCutOverlap     = 1;
 
     Config::finding_requires_propagation_to_hit_pos = true;
     Config::finding_inter_layer_pflags = PropagationFlags(PF_apply_material);

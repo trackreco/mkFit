@@ -30,12 +30,6 @@ inline bool sortByHitsChi2(const std::pair<Track, TrackState>& cand1,
   return cand1.first.nFoundHits() > cand2.first.nFoundHits();
 }
 
-inline bool sortByScore(const std::pair<Track, TrackState>& cand1,
-			const std::pair<Track, TrackState>& cand2)
-{
-  return sortByScoreCandPair(cand1,cand2);
-}
-
 inline bool sortByPhi(const Hit& hit1, const Hit& hit2)
 {
   return std::atan2(hit1.y(),hit1.x()) < std::atan2(hit2.y(),hit2.x());
@@ -285,17 +279,12 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
   // now do backwards fit... do we want to time this section?
   if (Config::backwardFit)
   {
-    // QQQQ Using the TrackVec version until we home in on THE backward fit etc.
+    // Using the TrackVec version until we home in on THE backward fit etc.
     // builder.BackwardFit();
     builder.BackwardFitBH();
+    // BackwardFitBH() returns fitted tracks in ev.fitTracks_
 
     check_nan_n_silly_bkfit(ev);
-
-    // QQQQ already done by BackwardFitBH()
-    // if (Config::sim_val || Config::cmssw_val || Config::cmssw_export)
-    // {
-    //   builder.quality_store_tracks(ev.fitTracks_);
-    // }
   }
 
   builder.handle_duplicates();
@@ -332,6 +321,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
   __SSC_MARK(0x111);  // use this to resume Intel SDE at the same point
   __itt_resume();
 #endif
+
   double time = dtime();
 
   builder.FindTracksCloneEngine();
@@ -345,23 +335,21 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
 
   check_nan_n_silly_candiates(ev);
 
-  // first store candidate tracks
+  // first store candidate tracks - needed for BH backward fit and root_validation
   builder.quality_store_tracks(ev.candidateTracks_);
 
   // now do backwards fit... do we want to time this section?
   if (Config::backwardFit)
   {
-    // QQQQ Using the TrackVec version until we home in on THE backward fit etc.
-    // builder.BackwardFit();
+    // a) TrackVec version:
     builder.BackwardFitBH();
+    // BackwardFitBH() returns fitted tracks in ev.fitTracks_
+
+    // b) Version that runs on CombCand / TrackCand
+    // builder.BackwardFit();
+    // builder.quality_store_tracks(ev.fitTracks_);
 
     check_nan_n_silly_bkfit(ev);
-
-   // QQQQ already done by BackwardFitBH()
-   // if (Config::sim_val || Config::cmssw_val || Config::cmssw_export)
-   //  {
-   //    builder.quality_store_tracks(ev.fitTracks_);
-   //  }
   }
 
   builder.handle_duplicates();

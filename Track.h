@@ -30,11 +30,14 @@ struct IdxChi2List
 public:
   int   trkIdx; // candidate index
   int   hitIdx; // hit index
+  unsigned int   module; // module id
   int   nhits;  // number of hits (used for sorting)
+  int   noverlaps; // number of overlaps (used for sorting)
   int   nholes;  // number of holes (used for sorting)
   unsigned int seedtype; // seed type idx (used for sorting: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds)
   float pt;   // pt (used for sorting)
   float chi2;   // total chi2 (used for sorting)
+  float chi2_hit; // chi2 of the added hit
   float score; // score used for candidate ranking
 };
  
@@ -231,9 +234,11 @@ public:
 	// Whether or not the track matched to another track and had the lower cand score
 	bool duplicate : 1;
 
-        // The remaining bits.
-        unsigned int _free_bits_ : 25;
+        // Temporary store number of overlaps for Track here
+        int n_overlaps : 8;
 
+        // The remaining bits.
+        unsigned int _free_bits_ : 17;
       };
 
       unsigned int _raw_;
@@ -262,6 +267,11 @@ public:
   enum class ProdType { NotSet = 0, Signal = 1, InTimePU = 2, OutOfTimePU = 3};
   ProdType prodType()  const { return ProdType(status_.prod_type); }
   void setProdType(ProdType ptyp) { status_.prod_type = static_cast<unsigned int>(ptyp); }
+
+  // Those are defined in Track, TrackCand has separate member. To be consolidated but
+  // it's a binary format change.
+  // int  nOverlapHits()  const  { return status_.n_overlaps; }
+  // void setNOverlapHits(int n) { status_.n_overlaps = n; }
 
   // To be used later
   // bool isStopped() const { return status_.stopped; }
@@ -374,9 +384,12 @@ public:
   CUDA_CALLABLE
   void resetHits() { lastHitIdx_ = -1; nFoundHits_ =  0; hitsOnTrk_.clear(); }
 
-  // Hackish for MkFinder::copy_out ... to be reviewed
+  // For MkFinder::copy_out and TrackCand::ExportTrack
   void resizeHits(int nHits, int nFoundHits)
   { hitsOnTrk_.resize(nHits); lastHitIdx_ = nHits - 1; nFoundHits_ = nFoundHits; }
+  // Used by TrackCand::ExportTrack
+  void setHitIdxAtPos(int pos, const HitOnTrack &hot)
+  { hitsOnTrk_[pos] =  hot; }
 
   void resizeHitsForInput();
 
@@ -463,6 +476,9 @@ public:
   CUDA_CALLABLE int  nFoundHits() const { return nFoundHits_; }
   CUDA_CALLABLE int  nTotalHits() const { return lastHitIdx_ + 1; }
 
+  int  nOverlapHits()  const  { return status_.n_overlaps; }
+  void setNOverlapHits(int n) { status_.n_overlaps = n; }
+
   int nInsideMinusOneHits() const
   {
     int n = 0;
@@ -504,6 +520,7 @@ public:
   // this method sorts the data member hitOnTrk_ and is ONLY to be used by sim track seeding
   void sortHitsByLayer();
 
+  // used by fittest only (NOT mplex)
   const std::vector<int> foundLayers() const
   {
     std::vector<int> layers;
@@ -551,31 +568,22 @@ inline bool sortByScoreStruct(const IdxChi2List& cand1, const IdxChi2List& cand2
   return cand1.score > cand2.score;
 }
 
-inline bool sortByScoreCandPair(const std::pair<Track, TrackState>& cand1, const std::pair<Track, TrackState>& cand2)
-{
-  return sortByScoreCand(cand1.first,cand2.first);
-}
-
 inline float getScoreWorstPossible()
 {
-  return -1e16; // somewhat arbitrary value, used  during finding (will try to take it out)
+  return -1e16; // somewhat arbitrary value, used for handling of best short track during finding (will try to take it out)
 }
 
 inline float getScoreCalc(const unsigned int seedtype,
                           const int nfoundhits,
+                          const int noverlaphits,
                           const int nmisshits,
                           const float chi2,
                           const float pt)
 {
-  // QQQQ Mario, Allie ... do we want to change this now that score is a float?
-  // In particular, we probably don't need Config::maxChi2ForRanking any more.
-  // Comments below need to be updated.
-
   //// Do not allow for chi2<0 in score calculation
-  //if(chi2<0) chi2=0.f;
-  //// Do not allow for chi2>2^14/2/10 in score calculation (15 bits for (int) score x 10: 14 bits for score magnitude + 1 bit for sign --> max chi2 = 1/2*1/10*2^14=819.2) 
-  //if(chi2>Config::maxChi2ForRanking_) chi2=Config::maxChi2ForRanking_;
-  float score_ = Config::validHitBonus_*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
+  // if(chi2<0) chi2=0.f;
+  float score_ = Config::validHitBonus_*nfoundhits + Config::overlapHitBonus_*noverlaphits -
+                 Config::missingHitPenalty_*nmisshits - chi2;
   if(seedtype==2) {
     score_ -= 0.5f*(Config::validHitBonus_)*nfoundhits;
   }
@@ -599,28 +607,26 @@ inline float getScoreCand(const Track& cand1)
 {
   unsigned int seedtype = cand1.getSeedTypeForRanking();
   int nfoundhits = cand1.nFoundHits();
+  int noverlaphits = cand1.nOverlapHits();
   int nmisshits = cand1.nInsideMinusOneHits();
   float pt = cand1.pT();
   float chi2 = cand1.chi2();
   // Do not allow for chi2<0 in score calculation
   if(chi2<0) chi2=0.f;
-  // Do not allow for chi2>2^14/2/10 in score calculation (15 bits for (int) score x 10: 14 bits for score magnitude + 1 bit for sign --> max chi2 = 1/2*1/10*2^14=819.2) 
-  if(chi2>Config::maxChi2ForRanking_) chi2=Config::maxChi2ForRanking_;
-  return getScoreCalc(seedtype,nfoundhits,nmisshits,chi2,pt);
+  return getScoreCalc(seedtype,nfoundhits,noverlaphits,nmisshits,chi2,pt);
 }
 
 inline float getScoreStruct(const IdxChi2List& cand1)
 {
   unsigned int seedtype = cand1.seedtype;
   int nfoundhits = cand1.nhits;
+  int noverlaphits = cand1.noverlaps;
   int nmisshits = cand1.nholes;
   float pt = cand1.pt;
   float chi2 = cand1.chi2;
   // Do not allow for chi2<0 in score calculation
   if(chi2<0) chi2=0.f;
-  // Do not allow for chi2>2^14/2/10 in score calculation (15 bits for (int) score x 10: 14 bits for score magnitude + 1 bit for sign --> max chi2 = 1/2*1/10*2^14=819.2) 
-  if(chi2>Config::maxChi2ForRanking_) chi2=Config::maxChi2ForRanking_;
-  return getScoreCalc(seedtype,nfoundhits,nmisshits,chi2,pt);
+  return getScoreCalc(seedtype,nfoundhits,noverlaphits,nmisshits,chi2,pt);
 }
 
 

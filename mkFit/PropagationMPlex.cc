@@ -393,11 +393,13 @@ namespace mkfit {
 
 void helixAtRFromIterativeCCS(const MPlexLV& inPar,     const MPlexQI& inChg, const MPlexQF &msRad,
                                     MPlexLV& outPar,          MPlexLL& errorProp,
+                                    MPlexQI& outFailFlag,
                               const int      N_proc,    const PropagationFlags pflags)
 {
-  errorProp.SetVal(0.f);
+  errorProp  .SetVal(0.f);
+  outFailFlag.SetVal(0.f);
 
-  helixAtRFromIterativeCCS_impl(inPar, inChg, msRad, outPar, errorProp, 0, NN, N_proc, pflags);
+  helixAtRFromIterativeCCS_impl(inPar, inChg, msRad, outPar, errorProp, outFailFlag, 0, NN, N_proc, pflags);
 }
 
 
@@ -406,7 +408,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 			          MPlexLS &outErr,       MPlexLV& outPar,
                             const int      N_proc, const PropagationFlags pflags)
 {
-   // debug = true;
+   // bool debug = true;
 
    // This is used further down when calculating similarity with errorProp (and before in DEBUG).
    // MT: I don't think this really needed if we use inErr where required.
@@ -416,8 +418,9 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    outPar = inPar;
 
    MPlexLL errorProp;
+   MPlexQI failFlag;
 
-   helixAtRFromIterativeCCS(inPar, inChg, msRad, outPar, errorProp, N_proc, pflags);
+   helixAtRFromIterativeCCS(inPar, inChg, msRad, outPar, errorProp, failFlag, N_proc, pflags);
 
 #ifdef DEBUG
    {
@@ -436,7 +439,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
      }
    }
 #endif
-   
+
    if (pflags.apply_material)
    {
      MPlexQF hitsRl;
@@ -468,39 +471,31 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    MultHelixProp      (errorProp, outErr, temp);
    MultHelixPropTransp(errorProp, temp,   outErr);
 
-   // This dump is now out of its place as similarity is done with matriplex ops.
-#ifdef DEBUG
-   {
-     dmutex_guard;
-     for (int kk = 0; kk < N_proc; ++kk)
-     {
-       dprintf("outErr %d\n", kk);
-       for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
-           dprintf("%8f ", outErr.At(kk,i,j)); printf("\n");
-       } dprintf("\n");
-
-       dprintf("outPar %d\n", kk);
-       for (int i = 0; i < 6; ++i) {
-           dprintf("%8f ", outPar.At(kk,i,0)); printf("\n");
-       } dprintf("\n");
-       if (std::abs(hipo(outPar.At(kk,0,0), outPar.At(kk,1,0)) - msRad.ConstAt(kk, 0, 0)) > 0.0001) {
-         float pt = 1.0f / inPar.ConstAt(kk,3,0);
-	 dprint_np(kk, "DID NOT GET TO R, dR=" << std::abs(hipo(outPar.At(kk,0,0), outPar.At(kk,1,0)) - msRad.ConstAt(kk, 0, 0))
-		   << " r=" << msRad.ConstAt(kk, 0, 0) << " r0in=" << hipo(inPar.ConstAt(kk,0,0), inPar.ConstAt(kk,1,0)) << " rout=" << hipo(outPar.At(kk,0,0), outPar.At(kk,1,0)) << std::endl
-		   << "pt=" << pt << " pz=" << pt/std::tan(inPar.ConstAt(kk,5,0)));
-       }
-     }
-   }
-#endif
-
    /*
      // To be used with: MPT_DIM = 1
-     if (fabs(sqrt(outPar[0]*outPar[0]+outPar[1]*outPar[1])-r)>0.0001) {
-     std::cout << "DID NOT GET TO R, dR=" << fabs(sqrt(outPar[0]*outPar[0]+outPar[1]*outPar[1])-r)
-     << " r=" << r << " r0in=" << r0in << " rout=" << sqrt(outPar[0]*outPar[0]+outPar[1]*outPar[1]) << std::endl;
-     std::cout << "pt=" << pt << " pz=" << inPar.At(n, 2) << std::endl;
+     if (fabs(sqrt(outPar[0]*outPar[0]+outPar[1]*outPar[1]) - msRad[0]) > 0.0001)
+     {
+       std::cout << "DID NOT GET TO R, FailFlag=" << failFlag[0]
+                 << " dR=" << msRad[0] - std::hypot(outPar[0],outPar[1])
+                 << " r="  << msRad[0] << " rin=" << std::hypot(inPar[0],inPar[1]) << " rout=" << std::hypot(outPar[0],outPar[1])
+                 << std::endl;
+       // std::cout << "    pt=" << pt << " pz=" << inPar.At(n, 2) << std::endl;
      }
    */
+
+   // FIXUP BOTCHED (low pT) propagations.
+   // For now let's enforce reseting output to input for failed cases. But:
+   // - perhaps this should be optional;
+   // - alternatively, it could also be an extra output parameter;
+   // - if we pass fail outwards, we might *not* need to also reset botched output.
+   for (int i = 0; i < N_proc; ++i)
+   {
+     if (failFlag(i, 0, 0))
+     {
+       outPar.CopySlot(i, inPar);
+       outErr.CopySlot(i, inErr);
+     }
+   }
 }
 
 
@@ -568,6 +563,7 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
    MultHelixPropTranspEndcap(errorProp, temp,   outErr);
 
    // This dump is now out of its place as similarity is done with matriplex ops.
+   /*
 #ifdef DEBUG
    {
      dmutex_guard;
@@ -591,6 +587,7 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
      }
    }
 #endif
+   */
 }
 
 
