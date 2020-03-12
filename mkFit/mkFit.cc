@@ -53,24 +53,14 @@ void initGeom(Geometry& geom)
 
   TrackerInfo::ExecTrackerInfoCreatorPlugin(Config::geomPlugin, Config::TrkInfo);
 
-#ifndef WITH_USOLIDS
     geom.BuildFromTrackerInfo(Config::TrkInfo);
-#else
-    fprintf(stderr, "TrackerInfo only supports SimpleGeometry, not USolids.\n");
-    exit(1);
-#endif
 
   /*
   if ( ! Config::useCMSGeom)
   {
     // This is the new standalone case -- Cylindrical Cow with Lids
     //Create_TrackerInfo(Config::TrkInfo);
-#ifndef WITH_USOLIDS
     geom.BuildFromTrackerInfo(Config::TrkInfo);
-#else
-    fprintf(stderr, "Cylindrical Cow with Lids only supported for SimpleGeometry.\n");
-    exit(1);
-#endif
   }
   else
   {
