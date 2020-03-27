@@ -1312,10 +1312,10 @@ void MkBuilder::find_duplicates(TrackVec& tracks)
       }
       else
       {
-        maxpt = std::max(pt1,track2.pT());
-        if(maxpt ==0) continue;
+        if(pt1 ==0) continue;
+        if(track2.pT() ==0) continue;
 
-        if(std::abs(track2.pT() - pt1)/maxpt < Config::maxdPt)
+        if(std::abs((1/track2.pT()) - (1/pt1)) < Config::maxdPt)
         {
           if(Config::useHitsForDuplicates)
           {
