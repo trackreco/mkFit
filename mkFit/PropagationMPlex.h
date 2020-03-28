@@ -51,7 +51,7 @@ void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
 
 void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, const MPlexQF& propSign,
                                 MPlexLS &outErr,       MPlexLV& outPar,
-                          const int      N_proc);
+                          const int      N_proc, const bool isBarrel);
 
 } // end namespace mkfit
 #endif

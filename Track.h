@@ -35,7 +35,8 @@ public:
   unsigned int seedtype; // seed type idx (used for sorting: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds)
   float pt;   // pt (used for sorting)
   float chi2;   // total chi2 (used for sorting)
-  int score; // score used for candidate ranking
+  float score; // score used for candidate ranking
+  /* int score; // score used for candidate ranking */
 };
  
 //==============================================================================
@@ -530,7 +531,8 @@ typedef std::vector<TrackVec> TrackVecVec;
 inline void assignSeedTypeForRanking(Track & seed)
 {
   if      (seed.pT()>2.0f && std::fabs(seed.momEta())< 1.5f) seed.setSeedTypeForRanking(1);
-  else if (seed.pT()<0.9f && std::fabs(seed.momEta())>=1.5f) seed.setSeedTypeForRanking(2);
+  /* else if (seed.pT()<0.9f && std::fabs(seed.momEta())>=1.5f) seed.setSeedTypeForRanking(2); */
+  else if (seed.pT()<0.9f && std::fabs(seed.momEta())>=0.9f) seed.setSeedTypeForRanking(2);
   else                                                       seed.setSeedTypeForRanking(3);
 }
 
@@ -577,7 +579,8 @@ inline float getScoreCalc(const unsigned int seedtype,
   float score_ = 0.f;
   ////// V2 of candidate score (simplified score, after fix for counts of # missing hits):
   score_ = Config::validHitBonus_*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
-  if(pt<0.9f && seedtype==2) score_ -= 0.5f*(Config::validHitBonus_)*nfoundhits;
+  if(seedtype==2) score_ -= 0.5f*(Config::validHitBonus_)*nfoundhits;
+  //if(pt<0.9f && seedtype==2) score_ -= 0.5f*(Config::validHitBonus_)*nfoundhits;
   /*
   ////// V0 of candidate score (before fix for counts of # missing hits):
   // For high pT central tracks: double valid hit bonus
