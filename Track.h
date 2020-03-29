@@ -532,8 +532,9 @@ inline void assignSeedTypeForRanking(Track & seed)
 {
   if      (seed.pT()>2.0f && std::fabs(seed.momEta())< 1.5f) seed.setSeedTypeForRanking(1);
   /* else if (seed.pT()<0.9f && std::fabs(seed.momEta())>=1.5f) seed.setSeedTypeForRanking(2); */
-  else if (seed.pT()<0.9f && std::fabs(seed.momEta())>=0.9f) seed.setSeedTypeForRanking(2);
-  else                                                       seed.setSeedTypeForRanking(3);
+  else if (seed.pT()<0.9f && std::fabs(seed.momEta())>0.9f) seed.setSeedTypeForRanking(2);
+  else if (seed.pT()<0.9f && std::fabs(seed.momEta())<=0.9f) seed.setSeedTypeForRanking(3);
+  else                                                       seed.setSeedTypeForRanking(4);
 }
 
 inline bool sortByHitsChi2(const Track & cand1, const Track & cand2)
@@ -579,7 +580,22 @@ inline float getScoreCalc(const unsigned int seedtype,
   float score_ = 0.f;
   ////// V2 of candidate score (simplified score, after fix for counts of # missing hits):
   score_ = Config::validHitBonus_*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
-  if(seedtype==2) score_ -= 0.5f*(Config::validHitBonus_)*nfoundhits;
+  if(seedtype==2) {
+    score_ -= 0.5f*(Config::validHitBonus_)*nfoundhits;
+  }
+  if (seedtype==2 || seedtype==3) {
+    if (nfoundhits<=8) {
+      score_ -= 0.06f*(Config::validHitBonus_)*nfoundhits;
+    } else if (nfoundhits>12) {
+      score_ += 0.08f*(Config::validHitBonus_)*nfoundhits;
+    }
+  } else {
+    if (nfoundhits<=8) {
+      score_ -= 0.15f*(Config::validHitBonus_)*nfoundhits;
+    } else if (nfoundhits>12) {
+      score_ += 0.20f*(Config::validHitBonus_)*nfoundhits;
+    }
+  }
   //if(pt<0.9f && seedtype==2) score_ -= 0.5f*(Config::validHitBonus_)*nfoundhits;
   /*
   ////// V0 of candidate score (before fix for counts of # missing hits):
