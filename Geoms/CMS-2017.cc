@@ -17,7 +17,7 @@ namespace
 
     Config::useCMSGeom       = true;
     Config::nlayers_per_seed = 4;
-    Config::maxCandsPerSeed  = 4;//6;//4;  // GC said 3 is enough ???
+    Config::maxCandsPerSeed  = 5;//6;//4;  // GC said 3 is enough ???
     Config::maxHolesPerCand  = 4;//XX; // = 12;
     Config::maxConsecHoles   = 1;//XX; // = 12;
     Config::chi2Cut          = 30;//XX; //15.0; // = 30.0;
