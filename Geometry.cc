@@ -109,19 +109,13 @@ namespace mkfit {
 
 void Geometry::BuildFromTrackerInfo(const TrackerInfo& tracker_info)
 {
-#ifndef WITH_USOLIDS
   for (auto& li : tracker_info.m_layers)
-  {
-    VUSolid* utub = new VUSolid(li.m_rin,  li.m_rout,
-                                li.m_zmin, li.m_zmax,
-                                li.is_barrel(), li.m_is_outer);
-    AddLayer(utub, li.r_mean(), li.z_mean());
-  }
-#else
-  // XXMT4D What do we do here?
-  fprintf(stderr, "Geometry::BuildFromTrackerInfo only supported for SimpleGeometry.\n");
-  exit(1);
-#endif
+    {
+      VUSolid* utub = new VUSolid(li.m_rin,  li.m_rout,
+				  li.m_zmin, li.m_zmax,
+				  li.is_barrel(), li.m_is_outer);
+      AddLayer(utub, li.r_mean(), li.z_mean());
+    }
 }
 
 } // end namespace mkfit

@@ -42,7 +42,6 @@ endif
 clean-local:
 	-rm -f ${TGTS} *.d *.o *.om *.so
 	-rm -rf main.dSYM
-	-rm -rf USolids-{host,mic}
 	-rm -rf plotting/*.so plotting/*.d plotting/*.pcm
 
 clean: clean-local
@@ -60,15 +59,11 @@ ${LIB_CORE}: ${CORE_OBJS}
 	@mkdir -p $(@D)
 	${CXX} ${CXXFLAGS} ${VEC_HOST} ${CORE_OBJS} -shared -o $@ ${LDFLAGS_HOST} ${LDFLAGS_CU} ${LDFLAGS}
 
-main: ${AUTO_TGTS} ${LIB_CORE} main.o ${LIBUSOLIDS}
-	${CXX} ${CXXFLAGS} ${VEC_HOST} -o $@ main.o ${LIBUSOLIDS} ${LDFLAGS_HOST} ${LDFLAGS} -Llib -lMicCore -Wl,-rpath,lib
+main: ${AUTO_TGTS} ${LIB_CORE} main.o
+	${CXX} ${CXXFLAGS} ${VEC_HOST} -o $@ main.o ${LDFLAGS_HOST} ${LDFLAGS} -Llib -lMicCore -Wl,-rpath,lib
 
 ${OBJS}: %.o: %.cc %.d
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<
-
-${LIBUSOLIDS} : USolids/CMakeLists.txt
-	-mkdir USolids-host
-	cd USolids-host && cmake ${CMAKEFLAGS} ../USolids && make
 
 
 ifdef KNC_BUILD
@@ -79,12 +74,8 @@ CORE_OBJS_MIC := $(CORE_OBJS:.o=.om)
 ${LIB_CORE_MIC}: ${CORE_OBJS_MIC}
 	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} ${CORE_OBJS_MIC} -shared -o $@ ${LDFLAGS_MIC}
 
-main-mic: ${AUTO_TGTS} ${LIB_CORE_MIC} main.om ${LIBUSOLIDS_MIC}
-	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} -o $@ main.om ${LIBUSOLIDS_MIC} ${LDFLAGS_MIC} -Llib -lMicCore-mic -Wl,-rpath=lib
-
-${LIBUSOLIDS_MIC} : USolids/CMakeLists.txt
-	-mkdir USolids-mic
-	cd USolids-mic && cmake ${CMAKEFLAGS_MIC} ../USolids && make
+main-mic: ${AUTO_TGTS} ${LIB_CORE_MIC} main.om 
+	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} -o $@ main.om ${LDFLAGS_MIC} -Llib -lMicCore-mic -Wl,-rpath=lib
 
 ${OBJS_MIC}: %.om: %.cc
 	${CXX} ${CPPFLAGS_NO_ROOT} ${CXXFLAGS} ${VEC_MIC} -c -o $@ $<
