@@ -66,7 +66,7 @@ public:
 
 #if defined(GATHER_INTRINSICS)
       GATHER_IDX_LOAD(vi, m_idx);
-      mplex.SlurpIn(m_base + base_offset, vi, sizeof(D), m_pos);
+      mplex.SlurpIn(m_base + base_offset, vi, D(), m_pos);
 #else
       mplex.SlurpIn(m_base + base_offset, m_idx, m_pos);
 #endif
@@ -125,8 +125,8 @@ public:
 
 #if defined(GATHER_INTRINSICS)
       GATHER_IDX_LOAD(vi, this->m_idx);
-      err.SlurpIn(this->m_base,               vi, sizeof(D), this->m_pos);
-      par.SlurpIn(this->m_base + m_off_param, vi, sizeof(D), this->m_pos);
+      err.SlurpIn(this->m_base,               vi, D(), this->m_pos);
+      par.SlurpIn(this->m_base + m_off_param, vi, D(), this->m_pos);
 #else
       err.SlurpIn(this->m_base,               this->m_idx, this->m_pos);
       par.SlurpIn(this->m_base + m_off_param, this->m_idx, this->m_pos);
