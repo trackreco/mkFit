@@ -35,7 +35,7 @@ public:
   unsigned int seedtype; // seed type idx (used for sorting: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds)
   float pt;   // pt (used for sorting)
   float chi2;   // total chi2 (used for sorting)
-  int score; // score used for candidate ranking
+  float score; // score used for candidate ranking
 };
  
 //==============================================================================
@@ -526,12 +526,13 @@ typedef std::vector<Track>    TrackVec;
 typedef std::vector<TrackVec> TrackVecVec;
 
 
-// 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
+// 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = low pT barrel seeds; 4 = all other seeds
 inline void assignSeedTypeForRanking(Track & seed)
 {
   if      (seed.pT()>2.0f && std::fabs(seed.momEta())< 1.5f) seed.setSeedTypeForRanking(1);
-  else if (seed.pT()<0.9f && std::fabs(seed.momEta())>=1.5f) seed.setSeedTypeForRanking(2);
-  else                                                       seed.setSeedTypeForRanking(3);
+  else if (seed.pT()<0.9f && std::fabs(seed.momEta())>0.9f) seed.setSeedTypeForRanking(2);
+  else if (seed.pT()<0.9f && std::fabs(seed.momEta())<=0.9f) seed.setSeedTypeForRanking(3);
+  else                                                       seed.setSeedTypeForRanking(4);
 }
 
 inline bool sortByHitsChi2(const Track & cand1, const Track & cand2)
@@ -574,52 +575,23 @@ inline float getScoreCalc(const unsigned int seedtype,
   //if(chi2<0) chi2=0.f;
   //// Do not allow for chi2>2^14/2/10 in score calculation (15 bits for (int) score x 10: 14 bits for score magnitude + 1 bit for sign --> max chi2 = 1/2*1/10*2^14=819.2) 
   //if(chi2>Config::maxChi2ForRanking_) chi2=Config::maxChi2ForRanking_;
-  float score_ = 0.f;
-  ////// V2 of candidate score (simplified score, after fix for counts of # missing hits):
-  score_ = Config::validHitBonus_*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
-  if(pt<0.9f && seedtype==2) score_ -= 0.5f*(Config::validHitBonus_)*nfoundhits;
-  /*
-  ////// V0 of candidate score (before fix for counts of # missing hits):
-  // For high pT central tracks: double valid hit bonus
-  if(seedtype==1){
-    score_ = (Config::validHitBonus_*2.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
-    if(pt<0.9f) score_ -= 0.5f*(Config::validHitBonus_*2.0f)*nfoundhits;
-    else if(nfoundhits>8) score_ += (Config::validHitBonus_*2.0f)*nfoundhits;
+  float score_ = Config::validHitBonus_*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
+  if(seedtype==2) {
+    score_ -= 0.5f*(Config::validHitBonus_)*nfoundhits;
   }
-  // For low pT endcap tracks: half valid hit bonus & half missing hit penalty
-  else if(seedtype==2){
-    score_ = (Config::validHitBonus_*0.5f)*nfoundhits - (Config::missingHitPenalty_*0.5f)*nmisshits - chi2;
-    if(pt<0.9f) score_ -= 0.5f*(Config::validHitBonus_*0.5f)*nfoundhits;
-    else if(nfoundhits>8) score_ += (Config::validHitBonus_*0.5f)*nfoundhits;
+  if (seedtype==2 || seedtype==3) {
+    if (nfoundhits<=8) {
+      score_ -= 0.06f*(Config::validHitBonus_)*nfoundhits;
+    } else if (nfoundhits>12) {
+      score_ += 0.08f*(Config::validHitBonus_)*nfoundhits;
+    }
+  } else {
+    if (nfoundhits<=8) {
+      score_ -= 0.15f*(Config::validHitBonus_)*nfoundhits;
+    } else if (nfoundhits>12) {
+      score_ += 0.20f*(Config::validHitBonus_)*nfoundhits;
+    }
   }
-  // For all other tracks: unchanged cmssw bonus and penalty
-  else{
-    score_ = Config::validHitBonus_*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
-    if(pt<0.9f) score_ -= 0.5f*Config::validHitBonus_*nfoundhits;
-    else if(nfoundhits>8) score_ += Config::validHitBonus_*nfoundhits;
-  }
-  */
-  ////// V1 of candidate score (after fix for counts of # missing hits):
-  // For high pT central tracks: 4x valid hit bonus and 0.25x missing hit penalty
-  /*
-  if(seedtype==1){
-    score_ = (Config::validHitBonus_*4.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits*0.25f - chi2;
-    if(pt<0.9f) score_ -= 0.25f*(Config::validHitBonus_)*nfoundhits;
-    if(nfoundhits>8) score_ += (Config::validHitBonus_*2.0f)*nfoundhits;
-  }
-  // For low pT endcap tracks: 2x valid hit bonus & 0.25x missing hit penalty
-  else if(seedtype==2){
-    score_ = (Config::validHitBonus_*2.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits*0.25f - chi2;
-    if(pt<0.9f) score_ -= 0.25f*(Config::validHitBonus_*0.5f)*nfoundhits;
-    if(nfoundhits>8) score_ += (Config::validHitBonus_*1.0f)*nfoundhits;
-  }
-  // For all other tracks: 4x cmssw bonus and unchanged missing hit penalty
-  else{
-    score_ = (Config::validHitBonus_*4.0f)*nfoundhits - Config::missingHitPenalty_*nmisshits - chi2;
-    if(pt<0.9f) score_ -= 0.2f*(Config::validHitBonus_)*nfoundhits;
-    if(nfoundhits>8) score_ += (Config::validHitBonus_)*nfoundhits;
-  }
-  */
   return score_;
 }
 

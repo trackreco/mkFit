@@ -18,6 +18,7 @@ namespace Config
 
   int maxCandsPerSeed  = 6; // cmssw tests: 6 (GC had 3) \_ set from geom plugin
   int maxHolesPerCand  = 2; // cmssw tests: 12           /
+  int maxConsecHoles   = 99; // cmssw tests: 12           /
 
   int maxCandsPerEtaBin; // Recalculated after config is read ... should be removed.
 
