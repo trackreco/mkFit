@@ -1281,7 +1281,7 @@ void MkBuilder::score_tracks(TrackVec& tracks)
 void MkBuilder::find_duplicates(TrackVec& tracks)
 {
   const auto ntracks = tracks.size();
-  float eta1, phi1, pt1, deta, dphi, maxpt, dr2;
+  float eta1, phi1, pt1, deta, dphi, dr2;
   if (ntracks == 0) {
     return;
   }
