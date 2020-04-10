@@ -71,9 +71,9 @@ void PlotBenchmarks::MakeOverlay(const TString & text, const TString & title, co
   if (!isVU && !isSpeedup) canv->SetLogy();
   
   // legend 
-  const Double_t x1 = (isSpeedup ? 0.20 : 0.60); // draw legend on left for speedup plots as this part is empty
+  const Double_t x1 = (isSpeedup ? 0.25 : 0.60); // draw legend on left for speedup plots as this part is empty
   const Double_t y1 = 0.65;
-  const Double_t ylength = builds.size()*0.05; // adjust size of legend for how many build routines we are plotting
+  const Double_t ylength = builds.size()*0.10; // adjust size of legend for how many build routines we are plotting
   auto leg = new TLegend(x1,y1,x1+0.25,y1+ylength);
   leg->SetBorderSize(0);  
 
@@ -130,6 +130,7 @@ void PlotBenchmarks::MakeOverlay(const TString & text, const TString & title, co
   // Save the png
   const TString outname = arch+"_"+sample+"_"+text;
   canv->SaveAs(outname+".png");
+  canv->SaveAs(outname+".root");
 
   // Save log-x version
   canv->SetLogx();
@@ -152,6 +153,7 @@ void PlotBenchmarks::MakeOverlay(const TString & text, const TString & title, co
   }
   canv->Update();
   canv->SaveAs(outname+"_logx.png");
+  canv->SaveAs(outname+"_logx.root");
 
   // delete everything
   for (auto i = 0U; i < nbuilds; i++)

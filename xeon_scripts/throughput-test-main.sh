@@ -8,14 +8,15 @@ ben_arch=${1} # SNB (phi1), KNL (phi2), SKL-SP (phi3)
 if [[ "${ben_arch}" == "KNL" ]]
 then
     mOpt="-j 64"
-    dir=/data1/work/slava77/samples
+    dir=/data1/work
+    #dir=/data2
     maxcore=64
     declare -a instruction_sets=(AVX512)
     declare -a thread_combo_arr=("1 1" "2 2" "4 4" "8 8" "16 16" "32 32" "64 64" "128 128" "256 256")
 elif [[ "${ben_arch}" == "SKL-SP" ]]
 then
     mOpt="-j 32"
-    dir=/data2/slava77/samples
+    dir=/data2
     maxcore=32
     declare -a instruction_sets=(AVX512)
     declare -a thread_combo_arr=("1 1" "2 2" "4 4" "8 8" "16 16" "32 32" "64 64")
@@ -29,7 +30,7 @@ then
 elif [[ "${ben_arch}" == "LNX-S" ]]
 then
     mOpt="-j 32"
-    dir=/data2/slava77/samples
+    dir=/data2
     maxcore=32
     declare -a instruction_sets=(AVX512)
     declare -a thread_combo_arr=("1 1" "2 2" "4 4" "8 8" "16 16" "32 32" "64 64")
@@ -40,8 +41,8 @@ fi
 
 
 ## Common file setup
-subdir=2017/pass-c93773a/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU
-file=memoryFile.fv3.clean.writeAll.CCC1620.recT.082418-25daeda.bin
+subdir=
+file=pu50-ccc-hs.bin
 #base_nevents=20 # 7/2 seconds
 base_nevents=5000 # 30/10 minutes
 

@@ -40,7 +40,8 @@ void PlotMEIFBenchmarks::RunMEIFBenchmarkPlots()
   PlotMEIFBenchmarks::MakeOverlay("time",build+" "+sample+" Multiple Events in Flight Benchmark on "+arch+" [nVU="+nvu+"]",xtitleth,ytitletime,
 				  arch_opt.thmin,arch_opt.thmax,arch_opt.thmeiftimemin,arch_opt.thmeiftimemax);
 
-  PlotMEIFBenchmarks::MakeOverlay("speedup",build+" "+sample+" Multiple Events in Flight Speedup on "+arch+" [nVU="+nvu+"]",xtitleth,ytitlespeedup,
+  // PlotMEIFBenchmarks::MakeOverlay("speedup",build+" "+sample+" Multiple Events in Flight Speedup on "+arch+" [nVU="+nvu+"]",xtitleth,ytitlespeedup,
+  PlotMEIFBenchmarks::MakeOverlay("speedup","Concurrent Event Scaling on "+arch,xtitleth,ytitlespeedup,
 				  arch_opt.thmin,arch_opt.thmax,arch_opt.thmeifspeedupmin,arch_opt.thmeifspeedupmax);
 }
 
@@ -58,10 +59,15 @@ void PlotMEIFBenchmarks::MakeOverlay(const TString & text, const TString & title
   canv->DrawFrame(xmin,ymin,xmax,ymax,"");
   
   // legend 
+  // const Double_t x1 = (isSpeedup ? 0.15 : 0.60);
   const Double_t x1 = (isSpeedup ? 0.20 : 0.60);
-  const Double_t y1 = 0.65;
-  auto leg = new TLegend(x1,y1,x1+0.25,y1+0.2);
+  // const Double_t y1 = (isSpeedup ? 0.55 : 0.63);
+  const Double_t y1 = (isSpeedup ? 0.715 : 0.63);
+  // auto leg = new TLegend(x1,y1,x1+0.20,y1+0.25);
+  // auto leg = new TLegend(x1,y1,x1+0.20,y1+0.30);
+  auto leg = new TLegend(x1,y1,x1+0.60,y1+0.14);
   leg->SetBorderSize(0);  
+  leg->SetNColumns(5);  
 
   // get tgraphs for meif and draw
   TGVec graphs(nevents);
@@ -77,6 +83,12 @@ void PlotMEIFBenchmarks::MakeOverlay(const TString & text, const TString & title
     {
       // restyle a bit
       graph->SetTitle(title+";"+xtitle+";"+ytitle);
+      // std::cout << "title size=" << graph->GetXaxis()->GetTitleSize() << std::endl;
+      // std::cout << "label size=" << graph->GetXaxis()->GetLabelSize() << std::endl;
+      graph->GetXaxis()->SetTitleSize(0.045);
+      graph->GetYaxis()->SetTitleSize(0.045);
+      graph->GetXaxis()->SetLabelSize(0.04);
+      graph->GetYaxis()->SetLabelSize(0.04);
 
       graph->SetLineWidth(2);
       graph->SetLineColor(event.color);
@@ -95,7 +107,7 @@ void PlotMEIFBenchmarks::MakeOverlay(const TString & text, const TString & title
   TF1 * scaling = NULL;
   if (isSpeedup)
   {
-    scaling = new TF1("ideal_scaling","x",arch_opt.thmin,arch_opt.thmeifspeedupmax);
+    scaling = new TF1("ideal_scaling","x",arch_opt.thmin,TMath::Min(80.,arch_opt.thmeifspeedupmax));
     scaling->SetLineColor(kBlack);
     scaling->SetLineStyle(kDashed);
     scaling->SetLineWidth(2);
@@ -109,6 +121,8 @@ void PlotMEIFBenchmarks::MakeOverlay(const TString & text, const TString & title
   // Save the png
   const TString outname = arch+"_"+sample+"_"+build+"_MEIF_"+text;
   canv->SaveAs(outname+".png");
+  canv->SaveAs(outname+".pdf");
+  canv->SaveAs(outname+".root");
   
   // Save log-x version
   canv->SetLogx();
@@ -125,6 +139,8 @@ void PlotMEIFBenchmarks::MakeOverlay(const TString & text, const TString & title
   }
   canv->Update();
   canv->SaveAs(outname+"_logx.png");
+  canv->SaveAs(outname+"_logx.pdf");
+  canv->SaveAs(outname+"_logx.root");
 
   // delete everything
   for (auto & graph : graphs) delete graph;

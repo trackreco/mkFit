@@ -128,6 +128,7 @@ function doVal()
     local bExe="${exe} ${vO} --build-${bO}"
     
     echo "${oBase}: ${vN} [nTH:${maxth}, nVU:${maxvu}int, nEV:${maxev}]"
+    echo "${bExe}"
     ${bExe} >& log_${oBase}_NVU${maxvu}int_NTH${maxth}_NEV${maxev}_${vN}.txt || (echo "Crashed on CMD: "${bExe}; exit 2)
     
     if (( ${maxev} > 1 ))
@@ -149,6 +150,7 @@ function plotVal()
 
     echo "Computing observables for: ${base} ${bN} ${pN}"
     bExe="root -b -q -l plotting/runValidation.C(\"_${base}_${bN}_${pN}\",${pO})"
+    echo "${bExe}"
     ${bExe} || (echo "Crashed on CMD: "${bExe}; exit 3)
 }
 
@@ -226,7 +228,7 @@ do echo ${!plot} | while read -r pN pO
 done
 
 ## Final cleanup
-make distclean ${mVal}
+#make distclean ${mVal}
 
 ## Final message
 echo "Finished physics validation!"

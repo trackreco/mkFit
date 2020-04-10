@@ -44,15 +44,20 @@ def makePlot(name, x, ys, ytitle,
     bounds = findBounds(x, ys, **bounds)
     frame = canv.DrawFrame(*bounds)
 
-    frame.GetXaxis().SetTitle("Number of threads")
+    frame.GetXaxis().SetTitle("Number of Threads")
     frame.GetYaxis().SetTitle(ytitle)
+    frame.GetXaxis().SetTitleSize(0.045);
+    frame.GetYaxis().SetTitleSize(0.045);
+    frame.GetYaxis().SetTitleOffset(0.92);
+    frame.GetXaxis().SetLabelSize(0.04);
+    frame.GetYaxis().SetLabelSize(0.04);
     if title is not None:
         frame.SetTitle(title)
     frame.Draw("")
 
     leg = None
     if legends is not None:
-        leg = ROOT.TLegend(0.77,legendYmax-0.19,0.99,legendYmax)
+        leg = ROOT.TLegend(0.77-0.2,legendYmax-0.19,0.99-0.2,legendYmax)
 
     graphs = []
 
@@ -87,6 +92,7 @@ def makePlot(name, x, ys, ytitle,
 
     canv.SaveAs(name+".png")
     canv.SaveAs(name+".pdf")
+    canv.SaveAs(name+".root")
 
 
 def main(argv):

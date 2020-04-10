@@ -123,7 +123,7 @@ namespace
       arch_opt.vuspeedupmax = arch_opt.vumax;
 
       arch_opt.thspeedupmin = 0.;
-      arch_opt.thspeedupmax = 80.;
+      arch_opt.thspeedupmax = 105.;//80.;
 
       arch_opt.thmeiftimemin = 0.001;
       arch_opt.thmeiftimemax = arch_opt.thtimemax;
@@ -145,8 +145,8 @@ namespace
       arch_opt.thtimemin = 0.0001;
       arch_opt.thtimemax = 1.;
 
-      arch_opt.vuspeedupmin = 0.;
-      arch_opt.vuspeedupmax = arch_opt.vumax;
+      arch_opt.vuspeedupmin = 1.;
+      arch_opt.vuspeedupmax = 4;//arch_opt.vumax;
 
       arch_opt.thspeedupmin = 0.;
       arch_opt.thspeedupmax = arch_opt.thmax / 2;
@@ -155,7 +155,7 @@ namespace
       arch_opt.thmeiftimemax = arch_opt.thtimemax;
 
       arch_opt.thmeifspeedupmin = 0.;
-      arch_opt.thmeifspeedupmax = arch_opt.thspeedupmax;
+      arch_opt.thmeifspeedupmax = 40.;//arch_opt.thspeedupmax;
     }
     else if (ARCH == LNXG)
     {
