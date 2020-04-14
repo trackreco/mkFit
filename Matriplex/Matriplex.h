@@ -100,7 +100,8 @@ public:
 
 #if defined(MIC_INTRINSICS)
 
-   void SlurpIn(const T *arr, __m512i& vi, int scale, const int N_proc = N)
+   template<typename U>
+   void SlurpIn(const T *arr, __m512i& vi, const U&, const int N_proc = N)
    {
       //_mm512_prefetch_i32gather_ps(vi, arr, 1, _MM_HINT_T0);
 
@@ -111,7 +112,7 @@ public:
       {
          //_mm512_prefetch_i32gather_ps(vi, arr+2, 1, _MM_HINT_NTA);
 
-         __m512 reg = _mm512_mask_i32gather_ps(src, k, vi, arr, scale);
+         __m512 reg = _mm512_mask_i32gather_ps(src, k, vi, arr, sizeof(U));
          _mm512_mask_store_ps(&fArray[i*N], k, reg);
       }
    }
@@ -159,7 +160,8 @@ public:
 
 #elif defined(AVX2_INTRINSICS)
 
-   void SlurpIn(const T *arr, __m256i& vi, int scale, const int N_proc = N)
+   template<typename U>
+   void SlurpIn(const T *arr, __m256i& vi, const U&, const int N_proc = N)
    {
       // Casts to float* needed to "support" also T=HitOnTrack.
       // Not needed for AVX_512 (?).
@@ -178,7 +180,7 @@ public:
       k = k_master;
       for (int i = 0; i < kSize; ++i, ++arr)
       {
-         __m256 reg = _mm256_mask_i32gather_ps(src, (float*) arr, vi, (__m256) k, scale);
+         __m256 reg = _mm256_mask_i32gather_ps(src, (float*) arr, vi, (__m256) k, sizeof(U));
          // Restore mask (docs say gather clears it but it doesn't seem to).
          k = k_master;
          _mm256_maskstore_ps((float*) &fArray[i*N], k, reg);

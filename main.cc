@@ -21,51 +21,6 @@ using namespace mkfit;
 
 //#define CYLINDER
 
-#ifdef WITH_USOLIDS
-#ifdef CYLINDER
-#include "USolids/include/UTubs.hh"
-#else
-#include "USolids/include/UPolyhedra.hh"
-#include "USolids/include/USphere.hh"
-#endif
-
-void initGeom(Geometry& geom)
-{
-#ifdef CYLINDER
-  std::cout << "Constructing USolids Cylinder geometry" << std::endl;
-#else
-  std::cout << "Constructing USolids Polyhedral geometry" << std::endl;
-#endif
-
-  // NB: we currently assume that each node is a layer, and that layers
-  // are added starting from the center
-  for (int l = 0; l < Config::nLayers; l++) {
-    float r = (l+1)*Config::fRadialSpacing;
-    float z = (Config::fRadialSpacing * Config::nLayers) / std::tan(2.0*std::atan(std::exp(-Config::fEtaDet))); // calculate z extent based on eta for the last radius (used to be based on layer radius)
-#ifdef CYLINDER
-    std::string s = "Cylinder" + std::string(1, 48+l);
-    UTubs* utub = new UTubs(s, r, r+Config::fRadialExtent, z, 0, Config::TwoPI);
-    geom.AddLayer(utub,r,z);
-#else
-    float xs = 0.;
-    if ( l < 5 ) {
-      xs = Config::fInnerSensorSize;
-    }
-    else if ( l >= 5 ) { // bigger sensors in outer layers
-      xs = Config::fOuterSensorSize;
-    }
-    int nsectors = int(Config::TwoPI/(2*atan2(xs/2,r))); // keep ~constant sensors size
-    std::cout << "l = " << l << ", nsectors = "<< nsectors << std::endl;
-    std::string s = "PolyHedra" + std::string(1, 48+l);
-    const double zPlane[] = {-z,z};
-    const double rInner[] = {r,r};
-    const double rOuter[] = {r+Config::fRadialExtent,r+Config::fRadialExtent};
-    UPolyhedra* upolyh = new UPolyhedra(s, 0, Config::TwoPI, nsectors, 2, zPlane, rInner, rOuter);
-    geom.AddLayer(upolyh, r, z);
-#endif
-  }
-}
-#else
 void initGeom(Geometry& geom)
 {
   std::cout << "Constructing SimpleGeometry Cylinder geometry" << std::endl;
@@ -80,7 +35,6 @@ void initGeom(Geometry& geom)
     geom.AddLayer(utub, r, z);
   }
 }
-#endif
 
 typedef std::chrono::time_point<std::chrono::system_clock> timepoint;
 typedef std::chrono::duration<double> tick;

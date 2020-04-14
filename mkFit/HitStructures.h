@@ -332,7 +332,7 @@ inline bool sortByScoreTrackCand(const TrackCand & cand1, const TrackCand & cand
   return cand1.score() > cand2.score();
 }
 
-inline int getScoreCand(const TrackCand& cand1)
+inline float getScoreCand(const TrackCand& cand1)
 {
   unsigned int seedtype = cand1.getSeedTypeForRanking();
   int nfoundhits = cand1.nFoundHits();

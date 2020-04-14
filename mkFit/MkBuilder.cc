@@ -1281,7 +1281,7 @@ void MkBuilder::score_tracks(TrackVec& tracks)
 void MkBuilder::find_duplicates(TrackVec& tracks)
 {
   const auto ntracks = tracks.size();
-  float eta1, phi1, pt1, deta, dphi, maxpt, dr2;
+  float eta1, phi1, pt1, deta, dphi, dr2;
   if (ntracks == 0) {
     return;
   }
@@ -1312,10 +1312,10 @@ void MkBuilder::find_duplicates(TrackVec& tracks)
       }
       else
       {
-        maxpt = std::max(pt1,track2.pT());
-        if(maxpt ==0) continue;
+        if(pt1 ==0) continue;
+        if(track2.pT() ==0) continue;
 
-        if(std::abs(track2.pT() - pt1)/maxpt < Config::maxdPt)
+        if(std::abs((1/track2.pT()) - (1/pt1)) < Config::maxdPt)
         {
           if(Config::useHitsForDuplicates)
           {

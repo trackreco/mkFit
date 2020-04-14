@@ -18,6 +18,7 @@ namespace Config
 
   int maxCandsPerSeed  = 6; // cmssw tests: 6 (GC had 3) \_ set from geom plugin
   int maxHolesPerCand  = 2; // cmssw tests: 12           /
+  int maxConsecHoles   = 99; // cmssw tests: 12           /
 
   int maxCandsPerEtaBin; // Recalculated after config is read ... should be removed.
 
@@ -87,8 +88,8 @@ namespace Config
 
   bool  removeDuplicates = false;
   bool  useHitsForDuplicates = true;
-  float maxdPhi = 0.4;
-  float maxdPt  = 0.7;
+  float maxdPhi = 0.5;
+  float maxdPt  = 0.5;
   float maxdEta = 0.05;
   float minFracHitsShared = 0.75;
   float maxdRSquared = 0.000001; //corresponds to maxdR of 0.001

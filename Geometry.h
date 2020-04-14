@@ -4,11 +4,7 @@
 #include <vector>
 #include "Matrix.h"
 
-#ifdef WITH_USOLIDS
-#include "USolids/include/VUSolid.hh"
-#else
 #include "SimpleGeom.h"
-#endif
 
 namespace mkfit {
 

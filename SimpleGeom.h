@@ -6,7 +6,6 @@
 // MT XXXX: Should SVector3 base class really be the double
 //          version (probably is float right now).
 
-#ifndef WITH_USOLIDS
 namespace mkfit {
 class UVector3 : public SVector3
 {
@@ -77,4 +76,4 @@ public:
 };
 } // end namespace mkfit
 #endif
-#endif
+

@@ -455,7 +455,7 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
        const float r = msRad(n, 0, 0);
        propSign(n, 0, 0) = (r>r0 ? 1. : -1.);
      }
-     applyMaterialEffects(hitsRl, hitsXi, propSign, outErr, outPar, N_proc);
+     applyMaterialEffects(hitsRl, hitsXi, propSign, outErr, outPar, N_proc, true);
    }
 
    squashPhiMPlex(outPar,N_proc); // ensure phi is between |pi|
@@ -556,7 +556,7 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
        const float zin   = inPar.ConstAt(n, 2, 0);
        propSign(n, 0, 0) = (std::abs(zout)>std::abs(zin) ? 1. : -1.);
      }
-     applyMaterialEffects(hitsRl, hitsXi, propSign, outErr, outPar, N_proc);
+     applyMaterialEffects(hitsRl, hitsXi, propSign, outErr, outPar, N_proc, false);
    }
 
    squashPhiMPlex(outPar,N_proc); // ensure phi is between |pi|
@@ -704,7 +704,7 @@ void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
 
 void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, const MPlexQF& propSign,
                                 MPlexLS &outErr,       MPlexLV& outPar,
-                          const int      N_proc)
+                          const int      N_proc, const bool isBarrel)
 {
 #pragma omp simd
   for (int n = 0; n < NN; ++n)
@@ -712,7 +712,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, const MP
       float radL = hitsRl.ConstAt(n,0,0);
       if (radL < 1e-13f) continue;//ugly, please fixme
       const float theta = outPar.ConstAt(n,5,0);
-      const float pt = 1.f/outPar.ConstAt(n,3,0);
+      const float pt = 1.f/outPar.ConstAt(n,3,0);//fixme, make sure it is positive?
       const float p = pt/std::sin(theta);
       const float p2 = p*p;
       constexpr float mpi = 0.140; // m=140 MeV, pion
@@ -721,21 +721,27 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, const MP
       const float beta = std::sqrt(beta2);
       //radiation lenght, corrected for the crossing angle (cos alpha from dot product of radius vector and momentum)
       const float invCos = p/pt;
+      // const float invCos = (isBarrel ? p/pt : 1./std::abs(std::cos(theta)) );
       radL = radL * invCos; //fixme works only for barrel geom
       // multiple scattering
       //vary independently phi and theta by the rms of the planar multiple scattering angle
       // XXX-KMD radL < 0, see your fixme above! Repeating bailout
       if (radL < 1e-13f) continue;
-      const float thetaMSC = 0.0136f*std::sqrt(radL)*(1.f+0.038f*std::log(radL))/(beta*p);// eq 32.15
-      const float thetaMSC2 = thetaMSC*thetaMSC;
+      // const float thetaMSC = 0.0136f*std::sqrt(radL)*(1.f+0.038f*std::log(radL))/(beta*p);// eq 32.15
+      // const float thetaMSC2 = thetaMSC*thetaMSC;
+      const float thetaMSC = 0.0136f*(1.f+0.038f*std::log(radL))/(beta*p);// eq 32.15
+      const float thetaMSC2 = thetaMSC*thetaMSC*radL;
       outErr.At(n, 4, 4) += thetaMSC2;
+      // outErr.At(n, 4, 5) += thetaMSC2;
       outErr.At(n, 5, 5) += thetaMSC2;
       //std::cout << "beta=" << beta << " p=" << p << std::endl;
       //std::cout << "multiple scattering thetaMSC=" << thetaMSC << " thetaMSC2=" << thetaMSC2 << " radL=" << radL << std::endl;
       // energy loss
       // XXX-KMD beta2 = 1 => 1 / sqrt(0)
-      const float gamma = 1.f/std::sqrt(1.f - std::min(beta2, 0.999999f));
-      const float gamma2 = gamma*gamma;
+      // const float gamma = 1.f/std::sqrt(1.f - std::min(beta2, 0.999999f));
+      // const float gamma2 = gamma*gamma;
+      const float gamma2 = (p2+mpi2)/mpi2;
+      const float gamma = std::sqrt(gamma2);//1.f/std::sqrt(1.f - std::min(beta2, 0.999999f));
       constexpr float me = 0.0005; // m=0.5 MeV, electron
       const float wmax = 2.f*me*beta2*gamma2 / ( 1.f + 2.f*gamma*me/mpi + me*me/(mpi*mpi) );
       constexpr float I = 16.0e-9 * 10.75;

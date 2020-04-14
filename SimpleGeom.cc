@@ -1,4 +1,3 @@
-#ifndef WITH_USOLIDS
 #include "SimpleGeom.h"
 
 namespace mkfit {
@@ -101,4 +100,4 @@ double UVector3::Normalize()
 }
 
 } // end namespace mkfit
-#endif
+
