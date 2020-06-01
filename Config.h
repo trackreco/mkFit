@@ -313,6 +313,12 @@ namespace Config
   extern bool sim_val_for_cmssw;
   extern bool sim_val;
   extern bool cmssw_val;
+  //options under cmssw_val
+  extern bool cmsswval_simmatch;
+  extern bool cmsswval_simsignalmatch;
+  extern bool cmsswval_nosimmatch;
+  extern bool cmsswval_mkfiteff;
+  //
   extern bool cmssw_export;
   extern bool fit_val;
   extern bool readSimTrackStates; // need this to fill pulls

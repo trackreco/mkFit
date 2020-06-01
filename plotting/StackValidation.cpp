@@ -1,7 +1,7 @@
 #include "StackValidation.hh"
 
-StackValidation::StackValidation(const TString & label, const TString & extra, const Bool_t cmsswComp, const TString & suite)
-  : label(label), extra(extra), cmsswComp(cmsswComp), suite(suite)
+StackValidation::StackValidation(const TString & label, const TString & extra, const Bool_t cmsswComp, const TString & suite, const Bool_t cmsswFRTree = true)
+  : label(label), extra(extra), cmsswComp(cmsswComp), suite(suite), cmsswFRTree(cmsswFRTree)
 {
   // setup style for plotting
   setupStyle();
@@ -30,7 +30,7 @@ StackValidation::StackValidation(const TString & label, const TString & extra, c
   setupRef(cmsswComp);
 
   // setup rates
-  setupRates(cmsswComp);
+  setupRates(cmsswComp,cmsswFRTree);
 
   // setup ptcuts
   setupPtCuts();
@@ -44,14 +44,22 @@ StackValidation::~StackValidation()
 void StackValidation::MakeValidationStacks()
 {
   StackValidation::MakeRatioStacks("build");
-  StackValidation::MakeKinematicDiffStacks("build");
-  StackValidation::MakeQualityStacks("build");
+  if (cmsswComp && !cmsswFRTree) std::cout << "no histos" << std::endl;  
+  else{
+      std::cout << "other histos" << std::endl;  
+      StackValidation::MakeKinematicDiffStacks("build");
+      StackValidation::MakeQualityStacks("build");
+      
+  }
 
   if (cmsswComp)
   {    
     StackValidation::MakeRatioStacks("fit");
+    if (cmsswFRTree){
     StackValidation::MakeKinematicDiffStacks("fit");
     StackValidation::MakeQualityStacks("fit");
+        
+    }
   }
 }
 

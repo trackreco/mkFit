@@ -1020,6 +1020,24 @@ int main(int argc, const char *argv[])
       next_arg_or_die(mArgs, i);
       setOpt(*i,Config::cmsswMatchingBK,g_match_opts,"CMSSW validation track matching for backward fit tracks");
     }
+    //matching opts under cmssw_val
+    else if (*i == "--cmssw-val-simmatch")
+    {
+      Config::cmsswval_simmatch = true;
+    }
+    else if (*i == "--cmssw-val-simsignalmatch")
+    {
+      Config::cmsswval_simsignalmatch = true;
+    }
+    else if (*i == "--cmssw-val-nomatch")
+    {
+      Config::cmsswval_nosimmatch = true;
+    }
+    else if (*i == "--cmssw-val-mkfiteff")
+    {
+      Config::cmsswval_mkfiteff = true;    
+    }
+    //matching opts under cmssw_val
     else if (*i == "--inc-shorts")
     {
       Config::inclusiveShorts = true;

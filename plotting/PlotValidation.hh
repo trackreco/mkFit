@@ -53,7 +53,7 @@ class PlotValidation
 {
 public:
   PlotValidation(const TString & inName, const TString & outName, const Bool_t cmsswComp,
-		 const Bool_t mvInput, const Bool_t saveAs, const TString & outType);
+		 const Bool_t mvInput, const Bool_t saveAs, const TString & outType, const Bool_t cmsswFRTree);
   ~PlotValidation();
   
   // setup functions
@@ -68,6 +68,7 @@ public:
   void PlotEffTree();
   void PlotFRTree();
   void PrintTotals();
+  void PrintTotalsEff();
 
   // output functions
   template <typename T>
@@ -83,6 +84,7 @@ private:
   // input+output config
   const TString fInName;
   const Bool_t  fCmsswComp;
+  const Bool_t  fcmsswFRTree;
   const Bool_t  fMvInput;
   const Bool_t  fSaveAs;
   const TString fOutType;

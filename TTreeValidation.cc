@@ -27,6 +27,7 @@ TTreeValidation::TTreeValidation(std::string fileName)
   if (Config::cmssw_val)
   {
     TTreeValidation::initializeCMSSWEfficiencyTree();
+    //if (Config::cmsswval_mkfiteff)
     TTreeValidation::initializeCMSSWFakeRateTree();
   }
   if (Config::fit_val) 
@@ -825,9 +826,11 @@ void TTreeValidation::setTrackExtras(Event& ev)
     // store mcTrackID and seedID correctly
     storeSeedAndMCID(ev);
 
+    const auto& simhits = ev.simHitsInfo_;
+    const auto& simtracks = ev.simTracks_;
     const auto& cmsswtracks = ev.cmsswTracks_;
-    const auto& cmsswextras = ev.cmsswTracksExtra_;
-    const auto& seedtracks = ev.seedTracks_;
+          auto& cmsswextras = ev.cmsswTracksExtra_;
+    const auto& seedtracks  = ev.seedTracks_;
     const auto& buildtracks = ev.candidateTracks_;
           auto& buildextras = ev.candidateTracksExtra_;
     const auto& fittracks   = ev.fitTracks_;
@@ -837,7 +840,15 @@ void TTreeValidation::setTrackExtras(Event& ev)
     RedTrackVec reducedCMSSW;
     LayIdxIDVecMapMap cmsswHitIDMap;
     setupCMSSWMatching(ev,reducedCMSSW,cmsswHitIDMap);
-
+    
+    //set mcTrackID for cmssw tracks
+    for (int itrack = 0; itrack < (int) cmsswtracks.size(); itrack++)
+    {
+      const auto& track = cmsswtracks[itrack];
+            auto& extra = cmsswextras[itrack];
+      extra.setMCTrackIDInfoCMSSW(track, layerhits, simhits, simtracks); 
+    }
+    
     // set cmsswTrackID for built tracks
     for (int itrack = 0; itrack < (int) buildtracks.size(); itrack++)
     {
@@ -849,7 +860,7 @@ void TTreeValidation::setTrackExtras(Event& ev)
 
       if (Config::cmsswMatchingFW == trkParamBased)
       {	
-	extra.setCMSSWTrackIDInfoByTrkParams(track, layerhits, cmsswtracks, reducedCMSSW, true);
+	extra.setCMSSWTrackIDInfoByTrkParams(track, layerhits, cmsswtracks, reducedCMSSW, false);
       }
       else if (Config::cmsswMatchingFW == hitBased)
       {
@@ -2364,9 +2375,10 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
   const auto& evt_fit_tracks   = ev.fitTracks_;
   const auto& evt_fit_extras   = ev.fitTracksExtra_;
   const auto& evt_layer_hits   = ev.layerHits_;
-
+  
   for (const auto& cmsswtrack : evt_cmssw_tracks)
   {
+
     // clear hit info
     if (Config::keepHitInfo)
     {
@@ -2384,6 +2396,10 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
     }
 
     const auto& cmsswextra = evt_cmssw_extras[cmsswtrack.label()];
+    
+    //options of cmssw_val-> change in the denominator set
+    if (Config::cmsswval_simmatch||Config::cmsswval_simsignalmatch){if (cmsswextra.mcTrackID()<0) continue;}
+    if (Config::cmsswval_nosimmatch){if (cmsswextra.mcTrackID()>=0) continue;}
     
     evtID_ceff_        = ievt;
     cmsswID_ceff_      = cmsswtrack.label();

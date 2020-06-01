@@ -29,9 +29,9 @@
 // h at the start == a different string version
 
 PlotValidation::PlotValidation(const TString & inName, const TString & outName, const Bool_t cmsswComp,
-			       const Bool_t mvInput, const Bool_t saveAs, const TString & outType)
+			       const Bool_t mvInput, const Bool_t saveAs, const TString & outType, const Bool_t cmsswFRTree)
   : fInName(inName), fOutName(outName), fCmsswComp(cmsswComp),
-    fMvInput(mvInput), fSaveAs(saveAs), fOutType(outType)
+    fMvInput(mvInput), fSaveAs(saveAs), fOutType(outType), fcmsswFRTree(cmsswFRTree)
 {
   // Setup 
   PlotValidation::SetupStyle();
@@ -62,11 +62,22 @@ void PlotValidation::Validation()
   std::cout << "Computing Efficiency, Inefficiency, and Duplicate Rate ..." << std::endl;
   PlotValidation::PlotEffTree();
   
-  std::cout << "Computing Fake Rate, <nHits/track>, and kinematic diffs to " << fSRefTitle.Data() << " tracks ..." << std::endl;
-  PlotValidation::PlotFRTree();
+  if(fCmsswComp && !fcmsswFRTree)
+  {
+      std::cout << "NO Computing Fake Rate, <nHits/track>, and kinematic diffs to " << fSRefTitle.Data() << " tracks ..." << std::endl;
+      std::cout << "Printing Totals Eff only ..." << std::endl;
+      PlotValidation::PrintTotalsEff();
+   }
+  else
+  {
+      std::cout << "Computing Fake Rate, <nHits/track>, and kinematic diffs to " << fSRefTitle.Data() << " tracks ..." << std::endl;
+      PlotValidation::PlotFRTree();
+      std::cout << "Printing Totals ..." << std::endl;
+      PlotValidation::PrintTotals();
+      
+  }
   
-  std::cout << "Printing Totals ..." << std::endl;
-  PlotValidation::PrintTotals();
+  
   
   if (fMvInput) PlotValidation::MoveInput();
 }
@@ -373,8 +384,8 @@ void PlotValidation::PlotFRTree()
 
 	// plot names and key
 	const TString plotkey   = Form("%i_%i_%i",i,j,k);
-	const TString plotname  = "fr_reco_"+var+"_"+trk+"_pt"+hptcut;
-	const TString plottitle = strk+" Track Fake Rate vs Reco "+svar+" {"+fSVarPt+" > "+sptcut+" "+fSUnitPt+"};"+svar+sunit+";Fake Rate";
+	const TString plotname  = fCmsswComp?"mkfiteff_reco_"+var+"_"+trk+"_pt"+hptcut:"fr_reco_"+var+"_"+trk+"_pt"+hptcut;
+    const TString plottitle = fCmsswComp?strk+" Track mkfit-cmssw Eff vs Reco "+svar+" {"+fSVarPt+" > "+sptcut+" "+fSUnitPt+"};"+svar+sunit+";mkfit-cmssw Eff":strk+" Track Fake Rate vs Reco "+svar+" {"+fSVarPt+" > "+sptcut+" "+fSUnitPt+"};"+svar+sunit+";Fake Rate";
 
 	// get bins for the variable of interest
 	const auto & varbins  = fVarBins[i];
@@ -632,7 +643,11 @@ void PlotValidation::PlotFRTree()
 	  const TString plotkey = Form("%i_%i_%i",i,j,k);
 
 	  // can include masks of 1,0,2 to enter denominator
-	  if (refmask_trk >= 0) plots[plotkey]->Fill((refmask_trk == 0),var_trk); // only completely unassociated reco tracks enter FR
+	  if (refmask_trk >= 0) 
+      {
+          if (fCmsswComp) plots[plotkey]->Fill((refmask_trk > 0),var_trk);              
+          else plots[plotkey]->Fill((refmask_trk == 0),var_trk);// only completely unassociated reco tracks enter FR          
+       } 
 	} // end loop over vars 
     
 	// base hist key
@@ -773,13 +788,13 @@ void PlotValidation::PrintTotals()
   //                --> numer/denom plots for phi, know it will be in the bounds.                       //
   ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  const TStrVec rates    = {"eff","fr","dr"};
-  const TStrVec srates   = {"Efficiency","Fake Rate","Duplicate Rate"};
+  const TStrVec rates    = {"eff",fCmsswComp?"mkfiteff":"fr","dr"};
+  const TStrVec srates   = {"Efficiency",fCmsswComp?"Mkfit-CMSSW Eff":"Fake Rate","Duplicate Rate"};
   const TStrVec dirnames = {"efficiency","fakerate","duplicaterate"};
   const TStrVec types    = (fCmsswComp ? TStrVec{"cmssw","reco","cmssw"} : TStrVec{"sim","reco","sim"}); // types will be same size as rates!
   const UInt_t  nrates   = rates.size();
 
-  const TStrVec snumers = {fSRefTitle+" Tracks Matched","Unmatched Reco Tracks",fSRefTitle+" Tracks Matched (nTimes>1)"};
+  const TStrVec snumers = {fSRefTitle+" Tracks Matched",fCmsswComp?"CMSSW matched Reco Tracks":"Unmatched Reco Tracks",fSRefTitle+" Tracks Matched (nTimes>1)"};
   const TStrVec sdenoms = {"Eligible "+fSRefTitle+" Tracks","Eligible Reco Tracks","Eligible "+fSRefTitle+" Tracks"};
 
   TEffRefMap plots;
@@ -928,6 +943,136 @@ void PlotValidation::PrintTotals()
 
   // delete everything
   for (auto & hist : hists) delete hist.second;
+  for (auto & plot : plots) delete plot.second;
+}
+
+void PlotValidation::PrintTotalsEff()
+{
+  ///////////////////////////////////////////////
+  // Get number of events and number of tracks //
+  ///////////////////////////////////////////////
+  auto efftree = (TTree*)fInRoot->Get((fCmsswComp?"cmsswefftree":"efftree"));
+
+  Int_t Nevents = 0;
+  Int_t evtID = 0; TBranch * b_evtID = 0; efftree->SetBranchAddress("evtID",&evtID,&b_evtID);
+  const UInt_t nentries = efftree->GetEntries();
+  for (auto e = 0U; e < nentries; e++)
+  {
+    b_evtID->GetEntry(e);
+    if (evtID > Nevents) Nevents = evtID;
+  }
+
+  const Int_t   NtracksMC   = efftree->GetEntries(); 
+  const Float_t ntkspevMC   = Float_t(NtracksMC) / Float_t(Nevents); 
+
+  delete efftree;
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Print out totals of nHits, frac of Hits shared, track score, eff, FR, DR rate of seeds, build, fit //
+  //                --> numer/denom plots for phi, know it will be in the bounds.                       //
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  const TStrVec rates    = {"eff","dr"};
+  const TStrVec srates   = {"Efficiency","Duplicate Rate"};
+  const TStrVec dirnames = {"efficiency","duplicaterate"};
+  const TStrVec types    = (fCmsswComp ? TStrVec{"cmssw","cmssw"} : TStrVec{"sim","sim"}); // types will be same size as rates!
+  const UInt_t  nrates   = rates.size();
+
+  const TStrVec snumers = {fSRefTitle+" Tracks Matched",fSRefTitle+" Tracks Matched (nTimes>1)"};
+  const TStrVec sdenoms = {"Eligible "+fSRefTitle+" Tracks","Eligible "+fSRefTitle+" Tracks"};
+
+  TEffRefMap plots;
+  for (auto j = 0U; j < fNTrks; j++) 
+  {
+    const auto & trk = fTrks[j];
+
+    for (auto k = 0U; k < fNPtCuts; k++)
+    {
+      const auto & hptcut = fHPtCuts[k];
+
+      for (auto l = 0U; l < nrates; l++) 
+      {
+	const auto & rate    = rates   [l];
+	const auto & type    = types   [l];
+	const auto & dirname = dirnames[l];
+
+	const TString plotkey  = Form("%i_%i_%i",j,k,l);
+	const TString plotname = dirname+fSRefDir+"/"+rate+"_"+type+"_phi_"+trk+"_pt"+hptcut;
+	plots[plotkey] = (TEfficiency*)fOutRoot->Get(plotname.Data());
+      }
+    }
+  }
+
+  // setup output stream
+  const TString outfilename = fOutName+"/totals_"+fOutName+fSRefOut+".txt";
+  std::ofstream totalsout(outfilename.Data());
+
+  std::cout << "--------Track Reconstruction Summary--------" << std::endl;
+  std::cout << "nEvents: " << Nevents << Form(" n%sTracks/evt: ",fSRefTitle.Data()) << ntkspevMC  << std::endl;
+  std::cout << "++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+  std::cout << std::endl;
+
+  totalsout << "--------Track Reconstruction Summary--------" << std::endl;
+  totalsout << "nEvents: " << Nevents << Form(" n%sTracks/evt: ",fSRefTitle.Data()) << ntkspevMC  << std::endl;
+  totalsout << "++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+  totalsout << std::endl;
+
+  for (auto k = 0U; k < fNPtCuts; k++)
+  {
+    const auto & ptcut = fPtCuts[k];
+
+    std::cout << Form("xxxxxxxxxx Track pT > %3.1f Cut xxxxxxxxxx",ptcut) << std::endl;
+    std::cout << std::endl;
+
+    totalsout << Form("xxxxxxxxxx Track pT > %3.1f Cut xxxxxxxxxx",ptcut) << std::endl;
+    totalsout << std::endl;
+  
+    for (auto j = 0U; j < fNTrks; j++)
+    {
+      const auto & strk = fSTrks[j];
+
+      std::cout << strk.Data() << " Tracks" << std::endl;
+      std::cout << "++++++++++++++++++++++++++++++++++++++++++" << std::endl << std::endl;
+      std::cout << "Quality Info for " << strk.Data() << " Track Collections" << std::endl;
+      std::cout << "==========================================" << std::endl;
+      
+      totalsout << strk.Data() << " Tracks" << std::endl;
+      totalsout << "++++++++++++++++++++++++++++++++++++++++++" << std::endl << std::endl;
+      totalsout << "Quality Info for " << strk.Data() << " Track Collections" << std::endl;
+      totalsout << "==========================================" << std::endl;
+      
+      std::cout << std::endl << "Rates for " << strk.Data() << " Tracks" << std::endl;
+      std::cout << "==========================================" << std::endl;
+
+      totalsout << std::endl << "Rates for " << strk.Data() << " Tracks" << std::endl;
+      totalsout << "==========================================" << std::endl;
+      for (auto l = 0U; l < nrates; l++)
+      {
+	const auto & snumer = snumers[l];
+	const auto & sdenom = sdenoms[l];
+	const auto & srate  = srates [l];
+
+	EffStruct effs;
+	PlotValidation::GetTotalEfficiency(plots[Form("%i_%i_%i",j,k,l)],effs);
+	
+	std::cout << snumer.Data() << ": " << effs.passed_ << std::endl;
+	std::cout << sdenom.Data() << ": " << effs.total_  << std::endl;
+	std::cout << "------------------------------------------" << std::endl;
+	std::cout << srate.Data() << ": " << effs.eff_ << ", -" << effs.elow_ << ", +" << effs.eup_ << std::endl;
+	std::cout << "------------------------------------------" << std::endl;
+	
+	totalsout << snumer.Data() << ": " << effs.passed_ << std::endl;
+	totalsout << sdenom.Data() << ": " << effs.total_  << std::endl;
+	totalsout << "------------------------------------------" << std::endl;
+	totalsout << srate.Data() << ": " << effs.eff_ << ", -" << effs.elow_ << ", +" << effs.eup_ << std::endl;
+	totalsout << "------------------------------------------" << std::endl;
+      }
+      std::cout << std::endl << std::endl;
+      totalsout << std::endl << std::endl;
+    }
+  }
+
+  // delete everything
   for (auto & plot : plots) delete plot.second;
 }
 

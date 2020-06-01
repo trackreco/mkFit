@@ -351,7 +351,7 @@ void Event::Validate()
     validation_.setTrackExtras(*this);
     validation_.makeCMSSWTkToRecoTksMaps(*this);
     validation_.fillCMSSWEfficiencyTree(*this);
-    validation_.fillCMSSWFakeRateTree(*this);
+    if (Config::cmsswval_mkfiteff) validation_.fillCMSSWFakeRateTree(*this);
   }
 
   if (Config::fit_val) { // fit val for z-phi tuning

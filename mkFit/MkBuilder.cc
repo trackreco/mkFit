@@ -1137,6 +1137,7 @@ void MkBuilder::root_val()
   // sort hits + make extras, align if needed
   prep_recotracks();
   if (Config::cmssw_val) prep_cmsswtracks();
+//   if (Config::cmssw_val) prep_simtracks();
 
   // validate
   m_event->Validate();

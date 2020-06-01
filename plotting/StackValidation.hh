@@ -30,13 +30,14 @@ namespace
 
   ROVec rates;
   UInt_t nrates;
-  void setupRates(const Bool_t cmsswComp)
+  void setupRates(const Bool_t cmsswComp, const Bool_t cmsswFRTree)
   {
     rates.emplace_back("efficiency",ref,"eff");
     rates.emplace_back("inefficiency",ref,"ineff_brl");
     rates.emplace_back("inefficiency",ref,"ineff_trans");
     rates.emplace_back("inefficiency",ref,"ineff_ec");
-    rates.emplace_back("fakerate","reco","fr");
+    if (cmsswComp && !cmsswFRTree) std::cout << "no fr" << std::endl;
+    else rates.emplace_back("fakerate","reco",cmsswComp?"mkfiteff":"fr");
     rates.emplace_back("duplicaterate",ref,"dr");
 
     // set nrates after rates is set
@@ -64,7 +65,7 @@ namespace
 class StackValidation
 {
 public:
-  StackValidation(const TString & label, const TString & extra, const Bool_t cmsswComp, const TString & suite);
+  StackValidation(const TString & label, const TString & extra, const Bool_t cmsswComp, const TString & suite, const Bool_t cmsswFRTree);
   ~StackValidation();
   void MakeValidationStacks();
   void MakeRatioStacks(const TString & trk);
@@ -75,6 +76,7 @@ private:
   const TString label;
   const TString extra;
   const Bool_t cmsswComp;
+  const Bool_t cmsswFRTree;
   const TString suite;
 
   // legend height
