@@ -1037,6 +1037,11 @@ int main(int argc, const char *argv[])
     {
       Config::cmsswval_mkfiteff = true;    
     }
+    else if (*i == "--cmssw-val-mkfiteffsimsignal")
+    {
+      Config::cmsswval_mkfiteff = true;
+      Config::cmsswval_mkfiteffsimsignal = true;    
+    }
     //matching opts under cmssw_val
     else if (*i == "--inc-shorts")
     {

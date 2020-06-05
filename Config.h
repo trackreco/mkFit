@@ -318,6 +318,7 @@ namespace Config
   extern bool cmsswval_simsignalmatch;
   extern bool cmsswval_nosimmatch;
   extern bool cmsswval_mkfiteff;
+  extern bool cmsswval_mkfiteffsimsignal;
   //
   extern bool cmssw_export;
   extern bool fit_val;

@@ -345,7 +345,7 @@ void TrackExtra::setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& l
 {
   dprintf("TrackExtra::setMCTrackIDInfo for track with label %d, total hits %d, found hits %d\n",
           trk.label(), trk.nTotalHits(), trk.nFoundHits());
-  
+
   std::vector<int> mcTrackIDs; // vector of found mcTrackIDs on reco track
   int nSeedHits = nMatchedSeedHits(); // count seed hits
 
@@ -463,10 +463,7 @@ void TrackExtra::setMCTrackIDInfoCMSSW(const Track& trk, const std::vector<HitVe
   dprintf("TrackExtra::setMCTrackIDInfo for track with label %d, total hits %d, found hits %d\n",
           trk.label(), trk.nTotalHits(), trk.nFoundHits());
 
-//   printf("TrackExtra::setMCTrackIDInfo for track with label %d, total hits %d, found hits %d\n", trk.label(), trk.nTotalHits(), trk.nFoundHits());
-  
   std::vector<int> mcTrackIDs; // vector of found mcTrackIDs on reco track
-//   std::cout << trk.nFoundHits() << std::endl;
 
   // loop over all hits stored in reco track, storing valid mcTrackIDs
   for (int ihit = 0; ihit < trk.nTotalHits(); ++ihit) 
@@ -559,10 +556,8 @@ void TrackExtra::setMCTrackIDInfoCMSSW(const Track& trk, const std::vector<HitVe
 
   // Modify mcTrackID based on length of track (excluding seed tracks, of course) and findability
   mcTrackID_ = modifyRefTrackID(trk.nFoundHits(),0,simtracks,-1,trk.getDuplicateValue(),mcTrackID_);
-  //std::cout << trk.nFoundHits() << std::endl;
   dprint("Track " << trk.label() << " best mc track " << mcTrackID_ << " count " << mccount << "/" << trk.nFoundHits());
-//   std::cout << "Track " << trk.label() << " best mc track " << mcTrackID_ << " count " << mccount << "/" << trk.nFoundHits() << std::endl;
-//   std::cout << "Track " << dPhi_ << " dphi MC best match " << mcTrackID_ << std::endl;
+
 }
 
 typedef std::pair<int,float> idchi2Pair;
@@ -637,7 +632,6 @@ void TrackExtra::setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vec
 
     // get diff in track mom. phi: swim phi of cmssw track to reco track R if forward built tracks
     const float diffPhi = squashPhiGeneral((isBkFit?cmsswtrack.momPhi():cmsswtrack.swimPhiToR(trk.x(),trk.y()))-trk.momPhi());
-    //std::cout << "print stuff " <<  isBkFit << " isbkfit " << cmsswtrack.momPhi() << " mmoph " << cmsswtrack.swimPhiToR(trk.x(),trk.y()) << " othrphi " << diffPhi << " bst " << bestchi2 << std::endl;
     
     // check for best matched track by phi
     if (std::abs(diffPhi) < std::abs(bestdPhi))
@@ -718,8 +712,6 @@ void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMa
   {
     const auto cmsswlabel   = labelMatchPair.first;
     const auto nMatchedHits = labelMatchPair.second;
-    
-//     std::cout << cmsswextras[cmsswlabel].mcTrackID() << "  VAL CMSSW T ID" << std::endl;
 
     // 50% matching criterion 
     if ((2*nMatchedHits) >= (cmsswtracks[cmsswlabel].nUniqueLayers()-cmsswextras[cmsswlabel].nMatchedSeedHits())) labelMatchVec.push_back(cmsswlabel);

@@ -82,6 +82,7 @@ namespace Config
   bool  cmsswval_simsignalmatch = false;
   bool  cmsswval_nosimmatch = false;
   bool  cmsswval_mkfiteff = false;
+  bool  cmsswval_mkfiteffsimsignal = false;
   //
   bool  cmssw_export = false;
   bool  fit_val     = false;

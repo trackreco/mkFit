@@ -385,7 +385,7 @@ void PlotValidation::PlotFRTree()
 	// plot names and key
 	const TString plotkey   = Form("%i_%i_%i",i,j,k);
 	const TString plotname  = fCmsswComp?"mkfiteff_reco_"+var+"_"+trk+"_pt"+hptcut:"fr_reco_"+var+"_"+trk+"_pt"+hptcut;
-    const TString plottitle = fCmsswComp?strk+" Track mkfit-cmssw Eff vs Reco "+svar+" {"+fSVarPt+" > "+sptcut+" "+fSUnitPt+"};"+svar+sunit+";mkfit-cmssw Eff":strk+" Track Fake Rate vs Reco "+svar+" {"+fSVarPt+" > "+sptcut+" "+fSUnitPt+"};"+svar+sunit+";Fake Rate";
+        const TString plottitle = fCmsswComp?strk+" Track mkfit-cmssw Eff vs Reco "+svar+" {"+fSVarPt+" > "+sptcut+" "+fSUnitPt+"};"+svar+sunit+";mkfit-cmssw Eff":strk+" Track Fake Rate vs Reco "+svar+" {"+fSVarPt+" > "+sptcut+" "+fSUnitPt+"};"+svar+sunit+";Fake Rate";
 
 	// get bins for the variable of interest
 	const auto & varbins  = fVarBins[i];

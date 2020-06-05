@@ -27,8 +27,7 @@ TTreeValidation::TTreeValidation(std::string fileName)
   if (Config::cmssw_val)
   {
     TTreeValidation::initializeCMSSWEfficiencyTree();
-    //if (Config::cmsswval_mkfiteff)
-    TTreeValidation::initializeCMSSWFakeRateTree();
+    if (Config::cmsswval_mkfiteff) TTreeValidation::initializeCMSSWFakeRateTree();
   }
   if (Config::fit_val) 
   {
@@ -2375,7 +2374,7 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
   const auto& evt_fit_tracks   = ev.fitTracks_;
   const auto& evt_fit_extras   = ev.fitTracksExtra_;
   const auto& evt_layer_hits   = ev.layerHits_;
-  
+
   for (const auto& cmsswtrack : evt_cmssw_tracks)
   {
 
@@ -2657,7 +2656,8 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
   const auto& evt_layer_hits   = ev.layerHits_;
 
   for (const auto& buildtrack : evt_build_tracks)
-  {
+  {   
+
     if (Config::keepHitInfo)
     {
       hitlyrs_mc_cFR_.clear();
@@ -2674,6 +2674,14 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
     }
 
     const auto& buildextra = evt_build_extras[buildtrack.label()];
+    
+    if (Config::cmsswval_mkfiteffsimsignal){if (buildextra.mcTrackID() < 0) continue;}
+    else
+    {
+       const auto& simtrack = evt_sim_tracks[buildextra.mcTrackID()];
+       if (simtrack.prodType()!=Track::ProdType::Signal || simtrack.charge()==0 || simtrack.posR()>3.5 || std::abs(simtrack.z())>30 || std::abs(simtrack.momEta())>2.5) continue;            
+        
+    }
     
     // same for fit and build tracks
     evtID_cFR_     = ievt;
@@ -2935,9 +2943,11 @@ void TTreeValidation::saveTTrees()
   {
     cmsswefftree_->SetDirectory(f_.get());
     cmsswefftree_->Write();
-
-    cmsswfrtree_->SetDirectory(f_.get());
-    cmsswfrtree_->Write();
+    if (Config::cmsswval_mkfiteff)
+    {
+        cmsswfrtree_->SetDirectory(f_.get());
+        cmsswfrtree_->Write();
+    }
   }
   if (Config::fit_val) 
   {
