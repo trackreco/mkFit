@@ -2675,13 +2675,14 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
 
     const auto& buildextra = evt_build_extras[buildtrack.label()];
     
-    if (Config::cmsswval_mkfiteffsimsignal){if (buildextra.mcTrackID() < 0) continue;}
+    if (Config::cmsswval_mkfiteffsimsignal){
+    if (buildextra.mcTrackID() < 0) continue;
     else
     {
        const auto& simtrack = evt_sim_tracks[buildextra.mcTrackID()];
        if (simtrack.prodType()!=Track::ProdType::Signal || simtrack.charge()==0 || simtrack.posR()>3.5 || std::abs(simtrack.z())>30 || std::abs(simtrack.momEta())>2.5) continue;            
         
-    }
+    }}
     
     // same for fit and build tracks
     evtID_cFR_     = ievt;
