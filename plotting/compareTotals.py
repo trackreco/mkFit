@@ -10,14 +10,14 @@ import ROOT
 import copy
 
 def getCanvasMainPad( logY ):
-  pad1 = ROOT.TPad("pad1", "pad1", 0, 0.2, 1, 1)
+  pad1 = ROOT.TPad("pad1", "pad1", 0, 0.4, 1, 1)
   pad1.SetBottomMargin(0.15)
   if( logY ):
     pad1.SetLogy()
   return pad1
 
 def getCanvasRatioPad( logY ):
-  pad2 = ROOT.TPad("pad2", "pad2", 0, 0, 1, 0.21)
+  pad2 = ROOT.TPad("pad2", "pad2", 0, 0, 1, 0.41)
   pad2.SetTopMargin(0.05)
   pad2.SetBottomMargin(0.1)
   return pad2
@@ -28,9 +28,9 @@ def getRatioAxes( xMin, xMax, yMin, yMax ):
   h2_axes_ratio.GetXaxis().SetLabelSize(0.00)
   h2_axes_ratio.GetXaxis().SetTickLength(0.09)
   h2_axes_ratio.GetYaxis().SetNdivisions(5,5,0)
-  h2_axes_ratio.GetYaxis().SetTitleSize(0.13)
-  h2_axes_ratio.GetYaxis().SetTitleOffset(0.37)
-  h2_axes_ratio.GetYaxis().SetLabelSize(0.13)
+  h2_axes_ratio.GetYaxis().SetTitleSize(0.05)
+  h2_axes_ratio.GetYaxis().SetTitleOffset(0.9)
+  h2_axes_ratio.GetYaxis().SetLabelSize(0.05)
   h2_axes_ratio.GetYaxis().SetTitle("Ratio")
   return h2_axes_ratio
 
@@ -92,7 +92,6 @@ else:
 names = ["Original", "Updated"]
 colors = [1,2]
 titles = ["p_{T}(MC)>0 GeV", "p_{T}(MC)>0.9 GeV", "p_{T}(MC)>2.0 GeV"]
-#titles = ["0.0 < p_{T}(MC) < 0.9 GeV", "0.9 < p_{T}(MC) < 2.0 GeV", "p_{T}(MC)>2.0 GeV"]
 
 fnames = []
 fs = []
@@ -109,62 +108,62 @@ toget=[]
 if(iseff):
   if(issim): 
     if(vseta):
-      toget.append("efficiency/eff_sim_eta_build_pt0.0")
-      toget.append("efficiency/eff_sim_eta_build_pt0.9")
-      toget.append("efficiency/eff_sim_eta_build_pt2.0")
+      toget.append("efficiency/eff_sim_eta_build_pt0p0")
+      toget.append("efficiency/eff_sim_eta_build_pt0p9")
+      toget.append("efficiency/eff_sim_eta_build_pt2p0")
     else:
-      toget.append("efficiency/eff_sim_pt_build_pt0.0")
-      toget.append("efficiency/eff_sim_pt_build_pt0.9")
-      toget.append("efficiency/eff_sim_pt_build_pt2.0")
+      toget.append("efficiency/eff_sim_pt_build_pt0p0")
+      toget.append("efficiency/eff_sim_pt_build_pt0p9")
+      toget.append("efficiency/eff_sim_pt_build_pt2p0")
   else:
     if(vseta):
-      toget.append("efficiency_cmssw/eff_cmssw_eta_build_pt0.0")
-      toget.append("efficiency_cmssw/eff_cmssw_eta_build_pt0.9")
-      toget.append("efficiency_cmssw/eff_cmssw_eta_build_pt2.0")    
+      toget.append("efficiency_cmssw/eff_cmssw_eta_build_pt0p0")
+      toget.append("efficiency_cmssw/eff_cmssw_eta_build_pt0p9")
+      toget.append("efficiency_cmssw/eff_cmssw_eta_build_pt2p0")    
     else:
-      toget.append("efficiency_cmssw/eff_cmssw_pt_build_pt0.0")
-      toget.append("efficiency_cmssw/eff_cmssw_pt_build_pt0.9")
-      toget.append("efficiency_cmssw/eff_cmssw_pt_build_pt2.0")    
+      toget.append("efficiency_cmssw/eff_cmssw_pt_build_pt0p0")
+      toget.append("efficiency_cmssw/eff_cmssw_pt_build_pt0p9")
+      toget.append("efficiency_cmssw/eff_cmssw_pt_build_pt2p0")    
 
 elif(isdr):
   if(issim): 
     if(vseta):
-      toget.append("duplicaterate/dr_sim_eta_build_pt0.0")
-      toget.append("duplicaterate/dr_sim_eta_build_pt0.9")
-      toget.append("duplicaterate/dr_sim_eta_build_pt2.0")
+      toget.append("duplicaterate/dr_sim_eta_build_pt0p0")
+      toget.append("duplicaterate/dr_sim_eta_build_pt0p9")
+      toget.append("duplicaterate/dr_sim_eta_build_pt2p0")
     else:
-      toget.append("duplicaterate/dr_sim_pt_build_pt0.0")
-      toget.append("duplicaterate/dr_sim_pt_build_pt0.9")
-      toget.append("duplicaterate/dr_sim_pt_build_pt2.0")
+      toget.append("duplicaterate/dr_sim_pt_build_pt0p0")
+      toget.append("duplicaterate/dr_sim_pt_build_pt0p9")
+      toget.append("duplicaterate/dr_sim_pt_build_pt2p0")
   else:
     if(vseta):
-      toget.append("duplicaterate_cmssw/dr_cmssw_eta_build_pt0.0")
-      toget.append("duplicaterate_cmssw/dr_cmssw_eta_build_pt0.9")
-      toget.append("duplicaterate_cmssw/dr_cmssw_eta_build_pt2.0")    
+      toget.append("duplicaterate_cmssw/dr_cmssw_eta_build_pt0p0")
+      toget.append("duplicaterate_cmssw/dr_cmssw_eta_build_pt0p9")
+      toget.append("duplicaterate_cmssw/dr_cmssw_eta_build_pt2p0")    
     else:
-      toget.append("duplicaterate_cmssw/dr_cmssw_pt_build_pt0.0")
-      toget.append("duplicaterate_cmssw/dr_cmssw_pt_build_pt0.9")
-      toget.append("duplicaterate_cmssw/dr_cmssw_pt_build_pt2.0")    
+      toget.append("duplicaterate_cmssw/dr_cmssw_pt_build_pt0p0")
+      toget.append("duplicaterate_cmssw/dr_cmssw_pt_build_pt0p9")
+      toget.append("duplicaterate_cmssw/dr_cmssw_pt_build_pt2p0")    
 
 elif(isfr):
   if(issim): 
     if(vseta):
-      toget.append("fakerate/fr_reco_eta_build_pt0.0")
-      toget.append("fakerate/fr_reco_eta_build_pt0.9")
-      toget.append("fakerate/fr_reco_eta_build_pt2.0")
+      toget.append("fakerate/fr_reco_eta_build_pt0p0")
+      toget.append("fakerate/fr_reco_eta_build_pt0p9")
+      toget.append("fakerate/fr_reco_eta_build_pt2p0")
     else:
-      toget.append("fakerate/fr_reco_pt_build_pt0.0")
-      toget.append("fakerate/fr_reco_pt_build_pt0.9")
-      toget.append("fakerate/fr_reco_pt_build_pt2.0")
+      toget.append("fakerate/fr_reco_pt_build_pt0p0")
+      toget.append("fakerate/fr_reco_pt_build_pt0p9")
+      toget.append("fakerate/fr_reco_pt_build_pt2p0")
   else:
     if(vseta):
-      toget.append("fakerate_cmssw/fr_reco_eta_build_pt0.0")
-      toget.append("fakerate_cmssw/fr_reco_eta_build_pt0.9")
-      toget.append("fakerate_cmssw/fr_reco_eta_build_pt2.0")    
+      toget.append("fakerate_cmssw/fr_reco_eta_build_pt0p0")
+      toget.append("fakerate_cmssw/fr_reco_eta_build_pt0p9")
+      toget.append("fakerate_cmssw/fr_reco_eta_build_pt2p0")    
     else:
-      toget.append("fakerate_cmssw/fr_reco_pt_build_pt0.0")
-      toget.append("fakerate_cmssw/fr_reco_pt_build_pt0.9")
-      toget.append("fakerate_cmssw/fr_reco_pt_build_pt2.0")    
+      toget.append("fakerate_cmssw/fr_reco_pt_build_pt0p0")
+      toget.append("fakerate_cmssw/fr_reco_pt_build_pt0p9")
+      toget.append("fakerate_cmssw/fr_reco_pt_build_pt2p0")    
 
 
 for d in range(0, len(fnames)):
@@ -240,6 +239,7 @@ for d in range(0, len(fnames)):
         thisratios_noclean[p].SetMarkerColor(colors[d])
         thisratios_noclean[p].SetMarkerSize(0)
         thisratios_noclean[p].SetStats(0)
+        thisratios_noclean[p].SetLineWidth(2)
         ### Suppress y-error bars for ratio
         for b in range(1,thisratios_noclean[p].GetNbinsX()+1):
             thisratios_noclean[p].SetBinError(b,1e-7)
@@ -258,7 +258,7 @@ ROOT.gStyle.SetOptStat(0)
 
 outname=[outdir+"/"+whattot+"_"+valtype+"_vs"+vsvar+"_pT0.png",outdir+"/"+whattot+"_"+valtype+"_vs"+vsvar+"_pT0p9.png",outdir+"/"+whattot+"_"+valtype+"_vs"+vsvar+"_pT2p0.png"]
 for p in range(0,3):
-  can = ROOT.TCanvas(titles[p], "", 600, 600)
+  can = ROOT.TCanvas(titles[p], "", 600, 800)
   can.cd()
   
   pad1 = getCanvasMainPad(0)
@@ -293,6 +293,10 @@ for p in range(0,3):
   
   hraxes.Draw("")
   ratios_noclean[0][p].Draw("PE,same")
+  lineshisto = copy.deepcopy(ratios_noclean[1][p])
+  lineshisto.SetLineWidth(1)
+  lineshisto.SetLineColor(1)
+  lineshisto.Draw("histo,same")
   ratios_noclean[1][p].Draw("PE,same")
   
   can.cd()
