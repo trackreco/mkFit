@@ -1750,6 +1750,8 @@ void MkBuilder::FindTracksBestHit()
 
         int curr_layer = layer_plan_it->m_layer;
 
+        mkfndr->Stopped.SetVal(0);
+
         // Loop over layers, starting from after the seed.
         // Consider inverting loop order and make layer outer, need to
         // trade off hit prefetching with copy-out of candidates.
@@ -1791,18 +1793,51 @@ void MkBuilder::FindTracksBestHit()
 
           mkfndr->SelectHitIndices(layer_of_hits, curr_tridx);
 
-// if (Config::dumpForPlots) {
-// 	     std::cout << "MX number of hits in window in layer " << curr_layer << " is " <<  mkfndr->getXHitEnd(0, 0, 0)-mkfndr->getXHitBegin(0, 0, 0) << std::endl;
-// }
+          // Stop low-pT tracks that can not reach the current barrel layer.
+          if (layer_info.is_barrel())
+          {
+            const float r_min_sqr = layer_info.m_rin * layer_info.m_rin;
+            for (int i = 0; i < curr_tridx; ++i)
+            {
+              if ( ! mkfndr->Stopped[i])
+              {
+                if (mkfndr->RadiusSqr(i, MkBase::iP) < r_min_sqr)
+                {
+                  if (region == TrackerInfo::Reg_Barrel)
+                  {
+                    mkfndr->Stopped[i] = 1;
+                    mkfndr->OutputTrackAndHitIdx(cands[rng.m_beg + i], i, false);
+                  }
+                  mkfndr->XWsrResult[i].m_wsr = WSR_Outside;
+                  mkfndr->XHitSize  [i]       = 0;
+                }
+              }
+              else
+              { // make sure we don't add extra work for AddBestHit
+                mkfndr->XWsrResult[i].m_wsr = WSR_Outside;
+                mkfndr->XHitSize  [i]       = 0;
+              }
+            }
+          }
 
           // make candidates with best hit
           dprint("make new candidates");
 
           mkfndr->AddBestHit(layer_of_hits, curr_tridx, fnd_foos);
 
+          // Stop tracks that have reached N_max_holes.
+          for (int i = 0; i < curr_tridx; ++i)
+          {
+            if ( ! mkfndr->Stopped[i] && mkfndr->BestHitLastHoT(i).index == -2)
+            {
+              mkfndr->Stopped[i] = 1;
+              mkfndr->OutputTrackAndHitIdx(cands[rng.m_beg + i], i, false);
+            }
+          }
+
         } // end of layer loop
 
-        mkfndr->OutputTracksAndHitIdx(cands, trk_idcs, 0, curr_tridx, false);
+        mkfndr->OutputNonStoppedTracksAndHitIdx(cands, trk_idcs, 0, curr_tridx, false);
 
         ++rng;
       } // end of loop over candidates in a tbb chunk

@@ -491,6 +491,17 @@ public:
     return n;
   }
 
+  int nTailMinusOneHits() const
+  {
+    int n = 0;
+    for (int i = lastHitIdx_; i >= 0; --i)
+    {
+      if (hitsOnTrk_[i].index >= 0) return n;
+      if (hitsOnTrk_[i].index == -1) ++n;
+    }
+    return n;
+  }
+
   int nUniqueLayers() const 
   {
     // make local copy in vector: sort it in place

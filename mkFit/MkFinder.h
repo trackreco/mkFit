@@ -71,6 +71,8 @@ public:
   MPlexQI    SeedIdx; // seed index in local thread (for bookkeeping at thread level)
   MPlexQI    CandIdx; // candidate index for the given seed (for bookkeeping of clone engine)
 
+  MPlexQI    Stopped; // Flag for BestHit that a track has been stopped (and copied out already)
+
   // Additions / substitutions for TrackCand copy_in/out()
   // One could really access the original TrackCand for all of those, especially the ones that
   // are STD only. This then requires access back to that TrackCand memory.
@@ -133,6 +135,30 @@ public:
   void OutputTracksAndHitIdx(std::vector<Track>& tracks,
                              const std::vector<int>& idxs,
                              int beg, int end, bool outputProp) const;
+
+  void OutputTrackAndHitIdx(Track& track, int itrack, bool outputProp) const
+  {
+    const int iO = outputProp ? iP : iC;
+    copy_out(track, itrack, iO);
+  }
+
+  void OutputNonStoppedTracksAndHitIdx(std::vector<Track>& tracks,
+                             const std::vector<int>& idxs,
+                             int beg, int end, bool outputProp) const
+  {
+    const int iO = outputProp ? iP : iC;
+    for (int i = beg, imp = 0; i < end; ++i, ++imp)
+    {
+      if ( ! Stopped[imp])
+        copy_out(tracks[idxs[i]], imp, iO);
+    }
+  }
+
+  HitOnTrack BestHitLastHoT(int itrack) const
+  {
+    return HoTArrs[ itrack ][ NHits(itrack, 0, 0) - 1 ];
+  }
+
 
   //----------------------------------------------------------------------------
 
@@ -200,6 +226,10 @@ private:
 
     NHits     (mslot, 0, 0) = trk.nTotalHits();
     NFoundHits(mslot, 0, 0) = trk.nFoundHits();
+
+    NInsideMinusOneHits(mslot, 0, 0) = trk.nInsideMinusOneHits();
+    NTailMinusOneHits  (mslot, 0, 0) = trk.nTailMinusOneHits();
+
     std::copy(trk.BeginHitsOnTrack(), trk.EndHitsOnTrack(), HoTArrs[mslot]); 
   }
 
@@ -265,7 +295,16 @@ private:
     if (n_tot_hits < Config::nMaxTrkHits)
     {
       HoTArrs[mslot][n_tot_hits++] = { index, layer };
-      if (index >= 0) { ++n_fnd_hits; }
+      if (index >= 0)
+      {
+        ++n_fnd_hits;
+        NInsideMinusOneHits(mslot, 0, 0) += NTailMinusOneHits(mslot, 0, 0);
+        NTailMinusOneHits(mslot, 0, 0) = 0;
+      }
+      else if (index == -1)
+      {
+        ++NTailMinusOneHits(mslot, 0, 0);
+      }
     }
     else
     {

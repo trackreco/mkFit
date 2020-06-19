@@ -214,10 +214,6 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     qb2v[itrack] = L.GetQBinChecked(q + dq) + 1;
     pb1v[itrack] = L.GetPhiBin(phi - dphi);
     pb2v[itrack] = L.GetPhiBin(phi + dphi) + 1;
-    // MT: The extra phi bins give us ~1.5% more good tracks at expense of 10% runtime.
-    //     That was for 10k cylindrical cow, I think.
-    // const int pb1 = L.GetPhiBin(phi - dphi) - 1;
-    // const int pb2 = L.GetPhiBin(phi + dphi) + 2;
   };
 
   const auto calcdphi2 = [&](int itrack, float dphidx, float dphidy) {
@@ -532,6 +528,10 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
       {
         // YYYYYY Config::store_missed_layers
         fake_hit_idx = -3;
+      }
+      else if (num_all_minus_one_hits(itrack))
+      {
+        fake_hit_idx = -2;
       }
 
       dprint("ADD FAKE HIT FOR TRACK #" << itrack << " withinBounds=" << (fake_hit_idx != -3) << " r=" << std::hypot(Par[iP](itrack,0,0), Par[iP](itrack,1,0)));
