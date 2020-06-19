@@ -151,10 +151,18 @@ class IterationParams
 {
   // Stuff moved out from Config, like:
 
+// MIMI - 1
   int maxCandsPerSeed  = 6; // cmssw tests: 6 (GC had 3) \_ set from geom plugin
   int maxHolesPerCand  = 2; // cmssw tests: 12           /
 
   float chi2Cut = 15.;
+
+// MIMI - 2
+  int nlayers_per_seed = 4;
+  int maxCandsPerSeed  = 5;
+  int maxHolesPerCand  = 4;
+  int maxConsecHoles   = 1;
+  int chi2Cut          = 30;
 
   // Some iteration params could actually become layer-dependent, e.g.,
   // chi2Cut could be larger for first couple of layers.
