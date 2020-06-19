@@ -27,7 +27,6 @@ namespace
     Config::nTotalLayers     = 18 + 2 * 27;
 
     Config::useCMSGeom       = true;
-    Config::nlayers_per_seed = 4;
 
 // MIMI -- Pandora's Box -- to be commented out, moved to iteration config.
     Config::maxCandsPerSeed  = 5;
@@ -39,9 +38,11 @@ namespace
 
 // MIMI -- This was from Mario:
 //The following are commented out, since now set by IterationConfig (once per iteration)
-//    Config::maxCandsPerSeed  = 6;  // GC said 3 is enough ???
-//    Config::maxHolesPerCand  = 3; // = 12;
-//    Config::chi2Cut          = 15.0; // = 30.0;
+//    Config::nlayers_per_seed = 4;
+//    Config::maxCandsPerSeed  = 5;
+//    Config::maxHolesPerCand  = 4;
+//    Config::maxConsecHoles   = 1;
+//    Config::chi2Cut          = 30;
 
     Config::finding_requires_propagation_to_hit_pos = true;
     Config::finding_inter_layer_pflags = PropagationFlags(PF_use_param_b_field | PF_apply_material);
