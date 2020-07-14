@@ -5,9 +5,12 @@
 #include <list>
 #include <unordered_map>
 #include "Event.h"
+#include "Config.h"
 #include "LayerNumberConverter.h"
 
 using namespace mkfit;
+
+using TrackAlgorithm = TrackBase::TrackAlgorithm;
 
 constexpr bool useMatched = false;
 
@@ -22,62 +25,6 @@ enum class HitType {
   Invalid = 3,
   Phase2OT = 4,
   Unknown = 99
-};
-
-/// track algorithm; partial copy from TrackBase.h
-enum class TrackAlgorithm {
-  undefAlgorithm = 0,
-  ctf = 1, 
-  duplicateMerge = 2,
-  cosmics = 3,
-  initialStep = 4,
-  lowPtTripletStep = 5,
-  pixelPairStep = 6,
-  detachedTripletStep = 7,
-  mixedTripletStep = 8,
-  pixelLessStep = 9,
-  tobTecStep = 10,
-  jetCoreRegionalStep = 11,
-  conversionStep = 12,
-  muonSeededStepInOut = 13,
-  muonSeededStepOutIn = 14,
-  outInEcalSeededConv = 15,
-  inOutEcalSeededConv = 16,
-  nuclInter = 17,
-  standAloneMuon = 18,
-  globalMuon = 19,
-  cosmicStandAloneMuon = 20,
-  cosmicGlobalMuon = 21,
-  // Phase1
-  highPtTripletStep = 22,
-  lowPtQuadStep = 23,
-  detachedQuadStep = 24,
-  reservedForUpgrades1 = 25,
-  reservedForUpgrades2 = 26,
-  bTagGhostTracks = 27,
-  beamhalo = 28,
-  gsf = 29,
-  // HLT algo name
-  hltPixel = 30,
-  // steps used by PF
-  hltIter0 = 31,
-  hltIter1 = 32,
-  hltIter2 = 33,
-  hltIter3 = 34,
-  hltIter4 = 35,
-  // steps used by all other objects @HLT
-  hltIterX = 36,
-  // steps used by HI muon regional iterative tracking
-  hiRegitMuInitialStep = 37,
-  hiRegitMuLowPtTripletStep = 38,
-  hiRegitMuPixelPairStep = 39,
-  hiRegitMuDetachedTripletStep = 40,
-  hiRegitMuMixedTripletStep = 41,
-  hiRegitMuPixelLessStep = 42,
-  hiRegitMuTobTecStep = 43,
-  hiRegitMuMuonSeededStepInOut = 44,
-  hiRegitMuMuonSeededStepOutIn = 45,
-  algoSize = 46
 };
 
 typedef std::list<std::string> lStr_t;
@@ -819,6 +766,7 @@ int main(int argc, char *argv[])
       TrackState state(see_q->at(is), pos, mom, err);
       state.convertFromCartesianToCCS();
       Track track(state, 0, seedSimIdx[is], 0, nullptr);
+      track.setAlgorithm(isAlgo);
       auto const& shTypes = see_hitType->at(is);
       auto const& shIdxs = see_hitIdx->at(is);
       if (not allSeeds)
@@ -885,6 +833,7 @@ int main(int argc, char *argv[])
       SVector3 mom = SVector3(1.f/pt, phi, M_PI_2 - trk_lambda->at(ir));
       TrackState state(trk_q->at(ir), pos, mom, err);
       Track track(state, trk_nChi2->at(ir), trk_seedIdx->at(ir), 0, nullptr);//hits are filled later
+      track.setAlgorithm(TrackAlgorithm(trk_originalAlgo->at(ir)));
       auto const& hTypes = trk_hitType->at(ir);
       auto const& hIdxs =  trk_hitIdx->at(ir);
       for (unsigned int ip=0; ip<hTypes.size(); ip++) {

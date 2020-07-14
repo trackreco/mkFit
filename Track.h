@@ -231,8 +231,11 @@ public:
 	// Whether or not the track matched to another track and had the lower cand score
 	bool duplicate : 1;
 
+        // Tracking iteration/algorithm
+        unsigned int algorithm : 6;
+
         // The remaining bits.
-        unsigned int _free_bits_ : 25;
+        unsigned int _free_bits_ : 19;
 
       };
 
@@ -262,6 +265,66 @@ public:
   enum class ProdType { NotSet = 0, Signal = 1, InTimePU = 2, OutOfTimePU = 3};
   ProdType prodType()  const { return ProdType(status_.prod_type); }
   void setProdType(ProdType ptyp) { status_.prod_type = static_cast<unsigned int>(ptyp); }
+
+  /// track algorithm; partial copy from TrackBase.h
+  enum class TrackAlgorithm {
+    undefAlgorithm = 0,
+    ctf = 1,
+    duplicateMerge = 2,
+    cosmics = 3,
+    initialStep = 4,
+    lowPtTripletStep = 5,
+    pixelPairStep = 6,
+    detachedTripletStep = 7,
+    mixedTripletStep = 8,
+    pixelLessStep = 9,
+    tobTecStep = 10,
+    jetCoreRegionalStep = 11,
+    conversionStep = 12,
+    muonSeededStepInOut = 13,
+    muonSeededStepOutIn = 14,
+    outInEcalSeededConv = 15,
+    inOutEcalSeededConv = 16,
+    nuclInter = 17,
+    standAloneMuon = 18,
+    globalMuon = 19,
+    cosmicStandAloneMuon = 20,
+    cosmicGlobalMuon = 21,
+    // Phase1
+    highPtTripletStep = 22,
+    lowPtQuadStep = 23,
+    detachedQuadStep = 24,
+    reservedForUpgrades1 = 25,
+    reservedForUpgrades2 = 26,
+    bTagGhostTracks = 27,
+    beamhalo = 28,
+    gsf = 29,
+    // HLT algo name
+    hltPixel = 30,
+    // steps used by PF
+    hltIter0 = 31,
+    hltIter1 = 32,
+    hltIter2 = 33,
+    hltIter3 = 34,
+    hltIter4 = 35,
+    // steps used by all other objects @HLT
+    hltIterX = 36,
+    // steps used by HI muon regional iterative tracking
+    hiRegitMuInitialStep = 37,
+    hiRegitMuLowPtTripletStep = 38,
+    hiRegitMuPixelPairStep = 39,
+    hiRegitMuDetachedTripletStep = 40,
+    hiRegitMuMixedTripletStep = 41,
+    hiRegitMuPixelLessStep = 42,
+    hiRegitMuTobTecStep = 43,
+    hiRegitMuMuonSeededStepInOut = 44,
+    hiRegitMuMuonSeededStepOutIn = 45,
+    algoSize = 46
+};
+
+
+  TrackAlgorithm algorithm() const { return TrackAlgorithm(status_.algorithm); }
+  void setAlgorithm(TrackAlgorithm algo) { status_.algorithm = static_cast<unsigned int>(algo); }
 
   // To be used later
   // bool isStopped() const { return status_.stopped; }
