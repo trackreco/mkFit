@@ -733,6 +733,8 @@ int main(int argc, char *argv[])
     
     vector<Track> &seedTracks_ = EE.seedTracks_;
     vector<vector<int> > pixHitSeedIdx(pix_lay->size());
+    vector<vector<int> > strHitSeedIdx(str_lay->size());
+    vector<vector<int> > gluHitSeedIdx(glu_lay->size());
     for (unsigned int is = 0; is<see_q->size(); ++is) {
       auto isAlgo = TrackAlgorithm(see_algo->at(is));
       if (not allSeeds)
@@ -773,9 +775,31 @@ int main(int argc, char *argv[])
         if (! ( (isAlgo == TrackAlgorithm::initialStep || isAlgo == TrackAlgorithm::hltIter0)
                 && std::count(shTypes.begin(), shTypes.end(), int(HitType::Pixel))>=3)) continue;//check algo and nhits
       for (unsigned int ip=0; ip<shTypes.size(); ip++) {
-	unsigned int ipix = shIdxs[ip];
-	//cout << "ipix=" << ipix << " seed=" << seedTracks_.size() << endl;
-	pixHitSeedIdx[ipix].push_back(seedTracks_.size());
+	unsigned int hidx = shIdxs[ip];
+        switch( HitType(shTypes[ip]) ) {
+          case HitType::Pixel:{
+            pixHitSeedIdx[hidx].push_back(seedTracks_.size());
+            break;
+          }
+          case HitType::Strip:{
+            strHitSeedIdx[hidx].push_back(seedTracks_.size());
+            break;
+          }
+          case HitType::Glued:{
+            if (not useMatched ){
+              //decompose
+              int uidx = glu_monoIdx->at(hidx);
+              strHitSeedIdx[uidx].push_back(seedTracks_.size());
+              uidx = glu_stereoIdx->at(hidx);
+              strHitSeedIdx[uidx].push_back(seedTracks_.size());
+            } else {
+              gluHitSeedIdx[hidx].push_back(seedTracks_.size());
+            }
+            break;
+          }
+          case HitType::Invalid: break;//FIXME. Skip, really?
+          default: throw std::logic_error("Track hit type can not be handled");
+        }//switch( HitType
       }
       seedTracks_.push_back(track);
     }
@@ -931,6 +955,10 @@ int main(int argc, char *argv[])
 	if (simTkIdx>=0){
 	  simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
 	}
+	for (unsigned int ir=0;ir<gluHitSeedIdx[iglu].size();ir++) {
+	  //cout << "xxx iglu=" << iglu << " seed=" << gluHitSeedIdx[iglu][ir] << endl;
+	  seedTracks_[gluHitSeedIdx[iglu][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
+	}
 	for (unsigned int ir=0;ir<gluHitRecIdx[iglu].size();ir++) {
 	  //cout << "xxx iglu=" << iglu << " recTrack=" << gluHitRecIdx[iglu][ir] << endl;
 	  cmsswTracks_[gluHitRecIdx[iglu][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
@@ -979,6 +1007,11 @@ int main(int argc, char *argv[])
       if (simTkIdx>=0){
         if(passCCC) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
         else simTracks_[simTkIdx].addHitIdx( -9, ilay,0);
+      }
+      for (unsigned int ir=0;ir<strHitSeedIdx[istr].size();ir++) {
+	//cout << "xxx istr=" << istr << " seed=" << strHitSeedIdx[istr][ir] << endl;
+	if(passCCC) seedTracks_[strHitSeedIdx[istr][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
+	else seedTracks_[strHitSeedIdx[istr][ir]].addHitIdx(-9,ilay,0);
       }
       for (unsigned int ir=0;ir<strHitRecIdx[istr].size();ir++) {
 	//cout << "xxx istr=" << istr << " recTrack=" << strHitRecIdx[istr][ir] << endl;
