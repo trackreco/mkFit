@@ -35,7 +35,7 @@ public:
     m_update_param_foo(updp_f),
     m_propagate_foo(p_f)
   {}
-
+    
 };
 
 //==============================================================================
@@ -72,14 +72,14 @@ public:
   std::vector<LayerControl>::iterator m_end_for_finding;
 
   //----------------------------------------------------------------------------
-
+  
   SteeringParams() {}
-
+  
   void reserve_plan(int n)
   {
     m_layer_plan.reserve(n);
   }
-
+  
   void append_plan(int layer, bool pu_only=false, bool bf_only=false)
   {
     m_layer_plan.emplace_back(LayerControl(layer, pu_only, bf_only));
@@ -111,22 +111,24 @@ class IterationConfig;
 class IterationLayerConfig
 {
 public:
-  // Up-link to IterationConfig ... so we can pass this guy only.
-  // Is this really smart? Can IterationLayerConfigs be shared among
-  // several iterations? If yes, this will not work.
-  // See also text at the end of file.
+  // Up-link to IterationConfig, so that IterationLayerConfig only can be passed afterwards
+  // NOTE: this solution assumes that IterationLayerConfig is not shared among different iterations.
   const IterationConfig &m_iter_config;
 
-  // Here so it does not have to passed along (is this reasonable?)
-  // It might need to be re-set for every event (I forgot), that's why I have ptr,
-  // otherwise ref would be preferable.
+  // A pointer to LayerOfHits, so that there is no need to pass this along together with IterationLayerConfig.
   const LayerOfHits* m_layer_of_hits;
 
   // Stuff to be moved out of LayerInfo:
-
-  // Selection limits
+  // Selection limits are moved out of LayerInfo, since may be iteration-specific.
+  // E.g., for low-pT iterations selection limits may need to be looser (?)
   float         m_select_min_dphi, m_select_max_dphi;
   float         m_select_min_dq,   m_select_max_dq;
+
+  void set_selection_limits(float p1, float p2, float q1, float q2)
+  {
+    m_select_min_dphi = p1; m_select_max_dphi = p2;
+    m_select_min_dq   = q1; m_select_max_dq   = q2;
+  }
 
   // Adding hit selection limits dynamic factors
   float         m_qf_treg       = 1.0f;
@@ -136,7 +138,7 @@ public:
   float         m_phif_lpt_ec   = 1.0f;
 
   //----------------------------------------------------------------------------
-
+  
   IterationLayerConfig(const IterationConfig &ic) :
     m_iter_config (ic)
   {}
@@ -144,28 +146,21 @@ public:
 
 
 //==============================================================================
-// IterationLayerConfig
+// IterationParams
 //==============================================================================
 
 class IterationParams
 {
-  // Stuff moved out from Config, like:
+  // Iteration-specific parameters are moved out of Config, and re-initialized in Geoms/CMS-2017.cc:
+  int nlayers_per_seed  = 3;
+  int maxCandsPerSeed   = 5;
+  int maxHolesPerCand   = 4;
+  int maxConsecHoles    = 1;
+  float chi2Cut        = 30;
+  float chi2CutOverlap; // default: 5; cmssw: 3.5
+  float pTCutOverlap; // default: 0; cmssw: 1
 
-// MIMI - 1
-  int maxCandsPerSeed  = 6; // cmssw tests: 6 (GC had 3) \_ set from geom plugin
-  int maxHolesPerCand  = 2; // cmssw tests: 12           /
-
-  float chi2Cut = 15.;
-
-// MIMI - 2
-  int nlayers_per_seed = 4;
-  int maxCandsPerSeed  = 5;
-  int maxHolesPerCand  = 4;
-  int maxConsecHoles   = 1;
-  int chi2Cut          = 30;
-
-  // Some iteration params could actually become layer-dependent, e.g.,
-  // chi2Cut could be larger for first couple of layers.
+  // NOTE: iteration params could actually become layer-dependent, e.g., chi2Cut could be larger for first layers (?)
 };
 
 
@@ -176,35 +171,26 @@ class IterationParams
 class IterationConfig
 {
 public:
-  // ptr or ref to TrackerInfo (can be shared among builders / iterations).
-  // declared here so it's easier to pass along
+  
+  // Iteration index:
+  const unsigned int    m_iter;
+
+  // TrackerInfo reference (can be shared among builders / iterations) is declared here so that it is easier to pass along:
   const TrackerInfo     &m_tracker_info;
-
-  // ptr or ref to iteration parameters (can be shared)
-  // Or just keep them here.
+  
+  // Reference to iteration parameters:
   const IterationParams &m_params;
-
+  
   std::vector<IterationLayerConfig> m_iter_layer_configs;
-
-  // LayerOfHits (in HitStructures.h) should NOT hold forwarding functions
-  // into layer_info.
-
-  // LayerOfHits should be passed in parallel ... or, be pointed to by IterationLayerConfig,
-
-  // Steering params can be kept as they are, just moved out of MkBuilder.
+  
+  // Steering params and regions are kept as they are, just moved out of MkBuilder.
+  // Steering params and regions are iteration-specific, thus initialized in Geoms/CMS-2017.cc
   std::vector<SteeringParams> m_steering_params[5];
   std::vector<int>            m_regions;
 
-  // It seems we are a little bit stuck with 5 regions for now.
-  // We probably could loosen it up but, IIRC, there are some
-  // checks in the code for region type, in particular for barrel.
-
   //----------------------------------------------------------------------------
-
-  IterationConfig(const TrackerInfo &ti, const IterationParams &ip) :
-    m_tracker_info (ti),
-    m_params       (ip)
-  {}
+  IterationConfig(const TrackerInfo &ti, const IterationParams &ip, const unsigned int it=0) :
+    m_iter(it), m_tracker_info(ti), m_params(ip) {}
 
   // Here we also need either:
   // a) a virtual function that performs partitioning of seeds into regions; or
@@ -217,15 +203,11 @@ public:
 
 //==============================================================================
 
-// Then one would create IterationConfigs in the "geometry" plugin (or in
-// CMSSW configuration processing class) and pass it to MkBuilder constructor,
-// and MkBuilder would store it in a const ref.
-//
-// Internally MkBuilder passes 'int region' to it's own functions; this should still work.
-//
-// When calling MkFinder functions, MkBuilder now passes LayerOfHits& ... this will have to be
-// changed to IterationLayerConfig& (if we include ref to IterationConfig in IterationLayerConfig)
-// or to both IterationConfig& and IterationLayerConfig&.
+// IterationConfig instance is created in Geoms/CMS-2017.cc, and is passed to MkBuilder constructor (as const reference).
+// Internally, MkBuilder is passing 'int region' to its own functions: should be fine as is.
+// When calling MkFinder functions, MkBuilder is now passing a reference to LayerOfHits;
+// this is noe replaced by a reference to IterationLayerConfig, which includes ref's to IterationConfig and LayerOfHits.
+// (Alternatively, one could pass both ref's to IterationLayerConfig and IterationConfig)
 // Pointers to propagation functions can be passed as they are now.
 
 } // end namespace mkfit

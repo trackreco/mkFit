@@ -162,9 +162,11 @@ namespace Config
   static constexpr int m_nphi = 128;
 
   // config on Event
-  extern    float chi2Cut; // default: 15; cmssw: 30 (set in TrackerInfo plugin)
-  extern    float chi2CutOverlap; // default: 5; cmssw: 3.5
-  extern    float pTCutOverlap; // default: 0; cmssw: 1
+  /*MM: chi2Cut is now set in IterationsParams*/
+  //extern    float chi2Cut; // default: 15; cmssw: 30 (set in TrackerInfo plugin)
+  //extern    float chi2CutOverlap; // default: 5; cmssw: 3.5
+  //extern    float pTCutOverlap; // default: 0; cmssw: 1
+
   // the following are only used in SMatrix version
   constexpr float nSigma  = 3.;
   constexpr float minDPhi = 0.01;// default: 0.;  cmssw tests: 0.01;
@@ -203,7 +205,8 @@ namespace Config
   //const     float xr = std::sqrt(Config::beamspotX*Config::beamspotX + Config::beamspotY*Config::beamspotY); 
 
   // Config for seeding
-  extern    int   nlayers_per_seed;         // default: 3, cms sets from geom plugin
+  /*MM: nlayers_per_seed is now set in IterationParams*/
+  //extern    int   nlayers_per_seed;         // default: 3, cms sets from geom plugin
   constexpr int   nlayers_per_seed_max = 4; // Needed for allocation of arrays on stack.
   constexpr float chi2seedcut  = 9.0;
   constexpr float lay01angdiff = 0.0634888; // analytically derived... depends on geometry of detector --> from mathematica ... d0 set to one sigma of getHypot(bsX,bsY)

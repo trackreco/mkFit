@@ -65,8 +65,11 @@ protected:
   int m_cnt=0, m_cnt1=0, m_cnt2=0, m_cnt_8=0, m_cnt1_8=0, m_cnt2_8=0, m_cnt_nomc=0;
 
   FindingFoos      m_fndfoos_brl, m_fndfoos_ec;
-  SteeringParams   m_steering_params[5];
-  std::vector<int> m_regions;
+  /*MM: Steering parameters are moved out of MkBuilder.
+    I.e., are being declared as members of new IterationConfig class and 
+    initialized per iteration*/
+  //SteeringParams   m_steering_params[5];
+  //std::vector<int> m_regions;
 
 public:
   typedef std::vector<std::pair<int,int>> CandIdx_t;

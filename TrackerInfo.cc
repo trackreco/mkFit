@@ -14,11 +14,12 @@ void LayerInfo::set_next_layers(int nb, int nep, int nen)
   m_next_barrel = nb; m_next_ecap_pos = nep; m_next_ecap_neg = nen;
 }
 
-void LayerInfo::set_selection_limits(float p1, float p2, float q1, float q2)
-{
-  m_select_min_dphi = p1; m_select_max_dphi = p2;
-  m_select_min_dq   = q1; m_select_max_dq   = q2;
-}
+  /*MM: moving out to IterationLayerConfig*/
+//void LayerInfo::set_selection_limits(float p1, float p2, float q1, float q2)
+//{
+//  m_select_min_dphi = p1; m_select_max_dphi = p2;
+//  m_select_min_dq   = q1; m_select_max_dq   = q2;
+//}
 
 void LayerInfo::set_r_hole_range(float rh1, float rh2)
 {

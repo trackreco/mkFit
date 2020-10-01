@@ -53,11 +53,12 @@ public:
   bool          m_has_r_range_hole = false;
   float         m_hole_r_min, m_hole_r_max; // This could be turned into std::function when needed.
 
-  // Selection limits
+  /*MM: moving out to IterationLayerConfig*/
+  //// Selection limits
   float         m_q_bin; // > 0 - bin width, < 0 - number of bins
-  float         m_select_min_dphi, m_select_max_dphi;
-  float         m_select_min_dq,   m_select_max_dq;
-
+  //float         m_select_min_dphi, m_select_max_dphi;
+  //float         m_select_min_dq,   m_select_max_dq;
+  
   // Seeding information: if we do more than one iteration: change from bool to int
   // Will need a separate map to make this simpler
   bool          m_is_seed_lyr = false;
@@ -72,13 +73,14 @@ public:
   bool          m_is_tob_lyr = false;
   bool          m_is_tid_lyr = false;
   bool          m_is_tec_lyr = false;
-  
-  // Adding hit selection limits dynamic factors
-  float         m_qf_treg       = 1.0f;
-  float         m_phif_treg     = 1.0f;
-  float         m_phif_lpt_brl  = 1.0f;
-  float         m_phif_lpt_treg = 1.0f;
-  float         m_phif_lpt_ec   = 1.0f;
+
+  /*MM: Hits selection limit dynamic factors are now declared as iteration-specific*/
+  //// Adding hit selection limits dynamic factors
+  //float         m_qf_treg       = 1.0f;
+  //float         m_phif_treg     = 1.0f;
+  //float         m_phif_lpt_brl  = 1.0f;
+  //float         m_phif_lpt_treg = 1.0f;
+  //float         m_phif_lpt_ec   = 1.0f;
 
   // Additional stuff needed?
   // * pixel / strip, mono / stereo

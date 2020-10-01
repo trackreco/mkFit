@@ -5,6 +5,7 @@
 #include "Hit.h"
 #include "Track.h"
 #include "TrackerInfo.h"
+#include "SteeringParams.h"
 //#define DEBUG
 #include "Debug.h"
 
@@ -87,10 +88,11 @@ private:
   std::vector<int>      m_ext_idcs;
 
 public:
-  const LayerInfo          *m_layer_info = 0;
-  vecvecPhiBinInfo_t        m_phi_bin_infos;
-  std::vector<float>        m_hit_phis;
-  std::vector<float>        m_hit_qs;
+  const LayerInfo            *m_layer_info = 0;
+  const IterationLayerConfig *m_iter_layer_config = 0
+  vecvecPhiBinInfo_t         m_phi_bin_infos;
+  std::vector<float>         m_hit_phis;
+  std::vector<float>         m_hit_qs;
 
   float m_qmin, m_qmax, m_fq;
   int   m_nq = 0;
@@ -116,10 +118,10 @@ public:
   WSR_Result is_within_r_sensitive_region(float r, float dr) const
   { return m_layer_info->is_within_r_sensitive_region(r, dr); }
 
-  float min_dphi() const { return m_layer_info->m_select_min_dphi; }
-  float max_dphi() const { return m_layer_info->m_select_max_dphi; }
-  float min_dq()   const { return m_layer_info->m_select_min_dq;   }
-  float max_dq()   const { return m_layer_info->m_select_max_dq;   }
+  float min_dphi() const { return m_iter_layer_config->m_select_min_dphi; }
+  float max_dphi() const { return m_iter_layer_config->m_select_max_dphi; }
+  float min_dq()   const { return m_iter_layer_config->m_select_min_dq;   }
+  float max_dq()   const { return m_iter_layer_config->m_select_max_dq;   }
 
   // Adding flag for mono/stereo
   bool is_stereo_lyr() const 
@@ -142,11 +144,11 @@ public:
   { return  m_layer_info->is_tec_lyr(); }
 
   // Adding hit selection limits dynamic factors
-  float qf_treg() const { return m_layer_info->m_qf_treg; }
-  float phif_treg() const { return m_layer_info->m_phif_treg; }
-  float phif_lpt_brl() const { return m_layer_info->m_phif_lpt_brl; }
-  float phif_lpt_treg() const { return m_layer_info->m_phif_lpt_treg; }
-  float phif_lpt_ec() const { return m_layer_info->m_phif_lpt_ec; }
+  float qf_treg()       const { return m_iter_layer_config->m_qf_treg; }
+  float phif_treg()     const { return m_iter_layer_config->m_phif_treg; }
+  float phif_lpt_brl()  const { return m_iter_layer_config->m_phif_lpt_brl; }
+  float phif_lpt_treg() const { return m_iter_layer_config->m_phif_lpt_treg; }
+  float phif_lpt_ec()   const { return m_iter_layer_config->m_phif_lpt_ec; }
 
   // Testing bin filling
   static constexpr float m_fphi     = Config::m_nphi / Config::TwoPI;
