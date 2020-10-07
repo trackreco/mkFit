@@ -12,7 +12,7 @@
 #if USE_CUDA
 #include "fittestMPlex.h"
 #include "FitterCU.h"
-#include <omp.h>
+//#include <omp.h>
 #endif
 
 #ifndef NO_ROOT
@@ -142,15 +142,18 @@ void runAllEventsFittingTestPlexGPU(std::vector<Event>& events)
 #endif
   separate_first_call_for_meaningful_profiling_numbers();
 
-  // Reorgnanization (copyIn) can eventually be multithreaded.
-  omp_set_nested(1);
+  // Reorganization (copyIn) can eventually be multithreaded.
+// FIXME: revisit multithreading when track building is ported to GPU.
+//  omp_set_nested(1);
       
-  omp_set_num_threads(Config::numThreadsEvents);
+//  omp_set_num_threads(Config::numThreadsEvents);
   double total_gpu_time = dtime();
-#pragma omp parallel reduction(+:s_tmp)
+//#pragma omp parallel reduction(+:s_tmp)
   {
-  int numThreadsEvents = omp_get_num_threads();
-  int thr_idx = omp_get_thread_num();
+//  int numThreadsEvents = omp_get_num_threads();
+//  int thr_idx = omp_get_thread_num();
+  int numThreadsEvents = 1;
+  int thr_idx = 0;
 
   // FitterCU is declared here to share allocations and deallocations
   // between the multiple events processed by a single thread.
@@ -177,11 +180,11 @@ void runAllEventsFittingTestPlexGPU(std::vector<Event>& events)
 #if 0  // 0 for timing, 1 for validation
       // Validation crashes for multiple threads.
       // It is something in relation to ROOT. Not sure what. 
-      if (omp_get_num_threads() <= 1) {
+      //if (omp_get_num_threads() <= 1) {
         //if (g_run_fit_std) {
           std::string tree_name = "validation-plex-" + std::to_string(evt) + ".root";
         //}
-      }
+      //}
 #endif
     }
     cuFitter.free_extra_addBestHit();

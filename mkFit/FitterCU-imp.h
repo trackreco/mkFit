@@ -392,8 +392,8 @@ void FitterCU<T>::FitTracks(MPlexQI &Chg, MPlexLV& par_iC, MPlexLS& err_iC,
 #if 0
     double time_input = dtime();
     int itrack;
-    omp_set_num_threads(Config::numThreadsReorg);
-#pragma omp parallel for
+    //omp_set_num_threads(Config::numThreadsReorg);
+//#pragma omp parallel for
     for (int i = beg; i < end; ++i) {
       itrack = i - beg;
       Track &trk = tracks[i];
