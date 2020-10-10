@@ -69,15 +69,14 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
   int itrack = 0;
 
 // FIXME: uncomment when track building is ported to GPU.
-#if USE_CUDA_NOT_YET
 //#ifdef USE_CUDA
   // This openmp loop brings some performances when using
   // a single thread to fit all events.
   // However, it is more advantageous to use the threads to
   // parallelize over Events.
-  omp_set_num_threads(Config::numThreadsReorg);
-#pragma omp parallel for private(itrack)
-#endif
+//  omp_set_num_threads(Config::numThreadsReorg);
+//#pragma omp parallel for private(itrack)
+//#endif
   for (int i = beg; i < end; ++i, ++itrack)
   {
     const Track &trk = tracks[i];
@@ -121,14 +120,13 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
 
   int itrack;
 //#ifdef USE_CUDA
-#if 0
   // This openmp loop brings some performances when using
   // a single thread to fit all events.
   // However, it is more advantageous to use the threads to
   // parallelize over Events.
-  omp_set_num_threads(Config::numThreadsReorg);
-#pragma omp parallel for private(itrack)
-#endif
+//  omp_set_num_threads(Config::numThreadsReorg);
+//#pragma omp parallel for private(itrack)
+//#endif
   for (int i = beg; i < end; ++i) {
     itrack = i - beg;
     const Track &trk = tracks[i];
@@ -173,14 +171,13 @@ void MkFitter::SlurpInTracksAndHits(const std::vector<Track>&  tracks,
   MatriplexTrackPacker mtp(tracks[beg]);
 
 //#ifdef USE_CUDA
-#if 0
   // This openmp loop brings some performances when using
   // a single thread to fit all events.
   // However, it is more advantageous to use the threads to
   // parallelize over Events.
-  omp_set_num_threads(Config::numThreadsReorg);
-#pragma omp parallel for private(itrack)
-#endif
+//  omp_set_num_threads(Config::numThreadsReorg);
+//#pragma omp parallel for private(itrack)
+//#endif
   for (int i = beg; i < end; ++i)
   {
     int itrack = i - beg;
