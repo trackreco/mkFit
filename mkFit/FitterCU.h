@@ -16,7 +16,7 @@
 #include "index_selection_kernels.h"
 #include "best_hit_kernels.h"
 
-#include <omp.h>
+//#include <omp.h>
 #include <stdexcept>
 
 #define BLOCK_SIZE_X 256
