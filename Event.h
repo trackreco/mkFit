@@ -67,6 +67,7 @@ public:
   std::mutex       mcGatherMutex_;
   std::atomic<int> mcHitIDCounter_;
   std::vector<HitVec> layerHits_;
+  std::vector<std::vector<uint64_t> > layerHitMasks_;//aligned with layerHits_
   MCHitInfoVec simHitsInfo_;
 
   TrackVec simTracks_, seedTracks_, candidateTracks_, fitTracks_;
@@ -115,7 +116,8 @@ struct DataFile
   {
     ES_SimTrackStates = 0x1,
     ES_Seeds          = 0x2,
-    ES_CmsswTracks    = 0x4
+    ES_CmsswTracks    = 0x4,
+    ES_HitIterMasks   = 0x8
   };
 
   FILE *f_fp  =  0;
@@ -130,6 +132,7 @@ struct DataFile
   bool HasSimTrackStates() const { return f_header.f_extra_sections & ES_SimTrackStates; }
   bool HasSeeds()          const { return f_header.f_extra_sections & ES_Seeds; }
   bool HasCmsswTracks()    const { return f_header.f_extra_sections & ES_CmsswTracks; }
+  bool HasHitIterMasks()   const { return f_header.f_extra_sections & ES_HitIterMasks; }
 
   int  OpenRead (const std::string& fname, bool set_n_layers = false);
   void OpenWrite(const std::string& fname, int nev, int extra_sections=0);
