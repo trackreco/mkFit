@@ -1077,7 +1077,10 @@ int main(int argc, char *argv[])
 	for (int il = 0; il<nl; ++il) {
 	  int nh = layerHits_[il].size();
 	  for (int ih=0; ih<nh; ++ih ) {
-	    printf("lay=%i idx=%i mcid=%i x=(%6.3f, %6.3f, %6.3f) r=%6.3f\n",il+1,ih,layerHits_[il][ih].mcHitID(),layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z(),sqrt(pow(layerHits_[il][ih].x(),2)+pow(layerHits_[il][ih].y(),2)));
+	    printf("lay=%i idx=%i mcid=%i x=(%6.3f, %6.3f, %6.3f) r=%6.3f mask=0x%x\n",il+1,ih,layerHits_[il][ih].mcHitID(),
+                   layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z(),
+                   sqrt(pow(layerHits_[il][ih].x(),2)+pow(layerHits_[il][ih].y(),2)),
+                   writeHitIterMasks ? layerHitMasks_[il][ih] : 0);
 	  }
 	}
 
