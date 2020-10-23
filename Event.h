@@ -95,7 +95,7 @@ typedef std::vector<Event> EventVec;
 struct DataFileHeader
 {
   int f_magic          = 0xBEEF;
-  int f_format_version = 4;
+  int f_format_version = 5;
   int f_sizeof_track   = sizeof(Track);
   int f_sizeof_hit     = sizeof(Hit);
   int f_sizeof_hot     = sizeof(HitOnTrack);

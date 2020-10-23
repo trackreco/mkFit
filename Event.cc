@@ -1059,7 +1059,7 @@ void Event::relabel_cmsswtracks_from_seeds()
 int DataFile::OpenRead(const std::string& fname, bool set_n_layers)
 {
   constexpr int min_ver = 4;
-  constexpr int max_ver = 4;
+  constexpr int max_ver = 5;
 
   f_fp = fopen(fname.c_str(), "r");
   assert (f_fp != 0 && "Opening of input file failed.");
