@@ -57,6 +57,7 @@ Event::Event(int evtID) :
 {
   reset_nan_n_silly_counters();
   layerHits_.resize(Config::nTotalLayers);
+  layerHitMasks_.resize(Config::nTotalLayers);
 }
 
 Event::Event(const Geometry& g, Validation& v, int evtID, int threads) :
@@ -65,6 +66,7 @@ Event::Event(const Geometry& g, Validation& v, int evtID, int threads) :
 {
   reset_nan_n_silly_counters();
   layerHits_.resize(Config::nTotalLayers);
+  layerHitMasks_.resize(Config::nTotalLayers);
 
   validation_.resetValidationMaps(); // need to reset maps for every event.
 }
@@ -497,6 +499,7 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
   int nl;
   fread(&nl, sizeof(int), 1, fp);
   layerHits_.resize(nl);
+  layerHitMasks_.resize(nl);
   for (int il = 0; il<nl; ++il) {
     int nh;
     fread(&nh, sizeof(int), 1, fp);
