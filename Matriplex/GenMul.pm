@@ -778,6 +778,51 @@ sub dump_multiply_std_and_intrinsic
   }
 
   print <<"FNORD";
+#ifdef MPLEX_INTRINSICS
+
+   for (int n = 0; n < N; n += MPLEX_INTRINSICS_WIDTH_BYTES / sizeof(T))
+   {
+FNORD
+
+  $S->multiply_intrinsic($a, $b, $c);
+
+  print <<"FNORD";
+   }
+
+#else
+
+#pragma omp simd
+   for (int n = 0; n < N; ++n)
+   {
+FNORD
+
+  $S->multiply_standard($a, $b, $c);
+
+  print <<"FNORD";
+   }
+#endif
+FNORD
+
+  unless ($fname eq '-')
+  {
+    close FF;
+    select STDOUT;
+  }
+}
+
+# ----------------------------------------------------------------------
+
+sub dump_multiply_std_and_intrinsic_and_gpu
+{
+  my ($S, $fname, $a, $b, $c) = @_;
+
+  unless ($fname eq '-')
+  {
+    open FF, ">$fname";
+    select FF;
+  }
+
+  print <<"FNORD";
 #ifndef __CUDACC__
 #ifdef MPLEX_INTRINSICS
 
@@ -809,7 +854,6 @@ FNORD
 #endif  // __CUDACC__
 FNORD
 
-  
   unless ($fname eq '-')
   {
     close FF;
