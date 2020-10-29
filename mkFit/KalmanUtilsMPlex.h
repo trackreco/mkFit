@@ -4,10 +4,6 @@
 #include "Track.h"
 #include "Matrix.h"
 
-#ifdef USE_CUDA
-#include "FitterCU.h"
-#endif
-
 namespace mkfit {
 
 //------------------------------------------------------------------------------

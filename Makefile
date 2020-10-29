@@ -57,7 +57,7 @@ distclean: clean-local
 
 ${LIB_CORE}: ${CORE_OBJS}
 	@mkdir -p $(@D)
-	${CXX} ${CXXFLAGS} ${VEC_HOST} ${CORE_OBJS} -shared -o $@ ${LDFLAGS_HOST} ${LDFLAGS_CU} ${LDFLAGS}
+	${CXX} ${CXXFLAGS} ${VEC_HOST} ${CORE_OBJS} -shared -o $@ ${LDFLAGS_HOST} ${LDFLAGS}
 
 main: ${AUTO_TGTS} ${LIB_CORE} main.o
 	${CXX} ${CXXFLAGS} ${VEC_HOST} -o $@ main.o ${LDFLAGS_HOST} ${LDFLAGS} -Llib -lMicCore -Wl,-rpath,lib

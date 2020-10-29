@@ -4,10 +4,6 @@
 #include "ConformalUtilsMPlex.h"
 #include "MatriplexPackers.h"
 
-#ifdef USE_CUDA
-//#include "FitterCU.h"
-#endif
-
 //#define DEBUG
 #include "Debug.h"
 
@@ -68,15 +64,6 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
 
   int itrack = 0;
 
-// FIXME: uncomment when track building is ported to GPU.
-//#ifdef USE_CUDA
-  // This openmp loop brings some performances when using
-  // a single thread to fit all events.
-  // However, it is more advantageous to use the threads to
-  // parallelize over Events.
-//  omp_set_num_threads(Config::numThreadsReorg);
-//#pragma omp parallel for private(itrack)
-//#endif
   for (int i = beg; i < end; ++i, ++itrack)
   {
     const Track &trk = tracks[i];
@@ -89,11 +76,6 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
     Label(itrack, 0, 0) = trk.label();
 
 // CopyIn seems fast enough, but indirections are quite slow.
-// For GPU computations, it has been moved in between kernels
-// in an attempt to overlap CPU and GPU computations.
-// FIXME: uncomment when track building is ported to GPU.
-#if 1
-//#ifndef USE_CUDA
     for (int hi = 0; hi < Nhits; ++hi)
     {
       HoTArr[hi](itrack, 0, 0) = trk.getHitOnTrack(hi);
@@ -105,7 +87,6 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
       msErr[hi].CopyIn(itrack, hit.errArray());
       msPar[hi].CopyIn(itrack, hit.posArray());
     }
-#endif
   }
 }
 
@@ -119,14 +100,7 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
   // assert(end - beg == NN);
 
   int itrack;
-//#ifdef USE_CUDA
-  // This openmp loop brings some performances when using
-  // a single thread to fit all events.
-  // However, it is more advantageous to use the threads to
-  // parallelize over Events.
-//  omp_set_num_threads(Config::numThreadsReorg);
-//#pragma omp parallel for private(itrack)
-//#endif
+
   for (int i = beg; i < end; ++i) {
     itrack = i - beg;
     const Track &trk = tracks[i];
@@ -140,10 +114,6 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
     Chi2(itrack, 0, 0) = trk.chi2();
 
 // CopyIn seems fast enough, but indirections are quite slow.
-// For GPU computations, it has been moved in between kernels
-// in an attempt to overlap CPU and GPU computations.
-//#ifndef USE_CUDA
-#if 1
     for (int hi = 0; hi < Nhits; ++hi)
     {
       const int hidx = trk.getHitIdx(hi);
@@ -155,7 +125,6 @@ void MkFitter::InputTracksAndHits(const std::vector<Track>&  tracks,
 
       HoTArr[hi](itrack, 0, 0) = trk.getHitOnTrack(hi);
     }
-#endif
   }
 }
 
@@ -170,14 +139,6 @@ void MkFitter::SlurpInTracksAndHits(const std::vector<Track>&  tracks,
 
   MatriplexTrackPacker mtp(tracks[beg]);
 
-//#ifdef USE_CUDA
-  // This openmp loop brings some performances when using
-  // a single thread to fit all events.
-  // However, it is more advantageous to use the threads to
-  // parallelize over Events.
-//  omp_set_num_threads(Config::numThreadsReorg);
-//#pragma omp parallel for private(itrack)
-//#endif
   for (int i = beg; i < end; ++i)
   {
     int itrack = i - beg;
@@ -194,11 +155,6 @@ void MkFitter::SlurpInTracksAndHits(const std::vector<Track>&  tracks,
   mtp.Pack(Err[iC], Par[iC]);
 
 // CopyIn seems fast enough, but indirections are quite slow.
-// For GPU computations, it has been moved in between kernels
-// in an attempt to overlap CPU and GPU computations.
-//#ifndef USE_CUDA
-#if 1
-
   for (int hi = 0; hi < Nhits; ++hi)
   {
     MatriplexHitPacker mhp(layerHits[hi][0]);
@@ -215,7 +171,6 @@ void MkFitter::SlurpInTracksAndHits(const std::vector<Track>&  tracks,
 
     mhp.Pack(msErr[hi], msPar[hi]);
   }
-#endif
 }
 
 void MkFitter::InputTracksAndHitIdx(const std::vector<Track>& tracks,
@@ -310,10 +265,6 @@ void MkFitter::InputSeedsTracksAndHits(const std::vector<Track>&  seeds,
     const Track &trk = tracks[see.label()];
 
 // CopyIn seems fast enough, but indirections are quite slow.
-// For GPU computations, it has been moved in between kernels
-// in an attempt to overlap CPU and GPU computations.
-//#ifndef USE_CUDA
-#if 1
     for (int hi = 0; hi < Nhits; ++hi)
     {
       HoTArr[hi](itrack, 0, 0) = trk.getHitOnTrack(hi);
@@ -325,7 +276,6 @@ void MkFitter::InputSeedsTracksAndHits(const std::vector<Track>&  seeds,
       msErr[hi].CopyIn(itrack, hit.errArray());
       msPar[hi].CopyIn(itrack, hit.posArray());
     }
-#endif
   }
 }
 
