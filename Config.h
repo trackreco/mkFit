@@ -6,12 +6,6 @@
 #include <string> // won't compile on clang gcc for mac OS w/o this!
 #include <map>
 
-#if defined(__CUDACC__)
-  #define CUDA_CALLABLE __host__ __device__
-#else
-  #define CUDA_CALLABLE 
-#endif
-
 namespace mkfit {
 
 // Cram this in here for now ...
@@ -264,7 +258,7 @@ namespace Config
   // Config for Hit and BinInfoUtils
   constexpr int   nPhiPart   = 1260;
   constexpr float fPhiFactor = nPhiPart / TwoPI;
-  constexpr int   nEtaPart   = 11;  // 1 is better for GPU best_hit
+  constexpr int   nEtaPart   = 11;
   constexpr int   nEtaBin    = 2 * nEtaPart - 1;
 
   constexpr float        fEtaFull  = 2 * Config::fEtaDet;
@@ -366,10 +360,7 @@ namespace Config
   // Threading
   extern int    numThreadsFinder;
   extern int    numThreadsSimulation;
-
-  // For GPU computations
   extern int    numThreadsEvents;
-  extern int    numThreadsReorg;
 
   extern int    finderReportBestOutOfN;
 
@@ -412,7 +403,6 @@ namespace Config
 
   void RecalculateDependentConstants();
   
-  CUDA_CALLABLE
   inline float BfieldFromZR(const float z, const float r)
   {
     return (Config::mag_b0*z*z + Config::mag_b1*z + Config::mag_c1)*(Config::mag_a*r*r + 1.f);
@@ -423,8 +413,6 @@ namespace Config
   #ifndef MPT_SIZE
     #if defined(__MIC__) || defined(__AVX512F__)
       #define MPT_SIZE 16
-    #elif defined USE_CUDA
-      #define MPT_SIZE 8
     #elif defined(__AVX__) || defined(__AVX2__)
       #define MPT_SIZE 8
     #else

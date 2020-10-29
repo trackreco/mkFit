@@ -210,10 +210,6 @@ public:
   void BackwardFit();
   void fit_cands(MkFinder *mkfndr, int start_cand, int end_cand, int region);
 
-#ifdef USE_CUDA
-  const Event* get_event() const { return m_event; }
-  const EventOfHits& get_event_of_hits() const { return m_event_of_hits; }
-#endif
 };
 
 } // end namespace mkfit

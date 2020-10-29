@@ -52,7 +52,6 @@
 - **phi3.t2.ucsd.edu**: [Intel Xeon Gold 6130 Processor](https://ark.intel.com/products/120492/Intel-Xeon-Gold-6130-Processor-22M-Cache-2_10-GHz) _Skylake Scalable Performance_ (referred to as SKL-Au, SKL-SP, phi3)
 - **lnx4108.classe.cornell.edu**: [Intel Xeon Silver 4116 Processor](https://ark.intel.com/products/120481/Intel-Xeon-Silver-4116-Processor-16_5M-Cache-2_10-GHz) _Skylake Scalable Performance_ (referred to as SKL-Ag, SKL-SP, lnx4108, LNX-S)
 - **lnx7188.classe.cornell.edu**: [Intel Xeon Gold 6142 Processor](https://ark.intel.com/content/www/us/en/ark/products/120487/intel-xeon-gold-6142-processor-22m-cache-2-60-ghz.html) _Skylake Scalable Performance_ (referred to as lnx7188,LNX-G)
-- **GPUs**: to be filled out
 
 phi1, phi2, and phi3 are all managed across a virtual login server and therefore the home user spaces are shared. phi1, phi2, phi3, lnx7188, and lnx4108 also have /cvmfs mounted so you can source the environment needed to run the code.
 
@@ -420,7 +419,7 @@ Described in validation manifesto. See Section 8 for more info on manifesto.
 ### TO DO
 
 - flesh out sections as needed
-- GPU specific code
+- GPU specific code?
 
 ### Vestigial code
 

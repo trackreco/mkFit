@@ -3,9 +3,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 template<typename Tf, typename Ti, typename TfLL1, typename Tf11, typename TfLLL>
-#ifdef __CUDACC__
-__device__
-#endif
 static inline void helixAtRFromIterativeCCS_impl(const    Tf& __restrict__ inPar,
                                                  const    Ti& __restrict__ inChg,
                                                  const  Tf11& __restrict__ msRad,

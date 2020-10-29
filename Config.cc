@@ -23,11 +23,8 @@ namespace Config
 
   // Multi threading and Clone engine configuration
   int   numThreadsFinder = 1;
-  
-  // GPU computations
   int   numThreadsEvents = 1;
-  int   numThreadsReorg = 1;
-
+  
 #if defined(__MIC__) || defined(__AVX512F__)
   int   numThreadsSimulation = 60;
 #else
