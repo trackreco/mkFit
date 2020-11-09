@@ -61,13 +61,11 @@ inline float getInvRad2(float x, float y){
   return 1.0f/(x*x + y*y);
 }
 
-CUDA_CALLABLE
 inline float getPhi(float x, float y)
 {
   return std::atan2(y,x); 
 }
 
-CUDA_CALLABLE
 inline float getTheta(float r, float z){
   return std::atan2(r,z);
 }
@@ -201,10 +199,6 @@ public:
 
   const float* posArray() const {return state_.pos_.Array();}
   const float* errArray() const {return state_.err_.Array();}
-#if __CUDACC__
-  __device__ float* posArrayCU();
-  __device__ float* errArrayCU();
-#endif
 
   // Non-const versions needed for CopyOut of Matriplex.
   SVector3&     parameters_nc() {return state_.pos_;}

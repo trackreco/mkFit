@@ -93,17 +93,11 @@ public:
    /**
       Default constructor: vector filled with zero values 
     */
-#if __CUDACC__
-   __host__ __device__
-#endif
    SVector();
    /// contruct from a vector expression
    template <class A>
    SVector(const VecExpr<A,T,D>& rhs);
    /// copy contructor
-#if __CUDACC__
-   __host__ __device__
-#endif
    SVector(const SVector<T,D>& rhs);
       
    // new constructs using STL iterator interface
@@ -191,9 +185,6 @@ public:
    const T* Array() const;
    /// return non-const pointer to internal array
    T* Array();
-#ifdef __CUDACC__
-   T* ArrayCU();
-#endif
    
    /** @name --- STL-like interface --- */
    
