@@ -39,39 +39,45 @@ void LayerOfHits::SetupLayer(const LayerInfo &li)
 
   m_layer_info = &li;
 
-  if (is_barrel()) setup_bins(li.m_zmin, li.m_zmax, li.m_q_bin);
+  m_is_barrel = m_layer_info->is_barrel();
+
+  if (m_is_barrel) setup_bins(li.m_zmin, li.m_zmax, li.m_q_bin);
   else             setup_bins(li.m_rin,  li.m_rout, li.m_q_bin);
 }
 
 //==============================================================================
 
+/*
+void detect_q_min_max(const HitVec &hitv)
+{
+  float dq = 0.5;
+  // should know this from geom.
+  //m_qmin =  1000;
+  //m_qmax = -1000;
+  for (auto const &h : hitv)
+  {
+    if (h.q() < m_qmin) m_qmin = h.q();
+    if (h.q() > m_qmax) m_qmax = h.q();
+  }
+  printf("LoH::SuckInHits qmin=%f, qmax=%f", m_qmin, m_qmax);
+  float nmin = std::floor(m_qmin / dq);
+  float nmax = std::ceil (m_qmax / dq);
+  m_qmin = dq * nmin;
+  m_qmax = dq * nmax;
+  int nq  = nmax - nmin;
+  int nqh = nq / 2;
+  m_fq = 1.0f / dq; // qbin = (qhit - m_qmin) * m_fq;
+  printf(" -> qmin=%f, qmax=%f, nq=%d, fq=%f\n", m_qmin, m_qmax, nq, m_fq);
+}
+*/
+
 void LayerOfHits::SuckInHits(const HitVec &hitv)
 {
-  // This is now in SetupLayer()
-  // // should be layer dependant
-  // float dq = 0.5;
-  // // should know this from geom.
-  // //m_qmin =  1000;
-  // //m_qmax = -1000;
-  // for (auto const &h : hitv)
-  // {
-  //   if (h.q() < m_qmin) m_qmin = h.q();
-  //   if (h.q() > m_qmax) m_qmax = h.q();
-  // }
-  // printf("LoH::SuckInHits qmin=%f, qmax=%f", m_qmin, m_qmax);
-  // float nmin = std::floor(m_qmin / dq);
-  // float nmax = std::ceil (m_qmax / dq);
-  // m_qmin = dq * nmin;
-  // m_qmax = dq * nmax;
-  // int nq  = nmax - nmin;
-  // int nqh = nq / 2;
-  // m_fq = 1.0f / dq; // qbin = (qhit - m_qmin) * m_fq;
-  // printf(" -> qmin=%f, qmax=%f, nq=%d, fq=%f\n", m_qmin, m_qmax, nq, m_fq);
-
   assert (m_nq > 0 && "SetupLayer() was not called.");
 
-  const int  size   = hitv.size();
-  const bool is_brl = is_barrel();
+  const int size = hitv.size();
+
+  m_ext_hits  = & hitv;
 
 #ifdef COPY_SORTED_HITS
   if (m_capacity < size)
@@ -83,48 +89,39 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
 
   if (Config::usePhiQArrays)
   {
+    m_hit_phis.resize(size);
     m_hit_qs.resize(size);
+    m_hit_infos.resize(size);
   }
-  m_hit_phis.resize(size);
+  m_qphifines.resize(size);
 
-  struct HitInfo
+  for (int i = 0; i < size; ++i)
   {
-    float phi;
-    float q;
-    uint16_t   qbin;
-    uint16_t   phibin;
-  };
-
-  std::vector<HitInfo> ha(size);
-  std::vector<udword>  hit_qphiFines(size);
+    const Hit &h = hitv[i];
   
-  {
-    for (int i = 0; i < size; ++i)
+    HitInfo hi = { h.phi(), m_is_barrel ? h.z() : h.r() };
+
+    m_qphifines[i] = GetPhiBinFine(hi.phi) + (GetQBinChecked(hi.q) << 16);
+
+    if (Config::usePhiQArrays)
     {
-      auto const& h = hitv[i];
-      
-      HitInfo &hi = ha[i];
-      // N.1.a For phi in [-pi, pi): squashPhiMinimal(h.phi()); Apparently atan2 can round the wrong way.
-      hi.phi  = h.phi();
-      hi.q    = is_brl ? h.z() : h.r();
-      hi.qbin = std::max(std::min(static_cast<int>((hi.q - m_qmin) * m_fq), m_nq - 1), 0);
-      // N.1.b ha[j].phi is returned by atan2 and can be rounded the wrong way, resulting in bin -1 or Config::m_nphi
-      hi.phibin = GetPhiBin(hi.phi) & m_phi_mask;
-      hit_qphiFines[i] = GetPhiBinFine(hi.phi) + (hi.qbin << 16);
-    }//i < size
+      m_hit_infos[i] = hi;
+    }
   }
 
-  RadixSort sort;
-  sort.Sort(&hit_qphiFines[0], size);
+  operator delete [] (m_hit_ranks);
+  {
+    RadixSort sort;
+    sort.Sort(&m_qphifines[0], size, RADIX_UNSIGNED);
+    m_hit_ranks = sort.RelinquishRanks();
+  }
 
-  int curr_qphi    = -1;
+  int curr_qphi = -1;
   empty_q_bins(0, m_nq, 0);
 
-  for (uint16_t i = 0; i < size; ++i)
+  for (int i = 0; i < size; ++i)
   {
-    int j = sort.GetRanks()[i];
-
-    // Could fix the mis-sorts. Set ha size to size + 1 and fake last entry to avoid ifs.
+    int j = m_hit_ranks[i];
 
 #ifdef COPY_SORTED_HITS
     memcpy(&m_hits[i], &hitv[j], sizeof(Hit));
@@ -132,15 +129,17 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
 
     if (Config::usePhiQArrays)
     {
-      m_hit_phis[i] = ha[j].phi;
-      m_hit_qs  [i] = ha[j].q;
+      m_hit_phis[i] = m_hit_infos[j].phi;
+      m_hit_qs  [i] = m_hit_infos[j].q;
     }
 
-    const int phi_bin = ha[j].phibin;
-    const int q_bin = ha[j].qbin;
+    // Combined q-phi bin with fine part masked off
+    const int jqphi   = m_qphifines[j] & m_phi_fine_xmask;
+
+    const int phi_bin = (jqphi & m_phi_mask_fine) >> m_phi_bits_shift;
+    const int q_bin   = jqphi >> 16;
 
     // Fill the bin info
-    const int jqphi = hit_qphiFines[j] & m_phi_fine_mask;
     if (jqphi != curr_qphi)
     {
       m_phi_bin_infos[q_bin][phi_bin] = {i, i};
@@ -149,12 +148,6 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
 
     m_phi_bin_infos[q_bin][phi_bin].second++;
   }
-
-#ifndef COPY_SORTED_HITS
-  operator delete [] (m_hit_ranks);
-  m_hit_ranks = sort.RelinquishRanks();
-  m_ext_hits  = & hitv;
-#endif
 
   // Check for mis-sorts due to lost precision (not really important).
   // float phi_prev = 0;
@@ -184,6 +177,106 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
   //   printf("%3d %3d %8f %5d %8f\n", i, j, ha[j].phi, ha[j].qbin, hitv[j].q());
   // }
 }
+
+//==============================================================================
+
+
+void LayerOfHits::BeginHitInput(const HitVec &hitv)
+{
+  assert (m_nq > 0 && "SetupLayer() was not called.");
+
+  m_ext_hits = &hitv;
+
+  m_hit_infos.clear();
+  m_qphifines.clear();
+  m_ext_idcs.clear();
+}
+
+void LayerOfHits::TakeHitInput(int idx)
+{
+  const Hit &h = (*m_ext_hits)[idx];
+
+  m_ext_idcs.push_back(idx);
+
+  HitInfo hi = { h.phi(), m_is_barrel ? h.z() : h.r() };
+
+  m_qphifines.push_back( GetPhiBinFine(hi.phi) + (GetQBinChecked(hi.q) << 16) );
+
+  if (Config::usePhiQArrays)
+  {
+    m_hit_infos.emplace_back(hi);
+  }
+}
+
+void LayerOfHits::EndHitInput()
+{
+  const int size = m_ext_idcs.size();
+
+  // radix
+  operator delete [] (m_hit_ranks);
+  {
+    RadixSort sort;
+    sort.Sort(&m_qphifines[0], size, RADIX_UNSIGNED);
+    m_hit_ranks = sort.RelinquishRanks();
+  }
+
+  // copy q/phi
+
+#ifdef COPY_SORTED_HITS
+  if (m_capacity < size)
+  {
+    free_hits();
+    alloc_hits(1.02 * size);
+  }
+#endif
+
+  if (Config::usePhiQArrays)
+  {
+    m_hit_phis.resize(size);
+    m_hit_qs.resize(size);
+  }
+
+  int curr_qphi = -1;
+  empty_q_bins(0, m_nq, 0);
+
+  for (int i = 0; i < size; ++i)
+  {
+    int j = m_hit_ranks[i];  // index in intermediate
+    int k = m_ext_idcs[j];   // index in external hit_vec
+
+#ifdef COPY_SORTED_HITS
+    memcpy(&m_hits[i], &hitv[k], sizeof(Hit));
+#endif
+
+    if (Config::usePhiQArrays)
+    {
+      m_hit_phis[i] = m_hit_infos[j].phi;
+      m_hit_qs  [i] = m_hit_infos[j].q;
+    }
+
+    // Combined q-phi bin with fine part masked off
+    const int jqphi = m_qphifines[j] & m_phi_fine_xmask;
+
+    const int phi_bin = (jqphi & m_phi_mask_fine) >> m_phi_bits_shift;
+    const int q_bin   = jqphi >> 16;
+
+    // Fill the bin info
+    if (jqphi != curr_qphi)
+    {
+      m_phi_bin_infos[q_bin][phi_bin] = {i, i};
+      curr_qphi = jqphi;
+    }
+
+    m_phi_bin_infos[q_bin][phi_bin].second++;
+
+    // Ranks[i] will never be used again ... use it to point to external index.
+    m_hit_ranks[i] = k;
+  }
+
+  // Matti: We can release m_hit_infos, m_ext_idcs, m_qphifines -- and realloc on next BeginInput.
+}
+
+//==============================================================================
 
 void LayerOfHits::SelectHitIndices(float q, float phi, float dq, float dphi, std::vector<int>& idcs, bool isForSeeding, bool dump)
 {
