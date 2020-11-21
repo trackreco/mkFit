@@ -234,9 +234,9 @@ public:
   void  SuckInHits(const HitVec &hitv);
 
   // Use external hit-vec and only use hits that are passed to me.
-  void  BeginHitInput(const HitVec &hitv);
-  void  TakeHitInput(int idx);
-  void  EndHitInput();
+  void  BeginRegistrationOfHits(const HitVec &hitv);
+  void  RegisterHit(int idx);
+  void  EndRegistrationOfHits();
 
   // Use this to remap internal hit index to external one.
   int GetOriginalHitIndex(int i)   const { return m_hit_ranks[i]; }
@@ -279,9 +279,9 @@ public:
     /*
     int   nh  = hitv.size();
     auto &loh = m_layers_of_hits[layer];
-    loh.BeginHitInput(hitv);
-    for (int i = 0; i < nh; ++i) loh.TakeHitInput(i);
-    loh.EndHitInput();
+    loh.BeginRegistrationOfHits(hitv);
+    for (int i = 0; i < nh; ++i) loh.RegisterHit(i);
+    loh.EndRegistrationOfHits();
     */
   }
 };

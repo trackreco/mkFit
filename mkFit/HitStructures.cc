@@ -181,7 +181,7 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
 //==============================================================================
 
 
-void LayerOfHits::BeginHitInput(const HitVec &hitv)
+void LayerOfHits::BeginRegistrationOfHits(const HitVec &hitv)
 {
   assert (m_nq > 0 && "SetupLayer() was not called.");
 
@@ -192,7 +192,7 @@ void LayerOfHits::BeginHitInput(const HitVec &hitv)
   m_ext_idcs.clear();
 }
 
-void LayerOfHits::TakeHitInput(int idx)
+void LayerOfHits::RegisterHit(int idx)
 {
   const Hit &h = (*m_ext_hits)[idx];
 
@@ -208,7 +208,7 @@ void LayerOfHits::TakeHitInput(int idx)
   }
 }
 
-void LayerOfHits::EndHitInput()
+void LayerOfHits::EndRegistrationOfHits()
 {
   const int size = m_ext_idcs.size();
 
