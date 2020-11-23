@@ -74,7 +74,7 @@ mkFit: ${ALLOBJS}
 	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} ${ALLOBJS} -o $@ ${LDFLAGS_HOST} -L../lib -lMicCore -Wl,-rpath,../lib,-rpath,./lib
 
 ${LIB_MKFIT}: ${LIBOBJS}
-	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LIBOBJS} -shared -o $@ ${LDFLAGS_HOST} ${LDFLAGS}
+	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LIBOBJS} -shared -o $@ ${LDFLAGS_HOST} ${LDFLAGS} -L../lib -lMicCore -Wl,-rpath,../lib,-rpath,./lib
 
 ifdef WITH_ROOT
 fittestMPlex.o : CPPFLAGS += $(shell root-config --cflags)
