@@ -27,7 +27,7 @@ make distclean ${mOpt}
 make -j 32 ${mOpt}
 
 ## test each build routine to be sure it works!
-for bV in "BH bh" "STD std" "CE ce" "FV fv"
+for bV in "BH bh" "STD std" "CE ce"
 do echo ${bV} | while read -r bN bO
     do
 	oBase=${val_arch}_${sample}_${bN}
