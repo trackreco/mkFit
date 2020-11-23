@@ -16,7 +16,7 @@
 #include <mutex>
 #endif
 
-#include <tbb/tbb.h>
+#include "tbb/parallel_for.h"
 
 #include <iostream>
 #include <memory>

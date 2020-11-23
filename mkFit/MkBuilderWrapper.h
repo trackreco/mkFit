@@ -19,7 +19,7 @@ namespace mkfit {
 
     MkBuilder& get() { return *builder_; }
 
-    static void populate(bool populatefv=false);
+    static void populate();
 
   private:
     std::unique_ptr<MkBuilder> builder_;
