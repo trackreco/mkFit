@@ -27,7 +27,8 @@
 //#define DEBUG
 #include "Debug.h"
 
-#include <tbb/task_scheduler_init.h>
+#include "tbb/task_arena.h"
+#include "tbb/parallel_for.h"
 
 #if defined(USE_VTUNE_PAUSE)
 #include "ittnotify.h"
@@ -81,7 +82,6 @@ namespace
   bool  g_run_build_bh  = false;
   bool  g_run_build_std = false;
   bool  g_run_build_ce  = false;
-  bool  g_run_build_fv  = false;
 
   std::string g_operation = "simulate_and_process";;
   std::string g_input_file = "";
@@ -197,13 +197,13 @@ void generate_and_save_tracks()
 
   printf("writing %i events\n", Nevents);
 
-  tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
+  tbb::task_arena arena(Config::numThreadsSimulation);
 
   Event ev(geom, *val, 0);
   for (int evt = 0; evt < Nevents; ++evt)
   {
     ev.Reset(evt);
-    ev.Simulate();
+    arena.execute([&]() { ev.Simulate(); });
 
 #ifdef DEBUG
     for (int itrack = 0; itrack < ev.simTracks_.size(); itrack++)
@@ -279,7 +279,7 @@ void test_standard()
 
   if (Config::useCMSGeom) fillZRgridME();
 
-  const int NT = 5;
+  constexpr int NT = 4;
   double t_sum[NT] = {0};
   double t_skip[NT] = {0};
   double time = dtime();
@@ -288,7 +288,7 @@ void test_standard()
   std::atomic<int> seedstot{0}, simtrackstot{0}, candstot{0};
   std::atomic<int> maxHits_all{0}, maxLayer_all{0};
 
-  MkBuilder::populate(g_run_build_all || g_run_build_fv);
+  MkBuilder::populate();
 
   std::vector<std::unique_ptr<Event>>      evs(Config::numThreadsEvents);
   std::vector<std::unique_ptr<Validation>> vals(Config::numThreadsEvents);
@@ -309,112 +309,114 @@ void test_standard()
     }
   }
 
-  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
+  tbb::task_arena arena(Config::numThreadsFinder);
 
   dprint("parallel_for step size " << (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents);
 
   time = dtime();
 
   int events_per_thread = (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents;
-  tbb::parallel_for(tbb::blocked_range<int>(0, Config::numThreadsEvents, 1),
-    [&](const tbb::blocked_range<int>& threads)
-  {
-    int thisthread = threads.begin();
 
-    assert(threads.begin() == threads.end()-1 && thisthread < Config::numThreadsEvents);
-
-    std::vector<Track> plex_tracks;
-    auto& ev     = *evs[thisthread].get();
-    auto& mkb    = *mkbs[thisthread].get();
-    auto  fp     =  fps[thisthread].get();
-
-    int evstart = thisthread*events_per_thread;
-    int evend   = std::min(Config::nEvents, evstart+events_per_thread);
-
-    dprint("thisthread " << thisthread << " events " << Config::nEvents << " events/thread " << events_per_thread
-                         << " range " << evstart << ":" << evend);
-
-    for (int evt = evstart; evt < evend; ++evt)
+  arena.execute([&]() {
+    tbb::parallel_for(tbb::blocked_range<int>(0, Config::numThreadsEvents, 1),
+      [&](const tbb::blocked_range<int>& threads)
     {
-      ev.Reset(nevt++);
+      int thisthread = threads.begin();
 
-      if (!Config::silent)
+      assert(threads.begin() == threads.end()-1 && thisthread < Config::numThreadsEvents);
+
+      std::vector<Track> plex_tracks;
+      auto& ev     = *evs[thisthread].get();
+      auto& mkb    = *mkbs[thisthread].get();
+      auto  fp     =  fps[thisthread].get();
+
+      int evstart = thisthread*events_per_thread;
+      int evend   = std::min(Config::nEvents, evstart+events_per_thread);
+
+      dprint("thisthread " << thisthread << " events " << Config::nEvents << " events/thread " << events_per_thread
+                           << " range " << evstart << ":" << evend);
+
+      for (int evt = evstart; evt < evend; ++evt)
       {
-        std::lock_guard<std::mutex> printlock(Event::printmutex);
-        printf("\n");
-        printf("Processing event %d\n", ev.evtID());
-      }
+        ev.Reset(nevt++);
 
-      if (g_operation == "read")
-      {
-        ev.read_in(data_file, fp);
-      }
-      else
-      {
-        ev.Simulate();
-      }
-
-      // skip events with zero seed tracks!
-      if (ev.is_trackvec_empty(ev.seedTracks_)) continue;
-
-      plex_tracks.resize(ev.simTracks_.size());
-
-      double t_best[NT] = {0}, t_cur[NT];
-      simtrackstot += ev.simTracks_.size();
-      seedstot     += ev.seedTracks_.size();
-
-      int ncands_thisthread = 0;
-      int maxHits_thisthread = 0;
-      int maxLayer_thisthread = 0;
-      for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
-      {
-        t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
-        t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev, mkb) : 0;
-        t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, mkb) : 0;
-        t_cur[4] = (g_run_build_all || g_run_build_fv)  ? runBuildingTestPlexFV(ev, mkb) : 0;
-	if (g_run_build_all || g_run_build_cmssw) runBuildingTestPlexDumbCMSSW(ev, mkb);
-        t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, mkb) : 0;
-        if (g_run_build_ce){
-          ncands_thisthread = mkb.total_cands();
-          auto const& ln = mkb.max_hits_layer();
-          maxHits_thisthread = ln.first;
-          maxLayer_thisthread = ln.second;
+        if (!Config::silent)
+        {
+          std::lock_guard<std::mutex> printlock(Event::printmutex);
+          printf("\n");
+          printf("Processing event %d\n", ev.evtID());
         }
-        for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
 
+        if (g_operation == "read")
+        {
+          ev.read_in(data_file, fp);
+        }
+        else
+        {
+          ev.Simulate();
+        }
+
+        // skip events with zero seed tracks!
+        if (ev.is_trackvec_empty(ev.seedTracks_)) continue;
+
+        plex_tracks.resize(ev.simTracks_.size());
+
+        double t_best[NT] = {0}, t_cur[NT];
+        simtrackstot += ev.simTracks_.size();
+        seedstot     += ev.seedTracks_.size();
+
+        int ncands_thisthread = 0;
+        int maxHits_thisthread = 0;
+        int maxLayer_thisthread = 0;
+        for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
+        {
+          t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
+          t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev, mkb) : 0;
+          t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, mkb) : 0;
+          if (g_run_build_all || g_run_build_cmssw) runBuildingTestPlexDumbCMSSW(ev, mkb);
+          t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, mkb) : 0;
+          if (g_run_build_ce){
+            ncands_thisthread = mkb.total_cands();
+            auto const& ln = mkb.max_hits_layer();
+            maxHits_thisthread = ln.first;
+            maxLayer_thisthread = ln.second;
+          }
+          for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
+
+          if (!Config::silent) {
+            std::lock_guard<std::mutex> printlock(Event::printmutex);
+            if (Config::finderReportBestOutOfN > 1)
+            {
+              printf("----------------------------------------------------------------\n");
+              printf("Best-of-times:");
+              for (int i = 0; i < NT; ++i) printf("  %.5f/%.5f", t_cur[i], t_best[i]);
+              printf("\n");
+            }
+            printf("----------------------------------------------------------------\n");
+          }
+        }
+
+        candstot += ncands_thisthread;
+        if (maxHits_thisthread > maxHits_all){
+          maxHits_all = maxHits_thisthread;
+          maxLayer_all = maxLayer_thisthread;
+        }
         if (!Config::silent) {
           std::lock_guard<std::mutex> printlock(Event::printmutex);
-          if (Config::finderReportBestOutOfN > 1)
-          {
-            printf("----------------------------------------------------------------\n");
-            printf("Best-of-times:");
-            for (int i = 0; i < NT; ++i) printf("  %.5f/%.5f", t_cur[i], t_best[i]);
-            printf("\n");
-          }
-          printf("----------------------------------------------------------------\n");
+          printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
+                 t_best[0], t_best[1], t_best[2], t_best[3]);
+        }
+
+        {
+          static std::mutex sum_up_lock;
+          std::lock_guard<std::mutex> locker(sum_up_lock);
+
+          for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
+          if (evt > 0) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
         }
       }
-
-      candstot += ncands_thisthread;
-      if (maxHits_thisthread > maxHits_all){
-        maxHits_all = maxHits_thisthread;
-        maxLayer_all = maxLayer_thisthread;
-      }
-      if (!Config::silent) {
-        std::lock_guard<std::mutex> printlock(Event::printmutex);
-        printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f  FVMX = %.5f\n",
-               t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
-      }
-
-      {
-        static std::mutex sum_up_lock;
-        std::lock_guard<std::mutex> locker(sum_up_lock);
-
-        for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
-        if (evt > 0) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
-      }
-    }
-  }, tbb::simple_partitioner());
+    }, tbb::simple_partitioner());
+  });
 
   time = dtime() - time;
 
@@ -423,10 +425,10 @@ void test_standard()
   printf("=== TOTAL for %d events\n", Config::nEvents);
   printf("================================================================\n");
 
-  printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f  FVMX = %.5f\n",
-         t_sum[0], t_sum[1], t_sum[2], t_sum[3], t_sum[4]);
-  printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f  FVMX = %.5f\n",
-         t_skip[0], t_skip[1], t_skip[2], t_skip[3], t_skip[4]);
+  printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
+         t_sum[0], t_sum[1], t_sum[2], t_sum[3]);
+  printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
+         t_skip[0], t_skip[1], t_skip[2], t_skip[3]);
   printf("Total event loop time %.5f simtracks %d seedtracks %d builtcands %d maxhits %d on lay %d\n", time, 
          simtrackstot.load(), seedstot.load(), candstot.load(), maxHits_all.load(), maxLayer_all.load());
   //fflush(stdout);
@@ -475,10 +477,12 @@ void next_arg_or_die(lStr_t& args, lStr_i& i, bool allow_single_minus=false)
 
 int main(int argc, const char *argv[])
 {
+#ifdef _GNU_SOURCE
   if (Config::nan_etc_sigs_enable)
   {
     feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW); //FE_ALL_EXCEPT);
   }
+#endif
 
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
@@ -544,7 +548,6 @@ int main(int argc, const char *argv[])
         "  --build-bh               run best-hit building test (def: %s)\n"
         "  --build-std              run standard combinatorial building test (def: %s)\n"
         "  --build-ce               run clone engine combinatorial building test (def: %s)\n"
-        "  --build-fv               run full vector combinatorial building test (def: %s)\n"
 	"\n"
 	" **Seeding options\n"
         "  --seed-input     <str>   which seed collecion used for building (def: %s)\n"
@@ -646,7 +649,7 @@ int main(int argc, const char *argv[])
 	Config::numHitsPerTask,
 
 	b2a(g_run_fit_std),
-	b2a(g_run_fit_std && !(g_run_build_all || g_run_build_cmssw || g_run_build_bh || g_run_build_std || g_run_build_ce || g_run_build_fv)),
+	b2a(g_run_fit_std && !(g_run_build_all || g_run_build_cmssw || g_run_build_bh || g_run_build_std || g_run_build_ce)),
         b2a(Config::cf_fitting),
         b2a(Config::fit_val),
 
@@ -654,7 +657,6 @@ int main(int argc, const char *argv[])
 	b2a(g_run_build_all || g_run_build_bh),
 	b2a(g_run_build_all || g_run_build_std),
 	b2a(g_run_build_all || g_run_build_ce),
-	b2a(g_run_build_all || g_run_build_fv),
         
 	getOpt(Config::seedInput, g_seed_opts).c_str(),
 	getOpt(Config::seedCleaning, g_clean_opts).c_str(),
@@ -804,7 +806,7 @@ int main(int argc, const char *argv[])
     else if(*i == "--fit-std-only")
     {
       g_run_fit_std = true;
-      g_run_build_all = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = false; g_run_build_fv = false;
+      g_run_build_all = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = false;
     }
     else if (*i == "--cf-fitting")
     {
@@ -820,19 +822,15 @@ int main(int argc, const char *argv[])
     }
     else if(*i == "--build-bh")
     {
-      g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = true; g_run_build_std = false; g_run_build_ce = false; g_run_build_fv = false;
+      g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = true; g_run_build_std = false; g_run_build_ce = false;
     }
     else if(*i == "--build-std")
     {
-      g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = false; g_run_build_std = true; g_run_build_ce = false; g_run_build_fv = false;
+      g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = false; g_run_build_std = true; g_run_build_ce = false;
     }
     else if(*i == "--build-ce")
     {
-      g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = true; g_run_build_fv = false;
-    }
-    else if(*i == "--build-fv")
-    {
-      g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = false; g_run_build_fv = true;
+      g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = true;
     }
     else if(*i == "--seed-input")
     {
