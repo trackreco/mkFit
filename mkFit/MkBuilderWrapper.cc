@@ -8,7 +8,7 @@ namespace mkfit {
 
   MkBuilderWrapper::~MkBuilderWrapper() {}
 
-  void MkBuilderWrapper::populate(bool populatefv) {
-    MkBuilder::populate(populatefv);
+  void MkBuilderWrapper::populate() {
+    MkBuilder::populate();
   }
 }

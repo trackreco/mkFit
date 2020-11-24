@@ -12,7 +12,7 @@
 #include "Debug.h"
 
 #ifdef TBB
-#include "tbb/tbb.h"
+#include "tbb/parallel_for.h"
 #endif
 
 #include <memory>
@@ -53,15 +53,15 @@ void Event::reset_nan_n_silly_counters()
 
 Event::Event(int evtID) :
   geom_(dummyGeometry), validation_(*dummyValidation),
-  evtID_(evtID), threads_(1), mcHitIDCounter_(0)
+  evtID_(evtID), mcHitIDCounter_(0)
 {
   reset_nan_n_silly_counters();
   layerHits_.resize(Config::nTotalLayers);
 }
 
-Event::Event(const Geometry& g, Validation& v, int evtID, int threads) :
+Event::Event(const Geometry& g, Validation& v, int evtID) :
   geom_(g), validation_(v),
-  evtID_(evtID), threads_(threads), mcHitIDCounter_(0)
+  evtID_(evtID), mcHitIDCounter_(0)
 {
   reset_nan_n_silly_counters();
   layerHits_.resize(Config::nTotalLayers);
