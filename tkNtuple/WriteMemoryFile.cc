@@ -77,6 +77,7 @@ int main(int argc, char *argv[])
   bool cleanSimTracks = false;
   bool writeAllEvents = false;
   bool writeRecTracks = false;
+  bool writeHitIterMasks = false;
   bool applyCCC       = false;
   bool allSeeds       = false;
 
@@ -133,6 +134,10 @@ int main(int argc, char *argv[])
       else if (*i == "--write-rec-tracks")
 	{
 	  writeRecTracks = true;
+	}
+      else if (*i == "--write-hit-iter-masks")
+	{
+	  writeHitIterMasks = true;
 	}
       else if (*i == "--apply-ccc")
 	{
@@ -375,6 +380,7 @@ int main(int argc, char *argv[])
   vector<float>*  pix_zx = 0;
   vector<int>*    pix_csize_col = 0;
   vector<int>*    pix_csize_row = 0;
+  vector<uint64_t>* pix_usedMask = 0;
   //these were renamed in CMSSW_9_1_0: auto-detect
   bool has910_det_lay = t->GetBranch("pix_det") == nullptr;
   if (has910_det_lay){
@@ -396,6 +402,9 @@ int main(int argc, char *argv[])
   t->SetBranchAddress("pix_zx",&pix_zx);
   t->SetBranchAddress("pix_clustSizeCol",&pix_csize_col);
   t->SetBranchAddress("pix_clustSizeRow",&pix_csize_row);
+  if (writeHitIterMasks) {
+    t->SetBranchAddress("pix_usedMask", &pix_usedMask);
+  }
 
   vector<vector<int> >*    pix_simHitIdx = 0;
   t->SetBranchAddress("pix_simHitIdx", &pix_simHitIdx);
@@ -456,6 +465,7 @@ int main(int argc, char *argv[])
   vector<float>*  str_zx = 0;
   vector<float>*  str_chargePerCM = 0;
   vector<int>*    str_csize = 0;
+  vector<uint64_t>* str_usedMask = 0;
   t->SetBranchAddress("str_isBarrel",&str_isBarrel);
   t->SetBranchAddress("str_isStereo",&str_isStereo);
   if (has910_det_lay){
@@ -478,6 +488,9 @@ int main(int argc, char *argv[])
   t->SetBranchAddress("str_zx",&str_zx);
   t->SetBranchAddress("str_chargePerCM",&str_chargePerCM);
   t->SetBranchAddress("str_clustSize", &str_csize);
+  if (writeHitIterMasks) {
+    t->SetBranchAddress("str_usedMask", &str_usedMask);
+  }
 
   vector<vector<int> >*    str_simHitIdx = 0;
   t->SetBranchAddress("str_simHitIdx", &str_simHitIdx);
@@ -490,6 +503,7 @@ int main(int argc, char *argv[])
   DataFile data_file;
   int outOptions = DataFile::ES_Seeds;
   if (writeRecTracks) outOptions |= DataFile::ES_CmsswTracks;
+  if (writeHitIterMasks) outOptions |= DataFile::ES_HitIterMasks;
   if (maxevt < 0) maxevt = totentries;
   data_file.OpenWrite(outputFileName, std::min(maxevt, totentries), outOptions);
 
@@ -890,9 +904,11 @@ int main(int argc, char *argv[])
 
     
     vector<vector<Hit> > &layerHits_   = EE.layerHits_;
+    vector<vector<uint64_t> > & layerHitMasks_ = EE.layerHitMasks_;
     vector<MCHitInfo>    &simHitsInfo_ = EE.simHitsInfo_;
     int totHits = 0;
     layerHits_.resize(nTotalLayers);
+    layerHitMasks_.resize(nTotalLayers);
     for (unsigned int ipix = 0; ipix < pix_lay->size(); ++ipix) {
       int ilay = -1;
       ilay = lnc.convertLayerNumber(pix_det->at(ipix),pix_lay->at(ipix),useMatched,-1,pix_z->at(ipix)>0);
@@ -930,6 +946,7 @@ int main(int argc, char *argv[])
       Hit hit(pos, err, totHits);
       hit.setupAsPixel(imoduleid, pix_csize_row->at(ipix), pix_csize_col->at(ipix));
       layerHits_[ilay].push_back(hit);
+      if (writeHitIterMasks) layerHitMasks_[ilay].push_back(pix_usedMask->at(ipix));
       MCHitInfo hitInfo(simTkIdx, ilay, layerHits_[ilay].size()-1, totHits);
       simHitsInfo_.push_back(hitInfo);
       totHits++;
@@ -1023,6 +1040,7 @@ int main(int argc, char *argv[])
           Hit hit(pos, err, totHits);
           hit.setupAsStrip(imoduleid, str_chargePerCM->at(istr), str_csize->at(istr));
           layerHits_[ilay].push_back(hit);
+          if (writeHitIterMasks) layerHitMasks_[ilay].push_back(str_usedMask->at(istr));
 	  MCHitInfo hitInfo(simTkIdx, ilay, layerHits_[ilay].size()-1, totHits);
 	  simHitsInfo_.push_back(hitInfo);
 	  totHits++;
@@ -1059,7 +1077,10 @@ int main(int argc, char *argv[])
 	for (int il = 0; il<nl; ++il) {
 	  int nh = layerHits_[il].size();
 	  for (int ih=0; ih<nh; ++ih ) {
-	    printf("lay=%i idx=%i mcid=%i x=(%6.3f, %6.3f, %6.3f) r=%6.3f\n",il+1,ih,layerHits_[il][ih].mcHitID(),layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z(),sqrt(pow(layerHits_[il][ih].x(),2)+pow(layerHits_[il][ih].y(),2)));
+	    printf("lay=%i idx=%i mcid=%i x=(%6.3f, %6.3f, %6.3f) r=%6.3f mask=0x%x\n",il+1,ih,layerHits_[il][ih].mcHitID(),
+                   layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z(),
+                   sqrt(pow(layerHits_[il][ih].x(),2)+pow(layerHits_[il][ih].y(),2)),
+                   writeHitIterMasks ? layerHitMasks_[il][ih] : 0);
 	  }
 	}
 
