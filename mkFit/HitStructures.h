@@ -418,7 +418,9 @@ inline void TrackCand::addHitIdx(int hitIdx, int hitLyr, float chi2)
     ++nFoundHits_; chi2_+=chi2;
     nInsideMinusOneHits_ += nTailMinusOneHits_;
     nTailMinusOneHits_    = 0;
-  } else {
+  }
+  //Note that for tracks passing through an inactive module (hitIdx = -7), we do not count the -7 hit against the track when scoring.
+  else {
     ++nMissingHits_;
     if (hitIdx == -1) ++nTailMinusOneHits_;
   }

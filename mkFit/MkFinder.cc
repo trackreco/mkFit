@@ -389,7 +389,15 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
             // Avi says we should have *minimal* search windows per layer.
             // Also ... if bins are sufficiently small, we do not need the extra
             // checks, see above.
-	    XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
+	    if(L.GetHit(hi).mcHitID() == -7)
+	    {
+	      //ARH: This will need a better treatment but works for now 
+	      XWsrResult[itrack].m_in_gap = true;
+	    }
+	    else
+	    {
+	      XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
+	    }
 	  }
 	  else
 	  {
@@ -677,6 +685,11 @@ void MkFinder::FindCandidates(const LayerOfHits &layer_of_hits,
       // YYYYYY Config::store_missed_layers
       fake_hit_idx = -3;
     }
+    //now add fake hit for tracks that passsed through inactive modules
+    else if (XWsrResult[itrack].m_in_gap == true)
+    {
+      fake_hit_idx = -7;
+    }
 
     dprint("ADD FAKE HIT FOR TRACK #" << itrack << " withinBounds=" << (fake_hit_idx != -3) << " r=" << std::hypot(Par[iP](itrack,0,0), Par[iP](itrack,1,0)));
 
@@ -786,6 +799,11 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     if (XWsrResult[itrack].m_wsr == WSR_Edge)
     {
       fake_hit_idx = -3;
+    }
+    //now add fake hit for tracks that passsed through inactive modules 
+    else if (XWsrResult[itrack].m_in_gap == true)
+    {
+      fake_hit_idx = -7;
     }
 
     IdxChi2List tmpList;
