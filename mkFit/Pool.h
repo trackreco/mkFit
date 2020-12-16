@@ -1,5 +1,7 @@
 #ifndef Pool_h
 #define Pool_h
+#include <functional>
+
 #include "tbb/concurrent_queue.h"
 
 namespace mkfit {

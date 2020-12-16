@@ -3,9 +3,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename TfLH, typename TfQF1, typename TfQF2, typename TfLL>
-#ifdef __CUDACC__
-__device__
-#endif
 static inline void KHMult_imp(const TfLH& a, const TfQF1& b00, const TfQF2&  b01, TfLL& c,
                               const int nmin, const int nmax)
 {
@@ -56,21 +53,13 @@ static inline void KHMult_imp(const TfLH& a, const TfQF1& b00, const TfQF2&  b01
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename TfLV1, typename TfLV2, typename TfLL>
-#ifdef __CUDACC__
-__device__
-#endif
 static inline void ConvertToCCS_imp(const TfLV1& a, TfLV2& b, TfLL& c,
                                     const int nmin, const int nmax)
 {
 #pragma omp simd
   for (int n = nmin; n < nmax; ++n)
   {
-    // TODO Check why getHypot and getHypot_fn have to be different
-#ifdef __CUDACC__
-    const float pt = getHypot_fn(a(n, 0,  3), a(n, 0,  4));
-#else
     const float pt = getHypot(a(n, 0,  3), a(n, 0,  4));
-#endif
     const float p2 = pt*pt + a(n, 0,  5)*a(n, 0,  5);
     //
     b(n, 0,  0) = a(n, 0,  0);
@@ -124,9 +113,6 @@ static inline void ConvertToCCS_imp(const TfLV1& a, TfLV2& b, TfLL& c,
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename TfLV1, typename TfLV2, typename TfLL>
-#ifdef __CUDACC__
-__device__
-#endif
 static inline void ConvertToCartesian_imp(const TfLV1& a, TfLV2& b, TfLL& c,
                                           const int nmin, const int nmax)
 {
@@ -189,9 +175,6 @@ static inline void ConvertToCartesian_imp(const TfLV1& a, TfLV2& b, TfLL& c,
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename TfLH, typename TfLV1, typename Tf2V, typename TfLV2>
-#ifdef __CUDACC__
-__device__
-#endif
 static inline void MultResidualsAdd_imp(const TfLH& a, const TfLV1& b,
                                        const Tf2V& c, TfLV2& d,
                                        const int nmin, const int nmax)
@@ -213,9 +196,6 @@ static inline void MultResidualsAdd_imp(const TfLH& a, const TfLV1& b,
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename TfLS, typename TfHS1, typename TfHS2>
-#ifdef __CUDACC_
-__device__
-#endif
 static inline void AddIntoUpperLeft3x3_imp(const TfLS& A, const TfHS1& B, TfHS2& C,
                                            const int aN, const int bN, const int cN,
                                            const int nmin, const int nmax)
@@ -228,9 +208,6 @@ static inline void AddIntoUpperLeft3x3_imp(const TfLS& A, const TfHS1& B, TfHS2&
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename TfQF1, typename TfQF2, typename TfHV, typename Tf2V>
-#ifdef __CUDACC__
-__device__
-#endif
 static inline void RotateResidulsOnTangentPlane_impl(const TfQF1& r00,
     const TfQF2& r01, const TfHV& a, Tf2V& b, const int nmin, const int nmax)
 {

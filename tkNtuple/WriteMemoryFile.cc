@@ -5,9 +5,12 @@
 #include <list>
 #include <unordered_map>
 #include "Event.h"
+#include "Config.h"
 #include "LayerNumberConverter.h"
 
 using namespace mkfit;
+
+using TrackAlgorithm = TrackBase::TrackAlgorithm;
 
 constexpr bool useMatched = false;
 
@@ -22,62 +25,6 @@ enum class HitType {
   Invalid = 3,
   Phase2OT = 4,
   Unknown = 99
-};
-
-/// track algorithm; partial copy from TrackBase.h
-enum class TrackAlgorithm {
-  undefAlgorithm = 0,
-  ctf = 1, 
-  duplicateMerge = 2,
-  cosmics = 3,
-  initialStep = 4,
-  lowPtTripletStep = 5,
-  pixelPairStep = 6,
-  detachedTripletStep = 7,
-  mixedTripletStep = 8,
-  pixelLessStep = 9,
-  tobTecStep = 10,
-  jetCoreRegionalStep = 11,
-  conversionStep = 12,
-  muonSeededStepInOut = 13,
-  muonSeededStepOutIn = 14,
-  outInEcalSeededConv = 15,
-  inOutEcalSeededConv = 16,
-  nuclInter = 17,
-  standAloneMuon = 18,
-  globalMuon = 19,
-  cosmicStandAloneMuon = 20,
-  cosmicGlobalMuon = 21,
-  // Phase1
-  highPtTripletStep = 22,
-  lowPtQuadStep = 23,
-  detachedQuadStep = 24,
-  reservedForUpgrades1 = 25,
-  reservedForUpgrades2 = 26,
-  bTagGhostTracks = 27,
-  beamhalo = 28,
-  gsf = 29,
-  // HLT algo name
-  hltPixel = 30,
-  // steps used by PF
-  hltIter0 = 31,
-  hltIter1 = 32,
-  hltIter2 = 33,
-  hltIter3 = 34,
-  hltIter4 = 35,
-  // steps used by all other objects @HLT
-  hltIterX = 36,
-  // steps used by HI muon regional iterative tracking
-  hiRegitMuInitialStep = 37,
-  hiRegitMuLowPtTripletStep = 38,
-  hiRegitMuPixelPairStep = 39,
-  hiRegitMuDetachedTripletStep = 40,
-  hiRegitMuMixedTripletStep = 41,
-  hiRegitMuPixelLessStep = 42,
-  hiRegitMuTobTecStep = 43,
-  hiRegitMuMuonSeededStepInOut = 44,
-  hiRegitMuMuonSeededStepOutIn = 45,
-  algoSize = 46
 };
 
 typedef std::list<std::string> lStr_t;
@@ -116,6 +63,7 @@ void printHelp(const char* av0){
 	 "  --write-all-events        write all events (def: skip events with 0 simtracks or seeds)\n"
 	 "  --write-rec-tracks        write rec tracks (def: not written)\n"
 	 "  --apply-ccc               apply cluster charge cut to strip hits (def: false)\n"
+	 "  --all-seeds               merge all seeds from the input file (def: false)\n"
 	 , av0);
 }
 
@@ -129,7 +77,9 @@ int main(int argc, char *argv[])
   bool cleanSimTracks = false;
   bool writeAllEvents = false;
   bool writeRecTracks = false;
+  bool writeHitIterMasks = false;
   bool applyCCC       = false;
+  bool allSeeds       = false;
 
   int verbosity = 0;
   long long maxevt = -1;
@@ -185,6 +135,10 @@ int main(int argc, char *argv[])
 	{
 	  writeRecTracks = true;
 	}
+      else if (*i == "--write-hit-iter-masks")
+	{
+	  writeHitIterMasks = true;
+	}
       else if (*i == "--apply-ccc")
 	{
 	  applyCCC = true;
@@ -192,6 +146,10 @@ int main(int argc, char *argv[])
 	    {
 	      cutValueCCC = std::atoi(i->c_str());
 	    }
+	}
+      else if (*i == "--all-seeds")
+	{
+	  allSeeds = true;
 	}
       else
 	{
@@ -422,6 +380,7 @@ int main(int argc, char *argv[])
   vector<float>*  pix_zx = 0;
   vector<int>*    pix_csize_col = 0;
   vector<int>*    pix_csize_row = 0;
+  vector<uint64_t>* pix_usedMask = 0;
   //these were renamed in CMSSW_9_1_0: auto-detect
   bool has910_det_lay = t->GetBranch("pix_det") == nullptr;
   if (has910_det_lay){
@@ -443,6 +402,9 @@ int main(int argc, char *argv[])
   t->SetBranchAddress("pix_zx",&pix_zx);
   t->SetBranchAddress("pix_clustSizeCol",&pix_csize_col);
   t->SetBranchAddress("pix_clustSizeRow",&pix_csize_row);
+  if (writeHitIterMasks) {
+    t->SetBranchAddress("pix_usedMask", &pix_usedMask);
+  }
 
   vector<vector<int> >*    pix_simHitIdx = 0;
   t->SetBranchAddress("pix_simHitIdx", &pix_simHitIdx);
@@ -503,6 +465,7 @@ int main(int argc, char *argv[])
   vector<float>*  str_zx = 0;
   vector<float>*  str_chargePerCM = 0;
   vector<int>*    str_csize = 0;
+  vector<uint64_t>* str_usedMask = 0;
   t->SetBranchAddress("str_isBarrel",&str_isBarrel);
   t->SetBranchAddress("str_isStereo",&str_isStereo);
   if (has910_det_lay){
@@ -525,6 +488,9 @@ int main(int argc, char *argv[])
   t->SetBranchAddress("str_zx",&str_zx);
   t->SetBranchAddress("str_chargePerCM",&str_chargePerCM);
   t->SetBranchAddress("str_clustSize", &str_csize);
+  if (writeHitIterMasks) {
+    t->SetBranchAddress("str_usedMask", &str_usedMask);
+  }
 
   vector<vector<int> >*    str_simHitIdx = 0;
   t->SetBranchAddress("str_simHitIdx", &str_simHitIdx);
@@ -537,6 +503,7 @@ int main(int argc, char *argv[])
   DataFile data_file;
   int outOptions = DataFile::ES_Seeds;
   if (writeRecTracks) outOptions |= DataFile::ES_CmsswTracks;
+  if (writeHitIterMasks) outOptions |= DataFile::ES_HitIterMasks;
   if (maxevt < 0) maxevt = totentries;
   data_file.OpenWrite(outputFileName, std::min(maxevt, totentries), outOptions);
 
@@ -780,10 +747,13 @@ int main(int argc, char *argv[])
     
     vector<Track> &seedTracks_ = EE.seedTracks_;
     vector<vector<int> > pixHitSeedIdx(pix_lay->size());
+    vector<vector<int> > strHitSeedIdx(str_lay->size());
+    vector<vector<int> > gluHitSeedIdx(glu_lay->size());
     for (unsigned int is = 0; is<see_q->size(); ++is) {
       auto isAlgo = TrackAlgorithm(see_algo->at(is));
-      if (isAlgo != TrackAlgorithm::initialStep 
-          && isAlgo != TrackAlgorithm::hltIter0 ) continue;//select seed in acceptance
+      if (not allSeeds)
+        if (isAlgo != TrackAlgorithm::initialStep 
+            && isAlgo != TrackAlgorithm::hltIter0 ) continue;//select seed in acceptance
       //if (see_pt->at(is)<0.5 || fabs(see_eta->at(is))>0.8) continue;//select seed in acceptance
       SVector3 pos = SVector3(see_stateTrajGlbX->at(is),see_stateTrajGlbY->at(is),see_stateTrajGlbZ->at(is));
       SVector3 mom = SVector3(see_stateTrajGlbPx->at(is),see_stateTrajGlbPy->at(is),see_stateTrajGlbPz->at(is));
@@ -812,14 +782,38 @@ int main(int argc, char *argv[])
       TrackState state(see_q->at(is), pos, mom, err);
       state.convertFromCartesianToCCS();
       Track track(state, 0, seedSimIdx[is], 0, nullptr);
+      track.setAlgorithm(isAlgo);
       auto const& shTypes = see_hitType->at(is);
       auto const& shIdxs = see_hitIdx->at(is);
-      if (! ( (isAlgo == TrackAlgorithm::initialStep || isAlgo == TrackAlgorithm::hltIter0)
-	     && std::count(shTypes.begin(), shTypes.end(), int(HitType::Pixel))>=3)) continue;//check algo and nhits
+      if (not allSeeds)
+        if (! ( (isAlgo == TrackAlgorithm::initialStep || isAlgo == TrackAlgorithm::hltIter0)
+                && std::count(shTypes.begin(), shTypes.end(), int(HitType::Pixel))>=3)) continue;//check algo and nhits
       for (unsigned int ip=0; ip<shTypes.size(); ip++) {
-	unsigned int ipix = shIdxs[ip];
-	//cout << "ipix=" << ipix << " seed=" << seedTracks_.size() << endl;
-	pixHitSeedIdx[ipix].push_back(seedTracks_.size());
+	unsigned int hidx = shIdxs[ip];
+        switch( HitType(shTypes[ip]) ) {
+          case HitType::Pixel:{
+            pixHitSeedIdx[hidx].push_back(seedTracks_.size());
+            break;
+          }
+          case HitType::Strip:{
+            strHitSeedIdx[hidx].push_back(seedTracks_.size());
+            break;
+          }
+          case HitType::Glued:{
+            if (not useMatched ){
+              //decompose
+              int uidx = glu_monoIdx->at(hidx);
+              strHitSeedIdx[uidx].push_back(seedTracks_.size());
+              uidx = glu_stereoIdx->at(hidx);
+              strHitSeedIdx[uidx].push_back(seedTracks_.size());
+            } else {
+              gluHitSeedIdx[hidx].push_back(seedTracks_.size());
+            }
+            break;
+          }
+          case HitType::Invalid: break;//FIXME. Skip, really?
+          default: throw std::logic_error("Track hit type can not be handled");
+        }//switch( HitType
       }
       seedTracks_.push_back(track);
     }
@@ -832,14 +826,15 @@ int main(int argc, char *argv[])
     vector<vector<int> > gluHitRecIdx(glu_lay->size());
     for (unsigned int ir = 0; ir<trk_q->size(); ++ir) {
       //check the origin; redundant for initialStep ntuples
-      if ((trk_algoMask->at(ir) & ( (1 << int(TrackAlgorithm::initialStep )) | (1 << int(TrackAlgorithm::hltIter0 )) )) == 0){
-	if (verbosity > 1){
-	  std::cout<<"track "<<ir<<" failed algo selection for "<< int(TrackAlgorithm::initialStep) <<": mask "<<trk_algoMask->at(ir)
-		   <<" origAlgo "<<trk_originalAlgo->at(ir)<<" algo "<<trk_algo->at(ir)
-		   <<std::endl;
-	}
-	continue;
-      }
+      if (not allSeeds)
+        if ((trk_algoMask->at(ir) & ( (1 << int(TrackAlgorithm::initialStep )) | (1 << int(TrackAlgorithm::hltIter0 )) )) == 0){
+          if (verbosity > 1){
+            std::cout<<"track "<<ir<<" failed algo selection for "<< int(TrackAlgorithm::initialStep) <<": mask "<<trk_algoMask->at(ir)
+                     <<" origAlgo "<<trk_originalAlgo->at(ir)<<" algo "<<trk_algo->at(ir)
+                     <<std::endl;
+          }
+          continue;
+        }
       //fill the state in CCS upfront
       SMatrixSym66 err;
       /*	
@@ -876,6 +871,7 @@ int main(int argc, char *argv[])
       SVector3 mom = SVector3(1.f/pt, phi, M_PI_2 - trk_lambda->at(ir));
       TrackState state(trk_q->at(ir), pos, mom, err);
       Track track(state, trk_nChi2->at(ir), trk_seedIdx->at(ir), 0, nullptr);//hits are filled later
+      track.setAlgorithm(TrackAlgorithm(trk_originalAlgo->at(ir)));
       auto const& hTypes = trk_hitType->at(ir);
       auto const& hIdxs =  trk_hitIdx->at(ir);
       for (unsigned int ip=0; ip<hTypes.size(); ip++) {
@@ -908,9 +904,11 @@ int main(int argc, char *argv[])
 
     
     vector<vector<Hit> > &layerHits_   = EE.layerHits_;
+    vector<vector<uint64_t> > & layerHitMasks_ = EE.layerHitMasks_;
     vector<MCHitInfo>    &simHitsInfo_ = EE.simHitsInfo_;
     int totHits = 0;
     layerHits_.resize(nTotalLayers);
+    layerHitMasks_.resize(nTotalLayers);
     for (unsigned int ipix = 0; ipix < pix_lay->size(); ++ipix) {
       int ilay = -1;
       ilay = lnc.convertLayerNumber(pix_det->at(ipix),pix_lay->at(ipix),useMatched,-1,pix_z->at(ipix)>0);
@@ -948,6 +946,7 @@ int main(int argc, char *argv[])
       Hit hit(pos, err, totHits);
       hit.setupAsPixel(imoduleid, pix_csize_row->at(ipix), pix_csize_col->at(ipix));
       layerHits_[ilay].push_back(hit);
+      if (writeHitIterMasks) layerHitMasks_[ilay].push_back(pix_usedMask->at(ipix));
       MCHitInfo hitInfo(simTkIdx, ilay, layerHits_[ilay].size()-1, totHits);
       simHitsInfo_.push_back(hitInfo);
       totHits++;
@@ -972,6 +971,10 @@ int main(int argc, char *argv[])
 	err.At(1,2) = glu_yz->at(iglu);	
 	if (simTkIdx>=0){
 	  simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
+	}
+	for (unsigned int ir=0;ir<gluHitSeedIdx[iglu].size();ir++) {
+	  //cout << "xxx iglu=" << iglu << " seed=" << gluHitSeedIdx[iglu][ir] << endl;
+	  seedTracks_[gluHitSeedIdx[iglu][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
 	}
 	for (unsigned int ir=0;ir<gluHitRecIdx[iglu].size();ir++) {
 	  //cout << "xxx iglu=" << iglu << " recTrack=" << gluHitRecIdx[iglu][ir] << endl;
@@ -1022,6 +1025,11 @@ int main(int argc, char *argv[])
         if(passCCC) simTracks_[simTkIdx].addHitIdx(layerHits_[ilay].size(), ilay, 0);
         else simTracks_[simTkIdx].addHitIdx( -9, ilay,0);
       }
+      for (unsigned int ir=0;ir<strHitSeedIdx[istr].size();ir++) {
+	//cout << "xxx istr=" << istr << " seed=" << strHitSeedIdx[istr][ir] << endl;
+	if(passCCC) seedTracks_[strHitSeedIdx[istr][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
+	else seedTracks_[strHitSeedIdx[istr][ir]].addHitIdx(-9,ilay,0);
+      }
       for (unsigned int ir=0;ir<strHitRecIdx[istr].size();ir++) {
 	//cout << "xxx istr=" << istr << " recTrack=" << strHitRecIdx[istr][ir] << endl;
 	if(passCCC) cmsswTracks_[strHitRecIdx[istr][ir]].addHitIdx(layerHits_[ilay].size(), ilay, 0);//per-hit chi2 is not known
@@ -1032,6 +1040,7 @@ int main(int argc, char *argv[])
           Hit hit(pos, err, totHits);
           hit.setupAsStrip(imoduleid, str_chargePerCM->at(istr), str_csize->at(istr));
           layerHits_[ilay].push_back(hit);
+          if (writeHitIterMasks) layerHitMasks_[ilay].push_back(str_usedMask->at(istr));
 	  MCHitInfo hitInfo(simTkIdx, ilay, layerHits_[ilay].size()-1, totHits);
 	  simHitsInfo_.push_back(hitInfo);
 	  totHits++;
@@ -1068,7 +1077,10 @@ int main(int argc, char *argv[])
 	for (int il = 0; il<nl; ++il) {
 	  int nh = layerHits_[il].size();
 	  for (int ih=0; ih<nh; ++ih ) {
-	    printf("lay=%i idx=%i mcid=%i x=(%6.3f, %6.3f, %6.3f) r=%6.3f\n",il+1,ih,layerHits_[il][ih].mcHitID(),layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z(),sqrt(pow(layerHits_[il][ih].x(),2)+pow(layerHits_[il][ih].y(),2)));
+	    printf("lay=%i idx=%i mcid=%i x=(%6.3f, %6.3f, %6.3f) r=%6.3f mask=0x%x\n",il+1,ih,layerHits_[il][ih].mcHitID(),
+                   layerHits_[il][ih].x(),layerHits_[il][ih].y(),layerHits_[il][ih].z(),
+                   sqrt(pow(layerHits_[il][ih].x(),2)+pow(layerHits_[il][ih].y(),2)),
+                   writeHitIterMasks ? layerHitMasks_[il][ih] : 0);
 	  }
 	}
 
