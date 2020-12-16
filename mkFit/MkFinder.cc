@@ -841,6 +841,7 @@ void MkFinder::CopyOutParErr(std::vector<CombCandidate>& seed_cand_vec,
     // Set the track state to the updated parameters
     Err[iO].CopyOut(i, cand.errors_nc().Array());
     Par[iO].CopyOut(i, cand.parameters_nc().Array());
+    cand.setCharge(Chg(i,0,0));
 
     dprint((outputProp?"propagated":"updated") << " track parameters x=" << cand.parameters()[0]
               << " y=" << cand.parameters()[1]

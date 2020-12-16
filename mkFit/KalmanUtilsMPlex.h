@@ -22,7 +22,7 @@ void kalmanUpdate(const MPlexLS &psErr,  const MPlexLV& psPar,
                         MPlexLS &outErr,       MPlexLV& outPar,
                   const int      N_proc);
 
-void kalmanPropagateAndUpdate(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+void kalmanPropagateAndUpdate(const MPlexLS &psErr,  const MPlexLV& psPar, MPlexQI &Chg,
                               const MPlexHS &msErr,  const MPlexHV& msPar,
                                     MPlexLS &outErr,       MPlexLV& outPar,
                               const int      N_proc, const PropagationFlags propFlags);
@@ -53,7 +53,7 @@ void kalmanUpdateEndcap(const MPlexLS &psErr,  const MPlexLV& psPar,
                               MPlexLS &outErr,       MPlexLV& outPar,
                         const int      N_proc);
 
-void kalmanPropagateAndUpdateEndcap(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+void kalmanPropagateAndUpdateEndcap(const MPlexLS &psErr,  const MPlexLV& psPar, MPlexQI &Chg,
                                     const MPlexHS &msErr,  const MPlexHV& msPar,
                                           MPlexLS &outErr,       MPlexLV& outPar,
                                     const int      N_proc, const PropagationFlags propFlags);
