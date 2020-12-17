@@ -51,7 +51,6 @@ echo:
 	@echo "CXXFLAGS = ${CXXFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo "EXES     = ${EXES}"
-	@echo "CU_OBJ   = ${CU_OBJS}"
 
 
 ################################################################
@@ -62,30 +61,7 @@ MKFHDRS := $(wildcard *.h)
 MKFOBJS := $(MKFSRCS:.cc=.o)
 MKFDEPS := $(MKFSRCS:.cc=.d)
 
-ifdef USE_CUDA
-CU_SRCS := $(wildcard *.cu)
-CU_OBJS := $(CU_SRCS:.cu=.o)
-
-LDFLAGS_CU := -lcudart
-LDFLAGS_CU += -lnvToolsExt
-
-# To share __device__ function across several source files
-# 1) compile with --device-c (works as -c should be)
-# 2) Create some kind of dictionary with all the .cu.o
-# 3) The dictionary AND the original .o files should be used
-# -- Works only for CUDA_VERSION >= 5
-# TODO: Clean the "-I.. -std=c++11"
-${CU_OBJS}: %.o: %.cu
-	${NV} --device-c -o $@ $< -I.. -std=c++11 -DUSE_MATRIPLEX -Wno-deprecated-gpu-targets -lineinfo 
-
-# -g -G
-
-CU_LINK := cu_link.o
-${CU_LINK}: ${CU_OBJS}
-	${NV} --device-link $^ --output-file $@
-endif
-
-ALLOBJS := ${MKFOBJS} ${CU_OBJS} ${CU_LINK}
+ALLOBJS := ${MKFOBJS}
 LIBOBJS := $(filter-out mkFit.o, ${ALLOBJS})
 
 ${MKFDEPS}: auto-genmplex
@@ -95,10 +71,10 @@ include ${MKFDEPS}
 endif
 
 mkFit: ${ALLOBJS}
-	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} ${ALLOBJS} -o $@ ${LDFLAGS_HOST} ${LDFLAGS_CU} -L../lib -lMicCore -Wl,-rpath,../lib,-rpath,./lib
+	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LDFLAGS} ${ALLOBJS} -o $@ ${LDFLAGS_HOST} -L../lib -lMicCore -Wl,-rpath,../lib,-rpath,./lib
 
 ${LIB_MKFIT}: ${LIBOBJS}
-	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LIBOBJS} -shared -o $@ ${LDFLAGS_HOST} ${LDFLAGS_CU} ${LDFLAGS}
+	${CXX} ${CXXFLAGS} ${VEC_HOST} ${LIBOBJS} -shared -o $@ ${LDFLAGS_HOST} ${LDFLAGS} -L../lib -lMicCore -Wl,-rpath,../lib,-rpath,./lib
 
 ifdef WITH_ROOT
 fittestMPlex.o : CPPFLAGS += $(shell root-config --cflags)
@@ -108,11 +84,6 @@ TFile.h:
 
 TTree.h: 
 	echo "Using dummy rule for TTree.h"
-endif
-
-ifdef CUBROOT
-cub/util_debug.cuh:
-	echo "Using dummy rule for cub/util_debug.cuh"
 endif
 
 ${MKFOBJS}: %.o: %.cc %.d

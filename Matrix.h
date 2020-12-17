@@ -81,7 +81,6 @@ inline double dtime()
     return( tseconds );
 }
 
-CUDA_CALLABLE
 inline float hipo(float x, float y)
 {
   return std::sqrt(x*x + y*y);
@@ -92,7 +91,6 @@ inline float hipo_sqr(float x, float y)
   return x*x + y*y;
 }
 
-CUDA_CALLABLE
 inline void sincos4(const float x, float& sin, float& cos)
 {
    // Had this writen with explicit division by factorial.

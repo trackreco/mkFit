@@ -74,7 +74,6 @@ typedef std::vector<ReducedTrack> RedTrackVec;
 struct TrackState //  possible to add same accessors as track? 
 {
 public:
-  CUDA_CALLABLE
   TrackState() : valid(true) {}
   TrackState(int charge, const SVector3& pos, const SVector3& mom, const SMatrixSym66& err) :
     parameters(SVector6(pos.At(0),pos.At(1),pos.At(2),mom.At(0),mom.At(1),mom.At(2))),
@@ -155,17 +154,13 @@ public:
   ~TrackBase() {}
 
   const TrackState&  state() const { return state_; }
-  CUDA_CALLABLE void setState(const TrackState& newState) { state_ = newState; }
+  void setState(const TrackState& newState) { state_ = newState; }
 
   const SVector6&     parameters() const {return state_.parameters;}
   const SMatrixSym66& errors()     const {return state_.errors;}
 
   const float* posArray() const {return state_.parameters.Array();}
   const float* errArray() const {return state_.errors.Array();}
-#if __CUDACC__
-  __device__ float* posArrayCU();
-  __device__ float* errArrayCU();
-#endif
 
   // Non-const versions needed for CopyOut of Matriplex.
   SVector6&     parameters_nc() {return state_.parameters;}
@@ -199,15 +194,15 @@ public:
 
   // ------------------------------------------------------------------------
 
-  CUDA_CALLABLE int   charge() const { return state_.charge; }
-  CUDA_CALLABLE float chi2()   const { return chi2_; }
-  CUDA_CALLABLE float score()  const { return score_; }
-  CUDA_CALLABLE int   label()  const { return label_; }
+  int   charge() const { return state_.charge; }
+  float chi2()   const { return chi2_; }
+  float score()  const { return score_; }
+  int   label()  const { return label_; }
 
-  CUDA_CALLABLE void  setCharge(int chg)  { state_.charge = chg; }
-  CUDA_CALLABLE void  setChi2(float chi2) { chi2_ = chi2; }
-  CUDA_CALLABLE void  setScore(float s)   { score_ = s; }
-  CUDA_CALLABLE void  setLabel(int lbl)   { label_ = lbl; }
+  void  setCharge(int chg)  { state_.charge = chg; }
+  void  setChi2(float chi2) { chi2_ = chi2; }
+  void  setScore(float s)   { score_ = s; }
+  void  setLabel(int lbl)   { label_ = lbl; }
 
   bool  hasSillyValues(bool dump, bool fix, const char* pref="");
 
@@ -237,8 +232,11 @@ public:
         // Temporary store number of overlaps for Track here
         int n_overlaps : 8;
 
+        // Tracking iteration/algorithm
+        unsigned int algorithm : 6;
+
         // The remaining bits.
-        unsigned int _free_bits_ : 17;
+        unsigned int _free_bits_ : 11;
       };
 
       unsigned int _raw_;
@@ -273,6 +271,66 @@ public:
   // int  nOverlapHits()  const  { return status_.n_overlaps; }
   // void setNOverlapHits(int n) { status_.n_overlaps = n; }
 
+  /// track algorithm; partial copy from TrackBase.h
+  enum class TrackAlgorithm {
+    undefAlgorithm = 0,
+    ctf = 1,
+    duplicateMerge = 2,
+    cosmics = 3,
+    initialStep = 4,
+    lowPtTripletStep = 5,
+    pixelPairStep = 6,
+    detachedTripletStep = 7,
+    mixedTripletStep = 8,
+    pixelLessStep = 9,
+    tobTecStep = 10,
+    jetCoreRegionalStep = 11,
+    conversionStep = 12,
+    muonSeededStepInOut = 13,
+    muonSeededStepOutIn = 14,
+    outInEcalSeededConv = 15,
+    inOutEcalSeededConv = 16,
+    nuclInter = 17,
+    standAloneMuon = 18,
+    globalMuon = 19,
+    cosmicStandAloneMuon = 20,
+    cosmicGlobalMuon = 21,
+    // Phase1
+    highPtTripletStep = 22,
+    lowPtQuadStep = 23,
+    detachedQuadStep = 24,
+    reservedForUpgrades1 = 25,
+    reservedForUpgrades2 = 26,
+    bTagGhostTracks = 27,
+    beamhalo = 28,
+    gsf = 29,
+    // HLT algo name
+    hltPixel = 30,
+    // steps used by PF
+    hltIter0 = 31,
+    hltIter1 = 32,
+    hltIter2 = 33,
+    hltIter3 = 34,
+    hltIter4 = 35,
+    // steps used by all other objects @HLT
+    hltIterX = 36,
+    // steps used by HI muon regional iterative tracking
+    hiRegitMuInitialStep = 37,
+    hiRegitMuLowPtTripletStep = 38,
+    hiRegitMuPixelPairStep = 39,
+    hiRegitMuDetachedTripletStep = 40,
+    hiRegitMuMixedTripletStep = 41,
+    hiRegitMuPixelLessStep = 42,
+    hiRegitMuTobTecStep = 43,
+    hiRegitMuMuonSeededStepInOut = 44,
+    hiRegitMuMuonSeededStepOutIn = 45,
+    algoSize = 46
+};
+
+
+  TrackAlgorithm algorithm() const { return TrackAlgorithm(status_.algorithm); }
+  void setAlgorithm(TrackAlgorithm algo) { status_.algorithm = static_cast<unsigned int>(algo); }
+
   // To be used later
   // bool isStopped() const { return status_.stopped; }
   // void setStopped()      { status_.stopped = true; }
@@ -305,7 +363,6 @@ protected:
 class Track : public TrackBase
 {
 public:
-  CUDA_CALLABLE
   Track() {}
 
   explicit Track(const TrackBase& base) :
@@ -316,7 +373,6 @@ public:
     nFoundHits_ =  0;
   }
 
-  CUDA_CALLABLE
   Track(const TrackState& state, float chi2, int label, int nHits, const HitOnTrack* hits) :
     TrackBase(state, chi2, label)
   {
@@ -337,7 +393,6 @@ public:
     hitsOnTrk_ (t.hitsOnTrk_)
   {}
 
-  CUDA_CALLABLE
   ~Track(){}
 
   // used for swimming cmssw rec tracks to mkFit position
@@ -381,7 +436,6 @@ public:
   // out of TrackBase. If we do it.
   void reserveHits(int nHits) { hitsOnTrk_.reserve(nHits); }
 
-  CUDA_CALLABLE
   void resetHits() { lastHitIdx_ = -1; nFoundHits_ =  0; hitsOnTrk_.clear(); }
 
   // For MkFinder::copy_out and TrackCand::ExportTrack
@@ -393,7 +447,6 @@ public:
 
   void resizeHitsForInput();
 
-  CUDA_CALLABLE
   void addHitIdx(int hitIdx, int hitLyr, float chi2)
   {
     hitsOnTrk_.push_back( { hitIdx, hitLyr } );
@@ -412,12 +465,12 @@ public:
 
   HitOnTrack getHitOnTrack(int posHitIdx) const { return hitsOnTrk_[posHitIdx]; }
 
-  CUDA_CALLABLE int getHitIdx(int posHitIdx) const { return hitsOnTrk_[posHitIdx].index; }
-  CUDA_CALLABLE int getHitLyr(int posHitIdx) const { return hitsOnTrk_[posHitIdx].layer; }
+  int getHitIdx(int posHitIdx) const { return hitsOnTrk_[posHitIdx].index; }
+  int getHitLyr(int posHitIdx) const { return hitsOnTrk_[posHitIdx].layer; }
 
-  CUDA_CALLABLE HitOnTrack getLastHitOnTrack() const { return hitsOnTrk_[lastHitIdx_]; }
-  CUDA_CALLABLE int        getLastHitIdx()     const { return hitsOnTrk_[lastHitIdx_].index;  }
-  CUDA_CALLABLE int        getLastHitLyr()     const { return hitsOnTrk_[lastHitIdx_].layer;  }
+  HitOnTrack getLastHitOnTrack() const { return hitsOnTrk_[lastHitIdx_]; }
+  int        getLastHitIdx()     const { return hitsOnTrk_[lastHitIdx_].index;  }
+  int        getLastHitLyr()     const { return hitsOnTrk_[lastHitIdx_].layer;  }
 
   int getLastFoundHitPos() const
   {
@@ -456,12 +509,10 @@ public:
 
   HitOnTrack* BeginHitsOnTrack_nc() { return hitsOnTrk_.data(); }
 
-  CUDA_CALLABLE
   void setHitIdx(int posHitIdx, int newIdx) {
     hitsOnTrk_[posHitIdx].index = newIdx;
   }
 
-  CUDA_CALLABLE
   void setHitIdxLyr(int posHitIdx, int newIdx, int newLyr) {
     hitsOnTrk_[posHitIdx] = { newIdx, newLyr };
   }
@@ -473,8 +524,8 @@ public:
     }
   }
 
-  CUDA_CALLABLE int  nFoundHits() const { return nFoundHits_; }
-  CUDA_CALLABLE int  nTotalHits() const { return lastHitIdx_ + 1; }
+  int  nFoundHits() const { return nFoundHits_; }
+  int  nTotalHits() const { return lastHitIdx_ + 1; }
 
   int  nOverlapHits()  const  { return status_.n_overlaps; }
   void setNOverlapHits(int n) { status_.n_overlaps = n; }
@@ -543,7 +594,7 @@ public:
     return layers;
   }
 
-  CUDA_CALLABLE Track clone() const { return Track(*this); }
+  Track clone() const { return Track(*this); }
 
 
 private:

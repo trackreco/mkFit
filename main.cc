@@ -16,7 +16,7 @@
 using namespace mkfit;
 
 #ifdef TBB
-#include "tbb/task_scheduler_init.h"
+#include "tbb/task_arena.h"
 #endif
 
 //#define CYLINDER
@@ -79,7 +79,7 @@ int main(int argc, const char* argv[])
 {
 
 #ifdef TBB
-  auto nThread(tbb::task_scheduler_init::default_num_threads());
+  auto nThread(tbb::this_task_arena::max_concurrency());
 #else
   auto nThread = 1;
 #endif
@@ -183,7 +183,7 @@ int main(int argc, const char* argv[])
   std::vector<unsigned int> tracks(4);
 #ifdef TBB
   std::cout << "Initializing with " << nThread << " threads." << std::endl;
-  tbb::task_scheduler_init tasks(nThread);
+  tbb::task_arena arena(nThread);
 #endif
 
   DataFile data_file;
@@ -192,41 +192,49 @@ int main(int argc, const char* argv[])
     Config::nEvents = data_file.OpenRead(s_file_name);
   }
 
-  for (int evt=0; evt<Config::nEvents; ++evt) {
-    Event ev(geom, *val, evt, nThread);
-    std::cout << "EVENT #"<< ev.evtID() << std::endl;
 
-    timepoint t0(now());
-    if (s_operation != "read")
-    {
-      ev.Simulate();
-    }
-    else {
-      ev.read_in(data_file);
-    }
-    
-    // phi-eta partitioning map: vector of vector of vectors of std::pairs. 
-    // vec[nLayers][nEtaBins][nPhiBins]
-    BinInfoMap segmentMap;
-    
-    /*simulate time*/        ticks[0] += delta(t0);
-    ev.Segment(segmentMap);  ticks[1] += delta(t0);
-    ev.Seed(segmentMap);     ticks[2] += delta(t0);
-    ev.Find(segmentMap);     ticks[3] += delta(t0);
-    ev.Fit();                ticks[4] += delta(t0);
-    ev.Validate();           ticks[5] += delta(t0);
+  auto evloop = [&]() {
+    for (int evt=0; evt<Config::nEvents; ++evt) {
+      Event ev(geom, *val, evt);
+      std::cout << "EVENT #"<< ev.evtID() << std::endl;
 
-    std::cout << "sim: " << ev.simTracks_.size() << " seed: " << ev.seedTracks_.size() << " found: " 
-	      << ev.candidateTracks_.size() << " fit: " << ev.fitTracks_.size() << std::endl;
-    tracks[0] += ev.simTracks_.size();
-    tracks[1] += ev.seedTracks_.size();
-    tracks[2] += ev.candidateTracks_.size();
-    tracks[3] += ev.fitTracks_.size();
-    std::cout << "Built tracks" << std::endl;
-    ev.PrintStats(ev.candidateTracks_, ev.candidateTracksExtra_);
-    std::cout << "Fit tracks" << std::endl;
-    ev.PrintStats(ev.fitTracks_, ev.fitTracksExtra_);
-  }
+      timepoint t0(now());
+      if (s_operation != "read")
+      {
+        ev.Simulate();
+      }
+      else {
+        ev.read_in(data_file);
+      }
+    
+      // phi-eta partitioning map: vector of vector of vectors of std::pairs. 
+      // vec[nLayers][nEtaBins][nPhiBins]
+      BinInfoMap segmentMap;
+    
+      /*simulate time*/        ticks[0] += delta(t0);
+      ev.Segment(segmentMap);  ticks[1] += delta(t0);
+      ev.Seed(segmentMap);     ticks[2] += delta(t0);
+      ev.Find(segmentMap);     ticks[3] += delta(t0);
+      ev.Fit();                ticks[4] += delta(t0);
+      ev.Validate();           ticks[5] += delta(t0);
+
+      std::cout << "sim: " << ev.simTracks_.size() << " seed: " << ev.seedTracks_.size() << " found: "
+  	            << ev.candidateTracks_.size() << " fit: " << ev.fitTracks_.size() << std::endl;
+      tracks[0] += ev.simTracks_.size();
+      tracks[1] += ev.seedTracks_.size();
+      tracks[2] += ev.candidateTracks_.size();
+      tracks[3] += ev.fitTracks_.size();
+      std::cout << "Built tracks" << std::endl;
+      ev.PrintStats(ev.candidateTracks_, ev.candidateTracksExtra_);
+      std::cout << "Fit tracks" << std::endl;
+      ev.PrintStats(ev.fitTracks_, ev.fitTracksExtra_);
+    }
+  };
+#ifdef TBB
+  arena.execute(evloop);
+#else
+  evloop();
+#endif
 
   if (s_operation == "read")
   {

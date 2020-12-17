@@ -45,13 +45,12 @@ export -f SSHO
 export BH="BH bh"
 export STD="STD std"
 export CE="CE ce"
-export FV="FV fv"
 
 # which set of builds to use based on input from command line
 if [[ "${suite}" == "full" ]]
 then
-    declare -a ben_builds=(BH STD CE FV)
-    declare -a val_builds=(BH STD CE FV)
+    declare -a ben_builds=(BH STD CE)
+    declare -a val_builds=(BH STD CE)
 elif [[ "${suite}" == "forPR" ]]
 then
     declare -a ben_builds=(BH CE)
@@ -80,15 +79,10 @@ for ben_build in "${ben_builds[@]}"
 do
     # set th builds : all benchmarks!
     th_builds+=("${ben_build}")
+    vu_builds+=("${ben_build}")
     
-    # set vu builds : exclude FV since it does not have a meaningful implementation outside of max VU
-    if [[ "${ben_build}" != "FV" ]]
-    then
-	vu_builds+=("${ben_build}")
-    fi
-    
-    # set meif builds : only do CE and FV
-    if [[ "${ben_build}" == "CE" ]] || [[ "${ben_build}" == "FV" ]]
+    # set meif builds : only do CE
+    if [[ "${ben_build}" == "CE" ]]
     then
 	meif_builds+=("${ben_build}")
     fi

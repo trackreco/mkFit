@@ -147,9 +147,6 @@ public:
    /**
       Default constructor:
    */
-#if __CUDACC__
-   __host__ __device__
-#endif
    SMatrix();
    /// 
    /** 
@@ -159,9 +156,6 @@ public:
    /** 
        copy constructor (from a matrix of the same representation 
    */ 
-#if __CUDACC__
-   __host__ __device__
-#endif
    SMatrix(const SMatrix<T,D1,D2,R>& rhs);
    /**
       construct from a matrix with different representation.
@@ -278,9 +272,6 @@ public:
    const T* Array() const;
    /// return pointer to internal array
    T* Array();
-#ifdef __CUDACC__
-   T* ArrayCU();
-#endif
 
    /** @name --- STL-like interface --- 
        The iterators access the matrix element in the order how they are 

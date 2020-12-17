@@ -717,8 +717,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, const MP
       const float beta2 = p2/(p2+mpi2);
       const float beta = std::sqrt(beta2);
       //radiation lenght, corrected for the crossing angle (cos alpha from dot product of radius vector and momentum)
-      const float invCos = p/pt;
-      // const float invCos = (isBarrel ? p/pt : 1./std::abs(std::cos(theta)) );
+      const float invCos = (isBarrel ? p/pt : 1./std::abs(std::cos(theta)) );
       radL = radL * invCos; //fixme works only for barrel geom
       // multiple scattering
       //vary independently phi and theta by the rms of the planar multiple scattering angle

@@ -253,8 +253,6 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       const float dz = std::abs(nSigmaZ * std::sqrt(Err[iI].ConstAt(itrack, 2, 2)));
       // XXX-NUM-ERR above, Err(2,2) gets negative!
 
-      // NOTE -- once issues in this block are resolved the changes should also be
-      // ported to MkFinderFV.
       if (Config::useCMSGeom) // should be Config::finding_requires_propagation_to_hit_pos
       {
         //now correct for bending and for layer thickness unsing linear approximation
@@ -392,7 +390,15 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
             // Avi says we should have *minimal* search windows per layer.
             // Also ... if bins are sufficiently small, we do not need the extra
             // checks, see above.
-	    XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
+	    if(L.GetHit(hi).mcHitID() == -7)
+	    {
+	      //ARH: This will need a better treatment but works for now 
+	      XWsrResult[itrack].m_in_gap = true;
+	    }
+	    else
+	    {
+	      XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
+	    }
 	  }
 	  else
 	  {
@@ -694,6 +700,11 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
       // YYYYYY Config::store_missed_layers
       fake_hit_idx = -3;
     }
+    //now add fake hit for tracks that passsed through inactive modules
+    else if (XWsrResult[itrack].m_in_gap == true)
+    {
+      fake_hit_idx = -7;
+    }
 
     dprint("ADD FAKE HIT FOR TRACK #" << itrack << " withinBounds=" << (fake_hit_idx != -3) << " r=" << std::hypot(Par[iP](itrack,0,0), Par[iP](itrack,1,0)));
 
@@ -820,6 +831,11 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     {
       fake_hit_idx = -3;
     }
+    //now add fake hit for tracks that passsed through inactive modules 
+    else if (XWsrResult[itrack].m_in_gap == true)
+    {
+      fake_hit_idx = -7;
+    }
 
     IdxChi2List tmpList;
     tmpList.trkIdx   = CandIdx(itrack, 0, 0);
@@ -877,6 +893,7 @@ void MkFinder::CopyOutParErr(std::vector<CombCandidate>& seed_cand_vec,
     // Set the track state to the updated parameters
     Err[iO].CopyOut(i, cand.errors_nc().Array());
     Par[iO].CopyOut(i, cand.parameters_nc().Array());
+    cand.setCharge(Chg(i,0,0));
 
     dprint((outputProp?"propagated":"updated") << " track parameters x=" << cand.parameters()[0]
               << " y=" << cand.parameters()[1]

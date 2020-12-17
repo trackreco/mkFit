@@ -468,7 +468,7 @@ void kalmanUpdate(const MPlexLS &psErr,  const MPlexLV& psPar,
                   outErr, outPar, dummy_chi2, N_proc);
 }
 
-void kalmanPropagateAndUpdate(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+void kalmanPropagateAndUpdate(const MPlexLS &psErr,  const MPlexLV& psPar, MPlexQI &Chg,
                               const MPlexHS &msErr,  const MPlexHV& msPar,
                                     MPlexLS &outErr,       MPlexLV& outPar,
                               const int      N_proc, const PropagationFlags propFlags)
@@ -484,7 +484,7 @@ void kalmanPropagateAndUpdate(const MPlexLS &psErr,  const MPlexLV& psPar, const
       msRad.At(n, 0, 0) = std::hypot(msPar.ConstAt(n, 0, 0), msPar.ConstAt(n, 1, 0));
     }
 
-    propagateHelixToRMPlex(psErr, psPar, inChg, msRad, propErr, propPar, N_proc, propFlags);
+    propagateHelixToRMPlex(psErr, psPar, Chg, msRad, propErr, propPar, N_proc, propFlags);
 
     kalmanOperation(KFO_Update_Params, propErr, propPar, msErr, msPar,
                     outErr, outPar, dummy_chi2, N_proc);
@@ -493,6 +493,14 @@ void kalmanPropagateAndUpdate(const MPlexLS &psErr,  const MPlexLV& psPar, const
   {
     kalmanOperation(KFO_Update_Params, psErr, psPar, msErr, msPar,
                     outErr, outPar, dummy_chi2, N_proc);
+  }
+  for (int n = 0; n < NN; ++n)
+  {
+    if (outPar.At(n,3,0) < 0)
+    {
+      Chg.At(n, 0, 0) = -1.0*Chg.ConstAt(n, 0, 0);
+      outPar.At(n,3,0) = std::abs(outPar.At(n,3,0));
+    }
   }
 }
 
@@ -686,7 +694,7 @@ void kalmanUpdateEndcap(const MPlexLS &psErr,  const MPlexLV& psPar,
                         outErr, outPar, dummy_chi2, N_proc);
 }
 
-void kalmanPropagateAndUpdateEndcap(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
+void kalmanPropagateAndUpdateEndcap(const MPlexLS &psErr,  const MPlexLV& psPar, MPlexQI &Chg,
                                     const MPlexHS &msErr,  const MPlexHV& msPar,
                                           MPlexLS &outErr,       MPlexLV& outPar,
                                     const int      N_proc, const PropagationFlags propFlags)
@@ -702,7 +710,7 @@ void kalmanPropagateAndUpdateEndcap(const MPlexLS &psErr,  const MPlexLV& psPar,
       msZ.At(n, 0, 0) = msPar.ConstAt(n, 2, 0);
     }
 
-    propagateHelixToZMPlex(psErr, psPar, inChg, msZ, propErr, propPar, N_proc, propFlags);
+    propagateHelixToZMPlex(psErr, psPar, Chg, msZ, propErr, propPar, N_proc, propFlags);
 
     kalmanOperationEndcap(KFO_Update_Params, propErr, propPar, msErr, msPar,
                           outErr, outPar, dummy_chi2, N_proc);
@@ -711,6 +719,14 @@ void kalmanPropagateAndUpdateEndcap(const MPlexLS &psErr,  const MPlexLV& psPar,
   {
     kalmanOperationEndcap(KFO_Update_Params, psErr, psPar, msErr, msPar,
                           outErr, outPar, dummy_chi2, N_proc);
+  }
+  for (int n = 0; n < NN; ++n)
+  {
+    if (outPar.At(n,3,0) < 0)
+    {
+      Chg.At(n, 0, 0) = -1.0*Chg.ConstAt(n, 0, 0);
+      outPar.At(n,3,0) = std::abs(outPar.At(n,3,0));
+    }
   }
 }
 

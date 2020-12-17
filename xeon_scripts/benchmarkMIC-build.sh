@@ -10,7 +10,7 @@ runBenchmark()
             if [ "${1}" == "1" ]; then
                 sO="--cmssw-n2seeds"
             fi
-            for bV in "BH bh" "STD std" "CE ce" "FV fv"; do echo $bV | while read -r bN bO; do
+            for bV in "BH bh" "STD std" "CE ce"; do echo $bV | while read -r bN bO; do
 		    oBase=${base}_${sN}_${bN}
 		    for nTH in 1 4 8 16 32; do
 		        echo "${oBase}: benchmark [nTH:${nTH}, nVU:8]"
@@ -63,7 +63,7 @@ runBenchmarkSections()
                 sO="--cmssw-n2seeds"
             fi
             for section in ECN2 ECN1 BRL ECP1 ECP2; do
-                for bV in "BH bh" "STD std" "CE ce" "FV fv"; do echo $bV | while read -r bN bO; do
+                for bV in "BH bh" "STD std" "CE ce"; do echo $bV | while read -r bN bO; do
                         oBase=${base}_${sN}_${section}_${bN}
                         nTH=8
                         echo "${oBase}: benchmark [nTH:${nTH}, nVU:8]"
