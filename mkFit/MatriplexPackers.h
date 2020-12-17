@@ -170,8 +170,8 @@ public:
 
 // Optionally ifdef with defines from Makefile.config
 
-using MatriplexHitPacker   = MatriplexErrParPackerSlurpIn<Hit,   float>;
-using MatriplexTrackPacker = MatriplexErrParPackerSlurpIn<Track, float>;
+using MatriplexHitPacker   = MatriplexErrParPackerSlurpIn<Hit,       float>;
+using MatriplexTrackPacker = MatriplexErrParPackerSlurpIn<TrackBase, float>;
 
 using MatriplexHoTPacker   = MatriplexPackerSlurpIn<HitOnTrack>;
 }

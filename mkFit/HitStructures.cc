@@ -275,28 +275,25 @@ void LayerOfHits::PrintBins()
 
 Track TrackCand::exportTrack() const
 {
-  // printf("TrackCand::exportTrack %p, label=%d\n", this, label());
+  // printf("TrackCand::exportTrack label=%5d, total_hits=%2d, overlaps=%2d\n", label(),
+  //        nTotalHits(), nOverlapHits_);
 
   Track res(*this);
+  res.resizeHits(nTotalHits(), nFoundHits());
+  res.setNOverlapHits(nOverlapHits());
 
   int nh = nTotalHits();
   int ch = lastHitIdx_;
-  std::vector<HitOnTrack> hots(nh);
   while (--nh >= 0)
   {
     HoTNode& hot_node = m_comb_candidate->m_hots[ch];
 
+    res.setHitIdxAtPos(nh, hot_node.m_hot);
+
     // printf("  nh=%2d, ch=%d, idx=%d lyr=%d prev_idx=%d\n",
     //        nh, ch, hot_node.m_hot.index, hot_node.m_hot.layer, hot_node.m_prev_idx);
 
-    hots[nh] = hot_node.m_hot;
     ch       = hot_node.m_prev_idx;
-  }
-
-  res.reserveHits(nTotalHits());
-  for (auto & i : hots)
-  {
-    res.addHitIdx(i.index, i.layer, 0.0f);
   }
 
   return res;
@@ -346,46 +343,45 @@ void CombCandidate::ImportSeed(const Track& seed)
 
 void CombCandidate::MergeCandsAndBestShortOne(bool update_score, bool sort_cands)
 {
-  std::vector<TrackCand> &finalcands = *this;
-  TrackCand              &best_short = m_best_short_cand;
+  TrackCand *best_short = m_best_short_cand.combCandidate() ? & m_best_short_cand : nullptr;
 
-  if ( ! finalcands.empty())
+  if ( ! empty())
   {
     if (update_score)
     {
-      for (auto &c : finalcands) c.setScore( getScoreCand(c) );
+      for (auto &c : *this) c.setScore( getScoreCand(c) );
+      if (best_short) best_short->setScore( getScoreCand(*best_short) );
     }
     if (sort_cands)
     {
-      std::sort(finalcands.begin(), finalcands.end(), sortByScoreTrackCand);
+      std::sort(begin(), end(), sortByScoreTrackCand);
     }
 
-    if (best_short.score() > finalcands.back().score())
+    if (best_short && best_short->score() > back().score())
     {
-      auto ci = finalcands.begin();
-      while (ci->score() > best_short.score()) ++ci;
+      auto ci = begin();
+      while (ci->score() > best_short->score()) ++ci;
 
-      if ((int) finalcands.size() > Config::maxCandsPerSeed)  finalcands.pop_back();
+      if ((int) size() >= Config::maxCandsPerSeed) pop_back();
 
       // To print out what has been replaced -- remove when done with short track handling.
-      /*
-        if (ci == finalcands.begin())
-        {
-        printf("FindTracksStd -- Replacing best cand (%d) with short one (%d) in final sorting for seed index=%d\n",
-                     finalcands.front().score(), best_short.score(), iseed);
-        }
-      */
+      // if (ci == finalcands.begin()) {
+      //   printf("FindTracksStd -- Replacing best cand (%f) with short one (%f) in final sorting\n",
+      //          front().score(), best_short->score());
+      // }
 
-      finalcands.insert(ci, best_short);
+      insert(ci, *best_short);
     }
 
   }
-  else if (best_short.score() > getScoreWorstPossible())
+  else if (best_short)
   {
-    finalcands.push_back( best_short );
+    push_back( *best_short );
   }
 
-  best_short.setScore( getScoreWorstPossible() );
+  if (best_short) best_short->resetShortTrack();
+
+  // assert(capacity() == (size_t)Config::maxCandsPerSeed);
 }
 
 } // end namespace mkfit

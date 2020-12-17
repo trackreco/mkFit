@@ -24,6 +24,8 @@ public:
 
   float getPar(int itrack, int i, int par) const { return Par[i].ConstAt(itrack, par, 0); }
 
+  float RadiusSqr(int itrack, int i) const { return hipo_sqr(getPar(itrack, i, 0), getPar(itrack, i, 1)); }
+
   //----------------------------------------------------------------------------
 
   MkBase() {}

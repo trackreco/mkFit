@@ -91,6 +91,14 @@ public:
       memcpy(fArray, m.fArray, sizeof(T) * kTotSize); return *this;
    }
 
+   void CopySlot(idx_t n, const MatriplexSym& m)
+   {
+      for (idx_t i = n; i < kTotSize; i += N)
+      {
+         fArray[i] = m.fArray[i];
+      }
+   }
+
    void CopyIn(idx_t n, const T *arr)
    {
       for (idx_t i = n; i < kTotSize; i += N)
@@ -101,19 +109,17 @@ public:
 
    void CopyIn(idx_t n, const MatriplexSym& m, idx_t in)
    {
-      for (idx_t i = n; i < kTotSize; i += N)
+      for (idx_t i = n; i < kTotSize; i += N, in += N)
       {
          fArray[i] = m[in];
-         in += N;
       }
    }
 
    void Copy(idx_t n, idx_t in)
    {
-      for (idx_t i = n; i < kTotSize; i += N)
+      for (idx_t i = n; i < kTotSize; i += N, in += N)
       {
          fArray[i] = fArray[in];
-         in += N;
       }
    }
 
