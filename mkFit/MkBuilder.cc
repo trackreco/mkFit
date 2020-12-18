@@ -183,10 +183,11 @@ namespace mkfit {
 
 MkBuilder::MkBuilder() :
   m_event(0),
-  m_event_of_hits(Config::TrkInfo)
+  m_event_of_hits(Config::TrkInfo),
 {
   m_fndfoos_brl = { kalmanPropagateAndComputeChi2,       kalmanPropagateAndUpdate,       &MkBase::PropagateTracksToR };
   m_fndfoos_ec  = { kalmanPropagateAndComputeChi2Endcap, kalmanPropagateAndUpdateEndcap, &MkBase::PropagateTracksToZ };
+}
 
   /* Moving out from MkBuilder: now per-iteration steering params and regions 
      are initialized in IterationConfig (SteeringParams.h)*/
@@ -261,8 +262,6 @@ MkBuilder::MkBuilder() :
 //  m_regions[2] = TrackerInfo::Reg_Endcap_Pos;
 //  m_regions[3] = TrackerInfo::Reg_Endcap_Neg;
 //  m_regions[4] = TrackerInfo::Reg_Barrel;
-
-}
 
 MkBuilder::~MkBuilder()
 {
@@ -434,173 +433,173 @@ void MkBuilder::create_seeds_from_sim_tracks()
           size, (int) seeds.size());
 }
 
-void MkBuilder::import_seeds()
-{
-  // Seeds are placed into eta regions and sorted on eta. Counts for each eta region are
-  // stored into Event::seedEtaSeparators_.
-
-  //bool debug = true;
-
-  TrackerInfo &trk_info = Config::TrkInfo;
-  TrackVec    &seeds    = m_event->seedTracks_;
-  const int    size     = seeds.size();
-
-  for (int i = 0; i < 5; ++i)
-  {
-    m_event->seedEtaSeparators_[i] = 0;
-    m_event->seedMinLastLayer_ [i] = 9999;
-    m_event->seedMaxLastLayer_ [i] = 0;
-  }
-
-  std::vector<float> etas(size);
-  for (int i = 0; i < size; ++i)
-  {
-    const Track &S         = seeds[i];
-    const bool   z_dir_pos = S.pz() > 0;
-
-    HitOnTrack hot = S.getLastHitOnTrack();
-    float      eta = m_event->layerHits_[hot.layer][hot.index].eta();
-    // float   eta = S.momEta();
-
-    // Region to be defined by propagation / intersection tests
-    TrackerInfo::EtaRegion reg;
-
-    // Hardcoded for cms ... needs some lists of layers (hit/miss) for brl / ecp tests.
-
-    const LayerInfo &outer_brl = trk_info.outer_barrel_layer();
-
-    const LayerInfo &tib1 = trk_info.m_layers[ 4];
-    const LayerInfo &tob1 = trk_info.m_layers[10];
-
-    const LayerInfo &tecp1 = trk_info.m_layers[27];
-    const LayerInfo &tecn1 = trk_info.m_layers[54];
-
-    const LayerInfo &tec_first = z_dir_pos ? tecp1 : tecn1;
-
-    // If a track hits outer barrel ... it is in the barrel (for central, "outgoing" tracks).
-    // This is also true for cyl-cow.
-    // Better check is: hits outer TIB, misses inner TEC (but is +-z dependant).
-    // XXXX Calculate z ... then check is inside or less that first EC z.
-    // There are a lot of tracks that go through that crack.
-
-    // XXXX trying a fix for low pT tracks that are in barrel after half circle
-    float maxR = S.maxReachRadius();
-    float z_at_maxr;
-
-    bool  can_reach_outer_brl = S.canReachRadius(outer_brl.m_rout);
-    float z_at_outer_brl;
-    bool  misses_first_tec;
-    if (can_reach_outer_brl)
-    {
-      z_at_outer_brl = S.zAtR(outer_brl.m_rout);
-      if (z_dir_pos)
-        misses_first_tec = z_at_outer_brl < tec_first.m_zmin;
-      else
-        misses_first_tec = z_at_outer_brl > tec_first.m_zmax;
-    }
-    else
-    {
-      z_at_maxr = S.zAtR(maxR);
-      if (z_dir_pos)
-        misses_first_tec = z_at_maxr < tec_first.m_zmin;
-      else
-        misses_first_tec = z_at_maxr > tec_first.m_zmax;
-    }
-
-    // dprintf("Processing seed %d: r_mean tib1=%f tob1=%f tob_last=%f\n", i, tib1.r_mean(), tob1.r_mean(), outer_brl.r_mean());
-
-    if (/*can_reach_outer_brl &&*/ misses_first_tec)
-      // outer_brl.is_within_z_limits(S.zAtR(outer_brl.r_mean())))
-    {
-      reg = TrackerInfo::Reg_Barrel;
-    }
-    else
-    {
-      // This should be a list of layers
-      // CMS, first tib, tob: 4, 10
-
-      if ((S.canReachRadius(tib1.m_rin) && tib1.is_within_z_limits(S.zAtR(tib1.m_rin))) ||
-          (S.canReachRadius(tob1.m_rin) && tob1.is_within_z_limits(S.zAtR(tob1.m_rin))) )
-      {
-        // transition region ... we are still hitting barrel layers
-
-        reg = z_dir_pos ? TrackerInfo::Reg_Transition_Pos : TrackerInfo::Reg_Transition_Neg;
-      }
-      else
-      {
-        // endcap ... no barrel layers will be hit anymore.
-
-        reg = z_dir_pos ? TrackerInfo::Reg_Endcap_Pos : TrackerInfo::Reg_Endcap_Neg;
-      }
-    }
-    // reg is now defined
-
-    ++m_event->seedEtaSeparators_[reg];
-
-    m_event->seedMinLastLayer_[reg] = std::min(m_event->seedMinLastLayer_[reg], hot.layer);
-    m_event->seedMaxLastLayer_[reg] = std::max(m_event->seedMaxLastLayer_[reg], hot.layer);
-
-    etas[i] = 5.0f * (reg - 2) + eta;
-
-    // dprintf("  can_reach_outer_brl=%d misses_first_tec=%d => reg=%d\n", can_reach_outer_brl, misses_first_tec, reg);
-
-    // -------------------------------------------------
-    // Compare r-z line vs. propagation
-    /*
-    const LayerInfo &next_brl  = trk_info.next_barrel_layer(hot.layer);
-
-    float z_outer = S.z() + S.pz()/S.pT()*(outer_brl.m_rout - S.posR());
-    float z_next  = S.z() + S.pz()/S.pT()*(next_brl .m_rout - S.posR());
-
-    bool outer_hit = z_outer < outer_brl.m_zmax && z_outer > outer_brl.m_zmin;
-    bool next_hit  = z_next  < next_brl .m_zmax && z_next  > next_brl .m_zmin;
-
-    // ----------------------------------------------------------------
-
-    float r_it, z;
-
-    z = S.zAtR(outer_brl.m_rout, &r_it);
-
-    // printf("%3d % 6.3f %d %d %d -- % 8.3e % 8.3e %8.3f | linear: % 7.3f - iterative: % 7.3f dr = %e\n",
-    //        i, eta, reg, outer_hit, next_hit,
-    //        S.x(), S.y(), S.z(), z_outer, z, outer_brl.r_mean() - r_it);
-
-    // printf("ZZZZ %d %d\n", reg, hot.layer);
-    */
-  }
-
-  for (int i = 0; i < 5; ++i)
-  {
-    if (m_event->seedMinLastLayer_[i] == 9999) m_event->seedMinLastLayer_[i] = -1;
-    if (m_event->seedMaxLastLayer_[i] ==    0) m_event->seedMaxLastLayer_[i] = -1;
-  }
-
-  RadixSort rs;
-  rs.Sort(&etas[0], size);
-
-  TrackVec orig_seeds;
-  orig_seeds.swap(seeds);
-  seeds.reserve(size);
-  for (int i = 0; i < size; ++i)
-  {
-    seeds.emplace_back( orig_seeds[ rs.GetRanks()[i] ] );
-  }
-
-  dprintf("MkBuilder::import_seeds finished import of %d seeds (last seeding layer min, max):\n"
-          "  ec- = %d(%d,%d), t- = %d(%d,%d), brl = %d(%d,%d), t+ = %d(%d,%d), ec+ = %d(%d,%d).\n",
-          size,
-          m_event->seedEtaSeparators_[0], m_event->seedMinLastLayer_[0], m_event->seedMaxLastLayer_[0],
-          m_event->seedEtaSeparators_[1], m_event->seedMinLastLayer_[1], m_event->seedMaxLastLayer_[1],
-          m_event->seedEtaSeparators_[2], m_event->seedMinLastLayer_[2], m_event->seedMaxLastLayer_[2],
-          m_event->seedEtaSeparators_[3], m_event->seedMinLastLayer_[3], m_event->seedMaxLastLayer_[3],
-          m_event->seedEtaSeparators_[4], m_event->seedMinLastLayer_[4], m_event->seedMaxLastLayer_[4]);
-
-  // Sum region counts up to contain actual separator indices:
-  for (int i = TrackerInfo::Reg_Transition_Neg; i < TrackerInfo::Reg_Count; ++i)
-  {
-    m_event->seedEtaSeparators_[i] += m_event->seedEtaSeparators_[i - 1];
-  }
-}
+//void MkBuilder::import_seeds()
+//{
+//  // Seeds are placed into eta regions and sorted on eta. Counts for each eta region are
+//  // stored into Event::seedEtaSeparators_.
+//
+//  //bool debug = true;
+//
+//  TrackerInfo &trk_info = Config::TrkInfo;
+//  TrackVec    &seeds    = m_event->seedTracks_;
+//  const int    size     = seeds.size();
+//
+//  for (int i = 0; i < 5; ++i)
+//  {
+//    m_event->seedEtaSeparators_[i] = 0;
+//    m_event->seedMinLastLayer_ [i] = 9999;
+//    m_event->seedMaxLastLayer_ [i] = 0;
+//  }
+//
+//  std::vector<float> etas(size);
+//  for (int i = 0; i < size; ++i)
+//  {
+//    const Track &S         = seeds[i];
+//    const bool   z_dir_pos = S.pz() > 0;
+//
+//    HitOnTrack hot = S.getLastHitOnTrack();
+//    float      eta = m_event->layerHits_[hot.layer][hot.index].eta();
+//    // float   eta = S.momEta();
+//
+//    // Region to be defined by propagation / intersection tests
+//    TrackerInfo::EtaRegion reg;
+//
+//    // Hardcoded for cms ... needs some lists of layers (hit/miss) for brl / ecp tests.
+//
+//    const LayerInfo &outer_brl = trk_info.outer_barrel_layer();
+//
+//    const LayerInfo &tib1 = trk_info.m_layers[ 4];
+//    const LayerInfo &tob1 = trk_info.m_layers[10];
+//
+//    const LayerInfo &tecp1 = trk_info.m_layers[27];
+//    const LayerInfo &tecn1 = trk_info.m_layers[54];
+//
+//    const LayerInfo &tec_first = z_dir_pos ? tecp1 : tecn1;
+//
+//    // If a track hits outer barrel ... it is in the barrel (for central, "outgoing" tracks).
+//    // This is also true for cyl-cow.
+//    // Better check is: hits outer TIB, misses inner TEC (but is +-z dependant).
+//    // XXXX Calculate z ... then check is inside or less that first EC z.
+//    // There are a lot of tracks that go through that crack.
+//
+//    // XXXX trying a fix for low pT tracks that are in barrel after half circle
+//    float maxR = S.maxReachRadius();
+//    float z_at_maxr;
+//
+//    bool  can_reach_outer_brl = S.canReachRadius(outer_brl.m_rout);
+//    float z_at_outer_brl;
+//    bool  misses_first_tec;
+//    if (can_reach_outer_brl)
+//    {
+//      z_at_outer_brl = S.zAtR(outer_brl.m_rout);
+//      if (z_dir_pos)
+//        misses_first_tec = z_at_outer_brl < tec_first.m_zmin;
+//      else
+//        misses_first_tec = z_at_outer_brl > tec_first.m_zmax;
+//    }
+//    else
+//    {
+//      z_at_maxr = S.zAtR(maxR);
+//      if (z_dir_pos)
+//        misses_first_tec = z_at_maxr < tec_first.m_zmin;
+//      else
+//        misses_first_tec = z_at_maxr > tec_first.m_zmax;
+//    }
+//
+//    // dprintf("Processing seed %d: r_mean tib1=%f tob1=%f tob_last=%f\n", i, tib1.r_mean(), tob1.r_mean(), outer_brl.r_mean());
+//
+//    if (/*can_reach_outer_brl &&*/ misses_first_tec)
+//      // outer_brl.is_within_z_limits(S.zAtR(outer_brl.r_mean())))
+//    {
+//      reg = TrackerInfo::Reg_Barrel;
+//    }
+//    else
+//    {
+//      // This should be a list of layers
+//      // CMS, first tib, tob: 4, 10
+//
+//      if ((S.canReachRadius(tib1.m_rin) && tib1.is_within_z_limits(S.zAtR(tib1.m_rin))) ||
+//          (S.canReachRadius(tob1.m_rin) && tob1.is_within_z_limits(S.zAtR(tob1.m_rin))) )
+//      {
+//        // transition region ... we are still hitting barrel layers
+//
+//        reg = z_dir_pos ? TrackerInfo::Reg_Transition_Pos : TrackerInfo::Reg_Transition_Neg;
+//      }
+//      else
+//      {
+//        // endcap ... no barrel layers will be hit anymore.
+//
+//        reg = z_dir_pos ? TrackerInfo::Reg_Endcap_Pos : TrackerInfo::Reg_Endcap_Neg;
+//      }
+//    }
+//    // reg is now defined
+//
+//    ++m_event->seedEtaSeparators_[reg];
+//
+//    m_event->seedMinLastLayer_[reg] = std::min(m_event->seedMinLastLayer_[reg], hot.layer);
+//    m_event->seedMaxLastLayer_[reg] = std::max(m_event->seedMaxLastLayer_[reg], hot.layer);
+//
+//    etas[i] = 5.0f * (reg - 2) + eta;
+//
+//    // dprintf("  can_reach_outer_brl=%d misses_first_tec=%d => reg=%d\n", can_reach_outer_brl, misses_first_tec, reg);
+//
+//    // -------------------------------------------------
+//    // Compare r-z line vs. propagation
+//    /*
+//    const LayerInfo &next_brl  = trk_info.next_barrel_layer(hot.layer);
+//
+//    float z_outer = S.z() + S.pz()/S.pT()*(outer_brl.m_rout - S.posR());
+//    float z_next  = S.z() + S.pz()/S.pT()*(next_brl .m_rout - S.posR());
+//
+//    bool outer_hit = z_outer < outer_brl.m_zmax && z_outer > outer_brl.m_zmin;
+//    bool next_hit  = z_next  < next_brl .m_zmax && z_next  > next_brl .m_zmin;
+//
+//    // ----------------------------------------------------------------
+//
+//    float r_it, z;
+//
+//    z = S.zAtR(outer_brl.m_rout, &r_it);
+//
+//    // printf("%3d % 6.3f %d %d %d -- % 8.3e % 8.3e %8.3f | linear: % 7.3f - iterative: % 7.3f dr = %e\n",
+//    //        i, eta, reg, outer_hit, next_hit,
+//    //        S.x(), S.y(), S.z(), z_outer, z, outer_brl.r_mean() - r_it);
+//
+//    // printf("ZZZZ %d %d\n", reg, hot.layer);
+//    */
+//  }
+//
+//  for (int i = 0; i < 5; ++i)
+//  {
+//    if (m_event->seedMinLastLayer_[i] == 9999) m_event->seedMinLastLayer_[i] = -1;
+//    if (m_event->seedMaxLastLayer_[i] ==    0) m_event->seedMaxLastLayer_[i] = -1;
+//  }
+//
+//  RadixSort rs;
+//  rs.Sort(&etas[0], size);
+//
+//  TrackVec orig_seeds;
+//  orig_seeds.swap(seeds);
+//  seeds.reserve(size);
+//  for (int i = 0; i < size; ++i)
+//  {
+//    seeds.emplace_back( orig_seeds[ rs.GetRanks()[i] ] );
+//  }
+//
+//  dprintf("MkBuilder::import_seeds finished import of %d seeds (last seeding layer min, max):\n"
+//          "  ec- = %d(%d,%d), t- = %d(%d,%d), brl = %d(%d,%d), t+ = %d(%d,%d), ec+ = %d(%d,%d).\n",
+//          size,
+//          m_event->seedEtaSeparators_[0], m_event->seedMinLastLayer_[0], m_event->seedMaxLastLayer_[0],
+//          m_event->seedEtaSeparators_[1], m_event->seedMinLastLayer_[1], m_event->seedMaxLastLayer_[1],
+//          m_event->seedEtaSeparators_[2], m_event->seedMinLastLayer_[2], m_event->seedMaxLastLayer_[2],
+//          m_event->seedEtaSeparators_[3], m_event->seedMinLastLayer_[3], m_event->seedMaxLastLayer_[3],
+//          m_event->seedEtaSeparators_[4], m_event->seedMinLastLayer_[4], m_event->seedMaxLastLayer_[4]);
+//
+//  // Sum region counts up to contain actual separator indices:
+//  for (int i = TrackerInfo::Reg_Transition_Neg; i < TrackerInfo::Reg_Count; ++i)
+//  {
+//    m_event->seedEtaSeparators_[i] += m_event->seedEtaSeparators_[i - 1];
+//  }
+//}
 
 void MkBuilder::find_seeds()
 {

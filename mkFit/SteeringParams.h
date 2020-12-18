@@ -1,6 +1,7 @@
 #ifndef SteeringParams_h
 #define SteeringParams_h
 
+#include "Track.h"
 #include "Matrix.h"
 
 namespace mkfit {
@@ -167,6 +168,23 @@ class IterationParams
 //==============================================================================
 // IterationConfig
 //==============================================================================
+class Event;
+
+struct MkSeedPacket
+{
+  int m_seedEtaSeparators_[5];
+  int m_seedMinLastLayer_[5];
+  int m_seedMaxLastLayer_[5];
+  std::vector<HitVec> m_layerHits_;
+  TrackVec m_inseeds_;
+  TrackVec m_outtrks_;
+
+  //----------------------------------------------------------------------------
+
+  MkSeedPacket(Event *evt) :
+    m_seedEtaSeparators(evt->seedEtaSeparators_), m_seedMinLastLayer_(evt->seedMinLastLayer_), m_seedMaxLastLayer_(evt->seedMaxLastLayer_), m_layerHits_(evt->layerHits_), m_inseeds_(evt->seedTracks_) {}
+
+};
 
 class IterationConfig
 {
@@ -188,16 +206,13 @@ public:
   std::vector<SteeringParams> m_steering_params[5];
   std::vector<int>            m_regions;
 
+  // Virtual function for 'import_seeds' (previously in MkBuilder):
+  virtual void import_seeds(Event *ev, const TrackerInfo &ti, const unsigned int it=0);
+    
   //----------------------------------------------------------------------------
   IterationConfig(const TrackerInfo &ti, const IterationParams &ip, const unsigned int it=0) :
     m_iter(it), m_tracker_info(ti), m_params(ip) {}
 
-  // Here we also need either:
-  // a) a virtual function that performs partitioning of seeds into regions; or
-  // b) a std::function that takes MkBuilder, Event, and IterationConfig (or
-  //    some subset of those objects / their components) and does the seed partitioning.
-  //
-  // Next question is how we want to do seed cleaning for multiple iterations.
 };
 
 
@@ -206,7 +221,7 @@ public:
 // IterationConfig instance is created in Geoms/CMS-2017.cc, and is passed to MkBuilder constructor (as const reference).
 // Internally, MkBuilder is passing 'int region' to its own functions: should be fine as is.
 // When calling MkFinder functions, MkBuilder is now passing a reference to LayerOfHits;
-// this is noe replaced by a reference to IterationLayerConfig, which includes ref's to IterationConfig and LayerOfHits.
+// this is now replaced by a reference to IterationLayerConfig, which includes ref's to IterationConfig and LayerOfHits.
 // (Alternatively, one could pass both ref's to IterationLayerConfig and IterationConfig)
 // Pointers to propagation functions can be passed as they are now.
 
