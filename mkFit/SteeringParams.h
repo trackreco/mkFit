@@ -168,6 +168,7 @@ class IterationParams
 //==============================================================================
 // IterationConfig
 //==============================================================================
+
 class Event;
 
 struct MkSeedPacket
@@ -189,6 +190,9 @@ struct MkSeedPacket
 class IterationConfig
 {
 public:
+
+  //Up-link to event, to be used by import_seeds
+  const Event *ev;
   
   // Iteration index:
   const unsigned int    m_iter;
@@ -207,7 +211,7 @@ public:
   std::vector<int>            m_regions;
 
   // Virtual function for 'import_seeds' (previously in MkBuilder):
-  virtual void import_seeds(Event *ev, const TrackerInfo &ti, const unsigned int it=0);
+  virtual void import_seeds(ev, const TrackerInfo &ti, const unsigned int it=0);
     
   //----------------------------------------------------------------------------
   IterationConfig(const TrackerInfo &ti, const IterationParams &ip, const unsigned int it=0) :
