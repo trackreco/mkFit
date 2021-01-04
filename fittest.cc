@@ -7,7 +7,7 @@
 #include "Debug.h"
 
 #ifdef TBB
-#include "tbb/tbb.h"
+#include "tbb/parallel_for.h"
 #endif
 
 #include <iostream>

@@ -12,7 +12,7 @@
 #include "Debug.h"
 
 #ifdef TBB
-#include "tbb/tbb.h"
+#include "tbb/parallel_for.h"
 #endif
 
 #include <memory>
@@ -53,18 +53,20 @@ void Event::reset_nan_n_silly_counters()
 
 Event::Event(int evtID) :
   geom_(dummyGeometry), validation_(*dummyValidation),
-  evtID_(evtID), threads_(1), mcHitIDCounter_(0)
+  evtID_(evtID), mcHitIDCounter_(0)
 {
   reset_nan_n_silly_counters();
   layerHits_.resize(Config::nTotalLayers);
+  layerHitMasks_.resize(Config::nTotalLayers);
 }
 
-Event::Event(const Geometry& g, Validation& v, int evtID, int threads) :
+Event::Event(const Geometry& g, Validation& v, int evtID) :
   geom_(g), validation_(v),
-  evtID_(evtID), threads_(threads), mcHitIDCounter_(0)
+  evtID_(evtID), mcHitIDCounter_(0)
 {
   reset_nan_n_silly_counters();
   layerHits_.resize(Config::nTotalLayers);
+  layerHitMasks_.resize(Config::nTotalLayers);
 
   validation_.resetValidationMaps(); // need to reset maps for every event.
 }
@@ -76,6 +78,7 @@ void Event::Reset(int evtID)
   reset_nan_n_silly_counters();
 
   for (auto&& l : layerHits_) { l.clear(); }
+  for (auto&& l : layerHitMasks_) { l.clear(); }
 
   simHitsInfo_.clear();
   simTrackStates_.clear();
@@ -130,6 +133,10 @@ void Event::Simulate()
     l.clear();
     l.reserve(Config::nTracks);
   }
+  for (auto&& l : layerHitMasks_) {
+    l.clear();
+    l.reserve(Config::nTracks);
+  }
 
 #ifdef TBB
   parallel_for( tbb::blocked_range<size_t>(0, Config::nTracks, 100), 
@@ -178,6 +185,7 @@ void Event::Simulate()
         // set to the correct hit index after sorting
         sim_track.addHitIdx(layerHits_[hitinfos[i].layer_].size(), hitinfos[i].layer_, 0.0f);
         layerHits_[hitinfos[i].layer_].emplace_back(hits[i]);
+        layerHitMasks_[hitinfos[i].layer_].emplace_back(0);//keep in sync, even if not used
 
         simHitsInfo_.emplace_back(hitinfos[i]);
 	if (Config::sim_val || Config::fit_val) 
@@ -416,6 +424,16 @@ void Event::write_out(DataFile &data_file)
     evsize += sizeof(int) + nh*sizeof(Hit);
   }
 
+  if (data_file.HasHitIterMasks()) {
+    //sizes are the same as in layerHits_
+    for (int il = 0; il<nl; ++il) {
+      int nh = layerHitMasks_[il].size();
+      assert(nh == layerHits_[il].size());
+      fwrite(&layerHitMasks_[il][0], sizeof(uint64_t), nh, fp);
+      evsize += nh*sizeof(uint64_t);
+    }
+  }
+
   int nm = simHitsInfo_.size();
   fwrite(&nm, sizeof(int), 1, fp);
   fwrite(&simHitsInfo_[0], sizeof(MCHitInfo), nm, fp);
@@ -481,11 +499,21 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
   int nl;
   fread(&nl, sizeof(int), 1, fp);
   layerHits_.resize(nl);
+  layerHitMasks_.resize(nl);
   for (int il = 0; il<nl; ++il) {
     int nh;
     fread(&nh, sizeof(int), 1, fp);
     layerHits_[il].resize(nh);
+    layerHitMasks_[il].resize(nh, 0);//init to 0 by default
     fread(&layerHits_[il][0], sizeof(Hit), nh, fp);
+  }
+
+  if (data_file.HasHitIterMasks())
+  {
+    for (int il = 0; il<nl; ++il) {
+      int nh = layerHits_[il].size();
+      fread(&layerHitMasks_[il][0], sizeof(uint64_t), nh, fp);
+    }
   }
 
   int nm; 
@@ -1034,7 +1062,7 @@ void Event::relabel_cmsswtracks_from_seeds()
 int DataFile::OpenRead(const std::string& fname, bool set_n_layers)
 {
   constexpr int min_ver = 4;
-  constexpr int max_ver = 4;
+  constexpr int max_ver = 5;
 
   f_fp = fopen(fname.c_str(), "r");
   assert (f_fp != 0 && "Opening of input file failed.");

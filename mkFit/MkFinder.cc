@@ -252,8 +252,6 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       const float z  = Par[iI].ConstAt(itrack, 2, 0);
       const float dz = std::abs(nSigmaZ * std::sqrt(Err[iI].ConstAt(itrack, 2, 2)));
 
-      // NOTE -- once issues in this block are resolved the changes should also be
-      // ported to MkFinderFV.
       if (Config::useCMSGeom) // should be Config::finding_requires_propagation_to_hit_pos
       {
         //now correct for bending and for layer thickness unsing linear approximation

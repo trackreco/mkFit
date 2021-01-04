@@ -23,17 +23,12 @@
 #include "Validation.h"
 #endif
 
-#ifdef USE_CUDA
-#include "FitterCU.h"
-#include "BuilderCU.h"
-#include "gpu_utils.h"
-#endif
-
 #include <cstdlib>
 //#define DEBUG
 #include "Debug.h"
 
-#include <tbb/task_scheduler_init.h>
+#include "tbb/task_arena.h"
+#include "tbb/parallel_for.h"
 
 #if defined(USE_VTUNE_PAUSE)
 #include "ittnotify.h"
@@ -87,9 +82,6 @@ namespace
   bool  g_run_build_bh  = false;
   bool  g_run_build_std = false;
   bool  g_run_build_ce  = false;
-  bool  g_run_build_fv  = false;
-
-  bool  g_seed_based    = false;
 
   std::string g_operation = "simulate_and_process";;
   std::string g_input_file = "";
@@ -205,13 +197,13 @@ void generate_and_save_tracks()
 
   printf("writing %i events\n", Nevents);
 
-  tbb::task_scheduler_init tbb_init(Config::numThreadsSimulation);
+  tbb::task_arena arena(Config::numThreadsSimulation);
 
   Event ev(geom, *val, 0);
   for (int evt = 0; evt < Nevents; ++evt)
   {
     ev.Reset(evt);
-    ev.Simulate();
+    arena.execute([&]() { ev.Simulate(); });
 
 #ifdef DEBUG
     for (int itrack = 0; itrack < ev.simTracks_.size(); itrack++)
@@ -287,69 +279,22 @@ void test_standard()
 
   if (Config::useCMSGeom) fillZRgridME();
 
-  const int NT = 5;
+  constexpr int NT = 4;
   double t_sum[NT] = {0};
   double t_skip[NT] = {0};
   double time = dtime();
 
-#if USE_CUDA_OLD
-  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
-  //tbb::task_scheduler_init tbb_init(tbb::task_scheduler_init::automatic);
-
-  //omp_set_num_threads(Config::numThreadsFinder);
-  // fittest time. Sum of all events. In case of multiple events
-  // being run simultaneously in different streams this time will
-  // be larger than the elapsed time.
-
-  std::vector<Event> events;
-  std::vector<Validation> validations(Config::nEvents);
-
-  events.reserve(Config::nEvents);
-  // simulations are all performed before the fitting loop.
-  // It is mandatory in order to see the benefits of running
-  // multiple streams.
-  for (int evt = 1; evt <= Config::nEvents; ++evt) {
-    printf("Simulating event %d\n", evt);
-    events.emplace_back(geom, val, evt);
-    events.back().Simulate();
-    dprint("Event #" << events.back().evtID() << " simtracks " << events.back().simTracks_.size() << " layerhits " << events.back().layerHits_.size());
-  }
-
-  // The first call to a GPU function always take a very long time.
-  // Everything needs to be initialized.
-  // Nothing is done in this function, except calling an harmless
-  // CUDA function. These function can be changed to another one
-  // if it becomes important to time (e.g. if you want the profiler to
-  // tell you how much time is spend running cudaDeviceSynchronize(),
-  // use another function).
-  separate_first_call_for_meaningful_profiling_numbers();
-
-  if (g_run_fit_std) runAllEventsFittingTestPlexGPU(events);
-
-  if (g_run_build_all || g_run_build_bh) {
-    double total_best_hit_time = 0.;
-    total_best_hit_time = runAllBuildingTestPlexBestHitGPU(events);
-    std::cout << "Total best hit time (GPU): " << total_best_hit_time << std::endl;
-  }
-#else
   std::atomic<int> nevt{g_start_event};
   std::atomic<int> seedstot{0}, simtrackstot{0}, candstot{0};
   std::atomic<int> maxHits_all{0}, maxLayer_all{0};
 
-  MkBuilder::populate(g_run_build_all || g_run_build_fv);
+  MkBuilder::populate();
 
   std::vector<std::unique_ptr<Event>>      evs(Config::numThreadsEvents);
   std::vector<std::unique_ptr<Validation>> vals(Config::numThreadsEvents);
   std::vector<std::unique_ptr<MkBuilder>>  mkbs(Config::numThreadsEvents);
   std::vector<std::shared_ptr<FILE>>       fps;
   fps.reserve(Config::numThreadsEvents);
-
-#if USE_CUDA
-  separate_first_call_for_meaningful_profiling_numbers();
-
-  std::vector<std::unique_ptr<FitterCU<float>>> cuFitters(Config::numThreadsEvents);
-  std::vector<std::unique_ptr<BuilderCU>> cuBuilders(Config::numThreadsEvents);
-#endif
 
   const std::string valfile("valtree");
 
@@ -362,140 +307,117 @@ void test_standard()
     if (g_operation == "read") {
       fps.emplace_back(fopen(g_input_file.c_str(), "r"), [](FILE* fp) { if (fp) fclose(fp); });
     }
-#if USE_CUDA
-    constexpr int gplex_width = 10000;
-    cuFitters[i].reset(new FitterCU<float>(gplex_width));
-    cuFitters[i].get()->allocateDevice();
-    cuFitters[i].get()->allocate_extra_addBestHit();
-    cuFitters[i].get()->allocate_extra_combinatorial();
-    cuFitters[i].get()->createStream();
-    cuFitters[i].get()->setNumberTracks(gplex_width);
-
-    cuBuilders[i].reset(new BuilderCU(cuFitters[i].get()));
-    cuBuilders[i].get()->allocateGeometry(geom);
-#endif
   }
 
-  tbb::task_scheduler_init tbb_init(Config::numThreadsFinder);
+  tbb::task_arena arena(Config::numThreadsFinder);
 
   dprint("parallel_for step size " << (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents);
 
   time = dtime();
 
   int events_per_thread = (Config::nEvents+Config::numThreadsEvents-1)/Config::numThreadsEvents;
-  tbb::parallel_for(tbb::blocked_range<int>(0, Config::numThreadsEvents, 1),
-    [&](const tbb::blocked_range<int>& threads)
-  {
-    int thisthread = threads.begin();
 
-    assert(threads.begin() == threads.end()-1 && thisthread < Config::numThreadsEvents);
-
-    std::vector<Track> plex_tracks;
-    auto& ev     = *evs[thisthread].get();
-    auto& mkb    = *mkbs[thisthread].get();
-    auto  fp     =  fps[thisthread].get();
-
-    int evstart = thisthread*events_per_thread;
-    int evend   = std::min(Config::nEvents, evstart+events_per_thread);
-
-#if USE_CUDA
-    auto& cuFitter = *cuFitters[thisthread].get();
-    auto& cuBuilder = *cuBuilders[thisthread].get();
-#endif
-
-    dprint("thisthread " << thisthread << " events " << Config::nEvents << " events/thread " << events_per_thread
-                         << " range " << evstart << ":" << evend);
-
-    for (int evt = evstart; evt < evend; ++evt)
+  arena.execute([&]() {
+    tbb::parallel_for(tbb::blocked_range<int>(0, Config::numThreadsEvents, 1),
+      [&](const tbb::blocked_range<int>& threads)
     {
-      ev.Reset(nevt++);
+      int thisthread = threads.begin();
 
-      if (!Config::silent)
+      assert(threads.begin() == threads.end()-1 && thisthread < Config::numThreadsEvents);
+
+      std::vector<Track> plex_tracks;
+      auto& ev     = *evs[thisthread].get();
+      auto& mkb    = *mkbs[thisthread].get();
+      auto  fp     =  fps[thisthread].get();
+
+      int evstart = thisthread*events_per_thread;
+      int evend   = std::min(Config::nEvents, evstart+events_per_thread);
+
+      dprint("thisthread " << thisthread << " events " << Config::nEvents << " events/thread " << events_per_thread
+                           << " range " << evstart << ":" << evend);
+
+      for (int evt = evstart; evt < evend; ++evt)
       {
-        std::lock_guard<std::mutex> printlock(Event::printmutex);
-        printf("\n");
-        printf("Processing event %d\n", ev.evtID());
-      }
+        ev.Reset(nevt++);
 
-      if (g_operation == "read")
-      {
-        ev.read_in(data_file, fp);
-      }
-      else
-      {
-        ev.Simulate();
-      }
-
-      // skip events with zero seed tracks!
-      if (ev.is_trackvec_empty(ev.seedTracks_)) continue;
-
-      plex_tracks.resize(ev.simTracks_.size());
-
-      double t_best[NT] = {0}, t_cur[NT];
-      simtrackstot += ev.simTracks_.size();
-      seedstot     += ev.seedTracks_.size();
-
-      int ncands_thisthread = 0;
-      int maxHits_thisthread = 0;
-      int maxLayer_thisthread = 0;
-      for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
-      {
-  #ifndef USE_CUDA
-        t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
-        t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev, mkb) : 0;
-        t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, mkb) : 0;
-        t_cur[4] = (g_run_build_all || g_run_build_fv)  ? runBuildingTestPlexFV(ev, mkb) : 0;
-	if (g_run_build_all || g_run_build_cmssw) runBuildingTestPlexDumbCMSSW(ev, mkb);
-  #else
-        t_cur[0] = (g_run_fit_std) ? runFittingTestPlexGPU(cuFitter, ev, plex_tracks) : 0;
-        t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHitGPU(ev, mkb, cuBuilder) : 0;
-        // XXXX MT note for Matthieu: ev_tmp no longer exists ----------------------------------v
-        t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngineGPU(ev, ev_tmp, mkb, cuBuilder, g_seed_based) : 0;
-  #endif
-        t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, mkb) : 0;
-        if (g_run_build_ce){
-          ncands_thisthread = mkb.total_cands();
-          auto const& ln = mkb.max_hits_layer();
-          maxHits_thisthread = ln.first;
-          maxLayer_thisthread = ln.second;
+        if (!Config::silent)
+        {
+          std::lock_guard<std::mutex> printlock(Event::printmutex);
+          printf("\n");
+          printf("Processing event %d\n", ev.evtID());
         }
-        for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
 
+        if (g_operation == "read")
+        {
+          ev.read_in(data_file, fp);
+        }
+        else
+        {
+          ev.Simulate();
+        }
+
+        // skip events with zero seed tracks!
+        if (ev.is_trackvec_empty(ev.seedTracks_)) continue;
+
+        plex_tracks.resize(ev.simTracks_.size());
+
+        double t_best[NT] = {0}, t_cur[NT];
+        simtrackstot += ev.simTracks_.size();
+        seedstot     += ev.seedTracks_.size();
+
+        int ncands_thisthread = 0;
+        int maxHits_thisthread = 0;
+        int maxLayer_thisthread = 0;
+        for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
+        {
+          t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
+          t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev, mkb) : 0;
+          t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, mkb) : 0;
+          if (g_run_build_all || g_run_build_cmssw) runBuildingTestPlexDumbCMSSW(ev, mkb);
+          t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, mkb) : 0;
+          if (g_run_build_ce){
+            ncands_thisthread = mkb.total_cands();
+            auto const& ln = mkb.max_hits_layer();
+            maxHits_thisthread = ln.first;
+            maxLayer_thisthread = ln.second;
+          }
+          for (int i = 0; i < NT; ++i) t_best[i] = (b == 0) ? t_cur[i] : std::min(t_cur[i], t_best[i]);
+
+          if (!Config::silent) {
+            std::lock_guard<std::mutex> printlock(Event::printmutex);
+            if (Config::finderReportBestOutOfN > 1)
+            {
+              printf("----------------------------------------------------------------\n");
+              printf("Best-of-times:");
+              for (int i = 0; i < NT; ++i) printf("  %.5f/%.5f", t_cur[i], t_best[i]);
+              printf("\n");
+            }
+            printf("----------------------------------------------------------------\n");
+          }
+        }
+
+        candstot += ncands_thisthread;
+        if (maxHits_thisthread > maxHits_all){
+          maxHits_all = maxHits_thisthread;
+          maxLayer_all = maxLayer_thisthread;
+        }
         if (!Config::silent) {
           std::lock_guard<std::mutex> printlock(Event::printmutex);
-          if (Config::finderReportBestOutOfN > 1)
-          {
-            printf("----------------------------------------------------------------\n");
-            printf("Best-of-times:");
-            for (int i = 0; i < NT; ++i) printf("  %.5f/%.5f", t_cur[i], t_best[i]);
-            printf("\n");
-          }
-          printf("----------------------------------------------------------------\n");
+          printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
+                 t_best[0], t_best[1], t_best[2], t_best[3]);
+        }
+
+        {
+          static std::mutex sum_up_lock;
+          std::lock_guard<std::mutex> locker(sum_up_lock);
+
+          for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
+          if (evt > 0) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
         }
       }
+    }, tbb::simple_partitioner());
+  });
 
-      candstot += ncands_thisthread;
-      if (maxHits_thisthread > maxHits_all){
-        maxHits_all = maxHits_thisthread;
-        maxLayer_all = maxLayer_thisthread;
-      }
-      if (!Config::silent) {
-        std::lock_guard<std::mutex> printlock(Event::printmutex);
-        printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f  FVMX = %.5f\n",
-               t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
-      }
-
-      {
-        static std::mutex sum_up_lock;
-        std::lock_guard<std::mutex> locker(sum_up_lock);
-
-        for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
-        if (evt > 0) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
-      }
-    }
-  }, tbb::simple_partitioner());
-
-#endif
   time = dtime() - time;
 
   printf("\n");
@@ -503,10 +425,10 @@ void test_standard()
   printf("=== TOTAL for %d events\n", Config::nEvents);
   printf("================================================================\n");
 
-  printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f  FVMX = %.5f\n",
-         t_sum[0], t_sum[1], t_sum[2], t_sum[3], t_sum[4]);
-  printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f  FVMX = %.5f\n",
-         t_skip[0], t_skip[1], t_skip[2], t_skip[3], t_skip[4]);
+  printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
+         t_sum[0], t_sum[1], t_sum[2], t_sum[3]);
+  printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
+         t_skip[0], t_skip[1], t_skip[2], t_skip[3]);
   printf("Total event loop time %.5f simtracks %d seedtracks %d builtcands %d maxhits %d on lay %d\n", time, 
          simtrackstot.load(), seedstot.load(), candstot.load(), maxHits_all.load(), maxLayer_all.load());
   //fflush(stdout);
@@ -520,14 +442,6 @@ void test_standard()
     val->fillConfigTree();
     val->saveTTrees();
   }
-#if USE_CUDA
-  for (int i = 0; i < Config::numThreadsEvents; ++i) {
-    cuFitters[i].get()->freeDevice();
-    cuFitters[i].get()->free_extra_addBestHit();
-    cuFitters[i].get()->free_extra_combinatorial();
-    cuFitters[i].get()->destroyStream();
-  }
-#endif
 }
 
 //==============================================================================
@@ -563,10 +477,12 @@ void next_arg_or_die(lStr_t& args, lStr_i& i, bool allow_single_minus=false)
 
 int main(int argc, const char *argv[])
 {
+#ifdef _GNU_SOURCE
   if (Config::nan_etc_sigs_enable)
   {
     feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW); //FE_ALL_EXCEPT);
   }
+#endif
 
 #ifdef USE_VTUNE_PAUSE
   __itt_pause();
@@ -632,7 +548,6 @@ int main(int argc, const char *argv[])
         "  --build-bh               run best-hit building test (def: %s)\n"
         "  --build-std              run standard combinatorial building test (def: %s)\n"
         "  --build-ce               run clone engine combinatorial building test (def: %s)\n"
-        "  --build-fv               run full vector combinatorial building test (def: %s)\n"
 	"\n"
 	" **Seeding options\n"
         "  --seed-input     <str>   which seed collecion used for building (def: %s)\n"
@@ -713,10 +628,6 @@ int main(int argc, const char *argv[])
 	"                             == --cmssw-val --read-cmssw-tracks --cmssw-match-fw %s --cmssw-match-bk %s\n"
 	"                             must enable: --cmssw-pureseeds --backward-fit-pca\n"
 	"\n----------------------------------------------------------------------------------------------------------\n\n"
-        "GPU specific options: \n\n"
-        "  --num-thr-reorg <num>    number of threads to run the hits reorganization (def: %d)\n"
-        "  --seed-based             For CE. Switch to 1 CUDA thread per seed (def: %s)\n"
-	"\n----------------------------------------------------------------------------------------------------------\n\n"
         ,
         argv[0],
 
@@ -738,7 +649,7 @@ int main(int argc, const char *argv[])
 	Config::numHitsPerTask,
 
 	b2a(g_run_fit_std),
-	b2a(g_run_fit_std && !(g_run_build_all || g_run_build_cmssw || g_run_build_bh || g_run_build_std || g_run_build_ce || g_run_build_fv)),
+	b2a(g_run_fit_std && !(g_run_build_all || g_run_build_cmssw || g_run_build_bh || g_run_build_std || g_run_build_ce)),
         b2a(Config::cf_fitting),
         b2a(Config::fit_val),
 
@@ -746,7 +657,6 @@ int main(int argc, const char *argv[])
 	b2a(g_run_build_all || g_run_build_bh),
 	b2a(g_run_build_all || g_run_build_std),
 	b2a(g_run_build_all || g_run_build_ce),
-	b2a(g_run_build_all || g_run_build_fv),
         
 	getOpt(Config::seedInput, g_seed_opts).c_str(),
 	getOpt(Config::seedCleaning, g_clean_opts).c_str(),
@@ -785,10 +695,8 @@ int main(int argc, const char *argv[])
 	getOpt(hitBased, g_match_opts).c_str(), getOpt(trkParamBased, g_match_opts).c_str(), 
 	getOpt(trkParamBased, g_match_opts).c_str(), getOpt(hitBased, g_match_opts).c_str(), 
 	getOpt(trkParamBased, g_match_opts).c_str(), getOpt(trkParamBased, g_match_opts).c_str(), 
-	getOpt(labelBased, g_match_opts).c_str(), getOpt(labelBased, g_match_opts).c_str(), 
+	getOpt(labelBased, g_match_opts).c_str(), getOpt(labelBased, g_match_opts).c_str()
 
-	Config::numThreadsReorg,
-	b2a(g_seed_based)
       );
 
       printf("List of options for string based inputs \n");
@@ -898,7 +806,7 @@ int main(int argc, const char *argv[])
     else if(*i == "--fit-std-only")
     {
       g_run_fit_std = true;
-      g_run_build_all = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = false; g_run_build_fv = false;
+      g_run_build_all = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = false;
     }
     else if (*i == "--cf-fitting")
     {
@@ -914,19 +822,15 @@ int main(int argc, const char *argv[])
     }
     else if(*i == "--build-bh")
     {
-      g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = true; g_run_build_std = false; g_run_build_ce = false; g_run_build_fv = false;
+      g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = true; g_run_build_std = false; g_run_build_ce = false;
     }
     else if(*i == "--build-std")
     {
-      g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = false; g_run_build_std = true; g_run_build_ce = false; g_run_build_fv = false;
+      g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = false; g_run_build_std = true; g_run_build_ce = false;
     }
     else if(*i == "--build-ce")
     {
-      g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = true; g_run_build_fv = false;
-    }
-    else if(*i == "--build-fv")
-    {
-      g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = false; g_run_build_fv = true;
+      g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = true;
     }
     else if(*i == "--seed-input")
     {
@@ -1101,15 +1005,6 @@ int main(int argc, const char *argv[])
       Config::readCmsswTracks = true;
       Config::cmsswMatchingFW = labelBased;
       Config::cmsswMatchingBK = labelBased;
-    }
-    else if (*i == "--num-thr-reorg")
-    {
-      next_arg_or_die(mArgs, i);
-      Config::numThreadsReorg = atoi(i->c_str());
-    }
-    else if (*i == "--seed-based")
-    {
-      g_seed_based = true;
     }
     else
     {
