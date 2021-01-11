@@ -15,7 +15,7 @@ class MkFinder;
                           const MPlexHS &,  const MPlexHV &, \
                           MPlexQF &,  const int, const PropagationFlags
 
-#define UPDATE_PARAM_ARGS const MPlexLS &,  const MPlexLV &, const MPlexQI &, \
+#define UPDATE_PARAM_ARGS const MPlexLS &,  const MPlexLV &, MPlexQI &, \
                           const MPlexHS &,  const MPlexHV &, \
                                 MPlexLS &,        MPlexLV &, const int, const PropagationFlags
 

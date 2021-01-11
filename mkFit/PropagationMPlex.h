@@ -38,6 +38,7 @@ void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg,
 
 void helixAtRFromIterativeCCS(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msRad,
                                     MPlexLV& outPar,       MPlexLL& errorProp,
+                                    MPlexQI& outFailFlag,
                               const int      N_proc, const PropagationFlags pflags);
 
 void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
