@@ -911,6 +911,32 @@ void MkBuilder::remap_track_hits(TrackVec & tracks)
       }
     }
   }
+
+  // Matti ... this can now be just something like this (not tested):
+  /*
+  for (auto&& track : tracks)
+  {
+    for (int i = 0; i < track.nTotalHits(); ++i)
+    {
+      int hitidx = track.getHitIdx(i);
+      int hitlyr = track.getHitLyr(i);
+      if (hitidx >= 0)
+      {
+        const auto & loh = m_event_of_hits.m_layers_of_hits[hitlyr];
+        track.setHitIdx(i, loh.GetOriginalHitIndex(hitidx));
+      }
+    }
+  }
+  */
+  // Note that the indices after this are correct CMSSW "large-vector" indices.
+  // So no hit/layer mapping code in CMSSW producer is needed.
+  //
+  // We could really store original indices into HitOnTrack.index
+  // from the start. One just needs to be careful when getting hits in backwards fit,
+  // to use (a currently non-existent) LayerOfHits::GetHitWithOriginalIndex(hot.index)
+  //
+  // Further, somebody should walk over quite a bit of validation code that is
+  // rather involved doing such remappings.
 }
 
 //------------------------------------------------------------------------------

@@ -76,6 +76,16 @@ private:
   const HitVec             *m_ext_hits;
 #endif
 
+  // Stuff needed during setup
+  struct HitInfo
+  {
+    float    phi;
+    float    q;
+  };
+  std::vector<HitInfo>  m_hit_infos;
+  std::vector<uint32_t> m_qphifines;
+  std::vector<int>      m_ext_idcs;
+
 public:
   const LayerInfo          *m_layer_info = 0;
   vecvecPhiBinInfo_t        m_phi_bin_infos;
@@ -84,14 +94,15 @@ public:
 
   float m_qmin, m_qmax, m_fq;
   int   m_nq = 0;
+  bool  m_is_barrel;
 
-  int   layer_id()  const { return m_layer_info->m_layer_id;    }
-  bool  is_barrel() const { return m_layer_info->is_barrel();   }
-  bool  is_endcap() const { return ! m_layer_info->is_barrel(); }
+  int   layer_id()  const { return m_layer_info->m_layer_id; }
+  bool  is_barrel() const { return m_is_barrel;   }
+  bool  is_endcap() const { return ! m_is_barrel; }
   int   bin_index(int q, int p) const { return q*Config::m_nphi + p; }
 
   PhiBinInfo_t operator[](int i) const {
-    int q = i/Config::m_nphi;
+    int q = i / Config::m_nphi;
     int p = i % Config::m_nphi;
     return m_phi_bin_infos[q][p];
   }
@@ -141,11 +152,11 @@ public:
   static constexpr float m_fphi     = Config::m_nphi / Config::TwoPI;
   static constexpr int   m_phi_mask = 0x7f;
   static constexpr int   m_phi_bits = 7;
-  static constexpr float m_fphi_fine     =  1024 / Config::TwoPI;
-  static constexpr int   m_phi_mask_fine = 0x3ff;
-  static constexpr int   m_phi_bits_fine = 10;//can't be more than 16
+  static constexpr float m_fphi_fine      = 1024 / Config::TwoPI;
+  static constexpr int   m_phi_mask_fine  = 0x3ff;
+  static constexpr int   m_phi_bits_fine  = 10; //can't be more than 16
   static constexpr int   m_phi_bits_shift = m_phi_bits_fine - m_phi_bits;
-  static constexpr int   m_phi_fine_mask = ~((1 << m_phi_bits_shift) - 1);
+  static constexpr int   m_phi_fine_xmask = ~((1 << m_phi_bits_shift) - 1);
 
 protected:
 
@@ -165,12 +176,14 @@ protected:
 
   void setup_bins(float qmin, float qmax, float dq);
 
-  void set_phi_bin(int q_bin, int phi_bin, uint16_t &hit_count, uint16_t &hits_in_bin)
-  {
-    m_phi_bin_infos[q_bin][phi_bin] = { hit_count, hit_count + hits_in_bin };
-    hit_count  += hits_in_bin;
-    hits_in_bin = 0;
-  }
+
+  // Not used.
+  // void set_phi_bin(int q_bin, int phi_bin, uint16_t &hit_count, uint16_t &hits_in_bin)
+  // {
+  //   m_phi_bin_infos[q_bin][phi_bin] = { hit_count, hit_count + hits_in_bin };
+  //   hit_count  += hits_in_bin;
+  //   hits_in_bin = 0;
+  // }
 
   void empty_phi_bins(int q_bin, int phi_bin_1, int phi_bin_2, uint16_t hit_count)
   {
@@ -195,37 +208,43 @@ public:
   {
 #ifdef COPY_SORTED_HITS
     free_hits();
-#else
-    operator delete [] (m_hit_ranks);
 #endif
+    operator delete [] (m_hit_ranks);
   }
 
   void  SetupLayer(const LayerInfo &li);
 
   void  Reset() {}
 
-  float NormalizeQ(float q) const { if (q < m_qmin) return m_qmin; if (q > m_qmax) return m_qmax; return q; }
+  float NormalizeQ(float q) const { return std::clamp(q, m_qmin, m_qmax); }
 
   int   GetQBin(float q)    const { return (q - m_qmin) * m_fq; }
 
-  int   GetQBinChecked(float q) const { int qb = GetQBin(q); if (qb < 0) qb = 0; else if (qb >= m_nq) qb = m_nq - 1; return qb; }
+  int   GetQBinChecked(float q) const { return std::clamp(GetQBin(q), 0, m_nq - 1); }
 
   // if you don't pass phi in (-pi, +pi), mask away the upper bits using m_phi_mask or use the Checked version.
   int   GetPhiBinFine(float phi) const { return std::floor(m_fphi_fine * (phi + Config::PI)); }
-  int   GetPhiBin(float phi) const { return GetPhiBinFine(phi)>>m_phi_bits_shift; }
+  int   GetPhiBin    (float phi) const { return GetPhiBinFine(phi)>>m_phi_bits_shift; }
 
   int   GetPhiBinChecked(float phi) const { return GetPhiBin(phi) & m_phi_mask; }
 
   const vecPhiBinInfo_t& GetVecPhiBinInfo(float q) const { return m_phi_bin_infos[GetQBin(q)]; }
 
+  // Get in all hits from given hit-vec
   void  SuckInHits(const HitVec &hitv);
 
+  // Use external hit-vec and only use hits that are passed to me.
+  void  BeginRegistrationOfHits(const HitVec &hitv);
+  void  RegisterHit(int idx);
+  void  EndRegistrationOfHits();
+
+  // Use this to remap internal hit index to external one.
+  int GetOriginalHitIndex(int i)   const { return m_hit_ranks[i]; }
+
 #ifdef COPY_SORTED_HITS
-  int GetHitIndex(int i)   const { return i; }
   const Hit& GetHit(int i) const { return m_hits[i]; }
   const Hit* GetHitArray() const { return m_hits; }
 #else
-  int GetHitIndex(int i)   const { return m_hit_ranks[i]; }
   const Hit& GetHit(int i) const { return (*m_ext_hits)[m_hit_ranks[i]]; }
   const Hit* GetHitArray() const { return & (*m_ext_hits)[0]; }
 #endif
@@ -257,6 +276,13 @@ public:
   void SuckInHits(int layer, const HitVec &hitv)
   {
     m_layers_of_hits[layer].SuckInHits(hitv);
+    /*
+    int   nh  = hitv.size();
+    auto &loh = m_layers_of_hits[layer];
+    loh.BeginRegistrationOfHits(hitv);
+    for (int i = 0; i < nh; ++i) loh.RegisterHit(i);
+    loh.EndRegistrationOfHits();
+    */
   }
 };
 
