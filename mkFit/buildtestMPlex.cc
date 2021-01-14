@@ -320,4 +320,6 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
 
   return time;
 }
+double runBuildingTestPlexFV(Event&, MkBuilder&) { return 0.0; }
+
 } // end namespace mkfit
