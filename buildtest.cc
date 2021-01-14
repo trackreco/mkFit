@@ -20,7 +20,7 @@ namespace mkfit {
 typedef std::vector<cand_t> candvec;
 } // end namespace mkfit
 #else
-#include "tbb/tbb.h"
+#include "tbb/parallel_for.h"
 #include <mutex>
 namespace mkfit {
 // concurrent_vector is only needed if we parallelize the candidate loops;

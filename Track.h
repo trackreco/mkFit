@@ -63,7 +63,6 @@ typedef std::vector<ReducedTrack> RedTrackVec;
 struct TrackState //  possible to add same accessors as track? 
 {
 public:
-  CUDA_CALLABLE
   TrackState() : valid(true) {}
   TrackState(int charge, const SVector3& pos, const SVector3& mom, const SMatrixSym66& err) :
     parameters(SVector6(pos.At(0),pos.At(1),pos.At(2),mom.At(0),mom.At(1),mom.At(2))),
@@ -125,10 +124,8 @@ public:
 class Track
 {
 public:
-  CUDA_CALLABLE
   Track() {}
 
-  CUDA_CALLABLE
   Track(const TrackState& state, float chi2, int label, int nHits, const HitOnTrack* hits) :
     state_(state),
     chi2_ (chi2),
@@ -143,7 +140,6 @@ public:
   Track(int charge, const SVector3& position, const SVector3& momentum, const SMatrixSym66& errors, float chi2) :
     state_(charge, position, momentum, errors), chi2_(chi2) {}
 
-  CUDA_CALLABLE
   ~Track(){}
 
   bool  hasSillyValues(bool dump, bool fix, const char* pref="");
@@ -154,10 +150,6 @@ public:
 
   const float* posArray() const {return state_.parameters.Array();}
   const float* errArray() const {return state_.errors.Array();}
-#if __CUDACC__
-  __device__ float* posArrayCU();
-  __device__ float* errArrayCU();
-#endif
 
   // Non-const versions needed for CopyOut of Matriplex.
   SVector6&     parameters_nc() {return state_.parameters;}
@@ -167,11 +159,8 @@ public:
   SVector3 position() const {return SVector3(state_.parameters[0],state_.parameters[1],state_.parameters[2]);}
   SVector3 momentum() const {return SVector3(state_.parameters[3],state_.parameters[4],state_.parameters[5]);}
 
-  CUDA_CALLABLE
   int      charge() const {return state_.charge;}
-  CUDA_CALLABLE
   float    chi2()   const {return chi2_;}
-  CUDA_CALLABLE
   int      label()  const {return label_;}
 
   float x()      const { return state_.parameters[0]; }
@@ -233,7 +222,6 @@ public:
     }
   }
 
-  CUDA_CALLABLE
   void addHitIdx(int hitIdx, int hitLyr, float chi2)
   {
     if (lastHitIdx_ < Config::nMaxTrkHits - 1)
@@ -268,12 +256,12 @@ public:
 
   HitOnTrack getHitOnTrack(int posHitIdx) const { return hitsOnTrk_[posHitIdx]; }
 
-  CUDA_CALLABLE int getHitIdx(int posHitIdx) const { return hitsOnTrk_[posHitIdx].index; }
-  CUDA_CALLABLE int getHitLyr(int posHitIdx) const { return hitsOnTrk_[posHitIdx].layer; }
+  int getHitIdx(int posHitIdx) const { return hitsOnTrk_[posHitIdx].index; }
+  int getHitLyr(int posHitIdx) const { return hitsOnTrk_[posHitIdx].layer; }
 
-  CUDA_CALLABLE HitOnTrack getLastHitOnTrack() const { return hitsOnTrk_[lastHitIdx_]; }
-  CUDA_CALLABLE int        getLastHitIdx()     const { return hitsOnTrk_[lastHitIdx_].index;  }
-  CUDA_CALLABLE int        getLastHitLyr()     const { return hitsOnTrk_[lastHitIdx_].layer;  }
+  HitOnTrack getLastHitOnTrack() const { return hitsOnTrk_[lastHitIdx_]; }
+  int        getLastHitIdx()     const { return hitsOnTrk_[lastHitIdx_].index;  }
+  int        getLastHitLyr()     const { return hitsOnTrk_[lastHitIdx_].layer;  }
 
   int getLastFoundHitPos() const
   {
@@ -318,12 +306,10 @@ public:
     }
   }
 
-  CUDA_CALLABLE
   void setHitIdx(int posHitIdx, int newIdx) {
     hitsOnTrk_[posHitIdx].index = newIdx;
   }
 
-  CUDA_CALLABLE
   void setHitIdxLyr(int posHitIdx, int newIdx, int newLyr) {
     hitsOnTrk_[posHitIdx] = { newIdx, newLyr };
   }
@@ -335,15 +321,13 @@ public:
     }
   }
 
-  CUDA_CALLABLE
   void setNFoundHits(int nHits) { nFoundHits_ = nHits; }
   void setNTotalHits(int nHits) { lastHitIdx_ = nHits - 1; }
 
-  CUDA_CALLABLE
   void resetHits() { lastHitIdx_ = -1; nFoundHits_ =  0; }
 
-  CUDA_CALLABLE int  nFoundHits() const { return nFoundHits_; }
-  CUDA_CALLABLE int  nTotalHits() const { return lastHitIdx_+1; }
+  int  nFoundHits() const { return nFoundHits_; }
+  int  nTotalHits() const { return lastHitIdx_+1; }
 
   int nStoredFoundHits() const
   {
@@ -405,13 +389,13 @@ public:
     return layers;
   }
 
-  CUDA_CALLABLE void setCharge(int chg)  { state_.charge = chg; }
-  CUDA_CALLABLE void setChi2(float chi2) { chi2_ = chi2; }
-  CUDA_CALLABLE void setLabel(int lbl)   { label_ = lbl; }
+  void setCharge(int chg)  { state_.charge = chg; }
+  void setChi2(float chi2) { chi2_ = chi2; }
+  void setLabel(int lbl)   { label_ = lbl; }
 
-  CUDA_CALLABLE void setState(const TrackState& newState) { state_ = newState; }
+  void setState(const TrackState& newState) { state_ = newState; }
 
-  CUDA_CALLABLE Track clone() const { return Track(state_,chi2_,label_,nTotalHits(),hitsOnTrk_); }
+  Track clone() const { return Track(state_,chi2_,label_,nTotalHits(),hitsOnTrk_); }
 
   struct Status
   {

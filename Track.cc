@@ -299,7 +299,7 @@ bool TrackExtra::isSeedHit(const int lyr, const int idx) const
       if (reftracks[refTrackID].isFindable()) 
       {
 	if (foundHits < minHits) refTrackID = -2;
-	else                     refTrackID = refTrackID;
+	//else                     refTrackID = refTrackID;
       }
       else // ref track is not findable
       {
@@ -314,7 +314,7 @@ bool TrackExtra::isSeedHit(const int lyr, const int idx) const
 	if (reftracks[trueID].isFindable()) 
 	{
 	  if (foundHits < minHits) refTrackID = -5;
-	  else                     refTrackID = refTrackID;
+	  //else                     refTrackID = refTrackID;
 	}
 	else // sim track is not findable
 	{

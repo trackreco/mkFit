@@ -17,7 +17,7 @@ class Event
 {
 public:
   explicit Event(int evtID);
-  Event(const Geometry& g, Validation& v, int evtID, int threads = 1);
+  Event(const Geometry& g, Validation& v, int evtID);
 
   void Reset(int evtID);
   void RemapHits(TrackVec & tracks);
@@ -60,7 +60,6 @@ private:
   void reset_nan_n_silly_counters();
 
 public:
-  int threads_;
   std::mutex       mcGatherMutex_;
   std::atomic<int> mcHitIDCounter_;
   std::vector<HitVec> layerHits_;
