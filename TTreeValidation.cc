@@ -1,7 +1,6 @@
 #include "TTreeValidation.h"
 #include "Event.h"
 #include "Config.h"
-#include "Propagation.h"
 #ifndef NO_ROOT
 
 namespace mkfit {

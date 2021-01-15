@@ -159,14 +159,6 @@ namespace
 
 namespace
 {
-  bool sortCandByHitsChi2(const Track& cand1, const Track& cand2)
-  {
-    if (cand1.nFoundHits() == cand2.nFoundHits())
-      return cand1.chi2() < cand2.chi2();
-
-    return cand1.nFoundHits() > cand2.nFoundHits();
-  }
-
   bool sortCandByScore(const TrackCand & cand1, const TrackCand & cand2)
   {
     return mkfit::sortByScoreTrackCand(cand1,cand2);

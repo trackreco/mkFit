@@ -4,7 +4,6 @@
 #include "MkBase.h"
 
 #include "Event.h"
-#include "KalmanUtils.h"
 
 #include "HitStructures.h"
 

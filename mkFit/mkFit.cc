@@ -38,39 +38,6 @@ using namespace mkfit;
 
 //==============================================================================
 
-void initGeom(Geometry& geom)
-{
-  std::cout << "Constructing SimpleGeometry Cylinder geometry" << std::endl;
-
-  // NB: we currently assume that each node is a layer, and that layers
-  // are added starting from the center
-  // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
-
-  TrackerInfo::ExecTrackerInfoCreatorPlugin(Config::geomPlugin, Config::TrkInfo);
-
-    geom.BuildFromTrackerInfo(Config::TrkInfo);
-
-  /*
-  if ( ! Config::useCMSGeom)
-  {
-    // This is the new standalone case -- Cylindrical Cow with Lids
-    //Create_TrackerInfo(Config::TrkInfo);
-    geom.BuildFromTrackerInfo(Config::TrkInfo);
-  }
-  else
-  {
-    float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
-    for (int l = 0; l < Config::nLayers; l++)
-    {
-        float r = Config::useCMSGeom ? Config::cmsAvgRads[l] : (l+1)*Config::fRadialSpacing;
-        float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
-        VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent, -z, z, true, l + 1 == Config::nLayers);
-        geom.AddLayer(utub, r, z);
-    }
-  }
-  */
-}
-
 namespace
 {
   int   g_start_event   = 1;
@@ -178,59 +145,6 @@ void read_and_save_tracks()
 
 //==============================================================================
 
-void generate_and_save_tracks()
-{
-  const int Nevents = Config::nEvents;
-
-  Geometry geom;
-  initGeom(geom);
-  std::unique_ptr<Validation> val(Validation::make_validation("empty.root"));
-
-  int extra_sections = 0;
-  if (Config::sim_val || Config::fit_val)
-  {
-    extra_sections |= DataFile::ES_SimTrackStates;
-  }
-
-  DataFile data_file;
-  data_file.OpenWrite(g_output_file, Nevents, extra_sections);
-
-  printf("writing %i events\n", Nevents);
-
-  tbb::task_arena arena(Config::numThreadsSimulation);
-
-  Event ev(geom, *val, 0);
-  for (int evt = 0; evt < Nevents; ++evt)
-  {
-    ev.Reset(evt);
-    arena.execute([&]() { ev.Simulate(); });
-
-#ifdef DEBUG
-    for (int itrack = 0; itrack < (int) ev.simTracks_.size(); itrack++)
-    {
-      const auto& track = ev.simTracks_[itrack];
-      int mcTrackId = track.label();
-      dprint("track: " << mcTrackId << " (" << itrack << ")");
-      for (int ihit = 0; ihit < track.nTotalHits(); ihit++)
-      {
-	int idx = track.getHitIdx(ihit); int lyr = track.getHitLyr(ihit);
-	int mcHitID = ev.layerHits_[lyr][idx].mcHitID(); int mcTrackID = ev.simHitsInfo_[mcHitID].mcTrackID();
-	float tsr = ev.simTrackStates_[mcHitID].posR();	float hitr = ev.layerHits_[lyr][idx].r();
-	float tsz = ev.simTrackStates_[mcHitID].z();    float hitz = ev.layerHits_[lyr][idx].z();
-	dprint("       " << mcTrackID << " (mcHitID: " << mcHitID << " ihit: " << ihit << " idx: " << idx << " lyr: "
-	       << lyr << " tsr: " << tsr << " hitr: " << hitr << " tsz: " << tsz << " hitz: " << hitz << ")");
-      }
-    }
-#endif
-
-    ev.write_out(data_file);
-  }
-
-  data_file.Close();
-}
-
-//==============================================================================
-
 void test_standard()
 {
   printf("Running test_standard(), operation=\"%s\"\n", g_operation.c_str());
@@ -242,18 +156,10 @@ void test_standard()
   if (Config::useCMSGeom)              printf ("- using CMS-like geometry\n");
   if (Config::seedInput == cmsswSeeds) printf ("- reading seeds from file\n");
 
-  if (g_operation == "write") {
-    generate_and_save_tracks();
-    return;
-  }
-
   if (g_operation == "convert") {
     read_and_save_tracks();
     return;
   }
-
-  Geometry geom;
-  initGeom(geom);
 
   DataFile data_file;
   if (g_operation == "read")
@@ -303,7 +209,7 @@ void test_standard()
     if (Config::numThreadsEvents > 1) { serial << "_" << i; }
     vals[i].reset(Validation::make_validation(valfile + serial.str() + ".root"));
     mkbs[i].reset(MkBuilder::make_builder());
-    evs[i].reset(new Event(geom, *vals[i], 0));
+    evs[i].reset(new Event(*vals[i], 0));
     if (g_operation == "read") {
       fps.emplace_back(fopen(g_input_file.c_str(), "r"), [](FILE* fp) { if (fp) fclose(fp); });
     }
@@ -347,14 +253,7 @@ void test_standard()
           printf("Processing event %d\n", ev.evtID());
         }
 
-        if (g_operation == "read")
-        {
-          ev.read_in(data_file, fp);
-        }
-        else
-        {
-          ev.Simulate();
-        }
+        ev.read_in(data_file, fp);
 
         // skip events with zero seed tracks!
         if (ev.is_trackvec_empty(ev.seedTracks_)) continue;

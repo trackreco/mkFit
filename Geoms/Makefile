@@ -16,12 +16,6 @@ DEPS := $(SRCS:.cc=.d)
 
 TGTS := $(SRCS:.cc=)
 
-ifeq (${CXX},icc)
-  ifdef KNC_BUILD
-    TGTS += $(addsuffix -mic, ${TGTS})
-  endif
-endif
-
 TGTS := $(addsuffix .so, ${TGTS})
 
 all: ${TGTS}
@@ -34,11 +28,6 @@ all: ${TGTS}
 
 %.om: %.cc %.d
 	${CXX} ${CPPFLAGS_NO_ROOT} ${CXXFLAGS} ${VEC_MIC} -c -o $@ $<
-
-ifdef KNC_BUILD
-%-mic.so: %.om
-	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_MIC} -shared -o $@ $<
-endif
 
 ifeq ($(filter clean distclean, ${MAKECMDGOALS}),)
 include ${DEPS}

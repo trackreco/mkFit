@@ -838,7 +838,6 @@ and then enter your LXPLUS password. Kerberos will keep your ticket open for a f
 - GPU: Graphical Processing Unit
 - GUI: Graphical User Interface
 - KF: Kalman Filter
-- KNC: Knights Corner (iteration of Xeon Phi prior to KNL, no longer used in this project)
 - KNL: Knights Landing
 - MEIF: Multiple-Events-In-Flight (method for splitting events into different tasks)
 - mkFit: (m)atriplex (k)alman filter (Fit)
