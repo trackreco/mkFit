@@ -38,6 +38,37 @@ using namespace mkfit;
 
 //==============================================================================
 
+void initGeom()
+{
+  std::cout << "Constructing SimpleGeometry Cylinder geometry" << std::endl;
+
+  // NB: we currently assume that each node is a layer, and that layers
+  // are added starting from the center
+  // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
+
+  TrackerInfo::ExecTrackerInfoCreatorPlugin(Config::geomPlugin, Config::TrkInfo);
+
+  /*
+  if ( ! Config::useCMSGeom)
+  {
+    // This is the new standalone case -- Cylindrical Cow with Lids
+    //Create_TrackerInfo(Config::TrkInfo);
+    geom.BuildFromTrackerInfo(Config::TrkInfo);
+  }
+  else
+  {
+    float eta = 2.0; // can tune this to whatever geometry required (one can make this layer dependent as well)
+    for (int l = 0; l < Config::nLayers; l++)
+    {
+        float r = Config::useCMSGeom ? Config::cmsAvgRads[l] : (l+1)*Config::fRadialSpacing;
+        float z = r / std::tan(2.0*std::atan(std::exp(-eta))); // calculate z extent based on eta, r
+        VUSolid* utub = new VUSolid(r, r+Config::fRadialExtent, -z, z, true, l + 1 == Config::nLayers);
+        geom.AddLayer(utub, r, z);
+    }
+  }
+  */
+}
+
 namespace
 {
   int   g_start_event   = 1;
@@ -160,6 +191,8 @@ void test_standard()
     read_and_save_tracks();
     return;
   }
+
+  initGeom();
 
   DataFile data_file;
   if (g_operation == "read")
