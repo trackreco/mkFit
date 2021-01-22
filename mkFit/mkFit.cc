@@ -206,7 +206,7 @@ void generate_and_save_tracks()
     arena.execute([&]() { ev.Simulate(); });
 
 #ifdef DEBUG
-    for (int itrack = 0; itrack < ev.simTracks_.size(); itrack++)
+    for (int itrack = 0; itrack < (int) ev.simTracks_.size(); itrack++)
     {
       const auto& track = ev.simTracks_[itrack];
       int mcTrackId = track.label();

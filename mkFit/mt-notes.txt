@@ -1,6 +1,264 @@
+================================================================
+=== Overlaps
+================================================================
 
+T -- ZZZ_TRACK
+label/I:prod_type/I:is_findable/I:pt/F:eta/F:phi/F:
+nhit_sim/I:nlay_sim/I:nhit_rec/I:nhit_miss_rec/I:novlp/I:novlp_good/I:novlp_bad/I
+
+O -- ZZZ_OVERLAP
+label/I:prod_type/I:is_findable/I:layer/I:pt/F:eta/F:phi/F:
+chi2/F:chi2_ovlp/F:module/I:module_ovlp/I:hit_label/I:hit_label_ovlp/I
+
+ST -- SSS_TRACK
+label/I:prod_type/I:is_findable/I:pt/F:eta/F:phi/F:
+nhit_sim/I:nlay_sim/I:novlp/I:novlp_pix/I:novlp_strip/I:novlp_stereo/I
+
+SO -- SSS_OVERLAP
+label/I:prod_type/I:is_findable/I:layer/I:pt/F:eta/F:phi/F
+
+./mkFit --cmssw-n2seeds --input-file ../../mu-hs.bin --build-ce --mtv-like-val --quality-val > extra.txt
+
+perl -ne 'if (/^ZZZ_OVERLAP/) { s/^ZZZ_OVERLAP //og; print; }' extra.txt > ovlp.rtt
+perl -ne 'if (/^ZZZ_TRACK/)   { s/^ZZZ_TRACK //og; print; }'   extra.txt > track.rtt
+perl -ne 'if (/^SSS_OVERLAP/) { s/^SSS_OVERLAP //og; print; }' extra.txt > sim_ovlp.rtt
+perl -ne 'if (/^SSS_TRACK/)   { s/^SSS_TRACK //og; print; }'   extra.txt > sim_track.rtt
+
+
+root.exe <<FNORD
+
+TFile f("extra.root","recreate")
+
+TTree t
+t.ReadFile("track.rtt")
+t.Write("T")
+
+TTree o
+o.ReadFile("ovlp.rtt")
+o.Write("O")
+
+TTree st
+st.ReadFile("sim_track.rtt")
+st.Write("ST")
+
+TTree so
+so.ReadFile("sim_ovlp.rtt")
+so.Write("SO")
+
+f.Close()
+.q
+FNORD
+
+
+----------------------------------------------------------------
+=== BkFit
+----------------------------------------------------------------
+
+./mkFit --cmssw-n2seeds --input-file ../../pu50-ccc-hs.bin --build-ce --mtv-like-val --quality-val --num-events 1000 --backward-fit | perl -ne 'if (/^BKF_OVERLAP/) { s/^BKF_OVERLAP //og; print; }' > bkf_ovlp.rtt
+
+TFile f("bkf.root","recreate")
+
+TTree t
+t.ReadFile("bkf_ovlp.rtt")
+t.Write("B")
+
+f.Close()
+
+
+----------------------------------------------------------------
+
+Looking at tracks found by Leonardo to become inefficient
+
+http://legianni.web.cern.ch/legianni/plot1000/outvaltree_SKL-SP_CMSSW_TTbar_PU50_CE_SIMVALSEED.txt
+
+** EVENT / MC_LABEL - comments
+- overlap -> with overlaps
+- devel   -> devel before Giuseppe's PR
+
+** 29 / 25 - no overlap taken, strange, 13, 2 missed, 3 wrong
+
+- overlap - 8 / 11 -> 0.72
+
+SELECTED LABEL: with q=-1 pT=  2.137 eta=  0.626 nHits=11  label=  25
+State:
+ x:  -2.76298 y:  -1.45892 z:  1.49545
+ px: 0.467954 py: -2.63584 pz: 0.982447
+valid: 1 errors:
+ 4.22847e-06 -7.50238e-06  4.20806e-08  1.48569e-06 -1.83239e-06  3.60741e-10
+-7.50238e-06   1.3312e-05 -7.51412e-08 -2.64016e-06  3.24348e-06 -6.18801e-10
+ 4.20806e-08 -7.51412e-08  3.38415e-05   2.1867e-08 -1.39875e-08  5.13983e-06
+ 1.48569e-06 -2.64016e-06   2.1867e-08  1.12642e-05 -8.99556e-07  1.02915e-09
+-1.83239e-06  3.24348e-06 -1.39875e-08 -8.99556e-07  8.72034e-07 -3.78027e-10
+ 3.60741e-10 -6.18801e-10  5.13983e-06  1.02915e-09 -3.78027e-10  8.71601e-07
+
+Hits:
+    hit  0 lyr= 0 idx=2024 pos r=  3.125 z=   1.493   mc_hit=2024 mc_trk=  25
+    hit  1 lyr= 1 idx=1522 pos r=  6.955 z=   4.051   mc_hit=5137 mc_trk=  25
+    hit  2 lyr= 2 idx=1252 pos r= 10.709 z=   6.556   mc_hit=7342 mc_trk=  25
+    hit  3 lyr= 3 idx=1137 pos r= 16.147 z=  10.186   mc_hit=9363 mc_trk=  25
+    hit  4 lyr= 4 idx=2419 pos r= 24.020 z=  16.908   mc_hit=22407 mc_trk=  25
+    hit  5 lyr= 5 idx=2383 pos r= 24.222 z=  17.026   mc_hit=22380 mc_trk= 127
+    hit  6 lyr= 6 idx=2199 pos r= 32.645 z=  23.889   mc_hit=29317 mc_trk=  25
+    hit  7 lyr= 7 idx=2171 pos r= 32.928 z=  23.623   mc_hit=29314 mc_trk=  25
+    hit  8 lyr= 8 idx=2480 pos r= 43.518 z=  30.145   mc_hit=34024 mc_trk=  25
+    hit  9        idx=-1
+    hit 10 lyr=10 idx=2439 pos r= 62.768 z=  45.977   mc_hit=51500 mc_trk= 165
+    hit 11        idx=-1
+    hit 12 lyr=12 idx=2081 pos r= 70.482 z=  45.067   mc_hit=56656 mc_trk=  -1
+    hit 13        idx=-1
+    hit 14        idx=-2
+
+- devel - 8 / 10 = 0.8
+
+SELECTED LABEL: with q=-1 pT=  2.166 eta=  0.624 nHits=10  label=  25
+State:
+ x:  -54.1848 y:  -43.1628 z:  45.7655
+ px: 0.461784 py: -2.28408 pz: 0.984161
+valid: 1 errors:
+ 6.71053e-05 -8.54644e-05  1.23337e-05  1.48642e-05  1.20708e-05 -4.90016e-09
+-8.54644e-05  0.000108851  -1.5676e-05 -1.89757e-05 -1.54164e-05  5.52605e-09
+ 1.23337e-05  -1.5676e-05    0.0131643  -3.1039e-06   1.6899e-06 -0.000254996
+ 1.48642e-05 -1.89757e-05  -3.1039e-06  2.23917e-05  3.92075e-06  8.55452e-08
+ 1.20708e-05 -1.54164e-05   1.6899e-06  3.92075e-06  3.19512e-06  8.90431e-09
+-4.90016e-09  5.52605e-09 -0.000254996  8.55452e-08  8.90431e-09  7.07359e-06
+
+Hits:
+    hit  0 lyr= 0 idx=2024 pos r=  3.125 z=   1.493   mc_hit=2024 mc_trk=  25
+    hit  1 lyr= 1 idx=1522 pos r=  6.955 z=   4.051   mc_hit=5137 mc_trk=  25
+    hit  2 lyr= 2 idx=1252 pos r= 10.709 z=   6.556   mc_hit=7342 mc_trk=  25
+    hit  3 lyr= 3 idx=1137 pos r= 16.147 z=  10.186   mc_hit=9363 mc_trk=  25
+    hit  4 lyr= 4 idx=2419 pos r= 24.020 z=  16.908   mc_hit=22407 mc_trk=  25
+    hit  5 lyr= 5 idx=2383 pos r= 24.222 z=  17.026   mc_hit=22380 mc_trk= 127
+    hit  6 lyr= 6 idx=2199 pos r= 32.645 z=  23.889   mc_hit=29317 mc_trk=  25
+    hit  7 lyr= 7 idx=2171 pos r= 32.928 z=  23.623   mc_hit=29314 mc_trk=  25
+    hit  8 lyr= 8 idx=2480 pos r= 43.518 z=  30.145   mc_hit=34024 mc_trk=  25
+    hit  9        idx=-1
+    hit 10 lyr=10 idx=2439 pos r= 62.768 z=  45.977   mc_hit=51500 mc_trk= 165
+    hit 11        idx=-1
+    hit 12        idx=-1
+    hit 13        idx=-2
+
+
+** 35 / 152 - no overlap taken, 11 hits, 3 missed, 2 wrong
+
+- overlap - 6 / 8 = 0.75
+
+SELECTED LABEL: with q=+1 pT=  7.807 eta= -1.712 nHits= 8  label= 152
+State:
+ x:  1.16113 y:  -2.51718 z:  -4.84597
+ px: 0.128089 py: -1.14578 pz: 2.78454
+valid: 1 errors:
+ 6.30837e-06  2.84778e-06  6.00936e-08 -2.74574e-06 -8.91463e-07 -1.15916e-10
+ 2.84778e-06  1.28557e-06  2.71423e-08  -1.2392e-06 -4.02229e-07 -5.17892e-11
+ 6.00936e-08  2.71423e-08  4.37385e-05 -3.38545e-08 -7.95595e-09  1.00915e-06
+-2.74574e-06  -1.2392e-06 -3.38545e-08  2.09827e-06  4.31419e-07  3.84066e-11
+-8.91463e-07 -4.02229e-07 -7.95595e-09  4.31419e-07  1.38085e-07  4.47492e-11
+-1.15916e-10 -5.17892e-11  1.00915e-06  3.84066e-11  4.47492e-11  2.64956e-08
+
+Hits:
+    hit  0 lyr= 0 idx=2265 pos r=  2.772 z=  -4.844   mc_hit=2265 mc_trk= 152
+    hit  1 lyr= 1 idx=1607 pos r=  6.954 z= -16.056   mc_hit=4543 mc_trk= 152
+    hit  2 lyr=45 idx= 904 pos r= 12.342 z= -30.500   mc_hit=9056 mc_trk= 152
+    hit  3 lyr=46 idx=1011 pos r= 15.159 z= -38.053   mc_hit=10133 mc_trk= 152
+    hit  4        idx=-1
+    hit  5        idx=-1
+    hit  6        idx=-1
+    hit  7 lyr=49 idx= 340 pos r= 28.531 z= -77.914   mc_hit=32963 mc_trk= 302
+    hit  8 lyr=50 idx= 587 pos r= 36.980 z= -94.045   mc_hit=34872 mc_trk= 152
+    hit  9 lyr=51 idx= 528 pos r= 36.532 z= -94.364   mc_hit=34866 mc_trk= 152
+    hit 10 lyr=52 idx= 678 pos r= 36.991 z=-107.068   mc_hit=36511 mc_trk=  -1
+    hit 11        idx=-2
+
+- devel - 7 / 8 = 0.875
+
+SELECTED LABEL: with q=+1 pT=  7.992 eta= -1.713 nHits= 8  label= 152
+State:
+ x:  15.6423 y:  -36.9713 z:  -105.1
+ px: 0.125122 py: -1.20022 pz: 2.78494
+valid: 1 errors:
+ 0.000101573 -0.000236846            0 -3.07878e-06   8.3982e-07 -6.06734e-06
+-0.000236846  0.000600547            0   2.0632e-06  2.88191e-07  1.51351e-05
+           0            0            0            0            0            0
+-3.07878e-06   2.0632e-06            0  9.25286e-06 -9.08744e-07  7.71755e-08
+  8.3982e-07  2.88191e-07            0 -9.08744e-07  2.89507e-07  -4.0167e-09
+-6.06734e-06  1.51351e-05            0  7.71755e-08  -4.0167e-09  5.40882e-07
+
+Hits:
+    hit  0 lyr= 0 idx=2265 pos r=  2.772 z=  -4.844   mc_hit=2265 mc_trk= 152
+    hit  1 lyr= 1 idx=1607 pos r=  6.954 z= -16.056   mc_hit=4543 mc_trk= 152
+    hit  2 lyr=45 idx= 904 pos r= 12.342 z= -30.500   mc_hit=9056 mc_trk= 152
+    hit  3 lyr=46 idx=1011 pos r= 15.159 z= -38.053   mc_hit=10133 mc_trk= 152
+    hit  4        idx=-1
+    hit  5        idx=-1
+    hit  6 lyr=48 idx= 310 pos r= 28.865 z= -77.669   mc_hit=32970 mc_trk= 152
+    hit  7        idx=-1
+    hit  8 lyr=50 idx= 587 pos r= 36.980 z= -94.045   mc_hit=34872 mc_trk= 152
+    hit  9 lyr=51 idx= 528 pos r= 36.532 z= -94.364   mc_hit=34866 mc_trk= 152
+    hit 10 lyr=52 idx= 678 pos r= 36.991 z=-107.068   mc_hit=36511 mc_trk=  -1
+    hit 11        idx=-2
+
+
+** 41 / 102 - no overlap taken (2 in pixels), 9 hits, 1 missed, 2 wrong
+
+- overlap - 6 / 8 = 0.75
+
+SELECTED LABEL: with q=+1 pT=  3.424 eta= -0.996 nHits= 8  label= 102
+State:
+ x:  3.15683 y:  0.0758754 z:  -2.03951
+ px: 0.292057 py: 0.00500921 pz: 2.43408
+valid: 1 errors:
+ 5.73975e-11 -6.98701e-09 -1.05043e-10  3.97426e-09  5.80745e-10  4.29526e-12
+-6.98701e-09  4.61058e-06  3.47534e-08 -2.82499e-06 -1.14208e-06  8.76106e-10
+-1.05043e-10  3.47534e-08  2.12765e-05 -2.49922e-08 -7.41577e-09  2.12522e-06
+ 3.97426e-09 -2.82499e-06 -2.49922e-08  1.20486e-05  9.43929e-07 -2.48423e-09
+ 5.80745e-10 -1.14208e-06 -7.41577e-09  9.43929e-07  3.16583e-07 -3.99071e-10
+ 4.29526e-12  8.76106e-10  2.12522e-06 -2.48423e-09 -3.99071e-10  2.37296e-07
+
+Hits:
+    hit  0 lyr= 0 idx=  81 pos r=  3.158 z=  -2.043   mc_hit=  81 mc_trk= 102
+    hit  1 lyr= 1 idx=1574 pos r=  6.615 z=  -6.082   mc_hit=3611 mc_trk= 102
+    hit  2 lyr= 2 idx=  11 pos r= 11.063 z= -11.286   mc_hit=3667 mc_trk= 102
+    hit  3 lyr= 3 idx=1084 pos r= 16.160 z= -17.242   mc_hit=6127 mc_trk= 102
+    hit  4 lyr= 4 idx= 632 pos r= 23.531 z= -24.272   mc_hit=11530 mc_trk= 102
+    hit  5 lyr= 5 idx= 609 pos r= 23.753 z= -24.521   mc_hit=11526 mc_trk= 102
+    hit  6 lyr= 6 idx= 686 pos r= 31.950 z= -38.927   mc_hit=17575 mc_trk=4970
+    hit  7        idx=-1
+    hit  8 lyr= 8 idx= 552 pos r= 40.136 z= -45.618   mc_hit=21833 mc_trk=3483
+    hit  9        idx=-1
+    hit 10        idx=-1
+    hit 11        idx=-2
+
+- devel - 7 / 7 = 1
+
+SELECTED LABEL: with q=+1 pT=  3.379 eta= -0.996 nHits= 7  label= 102
+State:
+ x:  60.6902 y:  -5.28633 z:  -69.7014
+ px: 0.295989 py: -0.190958 pz: 2.434
+valid: 1 errors:
+ 4.58688e-05  0.000380214 -0.000177625 -3.39723e-05  1.93166e-05  1.89347e-06
+ 0.000380214   0.00317663  -0.00158836 -0.000272844  0.000158122  1.68748e-05
+-0.000177625  -0.00158836     0.013558  0.000116433  -6.7044e-05  -0.00017662
+-3.39723e-05 -0.000272844  0.000116433  3.79655e-05 -1.55856e-05 -1.24412e-06
+ 1.93166e-05  0.000158122  -6.7044e-05 -1.55856e-05  8.32869e-06  7.18228e-07
+ 1.89347e-06  1.68748e-05  -0.00017662 -1.24412e-06  7.18228e-07  2.59929e-06
+
+Hits:
+    hit  0 lyr= 0 idx=  81 pos r=  3.158 z=  -2.043   mc_hit=  81 mc_trk= 102
+    hit  1 lyr= 1 idx=1574 pos r=  6.615 z=  -6.082   mc_hit=3611 mc_trk= 102
+    hit  2 lyr= 2 idx=  11 pos r= 11.063 z= -11.286   mc_hit=3667 mc_trk= 102
+    hit  3 lyr= 3 idx=1084 pos r= 16.160 z= -17.242   mc_hit=6127 mc_trk= 102
+    hit  4 lyr= 4 idx= 632 pos r= 23.531 z= -24.272   mc_hit=11530 mc_trk= 102
+    hit  5 lyr= 5 idx= 609 pos r= 23.753 z= -24.521   mc_hit=11526 mc_trk= 102
+    hit  6        idx=-1
+    hit  7 lyr= 7 idx= 681 pos r= 32.157 z= -38.720   mc_hit=17564 mc_trk= 102
+    hit  8        idx=-1
+    hit  9        idx=-1
+    hit 10        idx=-2
+
+
+================================================================
 Sim 2018 PU70 sample - hit, module infos
-----------------------------------------
+================================================================
 
 Average number of seeds per event 828.942505
 Average number of hits in layer   0 = 3073.32

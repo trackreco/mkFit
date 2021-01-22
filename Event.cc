@@ -428,7 +428,7 @@ void Event::write_out(DataFile &data_file)
     //sizes are the same as in layerHits_
     for (int il = 0; il<nl; ++il) {
       int nh = layerHitMasks_[il].size();
-      assert(nh == layerHits_[il].size());
+      assert(nh == (int) layerHits_[il].size());
       fwrite(&layerHitMasks_[il][0], sizeof(uint64_t), nh, fp);
       evsize += nh*sizeof(uint64_t);
     }
@@ -806,12 +806,14 @@ void Event::print_tracks(const TrackVec& tracks, bool print_hits) const
 {
   const int nt = tracks.size();
 
+  //WARNING: Printouts for hits will not make any sense if mkFit is not run with a validation flag such as --quality-val
   printf("Event::print_tracks printing %d tracks %s hits:\n", nt, (print_hits ? "with" : "without"));
   for (int it = 0; it < nt; it++)
   {
     const Track &t = tracks[it];
-    printf("  %i with q=%+i pT=%7.3f eta=% 7.3f nHits=%2d  label=%4d findable=%d\n",
-           it, t.charge(), t.pT(), t.momEta(), t.nFoundHits(), t.label(), t.isFindable());
+    printf("  %i with q=%+i pT=%7.3f eta=% 7.3f nHits=%2d  label=%4d findable=%d score=%7.3f chi2=%7.3f\n",
+           it, t.charge(), t.pT(), t.momEta(), t.nFoundHits(), t.label(), t.isFindable(), getScoreCand(t), t.chi2());
+
 
     if (print_hits)
     {
