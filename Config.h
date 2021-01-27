@@ -337,13 +337,11 @@ namespace Config
   constexpr float c_dpt_2 = 0.20;
   constexpr float c_ptmax_2 = 10.0;
   constexpr float c_dpt_3 = 0.25;
-  constexpr float c_dzmax_brl = 0.005;
-  constexpr float c_drmax_brl = 0.010;
+  constexpr float c_dzmax_brh = 0.007;
+  constexpr float c_drmax_brh = 0.007;
   constexpr float c_ptmin_hpt = 2.0;
-  constexpr float c_dzmax_hpt = 0.010;
-  constexpr float c_drmax_hpt = 0.010;
-  constexpr float c_dzmax_els = 0.015;
-  constexpr float c_drmax_els = 0.015;
+  constexpr float c_dzmax_els = 0.018;
+  constexpr float c_drmax_els = 0.018;
 
   // track-related config on hit selection windows
   constexpr float treg_eta[2] = {0.45,1.5};

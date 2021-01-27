@@ -847,18 +847,14 @@ int Event::clean_cms_seedtracks()
   const float dpt_2      = Config::c_dpt_2;
   const float ptmax_2    = Config::c_ptmax_2;
   const float dpt_3      = Config::c_dpt_3;
-  const float dzmax_brl  = Config::c_dzmax_brl;
-  const float drmax_brl  = Config::c_drmax_brl;
+  const float dzmax_brh  = Config::c_dzmax_brh;
+  const float drmax_brh  = Config::c_drmax_brh;
   const float ptmin_hpt  = Config::c_ptmin_hpt;
-  const float dzmax_hpt  = Config::c_dzmax_hpt;
-  const float drmax_hpt  = Config::c_drmax_hpt;
   const float dzmax_els  = Config::c_dzmax_els;
   const float drmax_els  = Config::c_drmax_els;
 
-  const float dzmax2_brl = dzmax_brl*dzmax_brl;
-  const float drmax2_brl = drmax_brl*drmax_brl;
-  const float dzmax2_hpt = dzmax_hpt*dzmax_hpt;
-  const float drmax2_hpt = drmax_hpt*drmax_hpt;
+  const float dzmax2_brh = dzmax_brh*dzmax_brh;
+  const float drmax2_brh = drmax_brh*drmax_brh;
   const float dzmax2_els = dzmax_els*dzmax_els;
   const float drmax2_els = drmax_els*drmax_els;
 
@@ -964,13 +960,9 @@ int Event::clean_cms_seedtracks()
 
       ////// Reject tracks within dR-dz elliptical window.
       ////// Adaptive thresholds, based on observation that duplicates are more abundant at large pseudo-rapidity and low track pT
-      if(std::abs(Eta1)<etamax_brl){
-	if(dz2/dzmax2_brl+dr2/drmax2_brl<1.0f)
+      if(std::abs(Eta1)<etamax_brl && Pt1>ptmin_hpt){
+	if(dz2/dzmax2_brh+dr2/drmax2_brh<1.0f)
 	  writetrack[tss]=false;	
-      }
-      else if(Pt1>ptmin_hpt){
-	if(dz2/dzmax2_hpt+dr2/drmax2_hpt<1.0f)
-	  writetrack[tss]=false;
       }
       else {
 	if(dz2/dzmax2_els+dr2/drmax2_els<1.0f)
