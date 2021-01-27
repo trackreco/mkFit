@@ -26,10 +26,6 @@ LIB_MKFIT := ../lib/libMkFit.so
 
 TGTS := mkFit ${LIB_MKFIT}
 
-ifdef KNC_BUILD
-  TGTS += mkFit-mic
-endif
-
 auto-genmplex: GenMPlexOps.pl
 	./GenMPlexOps.pl && touch $@
 
@@ -88,19 +84,3 @@ endif
 
 ${MKFOBJS}: %.o: %.cc %.d
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<
-
-### MIC build, icc only
-
-ifdef KNC_BUILD
-
-MKFOBJS_MIC := $(MKFOBJS:.o=.om)
-
-ALLOBJS_MIC := $(ALLOBJS:.o=.om) 
-
-mkFit-mic: ${ALLOBJS_MIC}
-	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} ${ALLOBJS_MIC} -o $@ ${LDFLAGS_MIC} -L../lib -lMicCore-mic -Wl,-rpath=../lib,-rpath=./lib
-
-${MKFOBJS_MIC}: %.om: %.cc %.d
-	${CXX} ${CPPFLAGS_NO_ROOT} ${CXXFLAGS} ${VEC_MIC} -c -o $@ $<
-
-endif

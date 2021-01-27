@@ -7,13 +7,6 @@
 
 namespace
 {
-inline bool sortCandListByHitsChi2(const mkfit::IdxChi2List& cand1,
-                                   const mkfit::IdxChi2List& cand2)
-{
-  if (cand1.nhits == cand2.nhits) return cand1.chi2 < cand2.chi2;
-  return cand1.nhits > cand2.nhits;
-}
-
 inline bool sortCandListByScore(const mkfit::IdxChi2List& cand1,
 				const mkfit::IdxChi2List& cand2)
 {
