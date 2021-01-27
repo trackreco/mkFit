@@ -64,3 +64,6 @@ echo:
 
 echo_cc_defs:
 	${CXX} -dM -E -mavx2 - < /dev/null
+
+echo-srcs:
+	@echo ${SRCS}

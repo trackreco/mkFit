@@ -74,14 +74,6 @@ public:
   bool          m_is_tid_lyr = false;
   bool          m_is_tec_lyr = false;
 
-  /*MM: Hits selection limit dynamic factors are now declared as iteration-specific*/
-  //// Adding hit selection limits dynamic factors
-  //float         m_qf_treg       = 1.0f;
-  //float         m_phif_treg     = 1.0f;
-  //float         m_phif_lpt_brl  = 1.0f;
-  //float         m_phif_lpt_treg = 1.0f;
-  //float         m_phif_lpt_ec   = 1.0f;
-
   // Additional stuff needed?
   // * pixel / strip, mono / stereo
   // * resolutions, min/max search windows
@@ -111,17 +103,17 @@ public:
 
   bool  is_in_r_hole      (float r) const { return m_has_r_range_hole ? is_in_r_hole_no_check(r) : false; }
 
-  bool  is_seed_lyr() const { return m_is_seed_lyr; }
+  bool  is_seed_lyr()   const { return m_is_seed_lyr; }
 
   bool  is_stereo_lyr() const { return m_is_stereo_lyr; }
 
-  bool  is_pixb_lyr() const { return m_is_pixb_lyr; }
-  bool  is_pixe_lyr() const { return m_is_pixe_lyr; }
-  bool  is_pix_lyr() const { return (m_is_pixb_lyr || m_is_pixe_lyr); }
-  bool  is_tib_lyr() const { return m_is_tib_lyr; }
-  bool  is_tob_lyr() const { return m_is_tob_lyr; }
-  bool  is_tid_lyr() const { return m_is_tid_lyr; }
-  bool  is_tec_lyr() const { return m_is_tec_lyr; }
+  bool  is_pixb_lyr()   const { return m_is_pixb_lyr; }
+  bool  is_pixe_lyr()   const { return m_is_pixe_lyr; }
+  bool  is_pix_lyr()    const { return (m_is_pixb_lyr || m_is_pixe_lyr); }
+  bool  is_tib_lyr()    const { return m_is_tib_lyr; }
+  bool  is_tob_lyr()    const { return m_is_tob_lyr; }
+  bool  is_tid_lyr()    const { return m_is_tid_lyr; }
+  bool  is_tec_lyr()    const { return m_is_tec_lyr; }
 
   WSR_Result is_within_z_sensitive_region(float z, float dz) const
   {
@@ -203,50 +195,15 @@ public:
     return std::abs(eta) > m_eta_trans_end;
   }
 
-  bool is_seed_lyr(int i) const
-  {
-    return m_layers[i].is_seed_lyr();
-  }
-
-  bool is_stereo_lyr(int i) const
-  {
-    return m_layers[i].is_stereo_lyr();
-  }
-
-  bool is_pixb_lyr(int i) const
-  {
-    return m_layers[i].is_pixb_lyr();
-  }
-
-  bool is_pixe_lyr(int i) const
-  {
-    return m_layers[i].is_pixe_lyr();
-  }
-
-  bool is_pix_lyr(int i) const
-  {
-    return m_layers[i].is_pix_lyr();
-  }
-
-  bool is_tib_lyr(int i) const
-  {
-    return m_layers[i].is_tib_lyr();
-  }
-
-  bool is_tob_lyr(int i) const
-  {
-    return m_layers[i].is_tob_lyr();
-  }
-
-  bool is_tid_lyr(int i) const
-  {
-    return m_layers[i].is_tid_lyr();
-  }
-
-  bool is_tec_lyr(int i) const
-  {
-    return m_layers[i].is_tec_lyr();
-  }
+  bool is_seed_lyr(int i)   const { return m_layers[i].is_seed_lyr(); }
+  bool is_stereo_lyr(int i) const { return m_layers[i].is_stereo_lyr(); }
+  bool is_pixb_lyr(int i)   const { return m_layers[i].is_pixb_lyr(); }
+  bool is_pixe_lyr(int i)   const { return m_layers[i].is_pixe_lyr(); }
+  bool is_pix_lyr(int i)    const { return m_layers[i].is_pix_lyr(); }
+  bool is_tib_lyr(int i)    const { return m_layers[i].is_tib_lyr(); }
+  bool is_tob_lyr(int i)    const { return m_layers[i].is_tob_lyr(); }
+  bool is_tid_lyr(int i)    const { return m_layers[i].is_tid_lyr(); }
+  bool is_tec_lyr(int i)    const { return m_layers[i].is_tec_lyr(); }
 
   EtaRegion find_eta_region(float eta) const
   {
@@ -267,21 +224,21 @@ public:
     return Reg_Endcap_Neg;
   }
 
-  const LayerInfo& outer_barrel_layer()
+  const LayerInfo& outer_barrel_layer() const
   {
     return m_layers[m_barrel.back()];
   }
 
-  const LayerInfo& next_barrel_layer(int layer)
+  const LayerInfo& next_barrel_layer(int layer) const
   {
     int nb = m_layers[layer].m_next_barrel;
     return (nb >= 0) ? m_layers[nb] : s_undefined_layer;
   }
 
-  static void ExecTrackerInfoCreatorPlugin(const std::string& base, TrackerInfo &ti, bool verbose=false);
+  static void ExecTrackerInfoCreatorPlugin(const std::string& base, TrackerInfo &ti, IterationsInfo &ii, bool verbose=false);
 };
 
-typedef void (*TrackerInfoCreator_foo)(TrackerInfo&, bool verbose);
+typedef void (*TrackerInfoCreator_foo)(TrackerInfo&, IterationsInfo&, bool verbose);
 
 } // end namespace mkfit
 #endif

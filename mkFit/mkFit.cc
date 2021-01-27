@@ -3,8 +3,10 @@
 #include "fittestMPlex.h"
 #include "buildtestMPlex.h"
 
+#include "HitStructures.h"
 #include "MkBuilder.h"
 #include "MkFitter.h"
+#include "MkStdSeqs.h"
 
 #include "Config.h"
 
@@ -46,7 +48,7 @@ void initGeom()
   // are added starting from the center
   // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
 
-  TrackerInfo::ExecTrackerInfoCreatorPlugin(Config::geomPlugin, Config::TrkInfo);
+  TrackerInfo::ExecTrackerInfoCreatorPlugin(Config::geomPlugin, Config::TrkInfo, Config::ItrInfo);
 
   /*
   if ( ! Config::useCMSGeom)
@@ -229,10 +231,11 @@ void test_standard()
 
   MkBuilder::populate();
 
-  std::vector<std::unique_ptr<Event>>      evs(Config::numThreadsEvents);
-  std::vector<std::unique_ptr<Validation>> vals(Config::numThreadsEvents);
-  std::vector<std::unique_ptr<MkBuilder>>  mkbs(Config::numThreadsEvents);
-  std::vector<std::shared_ptr<FILE>>       fps;
+  std::vector<std::unique_ptr<Event>>       evs(Config::numThreadsEvents);
+  std::vector<std::unique_ptr<Validation>>  vals(Config::numThreadsEvents);
+  std::vector<std::unique_ptr<MkBuilder>>   mkbs(Config::numThreadsEvents);
+  std::vector<std::shared_ptr<EventOfHits>> eohs(Config::numThreadsEvents);
+  std::vector<std::shared_ptr<FILE>>        fps;
   fps.reserve(Config::numThreadsEvents);
 
   const std::string valfile("valtree");
@@ -242,6 +245,7 @@ void test_standard()
     if (Config::numThreadsEvents > 1) { serial << "_" << i; }
     vals[i].reset(Validation::make_validation(valfile + serial.str() + ".root"));
     mkbs[i].reset(MkBuilder::make_builder());
+    eohs[i].reset(new EventOfHits(Config::TrkInfo));
     evs[i].reset(new Event(*vals[i], 0));
     if (g_operation == "read") {
       fps.emplace_back(fopen(g_input_file.c_str(), "r"), [](FILE* fp) { if (fp) fclose(fp); });
@@ -264,9 +268,10 @@ void test_standard()
 
       assert(threads.begin() == threads.end()-1 && thisthread < Config::numThreadsEvents);
 
-      std::vector<Track> plex_tracks;
+      // std::vector<Track> plex_tracks;
       auto& ev     = *evs[thisthread].get();
       auto& mkb    = *mkbs[thisthread].get();
+      auto& eoh    = *eohs[thisthread].get();
       auto  fp     =  fps[thisthread].get();
 
       int evstart = thisthread*events_per_thread;
@@ -291,7 +296,9 @@ void test_standard()
         // skip events with zero seed tracks!
         if (ev.is_trackvec_empty(ev.seedTracks_)) continue;
 
-        plex_tracks.resize(ev.simTracks_.size());
+        // plex_tracks.resize(ev.simTracks_.size());
+
+        StdSeq::LoadHits(ev, eoh);
 
         double t_best[NT] = {0}, t_cur[NT];
         simtrackstot += ev.simTracks_.size();
@@ -302,14 +309,14 @@ void test_standard()
         int maxLayer_thisthread = 0;
         for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
         {
-          t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
-          t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev, mkb) : 0;
-          t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, mkb) : 0;
-          if (g_run_build_all || g_run_build_cmssw) runBuildingTestPlexDumbCMSSW(ev, mkb);
-          t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, mkb) : 0;
+          // t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
+          t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev, eoh, mkb) : 0;
+          t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, eoh, mkb) : 0;
+          if (g_run_build_all || g_run_build_cmssw) runBuildingTestPlexDumbCMSSW(ev, eoh, mkb);
+          t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, eoh, mkb) : 0;
           if (g_run_build_ce){
             ncands_thisthread = mkb.total_cands();
-            auto const& ln = mkb.max_hits_layer();
+            auto const& ln = mkb.max_hits_layer(eoh);
             maxHits_thisthread = ln.first;
             maxLayer_thisthread = ln.second;
           }
@@ -491,8 +498,7 @@ int main(int argc, const char *argv[])
 	"  --remove-dup-no-hit     run duplicate removal after building, using kinematic criteria only (def: %s)\n"
 	"\n"
 	" **Additional options for building\n"
-        "  --chi2cut        <flt>   chi2 cut used in building test (def: %.1f)\n"
-	"  --use-phiq-arr           use phi-Q arrays in select hit indices (def: %s)\n"
+        "  --use-phiq-arr           use phi-Q arrays in select hit indices (def: %s)\n"
         "  --kludge-cms-hit-errors  make sure err(xy) > 15 mum, err(z) > 30 mum (def: %s)\n"
         "  --backward-fit           perform backward fit during building (def: %s)\n"
         "  --include-pca            do the backward fit to point of closest approach, does not imply '--backward-fit' (def: %s)\n"
@@ -597,7 +603,6 @@ int main(int argc, const char *argv[])
 	b2a(Config::removeDuplicates && Config::useHitsForDuplicates),
 	b2a(Config::removeDuplicates && !Config::useHitsForDuplicates),
 
-	Config::chi2Cut,
 	b2a(Config::usePhiQArrays),
         b2a(Config::kludgeCmsHitErrors),
         b2a(Config::backwardFit),
@@ -777,11 +782,6 @@ int main(int argc, const char *argv[])
     else if (*i == "--cf-seeding")
     {
       Config::cf_seeding = true;
-    }
-    else if (*i == "--chi2cut")
-    {
-      next_arg_or_die(mArgs, i);
-      Config::chi2Cut = atof(i->c_str());
     }
     else if (*i == "--use-phiq-arr")
     {

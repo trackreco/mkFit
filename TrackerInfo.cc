@@ -115,7 +115,7 @@ namespace
   const char *search_path[] = { "", "../Geoms/", "Geoms/", "../", 0 };
 }
 
-void TrackerInfo::ExecTrackerInfoCreatorPlugin(const std::string& base, TrackerInfo &ti, bool verbose)
+void TrackerInfo::ExecTrackerInfoCreatorPlugin(const std::string& base, TrackerInfo &ti, IterationsInfo &ii, bool verbose)
 {
 #ifdef __MIC__
   std::string soname = base + "-mic.so";
@@ -146,7 +146,7 @@ void TrackerInfo::ExecTrackerInfoCreatorPlugin(const std::string& base, TrackerI
       if (!p2f) { perror("dlsym failed"); exit(2); }
 
       TrackerInfoCreator_foo foo = (TrackerInfoCreator_foo)(*p2f);
-      foo(ti, verbose);
+      foo(ti, ii, verbose);
 
       // XXXXMT4Dan
       // With dlclose I saw (rarely) valgrind errors saying

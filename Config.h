@@ -5,12 +5,13 @@
 #include <cmath>
 #include <string> // won't compile on clang gcc for mac OS w/o this!
 #include <map>
+#include <vector>
 
 namespace mkfit {
 
 // Cram this in here for now ...
 class TrackerInfo;
-
+class IterationsInfo;
 //------------------------------------------------------------------------------
 
 enum PropagationFlagsEnum
@@ -47,6 +48,9 @@ struct PropagationFlags
 
 //------------------------------------------------------------------------------
 
+using IntVec   = std::vector<int>;
+using IntVec_i = IntVec::iterator;
+
 // Enum for input seed options
 enum seedOpts {simSeeds, cmsswSeeds, findSeeds};
 typedef std::map<std::string, std::pair<seedOpts,std::string> > seedOptsMap;
@@ -63,7 +67,8 @@ typedef std::map<std::string, std::pair<matchOpts,std::string> > matchOptsMap;
 
 namespace Config
 {
-  extern TrackerInfo TrkInfo;
+  extern TrackerInfo    TrkInfo;
+  extern IterationsInfo ItrInfo;
 
   // default file version
   constexpr int FileVersion = 1;
@@ -292,11 +297,6 @@ namespace Config
 
   // config on fitting
   extern bool cf_fitting;
-
-  extern    int maxCandsPerSeed; // default: 6; cms: 6  (GC had 3)
-  extern    int maxHolesPerCand; // default: 2; cms  12 (should be reduced)
-  extern    int maxConsecHoles;
-  extern    int maxCandsPerEtaBin;
 
   extern    bool mtvLikeValidation;
   extern    bool mtvRequireSeeds;

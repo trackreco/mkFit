@@ -19,16 +19,10 @@ namespace mkfit {
 
 std::mutex Event::printmutex;
 
-void Event::reset_nan_n_silly_counters()
-{
-  nan_n_silly_per_layer_count_ = 0;
-}
-
 Event::Event(int evtID) :
   validation_(*dummyValidation),
   evtID_(evtID)
 {
-  reset_nan_n_silly_counters();
   layerHits_.resize(Config::nTotalLayers);
   layerHitMasks_.resize(Config::nTotalLayers);
 }
@@ -37,7 +31,6 @@ Event::Event(Validation& v, int evtID) :
   validation_(v),
   evtID_(evtID)
 {
-  reset_nan_n_silly_counters();
   layerHits_.resize(Config::nTotalLayers);
   layerHitMasks_.resize(Config::nTotalLayers);
 
@@ -47,7 +40,6 @@ Event::Event(Validation& v, int evtID) :
 void Event::Reset(int evtID)
 {
   evtID_ = evtID;
-  reset_nan_n_silly_counters();
 
   for (auto&& l : layerHits_) { l.clear(); }
   for (auto&& l : layerHitMasks_) { l.clear(); }
@@ -570,7 +562,6 @@ void Event::print_tracks(const TrackVec& tracks, bool print_hits) const
 
 int Event::clean_cms_seedtracks()
 {
-
   const float etamax_brl = Config::c_etamax_brl;
   const float dpt_brl_0  = Config::c_dpt_brl_0;
   const float dpt_ec_0   = Config::c_dpt_ec_0;
@@ -658,19 +649,19 @@ int Event::clean_cms_seedtracks()
       ////// - 20% if track w/ 5<pT<10 GeV
       ////// - 25% if track w/ pT>10 GeV
       if(thisDPt>dpt_brl_0*(Pt1) && Pt1<ptmax_0 && std::abs(Eta1)<etamax_brl)
-	continue;
+        continue;
 
       else if(thisDPt>dpt_ec_0*(Pt1) && Pt1<ptmax_0 && std::abs(Eta1)>etamax_brl)
-	continue;
+        continue;
 
       else if(thisDPt>dpt_1*(Pt1) && Pt1>ptmax_0 && Pt1<ptmax_1)
-	continue;
+        continue;
 
       else if(thisDPt>dpt_2*(Pt1) && Pt1>ptmax_1 && Pt1<ptmax_2)
-	continue;
+        continue;
 
       else if(thisDPt>dpt_3*(Pt1) && Pt1>ptmax_2)
-	continue;
+        continue;
 
 
       const float Eta2 = eta[tss];
@@ -698,18 +689,17 @@ int Event::clean_cms_seedtracks()
       ////// Reject tracks within dR-dz elliptical window.
       ////// Adaptive thresholds, based on observation that duplicates are more abundant at large pseudo-rapidity and low track pT
       if(std::abs(Eta1)<etamax_brl){
-	if(dz2/dzmax2_brl+dr2/drmax2_brl<1.0f)
-	  writetrack[tss]=false;	
+        if(dz2/dzmax2_brl+dr2/drmax2_brl<1.0f)
+          writetrack[tss]=false;	
       }
       else if(Pt1>ptmin_hpt){
-	if(dz2/dzmax2_hpt+dr2/drmax2_hpt<1.0f)
-	  writetrack[tss]=false;
+        if(dz2/dzmax2_hpt+dr2/drmax2_hpt<1.0f)
+          writetrack[tss]=false;
       }
       else {
-	if(dz2/dzmax2_els+dr2/drmax2_els<1.0f)
-	  writetrack[tss]=false;
+        if(dz2/dzmax2_els+dr2/drmax2_els<1.0f)
+          writetrack[tss]=false;
       }
-
     }
    
     if(writetrack[ts])
@@ -779,7 +769,7 @@ void Event::relabel_cmsswtracks_from_seeds()
     {
       if (cmsswTracks_[icmssw].label() == static_cast<int>(iseed))
       {
-	cmsswLabelMap[icmssw] = seedTracks_[iseed].label();
+        cmsswLabelMap[icmssw] = seedTracks_[iseed].label();
   	break;
       }
     }

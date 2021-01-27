@@ -35,9 +35,47 @@ constexpr float cmsDiskMaxRsHole[24] = {999.,999.,999.,999.,999.,999.,    59.9, 
 // 4. Other disks limits are taken from the tracking ntuple bounding boxes.
 //    It should be possible to make this automatic.
 
+float QBin[] = {
+  2.0, 2.0, 2.0, 2.0,
+  6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 9.5, 9.5, 9.5, 9.5, 9.5, 9.5, 9.5, 9.5,
+  1.0, 1.0, 1.0,
+  5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
+  1.0, 1.0, 1.0,
+  5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0
+};
+
+struct { float pmin, pmax, qmin, qmax; } SelWindows[] = {
+  // PIX B
+  { 0.01, 0.05, 1.0, 2.0 }, { 0.01, 0.05, 1.0, 2.0 }, { 0.01, 0.05, 1.0, 2.0 }, { 0.01, 0.05, 1.0, 2.0 },
+  // STRIP B
+  { 0.01, 0.015, 6.0, 12.0 }, { 0.023, 0.03, 6.0, 12.0 }, { 0.01, 0.015, 6.0, 12.0 }, { 0.016, 0.03, 6.0, 12.0 },
+  { 0.01, 0.015, 6.0, 12.0 }, { 0.01, 0.015, 6.0, 12.0 }, { 0.01, 0.015, 9.5, 19.0 }, { 0.016, 0.03, 9.5, 19.0 },
+  { 0.01, 0.015, 9.5, 19.0 }, { 0.013, 0.03, 9.5, 19.0 }, { 0.01, 0.015, 9.5, 19.0 }, { 0.01, 0.015, 9.5, 19.0 },
+  { 0.01, 0.015, 9.5, 19.0 }, { 0.01, 0.015, 9.5, 19.0 },
+  // PIX EC POS
+  { 0.01, 0.015, 0.8, 1.6 }, { 0.01, 0.015, 0.8, 1.6 }, { 0.01, 0.015, 0.8, 1.6 },
+  // STRIP EC POS
+  { 0.01, 0.015, 5.5, 11.0 }, { 0.01, 0.03, 5.5, 11.0 }, { 0.01, 0.015, 5.5, 11.0 }, { 0.01, 0.03, 5.5, 11.0 },
+  { 0.01, 0.015, 5.5, 11.0 }, { 0.01, 0.03, 5.5, 11.0 }, { 0.01, 0.015, 10.0, 20.0 }, { 0.01, 0.03, 10.0, 20.0 },
+  { 0.01, 0.015, 10.0, 20.0 }, { 0.01, 0.03, 10.0, 20.0 }, { 0.01, 0.015, 10.0, 20.0 }, { 0.01, 0.03, 10.0, 20.0 },
+  { 0.01, 0.015, 10.0, 20.0 }, { 0.01, 0.03, 10.0, 20.0 }, { 0.01, 0.015, 10.0, 20.0 }, { 0.01, 0.03, 10.0, 20.0 },
+  { 0.01, 0.015, 10.0, 20.0 }, { 0.01, 0.03, 10.0, 20.0 }, { 0.01, 0.015, 10.0, 20.0 }, { 0.01, 0.03, 10.0, 20.0 },
+  { 0.01, 0.015, 10.0, 20.0 }, { 0.01, 0.03, 10.0, 20.0 }, { 0.01, 0.015, 10.0, 20.0 }, { 0.01, 0.03, 10.0, 20.0 },
+  // PIX EC NEG
+  { 0.01, 0.015, 0.8, 1.6 }, { 0.01, 0.015, 0.8, 1.6 }, { 0.01, 0.015, 0.8, 1.6 }, 
+  // STRIP EC NEG
+  { 0.01, 0.015, 5.5, 11.0 }, { 0.01, 0.03, 5.5, 11.0 }, { 0.01, 0.015, 5.5, 11.0 }, { 0.01, 0.03, 5.5, 11.0 },
+  { 0.01, 0.015, 5.5, 11.0 }, { 0.01, 0.03, 5.5, 11.0 }, { 0.01, 0.015, 10.0, 20.0 }, { 0.01, 0.03, 10.0, 20.0 },
+  { 0.01, 0.015, 10.0, 20.0 }, { 0.01, 0.03, 10.0, 20.0 }, { 0.01, 0.015, 10.0, 20.0 }, { 0.01, 0.03, 10.0, 20.0 },
+  { 0.01, 0.015, 10.0, 20.0 }, { 0.01, 0.03, 10.0, 20.0 }, { 0.01, 0.015, 10.0, 20.0 }, { 0.01, 0.03, 10.0, 20.0 },
+  { 0.01, 0.015, 10.0, 20.0 }, { 0.01, 0.03, 10.0, 20.0 }, { 0.01, 0.015, 10.0, 20.0 }, { 0.01, 0.03, 10.0, 20.0 },
+  { 0.01, 0.015, 10.0, 20.0 }, { 0.01, 0.03, 10.0, 20.0 }, { 0.01, 0.015, 10.0, 20.0 }, { 0.01, 0.03, 10.0, 20.0 }
+};
+
 constexpr int   N_barrel     = 18;
 constexpr int   N_endcap     = 27;
 constexpr int   N_pix_endcap =  3;
+constexpr int   N_all        = N_barrel + 2 * N_endcap;
 
 #include "tncdefs.h"
 
@@ -53,12 +91,12 @@ int   DEP = 0;
 #define SCOPE_BEG PRN("{"); DEP += 2
 #define SCOPE_END DEP -= 2; PRN("}")
 
-#define ASSF(var, val) PRN("li.%s = %.3f;", #var, val)
-#define ASSI(var, val) PRN("li.%s = %d;", #var, val)
-#define ASSB(var, val) PRN("li.%s = %s;", #var, val ? "true" : "false")
+#define ASSF(var, val) PRN("obj.%s = %.3f;", #var, val)
+#define ASSI(var, val) PRN("obj.%s = %d;", #var, val)
+#define ASSB(var, val) PRN("obj.%s = %s;", #var, val ? "true" : "false")
 
-void setHitSelDynamicFactors(int id){
-
+void setHitSelDynamicFactors(int id)
+{
   // config on hit selection windows
   // geometry and track boundaries
   int brl_tibId[2] = {4,9};
@@ -77,44 +115,44 @@ void setHitSelDynamicFactors(int id){
   float qf_treg_tob = 1.25;
   
   bool is_stereo_lyr = ( (id<21 && (id==5 || id==7 || id==11 || id==13)) || (id>=21 && id<45 && id%2==0) || (id>=48 && id<72 && id%2>0) ); // In ECP(N), even (odd) layers are stereo
-  
-  if( id>=brl_tibId[0] && id<=brl_tobId[1] )
-    {
-    
-      if( id<brl_tobId[0] ){
-	ASSF(m_qf_treg, qf_treg_tib);
-      }
-      else{
-	ASSF(m_qf_treg, qf_treg_tob);
-      }
 
-      if( is_stereo_lyr ){
-	ASSF(m_phif_lpt_brl, phif_ptlow_brl_stereo);
+  if (id >= brl_tibId[0] && id <= brl_tobId[1])
+  {
+      if (id < brl_tobId[0])
+      {
+            ASSF(m_qf_treg, qf_treg_tib);
       }
-      else{
-	ASSF(m_phif_lpt_brl, phif_ptlow_brl_mono);
+      else
+      {
+            ASSF(m_qf_treg, qf_treg_tob);
       }
 
-    }
-  else if( (id>=ecp_stripId[0] && id<=ecp_stripId[1]) || (id>=ecn_stripId[0] && id<=ecn_stripId[1]) )
-    {
-      
-      if( is_stereo_lyr ){
-	ASSF(m_phif_lpt_treg, phif_ptlow_treg_ec_stereo);
+      if (is_stereo_lyr)
+      {
+            ASSF(m_phif_lpt_brl, phif_ptlow_brl_stereo);
       }
-      else{
-	ASSF(m_phif_lpt_treg, phif_ptlow_treg_ec_mono);
-	ASSF(m_phif_lpt_ec, phif_ptlow_ec_mono);
-	ASSF(m_phif_treg, phif_treg_ec_mono);
+      else
+      {
+            ASSF(m_phif_lpt_brl, phif_ptlow_brl_mono);
       }
+  }
+  else if ((id >= ecp_stripId[0] && id <= ecp_stripId[1]) || (id >= ecn_stripId[0] && id <= ecn_stripId[1]))
+  {
+      if (is_stereo_lyr)
+      {
+            ASSF(m_phif_lpt_treg, phif_ptlow_treg_ec_stereo);
+      }
+      else
+      {
+            ASSF(m_phif_lpt_treg, phif_ptlow_treg_ec_mono);
+            ASSF(m_phif_lpt_ec, phif_ptlow_ec_mono);
+            ASSF(m_phif_treg, phif_treg_ec_mono);
+      }
+  }
+}
 
-    }
-   
-} 
-
-
-void assignSubDetector(int id){
-
+void assignSubDetector(int id)
+{
   int pixb_lyrs[2]={0,3};
   int tib_lyrs[2]={4,9};
   int tob_lyrs[2]={10,17};
@@ -125,25 +163,30 @@ void assignSubDetector(int id){
   int tecp_lyrs[2]={27,44};
   int tecn_lyrs[2]={54,71};
 
-  if(id>=pixb_lyrs[0] && id<=pixb_lyrs[1]){ 
-    ASSB(m_is_pixb_lyr, 1);
+  if (id >= pixb_lyrs[0] && id <= pixb_lyrs[1])
+  {
+        ASSB(m_is_pixb_lyr, 1);
   }
-  else if(id>=tib_lyrs[0] && id<=tib_lyrs[1]){ 
-    ASSB(m_is_tib_lyr, 1);
+  else if (id >= tib_lyrs[0] && id <= tib_lyrs[1])
+  {
+        ASSB(m_is_tib_lyr, 1);
   }
-  else if(id>=tob_lyrs[0] && id<=tob_lyrs[1]){
-    ASSB(m_is_tib_lyr, 1);
-  }  
-  else if((id>=pixep_lyrs[0] && id<=pixep_lyrs[1])||(id>=pixen_lyrs[0] && id<=pixen_lyrs[1])){
-    ASSB(m_is_pixe_lyr, 1);
+  else if (id >= tob_lyrs[0] && id <= tob_lyrs[1])
+  {
+        ASSB(m_is_tib_lyr, 1);
   }
-  else if((id>=tidp_lyrs[0] && id<=tidp_lyrs[1])||(id>=tidn_lyrs[0] && id<=tidn_lyrs[1])){
-    ASSB(m_is_tid_lyr, 1);
+  else if ((id >= pixep_lyrs[0] && id <= pixep_lyrs[1]) || (id >= pixen_lyrs[0] && id <= pixen_lyrs[1]))
+  {
+        ASSB(m_is_pixe_lyr, 1);
   }
-  else if((id>=tecp_lyrs[0] && id<=tecp_lyrs[1])||(id>=tecn_lyrs[0] && id<=tecn_lyrs[1])){
-    ASSB(m_is_tec_lyr, 1);
+  else if ((id >= tidp_lyrs[0] && id <= tidp_lyrs[1]) || (id >= tidn_lyrs[0] && id <= tidn_lyrs[1]))
+  {
+        ASSB(m_is_tid_lyr, 1);
   }
-
+  else if ((id >= tecp_lyrs[0] && id <= tecp_lyrs[1]) || (id >= tecn_lyrs[0] && id <= tecn_lyrs[1]))
+  {
+        ASSB(m_is_tec_lyr, 1);
+  }
 }
 
 void add_barrel(int &lid, int det, int lay, bool is_pix,
@@ -153,95 +196,18 @@ void add_barrel(int &lid, int det, int lay, bool is_pix,
 
   SCOPE_BEG;
 
-  PRN("LayerInfo & li  = ti.m_layers[%d];", lid);
-  PRN("li.m_layer_type = LayerInfo::Barrel;");
-  PRN("li.set_limits(%.3f, %.3f, %.3f, %.3f);", b.m_minr, b.m_maxr, b.m_minz, b.m_maxz);
-  PRN("li.m_propagate_to = li.r_mean();");
-  PRN("li.set_next_layers(%d, %d, %d);", lid < 17 ? lid + 1 : -1, necp, necn);
+  PRN("LayerInfo & obj  = ti.m_layers[%d];", lid);
+  PRN("obj.m_layer_type = LayerInfo::Barrel;");
+  PRN("obj.set_limits(%.3f, %.3f, %.3f, %.3f);", b.m_minr, b.m_maxr, b.m_minz, b.m_maxz);
+  PRN("obj.m_propagate_to = obj.r_mean();");
+  PRN("obj.set_next_layers(%d, %d, %d);", lid < 17 ? lid + 1 : -1, necp, necn);
+  ASSF(m_q_bin, QBin[lid]);
   ASSB(m_is_outer, lid == 17);
   ASSB(m_is_stereo_lyr, ( (lid<21 && (lid==5 || lid==7 || lid==11 || lid==13)) || (lid>=21 && lid<45 && lid%2==0) || (lid>=48 && lid<72 && lid%2>0) )); // In ECP(N), even (odd) layers are stereo
   assignSubDetector(lid);
-  setHitSelDynamicFactors(lid);
   if (is_pix)
   {
     ASSB(m_is_seed_lyr, 1);
-    ASSF(m_q_bin, 2.0);
-    PRN("li.set_selection_limits(0.01, 0.05, 1.0, 2.0);");
-  }
-  else if (lid==4)
-  {
-    ASSF(m_q_bin, 6.0);
-    PRN("li.set_selection_limits(0.01, 0.015, 6.0, 12.0);");
-  }
-  else if (lid==5)
-  {
-    ASSF(m_q_bin, 6.0);
-    PRN("li.set_selection_limits(0.023, 0.03, 6.0, 12.0);");
-  }
-  else if (lid==6)
-  {
-    ASSF(m_q_bin, 6.0);
-    PRN("li.set_selection_limits(0.01, 0.015, 6.0, 12.0);");
-  }
-  else if (lid==7)
-  {
-    ASSF(m_q_bin, 6.0);
-    PRN("li.set_selection_limits(0.016, 0.03, 6.0, 12.0);");
-  }
-  else if (lid==8)
-  {
-    ASSF(m_q_bin, 6.0);
-    PRN("li.set_selection_limits(0.01, 0.015, 6.0, 12.0);");
-  }
-  else if (lid==9)
-  {
-    ASSF(m_q_bin, 6.0);
-    PRN("li.set_selection_limits(0.01, 0.015, 6.0, 12.0);");
-  }
-  else if (lid==10)
-  {
-    ASSF(m_q_bin, 9.5);
-    PRN("li.set_selection_limits(0.01, 0.015, 9.5, 19.0);");
-  }
-  else if (lid==11)
-  {
-    ASSF(m_q_bin, 9.5);
-    PRN("li.set_selection_limits(0.016, 0.03, 9.5, 19.0);");
-  }
-  else if (lid==12)
-  {
-    ASSF(m_q_bin, 9.5);
-    PRN("li.set_selection_limits(0.01, 0.015, 9.5, 19.0);");
-  }
-  else if (lid==13)
-  {
-    ASSF(m_q_bin, 9.5);
-    PRN("li.set_selection_limits(0.013, 0.03, 9.5, 19.0);");
-  }
-  else if (lid==14)
-  {
-    ASSF(m_q_bin, 9.5);
-    PRN("li.set_selection_limits(0.01, 0.015, 9.5, 19.0);");
-  }
-  else if (lid==15)
-  {
-    ASSF(m_q_bin, 9.5);
-    PRN("li.set_selection_limits(0.01, 0.015, 9.5, 19.0);");
-  }
-  else if (lid==16)
-  {
-    ASSF(m_q_bin, 9.5);
-    PRN("li.set_selection_limits(0.01, 0.015, 9.5, 19.0);");
-  }
-  else if (lid==17)
-  {
-    ASSF(m_q_bin, 9.5);
-    PRN("li.set_selection_limits(0.01, 0.015, 9.5, 19.0);");
-  }
-  else
-  {
-    ASSF(m_q_bin, 20.0);
-    PRN("li.set_selection_limits(0.01, 0.2, 10.0, 20.0);");
   }
       
   SCOPE_END;
@@ -276,124 +242,22 @@ void add_ecap(int &lid, int det, int lay, bool is_pix, bool stereo_hack,
     float min_r = stereo_hack ? cmsDiskMinRs[shi] : b.m_minr;
     float max_r = stereo_hack ? cmsDiskMaxRs[shi] : b.m_maxr;
 
-    PRN("LayerInfo & li  = ti.m_layers[%d];", lid);
-    PRN("li.m_layer_type = LayerInfo::EndCapPos;");
-    PRN("li.set_limits(%.3f, %.3f, %.3f, %.3f);", min_r, max_r, b.m_minz, b.m_maxz);
-    PRN("li.m_propagate_to = li.z_mean();");
-    PRN("li.set_next_layers(%d, %d, %d);", next_brl, lid < 44 ? lid + 1 : -1, -1);
+    PRN("LayerInfo & obj  = ti.m_layers[%d];", lid);
+    PRN("obj.m_layer_type = LayerInfo::EndCapPos;");
+    PRN("obj.set_limits(%.3f, %.3f, %.3f, %.3f);", min_r, max_r, b.m_minz, b.m_maxz);
+    PRN("obj.m_propagate_to = obj.z_mean();");
+    PRN("obj.set_next_layers(%d, %d, %d);", next_brl, lid < 44 ? lid + 1 : -1, -1);
+    ASSF(m_q_bin, QBin[lid]);
     ASSB(m_is_outer, lid == 44);
     ASSB(m_is_stereo_lyr, ( (lid<21 && (lid==5 || lid==7 || lid==11 || lid==13)) || (lid>=21 && lid<45 && lid%2==0) || (lid>=48 && lid<72 && lid%2>0) )); // In ECP(N), even (odd) layers are stereo
     assignSubDetector(lid);
-    setHitSelDynamicFactors(lid);
-    if (is_pix) {
+    if (is_pix)
+    {
       ASSB(m_is_seed_lyr, 1);
-      ASSF(m_q_bin, 1.0);
-      PRN("li.set_selection_limits(0.01, 0.015, 0.8, 1.6);");
     } 
-    else {
-      if(lid==21){
-	ASSF(m_q_bin, 5.5);
-	PRN("li.set_selection_limits(0.01, 0.015, 5.5, 11.0);");
-      }
-      else if(lid==22){
-	ASSF(m_q_bin, 5.5);
-	PRN("li.set_selection_limits(0.01, 0.03, 5.5, 11.0);");
-      }
-      else if(lid==23){
-	ASSF(m_q_bin, 5.5);
-	PRN("li.set_selection_limits(0.01, 0.015, 5.5, 11.0);");
-      }
-      else if(lid==24){
-	ASSF(m_q_bin, 5.5);
-	PRN("li.set_selection_limits(0.01, 0.03, 5.5, 11.0);");
-      }
-      else if(lid==25){
-	ASSF(m_q_bin, 5.5);
-	PRN("li.set_selection_limits(0.01, 0.015, 5.5, 11.0);");
-      }
-      else if(lid==26){
-	ASSF(m_q_bin, 5.5);
-	PRN("li.set_selection_limits(0.01, 0.03, 5.5, 11.0);");
-      }
-      else if(lid==27){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
-      }
-      else if(lid==28){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
-      }
-      else if(lid==29){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
-      }
-      else if(lid==30){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
-      }
-      else if(lid==31){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
-      }
-      else if(lid==32){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
-      }
-      else if(lid==33){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
-      }
-      else if(lid==34){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
-      }
-      else if(lid==35){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
-      }
-      else if(lid==36){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
-      }
-      else if(lid==37){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
-      }
-      else if(lid==38){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
-      }
-      else if(lid==39){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
-      }
-      else if(lid==40){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
-      }
-      else if(lid==41){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
-      }
-      else if(lid==42){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
-      }
-      else if(lid==43){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
-      }
-      else if(lid==44){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
-      }
-      else{
-	ASSF(m_q_bin, 20.0);
-	PRN("li.set_selection_limits(0.01, 0.2, 10.0, 20.0);");
-      }
-    }
-    if (hole_hack) {
-      PRN("li.set_r_hole_range(%.3f, %.3f);", cmsDiskMinRsHole[shi], cmsDiskMaxRsHole[shi]);
+    if (hole_hack)
+    {
+      PRN("obj.set_r_hole_range(%.3f, %.3f);", cmsDiskMinRsHole[shi], cmsDiskMaxRsHole[shi]);
     }
   }
   SCOPE_END;
@@ -405,124 +269,22 @@ void add_ecap(int &lid, int det, int lay, bool is_pix, bool stereo_hack,
     float min_r = stereo_hack ? cmsDiskMinRs[shi] : b.m_minr;
     float max_r = stereo_hack ? cmsDiskMaxRs[shi] : b.m_maxr;
 
-    PRN("LayerInfo & li  = ti.m_layers[%d];", lid);
-    PRN("li.m_layer_type = LayerInfo::EndCapNeg;");
-    PRN("li.set_limits(%.3f, %.3f, %.3f, %.3f);", min_r, max_r, b.m_minz, b.m_maxz);
-    PRN("li.m_propagate_to = li.z_mean();");
-    PRN("li.set_next_layers(%d, %d, %d);", next_brl, -1, lid < 71 ? lid + 1 : -1);
+    PRN("LayerInfo & obj  = ti.m_layers[%d];", lid);
+    PRN("obj.m_layer_type = LayerInfo::EndCapNeg;");
+    PRN("obj.set_limits(%.3f, %.3f, %.3f, %.3f);", min_r, max_r, b.m_minz, b.m_maxz);
+    PRN("obj.m_propagate_to = obj.z_mean();");
+    PRN("obj.set_next_layers(%d, %d, %d);", next_brl, -1, lid < 71 ? lid + 1 : -1);
+    ASSF(m_q_bin, QBin[lid]);
     ASSB(m_is_outer, lid == 71);
     ASSB(m_is_stereo_lyr, ( (lid<21 && (lid==5 || lid==7 || lid==11 || lid==13)) || (lid>=21 && lid<45 && lid%2==0) || (lid>=48 && lid<72 && lid%2>0) )); // In ECP(N), even (odd) layers are stereo
     assignSubDetector(lid);
-    setHitSelDynamicFactors(lid);
-    if (is_pix) {
+    if (is_pix)
+    {
       ASSB(m_is_seed_lyr, 1);
-      ASSF(m_q_bin, 1.0);
-      PRN("li.set_selection_limits(0.01, 0.015, 0.8, 1.6);");
     } 
-    else {
-      if(lid==48){
-	ASSF(m_q_bin, 5.5);
-	PRN("li.set_selection_limits(0.01, 0.015, 5.5, 11.0);");
-      }
-      else if(lid==49){
-	ASSF(m_q_bin, 5.5);
-	PRN("li.set_selection_limits(0.01, 0.03, 5.5, 11.0);");
-      }
-      else if(lid==50){
-	ASSF(m_q_bin, 5.5);
-	PRN("li.set_selection_limits(0.01, 0.015, 5.5, 11.0);");
-      }
-      else if(lid==51){
-	ASSF(m_q_bin, 5.5);
-	PRN("li.set_selection_limits(0.01, 0.03, 5.5, 11.0);");
-      }
-      else if(lid==52){
-	ASSF(m_q_bin, 5.5);
-	PRN("li.set_selection_limits(0.01, 0.015, 5.5, 11.0);");
-      }
-      else if(lid==53){
-	ASSF(m_q_bin, 5.5);
-	PRN("li.set_selection_limits(0.01, 0.03, 5.5, 11.0);");
-      }
-      else if(lid==54){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
-      }
-      else if(lid==55){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
-      }
-      else if(lid==56){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
-      }
-      else if(lid==57){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
-      }
-      else if(lid==58){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
-      }
-      else if(lid==59){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
-      }
-      else if(lid==60){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
-      }
-      else if(lid==61){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
-      }
-      else if(lid==62){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
-      }
-      else if(lid==63){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
-      }
-      else if(lid==64){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
-      }
-      else if(lid==65){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
-      }
-      else if(lid==66){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
-      }
-      else if(lid==67){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
-      }
-      else if(lid==68){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
-      }
-      else if(lid==69){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
-      }
-      else if(lid==70){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.015, 10.0, 20.0);");
-      }
-      else if(lid==71){
-	ASSF(m_q_bin, 10.0);
-	PRN("li.set_selection_limits(0.01, 0.03, 10.0, 20.0);");
-      }
-      else{
-	ASSF(m_q_bin, 20.0);
-	PRN("li.set_selection_limits(0.01, 0.2, 10.0, 20.0);");
-      }
-    }
-    if (hole_hack) {
-      PRN("li.set_r_hole_range(%.3f, %.3f);", cmsDiskMinRsHole[shi], cmsDiskMaxRsHole[shi]);
+    if (hole_hack)
+    {
+      PRN("obj.set_r_hole_range(%.3f, %.3f);", cmsDiskMinRsHole[shi], cmsDiskMaxRsHole[shi]);
     }
   }
   SCOPE_END;
@@ -535,8 +297,10 @@ void print_trk_info()
   OOO = fopen("../CMS-2017.acc", "w");
   // OOO = stdout;
 
-  PRN("void Create_CMS_2017_AutoGen(TrackerInfo& ti)");
+  PRN("void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)");
   SCOPE_BEG;
+
+  // ============================================================================
 
   int lid = 0;
 
@@ -602,6 +366,27 @@ void print_trk_info()
   add_ecap(lid, 6, 9, false, false, -1);
   add_ecap(lid, 6, 9, false, true,  -1);
   NLN;
+
+// ============================================================================
+
+  NLN;
+  PRN("// Iteration 0\n");
+
+  SCOPE_BEG;
+
+  PRN("IterationConfig &ic  = ii[0];");
+  for (int i = 0; i < N_all; ++i)
+  {
+      SCOPE_BEG;
+      PRN("IterationLayerConfig & obj = ic.layer(%d);", i)
+      PRN("obj.set_selection_limits(%f, %f, %f, %f);", SelWindows[i].pmin, SelWindows[i].pmax, SelWindows[i].qmin, SelWindows[i].qmax);
+      setHitSelDynamicFactors(i);
+      SCOPE_END;
+  }
+
+  SCOPE_END;
+
+// ============================================================================
 
   SCOPE_END;
 

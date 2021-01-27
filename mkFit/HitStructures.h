@@ -5,14 +5,17 @@
 #include "Hit.h"
 #include "Track.h"
 #include "TrackerInfo.h"
-#include "SteeringParams.h"
+//#include "SteeringParams.h"
 //#define DEBUG
 #include "Debug.h"
 
+#include <algorithm>
 #include <array>
 #include "tbb/concurrent_vector.h"
 
 namespace mkfit {
+
+class IterationParams;
 
 typedef tbb::concurrent_vector<TripletIdx> TripletIdxConVec;
 
@@ -89,7 +92,6 @@ private:
 
 public:
   const LayerInfo            *m_layer_info = 0;
-  const IterationLayerConfig *m_iter_layer_config = 0
   vecvecPhiBinInfo_t         m_phi_bin_infos;
   std::vector<float>         m_hit_phis;
   std::vector<float>         m_hit_qs;
@@ -118,11 +120,6 @@ public:
   WSR_Result is_within_r_sensitive_region(float r, float dr) const
   { return m_layer_info->is_within_r_sensitive_region(r, dr); }
 
-  float min_dphi() const { return m_iter_layer_config->m_select_min_dphi; }
-  float max_dphi() const { return m_iter_layer_config->m_select_max_dphi; }
-  float min_dq()   const { return m_iter_layer_config->m_select_min_dq;   }
-  float max_dq()   const { return m_iter_layer_config->m_select_max_dq;   }
-
   // Adding flag for mono/stereo
   bool is_stereo_lyr() const 
   { return  m_layer_info->is_stereo_lyr(); }
@@ -142,13 +139,6 @@ public:
   { return  m_layer_info->is_tid_lyr(); }
   bool is_tec_lyr() const 
   { return  m_layer_info->is_tec_lyr(); }
-
-  // Adding hit selection limits dynamic factors
-  float qf_treg()       const { return m_iter_layer_config->m_qf_treg; }
-  float phif_treg()     const { return m_iter_layer_config->m_phif_treg; }
-  float phif_lpt_brl()  const { return m_iter_layer_config->m_phif_lpt_brl; }
-  float phif_lpt_treg() const { return m_iter_layer_config->m_phif_lpt_treg; }
-  float phif_lpt_ec()   const { return m_iter_layer_config->m_phif_lpt_ec; }
 
   // Testing bin filling
   static constexpr float m_fphi     = Config::m_nphi / Config::TwoPI;
@@ -241,7 +231,7 @@ public:
   void  EndRegistrationOfHits();
 
   // Use this to remap internal hit index to external one.
-  int GetOriginalHitIndex(int i)   const { return m_hit_ranks[i]; }
+  int   GetOriginalHitIndex(int i) const { return m_hit_ranks[i]; }
 
 #ifdef COPY_SORTED_HITS
   const Hit& GetHit(int i) const { return m_hits[i]; }
@@ -249,9 +239,13 @@ public:
 #else
   const Hit& GetHit(int i) const { return (*m_ext_hits)[m_hit_ranks[i]]; }
   const Hit* GetHitArray() const { return & (*m_ext_hits)[0]; }
+
+  // This would also be possible for COPY_SORTED_HITS, but somebody must guarantee they stay const
+  // after suck in -- and we need to add m_ext_hits fopr that case, too.
+  const Hit& GetHitWithOriginalIndex(int i) const { return (*m_ext_hits)[i]; }
 #endif
 
-  void  SelectHitIndices(float q, float phi, float dq, float dphi, std::vector<int>& idcs, bool isForSeeding=false, bool dump=false);
+  // void  SelectHitIndices(float q, float phi, float dq, float dphi, std::vector<int>& idcs, bool isForSeeding=false, bool dump=false);
 
   void  PrintBins();
 };
@@ -286,6 +280,8 @@ public:
     loh.EndRegistrationOfHits();
     */
   }
+
+  const LayerOfHits& operator[](int i) const { return m_layers_of_hits[i]; }
 };
 
 
@@ -479,16 +475,6 @@ public:
 
   CombCandidate()
   {
-    reserve(Config::maxCandsPerSeed); // we should never exceed this
-    m_best_short_cand.setScore( getScoreWorstPossible() );
-
-    // this will be different for CloneEngine and Std, especially as long as we
-    // instantiate all candidates before purging them.
-    // ce:  N_layer * N_cands ~~ 20 * 6 = 120
-    // std: i don't know, maybe double?
-    m_hots.reserve(128);
-
-    m_overlap_hits.resize(Config::maxCandsPerSeed);
   }
 
   // Need this so resize of EventOfCombinedCandidates::m_candidates can reuse vectors used here.
@@ -503,11 +489,22 @@ public:
     m_overlap_hits(std::move(o.m_overlap_hits))
   {}
 
-  void Reset()
+  void Reset(int max_cands_per_seed, int expected_num_hots)
   {
+    reserve(max_cands_per_seed); // we should never exceed this
     clear();
+
+    m_best_short_cand.setScore( getScoreWorstPossible() );
+
+    // expected_num_hots is different for CloneEngine and Std, especially as long as we
+    // instantiate all candidates before purging them.
+    // ce:  N_layer * N_cands ~~ 20 * 6 = 120
+    // std: i don't know, maybe double?
+    m_hots.reserve(expected_num_hots);
     m_hots_size = 0;
     m_hots.clear();
+
+    m_overlap_hits.resize(max_cands_per_seed);
   }
 
   void ImportSeed(const Track& seed);
@@ -528,7 +525,7 @@ public:
     return m_overlap_hits[cand_idx].find_overlap(hit_idx, module_id);
   }
 
-  void MergeCandsAndBestShortOne(bool update_score, bool sort_cands);
+  void MergeCandsAndBestShortOne(const IterationParams&params, bool update_score, bool sort_cands);
 };
 
 //==============================================================================
@@ -594,23 +591,19 @@ public:
     m_candidates(),
     m_capacity  (0),
     m_size      (0)
-  {
-    Reset(size);
-  }
+  {}
 
-  void Reset(int new_capacity)
+  void Reset(int new_capacity, int max_cands_per_seed, int expected_num_hots = 128)
   {
-    for (int s = 0; s < m_size; ++s)
-    {
-      m_candidates[s].Reset();
-    }
-
     if (new_capacity > m_capacity)
     {
       m_candidates.resize(new_capacity);
       m_capacity = new_capacity;
     }
-
+    for (int s = 0; s < m_capacity; ++s)
+    {
+      m_candidates[s].Reset(max_cands_per_seed, expected_num_hots);
+    }
     m_size = 0;
   }
 

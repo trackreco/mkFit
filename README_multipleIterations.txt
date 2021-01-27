@@ -17,3 +17,16 @@
 
 (3) mkFit/MkBuilder[.cc,.h]
  - all iteration-dependent parameters (regions, steering parameters, etc.) are moved out of MkBuilder, and into IterationConfig, which must be passed to MkBuilder constructor to have one MkBuilder per iteration.
+
+
+-------------------------------------------------------------------------------
+
+MT Notes:
+
+* RegionOfSeedIndices rosi(m_event, region); <---- event
+
+* bkfit --> takes tracks from event->candidateTracks
+  This is a somewhat more general probelm ... flow of tracks through processing and
+  when should they be copied out / extracted (found / fitted / etc).
+  Especially re validation.
+  

@@ -17,6 +17,19 @@
 
 namespace mkfit {
 
+void MkFinder::Setup(const IterationParams& ip, const IterationLayerConfig& ilc)
+{
+  m_iteration_params       = &ip;
+  m_iteration_layer_config = &ilc;
+}
+
+void MkFinder::Release()
+{
+  m_iteration_params       = nullptr;
+  m_iteration_layer_config = nullptr;
+}
+
+
 //==============================================================================
 // Input / Output TracksAndHitIdx
 //==============================================================================
@@ -133,43 +146,38 @@ void MkFinder::OutputTracksAndHitIdx(std::vector<Track>& tracks,
 //==============================================================================
 // getHitSelDynamicWindows
 //==============================================================================
+// From Config.h: track-related config on hit selection windows
+// constexpr float treg_eta[2] = {0.45,1.5};
+// constexpr float track_ptlow = 0.9;
 
 void MkFinder::getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, const float track_pt, const float track_eta, float &min_dq, float &max_dphi)
 {
+  const LayerOfHits          &L = layer_of_hits;
+  const IterationLayerConfig &ILC = *m_iteration_layer_config;
 
-  const LayerOfHits &L = layer_of_hits;
-  
-  if ( L.is_tib_lyr() || L.is_tob_lyr() )
+  if (L.is_tib_lyr() || L.is_tob_lyr())
+  {
+    if (track_eta > Config::treg_eta[0] && track_eta < Config::treg_eta[1])
+      min_dq *= ILC.m_qf_treg;
+
+    if (track_pt < Config::track_ptlow)
+      max_dphi *= ILC.m_phif_lpt_brl;
+  }
+  else if (L.is_tid_lyr() || L.is_tec_lyr())
+  {
+    if (track_pt < Config::track_ptlow)
     {
-      
-      if ( track_eta>Config::treg_eta[0] && track_eta<Config::treg_eta[1] )
-	min_dq *= L.qf_treg();
-      
-      if ( track_pt<Config::track_ptlow )
-	max_dphi *= L.phif_lpt_brl();
-      
+
+      if (track_eta > Config::treg_eta[0] && track_eta < Config::treg_eta[1])
+        max_dphi *= ILC.m_phif_lpt_treg;
+
+      else if (!(L.is_stereo_lyr()) && track_eta >= Config::treg_eta[1])
+        max_dphi *= ILC.m_phif_lpt_ec;
     }
-  
-  else if ( L.is_tid_lyr() || L.is_tec_lyr() )
-    {
-      
-      if ( track_pt<Config::track_ptlow )
-	{
-	  
-	  if ( track_eta>Config::treg_eta[0] && track_eta<Config::treg_eta[1] )
-	    max_dphi *= L.phif_lpt_treg();
-	  
-	  else if ( !(L.is_stereo_lyr()) && track_eta>=Config::treg_eta[1] )
-	    max_dphi *= L.phif_lpt_ec();
-	  
-	}
-      else if ( !(L.is_stereo_lyr()) && track_eta>Config::treg_eta[0] && track_eta<Config::treg_eta[1] )
-	max_dphi *= L.phif_treg();
-      
-    }
-  
+    else if (!(L.is_stereo_lyr()) && track_eta > Config::treg_eta[0] && track_eta < Config::treg_eta[1])
+      max_dphi *= ILC.m_phif_treg;
+  }
 }
-
 
 //==============================================================================
 // SelectHitIndices
@@ -181,6 +189,8 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
   // bool debug = true;
 
   const LayerOfHits &L = layer_of_hits;
+  const IterationLayerConfig &ILC = *m_iteration_layer_config;
+
   const int   iI = iP;
   const float nSigmaPhi = 3;
   const float nSigmaZ   = 3;
@@ -194,16 +204,16 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
   const auto assignbins = [&](int itrack, float q, float dq, float phi, float dphi){
 
-    float thisPt    = 1.0f/Par[iI].At(itrack,3,0);
-    float thisEta   = std::fabs( getEta( Par[iI].At(itrack,5,0) ) );
+    float thisPt   = 1.0f/Par[iI].At(itrack,3,0);
+    float thisEta  = std::fabs( getEta( Par[iI].At(itrack,5,0) ) );
     //
-    float min_dq    = L.min_dq();
-    float max_dphi = L.max_dphi();
+    float min_dq   = ILC.min_dq();
+    float max_dphi = ILC.max_dphi();
     //
     getHitSelDynamicWindows(L, thisPt, thisEta, min_dq, max_dphi);         
     //
     dphi = std::min(std::abs(dphi), max_dphi);
-    dq   = clamp(dq, min_dq, L.max_dq());
+    dq   = clamp(dq, min_dq, ILC.max_dq());
 
     qv[itrack] = q;
     phiv[itrack] = phi;
@@ -223,7 +233,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
   };
 
   const auto calcdphi = [&](float dphi2) {
-    return std::max(nSigmaPhi * std::sqrt(std::abs(dphi2)), L.min_dphi());
+    return std::max(nSigmaPhi * std::sqrt(std::abs(dphi2)), ILC.min_dphi());
   };
 
 
@@ -431,7 +441,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
   int   bestHit[NN];
   // MT: fill_n gave me crap on MIC, NN=8,16, doing in maxSize search below.
   // Must be a compiler issue.
-  // std::fill_n(minChi2, NN, Config::chi2Cut);
+  // std::fill_n(minChi2, NN, m_iteration_params->chi2Cut);
   // std::fill_n(bestHit, NN, -1);
 
   int maxSize = 0;
@@ -448,7 +458,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
     }
 
     bestHit[it] = -1;
-    minChi2[it] = Config::chi2Cut;
+    minChi2[it] = m_iteration_params->chi2Cut;
   }
 
   for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
@@ -624,7 +634,7 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
       {
 	const float chi2 = std::abs(outChi2[itrack]);//fixme negative chi2 sometimes...
 	dprint("chi2=" << chi2);
-	if (chi2 < Config::chi2Cut)
+	if (chi2 < m_iteration_params->chi2Cut)
 	{
 	  oneCandPassCut = true;
 	  break;
@@ -642,7 +652,7 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
 	     << "               hit position x=" << msPar.ConstAt(0, 0, 0)   << " y=" << msPar.ConstAt(0, 1, 0) << std::endl
 	     << "   updated track parameters x=" << Par[iC].ConstAt(0, 0, 0) << " y=" << Par[iC].ConstAt(0, 1, 0));
 
-      //create candidate with hit in case chi2 < Config::chi2Cut
+      //create candidate with hit in case chi2 < m_iteration_params->chi2Cut
       //fixme: please vectorize me... (not sure it's possible in this case)
       for (int itrack = 0; itrack < N_proc; ++itrack)
       {
@@ -650,7 +660,7 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
 	{
 	  const float chi2 = std::abs(outChi2[itrack]);//fixme negative chi2 sometimes...
 	  dprint("chi2=" << chi2);
-	  if (chi2 < Config::chi2Cut)
+	  if (chi2 < m_iteration_params->chi2Cut)
 	  {
 	    dprint("chi2 cut passed, creating new candidate");
 	    // Create a new candidate and fill the tmp_candidates output vector.
@@ -665,7 +675,7 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
 	    newcand.setScore(getScoreCand(newcand));
             newcand.setOriginIndex(CandIdx(itrack, 0, 0));
 
-            if (chi2 < Config::chi2CutOverlap)
+            if (chi2 < m_iteration_params->chi2CutOverlap)
             {
               CombCandidate &ccand = * newcand.combCandidate();
               ccand.considerHitForOverlap(CandIdx(itrack, 0, 0), hit_idx, layer_of_hits.GetHit(hit_idx).detIDinLayer(), chi2);
@@ -692,12 +702,12 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
       continue;
     }
 
-    // int fake_hit_idx = num_all_minus_one_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
-    int fake_hit_idx = ( (num_all_minus_one_hits(itrack) < Config::maxHolesPerCand) && (NTailMinusOneHits(itrack, 0, 0)<=Config::maxConsecHoles) ) ? -1 : -2;
+    // int fake_hit_idx = num_all_minus_one_hits(itrack) < m_iteration_params->maxHolesPerCand ? -1 : -2;
+    int fake_hit_idx = ( (num_all_minus_one_hits(itrack) < m_iteration_params->maxHolesPerCand) && (NTailMinusOneHits(itrack, 0, 0)<=m_iteration_params->maxConsecHoles) ) ? -1 : -2;
 
     if (XWsrResult[itrack].m_wsr == WSR_Edge)
     {
-      // YYYYYY Config::store_missed_layers
+      // YYYYYY m_iteration_params->store_missed_layers
       fake_hit_idx = -3;
     }
     //now add fake hit for tracks that passsed through inactive modules
@@ -780,12 +790,12 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
         const float chi2 = std::abs(outChi2[itrack]); //fixme negative chi2 sometimes...
 
         dprint("chi2=" << chi2 << " for trkIdx=" << itrack << " hitIdx=" << XHitArr.At(itrack, hit_cnt, 0));
-        if (chi2 < Config::chi2Cut)
+        if (chi2 < m_iteration_params->chi2Cut)
         {
           const int hit_idx = XHitArr.At(itrack, hit_cnt, 0);
 
           // Register hit for overlap consideration, here we apply chi2 cut
-          if (chi2 < Config::chi2CutOverlap)
+          if (chi2 < m_iteration_params->chi2CutOverlap)
           {
             CombCandidate &ccand = cloner.mp_event_of_comb_candidates->m_candidates[ SeedIdx(itrack, 0, 0) ];
             ccand.considerHitForOverlap(CandIdx(itrack, 0, 0), hit_idx, layer_of_hits.GetHit(hit_idx).detIDinLayer(), chi2);
@@ -824,8 +834,8 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
       continue;
     }
 
-    // int fake_hit_idx = num_all_minus_one_hits(itrack) < Config::maxHolesPerCand ? -1 : -2;
-    int fake_hit_idx = ( (num_all_minus_one_hits(itrack) < Config::maxHolesPerCand) && (NTailMinusOneHits(itrack, 0, 0)<=Config::maxConsecHoles) ) ? -1 : -2;
+    // int fake_hit_idx = num_all_minus_one_hits(itrack) < m_iteration_params->maxHolesPerCand ? -1 : -2;
+    int fake_hit_idx = ( (num_all_minus_one_hits(itrack) < m_iteration_params->maxHolesPerCand) && (NTailMinusOneHits(itrack, 0, 0)<=m_iteration_params->maxConsecHoles) ) ? -1 : -2;
 
     if (XWsrResult[itrack].m_wsr == WSR_Edge)
     {

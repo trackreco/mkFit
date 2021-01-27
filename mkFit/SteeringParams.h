@@ -11,6 +11,7 @@ class CandCloner;
 class MkBase;
 class MkFitter;
 class MkFinder;
+class EventOfHits;
 
 #define COMPUTE_CHI2_ARGS const MPlexLS &,  const MPlexLV &, const MPlexQI &, \
                           const MPlexHS &,  const MPlexHV &, \
@@ -36,7 +37,7 @@ public:
     m_update_param_foo(updp_f),
     m_propagate_foo(p_f)
   {}
-    
+
 };
 
 //==============================================================================
@@ -73,14 +74,14 @@ public:
   std::vector<LayerControl>::iterator m_end_for_finding;
 
   //----------------------------------------------------------------------------
-  
+
   SteeringParams() {}
-  
+
   void reserve_plan(int n)
   {
     m_layer_plan.reserve(n);
   }
-  
+
   void append_plan(int layer, bool pu_only=false, bool bf_only=false)
   {
     m_layer_plan.emplace_back(LayerControl(layer, pu_only, bf_only));
@@ -112,24 +113,22 @@ class IterationConfig;
 class IterationLayerConfig
 {
 public:
-  // Up-link to IterationConfig, so that IterationLayerConfig only can be passed afterwards
-  // NOTE: this solution assumes that IterationLayerConfig is not shared among different iterations.
-  const IterationConfig &m_iter_config;
-
-  // A pointer to LayerOfHits, so that there is no need to pass this along together with IterationLayerConfig.
-  const LayerOfHits* m_layer_of_hits;
-
-  // Stuff to be moved out of LayerInfo:
-  // Selection limits are moved out of LayerInfo, since may be iteration-specific.
-  // E.g., for low-pT iterations selection limits may need to be looser (?)
-  float         m_select_min_dphi, m_select_max_dphi;
-  float         m_select_min_dq,   m_select_max_dq;
+  // Selection limits.
+  float         m_select_min_dphi;
+  float         m_select_max_dphi;
+  float         m_select_min_dq;
+  float         m_select_max_dq;
 
   void set_selection_limits(float p1, float p2, float q1, float q2)
   {
     m_select_min_dphi = p1; m_select_max_dphi = p2;
     m_select_min_dq   = q1; m_select_max_dq   = q2;
   }
+
+  using dynamic_windows_foo = void(const Track &track, const float track_pt, const float track_eta,
+                                   float &min_dq, float &max_dphi);
+
+  std::function<dynamic_windows_foo> m_dynamic_windows;
 
   // Adding hit selection limits dynamic factors
   float         m_qf_treg       = 1.0f;
@@ -139,10 +138,16 @@ public:
   float         m_phif_lpt_ec   = 1.0f;
 
   //----------------------------------------------------------------------------
-  
-  IterationLayerConfig(const IterationConfig &ic) :
-    m_iter_config (ic)
-  {}
+
+  float min_dphi() const { return m_select_min_dphi; }
+  float max_dphi() const { return m_select_max_dphi; }
+  float min_dq()   const { return m_select_min_dq;   }
+  float max_dq()   const { return m_select_max_dq;   }
+
+
+  //----------------------------------------------------------------------------
+
+  IterationLayerConfig() {}
 };
 
 
@@ -152,14 +157,15 @@ public:
 
 class IterationParams
 {
+public:
   // Iteration-specific parameters are moved out of Config, and re-initialized in Geoms/CMS-2017.cc:
-  int nlayers_per_seed  = 3;
-  int maxCandsPerSeed   = 5;
-  int maxHolesPerCand   = 4;
-  int maxConsecHoles    = 1;
-  float chi2Cut        = 30;
-  float chi2CutOverlap; // default: 5; cmssw: 3.5
-  float pTCutOverlap; // default: 0; cmssw: 1
+  int   nlayers_per_seed  = 3;
+  int   maxCandsPerSeed   = 5;
+  int   maxHolesPerCand   = 4;
+  int   maxConsecHoles    = 1;
+  float chi2Cut           = 30;
+  float chi2CutOverlap    = 3.5;
+  float pTCutOverlap      = 1.0;
 
   // NOTE: iteration params could actually become layer-dependent, e.g., chi2Cut could be larger for first layers (?)
 };
@@ -169,56 +175,72 @@ class IterationParams
 // IterationConfig
 //==============================================================================
 
-class Event;
-
-struct MkSeedPacket
+class IterationSeedPartition
 {
-  int m_seedEtaSeparators_[5];
-  int m_seedMinLastLayer_[5];
-  int m_seedMaxLastLayer_[5];
-  std::vector<HitVec> m_layerHits_;
-  TrackVec m_inseeds_;
-  TrackVec m_outtrks_;
+public:
+  std::vector<int>    m_region;
+  std::vector<float>  m_sort_score;
 
-  //----------------------------------------------------------------------------
-
-  MkSeedPacket(Event *evt) :
-    m_seedEtaSeparators(evt->seedEtaSeparators_), m_seedMinLastLayer_(evt->seedMinLastLayer_), m_seedMaxLastLayer_(evt->seedMaxLastLayer_), m_layerHits_(evt->layerHits_), m_inseeds_(evt->seedTracks_) {}
-
+  IterationSeedPartition(int size) : m_region(size), m_sort_score(size) {}
 };
 
 class IterationConfig
 {
 public:
+  // MIMI need also EventOfHits
+  using partition_seeds_foo = void(const TrackerInfo &, const TrackVec &, const EventOfHits &,
+                                   IterationSeedPartition &);
 
-  //Up-link to event, to be used by import_seeds
-  const Event *ev;
-  
-  // Iteration index:
-  const unsigned int    m_iter;
+  // TrackerInfo *m_trk_info;
 
-  // TrackerInfo reference (can be shared among builders / iterations) is declared here so that it is easier to pass along:
-  const TrackerInfo     &m_tracker_info;
-  
-  // Reference to iteration parameters:
-  const IterationParams &m_params;
-  
-  std::vector<IterationLayerConfig> m_iter_layer_configs;
-  
+  int    m_iteration_index;
+
+  // Iteration parameters (could be a ptr)
+  IterationParams  m_params;
+
+  std::vector<IterationLayerConfig> m_layer_configs;
+
   // Steering params and regions are kept as they are, just moved out of MkBuilder.
   // Steering params and regions are iteration-specific, thus initialized in Geoms/CMS-2017.cc
-  std::vector<SteeringParams> m_steering_params[5];
-  std::vector<int>            m_regions;
+  int                         m_n_regions;
+  std::vector<int>            m_region_order;
+  std::vector<SteeringParams> m_steering_params;
 
-  // Virtual function for 'import_seeds' (previously in MkBuilder):
-  virtual void import_seeds(ev, const TrackerInfo &ti, const unsigned int it=0);
-    
+  std::function<partition_seeds_foo>  m_partition_seeds;
+
   //----------------------------------------------------------------------------
-  IterationConfig(const TrackerInfo &ti, const IterationParams &ip, const unsigned int it=0) :
-    m_iter(it), m_tracker_info(ti), m_params(ip) {}
 
+  IterationConfig() {}
+
+  void set_num_regions_layers(int nreg, int nlay)
+  {
+    m_n_regions = nreg;
+    m_region_order.resize(nreg);
+    m_steering_params.resize(nreg);
+    m_layer_configs.resize(nlay);
+  }
+
+  IterationLayerConfig& layer(int i) { return m_layer_configs[i]; }
+
+  SteeringParams&       steering_params(int region) { return m_steering_params[region]; }
 };
 
+
+//==============================================================================
+// IterationsInfo
+//==============================================================================
+
+class IterationsInfo
+{
+  std::vector<IterationConfig> m_iterations;
+
+public:
+  IterationsInfo() {}
+
+  void resize(int ni) { m_iterations.resize(ni); }
+
+  IterationConfig& operator[](int i) { return m_iterations[i]; }
+};
 
 //==============================================================================
 
