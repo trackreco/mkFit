@@ -4,6 +4,8 @@
 #include "Track.h"
 #include "Matrix.h"
 
+#include <functional>
+
 namespace mkfit {
 
 class LayerInfo;

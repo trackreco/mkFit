@@ -60,10 +60,16 @@ ${OBJS}: %.o: %.cc %.d
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<
 
 echo:
-	-echo CXX = ${CXX}
+	@echo "CXX=${CXX}"
 
 echo_cc_defs:
 	${CXX} -dM -E -mavx2 - < /dev/null
 
 echo-srcs:
 	@echo ${SRCS}
+
+echo-flags:
+	@echo "CPPFLAGS=${CPPFLAGS}"
+
+echo-tbb:
+	@echo "TBB_GCC=${TBB_GCC}, TBB_PREFIX=${TBB_PREFIX}, TBB_ROOT=${TBB_ROOT}"
