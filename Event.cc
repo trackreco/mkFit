@@ -428,7 +428,7 @@ void Event::write_out(DataFile &data_file)
     //sizes are the same as in layerHits_
     for (int il = 0; il<nl; ++il) {
       int nh = layerHitMasks_[il].size();
-      assert(nh == layerHits_[il].size());
+      assert(nh == (int) layerHits_[il].size());
       fwrite(&layerHitMasks_[il][0], sizeof(uint64_t), nh, fp);
       evsize += nh*sizeof(uint64_t);
     }
