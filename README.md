@@ -448,7 +448,7 @@ Given that this is a living repository, the comments in the code may not always 
 
 ## Section 9: CMSSW integration
 
-The supported CMSSW version is currently `10_4_0_patch1`. The
+The supported CMSSW version is currently `11_2_0`. The
 integration of `mkFit` in CMSSW is based on setting it up as a CMSSW
 external.
 
@@ -473,18 +473,14 @@ toolchain. Assuming you are in an empty directory, the following
 recipe will set up a CMSSW developer area and a `mkFit` area there,
 and compile `mkFit` using the CMSSW toolchain.
 
-**Note:** Use a `SCRAM_ARCH` with `gcc630` (i.e. either
-`slc7_amd64_gcc630` or `slc6_amd64_gcc630`) to be able to use `icc`.
-
 **Note:** The recipes have been tested on `lxplus` and on `phi3`.
 Currently there is no working recipe to compile with `icc` on LPC.
 
 ##### Section 9.ii.a.a: Lxplus
 
 ```bash
-source /cvmfs/projects.cern.ch/intelsw/psxe/linux/x86_64/2019/compilers_and_libraries_2019.1.144/linux/bin/iccvars.sh intel64
-cmsrel CMSSW_10_4_0_patch1
-pushd CMSSW_10_4_0_patch1/src
+cmsrel CMSSW_11_2_0
+pushd CMSSW_11_2_0/src
 cmsenv
 git cms-init
 popd
@@ -499,9 +495,9 @@ popd
 ```bash
 source /cvmfs/cms.cern.ch/cmsset_default.sh
 source /opt/intel/bin/compilervars.sh intel64
-export SCRAM_ARCH=slc7_amd64_gcc700
-cmsrel CMSSW_10_4_0_patch1
-pushd CMSSW_10_4_0_patch1/src
+export SCRAM_ARCH=slc7_amd64_gcc900
+cmsrel CMSSW_11_2_0
+pushd CMSSW_11_2_0/src
 cmsenv
 git cms-init
 popd
@@ -517,7 +513,7 @@ Assuming you are in the aforementioned parent directory, the following
 recipe will create a scram tool file, and set up scram to use it
 
 ```bash
-pushd CMSSW_10_4_0_patch1/src
+pushd CMSSW_11_2_0/src
 cat <<EOF >mkfit.xml
 <tool name="mkfit" version="1.0">
   <client>
@@ -539,10 +535,10 @@ cmsenv
 The following recipe will pull the necessary CMSSW-side code and build it
 
 ```bash
-# in CMSSW_10_4_0_patch1/src
-git cms-remote add makortel
-git fetch makortel
-git checkout -b mkfit_1040p1 makortel/mkfit_1040p1
+# in CMSSW_11_2_0/src
+git cms-remote add trackreco
+git fetch trackreco
+git checkout -b CMSSW_11_2_0_mkFit_X trackreco/CMSSW_11_2_0_mkFit_X
 git cms-addpkg $(git diff $CMSSW_VERSION --name-only | cut -d/ -f-2 | uniq)
 git cms-checkdeps -a
 scram b -j 12
@@ -551,6 +547,8 @@ scram b -j 12
 ### Section 9.iii Recipes for the impatient on phi3
 
 #### Section 9.iii.a: Offline tracking (initialStep)
+
+**Note: this subsection has not yet been updated to 11_2_0**
 
 Reconstruction up to initialStep (in reality initialStepPreSplitting
 named as initialStep)
@@ -601,6 +599,8 @@ makeTrackValidationPlots.py --extended --ptcut <DQM file> [<another DQM file>]
 * See `makeTrackValidationPlots.py --help` for more options
 
 #### Section 9.iii.b HLT tracking (iter0)
+
+**Note: this subsection has not yet been updated to 11_2_0**
 
 HLT reconstruction
 
@@ -659,8 +659,6 @@ For profiling it is suggested to replace the
 
 ##### Section 9.iv.a.a: Customize functions
 
-* `RecoTracker/MkFit/customizeInitialStepToMkFit.customizeInitialStepToMkFit`
-  * Replaces initialStep track building module with `mkFit`.
 * `RecoTracker/MkFit/customizeInitialStepOnly.customizeInitialStepOnly`
   * Run only the initialStep tracking. In practice this configuration
     runs the initialStepPreSplitting iteration, but named as
