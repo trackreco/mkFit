@@ -229,11 +229,11 @@ public:
 	// Whether or not the track matched to another track and had the lower cand score
 	bool duplicate : 1;
 
-        // Temporary store number of overlaps for Track here
-        int n_overlaps : 8;
-
         // Tracking iteration/algorithm
         unsigned int algorithm : 6;
+
+        // Temporary store number of overlaps for Track here
+        int n_overlaps : 8;
 
         // The remaining bits.
         unsigned int _free_bits_ : 11;
