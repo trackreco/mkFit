@@ -1,19 +1,13 @@
 #include "CandCloner.h"
 
 #include "HitStructures.h"
+#include "SteeringParams.h"
 
 //#define DEBUG
 #include "Debug.h"
 
 namespace
 {
-inline bool sortCandListByHitsChi2(const mkfit::IdxChi2List& cand1,
-                                   const mkfit::IdxChi2List& cand2)
-{
-  if (cand1.nhits == cand2.nhits) return cand1.chi2 < cand2.chi2;
-  return cand1.nhits > cand2.nhits;
-}
-
 inline bool sortCandListByScore(const mkfit::IdxChi2List& cand1,
 				const mkfit::IdxChi2List& cand2)
 {
@@ -22,6 +16,20 @@ inline bool sortCandListByScore(const mkfit::IdxChi2List& cand1,
 }
 
 namespace mkfit {
+
+void CandCloner::Setup(const IterationParams &ip)
+{
+  mp_iteration_params = &ip;
+  for (int iseed = 0; iseed < s_max_seed_range; ++iseed)
+  {
+    t_cands_for_next_lay[iseed].reserve(mp_iteration_params->maxCandsPerSeed);
+  }
+}
+
+void CandCloner::Release()
+{
+  mp_iteration_params = nullptr;
+}
 
 //==============================================================================
 
@@ -65,7 +73,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
       //sort the new hits
       std::sort(hitsForSeed.begin(), hitsForSeed.end(), sortCandListByScore);
 
-      int num_hits = std::min((int) hitsForSeed.size(), Config::maxCandsPerSeed);
+      int num_hits = std::min((int) hitsForSeed.size(), mp_iteration_params->maxCandsPerSeed);
 
       // This is from buffer, we know it was cleared after last usage.
       std::vector<TrackCand> &cv = t_cands_for_next_lay[is - is_beg];
@@ -92,19 +100,21 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
         // Could also skip storing of cands with last -3 hit.
 
         // Squeeze in extra tracks that are better than current one.
-        while (extra_i != extra_e && sortByScoreTrackCand(*extra_i, tc) && n_pushed < Config::maxCandsPerSeed)
+        while (extra_i != extra_e && sortByScoreTrackCand(*extra_i, tc) &&
+               n_pushed < mp_iteration_params->maxCandsPerSeed)
         {
           cv.emplace_back(*extra_i);
           ++n_pushed;
           ++extra_i;
         }
 
-        if (n_pushed >= Config::maxCandsPerSeed)
+        if (n_pushed >= mp_iteration_params->maxCandsPerSeed)
           break;
 
         // set the overlap if we have a true hit and pT > pTCutOverlap
         HitMatch *hm;
-        if (tc.pT() > Config::pTCutOverlap && h2a.hitIdx >= 0 && (hm = ccand.findOverlap(h2a.trkIdx, h2a.hitIdx, h2a.module)))
+        if (tc.pT() > mp_iteration_params->pTCutOverlap && h2a.hitIdx >= 0 &&
+            (hm = ccand.findOverlap(h2a.trkIdx, h2a.hitIdx, h2a.module)))
         {
           tc.addHitIdx(hm->m_hit_idx, m_layer, hm->m_chi2);
           tc.incOverlapCount();
@@ -134,7 +144,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
       }
 
       // Add remaining extras as long as there is still room for them.
-      while (extra_i != extra_e && n_pushed < Config::maxCandsPerSeed)
+      while (extra_i != extra_e && n_pushed < mp_iteration_params->maxCandsPerSeed)
       {
         cv.emplace_back(*extra_i);
         ++n_pushed;

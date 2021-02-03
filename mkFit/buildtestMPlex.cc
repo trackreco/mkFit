@@ -1,11 +1,9 @@
 #include "buildtestMPlex.h"
-
 #include "Matrix.h"
-#include "KalmanUtils.h"
-#include "Propagation.h"
-#include "Simulation.h"
-
 #include "MkBuilder.h"
+#include "MkStdSeqs.h"
+
+#include "tbb/parallel_for.h"
 
 #if defined(USE_VTUNE_PAUSE)
 #include "ittnotify.h"
@@ -88,12 +86,13 @@ namespace
 
   void check_nan_n_silly_candiates(Event &ev)
   {
-    if (Config::nan_n_silly_check_cands_every_layer)
-    {
-      int sc = (int) ev.nan_n_silly_per_layer_count_;
-      if (sc > 0)
-        printf("Nan'n'Silly: Number of silly candidates over all layers = %d\n", sc);
-    }
+    // MIMI -- nan_n_silly_per_layer_count is in MkBuilder, could be in MkJob.
+    // if (Config::nan_n_silly_check_cands_every_layer)
+    // {
+    //   int sc = (int) ev.nan_n_silly_per_layer_count_;
+    //   if (sc > 0)
+    //     printf("Nan'n'Silly: Number of silly candidates over all layers = %d\n", sc);
+    // }
     if (Config::nan_n_silly_check_cands_pre_bkfit)
     {
       int sc = check_nan_n_silly(ev.candidateTracks_, "Pre-bkfit silly check");
@@ -118,9 +117,11 @@ namespace
 // runBuildTestPlexDumbCMSSW
 //==============================================================================
 
-void runBuildingTestPlexDumbCMSSW(Event& ev, MkBuilder& builder)
+void runBuildingTestPlexDumbCMSSW(Event& ev, EventOfHits &eoh, MkBuilder& builder)
 {
-  builder.begin_event(&ev, __func__);
+  MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
+
+  builder.begin_event(&job, &ev, __func__);
 
   if (Config::sim_val_for_cmssw) {
     builder.root_val_dumb_cmssw();
@@ -133,14 +134,16 @@ void runBuildingTestPlexDumbCMSSW(Event& ev, MkBuilder& builder)
 // runBuildTestPlexBestHit
 //==============================================================================
 
-double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
+double runBuildingTestPlexBestHit(Event& ev, EventOfHits &eoh, MkBuilder& builder)
 {
-  builder.begin_event(&ev, __func__);
+  MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
+
+  builder.begin_event(&job, &ev, __func__);
 
   builder.PrepareSeeds();
 
   // EventOfCandidates event_of_cands;
-  builder.find_tracks_load_seeds_BH();
+  builder.find_tracks_load_seeds_BH(ev.seedTracks_);
 
 #ifdef USE_VTUNE_PAUSE
   __SSC_MARK(0x111);  // use this to resume Intel SDE at the same point
@@ -158,14 +161,17 @@ double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
   __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
 
-  //For best hit, the candidateTracks_ vector is the direct input to the backward fit so only need to do find_duplicates once
+  // Hack, get the tracks out.
+  ev.candidateTracks_ = builder.ref_tracks();
+
+  // For best hit, the candidateTracks_ vector is the direct input to the backward fit so only need to do find_duplicates once
   if (Config::quality_val || Config::sim_val || Config::cmssw_val || Config::cmssw_export)
   {
     //Mark tracks as duplicates; if within CMSSW, remove duplicate tracks before backward fit   
     if(Config::removeDuplicates)
     {
-      builder.find_duplicates(ev.candidateTracks_);
-      if(Config::cmssw_export) builder.remove_duplicates(ev.candidateTracks_);
+      StdSeq::find_duplicates(ev.candidateTracks_);
+      if(Config::cmssw_export) StdSeq::remove_duplicates(ev.candidateTracks_);
     }
   }
 
@@ -192,13 +198,15 @@ double runBuildingTestPlexBestHit(Event& ev, MkBuilder& builder)
 // runBuildTestPlex Combinatorial: Standard TBB
 //==============================================================================
 
-double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
+double runBuildingTestPlexStandard(Event& ev, EventOfHits &eoh, MkBuilder& builder)
 {
-  builder.begin_event(&ev, __func__);
+  MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
+
+  builder.begin_event(&job, &ev, __func__);
 
   builder.PrepareSeeds();
 
-  builder.find_tracks_load_seeds();
+  builder.find_tracks_load_seeds(ev.seedTracks_);
 
 #ifdef USE_VTUNE_PAUSE
   __SSC_MARK(0x111);  // use this to resume Intel SDE at the same point
@@ -232,7 +240,7 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
     check_nan_n_silly_bkfit(ev);
   }
 
-  builder.handle_duplicates();
+  StdSeq::handle_duplicates(&ev);
 
   // validation section
   if        (Config::quality_val) {
@@ -254,13 +262,15 @@ double runBuildingTestPlexStandard(Event& ev, MkBuilder& builder)
 // runBuildTestPlex Combinatorial: CloneEngine TBB
 //==============================================================================
 
-double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
+double runBuildingTestPlexCloneEngine(Event& ev, EventOfHits &eoh, MkBuilder& builder)
 {
-  builder.begin_event(&ev, __func__);
+  MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
+
+  builder.begin_event(&job, &ev, __func__);
 
   builder.PrepareSeeds();
 
-  builder.find_tracks_load_seeds();
+  builder.find_tracks_load_seeds(ev.seedTracks_);
 
 #ifdef USE_VTUNE_PAUSE
   __SSC_MARK(0x111);  // use this to resume Intel SDE at the same point
@@ -297,7 +307,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, MkBuilder& builder)
     check_nan_n_silly_bkfit(ev);
   }
 
-  builder.handle_duplicates();
+  StdSeq::handle_duplicates(&ev);
 
   // validation section
   if        (Config::quality_val) {

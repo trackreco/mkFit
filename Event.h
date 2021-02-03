@@ -3,8 +3,6 @@
 
 #include "Track.h"
 #include "Validation.h"
-#include "Geometry.h"
-#include "BinInfoUtils.h"
 #include "Config.h"
 
 #include <mutex>
@@ -17,22 +15,14 @@ class Event
 {
 public:
   explicit Event(int evtID);
-  Event(const Geometry& g, Validation& v, int evtID);
+  Event(Validation& v, int evtID);
 
   void Reset(int evtID);
-  void RemapHits(TrackVec & tracks);
-  void Simulate();
-  void Segment(BinInfoMap & segmentMap);
-  void Seed(const BinInfoMap & segmentMap);
-  void Find(const BinInfoMap & segmentMap);
-  void Fit();
   void Validate();
   void PrintStats(const TrackVec&, TrackExtraVec&);
   
   int  evtID() const {return evtID_;}
   void resetLayerHitMap(bool resetSimHits);
-
-  int  nextMCHitID() { return mcHitIDCounter_++; }
 
   void write_out(DataFile &data_file);
   void read_in  (DataFile &data_file, FILE *in_fp=0);
@@ -54,17 +44,12 @@ public:
 
   void print_tracks(const TrackVec& tracks, bool print_hits) const;
 
-  const Geometry& geom_;
   Validation& validation_;
 
 private:
   int  evtID_;
 
-  void reset_nan_n_silly_counters();
-
 public:
-  std::mutex       mcGatherMutex_;
-  std::atomic<int> mcHitIDCounter_;
   std::vector<HitVec> layerHits_;
   std::vector<std::vector<uint64_t> > layerHitMasks_;//aligned with layerHits_
   MCHitInfoVec simHitsInfo_;
@@ -74,15 +59,6 @@ public:
   // validation sets these, so needs to be mutable
   mutable TrackExtraVec simTracksExtra_, seedTracksExtra_, candidateTracksExtra_, fitTracksExtra_;
   mutable TrackExtraVec cmsswTracksExtra_;
-
-  // counters for bad candidates during finding.
-  std::atomic<int> nan_n_silly_per_layer_count_;
-
-  // XXXXMT: Preliminary. Separators into seed/candidate arrays.
-  // This will have to be extended for multi-pass tracking.
-  int seedEtaSeparators_[5];
-  int seedMinLastLayer_[5];
-  int seedMaxLastLayer_[5];
 
   TSVec simTrackStates_;
   static std::mutex printmutex;

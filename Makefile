@@ -1,14 +1,8 @@
 include Makefile.config
 
 LIB_CORE     := lib/libMicCore.so
-LIB_CORE_MIC := lib/libMicCore-mic.so
 
-
-TGTS := ${LIB_CORE} main
-
-ifdef KNC_BUILD
-  TGTS += ${LIB_CORE_MIC} main-mic
-endif
+TGTS := ${LIB_CORE}
 
 .PHONY: all clean distclean
 
@@ -65,26 +59,17 @@ main: ${AUTO_TGTS} ${LIB_CORE} main.o
 ${OBJS}: %.o: %.cc %.d
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<
 
-
-ifdef KNC_BUILD
-
-OBJS_MIC      := $(OBJS:.o=.om)
-CORE_OBJS_MIC := $(CORE_OBJS:.o=.om)
-
-${LIB_CORE_MIC}: ${CORE_OBJS_MIC}
-	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} ${CORE_OBJS_MIC} -shared -o $@ ${LDFLAGS_MIC}
-
-main-mic: ${AUTO_TGTS} ${LIB_CORE_MIC} main.om 
-	${CXX} ${CXXFLAGS} ${VEC_MIC} ${LDFLAGS_NO_ROOT} -o $@ main.om ${LDFLAGS_MIC} -Llib -lMicCore-mic -Wl,-rpath=lib
-
-${OBJS_MIC}: %.om: %.cc
-	${CXX} ${CPPFLAGS_NO_ROOT} ${CXXFLAGS} ${VEC_MIC} -c -o $@ $<
-
-endif
-
-
 echo:
-	-echo CXX = ${CXX}
+	@echo "CXX=${CXX}"
 
 echo_cc_defs:
 	${CXX} -dM -E -mavx2 - < /dev/null
+
+echo-srcs:
+	@echo ${SRCS}
+
+echo-flags:
+	@echo "CPPFLAGS=${CPPFLAGS}"
+
+echo-tbb:
+	@echo "TBB_GCC=${TBB_GCC}, TBB_PREFIX=${TBB_PREFIX}, TBB_ROOT=${TBB_ROOT}"

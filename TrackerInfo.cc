@@ -14,11 +14,12 @@ void LayerInfo::set_next_layers(int nb, int nep, int nen)
   m_next_barrel = nb; m_next_ecap_pos = nep; m_next_ecap_neg = nen;
 }
 
-void LayerInfo::set_selection_limits(float p1, float p2, float q1, float q2)
-{
-  m_select_min_dphi = p1; m_select_max_dphi = p2;
-  m_select_min_dq   = q1; m_select_max_dq   = q2;
-}
+  /*MM: moving out to IterationLayerConfig*/
+//void LayerInfo::set_selection_limits(float p1, float p2, float q1, float q2)
+//{
+//  m_select_min_dphi = p1; m_select_max_dphi = p2;
+//  m_select_min_dq   = q1; m_select_max_dq   = q2;
+//}
 
 void LayerInfo::set_r_hole_range(float rh1, float rh2)
 {
@@ -114,7 +115,7 @@ namespace
   const char *search_path[] = { "", "../Geoms/", "Geoms/", "../", 0 };
 }
 
-void TrackerInfo::ExecTrackerInfoCreatorPlugin(const std::string& base, TrackerInfo &ti, bool verbose)
+void TrackerInfo::ExecTrackerInfoCreatorPlugin(const std::string& base, TrackerInfo &ti, IterationsInfo &ii, bool verbose)
 {
 #ifdef __MIC__
   std::string soname = base + "-mic.so";
@@ -145,7 +146,7 @@ void TrackerInfo::ExecTrackerInfoCreatorPlugin(const std::string& base, TrackerI
       if (!p2f) { perror("dlsym failed"); exit(2); }
 
       TrackerInfoCreator_foo foo = (TrackerInfoCreator_foo)(*p2f);
-      foo(ti, verbose);
+      foo(ti, ii, verbose);
 
       // XXXXMT4Dan
       // With dlclose I saw (rarely) valgrind errors saying

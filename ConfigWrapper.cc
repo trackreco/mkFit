@@ -29,7 +29,7 @@ namespace mkfit {
         break;
       }
 
-      TrackerInfo::ExecTrackerInfoCreatorPlugin(Config::geomPlugin, Config::TrkInfo);
+      TrackerInfo::ExecTrackerInfoCreatorPlugin(Config::geomPlugin, Config::TrkInfo, Config::ItrInfo);
 
       fillZRgridME();
     }

@@ -36,10 +36,10 @@ namespace
     return -1.0f * std::log( std::tan(getTheta(r,z)/2.0f) );
   }
 
-  float getEta(float theta)
-  {
-    return -1.0f * std::log( std::tan(theta/2.0f) );
-  }
+  // float getEta(float theta)
+  // {
+  //   return -1.0f * std::log( std::tan(theta/2.0f) );
+  // }
 
   float getTgTheta(float eta)
   {
@@ -122,7 +122,7 @@ namespace
         li.m_q_bin = 1.5;
         li.set_selection_limits(0.01, 0.05, 1.0, 2.0);
 
-	li.m_is_seed_lyr = ((lid - 9) < 4);
+        li.m_is_seed_lyr = ((lid - 9) < 4);
       }
       {
         lid += 9;
@@ -146,7 +146,7 @@ namespace
         li.m_q_bin = 1.5;
         li.set_selection_limits(0.01, 0.05, 1.0, 2.0);
 
-	li.m_is_seed_lyr = ((lid - 18) < 4);
+        li.m_is_seed_lyr = ((lid - 18) < 4);
       }
     }
 
@@ -216,10 +216,11 @@ namespace
 
   //============================================================================
 
-  void Create_CylCowWLids(TrackerInfo& ti, bool verbose)
+  void Create_CylCowWLids(TrackerInfo& ti, IterationsInfo& ii, bool verbose)
   {
     Config::nTotalLayers     = 10 + 2 * 9;
-    Config::nlayers_per_seed = 4;
+    // MIMI -- in IterationParams
+    // Config::nlayers_per_seed = 4;
 
     Config::finding_requires_propagation_to_hit_pos = false;
     Config::finding_inter_layer_pflags = PropagationFlags(PF_none);

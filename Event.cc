@@ -1,11 +1,4 @@
 #include "Event.h"
-
-#include "Simulation.h"
-#include "KalmanUtils.h"
-#include "seedtest.h"
-#include "buildtest.h"
-#include "fittest.h"
-#include "ConformalUtils.h"
 #include "TrackerInfo.h"
 
 //#define DEBUG
@@ -19,7 +12,6 @@
 
 namespace
 {
-  mkfit::Geometry dummyGeometry;
   std::unique_ptr<mkfit::Validation> dummyValidation( mkfit::Validation::make_validation("dummy") );
 }
 
@@ -27,44 +19,18 @@ namespace mkfit {
 
 std::mutex Event::printmutex;
 
-inline bool sortByPhi(const Hit& hit1, const Hit& hit2)
-{
-  return hit1.phi()<hit2.phi();
-}
-
-static bool tracksByPhi(const Track& t1, const Track& t2)
-{
-  return t1.posPhi()<t2.posPhi();
-}
-
-inline bool sortByEta(const Hit& hit1, const Hit& hit2){
-  return hit1.eta()<hit2.eta();
-}
-
-// within a layer with a "reasonable" geometry, ordering by Z is the same as eta
-inline bool sortByZ(const Hit& hit1, const Hit& hit2){
-  return hit1.z()<hit2.z();
-}
-
-void Event::reset_nan_n_silly_counters()
-{
-  nan_n_silly_per_layer_count_ = 0;
-}
-
 Event::Event(int evtID) :
-  geom_(dummyGeometry), validation_(*dummyValidation),
-  evtID_(evtID), mcHitIDCounter_(0)
+  validation_(*dummyValidation),
+  evtID_(evtID)
 {
-  reset_nan_n_silly_counters();
   layerHits_.resize(Config::nTotalLayers);
   layerHitMasks_.resize(Config::nTotalLayers);
 }
 
-Event::Event(const Geometry& g, Validation& v, int evtID) :
-  geom_(g), validation_(v),
-  evtID_(evtID), mcHitIDCounter_(0)
+Event::Event(Validation& v, int evtID) :
+  validation_(v),
+  evtID_(evtID)
 {
-  reset_nan_n_silly_counters();
   layerHits_.resize(Config::nTotalLayers);
   layerHitMasks_.resize(Config::nTotalLayers);
 
@@ -74,8 +40,6 @@ Event::Event(const Geometry& g, Validation& v, int evtID) :
 void Event::Reset(int evtID)
 {
   evtID_ = evtID;
-  mcHitIDCounter_ = 0;
-  reset_nan_n_silly_counters();
 
   for (auto&& l : layerHits_) { l.clear(); }
   for (auto&& l : layerHitMasks_) { l.clear(); }
@@ -94,245 +58,6 @@ void Event::Reset(int evtID)
   cmsswTracksExtra_.clear();
 
   validation_.resetValidationMaps(); // need to reset maps for every event.
-}
-
-void Event::RemapHits(TrackVec & tracks)
-{
-  std::unordered_map<int,int> simHitMap;
-  int max_layer = Config::nTotalLayers;
-  for (int ilayer = 0; ilayer < max_layer; ++ilayer)
-  {
-    const auto & hit_vec = layerHits_[ilayer];
-    const auto   size = hit_vec.size();
-    for (size_t index = 0; index < size; ++index)
-    {
-      simHitMap[hit_vec[index].mcHitID()] = index;
-    }
-  }
-  for (auto&& track : tracks)
-  {
-    for (int i = 0; i < track.nTotalHits(); ++i)
-    {
-      int hitidx = track.getHitIdx(i);
-      int hitlyr = track.getHitLyr(i);
-      if (hitidx >= 0)
-      {
-        track.setHitIdx(i, simHitMap[layerHits_[hitlyr][hitidx].mcHitID()]);
-      }
-    }
-  }
-}
-
-void Event::Simulate()
-{
-  simTracks_.resize(Config::nTracks);
-  simHitsInfo_.reserve(Config::nAvgSimHits * Config::nTracks);
-  simTrackStates_.reserve(Config::nAvgSimHits * Config::nTracks);
-
-  for (auto&& l : layerHits_) {
-    l.clear();
-    l.reserve(Config::nTracks);
-  }
-  for (auto&& l : layerHitMasks_) {
-    l.clear();
-    l.reserve(Config::nTracks);
-  }
-
-#ifdef TBB
-  parallel_for( tbb::blocked_range<size_t>(0, Config::nTracks, 100), 
-      [&](const tbb::blocked_range<size_t>& itracks) {
-
-    const Geometry tmpgeom(geom_.clone()); // USolids isn't thread safe??
-    for (auto itrack = itracks.begin(); itrack != itracks.end(); ++itrack) {
-#else
-    const Geometry& tmpgeom(geom_);
-    for (int itrack=0; itrack<Config::nTracks; ++itrack) {
-#endif
-      //create the simulated track
-      SVector3 pos;
-      SVector3 mom;
-      SMatrixSym66 covtrk;
-      HitVec hits;
-      MCHitInfoVec hitinfos;
-      TSVec  initialTSs;
-      // int starting_layer  = 0; --> for displaced tracks, may want to consider running a separate Simulate() block with extra parameters
-
-      int q=0;//set it in setup function
-      // do the simulation
-      setupTrackByToyMC(pos,mom,covtrk,hits,hitinfos,*this,itrack,q,tmpgeom,initialTSs); 
-
-      // convert from global cartesian to CCS
-      float pt = sqrt(mom[0]*mom[0]+mom[1]*mom[1]);
-      mom=SVector3(1./pt,atan2(mom[1],mom[0]),atan2(pt,mom[2]));
-      for (size_t its = 0; its < initialTSs.size(); its++){
-	initialTSs[its].convertFromCartesianToCCS();
-      }
-
-      // MT: I'm putting in a mutex for now ...
-      std::lock_guard<std::mutex> lock(mcGatherMutex_);
-
-      simTracks_[itrack] = Track(q,pos,mom,covtrk,0.0f);
-      auto& sim_track = simTracks_[itrack];
-      sim_track.setLabel(itrack);
-
-      // XXKM4MT
-      // Sorta assumes one hit per layer.
-      // This really would only matter for validation and seeding...
-      // Could imagine making an inherited class for sim tracks that keeps tracks overlaps
-      assert(hits.size() == hitinfos.size());
-      for (size_t i = 0; i < hits.size(); ++i)
-      {
-        // set to the correct hit index after sorting
-        sim_track.addHitIdx(layerHits_[hitinfos[i].layer_].size(), hitinfos[i].layer_, 0.0f);
-        layerHits_[hitinfos[i].layer_].emplace_back(hits[i]);
-        layerHitMasks_[hitinfos[i].layer_].emplace_back(0);//keep in sync, even if not used
-
-        simHitsInfo_.emplace_back(hitinfos[i]);
-	if (Config::sim_val || Config::fit_val) 
-        {
-	  simTrackStates_.emplace_back(initialTSs[i]);
-	}
-      }
-    }
-#ifdef TBB
-  });
-#endif
-
-  // do some work to ensure everything is aligned after multithreading 	
-  std::unordered_map<int,int> mcHitIDMap;
-  for (size_t ihit = 0; ihit < simHitsInfo_.size(); ihit++)
-  {
-    mcHitIDMap[simHitsInfo_[ihit].mcHitID()] = ihit;
-  }
-
-  std::sort(simHitsInfo_.begin(),   simHitsInfo_.end(),
-	    [](const MCHitInfo& a, const MCHitInfo& b)
-	    { return a.mcHitID() < b.mcHitID(); });
-		
-  TSVec tmpTSVec(simTrackStates_.size());
-  for (size_t its = 0; its < simTrackStates_.size(); its++)
-  {
-    tmpTSVec[its] = simTrackStates_[mcHitIDMap[its]];
-  }
-  simTrackStates_.swap(tmpTSVec);
-}
-
-void Event::Segment(BinInfoMap & segmentMap)
-{
-#ifdef DEBUG
-  bool debug=true;
-#endif
-  segmentMap.resize(Config::nTotalLayers);
-
-  //sort in phi and dump hits per layer, fill phi partitioning
-  for (size_t ilayer=0; ilayer<layerHits_.size(); ++ilayer) {
-    dprint("Hits in layer=" << ilayer);
-    
-    segmentMap[ilayer].resize(Config::nEtaPart);    
-    // eta first then phi
-    std::sort(layerHits_[ilayer].begin(), layerHits_[ilayer].end(), sortByZ);
-    std::vector<int> lay_eta_bin_count(Config::nEtaPart);
-    for (size_t ihit=0;ihit<layerHits_[ilayer].size();++ihit) {
-      int etabin = getEtaPartition(layerHits_[ilayer][ihit].eta());
-      dprint("ihit: " << ihit << " eta: " << layerHits_[ilayer][ihit].eta() << " etabin: " << etabin);
-      lay_eta_bin_count[etabin]++;
-    }
-    //now set index and size in partitioning map and then sort the bin by phi
-    
-    int lastEtaIdxFound = -1;
-    int lastPhiIdxFound = -1;
-
-    for (int etabin=0; etabin<Config::nEtaPart; ++etabin) {
-      int firstEtaBinIdx = lastEtaIdxFound+1;
-      int etaBinSize = lay_eta_bin_count[etabin];
-      if (etaBinSize>0){
-        lastEtaIdxFound+=etaBinSize;
-      }
-
-      //sort by phi in each "eta bin"
-      std::sort(layerHits_[ilayer].begin() + firstEtaBinIdx,layerHits_[ilayer].begin() + (etaBinSize+firstEtaBinIdx), sortByPhi); // sort from first to last in eta
-      std::vector<int> lay_eta_phi_bin_count(Config::nPhiPart);
-
-      for(int ihit = firstEtaBinIdx; ihit < etaBinSize+firstEtaBinIdx; ++ihit){
-        dprint("ihit: " << ihit << " r(layer): " << layerHits_[ilayer][ihit].r() << "(" << ilayer << ") phi: " 
-	                << layerHits_[ilayer][ihit].phi() << " phipart: " << getPhiPartition(layerHits_[ilayer][ihit].phi()) << " eta: "
-	                << layerHits_[ilayer][ihit].eta() << " etapart: " << getEtaPartition(layerHits_[ilayer][ihit].eta()));
-        int phibin = getPhiPartition(layerHits_[ilayer][ihit].phi());
-        lay_eta_phi_bin_count[phibin]++;
-      }
-
-      for (int phibin=0; phibin<Config::nPhiPart; ++phibin) {
-        int firstPhiBinIdx = lastPhiIdxFound+1;
-        int phiBinSize = lay_eta_phi_bin_count[phibin];
-        BinInfo phiBinInfo(firstPhiBinIdx,phiBinSize);
-        segmentMap[ilayer][etabin].push_back(phiBinInfo);
-        if (phiBinSize>0){
-          lastPhiIdxFound+=phiBinSize;
-        }
-#ifdef DEBUG
-        if ((debug) && (phiBinSize !=0)) dprintf("ilayer: %1u etabin: %1u phibin: %2u first: %2u last: %2u \n", 
-                                                 ilayer, etabin, phibin, 
-                                                 segmentMap[ilayer][etabin][phibin].first, 
-                                                 segmentMap[ilayer][etabin][phibin].second+segmentMap[ilayer][etabin][phibin].first
-                                                 );
-#endif
-      } // end loop over storing phi index
-    } // end loop over storing eta index
-  } // end loop over layers
-
-#ifdef DEBUG
-  for (int ilayer = 0; ilayer < Config::nLayers; ilayer++) {
-    dmutex_guard;
-    int etahitstotal = 0;
-    for (int etabin = 0; etabin < Config::nEtaPart; etabin++){
-      int etahits = segmentMap[ilayer][etabin][Config::nPhiPart-1].first + segmentMap[ilayer][etabin][Config::nPhiPart-1].second - segmentMap[ilayer][etabin][0].first;
-      std::cout << "etabin: " << etabin << " hits in bin: " << etahits << std::endl;
-      etahitstotal += etahits;
-
-      for (int phibin = 0; phibin < Config::nPhiPart; phibin++){
-	//	if (segmentMap[ilayer][etabin][phibin].second > 3) {std::cout << "   phibin: " << phibin << " hits: " << segmentMap[ilayer][etabin][phibin].second << std::endl;}
-      }
-    }
-    std::cout << "layer: " << ilayer << " totalhits: " << etahitstotal << std::endl;
-  }
-#endif
-
-  // need to reset simtrack hit indices after sorting!
-  RemapHits(simTracks_);
-}
-
-void Event::Seed(const BinInfoMap & segmentMap)
-{
-#ifdef ENDTOEND
-  buildSeedsByRoadSearch(seedTracks_,seedTracksExtra_,layerHits_,segmentMap,*this);
-  //  buildSeedsByRoadTriplets(seedTracks_,seedTracksExtra_,layerHits_,segmentMap,*this);
-  //buildSeedsByRZFirstRPhiSecond(seedTracks_,seedTracksExtra_,layerHits_,segmentMap,*this);
-#else
-  buildSeedsByMC(simTracks_,seedTracks_,seedTracksExtra_,*this);
-  simTracksExtra_ = seedTracksExtra_;
-#endif
-  std::sort(seedTracks_.begin(), seedTracks_.end(), tracksByPhi);
-  validation_.alignTracks(seedTracks_,seedTracksExtra_,true);   // if we sort here, also have to sort seedTracksExtra and redo labels.
-}
-
-void Event::Find(const BinInfoMap & segmentMap)
-{
-  buildTracksBySeeds(segmentMap,*this);
-  //  buildTracksByLayers(segmentMap,*this);
-
-  // From CHEP-2015
-  // buildTestSerial(*this, Config::nlayers_per_seed, Config::maxCandsPerSeed, Config::chi2Cut, Config::nSigma, Config::minDPhi);
-}
-
-void Event::Fit()
-{
-  fitTracks_.resize(candidateTracks_.size());
-  fitTracksExtra_.resize(candidateTracks_.size());
-#ifdef ENDTOEND
-  runFittingTest(*this, candidateTracks_, candidateTracksExtra_);
-#else
-  runFittingTest(*this, simTracks_, simTracksExtra_);
-#endif
 }
 
 void Event::Validate()
@@ -837,7 +562,6 @@ void Event::print_tracks(const TrackVec& tracks, bool print_hits) const
 
 int Event::clean_cms_seedtracks()
 {
-
   const float etamax_brl = Config::c_etamax_brl;
   const float dpt_brl_0  = Config::c_dpt_brl_0;
   const float dpt_ec_0   = Config::c_dpt_ec_0;
@@ -925,19 +649,19 @@ int Event::clean_cms_seedtracks()
       ////// - 20% if track w/ 5<pT<10 GeV
       ////// - 25% if track w/ pT>10 GeV
       if(thisDPt>dpt_brl_0*(Pt1) && Pt1<ptmax_0 && std::abs(Eta1)<etamax_brl)
-	continue;
+        continue;
 
       else if(thisDPt>dpt_ec_0*(Pt1) && Pt1<ptmax_0 && std::abs(Eta1)>etamax_brl)
-	continue;
+        continue;
 
       else if(thisDPt>dpt_1*(Pt1) && Pt1>ptmax_0 && Pt1<ptmax_1)
-	continue;
+        continue;
 
       else if(thisDPt>dpt_2*(Pt1) && Pt1>ptmax_1 && Pt1<ptmax_2)
-	continue;
+        continue;
 
       else if(thisDPt>dpt_3*(Pt1) && Pt1>ptmax_2)
-	continue;
+        continue;
 
 
       const float Eta2 = eta[tss];
@@ -965,18 +689,17 @@ int Event::clean_cms_seedtracks()
       ////// Reject tracks within dR-dz elliptical window.
       ////// Adaptive thresholds, based on observation that duplicates are more abundant at large pseudo-rapidity and low track pT
       if(std::abs(Eta1)<etamax_brl){
-	if(dz2/dzmax2_brl+dr2/drmax2_brl<1.0f)
-	  writetrack[tss]=false;	
+        if(dz2/dzmax2_brl+dr2/drmax2_brl<1.0f)
+          writetrack[tss]=false;	
       }
       else if(Pt1>ptmin_hpt){
-	if(dz2/dzmax2_hpt+dr2/drmax2_hpt<1.0f)
-	  writetrack[tss]=false;
+        if(dz2/dzmax2_hpt+dr2/drmax2_hpt<1.0f)
+          writetrack[tss]=false;
       }
       else {
-	if(dz2/dzmax2_els+dr2/drmax2_els<1.0f)
-	  writetrack[tss]=false;
+        if(dz2/dzmax2_els+dr2/drmax2_els<1.0f)
+          writetrack[tss]=false;
       }
-
     }
    
     if(writetrack[ts])
@@ -1046,7 +769,7 @@ void Event::relabel_cmsswtracks_from_seeds()
     {
       if (cmsswTracks_[icmssw].label() == static_cast<int>(iseed))
       {
-	cmsswLabelMap[icmssw] = seedTracks_[iseed].label();
+        cmsswLabelMap[icmssw] = seedTracks_[iseed].label();
   	break;
       }
     }

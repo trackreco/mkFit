@@ -32,7 +32,9 @@ void findSeedsByRoadSearch(TripletIdxConVec & seed_idcs, std::vector<LayerOfHits
   bool debug(false);
 #endif
 
-  const float seed_z2cut = (Config::nlayers_per_seed * Config::fRadialSpacing) / std::tan(2.0f*std::atan(std::exp(-1.0f*Config::dEtaSeedTrip)));
+  // MIMI hack: Config::nlayers_per_seed = 4
+  // const float seed_z2cut = (Config::nlayers_per_seed * Config::fRadialSpacing) / std::tan(2.0f*std::atan(std::exp(-1.0f*Config::dEtaSeedTrip)));
+  // const float seed_z2cut = (4 * Config::fRadialSpacing) / std::tan(2.0f*std::atan(std::exp(-1.0f*Config::dEtaSeedTrip)));
 
   // 0 = first layer, 1 = second layer, 2 = third layer
   const LayerOfHits& lay1_hits = evt_lay_hits[1];
@@ -51,7 +53,7 @@ void findSeedsByRoadSearch(TripletIdxConVec & seed_idcs, std::vector<LayerOfHits
 	dprint(" predphi: " << hit1.phi() << "+/-" << Config::lay01angdiff << " predz: " << hit1.z()/2.0f << "+/-" << Config::seed_z0cut/2.0f << std::endl);
 
 	std::vector<int> cand_hit0_indices; // pass by reference
-	lay0_hits.SelectHitIndices(hit1_z/2.0f,hit1.phi(),Config::seed_z0cut/2.0f,Config::lay01angdiff,cand_hit0_indices,true,false);
+	// MIMI lay0_hits.SelectHitIndices(hit1_z/2.0f,hit1.phi(),Config::seed_z0cut/2.0f,Config::lay01angdiff,cand_hit0_indices,true,false);
 	// loop over first layer hits
 	for (auto&& ihit0 : cand_hit0_indices)
 	{
@@ -70,7 +72,7 @@ void findSeedsByRoadSearch(TripletIdxConVec & seed_idcs, std::vector<LayerOfHits
 	  // negative points of intersection with third layer
 	  float lay2_negx = 0.0f, lay2_negy = 0.0f;
 	  intersectThirdLayer(aneg,bneg,hit1_x,hit1_y,lay2_negx,lay2_negy);
-	  const float lay2_negphi = getPhi(lay2_negx,lay2_negy);
+      // MIMI const float lay2_negphi = getPhi(lay2_negx,lay2_negy);
 
 	  // center of positive curved track
 	  const float apos = 0.5f*((hit0_x+hit1_x)+(hit0_y-hit1_y)*quad);
@@ -79,12 +81,12 @@ void findSeedsByRoadSearch(TripletIdxConVec & seed_idcs, std::vector<LayerOfHits
 	  // positive points of intersection with third layer
 	  float lay2_posx = 0.0f, lay2_posy = 0.0f;
 	  intersectThirdLayer(apos,bpos,hit1_x,hit1_y,lay2_posx,lay2_posy);
-	  const float lay2_posphi = getPhi(lay2_posx,lay2_posy);
+	  // MIMI const float lay2_posphi = getPhi(lay2_posx,lay2_posy);
 
 	  std::vector<int> cand_hit2_indices;
-	  lay2_hits.SelectHitIndices((2.0f*hit1_z-hit0_z),(lay2_posphi+lay2_negphi)/2.0f,
-				     seed_z2cut,(lay2_posphi-lay2_negphi)/2.0f,
-				     cand_hit2_indices,true,false);
+      // MIMI lay2_hits.SelectHitIndices((2.0f*hit1_z-hit0_z),(lay2_posphi+lay2_negphi)/2.0f,
+      // MIMI seed_z2cut,(lay2_posphi-lay2_negphi)/2.0f,
+      // MIMI cand_hit2_indices,true,false);
 
 	  dprint(" ihit0: " << ihit0 << " mcTrackID: " << hit0.mcTrackID(ev->simHitsInfo_) << " phi: " << hit0.phi() << " z: " << hit0.z());
 	  dprint("  predphi: " << (lay2_posphi+lay2_negphi)/2.0f << "+/-" << (lay2_posphi-lay2_negphi)/2.0f << " predz: " << 2.0f*hit1_z-hit0_z << "+/-" << seed_z2cut << std::endl);

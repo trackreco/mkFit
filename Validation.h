@@ -1,7 +1,6 @@
 #ifndef _validation_
 #define _validation_
 #include "Track.h"
-#include "BinInfoUtils.h"
 
 namespace mkfit {
 

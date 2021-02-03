@@ -7,6 +7,7 @@
 
 namespace mkfit {
 
+class IterationParams;
 class EventOfCombCandidates;
 
 //#define CC_TIME_LAYER
@@ -30,15 +31,13 @@ public:
   CandCloner()
   {
     t_cands_for_next_lay.resize(s_max_seed_range);
-    for (int iseed = 0; iseed < s_max_seed_range; ++iseed)
-    {
-      t_cands_for_next_lay[iseed].reserve(Config::maxCandsPerSeed);
-    }
   }
 
+  void Setup(const IterationParams &ip);
+  void Release();
+
   ~CandCloner()
-  {
-  }
+  {}
 
   void begin_eta_bin(EventOfCombCandidates               *e_o_ccs,
                      std::vector<std::pair<int,int>>     *update_list,
@@ -170,6 +169,7 @@ public:
   int  m_idx_max, m_idx_max_prev;
   std::vector<std::vector<IdxChi2List>> m_hits_to_add;
 
+  const IterationParams               *mp_iteration_params = nullptr;
   EventOfCombCandidates               *mp_event_of_comb_candidates;
   std::vector<std::pair<int,int>>     *mp_kalman_update_list;
   std::vector<std::vector<TrackCand>> *mp_extra_cands;

@@ -1,12 +1,14 @@
 #include "Config.h"
 
 #include "TrackerInfo.h"
+#include "mkFit/SteeringParams.h"
 
 namespace mkfit {
 
 namespace Config
 {
-  TrackerInfo TrkInfo;
+  TrackerInfo    TrkInfo;
+  IterationsInfo ItrInfo;
 
   int nTracks = 10000;
   int nEvents = 20;
@@ -15,12 +17,6 @@ namespace Config
   int nTotalLayers = -1;
 
   std::string geomPlugin = "CylCowWLids";
-
-  int maxCandsPerSeed  = 6; // cmssw tests: 6 (GC had 3) \_ set from geom plugin
-  int maxHolesPerCand  = 2; // cmssw tests: 12           /
-  int maxConsecHoles   = 99; // cmssw tests: 12           /
-
-  int maxCandsPerEtaBin; // Recalculated after config is read ... should be removed.
 
   // Multi threading and Clone engine configuration
   int   numThreadsFinder = 1;
@@ -33,8 +29,9 @@ namespace Config
 #endif
 
   int   finderReportBestOutOfN = 1;
-
-  int   nlayers_per_seed = 3; // can be overriden from Geom plugin; a very confusing variable :)
+  
+  /*MM: moving out to IterationParams*/
+  //int   nlayers_per_seed = 3; // can be overriden from Geom plugin; a very confusing variable :)
   int   numSeedsPerTask = 32;
   
   // number of hits per task for finding seeds
@@ -104,7 +101,6 @@ namespace Config
 
   void RecalculateDependentConstants()
   {
-    maxCandsPerEtaBin = std::max(100, maxCandsPerSeed * (nTracks+100) / nEtaPart);
   }
 }
 

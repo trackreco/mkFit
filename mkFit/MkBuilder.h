@@ -25,7 +25,13 @@ namespace mkfit {
 class TrackerInfo;
 class LayerInfo;
 
-//------------------------------------------------------------------------------
+class IterationConfig;
+
+class Event;
+
+//==============================================================================
+// Execution context -- Pools of helper objects
+//==============================================================================
 
 struct ExecutionContext
 {
@@ -47,10 +53,39 @@ struct ExecutionContext
 extern ExecutionContext g_exe_ctx;
 
 //==============================================================================
-// The usual
+// MkJob
 //==============================================================================
 
-class Event;
+class MkJob
+{
+public:
+  const TrackerInfo         &m_trk_info;
+  // Config &config; // If we want to get rid of namespace / global config
+  const IterationConfig     &m_iter_config;
+  const EventOfHits         &m_event_of_hits;
+
+  // Move in what is in IterationSeeds ? seeds and seed info stuff
+  // Yes.
+  // And also the hitmasks.
+
+  // TrackVec - output - found tracks
+  // TrackVec - output - fitted tracks
+  // Why -- really need export from EventOfCombinedCandidates.
+  // BestHit is special in this respect, sigh, etc.
+
+        int  num_regions()   const { return m_iter_config.m_n_regions; }
+  const auto regions_begin() const { return m_iter_config.m_region_order.begin(); }
+  const auto regions_end()   const { return m_iter_config.m_region_order.end(); }
+
+  const auto& steering_params(int i) { return m_iter_config.m_steering_params[i]; }
+
+  const auto& params() const { return m_iter_config.m_params; }
+};
+
+
+//==============================================================================
+// MkBuilder
+//==============================================================================
 
 class MkBuilder
 {
@@ -58,17 +93,31 @@ protected:
   void fit_one_seed_set(TrackVec& simtracks, int itrack, int end, MkFitter *mkfttr,
                         const bool is_brl[]);
 
-  Event                 *m_event;
-  EventOfHits            m_event_of_hits;
-  EventOfCombCandidates  m_event_of_comb_cands;
+  MkJob     *m_job  = nullptr;
+
+  // MIMI -- To be removed. Used by seed processing / validation that has yet to be moved.
+  Event     *m_event = nullptr;
+
+  // State for BestHit
+  TrackVec                        m_tracks;
+
+  // State for Std / CloneEngine
+  EventOfCombCandidates           m_event_of_comb_cands;
 
   int m_cnt=0, m_cnt1=0, m_cnt2=0, m_cnt_8=0, m_cnt1_8=0, m_cnt2_8=0, m_cnt_nomc=0;
 
   FindingFoos      m_fndfoos_brl, m_fndfoos_ec;
-  SteeringParams   m_steering_params[5];
-  std::vector<int> m_regions;
+
+  // Per-region seed information
+  IntVec           m_seedEtaSeparators;
+  IntVec           m_seedMinLastLayer;
+  IntVec           m_seedMaxLastLayer;
+
+  std::atomic<int> m_nan_n_silly_per_layer_count;
 
 public:
+  using insert_seed_foo = void(const Track &);
+
   typedef std::vector<std::pair<int,int>> CandIdx_t;
 
   MkBuilder();
@@ -82,16 +131,19 @@ public:
     g_exe_ctx.populate(Config::numThreadsFinder);
   }
 
-  int total_cands() const { 
+  int total_cands() const
+  { 
     int res = 0; 
     for (auto const& icomb: m_event_of_comb_cands.m_candidates) res += icomb.size();
     return res;
   }
 
-  std::pair<int,int> max_hits_layer() const {
+  std::pair<int,int> max_hits_layer(const EventOfHits &eoh) const
+  {
     int maxN = 0;
     int maxL = 0;
-    for (auto const& lh : m_event_of_hits.m_layers_of_hits){
+    for (auto const& lh : eoh.m_layers_of_hits)
+    {
       auto lsize = static_cast<int>(lh.m_hit_phis.size());
       if (lsize > maxN){
         maxN = lsize;
@@ -101,19 +153,21 @@ public:
     return {maxN, maxL};
   }
 
-  void begin_event(Event* ev, const char* build_type);
+  void begin_event(MkJob *job, Event *ev, const char *build_type);
   void end_event();
+  void import_seeds(const TrackVec &in_seeds, std::function<insert_seed_foo> insert_seed);
 
-  void create_seeds_from_sim_tracks();
-  void import_seeds();
-  void find_seeds();
-  void assign_seedtype_forranking();
-  void fit_seeds();
+  // MIMI hack to export tracks for BH
+  const TrackVec& ref_tracks() const { return m_tracks; }
+
+  // void create_seeds_from_sim_tracks();
+  // void find_seeds();
+  // void fit_seeds();
 
   // --------
 
   void map_track_hits  (TrackVec & tracks); // m_event->layerHits_ -> m_event_of_hits.m_layers_of_hits
-  void remap_track_hits(TrackVec & tracks); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_
+  void remap_track_hits(TrackVec &tracks); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_
 
   void quality_val();
   void quality_reset();
@@ -133,14 +187,10 @@ public:
   void prep_tracks(TrackVec& tracks, TrackExtraVec& extras, const bool realigntracks); // sort hits by layer, init track extras, align track labels if true
   void score_tracks(TrackVec& tracks); // if track score not already assigned
 
-  void find_duplicates(TrackVec& tracks);
-  void remove_duplicates(TrackVec& tracks);
-  void handle_duplicates();
-
   // --------
 
-  void find_tracks_load_seeds_BH(); // for FindTracksBestHit
-  void find_tracks_load_seeds();
+  void find_tracks_load_seeds_BH(const TrackVec &in_seeds); // for FindTracksBestHit
+  void find_tracks_load_seeds   (const TrackVec &in_seeds);
 
   int  find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & seed_cand_vec,
                                      int start_seed, int end_seed,

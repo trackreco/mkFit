@@ -5,12 +5,13 @@
 #include <cmath>
 #include <string> // won't compile on clang gcc for mac OS w/o this!
 #include <map>
+#include <vector>
 
 namespace mkfit {
 
 // Cram this in here for now ...
 class TrackerInfo;
-
+class IterationsInfo;
 //------------------------------------------------------------------------------
 
 enum PropagationFlagsEnum
@@ -47,6 +48,9 @@ struct PropagationFlags
 
 //------------------------------------------------------------------------------
 
+using IntVec   = std::vector<int>;
+using IntVec_i = IntVec::iterator;
+
 // Enum for input seed options
 enum seedOpts {simSeeds, cmsswSeeds, findSeeds};
 typedef std::map<std::string, std::pair<seedOpts,std::string> > seedOptsMap;
@@ -63,7 +67,8 @@ typedef std::map<std::string, std::pair<matchOpts,std::string> > matchOptsMap;
 
 namespace Config
 {
-  extern TrackerInfo TrkInfo;
+  extern TrackerInfo    TrkInfo;
+  extern IterationsInfo ItrInfo;
 
   // default file version
   constexpr int FileVersion = 1;
@@ -162,9 +167,11 @@ namespace Config
   static constexpr int m_nphi = 128;
 
   // config on Event
-  extern    float chi2Cut; // default: 15; cmssw: 30 (set in TrackerInfo plugin)
-  extern    float chi2CutOverlap; // default: 5; cmssw: 3.5
-  extern    float pTCutOverlap; // default: 0; cmssw: 1
+  /*MM: chi2Cut is now set in IterationsParams*/
+  //extern    float chi2Cut; // default: 15; cmssw: 30 (set in TrackerInfo plugin)
+  //extern    float chi2CutOverlap; // default: 5; cmssw: 3.5
+  //extern    float pTCutOverlap; // default: 0; cmssw: 1
+
   // the following are only used in SMatrix version
   constexpr float nSigma  = 3.;
   constexpr float minDPhi = 0.01;// default: 0.;  cmssw tests: 0.01;
@@ -203,7 +210,8 @@ namespace Config
   //const     float xr = std::sqrt(Config::beamspotX*Config::beamspotX + Config::beamspotY*Config::beamspotY); 
 
   // Config for seeding
-  extern    int   nlayers_per_seed;         // default: 3, cms sets from geom plugin
+  /*MM: nlayers_per_seed is now set in IterationParams*/
+  //extern    int   nlayers_per_seed;         // default: 3, cms sets from geom plugin
   constexpr int   nlayers_per_seed_max = 4; // Needed for allocation of arrays on stack.
   constexpr float chi2seedcut  = 9.0;
   constexpr float lay01angdiff = 0.0634888; // analytically derived... depends on geometry of detector --> from mathematica ... d0 set to one sigma of getHypot(bsX,bsY)
@@ -289,11 +297,6 @@ namespace Config
 
   // config on fitting
   extern bool cf_fitting;
-
-  extern    int maxCandsPerSeed; // default: 6; cms: 6  (GC had 3)
-  extern    int maxHolesPerCand; // default: 2; cms  12 (should be reduced)
-  extern    int maxConsecHoles;
-  extern    int maxCandsPerEtaBin;
 
   extern    bool mtvLikeValidation;
   extern    bool mtvRequireSeeds;

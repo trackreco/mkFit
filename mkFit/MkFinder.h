@@ -22,6 +22,9 @@ class CombCandidate;
 class LayerOfHits;
 class FindingFoos;
 
+class IterationParams;
+class IterationLayerConfig;
+
 // For backward fit hack
 class EventOfHits;
 class EventOfCombCandidates;
@@ -108,9 +111,15 @@ public:
   // MPlexLS    candErrAtCurrHit;
   // MPlexLV    candParAtCurrHit;
 
+  const IterationParams      *m_iteration_params       = nullptr;
+  const IterationLayerConfig *m_iteration_layer_config = nullptr;
+
   //============================================================================
 
   MkFinder() {}
+
+  void Setup(const IterationParams& ip, const IterationLayerConfig& ilc);
+  void Release();
 
   //----------------------------------------------------------------------------
 

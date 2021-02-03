@@ -2,6 +2,8 @@
 
 #include "Event.h"
 
+#include "SteeringParams.h" // just needs iteration-params
+
 #include "Ice/IceRevisitedRadix.h"
 
 namespace mkfit {
@@ -278,6 +280,8 @@ void LayerOfHits::EndRegistrationOfHits()
 
 //==============================================================================
 
+
+/*
 void LayerOfHits::SelectHitIndices(float q, float phi, float dq, float dphi, std::vector<int>& idcs, bool isForSeeding, bool dump)
 {
   // Sanitizes q, dq and dphi. phi is expected to be in -pi, pi.
@@ -344,6 +348,7 @@ void LayerOfHits::SelectHitIndices(float q, float phi, float dq, float dphi, std
     }
   }
 }
+*/
 
 void LayerOfHits::PrintBins()
 {
@@ -434,7 +439,7 @@ void CombCandidate::ImportSeed(const Track& seed)
   cand.setScore             (getScoreCand(cand));
 }
 
-void CombCandidate::MergeCandsAndBestShortOne(bool update_score, bool sort_cands)
+void CombCandidate::MergeCandsAndBestShortOne(const IterationParams& params, bool update_score, bool sort_cands)
 {
   TrackCand *best_short = m_best_short_cand.combCandidate() ? & m_best_short_cand : nullptr;
 
@@ -455,7 +460,7 @@ void CombCandidate::MergeCandsAndBestShortOne(bool update_score, bool sort_cands
       auto ci = begin();
       while (ci->score() > best_short->score()) ++ci;
 
-      if ((int) size() >= Config::maxCandsPerSeed) pop_back();
+      if ((int) size() >= params.maxCandsPerSeed) pop_back();
 
       // To print out what has been replaced -- remove when done with short track handling.
       // if (ci == finalcands.begin()) {
