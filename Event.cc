@@ -118,7 +118,7 @@ void Event::PrintStats(const TrackVec& trks, TrackExtraVec& trkextras)
   std::cout << "found tracks=" << found   << "  in pT 10%=" << fp_10    << "  in pT 20%=" << fp_20    << "     no_mc_assoc="<< miss <<std::endl
             << "  nH >= 8   =" << hit8    << "  in pT 10%=" << h8_10    << "  in pT 20%=" << h8_20    << std::endl;
 }
- 
+
 void Event::write_out(DataFile &data_file)
 {
   FILE *fp = data_file.f_fp;
@@ -175,7 +175,7 @@ void Event::write_out(DataFile &data_file)
   fseek(fp, start, SEEK_SET);
   fwrite(&evsize, sizeof(int), 1, fp);
   fseek(fp, 0, SEEK_END);
-  
+
   //layerHitMap_ is recreated afterwards
 
   /*
@@ -215,7 +215,7 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
 
   if (data_file.HasSimTrackStates())
   {
-    int nts; 
+    int nts;
     fread(&nts, sizeof(int), 1, fp);
     simTrackStates_.resize(nts);
     fread(&simTrackStates_[0], sizeof(TrackState), nts, fp);
@@ -241,7 +241,7 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
     }
   }
 
-  int nm; 
+  int nm;
   fread(&nm, sizeof(int), 1, fp);
   simHitsInfo_.resize(nm);
   fread(&simHitsInfo_[0], sizeof(MCHitInfo), nm, fp);
@@ -255,8 +255,8 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
     for (int it = 0; it < ns; it++)
     {
       const Track& ss = seedTracks_[it];
-      printf("  %3i q=%+i pT=%7.3f eta=% 7.3f nHits=%i label=% i\n",
-             it,ss.charge(),ss.pT(),ss.momEta(),ss.nFoundHits(),ss.label());
+      printf("  %3i q=%+i pT=%7.3f eta=% 7.3f nHits=%i label=%4i algo=%2i\n",
+             it,ss.charge(),ss.pT(),ss.momEta(),ss.nFoundHits(),ss.label(),(int)ss.algorithm());
 #ifdef DUMP_SEED_HITS
       for (int ih = 0; ih < seedTracks_[it].nTotalHits(); ++ih)
       {
@@ -346,8 +346,8 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
   for (int it = 0; it < nert; it++)
   {
     const Track &t = cmsswTracks_[it];
-    printf("  %i with q=%+i pT=%7.3f eta=% 7.3f nHits=%2d  label=%4d\n",
-           it, t.charge(), t.pT(), t.momEta(), t.nFoundHits(), t.label());
+    printf("  %i with q=%+i pT=%7.3f eta=% 7.3f nHits=%2d  label=%4d algo=%2d\n",
+           it, t.charge(), t.pT(), t.momEta(), t.nFoundHits(), t.label(), (int) t.algorithm());
 #ifdef DUMP_REC_TRACK_HITS
     for (int ih = 0; ih < t.nTotalHits(); ++ih)
     {
@@ -629,7 +629,7 @@ int Event::clean_cms_seedtracks()
     const float pos2_first = pos2[ts];
     const float Eta1 = eta[ts];
     const float Pt1 = pt[ts];
-    const float invptq_first = invptq[ts]; 
+    const float invptq_first = invptq[ts];
 
     //#pragma simd /* Vectorization via simd had issues with icc */
     for (int tss= ts+1; tss<ns; tss++){
@@ -639,7 +639,7 @@ int Event::clean_cms_seedtracks()
       ////// Always require charge consistency. If different charge is assigned, do not remove seed-track
       if(charge[tss] != charge[ts])
         continue;
-      
+
       const float thisDPt = std::abs(Pt2-Pt1);
       ////// Require pT consistency between seeds. If dpT is large, do not remove seed-track.
       ////// Adaptive thresholds, based on pT of reference seed-track (choice is a compromise between efficiency and duplicate rate):
@@ -673,7 +673,7 @@ int Event::clean_cms_seedtracks()
       const float thisDXYSign05 = pos2_second > pos2_first ? -0.5f : 0.5f;
 
       const float thisDXY = thisDXYSign05*sqrt( std::pow(x[ts]-x[tss], 2) + std::pow(y[ts]-y[tss], 2) );
-      
+
       const float invptq_second = invptq[tss];
 
       const float newPhi1 = oldPhi1-thisDXY*invR1GeV*invptq_first;
@@ -682,7 +682,7 @@ int Event::clean_cms_seedtracks()
       const float dphi = cdist(std::abs(newPhi1-newPhi2));
 
       const float dr2 = deta2+dphi*dphi;
-      
+
       const float thisDZ = z[ts]-z[tss]-thisDXY*(1.f/std::tan(theta[ts])+1.f/std::tan(theta[tss]));
       const float dz2 = thisDZ*thisDZ;
 
@@ -690,7 +690,7 @@ int Event::clean_cms_seedtracks()
       ////// Adaptive thresholds, based on observation that duplicates are more abundant at large pseudo-rapidity and low track pT
       if(std::abs(Eta1)<etamax_brl){
         if(dz2/dzmax2_brl+dr2/drmax2_brl<1.0f)
-          writetrack[tss]=false;	
+          writetrack[tss]=false;
       }
       else if(Pt1>ptmin_hpt){
         if(dz2/dzmax2_hpt+dr2/drmax2_hpt<1.0f)
@@ -701,12 +701,12 @@ int Event::clean_cms_seedtracks()
           writetrack[tss]=false;
       }
     }
-   
+
     if(writetrack[ts])
       cleanSeedTracks.emplace_back(seedTracks_[ts]);
 
   }
-  
+
   seedTracks_.swap(cleanSeedTracks);
 
 #ifdef DEBUG
@@ -755,7 +755,7 @@ void Event::relabel_bad_seedtracks()
 {
   int newlabel = 0;
   for (auto&& track : seedTracks_)
-  { 
+  {
     if (track.label() < 0) track.setLabel(--newlabel);
   }
 }

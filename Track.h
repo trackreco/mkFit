@@ -40,7 +40,7 @@ public:
   float chi2_hit; // chi2 of the added hit
   float score; // score used for candidate ranking
 };
- 
+
 //==============================================================================
 // ReducedTrack
 //==============================================================================
@@ -71,7 +71,7 @@ typedef std::vector<ReducedTrack> RedTrackVec;
 // TrackState
 //==============================================================================
 
-struct TrackState //  possible to add same accessors as track? 
+struct TrackState //  possible to add same accessors as track?
 {
 public:
   TrackState() : valid(true) {}
@@ -218,7 +218,7 @@ public:
         // Set to true when number of holes would exceed an external limit, Config::maxHolesPerCand.
         // XXXXMT Not used yet, -2 last hit idx is still used! Need to add it to MkFi**r classes.
         // Problem is that I have to carry bits in/out of the MkFinder, too.
-	bool stopped : 1;
+        bool stopped : 1;
 
         // Production type (most useful for sim tracks): 0, 1, 2, 3 for unset, signal, in-time PU, oot PU
         unsigned int prod_type : 2;
@@ -226,8 +226,8 @@ public:
         // Seed type for candidate ranking: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
         unsigned int seed_type : 2;
 
-	// Whether or not the track matched to another track and had the lower cand score
-	bool duplicate : 1;
+        // Whether or not the track matched to another track and had the lower cand score
+        bool duplicate : 1;
 
         // Tracking iteration/algorithm
         unsigned int algorithm : 6;
@@ -404,7 +404,7 @@ public:
   float rAtZ(float Z) const;
 
   //this function is very inefficient, use only for debug and validation!
-  const HitVec hitsVector(const std::vector<HitVec>& globalHitVec) const 
+  const HitVec hitsVector(const std::vector<HitVec>& globalHitVec) const
   {
     HitVec hitsVec;
     for (int ihit = 0; ihit < Config::nMaxTrkHits; ++ihit) {
@@ -425,7 +425,7 @@ public:
         mcHitIDs.push_back(globalHitVec[hot.layer][hot.index].mcTrackID(globalMCHitInfo));
 	//globalMCHitInfo[globalHitVec[hot.layer][hot.index].mcHitID()].mcTrackID());
       }
-      else 
+      else
       {
 	mcHitIDs.push_back(hot.index);
       }
@@ -494,9 +494,9 @@ public:
     int mcHitID = -1;
     for (int ihit = 0; ihit <= lastHitIdx_; ++ihit)
     {
-      if (hitsOnTrk_[ihit].layer == layer) 
+      if (hitsOnTrk_[ihit].layer == layer)
       {
-	mcHitID = globalHitVec[hitsOnTrk_[ihit].layer][hitsOnTrk_[ihit].index].mcHitID(); 
+	mcHitID = globalHitVec[hitsOnTrk_[ihit].layer][hitsOnTrk_[ihit].index].mcHitID();
 	break;
       }
     }
@@ -553,7 +553,7 @@ public:
     return n;
   }
 
-  int nUniqueLayers() const 
+  int nUniqueLayers() const
   {
     // make local copy in vector: sort it in place
     std::vector<HitOnTrack> tmp_hitsOnTrk(hitsOnTrk_.begin(), hitsOnTrk_.end());
@@ -700,9 +700,9 @@ inline void squashPhiGeneral(Vector& v)
 }
 
 //https://github.com/cms-sw/cmssw/blob/09c3fce6626f70fd04223e7dacebf0b485f73f54/SimTracker/TrackAssociatorProducers/plugins/getChi2.cc#L23
-template <typename Vector, typename Matrix> 
+template <typename Vector, typename Matrix>
 float computeHelixChi2(const Vector& simV, const Vector& recoV, const Matrix& recoM, const bool diagOnly = false)
-{ 
+{
   Vector diffV = recoV - simV;
   if (diffV.kSize > 2) squashPhiGeneral(diffV);
 
@@ -728,11 +728,11 @@ public:
   TrackExtra(int seedID) : seedID_(seedID) {}
 
   int  modifyRefTrackID(const int foundHits, const int minHits, const TrackVec& reftracks, const int trueID, const int duplicate, int refTrackID);
-  void setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo, const TrackVec& simtracks, 
+  void setMCTrackIDInfo(const Track& trk, const std::vector<HitVec>& layerHits, const MCHitInfoVec& globalHitInfo, const TrackVec& simtracks,
 			const bool isSeed, const bool isPure);
   void setCMSSWTrackIDInfoByTrkParams(const Track& trk, const std::vector<HitVec>& layerHits, const TrackVec& cmsswtracks, const RedTrackVec& redcmsswtracks,
 				      const bool isBkFit);
-  void setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMapMap& cmsswHitIDMap, const TrackVec& cmsswtracks, 
+  void setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMapMap& cmsswHitIDMap, const TrackVec& cmsswtracks,
 				 const TrackExtraVec& cmsswextras, const RedTrackVec& redcmsswtracks, const int cmsswlabel);
   int   mcTrackID() const {return mcTrackID_;}
   int   nHitsMatched() const {return nHitsMatched_;}
@@ -777,7 +777,7 @@ namespace mkfit {
 // Map typedefs needed for mapping different sets of tracks to another
 typedef std::unordered_map<int,int>               TkIDToTkIDMap;
 typedef std::unordered_map<int,std::vector<int> > TkIDToTkIDVecMap;
-typedef std::unordered_map<int,TrackState>        TkIDToTSMap;   
+typedef std::unordered_map<int,TrackState>        TkIDToTSMap;
 typedef std::unordered_map<int,TSLayerPairVec>    TkIDToTSLayerPairVecMap;
 
 void print(const TrackState& s);
