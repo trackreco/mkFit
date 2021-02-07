@@ -20,7 +20,7 @@ public:
   void Reset(int evtID);
   void Validate();
   void PrintStats(const TrackVec&, TrackExtraVec&);
-  
+
   int  evtID() const {return evtID_;}
   void resetLayerHitMap(bool resetSimHits);
 
@@ -35,11 +35,11 @@ public:
 
   int  use_seeds_from_cmsswtracks(); //special mode --> use only seeds which generated cmssw reco track
   int  clean_cms_simtracks();
-  int  clean_cms_seedtracks(); //operates on seedTracks_; returns the number of cleaned seeds
+  int  clean_cms_seedtracks(TrackVec *seed_ptr = nullptr); //operates on seedTracks_; returns the number of cleaned seeds
   int  clean_cms_seedtracks_badlabel(); //operates on seedTracks_, removes those with label == -1;
   void relabel_bad_seedtracks();
   void relabel_cmsswtracks_from_seeds();
-  
+
   inline bool is_trackvec_empty(const TrackVec & tracks) { return tracks.empty(); }
 
   void print_tracks(const TrackVec& tracks, bool print_hits) const;

@@ -327,7 +327,7 @@ public:
     algoSize = 46
 };
 
-
+  int            algoint()   const { return status_.algorithm; }
   TrackAlgorithm algorithm() const { return TrackAlgorithm(status_.algorithm); }
   void setAlgorithm(TrackAlgorithm algo) { status_.algorithm = static_cast<unsigned int>(algo); }
 

@@ -167,7 +167,7 @@ double runBuildingTestPlexBestHit(Event& ev, EventOfHits &eoh, MkBuilder& builde
   // For best hit, the candidateTracks_ vector is the direct input to the backward fit so only need to do find_duplicates once
   if (Config::quality_val || Config::sim_val || Config::cmssw_val || Config::cmssw_export)
   {
-    //Mark tracks as duplicates; if within CMSSW, remove duplicate tracks before backward fit   
+    //Mark tracks as duplicates; if within CMSSW, remove duplicate tracks before backward fit
     if(Config::removeDuplicates)
     {
       StdSeq::find_duplicates(ev.candidateTracks_);
@@ -187,7 +187,7 @@ double runBuildingTestPlexBestHit(Event& ev, EventOfHits &eoh, MkBuilder& builde
     builder.root_val();
   }
   builder.end_event();
-  
+
   // ev.print_tracks(ev.candidateTracks_, true);
 
   return time;
@@ -245,7 +245,7 @@ double runBuildingTestPlexStandard(Event& ev, EventOfHits &eoh, MkBuilder& build
   // validation section
   if        (Config::quality_val) {
     builder.quality_val();
-  } else if (Config::sim_val || Config::cmssw_val) { 
+  } else if (Config::sim_val || Config::cmssw_val) {
     builder.root_val();
   } else if (Config::cmssw_export) {
     builder.cmssw_export();
@@ -312,7 +312,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventOfHits &eoh, MkBuilder& bu
   // validation section
   if        (Config::quality_val) {
     builder.quality_val();
-  } else if (Config::sim_val || Config::cmssw_val) { 
+  } else if (Config::sim_val || Config::cmssw_val) {
     builder.root_val();
   } else if (Config::cmssw_export) {
     builder.cmssw_export();
@@ -324,4 +324,125 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventOfHits &eoh, MkBuilder& bu
 
   return time;
 }
+
+
+//==============================================================================
+// runBtbCe_MultiIter
+//
+// Prototype for running multiple iterations, sequentially, using the same builder.
+// For cmmsw seeds
+//
+// There is, in general, a mess in how tracks are processed, marked, or copied out
+// in various validation scenarios and export flags.
+//
+// In particular, MkBuilder::PrepareSeeds does a lot of things to whole / complete
+// event,seedTracks_ -- probably this would need to be split into common / and
+// per-iteration part.
+// - hit remapping back happens in MkBuilder::quality_val() and root_validation().
+// - MkBuilder::prep_*** functions also mostly do not belong there (prep_sim is called from
+//   PrepareSeeds() for cmssw seeds).
+//
+// StdSeq::handle_duplicates() also goes over all Event tracks ... should it be per iteration?
+//
+// At this point we need to think about what should happen to Event before all the iterations and
+// after all the iterations ... from the Validation perspective.
+// And if we care about doing too muich work for seeds that will never get processed.
+
+//==============================================================================
+
+double runBtbCe_MultiIter(Event& ev, EventOfHits &eoh, MkBuilder& builder)
+{
+  double ttime = 0;
+
+  // ??? MIMI - What validation prep / map tasks need to run before we start
+  // screwing up seeds etc?
+
+  for (int it = 0; it <= 2; ++it)
+  {
+    MkJob job( { Config::TrkInfo, Config::ItrInfo[it], eoh } );
+
+    builder.begin_event(&job, &ev, __func__);
+
+    // Some of what happens here, should really happen somewhere e;se, if it needs to.
+    // builder.PrepareSeeds();
+    // Specific cleaning / mapping done below for extracted seeds.
+
+    TrackVec seeds;
+    { // We could partition seeds once, store beg, end for each iteration in a map or vector.
+      int nc = 0;
+      for (auto &s : ev.seedTracks_)
+      {
+        if (s.algoint() == job.m_iter_config.m_track_algorithm) {
+          seeds.push_back(s);
+          ++nc;
+        }
+        else if (nc > 0) break;
+      }
+    }
+
+    // MIMI -- using Iter0 function / tuning for all iterations.
+    ev.clean_cms_seedtracks(&seeds);
+
+    builder.seed_post_cleaning(seeds, true, true);
+    builder.map_track_hits(seeds);
+    for (auto &s : seeds) assignSeedTypeForRanking(s);
+
+    builder.find_tracks_load_seeds(seeds);
+
+    double time = dtime();
+
+    builder.FindTracksCloneEngine();
+
+    ttime += dtime() - time;
+
+    // first store candidate tracks - needed for BH backward fit and root_validation
+    // XXXX to builder m_tracks ... or do we do this for validation anyway ??
+    builder.export_best_comb_cands(ev.candidateTracks_);
+
+    // now do backwards fit... do we want to time this section?
+    if (Config::backwardFit)
+    {
+      // a) TrackVec version:
+      int offset = (int) ev.fitTracks_.size();
+      builder.export_best_comb_cands(ev.fitTracks_);
+      builder.BackwardFitBH(offset);
+      // BackwardFitBH() returns fitted tracks in ev.fitTracks_
+
+      // b) Version that runs on CombCand / TrackCand
+      // builder.BackwardFit();
+      // builder.quality_store_tracks(ev.fitTracks_);
+    }
+
+    builder.end_event();
+  }
+
+  // MIMI - Fake back event pointer for final processing (that should be done elsewhere)
+  MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
+  builder.begin_event(&job, &ev, __func__);
+
+  check_nan_n_silly_candiates(ev);
+
+  if (Config::backwardFit) check_nan_n_silly_bkfit(ev);
+
+  // ??? MIMI - How to do this? Assuming cleaning of all iterations together.
+  StdSeq::handle_duplicates(&ev);
+
+  // ??? MIMI - And same here ... most validation runs on Event, I hope.
+  // validation section
+  if        (Config::quality_val) {
+    builder.quality_val();
+  } else if (Config::sim_val || Config::cmssw_val) {
+    builder.root_val();
+  } else if (Config::cmssw_export) {
+    builder.cmssw_export();
+  }
+
+  // ev.print_tracks(ev.candidateTracks_, true);
+
+  // MIMI Unfake.
+  builder.end_event();
+
+  return ttime;
+}
+
 } // end namespace mkfit

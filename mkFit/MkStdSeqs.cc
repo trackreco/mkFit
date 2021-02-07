@@ -30,6 +30,40 @@ void LoadHits(Event &ev, EventOfHits &eoh)
                         });
 }
 
+// Loading hits in CMSSW from "large multi-layer vectors"
+
+void Cmssw_LoadHits_Begin(EventOfHits &eoh, const std::vector<HitVec*> &orig_hitvectors)
+{
+  eoh.Reset();
+
+  for (auto &&l : eoh.m_layers_of_hits)
+  {
+    // MIMI -- how do we know how to map one of three hitvectors to layer?
+    HitVec &hitvec_for_this_layer = * orig_hitvectors[0];
+    l.BeginRegistrationOfHits(hitvec_for_this_layer);
+  }
+}
+
+// Loop with layer_of_hitsRegisterHit(int idx) - it takes Hit out of original HitVec to
+// extract phi, r/z, and calculate qphifines
+//
+// Something like what is done in MkFitInputConverter::convertHits
+//
+// Problem is I don't know layers for each large-vector;
+// Also, layer is calculated for each detset when looping over the HitCollection
+
+void Cmssw_LoadHits_End(EventOfHits &eoh)
+{
+  for (auto &&l : eoh.m_layers_of_hits)
+  {
+    l.EndRegistrationOfHits();
+  }
+}
+
+//=========================================================================
+// Hit-index mapping / remapping
+//=========================================================================
+
 
 //=========================================================================
 // Duplicate cleaning
@@ -143,7 +177,7 @@ void handle_duplicates(Event *m_event)
       }
     }
     // For the MEIF benchmarks and the stress tests, no validation flags are set so we will enter this block
-    else 
+    else
     {
       // Only care about the candidate tracks here; no need to run the duplicate removal on both candidate and fit tracks
       find_duplicates(m_event->candidateTracks_);
@@ -151,6 +185,40 @@ void handle_duplicates(Event *m_event)
   }
 }
 
+
+//=========================================================================
+// Random stuff
+//=========================================================================
+
+void dump_simtracks(Event *m_event)
+{
+  // Ripped out of MkBuilder::begin_event, ifdefed under DEBUG
+
+  std::vector<Track>& simtracks = m_event->simTracks_;
+
+  for (int itrack = 0; itrack < (int) simtracks.size(); ++itrack)
+  {
+    // bool debug = true;
+    Track track = simtracks[itrack];
+    // if (track.label() != itrack) {
+    //   dprintf("Bad label for simtrack %d -- %d\n", itrack, track.label());
+    // }
+
+    dprint("MX - simtrack with nHits=" << track.nFoundHits() << " chi2=" << track.chi2()
+           << " pT=" << track.pT() <<" phi="<< track.momPhi() <<" eta=" << track.momEta());
+  }
+
+  for (int itrack = 0; itrack < (int) simtracks.size(); ++itrack)
+  {
+    for (int ihit = 0; ihit < simtracks[itrack].nFoundHits(); ++ihit)
+    {
+      dprint("track #" << itrack << " hit #" << ihit
+             << " hit pos=" << simtracks[itrack].hitsVector(m_event->layerHits_)[ihit].position()
+             << " phi=" << simtracks[itrack].hitsVector(m_event->layerHits_)[ihit].phi()
+             << " phiPart=" << getPhiPartition(simtracks[itrack].hitsVector(m_event->layerHits_)[ihit].phi()));
+    }
+  }
+}
 
 } // namespace StdSeq
 } // namespace mkfit

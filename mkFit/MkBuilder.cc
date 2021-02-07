@@ -134,7 +134,7 @@ namespace
   }
 
   void print_seed2(const TrackCand& seed) {
-    std::cout << "MX - found seed with nFoundHits=" << seed.nFoundHits() << " chi2=" << seed.chi2() 
+    std::cout << "MX - found seed with nFoundHits=" << seed.nFoundHits() << " chi2=" << seed.chi2()
               << " x=" << seed.x() << " y=" << seed.y() << " z=" << seed.z()
               << " px=" << seed.px() << " py=" << seed.py() << " pz=" << seed.pz()
               << " pT=" << seed.pT() << std::endl;
@@ -206,55 +206,11 @@ void MkBuilder::begin_event(MkJob *job, Event* ev, const char* build_type)
     m_seedMaxLastLayer [i] = 0;
   }
 
-  std::vector<Track>& simtracks = m_event->simTracks_;
-  // DDDD MT: debug seed fit divergence between host / mic.
-  // Use this once you know seed index + set debug in MkFitter.cc, PropagationXX.cc, KalmanUtils.cc
-  // To get seed index you'll have to dump tracks from Event::read_in().
-  // {
-  //   Track xx = simtracks[5];
-  //   simtracks.clear();
-  //   simtracks.push_back(xx);
-  // }
-
   if (!Config::silent) {
-    std::cout << "Building tracks with '" << build_type << "', total simtracks=" << simtracks.size() << std::endl;
+    std::cout << "MkBuilder building tracks with '" << build_type << "'"
+              << ", iteration_index=" << job->m_iter_config.m_iteration_index
+              << ", track_algorithm=" << job->m_iter_config.m_track_algorithm << std::endl;
   }
-#ifdef DEBUG
-  //dump sim tracks
-  for (int itrack = 0; itrack < (int) simtracks.size(); ++itrack)
-  {
-    // bool debug = true;
-    Track track = simtracks[itrack];
-    // if (track.label() != itrack) {
-    //   dprintf("Bad label for simtrack %d -- %d\n", itrack, track.label());
-    // }
-
-    dprint("MX - simtrack with nHits=" << track.nFoundHits() << " chi2=" << track.chi2()
-           << " pT=" << track.pT() <<" phi="<< track.momPhi() <<" eta=" << track.momEta());
-  }
-#endif
-
-#ifdef DEBUG
-  for (int itrack = 0; itrack < (int) simtracks.size(); ++itrack)
-  {
-    for (int ihit = 0; ihit < simtracks[itrack].nFoundHits(); ++ihit)
-    {
-      dprint("track #" << itrack << " hit #" << ihit
-             << " hit pos=" << simtracks[itrack].hitsVector(m_event->layerHits_)[ihit].position()
-             << " phi=" << simtracks[itrack].hitsVector(m_event->layerHits_)[ihit].phi()
-             << " phiPart=" << getPhiPartition(simtracks[itrack].hitsVector(m_event->layerHits_)[ihit].phi()));
-    }
-  }
-#endif
-
-  // for (int l=0; l<m_event_of_hits.m_layers_of_hits.size(); ++l) {
-  //   for (int eb=0; eb<m_event_of_hits.m_layers_of_hits[l].m_bunches_of_hits.size(); ++eb) {
-  //     std::cout << "l=" << l << " eb=" << eb << " m_size=" << m_event_of_hits.m_layers_of_hits[l].m_bunches_of_hits[eb].m_size << " m_size_old=" << m_event_of_hits.m_layers_of_hits[l].m_bunches_of_hits[eb].m_size_old << std::endl;      
-  //     for (int pb=0; pb<m_event_of_hits.m_layers_of_hits[l].m_bunches_of_hits[eb].m_phi_bin_infos.size(); ++pb) {
-  //     	std::cout << "l=" << l << " eb=" << eb << " pb=" << pb << " first=" << m_event_of_hits.m_layers_of_hits[l].m_bunches_of_hits[eb].m_phi_bin_infos[pb].first << " second=" <<  m_event_of_hits.m_layers_of_hits[l].m_bunches_of_hits[eb].m_phi_bin_infos[pb].second << std::endl;
-  //     }
-  //   }
-  // }
 }
 
 void MkBuilder::end_event()
@@ -314,6 +270,20 @@ void MkBuilder::import_seeds(const TrackVec &in_seeds, std::function<insert_seed
 
   //dump seeds
   dcall(print_seeds(m_event_of_comb_cands));
+}
+
+void MkBuilder::export_best_comb_cands(TrackVec &out_vec)
+{
+  const EventOfCombCandidates &eoccs = m_event_of_comb_cands;
+  for (int i = 0; i < eoccs.m_size; i++)
+  {
+    // take the first one!
+    if ( ! eoccs.m_candidates[i].empty())
+    {
+      const TrackCand &bcand = eoccs.m_candidates[i].front();
+      out_vec.emplace_back( bcand.exportTrack() );
+    }
+  }
 }
 
 
@@ -456,7 +426,7 @@ void MkBuilder::find_seeds()
     {
       seedtrack.setHitIdxLyr(ihit, -1, -1);
     }
-    
+
     dprint("iseed: " << iseed << " mcids: " << hit0.mcTrackID(m_event->simHitsInfo_) << " " <<
 	   hit1.mcTrackID(m_event->simHitsInfo_) << " " << hit1.mcTrackID(m_event->simHitsInfo_));
   }
@@ -757,7 +727,7 @@ void MkBuilder::quality_val()
   {
     for (size_t itrack = 0; itrack < m_event->cmsswTracks_.size(); itrack++)
     {
-      cmsswLabelToPos[m_event->cmsswTracks_[itrack].label()] = itrack;    
+      cmsswLabelToPos[m_event->cmsswTracks_[itrack].label()] = itrack;
     }
   }
 
@@ -778,7 +748,7 @@ void MkBuilder::quality_reset()
 
 void MkBuilder::quality_store_tracks(TrackVec& tracks)
 {
-  const EventOfCombCandidates &eoccs = m_event_of_comb_cands; 
+  const EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
 #ifdef DUMP_OVERLAP_RTTS
 
@@ -941,7 +911,7 @@ void MkBuilder::quality_process(Track &tkcand, const int itrack, std::map<int,in
 {
   // KPM: Do not use this method for validating CMSSW tracks if we ever build a DumbCMSSW function for them to print out...
   // as we would need to access seeds through map of seed ids...
-  
+
   // initialize track extra (input original seed label)
   const auto label = tkcand.label();
   TrackExtra extra(label);
@@ -953,14 +923,14 @@ void MkBuilder::quality_process(Track &tkcand, const int itrack, std::map<int,in
   extra.findMatchingSeedHits(tkcand, seed, m_event->layerHits_);
 
   // set mcTrackID through 50% hit matching after seed
-  extra.setMCTrackIDInfo(tkcand, m_event->layerHits_, m_event->simHitsInfo_, m_event->simTracks_, false, (Config::seedInput == simSeeds)); 
+  extra.setMCTrackIDInfo(tkcand, m_event->layerHits_, m_event->simHitsInfo_, m_event->simTracks_, false, (Config::seedInput == simSeeds));
   const int mctrk = extra.mcTrackID();
 
   //  int mctrk = tkcand.label(); // assumes 100% "efficiency"
 
   const float pT = tkcand.pT();
   float pTmc = 0.f, etamc = 0.f, phimc = 0.f;
-  float pTr  = 0.f; 
+  float pTr  = 0.f;
   int   nfoundmc = -1;
 
   if (mctrk < 0 || static_cast<size_t>(mctrk) >= m_event->simTracks_.size())
@@ -1022,7 +992,7 @@ void MkBuilder::quality_process(Track &tkcand, const int itrack, std::map<int,in
 
 void MkBuilder::quality_print()
 {
-  if (!Config::silent) 
+  if (!Config::silent)
   {
     std::lock_guard<std::mutex> printlock(Event::printmutex);
     std::cout << "found tracks=" << m_cnt   << "  in pT 10%=" << m_cnt1   << "  in pT 20%=" << m_cnt2   << "     no_mc_assoc="<< m_cnt_nomc <<std::endl;
@@ -1085,13 +1055,13 @@ void MkBuilder::root_val()
   // score the tracks
   score_tracks(m_event->seedTracks_);
   score_tracks(m_event->candidateTracks_);
-  
+
   // deal with fit tracks
   if (Config::backwardFit){
     remap_track_hits(m_event->fitTracks_);
     score_tracks(m_event->fitTracks_);
   }
-  else m_event->fitTracks_ = m_event->candidateTracks_; 
+  else m_event->fitTracks_ = m_event->candidateTracks_;
 
   // sort hits + make extras, align if needed
   prep_recotracks();
@@ -1140,7 +1110,7 @@ void MkBuilder::prep_simtracks()
   // Now, make sure sim track shares at least four hits with a single cmssw seed.
   // This ensures we factor out any weakness from CMSSW
 
-  // First, make a make a map of [lyr][hit idx].vector(seed trk labels) 
+  // First, make a make a map of [lyr][hit idx].vector(seed trk labels)
   LayIdxIDVecMapMap seedHitIDMap;
   for (const auto& seedtrack : m_event->seedTracks_)
   {
@@ -1245,54 +1215,51 @@ void MkBuilder::score_tracks(TrackVec& tracks)
 // PrepareSeeds
 //------------------------------------------------------------------------------
 
-namespace
+void MkBuilder::seed_post_cleaning(TrackVec &tv, const bool fix_silly_seeds, const bool remove_silly_seeds)
 {
-  void seed_post_cleaning(TrackVec &tv, const bool fix_silly_seeds, const bool remove_silly_seeds)
-  {
 #ifdef SELECT_SEED_LABEL
-    { // Select seed with the defined label for detailed debugging.
-      for (int i = 0; i < (int) tv.size(); ++i)
+  { // Select seed with the defined label for detailed debugging.
+    for (int i = 0; i < (int) tv.size(); ++i)
+    {
+      if (tv[i].label() == SELECT_SEED_LABEL)
       {
-        if (tv[i].label() == SELECT_SEED_LABEL)
-        {
-          printf("Preselect seed with label %d - found on pos %d\n", SELECT_SEED_LABEL, i);
-          if (i != 0) tv[0] = tv[i];
-          tv.resize(1);
-          print("Label", tv[0].label(), tv[0], true);
-          break;
-        }
+        printf("Preselect seed with label %d - found on pos %d\n", SELECT_SEED_LABEL, i);
+        if (i != 0) tv[0] = tv[i];
+        tv.resize(1);
+        print("Label", tv[0].label(), tv[0], true);
+        break;
       }
-      if (tv.size() != 1) printf("Preselect seed with label %d - NOT FOUND. Running on full event.\n", SELECT_SEED_LABEL);
     }
+    if (tv.size() != 1) printf("Preselect seed with label %d - NOT FOUND. Running on full event.\n", SELECT_SEED_LABEL);
+  }
 #endif
 
-    if (Config::nan_n_silly_check_seeds)
-    {
-      int count = 0;
+  if (Config::nan_n_silly_check_seeds)
+  {
+    int count = 0;
 
-      for (int i = 0; i < (int) tv.size(); ++i)
+    for (int i = 0; i < (int) tv.size(); ++i)
+    {
+      bool silly = tv[i].hasSillyValues(Config::nan_n_silly_print_bad_seeds,
+                                        Config::nan_n_silly_fixup_bad_seeds,
+                                        "Post-cleaning seed silly value check and fix");
+      if (silly)
       {
-        bool silly = tv[i].hasSillyValues(Config::nan_n_silly_print_bad_seeds,
-                                          Config::nan_n_silly_fixup_bad_seeds,
-                                          "Post-cleaning seed silly value check and fix");
-        if (silly)
+        ++count;
+        if (Config::nan_n_silly_remove_bad_seeds)
         {
-          ++count;
-          if (Config::nan_n_silly_remove_bad_seeds)
-          {
-            // XXXX MT
-            // Could do somethin smarter here: setStopped ?  check in seed cleaning ?
-            tv.erase(tv.begin() + i);
-            --i;
-          }
+          // XXXX MT
+          // Could do somethin smarter here: setStopped ?  check in seed cleaning ?
+          tv.erase(tv.begin() + i);
+          --i;
         }
       }
+    }
 
-      if (count > 0 && !Config::silent)
-      {
-        printf("Nan'n'Silly detected %d silly seeds (fix=%d, remove=%d).\n",
-               count, Config::nan_n_silly_fixup_bad_seeds, Config::nan_n_silly_remove_bad_seeds);
-      }
+    if (count > 0 && !Config::silent)
+    {
+      printf("Nan'n'Silly detected %d silly seeds (fix=%d, remove=%d).\n",
+              count, Config::nan_n_silly_fixup_bad_seeds, Config::nan_n_silly_remove_bad_seeds);
     }
   }
 }
@@ -1328,7 +1295,7 @@ void MkBuilder::PrepareSeeds()
   else if (Config::seedInput == cmsswSeeds)
   {
     m_event->relabel_bad_seedtracks();
-    
+
     // want to make sure we mark which sim tracks are findable based on cmssw seeds BEFORE seed cleaning
     if (Config::sim_val || Config::quality_val)
     {
@@ -1336,7 +1303,7 @@ void MkBuilder::PrepareSeeds()
     }
 
     // need to make a map of seed ids to cmssw tk ids BEFORE seeds are sorted
-    if (Config::cmssw_val) 
+    if (Config::cmssw_val)
     {
       m_event->validation_.makeSeedTkToCMSSWTkMap(*m_event);
     }
@@ -1388,14 +1355,15 @@ void MkBuilder::PrepareSeeds()
   }
   else if (Config::seedInput == findSeeds)
   {
+    // MIMI - doesnotwork
     // find_seeds();
   }
-  else 
+  else
   {
     std::cerr << "No input seed collection option selected!! Exiting..." << std::endl;
     exit(1);
   }
-  
+
   //Assign idx to seeds for determining kinematic range for candidate ranking
   //0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
   for (size_t ts = 0; ts < m_event->seedTracks_.size(); ++ts)
@@ -1407,6 +1375,7 @@ void MkBuilder::PrepareSeeds()
   // Eventually we can add force-refit option.
   if (Config::seedInput != cmsswSeeds)
   {
+    // MIMI - doesnotwork
     // fit_seeds();
   }
 }
@@ -1420,11 +1389,12 @@ void MkBuilder::find_tracks_load_seeds_BH(const TrackVec &in_seeds)
   // bool debug = true;
 
   m_tracks.reserve(in_seeds.size());
+  m_tracks.clear();
 
   import_seeds(in_seeds, [&](const Track& seed){ m_tracks.push_back(seed); });
 
   //dump seeds
-  dcall(print_seeds(m_event->candidateTracks_));
+  dcall(print_seeds(m_tracks));
 }
 
 
@@ -1576,12 +1546,16 @@ void MkBuilder::FindTracksBestHit()
 }
 
 //------------------------------------------------------------------------------
-// FindTracksCombinatorial: Standard TBB and CloneEngine TBB 
+// FindTracksCombinatorial: Standard TBB and CloneEngine TBB
 //------------------------------------------------------------------------------
 
 void MkBuilder::find_tracks_load_seeds(const TrackVec &in_seeds)
 {
   // This will sort seeds according to iteration configuration.
+
+  // MIMI -- currently m_tracks not used.
+  // m_tracks.reserve((int) in_seeds.size());
+  // m_tracks.clear();
 
   m_event_of_comb_cands.Reset((int) in_seeds.size(), m_job->params().maxCandsPerSeed);
 
@@ -2099,11 +2073,15 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 // BackwardFit
 //==============================================================================
 
-void MkBuilder::BackwardFitBH()
+void MkBuilder::BackwardFitBH(int main_offset)
 {
-  // XXXXKM4MT HACK to use hacked BkFit copy in/out functions and play nice with validation... aye 
-  m_event->fitTracks_ = m_event->candidateTracks_;
-  
+  // XXXXKM4MT HACK to use hacked BkFit copy in/out functions and play nice with validation... aye
+  if (main_offset == -1)
+  {
+    m_event->fitTracks_ = m_event->candidateTracks_;
+    main_offset = 0;
+  }
+
   tbb::parallel_for_each(m_job->regions_begin(), m_job->regions_end(),
     [&](int region)
   {
@@ -2119,9 +2097,9 @@ void MkBuilder::BackwardFitBH()
       while (rng.valid())
       {
         // final backward fit
-	fit_cands_BH(mkfndr.get(), rng.m_beg, rng.m_end, region);
+        fit_cands_BH(mkfndr.get(), rng.m_beg + main_offset, rng.m_end + main_offset, region);
 
-	++rng;
+        ++rng;
       }
     });
   });
@@ -2268,13 +2246,13 @@ void MkBuilder::fit_cands(MkFinder *mkfndr, int start_cand, int end_cand, int re
 
     // fit tracks back to first layer
     mkfndr->BkFitFitTracks(m_job->m_event_of_hits, st_par, end - icand, chi_debug);
-    
+
     // now move one last time to PCA
-    if (Config::includePCA) 
+    if (Config::includePCA)
     {
       mkfndr->BkFitPropTracksToPCA(end - icand);
     }
-    
+
     mkfndr->BkFitOutputTracks(eoccs, icand, end);
 
     // printf("Post Final fit for %d - %d\n", icand, end);

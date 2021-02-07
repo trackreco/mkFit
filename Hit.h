@@ -30,11 +30,11 @@ inline int getEtaBin(float eta)
   if (std::isfinite(eta)==0) return -1;
   //in this case we are out of bounds
   //if (fabs(eta)>Config::fEtaDet) return -1;//remove this line, just return first or last bin
-  
+
   //first and last bin have extra width
   if (eta<(Config::lEtaBin-Config::fEtaDet)) return 0;
   if (eta>(Config::fEtaDet-Config::lEtaBin)) return Config::nEtaBin-1;
-  
+
   //now we can treat all bins as if they had same size
   return int( (eta+Config::fEtaDet-Config::lEtaBin/2.0f)/Config::lEtaBin );
 }
@@ -44,11 +44,11 @@ inline int getEtaBinExtendedEdge(float eta)
   if (std::isfinite(eta)==0) return -1;
   //in this case we are out of bounds
   if (std::abs(eta) > Config::fEtaDet + Config::lEtaPart) return -1;
-  
+
   //first and last bin have extra width
   if (eta<(Config::lEtaBin-Config::fEtaDet)) return 0;
   if (eta>(Config::fEtaDet-Config::lEtaBin)) return Config::nEtaBin-1;
-  
+
   //now we can treat all bins as if they had same size
   return int( (eta+Config::fEtaDet-Config::lEtaBin/2.0f)/Config::lEtaBin );
 }
@@ -63,7 +63,7 @@ inline float getInvRad2(float x, float y){
 
 inline float getPhi(float x, float y)
 {
-  return std::atan2(y,x); 
+  return std::atan2(y,x);
 }
 
 inline float getTheta(float r, float z){
@@ -91,11 +91,11 @@ inline float getHypot(float x, float y)
 
 inline float getRadErr2(float x, float y, float exx, float eyy, float exy){
   return (x*x*exx + y*y*eyy + 2.0f*x*y*exy) / getRad2(x,y);
-}  
+}
 
 inline float getInvRadErr2(float x, float y, float exx, float eyy, float exy){
   return (x*x*exx + y*y*eyy + 2.0f*x*y*exy) / cube(getRad2(x,y));
-}  
+}
 
 inline float getPhiErr2(float x, float y, float exx, float eyy, float exy){
   const float rad2   = getRad2(x,y);
@@ -125,21 +125,21 @@ inline float getEtaErr2(float x, float y, float z, float exx, float eyy, float e
 
 inline float getPxPxErr2(float ipt, float phi, float vipt, float vphi){ // ipt = 1/pT, v = variance
   const float iipt2 = 1.0f/(ipt*ipt); //iipt = 1/(1/pT) = pT
-  const float cosP  = std::cos(phi);   
+  const float cosP  = std::cos(phi);
   const float sinP  = std::sin(phi);
   return iipt2*(iipt2*cosP*cosP*vipt + sinP*sinP*vphi);
 }
 
 inline float getPyPyErr2(float ipt, float phi, float vipt, float vphi){ // ipt = 1/pT, v = variance
   const float iipt2 = 1.0f/(ipt*ipt); //iipt = 1/(1/pT) = pT
-  const float cosP  = std::cos(phi);   
+  const float cosP  = std::cos(phi);
   const float sinP  = std::sin(phi);
   return iipt2*(iipt2*sinP*sinP*vipt + cosP*cosP*vphi);
 }
 
 inline float getPzPzErr2(float ipt, float theta, float vipt, float vtheta){ // ipt = 1/pT, v = variance
   const float iipt2 = 1.0f/(ipt*ipt); //iipt = 1/(1/pT) = pT
-  const float cotT  = 1.0f/std::tan(theta);   
+  const float cotT  = 1.0f/std::tan(theta);
   const float cscT  = 1.0f/std::sin(theta);
   return iipt2*(iipt2*cotT*cotT*vipt + cscT*cscT*cscT*cscT*vtheta);
 }
@@ -154,9 +154,9 @@ struct MCHitInfo
   int layer_;
   int ithLayerHit_;
   int mcHitID_;
-  
-  int mcTrackID() const { return mcTrackID_; } 
-  int layer()     const { return layer_; } 
+
+  int mcTrackID() const { return mcTrackID_; }
+  int layer()     const { return layer_; }
   int mcHitID()   const { return mcHitID_; }
   static void reset();
 };
@@ -173,10 +173,10 @@ public:
       for (int i=0;i<6;++i) err_[i] = e.Array()[i];
     }
   const SVector3& parameters() const { return pos_; }
-  SMatrixSym33 errors() const { 
+  SMatrixSym33 errors() const {
     SMatrixSym33 result;
     for (int i=0;i<6;++i) result.Array()[i]=err_[i];
-    return result; 
+    return result;
   }
   SVector3 pos_;
   SVector6 err_;
@@ -236,7 +236,7 @@ public:
     return getPhiErr2(x(), y(), exx(), eyy(), state_.errors().At(0,1));
   }
   float eeta() const {
-    return getEtaErr2(x(), y(), z(), exx(), eyy(), ezz(), 
+    return getEtaErr2(x(), y(), z(), exx(), eyy(), ezz(),
 		      state_.errors().At(0,1), state_.errors().At(0,2), state_.errors().At(1,2));
   }
 
@@ -252,7 +252,7 @@ public:
     union {
       struct {
         unsigned int detid_in_layer : 12;
-        unsigned int charge_pcm     :  8;
+        unsigned int charge_pcm     :  8; // MIMI see set/get funcs: is this Run2 specific ???
         unsigned int span_rows      :  3;
         unsigned int span_cols      :  3;
       };

@@ -104,12 +104,12 @@ namespace
     }
   }
 
-  std::function<IterationConfig::partition_seeds_foo> PartitionSeeds0 = 
+  std::function<IterationConfig::partition_seeds_foo> PartitionSeeds0 =
   [](const TrackerInfo &trk_info, const TrackVec &in_seeds, const EventOfHits &eoh,
      IterationSeedPartition &part)
   {
     // Seeds are placed into eta regions and sorted on region + eta.
-    
+
     const int size = in_seeds.size();
 
     for (int i = 0; i < size; ++i)
@@ -212,11 +212,12 @@ namespace
     Config::forward_fit_pflags         = PropagationFlags(PF_use_param_b_field | PF_apply_material);
     Config::seed_fit_pflags            = PropagationFlags(PF_none);
     Config::pca_prop_pflags            = PropagationFlags(PF_none);
-    
+
     ti.set_eta_regions(0.9, 1.7, 2.45, false);
     ti.create_layers(18, 27, 27);
 
-    ii.resize(1);
+    ii.resize(3);
+    ii[0].set_iteration_index_and_track_algorithm(0, (int) TrackBase::TrackAlgorithm::initialStep);
     ii[0].set_num_regions_layers(5, 72);
 
     Create_CMS_2017_AutoGen(ti, ii);
@@ -224,6 +225,12 @@ namespace
     SetupSteeringParams_Iter0(ii[0]);
     SetupIterationParams(ii[0].m_params, 0);
     ii[0].m_partition_seeds = PartitionSeeds0;
+
+    ii[1].Clone(ii[0]);
+    ii[1].set_iteration_index_and_track_algorithm(1, (int) TrackBase::TrackAlgorithm::highPtTripletStep);
+
+    ii[2].Clone(ii[0]);
+    ii[2].set_iteration_index_and_track_algorithm(2, (int) TrackBase::TrackAlgorithm::lowPtQuadStep);
 
     if (verbose)
     {

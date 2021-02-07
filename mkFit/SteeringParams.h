@@ -189,30 +189,46 @@ public:
 class IterationConfig
 {
 public:
-  // MIMI need also EventOfHits
   using partition_seeds_foo = void(const TrackerInfo &, const TrackVec &, const EventOfHits &,
                                    IterationSeedPartition &);
 
-  // TrackerInfo *m_trk_info;
-
-  int    m_iteration_index;
+  int    m_iteration_index  = -1;
+  int    m_track_algorithm  = -1;
 
   // Iteration parameters (could be a ptr)
-  IterationParams  m_params;
+  IterationParams                     m_params;
 
-  std::vector<IterationLayerConfig> m_layer_configs;
-
-  // Steering params and regions are kept as they are, just moved out of MkBuilder.
-  // Steering params and regions are iteration-specific, thus initialized in Geoms/CMS-2017.cc
-  int                         m_n_regions;
-  std::vector<int>            m_region_order;
-  std::vector<SteeringParams> m_steering_params;
+  int                                 m_n_regions;
+  std::vector<int>                    m_region_order;
+  std::vector<SteeringParams>         m_steering_params;
+  std::vector<IterationLayerConfig>   m_layer_configs;
 
   std::function<partition_seeds_foo>  m_partition_seeds;
 
   //----------------------------------------------------------------------------
 
   IterationConfig() {}
+
+  void Clone(const IterationConfig &o)
+  {
+      // Clone iteration. m_iteration_index and m_track_algorithm are not copied
+      // and need to be set separately.
+
+      m_params          = o.m_params;
+
+      m_n_regions       = o.m_n_regions;
+      m_region_order    = o.m_region_order;
+      m_steering_params = o.m_steering_params;
+      m_layer_configs   = o.m_layer_configs;
+
+      m_partition_seeds = o.m_partition_seeds;
+  }
+
+  void set_iteration_index_and_track_algorithm(int idx, int trk_alg)
+  {
+    m_iteration_index = idx;
+    m_track_algorithm = trk_alg;
+  }
 
   void set_num_regions_layers(int nreg, int nlay)
   {

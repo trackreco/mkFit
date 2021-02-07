@@ -560,7 +560,7 @@ void Event::print_tracks(const TrackVec& tracks, bool print_hits) const
   }
 }
 
-int Event::clean_cms_seedtracks()
+int Event::clean_cms_seedtracks(TrackVec *seed_ptr)
 {
   const float etamax_brl = Config::c_etamax_brl;
   const float dpt_brl_0  = Config::c_dpt_brl_0;
@@ -586,7 +586,8 @@ int Event::clean_cms_seedtracks()
   const float dzmax2_els = dzmax_els*dzmax_els;
   const float drmax2_els = drmax_els*drmax_els;
 
-  const int ns = seedTracks_.size();
+  TrackVec &seeds = (seed_ptr != nullptr) ? *seed_ptr : seedTracks_;
+  const int ns = seeds.size();
 
   TrackVec cleanSeedTracks;
   cleanSeedTracks.reserve(ns);
@@ -607,7 +608,7 @@ int Event::clean_cms_seedtracks()
   std::vector<float>  z(ns);
 
   for(int ts=0; ts<ns; ts++){
-    const Track & tk = seedTracks_[ts];
+    const Track & tk = seeds[ts];
     nHits[ts] = tk.nFoundHits();
     charge[ts] = tk.charge();
     oldPhi[ts] = tk.momPhi();
@@ -703,27 +704,27 @@ int Event::clean_cms_seedtracks()
     }
 
     if(writetrack[ts])
-      cleanSeedTracks.emplace_back(seedTracks_[ts]);
+      cleanSeedTracks.emplace_back(seeds[ts]);
 
   }
 
-  seedTracks_.swap(cleanSeedTracks);
+  seeds.swap(cleanSeedTracks);
 
 #ifdef DEBUG
   {
-    const int ns2 = seedTracks_.size();
+    const int ns2 = seeds.size();
     printf("Number of CMS seeds before %d --> after %d cleaning\n", ns, ns2);
 
     for (int it = 0; it < ns2; it++)
     {
-      const Track& ss = seedTracks_[it];
+      const Track& ss = seeds[it];
       printf("  %3i q=%+i pT=%7.3f eta=% 7.3f nHits=%i label=% i\n",
              it,ss.charge(),ss.pT(),ss.momEta(),ss.nFoundHits(),ss.label());
     }
   }
 #endif
 
-  return seedTracks_.size();
+  return seeds.size();
 }
 
 int Event::clean_cms_seedtracks_badlabel()

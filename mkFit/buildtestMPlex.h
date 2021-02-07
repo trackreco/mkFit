@@ -15,5 +15,7 @@ double runBuildingTestPlexBestHit    (Event& ev, EventOfHits &eoh, MkBuilder& bu
 double runBuildingTestPlexStandard   (Event& ev, EventOfHits &eoh, MkBuilder& builder);
 double runBuildingTestPlexCloneEngine(Event& ev, EventOfHits &eoh, MkBuilder& builder);
 
+double runBtbCe_MultiIter(Event& ev, EventOfHits &eoh, MkBuilder& builder);
+
 } // end namespace mkfit
 #endif

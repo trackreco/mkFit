@@ -132,8 +132,8 @@ public:
   }
 
   int total_cands() const
-  { 
-    int res = 0; 
+  {
+    int res = 0;
     for (auto const& icomb: m_event_of_comb_cands.m_candidates) res += icomb.size();
     return res;
   }
@@ -156,6 +156,8 @@ public:
   void begin_event(MkJob *job, Event *ev, const char *build_type);
   void end_event();
   void import_seeds(const TrackVec &in_seeds, std::function<insert_seed_foo> insert_seed);
+
+  void export_best_comb_cands(TrackVec &out_vec);
 
   // MIMI hack to export tracks for BH
   const TrackVec& ref_tracks() const { return m_tracks; }
@@ -180,10 +182,10 @@ public:
   void root_val_dumb_cmssw();
   void root_val();
   void cmssw_export();
-  void prep_recotracks(); 
+  void prep_recotracks();
   void prep_simtracks();
   void prep_cmsswtracks();
-  void prep_reftracks(TrackVec& tracks, TrackExtraVec& extras, const bool realigntracks); 
+  void prep_reftracks(TrackVec& tracks, TrackExtraVec& extras, const bool realigntracks);
   void prep_tracks(TrackVec& tracks, TrackExtraVec& extras, const bool realigntracks); // sort hits by layer, init track extras, align track labels if true
   void score_tracks(TrackVec& tracks); // if track score not already assigned
 
@@ -206,6 +208,7 @@ public:
                              const int start_seed, const int end_seed, const int region);
 
   // --------
+  static void seed_post_cleaning(TrackVec &tv, const bool fix_silly_seeds, const bool remove_silly_seeds);
 
   void PrepareSeeds();
 
@@ -213,7 +216,7 @@ public:
   void FindTracksStandard();
   void FindTracksCloneEngine();
 
-  void BackwardFitBH();
+  void BackwardFitBH(int main_offset = -1);
   void fit_cands_BH(MkFinder *mkfndr, int start_cand, int end_cand, int region);
 
   void BackwardFit();

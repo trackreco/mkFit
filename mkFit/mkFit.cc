@@ -82,6 +82,7 @@ namespace
   bool  g_run_build_bh  = false;
   bool  g_run_build_std = false;
   bool  g_run_build_ce  = false;
+  bool  g_run_build_mimi = false;
 
   std::string g_operation = "simulate_and_process";;
   std::string g_input_file = "";
@@ -119,7 +120,7 @@ namespace
 
 // Getters and setters of enum configs (from command line using anon. namespace above)
 
-template <typename T, typename U> 
+template <typename T, typename U>
 std::string getOpt(const T & c_opt, const U & g_opt_map)
 {
   static const std::string empty("");
@@ -136,7 +137,7 @@ template <typename T, typename U>
 void setOpt(const std::string & cmd_ln_str, T & c_opt, const U & g_opt_map, const std::string & ex_txt)
 {
   if (g_opt_map.count(cmd_ln_str)) c_opt = g_opt_map.at(cmd_ln_str).first;
-  else 
+  else
   {
     std::cerr << cmd_ln_str << " is not a valid " << ex_txt << " option!! Exiting..." << std::endl;
     exit(1);
@@ -220,7 +221,7 @@ void test_standard()
 
   if (Config::useCMSGeom) fillZRgridME();
 
-  constexpr int NT = 4;
+  constexpr int NT = 5;
   double t_sum[NT] = {0};
   double t_skip[NT] = {0};
   double time = dtime();
@@ -312,6 +313,7 @@ void test_standard()
           // t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
           t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev, eoh, mkb) : 0;
           t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, eoh, mkb) : 0;
+          t_cur[4] = (g_run_build_all || g_run_build_mimi)? runBtbCe_MultiIter(ev, eoh, mkb) : 0;
           if (g_run_build_all || g_run_build_cmssw) runBuildingTestPlexDumbCMSSW(ev, eoh, mkb);
           t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, eoh, mkb) : 0;
           if (g_run_build_ce){
@@ -342,8 +344,8 @@ void test_standard()
         }
         if (!Config::silent) {
           std::lock_guard<std::mutex> printlock(Event::printmutex);
-          printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
-                 t_best[0], t_best[1], t_best[2], t_best[3]);
+          printf("Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f  MIMI = %.5f\n",
+                 t_best[0], t_best[1], t_best[2], t_best[3], t_best[4]);
         }
 
         {
@@ -364,11 +366,11 @@ void test_standard()
   printf("=== TOTAL for %d events\n", Config::nEvents);
   printf("================================================================\n");
 
-  printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
-         t_sum[0], t_sum[1], t_sum[2], t_sum[3]);
-  printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f\n",
-         t_skip[0], t_skip[1], t_skip[2], t_skip[3]);
-  printf("Total event loop time %.5f simtracks %d seedtracks %d builtcands %d maxhits %d on lay %d\n", time, 
+  printf("Total Matriplex fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f  MIMI = %.5f\n",
+         t_sum[0], t_sum[1], t_sum[2], t_sum[3], t_sum[4]);
+  printf("Total event > 1 fit = %.5f  --- Build  BHMX = %.5f  STDMX = %.5f  CEMX = %.5f  MIMI = %.5f\n",
+         t_skip[0], t_skip[1], t_skip[2], t_skip[3], t_skip[4]);
+  printf("Total event loop time %.5f simtracks %d seedtracks %d builtcands %d maxhits %d on lay %d\n", time,
          simtrackstot.load(), seedstot.load(), candstot.load(), maxHits_all.load(), maxLayer_all.load());
   //fflush(stdout);
 
@@ -487,10 +489,11 @@ int main(int argc, const char *argv[])
         "  --build-bh               run best-hit building test (def: %s)\n"
         "  --build-std              run standard combinatorial building test (def: %s)\n"
         "  --build-ce               run clone engine combinatorial building test (def: %s)\n"
+        "  --build-ce-mimi          run clone engine on multiple-iteration test (def: %s)\n"
 	"\n"
 	" **Seeding options\n"
         "  --seed-input     <str>   which seed collecion used for building (def: %s)\n"
-        "  --seed-cleaning  <str>   which seed cleaning to apply if using cmssw seeds (def: %s)\n" 
+        "  --seed-cleaning  <str>   which seed cleaning to apply if using cmssw seeds (def: %s)\n"
         "  --cf-seeding             enable conformal fit over seeds (def: %s)\n"
         "\n"
 	" **Duplicate removal options\n"
@@ -516,9 +519,9 @@ int main(int argc, const char *argv[])
         "  --sim-val                enable ROOT based validation for seeding, building, and fitting with simtracks as reference [eff, FR, DR] (def: %s)\n"
         "  --cmssw-val              enable ROOT based validation for building and fitting with CMSSW tracks as reference [eff, FR, DR] (def: %s)\n"
 	"                             must enable: --geom CMS-2017 --read-cmssw-tracks\n"
-	"  --cmssw-match-fw  <str>  which cmssw track matching routine to use if validating against CMSSW tracks, forward built tracks only (def: %s)\n" 
+	"  --cmssw-match-fw  <str>  which cmssw track matching routine to use if validating against CMSSW tracks, forward built tracks only (def: %s)\n"
 	"                             must enable: --geom CMS-2017 --cmssw-val --read-cmssw-tracks\n"
-	"  --cmssw-match-bk  <str>  which cmssw track matching routine to use if validating against CMSSW tracks, backward fit tracks only (def: %s)\n" 
+	"  --cmssw-match-bk  <str>  which cmssw track matching routine to use if validating against CMSSW tracks, backward fit tracks only (def: %s)\n"
 	"                             must enable: --geom CMS-2017 --cmssw-val --read-cmssw-tracks --backward-fit --backward-fit-pca\n"
         "  --inc-shorts             include short reco tracks into FR (def: %s)\n"
         "  --keep-hit-info          keep vectors of hit idxs and branches in trees (def: %s)\n"
@@ -580,8 +583,8 @@ int main(int argc, const char *argv[])
         g_start_event,
         Config::nTracks,
 
-        Config::numThreadsSimulation, 
-	Config::numThreadsFinder, 
+        Config::numThreadsSimulation,
+	Config::numThreadsFinder,
 	Config::numThreadsEvents,
         Config::numSeedsPerTask,
 	Config::numHitsPerTask,
@@ -595,7 +598,8 @@ int main(int argc, const char *argv[])
 	b2a(g_run_build_all || g_run_build_bh),
 	b2a(g_run_build_all || g_run_build_std),
 	b2a(g_run_build_all || g_run_build_ce),
-        
+  b2a(g_run_build_all || g_run_build_mimi),
+
 	getOpt(Config::seedInput, g_seed_opts).c_str(),
 	getOpt(Config::seedCleaning, g_clean_opts).c_str(),
         b2a(Config::cf_seeding),
@@ -627,11 +631,11 @@ int main(int argc, const char *argv[])
 	getOpt(cmsswSeeds, g_seed_opts).c_str(), getOpt(cleanSeedsN2, g_clean_opts).c_str(),
 	getOpt(cmsswSeeds, g_seed_opts).c_str(), getOpt(cleanSeedsPure, g_clean_opts).c_str(),
 	getOpt(cmsswSeeds, g_seed_opts).c_str(), getOpt(cleanSeedsBadLabel, g_clean_opts).c_str(),
-	
-	getOpt(hitBased, g_match_opts).c_str(), getOpt(hitBased, g_match_opts).c_str(), 
-	getOpt(hitBased, g_match_opts).c_str(), getOpt(trkParamBased, g_match_opts).c_str(), 
-	getOpt(trkParamBased, g_match_opts).c_str(), getOpt(hitBased, g_match_opts).c_str(), 
-	getOpt(trkParamBased, g_match_opts).c_str(), getOpt(trkParamBased, g_match_opts).c_str(), 
+
+	getOpt(hitBased, g_match_opts).c_str(), getOpt(hitBased, g_match_opts).c_str(),
+	getOpt(hitBased, g_match_opts).c_str(), getOpt(trkParamBased, g_match_opts).c_str(),
+	getOpt(trkParamBased, g_match_opts).c_str(), getOpt(hitBased, g_match_opts).c_str(),
+	getOpt(trkParamBased, g_match_opts).c_str(), getOpt(trkParamBased, g_match_opts).c_str(),
 	getOpt(labelBased, g_match_opts).c_str(), getOpt(labelBased, g_match_opts).c_str()
 
       );
@@ -769,6 +773,10 @@ int main(int argc, const char *argv[])
     {
       g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = true;
     }
+    else if(*i == "--build-mimi")
+    {
+      g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = false; g_run_build_mimi = true;
+    }
     else if(*i == "--seed-input")
     {
       next_arg_or_die(mArgs, i);
@@ -815,7 +823,7 @@ int main(int argc, const char *argv[])
     }
     else if (*i == "--quality-val")
     {
-      Config::quality_val = true; 
+      Config::quality_val = true;
     }
     else if (*i == "--dump-for-plots")
     {
@@ -836,11 +844,11 @@ int main(int argc, const char *argv[])
     }
     else if (*i == "--sim-val-for-cmssw")
     {
-      Config::sim_val_for_cmssw = true; 
+      Config::sim_val_for_cmssw = true;
     }
     else if (*i == "--sim-val")
     {
-      Config::sim_val = true; 
+      Config::sim_val = true;
     }
     else if (*i == "--cmssw-val")
     {
@@ -905,35 +913,35 @@ int main(int argc, const char *argv[])
     }
     else if (*i == "--cmssw-val-fhit-bhit")
     {
-      Config::cmssw_val = true; 
+      Config::cmssw_val = true;
       Config::readCmsswTracks = true;
       Config::cmsswMatchingFW = hitBased;
       Config::cmsswMatchingBK = hitBased;
     }
     else if (*i == "--cmssw-val-fhit-bprm")
     {
-      Config::cmssw_val = true; 
+      Config::cmssw_val = true;
       Config::readCmsswTracks = true;
       Config::cmsswMatchingFW = hitBased;
       Config::cmsswMatchingBK = trkParamBased;
     }
     else if (*i == "--cmssw-val-fprm-bhit")
     {
-      Config::cmssw_val = true; 
+      Config::cmssw_val = true;
       Config::readCmsswTracks = true;
       Config::cmsswMatchingFW = trkParamBased;
       Config::cmsswMatchingBK = hitBased;
     }
     else if (*i == "--cmssw-val-fprm-bprm")
     {
-      Config::cmssw_val = true; 
+      Config::cmssw_val = true;
       Config::readCmsswTracks = true;
       Config::cmsswMatchingFW = trkParamBased;
       Config::cmsswMatchingBK = trkParamBased;
     }
     else if (*i == "--cmssw-val-label")
     {
-      Config::cmssw_val = true; 
+      Config::cmssw_val = true;
       Config::readCmsswTracks = true;
       Config::cmsswMatchingFW = labelBased;
       Config::cmsswMatchingBK = labelBased;
