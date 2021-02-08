@@ -356,7 +356,6 @@ double runBtbCe_MultiIter(Event& ev, EventOfHits &eoh, MkBuilder& builder)
 
   // ??? MIMI - What validation prep / map tasks need to run before we start
   // screwing up seeds etc?
-
   for (int it = 0; it <= 2; ++it)
   {
     MkJob job( { Config::TrkInfo, Config::ItrInfo[it], eoh } );
@@ -381,7 +380,7 @@ double runBtbCe_MultiIter(Event& ev, EventOfHits &eoh, MkBuilder& builder)
     }
 
     // MIMI -- using Iter0 function / tuning for all iterations.
-    ev.clean_cms_seedtracks(&seeds);
+    ev.clean_cms_seedtracks_iter(&seeds, Config::ItrInfo[it]);
 
     builder.seed_post_cleaning(seeds, true, true);
     builder.map_track_hits(seeds);
@@ -419,6 +418,13 @@ double runBtbCe_MultiIter(Event& ev, EventOfHits &eoh, MkBuilder& builder)
   // MIMI - Fake back event pointer for final processing (that should be done elsewhere)
   MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
   builder.begin_event(&job, &ev, __func__);
+  ev.relabel_bad_seedtracks();
+  
+  if (Config::sim_val || Config::quality_val)
+  {
+      builder.prep_simtracks();
+   }
+
 
   check_nan_n_silly_candiates(ev);
 

@@ -168,8 +168,19 @@ public:
   float chi2Cut           = 30;
   float chi2CutOverlap    = 3.5;
   float pTCutOverlap      = 1.0;
-
   // NOTE: iteration params could actually become layer-dependent, e.g., chi2Cut could be larger for first layers (?)
+  
+  //seed cleaning params
+  float c_ptthr_hpt = 2.0;
+  //initial
+  float c_drmax_bh = 0.007;
+  float c_dzmax_bh = 0.007;
+  float c_drmax_eh = 0.018;
+  float c_dzmax_eh = 0.018;
+  float c_drmax_bl = 0.018;
+  float c_dzmax_bl = 0.018;
+  float c_drmax_el = 0.018;
+  float c_dzmax_el = 0.018;
 };
 
 
@@ -229,6 +240,24 @@ public:
     m_iteration_index = idx;
     m_track_algorithm = trk_alg;
   }
+  
+  void set_seed_cleaning_params(float pt_thr, 
+ 				float dzmax_bh, float drmax_bh, 
+				float dzmax_bl, float drmax_bl,
+				float dzmax_eh, float drmax_eh,
+				float dzmax_el, float drmax_el
+				)
+  {
+       m_params.c_ptthr_hpt = pt_thr;
+       m_params.c_drmax_bh = drmax_bh;
+       m_params.c_dzmax_bh = drmax_bh;
+       m_params.c_drmax_eh = drmax_eh;
+       m_params.c_dzmax_eh = dzmax_eh;
+       m_params.c_drmax_bl = drmax_bl;
+       m_params.c_dzmax_bl = dzmax_bl;
+       m_params.c_drmax_el = drmax_el;
+       m_params.c_dzmax_el = dzmax_el;
+   }
 
   void set_num_regions_layers(int nreg, int nlay)
   {

@@ -228,9 +228,12 @@ namespace
 
     ii[1].Clone(ii[0]);
     ii[1].set_iteration_index_and_track_algorithm(1, (int) TrackBase::TrackAlgorithm::highPtTripletStep);
+    ii[1].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.018, 0.018, 0.018, 0.05, 0.018, 0.05); //maybe have he paratmeters stored somewhere
+ 
 
     ii[2].Clone(ii[0]);
     ii[2].set_iteration_index_and_track_algorithm(2, (int) TrackBase::TrackAlgorithm::lowPtQuadStep);
+    ii[1].set_seed_cleaning_params(0.5, 0.018, 0.018, 0.018, 0.018, 0.05, 0.05, 0.05, 0.05);
 
     if (verbose)
     {

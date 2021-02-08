@@ -1,6 +1,9 @@
 #include "TTreeValidation.h"
 #include "Event.h"
 #include "Config.h"
+#include "mkFit/SteeringParams.h"
+
+
 #ifndef NO_ROOT
 
 namespace mkfit {
@@ -315,6 +318,8 @@ void TTreeValidation::initializeFakeRateTree()
   frtree_->Branch("iTkMatches_seed",&iTkMatches_seed_FR_);
   frtree_->Branch("iTkMatches_build",&iTkMatches_build_FR_);
   frtree_->Branch("iTkMatches_fit",&iTkMatches_fit_FR_);
+  
+  frtree_->Branch("algorithm",&algorithm_FR_);
 
   if (Config::keepHitInfo)
   {
@@ -1899,9 +1904,9 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 
     // last hit info
     const Hit& lasthit = evt_layer_hits[seedtrack.getLastFoundHitLyr()][seedtrack.getLastFoundHitIdx()];
-    xhit_seed_FR_ = lasthit.x(); 
-    yhit_seed_FR_ = lasthit.y(); 
-    zhit_seed_FR_ = lasthit.z(); 
+    xhit_seed_FR_ = 0;//lasthit.x(); 
+    yhit_seed_FR_ = 0;//lasthit.y(); 
+    zhit_seed_FR_ = 0;//lasthit.z(); 
     
     pt_seed_FR_   = seedtrack.pT();
     ept_seed_FR_  = seedtrack.epT();
@@ -1915,6 +1920,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     nHitsMatched_seed_FR_    = seedextra.nHitsMatched();
     fracHitsMatched_seed_FR_ = seedextra.fracHitsMatched();
     lastlyr_seed_FR_         = seedtrack.getLastFoundHitLyr();
+   
+    algorithm_FR_ = seedtrack.algoint();
 
     // swim dphi
     dphi_seed_FR_ = seedextra.dPhi();
@@ -2318,9 +2325,9 @@ void TTreeValidation::fillConfigTree()
   fPhiFactor_ = Config::fPhiFactor;
   nEtaPart_   = Config::nEtaPart;
 
-  nlayers_per_seed_ = Config::nlayers_per_seed;
-  maxCand_ = Config::maxCandsPerSeed;
-  chi2Cut_ = Config::chi2Cut;
+  nlayers_per_seed_ = Config::ItrInfo[0].m_params.nlayers_per_seed;
+  maxCand_ = Config::ItrInfo[0].m_params.maxCandsPerSeed;
+  chi2Cut_ = Config::ItrInfo[0].m_params.chi2Cut;
   nSigma_  = Config::nSigma;
   minDPhi_ = Config::minDPhi;
   maxDPhi_ = Config::maxDPhi;
