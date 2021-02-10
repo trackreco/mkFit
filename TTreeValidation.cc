@@ -158,6 +158,11 @@ void TTreeValidation::initializeEfficiencyTree()
   efftree_->Branch("nTkMatches_build",&nTkMatches_build_eff_);
   efftree_->Branch("nTkMatches_fit",&nTkMatches_fit_eff_);
 
+  efftree_->Branch("itermask_seed",&itermask_seed_eff_);
+  efftree_->Branch("itermask_build",&itermask_build_eff_);
+  efftree_->Branch("itermask_fit",&itermask_fit_eff_);
+
+
   if (Config::keepHitInfo)
   {
     efftree_->Branch("hitlyrs_mc",&hitlyrs_mc_eff_);
@@ -477,6 +482,8 @@ void TTreeValidation::initializeCMSSWEfficiencyTree()
 
   cmsswefftree_->Branch("duplmask_build",&duplmask_build_ceff_);
   cmsswefftree_->Branch("nTkMatches_build",&nTkMatches_build_ceff_);
+  
+  cmsswefftree_->Branch("itermask_build",&itermask_build_ceff_);
 
   // Fit
   cmsswefftree_->Branch("cmsswmask_fit",&cmsswmask_fit_ceff_);
@@ -514,6 +521,8 @@ void TTreeValidation::initializeCMSSWEfficiencyTree()
 
   cmsswefftree_->Branch("duplmask_fit",&duplmask_fit_ceff_);
   cmsswefftree_->Branch("nTkMatches_fit",&nTkMatches_fit_ceff_);
+  
+  cmsswefftree_->Branch("itermask_fit",&itermask_fit_ceff_);
 
   if (Config::keepHitInfo)
   {
@@ -634,6 +643,8 @@ void TTreeValidation::initializeCMSSWFakeRateTree()
   cmsswfrtree_->Branch("nHits_cmssw_fit",&nHits_cmssw_fit_cFR_);
   cmsswfrtree_->Branch("nLayers_cmssw_fit",&nLayers_cmssw_fit_cFR_);
   cmsswfrtree_->Branch("lastlyr_cmssw_fit",&lastlyr_cmssw_fit_cFR_);
+  
+  cmsswfrtree_->Branch("algorithm",&algorithm_cFR_);
 
   if (Config::keepHitInfo)
   {
@@ -1480,6 +1491,10 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     nHits_mc_eff_   = simtrack.nFoundHits(); // could be that the sim track skips layers!
     nLayers_mc_eff_ = simtrack.nUniqueLayers();
     lastlyr_mc_eff_ = simtrack.getLastFoundHitLyr();
+    
+    itermask_seed_eff_=0;
+    itermask_build_eff_=0;
+    itermask_fit_eff_=0;
 
     // hit indices
     if (Config::keepHitInfo) TTreeValidation::fillFullHitInfo(ev,simtrack,hitlyrs_mc_eff_,hitidxs_mc_eff_,hitmcTkIDs_mc_eff_,
@@ -1488,6 +1503,10 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     // matched seed track
     if (simToSeedMap_.count(mcID_eff_) && simtrack.isFindable()) // recoToSim match : save best match with best score, i.e. simToSeedMap_[matched SimID][first element in vector]
     {
+      for (unsigned int ii=0; ii < simToSeedMap_[mcID_eff_].size(); ii++)
+      {      
+         itermask_seed_eff_=(itermask_seed_eff_ | (1<<evt_seed_tracks[simToSeedMap_[mcID_eff_][ii]].algoint()));
+      }
       const auto& seedtrack = evt_seed_tracks[simToSeedMap_[mcID_eff_][0]]; // returns seedTrack best matched to sim track
       const auto& seedextra = evt_seed_extras[seedtrack.label()]; // returns track extra best aligned with seed track
       mcmask_seed_eff_ = 1; // quick logic for matched
@@ -1603,6 +1622,10 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     // matched build track
     if (simToBuildMap_.count(mcID_eff_) && simtrack.isFindable()) // recoToSim match : save best match with best score i.e. simToBuildMap_[matched SimID][first element in vector]
     {
+      for (unsigned int ii=0; ii < simToBuildMap_[mcID_eff_].size(); ii++) 
+      { 
+          itermask_build_eff_=(itermask_build_eff_ | (1<<evt_build_tracks[simToBuildMap_[mcID_eff_][ii]].algoint()));
+      }
       const auto& buildtrack = evt_build_tracks[simToBuildMap_[mcID_eff_][0]]; // returns buildTrack best matched to sim track
       const auto& buildextra = evt_build_extras[buildtrack.label()]; // returns track extra best aligned with build track
       mcmask_build_eff_ = 1; // quick logic for matched
@@ -1717,6 +1740,10 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     // matched fit track
     if (simToFitMap_.count(mcID_eff_) && simtrack.isFindable()) // recoToSim match : save best match with best score i.e. simToFitMap_[matched SimID][first element in vector]
     {
+      for (unsigned int ii=0; ii < simToFitMap_[mcID_eff_].size(); ii++) 
+      {
+	  itermask_fit_eff_=(itermask_fit_eff_ | (1<<evt_fit_tracks[simToFitMap_[mcID_eff_][ii]].algoint()));
+      }
       const auto& fittrack = evt_fit_tracks[simToFitMap_[mcID_eff_][0]]; // returns fitTrack best matched to sim track
       const auto& fitextra = evt_fit_extras[fittrack.label()]; // returns track extra best aligned with fit track
       mcmask_fit_eff_ = 1; // quick logic for matched
@@ -2407,12 +2434,19 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
     nHits_cmssw_ceff_   = cmsswtrack.nFoundHits(); 
     nLayers_cmssw_ceff_ = cmsswtrack.nUniqueLayers();
     lastlyr_cmssw_ceff_ = cmsswtrack.getLastFoundHitLyr();
+    
+    itermask_build_ceff_=0;
+    itermask_fit_ceff_=0;
 
     if (Config::keepHitInfo) TTreeValidation::fillMinHitInfo(cmsswtrack,hitlyrs_cmssw_ceff_,hitidxs_cmssw_ceff_);
 
     // matched build track
     if (cmsswToBuildMap_.count(cmsswID_ceff_) && cmsswtrack.isFindable()) // recoToCmssw match : save best match with best score i.e. cmsswToBuildMap_[matched CmsswID][first element in vector]
     {
+      for (unsigned int ii=0; ii < cmsswToBuildMap_[cmsswID_ceff_].size(); ii++)
+      {      
+         itermask_build_ceff_=(itermask_build_ceff_ | (1<<evt_build_tracks[cmsswToBuildMap_[cmsswID_ceff_][ii]].algoint()));
+      }
       const auto& buildtrack = evt_build_tracks[cmsswToBuildMap_[cmsswID_ceff_][0]]; // returns buildTrack best matched to cmssw track
       const auto& buildextra = evt_build_extras[buildtrack.label()]; // returns track extra best aligned with build track
       cmsswmask_build_ceff_ = 1; // quick logic for matched
@@ -2662,6 +2696,8 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
       hitidxs_fit_cFR_.clear();
       hitidxs_cmssw_fit_cFR_.clear();
     }
+    
+    algorithm_cFR_=buildtrack.algoint();
 
     const auto& buildextra = evt_build_extras[buildtrack.label()];
     

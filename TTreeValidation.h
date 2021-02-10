@@ -157,6 +157,9 @@ public:
   int   duplmask_seed_eff_=0,duplmask_build_eff_=0,duplmask_fit_eff_=0;
   int   nTkMatches_seed_eff_=0,nTkMatches_build_eff_=0,nTkMatches_fit_eff_=0;
 
+  //iterations provenance for each match - a bit mask similar to the ones used in the hit masking
+  ULong64_t  itermask_seed_eff_=0,itermask_build_eff_=0,itermask_fit_eff_=0;
+
   // hit info
   std::vector<int> hitlyrs_mc_eff_,hitlyrs_seed_eff_,hitlyrs_build_eff_,hitlyrs_fit_eff_;
   std::vector<int> hitidxs_mc_eff_,hitidxs_seed_eff_,hitidxs_build_eff_,hitidxs_fit_eff_;
@@ -288,6 +291,8 @@ public:
   float dphi_fit_ceff_=0.;
 
   int   duplmask_fit_ceff_=0,nTkMatches_fit_ceff_=0;
+  
+  ULong64_t  itermask_build_ceff_=0,itermask_fit_ceff_=0;
 
   // hit info
   std::vector<int> hitlyrs_cmssw_ceff_,hitlyrs_build_ceff_,hitlyrs_mc_build_ceff_,hitlyrs_fit_ceff_,hitlyrs_mc_fit_ceff_;
@@ -296,6 +301,9 @@ public:
   // CMSSW FakeRate tree
   std::unique_ptr<TTree> cmsswfrtree_;
   int   evtID_cFR_=0,seedID_cFR_=0,mcTrackID_cFR_=0;
+  
+  //seed algo
+  int   algorithm_cFR_=0;
 
   // build info
   int   cmsswID_build_cFR_=0,cmsswmask_build_cFR_=0;
