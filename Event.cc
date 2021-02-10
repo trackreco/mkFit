@@ -729,7 +729,7 @@ int Event::clean_cms_seedtracks(TrackVec *seed_ptr)
   return seeds.size();
 }
 
-int Event::clean_cms_seedtracks_iter(TrackVec *seed_ptr, IterationConfig itrcfg)
+int Event::clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg)
 { 
   const float etamax_brl = Config::c_etamax_brl;
   const float dpt_brl_0  = Config::c_dpt_brl_0;
@@ -901,10 +901,42 @@ int Event::clean_cms_seedtracks_iter(TrackVec *seed_ptr, IterationConfig itrcfg)
   return seeds.size();
 }
 
+int Event::select_tracks_iter(unsigned int n)
+{
+  if (n==0) return 1;
 
+  unsigned int algorithms[]={ 4,22,23,5,24,7,8,9,10 };//to be stored somewhere common
+ 
+ //saving seeds by algorithm
+  const int ns = seedTracks_.size();
 
+  TrackVec cleanSeedTracks;
+  cleanSeedTracks.reserve(ns);
 
+  for(int ts=0; ts<ns; ts++){
+    const Track & tk = seedTracks_[ts];
+    unsigned int algo = (unsigned int)tk.algorithm();
+    if ( std::find(algorithms, algorithms+n, algo)!=algorithms+n  )
+        cleanSeedTracks.emplace_back(seedTracks_[ts]);
+  }
+  seedTracks_.swap(cleanSeedTracks);
 
+  //saving tracks by algorithm
+  const int nt = cmsswTracks_.size();
+
+  TrackVec cleanTracks;
+  cleanTracks.reserve(nt);
+
+  for(int ts=0; ts<nt; ts++){
+    const Track & tk = cmsswTracks_[ts];
+    unsigned int algo = (unsigned int)tk.algorithm();
+    if ( (algo!=9))//&&(algo!=5)&&(algo!=7)&&(algo!=22)&&(algo!=23)&&(algo!=24))
+        cleanTracks.emplace_back(cmsswTracks_[ts]); 
+  }
+  cmsswTracks_.swap(cleanTracks);
+  return cmsswTracks_.size()+seedTracks_.size();
+  
+}
 
 int Event::clean_cms_seedtracks_badlabel()
 {

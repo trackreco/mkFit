@@ -36,12 +36,14 @@ public:
   int  use_seeds_from_cmsswtracks(); //special mode --> use only seeds which generated cmssw reco track
   int  clean_cms_simtracks();
   int  clean_cms_seedtracks(TrackVec *seed_ptr = nullptr); //operates on seedTracks_; returns the number of cleaned seeds
-  int  clean_cms_seedtracks_iter(TrackVec *seed_ptr, IterationConfig itcfg);
+  int  clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg);
   int  clean_cms_seedtracks_badlabel(); //operates on seedTracks_, removes those with label == -1;
   void relabel_bad_seedtracks();
   void relabel_cmsswtracks_from_seeds();
+  
+  int select_tracks_iter(unsigned int n=0);//for cmssw input
 
-  inline bool is_trackvec_empty(const TrackVec & tracks) { return tracks.empty(); }
+  inline bool is_trackvec_empty(const TrackVec& tracks) { return tracks.empty(); }
 
   void print_tracks(const TrackVec& tracks, bool print_hits) const;
 
