@@ -89,6 +89,7 @@ private:
   std::vector<HitInfo>  m_hit_infos;
   std::vector<uint32_t> m_qphifines;
   std::vector<int>      m_ext_idcs;
+  int                   m_min_ext_idx, m_max_ext_idx;
 
 public:
   const LayerInfo            *m_layer_info = 0;
@@ -121,23 +122,23 @@ public:
   { return m_layer_info->is_within_r_sensitive_region(r, dr); }
 
   // Adding flag for mono/stereo
-  bool is_stereo_lyr() const 
+  bool is_stereo_lyr() const
   { return  m_layer_info->is_stereo_lyr(); }
- 
+
   // Adding info on sub-detector
-  bool is_pixb_lyr() const 
+  bool is_pixb_lyr() const
   { return  m_layer_info->is_pixb_lyr(); }
-  bool is_pixe_lyr() const 
+  bool is_pixe_lyr() const
   { return  m_layer_info->is_pixe_lyr(); }
-  bool is_pix_lyr() const 
+  bool is_pix_lyr() const
   { return  m_layer_info->is_pix_lyr(); }
-  bool is_tib_lyr() const 
+  bool is_tib_lyr() const
   { return  m_layer_info->is_tib_lyr(); }
-  bool is_tob_lyr() const 
+  bool is_tob_lyr() const
   { return  m_layer_info->is_tob_lyr(); }
-  bool is_tid_lyr() const 
+  bool is_tid_lyr() const
   { return  m_layer_info->is_tid_lyr(); }
-  bool is_tec_lyr() const 
+  bool is_tec_lyr() const
   { return  m_layer_info->is_tec_lyr(); }
 
   // Testing bin filling
@@ -157,7 +158,7 @@ protected:
   {
     m_hits = (Hit*) _mm_malloc(sizeof(Hit) * size, 64);
     m_capacity = size;
-    for (int ihit = 0; ihit < m_capacity; ihit++){m_hits[ihit] = Hit();} 
+    for (int ihit = 0; ihit < m_capacity; ihit++){m_hits[ihit] = Hit();}
   }
 
   void free_hits()
@@ -228,8 +229,10 @@ public:
   // Use external hit-vec and only use hits that are passed to me.
   void  BeginRegistrationOfHits(const HitVec &hitv);
   void  RegisterHit(int idx);
-  void  EndRegistrationOfHits();
+  void  EndRegistrationOfHits(bool build_original_to_internal_map);
 
+  // Use this to map original indices to sorted internal ones.
+  int   GetHitIndexFromOriginal(int i) const { return m_min_ext_idx + m_ext_idcs[i]; }
   // Use this to remap internal hit index to external one.
   int   GetOriginalHitIndex(int i) const { return m_hit_ranks[i]; }
 
@@ -241,7 +244,7 @@ public:
   const Hit* GetHitArray() const { return & (*m_ext_hits)[0]; }
 
   // This would also be possible for COPY_SORTED_HITS, but somebody must guarantee they stay const
-  // after suck in -- and we need to add m_ext_hits fopr that case, too.
+  // after suck in -- and we need to add m_ext_hits for that case, too.
   const Hit& GetHitWithOriginalIndex(int i) const { return (*m_ext_hits)[i]; }
 #endif
 

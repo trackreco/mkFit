@@ -117,7 +117,7 @@ namespace
 // runBuildTestPlexDumbCMSSW
 //==============================================================================
 
-void runBuildingTestPlexDumbCMSSW(Event& ev, EventOfHits &eoh, MkBuilder& builder)
+void runBuildingTestPlexDumbCMSSW(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
 {
   MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
 
@@ -134,7 +134,7 @@ void runBuildingTestPlexDumbCMSSW(Event& ev, EventOfHits &eoh, MkBuilder& builde
 // runBuildTestPlexBestHit
 //==============================================================================
 
-double runBuildingTestPlexBestHit(Event& ev, EventOfHits &eoh, MkBuilder& builder)
+double runBuildingTestPlexBestHit(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
 {
   MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
 
@@ -179,6 +179,7 @@ double runBuildingTestPlexBestHit(Event& ev, EventOfHits &eoh, MkBuilder& builde
   if (Config::backwardFit)
   {
     builder.BackwardFitBH();
+    ev.fitTracks_ = builder.ref_tracks();
   }
 
   if        (Config::quality_val) {
@@ -198,7 +199,7 @@ double runBuildingTestPlexBestHit(Event& ev, EventOfHits &eoh, MkBuilder& builde
 // runBuildTestPlex Combinatorial: Standard TBB
 //==============================================================================
 
-double runBuildingTestPlexStandard(Event& ev, EventOfHits &eoh, MkBuilder& builder)
+double runBuildingTestPlexStandard(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
 {
   MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
 
@@ -234,8 +235,9 @@ double runBuildingTestPlexStandard(Event& ev, EventOfHits &eoh, MkBuilder& build
   {
     // Using the TrackVec version until we home in on THE backward fit etc.
     // builder.BackwardFit();
+    builder.select_best_comb_cands();
     builder.BackwardFitBH();
-    // BackwardFitBH() returns fitted tracks in ev.fitTracks_
+    ev.fitTracks_ = builder.ref_tracks();
 
     check_nan_n_silly_bkfit(ev);
   }
@@ -262,7 +264,7 @@ double runBuildingTestPlexStandard(Event& ev, EventOfHits &eoh, MkBuilder& build
 // runBuildTestPlex Combinatorial: CloneEngine TBB
 //==============================================================================
 
-double runBuildingTestPlexCloneEngine(Event& ev, EventOfHits &eoh, MkBuilder& builder)
+double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
 {
   MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
 
@@ -297,8 +299,9 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventOfHits &eoh, MkBuilder& bu
   if (Config::backwardFit)
   {
     // a) TrackVec version:
+    builder.select_best_comb_cands();
     builder.BackwardFitBH();
-    // BackwardFitBH() returns fitted tracks in ev.fitTracks_
+    ev.fitTracks_ = builder.ref_tracks();
 
     // b) Version that runs on CombCand / TrackCand
     // builder.BackwardFit();
@@ -347,10 +350,9 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventOfHits &eoh, MkBuilder& bu
 // At this point we need to think about what should happen to Event before all the iterations and
 // after all the iterations ... from the Validation perspective.
 // And if we care about doing too muich work for seeds that will never get processed.
-
 //==============================================================================
 
-double runBtbCe_MultiIter(Event& ev, EventOfHits &eoh, MkBuilder& builder)
+double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
 {
   double ttime = 0;
 
@@ -403,10 +405,9 @@ double runBtbCe_MultiIter(Event& ev, EventOfHits &eoh, MkBuilder& builder)
     if (Config::backwardFit)
     {
       // a) TrackVec version:
-      int offset = (int) ev.fitTracks_.size();
-      builder.export_best_comb_cands(ev.fitTracks_);
-      builder.BackwardFitBH(offset);
-      // BackwardFitBH() returns fitted tracks in ev.fitTracks_
+      builder.select_best_comb_cands();
+      builder.BackwardFitBH();
+      builder.export_tracks(ev.fitTracks_);
 
       // b) Version that runs on CombCand / TrackCand
       // builder.BackwardFit();
@@ -443,6 +444,66 @@ double runBtbCe_MultiIter(Event& ev, EventOfHits &eoh, MkBuilder& builder)
   builder.end_event();
 
   return ttime;
+}
+
+
+//==============================================================================
+// run_OneIteration
+//
+// One-stop function for running track building from CMSSW.
+//==============================================================================
+
+void run_OneIteration(const IterationConfig &itconf, const EventOfHits &eoh,
+                      MkBuilder& builder, TrackVec &seeds, TrackVec &out_tracks,
+                      bool do_seed_clean, bool do_backward_fit, bool do_remove_duplicates)
+{
+  MkJob job( { Config::TrkInfo, itconf, eoh } );
+
+  builder.begin_event(&job, nullptr, __func__);
+
+  if (do_seed_clean)
+  {
+  // XXXX MIMI -- Leonardo working on iter-dependent seed cleaning, will be out of Event!
+    Event dummy_ev(-1);
+    dummy_ev.clean_cms_seedtracks(&seeds);
+  }
+
+  // Check nans in seeds -- this should not be needed when Slava fixes
+  // the track parameter coordinate transformation.
+  builder.seed_post_cleaning(seeds, true, true);
+
+  StdSeq::Cmssw_Map_TrackHitIndices(eoh, seeds);
+
+  for (auto &s : seeds) assignSeedTypeForRanking(s);
+
+  builder.find_tracks_load_seeds(seeds);
+
+  builder.FindTracksCloneEngine();
+
+  if ( ! do_backward_fit)
+  {
+    builder.export_best_comb_cands(out_tracks);
+  }
+  else
+  {
+    // a) BackwardFitBH works on m_tracks
+    builder.select_best_comb_cands();
+    builder.BackwardFitBH();
+    builder.export_tracks(out_tracks);
+
+    // b) Version that runs on CombCand / TrackCand
+    // builder.BackwardFit();
+    // builder.export_best_comb_cands(out_tracks);
+  }
+
+  StdSeq::Cmssw_ReMap_TrackHitIndices(eoh, out_tracks);
+
+  if (do_remove_duplicates)
+  {
+    StdSeq::remove_duplicates(out_tracks);
+  }
+
+  builder.end_event();
 }
 
 } // end namespace mkfit

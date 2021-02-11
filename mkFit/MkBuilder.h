@@ -157,7 +157,9 @@ public:
   void end_event();
   void import_seeds(const TrackVec &in_seeds, std::function<insert_seed_foo> insert_seed);
 
+  void select_best_comb_cands();
   void export_best_comb_cands(TrackVec &out_vec);
+  void export_tracks(TrackVec &out_vec);
 
   // MIMI hack to export tracks for BH
   const TrackVec& ref_tracks() const { return m_tracks; }
@@ -216,7 +218,7 @@ public:
   void FindTracksStandard();
   void FindTracksCloneEngine();
 
-  void BackwardFitBH(int main_offset = -1);
+  void BackwardFitBH();
   void fit_cands_BH(MkFinder *mkfndr, int start_cand, int end_cand, int region);
 
   void BackwardFit();

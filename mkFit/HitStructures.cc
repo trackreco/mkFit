@@ -100,7 +100,7 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
   for (int i = 0; i < size; ++i)
   {
     const Hit &h = hitv[i];
-  
+
     HitInfo hi = { h.phi(), m_is_barrel ? h.z() : h.r() };
 
     m_qphifines[i] = GetPhiBinFine(hi.phi) + (GetQBinChecked(hi.q) << 16);
@@ -192,6 +192,8 @@ void LayerOfHits::BeginRegistrationOfHits(const HitVec &hitv)
   m_hit_infos.clear();
   m_qphifines.clear();
   m_ext_idcs.clear();
+  m_min_ext_idx = std::numeric_limits<int>::max();
+  m_max_ext_idx = std::numeric_limits<int>::min();
 }
 
 void LayerOfHits::RegisterHit(int idx)
@@ -199,6 +201,8 @@ void LayerOfHits::RegisterHit(int idx)
   const Hit &h = (*m_ext_hits)[idx];
 
   m_ext_idcs.push_back(idx);
+  m_min_ext_idx = std::min(m_min_ext_idx, idx);
+  m_max_ext_idx = std::max(m_max_ext_idx, idx);
 
   HitInfo hi = { h.phi(), m_is_barrel ? h.z() : h.r() };
 
@@ -210,9 +214,10 @@ void LayerOfHits::RegisterHit(int idx)
   }
 }
 
-void LayerOfHits::EndRegistrationOfHits()
+void LayerOfHits::EndRegistrationOfHits(bool build_original_to_internal_map)
 {
   const int size = m_ext_idcs.size();
+  if (size == 0) return;
 
   // radix
   operator delete [] (m_hit_ranks);
@@ -271,11 +276,33 @@ void LayerOfHits::EndRegistrationOfHits()
 
     m_phi_bin_infos[q_bin][phi_bin].second++;
 
-    // Ranks[i] will never be used again ... use it to point to external index.
+    // m_hit_ranks[i] will never be used again ... use it to point to external index.
     m_hit_ranks[i] = k;
   }
 
-  // Matti: We can release m_hit_infos, m_ext_idcs, m_qphifines -- and realloc on next BeginInput.
+  if (build_original_to_internal_map)
+  {
+    if (m_max_ext_idx - m_min_ext_idx + 1 > 8*size)
+    {
+      // If this happens we might:
+      // a) Really use external indices for everything.
+      // b) Build these maps for seeding layers only.
+      // c) Have a flag in hit-on-track that tells us if the hit index has been remapped,
+      //    essentially, if it is a seed hit. This might not be too stupid anyway.
+      //    Hmmh, this could be index < -256, or something like that.
+
+      printf("LayerOfHits::EndRegistrationOfHits() original_to_internal index map vector is largish: size=%d, map_vector_size=%d\n",
+             size, m_max_ext_idx - m_min_ext_idx + 1);
+    }
+
+    m_ext_idcs.resize(m_max_ext_idx - m_min_ext_idx + 1);
+    for (int i = 0; i < size; ++i)
+    {
+      m_ext_idcs[m_hit_ranks[i] - m_min_ext_idx] = i;
+    }
+  }
+
+  // For Matti: We can release m_hit_infos and m_qphifines -- and realloc on next BeginInput.
 }
 
 //==============================================================================
@@ -299,7 +326,7 @@ void LayerOfHits::SelectHitIndices(float q, float phi, float dq, float dphi, std
     dq   = std::min(std::abs(dq),   max_dq());
     dphi = std::min(std::abs(dphi), max_dphi());
   }
-  
+
   int qb1 = GetQBinChecked(q - dq);
   int qb2 = GetQBinChecked(q + dq) + 1;
   int pb1 = GetPhiBin(phi - dphi);
@@ -328,13 +355,13 @@ void LayerOfHits::SelectHitIndices(float q, float phi, float dq, float dphi, std
 	  float ddq   = std::abs(q   - m_hit_qs[hi]);
 	  float ddphi = std::abs(phi - m_hit_phis[hi]);
 	  if (ddphi > Config::PI) ddphi = Config::TwoPI - ddphi;
-	  
+
 	  if (dump)
 	    printf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
 		   qi, pi, pb, hi,
 		   m_hit_qs[hi], m_hit_phis[hi], ddq, ddphi,
 		   (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
-	  
+
 	  if (ddq < dq && ddphi < dphi)
 	  {
 	    idcs.push_back(hi);

@@ -249,6 +249,12 @@ void MkBuilder::import_seeds(const TrackVec &in_seeds, std::function<insert_seed
     insert_seed(S);
   }
 
+  for (int i = 0; i < m_job->num_regions(); ++i)
+  {
+    if (m_seedMinLastLayer[i] == 9999) m_seedMinLastLayer[i] = -1;
+    if (m_seedMaxLastLayer[i] == 0)    m_seedMaxLastLayer[i] = -1;
+  }
+
   // MIMI -- we in principle support any number of regions now.
   dprintf("MkBuilder::import_seeds finished import of %d seeds (last seeding layer min, max):\n"
           "  ec- = %d(%d,%d), t- = %d(%d,%d), brl = %d(%d,%d), t+ = %d(%d,%d), ec+ = %d(%d,%d).\n",
@@ -260,24 +266,30 @@ void MkBuilder::import_seeds(const TrackVec &in_seeds, std::function<insert_seed
           m_seedEtaSeparators[4], m_seedMinLastLayer[4], m_seedMaxLastLayer[4]);
 
   // Sum up region counts to contain actual separator indices, fix min/max layers.
-  for (int i = 0; i < m_job->num_regions(); ++i)
+  for (int i = 1; i < m_job->num_regions(); ++i)
   {
     m_seedEtaSeparators[i] += m_seedEtaSeparators[i - 1];
-
-    if (m_seedMinLastLayer[i] == 9999) m_seedMinLastLayer[i] = -1;
-    if (m_seedMaxLastLayer[i] == 0)    m_seedMaxLastLayer[i] = -1;
   }
 
   //dump seeds
   dcall(print_seeds(m_event_of_comb_cands));
 }
 
+void MkBuilder::select_best_comb_cands()
+{
+  export_best_comb_cands(m_tracks);
+}
+
 void MkBuilder::export_best_comb_cands(TrackVec &out_vec)
 {
   const EventOfCombCandidates &eoccs = m_event_of_comb_cands;
+  out_vec.reserve(out_vec.size() + eoccs.m_size);
   for (int i = 0; i < eoccs.m_size; i++)
   {
-    // take the first one!
+    // See MT-RATS comment below.
+    assert ( ! eoccs.m_candidates[i].empty() && "BackwardFitBH requires output tracks to align with seeds.");
+
+    // Take the first candidate, if it exists.
     if ( ! eoccs.m_candidates[i].empty())
     {
       const TrackCand &bcand = eoccs.m_candidates[i].front();
@@ -286,6 +298,14 @@ void MkBuilder::export_best_comb_cands(TrackVec &out_vec)
   }
 }
 
+void MkBuilder::export_tracks(TrackVec &out_vec)
+{
+  out_vec.reserve(out_vec.size() + m_tracks.size());
+  for (auto &t : m_tracks)
+  {
+    out_vec.emplace_back(t);
+  }
+}
 
 //------------------------------------------------------------------------------
 // Seeding functions: importing, finding and fitting
@@ -813,6 +833,9 @@ void MkBuilder::quality_store_tracks(TrackVec& tracks)
 
   for (int i = 0; i < eoccs.m_size; i++)
   {
+    // See MT-RATS comment below.
+    assert ( ! eoccs.m_candidates[i].empty() && "BackwardFitBH requires output tracks to align with seeds.");
+
     // take the first one!
     if ( ! eoccs.m_candidates[i].empty())
     {
@@ -1553,9 +1576,8 @@ void MkBuilder::find_tracks_load_seeds(const TrackVec &in_seeds)
 {
   // This will sort seeds according to iteration configuration.
 
-  // MIMI -- currently m_tracks not used.
-  // m_tracks.reserve((int) in_seeds.size());
-  // m_tracks.clear();
+  // m_tracks can be used for BkFit.
+  m_tracks.clear();
 
   m_event_of_comb_cands.Reset((int) in_seeds.size(), m_job->params().maxCandsPerSeed);
 
@@ -2073,15 +2095,13 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 // BackwardFit
 //==============================================================================
 
-void MkBuilder::BackwardFitBH(int main_offset)
-{
-  // XXXXKM4MT HACK to use hacked BkFit copy in/out functions and play nice with validation... aye
-  if (main_offset == -1)
-  {
-    m_event->fitTracks_ = m_event->candidateTracks_;
-    main_offset = 0;
-  }
+// MT-RATS - eta separators can be screwed after copy out with possibly empty CombCands.
+// I added asserts to two applicable places above (both here in MkBuilder.cc).
+// One could also re-calculate / adjust m_seedEtaSeparators, during export iself, probably.
+// Or use separate seed / track vectors for every region -- which would be prettier.
 
+void MkBuilder::BackwardFitBH()
+{
   tbb::parallel_for_each(m_job->regions_begin(), m_job->regions_end(),
     [&](int region)
   {
@@ -2097,7 +2117,7 @@ void MkBuilder::BackwardFitBH(int main_offset)
       while (rng.valid())
       {
         // final backward fit
-        fit_cands_BH(mkfndr.get(), rng.m_beg + main_offset, rng.m_end + main_offset, region);
+        fit_cands_BH(mkfndr.get(), rng.m_beg, rng.m_end, region);
 
         ++rng;
       }
@@ -2125,7 +2145,7 @@ void MkBuilder::fit_cands_BH(MkFinder *mkfndr, int start_cand, int end_cand, int
 #endif
 
     // input candidate tracks
-    mkfndr->BkFitInputTracks(m_event->candidateTracks_, icand, end);
+    mkfndr->BkFitInputTracks(m_tracks, icand, end);
 
     // perform fit back to first layer on track
     mkfndr->BkFitFitTracksBH(m_job->m_event_of_hits, st_par, end - icand, chi_debug);
@@ -2152,7 +2172,7 @@ void MkBuilder::fit_cands_BH(MkFinder *mkfndr, int start_cand, int end_cand, int
 #endif
 
     // copy out full set of info at last propagated position
-    mkfndr->BkFitOutputTracks(m_event->fitTracks_, icand, end);
+    mkfndr->BkFitOutputTracks(m_tracks, icand, end);
 
     // printf("Post Final fit for %d - %d\n", icand, end);
     // for (int i = icand; i < end; ++i) { const Track &t = eoccs[i][0];
