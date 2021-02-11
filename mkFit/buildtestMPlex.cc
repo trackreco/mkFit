@@ -359,14 +359,14 @@ double runBtbCe_MultiIter(Event& ev, EventOfHits &eoh, MkBuilder& builder)
   //not smart usage of memory
   for (auto &s : ev.seedTracks_)
   {
-    if (s.algoint()==4) //keep seeds you want to process later
+    if (s.algoint()==4 || s.algoint()==22 || s.algoint()==23) //keep seeds you want to process later
       seeds1.push_back(s);
   }
   ev.seedTracks_.swap(seeds1);//necessary for the validation - PrepareSeeds
   ev.relabel_bad_seedtracks();//necessary for the validation - PrepareSeeds
     
   //iterations
-  for (int it = 0; it <= 0; ++it)
+  for (int it = 0; it <= 2; ++it)
   {
     MkJob job( { Config::TrkInfo, Config::ItrInfo[it], eoh } );
 
