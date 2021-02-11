@@ -744,11 +744,11 @@ int Event::clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& 
   const float dzmax_bh = itrcfg.m_params.c_dzmax_bh;
   const float drmax_bh = itrcfg.m_params.c_drmax_bh;
   const float dzmax_eh = itrcfg.m_params.c_dzmax_eh;
-  const float drmax_eh = itrcfg.m_params.c_dzmax_eh;
+  const float drmax_eh = itrcfg.m_params.c_drmax_eh;
   const float dzmax_bl = itrcfg.m_params.c_dzmax_bl;
-  const float drmax_bl = itrcfg.m_params.c_dzmax_bl;
+  const float drmax_bl = itrcfg.m_params.c_drmax_bl;
   const float dzmax_el = itrcfg.m_params.c_dzmax_el;
-  const float drmax_el = itrcfg.m_params.c_dzmax_el;
+  const float drmax_el = itrcfg.m_params.c_drmax_el;
 
   const float ptmin_hpt  = itrcfg.m_params.c_ptthr_hpt;
 
@@ -930,7 +930,7 @@ int Event::select_tracks_iter(unsigned int n)
   for(int ts=0; ts<nt; ts++){
     const Track & tk = cmsswTracks_[ts];
     unsigned int algo = (unsigned int)tk.algorithm();
-    if ( (algo!=9))//&&(algo!=5)&&(algo!=7)&&(algo!=22)&&(algo!=23)&&(algo!=24))
+    if ( std::find(algorithms, algorithms+n, algo)!=algorithms+n  )
         cleanTracks.emplace_back(cmsswTracks_[ts]); 
   }
   cmsswTracks_.swap(cleanTracks);

@@ -173,14 +173,14 @@ public:
   //seed cleaning params
   float c_ptthr_hpt = 2.0;
   //initial
-  float c_drmax_bh = 0.007;
-  float c_dzmax_bh = 0.007;
-  float c_drmax_eh = 0.018;
-  float c_dzmax_eh = 0.018;
-  float c_drmax_bl = 0.018;
-  float c_dzmax_bl = 0.018;
-  float c_drmax_el = 0.018;
-  float c_dzmax_el = 0.018;
+  float c_drmax_bh = 0.010;
+  float c_dzmax_bh = 0.005;
+  float c_drmax_eh = 0.010;
+  float c_dzmax_eh = 0.010;
+  float c_drmax_bl = 0.010;
+  float c_dzmax_bl = 0.005;
+  float c_drmax_el = 0.015;
+  float c_dzmax_el = 0.015;
 };
 
 
@@ -250,7 +250,7 @@ public:
   {
        m_params.c_ptthr_hpt = pt_thr;
        m_params.c_drmax_bh = drmax_bh;
-       m_params.c_dzmax_bh = drmax_bh;
+       m_params.c_dzmax_bh = dzmax_bh;
        m_params.c_drmax_eh = drmax_eh;
        m_params.c_dzmax_eh = dzmax_eh;
        m_params.c_drmax_bl = drmax_bl;

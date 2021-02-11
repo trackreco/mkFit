@@ -1030,7 +1030,7 @@ void MkBuilder::track_print(Track &t, const char* pref)
 
 void MkBuilder::root_val_dumb_cmssw()
 {
-  m_event->select_tracks_iter(3);
+  m_event->select_tracks_iter(1);
 
   // get labels correct first
   m_event->relabel_bad_seedtracks();

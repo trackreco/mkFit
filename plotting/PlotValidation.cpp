@@ -259,9 +259,10 @@ void PlotValidation::PlotEffTree(int algo)
 	  const auto refmask_trk  = refmask_trks [j];
 	  const auto duplmask_trk = duplmask_trks[j];
     const auto itermask_trk = itermask_trks[j];
-  
+    const long long unsigned int toCompare = (1<<algo);
+
     const auto effIteration = algo>0?((itermask_trk>>algo)&1):1;
-    const auto oneIteration = algo>0?((itermask_trk>>algo)==1):1;
+    const auto oneIteration = algo>0?(itermask_trk==(toCompare)):1;
     const auto ineffIteration = algo>0?(((itermask_trk>>algo)&1) == 0):(refmask_trk == 0);
 
 	  // plot key base
