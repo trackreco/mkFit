@@ -284,6 +284,7 @@ public:
     */
   }
 
+  LayerOfHits& operator[](int i) { return m_layers_of_hits[i]; }
   const LayerOfHits& operator[](int i) const { return m_layers_of_hits[i]; }
 };
 
