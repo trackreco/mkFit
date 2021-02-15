@@ -262,7 +262,7 @@ public:
   int                      m_n_layers;
 
 public:
-  EventOfHits(TrackerInfo &trk_inf);
+  EventOfHits(const TrackerInfo &trk_inf);
 
   void Reset()
   {
