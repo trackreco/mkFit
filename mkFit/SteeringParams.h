@@ -258,6 +258,7 @@ public:
   void resize(int ni) { m_iterations.resize(ni); }
 
   IterationConfig& operator[](int i) { return m_iterations[i]; }
+  const IterationConfig& operator[](int i) const { return m_iterations[i]; }
 };
 
 //==============================================================================
