@@ -454,7 +454,7 @@ double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
 //==============================================================================
 
 void run_OneIteration(const IterationConfig &itconf, const EventOfHits &eoh,
-                      MkBuilder& builder, TrackVec &seeds, TrackVec &out_tracks,
+                      MkBuilder& builder, const TrackVec &seeds, TrackVec &out_tracks,
                       bool do_seed_clean, bool do_backward_fit, bool do_remove_duplicates)
 {
   MkJob job( { Config::TrkInfo, itconf, eoh } );
