@@ -232,7 +232,7 @@ public:
   void  EndRegistrationOfHits(bool build_original_to_internal_map);
 
   // Use this to map original indices to sorted internal ones.
-  int   GetHitIndexFromOriginal(int i) const { return m_min_ext_idx + m_ext_idcs[i]; }
+  int   GetHitIndexFromOriginal(int i) const { return m_ext_idcs[i - m_min_ext_idx]; }
   // Use this to remap internal hit index to external one.
   int   GetOriginalHitIndex(int i) const { return m_hit_ranks[i]; }
 
