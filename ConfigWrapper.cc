@@ -5,37 +5,14 @@
 
 namespace mkfit {
   namespace ConfigWrapper {
-    void initializeForCMSSW(SeedCleaningOpts seedClean, BackwardFit backfit, bool silent) {
+    void initializeForCMSSW(bool silent) {
       Config::seedInput = cmsswSeeds;
-      Config::geomPlugin = "CMS-2017";
       Config::silent = silent;
-      Config::cmssw_export = true;
 
-      if(seedClean == SeedCleaningOpts::cleanSeedsN2) {
-        Config::seedCleaning = cleanSeedsN2;
-      }
-
-      switch(backfit) {
-      case BackwardFit::noFit:
-        Config::backwardFit = false;
-        break;
-      case BackwardFit::toFirstLayer:
-        Config::backwardFit = true;
-        Config::includePCA = false;
-        break;
-      case BackwardFit::toPCA:
-        Config::backwardFit = true;
-        Config::includePCA = true;
-        break;
-      }
-
-      TrackerInfo::ExecTrackerInfoCreatorPlugin(Config::geomPlugin, Config::TrkInfo, Config::ItrInfo);
+      // to do backward fit to the first layer, not point of closest approach
+      Config::includePCA = false;
 
       fillZRgridME();
-    }
-
-    void setRemoveDuplicates(bool removeDuplicates) {
-      Config::removeDuplicates = removeDuplicates;
     }
 
     void setNTotalLayers(int nTotalLayers) {

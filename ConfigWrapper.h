@@ -9,18 +9,7 @@ namespace mkfit {
    * MkFit package.
    */
   namespace ConfigWrapper {
-    enum class SeedCleaningOpts {
-      noCleaning,
-      cleanSeedsN2
-    };
-    enum class BackwardFit {
-      noFit,
-      toFirstLayer,
-      toPCA
-    };
-
-    void initializeForCMSSW(SeedCleaningOpts seedClean, BackwardFit backfit, bool silent);
-    void setRemoveDuplicates(bool removeDuplicates);
+    void initializeForCMSSW(bool silent);
 
     void setNTotalLayers(int nTotalLayers);
   }

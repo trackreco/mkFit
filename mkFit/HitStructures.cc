@@ -429,7 +429,7 @@ Track TrackCand::exportTrack() const
 // EventOfHits
 //==============================================================================
 
-EventOfHits::EventOfHits(TrackerInfo &trk_inf) :
+EventOfHits::EventOfHits(const TrackerInfo &trk_inf) :
   m_layers_of_hits(trk_inf.m_layers.size()),
   m_n_layers(trk_inf.m_layers.size())
 {
