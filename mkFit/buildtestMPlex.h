@@ -18,7 +18,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuild
 
 double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder);
 
-void   run_OneIteration(const IterationConfig &itconf, const EventOfHits &eoh,
+void   run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itconf, const EventOfHits &eoh,
                         MkBuilder& builder, TrackVec &seeds, TrackVec &out_tracks,
                         bool do_seed_clean, bool do_backward_fit, bool do_remove_duplicates);
 
