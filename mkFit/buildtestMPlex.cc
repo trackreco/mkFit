@@ -453,11 +453,11 @@ double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
 // One-stop function for running track building from CMSSW.
 //==============================================================================
 
-void run_OneIteration(const IterationConfig &itconf, const EventOfHits &eoh,
+void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itconf, const EventOfHits &eoh,
                       MkBuilder& builder, TrackVec &seeds, TrackVec &out_tracks,
                       bool do_seed_clean, bool do_backward_fit, bool do_remove_duplicates)
 {
-  MkJob job( { Config::TrkInfo, itconf, eoh } );
+  MkJob job( { trackerInfo, itconf, eoh } );
 
   builder.begin_event(&job, nullptr, __func__);
 
