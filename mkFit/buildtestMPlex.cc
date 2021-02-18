@@ -359,13 +359,20 @@ double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
   // ??? MIMI - What validation prep / map tasks need to run before we start
   // screwing up seeds etc?
 
+  IterationMaskIfc mask_ifc;
+
   for (int it = 0; it <= 2; ++it)
   {
-    MkJob job( { Config::TrkInfo, Config::ItrInfo[it], eoh } );
+    // MIMI - to disable hit-masks, pass nullptr in place of &mask_ifc to job
+    // and optionally comment out ev.fill_hitmask_bool_vectors() call.
+
+    ev.fill_hitmask_bool_vectors(Config::ItrInfo[it].m_track_algorithm, mask_ifc.m_mask_vector);
+
+    MkJob job( { Config::TrkInfo, Config::ItrInfo[it], eoh, &mask_ifc } );
 
     builder.begin_event(&job, &ev, __func__);
 
-    // Some of what happens here, should really happen somewhere e;se, if it needs to.
+    // Some of what happens here, should really happen somewhere else, if it needs to.
     // builder.PrepareSeeds();
     // Specific cleaning / mapping done below for extracted seeds.
 
@@ -453,11 +460,31 @@ double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
 // One-stop function for running track building from CMSSW.
 //==============================================================================
 
+struct IterationMaskIfcCmssw : public IterationMaskIfcBase
+{
+  const TrackerInfo                           &m_trk_info;
+  const std::vector<const std::vector<bool>*> &m_mask_vector;
+
+  IterationMaskIfcCmssw(const TrackerInfo &ti, const std::vector<const std::vector<bool>*> &maskvec) :
+    m_trk_info(ti), m_mask_vector(maskvec) {}
+
+  const std::vector<bool>* get_mask_for_layer(int layer) const
+  {
+     return m_trk_info.m_layers[layer].is_pix_lyr() ? m_mask_vector[0] : m_mask_vector[1];
+  }
+};
+
 void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itconf, const EventOfHits &eoh,
                       MkBuilder& builder, TrackVec &seeds, TrackVec &out_tracks,
                       bool do_seed_clean, bool do_backward_fit, bool do_remove_duplicates)
 {
-  MkJob job( { trackerInfo, itconf, eoh } );
+  // assume arugument:
+  const std::vector<const std::vector<bool>*> mask_vec = { nullptr, nullptr };
+  // nullptr is a valid mask ... means no mask for these layers.
+
+  IterationMaskIfcCmssw it_mask_ifc(trackerInfo, mask_vec);
+
+  MkJob job( { trackerInfo, itconf, eoh, &it_mask_ifc } );
 
   builder.begin_event(&job, nullptr, __func__);
 

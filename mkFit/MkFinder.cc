@@ -17,16 +17,18 @@
 
 namespace mkfit {
 
-void MkFinder::Setup(const IterationParams& ip, const IterationLayerConfig& ilc)
+void MkFinder::Setup(const IterationParams &ip, const IterationLayerConfig &ilc, const std::vector<bool> *ihm)
 {
   m_iteration_params       = &ip;
   m_iteration_layer_config = &ilc;
+  m_iteration_hit_mask     =  ihm;
 }
 
 void MkFinder::Release()
 {
   m_iteration_params       = nullptr;
   m_iteration_layer_config = nullptr;
+  m_iteration_hit_mask     = nullptr;
 }
 
 
@@ -210,7 +212,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     float min_dq   = ILC.min_dq();
     float max_dphi = ILC.max_dphi();
     //
-    getHitSelDynamicWindows(L, thisPt, thisEta, min_dq, max_dphi);         
+    getHitSelDynamicWindows(L, thisPt, thisEta, min_dq, max_dphi);
     //
     dphi = std::min(std::abs(dphi), max_dphi);
     dq   = clamp(dq, min_dq, ILC.max_dq());
@@ -381,48 +383,63 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
         {
           // MT: Access into m_hit_zs and m_hit_phis is 1% run-time each.
 
-	  if (Config::usePhiQArrays)
-	  {
-            if (XHitSize[itrack] >= MPlexHitIdxMax) break;
+          if (m_iteration_hit_mask && (*m_iteration_hit_mask)[L.GetOriginalHitIndex(hi)])
+          {
+            // printf("Yay, denying masked hit on layer %d, hi %d, orig idx %d\n",
+            //        L.m_layer_info->m_layer_id, hi, L.GetOriginalHitIndex(hi));
+            continue;
+          }
 
-            const float ddq   =       std::abs(q   - L.m_hit_qs[hi]);
-            if (ddq >= dq) continue;
+          if (Config::usePhiQArrays)
+          {
+            if (XHitSize[itrack] >= MPlexHitIdxMax)
+              break;
+
+            const float ddq = std::abs(q - L.m_hit_qs[hi]);
+            if (ddq >= dq)
+              continue;
             const float ddphi = cdist(std::abs(phi - L.m_hit_phis[hi]));
-            if (ddphi >= dphi) continue;
-            
+            if (ddphi >= dphi)
+              continue;
+
             // dprintf("     SHI %3d %4d %4d %5d  %6.3f %6.3f %6.4f %7.5f   %s\n",
             //         qi, pi, pb, hi,
             //         L.m_hit_qs[hi], L.m_hit_phis[hi], ddq, ddphi,
             //         (ddq < dq && ddphi < dphi) ? "PASS" : "FAIL");
-            
+
             // MT: Removing extra check gives full efficiency ...
             //     and means our error estimations are wrong!
             // Avi says we should have *minimal* search windows per layer.
             // Also ... if bins are sufficiently small, we do not need the extra
             // checks, see above.
-	    if(L.GetHit(hi).mcHitID() == -7)
-	    {
-	      //ARH: This will need a better treatment but works for now 
-	      XWsrResult[itrack].m_in_gap = true;
-	    }
-	    else
-	    {
-	      XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
-	    }
-	  }
-	  else
-	  {
-	    // MT: The following check alone makes more sense with spiral traversal,
-	    // we'd be taking in closest hits first.
-	    if (XHitSize[itrack] < MPlexHitIdxMax)
-	    {
-	      XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
-	    }
-	  }
-        }//for (uint16_t hi =
-      }//pi
-    }//qi
-  }//itrack
+            if (L.GetHit(hi).mcHitID() == -7)
+            {
+              //ARH: This will need a better treatment but works for now
+              XWsrResult[itrack].m_in_gap = true;
+            }
+            else
+            {
+              XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
+            }
+          }
+          else
+          {
+            // MT: The following check alone makes more sense with spiral traversal,
+            // we'd be taking in closest hits first.
+
+            // Hmmh -- there used to be some more checks here.
+            // Or, at least, the phi binning was much smaller and no further checks were done.
+            assert(false && "this code has not been used in a while -- see comments in code");
+
+            if (XHitSize[itrack] < MPlexHitIdxMax)
+            {
+              XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
+            }
+          }
+        } //hi
+      } //pi
+    } //qi
+  } //itrack
 }
 
 
@@ -841,7 +858,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     {
       fake_hit_idx = -3;
     }
-    //now add fake hit for tracks that passsed through inactive modules 
+    //now add fake hit for tracks that passsed through inactive modules
     else if (XWsrResult[itrack].m_in_gap == true)
     {
       fake_hit_idx = -7;

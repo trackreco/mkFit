@@ -65,6 +65,25 @@ struct LayerControl
 
 
 //==============================================================================
+// Hit masks / IterationMaskIfc
+//==============================================================================
+
+struct IterationMaskIfcBase
+{
+  virtual ~IterationMaskIfcBase() {}
+
+  virtual const std::vector<bool>* get_mask_for_layer(int layer) const { return nullptr; }
+};
+
+struct IterationMaskIfc : public IterationMaskIfcBase
+{
+  std::vector<std::vector<bool>> m_mask_vector;
+
+  const std::vector<bool>* get_mask_for_layer(int layer) const { return & m_mask_vector[layer]; }
+};
+
+
+//==============================================================================
 // SteeringParams
 //==============================================================================
 
@@ -174,7 +193,7 @@ public:
 
 
 //==============================================================================
-// IterationConfig
+// IterationSeedPartition
 //==============================================================================
 
 class IterationSeedPartition
@@ -185,6 +204,11 @@ public:
 
   IterationSeedPartition(int size) : m_region(size), m_sort_score(size) {}
 };
+
+
+//==============================================================================
+// IterationConfig
+//==============================================================================
 
 class IterationConfig
 {

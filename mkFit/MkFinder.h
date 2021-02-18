@@ -5,8 +5,8 @@
 #include "TrackerInfo.h"
 #include "Track.h"
 
-// Needed for TrackCand
 #include "HitStructures.h"
+#include "SteeringParams.h"
 
 // Define to get printouts about track and hit chi2.
 // See also MkBuilder::BackwardFit() and MkBuilder::quality_store_tracks().
@@ -22,14 +22,6 @@ class CombCandidate;
 class LayerOfHits;
 class FindingFoos;
 
-class IterationParams;
-class IterationLayerConfig;
-
-// For backward fit hack
-class EventOfHits;
-class EventOfCombCandidates;
-class SteeringParams;
-
 #ifdef DEBUG_BACKWARD_FIT
 class Event;
 #endif
@@ -41,7 +33,7 @@ class Event;
 // Fitting is somewhat depending on this (not the new inter-slurp version).
 // No need to have hit array as matriplex. Ideally, don't even want the full
 // array if we could copy / clone it from the original candidate.
-// Copy as needed or copy full size (compile time constant)? memcpy, std::copy 
+// Copy as needed or copy full size (compile time constant)? memcpy, std::copy
 // Do need per track size.
 //
 // Can also have nFoundHits ... then do not need countValid/InvalidHits().
@@ -113,12 +105,13 @@ public:
 
   const IterationParams      *m_iteration_params       = nullptr;
   const IterationLayerConfig *m_iteration_layer_config = nullptr;
+  const std::vector<bool>    *m_iteration_hit_mask     = nullptr;
 
   //============================================================================
 
   MkFinder() {}
 
-  void Setup(const IterationParams& ip, const IterationLayerConfig& ilc);
+  void Setup(const IterationParams &ip, const IterationLayerConfig &ilc, const std::vector<bool> *ihm);
   void Release();
 
   //----------------------------------------------------------------------------
@@ -239,7 +232,7 @@ private:
     NInsideMinusOneHits(mslot, 0, 0) = trk.nInsideMinusOneHits();
     NTailMinusOneHits  (mslot, 0, 0) = trk.nTailMinusOneHits();
 
-    std::copy(trk.BeginHitsOnTrack(), trk.EndHitsOnTrack(), HoTArrs[mslot]); 
+    std::copy(trk.BeginHitsOnTrack(), trk.EndHitsOnTrack(), HoTArrs[mslot]);
   }
 
   void copy_out(Track& trk, const int mslot, const int tslot) const

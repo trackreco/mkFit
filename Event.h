@@ -40,7 +40,8 @@ public:
   void relabel_bad_seedtracks();
   void relabel_cmsswtracks_from_seeds();
 
-  inline bool is_trackvec_empty(const TrackVec & tracks) { return tracks.empty(); }
+  void fill_hitmask_bool_vectors(int track_algo, std::vector<std::vector<bool>> &layer_masks);
+  void fill_hitmask_bool_vectors(std::vector<int> &track_algo_vec, std::vector<std::vector<bool>> &layer_masks);
 
   void print_tracks(const TrackVec& tracks, bool print_hits) const;
 

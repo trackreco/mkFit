@@ -45,7 +45,7 @@ void Cmssw_LoadHits_Begin(EventOfHits &eoh, const std::vector<const HitVec*> &or
   }
 }
 
-// Loop with layer_of_hitsRegisterHit(int idx) - it takes Hit out of original HitVec to
+// Loop with LayerOfHits::RegisterHit(int idx) - it takes Hit out of original HitVec to
 // extract phi, r/z, and calculate qphifines
 //
 // Something like what is done in MkFitInputConverter::convertHits
