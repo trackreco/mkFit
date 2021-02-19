@@ -185,7 +185,10 @@ void PlotValidation::PlotEffTree(int algo)
   
   std::vector<ULong64_t>  itermask_trks   (fNTrks); 
   TBrRefVec               itermask_trks_br(fNTrks);
-  
+ 
+  ULong64_t algoseed_trk; // for SIMVALSEED
+  TBranch*  algoseed_trk_br;
+ 
   for (auto j = 0U; j < fNTrks; j++) // loop over trks index
   {
     const auto & trk       = fTrks           [j];
@@ -194,7 +197,7 @@ void PlotValidation::PlotEffTree(int algo)
     auto & duplmask_trk    = duplmask_trks   [j];
     auto & duplmask_trk_br = duplmask_trks_br[j];
     auto & itermask_trk    = itermask_trks   [j];
-    auto & itermask_trk_br = itermask_trks_br[j];
+    auto & itermask_trk_br = itermask_trks_br[j]; 
 
     // initialize mcmask, branches
     refmask_trk    = 0;
@@ -207,13 +210,16 @@ void PlotValidation::PlotEffTree(int algo)
     // initialize itermask, branches
     itermask_trk    = 0;
     itermask_trk_br = 0;
+
+    algoseed_trk    = 0;
+    algoseed_trk_br = 0;
     
     // Set branches
     efftree->SetBranchAddress(fSRefMask+"mask_"+trk,&refmask_trk,&refmask_trk_br);
     efftree->SetBranchAddress("duplmask_"+trk,&duplmask_trk,&duplmask_trk_br);
     efftree->SetBranchAddress("itermask_"+trk,&itermask_trk,&itermask_trk_br);
   }
-
+  efftree->SetBranchAddress("algo_seed",&algoseed_trk,&algoseed_trk_br);
   ///////////////////////////////////////////////////
   // Fill histos, compute rates from tree branches //
   ///////////////////////////////////////////////////
@@ -239,7 +245,7 @@ void PlotValidation::PlotEffTree(int algo)
       duplmask_trk_br->GetEntry(e);
       itermask_trk_br->GetEntry(e);
     }
-
+    algoseed_trk_br->GetEntry(e);
     // use for cuts
     const auto pt_ref = vars_ref[0];
 
@@ -264,15 +270,17 @@ void PlotValidation::PlotEffTree(int algo)
     const auto effIteration = algo>0?((itermask_trk>>algo)&1):1;
     const auto oneIteration = algo>0?(itermask_trk==(toCompare)):1;
     const auto ineffIteration = algo>0?(((itermask_trk>>algo)&1) == 0):(refmask_trk == 0);
-
+    const auto seedalgo_flag = (algoseed_trk>0&&algo>0)?((algoseed_trk>>algo)&1):1;
+    //if (algoseed_trk>0) std::cout << algoseed_trk << " "<<algo <<" "<< seedalgo_flag<<"  "<<effIteration<< std::endl;
+    //effIteration=effIteration&&seedalgo_flag;
 	  // plot key base
 	  const TString basekey = Form("%i_%i_%i",i,j,k);
 
 	  // efficiency calculation: need ref track to be findable
-	  if (refmask_trk  != -1) plots[basekey+"_0"]->Fill((refmask_trk ==1) && effIteration,var_ref); // ref track must be associated to enter numerator (==1)
+	  if (refmask_trk  != -1 && seedalgo_flag) plots[basekey+"_0"]->Fill((refmask_trk ==1) && effIteration,var_ref); // ref track must be associated to enter numerator (==1)
 
 	  // duplicate rate calculation: need ref track to be matched at least once
-	  if (duplmask_trk != -1 && effIteration) plots[basekey+"_1"]->Fill((duplmask_trk==1) && oneIteration,var_ref); // ref track is matched at least twice
+	  if (duplmask_trk != -1 && effIteration && seedalgo_flag) plots[basekey+"_1"]->Fill((duplmask_trk==1) && oneIteration,var_ref); // ref track is matched at least twice
 
 	  // inefficiency calculation: need ref track to be findable
 	  if (refmask_trk  != -1)

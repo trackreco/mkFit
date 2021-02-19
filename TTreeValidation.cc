@@ -161,6 +161,7 @@ void TTreeValidation::initializeEfficiencyTree()
   efftree_->Branch("itermask_seed",&itermask_seed_eff_);
   efftree_->Branch("itermask_build",&itermask_build_eff_);
   efftree_->Branch("itermask_fit",&itermask_fit_eff_);
+  efftree_->Branch("algo_seed",&algo_seed_eff_);
 
 
   if (Config::keepHitInfo)
@@ -523,6 +524,7 @@ void TTreeValidation::initializeCMSSWEfficiencyTree()
   cmsswefftree_->Branch("nTkMatches_fit",&nTkMatches_fit_ceff_);
   
   cmsswefftree_->Branch("itermask_fit",&itermask_fit_ceff_);
+  cmsswefftree_->Branch("algo_seed",&algo_seed_ceff_);
 
   if (Config::keepHitInfo)
   {
@@ -1441,6 +1443,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
   const auto& evt_layer_hits   = ev.layerHits_;
   const auto& evt_sim_trackstates = ev.simTrackStates_;
 
+  unsigned int count=0;
   for (const auto& simtrack : evt_sim_tracks)
   {
     // clear the branches first
@@ -1495,6 +1498,11 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     itermask_seed_eff_=0;
     itermask_build_eff_=0;
     itermask_fit_eff_=0;
+    algo_seed_eff_=0;
+
+    for (auto aa: ev.simTracksExtra_[count].seedAlgos())
+      algo_seed_eff_=(algo_seed_eff_ | (1<<aa));
+    count++;
 
     // hit indices
     if (Config::keepHitInfo) TTreeValidation::fillFullHitInfo(ev,simtrack,hitlyrs_mc_eff_,hitidxs_mc_eff_,hitmcTkIDs_mc_eff_,
@@ -2437,6 +2445,10 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
     
     itermask_build_ceff_=0;
     itermask_fit_ceff_=0;
+    algo_seed_ceff_=0;
+     
+    for (auto aa: cmsswextra.seedAlgos())
+       algo_seed_ceff_=(algo_seed_ceff_ | (1<<aa));
 
     if (Config::keepHitInfo) TTreeValidation::fillMinHitInfo(cmsswtrack,hitlyrs_cmssw_ceff_,hitidxs_cmssw_ceff_);
 
@@ -2447,6 +2459,7 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
       {      
          itermask_build_ceff_=(itermask_build_ceff_ | (1<<evt_build_tracks[cmsswToBuildMap_[cmsswID_ceff_][ii]].algoint()));
       }
+
       const auto& buildtrack = evt_build_tracks[cmsswToBuildMap_[cmsswID_ceff_][0]]; // returns buildTrack best matched to cmssw track
       const auto& buildextra = evt_build_extras[buildtrack.label()]; // returns track extra best aligned with build track
       cmsswmask_build_ceff_ = 1; // quick logic for matched

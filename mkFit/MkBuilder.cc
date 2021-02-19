@@ -1114,6 +1114,8 @@ void MkBuilder::prep_simtracks()
 
   // First, make a make a map of [lyr][hit idx].vector(seed trk labels)
   LayIdxIDVecMapMap seedHitIDMap;
+  std::map<int, int> labelNHitsMap;
+  std::map<int, int> labelAlgoMap;
   for (const auto& seedtrack : m_event->seedTracks_)
   {
     for (int ihit = 0; ihit < seedtrack.nTotalHits(); ihit++)
@@ -1124,13 +1126,15 @@ void MkBuilder::prep_simtracks()
       if (lyr < 0 || idx < 0) continue; // standard check
       seedHitIDMap[lyr][idx].push_back(seedtrack.label());
     }
+    labelNHitsMap[seedtrack.label()]=seedtrack.nTotalHits();
+    labelAlgoMap[seedtrack.label()]=seedtrack.algoint();
   }
 
   // Then, loop over sim tracks, and add up how many lyrs they possess of a single seed track
+  unsigned int count=0;
   for (auto& simtrack : m_event->simTracks_)
   {
     if (simtrack.isNotFindable()) continue; // skip ones we already know are bad
-
     TrkIDLaySetMap seedIDMap;
     for (int ihit = 0; ihit < simtrack.nTotalHits(); ihit++)
     {
@@ -1153,13 +1157,14 @@ void MkBuilder::prep_simtracks()
     bool isSimSeed = false;
     for (const auto &seedIDpair : seedIDMap)
     {
-      if ((int) seedIDpair.second.size() == m_job->params().nlayers_per_seed)
+      if ((int) seedIDpair.second.size() == labelNHitsMap[seedIDpair.first])
       {
         isSimSeed = true;
-        break;
+        if (Config::mtvRequireSeeds) simtrack.setAlgoint(labelAlgoMap[seedIDpair.first]);
+        if (Config::mtvRequireSeeds) m_event->simTracksExtra_[count].addAlgo(labelAlgoMap[seedIDpair.first]);
+        //break;
       }
     }
-
     if (Config::mtvLikeValidation)
     {
       // Apply MTV selection criteria and then return
@@ -1174,6 +1179,7 @@ void MkBuilder::prep_simtracks()
       if (!isSimSeed)
         simtrack.setNotFindable();
     }
+  count++;
   }
 }
 
