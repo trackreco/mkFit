@@ -701,6 +701,11 @@ int main(int argc, const char *argv[])
       next_arg_or_die(mArgs, i);
       Config::nEvents = atoi(i->c_str());
     }
+    else if (*i == "--num-iters-cmssw")
+    {
+       next_arg_or_die(mArgs, i);
+       Config::nItersCMSSW = atoi(i->c_str());
+    }
     else if (*i == "--start-event")
     {
       next_arg_or_die(mArgs, i);
