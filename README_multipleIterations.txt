@@ -29,4 +29,15 @@ MT Notes:
   This is a somewhat more general probelm ... flow of tracks through processing and
   when should they be copied out / extracted (found / fitted / etc).
   Especially re validation.
-  
+
+
+
+-------------------------------------------------------------------------------
+
+VALIDATION
+
+tested validation with 3 iterations
+scripts (for running validation forConf)
+
+./val_scripts/validation-cmssw-benchmarks-multiiter.sh
+./web/collectBenchmarks-multi.sh  
