@@ -102,6 +102,16 @@ namespace
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
     }
+    else if (it == 1)
+    {   
+      ip.nlayers_per_seed = 3;
+      ip.maxCandsPerSeed  = 5;
+      ip.maxHolesPerCand  = 4;
+      ip.maxConsecHoles   = 1;
+      ip.chi2Cut          = 30; 
+      ip.chi2CutOverlap   = 3.5;
+      ip.pTCutOverlap     = 1;
+    }  
   }
 
   std::function<IterationConfig::partition_seeds_foo> PartitionSeeds0 =
@@ -228,10 +238,12 @@ namespace
     ii[0].m_partition_seeds = PartitionSeeds0;
 
     ii[1].Clone(ii[0]);
+    SetupIterationParams(ii[1].m_params, 1);//3 seed hits is the only difference
     ii[1].set_iteration_index_and_track_algorithm(1, (int) TrackBase::TrackAlgorithm::highPtTripletStep);
-
+    ii[1].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.018, 0.018, 0.018, 0.05, 0.018, 0.05); //maybe have he parameters stored somewhere
     ii[2].Clone(ii[0]);
     ii[2].set_iteration_index_and_track_algorithm(2, (int) TrackBase::TrackAlgorithm::lowPtQuadStep);
+    ii[2].set_seed_cleaning_params(0.5, 0.018, 0.018, 0.018, 0.018, 0.05, 0.05, 0.05, 0.05);
 
     if (verbose)
     {

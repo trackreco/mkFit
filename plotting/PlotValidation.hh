@@ -52,7 +52,7 @@ struct EffStruct
 class PlotValidation
 {
 public:
-  PlotValidation(const TString & inName, const TString & outName, const Bool_t cmsswComp,
+  PlotValidation(const TString & inName, const TString & outName, const Bool_t cmsswComp,const int algo,
 		 const Bool_t mvInput, const Bool_t saveAs, const TString & outType);
   ~PlotValidation();
   
@@ -64,10 +64,10 @@ public:
   void SetupCommonVars();
 
   // main call
-  void Validation();
-  void PlotEffTree();
-  void PlotFRTree();
-  void PrintTotals();
+  void Validation(int algo=0);
+  void PlotEffTree(int algo=0);
+  void PlotFRTree(int algo=0);
+  void PrintTotals(int algo=0);
 
   // output functions
   template <typename T>
@@ -86,6 +86,8 @@ private:
   const Bool_t  fMvInput;
   const Bool_t  fSaveAs;
   const TString fOutType;
+  
+  const int fAlgo;
 
   // main input 
   TFile * fInRoot;
@@ -129,7 +131,7 @@ private:
   TStrVec fSPtCuts;
   TStrVec fHPtCuts;
   UInt_t  fNPtCuts;
-
+  
   // track quality plots
   TStrVec fTrkQual;
   TStrVec fSTrkQual;

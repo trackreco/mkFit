@@ -330,7 +330,7 @@ public:
   int            algoint()   const { return status_.algorithm; }
   TrackAlgorithm algorithm() const { return TrackAlgorithm(status_.algorithm); }
   void setAlgorithm(TrackAlgorithm algo) { status_.algorithm = static_cast<unsigned int>(algo); }
-
+  void setAlgoint(int algo) { status_.algorithm = algo; }
   // To be used later
   // bool isStopped() const { return status_.stopped; }
   // void setStopped()      { status_.stopped = true; }
@@ -595,8 +595,7 @@ public:
   }
 
   Track clone() const { return Track(*this); }
-
-
+	
 private:
   std::vector<HitOnTrack>    hitsOnTrk_;
 };
@@ -750,6 +749,9 @@ public:
 
   void  setmcTrackID(int mcTrackID) {mcTrackID_ = mcTrackID;}
   void  setseedID(int seedID) {seedID_ = seedID;}
+  
+  void addAlgo(int algo){seedAlgos_.push_back(algo);}
+  const std::vector<int> seedAlgos() const {return seedAlgos_;}
 
 private:
   friend class Track;
@@ -764,6 +766,8 @@ private:
   float helixChi2_;
   float dPhi_;
   HoTVec matchedSeedHits_;
+  std::vector<int> seedAlgos_;
+
 };
 
 typedef std::vector<TrackState> TSVec;

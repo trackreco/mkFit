@@ -28,13 +28,14 @@
 // s at the start == "string" version of the variable
 // h at the start == a different string version
 
-PlotValidation::PlotValidation(const TString & inName, const TString & outName, const Bool_t cmsswComp,
+PlotValidation::PlotValidation(const TString & inName, const TString & outName, const Bool_t cmsswComp,  const int algo,
 			       const Bool_t mvInput, const Bool_t saveAs, const TString & outType)
-  : fInName(inName), fOutName(outName), fCmsswComp(cmsswComp),
+  : fInName(inName), fOutName(outName), fCmsswComp(cmsswComp), fAlgo(algo),
     fMvInput(mvInput), fSaveAs(saveAs), fOutType(outType)
 {
   // Setup 
   PlotValidation::SetupStyle();
+  if (fAlgo>0) fOutName=fOutName+"_iter"+algo;
   PlotValidation::MakeOutDir(fOutName);
   PlotValidation::SetupBins();
   PlotValidation::SetupCommonVars();
@@ -57,22 +58,23 @@ PlotValidation::~PlotValidation()
   delete fOutRoot; // will delete all pointers to subdirectory
 }
 
-void PlotValidation::Validation()
+void PlotValidation::Validation(int algo)
 {
   std::cout << "Computing Efficiency, Inefficiency, and Duplicate Rate ..." << std::endl;
-  PlotValidation::PlotEffTree();
+  PlotValidation::PlotEffTree(algo);
   
   std::cout << "Computing Fake Rate, <nHits/track>, and kinematic diffs to " << fSRefTitle.Data() << " tracks ..." << std::endl;
-  PlotValidation::PlotFRTree();
+  PlotValidation::PlotFRTree(algo);
   
   std::cout << "Printing Totals ..." << std::endl;
-  PlotValidation::PrintTotals();
+  PlotValidation::PrintTotals(algo);
   
   if (fMvInput) PlotValidation::MoveInput();
+  
 }
 
 // Loop over efficiency tree: produce efficiency, inefficiency per region of tracker, and duplicate rate
-void PlotValidation::PlotEffTree()
+void PlotValidation::PlotEffTree(int algo)
 {
   //////////////
   // Get tree //
@@ -180,6 +182,13 @@ void PlotValidation::PlotEffTree()
 
   IntVec    duplmask_trks   (fNTrks); // need to know if sim track associated to a given reco track type more than once
   TBrRefVec duplmask_trks_br(fNTrks); // tbranch for each trk
+  
+  std::vector<ULong64_t>  itermask_trks   (fNTrks); 
+  TBrRefVec               itermask_trks_br(fNTrks);
+ 
+  ULong64_t algoseed_trk; // for SIMVALSEED
+  TBranch*  algoseed_trk_br;
+ 
   for (auto j = 0U; j < fNTrks; j++) // loop over trks index
   {
     const auto & trk       = fTrks           [j];
@@ -187,6 +196,8 @@ void PlotValidation::PlotEffTree()
     auto & refmask_trk_br  = refmask_trks_br [j];
     auto & duplmask_trk    = duplmask_trks   [j];
     auto & duplmask_trk_br = duplmask_trks_br[j];
+    auto & itermask_trk    = itermask_trks   [j];
+    auto & itermask_trk_br = itermask_trks_br[j]; 
 
     // initialize mcmask, branches
     refmask_trk    = 0;
@@ -196,11 +207,19 @@ void PlotValidation::PlotEffTree()
     duplmask_trk    = 0;
     duplmask_trk_br = 0;
     
+    // initialize itermask, branches
+    itermask_trk    = 0;
+    itermask_trk_br = 0;
+
+    algoseed_trk    = 0;
+    algoseed_trk_br = 0;
+    
     // Set branches
     efftree->SetBranchAddress(fSRefMask+"mask_"+trk,&refmask_trk,&refmask_trk_br);
     efftree->SetBranchAddress("duplmask_"+trk,&duplmask_trk,&duplmask_trk_br);
+    efftree->SetBranchAddress("itermask_"+trk,&itermask_trk,&itermask_trk_br);
   }
-
+  efftree->SetBranchAddress("algo_seed",&algoseed_trk,&algoseed_trk_br);
   ///////////////////////////////////////////////////
   // Fill histos, compute rates from tree branches //
   ///////////////////////////////////////////////////
@@ -220,11 +239,13 @@ void PlotValidation::PlotEffTree()
     {
       auto & refmask_trk_br  = refmask_trks_br [j];
       auto & duplmask_trk_br = duplmask_trks_br[j];
+      auto & itermask_trk_br = itermask_trks_br[j];
 
       refmask_trk_br ->GetEntry(e);
       duplmask_trk_br->GetEntry(e);
+      itermask_trk_br->GetEntry(e);
     }
-
+    algoseed_trk_br->GetEntry(e);
     // use for cuts
     const auto pt_ref = vars_ref[0];
 
@@ -243,15 +264,23 @@ void PlotValidation::PlotEffTree()
         {
 	  const auto refmask_trk  = refmask_trks [j];
 	  const auto duplmask_trk = duplmask_trks[j];
+    const auto itermask_trk = itermask_trks[j];
+    const long long unsigned int toCompare = (1<<algo);
 
+    const auto effIteration = algo>0?((itermask_trk>>algo)&1):1;
+    const auto oneIteration = algo>0?(itermask_trk==(toCompare)):1;
+    const auto ineffIteration = algo>0?(((itermask_trk>>algo)&1) == 0):(refmask_trk == 0);
+    const auto seedalgo_flag = (algoseed_trk>0 && algo>0)?((algoseed_trk>>algo)&1):1;
+    //if (algoseed_trk>0) std::cout << algoseed_trk << " "<<algo <<" "<< seedalgo_flag<<"  "<<effIteration<< std::endl;
+    //effIteration=effIteration&&seedalgo_flag;
 	  // plot key base
 	  const TString basekey = Form("%i_%i_%i",i,j,k);
 
 	  // efficiency calculation: need ref track to be findable
-	  if (refmask_trk  != -1) plots[basekey+"_0"]->Fill((refmask_trk ==1),var_ref); // ref track must be associated to enter numerator (==1)
+	  if (refmask_trk  != -1 && seedalgo_flag) plots[basekey+"_0"]->Fill((refmask_trk ==1) && effIteration,var_ref); // ref track must be associated to enter numerator (==1)
 
 	  // duplicate rate calculation: need ref track to be matched at least once
-	  if (duplmask_trk != -1) plots[basekey+"_1"]->Fill((duplmask_trk==1),var_ref); // ref track is matched at least twice
+	  if (duplmask_trk != -1 && effIteration && seedalgo_flag) plots[basekey+"_1"]->Fill((duplmask_trk==1) && oneIteration,var_ref); // ref track is matched at least twice
 
 	  // inefficiency calculation: need ref track to be findable
 	  if (refmask_trk  != -1)
@@ -263,7 +292,7 @@ void PlotValidation::PlotEffTree()
 	      const auto etaup   = etacuts[m+1];
 
 	      // ref track must be UNassociated (==0) to enter numerator of inefficiency
-	      if ((eta_ref >= etalow) && (eta_ref < etaup)) plots[Form("%s_2_%i",basekey.Data(),m)]->Fill((refmask_trk == 0),var_ref); 
+	      if ((eta_ref >= etalow) && (eta_ref < etaup)) plots[Form("%s_2_%i",basekey.Data(),m)]->Fill(ineffIteration,var_ref); 
 	    } // end loop over regions
 	  } // end check over ref tracks being findable
 
@@ -320,14 +349,15 @@ void PlotValidation::PlotEffTree()
 }
 
 // loop over fake rate tree, producing fake rate, nHits/track, score, and kinematic diffs to cmssw
-void PlotValidation::PlotFRTree()
+void PlotValidation::PlotFRTree(int algo)
 {
   //////////////
   // Get tree //
   //////////////
 
   auto frtree = (TTree*)fInRoot->Get((fCmsswComp?"cmsswfrtree":"frtree"));
-
+  if(algo>0) frtree=frtree->CopyTree(Form("algorithm==%i",algo));
+    
   ////////////////////////////////////////////
   // Declare strings for branches and plots //
   ////////////////////////////////////////////
@@ -743,13 +773,14 @@ void PlotValidation::PlotFRTree()
   delete frtree;
 }
 
-void PlotValidation::PrintTotals()
+void PlotValidation::PrintTotals(int algo)
 {
   ///////////////////////////////////////////////
   // Get number of events and number of tracks //
   ///////////////////////////////////////////////
   auto efftree = (TTree*)fInRoot->Get((fCmsswComp?"cmsswefftree":"efftree"));
   auto frtree  = (TTree*)fInRoot->Get((fCmsswComp?"cmsswfrtree":"frtree"));
+  if(algo>0) frtree=frtree->CopyTree(Form("algorithm==%i",algo));
 
   Int_t Nevents = 0;
   Int_t evtID = 0; TBranch * b_evtID = 0; efftree->SetBranchAddress("evtID",&evtID,&b_evtID);
@@ -1115,4 +1146,5 @@ void PlotValidation::SetupCommonVars()
   fSRefVarTrk = (fCmsswComp?"cmssw":"mc");
   fSRefDir    = (fCmsswComp?"_cmssw":"");
   fSRefOut    = (fCmsswComp?"_cmssw":"");
+  
 }

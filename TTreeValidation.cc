@@ -1,6 +1,9 @@
 #include "TTreeValidation.h"
 #include "Event.h"
 #include "Config.h"
+#include "mkFit/SteeringParams.h"
+
+
 #ifndef NO_ROOT
 
 namespace mkfit {
@@ -154,6 +157,12 @@ void TTreeValidation::initializeEfficiencyTree()
   efftree_->Branch("nTkMatches_seed",&nTkMatches_seed_eff_);
   efftree_->Branch("nTkMatches_build",&nTkMatches_build_eff_);
   efftree_->Branch("nTkMatches_fit",&nTkMatches_fit_eff_);
+
+  efftree_->Branch("itermask_seed",&itermask_seed_eff_);
+  efftree_->Branch("itermask_build",&itermask_build_eff_);
+  efftree_->Branch("itermask_fit",&itermask_fit_eff_);
+  efftree_->Branch("algo_seed",&algo_seed_eff_);
+
 
   if (Config::keepHitInfo)
   {
@@ -315,6 +324,8 @@ void TTreeValidation::initializeFakeRateTree()
   frtree_->Branch("iTkMatches_seed",&iTkMatches_seed_FR_);
   frtree_->Branch("iTkMatches_build",&iTkMatches_build_FR_);
   frtree_->Branch("iTkMatches_fit",&iTkMatches_fit_FR_);
+  
+  frtree_->Branch("algorithm",&algorithm_FR_);
 
   if (Config::keepHitInfo)
   {
@@ -472,6 +483,8 @@ void TTreeValidation::initializeCMSSWEfficiencyTree()
 
   cmsswefftree_->Branch("duplmask_build",&duplmask_build_ceff_);
   cmsswefftree_->Branch("nTkMatches_build",&nTkMatches_build_ceff_);
+  
+  cmsswefftree_->Branch("itermask_build",&itermask_build_ceff_);
 
   // Fit
   cmsswefftree_->Branch("cmsswmask_fit",&cmsswmask_fit_ceff_);
@@ -509,6 +522,9 @@ void TTreeValidation::initializeCMSSWEfficiencyTree()
 
   cmsswefftree_->Branch("duplmask_fit",&duplmask_fit_ceff_);
   cmsswefftree_->Branch("nTkMatches_fit",&nTkMatches_fit_ceff_);
+  
+  cmsswefftree_->Branch("itermask_fit",&itermask_fit_ceff_);
+  cmsswefftree_->Branch("algo_seed",&algo_seed_ceff_);
 
   if (Config::keepHitInfo)
   {
@@ -629,6 +645,8 @@ void TTreeValidation::initializeCMSSWFakeRateTree()
   cmsswfrtree_->Branch("nHits_cmssw_fit",&nHits_cmssw_fit_cFR_);
   cmsswfrtree_->Branch("nLayers_cmssw_fit",&nLayers_cmssw_fit_cFR_);
   cmsswfrtree_->Branch("lastlyr_cmssw_fit",&lastlyr_cmssw_fit_cFR_);
+  
+  cmsswfrtree_->Branch("algorithm",&algorithm_cFR_);
 
   if (Config::keepHitInfo)
   {
@@ -1425,6 +1443,7 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
   const auto& evt_layer_hits   = ev.layerHits_;
   const auto& evt_sim_trackstates = ev.simTrackStates_;
 
+  unsigned int count=0;
   for (const auto& simtrack : evt_sim_tracks)
   {
     // clear the branches first
@@ -1475,6 +1494,20 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     nHits_mc_eff_   = simtrack.nFoundHits(); // could be that the sim track skips layers!
     nLayers_mc_eff_ = simtrack.nUniqueLayers();
     lastlyr_mc_eff_ = simtrack.getLastFoundHitLyr();
+    
+    itermask_seed_eff_=0;
+    itermask_build_eff_=0;
+    itermask_fit_eff_=0;
+    algo_seed_eff_=0;
+
+    if (Config::mtvRequireSeeds)
+    {
+      for (auto aa: ev.simTracksExtra_[count].seedAlgos())
+      {
+        algo_seed_eff_=(algo_seed_eff_ | (1<<aa));
+      }
+    }
+    count++;
 
     // hit indices
     if (Config::keepHitInfo) TTreeValidation::fillFullHitInfo(ev,simtrack,hitlyrs_mc_eff_,hitidxs_mc_eff_,hitmcTkIDs_mc_eff_,
@@ -1483,6 +1516,10 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     // matched seed track
     if (simToSeedMap_.count(mcID_eff_) && simtrack.isFindable()) // recoToSim match : save best match with best score, i.e. simToSeedMap_[matched SimID][first element in vector]
     {
+      for (unsigned int ii=0; ii < simToSeedMap_[mcID_eff_].size(); ii++)
+      {      
+         itermask_seed_eff_=(itermask_seed_eff_ | (1<<evt_seed_tracks[simToSeedMap_[mcID_eff_][ii]].algoint()));
+      }
       const auto& seedtrack = evt_seed_tracks[simToSeedMap_[mcID_eff_][0]]; // returns seedTrack best matched to sim track
       const auto& seedextra = evt_seed_extras[seedtrack.label()]; // returns track extra best aligned with seed track
       mcmask_seed_eff_ = 1; // quick logic for matched
@@ -1598,6 +1635,10 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     // matched build track
     if (simToBuildMap_.count(mcID_eff_) && simtrack.isFindable()) // recoToSim match : save best match with best score i.e. simToBuildMap_[matched SimID][first element in vector]
     {
+      for (unsigned int ii=0; ii < simToBuildMap_[mcID_eff_].size(); ii++) 
+      { 
+          itermask_build_eff_=(itermask_build_eff_ | (1<<evt_build_tracks[simToBuildMap_[mcID_eff_][ii]].algoint()));
+      }
       const auto& buildtrack = evt_build_tracks[simToBuildMap_[mcID_eff_][0]]; // returns buildTrack best matched to sim track
       const auto& buildextra = evt_build_extras[buildtrack.label()]; // returns track extra best aligned with build track
       mcmask_build_eff_ = 1; // quick logic for matched
@@ -1712,6 +1753,10 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     // matched fit track
     if (simToFitMap_.count(mcID_eff_) && simtrack.isFindable()) // recoToSim match : save best match with best score i.e. simToFitMap_[matched SimID][first element in vector]
     {
+      for (unsigned int ii=0; ii < simToFitMap_[mcID_eff_].size(); ii++) 
+      {
+	  itermask_fit_eff_=(itermask_fit_eff_ | (1<<evt_fit_tracks[simToFitMap_[mcID_eff_][ii]].algoint()));
+      }
       const auto& fittrack = evt_fit_tracks[simToFitMap_[mcID_eff_][0]]; // returns fitTrack best matched to sim track
       const auto& fitextra = evt_fit_extras[fittrack.label()]; // returns track extra best aligned with fit track
       mcmask_fit_eff_ = 1; // quick logic for matched
@@ -1899,9 +1944,9 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 
     // last hit info
     const Hit& lasthit = evt_layer_hits[seedtrack.getLastFoundHitLyr()][seedtrack.getLastFoundHitIdx()];
-    xhit_seed_FR_ = lasthit.x(); 
-    yhit_seed_FR_ = lasthit.y(); 
-    zhit_seed_FR_ = lasthit.z(); 
+    xhit_seed_FR_ = 0;//lasthit.x(); 
+    yhit_seed_FR_ = 0;//lasthit.y(); 
+    zhit_seed_FR_ = 0;//lasthit.z(); 
     
     pt_seed_FR_   = seedtrack.pT();
     ept_seed_FR_  = seedtrack.epT();
@@ -1915,6 +1960,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     nHitsMatched_seed_FR_    = seedextra.nHitsMatched();
     fracHitsMatched_seed_FR_ = seedextra.fracHitsMatched();
     lastlyr_seed_FR_         = seedtrack.getLastFoundHitLyr();
+   
+    algorithm_FR_ = seedtrack.algoint();
 
     // swim dphi
     dphi_seed_FR_ = seedextra.dPhi();
@@ -2318,9 +2365,9 @@ void TTreeValidation::fillConfigTree()
   fPhiFactor_ = Config::fPhiFactor;
   nEtaPart_   = Config::nEtaPart;
 
-  nlayers_per_seed_ = Config::nlayers_per_seed;
-  maxCand_ = Config::maxCandsPerSeed;
-  chi2Cut_ = Config::chi2Cut;
+  nlayers_per_seed_ = Config::ItrInfo[0].m_params.nlayers_per_seed;
+  maxCand_ = Config::ItrInfo[0].m_params.maxCandsPerSeed;
+  chi2Cut_ = Config::ItrInfo[0].m_params.chi2Cut;
   nSigma_  = Config::nSigma;
   minDPhi_ = Config::minDPhi;
   maxDPhi_ = Config::maxDPhi;
@@ -2400,12 +2447,24 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
     nHits_cmssw_ceff_   = cmsswtrack.nFoundHits(); 
     nLayers_cmssw_ceff_ = cmsswtrack.nUniqueLayers();
     lastlyr_cmssw_ceff_ = cmsswtrack.getLastFoundHitLyr();
+    
+    itermask_build_ceff_=0;
+    itermask_fit_ceff_=0;
+    algo_seed_ceff_=0;
+     
+    for (auto aa: cmsswextra.seedAlgos())
+       algo_seed_ceff_=(algo_seed_ceff_ | (1<<aa));
 
     if (Config::keepHitInfo) TTreeValidation::fillMinHitInfo(cmsswtrack,hitlyrs_cmssw_ceff_,hitidxs_cmssw_ceff_);
 
     // matched build track
     if (cmsswToBuildMap_.count(cmsswID_ceff_) && cmsswtrack.isFindable()) // recoToCmssw match : save best match with best score i.e. cmsswToBuildMap_[matched CmsswID][first element in vector]
     {
+      for (unsigned int ii=0; ii < cmsswToBuildMap_[cmsswID_ceff_].size(); ii++)
+      {      
+         itermask_build_ceff_=(itermask_build_ceff_ | (1<<evt_build_tracks[cmsswToBuildMap_[cmsswID_ceff_][ii]].algoint()));
+      }
+
       const auto& buildtrack = evt_build_tracks[cmsswToBuildMap_[cmsswID_ceff_][0]]; // returns buildTrack best matched to cmssw track
       const auto& buildextra = evt_build_extras[buildtrack.label()]; // returns track extra best aligned with build track
       cmsswmask_build_ceff_ = 1; // quick logic for matched
@@ -2655,6 +2714,8 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
       hitidxs_fit_cFR_.clear();
       hitidxs_cmssw_fit_cFR_.clear();
     }
+    
+    algorithm_cFR_=buildtrack.algoint();
 
     const auto& buildextra = evt_build_extras[buildtrack.label()];
     

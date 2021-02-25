@@ -309,9 +309,9 @@ double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuild
 
     check_nan_n_silly_bkfit(ev);
   }
-
+  
   StdSeq::handle_duplicates(&ev);
-
+  
   // validation section
   if        (Config::quality_val) {
     builder.quality_val();
@@ -355,10 +355,23 @@ double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuild
 double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
 {
   double ttime = 0;
+  
+  const bool validation_on = (Config::sim_val || Config::quality_val);
+  
+  TrackVec seeds_used;
+  TrackVec seeds1;
 
-  // ??? MIMI - What validation prep / map tasks need to run before we start
-  // screwing up seeds etc?
-
+  if (validation_on) 
+  {
+    for (auto &s : ev.seedTracks_)
+    {
+      if (s.algoint()==4 || s.algoint()==22 || s.algoint()==23) //keep seeds you want to process later
+        seeds1.push_back(s);
+    }
+    ev.seedTracks_.swap(seeds1);//necessary for the validation - PrepareSeeds
+    ev.relabel_bad_seedtracks();//necessary for the validation - PrepareSeeds
+  }
+  
   IterationMaskIfc mask_ifc;
 
   for (int it = 0; it <= 2; ++it)
@@ -390,7 +403,7 @@ double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
     }
 
     // MIMI -- using Iter0 function / tuning for all iterations.
-    ev.clean_cms_seedtracks(&seeds);
+    ev.clean_cms_seedtracks_iter(&seeds, Config::ItrInfo[it]);
 
     builder.seed_post_cleaning(seeds, true, true);
     builder.map_track_hits(seeds);
@@ -404,8 +417,10 @@ double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
 
     ttime += dtime() - time;
 
+    if (validation_on)  seeds_used.insert(seeds_used.end(), seeds.begin(), seeds.end());//cleaned seeds need to be stored somehow
+    
     // first store candidate tracks - needed for BH backward fit and root_validation
-    // XXXX to builder m_tracks ... or do we do this for validation anyway ??
+    // XXXX to builder m_tracks ... or do we do this for validation anyway ?    
     builder.export_best_comb_cands(ev.candidateTracks_);
 
     // now do backwards fit... do we want to time this section?
@@ -419,15 +434,25 @@ double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
       // b) Version that runs on CombCand / TrackCand
       // builder.BackwardFit();
       // builder.quality_store_tracks(ev.fitTracks_);
-    }
 
+    }
+    
     builder.end_event();
   }
 
   // MIMI - Fake back event pointer for final processing (that should be done elsewhere)
   MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
   builder.begin_event(&job, &ev, __func__);
-
+  
+  //I have the seeds -> continue the PrepareSeeds()
+  if (validation_on)
+  {
+      builder.prep_simtracks();
+      //swap for the cleaned seeds
+      ev.seedTracks_.swap(seeds_used);
+  }    
+  //PrepareSeeds() done
+  
   check_nan_n_silly_candiates(ev);
 
   if (Config::backwardFit) check_nan_n_silly_bkfit(ev);
