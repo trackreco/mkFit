@@ -1500,8 +1500,13 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     itermask_fit_eff_=0;
     algo_seed_eff_=0;
 
-    for (auto aa: ev.simTracksExtra_[count].seedAlgos())
-      algo_seed_eff_=(algo_seed_eff_ | (1<<aa));
+    if (Config::mtvRequireSeeds)
+    {
+      for (auto aa: ev.simTracksExtra_[count].seedAlgos())
+      {
+        algo_seed_eff_=(algo_seed_eff_ | (1<<aa));
+      }
+    }
     count++;
 
     // hit indices

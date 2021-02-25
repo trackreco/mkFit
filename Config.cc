@@ -12,7 +12,7 @@ namespace Config
 
   int nTracks = 10000;
   int nEvents = 20;
-  int nItersCMSSW = 1;
+  int nItersCMSSW = 0;
   bool loopOverFile = false;
 
   int nTotalLayers = -1;

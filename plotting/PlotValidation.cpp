@@ -270,7 +270,7 @@ void PlotValidation::PlotEffTree(int algo)
     const auto effIteration = algo>0?((itermask_trk>>algo)&1):1;
     const auto oneIteration = algo>0?(itermask_trk==(toCompare)):1;
     const auto ineffIteration = algo>0?(((itermask_trk>>algo)&1) == 0):(refmask_trk == 0);
-    const auto seedalgo_flag = (algoseed_trk>0&&algo>0)?((algoseed_trk>>algo)&1):1;
+    const auto seedalgo_flag = (algoseed_trk>0 && algo>0)?((algoseed_trk>>algo)&1):1;
     //if (algoseed_trk>0) std::cout << algoseed_trk << " "<<algo <<" "<< seedalgo_flag<<"  "<<effIteration<< std::endl;
     //effIteration=effIteration&&seedalgo_flag;
 	  // plot key base

@@ -353,18 +353,23 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventOfHits &eoh, MkBuilder& bu
 double runBtbCe_MultiIter(Event& ev, EventOfHits &eoh, MkBuilder& builder)
 {
   double ttime = 0;
+  
+  const bool validation_on = (Config::sim_val || Config::quality_val);
+  
   TrackVec seeds_used;
   TrackVec seeds1;
 
-  //not smart usage of memory
-  for (auto &s : ev.seedTracks_)
+  if (validation_on) 
   {
-    if (s.algoint()==4 || s.algoint()==22 || s.algoint()==23) //keep seeds you want to process later
-      seeds1.push_back(s);
+    for (auto &s : ev.seedTracks_)
+    {
+      if (s.algoint()==4 || s.algoint()==22 || s.algoint()==23) //keep seeds you want to process later
+        seeds1.push_back(s);
+    }
+    ev.seedTracks_.swap(seeds1);//necessary for the validation - PrepareSeeds
+    ev.relabel_bad_seedtracks();//necessary for the validation - PrepareSeeds
   }
-  ev.seedTracks_.swap(seeds1);//necessary for the validation - PrepareSeeds
-  ev.relabel_bad_seedtracks();//necessary for the validation - PrepareSeeds
-    
+  
   //iterations
   for (int it = 0; it <= 2; ++it)
   {
@@ -404,7 +409,7 @@ double runBtbCe_MultiIter(Event& ev, EventOfHits &eoh, MkBuilder& builder)
 
     ttime += dtime() - time;
 
-    seeds_used.insert(seeds_used.end(), seeds.begin(), seeds.end());//cleaned seeds need to be stored somehow
+    if (validation_on)  seeds_used.insert(seeds_used.end(), seeds.begin(), seeds.end());//cleaned seeds need to be stored somehow
     
     // first store candidate tracks - needed for BH backward fit and root_validation
     // XXXX to builder m_tracks ... or do we do this for validation anyway ?    
@@ -433,16 +438,14 @@ double runBtbCe_MultiIter(Event& ev, EventOfHits &eoh, MkBuilder& builder)
   builder.begin_event(&job, &ev, __func__);
   
   //I have the seeds -> continue the PrepareSeeds()
-  if (Config::sim_val || Config::quality_val)
+  if (validation_on)
   {
       builder.prep_simtracks();
-  }
-  
-  //swap for the cleaned seeds
-  ev.seedTracks_.swap(seeds_used);
-  
+      //swap for the cleaned seeds
+      ev.seedTracks_.swap(seeds_used);
+  }    
   //PrepareSeeds() done
-
+  
   check_nan_n_silly_candiates(ev);
 
   if (Config::backwardFit) check_nan_n_silly_bkfit(ev);
