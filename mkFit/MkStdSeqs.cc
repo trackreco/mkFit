@@ -30,21 +30,22 @@ void LoadHits(Event &ev, EventOfHits &eoh)
                         });
 }
 
-// Loading hits in CMSSW from "large multi-layer vectors"
+// Loading hits in CMSSW from two "large multi-layer vectors".
+// orig_hitvectors[0] - pixels,
+// orig_hitvectors[1] - strips.
 
-void Cmssw_LoadHits_Begin(EventOfHits &eoh, const std::vector<HitVec*> &orig_hitvectors)
+void Cmssw_LoadHits_Begin(EventOfHits &eoh, const std::vector<const HitVec*> &orig_hitvectors)
 {
   eoh.Reset();
 
   for (auto &&l : eoh.m_layers_of_hits)
   {
-    // MIMI -- how do we know how to map one of three hitvectors to layer?
-    HitVec &hitvec_for_this_layer = * orig_hitvectors[0];
-    l.BeginRegistrationOfHits(hitvec_for_this_layer);
+    // This slightly sux.
+    l.BeginRegistrationOfHits(*orig_hitvectors[ l.is_pix_lyr() ? 0 : 1 ]);
   }
 }
 
-// Loop with layer_of_hitsRegisterHit(int idx) - it takes Hit out of original HitVec to
+// Loop with LayerOfHits::RegisterHit(int idx) - it takes Hit out of original HitVec to
 // extract phi, r/z, and calculate qphifines
 //
 // Something like what is done in MkFitInputConverter::convertHits
@@ -56,13 +57,47 @@ void Cmssw_LoadHits_End(EventOfHits &eoh)
 {
   for (auto &&l : eoh.m_layers_of_hits)
   {
-    l.EndRegistrationOfHits();
+    l.EndRegistrationOfHits(true);
   }
 }
 
 //=========================================================================
 // Hit-index mapping / remapping
 //=========================================================================
+
+void Cmssw_Map_TrackHitIndices(const EventOfHits &eoh, TrackVec &seeds)
+{
+  for (auto&& track : seeds)
+  {
+    for (int i = 0; i < track.nTotalHits(); ++i)
+    {
+      int hitidx = track.getHitIdx(i);
+      int hitlyr = track.getHitLyr(i);
+      if (hitidx >= 0)
+      {
+        const auto & loh = eoh.m_layers_of_hits[hitlyr];
+        track.setHitIdx(i, loh.GetHitIndexFromOriginal(hitidx));
+      }
+    }
+  }
+}
+
+void Cmssw_ReMap_TrackHitIndices(const EventOfHits &eoh, TrackVec &out_tracks)
+{
+  for (auto&& track : out_tracks)
+  {
+    for (int i = 0; i < track.nTotalHits(); ++i)
+    {
+      int hitidx = track.getHitIdx(i);
+      int hitlyr = track.getHitLyr(i);
+      if (hitidx >= 0)
+      {
+        const auto & loh = eoh.m_layers_of_hits[hitlyr];
+        track.setHitIdx(i, loh.GetOriginalHitIndex(hitidx));
+      }
+    }
+  }
+}
 
 
 //=========================================================================

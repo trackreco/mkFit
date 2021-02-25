@@ -43,7 +43,8 @@ public:
   
   int select_tracks_iter(unsigned int n=0);//for cmssw input
 
-  inline bool is_trackvec_empty(const TrackVec& tracks) { return tracks.empty(); }
+  void fill_hitmask_bool_vectors(int track_algo, std::vector<std::vector<bool>> &layer_masks);
+  void fill_hitmask_bool_vectors(std::vector<int> &track_algo_vec, std::vector<std::vector<bool>> &layer_masks);
 
   void print_tracks(const TrackVec& tracks, bool print_hits) const;
 

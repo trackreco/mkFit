@@ -117,7 +117,7 @@ namespace
 // runBuildTestPlexDumbCMSSW
 //==============================================================================
 
-void runBuildingTestPlexDumbCMSSW(Event& ev, EventOfHits &eoh, MkBuilder& builder)
+void runBuildingTestPlexDumbCMSSW(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
 {
   MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
 
@@ -134,7 +134,7 @@ void runBuildingTestPlexDumbCMSSW(Event& ev, EventOfHits &eoh, MkBuilder& builde
 // runBuildTestPlexBestHit
 //==============================================================================
 
-double runBuildingTestPlexBestHit(Event& ev, EventOfHits &eoh, MkBuilder& builder)
+double runBuildingTestPlexBestHit(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
 {
   MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
 
@@ -179,6 +179,7 @@ double runBuildingTestPlexBestHit(Event& ev, EventOfHits &eoh, MkBuilder& builde
   if (Config::backwardFit)
   {
     builder.BackwardFitBH();
+    ev.fitTracks_ = builder.ref_tracks();
   }
 
   if        (Config::quality_val) {
@@ -198,7 +199,7 @@ double runBuildingTestPlexBestHit(Event& ev, EventOfHits &eoh, MkBuilder& builde
 // runBuildTestPlex Combinatorial: Standard TBB
 //==============================================================================
 
-double runBuildingTestPlexStandard(Event& ev, EventOfHits &eoh, MkBuilder& builder)
+double runBuildingTestPlexStandard(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
 {
   MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
 
@@ -234,8 +235,9 @@ double runBuildingTestPlexStandard(Event& ev, EventOfHits &eoh, MkBuilder& build
   {
     // Using the TrackVec version until we home in on THE backward fit etc.
     // builder.BackwardFit();
+    builder.select_best_comb_cands();
     builder.BackwardFitBH();
-    // BackwardFitBH() returns fitted tracks in ev.fitTracks_
+    ev.fitTracks_ = builder.ref_tracks();
 
     check_nan_n_silly_bkfit(ev);
   }
@@ -262,7 +264,7 @@ double runBuildingTestPlexStandard(Event& ev, EventOfHits &eoh, MkBuilder& build
 // runBuildTestPlex Combinatorial: CloneEngine TBB
 //==============================================================================
 
-double runBuildingTestPlexCloneEngine(Event& ev, EventOfHits &eoh, MkBuilder& builder)
+double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
 {
   MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
 
@@ -297,8 +299,9 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventOfHits &eoh, MkBuilder& bu
   if (Config::backwardFit)
   {
     // a) TrackVec version:
+    builder.select_best_comb_cands();
     builder.BackwardFitBH();
-    // BackwardFitBH() returns fitted tracks in ev.fitTracks_
+    ev.fitTracks_ = builder.ref_tracks();
 
     // b) Version that runs on CombCand / TrackCand
     // builder.BackwardFit();
@@ -347,10 +350,9 @@ double runBuildingTestPlexCloneEngine(Event& ev, EventOfHits &eoh, MkBuilder& bu
 // At this point we need to think about what should happen to Event before all the iterations and
 // after all the iterations ... from the Validation perspective.
 // And if we care about doing too muich work for seeds that will never get processed.
-
 //==============================================================================
 
-double runBtbCe_MultiIter(Event& ev, EventOfHits &eoh, MkBuilder& builder)
+double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
 {
   double ttime = 0;
   
@@ -370,14 +372,20 @@ double runBtbCe_MultiIter(Event& ev, EventOfHits &eoh, MkBuilder& builder)
     ev.relabel_bad_seedtracks();//necessary for the validation - PrepareSeeds
   }
   
-  //iterations
+  IterationMaskIfc mask_ifc;
+
   for (int it = 0; it <= 2; ++it)
   {
-    MkJob job( { Config::TrkInfo, Config::ItrInfo[it], eoh } );
+    // MIMI - to disable hit-masks, pass nullptr in place of &mask_ifc to job
+    // and optionally comment out ev.fill_hitmask_bool_vectors() call.
+
+    ev.fill_hitmask_bool_vectors(Config::ItrInfo[it].m_track_algorithm, mask_ifc.m_mask_vector);
+
+    MkJob job( { Config::TrkInfo, Config::ItrInfo[it], eoh, &mask_ifc } );
 
     builder.begin_event(&job, &ev, __func__);
 
-    // Some of what happens here, should really happen somewhere e;se, if it needs to.
+    // Some of what happens here, should really happen somewhere else, if it needs to.
     // builder.PrepareSeeds();
     // Specific cleaning / mapping done below for extracted seeds.
 
@@ -419,10 +427,9 @@ double runBtbCe_MultiIter(Event& ev, EventOfHits &eoh, MkBuilder& builder)
     if (Config::backwardFit)
     {
       // a) TrackVec version:
-      int offset = (int) ev.fitTracks_.size();
-      builder.export_best_comb_cands(ev.fitTracks_);
-      builder.BackwardFitBH(offset);
-      // BackwardFitBH() returns fitted tracks in ev.fitTracks_
+      builder.select_best_comb_cands();
+      builder.BackwardFitBH();
+      builder.export_tracks(ev.fitTracks_);
 
       // b) Version that runs on CombCand / TrackCand
       // builder.BackwardFit();
@@ -469,6 +476,86 @@ double runBtbCe_MultiIter(Event& ev, EventOfHits &eoh, MkBuilder& builder)
   builder.end_event();
 
   return ttime;
+}
+
+
+//==============================================================================
+// run_OneIteration
+//
+// One-stop function for running track building from CMSSW.
+//==============================================================================
+
+struct IterationMaskIfcCmssw : public IterationMaskIfcBase
+{
+  const TrackerInfo                           &m_trk_info;
+  const std::vector<const std::vector<bool>*> &m_mask_vector;
+
+  IterationMaskIfcCmssw(const TrackerInfo &ti, const std::vector<const std::vector<bool>*> &maskvec) :
+    m_trk_info(ti), m_mask_vector(maskvec) {}
+
+  const std::vector<bool>* get_mask_for_layer(int layer) const
+  {
+     return m_trk_info.m_layers[layer].is_pix_lyr() ? m_mask_vector[0] : m_mask_vector[1];
+  }
+};
+
+void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itconf, const EventOfHits &eoh,
+                      MkBuilder& builder, TrackVec &seeds, TrackVec &out_tracks,
+                      bool do_seed_clean, bool do_backward_fit, bool do_remove_duplicates)
+{
+  // assume arugument:
+  const std::vector<const std::vector<bool>*> mask_vec = { nullptr, nullptr };
+  // nullptr is a valid mask ... means no mask for these layers.
+
+  IterationMaskIfcCmssw it_mask_ifc(trackerInfo, mask_vec);
+
+  MkJob job( { trackerInfo, itconf, eoh, &it_mask_ifc } );
+
+  builder.begin_event(&job, nullptr, __func__);
+
+  if (do_seed_clean)
+  {
+  // XXXX MIMI -- Leonardo working on iter-dependent seed cleaning, will be out of Event!
+    Event dummy_ev(-1);
+    dummy_ev.clean_cms_seedtracks(&seeds);
+  }
+
+  // Check nans in seeds -- this should not be needed when Slava fixes
+  // the track parameter coordinate transformation.
+  builder.seed_post_cleaning(seeds, true, true);
+
+  StdSeq::Cmssw_Map_TrackHitIndices(eoh, seeds);
+
+  for (auto &s : seeds) assignSeedTypeForRanking(s);
+
+  builder.find_tracks_load_seeds(seeds);
+
+  builder.FindTracksCloneEngine();
+
+  if ( ! do_backward_fit)
+  {
+    builder.export_best_comb_cands(out_tracks);
+  }
+  else
+  {
+    // a) BackwardFitBH works on m_tracks
+    builder.select_best_comb_cands();
+    builder.BackwardFitBH();
+    builder.export_tracks(out_tracks);
+
+    // b) Version that runs on CombCand / TrackCand
+    // builder.BackwardFit();
+    // builder.export_best_comb_cands(out_tracks);
+  }
+
+  StdSeq::Cmssw_ReMap_TrackHitIndices(eoh, out_tracks);
+
+  if (do_remove_duplicates)
+  {
+    StdSeq::remove_duplicates(out_tracks);
+  }
+
+  builder.end_event();
 }
 
 } // end namespace mkfit

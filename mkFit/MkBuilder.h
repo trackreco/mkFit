@@ -25,8 +25,6 @@ namespace mkfit {
 class TrackerInfo;
 class LayerInfo;
 
-class IterationConfig;
-
 class Event;
 
 //==============================================================================
@@ -59,19 +57,12 @@ extern ExecutionContext g_exe_ctx;
 class MkJob
 {
 public:
-  const TrackerInfo         &m_trk_info;
+  const TrackerInfo          &m_trk_info;
   // Config &config; // If we want to get rid of namespace / global config
-  const IterationConfig     &m_iter_config;
-  const EventOfHits         &m_event_of_hits;
+  const IterationConfig      &m_iter_config;
+  const EventOfHits          &m_event_of_hits;
 
-  // Move in what is in IterationSeeds ? seeds and seed info stuff
-  // Yes.
-  // And also the hitmasks.
-
-  // TrackVec - output - found tracks
-  // TrackVec - output - fitted tracks
-  // Why -- really need export from EventOfCombinedCandidates.
-  // BestHit is special in this respect, sigh, etc.
+  const IterationMaskIfcBase *m_iter_mask_ifc = nullptr;
 
         int  num_regions()   const { return m_iter_config.m_n_regions; }
   const auto regions_begin() const { return m_iter_config.m_region_order.begin(); }
@@ -80,6 +71,11 @@ public:
   const auto& steering_params(int i) { return m_iter_config.m_steering_params[i]; }
 
   const auto& params() const { return m_iter_config.m_params; }
+
+  const std::vector<bool>* get_mask_for_layer(int layer)
+  {
+    return m_iter_mask_ifc ? m_iter_mask_ifc->get_mask_for_layer(layer) : nullptr;
+  }
 };
 
 
@@ -157,7 +153,9 @@ public:
   void end_event();
   void import_seeds(const TrackVec &in_seeds, std::function<insert_seed_foo> insert_seed);
 
+  void select_best_comb_cands();
   void export_best_comb_cands(TrackVec &out_vec);
+  void export_tracks(TrackVec &out_vec);
 
   // MIMI hack to export tracks for BH
   const TrackVec& ref_tracks() const { return m_tracks; }
@@ -216,7 +214,7 @@ public:
   void FindTracksStandard();
   void FindTracksCloneEngine();
 
-  void BackwardFitBH(int main_offset = -1);
+  void BackwardFitBH();
   void fit_cands_BH(MkFinder *mkfndr, int start_cand, int end_cand, int region);
 
   void BackwardFit();

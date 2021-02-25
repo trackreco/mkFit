@@ -992,6 +992,61 @@ void Event::relabel_cmsswtracks_from_seeds()
   }
 }
 
+
+//==============================================================================
+// HitMask handling
+//==============================================================================
+
+void Event::fill_hitmask_bool_vectors(int track_algo,
+                                      std::vector<std::vector<bool>> &layer_masks)
+{
+  // Convert from per-hit uint64_t to per layer bool-vectors for given
+  // iteration.
+
+  uint64_t iter_mask = 1 << track_algo;
+
+  const int n_lay = (int) layerHits_.size();
+  layer_masks.resize(n_lay);
+
+  for (int l = 0; l < n_lay; ++l)
+  {
+    const int n_hit = (int) layerHits_[l].size();
+    layer_masks[l].resize(n_hit);
+
+    for (int i = 0; i < n_hit; ++i)
+    {
+      layer_masks[l][i] = layerHitMasks_[l][i] & iter_mask;
+    }
+  }
+}
+
+void Event::fill_hitmask_bool_vectors(std::vector<int> &track_algo_vec,
+                                      std::vector<std::vector<bool>> &layer_masks)
+{
+  // Convert from per-hit uint64_t to per layer bool-vectors for a list of
+  // iterations.
+  // A hit mask is set if it is set for _all_ listed iterations.
+
+  uint64_t iter_mask = 0;
+  for (auto ta : track_algo_vec) iter_mask |= 1 << ta;
+
+  const int n_lay = (int) layerHits_.size();
+  layer_masks.resize(n_lay);
+
+  for (int l = 0; l < n_lay; ++l)
+  {
+    const int n_hit = (int) layerHits_[l].size();
+    layer_masks[l].resize(n_hit);
+
+    for (int i = 0; i < n_hit; ++i)
+    {
+      uint64_t hitmasks = layerHitMasks_[l][i];
+      layer_masks[l][i] = ((iter_mask ^ hitmasks) & iter_mask) == 0;
+    }
+  }
+}
+
+
 //==============================================================================
 // DataFile
 //==============================================================================

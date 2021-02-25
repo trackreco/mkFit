@@ -295,7 +295,7 @@ void test_standard()
         ev.read_in(data_file, fp);
 
         // skip events with zero seed tracks!
-        if (ev.is_trackvec_empty(ev.seedTracks_)) continue;
+        if (ev.seedTracks_.empty()) continue;
 
         // plex_tracks.resize(ev.simTracks_.size());
 

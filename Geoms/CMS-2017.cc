@@ -129,7 +129,8 @@ namespace
       const bool z_dir_pos = S.pz() > 0;
 
       HitOnTrack hot = S.getLastHitOnTrack();
-      // MIMI ACHTUNG -- here we assume seed hits have already been remapped. This was true at that time :)
+      // MIMI ACHTUNG -- here we assume seed hits have already been remapped.
+      // This was true at that time :)
       float eta = eoh[hot.layer].GetHit(hot.index).eta();
       // float  eta = S.momEta();
 
