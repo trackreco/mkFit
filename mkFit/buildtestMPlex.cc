@@ -552,6 +552,7 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
 
   if (do_remove_duplicates)
   {
+    StdSeq::find_duplicates(out_tracks);
     StdSeq::remove_duplicates(out_tracks);
   }
 
