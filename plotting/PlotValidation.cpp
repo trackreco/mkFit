@@ -185,6 +185,9 @@ void PlotValidation::PlotEffTree(int algo)
   
   std::vector<ULong64_t>  itermask_trks   (fNTrks); 
   TBrRefVec               itermask_trks_br(fNTrks);
+  
+  std::vector<ULong64_t>  iterduplmask_trks   (fNTrks); 
+  TBrRefVec               iterduplmask_trks_br(fNTrks);
  
   ULong64_t algoseed_trk; // for SIMVALSEED
   TBranch*  algoseed_trk_br;
@@ -198,6 +201,9 @@ void PlotValidation::PlotEffTree(int algo)
     auto & duplmask_trk_br = duplmask_trks_br[j];
     auto & itermask_trk    = itermask_trks   [j];
     auto & itermask_trk_br = itermask_trks_br[j]; 
+    
+    auto & iterduplmask_trk    = iterduplmask_trks   [j];
+    auto & iterduplmask_trk_br = iterduplmask_trks_br[j]; 
 
     // initialize mcmask, branches
     refmask_trk    = 0;
@@ -210,6 +216,9 @@ void PlotValidation::PlotEffTree(int algo)
     // initialize itermask, branches
     itermask_trk    = 0;
     itermask_trk_br = 0;
+    
+    iterduplmask_trk    = 0;
+    iterduplmask_trk_br = 0;
 
     algoseed_trk    = 0;
     algoseed_trk_br = 0;
@@ -218,6 +227,7 @@ void PlotValidation::PlotEffTree(int algo)
     efftree->SetBranchAddress(fSRefMask+"mask_"+trk,&refmask_trk,&refmask_trk_br);
     efftree->SetBranchAddress("duplmask_"+trk,&duplmask_trk,&duplmask_trk_br);
     efftree->SetBranchAddress("itermask_"+trk,&itermask_trk,&itermask_trk_br);
+    efftree->SetBranchAddress("iterduplmask_"+trk,&iterduplmask_trk,&iterduplmask_trk_br);
   }
   efftree->SetBranchAddress("algo_seed",&algoseed_trk,&algoseed_trk_br);
   ///////////////////////////////////////////////////
@@ -240,10 +250,12 @@ void PlotValidation::PlotEffTree(int algo)
       auto & refmask_trk_br  = refmask_trks_br [j];
       auto & duplmask_trk_br = duplmask_trks_br[j];
       auto & itermask_trk_br = itermask_trks_br[j];
+      auto & iterduplmask_trk_br = iterduplmask_trks_br[j];
 
       refmask_trk_br ->GetEntry(e);
       duplmask_trk_br->GetEntry(e);
       itermask_trk_br->GetEntry(e);
+      iterduplmask_trk_br->GetEntry(e);
     }
     algoseed_trk_br->GetEntry(e);
     // use for cuts
@@ -265,10 +277,10 @@ void PlotValidation::PlotEffTree(int algo)
 	  const auto refmask_trk  = refmask_trks [j];
 	  const auto duplmask_trk = duplmask_trks[j];
     const auto itermask_trk = itermask_trks[j];
-    const long long unsigned int toCompare = (1<<algo);
+    const auto iterduplmask_trk = iterduplmask_trks[j];
 
     const auto effIteration = algo>0?((itermask_trk>>algo)&1):1;
-    const auto oneIteration = algo>0?(itermask_trk==(toCompare)):1;
+    const auto oneIteration = algo>0?((iterduplmask_trk>>algo)&1):1;
     const auto ineffIteration = algo>0?(((itermask_trk>>algo)&1) == 0):(refmask_trk == 0);
     const auto seedalgo_flag = (algoseed_trk>0 && algo>0)?((algoseed_trk>>algo)&1):1;
     //if (algoseed_trk>0) std::cout << algoseed_trk << " "<<algo <<" "<< seedalgo_flag<<"  "<<effIteration<< std::endl;

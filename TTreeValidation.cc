@@ -161,6 +161,9 @@ void TTreeValidation::initializeEfficiencyTree()
   efftree_->Branch("itermask_seed",&itermask_seed_eff_);
   efftree_->Branch("itermask_build",&itermask_build_eff_);
   efftree_->Branch("itermask_fit",&itermask_fit_eff_);
+  efftree_->Branch("iterduplmask_seed",&iterduplmask_seed_eff_);
+  efftree_->Branch("iterduplmask_build",&iterduplmask_build_eff_);
+  efftree_->Branch("iterduplmask_fit",&iterduplmask_fit_eff_);
   efftree_->Branch("algo_seed",&algo_seed_eff_);
 
 
@@ -485,6 +488,7 @@ void TTreeValidation::initializeCMSSWEfficiencyTree()
   cmsswefftree_->Branch("nTkMatches_build",&nTkMatches_build_ceff_);
   
   cmsswefftree_->Branch("itermask_build",&itermask_build_ceff_);
+  cmsswefftree_->Branch("iterduplmask_build",&iterduplmask_build_ceff_);
 
   // Fit
   cmsswefftree_->Branch("cmsswmask_fit",&cmsswmask_fit_ceff_);
@@ -524,6 +528,8 @@ void TTreeValidation::initializeCMSSWEfficiencyTree()
   cmsswefftree_->Branch("nTkMatches_fit",&nTkMatches_fit_ceff_);
   
   cmsswefftree_->Branch("itermask_fit",&itermask_fit_ceff_);
+  cmsswefftree_->Branch("iterduplmask_fit",&iterduplmask_fit_ceff_);
+    
   cmsswefftree_->Branch("algo_seed",&algo_seed_ceff_);
 
   if (Config::keepHitInfo)
@@ -1498,6 +1504,9 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     itermask_seed_eff_=0;
     itermask_build_eff_=0;
     itermask_fit_eff_=0;
+    iterduplmask_seed_eff_=0;
+    iterduplmask_build_eff_=0;
+    iterduplmask_fit_eff_=0;
     algo_seed_eff_=0;
 
     if (Config::mtvRequireSeeds)
@@ -1518,7 +1527,10 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     {
       for (unsigned int ii=0; ii < simToSeedMap_[mcID_eff_].size(); ii++)
       {      
-         itermask_seed_eff_=(itermask_seed_eff_ | (1<<evt_seed_tracks[simToSeedMap_[mcID_eff_][ii]].algoint()));
+         const int theAlgo=evt_seed_tracks[simToSeedMap_[mcID_eff_][ii]].algoint();
+         if((itermask_seed_eff_>>theAlgo)&1) iterduplmask_seed_eff_=(iterduplmask_seed_eff_ | (1<<theAlgo)); //filled at the second time
+         itermask_seed_eff_=(itermask_seed_eff_ | (1<<theAlgo)); 
+         
       }
       const auto& seedtrack = evt_seed_tracks[simToSeedMap_[mcID_eff_][0]]; // returns seedTrack best matched to sim track
       const auto& seedextra = evt_seed_extras[seedtrack.label()]; // returns track extra best aligned with seed track
@@ -1637,7 +1649,10 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     {
       for (unsigned int ii=0; ii < simToBuildMap_[mcID_eff_].size(); ii++) 
       { 
-          itermask_build_eff_=(itermask_build_eff_ | (1<<evt_build_tracks[simToBuildMap_[mcID_eff_][ii]].algoint()));
+          const int theAlgo=evt_build_tracks[simToBuildMap_[mcID_eff_][ii]].algoint();
+          if((itermask_build_eff_>>theAlgo)&1) iterduplmask_build_eff_=(iterduplmask_build_eff_ | (1<<theAlgo)); //filled at the second time
+          itermask_build_eff_=(itermask_build_eff_ | (1<<theAlgo));
+          
       }
       const auto& buildtrack = evt_build_tracks[simToBuildMap_[mcID_eff_][0]]; // returns buildTrack best matched to sim track
       const auto& buildextra = evt_build_extras[buildtrack.label()]; // returns track extra best aligned with build track
@@ -1755,7 +1770,10 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     {
       for (unsigned int ii=0; ii < simToFitMap_[mcID_eff_].size(); ii++) 
       {
-	  itermask_fit_eff_=(itermask_fit_eff_ | (1<<evt_fit_tracks[simToFitMap_[mcID_eff_][ii]].algoint()));
+        const int theAlgo=evt_fit_tracks[simToFitMap_[mcID_eff_][ii]].algoint();
+        if((itermask_fit_eff_>>theAlgo)&1) iterduplmask_fit_eff_=(iterduplmask_fit_eff_ | (1<<theAlgo)); //filled at the second time
+        itermask_fit_eff_=(itermask_fit_eff_ | (1<<theAlgo));
+        
       }
       const auto& fittrack = evt_fit_tracks[simToFitMap_[mcID_eff_][0]]; // returns fitTrack best matched to sim track
       const auto& fitextra = evt_fit_extras[fittrack.label()]; // returns track extra best aligned with fit track
@@ -2450,6 +2468,8 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
     
     itermask_build_ceff_=0;
     itermask_fit_ceff_=0;
+    iterduplmask_build_ceff_=0;
+    iterduplmask_fit_ceff_=0;
     algo_seed_ceff_=0;
      
     for (auto aa: cmsswextra.seedAlgos())
@@ -2462,7 +2482,10 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
     {
       for (unsigned int ii=0; ii < cmsswToBuildMap_[cmsswID_ceff_].size(); ii++)
       {      
-         itermask_build_ceff_=(itermask_build_ceff_ | (1<<evt_build_tracks[cmsswToBuildMap_[cmsswID_ceff_][ii]].algoint()));
+         const int theAlgo=evt_build_tracks[cmsswToBuildMap_[cmsswID_ceff_][ii]].algoint();
+         if((itermask_build_ceff_>>theAlgo)&1) iterduplmask_build_ceff_=(iterduplmask_build_ceff_ | (1<<theAlgo)); //filled at the second time         
+         itermask_build_ceff_=(itermask_build_ceff_ | (1<<theAlgo));
+         
       }
 
       const auto& buildtrack = evt_build_tracks[cmsswToBuildMap_[cmsswID_ceff_][0]]; // returns buildTrack best matched to cmssw track
@@ -2574,6 +2597,15 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
     // matched fit track
     if (cmsswToFitMap_.count(cmsswID_ceff_) && cmsswtrack.isFindable()) // recoToCmssw match : save best match with best score i.e. cmsswToFitMap_[matched CmsswID][first element in vector]
     {
+      
+      for (unsigned int ii=0; ii < cmsswToFitMap_[cmsswID_ceff_].size(); ii++)
+      {    
+         const int theAlgo=evt_build_tracks[cmsswToFitMap_[cmsswID_ceff_][ii]].algoint();
+         if((itermask_fit_ceff_>>theAlgo)&1) iterduplmask_fit_ceff_=(iterduplmask_fit_ceff_ | (1<<theAlgo)); //filled at the second time
+         itermask_fit_ceff_=(itermask_fit_ceff_ | (1<<theAlgo));
+         
+      }
+      
       const auto& fittrack = evt_fit_tracks[cmsswToFitMap_[cmsswID_ceff_][0]]; // returns fitTrack best matched to cmssw track
       const auto& fitextra = evt_fit_extras[fittrack.label()]; // returns track extra best aligned with fit track
       cmsswmask_fit_ceff_ = 1; // quick logic for matched
