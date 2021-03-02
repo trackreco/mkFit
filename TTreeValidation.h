@@ -159,6 +159,7 @@ public:
 
   //iterations provenance for each match - a bit mask similar to the ones used in the hit masking
   ULong64_t  itermask_seed_eff_=0,itermask_build_eff_=0,itermask_fit_eff_=0;
+  ULong64_t  iterduplmask_seed_eff_=0,iterduplmask_build_eff_=0,iterduplmask_fit_eff_=0;
   ULong64_t  algo_seed_eff_=0;  
 
   // hit info
@@ -294,6 +295,7 @@ public:
   int   duplmask_fit_ceff_=0,nTkMatches_fit_ceff_=0;
   
   ULong64_t  itermask_build_ceff_=0,itermask_fit_ceff_=0;
+  ULong64_t  iterduplmask_build_ceff_=0,iterduplmask_fit_ceff_=0;
   ULong64_t  algo_seed_ceff_=0;  
 
   // hit info
