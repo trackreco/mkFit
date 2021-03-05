@@ -350,9 +350,11 @@ namespace Config
   constexpr float track_ptlow = 0.9;
 
   // sorting config (bonus,penalty)
-  constexpr float validHitBonus_ = 10;
+  constexpr float validHitBonus_ = 4;
+  constexpr float validHitSlope_ = 0.2;
   constexpr float overlapHitBonus_ = 0; // set to negative for penalty
-  constexpr float missingHitPenalty_ = 10;
+  constexpr float missingHitPenalty_ = 8;
+  constexpr float tailMissingHitPenalty_ = 3;
 
   // Threading
   extern int    numThreadsFinder;

@@ -662,7 +662,7 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
             copy_out(newcand, itrack, iC);
 	    newcand.addHitIdx(hit_idx, layer_of_hits.layer_id(), chi2);
 	    newcand.setSeedTypeForRanking(SeedType(itrack, 0, 0));
-	    newcand.setScore(getScoreCand(newcand));
+	    newcand.setScore(getScoreCand(newcand, true));
             newcand.setOriginIndex(CandIdx(itrack, 0, 0));
 
             if (chi2 < Config::chi2CutOverlap)
@@ -713,7 +713,7 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
     copy_out(newcand, itrack, iP);
     newcand.addHitIdx(fake_hit_idx, layer_of_hits.layer_id(), 0.);
     newcand.setSeedTypeForRanking(SeedType(itrack, 0, 0));
-    newcand.setScore(getScoreCand(newcand));
+    newcand.setScore(getScoreCand(newcand, true));
     // Only relevant when we actually add a hit
     // newcand.setOriginIndex(CandIdx(itrack, 0, 0));
     tmp_candidates[SeedIdx(itrack, 0, 0) - offset].emplace_back(newcand);
@@ -796,6 +796,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
           tmpList.hitIdx   = hit_idx;
           tmpList.module   = layer_of_hits.GetHit(hit_idx).detIDinLayer();
           tmpList.nhits    = NFoundHits(itrack,0,0) + 1;
+          tmpList.ntailholes= 0;
           tmpList.noverlaps= NOverlapHits(itrack,0,0);
           tmpList.nholes   = num_all_minus_one_hits(itrack);
           tmpList.seedtype = SeedType(itrack, 0, 0);
@@ -842,6 +843,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     tmpList.hitIdx   = fake_hit_idx;
     tmpList.module   = -1;
     tmpList.nhits    = NFoundHits(itrack,0,0);
+    tmpList.ntailholes= NTailMinusOneHits(itrack,0,0)+1;
     tmpList.noverlaps= NOverlapHits(itrack,0,0);
     tmpList.nholes   = num_inside_minus_one_hits(itrack);
     tmpList.seedtype = SeedType(itrack, 0, 0);
