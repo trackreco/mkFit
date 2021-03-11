@@ -1,7 +1,6 @@
 #ifndef SteeringParams_h
 #define SteeringParams_h
 
-#include "Track.h"
 #include "Matrix.h"
 
 #include <functional>
@@ -14,6 +13,9 @@ class MkBase;
 class MkFitter;
 class MkFinder;
 class EventOfHits;
+
+class Track;
+typedef std::vector<Track>    TrackVec;
 
 #define COMPUTE_CHI2_ARGS const MPlexLS &,  const MPlexLV &, const MPlexQI &, \
                           const MPlexHS &,  const MPlexHV &, \
@@ -51,8 +53,8 @@ struct LayerControl
 
   // Idea only ... need some parallel structure for candidates to make sense (where i can store it).
   // Or have per layer containers where I place track indices to enable. Or something. Sigh.
-  int  m_on_miss_jump_to;
-  int  m_on_hit_jump_to;
+  // int  m_on_miss_jump_to = -999;
+  // int  m_on_hit_jump_to  = -999;
 
   bool m_pickup_only;  // do not propagate to this layer and process hits, pickup seeds only.
   bool m_backfit_only; // layer only used in backward fit.
@@ -303,9 +305,9 @@ public:
 
 class IterationsInfo
 {
+public:
   std::vector<IterationConfig> m_iterations;
 
-public:
   IterationsInfo() {}
 
   void resize(int ni) { m_iterations.resize(ni); }
@@ -324,4 +326,52 @@ public:
 // Pointers to propagation functions can be passed as they are now.
 
 } // end namespace mkfit
+
+//==============================================================================
+// JSON config IO tests
+//==============================================================================
+
+#ifdef CONFIG_PARSE
+
+#include "config-parse/json_fwd.hpp"
+
+namespace mkfit {
+
+class ConfigJsonPatcher
+{
+  nlohmann::json *m_json    = nullptr;
+  nlohmann::json *m_current = nullptr;
+  bool            m_owner   = false;
+
+  void release_json();
+
+public:
+  ConfigJsonPatcher();
+  ~ConfigJsonPatcher();
+
+  template<class T> void Load(const T& o);
+  template<class T> void Save(T& o);
+
+  void cd    (const std::string& path);
+  void cd_top(const std::string& path = "");
+
+  template<typename T>
+  void replace(const std::string& path, T val);
+
+  template<typename T>
+  void replace(int beg, int end, const std::string& path, T val);
+
+  nlohmann::json& get(const std::string& path);
+
+  std::string dump(int indent=2);
+};
+
+void TestJson_Dump_Direct(IterationConfig &it_cfg);
+
+void TestJson_Dump_ConfigPatcher(IterationConfig &it_cfg);
+
+} // end namespace mkfit
+
+#endif
+
 #endif

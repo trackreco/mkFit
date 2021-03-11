@@ -1961,7 +1961,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     seedmask_seed_FR_ = 1; // automatically set to 1, because at the moment no cuts on seeds after conformal+KF fit.  seed triplets filtered by RZ chi2 before fitting. 
 
     // last hit info
-    const Hit& lasthit = evt_layer_hits[seedtrack.getLastFoundHitLyr()][seedtrack.getLastFoundHitIdx()];
+    // const Hit& lasthit = evt_layer_hits[seedtrack.getLastFoundHitLyr()][seedtrack.getLastFoundHitIdx()];
     xhit_seed_FR_ = 0;//lasthit.x(); 
     yhit_seed_FR_ = 0;//lasthit.y(); 
     zhit_seed_FR_ = 0;//lasthit.z(); 

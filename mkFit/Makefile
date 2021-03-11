@@ -33,8 +33,8 @@ AUTO_TGTS := auto-genmplex
 
 default: ${AUTO_TGTS} ${TGTS}
 
-clean:
-	rm -f ${TGTS} *.d *.o *.om Ice/*.d Ice/*.o Ice/*.om
+clean::
+	rm -f ${TGTS} *.d *.o Ice/*.d Ice/*.o
 	rm -rf mkFit.dSYM
 
 distclean: clean
@@ -53,6 +53,14 @@ echo:
 
 MKFSRCS := $(wildcard *.cc) $(wildcard Ice/*.cc)
 MKFHDRS := $(wildcard *.h)
+
+ifdef CONFIG_PARSE
+CPPFLAGS += -DCONFIG_PARSE
+MKFSRCS += config-parse/SteeringParams.cc
+ifdef WITH_ROOT
+MKFSRCS += config-parse/ConfigDict.cc
+endif
+endif
 
 MKFOBJS := $(MKFSRCS:.cc=.o)
 MKFDEPS := $(MKFSRCS:.cc=.d)
@@ -84,3 +92,20 @@ endif
 
 ${MKFOBJS}: %.o: %.cc %.d
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} ${VEC_HOST} -c -o $@ $<
+
+
+################################################################
+# Config save / load tests
+################################################################
+ifdef CONFIG_PARSE
+ifdef WITH_ROOT
+config-parse/ConfigDict.cc: SteeringParams.h config-parse/ConfigLinkDef.h
+	rootcling -f -D=USE_MATRIPLEX -I=.. $@ $^
+
+clean::
+	rm -f config-parse/ConfigDict.cc config-parse/ConfigDict_rdict.pcm
+endif
+
+clean::
+	rm -f config-parse/*.d config-parse/*.o
+endif

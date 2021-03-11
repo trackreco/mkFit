@@ -50,6 +50,11 @@ void initGeom()
 
   TrackerInfo::ExecTrackerInfoCreatorPlugin(Config::geomPlugin, Config::TrkInfo, Config::ItrInfo);
 
+#ifdef CONFIG_PARSE
+  // TestJson_Dump_Direct(Config::ItrInfo[0]);
+  TestJson_Dump_ConfigPatcher(Config::ItrInfo[0]);
+#endif
+
   /*
   if ( ! Config::useCMSGeom)
   {
