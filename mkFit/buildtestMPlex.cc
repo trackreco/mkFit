@@ -500,14 +500,11 @@ struct IterationMaskIfcCmssw : public IterationMaskIfcBase
 };
 
 void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itconf, const EventOfHits &eoh,
+                      const std::vector<const std::vector<bool>*>& hit_masks,
                       MkBuilder& builder, TrackVec &seeds, TrackVec &out_tracks,
                       bool do_seed_clean, bool do_backward_fit, bool do_remove_duplicates)
 {
-  // assume arugument:
-  const std::vector<const std::vector<bool>*> mask_vec = { nullptr, nullptr };
-  // nullptr is a valid mask ... means no mask for these layers.
-
-  IterationMaskIfcCmssw it_mask_ifc(trackerInfo, mask_vec);
+  IterationMaskIfcCmssw it_mask_ifc(trackerInfo, hit_masks);
 
   MkJob job( { trackerInfo, itconf, eoh, &it_mask_ifc } );
 
