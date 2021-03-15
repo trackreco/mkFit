@@ -313,7 +313,7 @@ void test_standard()
           // t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
           t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev, eoh, mkb) : 0;
           t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, eoh, mkb) : 0;
-          t_cur[4] = (g_run_build_all || g_run_build_mimi)? runBtbCe_MultiIter(ev, eoh, mkb) : 0;
+          t_cur[4] = (g_run_build_all || g_run_build_mimi)? runBtbCe_MultiIter(ev, eoh, mkb, Config::nItersCMSSW) : 0;
           if (g_run_build_all || g_run_build_cmssw) runBuildingTestPlexDumbCMSSW(ev, eoh, mkb);
           t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, eoh, mkb) : 0;
           if (g_run_build_ce){
