@@ -55,8 +55,9 @@ siminfo="--try-to-save-sim-info"
 bkfit="--backward-fit-pca"
 
 ## validation options: SIMVAL == sim tracks as reference, CMSSWVAL == cmssw tracks as reference
-SIMVAL="SIMVAL --sim-val ${siminfo} ${bkfit} ${style}"
-SIMVAL_SEED="SIMVALSEED --sim-val ${siminfo} ${bkfit} --mtv-require-seeds"
+SIMVAL="SIMVAL --sim-val ${siminfo} ${bkfit} ${style} --num-iters-cmssw 9"
+SIMVAL_SEED="SIMVALSEED --sim-val ${siminfo} ${bkfit} --mtv-require-seeds --num-iters-cmssw 9"
+
 declare -a vals=(SIMVAL SIMVAL_SEED)
 
 ## plotting options
@@ -68,12 +69,24 @@ SIMPLOT22="SIMVAL iter22 0 22 0"
 SIMPLOTSEED22="SIMVALSEED iter22 0 22 0"
 SIMPLOT23="SIMVAL iter23 0 23 0"
 SIMPLOTSEED23="SIMVALSEED iter23 0 23 0"
+SIMPLOT5="SIMVAL iter5 0 5 0"
+SIMPLOTSEED5="SIMVALSEED iter5 0 5 0"
+SIMPLOT24="SIMVAL iter24 0 24 0"
+SIMPLOTSEED24="SIMVALSEED iter24 0 24 0"
+SIMPLOT7="SIMVAL iter7 0 7 0"
+SIMPLOTSEED7="SIMVALSEED iter7 0 7 0"
+SIMPLOT8="SIMVAL iter8 0 8 0"
+SIMPLOTSEED8="SIMVALSEED iter8 0 8 0"
+SIMPLOT9="SIMVAL iter9 0 9 0"
+SIMPLOTSEED9="SIMVALSEED iter9 0 9 0"
+SIMPLOT10="SIMVAL iter10 0 10 0"
+SIMPLOTSEED10="SIMVALSEED iter10 0 10 0"
 
-declare -a plots=(SIMPLOT4 SIMPLOTSEED4 SIMPLOT22 SIMPLOTSEED22 SIMPLOT23 SIMPLOTSEED23 SIMPLOT SIMPLOTSEED)
+declare -a plots=(SIMPLOT4 SIMPLOTSEED4 SIMPLOT22 SIMPLOTSEED22 SIMPLOT23 SIMPLOTSEED23 SIMPLOT5 SIMPLOTSEED5 SIMPLOT24 SIMPLOTSEED24 SIMPLOT7 SIMPLOTSEED7 SIMPLOT8 SIMPLOTSEED8 SIMPLOT9 SIMPLOTSEED9 SIMPLOT10 SIMPLOTSEED10)
 
 ## special cmssw dummy build
-CMSSW="CMSSW cmssw SIMVAL --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks ${style} --num-iters-cmssw 3"
-CMSSW2="CMSSW cmssw SIMVALSEED --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks --mtv-require-seeds --num-iters-cmssw 3"
+CMSSW="CMSSW cmssw SIMVAL --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks ${style} --num-iters-cmssw 9"
+CMSSW2="CMSSW cmssw SIMVALSEED --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks --mtv-require-seeds --num-iters-cmssw 9"
 
 ###############
 ## Functions ##

@@ -21,8 +21,8 @@ declare -a val_builds=(MIMI)
 ######################################
 
 # Make SimTrack Validation directories
-simdir=("SIMVAL_MTV" "SIMVAL_MTV_SEED" "SIMVAL_MTV_iter4" "SIMVAL_MTV_SEED_iter4" "SIMVAL_MTV_iter22" "SIMVAL_MTV_SEED_iter22" "SIMVAL_MTV_iter23" "SIMVAL_MTV_SEED_iter23")
-simval=("SIMVAL" "SIMVALSEED" "SIMVAL_iter4" "SIMVALSEED_iter4" "SIMVAL_iter22" "SIMVALSEED_iter22" "SIMVAL_iter23" "SIMVALSEED_iter23" )
+simdir=("SIMVAL_MTV_iter4" "SIMVAL_MTV_SEED_iter4" "SIMVAL_MTV_iter22" "SIMVAL_MTV_SEED_iter22" "SIMVAL_MTV_iter23" "SIMVAL_MTV_SEED_iter23" "SIMVAL_MTV_iter5" "SIMVAL_MTV_SEED_iter5" "SIMVAL_MTV_iter24" "SIMVAL_MTV_SEED_iter24" "SIMVAL_MTV_iter7" "SIMVAL_MTV_SEED_iter7" "SIMVAL_MTV_iter8" "SIMVAL_MTV_SEED_iter8" "SIMVAL_MTV_iter9" "SIMVAL_MTV_SEED_iter9" "SIMVAL_MTV_iter10" "SIMVAL_MTV_SEED_iter10" )
+simval=("SIMVAL_iter4" "SIMVALSEED_iter4" "SIMVAL_iter22" "SIMVALSEED_iter22" "SIMVAL_iter23" "SIMVALSEED_iter23" "SIMVAL_iter5" "SIMVALSEED_iter5" "SIMVAL_iter24" "SIMVALSEED_iter24" "SIMVAL_iter7" "SIMVALSEED_iter7" "SIMVAL_iter8" "SIMVALSEED_iter8" "SIMVAL_iter9" "SIMVALSEED_iter9" "SIMVAL_iter10" "SIMVALSEED_iter10" )
 
 for((i=0;i<${#simdir[@]};++i));do
 
