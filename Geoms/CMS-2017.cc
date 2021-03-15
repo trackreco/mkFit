@@ -111,7 +111,29 @@ namespace
       ip.chi2Cut          = 30; 
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
-    }  
+    } 
+    else if (it == 7) //for the PixelLess and TobTec: maxcand 2 and 0 consecHoles
+    {   
+      ip.nlayers_per_seed = 3;
+      ip.maxCandsPerSeed  = 2;
+      ip.maxHolesPerCand  = 4;
+      ip.maxConsecHoles   = 0;
+      ip.chi2Cut          = 30; 
+      ip.chi2CutOverlap   = 3.5;
+      ip.pTCutOverlap     = 1;
+    }   
+    else if (it == 8)
+    {   
+      ip.nlayers_per_seed = 3;
+      ip.maxCandsPerSeed  = 2;
+      ip.maxHolesPerCand  = 0;
+      ip.maxConsecHoles   = 1;
+      ip.chi2Cut          = 30; 
+      ip.chi2CutOverlap   = 3.5;
+      ip.pTCutOverlap     = 1;
+    }   
+  
+ 
   }
 
   std::function<IterationConfig::partition_seeds_foo> PartitionSeeds0 =
@@ -227,7 +249,7 @@ namespace
     ti.set_eta_regions(0.9, 1.7, 2.45, false);
     ti.create_layers(18, 27, 27);
 
-    ii.resize(3);
+    ii.resize(9);
     ii[0].set_iteration_index_and_track_algorithm(0, (int) TrackBase::TrackAlgorithm::initialStep);
     ii[0].set_num_regions_layers(5, 72);
 
@@ -237,13 +259,40 @@ namespace
     SetupIterationParams(ii[0].m_params, 0);
     ii[0].m_partition_seeds = PartitionSeeds0;
 
-    ii[1].Clone(ii[0]);
+    ii[1].Clone(ii[0]); //added extra iterations with some preliminary setup
     SetupIterationParams(ii[1].m_params, 1);//3 seed hits is the only difference
     ii[1].set_iteration_index_and_track_algorithm(1, (int) TrackBase::TrackAlgorithm::highPtTripletStep);
-    ii[1].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.018, 0.018, 0.018, 0.05, 0.018, 0.05); //maybe have he parameters stored somewhere
+    ii[1].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.018, 0.018, 0.018, 0.05, 0.018, 0.05); 
+
     ii[2].Clone(ii[0]);
     ii[2].set_iteration_index_and_track_algorithm(2, (int) TrackBase::TrackAlgorithm::lowPtQuadStep);
-    ii[2].set_seed_cleaning_params(0.5, 0.018, 0.018, 0.018, 0.018, 0.05, 0.05, 0.05, 0.05);
+    ii[2].set_seed_cleaning_params(0.5, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
+     
+    ii[3].Clone(ii[0]);
+    ii[3].set_iteration_index_and_track_algorithm(3, (int) TrackBase::TrackAlgorithm::lowPtTripletStep);
+    ii[3].set_seed_cleaning_params(0.5, 0.0, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
+    
+    ii[4].Clone(ii[0]);
+    ii[4].set_iteration_index_and_track_algorithm(4, (int) TrackBase::TrackAlgorithm::detachedQuadStep);
+    ii[4].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
+    
+    ii[5].Clone(ii[0]);
+    ii[5].set_iteration_index_and_track_algorithm(5, (int) TrackBase::TrackAlgorithm::detachedTripletStep);
+    ii[5].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
+
+    ii[6].Clone(ii[0]);
+    ii[6].set_iteration_index_and_track_algorithm(6, (int) TrackBase::TrackAlgorithm::mixedTripletStep);
+    ii[6].set_seed_cleaning_params(2.0, 0.05, 0.05, 0.135, 0.135, 0.05, 0.05, 0.135, 0.135);
+    
+    ii[7].Clone(ii[0]);
+    ii[7].set_iteration_index_and_track_algorithm(7, (int) TrackBase::TrackAlgorithm::pixelLessStep);
+    ii[7].set_seed_cleaning_params(2.0, 0.37, 0.37, 0.37, 0.37, 0.37, 0.37, 0.37, 0.37);
+    SetupIterationParams(ii[7].m_params, 7);
+    
+    ii[8].Clone(ii[0]);
+    ii[8].set_iteration_index_and_track_algorithm(8, (int) TrackBase::TrackAlgorithm::tobTecStep);
+    ii[8].set_seed_cleaning_params(2.0, 0.37, 0.37, 0.37, 0.37, 0.37, 0.37, 0.37, 0.37);    
+    SetupIterationParams(ii[8].m_params, 8);
 
     if (verbose)
     {

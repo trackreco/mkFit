@@ -1053,13 +1053,13 @@ void MkBuilder::track_print(Track &t, const char* pref)
 
 void MkBuilder::root_val_dumb_cmssw()
 {
-  
-  if (Config::nItersCMSSW>0)
-    m_event->select_tracks_iter(Config::nItersCMSSW);
-
   // get labels correct first
   m_event->relabel_bad_seedtracks();
   m_event->relabel_cmsswtracks_from_seeds();
+ 
+  //collection cleaning 
+  if (Config::nItersCMSSW>0)
+    m_event->select_tracks_iter(Config::nItersCMSSW);
 
   // set the track collections to each other
   m_event->candidateTracks_ = m_event->cmsswTracks_;
@@ -1141,6 +1141,7 @@ void MkBuilder::prep_simtracks()
   LayIdxIDVecMapMap seedHitIDMap;
   std::map<int, int> labelNHitsMap;
   std::map<int, int> labelAlgoMap;
+  std::map<int, std::vector<int>> labelSeedHitsMap;
   for (const auto& seedtrack : m_event->seedTracks_)
   {
     for (int ihit = 0; ihit < seedtrack.nTotalHits(); ihit++)
@@ -1150,6 +1151,8 @@ void MkBuilder::prep_simtracks()
 
       if (lyr < 0 || idx < 0) continue; // standard check
       seedHitIDMap[lyr][idx].push_back(seedtrack.label());
+      labelSeedHitsMap[seedtrack.label()].push_back(lyr);
+
     }
     labelNHitsMap[seedtrack.label()]=seedtrack.nTotalHits();
     labelAlgoMap[seedtrack.label()]=seedtrack.algoint();
@@ -1167,14 +1170,15 @@ void MkBuilder::prep_simtracks()
       const auto idx = simtrack.getHitIdx(ihit);
 
       if (lyr < 0 || idx < 0) continue; // standard check
-      if (!Config::TrkInfo.is_seed_lyr(lyr)) continue; // want seeding layers only!
 
       if (!seedHitIDMap.count(lyr)) continue; // ensure seed hit map has at least one entry for this layer
       if (!seedHitIDMap.at(lyr).count(idx)) continue; // ensure seed hit map has at least one entry for this idx
 
       for (const auto label : seedHitIDMap.at(lyr).at(idx))
       {
-        seedIDMap[label].emplace(lyr);
+        const auto &seedLayers = labelSeedHitsMap[label];
+        if ( std::find(seedLayers.begin(), seedLayers.end(), lyr) != seedLayers.end() ) //seed check moved here
+          seedIDMap[label].emplace(lyr);
       }
     }
 

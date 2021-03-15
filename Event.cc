@@ -763,8 +763,9 @@ int Event::clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& 
 
   TrackVec &seeds = (seed_ptr != nullptr) ? *seed_ptr : seedTracks_;
   const int ns = seeds.size();
-  std::cout << "before seed cleaning "<< seeds.size()<<std::endl;
-
+  #ifdef DEBUG
+   std::cout << "before seed cleaning "<< seeds.size()<<std::endl;
+  #endif
   TrackVec cleanSeedTracks;
   cleanSeedTracks.reserve(ns);
   std::vector<bool> writetrack(ns, true);
@@ -895,9 +896,10 @@ int Event::clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& 
     }
   }
 #endif
-  
-  std::cout << "AFTER seed cleaning "<< seeds.size()<<std::endl;
 
+#ifdef DEBUG  
+  std::cout << "AFTER seed cleaning "<< seeds.size()<<std::endl;
+#endif
   return seeds.size();
 }
 

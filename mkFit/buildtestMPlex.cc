@@ -352,21 +352,24 @@ double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuild
 // And if we care about doing too muich work for seeds that will never get processed.
 //==============================================================================
 
-double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
+double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder, unsigned int n)
 {
   double ttime = 0;
-  
+  if (n<=0) return ttime; //at least one iter by default
+
   const bool validation_on = (Config::sim_val || Config::quality_val);
   
   TrackVec seeds_used;
   TrackVec seeds1;
+   
+  unsigned int algorithms[]={ 4,22,23,5,24,7,8,9,10 }; //9 iterations
 
   if (validation_on) 
   {
     for (auto &s : ev.seedTracks_)
     {
-      if (s.algoint()==4 || s.algoint()==22 || s.algoint()==23) //keep seeds you want to process later
-        seeds1.push_back(s);
+      //keep seeds form the first n iterations for processing
+      if ( std::find(algorithms, algorithms+n, s.algoint())!=algorithms+n  ) seeds1.push_back(s);
     }
     ev.seedTracks_.swap(seeds1);//necessary for the validation - PrepareSeeds
     ev.relabel_bad_seedtracks();//necessary for the validation - PrepareSeeds
@@ -374,7 +377,7 @@ double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
   
   IterationMaskIfc mask_ifc;
 
-  for (int it = 0; it <= 2; ++it)
+  for (int it = 0; it <= n-1; ++it)
   {
     // MIMI - to disable hit-masks, pass nullptr in place of &mask_ifc to job
     // and optionally comment out ev.fill_hitmask_bool_vectors() call.
