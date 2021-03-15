@@ -100,6 +100,10 @@ namespace Config
   bool  backwardFit = false;
   bool  includePCA = false;
 
+  bool        json_patch_dump_before = false;
+  bool        json_patch_dump_after  = false;
+  std::string json_patch_filename;
+
   void RecalculateDependentConstants()
   {
   }

@@ -1,6 +1,9 @@
 #include "SteeringParams.h"
 
-#include "json.hpp"
+#include "nlohmann/json.hpp"
+
+#include <fstream>
+#include <regex>
 
 namespace mkfit {
 
@@ -55,8 +58,10 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationsInfo,
 
 // End AUTO code.
 
-// ============================================================================
 
+// ============================================================================
+// ConfigJsonPatcher
+// ============================================================================
 
 ConfigJsonPatcher::ConfigJsonPatcher() {}
 
@@ -90,12 +95,24 @@ template void ConfigJsonPatcher::Save<IterationConfig>(IterationConfig &o);
 void ConfigJsonPatcher::cd(const std::string& path)
 {
     nlohmann::json::json_pointer jp(path);
+    m_json_stack.push_back(m_current);
     m_current = & m_current->at(jp);
+
+}
+
+void ConfigJsonPatcher::cd_up(const std::string& path)
+{
+    if (m_json_stack.empty()) throw std::runtime_error("JSON stack empty on cd_up");
+
+    m_current = m_json_stack.back();
+    m_json_stack.pop_back();
+    if ( ! path.empty()) cd(path);
 }
 
 void ConfigJsonPatcher::cd_top(const std::string& path)
 {
     m_current = m_json;
+    m_json_stack.clear();
     if ( ! path.empty()) cd(path);
 }
 
@@ -110,17 +127,17 @@ template void ConfigJsonPatcher::replace<float> (const std::string& path, float 
 template void ConfigJsonPatcher::replace<double>(const std::string& path, double val);
 
 template<typename T>
-void ConfigJsonPatcher::replace(int beg, int end, const std::string& path, T val)
+void ConfigJsonPatcher::replace(int first, int last, const std::string& path, T val)
 {
     nlohmann::json::json_pointer jp(path);
-    for (int i = beg; i < end; ++i)
+    for (int i = first; i <= last; ++i)
     {
         m_current->at(i).at(jp) = val;
     }
 }
-template void ConfigJsonPatcher::replace<int>   (int beg, int end, const std::string& path, int    val);
-template void ConfigJsonPatcher::replace<float> (int beg, int end, const std::string& path, float  val);
-template void ConfigJsonPatcher::replace<double>(int beg, int end, const std::string& path, double val);
+template void ConfigJsonPatcher::replace<int>   (int first, int last, const std::string& path, int    val);
+template void ConfigJsonPatcher::replace<float> (int first, int last, const std::string& path, float  val);
+template void ConfigJsonPatcher::replace<double>(int first, int last, const std::string& path, double val);
 
 nlohmann::json& ConfigJsonPatcher::get(const std::string& path)
 {
@@ -128,17 +145,179 @@ nlohmann::json& ConfigJsonPatcher::get(const std::string& path)
     return m_current->at(jp);
 }
 
+int ConfigJsonPatcher::replace(const nlohmann::json &j)
+{
+    if (j.is_null()) throw std::runtime_error("null not expected");
+
+    if (j.is_boolean() || j.is_number() || j.is_string())
+    {
+        throw std::runtime_error("value not expected on this parsing level");
+    }
+
+    int n_replaced = 0;
+
+    if (j.is_object())
+    {
+        std::regex index_range_re("^\\[(\\d+)..(\\d+)\\]$");
+
+        for (auto& [key, value] : j.items())
+        {
+            std::cout << key << " : " << value << "\n";
+
+            std::smatch m;
+            std::regex_search(key, m, index_range_re);
+
+            printf("Match size for %s: %d\n", key.c_str(), (int) m.size());
+
+            if (m.size() == 3)
+            {
+                if ( ! m_current->is_array())  throw std::runtime_error("array range encountered when current json is not an array");
+                int first = std::stoi(m.str(1));
+                int last  = std::stoi(m.str(2));
+                for (int i = first; i <= last; ++i)
+                {
+                    std::string s("/");
+                    s += std::to_string(i);
+                    cd(s);
+                    n_replaced += replace(value);
+                    cd_up();
+                }
+            }
+            else if (value.is_array() || value.is_object())
+            {
+                std::string s("/");
+                s += key;
+                cd(s);
+                n_replaced += replace(value);
+                cd_up();
+            }
+            else if (value.is_number() || value.is_boolean() || value.is_string())
+            {
+                std::string s("/");
+                s += key;
+                nlohmann::json::json_pointer jp(s);
+                m_current->at(jp) = value;
+                ++n_replaced;
+            }
+            else
+            {
+                throw std::runtime_error("unexpected value type");
+            }
+        }
+    }
+    else if (j.is_array())
+    {
+        for (auto& element : j)
+        {
+            std::cout << element << '\n';
+            if ( ! element.is_object()) throw std::runtime_error("array elements expected to be objects");
+            n_replaced += replace(element);
+        }
+    }
+    else
+    {
+        throw std::runtime_error("unexpected json type");
+    }
+
+    return n_replaced;
+}
+
 std::string ConfigJsonPatcher::dump(int indent)
 {
     return m_json->dump(indent);
 }
 
-// ============================================================================
 
-void TestJson_Dump_Direct(IterationConfig &it_cfg)
+// ============================================================================
+// ConfigJson_Patch_File steering function
+// ============================================================================
+/*
+    See example JSON patcher input: "mkFit/config-parse/test.json"
+
+    The file can contain several valid JSON dumps in sequence.
+
+    '/' character can be used to descend more than one level at a time.
+
+    A number can be used to specify an array index. This can be combined with
+    the '/' syntax.
+
+    "[first,last]" key (as string) can be used to denote a range of array
+    elements. Such a key must not be combined with a '/' syntax.
+*/
+
+namespace
+{
+    // Open file, throw exception on failure.
+    void open_ifstream(std::ifstream &ifs, const std::string &fname, const char *pfx=0)
+    {
+        ifs.open(fname);
+        if ( ! ifs)
+        {
+            char m[2048];
+            snprintf(m, 2048, "%s%sError opening %s: %m", pfx ? pfx : "", pfx ? " " : "", fname.c_str());
+            throw std::runtime_error(m);
+        }
+    }
+
+    // Skip white-space, return true if more characters are available, false if eof.
+    bool skipws_ifstream(std::ifstream &ifs)
+    {
+        while (std::isspace(ifs.peek())) ifs.get();
+        return ! ifs.eof();
+    }
+}
+
+void ConfigJson_Patch_File(IterationsInfo &its_info, const std::string &fname)
 {
     using nlohmann::json;
-    // using nlohmann::json::json_pointer;
+
+    std::ifstream  ifs;
+    open_ifstream(ifs, fname, __func__);
+
+    ConfigJsonPatcher cjp;
+    cjp.Load(its_info);
+
+    if (Config::json_patch_dump_before)
+    {
+        std::cout << cjp.dump(3) << "\n";
+    }
+
+    int n_read = 0;
+    while (skipws_ifstream(ifs))
+    {
+        json j;
+        ifs >> j;
+        ++n_read;
+        std::cout << j.dump(3) << "\n";
+
+        int n_replaced = cjp.replace(j);
+        std::cout << "Replaced " << n_replaced << " entries.\n";
+
+        cjp.cd_top();
+    }
+    printf("%s read %d JSON entities.\n", __func__ , n_read);
+
+     if (Config::json_patch_dump_after)
+    {
+        std::cout << cjp.dump(3) << "\n";
+    }
+
+    if (n_read > 0)
+    {
+        cjp.Save(its_info);
+    }
+
+    ifs.close();
+}
+
+
+// ============================================================================
+// Tests for ConfigJson stuff
+// ============================================================================
+
+void ConfigJson_Test_Direct(IterationConfig &it_cfg)
+{
+    using nlohmann::json;
 
     std::string lojz("/m_select_max_dphi");
 
@@ -180,11 +359,8 @@ void TestJson_Dump_Direct(IterationConfig &it_cfg)
     std::cout << "Typename /m_layer_configs/143 " << y.type_name() << ", is_null=" << y.is_null() << "\n";
 }
 
-void TestJson_Dump_ConfigPatcher(IterationConfig &it_cfg)
+void ConfigJson_Test_Patcher(IterationConfig &it_cfg)
 {
-    using nlohmann::json;
-    // using nlohmann::json::json_pointer;
-
     ConfigJsonPatcher cjp;
     cjp.Load(it_cfg);
 
@@ -223,7 +399,7 @@ void TestJson_Dump_ConfigPatcher(IterationConfig &it_cfg)
     {
         std::cout << "Replacing m_select_max_dphi on layers 1 to 3 to 7.7\n";
         cjp.cd("/m_layer_configs");
-        cjp.replace(1, 4, "/m_select_max_dphi", 7.7);
+        cjp.replace(1, 3, "/m_select_max_dphi", 7.7);
         cjp.cd_top();
     }
 
@@ -249,7 +425,6 @@ void TestJson_Dump_ConfigPatcher(IterationConfig &it_cfg)
     std::cout << "Typename /m_layer_configs " << x.type_name() << "\n";
     auto &y = j["/m_layer_configs/143"_json_pointer];
     std::cout << "Typename /m_layer_configs/143 " << y.type_name() << ", is_null=" << y.is_null() << "\n";
-
 }
 
 }

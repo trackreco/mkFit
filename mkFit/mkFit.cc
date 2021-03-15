@@ -10,8 +10,6 @@
 
 #include "Config.h"
 
-#include "Timing.h"
-
 #include <limits>
 #include <list>
 #include <sstream>
@@ -50,10 +48,14 @@ void initGeom()
 
   TrackerInfo::ExecTrackerInfoCreatorPlugin(Config::geomPlugin, Config::TrkInfo, Config::ItrInfo);
 
-#ifdef CONFIG_PARSE
-  // TestJson_Dump_Direct(Config::ItrInfo[0]);
-  TestJson_Dump_ConfigPatcher(Config::ItrInfo[0]);
-#endif
+  if ( ! Config::json_patch_filename.empty())
+  {
+    ConfigJson_Patch_File(Config::ItrInfo, Config::json_patch_filename);
+  }
+
+  // Test functions for 
+  // ConfigJson_Test_Direct (Config::ItrInfo[0]);
+  // ConfigJson_Test_Patcher(Config::ItrInfo[0]);
 
   /*
   if ( ! Config::useCMSGeom)
@@ -574,7 +576,12 @@ int main(int argc, const char *argv[])
 	"                             == --cmssw-val --read-cmssw-tracks --cmssw-match-fw %s --cmssw-match-bk %s\n"
 	"                             must enable: --cmssw-pureseeds --backward-fit-pca\n"
 	"\n----------------------------------------------------------------------------------------------------------\n\n"
-        ,
+  "JSON config patcher options:\n\n"
+  "  --json-patch <filename>  patch iteration config from given JSON file (def: do not patch)\n"
+  "  --json-patch-dump-before print iteration config before patching (def: %s)\n"
+  "  --json-patch-dump-after  print iteration config after  patching (def: %s)\n"
+ 	"\n----------------------------------------------------------------------------------------------------------\n\n"
+       ,
         argv[0],
 
         Config::geomPlugin.c_str(),
@@ -641,8 +648,10 @@ int main(int argc, const char *argv[])
 	getOpt(hitBased, g_match_opts).c_str(), getOpt(trkParamBased, g_match_opts).c_str(),
 	getOpt(trkParamBased, g_match_opts).c_str(), getOpt(hitBased, g_match_opts).c_str(),
 	getOpt(trkParamBased, g_match_opts).c_str(), getOpt(trkParamBased, g_match_opts).c_str(),
-	getOpt(labelBased, g_match_opts).c_str(), getOpt(labelBased, g_match_opts).c_str()
+	getOpt(labelBased, g_match_opts).c_str(), getOpt(labelBased, g_match_opts).c_str(),
 
+        b2a(Config::json_patch_dump_before),
+        b2a(Config::json_patch_dump_after)
       );
 
       printf("List of options for string based inputs \n");
@@ -955,6 +964,19 @@ int main(int argc, const char *argv[])
       Config::readCmsswTracks = true;
       Config::cmsswMatchingFW = labelBased;
       Config::cmsswMatchingBK = labelBased;
+    }
+    else if (*i == "--json-patch")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::json_patch_filename = *i;
+    }
+    else if (*i == "--json-patch-dump-before")
+    {
+      Config::json_patch_dump_before = true;
+    }
+    else if (*i == "--json-patch-dump-after")
+    {
+      Config::json_patch_dump_after = true;
     }
     else
     {

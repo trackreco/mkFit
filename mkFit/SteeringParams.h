@@ -3,6 +3,8 @@
 
 #include "Matrix.h"
 
+#include "nlohmann/json_fwd.hpp"
+
 #include <functional>
 
 namespace mkfit {
@@ -316,31 +318,25 @@ public:
   const IterationConfig& operator[](int i) const { return m_iterations[i]; }
 };
 
-//==============================================================================
-
-// IterationConfig instance is created in Geoms/CMS-2017.cc, and is passed to MkBuilder constructor (as const reference).
-// Internally, MkBuilder is passing 'int region' to its own functions: should be fine as is.
-// When calling MkFinder functions, MkBuilder is now passing a reference to LayerOfHits;
-// this is now replaced by a reference to IterationLayerConfig, which includes ref's to IterationConfig and LayerOfHits.
-// (Alternatively, one could pass both ref's to IterationLayerConfig and IterationConfig)
-// Pointers to propagation functions can be passed as they are now.
-
-} // end namespace mkfit
 
 //==============================================================================
-// JSON config IO tests
+
+// IterationConfig instances are created in Geoms/CMS-2017.cc, Create_CMS_2017(),
+// filling the IterationsInfo object passed in by reference.
+
+
 //==============================================================================
-
-#ifdef CONFIG_PARSE
-
-#include "config-parse/json_fwd.hpp"
-
-namespace mkfit {
+// JSON config interface
+//==============================================================================
 
 class ConfigJsonPatcher
 {
   nlohmann::json *m_json    = nullptr;
   nlohmann::json *m_current = nullptr;
+
+  // add stack and cd_up() ? also, name stack for exceptions and printouts
+  std::vector<nlohmann::json*> m_json_stack;
+
   bool            m_owner   = false;
 
   void release_json();
@@ -353,25 +349,28 @@ public:
   template<class T> void Save(T& o);
 
   void cd    (const std::string& path);
+  void cd_up (const std::string& path = "");
   void cd_top(const std::string& path = "");
 
   template<typename T>
   void replace(const std::string& path, T val);
 
   template<typename T>
-  void replace(int beg, int end, const std::string& path, T val);
+  void replace(int first, int last, const std::string& path, T val);
 
   nlohmann::json& get(const std::string& path);
+
+  int replace(const nlohmann::json &j);
 
   std::string dump(int indent=2);
 };
 
-void TestJson_Dump_Direct(IterationConfig &it_cfg);
+void ConfigJson_Patch_File(IterationsInfo &its_info, const std::string &fname);
 
-void TestJson_Dump_ConfigPatcher(IterationConfig &it_cfg);
+void ConfigJson_Test_Direct(IterationConfig &it_cfg);
+void ConfigJson_Test_Patcher(IterationConfig &it_cfg);
+
 
 } // end namespace mkfit
-
-#endif
 
 #endif
