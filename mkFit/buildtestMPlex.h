@@ -16,7 +16,7 @@ double runBuildingTestPlexBestHit    (Event& ev, const EventOfHits &eoh, MkBuild
 double runBuildingTestPlexStandard   (Event& ev, const EventOfHits &eoh, MkBuilder& builder);
 double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuilder& builder);
 
-double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder, unsigned int n);
+double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder, int n);
 
 // nullptr is a valid mask ... means no mask for these layers.
 void   run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itconf, const EventOfHits &eoh,

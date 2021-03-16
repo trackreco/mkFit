@@ -109,8 +109,18 @@ template<class T> void ConfigJsonPatcher::Save(T& o)
 {
     from_json(*m_json, o);
 }
-template void ConfigJsonPatcher::Save<IterationsInfo> (IterationsInfo  &o);
 template void ConfigJsonPatcher::Save<IterationConfig>(IterationConfig &o);
+
+// Must not bork the IterationConfig elements of IterationsInfo ... default
+// deserializator apparently reinitializes the vectors with defaults c-tors.
+template <> void ConfigJsonPatcher::Save<IterationsInfo> (IterationsInfo &o)
+{
+    auto &itc_arr = m_json->at("m_iterations");
+    for (int i = 0; i < o.size(); ++i)
+    {
+        from_json(itc_arr[i], o[i]);
+    }
+}
 
 void ConfigJsonPatcher::cd(const std::string& path)
 {

@@ -797,6 +797,7 @@ int main(int argc, const char *argv[])
     else if(*i == "--build-mimi")
     {
       g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = false; g_run_build_mimi = true;
+      if (Config::nItersCMSSW == 0) Config::nItersCMSSW = 3;
     }
     else if(*i == "--seed-input")
     {

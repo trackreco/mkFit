@@ -352,7 +352,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuild
 // And if we care about doing too muich work for seeds that will never get processed.
 //==============================================================================
 
-double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder, unsigned int n)
+double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder, int n)
 {
   double ttime = 0;
   if (n<=0) return ttime; //at least one iter by default
