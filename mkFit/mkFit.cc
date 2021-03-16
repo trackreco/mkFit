@@ -578,6 +578,7 @@ int main(int argc, const char *argv[])
 	"\n----------------------------------------------------------------------------------------------------------\n\n"
   "JSON config patcher options:\n\n"
   "  --json-patch <filename>  patch iteration config from given JSON file (def: do not patch)\n"
+  "  --json-patch-verbose     print each patch assignment as it is being made (def: %s)\n"
   "  --json-patch-dump-before print iteration config before patching (def: %s)\n"
   "  --json-patch-dump-after  print iteration config after  patching (def: %s)\n"
  	"\n----------------------------------------------------------------------------------------------------------\n\n"
@@ -650,6 +651,7 @@ int main(int argc, const char *argv[])
 	getOpt(trkParamBased, g_match_opts).c_str(), getOpt(trkParamBased, g_match_opts).c_str(),
 	getOpt(labelBased, g_match_opts).c_str(), getOpt(labelBased, g_match_opts).c_str(),
 
+        b2a(Config::json_patch_verbose),
         b2a(Config::json_patch_dump_before),
         b2a(Config::json_patch_dump_after)
       );
@@ -969,6 +971,10 @@ int main(int argc, const char *argv[])
     {
       next_arg_or_die(mArgs, i);
       Config::json_patch_filename = *i;
+    }
+    else if (*i == "--json-patch-verbose")
+    {
+      Config::json_patch_verbose = true;
     }
     else if (*i == "--json-patch-dump-before")
     {

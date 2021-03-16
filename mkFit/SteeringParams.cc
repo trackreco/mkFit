@@ -63,7 +63,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationsInfo,
 // ConfigJsonPatcher
 // ============================================================================
 
-ConfigJsonPatcher::ConfigJsonPatcher() {}
+ConfigJsonPatcher::ConfigJsonPatcher(bool verbose) : m_verbose(verbose) {}
 
 ConfigJsonPatcher::~ConfigJsonPatcher() { release_json(); }
 
@@ -72,6 +72,26 @@ void ConfigJsonPatcher::release_json()
     if (m_owner) delete m_json;
     m_json  = nullptr;
     m_owner = false;
+}
+
+std::string ConfigJsonPatcher::get_abs_path() const
+{
+    std::string s;
+    s.reserve(64);
+    for (auto &p : m_path_stack) s += p;
+    return s;
+}
+
+std::string ConfigJsonPatcher::exc_hdr(const char* func) const
+{
+    std::string s;
+    s.reserve(128);
+    s = "ConfigJsonPatcher";
+    if (func) { s += "::"; s += func; }
+    s += " '";
+    s += get_abs_path();
+    s += "' ";
+    return s;
 }
 
 template<class T> void ConfigJsonPatcher::Load(const T& o)
@@ -96,8 +116,8 @@ void ConfigJsonPatcher::cd(const std::string& path)
 {
     nlohmann::json::json_pointer jp(path);
     m_json_stack.push_back(m_current);
+    m_path_stack.push_back(path);
     m_current = & m_current->at(jp);
-
 }
 
 void ConfigJsonPatcher::cd_up(const std::string& path)
@@ -106,6 +126,7 @@ void ConfigJsonPatcher::cd_up(const std::string& path)
 
     m_current = m_json_stack.back();
     m_json_stack.pop_back();
+    m_path_stack.pop_back();
     if ( ! path.empty()) cd(path);
 }
 
@@ -113,6 +134,7 @@ void ConfigJsonPatcher::cd_top(const std::string& path)
 {
     m_current = m_json;
     m_json_stack.clear();
+    m_path_stack.clear();
     if ( ! path.empty()) cd(path);
 }
 
@@ -147,11 +169,11 @@ nlohmann::json& ConfigJsonPatcher::get(const std::string& path)
 
 int ConfigJsonPatcher::replace(const nlohmann::json &j)
 {
-    if (j.is_null()) throw std::runtime_error("null not expected");
+    if (j.is_null()) throw std::runtime_error(exc_hdr(__func__) + "null not expected");
 
     if (j.is_boolean() || j.is_number() || j.is_string())
     {
-        throw std::runtime_error("value not expected on this parsing level");
+        throw std::runtime_error(exc_hdr(__func__) + "value not expected on this parsing level");
     }
 
     int n_replaced = 0;
@@ -162,16 +184,12 @@ int ConfigJsonPatcher::replace(const nlohmann::json &j)
 
         for (auto& [key, value] : j.items())
         {
-            std::cout << key << " : " << value << "\n";
-
             std::smatch m;
             std::regex_search(key, m, index_range_re);
 
-            printf("Match size for %s: %d\n", key.c_str(), (int) m.size());
-
             if (m.size() == 3)
             {
-                if ( ! m_current->is_array())  throw std::runtime_error("array range encountered when current json is not an array");
+                if ( ! m_current->is_array())  throw std::runtime_error(exc_hdr(__func__) + "array range encountered when current json is not an array");
                 int first = std::stoi(m.str(1));
                 int last  = std::stoi(m.str(2));
                 for (int i = first; i <= last; ++i)
@@ -196,12 +214,16 @@ int ConfigJsonPatcher::replace(const nlohmann::json &j)
                 std::string s("/");
                 s += key;
                 nlohmann::json::json_pointer jp(s);
+                if (m_verbose)
+                {
+                    std::cout << "  " << get_abs_path() << s << ": " << m_current->at(jp) << " -> " << value << "\n";
+                }
                 m_current->at(jp) = value;
                 ++n_replaced;
             }
             else
             {
-                throw std::runtime_error("unexpected value type");
+                throw std::runtime_error(exc_hdr(__func__) + "unexpected value type");
             }
         }
     }
@@ -209,14 +231,13 @@ int ConfigJsonPatcher::replace(const nlohmann::json &j)
     {
         for (auto& element : j)
         {
-            std::cout << element << '\n';
-            if ( ! element.is_object()) throw std::runtime_error("array elements expected to be objects");
+            if ( ! element.is_object()) throw std::runtime_error(exc_hdr(__func__) + "array elements expected to be objects");
             n_replaced += replace(element);
         }
     }
     else
     {
-        throw std::runtime_error("unexpected json type");
+        throw std::runtime_error(exc_hdr(__func__) + "unexpected json type");
     }
 
     return n_replaced;
@@ -274,7 +295,7 @@ void ConfigJson_Patch_File(IterationsInfo &its_info, const std::string &fname)
     std::ifstream  ifs;
     open_ifstream(ifs, fname, __func__);
 
-    ConfigJsonPatcher cjp;
+    ConfigJsonPatcher cjp(Config::json_patch_verbose);
     cjp.Load(its_info);
 
     if (Config::json_patch_dump_before)
@@ -282,20 +303,26 @@ void ConfigJson_Patch_File(IterationsInfo &its_info, const std::string &fname)
         std::cout << cjp.dump(3) << "\n";
     }
 
-    int n_read = 0;
+    printf("%s begin reading from file %s.\n", __func__, fname.c_str());
+
+    int n_read = 0, n_tot_replaced = 0;
     while (skipws_ifstream(ifs))
     {
         json j;
         ifs >> j;
         ++n_read;
-        std::cout << j.dump(3) << "\n";
+
+        std::cout << " Read JSON entity " << n_read << " -- applying patch:\n";
+        // std::cout << j.dump(3) << "\n";
 
         int n_replaced = cjp.replace(j);
-        std::cout << "Replaced " << n_replaced << " entries.\n";
+        std::cout << " Replaced " << n_replaced << " entries.\n";
 
         cjp.cd_top();
+        n_tot_replaced += n_replaced;
     }
-    printf("%s read %d JSON entities.\n", __func__ , n_read);
+    printf("%s read %d JSON entities from file %s, replaced %d parameters.\n",
+           __func__, n_read, fname.c_str(), n_tot_replaced);
 
      if (Config::json_patch_dump_after)
     {

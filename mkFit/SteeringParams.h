@@ -336,13 +336,18 @@ class ConfigJsonPatcher
 
   // add stack and cd_up() ? also, name stack for exceptions and printouts
   std::vector<nlohmann::json*> m_json_stack;
+  std::vector<std::string>     m_path_stack;
 
   bool            m_owner   = false;
+  bool            m_verbose = false;
 
   void release_json();
 
+  std::string get_abs_path() const;
+  std::string exc_hdr(const char* func=0) const;
+
 public:
-  ConfigJsonPatcher();
+  ConfigJsonPatcher(bool verbose=false);
   ~ConfigJsonPatcher();
 
   template<class T> void Load(const T& o);
