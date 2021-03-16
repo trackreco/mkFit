@@ -34,7 +34,7 @@ AUTO_TGTS := auto-genmplex
 default: ${AUTO_TGTS} ${TGTS}
 
 clean:
-	rm -f ${TGTS} *.d *.o *.om Ice/*.d Ice/*.o Ice/*.om
+	rm -f ${TGTS} *.d *.o Ice/*.d Ice/*.o
 	rm -rf mkFit.dSYM
 
 distclean: clean

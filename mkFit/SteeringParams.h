@@ -1,8 +1,9 @@
 #ifndef SteeringParams_h
 #define SteeringParams_h
 
-#include "Track.h"
 #include "Matrix.h"
+
+#include "nlohmann/json_fwd.hpp"
 
 #include <functional>
 
@@ -14,6 +15,9 @@ class MkBase;
 class MkFitter;
 class MkFinder;
 class EventOfHits;
+
+class Track;
+typedef std::vector<Track>    TrackVec;
 
 #define COMPUTE_CHI2_ARGS const MPlexLS &,  const MPlexLV &, const MPlexQI &, \
                           const MPlexHS &,  const MPlexHV &, \
@@ -51,8 +55,8 @@ struct LayerControl
 
   // Idea only ... need some parallel structure for candidates to make sense (where i can store it).
   // Or have per layer containers where I place track indices to enable. Or something. Sigh.
-  int  m_on_miss_jump_to;
-  int  m_on_hit_jump_to;
+  // int  m_on_miss_jump_to = -999;
+  // int  m_on_hit_jump_to  = -999;
 
   bool m_pickup_only;  // do not propagate to this layer and process hits, pickup seeds only.
   bool m_backfit_only; // layer only used in backward fit.
@@ -303,9 +307,9 @@ public:
 
 class IterationsInfo
 {
+public:
   std::vector<IterationConfig> m_iterations;
 
-public:
   IterationsInfo() {}
 
   void resize(int ni) { m_iterations.resize(ni); }
@@ -314,14 +318,64 @@ public:
   const IterationConfig& operator[](int i) const { return m_iterations[i]; }
 };
 
+
 //==============================================================================
 
-// IterationConfig instance is created in Geoms/CMS-2017.cc, and is passed to MkBuilder constructor (as const reference).
-// Internally, MkBuilder is passing 'int region' to its own functions: should be fine as is.
-// When calling MkFinder functions, MkBuilder is now passing a reference to LayerOfHits;
-// this is now replaced by a reference to IterationLayerConfig, which includes ref's to IterationConfig and LayerOfHits.
-// (Alternatively, one could pass both ref's to IterationLayerConfig and IterationConfig)
-// Pointers to propagation functions can be passed as they are now.
+// IterationConfig instances are created in Geoms/CMS-2017.cc, Create_CMS_2017(),
+// filling the IterationsInfo object passed in by reference.
+
+
+//==============================================================================
+// JSON config interface
+//==============================================================================
+
+class ConfigJsonPatcher
+{
+  nlohmann::json *m_json    = nullptr;
+  nlohmann::json *m_current = nullptr;
+
+  // add stack and cd_up() ? also, name stack for exceptions and printouts
+  std::vector<nlohmann::json*> m_json_stack;
+  std::vector<std::string>     m_path_stack;
+
+  bool            m_owner   = false;
+  bool            m_verbose = false;
+
+  void release_json();
+
+  std::string get_abs_path() const;
+  std::string exc_hdr(const char* func=0) const;
+
+public:
+  ConfigJsonPatcher(bool verbose=false);
+  ~ConfigJsonPatcher();
+
+  template<class T> void Load(const T& o);
+  template<class T> void Save(T& o);
+
+  void cd    (const std::string& path);
+  void cd_up (const std::string& path = "");
+  void cd_top(const std::string& path = "");
+
+  template<typename T>
+  void replace(const std::string& path, T val);
+
+  template<typename T>
+  void replace(int first, int last, const std::string& path, T val);
+
+  nlohmann::json& get(const std::string& path);
+
+  int replace(const nlohmann::json &j);
+
+  std::string dump(int indent=2);
+};
+
+void ConfigJson_Patch_File(IterationsInfo &its_info, const std::string &fname);
+
+void ConfigJson_Test_Direct(IterationConfig &it_cfg);
+void ConfigJson_Test_Patcher(IterationConfig &it_cfg);
+
 
 } // end namespace mkfit
+
 #endif

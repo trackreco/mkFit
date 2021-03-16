@@ -1,0 +1,29 @@
+{
+    "m_iterations/0": {
+        "m_layer_configs": [
+            {
+                "[4..10]": {
+                    "m_select_max_dphi": 20.0,
+                    "m_select_min_dphi": 15.0
+                }
+            },
+            {
+                "15/m_select_max_dq" : 180
+            }
+        ]
+
+    },
+    "m_iterations" : {
+        "[1..2]": [
+            {
+                "m_params/chi2Cut":  250
+            },
+            {
+                "m_params": {
+                    "c_drmax_bh": 20.0,
+                    "c_dzmax_bh": 80
+                }
+            }
+        ]
+    }
+}

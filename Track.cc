@@ -89,7 +89,7 @@ bool TrackBase::hasSillyValues(bool dump, bool fix, const char* pref)
         if ( ! is_silly)
         {
           is_silly = true;
-          if (dump) printf("%s (label=%d):", pref, label());
+          if (dump) printf("%s (label=%d, pT=%f):", pref, label(), pT());
         }
         if (dump) printf(" (%d,%d)=%e", i, j, state_.errors.At(i,j));
         if (fix)  state_.errors.At(i,j) = 0.00001;

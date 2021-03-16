@@ -402,6 +402,13 @@ namespace Config
 
   // ================================================================
 
+  extern bool        json_patch_dump_before;
+  extern bool        json_patch_dump_after;
+  extern bool        json_patch_verbose;
+  extern std::string json_patch_filename;
+
+  // ================================================================
+
   void RecalculateDependentConstants();
   
   inline float BfieldFromZR(const float z, const float r)
