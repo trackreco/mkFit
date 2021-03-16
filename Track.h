@@ -32,6 +32,7 @@ public:
   int   hitIdx; // hit index
   unsigned int   module; // module id
   int   nhits;  // number of hits (used for sorting)
+  int   ntailholes; // number of holes at the end of the track (used for sorting)
   int   noverlaps; // number of overlaps (used for sorting)
   int   nholes;  // number of holes (used for sorting)
   unsigned int seedtype; // seed type idx (used for sorting: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds)
@@ -636,6 +637,7 @@ inline float getScoreWorstPossible()
 
 inline float getScoreCalc(const unsigned int seedtype,
                           const int nfoundhits,
+			  const int ntailholes,
                           const int noverlaphits,
                           const int nmisshits,
                           const float chi2,
@@ -643,51 +645,44 @@ inline float getScoreCalc(const unsigned int seedtype,
 {
   //// Do not allow for chi2<0 in score calculation
   // if(chi2<0) chi2=0.f;
-  float score_ = Config::validHitBonus_*nfoundhits + Config::overlapHitBonus_*noverlaphits -
-                 Config::missingHitPenalty_*nmisshits - chi2;
-  if(seedtype==2) {
-    score_ -= 0.5f*(Config::validHitBonus_)*nfoundhits;
+
+  float maxBonus = 8.0;
+  float bonus  = Config::validHitSlope_*nfoundhits + Config::validHitBonus_;
+  float penalty = Config::missingHitPenalty_;
+  if(pt < 0.9){
+    penalty += 0.5*Config::missingHitPenalty_; 
+    bonus = std::min(bonus, maxBonus);
   }
-  if (seedtype==2 || seedtype==3) {
-    if (nfoundhits<=8) {
-      score_ -= 0.06f*(Config::validHitBonus_)*nfoundhits;
-    } else if (nfoundhits>12) {
-      score_ += 0.08f*(Config::validHitBonus_)*nfoundhits;
-    }
-  } else {
-    if (nfoundhits<=8) {
-      score_ -= 0.15f*(Config::validHitBonus_)*nfoundhits;
-    } else if (nfoundhits>12) {
-      score_ += 0.20f*(Config::validHitBonus_)*nfoundhits;
-    }
-  }
+  float score_ = bonus*nfoundhits + Config::overlapHitBonus_*noverlaphits - penalty*nmisshits - Config::tailMissingHitPenalty_*ntailholes - chi2;
   return score_;
 }
 
-inline float getScoreCand(const Track& cand1)
-{
-  unsigned int seedtype = cand1.getSeedTypeForRanking();
-  int nfoundhits = cand1.nFoundHits();
-  int noverlaphits = cand1.nOverlapHits();
-  int nmisshits = cand1.nInsideMinusOneHits();
-  float pt = cand1.pT();
-  float chi2 = cand1.chi2();
-  // Do not allow for chi2<0 in score calculation
-  if(chi2<0) chi2=0.f;
-  return getScoreCalc(seedtype,nfoundhits,noverlaphits,nmisshits,chi2,pt);
-}
+ inline float getScoreCand(const Track& cand1, bool penalizeTailMissHits=false)
+ {
+   unsigned int seedtype = cand1.getSeedTypeForRanking();
+   int nfoundhits = cand1.nFoundHits();
+   int noverlaphits = cand1.nOverlapHits();
+   int nmisshits = cand1.nInsideMinusOneHits();
+   float ntailmisshits = penalizeTailMissHits ? cand1.nTailMinusOneHits() : 0; 
+   float pt = cand1.pT();
+   float chi2 = cand1.chi2();
+   // Do not allow for chi2<0 in score calculation  
+   if(chi2<0) chi2=0.f;
+   return getScoreCalc(seedtype,nfoundhits,ntailmisshits,noverlaphits,nmisshits,chi2,pt);
+ }
 
 inline float getScoreStruct(const IdxChi2List& cand1)
 {
   unsigned int seedtype = cand1.seedtype;
   int nfoundhits = cand1.nhits;
+  int ntailholes = cand1.ntailholes;
   int noverlaphits = cand1.noverlaps;
   int nmisshits = cand1.nholes;
   float pt = cand1.pt;
   float chi2 = cand1.chi2;
   // Do not allow for chi2<0 in score calculation
   if(chi2<0) chi2=0.f;
-  return getScoreCalc(seedtype,nfoundhits,noverlaphits,nmisshits,chi2,pt);
+  return getScoreCalc(seedtype,nfoundhits,ntailholes,noverlaphits,nmisshits,chi2,pt);
 }
 
 
