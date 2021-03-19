@@ -276,7 +276,8 @@ void LayerOfHits::EndRegistrationOfHits(bool build_original_to_internal_map)
 
     m_phi_bin_infos[q_bin][phi_bin].second++;
 
-    // m_hit_ranks[i] will never be used again ... use it to point to external index.
+    // m_hit_ranks[i] will never be used again ... use it to point to external/original index,
+    // as it does in standalone case.
     m_hit_ranks[i] = k;
   }
 
@@ -285,7 +286,7 @@ void LayerOfHits::EndRegistrationOfHits(bool build_original_to_internal_map)
     if (m_max_ext_idx - m_min_ext_idx + 1 > 8*size)
     {
       // If this happens we might:
-      // a) Really use external indices for everything.
+      // a) Use external indices for everything. -- *** We are now. ***
       // b) Build these maps for seeding layers only.
       // c) Have a flag in hit-on-track that tells us if the hit index has been remapped,
       //    essentially, if it is a seed hit. This might not be too stupid anyway.

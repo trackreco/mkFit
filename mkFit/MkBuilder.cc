@@ -703,31 +703,6 @@ void MkBuilder::remap_track_hits(TrackVec & tracks)
     }
   }
 
-  // Matti ... this can now be just something like this (not tested):
-  /*
-  for (auto&& track : tracks)
-  {
-    for (int i = 0; i < track.nTotalHits(); ++i)
-    {
-      int hitidx = track.getHitIdx(i);
-      int hitlyr = track.getHitLyr(i);
-      if (hitidx >= 0)
-      {
-        const auto & loh = m_event_of_hits.m_layers_of_hits[hitlyr];
-        track.setHitIdx(i, loh.GetOriginalHitIndex(hitidx));
-      }
-    }
-  }
-  */
-  // Note that the indices after this are correct CMSSW "large-vector" indices.
-  // So no hit/layer mapping code in CMSSW producer is needed.
-  //
-  // We could really store original indices into HitOnTrack.index
-  // from the start. One just needs to be careful when getting hits in backwards fit,
-  // to use (a currently non-existent) LayerOfHits::GetHitWithOriginalIndex(hot.index)
-  //
-  // Further, somebody should walk over quite a bit of validation code that is
-  // rather involved doing such remappings.
 }
 
 //------------------------------------------------------------------------------
@@ -739,8 +714,8 @@ void MkBuilder::quality_val()
   quality_reset();
 
   // remap hits
-  remap_track_hits(m_event->seedTracks_);
-  remap_track_hits(m_event->candidateTracks_);
+  // ZOIX remap_track_hits(m_event->seedTracks_);
+  // ZOIX remap_track_hits(m_event->candidateTracks_);
 
   std::map<int,int> cmsswLabelToPos;
   if (Config::dumpForPlots && Config::readCmsswTracks)
@@ -1076,8 +1051,8 @@ void MkBuilder::root_val_dumb_cmssw()
 void MkBuilder::root_val()
 {
   // remap hits first before prepping extras
-  remap_track_hits(m_event->seedTracks_);
-  remap_track_hits(m_event->candidateTracks_);
+  // ZOIX remap_track_hits(m_event->seedTracks_);
+  // ZOIX remap_track_hits(m_event->candidateTracks_);
 
   // score the tracks
   score_tracks(m_event->seedTracks_);
@@ -1085,7 +1060,7 @@ void MkBuilder::root_val()
 
   // deal with fit tracks
   if (Config::backwardFit){
-    remap_track_hits(m_event->fitTracks_);
+    // ZOIX remap_track_hits(m_event->fitTracks_);
     score_tracks(m_event->fitTracks_);
   }
   else m_event->fitTracks_ = m_event->candidateTracks_;
@@ -1101,9 +1076,9 @@ void MkBuilder::root_val()
 void MkBuilder::cmssw_export()
 {
   // get the tracks ready for export
-  remap_track_hits(m_event->candidateTracks_);
+  // ZOIX remap_track_hits(m_event->candidateTracks_);
   if(Config::backwardFit) {
-    remap_track_hits(m_event->fitTracks_);
+    // ZOIX remap_track_hits(m_event->fitTracks_);
   }
   // prep_(reco)tracks doesn't actually do anything useful for CMSSW.
   // We don't need the extra (seed index is obtained via canidate
@@ -1327,7 +1302,7 @@ void MkBuilder::PrepareSeeds()
 
     seed_post_cleaning(m_event->seedTracks_, true, true);
 
-    map_track_hits(m_event->seedTracks_);
+    // ZOIX map_track_hits(m_event->seedTracks_);
   }
   else if (Config::seedInput == cmsswSeeds)
   {
@@ -1388,7 +1363,7 @@ void MkBuilder::PrepareSeeds()
     if (m_event->seedTracks_.empty()) return;
 
     // map seed track hits into layer_of_hits
-    map_track_hits(m_event->seedTracks_);
+    // ZOIX map_track_hits(m_event->seedTracks_);
   }
   else if (Config::seedInput == findSeeds)
   {

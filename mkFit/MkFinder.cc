@@ -383,10 +383,12 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
         {
           // MT: Access into m_hit_zs and m_hit_phis is 1% run-time each.
 
-          if (m_iteration_hit_mask && (*m_iteration_hit_mask)[L.GetOriginalHitIndex(hi)])
+          int hi_orig = L.GetOriginalHitIndex(hi);
+
+          if (m_iteration_hit_mask && (*m_iteration_hit_mask)[hi_orig])
           {
             // printf("Yay, denying masked hit on layer %d, hi %d, orig idx %d\n",
-            //        L.m_layer_info->m_layer_id, hi, L.GetOriginalHitIndex(hi));
+            //        L.m_layer_info->m_layer_id, hi, hi_orig);
             continue;
           }
 
@@ -412,14 +414,14 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
             // Avi says we should have *minimal* search windows per layer.
             // Also ... if bins are sufficiently small, we do not need the extra
             // checks, see above.
-            if (L.GetHit(hi).mcHitID() == -7)
+            if (L.GetHit(hi_orig).mcHitID() == -7)
             {
               //ARH: This will need a better treatment but works for now
               XWsrResult[itrack].m_in_gap = true;
             }
             else
             {
-              XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
+              XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi_orig;
             }
           }
           else
@@ -433,7 +435,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
             if (XHitSize[itrack] < MPlexHitIdxMax)
             {
-              XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
+              XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi_orig;
             }
           }
         } //hi
