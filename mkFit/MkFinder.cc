@@ -357,8 +357,8 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     const float dphi = dphiv[itrack];
     const float dq   = dqv[itrack];
 
-    dprintf("  %2d: %6.3f %6.3f %6.6f %7.5f %3d %3d %4d %4d\n",
-             itrack, q, phi, dq, dphi, qb1, qb2, pb1, pb2);
+    dprintf("  %2d/%2d: %6.3f %6.3f %6.6f %7.5f %3d %3d %4d %4d\n",
+            L.layer_id(), itrack, q, phi, dq, dphi, qb1, qb2, pb1, pb2);
 
     // MT: One could iterate in "spiral" order, to pick hits close to the center.
     // http://stackoverflow.com/questions/398299/looping-in-a-spiral
