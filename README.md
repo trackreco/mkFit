@@ -27,10 +27,10 @@
       2) Set up `mkFit` as an external
       3) Pull CMSSW code and build
    3) Recipes for the impatient on phi3
-      1) Offline tracking (initialStep)
+      1) Offline tracking
       2) HLT tracking (iter0)
    4) More thorough running instructions
-      1) Offline tracking (initialStep)
+      1) Offline tracking
          1) Customize functions
          2) Timing measurements
          3) Producing MultiTrackValidator plots
@@ -546,36 +546,27 @@ scram b -j 12
 
 ### Section 9.iii Recipes for the impatient on phi3
 
-#### Section 9.iii.a: Offline tracking (initialStep)
+#### Section 9.iii.a: Offline tracking
 
-**Note: this subsection has not yet been updated to 11_2_0**
-
-Reconstruction up to initialStep (in reality initialStepPreSplitting
-named as initialStep)
+`trackingOnly` reconstruction, DQM, and VALIDATION.
 
 ```bash
-# in CMSSW_10_4_0_patch1/src
+# in CMSSW_11_2_0/src
 
-# sample = 10mu, ttbarnopu, ttbarpu50, ttbarpu70
-# mkfit = 1, 0
-# timing = 0, 1
+# sample = 10mu, ttbarnopu, ttbarpu35, ttbarpu50, ttbarpu70
+# mkfit = 'all', 'InitialStep', ..., 'InitialStep,LowPtQuadStep', ..., ''
+# timing = '', 'framework', 'FastTimerService'
 # (maxEvents = 0, <N>, -1)
 # nthreads = 1, <N>
 # nstreams = 0, <N>
+# trackingNtuple = '', 'generalTracks', 'InitialStep', ...
+# jsonPatch = '', <path-to-JSON-file>
 cmsRun RecoTracker/MkFit/test/reco_cfg.py sample=ttbarpu50 timing=1
 ```
 * The default values for the command line parameters are the first ones.
 * `mkfit=1` runs MkFit, `0` runs CMSSW tracking
-* For `timing=0` (default), the job produces `step3_inDQM.root` that
-  needs to be "harvested" to get a "normal" ROOT file with the
-  histograms.
-* Note that `timing=0` reads the input from the T2 over xrootd, which
-  requires a GRID proxy certificate (e.g. `voms-proxy-init -valid
-  172:00 -voms cms`). The input files are on the T2 because they are
-  too big to fit on the local disk of phi3. `timing=1` uses slimmed
-  input files (with RAW data only) from the local disk.
-* Especially for `timing=1` it is advisable to capture the output of
-  the job to a file to save the output of the simple timing measurement
+* The job produces `step3_inDQM.root` that needs to be "harvested" to
+  get a "normal" ROOT file with the histograms.
 * If `maxEvents` is set to `0`, the number of events to be processed
   is set to a relatively small value depending on the sample for short
   testing purposes.
@@ -583,14 +574,23 @@ cmsRun RecoTracker/MkFit/test/reco_cfg.py sample=ttbarpu50 timing=1
 * `nthreads` sets the number of threads (default 1), and `nstreams`
   the number of EDM streams (or events in flight, default 0, meaning
   the same value as the number of threads)
+* [TrackingNtuple](https://github.com/cms-sw/cmssw/blob/master/Validation/RecoTrack/README.md#ntuple)
+  can be enabled either for general tracks (`generalTracks`) for for
+  individual iterations (e.g. `InitialStep`). See
+  [here](https://github.com/cms-sw/cmssw/blob/master/Validation/RecoTrack/README.md#using-tracks-from-a-single-iteration-as-an-input)
+  for how the track selection MVA and vertex collection are set
+  differently between the two modes.
+* Iteration configuration can be patched with a JSON file with
+  `jsonPatch` parameter (corresponds to `--json-patch` in the
+  standalone program)
 
-DQM harvesting (unless running timing)
+DQM harvesting
 ```bash
 cmsRun RecoTracker/MkFit/test/reco_harvest_cfg.py
 ```
 * Produces `DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO.root`
 
-Producing plots (unless running timing)
+Producing plots
 ```bash
 makeTrackValidationPlots.py --extended --ptcut <DQM file> [<another DQM file>]
 ```
@@ -634,7 +634,9 @@ makeTrackValidationPlots.py --extended <DQM file> [<another DQM file>]
 
 ### Section 9.iv More thorough instructions
 
-#### Section 9.iv.a: Offline tracking (initialStep)
+#### Section 9.iv.a: Offline tracking
+
+**Note: this subsection has not yet been updated to 11_2_0**
 
 The example below uses 2018 tracking-only workflow
 
