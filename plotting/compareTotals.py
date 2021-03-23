@@ -1,10 +1,3 @@
-### 
-#Prior running, make sure to have sourced the necessary environment:
-#source xeon_scripts/common-variables.sh
-#source xeon_scripts/init-env.sh
-#source val_scripts/init-root.sh
-###
-
 import os,sys
 import ROOT
 import copy
@@ -35,296 +28,477 @@ def getRatioAxes( xMin, xMax, yMin, yMax ):
   return h2_axes_ratio
 
 
-if(len(sys.argv)!=8):
-  print "python [-i] compareTotals.py <original-dir (containing original validation dir)> <updated-dir (containing updated validation dir)> <validation-dir> <output-dir> <what-to-compare [eff;fr;dr;]> <validation-type [sim;cmssw;]> <vsvar [eta;pt;]>"
-  exit()
-
 dirnames = []
 dirnames.append(sys.argv[1]) #original (1)
 dirnames.append(sys.argv[2]) #updated (2)
 
-stddir = sys.argv[3]
-
-outdir = sys.argv[4] 
-
+outdir = sys.argv[3]
 if not os.path.exists(outdir):
-    os.mkdir(outdir)
+  os.mkdir(outdir)
+  os.system("cp web/index.php %s"%(outdir))
 
-iseff = False
-isfr  = False
-isdr  = False
-whattot = sys.argv[5]
-if(whattot=="eff"):
-  iseff=True
-elif(whattot=="fr"):
-  isfr =True
-elif(whattot=="dr"):
-  isdr =True
-else:
-  print "What do you want to compare?"
-  print "python [-i] compareTotals.py <original-dir (containing original validation dir)> <updated-dir (containing updated validation dir)> <validation-dir> <output-dir> <what-to-compare [eff;fr;dr;]> <validation-type [sim;cmssw;]> <vsvar [eta;pt;]>"
-  exit()  
+names = ["Reference", "Other"]
+if len(sys.argv)==5 and sys.argv[4]=="vsCMSSW":
+  names = ["CMSSW", "mkFit"]
 
-issim   = False
-iscmssw = False
-valtype = sys.argv[6]
-if(valtype=="sim"):
-  issim   =True
-elif(valtype=="cmssw"):
-  iscmssw =True
-else:
-  print "SIM or CMSSW validaiton?"
-  print "python [-i] compareTotals.py <original-dir (containing original validation dir)> <updated-dir (containing updated validation dir)> <validation-dir> <output-dir> <what-to-compare [eff;fr;dr;]> <validation-type [sim;cmssw;]> <vsvar [eta;pt;]>"
-  exit()  
+if len(sys.argv)==6:
+  names = [sys.argv[4], sys.argv[5]]
 
-vseta = False
-vspt  = False
-vsvar = sys.argv[7]
-if(vsvar=="eta"):
-  vseta = True
-elif(vsvar=="pt"):
-  vspt  = True
-else:
-  print "vs eta or pT?"
-  print "python [-i] compareTotals.py <original-dir (containing original validation dir)> <updated-dir (containing updated validation dir)> <validation-dir> <output-dir> <what-to-compare [eff;fr;dr;]> <validation-type [sim;cmssw;]> <vsvar [eta;pt;]>"
-  exit()  
-  
-names = ["Original", "Updated"]
 colors = [1,2]
-titles = ["p_{T}(MC)>0 GeV", "p_{T}(MC)>0.9 GeV", "p_{T}(MC)>2.0 GeV"]
-#titles = ["0.0 < p_{T}(MC) < 0.9 GeV", "0.9 < p_{T}(MC) < 2.0 GeV", "p_{T}(MC)>2.0 GeV"]
 
 fnames = []
 fs = []
 for d in range(0, len(dirnames)):
-    fnames.append(dirnames[d]+"/"+stddir+"/plots.root")
-    fs.append(ROOT.TFile.Open(fnames[d]))
+  fnames.append(dirnames[d]+"/plots.root")
+  fs.append(ROOT.TFile.Open(fnames[d]))
 
-eff = []
-eff_pass = []
-eff_tot = []
+subdirs=[]
+
+eff_obj   = []
+eff_pass  = []
+eff_tot   = []
 eff_ratio = []
-
-toget=[]
-if(iseff):
-  if(issim): 
-    if(vseta):
-      toget.append("efficiency/eff_sim_eta_build_pt0.0")
-      toget.append("efficiency/eff_sim_eta_build_pt0.9")
-      toget.append("efficiency/eff_sim_eta_build_pt2.0")
-    else:
-      toget.append("efficiency/eff_sim_pt_build_pt0.0")
-      toget.append("efficiency/eff_sim_pt_build_pt0.9")
-      toget.append("efficiency/eff_sim_pt_build_pt2.0")
-  else:
-    if(vseta):
-      toget.append("efficiency_cmssw/eff_cmssw_eta_build_pt0.0")
-      toget.append("efficiency_cmssw/eff_cmssw_eta_build_pt0.9")
-      toget.append("efficiency_cmssw/eff_cmssw_eta_build_pt2.0")    
-    else:
-      toget.append("efficiency_cmssw/eff_cmssw_pt_build_pt0.0")
-      toget.append("efficiency_cmssw/eff_cmssw_pt_build_pt0.9")
-      toget.append("efficiency_cmssw/eff_cmssw_pt_build_pt2.0")    
-
-elif(isdr):
-  if(issim): 
-    if(vseta):
-      toget.append("duplicaterate/dr_sim_eta_build_pt0.0")
-      toget.append("duplicaterate/dr_sim_eta_build_pt0.9")
-      toget.append("duplicaterate/dr_sim_eta_build_pt2.0")
-    else:
-      toget.append("duplicaterate/dr_sim_pt_build_pt0.0")
-      toget.append("duplicaterate/dr_sim_pt_build_pt0.9")
-      toget.append("duplicaterate/dr_sim_pt_build_pt2.0")
-  else:
-    if(vseta):
-      toget.append("duplicaterate_cmssw/dr_cmssw_eta_build_pt0.0")
-      toget.append("duplicaterate_cmssw/dr_cmssw_eta_build_pt0.9")
-      toget.append("duplicaterate_cmssw/dr_cmssw_eta_build_pt2.0")    
-    else:
-      toget.append("duplicaterate_cmssw/dr_cmssw_pt_build_pt0.0")
-      toget.append("duplicaterate_cmssw/dr_cmssw_pt_build_pt0.9")
-      toget.append("duplicaterate_cmssw/dr_cmssw_pt_build_pt2.0")    
-
-elif(isfr):
-  if(issim): 
-    if(vseta):
-      toget.append("fakerate/fr_reco_eta_build_pt0.0")
-      toget.append("fakerate/fr_reco_eta_build_pt0.9")
-      toget.append("fakerate/fr_reco_eta_build_pt2.0")
-    else:
-      toget.append("fakerate/fr_reco_pt_build_pt0.0")
-      toget.append("fakerate/fr_reco_pt_build_pt0.9")
-      toget.append("fakerate/fr_reco_pt_build_pt2.0")
-  else:
-    if(vseta):
-      toget.append("fakerate_cmssw/fr_reco_eta_build_pt0.0")
-      toget.append("fakerate_cmssw/fr_reco_eta_build_pt0.9")
-      toget.append("fakerate_cmssw/fr_reco_eta_build_pt2.0")    
-    else:
-      toget.append("fakerate_cmssw/fr_reco_pt_build_pt0.0")
-      toget.append("fakerate_cmssw/fr_reco_pt_build_pt0.9")
-      toget.append("fakerate_cmssw/fr_reco_pt_build_pt2.0")    
-
+#
+hist      = []
+#
+hist_xratio = []
+eff_xratio  = []
 
 for d in range(0, len(fnames)):
-    thiseff = []
+  
+  fs[d].cd()
+
+  for dkey in ROOT.gDirectory.GetListOfKeys():
+    if not dkey.IsFolder():
+      continue
+    if d<=0:
+      subdirs.append(dkey.GetName())
+
+  eff_obj_s   = []
+  eff_pass_s  = []
+  eff_tot_s   = []
+  eff_ratio_s = []
+  #
+  hist_s      = []
+  
+  subhist = []
+  subrate = []
+  
+  for subdir in subdirs:
+    print "In subdir %s:"%subdir
+    fs[d].cd(subdir)
+
+    thiseff_obj  = []
     thiseff_pass = []
-    thiseff_tot = []
-    aux_ratio = []
-    thiseff_ratio = []
-
-    fs[d].cd()
-
-    thiseff.append(fs[d].Get(toget[0]))
-    thiseff_pass.append(thiseff[0].GetCopyPassedHisto())
-    thiseff_tot.append(thiseff[0].GetCopyTotalHisto())
-    aux_ratio = copy.deepcopy(thiseff_pass)
-    aux_ratio[0].Sumw2()
-    aux_ratio[0].Divide(thiseff_tot[0])
-    thiseff_ratio.append(aux_ratio[0])
-    thiseff_ratio[0].SetLineColor(colors[d])
-    thiseff_ratio[0].SetMarkerColor(colors[d])
-    thiseff_ratio[0].SetMarkerSize(0.3)
-    thiseff_ratio[0].SetMarkerStyle(20)
-    thiseff_ratio[0].SetStats(0)
-    thiseff_ratio[0].SetTitle(titles[0])
-
-    thiseff.append(fs[d].Get(toget[1]))
-    thiseff_pass.append(thiseff[1].GetCopyPassedHisto())
-    thiseff_tot.append(thiseff[1].GetCopyTotalHisto())
-    aux_ratio = copy.deepcopy(thiseff_pass)
-    aux_ratio[1].Sumw2()
-    aux_ratio[1].Divide(thiseff_tot[1])
-    thiseff_ratio.append(aux_ratio[1])
-    thiseff_ratio[1].SetLineColor(colors[d])
-    thiseff_ratio[1].SetMarkerColor(colors[d])
-    thiseff_ratio[1].SetMarkerStyle(20)
-    thiseff_ratio[1].SetMarkerSize(0.3)
-    thiseff_ratio[1].SetStats(0)
-    thiseff_ratio[1].SetTitle(titles[1])
-
-    thiseff.append(fs[d].Get(toget[2]))
-    thiseff_pass.append(thiseff[2].GetCopyPassedHisto())
-    thiseff_tot.append(thiseff[2].GetCopyTotalHisto())
-    aux_ratio = copy.deepcopy(thiseff_pass)
-    aux_ratio[2].Sumw2()
-    aux_ratio[2].Divide(thiseff_tot[2])
-    thiseff_ratio.append(aux_ratio[2])
-    thiseff_ratio[2].SetLineColor(colors[d])
-    thiseff_ratio[2].SetMarkerColor(colors[d])
-    thiseff_ratio[2].SetMarkerSize(0)
-    thiseff_ratio[2].SetStats(0)
-    thiseff_ratio[2].SetTitle(titles[2])
-
-    fs[d].Close()
-
-    eff.append(thiseff)
-    eff_pass.append(thiseff_pass)
-    eff_tot.append(thiseff_tot)
-    eff_ratio.append(thiseff_ratio)
-
-eff_ratio_xratio = copy.deepcopy(eff_ratio)
-eff_ratio_xratio_denom = copy.deepcopy(eff_ratio)
-
-ratios_noclean = []
-for d in range(0, len(fnames)):
-    thisratios_noclean = []
-    for p in range(0,3):
-        for b in range(1,eff_ratio_xratio_denom[d][p].GetNbinsX()+1):
-            eff_ratio_xratio_denom[d][p].SetBinError(b,0.0)
-        thisratios_noclean.append(eff_ratio_xratio[d][p])
-        thisratios_noclean[p].Divide(eff_ratio_xratio_denom[0][p])
-        thisratios_noclean[p].GetYaxis().SetTitle("Updated / Original")
-        thisratios_noclean[p].SetLineColor(colors[d])
-        thisratios_noclean[p].SetMarkerColor(colors[d])
-        thisratios_noclean[p].SetMarkerSize(0)
-        thisratios_noclean[p].SetStats(0)
-        ### Suppress y-error bars for ratio
-        for b in range(1,thisratios_noclean[p].GetNbinsX()+1):
-            thisratios_noclean[p].SetBinError(b,1e-7)
+    thiseff_tot  = []
+    thiseff      = []      
+    #
+    thishist = []
+    #
+    nh=0
+    ne=0
+    #
+    for key in ROOT.gDirectory.GetListOfKeys():
+      obj = key.ReadObj()
+      if obj.IsA().InheritsFrom("TH1"):
+        h = obj
+        #print "Found TH1 %s"%h.GetName()
+          
+        thishist.append(h)
+        thishist[nh].Sumw2()
+        thishist[nh].SetLineColor(colors[d])
+        thishist[nh].SetMarkerColor(colors[d])
+        thishist[nh].SetMarkerSize(0.3)
+        thishist[nh].SetMarkerStyle(20)
+        thishist[nh].SetStats(0)
         
-    ratios_noclean.append(thisratios_noclean)
+        nh=nh+1
 
+      if obj.IsA().InheritsFrom("TEfficiency"):
+        e = obj
+        #print "Found TEfficiency %s"%e.GetName()
+        
+        thiseff_obj .append(e)
+        thiseff_obj[ne].SetLineColor(colors[d])
+        thiseff_obj[ne].SetMarkerColor(colors[d])
+        thiseff_obj[ne].SetMarkerSize(0.3)
+        thiseff_obj[ne].SetMarkerStyle(20)
+        thiseff_pass.append(e.GetPassedHistogram())
+        thiseff_tot .append(e.GetTotalHistogram())
+        thiseff_pass[ne].Sumw2()
+        thiseff_tot[ne] .Sumw2()
+        effname = "%s_rate"%(thiseff_pass[ne].GetName())
+        auxeff = thiseff_pass[ne].Clone(effname)
+        auxeff.Divide(thiseff_pass[ne],thiseff_tot[ne],1.0,1.0,"B")
+        thiseff.append(auxeff)
+        thiseff[ne].SetLineColor(colors[d])
+        thiseff[ne].SetMarkerColor(colors[d])
+        thiseff[ne].SetMarkerSize(0.3)
+        thiseff[ne].SetMarkerStyle(20)
+        thiseff[ne].SetStats(0)
+        
+        ne=ne+1
+
+    hist_s     .append(thishist)
+    #
+    eff_ratio_s.append(thiseff)
+    eff_pass_s .append(thiseff_pass)
+    eff_tot_s  .append(thiseff_tot)
+    eff_obj_s  .append(thiseff_obj)
+        
+  hist       .append(hist_s)
+  hist_xratio.append(hist_s)
+  #
+  eff_ratio .append(eff_ratio_s)
+  eff_xratio.append(eff_ratio_s)
+  eff_pass  .append(eff_pass_s)
+  eff_tot   .append(eff_tot_s)
+  eff_obj   .append(eff_obj_s)
+  
+ratios_hist = []
+ratios_eff  = []
+for dd in range(len(subdirs)):
+  
+  thisratio = []
+  for r in range(len(hist_xratio[0][dd])):
+    auxratio = hist_xratio[1][dd][r].Clone("num")
+    auxden   = hist_xratio[0][dd][r].Clone("den")
+    intnum   = auxratio.Integral(0,-1)
+    intden   = auxden  .Integral(0,-1)
+    if intnum>0:
+      auxratio.Scale(1.0/intnum)
+    if intden>0:
+      auxden.Scale(1.0/intden)
+      auxratio.Divide(auxden)
+    auxratio.SetName("ratio")
+    thisratio.append(auxratio)
+    thisratio[r].GetYaxis().SetTitle("Ratio")
+    thisratio[r].SetLineColor(colors[1])
+    thisratio[r].SetMarkerColor(colors[1])
+    thisratio[r].SetMarkerSize(0)
+    thisratio[r].SetStats(0)
+  ratios_hist.append(thisratio)
+  
+  thisratio = []
+  for r in range(len(eff_xratio[0][dd])):
+    auxratio = eff_xratio[1][dd][r].Clone(  "numerator")
+    auxden   = eff_xratio[0][dd][r].Clone("denominator")
+    auxratio.Divide(auxden)
+    auxratio.SetName("ratio")
+    thisratio.append(auxratio)
+    thisratio[r].GetYaxis().SetTitle("Ratio")
+    thisratio[r].SetLineColor(colors[1])
+    thisratio[r].SetMarkerColor(colors[1])
+    thisratio[r].SetMarkerSize(0)
+    thisratio[r].SetStats(0)
+  ratios_eff.append(thisratio)
 
 ### Drawing
-legend = ROOT.TLegend(0.7,0.7, 0.87, 0.87);
-legend.SetLineColor(0)
-legend.SetFillColor(0)
-for d in range(0,len(fnames)):
-    legend.AddEntry(eff_ratio[d][0], names[d], "L")
-
 ROOT.gStyle.SetOptStat(0)
 
-outname=[outdir+"/"+whattot+"_"+valtype+"_vs"+vsvar+"_pT0.png",outdir+"/"+whattot+"_"+valtype+"_vs"+vsvar+"_pT0p9.png",outdir+"/"+whattot+"_"+valtype+"_vs"+vsvar+"_pT2p0.png"]
-for p in range(0,3):
-  can = ROOT.TCanvas(titles[p], "", 600, 600)
-  can.cd()
-  
-  pad1 = getCanvasMainPad(0)
-  pad1.SetTickx()
-  pad1.SetTicky()
-  
-  pad2 = getCanvasRatioPad(0)
-  pad2.SetTickx()
-  pad2.SetTicky()
-  
-  can.cd()
-  pad1.Draw()
-  pad1.cd()
-  
-  eff_ratio[0][p].GetYaxis().SetRangeUser(0.0, 1.5)
-  eff_ratio[0][p].GetYaxis().SetTitleOffset(1.4)
-  eff_ratio[0][p].Draw("PE")
-  eff_ratio[1][p].Draw("PE,same")
-  
-  legend.Draw("same")
-  
-  can.cd()
-  pad2.Draw()
-  pad2.cd()
-  
-  xmin = ratios_noclean[0][p].GetXaxis().GetBinLowEdge(1)
-  xmax = ratios_noclean[0][p].GetXaxis().GetBinLowEdge(ratios_noclean[0][p].GetNbinsX())+ratios_noclean[0][p].GetXaxis().GetBinWidth(ratios_noclean[0][p].GetNbinsX())
-  ymin = 0.90
-  ymax = 1.10
-  
-  hraxes = getRatioAxes(xmin,xmax,ymin,ymax)
-  
-  hraxes.Draw("")
-  ratios_noclean[0][p].Draw("PE,same")
-  ratios_noclean[1][p].Draw("PE,same")
-  
-  can.cd()
-  pad1.Draw()
-  pad2.Draw()
-  
-  can.SaveAs(outname[p]);
-  
-  del hraxes
-  del pad1
-  del pad2
-  del can
+outsubdir = []
+for ns,subdir in enumerate(subdirs):
+  thisdir = "%s/%s"%(outdir,subdir)
+  outsubdir.append(thisdir)
+  if not os.path.exists(thisdir):
+    os.mkdir(thisdir)
+    os.system("cp web/index.php %s"%(thisdir))
 
-  tot = [eff_tot[0][p].Integral(), eff_tot[1][p].Integral()]
-  passing = [eff_pass[0][p].Integral(), eff_pass[1][p].Integral()]
-  efficiency = []
-  relloss = []
-  for d in range(0,len(tot)):
-    efficiency.append(passing[d]/tot[d])
-    relloss.append(efficiency[d]/efficiency[0])
+  for r in range(len(eff_xratio[0][ns])): 
+      
+    outname = eff_obj[0][ns][r].GetName()
+    
+    can = ROOT.TCanvas("can_%s"%outname, "", 600, 600)
+    can.cd()
+    
+    pad1 = getCanvasMainPad(0)
+    pad1.SetTickx()
+    pad1.SetTicky()
+    
+    pad2 = getCanvasRatioPad(0)
+    pad2.SetTickx()
+    pad2.SetTicky()
+    
+    can.cd()
+    pad1.Draw()
+    pad1.cd()
+    
+    ttitle = eff_obj[0][ns][r].GetTitle()
+    xmin = ratios_eff[ns][r].GetXaxis().GetBinLowEdge(1)
+    xmax = ratios_eff[ns][r].GetXaxis().GetBinUpEdge(ratios_eff[ns][r].GetNbinsX())
+    yminM = 0.0
+    ymaxM = 1.2
+    #if "dr" in outname or "ineff" in outname:
+    #  ymaxM = 0.50
+    xtitle = ratios_eff[ns][r].GetXaxis().GetTitle()
+    ytitle = "Efficiency"
+    if "dr" in outname:
+      ytitle = "Duplicate rate"
+    elif "fr" in outname:
+      ytitle = "Fake rate"
+    elif "ineff" in outname:
+      ytitle = "Inefficiency"
+      
+    haxisMain  = ROOT.TH2D("haxisMain" ,ttitle,1,xmin ,xmax,1,yminM,ymaxM)
+    
+    haxisMain.GetXaxis().SetTitle(xtitle)
+    haxisMain.GetXaxis().SetTitleOffset(1.2)
+    haxisMain.GetYaxis().SetTitle(ytitle)
+    haxisMain.GetYaxis().SetTitleOffset(1.4)
+    
+    haxisMain.Draw()
+    eff_obj[0][ns][r].Draw("PE,same")
+    eff_obj[1][ns][r].Draw("PE,same")
+    
+    legend = ROOT.TLegend(0.7,0.7, 0.87, 0.87);
+    legend.SetLineColor(0)
+    legend.SetFillColor(0)
+    legend.AddEntry(eff_obj[0][ns][r], names[0], "PL")
+    legend.AddEntry(eff_obj[1][ns][r], names[1], "PL")
+    legend.Draw("same")
+    
+    can.cd()
+    pad2.Draw()
+    pad2.cd()
+    
+    ymin = 0.9*ratios_eff[ns][r].GetMinimum()
+    ymax = 1.1*ratios_eff[ns][r].GetMaximum()
+    
+    if ymax<=ymin:
+      ymin=0.0
+      ymax=2.0
+    
+    hraxes = getRatioAxes(xmin,xmax,ymin,ymax)
+    
+    line = ROOT.TLine(xmin,1.0,xmax,1.0)
+    line.SetLineColor(1)
+    line.SetLineStyle(2)
+    
+    hraxes.Draw("")
+    ratios_eff[ns][r].Draw("PE,same")
+    line.Draw("same")
+    
+    can.cd()
+    pad1.Draw()
+    pad2.Draw()
+    
+    can.SaveAs("%s/%s.png"%(thisdir,outname));
+    can.SaveAs("%s/%s.pdf"%(thisdir,outname));
+    
+    can.Update()
+    can.Clear()
 
-  print titles[p]
-  print "Totals:"
-  for d in range(0,len(tot)):
-    print int(tot[d]),
-  print "\nPassing:"
-  for d in range(0,len(tot)):
-    print int(passing[d]),
-  print "\nEfficiency:"
-  for d in range(0,len(tot)):
-    print "%0.4f" % efficiency[d],
-  print "\nRelative loss (/NO):"
-  for d in range(0,len(tot)):
-    print "%0.4f" % relloss[d],
-  print "\n"
+    tot        = [eff_tot[0][ns][r].Integral(), eff_tot[1][ns][r].Integral()]
+    passing    = [eff_pass[0][ns][r].Integral(), eff_pass[1][ns][r].Integral()]
+    efficiency = []
+    reldiff    = []
+    for d in range(0,len(tot)):
+      efficiency.append(passing[d]/tot[d])
+      reldiff.append(efficiency[d]/efficiency[0])
+        
+    fo = open("%s/%s.log"%(thisdir,outname),"w+")
+    fo.write( "Totals:" )
+    for d in range(0,len(tot)):
+      fo.write( " %d " % int(tot[d]) ),
+    fo.write( "\nPassing:" )
+    for d in range(0,len(tot)):
+      fo.write( " %d " % int(passing[d]) ),
+    fo.write( "\nRate:" )
+    for d in range(0,len(tot)):
+      fo.write( " %0.4f " % efficiency[d] ),
+    fo.write( "\nRatio(/reference):" )
+    for d in range(0,len(tot)):
+      fo.write( " %0.4f " % reldiff[d] ),
+    fo.write( "\n" )
+
+
+    if "_pt_" in outname:
+      outname = outname+"_logx"
+      
+      can = ROOT.TCanvas("can_%s"%outname, "", 600, 600)
+      can.cd()
+      
+      pad1 = getCanvasMainPad(0)
+      pad1.SetTickx()
+      pad1.SetTicky()
+      pad1.SetLogx()
+      
+      pad2 = getCanvasRatioPad(0)
+      pad2.SetTickx()
+      pad2.SetTicky()
+      pad2.SetLogx()
+      
+      can.cd()
+      pad1.Draw()
+      pad1.cd()
+      
+      ttitle = eff_obj[0][ns][r].GetTitle()
+      xmin = 0.1
+      xmax = ratios_eff[ns][r].GetXaxis().GetBinUpEdge(ratios_eff[ns][r].GetNbinsX())
+      yminM = 0.0
+      ymaxM = 1.2
+      #if "dr" in outname or "ineff" in outname:
+      #  ymaxM = 0.50
+      xtitle = ratios_eff[ns][r].GetXaxis().GetTitle()
+      ytitle = "Efficiency"
+      if "dr" in outname:
+        ytitle = "Duplicate rate"
+      elif "fr" in outname:
+        ytitle = "Fake rate"
+      elif "ineff" in outname:
+        ytitle = "Inefficiency"
+        
+      haxisMain  = ROOT.TH2D("haxisMain" ,ttitle,1,xmin,xmax,1,yminM,ymaxM)
+      
+      haxisMain.GetXaxis().SetTitle(xtitle)
+      haxisMain.GetXaxis().SetTitleOffset(1.2)
+      haxisMain.GetYaxis().SetTitle(ytitle)
+      haxisMain.GetYaxis().SetTitleOffset(1.4)
+      
+      haxisMain.Draw()
+      eff_obj[0][ns][r].Draw("PE,same")
+      eff_obj[1][ns][r].Draw("PE,same")
+      
+      legend = ROOT.TLegend(0.7, 0.7, 0.87, 0.87);
+      legend.SetLineColor(0)
+      legend.SetFillColor(0)
+      legend.AddEntry(eff_obj[0][ns][r], names[0], "PL")
+      legend.AddEntry(eff_obj[1][ns][r], names[1], "PL")
+      legend.Draw("same")
+      
+      can.cd()
+      pad2.Draw()
+      pad2.cd()
+      
+      ymin = 0.9*ratios_eff[ns][r].GetMinimum()
+      ymax = 1.1*ratios_eff[ns][r].GetMaximum()
+      
+      if ymax<=ymin:
+        ymin=0.0
+        ymax=2.0
+        
+      hraxes = getRatioAxes(xmin,xmax,ymin,ymax)
+      
+      line = ROOT.TLine(xmin,1.0,xmax,1.0)
+      line.SetLineColor(1)
+      line.SetLineStyle(2)
+      
+      hraxes.Draw("")
+      ratios_eff[ns][r].Draw("PE,same")
+      line.Draw("same")
+      
+      can.cd()
+      pad1.Draw()
+      pad2.Draw()
+      
+      can.SaveAs("%s/%s.png"%(thisdir,outname));
+      can.SaveAs("%s/%s.pdf"%(thisdir,outname));
+
+      can.Update()
+      can.Clear()
+      
+    del haxisMain
+    del hraxes
+    del pad1
+    del pad2
+    del can
+
+  ###
+
+  for r in range(len(hist_xratio[0][ns])): 
+      
+    outname = hist[0][ns][r].GetName()
+    
+    can = ROOT.TCanvas("can_%s"%outname, "", 600, 600)
+    can.cd()
+    
+    pad1 = getCanvasMainPad(0)
+    pad1.SetTickx()
+    pad1.SetTicky()
+    
+    pad2 = getCanvasRatioPad(0)
+    pad2.SetTickx()
+    pad2.SetTicky()
+    
+    can.cd()
+    pad1.Draw()
+    pad1.cd()
+    
+    int0   = hist[0][ns][r].Integral(0,-1)
+    int1   = hist[1][ns][r].Integral(0,-1)
+    if int0>0:
+      hist[0][ns][r].Scale(1.0/int0)
+    if int1>0:
+      hist[1][ns][r].Scale(1.0/int1)
+    
+    means = [hist[0][ns][r].GetMean(),hist[1][ns][r].GetMean()]
+
+    ttitle = hist[0][ns][r].GetTitle()
+    xmin = ratios_hist[ns][r].GetXaxis().GetBinLowEdge(1)
+    xmax = ratios_hist[ns][r].GetXaxis().GetBinUpEdge(ratios_hist[ns][r].GetNbinsX())
+    yminM = 0.0
+    ymaxM = hist[0][ns][r].GetMaximum()
+    if hist[1][ns][r].GetMaximum() > ymaxM:
+      ymaxM = hist[1][ns][r].GetMaximum()
+    ymaxM=1.5*ymaxM
+    if ymaxM<=yminM:
+      ymaxM = 1.0
+    xtitle = hist[0][ns][r].GetXaxis().GetTitle()
+    #ytitle = hist[0][ns][r].GetYaxis().GetTitle()
+    ytitle = "Fraction of tracks"
+    
+    haxisMain  = ROOT.TH2D("haxisMain" ,ttitle,1,xmin ,xmax,1,yminM,ymaxM)
+    
+    haxisMain.GetXaxis().SetTitle(xtitle)
+    haxisMain.GetXaxis().SetTitleOffset(1.2)
+    haxisMain.GetYaxis().SetTitle(ytitle)
+    haxisMain.GetYaxis().SetTitleOffset(1.4)
+
+    haxisMain.Draw()
+    hist[0][ns][r].Draw("PE,same")
+    hist[1][ns][r].Draw("PE,same")
+    
+    legend = ROOT.TLegend(0.6, 0.7, 0.87, 0.87);
+    legend.SetLineColor(0)
+    legend.SetFillColor(0)
+    legend.AddEntry(hist[0][ns][r], "%s [#mu=%.2f]"%(names[0],means[0]), "PL")
+    legend.AddEntry(hist[1][ns][r], "%s [#mu=%.2f]"%(names[1],means[1]), "PL")
+    legend.Draw("same")
+    
+    can.cd()
+    pad2.Draw()
+    pad2.cd()
+    
+    ymin = 0.9*ratios_hist[ns][r].GetMinimum()
+    ymax = 1.1*ratios_hist[ns][r].GetMaximum()
+    
+    if ymax<=ymin:
+      ymin=0.0
+      ymax=2.0
+    
+    hraxes = getRatioAxes(xmin,xmax,ymin,ymax)
+    
+    line = ROOT.TLine(xmin,1.0,xmax,1.0)
+    line.SetLineColor(1)
+    line.SetLineStyle(2)
+    
+    hraxes.Draw("")
+    ratios_hist[ns][r].Draw("PE,same")
+    line.Draw("same")
+    
+    can.cd()
+    pad1.Draw()
+    pad2.Draw()
+    
+    can.SaveAs("%s/%s.png"%(thisdir,outname));
+    can.SaveAs("%s/%s.pdf"%(thisdir,outname));
+    
+    can.Update()
+    can.Clear()
+
+    del haxisMain
+    del hraxes
+    del pad1
+    del pad2
+    del can
+
