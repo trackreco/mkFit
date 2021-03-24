@@ -357,8 +357,8 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     const float dphi = dphiv[itrack];
     const float dq   = dqv[itrack];
 
-    dprintf("  %2d: %6.3f %6.3f %6.6f %7.5f %3d %3d %4d %4d\n",
-             itrack, q, phi, dq, dphi, qb1, qb2, pb1, pb2);
+    dprintf("  %2d/%2d: %6.3f %6.3f %6.6f %7.5f %3d %3d %4d %4d\n",
+            L.layer_id(), itrack, q, phi, dq, dphi, qb1, qb2, pb1, pb2);
 
     // MT: One could iterate in "spiral" order, to pick hits close to the center.
     // http://stackoverflow.com/questions/398299/looping-in-a-spiral
@@ -383,10 +383,12 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
         {
           // MT: Access into m_hit_zs and m_hit_phis is 1% run-time each.
 
-          if (m_iteration_hit_mask && (*m_iteration_hit_mask)[L.GetOriginalHitIndex(hi)])
+          int hi_orig = L.GetOriginalHitIndex(hi);
+
+          if (m_iteration_hit_mask && (*m_iteration_hit_mask)[hi_orig])
           {
             // printf("Yay, denying masked hit on layer %d, hi %d, orig idx %d\n",
-            //        L.m_layer_info->m_layer_id, hi, L.GetOriginalHitIndex(hi));
+            //        L.m_layer_info->m_layer_id, hi, hi_orig);
             continue;
           }
 
@@ -412,14 +414,14 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
             // Avi says we should have *minimal* search windows per layer.
             // Also ... if bins are sufficiently small, we do not need the extra
             // checks, see above.
-            if (L.GetHit(hi).mcHitID() == -7)
+            if (L.GetHit(hi_orig).mcHitID() == -7)
             {
               //ARH: This will need a better treatment but works for now
               XWsrResult[itrack].m_in_gap = true;
             }
             else
             {
-              XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
+              XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi_orig;
             }
           }
           else
@@ -433,7 +435,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
             if (XHitSize[itrack] < MPlexHitIdxMax)
             {
-              XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi;
+              XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi_orig;
             }
           }
         } //hi

@@ -231,7 +231,7 @@ public:
   void  RegisterHit(int idx);
   void  EndRegistrationOfHits(bool build_original_to_internal_map);
 
-  // Use this to map original indices to sorted internal ones.
+  // Use this to map original indices to sorted internal ones. m_ext_idcs needs to be initialized.
   int   GetHitIndexFromOriginal(int i) const { return m_ext_idcs[i - m_min_ext_idx]; }
   // Use this to remap internal hit index to external one.
   int   GetOriginalHitIndex(int i) const { return m_hit_ranks[i]; }
@@ -240,12 +240,8 @@ public:
   const Hit& GetHit(int i) const { return m_hits[i]; }
   const Hit* GetHitArray() const { return m_hits; }
 #else
-  const Hit& GetHit(int i) const { return (*m_ext_hits)[m_hit_ranks[i]]; }
-  const Hit* GetHitArray() const { return & (*m_ext_hits)[0]; }
-
-  // This would also be possible for COPY_SORTED_HITS, but somebody must guarantee they stay const
-  // after suck in -- and we need to add m_ext_hits for that case, too.
-  const Hit& GetHitWithOriginalIndex(int i) const { return (*m_ext_hits)[i]; }
+  const Hit& GetHit(int i) const { return (*m_ext_hits)[i]; }
+  const Hit* GetHitArray() const { return m_ext_hits->data(); }
 #endif
 
   // void  SelectHitIndices(float q, float phi, float dq, float dphi, std::vector<int>& idcs, bool isForSeeding=false, bool dump=false);

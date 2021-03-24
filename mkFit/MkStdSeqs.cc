@@ -57,7 +57,7 @@ void Cmssw_LoadHits_End(EventOfHits &eoh)
 {
   for (auto &&l : eoh.m_layers_of_hits)
   {
-    l.EndRegistrationOfHits(true);
+    l.EndRegistrationOfHits(false);
   }
 }
 
