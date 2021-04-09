@@ -220,6 +220,128 @@ void handle_duplicates(Event *m_event)
   }
 }
 
+//=========================================================================
+// QUALITY FILTER + SHARED HITS DUPL cleaning
+//=========================================================================
+
+void quality_filter(TrackVec & tracks, TrackVec & seeds)
+{
+  const auto nseeds = seeds.size();
+  const auto ntracks = tracks.size();
+
+  std::vector<bool> goodtrack(ntracks, false);
+  std::map<int,int> nSeedHitsMap;
+
+  for (auto itrack = 0U; itrack < ntracks; itrack++)
+  {
+    auto &trk = tracks[itrack];
+    
+    //this is not very good - i want to pass just the subset of tracks 
+    if(trk.algoint()!=9) { goodtrack[itrack]=true; continue;}
+
+    //store seed hit info
+    for (auto iseed = 0U; iseed < nseeds; iseed++)
+    {
+      auto &seed = seeds[iseed];
+      if (seed.label()==trk.label()) { nSeedHitsMap[trk.label()]=seed.nFoundHits();}
+    }
+    //is there a way to retrieve the info without mapping it again?
+
+    auto seedHits=nSeedHitsMap[trk.label()];
+    auto seedReduction = (seedHits <= 5)? 2:3;
+
+    // minimum 4 hits 
+    if (trk.nFoundHits()-seedReduction>=4) goodtrack[itrack]=true;
+    //penalty (not used)
+    //if (trk.nFoundHits()-seedReduction>=4+(seedHits==4)) goodtrack[itrack]=true;
+
+  }
+
+  for (auto itrack = ntracks-1; itrack >0; itrack--)
+  {
+    if(!goodtrack[itrack]) tracks.erase(tracks.begin() + itrack);
+  }
+}
+
+void find_duplicates_sharedhits(TrackVec &tracks, TrackVec & seeds)
+{
+  const auto nseeds = seeds.size();
+  const auto ntracks = tracks.size();
+
+  std::vector<bool> goodtrack(ntracks, false);  
+  std::map<int,int> nSeedHitsMap;
+  
+  for (auto itrack = 0U; itrack < ntracks; itrack++)
+  {
+    auto &trk = tracks[itrack];    
+   
+    ///not so good again - want to pass only pixellLess tracks 
+    if(trk.algoint()!=9) continue;
+    for (auto iseed = 0U; iseed < nseeds; iseed++)
+    {   
+      auto &seed = seeds[iseed];
+      if (seed.label()==trk.label()) { nSeedHitsMap[trk.label()]=seed.nFoundHits();}
+    }  //also here would need seed hit info 
+    
+  }
+
+  for (auto itrack = 0U; itrack < ntracks; itrack++)
+  {
+    auto &trk = tracks[itrack];    
+    
+    if(trk.algoint()!=9) { goodtrack[itrack]=true; continue;}
+    
+    auto seedHits=nSeedHitsMap[trk.label()];
+    auto seedReduction = (seedHits <= 5)? 2:3;
+
+    for (auto jtrack = itrack + 1; jtrack < ntracks; jtrack++)
+    {   
+      auto &track2 = tracks[jtrack];
+      auto seedHits2=nSeedHitsMap[trk.label()];
+      auto seedReduction2 = (seedHits2 <= 5)? 2:3;
+    
+      auto sharedCount=0;
+      auto sharedSeed=0; // this count may need to be reviewed
+      auto sharedFirst=0;
+    
+      for (int i = 0; i < trk.nTotalHits(); ++i)
+      {   
+        if (trk.getHitIdx(i)<0) continue;
+        int a=trk.getHitLyr(i);
+        int b=trk.getHitIdx(i);
+        for (int j = 0; j < track2.nTotalHits(); ++j)
+        {   
+          if (track2.getHitIdx(j)<0) continue;
+          int c=track2.getHitLyr(j);
+          int d=track2.getHitIdx(j);
+    
+          //this is to count once shared matched hits (may be done more properly...)
+          if (i<seedHits && j<seedHits2) {if(a==c && b==d) sharedSeed+=1;}
+
+          if(a==c && b==d) sharedCount+=1;
+          if(a==c && b==d && j==1 && i==1) sharedFirst+=1;
+          if(a==c && b==d && j==0 && i==0) sharedFirst+=1;
+        }   
+      }   
+    
+      auto shared_first=(int)(sharedFirst==2);
+      auto shared_reduction=(int)(sharedSeed/2);
+      
+      //selection here - 11percent fraction of shared hits to label a duplicate
+      if ((sharedCount - shared_reduction - shared_first) >= ((std::min(trk.nFoundHits()-seedReduction, track2.nFoundHits()-seedReduction2) - shared_first) * 0.11))
+      {   
+        if (trk.score() > track2.score())
+          track2.setDuplicateValue(true);
+        else
+          trk.setDuplicateValue(true);
+      }    
+    }    
+  }//end loop one over tracks
+
+  //removal here
+  tracks.erase(std::remove_if(tracks.begin(),tracks.end(),[](auto track){return track.getDuplicateValue();}),tracks.end());
+
+}
 
 //=========================================================================
 // Random stuff
