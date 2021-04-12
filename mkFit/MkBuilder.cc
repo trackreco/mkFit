@@ -1332,7 +1332,7 @@ void MkBuilder::FindTracksBestHit()
         {
           prev_layer = curr_layer;
           curr_layer = layer_plan_it->m_layer;
-          mkfndr->Setup(m_job->m_iter_config.m_params, m_job->m_iter_config.m_layer_configs[curr_layer],
+          mkfndr->Setup(m_job->m_iter_config, m_job->m_iter_config.m_params, m_job->m_iter_config.m_layer_configs[curr_layer],
                         m_job->get_mask_for_layer(curr_layer));
 
           dprint("at layer " << curr_layer);
@@ -1614,7 +1614,7 @@ void MkBuilder::FindTracksStandard()
       {
         prev_layer = curr_layer;
         curr_layer = layer_plan_it->m_layer;
-        mkfndr->Setup(m_job->m_iter_config.m_params, m_job->m_iter_config.m_layer_configs[curr_layer],
+        mkfndr->Setup(m_job->m_iter_config, m_job->m_iter_config.m_params, m_job->m_iter_config.m_layer_configs[curr_layer],
                       m_job->get_mask_for_layer(curr_layer));
 
         dprintf("\n* Processing layer %d\n", curr_layer);
@@ -1823,7 +1823,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
   {
     prev_layer = curr_layer;
     curr_layer = layer_plan_it->m_layer;
-    mkfndr->Setup(m_job->m_iter_config.m_params, m_job->m_iter_config.m_layer_configs[curr_layer],
+    mkfndr->Setup(m_job->m_iter_config, m_job->m_iter_config.m_params, m_job->m_iter_config.m_layer_configs[curr_layer],
                   m_job->get_mask_for_layer(curr_layer));
 
     const bool pickup_only = layer_plan_it->m_pickup_only;
@@ -1877,6 +1877,10 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 
       dprint("now get hit range");
 
+#ifdef DUMPHITWINDOW
+      mkfndr->m_event = m_event;
+#endif      
+      
       mkfndr->SelectHitIndices(layer_of_hits, end - itrack);
 
       find_tracks_handle_missed_layers(mkfndr, layer_info, extra_cands, seed_cand_idx,

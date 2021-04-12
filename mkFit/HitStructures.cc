@@ -452,6 +452,8 @@ void CombCandidate::ImportSeed(const Track& seed)
   m_state           = CombCandidate::Dormant;
   m_last_seed_layer = seed.getLastHitLyr();
   m_seed_type       = seed.getSeedTypeForRanking();
+  m_seed_algo       = seed.algoint();
+  m_seed_label      = seed.label();
 
   TrackCand &cand = back();
 

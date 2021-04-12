@@ -408,6 +408,9 @@ double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder,
     // MIMI -- using Iter0 function / tuning for all iterations.
     ev.clean_cms_seedtracks_iter(&seeds, Config::ItrInfo[it]);
 
+    if(seeds.size()<=0)
+      continue;
+    
     builder.seed_post_cleaning(seeds, true, true);
 
     for (auto &s : seeds) assignSeedTypeForRanking(s);

@@ -18,6 +18,7 @@
 #include "Event.h"
 
 #include "MaterialEffects.h"
+#include "HitSelectionWindows.h"
 
 #ifndef NO_ROOT
 #include "Validation.h"
@@ -227,6 +228,7 @@ void test_standard()
   }
 
   if (Config::useCMSGeom) fillZRgridME();
+  if (Config::useCMSGeom) fillHitSelectionWindowsParams();
 
   constexpr int NT = 5;
   double t_sum[NT] = {0};

@@ -173,6 +173,10 @@ namespace Config
   //extern    float chi2CutOverlap; // default: 5; cmssw: 3.5
   //extern    float pTCutOverlap; // default: 0; cmssw: 1
 
+  extern float m_dp_params[9][72][3];
+  extern float m_dq_params[9][72][3];
+  extern float m_c2_params[9][72][3];
+
   // the following are only used in SMatrix version
   constexpr float nSigma  = 3.;
   constexpr float minDPhi = 0.01;// default: 0.;  cmssw tests: 0.01;

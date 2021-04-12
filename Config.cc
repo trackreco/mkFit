@@ -105,6 +105,10 @@ namespace Config
   bool        json_patch_verbose     = false;
   std::string json_patch_filename;
 
+  float m_dp_params[9][72][3];
+  float m_dq_params[9][72][3];
+  float m_c2_params[9][72][3];
+  
   void RecalculateDependentConstants()
   {
   }

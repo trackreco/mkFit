@@ -467,6 +467,8 @@ public:
   SeedState_e  m_state           = Dormant;
   int          m_last_seed_layer = -1;
   unsigned int m_seed_type       =  0;
+  int          m_seed_algo       =  0;
+  int          m_seed_label      =  0;
 
   int                  m_hots_size = 0;
   std::vector<HoTNode> m_hots;
@@ -485,6 +487,8 @@ public:
     m_state(o.m_state),
     m_last_seed_layer(o.m_last_seed_layer),
     m_seed_type(o.m_seed_type),
+    m_seed_algo(o.m_seed_algo),
+    m_seed_label(o.m_seed_label),
     m_hots_size(o.m_hots_size),
     m_hots(std::move(o.m_hots)),
     m_overlap_hits(std::move(o.m_overlap_hits))

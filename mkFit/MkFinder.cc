@@ -11,14 +11,19 @@
 //#define DEBUG
 #include "Debug.h"
 
-#ifdef DEBUG_BACKWARD_FIT
+//#ifdef DEBUG_BACKWARD_FIT
+//#include "Event.h"
+//#endif
+
+#ifdef DUMPHITWINDOW
 #include "Event.h"
 #endif
 
 namespace mkfit {
 
-void MkFinder::Setup(const IterationParams &ip, const IterationLayerConfig &ilc, const std::vector<bool> *ihm)
+void MkFinder::Setup(const IterationConfig &ic, const IterationParams &ip, const IterationLayerConfig &ilc, const std::vector<bool> *ihm)
 {
+  m_iter_config            = &ic;
   m_iteration_params       = &ip;
   m_iteration_layer_config = &ilc;
   m_iteration_hit_mask     =  ihm;
@@ -26,6 +31,7 @@ void MkFinder::Setup(const IterationParams &ip, const IterationLayerConfig &ilc,
 
 void MkFinder::Release()
 {
+  m_iter_config            = nullptr;
   m_iteration_params       = nullptr;
   m_iteration_layer_config = nullptr;
   m_iteration_hit_mask     = nullptr;
@@ -87,6 +93,8 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>     & track
     copy_in(trk, imp, iI);
 
     SeedType(imp, 0, 0) = tracks[idxs[i].first].m_seed_type;
+    SeedAlgo(imp, 0, 0) = tracks[idxs[i].first].m_seed_algo;
+    SeedLabel(imp, 0, 0) = tracks[idxs[i].first].m_seed_label;
     SeedIdx(imp, 0, 0) = idxs[i].first;
     CandIdx(imp, 0, 0) = idxs[i].second;
   }
@@ -110,6 +118,8 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>            
     copy_in(trk, imp, iI);
 
     SeedType(imp, 0, 0) = tracks[idxs[i].first].m_seed_type;
+    SeedAlgo(imp, 0, 0) = tracks[idxs[i].first].m_seed_algo;
+    SeedLabel(imp, 0, 0) = tracks[idxs[i].first].m_seed_label;
     SeedIdx(imp, 0, 0) = idxs[i].first;
     CandIdx(imp, 0, 0) = idxs[i].second.trkIdx;
   }
@@ -148,38 +158,68 @@ void MkFinder::OutputTracksAndHitIdx(std::vector<Track>& tracks,
 //==============================================================================
 // getHitSelDynamicWindows
 //==============================================================================
-// From Config.h: track-related config on hit selection windows
-// constexpr float treg_eta[2] = {0.45,1.5};
-// constexpr float track_ptlow = 0.9;
+// From HitSelectionWindows.h: track-related config on hit selection windows
 
-void MkFinder::getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, const float track_pt, const float track_eta, float &min_dq, float &max_dphi)
+void MkFinder::getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, const float invpt, const float theta, float &min_dq, float &max_dq, float &min_dphi, float &max_dphi)
 {
-  const LayerOfHits          &L = layer_of_hits;
+  const IterationConfig      &IC  = *m_iter_config;
+  const LayerOfHits          &L   = layer_of_hits;
   const IterationLayerConfig &ILC = *m_iteration_layer_config;
 
-  if (L.is_tib_lyr() || L.is_tob_lyr())
-  {
-    if (track_eta > Config::treg_eta[0] && track_eta < Config::treg_eta[1])
-      min_dq *= ILC.m_qf_treg;
+  int itidx   = IC.m_iteration_index; 
+  int lid     = L.layer_id();
 
-    if (track_pt < Config::track_ptlow)
-      max_dphi *= ILC.m_phif_lpt_brl;
-  }
-  else if (L.is_tid_lyr() || L.is_tec_lyr())
-  {
-    if (track_pt < Config::track_ptlow)
-    {
+  float dq0 = Config::m_dq_params[itidx][lid][0];
+  float dq1 = Config::m_dq_params[itidx][lid][1];
+  float dq2 = Config::m_dq_params[itidx][lid][2];
+  min_dq = dq0*invpt+dq1*theta+dq2;
+  if(min_dq<=0)
+    min_dq = ILC.min_dq()
+  max_dq = 2.0f*min_dq;
 
-      if (track_eta > Config::treg_eta[0] && track_eta < Config::treg_eta[1])
-        max_dphi *= ILC.m_phif_lpt_treg;
+  float dp0 = Config::m_dp_params[itidx][lid][0];
+  float dp1 = Config::m_dp_params[itidx][lid][1];
+  float dp2 = Config::m_dp_params[itidx][lid][2];
+  min_dphi = dp0*invpt+dp1*theta+dp2;
+  if(min_dphi<=0)
+    min_dphi = ILC.min_dphi()
+  max_dphi = 2.0f*min_dphi;
 
-      else if (!(L.is_stereo_lyr()) && track_eta >= Config::treg_eta[1])
-        max_dphi *= ILC.m_phif_lpt_ec;
-    }
-    else if (!(L.is_stereo_lyr()) && track_eta > Config::treg_eta[0] && track_eta < Config::treg_eta[1])
-      max_dphi *= ILC.m_phif_treg;
-  }
+  //float c20 = HitSelectionWindows::m_c2_params[itidx][lid][0];
+  //float c21 = HitSelectionWindows::m_c2_params[itidx][lid][1];
+  //float c22 = HitSelectionWindows::m_c2_params[itidx][lid][2];
+  //max_c2   = c20*invpt+c21*theta+c22;
+
 }
+
+//void MkFinder::getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, const float track_pt, const float track_eta, float &min_dq, float &max_dphi)
+//{
+//  const LayerOfHits          &L = layer_of_hits;
+//  const IterationLayerConfig &ILC = *m_iteration_layer_config;
+//
+//  if (L.is_tib_lyr() || L.is_tob_lyr())
+//  {
+//    if (track_eta > Config::treg_eta[0] && track_eta < Config::treg_eta[1])
+//      min_dq *= ILC.m_qf_treg;
+//
+//    if (track_pt < Config::track_ptlow)
+//      max_dphi *= ILC.m_phif_lpt_brl;
+//  }
+//  else if (L.is_tid_lyr() || L.is_tec_lyr())
+//  {
+//    if (track_pt < Config::track_ptlow)
+//    {
+//
+//      if (track_eta > Config::treg_eta[0] && track_eta < Config::treg_eta[1])
+//        max_dphi *= ILC.m_phif_lpt_treg;
+//
+//      else if (!(L.is_stereo_lyr()) && track_eta >= Config::treg_eta[1])
+//        max_dphi *= ILC.m_phif_lpt_ec;
+//    }
+//    else if (!(L.is_stereo_lyr()) && track_eta > Config::treg_eta[0] && track_eta < Config::treg_eta[1])
+//      max_dphi *= ILC.m_phif_treg;
+//  }
+//}
 
 //==============================================================================
 // SelectHitIndices
@@ -204,18 +244,30 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
   float dqv[NN], dphiv[NN], qv[NN], phiv[NN];
   int qb1v[NN], qb2v[NN], pb1v[NN], pb2v[NN];
 
+  float min_dq   = ILC.min_dq();
+  float max_dq   = ILC.max_dq();
+  float min_dphi = ILC.min_dphi();
+  float max_dphi = ILC.max_dphi();
+
   const auto assignbins = [&](int itrack, float q, float dq, float phi, float dphi){
 
-    float thisPt   = 1.0f/Par[iI].At(itrack,3,0);
-    float thisEta  = std::fabs( getEta( Par[iI].At(itrack,5,0) ) );
+    //float thisPt   = 1.0f/Par[iI].At(itrack,3,0);
+    //float thisEta  = std::fabs( getEta( Par[iI].At(itrack,5,0) ) );
     //
-    float min_dq   = ILC.min_dq();
-    float max_dphi = ILC.max_dphi();
+    //float min_dq   = ILC.min_dq();
+    //float max_dphi = ILC.max_dphi();
     //
-    getHitSelDynamicWindows(L, thisPt, thisEta, min_dq, max_dphi);
+    //getHitSelDynamicWindows(L, thisPt, thisEta, min_dq, max_dphi);
     //
-    dphi = std::min(std::abs(dphi), max_dphi);
-    dq   = clamp(dq, min_dq, ILC.max_dq());
+    //dphi = std::min(std::abs(dphi), max_dphi);
+    //dq   = clamp(dq, min_dq, ILC.max_dq());
+    
+    
+    float invpt = Par[iI].At(itrack,3,0);
+    float theta = std::fabs(Par[iI].At(itrack,5,0)-Config::PIOver2);
+    getHitSelDynamicWindows(L, invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
+    dphi = clamp(std::abs(dphi), min_dphi, max_dphi);
+    dq   = clamp(dq, min_dq, max_dq);
 
     qv[itrack] = q;
     phiv[itrack] = phi;
@@ -234,8 +286,12 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
        2 * dphidx * dphidy * Err[iI].ConstAt(itrack, 0, 1);
   };
 
-  const auto calcdphi = [&](float dphi2) {
-    return std::max(nSigmaPhi * std::sqrt(std::abs(dphi2)), ILC.min_dphi());
+  const auto calcdphi = [&](int itrack, float dphi2) {
+    //return std::max(nSigmaPhi * std::sqrt(std::abs(dphi2)), ILC.min_dphi());
+    float invpt = Par[iI].At(itrack,3,0);
+    float theta = std::fabs(Par[iI].At(itrack,5,0)-Config::PIOver2);
+    getHitSelDynamicWindows(L, invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
+    return std::max(nSigmaPhi * std::sqrt(std::abs(dphi2)), min_dphi);
   };
 
 
@@ -259,33 +315,33 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 #endif
 
       const float phi  = getPhi(x, y);
-      float dphi = calcdphi(dphi2);
+      float dphi = calcdphi(itrack, dphi2);
 
       const float z  = Par[iI].ConstAt(itrack, 2, 0);
       const float dz = std::abs(nSigmaZ * std::sqrt(Err[iI].ConstAt(itrack, 2, 2)));
       // XXX-NUM-ERR above, Err(2,2) gets negative!
-
-      if (Config::useCMSGeom) // should be Config::finding_requires_propagation_to_hit_pos
-      {
-        //now correct for bending and for layer thickness unsing linear approximation
-        //fixme! using constant value, to be taken from layer properties
-        //XXXXMT4GC should we also increase dz?
-        //XXXXMT4GC an we just take half od layer dR?
-        const float deltaR = Config::cmsDeltaRad;
-        const float r  = std::sqrt(r2);
-        //here alpha is the difference between posPhi and momPhi
-        const float alpha = phi - Par[iP].ConstAt(itrack, 4, 0);
-        float cosA, sinA;
-        if (Config::useTrigApprox) {
-          sincos4(alpha, sinA, cosA);
-        } else {
-          cosA = std::cos(alpha);
-          sinA = std::sin(alpha);
-        }
-        //take abs so that we always inflate the window
-        const float dist = std::abs(deltaR*sinA/cosA);
-        dphi += dist / r;
-      }
+      
+      //if (Config::useCMSGeom) // should be Config::finding_requires_propagation_to_hit_pos
+      //{
+      //  //now correct for bending and for layer thickness unsing linear approximation
+      //  //fixme! using constant value, to be taken from layer properties
+      //  //XXXXMT4GC should we also increase dz?
+      //  //XXXXMT4GC an we just take half od layer dR?
+      //  const float deltaR = Config::cmsDeltaRad;
+      //  const float r  = std::sqrt(r2);
+      //  //here alpha is the difference between posPhi and momPhi
+      //  const float alpha = phi - Par[iP].ConstAt(itrack, 4, 0);
+      //  float cosA, sinA;
+      //  if (Config::useTrigApprox) {
+      //    sincos4(alpha, sinA, cosA);
+      //  } else {
+      //    cosA = std::cos(alpha);
+      //    sinA = std::sin(alpha);
+      //  }
+      //  //take abs so that we always inflate the window
+      //  const float dist = std::abs(deltaR*sinA/cosA);
+      //  dphi += dist / r;
+      //}
 
       XWsrResult[itrack] = L.is_within_z_sensitive_region(z, dz);
       assignbins(itrack, z, dz, phi, dphi);
@@ -311,25 +367,25 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 #endif
 
       const float phi  = getPhi(x, y);
-      float dphi = calcdphi(dphi2);
+      float dphi = calcdphi(itrack, dphi2);
 
       const float  r = std::sqrt(r2);
       const float dr = std::abs(nSigmaR*(x*x*Err[iI].ConstAt(itrack, 0, 0) + y*y*Err[iI].ConstAt(itrack, 1, 1) + 2*x*y*Err[iI].ConstAt(itrack, 0, 1)) / r2);
 
-      if (Config::useCMSGeom) // should be Config::finding_requires_propagation_to_hit_pos
-      {
-        //now correct for bending and for layer thickness unsing linear approximation
-        //fixme! using constant value, to be taken from layer properties
-        //XXXXMT4GC should we also increase dr?
-        //XXXXMT4GC can we just take half of layer dz?
-        const float deltaZ = 5;
-        float cosT = std::cos(Par[iI].ConstAt(itrack, 5, 0));
-        float sinT = std::sin(Par[iI].ConstAt(itrack, 5, 0));
-        //here alpha is the helix angular path corresponding to deltaZ
-        const float k = Chg.ConstAt(itrack, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
-        const float alpha  = deltaZ*sinT*Par[iI].ConstAt(itrack, 3, 0)/(cosT*k);
-        dphi += std::abs(alpha);
-      }
+      //if (Config::useCMSGeom) // should be Config::finding_requires_propagation_to_hit_pos
+      //{
+      //  //now correct for bending and for layer thickness unsing linear approximation
+      //  //fixme! using constant value, to be taken from layer properties
+      //  //XXXXMT4GC should we also increase dr?
+      //  //XXXXMT4GC can we just take half of layer dz?
+      //  const float deltaZ = 5;
+      //  float cosT = std::cos(Par[iI].ConstAt(itrack, 5, 0));
+      //  float sinT = std::sin(Par[iI].ConstAt(itrack, 5, 0));
+      //  //here alpha is the helix angular path corresponding to deltaZ
+      //  const float k = Chg.ConstAt(itrack, 0, 0) * 100.f / (-Config::sol*Config::Bfield);
+      //  const float alpha  = deltaZ*sinT*Par[iI].ConstAt(itrack, 3, 0)/(cosT*k);
+      //  dphi += std::abs(alpha);
+      //}
       XWsrResult[itrack] = L.is_within_r_sensitive_region(r, dr);
       assignbins(itrack, r, dr, phi, dphi);
     }
@@ -365,6 +421,33 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     // This would then work best with relatively small bin sizes.
     // Or, set them up so I can always take 3x3 array around the intersection.
 
+    int thisseedmcid=-999999;
+#ifdef DUMPHITWINDOW
+    {
+    int seedlabel = SeedLabel(itrack, 0, 0);
+    TrackVec & seedtracks = m_event->seedTracks_;
+    int thisidx = -999999;
+    for (int i = 0; i < seedtracks.size(); ++i){
+      auto & thisseed = seedtracks[i];
+      if(thisseed.label()==seedlabel){
+	thisidx = i;
+	break;
+      }
+    }
+    if(thisidx>-999999){
+      auto & seedtrack = m_event->seedTracks_[thisidx];
+      //printf("HITWINDOWSEL %d %d %6.3f %6.3f %6.3f", seedlabel, seedtrack.label(), seedtrack.pT(), seedtrack.momEta(), seedtrack.momPhi()); 
+      std::vector<int> thismcHitIDs;
+      seedtrack.mcHitIDsVec(m_event->layerHits_,m_event->simHitsInfo_,thismcHitIDs);
+      if ( std::adjacent_find( thismcHitIDs.begin(), thismcHitIDs.end(), std::not_equal_to<>() ) == thismcHitIDs.end() ){
+	thisseedmcid=thismcHitIDs.at(0);
+      }
+    }
+    //printf(" %d\n", thisseedmcid);
+    }
+#endif
+
+
     for (int qi = qb1; qi < qb2; ++qi)
     {
       for (int pi = pb1; pi < pb2; ++pi)
@@ -398,9 +481,166 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
               break;
 
             const float ddq = std::abs(q - L.m_hit_qs[hi]);
+            const float ddphi = cdist(std::abs(phi - L.m_hit_phis[hi]));
+	    
+#ifdef DUMPHITWINDOW
+	    {
+	    const MCHitInfo &mchinfo = m_event->simHitsInfo_[L.GetHit(hi).mcHitID()];
+	    int mchid = mchinfo.mcTrackID();
+	    int st_isfindable=0;
+	    int st_label=-999999;
+	    int st_prodtype=0;
+	    int st_nhits=-1;
+	    int st_charge=0;
+	    float st_r = -999.;
+	    float st_z = -999.;
+	    float st_pt =-999.;
+	    float st_eta=-999.;
+	    float st_phi=-999.;
+	    if (mchid >=0){
+	      Track simtrack =  m_event->simTracks_[mchid];
+	      st_isfindable  = (int) simtrack.isFindable();
+	      st_label       =       simtrack.label();
+	      st_prodtype    = (int) simtrack.prodType();
+	      st_pt          =       simtrack.pT();
+	      st_eta         =       simtrack.momEta();
+	      st_phi         =       simtrack.momPhi();
+	      st_nhits       =       simtrack.nTotalHits();
+	      st_charge      =       simtrack.charge();
+	      st_r           =       simtrack.posR();
+	      st_z           =       simtrack.z();
+	    }
+	    
+	    const Hit &thishit=L.GetHit(hi);
+	    msErr.CopyIn(itrack, thishit.errArray());
+	    msPar.CopyIn(itrack, thishit.posArray());
+	    const FindingFoos tmp_fndfoos_brl = {kalmanPropagateAndComputeChi2      ,kalmanPropagateAndUpdate      ,&MkBase::PropagateTracksToR};
+	    const FindingFoos tmp_fndfoos_ec  = {kalmanPropagateAndComputeChi2Endcap,kalmanPropagateAndUpdateEndcap,&MkBase::PropagateTracksToZ};
+
+	    const FindingFoos &this_fnd_foos = L.is_barrel() ?  tmp_fndfoos_brl : tmp_fndfoos_ec; 
+	    MPlexQF thisOutChi2;
+	    (*this_fnd_foos.m_compute_chi2_foo)(Err[iI], Par[iI], Chg, msErr, msPar,
+						thisOutChi2, N_proc, Config::finding_intra_layer_pflags);
+	    float hx    = thishit.x();
+	    float hy    = thishit.y();
+	    float hz    = thishit.z();
+	    float hr    = std::hypot(hx, hy);
+	    float hphi  = std::atan2(hy, hx);
+	    float hex   = std::sqrt(thishit.exx());
+	    if(std::isnan(hex))
+	      hex = -999.;
+	    float hey   = std::sqrt(thishit.eyy());
+	    if(std::isnan(hey))
+	      hey = -999.;
+	    float hez   = std::sqrt(thishit.ezz());
+	    if(std::isnan(hez))
+	      hez = -999.;
+	    float her   = std::sqrt((hx*hx*thishit.exx() + hy*hy*thishit.eyy() + 2.0f*hx*hy*msErr.At(itrack,0,1)) / (hr*hr));
+	    if(std::isnan(her))
+	      her = -999.;
+	    float hephi = std::sqrt(thishit.ephi());
+	    if(std::isnan(hephi))
+	      hephi = -999.;
+	    float hchi2 = thisOutChi2[itrack];
+	    if(std::isnan(hchi2))
+	      hchi2 = -999.;
+	    float tx    = Par[iI].At(itrack,0,0);
+	    float ty    = Par[iI].At(itrack,1,0);
+	    float tz    = Par[iI].At(itrack,2,0);
+	    float tr    = std::hypot(tx, ty);
+	    float tphi  = std::atan2(ty, tx);
+	    float tchi2 = Chi2(itrack, 0, 0);
+	    if(std::isnan(tchi2))
+	      tchi2 = -999.;
+	    float tex   = std::sqrt(Err[iI].At(itrack,0,0));
+	    if(std::isnan(tex))
+	      tex = -999.;
+	    float tey   = std::sqrt(Err[iI].At(itrack,1,1));
+	    if(std::isnan(tey))
+	      tey = -999.;
+	    float tez   = std::sqrt(Err[iI].At(itrack,2,2));
+	    if(std::isnan(tez))
+	      tez = -999.;
+	    float ter   = std::sqrt((tx*tx*tex*tex + ty*ty*tey*tey + 2.0f*tx*ty*Err[iI].At(itrack,0,1)) / (tr*tr));
+	    if(std::isnan(ter))
+	      ter = -999.;
+	    float tephi = std::sqrt((ty*ty*tex*tex + tx*tx*tey*tey - 2.0f*tx*ty*Err[iI].At(itrack,0,1))/(tr*tr*tr*tr));
+	    if(std::isnan(tephi))
+	      tephi = -999.;
+	    float ht_dxy= std::hypot(hx-tx, hy-ty);
+	    float ht_dz = hz-tz;
+	    float ht_dphi= cdist(std::abs(hphi - tphi));
+	    
+	    static bool first = true;
+	    if (first)
+	      {
+		printf("HITWINDOWSEL "
+		       "evt_id/I:"
+		       "lyr_id/I:lyr_isbrl/I:hit_idx/I:"
+		       "trk_cnt/I:trk_idx/I:trk_label/I:"
+		       "trk_pt/F:trk_eta/F:trk_mphi/F:trk_chi2/F:"
+		       "nhits/I:"
+		       "seed_idx/I:seed_label/I:seed_algo/I:seed_mcid/I:"
+		       "hit_mcid/I:"
+		       "st_isfindable/I:st_prodtype/I:st_label/I:"
+		       "st_pt/F:st_eta/F:st_phi/F:"
+		       "st_nhits/I:st_charge/I:st_r/F:st_z/F:"
+		       "trk_q/F:hit_q/F:dq_trkhit/F:dq_cut/F:trk_phi/F:hit_phi/F:dphi_trkhit/F:dphi_cut/F:"
+		       "t_x/F:t_y/F:t_r/F:t_phi/F:t_z/F:"
+		       "t_ex/F:t_ey/F:t_er/F:t_ephi/F:t_ez/F:"
+		       "h_x/F:h_y/F:h_r/F:h_phi/F:h_z/F:"
+		       "h_ex/F:h_ey/F:h_er/F:h_ephi/F:h_ez/F:"
+		       "ht_dxy/F:ht_dz/F:ht_dphi/F:"
+		       "h_chi2/F"
+		       "\n");
+		first = false;
+	      }
+	    
+	    if(!(std::isnan(phi)) && !(std::isnan(getEta(Par[iI].At(itrack,5,0)))))
+	      {
+		//|| std::isnan(ter) || std::isnan(her) || std::isnan(Chi2(itrack, 0, 0)) || std::isnan(hchi2)))
+		printf("HITWINDOWSEL "
+		       "%d "
+		       "%d %d %d "
+		       "%d %d %d "
+		       "%6.3f %6.3f %6.3f %6.3f "
+		       "%d "
+		       "%d %d %d %d "
+		       "%d "
+		       "%d %d %d "
+		       "%6.3f %6.3f %6.3f "
+		       "%d %d %6.3f %6.3f "
+		       "%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f "
+		       "%6.3f %6.3f %6.3f %6.3f %6.3f "
+		       "%6.6f %6.6f %6.6f %6.6f %6.6f "
+		       "%6.3f %6.3f %6.3f %6.3f %6.3f "
+		       "%6.6f %6.6f %6.6f %6.6f %6.6f "
+		       "%6.3f %6.3f %6.3f "
+		       "%6.3f"
+		       "\n",
+		       m_event->evtID(),
+		       L.layer_id(), L.is_barrel(), L.GetOriginalHitIndex(hi),
+		       itrack, CandIdx(itrack, 0, 0), Label(itrack, 0, 0),
+		       1.0f/Par[iI].At(itrack,3,0), getEta(Par[iI].At(itrack,5,0)), Par[iI].At(itrack,4,0), Chi2(itrack, 0, 0), 
+		       NFoundHits(itrack, 0, 0),
+		       SeedIdx(itrack, 0, 0), SeedLabel(itrack, 0, 0), SeedAlgo(itrack, 0, 0), thisseedmcid,
+		       mchid, 
+		       st_isfindable, st_prodtype, st_label, 
+		       st_pt, st_eta, st_phi,
+		       st_nhits, st_charge, st_r, st_z,
+		       q, L.m_hit_qs[hi], ddq, dq, phi, L.m_hit_phis[hi], ddphi, dphi,
+		       tx,  ty,  tr,  tphi,  tz,
+		       tex, tey, ter, tephi, tez, 
+		       hx,  hy,  hr,  hphi,  hz,
+		       hex, hey, her, hephi, hez, 
+		       ht_dxy, ht_dz, ht_dphi,
+		       hchi2);
+	      }
+	    }
+#endif
+	    
             if (ddq >= dq)
               continue;
-            const float ddphi = cdist(std::abs(phi - L.m_hit_phis[hi]));
             if (ddphi >= dphi)
               continue;
 
