@@ -174,7 +174,7 @@ void MkFinder::getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, const f
   float dq2 = Config::m_dq_params[itidx][lid][2];
   min_dq = dq0*invpt+dq1*theta+dq2;
   if(min_dq<=0)
-    min_dq = ILC.min_dq()
+    min_dq = ILC.min_dq();
   max_dq = 2.0f*min_dq;
 
   float dp0 = Config::m_dp_params[itidx][lid][0];
@@ -182,7 +182,7 @@ void MkFinder::getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, const f
   float dp2 = Config::m_dp_params[itidx][lid][2];
   min_dphi = dp0*invpt+dp1*theta+dp2;
   if(min_dphi<=0)
-    min_dphi = ILC.min_dphi()
+    min_dphi = ILC.min_dphi();
   max_dphi = 2.0f*min_dphi;
 
   //float c20 = HitSelectionWindows::m_c2_params[itidx][lid][0];
