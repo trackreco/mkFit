@@ -399,6 +399,7 @@ double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder,
       {
         if (s.algoint() == job.m_iter_config.m_track_algorithm) {
           if(s.algoint()==9) {s.sortHitsByLayer();}
+          else if(s.algoint()==10) {s.sortHitsByLayer();}
           seeds.push_back(s);
           ++nc;
         }
@@ -407,7 +408,7 @@ double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder,
     }
 
     // MIMI -- using Iter0 function / tuning for all iterations.
-    if(it!=7) ev.clean_cms_seedtracks_iter(&seeds, Config::ItrInfo[it]);
+    if(it<7) ev.clean_cms_seedtracks_iter(&seeds, Config::ItrInfo[it]);
     //tested QF + StdSeq::find_duplicates_sharedhits without the seed cleaning
 
     builder.seed_post_cleaning(seeds, true, true);
@@ -428,7 +429,10 @@ double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder,
     // XXXX to builder m_tracks ... or do we do this for validation anyway ?    
     builder.export_best_comb_cands(ev.candidateTracks_);
     if(it==7) StdSeq::quality_filter(ev.candidateTracks_,seeds);
-    if(it==7) StdSeq::find_duplicates_sharedhits(ev.candidateTracks_,seeds);
+    if(it==7) StdSeq::find_duplicates_sharedhits(ev.candidateTracks_,seeds,0.19);
+
+    if(it==8) StdSeq::quality_filter(ev.candidateTracks_,seeds,4,10);
+    if(it==8) StdSeq::find_duplicates_sharedhits(ev.candidateTracks_,seeds,0.25,10);
 
     // now do backwards fit... do we want to time this section?
     if (Config::backwardFit)

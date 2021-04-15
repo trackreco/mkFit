@@ -111,6 +111,16 @@ namespace
       ip.chi2Cut          = 30; 
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
+    }
+    else if (it == 6)
+    {
+      ip.nlayers_per_seed = 3;
+      ip.maxCandsPerSeed  = 2;
+      ip.maxHolesPerCand  = 4;
+      ip.maxConsecHoles   = 1;
+      ip.chi2Cut          = 30;
+      ip.chi2CutOverlap   = 3.5;
+      ip.pTCutOverlap     = 1;
     } 
     else if (it == 7) //for the PixelLess and TobTec: maxcand 2 and 0 consecHoles
     {   
