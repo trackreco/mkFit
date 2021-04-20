@@ -231,6 +231,8 @@ void test_standard()
   constexpr int NT = 5;
   double t_sum[NT] = {0};
   double t_skip[NT] = {0};
+  double t_sum_iter[Config::nItersCMSSW] = {0};
+  double t_skip_iter[Config::nItersCMSSW] = {0};
   double time = dtime();
 
   std::atomic<int> nevt{g_start_event};
@@ -309,6 +311,7 @@ void test_standard()
         StdSeq::LoadHits(ev, eoh);
 
         double t_best[NT] = {0}, t_cur[NT];
+        std::vector<double> t_cur_iter;
         simtrackstot += ev.simTracks_.size();
         seedstot     += ev.seedTracks_.size();
 
@@ -320,7 +323,8 @@ void test_standard()
           // t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
           t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev, eoh, mkb) : 0;
           t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, eoh, mkb) : 0;
-          t_cur[4] = (g_run_build_all || g_run_build_mimi)? runBtbCe_MultiIter(ev, eoh, mkb, Config::nItersCMSSW) : 0;
+          if(g_run_build_all || g_run_build_mimi) t_cur_iter = runBtbCe_MultiIter(ev, eoh, mkb, Config::nItersCMSSW);
+          t_cur[4] = (g_run_build_all || g_run_build_mimi)? t_cur_iter[Config::nItersCMSSW] : 0 ;
           if (g_run_build_all || g_run_build_cmssw) runBuildingTestPlexDumbCMSSW(ev, eoh, mkb);
           t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, eoh, mkb) : 0;
           if (g_run_build_ce){
@@ -361,6 +365,11 @@ void test_standard()
 
           for (int i = 0; i < NT; ++i) t_sum[i] += t_best[i];
           if (evt > 0) for (int i = 0; i < NT; ++i) t_skip[i] += t_best[i];
+          if(g_run_build_all || g_run_build_mimi)
+          {
+            for (int i = 0; i < Config::nItersCMSSW; ++i) t_sum_iter[i] += t_cur_iter[i];
+            if (evt > 0) for (int i = 0; i < Config::nItersCMSSW; ++i) t_skip_iter[i] += t_cur_iter[i];
+          }
         }
       }
     }, tbb::simple_partitioner());
@@ -380,7 +389,14 @@ void test_standard()
   printf("Total event loop time %.5f simtracks %d seedtracks %d builtcands %d maxhits %d on lay %d\n", time,
          simtrackstot.load(), seedstot.load(), candstot.load(), maxHits_all.load(), maxLayer_all.load());
   //fflush(stdout);
-
+  if(g_run_build_all || g_run_build_mimi)
+  {
+    printf("================================================================\n");
+    for (int i = 0; i < Config::nItersCMSSW; ++i) std::cout << " Iteration "<< i <<" build time = "<<t_sum_iter[i]<<" \n";
+    printf("================================================================\n");
+    for (int i = 0; i < Config::nItersCMSSW; ++i) std::cout << " Iteration "<< i <<" build time (event > 1) = "<<t_skip_iter[i]<<" \n";
+    printf("================================================================\n");
+  }
   if (g_operation == "read")
   {
     data_file.Close();

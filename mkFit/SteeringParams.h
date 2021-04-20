@@ -204,6 +204,10 @@ public:
   float c_dzmax_bl = 0.005;
   float c_drmax_el = 0.015;
   float c_dzmax_el = 0.015;
+
+  int minHitsQF = 4;
+  float fracSharedHits = 0.19;
+
 };
 
 
@@ -233,6 +237,9 @@ public:
 
   int    m_iteration_index  = -1;
   int    m_track_algorithm  = -1;
+  
+  bool  m_requires_seed_hit_sorting = false;
+  bool  m_require_quality_filter    = false;
 
   // Iteration parameters (could be a ptr)
   IterationParams                     m_params;
@@ -267,6 +274,18 @@ public:
   {
     m_iteration_index = idx;
     m_track_algorithm = trk_alg;
+  }
+  
+  void set_qf_flags()
+  {
+    m_requires_seed_hit_sorting=true;
+    m_require_quality_filter=true;
+  }
+
+  void set_qf_params(int minHits, float sharedFrac)
+  {
+     m_params.minHitsQF=minHits;
+     m_params.fracSharedHits=sharedFrac;
   }
   
   void set_seed_cleaning_params(float pt_thr, 
