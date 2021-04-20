@@ -36,7 +36,6 @@ public:
   int  use_seeds_from_cmsswtracks(); //special mode --> use only seeds which generated cmssw reco track
   int  clean_cms_simtracks();
   int  clean_cms_seedtracks(TrackVec *seed_ptr = nullptr); //operates on seedTracks_; returns the number of cleaned seeds
-  int  clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg);
   int  clean_cms_seedtracks_badlabel(); //operates on seedTracks_, removes those with label == -1;
   void relabel_bad_seedtracks();
   void relabel_cmsswtracks_from_seeds();
