@@ -352,10 +352,10 @@ double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuild
 // And if we care about doing too muich work for seeds that will never get processed.
 //==============================================================================
 
-double *runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder, int n)
+std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder, int n)
 {
   
-  static double timevec[10] = {0};
+  std::vector<double> timevec;
   double ttime[10] = {0};
   if (n<=0) return timevec;//at least one iter by default
 
@@ -410,7 +410,7 @@ double *runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder
     }
 
     // MIMI -- using Iter0 function / tuning for all iterations.
-    if(it<7) ev.clean_cms_seedtracks_iter(&seeds, Config::ItrInfo[it]);
+    if(it<7) StdSeq::clean_cms_seedtracks_iter(&seeds, Config::ItrInfo[it]);
     //tested QF + StdSeq::find_duplicates_sharedhits without the seed cleaning
 
     builder.seed_post_cleaning(seeds, true, true);
@@ -488,7 +488,7 @@ double *runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder
 
   // MIMI Unfake.
   builder.end_event(); 
-  for (auto i =0; i<=n; i++){timevec[i]=ttime[i];}
+  for (auto i =0; i<=n; i++){timevec.push_back(ttime[i]);}
   return timevec;
 
 }
@@ -527,10 +527,8 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
 
   if (do_seed_clean)
   {
-  // XXXX MIMI -- added dependency of seed cleaning from iteration-- need to put this out of the event
-    Event dummy_ev(-1);
     //seed cleaning not done on the last 2 iterations
-    if(!itconf.m_require_quality_filter) dummy_ev.clean_cms_seedtracks_iter(&seeds, itconf);
+    if(!itconf.m_require_quality_filter) StdSeq::clean_cms_seedtracks_iter(&seeds, itconf);
   }
 
   // Check nans in seeds -- this should not be needed when Slava fixes
