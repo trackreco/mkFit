@@ -125,7 +125,6 @@ namespace
     else if (it == 3) // for triplet steps, nlayers_per_seed=3
     {   
       ip.nlayers_per_seed = 3;
-<<<<<<< HEAD
       ip.maxCandsPerSeed  = 5;
       ip.maxHolesPerCand  = 4;
       ip.maxConsecHoles   = 1;
