@@ -24,6 +24,10 @@ namespace StdSeq
     void find_duplicates(TrackVec &tracks);
     void remove_duplicates(TrackVec &tracks);
     void handle_duplicates(Event *m_event);
+      
+    void quality_filter(TrackVec &tracks, TrackVec & seeds, const int nMinHits=4, const int algo=9);
+    void find_duplicates_sharedhits(TrackVec &tracks,  TrackVec & seeds, const float fraction=0.11, const int algo=9);
+
 } // namespace StdSeq
 
 }

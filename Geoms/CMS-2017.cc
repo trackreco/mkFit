@@ -111,7 +111,7 @@ namespace
       ip.chi2Cut          = 30; 
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
-    } 
+    }
     else if (it == 2)
     {   
       ip.nlayers_per_seed = 4;
@@ -125,6 +125,7 @@ namespace
     else if (it == 3) // for triplet steps, nlayers_per_seed=3
     {   
       ip.nlayers_per_seed = 3;
+<<<<<<< HEAD
       ip.maxCandsPerSeed  = 5;
       ip.maxHolesPerCand  = 4;
       ip.maxConsecHoles   = 1;
@@ -152,13 +153,13 @@ namespace
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
     } 
-    else if (it == 6) // for triplet steps, nlayers_per_seed=3
-    {   
+    else if (it == 6) // for triplet steps, nlayers_per_seed=3; for mixeTripletSetp, also maxCandsPerSeed=2
+    {
       ip.nlayers_per_seed = 3;
-      ip.maxCandsPerSeed  = 5;
+      ip.maxCandsPerSeed  = 2;
       ip.maxHolesPerCand  = 4;
       ip.maxConsecHoles   = 1;
-      ip.chi2Cut          = 30; 
+      ip.chi2Cut          = 30;
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
     } 
@@ -344,19 +345,25 @@ namespace
     ii[6].set_iteration_index_and_track_algorithm(6, (int) TrackBase::TrackAlgorithm::mixedTripletStep);
     ii[6].set_seed_cleaning_params(2.0, 0.05, 0.05, 0.135, 0.135, 0.05, 0.05, 0.135, 0.135);
     ii[6].fill_hit_selection_windows_params();
-    
+
     ii[7].Clone(ii[0]);
     SetupIterationParams(ii[7].m_params, 7);
     ii[7].set_iteration_index_and_track_algorithm(7, (int) TrackBase::TrackAlgorithm::pixelLessStep);
-    ii[7].set_seed_cleaning_params(2.0, 0.37, 0.37, 0.37, 0.37, 0.37, 0.37, 0.37, 0.37);
+    ii[7].set_seed_cleaning_params(2.0, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135);
+    ii[7].set_qf_flags();
+    ii[7].set_qf_params(4,0.19);
     ii[7].fill_hit_selection_windows_params();
-    
+
     ii[8].Clone(ii[0]);
     SetupIterationParams(ii[8].m_params, 8);
     ii[8].set_iteration_index_and_track_algorithm(8, (int) TrackBase::TrackAlgorithm::tobTecStep);
-    ii[8].set_seed_cleaning_params(2.0, 0.37, 0.37, 0.37, 0.37, 0.37, 0.37, 0.37, 0.37);    
+    ii[8].set_seed_cleaning_params(2.0, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135);    
+    ii[8].set_qf_flags();
+    ii[8].set_qf_params(4,0.25);
     ii[8].fill_hit_selection_windows_params();
 
+    //for the latter 2 iter investing in maxCand & stop condition (for time) + QF and Dupl. cleaning (for quality)
+    
     if (verbose)
     {
       printf("==========================================================================================\n");

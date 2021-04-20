@@ -206,12 +206,14 @@ public:
   float c_drmax_el = 0.015;
   float c_dzmax_el = 0.015;
 
+  int minHitsQF = 4;
+  float fracSharedHits = 0.19;
+
   //Hit selection windows: 2D fit/layer (72 in phase-1 CMS geometry)
   //cut = [0]*1/pT + [1]*std::fabs(theta-pi/2) + [2])
   float c_dp_params[72][3];
   float c_dq_params[72][3];
   float c_c2_params[72][3];
-
 };
 
 
@@ -241,6 +243,9 @@ public:
 
   int    m_iteration_index  = -1;
   int    m_track_algorithm  = -1;
+  
+  bool  m_requires_seed_hit_sorting = false;
+  bool  m_require_quality_filter    = false;
 
   // Iteration parameters (could be a ptr)
   IterationParams                     m_params;
@@ -275,6 +280,18 @@ public:
   {
     m_iteration_index = idx;
     m_track_algorithm = trk_alg;
+  }
+  
+  void set_qf_flags()
+  {
+    m_requires_seed_hit_sorting=true;
+    m_require_quality_filter=true;
+  }
+
+  void set_qf_params(int minHits, float sharedFrac)
+  {
+     m_params.minHitsQF=minHits;
+     m_params.fracSharedHits=sharedFrac;
   }
   
   void set_seed_cleaning_params(float pt_thr, 
