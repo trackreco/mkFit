@@ -352,10 +352,12 @@ double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuild
 // And if we care about doing too muich work for seeds that will never get processed.
 //==============================================================================
 
-double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder, int n)
+double *runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder, int n)
 {
-  double ttime = 0;
-  if (n<=0) return ttime; //at least one iter by default
+  
+  static double timevec[10] = {0};
+  double ttime[10] = {0};
+  if (n<=0) return timevec;//at least one iter by default
 
   const bool validation_on = (Config::sim_val || Config::quality_val);
   
@@ -421,18 +423,18 @@ double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder,
 
     builder.FindTracksCloneEngine();
 
-    ttime += dtime() - time;
+    ttime[it] += dtime() - time;
+    ttime[n] += ttime[it];
 
     if (validation_on)  seeds_used.insert(seeds_used.end(), seeds.begin(), seeds.end());//cleaned seeds need to be stored somehow
     
     // first store candidate tracks - needed for BH backward fit and root_validation
     // XXXX to builder m_tracks ... or do we do this for validation anyway ?    
     builder.export_best_comb_cands(ev.candidateTracks_);
-    if(it==7) StdSeq::quality_filter(ev.candidateTracks_,seeds);
-    if(it==7) StdSeq::find_duplicates_sharedhits(ev.candidateTracks_,seeds,0.19);
 
-    if(it==8) StdSeq::quality_filter(ev.candidateTracks_,seeds,4,10);
-    if(it==8) StdSeq::find_duplicates_sharedhits(ev.candidateTracks_,seeds,0.25,10);
+    //ideally I would do this on m_event_of_comb_cands or similar at the end of the iteration, not to have to check the iteration algo 
+    if(it>=7) StdSeq::quality_filter(ev.candidateTracks_,seeds, Config::ItrInfo[it].m_params.minHitsQF, Config::ItrInfo[it].m_track_algorithm);
+    if(it>=7) StdSeq::find_duplicates_sharedhits(ev.candidateTracks_,seeds,Config::ItrInfo[it].m_params.fracSharedHits, Config::ItrInfo[it].m_track_algorithm);
 
     // now do backwards fit... do we want to time this section?
     if (Config::backwardFit)
@@ -469,6 +471,7 @@ double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder,
   if (Config::backwardFit) check_nan_n_silly_bkfit(ev);
 
   // ??? MIMI - How to do this? Assuming cleaning of all iterations together.
+  // need to update it so that it is done by iteration
   StdSeq::handle_duplicates(&ev);
 
   // ??? MIMI - And same here ... most validation runs on Event, I hope.
@@ -484,9 +487,10 @@ double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder,
   // ev.print_tracks(ev.candidateTracks_, true);
 
   // MIMI Unfake.
-  builder.end_event();
+  builder.end_event(); 
+  for (auto i =0; i<=n; i++){timevec[i]=ttime[i];}
+  return timevec;
 
-  return ttime;
 }
 
 
@@ -523,16 +527,21 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
 
   if (do_seed_clean)
   {
-  // XXXX MIMI -- Leonardo working on iter-dependent seed cleaning, will be out of Event!
+  // XXXX MIMI -- added dependency of seed cleaning from iteration-- need to put this out of the event
     Event dummy_ev(-1);
-    dummy_ev.clean_cms_seedtracks(&seeds);
+    //seed cleaning not done on the last 2 iterations
+    if(!itconf.m_require_quality_filter) dummy_ev.clean_cms_seedtracks_iter(&seeds, itconf);
   }
 
   // Check nans in seeds -- this should not be needed when Slava fixes
   // the track parameter coordinate transformation.
   builder.seed_post_cleaning(seeds, true, true);
 
-  for (auto &s : seeds) assignSeedTypeForRanking(s);
+  for (auto &s : seeds) 
+  {
+   if(itconf.m_requires_seed_hit_sorting) s.sortHitsByLayer();  // sort seed hits for the matched hits (I hope it works here)
+   assignSeedTypeForRanking(s);
+  }  
 
   builder.find_tracks_load_seeds(seeds);
 
@@ -556,8 +565,16 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
 
   if (do_remove_duplicates)
   {
-    StdSeq::find_duplicates(out_tracks);
-    StdSeq::remove_duplicates(out_tracks);
+    if(itconf.m_require_quality_filter) //the last 2 iterations have no seed cleaning but qf + duplicate removal by shared hits 
+    {
+      StdSeq::quality_filter(out_tracks, seeds, itconf.m_params.minHitsQF, itconf.m_track_algorithm);
+      StdSeq::find_duplicates_sharedhits(out_tracks, seeds, itconf.m_params.fracSharedHits, itconf.m_track_algorithm);
+    }
+    else //regular dupl cleaning
+    {
+      StdSeq::find_duplicates(out_tracks);
+      StdSeq::remove_duplicates(out_tracks);
+    }
   }
 
   builder.end_event();

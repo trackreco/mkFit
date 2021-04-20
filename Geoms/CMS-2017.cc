@@ -293,15 +293,20 @@ namespace
     ii[6].Clone(ii[0]);
     ii[6].set_iteration_index_and_track_algorithm(6, (int) TrackBase::TrackAlgorithm::mixedTripletStep);
     ii[6].set_seed_cleaning_params(2.0, 0.05, 0.05, 0.135, 0.135, 0.05, 0.05, 0.135, 0.135);
-    
+    SetupIterationParams(ii[6].m_params, 6);    
+
     ii[7].Clone(ii[0]);
     ii[7].set_iteration_index_and_track_algorithm(7, (int) TrackBase::TrackAlgorithm::pixelLessStep);
     ii[7].set_seed_cleaning_params(2.0, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135);
+    ii[7].set_qf_flags();
+    ii[7].set_qf_params(4,0.19);
     SetupIterationParams(ii[7].m_params, 7);
     
     ii[8].Clone(ii[0]);
     ii[8].set_iteration_index_and_track_algorithm(8, (int) TrackBase::TrackAlgorithm::tobTecStep);
     ii[8].set_seed_cleaning_params(2.0, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135);    
+    ii[8].set_qf_flags();
+    ii[8].set_qf_params(4,0.25);
     SetupIterationParams(ii[8].m_params, 8);
     //for the latter 2 iter investing in maxCand & stop condition (for time) + QF and Dupl. cleaning (for quality)
     
