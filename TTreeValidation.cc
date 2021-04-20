@@ -1109,7 +1109,6 @@ void TTreeValidation::setTrackScoresDumbCMSSW(Event& ev)
   // first assign seed type to seeds and compute score...
   for (auto & seedtrack : seedtracks)
   {
-    assignSeedTypeForRanking(seedtrack);
     seedtrack.setScore(getScoreCand(seedtrack));
   }
 
@@ -1119,7 +1118,6 @@ void TTreeValidation::setTrackScoresDumbCMSSW(Event& ev)
     const auto & seedtrack = seedtracks[candToSeedPair.second];
     auto & candtrack = candtracks[candToSeedPair.first];
 
-    candtrack.setSeedTypeForRanking(seedtrack.getSeedTypeForRanking());
     candtrack.setScore(getScoreCand(candtrack));
   }
   for (const auto & fitToSeedPair : fitToSeedMapDumbCMSSW_)
@@ -1127,7 +1125,6 @@ void TTreeValidation::setTrackScoresDumbCMSSW(Event& ev)
     const auto & seedtrack = seedtracks[fitToSeedPair.second];
     auto & fittrack = fittracks[fitToSeedPair.first];
 
-    fittrack.setSeedTypeForRanking(seedtrack.getSeedTypeForRanking());
     fittrack.setScore(getScoreCand(fittrack));
   }
 }

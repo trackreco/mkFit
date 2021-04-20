@@ -21,9 +21,8 @@
 
 namespace mkfit {
 
-void MkFinder::Setup(const IterationConfig &ic, const IterationParams &ip, const IterationLayerConfig &ilc, const std::vector<bool> *ihm)
+void MkFinder::Setup(const IterationParams &ip, const IterationLayerConfig &ilc, const std::vector<bool> *ihm)
 {
-  m_iter_config            = &ic;
   m_iteration_params       = &ip;
   m_iteration_layer_config = &ilc;
   m_iteration_hit_mask     =  ihm;
@@ -31,7 +30,6 @@ void MkFinder::Setup(const IterationConfig &ic, const IterationParams &ip, const
 
 void MkFinder::Release()
 {
-  m_iter_config            = nullptr;
   m_iteration_params       = nullptr;
   m_iteration_layer_config = nullptr;
   m_iteration_hit_mask     = nullptr;
@@ -91,10 +89,12 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>     & track
     const TrackCand &trk = tracks[idxs[i].first][idxs[i].second];
 
     copy_in(trk, imp, iI);
-
-    SeedType(imp, 0, 0) = tracks[idxs[i].first].m_seed_type;
+    
+#ifdef DUMPHITWINDOW
     SeedAlgo(imp, 0, 0) = tracks[idxs[i].first].m_seed_algo;
     SeedLabel(imp, 0, 0) = tracks[idxs[i].first].m_seed_label;
+#endif
+
     SeedIdx(imp, 0, 0) = idxs[i].first;
     CandIdx(imp, 0, 0) = idxs[i].second;
   }
@@ -117,9 +117,11 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>            
 
     copy_in(trk, imp, iI);
 
-    SeedType(imp, 0, 0) = tracks[idxs[i].first].m_seed_type;
+#ifdef DUMPHITWINDOW
     SeedAlgo(imp, 0, 0) = tracks[idxs[i].first].m_seed_algo;
     SeedLabel(imp, 0, 0) = tracks[idxs[i].first].m_seed_label;
+#endif
+
     SeedIdx(imp, 0, 0) = idxs[i].first;
     CandIdx(imp, 0, 0) = idxs[i].second.trkIdx;
   }
@@ -162,16 +164,16 @@ void MkFinder::OutputTracksAndHitIdx(std::vector<Track>& tracks,
 
 void MkFinder::getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, const float invpt, const float theta, float &min_dq, float &max_dq, float &min_dphi, float &max_dphi)
 {
-  const IterationConfig      &IC  = *m_iter_config;
+  const IterationParams      &IP  = *m_iteration_params;
   const IterationLayerConfig &ILC = *m_iteration_layer_config;
   const LayerOfHits          &L   = layer_of_hits;
 
   int lid     = L.layer_id();
 
   // dq hit selection window
-  float dq0 = IC.m_params.c_dq_params[lid][0];
-  float dq1 = IC.m_params.c_dq_params[lid][1];
-  float dq2 = IC.m_params.c_dq_params[lid][2];
+  float dq0 = IP.c_dq_params[lid][0];
+  float dq1 = IP.c_dq_params[lid][1];
+  float dq2 = IP.c_dq_params[lid][2];
   float this_dq = dq0*invpt+dq1*theta+dq2;  
   // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
   if(this_dq>0.f){
@@ -180,9 +182,9 @@ void MkFinder::getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, const f
   }
 
   // dphi hit selection window
-  float dp0 = IC.m_params.c_dp_params[lid][0];
-  float dp1 = IC.m_params.c_dp_params[lid][1];
-  float dp2 = IC.m_params.c_dp_params[lid][2];
+  float dp0 = IP.c_dp_params[lid][0];
+  float dp1 = IP.c_dp_params[lid][1];
+  float dp2 = IP.c_dp_params[lid][2];
   float this_dphi = dp0*invpt+dp1*theta+dp2;
   // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
   if(this_dphi>0.f){
@@ -191,9 +193,9 @@ void MkFinder::getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, const f
   }
 
   // For future optimization: for layer & iteration dependend hit chi2 cut
-  //float c20 = IC.m_params.c_c2_params[itidx][lid][0];
-  //float c21 = IC.m_params.c_c2_params[itidx][lid][1];
-  //float c22 = IC.m_params.c_c2_params[itidx][lid][2];
+  //float c20 = IP.c_c2_params[itidx][lid][0];
+  //float c21 = IP.c_c2_params[itidx][lid][1];
+  //float c22 = IP.c_c2_params[itidx][lid][2];
   //max_c2   = c20*invpt+c21*theta+c22;
 
 }
@@ -228,9 +230,6 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
   const auto assignbins = [&](int itrack, float q, float dq, float phi, float dphi){
 
-    float invpt = Par[iI].At(itrack,3,0);
-    float theta = std::fabs(Par[iI].At(itrack,5,0)-Config::PIOver2);
-    getHitSelDynamicWindows(L, invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
     dphi = clamp(std::abs(dphi), min_dphi, max_dphi);
     dq   = clamp(dq, min_dq, max_dq);
 
@@ -251,11 +250,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
        2 * dphidx * dphidy * Err[iI].ConstAt(itrack, 0, 1);
   };
 
-  const auto calcdphi = [&](int itrack, float dphi2) {
-    //return std::max(nSigmaPhi * std::sqrt(std::abs(dphi2)), ILC.min_dphi());
-    float invpt = Par[iI].At(itrack,3,0);
-    float theta = std::fabs(Par[iI].At(itrack,5,0)-Config::PIOver2);
-    getHitSelDynamicWindows(L, invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
+  const auto calcdphi = [&](float dphi2) {
     return std::max(nSigmaPhi * std::sqrt(std::abs(dphi2)), min_dphi);
   };
 
@@ -269,6 +264,10 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     {
       XHitSize[itrack] = 0;
 
+      const float invpt = Par[iI].At(itrack,3,0);
+      const float theta = std::fabs(Par[iI].At(itrack,5,0)-Config::PIOver2);
+      getHitSelDynamicWindows(L, invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
+
       const float x = Par[iI].ConstAt(itrack, 0, 0);
       const float y = Par[iI].ConstAt(itrack, 1, 0);
 
@@ -280,7 +279,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 #endif
 
       const float phi  = getPhi(x, y);
-      float dphi = calcdphi(itrack, dphi2);
+      float dphi = calcdphi(dphi2);
 
       const float z  = Par[iI].ConstAt(itrack, 2, 0);
       const float dz = std::abs(nSigmaZ * std::sqrt(Err[iI].ConstAt(itrack, 2, 2)));
@@ -322,6 +321,10 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     {
       XHitSize[itrack] = 0;
 
+      const float invpt = Par[iI].At(itrack,3,0);
+      const float theta = std::fabs(Par[iI].At(itrack,5,0)-Config::PIOver2);
+      getHitSelDynamicWindows(L, invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
+
       const float x = Par[iI].ConstAt(itrack, 0, 0);
       const float y = Par[iI].ConstAt(itrack, 1, 0);
 
@@ -333,7 +336,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 #endif
 
       const float phi  = getPhi(x, y);
-      float dphi = calcdphi(itrack, dphi2);
+      float dphi = calcdphi(dphi2);
 
       const float  r = std::sqrt(r2);
       const float dr = std::abs(nSigmaR*(x*x*Err[iI].ConstAt(itrack, 0, 0) + y*y*Err[iI].ConstAt(itrack, 1, 1) + 2*x*y*Err[iI].ConstAt(itrack, 0, 1)) / r2);
@@ -898,7 +901,6 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
             TrackCand newcand;
             copy_out(newcand, itrack, iC);
 	    newcand.addHitIdx(hit_idx, layer_of_hits.layer_id(), chi2);
-	    newcand.setSeedTypeForRanking(SeedType(itrack, 0, 0));
 	    newcand.setScore(getScoreCand(newcand, true));
             newcand.setOriginIndex(CandIdx(itrack, 0, 0));
 
@@ -949,7 +951,6 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
     TrackCand newcand;
     copy_out(newcand, itrack, iP);
     newcand.addHitIdx(fake_hit_idx, layer_of_hits.layer_id(), 0.);
-    newcand.setSeedTypeForRanking(SeedType(itrack, 0, 0));
     newcand.setScore(getScoreCand(newcand, true));
     // Only relevant when we actually add a hit
     // newcand.setOriginIndex(CandIdx(itrack, 0, 0));
@@ -1036,7 +1037,6 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
           tmpList.ntailholes= 0;
           tmpList.noverlaps= NOverlapHits(itrack,0,0);
           tmpList.nholes   = num_all_minus_one_hits(itrack);
-          tmpList.seedtype = SeedType(itrack, 0, 0);
           tmpList.pt       = std::abs(1.0f / Par[iP].At(itrack,3,0));
           tmpList.chi2     = Chi2(itrack, 0, 0) + chi2;
           tmpList.chi2_hit = chi2;
@@ -1083,7 +1083,6 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     tmpList.ntailholes= NTailMinusOneHits(itrack,0,0)+1;
     tmpList.noverlaps= NOverlapHits(itrack,0,0);
     tmpList.nholes   = num_inside_minus_one_hits(itrack);
-    tmpList.seedtype = SeedType(itrack, 0, 0);
     tmpList.pt       = std::abs(1.0f / Par[iP].At(itrack,3,0));
     tmpList.chi2     = Chi2(itrack, 0, 0);
     tmpList.chi2_hit = 0;

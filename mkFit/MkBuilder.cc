@@ -1084,7 +1084,6 @@ void MkBuilder::score_tracks(TrackVec& tracks)
 {
   for (auto & track : tracks)
   {
-    assignSeedTypeForRanking(track);
     track.setScore(getScoreCand(track));
   }
 }
@@ -1238,13 +1237,6 @@ void MkBuilder::PrepareSeeds()
     exit(1);
   }
 
-  //Assign idx to seeds for determining kinematic range for candidate ranking
-  //0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
-  for (size_t ts = 0; ts < m_event->seedTracks_.size(); ++ts)
-  {
-    assignSeedTypeForRanking(m_event->seedTracks_[ts]);
-  }
-
   // Do not refit cmssw seeds (this if was nested in fit_one_seed_set() until now).
   // Eventually we can add force-refit option.
   if (Config::seedInput != cmsswSeeds)
@@ -1332,7 +1324,7 @@ void MkBuilder::FindTracksBestHit()
         {
           prev_layer = curr_layer;
           curr_layer = layer_plan_it->m_layer;
-          mkfndr->Setup(m_job->m_iter_config, m_job->m_iter_config.m_params, m_job->m_iter_config.m_layer_configs[curr_layer],
+          mkfndr->Setup(m_job->m_iter_config.m_params, m_job->m_iter_config.m_layer_configs[curr_layer],
                         m_job->get_mask_for_layer(curr_layer));
 
           dprint("at layer " << curr_layer);
@@ -1614,7 +1606,7 @@ void MkBuilder::FindTracksStandard()
       {
         prev_layer = curr_layer;
         curr_layer = layer_plan_it->m_layer;
-        mkfndr->Setup(m_job->m_iter_config, m_job->m_iter_config.m_params, m_job->m_iter_config.m_layer_configs[curr_layer],
+        mkfndr->Setup(m_job->m_iter_config.m_params, m_job->m_iter_config.m_layer_configs[curr_layer],
                       m_job->get_mask_for_layer(curr_layer));
 
         dprintf("\n* Processing layer %d\n", curr_layer);
@@ -1823,7 +1815,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
   {
     prev_layer = curr_layer;
     curr_layer = layer_plan_it->m_layer;
-    mkfndr->Setup(m_job->m_iter_config, m_job->m_iter_config.m_params, m_job->m_iter_config.m_layer_configs[curr_layer],
+    mkfndr->Setup(m_job->m_iter_config.m_params, m_job->m_iter_config.m_layer_configs[curr_layer],
                   m_job->get_mask_for_layer(curr_layer));
 
     const bool pickup_only = layer_plan_it->m_pickup_only;

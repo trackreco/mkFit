@@ -420,8 +420,6 @@ double *runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder
     
     builder.seed_post_cleaning(seeds, true, true);
 
-    for (auto &s : seeds) assignSeedTypeForRanking(s);
-
     builder.find_tracks_load_seeds(seeds);
 
     double time = dtime();
@@ -545,7 +543,6 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
   for (auto &s : seeds) 
   {
    if(itconf.m_requires_seed_hit_sorting) s.sortHitsByLayer();  // sort seed hits for the matched hits (I hope it works here)
-   assignSeedTypeForRanking(s);
   }  
 
   builder.find_tracks_load_seeds(seeds);
