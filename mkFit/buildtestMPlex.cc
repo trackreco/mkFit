@@ -352,12 +352,11 @@ double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuild
 // And if we care about doing too muich work for seeds that will never get processed.
 //==============================================================================
 
-double *runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder, int n)
+std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder, int n)
 {
-  
-  static double timevec[10] = {0};
-  double ttime[10] = {0};
-  if (n<=0) return timevec;//at least one iter by default
+  std::vector<double> timevec;
+  if (n<=0) return timevec;
+  timevec.resize(n + 1, 0.0);
 
   const bool validation_on = (Config::sim_val || Config::quality_val);
   
@@ -415,7 +414,7 @@ double *runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder
     }
 
     // MIMI -- using Iter0 function / tuning for all iterations.
-    if(it<7) ev.clean_cms_seedtracks_iter(&seeds, Config::ItrInfo[it]);
+    if(it<7) StdSeq::clean_cms_seedtracks_iter(&seeds, Config::ItrInfo[it]);
     //tested QF + StdSeq::find_duplicates_sharedhits without the seed cleaning
     
     std::cout << "Size of seeds: << "  << seeds.size() << std::endl;
@@ -432,8 +431,8 @@ double *runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder
 
     builder.FindTracksCloneEngine();
 
-    ttime[it] += dtime() - time;
-    ttime[n] += ttime[it];
+    timevec[it] = dtime() - time;
+    timevec[n] += timevec[it];
 
     if (validation_on)  seeds_used.insert(seeds_used.end(), seeds.begin(), seeds.end());//cleaned seeds need to be stored somehow
     
@@ -497,9 +496,8 @@ double *runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder
 
   // MIMI Unfake.
   builder.end_event(); 
-  for (auto i =0; i<=n; i++){timevec[i]=ttime[i];}
-  return timevec;
 
+  return timevec;
 }
 
 
@@ -536,10 +534,8 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
 
   if (do_seed_clean)
   {
-  // XXXX MIMI -- added dependency of seed cleaning from iteration-- need to put this out of the event
-    Event dummy_ev(-1);
     //seed cleaning not done on the last 2 iterations
-    if(!itconf.m_require_quality_filter) dummy_ev.clean_cms_seedtracks_iter(&seeds, itconf);
+    if(!itconf.m_require_quality_filter) StdSeq::clean_cms_seedtracks_iter(&seeds, itconf);
   }
 
   // Check nans in seeds -- this should not be needed when Slava fixes
