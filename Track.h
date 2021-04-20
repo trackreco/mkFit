@@ -223,6 +223,8 @@ public:
         // Production type (most useful for sim tracks): 0, 1, 2, 3 for unset, signal, in-time PU, oot PU
         unsigned int prod_type : 2;
 
+        unsigned int align_was_seed_type : 2;
+
         // Whether or not the track matched to another track and had the lower cand score
         bool duplicate : 1;
 

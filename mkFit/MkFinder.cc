@@ -90,8 +90,8 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>     & track
 
     copy_in(trk, imp, iI);
     
-    SeedAlgo(imp, 0, 0) = tracks[idxs[i].first].m_seed_algo;
 #ifdef DUMPHITWINDOW
+    SeedAlgo(imp, 0, 0) = tracks[idxs[i].first].m_seed_algo;
     SeedLabel(imp, 0, 0) = tracks[idxs[i].first].m_seed_label;
 #endif
 
@@ -117,8 +117,8 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>            
 
     copy_in(trk, imp, iI);
 
-    SeedAlgo(imp, 0, 0) = tracks[idxs[i].first].m_seed_algo;
 #ifdef DUMPHITWINDOW
+    SeedAlgo(imp, 0, 0) = tracks[idxs[i].first].m_seed_algo;
     SeedLabel(imp, 0, 0) = tracks[idxs[i].first].m_seed_label;
 #endif
 

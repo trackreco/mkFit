@@ -451,8 +451,10 @@ void CombCandidate::ImportSeed(const Track& seed)
 
   m_state           = CombCandidate::Dormant;
   m_last_seed_layer = seed.getLastHitLyr();
+#ifdef DUMPHITWINDOW
   m_seed_algo       = seed.algoint();
   m_seed_label      = seed.label();
+#endif
 
   TrackCand &cand = back();
 

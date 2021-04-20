@@ -18,7 +18,6 @@
 #include "Event.h"
 
 #include "MaterialEffects.h"
-#include "HitSelectionWindows.h"
 
 #ifndef NO_ROOT
 #include "Validation.h"

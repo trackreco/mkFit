@@ -365,8 +365,6 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
    
   unsigned int algorithms[]={ 4,22,23,5,24,7,8,9,10 }; //9 iterations
 
-  std::cout << "Size of seeds: << "  << ev.seedTracks_.size() << std::endl;
-
   if (validation_on) 
   {
     for (auto &s : ev.seedTracks_)
@@ -378,8 +376,6 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
     ev.relabel_bad_seedtracks();//necessary for the validation - PrepareSeeds
   }
   
-
-  std::cout << "Size of seeds: << "  << ev.seedTracks_.size() << std::endl;
 
   IterationMaskIfc mask_ifc;
 
@@ -417,8 +413,6 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
     if(it<7) StdSeq::clean_cms_seedtracks_iter(&seeds, Config::ItrInfo[it]);
     //tested QF + StdSeq::find_duplicates_sharedhits without the seed cleaning
     
-    std::cout << "Size of seeds: << "  << seeds.size() << std::endl;
-
     // Add protection in case no seeds are found for iteration
     if(seeds.size()<=0)
       continue;

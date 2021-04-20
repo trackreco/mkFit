@@ -13,6 +13,8 @@
 #include <array>
 #include "tbb/concurrent_vector.h"
 
+//#define DUMPHITWINDOW
+
 namespace mkfit {
 
 class IterationParams;
@@ -465,9 +467,10 @@ public:
   TrackCand    m_best_short_cand;
   SeedState_e  m_state           = Dormant;
   int          m_last_seed_layer = -1;
+#ifdef DUMPHITWINDOW
   int          m_seed_algo       =  0;
   int          m_seed_label      =  0;
-
+#endif
   int                  m_hots_size = 0;
   std::vector<HoTNode> m_hots;
 
@@ -484,8 +487,10 @@ public:
     m_best_short_cand(std::move(o.m_best_short_cand)),
     m_state(o.m_state),
     m_last_seed_layer(o.m_last_seed_layer),
+#ifdef DUMPHITWINDOW
     m_seed_algo(o.m_seed_algo),
     m_seed_label(o.m_seed_label),
+#endif
     m_hots_size(o.m_hots_size),
     m_hots(std::move(o.m_hots)),
     m_overlap_hits(std::move(o.m_overlap_hits))

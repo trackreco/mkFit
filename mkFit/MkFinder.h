@@ -16,8 +16,6 @@
 //#define DEBUG_BACKWARD_FIT_BH
 //#define DEBUG_BACKWARD_FIT
 
-//#define DUMPHITWINDOW
-
 namespace mkfit {
 
 class CandCloner;
@@ -70,8 +68,8 @@ public:
 
   HitOnTrack HoTArrs[NN][Config::nMaxTrkHits];
 
-  MPlexQI    SeedAlgo; // seed algorithm
 #ifdef DUMPHITWINDOW
+  MPlexQI    SeedAlgo; // seed algorithm
   MPlexQI    SeedLabel; // seed label
 #endif
 
