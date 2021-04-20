@@ -223,9 +223,6 @@ public:
         // Production type (most useful for sim tracks): 0, 1, 2, 3 for unset, signal, in-time PU, oot PU
         unsigned int prod_type : 2;
 
-        // Seed type for candidate ranking: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
-        unsigned int seed_type : 2;
-
         // Whether or not the track matched to another track and had the lower cand score
         bool duplicate : 1;
 

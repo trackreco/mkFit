@@ -465,7 +465,6 @@ public:
   TrackCand    m_best_short_cand;
   SeedState_e  m_state           = Dormant;
   int          m_last_seed_layer = -1;
-  unsigned int m_seed_type       =  0;
   int          m_seed_algo       =  0;
   int          m_seed_label      =  0;
 
@@ -485,7 +484,6 @@ public:
     m_best_short_cand(std::move(o.m_best_short_cand)),
     m_state(o.m_state),
     m_last_seed_layer(o.m_last_seed_layer),
-    m_seed_type(o.m_seed_type),
     m_seed_algo(o.m_seed_algo),
     m_seed_label(o.m_seed_label),
     m_hots_size(o.m_hots_size),
