@@ -2,6 +2,8 @@ import os,sys
 import ROOT
 import copy
 
+doNorm = True
+
 def getCanvasMainPad( logY ):
   pad1 = ROOT.TPad("pad1", "pad1", 0, 0.2, 1, 1)
   pad1.SetBottomMargin(0.15)
@@ -34,7 +36,7 @@ dirnames.append(sys.argv[2]) #updated (2)
 
 outdir = sys.argv[3]
 if not os.path.exists(outdir):
-  os.mkdir(outdir)
+  os.makedirs(outdir, exist_ok=True)
   os.system("cp web/index.php %s"%(outdir))
 
 names = ["Reference", "Other"]
@@ -293,9 +295,15 @@ for ns,subdir in enumerate(subdirs):
     efficiency = []
     reldiff    = []
     for d in range(0,len(tot)):
-      efficiency.append(passing[d]/tot[d])
-      reldiff.append(efficiency[d]/efficiency[0])
-        
+      if tot[d]>0:
+        efficiency.append(passing[d]/tot[d])
+      else:
+        efficiency.append(0.0)
+      if efficiency[0]>0:
+        reldiff.append(efficiency[d]/efficiency[0])
+      else:
+        reldiff.append(0.0)
+
     fo = open("%s/%s.log"%(thisdir,outname),"w+")
     fo.write( "Totals:" )
     for d in range(0,len(tot)):
@@ -426,9 +434,9 @@ for ns,subdir in enumerate(subdirs):
     
     int0   = hist[0][ns][r].Integral(0,-1)
     int1   = hist[1][ns][r].Integral(0,-1)
-    if int0>0:
+    if int0>0 and doNorm:
       hist[0][ns][r].Scale(1.0/int0)
-    if int1>0:
+    if int1>0 and doNorm:
       hist[1][ns][r].Scale(1.0/int1)
     
     means = [hist[0][ns][r].GetMean(),hist[1][ns][r].GetMean()]
@@ -444,9 +452,10 @@ for ns,subdir in enumerate(subdirs):
     if ymaxM<=yminM:
       ymaxM = 1.0
     xtitle = hist[0][ns][r].GetXaxis().GetTitle()
-    #ytitle = hist[0][ns][r].GetYaxis().GetTitle()
     ytitle = "Fraction of tracks"
-    
+    if not doNorm:
+      ytitle = "Number of tracks"
+
     haxisMain  = ROOT.TH2D("haxisMain" ,ttitle,1,xmin ,xmax,1,yminM,ymaxM)
     
     haxisMain.GetXaxis().SetTitle(xtitle)

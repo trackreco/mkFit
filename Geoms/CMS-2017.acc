@@ -851,7 +851,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
   }
 
 
-  // Iteration 0
+  // Iteration 0 (default)
 
   {
     IterationConfig &ic  = ii[0];

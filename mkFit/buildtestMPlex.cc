@@ -378,6 +378,7 @@ double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder,
   IterationMaskIfc mask_ifc;
 
   for (int it = 0; it <= n-1; ++it)
+  //for (int it = 1; it <= n-1; ++it)
   {
     // MIMI - to disable hit-masks, pass nullptr in place of &mask_ifc to job
     // and optionally comment out ev.fill_hitmask_bool_vectors() call.
@@ -408,6 +409,7 @@ double runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder,
     // MIMI -- using Iter0 function / tuning for all iterations.
     ev.clean_cms_seedtracks_iter(&seeds, Config::ItrInfo[it]);
 
+    // Add protection in case no seeds are found for iteration
     if(seeds.size()<=0)
       continue;
     
