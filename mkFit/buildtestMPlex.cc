@@ -366,6 +366,8 @@ double *runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder
    
   unsigned int algorithms[]={ 4,22,23,5,24,7,8,9,10 }; //9 iterations
 
+  std::cout << "Size of seeds: << "  << ev.seedTracks_.size() << std::endl;
+
   if (validation_on) 
   {
     for (auto &s : ev.seedTracks_)
@@ -377,10 +379,12 @@ double *runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder
     ev.relabel_bad_seedtracks();//necessary for the validation - PrepareSeeds
   }
   
+
+  std::cout << "Size of seeds: << "  << ev.seedTracks_.size() << std::endl;
+
   IterationMaskIfc mask_ifc;
 
   for (int it = 0; it <= n-1; ++it)
-  //for (int it = 1; it <= n-1; ++it)
   {
     // MIMI - to disable hit-masks, pass nullptr in place of &mask_ifc to job
     // and optionally comment out ev.fill_hitmask_bool_vectors() call.
@@ -413,6 +417,8 @@ double *runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder
     // MIMI -- using Iter0 function / tuning for all iterations.
     if(it<7) ev.clean_cms_seedtracks_iter(&seeds, Config::ItrInfo[it]);
     //tested QF + StdSeq::find_duplicates_sharedhits without the seed cleaning
+    
+    std::cout << "Size of seeds: << "  << seeds.size() << std::endl;
 
     // Add protection in case no seeds are found for iteration
     if(seeds.size()<=0)

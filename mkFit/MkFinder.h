@@ -70,8 +70,8 @@ public:
 
   HitOnTrack HoTArrs[NN][Config::nMaxTrkHits];
 
-#ifdef DUMPHITWINDOW
   MPlexQI    SeedAlgo; // seed algorithm
+#ifdef DUMPHITWINDOW
   MPlexQI    SeedLabel; // seed label
 #endif
 
@@ -115,6 +115,10 @@ public:
   // Track errors / parameters propagated to current hit.
   // MPlexLS    candErrAtCurrHit;
   // MPlexLV    candParAtCurrHit;
+
+  const IterationParams      *m_iteration_params       = nullptr;
+  const IterationLayerConfig *m_iteration_layer_config = nullptr;
+  const std::vector<bool>    *m_iteration_hit_mask     = nullptr;
 
   //============================================================================
 
@@ -227,11 +231,6 @@ public:
 #ifdef DUMPHITWINDOW
   Event     *m_event;
 #endif
-
-  const IterationConfig      *m_iter_config            = nullptr;
-  const IterationParams      *m_iteration_params       = nullptr;
-  const IterationLayerConfig *m_iteration_layer_config = nullptr;
-  const std::vector<bool>    *m_iteration_hit_mask     = nullptr;
 
 private:
 

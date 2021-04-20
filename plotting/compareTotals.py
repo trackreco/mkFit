@@ -36,7 +36,7 @@ dirnames.append(sys.argv[2]) #updated (2)
 
 outdir = sys.argv[3]
 if not os.path.exists(outdir):
-  os.makedirs(outdir, exist_ok=True)
+  os.makedirs(outdir)
   os.system("cp web/index.php %s"%(outdir))
 
 names = ["Reference", "Other"]
