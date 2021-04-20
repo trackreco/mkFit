@@ -4,13 +4,12 @@
 #include "Hit.h"
 #include "Track.h"
 
-#include "mkFit/SteeringParams.h"
-
-
 namespace mkfit {
 
 class Event;
 class EventOfHits;
+
+class IterationConfig;
 
 namespace StdSeq
 {

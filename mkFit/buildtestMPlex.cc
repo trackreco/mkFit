@@ -354,10 +354,9 @@ double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuild
 
 std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder, int n)
 {
-  
   std::vector<double> timevec;
-  double ttime[10] = {0};
-  if (n<=0) return timevec;//at least one iter by default
+  if (n<=0) return timevec;
+  timevec.resize(n + 1, 0.0);
 
   const bool validation_on = (Config::sim_val || Config::quality_val);
   
@@ -423,8 +422,8 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
 
     builder.FindTracksCloneEngine();
 
-    ttime[it] += dtime() - time;
-    ttime[n] += ttime[it];
+    timevec[it] = dtime() - time;
+    timevec[n] += timevec[it];
 
     if (validation_on)  seeds_used.insert(seeds_used.end(), seeds.begin(), seeds.end());//cleaned seeds need to be stored somehow
     
@@ -488,9 +487,8 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
 
   // MIMI Unfake.
   builder.end_event(); 
-  for (auto i =0; i<=n; i++){timevec.push_back(ttime[i]);}
-  return timevec;
 
+  return timevec;
 }
 
 
