@@ -197,7 +197,6 @@ void MkFinder::getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, const f
   //float c21 = IP.c_c2_params[itidx][lid][1];
   //float c22 = IP.c_c2_params[itidx][lid][2];
   //max_c2   = c20*invpt+c21*theta+c22;
-
 }
 
 //==============================================================================
@@ -211,6 +210,10 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
   const LayerOfHits &L = layer_of_hits;
   const IterationLayerConfig &ILC = *m_iteration_layer_config;
+  float min_dq   = ILC.min_dq();
+  float max_dq   = ILC.max_dq();
+  float min_dphi = ILC.min_dphi();
+  float max_dphi = ILC.max_dphi();
 
   const int   iI = iP;
   const float nSigmaPhi = 3;
@@ -223,12 +226,10 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
   float dqv[NN], dphiv[NN], qv[NN], phiv[NN];
   int qb1v[NN], qb2v[NN], pb1v[NN], pb2v[NN];
 
-  float min_dq   = ILC.min_dq();
-  float max_dq   = ILC.max_dq();
-  float min_dphi = ILC.min_dphi();
-  float max_dphi = ILC.max_dphi();
-
   const auto assignbins = [&](int itrack, float q, float dq, float phi, float dphi){
+    const float invpt = Par[iI].At(itrack,3,0);
+    const float theta = std::fabs(Par[iI].At(itrack,5,0)-Config::PIOver2);
+    getHitSelDynamicWindows(L, invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
 
     dphi = clamp(std::abs(dphi), min_dphi, max_dphi);
     dq   = clamp(dq, min_dq, max_dq);
@@ -250,7 +251,10 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
        2 * dphidx * dphidy * Err[iI].ConstAt(itrack, 0, 1);
   };
 
-  const auto calcdphi = [&](float dphi2) {
+  const auto calcdphi = [&](int itrack, float dphi2) {
+    const float invpt = Par[iI].At(itrack,3,0);
+    const float theta = std::fabs(Par[iI].At(itrack,5,0)-Config::PIOver2);
+    getHitSelDynamicWindows(L, invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
     return std::max(nSigmaPhi * std::sqrt(std::abs(dphi2)), min_dphi);
   };
 
@@ -263,14 +267,10 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     for (int itrack = 0; itrack < NN; ++itrack)
     {
       XHitSize[itrack] = 0;
-
-      const float invpt = Par[iI].At(itrack,3,0);
-      const float theta = std::fabs(Par[iI].At(itrack,5,0)-Config::PIOver2);
-      getHitSelDynamicWindows(L, invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
-
+      
+      //// Call of getHitSelDynamicWindows here does NOT modify min_dx and max_dx in input to calcdphi and assignbins
       const float x = Par[iI].ConstAt(itrack, 0, 0);
       const float y = Par[iI].ConstAt(itrack, 1, 0);
-
       const float r2     = x*x + y*y;
       const float dphidx = -y/r2, dphidy = x/r2;
       const float dphi2  = calcdphi2(itrack, dphidx, dphidy);
@@ -279,7 +279,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 #endif
 
       const float phi  = getPhi(x, y);
-      float dphi = calcdphi(dphi2);
+      float dphi = calcdphi(itrack, dphi2);
 
       const float z  = Par[iI].ConstAt(itrack, 2, 0);
       const float dz = std::abs(nSigmaZ * std::sqrt(Err[iI].ConstAt(itrack, 2, 2)));
@@ -320,14 +320,9 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     for (int itrack = 0; itrack < NN; ++itrack)
     {
       XHitSize[itrack] = 0;
-
-      const float invpt = Par[iI].At(itrack,3,0);
-      const float theta = std::fabs(Par[iI].At(itrack,5,0)-Config::PIOver2);
-      getHitSelDynamicWindows(L, invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
-
+      
       const float x = Par[iI].ConstAt(itrack, 0, 0);
       const float y = Par[iI].ConstAt(itrack, 1, 0);
-
       const float r2     = x*x + y*y;
       const float dphidx = -y/r2, dphidy = x/r2;
       const float dphi2  = calcdphi2(itrack, dphidx, dphidy);
@@ -336,7 +331,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 #endif
 
       const float phi  = getPhi(x, y);
-      float dphi = calcdphi(dphi2);
+      float dphi = calcdphi(itrack, dphi2);
 
       const float  r = std::sqrt(r2);
       const float dr = std::abs(nSigmaR*(x*x*Err[iI].ConstAt(itrack, 0, 0) + y*y*Err[iI].ConstAt(itrack, 1, 1) + 2*x*y*Err[iI].ConstAt(itrack, 0, 1)) / r2);
@@ -407,14 +402,12 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     }
     if(thisidx>-999999){
       auto & seedtrack = m_event->seedTracks_[thisidx];
-      //printf("HITWINDOWSEL %d %d %6.3f %6.3f %6.3f", seedlabel, seedtrack.label(), seedtrack.pT(), seedtrack.momEta(), seedtrack.momPhi()); 
       std::vector<int> thismcHitIDs;
       seedtrack.mcHitIDsVec(m_event->layerHits_,m_event->simHitsInfo_,thismcHitIDs);
       if ( std::adjacent_find( thismcHitIDs.begin(), thismcHitIDs.end(), std::not_equal_to<>() ) == thismcHitIDs.end() ){
 	thisseedmcid=thismcHitIDs.at(0);
       }
     }
-    //printf(" %d\n", thisseedmcid);
     }
 #endif
 

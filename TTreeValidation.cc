@@ -1106,7 +1106,7 @@ void TTreeValidation::setTrackScoresDumbCMSSW(Event& ev)
   auto & candtracks = ev.candidateTracks_;
   auto & fittracks = ev.fitTracks_;
 
-  // first assign seed type to seeds and compute score...
+  // first compute score...
   for (auto & seedtrack : seedtracks)
   {
     seedtrack.setScore(getScoreCand(seedtrack));
