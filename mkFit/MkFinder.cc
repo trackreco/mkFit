@@ -177,8 +177,8 @@ void MkFinder::getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, const f
   float this_dq = dq0*invpt+dq1*theta+dq2;  
   // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
   if(this_dq>0.f){
-    min_dq = 1.5f*this_dq;
-    max_dq = 2.0f*this_dq;
+    min_dq = 1.1f*this_dq;
+    max_dq = 2.2f*this_dq;
   }
 
   // dphi hit selection window
@@ -188,8 +188,8 @@ void MkFinder::getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, const f
   float this_dphi = dp0*invpt+dp1*theta+dp2;
   // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
   if(this_dphi>0.f){
-    min_dphi = 1.5f*this_dphi;
-    max_dphi = 2.0f*this_dphi;
+    min_dphi = 1.1f*this_dphi;
+    max_dphi = 2.2f*this_dphi;
   }
 
   // For future optimization: for layer & iteration dependend hit chi2 cut
@@ -210,10 +210,6 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 
   const LayerOfHits &L = layer_of_hits;
   const IterationLayerConfig &ILC = *m_iteration_layer_config;
-  float min_dq   = ILC.min_dq();
-  float max_dq   = ILC.max_dq();
-  float min_dphi = ILC.min_dphi();
-  float max_dphi = ILC.max_dphi();
 
   const int   iI = iP;
   const float nSigmaPhi = 3;
@@ -226,19 +222,15 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
   float dqv[NN], dphiv[NN], qv[NN], phiv[NN];
   int qb1v[NN], qb2v[NN], pb1v[NN], pb2v[NN];
 
-  const auto assignbins = [&](int itrack, float q, float dq, float phi, float dphi){
-    const float invpt = Par[iI].At(itrack,3,0);
-    const float theta = std::fabs(Par[iI].At(itrack,5,0)-Config::PIOver2);
-    getHitSelDynamicWindows(L, invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
-
+  const auto assignbins = [&](int itrack, float q, float dq, float phi, float dphi, float min_dq, float max_dq, float min_dphi, float max_dphi){
     dphi = clamp(std::abs(dphi), min_dphi, max_dphi);
     dq   = clamp(dq, min_dq, max_dq);
-
+    //
     qv[itrack] = q;
     phiv[itrack] = phi;
     dphiv[itrack] = dphi;
     dqv[itrack]   = dq;
-
+    //
     qb1v[itrack] = L.GetQBinChecked(q - dq);
     qb2v[itrack] = L.GetQBinChecked(q + dq) + 1;
     pb1v[itrack] = L.GetPhiBin(phi - dphi);
@@ -251,13 +243,15 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
        2 * dphidx * dphidy * Err[iI].ConstAt(itrack, 0, 1);
   };
 
-  const auto calcdphi = [&](int itrack, float dphi2) {
-    const float invpt = Par[iI].At(itrack,3,0);
-    const float theta = std::fabs(Par[iI].At(itrack,5,0)-Config::PIOver2);
-    getHitSelDynamicWindows(L, invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
+  const auto calcdphi = [&](float dphi2, float min_dphi) {
     return std::max(nSigmaPhi * std::sqrt(std::abs(dphi2)), min_dphi);
   };
 
+
+  float min_dq   = ILC.min_dq();
+  float max_dq   = ILC.max_dq();
+  float min_dphi = ILC.min_dphi();
+  float max_dphi = ILC.max_dphi();
 
   if (L.is_barrel())
   {
@@ -268,7 +262,10 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     {
       XHitSize[itrack] = 0;
       
-      //// Call of getHitSelDynamicWindows here does NOT modify min_dx and max_dx in input to calcdphi and assignbins
+      const float invpt = Par[iI].At(itrack,3,0);
+      const float theta = std::fabs(Par[iI].At(itrack,5,0)-Config::PIOver2);
+      getHitSelDynamicWindows(L, invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
+
       const float x = Par[iI].ConstAt(itrack, 0, 0);
       const float y = Par[iI].ConstAt(itrack, 1, 0);
       const float r2     = x*x + y*y;
@@ -279,7 +276,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 #endif
 
       const float phi  = getPhi(x, y);
-      float dphi = calcdphi(itrack, dphi2);
+      float dphi = calcdphi(dphi2, min_dphi);
 
       const float z  = Par[iI].ConstAt(itrack, 2, 0);
       const float dz = std::abs(nSigmaZ * std::sqrt(Err[iI].ConstAt(itrack, 2, 2)));
@@ -309,7 +306,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       //}
 
       XWsrResult[itrack] = L.is_within_z_sensitive_region(z, dz);
-      assignbins(itrack, z, dz, phi, dphi);
+      assignbins(itrack, z, dz, phi, dphi, min_dq, max_dq, min_dphi, max_dphi);
     }
   }
   else // endcap
@@ -321,6 +318,10 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     {
       XHitSize[itrack] = 0;
       
+      const float invpt = Par[iI].At(itrack,3,0);
+      const float theta = std::fabs(Par[iI].At(itrack,5,0)-Config::PIOver2);
+      getHitSelDynamicWindows(L, invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
+
       const float x = Par[iI].ConstAt(itrack, 0, 0);
       const float y = Par[iI].ConstAt(itrack, 1, 0);
       const float r2     = x*x + y*y;
@@ -331,7 +332,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 #endif
 
       const float phi  = getPhi(x, y);
-      float dphi = calcdphi(itrack, dphi2);
+      float dphi = calcdphi(dphi2, min_dphi);
 
       const float  r = std::sqrt(r2);
       const float dr = std::abs(nSigmaR*(x*x*Err[iI].ConstAt(itrack, 0, 0) + y*y*Err[iI].ConstAt(itrack, 1, 1) + 2*x*y*Err[iI].ConstAt(itrack, 0, 1)) / r2);
@@ -353,7 +354,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       //}
 
       XWsrResult[itrack] = L.is_within_r_sensitive_region(r, dr);
-      assignbins(itrack, r, dr, phi, dphi);
+      assignbins(itrack, r, dr, phi, dphi, min_dq, max_dq, min_dphi, max_dphi);
     }
   }
 
