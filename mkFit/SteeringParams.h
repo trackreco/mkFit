@@ -2,6 +2,7 @@
 #define SteeringParams_h
 
 #include "Matrix.h"
+#include "HitSelectionWindows.h"
 
 #include "nlohmann/json_fwd.hpp"
 
@@ -208,6 +209,11 @@ public:
   int minHitsQF = 4;
   float fracSharedHits = 0.19;
 
+  //Hit selection windows: 2D fit/layer (72 in phase-1 CMS geometry)
+  //cut = [0]*1/pT + [1]*std::fabs(theta-pi/2) + [2])
+  float c_dp_params[72][3];
+  float c_dq_params[72][3];
+  float c_c2_params[72][3];
 };
 
 
@@ -312,6 +318,26 @@ public:
     m_region_order.resize(nreg);
     m_steering_params.resize(nreg);
     m_layer_configs.resize(nlay);
+  }
+
+  void fill_hit_selection_windows_params()
+  {
+    HitSelectionWindows hsw;
+    for(int l=0; l<72; ++l)
+      {
+	// dphi cut
+	m_params.c_dp_params[l][0] = hsw.m_dp_params[m_iteration_index][l][0];
+	m_params.c_dp_params[l][1] = hsw.m_dp_params[m_iteration_index][l][1];
+	m_params.c_dp_params[l][2] = hsw.m_dp_params[m_iteration_index][l][2];
+	// dq cut
+	m_params.c_dq_params[l][0] = hsw.m_dq_params[m_iteration_index][l][0];
+	m_params.c_dq_params[l][1] = hsw.m_dq_params[m_iteration_index][l][1];
+	m_params.c_dq_params[l][2] = hsw.m_dq_params[m_iteration_index][l][2];
+	// chi2 cut (for future optimization)
+	m_params.c_c2_params[l][0] = hsw.m_c2_params[m_iteration_index][l][0];
+	m_params.c_c2_params[l][1] = hsw.m_c2_params[m_iteration_index][l][1];
+	m_params.c_c2_params[l][2] = hsw.m_c2_params[m_iteration_index][l][2];
+      }
   }
 
   IterationLayerConfig& layer(int i) { return m_layer_configs[i]; }

@@ -512,7 +512,7 @@ int main(int argc, const char *argv[])
         "  --build-bh               run best-hit building test (def: %s)\n"
         "  --build-std              run standard combinatorial building test (def: %s)\n"
         "  --build-ce               run clone engine combinatorial building test (def: %s)\n"
-        "  --build-ce-mimi          run clone engine on multiple-iteration test (def: %s)\n"
+        "  --build-mimi             run clone engine on multiple-iteration test (def: %s)\n"
 	"\n"
 	" **Seeding options\n"
         "  --seed-input     <str>   which seed collecion used for building (def: %s)\n"

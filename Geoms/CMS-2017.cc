@@ -102,7 +102,7 @@ namespace
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
     }
-    else if (it == 1)
+    else if (it == 1) // for triplet steps, nlayers_per_seed=3
     {   
       ip.nlayers_per_seed = 3;
       ip.maxCandsPerSeed  = 5;
@@ -112,7 +112,47 @@ namespace
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
     }
-    else if (it == 6)
+    else if (it == 2)
+    {   
+      ip.nlayers_per_seed = 4;
+      ip.maxCandsPerSeed  = 5;
+      ip.maxHolesPerCand  = 4;
+      ip.maxConsecHoles   = 1;
+      ip.chi2Cut          = 30; 
+      ip.chi2CutOverlap   = 3.5;
+      ip.pTCutOverlap     = 1;
+    } 
+    else if (it == 3) // for triplet steps, nlayers_per_seed=3
+    {   
+      ip.nlayers_per_seed = 3;
+      ip.maxCandsPerSeed  = 5;
+      ip.maxHolesPerCand  = 4;
+      ip.maxConsecHoles   = 1;
+      ip.chi2Cut          = 30; 
+      ip.chi2CutOverlap   = 3.5;
+      ip.pTCutOverlap     = 1;
+    } 
+    else if (it == 4)
+    {   
+      ip.nlayers_per_seed = 4;
+      ip.maxCandsPerSeed  = 5;
+      ip.maxHolesPerCand  = 4;
+      ip.maxConsecHoles   = 1;
+      ip.chi2Cut          = 30; 
+      ip.chi2CutOverlap   = 3.5;
+      ip.pTCutOverlap     = 1;
+    } 
+    else if (it == 5) // for triplet steps, nlayers_per_seed=3
+    {   
+      ip.nlayers_per_seed = 3;
+      ip.maxCandsPerSeed  = 5;
+      ip.maxHolesPerCand  = 4;
+      ip.maxConsecHoles   = 1;
+      ip.chi2Cut          = 30; 
+      ip.chi2CutOverlap   = 3.5;
+      ip.pTCutOverlap     = 1;
+    } 
+    else if (it == 6) // for triplet steps, nlayers_per_seed=3; for mixeTripletSetp, also maxCandsPerSeed=2
     {
       ip.nlayers_per_seed = 3;
       ip.maxCandsPerSeed  = 2;
@@ -122,7 +162,7 @@ namespace
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
     } 
-    else if (it == 7) //for the PixelLess and TobTec: maxcand 2 and 0 consecHoles
+    else if (it == 7) // for PixelLess step, maxCandsPerSeed=2 and maxHolesPerCand=maxConsecHoles=0
     {   
       ip.nlayers_per_seed = 3;
       ip.maxCandsPerSeed  = 2;
@@ -132,7 +172,7 @@ namespace
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
     }   
-    else if (it == 8)
+    else if (it == 8) // for TobTec step, maxCandsPerSeed=2 and maxHolesPerCand=maxConsecHoles=0
     {   
       ip.nlayers_per_seed = 3;
       ip.maxCandsPerSeed  = 2;
@@ -141,8 +181,7 @@ namespace
       ip.chi2Cut          = 30; 
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
-    }   
-  
+    }
  
   }
 
@@ -268,46 +307,60 @@ namespace
     SetupSteeringParams_Iter0(ii[0]);
     SetupIterationParams(ii[0].m_params, 0);
     ii[0].m_partition_seeds = PartitionSeeds0;
+    ii[0].fill_hit_selection_windows_params();
 
     ii[1].Clone(ii[0]); //added extra iterations with some preliminary setup
-    SetupIterationParams(ii[1].m_params, 1);//3 seed hits is the only difference
+    SetupIterationParams(ii[1].m_params, 1);
     ii[1].set_iteration_index_and_track_algorithm(1, (int) TrackBase::TrackAlgorithm::highPtTripletStep);
     ii[1].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.018, 0.018, 0.018, 0.05, 0.018, 0.05); 
+    ii[1].fill_hit_selection_windows_params();
 
-    ii[2].Clone(ii[0]);
+    ii[2].Clone(ii[0]); 
+    SetupIterationParams(ii[2].m_params, 2);
     ii[2].set_iteration_index_and_track_algorithm(2, (int) TrackBase::TrackAlgorithm::lowPtQuadStep);
     ii[2].set_seed_cleaning_params(0.5, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
+    ii[2].fill_hit_selection_windows_params();
      
     ii[3].Clone(ii[0]);
+    SetupIterationParams(ii[3].m_params, 3);
     ii[3].set_iteration_index_and_track_algorithm(3, (int) TrackBase::TrackAlgorithm::lowPtTripletStep);
     ii[3].set_seed_cleaning_params(0.5, 0.0, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
+    ii[3].fill_hit_selection_windows_params();
     
     ii[4].Clone(ii[0]);
+    SetupIterationParams(ii[4].m_params, 4);
     ii[4].set_iteration_index_and_track_algorithm(4, (int) TrackBase::TrackAlgorithm::detachedQuadStep);
     ii[4].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
+    ii[4].fill_hit_selection_windows_params();
     
     ii[5].Clone(ii[0]);
+    SetupIterationParams(ii[5].m_params, 5);
     ii[5].set_iteration_index_and_track_algorithm(5, (int) TrackBase::TrackAlgorithm::detachedTripletStep);
     ii[5].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
+    ii[5].fill_hit_selection_windows_params();
 
     ii[6].Clone(ii[0]);
+    SetupIterationParams(ii[6].m_params, 6);
     ii[6].set_iteration_index_and_track_algorithm(6, (int) TrackBase::TrackAlgorithm::mixedTripletStep);
     ii[6].set_seed_cleaning_params(2.0, 0.05, 0.05, 0.135, 0.135, 0.05, 0.05, 0.135, 0.135);
-    SetupIterationParams(ii[6].m_params, 6);    
+    ii[6].fill_hit_selection_windows_params();
 
     ii[7].Clone(ii[0]);
+    SetupIterationParams(ii[7].m_params, 7);
     ii[7].set_iteration_index_and_track_algorithm(7, (int) TrackBase::TrackAlgorithm::pixelLessStep);
     ii[7].set_seed_cleaning_params(2.0, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135);
     ii[7].set_qf_flags();
     ii[7].set_qf_params(4,0.19);
-    SetupIterationParams(ii[7].m_params, 7);
-    
+    ii[7].fill_hit_selection_windows_params();
+
     ii[8].Clone(ii[0]);
+    SetupIterationParams(ii[8].m_params, 8);
     ii[8].set_iteration_index_and_track_algorithm(8, (int) TrackBase::TrackAlgorithm::tobTecStep);
     ii[8].set_seed_cleaning_params(2.0, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135);    
     ii[8].set_qf_flags();
     ii[8].set_qf_params(4,0.25);
-    SetupIterationParams(ii[8].m_params, 8);
+    ii[8].fill_hit_selection_windows_params();
+
     //for the latter 2 iter investing in maxCand & stop condition (for time) + QF and Dupl. cleaning (for quality)
     
     if (verbose)

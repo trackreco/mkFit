@@ -8,12 +8,13 @@
 #include "HitStructures.h"
 #include "SteeringParams.h"
 
+#include "HitSelectionWindows.h"
+
 // Define to get printouts about track and hit chi2.
 // See also MkBuilder::BackwardFit() and MkBuilder::quality_store_tracks().
 
 //#define DEBUG_BACKWARD_FIT_BH
 //#define DEBUG_BACKWARD_FIT
-
 
 namespace mkfit {
 
@@ -22,7 +23,11 @@ class CombCandidate;
 class LayerOfHits;
 class FindingFoos;
 
-#ifdef DEBUG_BACKWARD_FIT
+//#ifdef DEBUG_BACKWARD_FIT
+//class Event;
+//#endif
+
+#ifdef DUMPHITWINDOW
 class Event;
 #endif
 
@@ -60,9 +65,14 @@ public:
 
   MPlexQI    NHits;
   MPlexQI    NFoundHits;
+
   HitOnTrack HoTArrs[NN][Config::nMaxTrkHits];
 
-  MPlexQUI   SeedType; // seed range for ranking (0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds)
+#ifdef DUMPHITWINDOW
+  MPlexQI    SeedAlgo; // seed algorithm
+  MPlexQI    SeedLabel; // seed label
+#endif
+
   MPlexQI    SeedIdx; // seed index in local thread (for bookkeeping at thread level)
   MPlexQI    CandIdx; // candidate index for the given seed (for bookkeeping of clone engine)
 
@@ -83,9 +93,10 @@ public:
   // storing it in now for bkfit debug printouts
   TrackCand *TrkCand[NN];
   // XXXX - for bk-fit debug
-#ifdef DEBUG_BACKWARD_FIT
-  Event     *m_event;
-#endif
+
+//#ifdef DEBUG_BACKWARD_FIT
+//  Event     *m_event;
+//#endif
 
   // Hit indices into LayerOfHits to explore.
   WSR_Result  XWsrResult[NN]; // Could also merge it with XHitSize. Or use smaller arrays.
@@ -164,7 +175,7 @@ public:
 
   //----------------------------------------------------------------------------
 
-  void getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, const float track_pt, const float track_eta, float &min_dq, float &max_dphi);
+  void getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, const float invpt, const float theta, float &min_dq, float &max_dq, float  &min_dphi, float &max_dphi);
 
   void SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_proc);
 
@@ -214,6 +225,10 @@ public:
   void BkFitPropTracksToPCA(const int N_proc);
 
   //----------------------------------------------------------------------------
+
+#ifdef DUMPHITWINDOW
+  Event     *m_event;
+#endif
 
 private:
 

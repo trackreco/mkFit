@@ -376,6 +376,7 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
     ev.relabel_bad_seedtracks();//necessary for the validation - PrepareSeeds
   }
   
+
   IterationMaskIfc mask_ifc;
 
   for (int it = 0; it <= n-1; ++it)
@@ -411,10 +412,12 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
     // MIMI -- using Iter0 function / tuning for all iterations.
     if(it<7) StdSeq::clean_cms_seedtracks_iter(&seeds, Config::ItrInfo[it]);
     //tested QF + StdSeq::find_duplicates_sharedhits without the seed cleaning
-
+    
+    // Add protection in case no seeds are found for iteration
+    if(seeds.size()<=0)
+      continue;
+    
     builder.seed_post_cleaning(seeds, true, true);
-
-    for (auto &s : seeds) assignSeedTypeForRanking(s);
 
     builder.find_tracks_load_seeds(seeds);
 
@@ -536,7 +539,6 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
   for (auto &s : seeds) 
   {
    if(itconf.m_requires_seed_hit_sorting) s.sortHitsByLayer();  // sort seed hits for the matched hits (I hope it works here)
-   assignSeedTypeForRanking(s);
   }  
 
   builder.find_tracks_load_seeds(seeds);

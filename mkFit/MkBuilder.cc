@@ -1084,7 +1084,6 @@ void MkBuilder::score_tracks(TrackVec& tracks)
 {
   for (auto & track : tracks)
   {
-    assignSeedTypeForRanking(track);
     track.setScore(getScoreCand(track));
   }
 }
@@ -1236,13 +1235,6 @@ void MkBuilder::PrepareSeeds()
   {
     std::cerr << "No input seed collection option selected!! Exiting..." << std::endl;
     exit(1);
-  }
-
-  //Assign idx to seeds for determining kinematic range for candidate ranking
-  //0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
-  for (size_t ts = 0; ts < m_event->seedTracks_.size(); ++ts)
-  {
-    assignSeedTypeForRanking(m_event->seedTracks_[ts]);
   }
 
   // Do not refit cmssw seeds (this if was nested in fit_one_seed_set() until now).
@@ -1877,6 +1869,10 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 
       dprint("now get hit range");
 
+#ifdef DUMPHITWINDOW
+      mkfndr->m_event = m_event;
+#endif      
+      
       mkfndr->SelectHitIndices(layer_of_hits, end - itrack);
 
       find_tracks_handle_missed_layers(mkfndr, layer_info, extra_cands, seed_cand_idx,

@@ -35,7 +35,6 @@ public:
   int   ntailholes; // number of holes at the end of the track (used for sorting)
   int   noverlaps; // number of overlaps (used for sorting)
   int   nholes;  // number of holes (used for sorting)
-  unsigned int seedtype; // seed type idx (used for sorting: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds)
   float pt;   // pt (used for sorting)
   float chi2;   // total chi2 (used for sorting)
   float chi2_hit; // chi2 of the added hit
@@ -224,8 +223,7 @@ public:
         // Production type (most useful for sim tracks): 0, 1, 2, 3 for unset, signal, in-time PU, oot PU
         unsigned int prod_type : 2;
 
-        // Seed type for candidate ranking: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds
-        unsigned int seed_type : 2;
+        unsigned int align_was_seed_type : 2;
 
         // Whether or not the track matched to another track and had the lower cand score
         bool duplicate : 1;
@@ -256,10 +254,6 @@ public:
   bool isFindable()    const { return ! status_.not_findable; }
   bool isNotFindable() const { return   status_.not_findable; }
   void setNotFindable()      { status_.not_findable = true; }
-
-  //Seed type for ranking: 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = all other seeds.
-  void setSeedTypeForRanking(unsigned int r) { status_.seed_type = r; }
-  unsigned int getSeedTypeForRanking() const { return status_.seed_type; }
 
   void setDuplicateValue(bool d) {status_.duplicate = d;}
   bool getDuplicateValue() const {return status_.duplicate;}
@@ -605,15 +599,6 @@ typedef std::vector<Track>    TrackVec;
 typedef std::vector<TrackVec> TrackVecVec;
 
 
-// 0 = not set; 1 = high pT central seeds; 2 = low pT endcap seeds; 3 = low pT barrel seeds; 4 = all other seeds
-inline void assignSeedTypeForRanking(Track & seed)
-{
-  if      (seed.pT()>2.0f && std::fabs(seed.momEta())< 1.5f) seed.setSeedTypeForRanking(1);
-  else if (seed.pT()<0.9f && std::fabs(seed.momEta())>0.9f) seed.setSeedTypeForRanking(2);
-  else if (seed.pT()<0.9f && std::fabs(seed.momEta())<=0.9f) seed.setSeedTypeForRanking(3);
-  else                                                       seed.setSeedTypeForRanking(4);
-}
-
 inline bool sortByHitsChi2(const Track & cand1, const Track & cand2)
 {
   if (cand1.nFoundHits()==cand2.nFoundHits()) return cand1.chi2()<cand2.chi2();
@@ -635,8 +620,7 @@ inline float getScoreWorstPossible()
   return -1e16; // somewhat arbitrary value, used for handling of best short track during finding (will try to take it out)
 }
 
-inline float getScoreCalc(const unsigned int seedtype,
-                          const int nfoundhits,
+inline float getScoreCalc(const int nfoundhits,
 			  const int ntailholes,
                           const int noverlaphits,
                           const int nmisshits,
@@ -659,7 +643,6 @@ inline float getScoreCalc(const unsigned int seedtype,
 
  inline float getScoreCand(const Track& cand1, bool penalizeTailMissHits=false)
  {
-   unsigned int seedtype = cand1.getSeedTypeForRanking();
    int nfoundhits = cand1.nFoundHits();
    int noverlaphits = cand1.nOverlapHits();
    int nmisshits = cand1.nInsideMinusOneHits();
@@ -668,12 +651,11 @@ inline float getScoreCalc(const unsigned int seedtype,
    float chi2 = cand1.chi2();
    // Do not allow for chi2<0 in score calculation  
    if(chi2<0) chi2=0.f;
-   return getScoreCalc(seedtype,nfoundhits,ntailmisshits,noverlaphits,nmisshits,chi2,pt);
+   return getScoreCalc(nfoundhits,ntailmisshits,noverlaphits,nmisshits,chi2,pt);
  }
 
 inline float getScoreStruct(const IdxChi2List& cand1)
 {
-  unsigned int seedtype = cand1.seedtype;
   int nfoundhits = cand1.nhits;
   int ntailholes = cand1.ntailholes;
   int noverlaphits = cand1.noverlaps;
@@ -682,7 +664,7 @@ inline float getScoreStruct(const IdxChi2List& cand1)
   float chi2 = cand1.chi2;
   // Do not allow for chi2<0 in score calculation
   if(chi2<0) chi2=0.f;
-  return getScoreCalc(seedtype,nfoundhits,ntailholes,noverlaphits,nmisshits,chi2,pt);
+  return getScoreCalc(nfoundhits,ntailholes,noverlaphits,nmisshits,chi2,pt);
 }
 
 

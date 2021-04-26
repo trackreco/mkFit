@@ -294,6 +294,10 @@ void find_duplicates(TrackVec &tracks)
   for (auto itrack = 0U; itrack < ntracks - 1; itrack++)
   {
     auto &track = tracks[itrack];
+    if (track.algoint()==9) 
+      continue;
+    if (track.algoint()==10) 
+      continue;   
     eta1 = track.momEta();
     phi1 = track.momPhi();
     pt1 = track.pT();
@@ -302,7 +306,8 @@ void find_duplicates(TrackVec &tracks)
       auto &track2 = tracks[jtrack];
       if (track.label() == track2.label())
         continue;
-
+      if (track.algoint() != track2.algoint()) 
+	continue;
       deta = std::abs(track2.momEta() - eta1);
       if (deta > Config::maxdEta)
         continue;

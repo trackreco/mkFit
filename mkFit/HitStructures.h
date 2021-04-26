@@ -13,6 +13,8 @@
 #include <array>
 #include "tbb/concurrent_vector.h"
 
+//#define DUMPHITWINDOW
+
 namespace mkfit {
 
 class IterationParams;
@@ -443,7 +445,6 @@ inline bool sortByScoreTrackCand(const TrackCand & cand1, const TrackCand & cand
 
 inline float getScoreCand(const TrackCand& cand1, bool penalizeTailMissHits=false)
 {
-  unsigned int seedtype = cand1.getSeedTypeForRanking();
   int nfoundhits   = cand1.nFoundHits();
   int noverlaphits = cand1.nOverlapHits();
   int nmisshits    = cand1.nInsideMinusOneHits();
@@ -452,7 +453,7 @@ inline float getScoreCand(const TrackCand& cand1, bool penalizeTailMissHits=fals
   float chi2 = cand1.chi2();
   // Do not allow for chi2<0 in score calculation
   if (chi2 < 0) chi2 = 0.f;
-  return getScoreCalc(seedtype, nfoundhits,ntailmisshits, noverlaphits, nmisshits, chi2, pt);
+  return getScoreCalc(nfoundhits,ntailmisshits, noverlaphits, nmisshits, chi2, pt);
 }
 
 
@@ -466,8 +467,10 @@ public:
   TrackCand    m_best_short_cand;
   SeedState_e  m_state           = Dormant;
   int          m_last_seed_layer = -1;
-  unsigned int m_seed_type       =  0;
-
+#ifdef DUMPHITWINDOW
+  int          m_seed_algo       =  0;
+  int          m_seed_label      =  0;
+#endif
   int                  m_hots_size = 0;
   std::vector<HoTNode> m_hots;
 
@@ -484,7 +487,10 @@ public:
     m_best_short_cand(std::move(o.m_best_short_cand)),
     m_state(o.m_state),
     m_last_seed_layer(o.m_last_seed_layer),
-    m_seed_type(o.m_seed_type),
+#ifdef DUMPHITWINDOW
+    m_seed_algo(o.m_seed_algo),
+    m_seed_label(o.m_seed_label),
+#endif
     m_hots_size(o.m_hots_size),
     m_hots(std::move(o.m_hots)),
     m_overlap_hits(std::move(o.m_overlap_hits))

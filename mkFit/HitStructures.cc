@@ -451,7 +451,10 @@ void CombCandidate::ImportSeed(const Track& seed)
 
   m_state           = CombCandidate::Dormant;
   m_last_seed_layer = seed.getLastHitLyr();
-  m_seed_type       = seed.getSeedTypeForRanking();
+#ifdef DUMPHITWINDOW
+  m_seed_algo       = seed.algoint();
+  m_seed_label      = seed.label();
+#endif
 
   TrackCand &cand = back();
 
@@ -463,7 +466,6 @@ void CombCandidate::ImportSeed(const Track& seed)
     cand.addHitIdx(hp->index, hp->layer, 0.0f);
   }
 
-  cand.setSeedTypeForRanking(m_seed_type);
   cand.setScore             (getScoreCand(cand));
 }
 
