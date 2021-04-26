@@ -165,7 +165,7 @@ void MkFinder::OutputTracksAndHitIdx(std::vector<Track>& tracks,
 void MkFinder::getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, const float invpt, const float theta, float &min_dq, float &max_dq, float &min_dphi, float &max_dphi)
 {
   const IterationParams      &IP  = *m_iteration_params;
-  const IterationLayerConfig &ILC = *m_iteration_layer_config;
+  // const IterationLayerConfig &ILC = *m_iteration_layer_config;
   const LayerOfHits          &L   = layer_of_hits;
 
   int lid     = L.layer_id();
@@ -388,17 +388,17 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     // This would then work best with relatively small bin sizes.
     // Or, set them up so I can always take 3x3 array around the intersection.
 
-    int thisseedmcid=-999999;
 #ifdef DUMPHITWINDOW
     {
+    int thisseedmcid=-999999;
     int seedlabel = SeedLabel(itrack, 0, 0);
     TrackVec & seedtracks = m_event->seedTracks_;
     int thisidx = -999999;
     for (int i = 0; i < seedtracks.size(); ++i){
       auto & thisseed = seedtracks[i];
       if(thisseed.label()==seedlabel){
-	thisidx = i;
-	break;
+        thisidx = i;
+        break;
       }
     }
     if(thisidx>-999999){
@@ -406,7 +406,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       std::vector<int> thismcHitIDs;
       seedtrack.mcHitIDsVec(m_event->layerHits_,m_event->simHitsInfo_,thismcHitIDs);
       if ( std::adjacent_find( thismcHitIDs.begin(), thismcHitIDs.end(), std::not_equal_to<>() ) == thismcHitIDs.end() ){
-	thisseedmcid=thismcHitIDs.at(0);
+        thisseedmcid=thismcHitIDs.at(0);
       }
     }
     }
