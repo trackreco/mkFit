@@ -151,18 +151,6 @@ public:
     m_select_min_dq   = q1; m_select_max_dq   = q2;
   }
 
-  using dynamic_windows_foo = void(const Track &track, const float track_pt, const float track_eta,
-                                   float &min_dq, float &max_dphi);
-
-  std::function<dynamic_windows_foo> m_dynamic_windows;
-
-  // Adding hit selection limits dynamic factors
-  float         m_qf_treg       = 1.0f;
-  float         m_phif_treg     = 1.0f;
-  float         m_phif_lpt_brl  = 1.0f;
-  float         m_phif_lpt_treg = 1.0f;
-  float         m_phif_lpt_ec   = 1.0f;
-
   //----------------------------------------------------------------------------
 
   float min_dphi() const { return m_select_min_dphi; }
@@ -170,6 +158,22 @@ public:
   float min_dq()   const { return m_select_min_dq;   }
   float max_dq()   const { return m_select_max_dq;   }
 
+  //Hit selection windows: 2D fit/layer (72 in phase-1 CMS geometry)
+  //cut = [0]*1/pT + [1]*std::fabs(theta-pi/2) + [2])
+  float c_dp_sf = 1.1;
+  float c_dp_0  = 0.0;
+  float c_dp_1  = 0.0;
+  float c_dp_2  = 0.0;
+  //
+  float c_dq_sf = 1.1;
+  float c_dq_0  = 0.0;
+  float c_dq_1  = 0.0;
+  float c_dq_2  = 0.0;
+  //
+  float c_c2_sf = 1.0;
+  float c_c2_0  = 0.0;
+  float c_c2_1  = 0.0;
+  float c_c2_2  = 0.0;
 
   //----------------------------------------------------------------------------
 
@@ -209,11 +213,6 @@ public:
   int minHitsQF = 4;
   float fracSharedHits = 0.19;
 
-  //Hit selection windows: 2D fit/layer (72 in phase-1 CMS geometry)
-  //cut = [0]*1/pT + [1]*std::fabs(theta-pi/2) + [2])
-  float c_dp_params[72][3];
-  float c_dq_params[72][3];
-  float c_c2_params[72][3];
 };
 
 
@@ -323,20 +322,20 @@ public:
   void fill_hit_selection_windows_params()
   {
     HitSelectionWindows hsw;
-    for(int l=0; l<72; ++l)
+    for(int l=0; l<m_layer_configs.size(); ++l)
       {
 	// dphi cut
-	m_params.c_dp_params[l][0] = hsw.m_dp_params[m_iteration_index][l][0];
-	m_params.c_dp_params[l][1] = hsw.m_dp_params[m_iteration_index][l][1];
-	m_params.c_dp_params[l][2] = hsw.m_dp_params[m_iteration_index][l][2];
+	m_layer_configs[l].c_dp_0 = hsw.m_dp_params[m_iteration_index][l][0];
+	m_layer_configs[l].c_dp_1 = hsw.m_dp_params[m_iteration_index][l][1];
+	m_layer_configs[l].c_dp_2 = hsw.m_dp_params[m_iteration_index][l][2];
 	// dq cut
-	m_params.c_dq_params[l][0] = hsw.m_dq_params[m_iteration_index][l][0];
-	m_params.c_dq_params[l][1] = hsw.m_dq_params[m_iteration_index][l][1];
-	m_params.c_dq_params[l][2] = hsw.m_dq_params[m_iteration_index][l][2];
+	m_layer_configs[l].c_dq_0 = hsw.m_dq_params[m_iteration_index][l][0];
+	m_layer_configs[l].c_dq_1 = hsw.m_dq_params[m_iteration_index][l][1];
+	m_layer_configs[l].c_dq_2 = hsw.m_dq_params[m_iteration_index][l][2];
 	// chi2 cut (for future optimization)
-	m_params.c_c2_params[l][0] = hsw.m_c2_params[m_iteration_index][l][0];
-	m_params.c_c2_params[l][1] = hsw.m_c2_params[m_iteration_index][l][1];
-	m_params.c_c2_params[l][2] = hsw.m_c2_params[m_iteration_index][l][2];
+	m_layer_configs[l].c_c2_0 = hsw.m_c2_params[m_iteration_index][l][0];
+	m_layer_configs[l].c_c2_1 = hsw.m_c2_params[m_iteration_index][l][1];
+	m_layer_configs[l].c_c2_2 = hsw.m_c2_params[m_iteration_index][l][2];
       }
   }
 

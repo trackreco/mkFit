@@ -95,62 +95,6 @@ int   DEP = 0;
 #define ASSI(var, val) PRN("obj.%s = %d;", #var, val)
 #define ASSB(var, val) PRN("obj.%s = %s;", #var, val ? "true" : "false")
 
-void setHitSelDynamicFactors(int id)
-{
-  // config on hit selection windows
-  // geometry and track boundaries
-  int brl_tibId[2] = {4,9};
-  int brl_tobId[2] = {10,17};
-  int ecp_stripId[2] = {21,44};
-  int ecn_stripId[2] = {48,71};
-  // phi dynamic factor
-  float phif_ptlow_brl_mono       = 3.0;
-  float phif_ptlow_brl_stereo     = 2.0;
-  float phif_ptlow_treg_ec_mono   = 3.0;
-  float phif_ptlow_treg_ec_stereo = 2.0;
-  float phif_ptlow_ec_mono        = 2.0;
-  float phif_treg_ec_mono         = 1.5;
-  // q dynamic factors
-  float qf_treg_tib = 1.5;
-  float qf_treg_tob = 1.25;
-  
-  bool is_stereo_lyr = ( (id<21 && (id==5 || id==7 || id==11 || id==13)) || (id>=21 && id<45 && id%2==0) || (id>=48 && id<72 && id%2>0) ); // In ECP(N), even (odd) layers are stereo
-
-  if (id >= brl_tibId[0] && id <= brl_tobId[1])
-  {
-      if (id < brl_tobId[0])
-      {
-            ASSF(m_qf_treg, qf_treg_tib);
-      }
-      else
-      {
-            ASSF(m_qf_treg, qf_treg_tob);
-      }
-
-      if (is_stereo_lyr)
-      {
-            ASSF(m_phif_lpt_brl, phif_ptlow_brl_stereo);
-      }
-      else
-      {
-            ASSF(m_phif_lpt_brl, phif_ptlow_brl_mono);
-      }
-  }
-  else if ((id >= ecp_stripId[0] && id <= ecp_stripId[1]) || (id >= ecn_stripId[0] && id <= ecn_stripId[1]))
-  {
-      if (is_stereo_lyr)
-      {
-            ASSF(m_phif_lpt_treg, phif_ptlow_treg_ec_stereo);
-      }
-      else
-      {
-            ASSF(m_phif_lpt_treg, phif_ptlow_treg_ec_mono);
-            ASSF(m_phif_lpt_ec, phif_ptlow_ec_mono);
-            ASSF(m_phif_treg, phif_treg_ec_mono);
-      }
-  }
-}
-
 void assignSubDetector(int id)
 {
   int pixb_lyrs[2]={0,3};
@@ -380,7 +324,6 @@ void print_trk_info()
       SCOPE_BEG;
       PRN("IterationLayerConfig & obj = ic.layer(%d);", i)
       PRN("obj.set_selection_limits(%f, %f, %f, %f);", SelWindows[i].pmin, SelWindows[i].pmax, SelWindows[i].qmin, SelWindows[i].qmax);
-      setHitSelDynamicFactors(i);
       SCOPE_END;
   }
 
