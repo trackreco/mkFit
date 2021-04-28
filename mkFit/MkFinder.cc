@@ -171,7 +171,7 @@ void MkFinder::getHitSelDynamicWindows(const float invpt, const float theta, flo
   // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
   if(this_dq>0.f){
     min_dq = (ILC.c_dq_sf)*this_dq;
-    max_dq = (ILC.c_dq_sf)*this_dq;
+    max_dq = 2.0f*min_dq;
   }
 
   // dphi hit selection window
@@ -179,7 +179,7 @@ void MkFinder::getHitSelDynamicWindows(const float invpt, const float theta, flo
   // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
   if(this_dphi>0.f){
     min_dphi = (ILC.c_dp_sf)*this_dphi;
-    max_dphi = (ILC.c_dp_sf)*this_dphi;
+    max_dphi = 2.0f*min_dphi;
   }
 
   // For future optimization: for layer & iteration dependend hit chi2 cut
