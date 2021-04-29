@@ -381,27 +381,28 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
 
   for (int it = 0; it <= n-1; ++it)
   {
-    // MIMI - to disable hit-masks, pass nullptr in place of &mask_ifc to job
+    const IterationConfig &itconf = Config::ItrInfo[it];
+
+    // To disable hit-masks, pass nullptr in place of &mask_ifc to MkJob ctor
     // and optionally comment out ev.fill_hitmask_bool_vectors() call.
 
-    ev.fill_hitmask_bool_vectors(Config::ItrInfo[it].m_track_algorithm, mask_ifc.m_mask_vector);
+    ev.fill_hitmask_bool_vectors(itconf.m_track_algorithm, mask_ifc.m_mask_vector);
 
-    MkJob job( { Config::TrkInfo, Config::ItrInfo[it], eoh, &mask_ifc } );
+    MkJob job( { Config::TrkInfo, itconf, eoh, &mask_ifc } );
 
     builder.begin_event(&job, &ev, __func__);
-
-    // Some of what happens here, should really happen somewhere else, if it needs to.
-    // builder.PrepareSeeds();
-    // Specific cleaning / mapping done below for extracted seeds.
 
     TrackVec seeds;
     { // We could partition seeds once, store beg, end for each iteration in a map or vector.
       int nc = 0;
       for (auto &s : ev.seedTracks_)
       {
-        if (s.algoint() == job.m_iter_config.m_track_algorithm) {
-          if(s.algoint()==9) {s.sortHitsByLayer();}
-          else if(s.algoint()==10) {s.sortHitsByLayer();}
+        if (s.algoint() == itconf.m_track_algorithm)
+        {
+          if (itconf.m_requires_seed_hit_sorting)
+          {
+            s.sortHitsByLayer();
+          }
           seeds.push_back(s);
           ++nc;
         }
@@ -409,12 +410,11 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
       }
     }
 
-    // MIMI -- using Iter0 function / tuning for all iterations.
-    if(it<7) StdSeq::clean_cms_seedtracks_iter(&seeds, Config::ItrInfo[it]);
-    //tested QF + StdSeq::find_duplicates_sharedhits without the seed cleaning
+    if ( ! itconf.m_require_quality_filter)
+      StdSeq::clean_cms_seedtracks_iter(&seeds, itconf);
     
     // Add protection in case no seeds are found for iteration
-    if(seeds.size()<=0)
+    if (seeds.size() <= 0)
       continue;
     
     builder.seed_post_cleaning(seeds, true, true);
@@ -434,9 +434,15 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
     // XXXX to builder m_tracks ... or do we do this for validation anyway ?    
     builder.export_best_comb_cands(ev.candidateTracks_);
 
+    // LLLL - do we also do normal/per-iteration duplicate cleaning here?
+    //      - above export presumably happens after any cleaning (the missing one + q-filter below)
+
     //ideally I would do this on m_event_of_comb_cands or similar at the end of the iteration, not to have to check the iteration algo 
-    if(it>=7) StdSeq::quality_filter(ev.candidateTracks_,seeds, Config::ItrInfo[it].m_params.minHitsQF, Config::ItrInfo[it].m_track_algorithm);
-    if(it>=7) StdSeq::find_duplicates_sharedhits(ev.candidateTracks_,seeds,Config::ItrInfo[it].m_params.fracSharedHits, Config::ItrInfo[it].m_track_algorithm);
+    if (itconf.m_require_quality_filter)
+    {
+      StdSeq::quality_filter(ev.candidateTracks_, seeds, itconf.m_params.minHitsQF, itconf.m_track_algorithm);
+      StdSeq::find_duplicates_sharedhits(ev.candidateTracks_, seeds, itconf.m_params.fracSharedHits, itconf.m_track_algorithm);
+    }
 
     // now do backwards fit... do we want to time this section?
     if (Config::backwardFit)
@@ -466,8 +472,7 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
       //swap for the cleaned seeds
       ev.seedTracks_.swap(seeds_used);
   }    
-  //PrepareSeeds() done
-  
+
   check_nan_n_silly_candiates(ev);
 
   if (Config::backwardFit) check_nan_n_silly_bkfit(ev);
@@ -528,22 +533,25 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
 
   if (do_seed_clean)
   {
-    //seed cleaning not done on the last 2 iterations
-    if(!itconf.m_require_quality_filter) StdSeq::clean_cms_seedtracks_iter(&seeds, itconf);
+    // Seed cleaning not done on pixelLess / tobTec iters.
+    if ( ! itconf.m_require_quality_filter) StdSeq::clean_cms_seedtracks_iter(&seeds, itconf);
   }
 
   // Check nans in seeds -- this should not be needed when Slava fixes
   // the track parameter coordinate transformation.
   builder.seed_post_cleaning(seeds, true, true);
 
-  for (auto &s : seeds) 
+  if (itconf.m_requires_seed_hit_sorting)
   {
-   if(itconf.m_requires_seed_hit_sorting) s.sortHitsByLayer();  // sort seed hits for the matched hits (I hope it works here)
+    for (auto &s : seeds)
+      s.sortHitsByLayer(); // sort seed hits for the matched hits (I hope it works here)
   }  
 
   builder.find_tracks_load_seeds(seeds);
 
   builder.FindTracksCloneEngine();
+
+  // LLLL - do duplicate removal / q-filter here
 
   if ( ! do_backward_fit)
   {
@@ -551,7 +559,7 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
   }
   else
   {
-    // a) BackwardFitBH works on m_tracks
+    // a) BackwardFitBH works on MkBuilder::m_tracks
     builder.select_best_comb_cands();
     builder.BackwardFitBH();
     builder.export_tracks(out_tracks);
@@ -561,9 +569,11 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
     // builder.export_best_comb_cands(out_tracks);
   }
 
+  // LLLL - move before backward fit
   if (do_remove_duplicates)
   {
-    if(itconf.m_require_quality_filter) //the last 2 iterations have no seed cleaning but qf + duplicate removal by shared hits 
+    // pixelLess / tobTec iters have no seed cleaning but qf + duplicate removal by shared hits
+    if (itconf.m_require_quality_filter)
     {
       StdSeq::quality_filter(out_tracks, seeds, itconf.m_params.minHitsQF, itconf.m_track_algorithm);
       StdSeq::find_duplicates_sharedhits(out_tracks, seeds, itconf.m_params.fracSharedHits, itconf.m_track_algorithm);

@@ -246,7 +246,7 @@ void MkBuilder::import_seeds(const TrackVec &in_seeds, std::function<insert_seed
     m_seedMinLastLayer[reg] = std::min(m_seedMinLastLayer[reg], hot.layer);
     m_seedMaxLastLayer[reg] = std::max(m_seedMaxLastLayer[reg], hot.layer);
 
-    insert_seed(S);
+    insert_seed(S, reg);
   }
 
   for (int i = 0; i < m_job->num_regions(); ++i)
@@ -1257,7 +1257,12 @@ void MkBuilder::find_tracks_load_seeds_BH(const TrackVec &in_seeds)
   m_tracks.reserve(in_seeds.size());
   m_tracks.clear();
 
-  import_seeds(in_seeds, [&](const Track& seed){ m_tracks.push_back(seed); });
+  import_seeds(in_seeds, [&](const Track& seed, int region)
+    {
+      m_tracks.push_back(seed);
+      m_tracks.back().setNSeedHits(seed.nTotalHits());
+      m_tracks.back().setEtaRegion(region);
+    });
 
   //dump seeds
   dcall(print_seeds(m_tracks));
@@ -1425,7 +1430,7 @@ void MkBuilder::find_tracks_load_seeds(const TrackVec &in_seeds)
 
   m_event_of_comb_cands.Reset((int) in_seeds.size(), m_job->params().maxCandsPerSeed);
 
-  import_seeds(in_seeds, [&](const Track& seed){ m_event_of_comb_cands.InsertSeed(seed); });
+  import_seeds(in_seeds, [&](const Track& seed, int region){ m_event_of_comb_cands.InsertSeed(seed, region); });
 }
 
 int MkBuilder::find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & seed_cand_vec,

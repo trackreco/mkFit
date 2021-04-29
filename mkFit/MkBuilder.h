@@ -112,7 +112,7 @@ protected:
   std::atomic<int> m_nan_n_silly_per_layer_count;
 
 public:
-  using insert_seed_foo = void(const Track &);
+  using insert_seed_foo = void(const Track &, int);
 
   typedef std::vector<std::pair<int,int>> CandIdx_t;
 

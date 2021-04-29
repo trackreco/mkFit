@@ -307,7 +307,7 @@ void find_duplicates(TrackVec &tracks)
       if (track.label() == track2.label())
         continue;
       if (track.algoint() != track2.algoint()) 
-	continue;
+        continue;
       deta = std::abs(track2.momEta() - eta1);
       if (deta > Config::maxdEta)
         continue;
