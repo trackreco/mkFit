@@ -2,7 +2,6 @@
 #define SteeringParams_h
 
 #include "Matrix.h"
-#include "HitSelectionWindows.h"
 
 #include "nlohmann/json_fwd.hpp"
 
@@ -317,26 +316,6 @@ public:
     m_region_order.resize(nreg);
     m_steering_params.resize(nreg);
     m_layer_configs.resize(nlay);
-  }
-
-  void fill_hit_selection_windows_params()
-  {
-    HitSelectionWindows hsw;
-    for(int l=0; l<m_layer_configs.size(); ++l)
-      {
-	// dphi cut
-	m_layer_configs[l].c_dp_0 = hsw.m_dp_params[m_iteration_index][l][0];
-	m_layer_configs[l].c_dp_1 = hsw.m_dp_params[m_iteration_index][l][1];
-	m_layer_configs[l].c_dp_2 = hsw.m_dp_params[m_iteration_index][l][2];
-	// dq cut
-	m_layer_configs[l].c_dq_0 = hsw.m_dq_params[m_iteration_index][l][0];
-	m_layer_configs[l].c_dq_1 = hsw.m_dq_params[m_iteration_index][l][1];
-	m_layer_configs[l].c_dq_2 = hsw.m_dq_params[m_iteration_index][l][2];
-	// chi2 cut (for future optimization)
-	m_layer_configs[l].c_c2_0 = hsw.m_c2_params[m_iteration_index][l][0];
-	m_layer_configs[l].c_c2_1 = hsw.m_c2_params[m_iteration_index][l][1];
-	m_layer_configs[l].c_c2_2 = hsw.m_c2_params[m_iteration_index][l][2];
-      }
   }
 
   IterationLayerConfig& layer(int i) { return m_layer_configs[i]; }

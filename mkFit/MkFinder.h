@@ -8,8 +8,6 @@
 #include "HitStructures.h"
 #include "SteeringParams.h"
 
-#include "HitSelectionWindows.h"
-
 // Define to get printouts about track and hit chi2.
 // See also MkBuilder::BackwardFit() and MkBuilder::quality_store_tracks().
 
