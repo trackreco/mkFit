@@ -503,6 +503,9 @@ git cms-init
 popd
 git clone git@github.com:trackreco/mkFit
 pushd mkFit
+# for gcc CMSSW "default" build:
+#   1) call "unset INTEL_LICENSE_FILE", or do not source compilevars.sh above
+#   2) replace AVX* with VEC_GCC="-msse3"
 make -j 12 TBB_PREFIX=$(dirname $(cd $CMSSW_BASE && scram tool tag tbb INCLUDE)) WITH_ROOT=1 AVX2:=1
 popd
 ```
