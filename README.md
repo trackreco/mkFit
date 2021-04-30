@@ -561,6 +561,9 @@ scram b -j 12
 # nstreams = 0, <N>
 # trackingNtuple = '', 'generalTracks', 'InitialStep', ...
 # jsonPatch = '', <path-to-JSON-file>
+# for core pinning prepend e.g. for nthreads=8 "taskset -c 0,32,1,33,2,34,3,35" 
+#     0,32 will correspond to the same physical core with 2-way hyperthreading
+#     the step is 32 for phi3; check /proc/cpuinfo for same physical id
 cmsRun RecoTracker/MkFit/test/reco_cfg.py sample=ttbarpu50 timing=1
 ```
 * The default values for the command line parameters are the first ones.
