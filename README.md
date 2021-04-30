@@ -102,7 +102,7 @@ You are free to put the lines from this script in your login scripts (.bashrc, .
 Now compile the code:
 
 ```
-make -j 32 AVX_512:=1
+make -j 32 AVX2:=1
 ```
 
 To run the code with some generic options, do:
@@ -128,9 +128,9 @@ Below are some rules and procedures on how to submit changes to the main develop
 5. Test locally!
    1. If you have not done so, clone your forked repo onto phi3, checking out your new branch.
    2. Source the environment for phi3 as explained in Section 3.
-   3. Compile test: ```make -j 32 AVX_512:=1```. Fix compilation errors if they are your fault or email the group / person responsible to fix their errors! 
+   3. Compile test: ```make -j 32 AVX2:=1```. Fix compilation errors if they are your fault or email the group / person responsible to fix their errors! 
    4. Run benchmark test: ```./mkFit/mkFit --cmssw-n2seeds --input-file /data2/slava77/samples/2017/pass-4874f28/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/a/memoryFile.fv3.clean.writeAll.recT.072617.bin --build-ce --num-thr 64 --num-events 20```. Ensure the test did not crash, and fix any segfaults / run-time errors! 
-   5. Compile with ROOT test: ```make -j 32 AVX_512:=1 WITH_ROOT:=1```. Before compiling, make sure to do a ```make distclean```, as we do not want conflicting object definitions. Fix errors if compilation fails.
+   5. Compile with ROOT test: ```make -j 32 AVX2:=1 WITH_ROOT:=1```. Before compiling, make sure to do a ```make distclean```, as we do not want conflicting object definitions. Fix errors if compilation fails.
    6. Run validation test:  ```./mkFit/mkFit --cmssw-n2seeds --input-file /data2/slava77/samples/2017/pass-4874f28/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/a/memoryFile.fv3.clean.writeAll.recT.072617.bin --build-ce --num-thr 64 --num-events 20 --backward-fit-pca --cmssw-val-fhit-bprm```. Ensure the test did not crash! 
 6. Run the full benchmarking + validation suite on all platforms: follow procedure in Section 5 (below)! If you notice changes to compute or physics performance, make sure to understand why! Even if you are proposing a technical two-line change, please follow this step as it ensures we have a full history of changes.
 7. Prepare a Pull Request (PR)
@@ -278,7 +278,7 @@ The plots in "Benchmarks" measure the time of the building sections only. These 
 
 The plots in "MultEvInFlight" measure the perfomance of the full event loop time which includes I/O, seed cleaning, etc. These tests run over 20 events times the number of events in flight. The time plotted is the total time for all events divided by the number of events.
 
-The points in the speedup plots are simply produced by dividing the first point by each point in the trend. The ideal scaling line assumes that with an N increase in resources, the speedup is then N, i.e. the code is fully vectorized and parallelized with no stalls from memory bandwidth, latency, cache misses, etc. Ideal scaling also assumes no penalty from [dynamic frequency scaling](https://en.wikichip.org/wiki/intel/frequency_behavior). Intel lowers the base and turbo frequency as a function of the occupancy of the number of cores, which can make speedup plots look much worse than they really are. In addition, different instruction sets have different base and turbo frequency settings. Namely, SSE has the highest settings, while AVX512 has the lowest.
+The points in the speedup plots are simply produced by dividing the first point by each point in the trend. The ideal scaling line assumes that with an N increase in resources, the speedup is then N, i.e. the code is fully vectorized and parallelized with no stalls from memory bandwidth, latency, cache misses, etc. Ideal scaling also assumes no penalty from [dynamic frequency scaling](https://en.wikichip.org/wiki/intel/frequency_behavior). Intel lowers the base and turbo frequency as a function of the occupancy of the number of cores, which can make speedup plots look much worse than they really are. In addition, different instruction sets have different base and turbo frequency settings. Namely, SSE has the highest settings, AVX2 is at the midpoint, while AVX512 has the lowest.
 
 The "VU" tests measure the performance of the building sections as a function of the vector width. In hardware, of course, vector width is a fixed property equal to the maximum number of floats that can be processed by a VPU. Call this number N_max. One can force the hardware to underutilize its VPUs by compiling the code with an older instruction set, e.g., SSE instead of AVX; however, this would have effects beyond just shrinking the vectors. Therefore, for our "VU" tests, we mimic the effect of reducing vector width by setting the width of Matriplex types to various nVU values up to and including N_max. At nVU=1, the code is effectively serial: the compiler might choose not to vectorize Matriplex operations at all. At the maximum size, e.g. nVU=16 on SKL, Matriplex operations are fully vectorized and the VPU can be fully loaded with 16 floats to process these operations. For intermediate values of nVU, full-vector instructions probably will be used, but they may be masked so that the VPU is in reality only partially utilized.
 
@@ -503,7 +503,7 @@ git cms-init
 popd
 git clone git@github.com:trackreco/mkFit
 pushd mkFit
-make -j 12 TBB_PREFIX=$(dirname $(cd $CMSSW_BASE && scram tool tag tbb INCLUDE)) WITH_ROOT=1 AVX_512:=1
+make -j 12 TBB_PREFIX=$(dirname $(cd $CMSSW_BASE && scram tool tag tbb INCLUDE)) WITH_ROOT=1 AVX2:=1
 popd
 ```
 
