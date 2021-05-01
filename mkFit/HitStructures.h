@@ -494,7 +494,33 @@ public:
     m_hots_size(o.m_hots_size),
     m_hots(std::move(o.m_hots)),
     m_overlap_hits(std::move(o.m_overlap_hits))
-  {}
+  {
+    // This is not needed as we do EOCC::Reset() after EOCCS::resize which
+    // calls Reset here and all CombCands get cleared.
+    // However, if at some point we start using this for other purposes this needs
+    // to be called as well.
+    // for (auto &tc : *this) tc.setCombCandidate(this);
+  }
+
+  // Need this for std::swap when filtering EventOfCombinedCandidates::m_candidates.
+  CombCandidate& operator=(CombCandidate&& o)
+  {
+    (std::vector<TrackCand>&)(*this) = std::move(o);
+    m_best_short_cand = std::move(o.m_best_short_cand);
+    m_state = o.m_state;
+    m_last_seed_layer = o.m_last_seed_layer;
+#ifdef DUMPHITWINDOW
+    m_seed_algo = o.m_seed_algo;
+    m_seed_label = o.m_seed_label;
+#endif
+    m_hots_size = o.m_hots_size;
+    m_hots = std::move(o.m_hots);
+    m_overlap_hits = std::move(o.m_overlap_hits);
+
+    for (auto &tc : *this) tc.setCombCandidate(this);
+
+    return *this;
+  }
 
   void Reset(int max_cands_per_seed, int expected_num_hots)
   {
@@ -614,7 +640,14 @@ public:
     m_size = 0;
   }
 
-  CombCandidate& operator[](int i) { return m_candidates[i]; }
+  void ResizeAfterFiltering(int n_removed)
+  {
+    assert(n_removed <= m_size);
+    m_size -= n_removed;
+  }
+
+  const CombCandidate& operator[](int i) const { return m_candidates[i]; }
+        CombCandidate& operator[](int i)       { return m_candidates[i]; }
 
   void InsertSeed(const Track& seed, int region)
   {

@@ -416,7 +416,7 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
     // Add protection in case no seeds are found for iteration
     if (seeds.size() <= 0)
       continue;
-    
+
     builder.seed_post_cleaning(seeds, true, true);
 
     builder.find_tracks_load_seeds(seeds);
@@ -429,33 +429,33 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
     timevec[n] += timevec[it];
 
     if (validation_on)  seeds_used.insert(seeds_used.end(), seeds.begin(), seeds.end());//cleaned seeds need to be stored somehow
-    
-    // first store candidate tracks - needed for BH backward fit and root_validation
-    // XXXX to builder m_tracks ... or do we do this for validation anyway ?    
-    builder.export_best_comb_cands(ev.candidateTracks_);
 
-    // LLLL - do we also do normal/per-iteration duplicate cleaning here?
-    //      - above export presumably happens after any cleaning (the missing one + q-filter below)
-
-    //ideally I would do this on m_event_of_comb_cands or similar at the end of the iteration, not to have to check the iteration algo 
     if (itconf.m_require_quality_filter)
     {
-      StdSeq::quality_filter(ev.candidateTracks_, seeds, itconf.m_params.minHitsQF, itconf.m_track_algorithm);
-      StdSeq::find_duplicates_sharedhits(ev.candidateTracks_, seeds, itconf.m_params.fracSharedHits, itconf.m_track_algorithm);
+      builder.filter_comb_cands([&](const TrackCand &t)
+        { return StdSeq::qfilter_n_hits(t, itconf.m_params.minHitsQF); });
     }
+
+    builder.select_best_comb_cands();
+
+    builder.export_tracks(ev.candidateTracks_);
 
     // now do backwards fit... do we want to time this section?
     if (Config::backwardFit)
     {
       // a) TrackVec version:
-      builder.select_best_comb_cands();
       builder.BackwardFitBH();
+
+      if (itconf.m_require_quality_filter)
+      {
+        StdSeq::find_duplicates_sharedhits(builder.ref_tracks_nc(), itconf.m_params.fracSharedHits);
+      }
+
       builder.export_tracks(ev.fitTracks_);
 
       // b) Version that runs on CombCand / TrackCand
       // builder.BackwardFit();
       // builder.quality_store_tracks(ev.fitTracks_);
-
     }
     
     builder.end_event();
@@ -477,8 +477,8 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
 
   if (Config::backwardFit) check_nan_n_silly_bkfit(ev);
 
-  // ??? MIMI - How to do this? Assuming cleaning of all iterations together.
-  // need to update it so that it is done by iteration
+  // LLLL - shall we change this to be like cmssw?
+  // LLLL - does duplicate cleaning make sense without backward fit?
   StdSeq::handle_duplicates(&ev);
 
   // ??? MIMI - And same here ... most validation runs on Event, I hope.
@@ -551,32 +551,32 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
 
   builder.FindTracksCloneEngine();
 
-  // LLLL - do duplicate removal / q-filter here
-
-  if ( ! do_backward_fit)
+  if (itconf.m_require_quality_filter)
   {
-    builder.export_best_comb_cands(out_tracks);
+    builder.filter_comb_cands([&](const TrackCand &t)
+      { return StdSeq::qfilter_n_hits(t, itconf.m_params.minHitsQF); });
   }
-  else
+
+  builder.select_best_comb_cands();
+
+  if (do_backward_fit)
   {
     // a) BackwardFitBH works on MkBuilder::m_tracks
-    builder.select_best_comb_cands();
     builder.BackwardFitBH();
-    builder.export_tracks(out_tracks);
 
     // b) Version that runs on CombCand / TrackCand
     // builder.BackwardFit();
     // builder.export_best_comb_cands(out_tracks);
   }
 
-  // LLLL - move before backward fit
+  builder.export_tracks(out_tracks);
+
   if (do_remove_duplicates)
   {
     // pixelLess / tobTec iters have no seed cleaning but qf + duplicate removal by shared hits
     if (itconf.m_require_quality_filter)
     {
-      StdSeq::quality_filter(out_tracks, seeds, itconf.m_params.minHitsQF, itconf.m_track_algorithm);
-      StdSeq::find_duplicates_sharedhits(out_tracks, seeds, itconf.m_params.fracSharedHits, itconf.m_track_algorithm);
+      StdSeq::find_duplicates_sharedhits(out_tracks, itconf.m_params.fracSharedHits);
     }
     else //regular dupl cleaning
     {

@@ -29,9 +29,16 @@ namespace StdSeq
     void remove_duplicates(TrackVec &tracks);
     void handle_duplicates(Event *m_event);
       
-    void quality_filter(TrackVec &tracks, TrackVec & seeds, const int nMinHits=4, const int algo=9);
-    void find_duplicates_sharedhits(TrackVec &tracks,  TrackVec & seeds, const float fraction=0.11, const int algo=9);
+    void quality_filter(TrackVec &tracks, const int nMinHits);
+    void find_duplicates_sharedhits(TrackVec &tracks, const float fraction);
 
+    template<class TRACK>
+    bool qfilter_n_hits(const TRACK &t, int nMinHits)
+    {
+        int seedHits = t.getNSeedHits();
+        int seedReduction = (seedHits <= 5) ? 2 : 3;
+        return t.nFoundHits() - seedReduction >= nMinHits;
+    }
 } // namespace StdSeq
 
 }

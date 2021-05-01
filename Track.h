@@ -502,8 +502,8 @@ public:
     {
       if (hitsOnTrk_[ihit].layer == layer)
       {
-	mcHitID = globalHitVec[hitsOnTrk_[ihit].layer][hitsOnTrk_[ihit].index].mcHitID();
-	break;
+        mcHitID = globalHitVec[hitsOnTrk_[ihit].layer][hitsOnTrk_[ihit].index].mcHitID();
+        break;
       }
     }
     return mcHitID;

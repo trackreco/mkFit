@@ -112,7 +112,8 @@ protected:
   std::atomic<int> m_nan_n_silly_per_layer_count;
 
 public:
-  using insert_seed_foo = void(const Track &, int);
+  using insert_seed_foo       = void(const Track &, int);
+  using filter_track_cand_foo = bool(const TrackCand &);
 
   typedef std::vector<std::pair<int,int>> CandIdx_t;
 
@@ -153,21 +154,20 @@ public:
   void end_event();
   void import_seeds(const TrackVec &in_seeds, std::function<insert_seed_foo> insert_seed);
 
+  int  filter_comb_cands(std::function<filter_track_cand_foo> filter);
   void select_best_comb_cands();
   void export_best_comb_cands(TrackVec &out_vec);
   void export_tracks(TrackVec &out_vec);
 
   // MIMI hack to export tracks for BH
   const TrackVec& ref_tracks() const { return m_tracks; }
+        TrackVec& ref_tracks_nc()    { return m_tracks; }
 
   // void create_seeds_from_sim_tracks();
   // void find_seeds();
   // void fit_seeds();
 
   // --------
-
-  void map_track_hits  (TrackVec & tracks); // m_event->layerHits_ -> m_event_of_hits.m_layers_of_hits
-  void remap_track_hits(TrackVec &tracks); // m_event_of_hits.m_layers_of_hits -> m_event->layerHits_
 
   void quality_val();
   void quality_reset();

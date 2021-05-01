@@ -275,6 +275,49 @@ void MkBuilder::import_seeds(const TrackVec &in_seeds, std::function<insert_seed
   dcall(print_seeds(m_event_of_comb_cands));
 }
 
+//------------------------------------------------------------------------------
+
+int MkBuilder::filter_comb_cands(std::function<filter_track_cand_foo> filter)
+{
+  EventOfCombCandidates &eoccs = m_event_of_comb_cands;
+  int i = 0, place_pos = 0;
+
+  // printf ("MkBuilder::filter_comb_cands Entering filter size eoccsm_size=%d\n", eoccs.m_size);
+
+  IntVec removed_cnts(m_job->num_regions());
+  while (i < eoccs.m_size)
+  {
+    if (filter(eoccs[i].front()))
+    {
+      if (place_pos != i) std::swap(eoccs[place_pos], eoccs[i]);
+      ++place_pos;
+    }
+    else
+    {
+      assert (eoccs[i].front().getEtaRegion() < m_job->num_regions());
+      ++removed_cnts[eoccs[i].front().getEtaRegion()];
+    }
+    ++i;
+  }
+
+  int n_removed = 0;
+  for (int reg = 0; reg < m_job->num_regions(); ++reg)
+  {
+    // printf ("MkBuilder::filter_comb_cands reg=%d: n_rem_was=%d removed_in_r=%d n_rem=%d, es_was=%d es_new=%d\n",
+    //         reg, n_removed, removed_cnts[reg], n_removed + removed_cnts[reg],
+    //         m_seedEtaSeparators[reg], m_seedEtaSeparators[reg] - n_removed - removed_cnts[reg]);
+
+    n_removed += removed_cnts[reg];
+    m_seedEtaSeparators[reg] -= n_removed;
+  }
+
+  eoccs.ResizeAfterFiltering(n_removed);
+
+  // printf ("MkBuilder::filter_comb_cands n_removed = %d, eoccsm_size=%d\n", n_removed, eoccs.m_size);
+
+  return n_removed;
+}
+
 void MkBuilder::select_best_comb_cands()
 {
   export_best_comb_cands(m_tracks);
@@ -287,12 +330,12 @@ void MkBuilder::export_best_comb_cands(TrackVec &out_vec)
   for (int i = 0; i < eoccs.m_size; i++)
   {
     // See MT-RATS comment below.
-    assert ( ! eoccs.m_candidates[i].empty() && "BackwardFitBH requires output tracks to align with seeds.");
+    assert ( ! eoccs[i].empty() && "BackwardFitBH requires output tracks to align with seeds.");
 
     // Take the first candidate, if it exists.
-    if ( ! eoccs.m_candidates[i].empty())
+    if ( ! eoccs[i].empty())
     {
-      const TrackCand &bcand = eoccs.m_candidates[i].front();
+      const TrackCand &bcand = eoccs[i].front();
       out_vec.emplace_back( bcand.exportTrack() );
     }
   }

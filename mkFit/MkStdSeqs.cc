@@ -408,38 +408,23 @@ void handle_duplicates(Event *m_event)
 // QUALITY FILTER + SHARED HITS DUPL cleaning
 //=========================================================================
 
-void quality_filter(TrackVec & tracks, TrackVec & seeds, const int nMinHits, const int algo)
+void quality_filter(TrackVec & tracks, const int nMinHits)
 {
-  const auto nseeds = seeds.size();
   const auto ntracks = tracks.size();
 
   std::vector<bool> goodtrack(ntracks, false);
-  std::map<int,int> nSeedHitsMap;
 
   for (auto itrack = 0U; itrack < ntracks; itrack++)
   {
     auto &trk = tracks[itrack];
-    
-    //this is not very good - i want to pass just the subset of tracks 
-    if(trk.algoint()!=algo) { goodtrack[itrack]=true; continue;}
 
-    //store seed hit info
-    for (auto iseed = 0U; iseed < nseeds; iseed++)
-    {
-      auto &seed = seeds[iseed];
-      if(seed.algoint()!=algo) continue;
-      if (seed.label()==trk.label()) { nSeedHitsMap[trk.label()]=seed.nFoundHits();}
-    }
-    //is there a way to retrieve the info without mapping it again?
-
-    auto seedHits=nSeedHitsMap[trk.label()];
-    auto seedReduction = (seedHits <= 5)? 2:3;
+    auto seedHits = trk.getNSeedHits();
+    auto seedReduction = (seedHits <= 5) ? 2 : 3;
 
     // minimum 4 hits 
-    if (trk.nFoundHits()-seedReduction>=nMinHits) goodtrack[itrack]=true;
+    if (trk.nFoundHits() - seedReduction >= nMinHits) goodtrack[itrack]=true;
     //penalty (not used)
     //if (trk.nFoundHits()-seedReduction>=4+(seedHits==4)) goodtrack[itrack]=true;
-
   }
 
   for (auto itrack = ntracks-1; itrack >0; itrack--)
@@ -448,42 +433,23 @@ void quality_filter(TrackVec & tracks, TrackVec & seeds, const int nMinHits, con
   }
 }
 
-void find_duplicates_sharedhits(TrackVec &tracks, TrackVec & seeds, const float fraction, const int algo)
+void find_duplicates_sharedhits(TrackVec &tracks, const float fraction)
 {
-  const auto nseeds = seeds.size();
   const auto ntracks = tracks.size();
 
   std::vector<bool> goodtrack(ntracks, false);  
-  std::map<int,int> nSeedHitsMap;
   
   for (auto itrack = 0U; itrack < ntracks; itrack++)
   {
     auto &trk = tracks[itrack];    
-   
-    ///not so good again - want to pass only pixellLess tracks 
-    if(trk.algoint()!=algo) continue;
-    for (auto iseed = 0U; iseed < nseeds; iseed++)
-    {   
-      auto &seed = seeds[iseed];
-      if(seed.algoint()!=algo) continue;
-      if (seed.label()==trk.label()) { nSeedHitsMap[trk.label()]=seed.nFoundHits();}
-    }  //also here would need seed hit info 
-    
-  }
 
-  for (auto itrack = 0U; itrack < ntracks; itrack++)
-  {
-    auto &trk = tracks[itrack];    
-    
-    if(trk.algoint()!=algo) { goodtrack[itrack]=true; continue;}
-    
-    auto seedHits=nSeedHitsMap[trk.label()];
+    auto seedHits = trk.getNSeedHits();
     auto seedReduction = (seedHits <= 5)? 2:3;
 
     for (auto jtrack = itrack + 1; jtrack < ntracks; jtrack++)
     {   
       auto &track2 = tracks[jtrack];
-      auto seedHits2=nSeedHitsMap[trk.label()];
+      auto seedHits2 = track2.getNSeedHits();
       auto seedReduction2 = (seedHits2 <= 5)? 2:3;
     
       auto sharedCount=0;
@@ -526,7 +492,6 @@ void find_duplicates_sharedhits(TrackVec &tracks, TrackVec & seeds, const float 
 
   //removal here
   tracks.erase(std::remove_if(tracks.begin(),tracks.end(),[](auto track){return track.getDuplicateValue();}),tracks.end());
-
 }
 
 //=========================================================================
