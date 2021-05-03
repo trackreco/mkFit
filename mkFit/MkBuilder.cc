@@ -1082,7 +1082,7 @@ void MkBuilder::prep_simtracks()
     if (Config::mtvLikeValidation)
     {
       // Apply MTV selection criteria and then return
-      if (simtrack.prodType() != Track::ProdType::Signal || simtrack.charge() == 0 || simtrack.posR() > 3.5 || std::abs(simtrack.z()) > 30 || std::abs(simtrack.momEta()) > 2.5)
+      if (simtrack.prodType() != Track::ProdType::Signal || simtrack.charge() == 0 || simtrack.posR() > 2.5 || std::abs(simtrack.z()) > 30 || std::abs(simtrack.momEta()) > 3.0)
         simtrack.setNotFindable();
       else if (Config::mtvRequireSeeds && !isSimSeed)
         simtrack.setNotFindable();
