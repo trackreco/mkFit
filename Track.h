@@ -331,7 +331,7 @@ public:
     hiRegitMuMuonSeededStepInOut = 44,
     hiRegitMuMuonSeededStepOutIn = 45,
     algoSize = 46
-};
+  };
 
   int            algoint()   const { return status_.algorithm; }
   TrackAlgorithm algorithm() const { return TrackAlgorithm(status_.algorithm); }

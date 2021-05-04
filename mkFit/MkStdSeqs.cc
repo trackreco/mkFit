@@ -391,19 +391,6 @@ void handle_duplicates(Event *m_event)
       find_duplicates(m_event->candidateTracks_);
       if (Config::backwardFit) find_duplicates(m_event->fitTracks_);
     }
-    else if ( Config::cmssw_export)
-    {
-      if (Config::backwardFit)
-      {
-        find_duplicates(m_event->fitTracks_);
-        remove_duplicates(m_event->fitTracks_);
-      }
-      else
-      {
-        find_duplicates(m_event->candidateTracks_);
-        remove_duplicates(m_event->candidateTracks_);
-      }
-    }
     // For the MEIF benchmarks and the stress tests, no validation flags are set so we will enter this block
     else
     {
@@ -501,6 +488,23 @@ void find_duplicates_sharedhits(TrackVec &tracks, const float fraction)
 
   //removal here
   tracks.erase(std::remove_if(tracks.begin(),tracks.end(),[](auto track){return track.getDuplicateValue();}),tracks.end());
+}
+
+//=========================================================================
+//
+//=========================================================================
+
+void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf)
+{
+  if (itconf.m_require_quality_filter)
+  {
+    find_duplicates_sharedhits(tracks, itconf.m_params.fracSharedHits);
+  }
+  else //regular dupl cleaning
+  {
+    find_duplicates(tracks);
+    remove_duplicates(tracks);
+  }
 }
 
 //=========================================================================

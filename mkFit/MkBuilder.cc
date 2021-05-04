@@ -987,16 +987,6 @@ void MkBuilder::root_val()
   m_event->Validate();
 }
 
-void MkBuilder::cmssw_export()
-{
-  // get the tracks ready for export
-  // prep_(reco)tracks doesn't actually do anything useful for CMSSW.
-  // We don't need the extra (seed index is obtained via canidate
-  // track label()), and sorting the hits by layer is actually
-  // harmful.
-  //prep_recotracks();
-}
-
 void MkBuilder::prep_recotracks()
 {
   // seed tracks extras always needed

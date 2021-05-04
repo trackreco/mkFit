@@ -165,13 +165,12 @@ double runBuildingTestPlexBestHit(Event& ev, const EventOfHits &eoh, MkBuilder& 
   ev.candidateTracks_ = builder.ref_tracks();
 
   // For best hit, the candidateTracks_ vector is the direct input to the backward fit so only need to do find_duplicates once
-  if (Config::quality_val || Config::sim_val || Config::cmssw_val || Config::cmssw_export)
+  if (Config::quality_val || Config::sim_val || Config::cmssw_val)
   {
     //Mark tracks as duplicates; if within CMSSW, remove duplicate tracks before backward fit
     if(Config::removeDuplicates)
     {
       StdSeq::find_duplicates(ev.candidateTracks_);
-      if(Config::cmssw_export) StdSeq::remove_duplicates(ev.candidateTracks_);
     }
   }
 
@@ -249,8 +248,6 @@ double runBuildingTestPlexStandard(Event& ev, const EventOfHits &eoh, MkBuilder&
     builder.quality_val();
   } else if (Config::sim_val || Config::cmssw_val) {
     builder.root_val();
-  } else if (Config::cmssw_export) {
-    builder.cmssw_export();
   }
 
   builder.end_event();
@@ -317,8 +314,6 @@ double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuild
     builder.quality_val();
   } else if (Config::sim_val || Config::cmssw_val) {
     builder.root_val();
-  } else if (Config::cmssw_export) {
-    builder.cmssw_export();
   }
 
   builder.end_event();
@@ -330,7 +325,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuild
 
 
 //==============================================================================
-// runBtbCe_MultiIter
+// runBtpCe_MultiIter
 //
 // Prototype for running multiple iterations, sequentially, using the same builder.
 // For cmmsw seeds
@@ -341,18 +336,15 @@ double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuild
 // In particular, MkBuilder::PrepareSeeds does a lot of things to whole / complete
 // event,seedTracks_ -- probably this would need to be split into common / and
 // per-iteration part.
-// - hit remapping back happens in MkBuilder::quality_val() and root_validation().
 // - MkBuilder::prep_*** functions also mostly do not belong there (prep_sim is called from
 //   PrepareSeeds() for cmssw seeds).
-//
-// StdSeq::handle_duplicates() also goes over all Event tracks ... should it be per iteration?
 //
 // At this point we need to think about what should happen to Event before all the iterations and
 // after all the iterations ... from the Validation perspective.
 // And if we care about doing too muich work for seeds that will never get processed.
 //==============================================================================
 
-std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder, int n)
+std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder, int n)
 {
   std::vector<double> timevec;
   if (n<=0) return timevec;
@@ -378,6 +370,8 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
   
 
   IterationMaskIfc mask_ifc;
+  TrackVec         seeds;
+  TrackVec         tmp_tvec;
 
   for (int it = 0; it <= n-1; ++it)
   {
@@ -392,8 +386,8 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
 
     builder.begin_event(&job, &ev, __func__);
 
-    TrackVec seeds;
     { // We could partition seeds once, store beg, end for each iteration in a map or vector.
+      seeds.clear();
       int nc = 0;
       for (auto &s : ev.seedTracks_)
       {
@@ -438,7 +432,13 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
 
     builder.select_best_comb_cands();
 
-    builder.export_tracks(ev.candidateTracks_);
+    {
+      builder.export_tracks(tmp_tvec);
+      StdSeq::find_and_remove_duplicates(tmp_tvec, itconf);
+      ev.candidateTracks_.reserve(ev.candidateTracks_.size() + tmp_tvec.size());
+      for (auto &&t : tmp_tvec) ev.candidateTracks_.emplace_back( std::move(t) );
+      tmp_tvec.clear();
+    }
 
     // now do backwards fit... do we want to time this section?
     if (Config::backwardFit)
@@ -446,10 +446,7 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
       // a) TrackVec version:
       builder.BackwardFitBH();
 
-      if (itconf.m_require_quality_filter)
-      {
-        StdSeq::find_duplicates_sharedhits(builder.ref_tracks_nc(), itconf.m_params.fracSharedHits);
-      }
+      StdSeq::find_and_remove_duplicates(builder.ref_tracks_nc(), itconf);
 
       builder.export_tracks(ev.fitTracks_);
 
@@ -465,7 +462,6 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
   MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
   builder.begin_event(&job, &ev, __func__);
   
-  //I have the seeds -> continue the PrepareSeeds()
   if (validation_on)
   {
       builder.prep_simtracks();
@@ -477,18 +473,11 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
 
   if (Config::backwardFit) check_nan_n_silly_bkfit(ev);
 
-  // LLLL - shall we change this to be like cmssw?
-  // LLLL - does duplicate cleaning make sense without backward fit?
-  StdSeq::handle_duplicates(&ev);
-
-  // ??? MIMI - And same here ... most validation runs on Event, I hope.
   // validation section
   if        (Config::quality_val) {
     builder.quality_val();
   } else if (Config::sim_val || Config::cmssw_val) {
     builder.root_val();
-  } else if (Config::cmssw_export) {
-    builder.cmssw_export();
   }
 
   // ev.print_tracks(ev.candidateTracks_, true);
@@ -573,16 +562,7 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
 
   if (do_remove_duplicates)
   {
-    // pixelLess / tobTec iters have no seed cleaning but qf + duplicate removal by shared hits
-    if (itconf.m_require_quality_filter)
-    {
-      StdSeq::find_duplicates_sharedhits(out_tracks, itconf.m_params.fracSharedHits);
-    }
-    else //regular dupl cleaning
-    {
-      StdSeq::find_duplicates(out_tracks);
-      StdSeq::remove_duplicates(out_tracks);
-    }
+    StdSeq::find_and_remove_duplicates(out_tracks, itconf);
   }
 
   builder.end_event();

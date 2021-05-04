@@ -503,9 +503,12 @@ public:
   }
 
   // Need this for std::swap when filtering EventOfCombinedCandidates::m_candidates.
+  // We do not call clear() on vectors as this will be done via EoCCs reset.
+  // Probably would be better (clearer) if there was a special function that does
+  // the swap in here or in EoCCs.
   CombCandidate& operator=(CombCandidate&& o)
   {
-    (std::vector<TrackCand>&)(*this) = std::move(o);
+    std::vector<TrackCand>::operator=( std::move(o) );
     m_best_short_cand = std::move(o.m_best_short_cand);
     m_state = o.m_state;
     m_last_seed_layer = o.m_last_seed_layer;
