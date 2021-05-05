@@ -328,7 +328,7 @@ namespace Config
   extern float maxdPt;
   extern float maxdEta;
   extern float minFracHitsShared;
-  extern float maxdRSquared;
+  extern float maxdR;
 
   // config on seed cleaning
   constexpr float track1GeVradius = 87.6; // = 1/(c*B)

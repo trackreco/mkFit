@@ -287,6 +287,7 @@ void find_duplicates(TrackVec &tracks)
 {
   const auto ntracks = tracks.size();
   float eta1, phi1, pt1, deta, dphi, dr2;
+  //float ch1;
   if (ntracks == 0)
   {
     return;
@@ -300,7 +301,8 @@ void find_duplicates(TrackVec &tracks)
       continue;   
     eta1 = track.momEta();
     phi1 = track.momPhi();
-    pt1 = track.pT();
+    ch1  = track.charge();
+    pt1  = track.pT();
     for (auto jtrack = itrack + 1; jtrack < ntracks; jtrack++)
     {
       auto &track2 = tracks[jtrack];
@@ -308,6 +310,9 @@ void find_duplicates(TrackVec &tracks)
         continue;
       if (track.algoint() != track2.algoint()) 
         continue;
+      
+      //if (ch1 != track2.charge()) continue;
+
       deta = std::abs(track2.momEta() - eta1);
       if (deta > Config::maxdEta)
         continue;
@@ -316,8 +321,12 @@ void find_duplicates(TrackVec &tracks)
       if (dphi > Config::maxdPhi)
         continue;
 
+      float maxdR = Config::maxdR; // maxdR = 0.0025
+      float maxdRSquared = maxdR * maxdR;
+      if (std::abs(eta1)>2.5f) maxdRSquared*=16.0f;
+      else if (std::abs(eta1)>1.44f) maxdRSquared*=9.0f;
       dr2 = dphi * dphi + deta * deta;
-      if (dr2 < Config::maxdRSquared)
+      if (dr2 < maxdRSquared)
       {
         //Keep track with best score
         if (track.score() > track2.score())
