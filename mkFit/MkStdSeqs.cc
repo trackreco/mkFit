@@ -286,7 +286,8 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg)
 void find_duplicates(TrackVec &tracks)
 {
   const auto ntracks = tracks.size();
-  float eta1, phi1, ch1, pt1, deta, dphi, dr2;
+  float eta1, phi1, pt1, deta, dphi, dr2;
+  //float ch1;
   if (ntracks == 0)
   {
     return;
@@ -300,7 +301,7 @@ void find_duplicates(TrackVec &tracks)
       continue;   
     eta1 = track.momEta();
     phi1 = track.momPhi();
-    ch1  = track.charge();
+    //ch1  = track.charge();
     pt1  = track.pT();
     for (auto jtrack = itrack + 1; jtrack < ntracks; jtrack++)
     {
