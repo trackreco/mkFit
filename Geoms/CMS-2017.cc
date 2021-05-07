@@ -5,6 +5,7 @@
 #include "Config.h"
 #include "Debug.h"
 #include "TrackerInfo.h"
+#include "mkFit/IterationConfig.h"
 #include "mkFit/SteeringParams.h"
 #include "mkFit/HitStructures.h"
 

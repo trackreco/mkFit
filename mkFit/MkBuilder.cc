@@ -2,10 +2,10 @@
 #include <limits>
 
 #include "MkBuilder.h"
-#include "seedtestMPlex.h"
 
 #include "Event.h"
 #include "TrackerInfo.h"
+#include "FindingFoos.h"
 
 #include "Ice/IceRevisitedRadix.h"
 
@@ -98,20 +98,8 @@ namespace
                                 std::min(m_reg_beg + NN * i.end(), m_reg_end));
     }
   };
-}
-
-namespace mkfit {
-
-MkBuilder* MkBuilder::make_builder()
-{
-  return new MkBuilder;
-}
-
-} // end namespace mkfit
 
 #ifdef DEBUG
-namespace
-{
   void pre_prop_print(int ilay, MkBase* fir) {
     const float pt = 1.f/fir->getPar(0, 0, 3);
     std::cout << "propagate to lay=" << ilay
@@ -153,36 +141,33 @@ namespace
       print_seed2(event_of_comb_cands.m_candidates[iseed].front());
     }
   }
-}
-
 #endif
 
-namespace
-{
   bool sortCandByScore(const TrackCand & cand1, const TrackCand & cand2)
   {
     return mkfit::sortByScoreTrackCand(cand1,cand2);
   }
-}
+
+} // end unnamed namespace
 
 //------------------------------------------------------------------------------
 // Constructor and destructor
 //------------------------------------------------------------------------------
 
-#include "KalmanUtilsMPlex.h"
-
 namespace mkfit {
+
+MkBuilder* MkBuilder::make_builder()
+{
+  return new MkBuilder;
+}
 
 MkBuilder::MkBuilder()
 {
-  m_fndfoos_brl = { kalmanPropagateAndComputeChi2,       kalmanPropagateAndUpdate,       &MkBase::PropagateTracksToR };
-  m_fndfoos_ec  = { kalmanPropagateAndComputeChi2Endcap, kalmanPropagateAndUpdateEndcap, &MkBase::PropagateTracksToZ };
 }
 
 MkBuilder::~MkBuilder()
 {
 }
-
 
 //------------------------------------------------------------------------------
 // Common functions
@@ -1368,7 +1353,7 @@ void MkBuilder::FindTracksBestHit()
           dprint("at layer " << curr_layer);
           const LayerOfHits &layer_of_hits = m_job->m_event_of_hits.m_layers_of_hits[curr_layer];
           const LayerInfo   &layer_info    = trk_info.m_layers[curr_layer];
-          const FindingFoos &fnd_foos      = layer_info.is_barrel() ? m_fndfoos_brl : m_fndfoos_ec;
+          const FindingFoos &fnd_foos      = FindingFoos::get_finding_foos(layer_info.is_barrel());
 
           // Pick up seeds that become active on current layer -- unless already fully loaded.
           if (curr_tridx < rng.n_proc())
@@ -1651,7 +1636,7 @@ void MkBuilder::FindTracksStandard()
 
         const LayerOfHits &layer_of_hits = m_job->m_event_of_hits.m_layers_of_hits[curr_layer];
         const LayerInfo   &layer_info    = trk_info.m_layers[curr_layer];
-        const FindingFoos &fnd_foos      = layer_info.is_barrel() ? m_fndfoos_brl : m_fndfoos_ec;
+        const FindingFoos &fnd_foos      = FindingFoos::get_finding_foos(layer_info.is_barrel());
 
         int theEndCand = find_tracks_unroll_candidates(seed_cand_idx, start_seed, end_seed,
                                                        prev_layer, layer_plan_it->m_pickup_only);
@@ -1862,7 +1847,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 
     const LayerInfo   &layer_info    = trk_info.m_layers[curr_layer];
     const LayerOfHits &layer_of_hits = m_job->m_event_of_hits.m_layers_of_hits[curr_layer];
-    const FindingFoos &fnd_foos      = layer_info.is_barrel() ? m_fndfoos_brl : m_fndfoos_ec;
+    const FindingFoos &fnd_foos      = FindingFoos::get_finding_foos(layer_info.is_barrel());
 
     const int theEndCand = find_tracks_unroll_candidates(seed_cand_idx, start_seed, end_seed,
                                                          prev_layer, pickup_only);

@@ -3,7 +3,7 @@
 #include "Event.h"
 
 #include "HitStructures.h"
-#include "SteeringParams.h"
+#include "IterationConfig.h"
 
 #include "tbb/parallel_for.h"
 

@@ -9,7 +9,7 @@
 #include "CandCloner.h"
 #include "MkFitter.h"
 #include "MkFinder.h"
-#include "SteeringParams.h"
+#include "IterationConfig.h"
 
 #include <functional>
 #include <mutex>
@@ -101,8 +101,6 @@ protected:
   EventOfCombCandidates           m_event_of_comb_cands;
 
   int m_cnt=0, m_cnt1=0, m_cnt2=0, m_cnt_8=0, m_cnt1_8=0, m_cnt2_8=0, m_cnt_nomc=0;
-
-  FindingFoos      m_fndfoos_brl, m_fndfoos_ec;
 
   // Per-region seed information
   IntVec           m_seedEtaSeparators;
@@ -219,7 +217,6 @@ public:
 
   void BackwardFit();
   void fit_cands(MkFinder *mkfndr, int start_cand, int end_cand, int region);
-
 };
 
 } // end namespace mkfit

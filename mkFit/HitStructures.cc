@@ -2,7 +2,7 @@
 
 #include "Event.h"
 
-#include "SteeringParams.h" // just needs iteration-params
+#include "IterationConfig.h"
 
 #include "Ice/IceRevisitedRadix.h"
 

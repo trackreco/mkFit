@@ -3,6 +3,7 @@
 #include "CandCloner.h"
 #include "HitStructures.h"
 #include "SteeringParams.h"
+#include "FindingFoos.h"
 
 #include "KalmanUtilsMPlex.h"
 
@@ -470,13 +471,12 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 	    const Hit &thishit=L.GetHit(hi);
 	    msErr.CopyIn(itrack, thishit.errArray());
 	    msPar.CopyIn(itrack, thishit.posArray());
-	    const FindingFoos tmp_fndfoos_brl = {kalmanPropagateAndComputeChi2      ,kalmanPropagateAndUpdate      ,&MkBase::PropagateTracksToR};
-	    const FindingFoos tmp_fndfoos_ec  = {kalmanPropagateAndComputeChi2Endcap,kalmanPropagateAndUpdateEndcap,&MkBase::PropagateTracksToZ};
 
-	    const FindingFoos &this_fnd_foos = L.is_barrel() ?  tmp_fndfoos_brl : tmp_fndfoos_ec; 
 	    MPlexQF thisOutChi2;
-	    (*this_fnd_foos.m_compute_chi2_foo)(Err[iI], Par[iI], Chg, msErr, msPar,
+      const FindingFoos &fnd_foos = FindingFoos::get_finding_foos(L.is_barrel());
+      (*fnd_foos.m_compute_chi2_foo)(Err[iI], Par[iI], Chg, msErr, msPar,
 						thisOutChi2, N_proc, Config::finding_intra_layer_pflags);
+
 	    float hx    = thishit.x();
 	    float hy    = thishit.y();
 	    float hz    = thishit.z();
