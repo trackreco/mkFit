@@ -1,6 +1,8 @@
 #ifndef IterationConfig_h
 #define IterationConfig_h
 
+#include "SteeringParams.h"
+
 #include "nlohmann/json_fwd.hpp"
 
 #include <functional>
@@ -8,7 +10,6 @@
 namespace mkfit {
 
 class EventOfHits;
-class SteeringParams;
 class TrackerInfo;
 class Track;
 

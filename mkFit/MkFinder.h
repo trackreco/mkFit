@@ -6,7 +6,6 @@
 #include "Track.h"
 
 #include "HitStructures.h"
-#include "IterationConfig.h"
 
 // Define to get printouts about track and hit chi2.
 // See also MkBuilder::BackwardFit() and MkBuilder::quality_store_tracks().
@@ -20,6 +19,9 @@ class CandCloner;
 class CombCandidate;
 class LayerOfHits;
 class FindingFoos;
+class IterationParams;
+class IterationLayerConfig;
+class SteeringParams;
 
 //#ifdef DEBUG_BACKWARD_FIT
 //class Event;

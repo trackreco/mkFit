@@ -4,7 +4,7 @@
 #include "Track.h"
 #include "Validation.h"
 #include "Config.h"
-#include "mkFit/SteeringParams.h"
+
 #include <mutex>
 
 namespace mkfit {

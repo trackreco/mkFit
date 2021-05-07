@@ -2,7 +2,6 @@
 
 #include "TrackerInfo.h"
 #include "mkFit/IterationConfig.h"
-#include "mkFit/SteeringParams.h"
 
 namespace mkfit {
 

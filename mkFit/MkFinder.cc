@@ -2,7 +2,7 @@
 
 #include "CandCloner.h"
 #include "HitStructures.h"
-#include "SteeringParams.h"
+#include "IterationConfig.h"
 #include "FindingFoos.h"
 
 #include "KalmanUtilsMPlex.h"

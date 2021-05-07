@@ -1,7 +1,7 @@
 #include "CandCloner.h"
 
 #include "HitStructures.h"
-#include "SteeringParams.h"
+#include "IterationConfig.h"
 
 //#define DEBUG
 #include "Debug.h"

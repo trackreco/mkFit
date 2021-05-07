@@ -1,8 +1,6 @@
 #include "TTreeValidation.h"
 #include "Event.h"
 #include "Config.h"
-#include "mkFit/SteeringParams.h"
-
 
 #ifndef NO_ROOT
 

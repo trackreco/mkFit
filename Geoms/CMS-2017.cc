@@ -6,7 +6,6 @@
 #include "Debug.h"
 #include "TrackerInfo.h"
 #include "mkFit/IterationConfig.h"
-#include "mkFit/SteeringParams.h"
 #include "mkFit/HitStructures.h"
 
 #include "CMS-2017-HitSelectionWindows.h"

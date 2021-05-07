@@ -1,6 +1,5 @@
 #include "IterationConfig.h"
 #include "Config.h"
-#include "SteeringParams.h"
 
 #include "nlohmann/json.hpp"
 

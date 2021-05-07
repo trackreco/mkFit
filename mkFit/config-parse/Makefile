@@ -5,7 +5,7 @@ all: libConfigDict.so
 libConfigDict.so: ConfigDict.cc
 	${CXX} -I.. -I../.. -I$(shell root-config --incdir) ${CPPFLAGS} -fPIC -shared -o $@ $^
 
-ConfigDict.cc: ../SteeringParams.h ConfigLinkDef.h
+ConfigDict.cc: ../IterationConfig.h ../SteeringParams.h ConfigLinkDef.h
 	rootcling -f -D=USE_MATRIPLEX -I=.. -I=../.. $@ $^
 
 clean:

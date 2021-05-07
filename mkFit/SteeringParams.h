@@ -1,6 +1,8 @@
 #ifndef SteeringParams_h
 #define SteeringParams_h
 
+#include <vector>
+
 namespace mkfit {
 
 //==============================================================================
