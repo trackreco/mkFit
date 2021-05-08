@@ -1,8 +1,6 @@
 #include "TTreeValidation.h"
 #include "Event.h"
 #include "Config.h"
-#include "mkFit/SteeringParams.h"
-
 
 #ifndef NO_ROOT
 
@@ -1115,14 +1113,12 @@ void TTreeValidation::setTrackScoresDumbCMSSW(Event& ev)
   // ...then use map to set seed type to for build/fit tracks and compute scores
   for (const auto & candToSeedPair : candToSeedMapDumbCMSSW_)
   {
-    const auto & seedtrack = seedtracks[candToSeedPair.second];
     auto & candtrack = candtracks[candToSeedPair.first];
 
     candtrack.setScore(getScoreCand(candtrack));
   }
   for (const auto & fitToSeedPair : fitToSeedMapDumbCMSSW_)
   {
-    const auto & seedtrack = seedtracks[fitToSeedPair.second];
     auto & fittrack = fittracks[fitToSeedPair.first];
 
     fittrack.setScore(getScoreCand(fittrack));

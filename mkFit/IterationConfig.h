@@ -1,0 +1,311 @@
+#ifndef IterationConfig_h
+#define IterationConfig_h
+
+#include "SteeringParams.h"
+
+#include "nlohmann/json_fwd.hpp"
+
+#include <functional>
+
+namespace mkfit {
+
+class EventOfHits;
+class TrackerInfo;
+class Track;
+
+typedef std::vector<Track> TrackVec;
+
+
+//==============================================================================
+// Hit masks / IterationMaskIfc
+//==============================================================================
+
+struct IterationMaskIfcBase
+{
+  virtual ~IterationMaskIfcBase() {}
+
+  virtual const std::vector<bool>* get_mask_for_layer(int layer) const { return nullptr; }
+};
+
+struct IterationMaskIfc : public IterationMaskIfcBase
+{
+  std::vector<std::vector<bool>> m_mask_vector;
+
+  const std::vector<bool>* get_mask_for_layer(int layer) const { return & m_mask_vector[layer]; }
+};
+
+
+//==============================================================================
+// IterationLayerConfig
+//==============================================================================
+
+class IterationConfig;
+
+class IterationLayerConfig
+{
+public:
+  // Selection limits.
+  float         m_select_min_dphi;
+  float         m_select_max_dphi;
+  float         m_select_min_dq;
+  float         m_select_max_dq;
+
+  void set_selection_limits(float p1, float p2, float q1, float q2)
+  {
+    m_select_min_dphi = p1; m_select_max_dphi = p2;
+    m_select_min_dq   = q1; m_select_max_dq   = q2;
+  }
+
+  //----------------------------------------------------------------------------
+
+  float min_dphi() const { return m_select_min_dphi; }
+  float max_dphi() const { return m_select_max_dphi; }
+  float min_dq()   const { return m_select_min_dq;   }
+  float max_dq()   const { return m_select_max_dq;   }
+
+  //Hit selection windows: 2D fit/layer (72 in phase-1 CMS geometry)
+  //cut = [0]*1/pT + [1]*std::fabs(theta-pi/2) + [2])
+  float c_dp_sf = 1.1;
+  float c_dp_0  = 0.0;
+  float c_dp_1  = 0.0;
+  float c_dp_2  = 0.0;
+  //
+  float c_dq_sf = 1.1;
+  float c_dq_0  = 0.0;
+  float c_dq_1  = 0.0;
+  float c_dq_2  = 0.0;
+  //
+  float c_c2_sf = 1.0;
+  float c_c2_0  = 0.0;
+  float c_c2_1  = 0.0;
+  float c_c2_2  = 0.0;
+
+  //----------------------------------------------------------------------------
+
+  IterationLayerConfig() {}
+};
+
+
+//==============================================================================
+// IterationParams
+//==============================================================================
+
+class IterationParams
+{
+public:
+  // Iteration-specific parameters are moved out of Config, and re-initialized in Geoms/CMS-2017.cc:
+  int   nlayers_per_seed  = 3;
+  int   maxCandsPerSeed   = 5;
+  int   maxHolesPerCand   = 4;
+  int   maxConsecHoles    = 1;
+  float chi2Cut           = 30;
+  float chi2CutOverlap    = 3.5;
+  float pTCutOverlap      = 1.0;
+  // NOTE: iteration params could actually become layer-dependent, e.g., chi2Cut could be larger for first layers (?)
+
+  //seed cleaning params
+  float c_ptthr_hpt = 2.0;
+  //initial
+  float c_drmax_bh = 0.010;
+  float c_dzmax_bh = 0.005;
+  float c_drmax_eh = 0.010;
+  float c_dzmax_eh = 0.010;
+  float c_drmax_bl = 0.010;
+  float c_dzmax_bl = 0.005;
+  float c_drmax_el = 0.015;
+  float c_dzmax_el = 0.015;
+
+  int minHitsQF = 4;
+  float fracSharedHits = 0.19;
+
+};
+
+
+//==============================================================================
+// IterationSeedPartition
+//==============================================================================
+
+class IterationSeedPartition
+{
+public:
+  std::vector<int>    m_region;
+  std::vector<float>  m_sort_score;
+
+  IterationSeedPartition(int size) : m_region(size), m_sort_score(size) {}
+};
+
+
+//==============================================================================
+// IterationConfig
+//==============================================================================
+
+class IterationConfig
+{
+public:
+  using partition_seeds_foo = void(const TrackerInfo &, const TrackVec &, const EventOfHits &,
+                                   IterationSeedPartition &);
+
+  int    m_iteration_index  = -1;
+  int    m_track_algorithm  = -1;
+
+  bool  m_requires_seed_hit_sorting = false;
+  bool  m_require_quality_filter    = false;
+
+  // Iteration parameters (could be a ptr)
+  IterationParams                     m_params;
+
+  int                                 m_n_regions;
+  std::vector<int>                    m_region_order;
+  std::vector<SteeringParams>         m_steering_params;
+  std::vector<IterationLayerConfig>   m_layer_configs;
+
+  std::function<partition_seeds_foo>  m_partition_seeds;
+
+  //----------------------------------------------------------------------------
+
+  IterationConfig() {}
+
+  void Clone(const IterationConfig &o)
+  {
+      // Clone iteration. m_iteration_index and m_track_algorithm are not copied
+      // and need to be set separately.
+
+      m_params          = o.m_params;
+
+      m_n_regions       = o.m_n_regions;
+      m_region_order    = o.m_region_order;
+      m_steering_params = o.m_steering_params;
+      m_layer_configs   = o.m_layer_configs;
+
+      m_partition_seeds = o.m_partition_seeds;
+  }
+
+  void set_iteration_index_and_track_algorithm(int idx, int trk_alg)
+  {
+    m_iteration_index = idx;
+    m_track_algorithm = trk_alg;
+  }
+
+  void set_qf_flags()
+  {
+    m_requires_seed_hit_sorting=true;
+    m_require_quality_filter=true;
+  }
+
+  void set_qf_params(int minHits, float sharedFrac)
+  {
+     m_params.minHitsQF=minHits;
+     m_params.fracSharedHits=sharedFrac;
+  }
+  
+  void set_seed_cleaning_params(float pt_thr,
+        float dzmax_bh, float drmax_bh,
+				float dzmax_bl, float drmax_bl,
+				float dzmax_eh, float drmax_eh,
+				float dzmax_el, float drmax_el
+				)
+  {
+       m_params.c_ptthr_hpt = pt_thr;
+       m_params.c_drmax_bh = drmax_bh;
+       m_params.c_dzmax_bh = dzmax_bh;
+       m_params.c_drmax_eh = drmax_eh;
+       m_params.c_dzmax_eh = dzmax_eh;
+       m_params.c_drmax_bl = drmax_bl;
+       m_params.c_dzmax_bl = dzmax_bl;
+       m_params.c_drmax_el = drmax_el;
+       m_params.c_dzmax_el = dzmax_el;
+   }
+
+  void set_num_regions_layers(int nreg, int nlay)
+  {
+    m_n_regions = nreg;
+    m_region_order.resize(nreg);
+    m_steering_params.resize(nreg);
+    m_layer_configs.resize(nlay);
+  }
+
+  IterationLayerConfig& layer(int i) { return m_layer_configs[i]; }
+
+  SteeringParams&       steering_params(int region) { return m_steering_params[region]; }
+};
+
+
+//==============================================================================
+// IterationsInfo
+//==============================================================================
+
+class IterationsInfo
+{
+public:
+  std::vector<IterationConfig> m_iterations;
+
+  IterationsInfo() {}
+
+  void resize(int ni) { m_iterations.resize(ni); }
+
+  int  size() const { return m_iterations.size(); }
+
+  IterationConfig& operator[](int i) { return m_iterations[i]; }
+  const IterationConfig& operator[](int i) const { return m_iterations[i]; }
+};
+
+
+//==============================================================================
+
+// IterationConfig instances are created in Geoms/CMS-2017.cc, Create_CMS_2017(),
+// filling the IterationsInfo object passed in by reference.
+
+
+//==============================================================================
+// JSON config interface
+//==============================================================================
+
+class ConfigJsonPatcher
+{
+  nlohmann::json *m_json    = nullptr;
+  nlohmann::json *m_current = nullptr;
+
+  // add stack and cd_up() ? also, name stack for exceptions and printouts
+  std::vector<nlohmann::json*> m_json_stack;
+  std::vector<std::string>     m_path_stack;
+
+  bool            m_owner   = false;
+  bool            m_verbose = false;
+
+  void release_json();
+
+  std::string get_abs_path() const;
+  std::string exc_hdr(const char* func=0) const;
+
+public:
+  ConfigJsonPatcher(bool verbose=false);
+  ~ConfigJsonPatcher();
+
+  template<class T> void Load(const T& o);
+  template<class T> void Save(T& o);
+
+  void cd    (const std::string& path);
+  void cd_up (const std::string& path = "");
+  void cd_top(const std::string& path = "");
+
+  template<typename T>
+  void replace(const std::string& path, T val);
+
+  template<typename T>
+  void replace(int first, int last, const std::string& path, T val);
+
+  nlohmann::json& get(const std::string& path);
+
+  int replace(const nlohmann::json &j);
+
+  std::string dump(int indent=2);
+};
+
+void ConfigJson_Patch_File(IterationsInfo &its_info, const std::string &fname);
+
+void ConfigJson_Test_Direct(IterationConfig &it_cfg);
+void ConfigJson_Test_Patcher(IterationConfig &it_cfg);
+
+} // end namespace mkfit
+
+#endif

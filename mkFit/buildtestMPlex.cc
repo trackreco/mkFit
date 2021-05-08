@@ -165,13 +165,12 @@ double runBuildingTestPlexBestHit(Event& ev, const EventOfHits &eoh, MkBuilder& 
   ev.candidateTracks_ = builder.ref_tracks();
 
   // For best hit, the candidateTracks_ vector is the direct input to the backward fit so only need to do find_duplicates once
-  if (Config::quality_val || Config::sim_val || Config::cmssw_val || Config::cmssw_export)
+  if (Config::quality_val || Config::sim_val || Config::cmssw_val)
   {
     //Mark tracks as duplicates; if within CMSSW, remove duplicate tracks before backward fit
     if(Config::removeDuplicates)
     {
       StdSeq::find_duplicates(ev.candidateTracks_);
-      if(Config::cmssw_export) StdSeq::remove_duplicates(ev.candidateTracks_);
     }
   }
 
@@ -249,8 +248,6 @@ double runBuildingTestPlexStandard(Event& ev, const EventOfHits &eoh, MkBuilder&
     builder.quality_val();
   } else if (Config::sim_val || Config::cmssw_val) {
     builder.root_val();
-  } else if (Config::cmssw_export) {
-    builder.cmssw_export();
   }
 
   builder.end_event();
@@ -317,8 +314,6 @@ double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuild
     builder.quality_val();
   } else if (Config::sim_val || Config::cmssw_val) {
     builder.root_val();
-  } else if (Config::cmssw_export) {
-    builder.cmssw_export();
   }
 
   builder.end_event();
@@ -330,7 +325,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuild
 
 
 //==============================================================================
-// runBtbCe_MultiIter
+// runBtpCe_MultiIter
 //
 // Prototype for running multiple iterations, sequentially, using the same builder.
 // For cmmsw seeds
@@ -341,18 +336,15 @@ double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuild
 // In particular, MkBuilder::PrepareSeeds does a lot of things to whole / complete
 // event,seedTracks_ -- probably this would need to be split into common / and
 // per-iteration part.
-// - hit remapping back happens in MkBuilder::quality_val() and root_validation().
 // - MkBuilder::prep_*** functions also mostly do not belong there (prep_sim is called from
 //   PrepareSeeds() for cmssw seeds).
-//
-// StdSeq::handle_duplicates() also goes over all Event tracks ... should it be per iteration?
 //
 // At this point we need to think about what should happen to Event before all the iterations and
 // after all the iterations ... from the Validation perspective.
 // And if we care about doing too muich work for seeds that will never get processed.
 //==============================================================================
 
-std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder, int n)
+std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuilder& builder, int n)
 {
   std::vector<double> timevec;
   if (n<=0) return timevec;
@@ -378,30 +370,33 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
   
 
   IterationMaskIfc mask_ifc;
+  TrackVec         seeds;
+  TrackVec         tmp_tvec;
 
   for (int it = 0; it <= n-1; ++it)
   {
-    // MIMI - to disable hit-masks, pass nullptr in place of &mask_ifc to job
+    const IterationConfig &itconf = Config::ItrInfo[it];
+
+    // To disable hit-masks, pass nullptr in place of &mask_ifc to MkJob ctor
     // and optionally comment out ev.fill_hitmask_bool_vectors() call.
 
-    ev.fill_hitmask_bool_vectors(Config::ItrInfo[it].m_track_algorithm, mask_ifc.m_mask_vector);
+    ev.fill_hitmask_bool_vectors(itconf.m_track_algorithm, mask_ifc.m_mask_vector);
 
-    MkJob job( { Config::TrkInfo, Config::ItrInfo[it], eoh, &mask_ifc } );
+    MkJob job( { Config::TrkInfo, itconf, eoh, &mask_ifc } );
 
     builder.begin_event(&job, &ev, __func__);
 
-    // Some of what happens here, should really happen somewhere else, if it needs to.
-    // builder.PrepareSeeds();
-    // Specific cleaning / mapping done below for extracted seeds.
-
-    TrackVec seeds;
     { // We could partition seeds once, store beg, end for each iteration in a map or vector.
+      seeds.clear();
       int nc = 0;
       for (auto &s : ev.seedTracks_)
       {
-        if (s.algoint() == job.m_iter_config.m_track_algorithm) {
-          if(s.algoint()==9) {s.sortHitsByLayer();}
-          else if(s.algoint()==10) {s.sortHitsByLayer();}
+        if (s.algoint() == itconf.m_track_algorithm)
+        {
+          if (itconf.m_requires_seed_hit_sorting)
+          {
+            s.sortHitsByLayer();
+          }
           seeds.push_back(s);
           ++nc;
         }
@@ -409,14 +404,13 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
       }
     }
 
-    // MIMI -- using Iter0 function / tuning for all iterations.
-    if(it<7) StdSeq::clean_cms_seedtracks_iter(&seeds, Config::ItrInfo[it]);
-    //tested QF + StdSeq::find_duplicates_sharedhits without the seed cleaning
+    if ( ! itconf.m_require_quality_filter)
+      StdSeq::clean_cms_seedtracks_iter(&seeds, itconf);
     
     // Add protection in case no seeds are found for iteration
-    if(seeds.size()<=0)
+    if (seeds.size() <= 0)
       continue;
-    
+
     builder.seed_post_cleaning(seeds, true, true);
 
     builder.find_tracks_load_seeds(seeds);
@@ -429,27 +423,36 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
     timevec[n] += timevec[it];
 
     if (validation_on)  seeds_used.insert(seeds_used.end(), seeds.begin(), seeds.end());//cleaned seeds need to be stored somehow
-    
-    // first store candidate tracks - needed for BH backward fit and root_validation
-    // XXXX to builder m_tracks ... or do we do this for validation anyway ?    
-    builder.export_best_comb_cands(ev.candidateTracks_);
 
-    //ideally I would do this on m_event_of_comb_cands or similar at the end of the iteration, not to have to check the iteration algo 
-    if(it>=7) StdSeq::quality_filter(ev.candidateTracks_,seeds, Config::ItrInfo[it].m_params.minHitsQF, Config::ItrInfo[it].m_track_algorithm);
-    if(it>=7) StdSeq::find_duplicates_sharedhits(ev.candidateTracks_,seeds,Config::ItrInfo[it].m_params.fracSharedHits, Config::ItrInfo[it].m_track_algorithm);
+    if (itconf.m_require_quality_filter)
+    {
+      builder.filter_comb_cands([&](const TrackCand &t)
+        { return StdSeq::qfilter_n_hits(t, itconf.m_params.minHitsQF); });
+    }
+
+    builder.select_best_comb_cands();
+
+    {
+      builder.export_tracks(tmp_tvec);
+      StdSeq::find_and_remove_duplicates(tmp_tvec, itconf);
+      ev.candidateTracks_.reserve(ev.candidateTracks_.size() + tmp_tvec.size());
+      for (auto &&t : tmp_tvec) ev.candidateTracks_.emplace_back( std::move(t) );
+      tmp_tvec.clear();
+    }
 
     // now do backwards fit... do we want to time this section?
     if (Config::backwardFit)
     {
       // a) TrackVec version:
-      builder.select_best_comb_cands();
       builder.BackwardFitBH();
+
+      StdSeq::find_and_remove_duplicates(builder.ref_tracks_nc(), itconf);
+
       builder.export_tracks(ev.fitTracks_);
 
       // b) Version that runs on CombCand / TrackCand
       // builder.BackwardFit();
       // builder.quality_store_tracks(ev.fitTracks_);
-
     }
     
     builder.end_event();
@@ -459,31 +462,22 @@ std::vector<double> runBtbCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
   MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
   builder.begin_event(&job, &ev, __func__);
   
-  //I have the seeds -> continue the PrepareSeeds()
   if (validation_on)
   {
       builder.prep_simtracks();
       //swap for the cleaned seeds
       ev.seedTracks_.swap(seeds_used);
   }    
-  //PrepareSeeds() done
-  
+
   check_nan_n_silly_candiates(ev);
 
   if (Config::backwardFit) check_nan_n_silly_bkfit(ev);
 
-  // ??? MIMI - How to do this? Assuming cleaning of all iterations together.
-  // need to update it so that it is done by iteration
-  StdSeq::handle_duplicates(&ev);
-
-  // ??? MIMI - And same here ... most validation runs on Event, I hope.
   // validation section
   if        (Config::quality_val) {
     builder.quality_val();
   } else if (Config::sim_val || Config::cmssw_val) {
     builder.root_val();
-  } else if (Config::cmssw_export) {
-    builder.cmssw_export();
   }
 
   // ev.print_tracks(ev.candidateTracks_, true);
@@ -528,51 +522,47 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
 
   if (do_seed_clean)
   {
-    //seed cleaning not done on the last 2 iterations
-    if(!itconf.m_require_quality_filter) StdSeq::clean_cms_seedtracks_iter(&seeds, itconf);
+    // Seed cleaning not done on pixelLess / tobTec iters.
+    if ( ! itconf.m_require_quality_filter) StdSeq::clean_cms_seedtracks_iter(&seeds, itconf);
   }
 
   // Check nans in seeds -- this should not be needed when Slava fixes
   // the track parameter coordinate transformation.
   builder.seed_post_cleaning(seeds, true, true);
 
-  for (auto &s : seeds) 
+  if (itconf.m_requires_seed_hit_sorting)
   {
-   if(itconf.m_requires_seed_hit_sorting) s.sortHitsByLayer();  // sort seed hits for the matched hits (I hope it works here)
+    for (auto &s : seeds)
+      s.sortHitsByLayer(); // sort seed hits for the matched hits (I hope it works here)
   }  
 
   builder.find_tracks_load_seeds(seeds);
 
   builder.FindTracksCloneEngine();
 
-  if ( ! do_backward_fit)
+  if (itconf.m_require_quality_filter)
   {
-    builder.export_best_comb_cands(out_tracks);
+    builder.filter_comb_cands([&](const TrackCand &t)
+      { return StdSeq::qfilter_n_hits(t, itconf.m_params.minHitsQF); });
   }
-  else
+
+  builder.select_best_comb_cands();
+
+  if (do_backward_fit)
   {
-    // a) BackwardFitBH works on m_tracks
-    builder.select_best_comb_cands();
+    // a) BackwardFitBH works on MkBuilder::m_tracks
     builder.BackwardFitBH();
-    builder.export_tracks(out_tracks);
 
     // b) Version that runs on CombCand / TrackCand
     // builder.BackwardFit();
     // builder.export_best_comb_cands(out_tracks);
   }
 
+  builder.export_tracks(out_tracks);
+
   if (do_remove_duplicates)
   {
-    if(itconf.m_require_quality_filter) //the last 2 iterations have no seed cleaning but qf + duplicate removal by shared hits 
-    {
-      StdSeq::quality_filter(out_tracks, seeds, itconf.m_params.minHitsQF, itconf.m_track_algorithm);
-      StdSeq::find_duplicates_sharedhits(out_tracks, seeds, itconf.m_params.fracSharedHits, itconf.m_track_algorithm);
-    }
-    else //regular dupl cleaning
-    {
-      StdSeq::find_duplicates(out_tracks);
-      StdSeq::remove_duplicates(out_tracks);
-    }
+    StdSeq::find_and_remove_duplicates(out_tracks, itconf);
   }
 
   builder.end_event();

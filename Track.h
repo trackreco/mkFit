@@ -234,8 +234,14 @@ public:
         // Temporary store number of overlaps for Track here
         int n_overlaps : 8;
 
+        // Number of seed hits at import time
+        unsigned int n_seed_hits : 3;
+
+        // mkFit tracking region TrackerInfo::EtaRegion, determined by seed partition function
+        unsigned int eta_region : 3;
+
         // The remaining bits.
-        unsigned int _free_bits_ : 11;
+        unsigned int _free_bits_ : 5;
       };
 
       unsigned int _raw_;
@@ -260,6 +266,11 @@ public:
   enum class ProdType { NotSet = 0, Signal = 1, InTimePU = 2, OutOfTimePU = 3};
   ProdType prodType()  const { return ProdType(status_.prod_type); }
   void setProdType(ProdType ptyp) { status_.prod_type = static_cast<unsigned int>(ptyp); }
+
+  int  getNSeedHits() const { return status_.n_seed_hits; }
+  void setNSeedHits(int n)  { status_.n_seed_hits = n; }
+  int  getEtaRegion() const { return status_.eta_region; }
+  void setEtaRegion(int r)  { status_.eta_region = r; }
 
   // Those are defined in Track, TrackCand has separate member. To be consolidated but
   // it's a binary format change.
@@ -320,7 +331,7 @@ public:
     hiRegitMuMuonSeededStepInOut = 44,
     hiRegitMuMuonSeededStepOutIn = 45,
     algoSize = 46
-};
+  };
 
   int            algoint()   const { return status_.algorithm; }
   TrackAlgorithm algorithm() const { return TrackAlgorithm(status_.algorithm); }
@@ -491,8 +502,8 @@ public:
     {
       if (hitsOnTrk_[ihit].layer == layer)
       {
-	mcHitID = globalHitVec[hitsOnTrk_[ihit].layer][hitsOnTrk_[ihit].index].mcHitID();
-	break;
+        mcHitID = globalHitVec[hitsOnTrk_[ihit].layer][hitsOnTrk_[ihit].index].mcHitID();
+        break;
       }
     }
     return mcHitID;

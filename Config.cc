@@ -1,7 +1,7 @@
 #include "Config.h"
 
 #include "TrackerInfo.h"
-#include "mkFit/SteeringParams.h"
+#include "mkFit/IterationConfig.h"
 
 namespace mkfit {
 
@@ -74,7 +74,6 @@ namespace Config
   bool  sim_val_for_cmssw = false;
   bool  sim_val     = false;
   bool  cmssw_val   = false;
-  bool  cmssw_export = false;
   bool  fit_val     = false;
   bool  readSimTrackStates = false;
   bool  inclusiveShorts = false;
@@ -85,11 +84,11 @@ namespace Config
 
   bool  removeDuplicates = false;
   bool  useHitsForDuplicates = true;
-  float maxdPhi = 0.5;
   float maxdPt  = 0.5;
+  float maxdPhi = 0.25;
   float maxdEta = 0.05;
+  float maxdR = 0.0025;
   float minFracHitsShared = 0.75;
-  float maxdRSquared = 0.000001; //corresponds to maxdR of 0.001
 
   bool mtvLikeValidation = false;
   bool mtvRequireSeeds = false;

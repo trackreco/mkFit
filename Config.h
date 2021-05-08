@@ -312,7 +312,6 @@ namespace Config
   extern bool sim_val_for_cmssw;
   extern bool sim_val;
   extern bool cmssw_val;
-  extern bool cmssw_export;
   extern bool fit_val;
   extern bool readSimTrackStates; // need this to fill pulls
   extern bool inclusiveShorts;
@@ -328,7 +327,7 @@ namespace Config
   extern float maxdPt;
   extern float maxdEta;
   extern float minFracHitsShared;
-  extern float maxdRSquared;
+  extern float maxdR;
 
   // config on seed cleaning
   constexpr float track1GeVradius = 87.6; // = 1/(c*B)

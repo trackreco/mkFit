@@ -2,7 +2,7 @@
 
 #include "Event.h"
 
-#include "SteeringParams.h" // just needs iteration-params
+#include "IterationConfig.h"
 
 #include "Ice/IceRevisitedRadix.h"
 
@@ -396,6 +396,21 @@ void LayerOfHits::PrintBins()
 
 
 //==============================================================================
+// EventOfHits
+//==============================================================================
+
+EventOfHits::EventOfHits(const TrackerInfo &trk_inf) :
+  m_layers_of_hits(trk_inf.m_layers.size()),
+  m_n_layers(trk_inf.m_layers.size())
+{
+  for (auto &li : trk_inf.m_layers)
+  {
+    m_layers_of_hits[li.m_layer_id].SetupLayer(li);
+  }
+}
+
+
+//==============================================================================
 // TrackCand
 //==============================================================================
 
@@ -427,25 +442,10 @@ Track TrackCand::exportTrack() const
 
 
 //==============================================================================
-// EventOfHits
-//==============================================================================
-
-EventOfHits::EventOfHits(const TrackerInfo &trk_inf) :
-  m_layers_of_hits(trk_inf.m_layers.size()),
-  m_n_layers(trk_inf.m_layers.size())
-{
-  for (auto &li : trk_inf.m_layers)
-  {
-    m_layers_of_hits[li.m_layer_id].SetupLayer(li);
-  }
-}
-
-
-//==============================================================================
 // CombCandidate
 //==============================================================================
 
-void CombCandidate::ImportSeed(const Track& seed)
+void CombCandidate::ImportSeed(const Track& seed, int region)
 {
   emplace_back(TrackCand(seed, this));
 
@@ -457,6 +457,8 @@ void CombCandidate::ImportSeed(const Track& seed)
 #endif
 
   TrackCand &cand = back();
+  cand.setNSeedHits(seed.nTotalHits());
+  cand.setEtaRegion(region);
 
   // printf("Importing pt=%f eta=%f, lastCcIndex=%d\n", cand.pT(), cand.momEta(), cand.lastCcIndex());
 
@@ -466,7 +468,7 @@ void CombCandidate::ImportSeed(const Track& seed)
     cand.addHitIdx(hp->index, hp->layer, 0.0f);
   }
 
-  cand.setScore             (getScoreCand(cand));
+  cand.setScore(getScoreCand(cand));
 }
 
 void CombCandidate::MergeCandsAndBestShortOne(const IterationParams& params, bool update_score, bool sort_cands)

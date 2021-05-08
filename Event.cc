@@ -1,8 +1,6 @@
 #include "Event.h"
 #include "TrackerInfo.h"
 
-#include "mkFit/SteeringParams.h"
-
 //#define DEBUG
 #include "Debug.h"
 

@@ -1,9 +1,11 @@
-#include "SteeringParams.h"
+#include "IterationConfig.h"
+#include "Config.h"
 
 #include "nlohmann/json.hpp"
 
 #include <fstream>
 #include <regex>
+#include <iostream>
 
 namespace mkfit {
 
@@ -14,12 +16,18 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationLayerConfig,
   /* float */   m_select_max_dphi,
   /* float */   m_select_min_dq,
   /* float */   m_select_max_dq,
-  // /* function<void(const Track&,const float,const float,float&,float&)> */   m_dynamic_windows,
-  /* float */   m_qf_treg,
-  /* float */   m_phif_treg,
-  /* float */   m_phif_lpt_brl,
-  /* float */   m_phif_lpt_treg,
-  /* float */   m_phif_lpt_ec
+  /* float */   c_dp_sf,
+  /* float */   c_dp_0,
+  /* float */   c_dp_1,
+  /* float */   c_dp_2,
+  /* float */   c_dq_sf,
+  /* float */   c_dq_0,
+  /* float */   c_dq_1,
+  /* float */   c_dq_2,
+  /* float */   c_c2_sf,
+  /* float */   c_c2_0,
+  /* float */   c_c2_1,
+  /* float */   c_c2_2
 )
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationParams,

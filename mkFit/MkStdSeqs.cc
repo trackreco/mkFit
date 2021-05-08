@@ -3,7 +3,7 @@
 #include "Event.h"
 
 #include "HitStructures.h"
-#include "SteeringParams.h"
+#include "IterationConfig.h"
 
 #include "tbb/parallel_for.h"
 
@@ -287,6 +287,7 @@ void find_duplicates(TrackVec &tracks)
 {
   const auto ntracks = tracks.size();
   float eta1, phi1, pt1, deta, dphi, dr2;
+  //float ch1;
   if (ntracks == 0)
   {
     return;
@@ -300,14 +301,18 @@ void find_duplicates(TrackVec &tracks)
       continue;   
     eta1 = track.momEta();
     phi1 = track.momPhi();
-    pt1 = track.pT();
+    //ch1  = track.charge();
+    pt1  = track.pT();
     for (auto jtrack = itrack + 1; jtrack < ntracks; jtrack++)
     {
       auto &track2 = tracks[jtrack];
       if (track.label() == track2.label())
         continue;
       if (track.algoint() != track2.algoint()) 
-	continue;
+        continue;
+      
+      //if (ch1 != track2.charge()) continue;
+
       deta = std::abs(track2.momEta() - eta1);
       if (deta > Config::maxdEta)
         continue;
@@ -316,8 +321,12 @@ void find_duplicates(TrackVec &tracks)
       if (dphi > Config::maxdPhi)
         continue;
 
+      float maxdR = Config::maxdR; // maxdR = 0.0025
+      float maxdRSquared = maxdR * maxdR;
+      if (std::abs(eta1)>2.5f) maxdRSquared*=16.0f;
+      else if (std::abs(eta1)>1.44f) maxdRSquared*=9.0f;
       dr2 = dphi * dphi + deta * deta;
-      if (dr2 < Config::maxdRSquared)
+      if (dr2 < maxdRSquared)
       {
         //Keep track with best score
         if (track.score() > track2.score())
@@ -382,19 +391,6 @@ void handle_duplicates(Event *m_event)
       find_duplicates(m_event->candidateTracks_);
       if (Config::backwardFit) find_duplicates(m_event->fitTracks_);
     }
-    else if ( Config::cmssw_export)
-    {
-      if (Config::backwardFit)
-      {
-        find_duplicates(m_event->fitTracks_);
-        remove_duplicates(m_event->fitTracks_);
-      }
-      else
-      {
-        find_duplicates(m_event->candidateTracks_);
-        remove_duplicates(m_event->candidateTracks_);
-      }
-    }
     // For the MEIF benchmarks and the stress tests, no validation flags are set so we will enter this block
     else
     {
@@ -408,38 +404,23 @@ void handle_duplicates(Event *m_event)
 // QUALITY FILTER + SHARED HITS DUPL cleaning
 //=========================================================================
 
-void quality_filter(TrackVec & tracks, TrackVec & seeds, const int nMinHits, const int algo)
+void quality_filter(TrackVec & tracks, const int nMinHits)
 {
-  const auto nseeds = seeds.size();
   const auto ntracks = tracks.size();
 
   std::vector<bool> goodtrack(ntracks, false);
-  std::map<int,int> nSeedHitsMap;
 
   for (auto itrack = 0U; itrack < ntracks; itrack++)
   {
     auto &trk = tracks[itrack];
-    
-    //this is not very good - i want to pass just the subset of tracks 
-    if(trk.algoint()!=algo) { goodtrack[itrack]=true; continue;}
 
-    //store seed hit info
-    for (auto iseed = 0U; iseed < nseeds; iseed++)
-    {
-      auto &seed = seeds[iseed];
-      if(seed.algoint()!=algo) continue;
-      if (seed.label()==trk.label()) { nSeedHitsMap[trk.label()]=seed.nFoundHits();}
-    }
-    //is there a way to retrieve the info without mapping it again?
-
-    auto seedHits=nSeedHitsMap[trk.label()];
-    auto seedReduction = (seedHits <= 5)? 2:3;
+    auto seedHits = trk.getNSeedHits();
+    auto seedReduction = (seedHits <= 5) ? 2 : 3;
 
     // minimum 4 hits 
-    if (trk.nFoundHits()-seedReduction>=nMinHits) goodtrack[itrack]=true;
+    if (trk.nFoundHits() - seedReduction >= nMinHits) goodtrack[itrack]=true;
     //penalty (not used)
     //if (trk.nFoundHits()-seedReduction>=4+(seedHits==4)) goodtrack[itrack]=true;
-
   }
 
   for (auto itrack = ntracks-1; itrack >0; itrack--)
@@ -448,42 +429,23 @@ void quality_filter(TrackVec & tracks, TrackVec & seeds, const int nMinHits, con
   }
 }
 
-void find_duplicates_sharedhits(TrackVec &tracks, TrackVec & seeds, const float fraction, const int algo)
+void find_duplicates_sharedhits(TrackVec &tracks, const float fraction)
 {
-  const auto nseeds = seeds.size();
   const auto ntracks = tracks.size();
 
   std::vector<bool> goodtrack(ntracks, false);  
-  std::map<int,int> nSeedHitsMap;
   
   for (auto itrack = 0U; itrack < ntracks; itrack++)
   {
     auto &trk = tracks[itrack];    
-   
-    ///not so good again - want to pass only pixellLess tracks 
-    if(trk.algoint()!=algo) continue;
-    for (auto iseed = 0U; iseed < nseeds; iseed++)
-    {   
-      auto &seed = seeds[iseed];
-      if(seed.algoint()!=algo) continue;
-      if (seed.label()==trk.label()) { nSeedHitsMap[trk.label()]=seed.nFoundHits();}
-    }  //also here would need seed hit info 
-    
-  }
 
-  for (auto itrack = 0U; itrack < ntracks; itrack++)
-  {
-    auto &trk = tracks[itrack];    
-    
-    if(trk.algoint()!=algo) { goodtrack[itrack]=true; continue;}
-    
-    auto seedHits=nSeedHitsMap[trk.label()];
+    auto seedHits = trk.getNSeedHits();
     auto seedReduction = (seedHits <= 5)? 2:3;
 
     for (auto jtrack = itrack + 1; jtrack < ntracks; jtrack++)
     {   
       auto &track2 = tracks[jtrack];
-      auto seedHits2=nSeedHitsMap[trk.label()];
+      auto seedHits2 = track2.getNSeedHits();
       auto seedReduction2 = (seedHits2 <= 5)? 2:3;
     
       auto sharedCount=0;
@@ -526,7 +488,23 @@ void find_duplicates_sharedhits(TrackVec &tracks, TrackVec & seeds, const float 
 
   //removal here
   tracks.erase(std::remove_if(tracks.begin(),tracks.end(),[](auto track){return track.getDuplicateValue();}),tracks.end());
+}
 
+//=========================================================================
+//
+//=========================================================================
+
+void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf)
+{
+  if (itconf.m_require_quality_filter)
+  {
+    find_duplicates_sharedhits(tracks, itconf.m_params.fracSharedHits);
+  }
+  else //regular dupl cleaning
+  {
+    find_duplicates(tracks);
+    remove_duplicates(tracks);
+  }
 }
 
 //=========================================================================

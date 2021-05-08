@@ -2,7 +2,8 @@
 
 #include "CandCloner.h"
 #include "HitStructures.h"
-#include "SteeringParams.h"
+#include "IterationConfig.h"
+#include "FindingFoos.h"
 
 #include "KalmanUtilsMPlex.h"
 
@@ -162,41 +163,32 @@ void MkFinder::OutputTracksAndHitIdx(std::vector<Track>& tracks,
 //==============================================================================
 // From HitSelectionWindows.h: track-related config on hit selection windows
 
-void MkFinder::getHitSelDynamicWindows(const LayerOfHits &layer_of_hits, const float invpt, const float theta, float &min_dq, float &max_dq, float &min_dphi, float &max_dphi)
+void MkFinder::getHitSelDynamicWindows(const float invpt, const float theta, float &min_dq, float &max_dq, float &min_dphi, float &max_dphi)
 {
-  const IterationParams      &IP  = *m_iteration_params;
-  // const IterationLayerConfig &ILC = *m_iteration_layer_config;
-  const LayerOfHits          &L   = layer_of_hits;
-
-  int lid     = L.layer_id();
+  const IterationLayerConfig &ILC = *m_iteration_layer_config;
 
   // dq hit selection window
-  float dq0 = IP.c_dq_params[lid][0];
-  float dq1 = IP.c_dq_params[lid][1];
-  float dq2 = IP.c_dq_params[lid][2];
-  float this_dq = dq0*invpt+dq1*theta+dq2;  
+  float this_dq = (ILC.c_dq_0)*invpt+(ILC.c_dq_1)*theta+(ILC.c_dq_2);  
   // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
   if(this_dq>0.f){
-    min_dq = 1.1f*this_dq;
-    max_dq = 2.2f*this_dq;
+    min_dq = (ILC.c_dq_sf)*this_dq;
+    max_dq = 2.0f*min_dq;
   }
 
   // dphi hit selection window
-  float dp0 = IP.c_dp_params[lid][0];
-  float dp1 = IP.c_dp_params[lid][1];
-  float dp2 = IP.c_dp_params[lid][2];
-  float this_dphi = dp0*invpt+dp1*theta+dp2;
+  float this_dphi = (ILC.c_dp_0)*invpt+(ILC.c_dp_1)*theta+(ILC.c_dp_2);  
   // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
   if(this_dphi>0.f){
-    min_dphi = 1.1f*this_dphi;
-    max_dphi = 2.2f*this_dphi;
+    min_dphi = (ILC.c_dp_sf)*this_dphi;
+    max_dphi = 2.0f*min_dphi;
   }
 
   // For future optimization: for layer & iteration dependend hit chi2 cut
-  //float c20 = IP.c_c2_params[itidx][lid][0];
-  //float c21 = IP.c_c2_params[itidx][lid][1];
-  //float c22 = IP.c_c2_params[itidx][lid][2];
-  //max_c2   = c20*invpt+c21*theta+c22;
+  //float this_c2 = (ILC.c_c2_0)*invpt+(ILC.c_c2_1)*theta+(ILC.c_c2_2);  
+  //// In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
+  //if(this_c2>0.f){
+  //  max_c2 = (ILC.c_c2_sf)*this_c2;
+  //}
 }
 
 //==============================================================================
@@ -264,7 +256,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       
       const float invpt = Par[iI].At(itrack,3,0);
       const float theta = std::fabs(Par[iI].At(itrack,5,0)-Config::PIOver2);
-      getHitSelDynamicWindows(L, invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
+      getHitSelDynamicWindows(invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
 
       const float x = Par[iI].ConstAt(itrack, 0, 0);
       const float y = Par[iI].ConstAt(itrack, 1, 0);
@@ -320,7 +312,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       
       const float invpt = Par[iI].At(itrack,3,0);
       const float theta = std::fabs(Par[iI].At(itrack,5,0)-Config::PIOver2);
-      getHitSelDynamicWindows(L, invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
+      getHitSelDynamicWindows(invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
 
       const float x = Par[iI].ConstAt(itrack, 0, 0);
       const float y = Par[iI].ConstAt(itrack, 1, 0);
@@ -479,13 +471,12 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 	    const Hit &thishit=L.GetHit(hi);
 	    msErr.CopyIn(itrack, thishit.errArray());
 	    msPar.CopyIn(itrack, thishit.posArray());
-	    const FindingFoos tmp_fndfoos_brl = {kalmanPropagateAndComputeChi2      ,kalmanPropagateAndUpdate      ,&MkBase::PropagateTracksToR};
-	    const FindingFoos tmp_fndfoos_ec  = {kalmanPropagateAndComputeChi2Endcap,kalmanPropagateAndUpdateEndcap,&MkBase::PropagateTracksToZ};
 
-	    const FindingFoos &this_fnd_foos = L.is_barrel() ?  tmp_fndfoos_brl : tmp_fndfoos_ec; 
 	    MPlexQF thisOutChi2;
-	    (*this_fnd_foos.m_compute_chi2_foo)(Err[iI], Par[iI], Chg, msErr, msPar,
+      const FindingFoos &fnd_foos = FindingFoos::get_finding_foos(L.is_barrel());
+      (*fnd_foos.m_compute_chi2_foo)(Err[iI], Par[iI], Chg, msErr, msPar,
 						thisOutChi2, N_proc, Config::finding_intra_layer_pflags);
+
 	    float hx    = thishit.x();
 	    float hy    = thishit.y();
 	    float hz    = thishit.z();

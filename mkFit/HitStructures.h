@@ -5,7 +5,7 @@
 #include "Hit.h"
 #include "Track.h"
 #include "TrackerInfo.h"
-//#include "SteeringParams.h"
+
 //#define DEBUG
 #include "Debug.h"
 
@@ -494,7 +494,36 @@ public:
     m_hots_size(o.m_hots_size),
     m_hots(std::move(o.m_hots)),
     m_overlap_hits(std::move(o.m_overlap_hits))
-  {}
+  {
+    // This is not needed as we do EOCC::Reset() after EOCCS::resize which
+    // calls Reset here and all CombCands get cleared.
+    // However, if at some point we start using this for other purposes this needs
+    // to be called as well.
+    // for (auto &tc : *this) tc.setCombCandidate(this);
+  }
+
+  // Need this for std::swap when filtering EventOfCombinedCandidates::m_candidates.
+  // We do not call clear() on vectors as this will be done via EoCCs reset.
+  // Probably would be better (clearer) if there was a special function that does
+  // the swap in here or in EoCCs.
+  CombCandidate& operator=(CombCandidate&& o)
+  {
+    std::vector<TrackCand>::operator=( std::move(o) );
+    m_best_short_cand = std::move(o.m_best_short_cand);
+    m_state = o.m_state;
+    m_last_seed_layer = o.m_last_seed_layer;
+#ifdef DUMPHITWINDOW
+    m_seed_algo = o.m_seed_algo;
+    m_seed_label = o.m_seed_label;
+#endif
+    m_hots_size = o.m_hots_size;
+    m_hots = std::move(o.m_hots);
+    m_overlap_hits = std::move(o.m_overlap_hits);
+
+    for (auto &tc : *this) tc.setCombCandidate(this);
+
+    return *this;
+  }
 
   void Reset(int max_cands_per_seed, int expected_num_hots)
   {
@@ -514,7 +543,7 @@ public:
     m_overlap_hits.resize(max_cands_per_seed);
   }
 
-  void ImportSeed(const Track& seed);
+  void ImportSeed(const Track& seed, int region);
 
   int AddHit(const HitOnTrack& hot, float chi2, int prev_idx)
   {
@@ -614,13 +643,20 @@ public:
     m_size = 0;
   }
 
-  CombCandidate& operator[](int i) { return m_candidates[i]; }
+  void ResizeAfterFiltering(int n_removed)
+  {
+    assert(n_removed <= m_size);
+    m_size -= n_removed;
+  }
 
-  void InsertSeed(const Track& seed)
+  const CombCandidate& operator[](int i) const { return m_candidates[i]; }
+        CombCandidate& operator[](int i)       { return m_candidates[i]; }
+
+  void InsertSeed(const Track& seed, int region)
   {
     assert (m_size < m_capacity);
 
-    m_candidates[m_size].ImportSeed(seed);
+    m_candidates[m_size].ImportSeed(seed, region);
 
     ++m_size;
   }

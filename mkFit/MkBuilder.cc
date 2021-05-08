@@ -2,10 +2,10 @@
 #include <limits>
 
 #include "MkBuilder.h"
-#include "seedtestMPlex.h"
 
 #include "Event.h"
 #include "TrackerInfo.h"
+#include "FindingFoos.h"
 
 #include "Ice/IceRevisitedRadix.h"
 
@@ -98,20 +98,8 @@ namespace
                                 std::min(m_reg_beg + NN * i.end(), m_reg_end));
     }
   };
-}
-
-namespace mkfit {
-
-MkBuilder* MkBuilder::make_builder()
-{
-  return new MkBuilder;
-}
-
-} // end namespace mkfit
 
 #ifdef DEBUG
-namespace
-{
   void pre_prop_print(int ilay, MkBase* fir) {
     const float pt = 1.f/fir->getPar(0, 0, 3);
     std::cout << "propagate to lay=" << ilay
@@ -153,36 +141,33 @@ namespace
       print_seed2(event_of_comb_cands.m_candidates[iseed].front());
     }
   }
-}
-
 #endif
 
-namespace
-{
   bool sortCandByScore(const TrackCand & cand1, const TrackCand & cand2)
   {
     return mkfit::sortByScoreTrackCand(cand1,cand2);
   }
-}
+
+} // end unnamed namespace
 
 //------------------------------------------------------------------------------
 // Constructor and destructor
 //------------------------------------------------------------------------------
 
-#include "KalmanUtilsMPlex.h"
-
 namespace mkfit {
+
+MkBuilder* MkBuilder::make_builder()
+{
+  return new MkBuilder;
+}
 
 MkBuilder::MkBuilder()
 {
-  m_fndfoos_brl = { kalmanPropagateAndComputeChi2,       kalmanPropagateAndUpdate,       &MkBase::PropagateTracksToR };
-  m_fndfoos_ec  = { kalmanPropagateAndComputeChi2Endcap, kalmanPropagateAndUpdateEndcap, &MkBase::PropagateTracksToZ };
 }
 
 MkBuilder::~MkBuilder()
 {
 }
-
 
 //------------------------------------------------------------------------------
 // Common functions
@@ -246,7 +231,7 @@ void MkBuilder::import_seeds(const TrackVec &in_seeds, std::function<insert_seed
     m_seedMinLastLayer[reg] = std::min(m_seedMinLastLayer[reg], hot.layer);
     m_seedMaxLastLayer[reg] = std::max(m_seedMaxLastLayer[reg], hot.layer);
 
-    insert_seed(S);
+    insert_seed(S, reg);
   }
 
   for (int i = 0; i < m_job->num_regions(); ++i)
@@ -275,6 +260,49 @@ void MkBuilder::import_seeds(const TrackVec &in_seeds, std::function<insert_seed
   dcall(print_seeds(m_event_of_comb_cands));
 }
 
+//------------------------------------------------------------------------------
+
+int MkBuilder::filter_comb_cands(std::function<filter_track_cand_foo> filter)
+{
+  EventOfCombCandidates &eoccs = m_event_of_comb_cands;
+  int i = 0, place_pos = 0;
+
+  // printf ("MkBuilder::filter_comb_cands Entering filter size eoccsm_size=%d\n", eoccs.m_size);
+
+  IntVec removed_cnts(m_job->num_regions());
+  while (i < eoccs.m_size)
+  {
+    if (filter(eoccs[i].front()))
+    {
+      if (place_pos != i) std::swap(eoccs[place_pos], eoccs[i]);
+      ++place_pos;
+    }
+    else
+    {
+      assert (eoccs[i].front().getEtaRegion() < m_job->num_regions());
+      ++removed_cnts[eoccs[i].front().getEtaRegion()];
+    }
+    ++i;
+  }
+
+  int n_removed = 0;
+  for (int reg = 0; reg < m_job->num_regions(); ++reg)
+  {
+    // printf ("MkBuilder::filter_comb_cands reg=%d: n_rem_was=%d removed_in_r=%d n_rem=%d, es_was=%d es_new=%d\n",
+    //         reg, n_removed, removed_cnts[reg], n_removed + removed_cnts[reg],
+    //         m_seedEtaSeparators[reg], m_seedEtaSeparators[reg] - n_removed - removed_cnts[reg]);
+
+    n_removed += removed_cnts[reg];
+    m_seedEtaSeparators[reg] -= n_removed;
+  }
+
+  eoccs.ResizeAfterFiltering(n_removed);
+
+  // printf ("MkBuilder::filter_comb_cands n_removed = %d, eoccsm_size=%d\n", n_removed, eoccs.m_size);
+
+  return n_removed;
+}
+
 void MkBuilder::select_best_comb_cands()
 {
   export_best_comb_cands(m_tracks);
@@ -287,12 +315,12 @@ void MkBuilder::export_best_comb_cands(TrackVec &out_vec)
   for (int i = 0; i < eoccs.m_size; i++)
   {
     // See MT-RATS comment below.
-    assert ( ! eoccs.m_candidates[i].empty() && "BackwardFitBH requires output tracks to align with seeds.");
+    assert ( ! eoccs[i].empty() && "BackwardFitBH requires output tracks to align with seeds.");
 
     // Take the first candidate, if it exists.
-    if ( ! eoccs.m_candidates[i].empty())
+    if ( ! eoccs[i].empty())
     {
-      const TrackCand &bcand = eoccs.m_candidates[i].front();
+      const TrackCand &bcand = eoccs[i].front();
       out_vec.emplace_back( bcand.exportTrack() );
     }
   }
@@ -944,16 +972,6 @@ void MkBuilder::root_val()
   m_event->Validate();
 }
 
-void MkBuilder::cmssw_export()
-{
-  // get the tracks ready for export
-  // prep_(reco)tracks doesn't actually do anything useful for CMSSW.
-  // We don't need the extra (seed index is obtained via canidate
-  // track label()), and sorting the hits by layer is actually
-  // harmful.
-  //prep_recotracks();
-}
-
 void MkBuilder::prep_recotracks()
 {
   // seed tracks extras always needed
@@ -1039,7 +1057,7 @@ void MkBuilder::prep_simtracks()
     if (Config::mtvLikeValidation)
     {
       // Apply MTV selection criteria and then return
-      if (simtrack.prodType() != Track::ProdType::Signal || simtrack.charge() == 0 || simtrack.posR() > 3.5 || std::abs(simtrack.z()) > 30 || std::abs(simtrack.momEta()) > 2.5)
+      if (simtrack.prodType() != Track::ProdType::Signal || simtrack.charge() == 0 || simtrack.posR() > 2.5 || std::abs(simtrack.z()) > 30 || std::abs(simtrack.momEta()) > 3.0)
         simtrack.setNotFindable();
       else if (Config::mtvRequireSeeds && !isSimSeed)
         simtrack.setNotFindable();
@@ -1257,7 +1275,12 @@ void MkBuilder::find_tracks_load_seeds_BH(const TrackVec &in_seeds)
   m_tracks.reserve(in_seeds.size());
   m_tracks.clear();
 
-  import_seeds(in_seeds, [&](const Track& seed){ m_tracks.push_back(seed); });
+  import_seeds(in_seeds, [&](const Track& seed, int region)
+    {
+      m_tracks.push_back(seed);
+      m_tracks.back().setNSeedHits(seed.nTotalHits());
+      m_tracks.back().setEtaRegion(region);
+    });
 
   //dump seeds
   dcall(print_seeds(m_tracks));
@@ -1330,7 +1353,7 @@ void MkBuilder::FindTracksBestHit()
           dprint("at layer " << curr_layer);
           const LayerOfHits &layer_of_hits = m_job->m_event_of_hits.m_layers_of_hits[curr_layer];
           const LayerInfo   &layer_info    = trk_info.m_layers[curr_layer];
-          const FindingFoos &fnd_foos      = layer_info.is_barrel() ? m_fndfoos_brl : m_fndfoos_ec;
+          const FindingFoos &fnd_foos      = FindingFoos::get_finding_foos(layer_info.is_barrel());
 
           // Pick up seeds that become active on current layer -- unless already fully loaded.
           if (curr_tridx < rng.n_proc())
@@ -1425,7 +1448,7 @@ void MkBuilder::find_tracks_load_seeds(const TrackVec &in_seeds)
 
   m_event_of_comb_cands.Reset((int) in_seeds.size(), m_job->params().maxCandsPerSeed);
 
-  import_seeds(in_seeds, [&](const Track& seed){ m_event_of_comb_cands.InsertSeed(seed); });
+  import_seeds(in_seeds, [&](const Track& seed, int region){ m_event_of_comb_cands.InsertSeed(seed, region); });
 }
 
 int MkBuilder::find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & seed_cand_vec,
@@ -1613,7 +1636,7 @@ void MkBuilder::FindTracksStandard()
 
         const LayerOfHits &layer_of_hits = m_job->m_event_of_hits.m_layers_of_hits[curr_layer];
         const LayerInfo   &layer_info    = trk_info.m_layers[curr_layer];
-        const FindingFoos &fnd_foos      = layer_info.is_barrel() ? m_fndfoos_brl : m_fndfoos_ec;
+        const FindingFoos &fnd_foos      = FindingFoos::get_finding_foos(layer_info.is_barrel());
 
         int theEndCand = find_tracks_unroll_candidates(seed_cand_idx, start_seed, end_seed,
                                                        prev_layer, layer_plan_it->m_pickup_only);
@@ -1824,7 +1847,7 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
 
     const LayerInfo   &layer_info    = trk_info.m_layers[curr_layer];
     const LayerOfHits &layer_of_hits = m_job->m_event_of_hits.m_layers_of_hits[curr_layer];
-    const FindingFoos &fnd_foos      = layer_info.is_barrel() ? m_fndfoos_brl : m_fndfoos_ec;
+    const FindingFoos &fnd_foos      = FindingFoos::get_finding_foos(layer_info.is_barrel());
 
     const int theEndCand = find_tracks_unroll_candidates(seed_cand_idx, start_seed, end_seed,
                                                          prev_layer, pickup_only);

@@ -5,8 +5,10 @@
 #include "Config.h"
 #include "Debug.h"
 #include "TrackerInfo.h"
-#include "mkFit/SteeringParams.h"
+#include "mkFit/IterationConfig.h"
 #include "mkFit/HitStructures.h"
+
+#include "CMS-2017-HitSelectionWindows.h"
 
 #include <functional>
 
@@ -185,6 +187,26 @@ namespace
  
   }
 
+  void fill_hit_selection_windows_params(IterationConfig &ic)
+  {
+    HitSelectionWindows hsw;
+    for (int l = 0; l < (int)ic.m_layer_configs.size(); ++l)
+    {
+      // dphi cut
+      ic.m_layer_configs[l].c_dp_0 = hsw.m_dp_params[ic.m_iteration_index][l][0];
+      ic.m_layer_configs[l].c_dp_1 = hsw.m_dp_params[ic.m_iteration_index][l][1];
+      ic.m_layer_configs[l].c_dp_2 = hsw.m_dp_params[ic.m_iteration_index][l][2];
+      // dq cut
+      ic.m_layer_configs[l].c_dq_0 = hsw.m_dq_params[ic.m_iteration_index][l][0];
+      ic.m_layer_configs[l].c_dq_1 = hsw.m_dq_params[ic.m_iteration_index][l][1];
+      ic.m_layer_configs[l].c_dq_2 = hsw.m_dq_params[ic.m_iteration_index][l][2];
+      // chi2 cut (for future optimization)
+      ic.m_layer_configs[l].c_c2_0 = hsw.m_c2_params[ic.m_iteration_index][l][0];
+      ic.m_layer_configs[l].c_c2_1 = hsw.m_c2_params[ic.m_iteration_index][l][1];
+      ic.m_layer_configs[l].c_c2_2 = hsw.m_c2_params[ic.m_iteration_index][l][2];
+    }
+  }
+
   std::function<IterationConfig::partition_seeds_foo> PartitionSeeds0 =
   [](const TrackerInfo &trk_info, const TrackVec &in_seeds, const EventOfHits &eoh,
      IterationSeedPartition &part)
@@ -307,43 +329,43 @@ namespace
     SetupSteeringParams_Iter0(ii[0]);
     SetupIterationParams(ii[0].m_params, 0);
     ii[0].m_partition_seeds = PartitionSeeds0;
-    ii[0].fill_hit_selection_windows_params();
+    fill_hit_selection_windows_params(ii[0]);
 
     ii[1].Clone(ii[0]); //added extra iterations with some preliminary setup
     SetupIterationParams(ii[1].m_params, 1);
     ii[1].set_iteration_index_and_track_algorithm(1, (int) TrackBase::TrackAlgorithm::highPtTripletStep);
     ii[1].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.018, 0.018, 0.018, 0.05, 0.018, 0.05); 
-    ii[1].fill_hit_selection_windows_params();
+    fill_hit_selection_windows_params(ii[1]);
 
     ii[2].Clone(ii[0]); 
     SetupIterationParams(ii[2].m_params, 2);
     ii[2].set_iteration_index_and_track_algorithm(2, (int) TrackBase::TrackAlgorithm::lowPtQuadStep);
     ii[2].set_seed_cleaning_params(0.5, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
-    ii[2].fill_hit_selection_windows_params();
+    fill_hit_selection_windows_params(ii[2]);
      
     ii[3].Clone(ii[0]);
     SetupIterationParams(ii[3].m_params, 3);
     ii[3].set_iteration_index_and_track_algorithm(3, (int) TrackBase::TrackAlgorithm::lowPtTripletStep);
     ii[3].set_seed_cleaning_params(0.5, 0.0, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
-    ii[3].fill_hit_selection_windows_params();
+    fill_hit_selection_windows_params(ii[3]);
     
     ii[4].Clone(ii[0]);
     SetupIterationParams(ii[4].m_params, 4);
     ii[4].set_iteration_index_and_track_algorithm(4, (int) TrackBase::TrackAlgorithm::detachedQuadStep);
     ii[4].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
-    ii[4].fill_hit_selection_windows_params();
+    fill_hit_selection_windows_params(ii[4]);
     
     ii[5].Clone(ii[0]);
     SetupIterationParams(ii[5].m_params, 5);
     ii[5].set_iteration_index_and_track_algorithm(5, (int) TrackBase::TrackAlgorithm::detachedTripletStep);
     ii[5].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
-    ii[5].fill_hit_selection_windows_params();
+    fill_hit_selection_windows_params(ii[5]);
 
     ii[6].Clone(ii[0]);
     SetupIterationParams(ii[6].m_params, 6);
     ii[6].set_iteration_index_and_track_algorithm(6, (int) TrackBase::TrackAlgorithm::mixedTripletStep);
     ii[6].set_seed_cleaning_params(2.0, 0.05, 0.05, 0.135, 0.135, 0.05, 0.05, 0.135, 0.135);
-    ii[6].fill_hit_selection_windows_params();
+    fill_hit_selection_windows_params(ii[6]);
 
     ii[7].Clone(ii[0]);
     SetupIterationParams(ii[7].m_params, 7);
@@ -351,7 +373,7 @@ namespace
     ii[7].set_seed_cleaning_params(2.0, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135);
     ii[7].set_qf_flags();
     ii[7].set_qf_params(4,0.19);
-    ii[7].fill_hit_selection_windows_params();
+    fill_hit_selection_windows_params(ii[7]);
 
     ii[8].Clone(ii[0]);
     SetupIterationParams(ii[8].m_params, 8);
@@ -359,7 +381,7 @@ namespace
     ii[8].set_seed_cleaning_params(2.0, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135);    
     ii[8].set_qf_flags();
     ii[8].set_qf_params(4,0.25);
-    ii[8].fill_hit_selection_windows_params();
+    fill_hit_selection_windows_params(ii[8]);
 
     //for the latter 2 iter investing in maxCand & stop condition (for time) + QF and Dupl. cleaning (for quality)
     
