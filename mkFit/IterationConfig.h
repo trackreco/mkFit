@@ -262,6 +262,22 @@ public:
 
 class ConfigJsonPatcher
 {
+public:
+  struct PatchReport
+  {
+    int n_files         = 0;
+    int n_json_entities = 0;
+    int n_replacements  = 0;
+
+    void inc_counts(int f, int e, int r)
+    {
+      n_files         += f;
+      n_json_entities += e;
+      n_replacements  += r;
+    }
+  };
+
+private:
   nlohmann::json *m_json    = nullptr;
   nlohmann::json *m_current = nullptr;
 
@@ -301,7 +317,10 @@ public:
   std::string dump(int indent=2);
 };
 
-void ConfigJson_Patch_File(IterationsInfo &its_info, const std::string &fname);
+ConfigJsonPatcher::PatchReport
+ConfigJson_Patch_File(IterationsInfo &its_info, const std::vector<std::string> &fnames);
+
+void ConfigJson_Save_Iterations(IterationsInfo &its_info, const std::string &fname_fmt);
 
 void ConfigJson_Test_Direct(IterationConfig &it_cfg);
 void ConfigJson_Test_Patcher(IterationConfig &it_cfg);

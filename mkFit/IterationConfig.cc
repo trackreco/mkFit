@@ -6,6 +6,7 @@
 #include <fstream>
 #include <regex>
 #include <iostream>
+#include <iomanip>
 
 namespace mkfit {
 
@@ -51,11 +52,13 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationParams,
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationConfig,
   // /* int */   m_iteration_index,
-  /* int */   m_track_algorithm,
+  /* int */                      m_track_algorithm,
   /* mkfit::IterationParams */   m_params,
-  // /* int */   m_n_regions,
-  // /* vector<int> */   m_region_order,
-  // /* vector<mkfit::SteeringParams> */   m_steering_params,
+  /* bool */                     m_requires_seed_hit_sorting,
+  /* bool */                     m_require_quality_filter,
+  // /* int */                   m_n_regions,
+  // /* vector<int> */           m_region_order,
+  // /* vector<mkfit::SteeringParams> */      m_steering_params,
   /* vector<mkfit::IterationLayerConfig> */   m_layer_configs
   // /* function<void(const TrackerInfo&,const TrackVec&,const EventOfHits&,IterationSeedPartition&)> */   m_partition_seeds
 )
@@ -198,7 +201,7 @@ int ConfigJsonPatcher::replace(const nlohmann::json &j)
 
     if (j.is_object())
     {
-        std::regex index_range_re("^\\[(\\d+)..(\\d+)\\]$");
+        static const std::regex index_range_re("^\\[(\\d+)..(\\d+)\\]$", std::regex::optimize);
 
         for (auto& [key, value] : j.items())
         {
@@ -215,7 +218,15 @@ int ConfigJsonPatcher::replace(const nlohmann::json &j)
                     std::string s("/");
                     s += std::to_string(i);
                     cd(s);
-                    n_replaced += replace(value);
+                    if (value.is_array())
+                    {
+                        for (auto &el : value)
+                            n_replaced += replace(el);
+                    }
+                    else
+                    {
+                        n_replaced += replace(value);
+                    }
                     cd_up();
                 }
             }
@@ -245,12 +256,65 @@ int ConfigJsonPatcher::replace(const nlohmann::json &j)
             }
         }
     }
+    else if (j.is_array() && j.empty())
+    {}
     else if (j.is_array())
     {
-        for (auto& element : j)
+        // Arrays are somewhat tricky.
+        // At the moment all elements are expected to be objects.
+        //    This means arrays of basic types are not supported (like layer index arrays).
+        //    Should not be too hard to add support for this.
+        // Now, the objects in the array can be of two kinds:
+        // a) Their keys can be json_pointer strings starting with numbers or ranges [i_low..i_high].
+        // b) They can be actual elements of the array. In this case we require the length of
+        //    the array to be equal to existing length in the configuration.
+        // It is not allowed for these two kinds to mix.
+
+        // Determine the kind of array: json_ptr or object
+
+        static const std::regex index_re("^(?:\\[\\d+..\\d+\\]|\\d+(?:/.*)?)$", std::regex::optimize);
+
+        bool has_index = false, has_plain = false;
+        for (int i = 0; i < (int) j.size(); ++i)
         {
-            if ( ! element.is_object()) throw std::runtime_error(exc_hdr(__func__) + "array elements expected to be objects");
-            n_replaced += replace(element);
+            const nlohmann::json &el = j[i];
+
+            if ( ! el.is_object()) throw std::runtime_error(exc_hdr(__func__) + "array elements expected to be objects");
+
+            for (nlohmann::json::const_iterator it = el.begin(); it != el.end(); ++it)
+            {
+                if (std::regex_search(it.key(), index_re)) {
+                    has_index = true;
+                    if (has_plain) throw std::runtime_error(exc_hdr(__func__) + "indexed array entry following plain one");
+                } else {
+                    has_plain = true;
+                    if (has_index) throw std::runtime_error(exc_hdr(__func__) + "plain array entry following indexed one");
+                }
+            }
+        }
+        if (has_index)
+        {
+            for (auto& element : j)
+            {
+                n_replaced += replace(element);
+            }
+        }
+        else
+        {
+            if ( m_current && ! m_current->is_array())
+                throw std::runtime_error(exc_hdr(__func__) + "plain array detected when current is not an array");
+            if (m_current->size() != j.size())
+                throw std::runtime_error(exc_hdr(__func__) + "plain array of different size than at current pos");
+
+            std::string s;
+            for (int i = 0; i < (int) j.size(); ++i)
+            {
+                s  = "/";
+                s += std::to_string(i);
+                cd(s);
+                n_replaced += replace(j[i]);
+                cd_up();
+            }
         }
     }
     else
@@ -286,14 +350,26 @@ std::string ConfigJsonPatcher::dump(int indent)
 
 namespace
 {
-    // Open file, throw exception on failure.
+    // Open file for writing, throw exception on failure.
+    void open_ofstream(std::ofstream &ofs, const std::string &fname, const char *pfx=0)
+    {
+        ofs.open(fname, std::ofstream::trunc);
+        if ( ! ofs)
+        {
+            char m[2048];
+            snprintf(m, 2048, "%s%sError opening %s for write: %m", pfx ? pfx : "", pfx ? " " : "", fname.c_str());
+            throw std::runtime_error(m);
+        }
+    }
+
+    // Open file for reading, throw exception on failure.
     void open_ifstream(std::ifstream &ifs, const std::string &fname, const char *pfx=0)
     {
         ifs.open(fname);
         if ( ! ifs)
         {
             char m[2048];
-            snprintf(m, 2048, "%s%sError opening %s: %m", pfx ? pfx : "", pfx ? " " : "", fname.c_str());
+            snprintf(m, 2048, "%s%sError opening %s for read: %m", pfx ? pfx : "", pfx ? " " : "", fname.c_str());
             throw std::runtime_error(m);
         }
     }
@@ -306,12 +382,10 @@ namespace
     }
 }
 
-void ConfigJson_Patch_File(IterationsInfo &its_info, const std::string &fname)
+ConfigJsonPatcher::PatchReport
+ConfigJson_Patch_File(IterationsInfo &its_info, const std::vector<std::string> &fnames)
 {
     using nlohmann::json;
-
-    std::ifstream  ifs;
-    open_ifstream(ifs, fname, __func__);
 
     ConfigJsonPatcher cjp(Config::json_patch_verbose);
     cjp.Load(its_info);
@@ -321,38 +395,98 @@ void ConfigJson_Patch_File(IterationsInfo &its_info, const std::string &fname)
         std::cout << cjp.dump(3) << "\n";
     }
 
-    printf("%s begin reading from file %s.\n", __func__, fname.c_str());
+    ConfigJsonPatcher::PatchReport report;
 
-    int n_read = 0, n_tot_replaced = 0;
-    while (skipws_ifstream(ifs))
+    for (auto &fname : fnames)
     {
-        json j;
-        ifs >> j;
-        ++n_read;
+        std::ifstream ifs;
+        open_ifstream(ifs, fname, __func__);
 
-        std::cout << " Read JSON entity " << n_read << " -- applying patch:\n";
-        // std::cout << j.dump(3) << "\n";
+        if (Config::json_patch_verbose)
+        {
+            printf("%s begin reading from file %s.\n", __func__, fname.c_str());
+        }
 
-        int n_replaced = cjp.replace(j);
-        std::cout << " Replaced " << n_replaced << " entries.\n";
+        int n_read = 0, n_tot_replaced = 0;
+        while (skipws_ifstream(ifs))
+        {
+            json j;
+            ifs >> j;
+            ++n_read;
 
-        cjp.cd_top();
-        n_tot_replaced += n_replaced;
+            if (Config::json_patch_verbose)
+            {
+                std::cout << " Read JSON entity " << n_read << " -- applying patch:\n";
+                // std::cout << j.dump(3) << "\n";
+            }
+
+            int n_replaced = cjp.replace(j);
+
+            if (Config::json_patch_verbose)
+            {
+                std::cout << " Replaced " << n_replaced << " entries.\n";
+            }
+            cjp.cd_top();
+            n_tot_replaced += n_replaced;
+        }
+
+        if (Config::json_patch_verbose)
+        {
+            printf("%s read %d JSON entities from file %s, replaced %d parameters.\n",
+                __func__, n_read, fname.c_str(), n_tot_replaced);
+        }
+
+        ifs.close();
+
+        report.inc_counts(1, n_read, n_tot_replaced);
     }
-    printf("%s read %d JSON entities from file %s, replaced %d parameters.\n",
-           __func__, n_read, fname.c_str(), n_tot_replaced);
 
-     if (Config::json_patch_dump_after)
+    if (Config::json_patch_dump_after)
     {
         std::cout << cjp.dump(3) << "\n";
     }
 
-    if (n_read > 0)
+    if (report.n_replacements > 0)
     {
         cjp.Save(its_info);
     }
 
-    ifs.close();
+    return report;
+}
+
+
+// ============================================================================
+// Save each IterationConfig into a separate json file
+// ============================================================================
+
+void ConfigJson_Save_Iterations(IterationsInfo &its_info, const std::string &fname_fmt)
+{
+    assert(fname_fmt.find("%d") != std::string::npos && "JSON save filename-format must include a %d substring");
+
+    for (int ii = 0; ii < its_info.size(); ++ii)
+    {
+        const IterationConfig &itconf = its_info[ii];
+
+        char fname[1024];
+        snprintf(fname, 1024, fname_fmt.c_str(), ii);
+
+        std::ofstream ofs;
+        open_ofstream(ofs, fname, __func__);
+
+        ofs << "{ \"m_iterations/" << ii << "\": ";
+
+        ofs << std::setprecision(5);
+
+        nlohmann::json j;
+        to_json(j, itconf);
+
+        ofs << std::setw(1);
+        ofs << j;
+
+        ofs << " }\n";
+
+        ofs.close();
+    }
 }
 
 
@@ -367,8 +501,7 @@ void ConfigJson_Test_Direct(IterationConfig &it_cfg)
     std::string lojz("/m_select_max_dphi");
 
     json j = it_cfg;
-    std::cout << j << "\n";
-    std::cout << j.dump(3) << "\n";
+    std::cout << j.dump(1) << "\n";
 
     std::cout << "Layer 43, m_select_max_dphi = " << j["/m_layer_configs/43/m_select_max_dphi"_json_pointer] << "\n";
     std::cout << "Patching it to pi ...\n";
@@ -409,7 +542,7 @@ void ConfigJson_Test_Patcher(IterationConfig &it_cfg)
     ConfigJsonPatcher cjp;
     cjp.Load(it_cfg);
 
-    std::cout << cjp.dump(3) << "\n";
+    std::cout << cjp.dump(1) << "\n";
 
     {
         cjp.cd("/m_layer_configs/43/m_select_max_dphi");

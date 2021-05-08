@@ -48,12 +48,21 @@ void initGeom()
 
   TrackerInfo::ExecTrackerInfoCreatorPlugin(Config::geomPlugin, Config::TrkInfo, Config::ItrInfo);
 
-  if ( ! Config::json_patch_filename.empty())
+  if ( ! Config::json_patch_filenames.empty())
   {
-    ConfigJson_Patch_File(Config::ItrInfo, Config::json_patch_filename);
+    auto report = ConfigJson_Patch_File(Config::ItrInfo, Config::json_patch_filenames);
+
+    printf("mkFit.cc/%s() read %d JSON entities from %d files, replaced %d parameters.\n",
+           __func__, report.n_json_entities, report.n_files, report.n_replacements);
+
   }
 
-  // Test functions for 
+  if ( ! Config::json_save_iters_fname_fmt.empty())
+  {
+    ConfigJson_Save_Iterations(Config::ItrInfo, Config::json_save_iters_fname_fmt);
+  }
+
+  // Test functions for ConfigJsonPatcher
   // ConfigJson_Test_Direct (Config::ItrInfo[0]);
   // ConfigJson_Test_Patcher(Config::ItrInfo[0]);
 
@@ -594,6 +603,9 @@ int main(int argc, const char *argv[])
 	"\n----------------------------------------------------------------------------------------------------------\n\n"
   "JSON config patcher options:\n\n"
   "  --json-patch <filename>  patch iteration config from given JSON file (def: do not patch)\n"
+  "                           can be specified multiple times for several files\n"
+  "  --json-save-iterations <fname-fmt> save per iteration json files\n"
+  "                           %%d in fname-fmt gets replaced with iteration number\n"
   "  --json-patch-verbose     print each patch assignment as it is being made (def: %s)\n"
   "  --json-patch-dump-before print iteration config before patching (def: %s)\n"
   "  --json-patch-dump-after  print iteration config after  patching (def: %s)\n"
@@ -987,7 +999,12 @@ int main(int argc, const char *argv[])
     else if (*i == "--json-patch")
     {
       next_arg_or_die(mArgs, i);
-      Config::json_patch_filename = *i;
+      Config::json_patch_filenames.push_back(*i);
+    }
+    else if (*i == "--json-save-iterations")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::json_save_iters_fname_fmt = *i;
     }
     else if (*i == "--json-patch-verbose")
     {

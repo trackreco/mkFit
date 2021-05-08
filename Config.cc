@@ -102,7 +102,8 @@ namespace Config
   bool        json_patch_dump_before = false;
   bool        json_patch_dump_after  = false;
   bool        json_patch_verbose     = false;
-  std::string json_patch_filename;
+  std::vector<std::string> json_patch_filenames;
+  std::string              json_save_iters_fname_fmt;
 
   void RecalculateDependentConstants()
   {
