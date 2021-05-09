@@ -16,18 +16,18 @@
 
 #if defined(MPLEX_USE_INTRINSICS)
   // This seems unnecessary: __AVX__ is usually defined for all higher ISA extensions
-  #if defined(__MIC__) || defined(__AVX__) || defined(__AVX512F__)
+  #if defined(__AVX__) || defined(__AVX512F__)
 
     #define MPLEX_INTRINSICS
 
   #endif
 
-  #if defined(__MIC__) || defined(__AVX512F__)
+  #if defined(__AVX512F__)
 
     typedef __m512 IntrVec_t;
     #define MPLEX_INTRINSICS_WIDTH_BYTES  64
     #define MPLEX_INTRINSICS_WIDTH_BITS  512
-    #define MIC_INTRINSICS
+    #define AVX512_INTRINSICS
     #define GATHER_INTRINSICS
     #define GATHER_IDX_LOAD(name, arr)  __m512i name = _mm512_load_epi32(arr);
 

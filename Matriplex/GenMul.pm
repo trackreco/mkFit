@@ -385,7 +385,7 @@ sub handle_all_zeros_ones
   {
     my @zo;
 
-    push @zo, "#ifdef MIC_INTRINSICS";
+    push @zo, "#ifdef AVX512_INTRINSICS";
 
     push @zo, "$S->{vectype} all_zeros = { " . join(", ", (0) x 16) . " };"
         if $zeros;

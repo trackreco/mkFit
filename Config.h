@@ -413,22 +413,21 @@ namespace Config
     return (Config::mag_b0*z*z + Config::mag_b1*z + Config::mag_c1)*(Config::mag_a*r*r + 1.f);
   }
 
-#ifdef USE_MATRIPLEX
 
-  #ifndef MPT_SIZE
-    #if defined(__MIC__) || defined(__AVX512F__)
-      #define MPT_SIZE 16
-    #elif defined(__AVX__) || defined(__AVX2__)
-      #define MPT_SIZE 8
-    #else
-      #define MPT_SIZE 8
-    #endif
+#ifndef MPT_SIZE
+  #if defined(__AVX512F__)
+    #define MPT_SIZE 16
+  #elif defined(__AVX__) || defined(__AVX2__)
+    #define MPT_SIZE 8
+  #elif defined(__SSE3__)
+    #define MPT_SIZE 4
+  #else
+    #define MPT_SIZE 8
   #endif
+#endif
 
-  #ifndef THREAD_BINDING
-  #define THREAD_BINDING spread
-  #endif
-
+#ifndef THREAD_BINDING
+#define THREAD_BINDING spread
 #endif
 
 };

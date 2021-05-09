@@ -123,7 +123,7 @@ public:
       }
    }
 
-#if defined(MIC_INTRINSICS)
+#if defined(AVX512_INTRINSICS)
 
    template<typename U>
    void SlurpIn(const T *arr, __m512i& vi, const U&, const int N_proc = N)
