@@ -1,6 +1,7 @@
 #include "TTreeValidation.h"
 #include "Event.h"
 #include "Config.h"
+#include "mkFit/IterationConfig.h"
 
 #ifndef NO_ROOT
 
