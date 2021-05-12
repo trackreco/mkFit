@@ -341,6 +341,8 @@ public:
   // bool isStopped() const { return status_.stopped; }
   // void setStopped()      { status_.stopped = true; }
 
+  static const char* algoint_to_cstr(int algo);
+
   // ------------------------------------------------------------------------
 
 protected:

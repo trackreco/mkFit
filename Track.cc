@@ -100,6 +100,25 @@ bool TrackBase::hasSillyValues(bool dump, bool fix, const char* pref)
   return is_silly;
 }
 
+const char* TrackBase::algoint_to_cstr(int algo)
+{
+  static const char* names[] = { "undefAlgorithm", "ctf", "duplicateMerge",
+    "cosmics", "initialStep", "lowPtTripletStep", "pixelPairStep", "detachedTripletStep",
+    "mixedTripletStep", "pixelLessStep", "tobTecStep", "jetCoreRegionalStep", "conversionStep",
+    "muonSeededStepInOut", "muonSeededStepOutIn", "outInEcalSeededConv", "inOutEcalSeededConv",
+    "nuclInter", "standAloneMuon", "globalMuon", "cosmicStandAloneMuon", "cosmicGlobalMuon",
+    "highPtTripletStep", "lowPtQuadStep", "detachedQuadStep", "reservedForUpgrades1",
+    "reservedForUpgrades2", "bTagGhostTracks", "beamhalo", "gsf", "hltPixel", "hltIter0",
+    "hltIter1", "hltIter2", "hltIter3", "hltIter4", "hltIterX", "hiRegitMuInitialStep",
+    "hiRegitMuLowPtTripletStep", "hiRegitMuPixelPairStep", "hiRegitMuDetachedTripletStep",
+    "hiRegitMuMixedTripletStep", "hiRegitMuPixelLessStep", "hiRegitMuTobTecStep",
+    "hiRegitMuMuonSeededStepInOut", "hiRegitMuMuonSeededStepOutIn", "algoSize" };
+
+    if (algo < 0 || algo >= (int) TrackAlgorithm::algoSize) return names[0];
+    return names[algo];
+}
+
+
 //==============================================================================
 // Track
 //==============================================================================
