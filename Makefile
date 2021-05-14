@@ -18,7 +18,7 @@ CORE_OBJS := $(filter-out main.o, ${OBJS})
 
 AUTO_TGTS :=
 
-ifdef USE_MATRIPLEX
+# Begin Matriplex
 
 auto-matriplex:
 	${MAKE} -C Matriplex auto && touch $@
@@ -27,7 +27,7 @@ AUTO_TGTS += auto-matriplex
 
 ${DEPS}: auto-matriplex
 
-endif
+# End Matriplex
 
 ifeq ($(filter clean-local clean distclean, ${MAKECMDGOALS}),)
 include ${DEPS}

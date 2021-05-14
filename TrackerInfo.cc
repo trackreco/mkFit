@@ -117,11 +117,7 @@ namespace
 
 void TrackerInfo::ExecTrackerInfoCreatorPlugin(const std::string& base, TrackerInfo &ti, IterationsInfo &ii, bool verbose)
 {
-#ifdef __MIC__
-  std::string soname = base + "-mic.so";
-#else
   std::string soname = base + ".so";
-#endif
 
   struct stat st;
 

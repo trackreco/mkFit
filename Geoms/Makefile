@@ -26,9 +26,6 @@ all: ${TGTS}
 %.so: %.o
 	${CXX} -shared -L../lib -lMicCore -o $@ $<
 
-%.om: %.cc %.d
-	${CXX} ${CPPFLAGS_NO_ROOT} ${CXXFLAGS} ${VEC_MIC} -c -o $@ $<
-
 ifeq ($(filter clean distclean, ${MAKECMDGOALS}),)
 include ${DEPS}
 endif

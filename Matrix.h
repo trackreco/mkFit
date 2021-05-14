@@ -101,53 +101,50 @@ inline void sincos4(const float x, float& sin, float& cos)
    sin  = x - 0.16666667f*x*x2;
 }
 } // end namespace mkfit
+
 //==============================================================================
 
-// This ifdef needs to be changed to something like "use matriplex" and/or
-// "is icc" as we can only do vectorization with icc now.
+// Matriplex dimensions and typedefs
 
-#ifdef USE_MATRIPLEX
-
-  #ifdef __INTEL_COMPILER
-    #define ASSUME_ALIGNED(a, b) __assume_aligned(a, b)
-  #else
-    #define ASSUME_ALIGNED(a, b) a = static_cast<decltype(a)>(__builtin_assume_aligned(a, b))
-  #endif
-
-  #include "Matriplex/MatriplexSym.h"
-
-  namespace mkfit {
-
-  constexpr Matriplex::idx_t NN =  MPT_SIZE; // "Length" of MPlex.
-
-  constexpr Matriplex::idx_t LL =  6; // Dimension of large/long  MPlex entities
-  constexpr Matriplex::idx_t HH =  3; // Dimension of small/short MPlex entities
-
-  typedef Matriplex::Matriplex<float, LL, LL, NN>   MPlexLL;
-  typedef Matriplex::Matriplex<float, LL,  1, NN>   MPlexLV;
-  typedef Matriplex::MatriplexSym<float, LL,  NN>   MPlexLS;
-
-  typedef Matriplex::Matriplex<float, HH, HH, NN>   MPlexHH;
-  typedef Matriplex::Matriplex<float, HH,  1, NN>   MPlexHV;
-  typedef Matriplex::MatriplexSym<float, HH,  NN>   MPlexHS;
-
-  typedef Matriplex::Matriplex<float, 2,  2, NN>    MPlex22;
-  typedef Matriplex::Matriplex<float, 2,  1, NN>    MPlex2V;
-  typedef Matriplex::MatriplexSym<float,  2, NN>    MPlex2S;
-
-  typedef Matriplex::Matriplex<float, LL, HH, NN>   MPlexLH;
-  typedef Matriplex::Matriplex<float, HH, LL, NN>   MPlexHL;
-
-  typedef Matriplex::Matriplex<float, LL,  2, NN>   MPlexL2;
-
-  typedef Matriplex::Matriplex<float, 1, 1, NN>     MPlexQF;
-  typedef Matriplex::Matriplex<int,   1, 1, NN>     MPlexQI;
-  typedef Matriplex::Matriplex<unsigned int,   1, 1, NN>     MPlexQUI;
-
-  typedef Matriplex::Matriplex<bool,  1, 1, NN>     MPlexQB;
-
-  } // end namespace mkfit
+#ifdef __INTEL_COMPILER
+  #define ASSUME_ALIGNED(a, b) __assume_aligned(a, b)
+#else
+  #define ASSUME_ALIGNED(a, b) a = static_cast<decltype(a)>(__builtin_assume_aligned(a, b))
 #endif
+
+#include "Matriplex/MatriplexSym.h"
+
+namespace mkfit {
+
+constexpr Matriplex::idx_t NN =  MPT_SIZE; // "Length" of MPlex.
+
+constexpr Matriplex::idx_t LL =  6; // Dimension of large/long  MPlex entities
+constexpr Matriplex::idx_t HH =  3; // Dimension of small/short MPlex entities
+
+typedef Matriplex::Matriplex<float, LL, LL, NN>   MPlexLL;
+typedef Matriplex::Matriplex<float, LL,  1, NN>   MPlexLV;
+typedef Matriplex::MatriplexSym<float, LL,  NN>   MPlexLS;
+
+typedef Matriplex::Matriplex<float, HH, HH, NN>   MPlexHH;
+typedef Matriplex::Matriplex<float, HH,  1, NN>   MPlexHV;
+typedef Matriplex::MatriplexSym<float, HH,  NN>   MPlexHS;
+
+typedef Matriplex::Matriplex<float, 2,  2, NN>    MPlex22;
+typedef Matriplex::Matriplex<float, 2,  1, NN>    MPlex2V;
+typedef Matriplex::MatriplexSym<float,  2, NN>    MPlex2S;
+
+typedef Matriplex::Matriplex<float, LL, HH, NN>   MPlexLH;
+typedef Matriplex::Matriplex<float, HH, LL, NN>   MPlexHL;
+
+typedef Matriplex::Matriplex<float, LL,  2, NN>   MPlexL2;
+
+typedef Matriplex::Matriplex<float, 1, 1, NN>     MPlexQF;
+typedef Matriplex::Matriplex<int,   1, 1, NN>     MPlexQI;
+typedef Matriplex::Matriplex<unsigned int,   1, 1, NN>     MPlexQUI;
+
+typedef Matriplex::Matriplex<bool,  1, 1, NN>     MPlexQB;
+
+} // end namespace mkfit
 
 //==============================================================================
 

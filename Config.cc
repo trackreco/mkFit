@@ -23,7 +23,7 @@ namespace Config
   int   numThreadsFinder = 1;
   int   numThreadsEvents = 1;
   
-#if defined(__MIC__) || defined(__AVX512F__)
+#if defined(__AVX512F__)
   int   numThreadsSimulation = 60;
 #else
   int   numThreadsSimulation = 12;
