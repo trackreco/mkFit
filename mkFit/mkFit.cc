@@ -48,12 +48,40 @@ void initGeom()
 
   TrackerInfo::ExecTrackerInfoCreatorPlugin(Config::geomPlugin, Config::TrkInfo, Config::ItrInfo);
 
-  if ( ! Config::json_patch_filename.empty())
+  if (Config::json_dump_before) ConfigJson_Dump(Config::ItrInfo);
+
+  if ( ! Config::json_load_filenames.empty())
   {
-    ConfigJson_Patch_File(Config::ItrInfo, Config::json_patch_filename);
+    ConfigJsonPatcher::PatchReport report;
+
+    for (auto &fn : Config::json_load_filenames)
+    {
+      ConfigJson_Load_File(Config::ItrInfo, fn, &report);
+    }
+
+    printf("mkFit.cc/%s--JSON-Load read %d JSON entities from %d files, replaced %d parameters.\n",
+           __func__, report.n_json_entities, report.n_files, report.n_replacements);
   }
 
-  // Test functions for 
+  if ( ! Config::json_patch_filenames.empty())
+  {
+    ConfigJsonPatcher::PatchReport report;
+
+    ConfigJson_Patch_Files(Config::ItrInfo, Config::json_patch_filenames, &report);
+
+    printf("mkFit.cc/%s--JOSN-Patch read %d JSON entities from %d files, replaced %d parameters.\n",
+           __func__, report.n_json_entities, report.n_files, report.n_replacements);
+  }
+
+  if (Config::json_dump_after) ConfigJson_Dump(Config::ItrInfo);
+
+  if ( ! Config::json_save_iters_fname_fmt.empty())
+  {
+    ConfigJson_Save_Iterations(Config::ItrInfo, Config::json_save_iters_fname_fmt,
+                               Config::json_save_iters_include_iter_info_preamble);
+  }
+
+  // Test functions for ConfigJsonPatcher
   // ConfigJson_Test_Direct (Config::ItrInfo[0]);
   // ConfigJson_Test_Patcher(Config::ItrInfo[0]);
 
@@ -593,10 +621,18 @@ int main(int argc, const char *argv[])
 	"                             must enable: --cmssw-pureseeds --backward-fit-pca\n"
 	"\n----------------------------------------------------------------------------------------------------------\n\n"
   "JSON config patcher options:\n\n"
-  "  --json-patch <filename>  patch iteration config from given JSON file (def: do not patch)\n"
-  "  --json-patch-verbose     print each patch assignment as it is being made (def: %s)\n"
-  "  --json-patch-dump-before print iteration config before patching (def: %s)\n"
-  "  --json-patch-dump-after  print iteration config after  patching (def: %s)\n"
+  "  --json-load  <filename>  load single IterationConfig from given JSON file (def: do not load)\n"
+  "                           can be specified multiple times for several files\n"
+  "  --json-patch <filename>  patch IterationsInfo from given JSON file (def: do not patch)\n"
+  "                           can be specified multiple times for several files\n"
+  "  --json-save-iterations <fname-fmt> save per iteration json files\n"
+  "                           %%d in fname-fmt gets replaced with iteration index\n"
+  "                           %%s in fname-fmt gets replaced with iteration algorithm name\n"
+  "                           exactly one of %%d and %%s must be specified\n"
+  "  --json-save-iterations-include-iter-info-preamble (def: %s)\n"
+  "  --json-verbose     print each patch assignment as it is being made (def: %s)\n"
+  "  --json-dump-before print iteration config before patching (def: %s)\n"
+  "  --json-dump-after  print iteration config after  patching (def: %s)\n"
  	"\n----------------------------------------------------------------------------------------------------------\n\n"
        ,
         argv[0],
@@ -667,9 +703,10 @@ int main(int argc, const char *argv[])
 	getOpt(trkParamBased, g_match_opts).c_str(), getOpt(trkParamBased, g_match_opts).c_str(),
 	getOpt(labelBased, g_match_opts).c_str(), getOpt(labelBased, g_match_opts).c_str(),
 
-        b2a(Config::json_patch_verbose),
-        b2a(Config::json_patch_dump_before),
-        b2a(Config::json_patch_dump_after)
+        b2a(Config::json_verbose),
+        b2a(Config::json_save_iters_include_iter_info_preamble),
+        b2a(Config::json_dump_before),
+        b2a(Config::json_dump_after)
       );
 
       printf("List of options for string based inputs \n");
@@ -984,22 +1021,36 @@ int main(int argc, const char *argv[])
       Config::cmsswMatchingFW = labelBased;
       Config::cmsswMatchingBK = labelBased;
     }
+    else if (*i == "--json-load")
+    {
+      next_arg_or_die(mArgs, i);
+      Config::json_load_filenames.push_back(*i);
+    }
     else if (*i == "--json-patch")
     {
       next_arg_or_die(mArgs, i);
-      Config::json_patch_filename = *i;
+      Config::json_patch_filenames.push_back(*i);
     }
-    else if (*i == "--json-patch-verbose")
+    else if (*i == "--json-save-iterations")
     {
-      Config::json_patch_verbose = true;
+      next_arg_or_die(mArgs, i);
+      Config::json_save_iters_fname_fmt = *i;
     }
-    else if (*i == "--json-patch-dump-before")
+    else if (*i == "--json-save-iterations-include-iter-info-preamble")
     {
-      Config::json_patch_dump_before = true;
+      Config::json_save_iters_include_iter_info_preamble = true;
     }
-    else if (*i == "--json-patch-dump-after")
+    else if (*i == "--json-verbose")
     {
-      Config::json_patch_dump_after = true;
+      Config::json_verbose = true;
+    }
+    else if (*i == "--json-dump-before")
+    {
+      Config::json_dump_before = true;
+    }
+    else if (*i == "--json-dump-after")
+    {
+      Config::json_dump_after = true;
     }
     else
     {

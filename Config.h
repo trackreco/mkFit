@@ -399,10 +399,13 @@ namespace Config
 
   // ================================================================
 
-  extern bool        json_patch_dump_before;
-  extern bool        json_patch_dump_after;
-  extern bool        json_patch_verbose;
-  extern std::string json_patch_filename;
+  extern bool        json_dump_before;
+  extern bool        json_dump_after;
+  extern bool        json_verbose;
+  extern std::vector<std::string> json_patch_filenames;
+  extern std::vector<std::string> json_load_filenames;
+  extern std::string              json_save_iters_fname_fmt;
+  extern bool        json_save_iters_include_iter_info_preamble;
 
   // ================================================================
 

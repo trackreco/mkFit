@@ -99,10 +99,13 @@ namespace Config
   bool  backwardFit = false;
   bool  includePCA = false;
 
-  bool        json_patch_dump_before = false;
-  bool        json_patch_dump_after  = false;
-  bool        json_patch_verbose     = false;
-  std::string json_patch_filename;
+  bool        json_dump_before = false;
+  bool        json_dump_after  = false;
+  bool        json_verbose     = false;
+  std::vector<std::string> json_patch_filenames;
+  std::vector<std::string> json_load_filenames;
+  std::string              json_save_iters_fname_fmt;
+  bool        json_save_iters_include_iter_info_preamble = false;
 
   void RecalculateDependentConstants()
   {

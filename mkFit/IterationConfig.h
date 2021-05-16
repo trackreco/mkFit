@@ -262,6 +262,29 @@ public:
 
 class ConfigJsonPatcher
 {
+public:
+  struct PatchReport
+  {
+    int n_files         = 0;
+    int n_json_entities = 0;
+    int n_replacements  = 0;
+
+    void inc_counts(int f, int e, int r)
+    {
+      n_files         += f;
+      n_json_entities += e;
+      n_replacements  += r;
+    }
+    void inc_counts(const PatchReport& pr)
+    {
+      n_files         += pr.n_files;
+      n_json_entities += pr.n_json_entities;
+      n_replacements  += pr.n_replacements;
+    }
+    void reset() { n_files = n_json_entities = n_replacements  = 0; }
+  };
+
+private:
   nlohmann::json *m_json    = nullptr;
   nlohmann::json *m_current = nullptr;
 
@@ -301,7 +324,26 @@ public:
   std::string dump(int indent=2);
 };
 
-void ConfigJson_Patch_File(IterationsInfo &its_info, const std::string &fname);
+// Patch IterationsInfo from a vector of files.
+// Assumes patch files include iteration-info preambles, i.e., they
+// were saved with include_iter_info_preamble=true.
+// If report is non-null counts are added to existing object.
+void             ConfigJson_Patch_Files(IterationsInfo &its_info, const std::vector<std::string> &fnames,
+                                       ConfigJsonPatcher::PatchReport *report=nullptr);
+
+// Load a single iteration from JSON file.
+// Searches for a match between m_algorithm in its_info and in JSON file to decide
+// which IterationConfig it will load over.
+// Assumes JSON file has been saved WITHOUT iteration-info preamble.
+// Returns reference to the selected IterationConfig.
+// If report is non-null counts are added to existing object.
+IterationConfig& ConfigJson_Load_File(IterationsInfo &its_info, const std::string &fname,
+                                      ConfigJsonPatcher::PatchReport *report=nullptr);
+
+void ConfigJson_Save_Iterations(IterationsInfo &its_info, const std::string &fname_fmt,
+                                bool include_iter_info_preamble);
+
+void ConfigJson_Dump(IterationsInfo &its_info);
 
 void ConfigJson_Test_Direct(IterationConfig &it_cfg);
 void ConfigJson_Test_Patcher(IterationConfig &it_cfg);

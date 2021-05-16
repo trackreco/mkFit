@@ -1,17 +1,26 @@
 #include "IterationConfig.h"
 #include "Config.h"
+#include "Track.h" // for TrackBase::algoint_to_cstr, sigh
 
 #include "nlohmann/json.hpp"
 
 #include <fstream>
 #include <regex>
 #include <iostream>
+#include <iomanip>
+
+// Redefine to also support ordered_json ... we want to keep variable order in JSON save files.
+#define ITCONF_DEFINE_TYPE_NON_INTRUSIVE(Type, ...)  \
+    inline void to_json(nlohmann::json& nlohmann_json_j, const Type& nlohmann_json_t) { NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_TO, __VA_ARGS__)) } \
+    inline void from_json(const nlohmann::json& nlohmann_json_j, Type& nlohmann_json_t) { NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_FROM, __VA_ARGS__)) } \
+    inline void to_json(nlohmann::ordered_json& nlohmann_json_j, const Type& nlohmann_json_t) { NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_TO, __VA_ARGS__)) } \
+    inline void from_json(const nlohmann::ordered_json& nlohmann_json_j, Type& nlohmann_json_t) { NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_FROM, __VA_ARGS__)) }
 
 namespace mkfit {
 
 // Begin AUTO code, some members commented out.
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationLayerConfig,
+ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationLayerConfig,
   /* float */   m_select_min_dphi,
   /* float */   m_select_max_dphi,
   /* float */   m_select_min_dq,
@@ -30,7 +39,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationLayerConfig,
   /* float */   c_c2_2
 )
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationParams,
+ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationParams,
   /* int */   nlayers_per_seed,
   /* int */   maxCandsPerSeed,
   /* int */   maxHolesPerCand,
@@ -49,18 +58,20 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationParams,
   /* float */   c_dzmax_el
 )
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationConfig,
+ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationConfig,
   // /* int */   m_iteration_index,
-  /* int */   m_track_algorithm,
+  /* int */                      m_track_algorithm,
   /* mkfit::IterationParams */   m_params,
-  // /* int */   m_n_regions,
-  // /* vector<int> */   m_region_order,
-  // /* vector<mkfit::SteeringParams> */   m_steering_params,
+  /* bool */                     m_requires_seed_hit_sorting,
+  /* bool */                     m_require_quality_filter,
+  // /* int */                   m_n_regions,
+  // /* vector<int> */           m_region_order,
+  // /* vector<mkfit::SteeringParams> */      m_steering_params,
   /* vector<mkfit::IterationLayerConfig> */   m_layer_configs
   // /* function<void(const TrackerInfo&,const TrackVec&,const EventOfHits&,IterationSeedPartition&)> */   m_partition_seeds
 )
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationsInfo,
+ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationsInfo,
   /* vector<mkfit::IterationConfig> */   m_iterations
 )
 
@@ -198,7 +209,7 @@ int ConfigJsonPatcher::replace(const nlohmann::json &j)
 
     if (j.is_object())
     {
-        std::regex index_range_re("^\\[(\\d+)..(\\d+)\\]$");
+        static const std::regex index_range_re("^\\[(\\d+)..(\\d+)\\]$", std::regex::optimize);
 
         for (auto& [key, value] : j.items())
         {
@@ -215,7 +226,15 @@ int ConfigJsonPatcher::replace(const nlohmann::json &j)
                     std::string s("/");
                     s += std::to_string(i);
                     cd(s);
-                    n_replaced += replace(value);
+                    if (value.is_array())
+                    {
+                        for (auto &el : value)
+                            n_replaced += replace(el);
+                    }
+                    else
+                    {
+                        n_replaced += replace(value);
+                    }
                     cd_up();
                 }
             }
@@ -232,12 +251,18 @@ int ConfigJsonPatcher::replace(const nlohmann::json &j)
                 std::string s("/");
                 s += key;
                 nlohmann::json::json_pointer jp(s);
-                if (m_verbose)
+                if (m_current->at(jp) != value)
                 {
-                    std::cout << "  " << get_abs_path() << s << ": " << m_current->at(jp) << " -> " << value << "\n";
+                    if (m_verbose)
+                        std::cout << "  " << get_abs_path() << s << ": " << m_current->at(jp) << " -> " << value << "\n";
+
+                    m_current->at(jp) = value;
+                    ++n_replaced;
                 }
-                m_current->at(jp) = value;
-                ++n_replaced;
+                // else {
+                //     if (m_verbose)
+                //         std::cout << "  " << get_abs_path() << s << ": " << m_current->at(jp) << " -> unchanged\n";
+                // }
             }
             else
             {
@@ -245,12 +270,65 @@ int ConfigJsonPatcher::replace(const nlohmann::json &j)
             }
         }
     }
+    else if (j.is_array() && j.empty())
+    {}
     else if (j.is_array())
     {
-        for (auto& element : j)
+        // Arrays are somewhat tricky.
+        // At the moment all elements are expected to be objects.
+        //    This means arrays of basic types are not supported (like layer index arrays).
+        //    Should not be too hard to add support for this.
+        // Now, the objects in the array can be of two kinds:
+        // a) Their keys can be json_pointer strings starting with numbers or ranges [i_low..i_high].
+        // b) They can be actual elements of the array. In this case we require the length of
+        //    the array to be equal to existing length in the configuration.
+        // It is not allowed for these two kinds to mix.
+
+        // Determine the kind of array: json_ptr or object
+
+        static const std::regex index_re("^(?:\\[\\d+..\\d+\\]|\\d+(?:/.*)?)$", std::regex::optimize);
+
+        bool has_index = false, has_plain = false;
+        for (int i = 0; i < (int) j.size(); ++i)
         {
-            if ( ! element.is_object()) throw std::runtime_error(exc_hdr(__func__) + "array elements expected to be objects");
-            n_replaced += replace(element);
+            const nlohmann::json &el = j[i];
+
+            if ( ! el.is_object()) throw std::runtime_error(exc_hdr(__func__) + "array elements expected to be objects");
+
+            for (nlohmann::json::const_iterator it = el.begin(); it != el.end(); ++it)
+            {
+                if (std::regex_search(it.key(), index_re)) {
+                    has_index = true;
+                    if (has_plain) throw std::runtime_error(exc_hdr(__func__) + "indexed array entry following plain one");
+                } else {
+                    has_plain = true;
+                    if (has_index) throw std::runtime_error(exc_hdr(__func__) + "plain array entry following indexed one");
+                }
+            }
+        }
+        if (has_index)
+        {
+            for (auto& element : j)
+            {
+                n_replaced += replace(element);
+            }
+        }
+        else
+        {
+            if ( m_current && ! m_current->is_array())
+                throw std::runtime_error(exc_hdr(__func__) + "plain array detected when current is not an array");
+            if (m_current->size() != j.size())
+                throw std::runtime_error(exc_hdr(__func__) + "plain array of different size than at current pos");
+
+            std::string s;
+            for (int i = 0; i < (int) j.size(); ++i)
+            {
+                s  = "/";
+                s += std::to_string(i);
+                cd(s);
+                n_replaced += replace(j[i]);
+                cd_up();
+            }
         }
     }
     else
@@ -286,14 +364,26 @@ std::string ConfigJsonPatcher::dump(int indent)
 
 namespace
 {
-    // Open file, throw exception on failure.
+    // Open file for writing, throw exception on failure.
+    void open_ofstream(std::ofstream &ofs, const std::string &fname, const char *pfx=0)
+    {
+        ofs.open(fname, std::ofstream::trunc);
+        if ( ! ofs)
+        {
+            char m[2048];
+            snprintf(m, 2048, "%s%sError opening %s for write: %m", pfx ? pfx : "", pfx ? " " : "", fname.c_str());
+            throw std::runtime_error(m);
+        }
+    }
+
+    // Open file for reading, throw exception on failure.
     void open_ifstream(std::ifstream &ifs, const std::string &fname, const char *pfx=0)
     {
         ifs.open(fname);
         if ( ! ifs)
         {
             char m[2048];
-            snprintf(m, 2048, "%s%sError opening %s: %m", pfx ? pfx : "", pfx ? " " : "", fname.c_str());
+            snprintf(m, 2048, "%s%sError opening %s for read: %m", pfx ? pfx : "", pfx ? " " : "", fname.c_str());
             throw std::runtime_error(m);
         }
     }
@@ -306,55 +396,179 @@ namespace
     }
 }
 
-void ConfigJson_Patch_File(IterationsInfo &its_info, const std::string &fname)
+void ConfigJson_Patch_Files(IterationsInfo &its_info, const std::vector<std::string> &fnames,
+                           ConfigJsonPatcher::PatchReport *report)
 {
-    using nlohmann::json;
-
-    std::ifstream  ifs;
-    open_ifstream(ifs, fname, __func__);
-
-    ConfigJsonPatcher cjp(Config::json_patch_verbose);
+    ConfigJsonPatcher cjp(Config::json_verbose);
     cjp.Load(its_info);
 
-    if (Config::json_patch_dump_before)
+    ConfigJsonPatcher::PatchReport rep;
+
+    for (auto &fname : fnames)
     {
-        std::cout << cjp.dump(3) << "\n";
+        std::ifstream ifs;
+        open_ifstream(ifs, fname, __func__);
+
+        if (Config::json_verbose)
+        {
+            printf("%s begin reading from file %s.\n", __func__, fname.c_str());
+        }
+
+        int n_read = 0, n_tot_replaced = 0;
+        while (skipws_ifstream(ifs))
+        {
+            nlohmann::json j;
+            ifs >> j;
+            ++n_read;
+
+            if (Config::json_verbose)
+            {
+                std::cout << " Read JSON entity " << n_read << " -- applying patch:\n";
+                // std::cout << j.dump(3) << "\n";
+            }
+
+            int n_replaced = cjp.replace(j);
+
+            if (Config::json_verbose)
+            {
+                std::cout << " Replaced " << n_replaced << " entries.\n";
+            }
+            cjp.cd_top();
+            n_tot_replaced += n_replaced;
+        }
+
+        if (Config::json_verbose)
+        {
+            printf("%s read %d JSON entities from file %s, replaced %d parameters.\n",
+                __func__, n_read, fname.c_str(), n_tot_replaced);
+        }
+
+        ifs.close();
+
+        rep.inc_counts(1, n_read, n_tot_replaced);
     }
 
-    printf("%s begin reading from file %s.\n", __func__, fname.c_str());
-
-    int n_read = 0, n_tot_replaced = 0;
-    while (skipws_ifstream(ifs))
-    {
-        json j;
-        ifs >> j;
-        ++n_read;
-
-        std::cout << " Read JSON entity " << n_read << " -- applying patch:\n";
-        // std::cout << j.dump(3) << "\n";
-
-        int n_replaced = cjp.replace(j);
-        std::cout << " Replaced " << n_replaced << " entries.\n";
-
-        cjp.cd_top();
-        n_tot_replaced += n_replaced;
-    }
-    printf("%s read %d JSON entities from file %s, replaced %d parameters.\n",
-           __func__, n_read, fname.c_str(), n_tot_replaced);
-
-     if (Config::json_patch_dump_after)
-    {
-        std::cout << cjp.dump(3) << "\n";
-    }
-
-    if (n_read > 0)
+    if (rep.n_replacements > 0)
     {
         cjp.Save(its_info);
     }
 
-    ifs.close();
+    if (report) report->inc_counts(rep);
 }
 
+IterationConfig& ConfigJson_Load_File(IterationsInfo &its_info, const std::string &fname,
+                                      ConfigJsonPatcher::PatchReport *report)
+{
+    ConfigJsonPatcher::PatchReport rep;
+
+    std::ifstream ifs;
+    open_ifstream(ifs, fname, __func__);
+
+    if (Config::json_verbose)
+    {
+        printf("%s begin reading from file %s.\n", __func__, fname.c_str());
+    }
+
+    if ( ! skipws_ifstream(ifs)) throw std::runtime_error("empty file");
+
+    nlohmann::json j;
+    ifs >> j;
+    int track_algo = j["m_track_algorithm"];
+
+    int iii = -1;
+    for (int i = 0; i < its_info.size(); ++i)
+    {
+        if (its_info[i].m_track_algorithm == track_algo) {
+            iii = i;
+            break;
+        }
+    }
+    if (iii == -1) throw std::runtime_error("matching IterationConfig not found");
+
+    if (Config::json_verbose)
+    {
+        std::cout << " Read JSON entity, Iteration index is " << iii << " -- applying patch:\n";
+    }
+
+    ConfigJsonPatcher cjp(Config::json_verbose);
+    cjp.Load(its_info[iii]);
+
+    int n_replaced = cjp.replace(j);
+
+    cjp.cd_top();
+
+    if (Config::json_verbose)
+    {
+        printf("%s read 1 JSON entity from file %s, replaced %d parameters.\n",
+            __func__, fname.c_str(), n_replaced);
+    }
+
+    ifs.close();
+
+    rep.inc_counts(1, 1, n_replaced);
+
+    if (rep.n_replacements > 0)
+    {
+        cjp.Save(its_info[iii]);
+    }
+
+    if (report) report->inc_counts(rep);
+
+    return its_info[iii];
+}
+
+// ============================================================================
+// Save each IterationConfig into a separate json file
+// ============================================================================
+
+void ConfigJson_Save_Iterations(IterationsInfo &its_info, const std::string &fname_fmt,
+                                bool include_iter_info_preamble)
+{
+    bool has_pct_d = fname_fmt.find("%d") != std::string::npos;
+    bool has_pct_s = fname_fmt.find("%s") != std::string::npos;
+
+    assert( (has_pct_d || has_pct_s) && "JSON save filename-format must include a %d or %s substring");
+    assert(!(has_pct_d && has_pct_s) && "JSON save filename-format must include only one of %d or %s substrings");
+
+    for (int ii = 0; ii < its_info.size(); ++ii)
+    {
+        const IterationConfig &itconf = its_info[ii];
+
+        char fname[1024];
+        if (has_pct_d)
+            snprintf(fname, 1024, fname_fmt.c_str(), ii);
+        else
+            snprintf(fname, 1024, fname_fmt.c_str(), TrackBase::algoint_to_cstr(itconf.m_track_algorithm));
+
+        std::ofstream ofs;
+        open_ofstream(ofs, fname, __func__);
+
+        if (include_iter_info_preamble)
+        {
+            ofs << "{ \"m_iterations/" << ii << "\": ";
+        }
+
+        nlohmann::ordered_json j;
+        to_json(j, itconf);
+
+        ofs << std::setw(1);
+        ofs << j;
+
+        if (include_iter_info_preamble)
+        {
+            ofs << " }";
+        }
+
+        ofs << "\n";
+        ofs.close();
+    }
+}
+
+void ConfigJson_Dump(IterationsInfo &its_info)
+{
+    nlohmann::ordered_json j = its_info;
+    std::cout << j.dump(3) << "\n";
+}
 
 // ============================================================================
 // Tests for ConfigJson stuff
@@ -367,8 +581,7 @@ void ConfigJson_Test_Direct(IterationConfig &it_cfg)
     std::string lojz("/m_select_max_dphi");
 
     json j = it_cfg;
-    std::cout << j << "\n";
-    std::cout << j.dump(3) << "\n";
+    std::cout << j.dump(1) << "\n";
 
     std::cout << "Layer 43, m_select_max_dphi = " << j["/m_layer_configs/43/m_select_max_dphi"_json_pointer] << "\n";
     std::cout << "Patching it to pi ...\n";
@@ -409,7 +622,7 @@ void ConfigJson_Test_Patcher(IterationConfig &it_cfg)
     ConfigJsonPatcher cjp;
     cjp.Load(it_cfg);
 
-    std::cout << cjp.dump(3) << "\n";
+    std::cout << cjp.dump(1) << "\n";
 
     {
         cjp.cd("/m_layer_configs/43/m_select_max_dphi");
