@@ -456,8 +456,9 @@ void ConfigJson_Patch_Files(IterationsInfo &its_info, const std::vector<std::str
     if (report) report->inc_counts(rep);
 }
 
-IterationConfig& ConfigJson_Load_File(IterationsInfo &its_info, const std::string &fname,
-                                      ConfigJsonPatcher::PatchReport *report)
+std::unique_ptr<IterationConfig>
+ConfigJson_Load_File(const IterationsInfo &its_info, const std::string &fname,
+                     ConfigJsonPatcher::PatchReport *report)
 {
     ConfigJsonPatcher::PatchReport rep;
 
@@ -487,11 +488,15 @@ IterationConfig& ConfigJson_Load_File(IterationsInfo &its_info, const std::strin
 
     if (Config::json_verbose)
     {
-        std::cout << " Read JSON entity, Iteration index is " << iii << " -- applying patch:\n";
+        std::cout << " Read JSON entity, Iteration index is " << iii
+                  << " -- cloning and applying JSON patch:\n";
     }
 
+    IterationConfig *icp = new IterationConfig( its_info[iii] );
+    IterationConfig &ic  = * icp;
+
     ConfigJsonPatcher cjp(Config::json_verbose);
-    cjp.Load(its_info[iii]);
+    cjp.Load(ic);
 
     int n_replaced = cjp.replace(j);
 
@@ -509,12 +514,12 @@ IterationConfig& ConfigJson_Load_File(IterationsInfo &its_info, const std::strin
 
     if (rep.n_replacements > 0)
     {
-        cjp.Save(its_info[iii]);
+        cjp.Save(ic);
     }
 
     if (report) report->inc_counts(rep);
 
-    return its_info[iii];
+    return std::unique_ptr<IterationConfig>( icp );
 }
 
 // ============================================================================

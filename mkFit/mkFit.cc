@@ -56,10 +56,13 @@ void initGeom()
 
     for (auto &fn : Config::json_load_filenames)
     {
+      // This is for testing only ... we drop the loaded IterationConfig
+      // as further code will always use IterationsInfo[ iter_index ].
       ConfigJson_Load_File(Config::ItrInfo, fn, &report);
     }
 
-    printf("mkFit.cc/%s--JSON-Load read %d JSON entities from %d files, replaced %d parameters.\n",
+    printf("mkFit.cc/%s--JSON-Load read %d JSON entities from %d files, replaced %d parameters.\n"
+           "   NOTE that these changes were NOT APPLIED to actual configuration that is going to be used.\n",
            __func__, report.n_json_entities, report.n_files, report.n_replacements);
   }
 
