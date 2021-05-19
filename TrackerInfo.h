@@ -1,8 +1,6 @@
 #ifndef TRACKERINFO_H
 #define TRACKERINFO_H
 
-#include "Matrix.h"
-
 #include <string>
 #include <vector>
 #include <stdexcept>
@@ -11,6 +9,8 @@
 #include <cstdio>
 
 namespace mkfit {
+
+class IterationsInfo;
 
 //==============================================================================
 
