@@ -1,4 +1,5 @@
 #include "Hit.h"
+#include "Matrix.h"
 
 namespace mkfit {
 

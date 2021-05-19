@@ -5,7 +5,7 @@
 #include <unordered_set>
 
 #include "Config.h"
-#include "Matrix.h"
+#include "MatrixSTypes.h"
 #include <atomic>
 #include <array>
 
