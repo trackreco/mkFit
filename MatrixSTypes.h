@@ -23,6 +23,27 @@ typedef ROOT::Math::SMatrix<float,6,3> SMatrix63;
 typedef ROOT::Math::SMatrix<float,2,6> SMatrix26;
 typedef ROOT::Math::SMatrix<float,6,2> SMatrix62;
 
+template <typename Matrix>
+inline void diagonalOnly(Matrix& m)
+{
+  for (int r=0; r<m.kRows; r++) {
+    for (int c=0; c<m.kCols; c++) {
+      if (r!=c) m[r][c] = 0.f;
+    }
+  }
+}
+
+template<typename Matrix>
+void dumpMatrix(Matrix m)
+{
+  for (int r=0;r<m.kRows;++r) {
+    for (int c=0;c<m.kCols;++c) {
+      std::cout << std::setw(12) << m.At(r,c) << " ";
+    }
+    std::cout << std::endl;
+  }
+}
+
 }
 
 #endif

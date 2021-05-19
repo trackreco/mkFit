@@ -4,34 +4,6 @@
 #include "Config.h"
 #include "MatrixSTypes.h"
 
-namespace mkfit {
-
-// should work with any SMatrix
-template<typename Matrix>
-void dumpMatrix(Matrix m)
-{
-  for (int r=0;r<m.kRows;++r) {
-    for (int c=0;c<m.kCols;++c) {
-      std::cout << std::setw(12) << m.At(r,c) << " ";
-    }
-    std::cout << std::endl;
-  }
-}
-
-template <typename Matrix>
-inline void diagonalOnly(Matrix& m)
-{
-  for (int r=0; r<m.kRows; r++) {
-    for (int c=0; c<m.kCols; c++) {
-      if (r!=c) m[r][c] = 0.f;
-    }
-  }
-}
-
-} // end namespace mkfit
-
-//==============================================================================
-
 // This should go elsewhere, eventually.
 
 #ifdef __cpp_lib_clamp

@@ -1,9 +1,9 @@
 #ifndef _track_
 #define _track_
 
-#include "Hit.h"
-#include "Matrix.h"
 #include "Config.h"
+#include "MatrixSTypes.h"
+#include "Hit.h"
 #include "TrackerInfo.h"
 
 #include <vector>
