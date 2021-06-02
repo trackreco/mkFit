@@ -183,10 +183,11 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg)
     const float Eta1 = eta[ts];
     const float Pt1 = pt[ts];
     const float invptq_first = invptq[ts];
+    bool overlapping;
 
     //#pragma simd /* Vectorization via simd had issues with icc */
     for (int tss= ts+1; tss<ns; tss++){
-
+      overlapping = false;
       const float Pt2 = pt[tss];
 
       ////// Always require charge consistency. If different charge is assigned, do not remove seed-track
@@ -242,14 +243,37 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg)
       ////// Reject tracks within dR-dz elliptical window.
       ////// Adaptive thresholds, based on observation that duplicates are more abundant at large pseudo-rapidity and low track pT
       if(std::abs(Eta1)<etamax_brl){
-        if(Pt1>ptmin_hpt){if(dz2/dzmax2_bh+dr2/drmax2_bh<1.0f) writetrack[tss]=false; }
-        else{if(dz2/dzmax2_bl+dr2/drmax2_bl<1.0f) writetrack[tss]=false; }
+        if(Pt1>ptmin_hpt){if(dz2/dzmax2_bh+dr2/drmax2_bh<1.0f) overlapping=true; }
+        else{if(dz2/dzmax2_bl+dr2/drmax2_bl<1.0f) overlapping=true; }
       }
       else {
-      	if(Pt1>ptmin_hpt){if(dz2/dzmax2_eh+dr2/drmax2_eh<1.0f) writetrack[tss]=false; }
-        else{if(dz2/dzmax2_el+dr2/drmax2_el<1.0f) writetrack[tss]=false; } 
+      	if(Pt1>ptmin_hpt){if(dz2/dzmax2_eh+dr2/drmax2_eh<1.0f) overlapping=true; }
+        else{if(dz2/dzmax2_el+dr2/drmax2_el<1.0f) overlapping=true; } 
       }
-    }
+
+      if(overlapping){
+	//Mark tss as a duplicate
+	writetrack[tss]=false;
+	//Add hits from tk2 to the seed we are keeping
+	Track & tk  = seeds[ts];
+	const Track & tk2 = seeds[tss];
+	//We are not actually fitting to the extra hits; use chi2 of 0
+	float fakeChi2 = 0.0;
+	
+	for (int j = 0; j < tk2.nTotalHits(); ++j){
+	  int hitidx = tk2.getHitIdx(j);
+	  int hitlyr = tk2.getHitLyr(j);
+	  if (hitidx >= 0){
+	    bool unique = true;
+	    for (int i = 0; i < tk.nTotalHits(); ++i){
+	      if( (hitidx == tk.getHitIdx(i)) && (hitlyr == tk.getHitLyr(i)) ) unique = false;
+	    }
+	    if(unique)  tk.addHitIdx(tk2.getHitIdx(j), tk2.getHitLyr(j), fakeChi2);
+	  }
+	}	
+      }
+
+    } //end of inner loop over tss
 
     if(writetrack[ts])
       cleanSeedTracks.emplace_back(seeds[ts]);
