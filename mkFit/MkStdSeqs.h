@@ -40,6 +40,13 @@ namespace StdSeq
         return t.nFoundHits() - seedReduction >= nMinHits;
     }
 
+    template<class TRACK>
+    bool qfilter_n_hits_pixseed(const TRACK &t, int nMinHits)
+    {
+         return t.nFoundHits() >= nMinHits;
+    }
+
+
     void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf);
 
 } // namespace StdSeq
