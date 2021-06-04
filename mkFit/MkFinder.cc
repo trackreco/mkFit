@@ -610,7 +610,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
             // Avi says we should have *minimal* search windows per layer.
             // Also ... if bins are sufficiently small, we do not need the extra
             // checks, see above.
-            if (L.GetHit(hi_orig).mcHitID() == -7)
+            if (L.m_phi_bin_deads[qi][pb] == true)
             {
               //ARH: This will need a better treatment but works for now
               XWsrResult[itrack].m_in_gap = true;
