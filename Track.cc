@@ -132,7 +132,7 @@ void Track::resizeHitsForInput()
 
 void Track::sortHitsByLayer()
 {
-  std::sort(& hitsOnTrk_[0], & hitsOnTrk_[lastHitIdx_ + 1],
+  std::stable_sort(& hitsOnTrk_[0], & hitsOnTrk_[lastHitIdx_ + 1],
 	    [](const auto & h1, const auto & h2) { return h1.layer < h2.layer; });
 }
 
