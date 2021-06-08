@@ -189,8 +189,6 @@ void LayerOfHits::SuckInDeads(const DeadVec &deadv)
 
   empty_q_bins_dead(0, m_nq);
 
-  const int size = deadv.size();
-
   for (const auto& d : deadv) {
     int q_bin_1 = GetQBinChecked(d.q1);
     int q_bin_2 = GetQBinChecked(d.q2) + 1;

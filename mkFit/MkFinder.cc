@@ -411,6 +411,12 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       {
         const int pb = pi & L.m_phi_mask;
 
+	if (L.m_phi_bin_deads[qi][pb] == true)
+	{
+	  //std::cout << "dead module for track in layer=" << L.layer_id() << " qb=" << qi << " pb=" << pb << " q=" << q << " phi=" << phi<< std::endl;
+	  XWsrResult[itrack].m_in_gap = true;
+	}
+
         // MT: The following line is the biggest hog (4% total run time).
         // This comes from cache misses, I presume.
         // It might make sense to make first loop to extract bin indices
@@ -610,15 +616,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
             // Avi says we should have *minimal* search windows per layer.
             // Also ... if bins are sufficiently small, we do not need the extra
             // checks, see above.
-            if (L.m_phi_bin_deads[qi][pb] == true)
-            {
-              //ARH: This will need a better treatment but works for now
-              XWsrResult[itrack].m_in_gap = true;
-            }
-            else
-            {
-              XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi_orig;
-            }
+	    XHitArr.At(itrack, XHitSize[itrack]++, 0) = hi_orig;
           }
           else
           {
@@ -1065,7 +1063,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     tmpList.hitIdx   = fake_hit_idx;
     tmpList.module   = -1;
     tmpList.nhits    = NFoundHits(itrack,0,0);
-    tmpList.ntailholes= NTailMinusOneHits(itrack,0,0)+1;
+    tmpList.ntailholes= (fake_hit_idx == -1 ? NTailMinusOneHits(itrack,0,0)+1 : NTailMinusOneHits(itrack,0,0));
     tmpList.noverlaps= NOverlapHits(itrack,0,0);
     tmpList.nholes   = num_inside_minus_one_hits(itrack);
     tmpList.pt       = std::abs(1.0f / Par[iP].At(itrack,3,0));
