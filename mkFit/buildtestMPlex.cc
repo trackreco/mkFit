@@ -355,7 +355,7 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
   TrackVec seeds_used;
   TrackVec seeds1;
    
-  unsigned int algorithms[]={ 4,22,23,5,24,7,8,9,10,6 }; //9 iterations
+  unsigned int algorithms[]={ 4,22,23,5,24,7,8,9,10 }; //9 iterations
 
   if (validation_on) 
   {
@@ -428,11 +428,6 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
     {
       builder.filter_comb_cands([&](const TrackCand &t)
         { return StdSeq::qfilter_n_hits(t, itconf.m_params.minHitsQF); });
-    }
-    else if (itconf.m_track_algorithm==6)
-    {
-      builder.filter_comb_cands([&](const TrackCand &t)
-       { return StdSeq::qfilter_n_hits_pixseed(t, 3); });
     }
 
     builder.select_best_comb_cands();
@@ -549,11 +544,6 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
   {
     builder.filter_comb_cands([&](const TrackCand &t)
       { return StdSeq::qfilter_n_hits(t, itconf.m_params.minHitsQF); });
-  }
-  else if (itconf.m_track_algorithm==6)
-  {
-    builder.filter_comb_cands([&](const TrackCand &t)
-      { return StdSeq::qfilter_n_hits_pixseed(t, 3); });
   }
 
   builder.select_best_comb_cands();

@@ -732,7 +732,7 @@ int Event::select_tracks_iter(unsigned int n)
 {
   if (n==0) return 1;
 
-  unsigned int algorithms[]={ 4,22,23,5,24,7,8,9,10,6 };//to be stored somewhere common
+  unsigned int algorithms[]={ 4,22,23,5,24,7,8,9,10 };//to be stored somewhere common
  
  //saving seeds by algorithm
   const int ns = seedTracks_.size();

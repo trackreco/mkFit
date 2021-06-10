@@ -184,16 +184,7 @@ namespace
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
     }
-    else if (it == 9) // addign also pixel pair step - algo -> 6
-    {
-       ip.nlayers_per_seed = 2;
-       ip.maxCandsPerSeed  = 3;
-       ip.maxHolesPerCand  = 4;
-       ip.maxConsecHoles   = 1;
-       ip.chi2Cut          = 30;
-       ip.chi2CutOverlap   = 3.5;
-       ip.pTCutOverlap     = 1;
-    }
+ 
   }
 
   void fill_hit_selection_windows_params(IterationConfig &ic)
@@ -329,7 +320,7 @@ namespace
     ti.set_eta_regions(0.9, 1.7, 2.45, false);
     ti.create_layers(18, 27, 27);
 
-    ii.resize(10);
+    ii.resize(9);
     ii[0].set_iteration_index_and_track_algorithm(0, (int) TrackBase::TrackAlgorithm::initialStep);
     ii[0].set_num_regions_layers(5, 72);
 
@@ -394,12 +385,6 @@ namespace
 
     //for the latter 2 iter investing in maxCand & stop condition (for time) + QF and Dupl. cleaning (for quality)
     
-    ii[9].Clone(ii[0]); //added pixelPair - the order doesn't matter as long as cmssw hit masks are used
-    SetupIterationParams(ii[9].m_params, 9);
-    ii[9].set_iteration_index_and_track_algorithm(9, (int) TrackBase::TrackAlgorithm::pixelPairStep);
-    ii[9].set_seed_cleaning_params(2.0, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135);
-    fill_hit_selection_windows_params(ii[9]);
-
     if (verbose)
     {
       printf("==========================================================================================\n");
