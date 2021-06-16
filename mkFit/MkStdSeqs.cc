@@ -490,6 +490,91 @@ void find_duplicates_sharedhits(TrackVec &tracks, const float fraction)
   tracks.erase(std::remove_if(tracks.begin(),tracks.end(),[](auto track){return track.getDuplicateValue();}),tracks.end());
 }
 
+void find_duplicates_sharedhits_pixelseed(TrackVec &tracks, const float fraction, const float drth_central, const float drth_obarrel, const float drth_forward)
+{
+  const auto ntracks = tracks.size();
+  std::vector<bool> goodtrack(ntracks, false);
+  float phi1, invpt1, dctheta, ctheta1, dphi, dr2;
+  for (auto itrack = 0U; itrack < ntracks; itrack++)
+  {
+     auto &trk = tracks[itrack];
+     phi1 = trk.momPhi();
+     invpt1 = trk.invpT();
+     ctheta1 = 1./tan(trk.theta());
+     for (auto jtrack = itrack + 1; jtrack < ntracks; jtrack++)
+     {
+       auto &track2 = tracks[jtrack];
+       if (trk.label() == track2.label())
+         continue;
+       
+       dctheta = std::abs(1./tan(track2.theta()) - ctheta1);
+       
+       if (dctheta > 0.37)
+         continue;
+
+       dphi = std::abs(squashPhiMinimal(phi1 - track2.momPhi()));
+       
+       if (dphi > 0.37)
+         continue;
+       
+       //float maxdR = 0.001;//Config::maxdR; // maxdR = 0.0025
+       float maxdRSquared = drth_central*drth_central; //0.03*0.03;//maxdR * maxdR;
+       if (std::abs(ctheta1)>6.05f) maxdRSquared=drth_forward*drth_forward;//
+       else if (std::abs(ctheta1)>1.99f) maxdRSquared=drth_obarrel*drth_obarrel;//
+       dr2 = dphi * dphi + dctheta * dctheta;
+       if (dr2 < maxdRSquared)
+       {
+         //Keep track with best score
+         if (trk.score() > track2.score())
+           track2.setDuplicateValue(true);
+         else
+           trk.setDuplicateValue(true);
+         continue;
+       }
+
+       if (std::abs(track2.invpT() - invpt1) > 0.9)
+           continue;
+
+       auto sharedCount=0; 
+       auto sharedFirst=0;
+
+       for (int i = 0; i < trk.nTotalHits(); ++i)
+       {
+         if (trk.getHitIdx(i)<0) continue;
+         int a=trk.getHitLyr(i);
+         int b=trk.getHitIdx(i);
+         for (int j = 0; j < track2.nTotalHits(); ++j)
+         {
+           if (track2.getHitIdx(j)<0) continue;
+           int c=track2.getHitLyr(j);
+           int d=track2.getHitIdx(j);
+
+           //this is to count once shared matched hits (may be done more properly...)
+           if(a==c && b==d) sharedCount+=1;
+           if(a==c && b==d && j==0 && i==0) sharedFirst+=1;
+
+           if ((sharedCount - sharedFirst) >= ((std::min(trk.nFoundHits(), track2.nFoundHits()) - sharedFirst) * fraction)) continue;
+         }
+         if ((sharedCount - sharedFirst) >= ((std::min(trk.nFoundHits(), track2.nFoundHits()) - sharedFirst) * fraction)) continue;
+       }
+
+       //selection here - 11percent fraction of shared hits to label a duplicate
+       if ((sharedCount - sharedFirst) >= ((std::min(trk.nFoundHits(), track2.nFoundHits()) - sharedFirst) * fraction))
+       {
+         if (trk.score() > track2.score())
+           track2.setDuplicateValue(true);
+         else
+           trk.setDuplicateValue(true);
+       }
+     }
+   }//end loop one over tracks
+
+   //removal here
+   tracks.erase(std::remove_if(tracks.begin(),tracks.end(),[](auto track){return track.getDuplicateValue();}),tracks.end());
+
+}
+
+
 //=========================================================================
 //
 //=========================================================================
@@ -502,8 +587,13 @@ void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf)
   }
   else //regular dupl cleaning
   {
-    find_duplicates(tracks);
-    remove_duplicates(tracks);
+    if(itconf.m_track_algorithm==4)
+    {
+      find_duplicates(tracks);
+      remove_duplicates(tracks);
+    }
+    else find_duplicates_sharedhits_pixelseed(tracks,itconf.m_params.fracSharedHits, itconf.m_params.drth_central, itconf.m_params.drth_obarrel, itconf.m_params.drth_forward);
+
   }
 }
 
