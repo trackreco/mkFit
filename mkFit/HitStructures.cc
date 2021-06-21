@@ -195,8 +195,19 @@ void LayerOfHits::SuckInDeads(const DeadVec &deadv)
     int phi_bin_1 = GetPhiBin(d.phi1);
     int phi_bin_2 = GetPhiBin(d.phi2) + 1;
     for (int q_bin = q_bin_1; q_bin < q_bin_2; q_bin++) {
-      for (int pb = phi_bin_1; pb < phi_bin_2; pb++) {
-	m_phi_bin_deads[q_bin][pb] = true;
+      if (phi_bin_1 > phi_bin_2) {
+        for (int pb = phi_bin_1; pb < Config::m_nphi; pb++) {
+          m_phi_bin_deads[q_bin][pb] = true;
+        }
+        for (int pb = 0; pb < phi_bin_2; pb++) {
+          m_phi_bin_deads[q_bin][pb] = true;
+        }
+      }
+      else
+      {
+        for (int pb = phi_bin_1; pb < phi_bin_2; pb++) {
+          m_phi_bin_deads[q_bin][pb] = true;
+        }
       }
     }
   }
