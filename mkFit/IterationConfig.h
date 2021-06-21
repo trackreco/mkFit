@@ -153,6 +153,7 @@ public:
 
   bool  m_requires_seed_hit_sorting = false;
   bool  m_require_quality_filter    = false;
+  bool  m_require_dupclean_tight    = false;
 
   // Iteration parameters (could be a ptr)
   IterationParams                     m_params;
@@ -199,6 +200,11 @@ public:
   {
      m_params.minHitsQF=minHits;
      m_params.fracSharedHits=sharedFrac;
+  }
+
+  void set_dupcleam_flag()
+  {
+    m_require_dupclean_tight=true;
   }
 
   void set_dupl_params(float sharedFrac, float drthCentral, float drthObarrel, float drthForward)

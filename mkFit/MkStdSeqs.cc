@@ -585,16 +585,16 @@ void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf)
   {
     find_duplicates_sharedhits(tracks, itconf.m_params.fracSharedHits);
   }
-  else //regular dupl cleaning
+  else if(itconf.m_require_dupclean_tight) 
   {
-    if(itconf.m_track_algorithm==4)
-    {
-      find_duplicates(tracks);
-      remove_duplicates(tracks);
-    }
-    else find_duplicates_sharedhits_pixelseed(tracks,itconf.m_params.fracSharedHits, itconf.m_params.drth_central, itconf.m_params.drth_obarrel, itconf.m_params.drth_forward);
-
+    find_duplicates_sharedhits_pixelseed(tracks, itconf.m_params.fracSharedHits, itconf.m_params.drth_central, itconf.m_params.drth_obarrel, itconf.m_params.drth_forward);
   }
+  else
+  {
+    find_duplicates(tracks);
+    remove_duplicates(tracks);
+  }
+
 }
 
 //=========================================================================
