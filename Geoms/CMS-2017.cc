@@ -344,7 +344,7 @@ namespace
     SetupIterationParams(ii[1].m_params, 1);
     ii[1].set_iteration_index_and_track_algorithm(1, (int) TrackBase::TrackAlgorithm::highPtTripletStep);
     ii[1].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.018, 0.018, 0.018, 0.05, 0.018, 0.05); 
-    ii[1].set_dupcleam_flag();
+    ii[1].set_dupclean_flag();
     ii[1].set_dupl_params(0.5, 0.03,0.05,0.08);
     fill_hit_selection_windows_params(ii[1]);
 
@@ -352,7 +352,7 @@ namespace
     SetupIterationParams(ii[2].m_params, 2);
     ii[2].set_iteration_index_and_track_algorithm(2, (int) TrackBase::TrackAlgorithm::lowPtQuadStep);
     ii[2].set_seed_cleaning_params(0.5, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
-    ii[1].set_dupcleam_flag();
+    ii[1].set_dupclean_flag();
     ii[2].set_dupl_params(0.5, 0.01,0.03,0.05);
     fill_hit_selection_windows_params(ii[2]);
      
@@ -360,7 +360,7 @@ namespace
     SetupIterationParams(ii[3].m_params, 3);
     ii[3].set_iteration_index_and_track_algorithm(3, (int) TrackBase::TrackAlgorithm::lowPtTripletStep);
     ii[3].set_seed_cleaning_params(0.5, 0.0, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
-    ii[3].set_dupcleam_flag();
+    ii[3].set_dupclean_flag();
     ii[3].set_dupl_params(0.33, 0.018,0.05,0.018);
     fill_hit_selection_windows_params(ii[3]);
     
@@ -368,7 +368,7 @@ namespace
     SetupIterationParams(ii[4].m_params, 4);
     ii[4].set_iteration_index_and_track_algorithm(4, (int) TrackBase::TrackAlgorithm::detachedQuadStep);
     ii[4].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
-    ii[4].set_dupcleam_flag();
+    ii[4].set_dupclean_flag();
     ii[4].set_dupl_params(0.25, 0.018,0.05,0.05);
     fill_hit_selection_windows_params(ii[4]);
     
@@ -376,7 +376,7 @@ namespace
     SetupIterationParams(ii[5].m_params, 5);
     ii[5].set_iteration_index_and_track_algorithm(5, (int) TrackBase::TrackAlgorithm::detachedTripletStep);
     ii[5].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
-    ii[5].set_dupcleam_flag();
+    ii[5].set_dupclean_flag();
     ii[5].set_dupl_params(0.25, 0.05,0.05,0.05);
     fill_hit_selection_windows_params(ii[5]);
 
@@ -384,7 +384,7 @@ namespace
     SetupIterationParams(ii[6].m_params, 6);
     ii[6].set_iteration_index_and_track_algorithm(6, (int) TrackBase::TrackAlgorithm::mixedTripletStep);
     ii[6].set_seed_cleaning_params(2.0, 0.05, 0.05, 0.135, 0.135, 0.05, 0.05, 0.135, 0.135);
-    ii[6].set_dupcleam_flag();
+    ii[6].set_dupclean_flag();
     ii[6].set_dupl_params(0.2, 0.05,0.05,0.05); 
     fill_hit_selection_windows_params(ii[6]);
 
@@ -410,7 +410,7 @@ namespace
     SetupIterationParams(ii[9].m_params, 9);
     ii[9].set_iteration_index_and_track_algorithm(9, (int) TrackBase::TrackAlgorithm::pixelPairStep);
     ii[9].set_seed_cleaning_params(2.0, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135);
-    ii[9].set_dupcleam_flag();
+    ii[9].set_dupclean_flag();
     ii[9].set_dupl_params(0.5, 0.03,0.05,0.08); //to update it
     fill_hit_selection_windows_params(ii[9]);
 

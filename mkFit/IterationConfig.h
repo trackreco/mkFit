@@ -202,7 +202,7 @@ public:
      m_params.fracSharedHits=sharedFrac;
   }
 
-  void set_dupcleam_flag()
+  void set_dupclean_flag()
   {
     m_require_dupclean_tight=true;
   }
