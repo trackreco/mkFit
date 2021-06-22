@@ -48,6 +48,10 @@ typedef std::array<PhiBinInfo_t, Config::m_nphi> vecPhiBinInfo_t;
 
 typedef std::vector<vecPhiBinInfo_t> vecvecPhiBinInfo_t;
 
+typedef std::array<bool, Config::m_nphi> vecPhiBinDead_t;
+
+typedef std::vector<vecPhiBinDead_t> vecvecPhiBinDead_t;
+
 //==============================================================================
 
 inline bool sortHitsByPhiMT(const Hit& h1, const Hit& h2)
@@ -96,6 +100,7 @@ private:
 public:
   const LayerInfo            *m_layer_info = 0;
   vecvecPhiBinInfo_t         m_phi_bin_infos;
+  vecvecPhiBinDead_t         m_phi_bin_deads;
   std::vector<float>         m_hit_phis;
   std::vector<float>         m_hit_qs;
 
@@ -196,6 +201,22 @@ protected:
     }
   }
 
+  void empty_phi_bins_dead(int q_bin, int phi_bin_1, int phi_bin_2)
+  {
+    for (int pb = phi_bin_1; pb < phi_bin_2; ++pb)
+    {
+      m_phi_bin_deads[q_bin][pb] = false;
+    }
+  }
+
+  void empty_q_bins_dead(int q_bin_1, int q_bin_2)
+  {
+    for (int qb = q_bin_1; qb < q_bin_2; ++qb)
+    {
+      empty_phi_bins_dead(qb, 0, Config::m_nphi);
+    }
+  }
+
 public:
   LayerOfHits() {}
 
@@ -227,6 +248,9 @@ public:
 
   // Get in all hits from given hit-vec
   void  SuckInHits(const HitVec &hitv);
+
+  // Get in all hits from given dead-vec
+  void  SuckInDeads(const DeadVec &deadv);
 
   // Use external hit-vec and only use hits that are passed to me.
   void  BeginRegistrationOfHits(const HitVec &hitv);
@@ -280,6 +304,11 @@ public:
     for (int i = 0; i < nh; ++i) loh.RegisterHit(i);
     loh.EndRegistrationOfHits();
     */
+  }
+
+  void SuckInDeads(int layer, const DeadVec &deadv)
+  {
+    m_layers_of_hits[layer].SuckInDeads(deadv);
   }
 
   LayerOfHits& operator[](int i) { return m_layers_of_hits[i]; }

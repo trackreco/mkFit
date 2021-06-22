@@ -31,6 +31,7 @@ void LayerOfHits::setup_bins(float qmin, float qmax, float dq)
   m_fq = m_nq / (qmax - qmin); // qbin = (q_hit - m_qmin) * m_fq;
 
   m_phi_bin_infos.resize(m_nq);
+  m_phi_bin_deads.resize(m_nq);
 }
 
 void LayerOfHits::SetupLayer(const LayerInfo &li)
@@ -182,6 +183,36 @@ void LayerOfHits::SuckInHits(const HitVec &hitv)
 
 //==============================================================================
 
+void LayerOfHits::SuckInDeads(const DeadVec &deadv)
+{
+  assert (m_nq > 0 && "SetupLayer() was not called.");
+
+  empty_q_bins_dead(0, m_nq);
+
+  for (const auto& d : deadv) {
+    int q_bin_1 = GetQBinChecked(d.q1);
+    int q_bin_2 = GetQBinChecked(d.q2) + 1;
+    int phi_bin_1 = GetPhiBin(d.phi1);
+    int phi_bin_2 = GetPhiBin(d.phi2) + 1;
+    for (int q_bin = q_bin_1; q_bin < q_bin_2; q_bin++) {
+      if (phi_bin_1 > phi_bin_2) {
+        for (int pb = phi_bin_1; pb < Config::m_nphi; pb++) {
+          m_phi_bin_deads[q_bin][pb] = true;
+        }
+        for (int pb = 0; pb < phi_bin_2; pb++) {
+          m_phi_bin_deads[q_bin][pb] = true;
+        }
+      }
+      else
+      {
+        for (int pb = phi_bin_1; pb < phi_bin_2; pb++) {
+          m_phi_bin_deads[q_bin][pb] = true;
+        }
+      }
+    }
+  }
+
+}
 
 void LayerOfHits::BeginRegistrationOfHits(const HitVec &hitv)
 {

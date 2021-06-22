@@ -30,6 +30,13 @@ void LoadHits(Event &ev, EventOfHits &eoh)
                         });
 }
 
+void LoadDeads(EventOfHits &eoh, const std::vector<DeadVec>& deadvectors)
+{
+  for (size_t il = 0; il < deadvectors.size(); il++) {
+    eoh.SuckInDeads(int(il), deadvectors[il]);
+  }
+}
+
 // Loading hits in CMSSW from two "large multi-layer vectors".
 // orig_hitvectors[0] - pixels,
 // orig_hitvectors[1] - strips.

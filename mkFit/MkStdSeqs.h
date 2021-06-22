@@ -15,6 +15,8 @@ namespace StdSeq
 {
     void LoadHits(Event &ev, EventOfHits &eoh);
 
+    void LoadDeads(EventOfHits &eoh, const std::vector<DeadVec>& deadvectors);
+
     void Cmssw_LoadHits_Begin(EventOfHits &eoh, const std::vector<const HitVec*> &orig_hitvectors);
     void Cmssw_LoadHits_End(EventOfHits &eoh);
 
