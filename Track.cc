@@ -74,6 +74,79 @@ SMatrix66 TrackState::jacobianCartesianToCCS(float px,float py,float pz) const {
   return jac;
 }
 
+void TrackState::convertFromGlbCurvilinearToCCS() {
+  //assume we are currently in global state with curvilinear error and want to move to ccs
+  const float px = parameters.At(3);
+  const float py = parameters.At(4);
+  const float pz = parameters.At(5);
+  const float pt = std::sqrt(px*px+py*py);
+  const float phi = getPhi(px,py);
+  const float theta = getTheta(pt,pz);
+  parameters.At(3) = 1.f/pt;
+  parameters.At(4) = phi;
+  parameters.At(5) = theta;
+  SMatrix66 jac = jacobianCurvilinearToCCS(px,py,pz, charge);
+  errors = ROOT::Math::Similarity(jac,errors);
+}
+
+void TrackState::convertFromCCSToGlbCurvilinear() {
+  //assume we are currently in ccs coordinates and want to move to global state with cartesian error
+  const float invpt = parameters.At(3);
+  const float phi   = parameters.At(4);
+  const float theta = parameters.At(5);
+  const float pt = 1.f/invpt;
+  float cosP = std::cos(phi);
+  float sinP = std::sin(phi);
+  float cosT = std::cos(theta);
+  float sinT = std::sin(theta);
+  parameters.At(3) = cosP*pt;
+  parameters.At(4) = sinP*pt;
+  parameters.At(5) = cosT*pt/sinT;
+  SMatrix66 jac = jacobianCCSToCurvilinear(invpt, cosP, sinP, cosT, sinT, charge);
+  errors = ROOT::Math::Similarity(jac,errors);
+}
+
+SMatrix66 TrackState::jacobianCCSToCurvilinear(float invpt, float cosP, float sinP, float cosT, float sinT, short charge) const {
+  SMatrix66 jac;
+  jac(3,0) = -sinP;
+  jac(4,0) = -cosP * cosT;
+  jac(3,1) = cosP;
+  jac(4,1) = -sinP * cosT;
+  jac(4,2) = sinT;
+  jac(0,3) = charge * sinT;
+  jac(0,5) = charge * cosT * invpt;
+  jac(1,5) = -1.f;
+  jac(2,4) = 1.f;
+
+  return jac;
+}
+
+SMatrix66 TrackState::jacobianCurvilinearToCCS(float px,float py,float pz, short charge) const {
+  const float pt2 = px*px + py*py;
+  const float pt = sqrt(pt2);
+  const float invpt2 = 1.f/pt2;
+  const float invpt = 1.f/pt;
+  const float invp = 1.f/sqrt(pt2 + pz*pz);
+  const float sinPhi = py * invpt;
+  const float cosPhi = px * invpt;
+  const float sinLam = pz * invp;
+  const float cosLam = pt * invp;
+
+  SMatrix66 jac;
+  jac(0,3) = -sinPhi;
+  jac(0,4) = -sinLam * cosPhi;
+  jac(1,3) = cosPhi;
+  jac(1,4) = -sinLam * sinPhi;
+  jac(2,4) = cosLam;
+  jac(3,0) = charge * cosLam; //assumes |charge|==1 ; else 1.f/charge here
+  jac(3,1) = pz * invpt2;
+  jac(4,2) = 1.f;
+  jac(5,1) = -1.f;
+
+  return jac;
+}
+
+
 //==============================================================================
 // TrackBase
 //==============================================================================
