@@ -326,6 +326,7 @@ int main(int argc, char *argv[])
   std::vector<float>*   see_stateCcov44 = 0;
   std::vector<float>*   see_stateCcov45 = 0;
   std::vector<float>*   see_stateCcov55 = 0;
+  std::vector<std::vector<float> >* see_stateCurvCov = 0;
   std::vector<int>*     see_q = 0;
   std::vector<unsigned int>*     see_algo = 0;
   t->SetBranchAddress("see_stateTrajGlbX",&see_stateTrajGlbX);
@@ -336,27 +337,33 @@ int main(int argc, char *argv[])
   t->SetBranchAddress("see_stateTrajGlbPz",&see_stateTrajGlbPz);
   t->SetBranchAddress("see_eta",&see_eta);
   t->SetBranchAddress("see_pt",&see_pt);
-  t->SetBranchAddress("see_stateCcov00",&see_stateCcov00);
-  t->SetBranchAddress("see_stateCcov01",&see_stateCcov01);
-  t->SetBranchAddress("see_stateCcov02",&see_stateCcov02);
-  t->SetBranchAddress("see_stateCcov03",&see_stateCcov03);
-  t->SetBranchAddress("see_stateCcov04",&see_stateCcov04);
-  t->SetBranchAddress("see_stateCcov05",&see_stateCcov05);
-  t->SetBranchAddress("see_stateCcov11",&see_stateCcov11);
-  t->SetBranchAddress("see_stateCcov12",&see_stateCcov12);
-  t->SetBranchAddress("see_stateCcov13",&see_stateCcov13);
-  t->SetBranchAddress("see_stateCcov14",&see_stateCcov14);
-  t->SetBranchAddress("see_stateCcov15",&see_stateCcov15);
-  t->SetBranchAddress("see_stateCcov22",&see_stateCcov22);
-  t->SetBranchAddress("see_stateCcov23",&see_stateCcov23);
-  t->SetBranchAddress("see_stateCcov24",&see_stateCcov24);
-  t->SetBranchAddress("see_stateCcov25",&see_stateCcov25);
-  t->SetBranchAddress("see_stateCcov33",&see_stateCcov33);
-  t->SetBranchAddress("see_stateCcov34",&see_stateCcov34);
-  t->SetBranchAddress("see_stateCcov35",&see_stateCcov35);
-  t->SetBranchAddress("see_stateCcov44",&see_stateCcov44);
-  t->SetBranchAddress("see_stateCcov45",&see_stateCcov45);
-  t->SetBranchAddress("see_stateCcov55",&see_stateCcov55);
+
+  bool hasCartCov = t->GetBranch("see_stateCcov00") != nullptr;
+  if (hasCartCov) {
+    t->SetBranchAddress("see_stateCcov00",&see_stateCcov00);
+    t->SetBranchAddress("see_stateCcov01",&see_stateCcov01);
+    t->SetBranchAddress("see_stateCcov02",&see_stateCcov02);
+    t->SetBranchAddress("see_stateCcov03",&see_stateCcov03);
+    t->SetBranchAddress("see_stateCcov04",&see_stateCcov04);
+    t->SetBranchAddress("see_stateCcov05",&see_stateCcov05);
+    t->SetBranchAddress("see_stateCcov11",&see_stateCcov11);
+    t->SetBranchAddress("see_stateCcov12",&see_stateCcov12);
+    t->SetBranchAddress("see_stateCcov13",&see_stateCcov13);
+    t->SetBranchAddress("see_stateCcov14",&see_stateCcov14);
+    t->SetBranchAddress("see_stateCcov15",&see_stateCcov15);
+    t->SetBranchAddress("see_stateCcov22",&see_stateCcov22);
+    t->SetBranchAddress("see_stateCcov23",&see_stateCcov23);
+    t->SetBranchAddress("see_stateCcov24",&see_stateCcov24);
+    t->SetBranchAddress("see_stateCcov25",&see_stateCcov25);
+    t->SetBranchAddress("see_stateCcov33",&see_stateCcov33);
+    t->SetBranchAddress("see_stateCcov34",&see_stateCcov34);
+    t->SetBranchAddress("see_stateCcov35",&see_stateCcov35);
+    t->SetBranchAddress("see_stateCcov44",&see_stateCcov44);
+    t->SetBranchAddress("see_stateCcov45",&see_stateCcov45);
+    t->SetBranchAddress("see_stateCcov55",&see_stateCcov55);
+  } else {
+    t->SetBranchAddress("see_stateCurvCov",&see_stateCurvCov);
+  }
   t->SetBranchAddress("see_q",&see_q);
   t->SetBranchAddress("see_algo",&see_algo);
 
@@ -758,29 +765,41 @@ int main(int argc, char *argv[])
       SVector3 pos = SVector3(see_stateTrajGlbX->at(is),see_stateTrajGlbY->at(is),see_stateTrajGlbZ->at(is));
       SVector3 mom = SVector3(see_stateTrajGlbPx->at(is),see_stateTrajGlbPy->at(is),see_stateTrajGlbPz->at(is));
       SMatrixSym66 err;
-      err.At(0,0) = see_stateCcov00->at(is);
-      err.At(0,1) = see_stateCcov01->at(is);
-      err.At(0,2) = see_stateCcov02->at(is);
-      err.At(0,3) = see_stateCcov03->at(is);
-      err.At(0,4) = see_stateCcov04->at(is);
-      err.At(0,5) = see_stateCcov05->at(is);
-      err.At(1,1) = see_stateCcov11->at(is);
-      err.At(1,2) = see_stateCcov12->at(is);
-      err.At(1,3) = see_stateCcov13->at(is);
-      err.At(1,4) = see_stateCcov14->at(is);
-      err.At(1,5) = see_stateCcov15->at(is);
-      err.At(2,2) = see_stateCcov22->at(is);
-      err.At(2,3) = see_stateCcov23->at(is);
-      err.At(2,4) = see_stateCcov24->at(is);
-      err.At(2,5) = see_stateCcov25->at(is);
-      err.At(3,3) = see_stateCcov33->at(is);
-      err.At(3,4) = see_stateCcov34->at(is);
-      err.At(3,5) = see_stateCcov35->at(is);
-      err.At(4,4) = see_stateCcov44->at(is);
-      err.At(4,5) = see_stateCcov45->at(is);
-      err.At(5,5) = see_stateCcov55->at(is);
+      if (hasCartCov) {
+        err.At(0,0) = see_stateCcov00->at(is);
+        err.At(0,1) = see_stateCcov01->at(is);
+        err.At(0,2) = see_stateCcov02->at(is);
+        err.At(0,3) = see_stateCcov03->at(is);
+        err.At(0,4) = see_stateCcov04->at(is);
+        err.At(0,5) = see_stateCcov05->at(is);
+        err.At(1,1) = see_stateCcov11->at(is);
+        err.At(1,2) = see_stateCcov12->at(is);
+        err.At(1,3) = see_stateCcov13->at(is);
+        err.At(1,4) = see_stateCcov14->at(is);
+        err.At(1,5) = see_stateCcov15->at(is);
+        err.At(2,2) = see_stateCcov22->at(is);
+        err.At(2,3) = see_stateCcov23->at(is);
+        err.At(2,4) = see_stateCcov24->at(is);
+        err.At(2,5) = see_stateCcov25->at(is);
+        err.At(3,3) = see_stateCcov33->at(is);
+        err.At(3,4) = see_stateCcov34->at(is);
+        err.At(3,5) = see_stateCcov35->at(is);
+        err.At(4,4) = see_stateCcov44->at(is);
+        err.At(4,5) = see_stateCcov45->at(is);
+        err.At(5,5) = see_stateCcov55->at(is);
+      } else {
+        auto const& vCov = see_stateCurvCov->at(is);
+        assert(vCov.size() == 15);
+        auto vCovP = vCov.begin();
+        for (int i = 0; i < 5; ++i)
+          for (int j = 0; j <= i; ++j)
+            err.At(i,j) = *(vCovP++);
+      }
       TrackState state(see_q->at(is), pos, mom, err);
-      state.convertFromCartesianToCCS();
+      if (hasCartCov)
+        state.convertFromCartesianToCCS();
+      else
+        state.convertFromGlbCurvilinearToCCS();
       Track track(state, 0, seedSimIdx[is], 0, nullptr);
       track.setAlgorithm(isAlgo);
       auto const& shTypes = see_hitType->at(is);
