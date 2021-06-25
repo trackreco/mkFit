@@ -1,7 +1,7 @@
 #include "MaterialEffects.h"
 #include "PropagationMPlex.h"
 
-//#define DEBUG
+#define DEBUG
 #include "Debug.h"
 
 
@@ -506,7 +506,7 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 			          MPlexLS &outErr,       MPlexLV& outPar,
                             const int      N_proc, const PropagationFlags pflags)
 {
-   // debug = true;
+   debug = true;
 
    outErr = inErr;
    outPar = inPar;

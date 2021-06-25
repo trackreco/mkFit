@@ -1,7 +1,7 @@
 #include "KalmanUtilsMPlex.h"
 #include "PropagationMPlex.h"
 
-//#define DEBUG
+#define DEBUG
 #include "Debug.h"
 
 #include "KalmanUtilsMPlex.icc"
@@ -777,6 +777,8 @@ void kalmanOperationEndcap(const int      kfOp,
                            MPlexLS &outErr,       MPlexLV& outPar, MPlexQF& outChi2,
                            const int      N_proc)
 {
+  debug = true;
+
 #ifdef DEBUG
   {
     dmutex_guard;
@@ -841,6 +843,13 @@ void kalmanOperationEndcap(const int      kfOp,
     MPlexL2 K;
     KalmanGain(psErr, resErr, K);
 
+    printf("*** pT update preview *** p(%g) + K(%g %g) * res(%g %g) = %g .... in double %g\n\n",
+           psPar.ConstAt(0,3,0), K.At(0,3,0), K.At(0,3,1), res.At(0,0,0), res.At(0,1,0),
+           psPar.ConstAt(0,3,0) + K.At(0,3,0)*res.At(0,0,0) + K.At(0,3,1)*res.At(0,1,0),
+           psPar.ConstAt(0,3,0) + (double)K.At(0,3,0)*res.At(0,0,0) + (double)K.At(0,3,1)*res.At(0,1,0));
+
+    // inv_pT update to 0 happens in the next call:
+
     MultResidualsAdd(K, psPar, res, outPar);
 
     squashPhiMPlex(outPar,N_proc); // ensure phi is between |pi|
@@ -876,7 +885,7 @@ void kalmanOperationEndcap(const int      kfOp,
       } printf("\n");
       printf("outPar:\n");
       for (int i = 0; i < 6; ++i) {
-        printf("%8f  ", outPar.At(0,i,0));
+        printf("%8g  ", outPar.At(0,i,0));
       } printf("\n");
       printf("outErr:\n");
       for (int i = 0; i < 6; ++i) { for (int j = 0; j < 6; ++j)
@@ -885,6 +894,8 @@ void kalmanOperationEndcap(const int      kfOp,
     }
 #endif
   }
+
+  debug = false;
 }
 
 } // end namespace mkfit

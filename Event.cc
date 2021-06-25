@@ -198,8 +198,8 @@ void Event::write_out(DataFile &data_file)
 
 // #define DUMP_SEEDS
 // #define DUMP_SEED_HITS
-// #define DUMP_TRACKS
-// #define DUMP_TRACK_HITS
+#define DUMP_TRACKS
+#define DUMP_TRACK_HITS
 // #define DUMP_LAYER_HITS
 // #define DUMP_REC_TRACKS
 // #define DUMP_REC_TRACK_HITS
