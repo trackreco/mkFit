@@ -355,7 +355,7 @@ namespace
     ii[3].Clone(ii[0]);
     SetupIterationParams(ii[3].m_params, 3);
     ii[3].set_iteration_index_and_track_algorithm(3, (int) TrackBase::TrackAlgorithm::lowPtTripletStep);
-    ii[3].set_seed_cleaning_params(0.5, 0.0, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
+    ii[3].set_seed_cleaning_params(0.5, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
     fill_hit_selection_windows_params(ii[3]);
     
     ii[4].Clone(ii[0]);

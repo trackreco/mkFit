@@ -282,8 +282,10 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg)
             bool unique = true;
             for (int i = 0; i < tk.nTotalHits(); ++i)
             {
-              if ((hitidx == tk.getHitIdx(i)) && (hitlyr == tk.getHitLyr(i)))
+              if ((hitidx == tk.getHitIdx(i)) && (hitlyr == tk.getHitLyr(i))) {
                 unique = false;
+                break;
+              }
             }
             if (unique) {
               tk.addHitIdx(tk2.getHitIdx(j), tk2.getHitLyr(j), fakeChi2);
@@ -297,7 +299,7 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg)
 
     if (writetrack[ts])
     {
-      if (n_ovlp_hits_added > 0 && ! itrcfg.m_requires_seed_hit_sorting)
+      if (n_ovlp_hits_added > 0)
         seeds[ts].sortHitsByLayer();
       cleanSeedTracks.emplace_back(seeds[ts]);
     }
