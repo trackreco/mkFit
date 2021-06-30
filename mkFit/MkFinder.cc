@@ -857,7 +857,8 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
 
     if (oneCandPassCut)
     {
-      (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
+      MPlexQI tmpChg = Chg;
+      (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], tmpChg, msErr, msPar,
                                      Err[iC], Par[iC], N_proc, Config::finding_intra_layer_pflags);
 
       dprint("update parameters" << std::endl
@@ -883,6 +884,7 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
 
             TrackCand newcand;
             copy_out(newcand, itrack, iC);
+            newcand.setCharge(tmpChg(itrack, 0, 0));
 	    newcand.addHitIdx(hit_idx, layer_of_hits.layer_id(), chi2);
 	    newcand.setScore(getScoreCand(newcand, true));
             newcand.setOriginIndex(CandIdx(itrack, 0, 0));
