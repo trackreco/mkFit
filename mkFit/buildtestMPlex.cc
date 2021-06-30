@@ -391,7 +391,7 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
       int nc = 0;
       for (auto &s : ev.seedTracks_)
       {
-        if (s.algoint() == itconf.m_track_algorithm)
+        if (s.algoint() == itconf.m_track_algorithm && s.charge() != 0)
         {
           if (itconf.m_requires_seed_hit_sorting)
           {

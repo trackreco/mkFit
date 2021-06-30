@@ -22,6 +22,19 @@ inline void squashPhiMPlexGeneral(MPlexLV& par, const int N_proc)
   }
 }
 
+inline int fixInvPtZero(const MPlexLV& prev, MPlexLV& curr, const int N_proc)
+{
+  int cnt = 0;
+  #pragma omp simd
+  for (int n = 0; n < NN; ++n) {
+    if (curr(n, 3, 0) == 0.0f) {
+      curr(n, 3, 0) = 0.5f * prev(n, 3, 0);
+      ++cnt;
+    }
+  }
+  return cnt;
+}
+
 void propagateLineToRMPlex(const MPlexLS &psErr,  const MPlexLV& psPar,
                            const MPlexHS &msErr,  const MPlexHV& msPar,
                                  MPlexLS &outErr,       MPlexLV& outPar,

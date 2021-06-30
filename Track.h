@@ -150,17 +150,21 @@ public:
     state_(state),
     chi2_ (chi2),
     label_(label)
-  {}
+  {
+    if (state_.charge==0) printf("ZZZZZ-1\n");
+  }
 
   TrackBase(int charge, const SVector3& position, const SVector3& momentum,
             const SMatrixSym66& errors, float chi2) :
     state_(charge, position, momentum, errors), chi2_(chi2)
-  {}
+  {
+    if (charge==0) printf("ZZZZZ-2\n");
+  }
 
   ~TrackBase() {}
 
   const TrackState&  state() const { return state_; }
-  void setState(const TrackState& newState) { state_ = newState; }
+  void setState(const TrackState& newState) { state_ = newState; if (state_.charge==0)   printf("ZZZZZ-3\n"); }
 
   const SVector6&     parameters() const {return state_.parameters;}
   const SMatrixSym66& errors()     const {return state_.errors;}
@@ -200,12 +204,12 @@ public:
 
   // ------------------------------------------------------------------------
 
-  int   charge() const { return state_.charge; }
+  int   charge() const { if (state_.charge==0) printf("XXXXX\n"); return state_.charge; }
   float chi2()   const { return chi2_; }
   float score()  const { return score_; }
   int   label()  const { return label_; }
 
-  void  setCharge(int chg)  { state_.charge = chg; }
+  void  setCharge(int chg)  { if (chg==0) printf("YYYYY\n"); state_.charge = chg; }
   void  setChi2(float chi2) { chi2_ = chi2; }
   void  setScore(float s)   { score_ = s; }
   void  setLabel(int lbl)   { label_ = lbl; }

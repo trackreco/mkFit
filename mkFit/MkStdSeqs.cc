@@ -179,6 +179,8 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg)
     x[ts] = tk.x();
     y[ts] = tk.y();
     z[ts] = tk.z();
+
+    if (tk.charge() == 0) { printf("YEBO seed with charge = 0\n"); }
   }
 
   for(int ts=0; ts<ns; ts++){
@@ -297,7 +299,7 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg)
 
     if (writetrack[ts])
     {
-      if (n_ovlp_hits_added > 0 && ! itrcfg.m_requires_seed_hit_sorting)
+      if (n_ovlp_hits_added > 0)
         seeds[ts].sortHitsByLayer();
       cleanSeedTracks.emplace_back(seeds[ts]);
     }
@@ -339,6 +341,13 @@ void find_duplicates(TrackVec &tracks)
   if (ntracks == 0)
   {
     return;
+  }
+  for (auto itrack = 0U; itrack < ntracks - 1; itrack++){
+    auto &t = tracks[itrack];
+    if (t.theta() > Config::PI) {
+      float &theta = t.state_nc().parameters.At(5);
+      theta = 2*Config::PI - theta;
+    }
   }
   for (auto itrack = 0U; itrack < ntracks - 1; itrack++)
   {

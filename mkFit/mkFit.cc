@@ -477,7 +477,7 @@ void next_arg_or_die(lStr_t& args, lStr_i& i, bool allow_single_minus=false)
 int main(int argc, const char *argv[])
 {
 #ifdef _GNU_SOURCE
-  if (Config::nan_etc_sigs_enable)
+  //if (Config::nan_etc_sigs_enable)
   {
     feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW); //FE_ALL_EXCEPT);
   }

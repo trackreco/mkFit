@@ -498,8 +498,8 @@ void kalmanPropagateAndUpdate(const MPlexLS &psErr,  const MPlexLV& psPar, MPlex
   {
     if (outPar.At(n,3,0) < 0)
     {
-      Chg.At(n, 0, 0) = -1.0*Chg.ConstAt(n, 0, 0);
-      outPar.At(n,3,0) = std::abs(outPar.At(n,3,0));
+      Chg.At(n, 0, 0)  = -Chg.At(n, 0, 0);
+      outPar.At(n,3,0) = -outPar.At(n,3,0);
     }
   }
 }
@@ -642,6 +642,8 @@ void kalmanOperation(const int      kfOp,
     MultResidualsAdd(K, psPar, res_loc, outPar);
     MPlexLL tempLL;
 
+    int fcnt = fixInvPtZero(psPar, outPar, N_proc);
+    if (fcnt) printf("kalmanOperation fixInvPtZero=%d\n", fcnt);
     squashPhiMPlex(outPar,N_proc); // ensure phi is between |pi|
 
     KHMult(K, rotT00, rotT01, tempLL);
@@ -724,8 +726,8 @@ void kalmanPropagateAndUpdateEndcap(const MPlexLS &psErr,  const MPlexLV& psPar,
   {
     if (outPar.At(n,3,0) < 0)
     {
-      Chg.At(n, 0, 0) = -1.0*Chg.ConstAt(n, 0, 0);
-      outPar.At(n,3,0) = std::abs(outPar.At(n,3,0));
+      Chg.At(n, 0, 0)  = -Chg.At(n, 0, 0);
+      outPar.At(n,3,0) = -outPar.At(n,3,0);
     }
   }
 }
@@ -843,6 +845,8 @@ void kalmanOperationEndcap(const int      kfOp,
 
     MultResidualsAdd(K, psPar, res, outPar);
 
+    int fcnt = fixInvPtZero(psPar, outPar, N_proc);
+    if (fcnt) printf("kalmanOperationEndcap fixInvPtZero=%d\n", fcnt);
     squashPhiMPlex(outPar,N_proc); // ensure phi is between |pi|
 
     KHC(K, psErr, outErr);
