@@ -548,6 +548,7 @@ int main(int argc, const char *argv[])
         "  --build-std              run standard combinatorial building test (def: %s)\n"
         "  --build-ce               run clone engine combinatorial building test (def: %s)\n"
         "  --build-mimi             run clone engine on multiple-iteration test (def: %s)\n"
+        "  --num-iters-cmssw <int>  number of mimi iterations to run (def: set to 3 when --build-mimi is in effect, 0 otherwise)\n"
 	"\n"
 	" **Seeding options\n"
         "  --seed-input     <str>   which seed collecion used for building (def: %s)\n"
@@ -777,11 +778,6 @@ int main(int argc, const char *argv[])
       next_arg_or_die(mArgs, i);
       Config::nEvents = atoi(i->c_str());
     }
-    else if (*i == "--num-iters-cmssw")
-    {
-       next_arg_or_die(mArgs, i);
-       Config::nItersCMSSW = atoi(i->c_str());
-    }
     else if (*i == "--start-event")
     {
       next_arg_or_die(mArgs, i);
@@ -858,6 +854,11 @@ int main(int argc, const char *argv[])
     {
       g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = false; g_run_build_mimi = true;
       if (Config::nItersCMSSW == 0) Config::nItersCMSSW = 3;
+    }
+    else if (*i == "--num-iters-cmssw")
+    {
+       next_arg_or_die(mArgs, i);
+       Config::nItersCMSSW = atoi(i->c_str());
     }
     else if(*i == "--seed-input")
     {
