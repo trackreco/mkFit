@@ -6,7 +6,7 @@
 
 suite=${1:-"forConf"} # which set of benchmarks to run: full, forPR, forConf, val, valMT1
 style=${2:-"--mtv-like-val"} # option --mtv-like-val
-inputBin=${3:-"104XPU50CCC_MULTI"}
+inputBin=${3:-"112X_TTbar_PU50_MULTI"}
 
 ###################
 ## Configuration ##
@@ -25,6 +25,12 @@ case ${inputBin} in
         dir=/data2/slava77/analysis/CMSSW_10_4_0_patch1_mkFit/pass-df52fcc
         subdir=/initialStep/default/11024.0_TTbar_13/AVE_50_BX01_25ns/RAW4NT  
         file=/memoryFile.fv5.clean.writeAll.CCC1620.recT.allSeeds.masks.201023-64302e5.bin
+        ;;
+"112X_TTbar_PU50_MULTI")
+        echo "Inputs from 2021 TTbar (PU50) sample with multiple iterations and hit binary mask"
+        dir=/data2/slava77/samples/
+        subdir=2021/11834.0_TTbar_14TeV+2021/AVE_50_BX01_25ns/
+        file=memoryFile.fv5.default.210623-b62fc88.bin
         ;;
 "112X_10mu_MULTI")
         echo "Inputs from 2021 10mu sample with multiple iterations and hit binary mask"
