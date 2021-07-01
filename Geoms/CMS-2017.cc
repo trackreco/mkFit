@@ -338,6 +338,8 @@ namespace
     SetupSteeringParams_Iter0(ii[0]);
     SetupIterationParams(ii[0].m_params, 0);
     ii[0].m_partition_seeds = PartitionSeeds0;
+    ii[0].set_dupclean_flag();
+    ii[0].set_dupl_params(0.5, 0.002,0.004,0.008);
     fill_hit_selection_windows_params(ii[0]);
 
     ii[1].Clone(ii[0]); //added extra iterations with some preliminary setup
@@ -352,7 +354,7 @@ namespace
     SetupIterationParams(ii[2].m_params, 2);
     ii[2].set_iteration_index_and_track_algorithm(2, (int) TrackBase::TrackAlgorithm::lowPtQuadStep);
     ii[2].set_seed_cleaning_params(0.5, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
-    ii[1].set_dupclean_flag();
+    ii[2].set_dupclean_flag();
     ii[2].set_dupl_params(0.5, 0.01,0.03,0.05);
     fill_hit_selection_windows_params(ii[2]);
      

@@ -537,6 +537,7 @@ void find_duplicates_sharedhits_pixelseed(TrackVec &tracks, const float fraction
 
        auto sharedCount=0; 
        auto sharedFirst=0;
+       const auto minFoundHits = std::min(trk.nFoundHits(), track2.nFoundHits());
 
        for (int i = 0; i < trk.nTotalHits(); ++i)
        {
@@ -551,15 +552,15 @@ void find_duplicates_sharedhits_pixelseed(TrackVec &tracks, const float fraction
 
            //this is to count once shared matched hits (may be done more properly...)
            if(a==c && b==d) sharedCount+=1;
-           if(a==c && b==d && j==0 && i==0) sharedFirst+=1;
+           if(j==0 && i==0 && a==c && b==d) sharedFirst+=1;
 
-           if ((sharedCount - sharedFirst) >= ((std::min(trk.nFoundHits(), track2.nFoundHits()) - sharedFirst) * fraction)) continue;
+           if ((sharedCount - sharedFirst) >= ((minFoundHits - sharedFirst) * fraction)) continue;
          }
-         if ((sharedCount - sharedFirst) >= ((std::min(trk.nFoundHits(), track2.nFoundHits()) - sharedFirst) * fraction)) continue;
+         if ((sharedCount - sharedFirst) >= ((minFoundHits - sharedFirst) * fraction)) continue;
        }
 
        //selection here - 11percent fraction of shared hits to label a duplicate
-       if ((sharedCount - sharedFirst) >= ((std::min(trk.nFoundHits(), track2.nFoundHits()) - sharedFirst) * fraction))
+       if ((sharedCount - sharedFirst) >= ((minFoundHits - sharedFirst) * fraction))
        {
          if (trk.score() > track2.score())
            track2.setDuplicateValue(true);
