@@ -91,7 +91,9 @@ private:
 
   // main input 
   TFile * fInRoot;
-
+  TTree * efftree;
+  TTree * frtree;
+  
   // binning for rate plots
   DblVec fPtBins;
   DblVec fEtaBins;
