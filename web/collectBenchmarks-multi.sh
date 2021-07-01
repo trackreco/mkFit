@@ -7,6 +7,7 @@
 dir=${1:-"benchmarks"}
 suite=${2:-"forConf"} # which set of benchmarks to run: full, forPR, forConf
 useARCH=${3:-0}
+whichcands=${4:-"fit"}
 
 ###################
 ## Configuration ##
@@ -52,17 +53,17 @@ do
     do
         for var in phi eta nLayers
         do
-            mv ${val_arch}_${sample}_${rate}_${var}_"build"_"pt"${pt}_${simval[i]}.png ${dir}/${simdir[i]}
+            mv ${val_arch}_${sample}_${rate}_${var}_${whichcands}_"pt"${pt}_${simval[i]}.png ${dir}/${simdir[i]}
         done
     done
 
     # only copy pt > 0 for pt rate plots
     for var in pt pt_zoom
     do
-        mv ${val_arch}_${sample}_${rate}_${var}_"build"_"pt0p0"_${simval[i]}.png ${dir}/${simdir[i]}
+        mv ${val_arch}_${sample}_${rate}_${var}_${whichcands}_"pt0p0"_${simval[i]}.png ${dir}/${simdir[i]}
     done
 
-    mv ${val_arch}_${sample}_${rate}_"pt_logx"_"build"_"pt0p0"_${simval[i]}.png ${dir}/${simdir[i]}/logx
+    mv ${val_arch}_${sample}_${rate}_"pt_logx"_${whichcands}_"pt0p0"_${simval[i]}.png ${dir}/${simdir[i]}/logx
 done
 
 # Move kinematic diff plots for SimTrack Validation
@@ -72,7 +73,7 @@ do
     do
         for pt in 0p0 0p9 2p0
         do
-            mv ${val_arch}_${sample}_${coll}_"d"${var}_"build"_"pt"${pt}_${simval[i]}.png ${dir}/${simdir[i]}/diffs
+            mv ${val_arch}_${sample}_${coll}_"d"${var}_${whichcands}_"pt"${pt}_${simval[i]}.png ${dir}/${simdir[i]}/diffs
         done
     done
 done
@@ -84,7 +85,7 @@ do
     do
         for qual in nHits score
         do
-            mv ${val_arch}_${sample}_${coll}_${qual}_"build"_"pt"${pt}_${simval[i]}.png ${dir}/${simdir[i]}/${qual}
+            mv ${val_arch}_${sample}_${coll}_${qual}_${whichcands}_"pt"${pt}_${simval[i]}.png ${dir}/${simdir[i]}/${qual}
         done
     done
 done
