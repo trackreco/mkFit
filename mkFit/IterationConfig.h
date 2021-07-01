@@ -117,6 +117,9 @@ public:
 
   int minHitsQF = 4;
   float fracSharedHits = 0.19;
+  float drth_central = 0.001; 
+  float drth_obarrel = 0.001;
+  float drth_forward = 0.001;
 
 };
 
@@ -150,6 +153,7 @@ public:
 
   bool  m_requires_seed_hit_sorting = false;
   bool  m_require_quality_filter    = false;
+  bool  m_require_dupclean_tight    = false;
 
   // Iteration parameters (could be a ptr)
   IterationParams                     m_params;
@@ -197,6 +201,20 @@ public:
      m_params.minHitsQF=minHits;
      m_params.fracSharedHits=sharedFrac;
   }
+
+  void set_dupclean_flag()
+  {
+    m_require_dupclean_tight=true;
+  }
+
+  void set_dupl_params(float sharedFrac, float drthCentral, float drthObarrel, float drthForward)
+  {
+      m_params.fracSharedHits=sharedFrac;
+      m_params.drth_central=drthCentral;
+      m_params.drth_obarrel=drthObarrel;
+      m_params.drth_forward=drthForward;
+  }  
+  
   
   void set_seed_cleaning_params(float pt_thr,
         float dzmax_bh, float drmax_bh,

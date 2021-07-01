@@ -55,7 +55,12 @@ ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationParams,
   /* float */   c_drmax_bl,
   /* float */   c_dzmax_bl,
   /* float */   c_drmax_el,
-  /* float */   c_dzmax_el
+  /* float */   c_dzmax_el,
+  /* float */   fracSharedHits,
+  /* float */   drth_central,
+  /* float */   drth_obarrel,
+  /* float */   drth_forward
+
 )
 
 ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationConfig,
@@ -64,6 +69,7 @@ ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationConfig,
   /* mkfit::IterationParams */   m_params,
   /* bool */                     m_requires_seed_hit_sorting,
   /* bool */                     m_require_quality_filter,
+  /* bool */                     m_require_dupclean_tight,
   // /* int */                   m_n_regions,
   // /* vector<int> */           m_region_order,
   // /* vector<mkfit::SteeringParams> */      m_steering_params,

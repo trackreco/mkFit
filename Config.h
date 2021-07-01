@@ -329,6 +329,13 @@ namespace Config
   extern float minFracHitsShared;
   extern float maxdR;
 
+  //dup removal tighter version
+  extern float maxd1pt;
+  extern float maxdphi;
+  extern float maxdcth;
+  extern float maxcth_ob;
+  extern float maxcth_fw;
+
   // config on seed cleaning
   constexpr float track1GeVradius = 87.6; // = 1/(c*B)
   constexpr float c_etamax_brl = 0.9;

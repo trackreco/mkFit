@@ -90,6 +90,12 @@ namespace Config
   float maxdR = 0.0025;
   float minFracHitsShared = 0.75;
 
+  float maxd1pt  = 0.9; //windows for hit 
+  float maxdphi = 0.37; //and/or dr
+  float maxdcth = 0.37;   //comparisons
+  float maxcth_ob = 1.99; //eta 1.44
+  float maxcth_fw = 6.05; //eta 2.5
+
   bool mtvLikeValidation = false;
   bool mtvRequireSeeds = false;
   int  cmsSelMinLayers = 12;
