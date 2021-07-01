@@ -509,18 +509,17 @@ void find_duplicates_sharedhits_pixelseed(TrackVec &tracks, const float fraction
        
        dctheta = std::abs(1./tan(track2.theta()) - ctheta1);
        
-       if (dctheta > 0.37)
+       if (dctheta > Config::maxdcth)
          continue;
 
        dphi = std::abs(squashPhiMinimal(phi1 - track2.momPhi()));
        
-       if (dphi > 0.37)
+       if (dphi > Config::maxdphi)
          continue;
        
-       //float maxdR = 0.001;//Config::maxdR; // maxdR = 0.0025
-       float maxdRSquared = drth_central*drth_central; //0.03*0.03;//maxdR * maxdR;
-       if (std::abs(ctheta1)>6.05f) maxdRSquared=drth_forward*drth_forward;//
-       else if (std::abs(ctheta1)>1.99f) maxdRSquared=drth_obarrel*drth_obarrel;//
+       float maxdRSquared = drth_central*drth_central;
+       if (std::abs(ctheta1)>Config::maxcth_fw) maxdRSquared=drth_forward*drth_forward;
+       else if (std::abs(ctheta1)>Config::maxcth_ob) maxdRSquared=drth_obarrel*drth_obarrel;
        dr2 = dphi * dphi + dctheta * dctheta;
        if (dr2 < maxdRSquared)
        {
@@ -532,7 +531,7 @@ void find_duplicates_sharedhits_pixelseed(TrackVec &tracks, const float fraction
          continue;
        }
 
-       if (std::abs(track2.invpT() - invpt1) > 0.9)
+       if (std::abs(track2.invpT() - invpt1) > Config::maxd1pt)
            continue;
 
        auto sharedCount=0; 
