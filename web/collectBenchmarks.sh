@@ -7,7 +7,7 @@
 dir=${1:-"benchmarks"}
 suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
 useARCH=${3:-0}
-whichcands=${4:-"fit"}
+whichcands=${4:-"build"}
 
 ###################
 ## Configuration ##
