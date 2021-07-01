@@ -37,6 +37,7 @@ case ${inputBin} in
         dir=/data2/slava77/samples/
         subdir=2021/11834.0_TTbar_14TeV+2021/AVE_50_BX01_25ns/
         file=memoryFile.fv5.default.210623-b62fc88.bin
+	nevents=250
         ;;
 "104X10muCCC")
         echo "Inputs from 2018 10mu large pt range using the offline initialStep seeds with CCC (phi3)"
