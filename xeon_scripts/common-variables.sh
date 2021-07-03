@@ -54,7 +54,7 @@ then
 elif [[ "${suite}" == "forPR" ]]
 then
     declare -a ben_builds=(BH CE)
-    declare -a val_builds=(BH STD CE)
+    declare -a val_builds=(STD CE)
 elif [[ "${suite}" == "forConf" ]]
 then
     declare -a ben_builds=(CE)
