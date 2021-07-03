@@ -37,7 +37,6 @@ case ${inputBin} in
         dir=/data2/slava77/samples/
         subdir=2021/11834.0_TTbar_14TeV+2021/AVE_50_BX01_25ns/
         file=memoryFile.fv5.default.210623-b62fc88.bin
-	nevents=250
         ;;
 "104X10muCCC")
         echo "Inputs from 2018 10mu large pt range using the offline initialStep seeds with CCC (phi3)"
@@ -161,9 +160,11 @@ function plotVal()
     local bN=${2}
     local pN=${3}
     local pO=${4}
+    local iter=${5} # only initialStep
+    local cancel=${6}
 
     echo "Computing observables for: ${base} ${bN} ${pN}"
-    bExe="root -b -q -l plotting/runValidation.C(\"_${base}_${bN}_${pN}\",${pO})"
+    bExe="root -b -q -l plotting/runValidation.C(\"_${base}_${bN}_${pN}\",${pO},${iter},${cancel})"
     ${bExe} || (echo "Crashed on CMD: "${bExe}; exit 3)
 }
 
@@ -215,14 +216,18 @@ do echo ${!plot} | while read -r pN pO
 	then
 	    echo ${CMSSW} | while read -r bN bO val_extras
 	    do
-		plotVal "${base}" "${bN}" "${pN}" "${pO}"
+		iter=4 # only initialStep
+		cancel=1
+		plotVal "${base}" "${bN}" "${pN}" "${pO}" "${iter}" "${cancel}"
 	    done
 	fi
 	if [[ "${pN}" == "SIMVALSEED" ]]
 	then
 	    echo ${CMSSW2} | while read -r bN bO val_extras
 	    do
-		plotVal "${base}" "${bN}" "${pN}" "${pO}"
+		iter=4 # only initialStep
+		cancel=1
+		plotVal "${base}" "${bN}" "${pN}" "${pO}" "${iter}" "${cancel}"
 	    done
 	fi
 
@@ -230,7 +235,10 @@ do echo ${!plot} | while read -r pN pO
 	for build in "${val_builds[@]}"
 	do echo ${!build} | while read -r bN bO
 	    do
-		plotVal "${base}" "${bN}" "${pN}" "${pO}"
+		iter=0
+		cancel=1
+		plotVal "${base}" "${bN}" "${pN}" "${pO}" "${iter}" "${cancel}"
+		#plotVal "${base}" "${bN}" "${pN}" "${pO}"
 	    done
 	done
 	

@@ -141,9 +141,10 @@ function plotVal()
     local pO=${4}
     local iter=${5}
     local cancel=${6}     
+    local rmsuff=${7}
 
     echo "Computing observables for: ${base} ${bN} ${pN} ${p0} ${iter} ${cancel}"
-    bExe="root -b -q -l plotting/runValidation.C(\"_${base}_${bN}_${pN}\",${pO},${iter},${cancel})"
+    bExe="root -b -q -l plotting/runValidation.C(\"_${base}_${bN}_${pN}\",${pO},${iter},${cancel},${rmsuff})"
     echo ${bExe}
 
     ${bExe} || (echo "Crashed on CMD: "${bExe}; exit 3)
@@ -194,19 +195,20 @@ rm -rf ${tmpdir}
 for plot in "${plots[@]}"
 do echo ${!plot} | while read -r pN suff pO iter cancel
     do
+	rmsuff=0 # use iterX suffix for output directory
         ## Compute observables for special dummy CMSSW
 	if [[ "${pN}" == "SIMVAL" || "${pN}" == "SIMVAL_"* ]]
 	then
 	    echo ${CMSSW} | while read -r bN bO val_extras
 	    do
-		plotVal "${base}" "${bN}" "${pN}" "${pO}" "${iter}" "${cancel}"
+		plotVal "${base}" "${bN}" "${pN}" "${pO}" "${iter}" "${cancel}" "${rmsuff}"
 	    done
 	fi
 	if [[ "${pN}" == "SIMVALSEED"* ]]
 	then
 	    echo ${CMSSW2} | while read -r bN bO val_extras
 	    do
-		plotVal "${base}" "${bN}" "${pN}" "${pO}" "${iter}" "${cancel}"
+		plotVal "${base}" "${bN}" "${pN}" "${pO}" "${iter}" "${cancel}" "${rmsuff}"
 	    done
 	fi
 
@@ -214,7 +216,7 @@ do echo ${!plot} | while read -r pN suff pO iter cancel
 	for build in "${val_builds[@]}"
 	do echo ${!build} | while read -r bN bO
 	    do
-		plotVal "${base}" "${bN}" "${pN}" "${pO}" "${iter}" "${cancel}"
+		plotVal "${base}" "${bN}" "${pN}" "${pO}" "${iter}" "${cancel}" "${rmsuff}"
 	    done
 	done
 	
