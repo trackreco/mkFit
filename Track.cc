@@ -138,7 +138,7 @@ SMatrix66 TrackState::jacobianCurvilinearToCCS(float px,float py,float pz, short
   jac(1,3) = cosPhi;
   jac(1,4) = -sinLam * sinPhi;
   jac(2,4) = cosLam;
-  jac(3,0) = charge * cosLam; //assumes |charge|==1 ; else 1.f/charge here
+  jac(3,0) = charge / cosLam; //assumes |charge|==1 ; else 1.f/charge here
   jac(3,1) = pz * invpt2;
   jac(4,2) = 1.f;
   jac(5,1) = -1.f;
