@@ -3,7 +3,7 @@
 make -j 32 WITH_ROOT:=1
 
 dir=/data2/slava77/samples/2021/11834.0_TTbar_14TeV+2021/
-file=memoryFile.fv5.default.210623-b62fc88.bin
+file=memoryFile.fv5.default.210703-d239b45.bin
 
 NoPU=AVE_0_BX01_25ns/
 PU35=AVE_35_BX01_25ns/

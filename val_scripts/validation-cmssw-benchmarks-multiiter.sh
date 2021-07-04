@@ -30,13 +30,13 @@ case ${inputBin} in
         echo "Inputs from 2021 TTbar (PU50) sample with multiple iterations and hit binary mask"
         dir=/data2/slava77/samples/
         subdir=2021/11834.0_TTbar_14TeV+2021/AVE_50_BX01_25ns/
-        file=memoryFile.fv5.default.210623-b62fc88.bin
+        file=memoryFile.fv5.default.210703-d239b45.bin
         ;;
 "112X_10mu_MULTI")
         echo "Inputs from 2021 10mu sample with multiple iterations and hit binary mask"
         dir=/data2/slava77/samples
         subdir=2021/10muPt0p2to1000HS
-        file=memoryFile.fv5.default.210623-b62fc88.bin
+        file=memoryFile.fv5.default.210703-d239b45.bin
         nevents=20000
         sample=10mu
         ;;

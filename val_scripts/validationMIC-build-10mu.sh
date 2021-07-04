@@ -2,7 +2,7 @@
 
 
 [ -e "$BIN_DATA_PATH" ] || BIN_DATA_PATH=/data2/slava77/samples/2021/
-fin10mu=${BIN_DATA_PATH}/10muPt0p2to10HS/memoryFile.fv5.default.210623-b62fc88.bin
+fin10mu=${BIN_DATA_PATH}/10muPt0p2to10HS/memoryFile.fv5.default.210703-d239b45.bin
 
 runValidation(){
     for sV in "sim --cmssw-simseeds" "see --cmssw-stdseeds"; do echo $sV | while read -r sN sO; do

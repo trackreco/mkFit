@@ -10,7 +10,7 @@ source xeon_scripts/init-env.sh
 ## Common setup
 dir=/data2/slava77/samples/2021/
 subdir=10muPt0p2to10HS
-file=memoryFile.fv5.default.210623-b62fc88.bin
+file=memoryFile.fv5.default.210703-d239b45.bin
 
 ## config for debug
 nevents=10

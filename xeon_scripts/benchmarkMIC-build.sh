@@ -1,7 +1,7 @@
 #! /bin/bash
 
 [ -e "$BIN_DATA_PATH" ] || BIN_DATA_PATH=/data2/slava77/samples/2021/11834.0_TTbar_14TeV+2021/
-fin=${BIN_DATA_PATH}/AVE_70_BX01_25ns/memoryFile.fv5.default.210623-b62fc88.bin
+fin=${BIN_DATA_PATH}/AVE_70_BX01_25ns/memoryFile.fv5.default.210703-d239b45.bin
 
 runBenchmark()
 {
@@ -49,7 +49,7 @@ runBenchmark 1
 make clean
 make distclean
 
-fin10mu=/data2/slava77/samples/2021/10muPt0p2to10HS/memoryFile.fv5.default.210623-b62fc88.bin 
+fin10mu=/data2/slava77/samples/2021/10muPt0p2to10HS/memoryFile.fv5.default.210703-d239b45.bin 
 
 runBenchmark10mu()
 {

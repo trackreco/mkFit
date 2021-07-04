@@ -66,7 +66,7 @@ fi
 ## Common file setup
 dir=/data2/slava77/samples/
 subdir=2021/11834.0_TTbar_14TeV+2021/AVE_50_BX01_25ns/
-file=memoryFile.fv5.default.210623-b62fc88.bin
+file=memoryFile.fv5.default.210703-d239b45.bin
 nevents=20
 
 ## Common executable setup
