@@ -127,7 +127,7 @@ void runBuildingTestPlexDumbCMSSW(Event& ev, const EventOfHits &eoh, MkBuilder& 
     TrackVec seeds1;   
     unsigned int algorithms[]={ 4 }; //only initialStep
     
-    for (auto &s : ev.seedTracks_)
+    for (auto const&s : ev.seedTracks_)
     {
       //keep seeds form the first iteration for processing
       if ( std::find(algorithms, algorithms+1, s.algoint())!=algorithms+1  ) seeds1.push_back(s);
@@ -146,24 +146,17 @@ void runBuildingTestPlexDumbCMSSW(Event& ev, const EventOfHits &eoh, MkBuilder& 
     MkJob job( { Config::TrkInfo, itconf, eoh, &mask_ifc } );
     
     builder.begin_event(&job, &ev, __func__);
-    
-    if (Config::sim_val_for_cmssw) {
-      builder.root_val_dumb_cmssw();
-    }
-    
-    builder.end_event();
   } 
   else{
     MkJob job( { Config::TrkInfo, itconf, eoh, nullptr } );
   
     builder.begin_event(&job, &ev, __func__);
-    
-    if (Config::sim_val_for_cmssw) {
-      builder.root_val_dumb_cmssw();
-    }
-    
-    builder.end_event();
   }
+  
+  if (Config::sim_val_for_cmssw) {
+    builder.root_val_dumb_cmssw();
+  }
+  builder.end_event();
 }
 
 //==============================================================================
@@ -183,7 +176,7 @@ double runBuildingTestPlexBestHit(Event& ev, const EventOfHits &eoh, MkBuilder& 
     
     unsigned int algorithms[]={ 4 }; //only initialStep
     
-    for (auto &s : ev.seedTracks_)
+    for (auto const&s : ev.seedTracks_)
     {
       //keep seeds form the first iteration for processing
       if ( std::find(algorithms, algorithms+1, s.algoint())!=algorithms+1  ) seeds1.push_back(s);
@@ -274,7 +267,7 @@ double runBuildingTestPlexStandard(Event& ev, const EventOfHits &eoh, MkBuilder&
     
     unsigned int algorithms[]={ 4 }; //only initialStep
     
-    for (auto &s : ev.seedTracks_)
+    for (auto const&s : ev.seedTracks_)
     {
       //keep seeds form the first iteration for processing
       if ( std::find(algorithms, algorithms+1, s.algoint())!=algorithms+1  ) seeds1.push_back(s);
@@ -364,7 +357,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuild
     
     unsigned int algorithms[]={ 4 }; //only initialStep
 
-    for (auto &s : ev.seedTracks_)
+    for (auto const&s : ev.seedTracks_)
     {
       //keep seeds form the first iteration for processing
       if ( std::find(algorithms, algorithms+1, s.algoint())!=algorithms+1  ) seeds1.push_back(s);
@@ -476,7 +469,7 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
 
   if (validation_on) 
   {
-    for (auto &s : ev.seedTracks_)
+    for (auto const&s : ev.seedTracks_)
     {
       //keep seeds form the first n iterations for processing
       if ( std::find(algorithms, algorithms+n, s.algoint())!=algorithms+n  ) seeds1.push_back(s);
