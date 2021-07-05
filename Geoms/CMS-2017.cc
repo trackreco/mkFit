@@ -413,7 +413,7 @@ namespace
     ii[9].set_iteration_index_and_track_algorithm(9, (int) TrackBase::TrackAlgorithm::pixelPairStep);
     ii[9].set_seed_cleaning_params(2.0, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135);
     ii[9].set_dupclean_flag();
-    ii[9].set_dupl_params(0.5, 0.03,0.05,0.08); //to update it
+    ii[9].set_dupl_params(0.5, 0.03,0.05,0.05);
     fill_hit_selection_windows_params(ii[9]);
 
     if (verbose)
