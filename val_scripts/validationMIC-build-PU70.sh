@@ -1,7 +1,7 @@
 #! /bin/bash
 
-[ -e "$BIN_DATA_PATH" ] || BIN_DATA_PATH=/store/disk00/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep
-fin=${BIN_DATA_PATH}/PU70/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/memoryFile.fv3.clean.writeAll.recT.072617.bin
+[ -e "$BIN_DATA_PATH" ] || BIN_DATA_PATH=/data2/slava77/samples/2021/11834.0_TTbar_14TeV+2021/
+fin=${BIN_DATA_PATH}/AVE_70_BX01_25ns/memoryFile.fv5.default.210703-d239b45.bin
 
 runValidation()
 {
@@ -9,7 +9,7 @@ runValidation()
 	    if [ "${1}" == "1" ]; then
 		sO="--cmssw-n2seeds"
 	    fi
-            for bV in "BH bh" "STD std" "CE ce" "FV fv"; do echo $bV | while read -r bN bO; do
+            for bV in "BH bh" "STD std" "CE ce"; do echo $bV | while read -r bN bO; do
 		    oBase=${base}_${sN}_${bN}
 		    nTH=8
 		    echo "${oBase}: validation [nTH:${nTH}, nVU:8]"
@@ -23,7 +23,7 @@ runValidation()
     for opt in sim see
     do
         oBase=${base}_${opt}
-        for build in BH STD CE FV
+        for build in BH STD CE
         do
 	    root -b -q -l plotting/runValidation.C+\(\"_${oBase}_${build}\"\)
         done

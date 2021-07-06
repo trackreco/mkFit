@@ -119,14 +119,16 @@ namespace
 
 void runBuildingTestPlexDumbCMSSW(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
 {
-  MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
 
+  const IterationConfig &itconf = Config::ItrInfo[0];
+
+  MkJob job( { Config::TrkInfo, itconf, eoh } );
+  
   builder.begin_event(&job, &ev, __func__);
-
+  
   if (Config::sim_val_for_cmssw) {
     builder.root_val_dumb_cmssw();
   }
-
   builder.end_event();
 }
 
@@ -136,7 +138,34 @@ void runBuildingTestPlexDumbCMSSW(Event& ev, const EventOfHits &eoh, MkBuilder& 
 
 double runBuildingTestPlexBestHit(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
 {
-  MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
+
+  const IterationConfig &itconf = Config::ItrInfo[0];
+
+  const bool validation_on = (Config::sim_val || Config::quality_val);
+  
+  if (validation_on) 
+  {
+    TrackVec seeds1;
+    
+    unsigned int algorithms[]={ 4 }; //only initialStep
+    
+    for (auto const&s : ev.seedTracks_)
+    {
+      //keep seeds form the first iteration for processing
+      if ( std::find(algorithms, algorithms+1, s.algoint())!=algorithms+1  ) seeds1.push_back(s);
+    }
+    ev.seedTracks_.swap(seeds1);//necessary for the validation - PrepareSeeds
+    ev.relabel_bad_seedtracks();//necessary for the validation - PrepareSeeds
+  }
+  
+  IterationMaskIfc mask_ifc;
+
+  // To disable hit-masks, pass nullptr in place of &mask_ifc to MkJob ctor
+  // and optionally comment out ev.fill_hitmask_bool_vectors() call.
+  
+  ev.fill_hitmask_bool_vectors(itconf.m_track_algorithm, mask_ifc.m_mask_vector);
+
+  MkJob job( { Config::TrkInfo, itconf, eoh, &mask_ifc } );
 
   builder.begin_event(&job, &ev, __func__);
 
@@ -200,7 +229,34 @@ double runBuildingTestPlexBestHit(Event& ev, const EventOfHits &eoh, MkBuilder& 
 
 double runBuildingTestPlexStandard(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
 {
-  MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
+
+  const IterationConfig &itconf = Config::ItrInfo[0];
+
+  const bool validation_on = (Config::sim_val || Config::quality_val);
+  
+  if (validation_on) 
+  {
+    TrackVec seeds1;
+    
+    unsigned int algorithms[]={ 4 }; //only initialStep
+    
+    for (auto const&s : ev.seedTracks_)
+    {
+      //keep seeds form the first iteration for processing
+      if ( std::find(algorithms, algorithms+1, s.algoint())!=algorithms+1  ) seeds1.push_back(s);
+    }
+    ev.seedTracks_.swap(seeds1);//necessary for the validation - PrepareSeeds
+    ev.relabel_bad_seedtracks();//necessary for the validation - PrepareSeeds
+  }
+  
+  IterationMaskIfc mask_ifc;
+
+  // To disable hit-masks, pass nullptr in place of &mask_ifc to MkJob ctor
+  // and optionally comment out ev.fill_hitmask_bool_vectors() call.
+
+  ev.fill_hitmask_bool_vectors(itconf.m_track_algorithm, mask_ifc.m_mask_vector);
+
+  MkJob job( { Config::TrkInfo, itconf, eoh, &mask_ifc } );
 
   builder.begin_event(&job, &ev, __func__);
 
@@ -263,7 +319,34 @@ double runBuildingTestPlexStandard(Event& ev, const EventOfHits &eoh, MkBuilder&
 
 double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
 {
-  MkJob job( { Config::TrkInfo, Config::ItrInfo[0], eoh } );
+
+  const IterationConfig &itconf = Config::ItrInfo[0];
+
+  const bool validation_on = (Config::sim_val || Config::quality_val);
+  
+  if (validation_on) 
+  {
+    TrackVec seeds1;
+    
+    unsigned int algorithms[]={ 4 }; //only initialStep
+
+    for (auto const&s : ev.seedTracks_)
+    {
+      //keep seeds form the first iteration for processing
+      if ( std::find(algorithms, algorithms+1, s.algoint())!=algorithms+1  ) seeds1.push_back(s);
+    }
+    ev.seedTracks_.swap(seeds1);//necessary for the validation - PrepareSeeds
+    ev.relabel_bad_seedtracks();//necessary for the validation - PrepareSeeds
+  }
+  
+  IterationMaskIfc mask_ifc;
+
+  // To disable hit-masks, pass nullptr in place of &mask_ifc to MkJob ctor
+  // and optionally comment out ev.fill_hitmask_bool_vectors() call.
+  
+  ev.fill_hitmask_bool_vectors(itconf.m_track_algorithm, mask_ifc.m_mask_vector);
+
+  MkJob job( { Config::TrkInfo, itconf, eoh, &mask_ifc } );
 
   builder.begin_event(&job, &ev, __func__);
 
@@ -359,7 +442,7 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
 
   if (validation_on) 
   {
-    for (auto &s : ev.seedTracks_)
+    for (auto const&s : ev.seedTracks_)
     {
       //keep seeds form the first n iterations for processing
       if ( std::find(algorithms, algorithms+n, s.algoint())!=algorithms+n  ) seeds1.push_back(s);

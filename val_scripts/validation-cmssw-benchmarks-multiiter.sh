@@ -6,7 +6,7 @@
 
 suite=${1:-"forConf"} # which set of benchmarks to run: full, forPR, forConf, val, valMT1
 style=${2:-"--mtv-like-val"} # option --mtv-like-val
-inputBin=${3:-"104XPU50CCC_MULTI"}
+inputBin=${3:-"112X_TTbar_PU50_MULTI"}
 
 ###################
 ## Configuration ##
@@ -26,11 +26,17 @@ case ${inputBin} in
         subdir=/initialStep/default/11024.0_TTbar_13/AVE_50_BX01_25ns/RAW4NT  
         file=/memoryFile.fv5.clean.writeAll.CCC1620.recT.allSeeds.masks.201023-64302e5.bin
         ;;
+"112X_TTbar_PU50_MULTI")
+        echo "Inputs from 2021 TTbar (PU50) sample with multiple iterations and hit binary mask"
+        dir=/data2/slava77/samples/
+        subdir=2021/11834.0_TTbar_14TeV+2021/AVE_50_BX01_25ns/
+        file=memoryFile.fv5.default.210703-d239b45.bin
+        ;;
 "112X_10mu_MULTI")
         echo "Inputs from 2021 10mu sample with multiple iterations and hit binary mask"
         dir=/data2/slava77/samples
         subdir=2021/10muPt0p2to1000HS
-        file=memoryFile.fv5.default.210623-b62fc88.bin
+        file=memoryFile.fv5.default.210703-d239b45.bin
         nevents=20000
         sample=10mu
         ;;
@@ -92,7 +98,6 @@ SIMPLOTSEED10="SIMVALSEED iter10 0 10 0"
 SIMPLOT6="SIMVAL iter6 0 6 0"
 SIMPLOTSEED6="SIMVALSEED iter6 0 6 0"
 
-
 declare -a plots=(SIMPLOT4 SIMPLOTSEED4 SIMPLOT22 SIMPLOTSEED22 SIMPLOT23 SIMPLOTSEED23 SIMPLOT5 SIMPLOTSEED5 SIMPLOT24 SIMPLOTSEED24 SIMPLOT7 SIMPLOTSEED7 SIMPLOT8 SIMPLOTSEED8 SIMPLOT9 SIMPLOTSEED9 SIMPLOT10 SIMPLOTSEED10 SIMPLOT6 SIMPLOTSEED6)
 
 ## special cmssw dummy build
@@ -135,9 +140,10 @@ function plotVal()
     local pO=${4}
     local iter=${5}
     local cancel=${6}     
+    local rmsuff=${7}
 
     echo "Computing observables for: ${base} ${bN} ${pN} ${p0} ${iter} ${cancel}"
-    bExe="root -b -q -l plotting/runValidation.C(\"_${base}_${bN}_${pN}\",${pO},${iter},${cancel})"
+    bExe="root -b -q -l plotting/runValidation.C(\"_${base}_${bN}_${pN}\",${pO},${iter},${cancel},${rmsuff})"
     echo ${bExe}
 
     ${bExe} || (echo "Crashed on CMD: "${bExe}; exit 3)
@@ -188,19 +194,20 @@ rm -rf ${tmpdir}
 for plot in "${plots[@]}"
 do echo ${!plot} | while read -r pN suff pO iter cancel
     do
+	rmsuff=0 # use iterX suffix for output directory
         ## Compute observables for special dummy CMSSW
 	if [[ "${pN}" == "SIMVAL" || "${pN}" == "SIMVAL_"* ]]
 	then
 	    echo ${CMSSW} | while read -r bN bO val_extras
 	    do
-		plotVal "${base}" "${bN}" "${pN}" "${pO}" "${iter}" "${cancel}"
+		plotVal "${base}" "${bN}" "${pN}" "${pO}" "${iter}" "${cancel}" "${rmsuff}"
 	    done
 	fi
 	if [[ "${pN}" == "SIMVALSEED"* ]]
 	then
 	    echo ${CMSSW2} | while read -r bN bO val_extras
 	    do
-		plotVal "${base}" "${bN}" "${pN}" "${pO}" "${iter}" "${cancel}"
+		plotVal "${base}" "${bN}" "${pN}" "${pO}" "${iter}" "${cancel}" "${rmsuff}"
 	    done
 	fi
 
@@ -208,7 +215,7 @@ do echo ${!plot} | while read -r pN suff pO iter cancel
 	for build in "${val_builds[@]}"
 	do echo ${!build} | while read -r bN bO
 	    do
-		plotVal "${base}" "${bN}" "${pN}" "${pO}" "${iter}" "${cancel}"
+		plotVal "${base}" "${bN}" "${pN}" "${pO}" "${iter}" "${cancel}" "${rmsuff}"
 	    done
 	done
 	

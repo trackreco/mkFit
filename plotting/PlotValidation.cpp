@@ -29,13 +29,13 @@
 // h at the start == a different string version
 
 PlotValidation::PlotValidation(const TString & inName, const TString & outName, const Bool_t cmsswComp,  const int algo,
-			       const Bool_t mvInput, const Bool_t saveAs, const TString & outType)
+			       const Bool_t mvInput, const Bool_t rmSuffix, const Bool_t saveAs, const TString & outType)
   : fInName(inName), fOutName(outName), fCmsswComp(cmsswComp), fAlgo(algo),
-    fMvInput(mvInput), fSaveAs(saveAs), fOutType(outType)
+    fMvInput(mvInput), fRmSuffix(rmSuffix), fSaveAs(saveAs), fOutType(outType)
 {
   // Setup 
   PlotValidation::SetupStyle();
-  if (fAlgo>0) fOutName=fOutName+"_iter"+algo;
+  if (fAlgo>0 && !fRmSuffix) fOutName=fOutName+"_iter"+algo;
   PlotValidation::MakeOutDir(fOutName);
   PlotValidation::SetupBins();
   PlotValidation::SetupCommonVars();
@@ -47,13 +47,18 @@ PlotValidation::PlotValidation(const TString & inName, const TString & outName, 
     std::cerr << "File: " << fInName.Data() << " does not exist!!! Exiting..." << std::endl;
     exit(1);
   }
-
+  gROOT->cd();
+  efftree = (TTree*)fInRoot->Get((fCmsswComp?"cmsswefftree":"efftree"));
+  frtree  = (TTree*)fInRoot->Get((fCmsswComp?"cmsswfrtree":"frtree"));
+  if(algo>0) frtree=frtree->CopyTree(Form("algorithm==%i",algo));
   // make output root file
   fOutRoot = new TFile(fOutName+"/plots.root", "RECREATE");
 }
 
 PlotValidation::~PlotValidation()
 {
+  delete efftree;
+  delete frtree;
   delete fInRoot;
   delete fOutRoot; // will delete all pointers to subdirectory
 }
@@ -76,12 +81,6 @@ void PlotValidation::Validation(int algo)
 // Loop over efficiency tree: produce efficiency, inefficiency per region of tracker, and duplicate rate
 void PlotValidation::PlotEffTree(int algo)
 {
-  //////////////
-  // Get tree //
-  //////////////
-
-  auto efftree = (TTree*)fInRoot->Get((fCmsswComp?"cmsswefftree":"efftree"));
-
   ////////////////////////////////////////////
   // Declare strings for branches and plots //
   ////////////////////////////////////////////
@@ -276,15 +275,14 @@ void PlotValidation::PlotEffTree(int algo)
         {
 	  const auto refmask_trk  = refmask_trks [j];
 	  const auto duplmask_trk = duplmask_trks[j];
-    const auto itermask_trk = itermask_trks[j];
-    const auto iterduplmask_trk = iterduplmask_trks[j];
+	  const auto itermask_trk = itermask_trks[j];
+	  const auto iterduplmask_trk = iterduplmask_trks[j];
+	  
+	  const auto effIteration = algo>0?((itermask_trk>>algo)&1):1;
+	  const auto oneIteration = algo>0?((iterduplmask_trk>>algo)&1):1;
+	  const auto ineffIteration = algo>0?(((itermask_trk>>algo)&1) == 0):(refmask_trk == 0);
+	  const auto seedalgo_flag = (algoseed_trk>0 && algo>0)?((algoseed_trk>>algo)&1):1;
 
-    const auto effIteration = algo>0?((itermask_trk>>algo)&1):1;
-    const auto oneIteration = algo>0?((iterduplmask_trk>>algo)&1):1;
-    const auto ineffIteration = algo>0?(((itermask_trk>>algo)&1) == 0):(refmask_trk == 0);
-    const auto seedalgo_flag = (algoseed_trk>0 && algo>0)?((algoseed_trk>>algo)&1):1;
-    //if (algoseed_trk>0) std::cout << algoseed_trk << " "<<algo <<" "<< seedalgo_flag<<"  "<<effIteration<< std::endl;
-    //effIteration=effIteration&&seedalgo_flag;
 	  // plot key base
 	  const TString basekey = Form("%i_%i_%i",i,j,k);
 
@@ -356,20 +354,11 @@ void PlotValidation::PlotEffTree(int algo)
     } // end loop over tracks
   } // end loop over variables
 
-  // delete efficiency tree
-  delete efftree;
 }
 
 // loop over fake rate tree, producing fake rate, nHits/track, score, and kinematic diffs to cmssw
 void PlotValidation::PlotFRTree(int algo)
 {
-  //////////////
-  // Get tree //
-  //////////////
-
-  auto frtree = (TTree*)fInRoot->Get((fCmsswComp?"cmsswfrtree":"frtree"));
-  if(algo>0) frtree=frtree->CopyTree(Form("algorithm==%i",algo));
-    
   ////////////////////////////////////////////
   // Declare strings for branches and plots //
   ////////////////////////////////////////////
@@ -781,8 +770,6 @@ void PlotValidation::PlotFRTree(int algo)
     } // end loop over pt cuts
   } // end loop over tracks
 
-  // delete fake rate tree
-  delete frtree;
 }
 
 void PlotValidation::PrintTotals(int algo)
@@ -790,9 +777,6 @@ void PlotValidation::PrintTotals(int algo)
   ///////////////////////////////////////////////
   // Get number of events and number of tracks //
   ///////////////////////////////////////////////
-  auto efftree = (TTree*)fInRoot->Get((fCmsswComp?"cmsswefftree":"efftree"));
-  auto frtree  = (TTree*)fInRoot->Get((fCmsswComp?"cmsswfrtree":"frtree"));
-  if(algo>0) frtree=frtree->CopyTree(Form("algorithm==%i",algo));
 
   Int_t Nevents = 0;
   Int_t evtID = 0; TBranch * b_evtID = 0; efftree->SetBranchAddress("evtID",&evtID,&b_evtID);
@@ -807,9 +791,6 @@ void PlotValidation::PrintTotals(int algo)
   const Float_t ntkspevMC   = Float_t(NtracksMC) / Float_t(Nevents); 
   const Int_t   NtracksReco = frtree->GetEntries();
   const Float_t ntkspevReco = Float_t(NtracksReco) / Float_t(Nevents); 
-
-  delete frtree;
-  delete efftree;
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Print out totals of nHits, frac of Hits shared, track score, eff, FR, DR rate of seeds, build, fit //

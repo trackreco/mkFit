@@ -8,9 +8,9 @@ source xeon_scripts/init-env.sh
 
 
 ## Common setup
-dir=/data2/slava77/samples/2017/pass-4874f28/initialStep/
-subdir=10muPt0p5to10HS
-file=memoryFile.fv3.clean.writeAll.recT.072617.bin
+dir=/data2/slava77/samples/2021/
+subdir=10muPt0p2to10HS
+file=memoryFile.fv5.default.210703-d239b45.bin
 
 ## config for debug
 nevents=10

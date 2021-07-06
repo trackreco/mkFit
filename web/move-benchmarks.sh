@@ -6,6 +6,14 @@ suite=${2:-"forPR"} # which set of benchmarks to run: full, forPR, forConf
 afs_or_eos=${3:-"eos"} # which user space to use: afs or eos
 lxpuser=${4:-${USER}}
 useARCH=${5:-0}
+multi=${6:-0}
+
+collect=collectBenchmarks.sh
+if [ ${multi} -gt 0 ]
+then
+    dir=${dir}"-multi"
+    collect=collectBenchmarks-multi.sh
+fi
 
 # source global variables
 source xeon_scripts/common-variables.sh ${suite} ${useARCH}
@@ -13,7 +21,7 @@ source xeon_scripts/init-env.sh
 
 # First collect all plots and text files into common dir
 echo "Moving plots and text files locally to ${dir}"
-./web/collectBenchmarks.sh ${dir} ${suite} ${useARCH}
+./web/${collect} ${dir} ${suite} ${useARCH}
 
 # Next copy index.php into ouput dir
 echo "Copying index.php into ${dir}"

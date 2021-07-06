@@ -6,7 +6,7 @@
 
 suite=${1:-"forPR"} # which set of benchmarks to run: full, forPR, forConf, val, valMT1
 style=${2:-"--mtv-like-val"} # option --mtv-like-val
-inputBin=${3:-"104XPU50CCC"}
+inputBin=${3:-"112X_TTbar_PU50_MULTI"}
 
 ###################
 ## Configuration ##
@@ -32,6 +32,12 @@ case ${inputBin} in
         subdir=
         file=pu50-ccc-hs.bin
         ;;
+"112X_TTbar_PU50_MULTI")
+        echo "Inputs from 2021 TTbar (PU50) sample with multiple iterations and hit binary mask"
+        dir=/data2/slava77/samples/
+        subdir=2021/11834.0_TTbar_14TeV+2021/AVE_50_BX01_25ns/
+        file=memoryFile.fv5.default.210703-d239b45.bin
+        ;;
 "104X10muCCC")
         echo "Inputs from 2018 10mu large pt range using the offline initialStep seeds with CCC (phi3)"
         dir=/data2/slava77/samples/2018/pass-925bb57
@@ -39,6 +45,14 @@ case ${inputBin} in
         file=memoryFile.fv4.clean.writeAll.CCC1620.recT.191108-c41a0f2.bin
         nevents=10000
         sample=CMSSW_10mu
+        ;;
+"112X_10mu_MULTI")
+        echo "Inputs from 2021 10mu sample with multiple iterations and hit binary mask"
+        dir=/data2/slava77/samples
+        subdir=2021/10muPt0p2to1000HS
+        file=memoryFile.fv5.default.210703-d239b45.bin
+        nevents=20000
+        sample=10mu
         ;;
 "104X10muHLT3CCC")
         echo "Inputs from 2018 10mu large pt range using HLT iter0 seeds as triplets with CCC (phi3)"
@@ -109,8 +123,8 @@ SIMPLOTSEED="SIMVALSEED 0"
 declare -a plots=(SIMPLOT SIMPLOTSEED)
 
 ## special cmssw dummy build
-CMSSW="CMSSW cmssw SIMVAL --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks ${style}"
-CMSSW2="CMSSW cmssw SIMVALSEED --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks --mtv-require-seeds"
+CMSSW="CMSSW cmssw SIMVAL --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks ${style} --num-iters-cmssw 1"
+CMSSW2="CMSSW cmssw SIMVALSEED --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks --mtv-require-seeds --num-iters-cmssw 1"
 
 ###############
 ## Functions ##
@@ -146,9 +160,11 @@ function plotVal()
     local bN=${2}
     local pN=${3}
     local pO=${4}
+    local iter=${5} # only initialStep
+    local cancel=${6}
 
     echo "Computing observables for: ${base} ${bN} ${pN}"
-    bExe="root -b -q -l plotting/runValidation.C(\"_${base}_${bN}_${pN}\",${pO})"
+    bExe="root -b -q -l plotting/runValidation.C(\"_${base}_${bN}_${pN}\",${pO},${iter},${cancel})"
     ${bExe} || (echo "Crashed on CMD: "${bExe}; exit 3)
 }
 
@@ -200,14 +216,18 @@ do echo ${!plot} | while read -r pN pO
 	then
 	    echo ${CMSSW} | while read -r bN bO val_extras
 	    do
-		plotVal "${base}" "${bN}" "${pN}" "${pO}"
+		iter=4 # only initialStep
+		cancel=1
+		plotVal "${base}" "${bN}" "${pN}" "${pO}" "${iter}" "${cancel}"
 	    done
 	fi
 	if [[ "${pN}" == "SIMVALSEED" ]]
 	then
 	    echo ${CMSSW2} | while read -r bN bO val_extras
 	    do
-		plotVal "${base}" "${bN}" "${pN}" "${pO}"
+		iter=4 # only initialStep
+		cancel=1
+		plotVal "${base}" "${bN}" "${pN}" "${pO}" "${iter}" "${cancel}"
 	    done
 	fi
 
@@ -215,7 +235,10 @@ do echo ${!plot} | while read -r pN pO
 	for build in "${val_builds[@]}"
 	do echo ${!build} | while read -r bN bO
 	    do
-		plotVal "${base}" "${bN}" "${pN}" "${pO}"
+		iter=0
+		cancel=1
+		plotVal "${base}" "${bN}" "${pN}" "${pO}" "${iter}" "${cancel}"
+		#plotVal "${base}" "${bN}" "${pN}" "${pO}"
 	    done
 	done
 	

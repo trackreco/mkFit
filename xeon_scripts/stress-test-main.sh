@@ -44,7 +44,6 @@ base_nevents=${5:-120} # number of events to process per physical core, must be 
 if [[ "${ben_arch}" == "SNB" ]]
 then
     mOpt="-j 12"
-    dir=/data2/nfsmic/slava77/samples
     maxcore=12
     declare -a instruction_sets=(SSE3 AVX)
     declare -a thread_combo_arr=("1 1" "6 6" "12 6" "12 12" "24 6" "24 12" "24 24")
@@ -52,7 +51,6 @@ then
 elif [[ "${ben_arch}" == "KNL" ]]
 then
     mOpt="-j 64"
-    dir=/data1/work/slava77/samples
     maxcore=64
     declare -a instruction_sets=(SSE3 AVX AVX2 AVX512)
     declare -a thread_combo_arr=("1 1" "32 32" "64 32" "64 64" "128 32" "128 64" "128 128" "256 32" "256 64" "256 128" "256 256")
@@ -60,7 +58,6 @@ then
 elif [[ "${ben_arch}" == "SKL-SP" ]]
 then
     mOpt="-j 32"
-    dir=/data2/slava77/samples
     maxcore=32
     declare -a instruction_sets=(SSE3 AVX AVX2 AVX512)
     declare -a thread_combo_arr=("1 1" "16 16" "32 16" "32 32" "48 16" "48 32" "64 16" "64 32" "64 64")
@@ -71,8 +68,9 @@ else
 fi
 
 ## Common file setup
-subdir=2017/pass-c93773a/initialStep/PU70HS/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU
-file=memoryFile.fv3.clean.writeAll.CCC1620.recT.082418-25daeda.bin
+dir=/data2/slava77/samples/
+subdir=2021/11834.0_TTbar_14TeV+2021/AVE_50_BX01_25ns/
+file=memoryFile.fv5.default.210703-d239b45.bin
 
 ## Common mkFit options
 seeds="--cmssw-n2seeds"

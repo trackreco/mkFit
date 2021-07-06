@@ -21,7 +21,6 @@ source xeon_scripts/init-env.sh
 if [[ "${ben_arch}" == "SNB" ]]
 then
     mOpt="-j 12"
-    dir=/data2
     maxth=24
     maxvu=8
     declare -a nths=("1" "2" "4" "6" "8" "12" "16" "20" "24")
@@ -30,7 +29,6 @@ then
 elif [[ "${ben_arch}" == "KNL" ]]
 then
     mOpt="-j 64 AVX_512:=1"
-    dir=/data2
     maxth=256
     maxvu=16
     declare -a nths=("1" "2" "4" "8" "16" "32" "64" "96" "128" "160" "192" "224" "256")
@@ -39,7 +37,6 @@ then
 elif [[ "${ben_arch}" == "SKL-SP" ]]
 then
     mOpt="-j 32 AVX_512:=1"
-    dir=/data2
     maxth=64
     maxvu=16
     declare -a nths=("1" "2" "4" "8" "16" "32" "48" "64")
@@ -48,7 +45,6 @@ then
 elif [[ "${ben_arch}" == "LNX-G" ]]
 then 
     mOpt="-j 32 AVX_512:=1"
-    dir=/data2
     maxth=64
     maxvu=16
     declare -a nths=("1" "2" "4" "8" "16" "32" "48" "64")
@@ -57,7 +53,6 @@ then
 elif [[ "${ben_arch}" == "LNX-S" ]]
 then 
     mOpt="-j 32 AVX_512:=1"
-    dir=/data2
     maxth=64
     maxvu=16
     declare -a nths=("1" "2" "4" "8" "16" "32" "48" "64")
@@ -69,8 +64,9 @@ else
 fi
 
 ## Common file setup
-subdir=
-file=pu50-ccc-hs.bin
+dir=/data2/slava77/samples/
+subdir=2021/11834.0_TTbar_14TeV+2021/AVE_50_BX01_25ns/
+file=memoryFile.fv5.default.210703-d239b45.bin
 nevents=20
 
 ## Common executable setup

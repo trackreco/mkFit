@@ -53,7 +53,7 @@ class PlotValidation
 {
 public:
   PlotValidation(const TString & inName, const TString & outName, const Bool_t cmsswComp,const int algo,
-		 const Bool_t mvInput, const Bool_t saveAs, const TString & outType);
+		 const Bool_t mvInput, const Bool_t rmSuffix, const Bool_t saveAs, const TString & outType);
   ~PlotValidation();
   
   // setup functions
@@ -84,6 +84,7 @@ private:
   const TString fInName;
   const Bool_t  fCmsswComp;
   const Bool_t  fMvInput;
+  const Bool_t  fRmSuffix;
   const Bool_t  fSaveAs;
   const TString fOutType;
   
@@ -91,7 +92,9 @@ private:
 
   // main input 
   TFile * fInRoot;
-
+  TTree * efftree;
+  TTree * frtree;
+  
   // binning for rate plots
   DblVec fPtBins;
   DblVec fEtaBins;

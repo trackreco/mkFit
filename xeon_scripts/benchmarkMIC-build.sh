@@ -1,7 +1,7 @@
 #! /bin/bash
 
-[ -e "$BIN_DATA_PATH" ] || BIN_DATA_PATH=/store/disk00/slava77/analysis/CMSSW_9_1_0_pre1-tkNtuple/run1000/2017/pass-4874f28/initialStep
-fin=${BIN_DATA_PATH}/PU70/10224.0_TTbar_13+TTbar_13TeV_TuneCUETP8M1_2017PU_GenSimFullINPUT+DigiFullPU_2017PU+RecoFullPU_2017PU+HARVESTFullPU_2017PU/memoryFile.fv3.clean.writeAll.recT.072617.bin
+[ -e "$BIN_DATA_PATH" ] || BIN_DATA_PATH=/data2/slava77/samples/2021/11834.0_TTbar_14TeV+2021/
+fin=${BIN_DATA_PATH}/AVE_70_BX01_25ns/memoryFile.fv5.default.210703-d239b45.bin
 
 runBenchmark()
 {
@@ -49,26 +49,19 @@ runBenchmark 1
 make clean
 make distclean
 
+fin10mu=/data2/slava77/samples/2021/10muPt0p2to10HS/memoryFile.fv5.default.210703-d239b45.bin 
 
-ECN2=${BIN_DATA_PATH}/10muEta-24to-17Pt1to10/memoryFile.fv3.recT.072617.bin
-ECN1=${BIN_DATA_PATH}/10muEta-175to-055Pt1to10/memoryFile.fv3.recT.072617.bin
-BRL=${BIN_DATA_PATH}/10muEtaLT06Pt1to10/memoryFile.fv3.recT.072617.bin
-ECP1=${BIN_DATA_PATH}/10muEta055to175Pt1to10/memoryFile.fv3.recT.072617.bin
-ECP2=${BIN_DATA_PATH}/10muEta17to24Pt1to10/memoryFile.fv3.recT.072617.bin
-
-runBenchmarkSections()
+runBenchmark10mu()
 {
     for sV in "sim --cmssw-seeds" "see --cmssw-stdseeds"; do echo $sV | while read -r sN sO; do
             if [ "${1}" == "1" ]; then
                 sO="--cmssw-n2seeds"
             fi
-            for section in ECN2 ECN1 BRL ECP1 ECP2; do
-                for bV in "BH bh" "STD std" "CE ce"; do echo $bV | while read -r bN bO; do
-                        oBase=${base}_${sN}_${section}_${bN}
-                        nTH=8
-                        echo "${oBase}: benchmark [nTH:${nTH}, nVU:8]"
-                        time ./mkFit/mkFit --input-file ${!section} --build-${bO} ${sO} --num-thr ${nTH} >& log_${oBase}_NVU8int_NTH${nTH}_benchmark.txt
-                    done
+            for bV in "BH bh" "STD std" "CE ce"; do echo $bV | while read -r bN bO; do
+                    oBase=${base}_${sN}_10muPt0p2to10HS_${bN}
+                    nTH=8
+                    echo "${oBase}: benchmark [nTH:${nTH}, nVU:8]"
+                    time ./mkFit/mkFit --input-file ${fin10mu} --build-${bO} ${sO} --num-thr ${nTH} >& log_${oBase}_NVU8int_NTH${nTH}_benchmark.txt
                 done
             done
         done
@@ -80,7 +73,7 @@ runBenchmarkSections()
 make -j 12
 export base=SNB_CMSSW_10mu
 echo Run default build with base = ${base}
-runBenchmarkSections 1
+runBenchmark10mu 1
 
 make clean
 make distclean

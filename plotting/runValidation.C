@@ -1,6 +1,6 @@
 #include "plotting/PlotValidation.cpp+"
 
-void runValidation(const TString & test = "", const Bool_t cmsswComp = false, const int algo = 0, const Bool_t mvInput = true,
+void runValidation(const TString & test = "", const Bool_t cmsswComp = false, const int algo = 0, const Bool_t mvInput = true, const Bool_t rmSuffix = true,
 		   const Bool_t saveAs = false, const TString & image = "pdf")
 {
   // PlotValidation arguments
@@ -11,6 +11,6 @@ void runValidation(const TString & test = "", const Bool_t cmsswComp = false, co
   // Third Bool is saving the image files
   // Last argument is output type of plots
 
-  PlotValidation Val(Form("valtree%s.root",test.Data()),Form("validation%s",test.Data()),cmsswComp,algo,mvInput,saveAs,image);
+  PlotValidation Val(Form("valtree%s.root",test.Data()),Form("validation%s",test.Data()),cmsswComp,algo,mvInput,rmSuffix,saveAs,image);
   Val.Validation(algo); 
 }
