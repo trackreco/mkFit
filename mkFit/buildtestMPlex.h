@@ -11,7 +11,7 @@ namespace mkfit {
 class IterationConfig;
 class MkBuilder;
 
-void   runBuildingTestPlexDumbCMSSW  (Event& ev, const EventOfHits &eoh, MkBuilder& builder, int n);
+void   runBuildingTestPlexDumbCMSSW  (Event& ev, const EventOfHits &eoh, MkBuilder& builder);
 
 double runBuildingTestPlexBestHit    (Event& ev, const EventOfHits &eoh, MkBuilder& builder);
 double runBuildingTestPlexStandard   (Event& ev, const EventOfHits &eoh, MkBuilder& builder);

@@ -360,7 +360,7 @@ void test_standard()
           t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, eoh, mkb) : 0;
           if(g_run_build_all || g_run_build_mimi) t_cur_iter = runBtpCe_MultiIter(ev, eoh, mkb, Config::nItersCMSSW);
           t_cur[4] = (g_run_build_all || g_run_build_mimi)? t_cur_iter[Config::nItersCMSSW] : 0 ;
-          if (g_run_build_all || g_run_build_cmssw) runBuildingTestPlexDumbCMSSW(ev, eoh, mkb, Config::nItersCMSSW);
+          if (g_run_build_all || g_run_build_cmssw) runBuildingTestPlexDumbCMSSW(ev, eoh, mkb);
           t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, eoh, mkb) : 0;
           if (g_run_build_ce){
             ncands_thisthread = mkb.total_cands();

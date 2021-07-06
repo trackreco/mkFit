@@ -117,41 +117,14 @@ namespace
 // runBuildTestPlexDumbCMSSW
 //==============================================================================
 
-void runBuildingTestPlexDumbCMSSW(Event& ev, const EventOfHits &eoh, MkBuilder& builder, int n)
+void runBuildingTestPlexDumbCMSSW(Event& ev, const EventOfHits &eoh, MkBuilder& builder)
 {
 
   const IterationConfig &itconf = Config::ItrInfo[0];
 
-  if (n<1) // if no multi-iter, only consider initialStep (to minimize time and size)
-  {
-    TrackVec seeds1;   
-    unsigned int algorithms[]={ 4 }; //only initialStep
-    
-    for (auto const&s : ev.seedTracks_)
-    {
-      //keep seeds form the first iteration for processing
-      if ( std::find(algorithms, algorithms+1, s.algoint())!=algorithms+1  ) seeds1.push_back(s);
-    }
-    ev.seedTracks_.swap(seeds1);
-    ev.relabel_bad_seedtracks();
-  }
+  MkJob job( { Config::TrkInfo, itconf, eoh } );
   
-  // To disable hit-masks, pass nullptr in place of &mask_ifc to MkJob ctor
-  // and optionally comment out ev.fill_hitmask_bool_vectors() call.
-  
-  if (n<1){
-    IterationMaskIfc mask_ifc;
-    ev.fill_hitmask_bool_vectors(itconf.m_track_algorithm, mask_ifc.m_mask_vector);
-    
-    MkJob job( { Config::TrkInfo, itconf, eoh, &mask_ifc } );
-    
-    builder.begin_event(&job, &ev, __func__);
-  } 
-  else{
-    MkJob job( { Config::TrkInfo, itconf, eoh, nullptr } );
-  
-    builder.begin_event(&job, &ev, __func__);
-  }
+  builder.begin_event(&job, &ev, __func__);
   
   if (Config::sim_val_for_cmssw) {
     builder.root_val_dumb_cmssw();

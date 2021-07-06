@@ -123,8 +123,8 @@ SIMPLOTSEED="SIMVALSEED 0"
 declare -a plots=(SIMPLOT SIMPLOTSEED)
 
 ## special cmssw dummy build
-CMSSW="CMSSW cmssw SIMVAL --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks ${style}"
-CMSSW2="CMSSW cmssw SIMVALSEED --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks --mtv-require-seeds"
+CMSSW="CMSSW cmssw SIMVAL --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks ${style} --num-iters-cmssw 1"
+CMSSW2="CMSSW cmssw SIMVALSEED --sim-val-for-cmssw ${siminfo} --read-cmssw-tracks --mtv-require-seeds --num-iters-cmssw 1"
 
 ###############
 ## Functions ##
