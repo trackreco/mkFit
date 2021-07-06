@@ -411,10 +411,13 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       {
         const int pb = pi & L.m_phi_mask;
 
-	if (L.m_phi_bin_deads[qi][pb] == true)
+	if (Config::useDeadModules)
 	{
-	  //std::cout << "dead module for track in layer=" << L.layer_id() << " qb=" << qi << " pb=" << pb << " q=" << q << " phi=" << phi<< std::endl;
-	  XWsrResult[itrack].m_in_gap = true;
+	  if (L.m_phi_bin_deads[qi][pb] == true)
+	  {
+	    //std::cout << "dead module for track in layer=" << L.layer_id() << " qb=" << qi << " pb=" << pb << " q=" << q << " phi=" << phi<< std::endl;
+	    XWsrResult[itrack].m_in_gap = true;
+	  }
 	}
 
         // MT: The following line is the biggest hog (4% total run time).

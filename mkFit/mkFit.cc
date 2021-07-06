@@ -558,6 +558,9 @@ int main(int argc, const char *argv[])
 	" **Duplicate removal options\n"
 	"  --remove-dup            run duplicate removal after building, using both hit and kinematic criteria (def: %s)\n"
 	"  --remove-dup-no-hit     run duplicate removal after building, using kinematic criteria only (def: %s)\n"
+        "\n"
+	" **Dead module (strip) option\n"
+	"  --use-dead-modules          run duplicate removal after building, using both hit and kinematic criteria (def: %s)\n"
 	"\n"
 	" **Additional options for building\n"
         "  --use-phiq-arr           use phi-Q arrays in select hit indices (def: %s)\n"
@@ -571,7 +574,7 @@ int main(int argc, const char *argv[])
 	"                             must enable: --dump-for-plots\n"
 	"  --dump-for-plots         make shell printouts for plots (def: %s)\n"
         "  --mtv-like-val           configure validation to emulate CMSSW MultiTrackValidator (MTV) (def: %s)\n"
-	"  --mtv-require-seeds           configure validation to emulate MTV but require sim tracks to be matched to seeds (def: %s)\n"
+	"  --mtv-require-seeds      configure validation to emulate MTV but require sim tracks to be matched to seeds (def: %s)\n"
 	"\n"
 	" **ROOT based options\n"
         "  --sim-val-for-cmssw      enable ROOT based validation for CMSSW tracks with simtracks as reference [eff, FR, DR] (def: %s)\n"
@@ -679,6 +682,8 @@ int main(int argc, const char *argv[])
 
 	b2a(Config::removeDuplicates && Config::useHitsForDuplicates),
 	b2a(Config::removeDuplicates && !Config::useHitsForDuplicates),
+
+	b2a(Config::useDeadModules),
 
 	b2a(Config::usePhiQArrays),
         b2a(Config::kludgeCmsHitErrors),
@@ -891,6 +896,10 @@ int main(int argc, const char *argv[])
     {
       Config::removeDuplicates = true;
       Config::useHitsForDuplicates = false;
+    }
+    else if(*i == "--use-dead-modules")
+    {
+      Config::useDeadModules = true;
     }
     else if(*i == "--kludge-cms-hit-errors")
     {

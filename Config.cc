@@ -96,6 +96,8 @@ namespace Config
   float maxcth_ob = 1.99; //eta 1.44
   float maxcth_fw = 6.05; //eta 2.5
 
+  bool  useDeadModules = false;
+
   bool mtvLikeValidation = false;
   bool mtvRequireSeeds = false;
   int  cmsSelMinLayers = 12;
