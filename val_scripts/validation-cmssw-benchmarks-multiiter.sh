@@ -16,7 +16,7 @@ source xeon_scripts/common-variables.sh ${suite}
 source xeon_scripts/init-env.sh
 export MIMI="CE mimi"
 declare -a val_builds=(MIMI)
-nevents=500
+nevents=250
 
 ## Common file setup
 case ${inputBin} in 

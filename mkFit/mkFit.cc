@@ -343,7 +343,9 @@ void test_standard()
 
 	std::vector<DeadVec> deadvectors(ev.layerHits_.size());
 #include "deadmodules.h"
-	StdSeq::LoadDeads(eoh, deadvectors);
+	if(Config::useDeadModules) {
+	  StdSeq::LoadDeads(eoh, deadvectors);
+	}
 
         double t_best[NT] = {0}, t_cur[NT];
         std::vector<double> t_cur_iter;
@@ -548,6 +550,7 @@ int main(int argc, const char *argv[])
         "  --build-std              run standard combinatorial building test (def: %s)\n"
         "  --build-ce               run clone engine combinatorial building test (def: %s)\n"
         "  --build-mimi             run clone engine on multiple-iteration test (def: %s)\n"
+        "  --num-iters-cmssw <int>  number of mimi iterations to run (def: set to 3 when --build-mimi is in effect, 0 otherwise)\n"
 	"\n"
 	" **Seeding options\n"
         "  --seed-input     <str>   which seed collecion used for building (def: %s)\n"
@@ -557,6 +560,9 @@ int main(int argc, const char *argv[])
 	" **Duplicate removal options\n"
 	"  --remove-dup            run duplicate removal after building, using both hit and kinematic criteria (def: %s)\n"
 	"  --remove-dup-no-hit     run duplicate removal after building, using kinematic criteria only (def: %s)\n"
+        "\n"
+	" **Dead module (strip) option\n"
+	"  --use-dead-modules          run duplicate removal after building, using both hit and kinematic criteria (def: %s)\n"
 	"\n"
 	" **Additional options for building\n"
         "  --use-phiq-arr           use phi-Q arrays in select hit indices (def: %s)\n"
@@ -570,7 +576,7 @@ int main(int argc, const char *argv[])
 	"                             must enable: --dump-for-plots\n"
 	"  --dump-for-plots         make shell printouts for plots (def: %s)\n"
         "  --mtv-like-val           configure validation to emulate CMSSW MultiTrackValidator (MTV) (def: %s)\n"
-	"  --mtv-require-seeds           configure validation to emulate MTV but require sim tracks to be matched to seeds (def: %s)\n"
+	"  --mtv-require-seeds      configure validation to emulate MTV but require sim tracks to be matched to seeds (def: %s)\n"
 	"\n"
 	" **ROOT based options\n"
         "  --sim-val-for-cmssw      enable ROOT based validation for CMSSW tracks with simtracks as reference [eff, FR, DR] (def: %s)\n"
@@ -679,6 +685,8 @@ int main(int argc, const char *argv[])
 	b2a(Config::removeDuplicates && Config::useHitsForDuplicates),
 	b2a(Config::removeDuplicates && !Config::useHitsForDuplicates),
 
+	b2a(Config::useDeadModules),
+
 	b2a(Config::usePhiQArrays),
         b2a(Config::kludgeCmsHitErrors),
         b2a(Config::backwardFit),
@@ -777,11 +785,6 @@ int main(int argc, const char *argv[])
       next_arg_or_die(mArgs, i);
       Config::nEvents = atoi(i->c_str());
     }
-    else if (*i == "--num-iters-cmssw")
-    {
-       next_arg_or_die(mArgs, i);
-       Config::nItersCMSSW = atoi(i->c_str());
-    }
     else if (*i == "--start-event")
     {
       next_arg_or_die(mArgs, i);
@@ -859,6 +862,11 @@ int main(int argc, const char *argv[])
       g_run_build_all = false; g_run_build_cmssw = false; g_run_build_bh = false; g_run_build_std = false; g_run_build_ce = false; g_run_build_mimi = true;
       if (Config::nItersCMSSW == 0) Config::nItersCMSSW = 3;
     }
+    else if (*i == "--num-iters-cmssw")
+    {
+       next_arg_or_die(mArgs, i);
+       Config::nItersCMSSW = atoi(i->c_str());
+    }
     else if(*i == "--seed-input")
     {
       next_arg_or_die(mArgs, i);
@@ -890,6 +898,10 @@ int main(int argc, const char *argv[])
     {
       Config::removeDuplicates = true;
       Config::useHitsForDuplicates = false;
+    }
+    else if(*i == "--use-dead-modules")
+    {
+      Config::useDeadModules = true;
     }
     else if(*i == "--kludge-cms-hit-errors")
     {

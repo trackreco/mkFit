@@ -323,18 +323,21 @@ namespace Config
   // config on duplicate removal
   extern bool useHitsForDuplicates;
   extern bool removeDuplicates;
-  extern float maxdPhi;
-  extern float maxdPt;
-  extern float maxdEta;
-  extern float minFracHitsShared;
-  extern float maxdR;
+  extern const float maxdPhi;
+  extern const float maxdPt;
+  extern const float maxdEta;
+  extern const float minFracHitsShared;
+  extern const float maxdR;
 
-  //dup removal tighter version
-  extern float maxd1pt;
-  extern float maxdphi;
-  extern float maxdcth;
-  extern float maxcth_ob;
-  extern float maxcth_fw;
+  // duplicate removal: tighter version
+  extern const float maxd1pt;
+  extern const float maxdphi;
+  extern const float maxdcth;
+  extern const float maxcth_ob;
+  extern const float maxcth_fw;
+
+  // config on dead modules
+  extern bool useDeadModules;
 
   // config on seed cleaning
   constexpr float track1GeVradius = 87.6; // = 1/(c*B)

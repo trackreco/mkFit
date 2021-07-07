@@ -498,8 +498,8 @@ void kalmanPropagateAndUpdate(const MPlexLS &psErr,  const MPlexLV& psPar, MPlex
   {
     if (outPar.At(n,3,0) < 0)
     {
-      Chg.At(n, 0, 0) = -1.0*Chg.ConstAt(n, 0, 0);
-      outPar.At(n,3,0) = std::abs(outPar.At(n,3,0));
+      Chg.At(n, 0, 0)  = -Chg.At(n, 0, 0);
+      outPar.At(n,3,0) = -outPar.At(n,3,0);
     }
   }
 }
@@ -724,8 +724,8 @@ void kalmanPropagateAndUpdateEndcap(const MPlexLS &psErr,  const MPlexLV& psPar,
   {
     if (outPar.At(n,3,0) < 0)
     {
-      Chg.At(n, 0, 0) = -1.0*Chg.ConstAt(n, 0, 0);
-      outPar.At(n,3,0) = std::abs(outPar.At(n,3,0));
+      Chg.At(n, 0, 0)  = -Chg.At(n, 0, 0);
+      outPar.At(n,3,0) = -outPar.At(n,3,0);
     }
   }
 }
