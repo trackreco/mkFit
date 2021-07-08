@@ -212,7 +212,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
            L.is_barrel() ? "barrel" : "endcap", L.layer_id(), N_proc);
 
   float dqv[NN], dphiv[NN], qv[NN], phiv[NN];
-  int qb1v[NN], qb2v[NN], pb1v[NN], pb2v[NN];
+  int qb1v[NN], qb2v[NN], qbv[NN], pb1v[NN], pb2v[NN];
 
   const auto assignbins = [&](int itrack, float q, float dq, float phi, float dphi, float min_dq, float max_dq, float min_dphi, float max_dphi){
     dphi = clamp(std::abs(dphi), min_dphi, max_dphi);
@@ -223,6 +223,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     dphiv[itrack] = dphi;
     dqv[itrack]   = dq;
     //
+    qbv [itrack] = L.GetQBinChecked(q);
     qb1v[itrack] = L.GetQBinChecked(q - dq);
     qb2v[itrack] = L.GetQBinChecked(q + dq) + 1;
     pb1v[itrack] = L.GetPhiBin(phi - dphi);
@@ -361,6 +362,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       continue;
     }
 
+    const int qb  = qbv [itrack];
     const int qb1 = qb1v[itrack];
     const int qb2 = qb2v[itrack];
     const int pb1 = pb1v[itrack];
@@ -411,7 +413,8 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       {
         const int pb = pi & L.m_phi_mask;
 
-	if (L.m_phi_bin_deads[qi][pb] == true)
+        // Limit to central Q-bin
+	if (qi == qb && L.m_phi_bin_deads[qi][pb] == true)
 	{
 	  //std::cout << "dead module for track in layer=" << L.layer_id() << " qb=" << qi << " pb=" << pb << " q=" << q << " phi=" << phi<< std::endl;
 	  XWsrResult[itrack].m_in_gap = true;
