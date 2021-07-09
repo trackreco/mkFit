@@ -266,6 +266,12 @@ for ns,subdir in enumerate(subdirs):
     ymin = 0.9*ratios_eff[ns][r].GetMinimum()
     ymax = 1.1*ratios_eff[ns][r].GetMaximum()
     
+    if ymin==0:
+      ymin=0.75
+      if ymax<=ymin:
+        ymin=0.75*ymax
+        ymax=1.25*ymax
+        
     if ymax<=ymin:
       ymin=0.0
       ymax=2.0
@@ -381,6 +387,12 @@ for ns,subdir in enumerate(subdirs):
       ymin = 0.9*ratios_eff[ns][r].GetMinimum()
       ymax = 1.1*ratios_eff[ns][r].GetMaximum()
       
+      if ymin==0:
+        ymin=0.75
+        if ymax<=ymin:
+          ymin=0.75*ymax
+          ymax=1.25*ymax
+        
       if ymax<=ymin:
         ymin=0.0
         ymax=2.0
@@ -481,6 +493,12 @@ for ns,subdir in enumerate(subdirs):
     ymin = 0.9*ratios_hist[ns][r].GetMinimum()
     ymax = 1.1*ratios_hist[ns][r].GetMaximum()
     
+    if ymin==0:
+      ymin=0.75
+      if ymax<=ymin:
+        ymin=0.75*ymax
+        ymax=1.25*ymax
+        
     if ymax<=ymin:
       ymin=0.0
       ymax=2.0
