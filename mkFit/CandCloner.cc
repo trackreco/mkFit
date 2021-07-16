@@ -62,7 +62,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
       dprint("trkIdx=" << hitsForSeed[ih].trkIdx << " hitIdx=" << hitsForSeed[ih].hitIdx << " chi2=" <<  hitsForSeed[ih].chi2 << std::endl
              << "    "
              << "original pt=" << ccand[hitsForSeed[ih].trkIdx].pT() << " "
-             << "nTotalHits="  << cdand[hitsForSeed[ih].trkIdx].nTotalHits() << " "
+             << "nTotalHits="  << ccand[hitsForSeed[ih].trkIdx].nTotalHits() << " "
              << "nFoundHits="  << ccand[hitsForSeed[ih].trkIdx].nFoundHits() << " "
              << "chi2="        << ccand[hitsForSeed[ih].trkIdx].chi2());
     }

@@ -631,6 +631,9 @@ void find_duplicates_sharedhits_pixelseed(TrackVec &tracks, const float fraction
 
 void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf)
 {
+#ifdef DEBUG
+  std::cout<<" find_and_remove_duplicates: input track size " <<tracks.size()<<std::endl;
+#endif
   if (itconf.m_require_quality_filter)
   {
     find_duplicates_sharedhits(tracks, itconf.m_params.fracSharedHits);
@@ -645,6 +648,12 @@ void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf)
     remove_duplicates(tracks);
   }
 
+#ifdef DEBUG
+  std::cout<<" find_and_remove_duplicates: output track size " <<tracks.size()<<std::endl;
+  for (auto const& tk : tracks) {
+    std::cout<<tk.parameters()<<std::endl;
+  }
+#endif
 }
 
 //=========================================================================
@@ -675,8 +684,7 @@ void dump_simtracks(Event *m_event)
     {
       dprint("track #" << itrack << " hit #" << ihit
              << " hit pos=" << simtracks[itrack].hitsVector(m_event->layerHits_)[ihit].position()
-             << " phi=" << simtracks[itrack].hitsVector(m_event->layerHits_)[ihit].phi()
-             << " phiPart=" << getPhiPartition(simtracks[itrack].hitsVector(m_event->layerHits_)[ihit].phi()));
+             << " phi=" << simtracks[itrack].hitsVector(m_event->layerHits_)[ihit].phi());
     }
   }
 }
