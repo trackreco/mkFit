@@ -295,7 +295,7 @@ void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg,
       errorPropTmp(n,4,4) = 1.f;
       errorPropTmp(n,5,5) = 1.f;
 
-      float cosa = 0., sina = 0.;
+      float cosah = 0., sinah = 0.;
       //no trig approx here, phi and theta can be large
             float cosP = std::cos(phiin), sinP = std::sin(phiin);
       const float cosT = std::cos(theta), sinT = std::sin(theta);
@@ -313,19 +313,21 @@ void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg,
 	//alpha+=ialpha;
 
 	if (Config::useTrigApprox) {
-	  sincos4(ialpha, sina, cosa);
+	  sincos4(ialpha*0.5f, sinah, cosah);
 	} else {
-	  cosa=std::cos(ialpha);
-	  sina=std::sin(ialpha);
+	  cosah=std::cos(ialpha*0.5f);
+	  sinah=std::sin(ialpha*0.5f);
 	}
+        const float cosa=1.f-2.f*sinah*sinah;
+        const float sina=2.f*sinah*cosah;
 
 	//derivatives of alpha
 	const float dadx   = -outPar.At(n, 0, 0)*ipt/(k*r0);
 	const float dady   = -outPar.At(n, 1, 0)*ipt/(k*r0);
 	const float dadipt = (r-r0)/k;
 
-	outPar.At(n, 0, 0) = outPar.ConstAt(n, 0, 0) + k*(pxin*sina-pyin*(1.f-cosa));
-	outPar.At(n, 1, 0) = outPar.ConstAt(n, 1, 0) + k*(pyin*sina+pxin*(1.f-cosa));
+	outPar.At(n, 0, 0) = outPar.ConstAt(n, 0, 0) + 2.f*k*sinah*(pxin*cosah-pyin*sinah);
+	outPar.At(n, 1, 0) = outPar.ConstAt(n, 1, 0) + 2.f*k*sinah*(pyin*cosah+pxin*sinah);
 	const float pxinold = pxin;//copy before overwriting
 	pxin = pxin*cosa-pyin*sina;
 	pyin = pyin*cosa+pxinold*sina;
@@ -627,7 +629,7 @@ void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
 
       const float pt = 1.f/ipt;
 
-      float cosaTmp = 0., sinaTmp = 0.;
+      float cosahTmp = 0., sinahTmp = 0.;
       //no trig approx here, phi can be large
       const float cosP = std::cos(phiin), sinP = std::sin(phiin);
       const float cosT = std::cos(theta), sinT = std::sin(theta);
@@ -643,17 +645,19 @@ void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
       const float alpha  = deltaZ*sinT*ipt/(cosT*k);
 
       if (Config::useTrigApprox) {
-	sincos4(alpha, sinaTmp, cosaTmp);
+	sincos4(alpha*0.5f, sinahTmp, cosahTmp);
       } else {
-	cosaTmp=std::cos(alpha);
-	sinaTmp=std::sin(alpha);
+	cosahTmp=std::cos(alpha*0.5f);
+	sinahTmp=std::sin(alpha*0.5f);
       }
-      const float cosa = cosaTmp;
-      const float sina = sinaTmp;
+      const float cosah = cosahTmp;
+      const float sinah = sinahTmp;
+      const float cosa = 1.f - 2.f*sinah*sinah;
+      const float sina = 2.f*sinah*cosah;
 
       //update parameters
-      outPar.At(n, 0, 0) = outPar.At(n, 0, 0) + k*(pxin*sina - pyin*(1.f-cosa));
-      outPar.At(n, 1, 0) = outPar.At(n, 1, 0) + k*(pyin*sina + pxin*(1.f-cosa));
+      outPar.At(n, 0, 0) = outPar.At(n, 0, 0) + 2.f*k*sinah*(pxin*cosah - pyin*sinah);
+      outPar.At(n, 1, 0) = outPar.At(n, 1, 0) + 2.f*k*sinah*(pyin*cosah + pxin*sinah);
       outPar.At(n, 2, 0) = zout;
       outPar.At(n, 4, 0) = phiin+alpha;
 
