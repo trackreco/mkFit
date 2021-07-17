@@ -721,7 +721,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, const MP
       const float beta2 = p2/(p2+mpi2);
       const float beta = std::sqrt(beta2);
       //radiation lenght, corrected for the crossing angle (cos alpha from dot product of radius vector and momentum)
-      const float invCos = (isBarrel ? p/pt : 1./std::abs(std::cos(theta)) );
+      const float invCos = (isBarrel ? p/pt : 1.f/std::abs(std::cos(theta)) );
       radL = radL * invCos; //fixme works only for barrel geom
       // multiple scattering
       //vary independently phi and theta by the rms of the planar multiple scattering angle
@@ -750,7 +750,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, const MP
       // dEdx = dEdx*2.;//xi in cmssw is defined with an extra factor 0.5 with respect to formula 27.1 in pdg
       //std::cout << "dEdx=" << dEdx << " delta=" << deltahalf << " wmax=" << wmax << " Xi=" << hitsXi.ConstAt(n,0,0) << std::endl;
       const float dP = propSign.ConstAt(n,0,0)*dEdx/beta;
-      outPar.At(n, 3, 0) = p/((p+dP)*pt);
+      outPar.At(n, 3, 0) = p/(std::max(p+dP,0.001f)*pt);//stay above 1MeV
       //assume 100% uncertainty
       outErr.At(n, 3, 3) += dP*dP/(p2*pt*pt);
     }
