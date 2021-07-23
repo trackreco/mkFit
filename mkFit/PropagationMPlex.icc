@@ -54,7 +54,7 @@ static inline void helixAtRFromIterativeCCS_impl(const    Tf& __restrict__ inPar
       const float kinv  = 1.f / k;
       const float pt    = 1.f / ipt;
 
-      float D = 0., cosa = 0., sina = 0., id = 0.;
+      float D = 0., cosa = 0., sina = 0., cosah = 0., sinah = 0., id = 0.;
       //no trig approx here, phi can be large
       float cosPorT = std::cos(phiin), sinPorT = std::sin(phiin);
       float pxin = cosPorT*pt;
@@ -97,11 +97,13 @@ static inline void helixAtRFromIterativeCCS_impl(const    Tf& __restrict__ inPar
         D  += id;
 
         if (Config::useTrigApprox) {
-          sincos4(id*ipt*kinv, sina, cosa);
+          sincos4(id*ipt*kinv*0.5f, sinah, cosah);
         } else {
-          cosa=std::cos(id*ipt*kinv);
-          sina=std::sin(id*ipt*kinv);
+          cosah=std::cos(id*ipt*kinv*0.5f);
+          sinah=std::sin(id*ipt*kinv*0.5f);
         }
+        cosa=1.f-2.f*sinah*sinah;
+        sina=2.f*sinah*cosah;
 
         dprint_np(n, "Attempt propagation from r=" << r0 << " to r=" << r << std::endl
                   << "   x=" << xin << " y=" << yin  << " z=" << inPar(n, 2, 0)
@@ -142,8 +144,8 @@ static inline void helixAtRFromIterativeCCS_impl(const    Tf& __restrict__ inPar
         }
 
         //update parameters
-        outPar(n, 0, 0) = outPar(n, 0, 0) + k*(pxin*sina - pyin*(1.f-cosa));
-        outPar(n, 1, 0) = outPar(n, 1, 0) + k*(pyin*sina + pxin*(1.f-cosa));
+        outPar(n, 0, 0) = outPar(n, 0, 0) + 2.f*k*sinah*(pxin*cosah - pyin*sinah);
+        outPar(n, 1, 0) = outPar(n, 1, 0) + 2.f*k*sinah*(pyin*cosah + pxin*sinah);
         const float pxinold = pxin;//copy before overwriting
         pxin = pxin*cosa - pyin*sina;
         pyin = pyin*cosa + pxinold*sina;

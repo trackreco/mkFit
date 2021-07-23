@@ -295,7 +295,7 @@ void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg,
       errorPropTmp(n,4,4) = 1.f;
       errorPropTmp(n,5,5) = 1.f;
 
-      float cosa = 0., sina = 0.;
+      float cosah = 0., sinah = 0.;
       //no trig approx here, phi and theta can be large
             float cosP = std::cos(phiin), sinP = std::sin(phiin);
       const float cosT = std::cos(theta), sinT = std::sin(theta);
@@ -313,19 +313,21 @@ void helixAtRFromIterativeCCSFullJac(const MPlexLV& inPar, const MPlexQI& inChg,
 	//alpha+=ialpha;
 
 	if (Config::useTrigApprox) {
-	  sincos4(ialpha, sina, cosa);
+	  sincos4(ialpha*0.5f, sinah, cosah);
 	} else {
-	  cosa=std::cos(ialpha);
-	  sina=std::sin(ialpha);
+	  cosah=std::cos(ialpha*0.5f);
+	  sinah=std::sin(ialpha*0.5f);
 	}
+        const float cosa=1.f-2.f*sinah*sinah;
+        const float sina=2.f*sinah*cosah;
 
 	//derivatives of alpha
 	const float dadx   = -outPar.At(n, 0, 0)*ipt/(k*r0);
 	const float dady   = -outPar.At(n, 1, 0)*ipt/(k*r0);
 	const float dadipt = (r-r0)/k;
 
-	outPar.At(n, 0, 0) = outPar.ConstAt(n, 0, 0) + k*(pxin*sina-pyin*(1.f-cosa));
-	outPar.At(n, 1, 0) = outPar.ConstAt(n, 1, 0) + k*(pyin*sina+pxin*(1.f-cosa));
+	outPar.At(n, 0, 0) = outPar.ConstAt(n, 0, 0) + 2.f*k*sinah*(pxin*cosah-pyin*sinah);
+	outPar.At(n, 1, 0) = outPar.ConstAt(n, 1, 0) + 2.f*k*sinah*(pyin*cosah+pxin*sinah);
 	const float pxinold = pxin;//copy before overwriting
 	pxin = pxin*cosa-pyin*sina;
 	pyin = pyin*cosa+pxinold*sina;
@@ -615,6 +617,7 @@ void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
       const float theta = inPar.ConstAt(n, 5, 0);
 
       const float k = inChg.ConstAt(n, 0, 0) * 100.f / (-Config::sol*(pflags.use_param_b_field?Config::BfieldFromZR(zin,hipo(inPar.ConstAt(n,0,0),inPar.ConstAt(n,1,0))):Config::Bfield));
+      const float kinv = 1.f/k;
 
       dprint_np(n, std::endl << "input parameters"
             << " inPar.ConstAt(n, 0, 0)=" << std::setprecision(9) << inPar.ConstAt(n, 0, 0)
@@ -627,10 +630,11 @@ void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
 
       const float pt = 1.f/ipt;
 
-      float cosaTmp = 0., sinaTmp = 0.;
+      float cosahTmp = 0., sinahTmp = 0.;
       //no trig approx here, phi can be large
       const float cosP = std::cos(phiin), sinP = std::sin(phiin);
       const float cosT = std::cos(theta), sinT = std::sin(theta);
+      const float tanT = sinT/cosT;
       const float pxin = cosP*pt;
       const float pyin = sinP*pt;
 
@@ -640,42 +644,50 @@ void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
              << " sinP=" << std::setprecision(9) << sinP << " pt=" << std::setprecision(9) << pt);
 
       const float deltaZ = zout - zin;
-      const float alpha  = deltaZ*sinT*ipt/(cosT*k);
+      const float alpha  = deltaZ*tanT*ipt*kinv;
 
       if (Config::useTrigApprox) {
-	sincos4(alpha, sinaTmp, cosaTmp);
+	sincos4(alpha*0.5f, sinahTmp, cosahTmp);
       } else {
-	cosaTmp=std::cos(alpha);
-	sinaTmp=std::sin(alpha);
+	cosahTmp=std::cos(alpha*0.5f);
+	sinahTmp=std::sin(alpha*0.5f);
       }
-      const float cosa = cosaTmp;
-      const float sina = sinaTmp;
+      const float cosah = cosahTmp;
+      const float sinah = sinahTmp;
+      const float cosa = 1.f - 2.f*sinah*sinah;
+      const float sina = 2.f*sinah*cosah;
 
       //update parameters
-      outPar.At(n, 0, 0) = outPar.At(n, 0, 0) + k*(pxin*sina - pyin*(1.f-cosa));
-      outPar.At(n, 1, 0) = outPar.At(n, 1, 0) + k*(pyin*sina + pxin*(1.f-cosa));
+      outPar.At(n, 0, 0) = outPar.At(n, 0, 0) + 2.f*k*sinah*(pxin*cosah - pyin*sinah);
+      outPar.At(n, 1, 0) = outPar.At(n, 1, 0) + 2.f*k*sinah*(pyin*cosah + pxin*sinah);
       outPar.At(n, 2, 0) = zout;
       outPar.At(n, 4, 0) = phiin+alpha;
 
       dprint_np(n, std::endl << "outPar.At(n, 0, 0)=" << outPar.At(n, 0, 0) << " outPar.At(n, 1, 0)=" << outPar.At(n, 1, 0)
 		<< " pxin=" << pxin << " pyin=" << pyin);
 
-      const float sCosPsina = std::sin(cosP*sina);
-      const float cCosPsina = std::cos(cosP*sina);
+      const float sCosPsinah = std::sin(cosP*sina*0.5f);
+      const float cCosPsinah = std::cos(cosP*sina*0.5f);
+      const float sCosPsina = 2.f*sCosPsinah*cCosPsinah;
+      const float sPsCPless1 = sinP*sCosPsina - 1.f;
+      const float cAlessFsAA = alpha != 0 ? cosa - sina/alpha : 0.f; // lim-> alpha^2/3
+      const float sCPx2 = alpha != 0 ? 2.f*sCosPsinah*(cosP*cosa*cCosPsinah - sCosPsinah/alpha) : 0.f;// lim-> ~alpha
 
-      errorProp(n,0,2) = cosP*sinT*(sinP*cosa*sCosPsina - cosa)/cosT;
-      errorProp(n,0,3) = cosP*sinT*deltaZ*cosa*( 1.f - sinP*sCosPsina )/(cosT*ipt) - k*(cosP*sina - sinP*(1.f-cCosPsina))/(ipt*ipt);
-      errorProp(n,0,4) = (k/ipt)*( -sinP*sina + sinP*sinP*sina*sCosPsina - cosP*(1.f - cCosPsina ) );
-      errorProp(n,0,5) = cosP*deltaZ*cosa*( 1.f - sinP*sCosPsina )/(cosT*cosT);
+      errorProp(n,0,2) = cosP*tanT*cosa*sPsCPless1;
+      //      errorProp(n,0,3) = cosP*tanT*deltaZ*cosa*( 1.f - sinP*sCosPsina )*pt - k*(cosP*sina - sinP*(1.f-cCosPsina))*pt*pt;
+      errorProp(n,0,3) = tanT*deltaZ*pt*( cosP*cAlessFsAA - sinP*sCPx2 );
+      errorProp(n,0,4) = (k*pt)*( sinP*sina*sPsCPless1 - 2.f*cosP*sCosPsinah*sCosPsinah );
+      errorProp(n,0,5) = -cosP*deltaZ*cosa*sPsCPless1/(cosT*cosT);
 
-      errorProp(n,1,2) = cosa*sinT*(cosP*cosP*sCosPsina - sinP)/cosT;
-      errorProp(n,1,3) = sinT*deltaZ*cosa*( cosP*cosP*sCosPsina + sinP )/(cosT*ipt) - k*(sinP*sina + cosP*(1.f-cCosPsina))/(ipt*ipt);
-      errorProp(n,1,4) = (k/ipt)*( -sinP*(1.f - cCosPsina) - sinP*cosP*sina*sCosPsina + cosP*sina );
+      errorProp(n,1,2) = cosa*tanT*(cosP*cosP*sCosPsina - sinP);
+      //      errorProp(n,1,3) = tanT*deltaZ*cosa*( cosP*cosP*sCosPsina + sinP )*pt - k*(sinP*sina + cosP*(1.f-cCosPsina))*pt*pt;
+      errorProp(n,1,3) = tanT*deltaZ*pt*( sinP*cAlessFsAA + cosP*sCPx2 );
+      errorProp(n,1,4) = (k*pt)*( -cosP*sina*sPsCPless1 - 2.f*sinP*sCosPsinah*sCosPsinah );
       errorProp(n,1,5) = deltaZ*cosa*( cosP*cosP*sCosPsina + sinP )/(cosT*cosT);
 
-      errorProp(n,4,2) = -ipt*sinT/(cosT*k);
-      errorProp(n,4,3) = sinT*deltaZ/(cosT*k);
-      errorProp(n,4,5) = ipt*deltaZ/(cosT*cosT*k);
+      errorProp(n,4,2) = -ipt*tanT*kinv;
+      errorProp(n,4,3) = tanT*deltaZ*kinv;
+      errorProp(n,4,5) = ipt*deltaZ*kinv/(cosT*cosT);
 
       dprint_np(n, "propagation end, dump parameters" << std::endl
 	     << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
@@ -717,7 +729,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, const MP
       const float beta2 = p2/(p2+mpi2);
       const float beta = std::sqrt(beta2);
       //radiation lenght, corrected for the crossing angle (cos alpha from dot product of radius vector and momentum)
-      const float invCos = (isBarrel ? p/pt : 1./std::abs(std::cos(theta)) );
+      const float invCos = (isBarrel ? p/pt : 1.f/std::abs(std::cos(theta)) );
       radL = radL * invCos; //fixme works only for barrel geom
       // multiple scattering
       //vary independently phi and theta by the rms of the planar multiple scattering angle
@@ -746,7 +758,7 @@ void applyMaterialEffects(const MPlexQF &hitsRl, const MPlexQF& hitsXi, const MP
       // dEdx = dEdx*2.;//xi in cmssw is defined with an extra factor 0.5 with respect to formula 27.1 in pdg
       //std::cout << "dEdx=" << dEdx << " delta=" << deltahalf << " wmax=" << wmax << " Xi=" << hitsXi.ConstAt(n,0,0) << std::endl;
       const float dP = propSign.ConstAt(n,0,0)*dEdx/beta;
-      outPar.At(n, 3, 0) = p/((p+dP)*pt);
+      outPar.At(n, 3, 0) = p/(std::max(p+dP,0.001f)*pt);//stay above 1MeV
       //assume 100% uncertainty
       outErr.At(n, 3, 3) += dP*dP/(p2*pt*pt);
     }
