@@ -327,7 +327,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       float dphi = calcdphi(dphi2, min_dphi);
 
       const float  r = std::sqrt(r2);
-      const float dr = std::abs(nSigmaR*(x*x*Err[iI].ConstAt(itrack, 0, 0) + y*y*Err[iI].ConstAt(itrack, 1, 1) + 2*x*y*Err[iI].ConstAt(itrack, 0, 1)) / r2);
+      const float dr = nSigmaR*std::sqrt(std::abs(x*x*Err[iI].ConstAt(itrack, 0, 0) + y*y*Err[iI].ConstAt(itrack, 1, 1) + 2*x*y*Err[iI].ConstAt(itrack, 0, 1)) / r2);
 
       ////// Disable correction
       //if (Config::useCMSGeom) // should be Config::finding_requires_propagation_to_hit_pos
