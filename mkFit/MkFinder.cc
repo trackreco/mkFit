@@ -1444,6 +1444,16 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
                             Err[iP], Par[iP], msErr, msPar, Err[iC], Par[iC], tmp_chi2, N_proc);
     }
 
+    //fixup invpt sign and charge
+    for (int n = 0; n < N_proc; ++n)
+    {
+      if (Par[iC].At(n,3,0) < 0)
+      {
+        Chg.At(n, 0, 0)  = -Chg.At(n, 0, 0);
+        Par[iC].At(n,3,0) = -Par[iC].At(n,3,0);
+      }
+    }
+
     for (int i = 0; i < N_proc; ++i)
     {
 #ifdef DEBUG_BACKWARD_FIT
