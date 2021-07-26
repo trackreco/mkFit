@@ -159,16 +159,16 @@ mVal="-j 32 WITH_ROOT:=1 AVX_512:=1"
 make ${mVal}
 mkdir -p ${tmpdir}
 
-## Special simtrack validation vs cmssw tracks
-echo ${CMSSW} | while read -r bN bO vN vO
-do
-    doVal "${bN}" "${bO}" "${vN}" "${vO}"
-done
-## Special simtrack validation vs cmssw tracks
-echo ${CMSSW2} | while read -r bN bO vN vO
-do
-    doVal "${bN}" "${bO}" "${vN}" "${vO}"
-done
+### Special simtrack validation vs cmssw tracks
+#echo ${CMSSW} | while read -r bN bO vN vO
+#do
+#    doVal "${bN}" "${bO}" "${vN}" "${vO}"
+#done
+### Special simtrack validation vs cmssw tracks
+#echo ${CMSSW2} | while read -r bN bO vN vO
+#do
+#    doVal "${bN}" "${bO}" "${vN}" "${vO}"
+#done
 
 ## Run validation for standard build options
 for val in "${vals[@]}"
