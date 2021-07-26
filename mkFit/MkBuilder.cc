@@ -2045,7 +2045,7 @@ void MkBuilder::fit_cands_BH(MkFinder *mkfndr, int start_cand, int end_cand, int
 #endif
 
     // copy out full set of info at last propagated position
-    mkfndr->BkFitOutputTracks(m_tracks, icand, end);
+    mkfndr->BkFitOutputTracks(m_tracks, icand, end, Config::includePCA);
 
     // printf("Post Final fit for %d - %d\n", icand, end);
     // for (int i = icand; i < end; ++i) { const Track &t = eoccs[i][0];
@@ -2146,7 +2146,7 @@ void MkBuilder::fit_cands(MkFinder *mkfndr, int start_cand, int end_cand, int re
       mkfndr->BkFitPropTracksToPCA(end - icand);
     }
 
-    mkfndr->BkFitOutputTracks(eoccs, icand, end);
+    mkfndr->BkFitOutputTracks(eoccs, icand, end, Config::includePCA);
 
     // printf("Post Final fit for %d - %d\n", icand, end);
     // for (int i = icand; i < end; ++i) { const Track &t = eoccs[i][0];
