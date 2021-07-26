@@ -75,7 +75,7 @@ public:
   float c_dq_1  = 0.0;
   float c_dq_2  = 0.0;
   //
-  float c_c2_sf = 1.0;
+  float c_c2_sf = 1.5;
   float c_c2_0  = 0.0;
   float c_c2_1  = 0.0;
   float c_c2_2  = 0.0;

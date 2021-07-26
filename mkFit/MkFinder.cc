@@ -179,11 +179,13 @@ void MkFinder::getHitSelDynamicWindows(const float invpt, const float theta, flo
   float this_dphi = (ILC.c_dp_0)*invpt+(ILC.c_dp_1)*theta+(ILC.c_dp_2);  
   // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
   if(this_dphi>0.f){
-    min_dphi = (ILC.c_dp_sf)*this_dphi;
+    if ((theta>0.8f && theta<1.1f) || (ILC.c_dp_sf)*this_dphi>min_dphi){
+      min_dphi = (ILC.c_dp_sf)*this_dphi;
+    }
     max_dphi = 2.0f*min_dphi;
   }
 
-  // For future optimization: for layer & iteration dependend hit chi2 cut
+  //// For future optimization: for layer & iteration dependend hit chi2 cut
   //float this_c2 = (ILC.c_c2_0)*invpt+(ILC.c_c2_1)*theta+(ILC.c_c2_2);  
   //// In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
   //if(this_c2>0.f){
@@ -650,6 +652,9 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
 
   MatriplexHitPacker mhp(* layer_of_hits.GetHitArray());
 
+  const IterationLayerConfig &ILC = *m_iteration_layer_config;
+  float max_c2 = m_iteration_params->chi2Cut;
+
   float minChi2[NN];
   int   bestHit[NN];
   // MT: fill_n gave me crap on MIC, NN=8,16, doing in maxSize search below.
@@ -671,7 +676,15 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
     }
 
     bestHit[it] = -1;
-    minChi2[it] = m_iteration_params->chi2Cut;
+    const float invpt = Par[iP].At(it,3,0);
+    const float theta = std::fabs(Par[iP].At(it,5,0)-Config::PIOver2);
+    float this_c2 = (ILC.c_c2_0)*invpt+(ILC.c_c2_1)*theta+(ILC.c_c2_2);  
+    // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
+    if(this_c2>10.f){
+      max_c2 = (ILC.c_c2_sf)*this_c2;
+    }
+    else max_c2=10.0;
+    minChi2[it] = max_c2;
   }
 
   for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
@@ -798,6 +811,9 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
 
   MatriplexHitPacker mhp(* layer_of_hits.GetHitArray());
 
+  const IterationLayerConfig &ILC = *m_iteration_layer_config;
+  float max_c2 = m_iteration_params->chi2Cut;
+
   int maxSize = 0;
 
   // Determine maximum number of hits for tracks in the collection.
@@ -843,11 +859,20 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
     bool oneCandPassCut = false;
     for (int itrack = 0; itrack < N_proc; ++itrack)
     {
+      const float invpt = Par[iP].At(itrack,3,0);
+      const float theta = std::fabs(Par[iP].At(itrack,5,0)-Config::PIOver2);
+      float this_c2 = (ILC.c_c2_0)*invpt+(ILC.c_c2_1)*theta+(ILC.c_c2_2);  
+      // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
+      if(this_c2>10.f){
+      	max_c2 = (ILC.c_c2_sf)*this_c2;
+      }
+      else max_c2 = 10.0;
+
       if (hit_cnt < XHitSize[itrack])
       {
 	const float chi2 = std::abs(outChi2[itrack]);//fixme negative chi2 sometimes...
 	dprint("chi2=" << chi2);
-	if (chi2 < m_iteration_params->chi2Cut)
+	if (chi2 < max_c2)
 	{
 	  oneCandPassCut = true;
 	  break;
@@ -870,11 +895,20 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
       //fixme: please vectorize me... (not sure it's possible in this case)
       for (int itrack = 0; itrack < N_proc; ++itrack)
       {
+	const float invpt = Par[iP].At(itrack,3,0);
+	const float theta = std::fabs(Par[iP].At(itrack,5,0)-Config::PIOver2);
+	float this_c2 = (ILC.c_c2_0)*invpt+(ILC.c_c2_1)*theta+(ILC.c_c2_2);  
+	// In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
+	if(this_c2>10.f){
+	  max_c2 = (ILC.c_c2_sf)*this_c2;
+	}
+	else max_c2 = 10.0;
+
 	if (hit_cnt < XHitSize[itrack])
 	{
 	  const float chi2 = std::abs(outChi2[itrack]);//fixme negative chi2 sometimes...
 	  dprint("chi2=" << chi2);
-	  if (chi2 < m_iteration_params->chi2Cut)
+	  if (chi2 < max_c2)
 	  {
 	    dprint("chi2 cut passed, creating new candidate");
 	    // Create a new candidate and fill the tmp_candidates output vector.
@@ -956,6 +990,9 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 
   MatriplexHitPacker mhp(* layer_of_hits.GetHitArray());
 
+  const IterationLayerConfig &ILC = *m_iteration_layer_config;
+  float max_c2 = m_iteration_params->chi2Cut;
+
   int maxSize = 0;
 
   // Determine maximum number of hits for tracks in the collection.
@@ -997,13 +1034,22 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     {
       // make sure the hit was in the compatiblity window for the candidate
 
+      const float invpt = Par[iP].At(itrack,3,0);
+      const float theta = std::fabs(Par[iP].At(itrack,5,0)-Config::PIOver2);
+      float this_c2 = (ILC.c_c2_0)*invpt+(ILC.c_c2_1)*theta+(ILC.c_c2_2);  
+      // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
+      if(this_c2>10.f){
+      	max_c2 = (ILC.c_c2_sf)*this_c2;
+      }
+      else max_c2 = 10.0;
+
       if (hit_cnt < XHitSize[itrack])
       {
         // XXX-NUM-ERR assert(chi2 >= 0);
         const float chi2 = std::abs(outChi2[itrack]); //fixme negative chi2 sometimes...
 
         dprint("chi2=" << chi2 << " for trkIdx=" << itrack << " hitIdx=" << XHitArr.At(itrack, hit_cnt, 0));
-        if (chi2 < m_iteration_params->chi2Cut)
+        if (chi2 < max_c2)
         {
           const int hit_idx = XHitArr.At(itrack, hit_cnt, 0);
 
