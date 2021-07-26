@@ -646,19 +646,19 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
       { return StdSeq::qfilter_n_hits_pixseed(t, 3); });
   }
 
-  builder.select_best_comb_cands();
-
   if (do_backward_fit)
   {
-    // a) BackwardFitBH works on MkBuilder::m_tracks
-    builder.BackwardFitBH();
+    builder.BackwardFit();
 
-    // b) Version that runs on CombCand / TrackCand
-    // builder.BackwardFit();
-    // builder.export_best_comb_cands(out_tracks);
+    if (itconf.m_backward_search)
+    {
+      builder.BeginBkwSearch();
+      builder.FindTracksCloneEngine(SteeringParams::IT_BkwSearch);
+      builder.EndBkwSearch();
+    }
   }
 
-  builder.export_tracks(out_tracks);
+  builder.export_best_comb_cands(out_tracks);
 
   if (do_remove_duplicates)
   {
