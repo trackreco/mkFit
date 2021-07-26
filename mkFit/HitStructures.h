@@ -477,7 +477,7 @@ inline float getScoreCand(const TrackCand& cand1, bool penalizeTailMissHits=fals
   int nfoundhits   = cand1.nFoundHits();
   int noverlaphits = cand1.nOverlapHits();
   int nmisshits    = cand1.nInsideMinusOneHits();
-  float ntailmisshits = penalizeTailMissHits ? cand1.nTailMinusOneHits() : 0;
+  int ntailmisshits = penalizeTailMissHits ? cand1.nTailMinusOneHits() : 0;
   float pt = cand1.pT();
   float chi2 = cand1.chi2();
   // Do not allow for chi2<0 in score calculation
@@ -494,8 +494,12 @@ public:
   enum SeedState_e { Dormant = 0, Finding, Finished };
 
   TrackCand    m_best_short_cand;
-  SeedState_e  m_state           = Dormant;
-  int          m_last_seed_layer = -1;
+  SeedState_e  m_state        :  8;
+  int          m_pickup_layer : 16;
+  short int    m_lastHitIdx_before_bkwsearch = -1;
+  short int    m_nInsideMinusOneHits_before_bkwsearch = -1;
+  short int    m_nTailMinusOneHits_before_bkwsearch   = -1;
+
 #ifdef DUMPHITWINDOW
   int          m_seed_algo       =  0;
   int          m_seed_label      =  0;
@@ -506,16 +510,19 @@ public:
   std::vector<HitMatchPair> m_overlap_hits; // XXXX HitMatchPair could be a member in TrackCand
 
 
-  CombCandidate()
-  {
-  }
+  CombCandidate() :
+    m_state(Dormant), m_pickup_layer(-1)
+  {}
 
   // Need this so resize of EventOfCombinedCandidates::m_candidates can reuse vectors used here.
   CombCandidate(CombCandidate&& o) :
     std::vector<TrackCand>(std::move(o)),
     m_best_short_cand(std::move(o.m_best_short_cand)),
     m_state(o.m_state),
-    m_last_seed_layer(o.m_last_seed_layer),
+    m_pickup_layer(o.m_pickup_layer),
+    m_lastHitIdx_before_bkwsearch(o.m_lastHitIdx_before_bkwsearch),
+    m_nInsideMinusOneHits_before_bkwsearch(o.m_nInsideMinusOneHits_before_bkwsearch),
+    m_nTailMinusOneHits_before_bkwsearch(o.m_nTailMinusOneHits_before_bkwsearch),
 #ifdef DUMPHITWINDOW
     m_seed_algo(o.m_seed_algo),
     m_seed_label(o.m_seed_label),
@@ -540,7 +547,10 @@ public:
     std::vector<TrackCand>::operator=( std::move(o) );
     m_best_short_cand = std::move(o.m_best_short_cand);
     m_state = o.m_state;
-    m_last_seed_layer = o.m_last_seed_layer;
+    m_pickup_layer = o.m_pickup_layer;
+    m_lastHitIdx_before_bkwsearch = o.m_lastHitIdx_before_bkwsearch;
+    m_nInsideMinusOneHits_before_bkwsearch = o.m_nInsideMinusOneHits_before_bkwsearch;
+    m_nTailMinusOneHits_before_bkwsearch = o.m_nTailMinusOneHits_before_bkwsearch;
 #ifdef DUMPHITWINDOW
     m_seed_algo = o.m_seed_algo;
     m_seed_label = o.m_seed_label;
@@ -560,6 +570,8 @@ public:
     clear();
 
     m_best_short_cand.setScore( getScoreWorstPossible() );
+
+    // state and pickup_layer set in ImportSeed.
 
     // expected_num_hots is different for CloneEngine and Std, especially as long as we
     // instantiate all candidates before purging them.
@@ -591,6 +603,9 @@ public:
   }
 
   void MergeCandsAndBestShortOne(const IterationParams&params, bool update_score, bool sort_cands);
+
+  void BeginBkwSearch();
+  void EndBkwSearch();
 };
 
 //==============================================================================
@@ -689,6 +704,9 @@ public:
 
     ++m_size;
   }
+
+  void BeginBkwSearch() { for (int i=0; i<m_size; ++i) m_candidates[i].BeginBkwSearch(); }
+  void EndBkwSearch()   { for (int i=0; i<m_size; ++i) m_candidates[i].EndBkwSearch(); }
 };
 
 } // end namespace mkfit

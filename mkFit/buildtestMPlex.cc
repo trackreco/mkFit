@@ -437,7 +437,7 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
   
   TrackVec seeds_used;
   TrackVec seeds1;
-   
+
   unsigned int algorithms[]={ 4,22,23,5,24,7,8,9,10,6 }; //9 iterations
 
   if (validation_on) 
@@ -489,12 +489,12 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
 
     if ( ! itconf.m_require_quality_filter)
       StdSeq::clean_cms_seedtracks_iter(&seeds, itconf);
-    
+
+    builder.seed_post_cleaning(seeds, true, true);
+
     // Add protection in case no seeds are found for iteration
     if (seeds.size() <= 0)
       continue;
-
-    builder.seed_post_cleaning(seeds, true, true);
 
     builder.find_tracks_load_seeds(seeds);
 
@@ -532,17 +532,24 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
     if (Config::backwardFit)
     {
       // a) TrackVec version:
-      builder.BackwardFitBH();
-
-      StdSeq::find_and_remove_duplicates(builder.ref_tracks_nc(), itconf);
-
-      builder.export_tracks(ev.fitTracks_);
+      // builder.BackwardFitBH();
 
       // b) Version that runs on CombCand / TrackCand
-      // builder.BackwardFit();
-      // builder.quality_store_tracks(ev.fitTracks_);
+      builder.BackwardFit();
+
+      if (itconf.m_backward_search)
+      {
+        builder.BeginBkwSearch();
+        builder.FindTracksCloneEngine(SteeringParams::IT_BkwSearch);
+        builder.EndBkwSearch();
+      }
+
+      builder.select_best_comb_cands(true); // true -> clear m_tracks as they were already filled once above
+
+      StdSeq::find_and_remove_duplicates(builder.ref_tracks_nc(), itconf);
+      builder.export_tracks(ev.fitTracks_);
     }
-    
+
     builder.end_event();
   }
 

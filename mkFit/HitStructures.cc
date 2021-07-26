@@ -480,11 +480,11 @@ void CombCandidate::ImportSeed(const Track& seed, int region)
 {
   emplace_back(TrackCand(seed, this));
 
-  m_state           = CombCandidate::Dormant;
-  m_last_seed_layer = seed.getLastHitLyr();
+  m_state        = CombCandidate::Dormant;
+  m_pickup_layer = seed.getLastHitLyr();
 #ifdef DUMPHITWINDOW
-  m_seed_algo       = seed.algoint();
-  m_seed_label      = seed.label();
+  m_seed_algo    = seed.algoint();
+  m_seed_label   = seed.label();
 #endif
 
   TrackCand &cand = back();
@@ -543,6 +543,66 @@ void CombCandidate::MergeCandsAndBestShortOne(const IterationParams& params, boo
   if (best_short) best_short->resetShortTrack();
 
   // assert(capacity() == (size_t)Config::maxCandsPerSeed);
+}
+
+void CombCandidate::BeginBkwSearch()
+{
+  // The best candidate is assumed to be in position 0, after
+  // MergeCandsAndBestShortOne has been called.
+  // Other cands are dropped, their hits are not but they could be.
+  // This is to be called before backward-search to start with a single
+  // input candidate for backward cominatorial search.
+  //
+  // m_state and m_pickup_layer are also set.
+
+  assert( ! empty() );
+
+  resize(1);
+
+  TrackCand &tc = (*this)[0];
+
+  // Could compatify m_hots, removing all not used by element 0.
+  // Not trivial, as I have to start from back to get to the front
+  // and then reorder. Or have some semi-complicated scheme to
+  // put them at the back and then grow new hits in the front.
+
+  m_state = Dormant;
+  m_pickup_layer = m_hots[0].m_hot.layer;
+  m_lastHitIdx_before_bkwsearch = tc.lastCcIndex();
+  m_nInsideMinusOneHits_before_bkwsearch = tc.nInsideMinusOneHits();
+  m_nTailMinusOneHits_before_bkwsearch = tc.nTailMinusOneHits();
+  tc.setLastCcIndex(0);
+  tc.setNInsideMinusOneHits(0);
+  tc.setNTailMinusOneHits(0);
+}
+
+void CombCandidate::EndBkwSearch()
+{
+  // MergeCandsAndBestShortOne() has already been called (from MkBuilder::FindXxx()).
+  // We have to fixup the best candidate.
+
+  TrackCand &tc = (*this)[0];
+
+  int curr_idx = tc.lastCcIndex();
+  if (curr_idx != 0)
+  {
+    int last_idx = -1, prev_idx;
+    do {
+      prev_idx = m_hots[curr_idx].m_prev_idx;
+
+      m_hots[curr_idx].m_prev_idx = last_idx;
+
+      last_idx = curr_idx;
+      curr_idx = prev_idx;
+    } while (prev_idx != -1);
+  }
+
+  tc.setLastCcIndex(m_lastHitIdx_before_bkwsearch);
+  tc.setNInsideMinusOneHits(m_nInsideMinusOneHits_before_bkwsearch + tc.nInsideMinusOneHits());
+  tc.setNTailMinusOneHits(m_nTailMinusOneHits_before_bkwsearch + tc.nTailMinusOneHits());
+  m_lastHitIdx_before_bkwsearch = -1;
+  m_nInsideMinusOneHits_before_bkwsearch = -1;
+  m_nTailMinusOneHits_before_bkwsearch   = -1;
 }
 
 } // end namespace mkfit

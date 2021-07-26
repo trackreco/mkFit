@@ -347,7 +347,7 @@ void test_standard()
 	  StdSeq::LoadDeads(eoh, deadvectors);
 	}
 
-        double t_best[NT] = {0}, t_cur[NT];
+        double t_best[NT] = {0}, t_cur[NT] = {0};
         std::vector<double> t_cur_iter;
         simtrackstot += ev.simTracks_.size();
         seedstot     += ev.seedTracks_.size();

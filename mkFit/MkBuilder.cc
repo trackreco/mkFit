@@ -303,8 +303,10 @@ int MkBuilder::filter_comb_cands(std::function<filter_track_cand_foo> filter)
   return n_removed;
 }
 
-void MkBuilder::select_best_comb_cands()
+void MkBuilder::select_best_comb_cands(bool clear_m_tracks)
 {
+  if (clear_m_tracks)
+    m_tracks.clear();
   export_best_comb_cands(m_tracks);
 }
 
@@ -1126,7 +1128,11 @@ void MkBuilder::seed_post_cleaning(TrackVec &tv, const bool fix_silly_seeds, con
         break;
       }
     }
-    if (tv.size() != 1) printf("Preselect seed with label %d - NOT FOUND. Running on full event.\n", SELECT_SEED_LABEL);
+    if (tv.size() != 1)
+    {
+      printf("Preselect seed with label %d - NOT FOUND. Cleaning out seeds.\n", SELECT_SEED_LABEL);
+      tv.clear();
+    }
   }
 #endif
 
@@ -1287,7 +1293,7 @@ void MkBuilder::find_tracks_load_seeds_BH(const TrackVec &in_seeds)
 }
 
 
-void MkBuilder::FindTracksBestHit()
+void MkBuilder::FindTracksBestHit(SteeringParams::IterationType_e iteration_dir)
 {
   // bool debug = true;
 
@@ -1296,6 +1302,11 @@ void MkBuilder::FindTracksBestHit()
   tbb::parallel_for_each(m_job->regions_begin(), m_job->regions_end(),
     [&](int region)
   {
+    if (iteration_dir == SteeringParams::IT_BkwSearch && ! m_job->steering_params(region).has_bksearch_plan()) {
+      printf("No backward search plan for region %d\n", region);
+      return;
+    }
+
     // XXXXXX Select endcap / barrel only ...
     // if (region != TrackerInfo::Reg_Endcap_Neg && region != TrackerInfo::Reg_Endcap_Pos)
     // if (region != TrackerInfo::Reg_Barrel)
@@ -1332,21 +1343,24 @@ void MkBuilder::FindTracksBestHit()
         }
         int curr_tridx = 0;
 
-        auto layer_plan_it = st_par.finding_begin();
+        auto layer_plan_it = st_par.make_iterator(iteration_dir);
 
-        assert( layer_plan_it->m_pickup_only );
+        dprintf("Made iterator for %d, first layer=%d ... end layer=%d\n",
+               iteration_dir, layer_plan_it.layer(), layer_plan_it.last_layer());
 
-        int curr_layer = layer_plan_it->m_layer;
+        assert( layer_plan_it.is_pickup_only() );
+
+        int curr_layer = layer_plan_it.layer();
 
         mkfndr->Stopped.SetVal(0);
 
         // Loop over layers, starting from after the seed.
         // Consider inverting loop order and make layer outer, need to
         // trade off hit prefetching with copy-out of candidates.
-        while (++layer_plan_it != st_par.finding_end())
+        while (++layer_plan_it)
         {
           prev_layer = curr_layer;
-          curr_layer = layer_plan_it->m_layer;
+          curr_layer = layer_plan_it.layer();
           mkfndr->Setup(m_job->m_iter_config.m_params, m_job->m_iter_config.m_layer_configs[curr_layer],
                         m_job->get_mask_for_layer(curr_layer));
 
@@ -1372,7 +1386,7 @@ void MkBuilder::FindTracksBestHit()
             }
           }
 
-          if (layer_plan_it->m_pickup_only) continue;
+          if (layer_plan_it.is_pickup_only()) continue;
 
           dcall(pre_prop_print(curr_layer, mkfndr.get()));
 
@@ -1463,7 +1477,7 @@ int MkBuilder::find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & s
   {
     CombCandidate &ccand = m_event_of_comb_cands[iseed];
 
-    if (ccand.m_state == CombCandidate::Dormant && ccand.m_last_seed_layer == prev_layer)
+    if (ccand.m_state == CombCandidate::Dormant && ccand.m_pickup_layer == prev_layer)
     {
       ccand.m_state = CombCandidate::Finding;
     }
@@ -1577,7 +1591,7 @@ void MkBuilder::find_tracks_handle_missed_layers(MkFinder *mkfndr, const LayerIn
 // FindTracksCombinatorial: Standard TBB
 //------------------------------------------------------------------------------
 
-void MkBuilder::FindTracksStandard()
+void MkBuilder::FindTracksStandard(SteeringParams::IterationType_e iteration_dir)
 {
   // debug = true;
 
@@ -1586,6 +1600,11 @@ void MkBuilder::FindTracksStandard()
   tbb::parallel_for_each(m_job->regions_begin(), m_job->regions_end(),
     [&](int region)
   {
+    if (iteration_dir == SteeringParams::IT_BkwSearch && ! m_job->steering_params(region).has_bksearch_plan()) {
+      printf("No backward search plan for region %d\n", region);
+      return;
+    }
+
     const TrackerInfo     &trk_info = m_job->m_trk_info;
     const SteeringParams  &st_par   = m_job->steering_params(region);
     const IterationParams &params   = m_job->params();
@@ -1615,20 +1634,23 @@ void MkBuilder::FindTracksStandard()
       std::vector<std::pair<int,int>> seed_cand_idx;
       seed_cand_idx.reserve(n_seeds * params.maxCandsPerSeed);
 
-      auto layer_plan_it = st_par.finding_begin();
+      auto layer_plan_it = st_par.make_iterator(iteration_dir);
 
-      assert( layer_plan_it->m_pickup_only );
+      dprintf("Made iterator for %d, first layer=%d ... end layer=%d\n",
+              iteration_dir, layer_plan_it.layer(), layer_plan_it.last_layer());
 
-      int curr_layer = layer_plan_it->m_layer, prev_layer;
+      assert( layer_plan_it.is_pickup_only() );
+
+      int curr_layer = layer_plan_it.layer(), prev_layer;
 
       dprintf("\nMkBuilder::FindTracksStandard region=%d, seed_pickup_layer=%d, first_layer=%d\n",
-              region, curr_layer, (layer_plan_it + 1)->m_layer);
+              region, curr_layer, layer_plan_it.next_layer());
 
       // Loop over layers, starting from after the seed.
-      while (++layer_plan_it != st_par.finding_end())
+      while (++layer_plan_it)
       {
         prev_layer = curr_layer;
-        curr_layer = layer_plan_it->m_layer;
+        curr_layer = layer_plan_it.layer();
         mkfndr->Setup(m_job->m_iter_config.m_params, m_job->m_iter_config.m_layer_configs[curr_layer],
                       m_job->get_mask_for_layer(curr_layer));
 
@@ -1639,9 +1661,9 @@ void MkBuilder::FindTracksStandard()
         const FindingFoos &fnd_foos      = FindingFoos::get_finding_foos(layer_info.is_barrel());
 
         int theEndCand = find_tracks_unroll_candidates(seed_cand_idx, start_seed, end_seed,
-                                                       prev_layer, layer_plan_it->m_pickup_only);
+                                                       prev_layer, layer_plan_it.is_pickup_only());
 
-        if (layer_plan_it->m_pickup_only || theEndCand == 0) continue;
+        if (layer_plan_it.is_pickup_only() || theEndCand == 0) continue;
 
         // vectorized loop
         for (int itrack = 0; itrack < theEndCand; itrack += NN)
@@ -1768,7 +1790,7 @@ void MkBuilder::FindTracksStandard()
 // FindTracksCombinatorial: CloneEngine TBB
 //------------------------------------------------------------------------------
 
-void MkBuilder::FindTracksCloneEngine()
+void MkBuilder::FindTracksCloneEngine(SteeringParams::IterationType_e iteration_dir)
 {
   // debug = true;
 
@@ -1777,6 +1799,11 @@ void MkBuilder::FindTracksCloneEngine()
   tbb::parallel_for_each(m_job->regions_begin(), m_job->regions_end(),
     [&](int region)
   {
+    if (iteration_dir == SteeringParams::IT_BkwSearch && ! m_job->steering_params(region).has_bksearch_plan()) {
+      printf("No backward search plan for region %d\n", region);
+      return;
+    }
+
     const RegionOfSeedIndices rosi(m_seedEtaSeparators, region);
 
     // adaptive seeds per task based on the total estimated amount of work to divide among all threads
@@ -1792,7 +1819,7 @@ void MkBuilder::FindTracksCloneEngine()
       cloner->Setup(m_job->params());
 
       // loop over layers
-      find_tracks_in_layers(*cloner, mkfndr.get(), seeds.begin(), seeds.end(), region);
+      find_tracks_in_layers(*cloner, mkfndr.get(), iteration_dir, seeds.begin(), seeds.end(), region);
 
       cloner->Release();
     });
@@ -1802,6 +1829,7 @@ void MkBuilder::FindTracksCloneEngine()
 }
 
 void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
+                                      SteeringParams::IterationType_e iteration_dir,
                                       const int start_seed, const int end_seed, const int region)
 {
   EventOfCombCandidates &eoccs    = m_event_of_comb_cands;
@@ -1824,24 +1852,27 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
   // Note that we do a final pass with curr_layer = -1 to update parameters
   // and output final tracks.
 
-  auto layer_plan_it = st_par.finding_begin();
+  auto layer_plan_it = st_par.make_iterator(iteration_dir);
 
-  assert( layer_plan_it->m_pickup_only );
+  dprintf("Made iterator for %d, first layer=%d ... end layer=%d\n",
+          iteration_dir, layer_plan_it.layer(), layer_plan_it.last_layer());
 
-  int curr_layer = layer_plan_it->m_layer, prev_layer;
+  assert( layer_plan_it.is_pickup_only() );
+
+  int curr_layer = layer_plan_it.layer(), prev_layer;
 
   dprintf("\nMkBuilder::find_tracks_in_layers region=%d, seed_pickup_layer=%d, first_layer=%d; start_seed=%d, end_seed=%d\n",
-         region, curr_layer, (layer_plan_it + 1)->m_layer, start_seed, end_seed);
+         region, curr_layer, layer_plan_it.next_layer(), start_seed, end_seed);
 
   // Loop over layers according to plan.
-  while (++layer_plan_it != st_par.finding_end())
+  while (++layer_plan_it)
   {
     prev_layer = curr_layer;
-    curr_layer = layer_plan_it->m_layer;
+    curr_layer = layer_plan_it.layer();
     mkfndr->Setup(m_job->m_iter_config.m_params, m_job->m_iter_config.m_layer_configs[curr_layer],
                   m_job->get_mask_for_layer(curr_layer));
 
-    const bool pickup_only = layer_plan_it->m_pickup_only;
+    const bool pickup_only = layer_plan_it.is_pickup_only();
 
     dprintf("\n\n* Processing layer %d, %s\n\n", curr_layer, pickup_only ? "pickup only" : "full finding");
 
@@ -2093,6 +2124,9 @@ void MkBuilder::fit_cands(MkFinder *mkfndr, int start_cand, int end_cand, int re
 
     // Check if we need to fragment this for SlurpIn to work.
     // Would actually prefer to do memory allocator for HoTNode storage.
+    // This has been "fixed" by copying Cands back into original container, not swapping the contents
+    // with vectors created in another thread (and thus not in the same memory pool, apparently), see
+    // CandCloner::ProcessSeedRange(). Standard building does not have this problem.
     /*
     step = NN;
     {
