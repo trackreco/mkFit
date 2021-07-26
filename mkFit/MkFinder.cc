@@ -684,7 +684,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
       max_c2 = (ILC.c_c2_sf)*this_c2;
     }
     else max_c2=10.0;
-    minChi2[it] = max_c2; //m_iteration_params->chi2Cut;
+    minChi2[it] = max_c2;
   }
 
   for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
@@ -872,7 +872,7 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
       {
 	const float chi2 = std::abs(outChi2[itrack]);//fixme negative chi2 sometimes...
 	dprint("chi2=" << chi2);
-	if (chi2 < max_c2) //m_iteration_params->chi2Cut)
+	if (chi2 < max_c2)
 	{
 	  oneCandPassCut = true;
 	  break;
@@ -908,7 +908,7 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
 	{
 	  const float chi2 = std::abs(outChi2[itrack]);//fixme negative chi2 sometimes...
 	  dprint("chi2=" << chi2);
-	  if (chi2 < max_c2) //m_iteration_params->chi2Cut)
+	  if (chi2 < max_c2)
 	  {
 	    dprint("chi2 cut passed, creating new candidate");
 	    // Create a new candidate and fill the tmp_candidates output vector.
@@ -1049,7 +1049,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
         const float chi2 = std::abs(outChi2[itrack]); //fixme negative chi2 sometimes...
 
         dprint("chi2=" << chi2 << " for trkIdx=" << itrack << " hitIdx=" << XHitArr.At(itrack, hit_cnt, 0));
-        if (chi2 < max_c2) //m_iteration_params->chi2Cut)
+        if (chi2 < max_c2)
         {
           const int hit_idx = XHitArr.At(itrack, hit_cnt, 0);
 
