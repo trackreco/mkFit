@@ -380,6 +380,8 @@ namespace
     ii[5].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
     ii[5].set_dupclean_flag();
     ii[5].set_dupl_params(0.25, 0.05,0.05,0.05);
+    ii[5].set_qfilter_layers_flag();
+    ii[5].set_qfilter_layers_param(4);
     fill_hit_selection_windows_params(ii[5]);
 
     ii[6].Clone(ii[0]);
@@ -414,6 +416,10 @@ namespace
     ii[9].set_seed_cleaning_params(2.0, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135);
     ii[9].set_dupclean_flag();
     ii[9].set_dupl_params(0.5, 0.03,0.05,0.05);
+    ii[9].set_qfilter_layers_flag();
+    ii[9].set_qfilter_layers_param(3);
+    ii[9].set_qfilter_pixhits_flag();
+    ii[9].set_qfilter_pixhits_param(4);
     fill_hit_selection_windows_params(ii[9]);
 
     if (verbose)

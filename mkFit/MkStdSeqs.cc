@@ -479,6 +479,28 @@ void quality_filter(TrackVec & tracks, const int nMinHits)
   }
 }
 
+void quality_filter_layers(TrackVec & tracks, const int nLayers)
+{
+   const auto ntracks = tracks.size();
+
+   std::vector<bool> goodtrack(ntracks, false);
+
+   for (auto itrack = 0U; itrack < ntracks; itrack++)
+   {
+
+     auto &trk = tracks[itrack];
+     auto layers = trk.nUniqueLayers();
+
+     if (layers >= nLayers) goodtrack[itrack]=true;
+
+   }
+   for (int itrack = ntracks-1; itrack >-1; itrack--)
+   {
+     if(!goodtrack[itrack]) tracks.erase(tracks.begin() + itrack);
+   }
+}
+
+
 void find_duplicates_sharedhits(TrackVec &tracks, const float fraction)
 {
   const auto ntracks = tracks.size();
@@ -640,6 +662,7 @@ void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf)
   }
   else if(itconf.m_require_dupclean_tight) 
   {
+    if(itconf.m_require_qfilter_layers) quality_filter_layers(tracks, itconf.m_params.minLayers);
     find_duplicates_sharedhits_pixelseed(tracks, itconf.m_params.fracSharedHits, itconf.m_params.drth_central, itconf.m_params.drth_obarrel, itconf.m_params.drth_forward);
   }
   else

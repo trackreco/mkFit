@@ -59,8 +59,10 @@ ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationParams,
   /* float */   fracSharedHits,
   /* float */   drth_central,
   /* float */   drth_obarrel,
-  /* float */   drth_forward
-
+  /* float */   drth_forward,
+  /* int */     minHitsQF,
+  /* int */     minLayers,
+  /* int */     minHitsPixFilter 
 )
 
 ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationConfig,
@@ -70,6 +72,8 @@ ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationConfig,
   /* bool */                     m_requires_seed_hit_sorting,
   /* bool */                     m_require_quality_filter,
   /* bool */                     m_require_dupclean_tight,
+  /* bool */                     m_require_qfilter_layers,
+  /* bool */                     m_require_qfilter_pixhits,
   // /* int */                   m_n_regions,
   // /* vector<int> */           m_region_order,
   // /* vector<mkfit::SteeringParams> */      m_steering_params,

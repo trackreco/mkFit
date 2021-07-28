@@ -512,10 +512,10 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
       builder.filter_comb_cands([&](const TrackCand &t)
         { return StdSeq::qfilter_n_hits(t, itconf.m_params.minHitsQF); });
     }
-    else if (itconf.m_track_algorithm==6)
+    else if (itconf.m_require_qfilter_pixhits)
     {
       builder.filter_comb_cands([&](const TrackCand &t)
-       { return StdSeq::qfilter_n_hits_pixseed(t, 3); });
+       { return StdSeq::qfilter_n_hits_pixseed(t, itconf.m_params.minHitsPixFilter); });
     }
 
     builder.select_best_comb_cands();
@@ -633,10 +633,10 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
     builder.filter_comb_cands([&](const TrackCand &t)
       { return StdSeq::qfilter_n_hits(t, itconf.m_params.minHitsQF); });
   }
-  else if (itconf.m_track_algorithm==6)
+  else if (itconf.m_require_qfilter_pixhits)
   {
     builder.filter_comb_cands([&](const TrackCand &t)
-      { return StdSeq::qfilter_n_hits_pixseed(t, 3); });
+      { return StdSeq::qfilter_n_hits_pixseed(t, itconf.m_params.minHitsPixFilter); });
   }
 
   builder.select_best_comb_cands();

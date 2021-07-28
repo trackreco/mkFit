@@ -116,10 +116,13 @@ public:
   float c_dzmax_el = 0.015;
 
   int minHitsQF = 4;
+  int minLayers = 3;
+  int minHitsPixFilter = 3;
   float fracSharedHits = 0.19;
   float drth_central = 0.001; 
   float drth_obarrel = 0.001;
   float drth_forward = 0.001;
+
 
 };
 
@@ -154,6 +157,8 @@ public:
   bool  m_requires_seed_hit_sorting = false;
   bool  m_require_quality_filter    = false;
   bool  m_require_dupclean_tight    = false;
+  bool  m_require_qfilter_pixhits   = false;
+  bool  m_require_qfilter_layers    = false;
 
   // Iteration parameters (could be a ptr)
   IterationParams                     m_params;
@@ -214,8 +219,27 @@ public:
       m_params.drth_obarrel=drthObarrel;
       m_params.drth_forward=drthForward;
   }  
-  
-  
+
+  void set_qfilter_layers_flag()
+  {
+     m_require_qfilter_layers=true;
+  }
+
+  void set_qfilter_layers_param(int nLayers)
+  {
+     m_params.minLayers=nLayers;
+  }
+
+  void set_qfilter_pixhits_flag()
+  {
+     m_require_qfilter_pixhits=true;
+  }
+
+  void set_qfilter_pixhits_param(int nHits)
+  {
+     m_params.minHitsPixFilter=nHits;
+  }
+
   void set_seed_cleaning_params(float pt_thr,
         float dzmax_bh, float drmax_bh,
 				float dzmax_bl, float drmax_bl,
