@@ -710,9 +710,7 @@ int main(int argc, char *argv[])
       if (trkIdx>=0) {
 	int seedIdx = trk_seedIdx->at(trkIdx);
 	auto const& shTypes = see_hitType->at(seedIdx);
-	if (std::count(shTypes.begin(), shTypes.end(), int(HitType::Pixel)) > 0) {
-	  seedSimIdx[seedIdx] = simTracks_.size();
-	}
+        seedSimIdx[seedIdx] = simTracks_.size();
       }
       if (cleanSimTracks){
 	if (sim_nValid->at(isim) < cleanSimTrack_minSimHits) continue;
