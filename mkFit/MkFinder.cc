@@ -972,6 +972,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
   }
 
   dprintf("FindCandidatesCloneEngine max hits to process=%d\n", maxSize);
+  int nHitsAdded[NN] {};
 
   for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
   {
@@ -1005,6 +1006,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
         dprint("chi2=" << chi2 << " for trkIdx=" << itrack << " hitIdx=" << XHitArr.At(itrack, hit_cnt, 0));
         if (chi2 < m_iteration_params->chi2Cut)
         {
+          nHitsAdded[itrack]++;
           const int hit_idx = XHitArr.At(itrack, hit_cnt, 0);
 
           // Register hit for overlap consideration, here we apply chi2 cut
@@ -1055,7 +1057,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
       fake_hit_idx = -3;
     }
     //now add fake hit for tracks that passsed through inactive modules
-    else if (XWsrResult[itrack].m_in_gap == true)
+    else if (XWsrResult[itrack].m_in_gap == true && nHitsAdded[itrack] == 0)
     {
       fake_hit_idx = -7;
     }
