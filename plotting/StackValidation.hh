@@ -59,6 +59,17 @@ namespace
     // set nptcuts once ptcuts is set
     nptcuts = ptcuts.size();
   }
+
+  std::vector<TString> isocuts;
+  UInt_t nisocuts;
+  Float_t SumPtCut = 10.0;
+  void setupIsoCuts()
+  {
+    isocuts = {"",Form("_sumPtLt%.0f",SumPtCut),Form("_sumPtGt%.0f",SumPtCut)};
+
+    // set nisocuts once isocuts is set
+    nisocuts = isocuts.size();
+  }
 };
 
 class StackValidation

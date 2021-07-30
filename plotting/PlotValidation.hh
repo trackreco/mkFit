@@ -134,6 +134,9 @@ private:
   TStrVec fSPtCuts;
   TStrVec fHPtCuts;
   UInt_t  fNPtCuts;
+
+  // isolation cut
+  Float_t fSumPtCut;
   
   // track quality plots
   TStrVec fTrkQual;

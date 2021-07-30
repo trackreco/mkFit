@@ -1,12 +1,14 @@
 #include "TTreeValidation.h"
 #include "Event.h"
 #include "Config.h"
+#include "Hit.h"
+#include "Track.h"
 #include "mkFit/IterationConfig.h"
 
 #ifndef NO_ROOT
 
 namespace mkfit {
-
+  
 TTreeValidation::TTreeValidation(std::string fileName)
 {
   std::lock_guard<std::mutex> locker(glock_);
@@ -50,6 +52,8 @@ void TTreeValidation::initializeEfficiencyTree()
   efftree_->Branch("nHits_mc",&nHits_mc_eff_);
   efftree_->Branch("nLayers_mc",&nLayers_mc_eff_);
   efftree_->Branch("lastlyr_mc",&lastlyr_mc_eff_);
+
+  efftree_->Branch("sumpt_mc",&sumpt_mc_eff_);
 
   efftree_->Branch("seedID_seed",&seedID_seed_eff_);
   efftree_->Branch("seedID_build",&seedID_build_eff_);
@@ -132,6 +136,10 @@ void TTreeValidation::initializeEfficiencyTree()
   efftree_->Branch("lastlyr_seed",&lastlyr_seed_eff_);
   efftree_->Branch("lastlyr_build",&lastlyr_build_eff_);
   efftree_->Branch("lastlyr_fit",&lastlyr_fit_eff_);
+
+  efftree_->Branch("sumpt_mc_seed",&sumpt_mc_seed_eff_);
+  efftree_->Branch("sumpt_mc_build",&sumpt_mc_build_eff_);
+  efftree_->Branch("sumpt_mc_fit",&sumpt_mc_fit_eff_);
 
   efftree_->Branch("dphi_seed",&dphi_seed_eff_);
   efftree_->Branch("dphi_build",&dphi_build_eff_);
@@ -315,6 +323,13 @@ void TTreeValidation::initializeFakeRateTree()
   frtree_->Branch("lastlyr_mc_build",&lastlyr_mc_build_FR_);
   frtree_->Branch("lastlyr_mc_fit",&lastlyr_mc_fit_FR_);
 
+  frtree_->Branch("sumpt_mc_seed",&sumpt_mc_seed_FR_);
+  frtree_->Branch("sumpt_mc_build",&sumpt_mc_build_FR_);
+  frtree_->Branch("sumpt_mc_fit",&sumpt_mc_fit_FR_);
+  frtree_->Branch("sumpt_seed",&sumpt_seed_FR_);
+  frtree_->Branch("sumpt_build",&sumpt_build_FR_);
+  frtree_->Branch("sumpt_fit",&sumpt_fit_FR_);
+
   frtree_->Branch("helixchi2_seed",&helixchi2_seed_FR_);
   frtree_->Branch("helixchi2_build",&helixchi2_build_FR_);
   frtree_->Branch("helixchi2_fit",&helixchi2_fit_FR_);
@@ -449,6 +464,8 @@ void TTreeValidation::initializeCMSSWEfficiencyTree()
   cmsswefftree_->Branch("nLayers_cmssw",&nLayers_cmssw_ceff_);
   cmsswefftree_->Branch("lastlyr_cmssw",&lastlyr_cmssw_ceff_);
 
+  cmsswefftree_->Branch("sumpt_cmssw",&sumpt_cmssw_ceff_);
+
   // Build
   cmsswefftree_->Branch("cmsswmask_build",&cmsswmask_build_ceff_);
   cmsswefftree_->Branch("seedID_build",&seedID_build_ceff_);
@@ -473,6 +490,8 @@ void TTreeValidation::initializeCMSSWEfficiencyTree()
   cmsswefftree_->Branch("nHitsMatched_build",&nHitsMatched_build_ceff_);
   cmsswefftree_->Branch("fracHitsMatched_build",&fracHitsMatched_build_ceff_);
   cmsswefftree_->Branch("lastlyr_build",&lastlyr_build_ceff_);
+
+  cmsswefftree_->Branch("sumpt_mc_build",&sumpt_mc_build_ceff_);
 
   cmsswefftree_->Branch("xhit_build",&xhit_build_ceff_);
   cmsswefftree_->Branch("yhit_build",&yhit_build_ceff_);
@@ -513,6 +532,8 @@ void TTreeValidation::initializeCMSSWEfficiencyTree()
   cmsswefftree_->Branch("nHitsMatched_fit",&nHitsMatched_fit_ceff_);
   cmsswefftree_->Branch("fracHitsMatched_fit",&fracHitsMatched_fit_ceff_);
   cmsswefftree_->Branch("lastlyr_fit",&lastlyr_fit_ceff_);
+
+  cmsswefftree_->Branch("sumpt_mc_fit",&sumpt_mc_fit_ceff_);
 
   cmsswefftree_->Branch("xhit_fit",&xhit_fit_ceff_);
   cmsswefftree_->Branch("yhit_fit",&yhit_fit_ceff_);
@@ -564,6 +585,7 @@ void TTreeValidation::initializeCMSSWFakeRateTree()
   cmsswfrtree_->Branch("pt_mc",&pt_mc_cFR_);
   cmsswfrtree_->Branch("phi_mc",&phi_mc_cFR_);
   cmsswfrtree_->Branch("eta_mc",&eta_mc_cFR_);
+  cmsswfrtree_->Branch("sumpt_mc",&sumpt_mc_cFR_);
 
   // build
   cmsswfrtree_->Branch("cmsswID_build",&cmsswID_build_cFR_);
@@ -608,6 +630,9 @@ void TTreeValidation::initializeCMSSWFakeRateTree()
   cmsswfrtree_->Branch("nLayers_cmssw_build",&nLayers_cmssw_build_cFR_);
   cmsswfrtree_->Branch("lastlyr_cmssw_build",&lastlyr_cmssw_build_cFR_);
 
+  cmsswfrtree_->Branch("sumpt_cmssw_build",&sumpt_cmssw_build_cFR_);
+  cmsswfrtree_->Branch("sumpt_build",&sumpt_build_cFR_);
+
   // fit
   cmsswfrtree_->Branch("cmsswID_fit",&cmsswID_fit_cFR_);
   cmsswfrtree_->Branch("cmsswmask_fit",&cmsswmask_fit_cFR_);
@@ -651,6 +676,9 @@ void TTreeValidation::initializeCMSSWFakeRateTree()
   cmsswfrtree_->Branch("nLayers_cmssw_fit",&nLayers_cmssw_fit_cFR_);
   cmsswfrtree_->Branch("lastlyr_cmssw_fit",&lastlyr_cmssw_fit_cFR_);
   
+  cmsswfrtree_->Branch("sumpt_cmssw_fit",&sumpt_cmssw_fit_cFR_);
+  cmsswfrtree_->Branch("sumpt_fit",&sumpt_fit_cFR_);
+
   cmsswfrtree_->Branch("algorithm",&algorithm_cFR_);
 
   if (Config::keepHitInfo)
@@ -1495,6 +1523,19 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
     nLayers_mc_eff_ = simtrack.nUniqueLayers();
     lastlyr_mc_eff_ = simtrack.getLastFoundHitLyr();
     
+    sumpt_mc_eff_ = 0.;
+    float maxdphi=0.1;
+    float maxdeta=0.1;
+    for (const auto& othersimtrack : evt_sim_tracks)
+    {
+      if (othersimtrack.label()==mcID_eff_ || !(othersimtrack.isFindable())) continue;
+      float thisdphi_ = squashPhiGeneral(othersimtrack.swimPhiToR(simtrack.x(),simtrack.y())-simtrack.momPhi());
+      if (std::abs(thisdphi_)>maxdphi) continue;
+      float thisdeta_ = std::abs(othersimtrack.momEta()-simtrack.momEta());
+      if (thisdeta_>maxdeta) continue;
+      sumpt_mc_eff_+=othersimtrack.pT();
+    }
+
     itermask_seed_eff_=0;
     itermask_build_eff_=0;
     itermask_fit_eff_=0;
@@ -1544,6 +1585,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 	helixchi2_seed_eff_ = computeHelixChi2(initLayTS.parameters,seedtrack.parameters(),seedtrack.errors());
 
 	mcTSmask_seed_eff_ = 1;
+
+	sumpt_mc_seed_eff_ = sumpt_mc_eff_;
       }
       else if (Config::tryToSaveSimInfo) // can enter this block if: we actually read sim track states, but could not find the mchit OR we chose not to read the sim track states
       {
@@ -1554,6 +1597,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 	helixchi2_seed_eff_ = computeHelixChi2(simtrack.parameters(),seedtrack.parameters(),seedtrack.errors());
 
 	mcTSmask_seed_eff_ = 0;
+
+	sumpt_mc_seed_eff_ = sumpt_mc_eff_;
       }
       else
       {
@@ -1563,6 +1608,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 	helixchi2_seed_eff_ = -101;
 
 	mcTSmask_seed_eff_ = -2;
+
+	sumpt_mc_seed_eff_ = -101;
       }
 
       // last hit info
@@ -1611,6 +1658,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       helixchi2_seed_eff_ = -99;
 
       mcTSmask_seed_eff_ = -1; // mask means unmatched sim track
+      
+      sumpt_mc_seed_eff_ = -99;
 
       xhit_seed_eff_ = -2000;
       yhit_seed_eff_ = -2000;
@@ -1666,6 +1715,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 	helixchi2_build_eff_ = computeHelixChi2(initLayTS.parameters,buildtrack.parameters(),buildtrack.errors());
 
 	mcTSmask_build_eff_ = 1;
+	
+	sumpt_mc_build_eff_ = sumpt_mc_eff_;
       }
       else if (Config::tryToSaveSimInfo) // can enter this block if: we actually read sim track states, but could not find the mchit OR we chose not to read the sim track states
       {
@@ -1676,6 +1727,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 	helixchi2_build_eff_ = computeHelixChi2(simtrack.parameters(),buildtrack.parameters(),buildtrack.errors());
 
 	mcTSmask_build_eff_ = 0;
+
+	sumpt_mc_build_eff_ = sumpt_mc_eff_;
       }
       else
       {
@@ -1685,6 +1738,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 	helixchi2_build_eff_ = -101;
 
 	mcTSmask_build_eff_ = -2;
+
+	sumpt_mc_build_eff_ = -101;
       }
 
       // last hit info
@@ -1732,6 +1787,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       helixchi2_build_eff_ = -99;
 
       mcTSmask_build_eff_ = -1;
+
+      sumpt_mc_build_eff_ = -99;
 
       xhit_build_eff_ = -2000;
       yhit_build_eff_ = -2000;
@@ -1787,6 +1844,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 	helixchi2_fit_eff_ = computeHelixChi2(initLayTS.parameters,fittrack.parameters(),fittrack.errors());
 
 	mcTSmask_fit_eff_ = 1;
+
+	sumpt_mc_fit_eff_ = sumpt_mc_eff_;
       }	
       else if (Config::tryToSaveSimInfo) // can enter this block if: we actually read sim track states, but could not find the mchit OR we chose not to read the sim track states
       {
@@ -1797,6 +1856,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 	helixchi2_fit_eff_ = computeHelixChi2(simtrack.parameters(),fittrack.parameters(),fittrack.errors());
 
 	mcTSmask_fit_eff_ = 0;
+
+	sumpt_mc_fit_eff_ = sumpt_mc_eff_;
       }
       else
       {
@@ -1806,6 +1867,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
 	helixchi2_fit_eff_ = -101;
 
 	mcTSmask_fit_eff_ = -2;
+
+	sumpt_mc_fit_eff_ = -101;
       }
       
       // last hit info
@@ -1854,6 +1917,8 @@ void TTreeValidation::fillEfficiencyTree(const Event& ev)
       helixchi2_fit_eff_ = -99;
 
       mcTSmask_fit_eff_ = -1;
+
+      sumpt_mc_fit_eff_ = -99;
 
       xhit_fit_eff_ = -2000;
       yhit_fit_eff_ = -2000;
@@ -1988,11 +2053,37 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
     // sim info for seed track
     mcID_seed_FR_   = seedextra.mcTrackID();
     mcmask_seed_FR_ = TTreeValidation::getMaskAssignment(mcID_seed_FR_);
+
+    sumpt_seed_FR_ = 0.;
+    float maxdphi=0.1;
+    float maxdeta=0.1;
+    for (const auto& othersimtrack : evt_sim_tracks)
+    {
+      if ((othersimtrack.label()==mcID_seed_FR_ && mcID_seed_FR_>=0) || !(othersimtrack.isFindable())) continue;
+      float thisdphi_ = squashPhiGeneral(othersimtrack.swimPhiToR(seedtrack.x(),seedtrack.y())-seedtrack.momPhi());
+      if (std::abs(thisdphi_)>maxdphi) continue;
+      float thisdeta_ = std::abs(othersimtrack.momEta()-seedtrack.momEta());
+      if (thisdeta_>maxdeta) continue;
+      sumpt_seed_FR_+=othersimtrack.pT();
+    }
     
     if (mcmask_seed_FR_ == 1) // matched track to sim
     {
       const auto& simtrack = evt_sim_tracks[mcID_seed_FR_];
 
+      sumpt_mc_seed_FR_ = 0.;
+      float maxdphi=0.1;
+      float maxdeta=0.1;
+      for (const auto& othersimtrack : evt_sim_tracks)
+      {
+	if (othersimtrack.label()==mcID_seed_FR_ || !(othersimtrack.isFindable())) continue;
+	float thisdphi_ = squashPhiGeneral(othersimtrack.swimPhiToR(simtrack.x(),simtrack.y())-simtrack.momPhi());
+	if (std::abs(thisdphi_)>maxdphi) continue;
+	float thisdeta_ = std::abs(othersimtrack.momEta()-simtrack.momEta());
+	if (thisdeta_>maxdeta) continue;
+	sumpt_mc_seed_FR_+=othersimtrack.pT();
+      }
+	
       const int mcHitID = TTreeValidation::getLastFoundHit(seedtrack.getLastFoundMCHitID(evt_layer_hits),mcID_seed_FR_,ev);
       if (mcHitID >= 0 && Config::readSimTrackStates)
       {
@@ -2003,6 +2094,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	helixchi2_seed_FR_ = computeHelixChi2(initLayTS.parameters,seedtrack.parameters(),seedtrack.errors());
 
 	mcTSmask_seed_FR_ = 1;
+
       }
       else if (Config::tryToSaveSimInfo)
       {
@@ -2012,6 +2104,7 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	helixchi2_seed_FR_ = computeHelixChi2(simtrack.parameters(),seedtrack.parameters(),seedtrack.errors());
 
 	mcTSmask_seed_FR_ = 0;
+
       }
       else
       {
@@ -2021,6 +2114,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	helixchi2_seed_FR_ = -101;
 
 	mcTSmask_seed_FR_ = -2;
+
+	sumpt_mc_seed_FR_ = -101;
       }
 
       nHits_mc_seed_FR_   = simtrack.nFoundHits();
@@ -2042,7 +2137,9 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       helixchi2_seed_FR_ = -99;
       
       mcTSmask_seed_FR_ = -1;
-
+      
+      sumpt_mc_seed_FR_ = -99;
+	
       nHits_mc_seed_FR_ = -99;
       nLayers_mc_seed_FR_ = -99;
       lastlyr_mc_seed_FR_ = -99;
@@ -2094,9 +2191,35 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       mcID_build_FR_   = buildextra.mcTrackID();
       mcmask_build_FR_ = TTreeValidation::getMaskAssignment(mcID_build_FR_);
 
+      sumpt_build_FR_ = 0.;
+      float maxdphi=0.1;
+      float maxdeta=0.1;
+      for (const auto& othersimtrack : evt_sim_tracks)
+      {
+	if ((othersimtrack.label()==mcID_build_FR_ && mcID_build_FR_>=0) || !(othersimtrack.isFindable())) continue;
+	float thisdphi_ = squashPhiGeneral(othersimtrack.swimPhiToR(buildtrack.x(),buildtrack.y())-buildtrack.momPhi());
+	if (std::abs(thisdphi_)>maxdphi) continue;
+	float thisdeta_ = std::abs(othersimtrack.momEta()-buildtrack.momEta());
+	if (thisdeta_>maxdeta) continue;
+	sumpt_build_FR_+=othersimtrack.pT();
+      }
+
       if (mcmask_build_FR_ == 1) // build track matched to seed and sim 
       {
 	const auto& simtrack = evt_sim_tracks[mcID_build_FR_];
+	
+	sumpt_mc_build_FR_ = 0.;
+	float maxdphi=0.1;
+	float maxdeta=0.1;
+	for (const auto& othersimtrack : evt_sim_tracks)
+	{
+	  if (othersimtrack.label()==mcID_build_FR_ || !(othersimtrack.isFindable())) continue;
+	  float thisdphi_ = squashPhiGeneral(othersimtrack.swimPhiToR(simtrack.x(),simtrack.y())-simtrack.momPhi());
+	  if (std::abs(thisdphi_)>maxdphi) continue;
+	  float thisdeta_ = std::abs(othersimtrack.momEta()-simtrack.momEta());
+	  if (thisdeta_>maxdeta) continue;
+	  sumpt_mc_build_FR_+=othersimtrack.pT();
+	}
 
 	const int mcHitID = TTreeValidation::getLastFoundHit(buildtrack.getLastFoundMCHitID(evt_layer_hits),mcID_build_FR_,ev);
 	if (mcHitID >= 0 && Config::readSimTrackStates)
@@ -2148,6 +2271,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 
 	mcTSmask_build_FR_ = -1;
 
+	sumpt_mc_build_FR_ = -99;
+
 	nHits_mc_build_FR_ = -99;
 	nLayers_mc_build_FR_ = -99;
 	lastlyr_mc_build_FR_ = -99;
@@ -2195,6 +2320,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       helixchi2_build_FR_ = -100;
 
       mcTSmask_build_FR_ = -3;
+
+      sumpt_mc_build_FR_ = -100;
 
       nHits_mc_build_FR_ = -100;
       nLayers_mc_build_FR_ = -100;
@@ -2245,9 +2372,35 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       mcID_fit_FR_   = fitextra.mcTrackID();
       mcmask_fit_FR_ = TTreeValidation::getMaskAssignment(mcID_fit_FR_);
 
+      sumpt_fit_FR_ = 0.;
+      float maxdphi=0.1;
+      float maxdeta=0.1;
+      for (const auto& othersimtrack : evt_sim_tracks)
+      {
+	if ((othersimtrack.label()==mcID_fit_FR_ && mcID_fit_FR_>=0) || !(othersimtrack.isFindable())) continue;
+	float thisdphi_ = squashPhiGeneral(othersimtrack.swimPhiToR(fittrack.x(),fittrack.y())-fittrack.momPhi());
+	if (std::abs(thisdphi_)>maxdphi) continue;
+	float thisdeta_ = std::abs(othersimtrack.momEta()-fittrack.momEta());
+	if (thisdeta_>maxdeta) continue;
+	sumpt_fit_FR_+=othersimtrack.pT();
+      }
+
       if (mcmask_fit_FR_ == 1) // fit track matched to seed and sim 
       {
 	const auto& simtrack = evt_sim_tracks[mcID_fit_FR_];
+
+	sumpt_mc_fit_FR_ = 0.;
+	float maxdphi=0.1;
+	float maxdeta=0.1;
+	for (const auto& othersimtrack : evt_sim_tracks)
+	{
+	  if (othersimtrack.label()==mcID_fit_FR_ || !(othersimtrack.isFindable())) continue;
+	  float thisdphi_ = squashPhiGeneral(othersimtrack.swimPhiToR(simtrack.x(),simtrack.y())-simtrack.momPhi());
+	  if (std::abs(thisdphi_)>maxdphi) continue;
+	  float thisdeta_ = std::abs(othersimtrack.momEta()-simtrack.momEta());
+	  if (thisdeta_>maxdeta) continue;
+	  sumpt_mc_fit_FR_+=othersimtrack.pT();
+	}
       
 	const int mcHitID = TTreeValidation::getLastFoundHit(fittrack.getLastFoundMCHitID(evt_layer_hits),mcID_fit_FR_,ev); // only works for outward fit for now
 	if (mcHitID >= 0 && Config::readSimTrackStates)
@@ -2299,6 +2452,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
 	
 	mcTSmask_fit_FR_ = -1;
 
+	sumpt_mc_fit_FR_ = -99;
+
 	nHits_mc_fit_FR_ = -99;
 	nLayers_mc_fit_FR_ = -99;
 	lastlyr_mc_fit_FR_ = -99;
@@ -2346,6 +2501,8 @@ void TTreeValidation::fillFakeRateTree(const Event& ev)
       helixchi2_fit_FR_ = -100;
 
       mcTSmask_fit_FR_ = -3;
+
+      sumpt_mc_fit_FR_ = -100;
 
       nHits_mc_fit_FR_ = -100;
       nLayers_mc_fit_FR_ = -100;
@@ -2455,10 +2612,23 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
     pt_cmssw_ceff_  = cmsswtrack.pT(); 
     phi_cmssw_ceff_ = cmsswtrack.momPhi();
     eta_cmssw_ceff_ = cmsswtrack.momEta();
-
+    
     nHits_cmssw_ceff_   = cmsswtrack.nFoundHits(); 
     nLayers_cmssw_ceff_ = cmsswtrack.nUniqueLayers();
     lastlyr_cmssw_ceff_ = cmsswtrack.getLastFoundHitLyr();
+
+    sumpt_cmssw_ceff_ = 0.;
+    float maxdphi=0.1;
+    float maxdeta=0.1;
+    for (const auto& othercmsswtrack : evt_cmssw_tracks)
+    {
+      if (othercmsswtrack.label()==cmsswID_ceff_ || !(othercmsswtrack.isFindable())) continue;
+      float thisdphi_ = squashPhiGeneral(othercmsswtrack.swimPhiToR(cmsswtrack.x(),cmsswtrack.y())-cmsswtrack.momPhi());
+      if (std::abs(thisdphi_)>maxdphi) continue;
+      float thisdeta_ = std::abs(othercmsswtrack.momEta()-cmsswtrack.momEta());
+      if (thisdeta_>maxdeta) continue;
+      sumpt_cmssw_ceff_+=othercmsswtrack.pT();
+    }
     
     itermask_build_ceff_=0;
     itermask_fit_ceff_=0;
@@ -2508,6 +2678,19 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
 	phi_mc_build_ceff_ = simtrack.momPhi();
 	eta_mc_build_ceff_ = simtrack.momEta();
 
+	sumpt_mc_build_ceff_ = 0.;
+	float maxdphi=0.1;
+	float maxdeta=0.1;
+	for (const auto& othersimtrack : evt_sim_tracks)
+	{
+	  if (othersimtrack.label()==mcTrackID_build_ceff_ || !(othersimtrack.isFindable())) continue;
+	  float thisdphi_ = squashPhiGeneral(othersimtrack.swimPhiToR(simtrack.x(),simtrack.y())-simtrack.momPhi());
+	  if (std::abs(thisdphi_)>maxdphi) continue;
+	  float thisdeta_ = std::abs(othersimtrack.momEta()-simtrack.momEta());
+	  if (thisdeta_>maxdeta) continue;
+	  sumpt_mc_build_ceff_+=othersimtrack.pT();
+	}
+
 	if (Config::keepHitInfo) TTreeValidation::fillMinHitInfo(simtrack,hitlyrs_mc_build_ceff_,hitidxs_mc_build_ceff_);
       }
       else
@@ -2518,8 +2701,9 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
 	pt_mc_build_ceff_ = -99;
 	phi_mc_build_ceff_ = -99;
 	eta_mc_build_ceff_ = -99;
+	sumpt_mc_build_ceff_ = -99;
       }
-	  
+      
       // hit/layer info
       nHits_build_ceff_           = buildtrack.nFoundHits();
       nLayers_build_ceff_         = buildtrack.nUniqueLayers();
@@ -2567,6 +2751,8 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
       pt_mc_build_ceff_ = -99;
       phi_mc_build_ceff_ = -99;
       eta_mc_build_ceff_ = -99;
+
+      sumpt_mc_build_ceff_ = -99;
 
       nHits_build_ceff_           = -99;
       nLayers_build_ceff_         = -99;
@@ -2626,6 +2812,19 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
 	phi_mc_fit_ceff_ = simtrack.momPhi();
 	eta_mc_fit_ceff_ = simtrack.momEta();
 
+	sumpt_mc_fit_ceff_ = 0.;
+	float maxdphi=0.1;
+	float maxdeta=0.1;
+	for (const auto& othersimtrack : evt_sim_tracks)
+	{
+	  if (othersimtrack.label()==mcTrackID_fit_ceff_ || !(othersimtrack.isFindable())) continue;
+	  float thisdphi_ = squashPhiGeneral(othersimtrack.swimPhiToR(simtrack.x(),simtrack.y())-simtrack.momPhi());
+	  if (std::abs(thisdphi_)>maxdphi) continue;
+	  float thisdeta_ = std::abs(othersimtrack.momEta()-simtrack.momEta());
+	  if (thisdeta_>maxdeta) continue;
+	  sumpt_mc_fit_ceff_+=othersimtrack.pT();
+	}
+
 	if (Config::keepHitInfo) TTreeValidation::fillMinHitInfo(simtrack,hitlyrs_mc_fit_ceff_,hitidxs_mc_fit_ceff_);
       }
       else
@@ -2636,6 +2835,7 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
 	pt_mc_fit_ceff_ = -99;
 	phi_mc_fit_ceff_ = -99;
 	eta_mc_fit_ceff_ = -99;
+	sumpt_mc_fit_ceff_ = -99;
       }
 
       // hit/layer info
@@ -2685,6 +2885,8 @@ void TTreeValidation::fillCMSSWEfficiencyTree(const Event& ev)
       pt_mc_fit_ceff_ = -99;
       phi_mc_fit_ceff_ = -99;
       eta_mc_fit_ceff_ = -99;
+
+      sumpt_mc_fit_ceff_ = -99;
 
       nHits_fit_ceff_           = -99;
       nLayers_fit_ceff_         = -99;
@@ -2757,7 +2959,7 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
     ephi_build_cFR_ = buildtrack.emomPhi();
     eta_build_cFR_  = buildtrack.momEta();
     eeta_build_cFR_ = buildtrack.emomEta();
-    
+
     // gen info
     if (mcTrackID_cFR_ >= 0)
     {
@@ -2769,6 +2971,19 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
       phi_mc_cFR_ = simtrack.momPhi();
       eta_mc_cFR_ = simtrack.momEta();
       
+      sumpt_mc_cFR_ = 0.;
+      float maxdphi=0.1;
+      float maxdeta=0.1;
+      for (const auto& othersimtrack : evt_sim_tracks)
+      {
+	if (othersimtrack.label()==mcTrackID_cFR_ || !(othersimtrack.isFindable())) continue;
+	float thisdphi_ = squashPhiGeneral(othersimtrack.swimPhiToR(simtrack.x(),simtrack.y())-simtrack.momPhi());
+	if (std::abs(thisdphi_)>maxdphi) continue;
+	float thisdeta_ = std::abs(othersimtrack.momEta()-simtrack.momEta());
+	if (thisdeta_>maxdeta) continue;
+	sumpt_mc_cFR_+=othersimtrack.pT();
+      }
+
       if (Config::keepHitInfo) TTreeValidation::fillMinHitInfo(simtrack,hitlyrs_mc_cFR_,hitidxs_mc_cFR_);
     }
     else
@@ -2779,6 +2994,7 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
       pt_mc_cFR_ = -99;
       phi_mc_cFR_ = -99;
       eta_mc_cFR_ = -99;
+      sumpt_mc_cFR_ = -99;
     }
 
     // hit/layer info
@@ -2808,6 +3024,19 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
     cmsswID_build_cFR_   = buildextra.cmsswTrackID();
     cmsswmask_build_cFR_ = TTreeValidation::getMaskAssignment(cmsswID_build_cFR_);
     
+    sumpt_build_cFR_ = 0.;
+    float maxdphi=0.1;
+    float maxdeta=0.1;
+    for (const auto& othercmsswtrack : evt_cmssw_tracks)
+    {
+      if ((othercmsswtrack.label()==cmsswID_build_cFR_ && cmsswID_build_cFR_>=0) || !(othercmsswtrack.isFindable())) continue;
+      float thisdphi_ = squashPhiGeneral(othercmsswtrack.swimPhiToR(buildtrack.x(),buildtrack.y())-buildtrack.momPhi());
+      if (std::abs(thisdphi_)>maxdphi) continue;
+      float thisdeta_ = std::abs(othercmsswtrack.momEta()-buildtrack.momEta());
+      if (thisdeta_>maxdeta) continue;
+      sumpt_build_cFR_+=othercmsswtrack.pT();
+    }
+
     if (cmsswmask_build_cFR_ == 1) // matched track to cmssw
     {
       const auto& cmsswtrack = evt_cmssw_tracks[cmsswID_build_cFR_];
@@ -2826,6 +3055,19 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
       nHits_cmssw_build_cFR_   = cmsswtrack.nFoundHits(); 
       nLayers_cmssw_build_cFR_ = cmsswtrack.nUniqueLayers();
       lastlyr_cmssw_build_cFR_ = cmsswtrack.getLastFoundHitLyr();
+      
+      sumpt_cmssw_build_cFR_ = 0.;
+      float maxdphi=0.1;
+      float maxdeta=0.1;
+      for (const auto& othercmsswtrack : evt_cmssw_tracks)
+      {
+	if (othercmsswtrack.label()==cmsswID_build_cFR_ || !(othercmsswtrack.isFindable())) continue;
+	float thisdphi_ = squashPhiGeneral(othercmsswtrack.swimPhiToR(cmsswtrack.x(),cmsswtrack.y())-cmsswtrack.momPhi());
+	if (std::abs(thisdphi_)>maxdphi) continue;
+	float thisdeta_ = std::abs(othercmsswtrack.momEta()-cmsswtrack.momEta());
+	if (thisdeta_>maxdeta) continue;
+	sumpt_cmssw_build_cFR_+=othercmsswtrack.pT();
+      }
 
       // duplicate info
       duplmask_build_cFR_   = buildextra.isDuplicate(); 
@@ -2848,6 +3090,8 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
       nHits_cmssw_build_cFR_   = -99;
       nLayers_cmssw_build_cFR_ = -99;
       lastlyr_cmssw_build_cFR_ = -99;
+      
+      sumpt_cmssw_build_cFR_ = -99;
 
       duplmask_build_cFR_   = -1;
       iTkMatches_build_cFR_ = -99;
@@ -2894,6 +3138,19 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
       cmsswID_fit_cFR_   = fitextra.cmsswTrackID();
       cmsswmask_fit_cFR_ = TTreeValidation::getMaskAssignment(cmsswID_fit_cFR_);
       
+      sumpt_fit_cFR_ = 0.;
+      float maxdphi=0.1;
+      float maxdeta=0.1;
+      for (const auto& othercmsswtrack : evt_cmssw_tracks)
+      {
+	if ((othercmsswtrack.label()==cmsswID_fit_cFR_ && cmsswID_fit_cFR_>=0) || !(othercmsswtrack.isFindable())) continue;
+	float thisdphi_ = squashPhiGeneral(othercmsswtrack.swimPhiToR(fittrack.x(),fittrack.y())-fittrack.momPhi());
+	if (std::abs(thisdphi_)>maxdphi) continue;
+	float thisdeta_ = std::abs(othercmsswtrack.momEta()-fittrack.momEta());
+	if (thisdeta_>maxdeta) continue;
+	sumpt_fit_cFR_+=othercmsswtrack.pT();
+      }
+
       if (cmsswmask_fit_cFR_ == 1) // matched track to cmssw
       {
 	const auto& cmsswtrack = evt_cmssw_tracks[cmsswID_fit_cFR_];
@@ -2912,6 +3169,19 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
 	nHits_cmssw_fit_cFR_   = cmsswtrack.nFoundHits(); 
 	nLayers_cmssw_fit_cFR_ = cmsswtrack.nUniqueLayers();
 	lastlyr_cmssw_fit_cFR_ = cmsswtrack.getLastFoundHitLyr();
+
+	sumpt_cmssw_fit_cFR_ = 0.;
+	float maxdphi=0.1;
+	float maxdeta=0.1;
+	for (const auto& othercmsswtrack : evt_cmssw_tracks)
+	{
+	  if (othercmsswtrack.label()==cmsswID_fit_cFR_ || !(othercmsswtrack.isFindable())) continue;
+	  float thisdphi_ = squashPhiGeneral(othercmsswtrack.swimPhiToR(cmsswtrack.x(),cmsswtrack.y())-cmsswtrack.momPhi());
+	  if (std::abs(thisdphi_)>maxdphi) continue;
+	  float thisdeta_ = std::abs(othercmsswtrack.momEta()-cmsswtrack.momEta());
+	  if (thisdeta_>maxdeta) continue;
+	  sumpt_cmssw_fit_cFR_+=othercmsswtrack.pT();
+	}
 
 	// duplicate info
 	duplmask_fit_cFR_   = fitextra.isDuplicate(); 
@@ -2934,6 +3204,8 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
 	nHits_cmssw_fit_cFR_   = -99;
 	nLayers_cmssw_fit_cFR_ = -99;
 	lastlyr_cmssw_fit_cFR_ = -99;
+	
+	sumpt_cmssw_fit_cFR_ = -99;
 	
 	duplmask_fit_cFR_   = -1;
 	iTkMatches_fit_cFR_ = -99;
@@ -2979,6 +3251,8 @@ void TTreeValidation::fillCMSSWFakeRateTree(const Event& ev)
       nHits_cmssw_fit_cFR_   = -100;
       nLayers_cmssw_fit_cFR_ = -100;
       lastlyr_cmssw_fit_cFR_ = -100;
+      
+      sumpt_cmssw_fit_cFR_ = -100;
       
       duplmask_fit_cFR_   = -2;
       iTkMatches_fit_cFR_ = -100;
