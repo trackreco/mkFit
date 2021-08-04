@@ -19,6 +19,7 @@ struct LayerControl
   // int  m_on_miss_jump_to = -999;
   // int  m_on_hit_jump_to  = -999;
 
+  // XXX To Be removed << FNORD
   bool m_pickup_only;   // do not propagate to this layer and process hits, pickup seeds only.
   bool m_bkfit_only;    // layer only used in backward fit.
   bool m_bksearch_only; // layer only used in backward search.
@@ -26,6 +27,7 @@ struct LayerControl
   bool skip_on_fwd() const { return ! m_pickup_only; }
   bool skip_on_bkfit() const { return m_bksearch_only; }
   bool use_in_bkwsearch() const { return m_bksearch_only || m_bkfit_only || m_pickup_only; }
+  // FNORD
 
   //----------------------------------------------------------------------------
 
@@ -55,8 +57,6 @@ public:
     int                    m_cur_index = -1;
     int                    m_end_index = -1;
 
-    bool is_valid() const { return m_cur_index != -1; }
-
     iterator(const SteeringParams& sp, IterationType_e t) :
       m_steering_params(sp), m_type(t)
     {}
@@ -67,12 +67,14 @@ public:
     int                 index()         const { return m_cur_index; }
     int                 region()        const { return m_steering_params.m_region; }
 
+    bool                is_valid()      const { return m_cur_index != -1; }
+
     const LayerControl& operator->() const { return layer_control(); }
 
     bool is_pickup_only() const
     {
-      if      (m_type == IT_FwdSearch) return layer_control().m_pickup_only;
-      else if (m_type == IT_BkwSearch) return layer_control().m_pickup_only || layer_control().m_bkfit_only;
+      if      (m_type == IT_FwdSearch) return m_cur_index == m_steering_params.m_fwd_search_pickup;
+      else if (m_type == IT_BkwSearch) return m_cur_index == m_steering_params.m_bkw_search_pickup;
       else throw std::runtime_error("invalid iteration type");
     }
 
@@ -108,6 +110,10 @@ public:
 
   int m_region;
 
+  int m_fwd_search_pickup =  0;
+  int m_bkw_fit_last      =  0;
+  int m_bkw_search_pickup = -1;
+
   //----------------------------------------------------------------------------
 
   SteeringParams() {}
@@ -133,9 +139,16 @@ public:
       m_layer_plan[i].fixup(pu_only, bf_only, bs_only);
   }
 
+  void set_iterator_limits(int fwd_search_pu, int bkw_fit_last, int bkw_search_pu=-1)
+  {
+    m_fwd_search_pickup = fwd_search_pu;
+    m_bkw_fit_last      = bkw_fit_last;
+    m_bkw_search_pickup = bkw_search_pu;
+  }
+
   bool has_bksearch_plan() const
   {
-    return m_layer_plan[0].m_bksearch_only;
+    return m_bkw_search_pickup != -1;
   }
 
   iterator make_iterator(IterationType_e type) const
@@ -144,21 +157,18 @@ public:
 
     if (type == IT_FwdSearch)
     {
-      it.m_cur_index = 0;
+      it.m_cur_index = m_fwd_search_pickup;
       it.m_end_index = m_layer_plan.size();
-      while (it.layer_control().skip_on_fwd() && ++it);
     }
     else if (type == IT_BkwFit)
     {
       it.m_cur_index = m_layer_plan.size() - 1;
-      it.m_end_index = -1;
-      while (m_layer_plan[it.m_end_index + 1].skip_on_bkfit()) ++it.m_end_index;
+      it.m_end_index = m_bkw_fit_last - 1;
     }
     else if (type == IT_BkwSearch)
     {
+      it.m_cur_index = m_bkw_search_pickup;
       it.m_end_index = -1;
-      it.m_cur_index =  0;
-      while (m_layer_plan[it.m_cur_index + 1].use_in_bkwsearch()) ++(it.m_cur_index);
     }
     else throw std::invalid_argument("unknown iteration type");
 

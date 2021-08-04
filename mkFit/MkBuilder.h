@@ -174,7 +174,7 @@ public:
   void quality_reset();
   void quality_process(Track& tkcand, const int itrack, std::map<int,int> & cmsswLabelToPos);
   void quality_print();
-  void track_print(Track &t, const char* pref);
+  void track_print(const Track &t, const char* pref);
 
   void quality_store_tracks(TrackVec & tracks);
 

@@ -1372,9 +1372,9 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
   float    tmp_err[6] = { 666, 0, 666, 0, 0, 666 };
   float    tmp_pos[3];
 
-  for (auto lp_iter = st_par.m_layer_plan.rbegin(); lp_iter != st_par.m_layer_plan.rend(); ++lp_iter)
+  for (auto lp_iter = st_par.make_iterator(SteeringParams::IT_BkwFit); lp_iter.is_valid(); ++lp_iter)
   {
-    const int layer = lp_iter->m_layer;
+    const int layer = lp_iter.layer();
 
     const LayerOfHits &L  =   eventofhits.m_layers_of_hits[layer];
     const LayerInfo   &LI = * L.m_layer_info;

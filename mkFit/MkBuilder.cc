@@ -904,7 +904,7 @@ void MkBuilder::quality_print()
   }
 }
 
-void MkBuilder::track_print(Track &t, const char* pref)
+void MkBuilder::track_print(const Track &t, const char* pref)
 {
   printf("%s with q=%+i pT=%7.3f eta=% 7.3f nHits=%2d  label=%4d\nState:\n",
          pref, t.charge(), t.pT(), t.momEta(), t.nFoundHits(), t.label());
