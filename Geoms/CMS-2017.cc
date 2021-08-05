@@ -111,7 +111,7 @@ namespace
     auto &spv = ic.m_steering_params;
     spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(12, 12, 24);
     spv[TrackerInfo::Reg_Transition_Neg].set_iterator_limits(27, 19, 39);
-    spv[TrackerInfo::Reg_Barrel]        .set_iterator_limits(14, 10, 14);
+    spv[TrackerInfo::Reg_Barrel]        .set_iterator_limits(12, 10, 14);
     spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(27, 19, 39);
     spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(12, 12, 24);
   }
