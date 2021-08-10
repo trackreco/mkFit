@@ -179,7 +179,9 @@ void MkFinder::getHitSelDynamicWindows(const float invpt, const float theta, flo
   float this_dphi = (ILC.c_dp_0)*invpt+(ILC.c_dp_1)*theta+(ILC.c_dp_2);  
   // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
   if(this_dphi>0.f){
-    min_dphi = (ILC.c_dp_sf)*this_dphi;
+    if ((theta>0.8f && theta<1.1f) || (ILC.c_dp_sf)*this_dphi>min_dphi){
+      min_dphi = (ILC.c_dp_sf)*this_dphi;
+    }
     max_dphi = 2.0f*min_dphi;
   }
 
@@ -678,10 +680,10 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
     const float theta = std::fabs(Par[iP].At(it,5,0)-Config::PIOver2);
     float this_c2 = (ILC.c_c2_0)*invpt+(ILC.c_c2_1)*theta+(ILC.c_c2_2);  
     // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
-    if(this_c2>5.f){
+    if(this_c2>10.f){
       max_c2 = (ILC.c_c2_sf)*this_c2;
     }
-    else max_c2=5.0;
+    else max_c2=10.0;
     minChi2[it] = max_c2; //m_iteration_params->chi2Cut;
   }
 
@@ -861,10 +863,10 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
       const float theta = std::fabs(Par[iP].At(itrack,5,0)-Config::PIOver2);
       float this_c2 = (ILC.c_c2_0)*invpt+(ILC.c_c2_1)*theta+(ILC.c_c2_2);  
       // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
-      if(this_c2>5.f){
+      if(this_c2>10.f){
       	max_c2 = (ILC.c_c2_sf)*this_c2;
       }
-      else max_c2 = 5.0;
+      else max_c2 = 10.0;
 
       if (hit_cnt < XHitSize[itrack])
       {
@@ -897,10 +899,11 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
 	const float theta = std::fabs(Par[iP].At(itrack,5,0)-Config::PIOver2);
 	float this_c2 = (ILC.c_c2_0)*invpt+(ILC.c_c2_1)*theta+(ILC.c_c2_2);  
 	// In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
-	if(this_c2>5.f){
+	if(this_c2>10.f){
 	  max_c2 = (ILC.c_c2_sf)*this_c2;
 	}
-	else max_c2 = 5.0;
+	else max_c2 = 10.0;
+
 	if (hit_cnt < XHitSize[itrack])
 	{
 	  const float chi2 = std::abs(outChi2[itrack]);//fixme negative chi2 sometimes...
@@ -1035,10 +1038,10 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
       const float theta = std::fabs(Par[iP].At(itrack,5,0)-Config::PIOver2);
       float this_c2 = (ILC.c_c2_0)*invpt+(ILC.c_c2_1)*theta+(ILC.c_c2_2);  
       // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
-      if(this_c2>5.f){
+      if(this_c2>10.f){
       	max_c2 = (ILC.c_c2_sf)*this_c2;
       }
-      else max_c2 = 5.0;
+      else max_c2 = 10.0;
 
       if (hit_cnt < XHitSize[itrack])
       {
