@@ -1192,39 +1192,43 @@ void MkFinder::BkFitInputTracks(EventOfCombCandidates& eocss, int beg, int end)
 
 //------------------------------------------------------------------------------
 
-void MkFinder::BkFitOutputTracks(TrackVec& cands, int beg, int end)
+void MkFinder::BkFitOutputTracks(TrackVec& cands, int beg, int end, bool outputProp)
 {
   // Only copy out track params / errors / chi2, all the rest is ok.
+
+  const int iO = outputProp ? iP : iC;
 
   int itrack = 0;
   for (int i = beg; i < end; ++i, ++itrack)
     {
       Track &trk = cands[i];
 
-      Err[iP].CopyOut(itrack, trk.errors_nc().Array());
-      Par[iP].CopyOut(itrack, trk.parameters_nc().Array());
+      Err[iO].CopyOut(itrack, trk.errors_nc().Array());
+      Par[iO].CopyOut(itrack, trk.parameters_nc().Array());
 
       trk.setChi2(Chi2(itrack, 0, 0));
       if ( ! std::isnan(trk.chi2()))
       {
-	trk.setScore(getScoreCand(trk));
+        trk.setScore(getScoreCand(trk));
       }
     }
 }
 
-void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end)
+void MkFinder::BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end, bool outputProp)
 {
   // Only copy out track params / errors / chi2, all the rest is ok.
 
   // XXXX - where will rejected hits get removed?
+
+  const int iO = outputProp ? iP : iC;
 
   int itrack = 0;
   for (int i = beg; i < end; ++i, ++itrack)
   {
     TrackCand &trk = eocss[i][0];
 
-    Err[iP].CopyOut(itrack, trk.errors_nc().Array());
-    Par[iP].CopyOut(itrack, trk.parameters_nc().Array());
+    Err[iO].CopyOut(itrack, trk.errors_nc().Array());
+    Par[iO].CopyOut(itrack, trk.parameters_nc().Array());
 
     trk.setChi2(Chi2(itrack, 0, 0));
     if ( ! std::isnan(trk.chi2()))

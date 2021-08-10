@@ -211,10 +211,10 @@ public:
   HoTNode          *HoTNodeArr[NN]; // Not const as we can modify it!
 
   void BkFitInputTracks (TrackVec& cands, int beg, int end);
-  void BkFitOutputTracks(TrackVec& cands, int beg, int end);
+  void BkFitOutputTracks(TrackVec& cands, int beg, int end, bool outputProp);
 
   void BkFitInputTracks (EventOfCombCandidates& eocss, int beg, int end);
-  void BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end);
+  void BkFitOutputTracks(EventOfCombCandidates& eocss, int beg, int end, bool outputProp);
 
   void BkFitFitTracksBH(const EventOfHits& eventofhits, const SteeringParams& st_par,
                         const int N_proc, bool chiDebug = false);
