@@ -163,7 +163,7 @@ void MkFinder::OutputTracksAndHitIdx(std::vector<Track>& tracks,
 //==============================================================================
 // From HitSelectionWindows.h: track-related config on hit selection windows
 
-void MkFinder::getHitSelDynamicWindows(const float invpt, const float theta, float &min_dq, float &max_dq, float &min_dphi, float &max_dphi)
+void MkFinder::getHitSelDynamicWindows(const float invpt, const float theta, float &min_dq, float &max_dq, float &min_dphi, float &max_dphi) //, float &max_c2)
 {
   const IterationLayerConfig &ILC = *m_iteration_layer_config;
 
@@ -258,7 +258,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       
       const float invpt = Par[iI].At(itrack,3,0);
       const float theta = std::fabs(Par[iI].At(itrack,5,0)-Config::PIOver2);
-      getHitSelDynamicWindows(invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
+      getHitSelDynamicWindows(invpt, theta, min_dq, max_dq, min_dphi, max_dphi); //, max_c2);
 
       const float x = Par[iI].ConstAt(itrack, 0, 0);
       const float y = Par[iI].ConstAt(itrack, 1, 0);
@@ -314,7 +314,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       
       const float invpt = Par[iI].At(itrack,3,0);
       const float theta = std::fabs(Par[iI].At(itrack,5,0)-Config::PIOver2);
-      getHitSelDynamicWindows(invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
+      getHitSelDynamicWindows(invpt, theta, min_dq, max_dq, min_dphi, max_dphi); //, max_c2);
 
       const float x = Par[iI].ConstAt(itrack, 0, 0);
       const float y = Par[iI].ConstAt(itrack, 1, 0);
