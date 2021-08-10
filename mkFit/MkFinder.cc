@@ -816,6 +816,7 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
   }
 
   dprintf("FindCandidates max hits to process=%d\n", maxSize);
+  int nHitsAdded[NN] {};
 
   for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
   {
@@ -879,6 +880,7 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
 	  dprint("chi2=" << chi2);
 	  if (chi2 < m_iteration_params->chi2Cut)
 	  {
+            nHitsAdded[itrack]++;
 	    dprint("chi2 cut passed, creating new candidate");
 	    // Create a new candidate and fill the tmp_candidates output vector.
             // QQQ only instantiate if it will pass, be better than N_best
@@ -928,7 +930,7 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
       fake_hit_idx = -3;
     }
     //now add fake hit for tracks that passsed through inactive modules
-    else if (XWsrResult[itrack].m_in_gap == true)
+    else if (XWsrResult[itrack].m_in_gap == true && nHitsAdded[itrack] == 0)
     {
       fake_hit_idx = -7;
     }
