@@ -649,14 +649,35 @@ inline float getScoreCalc(const int nfoundhits,
   //// Do not allow for chi2<0 in score calculation
   // if(chi2<0) chi2=0.f;
 
-  float maxBonus = 8.0;
-  float bonus  = Config::validHitSlope_*nfoundhits + Config::validHitBonus_;
-  float penalty = Config::missingHitPenalty_;
-  if(pt < 0.9){
-    penalty += 0.5*Config::missingHitPenalty_; 
-    bonus = std::min(bonus, maxBonus);
+  float bonus    = 3.0;
+  float slope    = 0.2; //If hit is found on 25 layers, totbonus=0.2*25+3=8 (=maxbonus) 
+  float maxbonus = 8.0;
+  float penalty  = 15.0;
+  float totbonus = bonus; 
+  int totnhits   = nfoundhits+noverlaphits;
+  int totnholes  = nmisshits+ntailholes;
+  totbonus += slope * float(nfoundhits);
+  totbonus =  std::min(totbonus, maxbonus);
+  float score_ = totbonus * float(nfoundhits) + 0.5f * bonus * float(noverlaphits) - penalty * float(totnholes) - chi2;
+  if(nfoundhits<=4){
+    score_ -=         totbonus * float(nfoundhits  );
+    score_ -= 0.25f *    bonus * float(noverlaphits);
   }
-  float score_ = bonus*nfoundhits + Config::overlapHitBonus_*noverlaphits - penalty*nmisshits - Config::tailMissingHitPenalty_*ntailholes - chi2;
+  if(pt < 0.9){
+    score_ +=  0.5f * penalty  * float(ntailholes  );
+    score_ -=  0.5f * totbonus * float(nfoundhits  );
+    score_ -= 0.25f *    bonus * float(noverlaphits);    
+  }
+
+  //float maxBonus = 8.0;
+  //float bonus  = Config::validHitSlope_*nfoundhits + Config::validHitBonus_;
+  //float penalty = Config::missingHitPenalty_;  
+  //if(pt < 0.9){
+  //  penalty += 0.5*Config::missingHitPenalty_; 
+  //  bonus = std::min(bonus, maxBonus);
+  //}
+  //float score_ = bonus*nfoundhits + Config::overlapHitBonus_*noverlaphits - penalty*nmisshits - Config::tailMissingHitPenalty_*ntailholes - chi2;
+
   return score_;
 }
 
