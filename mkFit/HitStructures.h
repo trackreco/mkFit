@@ -150,8 +150,8 @@ public:
 
   // Testing bin filling
   static constexpr float m_fphi     = Config::m_nphi / Config::TwoPI;
-  static constexpr int   m_phi_mask = 0x7f;
-  static constexpr int   m_phi_bits = 7;
+  static constexpr int   m_phi_mask = 0xff;
+  static constexpr int   m_phi_bits = 8;
   static constexpr float m_fphi_fine      = 1024 / Config::TwoPI;
   static constexpr int   m_phi_mask_fine  = 0x3ff;
   static constexpr int   m_phi_bits_fine  = 10; //can't be more than 16

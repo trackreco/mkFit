@@ -165,7 +165,7 @@ namespace Config
   extern float XigridME[Config::nBinsZME][Config::nBinsRME];
 
   // This will become layer dependent (in bits). To be consistent with min_dphi.
-  static constexpr int m_nphi = 128;
+  static constexpr int m_nphi = 256;
 
   // config on Event
   /*MM: chi2Cut is now set in IterationsParams*/

@@ -212,7 +212,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
            L.is_barrel() ? "barrel" : "endcap", L.layer_id(), N_proc);
 
   float dqv[NN], dphiv[NN], qv[NN], phiv[NN];
-  int qb1v[NN], qb2v[NN], pb1v[NN], pb2v[NN];
+  int qb1v[NN], qb2v[NN], qbv[NN], pb1v[NN], pb2v[NN];
 
   const auto assignbins = [&](int itrack, float q, float dq, float phi, float dphi, float min_dq, float max_dq, float min_dphi, float max_dphi){
     dphi = clamp(std::abs(dphi), min_dphi, max_dphi);
@@ -223,6 +223,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     dphiv[itrack] = dphi;
     dqv[itrack]   = dq;
     //
+    qbv [itrack] = L.GetQBinChecked(q);
     qb1v[itrack] = L.GetQBinChecked(q - dq);
     qb2v[itrack] = L.GetQBinChecked(q + dq) + 1;
     pb1v[itrack] = L.GetPhiBin(phi - dphi);
@@ -361,6 +362,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       continue;
     }
 
+    const int qb  = qbv [itrack];
     const int qb1 = qb1v[itrack];
     const int qb2 = qb2v[itrack];
     const int pb1 = pb1v[itrack];
@@ -411,7 +413,8 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       {
         const int pb = pi & L.m_phi_mask;
 
-	if (L.m_phi_bin_deads[qi][pb] == true)
+        // Limit to central Q-bin
+        if (qi == qb && L.m_phi_bin_deads[qi][pb] == true)
 	{
 	  //std::cout << "dead module for track in layer=" << L.layer_id() << " qb=" << qi << " pb=" << pb << " q=" << q << " phi=" << phi<< std::endl;
 	  XWsrResult[itrack].m_in_gap = true;
@@ -813,6 +816,7 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
   }
 
   dprintf("FindCandidates max hits to process=%d\n", maxSize);
+  int nHitsAdded[NN] {};
 
   for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
   {
@@ -876,6 +880,7 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
 	  dprint("chi2=" << chi2);
 	  if (chi2 < m_iteration_params->chi2Cut)
 	  {
+            nHitsAdded[itrack]++;
 	    dprint("chi2 cut passed, creating new candidate");
 	    // Create a new candidate and fill the tmp_candidates output vector.
             // QQQ only instantiate if it will pass, be better than N_best
@@ -925,7 +930,7 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
       fake_hit_idx = -3;
     }
     //now add fake hit for tracks that passsed through inactive modules
-    else if (XWsrResult[itrack].m_in_gap == true)
+    else if (XWsrResult[itrack].m_in_gap == true && nHitsAdded[itrack] == 0)
     {
       fake_hit_idx = -7;
     }
@@ -972,6 +977,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
   }
 
   dprintf("FindCandidatesCloneEngine max hits to process=%d\n", maxSize);
+  int nHitsAdded[NN] {};
 
   for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
   {
@@ -1005,6 +1011,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
         dprint("chi2=" << chi2 << " for trkIdx=" << itrack << " hitIdx=" << XHitArr.At(itrack, hit_cnt, 0));
         if (chi2 < m_iteration_params->chi2Cut)
         {
+          nHitsAdded[itrack]++;
           const int hit_idx = XHitArr.At(itrack, hit_cnt, 0);
 
           // Register hit for overlap consideration, here we apply chi2 cut
@@ -1055,7 +1062,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
       fake_hit_idx = -3;
     }
     //now add fake hit for tracks that passsed through inactive modules
-    else if (XWsrResult[itrack].m_in_gap == true)
+    else if (XWsrResult[itrack].m_in_gap == true && nHitsAdded[itrack] == 0)
     {
       fake_hit_idx = -7;
     }
