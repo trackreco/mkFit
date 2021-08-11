@@ -4,7 +4,7 @@ make -j 32 WITH_ROOT:=1
 
 dir=/data2/slava77/samples/2021/
 subdir=10muPt0p2to10HS/
-file=memoryFile.fv5.default.210703-d239b45.bin
+file=memoryFile.fv5.default.210729-d1dc487.bin
 fin10mu=${dir}/${subdir}/${file}
 
 base=SKL-SP_CMSSW_10mu
