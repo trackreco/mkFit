@@ -98,7 +98,7 @@ public:
   int   maxCandsPerSeed   = 5;
   int   maxHolesPerCand   = 4;
   int   maxConsecHoles    = 1;
-  float chi2Cut           = 30;
+  float chi2Cut_min       = 10.0;
   float chi2CutOverlap    = 3.5;
   float pTCutOverlap      = 1.0;
   // NOTE: iteration params could actually become layer-dependent, e.g., chi2Cut could be larger for first layers (?)
