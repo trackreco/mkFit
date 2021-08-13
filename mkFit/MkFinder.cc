@@ -179,17 +179,41 @@ void MkFinder::getHitSelDynamicWindows(const float invpt, const float theta, flo
   float this_dphi = (ILC.c_dp_0)*invpt+(ILC.c_dp_1)*theta+(ILC.c_dp_2);  
   // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
   if(this_dphi>0.f){
-    min_dphi = (ILC.c_dp_sf)*this_dphi;
+    if ((theta>0.8f && theta<1.1f) || (ILC.c_dp_sf)*this_dphi>min_dphi){
+      min_dphi = (ILC.c_dp_sf)*this_dphi;
+    }
     max_dphi = 2.0f*min_dphi;
   }
 
-  // For future optimization: for layer & iteration dependend hit chi2 cut
+  //// For future optimization: for layer & iteration dependend hit chi2 cut
   //float this_c2 = (ILC.c_c2_0)*invpt+(ILC.c_c2_1)*theta+(ILC.c_c2_2);  
   //// In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
   //if(this_c2>0.f){
   //  max_c2 = (ILC.c_c2_sf)*this_c2;
   //}
 }
+
+
+//==============================================================================
+// getHitSelDynamicChi2Cut
+//==============================================================================
+// From HitSelectionWindows.h: track-related config on hit selection windows
+
+inline float MkFinder::getHitSelDynamicChi2Cut(const int itrk, const int ipar)
+{
+  const IterationLayerConfig &ILC = *m_iteration_layer_config;
+
+  const float minChi2Cut = m_iteration_params->chi2Cut_min;
+  const float invpt = Par[ipar].At(itrk,3,0);
+  const float theta = std::abs(Par[ipar].At(itrk,5,0) - Config::PIOver2);
+  float this_c2 = ILC.c_c2_0*invpt + ILC.c_c2_1*theta + ILC.c_c2_2;
+  // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
+  if (this_c2 > minChi2Cut)
+    return ILC.c_c2_sf*this_c2;
+  else
+    return minChi2Cut;
+}
+
 
 //==============================================================================
 // SelectHitIndices
@@ -657,7 +681,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
   int   bestHit[NN];
   // MT: fill_n gave me crap on MIC, NN=8,16, doing in maxSize search below.
   // Must be a compiler issue.
-  // std::fill_n(minChi2, NN, m_iteration_params->chi2Cut);
+  // std::fill_n(minChi2, NN, m_iteration_params->chi2Cut_min);
   // std::fill_n(bestHit, NN, -1);
 
   int maxSize = 0;
@@ -674,7 +698,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
     }
 
     bestHit[it] = -1;
-    minChi2[it] = m_iteration_params->chi2Cut;
+    minChi2[it] = getHitSelDynamicChi2Cut(it, iP);
   }
 
   for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
@@ -847,11 +871,13 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
     bool oneCandPassCut = false;
     for (int itrack = 0; itrack < N_proc; ++itrack)
     {
+      float max_c2 = getHitSelDynamicChi2Cut(itrack, iP);
+
       if (hit_cnt < XHitSize[itrack])
       {
 	const float chi2 = std::abs(outChi2[itrack]);//fixme negative chi2 sometimes...
 	dprint("chi2=" << chi2);
-	if (chi2 < m_iteration_params->chi2Cut)
+	if (chi2 < max_c2)
 	{
 	  oneCandPassCut = true;
 	  break;
@@ -870,15 +896,17 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
 	     << "               hit position x=" << msPar.ConstAt(0, 0, 0)   << " y=" << msPar.ConstAt(0, 1, 0) << std::endl
 	     << "   updated track parameters x=" << Par[iC].ConstAt(0, 0, 0) << " y=" << Par[iC].ConstAt(0, 1, 0));
 
-      //create candidate with hit in case chi2 < m_iteration_params->chi2Cut
+      //create candidate with hit in case chi2 < m_iteration_params->chi2Cut_min
       //fixme: please vectorize me... (not sure it's possible in this case)
       for (int itrack = 0; itrack < N_proc; ++itrack)
       {
+	float max_c2 = getHitSelDynamicChi2Cut(itrack, iP);
+
 	if (hit_cnt < XHitSize[itrack])
 	{
 	  const float chi2 = std::abs(outChi2[itrack]);//fixme negative chi2 sometimes...
 	  dprint("chi2=" << chi2);
-	  if (chi2 < m_iteration_params->chi2Cut)
+	  if (chi2 < max_c2)
 	  {
             nHitsAdded[itrack]++;
 	    dprint("chi2 cut passed, creating new candidate");
@@ -1003,13 +1031,15 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     {
       // make sure the hit was in the compatiblity window for the candidate
 
+      float max_c2 = getHitSelDynamicChi2Cut(itrack, iP);
+
       if (hit_cnt < XHitSize[itrack])
       {
         // XXX-NUM-ERR assert(chi2 >= 0);
         const float chi2 = std::abs(outChi2[itrack]); //fixme negative chi2 sometimes...
 
         dprint("chi2=" << chi2 << " for trkIdx=" << itrack << " hitIdx=" << XHitArr.At(itrack, hit_cnt, 0));
-        if (chi2 < m_iteration_params->chi2Cut)
+        if (chi2 < max_c2)
         {
           nHitsAdded[itrack]++;
           const int hit_idx = XHitArr.At(itrack, hit_cnt, 0);

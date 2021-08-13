@@ -230,7 +230,7 @@ public:
   float fEtaDet_=0.,fPhiFactor_=0.;
   int   nPhiPart_=0,nEtaPart_=0;
   int   nlayers_per_seed_=0,maxCand_=0;
-  float chi2Cut_=0.,nSigma_=0.,minDPhi_=0.,maxDPhi_=0.,minDEta_=0.,maxDEta_=0.;
+  float chi2Cut_min_=0.,nSigma_=0.,minDPhi_=0.,maxDPhi_=0.,minDEta_=0.,maxDEta_=0.;
   float beamspotX_=0.,beamspotY_=0.,beamspotZ_=0.;
   float minSimPt_=0.,maxSimPt_=0.;
   float hitposerrXY_=0.,hitposerrZ_=0.,hitposerrR_=0.;

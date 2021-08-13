@@ -397,7 +397,7 @@ void TTreeValidation::initializeConfigTree()
 
   configtree_->Branch("nlayers_per_seed",&nlayers_per_seed_);
   configtree_->Branch("maxCand",&maxCand_);
-  configtree_->Branch("chi2Cut",&chi2Cut_);
+  configtree_->Branch("chi2Cut_min",&chi2Cut_min_);
   configtree_->Branch("nSigma",&nSigma_);
   configtree_->Branch("minDPhi",&minDPhi_);
   configtree_->Branch("maxDPhi",&maxDPhi_);
@@ -2379,7 +2379,7 @@ void TTreeValidation::fillConfigTree()
 
   nlayers_per_seed_ = Config::ItrInfo[0].m_params.nlayers_per_seed;
   maxCand_ = Config::ItrInfo[0].m_params.maxCandsPerSeed;
-  chi2Cut_ = Config::ItrInfo[0].m_params.chi2Cut;
+  chi2Cut_min_ = Config::ItrInfo[0].m_params.chi2Cut_min;
   nSigma_  = Config::nSigma;
   minDPhi_ = Config::minDPhi;
   maxDPhi_ = Config::maxDPhi;
