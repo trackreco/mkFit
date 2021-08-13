@@ -177,7 +177,7 @@ public:
 
   void getHitSelDynamicWindows(const float invpt, const float theta, float &min_dq, float &max_dq, float  &min_dphi, float &max_dphi);
 
-  void getHitSelDynamicChi2Cut(const int it_, const int iP_, float &max_c2);
+  float getHitSelDynamicChi2Cut(const int itrk, const int ipar);
 
   void SelectHitIndices(const LayerOfHits &layer_of_hits, const int N_proc);
 

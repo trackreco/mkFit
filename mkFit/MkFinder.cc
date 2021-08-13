@@ -199,19 +199,19 @@ void MkFinder::getHitSelDynamicWindows(const float invpt, const float theta, flo
 //==============================================================================
 // From HitSelectionWindows.h: track-related config on hit selection windows
 
-void MkFinder::getHitSelDynamicChi2Cut(const int it_, const int iP_, float &max_c2)
+inline float MkFinder::getHitSelDynamicChi2Cut(const int itrk, const int ipar)
 {
   const IterationLayerConfig &ILC = *m_iteration_layer_config;
 
   const float minChi2Cut = m_iteration_params->chi2Cut_min;
-  const float invpt = Par[iP_].At(it_,3,0);
-  const float theta = std::fabs(Par[iP_].At(it_,5,0)-Config::PIOver2);
-  float this_c2 = (ILC.c_c2_0)*invpt+(ILC.c_c2_1)*theta+(ILC.c_c2_2);
+  const float invpt = Par[ipar].At(itrk,3,0);
+  const float theta = std::abs(Par[ipar].At(itrk,5,0) - Config::PIOver2);
+  float this_c2 = ILC.c_c2_0*invpt + ILC.c_c2_1*theta + ILC.c_c2_2;
   // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
-  if(this_c2>minChi2Cut){
-    max_c2 = (ILC.c_c2_sf)*this_c2;
-  }
-  else max_c2=minChi2Cut;
+  if (this_c2 > minChi2Cut)
+    return ILC.c_c2_sf*this_c2;
+  else
+    return minChi2Cut;
 }
 
 
@@ -677,8 +677,6 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
 
   MatriplexHitPacker mhp(* layer_of_hits.GetHitArray());
 
-  float max_c2 = m_iteration_params->chi2Cut_min;
-
   float minChi2[NN];
   int   bestHit[NN];
   // MT: fill_n gave me crap on MIC, NN=8,16, doing in maxSize search below.
@@ -700,8 +698,7 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
     }
 
     bestHit[it] = -1;
-    getHitSelDynamicChi2Cut(it, iP, max_c2);
-    minChi2[it] = max_c2;
+    minChi2[it] = getHitSelDynamicChi2Cut(it, iP);
   }
 
   for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
@@ -828,8 +825,6 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
 
   MatriplexHitPacker mhp(* layer_of_hits.GetHitArray());
 
-  float max_c2 = m_iteration_params->chi2Cut_min;
-
   int maxSize = 0;
 
   // Determine maximum number of hits for tracks in the collection.
@@ -876,7 +871,7 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
     bool oneCandPassCut = false;
     for (int itrack = 0; itrack < N_proc; ++itrack)
     {
-      getHitSelDynamicChi2Cut(itrack, iP, max_c2);
+      float max_c2 = getHitSelDynamicChi2Cut(itrack, iP);
 
       if (hit_cnt < XHitSize[itrack])
       {
@@ -905,7 +900,7 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
       //fixme: please vectorize me... (not sure it's possible in this case)
       for (int itrack = 0; itrack < N_proc; ++itrack)
       {
-	getHitSelDynamicChi2Cut(itrack, iP, max_c2);
+	float max_c2 = getHitSelDynamicChi2Cut(itrack, iP);
 
 	if (hit_cnt < XHitSize[itrack])
 	{
@@ -994,8 +989,6 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 
   MatriplexHitPacker mhp(* layer_of_hits.GetHitArray());
 
-  float max_c2 = m_iteration_params->chi2Cut_min;
-
   int maxSize = 0;
 
   // Determine maximum number of hits for tracks in the collection.
@@ -1038,7 +1031,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     {
       // make sure the hit was in the compatiblity window for the candidate
 
-      getHitSelDynamicChi2Cut(itrack, iP, max_c2);
+      float max_c2 = getHitSelDynamicChi2Cut(itrack, iP);
 
       if (hit_cnt < XHitSize[itrack])
       {
