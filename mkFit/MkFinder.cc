@@ -677,7 +677,6 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
 
   MatriplexHitPacker mhp(* layer_of_hits.GetHitArray());
 
-  const IterationLayerConfig &ILC = *m_iteration_layer_config;
   float max_c2 = m_iteration_params->chi2Cut_min;
 
   float minChi2[NN];
@@ -829,7 +828,6 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
 
   MatriplexHitPacker mhp(* layer_of_hits.GetHitArray());
 
-  const IterationLayerConfig &ILC = *m_iteration_layer_config;
   float max_c2 = m_iteration_params->chi2Cut_min;
 
   int maxSize = 0;
@@ -996,7 +994,6 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 
   MatriplexHitPacker mhp(* layer_of_hits.GetHitArray());
 
-  const IterationLayerConfig &ILC = *m_iteration_layer_config;
   float max_c2 = m_iteration_params->chi2Cut_min;
 
   int maxSize = 0;
