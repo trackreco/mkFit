@@ -38,7 +38,7 @@ fi
 ## Common file setup
 dir=/data2/slava77/samples/
 subdir=2021/11834.0_TTbar_14TeV+2021/AVE_50_BX01_25ns/
-file=memoryFile.fv5.default.210703-d239b45.bin
+file=memoryFile.fv5.default.210729-d1dc487.bin
 #base_nevents=20 # 7/2 seconds
 base_nevents=2000 # 30/10 minutes
 
