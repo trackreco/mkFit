@@ -948,7 +948,7 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
     }
 
     // int fake_hit_idx = num_all_minus_one_hits(itrack) < m_iteration_params->maxHolesPerCand ? -1 : -2;
-    int fake_hit_idx = ( (num_all_minus_one_hits(itrack) < m_iteration_params->maxHolesPerCand) && (NTailMinusOneHits(itrack, 0, 0)<=m_iteration_params->maxConsecHoles) ) ? -1 : -2;
+    int fake_hit_idx = ( (num_all_minus_one_hits(itrack) < m_iteration_params->maxHolesPerCand) && (NTailMinusOneHits(itrack, 0, 0) < m_iteration_params->maxConsecHoles) ) ? -1 : -2;
 
     if (XWsrResult[itrack].m_wsr == WSR_Edge)
     {
@@ -1083,7 +1083,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     }
 
     // int fake_hit_idx = num_all_minus_one_hits(itrack) < m_iteration_params->maxHolesPerCand ? -1 : -2;
-    int fake_hit_idx = ( (num_all_minus_one_hits(itrack) < m_iteration_params->maxHolesPerCand) && (NTailMinusOneHits(itrack, 0, 0)<=m_iteration_params->maxConsecHoles) ) ? -1 : -2;
+    int fake_hit_idx = ( (num_all_minus_one_hits(itrack) < m_iteration_params->maxHolesPerCand) && (NTailMinusOneHits(itrack, 0, 0) < m_iteration_params->maxConsecHoles) ) ? -1 : -2;
 
     if (XWsrResult[itrack].m_wsr == WSR_Edge)
     {
