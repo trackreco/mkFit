@@ -877,7 +877,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(5);
-      obj.set_selection_limits(0.023000, 0.030000, 6.000000, 12.000000);
+      obj.set_selection_limits(0.025000, 0.037000, 6.000000, 12.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(6);
@@ -885,7 +885,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(7);
-      obj.set_selection_limits(0.016000, 0.030000, 6.000000, 12.000000);
+      obj.set_selection_limits(0.018000, 0.027000, 6.000000, 12.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(8);
@@ -901,7 +901,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(11);
-      obj.set_selection_limits(0.016000, 0.030000, 9.500000, 19.000000);
+      obj.set_selection_limits(0.016000, 0.032000, 9.500000, 19.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(12);
@@ -909,7 +909,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(13);
-      obj.set_selection_limits(0.013000, 0.030000, 9.500000, 19.000000);
+      obj.set_selection_limits(0.014000, 0.028000, 9.500000, 19.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(14);
@@ -945,7 +945,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(22);
-      obj.set_selection_limits(0.010000, 0.030000, 5.500000, 11.000000);
+      obj.set_selection_limits(0.025000, 0.050000, 5.500000, 11.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(23);
@@ -953,7 +953,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(24);
-      obj.set_selection_limits(0.010000, 0.030000, 5.500000, 11.000000);
+      obj.set_selection_limits(0.025000, 0.050000, 5.500000, 11.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(25);
@@ -961,7 +961,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(26);
-      obj.set_selection_limits(0.010000, 0.030000, 5.500000, 11.000000);
+      obj.set_selection_limits(0.025000, 0.050000, 5.500000, 11.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(27);
@@ -969,7 +969,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(28);
-      obj.set_selection_limits(0.010000, 0.030000, 10.000000, 20.000000);
+      obj.set_selection_limits(0.018500, 0.037000, 10.000000, 20.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(29);
@@ -977,7 +977,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(30);
-      obj.set_selection_limits(0.010000, 0.030000, 10.000000, 20.000000);
+      obj.set_selection_limits(0.018500, 0.037000, 10.000000, 20.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(31);
@@ -985,7 +985,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(32);
-      obj.set_selection_limits(0.010000, 0.030000, 10.000000, 20.000000);
+      obj.set_selection_limits(0.018500, 0.037000, 10.000000, 20.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(33);
@@ -993,7 +993,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(34);
-      obj.set_selection_limits(0.010000, 0.030000, 10.000000, 20.000000);
+      obj.set_selection_limits(0.014000, 0.028000, 10.000000, 20.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(35);
@@ -1001,7 +1001,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(36);
-      obj.set_selection_limits(0.010000, 0.030000, 10.000000, 20.000000);
+      obj.set_selection_limits(0.014000, 0.028000, 10.000000, 20.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(37);
@@ -1009,7 +1009,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(38);
-      obj.set_selection_limits(0.010000, 0.030000, 10.000000, 20.000000);
+      obj.set_selection_limits(0.014000, 0.028000, 10.000000, 20.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(39);
@@ -1017,7 +1017,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(40);
-      obj.set_selection_limits(0.010000, 0.030000, 10.000000, 20.000000);
+      obj.set_selection_limits(0.012500, 0.025000, 10.000000, 20.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(41);
@@ -1025,7 +1025,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(42);
-      obj.set_selection_limits(0.010000, 0.030000, 10.000000, 20.000000);
+      obj.set_selection_limits(0.012500, 0.025000, 10.000000, 20.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(43);
@@ -1033,7 +1033,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(44);
-      obj.set_selection_limits(0.010000, 0.030000, 10.000000, 20.000000);
+      obj.set_selection_limits(0.012500, 0.025000, 10.000000, 20.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(45);
@@ -1053,7 +1053,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(49);
-      obj.set_selection_limits(0.010000, 0.030000, 5.500000, 11.000000);
+      obj.set_selection_limits(0.025000, 0.050000, 5.500000, 11.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(50);
@@ -1061,7 +1061,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(51);
-      obj.set_selection_limits(0.010000, 0.030000, 5.500000, 11.000000);
+      obj.set_selection_limits(0.025000, 0.050000, 5.500000, 11.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(52);
@@ -1069,7 +1069,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(53);
-      obj.set_selection_limits(0.010000, 0.030000, 5.500000, 11.000000);
+      obj.set_selection_limits(0.025000, 0.050000, 5.500000, 11.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(54);
@@ -1077,7 +1077,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(55);
-      obj.set_selection_limits(0.010000, 0.030000, 10.000000, 20.000000);
+      obj.set_selection_limits(0.018500, 0.037000, 10.000000, 20.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(56);
@@ -1085,7 +1085,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(57);
-      obj.set_selection_limits(0.010000, 0.030000, 10.000000, 20.000000);
+      obj.set_selection_limits(0.018500, 0.037000, 10.000000, 20.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(58);
@@ -1093,7 +1093,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(59);
-      obj.set_selection_limits(0.010000, 0.030000, 10.000000, 20.000000);
+      obj.set_selection_limits(0.018500, 0.037000, 10.000000, 20.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(60);
@@ -1101,7 +1101,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(61);
-      obj.set_selection_limits(0.010000, 0.030000, 10.000000, 20.000000);
+      obj.set_selection_limits(0.014000, 0.028000, 10.000000, 20.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(62);
@@ -1109,7 +1109,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(63);
-      obj.set_selection_limits(0.010000, 0.030000, 10.000000, 20.000000);
+      obj.set_selection_limits(0.014000, 0.028000, 10.000000, 20.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(64);
@@ -1117,7 +1117,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(65);
-      obj.set_selection_limits(0.010000, 0.030000, 10.000000, 20.000000);
+      obj.set_selection_limits(0.014000, 0.028000, 10.000000, 20.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(66);
@@ -1125,7 +1125,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(67);
-      obj.set_selection_limits(0.010000, 0.030000, 10.000000, 20.000000);
+      obj.set_selection_limits(0.012500, 0.025000, 10.000000, 20.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(68);
@@ -1133,7 +1133,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(69);
-      obj.set_selection_limits(0.010000, 0.030000, 10.000000, 20.000000);
+      obj.set_selection_limits(0.012500, 0.025000, 10.000000, 20.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(70);
@@ -1141,7 +1141,7 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(71);
-      obj.set_selection_limits(0.010000, 0.030000, 10.000000, 20.000000);
+      obj.set_selection_limits(0.012500, 0.025000, 10.000000, 20.000000);
     }
   }
 }
