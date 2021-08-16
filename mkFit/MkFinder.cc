@@ -178,10 +178,8 @@ void MkFinder::getHitSelDynamicWindows(const float invpt, const float theta, flo
   // dphi hit selection window
   float this_dphi = (ILC.c_dp_0)*invpt+(ILC.c_dp_1)*theta+(ILC.c_dp_2);  
   // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
-  if(this_dphi>0.f){
-    if ((theta>0.8f && theta<1.1f) || (ILC.c_dp_sf)*this_dphi>min_dphi){
-      min_dphi = (ILC.c_dp_sf)*this_dphi;
-    }
+  if((ILC.c_dp_sf)*this_dphi>min_dphi){
+    min_dphi = (ILC.c_dp_sf)*this_dphi;
     max_dphi = 2.0f*min_dphi;
   }
 
