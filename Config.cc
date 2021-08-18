@@ -105,6 +105,7 @@ namespace Config
 
   bool  kludgeCmsHitErrors = false;
   bool  backwardFit = false;
+  bool  backwardSearch = true;
   bool  includePCA = false;
 
   bool        json_dump_before = false;

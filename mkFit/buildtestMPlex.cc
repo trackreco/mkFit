@@ -537,7 +537,7 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
       // b) Version that runs on CombCand / TrackCand
       builder.BackwardFit();
 
-      if (itconf.m_backward_search)
+      if (Config::backwardSearch && itconf.m_backward_search)
       {
         builder.BeginBkwSearch();
         builder.FindTracksCloneEngine(SteeringParams::IT_BkwSearch);

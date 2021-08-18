@@ -159,6 +159,7 @@ public:
 
   // Iteration parameters (could be a ptr)
   IterationParams                     m_params;
+  IterationParams                     m_backward_params;
 
   int                                 m_n_regions;
   std::vector<int>                    m_region_order;

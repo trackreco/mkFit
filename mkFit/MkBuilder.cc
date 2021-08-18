@@ -1646,12 +1646,16 @@ void MkBuilder::FindTracksStandard(SteeringParams::IterationType_e iteration_dir
       dprintf("\nMkBuilder::FindTracksStandard region=%d, seed_pickup_layer=%d, first_layer=%d\n",
               region, curr_layer, layer_plan_it.next_layer());
 
+      auto &iter_params = (iteration_dir == SteeringParams::IT_BkwSearch) ?
+                          m_job->m_iter_config.m_backward_params :
+                          m_job->m_iter_config.m_params;
+
       // Loop over layers, starting from after the seed.
       while (++layer_plan_it)
       {
         prev_layer = curr_layer;
         curr_layer = layer_plan_it.layer();
-        mkfndr->Setup(m_job->m_iter_config.m_params, m_job->m_iter_config.m_layer_configs[curr_layer],
+        mkfndr->Setup(iter_params, m_job->m_iter_config.m_layer_configs[curr_layer],
                       m_job->get_mask_for_layer(curr_layer));
 
         dprintf("\n* Processing layer %d\n", curr_layer);
@@ -1864,17 +1868,16 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
   dprintf("\nMkBuilder::find_tracks_in_layers region=%d, seed_pickup_layer=%d, first_layer=%d; start_seed=%d, end_seed=%d\n",
          region, curr_layer, layer_plan_it.next_layer(), start_seed, end_seed);
 
-  IterationParams hacked_params( params );
-  if (iteration_dir == SteeringParams::IT_BkwSearch) {
-    hacked_params.maxHolesPerCand = 2;
-    hacked_params.maxConsecHoles = 1;
-  }
+  auto &iter_params = (iteration_dir == SteeringParams::IT_BkwSearch) ?
+                       m_job->m_iter_config.m_backward_params :
+                       m_job->m_iter_config.m_params;
+
   // Loop over layers according to plan.
   while (++layer_plan_it)
   {
     prev_layer = curr_layer;
     curr_layer = layer_plan_it.layer();
-    mkfndr->Setup(hacked_params, m_job->m_iter_config.m_layer_configs[curr_layer],
+    mkfndr->Setup(iter_params, m_job->m_iter_config.m_layer_configs[curr_layer],
                   m_job->get_mask_for_layer(curr_layer));
 
     const bool pickup_only = layer_plan_it.is_pickup_only();
