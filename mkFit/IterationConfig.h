@@ -155,8 +155,11 @@ public:
   bool  m_require_quality_filter    = false;
   bool  m_require_dupclean_tight    = false;
 
+  bool  m_backward_search           = false;
+
   // Iteration parameters (could be a ptr)
   IterationParams                     m_params;
+  IterationParams                     m_backward_params;
 
   int                                 m_n_regions;
   std::vector<int>                    m_region_order;
@@ -239,6 +242,7 @@ public:
     m_n_regions = nreg;
     m_region_order.resize(nreg);
     m_steering_params.resize(nreg);
+    for (int i = 0; i < nreg; ++i) m_steering_params[i].m_region = i;
     m_layer_configs.resize(nlay);
   }
 

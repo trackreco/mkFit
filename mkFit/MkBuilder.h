@@ -153,9 +153,12 @@ public:
   void import_seeds(const TrackVec &in_seeds, std::function<insert_seed_foo> insert_seed);
 
   int  filter_comb_cands(std::function<filter_track_cand_foo> filter);
-  void select_best_comb_cands();
+  void select_best_comb_cands(bool clear_m_tracks=false);
   void export_best_comb_cands(TrackVec &out_vec);
   void export_tracks(TrackVec &out_vec);
+
+  void BeginBkwSearch() { m_event_of_comb_cands.BeginBkwSearch(); }
+  void EndBkwSearch()   { m_event_of_comb_cands.EndBkwSearch(); }
 
   // MIMI hack to export tracks for BH
   const TrackVec& ref_tracks() const { return m_tracks; }
@@ -171,7 +174,7 @@ public:
   void quality_reset();
   void quality_process(Track& tkcand, const int itrack, std::map<int,int> & cmsswLabelToPos);
   void quality_print();
-  void track_print(Track &t, const char* pref);
+  void track_print(const Track &t, const char* pref);
 
   void quality_store_tracks(TrackVec & tracks);
 
@@ -201,6 +204,7 @@ public:
                                         const int itrack, const int end);
 
   void find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
+                             SteeringParams::IterationType_e iteration_dir,
                              const int start_seed, const int end_seed, const int region);
 
   // --------
@@ -208,9 +212,9 @@ public:
 
   void PrepareSeeds();
 
-  void FindTracksBestHit();
-  void FindTracksStandard();
-  void FindTracksCloneEngine();
+  void FindTracksBestHit(SteeringParams::IterationType_e iteration_dir=SteeringParams::IT_FwdSearch);
+  void FindTracksStandard(SteeringParams::IterationType_e iteration_dir=SteeringParams::IT_FwdSearch);
+  void FindTracksCloneEngine(SteeringParams::IterationType_e iteration_dir=SteeringParams::IT_FwdSearch);
 
   void BackwardFitBH();
   void fit_cands_BH(MkFinder *mkfndr, int start_cand, int end_cand, int region);

@@ -389,6 +389,7 @@ namespace Config
 
   extern bool   kludgeCmsHitErrors;
   extern bool   backwardFit;
+  extern bool   backwardSearch;
   extern bool   includePCA;
 
   // NAN and silly track parameter tracking options

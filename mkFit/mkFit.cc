@@ -347,7 +347,7 @@ void test_standard()
 	  StdSeq::LoadDeads(eoh, deadvectors);
 	}
 
-        double t_best[NT] = {0}, t_cur[NT];
+        double t_best[NT] = {0}, t_cur[NT] = {0};
         std::vector<double> t_cur_iter;
         simtrackstot += ev.simTracks_.size();
         seedstot     += ev.seedTracks_.size();
@@ -568,6 +568,8 @@ int main(int argc, const char *argv[])
         "  --use-phiq-arr           use phi-Q arrays in select hit indices (def: %s)\n"
         "  --kludge-cms-hit-errors  make sure err(xy) > 15 mum, err(z) > 30 mum (def: %s)\n"
         "  --backward-fit           perform backward fit during building (def: %s)\n"
+        "  --no-backward-search     do not do backward search after backward fit\n"
+        "                           (def: do search if backward-fit is enabled and available in given iteration)\n"
         "  --include-pca            do the backward fit to point of closest approach, does not imply '--backward-fit' (def: %s)\n"
 	"\n----------------------------------------------------------------------------------------------------------\n\n"
 	"Validation options\n\n"
@@ -910,6 +912,10 @@ int main(int argc, const char *argv[])
     else if(*i == "--backward-fit")
     {
       Config::backwardFit = true;
+    }
+    else if(*i == "--no-backward-search")
+    {
+      Config::backwardSearch = false;
     }
     else if(*i == "--include-pca")
     {

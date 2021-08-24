@@ -1411,9 +1411,9 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
   float    tmp_err[6] = { 666, 0, 666, 0, 0, 666 };
   float    tmp_pos[3];
 
-  for (auto lp_iter = st_par.m_layer_plan.rbegin(); lp_iter != st_par.m_layer_plan.rend(); ++lp_iter)
+  for (auto lp_iter = st_par.make_iterator(SteeringParams::IT_BkwFit); lp_iter.is_valid(); ++lp_iter)
   {
-    const int layer = lp_iter->m_layer;
+    const int layer = lp_iter.layer();
 
     const LayerOfHits &L  =   eventofhits.m_layers_of_hits[layer];
     const LayerInfo   &LI = * L.m_layer_info;
@@ -1481,6 +1481,16 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
 
       kalmanOperationEndcap(KFO_Calculate_Chi2 | KFO_Update_Params,
                             Err[iP], Par[iP], msErr, msPar, Err[iC], Par[iC], tmp_chi2, N_proc);
+    }
+
+    //fixup invpt sign and charge
+    for (int n = 0; n < N_proc; ++n)
+    {
+      if (Par[iC].At(n,3,0) < 0)
+      {
+        Chg.At(n, 0, 0)  = -Chg.At(n, 0, 0);
+        Par[iC].At(n,3,0) = -Par[iC].At(n,3,0);
+      }
     }
 
     for (int i = 0; i < N_proc; ++i)

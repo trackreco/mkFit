@@ -36,7 +36,7 @@ namespace
       sp.append_plan(47, false);
       sp.fill_plan(48, 53); // TID,  6 layers
       sp.fill_plan(54, 71); // TEC, 18 layers
-      sp.finalize_plan();
+      sp.set_iterator_limits(2, 0);
     }
     {
       SteeringParams &sp = ic.m_steering_params[TrackerInfo::Reg_Transition_Neg];
@@ -51,7 +51,7 @@ namespace
       sp.fill_plan(48, 53); // TID,  6 layers
       sp.fill_plan(10, 17); // TOB,  8 layers
       sp.fill_plan(54, 71); // TEC, 18 layers
-      sp.finalize_plan();
+      sp.set_iterator_limits(2, 0);
     }
     {
       SteeringParams &sp = ic.m_steering_params[TrackerInfo::Reg_Barrel];
@@ -59,9 +59,9 @@ namespace
       sp.fill_plan(0, 1, false, true); // bk-fit only
       sp.append_plan(2, true);         // pickup-only
       sp.append_plan(3, false);
-      sp.fill_plan(4, 9);   // TIB, 6 layers
-      sp.fill_plan(10, 17); // TOB, 8 layers
-      sp.finalize_plan();
+      sp.fill_plan(4, 9);   // TIB, 6 layers [ 4,  9]
+      sp.fill_plan(10, 17); // TOB, 8 layers [10, 17]
+      sp.set_iterator_limits(2, 0);
     }
     {
       SteeringParams &sp = ic.m_steering_params[TrackerInfo::Reg_Transition_Pos];
@@ -72,11 +72,11 @@ namespace
       sp.append_plan(18, false);
       sp.append_plan(19, false);
       sp.append_plan(20, false);
-      sp.fill_plan(4, 9);   // TIB,  6 layers
-      sp.fill_plan(21, 26); // TID,  6 layers
-      sp.fill_plan(10, 17); // TOB,  8 layers
-      sp.fill_plan(27, 44); // TEC, 18 layers
-      sp.finalize_plan();
+      sp.fill_plan(4, 9);   // TIB,  6 layers [ 7, 12]
+      sp.fill_plan(21, 26); // TID,  6 layers [13, 18]
+      sp.fill_plan(10, 17); // TOB,  8 layers [19, 26]
+      sp.fill_plan(27, 44); // TEC, 18 layers [27, 44]
+      sp.set_iterator_limits(2, 0);
     }
     {
       SteeringParams &sp = ic.m_steering_params[TrackerInfo::Reg_Endcap_Pos];
@@ -86,10 +86,40 @@ namespace
       sp.append_plan(18, false);
       sp.append_plan(19, false);
       sp.append_plan(20, false);
-      sp.fill_plan(21, 26); // TID,  6 layers
-      sp.fill_plan(27, 44); // TEC, 18 layers
-      sp.finalize_plan();
+      sp.fill_plan(21, 26); // TID,  6 layers [ 6, 11]
+      sp.fill_plan(27, 44); // TEC, 18 layers [12, 29]
+      sp.set_iterator_limits(2, 0);
     }
+  }
+
+  void OverrideSteeringParams_Iter7(IterationConfig& ic)
+  {
+    ic.m_backward_search = true;
+    ic.m_backward_params = ic.m_params;
+    ic.m_backward_params.maxHolesPerCand = 2;
+    ic.m_backward_params.maxConsecHoles  = 2;
+    // Remove pixel layers from FwdSearch, add them to BkwSearch
+    auto &spv = ic.m_steering_params;
+    spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(8, 6, 19);
+    spv[TrackerInfo::Reg_Transition_Neg].set_iterator_limits(9, 7, 34);
+    spv[TrackerInfo::Reg_Barrel]        .set_iterator_limits(6, 4, 8);
+    spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(9, 7, 34);
+    spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(8, 6, 19);
+  }
+
+  void OverrideSteeringParams_Iter8(IterationConfig& ic)
+  {
+    ic.m_backward_search = true;
+    ic.m_backward_params = ic.m_params;
+    ic.m_backward_params.maxHolesPerCand = 2;
+    ic.m_backward_params.maxConsecHoles  = 2;
+    // Remove pixel/tib/tid layers from FwdSearch, add them to BkwSearch/
+    auto &spv = ic.m_steering_params;
+    spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(12, 12, 24);
+    spv[TrackerInfo::Reg_Transition_Neg].set_iterator_limits(27, 19, 39);
+    spv[TrackerInfo::Reg_Barrel]        .set_iterator_limits(12, 10, 14);
+    spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(27, 19, 39);
+    spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(12, 12, 24);
   }
 
   void SetupIterationParams(IterationParams& ip, unsigned int it=0)
@@ -391,6 +421,7 @@ namespace
     fill_hit_selection_windows_params(ii[6]);
 
     ii[7].Clone(ii[0]);
+    OverrideSteeringParams_Iter7(ii[7]);
     SetupIterationParams(ii[7].m_params, 7);
     ii[7].set_iteration_index_and_track_algorithm(7, (int) TrackBase::TrackAlgorithm::pixelLessStep);
     ii[7].set_seed_cleaning_params(2.0, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135);
@@ -399,6 +430,7 @@ namespace
     fill_hit_selection_windows_params(ii[7]);
 
     ii[8].Clone(ii[0]);
+    OverrideSteeringParams_Iter8(ii[8]);
     SetupIterationParams(ii[8].m_params, 8);
     ii[8].set_iteration_index_and_track_algorithm(8, (int) TrackBase::TrackAlgorithm::tobTecStep);
     ii[8].set_seed_cleaning_params(2.0, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135);    
