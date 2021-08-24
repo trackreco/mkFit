@@ -9,14 +9,14 @@
 
 #include "Ice/IceRevisitedRadix.h"
 
-//#define DEBUG
+#define DEBUG
 #include "Debug.h"
 
 #include "tbb/parallel_for.h"
 #include "tbb/parallel_for_each.h"
 
 // Set this to select a single track for deep debugging:
-//#define SELECT_SEED_LABEL -494
+#define SELECT_SEED_LABEL 9
 
 namespace mkfit {
 ExecutionContext g_exe_ctx;
@@ -1796,7 +1796,7 @@ void MkBuilder::FindTracksStandard(SteeringParams::IterationType_e iteration_dir
 
 void MkBuilder::FindTracksCloneEngine(SteeringParams::IterationType_e iteration_dir)
 {
-  // debug = true;
+  debug = true;
 
   EventOfCombCandidates &eoccs = m_event_of_comb_cands;
 
@@ -1829,7 +1829,7 @@ void MkBuilder::FindTracksCloneEngine(SteeringParams::IterationType_e iteration_
     });
   });
 
-  // debug = false;
+  debug = false;
 }
 
 void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,

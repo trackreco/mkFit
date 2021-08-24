@@ -375,6 +375,54 @@ double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuild
   // first store candidate tracks - needed for BH backward fit and root_validation
   builder.quality_store_tracks(ev.candidateTracks_);
 
+  std::cout << "found tracks size = " << ev.candidateTracks_.size() << std::endl;
+  size_t itk = 0;
+  for (auto& tk : ev.candidateTracks_) {
+    itk++;
+    if (tk.nUniqueLayers()!=4) continue;
+    // if (tk.pT()<0.5) continue;
+    // if (tk.pT()>15) continue;
+    if (std::fabs(tk.momEta())<2.0) continue;
+    if (std::fabs(tk.momEta())>2.4) continue;
+    std::cout << std::endl;
+    std::cout << "Itk=" << itk << " label=" << tk.label() << " eta=" << tk.momEta()  << " theta=" << tk.theta()
+	      << " phi=" << tk.momPhi() << " invPt=" << tk.invpT() << " nhits=" << tk.nFoundHits() << " nlay=" << tk.nUniqueLayers() << std::endl;
+    std::cout << std::setprecision(9) << "params = {" << tk.parameters() << "}," << std::endl;
+    std::cout << "diag errors = { ";
+    for (size_t i=0;i<6;i++) std::cout << std::setprecision(9) << tk.errors().At(i,i) << ", ";
+    std::cout << "}," << std::endl;
+    std::cout << "errors = { ";
+    for (size_t i=0;i<21;i++) std::cout << std::setprecision(9) << tk.errors().Array()[i] << ", ";
+    std::cout << "}," << std::endl;
+    std::cout << tk.charge() << std::endl;
+    for (auto& layHits : ev.layerHits_ ) {
+      for (auto& hit : layHits ) {
+	if (hit.mcTrackID(ev.simHitsInfo_)==tk.label()) {
+	  std::cout << "hit r=" << hit.r() << " z=" << hit.z()
+		    << " mcid=" << hit.mcHitID()
+		    << " layer=" << hit.layer(ev.simHitsInfo_)
+		    << " mcTrackID=" << hit.mcTrackID(ev.simHitsInfo_)
+		    << std::endl;
+	  std::cout << std::setprecision(9) << "\t{" << hit.parameters() << "}," << std::endl;
+	  std::cout << "\t{";
+	  for (size_t i=0;i<6;i++) std::cout << std::setprecision(9) << hit.error().Array()[i] << ", ";
+	  std::cout << "}" << std::endl;
+	}
+      }
+    }
+    //simTracks_
+    std::cout << "sim eta=" << ev.simTracks_[tk.label()].momEta()
+	      << " pt=" << ev.simTracks_[tk.label()].pT()
+	      << " q=" << ev.simTracks_[tk.label()].charge() << std::endl;
+    //seedTracks_
+    std::cout << "seed eta=" << ev.seedTracks_[itk-1].momEta() << std::endl;
+    std::cout << std::setprecision(9) << "parameters = {" << ev.seedTracks_[itk-1].parameters() << "}," << std::endl;
+    std::cout << "diag errors = { ";
+    for (size_t i=0;i<6;i++) std::cout << std::setprecision(9) << ev.seedTracks_[itk-1].errors().At(i,i) << ", ";
+    std::cout << "}," << std::endl;
+    std::cout << tk.charge() << std::endl;
+  }
+
   // now do backwards fit... do we want to time this section?
   if (Config::backwardFit)
   {

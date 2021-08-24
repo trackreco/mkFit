@@ -9,7 +9,7 @@
 
 #include "MatriplexPackers.h"
 
-//#define DEBUG
+#define DEBUG
 #include "Debug.h"
 
 //#ifdef DEBUG_BACKWARD_FIT
@@ -220,7 +220,7 @@ inline float MkFinder::getHitSelDynamicChi2Cut(const int itrk, const int ipar)
 void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
                                 const int N_proc)
 {
-  // bool debug = true;
+  bool debug = true;
 
   const LayerOfHits &L = layer_of_hits;
   const IterationLayerConfig &ILC = *m_iteration_layer_config;
@@ -661,6 +661,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       } //pi
     } //qi
   } //itrack
+  debug = false;
 }
 
 
@@ -983,7 +984,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
                                          const int offset, const int N_proc,
                                          const FindingFoos &fnd_foos)
 {
-  // bool debug = true;
+  bool debug = true;
 
   MatriplexHitPacker mhp(* layer_of_hits.GetHitArray());
 
@@ -1110,6 +1111,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
     cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
     dprint("adding invalid hit " << fake_hit_idx);
   }
+  debug = false;
 }
 
 

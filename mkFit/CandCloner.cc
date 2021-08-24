@@ -3,7 +3,7 @@
 #include "HitStructures.h"
 #include "IterationConfig.h"
 
-//#define DEBUG
+#define DEBUG
 #include "Debug.h"
 
 namespace
@@ -37,7 +37,7 @@ void CandCloner::ProcessSeedRange(int is_beg, int is_end)
 {
   // Process new hits for a range of seeds.
 
-  // bool debug = true;
+  bool debug = true;
 
   dprintf("\nCandCloner::ProcessSeedRange is_beg=%d, is_end=%d\n", is_beg, is_end);
 
