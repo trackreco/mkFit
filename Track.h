@@ -657,6 +657,7 @@ inline float getScoreCalc(const int nfoundhits,
     penalty += 0.5*Config::missingHitPenalty_; 
     bonus = std::min(bonus, maxBonus);
   }
+  //if (pt>10) bonus*=2.;
   float score_ = bonus*nfoundhits + Config::overlapHitBonus_*noverlaphits - penalty*nmisshits - Config::tailMissingHitPenalty_*ntailholes - chi2;
   std::cout << "bonus=" << bonus << " nfoundhits=" << nfoundhits << " penalty=" << penalty << " nmisshits=" << nmisshits << " tailPnty=" << Config::tailMissingHitPenalty_ << " ntailholes=" << ntailholes << " chi2=" << chi2 <<  " score=" << score_ << std::endl;
   return score_;
