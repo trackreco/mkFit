@@ -1039,31 +1039,54 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
         dprint("chi2=" << chi2 << " for trkIdx=" << itrack << " hitIdx=" << XHitArr.At(itrack, hit_cnt, 0));
         if (chi2 < max_c2)
         {
-          nHitsAdded[itrack]++;
-          const int hit_idx = XHitArr.At(itrack, hit_cnt, 0);
-
-          // Register hit for overlap consideration, here we apply chi2 cut
-          if (chi2 < m_iteration_params->chi2CutOverlap)
-          {
-            CombCandidate &ccand = cloner.mp_event_of_comb_candidates->m_candidates[ SeedIdx(itrack, 0, 0) ];
-            ccand.considerHitForOverlap(CandIdx(itrack, 0, 0), hit_idx, layer_of_hits.GetHit(hit_idx).detIDinLayer(), chi2);
+          bool isCompatible = true;
+          if (!layer_of_hits.is_pix_lyr()) {//check module compatibility via long strip side = L/sqrt(12)
+            if (layer_of_hits.is_barrel()) {//check z direction only
+              const float res = std::abs(msPar.At(itrack,2,0) - Par[iP].At(itrack,2,0));
+              const float hitHL = sqrt(msErr.At(itrack,2,2)*3.f);//half-length
+              const float qErr = sqrt(Err[iP].At(itrack,2,2));
+              isCompatible = hitHL + 3.f * qErr > res;
+              dprint("qCompat "<<isCompatible<<" "<< hitHL <<" + "<<3.f*qErr<<" vs "<<res);
+            } else {//project on xy, assuming the strip Length >> Width
+              const float res[2] {msPar.At(itrack,0,0) - Par[iP].At(itrack,0,0), msPar.At(itrack,1,0) - Par[iP].At(itrack,1,0)};
+              const float hitT2 = msErr.At(itrack,0,0) + msErr.At(itrack,1,1);
+              const float hitT2inv = 1.f/hitT2;
+              const float proj[3] = {msErr.At(itrack,0,0)*hitT2inv, msErr.At(itrack,0,1)*hitT2inv, msErr.At(itrack,1,1)*hitT2inv};
+              const float qErr = sqrt(Err[iP].At(itrack,0,0)+Err[iP].At(itrack,1,1));//this is not precise, but avoids decomposition
+              const float resProj = sqrt(res[0]*proj[0]*res[0] + 2.f*res[1]*proj[1]*res[0] + res[1]*proj[2]*res[1]);
+              isCompatible = sqrt(hitT2*3.f) + 3.f*qErr > resProj;
+              dprint("qCompat "<<isCompatible<<" "<< sqrt(hitT2*3.f) <<" + "<<3.f*qErr<<" vs "<<resProj);
+            }
           }
 
-          IdxChi2List tmpList;
-          tmpList.trkIdx   = CandIdx(itrack, 0, 0);
-          tmpList.hitIdx   = hit_idx;
-          tmpList.module   = layer_of_hits.GetHit(hit_idx).detIDinLayer();
-          tmpList.nhits    = NFoundHits(itrack,0,0) + 1;
-          tmpList.ntailholes= 0;
-          tmpList.noverlaps= NOverlapHits(itrack,0,0);
-          tmpList.nholes   = num_all_minus_one_hits(itrack);
-          tmpList.pt       = std::abs(1.0f / Par[iP].At(itrack,3,0));
-          tmpList.chi2     = Chi2(itrack, 0, 0) + chi2;
-          tmpList.chi2_hit = chi2;
-          tmpList.score    = getScoreStruct(tmpList);
-          cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
+          if (isCompatible) {
 
-          dprint("  adding hit with hit_cnt=" << hit_cnt << " for trkIdx=" << tmpList.trkIdx << " orig Seed=" << Label(itrack, 0, 0));
+            nHitsAdded[itrack]++;
+            const int hit_idx = XHitArr.At(itrack, hit_cnt, 0);
+
+            // Register hit for overlap consideration, here we apply chi2 cut
+            if (chi2 < m_iteration_params->chi2CutOverlap)
+            {
+              CombCandidate &ccand = cloner.mp_event_of_comb_candidates->m_candidates[ SeedIdx(itrack, 0, 0) ];
+              ccand.considerHitForOverlap(CandIdx(itrack, 0, 0), hit_idx, layer_of_hits.GetHit(hit_idx).detIDinLayer(), chi2);
+            }
+
+            IdxChi2List tmpList;
+            tmpList.trkIdx   = CandIdx(itrack, 0, 0);
+            tmpList.hitIdx   = hit_idx;
+            tmpList.module   = layer_of_hits.GetHit(hit_idx).detIDinLayer();
+            tmpList.nhits    = NFoundHits(itrack,0,0) + 1;
+            tmpList.ntailholes= 0;
+            tmpList.noverlaps= NOverlapHits(itrack,0,0);
+            tmpList.nholes   = num_all_minus_one_hits(itrack);
+            tmpList.pt       = std::abs(1.0f / Par[iP].At(itrack,3,0));
+            tmpList.chi2     = Chi2(itrack, 0, 0) + chi2;
+            tmpList.chi2_hit = chi2;
+            tmpList.score    = getScoreStruct(tmpList);
+            cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
+
+            dprint("  adding hit with hit_cnt=" << hit_cnt << " for trkIdx=" << tmpList.trkIdx << " orig Seed=" << Label(itrack, 0, 0));
+          }
         }
       }
     }
