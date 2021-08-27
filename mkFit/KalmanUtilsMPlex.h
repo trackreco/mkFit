@@ -35,7 +35,7 @@ void kalmanComputeChi2(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQ
 
 void kalmanPropagateAndComputeChi2(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
                                    const MPlexHS &msErr,  const MPlexHV& msPar,
-                                         MPlexQF& outChi2,
+                                         MPlexQF& outChi2,      MPlexLV& propPar,
                                    const int      N_proc, const PropagationFlags propFlags);
 
 
@@ -66,7 +66,7 @@ void kalmanComputeChi2Endcap(const MPlexLS &psErr,  const MPlexLV& psPar, const 
 
 void kalmanPropagateAndComputeChi2Endcap(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
                                          const MPlexHS &msErr,  const MPlexHV& msPar,
-                                               MPlexQF& outChi2,
+                                               MPlexQF& outChi2,      MPlexLV& propPar,
                                          const int      N_proc, const PropagationFlags propFlags);
 
 

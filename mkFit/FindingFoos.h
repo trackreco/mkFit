@@ -9,7 +9,7 @@ class MkBase;
 
 #define COMPUTE_CHI2_ARGS const MPlexLS &,  const MPlexLV &, const MPlexQI &, \
                           const MPlexHS &,  const MPlexHV &, \
-                          MPlexQF &,  const int, const PropagationFlags
+                                MPlexQF &,        MPlexLV &, const int, const PropagationFlags
 
 #define UPDATE_PARAM_ARGS const MPlexLS &,  const MPlexLV &, MPlexQI &, \
                           const MPlexHS &,  const MPlexHV &, \

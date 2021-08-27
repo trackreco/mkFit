@@ -504,9 +504,10 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 	    msPar.CopyIn(itrack, thishit.posArray());
 
 	    MPlexQF thisOutChi2;
-      const FindingFoos &fnd_foos = FindingFoos::get_finding_foos(L.is_barrel());
-      (*fnd_foos.m_compute_chi2_foo)(Err[iI], Par[iI], Chg, msErr, msPar,
-						thisOutChi2, N_proc, Config::finding_intra_layer_pflags);
+            MPlexLV tmpPropPar;
+            const FindingFoos &fnd_foos = FindingFoos::get_finding_foos(L.is_barrel());
+            (*fnd_foos.m_compute_chi2_foo)(Err[iI], Par[iI], Chg, msErr, msPar,
+                                           thisOutChi2, tmpPropPar, N_proc, Config::finding_intra_layer_pflags);
 
 	    float hx    = thishit.x();
 	    float hy    = thishit.y();
@@ -718,8 +719,9 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
+    MPlexLV tmpPropPar;
     (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                   outChi2, N_proc, Config::finding_intra_layer_pflags);
+                                   outChi2, tmpPropPar, N_proc, Config::finding_intra_layer_pflags);
 
     //update best hit in case chi2<minChi2
 #pragma omp simd
@@ -857,8 +859,9 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
+    MPlexLV tmpPropPar;
     (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                   outChi2, N_proc, Config::finding_intra_layer_pflags);
+                                   outChi2, tmpPropPar, N_proc, Config::finding_intra_layer_pflags);
 
     // Now update the track parameters with this hit (note that some
     // calculations are already done when computing chi2, to be optimized).
@@ -1022,7 +1025,9 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
-    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar, outChi2, N_proc, Config::finding_intra_layer_pflags);
+    MPlexLV propPar;
+    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar, 
+                                   outChi2, propPar, N_proc, Config::finding_intra_layer_pflags);
 
 #pragma omp simd // DOES NOT VECTORIZE AS IT IS NOW
     for (int itrack = 0; itrack < N_proc; ++itrack)
@@ -1042,19 +1047,19 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
           bool isCompatible = true;
           if (!layer_of_hits.is_pix_lyr()) {//check module compatibility via long strip side = L/sqrt(12)
             if (layer_of_hits.is_barrel()) {//check z direction only
-              const float res = std::abs(msPar.At(itrack,2,0) - Par[iP].At(itrack,2,0));
+              const float res = std::abs(msPar.At(itrack,2,0) - propPar.At(itrack,2,0));
               const float hitHL = sqrt(msErr.At(itrack,2,2)*3.f);//half-length
               const float qErr = sqrt(Err[iP].At(itrack,2,2));
-              isCompatible = hitHL + 3.f * qErr > res;
+              isCompatible = hitHL + std::max(3.f * qErr, 0.5f) > res;
               dprint("qCompat "<<isCompatible<<" "<< hitHL <<" + "<<3.f*qErr<<" vs "<<res);
             } else {//project on xy, assuming the strip Length >> Width
-              const float res[2] {msPar.At(itrack,0,0) - Par[iP].At(itrack,0,0), msPar.At(itrack,1,0) - Par[iP].At(itrack,1,0)};
+              const float res[2] {msPar.At(itrack,0,0) - propPar.At(itrack,0,0), msPar.At(itrack,1,0) - propPar.At(itrack,1,0)};
               const float hitT2 = msErr.At(itrack,0,0) + msErr.At(itrack,1,1);
               const float hitT2inv = 1.f/hitT2;
               const float proj[3] = {msErr.At(itrack,0,0)*hitT2inv, msErr.At(itrack,0,1)*hitT2inv, msErr.At(itrack,1,1)*hitT2inv};
               const float qErr = sqrt(Err[iP].At(itrack,0,0)+Err[iP].At(itrack,1,1));//this is not precise, but avoids decomposition
               const float resProj = sqrt(res[0]*proj[0]*res[0] + 2.f*res[1]*proj[1]*res[0] + res[1]*proj[2]*res[1]);
-              isCompatible = sqrt(hitT2*3.f) + 3.f*qErr > resProj;
+              isCompatible = sqrt(hitT2*3.f) + std::max(3.f*qErr, 0.5f) > resProj;
               dprint("qCompat "<<isCompatible<<" "<< sqrt(hitT2*3.f) <<" + "<<3.f*qErr<<" vs "<<resProj);
             }
           }

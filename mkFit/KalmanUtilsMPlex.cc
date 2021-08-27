@@ -517,13 +517,13 @@ void kalmanComputeChi2(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQ
 
 void kalmanPropagateAndComputeChi2(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
                                    const MPlexHS &msErr,  const MPlexHV& msPar,
-                                         MPlexQF& outChi2,
+                                         MPlexQF& outChi2,      MPlexLV& propPar,
                                    const int      N_proc, const PropagationFlags propFlags)
 {
+  propPar = psPar;
   if (Config::finding_requires_propagation_to_hit_pos)
   {
     MPlexLS propErr;
-    MPlexLV propPar;
     MPlexQF msRad;
 #pragma omp simd
     for (int n = 0; n < NN; ++n)
@@ -743,13 +743,13 @@ void kalmanComputeChi2Endcap(const MPlexLS &psErr,  const MPlexLV& psPar, const 
 
 void kalmanPropagateAndComputeChi2Endcap(const MPlexLS &psErr,  const MPlexLV& psPar, const MPlexQI &inChg,
                                          const MPlexHS &msErr,  const MPlexHV& msPar,
-                                               MPlexQF& outChi2,
+                                               MPlexQF& outChi2,      MPlexLV& propPar,
                                          const int      N_proc, const PropagationFlags propFlags)
 {
+  propPar = psPar;
   if (Config::finding_requires_propagation_to_hit_pos)
   {
     MPlexLS propErr;
-    MPlexLV propPar;
     MPlexQF msZ;
 #pragma omp simd
     for (int n = 0; n < NN; ++n)
