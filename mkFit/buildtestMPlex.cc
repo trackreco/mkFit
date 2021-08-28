@@ -646,19 +646,29 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
       { return StdSeq::qfilter_n_hits_pixseed(t, 3); });
   }
 
-  if (do_backward_fit)
-  {
-    builder.BackwardFit();
 
-    if (itconf.m_backward_search)
+  if (itconf.m_backward_search)
+  {
+    if (do_backward_fit)
     {
-      builder.BeginBkwSearch();
-      builder.FindTracksCloneEngine(SteeringParams::IT_BkwSearch);
-      builder.EndBkwSearch();
+        builder.BackwardFit();
+
+        builder.BeginBkwSearch();
+        builder.FindTracksCloneEngine(SteeringParams::IT_BkwSearch);
+        builder.EndBkwSearch();
     }
+    builder.export_best_comb_cands(out_tracks);
+  }
+  else
+  {
+    builder.select_best_comb_cands();
+    if (do_backward_fit)
+    {
+      builder.BackwardFitBH();
+    }
+    builder.export_tracks(out_tracks);
   }
 
-  builder.export_best_comb_cands(out_tracks);
 
   if (do_remove_duplicates)
   {
