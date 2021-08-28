@@ -531,20 +531,23 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
     // now do backwards fit... do we want to time this section?
     if (Config::backwardFit)
     {
-      // a) TrackVec version:
-      // builder.BackwardFitBH();
-
-      // b) Version that runs on CombCand / TrackCand
-      builder.BackwardFit();
-
-      if (Config::backwardSearch && itconf.m_backward_search)
+      if (!(Config::backwardSearch && itconf.m_backward_search))
       {
+        // a) TrackVec version:
+        builder.BackwardFitBH();
+      }
+      else
+      {
+        // b) Version that runs on CombCand / TrackCand
+        builder.BackwardFit();
+
         builder.BeginBkwSearch();
         builder.FindTracksCloneEngine(SteeringParams::IT_BkwSearch);
         builder.EndBkwSearch();
-      }
 
-      builder.select_best_comb_cands(true); // true -> clear m_tracks as they were already filled once above
+        builder.select_best_comb_cands(true); // true -> clear m_tracks as they were already filled once above
+      }
+      
 
       StdSeq::find_and_remove_duplicates(builder.ref_tracks_nc(), itconf);
       builder.export_tracks(ev.fitTracks_);
