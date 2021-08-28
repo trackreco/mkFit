@@ -1057,7 +1057,8 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
               const float hitT2 = msErr.At(itrack,0,0) + msErr.At(itrack,1,1);
               const float hitT2inv = 1.f/hitT2;
               const float proj[3] = {msErr.At(itrack,0,0)*hitT2inv, msErr.At(itrack,0,1)*hitT2inv, msErr.At(itrack,1,1)*hitT2inv};
-              const float qErr = sqrt(Err[iP].At(itrack,0,0)+Err[iP].At(itrack,1,1));//this is not precise, but avoids decomposition
+              const float qErr = sqrt(std::abs(Err[iP].At(itrack,0,0)*proj[0] + 2.f*Err[iP].At(itrack,0,1)*proj[1] 
+                                               + Err[iP].At(itrack,1,1)*proj[2]));//take abs to avoid non-pos-def cases
               const float resProj = sqrt(res[0]*proj[0]*res[0] + 2.f*res[1]*proj[1]*res[0] + res[1]*proj[2]*res[1]);
               isCompatible = sqrt(hitT2*3.f) + std::max(3.f*qErr, 0.5f) > resProj;
               dprint("qCompat "<<isCompatible<<" "<< sqrt(hitT2*3.f) <<" + "<<3.f*qErr<<" vs "<<resProj);
