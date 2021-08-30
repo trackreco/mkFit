@@ -504,9 +504,10 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
 	    msPar.CopyIn(itrack, thishit.posArray());
 
 	    MPlexQF thisOutChi2;
-      const FindingFoos &fnd_foos = FindingFoos::get_finding_foos(L.is_barrel());
-      (*fnd_foos.m_compute_chi2_foo)(Err[iI], Par[iI], Chg, msErr, msPar,
-						thisOutChi2, N_proc, Config::finding_intra_layer_pflags);
+            MPlexLV tmpPropPar;
+            const FindingFoos &fnd_foos = FindingFoos::get_finding_foos(L.is_barrel());
+            (*fnd_foos.m_compute_chi2_foo)(Err[iI], Par[iI], Chg, msErr, msPar,
+                                           thisOutChi2, tmpPropPar, N_proc, Config::finding_intra_layer_pflags);
 
 	    float hx    = thishit.x();
 	    float hy    = thishit.y();
@@ -718,8 +719,9 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
+    MPlexLV tmpPropPar;
     (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                   outChi2, N_proc, Config::finding_intra_layer_pflags);
+                                   outChi2, tmpPropPar, N_proc, Config::finding_intra_layer_pflags);
 
     //update best hit in case chi2<minChi2
 #pragma omp simd
@@ -810,6 +812,34 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
   //std::cout << "Par[iP](0,0,0)=" << Par[iP](0,0,0) << " Par[iC](0,0,0)=" << Par[iC](0,0,0)<< std::endl;
 }
 
+//=======================================================
+// isStripQCompatible : check if prop is consistent with the barrel/endcap strip length
+//=======================================================
+bool isStripQCompatible(int itrack, bool isBarrel, const MPlexLS &pErr,  const MPlexLV &pPar,
+                        const MPlexHS &msErr,  const MPlexHV &msPar)
+{
+  //check module compatibility via long strip side = L/sqrt(12)
+  if (isBarrel) {//check z direction only
+    const float res = std::abs(msPar.ConstAt(itrack,2,0) - pPar.ConstAt(itrack,2,0));
+    const float hitHL = sqrt(msErr.ConstAt(itrack,2,2)*3.f);//half-length
+    const float qErr = sqrt(pErr.ConstAt(itrack,2,2));
+    dprint("qCompat "<<hitHL <<" + "<<3.f*qErr<<" vs "<<res);
+    return hitHL + std::max(3.f * qErr, 0.5f) > res;
+  } else {//project on xy, assuming the strip Length >> Width
+    const float res[2] {msPar.ConstAt(itrack,0,0) - pPar.ConstAt(itrack,0,0),
+        msPar.ConstAt(itrack,1,0) - pPar.ConstAt(itrack,1,0)};
+    const float hitT2 = msErr.ConstAt(itrack,0,0) + msErr.ConstAt(itrack,1,1);
+    const float hitT2inv = 1.f/hitT2;
+    const float proj[3] = {msErr.ConstAt(itrack,0,0)*hitT2inv, msErr.ConstAt(itrack,0,1)*hitT2inv,
+                           msErr.ConstAt(itrack,1,1)*hitT2inv};
+    const float qErr = sqrt(std::abs(pErr.ConstAt(itrack,0,0)*proj[0] + 2.f*pErr.ConstAt(itrack,0,1)*proj[1]
+                                     + pErr.ConstAt(itrack,1,1)*proj[2]));//take abs to avoid non-pos-def cases
+    const float resProj = sqrt(res[0]*proj[0]*res[0] + 2.f*res[1]*proj[1]*res[0] + res[1]*proj[2]*res[1]);
+    dprint("qCompat "<< sqrt(hitT2*3.f) <<" + "<<3.f*qErr<<" vs "<<resProj);
+    return sqrt(hitT2*3.f) + std::max(3.f*qErr, 0.5f) > resProj;
+  }
+}
+
 //==============================================================================
 // FindCandidates - Standard Track Finding
 //==============================================================================
@@ -857,8 +887,9 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
+    MPlexLV propPar;
     (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                   outChi2, N_proc, Config::finding_intra_layer_pflags);
+                                   outChi2, propPar, N_proc, Config::finding_intra_layer_pflags);
 
     // Now update the track parameters with this hit (note that some
     // calculations are already done when computing chi2, to be optimized).
@@ -877,8 +908,15 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
 	dprint("chi2=" << chi2);
 	if (chi2 < max_c2)
 	{
-	  oneCandPassCut = true;
-	  break;
+          bool isCompatible = true;
+          if (!layer_of_hits.is_pix_lyr()) {//check module compatibility via long strip side = L/sqrt(12)
+            isCompatible = isStripQCompatible(itrack, layer_of_hits.is_barrel(), Err[iP], propPar, msErr, msPar);
+          }
+          if (isCompatible)
+          {
+            oneCandPassCut = true;
+            break;
+          }
 	}
       }
     }
@@ -906,29 +944,36 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
 	  dprint("chi2=" << chi2);
 	  if (chi2 < max_c2)
 	  {
-            nHitsAdded[itrack]++;
-	    dprint("chi2 cut passed, creating new candidate");
-	    // Create a new candidate and fill the tmp_candidates output vector.
-            // QQQ only instantiate if it will pass, be better than N_best
-
-            const int hit_idx = XHitArr.At(itrack, hit_cnt, 0);
-
-            TrackCand newcand;
-            copy_out(newcand, itrack, iC);
-            newcand.setCharge(tmpChg(itrack, 0, 0));
-	    newcand.addHitIdx(hit_idx, layer_of_hits.layer_id(), chi2);
-	    newcand.setScore(getScoreCand(newcand, true));
-            newcand.setOriginIndex(CandIdx(itrack, 0, 0));
-
-            if (chi2 < m_iteration_params->chi2CutOverlap)
-            {
-              CombCandidate &ccand = * newcand.combCandidate();
-              ccand.considerHitForOverlap(CandIdx(itrack, 0, 0), hit_idx, layer_of_hits.GetHit(hit_idx).detIDinLayer(), chi2);
+            bool isCompatible = true;
+            if (!layer_of_hits.is_pix_lyr()) {//check module compatibility via long strip side = L/sqrt(12)
+              isCompatible = isStripQCompatible(itrack, layer_of_hits.is_barrel(), Err[iP], propPar, msErr, msPar);
             }
+            if (isCompatible)
+            {
+              nHitsAdded[itrack]++;
+              dprint("chi2 cut passed, creating new candidate");
+              // Create a new candidate and fill the tmp_candidates output vector.
+              // QQQ only instantiate if it will pass, be better than N_best
+              
+              const int hit_idx = XHitArr.At(itrack, hit_cnt, 0);
+              
+              TrackCand newcand;
+              copy_out(newcand, itrack, iC);
+              newcand.setCharge(tmpChg(itrack, 0, 0));
+              newcand.addHitIdx(hit_idx, layer_of_hits.layer_id(), chi2);
+              newcand.setScore(getScoreCand(newcand, true));
+              newcand.setOriginIndex(CandIdx(itrack, 0, 0));
+              
+              if (chi2 < m_iteration_params->chi2CutOverlap)
+              {
+                CombCandidate &ccand = * newcand.combCandidate();
+                ccand.considerHitForOverlap(CandIdx(itrack, 0, 0), hit_idx, layer_of_hits.GetHit(hit_idx).detIDinLayer(), chi2);
+              }
 
-            dprint("updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << " z=" << newcand.parameters()[2] << " pt=" << 1./newcand.parameters()[3]);
+              dprint("updated track parameters x=" << newcand.parameters()[0] << " y=" << newcand.parameters()[1] << " z=" << newcand.parameters()[2] << " pt=" << 1./newcand.parameters()[3]);
 
-	    tmp_candidates[SeedIdx(itrack, 0, 0) - offset].emplace_back(newcand);
+              tmp_candidates[SeedIdx(itrack, 0, 0) - offset].emplace_back(newcand);
+            }
 	  }
 	}
       }
@@ -1022,7 +1067,9 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 
     //now compute the chi2 of track state vs hit
     MPlexQF outChi2;
-    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar, outChi2, N_proc, Config::finding_intra_layer_pflags);
+    MPlexLV propPar;
+    (*fnd_foos.m_compute_chi2_foo)(Err[iP], Par[iP], Chg, msErr, msPar, 
+                                   outChi2, propPar, N_proc, Config::finding_intra_layer_pflags);
 
 #pragma omp simd // DOES NOT VECTORIZE AS IT IS NOW
     for (int itrack = 0; itrack < N_proc; ++itrack)
@@ -1039,31 +1086,39 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
         dprint("chi2=" << chi2 << " for trkIdx=" << itrack << " hitIdx=" << XHitArr.At(itrack, hit_cnt, 0));
         if (chi2 < max_c2)
         {
-          nHitsAdded[itrack]++;
-          const int hit_idx = XHitArr.At(itrack, hit_cnt, 0);
-
-          // Register hit for overlap consideration, here we apply chi2 cut
-          if (chi2 < m_iteration_params->chi2CutOverlap)
-          {
-            CombCandidate &ccand = cloner.mp_event_of_comb_candidates->m_candidates[ SeedIdx(itrack, 0, 0) ];
-            ccand.considerHitForOverlap(CandIdx(itrack, 0, 0), hit_idx, layer_of_hits.GetHit(hit_idx).detIDinLayer(), chi2);
+          bool isCompatible = true;
+          if (!layer_of_hits.is_pix_lyr()) {//check module compatibility via long strip side = L/sqrt(12)
+            isCompatible = isStripQCompatible(itrack, layer_of_hits.is_barrel(), Err[iP], propPar, msErr, msPar);
           }
 
-          IdxChi2List tmpList;
-          tmpList.trkIdx   = CandIdx(itrack, 0, 0);
-          tmpList.hitIdx   = hit_idx;
-          tmpList.module   = layer_of_hits.GetHit(hit_idx).detIDinLayer();
-          tmpList.nhits    = NFoundHits(itrack,0,0) + 1;
-          tmpList.ntailholes= 0;
-          tmpList.noverlaps= NOverlapHits(itrack,0,0);
-          tmpList.nholes   = num_all_minus_one_hits(itrack);
-          tmpList.pt       = std::abs(1.0f / Par[iP].At(itrack,3,0));
-          tmpList.chi2     = Chi2(itrack, 0, 0) + chi2;
-          tmpList.chi2_hit = chi2;
-          tmpList.score    = getScoreStruct(tmpList);
-          cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
+          if (isCompatible) {
 
-          dprint("  adding hit with hit_cnt=" << hit_cnt << " for trkIdx=" << tmpList.trkIdx << " orig Seed=" << Label(itrack, 0, 0));
+            nHitsAdded[itrack]++;
+            const int hit_idx = XHitArr.At(itrack, hit_cnt, 0);
+
+            // Register hit for overlap consideration, here we apply chi2 cut
+            if (chi2 < m_iteration_params->chi2CutOverlap)
+            {
+              CombCandidate &ccand = cloner.mp_event_of_comb_candidates->m_candidates[ SeedIdx(itrack, 0, 0) ];
+              ccand.considerHitForOverlap(CandIdx(itrack, 0, 0), hit_idx, layer_of_hits.GetHit(hit_idx).detIDinLayer(), chi2);
+            }
+
+            IdxChi2List tmpList;
+            tmpList.trkIdx   = CandIdx(itrack, 0, 0);
+            tmpList.hitIdx   = hit_idx;
+            tmpList.module   = layer_of_hits.GetHit(hit_idx).detIDinLayer();
+            tmpList.nhits    = NFoundHits(itrack,0,0) + 1;
+            tmpList.ntailholes= 0;
+            tmpList.noverlaps= NOverlapHits(itrack,0,0);
+            tmpList.nholes   = num_all_minus_one_hits(itrack);
+            tmpList.pt       = std::abs(1.0f / Par[iP].At(itrack,3,0));
+            tmpList.chi2     = Chi2(itrack, 0, 0) + chi2;
+            tmpList.chi2_hit = chi2;
+            tmpList.score    = getScoreStruct(tmpList);
+            cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
+
+            dprint("  adding hit with hit_cnt=" << hit_cnt << " for trkIdx=" << tmpList.trkIdx << " orig Seed=" << Label(itrack, 0, 0));
+          }
         }
       }
     }
