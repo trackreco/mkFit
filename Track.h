@@ -32,6 +32,7 @@ public:
   int   hitIdx; // hit index
   unsigned int   module; // module id
   int   nhits;  // number of hits (used for sorting)
+  int   nseedhits; // number of seed hits (used for candidate ranking)
   int   ntailholes; // number of holes at the end of the track (used for sorting)
   int   noverlaps; // number of overlaps (used for sorting)
   int   nholes;  // number of holes (used for sorting)
@@ -640,6 +641,7 @@ inline float getScoreWorstPossible()
 }
 
 inline float getScoreCalc(const int nfoundhits,
+			  const int nseedhits,
 			  const int ntailholes,
                           const int noverlaphits,
                           const int nmisshits,
@@ -657,12 +659,16 @@ inline float getScoreCalc(const int nfoundhits,
     bonus = std::min(bonus, maxBonus);
   }
   float score_ = bonus*nfoundhits + Config::overlapHitBonus_*noverlaphits - penalty*nmisshits - Config::tailMissingHitPenalty_*ntailholes - chi2;
+  if(nfoundhits<=nseedhits){
+    score_ -= 2.5f;
+  }
   return score_;
 }
 
  inline float getScoreCand(const Track& cand1, bool penalizeTailMissHits=false)
  {
    int nfoundhits = cand1.nFoundHits();
+   int nseedhits = cand1.getNSeedHits();
    int noverlaphits = cand1.nOverlapHits();
    int nmisshits = cand1.nInsideMinusOneHits();
    float ntailmisshits = penalizeTailMissHits ? cand1.nTailMinusOneHits() : 0; 
@@ -670,12 +676,13 @@ inline float getScoreCalc(const int nfoundhits,
    float chi2 = cand1.chi2();
    // Do not allow for chi2<0 in score calculation  
    if(chi2<0) chi2=0.f;
-   return getScoreCalc(nfoundhits,ntailmisshits,noverlaphits,nmisshits,chi2,pt);
+   return getScoreCalc(nfoundhits,nseedhits,ntailmisshits,noverlaphits,nmisshits,chi2,pt);
  }
 
 inline float getScoreStruct(const IdxChi2List& cand1)
 {
   int nfoundhits = cand1.nhits;
+  int nseedhits  = cand1.nseedhits;
   int ntailholes = cand1.ntailholes;
   int noverlaphits = cand1.noverlaps;
   int nmisshits = cand1.nholes;
@@ -683,7 +690,7 @@ inline float getScoreStruct(const IdxChi2List& cand1)
   float chi2 = cand1.chi2;
   // Do not allow for chi2<0 in score calculation
   if(chi2<0) chi2=0.f;
-  return getScoreCalc(nfoundhits,ntailholes,noverlaphits,nmisshits,chi2,pt);
+  return getScoreCalc(nfoundhits,nseedhits,ntailholes,noverlaphits,nmisshits,chi2,pt);
 }
 
 

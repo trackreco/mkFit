@@ -417,12 +417,14 @@ public:
 
   int  lastCcIndex()  const { return lastHitIdx_; }
   int  nFoundHits()   const { return nFoundHits_; }
+  int  nSeedHits()    const { return nSeedHits_; }
   int  nMissingHits() const { return nMissingHits_; }
   int  nOverlapHits() const { return nOverlapHits_; }
   int  nTotalHits()   const { return nFoundHits_ + nMissingHits_; }
 
   void setLastCcIndex(int i)  { lastHitIdx_   = i; }
   void setNFoundHits(int n)   { nFoundHits_   = n; }
+  void setNSeedHits(int n)    { nSeedHits_    = n; }
   void setNMissingHits(int n) { nMissingHits_ = n; }
   void setNOverlapHits(int n) { nOverlapHits_ = n; }
 
@@ -458,6 +460,7 @@ protected:
   // using from TrackBase:
   // short int lastHitIdx_
   // short int nFoundHits_
+  short int    nSeedHits_           = 0;
   short int    nMissingHits_        = 0;
   short int    nOverlapHits_        = 0;
 
@@ -475,6 +478,7 @@ inline bool sortByScoreTrackCand(const TrackCand & cand1, const TrackCand & cand
 inline float getScoreCand(const TrackCand& cand1, bool penalizeTailMissHits=false)
 {
   int nfoundhits   = cand1.nFoundHits();
+  int nseedhits    = cand1.nSeedHits();
   int noverlaphits = cand1.nOverlapHits();
   int nmisshits    = cand1.nInsideMinusOneHits();
   int ntailmisshits = penalizeTailMissHits ? cand1.nTailMinusOneHits() : 0;
@@ -482,7 +486,7 @@ inline float getScoreCand(const TrackCand& cand1, bool penalizeTailMissHits=fals
   float chi2 = cand1.chi2();
   // Do not allow for chi2<0 in score calculation
   if (chi2 < 0) chi2 = 0.f;
-  return getScoreCalc(nfoundhits,ntailmisshits, noverlaphits, nmisshits, chi2, pt);
+  return getScoreCalc(nfoundhits, nseedhits, ntailmisshits, noverlaphits, nmisshits, chi2, pt);
 }
 
 

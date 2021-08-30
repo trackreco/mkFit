@@ -65,6 +65,7 @@ public:
 
   MPlexQI    NHits;
   MPlexQI    NFoundHits;
+  MPlexQI    NSeedHits;
 
   HitOnTrack HoTArrs[NN][Config::nMaxTrkHits];
 
@@ -276,6 +277,7 @@ private:
 
     LastHitCcIndex(mslot, 0, 0) = trk.lastCcIndex();
     NFoundHits    (mslot, 0, 0) = trk.nFoundHits();
+    NSeedHits     (mslot, 0, 0) = trk.nSeedHits();
     NMissingHits  (mslot, 0, 0) = trk.nMissingHits();
     NOverlapHits  (mslot, 0, 0) = trk.nOverlapHits();
 
@@ -297,6 +299,7 @@ private:
 
     trk.setLastCcIndex (LastHitCcIndex(mslot, 0, 0));
     trk.setNFoundHits  (NFoundHits    (mslot, 0, 0));
+    trk.setNSeedHits   (NSeedHits     (mslot, 0, 0));
     trk.setNMissingHits(NMissingHits  (mslot, 0, 0));
     trk.setNOverlapHits(NOverlapHits  (mslot, 0, 0));
 
