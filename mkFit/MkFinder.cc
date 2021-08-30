@@ -98,6 +98,7 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>     & track
 
     SeedIdx(imp, 0, 0) = idxs[i].first;
     CandIdx(imp, 0, 0) = idxs[i].second;
+    Chi2(imp, 0, 0) = -5.0f;
   }
 }
 
@@ -125,6 +126,7 @@ void MkFinder::InputTracksAndHitIdx(const std::vector<CombCandidate>            
 
     SeedIdx(imp, 0, 0) = idxs[i].first;
     CandIdx(imp, 0, 0) = idxs[i].second.trkIdx;
+    Chi2(imp, 0, 0) = -5.0f;
   }
 }
 
@@ -772,8 +774,11 @@ void MkFinder::AddBestHit(const LayerOfHits &layer_of_hits, const int N_proc,
 
       msErr.CopyIn(itrack, hit.errArray());
       msPar.CopyIn(itrack, hit.posArray());
-      Chi2(itrack, 0, 0) += chi2;
-
+      if(Chi2(itrack, 0, 0)<0.f)
+	Chi2(itrack, 0, 0) = chi2;
+      else
+	Chi2(itrack, 0, 0) += chi2;
+      
       add_hit(itrack, bestHit[itrack], layer_of_hits.layer_id());
     }
     else
@@ -1112,7 +1117,10 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
             tmpList.noverlaps= NOverlapHits(itrack,0,0);
             tmpList.nholes   = num_all_minus_one_hits(itrack);
             tmpList.pt       = std::abs(1.0f / Par[iP].At(itrack,3,0));
-            tmpList.chi2     = Chi2(itrack, 0, 0) + chi2;
+            if(Chi2(itrack, 0, 0)<0.f)
+	      tmpList.chi2     = chi2;
+	    else
+	      tmpList.chi2     = Chi2(itrack, 0, 0) + chi2;
             tmpList.chi2_hit = chi2;
             tmpList.score    = getScoreStruct(tmpList);
             cloner.add_cand(SeedIdx(itrack, 0, 0) - offset, tmpList);
