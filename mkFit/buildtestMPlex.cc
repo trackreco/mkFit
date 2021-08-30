@@ -531,20 +531,23 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
     // now do backwards fit... do we want to time this section?
     if (Config::backwardFit)
     {
-      // a) TrackVec version:
-      // builder.BackwardFitBH();
-
-      // b) Version that runs on CombCand / TrackCand
-      builder.BackwardFit();
-
-      if (Config::backwardSearch && itconf.m_backward_search)
+      if (!(Config::backwardSearch && itconf.m_backward_search))
       {
+        // a) TrackVec version:
+        builder.BackwardFitBH();
+      }
+      else
+      {
+        // b) Version that runs on CombCand / TrackCand
+        builder.BackwardFit();
+
         builder.BeginBkwSearch();
         builder.FindTracksCloneEngine(SteeringParams::IT_BkwSearch);
         builder.EndBkwSearch();
-      }
 
-      builder.select_best_comb_cands(true); // true -> clear m_tracks as they were already filled once above
+        builder.select_best_comb_cands(true); // true -> clear m_tracks as they were already filled once above
+      }
+      
 
       StdSeq::find_and_remove_duplicates(builder.ref_tracks_nc(), itconf);
       builder.export_tracks(ev.fitTracks_);
@@ -646,19 +649,29 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
       { return StdSeq::qfilter_n_hits_pixseed(t, 3); });
   }
 
-  if (do_backward_fit)
-  {
-    builder.BackwardFit();
 
-    if (itconf.m_backward_search)
+  if (itconf.m_backward_search)
+  {
+    if (do_backward_fit)
     {
-      builder.BeginBkwSearch();
-      builder.FindTracksCloneEngine(SteeringParams::IT_BkwSearch);
-      builder.EndBkwSearch();
+        builder.BackwardFit();
+
+        builder.BeginBkwSearch();
+        builder.FindTracksCloneEngine(SteeringParams::IT_BkwSearch);
+        builder.EndBkwSearch();
     }
+    builder.export_best_comb_cands(out_tracks);
+  }
+  else
+  {
+    builder.select_best_comb_cands();
+    if (do_backward_fit)
+    {
+      builder.BackwardFitBH();
+    }
+    builder.export_tracks(out_tracks);
   }
 
-  builder.export_best_comb_cands(out_tracks);
 
   if (do_remove_duplicates)
   {
