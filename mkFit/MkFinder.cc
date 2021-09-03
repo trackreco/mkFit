@@ -1488,10 +1488,14 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
 
       if (CurNode[i] >= 0 && HoTNodeArr[ i ][ CurNode[i] ].m_hot.layer == layer)
       {
-        // XXXX - this is now different - overlap info has not yet been exported
-
-        // XXXX Note if I remove this hit (i.e., m_hot.index = -1), the overlap might stay.
-        //      Need to account for this in exportTrack().
+        // Skip the overlap hits -- if they exist.
+        // 1. Overlap hit gets placed *after* the original hit in TrackCand::exportTrack()
+        // which is *before* in the reverse iteration that we are doing here.
+        // 2. Seed-hit merging can result in more than two hits per layer.
+        // while (CurHit[i] > 0 && HoTArr[ i ][ CurHit[i] - 1 ].layer == layer) --CurHit[i];
+        while (HoTNodeArr[ i ][ CurNode[i] ].m_prev_idx >= 0 &&
+               HoTNodeArr[ i ][ HoTNodeArr[ i ][ CurNode[i] ].m_prev_idx ].m_hot.layer == layer)
+          CurNode[i] = HoTNodeArr[ i ][ CurNode[i] ].m_prev_idx;
 
         const Hit &hit = L.GetHit( HoTNodeArr[ i ][ CurNode[i] ].m_hot.index );
 

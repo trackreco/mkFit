@@ -1460,7 +1460,7 @@ void MkBuilder::find_tracks_load_seeds(const TrackVec &in_seeds)
   // m_tracks can be used for BkFit.
   m_tracks.clear();
 
-  m_event_of_comb_cands.Reset((int) in_seeds.size(), m_job->params().maxCandsPerSeed);
+  m_event_of_comb_cands.Reset((int) in_seeds.size(), m_job->max_max_cands());
 
   import_seeds(in_seeds, [&](const Track& seed, int region){ m_event_of_comb_cands.InsertSeed(seed, region); });
 }

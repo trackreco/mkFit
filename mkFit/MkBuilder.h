@@ -70,7 +70,11 @@ public:
 
   const auto& steering_params(int i) { return m_iter_config.m_steering_params[i]; }
 
-  const auto& params() const { return m_iter_config.m_params; }
+  const auto& params()     const { return m_iter_config.m_params; }
+  const auto& params_bks() const { return m_iter_config.m_backward_params; }
+
+  int max_max_cands() const
+  { return std::max(params().maxCandsPerSeed, params_bks().maxCandsPerSeed); }
 
   const std::vector<bool>* get_mask_for_layer(int layer)
   {

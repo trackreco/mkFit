@@ -392,6 +392,69 @@ struct HitMatchPair
   }
 };
 
+template <class T> class CcPool
+{
+  std::vector<T> m_mem;
+  std::size_t    m_pos      = 0;
+  std::size_t    m_size     = 0;
+
+public:
+  void reset(std::size_t size)
+  {
+    if (size > m_mem.size())
+      m_mem.resize(size);
+    m_pos = 0;
+    m_size = size;
+
+    // printf("CcP reset to %zu\n", size);
+  }
+
+  CcPool(std::size_t size=0)
+  {
+    if (size) reset(size);
+  }
+
+  T* allocate(std::size_t n)
+  {
+    if (m_pos + n > m_size) throw std::bad_alloc();
+    T* ret = & m_mem[m_pos];
+    m_pos += n;
+    // printf("CcP alloc %zu\n", n);
+    return ret;
+  }
+
+  void deallocate(T *p, std::size_t n) noexcept
+  {
+    // we do not care, implied on reset().
+    // printf("CcP dealloc %zu\n", n);
+  }
+};
+
+template <class T> class CcAlloc
+{
+  CcPool<T> *m_pool;
+
+public:
+  typedef T value_type;
+
+  CcAlloc(CcPool<T> *p) : m_pool(p) {}
+
+  const void* pool_id() const { return m_pool; }
+
+  T* allocate(std::size_t n)
+  {
+    return m_pool->allocate(n);
+  }
+
+  void deallocate(T *p, std::size_t n) noexcept
+  {
+    m_pool->deallocate(p, n);
+  }
+};
+
+template <class T, class U>
+bool operator==(const CcAlloc<T> &a, const CcAlloc<U> &b) { return a.pool_id() == b.pool_id(); }
+
 
 //------------------------------------------------------------------------------
 
@@ -488,9 +551,11 @@ inline float getScoreCand(const TrackCand& cand1, bool penalizeTailMissHits=fals
 
 // This inheritance sucks but not doing it will require more changes.
 
-class CombCandidate : public std::vector<TrackCand>
+class CombCandidate : public std::vector<TrackCand, CcAlloc<TrackCand>>
 {
 public:
+  using allocator_type = CcAlloc<TrackCand>;
+
   enum SeedState_e { Dormant = 0, Finding, Finished };
 
   TrackCand    m_best_short_cand;
@@ -510,13 +575,31 @@ public:
   std::vector<HitMatchPair> m_overlap_hits; // XXXX HitMatchPair could be a member in TrackCand
 
 
-  CombCandidate() :
+  CombCandidate(const allocator_type& alloc) :
+    std::vector<TrackCand, CcAlloc<TrackCand>>(alloc),
     m_state(Dormant), m_pickup_layer(-1)
   {}
 
-  // Need this so resize of EventOfCombinedCandidates::m_candidates can reuse vectors used here.
+  // Required by std::uninitialized_fill_n when declaring vector<CombCandidate> in EventOfCombCandidates
+  CombCandidate(const CombCandidate& o) :
+    std::vector<TrackCand, CcAlloc<TrackCand>>(o),
+    m_state(o.m_state),
+    m_pickup_layer(o.m_pickup_layer),
+    m_lastHitIdx_before_bkwsearch(o.m_lastHitIdx_before_bkwsearch),
+    m_nInsideMinusOneHits_before_bkwsearch(o.m_nInsideMinusOneHits_before_bkwsearch),
+    m_nTailMinusOneHits_before_bkwsearch(o.m_nTailMinusOneHits_before_bkwsearch),
+#ifdef DUMPHITWINDOW
+    m_seed_algo(o.m_seed_algo),
+    m_seed_label(o.m_seed_label),
+#endif
+    m_hots_size(o.m_hots_size),
+    m_hots(o.m_hots),
+    m_overlap_hits(o.m_overlap_hits)
+  {}
+
+  // Required for std::swap().
   CombCandidate(CombCandidate&& o) :
-    std::vector<TrackCand>(std::move(o)),
+    std::vector<TrackCand, CcAlloc<TrackCand>>(std::move(o)),
     m_best_short_cand(std::move(o.m_best_short_cand)),
     m_state(o.m_state),
     m_pickup_layer(o.m_pickup_layer),
@@ -538,13 +621,13 @@ public:
     // for (auto &tc : *this) tc.setCombCandidate(this);
   }
 
-  // Need this for std::swap when filtering EventOfCombinedCandidates::m_candidates.
+  // Required for std::swap when filtering EventOfCombinedCandidates::m_candidates.
   // We do not call clear() on vectors as this will be done via EoCCs reset.
   // Probably would be better (clearer) if there was a special function that does
   // the swap in here or in EoCCs.
   CombCandidate& operator=(CombCandidate&& o)
   {
-    std::vector<TrackCand>::operator=( std::move(o) );
+    std::vector<TrackCand, CcAlloc<TrackCand>>::operator=( std::move(o) );
     m_best_short_cand = std::move(o.m_best_short_cand);
     m_state = o.m_state;
     m_pickup_layer = o.m_pickup_layer;
@@ -566,8 +649,9 @@ public:
 
   void Reset(int max_cands_per_seed, int expected_num_hots)
   {
-    reserve(max_cands_per_seed); // we should never exceed this
-    clear();
+    std::vector<TrackCand, CcAlloc<TrackCand>> tmp(get_allocator());
+    swap(tmp);
+    reserve(max_cands_per_seed); // we *must* never exceed this
 
     m_best_short_cand.setScore( getScoreWorstPossible() );
 
@@ -660,6 +744,8 @@ inline void TrackCand::addHitIdx(int hitIdx, int hitLyr, float chi2)
 
 class EventOfCombCandidates
 {
+  CcPool<TrackCand>  m_cc_pool;
+
 public:
   std::vector<CombCandidate> m_candidates;
 
@@ -668,6 +754,7 @@ public:
 
 public:
   EventOfCombCandidates(int size=0) :
+    m_cc_pool   (),
     m_candidates(),
     m_capacity  (0),
     m_size      (0)
@@ -675,15 +762,23 @@ public:
 
   void Reset(int new_capacity, int max_cands_per_seed, int expected_num_hots = 128)
   {
+    m_cc_pool.reset(new_capacity * max_cands_per_seed);
     if (new_capacity > m_capacity)
     {
-      m_candidates.resize(new_capacity);
+      CcAlloc<TrackCand> alloc(&m_cc_pool);
+      std::vector<CombCandidate> tmp(new_capacity, alloc);
+      m_candidates.swap(tmp);
       m_capacity = new_capacity;
     }
-    for (int s = 0; s < m_capacity; ++s)
+    for (int s = 0; s < new_capacity; ++s)
     {
       m_candidates[s].Reset(max_cands_per_seed, expected_num_hots);
     }
+    for (int s = new_capacity; s < m_capacity; ++s)
+    {
+      m_candidates[s].Reset(0, 0);
+    }
+    
     m_size = 0;
   }
 
