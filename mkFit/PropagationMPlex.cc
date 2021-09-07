@@ -635,6 +635,7 @@ void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
       const float cosP = std::cos(phiin), sinP = std::sin(phiin);
       const float cosT = std::cos(theta), sinT = std::sin(theta);
       const float tanT = sinT/cosT;
+      const float icos2T = 1.f/(cosT*cosT);
       const float pxin = cosP*pt;
       const float pyin = sinP*pt;
 
@@ -666,28 +667,21 @@ void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
       dprint_np(n, std::endl << "outPar.At(n, 0, 0)=" << outPar.At(n, 0, 0) << " outPar.At(n, 1, 0)=" << outPar.At(n, 1, 0)
 		<< " pxin=" << pxin << " pyin=" << pyin);
 
-      const float sCosPsinah = std::sin(cosP*sina*0.5f);
-      const float cCosPsinah = std::cos(cosP*sina*0.5f);
-      const float sCosPsina = 2.f*sCosPsinah*cCosPsinah;
-      const float sPsCPless1 = sinP*sCosPsina - 1.f;
-      const float cAlessFsAA = alpha != 0 ? cosa - sina/alpha : 0.f; // lim-> alpha^2/3
-      const float sCPx2 = alpha != 0 ? 2.f*sCosPsinah*(cosP*cosa*cCosPsinah - sCosPsinah/alpha) : 0.f;// lim-> ~alpha
+      const float pxcaMpysa = pxin*cosa - pyin*sina;
+      errorProp(n,0,2) = -tanT * ipt * pxcaMpysa;;
+      errorProp(n,0,3) = 2*k*pt*pt*sinah*(sinP*sinah - cosP*cosah) + deltaZ*tanT*pxcaMpysa;
+      errorProp(n,0,4) = -2*k*pt*sinah*(sinP*cosah + cosP*sinah);
+      errorProp(n,0,5) = deltaZ*ipt*pxcaMpysa*icos2T;
 
-      errorProp(n,0,2) = cosP*tanT*cosa*sPsCPless1;
-      //      errorProp(n,0,3) = cosP*tanT*deltaZ*cosa*( 1.f - sinP*sCosPsina )*pt - k*(cosP*sina - sinP*(1.f-cCosPsina))*pt*pt;
-      errorProp(n,0,3) = tanT*deltaZ*pt*( cosP*cAlessFsAA - sinP*sCPx2 );
-      errorProp(n,0,4) = (k*pt)*( sinP*sina*sPsCPless1 - 2.f*cosP*sCosPsinah*sCosPsinah );
-      errorProp(n,0,5) = -cosP*deltaZ*cosa*sPsCPless1/(cosT*cosT);
-
-      errorProp(n,1,2) = cosa*tanT*(cosP*cosP*sCosPsina - sinP);
-      //      errorProp(n,1,3) = tanT*deltaZ*cosa*( cosP*cosP*sCosPsina + sinP )*pt - k*(sinP*sina + cosP*(1.f-cCosPsina))*pt*pt;
-      errorProp(n,1,3) = tanT*deltaZ*pt*( sinP*cAlessFsAA + cosP*sCPx2 );
-      errorProp(n,1,4) = (k*pt)*( -cosP*sina*sPsCPless1 - 2.f*sinP*sCosPsinah*sCosPsinah );
-      errorProp(n,1,5) = deltaZ*cosa*( cosP*cosP*sCosPsina + sinP )/(cosT*cosT);
+      const float pycaPpxsa = pyin*cosa + pxin*sina;
+      errorProp(n,1,2) = -tanT * ipt * pycaPpxsa;
+      errorProp(n,1,3) = -2*k*pt*pt*sinah*(sinP*cosah + cosP*sinah) + deltaZ*tanT*pycaPpxsa;
+      errorProp(n,1,4) = 2*k*pt*sinah*(cosP*cosah - sinP*sinah);
+      errorProp(n,1,5) = deltaZ*ipt*pycaPpxsa*icos2T;
 
       errorProp(n,4,2) = -ipt*tanT*kinv;
       errorProp(n,4,3) = tanT*deltaZ*kinv;
-      errorProp(n,4,5) = ipt*deltaZ*kinv/(cosT*cosT);
+      errorProp(n,4,5) = ipt*deltaZ*kinv*icos2T;
 
       dprint_np(n, "propagation end, dump parameters" << std::endl
 	     << "pos = " << outPar.At(n, 0, 0) << " " << outPar.At(n, 1, 0) << " " << outPar.At(n, 2, 0) << std::endl
