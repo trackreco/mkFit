@@ -371,14 +371,16 @@ namespace
     ii[0].set_dupclean_flag();
     ii[0].set_dupl_params(0.5, 0.002,0.004,0.008);
     fill_hit_selection_windows_params(ii[0]);
+    ii[0].m_backward_params = ii[0].m_params;
 
-    ii[1].Clone(ii[0]); //added extra iterations with some preliminary setup
+    ii[1].Clone(ii[0]); 
     SetupIterationParams(ii[1].m_params, 1);
     ii[1].set_iteration_index_and_track_algorithm(1, (int) TrackBase::TrackAlgorithm::highPtTripletStep);
     ii[1].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.018, 0.018, 0.018, 0.05, 0.018, 0.05); 
     ii[1].set_dupclean_flag();
     ii[1].set_dupl_params(0.5, 0.03,0.05,0.08);
     fill_hit_selection_windows_params(ii[1]);
+    ii[1].m_backward_params = ii[1].m_params;
 
     ii[2].Clone(ii[0]); 
     SetupIterationParams(ii[2].m_params, 2);
@@ -387,6 +389,7 @@ namespace
     ii[2].set_dupclean_flag();
     ii[2].set_dupl_params(0.5, 0.01,0.03,0.05);
     fill_hit_selection_windows_params(ii[2]);
+    ii[2].m_backward_params = ii[2].m_params;
      
     ii[3].Clone(ii[0]);
     SetupIterationParams(ii[3].m_params, 3);
@@ -395,6 +398,7 @@ namespace
     ii[3].set_dupclean_flag();
     ii[3].set_dupl_params(0.33, 0.018,0.05,0.018);
     fill_hit_selection_windows_params(ii[3]);
+    ii[3].m_backward_params = ii[3].m_params;
     
     ii[4].Clone(ii[0]);
     SetupIterationParams(ii[4].m_params, 4);
@@ -403,6 +407,7 @@ namespace
     ii[4].set_dupclean_flag();
     ii[4].set_dupl_params(0.25, 0.018,0.05,0.05);
     fill_hit_selection_windows_params(ii[4]);
+    ii[4].m_backward_params = ii[4].m_params;
     
     ii[5].Clone(ii[0]);
     SetupIterationParams(ii[5].m_params, 5);
@@ -411,6 +416,7 @@ namespace
     ii[5].set_dupclean_flag();
     ii[5].set_dupl_params(0.25, 0.05,0.05,0.05);
     fill_hit_selection_windows_params(ii[5]);
+    ii[5].m_backward_params = ii[5].m_params;
 
     ii[6].Clone(ii[0]);
     SetupIterationParams(ii[6].m_params, 6);
@@ -419,34 +425,34 @@ namespace
     ii[6].set_dupclean_flag();
     ii[6].set_dupl_params(0.2, 0.05,0.05,0.05); 
     fill_hit_selection_windows_params(ii[6]);
+    ii[6].m_backward_params = ii[6].m_params;
 
     ii[7].Clone(ii[0]);
-    OverrideSteeringParams_Iter7(ii[7]);
     SetupIterationParams(ii[7].m_params, 7);
     ii[7].set_iteration_index_and_track_algorithm(7, (int) TrackBase::TrackAlgorithm::pixelLessStep);
     ii[7].set_seed_cleaning_params(2.0, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135);
     ii[7].set_qf_flags();
     ii[7].set_qf_params(4,0.19);
     fill_hit_selection_windows_params(ii[7]);
+    OverrideSteeringParams_Iter7(ii[7]);
 
     ii[8].Clone(ii[0]);
-    OverrideSteeringParams_Iter8(ii[8]);
     SetupIterationParams(ii[8].m_params, 8);
     ii[8].set_iteration_index_and_track_algorithm(8, (int) TrackBase::TrackAlgorithm::tobTecStep);
     ii[8].set_seed_cleaning_params(2.0, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135);    
     ii[8].set_qf_flags();
     ii[8].set_qf_params(4,0.25);
     fill_hit_selection_windows_params(ii[8]);
+    OverrideSteeringParams_Iter8(ii[8]);
 
-    //for the latter 2 iter investing in maxCand & stop condition (for time) + QF and Dupl. cleaning (for quality)
-    
-    ii[9].Clone(ii[0]); //added pixelPair - the order doesn't matter as long as cmssw hit masks are used
+    ii[9].Clone(ii[0]); 
     SetupIterationParams(ii[9].m_params, 9);
     ii[9].set_iteration_index_and_track_algorithm(9, (int) TrackBase::TrackAlgorithm::pixelPairStep);
     ii[9].set_seed_cleaning_params(2.0, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135);
     ii[9].set_dupclean_flag();
     ii[9].set_dupl_params(0.5, 0.03,0.05,0.05);
     fill_hit_selection_windows_params(ii[9]);
+    ii[9].m_backward_params = ii[9].m_params;
 
     if (verbose)
     {
