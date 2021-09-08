@@ -262,8 +262,8 @@ void test_standard()
   constexpr int NT = 5;
   double t_sum[NT] = {0};
   double t_skip[NT] = {0};
-  double t_sum_iter[Config::nItersCMSSW] = {0};
-  double t_skip_iter[Config::nItersCMSSW] = {0};
+  std::vector<double> t_sum_iter(Config::nItersCMSSW, 0.0);
+  std::vector<double> t_skip_iter(Config::nItersCMSSW, 0.0);
   double time = dtime();
 
   std::atomic<int> nevt{g_start_event};
@@ -357,14 +357,14 @@ void test_standard()
         int maxLayer_thisthread = 0;
         for (int b = 0; b < Config::finderReportBestOutOfN; ++b)
         {
-          // t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
+          t_cur[0] = 0; // t_cur[0] = (g_run_fit_std) ? runFittingTestPlex(ev, plex_tracks) : 0;
           t_cur[1] = (g_run_build_all || g_run_build_bh)  ? runBuildingTestPlexBestHit(ev, eoh, mkb) : 0;
           t_cur[3] = (g_run_build_all || g_run_build_ce)  ? runBuildingTestPlexCloneEngine(ev, eoh, mkb) : 0;
           if(g_run_build_all || g_run_build_mimi) t_cur_iter = runBtpCe_MultiIter(ev, eoh, mkb, Config::nItersCMSSW);
           t_cur[4] = (g_run_build_all || g_run_build_mimi)? t_cur_iter[Config::nItersCMSSW] : 0 ;
           if (g_run_build_all || g_run_build_cmssw) runBuildingTestPlexDumbCMSSW(ev, eoh, mkb);
           t_cur[2] = (g_run_build_all || g_run_build_std) ? runBuildingTestPlexStandard(ev, eoh, mkb) : 0;
-          if (g_run_build_ce){
+          if (g_run_build_ce || g_run_build_mimi ){
             ncands_thisthread = mkb.total_cands();
             auto const& ln = mkb.max_hits_layer(eoh);
             maxHits_thisthread = ln.first;
