@@ -294,7 +294,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       float dphi = calcdphi(dphi2, min_dphi);
 
       const float z  = Par[iI].ConstAt(itrack, 2, 0);
-      const float dz = std::abs(nSigmaZ * std::sqrt(Err[iI].ConstAt(itrack, 2, 2)));
+      const float dz = std::abs(nSigmaZ * std::sqrt(Err[iI].ConstAt(itrack, 2, 2))) + std::abs(0.5f*(L.m_layer_info->m_rout-L.m_layer_info->m_rin)/std::tan(Par[iI].ConstAt(itrack, 5, 0)));
       // XXX-NUM-ERR above, Err(2,2) gets negative!
       
       ////// Disable correction
@@ -350,7 +350,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       float dphi = calcdphi(dphi2, min_dphi);
 
       const float  r = std::sqrt(r2);
-      const float dr = nSigmaR*std::sqrt(std::abs(x*x*Err[iI].ConstAt(itrack, 0, 0) + y*y*Err[iI].ConstAt(itrack, 1, 1) + 2*x*y*Err[iI].ConstAt(itrack, 0, 1)) / r2);
+      const float dr = nSigmaR*std::sqrt(std::abs(x*x*Err[iI].ConstAt(itrack, 0, 0) + y*y*Err[iI].ConstAt(itrack, 1, 1) + 2*x*y*Err[iI].ConstAt(itrack, 0, 1)) / r2) + std::abs(0.5f*(L.m_layer_info->m_zmax-L.m_layer_info->m_zmin)*std::tan(Par[iI].ConstAt(itrack, 5, 0)));
 
       ////// Disable correction
       //if (Config::useCMSGeom) // should be Config::finding_requires_propagation_to_hit_pos
