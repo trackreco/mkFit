@@ -668,14 +668,14 @@ void helixAtZ(const MPlexLV& inPar,  const MPlexQI& inChg, const MPlexQF &msZ,
 		<< " pxin=" << pxin << " pyin=" << pyin);
 
       const float pxcaMpysa = pxin*cosa - pyin*sina;
-      errorProp(n,0,2) = -tanT * ipt * pxcaMpysa;;
-      errorProp(n,0,3) = 2*k*pt*pt*sinah*(sinP*sinah - cosP*cosah) + deltaZ*tanT*pxcaMpysa;
+      errorProp(n,0,2) = -tanT * ipt * pxcaMpysa;
+      errorProp(n,0,3) = k*pt*pt*( cosP*(alpha*cosa - sina) + sinP*( 1.f - cosa - alpha*sina) );
       errorProp(n,0,4) = -2*k*pt*sinah*(sinP*cosah + cosP*sinah);
       errorProp(n,0,5) = deltaZ*ipt*pxcaMpysa*icos2T;
 
       const float pycaPpxsa = pyin*cosa + pxin*sina;
       errorProp(n,1,2) = -tanT * ipt * pycaPpxsa;
-      errorProp(n,1,3) = -2*k*pt*pt*sinah*(sinP*cosah + cosP*sinah) + deltaZ*tanT*pycaPpxsa;
+      errorProp(n,1,3) = k*pt*pt*( sinP*(alpha*cosa - sina) - cosP*(1.f - cosa - alpha*sina) );
       errorProp(n,1,4) = 2*k*pt*sinah*(cosP*cosah - sinP*sinah);
       errorProp(n,1,5) = deltaZ*ipt*pycaPpxsa*icos2T;
 
