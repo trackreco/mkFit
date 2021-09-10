@@ -321,7 +321,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       //  dphi += dist / r;
       //}
 
-      XWsrResult[itrack] = L.is_within_z_sensitive_region(z, dz + edgeCorr);
+      XWsrResult[itrack] = L.is_within_z_sensitive_region(z, std::sqrt(dz*dz + edgeCorr*edgeCorr) );
       assignbins(itrack, z, dz, phi, dphi, min_dq, max_dq, min_dphi, max_dphi);
     }
   }
@@ -370,7 +370,7 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
       //  dphi += std::abs(alpha);
       //}
 
-      XWsrResult[itrack] = L.is_within_r_sensitive_region(r, dr + edgeCorr);
+      XWsrResult[itrack] = L.is_within_r_sensitive_region(r, std::sqrt(dr*dr + edgeCorr*edgeCorr) );
       assignbins(itrack, r, dr, phi, dphi, min_dq, max_dq, min_dphi, max_dphi);
     }
   }
