@@ -117,8 +117,6 @@ public:
 
   WSR_Result is_within_z_sensitive_region(float z, float dz) const
   {
-    /* float edgeCorr = 0.5f*(m_rout-m_rin)*m_zmax/m_rin; */
-    /* dz = dz + edgeCorr; */
     if (z > m_zmax + dz || z < m_zmin - dz)  return WSR_Result(WSR_Outside, false);
     if (z < m_zmax - dz && z > m_zmin + dz)  return WSR_Result(WSR_Inside,  false);
     return WSR_Result(WSR_Edge, false);
@@ -126,14 +124,11 @@ public:
 
   WSR_Result is_within_r_sensitive_region(float r, float dr) const
   {
-    /* float edgeCorr = std::abs(0.5f*(m_zmax-m_zmin)*m_rout/m_zmin); */
-    /* dr = dr + edgeCorr; */
     if (r > m_rout + dr || r < m_rin - dr)  return WSR_Result(WSR_Outside, false);
     if (r < m_rout - dr && r > m_rin + dr)
     {
       if (m_has_r_range_hole)
       {
-        /* dr = dr - edgeCorr* (1.f - edgeCorr*m_hole_r_max/m_rout); */
         if (r < m_hole_r_max - dr && r > m_hole_r_min + dr)  return WSR_Result(WSR_Outside, true);
         if (r < m_hole_r_max + dr && r > m_hole_r_min - dr ) return WSR_Result(WSR_Edge,    true);
       }
