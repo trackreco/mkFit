@@ -652,11 +652,13 @@ inline float getScoreCalc(const int nfoundhits,
   float maxBonus = 8.0;
   float bonus  = Config::validHitSlope_*nfoundhits + Config::validHitBonus_;
   float penalty = Config::missingHitPenalty_;
+  float tailPenalty = Config::tailMissingHitPenalty_;
+  float overlapBonus = Config::overlapHitBonus_;
   if(pt < 0.9){
-    penalty += 0.5*Config::missingHitPenalty_; 
-    bonus = std::min(bonus, maxBonus);
+    penalty *= 1.7f;
+    bonus = std::min(bonus*0.9f, maxBonus);
   }
-  float score_ = bonus*nfoundhits + Config::overlapHitBonus_*noverlaphits - penalty*nmisshits - Config::tailMissingHitPenalty_*ntailholes - chi2;
+  float score_ = bonus*nfoundhits + overlapBonus*noverlaphits - penalty*nmisshits - tailPenalty*ntailholes - chi2;
   return score_;
 }
 
