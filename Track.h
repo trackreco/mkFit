@@ -644,7 +644,8 @@ inline float getScoreCalc(const int nfoundhits,
                           const int noverlaphits,
                           const int nmisshits,
                           const float chi2,
-                          const float pt)
+                          const float pt,
+                          const bool lowPtTuneSpecial=false)
 {
   //// Do not allow for chi2<0 in score calculation
   // if(chi2<0) chi2=0.f;
@@ -655,8 +656,8 @@ inline float getScoreCalc(const int nfoundhits,
   float tailPenalty = Config::tailMissingHitPenalty_;
   float overlapBonus = Config::overlapHitBonus_;
   if(pt < 0.9){
-    penalty *= 1.7f;
-    bonus = std::min(bonus*0.9f, maxBonus);
+    penalty *= lowPtTuneSpecial ? 1.7f : 1.5f;
+    bonus = std::min(bonus*(lowPtTuneSpecial ? 0.9f : 1.0f), maxBonus);
   }
   float score_ = bonus*nfoundhits + overlapBonus*noverlaphits - penalty*nmisshits - tailPenalty*ntailholes - chi2;
   return score_;
@@ -672,7 +673,7 @@ inline float getScoreCalc(const int nfoundhits,
    float chi2 = cand1.chi2();
    // Do not allow for chi2<0 in score calculation  
    if(chi2<0) chi2=0.f;
-   return getScoreCalc(nfoundhits,ntailmisshits,noverlaphits,nmisshits,chi2,pt);
+   return getScoreCalc(nfoundhits,ntailmisshits,noverlaphits,nmisshits,chi2,pt,false);
  }
 
 inline float getScoreStruct(const IdxChi2List& cand1)
@@ -685,7 +686,7 @@ inline float getScoreStruct(const IdxChi2List& cand1)
   float chi2 = cand1.chi2;
   // Do not allow for chi2<0 in score calculation
   if(chi2<0) chi2=0.f;
-  return getScoreCalc(nfoundhits,ntailholes,noverlaphits,nmisshits,chi2,pt);
+  return getScoreCalc(nfoundhits,ntailholes,noverlaphits,nmisshits,chi2,pt,true);
 }
 
 
