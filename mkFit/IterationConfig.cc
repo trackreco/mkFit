@@ -36,7 +36,8 @@ ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationLayerConfig,
   /* float */   c_c2_sf,
   /* float */   c_c2_0,
   /* float */   c_c2_1,
-  /* float */   c_c2_2
+  /* float */   c_c2_2,
+  /* unsigned int */ clrowcut
 )
 
 ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationParams,
