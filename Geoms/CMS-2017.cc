@@ -246,6 +246,35 @@ namespace
     }
   }
 
+  void fill_cluster_size_cuts(IterationsInfo& ii)
+  {
+    int clszcuts[10][72];
+    for (size_t i=0; i<10; i++) {
+      for (size_t l=0; l<72; l++) {
+	if (i==0) {
+	  //first iteration, 95% working point
+	  if (l<4)                                   clszcuts[i][l] = 999;//PXB
+	  else if ((l>17 && l<21) || (l>44 && l<48)) clszcuts[i][l] = 999;//PXF
+	  else if ( l>3  && l<10 )                   clszcuts[i][l] = 4;  //TIB
+	  else if ((l>20 && l<27) || (l>47 && l<54)) clszcuts[i][l] = 4;  //TID
+	  else if ( l>9  && l<18 )                   clszcuts[i][l] = 999;//TOB
+	  else if ((l>26 && l<45) || (l>53 && l<72)) clszcuts[i][l] = 5;  //TEC
+	  else clszcuts[i][l] = 999;
+	} else {
+	  //not implemented for other iterations
+	  clszcuts[i][l] = 999;
+	}
+      }
+    }
+
+    for (int j=0; j<ii.size(); j++) {
+      IterationConfig& ic = ii[j];
+      for (size_t l=0; l<ic.m_layer_configs.size(); l++) {
+	ic.m_layer_configs[l].clrowcut = clszcuts[j][l];
+      }
+    }
+  }
+
   std::function<IterationConfig::partition_seeds_foo> PartitionSeeds0 =
   [](const TrackerInfo &trk_info, const TrackVec &in_seeds, const EventOfHits &eoh,
      IterationSeedPartition &part)
@@ -453,6 +482,8 @@ namespace
     ii[9].set_dupl_params(0.5, 0.03,0.05,0.05);
     fill_hit_selection_windows_params(ii[9]);
     ii[9].m_backward_params = ii[9].m_params;
+
+    fill_cluster_size_cuts(ii);
 
     if (verbose)
     {

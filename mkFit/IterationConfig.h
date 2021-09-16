@@ -82,6 +82,8 @@ public:
 
   //----------------------------------------------------------------------------
 
+  unsigned int clrowcut;
+
   IterationLayerConfig() {}
 };
 

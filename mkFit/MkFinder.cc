@@ -1092,6 +1092,8 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
           if (!layer_of_hits.is_pix_lyr()) {//check module compatibility via long strip side = L/sqrt(12)
             isCompatible = isStripQCompatible(itrack, layer_of_hits.is_barrel(), Err[iP], propPar, msErr, msPar);
           }
+	  //check cluster size compatibility, rows for now (strips - need to add also cols in case we want it for pixels too)
+	  if (layer_of_hits.GetHit( XHitArr.At(itrack, hit_cnt, 0) ).spanRows() > m_iteration_layer_config->clrowcut) isCompatible = false;
 
           if (isCompatible) {
 
