@@ -1488,6 +1488,15 @@ int MkBuilder::find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & s
       {
         if (ccand[ic].getLastHitIdx() != -2)
         {
+         // Check if the candidate is close to it's max_r, pi/2 - 0.2 rad (11.5 deg)
+         const float dphi = std::abs(ccand[ic].posPhi() - ccand[ic].momPhi());
+         if (ccand[ic].posRsq() > 625.f && dphi > 1.371f && dphi < 4.512f)
+         {
+          // printf("Stopping cand at r=%f, posPhi=%.1f momPhi=%.2f pt=%.2f emomEta=%.2f\n",
+          //        ccand[ic].posR(), ccand[ic].posPhi(), ccand[ic].momPhi(), ccand[ic].pT(), ccand[ic].momEta());
+         }
+         else
+         {
           active = true;
           seed_cand_vec.push_back(std::pair<int,int>(iseed,ic));
           ccand.m_overlap_hits[ic].reset();
@@ -1499,6 +1508,7 @@ int MkBuilder::find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & s
                                          "Per layer silly check"))
               ++silly_count;
           }
+         }
         }
       }
       if ( ! active)
