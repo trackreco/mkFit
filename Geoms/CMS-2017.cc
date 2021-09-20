@@ -255,10 +255,10 @@ namespace
 	  //first iteration, 95% working point
 	  if (l<4)                                   clszcuts[i][l] = 999;//PXB
 	  else if ((l>17 && l<21) || (l>44 && l<48)) clszcuts[i][l] = 999;//PXF
-	  else if ( l>3  && l<10 )                   clszcuts[i][l] = 4;  //TIB
-	  else if ((l>20 && l<27) || (l>47 && l<54)) clszcuts[i][l] = 4;  //TID
+	  else if ( l>3  && l<10 )                   clszcuts[i][l] = 5;  //TIB
+	  else if ((l>20 && l<27) || (l>47 && l<54)) clszcuts[i][l] = 5;  //TID
 	  else if ( l>9  && l<18 )                   clszcuts[i][l] = 999;//TOB
-	  else if ((l>26 && l<45) || (l>53 && l<72)) clszcuts[i][l] = 5;  //TEC
+	  else if ((l>26 && l<45) || (l>53 && l<72)) clszcuts[i][l] = 7;  //TEC
 	  else clszcuts[i][l] = 999;
 	} else {
 	  //not implemented for other iterations
