@@ -1467,7 +1467,8 @@ void MkBuilder::find_tracks_load_seeds(const TrackVec &in_seeds)
 
 int MkBuilder::find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & seed_cand_vec,
                                              int start_seed, int end_seed,
-                                             int prev_layer, bool pickup_only)
+                                             int layer, int prev_layer, bool pickup_only,
+                                             SteeringParams::IterationType_e iteration_dir)
 {
   int silly_count = 0;
 
@@ -1488,15 +1489,19 @@ int MkBuilder::find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & s
       {
         if (ccand[ic].getLastHitIdx() != -2)
         {
-         // Check if the candidate is close to it's max_r, pi/2 - 0.2 rad (11.5 deg)
-         const float dphi = std::abs(ccand[ic].posPhi() - ccand[ic].momPhi());
-         if (ccand[ic].posRsq() > 625.f && dphi > 1.371f && dphi < 4.512f)
-         {
-          // printf("Stopping cand at r=%f, posPhi=%.1f momPhi=%.2f pt=%.2f emomEta=%.2f\n",
-          //        ccand[ic].posR(), ccand[ic].posPhi(), ccand[ic].momPhi(), ccand[ic].pT(), ccand[ic].momEta());
-         }
-         else
-         {
+          // Check if the candidate is close to it's max_r, pi/2 - 0.2 rad (11.5 deg)
+          if (iteration_dir == SteeringParams::IT_FwdSearch && ccand[ic].pT() < 1.2)
+          {
+            const float dphi = std::abs(ccand[ic].posPhi() - ccand[ic].momPhi());
+            if (ccand[ic].posRsq() > 625.f && dphi > 1.371f && dphi < 4.512f)
+            {
+              // printf("Stopping cand at r=%f, posPhi=%.1f momPhi=%.2f pt=%.2f emomEta=%.2f\n",
+              //        ccand[ic].posR(), ccand[ic].posPhi(), ccand[ic].momPhi(), ccand[ic].pT(), ccand[ic].momEta());
+              ccand[ic].addHitIdx(-2, layer, 0.0f);
+              continue;
+            }
+          }
+
           active = true;
           seed_cand_vec.push_back(std::pair<int,int>(iseed,ic));
           ccand.m_overlap_hits[ic].reset();
@@ -1508,7 +1513,6 @@ int MkBuilder::find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & s
                                          "Per layer silly check"))
               ++silly_count;
           }
-         }
         }
       }
       if ( ! active)
@@ -1675,7 +1679,8 @@ void MkBuilder::FindTracksStandard(SteeringParams::IterationType_e iteration_dir
         const FindingFoos &fnd_foos      = FindingFoos::get_finding_foos(layer_info.is_barrel());
 
         int theEndCand = find_tracks_unroll_candidates(seed_cand_idx, start_seed, end_seed,
-                                                       prev_layer, layer_plan_it.is_pickup_only());
+                                                       curr_layer, prev_layer, layer_plan_it.is_pickup_only(),
+                                                       iteration_dir);
 
         if (layer_plan_it.is_pickup_only() || theEndCand == 0) continue;
 
@@ -1899,7 +1904,8 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
     const FindingFoos &fnd_foos      = FindingFoos::get_finding_foos(layer_info.is_barrel());
 
     const int theEndCand = find_tracks_unroll_candidates(seed_cand_idx, start_seed, end_seed,
-                                                         prev_layer, pickup_only);
+                                                         curr_layer, prev_layer, pickup_only,
+                                                         iteration_dir);
 
     dprintf("  Number of candidates to process: %d\n", theEndCand);
 
