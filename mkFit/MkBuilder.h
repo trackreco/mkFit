@@ -199,7 +199,8 @@ public:
 
   int  find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & seed_cand_vec,
                                      int start_seed, int end_seed,
-                                     int prev_layer, bool pickup_only);
+                                     int layer, int prev_layer, bool pickup_only,
+                                     SteeringParams::IterationType_e iteration_dir);
 
   void find_tracks_handle_missed_layers(MkFinder *mkfndr, const LayerInfo &layer_info,
                                         std::vector<std::vector<TrackCand>> &tmp_cands,

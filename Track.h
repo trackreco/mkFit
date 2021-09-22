@@ -89,6 +89,7 @@ public:
   float y()      const {return parameters.At(1);}
   float z()      const {return parameters.At(2);}
   float posR()   const {return getHypot(x(),y());}
+  float posRsq() const {return x()*x() + y()*y();}
   float posPhi() const {return getPhi  (x(),y());}
   float posEta() const {return getEta  (posR(),z());}
 
@@ -180,6 +181,7 @@ public:
   float y()      const { return state_.parameters[1]; }
   float z()      const { return state_.parameters[2]; }
   float posR()   const { return getHypot(state_.parameters[0],state_.parameters[1]); }
+  float posRsq() const { return state_.posRsq(); }
   float posPhi() const { return getPhi(state_.parameters[0],state_.parameters[1]); }
   float posEta() const { return getEta(state_.parameters[0],state_.parameters[1],state_.parameters[2]); }
 
