@@ -645,7 +645,7 @@ inline float getScoreCalc(const int nfoundhits,
                           const int nmisshits,
                           const float chi2,
                           const float pt,
-                          const bool lowPtTuneSpecial=false)
+                          const bool inFindCandidates=false)
 {
   //// Do not allow for chi2<0 in score calculation
   // if(chi2<0) chi2=0.f;
@@ -656,14 +656,14 @@ inline float getScoreCalc(const int nfoundhits,
   float tailPenalty = Config::tailMissingHitPenalty_;
   float overlapBonus = Config::overlapHitBonus_;
   if(pt < 0.9){
-    penalty *= lowPtTuneSpecial ? 1.7f : 1.5f;
-    bonus = std::min(bonus*(lowPtTuneSpecial ? 0.9f : 1.0f), maxBonus);
+    penalty *= inFindCandidates ? 1.7f : 1.5f;
+    bonus = std::min(bonus*(inFindCandidates ? 0.9f : 1.0f), maxBonus);
   }
   float score_ = bonus*nfoundhits + overlapBonus*noverlaphits - penalty*nmisshits - tailPenalty*ntailholes - chi2;
   return score_;
 }
 
- inline float getScoreCand(const Track& cand1, bool penalizeTailMissHits=false)
+ inline float getScoreCand(const Track& cand1, bool penalizeTailMissHits=false, bool inFindCandidates=false)
  {
    int nfoundhits = cand1.nFoundHits();
    int noverlaphits = cand1.nOverlapHits();
@@ -673,7 +673,7 @@ inline float getScoreCalc(const int nfoundhits,
    float chi2 = cand1.chi2();
    // Do not allow for chi2<0 in score calculation  
    if(chi2<0) chi2=0.f;
-   return getScoreCalc(nfoundhits,ntailmisshits,noverlaphits,nmisshits,chi2,pt,false);
+   return getScoreCalc(nfoundhits,ntailmisshits,noverlaphits,nmisshits,chi2,pt,inFindCandidates);
  }
 
 inline float getScoreStruct(const IdxChi2List& cand1)
@@ -686,7 +686,7 @@ inline float getScoreStruct(const IdxChi2List& cand1)
   float chi2 = cand1.chi2;
   // Do not allow for chi2<0 in score calculation
   if(chi2<0) chi2=0.f;
-  return getScoreCalc(nfoundhits,ntailholes,noverlaphits,nmisshits,chi2,pt,true);
+  return getScoreCalc(nfoundhits,ntailholes,noverlaphits,nmisshits,chi2,pt,true/*inFindCandidates*/);
 }
 
 
