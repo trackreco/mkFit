@@ -141,6 +141,10 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg)
   const float dzmax2_el = dzmax_el*dzmax_el;
   const float drmax2_el = drmax_el*drmax_el;
 
+  // Merge hits from overlapping seeds?
+  // For now always true, we require extra hits after seed.
+  const bool  merge_hits = true; // itrcfg.merge_seed_hits_during_cleaning();
+
   if (seed_ptr == nullptr) return 0;
   TrackVec &seeds = *seed_ptr;
   
@@ -267,29 +271,37 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg)
       if(overlapping){
         //Mark tss as a duplicate
         writetrack[tss] = false;
-        //Add hits from tk2 to the seed we are keeping
-        Track &tk = seeds[ts];
-        const Track &tk2 = seeds[tss];
-        //We are not actually fitting to the extra hits; use chi2 of 0
-        float fakeChi2 = 0.0;
 
-        for (int j = 0; j < tk2.nTotalHits(); ++j)
+        // Add hits from tk2 to the seed we are keeping.
+        // NOTE: We only have 3 bits in Track::Status for number of seed hits.
+        //       There is a check at entry and after adding of a new hit.
+        Track &tk = seeds[ts];
+        if (merge_hits && tk.nTotalHits() < 7)
         {
-          int hitidx = tk2.getHitIdx(j);
-          int hitlyr = tk2.getHitLyr(j);
-          if (hitidx >= 0)
+          const Track &tk2 = seeds[tss];
+          //We are not actually fitting to the extra hits; use chi2 of 0
+          float fakeChi2 = 0.0;
+
+          for (int j = 0; j < tk2.nTotalHits(); ++j)
           {
-            bool unique = true;
-            for (int i = 0; i < tk.nTotalHits(); ++i)
+            int hitidx = tk2.getHitIdx(j);
+            int hitlyr = tk2.getHitLyr(j);
+            if (hitidx >= 0)
             {
-              if ((hitidx == tk.getHitIdx(i)) && (hitlyr == tk.getHitLyr(i))) {
-                unique = false;
-                break;
+              bool unique = true;
+              for (int i = 0; i < tk.nTotalHits(); ++i)
+              {
+                if ((hitidx == tk.getHitIdx(i)) && (hitlyr == tk.getHitLyr(i))) {
+                  unique = false;
+                  break;
+                }
               }
-            }
-            if (unique) {
-              tk.addHitIdx(tk2.getHitIdx(j), tk2.getHitLyr(j), fakeChi2);
-              ++n_ovlp_hits_added;
+              if (unique) {
+                tk.addHitIdx(tk2.getHitIdx(j), tk2.getHitLyr(j), fakeChi2);
+                ++n_ovlp_hits_added;
+                if (tk.nTotalHits() >= 7)
+                  break;
+              }
             }
           }
         }

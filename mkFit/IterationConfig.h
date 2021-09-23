@@ -156,6 +156,7 @@ public:
   bool  m_require_dupclean_tight    = false;
 
   bool  m_backward_search           = false;
+  bool  m_backward_drop_seed_hits   = false;
 
   // Iteration parameters (could be a ptr)
   IterationParams                     m_params;
@@ -172,12 +173,20 @@ public:
 
   IterationConfig() {}
 
-  void Clone(const IterationConfig &o)
-  {
-      // Clone iteration. m_iteration_index and m_track_algorithm are not copied
-      // and need to be set separately.
+  // -------- Getter functions
 
-      m_params          = o.m_params;
+  IterationLayerConfig& layer(int i) { return m_layer_configs[i]; }
+  SteeringParams&       steering_params(int region) { return m_steering_params[region]; }
+
+  bool merge_seed_hits_during_cleaning() const { return m_backward_search && m_backward_drop_seed_hits; }
+
+  // -------- Setup function
+
+  void CloneLayerSteerCore(const IterationConfig &o)
+  {
+      // Clone common settings for an iteration.
+      // m_iteration_index, m_track_algorithm, cleaning and bkw-search flags,
+      // and IterationParams are not copied.
 
       m_n_regions       = o.m_n_regions;
       m_region_order    = o.m_region_order;
@@ -195,14 +204,14 @@ public:
 
   void set_qf_flags()
   {
-    m_requires_seed_hit_sorting=true;
-    m_require_quality_filter=true;
+    m_requires_seed_hit_sorting = true;
+    m_require_quality_filter    = true;
   }
 
   void set_qf_params(int minHits, float sharedFrac)
   {
-     m_params.minHitsQF=minHits;
-     m_params.fracSharedHits=sharedFrac;
+     m_params.minHitsQF      = minHits;
+     m_params.fracSharedHits = sharedFrac;
   }
 
   void set_dupclean_flag()
@@ -212,19 +221,17 @@ public:
 
   void set_dupl_params(float sharedFrac, float drthCentral, float drthObarrel, float drthForward)
   {
-      m_params.fracSharedHits=sharedFrac;
-      m_params.drth_central=drthCentral;
-      m_params.drth_obarrel=drthObarrel;
-      m_params.drth_forward=drthForward;
-  }  
-  
+      m_params.fracSharedHits = sharedFrac;
+      m_params.drth_central   = drthCentral;
+      m_params.drth_obarrel   = drthObarrel;
+      m_params.drth_forward   = drthForward;
+  }
   
   void set_seed_cleaning_params(float pt_thr,
         float dzmax_bh, float drmax_bh,
 				float dzmax_bl, float drmax_bl,
 				float dzmax_eh, float drmax_eh,
-				float dzmax_el, float drmax_el
-				)
+				float dzmax_el, float drmax_el)
   {
        m_params.c_ptthr_hpt = pt_thr;
        m_params.c_drmax_bh = drmax_bh;
@@ -245,10 +252,6 @@ public:
     for (int i = 0; i < nreg; ++i) m_steering_params[i].m_region = i;
     m_layer_configs.resize(nlay);
   }
-
-  IterationLayerConfig& layer(int i) { return m_layer_configs[i]; }
-
-  SteeringParams&       steering_params(int region) { return m_steering_params[region]; }
 };
 
 

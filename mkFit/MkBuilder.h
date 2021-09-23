@@ -157,9 +157,15 @@ public:
   void import_seeds(const TrackVec &in_seeds, std::function<insert_seed_foo> insert_seed);
 
   int  filter_comb_cands(std::function<filter_track_cand_foo> filter);
+
+  // XXX filter for rearranging cands that will / will not do backward search.
+
   void select_best_comb_cands(bool clear_m_tracks=false);
   void export_best_comb_cands(TrackVec &out_vec);
   void export_tracks(TrackVec &out_vec);
+
+  void CompactifyHitStorageForBestCand(bool remove_seed_hits)
+  { m_event_of_comb_cands.CompactifyHitStorageForBestCand(remove_seed_hits); }
 
   void BeginBkwSearch() { m_event_of_comb_cands.BeginBkwSearch(); }
   void EndBkwSearch()   { m_event_of_comb_cands.EndBkwSearch(); }
