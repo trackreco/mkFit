@@ -963,7 +963,7 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
               copy_out(newcand, itrack, iC);
               newcand.setCharge(tmpChg(itrack, 0, 0));
               newcand.addHitIdx(hit_idx, layer_of_hits.layer_id(), chi2);
-              newcand.setScore(getScoreCand(newcand, true));
+              newcand.setScore(getScoreCand(newcand, true/*penalizeTailMissHits*/, true/*inFindCandidates*/));
               newcand.setOriginIndex(CandIdx(itrack, 0, 0));
               
               if (chi2 < m_iteration_params->chi2CutOverlap)
@@ -1014,7 +1014,7 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
     TrackCand newcand;
     copy_out(newcand, itrack, iP);
     newcand.addHitIdx(fake_hit_idx, layer_of_hits.layer_id(), 0.);
-    newcand.setScore(getScoreCand(newcand, true));
+    newcand.setScore(getScoreCand(newcand, true/*penalizeTailMissHits*/, true/*inFindCandidates*/));
     // Only relevant when we actually add a hit
     // newcand.setOriginIndex(CandIdx(itrack, 0, 0));
     tmp_candidates[SeedIdx(itrack, 0, 0) - offset].emplace_back(newcand);

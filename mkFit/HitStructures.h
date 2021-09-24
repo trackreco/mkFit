@@ -535,7 +535,7 @@ inline bool sortByScoreTrackCand(const TrackCand & cand1, const TrackCand & cand
   return cand1.score() > cand2.score();
 }
 
-inline float getScoreCand(const TrackCand& cand1, bool penalizeTailMissHits=false)
+inline float getScoreCand(const TrackCand& cand1, bool penalizeTailMissHits=false, bool inFindCandidates=false)
 {
   int nfoundhits   = cand1.nFoundHits();
   int noverlaphits = cand1.nOverlapHits();
@@ -545,7 +545,7 @@ inline float getScoreCand(const TrackCand& cand1, bool penalizeTailMissHits=fals
   float chi2 = cand1.chi2();
   // Do not allow for chi2<0 in score calculation
   if (chi2 < 0) chi2 = 0.f;
-  return getScoreCalc(nfoundhits,ntailmisshits, noverlaphits, nmisshits, chi2, pt);
+  return getScoreCalc(nfoundhits,ntailmisshits, noverlaphits, nmisshits, chi2, pt, inFindCandidates);
 }
 
 
