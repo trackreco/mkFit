@@ -358,7 +358,9 @@ void ConfigJson_Patch_Files(IterationsInfo &its_info, const std::vector<std::str
 
 // Load a single iteration from JSON file.
 // Searches for a match between m_algorithm in its_info and in JSON file to decide
-// which IterationConfig it will clone and load the JSON file over.
+// which IterationConfig it will clone and patch-load the JSON file over.
+// The IterationConfig in question *must* match in structure to what is on file,
+// in particular, arrays must be of same lengths.
 // Assumes JSON file has been saved WITHOUT iteration-info preamble.
 // Returns a unique_ptr to the cloned IterationConfig.
 // If report is non-null counts are added to existing object.
@@ -369,6 +371,9 @@ ConfigJson_PatchLoad_File(const IterationsInfo &its_info, const std::string &fna
 // Load a single iteration from JSON file.
 // Searches for a match between m_algorithm in its_info and in JSON file to decide
 // which IterationConfig it will clone and load the JSON file over.
+// This will, effectively, leave IterationConfig data-members, that are not registered
+// in JSON schema intact and overwrite everything else.
+// The only such member is std::function m_partition_seeds.
 // Assumes JSON file has been saved WITHOUT iteration-info preamble.
 // Returns a unique_ptr to the cloned IterationConfig.
 std::unique_ptr<IterationConfig>

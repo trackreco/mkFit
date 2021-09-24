@@ -659,6 +659,11 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
 
   if (do_backward_fit)
   {
+    if (itconf.m_backward_search)
+    {
+      builder.CompactifyHitStorageForBestCand(itconf.m_backward_drop_seed_hits);
+    }
+
     builder.BackwardFit();
 
     if (itconf.m_backward_search)
