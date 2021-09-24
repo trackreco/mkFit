@@ -353,8 +353,8 @@ public:
 // Assumes patch files include iteration-info preambles, i.e., they
 // were saved with include_iter_info_preamble=true.
 // If report is non-null counts are added to existing object.
-void             ConfigJson_Patch_Files(IterationsInfo &its_info, const std::vector<std::string> &fnames,
-                                       ConfigJsonPatcher::PatchReport *report=nullptr);
+void ConfigJson_Patch_Files(IterationsInfo &its_info, const std::vector<std::string> &fnames,
+                            ConfigJsonPatcher::PatchReport *report=nullptr);
 
 // Load a single iteration from JSON file.
 // Searches for a match between m_algorithm in its_info and in JSON file to decide
@@ -363,8 +363,16 @@ void             ConfigJson_Patch_Files(IterationsInfo &its_info, const std::vec
 // Returns a unique_ptr to the cloned IterationConfig.
 // If report is non-null counts are added to existing object.
 std::unique_ptr<IterationConfig>
-ConfigJson_Load_File(const IterationsInfo &its_info, const std::string &fname,
-                     ConfigJsonPatcher::PatchReport *report=nullptr);
+ConfigJson_PatchLoad_File(const IterationsInfo &its_info, const std::string &fname,
+                          ConfigJsonPatcher::PatchReport *report=nullptr);
+
+// Load a single iteration from JSON file.
+// Searches for a match between m_algorithm in its_info and in JSON file to decide
+// which IterationConfig it will clone and load the JSON file over.
+// Assumes JSON file has been saved WITHOUT iteration-info preamble.
+// Returns a unique_ptr to the cloned IterationConfig.
+std::unique_ptr<IterationConfig>
+ConfigJson_Load_File(const IterationsInfo &its_info, const std::string &fname);
 
 void ConfigJson_Save_Iterations(IterationsInfo &its_info, const std::string &fname_fmt,
                                 bool include_iter_info_preamble);

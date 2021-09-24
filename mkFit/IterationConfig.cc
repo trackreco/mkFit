@@ -479,8 +479,8 @@ void ConfigJson_Patch_Files(IterationsInfo &its_info, const std::vector<std::str
 }
 
 std::unique_ptr<IterationConfig>
-ConfigJson_Load_File(const IterationsInfo &its_info, const std::string &fname,
-                     ConfigJsonPatcher::PatchReport *report)
+ConfigJson_PatchLoad_File(const IterationsInfo &its_info, const std::string &fname,
+                          ConfigJsonPatcher::PatchReport *report)
 {
     ConfigJsonPatcher::PatchReport rep;
 
@@ -543,6 +543,49 @@ ConfigJson_Load_File(const IterationsInfo &its_info, const std::string &fname,
 
     return std::unique_ptr<IterationConfig>( icp );
 }
+
+std::unique_ptr<IterationConfig>
+ConfigJson_Load_File(const IterationsInfo &its_info, const std::string &fname)
+{
+    ConfigJsonPatcher::PatchReport rep;
+
+    std::ifstream ifs;
+    open_ifstream(ifs, fname, __func__);
+
+    if (Config::json_verbose)
+    {
+        printf("%s begin reading from file %s.\n", __func__, fname.c_str());
+    }
+
+    if ( ! skipws_ifstream(ifs)) throw std::runtime_error("empty file");
+
+    nlohmann::json j;
+    ifs >> j;
+    int track_algo = j["m_track_algorithm"];
+
+    int iii = -1;
+    for (int i = 0; i < its_info.size(); ++i)
+    {
+        if (its_info[i].m_track_algorithm == track_algo) {
+            iii = i;
+            break;
+        }
+    }
+    if (iii == -1) throw std::runtime_error("matching IterationConfig not found");
+
+    if (Config::json_verbose)
+    {
+        std::cout << " Read JSON entity, Iteration index is " << iii
+                  << " -- cloning and applying JSON patch:\n";
+    }
+
+    IterationConfig *icp = new IterationConfig( its_info[iii] );
+
+    from_json(j, *icp);
+
+    return std::unique_ptr<IterationConfig>( icp );
+}
+
 
 // ============================================================================
 // Save each IterationConfig into a separate json file

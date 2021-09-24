@@ -46,6 +46,18 @@ void initGeom()
   // are added starting from the center
   // NB: z is just a dummy variable, VUSolid is actually infinite in size.  *** Therefore, set it to the eta of simulation ***
 
+  /*
+  // Test CMSSW loading
+  IterationsInfo ii;
+  unsigned int algorithms[]={ 4,22,23,5,24,7,8,9,10,6 }; // 10 iterations
+  ii.resize(10);
+  for (int i = 0; i < 10; ++i) {
+      ii[i].m_track_algorithm = algorithms[i];
+  }
+  auto xx = ConfigJson_Load_File(ii, "mkfit-phase1-initialStep.json");
+  printf("%d\n", xx->m_iteration_index);
+  */
+
   TrackerInfo::ExecTrackerInfoCreatorPlugin(Config::geomPlugin, Config::TrkInfo, Config::ItrInfo);
 
   if (Config::json_dump_before) ConfigJson_Dump(Config::ItrInfo);
@@ -58,7 +70,7 @@ void initGeom()
     {
       // This is for testing only ... we drop the loaded IterationConfig
       // as further code will always use IterationsInfo[ iter_index ].
-      ConfigJson_Load_File(Config::ItrInfo, fn, &report);
+      ConfigJson_PatchLoad_File(Config::ItrInfo, fn, &report);
     }
 
     printf("mkFit.cc/%s--JSON-Load read %d JSON entities from %d files, replaced %d parameters.\n"
