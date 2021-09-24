@@ -20,6 +20,19 @@ namespace mkfit {
 
 // Begin AUTO code, some members commented out.
 
+ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::LayerControl,
+  /* int   */   m_layer
+)
+
+ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::SteeringParams,
+  /* std::vector<LayerControl> */  m_layer_plan,
+  /* int */ m_region,
+  /* int */ m_fwd_search_pickup,
+  /* int */ m_bkw_fit_last,
+  /* int */ m_bkw_search_pickup
+
+)
+
 ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationLayerConfig,
   /* float */   m_select_min_dphi,
   /* float */   m_select_max_dphi,
@@ -64,7 +77,7 @@ ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationParams,
 )
 
 ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationConfig,
-  // /* int */   m_iteration_index,
+  /* int */                      m_iteration_index,
   /* int */                      m_track_algorithm,
   /* mkfit::IterationParams */   m_params,
   /* mkfit::IterationParams */   m_backward_params,
@@ -73,9 +86,9 @@ ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationConfig,
   /* bool */                     m_require_dupclean_tight,
   /* bool */                     m_backward_search,
   /* bool */                     m_backward_drop_seed_hits,
-  // /* int */                   m_n_regions,
-  // /* vector<int> */           m_region_order,
-  // /* vector<mkfit::SteeringParams> */      m_steering_params,
+  /* int */                      m_n_regions,
+  /* vector<int> */              m_region_order,
+  /* vector<mkfit::SteeringParams> */         m_steering_params,
   /* vector<mkfit::IterationLayerConfig> */   m_layer_configs
   // /* function<void(const TrackerInfo&,const TrackVec&,const EventOfHits&,IterationSeedPartition&)> */   m_partition_seeds
 )

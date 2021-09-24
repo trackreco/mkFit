@@ -24,8 +24,8 @@ struct LayerControl
 
   //----------------------------------------------------------------------------
 
-  LayerControl(int lay) : m_layer(lay)
-  {}
+  LayerControl()        : m_layer(-1)  {}
+  LayerControl(int lay) : m_layer(lay) {}
 };
 
 
