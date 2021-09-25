@@ -864,11 +864,11 @@ bool passStripChargePCMfromTrack(int itrack, bool isBarrel, unsigned int pcm, un
     const float cosP = cos(pPar.ConstAt(itrack,4,0));
     const float sinP = sin(pPar.ConstAt(itrack,4,0));
     const float sinT = std::abs(sin(pPar.ConstAt(itrack,5,0)));
-    //qSF = (px,py)*(1-proj)*(px,py)/p = sinT*sqrt[(cosP,sinP)*(1-proj)*(cosP,sinP)].
+    //qSF = sqrt[(px,py)*(1-proj)*(px,py)]/p = sinT*sqrt[(cosP,sinP)*(1-proj)*(cosP,sinP)].
     qSF = detXY_OK ? sinT*std::sqrt(std::abs(1.f + cosP*cosP*proj[0] + sinP*sinP*proj[2] - 2.f*cosP*sinP*proj[1]) )
                    : 1.f;
   } else {//project on z
-    // p_zLocal = p_z/p = cosT
+    // p_zLocal/p = p_z/p = cosT
     qSF = std::abs(cos(pPar.ConstAt(itrack,5,0)));
   }
 
