@@ -278,6 +278,7 @@ public:
   unsigned int spanRows()     const { return pdata_.span_rows + 1; }
   unsigned int spanCols()     const { return pdata_.span_cols + 1; }
 
+  static unsigned int minChargePerCM() { return 1620; }
   static unsigned int maxChargePerCM() { return 1620 + (0xfe << 3); }
   static unsigned int maxSpan()        { return 8; }
 
