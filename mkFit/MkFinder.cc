@@ -842,6 +842,42 @@ bool isStripQCompatible(int itrack, bool isBarrel, const MPlexLS &pErr,  const M
   }
 }
 
+//=======================================================
+// passStripChargePCMfromTrack : apply the slope correction to charge per cm and cut using hit err matrix
+//         the raw pcm = charge/L_normal
+//         the corrected qCorr = charge/L_path = charge/(L_normal*p/p_zLocal) = pcm*p_zLocal/p
+//=======================================================
+bool passStripChargePCMfromTrack(int itrack, bool isBarrel, unsigned int pcm, unsigned int pcmMin,
+                                 const MPlexLV &pPar, const MPlexHS &msErr)
+{
+  //skip the overflow case
+  if (pcm >= Hit::maxChargePerCM())
+    return true;
+
+  float qSF;
+  if (isBarrel) {//project in x,y, assuming zero-error direction is in this plane
+    const float hitT2 = msErr.ConstAt(itrack,0,0) + msErr.ConstAt(itrack,1,1);
+    const float hitT2inv = 1.f/hitT2;
+    const float proj[3] = {msErr.ConstAt(itrack,0,0)*hitT2inv, msErr.ConstAt(itrack,0,1)*hitT2inv,
+                           msErr.ConstAt(itrack,1,1)*hitT2inv};
+    const bool detXY_OK = std::abs(proj[0]*proj[2] - proj[1]*proj[1]) < 0.1f;//check that zero-direction is close
+    const float cosP = cos(pPar.ConstAt(itrack,4,0));
+    const float sinP = sin(pPar.ConstAt(itrack,4,0));
+    const float sinT = std::abs(sin(pPar.ConstAt(itrack,5,0)));
+    //qSF = (px,py)*(1-proj)*(px,py)/p = sinT*sqrt[(cosP,sinP)*(1-proj)*(cosP,sinP)].
+    qSF = detXY_OK ? sinT*std::sqrt(std::abs(1.f + cosP*cosP*proj[0] + sinP*sinP*proj[2] - 2.f*cosP*sinP*proj[1]) )
+                   : 1.f;
+  } else {//project on z
+    // p_zLocal = p_z/p = cosT
+    qSF = std::abs(cos(pPar.ConstAt(itrack,5,0)));
+  }
+
+  const float qCorr = pcm*qSF;
+  dprint("pcm "<<pcm <<" * "<<qSF<<" = "<<qCorr<<" vs "<<pcmMin);
+  return qCorr > pcmMin;
+
+}
+
 //==============================================================================
 // FindCandidates - Standard Track Finding
 //==============================================================================
@@ -876,12 +912,16 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
   {
     mhp.Reset();
 
+    int charge_pcm[NN];
+
 #pragma omp simd
     for (int itrack = 0; itrack < N_proc; ++itrack)
     {
       if (hit_cnt < XHitSize[itrack])
       {
-        mhp.AddInputAt(itrack, layer_of_hits.GetHit( XHitArr.At(itrack, hit_cnt, 0) ));
+        const auto& hit = layer_of_hits.GetHit( XHitArr.At(itrack, hit_cnt, 0) );
+        mhp.AddInputAt(itrack, hit);
+        charge_pcm[itrack] = hit.chargePerCM();
       }
     }
 
@@ -911,8 +951,14 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
 	if (chi2 < max_c2)
 	{
           bool isCompatible = true;
-          if (!layer_of_hits.is_pix_lyr()) {//check module compatibility via long strip side = L/sqrt(12)
+          if (!layer_of_hits.is_pix_lyr()) {
+            //check module compatibility via long strip side = L/sqrt(12)
             isCompatible = isStripQCompatible(itrack, layer_of_hits.is_barrel(), Err[iP], propPar, msErr, msPar);
+
+            //rescale strip charge to track parameters and reapply the cut
+            isCompatible &= passStripChargePCMfromTrack(itrack, layer_of_hits.is_barrel(),
+                                                        charge_pcm[itrack], Hit::minChargePerCM(),
+                                                        propPar, msErr);
           }
           if (isCompatible)
           {
@@ -947,8 +993,14 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
 	  if (chi2 < max_c2)
 	  {
             bool isCompatible = true;
-            if (!layer_of_hits.is_pix_lyr()) {//check module compatibility via long strip side = L/sqrt(12)
+            if (!layer_of_hits.is_pix_lyr()) {
+              //check module compatibility via long strip side = L/sqrt(12)
               isCompatible = isStripQCompatible(itrack, layer_of_hits.is_barrel(), Err[iP], propPar, msErr, msPar);
+
+              //rescale strip charge to track parameters and reapply the cut
+              isCompatible &= passStripChargePCMfromTrack(itrack, layer_of_hits.is_barrel(),
+                                                          charge_pcm[itrack], Hit::minChargePerCM(),
+                                                          propPar, msErr);
             }
             if (isCompatible)
             {
@@ -1056,12 +1108,16 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
   {
     mhp.Reset();
 
+    int charge_pcm[NN];
+
 #pragma omp simd
     for (int itrack = 0; itrack < N_proc; ++itrack)
     {
       if (hit_cnt < XHitSize[itrack])
       {
-        mhp.AddInputAt(itrack, layer_of_hits.GetHit( XHitArr.At(itrack, hit_cnt, 0) ));
+        const auto& hit = layer_of_hits.GetHit( XHitArr.At(itrack, hit_cnt, 0) );
+        mhp.AddInputAt(itrack, hit);
+        charge_pcm[itrack] = hit.chargePerCM();
       }
     }
 
@@ -1089,8 +1145,14 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
         if (chi2 < max_c2)
         {
           bool isCompatible = true;
-          if (!layer_of_hits.is_pix_lyr()) {//check module compatibility via long strip side = L/sqrt(12)
+          if (!layer_of_hits.is_pix_lyr()) {
+            //check module compatibility via long strip side = L/sqrt(12)
             isCompatible = isStripQCompatible(itrack, layer_of_hits.is_barrel(), Err[iP], propPar, msErr, msPar);
+
+            //rescale strip charge to track parameters and reapply the cut
+            isCompatible &= passStripChargePCMfromTrack(itrack, layer_of_hits.is_barrel(),
+                                                        charge_pcm[itrack], Hit::minChargePerCM(),
+                                                        propPar, msErr);
           }
 
           if (isCompatible) {
