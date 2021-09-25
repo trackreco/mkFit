@@ -49,7 +49,7 @@ namespace
     {
       SteeringParams &sp = ic.m_steering_params[TrackerInfo::Reg_Barrel];
       sp.reserve_plan(4 + 6 + 8); // BPix + TIB + TOB
-      sp.fill_plan( 0,  3);
+      sp.fill_plan( 0,  3); //                                    [ 0,  3]
       sp.fill_plan( 4,  9); // TIB, 6 layers (4 mono + 2 stereo)  [ 4,  9]
       sp.fill_plan(10, 17); // TOB, 8 layers (6 mono + 2 stereo)  [10, 17]
       sp.set_iterator_limits(2, 0);
@@ -57,8 +57,8 @@ namespace
     {
       SteeringParams &sp = ic.m_steering_params[TrackerInfo::Reg_Transition_Pos];
       sp.reserve_plan(3 + 4 + 6 + 6 + 8 + 18); // BPix + FPix+ + TIB + TID+ + TOB + TEC+
-      sp.fill_plan( 0,  3);
-      sp.fill_plan(18, 20);
+      sp.fill_plan( 0,  3); //                                     [ 0,  3]
+      sp.fill_plan(18, 20); //                                     [ 4,  6]
       sp.fill_plan( 4,  9); // TIB,  6 layers (4 mono + 2 stereo)  [ 7, 12]
       sp.fill_plan(21, 26); // TID,  6 disks  (3 mono + 3 stereo)  [13, 18]
       sp.fill_plan(10, 17); // TOB,  8 layers (6 mono + 2 stereo)  [19, 26]
@@ -68,8 +68,8 @@ namespace
     {
       SteeringParams &sp = ic.m_steering_params[TrackerInfo::Reg_Endcap_Pos];
       sp.reserve_plan(3 + 3 + 6 + 18); // BPix + FPix+ + TID+ + TEC+; BPix4 is out of acceptance
-      sp.fill_plan( 0,  2);
-      sp.fill_plan(18, 20);
+      sp.fill_plan( 0,  2); //                                     [ 0,  2]
+      sp.fill_plan(18, 20); //                                     [ 3,  5]
       sp.fill_plan(21, 26); // TID,  6 disks  (3 mono + 3 stereo)  [ 6, 11]
       sp.fill_plan(27, 44); // TEC, 18 disks  (9 mono + 9 stereo)  [12, 29]
       sp.set_iterator_limits(2, 0);
@@ -95,14 +95,14 @@ namespace
   {
     ic.m_backward_params = ic.m_params;
     ic.m_backward_search = true;
-    ic.m_backward_drop_seed_hits = true;
+    ic.m_backward_drop_seed_hits = false;
     ic.m_backward_fit_min_hits   = 7; // 5 in CKF, two of those persumed matched-hit, so 3 + 2*2
     auto &spv = ic.m_steering_params;
-    spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(1, 0, 7);
-    spv[TrackerInfo::Reg_Transition_Neg].set_iterator_limits(1, 0, 9);
-    spv[TrackerInfo::Reg_Barrel]        .set_iterator_limits(1, 0, 6);
-    spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(1, 0, 9);
-    spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(1, 0, 7);
+    spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(1, 0, 3);
+    spv[TrackerInfo::Reg_Transition_Neg].set_iterator_limits(1, 0, 4);
+    spv[TrackerInfo::Reg_Barrel]        .set_iterator_limits(1, 0, 1);
+    spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(1, 0, 4);
+    spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(1, 0, 3);
   }
 
   void SetupBackwardSearch_Iter7(IterationConfig& ic)
