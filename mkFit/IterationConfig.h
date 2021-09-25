@@ -158,6 +158,8 @@ public:
   bool  m_backward_search           = false;
   bool  m_backward_drop_seed_hits   = false;
 
+  int   m_backward_fit_min_hits     = -1;  // Min number of hits to keep when m_backward_drop_seed_hits is true
+
   // Iteration parameters (could be a ptr)
   IterationParams                     m_params;
   IterationParams                     m_backward_params;

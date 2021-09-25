@@ -164,8 +164,8 @@ public:
   void export_best_comb_cands(TrackVec &out_vec);
   void export_tracks(TrackVec &out_vec);
 
-  void CompactifyHitStorageForBestCand(bool remove_seed_hits)
-  { m_event_of_comb_cands.CompactifyHitStorageForBestCand(remove_seed_hits); }
+  void CompactifyHitStorageForBestCand(bool remove_seed_hits, int backward_fit_min_hits)
+  { m_event_of_comb_cands.CompactifyHitStorageForBestCand(remove_seed_hits, backward_fit_min_hits); }
 
   void BeginBkwSearch() { m_event_of_comb_cands.BeginBkwSearch(); }
   void EndBkwSearch()   { m_event_of_comb_cands.EndBkwSearch(); }

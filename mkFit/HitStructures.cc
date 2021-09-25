@@ -545,7 +545,7 @@ void CombCandidate::MergeCandsAndBestShortOne(const IterationParams& params, boo
   // assert(capacity() == (size_t)Config::maxCandsPerSeed);
 }
 
-void CombCandidate::CompactifyHitStorageForBestCand(bool remove_seed_hits)
+void CombCandidate::CompactifyHitStorageForBestCand(bool remove_seed_hits, int backward_fit_min_hits)
 {
   // The best candidate is assumed to be in position 0 (after MergeCandsAndBestShortOne
   // MergeCandsAndBestShortOne has been called).
@@ -568,58 +568,70 @@ void CombCandidate::CompactifyHitStorageForBestCand(bool remove_seed_hits)
   resize(1);
   TrackCand &tc = (*this)[0];
 
-  // Seed hits are consecutive at the beginning.
-  // Walk back until the last seed hit is found.
-  int end_prev_idx = remove_seed_hits ? tc.getNSeedHits() - 1 : -1;
+  // Do NOT remove any seed hits if fewer than backward_fit_min_hits hits are available.
+  if (remove_seed_hits && tc.nFoundHits() <= backward_fit_min_hits)
+  {
+    remove_seed_hits = false;
+  }
 
+  // Stash HoTNodes at the end of m_hots.
   int stash_end = m_hots.size();
   int stash_pos = stash_end;
 
   int idx = tc.lastCcIndex();
-  if (idx == end_prev_idx)
-  {
-    assert (remove_seed_hits);
-    // printf("Yay, candidate with no hits after seed, will keep the last seed hit.\n");
-    --end_prev_idx;
-    // QQQQ Alternatively, could add invalid hit on the next layer (in layer plan, so
-    // would need to pass all this in, somehow).
-  }
-  do {
-    m_hots[--stash_pos] = m_hots[idx];
-    idx = m_hots[idx].m_prev_idx;
-  } while (idx != end_prev_idx);
 
   if (remove_seed_hits)
   {
-    // Skip invalid hits now at the beginning. --- WHY?
-    // XXXX make sure to subtract / recount number of hits if remove_seed_hits is true
+    // Skip invalid hits that would now be at the head of the candidate.
+    // Make sure to subtract / recount number of hits:
+    // as this is rather involved, just call addHitIdx() repeatedly so counts
+    // of holes get updated correctly.
+    // Though one should not care super much ... it's only relevant for relative scores
+    // and here we are trimmmin everything down to a single candidate.
+
+    int n_hits_to_pick = std::max(tc.nFoundHits() - tc.getNSeedHits(), backward_fit_min_hits);
+    while (n_hits_to_pick > 0)
+    {
+      m_hots[--stash_pos] = m_hots[idx];
+      if (m_hots[idx].m_hot.index >= 0) --n_hits_to_pick;
+      idx = m_hots[idx].m_prev_idx;
+    }
+
     // auto lh = m_hots[stash_pos].m_hot;
     // auto pi = m_hots[stash_pos].m_prev_idx;
     // printf("CC::CHSFBC n=%d, last_hot=(%d,%d), prev_idx=%d ... end_prev_idx=%d\n",
     //        stash_end - stash_pos, lh.layer, lh.index, pi, end_prev_idx);
 
-    // For now just do the same.
- /*
-    // Maybe should resize and call addHit() repeatedly?
     m_hots_size = 0;
     m_hots.clear();
     tc.setLastCcIndex(-1);
     tc.setNFoundHits(0);
+    tc.setNMissingHits(0);
+    tc.setNInsideMinusOneHits(0);
+    tc.setNTailMinusOneHits(0);
+    while (stash_pos != stash_end && m_hots[stash_pos].m_hot.index < 0) ++stash_pos;
     while (stash_pos != stash_end)
     {
-      tc.addHitIdx(m_hots[stash_pos].m_hot.layer, m_hots[stash_pos].m_hot.index, m_hots[stash_pos].m_chi2);
-      --stash_pos;
+      HoTNode &hn = m_hots[stash_pos];
+      tc.addHitIdx(hn.m_hot.index, hn.m_hot.layer, hn.m_chi2);
+      ++stash_pos;
     }
-*/
   }
-//  else
+  else
   {
+    while (idx != -1)
+    {
+      m_hots[--stash_pos] = m_hots[idx];
+      idx = m_hots[idx].m_prev_idx;
+    }
+
     // If we are not removing seed_hits, track is good as it is,
     // just fixup m_hots and t.lastCcIndex.
     int pos = 0;
     while (stash_pos != stash_end)
     {
-      m_hots[pos] = m_hots[stash_pos];
+      m_hots[pos].m_hot      = m_hots[stash_pos].m_hot;
+      m_hots[pos].m_chi2     = m_hots[stash_pos].m_chi2;
       m_hots[pos].m_prev_idx = pos - 1;
       ++pos; ++stash_pos;
     }

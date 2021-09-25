@@ -543,7 +543,7 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
       // have a pointer to seed track in CombCandidate and copy them from there).
       if (do_backward_search)
       {
-        builder.CompactifyHitStorageForBestCand(itconf.m_backward_drop_seed_hits);
+        builder.CompactifyHitStorageForBestCand(itconf.m_backward_drop_seed_hits, itconf.m_backward_fit_min_hits);
       }
 
       builder.BackwardFit();
@@ -661,7 +661,7 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
   {
     if (itconf.m_backward_search)
     {
-      builder.CompactifyHitStorageForBestCand(itconf.m_backward_drop_seed_hits);
+      builder.CompactifyHitStorageForBestCand(itconf.m_backward_drop_seed_hits, itconf.m_backward_fit_min_hits);
     }
 
     builder.BackwardFit();

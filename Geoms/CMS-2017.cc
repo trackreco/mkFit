@@ -76,6 +76,7 @@ namespace
     }
   }
 
+/*
   void SetupBackwardSearch_Iter0(IterationConfig& ic)
   {
     ic.m_backward_params = ic.m_params;
@@ -88,24 +89,26 @@ namespace
     spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(2, 3, 7);
     spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(2, 3, 5);
   }
+ */
 
   void SetupBackwardSearch_Iter5(IterationConfig& ic)
   {
     ic.m_backward_params = ic.m_params;
     ic.m_backward_search = true;
     ic.m_backward_drop_seed_hits = true;
+    ic.m_backward_fit_min_hits   = 7; // 5 in CKF, two of those persumed matched-hit, so 3 + 2*2
     auto &spv = ic.m_steering_params;
-    spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(1, 2, 7);
-    spv[TrackerInfo::Reg_Transition_Neg].set_iterator_limits(1, 2, 9);
-    spv[TrackerInfo::Reg_Barrel]        .set_iterator_limits(1, 2, 6);
-    spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(1, 2, 9);
-    spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(1, 2, 7);
+    spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(1, 0, 7);
+    spv[TrackerInfo::Reg_Transition_Neg].set_iterator_limits(1, 0, 9);
+    spv[TrackerInfo::Reg_Barrel]        .set_iterator_limits(1, 0, 6);
+    spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(1, 0, 9);
+    spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(1, 0, 7);
   }
 
   void SetupBackwardSearch_Iter7(IterationConfig& ic)
   {
-    ic.m_backward_search = true;
     ic.m_backward_params = ic.m_params;
+    ic.m_backward_search = true;
     ic.m_backward_params.maxHolesPerCand = 2;
     ic.m_backward_params.maxConsecHoles  = 2;
     // Remove pixel layers from FwdSearch, add them to BkwSearch
@@ -119,8 +122,8 @@ namespace
 
   void SetupBackwardSearch_Iter8(IterationConfig& ic)
   {
-    ic.m_backward_search = true;
     ic.m_backward_params = ic.m_params;
+    ic.m_backward_search = true;
     ic.m_backward_params.maxHolesPerCand = 2;
     ic.m_backward_params.maxConsecHoles  = 2;
     // Remove pixel/tib/tid layers from FwdSearch, add them to BkwSearch/
@@ -388,7 +391,7 @@ namespace
     ii[0].set_dupl_params(0.5, 0.002,0.004,0.008);
     fill_hit_selection_windows_params(ii[0]);
     // Backward-search with seed region rebuilding
-    SetupBackwardSearch_Iter0(ii[0]);
+    // SetupBackwardSearch_Iter0(ii[0]);
 
     ii[1].CloneLayerSteerCore(def_itconf);
     SetupIterationParams(ii[1].m_params, 1);
