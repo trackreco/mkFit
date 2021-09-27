@@ -456,52 +456,24 @@ void handle_duplicates(Event *m_event)
 
 void quality_filter(TrackVec & tracks, const int nMinHits)
 {
-  const auto ntracks = tracks.size();
-
-  std::vector<bool> goodtrack(ntracks, false);
-
-  for (auto itrack = 0U; itrack < ntracks; itrack++)
-  {
-    auto &trk = tracks[itrack];
-
+  tracks.erase(std::remove_if(tracks.begin(), tracks.end(), [nMinHits](auto &trk) {
     auto seedHits = trk.getNSeedHits();
     auto seedReduction = (seedHits <= 5) ? 2 : 3;
 
-    // minimum 4 hits 
-    if (trk.nFoundHits() - seedReduction >= nMinHits) goodtrack[itrack]=true;
-    //penalty (not used)
-    //if (trk.nFoundHits()-seedReduction>=4+(seedHits==4)) goodtrack[itrack]=true;
-  }
-
-  for (auto itrack = ntracks-1; itrack >0; itrack--)
-  {
-    if(!goodtrack[itrack]) tracks.erase(tracks.begin() + itrack);
-  }
+    return trk.nFoundHits() - seedReduction < nMinHits;
+  }), tracks.end());
 }
 
 void quality_filter_layers(TrackVec & tracks)
 {
-    const auto ntracks = tracks.size();
- 
-    std::vector<bool> goodtrack(ntracks, true);
- 
-    for (auto itrack = 0U; itrack < ntracks; itrack++)
-    {
- 
-      auto &trk = tracks[itrack];
-      auto layers = trk.nUniqueLayers();
-      auto llyr   = trk.getLastFoundHitLyr();
-      auto nhits  = trk.nFoundHits();
- 
-      if(nhits==3 && (llyr==2||llyr==18||llyr==45)) goodtrack[itrack]=false;
-      if(layers==3 && (llyr==2||llyr==18||llyr==45)) goodtrack[itrack]=false;
-      //if (layers >= nLayers) goodtrack[itrack]=true;
- 
-    }
-    for (int itrack = ntracks-1; itrack >-1; itrack--)
-    {
-      if(!goodtrack[itrack]) tracks.erase(tracks.begin() + itrack);
-    }
+  tracks.erase(std::remove_if(tracks.begin(), tracks.end(), [](auto &trk) {
+    auto layers = trk.nUniqueLayers();
+    auto llyr   = trk.getLastFoundHitLyr();
+    auto nhits  = trk.nFoundHits();
+
+    return (nhits ==3 && (llyr==2||llyr==18||llyr==45)) ||
+           (layers==3 && (llyr==2||llyr==18||llyr==45));
+  }), tracks.end());
 }
 
 
