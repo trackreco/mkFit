@@ -82,6 +82,7 @@ namespace
     ic.m_backward_params = ic.m_params;
     ic.m_backward_search = true;
     ic.m_backward_drop_seed_hits = true;
+    ic.m_backward_fit_min_hits   = 8;
     auto &spv = ic.m_steering_params;
     spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(2, 3, 5);
     spv[TrackerInfo::Reg_Transition_Neg].set_iterator_limits(2, 3, 7);
@@ -89,8 +90,8 @@ namespace
     spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(2, 3, 7);
     spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(2, 3, 5);
   }
- */
-
+*/
+/*
   void SetupBackwardSearch_Iter5(IterationConfig& ic)
   {
     ic.m_backward_params = ic.m_params;
@@ -98,12 +99,13 @@ namespace
     ic.m_backward_drop_seed_hits = false;
     ic.m_backward_fit_min_hits   = 7; // 5 in CKF, two of those persumed matched-hit, so 3 + 2*2
     auto &spv = ic.m_steering_params;
-    spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(1, 0, 3);
-    spv[TrackerInfo::Reg_Transition_Neg].set_iterator_limits(1, 0, 4);
-    spv[TrackerInfo::Reg_Barrel]        .set_iterator_limits(1, 0, 1);
-    spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(1, 0, 4);
-    spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(1, 0, 3);
+    spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(2, 0, 3);
+    spv[TrackerInfo::Reg_Transition_Neg].set_iterator_limits(2, 0, 4);
+    spv[TrackerInfo::Reg_Barrel]        .set_iterator_limits(2, 0, 1);
+    spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(2, 0, 4);
+    spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(2, 0, 3);
   }
+*/
 
   void SetupBackwardSearch_Iter7(IterationConfig& ic)
   {
@@ -392,6 +394,7 @@ namespace
     fill_hit_selection_windows_params(ii[0]);
     // Backward-search with seed region rebuilding
     // SetupBackwardSearch_Iter0(ii[0]);
+    ii[0].m_backward_params = ii[0].m_params;
 
     ii[1].CloneLayerSteerCore(def_itconf);
     SetupIterationParams(ii[1].m_params, 1);
@@ -437,7 +440,8 @@ namespace
     ii[5].set_dupl_params(0.25, 0.05,0.05,0.05);
     fill_hit_selection_windows_params(ii[5]);
     // Backward-search with seed region rebuilding
-    SetupBackwardSearch_Iter5(ii[5]);
+    // SetupBackwardSearch_Iter5(ii[5]);
+    ii[5].m_backward_params = ii[5].m_params;
 
     ii[6].CloneLayerSteerCore(def_itconf);
     SetupIterationParams(ii[6].m_params, 6);

@@ -164,7 +164,7 @@ public:
   IterationParams                     m_params;
   IterationParams                     m_backward_params;
 
-  int                                 m_n_regions;
+  int                                 m_n_regions = -1;
   std::vector<int>                    m_region_order;
   std::vector<SteeringParams>         m_steering_params;
   std::vector<IterationLayerConfig>   m_layer_configs;
@@ -371,15 +371,13 @@ ConfigJson_PatchLoad_File(const IterationsInfo &its_info, const std::string &fna
                           ConfigJsonPatcher::PatchReport *report=nullptr);
 
 // Load a single iteration from JSON file.
-// Searches for a match between m_algorithm in its_info and in JSON file to decide
-// which IterationConfig it will clone and load the JSON file over.
-// This will, effectively, leave IterationConfig data-members, that are not registered
-// in JSON schema intact and overwrite everything else.
+// This leaves IterationConfig data-members that are not registered
+// in JSON schema at their default values.
 // The only such member is std::function m_partition_seeds.
 // Assumes JSON file has been saved WITHOUT iteration-info preamble.
 // Returns a unique_ptr to the cloned IterationConfig.
 std::unique_ptr<IterationConfig>
-ConfigJson_Load_File(const IterationsInfo &its_info, const std::string &fname);
+ConfigJson_Load_File(const std::string &fname);
 
 void ConfigJson_Save_Iterations(IterationsInfo &its_info, const std::string &fname_fmt,
                                 bool include_iter_info_preamble);

@@ -546,10 +546,8 @@ ConfigJson_PatchLoad_File(const IterationsInfo &its_info, const std::string &fna
 }
 
 std::unique_ptr<IterationConfig>
-ConfigJson_Load_File(const IterationsInfo &its_info, const std::string &fname)
+ConfigJson_Load_File(const std::string &fname)
 {
-    ConfigJsonPatcher::PatchReport rep;
-
     std::ifstream ifs;
     open_ifstream(ifs, fname, __func__);
 
@@ -562,25 +560,15 @@ ConfigJson_Load_File(const IterationsInfo &its_info, const std::string &fname)
 
     nlohmann::json j;
     ifs >> j;
-    int track_algo = j["m_track_algorithm"];
-
-    int iii = -1;
-    for (int i = 0; i < its_info.size(); ++i)
-    {
-        if (its_info[i].m_track_algorithm == track_algo) {
-            iii = i;
-            break;
-        }
-    }
-    if (iii == -1) throw std::runtime_error("matching IterationConfig not found");
 
     if (Config::json_verbose)
     {
-        std::cout << " Read JSON entity, Iteration index is " << iii
-                  << " -- cloning and applying JSON patch:\n";
+        std::cout << " Read JSON entity, iteration index is " << j["m_iteration_index"]
+                  << ", track algorithm is " << j["m_track_algorithm"]
+                  << ". Instantiating IterationConfig object and over-laying it with JSON.\n";
     }
 
-    IterationConfig *icp = new IterationConfig( its_info[iii] );
+    IterationConfig *icp = new IterationConfig();
 
     from_json(j, *icp);
 
