@@ -414,7 +414,7 @@ namespace
     ii[5].set_iteration_index_and_track_algorithm(5, (int) TrackBase::TrackAlgorithm::detachedTripletStep);
     ii[5].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
     ii[5].set_dupclean_flag();
-    ii[5].set_dupl_params(0.25, 0.05,0.05,0.05);
+    ii[5].set_dupl_params(0.59, 0.01,0.01,0.1);
     fill_hit_selection_windows_params(ii[5]);
     ii[5].m_backward_params = ii[5].m_params;
 
