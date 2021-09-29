@@ -20,6 +20,19 @@ namespace mkfit {
 
 // Begin AUTO code, some members commented out.
 
+ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::LayerControl,
+  /* int   */   m_layer
+)
+
+ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::SteeringParams,
+  /* std::vector<LayerControl> */  m_layer_plan,
+  /* int */ m_region,
+  /* int */ m_fwd_search_pickup,
+  /* int */ m_bkw_fit_last,
+  /* int */ m_bkw_search_pickup
+
+)
+
 ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationLayerConfig,
   /* float */   m_select_min_dphi,
   /* float */   m_select_max_dphi,
@@ -64,17 +77,19 @@ ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationParams,
 )
 
 ITCONF_DEFINE_TYPE_NON_INTRUSIVE(mkfit::IterationConfig,
-  // /* int */   m_iteration_index,
+  /* int */                      m_iteration_index,
   /* int */                      m_track_algorithm,
-  /* mkfit::IterationParams */   m_params,
-  /* mkfit::IterationParams */   m_backward_params,
   /* bool */                     m_requires_seed_hit_sorting,
   /* bool */                     m_require_quality_filter,
   /* bool */                     m_require_dupclean_tight,
   /* bool */                     m_backward_search,
-  // /* int */                   m_n_regions,
-  // /* vector<int> */           m_region_order,
-  // /* vector<mkfit::SteeringParams> */      m_steering_params,
+  /* bool */                     m_backward_drop_seed_hits,
+  /* int */                      m_backward_fit_min_hits,
+  /* mkfit::IterationParams */   m_params,
+  /* mkfit::IterationParams */   m_backward_params,
+  /* int */                      m_n_regions,
+  /* vector<int> */              m_region_order,
+  /* vector<mkfit::SteeringParams> */         m_steering_params,
   /* vector<mkfit::IterationLayerConfig> */   m_layer_configs
   // /* function<void(const TrackerInfo&,const TrackVec&,const EventOfHits&,IterationSeedPartition&)> */   m_partition_seeds
 )
@@ -465,8 +480,8 @@ void ConfigJson_Patch_Files(IterationsInfo &its_info, const std::vector<std::str
 }
 
 std::unique_ptr<IterationConfig>
-ConfigJson_Load_File(const IterationsInfo &its_info, const std::string &fname,
-                     ConfigJsonPatcher::PatchReport *report)
+ConfigJson_PatchLoad_File(const IterationsInfo &its_info, const std::string &fname,
+                          ConfigJsonPatcher::PatchReport *report)
 {
     ConfigJsonPatcher::PatchReport rep;
 
@@ -529,6 +544,37 @@ ConfigJson_Load_File(const IterationsInfo &its_info, const std::string &fname,
 
     return std::unique_ptr<IterationConfig>( icp );
 }
+
+std::unique_ptr<IterationConfig>
+ConfigJson_Load_File(const std::string &fname)
+{
+    std::ifstream ifs;
+    open_ifstream(ifs, fname, __func__);
+
+    if (Config::json_verbose)
+    {
+        printf("%s begin reading from file %s.\n", __func__, fname.c_str());
+    }
+
+    if ( ! skipws_ifstream(ifs)) throw std::runtime_error("empty file");
+
+    nlohmann::json j;
+    ifs >> j;
+
+    if (Config::json_verbose)
+    {
+        std::cout << " Read JSON entity, iteration index is " << j["m_iteration_index"]
+                  << ", track algorithm is " << j["m_track_algorithm"]
+                  << ". Instantiating IterationConfig object and over-laying it with JSON.\n";
+    }
+
+    IterationConfig *icp = new IterationConfig();
+
+    from_json(j, *icp);
+
+    return std::unique_ptr<IterationConfig>( icp );
+}
+
 
 // ============================================================================
 // Save each IterationConfig into a separate json file

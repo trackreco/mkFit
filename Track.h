@@ -259,11 +259,11 @@ public:
   };
 
   Status  getStatus() const  { return  status_; }
-  // Maybe needed for MkFi**r copy in / out
+  // Needed for MkFi**r copy in / out
   // Status& refStatus() { return  status_; }
   // Status* ptrStatus() { return &status_; }
-  // unsigned int rawStatus() const { return  status_._raw_; }
-  // void         setRawStatus(unsigned int rs) { status_._raw_ = rs; }
+  unsigned int getRawStatus() const { return  status_._raw_; }
+  void         setRawStatus(unsigned int rs) { status_._raw_ = rs; }
 
   bool isFindable()    const { return ! status_.not_findable; }
   bool isNotFindable() const { return   status_.not_findable; }

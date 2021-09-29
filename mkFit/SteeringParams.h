@@ -19,23 +19,13 @@ struct LayerControl
   // int  m_on_miss_jump_to = -999;
   // int  m_on_hit_jump_to  = -999;
 
-  // XXX To Be removed << FNORD
-  bool m_pickup_only;   // do not propagate to this layer and process hits, pickup seeds only.
-  bool m_bkfit_only;    // layer only used in backward fit.
-  bool m_bksearch_only; // layer only used in backward search.
-
-  bool skip_on_fwd() const { return ! m_pickup_only; }
-  bool skip_on_bkfit() const { return m_bksearch_only; }
-  bool use_in_bkwsearch() const { return m_bksearch_only || m_bkfit_only || m_pickup_only; }
-  // FNORD
+  // Used to have pickup-only / bk-fit only bools etc.
+  // Moved to SteeringParams as layer indices where pickup/bkfit/bksrch start/end/start.
 
   //----------------------------------------------------------------------------
 
-  LayerControl(int lay, bool pu_only=false, bool bf_only=false, bool bs_only=false) :
-    m_layer(lay), m_pickup_only(pu_only), m_bkfit_only(bf_only), m_bksearch_only(bs_only) {}
-
-  void fixup(bool pu_only, bool bf_only, bool bs_only)
-  { m_pickup_only = pu_only; m_bkfit_only = bf_only; m_bksearch_only = bs_only; }
+  LayerControl()        : m_layer(-1)  {}
+  LayerControl(int lay) : m_layer(lay) {}
 };
 
 
@@ -123,20 +113,14 @@ public:
     m_layer_plan.reserve(n);
   }
 
-  void append_plan(int layer, bool pu_only=false, bool bf_only=false)
+  void append_plan(int layer)
   {
-    m_layer_plan.emplace_back(LayerControl(layer, pu_only, bf_only));
+    m_layer_plan.emplace_back(LayerControl(layer));
   }
 
-  void fill_plan(int first, int last, bool pu_only=false, bool bf_only=false)
+  void fill_plan(int first, int last)
   {
-    for (int i = first; i <= last; ++i) append_plan(i, pu_only, bf_only);
-  }
-
-  void fixup_plan(int first_idx, int last_idx, bool pu_only, bool bf_only, bool bs_only)
-  {
-    for (int i = first_idx; i <= last_idx; ++i)
-      m_layer_plan[i].fixup(pu_only, bf_only, bs_only);
+    for (int i = first; i <= last; ++i) append_plan(i);
   }
 
   void set_iterator_limits(int fwd_search_pu, int bkw_fit_last, int bkw_search_pu=-1)

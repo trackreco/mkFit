@@ -156,12 +156,15 @@ public:
   bool  m_require_dupclean_tight    = false;
 
   bool  m_backward_search           = false;
+  bool  m_backward_drop_seed_hits   = false;
+
+  int   m_backward_fit_min_hits     = -1;  // Min number of hits to keep when m_backward_drop_seed_hits is true
 
   // Iteration parameters (could be a ptr)
   IterationParams                     m_params;
   IterationParams                     m_backward_params;
 
-  int                                 m_n_regions;
+  int                                 m_n_regions = -1;
   std::vector<int>                    m_region_order;
   std::vector<SteeringParams>         m_steering_params;
   std::vector<IterationLayerConfig>   m_layer_configs;
@@ -172,12 +175,20 @@ public:
 
   IterationConfig() {}
 
-  void Clone(const IterationConfig &o)
-  {
-      // Clone iteration. m_iteration_index and m_track_algorithm are not copied
-      // and need to be set separately.
+  // -------- Getter functions
 
-      m_params          = o.m_params;
+  IterationLayerConfig& layer(int i) { return m_layer_configs[i]; }
+  SteeringParams&       steering_params(int region) { return m_steering_params[region]; }
+
+  bool merge_seed_hits_during_cleaning() const { return m_backward_search && m_backward_drop_seed_hits; }
+
+  // -------- Setup function
+
+  void CloneLayerSteerCore(const IterationConfig &o)
+  {
+      // Clone common settings for an iteration.
+      // m_iteration_index, m_track_algorithm, cleaning and bkw-search flags,
+      // and IterationParams are not copied.
 
       m_n_regions       = o.m_n_regions;
       m_region_order    = o.m_region_order;
@@ -195,14 +206,14 @@ public:
 
   void set_qf_flags()
   {
-    m_requires_seed_hit_sorting=true;
-    m_require_quality_filter=true;
+    m_requires_seed_hit_sorting = true;
+    m_require_quality_filter    = true;
   }
 
   void set_qf_params(int minHits, float sharedFrac)
   {
-     m_params.minHitsQF=minHits;
-     m_params.fracSharedHits=sharedFrac;
+     m_params.minHitsQF      = minHits;
+     m_params.fracSharedHits = sharedFrac;
   }
 
   void set_dupclean_flag()
@@ -212,19 +223,17 @@ public:
 
   void set_dupl_params(float sharedFrac, float drthCentral, float drthObarrel, float drthForward)
   {
-      m_params.fracSharedHits=sharedFrac;
-      m_params.drth_central=drthCentral;
-      m_params.drth_obarrel=drthObarrel;
-      m_params.drth_forward=drthForward;
-  }  
-  
+      m_params.fracSharedHits = sharedFrac;
+      m_params.drth_central   = drthCentral;
+      m_params.drth_obarrel   = drthObarrel;
+      m_params.drth_forward   = drthForward;
+  }
   
   void set_seed_cleaning_params(float pt_thr,
         float dzmax_bh, float drmax_bh,
 				float dzmax_bl, float drmax_bl,
 				float dzmax_eh, float drmax_eh,
-				float dzmax_el, float drmax_el
-				)
+				float dzmax_el, float drmax_el)
   {
        m_params.c_ptthr_hpt = pt_thr;
        m_params.c_drmax_bh = drmax_bh;
@@ -245,10 +254,6 @@ public:
     for (int i = 0; i < nreg; ++i) m_steering_params[i].m_region = i;
     m_layer_configs.resize(nlay);
   }
-
-  IterationLayerConfig& layer(int i) { return m_layer_configs[i]; }
-
-  SteeringParams&       steering_params(int region) { return m_steering_params[region]; }
 };
 
 
@@ -350,18 +355,29 @@ public:
 // Assumes patch files include iteration-info preambles, i.e., they
 // were saved with include_iter_info_preamble=true.
 // If report is non-null counts are added to existing object.
-void             ConfigJson_Patch_Files(IterationsInfo &its_info, const std::vector<std::string> &fnames,
-                                       ConfigJsonPatcher::PatchReport *report=nullptr);
+void ConfigJson_Patch_Files(IterationsInfo &its_info, const std::vector<std::string> &fnames,
+                            ConfigJsonPatcher::PatchReport *report=nullptr);
 
 // Load a single iteration from JSON file.
 // Searches for a match between m_algorithm in its_info and in JSON file to decide
-// which IterationConfig it will clone and load the JSON file over.
+// which IterationConfig it will clone and patch-load the JSON file over.
+// The IterationConfig in question *must* match in structure to what is on file,
+// in particular, arrays must be of same lengths.
 // Assumes JSON file has been saved WITHOUT iteration-info preamble.
 // Returns a unique_ptr to the cloned IterationConfig.
 // If report is non-null counts are added to existing object.
 std::unique_ptr<IterationConfig>
-ConfigJson_Load_File(const IterationsInfo &its_info, const std::string &fname,
-                     ConfigJsonPatcher::PatchReport *report=nullptr);
+ConfigJson_PatchLoad_File(const IterationsInfo &its_info, const std::string &fname,
+                          ConfigJsonPatcher::PatchReport *report=nullptr);
+
+// Load a single iteration from JSON file.
+// This leaves IterationConfig data-members that are not registered
+// in JSON schema at their default values.
+// The only such member is std::function m_partition_seeds.
+// Assumes JSON file has been saved WITHOUT iteration-info preamble.
+// Returns a unique_ptr to the cloned IterationConfig.
+std::unique_ptr<IterationConfig>
+ConfigJson_Load_File(const std::string &fname);
 
 void ConfigJson_Save_Iterations(IterationsInfo &its_info, const std::string &fname_fmt,
                                 bool include_iter_info_preamble);

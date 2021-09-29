@@ -535,9 +535,20 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
       // builder.BackwardFitBH();
 
       // b) Version that runs on CombCand / TrackCand
+      const bool do_backward_search = Config::backwardSearch && itconf.m_backward_search;
+
+      // We copy seed-hits into Candidates ... now we have to remove them so backward fit stops
+      // before reaching seeding region. Ideally, we wouldn't add them in the first place but
+      // if we want to export full tracks above we need to hold on to them (alternatively, we could
+      // have a pointer to seed track in CombCandidate and copy them from there).
+      if (do_backward_search)
+      {
+        builder.CompactifyHitStorageForBestCand(itconf.m_backward_drop_seed_hits, itconf.m_backward_fit_min_hits);
+      }
+
       builder.BackwardFit();
 
-      if (Config::backwardSearch && itconf.m_backward_search)
+      if (do_backward_search)
       {
         builder.BeginBkwSearch();
         builder.FindTracksCloneEngine(SteeringParams::IT_BkwSearch);
@@ -648,6 +659,11 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
 
   if (do_backward_fit)
   {
+    if (itconf.m_backward_search)
+    {
+      builder.CompactifyHitStorageForBestCand(itconf.m_backward_drop_seed_hits, itconf.m_backward_fit_min_hits);
+    }
+
     builder.BackwardFit();
 
     if (itconf.m_backward_search)

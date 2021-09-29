@@ -447,8 +447,8 @@ EventOfHits::EventOfHits(const TrackerInfo &trk_inf) :
 
 Track TrackCand::exportTrack() const
 {
-  // printf("TrackCand::exportTrack label=%5d, total_hits=%2d, overlaps=%2d\n", label(),
-  //        nTotalHits(), nOverlapHits_);
+  // printf("TrackCand::exportTrack label=%5d, total_hits=%2d, overlaps=%2d -- n_seed_hits=%d,prod_type=%d\n",
+  //        label(), nTotalHits(), nOverlapHits_, getNSeedHits(), (int)prodType());
 
   Track res(*this);
   res.resizeHits(nTotalHits(), nFoundHits());
@@ -545,19 +545,110 @@ void CombCandidate::MergeCandsAndBestShortOne(const IterationParams& params, boo
   // assert(capacity() == (size_t)Config::maxCandsPerSeed);
 }
 
-void CombCandidate::BeginBkwSearch()
+void CombCandidate::CompactifyHitStorageForBestCand(bool remove_seed_hits, int backward_fit_min_hits)
 {
-  // The best candidate is assumed to be in position 0, after
-  // MergeCandsAndBestShortOne has been called.
-  // Other cands are dropped, their hits are not but they could be.
-  // This is to be called before backward-search to start with a single
-  // input candidate for backward cominatorial search.
-  //
-  // m_state and m_pickup_layer are also set.
+  // The best candidate is assumed to be in position 0 (after MergeCandsAndBestShortOne
+  // MergeCandsAndBestShortOne has been called).
+  // Other cands are dropped, their hits are dropped as well.
+  // Seed hits are dropped if remove_seed_hits is true.
+
+  /* From skype chats
+  minNrOfHitsForRebuild (checked against "nHits - nseed") has a default at 5, except
+  1 in initialStep
+  4 in tobTec and pixelLess
+  https://github.com/cms-sw/cmssw/blob/master/RecoTracker/CkfPattern/plugins/GroupedCkfTrajectoryBuilder.cc#L1015
+
+  NOTE: some of those can be matched hits !!!
+
+  the hit splitting is triggered here: https://github.com/cms-sw/cmssw/blob/master/RecoTracker/CkfPattern/src/CkfTrackCandidateMakerBase.cc#L468
+  after the rebuild has already happened: https://github.com/cms-sw/cmssw/blob/master/RecoTracker/CkfPattern/src/CkfTrackCandidateMakerBase.cc#L313
+  */
 
   assert( ! empty() );
-
   resize(1);
+  TrackCand &tc = (*this)[0];
+
+  // Do NOT remove any seed hits if fewer than backward_fit_min_hits hits are available.
+  if (remove_seed_hits && tc.nFoundHits() <= backward_fit_min_hits)
+  {
+    remove_seed_hits = false;
+  }
+
+  // Stash HoTNodes at the end of m_hots.
+  int stash_end = m_hots.size();
+  int stash_pos = stash_end;
+
+  int idx = tc.lastCcIndex();
+
+  if (remove_seed_hits)
+  {
+    // Skip invalid hits that would now be at the head of the candidate.
+    // Make sure to subtract / recount number of hits:
+    // as this is rather involved, just call addHitIdx() repeatedly so counts
+    // of holes get updated correctly.
+    // Though one should not care super much ... it's only relevant for relative scores
+    // and here we are trimmmin everything down to a single candidate.
+
+    int n_hits_to_pick = std::max(tc.nFoundHits() - tc.getNSeedHits(), backward_fit_min_hits);
+    while (n_hits_to_pick > 0)
+    {
+      m_hots[--stash_pos] = m_hots[idx];
+      if (m_hots[idx].m_hot.index >= 0) --n_hits_to_pick;
+      idx = m_hots[idx].m_prev_idx;
+    }
+
+    // auto lh = m_hots[stash_pos].m_hot;
+    // auto pi = m_hots[stash_pos].m_prev_idx;
+    // printf("CC::CHSFBC n=%d, last_hot=(%d,%d), prev_idx=%d ... end_prev_idx=%d\n",
+    //        stash_end - stash_pos, lh.layer, lh.index, pi, end_prev_idx);
+
+    m_hots_size = 0;
+    m_hots.clear();
+    tc.setLastCcIndex(-1);
+    tc.setNFoundHits(0);
+    tc.setNMissingHits(0);
+    tc.setNInsideMinusOneHits(0);
+    tc.setNTailMinusOneHits(0);
+    while (stash_pos != stash_end && m_hots[stash_pos].m_hot.index < 0) ++stash_pos;
+    while (stash_pos != stash_end)
+    {
+      HoTNode &hn = m_hots[stash_pos];
+      tc.addHitIdx(hn.m_hot.index, hn.m_hot.layer, hn.m_chi2);
+      ++stash_pos;
+    }
+  }
+  else
+  {
+    while (idx != -1)
+    {
+      m_hots[--stash_pos] = m_hots[idx];
+      idx = m_hots[idx].m_prev_idx;
+    }
+
+    // If we are not removing seed_hits, track is good as it is,
+    // just fixup m_hots and t.lastCcIndex.
+    int pos = 0;
+    while (stash_pos != stash_end)
+    {
+      m_hots[pos].m_hot      = m_hots[stash_pos].m_hot;
+      m_hots[pos].m_chi2     = m_hots[stash_pos].m_chi2;
+      m_hots[pos].m_prev_idx = pos - 1;
+      ++pos; ++stash_pos;
+    }
+    m_hots.resize(pos);
+    m_hots_size = pos;
+    tc.setLastCcIndex(pos - 1);
+  }
+}
+
+void CombCandidate::BeginBkwSearch()
+{
+  // Assumes CompactifyHitStorageForBestCand() has already been called.
+  //
+  // This is to be called before backward-search to start with a single
+  // input candidate for backward combinatorial search.
+  //
+  // m_state and m_pickup_layer are also set.
 
   TrackCand &tc = (*this)[0];
 

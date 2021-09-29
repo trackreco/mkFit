@@ -688,6 +688,7 @@ public:
 
   void MergeCandsAndBestShortOne(const IterationParams&params, bool update_score, bool sort_cands);
 
+  void CompactifyHitStorageForBestCand(bool remove_seed_hits, int backward_fit_min_hits);
   void BeginBkwSearch();
   void EndBkwSearch();
 };
@@ -798,6 +799,12 @@ public:
     m_candidates[m_size].ImportSeed(seed, region);
 
     ++m_size;
+  }
+
+  void CompactifyHitStorageForBestCand(bool remove_seed_hits, int backward_fit_min_hits)
+  {
+    for (int i=0; i<m_size; ++i)
+      m_candidates[i].CompactifyHitStorageForBestCand(remove_seed_hits, backward_fit_min_hits);
   }
 
   void BeginBkwSearch() { for (int i=0; i<m_size; ++i) m_candidates[i].BeginBkwSearch(); }
