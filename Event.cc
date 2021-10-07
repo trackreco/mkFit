@@ -56,6 +56,7 @@ void Event::Reset(int evtID)
   fitTracksExtra_.clear();
   cmsswTracks_.clear();
   cmsswTracksExtra_.clear();
+  beamSpot_ = {};
 
   validation_.resetValidationMaps(); // need to reset maps for every event.
 }
@@ -170,6 +171,11 @@ void Event::write_out(DataFile &data_file)
 
   if (data_file.HasCmsswTracks()) {
     evsize += write_tracks(fp, cmsswTracks_);
+  }
+
+  if (data_file.HasBeamSpot()) {
+    fwrite(&beamSpot_, sizeof(BeamSpot), 1, fp);
+    evsize += sizeof(BeamSpot);
   }
 
   fseek(fp, start, SEEK_SET);
@@ -366,6 +372,11 @@ void Event::read_in(DataFile &data_file, FILE *in_fp)
 #endif
   }
 #endif
+
+  if (data_file.HasBeamSpot())
+  {
+    fread(&beamSpot_, sizeof(BeamSpot), 1, fp);
+  }
 
   if (Config::kludgeCmsHitErrors)
   {
@@ -881,7 +892,7 @@ void Event::fill_hitmask_bool_vectors(std::vector<int> &track_algo_vec,
 int DataFile::OpenRead(const std::string& fname, bool set_n_layers)
 {
   constexpr int min_ver = 4;
-  constexpr int max_ver = 5;
+  constexpr int max_ver = 6;
 
   f_fp = fopen(fname.c_str(), "r");
   assert (f_fp != 0 && "Opening of input file failed.");
