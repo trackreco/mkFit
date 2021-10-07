@@ -15,7 +15,7 @@ namespace StdSeq {
 // Hit processing
 //=========================================================================
 
-void LoadHits(Event &ev, EventOfHits &eoh)
+void LoadHitsAndBeamSpot(Event &ev, EventOfHits &eoh)
 {
     eoh.Reset();
 
@@ -28,6 +28,7 @@ void LoadHits(Event &ev, EventOfHits &eoh)
                                 eoh.SuckInHits(ilay, ev.layerHits_[ilay]);
                             }
                         });
+    eoh.SetBeamSpot(ev.beamSpot_);
 }
 
 void LoadDeads(EventOfHits &eoh, const std::vector<DeadVec>& deadvectors)
@@ -476,7 +477,7 @@ void quality_filter(TrackVec & tracks, const int nMinHits)
   }), tracks.end());
 }
 
-void quality_filter_layers(TrackVec & tracks)
+void quality_filter_layers(TrackVec & tracks, const BeamSpot &bspot)
 {
   tracks.erase(std::remove_if(tracks.begin(), tracks.end(), [](auto &trk) {
     auto layers = trk.nUniqueLayers();
@@ -639,7 +640,7 @@ void find_duplicates_sharedhits_pixelseed(TrackVec &tracks, const float fraction
 //
 //=========================================================================
 
-void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf)
+void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf, const EventOfHits &eoh)
 {
 #ifdef DEBUG
   std::cout<<" find_and_remove_duplicates: input track size " <<tracks.size()<<std::endl;
@@ -650,7 +651,7 @@ void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf)
   }
   else if(itconf.m_require_dupclean_tight) 
   {
-    if(itconf.m_track_algorithm==7) quality_filter_layers(tracks);
+    if(itconf.m_track_algorithm==7) quality_filter_layers(tracks, eoh.m_beam_spot);
     find_duplicates_sharedhits_pixelseed(tracks, itconf.m_params.fracSharedHits, itconf.m_params.drth_central, itconf.m_params.drth_obarrel, itconf.m_params.drth_forward);
   }
   else

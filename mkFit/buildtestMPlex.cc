@@ -522,7 +522,7 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
 
     {
       builder.export_tracks(tmp_tvec);
-      StdSeq::find_and_remove_duplicates(tmp_tvec, itconf);
+      StdSeq::find_and_remove_duplicates(tmp_tvec, itconf, eoh);
       ev.candidateTracks_.reserve(ev.candidateTracks_.size() + tmp_tvec.size());
       for (auto &&t : tmp_tvec) ev.candidateTracks_.emplace_back( std::move(t) );
       tmp_tvec.clear();
@@ -557,7 +557,7 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
 
       builder.select_best_comb_cands(true); // true -> clear m_tracks as they were already filled once above
 
-      StdSeq::find_and_remove_duplicates(builder.ref_tracks_nc(), itconf);
+      StdSeq::find_and_remove_duplicates(builder.ref_tracks_nc(), itconf, eoh);
       builder.export_tracks(ev.fitTracks_);
     }
 
@@ -678,7 +678,7 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
 
   if (do_remove_duplicates)
   {
-    StdSeq::find_and_remove_duplicates(out_tracks, itconf);
+    StdSeq::find_and_remove_duplicates(out_tracks, itconf, eoh);
   }
 
   builder.end_event();
