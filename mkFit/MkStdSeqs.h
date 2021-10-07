@@ -13,7 +13,7 @@ class IterationConfig;
 
 namespace StdSeq
 {
-    void LoadHits(Event &ev, EventOfHits &eoh);
+    void LoadHitsAndBeamSpot(Event &ev, EventOfHits &eoh);
 
     void LoadDeads(EventOfHits &eoh, const std::vector<DeadVec>& deadvectors);
 
@@ -35,7 +35,7 @@ namespace StdSeq
     void find_duplicates_sharedhits(TrackVec &tracks, const float fraction);
     void find_duplicates_sharedhits_pixelseed(TrackVec &tracks, const float fraction, const float drth_central, const float drth_obarrel, const float drth_forward);
 
-    void quality_filter_layers(TrackVec &tracks);
+    void quality_filter_layers(TrackVec &tracks, const BeamSpot &bspot);
 
     template<class TRACK>
     bool qfilter_n_hits(const TRACK &t, int nMinHits)
@@ -52,7 +52,7 @@ namespace StdSeq
     }
 
 
-    void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf);
+    void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf, const EventOfHits &eoh);
 
 } // namespace StdSeq
 

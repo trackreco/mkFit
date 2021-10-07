@@ -53,6 +53,7 @@ private:
   int  evtID_;
 
 public:
+  BeamSpot beamSpot_; // XXXX Read/Write of BeamSpot + file-version bump or extra-section to be added.
   std::vector<HitVec> layerHits_;
   std::vector<std::vector<uint64_t> > layerHitMasks_;//aligned with layerHits_
   MCHitInfoVec simHitsInfo_;

@@ -282,6 +282,7 @@ class EventOfHits
 public:
   std::vector<LayerOfHits> m_layers_of_hits;
   int                      m_n_layers;
+  BeamSpot                 m_beam_spot;
 
 public:
   EventOfHits(const TrackerInfo &trk_inf);
@@ -310,6 +311,8 @@ public:
   {
     m_layers_of_hits[layer].SuckInDeads(deadv);
   }
+
+  void SetBeamSpot(const BeamSpot &bs) { m_beam_spot = bs; }
 
   LayerOfHits& operator[](int i) { return m_layers_of_hits[i]; }
   const LayerOfHits& operator[](int i) const { return m_layers_of_hits[i]; }

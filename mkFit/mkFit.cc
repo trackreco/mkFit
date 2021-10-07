@@ -351,7 +351,7 @@ void test_standard()
 
         // plex_tracks.resize(ev.simTracks_.size());
 
-        StdSeq::LoadHits(ev, eoh);
+        StdSeq::LoadHitsAndBeamSpot(ev, eoh);
 
 	std::vector<DeadVec> deadvectors(ev.layerHits_.size());
 #include "deadmodules.h"
