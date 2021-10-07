@@ -1119,8 +1119,9 @@ int main(int argc, char *argv[])
 	}
 	
 	for (int i=0;i<ns;++i) {
-	  printf("seed id=%i label=%i q=%2i pT=%6.3f p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f)\n",i,
-		 seedTracks_[i].label(),seedTracks_[i].charge(),seedTracks_[i].pT(),seedTracks_[i].px(),seedTracks_[i].py(),seedTracks_[i].pz(),seedTracks_[i].x(),seedTracks_[i].y(),seedTracks_[i].z());
+	  printf("seed id=%i label=%i algo=%i q=%2i pT=%6.3f p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f)\n",i,
+		 seedTracks_[i].label(),seedTracks_[i].algorithm(),seedTracks_[i].charge(),
+                 seedTracks_[i].pT(),seedTracks_[i].px(),seedTracks_[i].py(),seedTracks_[i].pz(),seedTracks_[i].x(),seedTracks_[i].y(),seedTracks_[i].z());
 	  int nh = seedTracks_[i].nTotalHits();
 	  for (int ih=0;ih<nh;++ih) printf("seed #%i hit #%i idx=%i\n",i,ih,seedTracks_[i].getHitIdx(ih));
 	}
@@ -1128,8 +1129,8 @@ int main(int argc, char *argv[])
 	if (writeRecTracks){
 	  for (int i=0;i<nr;++i) {
 	    float spt = sqrt(pow(cmsswTracks_[i].px(),2)+pow(cmsswTracks_[i].py(),2));
-	    printf("rec track id=%i label%i chi2=%6.3f q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) pT=%7.4f nTotal=%i nFound=%i \n",
-		   i, cmsswTracks_[i].label(), cmsswTracks_[i].chi2(),
+	    printf("rec track id=%i label=%i algo=%i chi2=%6.3f q=%2i p=(%6.3f, %6.3f, %6.3f) x=(%6.3f, %6.3f, %6.3f) pT=%7.4f nTotal=%i nFound=%i \n",
+		   i, cmsswTracks_[i].label(), cmsswTracks_[i].algorithm(), cmsswTracks_[i].chi2(),
 		   cmsswTracks_[i].charge(),cmsswTracks_[i].px(),cmsswTracks_[i].py(),cmsswTracks_[i].pz(),cmsswTracks_[i].x(),cmsswTracks_[i].y(),cmsswTracks_[i].z(),spt,
 		   cmsswTracks_[i].nTotalHits(),cmsswTracks_[i].nFoundHits());
 	    int nh = cmsswTracks_[i].nTotalHits();
