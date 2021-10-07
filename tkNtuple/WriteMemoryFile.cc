@@ -504,6 +504,20 @@ int main(int argc, char *argv[])
   vector<vector<float> >*    str_chargeFraction = 0;
   t->SetBranchAddress("str_chargeFraction", &str_chargeFraction);
 
+  // beam spot
+  float bsp_x;
+  float bsp_y;
+  float bsp_z;
+  float bsp_sigmax;
+  float bsp_sigmay;
+  float bsp_sigmaz;
+  t->SetBranchAddress("bsp_x", &bsp_x);
+  t->SetBranchAddress("bsp_y", &bsp_y);
+  t->SetBranchAddress("bsp_z", &bsp_z);
+  t->SetBranchAddress("bsp_sigmax", &bsp_sigmax);
+  t->SetBranchAddress("bsp_sigmay", &bsp_sigmay);
+  t->SetBranchAddress("bsp_sigmaz", &bsp_sigmaz);
+
   long long totentries = t->GetEntries();
   long long savedEvents = 0;
 
@@ -511,6 +525,8 @@ int main(int argc, char *argv[])
   int outOptions = DataFile::ES_Seeds;
   if (writeRecTracks) outOptions |= DataFile::ES_CmsswTracks;
   if (writeHitIterMasks) outOptions |= DataFile::ES_HitIterMasks;
+  outOptions |= DataFile::ES_BeamSpot;
+
   if (maxevt < 0) maxevt = totentries;
   data_file.OpenWrite(outputFileName, std::min(maxevt, totentries), outOptions);
 
@@ -529,6 +545,15 @@ int main(int argc, char *argv[])
     t->GetEntry(i);
 
     cout << "edm event=" << event << endl;
+
+    auto &bs = EE.beamSpot_;
+    bs.x = bsp_x;
+    bs.y = bsp_y;
+    bs.z = bsp_z;
+    bs.sigmaZ = bsp_sigmaz;
+    bs.beamWidthX = bsp_sigmax;
+    bs.beamWidthY = bsp_sigmay;
+    //dxdz and dydz are not in the trackingNtuple at the moment
 
     for (unsigned int istr = 0; istr < str_lay->size(); ++istr) {
       if(str_chargePerCM->at(istr) < cutValueCCC) numFailCCC++;
