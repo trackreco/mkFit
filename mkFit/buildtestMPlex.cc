@@ -487,7 +487,7 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
       }
     }
 
-    if ( ! itconf.m_require_quality_filter)
+    if ( itconf.m_requires_dupclean_tight )
       StdSeq::clean_cms_seedtracks_iter(&seeds, itconf);
 
     builder.seed_post_cleaning(seeds, true, true);
@@ -507,15 +507,18 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
 
     if (validation_on)  seeds_used.insert(seeds_used.end(), seeds.begin(), seeds.end());//cleaned seeds need to be stored somehow
 
-    if (itconf.m_require_quality_filter)
+    if (itconf.m_requires_quality_filter && itconf.m_track_algorithm!=7)
     {
-      builder.filter_comb_cands([&](const TrackCand &t)
-        { return StdSeq::qfilter_n_hits(t, itconf.m_params.minHitsQF); });
-    }
-    if (itconf.m_track_algorithm==6)
-    {
-      builder.filter_comb_cands([&](const TrackCand &t)
-       { return StdSeq::qfilter_n_hits_pixseed(t, 3); });
+      if (itconf.m_track_algorithm==6)
+      {
+	builder.filter_comb_cands([&](const TrackCand &t)
+	 { return StdSeq::qfilter_n_hits_pixseed(t, 3); });
+      }
+      else
+      {
+	builder.filter_comb_cands([&](const TrackCand &t)
+         { return StdSeq::qfilter_n_hits(t, itconf.m_params.minHitsQF); });
+      }
     }
 
     builder.select_best_comb_cands();
@@ -555,7 +558,8 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
         builder.EndBkwSearch();
       }
 
-      if(itconf.m_track_algorithm==7){
+      if (itconf.m_requires_quality_filter && itconf.m_track_algorithm==7)
+      {
 	builder.filter_comb_cands([&](const TrackCand &t)
 	 { return StdSeq::qfilter_n_layers(t, eoh.m_beam_spot); });      
       }
@@ -633,8 +637,9 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
 
   if (do_seed_clean)
   {
-    // Seed cleaning not done on pixelLess / tobTec iters.
-    if ( ! itconf.m_require_quality_filter) StdSeq::clean_cms_seedtracks_iter(&seeds, itconf);
+    // Seed cleaning not done on pixelLess / tobTec iters
+    if ( itconf.m_requires_dupclean_tight ) 
+      StdSeq::clean_cms_seedtracks_iter(&seeds, itconf);
   }
 
   // Check nans in seeds -- this should not be needed when Slava fixes
@@ -651,15 +656,18 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
 
   builder.FindTracksCloneEngine();
 
-  if (itconf.m_require_quality_filter)
+  if (itconf.m_requires_quality_filter && itconf.m_track_algorithm!=7)
   {
-    builder.filter_comb_cands([&](const TrackCand &t)
-      { return StdSeq::qfilter_n_hits(t, itconf.m_params.minHitsQF); });
-  }
-  if (itconf.m_track_algorithm==6)
-  {
-    builder.filter_comb_cands([&](const TrackCand &t)
-      { return StdSeq::qfilter_n_hits_pixseed(t, 3); });
+    if (itconf.m_track_algorithm==6)
+    {
+      builder.filter_comb_cands([&](const TrackCand &t)
+       { return StdSeq::qfilter_n_hits_pixseed(t, 3); });
+    }
+    else
+    {
+      builder.filter_comb_cands([&](const TrackCand &t)
+       { return StdSeq::qfilter_n_hits(t, itconf.m_params.minHitsQF); });
+    }
   }
 
   if (do_backward_fit)
@@ -678,7 +686,8 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
       builder.EndBkwSearch();
     }
 
-    if(itconf.m_track_algorithm==7){
+    if (itconf.m_requires_quality_filter && itconf.m_track_algorithm==7)
+    {
       builder.filter_comb_cands([&](const TrackCand &t)
        { return StdSeq::qfilter_n_layers(t, eoh.m_beam_spot); });      
     }

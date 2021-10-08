@@ -622,11 +622,11 @@ void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf)
 #ifdef DEBUG
   std::cout<<" find_and_remove_duplicates: input track size " <<tracks.size()<<std::endl;
 #endif
-  if (itconf.m_require_quality_filter)
+  if (itconf.m_requires_quality_filter && !(itconf.m_requires_dupclean_tight))
   {
     find_duplicates_sharedhits(tracks, itconf.m_params.fracSharedHits);
   }
-  else if(itconf.m_require_dupclean_tight) 
+  else if (itconf.m_requires_dupclean_tight) 
   {
     find_duplicates_sharedhits_pixelseed(tracks, itconf.m_params.fracSharedHits, itconf.m_params.drth_central, itconf.m_params.drth_obarrel, itconf.m_params.drth_forward);
   }

@@ -438,6 +438,7 @@ namespace
     ii[5].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
     ii[5].set_dupclean_flag();
     ii[5].set_dupl_params(0.59, 0.01,0.01,0.1);
+    ii[5].m_requires_quality_filter = true;
     fill_hit_selection_windows_params(ii[5]);
     // Backward-search with seed region rebuilding
     // SetupBackwardSearch_Iter5(ii[5]);
@@ -476,6 +477,7 @@ namespace
     ii[9].set_seed_cleaning_params(2.0, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135);
     ii[9].set_dupclean_flag();
     ii[9].set_dupl_params(0.5, 0.03,0.05,0.05);
+    ii[9].m_requires_quality_filter = true;
     fill_hit_selection_windows_params(ii[9]);
     ii[9].m_backward_params = ii[9].m_params;
 
