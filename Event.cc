@@ -424,7 +424,7 @@ int Event::read_tracks(FILE *fp, TrackVec& tracks, bool skip_reading)
 
   if (skip_reading)
   {
-    fseek(fp, data_size, SEEK_CUR);
+    fseek(fp, data_size-2*sizeof(int), SEEK_CUR);// -2 because data_size counts itself and n_tracks too
     n_tracks = -n_tracks;
   }
   else
