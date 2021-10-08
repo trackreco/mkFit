@@ -31,7 +31,6 @@ namespace StdSeq
     void remove_duplicates(TrackVec &tracks);
     void handle_duplicates(Event *m_event);
       
-    void quality_filter(TrackVec &tracks, const int nMinHits);
     void find_duplicates_sharedhits(TrackVec &tracks, const float fraction);
     void find_duplicates_sharedhits_pixelseed(TrackVec &tracks, const float fraction, const float drth_central, const float drth_obarrel, const float drth_forward);
 

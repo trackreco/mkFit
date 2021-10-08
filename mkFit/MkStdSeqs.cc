@@ -467,18 +467,9 @@ void handle_duplicates(Event *m_event)
 // QUALITY FILTER + SHARED HITS DUPL cleaning
 //=========================================================================
 
-void quality_filter(TrackVec & tracks, const int nMinHits)
-{
-  tracks.erase(std::remove_if(tracks.begin(), tracks.end(), [nMinHits](auto &trk) {
-    auto seedHits = trk.getNSeedHits();
-    auto seedReduction = (seedHits <= 5) ? 2 : 3;
-
-    return trk.nFoundHits() - seedReduction < nMinHits;
-  }), tracks.end());
-}
-
 void quality_filter_layers(TrackVec & tracks, const BeamSpot &bspot)
 {
+  //std::cout << "Beamspot: " << bspot.x << " " << bspot.y << " " << bspot.z << " " << bspot.sigmaZ << " " << bspot.beamWidthX << " " << bspot.beamWidthY << " " << bspot.dxdz << " " << bspot.dydz <<std::endl;
   tracks.erase(std::remove_if(tracks.begin(), tracks.end(), [](auto &trk) {
     auto layers = trk.nUniqueLayers();
     auto llyr   = trk.getLastFoundHitLyr();
