@@ -464,22 +464,8 @@ void handle_duplicates(Event *m_event)
 }
 
 //=========================================================================
-// QUALITY FILTER + SHARED HITS DUPL cleaning
+// SHARED HITS DUPLICATE CLEANING
 //=========================================================================
-
-void quality_filter_layers(TrackVec & tracks, const BeamSpot &bspot)
-{
-  //std::cout << "Beamspot: " << bspot.x << " " << bspot.y << " " << bspot.z << " " << bspot.sigmaZ << " " << bspot.beamWidthX << " " << bspot.beamWidthY << " " << bspot.dxdz << " " << bspot.dydz <<std::endl;
-  tracks.erase(std::remove_if(tracks.begin(), tracks.end(), [](auto &trk) {
-    auto layers = trk.nUniqueLayers();
-    auto llyr   = trk.getLastFoundHitLyr();
-    auto nhits  = trk.nFoundHits();
-
-    return (nhits ==3 && (llyr==2||llyr==18||llyr==45)) ||
-           (layers==3 && (llyr==2||llyr==18||llyr==45));
-  }), tracks.end());
-}
-
 
 void find_duplicates_sharedhits(TrackVec &tracks, const float fraction)
 {
@@ -631,7 +617,7 @@ void find_duplicates_sharedhits_pixelseed(TrackVec &tracks, const float fraction
 //
 //=========================================================================
 
-void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf, const EventOfHits &eoh)
+void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf)
 {
 #ifdef DEBUG
   std::cout<<" find_and_remove_duplicates: input track size " <<tracks.size()<<std::endl;
@@ -642,7 +628,6 @@ void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf,
   }
   else if(itconf.m_require_dupclean_tight) 
   {
-    if(itconf.m_track_algorithm==7) quality_filter_layers(tracks, eoh.m_beam_spot);
     find_duplicates_sharedhits_pixelseed(tracks, itconf.m_params.fracSharedHits, itconf.m_params.drth_central, itconf.m_params.drth_obarrel, itconf.m_params.drth_forward);
   }
   else

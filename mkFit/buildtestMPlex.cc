@@ -512,7 +512,7 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
       builder.filter_comb_cands([&](const TrackCand &t)
         { return StdSeq::qfilter_n_hits(t, itconf.m_params.minHitsQF); });
     }
-    else if (itconf.m_track_algorithm==6)
+    if (itconf.m_track_algorithm==6)
     {
       builder.filter_comb_cands([&](const TrackCand &t)
        { return StdSeq::qfilter_n_hits_pixseed(t, 3); });
@@ -522,7 +522,7 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
 
     {
       builder.export_tracks(tmp_tvec);
-      StdSeq::find_and_remove_duplicates(tmp_tvec, itconf, eoh);
+      StdSeq::find_and_remove_duplicates(tmp_tvec, itconf);
       ev.candidateTracks_.reserve(ev.candidateTracks_.size() + tmp_tvec.size());
       for (auto &&t : tmp_tvec) ev.candidateTracks_.emplace_back( std::move(t) );
       tmp_tvec.clear();
@@ -555,9 +555,14 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
         builder.EndBkwSearch();
       }
 
+      if(itconf.m_track_algorithm==7){
+	builder.filter_comb_cands([&](const TrackCand &t)
+	 { return StdSeq::qfilter_n_layers(t, eoh.m_beam_spot); });      
+      }
+
       builder.select_best_comb_cands(true); // true -> clear m_tracks as they were already filled once above
 
-      StdSeq::find_and_remove_duplicates(builder.ref_tracks_nc(), itconf, eoh);
+      StdSeq::find_and_remove_duplicates(builder.ref_tracks_nc(), itconf);
       builder.export_tracks(ev.fitTracks_);
     }
 
@@ -651,7 +656,7 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
     builder.filter_comb_cands([&](const TrackCand &t)
       { return StdSeq::qfilter_n_hits(t, itconf.m_params.minHitsQF); });
   }
-  else if (itconf.m_track_algorithm==6)
+  if (itconf.m_track_algorithm==6)
   {
     builder.filter_comb_cands([&](const TrackCand &t)
       { return StdSeq::qfilter_n_hits_pixseed(t, 3); });
@@ -672,13 +677,18 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
       builder.FindTracksCloneEngine(SteeringParams::IT_BkwSearch);
       builder.EndBkwSearch();
     }
+
+    if(itconf.m_track_algorithm==7){
+      builder.filter_comb_cands([&](const TrackCand &t)
+       { return StdSeq::qfilter_n_layers(t, eoh.m_beam_spot); });      
+    }
   }
 
   builder.export_best_comb_cands(out_tracks);
 
   if (do_remove_duplicates)
   {
-    StdSeq::find_and_remove_duplicates(out_tracks, itconf, eoh);
+    StdSeq::find_and_remove_duplicates(out_tracks, itconf);
   }
 
   builder.end_event();

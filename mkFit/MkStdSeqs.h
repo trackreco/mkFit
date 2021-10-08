@@ -34,8 +34,6 @@ namespace StdSeq
     void find_duplicates_sharedhits(TrackVec &tracks, const float fraction);
     void find_duplicates_sharedhits_pixelseed(TrackVec &tracks, const float fraction, const float drth_central, const float drth_obarrel, const float drth_forward);
 
-    void quality_filter_layers(TrackVec &tracks, const BeamSpot &bspot);
-
     template<class TRACK>
     bool qfilter_n_hits(const TRACK &t, int nMinHits)
     {
@@ -50,8 +48,26 @@ namespace StdSeq
          return t.nFoundHits() >= nMinHits;
     }
 
+    template<class TRACK>
+    bool qfilter_n_layers(const TRACK &t, const BeamSpot &bspot)
+    {
+      int layers = t.nUniqueLayers();
+      int llyr   = t.getLastFoundHitLyr();
+      int nhits  = t.nFoundHits();
+      //float pt     = t.pT();
+      //float momphi = t.momPhi();
+      //float x      = t.x();
+      //float y      = t.y();
+      
+      return !((nhits ==3 && (llyr==2||llyr==18||llyr==45)) ||
+	       (layers==3 && (llyr==2||llyr==18||llyr==45)));
+//      return !((nhits ==3 && (llyr==2||llyr==18||llyr==45) && pt>0.7) ||
+//	       (layers==3 && (llyr==2||llyr==18||llyr==45) && pt>0.7) ||
+//	       (layers==3 && (llyr==2||llyr==18||llyr==45) && pt<=0.7 && std::abs(std::cos(momphi)*(y-0.0417208)-std::sin(momphi)*(x-0.0107568))>0.1) ||
+//	       (nhits ==3 && (llyr==2||llyr==18||llyr==45) && pt<=0.7 && std::abs(std::cos(momphi)*(y-0.0417208)-std::sin(momphi)*(x-0.0107568))>0.1));
+    }
 
-    void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf, const EventOfHits &eoh);
+    void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf);
 
 } // namespace StdSeq
 
