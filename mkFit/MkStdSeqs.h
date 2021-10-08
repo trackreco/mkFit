@@ -51,20 +51,20 @@ namespace StdSeq
     template<class TRACK>
     bool qfilter_n_layers(const TRACK &t, const BeamSpot &bspot)
     {
-      int layers = t.nUniqueLayers();
-      int llyr   = t.getLastFoundHitLyr();
-      int nhits  = t.nFoundHits();
-      //float pt     = t.pT();
-      //float momphi = t.momPhi();
-      //float x      = t.x();
-      //float y      = t.y();
+      int layers   = t.nUniqueLayers();
+      int llyr     = t.getLastFoundHitLyr();
+      int nhits    = t.nFoundHits();
+      float pt     = t.pT();
+      float pt_min = 0.7; // min pT for full filter
+      float d0BS   = t.d0BeamSpot(bspot.x,bspot.y);
+      float d0_max = 0.1; // 1 mm
       
-      return !((nhits ==3 && (llyr==2||llyr==18||llyr==45)) ||
-	       (layers==3 && (llyr==2||llyr==18||llyr==45)));
-//      return !((nhits ==3 && (llyr==2||llyr==18||llyr==45) && pt>0.7) ||
-//	       (layers==3 && (llyr==2||llyr==18||llyr==45) && pt>0.7) ||
-//	       (layers==3 && (llyr==2||llyr==18||llyr==45) && pt<=0.7 && std::abs(std::cos(momphi)*(y-0.0417208)-std::sin(momphi)*(x-0.0107568))>0.1) ||
-//	       (nhits ==3 && (llyr==2||llyr==18||llyr==45) && pt<=0.7 && std::abs(std::cos(momphi)*(y-0.0417208)-std::sin(momphi)*(x-0.0107568))>0.1));
+//      return !((nhits ==3 && (llyr==2||llyr==18||llyr==45)) ||
+//	       (layers==3 && (llyr==2||llyr==18||llyr==45)));
+      return !((nhits ==3 && (llyr==2||llyr==18||llyr==45) && pt> pt_min) ||
+	       (layers==3 && (llyr==2||llyr==18||llyr==45) && pt> pt_min) ||
+	       (layers==3 && (llyr==2||llyr==18||llyr==45) && pt<=pt_min && d0BS>d0_max) ||
+	       (nhits ==3 && (llyr==2||llyr==18||llyr==45) && pt<=pt_min && d0BS>d0_max));
     }
 
     void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf);

@@ -174,6 +174,24 @@ bool TrackBase::hasSillyValues(bool dump, bool fix, const char* pref)
   return is_silly;
 }
 
+// If linearize=true, use linear estimate of d0: suitable at pT>~10 GeV (--> 10 micron error)
+float TrackBase::d0BeamSpot(const float x_bs, const float y_bs, bool linearize) const
+{
+  if (linearize)
+  {
+    return std::abs(std::cos(momPhi())*(y()-y_bs)-std::sin(momPhi())*(x()-x_bs));
+  }
+  else
+  {     
+    const float k = ((charge() < 0) ? 100.0f : -100.0f) / (Config::sol * Config::Bfield);
+    const float abs_ooc_half = std::abs(k * pT());
+    // center of helix in x,y plane
+    const float x_center = x() - k * py();
+    const float y_center = y() + k * px();
+    return std::hypot(x_center-x_bs, y_center-y_bs) - abs_ooc_half;
+  }
+}
+
 const char* TrackBase::algoint_to_cstr(int algo)
 {
   static const char* names[] = { "undefAlgorithm", "ctf", "duplicateMerge",
