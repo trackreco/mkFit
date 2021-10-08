@@ -61,10 +61,8 @@ namespace StdSeq
       
 //      return !((nhits ==3 && (llyr==2||llyr==18||llyr==45)) ||
 //	       (layers==3 && (llyr==2||llyr==18||llyr==45)));
-      return !((nhits ==3 && (llyr==2||llyr==18||llyr==45) && pt> pt_min) ||
-	       (layers==3 && (llyr==2||llyr==18||llyr==45) && pt> pt_min) ||
-	       (layers==3 && (llyr==2||llyr==18||llyr==45) && pt<=pt_min && d0BS>d0_max) ||
-	       (nhits ==3 && (llyr==2||llyr==18||llyr==45) && pt<=pt_min && d0BS>d0_max));
+      bool endsInsidePix = (llyr==2||llyr==18||llyr==45);
+      return !( (nhits ==3 || layers==3) && endsInsidePix && (pt>pt_min || (pt<=pt_min && d0BS>d0_max)) );
     }
 
     void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf);
