@@ -74,7 +74,7 @@ typedef std::vector<Event> EventVec;
 struct DataFileHeader
 {
   int f_magic          = 0xBEEF;
-  int f_format_version = 5;
+  int f_format_version = 6;
   int f_sizeof_track   = sizeof(Track);
   int f_sizeof_hit     = sizeof(Hit);
   int f_sizeof_hot     = sizeof(HitOnTrack);
@@ -96,7 +96,8 @@ struct DataFile
     ES_SimTrackStates = 0x1,
     ES_Seeds          = 0x2,
     ES_CmsswTracks    = 0x4,
-    ES_HitIterMasks   = 0x8
+    ES_HitIterMasks   = 0x8,
+    ES_BeamSpot       = 0x10
   };
 
   FILE *f_fp  =  0;
@@ -112,6 +113,7 @@ struct DataFile
   bool HasSeeds()          const { return f_header.f_extra_sections & ES_Seeds; }
   bool HasCmsswTracks()    const { return f_header.f_extra_sections & ES_CmsswTracks; }
   bool HasHitIterMasks()   const { return f_header.f_extra_sections & ES_HitIterMasks; }
+  bool HasBeamSpot()       const { return f_header.f_extra_sections & ES_BeamSpot; }
 
   int  OpenRead (const std::string& fname, bool set_n_layers = false);
   void OpenWrite(const std::string& fname, int nev, int extra_sections=0);
