@@ -59,8 +59,6 @@ namespace StdSeq
       float d0BS   = t.d0BeamSpot(bspot.x,bspot.y);
       float d0_max = 0.1; // 1 mm
       
-//      return !((nhits ==3 && (llyr==2||llyr==18||llyr==45)) ||
-//	       (layers==3 && (llyr==2||llyr==18||llyr==45)));
       bool endsInsidePix = (llyr==2||llyr==18||llyr==45);
       return !( (nhits ==3 || layers==3) && endsInsidePix && (pt>pt_min || (pt<=pt_min && std::abs(d0BS)>d0_max)) );
     }
