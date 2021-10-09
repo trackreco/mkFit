@@ -1,7 +1,7 @@
 #! /bin/bash
 
 [ -e "$BIN_DATA_PATH" ] || BIN_DATA_PATH=/data2/slava77/samples/2021/11834.0_TTbar_14TeV+2021/
-fin=${BIN_DATA_PATH}/AVE_70_BX01_25ns/memoryFile.fv5.default.210729-d1dc487.bin
+fin=${BIN_DATA_PATH}/AVE_70_BX01_25ns/memoryFile.fv6.default.211008-c6b7c67.bin
 
 runValidation()
 {
