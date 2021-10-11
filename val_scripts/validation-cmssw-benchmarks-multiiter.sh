@@ -56,7 +56,7 @@ then
     maxev=1
 fi
 seeds="--cmssw-n2seeds"
-exe="./mkFit/mkFit --silent ${seeds} --num-thr ${maxth} --num-thr-ev ${maxev} --input-file ${dir}/${subdir}/${file} --num-events ${nevents} --remove-dup"
+exe="./mkFit/mkFit --silent ${seeds} --num-thr ${maxth} --num-thr-ev ${maxev} --input-file ${dir}/${subdir}/${file} --num-events ${nevents} --remove-dup --use-dead-modules"
 
 ## Common output setup
 tmpdir="tmp"
@@ -66,7 +66,7 @@ base=${val_arch}_${sample}
 siminfo="--try-to-save-sim-info"
 
 ## backward fit flag
-bkfit="--backward-fit-pca"
+bkfit="--backward-fit"
 
 ## validation options: SIMVAL == sim tracks as reference, CMSSWVAL == cmssw tracks as reference
 SIMVAL="SIMVAL --sim-val ${siminfo} ${bkfit} ${style} --num-iters-cmssw 10"
