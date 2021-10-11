@@ -152,8 +152,8 @@ public:
   int    m_track_algorithm  = -1;
 
   bool  m_requires_seed_hit_sorting = false;
-  bool  m_require_quality_filter    = false;
-  bool  m_require_dupclean_tight    = false;
+  bool  m_requires_quality_filter   = false;
+  bool  m_requires_dupclean_tight   = false;
 
   bool  m_backward_search           = false;
   bool  m_backward_drop_seed_hits   = false;
@@ -207,7 +207,7 @@ public:
   void set_qf_flags()
   {
     m_requires_seed_hit_sorting = true;
-    m_require_quality_filter    = true;
+    m_requires_quality_filter   = true;
   }
 
   void set_qf_params(int minHits, float sharedFrac)
@@ -218,7 +218,7 @@ public:
 
   void set_dupclean_flag()
   {
-    m_require_dupclean_tight=true;
+    m_requires_dupclean_tight = true;
   }
 
   void set_dupl_params(float sharedFrac, float drthCentral, float drthObarrel, float drthForward)

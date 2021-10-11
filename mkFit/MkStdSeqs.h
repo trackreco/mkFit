@@ -31,11 +31,8 @@ namespace StdSeq
     void remove_duplicates(TrackVec &tracks);
     void handle_duplicates(Event *m_event);
       
-    void quality_filter(TrackVec &tracks, const int nMinHits);
     void find_duplicates_sharedhits(TrackVec &tracks, const float fraction);
     void find_duplicates_sharedhits_pixelseed(TrackVec &tracks, const float fraction, const float drth_central, const float drth_obarrel, const float drth_forward);
-
-    void quality_filter_layers(TrackVec &tracks, const BeamSpot &bspot);
 
     template<class TRACK>
     bool qfilter_n_hits(const TRACK &t, int nMinHits)
@@ -51,8 +48,22 @@ namespace StdSeq
          return t.nFoundHits() >= nMinHits;
     }
 
+    template<class TRACK>
+    bool qfilter_n_layers(const TRACK &t, const BeamSpot &bspot)
+    {
+      int layers   = t.nUniqueLayers();
+      int llyr     = t.getLastFoundHitLyr();
+      int nhits    = t.nFoundHits();
+      float pt     = t.pT();
+      float pt_min = 0.7; // min pT for full filter
+      float d0BS   = t.d0BeamSpot(bspot.x,bspot.y);
+      float d0_max = 0.1; // 1 mm
+      
+      bool endsInsidePix = (llyr==2||llyr==18||llyr==45);
+      return !( (nhits ==3 || layers==3) && endsInsidePix && (pt>pt_min || (pt<=pt_min && std::abs(d0BS)>d0_max)) );
+    }
 
-    void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf, const EventOfHits &eoh);
+    void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf);
 
 } // namespace StdSeq
 

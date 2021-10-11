@@ -507,6 +507,10 @@ public:
   int        getLastHitIdx()     const;
   int        getLastHitLyr()     const;
 
+  // For additional filter
+  int        getLastFoundHitLyr() const;
+  int        nUniqueLayers()      const;
+
   void  addHitIdx(int hitIdx, int hitLyr, float chi2);
 
         HoTNode& refLastHoTNode();       // for filling up overlap info
@@ -711,6 +715,48 @@ inline int TrackCand::getLastHitIdx() const
 inline int TrackCand::getLastHitLyr() const
 {
    return m_comb_candidate->m_hots[lastHitIdx_].m_hot.layer;
+}
+
+inline int TrackCand::getLastFoundHitLyr() const
+{
+  int nh = nTotalHits();
+  int ch = lastHitIdx_;
+  int ll = -1;
+  while (--nh >= 0)
+  {
+    HoTNode& hot_node = m_comb_candidate->m_hots[ch];
+    if (hot_node.m_hot.index < 0)
+    {
+      ch = hot_node.m_prev_idx;
+    }
+    else 
+    {
+      ll = hot_node.m_hot.layer;
+      break;
+    } 
+  }
+  return ll;
+}
+
+inline int TrackCand::nUniqueLayers() const
+{
+  int nUL   = 0;
+  int prevL = -1;
+  int nh = nTotalHits();
+  int ch = lastHitIdx_;
+
+  while (--nh >= 0)
+  {
+    HoTNode& hot_node = m_comb_candidate->m_hots[ch];
+    int thisL = hot_node.m_hot.layer;
+    if (thisL >=0 && (hot_node.m_hot.index >= 0 || hot_node.m_hot.index == -9) && thisL != prevL)
+    {
+      ++nUL;
+      prevL = thisL;
+    }
+    ch = hot_node.m_prev_idx;
+  }
+  return nUL;
 }
 
 inline HoTNode& TrackCand::refLastHoTNode()

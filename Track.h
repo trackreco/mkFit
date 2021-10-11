@@ -214,6 +214,8 @@ public:
 
   bool  hasSillyValues(bool dump, bool fix, const char* pref="");
 
+  float d0BeamSpot(const float x_bs, const float y_bs, bool linearize=false) const;
+
   // ------------------------------------------------------------------------
 
   struct Status {
