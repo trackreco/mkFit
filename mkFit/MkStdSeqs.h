@@ -51,16 +51,20 @@ namespace StdSeq
     template<class TRACK>
     bool qfilter_n_layers(const TRACK &t, const BeamSpot &bspot)
     {
-      int layers   = t.nUniqueLayers();
-      int llyr     = t.getLastFoundHitLyr();
-      int nhits    = t.nFoundHits();
-      float pt     = t.pT();
-      float pt_min = 0.7; // min pT for full filter
-      float d0BS   = t.d0BeamSpot(bspot.x,bspot.y);
-      float d0_max = 0.1; // 1 mm
+      int layers    = t.nUniqueLayers();
+      int llyr      = t.getLastFoundHitLyr();
+      int lplyr     = t.getLastFoundPixelHitLyr();
+      int nhits     = t.nFoundHits();
+      float pt      = t.pT();
+      float pt_minL = 0.7; // min pT for full filter on (nhits==3 .or. layers==3)
+      float pt_minH = 3.0; // min pT for filter on layers<=5 .and. d0BS>d0_max 
+      float d0BS    = t.d0BeamSpot(bspot.x,bspot.y);
+      float d0_max  = 0.1; // 1 mm
       
       bool endsInsidePix = (llyr==2||llyr==18||llyr==45);
-      return !( (nhits ==3 || layers==3) && endsInsidePix && (pt>pt_min || (pt<=pt_min && std::abs(d0BS)>d0_max)) );
+      bool lastInsidePix = ((0<=lplyr && lplyr<3)||(18<=lplyr && lplyr<20)||(45<=lplyr && lplyr<47));
+      return !( ((nhits==3 || layers==3) && endsInsidePix && (pt>pt_minL || (pt<=pt_minL && std::abs(d0BS)>d0_max))) ||
+		 (layers<=6 && lastInsidePix && llyr!=lplyr && pt<=pt_minH && std::abs(d0BS)>d0_max) );
     }
 
     void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf);
