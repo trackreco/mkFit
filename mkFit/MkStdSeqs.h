@@ -67,6 +67,17 @@ namespace StdSeq
 		 (layers<=6 && lastInsidePix && llyr!=lplyr && pt<=pt_minH && std::abs(d0BS)>d0_max) );
     }
 
+    template<class TRACK>
+    bool qfilter_n_layers_pixelLess(const TRACK &t, const BeamSpot &bspot)
+    {
+      int layers   = t.nUniqueLayers();
+      int nhits    = t.nFoundHits();
+      float d0BS   = t.d0BeamSpot(bspot.x,bspot.y);
+      float d0_max = 0.1; // 1 mm
+
+      return !( (nhits<=6 || layers<=6) && std::abs(d0BS)>d0_max );
+    }
+
     void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf);
 
 } // namespace StdSeq

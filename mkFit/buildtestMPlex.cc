@@ -564,6 +564,12 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
 	 { return StdSeq::qfilter_n_layers(t, eoh.m_beam_spot); });      
       }
 
+      if (itconf.m_requires_quality_filter && itconf.m_track_algorithm==9)
+      {
+	builder.filter_comb_cands([&](const TrackCand &t)
+	 { return StdSeq::qfilter_n_layers_pixelLess(t, eoh.m_beam_spot); });
+      }
+
       builder.select_best_comb_cands(true); // true -> clear m_tracks as they were already filled once above
 
       StdSeq::find_and_remove_duplicates(builder.ref_tracks_nc(), itconf);
@@ -690,6 +696,12 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
     {
       builder.filter_comb_cands([&](const TrackCand &t)
        { return StdSeq::qfilter_n_layers(t, eoh.m_beam_spot); });      
+    }
+
+    if (itconf.m_requires_quality_filter && itconf.m_track_algorithm==9)
+    {
+      builder.filter_comb_cands([&](const TrackCand &t)
+       { return StdSeq::qfilter_n_layers_pixelLess(t, eoh.m_beam_spot); });
     }
   }
 

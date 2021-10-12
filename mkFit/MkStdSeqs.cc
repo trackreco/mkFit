@@ -471,60 +471,54 @@ void find_duplicates_sharedhits(TrackVec &tracks, const float fraction)
 {
   const auto ntracks = tracks.size();
 
-  std::vector<bool> goodtrack(ntracks, false);  
-  
+  std::vector<bool> goodtrack(ntracks, false);
+
   for (auto itrack = 0U; itrack < ntracks; itrack++)
   {
-    auto &trk = tracks[itrack];    
-
-    auto seedHits = trk.getNSeedHits();
-    auto seedReduction = (seedHits <= 5)? 2:3;
+    auto &trk = tracks[itrack];
+    auto pt1 = 1./trk.invpT();
+    auto phi1 = trk.momPhi();
+    auto ctheta1 = 1./tan(trk.theta());
 
     for (auto jtrack = itrack + 1; jtrack < ntracks; jtrack++)
-    {   
+    {
       auto &track2 = tracks[jtrack];
-      auto seedHits2 = track2.getNSeedHits();
-      auto seedReduction2 = (seedHits2 <= 5)? 2:3;
-    
       auto sharedCount=0;
-      auto sharedSeed=0; // this count may need to be reviewed
       auto sharedFirst=0;
-    
+      auto pt2 = 1./track2.invpT();
+
+      auto reldiff=2*std::fabs(pt1-pt2)/(pt1+pt2);
+      if (reldiff>2.0) continue;
+
+      auto dctheta = std::abs(1./tan(track2.theta()) - ctheta1);
+      if (dctheta > 1.) continue;
+
+      auto dphi = std::abs(squashPhiMinimal(phi1 - track2.momPhi()));
+      if (dphi > 1.) continue;
+
       for (int i = 0; i < trk.nTotalHits(); ++i)
-      {   
-        if (trk.getHitIdx(i)<0) continue;
-        int a=trk.getHitLyr(i);
-        int b=trk.getHitIdx(i);
-        for (int j = 0; j < track2.nTotalHits(); ++j)
-        {   
-          if (track2.getHitIdx(j)<0) continue;
-          int c=track2.getHitLyr(j);
-          int d=track2.getHitIdx(j);
-    
-          //this is to count once shared matched hits (may be done more properly...)
-          if (i<seedHits && j<seedHits2) {if(a==c && b==d) sharedSeed+=1;}
-
-          if(a==c && b==d) sharedCount+=1;
-          if(a==c && b==d && j==1 && i==1) sharedFirst+=1;
-          if(a==c && b==d && j==0 && i==0) sharedFirst+=1;
-        }   
-      }   
-    
-      auto shared_first=(int)(sharedFirst==2);
-      auto shared_reduction=(int)(sharedSeed/2);
-      
-      //selection here - 11percent fraction of shared hits to label a duplicate
-      if ((sharedCount - shared_reduction - shared_first) >= ((std::min(trk.nFoundHits()-seedReduction, track2.nFoundHits()-seedReduction2) - shared_first) * fraction))
-      {   
-        if (trk.score() > track2.score())
-          track2.setDuplicateValue(true);
-        else
-          trk.setDuplicateValue(true);
-      }    
-    }    
-  }//end loop one over tracks
-
-  //removal here
+      {
+	if (trk.getHitIdx(i)<0) continue;
+	int a=trk.getHitLyr(i);
+	int b=trk.getHitIdx(i);
+	for (int j = 0; j < track2.nTotalHits(); ++j)
+	{
+	  if (track2.getHitIdx(j)<0) continue;
+	  int c=track2.getHitLyr(j);
+	  int d=track2.getHitIdx(j);
+	  if(a==c && b==d) sharedCount+=1;
+	  if(a==c && b==d && j==0 && i==0) sharedFirst+=1;
+	}
+      }
+      if  ((sharedCount - sharedFirst) >= ((std::min(trk.nFoundHits(), track2.nFoundHits()) - sharedFirst) * (fraction)) )
+      {
+	if (trk.score() > track2.score())
+	  track2.setDuplicateValue(true);
+	else
+	  trk.setDuplicateValue(true);
+      }
+    }
+  }
   tracks.erase(std::remove_if(tracks.begin(),tracks.end(),[](auto track){return track.getDuplicateValue();}),tracks.end());
 }
 
