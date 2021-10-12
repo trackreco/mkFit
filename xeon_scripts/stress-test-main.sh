@@ -75,7 +75,7 @@ file=memoryFile.fv6.default.211008-c6b7c67.bin
 ## Common mkFit options
 seeds="--cmssw-n2seeds"
 algo="--build-ce"
-opts="--silent --remove-dup"
+opts="--silent --remove-dup --use-dead-modules --backward-fit"
 base_exe="./mkFit/mkFit --input-file ${dir}/${subdir}/${file} ${seeds} ${algo} ${opts}"
 
 ## Output options
