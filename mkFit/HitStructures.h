@@ -508,6 +508,7 @@ public:
   int        getLastHitLyr()     const;
 
   // For additional filter
+  int        getLastFoundPixelHitLyr() const;
   int        getLastFoundHitLyr() const;
   int        nUniqueLayers()      const;
 
@@ -730,6 +731,28 @@ inline int TrackCand::getLastFoundHitLyr() const
       ch = hot_node.m_prev_idx;
     }
     else 
+    {
+      ll = hot_node.m_hot.layer;
+      break;
+    } 
+  }
+  return ll;
+}
+
+inline int TrackCand::getLastFoundPixelHitLyr() const
+{
+  int nh = nTotalHits();
+  int ch = lastHitIdx_;
+  int ll = -1;
+  while (--nh >= 0)
+  {
+    HoTNode& hot_node = m_comb_candidate->m_hots[ch];
+    int tl = hot_node.m_hot.layer;
+    if (hot_node.m_hot.index < 0 || !((0<=tl && tl<=3) || (18<=tl && tl<=20) || (45<=tl && tl<=47)))
+    {
+      ch = hot_node.m_prev_idx;
+    }
+    else if ( (0<=tl && tl<=3) || (18<=tl && tl<=20) || (45<=tl && tl<=47))
     {
       ll = hot_node.m_hot.layer;
       break;
