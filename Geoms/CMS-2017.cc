@@ -213,8 +213,8 @@ namespace
     {   
       ip.nlayers_per_seed = 3;
       ip.maxCandsPerSeed  = 2;
-      ip.maxHolesPerCand  = 0;
-      ip.maxConsecHoles   = 1;
+      ip.maxHolesPerCand  = 1;
+      ip.maxConsecHoles   = 2;
       ip.chi2Cut_min      = 10.0; 
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
@@ -458,7 +458,7 @@ namespace
     ii[7].set_iteration_index_and_track_algorithm(7, (int) TrackBase::TrackAlgorithm::pixelLessStep);
     ii[7].set_seed_cleaning_params(2.0, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135, 0.135);
     ii[7].set_qf_flags();
-    ii[7].set_qf_params(4,0.19);
+    ii[7].set_qf_params(3,0.3);
     fill_hit_selection_windows_params(ii[7]);
     SetupBackwardSearch_Iter7(ii[7]);
 
