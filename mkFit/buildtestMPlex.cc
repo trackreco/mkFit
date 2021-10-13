@@ -558,16 +558,18 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
         builder.EndBkwSearch();
       }
 
-      if (itconf.m_requires_quality_filter && itconf.m_track_algorithm==7)
+      if (itconf.m_requires_quality_filter && (itconf.m_track_algorithm==7 || itconf.m_track_algorithm==9))
       {
-	builder.filter_comb_cands([&](const TrackCand &t)
-	 { return StdSeq::qfilter_n_layers(t, eoh.m_beam_spot); });      
-      }
-
-      if (itconf.m_requires_quality_filter && itconf.m_track_algorithm==9)
-      {
-	builder.filter_comb_cands([&](const TrackCand &t)
-	 { return StdSeq::qfilter_n_layers_pixelLess(t, eoh.m_beam_spot); });
+	if (itconf.m_track_algorithm==7)
+	{
+	  builder.filter_comb_cands([&](const TrackCand &t)
+	   { return StdSeq::qfilter_n_layers(t, eoh.m_beam_spot); });      
+	}
+	else if (itconf.m_track_algorithm==9)
+	{
+	  builder.filter_comb_cands([&](const TrackCand &t)
+	   { return StdSeq::qfilter_n_layers_pixelLess(t, eoh.m_beam_spot); });
+	}
       }
 
       builder.select_best_comb_cands(true); // true -> clear m_tracks as they were already filled once above
@@ -692,16 +694,18 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
       builder.EndBkwSearch();
     }
 
-    if (itconf.m_requires_quality_filter && itconf.m_track_algorithm==7)
+    if (itconf.m_requires_quality_filter && (itconf.m_track_algorithm==7 || itconf.m_track_algorithm==9))
     {
-      builder.filter_comb_cands([&](const TrackCand &t)
-       { return StdSeq::qfilter_n_layers(t, eoh.m_beam_spot); });      
-    }
-
-    if (itconf.m_requires_quality_filter && itconf.m_track_algorithm==9)
-    {
-      builder.filter_comb_cands([&](const TrackCand &t)
-       { return StdSeq::qfilter_n_layers_pixelLess(t, eoh.m_beam_spot); });
+      if (itconf.m_track_algorithm==7)
+      {
+	builder.filter_comb_cands([&](const TrackCand &t)
+	 { return StdSeq::qfilter_n_layers(t, eoh.m_beam_spot); });      
+      }
+      else if (itconf.m_track_algorithm==9)
+      {
+	builder.filter_comb_cands([&](const TrackCand &t)
+	 { return StdSeq::qfilter_n_layers_pixelLess(t, eoh.m_beam_spot); });
+      }
     }
   }
 
