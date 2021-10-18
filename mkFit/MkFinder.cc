@@ -166,6 +166,7 @@ void MkFinder::OutputTracksAndHitIdx(std::vector<Track>& tracks,
 void MkFinder::getHitSelDynamicWindows(const float invpt, const float theta, float &min_dq, float &max_dq, float &min_dphi, float &max_dphi)
 {
   const IterationLayerConfig &ILC = *m_iteration_layer_config;
+  const IterationParams      &IP  = *m_iteration_params;
 
   // dq hit selection window
   float this_dq = (ILC.c_dq_0)*invpt+(ILC.c_dq_1)*theta+(ILC.c_dq_2);  
@@ -182,6 +183,9 @@ void MkFinder::getHitSelDynamicWindows(const float invpt, const float theta, flo
     min_dphi = (ILC.c_dp_sf)*this_dphi;
     max_dphi = 2.0f*min_dphi;
   }
+
+  min_dphi *= IP.phiWindowMinScale;
+  max_dphi *= IP.phiWindowMaxScale;
 
   //// For future optimization: for layer & iteration dependend hit chi2 cut
   //float this_c2 = (ILC.c_c2_0)*invpt+(ILC.c_c2_1)*theta+(ILC.c_c2_2);  

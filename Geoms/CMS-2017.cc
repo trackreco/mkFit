@@ -113,6 +113,8 @@ namespace
     ic.m_backward_search = true;
     ic.m_backward_params.maxHolesPerCand = 2;
     ic.m_backward_params.maxConsecHoles  = 2;
+    ic.m_backward_params.phiWindowMinScale = 2;
+    ic.m_backward_params.phiWindowMaxScale = 2;
     // Remove pixel layers from FwdSearch, add them to BkwSearch
     auto &spv = ic.m_steering_params;
     spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(8, 6, 19);
@@ -128,6 +130,8 @@ namespace
     ic.m_backward_search = true;
     ic.m_backward_params.maxHolesPerCand = 2;
     ic.m_backward_params.maxConsecHoles  = 2;
+    ic.m_backward_params.phiWindowMinScale = 2;
+    ic.m_backward_params.phiWindowMaxScale = 2;
     // Remove pixel/tib/tid layers from FwdSearch, add them to BkwSearch/
     auto &spv = ic.m_steering_params;
     spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(12, 12, 24);

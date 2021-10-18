@@ -857,19 +857,19 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     IterationConfig &ic  = ii[0];
     {
       IterationLayerConfig & obj = ic.layer(0);
-      obj.set_selection_limits(0.010000, 0.050000, 1.000000, 2.000000);
+      obj.set_selection_limits(0.010000, 0.050000, 2.000000, 4.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(1);
-      obj.set_selection_limits(0.010000, 0.050000, 1.000000, 2.000000);
+      obj.set_selection_limits(0.010000, 0.050000, 2.000000, 4.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(2);
-      obj.set_selection_limits(0.010000, 0.050000, 1.000000, 2.000000);
+      obj.set_selection_limits(0.010000, 0.050000, 2.000000, 4.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(3);
-      obj.set_selection_limits(0.010000, 0.050000, 1.000000, 2.000000);
+      obj.set_selection_limits(0.010000, 0.050000, 2.000000, 4.000000);
     }
     {
       IterationLayerConfig & obj = ic.layer(4);
@@ -929,15 +929,15 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(18);
-      obj.set_selection_limits(0.010000, 0.015000, 0.800000, 1.600000);
+      obj.set_selection_limits(0.010000, 0.015000, 1.600000, 3.200000);
     }
     {
       IterationLayerConfig & obj = ic.layer(19);
-      obj.set_selection_limits(0.010000, 0.015000, 0.800000, 1.600000);
+      obj.set_selection_limits(0.010000, 0.015000, 1.600000, 3.200000);
     }
     {
       IterationLayerConfig & obj = ic.layer(20);
-      obj.set_selection_limits(0.010000, 0.015000, 0.800000, 1.600000);
+      obj.set_selection_limits(0.010000, 0.015000, 1.600000, 3.200000);
     }
     {
       IterationLayerConfig & obj = ic.layer(21);
@@ -1037,15 +1037,15 @@ void Create_CMS_2017_AutoGen(TrackerInfo &ti, IterationsInfo &ii)
     }
     {
       IterationLayerConfig & obj = ic.layer(45);
-      obj.set_selection_limits(0.010000, 0.015000, 0.800000, 1.600000);
+      obj.set_selection_limits(0.010000, 0.015000, 1.600000, 3.200000);
     }
     {
       IterationLayerConfig & obj = ic.layer(46);
-      obj.set_selection_limits(0.010000, 0.015000, 0.800000, 1.600000);
+      obj.set_selection_limits(0.010000, 0.015000, 1.600000, 3.200000);
     }
     {
       IterationLayerConfig & obj = ic.layer(47);
-      obj.set_selection_limits(0.010000, 0.015000, 0.800000, 1.600000);
+      obj.set_selection_limits(0.010000, 0.015000, 1.600000, 3.200000);
     }
     {
       IterationLayerConfig & obj = ic.layer(48);
