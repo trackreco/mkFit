@@ -171,6 +171,7 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg,
   std::vector<float>  y(ns);
   std::vector<float>  z(ns);
   std::vector<float>  d0(ns);
+  int i1,i2; //for the sorting
 
   for(int ts=0; ts<ns; ts++){
     const Track & tk = seeds[ts];
@@ -273,13 +274,15 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg,
 
       if(overlapping){
         //Mark tss as a duplicate
-        int i1=ts;
-        int i2=tss;
-        //if (d0[tss]>d0[ts])
-        writetrack[tss] = false;
-        //else
-          //   {writetrack[ts] = false;i2=ts;i1=tss;}
-        
+        i1=ts;
+        i2=tss;
+        if (d0[tss]>d0[ts])
+          writetrack[tss] = false;
+        else { 
+          writetrack[ts] = false;
+          i2 = ts;
+          i1 = tss;
+        }
         // Add hits from tk2 to the seed we are keeping.
         // NOTE: We only have 3 bits in Track::Status for number of seed hits.
         //       There is a check at entry and after adding of a new hit.
@@ -313,14 +316,15 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg,
             }
           }
         }
+        if (n_ovlp_hits_added > 0)
+           tk.sortHitsByLayer();
       }
-
     } //end of inner loop over tss
 
     if (writetrack[ts])
     {
-      if (n_ovlp_hits_added > 0)
-        seeds[ts].sortHitsByLayer();
+      //if (n_ovlp_hits_added > 0)
+        //seeds[ts].sortHitsByLayer();
       cleanSeedTracks.emplace_back(seeds[ts]);
     }
   }
