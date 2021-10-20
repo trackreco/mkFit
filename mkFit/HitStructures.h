@@ -512,6 +512,8 @@ public:
   int        getLastFoundHitLyr() const;
   int        nUniqueLayers()      const;
 
+  int        nUniqueLayersMatch(const TrackerInfo &trk_inf) const;
+
   void  addHitIdx(int hitIdx, int hitLyr, float chi2);
 
         HoTNode& refLastHoTNode();       // for filling up overlap info
@@ -780,6 +782,34 @@ inline int TrackCand::nUniqueLayers() const
     ch = hot_node.m_prev_idx;
   }
   return nUL;
+}
+
+inline int TrackCand::nUniqueLayersMatch(const TrackerInfo &trk_inf) const
+{
+  int nULM   = 0;
+  int prevL = -1;
+  bool prevStereo = false;
+  int nh = nTotalHits();
+  int ch = lastHitIdx_;
+
+  while (--nh >= 0)
+  {
+    HoTNode& hot_node = m_comb_candidate->m_hots[ch];
+    int thisL = hot_node.m_hot.layer;
+    bool stereo = trk_inf.is_stereo_lyr(thisL);
+
+    if (thisL >=0 && (hot_node.m_hot.index >= 0 || hot_node.m_hot.index == -9) && thisL != prevL)
+    {
+      ++nULM;
+      //going outside in you can find a mono-stereo layer pair
+      //if they both have valid hits count once
+      if (!stereo && prevStereo && thisL==prevL-1) nULM--;
+      prevL = thisL;
+      prevStereo = stereo;
+    }
+    ch = hot_node.m_prev_idx;
+  }
+  return nULM;
 }
 
 inline HoTNode& TrackCand::refLastHoTNode()
