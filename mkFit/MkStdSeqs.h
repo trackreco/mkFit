@@ -25,7 +25,7 @@ namespace StdSeq
     void Cmssw_Map_TrackHitIndices(const EventOfHits &eoh, TrackVec &seeds);
     void Cmssw_ReMap_TrackHitIndices(const EventOfHits &eoh, TrackVec &out_tracks);
 
-    int  clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg);
+    int  clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg, const BeamSpot &bspot);
     
     void find_duplicates(TrackVec &tracks);
     void remove_duplicates(TrackVec &tracks);

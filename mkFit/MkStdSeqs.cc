@@ -110,7 +110,7 @@ void Cmssw_ReMap_TrackHitIndices(const EventOfHits &eoh, TrackVec &out_tracks)
 //=========================================================================
 // Seed cleaning (multi-iter)
 //=========================================================================
-int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg)
+int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg, const BeamSpot &bspot)
 { 
   const float etamax_brl = Config::c_etamax_brl;
   const float dpt_brl_0  = Config::c_dpt_brl_0;
@@ -170,6 +170,7 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg)
   std::vector<float>  x(ns);
   std::vector<float>  y(ns);
   std::vector<float>  z(ns);
+  std::vector<float>  d0(ns);
 
   for(int ts=0; ts<ns; ts++){
     const Track & tk = seeds[ts];
@@ -184,6 +185,7 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg)
     x[ts] = tk.x();
     y[ts] = tk.y();
     z[ts] = tk.z();
+    d0[ts] = tk.d0BeamSpot(bspot.x,bspot.y);
   }
 
   for(int ts=0; ts<ns; ts++){
@@ -271,15 +273,20 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg)
 
       if(overlapping){
         //Mark tss as a duplicate
+        int i1=ts;
+        int i2=tss;
+        //if (d0[tss]>d0[ts])
         writetrack[tss] = false;
-
+        //else
+          //   {writetrack[ts] = false;i2=ts;i1=tss;}
+        
         // Add hits from tk2 to the seed we are keeping.
         // NOTE: We only have 3 bits in Track::Status for number of seed hits.
         //       There is a check at entry and after adding of a new hit.
-        Track &tk = seeds[ts];
+        Track &tk = seeds[i1];
         if (merge_hits && tk.nTotalHits() < 7)
         {
-          const Track &tk2 = seeds[tss];
+          const Track &tk2 = seeds[i2];
           //We are not actually fitting to the extra hits; use chi2 of 0
           float fakeChi2 = 0.0;
 
