@@ -513,6 +513,7 @@ public:
   int        nUniqueLayers()      const;
 
   int        nUniqueLayersMatch(const TrackerInfo &trk_inf) const;
+  int        nLayersByType(const TrackerInfo &trk_inf) const;
 
   void  addHitIdx(int hitIdx, int hitLyr, float chi2);
 
@@ -812,6 +813,29 @@ inline int TrackCand::nUniqueLayersMatch(const TrackerInfo &trk_inf) const
   return nULM;
 }
 
+inline int TrackCand::nLayersByType(const TrackerInfo &trk_inf) const
+{
+  int prevL = -1;
+  int nh = nTotalHits();
+  int ch = lastHitIdx_;
+  int pix=0, stereo=0, mono=0;
+  while (--nh >= 0)
+  {
+    HoTNode& hot_node = m_comb_candidate->m_hots[ch];
+    int thisL = hot_node.m_hot.layer;
+    if (thisL >=0 && (hot_node.m_hot.index >= 0 || hot_node.m_hot.index == -9) && thisL != prevL)
+    {
+      if (trk_inf.is_pix_lyr(thisL)) ++pix;
+      else if (trk_inf.is_stereo_lyr(thisL) ) ++stereo;
+      else ++mono;
+      prevL = thisL;
+     }
+    ch = hot_node.m_prev_idx;
+  }
+  return pix+100*stereo+10000*mono;
+}
+
+
 inline HoTNode& TrackCand::refLastHoTNode()
 {
   return m_comb_candidate->m_hots[lastHitIdx_];
@@ -821,7 +845,6 @@ inline const HoTNode& TrackCand::refLastHoTNode() const
 {
   return m_comb_candidate->m_hots[lastHitIdx_];
 }
-
 
 //------------------------------------------------------------------------------
 
