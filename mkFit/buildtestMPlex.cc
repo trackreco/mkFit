@@ -490,7 +490,7 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
     if ( itconf.m_requires_dupclean_tight )
       StdSeq::clean_cms_seedtracks_iter(&seeds, itconf);
 
-    builder.seed_post_cleaning(seeds, true, true);
+    builder.seed_post_cleaning(seeds);
 
     // Add protection in case no seeds are found for iteration
     if (seeds.size() <= 0)
@@ -655,7 +655,7 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
 
   // Check nans in seeds -- this should not be needed when Slava fixes
   // the track parameter coordinate transformation.
-  builder.seed_post_cleaning(seeds, true, true);
+  builder.seed_post_cleaning(seeds);
 
   if (itconf.m_requires_seed_hit_sorting)
   {

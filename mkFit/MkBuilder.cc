@@ -1113,7 +1113,7 @@ void MkBuilder::score_tracks(TrackVec& tracks)
 // PrepareSeeds
 //------------------------------------------------------------------------------
 
-void MkBuilder::seed_post_cleaning(TrackVec &tv, const bool fix_silly_seeds, const bool remove_silly_seeds)
+void MkBuilder::seed_post_cleaning(TrackVec &tv)
 {
 #ifdef SELECT_SEED_LABEL
   { // Select seed with the defined label for detailed debugging.
@@ -1190,7 +1190,7 @@ void MkBuilder::PrepareSeeds()
     }
     // create_seeds_from_sim_tracks();
 
-    seed_post_cleaning(m_event->seedTracks_, true, true);
+    seed_post_cleaning(m_event->seedTracks_);
   }
   else if (Config::seedInput == cmsswSeeds)
   {
@@ -1245,7 +1245,7 @@ void MkBuilder::PrepareSeeds()
       exit(1);
     }
 
-    seed_post_cleaning(m_event->seedTracks_, true, true);
+    seed_post_cleaning(m_event->seedTracks_);
 
     // in rare corner cases, seed tracks could be fully cleaned out: skip mapping if so
     if (m_event->seedTracks_.empty()) return;
