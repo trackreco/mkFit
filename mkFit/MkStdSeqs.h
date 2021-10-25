@@ -78,6 +78,12 @@ namespace StdSeq
       return !( (nhits<=6 || layers<=6) && std::abs(d0BS)>d0_max );
     }
 
+    template<class TRACK>
+    bool qfilter_nan_n_silly(const TRACK &t)
+    {
+      return !( t.hasNanNSillyValues() );
+    }
+
     void find_and_remove_duplicates(TrackVec &tracks, const IterationConfig &itconf);
 
 } // namespace StdSeq

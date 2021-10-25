@@ -174,6 +174,26 @@ bool TrackBase::hasSillyValues(bool dump, bool fix, const char* pref)
   return is_silly;
 }
 
+bool TrackBase::hasNanNSillyValues() const
+{
+  bool is_silly = false;
+  for (int i = 0; i < LL; ++i)
+  {
+    for (int j = 0; j <= i; ++j)
+    {
+      if ((i == j && state_.errors.At(i,j) < 0) || ! std::isfinite(state_.errors.At(i,j)))
+      {
+        if ( ! is_silly )
+        {
+          is_silly = true;
+	  break;
+        }
+      }
+    }
+  }
+  return is_silly;
+}
+
 // If linearize=true, use linear estimate of d0: suitable at pT>~10 GeV (--> 10 micron error)
 float TrackBase::d0BeamSpot(const float x_bs, const float y_bs, bool linearize) const
 {
