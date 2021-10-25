@@ -261,9 +261,15 @@ namespace
     }
   }
 
-  std::function<IterationConfig::partition_seeds_foo> PartitionSeeds0 =
-  [](const TrackerInfo &trk_info, const TrackVec &in_seeds, const EventOfHits &eoh,
-     IterationSeedPartition &part)
+
+  //=================
+  // partitionSeeds0
+  //=================
+
+  [[maybe_unused]] void partitionSeeds0(const TrackerInfo &trk_info,
+                                        const TrackVec &in_seeds,
+                                        const EventOfHits &eoh,
+                                        IterationSeedPartition &part)
   {
     // Seeds are placed into eta regions and sorted on region + eta.
 
@@ -352,9 +358,294 @@ namespace
       }
 
       part.m_region[i]     = reg;
-      part.m_sort_score[i] = 5.0f * (reg - 2) + eta;
+      part.m_sort_score[i] = 7.0f * (reg - 2) + eta;
     }
-  };
+  }
+
+
+  //=================
+  // partitionSeeds1
+  //=================
+
+  [[maybe_unused]] void partitionSeeds1(const TrackerInfo &trk_info,
+                                        const TrackVec &in_seeds,
+                                        const EventOfHits &eoh,
+                                        IterationSeedPartition &part) {
+    // Seeds are placed into eta regions and sorted on region + eta.
+
+    const LayerInfo &tib1 = trk_info.m_layers[4];
+    //const LayerInfo &tib6 = trk_info.m_layers[9];
+    const LayerInfo &tob1 = trk_info.m_layers[10];
+    //const LayerInfo &tob8 = trk_info.m_layers[17];
+
+    const LayerInfo &tidp1 = trk_info.m_layers[21];
+    const LayerInfo &tidn1 = trk_info.m_layers[48];
+
+    const LayerInfo &tecp1 = trk_info.m_layers[27];
+    const LayerInfo &tecn1 = trk_info.m_layers[54];
+
+    // Merge first two layers to account for mono/stereo coverage.
+    // TrackerInfo could hold joint limits for sub-detectors.
+    const auto &L = trk_info.m_layers;
+    const float tidp_rin  = std::min(L[21].m_rin,  L[22].m_rin);
+    const float tidp_rout = std::max(L[21].m_rout, L[22].m_rout);
+    const float tecp_rin  = std::min(L[27].m_rin,  L[28].m_rin);
+    const float tecp_rout = std::max(L[27].m_rout, L[28].m_rout);
+    const float tidn_rin  = std::min(L[48].m_rin,  L[49].m_rin);
+    const float tidn_rout = std::max(L[48].m_rout, L[49].m_rout);
+    const float tecn_rin  = std::min(L[54].m_rin,  L[55].m_rin);
+    const float tecn_rout = std::max(L[54].m_rout, L[55].m_rout);
+
+    const float tid_z_extra = 0.0f; //  5.0f;
+    const float tec_z_extra = 0.0f; // 10.0f;
+
+    const int size = in_seeds.size();
+
+    auto barrel_pos_check = [](const Track &S, float maxR, float rin, float zmax)->bool
+    {
+      bool inside = maxR > rin && S.zAtR(rin) < zmax;
+      return inside;
+    };
+
+    auto barrel_neg_check = [](const Track &S, float maxR, float rin, float zmin)->bool
+    {
+      bool inside = maxR > rin && S.zAtR(rin) > zmin;
+      return inside;
+    };
+
+    auto endcap_pos_check = [](const Track &S, float maxR, float rout, float rin, float zmin)->bool
+    {
+      bool inside = maxR > rout ?  S.zAtR(rout) > zmin :
+                    (maxR > rin  && S.zAtR(maxR) > zmin);
+      return inside;
+    };
+
+    auto endcap_neg_check = [](const Track &S, float maxR, float rout, float rin, float zmax)->bool
+    {
+      bool inside = maxR > rout ?  S.zAtR(rout) < zmax :
+                    (maxR > rin  && S.zAtR(maxR) < zmax);
+      return inside;
+    };
+
+    for (int i = 0; i < size; ++i) {
+      const Track &S = in_seeds[i];
+
+      HitOnTrack hot = S.getLastHitOnTrack();
+      float eta = eoh[hot.layer].GetHit(hot.index).eta();
+      // float  eta = S.momEta();
+
+      // Region to be defined by propagation / intersection tests
+      TrackerInfo::EtaRegion reg;
+
+      const bool  z_dir_pos = S.pz() > 0;
+      const float maxR = S.maxReachRadius();
+
+      if (z_dir_pos)
+      {
+        bool in_tib = barrel_pos_check(S, maxR, tib1.m_rin, tib1.m_zmax);
+        bool in_tob = barrel_pos_check(S, maxR, tob1.m_rin, tob1.m_zmax);
+
+        if (!in_tib && !in_tob) {
+          reg = TrackerInfo::Reg_Endcap_Pos;
+        } else {
+          bool in_tid = endcap_pos_check(S, maxR, tidp_rout, tidp_rin, tidp1.m_zmin - tid_z_extra);
+          bool in_tec = endcap_pos_check(S, maxR, tecp_rout, tecp_rin, tecp1.m_zmin - tec_z_extra);
+
+          if (!in_tid && !in_tec) {
+            reg = TrackerInfo::Reg_Barrel;
+          } else {
+            reg = TrackerInfo::Reg_Transition_Pos;
+          }
+        }
+      }
+      else
+      {
+        bool in_tib = barrel_neg_check(S, maxR, tib1.m_rin, tib1.m_zmin);
+        bool in_tob = barrel_neg_check(S, maxR, tob1.m_rin, tob1.m_zmin);
+
+        if (!in_tib && !in_tob) {
+          reg = TrackerInfo::Reg_Endcap_Neg;
+        } else {
+          bool in_tid = endcap_neg_check(S, maxR, tidn_rout, tidn_rin, tidn1.m_zmax + tid_z_extra);
+          bool in_tec = endcap_neg_check(S, maxR, tecn_rout, tecn_rin, tecn1.m_zmax + tec_z_extra);
+
+          if (!in_tid && !in_tec) {
+            reg = TrackerInfo::Reg_Barrel;
+          } else {
+            reg = TrackerInfo::Reg_Transition_Neg;
+          }
+        }
+      }
+
+      part.m_region[i] = reg;
+      part.m_sort_score[i] = 7.0f * (reg - 2) + eta;
+    }
+  }
+
+  //======================
+  // partitionSeeds1debug
+  //======================
+
+  [[maybe_unused]] void partitionSeeds1debug(const TrackerInfo &trk_info,
+                                             const TrackVec &in_seeds,
+                                             const EventOfHits &eoh,
+                                             IterationSeedPartition &part)
+  {
+    // Seeds are placed into eta regions and sorted on region + eta.
+
+    const LayerInfo &tib1 = trk_info.m_layers[4];
+    //const LayerInfo &tib6 = trk_info.m_layers[9];
+    const LayerInfo &tob1 = trk_info.m_layers[10];
+    //const LayerInfo &tob8 = trk_info.m_layers[17];
+
+    const LayerInfo &tidp1 = trk_info.m_layers[21];
+    const LayerInfo &tidn1 = trk_info.m_layers[48];
+
+    const LayerInfo &tecp1 = trk_info.m_layers[27];
+    const LayerInfo &tecn1 = trk_info.m_layers[54];
+
+    // Merge first two layers to account for mono/stereo coverage.
+    // TrackerInfo could hold joint limits for sub-detectors.
+    const auto &L = trk_info.m_layers;
+    const float tidp_rin  = std::min(L[21].m_rin,  L[22].m_rin);
+    const float tidp_rout = std::max(L[21].m_rout, L[22].m_rout);
+    const float tecp_rin  = std::min(L[27].m_rin,  L[28].m_rin);
+    const float tecp_rout = std::max(L[27].m_rout, L[28].m_rout);
+    const float tidn_rin  = std::min(L[48].m_rin,  L[49].m_rin);
+    const float tidn_rout = std::max(L[48].m_rout, L[49].m_rout);
+    const float tecn_rin  = std::min(L[54].m_rin,  L[55].m_rin);
+    const float tecn_rout = std::max(L[54].m_rout, L[55].m_rout);
+
+    const float tid_z_extra = 0.0f; //  5.0f;
+    const float tec_z_extra = 0.0f; // 10.0f;
+
+    const int size = in_seeds.size();
+
+    auto barrel_pos_check = [](const Track &S, float maxR, float rin, float zmax, const char *det)->bool
+    {
+      bool inside = maxR > rin && S.zAtR(rin) < zmax;
+
+      printf("  in_%s=%d  maxR=%7.3f, rin=%7.3f -- ", det, inside, maxR, rin);
+      if (maxR > rin) {
+        printf("maxR > rin:   S.zAtR(rin) < zmax  -- %.3f <? %.3f\n", S.zAtR(rin), zmax);
+      } else {
+        printf("maxR < rin: no pie.\n");
+      }
+
+      return inside;
+    };
+
+    auto barrel_neg_check = [](const Track &S, float maxR, float rin, float zmin, const char *det)->bool
+    {
+      bool inside = maxR > rin && S.zAtR(rin) > zmin;
+
+      printf("  in_%s=%d  maxR=%7.3f, rin=%7.3f -- ", det, inside, maxR, rin);
+      if (maxR > rin) {
+        printf("maxR > rin:   S.zAtR(rin) > zmin  -- %.3f >? %.3f\n", S.zAtR(rin), zmin);
+      } else {
+        printf("maxR < rin: no pie.\n");
+      }
+
+      return inside;
+    };
+
+    auto endcap_pos_check = [](const Track &S, float maxR, float rout, float rin, float zmin, const char *det)->bool
+    {
+      bool inside = maxR > rout ?  S.zAtR(rout) > zmin :
+                    (maxR > rin  && S.zAtR(maxR) > zmin);
+
+      printf("  in_%s=%d  maxR=%7.3f, rout=%7.3f, rin=%7.3f -- ", det, inside, maxR, rout, rin);
+      if (maxR > rout) {
+        printf("maxR > rout:  S.zAtR(rout) > zmin  -- %.3f >? %.3f\n", S.zAtR(rout), zmin);
+      } else if (maxR > rin) {
+        printf("maxR > rin:   S.zAtR(maxR) > zmin) -- %.3f >? %.3f\n", S.zAtR(maxR), zmin);
+      } else {
+        printf("maxR < rin: no pie.\n");
+      }
+
+      return inside;
+    };
+
+    auto endcap_neg_check = [](const Track &S, float maxR, float rout, float rin, float zmax, const char *det)->bool
+    {
+      bool inside = maxR > rout ?  S.zAtR(rout) < zmax :
+                    (maxR > rin  && S.zAtR(maxR) < zmax);
+
+      printf("  in_%s=%d  maxR=%7.3f, rout=%7.3f, rin=%7.3f -- ", det, inside, maxR, rout, rin);
+      if (maxR > rout) {
+        printf("maxR > rout:  S.zAtR(rout) < zmax  -- %.3f <? %.3f\n", S.zAtR(rout), zmax);
+      } else if (maxR > rin) {
+        printf("maxR > rin:   S.zAtR(maxR) < zmax  -- %.3f <? %.3f\n", S.zAtR(maxR), zmax);
+      } else {
+        printf("maxR < rin: no pie.\n");
+      }
+
+      return inside;
+    };
+
+    for (int i = 0; i < size; ++i) {
+      const Track &S = in_seeds[i];
+
+      HitOnTrack hot = S.getLastHitOnTrack();
+      float eta = eoh[hot.layer].GetHit(hot.index).eta();
+      // float  eta = S.momEta();
+
+      // Region to be defined by propagation / intersection tests
+      TrackerInfo::EtaRegion reg;
+
+      const bool  z_dir_pos = S.pz() > 0;
+      const float maxR = S.maxReachRadius();
+
+      printf("partitionSeeds1debug seed index %d, z_dir_pos=%d (pz=%.3f), maxR=%.3f\n",
+              i, z_dir_pos, S.pz(), maxR);
+
+      if (z_dir_pos)
+      {
+        bool in_tib = barrel_pos_check(S, maxR, tib1.m_rin, tib1.m_zmax, "TIBp");
+        bool in_tob = barrel_pos_check(S, maxR, tob1.m_rin, tob1.m_zmax, "TOBp");
+
+        if (!in_tib && !in_tob) {
+          reg = TrackerInfo::Reg_Endcap_Pos;
+          printf("  --> region = %d, endcap pos\n", reg);
+        } else {
+          bool in_tid = endcap_pos_check(S, maxR, tidp_rout, tidp_rin, tidp1.m_zmin - tid_z_extra, "TIDp");
+          bool in_tec = endcap_pos_check(S, maxR, tecp_rout, tecp_rin, tecp1.m_zmin - tec_z_extra, "TECp");
+
+          if (!in_tid && !in_tec) {
+            reg = TrackerInfo::Reg_Barrel;
+            printf("  --> region = %d, barrel\n", reg);
+          } else {
+            reg = TrackerInfo::Reg_Transition_Pos;
+            printf("  --> region = %d, transition pos\n", reg);
+          }
+        }
+      }
+      else
+      {
+        bool in_tib = barrel_neg_check(S, maxR, tib1.m_rin, tib1.m_zmin, "TIBn");
+        bool in_tob = barrel_neg_check(S, maxR, tob1.m_rin, tob1.m_zmin, "TOBn");
+
+        if (!in_tib && !in_tob) {
+          reg = TrackerInfo::Reg_Endcap_Neg;
+          printf("  --> region = %d, endcap neg\n", reg);
+        } else {
+          bool in_tid = endcap_neg_check(S, maxR, tidn_rout, tidn_rin, tidn1.m_zmax + tid_z_extra, "TIDn");
+          bool in_tec = endcap_neg_check(S, maxR, tecn_rout, tecn_rin, tecn1.m_zmax + tec_z_extra, "TECn");
+
+          if (!in_tid && !in_tec) {
+            reg = TrackerInfo::Reg_Barrel;
+            printf("  --> region = %d, barrel\n", reg);
+          } else {
+            reg = TrackerInfo::Reg_Transition_Neg;
+            printf("  --> region = %d, transition neg\n", reg);
+          }
+        }
+      }
+
+      part.m_region[i] = reg;
+      part.m_sort_score[i] = 7.0f * (reg - 2) + eta;
+    }
+  }
 
 
   void Create_CMS_2017(TrackerInfo& ti, IterationsInfo& ii, bool verbose)
@@ -380,7 +671,7 @@ namespace
 
     // Fills TrackerInfo/LayerInfo and default windows of ii[0].m_layer_configs
     Create_CMS_2017_AutoGen(ti, ii);
-    ii[0].m_partition_seeds = PartitionSeeds0;
+    ii[0].m_partition_seeds = partitionSeeds1;
 
     SetupCoreSteeringParams_Iter0(ii[0]);
 
