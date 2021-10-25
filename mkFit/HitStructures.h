@@ -512,8 +512,14 @@ public:
   int        getLastFoundHitLyr() const;
   int        nUniqueLayers()      const;
 
-  int        nUniqueLayersMatch(const TrackerInfo &trk_inf) const;
-  int        nLayersByType(const TrackerInfo &trk_inf) const;
+  int        nLayersByTypeEncoded(const TrackerInfo &trk_inf) const;
+  int        nHitsByTypeEncoded(const TrackerInfo &trk_inf) const;
+
+  int        nPixelDecoded(const int &encoded)        const {return encoded%100;} 
+  int        nStereoDecoded(const int &encoded)       const {return (encoded/100)%100;} 
+  int        nMonoDecoded(const int &encoded)         const {return (encoded/10000)%100;} 
+  int        nMatchedDecoded(const int &encoded)      const {return encoded/1000000;}
+  int        nTotMatchDecoded(const int &encoded)     const {return encoded%100+(encoded/100)%100+(encoded/10000)%100-encoded/1000000;} 
 
   void  addHitIdx(int hitIdx, int hitLyr, float chi2);
 
@@ -785,54 +791,69 @@ inline int TrackCand::nUniqueLayers() const
   return nUL;
 }
 
-inline int TrackCand::nUniqueLayersMatch(const TrackerInfo &trk_inf) const
+inline int TrackCand::nHitsByTypeEncoded(const TrackerInfo &trk_inf) const
 {
-  int nULM   = 0;
   int prevL = -1;
   bool prevStereo = false;
   int nh = nTotalHits();
   int ch = lastHitIdx_;
-
+  int pix=0, stereo=0, mono=0, matched=0;
+  int doubleStereo = -1;
   while (--nh >= 0)
   {
     HoTNode& hot_node = m_comb_candidate->m_hots[ch];
     int thisL = hot_node.m_hot.layer;
-    bool stereo = trk_inf.is_stereo_lyr(thisL);
-
-    if (thisL >=0 && (hot_node.m_hot.index >= 0 || hot_node.m_hot.index == -9) && thisL != prevL)
+    if (thisL >=0 && (hot_node.m_hot.index >= 0 || hot_node.m_hot.index == -9))
     {
-      ++nULM;
-      //going outside in you can find a mono-stereo layer pair
-      //if they both have valid hits count once
-      if (!stereo && prevStereo && thisL==prevL-1) nULM--;
+      if (trk_inf.is_pix_lyr(thisL)) ++pix;
+      else if (trk_inf.is_stereo_lyr(thisL) ) 
+      {
+        ++stereo;
+        if (thisL==prevL) doubleStereo = thisL;
+      }
+      else
+      {
+        //mono if not pixel, nor stereo - can be matched to stereo
+        ++mono;
+        if (prevStereo && thisL==prevL-1) ++matched;
+        else if (thisL==prevL && thisL==doubleStereo-1) ++matched; //doubleMatch, the first is counted early on
+      }
       prevL = thisL;
       prevStereo = stereo;
     }
     ch = hot_node.m_prev_idx;
   }
-  return nULM;
+  return pix+100*stereo+10000*mono+1000000*matched; 
 }
 
-inline int TrackCand::nLayersByType(const TrackerInfo &trk_inf) const
+inline int TrackCand::nLayersByTypeEncoded(const TrackerInfo &trk_inf) const
 {
   int prevL = -1;
+  bool prevStereo = false;
   int nh = nTotalHits();
   int ch = lastHitIdx_;
-  int pix=0, stereo=0, mono=0;
+  int pix=0, stereo=0, mono=0, matched=0;
   while (--nh >= 0)
   {
     HoTNode& hot_node = m_comb_candidate->m_hots[ch];
     int thisL = hot_node.m_hot.layer;
     if (thisL >=0 && (hot_node.m_hot.index >= 0 || hot_node.m_hot.index == -9) && thisL != prevL)
     {
+      std::cout << "thisL " << thisL <<" p "<< trk_inf.is_pix_lyr(thisL) <<" s "<< trk_inf.is_stereo_lyr(thisL) << std::endl;
       if (trk_inf.is_pix_lyr(thisL)) ++pix;
       else if (trk_inf.is_stereo_lyr(thisL) ) ++stereo;
-      else ++mono;
+      else 
+      {
+        //mono if not pixel, nor stereo - can be matched to stereo
+        ++mono;
+      	if (prevStereo && thisL==prevL-1) ++matched;
+      }
       prevL = thisL;
-     }
+      prevStereo = stereo;
+    }
     ch = hot_node.m_prev_idx;
   }
-  return pix+100*stereo+10000*mono;
+  return pix+100*stereo+10000*mono+1000000*matched;
 }
 
 
