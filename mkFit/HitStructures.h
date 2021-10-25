@@ -839,7 +839,6 @@ inline int TrackCand::nLayersByTypeEncoded(const TrackerInfo &trk_inf) const
     int thisL = hot_node.m_hot.layer;
     if (thisL >=0 && (hot_node.m_hot.index >= 0 || hot_node.m_hot.index == -9) && thisL != prevL)
     {
-      std::cout << "thisL " << thisL <<" p "<< trk_inf.is_pix_lyr(thisL) <<" s "<< trk_inf.is_stereo_lyr(thisL) << std::endl;
       if (trk_inf.is_pix_lyr(thisL)) ++pix;
       else if (trk_inf.is_stereo_lyr(thisL) ) ++stereo;
       else 
