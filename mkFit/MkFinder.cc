@@ -1249,8 +1249,10 @@ void MkFinder::UpdateWithLastHit(const LayerOfHits &layer_of_hits, int N_proc,
     msPar.CopyIn(i, hit.posArray());
   }
 
+  // See comment in MkBuilder::find_tracks_in_layer() about intra / inter flags used here
+  // for propagation to the hit.
   (*fnd_foos.m_update_param_foo)(Err[iP], Par[iP], Chg, msErr, msPar,
-                                 Err[iC], Par[iC], N_proc, Config::finding_intra_layer_pflags);
+                                 Err[iC], Par[iC], N_proc, Config::finding_inter_layer_pflags);
 }
 
 
@@ -1527,6 +1529,7 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
   // Then we could avoid checking which layers actually do have hits.
 
   MPlexQF  tmp_chi2;
+  MPlexQI  no_mat_effs;
   float    tmp_err[6] = { 666, 0, 666, 0, 0, 666 };
   float    tmp_pos[3];
 
@@ -1542,13 +1545,17 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
     const Hit *last_hit_ptr[NN];
 #endif
 
-    int count = 0;
+    no_mat_effs.SetVal(0);
+    int done_count = 0;
+    int here_count = 0;
     for (int i = 0; i < N_proc; ++i)
     {
       while (CurNode[i] >= 0 && HoTNodeArr[ i ][ CurNode[i] ].m_hot.index < 0)
       {
         CurNode[i] = HoTNodeArr[ i ][ CurNode[i] ].m_prev_idx;
       }
+
+      if (CurNode[i] < 0) ++done_count;
 
       if (CurNode[i] >= 0 && HoTNodeArr[ i ][ CurNode[i] ].m_hot.layer == layer)
       {
@@ -1569,7 +1576,7 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
 #endif
         msErr.CopyIn(i, hit.errArray());
         msPar.CopyIn(i, hit.posArray());
-        ++count;
+        ++here_count;
 
         CurNode[i] = HoTNodeArr[ i ][ CurNode[i] ].m_prev_idx;
       }
@@ -1579,6 +1586,7 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
 #ifdef DEBUG_BACKWARD_FIT
         last_hit_ptr[i] = nullptr;
 #endif
+        no_mat_effs[i] = 1;
         tmp_pos[0] = Par[iC](i, 0, 0);
         tmp_pos[1] = Par[iC](i, 1, 0);
         tmp_pos[2] = Par[iC](i, 2, 0);
@@ -1587,20 +1595,21 @@ void MkFinder::BkFitFitTracks(const EventOfHits   & eventofhits,
       }
     }
 
-    if (count == 0) continue;
+    if (done_count == N_proc) break;
+    if (here_count == 0) continue;
 
     // ZZZ Could add missing hits here, only if there are any actual matches.
 
     if (LI.is_barrel())
     {
-      PropagateTracksToHitR(msPar, N_proc, Config::backward_fit_pflags);
+      PropagateTracksToHitR(msPar, N_proc, Config::backward_fit_pflags, &no_mat_effs);
 
       kalmanOperation(KFO_Calculate_Chi2 | KFO_Update_Params,
                       Err[iP], Par[iP], msErr, msPar, Err[iC], Par[iC], tmp_chi2, N_proc);
     }
     else
     {
-      PropagateTracksToHitZ(msPar, N_proc, Config::backward_fit_pflags);
+      PropagateTracksToHitZ(msPar, N_proc, Config::backward_fit_pflags, &no_mat_effs);
 
       kalmanOperationEndcap(KFO_Calculate_Chi2 | KFO_Update_Params,
                             Err[iP], Par[iP], msErr, msPar, Err[iC], Par[iC], tmp_chi2, N_proc);

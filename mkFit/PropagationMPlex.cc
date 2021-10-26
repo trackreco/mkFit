@@ -407,8 +407,9 @@ void helixAtRFromIterativeCCS(const MPlexLV& inPar,     const MPlexQI& inChg, co
 
 void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
                             const MPlexQI &inChg,  const MPlexQF& msRad, 
-			          MPlexLS &outErr,       MPlexLV& outPar,
-                            const int      N_proc, const PropagationFlags pflags)
+                                  MPlexLS &outErr,       MPlexLV& outPar,
+                            const int      N_proc, const PropagationFlags pflags,
+                            const MPlexQI *noMatEffPtr)
 {
    // bool debug = true;
 
@@ -448,14 +449,17 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
      MPlexQF hitsXi;
      MPlexQF propSign;
 #pragma omp simd
-     for (int n = 0; n < NN; ++n) 
+     for (int n = 0; n < N_proc; ++n)
      {
-       const int zbin = getZbinME(outPar(n, 2, 0));
-       const int rbin = getRbinME(msRad (n, 0, 0));
-       
-       hitsRl(n, 0, 0) = (zbin>=0 && zbin<Config::nBinsZME && rbin>=0 && rbin<Config::nBinsRME) ? getRlVal(zbin,rbin) : 0.f; // protect against crazy propagations
-       hitsXi(n, 0, 0) = (zbin>=0 && zbin<Config::nBinsZME && rbin>=0 && rbin<Config::nBinsRME) ? getXiVal(zbin,rbin) : 0.f; // protect against crazy propagations
-
+       if (failFlag(n, 0, 0) || (noMatEffPtr && noMatEffPtr->ConstAt(n, 0, 0))) {
+         hitsRl(n, 0, 0) = 0.f;
+         hitsXi(n, 0, 0) = 0.f;
+       } else {
+         const int zbin = getZbinME(outPar(n, 2, 0));
+         const int rbin = getRbinME(msRad (n, 0, 0));
+         hitsRl(n, 0, 0) = (zbin>=0 && zbin<Config::nBinsZME && rbin>=0 && rbin<Config::nBinsRME) ? getRlVal(zbin,rbin) : 0.f; // protect against crazy propagations
+         hitsXi(n, 0, 0) = (zbin>=0 && zbin<Config::nBinsZME && rbin>=0 && rbin<Config::nBinsRME) ? getXiVal(zbin,rbin) : 0.f; // protect against crazy propagations
+       }
        const float r0 = hipo(inPar(n, 0, 0), inPar(n, 1, 0));
        const float r = msRad(n, 0, 0);
        propSign(n, 0, 0) = (r>r0 ? 1. : -1.);
@@ -505,8 +509,9 @@ void propagateHelixToRMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
 
 void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
                             const MPlexQI &inChg,  const MPlexQF& msZ,
-			          MPlexLS &outErr,       MPlexLV& outPar,
-                            const int      N_proc, const PropagationFlags pflags)
+                                  MPlexLS &outErr,       MPlexLV& outPar,
+                            const int      N_proc, const PropagationFlags pflags,
+                            const MPlexQI *noMatEffPtr)
 {
    // debug = true;
 
@@ -541,14 +546,17 @@ void propagateHelixToZMPlex(const MPlexLS &inErr,  const MPlexLV& inPar,
      MPlexQF hitsXi;
      MPlexQF propSign;
 #pragma omp simd
-     for (int n = 0; n < NN; ++n) 
+     for (int n = 0; n < N_proc; ++n)
      {
-       const int zbin = getZbinME(msZ(n, 0, 0));
-       const int rbin = getRbinME(std::hypot(outPar(n, 0, 0), outPar(n, 1, 0)));
-
-       hitsRl(n, 0, 0) = (zbin>=0 && zbin<Config::nBinsZME && rbin>=0 && rbin<Config::nBinsRME) ? getRlVal(zbin,rbin) : 0.f; // protect against crazy propagations
-       hitsXi(n, 0, 0) = (zbin>=0 && zbin<Config::nBinsZME && rbin>=0 && rbin<Config::nBinsRME) ? getXiVal(zbin,rbin) : 0.f; // protect against crazy propagations
-
+       if (noMatEffPtr && noMatEffPtr->ConstAt(n, 0, 0)) {
+         hitsRl(n, 0, 0) = 0.f;
+         hitsXi(n, 0, 0) = 0.f;
+       } else {
+         const int zbin = getZbinME(msZ(n, 0, 0));
+         const int rbin = getRbinME(std::hypot(outPar(n, 0, 0), outPar(n, 1, 0)));
+         hitsRl(n, 0, 0) = (zbin>=0 && zbin<Config::nBinsZME && rbin>=0 && rbin<Config::nBinsRME) ? getRlVal(zbin,rbin) : 0.f; // protect against crazy propagations
+         hitsXi(n, 0, 0) = (zbin>=0 && zbin<Config::nBinsZME && rbin>=0 && rbin<Config::nBinsRME) ? getXiVal(zbin,rbin) : 0.f; // protect against crazy propagations
+       }
        const float zout = msZ.ConstAt(n, 0, 0);
        const float zin   = inPar.ConstAt(n, 2, 0);
        propSign(n, 0, 0) = (std::abs(zout)>std::abs(zin) ? 1. : -1.);

@@ -45,7 +45,8 @@ public:
                            Err[iP], Par[iP], N_proc, pf);
   }
 
-  void PropagateTracksToHitR(const MPlexHV& par, const int N_proc, const PropagationFlags pf)
+  void PropagateTracksToHitR(const MPlexHV& par, const int N_proc, const PropagationFlags pf,
+                             const MPlexQI *noMatEffPtr=nullptr)
   {
     MPlexQF msRad;
 #pragma omp simd
@@ -55,7 +56,7 @@ public:
     }
 
     propagateHelixToRMPlex(Err[iC], Par[iC], Chg, msRad,
-                           Err[iP], Par[iP], N_proc, pf);
+                           Err[iP], Par[iP], N_proc, pf, noMatEffPtr);
   }
 
   //----------------------------------------------------------------------------
@@ -73,7 +74,8 @@ public:
                            Err[iP], Par[iP], N_proc, pf);
   }
 
-  void PropagateTracksToHitZ(const MPlexHV& par, const int N_proc, const PropagationFlags pf)
+  void PropagateTracksToHitZ(const MPlexHV& par, const int N_proc, const PropagationFlags pf,
+                             const MPlexQI *noMatEffPtr=nullptr)
   {
     MPlexQF msZ;
 #pragma omp simd
@@ -83,7 +85,7 @@ public:
     }
 
     propagateHelixToZMPlex(Err[iC], Par[iC], Chg, msZ,
-                           Err[iP], Par[iP], N_proc, pf);
+                           Err[iP], Par[iP], N_proc, pf, noMatEffPtr);
   }
 
   void PropagateTracksToPCAZ(const int N_proc, const PropagationFlags pf)

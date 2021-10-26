@@ -303,14 +303,14 @@ int MkBuilder::filter_comb_cands(std::function<filter_track_cand_foo> filter)
   return n_removed;
 }
 
-void MkBuilder::select_best_comb_cands(bool clear_m_tracks)
+void MkBuilder::select_best_comb_cands(bool clear_m_tracks, bool remove_missing_hits)
 {
   if (clear_m_tracks)
     m_tracks.clear();
-  export_best_comb_cands(m_tracks);
+  export_best_comb_cands(m_tracks, remove_missing_hits);
 }
 
-void MkBuilder::export_best_comb_cands(TrackVec &out_vec)
+void MkBuilder::export_best_comb_cands(TrackVec &out_vec, bool remove_missing_hits)
 {
   const EventOfCombCandidates &eoccs = m_event_of_comb_cands;
   out_vec.reserve(out_vec.size() + eoccs.m_size);
@@ -323,7 +323,7 @@ void MkBuilder::export_best_comb_cands(TrackVec &out_vec)
     if ( ! eoccs[i].empty())
     {
       const TrackCand &bcand = eoccs[i].front();
-      out_vec.emplace_back( bcand.exportTrack() );
+      out_vec.emplace_back( bcand.exportTrack(remove_missing_hits) );
     }
   }
 }
@@ -1961,7 +1961,10 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
       // }
 
       // copy_out the propagated track params, errors only.
-      mkfndr->CopyOutParErr(eoccs.m_candidates, end - itrack, true);
+      // Do not, keep cands at last valid hit until actual update,
+      // this requires change to propagation flags used in MkFinder::UpdateWithLastHit()
+      // from intra-layer to inter-layer.
+      // mkfndr->CopyOutParErr(eoccs.m_candidates, end - itrack, true);
 
       dprint("make new candidates");
       cloner.begin_iteration();
