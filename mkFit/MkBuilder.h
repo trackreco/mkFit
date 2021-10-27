@@ -219,7 +219,7 @@ public:
                              const int start_seed, const int end_seed, const int region);
 
   // --------
-  static void seed_post_cleaning(TrackVec &tv, const bool fix_silly_seeds, const bool remove_silly_seeds);
+  static void seed_post_cleaning(TrackVec &tv);
 
   void PrepareSeeds();
 

@@ -84,7 +84,7 @@ namespace
     return count;
   }
 
-  void check_nan_n_silly_candiates(Event &ev)
+  void check_nan_n_silly_candidates(Event &ev)
   {
     // MIMI -- nan_n_silly_per_layer_count is in MkBuilder, could be in MkJob.
     // if (Config::nan_n_silly_check_cands_every_layer)
@@ -280,7 +280,7 @@ double runBuildingTestPlexStandard(Event& ev, const EventOfHits &eoh, MkBuilder&
   __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
 
-  check_nan_n_silly_candiates(ev);
+  check_nan_n_silly_candidates(ev);
 
   // first store candidate tracks
   builder.quality_store_tracks(ev.candidateTracks_);
@@ -370,7 +370,7 @@ double runBuildingTestPlexCloneEngine(Event& ev, const EventOfHits &eoh, MkBuild
   __SSC_MARK(0x222);  // use this to pause Intel SDE at the same point
 #endif
 
-  check_nan_n_silly_candiates(ev);
+  check_nan_n_silly_candidates(ev);
 
   // first store candidate tracks - needed for BH backward fit and root_validation
   builder.quality_store_tracks(ev.candidateTracks_);
@@ -488,9 +488,9 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
     }
 
     if ( itconf.m_requires_dupclean_tight )
-      StdSeq::clean_cms_seedtracks_iter(&seeds, itconf);
+      StdSeq::clean_cms_seedtracks_iter(&seeds, itconf, eoh.m_beam_spot);
 
-    builder.seed_post_cleaning(seeds, true, true);
+    builder.seed_post_cleaning(seeds);
 
     // Add protection in case no seeds are found for iteration
     if (seeds.size() <= 0)
@@ -572,6 +572,9 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
 	}
       }
 
+      builder.filter_comb_cands([&](const TrackCand &t)
+       { return StdSeq::qfilter_nan_n_silly(t); });
+
       builder.select_best_comb_cands(true); // true -> clear m_tracks as they were already filled once above
 
       StdSeq::find_and_remove_duplicates(builder.ref_tracks_nc(), itconf);
@@ -592,7 +595,7 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
       ev.seedTracks_.swap(seeds_used);
   }    
 
-  check_nan_n_silly_candiates(ev);
+  check_nan_n_silly_candidates(ev);
 
   if (Config::backwardFit) check_nan_n_silly_bkfit(ev);
 
@@ -647,12 +650,12 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
   {
     // Seed cleaning not done on pixelLess / tobTec iters
     if ( itconf.m_requires_dupclean_tight ) 
-      StdSeq::clean_cms_seedtracks_iter(&seeds, itconf);
+      StdSeq::clean_cms_seedtracks_iter(&seeds, itconf, eoh.m_beam_spot);
   }
 
   // Check nans in seeds -- this should not be needed when Slava fixes
   // the track parameter coordinate transformation.
-  builder.seed_post_cleaning(seeds, true, true);
+  builder.seed_post_cleaning(seeds);
 
   if (itconf.m_requires_seed_hit_sorting)
   {
@@ -708,6 +711,9 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
       }
     }
   }
+
+  builder.filter_comb_cands([&](const TrackCand &t)
+   { return StdSeq::qfilter_nan_n_silly(t); });
 
   builder.export_best_comb_cands(out_tracks, true);
 

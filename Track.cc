@@ -160,7 +160,7 @@ bool TrackBase::hasSillyValues(bool dump, bool fix, const char* pref)
     {
       if ((i == j && state_.errors.At(i,j) < 0) || ! std::isfinite(state_.errors.At(i,j)))
       {
-        if ( ! is_silly)
+        if ( ! is_silly )
         {
           is_silly = true;
           if (dump) printf("%s (label=%d, pT=%f):", pref, label(), pT());
@@ -171,6 +171,23 @@ bool TrackBase::hasSillyValues(bool dump, bool fix, const char* pref)
     }
   }
   if (is_silly && dump) printf("\n");
+  return is_silly;
+}
+
+bool TrackBase::hasNanNSillyValues() const
+{
+  bool is_silly = false;
+  for (int i = 0; i < LL; ++i)
+  {
+    for (int j = 0; j <= i; ++j)
+    {
+      if ((i == j && state_.errors.At(i,j) < 0) || ! std::isfinite(state_.errors.At(i,j)))
+      {
+	is_silly = true;
+	return is_silly;
+      }
+    }
+  }
   return is_silly;
 }
 
