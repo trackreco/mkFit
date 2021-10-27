@@ -183,11 +183,8 @@ bool TrackBase::hasNanNSillyValues() const
     {
       if ((i == j && state_.errors.At(i,j) < 0) || ! std::isfinite(state_.errors.At(i,j)))
       {
-        if ( ! is_silly )
-        {
-          is_silly = true;
-	  break;
-        }
+	is_silly = true;
+	return is_silly;
       }
     }
   }
