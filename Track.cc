@@ -160,7 +160,7 @@ bool TrackBase::hasSillyValues(bool dump, bool fix, const char* pref)
     {
       if ((i == j && state_.errors.At(i,j) < 0) || ! std::isfinite(state_.errors.At(i,j)))
       {
-        if ( ! is_silly)
+        if ( ! is_silly )
         {
           is_silly = true;
           if (dump) printf("%s (label=%d, pT=%f):", pref, label(), pT());
