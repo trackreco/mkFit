@@ -488,7 +488,7 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
     }
 
     if ( itconf.m_requires_dupclean_tight )
-      StdSeq::clean_cms_seedtracks_iter(&seeds, itconf);
+      StdSeq::clean_cms_seedtracks_iter(&seeds, itconf, eoh.m_beam_spot);
 
     builder.seed_post_cleaning(seeds, true, true);
 
@@ -647,7 +647,7 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
   {
     // Seed cleaning not done on pixelLess / tobTec iters
     if ( itconf.m_requires_dupclean_tight ) 
-      StdSeq::clean_cms_seedtracks_iter(&seeds, itconf);
+      StdSeq::clean_cms_seedtracks_iter(&seeds, itconf, eoh.m_beam_spot);
   }
 
   // Check nans in seeds -- this should not be needed when Slava fixes
