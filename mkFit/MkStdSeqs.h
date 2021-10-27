@@ -8,7 +8,6 @@ namespace mkfit {
 
 class Event;
 class EventOfHits;
-
 class IterationConfig;
 
 namespace StdSeq
