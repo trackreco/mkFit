@@ -528,7 +528,7 @@ public:
 
   void  incOverlapCount() { ++nOverlapHits_; }
 
-  Track exportTrack() const;
+  Track exportTrack(bool remove_missing_hits=false) const;
 
   void  resetShortTrack() { score_ = getScoreWorstPossible(); m_comb_candidate = nullptr; }
 

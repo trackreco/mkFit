@@ -715,7 +715,7 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
   builder.filter_comb_cands([&](const TrackCand &t)
    { return StdSeq::qfilter_nan_n_silly(t); });
 
-  builder.export_best_comb_cands(out_tracks);
+  builder.export_best_comb_cands(out_tracks, true);
 
   if (do_remove_duplicates)
   {

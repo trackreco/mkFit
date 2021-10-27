@@ -160,8 +160,8 @@ public:
 
   // XXX filter for rearranging cands that will / will not do backward search.
 
-  void select_best_comb_cands(bool clear_m_tracks=false);
-  void export_best_comb_cands(TrackVec &out_vec);
+  void select_best_comb_cands(bool clear_m_tracks=false, bool remove_missing_hits=false);
+  void export_best_comb_cands(TrackVec &out_vec, bool remove_missing_hits=false);
   void export_tracks(TrackVec &out_vec);
 
   void CompactifyHitStorageForBestCand(bool remove_seed_hits, int backward_fit_min_hits)

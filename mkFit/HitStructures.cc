@@ -445,27 +445,33 @@ EventOfHits::EventOfHits(const TrackerInfo &trk_inf) :
 // TrackCand
 //==============================================================================
 
-Track TrackCand::exportTrack() const
+Track TrackCand::exportTrack(bool remove_missing_hits) const
 {
   // printf("TrackCand::exportTrack label=%5d, total_hits=%2d, overlaps=%2d -- n_seed_hits=%d,prod_type=%d\n",
   //        label(), nTotalHits(), nOverlapHits_, getNSeedHits(), (int)prodType());
 
   Track res(*this);
-  res.resizeHits(nTotalHits(), nFoundHits());
+  res.resizeHits(remove_missing_hits ? nFoundHits() : nTotalHits(), nFoundHits());
   res.setNOverlapHits(nOverlapHits());
 
   int nh = nTotalHits();
   int ch = lastHitIdx_;
+  int good_hits_pos = nFoundHits();
   while (--nh >= 0)
   {
     HoTNode& hot_node = m_comb_candidate->m_hots[ch];
-
-    res.setHitIdxAtPos(nh, hot_node.m_hot);
-
+    if (remove_missing_hits)
+    {
+      if (hot_node.m_hot.index >= 0)
+        res.setHitIdxAtPos(--good_hits_pos, hot_node.m_hot);
+    }
+    else
+    {
+      res.setHitIdxAtPos(nh, hot_node.m_hot);
+    }
     // printf("  nh=%2d, ch=%d, idx=%d lyr=%d prev_idx=%d\n",
     //        nh, ch, hot_node.m_hot.index, hot_node.m_hot.layer, hot_node.m_prev_idx);
-
-    ch       = hot_node.m_prev_idx;
+    ch = hot_node.m_prev_idx;
   }
 
   return res;
