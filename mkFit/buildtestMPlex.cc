@@ -563,7 +563,7 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
 	if (itconf.m_track_algorithm==7)
 	{
 	  builder.filter_comb_cands([&](const TrackCand &t)
-	   { return StdSeq::qfilter_n_layers(t, eoh.m_beam_spot); });      
+	   { return StdSeq::qfilter_n_layers(t, eoh.m_beam_spot, Config::TrkInfo); });      
 	}
 	else if (itconf.m_track_algorithm==9)
 	{
@@ -702,7 +702,7 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
       if (itconf.m_track_algorithm==7)
       {
 	builder.filter_comb_cands([&](const TrackCand &t)
-	 { return StdSeq::qfilter_n_layers(t, eoh.m_beam_spot); });      
+	 { return StdSeq::qfilter_n_layers(t, eoh.m_beam_spot, trackerInfo); });      
       }
       else if (itconf.m_track_algorithm==9)
       {

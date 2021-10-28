@@ -3,12 +3,14 @@
 
 #include "Hit.h"
 #include "Track.h"
+#include "TrackerInfo.h"
 
 namespace mkfit {
 
 class Event;
 class EventOfHits;
 class IterationConfig;
+class TrackerInfo;
 
 namespace StdSeq
 {
@@ -48,22 +50,26 @@ namespace StdSeq
     }
 
     template<class TRACK>
-    bool qfilter_n_layers(const TRACK &t, const BeamSpot &bspot)
+    bool qfilter_n_layers(const TRACK &t, const BeamSpot &bspot, const TrackerInfo &trk_inf)
     {
-      int layers    = t.nUniqueLayers();
+      int enhits   = t.nHitsByTypeEncoded(trk_inf);
+      int npixhits = t.nPixelDecoded(enhits);
+      int enlyrs   = t.nLayersByTypeEncoded(trk_inf);
+      int npixlyrs = t.nPixelDecoded(enlyrs);
+      int nmatlyrs = t.nTotMatchDecoded(enlyrs);
       int llyr      = t.getLastFoundHitLyr();
       int lplyr     = t.getLastFoundPixelHitLyr();
-      int nhits     = t.nFoundHits();
       float pt      = t.pT();
       float pt_minL = 0.7; // min pT for full filter on (nhits==3 .or. layers==3)
-      float pt_minH = 3.0; // min pT for filter on layers<=5 .and. d0BS>d0_max 
       float d0BS    = t.d0BeamSpot(bspot.x,bspot.y);
       float d0_max  = 0.1; // 1 mm
       
       bool endsInsidePix = (llyr==2||llyr==18||llyr==45);
       bool lastInsidePix = ((0<=lplyr && lplyr<3)||(18<=lplyr && lplyr<20)||(45<=lplyr && lplyr<47));
-      return !( ((nhits==3 || layers==3) && endsInsidePix && (pt>pt_minL || (pt<=pt_minL && std::abs(d0BS)>d0_max))) ||
-		 (layers<=6 && lastInsidePix && llyr!=lplyr && pt<=pt_minH && std::abs(d0BS)>d0_max) );
+      return !(
+	       ((npixhits<=3 || npixlyrs<=3) && endsInsidePix && (pt>pt_minL || (pt<=pt_minL && std::abs(d0BS)>d0_max))) ||
+	       ((npixlyrs<=3 && nmatlyrs<=6) && lastInsidePix && llyr!=lplyr && std::abs(d0BS)>d0_max)
+	       );
     }
 
     template<class TRACK>
