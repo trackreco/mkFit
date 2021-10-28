@@ -681,7 +681,7 @@ namespace
 
     SetupIterationParams(ii[0].m_params, 0);
     ii[0].set_dupclean_flag();
-    ii[0].set_dupl_params(0.5, 0.002,0.004,0.008);
+    ii[0].set_dupl_params(0.24, 0.002,0.004,0.008);
     fill_hit_selection_windows_params(ii[0]);
     // Backward-search with seed region rebuilding
     // SetupBackwardSearch_Iter0(ii[0]);
@@ -692,7 +692,7 @@ namespace
     ii[1].set_iteration_index_and_track_algorithm(1, (int) TrackBase::TrackAlgorithm::highPtTripletStep);
     ii[1].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.018, 0.018, 0.018, 0.05, 0.018, 0.05); 
     ii[1].set_dupclean_flag();
-    ii[1].set_dupl_params(0.5, 0.03,0.05,0.08);
+    ii[1].set_dupl_params(0.24, 0.03,0.05,0.08);
     fill_hit_selection_windows_params(ii[1]);
     ii[1].m_backward_params = ii[1].m_params;
 
@@ -719,7 +719,7 @@ namespace
     ii[4].set_iteration_index_and_track_algorithm(4, (int) TrackBase::TrackAlgorithm::detachedQuadStep);
     ii[4].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
     ii[4].set_dupclean_flag();
-    ii[4].set_dupl_params(0.25, 0.018,0.05,0.05);
+    ii[4].set_dupl_params(0.24, 0.018,0.05,0.05);
     fill_hit_selection_windows_params(ii[4]);
     ii[4].m_backward_params = ii[4].m_params;
     
@@ -728,7 +728,7 @@ namespace
     ii[5].set_iteration_index_and_track_algorithm(5, (int) TrackBase::TrackAlgorithm::detachedTripletStep);
     ii[5].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
     ii[5].set_dupclean_flag();
-    ii[5].set_dupl_params(0.59, 0.01,0.01,0.1);
+    ii[5].set_dupl_params(0.24, 0.01,0.01,0.1);
     ii[5].m_requires_quality_filter = true;
     fill_hit_selection_windows_params(ii[5]);
     // Backward-search with seed region rebuilding

@@ -323,8 +323,6 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg,
 
     if (writetrack[ts])
     {
-      //if (n_ovlp_hits_added > 0)
-        //seeds[ts].sortHitsByLayer();
       cleanSeedTracks.emplace_back(seeds[ts]);
     }
   }
