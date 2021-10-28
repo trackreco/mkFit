@@ -674,11 +674,16 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
       builder.filter_comb_cands([&](const TrackCand &t)
        { return StdSeq::qfilter_n_hits_pixseed(t, 3); });
     }
-    else
+    else if (itconf.m_track_algorithm!=9)
     {
       builder.filter_comb_cands([&](const TrackCand &t)
        { return StdSeq::qfilter_n_hits(t, itconf.m_params.minHitsQF); });
     }
+  }
+  if (itconf.m_track_algorithm==9)
+  {
+       builder.filter_comb_cands([&](const TrackCand &t)
+       { return StdSeq::qfilter_pixelLessFwd(t, eoh.m_beam_spot, trackerInfo); });
   }
 
   if (do_backward_fit)
@@ -707,7 +712,7 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
       else if (itconf.m_track_algorithm==9)
       {
 	builder.filter_comb_cands([&](const TrackCand &t)
-	 { return StdSeq::qfilter_n_layers_pixelLess(t, eoh.m_beam_spot); });
+	 { return StdSeq::qfilter_pixelLessBkwd(t, eoh.m_beam_spot, trackerInfo); });
       }
     }
   }
