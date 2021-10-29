@@ -1,6 +1,7 @@
 #ifndef MkStdSeqs_h
 #define MkStdSeqs_h
 
+#include "Config.h"
 #include "Hit.h"
 #include "Track.h"
 #include "TrackerInfo.h"
@@ -57,17 +58,17 @@ namespace StdSeq
       int enlyrs   = t.nLayersByTypeEncoded(trk_inf);
       int npixlyrs = t.nPixelDecoded(enlyrs);
       int nmatlyrs = t.nTotMatchDecoded(enlyrs);
-      int llyr      = t.getLastFoundHitLyr();
-      int lplyr     = t.getLastFoundPixelHitLyr();
-      float pt      = t.pT();
-      float pt_minL = 0.7; // min pT for full filter on (nhits==3 .or. layers==3)
-      float d0BS    = t.d0BeamSpot(bspot.x,bspot.y);
-      float d0_max  = 0.1; // 1 mm
+      int llyr     = t.getLastFoundHitLyr();
+      int lplyr    = t.getLastFoundPixelHitLyr();
+      float invpt    = t.invpT();
+      float invptmin = 1.43; // min 1/pT (=1/0.7) for full filter on (npixhits<=3 .or. npixlyrs<=3)
+      float d0BS   = t.d0BeamSpot(bspot.x,bspot.y);
+      float d0_max = 0.1; // 1 mm
       
       bool endsInsidePix = (llyr==2||llyr==18||llyr==45);
       bool lastInsidePix = ((0<=lplyr && lplyr<3)||(18<=lplyr && lplyr<20)||(45<=lplyr && lplyr<47));
       return !(
-	       ((npixhits<=3 || npixlyrs<=3) && endsInsidePix && (pt>pt_minL || (pt<=pt_minL && std::abs(d0BS)>d0_max))) ||
+	       ((npixhits<=3 || npixlyrs<=3) && endsInsidePix && (invpt<invptmin || (invpt>=invptmin && std::abs(d0BS)>d0_max))) ||
 	       ((npixlyrs<=3 && nmatlyrs<=6) && lastInsidePix && llyr!=lplyr && std::abs(d0BS)>d0_max)
 	       );
     }
@@ -87,7 +88,7 @@ namespace StdSeq
     bool qfilter_pixelLessFwd(const TRACK &t, const BeamSpot &bspot, const TrackerInfo &tk_info)
     {
       float d0BS   = t.d0BeamSpot(bspot.x,bspot.y);
-      float d0_max = 0.05; // 1 mm
+      float d0_max = 0.05; // 0.5 mm
 
       int encoded;
       encoded = t.nLayersByTypeEncoded(tk_info);
@@ -97,20 +98,20 @@ namespace StdSeq
 
       int seedReduction = (t.getNSeedHits() <= 5) ? 2 : 3;
 
-      float pt = t.pT();
-      float eta = std::abs(t.momEta());
+      float invpt = t.invpT();
+      float invptmin = 1.11; // =1/0.9
 
-      float ptmin  = 0.9;
-      float etamin = 1.45;
+      float thetasym = std::abs(t.theta() - Config::PIOver2);
+      float thetasymmin = 1.11; // -> |eta|=1.45
 
       return (
 	      (
-	       (t.nFoundHits() - seedReduction >= 4 && pt>ptmin) ||
-	       (t.nFoundHits() - seedReduction >= 3 && pt<ptmin && eta<=etamin) ||
-	       (t.nFoundHits() - seedReduction >= 4 && pt<ptmin && eta> etamin)
+	       (t.nFoundHits() - seedReduction >= 4 && invpt<invptmin) ||
+	       (t.nFoundHits() - seedReduction >= 3 && invpt>invptmin && thetasym<=thetasymmin) ||
+	       (t.nFoundHits() - seedReduction >= 4 && invpt>invptmin && thetasym> thetasymmin)
 		)
 	      &&
-	      !((nLyrs<=4 || nHits<=4) && std::abs(d0BS)>d0_max && pt>ptmin)
+	      !((nLyrs<=4 || nHits<=4) && std::abs(d0BS)>d0_max && invpt<invptmin)
 	      );
     }
 
@@ -126,13 +127,13 @@ namespace StdSeq
       encoded = t.nHitsByTypeEncoded(tk_info);
       int nHits = t.nTotMatchDecoded(encoded);
 
-      float pt = t.pT();
-      float eta = std::abs(t.momEta());
+      float invpt = t.invpT();
+      float invptmin  = 1.11; // =1/0.9
 
-      float ptmin  = 0.9;
-      float etamin = 0.9;
+      float thetasym = std::abs(t.theta() - Config::PIOver2);
+      float thetasymmin = 0.8; // -> |eta|=0.9
 
-      return !( (nLyrs<=3 || nHits<=3) || ( (nLyrs<=4 || nHits<=4) && (pt>ptmin || (eta>etamin && std::abs(d0BS)>d0_max)) ) );
+      return !( (nLyrs<=3 || nHits<=3) || ( (nLyrs<=4 || nHits<=4) && (invpt<invptmin || (thetasym>thetasymmin && std::abs(d0BS)>d0_max)) ) );
     }
 
     template<class TRACK>
