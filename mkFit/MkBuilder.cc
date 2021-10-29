@@ -1895,6 +1895,8 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
     mkfndr->Setup(iter_params, m_job->m_iter_config.m_layer_configs[curr_layer],
                   m_job->get_mask_for_layer(curr_layer));
 
+    ItConfHack itconf_for_scoring(m_job->m_iter_config, iter_params, m_job->m_iter_config.m_layer_configs[curr_layer]);
+
     const bool pickup_only = layer_plan_it.is_pickup_only();
 
     dprintf("\n\n* Processing layer %d, %s\n\n", curr_layer, pickup_only ? "pickup only" : "full finding");

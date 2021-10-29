@@ -6,6 +6,12 @@
 
 namespace mkfit {
 
+// BEGIN ITERATION-INFO IN SCORING HACK
+
+thread_local const ItConfHack *ItConfHack::tl_ItConfHack_ptr = nullptr;
+
+// END ITERATION-INFO IN SCORING HACK
+
 //==============================================================================
 // TrackState
 //==============================================================================

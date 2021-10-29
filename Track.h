@@ -9,6 +9,41 @@
 #include <vector>
 #include <map>
 
+// BEGIN ITERATION-INFO IN SCORING HACK
+
+#include "mkFit/IterationConfig.h"
+
+namespace mkfit {
+
+struct ItConfHack
+{
+  const ItConfHack           *m_prev_ptr;
+
+  const IterationConfig      &m_config;
+  const IterationParams      &m_params;
+  const IterationLayerConfig &m_layer_config;
+
+  ItConfHack(const IterationConfig &conf, const IterationParams &pars, const IterationLayerConfig &lconf) :
+    m_config (conf), m_params (pars), m_layer_config(lconf)
+  {
+    m_prev_ptr = tl_ItConfHack_ptr;
+
+    tl_ItConfHack_ptr = this;
+  }
+  ~ItConfHack() {
+    tl_ItConfHack_ptr = m_prev_ptr;
+  }
+
+  static const ItConfHack * get() { return tl_ItConfHack_ptr; }
+
+  static thread_local const ItConfHack *tl_ItConfHack_ptr;
+};
+
+}
+
+// END ITERATION-INFO IN SCORING HACK
+
+
 namespace mkfit {
 
 typedef std::pair<int,int> SimTkIDInfo;
@@ -655,6 +690,12 @@ inline float getScoreCalc(const int nfoundhits,
 {
   //// Do not allow for chi2<0 in score calculation
   // if(chi2<0) chi2=0.f;
+
+  auto ich = ItConfHack::get();
+  if (ich) {
+    printf("getScoreCalc got ich, iter_idx=%d, trk_algo=%d\n",
+           ich->m_config.m_iteration_index, ich->m_config.m_track_algorithm);
+  }
 
   float maxBonus = 8.0;
   float bonus  = Config::validHitSlope_*nfoundhits + Config::validHitBonus_;
