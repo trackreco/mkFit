@@ -84,6 +84,58 @@ namespace StdSeq
     }
 
     template<class TRACK>
+    bool qfilter_pixelLessFwd(const TRACK &t, const BeamSpot &bspot, const TrackerInfo &tk_info)
+    {
+      float d0BS   = t.d0BeamSpot(bspot.x,bspot.y);
+      float d0_max = 0.05; // 1 mm
+
+      int encoded;
+      encoded = t.nLayersByTypeEncoded(tk_info);
+      int nLyrs = t.nTotMatchDecoded(encoded);
+      encoded = t.nHitsByTypeEncoded(tk_info);
+      int nHits = t.nTotMatchDecoded(encoded);
+
+      int seedReduction = (t.getNSeedHits() <= 5) ? 2 : 3;
+
+      float pt = t.pT();
+      float eta = std::abs(t.momEta());
+
+      float ptmin  = 0.9;
+      float etamin = 1.45;
+
+      return (
+	      (
+	       (t.nFoundHits() - seedReduction >= 4 && pt>ptmin) ||
+	       (t.nFoundHits() - seedReduction >= 3 && pt<ptmin && eta<=etamin) ||
+	       (t.nFoundHits() - seedReduction >= 4 && pt<ptmin && eta> etamin)
+		)
+	      &&
+	      !((nLyrs<=4 || nHits<=4) && std::abs(d0BS)>d0_max && pt>ptmin)
+	      );
+    }
+
+    template<class TRACK>
+    bool qfilter_pixelLessBkwd(const TRACK &t, const BeamSpot &bspot, const TrackerInfo &tk_info)
+    {
+      float d0BS   = t.d0BeamSpot(bspot.x,bspot.y);
+      float d0_max = 0.1; // 1 mm
+
+      int encoded;
+      encoded = t.nLayersByTypeEncoded(tk_info);
+      int nLyrs = t.nTotMatchDecoded(encoded);
+      encoded = t.nHitsByTypeEncoded(tk_info);
+      int nHits = t.nTotMatchDecoded(encoded);
+
+      float pt = t.pT();
+      float eta = std::abs(t.momEta());
+
+      float ptmin  = 0.9;
+      float etamin = 0.9;
+
+      return !( (nLyrs<=3 || nHits<=3) || ( (nLyrs<=4 || nHits<=4) && (pt>ptmin || (eta>etamin && std::abs(d0BS)>d0_max)) ) );
+    }
+
+    template<class TRACK>
     bool qfilter_nan_n_silly(const TRACK &t)
     {
       return !( t.hasNanNSillyValues() );

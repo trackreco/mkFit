@@ -485,7 +485,6 @@ void find_duplicates_sharedhits(TrackVec &tracks, const float fraction)
   for (auto itrack = 0U; itrack < ntracks; itrack++)
   {
     auto &trk = tracks[itrack];
-    auto pt1 = 1./trk.invpT();
     auto phi1 = trk.momPhi();
     auto ctheta1 = 1./tan(trk.theta());
 
@@ -494,10 +493,6 @@ void find_duplicates_sharedhits(TrackVec &tracks, const float fraction)
       auto &track2 = tracks[jtrack];
       auto sharedCount=0;
       auto sharedFirst=0;
-      auto pt2 = 1./track2.invpT();
-
-      auto reldiff=2*std::fabs(pt1-pt2)/(pt1+pt2);
-      if (reldiff>2.0) continue;
 
       auto dctheta = std::abs(1./tan(track2.theta()) - ctheta1);
       if (dctheta > 1.) continue;
