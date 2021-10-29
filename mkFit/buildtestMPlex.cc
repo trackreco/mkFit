@@ -514,10 +514,15 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
 	builder.filter_comb_cands([&](const TrackCand &t)
 	 { return StdSeq::qfilter_n_hits_pixseed(t, 3); });
       }
+      else if (itconf.m_track_algorithm==9)
+      {
+	builder.filter_comb_cands([&](const TrackCand &t)
+	 { return StdSeq::qfilter_pixelLessFwd(t, eoh.m_beam_spot, Config::TrkInfo); });
+      }
       else
       {
 	builder.filter_comb_cands([&](const TrackCand &t)
-         { return StdSeq::qfilter_n_hits(t, itconf.m_params.minHitsQF); });
+	 { return StdSeq::qfilter_n_hits(t, itconf.m_params.minHitsQF); });
       }
     }
 
@@ -568,7 +573,7 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
 	else if (itconf.m_track_algorithm==9)
 	{
 	  builder.filter_comb_cands([&](const TrackCand &t)
-	   { return StdSeq::qfilter_n_layers_pixelLess(t, eoh.m_beam_spot); });
+	   { return StdSeq::qfilter_pixelLessBkwd(t, eoh.m_beam_spot, Config::TrkInfo); });
 	}
       }
 
