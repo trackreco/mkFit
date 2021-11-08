@@ -107,6 +107,62 @@ namespace
   }
 */
 
+  void SetupBackwardSearch_Iter1(IterationConfig& ic)
+  {
+    ic.m_backward_params = ic.m_params;
+    ic.m_backward_search = true;
+    ic.m_backward_drop_seed_hits = false;
+    ic.m_backward_fit_min_hits   = 99;
+    auto &spv = ic.m_steering_params;
+    spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(2, 0, 3);
+    spv[TrackerInfo::Reg_Transition_Neg].set_iterator_limits(2, 0, 4);
+    spv[TrackerInfo::Reg_Barrel]        .set_iterator_limits(2, 0, 2);
+    spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(2, 0, 4);
+    spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(2, 0, 3);
+  }
+
+  void SetupBackwardSearch_Iter3(IterationConfig& ic)
+  {
+    ic.m_backward_params = ic.m_params;
+    ic.m_backward_search = true;
+    ic.m_backward_drop_seed_hits = false;
+    ic.m_backward_fit_min_hits   = 99;
+    auto &spv = ic.m_steering_params;
+    spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(2, 0, 3);
+    spv[TrackerInfo::Reg_Transition_Neg].set_iterator_limits(2, 0, 4);
+    spv[TrackerInfo::Reg_Barrel]        .set_iterator_limits(2, 0, 2);
+    spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(2, 0, 4);
+    spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(2, 0, 3);
+  }
+
+  void SetupBackwardSearch_Iter5(IterationConfig& ic)
+  {
+    ic.m_backward_params = ic.m_params;
+    ic.m_backward_search = true;
+    ic.m_backward_drop_seed_hits = false;
+    ic.m_backward_fit_min_hits   = 99;
+    auto &spv = ic.m_steering_params;
+    spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(2, 0, 3);
+    spv[TrackerInfo::Reg_Transition_Neg].set_iterator_limits(2, 0, 4);
+    spv[TrackerInfo::Reg_Barrel]        .set_iterator_limits(2, 0, 2);
+    spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(2, 0, 4);
+    spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(2, 0, 3);
+  }
+
+  void SetupBackwardSearch_Iter6(IterationConfig& ic)
+  {
+    ic.m_backward_params = ic.m_params;
+    ic.m_backward_search = true;
+    ic.m_backward_drop_seed_hits = false;
+    ic.m_backward_fit_min_hits   = 99;
+    auto &spv = ic.m_steering_params;
+    spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(2, 0, 3);
+    spv[TrackerInfo::Reg_Transition_Neg].set_iterator_limits(2, 0, 4);
+    spv[TrackerInfo::Reg_Barrel]        .set_iterator_limits(2, 0, 2);
+    spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(2, 0, 4);
+    spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(2, 0, 3);
+  }
+
   void SetupBackwardSearch_Iter7(IterationConfig& ic)
   {
     ic.m_backward_params = ic.m_params;
@@ -135,6 +191,20 @@ namespace
     spv[TrackerInfo::Reg_Barrel]        .set_iterator_limits(12, 10, 14);
     spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(22, 19, 39);
     spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(12, 12, 24);
+  }
+
+  void SetupBackwardSearch_Iter9(IterationConfig& ic)
+  {
+    ic.m_backward_params = ic.m_params;
+    ic.m_backward_search = true;
+    ic.m_backward_drop_seed_hits = false;
+    ic.m_backward_fit_min_hits   = 99;
+    auto &spv = ic.m_steering_params;
+    spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(2, 0, 3);
+    spv[TrackerInfo::Reg_Transition_Neg].set_iterator_limits(2, 0, 4);
+    spv[TrackerInfo::Reg_Barrel]        .set_iterator_limits(2, 0, 2);
+    spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(2, 0, 4);
+    spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(2, 0, 3);
   }
 
   void SetupIterationParams(IterationParams& ip, unsigned int it=0)
@@ -683,8 +753,6 @@ namespace
     ii[0].set_dupclean_flag();
     ii[0].set_dupl_params(0.24, 0.002,0.004,0.008);
     fill_hit_selection_windows_params(ii[0]);
-    // Backward-search with seed region rebuilding
-    // SetupBackwardSearch_Iter0(ii[0]);
     ii[0].m_backward_params = ii[0].m_params;
 
     ii[1].CloneLayerSteerCore(def_itconf);
@@ -694,7 +762,8 @@ namespace
     ii[1].set_dupclean_flag();
     ii[1].set_dupl_params(0.24, 0.03,0.05,0.08);
     fill_hit_selection_windows_params(ii[1]);
-    ii[1].m_backward_params = ii[1].m_params;
+    SetupBackwardSearch_Iter1(ii[1]);
+    //ii[1].m_backward_params = ii[1].m_params;
 
     ii[2].CloneLayerSteerCore(def_itconf);
     SetupIterationParams(ii[2].m_params, 2);
@@ -712,7 +781,8 @@ namespace
     ii[3].set_dupclean_flag();
     ii[3].set_dupl_params(0.33, 0.018,0.05,0.018);
     fill_hit_selection_windows_params(ii[3]);
-    ii[3].m_backward_params = ii[3].m_params;
+    SetupBackwardSearch_Iter3(ii[3]);
+    //ii[3].m_backward_params = ii[3].m_params;
     
     ii[4].CloneLayerSteerCore(def_itconf);
     SetupIterationParams(ii[4].m_params, 4);
@@ -731,9 +801,8 @@ namespace
     ii[5].set_dupl_params(0.24, 0.01,0.01,0.1);
     ii[5].m_requires_quality_filter = true;
     fill_hit_selection_windows_params(ii[5]);
-    // Backward-search with seed region rebuilding
-    // SetupBackwardSearch_Iter5(ii[5]);
-    ii[5].m_backward_params = ii[5].m_params;
+    SetupBackwardSearch_Iter5(ii[5]);
+    //ii[5].m_backward_params = ii[5].m_params;
 
     ii[6].CloneLayerSteerCore(def_itconf);
     SetupIterationParams(ii[6].m_params, 6);
@@ -742,7 +811,8 @@ namespace
     ii[6].set_dupclean_flag();
     ii[6].set_dupl_params(0.2, 0.05,0.05,0.05); 
     fill_hit_selection_windows_params(ii[6]);
-    ii[6].m_backward_params = ii[6].m_params;
+    SetupBackwardSearch_Iter6(ii[6]);
+    //ii[6].m_backward_params = ii[6].m_params;
 
     ii[7].CloneLayerSteerCore(def_itconf);
     SetupIterationParams(ii[7].m_params, 7);
@@ -770,7 +840,8 @@ namespace
     ii[9].set_dupl_params(0.5, 0.03,0.05,0.05);
     ii[9].m_requires_quality_filter = true;
     fill_hit_selection_windows_params(ii[9]);
-    ii[9].m_backward_params = ii[9].m_params;
+    SetupBackwardSearch_Iter9(ii[9]);
+    //ii[9].m_backward_params = ii[9].m_params;
 
     if (verbose)
     {
