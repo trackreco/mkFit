@@ -65,17 +65,17 @@ public:
 
   //Hit selection windows: 2D fit/layer (72 in phase-1 CMS geometry)
   //cut = [0]*1/pT + [1]*std::fabs(theta-pi/2) + [2])
-  float c_dp_sf = 1.1;
+  float c_dp_sf = 1.05;
   float c_dp_0  = 0.0;
   float c_dp_1  = 0.0;
   float c_dp_2  = 0.0;
   //
-  float c_dq_sf = 1.1;
+  float c_dq_sf = 1.05;
   float c_dq_0  = 0.0;
   float c_dq_1  = 0.0;
   float c_dq_2  = 0.0;
   //
-  float c_c2_sf = 1.5;
+  float c_c2_sf = 1.05;
   float c_c2_0  = 0.0;
   float c_c2_1  = 0.0;
   float c_c2_2  = 0.0;
