@@ -693,7 +693,6 @@ namespace
     ii[1].set_dupl_params(0.24, 0.03,0.05,0.08);
     fill_hit_selection_windows_params(ii[1]);
     SetupBackwardSearch_PixelCommon(ii[1]);
-    //ii[1].m_backward_params = ii[1].m_params;
 
     ii[2].CloneLayerSteerCore(def_itconf);
     SetupIterationParams(ii[2].m_params, 2);
@@ -712,7 +711,6 @@ namespace
     ii[3].set_dupl_params(0.33, 0.018,0.05,0.018);
     fill_hit_selection_windows_params(ii[3]);
     SetupBackwardSearch_PixelCommon(ii[3]);
-    //ii[3].m_backward_params = ii[3].m_params;
     
     ii[4].CloneLayerSteerCore(def_itconf);
     SetupIterationParams(ii[4].m_params, 4);
@@ -732,7 +730,6 @@ namespace
     ii[5].m_requires_quality_filter = true;
     fill_hit_selection_windows_params(ii[5]);
     SetupBackwardSearch_PixelCommon(ii[5]);
-    //ii[5].m_backward_params = ii[5].m_params;
 
     ii[6].CloneLayerSteerCore(def_itconf);
     SetupIterationParams(ii[6].m_params, 6);
@@ -742,7 +739,6 @@ namespace
     ii[6].set_dupl_params(0.2, 0.05,0.05,0.05); 
     fill_hit_selection_windows_params(ii[6]);
     SetupBackwardSearch_PixelCommon(ii[6]);
-    //ii[6].m_backward_params = ii[6].m_params;
 
     ii[7].CloneLayerSteerCore(def_itconf);
     SetupIterationParams(ii[7].m_params, 7);
@@ -771,7 +767,6 @@ namespace
     ii[9].m_requires_quality_filter = true;
     fill_hit_selection_windows_params(ii[9]);
     SetupBackwardSearch_PixelCommon(ii[9]);
-    //ii[9].m_backward_params = ii[9].m_params;
 
     if (verbose)
     {
