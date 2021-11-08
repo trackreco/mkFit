@@ -77,6 +77,7 @@ namespace
   }
 
 /*
+  ////// Example backward search setup for initialStep iteration (currently 'replaced' by seed duplicate merging)
   void SetupBackwardSearch_Iter0(IterationConfig& ic)
   {
     ic.m_backward_params = ic.m_params;
@@ -89,21 +90,6 @@ namespace
     spv[TrackerInfo::Reg_Barrel]        .set_iterator_limits(2, 3, 4);
     spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(2, 3, 7);
     spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(2, 3, 5);
-  }
-*/
-/*
-  void SetupBackwardSearch_Iter5(IterationConfig& ic)
-  {
-    ic.m_backward_params = ic.m_params;
-    ic.m_backward_search = true;
-    ic.m_backward_drop_seed_hits = false;
-    ic.m_backward_fit_min_hits   = 7; // 5 in CKF, two of those persumed matched-hit, so 3 + 2*2
-    auto &spv = ic.m_steering_params;
-    spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(2, 0, 3);
-    spv[TrackerInfo::Reg_Transition_Neg].set_iterator_limits(2, 0, 4);
-    spv[TrackerInfo::Reg_Barrel]        .set_iterator_limits(2, 0, 1);
-    spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(2, 0, 4);
-    spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(2, 0, 3);
   }
 */
 
