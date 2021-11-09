@@ -131,9 +131,14 @@ namespace StdSeq
       float invptmin  = 1.11; // =1/0.9
 
       float thetasym = std::abs(t.theta() - Config::PIOver2);
-      float thetasymmin = 0.8; // -> |eta|=0.9
+      float thetasymmin_l = 0.80; // -> |eta|=0.9
+      float thetasymmin_h = 1.11; // -> |eta|=1.45
 
-      return !( (nLyrs<=3 || nHits<=3) || ( (nLyrs<=4 || nHits<=4) && (invpt<invptmin || (thetasym>thetasymmin && std::abs(d0BS)>d0_max)) ) );
+      return !(
+	       ( ( nLyrs<=3 || nHits<=3 ) ) ||
+	       ( ( nLyrs<=4 || nHits<=4 ) && ( invpt<invptmin || (thetasym>thetasymmin_l && std::abs(d0BS)>d0_max) ) ) ||
+	       ( ( nLyrs<=6 || nHits<=6 ) && ( invpt>invptmin &&  thetasym>thetasymmin_h && std::abs(d0BS)>d0_max  ) )
+	       );
     }
 
     template<class TRACK>
