@@ -154,6 +154,8 @@ public:
 
   void begin_event(MkJob *job, Event *ev, const char *build_type);
   void end_event();
+  void release_memory();
+
   void import_seeds(const TrackVec &in_seeds, std::function<insert_seed_foo> insert_seed);
 
   int  filter_comb_cands(std::function<filter_track_cand_foo> filter);

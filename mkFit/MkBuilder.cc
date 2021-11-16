@@ -204,6 +204,13 @@ void MkBuilder::end_event()
   m_event = nullptr;
 }
 
+void MkBuilder::release_memory()
+{
+  TrackVec tmp;
+  m_tracks.swap(tmp);
+  m_event_of_comb_cands.ReleaseMemory();
+}
+
 void MkBuilder::import_seeds(const TrackVec &in_seeds, std::function<insert_seed_foo> insert_seed)
 {
   // bool debug = true;
@@ -1504,7 +1511,7 @@ int MkBuilder::find_tracks_unroll_candidates(std::vector<std::pair<int,int>> & s
 
           active = true;
           seed_cand_vec.push_back(std::pair<int,int>(iseed,ic));
-          ccand.m_overlap_hits[ic].reset();
+          ccand[ic].resetOverlaps();
 
           if (Config::nan_n_silly_check_cands_every_layer)
           {
@@ -1747,7 +1754,7 @@ void MkBuilder::FindTracksStandard(SteeringParams::IterationType_e iteration_dir
               {
                 CombCandidate &ccand = eoccs[start_seed + is];
 
-                HitMatch *hm = ccand.findOverlap(tc.originIndex(), tc.getLastHitIdx(), layer_of_hits.GetHit(tc.getLastHitIdx()).detIDinLayer());
+                HitMatch *hm = ccand[tc.originIndex()].findOverlap(tc.getLastHitIdx(), layer_of_hits.GetHit(tc.getLastHitIdx()).detIDinLayer());
 
                 if (hm)
                 {

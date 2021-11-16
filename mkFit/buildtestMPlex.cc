@@ -616,6 +616,9 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
   // MIMI Unfake.
   builder.end_event(); 
 
+  // In CMSSW runOneIter we now release memory for comb-cands:
+  // builder.release_memory();
+
   return timevec;
 }
 
@@ -733,6 +736,7 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
   }
 
   builder.end_event();
+  builder.release_memory();
 }
 
 } // end namespace mkfit
