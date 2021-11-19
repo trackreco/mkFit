@@ -238,6 +238,8 @@ void MkBuilder::import_seeds(const TrackVec &in_seeds, std::function<insert_seed
     m_seedMinLastLayer[reg] = std::min(m_seedMinLastLayer[reg], hot.layer);
     m_seedMaxLastLayer[reg] = std::max(m_seedMaxLastLayer[reg], hot.layer);
 
+    // MT-OPTIMIZE-MEM: should delay this and pool-allocate memory for HoTs once
+    // population for each region is known.
     insert_seed(S, reg);
   }
 
@@ -262,6 +264,11 @@ void MkBuilder::import_seeds(const TrackVec &in_seeds, std::function<insert_seed
   {
     m_seedEtaSeparators[i] += m_seedEtaSeparators[i - 1];
   }
+
+  // MT-OPTIMIZE-MEM: Allocate mem, assign to CombCands as per region.
+  // Reset() that is called in find_tracks_load_seeds() should be called here with additional
+  // information from this seed partition and max expected num-of hits in given iteration / region.
+  // Or, at least estimated from N_max_cands and N_layers in given eta-region.
 
   //dump seeds
   dcall(print_seeds(m_event_of_comb_cands));
@@ -308,6 +315,27 @@ int MkBuilder::filter_comb_cands(std::function<filter_track_cand_foo> filter)
   // printf ("MkBuilder::filter_comb_cands n_removed = %d, eoccsm_size=%d\n", n_removed, eoccs.m_size);
 
   return n_removed;
+}
+
+void MkBuilder::find_min_max_hots_size()
+{
+  const EventOfCombCandidates &eoccs = m_event_of_comb_cands;
+  int min[5], max[5], gmin = 0, gmax = 0;
+  int i = 0;
+  for (int reg = 0; reg < 5; ++reg)
+  {
+    min [reg] = 9999; max[reg] = 0;
+    for (; i < m_seedEtaSeparators[reg]; i++)
+    {
+      min[reg] = std::min(min[reg], eoccs[i].m_hots_size);
+      max[reg] = std::max(max[reg], eoccs[i].m_hots_size);
+    }
+    gmin = std::max(gmin, min[reg]);
+    gmax = std::max(gmax, max[reg]);
+  }
+  printf("MkBuilder::find_min_max_hots_size MIN %3d -- [ %3d | %3d | %3d | %3d | %3d ]   MAX %3d -- [ %3d | %3d | %3d | %3d | %3d ]\n",
+         gmin, min[0], min[1], min[2], min[3], min[4],
+         gmax, max[0], max[1], max[2], max[3], max[4]);
 }
 
 void MkBuilder::select_best_comb_cands(bool clear_m_tracks, bool remove_missing_hits)

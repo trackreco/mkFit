@@ -910,9 +910,13 @@ public:
 
   void ReleaseMemory()
   {
-    m_cc_pool.release();
+    { // Get all the destructors called before nuking CcPool.
+      std::vector<CombCandidate> tmp;
+      m_candidates.swap(tmp);
+    }
     m_capacity = 0;
     m_size = 0;
+    m_cc_pool.release();
   }
 
   void Reset(int new_capacity, int max_cands_per_seed, int expected_num_hots = 128)
