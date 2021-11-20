@@ -1004,6 +1004,24 @@ void MkFinder::FindCandidates(const LayerOfHits                   &layer_of_hits
             }
             if (isCompatible)
             {
+
+	      bool hitExists = false;
+	      int maxHits = NFoundHits(itrack,0,0);
+	      if(layer_of_hits.is_pix_lyr())
+	      {
+		for(int i=0; i<=maxHits; ++i)
+		{
+		  if(i>2) break;
+		  if(HoTArrs[itrack][i].layer==layer_of_hits.layer_id())
+		  {
+		    hitExists = true;
+		    break;
+		  }
+		}
+	      }
+	      if (hitExists)
+		continue;
+
               nHitsAdded[itrack]++;
               dprint("chi2 cut passed, creating new candidate");
               // Create a new candidate and fill the tmp_candidates output vector.
@@ -1157,14 +1175,32 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 
           if (isCompatible) {
 
+	    CombCandidate &ccand = cloner.mp_event_of_comb_candidates->m_candidates[ SeedIdx(itrack, 0, 0) ];
+	    bool hitExists = false;
+	    int maxHits = NFoundHits(itrack,0,0);
+	    if(layer_of_hits.is_pix_lyr())
+	    {
+	      for(int i=0; i<=maxHits; ++i)
+	      {
+		if(i>2) break;
+		if(ccand.m_hots[i].m_hot.layer==layer_of_hits.layer_id())
+		{
+		  hitExists = true;
+		  break;
+		}
+	      }
+	    }
+	    if (hitExists)
+	      continue;
+
             nHitsAdded[itrack]++;
             const int hit_idx = XHitArr.At(itrack, hit_cnt, 0);
 
             // Register hit for overlap consideration, here we apply chi2 cut
             if (chi2 < m_iteration_params->chi2CutOverlap)
             {
-              CombCandidate &ccand = cloner.mp_event_of_comb_candidates->m_candidates[ SeedIdx(itrack, 0, 0) ];
-              ccand.considerHitForOverlap(CandIdx(itrack, 0, 0), hit_idx, layer_of_hits.GetHit(hit_idx).detIDinLayer(), chi2);
+	      //CombCandidate &ccand = cloner.mp_event_of_comb_candidates->m_candidates[ SeedIdx(itrack, 0, 0) ];
+	      ccand.considerHitForOverlap(CandIdx(itrack, 0, 0), hit_idx, layer_of_hits.GetHit(hit_idx).detIDinLayer(), chi2);
             }
 
             IdxChi2List tmpList;

@@ -593,7 +593,7 @@ void CombCandidate::CompactifyHitStorageForBestCand(bool remove_seed_hits, int b
     // as this is rather involved, just call addHitIdx() repeatedly so counts
     // of holes get updated correctly.
     // Though one should not care super much ... it's only relevant for relative scores
-    // and here we are trimmmin everything down to a single candidate.
+    // and here we are trimming everything down to a single candidate.
 
     int n_hits_to_pick = std::max(tc.nFoundHits() - tc.getNSeedHits(), backward_fit_min_hits);
     while (n_hits_to_pick > 0)

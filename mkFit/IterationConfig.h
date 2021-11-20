@@ -230,7 +230,7 @@ public:
   }
   
   void set_seed_cleaning_params(float pt_thr,
-        float dzmax_bh, float drmax_bh,
+				float dzmax_bh, float drmax_bh,
 				float dzmax_bl, float drmax_bl,
 				float dzmax_eh, float drmax_eh,
 				float dzmax_el, float drmax_el)
