@@ -113,23 +113,23 @@ void Cmssw_ReMap_TrackHitIndices(const EventOfHits &eoh, TrackVec &out_tracks)
 int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg, const BeamSpot &bspot)
 { 
   const float etamax_brl = Config::c_etamax_brl;
-  const float dpt_brl_0  = Config::c_dpt_brl_0;
-  const float dpt_ec_0   = Config::c_dpt_ec_0;
+  const float dpt_brl_0  = 0.25; //Config::c_dpt_brl_0;
+  const float dpt_ec_0   = 0.25; //Config::c_dpt_ec_0;
   const float ptmax_0    = Config::c_ptmax_0;
-  const float dpt_1      = Config::c_dpt_1;
+  const float dpt_1      = 0.25; //Config::c_dpt_1;
   const float ptmax_1    = Config::c_ptmax_1;
-  const float dpt_2      = Config::c_dpt_2;
+  const float dpt_2      = 0.25; //Config::c_dpt_2;
   const float ptmax_2    = Config::c_ptmax_2;
-  const float dpt_3      = Config::c_dpt_3;
+  const float dpt_3      = 0.25; //Config::c_dpt_3;
   
   const float dzmax_bh = itrcfg.m_params.c_dzmax_bh;
   const float drmax_bh = itrcfg.m_params.c_drmax_bh;
-  const float dzmax_eh = itrcfg.m_params.c_dzmax_eh;
-  const float drmax_eh = itrcfg.m_params.c_drmax_eh;
+  const float dzmax_eh = 2.0f*(itrcfg.m_params.c_dzmax_eh);
+  const float drmax_eh = 2.0f*(itrcfg.m_params.c_drmax_eh);
   const float dzmax_bl = itrcfg.m_params.c_dzmax_bl;
   const float drmax_bl = itrcfg.m_params.c_drmax_bl;
-  const float dzmax_el = itrcfg.m_params.c_dzmax_el;
-  const float drmax_el = itrcfg.m_params.c_drmax_el;
+  const float dzmax_el = 2.0f*(itrcfg.m_params.c_dzmax_el);
+  const float drmax_el = 2.0f*(itrcfg.m_params.c_drmax_el);
 
   const float ptmin_hpt  = itrcfg.m_params.c_ptthr_hpt;
 
@@ -287,7 +287,7 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg,
         // NOTE: We only have 3 bits in Track::Status for number of seed hits.
         //       There is a check at entry and after adding of a new hit.
         Track &tk = seeds[i1];
-        if (merge_hits && tk.nTotalHits() < 7)
+        if (merge_hits && tk.nTotalHits() < 15)
         {
           const Track &tk2 = seeds[i2];
           //We are not actually fitting to the extra hits; use chi2 of 0
@@ -310,7 +310,7 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg,
               if (unique) {
                 tk.addHitIdx(tk2.getHitIdx(j), tk2.getHitLyr(j), fakeChi2);
                 ++n_ovlp_hits_added;
-                if (tk.nTotalHits() >= 7)
+                if (tk.nTotalHits() >= 15)
                   break;
               }
             }
