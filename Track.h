@@ -247,13 +247,13 @@ public:
         int n_overlaps : 8;
 
         // Number of seed hits at import time
-        unsigned int n_seed_hits : 3;
+        unsigned int n_seed_hits : 4;
 
         // mkFit tracking region TrackerInfo::EtaRegion, determined by seed partition function
         unsigned int eta_region : 3;
 
         // The remaining bits.
-        unsigned int _free_bits_ : 5;
+        unsigned int _free_bits_ : 4;
       };
 
       unsigned int _raw_;
