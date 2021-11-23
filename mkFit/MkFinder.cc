@@ -167,8 +167,11 @@ void MkFinder::getHitSelDynamicWindows(const float invpt, const float theta, flo
 {
   const IterationLayerConfig &ILC = *m_iteration_layer_config;
 
+  float max_invpt=invpt;
+  if(invpt>10.0) max_invpt=10.0; // => pT>0.1 GeV
+
   // dq hit selection window
-  float this_dq = (ILC.c_dq_0)*invpt+(ILC.c_dq_1)*theta+(ILC.c_dq_2);  
+  float this_dq = (ILC.c_dq_0)*max_invpt+(ILC.c_dq_1)*theta+(ILC.c_dq_2);  
   // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
   if(this_dq>0.f){
     min_dq = (ILC.c_dq_sf)*this_dq;
@@ -176,7 +179,7 @@ void MkFinder::getHitSelDynamicWindows(const float invpt, const float theta, flo
   }
 
   // dphi hit selection window
-  float this_dphi = (ILC.c_dp_0)*invpt+(ILC.c_dp_1)*theta+(ILC.c_dp_2);  
+  float this_dphi = (ILC.c_dp_0)*max_invpt+(ILC.c_dp_1)*theta+(ILC.c_dp_2);  
   // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
   if((ILC.c_dp_sf)*this_dphi>min_dphi){
     min_dphi = (ILC.c_dp_sf)*this_dphi;
@@ -204,7 +207,11 @@ inline float MkFinder::getHitSelDynamicChi2Cut(const int itrk, const int ipar)
   const float minChi2Cut = m_iteration_params->chi2Cut_min;
   const float invpt = Par[ipar].At(itrk,3,0);
   const float theta = std::abs(Par[ipar].At(itrk,5,0) - Config::PIOver2);
-  float this_c2 = ILC.c_c2_0*invpt + ILC.c_c2_1*theta + ILC.c_c2_2;
+
+  float max_invpt = invpt;
+  if (invpt>10.0) max_invpt=10.0;
+
+  float this_c2 = ILC.c_c2_0*max_invpt + ILC.c_c2_1*theta + ILC.c_c2_2;
   // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
   if (this_c2 > minChi2Cut)
     return ILC.c_c2_sf*this_c2;
@@ -272,11 +279,16 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
   {
   // Pull out the part of the loop that vectorizes
   //#pragma ivdep
-    #pragma omp simd
+#pragma omp simd
     for (int itrack = 0; itrack < NN; ++itrack)
     {
       XHitSize[itrack] = 0;
       
+      min_dq   = ILC.min_dq();
+      max_dq   = ILC.max_dq();
+      min_dphi = ILC.min_dphi();
+      max_dphi = ILC.max_dphi();
+
       const float invpt = Par[iI].At(itrack,3,0);
       const float theta = std::fabs(Par[iI].At(itrack,5,0)-Config::PIOver2);
       getHitSelDynamicWindows(invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
@@ -334,6 +346,11 @@ void MkFinder::SelectHitIndices(const LayerOfHits &layer_of_hits,
     {
       XHitSize[itrack] = 0;
       
+      min_dq   = ILC.min_dq();
+      max_dq   = ILC.max_dq();
+      min_dphi = ILC.min_dphi();
+      max_dphi = ILC.max_dphi();
+
       const float invpt = Par[iI].At(itrack,3,0);
       const float theta = std::fabs(Par[iI].At(itrack,5,0)-Config::PIOver2);
       getHitSelDynamicWindows(invpt, theta, min_dq, max_dq, min_dphi, max_dphi);
