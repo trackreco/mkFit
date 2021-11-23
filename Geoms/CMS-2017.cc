@@ -29,10 +29,10 @@ namespace
     {
       SteeringParams &sp = ic.m_steering_params[TrackerInfo::Reg_Endcap_Neg];
       sp.reserve_plan(3 + 3 + 6 + 18); // BPix + FPix- + TID- + TEC-; BPix4 is out of acceptance
-      sp.append_plan(1); 
-      sp.append_plan(0); 
-      sp.append_plan(2);
-      //sp.fill_plan( 0,  2);
+      //sp.append_plan(1);
+      //sp.append_plan(0);
+      //sp.append_plan(2);
+      sp.fill_plan( 0,  2);
       sp.fill_plan(45, 47);
       sp.fill_plan(48, 53); // TID,  6 disks (3 mono + 3 stereo)
       sp.fill_plan(54, 71); // TEC, 18 disks (3 mono + 3 stereo)
@@ -41,10 +41,10 @@ namespace
     {
       SteeringParams &sp = ic.m_steering_params[TrackerInfo::Reg_Transition_Neg];
       sp.reserve_plan(3 + 4 + 6 + 6 + 8 + 18); // BPix + FPix- + TIB + TID- + TOB + TEC-
-      sp.append_plan(1); 
-      sp.append_plan(0); 
-      sp.fill_plan(2,3);
-      //sp.fill_plan (0,  3);
+      //sp.append_plan(1);
+      //sp.append_plan(0);
+      //sp.fill_plan(2,3);
+      sp.fill_plan (0,  3);
       sp.fill_plan(45, 47);
       sp.fill_plan( 4,  9); // TIB,  6 layers (4 mono + 2 stereo)
       sp.fill_plan(48, 53); // TID,  6 disks  (3 mono + 3 stereo)
@@ -63,10 +63,10 @@ namespace
     {
       SteeringParams &sp = ic.m_steering_params[TrackerInfo::Reg_Transition_Pos];
       sp.reserve_plan(3 + 4 + 6 + 6 + 8 + 18); // BPix + FPix+ + TIB + TID+ + TOB + TEC+
-      sp.append_plan(1); 
-      sp.append_plan(0); 
-      sp.fill_plan(2,3);
-      //sp.fill_plan( 0,  3); //                                     [ 0,  3]
+      //sp.append_plan(1);
+      //sp.append_plan(0);
+      //sp.fill_plan(2,3);
+      sp.fill_plan( 0,  3); //                                     [ 0,  3]
       sp.fill_plan(18, 20); //                                     [ 4,  6]
       sp.fill_plan( 4,  9); // TIB,  6 layers (4 mono + 2 stereo)  [ 7, 12]
       sp.fill_plan(21, 26); // TID,  6 disks  (3 mono + 3 stereo)  [13, 18]
@@ -77,10 +77,10 @@ namespace
     {
       SteeringParams &sp = ic.m_steering_params[TrackerInfo::Reg_Endcap_Pos];
       sp.reserve_plan(3 + 3 + 6 + 18); // BPix + FPix+ + TID+ + TEC+; BPix4 is out of acceptance
-      sp.append_plan(1); 
-      sp.append_plan(0); 
-      sp.append_plan(2); 
-      //sp.fill_plan( 0,  2); //                                     [ 0,  2]
+      //sp.append_plan(1);
+      //sp.append_plan(0);
+      //sp.append_plan(2);
+      sp.fill_plan( 0,  2); //                                     [ 0,  2]
       sp.fill_plan(18, 20); //                                     [ 3,  5]
       sp.fill_plan(21, 26); // TID,  6 disks  (3 mono + 3 stereo)  [ 6, 11]
       sp.fill_plan(27, 44); // TEC, 18 disks  (9 mono + 9 stereo)  [12, 29]
@@ -167,8 +167,8 @@ namespace
   {
     ic.m_backward_params = ic.m_params;
     ic.m_backward_search = true;
-    ic.m_backward_drop_seed_hits = false;
-    ic.m_backward_fit_min_hits   = 99;
+    ic.m_backward_drop_seed_hits = true;
+    ic.m_backward_fit_min_hits   = 4; // XXX this is lower for initialStep and higher for others XXX
     auto &spv = ic.m_steering_params;
     spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(2, 0, 3);
     spv[TrackerInfo::Reg_Transition_Neg].set_iterator_limits(2, 0, 4);

@@ -581,6 +581,7 @@ public:
   short int    m_lastHitIdx_before_bkwsearch = -1;
   short int    m_nInsideMinusOneHits_before_bkwsearch = -1;
   short int    m_nTailMinusOneHits_before_bkwsearch   = -1;
+  short int    m_seed_hit_pos_bkwsearch = 0;
 
 #ifdef DUMPHITWINDOW
   int          m_seed_algo       =  0;
@@ -605,6 +606,7 @@ public:
     m_lastHitIdx_before_bkwsearch(o.m_lastHitIdx_before_bkwsearch),
     m_nInsideMinusOneHits_before_bkwsearch(o.m_nInsideMinusOneHits_before_bkwsearch),
     m_nTailMinusOneHits_before_bkwsearch(o.m_nTailMinusOneHits_before_bkwsearch),
+    m_seed_hit_pos_bkwsearch(o.m_seed_hit_pos_bkwsearch),
 #ifdef DUMPHITWINDOW
     m_seed_algo(o.m_seed_algo),
     m_seed_label(o.m_seed_label),
@@ -623,6 +625,7 @@ public:
     m_lastHitIdx_before_bkwsearch(o.m_lastHitIdx_before_bkwsearch),
     m_nInsideMinusOneHits_before_bkwsearch(o.m_nInsideMinusOneHits_before_bkwsearch),
     m_nTailMinusOneHits_before_bkwsearch(o.m_nTailMinusOneHits_before_bkwsearch),
+    m_seed_hit_pos_bkwsearch(o.m_seed_hit_pos_bkwsearch),
 #ifdef DUMPHITWINDOW
     m_seed_algo(o.m_seed_algo),
     m_seed_label(o.m_seed_label),
@@ -651,6 +654,7 @@ public:
     m_lastHitIdx_before_bkwsearch = o.m_lastHitIdx_before_bkwsearch;
     m_nInsideMinusOneHits_before_bkwsearch = o.m_nInsideMinusOneHits_before_bkwsearch;
     m_nTailMinusOneHits_before_bkwsearch = o.m_nTailMinusOneHits_before_bkwsearch;
+    m_seed_hit_pos_bkwsearch = o.m_seed_hit_pos_bkwsearch;
 #ifdef DUMPHITWINDOW
     m_seed_algo = o.m_seed_algo;
     m_seed_label = o.m_seed_label;

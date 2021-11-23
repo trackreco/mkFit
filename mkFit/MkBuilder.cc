@@ -1953,6 +1953,40 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
       
       mkfndr->SelectHitIndices(layer_of_hits, end - itrack);
 
+      if (iteration_dir == SteeringParams::IT_BkwSearch)
+      {
+        for (int ti = itrack, ii = 0; ti < end; ++ti, ++ii)
+        {
+          CombCandidate &cc = m_event_of_comb_cands.m_candidates[seed_cand_idx[ti].first];
+          if (cc.m_seed_hit_pos_bkwsearch && cc.m_hots[cc.m_seed_hit_pos_bkwsearch].m_hot.layer == curr_layer)
+          {
+            if (mkfndr->XHitSize[ii] < 0)
+            {
+              // printf("%d %d Missed layer - fixing!\n", ti, ii);
+              mkfndr->XHitSize[ii] = 0;
+              mkfndr->XWsrResult[ii] = WSR_Result(WSR_Edge, false);
+              // Maybe should skip this instead.
+              // continue;
+            }
+            int sh_pos = cc.m_seed_hit_pos_bkwsearch;
+            while (cc.m_hots[sh_pos].m_hot.layer == curr_layer && mkfndr->XHitSize[ii] < MkFinder::MPlexHitIdxMax)
+            {
+              // Check if already found:
+              bool found = false;
+              for (int shii = 0; shii < mkfndr->XHitSize[ii]; ++shii)
+              {
+                if (cc.m_hots[sh_pos].m_hot.index) { found = true; break; }
+              }
+              if ( ! found)
+                mkfndr->XHitArr.At(ii, mkfndr->XHitSize[ii]++, 0) = cc.m_hots[sh_pos].m_hot.index;
+              ++sh_pos;
+            }
+          }
+        }
+      }
+      // CombCandidate m_seed_hit_pos_bkwsearch can only be bumped when all TrackCands are processed.
+      // We do it at the end of layer processing.
+
       find_tracks_handle_missed_layers(mkfndr, layer_info, extra_cands, seed_cand_idx,
                                        region, start_seed, itrack, end);
 
@@ -1975,6 +2009,19 @@ void MkBuilder::find_tracks_in_layers(CandCloner &cloner, MkFinder *mkfndr,
     } //end of vectorized loop
 
     cloner.end_layer();
+
+    // Bump stashed_seed_hit positions
+    if (iteration_dir == SteeringParams::IT_BkwSearch)
+    {
+      for (int ci = start_seed; ci < end_seed; ++ci)
+      {
+        CombCandidate &cc = eoccs[ci];
+        if (cc.m_seed_hit_pos_bkwsearch)
+        {
+          while (cc.m_hots[cc.m_seed_hit_pos_bkwsearch].m_hot.layer == curr_layer) ++cc.m_seed_hit_pos_bkwsearch;
+        }
+      }
+    }
 
     // Update loop of best candidates. CandCloner prepares the list of those
     // that need update (excluding all those with negative last hit index).
