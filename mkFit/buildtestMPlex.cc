@@ -505,6 +505,9 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
     timevec[it] = dtime() - time;
     timevec[n] += timevec[it];
 
+    // Print min and max size of hots vectors of CombCands.
+    // builder.find_min_max_hots_size();
+
     if (validation_on)  seeds_used.insert(seeds_used.end(), seeds.begin(), seeds.end());//cleaned seeds need to be stored somehow
 
     if (itconf.m_requires_quality_filter && itconf.m_track_algorithm!=7)
@@ -615,6 +618,9 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
 
   // MIMI Unfake.
   builder.end_event(); 
+
+  // In CMSSW runOneIter we now release memory for comb-cands:
+  builder.release_memory();
 
   return timevec;
 }
@@ -733,6 +739,7 @@ void run_OneIteration(const TrackerInfo& trackerInfo, const IterationConfig &itc
   }
 
   builder.end_event();
+  builder.release_memory();
 }
 
 } // end namespace mkfit

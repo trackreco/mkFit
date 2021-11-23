@@ -154,11 +154,14 @@ public:
 
   void begin_event(MkJob *job, Event *ev, const char *build_type);
   void end_event();
+  void release_memory();
+
   void import_seeds(const TrackVec &in_seeds, std::function<insert_seed_foo> insert_seed);
 
+  // filter for rearranging cands that will / will not do backward search.
   int  filter_comb_cands(std::function<filter_track_cand_foo> filter);
 
-  // XXX filter for rearranging cands that will / will not do backward search.
+  void find_min_max_hots_size();
 
   void select_best_comb_cands(bool clear_m_tracks=false, bool remove_missing_hits=false);
   void export_best_comb_cands(TrackVec &out_vec, bool remove_missing_hits=false);

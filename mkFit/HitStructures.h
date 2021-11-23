@@ -333,9 +333,9 @@ struct HoTNode
 
 struct HitMatch
 {
-  int   m_hit_idx;
-  int   m_module_id;
-  float m_chi2;
+  int   m_hit_idx   = -1;
+  int   m_module_id = -1;
+  float m_chi2      = 1e9;
 
   void reset() { m_hit_idx = -1;  m_module_id = -1; m_chi2 = 1e9; }
 };
@@ -410,6 +410,14 @@ public:
     m_size = size;
 
     // printf("CcP reset to %zu\n", size);
+  }
+
+  void release()
+  {
+    std::vector<T> tmp;
+    m_mem.swap(tmp);
+    m_pos = 0;
+    m_size = 0;
   }
 
   CcPool(std::size_t size=0)
@@ -501,6 +509,16 @@ public:
   int  originIndex()    const { return m_origin_index; }
   void setOriginIndex(int oi) { m_origin_index = oi; }
 
+  void resetOverlaps() { m_overlap_hits.reset(); }
+  void considerHitForOverlap(int hit_idx, int module_id, float chi2)
+  {
+    m_overlap_hits.consider_hit_for_overlap(hit_idx, module_id, chi2);
+  }
+  HitMatch* findOverlap(int hit_idx, int module_id)
+  {
+    return m_overlap_hits.find_overlap(hit_idx, module_id);
+  }
+
   // Inlines after definition of CombCandidate
 
   HitOnTrack getLastHitOnTrack() const;
@@ -534,6 +552,7 @@ public:
 
 protected:
   CombCandidate *m_comb_candidate = nullptr;
+  HitMatchPair   m_overlap_hits;
 
   // using from TrackBase:
   // short int lastHitIdx_
@@ -589,8 +608,6 @@ public:
   int                  m_hots_size = 0;
   std::vector<HoTNode> m_hots;
 
-  std::vector<HitMatchPair> m_overlap_hits; // XXXX HitMatchPair could be a member in TrackCand
-
 
   CombCandidate(const allocator_type& alloc) :
     std::vector<TrackCand, CcAlloc<TrackCand>>(alloc),
@@ -610,8 +627,7 @@ public:
     m_seed_label(o.m_seed_label),
 #endif
     m_hots_size(o.m_hots_size),
-    m_hots(o.m_hots),
-    m_overlap_hits(o.m_overlap_hits)
+    m_hots(o.m_hots)
   {}
 
   // Required for std::swap().
@@ -628,8 +644,7 @@ public:
     m_seed_label(o.m_seed_label),
 #endif
     m_hots_size(o.m_hots_size),
-    m_hots(std::move(o.m_hots)),
-    m_overlap_hits(std::move(o.m_overlap_hits))
+    m_hots(std::move(o.m_hots))
   {
     // This is not needed as we do EOCC::Reset() after EOCCS::resize which
     // calls Reset here and all CombCands get cleared.
@@ -657,7 +672,6 @@ public:
 #endif
     m_hots_size = o.m_hots_size;
     m_hots = std::move(o.m_hots);
-    m_overlap_hits = std::move(o.m_overlap_hits);
 
     for (auto &tc : *this) tc.setCombCandidate(this);
 
@@ -681,8 +695,6 @@ public:
     m_hots.reserve(expected_num_hots);
     m_hots_size = 0;
     m_hots.clear();
-
-    m_overlap_hits.resize(max_cands_per_seed);
   }
 
   void ImportSeed(const Track& seed, int region);
@@ -691,16 +703,6 @@ public:
   {
     m_hots.push_back({hot, chi2, prev_idx});
     return m_hots_size++;
-  }
-
-  void considerHitForOverlap(int cand_idx, int hit_idx, int module_id, float chi2)
-  {
-    m_overlap_hits[cand_idx].consider_hit_for_overlap(hit_idx, module_id, chi2);
-  }
-
-  HitMatch* findOverlap(int cand_idx, int hit_idx, int module_id)
-  {
-    return m_overlap_hits[cand_idx].find_overlap(hit_idx, module_id);
   }
 
   void MergeCandsAndBestShortOne(const IterationParams&params, bool update_score, bool sort_cands);
@@ -905,6 +907,17 @@ public:
     m_capacity  (0),
     m_size      (0)
   {}
+
+  void ReleaseMemory()
+  {
+    { // Get all the destructors called before nuking CcPool.
+      std::vector<CombCandidate> tmp;
+      m_candidates.swap(tmp);
+    }
+    m_capacity = 0;
+    m_size = 0;
+    m_cc_pool.release();
+  }
 
   void Reset(int new_capacity, int max_cands_per_seed, int expected_num_hots = 128)
   {
