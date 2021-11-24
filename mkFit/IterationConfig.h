@@ -108,12 +108,12 @@ public:
   //initial
   float c_drmax_bh = 0.010;
   float c_dzmax_bh = 0.005;
-  float c_drmax_eh = 0.010;
-  float c_dzmax_eh = 0.010;
+  float c_drmax_eh = 0.020;
+  float c_dzmax_eh = 0.020;
   float c_drmax_bl = 0.010;
   float c_dzmax_bl = 0.005;
-  float c_drmax_el = 0.015;
-  float c_dzmax_el = 0.015;
+  float c_drmax_el = 0.030;
+  float c_dzmax_el = 0.030;
 
   int minHitsQF = 4;
   float fracSharedHits = 0.19;

@@ -32,19 +32,17 @@ namespace
       sp.append_plan(1); 
       sp.append_plan(0); 
       sp.append_plan(2);
-      //sp.fill_plan( 0,  2);
       sp.fill_plan(45, 47);
       sp.fill_plan(48, 53); // TID,  6 disks (3 mono + 3 stereo)
-      sp.fill_plan(54, 71); // TEC, 18 disks (3 mono + 3 stereo)
+      sp.fill_plan(54, 71); // TEC, 18 disks (9 mono + 9 stereo)
       sp.set_iterator_limits(2, 0);
     }
     {
       SteeringParams &sp = ic.m_steering_params[TrackerInfo::Reg_Transition_Neg];
-      sp.reserve_plan(3 + 4 + 6 + 6 + 8 + 18); // BPix + FPix- + TIB + TID- + TOB + TEC-
+      sp.reserve_plan(4 + 3 + 6 + 6 + 8 + 18); // BPix + FPix- + TIB + TID- + TOB + TEC-
       sp.append_plan(1); 
       sp.append_plan(0); 
       sp.fill_plan(2,3);
-      //sp.fill_plan (0,  3);
       sp.fill_plan(45, 47);
       sp.fill_plan( 4,  9); // TIB,  6 layers (4 mono + 2 stereo)
       sp.fill_plan(48, 53); // TID,  6 disks  (3 mono + 3 stereo)
@@ -62,11 +60,10 @@ namespace
     }
     {
       SteeringParams &sp = ic.m_steering_params[TrackerInfo::Reg_Transition_Pos];
-      sp.reserve_plan(3 + 4 + 6 + 6 + 8 + 18); // BPix + FPix+ + TIB + TID+ + TOB + TEC+
+      sp.reserve_plan(4 + 3 + 6 + 6 + 8 + 18); // BPix + FPix+ + TIB + TID+ + TOB + TEC+
       sp.append_plan(1); 
       sp.append_plan(0); 
       sp.fill_plan(2,3);
-      //sp.fill_plan( 0,  3); //                                     [ 0,  3]
       sp.fill_plan(18, 20); //                                     [ 4,  6]
       sp.fill_plan( 4,  9); // TIB,  6 layers (4 mono + 2 stereo)  [ 7, 12]
       sp.fill_plan(21, 26); // TID,  6 disks  (3 mono + 3 stereo)  [13, 18]
@@ -80,7 +77,6 @@ namespace
       sp.append_plan(1); 
       sp.append_plan(0); 
       sp.append_plan(2); 
-      //sp.fill_plan( 0,  2); //                                     [ 0,  2]
       sp.fill_plan(18, 20); //                                     [ 3,  5]
       sp.fill_plan(21, 26); // TID,  6 disks  (3 mono + 3 stereo)  [ 6, 11]
       sp.fill_plan(27, 44); // TEC, 18 disks  (9 mono + 9 stereo)  [12, 29]
@@ -102,12 +98,12 @@ namespace
       sp.fill_plan( 0,  2);
       sp.fill_plan(45, 47);
       sp.fill_plan(48, 53); // TID,  6 disks (3 mono + 3 stereo)
-      sp.fill_plan(54, 71); // TEC, 18 disks (3 mono + 3 stereo)
+      sp.fill_plan(54, 71); // TEC, 18 disks (9 mono + 9 stereo)
       sp.set_iterator_limits(2, 0);
     }
     {
       SteeringParams &sp = ic.m_steering_params[TrackerInfo::Reg_Transition_Neg];
-      sp.reserve_plan(3 + 4 + 6 + 6 + 8 + 18); // BPix + FPix- + TIB + TID- + TOB + TEC-
+      sp.reserve_plan(4 + 3 + 6 + 6 + 8 + 18); // BPix + FPix- + TIB + TID- + TOB + TEC-
       sp.fill_plan (0,  3);
       sp.fill_plan(45, 47);
       sp.fill_plan( 4,  9); // TIB,  6 layers (4 mono + 2 stereo)
@@ -126,7 +122,7 @@ namespace
     }
     {
       SteeringParams &sp = ic.m_steering_params[TrackerInfo::Reg_Transition_Pos];
-      sp.reserve_plan(3 + 4 + 6 + 6 + 8 + 18); // BPix + FPix+ + TIB + TID+ + TOB + TEC+
+      sp.reserve_plan(4 + 3 + 6 + 6 + 8 + 18); // BPix + FPix+ + TIB + TID+ + TOB + TEC+
       sp.fill_plan( 0,  3); //                                     [ 0,  3]
       sp.fill_plan(18, 20); //                                     [ 4,  6]
       sp.fill_plan( 4,  9); // TIB,  6 layers (4 mono + 2 stereo)  [ 7, 12]
@@ -754,8 +750,6 @@ namespace
     ii[0].set_dupl_params(0.24, 0.002,0.004,0.008);
     fill_hit_selection_windows_params(ii[0]);
     SetupBackwardSearch_PixelCommon(ii[0]);
-    //ii[0].m_backward_params = ii[0].m_params;
-
 
     ii[1].set_num_regions_layers(5, 72);
     ii[1].m_layer_configs = ii[0].m_layer_configs;
@@ -769,7 +763,7 @@ namespace
 
     SetupIterationParams(ii[1].m_params, 1);
     ii[1].set_iteration_index_and_track_algorithm(1, (int) TrackBase::TrackAlgorithm::highPtTripletStep);
-    ii[1].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.018, 0.018, 0.018, 0.05, 0.018, 0.05); 
+    ii[1].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.018, 0.018, 0.036, 0.10, 0.036, 0.10); 
     ii[1].set_dupclean_flag();
     ii[1].set_dupl_params(0.24, 0.03,0.05,0.08);
     fill_hit_selection_windows_params(ii[1]);
@@ -778,17 +772,16 @@ namespace
     ii[2].CloneLayerSteerCore(def_itconf_pixelquad);
     SetupIterationParams(ii[2].m_params, 2);
     ii[2].set_iteration_index_and_track_algorithm(2, (int) TrackBase::TrackAlgorithm::lowPtQuadStep);
-    ii[2].set_seed_cleaning_params(0.5, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
+    ii[2].set_seed_cleaning_params(0.5, 0.05, 0.05, 0.05, 0.05, 0.10, 0.10, 0.10, 0.10);
     ii[2].set_dupclean_flag();
     ii[2].set_dupl_params(0.5, 0.01,0.03,0.05);
     fill_hit_selection_windows_params(ii[2]);
     SetupBackwardSearch_PixelCommon(ii[2]);
-    //ii[2].m_backward_params = ii[2].m_params;
      
     ii[3].CloneLayerSteerCore(def_itconf_common);
     SetupIterationParams(ii[3].m_params, 3);
     ii[3].set_iteration_index_and_track_algorithm(3, (int) TrackBase::TrackAlgorithm::lowPtTripletStep);
-    ii[3].set_seed_cleaning_params(0.5, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
+    ii[3].set_seed_cleaning_params(0.5, 0.05, 0.05, 0.05, 0.05, 0.10, 0.10, 0.10, 0.10);
     ii[3].set_dupclean_flag();
     ii[3].set_dupl_params(0.33, 0.018,0.05,0.018);
     fill_hit_selection_windows_params(ii[3]);
@@ -797,17 +790,16 @@ namespace
     ii[4].CloneLayerSteerCore(def_itconf_pixelquad);
     SetupIterationParams(ii[4].m_params, 4);
     ii[4].set_iteration_index_and_track_algorithm(4, (int) TrackBase::TrackAlgorithm::detachedQuadStep);
-    ii[4].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
+    ii[4].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.05, 0.05, 0.10, 0.10, 0.10, 0.10);
     ii[4].set_dupclean_flag();
     ii[4].set_dupl_params(0.24, 0.018,0.05,0.05);
     fill_hit_selection_windows_params(ii[4]);
     SetupBackwardSearch_PixelCommon(ii[4]);
-    //ii[4].m_backward_params = ii[4].m_params;
     
     ii[5].CloneLayerSteerCore(def_itconf_common);
     SetupIterationParams(ii[5].m_params, 5);
     ii[5].set_iteration_index_and_track_algorithm(5, (int) TrackBase::TrackAlgorithm::detachedTripletStep);
-    ii[5].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
+    ii[5].set_seed_cleaning_params(2.0, 0.018, 0.018, 0.05, 0.05, 0.10, 0.10, 0.10, 0.10);
     ii[5].set_dupclean_flag();
     ii[5].set_dupl_params(0.24, 0.01,0.01,0.1);
     ii[5].m_requires_quality_filter = true;

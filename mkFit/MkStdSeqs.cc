@@ -113,23 +113,16 @@ void Cmssw_ReMap_TrackHitIndices(const EventOfHits &eoh, TrackVec &out_tracks)
 int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg, const BeamSpot &bspot)
 { 
   const float etamax_brl = Config::c_etamax_brl;
-  const float dpt_brl_0  = 0.25; //Config::c_dpt_brl_0;
-  const float dpt_ec_0   = 0.25; //Config::c_dpt_ec_0;
-  const float ptmax_0    = Config::c_ptmax_0;
-  const float dpt_1      = 0.25; //Config::c_dpt_1;
-  const float ptmax_1    = Config::c_ptmax_1;
-  const float dpt_2      = 0.25; //Config::c_dpt_2;
-  const float ptmax_2    = Config::c_ptmax_2;
-  const float dpt_3      = 0.25; //Config::c_dpt_3;
+  const float dpt_common = Config::c_dpt_common;
   
   const float dzmax_bh = itrcfg.m_params.c_dzmax_bh;
   const float drmax_bh = itrcfg.m_params.c_drmax_bh;
-  const float dzmax_eh = 2.0f*(itrcfg.m_params.c_dzmax_eh);
-  const float drmax_eh = 2.0f*(itrcfg.m_params.c_drmax_eh);
+  const float dzmax_eh = itrcfg.m_params.c_dzmax_eh;
+  const float drmax_eh = itrcfg.m_params.c_drmax_eh;
   const float dzmax_bl = itrcfg.m_params.c_dzmax_bl;
   const float drmax_bl = itrcfg.m_params.c_drmax_bl;
-  const float dzmax_el = 2.0f*(itrcfg.m_params.c_dzmax_el);
-  const float drmax_el = 2.0f*(itrcfg.m_params.c_drmax_el);
+  const float dzmax_el = itrcfg.m_params.c_dzmax_el;
+  const float drmax_el = itrcfg.m_params.c_drmax_el;
 
   const float ptmin_hpt  = itrcfg.m_params.c_ptthr_hpt;
 
@@ -216,27 +209,8 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg,
 
       const float thisDPt = std::abs(Pt2-Pt1);
       ////// Require pT consistency between seeds. If dpT is large, do not remove seed-track.
-      ////// Adaptive thresholds, based on pT of reference seed-track (choice is a compromise between efficiency and duplicate rate):
-      ////// - 2.5% if track is barrel and w/ pT<2 GeV
-      ////// - 1.25% if track is non-barrel and w/ pT<2 GeV
-      ////// - 10% if track w/ 2<pT<5 GeV
-      ////// - 20% if track w/ 5<pT<10 GeV
-      ////// - 25% if track w/ pT>10 GeV
-      if(thisDPt>dpt_brl_0*(Pt1) && Pt1<ptmax_0 && std::abs(Eta1)<etamax_brl)
+      if( thisDPt > dpt_common*(Pt1) )
         continue;
-
-      else if(thisDPt>dpt_ec_0*(Pt1) && Pt1<ptmax_0 && std::abs(Eta1)>etamax_brl)
-        continue;
-
-      else if(thisDPt>dpt_1*(Pt1) && Pt1>ptmax_0 && Pt1<ptmax_1)
-        continue;
-
-      else if(thisDPt>dpt_2*(Pt1) && Pt1>ptmax_1 && Pt1<ptmax_2)
-        continue;
-
-      else if(thisDPt>dpt_3*(Pt1) && Pt1>ptmax_2)
-        continue;
-
 
       const float Eta2 = eta[tss];
       const float deta2 = std::pow(Eta1-Eta2, 2);
