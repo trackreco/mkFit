@@ -173,7 +173,7 @@ void MkFinder::getHitSelDynamicWindows(const float invpt, const float theta, flo
   // dq hit selection window
   float this_dq = (ILC.c_dq_0)*max_invpt+(ILC.c_dq_1)*theta+(ILC.c_dq_2);  
   // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
-  if(this_dq>0.f){
+  if((ILC.c_dq_sf)*this_dq>0.f){
     min_dq = (ILC.c_dq_sf)*this_dq;
     max_dq = 2.0f*min_dq;
   }
@@ -213,7 +213,7 @@ inline float MkFinder::getHitSelDynamicChi2Cut(const int itrk, const int ipar)
 
   float this_c2 = ILC.c_c2_0*max_invpt + ILC.c_c2_1*theta + ILC.c_c2_2;
   // In case layer is missing (e.g., seeding layers, or too low stats for training), leave original limits
-  if (this_c2 > minChi2Cut)
+  if ((ILC.c_c2_sf)*this_c2 > minChi2Cut)
     return ILC.c_c2_sf*this_c2;
   else
     return minChi2Cut;

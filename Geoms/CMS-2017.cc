@@ -145,7 +145,7 @@ namespace
       ip.maxCandsPerSeed  = 5;
       ip.maxHolesPerCand  = 4;
       ip.maxConsecHoles   = 2;
-      ip.chi2Cut_min      = 10.0;
+      ip.chi2Cut_min      = 15.0;
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
     }
@@ -155,7 +155,7 @@ namespace
       ip.maxCandsPerSeed  = 5;
       ip.maxHolesPerCand  = 4;
       ip.maxConsecHoles   = 2;
-      ip.chi2Cut_min      = 10.0; 
+      ip.chi2Cut_min      = 15.0;
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
     }
@@ -165,7 +165,7 @@ namespace
       ip.maxCandsPerSeed  = 5;
       ip.maxHolesPerCand  = 4;
       ip.maxConsecHoles   = 2;
-      ip.chi2Cut_min      = 10.0; 
+      ip.chi2Cut_min      = 15.0;
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
     } 
@@ -175,7 +175,7 @@ namespace
       ip.maxCandsPerSeed  = 5;
       ip.maxHolesPerCand  = 4;
       ip.maxConsecHoles   = 2;
-      ip.chi2Cut_min      = 10.0; 
+      ip.chi2Cut_min      = 15.0;
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
     } 
@@ -185,7 +185,7 @@ namespace
       ip.maxCandsPerSeed  = 5;
       ip.maxHolesPerCand  = 4;
       ip.maxConsecHoles   = 2;
-      ip.chi2Cut_min      = 10.0; 
+      ip.chi2Cut_min      = 15.0;
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
     } 
@@ -195,7 +195,7 @@ namespace
       ip.maxCandsPerSeed  = 5;
       ip.maxHolesPerCand  = 4;
       ip.maxConsecHoles   = 2;
-      ip.chi2Cut_min      = 10.0; 
+      ip.chi2Cut_min      = 15.0;
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
     } 
@@ -205,7 +205,7 @@ namespace
       ip.maxCandsPerSeed  = 2;
       ip.maxHolesPerCand  = 4;
       ip.maxConsecHoles   = 2;
-      ip.chi2Cut_min      = 10.0;
+      ip.chi2Cut_min      = 15.0;
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
     } 
@@ -215,7 +215,7 @@ namespace
       ip.maxCandsPerSeed  = 2;
       ip.maxHolesPerCand  = 0;
       ip.maxConsecHoles   = 1;
-      ip.chi2Cut_min      = 10.0; 
+      ip.chi2Cut_min      = 15.0;
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
     }   
@@ -225,7 +225,7 @@ namespace
       ip.maxCandsPerSeed  = 2;
       ip.maxHolesPerCand  = 0;
       ip.maxConsecHoles   = 1;
-      ip.chi2Cut_min      = 10.0; 
+      ip.chi2Cut_min      = 15.0;
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
     }
@@ -235,7 +235,7 @@ namespace
       ip.maxCandsPerSeed  = 3;
       ip.maxHolesPerCand  = 4;
       ip.maxConsecHoles   = 2;
-      ip.chi2Cut_min      = 10.0;
+      ip.chi2Cut_min      = 15.0;
       ip.chi2CutOverlap   = 3.5;
       ip.pTCutOverlap     = 1;
     }
