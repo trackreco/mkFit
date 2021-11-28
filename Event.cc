@@ -583,12 +583,12 @@ int Event::clean_cms_seedtracks(TrackVec *seed_ptr)
   const float dzmax_els  = Config::c_dzmax_els;
   const float drmax_els  = Config::c_drmax_els;
 
-  const float dzmax2_brl = dzmax_brl*dzmax_brl;
-  const float drmax2_brl = drmax_brl*drmax_brl;
-  const float dzmax2_hpt = dzmax_hpt*dzmax_hpt;
-  const float drmax2_hpt = drmax_hpt*drmax_hpt;
-  const float dzmax2_els = dzmax_els*dzmax_els;
-  const float drmax2_els = drmax_els*drmax_els;
+  const float dzmax2_inv_brl = 1.f/(dzmax_brl*dzmax_brl);
+  const float drmax2_inv_brl = 1.f/(drmax_brl*drmax_brl);
+  const float dzmax2_inv_hpt = 1.f/(dzmax_hpt*dzmax_hpt);
+  const float drmax2_inv_hpt = 1.f/(drmax_hpt*drmax_hpt);
+  const float dzmax2_inv_els = 1.f/(dzmax_els*dzmax_els);
+  const float drmax2_inv_els = 1.f/(drmax_els*drmax_els);
 
   TrackVec &seeds = (seed_ptr != nullptr) ? *seed_ptr : seedTracks_;
   const int ns = seeds.size();
@@ -604,7 +604,7 @@ int Event::clean_cms_seedtracks(TrackVec *seed_ptr)
   std::vector<float>  oldPhi(ns);
   std::vector<float>  pos2(ns);
   std::vector<float>  eta(ns);
-  std::vector<float>  theta(ns);
+  std::vector<float>  ctheta(ns);
   std::vector<float>  invptq(ns);
   std::vector<float>  pt(ns);
   std::vector<float>  x(ns);
@@ -618,7 +618,7 @@ int Event::clean_cms_seedtracks(TrackVec *seed_ptr)
     oldPhi[ts] = tk.momPhi();
     pos2[ts] = std::pow(tk.x(), 2) + std::pow(tk.y(), 2);
     eta[ts] = tk.momEta();
-    theta[ts] = std::atan2(tk.pT(),tk.pz());
+    ctheta[ts] = 1.f/std::tan(tk.theta()) //std::atan2(tk.pT(),tk.pz());
     invptq[ts] = tk.charge()*tk.invpT();
     pt[ts] = tk.pT();
     x[ts] = tk.x();
@@ -669,21 +669,21 @@ int Event::clean_cms_seedtracks(TrackVec *seed_ptr)
 
       const float dr2 = deta2+dphi*dphi;
 
-      const float thisDZ = z[ts]-z[tss]-thisDXY*(1.f/std::tan(theta[ts])+1.f/std::tan(theta[tss]));
+      const float thisDZ = z[ts]-z[tss]-thisDXY*(ctheta[ts]+ctheta[tss]);
       const float dz2 = thisDZ*thisDZ;
 
       ////// Reject tracks within dR-dz elliptical window.
       ////// Adaptive thresholds, based on observation that duplicates are more abundant at large pseudo-rapidity and low track pT
       if(std::abs(Eta1)<etamax_brl){
-        if(dz2/dzmax2_brl+dr2/drmax2_brl<1.0f)
+        if(dz2*dzmax2_inv_brl+dr2*drmax2_inv_brl<1.0f)
           writetrack[tss]=false;
       }
       else if(Pt1>ptmin_hpt){
-        if(dz2/dzmax2_hpt+dr2/drmax2_hpt<1.0f)
+        if(dz2*dzmax2_inv_hpt+dr2*drmax2_inv_hpt<1.0f)
           writetrack[tss]=false;
       }
       else {
-        if(dz2/dzmax2_els+dr2/drmax2_els<1.0f)
+        if(dz2*dzmax2_inv_els+dr2*drmax2_inv_els<1.0f)
           writetrack[tss]=false;
       }
     }
