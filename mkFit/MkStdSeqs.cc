@@ -126,14 +126,14 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg,
 
   const float ptmin_hpt  = itrcfg.m_params.c_ptthr_hpt;
 
-  const float dzmax2_bh = dzmax_bh*dzmax_bh;
-  const float drmax2_bh = drmax_bh*drmax_bh;
-  const float dzmax2_eh = dzmax_eh*dzmax_eh;
-  const float drmax2_eh = drmax_eh*drmax_eh;
-  const float dzmax2_bl = dzmax_bl*dzmax_bl;
-  const float drmax2_bl = drmax_bl*drmax_bl;
-  const float dzmax2_el = dzmax_el*dzmax_el;
-  const float drmax2_el = drmax_el*drmax_el;
+  const float dzmax2_inv_bh = 1.f/(dzmax_bh*dzmax_bh);
+  const float drmax2_inv_bh = 1.f/(drmax_bh*drmax_bh);
+  const float dzmax2_inv_eh = 1.f/(dzmax_eh*dzmax_eh);
+  const float drmax2_inv_eh = 1.f/(drmax_eh*drmax_eh);
+  const float dzmax2_inv_bl = 1.f/(dzmax_bl*dzmax_bl);
+  const float drmax2_inv_bl = 1.f/(drmax_bl*drmax_bl);
+  const float dzmax2_inv_el = 1.f/(dzmax_el*dzmax_el);
+  const float drmax2_inv_el = 1.f/(drmax_el*drmax_el);
 
   // Merge hits from overlapping seeds?
   // For now always true, we require extra hits after seed.
@@ -157,7 +157,7 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg,
   std::vector<float>  oldPhi(ns);
   std::vector<float>  pos2(ns);
   std::vector<float>  eta(ns);
-  std::vector<float>  theta(ns);
+  std::vector<float>  ctheta(ns);
   std::vector<float>  invptq(ns);
   std::vector<float>  pt(ns);
   std::vector<float>  x(ns);
@@ -173,7 +173,7 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg,
     oldPhi[ts] = tk.momPhi();
     pos2[ts] = std::pow(tk.x(), 2) + std::pow(tk.y(), 2);
     eta[ts] = tk.momEta();
-    theta[ts] = std::atan2(tk.pT(),tk.pz());
+    ctheta[ts] = 1.f/std::tan(tk.theta());
     invptq[ts] = tk.charge()*tk.invpT();
     pt[ts] = tk.pT();
     x[ts] = tk.x();
@@ -231,19 +231,19 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg,
 
       const float dr2 = deta2+dphi*dphi;
 
-      const float thisDZ = z[ts]-z[tss]-thisDXY*(1.f/std::tan(theta[ts])+1.f/std::tan(theta[tss]));
+      const float thisDZ = z[ts]-z[tss]-thisDXY*(ctheta[ts]+ctheta[tss]);
       const float dz2 = thisDZ*thisDZ;
 
       ////// Reject tracks within dR-dz elliptical window.
       ////// Adaptive thresholds, based on observation that duplicates are more abundant at large pseudo-rapidity and low track pT
       bool overlapping = false;
       if(std::abs(Eta1)<etamax_brl){
-        if(Pt1>ptmin_hpt){if(dz2/dzmax2_bh+dr2/drmax2_bh<1.0f) overlapping=true; }
-        else{if(dz2/dzmax2_bl+dr2/drmax2_bl<1.0f) overlapping=true; }
+        if(Pt1>ptmin_hpt){if(dz2*dzmax2_inv_bh+dr2*drmax2_inv_bh<1.0f) overlapping=true; }
+        else{if(dz2*dzmax2_inv_bl+dr2*drmax2_inv_bl<1.0f) overlapping=true; }
       }
       else {
-      	if(Pt1>ptmin_hpt){if(dz2/dzmax2_eh+dr2/drmax2_eh<1.0f) overlapping=true; }
-        else{if(dz2/dzmax2_el+dr2/drmax2_el<1.0f) overlapping=true; }
+      	if(Pt1>ptmin_hpt){if(dz2*dzmax2_inv_eh+dr2*drmax2_inv_eh<1.0f) overlapping=true; }
+        else{if(dz2*dzmax2_inv_el+dr2*drmax2_inv_el<1.0f) overlapping=true; }
       }
 
       if(overlapping){
@@ -456,11 +456,18 @@ void find_duplicates_sharedhits(TrackVec &tracks, const float fraction)
 
   std::vector<bool> goodtrack(ntracks, false);
 
+  std::vector<float>  ctheta(ntracks);  
+  for (auto itrack = 0U; itrack < ntracks; itrack++)
+  {
+    auto &trk = tracks[itrack];
+    ctheta[itrack] = 1.f/std::tan(trk.theta());
+  }
+
   for (auto itrack = 0U; itrack < ntracks; itrack++)
   {
     auto &trk = tracks[itrack];
     auto phi1 = trk.momPhi();
-    auto ctheta1 = 1./tan(trk.theta());
+    auto ctheta1 = ctheta[itrack];
 
     for (auto jtrack = itrack + 1; jtrack < ntracks; jtrack++)
     {
@@ -468,7 +475,7 @@ void find_duplicates_sharedhits(TrackVec &tracks, const float fraction)
       auto sharedCount=0;
       auto sharedFirst=0;
 
-      auto dctheta = std::abs(1./tan(track2.theta()) - ctheta1);
+      auto dctheta = std::abs(ctheta[jtrack] - ctheta1);
       if (dctheta > 1.) continue;
 
       auto dphi = std::abs(squashPhiMinimal(phi1 - track2.momPhi()));
@@ -504,20 +511,28 @@ void find_duplicates_sharedhits_pixelseed(TrackVec &tracks, const float fraction
 {
   const auto ntracks = tracks.size();
   std::vector<bool> goodtrack(ntracks, false);
+
+  std::vector<float>  ctheta(ntracks);  
+  for (auto itrack = 0U; itrack < ntracks; itrack++)
+  {
+    auto &trk = tracks[itrack];
+    ctheta[itrack] = 1.f/std::tan(trk.theta());
+  }
+
   float phi1, invpt1, dctheta, ctheta1, dphi, dr2;
   for (auto itrack = 0U; itrack < ntracks; itrack++)
   {
      auto &trk = tracks[itrack];
      phi1 = trk.momPhi();
      invpt1 = trk.invpT();
-     ctheta1 = 1./tan(trk.theta());
+     ctheta1 = ctheta[itrack];
      for (auto jtrack = itrack + 1; jtrack < ntracks; jtrack++)
      {
        auto &track2 = tracks[jtrack];
        if (trk.label() == track2.label())
          continue;
        
-       dctheta = std::abs(1./tan(track2.theta()) - ctheta1);
+       dctheta = std::abs(ctheta[jtrack] - ctheta1);
        
        if (dctheta > Config::maxdcth)
          continue;
