@@ -618,7 +618,7 @@ int Event::clean_cms_seedtracks(TrackVec *seed_ptr)
     oldPhi[ts] = tk.momPhi();
     pos2[ts] = std::pow(tk.x(), 2) + std::pow(tk.y(), 2);
     eta[ts] = tk.momEta();
-    ctheta[ts] = 1.f/std::tan(tk.theta()) //std::atan2(tk.pT(),tk.pz());
+    ctheta[ts] = 1.f/std::tan(tk.theta());
     invptq[ts] = tk.charge()*tk.invpT();
     pt[ts] = tk.pT();
     x[ts] = tk.x();
