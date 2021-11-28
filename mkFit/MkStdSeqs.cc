@@ -231,7 +231,6 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg,
 
       const float dr2 = deta2+dphi*dphi;
 
-      //const float thisDZ = z[ts]-z[tss]-thisDXY*(1.f/std::tan(theta[ts])+1.f/std::tan(theta[tss]));
       const float thisDZ = z[ts]-z[tss]-thisDXY*(ctheta[ts]+ctheta[tss]);
       const float dz2 = thisDZ*thisDZ;
 
