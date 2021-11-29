@@ -5,6 +5,8 @@
 #include "HitStructures.h"
 #include "IterationConfig.h"
 
+#include "binnor.h"
+
 #include "tbb/parallel_for.h"
 
 namespace mkfit {
@@ -111,10 +113,10 @@ void Cmssw_ReMap_TrackHitIndices(const EventOfHits &eoh, TrackVec &out_tracks)
 // Seed cleaning (multi-iter)
 //=========================================================================
 int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg, const BeamSpot &bspot)
-{ 
+{
   const float etamax_brl = Config::c_etamax_brl;
   const float dpt_common = Config::c_dpt_common;
-  
+
   const float dzmax_bh = itrcfg.m_params.c_dzmax_bh;
   const float drmax_bh = itrcfg.m_params.c_drmax_bh;
   const float dzmax_eh = itrcfg.m_params.c_dzmax_eh;
@@ -141,7 +143,7 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg,
 
   if (seed_ptr == nullptr) return 0;
   TrackVec &seeds = *seed_ptr;
-  
+
   const int ns = seeds.size();
   #ifdef DEBUG
    std::cout << "before seed cleaning "<< seeds.size()<<std::endl;
@@ -242,7 +244,7 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg,
         else{if(dz2*dzmax2_inv_bl+dr2*drmax2_inv_bl<1.0f) overlapping=true; }
       }
       else {
-      	if(Pt1>ptmin_hpt){if(dz2*dzmax2_inv_eh+dr2*drmax2_inv_eh<1.0f) overlapping=true; }
+        if(Pt1>ptmin_hpt){if(dz2*dzmax2_inv_eh+dr2*drmax2_inv_eh<1.0f) overlapping=true; }
         else{if(dz2*dzmax2_inv_el+dr2*drmax2_inv_el<1.0f) overlapping=true; }
       }
 
@@ -252,7 +254,7 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg,
         i2=tss;
         if (d0[tss]>d0[ts])
           writetrack[tss] = false;
-        else { 
+        else {
           writetrack[ts] = false;
           i2 = ts;
           i1 = tss;
@@ -317,7 +319,7 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg,
   }
 #endif
 
-#ifdef DEBUG  
+#ifdef DEBUG
   std::cout << "AFTER seed cleaning "<< seeds.size()<<std::endl;
 #endif
 
