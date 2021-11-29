@@ -454,8 +454,6 @@ void find_duplicates_sharedhits(TrackVec &tracks, const float fraction)
 {
   const auto ntracks = tracks.size();
 
-  std::vector<bool> goodtrack(ntracks, false);
-
   std::vector<float>  ctheta(ntracks);  
   for (auto itrack = 0U; itrack < ntracks; itrack++)
   {
@@ -510,7 +508,6 @@ void find_duplicates_sharedhits(TrackVec &tracks, const float fraction)
 void find_duplicates_sharedhits_pixelseed(TrackVec &tracks, const float fraction, const float drth_central, const float drth_obarrel, const float drth_forward)
 {
   const auto ntracks = tracks.size();
-  std::vector<bool> goodtrack(ntracks, false);
 
   std::vector<float>  ctheta(ntracks);  
   for (auto itrack = 0U; itrack < ntracks; itrack++)
