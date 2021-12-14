@@ -676,7 +676,7 @@ public:
     m_overlap_hits.resize(max_cands_per_seed);
   }
 
-  void ImportSeed(const Track& seed, int region);
+  void ImportSeed(const Track& seed, int region, int seed_idx);
 
   int AddHit(const HitOnTrack& hot, float chi2, int prev_idx)
   {
@@ -864,11 +864,11 @@ public:
   const CombCandidate& operator[](int i) const { return m_candidates[i]; }
         CombCandidate& operator[](int i)       { return m_candidates[i]; }
 
-  void InsertSeed(const Track& seed, int region)
+  void InsertSeed(const Track& seed, int region, int seed_idx)
   {
     assert (m_size < m_capacity);
 
-    m_candidates[m_size].ImportSeed(seed, region);
+    m_candidates[m_size].ImportSeed(seed, region, seed_idx);
 
     ++m_size;
   }

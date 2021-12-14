@@ -476,7 +476,7 @@ Track TrackCand::exportTrack() const
 // CombCandidate
 //==============================================================================
 
-void CombCandidate::ImportSeed(const Track& seed, int region)
+void CombCandidate::ImportSeed(const Track& seed, int region, int seed_idx)
 {
   emplace_back(TrackCand(seed, this));
 
@@ -490,6 +490,7 @@ void CombCandidate::ImportSeed(const Track& seed, int region)
   TrackCand &cand = back();
   cand.setNSeedHits(seed.nTotalHits());
   cand.setEtaRegion(region);
+  cand.setLabel(seed_idx);
 
   // printf("Importing pt=%f eta=%f, lastCcIndex=%d\n", cand.pT(), cand.momEta(), cand.lastCcIndex());
 

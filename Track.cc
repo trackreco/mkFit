@@ -1,5 +1,6 @@
 #include "Track.h"
 #include "Matrix.h"
+#include "Event.h"
 
 //#define DEBUG
 #include "Debug.h"
@@ -848,12 +849,10 @@ void TrackExtra::setCMSSWTrackIDInfoByHits(const Track& trk, const LayIdxIDVecMa
 
 void print(const TrackState& s)
 {
-  std::cout << " x:  " << s.parameters[0]
-            << " y:  " << s.parameters[1]
-            << " z:  " << s.parameters[2] << std::endl
-            << " px: " << s.parameters[3]
-            << " py: " << s.parameters[4]
-            << " pz: " << s.parameters[5] << std::endl
+  std::cout << "x: " << s.x() << " y: " << s.y() << " z: " << s.z()
+            << " r: " << s.posR() << " eta: " << s.posEta() << " phi: " << s.posPhi() << std::endl
+            << "px: " << s.px() << " py: " << s.py() << " pz: " << s.pz()
+            << " pT: " << s.pT() << " eta: " << s.momEta() << " phi: " << s.momPhi() << std::endl
             << "valid: " << s.valid << " errors: " << std::endl;
   dumpMatrix(s.errors);
   std::cout << std::endl;
@@ -861,13 +860,37 @@ void print(const TrackState& s)
 
 void print(std::string label, int itrack, const Track& trk, bool print_hits)
 {
-  std::cout << std::endl << label << ": " << itrack << " hits: " << trk.nFoundHits() << " State" << std::endl;
+  std::cout << std::endl << label << ": " << itrack << " hits: " << trk.nFoundHits()
+    << " label: " << trk.label()
+    << " State:" << std::endl;
   print(trk.state());
   if (print_hits)
   {
     for (int i = 0; i < trk.nTotalHits(); ++i)
       printf("  %2d: lyr %2d idx %d\n", i, trk.getHitLyr(i), trk.getHitIdx(i));
   }
+}
+
+void print(std::string label, int itrack, const Track& trk, const Event &ev)
+{
+  std::cout << std::endl << label << ": " << itrack << " hits: " << trk.nFoundHits()
+    << " label: " << trk.label()
+    << " State:" << std::endl;
+  print(trk.state());
+
+  for (int i = 0; i < trk.nTotalHits(); ++i)
+  {
+    auto hot = trk.getHitOnTrack(i);
+    printf("  %2d: lyr %2d idx %5d", i, hot.layer, hot.index);
+    if (hot.index >= 0) {
+      auto &h = ev.layerHits_[hot.layer][hot.index];
+      int hl = ev.simHitsInfo_[h.mcHitID()].mcTrackID_;
+      printf("  %4d  %8.3f %8.3f %8.3f  r=%.3f\n", hl, h.x(), h.y(), h.z(), h.r());
+    } else {
+      printf("\n");
+    }
+  }
+
 }
 
 void print(std::string label, const TrackState& s)

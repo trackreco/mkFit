@@ -15,6 +15,8 @@ typedef std::pair<int,int> SimTkIDInfo;
 typedef std::vector<int>   HitIdxVec;
 typedef std::map<int,std::vector<int> > HitLayerMap;
 
+class Event;
+
 inline int calculateCharge(const Hit & hit0, const Hit & hit1, const Hit & hit2){
   return ((hit2.y()-hit0.y())*(hit2.x()-hit1.x())>(hit2.y()-hit1.y())*(hit2.x()-hit0.x())?1:-1);
 }
@@ -789,6 +791,7 @@ typedef std::unordered_map<int,TSLayerPairVec>    TkIDToTSLayerPairVecMap;
 
 void print(const TrackState& s);
 void print(std::string label, int itrack, const Track& trk, bool print_hits=false);
+void print(std::string label, int itrack, const Track& trk, const Event &ev);
 void print(std::string label, const TrackState& s);
 
 } // end namespace mkfit
