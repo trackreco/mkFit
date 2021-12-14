@@ -163,14 +163,14 @@ namespace
   {
     ic.m_backward_params = ic.m_params;
     ic.m_backward_search = true;
-    ic.m_backward_drop_seed_hits = false;
-    ic.m_backward_fit_min_hits   = 99;
+    ic.m_backward_drop_seed_hits = true;
+    ic.m_backward_fit_min_hits   = 4; // This value is set to its min based initialStep (can be higher for other iterations)
     auto &spv = ic.m_steering_params;
-    spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(2, 0, 3);
-    spv[TrackerInfo::Reg_Transition_Neg].set_iterator_limits(2, 0, 4);
-    spv[TrackerInfo::Reg_Barrel]        .set_iterator_limits(2, 0, 2);
-    spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(2, 0, 4);
-    spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(2, 0, 3);
+    spv[TrackerInfo::Reg_Endcap_Neg]    .set_iterator_limits(2, 0, 6);
+    spv[TrackerInfo::Reg_Transition_Neg].set_iterator_limits(2, 0, 7);
+    spv[TrackerInfo::Reg_Barrel]        .set_iterator_limits(2, 0, 4);
+    spv[TrackerInfo::Reg_Transition_Pos].set_iterator_limits(2, 0, 7);
+    spv[TrackerInfo::Reg_Endcap_Pos]    .set_iterator_limits(2, 0, 6);
   }
 
   void SetupBackwardSearch_Iter7(IterationConfig& ic)

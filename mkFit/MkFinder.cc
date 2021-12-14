@@ -1138,6 +1138,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 
   dprintf("FindCandidatesCloneEngine max hits to process=%d\n", maxSize);
   int nHitsAdded[NN] {};
+  int nSeedHitsFromStash[NN] {};
 
   for (int hit_cnt = 0; hit_cnt < maxSize; ++hit_cnt)
   {
@@ -1174,7 +1175,27 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
       if (hit_cnt < XHitSize[itrack])
       {
         // XXX-NUM-ERR assert(chi2 >= 0);
-        const float chi2 = std::abs(outChi2[itrack]); //fixme negative chi2 sometimes...
+        float chi2 = std::abs(outChi2[itrack]); //fixme negative chi2 sometimes...
+
+        CombCandidate &ccand = * CombCand[itrack];
+        if (ccand.m_seed_hit_pos_bkwsearch && ccand.m_hots[ccand.m_seed_hit_pos_bkwsearch].m_hot.layer == layer_of_hits.layer_id())
+        {
+          int sh_pos = ccand.m_seed_hit_pos_bkwsearch;
+          bool found = false;
+          do {
+            // Check if this is a seed hit
+            if (XHitArr.At(itrack, hit_cnt, 0) == ccand.m_hots[sh_pos].m_hot.index) { found = true; break; }
+            ++sh_pos;
+          } while (ccand.m_hots[sh_pos].m_hot.layer == layer_of_hits.layer_id());
+
+          if (found)
+          {
+            chi2 *= 0.001f;
+            ++nSeedHitsFromStash[itrack];
+          }
+
+          // printf("MKF - itrack=%d hit_pos=%d  -- found=%d chi2=%f\n", itrack, hit_cnt, found, chi2);
+        }
 
         dprint("chi2=" << chi2 << " for trkIdx=" << itrack << " hitIdx=" << XHitArr.At(itrack, hit_cnt, 0));
         if (chi2 < max_c2)
@@ -1191,24 +1212,25 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
           }
 
           if (isCompatible) {
-
-	    CombCandidate &ccand = cloner.mp_event_of_comb_candidates->m_candidates[ SeedIdx(itrack, 0, 0) ];
-	    bool hitExists = false;
-	    int maxHits = NFoundHits(itrack,0,0);
-	    if(layer_of_hits.is_pix_lyr())
-	    {
-	      for(int i=0; i<=maxHits; ++i)
-	      {
-		if(i>2) break;
-		if(ccand.m_hots[i].m_hot.layer==layer_of_hits.layer_id())
-		{
-		  hitExists = true;
-		  break;
-		}
-	      }
-	    }
-	    if (hitExists)
-	      continue;
+            /*
+            CombCandidate &ccand = cloner.mp_event_of_comb_candidates->m_candidates[ SeedIdx(itrack, 0, 0) ];
+            bool hitExists = false;
+            int maxHits = NFoundHits(itrack,0,0);
+            if(layer_of_hits.is_pix_lyr())
+            {
+              for(int i=0; i<=maxHits; ++i)
+              {
+                if(i>2) break;
+                if(ccand.m_hots[i].m_hot.layer==layer_of_hits.layer_id())
+                {
+                  hitExists = true;
+                  break;
+                }
+              }
+            }
+            if (hitExists)
+              continue;
+            */
 
             nHitsAdded[itrack]++;
             const int hit_idx = XHitArr.At(itrack, hit_cnt, 0);
@@ -1248,7 +1270,7 @@ void MkFinder::FindCandidatesCloneEngine(const LayerOfHits &layer_of_hits, CandC
 
     // Cands that miss the layer are stashed away in MkBuilder(), before propagation,
     // and then merged back afterwards.
-    if (XWsrResult[itrack].m_wsr == WSR_Outside)
+    if (XWsrResult[itrack].m_wsr == WSR_Outside || nSeedHitsFromStash[itrack] > 0)
     {
       continue;
     }

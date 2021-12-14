@@ -581,7 +581,7 @@ void CombCandidate::CompactifyHitStorageForBestCand(bool remove_seed_hits, int b
   }
 
   // Stash HoTNodes at the end of m_hots.
-  int stash_end = m_hots.size();
+  int stash_end = m_hots.capacity();
   int stash_pos = stash_end;
 
   int idx = tc.lastCcIndex();
@@ -596,12 +596,23 @@ void CombCandidate::CompactifyHitStorageForBestCand(bool remove_seed_hits, int b
     // and here we are trimming everything down to a single candidate.
 
     int n_hits_to_pick = std::max(tc.nFoundHits() - tc.getNSeedHits(), backward_fit_min_hits);
+    int n_seed_hits_to_stash = tc.nFoundHits() - n_hits_to_pick + 1;
     while (n_hits_to_pick > 0)
     {
       m_hots[--stash_pos] = m_hots[idx];
       if (m_hots[idx].m_hot.index >= 0) --n_hits_to_pick;
       idx = m_hots[idx].m_prev_idx;
     }
+    // Stash also valid hits from seed, they will be injected into bkw-search.
+    // Make sure there is enough room for inversion at the end.
+    int seed_stash_end = stash_end - stash_pos >= n_seed_hits_to_stash ? stash_pos : stash_end - n_seed_hits_to_stash;
+    int seed_stash_pos = seed_stash_end;
+    while (idx != -1)
+    {
+      if (m_hots[idx].m_hot.index >= 0) m_hots[--seed_stash_pos] = m_hots[idx];
+      idx = m_hots[idx].m_prev_idx;
+    }
+    m_hots[--seed_stash_pos] = { {-1, -1}, -1, -1 };
 
     // auto lh = m_hots[stash_pos].m_hot;
     // auto pi = m_hots[stash_pos].m_prev_idx;
@@ -622,6 +633,19 @@ void CombCandidate::CompactifyHitStorageForBestCand(bool remove_seed_hits, int b
       tc.addHitIdx(hn.m_hot.index, hn.m_hot.layer, hn.m_chi2);
       ++stash_pos;
     }
+    // And re-stash seed hits at the end of the hots vector in inverse order.
+    stash_pos = stash_end;
+    while (seed_stash_pos < seed_stash_end)
+    {
+      m_hots[--stash_pos] = m_hots[seed_stash_pos++];
+    }
+    // Now stash_pos is at the last kept seed-hit, to be reused.
+    m_seed_hit_pos_bkwsearch = stash_pos;
+
+    // Let's do some debug prinouts here:
+    // printf("Stashor for comb_cand: first hit on %d / %d\n", m_hots[0].m_hot.layer, m_hots[0].m_hot.index);
+    // for (int ii = stash_pos; ii < stash_end; ++ii)
+    //   printf("  %d:  layer=%d  index=%d\n", ii, m_hots[ii].m_hot.layer, m_hots[ii].m_hot.index);
   }
   else
   {
@@ -644,6 +668,7 @@ void CombCandidate::CompactifyHitStorageForBestCand(bool remove_seed_hits, int b
     m_hots.resize(pos);
     m_hots_size = pos;
     tc.setLastCcIndex(pos - 1);
+    m_seed_hit_pos_bkwsearch = 0;
   }
 }
 
