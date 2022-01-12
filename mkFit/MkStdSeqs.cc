@@ -168,6 +168,13 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg,
   std::vector<float>  d0(ns);
   int i1,i2; //for the sorting
 
+  axis_pow2_u1<float, unsigned short, 16, 8> ax_phi(-Config::PI, Config::PI);
+  axis<float, unsigned short, 8, 8> ax_eta(-3.0, 3.0, 30u);
+  binnor<unsigned int, decltype(ax_phi), decltype(ax_eta), 24, 8> b(ax_phi, ax_eta);
+
+  b.begin_registration(ns);
+
+
   for(int ts=0; ts<ns; ts++){
     const Track & tk = seeds[ts];
     nHits[ts] = tk.nFoundHits();
@@ -182,9 +189,15 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg,
     y[ts] = tk.y();
     z[ts] = tk.z();
     d0[ts] = tk.d0BeamSpot(bspot.x,bspot.y);
+
+    b.register_entry_safe(oldPhi[ts], eta[ts]);     // If one is sure values are *within* axis ranges: b.register_entry(oldPhi[ts], eta[ts]);
+
   }
 
-  for(int ts=0; ts<ns; ts++){
+  b.finalize_registration();
+
+  for(int sorted_ts=0; sorted_ts<ns; sorted_ts++){
+    int ts = b.m_ranks[sorted_ts];
 
     if (not writetrack[ts]) continue;//FIXME: this speed up prevents transitive masking; check build cost!
 
@@ -200,9 +213,21 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg,
     // int  n_ovlp_hits_shared = 0;
     // int  n_ovlp_tracks = 0;
 
-    //#pragma simd /* Vectorization via simd had issues with icc */
-    for (int tss= ts+1; tss<ns; tss++)
-    {
+    //these two loops may be put inside the class
+    auto phi_rng = ax_phi.Rrdr_to_N_bins(oldPhi[ts], 0.08);
+    auto eta_rng = ax_eta.Rrdr_to_N_bins(eta[ts], .1);
+
+    for (auto i_phi = phi_rng.begin; i_phi != phi_rng.end; i_phi = ax_phi.next_N_bin(i_phi)){
+    for (auto i_eta = eta_rng.begin; i_eta != eta_rng.end; i_eta = ax_eta.next_N_bin(i_eta)){
+
+    const auto cbin = b.get_content(i_phi, i_eta);
+    for (auto i = cbin.first; i < cbin.end(); ++i){
+      int tss = b.m_ranks[i];
+
+      if (not writetrack[ts]) continue;
+      if (not writetrack[tss]) continue;
+      if (tss==ts) continue;
+
       const float Pt2 = pt[tss];
 
       ////// Always require charge consistency. If different charge is assigned, do not remove seed-track
@@ -296,6 +321,8 @@ int clean_cms_seedtracks_iter(TrackVec *seed_ptr, const IterationConfig& itrcfg,
            tk.sortHitsByLayer();
       }
     } //end of inner loop over tss
+    } //eta bin
+    } //phi bin
 
     if (writetrack[ts])
     {
