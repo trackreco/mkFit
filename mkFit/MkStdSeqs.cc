@@ -482,32 +482,64 @@ void handle_duplicates(Event *m_event)
 void find_duplicates_sharedhits(TrackVec &tracks, const float fraction)
 {
   const auto ntracks = tracks.size();
+  int ncfr_h=0;
+  int ncfr_k=0;
+
+  axis_pow2_u1<float, unsigned short, 16, 8> ax_phi(-Config::PI, Config::PI);
+  axis<float, unsigned short, 8, 8> ax_ctheta(-10.0, 10.0, 30u);
+  binnor<unsigned int, decltype(ax_phi), decltype(ax_ctheta), 24, 8> b(ax_phi, ax_ctheta);
+
+  b.begin_registration(ntracks);
 
   std::vector<float>  ctheta(ntracks);  
   for (auto itrack = 0U; itrack < ntracks; itrack++)
   {
     auto &trk = tracks[itrack];
     ctheta[itrack] = 1.f/std::tan(trk.theta());
+    b.register_entry_safe(trk.momPhi(), ctheta[itrack]);     // If one is sure values are *within* axis ranges: b.register_entry(oldPhi[ts], eta[ts]);
+
   }
 
-  for (auto itrack = 0U; itrack < ntracks; itrack++)
+  b.finalize_registration(); 
+
+  //for (auto itrack = 0U; itrack < ntracks; itrack++)
+  for (auto sorted_itrack = 0U; sorted_itrack < ntracks; sorted_itrack++)
   {
+   
+    int itrack = b.m_ranks[sorted_itrack];
     auto &trk = tracks[itrack];
     auto phi1 = trk.momPhi();
     auto ctheta1 = ctheta[itrack];
+    
+    auto phi_rng = ax_phi.Rrdr_to_N_bins(phi1, 1.0);
+    auto ctheta_rng = ax_ctheta.Rrdr_to_N_bins(ctheta1, 0.24);
+    
+    for (auto i_phi = phi_rng.begin; i_phi != phi_rng.end; i_phi = ax_phi.next_N_bin(i_phi)){
+    for (auto i_ctheta = ctheta_rng.begin; i_ctheta != ctheta_rng.end; i_ctheta = ax_ctheta.next_N_bin(i_ctheta)){
 
-    for (auto jtrack = itrack + 1; jtrack < ntracks; jtrack++)
+    const auto cbin = b.get_content(i_phi, i_ctheta);
+    for (auto i = cbin.first; i < cbin.end(); ++i)
     {
+      int jtrack = b.m_ranks[i];
+    //for (auto jtrack = itrack + 1; jtrack < ntracks; jtrack++)
+    //{
+      ncfr_k++;
+      if(itrack<=jtrack) continue;
+
       auto &track2 = tracks[jtrack];
       auto sharedCount=0;
       auto sharedFirst=0;
-
+      
+      //ncfr_k++;
+      
       auto dctheta = std::abs(ctheta[jtrack] - ctheta1);
       if (dctheta > 1.) continue;
 
       auto dphi = std::abs(squashPhiMinimal(phi1 - track2.momPhi()));
       if (dphi > 1.) continue;
-
+      
+      ncfr_h++;
+      
       for (int i = 0; i < trk.nTotalHits(); ++i)
       {
 	if (trk.getHitIdx(i)<0) continue;
@@ -524,13 +556,17 @@ void find_duplicates_sharedhits(TrackVec &tracks, const float fraction)
       }
       if  ((sharedCount - sharedFirst) >= ((std::min(trk.nFoundHits(), track2.nFoundHits()) - sharedFirst) * (fraction)) )
       {
+        std::cout << " "<< (squashPhiMinimal(phi1 - track2.momPhi())) << ", ";
 	if (trk.score() > track2.score())
 	  track2.setDuplicateValue(true);
 	else
 	  trk.setDuplicateValue(true);
       }
     }
+    }
+    }
   }
+  std::cout << "compare kin "<< ncfr_k << " compare hits "<< ncfr_h << " ---- NNN t ---- " <<ntracks<< std::endl;
   tracks.erase(std::remove_if(tracks.begin(),tracks.end(),[](auto track){return track.getDuplicateValue();}),tracks.end());
 }
 

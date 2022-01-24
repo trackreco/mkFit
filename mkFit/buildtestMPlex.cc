@@ -584,8 +584,17 @@ std::vector<double> runBtpCe_MultiIter(Event& ev, const EventOfHits &eoh, MkBuil
        { return StdSeq::qfilter_nan_n_silly(t); });
 
       builder.select_best_comb_cands(true); // true -> clear m_tracks as they were already filled once above
-
-      StdSeq::find_and_remove_duplicates(builder.ref_tracks_nc(), itconf);
+      double t0 = dtime();
+      int isize = builder.ref_tracks_nc().size();
+      TrackVec xxx; 
+      for (int i=0;i<1;++i) {
+      xxx = builder.ref_tracks_nc();
+      StdSeq::find_and_remove_duplicates(xxx, itconf);
+      }
+      builder.ref_tracks_nc() = xxx;
+      //StdSeq::find_and_remove_duplicates(builder.ref_tracks_nc(), itconf);
+      printf("Dup clean of %d tracks, out_tracks %d, 1000 times, N_comparisons=, took %.5fs, iter. %d\n",
+             isize, builder.ref_tracks_nc().size(), dtime() - t0, itconf.m_track_algorithm);
       builder.export_tracks(ev.fitTracks_);
     }
 
