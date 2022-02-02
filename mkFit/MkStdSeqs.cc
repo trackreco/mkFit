@@ -456,11 +456,20 @@ void find_duplicates_sharedhits(TrackVec &tracks, const float fraction)
 {
   const auto ntracks = tracks.size();
 
-  std::vector<float>  ctheta(ntracks);  
+  std::vector<float>  ctheta(ntracks);
+  std::multimap<int, int> theHitMap;
+
   for (auto itrack = 0U; itrack < ntracks; itrack++)
   {
     auto &trk = tracks[itrack];
     ctheta[itrack] = 1.f/std::tan(trk.theta());
+    for (int i = 0; i < trk.nTotalHits(); ++i)
+      {
+        if (trk.getHitIdx(i)<0) continue;
+        int a=trk.getHitLyr(i);
+        int b=trk.getHitIdx(i);
+        theHitMap.insert(std::make_pair(b*1000+a, i>0?itrack:-itrack)); //negative for first hit in trk
+      }
   }
 
   for (auto itrack = 0U; itrack < ntracks; itrack++)
@@ -469,42 +478,44 @@ void find_duplicates_sharedhits(TrackVec &tracks, const float fraction)
     auto phi1 = trk.momPhi();
     auto ctheta1 = ctheta[itrack];
 
-    for (auto jtrack = itrack + 1; jtrack < ntracks; jtrack++)
+    std::map<int,int> theSharingMap;
+    for (int i = 0; i < trk.nTotalHits(); ++i)
     {
-      auto &track2 = tracks[jtrack];
-      auto sharedCount=0;
-      auto sharedFirst=0;
-
-      auto dctheta = std::abs(ctheta[jtrack] - ctheta1);
-      if (dctheta > 1.) continue;
-
-      auto dphi = std::abs(squashPhiMinimal(phi1 - track2.momPhi()));
-      if (dphi > 1.) continue;
-
-      for (int i = 0; i < trk.nTotalHits(); ++i)
-      {
-	if (trk.getHitIdx(i)<0) continue;
-	int a=trk.getHitLyr(i);
-	int b=trk.getHitIdx(i);
-	for (int j = 0; j < track2.nTotalHits(); ++j)
-	{
-	  if (track2.getHitIdx(j)<0) continue;
-	  int c=track2.getHitLyr(j);
-	  int d=track2.getHitIdx(j);
-	  if(a==c && b==d) sharedCount+=1;
-	  if(a==c && b==d && j==0 && i==0) sharedFirst+=1;
-	}
-      }
-      if  ((sharedCount - sharedFirst) >= ((std::min(trk.nFoundHits(), track2.nFoundHits()) - sharedFirst) * (fraction)) )
-      {
-	if (trk.score() > track2.score())
-	  track2.setDuplicateValue(true);
-	else
-	  trk.setDuplicateValue(true);
-      }
+        if (trk.getHitIdx(i)<0) continue;
+        int a=trk.getHitLyr(i);
+        int b=trk.getHitIdx(i);
+        auto range = theHitMap.equal_range(b*1000+a);
+        for (auto it = range.first; it != range.second; ++it)
+        {
+            if( std::abs(it->second) >= itrack ) continue; // don't check your own hits (==) nor sym. checks (>)
+            if (i==0 && it->second<0) continue; // shared first - first is not counted
+            theSharingMap[std::abs(it->second)]++;
+        }
     }
-  }
+
+    for(const auto& elem : theSharingMap)
+    {
+       auto &track2 = tracks[elem.first];
+
+       //these dctheta dphi are wasting time here -> need to remove these checks and revisit the fraction WP
+       auto dctheta = std::abs(ctheta[elem.first] - ctheta1); if (dctheta > 1.) continue;
+       if (dctheta > 1.) continue;
+
+       auto dphi = std::abs(squashPhiMinimal(phi1 - track2.momPhi()));
+       if (dphi > 1.) continue;
+
+       if ((elem.second) >= ((std::min(trk.nFoundHits(), track2.nFoundHits()) ) * (fraction)) )
+       {
+         if (trk.score() > track2.score())
+           track2.setDuplicateValue(true);
+         else
+           trk.setDuplicateValue(true);
+       }
+    } // end sharing hits loop
+  } // end trk loop
+
   tracks.erase(std::remove_if(tracks.begin(),tracks.end(),[](auto track){return track.getDuplicateValue();}),tracks.end());
+
 }
 
 void find_duplicates_sharedhits_pixelseed(TrackVec &tracks, const float fraction, const float drth_central, const float drth_obarrel, const float drth_forward)
